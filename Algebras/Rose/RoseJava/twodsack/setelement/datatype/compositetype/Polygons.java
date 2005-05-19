@@ -61,7 +61,6 @@ public class Polygons extends Element implements Serializable {
      * Default constructor which constructs an empty <code>Polygons</code> value.
      */
     public Polygons() {
-	//fill in dummy values
 	this.trilist = new TriMultiSet(new TriangleComparator());
 	this.perimeter = -1;
 	this.area = -1;
@@ -275,7 +274,6 @@ public class Polygons extends Element implements Serializable {
 	    Graph polGraph = new Graph(vertices,edges);
 	    
 	    ElemMultiSetList decompPOL = polGraph.computeFaces();
-	    System.out.println("DONE.");
 	    
 	    //Now, compute for every cycle found its triangulation.
 	    for (int i = 0; i < decompPOL.size(); i++) {
@@ -367,7 +365,6 @@ public class Polygons extends Element implements Serializable {
 	Segment actSeg = new Segment();
 	
 	//sweep starts
-	//System.out.print("Pol.compTris:triangulating size:"+xstruct.size());
 	for (int i = 0; i < xstruct.size(); i++) {
 	    //check attribute of current Point
 	    x = (Point)xstruct.get(i);
@@ -461,7 +458,6 @@ public class Polygons extends Element implements Serializable {
 		    if (yElem.pointChain.isEmpty()) {
 			//x lies in an "out" interval of ystruct
 			//insert the elements
-			//System.out.println(" yElem.pointChain is empty, so insert new elements and finish");
 			
 			ystruct.add(yElemPos, mt);
 			ystruct.add(yElemPos+1, start);
@@ -469,7 +465,6 @@ public class Polygons extends Element implements Serializable {
 		    }//if
 		    else {
 			//x lies in an "in" interval of ystruct
-			//System.out.println("  yElem.pointChain is not empty - compute new triangles and split pointChain");
 			//add triangulation segments to tl
 			
 			Point lastP = yElem.rimoEl;
@@ -488,7 +483,6 @@ public class Polygons extends Element implements Serializable {
 			    System.out.println(" FATAL ERROR! No rimoEl in pointChain.");
 			    System.exit(0);
 			}//if
-			//System.out.println("  indexOf(lastP): "+indexLP);
 			//set pCUp,pCDown in case the loops aren't entered
 			pCDown = indexLP;
 			pCUp = indexLP;
@@ -623,34 +617,34 @@ public class Polygons extends Element implements Serializable {
 		    //whethter this is the case and fix it.
 		    SweepStElem yElem = (SweepStElem)ystruct.get(yElemPos);
 		    if (yElem.pointChain.isEmpty()) {
-			System.out.println("CAUTION: index for empty pointChain was returned by method INTERVAL");
-			System.out.print("-->can be fixed: ");
+			//System.out.println("CAUTION: index for empty pointChain was returned by method INTERVAL");
+			//System.out.print("-->can be fixed: ");
 			if ((yElemPos < 3) && (yElem.pointChain.size() < 7)) {
-			    System.out.println("NO(1)");
-			    System.out.println("actual configuration:");
-			    System.out.println("x: "); x.print();
-			    System.out.println("attribute: "+attribute);
+			    //System.out.println("NO(1)");
+			    //System.out.println("actual configuration:");
+			    //System.out.println("x: "); x.print();
+			    //System.out.println("attribute: "+attribute);
 			    
-			    System.out.println("ystruct:");
-			    for (int ys = 0; ys < ystruct.size(); ys++) {
-				LinkedList actPC = ((SweepStElem)ystruct.get(ys)).pointChain;
-				for (int idx = 0; idx < actPC.size(); idx++)
-				    ((Point)actPC.get(idx)).print();
-			    }//for ys
-			    System.out.println();
-			    System.out.println("comp: interval:"+interval(x,ystruct)+" - interval2:"+interval2(x,ystruct)+" - interval3:"+interval3(x,ystruct)+" --> "+yElemPos);
-			    System.exit(0);
+			    /*
+			      System.out.println("ystruct:");
+			      for (int ys = 0; ys < ystruct.size(); ys++) {
+			      LinkedList actPC = ((SweepStElem)ystruct.get(ys)).pointChain;
+			      for (int idx = 0; idx < actPC.size(); idx++)
+			      ((Point)actPC.get(idx)).print();
+			      }//for ys
+			      System.out.println();
+			      System.out.println("comp: interval:"+interval(x,ystruct)+" - interval2:"+interval2(x,ystruct)+" - interval3:"+interval3(x,ystruct)+" --> "+yElemPos);
+			      System.exit(0);
+			    */
 			}//if
 			else if ((yElemPos > 2) &&
 				 (x.equal((Point)((SweepStElem)ystruct.get(yElemPos-1)).pointChain.getFirst()) ||
 				  x.equal((Point)((SweepStElem)ystruct.get(yElemPos-1)).pointChain.getLast()))) {
-			    System.out.println("YES(1)");
 			    yElemPos = yElemPos-1;
 			    yElem = (SweepStElem)ystruct.get(yElemPos);
 			}//if
 			else if (x.equal((Point)((SweepStElem)ystruct.get(yElemPos+1)).pointChain.getFirst()) ||
 				 x.equal((Point)((SweepStElem)ystruct.get(yElemPos+1)).pointChain.getLast())) {
-			    System.out.println("YES(2)");
 			    yElemPos = yElemPos+1;
 			    yElem = (SweepStElem)ystruct.get(yElemPos);
 			}//if
@@ -865,7 +859,6 @@ public class Polygons extends Element implements Serializable {
 		    //case here and combine both pointChains of that two yElems.
 		    //Up to now we observed only one case in which this should
 		    //be checked and this will be fixed here.
-		    //System.out.println("\nwork on special case...");
 		    
 		    if (ystruct.size() > yElemPos+3) {
 			SweepStElem current = yElem;
@@ -1167,9 +1160,7 @@ public class Polygons extends Element implements Serializable {
 				Segment sweepline = new Segment(x.x,minY,x.x,maxY);
 				
 				//constructing intersection points
-				//System.out.println("sweepline construction[2]");
 				Point int1 = sweepline.intersection(new Segment(p01,p02));
-				//System.out.println("sweepline construction[3]");
 				Point int2 = sweepline.intersection(new Segment(p03,p04));
 				
 				//now determine, whether we have a special case
@@ -1422,7 +1413,7 @@ public class Polygons extends Element implements Serializable {
 	    boolean inside = false;
 	    boolean outside = false;
 	    Rational ypos = p.y;
-	    //System.out.println("ypos:"+ypos);
+
 	    for (int i = 0; i < ystruct.size(); i++) {
 		SweepStElem actSSE = (SweepStElem)ystruct.get(i);
 		if (!actSSE.pointChain.isEmpty()) {
@@ -1437,7 +1428,6 @@ public class Polygons extends Element implements Serializable {
 			 (Mathset.pointPosition(g21,g22,p) == -1))) {
 			marker = i;
 			inside = true;
-			System.out.println("P.interval-case2");
 			break;
 		    }//if
 		    //ypos is smaller than the next not mt interval,
@@ -1447,7 +1437,6 @@ public class Polygons extends Element implements Serializable {
 			if (i > 0) {
 			    marker = i-1;
 			    outside = true;
-			    System.out.println("P.interval-case3");
 			    break;
 			}//if
 		    }//if
@@ -1458,7 +1447,7 @@ public class Polygons extends Element implements Serializable {
 	    }//if
 	    
 	}//else
-	System.out.println("P.interval-case4");
+
 	return ystruct.size()-1;
     }//end method interval
 		    
@@ -1683,8 +1672,6 @@ public class Polygons extends Element implements Serializable {
      * @return the proper result, which is "start", "end" or "bend"
      */
     private static String attribute(Point x, LinkedList sortedBorder) {
-	//System.out.println("entering Pol.attribute...");
-	
 	//compute sorted border
 	LinkedList border = resortBorder(sortedBorder,x);
 
@@ -2048,6 +2035,7 @@ public class Polygons extends Element implements Serializable {
 		System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 		System.out.println("Exceptoin cause: "+e.getCause());
 		System.out.println("Exception string: "+e.toString());
+		e.printStackTrace();
 		System.exit(0);
 	    }//catch
 	    if (retList.isEmpty()) { return false; }
@@ -2355,8 +2343,6 @@ public class Polygons extends Element implements Serializable {
      * @return the <code>CycleListList</code> representing the cycles of <code>this</code>
      */
     public CycleListList cyclesSegments() {
-	//System.out.print("-->computing segments for NestedList conversion(Polygons.cyclesSegments)...");
-
 	double tt01 = System.currentTimeMillis();
 
 	//compute border form triangles if neccessary
@@ -2593,7 +2579,6 @@ public class Polygons extends Element implements Serializable {
      * @see #computeMesh
      */
     public static TriMultiSet computeMeshSingleCycle (SegMultiSet border) {
-	//System.out.println("entering P.computeMeshSingleCycle... ("+border.size()+" elements)");
 	if (border.isEmpty()) return new TriMultiSet(new TriangleComparator());
 	try {
 	    MeshGenerator myMG = new MeshGenerator();

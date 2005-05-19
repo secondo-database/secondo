@@ -25,13 +25,17 @@ import java.io.Serializable;
  * {@link ElemMultiSet}.
  */
 public class MultiSet implements Serializable {
-    //members
+    /*
+     * fields
+     */
     private TreeSet ts;
     private Comparator comparatorTS;
     public int size;
+    
 
-    //constructors
-
+    /*
+     * constructors
+     */
     /**
      * Default constructor.
      * Constructs new instance and sets default values.
@@ -68,16 +72,11 @@ public class MultiSet implements Serializable {
      * @param o the object to be added
      */
     public void add(Object o) {
-	//System.out.println("entering MultiSet.add...");
-
 	MultiSetEntry compO = new MultiSetEntry(o,1);
 
 	this.size++;
 	
 	if (!ts.add(compO)) {
-
-	    //if (!ts.contains(compO)) ts.add(compO);
-	    //else {
 	    SortedSet ss = ts.tailSet(compO);
 	    ((MultiSetEntry)ss.first()).number++;
 	}//else
@@ -127,7 +126,6 @@ public class MultiSet implements Serializable {
 	MultiSetEntry actEntry;
 	while (it.hasNext()) {
 	    actEntry = (MultiSetEntry)it.next();
-	    //add(actEntry.value,actEntry.number);
 	    add(actEntry);
 	}//while
     }//end method addAll
@@ -285,16 +283,10 @@ public class MultiSet implements Serializable {
 	
 	MultiSetEntry compO = new MultiSetEntry(o,1);
 	
-	/*
-	if (ts.contains(compO)) {
-	*/
 	SortedSet ss = ts.tailSet(compO);
 	int num = ((MultiSetEntry)ss.first()).number;
 	this.size = this.size - num;
 	ts.remove(compO);
-	/*	
-	  }//if
-	*/
     }//end method removeAllOfThisKind
 
 
@@ -307,22 +299,9 @@ public class MultiSet implements Serializable {
      * @param num the number of entries that the object has
      */
     public void removeAllOfThisKind(Object o, int num) {
-	
 	MultiSetEntry compO = new MultiSetEntry(o,1);
 	ts.remove(compO);
 	this.size = this.size - num;
-
-
-	/*
-	if (ts.contains(compO)) {
-	
-	SortedSet ss = ts.tailSet(compO);
-	int num = ((MultiSetEntry)ss.first()).number;
-	this.size = this.size - num;
-	ts.remove(compO);
-		
-	  }//if
-	*/
     }//end method removeAllOfThisKind
 
     /**
@@ -345,8 +324,6 @@ public class MultiSet implements Serializable {
      * @return an array of (sorted) objects
      */
     public Object[] toArray() {
-	//System.out.println("MS.toArray() called");
-	//(new Throwable()).printStackTrace(); System.exit(0);
 	Object[] retArr = new Object[this.size];
 	Iterator it = ts.iterator();
 	int index = 0;

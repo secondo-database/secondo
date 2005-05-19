@@ -267,9 +267,15 @@ public class Mathset {
     }//end method linear_dependent
     
     
+    /**
+     * Returns the angle between two vectors.
+     * The scalar product is used to compute the angle.
+     *
+     * @param p1 the first vector
+     * @param p2 the second vector
+     * @return the angle as Rational
+     */
     public static Rational angle(Point p1, Point p2) {
-	//computes the angle between two vectors using the scalar product
-	//caution: this is not computed precisely
 	Rational e = RationalFactory.constRational(prod(p1,p2).dividedby(length(p1).times(length(p2))));
 	e = RationalFactory.constRational(Math.acos(e.getDouble()));
 	e = RationalFactory.constRational(Math.toDegrees(e.getDouble()));
@@ -277,11 +283,16 @@ public class Mathset {
     }//end method angle
     
 
+    /**
+     * Returns the angle between two vectors.
+     * The scalar product is used to compute the angle. The result is stored in <i>in</i>.
+     *
+     * @param p1 the first point
+     * @param p2 the second point
+     * @param in the result is stored in this parameter
+     * @return the angle as Rational
+     */
     public static Rational angle(Point p1, Point p2, Rational in) {
-	//computes the angle between two vectors using the scalar product
-	//caution: this is not computed precisely
-	//result is stored in Rational in
-	//in.assign(prod(p1,p2,in).dividedby(length(p1,in).times(length(p2,in),in)));
 	in.assign(prod(p1,p2).dividedby(length(p1).times(length(p2))));
 	double e = Math.acos(in.getDouble());
 	e = Math.toDegrees(e);
@@ -289,72 +300,48 @@ public class Mathset {
 	return in;
     }//end method angle
 
+
+    /**
+     * Returns the angle between two vectors.
+     * The scalar product is used to compute the angle.
+     * 
+     * @param p1 the first vector
+     * @param p2 the second vector
+     * @return the result as double
+     */
     public static double angleD(Point p1, Point p2) {
-	//computes the angle between two vectors using the scalar product
-	//caution: this is computed as 'double'
 	double e = (prod(p1,p2)).getDouble() / (lengthD(p1) * lengthD(p2));
 	e = Math.acos(e);
 	e = Math.toDegrees(e);
 	return e;
     }//end method angleD
     
+
+    /**
+     * Normalizes the vector.
+     *
+     * @param p the 'in' vector
+     * @return the normalized p
+     */
     public static Point normalize(Point p){
-	//returns the normalized vector p
 	p.x = p.x.dividedby(length(p));
 	p.y = p.y.dividedby(length(p));
 	return p;
     }//end method normalize
     
-    /*
-      public static Rational distanceLinePoint(Point g1, Point g2, Point p) {
-      //returns the distance from p to line build by g1,g2
-      //caution: this is NOT the distance to a segment
-      //caution: this is not computed precisely
-      Point dir = diff(g2,g1);
-      System.out.println("  dir("+dir.x.toString()+","+dir.y.toString()+")");
-      Point solder = new Point();
-      Point x0 = new Point();
-      Rational t0 = new Rational(0);
-      t0 = prod(diff(p,g1),dir).dividedby((length(dir).times(length(dir))));
-      System.out.println("  t0 = "+t0.toString());
-      x0.x = g1.x.plus(t0.times(g2.x));
-      x0.y = g1.y.plus(t0.times(g2.y));
-      System.out.println("  x0("+x0.x.toString()+","+x0.y.toString()+")");
-      solder = diff(x0,p);
-      System.out.println("  solder("+solder.x.toString()+","+solder.y.toString()+")");
-      return new Rational(Math.sqrt(((solder.x.times(solder.x)).plus((solder.y.times(solder.y)))).getDouble()));   
-      }//end method distanceSegPoint
-    */
 
-    /*
-      public static Point solderSegmentPoint(Segment s, Point p) {
-      //returns the distance between s and p
-      //caution: this is not computed precisely
-      //caution: this returns the solder to a LINE and not to a segment
-      //which means that the solder may not lie on the segment
-      Point dir = diff(s.getEndpoint(),s.getStartpoint());
-      Point solder = new Point();
-      Point x0 = new Point();
-      Rational t0 = new Rational(0);
-      t0 = prod(diff(p,s.getStartpoint()),dir).dividedby((length(dir).times(length(dir))));
-      x0.y = s.getStartpoint().x.plus(t0.times(s.getEndpoint().x));
-      x0.y = s.getStartpoint().y.plus(t0.times(s.getEndpoint().y));
-      solder = diff(x0,p);
-      return (Point)solder.copy();
-      }//end method solderSegmentPoint
-    */
-
+    /**
+     * Returns one of {0, -1, 1} depending on the position of p and the line through g1,g2.
+     * Returns 0, if p lies on the line through g1,g2.<p>
+     * Returns 1, if p lies on the right side of the line through g1,g2.<p>
+     * Returns -1 otherwise.
+     *
+     * @param g1 the first point of the line
+     * @param g2 the second point of the line
+     * @param p the point that is checked
+     * @return one of {0, -1, 1} as byte
+     */
     public static byte pointPosition(Point g1, Point g2, Point p) {
-	//returns 0 if p lies on the line formed by g1,g2
-	//returns 1 if p lies on the right side of the line
-	//returns -1 if p lies on the left side of the line
-	//CAUTION: here an overflow may happen!
-	//patched with doubles used in computation
-	//CAUTION: this method is called MUCH too often:
-	//e.g.: 60 times for SegTri_Ops.pintersects!!! check this
-	//System.out.println("MS.pp");
-
-	
 	double s1x = g2.x.getDouble() - g1.x.getDouble();
 	double s1y = g2.y.getDouble() - g1.y.getDouble();
 	double s2x = p.x.getDouble() - g1.x.getDouble();
@@ -365,39 +352,18 @@ public class Mathset {
 	if (t0 < DERIV_DOUBLE_NEG) return 1;
 	else if (t0 > DERIV_DOUBLE) return -1;
 	else return 0;
-	
-
-	/*
-	// OLD BUT FUNCTIONAL CODE
-	Point s1;
-	Point s2;
-	s1 = diff(g2,g1); //System.out.println("s1: "); s1.print();
-	s2 = diff(p,g1); //System.out.println("s2: "); s2.print();
-	
-	// new code
-	//PATCH: because we don't need to know the exact
-	//value of t0, we don't compute it with Rationals,
-	//but with doubles. We produce a warning, if the 
-	//resulting value is near to 0.
-	//System.out.println("s1.x:"+s1.x+", s1.double: "+s1.x.getDouble());
-	double s1x = s1.x.getDouble(); //System.out.println("s1x: "+s1x);
-	double s1y = s1.y.getDouble(); //System.out.println("s1y: "+s1y);
-	double s2x = s2.x.getDouble(); //System.out.println("s2x: "+s2x);
-	double s2y = s2.y.getDouble(); //System.out.println("s2y: "+s2y);
-	double t0 = s1x*s2y - s1y*s2x;
-	//double t0 = (s1.x.getDouble()*s2.y.getDouble())-(s1.y.getDouble()*s2.y.getDouble());
-	//System.out.println("t0: "+t0);
-
-	if (t0 < DERIV_DOUBLE_NEG) return 1;
-	else if (t0 > DERIV_DOUBLE) return -1;
-	else return 0;
-	*/
     }//end method pointPosition
     
 
+    /**
+     * Returns the projection of point p on the line through a,b.
+     *
+     * @param p the point that is projected
+     * @param a the first point of the line
+     * @param b the second point of the line
+     * @return the projected point
+     */
     public static Point projectionPointLine(Point p, Point a, Point b) {
-	//returns the projection of point p on the line formed
-	//by points a,b
 	Point AProj;
 	Point AB;
 	Point AP;

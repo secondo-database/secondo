@@ -1,8 +1,11 @@
-package twodsack.util.collection;
+/*
+ * IvlList.java 2005-05-11
+ *
+ * Dirk Ansorge, FernUniversitaet Hagen
+ *
+ */
 
-//CAUTION: there is no order used here if left and right 
-//borders are equal, but the refs not. It may happen that
-//the operations won't work properly in that case.
+package twodsack.util.collection;
 
 import twodsack.set.*;
 import twodsack.setelement.*;
@@ -10,11 +13,17 @@ import twodsack.util.collectiontype.*;
 import twodsack.util.iterator.*;
 import java.util.*;
 
+/**
+ * An IvlList is a list to store intervals. These intervals must be of type {@link twodsack.util.collectiontype.Interval} to assure that the operations of this class work
+ * correctly. The most important operations of this class are the intersection/merge/overlappingIntervals methods which are all used by
+ * SetOps.overlappingPairs().<p>
+ * This class extends {@link ProLinkedList} and not Sun's LinkedList. A ProLinkedList behaves better than a LinkedList when using iterators.
+ */
 public class IvlList extends ProLinkedList {
-    //supportive class for SetOps
-    //implements a double linked list
-    
-    //members
+    /*
+     * fields
+     */
+    //all these iterators are declared once and reused many times
     private static ProLinkedList PLL = new ProLinkedList();
     private static ProListIterator PLI_MERGE1 = PLL.listIterator(0);
     private static ProListIterator PLI_MERGE2 = PLL.listIterator(0);
@@ -28,10 +37,10 @@ public class IvlList extends ProLinkedList {
     private static ProListIterator PLI_CONT1 = PLL.listIterator(0);
     private static ProListIterator PLI_CONT2 = PLL.listIterator(0);
     
-    //constructors
     
-    //methods
-    
+    /*
+     * methods
+     */
     public void print() {
 	//prints out the IvlList's intervals
 	if (this.isEmpty()) System.out.println("List is empty.");
@@ -42,80 +51,21 @@ public class IvlList extends ProLinkedList {
 	}//while
     }//end method print
     
-    /* IS NOT NEEDED CURRENTLY
-      public static IvlList copy(IvlList inlist) {
-      IvlList copy = new IvlList();
-      ListIterator it = inlist.listIterator(0);
-      while (it.hasNext()) {
-      copy.add(((Interval)it.next()).copy());
-      }//while
-      return copy;
-      }//end method copy
-    */
 
-    /*
-    public static IvlList insert(IvlList ivll, Interval ivl) throws WrongTypeException {
-	//CAUTION:this method is not used
-	//if you want to use this, first correct it so that is uses Iterators
-	//inserts ivl in this.object, sorted accordant to left borders
-
-	//if list ist empty, insert interval
-	if (ivll.size() == 0) {
-	    ivll.add(ivl);
-	}//if
-	//if list isn't empty search for the right position
-	else {
-	    int pos = -1;
-	    for (int i = 0; i < ivll.size(); i++) {
-		Interval iel1 = (Interval)ivll.get(i);
-		if ((iel1.left.equal(ivl.left) && iel1.right.greater(ivl.right)) ||
-		    iel1.left.greater(ivl.left)) {
-		    pos = i;
-		    break;
-		}//if
-	    }//for i
-	    //if we passed through the whole list simply add interval
-	    if (pos == -1) {
-		ivll.add(ivl);
-	    }//if
-	    else {
-		ivll.add(pos,ivl);
-	    }//else
-	}//else
-	
-	return ivll;
-    }//end method insert
-    */
-
+    /**
+     * Merges two instances of IvlList.
+     * Duplicates are removed, i.e. for two lists (a,b,c) x (b,c,d) the result is (a,b,c,d). The result list is constructed as a new instance
+     * of IvlList, if <i>keep</i> = true. Otherwise, the result list is stored in list1.
+     *
+     * @param list2 the first list
+     * @param list1 the second list
+     * @param keep if false, result is stored in list1; otherwise, a new list is constructed for the result
+     * @return the merged lists
+     */
     public static IvlList merge(IvlList list2, IvlList list1, boolean keep) {
-	//returns merged lists
-	//removes duplicates, i.e. keeps one object instead of two
-	//if keep = true, both lists are kept unchanged
-	//if keep = false, list1 is used to store elements
-	
-
-
-	/* NEWEST IMPLEMENTATION (1)*/
-	
 	if (!keep) {
 	    if (list1.head.next == null) return list2;
 	    if (list2.head.next == null) return list1;
-	    
-	    //System.out.println("\n------------------------------------------");
-	    //System.out.println("list1: "); list1.print();
-	    //System.out.println("\nlist2: "); list2.print();	
-	    
-	    /* Can NOT be used here, since only the second list may be changed! 
-	     * If both lists could be changed, it would improve the run time.
-	     *
-	     * //choose the larger of the two lists as base list where to insert the 
-	     * //elements of the other list
-	     * if (list1.size() < list2.size()) {
-	     * IvlList il = list1;
-	     * list1 = list2;
-	     * list2 = il;
-	     * }//if
-	     */
 	    
 	    Entry pointerL1 = list1.head.next;
 	    Entry pointerL2 = list2.head.next;
@@ -219,110 +169,10 @@ public class IvlList extends ProLinkedList {
 		list1.last.next = list2.last.next;
 	    }//if
 	    
-	    
-	    //boolean correct = list1.checkList(false);
-	    //System.out.println("\ncheckList: "+list1.checkList(false)+", size: "+list1.size());
-	    //System.out.println("merged: "); list1.print();
-	    //System.out.println("head.prev: "+list1.head.prev+", last.next: "+list1.last.next+", last.next.next: "+list1.last.next.next);
-	    
 	    return list1;
 	}//if !keep
-	
-	/* old NEW IMPLEMENTATION  (2)
-	 * returns the resulting list in list1
-	 */
-	/*
-	if (list1.isEmpty()) return list2;
-	if (list2.isEmpty()) return list1;
-	
-	//System.out.println("\n------------------------------------------");
-	//System.out.println("list1: "); list1.print();
-	//System.out.println("\nlist2: "); list2.print();
-
-	ProListIterator it1 = (ProListIterator)list1.listIterator(0);
-	ProListIterator it2 = (ProListIterator)list2.listIterator(0);
-	boolean next1 = true; //if true, get next element of it1
-	boolean next2 = true; //dito for it2
-	Interval ivl1 = null;
-	Interval ivl2 = null;
-	boolean i1LequalI2L;
-	
-	//Though the condition for the while loop looks strange, it really makes sense:
-	//It is not sufficient to let the loop run until one of the iterators has no
-	//elements left, because there are always stored intervals in ivl1 and ivl2.
-	//Therfore, the loop ends, iff an iterator has no more elements AND the
-	//appropriate 'next' is set to true, i.e. the interval stored was used in the 
-	//last iteration. In other words, the loop may be entered, when
-	// - hasNext is true for an iterator
-	// - hasNext is false, but 'next' is also false (i.e. interval still stored)
-	while ((!next1 || it1.hasNext()) &&
-	       (!next2 || it2.hasNext())) {
-	
-	    if (next1) ivl1 = (Interval)it1.next();
-	    if (next2) ivl2 = (Interval)it2.next();
-	    next1 = false;
-	    next2 = false;
-	    
-	    if (ivl1.left.less(ivl2.left))
-		next1 = true;
-
-	    else if (ivl1.left.greater(ivl2.left)) {
-		it1.addBefore(ivl2);
-		next2 = true;
-	    }//if
-	    else {
-		i1LequalI2L = ivl1.left.equal(ivl2.left);
-		if (i1LequalI2L &&
-		    ivl1.right.equal(ivl2.right)) {
-		    if (ivl1.number == ivl2.number) {
-			next1 = true;
-			next2 = true;
-		    }//if
-		    
-		    else if (ivl1.number < ivl2.number)
-			next1 = true;
-		    else {
-			it1.addBefore(ivl2);
-			next2 = true;
-		    }//else
-		}//if
-		else if (i1LequalI2L &&
-			 ivl1.right.less(ivl2.right))
-		    next1 = true;
-		else if (i1LequalI2L &&
-			 ivl1.right.greater(ivl2.right)) {
-		    it1.addBefore(ivl2);
-		    next2 = true;
-		}//if
-		else {
-		    System.out.println("IvlList.merge: uncaught case...");
-		    ivl1.print();
-		    ivl2.print();
-		    System.exit(0);
-		}//else
-	    }//else
-	}//while
-
-	//save the elements that is already in 'next' for it2 but is not saved yet
-	if (!next2)
-	    if (!it1.hasNext()) list1.add(ivl2);
-	    else it1.addBefore(ivl2);
-
-	//store remaining elements of it2
-	while (it2.hasNext()) 
-	    list1.add((Interval)it2.next());
-	
-	//System.out.println("merged: "); list1.print();
-	
-	//boolean correct = list1.checkList(false);
-	//System.out.println("list correct: "+correct);
-
-	return list1;
-	*/
 
 	else { //if keep = true
-	    
-	    /* OLD IMPLEMENTATION (3) */
 	    
 	    if (list1.isEmpty()) return list2;
 	    if (list2.isEmpty()) return list1;
@@ -332,10 +182,8 @@ public class IvlList extends ProLinkedList {
 	    int pos2 = 0;
 	    int ll1 = list1.size();
 	    int ll2 = list2.size();
-	    //ProListIterator it1 = list1.listIterator(0);
 	    PLI_MERGE1.setList(list1);
 	    ProListIterator it1 = PLI_MERGE1;
-	    //ProListIterator it2 = list2.listIterator(0);
 	    PLI_MERGE2.setList(list2);
 	    ProListIterator it2 = PLI_MERGE2;
 	    boolean next1 = true;
@@ -343,17 +191,12 @@ public class IvlList extends ProLinkedList {
 	    Interval ivl1 = (Interval)list1.getFirst();//just for initialization
 	    Interval ivl2 = (Interval)list2.getFirst();//
 	    boolean i1LequalI2L;
-	    
-	    //System.out.println("***************************");
-	    //System.out.println("list1:"); list1.print();
-	    //System.out.println("\nlist2:"); list2.print();
-	    
+	    	    
 	    while ((!next1 || it1.hasNext()) && 
 		   (!next2 || it2.hasNext())) {
 		if (next1) ivl1 = (Interval)it1.next();
 		if (next2) ivl2 = (Interval)it2.next();
-		//System.out.println("\nivl1:"); ivl1.print();
-		//System.out.println("ivl2:"); ivl2.print();
+		
 		next1 = false;
 		next2 = false;
 		if (ivl1.left.less(ivl2.left)) {
@@ -406,12 +249,6 @@ public class IvlList extends ProLinkedList {
 	    if (!next1) { retList.add(ivl1); }
 	    if (!next2) { retList.add(ivl2); }
 	    
-	    
-	    //System.out.println("\n-------------------------------------\nretList: "+retList+", it1.hasNext: "+it1.hasNext()+", checkList: "+retList.checkList(false));
-
-	    //System.out.println("\n-------------------------------------\nlist1:"); list1.print();
-	    //System.out.println("\nretList:"); retList.print();
-
 	    while (it1.hasNext()) {
 		retList.add(((Interval)it1.next()));
 	    }//while
@@ -419,39 +256,32 @@ public class IvlList extends ProLinkedList {
 		retList.add(((Interval)it2.next()));
 	    }//while
 	    
-	    //System.out.println("\nretList:"); retList.print();
-	    
-	    //boolean contains = retList.checkContains(list1,list2);
-
 	    return retList;
 	}//else keep = true
     }//end method merge
     
 
+    /**
+     * Returns list1 minus list2.
+     * For two lists (a,b,c) x (b,c,d) the result of minus is (a)
+     *
+     * @param list1 the first list
+     * @param list2 the second list
+     * @return list1 minus list2
+     */
     public static IvlList minus(IvlList list1, IvlList list2) {
-	//returns the list1 minus list2
-	//the minus operation is performed with only comparing
-	//the borders of the intervals and nothing more
-	//caution: now the refs are also checked! this should solve some problems
 	if (list1.isEmpty() || list2.isEmpty()) return list1;
 	IvlList retList = new IvlList();
-	//int pos1 = 0;
-	//int pos2 = 0;
-	//int ll1 = list1.size();
-	//int ll2 = list2.size();
+
 	PLI_MINUS1.setList(list1);
-	ProListIterator it1 = PLI_MINUS1;//= list1.listIterator(0);
+	ProListIterator it1 = PLI_MINUS1;
 	PLI_MINUS2.setList(list2);
-	ProListIterator it2 = PLI_MINUS2;// list2.listIterator(0);
+	ProListIterator it2 = PLI_MINUS2;
 	boolean next1 = true;
 	boolean next2 = true;
 	Interval ivl1 = (Interval)list1.getFirst();//just to set a value; is not needed
 	Interval ivl2 = (Interval)list2.getFirst();//dito
 
-	//System.out.println("*********************************");
-	//System.out.println("list1:"); list1.print();
-	//System.out.println("\nlist2:"); list2.print();
-	
 	while ((!next1 || it1.hasNext()) &&
 	       (!next2 || it2.hasNext())) {
 	    if (next1) ivl1 = (Interval)it1.next();
@@ -505,105 +335,98 @@ public class IvlList extends ProLinkedList {
 
 	return retList;
     }//end method minus
-    
 
-  public static IvlList intersect(IvlList list1, IvlList list2) {
-    //returns the intersection of list1 and list2
-    //caution: an interval which is represented in both is only checked
-    //whether its left and right borders are equal
-    //the element of list1 is then added to the returnlist
-    //caution: now it is additionally checked with refs. this should do it.
 
-    if (list1.isEmpty()) return list1;
-    if (list2.isEmpty()) return list2;
-    IvlList retList = new IvlList();
-    int pos1 = 0;
-    int pos2 = 0;
-    int ll1 = list1.size();
-    int ll2 = list2.size();
-    PLI_INT1.setList(list1);
-    ProListIterator it1 = PLI_INT1;//list1.listIterator(0);
-    PLI_INT2.setList(list2);
-    ProListIterator it2 = PLI_INT2;//list2.listIterator(0);
-    boolean next1 = true;
-    boolean next2 = true;
-    Interval ivl1 = (Interval)list1.getFirst();//just for initialization
-    Interval ivl2 = (Interval)list2.getFirst();//dito
-
-    while ((!next1 || it1.hasNext()) &&
-	   (!next2 || it2.hasNext())) {
-	if (next1) ivl1 = (Interval)it1.next();
-	if (next2) ivl2 = (Interval)it2.next();
-	next1 = false;
-	next2 = false;
-
-	if (ivl1.left.less(ivl2.left)) {
-	    next1 = true;
-	}//if
-	else if (ivl1.left.greater(ivl2.left)) {
-	    next2 = true;
-	}//if
-	else if (ivl1.left.equal(ivl2.left) &&
-		 ivl1.right.equal(ivl2.right)) {
-	    if (ivl1.number == ivl2.number) {
-		retList.add(ivl1);
+    /**
+     * Returns the intersection of two IntervalList(s).
+     * For two lists (a,b,c) x (b,c,d) the result of intersect is (b,c).
+     *
+     * @param list1 the first list
+     * @param list2 the second list
+     * @return the intersection of list1 and list2   
+     */
+    public static IvlList intersect(IvlList list1, IvlList list2) {
+	if (list1.isEmpty()) return list1;
+	if (list2.isEmpty()) return list2;
+	IvlList retList = new IvlList();
+	int pos1 = 0;
+	int pos2 = 0;
+	int ll1 = list1.size();
+	int ll2 = list2.size();
+	PLI_INT1.setList(list1);
+	ProListIterator it1 = PLI_INT1;
+	PLI_INT2.setList(list2);
+	ProListIterator it2 = PLI_INT2;
+	boolean next1 = true;
+	boolean next2 = true;
+	Interval ivl1 = (Interval)list1.getFirst();//just for initialization
+	Interval ivl2 = (Interval)list2.getFirst();//dito
+	
+	while ((!next1 || it1.hasNext()) &&
+	       (!next2 || it2.hasNext())) {
+	    if (next1) ivl1 = (Interval)it1.next();
+	    if (next2) ivl2 = (Interval)it2.next();
+	    next1 = false;
+	    next2 = false;
+	    
+	    if (ivl1.left.less(ivl2.left)) {
 		next1 = true;
+	    }//if
+	    else if (ivl1.left.greater(ivl2.left)) {
 		next2 = true;
 	    }//if
-	    else if (ivl1.number < ivl2.number) { next1 = true; }
-	    else { next2 = true; }
-	}//if
-	else if (ivl1.left.equal(ivl2.left) &&
-		 ivl1.right.less(ivl2.right)) {
-	    next1 = true;
-	}//if
-	else if (ivl1.left.equal(ivl2.left) &&
-		 ivl1.right.greater(ivl2.right)) {
-	    next2 = true;
-	}//if
-	else {
-	    System.out.println("IvlList.intersect: uncaught case!");
-	    ivl1.print();
-	    ivl2.print();
-	    System.exit(0);
-	}//else
-    }//while
-    
-    return retList;
-  }//end method intersect
-    
-
-    public static PairMultiSet overlappingIntervals(ProLinkedList[] intStore, boolean sameSet, int size, IvlList list1, IvlList list2, PairMultiSet retList) {
-	//returns a list containing only the overlapping pairs of intervals of l1 and l2
-	//all intersections are stored in intStore, so if an intersection
-	//is found first check if it's already in intStore
-	//if sameSet=true, it is additionally checked whether ivl1.number == ivl2.number-size
-	//if true, the pair isn't reported
-
-	//System.out.println("entering overlappingIntervals... , sameSet:"+sameSet+", size:"+size);
-	//PairMultiSet retList = new PairMultiSet(new ElemPairComparator());
-
-	/* NEW IMPLEMENTATION */
-
+	    else if (ivl1.left.equal(ivl2.left) &&
+		     ivl1.right.equal(ivl2.right)) {
+		if (ivl1.number == ivl2.number) {
+		    retList.add(ivl1);
+		    next1 = true;
+		    next2 = true;
+		}//if
+		else if (ivl1.number < ivl2.number) { next1 = true; }
+		else { next2 = true; }
+	    }//if
+	    else if (ivl1.left.equal(ivl2.left) &&
+		     ivl1.right.less(ivl2.right)) {
+		next1 = true;
+	    }//if
+	    else if (ivl1.left.equal(ivl2.left) &&
+		     ivl1.right.greater(ivl2.right)) {
+		next2 = true;
+	    }//if
+	    else {
+		System.out.println("IvlList.intersect: uncaught case!");
+		ivl1.print();
+		ivl2.print();
+		System.exit(0);
+	    }//else
+	}//while
 	
-	if (list1.isEmpty() || list2.isEmpty()) return retList;				     
+	return retList;
+    }//end method intersect
+    
 
-
-	//System.out.println("\n----------------------------------------");
-	//System.out.println("entering IvlL.overlappingIntervals... ("+list1.size()+", "+list2.size()+")");
-
-	//System.out.println("sameSet: "+sameSet+", size: "+size);
-	//System.out.println("list1: "); list1.print();
-	//System.out.println("\nlist2: "); list2.print();
-
+    /**
+     * Returns a set of pairs containing the pairs of overlapping intervals of both lists.
+     * In <i>intStore</i> lists of intervals are stored which were already found as overlapping intervals. In there, the number of the 
+     * interval is stored. If two intervals are found, it is looked up, whether this pair was found before. If so, it is not stored in 
+     * the result set.<p>
+     * If <i>sameSet</i> = true, list1 and list2 have the same elements. So intervals with the same number or the same referenced object
+     * are not reported.
+     *
+     * @param intStore an array of ProLinkedList(s); every list contains Integer values which are numbers of intervals
+     * @param sameSet true, if list1 and list2 are referencing the same set
+     * @param size the size of list1
+     * @param list1 the first list of intervals
+     * @param list2 the second list of intervals
+     * @param retList new pairs are stored in this sett; it is identical to the returned sett
+     */
+    public static PairMultiSet overlappingIntervals(ProLinkedList[] intStore, boolean sameSet, int size, IvlList list1, IvlList list2, PairMultiSet retList) {
 	if (list1.isEmpty() || list2.isEmpty()) return retList;
 
 	IvlList inList1 = list1;
 	IvlList inList2 = list2;
 	
-	//Iterator it1,it2,it3,it4;
 	ProListIterator it3,it4;
-	//IvlList actList,otherList;
 	Entry actList,othList;
 	Interval ivl1,ivl2;
 	boolean alreadyAdded = false;
@@ -614,49 +437,32 @@ public class IvlList extends ProLinkedList {
 	Entry actPointer,othPointer; //used as iterators
 	int id;
 	
-	//while (!inList1.isEmpty() && !inList2.isEmpty()) {
 	while (!(list1Pointer == null || list2Pointer == null)) {
 	    //define actList as list with minimal interval
 	    if (((Interval)list1Pointer.value).left.less(((Interval)list2Pointer.value).left)) {
-	    //if (((Interval)inList1.getFirst()).left.less(((Interval)inList2.getFirst()).left)) {
-		//actList = inList1;
 		actList = list1Pointer;
-		//otherList = inList2;
 		othList = list2Pointer;
 		id = 1;
-		//System.out.println(" [1] chose list1 as actList");
 	    } else {
-		//actList = inList2;
 		actList = list2Pointer;
-		//otherList = inList1;
 		othList = list1Pointer;
 		id = 2;
-		//System.out.println(" [2] chose list2 as actList");
 	    }//if
 
 	    //get minimal interval
-	    //ivl1 = (Interval)actList.getFirst();
 	    ivl1 = (Interval)actList.value;
 
-	    //System.out.println(" [2] ivl1: "); ivl1.print();
-		
 	    //compare right interval of ivl1 with intervals of otherlist and
 	    //report a pair if they overlap
 	    
-	    //it2 = otherList.listIterator(0);
 	    othPointer = othList;
-	    //while (it2.hasNext()) {
 	    while (!(othPointer == null)) {
-		//ivl2 = (Interval)it2.next();
 		ivl2 = (Interval)othPointer.value;
 		othPointer = othPointer.next;
 		
-		//System.out.println(" [3] ivl2: "); ivl2.print();
-
 		//ivl2.left is greater than ivl1.right
 		if (ivl2.left.greater(ivl1.right)) {
 		    //there are no overlapping intervals, so break
-		    //System.out.println(" ---> no overlapping intervals, too small right interval");
 		    break;
 		} else {
 		    //there must be an overlap, so report it, if not already stored in intStore
@@ -665,16 +471,10 @@ public class IvlList extends ProLinkedList {
 		    if (!(sameSet && 
 			  ((ivl1.number == (ivl2.number-size)) ||
 			   (ivl2.number == (ivl1.number-size))))) {
-
-			//System.out.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-			//System.out.println(" ---> eventually found pair.");
-			
 			//check in intStore
 			alreadyAdded = false;
-
-			//it3 = intStore[ivl1.number].listIterator(PLI_3,0);
+			
 			PLI_3.setList(intStore[ivl1.number]);
-			//it3 = ProLinkedList.listIterator(intStore[ivl1.number],PLI_3,0);
 			it3 = PLI_3;
 			while (it3.hasNext()) {
 			    intVal = ((Integer)it3.next()).intValue();
@@ -684,9 +484,7 @@ public class IvlList extends ProLinkedList {
 			    }//if
 			}//while
 			
-			//it4 = intStore[ivl2.number].listIterator(PLI_4,0);
 			PLI_4.setList(intStore[ivl2.number]);
-			//it4 = ProLinkedList.listIterator(intStore[ivl2.number],PLI_4,0);
 			it4 = PLI_4;
 			if (!alreadyAdded) {
 			    while (it4.hasNext()) {
@@ -730,15 +528,8 @@ public class IvlList extends ProLinkedList {
 				    intStore[ivl1.number-size].add(new Integer(ivl2.number+size));
 				}//if sameSet
 			    }//else
-			    retList.add(ep);
-			    /*
-			    System.out.println("\n ---> found pair: "); ivl1.print(); ivl2.print();
-			    intStore[ivl1.number].add(new Integer(ivl2.number));
-			    intStore[ivl2.number].add(new Integer(ivl1.number));
-			    System.out.println(" added: intStore["+ivl1.number+"] add "+ivl2.number);
-			    System.out.println(" added: intStore["+ivl2.number+"] add "+ivl1.number);
-			    */
 
+			    retList.add(ep);
 			}//if
 		    }//if !sameset 
 		}//must be an overlap
@@ -748,92 +539,16 @@ public class IvlList extends ProLinkedList {
 	    //actList.remove(0);
 	    if (id == 1) list1Pointer = list1Pointer.next;
 	    else list2Pointer = list2Pointer.next;
-	    //System.out.println(" [last] move list pointer to next position");
 	}//while no empty list
 		
-	//System.out.println("list1.size: "+list1.size()+", list2.size: "+list2.size()+", retList.size: "+retList.size());
-
 	return retList;
-
-	
-	/* OLD IMPLEMENTATION */
-	/*
-	if (list1.isEmpty() || list2.isEmpty()) return retList;
-
-	ListIterator it1 = list1.listIterator(0);
-	ListIterator it2,it3,it4;
-	Interval ivl1;
-	Interval ivl2;
-	boolean alreadyAdded = false;
-	int intVal;
-	ElemPair ep;
-	
-	while (it1.hasNext()) {
-	    ivl1 = (Interval)it1.next();
-	    it2 = list2.listIterator(0);
-	    while (it2.hasNext()) {
-		ivl2 = (Interval)it2.next();
-		//skip elements with same number
-		while ((ivl1.number == ivl2.number) && it2.hasNext()) {
-		    ivl2 = (Interval)it2.next(); }
-		//System.out.println("actual ivl1:"); ivl1.print();
-		//System.out.println("actual ivl2:"); ivl2.print();
-		if ((ivl1.left.lessOrEqual(ivl2.left) && ivl1.right.greater(ivl2.left)) ||
-		    (ivl1.left.less(ivl2.right) && ivl1.right.greaterOrEqual(ivl2.right)) ||
-		    ivl1.left.equal(ivl2.left) || ivl1.right.equal(ivl2.right) ||
-		    (ivl1.left.less(ivl2.left) && ivl1.right.greater(ivl2.right)) ||
-		    (ivl1.left.greater(ivl2.left) && ivl1.right.less(ivl2.right)) ||
-		    //new cases
-		    ivl1.left.equal(ivl2.right) ||
-		    ivl1.right.equal(ivl2.left)
-		    ) {
-		    if (!(sameSet && 
-			  (ivl1.number == (ivl2.number-size)) ||
-			  (ivl2.number == (ivl1.number-size)))) {
-			//check in intStore
-			alreadyAdded = false;
-			it3 = intStore[ivl1.number].listIterator(0);
-			while (it3.hasNext()) {
-			    intVal = ((Integer)it3.next()).intValue();
-			    if (intVal == ivl2.number) {
-				alreadyAdded = true;
-				break;
-			    }//if
-			}//while
-			
-			it4 = intStore[ivl2.number].listIterator(0);
-			if (!alreadyAdded) {
-			    while (it4.hasNext()) {
-				intVal = ((Integer)it4.next()).intValue();
-				if (intVal == ivl1.number) {
-				    alreadyAdded = true;
-				    break;
-				}//if
-			    }//while
-			}//if
-			if (!alreadyAdded) {
-			    //the 'blue' element should be the first in the pair
-			    if ((ivl1.mark == "blueleft") || (ivl1.mark == "blueright")) {
-				ep = new ElemPair(ivl1.ref,ivl2.ref); }
-			    else { ep = new ElemPair(ivl2.ref,ivl1.ref); }
-			    retList.add(ep);
-			    //System.out.println("\n----> added pair\n");
-			    intStore[ivl1.number].add(new Integer(ivl2.number));
-			    intStore[ivl2.number].add(new Integer(ivl1.number));
-			}//if
-		    }//if
-		}//if
-	    }//while
-	}//while
-	
-	//System.out.println("leaving overlappingIntervals");
-	return retList;
-	*/
     }//end method overlappingIntervals
     
-    
+
+    /**
+     * Sorts the intervals in <i>this</i> using quicksort.
+     */
     protected void sort() {
-	//sorts this using quicksort
 	Object[] elArr = new Interval[this.size()];
 	elArr = this.toArray();
 	quickX(elArr,0,elArr.length-1);
@@ -845,10 +560,14 @@ public class IvlList extends ProLinkedList {
     }//end method sort
     
 
+    /**
+     * Supportive method for sort(). Is the recursive part of quicksort.
+     *
+     * @param elArr the array of elements
+     * @param lo the low index of elArr
+     * @param hi the high index of elArr
+     */
     private static void quickX (Object[] elArr, int lo, int hi) {
-	//supportive method for sort
-	//System.out.println("\nquickX: "+elArr+", lo: "+lo+", hi: "+hi);
-	//for (int i = lo; i < hi+1; i++) { System.out.print("["+i+"] "); ((Interval)elArr[i]).print(); }
 	int i = lo;
 	int j = hi;
 	int k = -1;
@@ -859,7 +578,6 @@ public class IvlList extends ProLinkedList {
 	    findkRes = findPivotX(elArr,i,j);
 	    k = ((Integer)findkRes[0]).intValue();
 	    kElem = (Interval)findkRes[1];
-	    //System.out.print("\npos: "+k+", pivot: "); kElem.print();
 	    if (k != -1) {
 		k = partitionX(elArr,i,j,kElem); //divide
 		quickX(elArr,i,k-1); //conquer
@@ -868,10 +586,17 @@ public class IvlList extends ProLinkedList {
 	}//if
     }//end method quickX
 
+
+    /**
+     * Supportive method for quickX. Finds and returns the pivot element.
+     * 
+     * @param elArr the interval array
+     * @param i low index of elArr
+     * @param j hi index of elArr
+     * @return an array with two elements: first element is the index of the pivot element, the second element is the Interval object<p>
+     * if no such pivot element exists, 0 is returned as index
+     */
     private static Object[] findPivotX (Object[] elArr, int i, int j) {
-	//find index of not minimal element in array i,j
-	//if exists
-	//0 otherwise
 	Object[] retArr = new Object[2];
 	byte res;
 	int k = 0;
@@ -897,9 +622,17 @@ public class IvlList extends ProLinkedList {
 	    }//else
 	}//else
     }//end method findPivotX
-    
+
+
+    /**
+     * Suppotive method for quickX. Restructures an array using a pivot element x.
+     *
+     * @param elArr the array of Intervals
+     * @param i the low index
+     * @param j the high index
+     * @param x the pivot element
+     */
     private static int partitionX (Object[] elArr, int i, int j, Interval x) {
-	//supportive method for quicksortX
 	int l = i;
 	int r = j;
 	Object tmp;
@@ -926,12 +659,17 @@ public class IvlList extends ProLinkedList {
 	return l;
     }//end method partitionX
 
+
+    /**
+     * Returns a <i>view</i> on <i>this</i>.
+     * This means, that the head and last pointers of a new list are set to the <i>begin</i> and <i>end</i> positions including 
+     * begin, but <u>not</u> end. These pointers point to the elements of the original IvlList, so changes on the elements
+     * affect the original. However, the size() method works correctly for the new list.
+     *
+     * @param begin the index of the first element that shall be in the view
+     * @param end the index of the first element that shall not be in the view; end >= begin
+     */
     public IvlList subList (int begin, int end) {
-	//returns a view on THIS including begin and NOT end
-	//a VIEW means, that only both pointers (head, last)
-	//are set to the correct list positions on the 
-	//original list. Additionally, the list size is set.
-	
 	IvlList retList = new IvlList();
 
 	//set head pointer
@@ -969,12 +707,13 @@ public class IvlList extends ProLinkedList {
     }//end method subList
 
     
-    public boolean checkList (boolean meet) {
-	//checks whether the list is sorted correctly
+    /**
+     * Returns true, if <i>this</i> is sorted correctly.
+     *
+     * @return true, if sorted correctly
+     */
+    public boolean checkList () {
 	if (this.size() < 2) return true;
-	//IvlComparator ic = new IvlComparator(meet);
-	//ProListIterator it = this.listIterator(PLI_CL,0);
-	//ProListIterator it = ProLinkedList.listIterator(this,PLI_CL,0);
 	PLI_CL.setList(this);
 	ProListIterator it = PLI_CL;
 	Interval actIvl = (Interval)it.next();
@@ -1000,57 +739,7 @@ public class IvlList extends ProLinkedList {
 	    pointer = pointer.next;
 	}//while
 
-	System.out.println("count: "+count);
-
-
-	if (count != this.size()) {
-	    System.out.println("IvlList.checkList: true size is "+count+". Found size "+this.size());
-	    System.exit(0);
-	}//if
-
 	return true;
     }//end method checkList
-
-    protected boolean checkContains (IvlList list1, IvlList list2) {
-	//returns true, if this contains all elements of list1 and list2
-
-	//CAUTION: Not sure, whether this method is still used anywher.
-	//Additionally, it seems that the element of list2 are not checked
-	//whether they are elements of 'this' or not.
-
-
-	//ProListIterator it1 = list1.listIterator(PLI_CONT1,0);
-	ProListIterator it1;// = ProLinkedList.listIterator(this,PLI_CONT1,0);
-	PLI_CONT1.setList(list1);
-	it1 = PLI_CONT1;
-
-	Interval actIvl;
-	ProListIterator it2;
-	Interval thisIvl;
-	boolean found;
-	while (it1.hasNext()) {
-	    actIvl = (Interval)it1.next();
-	    //it2 = ProLinkedList.listIterator(this,PLI_CONT2,0);
-	    PLI_CONT2.setList(this);
-	    it2 = PLI_CONT2;
-	    found = false;
-	    while (it2.hasNext()) {
-		thisIvl = (Interval)it2.next();
-		
-		if (thisIvl.left.equal(actIvl.left) && thisIvl.right.equal(actIvl.right) &&
-		    thisIvl.number == actIvl.number) found = true;
-	    }//while
-	    if (!found) {
-		System.out.println("\n++++++++++++++++++++++++++++++++++\nnot all elements are found in merged list: ");
-		System.out.println("list1: "); list1.print();
-		System.out.println("\nlist2: "); list2.print();
-		System.out.println("\nretList: "); this.print();
-		System.exit(0);
-	    }//if
-	}//while
-
-	System.out.println("checkContains: true");
-	return true;
-    }//end method checkContains
 
 }//end class IvlList

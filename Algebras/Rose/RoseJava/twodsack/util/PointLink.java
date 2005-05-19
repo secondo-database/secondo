@@ -16,12 +16,15 @@ package twodsack.util;
 import twodsack.setelement.datatype.basicdatatype.*;
 
 public class PointLink {
-
-    //members
+    /*
+     * fields
+     */
     public Point linkedPoint;
     public int number;
 
-    //constructors
+    /*
+     * constructors
+     */
     /**
      * The default constructor. Fills in default values.
      */
@@ -40,7 +43,9 @@ public class PointLink {
 	this.number = -1;
     }
 
-    //methods
+    /*
+     * methods
+     */
     /**
      * Sets the number of <code>this</code> to <code>num</code>.
      *

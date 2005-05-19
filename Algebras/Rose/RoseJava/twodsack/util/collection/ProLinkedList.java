@@ -1,12 +1,30 @@
+/*
+ * ProLinkedList.java 2005-05-11
+ *
+ * Dirk Ansorge, FernUniversitaet Hagen
+ *
+ */
+
 package twodsack.util.collection;
 
 import twodsack.util.collectiontype.*;
 import twodsack.util.iterator.*;
 import java.util.*;
 
+
+/**
+ * The implementation of a ProLinkedList class was necessary to remove some drawbacks of Sun's LinkedList. First, it provides the addAll method,
+ * that concats two ProLinkedLists without copying any objects. This is possible, because the elements of such lists are connected twice: they
+ * have one pointer to their successor and one pointer to their predecessor. Additionally, for a list one pointer points to the head of the list
+ * and another pointer points to the last element. Then, a concatenation of two lists is done by simple redirecting some pointers. However,
+ * you must be aware that the original lists cannot be used anymore.<p>
+ * The second improvement lies in the reusable iterators. Now, if an iterator was constructed, it can be reused over and over using its 
+ * reset() method. This saves a lot of time and memory.
+ */
 public class ProLinkedList implements Cloneable {
-    
-    //members
+    /*
+     * fields
+     */
     public static int countAccess = 0;
     public int size;
     public Entry head; //points to the first Entry
@@ -15,7 +33,12 @@ public class ProLinkedList implements Cloneable {
     private Comparator comparator; //is used for method remove(object)
     public Entry lastAdded; //points to the Entry that was added the last time
 
-    //constructors
+    /*
+     * constructors
+     */
+    /**
+     * The empty constructor.
+     */
     public ProLinkedList() {
 	this.countAccess++;
 	modCount = 0;
@@ -25,6 +48,13 @@ public class ProLinkedList implements Cloneable {
 	comparator = null;
     }
 
+
+    /**
+     * Constructs a new instance using a comparator.
+     * The comparator is <u>onl</u> used when calling the remove() method.
+     *
+     * @param the comparator c
+     */
     public ProLinkedList(Comparator c) {
 	this.countAccess++;
 	modCount = 0;
@@ -35,18 +65,37 @@ public class ProLinkedList implements Cloneable {
     }
     
 
-    //methods
+    /*
+     * methods
+     */
+    /**
+     * Returns the size of <i>this</i>.
+     *
+     * @return the size as int
+     */
     public int size () {
 	return this.size;
     }//end method size
 
+
+    /**
+     * Returns true, if <i>this</i> is empty.
+     *
+     * @return true, if empty; false otherwise
+     */
     public boolean isEmpty() {
 	if (head.next == null) return true;
 	else return false;
     }//end method isEmpty
 
+
+    /**
+     * Adds an object to <i>this</i>.
+     * The new element will be the last element of this.
+     *
+     * @param o the new element
+     */
     public void add (Object o) {
-	//adds a new entry to this list at last position
 	Entry newEntry = new Entry(o);
 	lastAdded = newEntry;
 	if (head.next == null) {
@@ -63,25 +112,33 @@ public class ProLinkedList implements Cloneable {
     }//end method add
 
 
+    /**
+     * Returns the first element of <i>this</i>.
+     *
+     * @return the first object
+     */
     public Object getFirst() {
 	return head.next.value;
     }//end method getFirst
 
+
+    /**
+     * Returns the last element of <i>this</i>.
+     *
+     * @return the last object
+     */
     public Object getLast() {
 	return last.next.value;
     }//end method getLast
 
+
+    /**
+     * Adds to <i>this</i> all elements of pll.
+     * The resulting list is a concatenation of both lists.
+     *
+     * @param pll the second list
+     */
     public void addAll (ProLinkedList pll) {
-	//System.out.println("\nentering PLL.addAll... (this.size: "+this.size()+", pll.size: "+pll.size()+")");
-	//re-implementation: OLD CODE:
-	/*
-	  Iterator pit = pll.listIterator(0);
-	  while (pit.hasNext()) 
-	  this.add(pit.next());
-	*/
-	//NEW CODE: this method doesn't any longer
-	//add every single entry but redirects two
-	//pointers instead
 	if (this.size == 0) {
 	    this.head.next = pll.head.next;
 	    this.head.prev = pll.head.prev;
@@ -92,9 +149,6 @@ public class ProLinkedList implements Cloneable {
 	}//if
 	else {
 	    if (pll.size > 0) {
-		//System.out.println("this.last.next: "+this.last.next);
-		//System.out.println("this.last.next.next: "+this.last.next.next);
-		//System.out.println("pll.head.next: "+pll.head.next);
 		this.last.next.next = pll.head.next;
 		pll.head.next.prev = this.last.next;
 		this.last.next = pll.last.next;
@@ -102,45 +156,28 @@ public class ProLinkedList implements Cloneable {
 		this.modCount = this.modCount+pll.size;
 	    }//if
 	}//else
-	//System.out.println("leaving PLL.addAll");
     }//end method addAll
 
 
+    /**
+     * Returns a new iterator for <i>this</i>.
+     * The iterator starts at <i>index</i>.
+     *  
+     * @param index the start position for the iterator
+     * @return the iterator for <i>this</i>
+     */
     public ProListIterator listIterator (int index) {
 	return new ProListIterator(this,index);
     }//end method listIterator
 
-    /*
-    public static ProListIterator listIterator (ProLinkedList pll, ProListIterator pli, int index) {
-	//reuses pli as iterator for THIS
-	pli.lastReturned = pll.head;
-	pli.expectedModCount = pll.modCount;
-	
-	if (index < 0 || index > pll.size)
-	    throw new IndexOutOfBoundsException("Index: "+index+", Size: "+pll.size);
-	
-	if ((index == 0) || index < (pll.size >> 1)) {
-	    pli.next = pll.head.next;
-	    for (pli.nextIndex=0; pli.nextIndex < index; pli.nextIndex++)
-		pli.next = pli.next.next;
-	}
-	else {
-	    pli.next = pll.last.next;
-	    for (pli.nextIndex = pll.size; pli.nextIndex > index; pli.nextIndex--)
-		pli.next = pli.next.prev;
-	}//else
 
-	System.out.println("\n++++++++++");
-	System.out.println("pli.next: "+pli.next);
-	System.out.println("pli.prev: "+pli.prev);
-	
-
-	return pli;
-    }//end method listIterator
-    */
-
-       
-    public  void addBeforeAct(Object o, Entry e) {
+    /**
+     * Adds a new entry directly before e.
+     * 
+     * @param o the object that shall be added
+     * @param e the entry that shall have the position directly after o in the result list
+     */
+    public void addBeforeAct(Object o, Entry e) {
 	Entry newEntry = new Entry(o);
 	lastAdded = newEntry;
 	modCount++;
@@ -167,7 +204,15 @@ public class ProLinkedList implements Cloneable {
 	size++;
     }//end method addBefore
     
-    public void remove (Object o) {
+
+    /**
+     * Removes an object from the <i>this</i>.
+     * Note: This method doesn't work, if the list was constructed without a comparator.
+     *
+     * @param the object that shall be removed
+     * @throws ComparatorNotDefinedException if the list was not constructed using a comparator
+     */
+    public void remove (Object o) throws ComparatorNotDefinedException {
 	if (this.comparator == null)
 	    throw new ComparatorNotDefinedException("Comparator is needed for this operation. Use constructor ProLinkedList(Comparator).");
 	
@@ -207,6 +252,13 @@ public class ProLinkedList implements Cloneable {
 	}//if
     }//end method remove
 
+
+    /**
+     * Removes the object at position <i>idx</i> from the list.
+     *
+     * @param idx the object at that position shall be removed
+     * @throws IndexOutOfBoundsException if idx is greater than this.size or less than 0
+     */
     public void remove (int idx) {
 	if (idx >= size || idx < 0)
 	    throw new IndexOutOfBoundsException("Index: "+idx+", Size: "+size);
@@ -241,7 +293,14 @@ public class ProLinkedList implements Cloneable {
 	}//else
     }//end method remove
 
-    public Object get (int idx) {
+
+    /**
+     * Returns the objects which at position <i>idx</i>.
+     * 
+     * @param idx the index of the object
+     * @throws IndexOutOfBoundsException if idx is greater than this.size or less than 0
+     */
+    public Object get (int idx) throws IndexOutOfBoundsException {
 	Entry actEntry = head.next;
 	if (idx > size || idx < 0) 
 	    throw new IndexOutOfBoundsException("Index: "+idx+", Size: "+size);
@@ -252,7 +311,15 @@ public class ProLinkedList implements Cloneable {
 	return actEntry.value;
     }//end method get
 
-    public void add (int idx, Object o) {
+
+    /**
+     * Adds an object at position <i>idx</i>.
+     * 
+     * @param idx the index where o shall be added
+     * @param o the new object
+     * @throws IndexOutOfBoundsException if idx is greater than this.size or less than 0
+     */
+    public void add (int idx, Object o) throws IndexOutOfBoundsException {
 	if (idx > size || idx < 0) 
 	    throw new IndexOutOfBoundsException("Index: "+idx+", Size: "+size);
 	Entry actEntry = head.next;
@@ -275,6 +342,10 @@ public class ProLinkedList implements Cloneable {
 	lastAdded = newEntry;
     }//end method add
 
+
+    /**
+     * Removes all objects from the list.
+     */
     public void clear() {
 	head.next = null;
 	last.next = null;
@@ -282,8 +353,13 @@ public class ProLinkedList implements Cloneable {
 	size = 0;
     }//end method clear
 	
+
+    /**
+     * Writes all object of this to an array.
+     *
+     * @return the objects of <i>this</i> stored in an array
+     */
     public Object[] toArray() {
-	//System.out.println("ProLinkedList.toArray() called.");
 	Object[] result = new Object[size];
 	Entry actEntry = head.next;
 	ProListIterator it = this.listIterator(0);
@@ -292,7 +368,10 @@ public class ProLinkedList implements Cloneable {
 	return result;
     }//end method toArray
 	
-    
+
+    /**
+     * Prints the objects of the list to standard output.
+     */
     public void print() {
 	if (this.isEmpty()) System.out.println("List is empty.");
 	ProListIterator it = this.listIterator(0);
@@ -300,11 +379,15 @@ public class ProLinkedList implements Cloneable {
 	while (it.hasNext()) {
 	    System.out.println("["+count+"]: "+it.next());
 	    count++;
-	    //it.next().print();
 	}//while
     }//end method print
     
-    
+
+    /**
+     * Returns a clone of <i>this</i>.
+     *
+     * @return the clone as Object
+     */
     public Object clone () {
 	Object clone;
 	try { clone = super.clone(); }
@@ -313,56 +396,5 @@ public class ProLinkedList implements Cloneable {
 	}//catch
 	return clone;
     }//end method clone
-
-
-    /*
-    protected void checkSize() {
-	//System.out.println("entering checkSize...");
-	int realSize = 0;
-	for (Entry actEntry = head.next; actEntry != null; actEntry = actEntry.next)
-	    realSize++;
-	int itSize = 0;
-	ListIterator lit = this.listIterator(0);
-	while (lit.hasNext()) {
-	    itSize++;
-	    lit.next();
-	}//while
-    }//checkSize
-    */
-    /*  
-    public ProLinkedList subList (int begin, int end) {
-	//returns a view on THIS including begin and NOT end
-	ProLinkedList retList = new ProLinkedList();
-	if ((begin == 0) || begin < (size >> 1)) {
-	    retList.head = this.head.next;
-	    for (int ind = 0; ind < begin; ind++)
-		retList.head = retList.head.next.next;
-	}//if
-	else {
-	    retList.head = this.last.next;
-	    for (int ind = this.size; ind > begin; ind--)
-		retList.head = retList.head.next.prev;
-	}//else
-	
-	if ((end == 0) || end < (size >> 1)) {
-	    retList.last = this.head.next;
-	    for (int ind = 0; ind < begin; ind++)
-		retList.last = retList.last.next.next;
-	}//if
-	else {
-	    if (end == size)
-		retList.last.next = this.last.next;
-	    else {
-		retList.last = this.last.next;
-		for (int ind = this.size; ind > end; ind--)
-		    retList.last = retList.head.next.prev;
-	    }//else
-	}//else
-
-	retList.size = end-begin;
-	
-	return retList;
-    }//end method subList
-    */
 
 }//end method ProLinkedList

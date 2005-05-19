@@ -1,3 +1,10 @@
+/*
+ * IvlMultiSet.java 2005-05-11
+ *
+ * Dirk Ansorge, FernUniversitaet Hagen
+ *
+ */
+
 package twodsack.util.collection;
 
 import twodsack.set.*;
@@ -7,13 +14,21 @@ import twodsack.util.collectiontype.*;
 import twodsack.util.comparator.*;
 import java.util.*;
 
-
+/**
+ * In an instance of IvlMultiSet, objects of type {@link twodsack.util.collectiontype} are stored. As in every multiset, this class allows
+ * to store more than one of the same instances of Interval. This is an alternative implementation to {@link IvlList} and it also implements
+ * the methods needed by SetOps.overlappingPairs().
+ */
 public class IvlMultiSet extends MultiSet {
     
     /*
      * constructors
      */
-
+    /**
+     * Constructs a new IvlMultiSet using the passed comparator.
+     *
+     * @param co the comparator
+     */
     public IvlMultiSet (Comparator co) {
 	super(co);
     }
@@ -21,11 +36,16 @@ public class IvlMultiSet extends MultiSet {
     /*
      * methods
      */
-
+    /**
+     * Returns the merged sets.
+     * For two sets (a,a,b,c) x (b,c,d) the result of merge is (a,b,c,d). Duplicates are removed.
+     * The <i>meet</i>parameter is passed to the IvlMergeComparator which is used for the constructor for the result IvlMultiSet.
+     *
+     * @param set1 the first set
+     * @param set2 the second set
+     * @param meet is passed to the comparator that is used for the constructor of the result set
+     */
     public static IvlMultiSet merge (IvlMultiSet set1, IvlMultiSet set2, boolean meet) {
-	//returns merged sets
-	//removes duplicates, i.e. keeps only one object of one kind
-
 	if (set1.isEmpty()) return set2;
 	if (set2.isEmpty()) return set1;
 
@@ -47,12 +67,16 @@ public class IvlMultiSet extends MultiSet {
     }//end method merge
 
 
+    /**
+     * Returns set1 minus set2.
+     * For two sets (a,a,b,c) x (b,c,d) the result of minus is (a,a).
+     * The <i>meet</i> parameter is passed to the constructor of the IvlMultiSet which needs to construct a IvlComparator with it.
+     *
+     * @param set1 the first set
+     * @param set2 the second set
+     * @param meet is used for the IvlComparator that is passed to the constructor of the result IvlMultiSet
+     */
     public static IvlMultiSet minus (IvlMultiSet set1, IvlMultiSet set2, boolean meet) {
-	//returns set1 minus set2
-	//The minus operation is performed with comparing
-	//the borders of the intervals and, if equal, the referenced
-	//object, too.
-
 	if (set1.isEmpty() || set2.isEmpty()) return set1;
 	IvlMultiSet retSet = new IvlMultiSet(new IvlComparator(meet));
 	Iterator it1 = set1.iterator();
@@ -109,10 +133,15 @@ public class IvlMultiSet extends MultiSet {
     }//end method minus
 
 
+    /**
+     * Returns the intersectin of two sets of Intervals.
+     * For two sets (a,a,b,c) x (b,c,d) the result of intersect is (b,c).
+     *
+     * @param set1 the first set
+     * @param set2 the second set
+     * @param meet is passed to the IvlMergeComparator constructor which is needed for the constructor of the result IvlMultiSet
+     */
     public static IvlMultiSet intersect (IvlMultiSet set1, IvlMultiSet set2, boolean meet) {
-	//returns the intersection of set1 and set2
-	//intervals which have equal borders are checked for equality of referenced object (number)
-
 	if (set1.isEmpty()) return set1;
 	if (set2.isEmpty()) return set2;
 
@@ -136,13 +165,22 @@ public class IvlMultiSet extends MultiSet {
     }//end method intersect
 
 
+    /**
+     * Returns a set of pairs containing the pairs of overlapping intervals of both sets.
+     * In <i>intStore</i> lists of intervals are stored which were already found as overlapping intervals. In there, the number of the
+     * interval is stored as Integer object. If two intervals are found, it is looked up, whether this pair was found before. If so, it
+     * is not stored in the result set.<p>
+     * If <i>sameSet</i> = true, set1 and set2 have the same elements. So, intervals with the same number or the same referenced object
+     * are not reported.
+     *
+     * @param intStore an array of ProLinkedList(s); every list contains Integer values which are numbers of intervals
+     * @param sameSet true, if set1 and set2 are referencing the same set
+     * @param size the size of set1
+     * @param set1 the first set
+     * @param set2 the second set
+     * @param retSet new pairs are stored in this set; it is idenctical to the returned set
+     */
     public static PairMultiSet overlappingIntervals (LinkedList[] intStore, boolean sameSet, int size, IvlMultiSet set1, IvlMultiSet set2, PairMultiSet retSet) {
-	//returns a set containing only the overlapping pairs of intervals of set1/set2
-	//information about intersections is stored in intStore, so if an intersection is found,
-	//first check if it's already in intStore
-	//if sameSet==true, is is additionally checked, whether ivl1.number == ivl2.number-size
-	//if true, the pair isn't stored
-
 	if (set1.isEmpty() || set2.isEmpty()) return retSet;
 	Iterator it1 = set1.iterator();
 	Iterator it2,it3,it4;
@@ -209,8 +247,5 @@ public class IvlMultiSet extends MultiSet {
 
 	return retSet;
     }//end method overlappingIntervals
-	
-		     
-	
     
 }//end class IvlMultiSet

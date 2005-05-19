@@ -14,11 +14,15 @@ package twodsack.util.graph;
  */
 class ObjectLink {
 
-    //members
+    /*
+     * fields
+     */
     protected Object linkedObject;
     protected int number;
 
-    //constructors
+    /*
+     * constructors
+     */
     /**
      * The default constructor. Fills in default values.
      */
@@ -37,7 +41,9 @@ class ObjectLink {
 	this.number = -1;
     }
 
-    //methods
+    /*
+     * methods
+     */
     /**
      * Sets the number of <code>this</code> to <code>num</code>.
      *
