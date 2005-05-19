@@ -196,7 +196,7 @@ public class RationalBigInteger extends Rational implements Serializable{
      *
      * @param r the second factor
      * @param in the result is stored in this variable
-     * @returns this * r
+     * @return this * r
      */
     public Rational times (Rational r, Rational in) {
 	((RationalBigInteger)in).n = n.multiply(((RationalBigInteger)r).n);
@@ -518,7 +518,7 @@ public class RationalBigInteger extends Rational implements Serializable{
     /**
      * Rounds <i>this</i> to <i>i</i> digits.
      *
-     * @param i the number of digits
+     * @param digits the number of digits
      * @throws WrongDigitValueException if the number of digits d is not 0 <= d <= 9
      */
     public void round (int digits) {
@@ -537,7 +537,7 @@ public class RationalBigInteger extends Rational implements Serializable{
      * The implementor can decide, whether the class should have a 'precise' and a 'less precise' implementation. By using this method
      * a flag can be set to use the more or less precise version. PRECISE=true means, that the derivation value is automatically set to 0.
      *
-     * @param b PRECISE is set to this value
+     * @param precise PRECISE is set to this value
      */
     public void setPrecision (Boolean precise) {
 	PRECISE = precise.booleanValue();

@@ -13,7 +13,7 @@ import twodsack.setelement.datatype.basicdatatype.*;
 import twodsack.util.*;
 
 /**
- * This class implements the Edge type for {@link twodsack.util.graph}. It is the counterpart to the {@link twodsack.util.vertex}. An edge
+ * This class implements the Edge type for {@link twodsack.util.graph.Graph}. It is the counterpart to the {@link twodsack.util.graph.Vertex}. An edge
  * consists of two objects of type Vertex.
  */
 public class Edge implements ComparableMSE {

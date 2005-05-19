@@ -358,7 +358,7 @@ public class Point extends Element implements Serializable {
 
     /**
      * For two points, returns the smaller one.
-     * {@link #compare()} is used in the implementation of this method.
+     * {@link #compare} is used in the implementation of this method.
      *
      * @param p1 the first point
      * @param p2 the second point
@@ -372,7 +372,7 @@ public class Point extends Element implements Serializable {
 
     /**
      * For two points, returns the greater one.
-     * {@link compare()} is used in the implementation of this method.
+     * {@link #compare} is used in the implementation of this method.
      */
     public static Point max (Point p1, Point p2) {
 	//System.out.println("max: p1.compare(p2): "+p1.compare(p2));

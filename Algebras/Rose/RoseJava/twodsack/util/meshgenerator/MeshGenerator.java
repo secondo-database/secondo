@@ -124,7 +124,7 @@ public class MeshGenerator {
      * @param qualityMesh <code>true</code> if a quality mesh shall be generated, if <code>false</code>
      *                    a simple triangulation is computed
      * @return the mesh, i.e. the set of triangles as <code>TriMultiSet</code>
-     * @see computeMeshForSingleCycleHoles
+     * @see #computeMeshForSingleCycleHoles
      */
     public TriMultiSet computeMeshForSingleCycle (SegMultiSet border,boolean qualityMesh) {
 	//a certain set of variables is needed for the C-method
@@ -288,7 +288,7 @@ public class MeshGenerator {
      * @param qualityMesh <code>true</code> if a quality mesh shall be generated, if <code>false</code>
      *                    a simple triangulation is computed
      * @return the mesh, i.e. the set of triangles as <code>TriMultiSet</code>
-     * @see computeMeshForSingleCycle
+     * @see #computeMeshForSingleCycle
      */
     public TriMultiSet computeMeshForSingleCycleHoles (CycleList borderCycles, boolean qualityMesh) {
 	//System.out.println("entering computeMeshForSingleCycleHoles...");

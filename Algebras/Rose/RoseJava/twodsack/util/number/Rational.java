@@ -88,7 +88,7 @@ abstract public class Rational {
      *
      * @param r the second factor
      * @param in the result is stored in this variable
-     * @returns this * r
+     * @return this * r
      */
     abstract public Rational times(Rational r, Rational in);
 

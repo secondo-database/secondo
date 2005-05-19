@@ -389,7 +389,7 @@ public class Triangle extends Element implements Serializable {
      *
      * @param e the 'in' element
      * @return {0, 1, -1} as byte
-     * @trows WrongTypeException if e is not of type Triangle
+     * @throws WrongTypeException if e is not of type Triangle
      */
     public byte compY (Element e) throws WrongTypeException {
 	if (e instanceof Triangle) {
@@ -777,8 +777,8 @@ public class Triangle extends Element implements Serializable {
      * Duplicate segments of this kind are removed.
      *
      * @param tIN a single triangle
-     * @param tmsIn the set of triangles which has to be intersected with tIN
-     * @param splitPoints
+     * @param tmsIN the set of triangles which has to be intersected with tIN
+     * @param splitPoints the set of vertices and intersection points
      */
     protected static SegMultiSet computeSegSet (Triangle tIN, TriMultiSet tmsIN, PointMultiSet splitPoints) {
 	SegMultiSet resSet = new SegMultiSet(SEGMENT_COMPARATOR);

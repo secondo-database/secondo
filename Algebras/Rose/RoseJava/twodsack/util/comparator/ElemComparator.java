@@ -15,10 +15,11 @@ import java.util.Comparator;
 
 /**
  * This class is derived from the original {@link java.util.Comparator} class. It is still an ordinary
- * comparator, but works only for pairs of type {@link Element}. Therefore, the original
+ * comparator, but works only for pairs of type {@link twodsack.setelement.Element}. Therefore, the original
  * <code>compare</code> method is overwritten. To be precise, this comparator doesn't work on 
  * pairs of type <code>Element</code> directly, but on such types wrapped in objects of type
- * {@link MultiSetEntry}. Usually, they can be found in a {@link ElemMultiSet} structure.
+ * {@link twodsack.util.collectiontype.MultiSetEntry}. Usually, they can be found in a
+ * {@link twodsack.set.ElemMultiSet} structure.
  */
 public class ElemComparator implements Comparator,Serializable {
     /*
@@ -28,7 +29,8 @@ public class ElemComparator implements Comparator,Serializable {
     /**
      * Compares two objects which must be of type <code>MultiSetEntry</code>.
      * The objects wrapped inside of <code>ino1</code> and <code>ino2</code> must be of the same
-     * <i>subtype</i> of {@link Element} in this case, e.g. both of type {@link Point}. The return value
+     * <i>subtype</i> of {@link twodsack.setelement.Element} in this case, e.g. both of type
+     * {@link twodsack.setelement.datatype.basicdatatype.Point}. The return value
      * is 0 if both elements are equal, -1 if <code>ino1</code> is smaller than <code>ino2</code>
      * and 1 otherwise.
      *

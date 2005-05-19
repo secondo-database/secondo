@@ -2615,7 +2615,7 @@ public class Polygons extends Element implements Serializable {
      *
      * @param point the point to check
      * @param sms the segment set forming the border of the polygon
-     * @returns true, if the point lies inside of the polygon and <i>not</i> on the border
+     * @return true, if the point lies inside of the polygon and <i>not</i> on the border
      **/
     public static boolean inside (Point point, SegMultiSet sms) {
 	int noTrueIntersections = 0;
@@ -2674,7 +2674,7 @@ public class Polygons extends Element implements Serializable {
     /**
      * Returns the hashcode of the first triangle of the set representing the triangle.
      *
-     * @returns the hashcode
+     * @return the hashcode
      */
     public int hashCode() {
 	if (!trilistDefined) {
@@ -2689,7 +2689,8 @@ public class Polygons extends Element implements Serializable {
      * Returns true, if both polygons values are equal.
      * Same as method equal, but this one overwrites the Object.hashCode method.
      *
-     * @param object o
+     * @param o the object to compare with
+     * @return true, if both are equal
      */
     public boolean equals (Object o) {
 	return (this.equal((Element)o));

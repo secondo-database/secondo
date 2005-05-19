@@ -15,7 +15,7 @@ import java.util.*;
 /**
  * The ProListIterator is a list iterator that implements the ProIterator interface. It is used for the ProLinkedList type as has the main advantage
  * over standard iterators that it can be reset. By calling the method {@link #reset} the iterator is set to the beginning of the list.
- * Another improvement is the {@link setList} method which can be used to reuse an iterator for another list.
+ * Another improvement is the {@link #setList} method which can be used to reuse an iterator for another list.
  * 
  */
 public class ProListIterator implements ProIterator {

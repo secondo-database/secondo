@@ -15,10 +15,13 @@ import java.io.*;
 
 /**
  * The Element class is an abstract class which has to be extended by all geometrical object classes that shall be used in
- * {@link ElemMultiSets}. In particular, {@link Point}, {@link Segment} and {@link Triangle} extend this class. For these
- * classes, special extensions of ElemMultiSet exist. They are {@link PointMultiSet}, {@link SegMultiSet} and 
- * {@link TriMultiSet}. Objects of type Element and ElemMultiSet are the central parameters of all generic set operations
- * in the 2D-SACK package, especially in the {@link SetOps} class.<p>
+ * {@link twodsack.set.ElemMultiSet}. In particular, {@link twodsack.setelement.datatype.basicdatatype.Point},
+ * {@link twodsack.setelement.datatype.basicdatatype.Segment} and {@link twodsack.setelement.datatype.basicdatatype.Triangle}
+ * extend this class. For these
+ * classes, special extensions of ElemMultiSet exist. They are {@link twodsack.set.PointMultiSet},
+ * {@link twodsack.set.SegMultiSet} and {@link twodsack.set.TriMultiSet}. Objects of type Element and ElemMultiSet
+ * are the central parameters of all generic set operations
+ * in the 2D-SACK package, especially in the {@link twodsack.operation.setoperation.SetOps} class.<p>
  * All the methods declared here are used in the generic set operations.
  */
 abstract public class Element implements Serializable, ComparableMSE{
@@ -60,7 +63,7 @@ abstract public class Element implements Serializable, ComparableMSE{
 
     
     /**
-     * Returns one of {0, 1, -1} depending on comparing the x-coordinate of some specified point of the object
+     * Returns one of {0, 1, -1} depending on comparing the x-coordinate of some specified point of the object.
      * 0 is returned, if both coordinates are equal<p>
      * -1 is returned, if the x-coordinate of inObject is greater than the coordinate of <i>this</i><p>
      * 1 otherwise
@@ -78,7 +81,7 @@ abstract public class Element implements Serializable, ComparableMSE{
      * -1 is returnd, if the y-coordinate of inObject is greater than the coordinate of <i>this</i><p>
      * 1 otherwise
      *
-     * @param the object to compare with
+     * @param inObject the object to compare with
      * @return {0, 1, -1} as byte
      * @throws WrongTypeException if objects are not of the same type
      */
@@ -94,7 +97,7 @@ abstract public class Element implements Serializable, ComparableMSE{
     /**
      * Returns true, if both objects have common points.
      *
-     * @param inObject 
+     * @param inObject the object which is checked for intersection with <i>this</i>
      * @return true, if the objects have at least one common point
      * @throws WrongTypeException if objects are not of the same type
      */    

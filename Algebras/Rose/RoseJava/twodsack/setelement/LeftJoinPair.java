@@ -14,7 +14,8 @@ import twodsack.util.*;
 /**
  * The LeftJoinPair implements a special pair of objects. Every instance of this class is a pair <code>(Element x ElemMultiSet)</code>.
  * Generally, the first partner is somehow related to the objects in the second partner. Instances are most commonly generated
- * by a set operation in {@link SetOps} like leftOuterJoin(). In there, a predicate expresses the relation between the Element
+ * by a set operation in {@link twodsack.operation.setoperation.SetOps} like leftOuterJoin().
+ * In there, a predicate expresses the relation between the Element
  * and the ElemMultiSet. The predicate itself is not stored inside of a LeftJoinPair.<p>
  * Usually, instances of this class are stored in a LeftJoinPairMultiSet.
  */

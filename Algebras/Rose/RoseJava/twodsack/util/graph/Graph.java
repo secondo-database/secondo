@@ -28,7 +28,7 @@ import java.util.NoSuchElementException;
  * This class implements an undirected graph. The graph's vertices are of type {@link twodsack.setelement.Element}. The set of vertices <i>v</i>
  * is of type {@link twodsack.set.ElemMultiSet}. Additionally, the set of vertices is stored as Vertex[]. The successors for vertices
  * are stored in adjacency lists, which are implemented as LinketList(), here.<p>
- * The most interesting methods of this class are {@link #computeFaces}, which computes a set of faces for a graph, and {@link connectedComponents}.
+ * The most interesting methods of this class are {@link #computeFaces}, which computes a set of faces for a graph, and {@link #connectedComponents}.
  * The latter computes the connected components of a graph and stores them in a {@link ConnectedComponentsPair}.<p>
  * Note, that the vertices for this graph can hold any type of objects that extends the Element class.
  */

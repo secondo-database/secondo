@@ -94,7 +94,6 @@ public class ElemMultiSet extends MultiSet {
     /**
      * Returns the bounding box of the complete set of elements.
      *
-     * @param ems the set of elements
      * @return the minimum bounding box
      */
     public Rect rect () {

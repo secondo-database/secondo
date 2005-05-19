@@ -65,7 +65,7 @@ public class IvlComparator implements Comparator {
      *
      * @param ino1 the first object
      * @param ino2 the second object
-     * @returns one of  {0, 1, -1} as int
+     * @return one of  {0, 1, -1} as int
      * @throws WrongTypeException if ino1.o or ino2.o is not of type Interval
      */
     public int compare(Object ino1, Object ino2) throws WrongTypeException {

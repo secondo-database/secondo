@@ -120,8 +120,8 @@ public class Mathset {
     /**
      * Returns the product of two vectors.
      * 
-     * @param the first vector
-     * @param the second vector
+     * @param v1 the first vector
+     * @param v2 the second vector
      * @return v1*v2 as Rational
      */
     public static Rational prod(Point v1, Point v2) {

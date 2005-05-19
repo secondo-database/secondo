@@ -320,7 +320,7 @@ public class RPGConv {
      * segments in the file, that has overlapping segments.
      *
      * @param rpgFileName the fully qualified file name
-     * @reuen the set of (partial) segments
+     * @return the set of (partial) segments
      */    
     public static SegMultiSet getPartsOfLines (String rpgFileName) {
 	//This method is used in ll_minus.

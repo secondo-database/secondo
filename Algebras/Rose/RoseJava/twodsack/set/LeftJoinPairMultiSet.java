@@ -18,7 +18,7 @@ import java.util.Iterator;
  *
  A <code>LeftJoinPairMultiSet</code> is a <code>MultiSet</code> that is used to store
  * <code>LeftJointPair</code>s. Such a structure is usually a return type of methods from 
- * {@link SetOps}, e.g. <code>leftOuterJoin</code> and <code>overlapLeftOuterJoin</code>.
+ * {@link twodsack.operation.setoperation.SetOps}, e.g. <code>leftOuterJoin</code> and <code>overlapLeftOuterJoin</code>.
  */
 public class LeftJoinPairMultiSet extends MultiSet {
     /*

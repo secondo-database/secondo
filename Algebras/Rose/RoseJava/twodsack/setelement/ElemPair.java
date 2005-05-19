@@ -46,8 +46,11 @@ public class ElemPair implements Serializable {
 	first = e1;//(Element)e1.copy();
 	second = e2;//(Element)e2.copy();
     }
-    
-    //methods
+
+
+    /*
+     * methods
+     */
     /**
      * Makes a 'deep' copy of <code>ElemPair</code>, i.e. copies all fields.
      *

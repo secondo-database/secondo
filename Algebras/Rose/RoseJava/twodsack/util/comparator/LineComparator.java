@@ -90,7 +90,7 @@ public class LineComparator implements Comparator,Serializable{
      * Sets the x field of the comparator.
      * The x field defines the position of the y axis used in the compare() method.
      *
-     * @param the new x value
+     * @param x the new x value
      */
     public void setX (Rational x) {
 	this.x = x;

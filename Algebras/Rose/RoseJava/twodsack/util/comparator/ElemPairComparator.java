@@ -14,8 +14,8 @@ import java.util.Comparator;
 
 /**
  * An <code>ElemPairComparator</code> is a comparator that is used for the comparison of two objects of
- * type {@link ElemPair}. This comparator is used as parameter for the construction of a {@link MultiSet}
- * or for one of its subclasses.
+ * type {@link twodsack.setelement.ElemPair}. This comparator is used as parameter for the construction of a 
+ * {@link twodsack.util.collection.MultiSet} or for one of its subclasses.
  */
 public class ElemPairComparator implements Comparator {
     /*

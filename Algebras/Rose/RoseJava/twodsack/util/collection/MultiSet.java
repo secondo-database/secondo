@@ -18,11 +18,11 @@ import java.io.Serializable;
  * A <code>MultiSet</code> provides a tree structure to store elements. Moreover, in a
  * <code>MultiSet</code> duplicate elements can be stored (which cannot be stored in structures
  * like {@link java.util.TreeSet} directly. Nevertheless, <code>MultiSet</code> extends 
- * <code>TreeSet</code>. In a <code>MultiSet</code> only types {@link MultiSetEntry} can be 
- * stored. Such types implement the interface {@link ComparableMSE}, so a total order
+ * <code>TreeSet</code>. In a <code>MultiSet</code> only types {@link twodsack.util.collectiontype.MultiSetEntry} can be 
+ * stored. Such types implement the interface {@link twodsack.util.ComparableMSE}, so a total order
  * is defined.<br>
  * Usually, a <code>MultiSet</code> is not used directly, but is extendes. An example for this is
- * {@link ElemMultiSet}.
+ * {@link twodsack.set.ElemMultiSet}.
  */
 public class MultiSet implements Serializable {
     /*
@@ -58,6 +58,8 @@ public class MultiSet implements Serializable {
 	this.comparatorTS = comp;
 	size = 0;
     }
+
+
     
     /*
      * methods
@@ -82,6 +84,7 @@ public class MultiSet implements Serializable {
 	}//else
 	
     }//end method add
+
     
     /**
      * Adds an Object <code>o</code> <i>n</i> times.
@@ -91,7 +94,7 @@ public class MultiSet implements Serializable {
      * counter = <i>n</i>.
      *
      * @param o the object to be added
-     * @number n the number of instances to be added
+     * @param n the number of instances to be added
      */
     public void add(Object o, int n) {
 	MultiSetEntry compO = new MultiSetEntry(o,n);
@@ -101,6 +104,7 @@ public class MultiSet implements Serializable {
 	    ((MultiSetEntry)ss.first()).number += n;
 	}//if
     }//end method add
+
 
     /**
      * Adds an object which is already wrapped in a {@link MultiSetEntry}.
@@ -115,6 +119,7 @@ public class MultiSet implements Serializable {
 	    ((MultiSetEntry)ss.first()).number += mse.number;
 	}//if
     }//end method add
+
 
     /**
      * Adds all objects stored in <code>m</code>.
@@ -233,7 +238,7 @@ public class MultiSet implements Serializable {
     /**
      * Returns an iterator for the elements in the structure.
      * Note: If the <code>remove</code> method of class <code>Iterator</code> is used,
-     * the field variable <code>size</code> is not updated properly. Use {@link recomputeSize}
+     * the field variable <code>size</code> is not updated properly. Use {@link #recomputeSize}
      * in that case.
      *
      * @return the iterator as {@link java.util.Iterator}
@@ -308,7 +313,7 @@ public class MultiSet implements Serializable {
      * Returns the number of elements stored in the structure.
      * For a structure which holds the elements (1,1,1,2,2,3) the size would be 6.
      * Caution: This operator may return the wrong size if <code>remove</code> was applied on an Iterator of 
-     * <code>this</code>. To be sure to get the right result, call {@link recomputeSize} before.
+     * <code>this</code>. To be sure to get the right result, call {@link #recomputeSize} before.
      *
      * @return the size as <code>int</code>
      */

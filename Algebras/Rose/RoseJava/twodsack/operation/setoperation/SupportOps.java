@@ -172,7 +172,7 @@ public class SupportOps {
      * used in <code>minimal</code>. Otherwise, <code>SetOps.overlapReduce</code> is used.
      * @param uniOverlap If <code>false</code>, the more robust but slow <code>SetOps.reduce()</code> is
      * used in <code>unique</code>. Otherwise, <code>SetOps.overlapReduce</code> is used.
-     * @param if <code>true</code>, a bounding box filter is used (may reduce time spent for this operation)
+     * @param bboxFilter if <code>true</code>, a bounding box filter is used (may reduce time spent for this operation)
      * @param computeMinimalSet if <code>true</code>, <code>minimal</code> is used to reduce the set of segments in the
      *                          resulting set
      * @return the contour as <code>SegMultiSet</code>
@@ -204,7 +204,7 @@ public class SupportOps {
     /**
      * The contour of a triangle set (representing a polygon) is computed with this method.
      * When using this method instead of <code>contourGeneral</code> it is assumed, that the triangle set
-     * was computed using the methods of class {@link Polygons}. In that case, bounding segments of the 
+     * was computed using the methods of class {@link twodsack.setelement.datatype.compositetype.Polygons}. In that case, bounding segments of the 
      * triangle set don't overlap. This method doesn't work for triangles with overlapping (instead of identical) segments.
      * SupportOps.minimal() is executed on the resulting set to combine collinear and adjacent segments.
      *
@@ -238,7 +238,7 @@ public class SupportOps {
      * <p><ol>
      * <li>Alignment of all segments. This is necessary to have a correct order on the segments.</li>
      * <li>Computation of all intersecting triangles for each segment. These pairs are stored in a 
-     * {@link LeftJoinPairMultiSet}.</li>
+     * {@link twodsack.set.LeftJoinPairMultiSet}.</li>
      * <li>For every pair: Computation of the part(s) of the segment, that is (are) covered by triangles</li>
      * <li>For every pair: Removal of the covered parts from the covered segments.</li>
      * </ol><p>

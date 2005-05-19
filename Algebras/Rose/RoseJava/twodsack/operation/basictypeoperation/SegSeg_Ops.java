@@ -589,8 +589,8 @@ public class SegSeg_Ops {
      * Subracts the second segments from the first segment and returns the non-overlapping part(s) as SegMultiSet.
      * If both segments don't overlap, the first segment is returned unchanged.
      *
-     * @param s1 the first segment
-     * @param s2 the second segment
+     * @param seg1 the first segment
+     * @param seg2 the second segment
      * @return the set of segments resulting from subtracting s2 from s1
      */
     public static SegMultiSet minus (final Segment seg1, final Segment seg2) {

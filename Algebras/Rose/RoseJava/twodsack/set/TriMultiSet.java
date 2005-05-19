@@ -11,8 +11,10 @@ import twodsack.util.comparator.*;
 import java.util.*;
 
 /**
- * Stored in a TriMultiSet are elements of type {@link Triangle}. Don't try to store any other objects in an instance of this class.
- * This will result in an exception thrown by the {@link TriangleComparator}. The TriMultiSet class extends {@link ElemMultiSet}.
+ * Stored in a TriMultiSet are elements of type {@link twodsack.setelement.datatype.basicdatatype.Triangle}.
+ * Don't try to store any other objects in an instance of this class.
+ * This will result in an exception thrown by the {@link twodsack.util.comparator.TriangleComparator}.
+ * The TriMultiSet class extends {@link ElemMultiSet}.
  * Only few additional methods are implemented.
  */
 

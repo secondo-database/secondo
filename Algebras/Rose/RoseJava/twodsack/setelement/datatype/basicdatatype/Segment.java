@@ -302,7 +302,7 @@ public class Segment extends Element implements Serializable {
      * Equality of two segments is computed by comparing their endpoints. Note, that (a,b) == (b,a).
      *
      * @param segin the 'in' segment
-     * @param true, if both segments are equal
+     * @return true, if both segments are equal
      * @throws WrongTypeException if segin is not of type Segment
      */
     public boolean equal(Element segin) throws WrongTypeException {

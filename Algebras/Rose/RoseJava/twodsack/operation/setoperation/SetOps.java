@@ -21,7 +21,8 @@ import java.lang.reflect.*;
 import java.io.*;
 
 /**
- * The SetOps class is one of the central classes of the whole 2D-SACK package. Collected in this class are all
+ * The SetOps class is one of the central classes of the whole 2D-SACK package.
+ * Collected in this class are all
  * of the genereric set operations the package offers. Sets in 2D-SACK are commonly ElemMultiSet, i.e. they
  * are one of {PointMultiSet, SegMultiSet, TriMultiSet}. Most of the operations provided here are made for this
  * type. Other types are PairMultiSet, LeftJoinPairMultiSet and, in one special case a LinkedList.<p>
@@ -62,7 +63,7 @@ public class SetOps {
     
     /**
      * Returns a set of elements which is 'reduced' using the passed predicate and method.
-     * This is another variant of the normal {@link #reduce()} operation. For the functionality of reduce() itself,
+     * This is another variant of the normal {@link #reduce} operation. For the functionality of reduce() itself,
      * have a look at that method. <p>
      * Here, a plane sweep algorithm is used for the computation of the reduced set:<ul>
      * <li> construct the sweep event structure from the bounding boxes of the elements in ems; store the right and
@@ -497,7 +498,7 @@ public class SetOps {
 
     /**
      * Returns a set of elements which is 'reduced' using the passed predicate and method.
-     * This is a variant of the normal {@link #reduce()} operation. For the fuctionality of reduce() itself,
+     * This is a variant of the normal {@link #reduce} operation. For the fuctionality of reduce() itself,
      * have a look at that method.<p>
      * This is a recursive algorithm which uses graph algorithms to find groups of candidates for the invocation
      * of the passed method. First note, that the predicate must be an 'overlap' predicate, i.e. is may only yield
@@ -525,7 +526,7 @@ public class SetOps {
      * @param el the set that shall be reduced
      * @param predicate according to this predicate, candidates are filtered
      * @param method this method is invoked on the pairs of elements that were found
-     * @param useOvLapPairsMeet this flag is passed to overlappingPairs(); if true, objects with adjacent bounding boxes are
+     * @param ovLapPairsMeet this flag is passed to overlappingPairs(); if true, objects with adjacent bounding boxes are
      * reported, too
      * @param bboxFilter this flag is passed to overlappingPairs(); if true, in a pre-processing step the number of 
      * candidates is reduced by removing objects of el1,el2 which don't overlap the unified bounding box of el1,el2 resp.

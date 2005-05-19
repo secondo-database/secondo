@@ -13,7 +13,7 @@ import twodsack.util.*;
 
 
 /**
- * This class implements the Vertex type for {@link twodsack.util.graph}. It is the counterpart to the {@link twodsack.util.vertex}. A vertex
+ * This class implements the Vertex type for {@link twodsack.util.graph}. It is the counterpart to the {@link twodsack.util.graph.Edge}. A vertex
  * consist of a value field (where the object is stored) and a number. The number is an int value to identify the vertex. Only objects of type
  * Element can be stored inside of a vertex.
  */

@@ -46,7 +46,7 @@ public class Rect implements Serializable {
      *
      * @param x1 x coordinate of the upper left point
      * @param y1 y coordinate of the upper left point
-     * @param x1 x coordinate of the lower right point
+     * @param x2 x coordinate of the lower right point
      * @param y2 y coordinate of the lower right point
      */
     public Rect(Rational x1, Rational y1, Rational x2, Rational y2) {
@@ -132,7 +132,7 @@ public class Rect implements Serializable {
     /**
      * Returns the intersection of two boxes.
      * 
-     * @param the second box
+     * @param inRect the second box
      * @return the intersection box
      */
     public Rect intersection (Rect inRect) {

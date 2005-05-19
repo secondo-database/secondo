@@ -8,7 +8,7 @@
 package twodsack.util;
 
 /**
- * This interface provides only one single mehtod, namely <code>compare</code>. <i>MSE</i> is short for
+ * This interface provides only one single method, namely {@link #compare}. <i>MSE</i> is short for
  * <i>MultiSetElement</i>. Each data type that shall be used together with a <code>MultiSet</code>
  * must implement this interface.
  */
@@ -20,8 +20,8 @@ public interface ComparableMSE {
      * If properly implemented, returns 0 if <code>this</code> and <code>in</code> are equal,
      * -1 if <code>this</code> is smaller than <code>in</code> and 1 otherwise.
      * 
-     * @param in the instance <code>this</code> shall be compared with
-     * @return {0,-1,1} as <code>int</code>
+     * @param in the instance <code>this</code> shall be compared with <tt>in</tt>
+     * @return one of {0,-1,1} as <code>int</code>
      */
     public int compare(ComparableMSE in);
 

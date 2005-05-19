@@ -25,8 +25,8 @@ public class TriTri_Ops {
      * The inside criterium is checked using the inside method for points and triangles. If all of the vertices of
      * the first triangle are considered to be inside of the second triangle, this method returns true.
      *
-     * @param the first triangle
-     * @param the second triangle
+     * @param t1 the first triangle
+     * @param t2 the second triangle
      * @return true, if the first triangle lies inside of the second triangle
      */
     public static boolean inside(Triangle t1, Triangle t2) {

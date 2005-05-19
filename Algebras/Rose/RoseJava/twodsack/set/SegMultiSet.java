@@ -134,7 +134,7 @@ public class SegMultiSet extends ElemMultiSet {
      * Returns a PointMultiSet which includes all endpoints of segments of <i>this</i>.
      * Duplicates are <i>not</i> removed.
      *
-     * @param the set of endpoints
+     * @return the set of endpoints
      */
     public PointMultiSet getAllPointsWithDuplicates() {
 	PointMultiSet allPoints = null;
