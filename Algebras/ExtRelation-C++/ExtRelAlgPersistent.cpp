@@ -1435,6 +1435,7 @@ private:
   TupleBufferIterator* iterTuplesRelA;
   long relA_Mem;
   bool firstPassA;
+  bool memInfoShown;
   size_t hashA;
 
   vector< vector<Tuple*> > bucketsB;
@@ -1545,6 +1546,7 @@ public:
     Word streamB, Word attrIndexBWord, Word nBucketsWord,
     Supplier s)
   {
+    memInfoShown = false;
     this->streamA = streamA;
     this->streamB = streamB;
 
@@ -1616,10 +1618,13 @@ bucket that the tuple coming from A hashes is also initialized.
         if( tupleA != wTupleA.addr )
           ((Tuple*)wTupleA.addr)->DeleteIfAllowed();
         
-        cmsg.info("ERA:ShowMemInfo") 
-          << "TupleBuffer for relA can hold " 
-          << relA_Mem / tupleA->GetMemorySize() << " tuples" << endl;
-        cmsg.send();
+        if (!memInfoShown) {
+          cmsg.info("ERA:ShowMemInfo") 
+            << "TupleBuffer for relA can hold " 
+            << relA_Mem / tupleA->GetMemorySize() << " tuples" << endl;
+          cmsg.send();
+          memInfoShown = true;
+        }
       }
       else
       {
