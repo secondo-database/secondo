@@ -261,7 +261,17 @@ SmiFile::Create( const string& context /* = "Default" */ )
     SmiEnvironment::SetError( E_SMI_FILE_INVALIDNAME );
   }
 
-  return (rc == 0);
+  if (rc == 0) 
+  {
+    return true;
+  } 
+  else 
+  {
+    string errMsg;
+    SmiEnvironment::GetLastErrorCode( errMsg );
+    cerr << errMsg << endl; 
+    return false; 
+  }
 }
 
 bool
