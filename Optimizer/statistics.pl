@@ -128,11 +128,23 @@ Auxiliary predicates for ~selectivity~.
 
 */
 
-sample(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
-  atom_concat(Rel, '_sample', Rel2).
+/*sample(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
+  atom_concat(Rel, '_sample', Rel2).*/
 
-sampleName(Name, Sample) :-
-  atom_concat(Name, '_sample', Sample).
+sampleS(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
+  atom_concat(Rel, '_sample_s', Rel2).
+
+sampleJ(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
+  atom_concat(Rel, '_sample_j', Rel2).
+
+/*sampleName(Name, Sample) :-
+  atom_concat(Name, '_sample', Sample).*/
+  
+sampleNameS(Name, Sample) :-
+  atom_concat(Name, '_sample_s', Sample).
+
+sampleNameJ(Name, Sample) :-
+  atom_concat(Name, '_sample_j', Sample).
 
 possiblyRename(Rel, Renamed) :-
   Rel = rel(_, *, _),
@@ -153,13 +165,13 @@ dynamicPossiblyRename(Rel, Renamed) :-
   Renamed = rename(sample(Rel, 500, 0.00001), Name).
 
 cardQuery(Pred, Rel, Query) :-
-  sample(Rel, RelS),
+  sampleS(Rel, RelS),
   possiblyRename(RelS, RelQuery),
   Query = count(filter(RelQuery, Pred)).
 
 cardQuery(Pred, Rel1, Rel2, Query) :-
-  sample(Rel1, Rel1S),
-  sample(Rel2, Rel2S),
+  sampleJ(Rel1, Rel1S),
+  sampleJ(Rel2, Rel2S),
   possiblyRename(Rel1S, Rel1Query),
   possiblyRename(Rel2S, Rel2Query),
   transformPred(Pred, t, 1, Pred2),
@@ -254,10 +266,10 @@ selectivity(P, Sel) :-
 
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   Rel1 = rel(BaseName1, _, _),
-  sampleName(BaseName1, SampleName1),
+  sampleNameJ(BaseName1, SampleName1),
   card(SampleName1, SampleCard1),
   Rel2 = rel(BaseName2, _, _),
-  sampleName(BaseName2, SampleName2),
+  sampleNameJ(BaseName2, SampleName2),
   card(SampleName2, SampleCard2),
   cardQuery(Pred, Rel1, Rel2, Query),
   plan_to_atom(Query, QueryAtom1),
@@ -275,7 +287,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
 
 selectivity(pr(Pred, Rel), Sel) :-
   Rel = rel(BaseName, _, _),
-  sampleName(BaseName, SampleName),
+  sampleNameS(BaseName, SampleName),
   card(SampleName, SampleCard),
   cardQuery(Pred, Rel, Query),
   plan_to_atom(Query, QueryAtom1),
@@ -315,7 +327,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
 selectivity(pr(Pred, Rel), Sel) :-
   Rel = rel(BaseName, _, _),
   card(BaseName, Card),
-  SampleCard is min(Card, max(500, Card * 0.00001)),
+  SampleCard is min(Card, max(2000, Card * 0.00001)),
   dynamicCardQuery(Pred, Rel, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
