@@ -52,6 +52,8 @@ Algebra. These common functionalities belongs to this implementation file.
 #include "SecondoSystem.h"
 #include "QueryProcessor.h"
 #include "NestedList.h"
+#include "Counter.h"
+
 #include <set>
 
 extern NestedList *nl;
@@ -168,6 +170,9 @@ ostream& Tuple::ShowTupleStatistics( const bool reset, ostream& o )
   o << "Tuples created: " << Tuple::tuplesCreated << endl
     << "Tuples deleted: " << Tuple::tuplesDeleted << endl
     << "Maximum # of tuples in memory: " << Tuple::maximumTuples << endl;
+
+  Counter::getRef("RA:CreatedTuples") = Tuple::tuplesCreated; 
+  Counter::getRef("RA:DeletedTuples") = Tuple::tuplesDeleted; 
 
   if( reset )
   {
