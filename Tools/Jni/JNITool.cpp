@@ -328,7 +328,7 @@ ListExpr JNITool::GetCppList(JNIEnv* env, jobject obj){
      o = env->CallObjectMethod(obj,restID);
      if(!o) Error(__LINE__);
      while(!(env->CallBooleanMethod(o,isEmptyID))){
-         elem1 = env->CallObjectMethod(obj,firstID); 
+         elem1 = env->CallObjectMethod(o,firstID); 
          if(!elem1) Error(__LINE__);
          CppElem1 = GetCppList(env,elem1);  // convert to cpp format
          env->DeleteLocalRef(elem1); 
