@@ -420,10 +420,9 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println(" 1.2.3 Constructor building the cpp object from the java one ");
    out.println("\n*/");
    out.println(Name+"::"+Name+"(const jobject jobj):objectData(1){");
-   out.println("   // find the class "+Name);
+   out.println("   __TRACE__");
    out.println("   canDelete = false;");
    String FullName = getString(cls);
-   out.println("   cls = "+Name+"_class;"); 
    out.println("   obj = jobj; // create the corresponding FLOB ");
    out.println("   RestoreFLOBFromJavaObject(); ");
    out.println("   defined = true; ");
@@ -436,38 +435,38 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("     objectData(size), ");
    out.println("     canDelete(false), ");
    out.println("     defined(true) ");
-   out.println("    {}\n\n");
+   out.println("    {obj=0;}\n\n");
 
    out.println("/*\n");
    out.println("1.2.5 Destructor for "+Name +"\n");
    out.println("*/");
    out.println(Name+"::~"+Name+"(){");
+   out.println("   __TRACE__");
    out.println("   if(canDelete){");
    out.println("      objectData.Destroy();");
-   out.println("      env->DeleteLocalRef(obj);");
    out.println("   }");
+   out.println("   if(obj) ");
+   out.println("      env->DeleteLocalRef(obj);");
    out.println("}\n\n");
 
    out.println("/*\n");
    out.println("1.2.6 Clone function \n");
    out.println("*/");
    out.println(Name+"* "+Name+"::Clone(){");
-   out.println("   jmethodID mid; ");
-   out.println("   jobject jobj;");
-     out.print("   mid=env->GetMethodID(cls,\"copy\",\"()Ljava/lang/Object;");
-     out.print(getJNIString(cls));
-     out.println("\");");
-   out.println("   if (mid==0) error(__LINE__);");
-   out.println("   jobj = env->CallObjectMethod(obj,mid);");
-   out.println("   if(obj==0) error(__LINE__);");
-   out.println("   return new "+Name+"(jobj);");
+   out.println("   __TRACE__");
+   out.println("   "+Name+"* res = new "+Name+"(objectData.Size());");
+   out.println("   res->CopyFrom(this); ");
+   out.println("   return res;");
    out.println("}\n\n");
 
    out.println("/*\n");
    out.println("1.2.7 The ~HashValue~ Function \n");
    out.println("*/");
    out.println("size_t "+Name+"::HashValue(){ ");
-   out.println("   jmethodID mid = env->GetMethodID(cls,\"getHashValue\",\"()I\");");
+   out.println("   __TRACE__");
+   out.println("   if(!obj)");
+   out.println("       RestoreJavaObjectFromFLOB();");
+   out.println("   jmethodID mid = env->GetMethodID(+"+getShortString(cls)+"_class,\"getHashValue\",\"()I\");");
    out.println("   if(mid==0) error(__LINE__);");
    out.println("   return (size_t) env->CallIntMethod(obj,mid);");
    out.println("}\n\n");
@@ -476,31 +475,37 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("1.2.8 The ~CopyFrom~ function \n");
    out.println("*/");
    out.println("void "+Name+"::CopyFrom(StandardAttribute* right){");
+   out.println("   __TRACE__");
    out.println("   "+Name +"* R = ("+Name+"*) right;");
-   out.println("   cls = "+getShortString(cls)+"_class;");
    out.println("   objectData.Resize(R->objectData.Size());");
    out.println("   char* data = new char[R->objectData.Size()];");
    out.println("   R->objectData.Get(0,R->objectData.Size(),data);");
    out.println("   objectData.Put(0,R->objectData.Size(),data);");
    out.println("   delete [] data;");
-   out.println("   RestoreJavaObjectFromFLOB();");
+   out.println("   if(obj)");
+   out.println("      env->DeleteLocalRef(obj);"); 
+   out.println("   obj=0;");
    out.println("}\n\n");
 
    out.println("/*\n");
    out.println("1.2.9 The ~Compare~ function \n");
    out.println("*/");
    out.println("int "+Name+"::Compare(Attribute* arg){");
+   out.println("   __TRACE__");
    out.println("   jmethodID mid; ");
-   out.println("   mid = env->GetMethodID(cls,\"compareTo\",\"(Ljava/lang/Object;)I\");");
+   out.println("   mid = env->GetMethodID("+getShortString(cls)+"_class,\"compareTo\",\"(Ljava/lang/Object;)I\");");
    out.println("   if(mid==0) error(__LINE__);");
+   out.println("   if(!obj)");
+   out.println("     RestoreJavaObjectFromFLOB();");
    out.println("   "+Name+" *C = ("+Name+" *)arg;");
-   out.println("   return env->CallIntMethod(obj,mid,C->obj);  ");
+   out.println("   return env->CallIntMethod(obj,mid,C->GetObject());  ");
    out.println("}\n\n");
 
    out.println("/*\n");
    out.println("1.2.10 The ~Adjacent~ function \n");
    out.println("*/");
    out.println("bool "+Name+"::Adjacent(Attribute* arg){");
+   out.println("   __TRACE__");
    out.println("   return  false; ");
    out.println("}\n\n");
 
@@ -509,6 +514,7 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("1.2.10 The ~NumOfFLOBs~ function \n");
    out.println("*/");
    out.println("int "+Name+"::NumOfFLOBs(){");
+   out.println("   __TRACE__");
    out.println("   return  1; ");
    out.println("}\n\n");
 
@@ -517,6 +523,7 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("1.2.10 The ~GetFLOB~ function \n");
    out.println("*/");
    out.println("FLOB* "+Name+"::GetFLOB(const int i){");
+   out.println("   __TRACE__");
    out.println("   assert(i==0);");
    out.println("   return  &objectData; ");
    out.println("}\n\n");
@@ -527,6 +534,7 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("data from the java object.\n");
    out.println("*/");
    out.println("void "+Name+"::RestoreFLOBFromJavaObject(){");
+   out.println("   __TRACE__");
    out.println("   // get the required method id");
    out.println("   jmethodID mid; ");
    out.println("   mid = env->GetStaticMethodID(Serializer_class,");
@@ -541,6 +549,7 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("   objectData.Resize(size);");
    out.println("   objectData.Put(0,size,bytes);");
    out.println("   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);");
+   out.println("   env->DeleteLocalRef(jbytes); ");
    out.println("}\n\n");
 
    out.println("/*\n");
@@ -549,8 +558,8 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("creates the Java object from it. \n");
    out.println("*/");
    out.println("void "+Name+"::RestoreJavaObjectFromFLOB(){");
+   out.println("   __TRACE__");
    out.println("   // get the jaca class ");
-   out.println("   cls = Serializer_class;");
    out.println("   if(&objectData == 0) error(__LINE__); ");
    out.println("   int size = objectData.Size(); ");
    out.println("   if(size==0) error(__LINE__);");
@@ -560,32 +569,35 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("   jbyteArray jbytes = env->NewByteArray(size);");
    out.println("   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);");
    out.println("   jmethodID mid; ");
-   out.println("   mid = env->GetStaticMethodID(cls,\"readFrom\",");
+   out.println("   mid = env->GetStaticMethodID(Serializer_class,\"readFrom\",");
    out.println("                              \"([B)Ljava/lang/Object;\");");
    out.println("   if(mid==0) error(__LINE__);");
-   out.println("   jobject jres = env->CallStaticObjectMethod(cls,mid,jbytes);");
-   out.println("   if(jres==0) error(__LINE__); ");
-   out.println("   obj = jres; ");
+   out.println("   obj = env->CallStaticObjectMethod(Serializer_class,mid,jbytes);");
+   out.println("   if(obj==0) error(__LINE__); ");
    out.println("   jbyte* elems = env->GetByteArrayElements(jbytes,0);");
    out.println("   env->ReleaseByteArrayElements(jbytes,elems,0);");
    out.println("   delete [] bytes; ");
+   out.println("   bytes=0; ");
+   out.println("   env->DeleteLocalRef(jbytes); ");
    out.println("}\n\n");
 
 
    out.println("/*\n");
    out.println("1.2.13 The ~ToListExpr~ Function \n");
    out.println("*/");
-   out.println("ListExpr "+Name+"::ToListExpr(ListExpr typeInfo){"); 
-   out.println("   cls = "+getShortString(cls)+"_class;");
-   out.println("   jmethodID mid = env->GetMethodID(cls,\"toListExpr\",");
+   out.println("ListExpr "+Name+"::ToListExpr(ListExpr typeInfo){");
+   out.println("   __TRACE__"); 
+   out.println("   jmethodID mid = env->GetMethodID("+getShortString(cls)+"_class,\"toListExpr\",");
    out.println("                       \"(Lsj/lang/ListExpr;)Lsj/lang/ListExpr;\");");
    out.println("   if(mid==0) error(__LINE__); ");
-   out.println("   jobject jtype = jnitool->GetJavaList(env,typeInfo);");
-   out.println("   jobject jres = env->CallObjectMethod(obj,mid,jtype);");
+   //out.println("   jobject jtype = jnitool->GetJavaList(env,typeInfo);");
+   out.println("   if(!obj)");
+   out.println("      RestoreJavaObjectFromFLOB();");
+   out.println("   jobject jres = env->CallObjectMethod(obj,mid,0);");
    out.println("   if(jres==0) error(__LINE__);");
    out.println("   ListExpr res = jnitool->GetCppList(env,jres);");
    out.println("   env->DeleteLocalRef(jres); ");
-   out.println("   env->DeleteLocalRef(jtype); ");
+//   out.println("   env->DeleteLocalRef(jtype); ");
    out.println("   return res; ");
    out.println("}");
 
@@ -630,10 +642,15 @@ private static String getCppMethod(Class cls, Method M){
        res += "  P"+i;
    }
    res += ")  { \n";
+   res += "  __TRACE__\n";
    res +="  jmethodID mid;\n";
    String[] Ps = getSignature(M);
-   res +="  mid=env->GetMethodID(cls,\""+Ps[0]+"\",\""+Ps[1]+"\");\n";
+   res +="  mid=env->GetMethodID("+getShortString(cls)+"_class,\""+Ps[0]+"\",\""+Ps[1]+"\");\n";
    res +="  if(mid==0) error(__LINE__);\n";
+
+   // creating the objects if needed
+   res += "  if(!obj)\n";
+   res += "     RestoreJavaObjectFromFLOB();\n";  
    String Call = getJNICall(M);
    RT = M.getReturnType();
    String CallParams="";
@@ -765,7 +782,7 @@ private static String getString(Class cls){
 
 }
 
-/** Write the required incudes and so on to out **/
+/** Write the required inciludes and so on to out **/
 private static void printHeader(PrintStream out,String AlgebraName, String Author,Class[] Classes){
 
 // first we write some outputs for the pd-system
@@ -804,6 +821,14 @@ for(int i=0;i<Classes.length;i++){
 }
 out.println("static jclass Serializer_class;");
 
+out.println("/*\n1.3 Definitions for easy tracing \n\n*/\n");
+out.println("//#define __TRACE_ON__");
+out.println("#ifdef __TRACE_ON__");
+out.println("#define __TRACE__ cout <<__FILE__ << \"..\" << __PRETTY_FUNCTION__ << \"@\" << __LINE__ << endl;");
+out.println("#else");
+out.println("#define __TRACE__");
+out.println("#endif\n");
+
 
 out.println("/*\n1.3 An error function \n");
 out.println("This function is called wheneven an error in the java code occurs.");
@@ -815,7 +840,7 @@ out.println("   cerr << \"Error in \" << __FILE__ << \" in line: \" << line;");
 out.println("   cerr << \".\" << endl;");
 out.println("   if(env->ExceptionOccurred()) ");
 out.println("        env->ExceptionDescribe();");
-out.println("    exit(1);");
+out.println("   assert(false);");
 out.println(" }\n\n");
 }
 
@@ -861,19 +886,27 @@ private static void printClassDeclaration(PrintStream out, Class C, Vector metho
    // some functions required for the use as an attribute type
    out.println("     void Destroy();");
    out.println("     "+Name+"* Clone();");
-   out.println("     bool IsDefined() const{ return defined;}");
-   out.println("     void SetDefined(bool b){defined =b;}");
+   out.println("     bool IsDefined() const{ __TRACE__ return defined;}");
+   out.println("     void SetDefined(bool b){__TRACE__ defined =b;}");
    out.println("     size_t HashValue();");
    out.println("     void CopyFrom(StandardAttribute* right);");
    out.println("     int Compare(Attribute* arg);");
    out.println("     bool Adjacent(Attribute* arg);");
    out.println("     int NumOfFLOBs();");
    out.println("     FLOB* GetFLOB(const int i);");
-   out.println("     jobject GetObject(){return obj;}");
+   out.println("     jobject GetObject(){if(!obj)");
+   out.println("                            RestoreJavaObjectFromFLOB();");
+   out.println("                         return obj;}");
+   out.println("     void SetObject(jobject obj){ __TRACE__ ");
+   out.println("                                  this->obj=obj;}");
    out.println("     // functions required for persistent storing");
    out.println("     void RestoreJavaObjectFromFLOB();");
    out.println("     void RestoreFLOBFromJavaObject();");
-   out.println("     void Initialize(){RestoreJavaObjectFromFLOB();}");
+   out.println("     void Initialize(){__TRACE__ obj=0;}");
+   out.println("     void Finalize(){__TRACE__ ");
+   out.println("                     if(obj) ");
+   out.println("                       env->DeleteLocalRef(obj);");
+   out.println("                     obj=0;};");
    out.println("     ListExpr ToListExpr(ListExpr typeInfo);");
    out.println("     // the next functions are the algebra operators");
 
@@ -884,7 +917,6 @@ private static void printClassDeclaration(PrintStream out, Class C, Vector metho
    }
 
    out.println("  private:");
-   out.println("     jclass cls; // pointer to the Java class");
    out.println("     jobject obj; // the wrapped instance");
    out.println("     // byte representation of the java object");
    out.println("     FLOB objectData;");
@@ -941,6 +973,7 @@ private static void printStandardFunctions(PrintStream out,Class cls){
    out.println("                        const int errorPos, ");
    out.println("                        ListExpr& errorInfo, ");
    out.println("                        bool& correct){");
+   out.println("   __TRACE__");
    out.println("   jmethodID mid; ");
    out.println("   jobject obj; ");
    out.println("   jclass cls = "+Name+"_class;");
@@ -955,6 +988,8 @@ private static void printStandardFunctions(PrintStream out,Class cls){
    out.println("           \"(Lsj/lang/ListExpr;Lsj/lang/ListExpr;)Z\");");
    out.println("   if(mid==0) error(__LINE__);");
    out.println("   correct = env->CallBooleanMethod(obj,mid,jtype,jinstance);");
+   out.println("   env->DeleteLocalRef(jtype);");
+   out.println("   env->DeleteLocalRef(jinstance);");
    out.println("   if(correct) ");
    out.println("        return SetWord(new "+Name+"(obj));");
    out.println("   // not successful ");
@@ -966,23 +1001,25 @@ private static void printStandardFunctions(PrintStream out,Class cls){
    out.println("The ~Out~ function for "+Name+"\n");
    out.println("*/");
    out.println("static ListExpr Out"+Name+"(ListExpr typeInfo,Word value){");
+   out.println("   __TRACE__");
    out.println("   "+Name+"* O = ("+Name+"*) (value.addr);");
-   out.println("   return O->ToListExpr(typeInfo);");
+   out.println("   ListExpr res = O->ToListExpr(typeInfo);");
+   out.println("   O->Finalize(); ");
+   out.println("   return res; ");
    out.println(" }\n\n");
 
    out.println("/*\n");
    out.println("The ~Create~ function for "+Name+"\n");
    out.println("*/");
    out.println("static Word Create"+Name+"(const ListExpr typeInfo){");
+   out.println("   __TRACE__");
    out.println("   jclass cls = "+Name+"_class;");
    out.println("   if(cls==0) error(__LINE__); ");
-   out.println("   jobject jtype = jnitool->GetJavaList(env,typeInfo);");
    out.println("   jmethodID mid;");
    out.println("   mid = env->GetMethodID(cls,\"<init>\",\"()V\");");
    out.println("   if(mid==0) error(__LINE__); ");
    out.println("   jobject res = env->NewObject(cls,mid);");
    out.println("   if(res==0) error(__LINE__);");
-   out.println("   env->DeleteLocalRef(jtype);");
    out.println("   return SetWord(new "+Name+"(res));");
    out.println("}\n\n");
 
@@ -990,6 +1027,7 @@ private static void printStandardFunctions(PrintStream out,Class cls){
    out.println(" The ~Delete~ Function for "+Name+"\n");
    out.println("*/");
    out.println("static void Delete"+Name+"(Word &w){");
+   out.println("  __TRACE__");
    out.println("  delete ("+Name+" *)w.addr; ");
    out.println("  w.addr = 0; ");
    out.println("}\n\n");
@@ -999,6 +1037,7 @@ private static void printStandardFunctions(PrintStream out,Class cls){
    out.println(" The ~Close~ Function for "+Name+"\n");
    out.println("*/");
    out.println("static void Close"+Name+"(Word &w){");
+   out.println("  __TRACE__");
    out.println("  delete ("+Name+" *)w.addr; ");
    out.println("  w.addr = 0; ");
    out.println("}\n\n");
@@ -1008,6 +1047,7 @@ private static void printStandardFunctions(PrintStream out,Class cls){
    out.println(" The ~Clone~ Function for "+Name+"\n");
    out.println("*/");
    out.println("static Word Clone"+Name+"(const Word &w){");
+   out.println("   __TRACE__");
    out.println("   return SetWord(( ("+Name+"*)w.addr)->Clone());");
    out.println("}\n\n");
 
@@ -1019,8 +1059,9 @@ private static void printStandardFunctions(PrintStream out,Class cls){
    out.println("                  size_t& offset,");
    out.println("                  const ListExpr typeInfo,");
    out.println("                  Word& value){");
+   out.println("   __TRACE__");
    out.println("   "+Name+"* P = ("+Name+"*) TupleElement::Open(valueRecord,offset,typeInfo);");
-   out.println("   P->RestoreJavaObjectFromFLOB(); ");
+   out.println("   P->SetObject(0); ");
    out.println("   value = SetWord(P); ");
    out.println("   return true; ");
    out.println("}\n\n");
@@ -1033,6 +1074,7 @@ private static void printStandardFunctions(PrintStream out,Class cls){
    out.println("                  size_t& offset,");
    out.println("                  const ListExpr typeInfo,");
    out.println("                  Word& value){");
+   out.println("   __TRACE__");
    out.println("   "+Name+"* P = ("+Name+"*) value.addr;");
    out.println("   TupleElement::Save(valueRecord,offset,typeInfo,P);");
    out.println("   return true; ");
@@ -1041,12 +1083,13 @@ private static void printStandardFunctions(PrintStream out,Class cls){
    out.println("/*\n");
    out.println("The ~SizeOf~ Function for "+Name +"\n");
    out.println("*/");
-   out.println("int SizeOf"+Name+"(){\n   return sizeof("+Name+");\n}\n\n");
+   out.println("int SizeOf"+Name+"(){\n   __TRACE__\n   return sizeof("+Name+");\n}\n\n");
 
    out.println("/*\n");
    out.println("The ~Cast~ Function for "+Name +"\n");
    out.println("*/");
    out.println("void* Cast"+Name+"(void* addr){");
+   out.println("   __TRACE__");
    out.println("   return new (addr) "+Name+";");
    out.println("}\n\n");
 }
@@ -1124,6 +1167,7 @@ private static void printKindChecking(PrintStream out, Class cls){
    */
    // if composite type are not allowed, use the following code:
     String SName = getSecondoType(cls);
+    out.println("   __TRACE__");
     out.println("   return nl->IsEqual(type,\""+SName+"\");");
 
     // common code for both versions
@@ -1488,6 +1532,7 @@ private static void printValueMappingStatic(PrintStream out, String Name,ClassMe
     out.println("static int "+VMName+"(");
     out.println("            Word* args, Word& result, int message,");
     out.println("            Word& local, Supplier s){");
+    out.println("   __TRACE__");
     out.println("   result = qp->ResultStorage(s);");
     Class[] args = CM.m.getParameterTypes();
     Class RT = CM.m.getReturnType();
@@ -1536,6 +1581,7 @@ private static void printValueMappingNonStatic(PrintStream out,String Name,Class
      out.println("static int "+VMName+"(");
      out.println("            Word* args, Word& result, int message,");
      out.println("            Word& local, Supplier s){");
+     out.println("   __TRACE__");
      out.println("   result = qp->ResultStorage(s);");
      // get all parameters
      Class[] args = CM.m.getParameterTypes();
