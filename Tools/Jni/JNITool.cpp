@@ -75,7 +75,73 @@ JNITool::JNITool(JNIEnv *env, NestedList *nl){
 
    fid = env->GetStaticFieldID(nlclass,"NO_ATOM","I");
    assert(fid!=0);
-   jno_atom = env->GetStaticIntField(nlclass,fid);  
+   jno_atom = env->GetStaticIntField(nlclass,fid); 
+
+   realAtomID = env->GetStaticMethodID(nlclass,"realAtom",
+                                       "(D)Lsj/lang/ListExpr;");
+   assert(realAtomID);
+
+   intAtomID = env->GetStaticMethodID(nlclass,"intAtom",
+                                      "(I)Lsj/lang/ListExpr;");
+   assert(intAtomID);
+  
+   symbolAtomID = env->GetStaticMethodID(nlclass,"symbolAtom",
+                             "(Ljava/lang/String;)Lsj/lang/ListExpr;");
+   assert(symbolAtomID);
+
+   stringAtomID =env->GetStaticMethodID(nlclass,"stringAtom",
+                            "(Ljava/lang/String;)Lsj/lang/ListExpr;");
+   assert(stringAtomID);
+
+   textAtomID = env->GetStaticMethodID(nlclass,"textAtom",
+                             "(Ljava/lang/String;)Lsj/lang/ListExpr;");
+   assert(textAtomID);
+
+   theEmptyListID = env->GetStaticMethodID(nlclass,"theEmptyList",
+                           "()Lsj/lang/ListExpr;");
+   assert(theEmptyListID);
+
+   oneElemListID = env->GetStaticMethodID(nlclass,"oneElemList",
+                              "(Lsj/lang/ListExpr;)Lsj/lang/ListExpr;");
+   assert(oneElemListID);
+
+   appendID = env->GetStaticMethodID(nlclass,"append",
+                "(Lsj/lang/ListExpr;Lsj/lang/ListExpr;)Lsj/lang/ListExpr;");
+   assert(appendID);
+   
+   atomTypeID = env->GetMethodID(nlclass,"atomType","()I");
+   assert(atomTypeID);
+
+   symbolValueID = env->GetMethodID(nlclass,"symbolValue",
+                                            "()Ljava/lang/String;");
+   assert(symbolValueID);
+
+   stringValueID = env->GetMethodID(nlclass,"stringValue",
+                                            "()Ljava/lang/String;");
+   assert(stringValueID);
+
+   textValueID =  env->GetMethodID(nlclass,"textValue","()Ljava/lang/String;");
+   assert(textValueID);
+  
+   realValueID = env->GetMethodID(nlclass,"realValue","()D");
+   assert(realValueID);
+
+   intValueID = env->GetMethodID(nlclass,"intValue","()I");
+   assert(intValueID);
+
+   isEmptyID = env->GetMethodID(nlclass,"isEmpty","()Z");
+   assert(isEmptyID);
+ 
+   firstID = env->GetMethodID(nlclass,"first","()Lsj/lang/ListExpr;");
+   assert(firstID);
+
+   restID = env->GetMethodID(nlclass,"rest","()Lsj/lang/ListExpr;");
+   assert(restID);
+
+   systemclass = env->FindClass("java/lang/System");
+   assert(systemclass);
+   gcID = env->GetStaticMethodID(systemclass,"gc","()V");
+   assert(gcID); 
 }
 
 
@@ -84,31 +150,29 @@ JNITool::JNITool(JNIEnv *env, NestedList *nl){
 /*
 1.1 The ~GetJavaList~ Function
 
-This function converts a C++-ListExpr value into a Java-ListExpr value. 
+This function converts a C++-ListExpr value into a Java-ListExpr value.
+The result is computed via an JNI call. For this reason, the
+caller has to ensure, to tell the java environment , that the result
+can be destroyed via the DeleteLocalRef-Command. 
 
 */
 jobject JNITool::GetJavaList(JNIEnv * env, ListExpr LE){
-   jmethodID mid;
    jobject res;
    // first process the atoms
 
    // real 
    if(nl->AtomType(LE)== RealType){
       double rvalue = nl->RealValue(LE);
-      mid = env->GetStaticMethodID(nlclass,"realAtom","(D)Lsj/lang/ListExpr;");
-      assert(mid!=0);
-      res = env->CallStaticObjectMethod(nlclass,mid,rvalue);
-      assert(res!=0);
+      res = env->CallStaticObjectMethod(nlclass,realAtomID,rvalue);
+      if(!res) Error(__LINE__);
       return res; 
    }
 
    // integer
    if(nl->AtomType(LE)==IntType){
       int ivalue = nl->IntValue(LE);
-      mid = env->GetStaticMethodID(nlclass,"intAtom","(I)Lsj/lang/ListExpr;");
-      assert(mid!=0);
-      res = env->CallStaticObjectMethod(nlclass,mid,ivalue);
-      assert(res!=0);
+      res = env->CallStaticObjectMethod(nlclass,intAtomID,ivalue);
+      if(!res) Error(__LINE__);
       return res;
    }
 
@@ -117,12 +181,9 @@ jobject JNITool::GetJavaList(JNIEnv * env, ListExpr LE){
      string svalue = nl->SymbolValue(LE);
      const char* cstr = svalue.c_str();
      jstring jstr = env->NewStringUTF(cstr);
-     assert(jstr!=0);
-     mid =  env->GetStaticMethodID(nlclass,"symbolAtom",
-                        "(Ljava/lang/String;)Lsj/lang/ListExpr;");
-     assert(mid!=0);
-     res = env->CallStaticObjectMethod(nlclass,mid,jstr);
-     assert(res!=0);
+     if(!jstr) Error(__LINE__);
+     res = env->CallStaticObjectMethod(nlclass,symbolAtomID,jstr);
+     if(!res) Error(__LINE__);
      return res;
    }
 
@@ -131,12 +192,9 @@ jobject JNITool::GetJavaList(JNIEnv * env, ListExpr LE){
      string svalue = nl->StringValue(LE);
      const char* cstr = svalue.c_str();
      jstring jstr = env->NewStringUTF(cstr);
-     assert(jstr!=0);
-     mid =  env->GetStaticMethodID(nlclass,"stringAtom",
-                          "(Ljava/lang/String;)Lsj/lang/ListExpr;");
-     assert(mid!=0);
-     res = env->CallStaticObjectMethod(nlclass,mid,jstr);
-     assert(res!=0);
+     if(!jstr) Error(__LINE__);
+     res = env->CallStaticObjectMethod(nlclass,stringAtomID,jstr);
+     if(!res) Error(__LINE__);
      return res;
    }
 
@@ -146,22 +204,16 @@ jobject JNITool::GetJavaList(JNIEnv * env, ListExpr LE){
       nl->Text2String(LE,tvalue);
       const char* cstr = tvalue.c_str();
       jstring jstr = env->NewStringUTF(cstr);
-      assert(jstr!=0);
-      mid =  env->GetStaticMethodID(nlclass,"textAtom",
-                           "(Ljava/lang/String;)Lsj/lang/ListExpr;");
-      assert(mid!=0);
-      res = env->CallStaticObjectMethod(nlclass,mid,jstr);
-      assert(res!=0);
+      if(!jstr) Error(__LINE__);
+      res = env->CallStaticObjectMethod(nlclass,textAtomID,jstr);
+      if(!res) Error(__LINE__);
       return res;
    }
 
    // empty list
    if(nl->IsEmpty(LE)){
-       mid = env->GetStaticMethodID(nlclass,"theEmptyList",
-                           "()Lsj/lang/ListExpr;");
-       assert(mid!=0);
-       res = env->CallStaticObjectMethod(nlclass,mid);
-       assert(res!=0);
+       res = env->CallStaticObjectMethod(nlclass,theEmptyListID);
+       if(!res) Error(__LINE__);
        return res;
    }
 
@@ -172,28 +224,29 @@ jobject JNITool::GetJavaList(JNIEnv * env, ListExpr LE){
       ListExpr F = nl->First(LE);
       ListExpr R = nl->Rest(LE);
       jobject elem1 = GetJavaList(env,F);
-      jobject last = elem1;
       // put the first element into a java list
-      mid = env->GetStaticMethodID(nlclass,"oneElemList",
-                          "(Lsj/lang/ListExpr;)Lsj/lang/ListExpr;");
-      assert(mid!=0);
-      res = env->CallStaticObjectMethod(nlclass,mid,elem1);
-      assert(res!=0);
-      last = res;
-      mid = env->GetStaticMethodID(nlclass,"append",
-                  "(Lsj/lang/ListExpr;Lsj/lang/ListExpr;)Lsj/lang/ListExpr;");
-      assert(mid!=0);
+      res = env->CallStaticObjectMethod(nlclass,oneElemListID,elem1);
+      env->DeleteLocalRef(elem1);
+ 
+      if(!res) Error(__LINE__);
+      jobject last =  res;
       while(!nl->IsEmpty(R)){
            jobject next = GetJavaList(env, nl->First(R));
-           last = env->CallStaticObjectMethod(nlclass,mid,last,next);
-           assert(last!=0); 
+           jobject oldlast = last;
+           last = env->CallStaticObjectMethod(nlclass,appendID,last,next);
+           env->DeleteLocalRef(next);
+           if(oldlast!=res)
+              env->DeleteLocalRef(oldlast);
+           if(!last) Error(__LINE__); 
            R = nl->Rest(R);
-      } 
+      }
+      if(last!=res)
+         env->DeleteLocalRef(last);
       return res;
    } 
-
    // unknow atomtype
-   assert(false);
+   Error(__LINE__);
+   return 0;
 
 }
 
@@ -209,92 +262,124 @@ into its c++ counterpart.
 */
 
 ListExpr JNITool::GetCppList(JNIEnv* env, jobject obj){
-  jmethodID mid = env->GetMethodID(nlclass,"atomType","()I");
-  assert(mid!=0);
-  int type = env->CallIntMethod(obj,mid);
+  int type = env->CallIntMethod(obj,atomTypeID);
 
   if(type == jsymbol_atom){
-      mid = env->GetMethodID(nlclass,"symbolValue","()Ljava/lang/String;");
-      assert(mid!=0);
-      jobject jstr = env->CallObjectMethod(obj,mid);
-      assert(jstr!=0);
+      jobject jstr = env->CallObjectMethod(obj,symbolValueID);
+      if(!jstr) Error(__LINE__);
       const char* cstr;
       cstr = env->GetStringUTFChars((jstring) jstr,NULL);
-      assert(cstr!=0);
+      env->DeleteLocalRef(jstr);
+      if(!cstr) Error(__LINE__);
       return nl->SymbolAtom(cstr);
   }
 
   if(type == jstring_atom){
-      mid = env->GetMethodID(nlclass,"stringValue","()Ljava/lang/String;");
-      assert(mid!=0);
-      jstring jstr = (jstring) env->CallObjectMethod(obj,mid);
-      assert(jstr!=0);
+      jstring jstr = (jstring) env->CallObjectMethod(obj,stringValueID);
+      if(!jstr) Error(__LINE__);
       const char* cstr;
       cstr = env->GetStringUTFChars(jstr,NULL);
-      assert(cstr!=0);
+      env->DeleteLocalRef(jstr);
+      if(!cstr) Error(__LINE__);
       return nl->StringAtom(cstr);
   }
 
   if(type == jtext_atom){
-      mid = env->GetMethodID(nlclass,"textValue","()Ljava/lang/String;");
-      assert(mid!=0);
-      jstring jstr = (jstring) env->CallObjectMethod(obj,mid);
-      assert(jstr!=0);
+      jstring jstr = (jstring) env->CallObjectMethod(obj,textValueID);
+      if(!jstr) Error(__LINE__);
       const char* cstr;
       cstr = env->GetStringUTFChars(jstr,NULL);
-      assert(cstr!=0);
+      if(!cstr) Error(__LINE__);
+      env->DeleteLocalRef(jstr);
       ListExpr res = nl->TextAtom();
       nl->AppendText(res,cstr);
       return res;
   }
 
   if(type == jreal_atom){
-     mid = env->GetMethodID(nlclass,"realValue","()D");
-     assert(mid!=0);
-     return nl->RealAtom(env->CallDoubleMethod(obj,mid));
+     return nl->RealAtom(env->CallDoubleMethod(obj,realValueID));
   }
 
   if(type == jint_atom){
-     mid = env->GetMethodID(nlclass,"intValue","()I");
-     assert(mid!=0);
-     return nl->IntAtom(env->CallIntMethod(obj,mid));
+     return nl->IntAtom(env->CallIntMethod(obj,intValueID));
   }
   if(type ==jno_atom){
      // check for emptyness
-     jmethodID mid_isEmpty = env->GetMethodID(nlclass,"isEmpty","()Z");
-     assert(mid_isEmpty!=0);
-     if(env->CallBooleanMethod(obj,mid_isEmpty))
+     if(env->CallBooleanMethod(obj,isEmptyID))
         return nl->TheEmptyList();
      // we have at least one element
-     jmethodID mid_first;
-     mid_first = env->GetMethodID(nlclass,"first","()Lsj/lang/ListExpr;");
-     assert(mid_first!=0);
-     jmethodID mid_rest;
-     mid_rest = env->GetMethodID(nlclass,"rest","()Lsj/lang/ListExpr;"); 
-     assert(mid_rest!=0);
-     jmethodID mid_append = env->GetStaticMethodID(nlclass,"append",
-                  "(Lsj/lang/ListExpr;Lsj/lang/ListExpr;)Lsj/lang/ListExpr;");
-     assert(mid_append!=0);
      // process the first element
-     jobject elem1 = env->CallObjectMethod(obj,mid_first);
-     assert(elem1!=0);
+     jobject elem1 = env->CallObjectMethod(obj,firstID);
+     if(!elem1) Error(__LINE__);
      ListExpr CppElem1 = GetCppList(env,elem1);
+     env->DeleteLocalRef(elem1);
      ListExpr Last = CppElem1;
      ListExpr result = nl->OneElemList(CppElem1);
      Last = result;
-     obj = env->CallObjectMethod(obj,mid_rest);
-     assert(obj!=0);
-     while(!(env->CallBooleanMethod(obj,mid_isEmpty))){
-         elem1 = env->CallObjectMethod(obj,mid_first); 
-         assert(elem1!=0);
+     jobject o = obj;
+     o = env->CallObjectMethod(obj,restID);
+     if(!o) Error(__LINE__);
+     while(!(env->CallBooleanMethod(o,isEmptyID))){
+         elem1 = env->CallObjectMethod(obj,firstID); 
+         if(!elem1) Error(__LINE__);
          CppElem1 = GetCppList(env,elem1);  // convert to cpp format
+         env->DeleteLocalRef(elem1); 
          Last = nl->Append(Last,CppElem1); // append to result 
-         obj = env->CallObjectMethod(obj,mid_rest);
-         assert(obj!=0);
+         jobject oldo = o;
+         o = env->CallObjectMethod(oldo,restID);
+         env->DeleteLocalRef(oldo);
+         if(!o) Error(__LINE__);
      } 
+     if(o!=obj)
+        env->DeleteLocalRef(o);
      return result;
   }
 
-  assert(false); // unknow list type
+  Error(__LINE__); // unknow list type
+  return 0; 
 
 }
+
+/*
+1.4 PrintJavaList
+
+Simple function for printing out a nested list java-instance.
+
+*/
+void JNITool::PrintJavaList(jobject list){
+    jmethodID mid = env->GetMethodID(nlclass,"writeListExpr","()V");
+    if(!mid) Error(__LINE__);
+    env->CallVoidMethod(list,mid);
+}
+
+
+/*
+1.5 Gc
+
+This function calls the garbarge collec tion of the 
+Java-environment.
+
+*/
+
+void JNITool::Gc(){
+   env->CallStaticVoidMethod(systemclass,gcID);
+}
+
+
+
+
+/*
+1.5 Error-Function
+
+This function prints out the last exception occurred in the Java VM and
+exits the program via an assert call.
+
+*/
+void JNITool::Error(int line){
+   cerr << "Error occurred in file " << __FILE__ << " at line " << line << endl;
+   if(env->ExceptionOccurred())
+     env->ExceptionDescribe();
+   assert(0);
+
+}
+
