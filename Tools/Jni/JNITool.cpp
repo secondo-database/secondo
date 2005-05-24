@@ -183,6 +183,7 @@ jobject JNITool::GetJavaList(JNIEnv * env, ListExpr LE){
      jstring jstr = env->NewStringUTF(cstr);
      if(!jstr) Error(__LINE__);
      res = env->CallStaticObjectMethod(nlclass,symbolAtomID,jstr);
+     env->DeleteLocalRef(jstr);
      if(!res) Error(__LINE__);
      return res;
    }
@@ -194,6 +195,7 @@ jobject JNITool::GetJavaList(JNIEnv * env, ListExpr LE){
      jstring jstr = env->NewStringUTF(cstr);
      if(!jstr) Error(__LINE__);
      res = env->CallStaticObjectMethod(nlclass,stringAtomID,jstr);
+     env->DeleteLocalRef(jstr);
      if(!res) Error(__LINE__);
      return res;
    }
@@ -206,6 +208,7 @@ jobject JNITool::GetJavaList(JNIEnv * env, ListExpr LE){
       jstring jstr = env->NewStringUTF(cstr);
       if(!jstr) Error(__LINE__);
       res = env->CallStaticObjectMethod(nlclass,textAtomID,jstr);
+      env->DeleteLocalRef(jstr);
       if(!res) Error(__LINE__);
       return res;
    }
@@ -269,9 +272,11 @@ ListExpr JNITool::GetCppList(JNIEnv* env, jobject obj){
       if(!jstr) Error(__LINE__);
       const char* cstr;
       cstr = env->GetStringUTFChars((jstring) jstr,NULL);
-      env->DeleteLocalRef(jstr);
       if(!cstr) Error(__LINE__);
-      return nl->SymbolAtom(cstr);
+      ListExpr res =  nl->SymbolAtom(cstr);
+      env->ReleaseStringUTFChars((jstring)jstr,cstr);
+      env->DeleteLocalRef(jstr);
+      return res;
   }
 
   if(type == jstring_atom){
@@ -279,9 +284,11 @@ ListExpr JNITool::GetCppList(JNIEnv* env, jobject obj){
       if(!jstr) Error(__LINE__);
       const char* cstr;
       cstr = env->GetStringUTFChars(jstr,NULL);
-      env->DeleteLocalRef(jstr);
       if(!cstr) Error(__LINE__);
-      return nl->StringAtom(cstr);
+      ListExpr res = nl->StringAtom(cstr);
+      env->ReleaseStringUTFChars((jstring)jstr,cstr);
+      env->DeleteLocalRef(jstr);
+      return res;
   }
 
   if(type == jtext_atom){
@@ -290,9 +297,10 @@ ListExpr JNITool::GetCppList(JNIEnv* env, jobject obj){
       const char* cstr;
       cstr = env->GetStringUTFChars(jstr,NULL);
       if(!cstr) Error(__LINE__);
-      env->DeleteLocalRef(jstr);
       ListExpr res = nl->TextAtom();
       nl->AppendText(res,cstr);
+      env->ReleaseStringUTFChars(jstr,cstr);
+      env->DeleteLocalRef(jstr);
       return res;
   }
 
