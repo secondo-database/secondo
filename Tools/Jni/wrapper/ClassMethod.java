@@ -42,6 +42,6 @@ public class ClassMethod{
    public Class c;
    /** The managed Method */
    public Method m;
-
-
+   /** a additional number */
+   public int number=0;
 }

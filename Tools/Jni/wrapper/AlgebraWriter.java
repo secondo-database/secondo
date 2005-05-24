@@ -43,6 +43,8 @@ public static boolean writeAlgebra(PrintStream out,
   // first: extract the classes from the classmethods
   Vector classV = new Vector();
   for(int i=0;i<Methods.length;i++){
+       // set the number
+       Methods[i].number=i;
        Class C = Methods[i].c;
        if(!classV.contains(C)) 
           classV.add(C);
@@ -55,34 +57,49 @@ public static boolean writeAlgebra(PrintStream out,
        if(!classV.contains(C))
           classV.add(C);
   }
-  
+
+  // copy the classes into an array  
   Class[] classes = new Class[classV.size()];
   for(int i=0;i<classes.length;i++)
       classes[i] = (Class) classV.get(i);
 
-  printHeader(out,AlgebraName,AuthorName,classes);
+  // print out the header (includes and so on )
+  printHeader(out,AlgebraName,AuthorName,classes,Methods);
  
-  // print forard declarations for the classes
+  // print forward declarations for the classes
   out.println("/*\n");
-  out.println("1.0 Forward Declarations for Algebra Classes \n");
+  out.println("1.0 Forward Declarations for Algebra Classes \n\n");
   out.println("*/");
    
   for(int i=0;i<classes.length;i++)
      if(canBeWrappedAsType(classes[i]))
         out.println("class "+getCppName(classes[i])+";");
 
+  out.println("\n/*\n");
+  out.println("1.1 Method IDs for some functions \n\n");
+  out.println("*/");
+  for(int i=0;i<classes.length;i++)
+      if(canBeWrappedAsType(classes[i])){
+          String clsname = getShortString(classes[i]);
+          out.println("jmethodID "+clsname+"_getHashValue_ID;");
+          out.println("jmethodID "+clsname+"_compareTo_ID;");
+          out.println("jmethodID "+clsname+"_toListExpr_ID;");
+          out.println("jmethodID "+clsname+"_std_constr_ID;");
+          out.println("jmethodID "+clsname+"_loadFrom_ID;");
+      }
+     
 
-
+  // print out a C++ class for each java class which can be wrapped 
   printWrapper(out,classes,Methods,AlgebraName,AuthorName);
-  //printStandardFunctions(out,classes); 
   printSignatures(out,classes,Descs);  
   printKindCheckings(out,classes);
   printTypeConstructors(out,classes);
 
   printOperators(out,Methods,Specs);
 
+ 
   printAlgebra(out,classes,Methods,AlgebraName);
-  printInitialization(out,AlgebraName,Classes);  
+  printInitialization(out,AlgebraName,Classes,Methods);  
   
 
 
@@ -404,7 +421,7 @@ private static void printDefinitions(PrintStream out,
           Methods.clear();
           for(int j=0;j<methods.length;j++)
               if(methods[j].c.equals(classes[i]))
-                  Methods.add(methods[j].m);
+                  Methods.add(new MethodWithIDNumber(methods[j].m,methods[j].number));
           printDefinitions(out,classes[i],Methods);
        }
    }
@@ -466,8 +483,7 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("   __TRACE__");
    out.println("   if(!obj)");
    out.println("       RestoreJavaObjectFromFLOB();");
-   out.println("   jmethodID mid = env->GetMethodID(+"+getShortString(cls)+"_class,\"getHashValue\",\"()I\");");
-   out.println("   if(mid==0) error(__LINE__);");
+   out.println("   jmethodID mid = "+getShortString(cls)+"_getHashValue_ID;");
    out.println("   return (size_t) env->CallIntMethod(obj,mid);");
    out.println("}\n\n");
 
@@ -493,7 +509,7 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("int "+Name+"::Compare(Attribute* arg){");
    out.println("   __TRACE__");
    out.println("   jmethodID mid; ");
-   out.println("   mid = env->GetMethodID("+getShortString(cls)+"_class,\"compareTo\",\"(Ljava/lang/Object;)I\");");
+   out.println("   mid = "+getShortString(cls)+"_compareTo_ID;");
    out.println("   if(mid==0) error(__LINE__);");
    out.println("   if(!obj)");
    out.println("     RestoreJavaObjectFromFLOB();");
@@ -535,14 +551,10 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("*/");
    out.println("void "+Name+"::RestoreFLOBFromJavaObject(){");
    out.println("   __TRACE__");
-   out.println("   // get the required method id");
-   out.println("   jmethodID mid; ");
-   out.println("   mid = env->GetStaticMethodID(Serializer_class,");
-   out.println("         \"writeToByteArray\",\"(Ljava/io/Serializable;)[B\");");
-   out.println("   if(mid==0) error(__LINE__);");
    out.println("   // call the method ");
    out.println("   jbyteArray jbytes;");
-   out.println("   jbytes = (jbyteArray) env->CallStaticObjectMethod(Serializer_class,mid,obj);");
+   out.println("   jbytes = (jbyteArray) env->CallStaticObjectMethod(Serializer_class,");
+   out.println("                  Serializer_writeToByteArray_ID,obj);");
    out.println("   if(jbytes==0) error(__LINE__);");
    out.println("   int size = env->GetArrayLength(jbytes);");
    out.println("   char *bytes = (char *) env->GetByteArrayElements(jbytes,0);");
@@ -568,11 +580,8 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("   // copy the data into a java array ");
    out.println("   jbyteArray jbytes = env->NewByteArray(size);");
    out.println("   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);");
-   out.println("   jmethodID mid; ");
-   out.println("   mid = env->GetStaticMethodID(Serializer_class,\"readFrom\",");
-   out.println("                              \"([B)Ljava/lang/Object;\");");
-   out.println("   if(mid==0) error(__LINE__);");
-   out.println("   obj = env->CallStaticObjectMethod(Serializer_class,mid,jbytes);");
+   out.println("   obj = env->CallStaticObjectMethod(Serializer_class,");
+   out.println("               Serializer_readFrom_ID ,jbytes);");
    out.println("   if(obj==0) error(__LINE__); ");
    out.println("   jbyte* elems = env->GetByteArrayElements(jbytes,0);");
    out.println("   env->ReleaseByteArrayElements(jbytes,elems,0);");
@@ -587,9 +596,7 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("*/");
    out.println("ListExpr "+Name+"::ToListExpr(ListExpr typeInfo){");
    out.println("   __TRACE__"); 
-   out.println("   jmethodID mid = env->GetMethodID("+getShortString(cls)+"_class,\"toListExpr\",");
-   out.println("                       \"(Lsj/lang/ListExpr;)Lsj/lang/ListExpr;\");");
-   out.println("   if(mid==0) error(__LINE__); ");
+   out.println("   jmethodID mid ="+ getShortString(cls)+"_toListExpr_ID;");
    //out.println("   jobject jtype = jnitool->GetJavaList(env,typeInfo);");
    out.println("   if(!obj)");
    out.println("      RestoreJavaObjectFromFLOB();");
@@ -605,12 +612,13 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
 
    // write Wrapper functions for the operators
    for(int i=0;i<Ms.size();i++){
-      Method m = (Method) Ms.get(i);
-      if(!Modifier.isStatic(m.getModifiers())){ 
+      MethodWithIDNumber  mwidn = (MethodWithIDNumber) Ms.get(i);
+      
+      if(!Modifier.isStatic(mwidn.m.getModifiers())){ 
          out.println("/*\n");
-         out.println("1.2.1 Wrapper Function for "+m);
+         out.println("1.2.1 Wrapper Function for "+mwidn.m);
          out.println("\n*/");
-         out.println(getCppMethod(cls,m));
+         out.println(getCppMethod(cls,mwidn.m,mwidn.idnumber));
       }
    }
 }
@@ -618,7 +626,7 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
 
 /** Returns the Wrapper for a given functions as String **/
 
-private static String getCppMethod(Class cls, Method M){
+private static String getCppMethod(Class cls, Method M,int methodidnumber){
    String res ;
    String Name = getShortString(cls);
    Class RT = M.getReturnType();
@@ -643,10 +651,7 @@ private static String getCppMethod(Class cls, Method M){
    }
    res += ")  { \n";
    res += "  __TRACE__\n";
-   res +="  jmethodID mid;\n";
-   String[] Ps = getSignature(M);
-   res +="  mid=env->GetMethodID("+getShortString(cls)+"_class,\""+Ps[0]+"\",\""+Ps[1]+"\");\n";
-   res +="  if(mid==0) error(__LINE__);\n";
+   res +="  jmethodID mid=theMethodIDs["+methodidnumber+"];\n";
 
    // creating the objects if needed
    res += "  if(!obj)\n";
@@ -782,8 +787,9 @@ private static String getString(Class cls){
 
 }
 
-/** Write the required inciludes and so on to out **/
-private static void printHeader(PrintStream out,String AlgebraName, String Author,Class[] Classes){
+/** Write the required includes and so on to out **/
+private static void printHeader(PrintStream out,String AlgebraName, String Author,
+                                Class[] Classes,ClassMethod[] Methods){
 
 // first we write some outputs for the pd-system
 out.println("/*");
@@ -820,6 +826,13 @@ for(int i=0;i<Classes.length;i++){
        out.println("static jclass "+getShortString(Classes[i])+"_class;");
 }
 out.println("static jclass Serializer_class;");
+
+// static method ids
+out.println("\n// forward declarations for method ids");
+out.println("static jmethodID Serializer_writeToByteArray_ID;");
+out.println("static jmethodID Serializer_readFrom_ID;");
+
+out.println("static jmethodID theMethodIDs["+Methods.length+"]; "); 
 
 out.println("/*\n1.3 Definitions for easy tracing \n\n*/\n");
 out.println("//#define __TRACE_ON__");
@@ -980,13 +993,11 @@ private static void printStandardFunctions(PrintStream out,Class cls){
    out.println("   jobject jtype = jnitool->GetJavaList(env,typeInfo);");
    out.println("   jobject jinstance = jnitool->GetJavaList(env,instance);");
    out.println("   // Create an Object with the standard constructor ");
-   out.println("   mid = env->GetMethodID(cls,\"<init>\",\"()V\");");
+   out.println("   mid = "+Name+"_std_constr_ID;");
    out.println("   if(mid==0) error(__LINE__);");
    out.println("   obj = env->NewObject(cls,mid);");
    out.println("   if(obj==0) error(__LINE__);");
-   out.println("   mid = env->GetMethodID(cls,\"loadFrom\",");
-   out.println("           \"(Lsj/lang/ListExpr;Lsj/lang/ListExpr;)Z\");");
-   out.println("   if(mid==0) error(__LINE__);");
+   out.println("   mid = "+Name+"_loadFrom_ID;");
    out.println("   correct = env->CallBooleanMethod(obj,mid,jtype,jinstance);");
    out.println("   env->DeleteLocalRef(jtype);");
    out.println("   env->DeleteLocalRef(jinstance);");
@@ -1016,7 +1027,7 @@ private static void printStandardFunctions(PrintStream out,Class cls){
    out.println("   jclass cls = "+Name+"_class;");
    out.println("   if(cls==0) error(__LINE__); ");
    out.println("   jmethodID mid;");
-   out.println("   mid = env->GetMethodID(cls,\"<init>\",\"()V\");");
+   out.println("   mid = "+Name+"_std_constr_ID;");
    out.println("   if(mid==0) error(__LINE__); ");
    out.println("   jobject res = env->NewObject(cls,mid);");
    out.println("   if(res==0) error(__LINE__);");
@@ -1245,7 +1256,7 @@ private static void printAlgebra(PrintStream out,Class[] classes,
 }
 
 /** Prints the initialization of the algebra to out. */
-private static void printInitialization(PrintStream out,String AlgebraName,Class[] Classes){
+private static void printInitialization(PrintStream out,String AlgebraName,Class[] Classes,ClassMethod[] Methods){
     out.println("/*\n");
     out.println("3 Initialization \n");
     out.println(" We have to initialize the algebra as well as the ");
@@ -1255,11 +1266,13 @@ private static void printInitialization(PrintStream out,String AlgebraName,Class
     out.println(" Algebra* ");
     out.println(" Initialize"+AlgebraName+"Algebra( NestedList* nlRef,");
     out.println("           QueryProcessor* qpRef){");
+
+    out.println(" \n// initialize the java environment ");
     out.println("   jvminit = new JVMInitializer(); ");
     out.println("   env = jvminit->getEnv(); ");
     out.println("   jvm = jvminit->getJVM(); ");
     out.println("   jnitool = new JNITool(env,nlRef);");
-    // get the classes
+    out.println(" \n// get the used java classes  ");
     for(int i=0;i<Classes.length;i++){
         String PackageN=null;
         String FindName;
@@ -1271,10 +1284,64 @@ private static void printInitialization(PrintStream out,String AlgebraName,Class
             FindName =  PackageN+"/"+getShortString(Classes[i]);
        out.print("   "+getShortString(Classes[i])+"_class = env->FindClass(\"");
        out.println( FindName + "\");");
-       out.println(" if("+getShortString(Classes[i])+"_class==0) error(__LINE__);");
+       out.println("   if("+getShortString(Classes[i])+"_class==0) error(__LINE__);");
+    }
+    // get the standard functions for each class to wrapped
+    for(int i=0;i<Classes.length;i++){
+        if(canBeWrappedAsType(Classes[i])){
+           String cn = getShortString(Classes[i]); 
+           out.println("   "+cn+"_getHashValue_ID =");
+           out.println("             env->GetMethodID(+"+cn+"_class,\"getHashValue\",\"()I\");");
+           out.println("   if(!"+cn+"_getHashValue_ID) error(__LINE__);\n");
+           out.println("   "+cn+"_compareTo_ID =" );
+           out.println("            env->GetMethodID("+cn+"_class,\"compareTo\",\"(Ljava/lang/Object;)I\");");
+           out.println("   if(!"+cn+"_compareTo_ID) error(__LINE__);\n");
+           out.println("   "+cn+"_toListExpr_ID = ");
+           out.println("             env->GetMethodID("+cn+"_class,\"toListExpr\",");
+           out.println("                       \"(Lsj/lang/ListExpr;)Lsj/lang/ListExpr;\");");
+           out.println("   if(!"+cn+"_toListExpr_ID) error(__LINE__); \n");
+           out.println("   "+cn+"_loadFrom_ID =");
+           out.println("             env->GetMethodID("+cn+"_class,\"loadFrom\",");
+           out.println("                        \"(Lsj/lang/ListExpr;Lsj/lang/ListExpr;)Z\");");
+           out.println("   if(!"+cn+"_loadFrom_ID) error(__LINE__);\n");
+           out.println("   "+cn+"_std_constr_ID ="); 
+           out.println("             env->GetMethodID("+cn+"_class,\"<init>\",\"()V\");");
+           out.println("   if(!"+cn+"_std_constr_ID) error(__LINE__);\n");
+        }
     }
     out.println("   Serializer_class = env->FindClass(\"wrapper/Serializer\");");
     out.println("   if(Serializer_class==0) error(__LINE__);"); 
+    
+    out.println(" \n// get the used methodids "); 
+
+    out.println("   Serializer_writeToByteArray_ID =");
+    out.println("       env->GetStaticMethodID(Serializer_class,");
+    out.println("           \"writeToByteArray\",\"(Ljava/io/Serializable;)[B\");");
+    out.println("   if(! Serializer_writeToByteArray_ID )");
+    out.println("       error(__LINE__);\n");
+    
+    out.println("   Serializer_readFrom_ID =");
+    out.println("       env->GetStaticMethodID(Serializer_class,\"readFrom\",");
+    out.println("                            \"([B)Ljava/lang/Object;\");");
+    out.println("   if(!Serializer_readFrom_ID )");
+    out.println("       error(__LINE__);\n");
+
+    // Initialize the method ids for operators
+    for(int i=0;i<Methods.length;i++){
+       out.println("   theMethodIDs["+i+"] =");
+       out.print("          env->Get"); 
+       if(Modifier.isStatic(Methods[i].m.getModifiers())){
+           out.print("Static");
+       }
+       out.println("MethodID("+getShortString(Methods[i].c)+"_class, ");
+       String[] Ps = getSignature(Methods[i].m);
+       out.println("             \""+Ps[0]+"\",\""+Ps[1]+"\");");
+       out.println("   if(!theMethodIDs["+i+"])");
+       out.println("       error(__LINE__);");
+    }
+
+
+
     out.println("   nl = nlRef; ");
     out.println("   qp = qpRef; ");
     out.println("   return (&" + (AlgebraName+"algebra").toLowerCase()+");");
@@ -1348,7 +1415,7 @@ private static void printOperators(PrintStream out, ClassMethod[] Methods,
 
 /** Prints all requirements for the given operator.
   */
-private static void printOperator(int no,PrintStream out,  String Name, Vector Methods,
+private static void printOperator(int no,PrintStream out,  String Name, Vector ClassMethods,
                          OperatorSpecification[] Specs){
 
   // print pd comment
@@ -1356,12 +1423,12 @@ private static void printOperator(int no,PrintStream out,  String Name, Vector M
   out.println("4."+no+" Operator ~"+Name+"~\n");
   out.println("*/");
 
-  printTypeMapping(no,out,Name,Methods);
-  printValueMappings(no,out,Name,Methods);
-  printSelectionFunction(no,out,Name,Methods);
-  printValueMappingArray(no,out,Name,Methods);
-  printSpecification(no,out,Name,Methods,Specs);
-  printOperatorInstance(no,out,Name,Methods);
+  printTypeMapping(no,out,Name,ClassMethods);
+  printValueMappings(no,out,Name,ClassMethods);
+  printSelectionFunction(no,out,Name,ClassMethods);
+  printValueMappingArray(no,out,Name,ClassMethods);
+  printSpecification(no,out,Name,ClassMethods,Specs);
+  printOperatorInstance(no,out,Name,ClassMethods);
 
 } 
 
@@ -1518,7 +1585,7 @@ private static void printValueMappings(int no,PrintStream out, String Name, Vect
    for(int i=0;i<Methods.size();i++){
         ClassMethod CM = (ClassMethod) Methods.get(i);
         if(Modifier.isStatic(CM.m.getModifiers()))
-            printValueMappingStatic(out,Name,CM);
+            printValueMappingStatic(out,Name,CM,CM.number);
         else
             printValueMappingNonStatic(out,Name,CM);
    }
@@ -1527,7 +1594,8 @@ private static void printValueMappings(int no,PrintStream out, String Name, Vect
 /** Prints a single value maping of an operator.
   * The method in CM must be static.
   **/
-private static void printValueMappingStatic(PrintStream out, String Name,ClassMethod CM){
+private static void printValueMappingStatic(PrintStream out, String Name,
+                                            ClassMethod CM,int methodidnumber){
     String VMName = getValueMappingName(CM);
     out.println("static int "+VMName+"(");
     out.println("            Word* args, Word& result, int message,");
@@ -1544,10 +1612,7 @@ private static void printValueMappingStatic(PrintStream out, String Name,ClassMe
     }
     // print the Wrapping
     out.println("  jclass cls = "+getShortString(CM.c)+"_class;");
-    out.println("  jmethodID mid;");
-    String[] Ps = getSignature(M);
-    out.println("  mid=env->GetStaticMethodID(cls,\""+Ps[0]+"\",\""+Ps[1]+"\");");
-    out.println("  if(mid==0) error(__LINE__);");
+    out.println("  jmethodID mid = theMethodIDs["+methodidnumber+"];");
     String Call = getJNICall(M);
     RT = M.getReturnType();
     String CallParams="";
@@ -1705,7 +1770,7 @@ private static void  printSelectionFunction(int no,PrintStream out,String Name,V
    out.println("}");
 }
 
-/** prints the selectrion of a single vamue mapping. */
+/** prints the selection of a single value mapping. */
 private static void printSelection(int no, PrintStream out,ClassMethod CM){
    Class[] Secondargs = CM.m.getParameterTypes(); 
    Class[] args;
@@ -1802,8 +1867,19 @@ private static void printOperatorInstance(int no, PrintStream out, String Name,V
 }
 
 
+
 static final String CPP = "_cpp"; 
 static Class AlgebraTypeClass = null;
 
+private static class MethodWithIDNumber{
+
+  MethodWithIDNumber(Method m, int idnumber){
+     this.m = m; 
+     this.idnumber = idnumber;
+  }
+  Method m;
+  int idnumber;
+}
 
 }
+

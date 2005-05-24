@@ -265,6 +265,7 @@ into its c++ counterpart.
 */
 
 ListExpr JNITool::GetCppList(JNIEnv* env, jobject obj){
+
   int type = env->CallIntMethod(obj,atomTypeID);
 
   if(type == jsymbol_atom){
