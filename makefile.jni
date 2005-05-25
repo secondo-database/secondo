@@ -18,6 +18,10 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 JVMINIT_O_FILE = $(SECONDO_BUILD_DIR)/Tools/Jni/JVMInit.o
+JNITool_O_FILE = $(SECONDO_BUILD_DIR)/Tools/Jni/JNITool.o
+
+JNILIBFILES = $(JVMINIT_O_FILE) $(JNITool_O_FILE)
+
 
 ifeq ($(platform),win32)
 # MinGW definitions.
@@ -59,7 +63,7 @@ OS_DIR=linux
 
 JNIINCLUDE =  -I$(JNI_H_DIR) -I$(JNI_H_DIR)/$(OS_DIR)  -I$(INCLUDEDIR)
 
-JNILINKOPTS = -L$(LIBJVM_DIR) -I$(LIBVERIFY_DIR) -L$(LIBJAVA_DIR)  -ljava -ljvm -lverify  $(JVMINIT_DIR)/JNITool.o
+JNILINKOPTS = -L$(LIBJVM_DIR) -I$(LIBVERIFY_DIR) -L$(LIBJAVA_DIR)  -ljava -ljvm -lverify  
 
 endif
 

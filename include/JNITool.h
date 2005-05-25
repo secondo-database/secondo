@@ -4,6 +4,8 @@ This class provides functions for converting nested
 lists from the Cpp instances to Java instances and vice versa.
 
 */
+#ifndef JNITOOL_H
+#define JNITOOL_H
 
 #include "NestedList.h"
 #include "jni.h"
@@ -49,4 +51,4 @@ class JNITool{
       void Error(int line);
 }; 
 
-
+#endif
