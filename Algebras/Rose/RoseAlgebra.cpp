@@ -3885,12 +3885,13 @@ Equals predicate for two ccpoints.
 */
 static int pp_equalFun(Word* args, Word& result, int message, 
 			       Word& local, Supplier s) {
-  CcPoints* ccp1;
-  CcPoints* ccp2;
 
-  ccp1 = ((CcPoints *)args[0].addr);
-  ccp2 = ((CcPoints *)args[1].addr);
-	
+  CcPoints* ccp1 = ((CcPoints *)args[0].addr);
+  CcPoints* ccp2 = ((CcPoints *)args[1].addr);
+  
+  if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
+  if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
+  
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -3912,11 +3913,12 @@ static int pp_equalFun(Word* args, Word& result, int message,
 */
 static int ll_equalFun(Word* args, Word& result, int message, 
 				       Word& local, Supplier s) {
-  CcLines* ls1;
-  CcLines* ls2;
 
-  ls1 = ((CcLines *)args[0].addr);
-  ls2 = ((CcLines *)args[1].addr);
+  CcLines* ls1 = ((CcLines *)args[0].addr);
+  CcLines* ls2 = ((CcLines *)args[1].addr);
+
+  if (!ls1->GetObject()) ls1->RestoreJavaObjectFromFLOB();
+  if (!ls2->GetObject()) ls2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -3939,11 +3941,12 @@ Equal predicate for two ccregions.
 */
 static int rr_equalFun(Word* args, Word& result, int message, 
 		       Word& local, Supplier s) {
-  CcRegions* rs1;
-  CcRegions* rs2;
 
-  rs1 = ((CcRegions *)args[0].addr);
-  rs2 = ((CcRegions *)args[1].addr);
+  CcRegions* rs1 = ((CcRegions *)args[0].addr);
+  CcRegions* rs2 = ((CcRegions *)args[1].addr);
+
+  if (!rs1->GetObject()) rs1->RestoreJavaObjectFromFLOB();
+  if (!rs2->GetObject()) rs2->RestoreJavaObjectFromFLOB();  
 	
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -3965,14 +3968,14 @@ static int rr_equalFun(Word* args, Word& result, int message,
 
 */
 static int pp_unequalFun(Word* args, Word& result, int message, 
-			 Word& local, Supplier s)
-{
-  CcPoints* ccps1;
-  CcPoints* ccps2;
+			 Word& local, Supplier s) {
 
-  ccps1 = ((CcPoints *)args[0].addr);
-  ccps2 = ((CcPoints *)args[1].addr);
-	
+  CcPoints* ccps1 = ((CcPoints *)args[0].addr);
+  CcPoints* ccps2 = ((CcPoints *)args[1].addr);
+  
+  if (!ccps1->GetObject()) ccps1->RestoreJavaObjectFromFLOB();
+  if (!ccps2->GetObject()) ccps2->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -3992,14 +3995,14 @@ ll[_]nequal predicate for two cclines.
 
 */
 static int ll_unequalFun(Word* args, Word& result, int message, 
-			 Word& local, Supplier s)
-{
-  CcLines* ccl1;
-  CcLines* ccl2;
+			 Word& local, Supplier s) {
 
-  ccl1 = ((CcLines *)args[0].addr);
-  ccl2 = ((CcLines *)args[1].addr);
-	
+  CcLines* ccl1 = ((CcLines *)args[0].addr);
+  CcLines* ccl2 = ((CcLines *)args[1].addr);
+  
+  if (!ccl1 ->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
+  if (!ccl2 ->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4020,14 +4023,14 @@ static int ll_unequalFun(Word* args, Word& result, int message,
 
 */
 static int rr_unequalFun(Word* args, Word& result, int message, 
-				       Word& local, Supplier s)
-{
-  CcRegions* ccr1;
-  CcRegions* ccr2;
+				       Word& local, Supplier s) {
 
-  ccr1 = ((CcRegions *)args[0].addr);
-  ccr2 = ((CcRegions *)args[1].addr);
+  CcRegions* ccr1 = ((CcRegions *)args[0].addr);
+  CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 	
+  if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
+  if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4048,14 +4051,14 @@ pp[_]disjoint predicate for two CcPoints
 
 */
 static int pp_disjointFun(Word* args, Word& result, int message, 
-			  Word& local, Supplier s)
-{
-  CcPoints* ccp1;
-  CcPoints* ccp2;
+			  Word& local, Supplier s) {
 
-  ccp1 = ((CcPoints *)args[0].addr);
-  ccp2 = ((CcPoints *)args[1].addr);
+  CcPoints* ccp1 = ((CcPoints *)args[0].addr);
+  CcPoints* ccp2 = ((CcPoints *)args[1].addr);
 	
+  if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
+  if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4076,13 +4079,13 @@ ll[_]disjoint predicate for two CcLines
 
 */
 static int ll_disjointFun(Word* args, Word& result, int message, 
-			  Word& local, Supplier s)
-{
-  CcLines *ccl1;
-  CcLines *ccl2;
+			  Word& local, Supplier s) {
 
-  ccl1 = ((CcLines *)args[0].addr);
-  ccl2 = ((CcLines *)args[1].addr);
+  CcLines* ccl1 = ((CcLines *)args[0].addr);
+  CcLines* ccl2 = ((CcLines *)args[1].addr);
+
+  if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
+  if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -4104,14 +4107,14 @@ rr[_]disjoint predicate for two CcRegions
 
 */
 static int rr_disjointFun(Word* args, Word& result, int message, 
-			  Word& local, Supplier s)
-{
-  CcRegions *ccr1;
-  CcRegions *ccr2;
+			  Word& local, Supplier s) {
 
-  ccr1 = ((CcRegions *)args[0].addr);
-  ccr2 = ((CcRegions *)args[1].addr);
+  CcRegions* ccr1 = ((CcRegions *)args[0].addr);
+  CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 	
+  if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
+  if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4132,14 +4135,14 @@ pr[_]inside predicate for CcPoints and CcRegions
 
 */
 static int pr_insideFun(Word* args, Word& result, int message, 
-			  Word& local, Supplier s)
-{
-  CcPoints *ccp;
-  CcRegions *ccr;
+			  Word& local, Supplier s) {
 
-  ccp = ((CcPoints *)args[0].addr);
-  ccr = ((CcRegions *)args[1].addr);
+  CcPoints* ccp = ((CcPoints *)args[0].addr);
+  CcRegions* ccr = ((CcRegions *)args[1].addr);
 	
+  if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4160,14 +4163,14 @@ lr[_]inside predicate for CcLines and CcRegions
 
 */
 static int lr_insideFun(Word* args, Word& result, int message, 
-			  Word& local, Supplier s)
-{
-  CcLines *ccl;
-  CcRegions *ccr;
+			  Word& local, Supplier s) {
 
-  ccl = ((CcLines *)args[0].addr);
-  ccr = ((CcRegions *)args[1].addr);
+  CcLines* ccl = ((CcLines *)args[0].addr);
+  CcRegions* ccr = ((CcRegions *)args[1].addr);
 	
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4189,12 +4192,12 @@ rr[_]inside predicate for two CcRegions
 static int rr_insideFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
-  CcRegions *ccr1;
-  CcRegions *ccr2;
-
-  ccr1 = ((CcRegions *)args[0].addr);
-  ccr2 = ((CcRegions *)args[1].addr);
+  CcRegions* ccr1 = ((CcRegions *)args[0].addr);
+  CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 	
+  if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
+  if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4217,11 +4220,11 @@ rr[_]area[_]disjoint predicate for two CcRegions
 static int rr_area_disjointFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
-  CcRegions *ccr1;
-  CcRegions *ccr2;
+  CcRegions* ccr1 = ((CcRegions *)args[0].addr);
+  CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 
-  ccr1 = ((CcRegions *)args[0].addr);
-  ccr2 = ((CcRegions *)args[1].addr);
+  if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
+  if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -4245,12 +4248,12 @@ rr[_]edge[_]disjoint predicate for two CcRegions
 static int rr_edge_disjointFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
-  CcRegions *ccr1;
-  CcRegions *ccr2;
-
-  ccr1 = ((CcRegions *)args[0].addr);
-  ccr2 = ((CcRegions *)args[1].addr);
+  CcRegions* ccr1 = ((CcRegions *)args[0].addr);
+  CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 	
+  if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
+  if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4273,11 +4276,11 @@ rr[_]edge[_]inside predicate for two CcRegions
 static int rr_edge_insideFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
-  CcRegions *ccr1;
-  CcRegions *ccr2;
+  CcRegions* ccr1 = ((CcRegions *)args[0].addr);
+  CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 
-  ccr1 = ((CcRegions *)args[0].addr);
-  ccr2 = ((CcRegions *)args[1].addr);
+  if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
+  if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -4301,11 +4304,11 @@ rr[_]vertex[_]inside predicate for two CcRegions
 static int rr_vertex_insideFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
-  CcRegions *ccr1;
-  CcRegions *ccr2;
+  CcRegions* ccr1 = ((CcRegions *)args[0].addr);
+  CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 
-  ccr1 = ((CcRegions *)args[0].addr);
-  ccr2 = ((CcRegions *)args[1].addr);
+  if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
+  if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -4329,11 +4332,11 @@ rr[_]intersects predicate for two CcRegions
 static int rr_intersectsFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
-  CcRegions *ccr1;
-  CcRegions *ccr2;
+  CcRegions* ccr1 = ((CcRegions *)args[0].addr);
+  CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 
-  ccr1 = ((CcRegions *)args[0].addr);
-  ccr2 = ((CcRegions *)args[1].addr);
+  if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
+  if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -4357,11 +4360,12 @@ rr[_]meets predicate for two CcRegions
 static int rr_meetsFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
-  CcRegions *ccr1;
-  CcRegions *ccr2;
 
-  ccr1 = ((CcRegions *)args[0].addr);
-  ccr2 = ((CcRegions *)args[1].addr);
+  CcRegions* ccr1 = ((CcRegions *)args[0].addr);
+  CcRegions* ccr2 = ((CcRegions *)args[1].addr);
+
+  if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
+  if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -4385,12 +4389,12 @@ rr[_]border[_]in[_]common predicate for two CcRegions
 static int rr_border_in_commonFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
-  CcRegions *ccr1;
-  CcRegions *ccr2;
-
-  ccr1 = ((CcRegions *)args[0].addr);
-  ccr2 = ((CcRegions *)args[1].addr);
+  CcRegions* ccr1 = ((CcRegions *)args[0].addr);
+  CcRegions* ccr2 = ((CcRegions *)args[1].addr);
   
+  if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
+  if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4413,11 +4417,11 @@ rr[_]adjacent predicate for two CcRegions
 static int rr_adjacentFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
-  CcRegions *ccr1;
-  CcRegions *ccr2;
+  CcRegions* ccr1 = ((CcRegions *)args[0].addr);
+  CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 
-  ccr1 = ((CcRegions *)args[0].addr);
-  ccr2 = ((CcRegions *)args[1].addr);
+  if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
+  if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -4441,12 +4445,13 @@ rr[_]encloses predicate for two CcRegions
 static int rr_enclosesFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
-  CcRegions *ccr1;
-  CcRegions *ccr2;
 
-  ccr1 = ((CcRegions *)args[0].addr);
-  ccr2 = ((CcRegions *)args[1].addr);
+  CcRegions* ccr1 = ((CcRegions *)args[0].addr);
+  CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 	
+  if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
+  if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4469,12 +4474,13 @@ rr[_]intersection predicate for two CcRegions
 static int rr_intersectionFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
-  CcRegions *ccr1;
-  CcRegions *ccr2;
   CcRegions *ccresult;
 
-  ccr1 = ((CcRegions *)args[0].addr);
-  ccr2 = ((CcRegions *)args[1].addr);
+  CcRegions* ccr1 = ((CcRegions *)args[0].addr);
+  CcRegions* ccr2 = ((CcRegions *)args[1].addr);
+
+  if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
+  if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -4496,12 +4502,13 @@ rr[_]plus predicate for two CcRegions
 */
 static int rr_plusFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s) {
-  CcRegions *ccr1;
-  CcRegions *ccr2;
   CcRegions *ccresult;
 
-  ccr1 = ((CcRegions *)args[0].addr);
-  ccr2 = ((CcRegions *)args[1].addr);
+  CcRegions* ccr1 = ((CcRegions *)args[0].addr);
+  CcRegions* ccr2 = ((CcRegions *)args[1].addr);
+
+  if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
+  if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -4524,14 +4531,14 @@ rr[_]minus predicate for two CcRegions
 static int rr_minusFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
-  cout << "rr_minusFun called" << endl;
-  CcRegions *ccr1;
-  CcRegions *ccr2;
   CcRegions *ccresult;
 
-  ccr1 = ((CcRegions *)args[0].addr);
-  ccr2 = ((CcRegions *)args[1].addr);
+  CcRegions* ccr1 = ((CcRegions *)args[0].addr);
+  CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 	
+  if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
+  if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4565,12 +4572,13 @@ rr[_]common[_]border predicate for two CcRegions
 */
 static int rr_common_borderFun(Word *args, Word& result, 
 			       int message, Word& local, Supplier s) {
-  CcRegions *ccr1;
-  CcRegions *ccr2;
   CcLines *ccresult;
 
-  ccr1 = ((CcRegions *)args[0].addr);
-  ccr2 = ((CcRegions *)args[1].addr);
+  CcRegions* ccr1 = ((CcRegions *)args[0].addr);
+  CcRegions* ccr2 = ((CcRegions *)args[1].addr);
+
+  if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
+  if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
   //query processor has provided
@@ -4593,11 +4601,11 @@ ll[_]intersects predicate for two CcLines
 static int ll_intersectsFun(Word* args, Word& result, int message,
 			    Word& local, Supplier s) {
 
-  CcLines *ccl1;
-  CcLines *ccl2;
+  CcLines* ccl1 = ((CcLines *)args[0].addr);
+  CcLines* ccl2 = ((CcLines *)args[1].addr);
 
-  ccl1 = ((CcLines *)args[0].addr);
-  ccl2 = ((CcLines *)args[1].addr);
+  if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
+  if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
   
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -4620,11 +4628,12 @@ lr[_]intersects predicate for CcLines and CcRegions
 */ 
 static int lr_intersectsFun(Word* args, Word& result, int message,
 			    Word& local, Supplier s) {
-  CcLines *ccl;
-  CcRegions *ccr;
   
-  ccl = ((CcLines *)args[0].addr);
-  ccr = ((CcRegions *)args[1].addr);
+  CcLines* ccl = ((CcLines *)args[0].addr);
+  CcRegions* ccr = ((CcRegions *)args[1].addr);
+
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -4647,12 +4656,13 @@ rl[_]intersects predicate for CcRegions and CcLines
 */
 static int rl_intersectsFun(Word* args, Word& result, int message,
 			    Word& local, Supplier s) {
-  CcRegions *ccr;
-  CcLines *ccl;
 
-  ccr = ((CcRegions *)args[0].addr);
-  ccl = ((CcLines *)args[1].addr);
+  CcRegions* ccr = ((CcRegions *)args[0].addr);
+  CcLines* ccl = ((CcLines *)args[1].addr);
   
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4675,12 +4685,12 @@ ll[_]meets predicate for two cclines.
 static int ll_meetsFun(Word* args, Word& result, int message, 
 		       Word& local, Supplier s)
 {
-  CcLines* ccl1;
-  CcLines* ccl2;
-
-  ccl1 = ((CcLines *)args[0].addr);
-  ccl2 = ((CcLines *)args[1].addr);
+  CcLines* ccl1 = ((CcLines *)args[0].addr);
+  CcLines* ccl2 = ((CcLines *)args[1].addr);
 	
+  if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
+  if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4702,12 +4712,12 @@ lr[_]meets predicate for cclines and ccregions.
 static int lr_meetsFun(Word* args, Word& result, int message, 
 		       Word& local, Supplier s)
 {
-  CcLines* ccl;
-  CcRegions* ccr;
-
-  ccl = ((CcLines *)args[0].addr);
-  ccr = ((CcRegions *)args[1].addr);
+  CcLines* ccl = ((CcLines *)args[0].addr);
+  CcRegions* ccr = ((CcRegions *)args[1].addr);
 	
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4729,12 +4739,12 @@ rl[_]meets predicate for ccregions and cclines
 static int rl_meetsFun(Word* args, Word& result, int message, 
 		       Word& local, Supplier s)
 {
-  CcLines* ccl;
-  CcRegions* ccr;
-
-  ccr = ((CcRegions *)args[0].addr);
-  ccl = ((CcLines *)args[1].addr);
+  CcRegions* ccr = ((CcRegions *)args[0].addr);
+  CcLines* ccl = ((CcLines *)args[1].addr);
 	
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4757,12 +4767,12 @@ static int ll_border_in_commonFun(Word* args, Word& result, int message,
 				  Word& local, Supplier s)
 {
   
-  CcLines *ccl1;
-  CcLines *ccl2;
-
-  ccl1 = ((CcLines *)args[0].addr);
-  ccl2 = ((CcLines *)args[1].addr);
+  CcLines* ccl1 = ((CcLines *)args[0].addr);
+  CcLines* ccl2 = ((CcLines *)args[1].addr);
   
+  if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
+  if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4785,12 +4795,12 @@ lr[_]border[_]in[_]common predicate for CcLines and CcRegions.
 static int lr_border_in_commonFun(Word* args, Word& result, int message, 
 				  Word& local, Supplier s)
 {
-  CcLines *ccl;
-  CcRegions *ccr;
+  CcLines* ccl = ((CcLines *)args[0].addr);
+  CcRegions* ccr = ((CcRegions *)args[1].addr);
   
-  ccl = ((CcLines *)args[0].addr);
-  ccr = ((CcRegions *)args[1].addr);
-  
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4813,12 +4823,12 @@ rl[_]border[_]in[_]common predicate for CcRegions and CcLines.
 static int rl_border_in_commonFun(Word* args, Word& result, int message, 
 				  Word& local, Supplier s)
 {
-  CcLines *ccl;
-  CcRegions *ccr;
-
-  ccr = ((CcRegions *)args[0].addr);
-  ccl = ((CcLines *)args[1].addr);
+  CcRegions* ccr = ((CcRegions *)args[0].addr);
+  CcLines* ccl = ((CcLines *)args[1].addr);
   
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4842,12 +4852,13 @@ pl[_]on[_]border[_]of predicate for CcPoints and CcLines
 static int pl_on_border_ofFun(Word* args, Word& result, int message, 
 			      Word& local, Supplier s)
 {
-  CcPoints *ccp;
-  CcLines *ccl;
 
-  ccp = ((CcPoints *)args[0].addr);
-  ccl = ((CcLines *)args[1].addr);
+  CcPoints* ccp = ((CcPoints *)args[0].addr);
+  CcLines* ccl = ((CcLines *)args[1].addr);
   
+  if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4870,12 +4881,12 @@ pr[_]on[_]border[_]of predicate for CcPoints and CcRegions
 static int pr_on_border_ofFun(Word* args, Word& result, int message, 
 			      Word& local, Supplier s)
 {
-  CcPoints *ccp;
-  CcRegions *ccr;
-
-  ccp = ((CcPoints *)args[0].addr);
-  ccr = ((CcRegions *)args[1].addr);
+  CcPoints* ccp = ((CcPoints *)args[0].addr);
+  CcRegions* ccr = ((CcRegions *)args[1].addr);
   
+  if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4898,13 +4909,14 @@ pp[_]intersection predicate for two CcPoints.
 static int pp_intersectionFun(Word* args, Word& result, int message, 
 			      Word& local, Supplier s)
 {
-  CcPoints *ccp1;
-  CcPoints *ccp2;
   CcPoints *ccresult;
 
-  ccp1 = ((CcPoints *)args[0].addr);
-  ccp2 = ((CcPoints *)args[1].addr);
+  CcPoints* ccp1 = ((CcPoints *)args[0].addr);
+  CcPoints* ccp2 = ((CcPoints *)args[1].addr);
   
+  if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
+  if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -4926,12 +4938,13 @@ ll[_]intersection predicate for two CcLines.
 static int ll_intersectionFun(Word* args, Word& result, int message, 
 			      Word& local, Supplier s)
 {
-  CcLines *ccl1;
-  CcLines *ccl2;
   CcPoints *ccresult;
 
-  ccl1 = ((CcLines *)args[0].addr);
-  ccl2 = ((CcLines *)args[1].addr);
+  CcLines* ccl1 = ((CcLines *)args[0].addr);
+  CcLines* ccl2 = ((CcLines *)args[1].addr);
+
+  if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
+  if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -4954,12 +4967,13 @@ rl[_]intersection predicate for CcRegions and CcLines
 static int rl_intersectionFun(Word* args, Word& result, int message, 
 			      Word& local, Supplier s)
 {
-  CcRegions *ccr;
-  CcLines *ccl;
   CcLines *ccresult;
 
-  ccr = ((CcRegions *)args[0].addr);
-  ccl = ((CcLines *)args[1].addr);
+  CcRegions* ccr = ((CcRegions *)args[0].addr);
+  CcLines* ccl = ((CcLines *)args[1].addr);
+
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -4982,12 +4996,13 @@ pp[_]plus predicate for two CcPoints.
 static int pp_plusFun(Word* args, Word& result, int message, 
 			      Word& local, Supplier s)
 {
-  CcPoints *ccp1;
-  CcPoints *ccp2;
   CcPoints *ccresult;
 
-  ccp1 = ((CcPoints *)args[0].addr);
-  ccp2 = ((CcPoints *)args[1].addr);
+  CcPoints* ccp1 = ((CcPoints *)args[0].addr);
+  CcPoints* ccp2 = ((CcPoints *)args[1].addr);
+
+  if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
+  if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -5010,12 +5025,13 @@ ll[_]plus predicate for two CcPoints.
 static int ll_plusFun(Word* args, Word& result, int message, 
 		      Word& local, Supplier s)
 {
-  CcLines *ccl1;
-  CcLines *ccl2;
   CcLines *ccresult;
   
-  ccl1 = ((CcLines *)args[0].addr);
-  ccl2 = ((CcLines *)args[1].addr);
+  CcLines* ccl1 = ((CcLines *)args[0].addr);
+  CcLines* ccl2 = ((CcLines *)args[1].addr);
+
+  if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
+  if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -5045,6 +5061,9 @@ static int pp_minusFun(Word* args, Word& result, int message,
   ccp1 = ((CcPoints *)args[0].addr);
   ccp2 = ((CcPoints *)args[1].addr);
 
+  if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
+  if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -5066,12 +5085,13 @@ ll[_]minus predicate for two CcPoints.
 static int ll_minusFun(Word* args, Word& result, int message, 
 		       Word& local, Supplier s)
 {
-  CcLines *ccl1;
-  CcLines *ccl2;
   CcLines *ccresult;
 
-  ccl1 = ((CcLines *)args[0].addr);
-  ccl2 = ((CcLines *)args[1].addr);
+  CcLines* ccl1 = ((CcLines *)args[0].addr);
+  CcLines* ccl2 = ((CcLines *)args[1].addr);
+
+  if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
+  if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -5093,12 +5113,13 @@ ll[_]common[_]border predicate for two CcLines.
 */
 static int ll_common_borderFun(Word *args, Word& result, 
 			       int message, Word& local, Supplier s) {
-  CcLines *ccl1;
-  CcLines *ccl2;
   CcLines *ccresult;
 
-  ccl1 = ((CcLines *)args[0].addr);
-  ccl2 = ((CcLines *)args[1].addr);
+  CcLines* ccl1 = ((CcLines *)args[0].addr);
+  CcLines* ccl2 = ((CcLines *)args[1].addr);
+
+  if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
+  if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
   //query processor has provided
@@ -5120,12 +5141,13 @@ lr[_]common[_]border predicate for CcLines and CcRegions.
 */
 static int lr_common_borderFun(Word *args, Word& result, 
 			       int message, Word& local, Supplier s) {
-  CcLines *ccl;
-  CcRegions *ccr;
   CcLines *ccresult;
 
-  ccl = ((CcLines *)args[0].addr);
-  ccr = ((CcRegions *)args[1].addr);
+  CcLines* ccl = ((CcLines *)args[0].addr);
+  CcRegions* ccr = ((CcRegions *)args[1].addr);
+
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
   //query processor has provided
@@ -5147,12 +5169,13 @@ rl[_]common[_]border predicate for CcLines and CcRegions.
 */
 static int rl_common_borderFun(Word *args, Word& result, 
 			       int message, Word& local, Supplier s) {
-  CcRegions *ccr;
-  CcLines *ccl;
   CcLines *ccresult;
 
-  ccr = ((CcRegions *)args[0].addr);
-  ccl = ((CcLines *)args[1].addr);
+  CcRegions* ccr = ((CcRegions *)args[0].addr);
+  CcLines* ccl = ((CcLines *)args[1].addr);
+
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
   //query processor has provided
@@ -5174,10 +5197,11 @@ l[_]vertices predicate for CcLines.
 */
 static int l_verticesFun(Word *args, Word& result, 
 			 int message, Word& local, Supplier s) {
-  CcLines *ccl;
   CcPoints *ccresult;
 
-  ccl = ((CcLines *)args[0].addr);
+  CcLines* ccl = ((CcLines *)args[0].addr);
+
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
   //query processor has provided
@@ -5199,10 +5223,11 @@ r[_]vertices predicate for CcRegions.
 */
 static int r_verticesFun(Word *args, Word& result, 
 			 int message, Word& local, Supplier s) {
-  CcRegions *ccr;
   CcPoints *ccresult;
 
-  ccr = ((CcRegions *)args[0].addr);
+  CcRegions* ccr = ((CcRegions *)args[0].addr);
+
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
   //query processor has provided
@@ -5224,10 +5249,11 @@ l[_]interior predicate for CcLines.
 */
 static int l_interiorFun(Word *args, Word& result, 
 			 int message, Word& local, Supplier s) {
-  CcLines *ccl;
   CcRegions *ccresult;
 
-  ccl = ((CcLines *)args[0].addr);
+  CcLines* ccl = ((CcLines *)args[0].addr);
+
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
   //query processor has provided
@@ -5249,10 +5275,11 @@ r[_]contour predicate for CcRegions.
 */
 static int r_contourFun(Word *args, Word& result, 
 			int message, Word& local, Supplier s) {
-  CcRegions *ccr;
   CcLines *ccresult;
 
-  ccr = ((CcRegions *)args[0].addr);
+  CcRegions* ccr = ((CcRegions *)args[0].addr);
+
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
   //query processor has provided
@@ -5276,6 +5303,8 @@ static int p_no_of_componentsFun(Word *args, Word &result,
 				 int message, Word &local,
 				 Supplier s) {
   CcPoints *ccp = ((CcPoints *)args[0].addr);
+
+  if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -5301,6 +5330,8 @@ static int l_no_of_componentsFun(Word *args, Word &result,
 				 Supplier s) {
   CcLines *ccl = ((CcLines *)args[0].addr);
 
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -5324,6 +5355,8 @@ static int r_no_of_componentsFun(Word *args, Word &result,
 				 int message, Word &local,
 				 Supplier s) {
   CcRegions *ccr = ((CcRegions *)args[0].addr);
+
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -5350,12 +5383,8 @@ static int pp_distFun(Word *args, Word &result, int message,
   CcPoints *ccp1 = ((CcPoints *)args[0].addr);
   CcPoints *ccp2 = ((CcPoints *)args[1].addr);
 
-  cout << "trying to restore objects for pp_dist..:" << endl;
-
   if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
-
-  cout << "finished restoring object for pp_dist" << endl;
 
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -5380,6 +5409,9 @@ static int pl_distFun(Word *args, Word &result, int message,
 
   CcPoints *ccp = ((CcPoints *)args[0].addr);
   CcLines *ccl = ((CcLines *)args[1].addr);
+
+  if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -5406,6 +5438,9 @@ static int pr_distFun(Word *args, Word &result, int message,
   CcPoints *ccp = ((CcPoints *)args[0].addr);
   CcRegions *ccr = ((CcRegions *)args[1].addr);
 
+  if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -5431,6 +5466,9 @@ static int lp_distFun(Word *args, Word &result, int message,
   CcLines *ccl = ((CcLines *)args[0].addr);
   CcPoints *ccp = ((CcPoints *)args[1].addr);
 
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
+  if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
+  
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -5452,9 +5490,12 @@ ll[_]dist predicate for two CcLines.
 */
 static int ll_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
-  clock_t time1 = clock();
+
   CcLines *ccl1 = ((CcLines *)args[0].addr);
   CcLines *ccl2 = ((CcLines *)args[1].addr);
+
+  if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
+  if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -5468,10 +5509,6 @@ static int ll_distFun(Word *args, Word &result, int message,
   //value is defined, the second is the
   //real boolean value)
 
-  clock_t time2 = clock();
-  cout << "HINWEIS: Verbrauchte Zeit in C++, ll_distFun:" 
-       << (time2 - time1) << endl;
-
   return 0;
 }
 
@@ -5484,6 +5521,9 @@ static int lr_distFun(Word *args, Word &result, int message,
 
   CcLines *ccl = ((CcLines *)args[0].addr);
   CcRegions *ccr = ((CcRegions *)args[1].addr);
+
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -5510,6 +5550,9 @@ static int rp_distFun(Word *args, Word &result, int message,
   CcRegions *ccr = ((CcRegions *)args[0].addr);
   CcPoints *ccp = ((CcPoints *)args[1].addr);
 
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
+  if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
@@ -5534,6 +5577,9 @@ static int rl_distFun(Word *args, Word &result, int message,
 
   CcRegions *ccr = ((CcRegions *)args[0].addr);
   CcLines *ccl = ((CcLines *)args[1].addr);
+
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -5585,6 +5631,9 @@ static int p_diameterFun(Word *args, Word &result, int message,
 			 Word &local, Supplier s) {
 
   CcPoints *ccp = ((CcPoints *)args[0].addr);
+
+  if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
+
   debug(__LINE__);
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -5609,6 +5658,9 @@ static int l_diameterFun(Word *args, Word &result, int message,
 			 Word &local, Supplier s) {
 
   CcLines *ccl = ((CcLines *)args[0].addr);
+
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
+
   debug(__LINE__);
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -5633,6 +5685,9 @@ static int r_diameterFun(Word *args, Word &result, int message,
 			 Word &local, Supplier s) {
 
   CcRegions *ccr = ((CcRegions *)args[0].addr);
+  
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
+
   debug(__LINE__);
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -5657,6 +5712,9 @@ static int l_lengthFun(Word *args, Word &result, int message,
 		       Word &local, Supplier s) {
 
   CcLines *ccl = ((CcLines *)args[0].addr);
+
+  if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
+
   debug(__LINE__);
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -5681,6 +5739,9 @@ static int r_areaFun(Word *args, Word &result, int message,
 		     Word &local, Supplier s) {
 
   CcRegions *ccr = ((CcRegions *)args[0].addr);
+
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
+
   debug(__LINE__);
   result = qp->ResultStorage(s);	
   //query processor has provided
@@ -5705,6 +5766,9 @@ static int r_perimeterFun(Word *args, Word &result, int message,
 			  Word &local, Supplier s) {
 
   CcRegions *ccr = ((CcRegions *)args[0].addr);
+
+  if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
+
   debug(__LINE__);
   result = qp->ResultStorage(s);	
   //query processor has provided
