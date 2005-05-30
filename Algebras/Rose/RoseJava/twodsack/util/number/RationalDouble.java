@@ -11,9 +11,11 @@ import java.io.*;
 
 
 /**
- * This class extends the abstract class {@link Rational}. It implements the Rational type on the base of double values. In fact, a Rational is
+ * This class extends the abstract class {@link Rational}.
+ * It implements the Rational type on the base of <tt>double</tt> values. In fact, a Rational is
  * represented by a double. Of cause, it is well-known that computation with doubles is not precise. Hence, a derivation value is used to 
- * define a certain derivation which is allowed. So, for two Rational values P and Q, P == Q if P > Q-deriv AND P < Q+deriv.<p>
+ * define a certain derivation which is allowed. So, for two Rational values <tt>P</tt> and <tt>Q</tt>, <tt>P</tt> == <tt>Q</tt> if
+ * <tt>P</tt> > <tt>Q</tt>-<tt>deriv AND P</tt> < <tt>Q</tt> + <tt>deriv</tt>.<p>
  * By default, the value for deriv is set to 0.0000000001.<p>
  * There is only one double (numerator) field inside of this class which stores the Rational. The denominator is supposed to be 1 always.
  */
@@ -25,14 +27,14 @@ public class RationalDouble extends Rational implements Serializable{
     static final RationalDouble deriv = new RationalDouble(0.0000000001); //allowed derivation for comparisons to be equal
     static final double DERIV_DOUBLE = 0.00000001;
     static final double DERIV_DOUBLE_NEG = -0.00000001;
-    protected static boolean PRECISE = false;
+    static boolean PRECISE = false;
     private double d;	//numerator
     
     /*
      * constructors
      */
     /**
-     * Constructs a new Rational from n.
+     * Constructs a new Rational from <tt>n</tt>.
      *
      * @param n the numerator
      */
@@ -40,7 +42,7 @@ public class RationalDouble extends Rational implements Serializable{
    
 
     /**
-     * Constructs a new Rational from f.
+     * Constructs a new Rational from <tt>f</tt>.
      *
      * @param f the numerator
      */
@@ -48,7 +50,7 @@ public class RationalDouble extends Rational implements Serializable{
     
 
     /**
-     * Constructs a new Rational from r.
+     * Constructs a new Rational from <tt>r</tt>.
      *
      * @param r the numerator
      */
@@ -57,7 +59,7 @@ public class RationalDouble extends Rational implements Serializable{
 
     /**
      * Constructs a new Rational from numerator and denominator.
-     * The numerator is set to num/den
+     * The numerator is set to <tt>num</tt>/<tt>den</tt>
      * @param num the numerator
      * @param den the denominator
      */
@@ -72,7 +74,7 @@ public class RationalDouble extends Rational implements Serializable{
     /**
      * Returns the numerator of the Rational.
      *
-     * @return the numerator as int
+     * @return the numerator as <tt>int</tt>
      */
     public int getNumerator() {
 	int dLength = String.valueOf((int)d).length();
@@ -88,7 +90,7 @@ public class RationalDouble extends Rational implements Serializable{
     /**
      * Returns the denominator of the Rational.
      *
-     * @return the denominator as int
+     * @return the denominator as <tt>int</tt>
      */
     public int getDenominator() {
 	int dLength = String.valueOf((int)d).length();
@@ -102,25 +104,25 @@ public class RationalDouble extends Rational implements Serializable{
     
 
     /**
-     * Sets <i>this</i> to r.
+     * Sets <i>this</i> to <tt>r</tt>.
      *
-     * @param r the new Rational value r
+     * @param r the new Rational value <tt>r</tt>
      */
     public void assign (Rational r) { this.d = ((RationalDouble)r).d; }
 
 
     /**
-     * Sets <i>this</i> to i.
+     * Sets <i>this</i> to <tt>i</tt>.
      *
-     * @param i the new Rational value i
+     * @param i the new Rational value <tt>i</tt>
      */
     public void assign (int i) { this.d = i; }
 
     
     /**
-     * Sets <i>this</i> to d.
+     * Sets <i>this</i> to <tt>d</tt>.
      *
-     * @param d the new Rational value d
+     * @param d the new Rational value <tt>d</tt>
      */
     public void assign (double d) { this.d = d; }
 
@@ -129,13 +131,13 @@ public class RationalDouble extends Rational implements Serializable{
      * Returns <i>this</i> * r.
      *
      * @param r the second factor
-     * @return product of this and r
+     * @return product of <i>this</i> and <tt>r</tt>
      */
     public Rational times (Rational r) { return new RationalDouble(this.d * ((RationalDouble)r).d); }
     
 
     /**
-     * Returns <i>this</i> * i.
+     * Returns <i>this</i> * <tt>i</tt>.
      *
      * @param i the second factor
      */
@@ -143,12 +145,12 @@ public class RationalDouble extends Rational implements Serializable{
 
 
     /**
-     * Returns <i>this</i> * r.
+     * Returns <i>this</i> * <tt>r</tt>.
      * Stores the result in <i>in</i>.
      *
      * @param r the second factor
      * @param in the result is stored in this variable
-     * @return this * r
+     * @return <i>this</i> * <tt>r</tt>
      */
     public Rational times (Rational r, Rational in) {
 	((RationalDouble)in).d = (this.d * ((RationalDouble)r).d);
@@ -157,30 +159,30 @@ public class RationalDouble extends Rational implements Serializable{
   
 
     /**
-     * Returns <i>this</i> : r.
+     * Returns <i>this</i> : <tt>r</tt>.
      *
      * @param r the divisor
-     * @return this : r
+     * @return <i>this</i> : <tt>r</tt>
      */
     public Rational dividedby (Rational r) { return new RationalDouble(this.d / ((RationalDouble)r).d); }
     
 
     /**
-     * Returns <i>this</i> : i.
+     * Returns <i>this</i> : <tt>i</tt>.
      *
      * @param i the divisor
-     * @return this : i
+     * @return <i>this</i> : <tt>i</tt>
      */
     public Rational dividedby (int i) { return new RationalDouble(this.d / i); }
 
 
     /**
-     * Returns <i>this</i> : r.
+     * Returns <i>this</i> : <tt>r</tt>.
      * The result is stored in <i>in</i>.
      *
      * @param r the divisor
      * @param in the result is stored in this variable
-     * @return this : r
+     * @return <i>this</i> : <tt>r</tt>
      */
     public Rational dividedby (Rational r, Rational in) {
 	((RationalDouble)in).d = (this.d / ((RationalDouble)r).d);
@@ -189,30 +191,30 @@ public class RationalDouble extends Rational implements Serializable{
 
 
     /**
-     * Returns <i>this</i> + r.
+     * Returns <i>this</i> + <tt>r</tt>.
      *
      * @param r the summand
-     * @return this + r
+     * @return <i>this</i> + <tt>r</tt>
      */
     public Rational plus (Rational r) { return new RationalDouble(this.d + ((RationalDouble)r).d); }
 
 
     /**
-     * Returns <i>this</i> + i.
+     * Returns <i>this</i> + <tt>i</tt>.
      *
      * @param i the summand
-     * @return this + i
+     * @return <i>this</i> + <tt>i</tt>
      */
     public Rational plus (int i) { return new RationalDouble(this.d + i); }
     
 
     /**
-     * Returns <i>this</i> + r.
-     * The result is stored in in.
+     * Returns <i>this</i> + <tt>r</tt>.
+     * The result is stored in <tt>in</tt>.
      *
      * @param r the summand
      * @param in the result is stored in this variable
-     * @return this + r
+     * @return <i>this</i> + <tt>r</tt>
      */
     public Rational plus (Rational r, Rational in) {
 	((RationalDouble)in).d = (this.d + ((RationalDouble)r).d);
@@ -221,30 +223,30 @@ public class RationalDouble extends Rational implements Serializable{
 
 
     /**
-     * Returns <i>this</i> - r.
+     * Returns <i>this</i> - <tt>r</tt>.
      *
      * @param r the minuend
-     * @return this - r
+     * @return <i>this</i> - <tt>r</tt>
      */
     public Rational minus (Rational r) { return new RationalDouble(this.d - ((RationalDouble)r).d); }
     
     
     /**
-     * Returns <i>this</i> - i.
+     * Returns <i>this</i> - <tt>i</tt>.
      *
      * @param i the minuend
-     * @return this - i
+     * @return <i>this</i> - <tt>i</tt>
      */
     public Rational minus (int i) { return new RationalDouble(this.d - i); }
     
 
     /**
-     * Returns <i>this</i> - r.
+     * Returns <i>this</i> - <tt>r</tt>.
      * The result is stored in the variable <i>in</i>.
      *
      * @param r the minuend
      * @param in the result is stored in this variable
-     * @return this - r
+     * @return <i>this</i> - <tt>r</tt>
      */
     public Rational minus (Rational r, Rational in) {
 	((RationalDouble)in).d = (this.d - ((RationalDouble)r).d);
@@ -253,10 +255,10 @@ public class RationalDouble extends Rational implements Serializable{
 
 
     /**
-     * Returns true, if <i>this</i> is less than r.
+     * Returns <tt>true</tt>, if <i>this</i> is less than <tt>r</tt>.
      *
      * @param r the Rational to compare with
-     * @return true, if this < r
+     * @return <tt>true</tt>, if <i>this</i> < <tt>r</tt>
      */
     public boolean less (Rational r) {
 	if (PRECISE) {
@@ -274,10 +276,10 @@ public class RationalDouble extends Rational implements Serializable{
     
 
     /**
-     * Returns true, if <i>this</i> is less than i.
+     * Returns <tt>true</tt>, if <i>this</i> is less than <tt>i</tt>.
      *
-     * @param i the int to compare with
-     * @return true, if this < i
+     * @param i the <tt>int</tt> to compare with
+     * @return <tt>true</tt>, if <i>this</i> < <tt>i</tt>
      */
     public boolean less (int i) { 
 	if (PRECISE) {
@@ -294,10 +296,10 @@ public class RationalDouble extends Rational implements Serializable{
     
 
     /**
-     * Returns true, if <i>this</i> is equal to r.
+     * Returns <tt>true</tt>, if <i>this</i> is equal to <tt>r</tt>.
      *
      * @param r the Rational to compare with
-     * @return true, if this = r
+     * @return <tt>true</tt>, if <i>this</i> = <tt>r</tt>
      */
     public boolean equal (Rational r) {
 	if (PRECISE) {
@@ -315,10 +317,10 @@ public class RationalDouble extends Rational implements Serializable{
 	    
     
     /**
-     * Returns true, if <i>this</i> is equal to i.
+     * Returns <tt>true</tt>, if <i>this</i> is equal to <tt>i</tt>.
      *
-     * @param i the int to compare with
-     * @return true, if this = i
+     * @param i the <tt>int</tt> to compare with
+     * @return <tt>true</tt>, if <i>this</i> = <tt>i</tt>
      */
     public boolean equal (int i) {
 	if (PRECISE) {
@@ -336,10 +338,10 @@ public class RationalDouble extends Rational implements Serializable{
     
 
     /**
-     * Returns true, if <i>this</i> is greater than r.
+     * Returns <tt>true</tt>, if <i>this</i> is greater than <tt>r</tt>.
      *
      * @param r the Rational to compare with
-     * @return true, if this > r
+     * @return <tt>true</tt>, if <i>this</i> > <tt>r</tt>
      */
     public boolean greater (Rational r) { 
 	if (PRECISE) {
@@ -356,10 +358,10 @@ public class RationalDouble extends Rational implements Serializable{
     
 
      /**
-      * Returns true, if <i>this</i> is greater than i.
+      * Returns <tt>true</tt>, if <i>this</i> is greater than <tt>i</tt>.
       *
-      * @param i the int to compare with
-      * @return true, if this > i
+      * @param i the <tt>int</tt> to compare with
+      * @return <tt>true</tt>, if <i>this</i> > <tt>i</tt>
       */
     public boolean greater (int i) { 
 	if (PRECISE) {
@@ -376,13 +378,13 @@ public class RationalDouble extends Rational implements Serializable{
     
     
     /**
-     * Compares <i>this</i> and r and returns one of {0, 1, -1}.
+     * Compares <i>this</i> and r and returns one of {0, 1, -1}.<p>
      * Returns 0, if <i>this</i> = r<p>
      * Returns -1, if <i>this</i> < r<p>
      * Returns 1 otherwise
      *
      * @param r the Rational to compare with
-     * @return one of {0, 1, -1} as byte
+     * @return one of {0, 1, -1} as <tt>byte</tt>
      */
     public byte comp (Rational r) {
 	if (this.equal(r)) return 0;
@@ -392,10 +394,10 @@ public class RationalDouble extends Rational implements Serializable{
     
 
     /**
-     * Returns true, if <i>this</i> <= r.
+     * Returns <tt>true</tt>, if <i>this</i> <= <tt>r</tt>.
      *
      * @param r the Rational to compare with
-     * @return true if this <= r
+     * @return <tt>true</tt> if <i>this</i> <= <tt>r</tt>
      */
     public boolean lessOrEqual (Rational r) {
 	if (PRECISE)
@@ -407,10 +409,10 @@ public class RationalDouble extends Rational implements Serializable{
     
 
     /**
-     * Returns true, if <i>this</i> >= r.
+     * Returns <tt>true</tt>, if <i>this</i> >= <tt>r</tt>.
      *
      * @param r the Rational to compare with
-     * @return true if this >= r
+     * @return <tt>true</tt> if <i>this</i> >= <tt>r</tt>
      */
     public boolean greaterOrEqual (Rational r) {
 	if (PRECISE)
@@ -422,17 +424,17 @@ public class RationalDouble extends Rational implements Serializable{
     
     
     /**
-     * Returns <i>this</i> as int.
+     * Returns <i>this</i> as <tt>int</tt>.
      *
-     * @return this as int
+     * @return <i>this</i> as <tt>int</tt>
      */
     public int getInt() { return (int)this.d; }
 
 
     /**
-     * Returns <i>this</i> as double.
+     * Returns <i>this</i> as <tt>double</tt>.
      *
-     * @return this as double
+     * @return <i>this</i> as <tt>double</tt>
      */
     public double getDouble() { return this.d; }
 
@@ -440,13 +442,13 @@ public class RationalDouble extends Rational implements Serializable{
     /**
      * Converts <i>this</i> to a String.
      *
-     * @return this as String
+     * @return <i>this</i> as String
      */
     public String toString() { return String.valueOf(this.d); }
     
 
     /**
-     * Returns a copy of this.
+     * Returns a copy of <i>this</i>.
      *
      * @return the copy
      */
@@ -456,7 +458,7 @@ public class RationalDouble extends Rational implements Serializable{
     /**
      * Returns the absolute value of <i>this</i>.
      *
-     * @return |this|
+     * @return |<i>this</i>|
      */
     public Rational abs() {
 	if (this.d < 0) this.d = this.d * (-1);
@@ -465,10 +467,10 @@ public class RationalDouble extends Rational implements Serializable{
 
 
     /**
-     * Rounds <i>this</i> to <i>i</i> digits.
+     * Rounds <i>this</i> to <i>i</i> <tt>digits</tt>.
      *
      * @param digits the number of digits
-     * @throws WrongDigitValueException if 0 > digits > 9
+     * @throws WrongDigitValueException if 0 > <tt>digits</tt> > 9
      */
     public void round (int digits) throws WrongDigitValueException {
 	if (digits<0 || digits>9) 
@@ -482,9 +484,9 @@ public class RationalDouble extends Rational implements Serializable{
     /**
      * Sets an field of the class to <i>b</i>.
      * The implementor can decide, whether the class should have a 'precise' and a 'less precise' implementation. By using this method
-     * a flag can be set to use the more or less precise version. PRECISE=true means, that the derivation value is automatically set to 0.
+     * a flag can be set to use the more or less precise version. <tt>PRECISE == true</tt> means, that the derivation value is automatically set to 0.
      *
-     * @param precise PRECISE is set to this value
+     * @param precise <tt>PRECISE</tt> is set to this value
      */
     public void setPrecision (Boolean precise) {
 	PRECISE = precise.booleanValue();

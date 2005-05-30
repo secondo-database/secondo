@@ -8,7 +8,7 @@ package twodsack.setelement.datatype.basicdatatype;
 
 
 /**
- * A NotAValidTriangleException is thrown by a Triangle constructor if the three given points don't form a valid triangle.
+ * A NotAValidTriangleException is thrown by a {@link twodsack.setelement.datatype.basicdatatype.Triangle} constructor if the three given points don't form a valid triangle.
  */
 public class NotAValidTriangleException extends RuntimeException {
 

@@ -16,8 +16,16 @@ import java.util.LinkedList;
  */
 public class CycleListList extends LinkedList {
 
+    /*
+     * constructors
+     */
     /**
-     * Prints the elements of <code>this</code> to standard output.
+     * Constructs an 'empty' CycleListList.
+     */
+    public CycleListList() {}
+
+    /**
+     * Prints the elements of <i>this</i> to standard output.
      */
     public void print() {
 	for (int i = 0; i < this.size(); i++) {

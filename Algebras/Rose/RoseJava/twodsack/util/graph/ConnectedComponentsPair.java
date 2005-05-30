@@ -19,7 +19,7 @@ import java.util.*;
  * An instance of the ConnectedComponentsPair class represents the connected components of a graph. The graph itself is an instance of the
  * {@link twodsack.util.graph} class. A ConnectedComponentsPair instance consists of two lists. The first list is a LinkedList named
  * compVertices, which has as elements MultiSet(s) of vertices belonging to one connected component. The second list is a LinkedList with
- * the name compEdges, which consists of MultiSets of edges belonging to the connected components. Both lists have always the same length
+ * the name compEdges, which consists of MultiSet(s) of edges belonging to the connected components. Both lists have always the same length
  * and they are somehow connected: If there is only one entry in compVertices' element0, compEdges element0 cannot have an entry. But, for
  * two entries in comVertices' element1, compEdges' element1 must have exactly one entry.
  */
@@ -27,7 +27,13 @@ public class ConnectedComponentsPair {
     /*
      * fields
      */
+    /**
+     * The list of connected components represented only by vertices.
+     */
     public LinkedList compVertices;
+    /**
+     * The list of connected components represented only by edges.
+     */
     public LinkedList compEdges;
 
     /*

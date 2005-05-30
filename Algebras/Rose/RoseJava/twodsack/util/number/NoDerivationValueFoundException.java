@@ -8,7 +8,7 @@
 package twodsack.util.number;
 
 /**
- * A NoDerivationValueException is thrown when a class implementing the abstract {@link Rational} class doesn't has a field <i>deriv</i> which
+ * A NoDerivationValueException is thrown when a class implementing the abstract {@link Rational} class doesn't have a field <tt>deriv</tt> which
  * is the derivation value.
  */
 public class NoDerivationValueFoundException extends RuntimeException {

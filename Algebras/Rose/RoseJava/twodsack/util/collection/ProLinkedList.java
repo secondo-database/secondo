@@ -13,24 +13,44 @@ import java.util.*;
 
 
 /**
- * The implementation of a ProLinkedList class was necessary to remove some drawbacks of Sun's LinkedList. First, it provides the addAll method,
+ * The implementation of a ProLinkedList class was necessary to remove some drawbacks of Sun's {@link java.util.LinkedList}.
+ * First, it provides the {@link #addAll(ProLinkedList)} method,
  * that concats two ProLinkedLists without copying any objects. This is possible, because the elements of such lists are connected twice: they
  * have one pointer to their successor and one pointer to their predecessor. Additionally, for a list one pointer points to the head of the list
  * and another pointer points to the last element. Then, a concatenation of two lists is done by simple redirecting some pointers. However,
  * you must be aware that the original lists cannot be used anymore.<p>
  * The second improvement lies in the reusable iterators. Now, if an iterator was constructed, it can be reused over and over using its 
- * reset() method. This saves a lot of time and memory.
+ * <tt>reset()</tt> method. This saves a lot of time and memory.
  */
 public class ProLinkedList implements Cloneable {
     /*
      * fields
      */
-    public static int countAccess = 0;
+    /**
+     * The size of the list.
+     */
     public int size;
+
+    /**
+     * This entry points to the first list entry.
+     */
     public Entry head; //points to the first Entry
+
+    /**
+     * This entry points to the last list entry.
+     */
     public Entry last; //points to the last Entry
+
+    /**
+     * A counter for being able to check concurrent modifications.
+     */
     public  int modCount;
+
     private Comparator comparator; //is used for method remove(object)
+
+    /**
+     * Points to the entry that was added at last.
+     */
     public Entry lastAdded; //points to the Entry that was added the last time
 
     /*
@@ -40,7 +60,6 @@ public class ProLinkedList implements Cloneable {
      * The empty constructor.
      */
     public ProLinkedList() {
-	this.countAccess++;
 	modCount = 0;
 	size = 0;
 	head = new Entry(null);
@@ -51,12 +70,11 @@ public class ProLinkedList implements Cloneable {
 
     /**
      * Constructs a new instance using a comparator.
-     * The comparator is <u>onl</u> used when calling the remove() method.
+     * The comparator is <u>only</u> used when calling the {@link #remove(Object)} method.
      *
-     * @param the comparator c
+     * @param c the comparator c
      */
     public ProLinkedList(Comparator c) {
-	this.countAccess++;
 	modCount = 0;
 	size = 0;
 	head = new Entry(null);
@@ -79,9 +97,9 @@ public class ProLinkedList implements Cloneable {
 
 
     /**
-     * Returns true, if <i>this</i> is empty.
+     * Returns <tt>true</tt>, if <i>this</i> is empty.
      *
-     * @return true, if empty; false otherwise
+     * @return <tt>true</tt>, if empty; false otherwise
      */
     public boolean isEmpty() {
 	if (head.next == null) return true;
@@ -133,7 +151,7 @@ public class ProLinkedList implements Cloneable {
 
 
     /**
-     * Adds to <i>this</i> all elements of pll.
+     * Adds to <i>this</i> all elements of <tt>pll</tt>.
      * The resulting list is a concatenation of both lists.
      *
      * @param pll the second list
@@ -161,7 +179,7 @@ public class ProLinkedList implements Cloneable {
 
     /**
      * Returns a new iterator for <i>this</i>.
-     * The iterator starts at <i>index</i>.
+     * The iterator starts at <tt>index</tt>.
      *  
      * @param index the start position for the iterator
      * @return the iterator for <i>this</i>
@@ -172,7 +190,7 @@ public class ProLinkedList implements Cloneable {
 
 
     /**
-     * Adds a new entry directly before e.
+     * Adds a new entry directly before <tt>e</tt>.
      * 
      * @param o the object that shall be added
      * @param e the entry that shall have the position directly after o in the result list
@@ -206,10 +224,10 @@ public class ProLinkedList implements Cloneable {
     
 
     /**
-     * Removes an object from the <i>this</i>.
+     * Removes an object from <i>this</i>.
      * Note: This method doesn't work, if the list was constructed without a comparator.
      *
-     * @param the object that shall be removed
+     * @param o the object that shall be removed
      * @throws ComparatorNotDefinedException if the list was not constructed using a comparator
      */
     public void remove (Object o) throws ComparatorNotDefinedException {
@@ -254,10 +272,10 @@ public class ProLinkedList implements Cloneable {
 
 
     /**
-     * Removes the object at position <i>idx</i> from the list.
+     * Removes the object at position <tt>idx</tt> from the list.
      *
      * @param idx the object at that position shall be removed
-     * @throws IndexOutOfBoundsException if idx is greater than this.size or less than 0
+     * @throws IndexOutOfBoundsException if <tt>idx</tt> is greater than <tt>this.size</tt> or less than 0
      */
     public void remove (int idx) {
 	if (idx >= size || idx < 0)
@@ -295,10 +313,10 @@ public class ProLinkedList implements Cloneable {
 
 
     /**
-     * Returns the objects which at position <i>idx</i>.
+     * Returns the objects which at position <tt>idx</tt>.
      * 
      * @param idx the index of the object
-     * @throws IndexOutOfBoundsException if idx is greater than this.size or less than 0
+     * @throws IndexOutOfBoundsException if <tt>idx</tt> is greater than <tt>this.size</tt> or less than 0
      */
     public Object get (int idx) throws IndexOutOfBoundsException {
 	Entry actEntry = head.next;
@@ -313,11 +331,11 @@ public class ProLinkedList implements Cloneable {
 
 
     /**
-     * Adds an object at position <i>idx</i>.
+     * Adds an object at position <tt>idx</tt>.
      * 
      * @param idx the index where o shall be added
      * @param o the new object
-     * @throws IndexOutOfBoundsException if idx is greater than this.size or less than 0
+     * @throws IndexOutOfBoundsException if <tt>idx</tt> is greater than <tt>this.size</tt> or less than 0
      */
     public void add (int idx, Object o) throws IndexOutOfBoundsException {
 	if (idx > size || idx < 0) 

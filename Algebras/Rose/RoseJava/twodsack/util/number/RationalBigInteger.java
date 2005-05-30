@@ -11,16 +11,17 @@ import java.io.*;
 import java.math.*;
 
 /**
- * The RationalBigInteger class is an extension of the abstract Rational class. It implements Rational numbers using BigIntegers for the 
- * numerator and denominator. All numbers can be computed with absolute precision. Unfortunately, the values vor numerator and denominator
- * will get really big. Hence, when using this implementation the execution of operations will get very slow.<p>
- * Note, that the values for numerator and denominator must lie in the range of ordinary Integer values. Otherwise a RationalOverflowException
+ * The RationalBigInteger class is an extension of the abstract {@link Rational} class.
+ * It implements Rational numbers using {@link java.math.BigInteger}s for the 
+ * numerator and denominator. All numbers can be computed with absolute precision. Unfortunately, the values for numerator and denominator
+ * can get really big. Hence, when using this implementation the execution of operations will get very slow.<p>
+ * Note, that the values for numerator and denominator must lie in the range of ordinary Integer values. Otherwise a {@link RationalOverflowException}
  * is thrown.
  */
 public class RationalBigInteger extends Rational implements Serializable{
     /*
      * If you want to change the number of digits for the Rational converter, change the value
-     * NUM_DIGITS in the members section.
+     * <tt>NUM_DIGITS</tt> in the members section.
      * The derivation value for an allowed derivation can be set by setting a value for 'deriv'.
      */
     /*
@@ -28,7 +29,12 @@ public class RationalBigInteger extends Rational implements Serializable{
      */
     static final int NUM_DIGITS = 7; //number of digits used right of the decimal point
     static final RationalBigInteger deriv = new RationalBigInteger(0,1);
-    protected static boolean PRECISE = false;
+    
+    /**
+     * A flag for 'precise' or 'not so precise' computation. If <tt>true</tt>, everything is computed using RationalBigIntegers. Otherwise,
+     * at some places a faster implementation using Doubles is used.
+     */
+    static boolean PRECISE = false;
 
     private BigInteger n;	//numerator
     private BigInteger d;	//denominator
@@ -42,8 +48,8 @@ public class RationalBigInteger extends Rational implements Serializable{
      *
      * @param n the numerator
      * @param d the denominator
-     * @throws DivisionByZeroException if d = 0
-     * @throws RationalOverflowException if n,d are out of Integer range
+     * @throws DivisionByZeroException if <tt>d == 0</tt>
+     * @throws RationalOverflowException if <tt>n</tt>, <tt>d</tt> are out of Integer range
      */
     private RationalBigInteger(BigInteger n, BigInteger d) throws DivisionByZeroException, RationalOverflowException {
 	if (d.equals(BigInteger.ZERO)) {
@@ -59,7 +65,7 @@ public class RationalBigInteger extends Rational implements Serializable{
     
 
     /**
-     * Constructs a new instance from an int value.
+     * Constructs a new instance from an <tt>int</tt> value.
      * 
      * @param n the nominator; denominator is set to 1
      */
@@ -68,7 +74,7 @@ public class RationalBigInteger extends Rational implements Serializable{
     
 
     /**
-     * Constructs a new instance from a double value.
+     * Constructs a new instance from a <tt>double</tt> value.
      * Seven fraction digits used.
      * @param f the nominator
      */
@@ -78,7 +84,7 @@ public class RationalBigInteger extends Rational implements Serializable{
 
 
     /**
-     * Constructs a new instance from a Rational value.
+     * Constructs a new instance from a {@link Rational} value.
      * 
      * @param r the new Rational value
      */    
@@ -89,7 +95,7 @@ public class RationalBigInteger extends Rational implements Serializable{
 
 
     /**
-     * Constructs a new instance from two int values
+     * Constructs a new instance from two <tt>int</tt> values
      *
      * @param nIn the numerator
      * @param dIn the denominator
@@ -104,7 +110,7 @@ public class RationalBigInteger extends Rational implements Serializable{
     /**
      * Returns the numerator of the Rational.
      *
-     * @return the numerator as int
+     * @return the numerator as <tt>int</tt>
      */
     public int getNumerator() {
 	BigInteger hi = new BigInteger(String.valueOf(2147483647));
@@ -122,7 +128,7 @@ public class RationalBigInteger extends Rational implements Serializable{
     /**
      * Returns the denominator of the Rational.
      *
-     * @return the denominator as int
+     * @return the denominator as <tt>int</tt>
      */ 
     public int getDenominator() {
 	BigInteger hi = new BigInteger(String.valueOf(2147483647));
@@ -147,9 +153,9 @@ public class RationalBigInteger extends Rational implements Serializable{
     
 
     /**
-     * Sets <i>this</i> to i.
+     * Sets <i>this</i> to <tt>i</tt>.
      *
-     * @param i the new Rational value i
+     * @param i the new Rational value <tt>i</tt>
      */
     public void assign(int i) {
 	n = new BigInteger(String.valueOf(i));
@@ -158,9 +164,9 @@ public class RationalBigInteger extends Rational implements Serializable{
     
 
      /**
-     * Sets <i>this</i> to d.
+     * Sets <i>this</i> to <tt>d</tt>.
      *
-     * @param d the new Rational value d
+     * @param d the new Rational value <tt>d</tt>
      */
     public void assign(double d) {
 	this.n = new BigInteger(String.valueOf((int) Math.round(d * 10000000)));
@@ -169,10 +175,10 @@ public class RationalBigInteger extends Rational implements Serializable{
 
 
      /**
-     * Returns <i>this</i> * r.
+     * Returns <i>this</i> * <tt>r</tt>.
      *
      * @param r the second factor
-     * @return product of this and r
+     * @return product of this and <tt>r</tt>
      */
     public Rational times (Rational r) {
 	return new RationalBigInteger(n.multiply(((RationalBigInteger)r).n),
@@ -181,7 +187,7 @@ public class RationalBigInteger extends Rational implements Serializable{
     
 
     /**
-     * Returns <i>this</i> * i.
+     * Returns <i>this</i> * <tt>i</tt>.
      *
      * @param i the second factor
      */
@@ -191,12 +197,12 @@ public class RationalBigInteger extends Rational implements Serializable{
 
 
     /**
-     * Returns <i>this</i> * r.
+     * Returns <i>this</i> * <tt>r</tt>.
      * Stores the result in <i>in</i>.
      *
      * @param r the second factor
      * @param in the result is stored in this variable
-     * @return this * r
+     * @return <i>this</i> * <tt>r</tt>
      */
     public Rational times (Rational r, Rational in) {
 	((RationalBigInteger)in).n = n.multiply(((RationalBigInteger)r).n);
@@ -206,10 +212,10 @@ public class RationalBigInteger extends Rational implements Serializable{
     
 
     /**
-     * Returns <i>this</i> : r.
+     * Returns <i>this</i> : <tt>r</tt>.
      *
      * @param r the divisor
-     * @return this : r
+     * @return <i>this</i> : <tt>r</tt>
      */
     public Rational dividedby (Rational r) {
 	return new RationalBigInteger(n.multiply(((RationalBigInteger)r).d),
@@ -218,10 +224,10 @@ public class RationalBigInteger extends Rational implements Serializable{
     
 
      /**
-      * Returns <i>this</i> : i.
+      * Returns <i>this</i> : <tt>i</tt>.
       *
       * @param i the divisor
-      * @return this : i
+      * @return <i>this</i> : <tt>i</tt>
       */
     public Rational dividedby (int i) {
 	return new RationalBigInteger(n,d.multiply(new BigInteger(String.valueOf(i))));
@@ -229,12 +235,12 @@ public class RationalBigInteger extends Rational implements Serializable{
     
     
      /**
-      * Returns <i>this</i> : r.
-      * The result is stored in <i>in</i>.
+      * Returns <i>this</i> : <tt>r</tt>.
+      * The result is stored in <tt>in</tt>.
       *
       * @param r the divisor
       * @param in the result is stored in this variable
-      * @return this : r
+      * @return <i>this</i> : <tt>r</tt>
       */
     public Rational dividedby (Rational r, Rational in) {
 	((RationalBigInteger)in).n = n.multiply(((RationalBigInteger)r).d);
@@ -244,22 +250,21 @@ public class RationalBigInteger extends Rational implements Serializable{
 
     
     /**
-     * Returns <i>this</i> + r.
+     * Returns <i>this</i> + <tt>r</tt>.
      *
      * @param r the summand
-     * @return this + r
+     * @return <i>this</i> + <tt>r</tt>
      */
     public Rational plus (Rational r) {
 	return new RationalBigInteger(n.multiply(((RationalBigInteger)r).d).add(d.multiply(((RationalBigInteger)r).n)),d.multiply(((RationalBigInteger)r).d));
-	//return new Rational(n * r.d + d * r.n, d * r.d);
     }//end method plus
     
 
     /**
-     * Returns <i>this</i> + i.
+     * Returns <i>this</i> + <tt>i</tt>.
      *
      * @param i the summand
-     * @return this + i
+     * @return <i>this</i> + <tt>i</tt>
      */
     public Rational plus (int i) {
 	return new RationalBigInteger(n.add(d.multiply(new BigInteger(String.valueOf(i)))),d);
@@ -267,12 +272,12 @@ public class RationalBigInteger extends Rational implements Serializable{
     
     
     /**
-     * Returns <i>this</i> + r.
-     * The result is stored in in.
+     * Returns <i>this</i> + <tt>r</tt>.
+     * The result is stored in <tt>i</tt>n.
      *
      * @param r the summand
      * @param in the result is stored in this variable
-     * @return this + r
+     * @return <i>this</i> + <tt>r</tt>
      */
     public Rational plus (Rational r, Rational in) {
 	((RationalBigInteger)in).n = n.multiply(((RationalBigInteger)r).d).add(d.multiply(((RationalBigInteger)r).n));
@@ -282,10 +287,10 @@ public class RationalBigInteger extends Rational implements Serializable{
     
 
     /**
-     * Returns <i>this</i> - r.
+     * Returns <i>this</i> - <tt>r</tt>.
      *
      * @param r the minuend
-     * @return this - r
+     * @return <i>this</i> - <tt>r</tt>
      */
     public Rational minus (Rational r) {
 	return new RationalBigInteger(n.multiply(((RationalBigInteger)r).d).subtract(d.multiply(((RationalBigInteger)r).n)),d.multiply(((RationalBigInteger)r).d));
@@ -293,10 +298,10 @@ public class RationalBigInteger extends Rational implements Serializable{
     
     
     /**
-     * Returns <i>this</i> - i.
+     * Returns <i>this</i> - <tt>i</tt>.
      *
      * @param i the minuend
-     * @return this - i
+     * @return <i>this</i> - <tt>i</tt>
      */
     public Rational minus (int i) {
 	return new RationalBigInteger(n.subtract(d.multiply(new BigInteger(String.valueOf(i)))),d);
@@ -304,12 +309,12 @@ public class RationalBigInteger extends Rational implements Serializable{
     
     
     /**
-     * Returns <i>this</i> - r.
-     * The result is stored in the variable <i>in</i>.
+     * Returns <i>this</i> - <tt>r</tt>.
+     * The result is stored in the variable <tt>in</tt>.
      *
      * @param r the minuend
      * @param in the result is stored in this variable
-     * @return this - r
+     * @return <i>this</i> - <tt>r</tt>
      */
     public Rational minus (Rational r, Rational in) {
 	((RationalBigInteger)in).n = n.multiply(((RationalBigInteger)r).d).subtract(d.multiply(((RationalBigInteger)r).n));
@@ -319,10 +324,10 @@ public class RationalBigInteger extends Rational implements Serializable{
     
 
     /**
-     * Returns true, if <i>this</i> is less than r.
+     * Returns <tt>true</tt>, if <i>this</i> is less than <tt>r</tt>.
      *
      * @param r the Rational to compare with
-     * @return true, if this < r
+     * @return <tt>true</tt>, if <i>this</i> < <tt>r</tt>
      */
     public boolean less (Rational r) {
 	return (this.n.multiply(((RationalBigInteger)r).d).compareTo(this.d.multiply(((RationalBigInteger)r).n)) == -1);
@@ -330,10 +335,10 @@ public class RationalBigInteger extends Rational implements Serializable{
     
     
     /**
-     * Returns true, if <i>this</i> is less than i.
+     * Returns <tt>true</tt>, if <i>this</i> is less than <tt>i</tt>.
      *
      * @param i the int to compare with
-     * @return true, if this < i
+     * @return <tt>true</tt>, if <i>this</i> < <tt>i</tt>
      */
     public boolean less (int i) {
 	return (n.compareTo(new BigInteger(String.valueOf(i)).multiply(d)) == -1);
@@ -341,10 +346,10 @@ public class RationalBigInteger extends Rational implements Serializable{
     
     
     /**
-     * Returns true, if <i>this</i> is equal to r.
+     * Returns <tt>true</tt>, if <i>this</i> is equal to <tt>r</tt>.
      *
      * @param r the Rational to compare with
-     * @return true, if this = r
+     * @return <tt>true</tt>, if <i>this</i> = <tt>r</tt>
      */
     public boolean equal (Rational r) {
 	return (n.multiply(((RationalBigInteger)r).d).equals(d.multiply(((RationalBigInteger)r).n)));
@@ -352,10 +357,10 @@ public class RationalBigInteger extends Rational implements Serializable{
     
 
     /**
-     * Returns true, if <i>this</i> is equal to i.
+     * Returns <tt>true</tt>, if <i>this</i> is equal to <tt>i</tt>.
      *
      * @param i the int to compare with
-     * @return true, if this = i
+     * @return <tt>true</tt>, if <i>this</i> = <tt>i</tt>
      */
     public boolean equal (int i) {
 	return (n.equals(d.multiply(new BigInteger(String.valueOf(i)))));
@@ -363,10 +368,10 @@ public class RationalBigInteger extends Rational implements Serializable{
     
     
     /**
-     * Returns true, if <i>this</i> is greater than r.
+     * Returns <tt>true</tt>, if <i>this</i> is greater than <tt>r</tt>.
      *
      * @param r the Rational to compare with
-     * @return true, if this > r
+     * @return <tt>true</tt>, if <i>this</i> > <tt>r</tt>
      */
     public boolean greater (Rational r) {
 	return (this.n.multiply(((RationalBigInteger)r).d).compareTo(this.d.multiply(((RationalBigInteger)r).n)) == 1);
@@ -374,10 +379,10 @@ public class RationalBigInteger extends Rational implements Serializable{
     
     
     /**
-     * Returns true, if <i>this</i> is greater than i.
+     * Returns <tt>true</tt>, if <i>this</i> is greater than <tt>i</tt>.
      *
      * @param i the int to compare with
-     * @return true, if this > i
+     * @return <tt>true</tt>, if <i>this</i> > <tt>i</tt>
      */
     public boolean greater (int i) {
 	return (n.compareTo(new BigInteger(String.valueOf(i)).multiply(d)) == 1);
@@ -385,13 +390,13 @@ public class RationalBigInteger extends Rational implements Serializable{
     
     
     /**
-     * Compares <i>this</i> and r and returns one of {0, 1, -1}.
-     * Returns 0, if <i>this</i> = r<p>
-     * Returns -1, if <i>this</i> < r<p>
+     * Compares <i>this</i> and <tt>r</tt> and returns one of {0, 1, -1}.<p>
+     * Returns 0, if <i>this</i> = <tt>r</tt><p>
+     * Returns -1, if <i>this</i> < <tt>r</tt><p>
      * Returns 1 otherwise
      *
      * @param r the Rational to compare with
-     * @return one of {0, 1, -1} as byte
+     * @return one of {0, 1, -1} as <tt>byte</tt>
      */
     public byte comp (Rational r) {
 	BigInteger res1 = n.multiply(((RationalBigInteger)r).d);
@@ -401,10 +406,10 @@ public class RationalBigInteger extends Rational implements Serializable{
     
     
     /**
-     * Returns true, if <i>this</i> <= r.
+     * Returns <tt>true</tt>, if <i>this</i> <= <tt>r</tt>.
      *
      * @param r the Rational to compare with
-     * @return true if this <= r
+     * @return <tt>true</tt> if <i>this</i> <= <tt>r</tt>
      */
     public boolean lessOrEqual (Rational r) {
 	return (this.less(r) || this.equal(r));
@@ -412,10 +417,10 @@ public class RationalBigInteger extends Rational implements Serializable{
     
 
     /**
-     * Returns true, if <i>this</i> >= r.
+     * Returns <tt>true</tt>, if <i>this</i> >= <tt>r</tt>.
      *
      * @param r the Rational to compare with
-     * @return true if this >= r
+     * @return <tt>true</tt> if <i>this</i> >= <tt>r</tt>
      */
     public boolean greaterOrEqual (Rational r) {
 	return (this.greater(r) || this.equal(r));
@@ -423,10 +428,10 @@ public class RationalBigInteger extends Rational implements Serializable{
     
     
     /**
-     * Returns <i>this</i> as int.
+     * Returns <i>this</i> as <tt>int</tt>.
      * Of cause, this method cannot return a precise result. The result is rounded.
      *
-     * @return this as int
+     * @return <i>this</i> as <tt>int</tt>
      */
     public int getInt() {
 	int res = (int)Math.round(this.n.doubleValue() / this.d.doubleValue());
@@ -435,8 +440,10 @@ public class RationalBigInteger extends Rational implements Serializable{
 
     
    /**
-     * Returns <i>this</i> as double.
+     * Returns <i>this</i> as <tt>double</tt>.
      * Of cause, this method cannot return a precise result. The result is rounded.
+     *
+     * @return <i>this</i> as <tt>double</tt>
      */
     public double getDouble() {
 	double res = this.n.doubleValue() / this.d.doubleValue();
@@ -445,7 +452,7 @@ public class RationalBigInteger extends Rational implements Serializable{
 	
 
     /**
-     * Converts <i>this</i> to a String.
+     * Converts <i>this</i> to a <tt>String</tt>.
      *
      * @return this as String
      */
@@ -467,7 +474,7 @@ public class RationalBigInteger extends Rational implements Serializable{
     
 
     /**
-     * Returns the greatest commond divisor of a,b.
+     * Returns the greatest commond divisor of <tt>a</tt>, <tt>b</tt>.
      *
      * @param a the first Rational
      * @param b the second Rational
@@ -494,7 +501,7 @@ public class RationalBigInteger extends Rational implements Serializable{
     
 
     /**
-     * Returns a copy of this.
+     * Returns a copy of <i>this</i>.
      *
      * @return the copy
      */
@@ -504,7 +511,7 @@ public class RationalBigInteger extends Rational implements Serializable{
     /**
      * Returns the absolute value of <i>this</i>.
      *
-     * @return |this|
+     * @return |<i>this</i>|
      */
     public Rational abs() {
 	Rational retVal = this.copy();
@@ -519,7 +526,7 @@ public class RationalBigInteger extends Rational implements Serializable{
      * Rounds <i>this</i> to <i>i</i> digits.
      *
      * @param digits the number of digits
-     * @throws WrongDigitValueException if the number of digits d is not 0 <= d <= 9
+     * @throws WrongDigitValueException if the number of digits <tt>d</tt> is not 0 <= <tt>d</tt> <= 9
      */
     public void round (int digits) {
 	if (digits<0 || digits>9)
@@ -533,11 +540,11 @@ public class RationalBigInteger extends Rational implements Serializable{
 	
     
     /**
-     * Sets an field of the class to <i>b</i>.
+     * Sets an field of the class to <tt>b</tt>.
      * The implementor can decide, whether the class should have a 'precise' and a 'less precise' implementation. By using this method
-     * a flag can be set to use the more or less precise version. PRECISE=true means, that the derivation value is automatically set to 0.
+     * a flag can be set to use the more or less precise version. <tt>PRECISE == true</tt> means, that the derivation value is automatically set to 0.
      *
-     * @param precise PRECISE is set to this value
+     * @param precise <tt>PRECISE</tt> is set to this value
      */
     public void setPrecision (Boolean precise) {
 	PRECISE = precise.booleanValue();

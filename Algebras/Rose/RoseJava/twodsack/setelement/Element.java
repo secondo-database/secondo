@@ -15,16 +15,21 @@ import java.io.*;
 
 /**
  * The Element class is an abstract class which has to be extended by all geometrical object classes that shall be used in
- * {@link twodsack.set.ElemMultiSet}. In particular, {@link twodsack.setelement.datatype.basicdatatype.Point},
- * {@link twodsack.setelement.datatype.basicdatatype.Segment} and {@link twodsack.setelement.datatype.basicdatatype.Triangle}
+ * {@link twodsack.set.ElemMultiSet}. In particular, {@link Point},
+ * {@link Segment} and {@link Triangle}
  * extend this class. For these
- * classes, special extensions of ElemMultiSet exist. They are {@link twodsack.set.PointMultiSet},
- * {@link twodsack.set.SegMultiSet} and {@link twodsack.set.TriMultiSet}. Objects of type Element and ElemMultiSet
+ * classes, special extensions of {@link twodsack.set.ElemMultiSet} exist. They are {@link twodsack.set.PointMultiSet},
+ * {@link twodsack.set.SegMultiSet} and {@link twodsack.set.TriMultiSet}. Objects of type {@link twodsack.setelement.Element} and ElemMultiSet
  * are the central parameters of all generic set operations
  * in the 2D-SACK package, especially in the {@link twodsack.operation.setoperation.SetOps} class.<p>
  * All the methods declared here are used in the generic set operations.
  */
 abstract public class Element implements Serializable, ComparableMSE{
+    /**
+     * Constructs an 'empty' instance.
+     */
+    public Element(){}
+
     /**
      * methods
      */  
@@ -40,10 +45,10 @@ abstract public class Element implements Serializable, ComparableMSE{
 
     
     /**
-     * Returns true, if both objects are equal.
+     * Returns <tt>true</tt>, if both objects are equal.
      *
      * @param inObject the object to compare with
-     * @return true, if both objects are equal
+     * @return <tt>true</tt>, if both objects are equal
      * @throws WrongTypeException if objects are not of the same type
      */
     public abstract boolean equal(Element inObject) throws WrongTypeException;
@@ -56,7 +61,7 @@ abstract public class Element implements Serializable, ComparableMSE{
      * 1 otherwise
      *
      * @param inObject the object to compare with
-     * @return {0, 1, -1} as int
+     * @return one of {0, 1, -1} as int
      * @throws WrongTypeException if objects are not of the same type
      */    
     public abstract int compare(ComparableMSE inObject) throws WrongTypeException;
@@ -69,7 +74,7 @@ abstract public class Element implements Serializable, ComparableMSE{
      * 1 otherwise
      *
      * @param inObject the object to compare with
-     * @return {0, 1, -1} as byte
+     * @return one of {0, 1, -1} as byte
      * @throws WrongTypeException if objects are not of the same type
      */
     public abstract byte compX(Element inObject) throws WrongTypeException;
@@ -82,7 +87,7 @@ abstract public class Element implements Serializable, ComparableMSE{
      * 1 otherwise
      *
      * @param inObject the object to compare with
-     * @return {0, 1, -1} as byte
+     * @return one of {0, 1, -1} as byte
      * @throws WrongTypeException if objects are not of the same type
      */
     public abstract byte compY(Element inObject) throws WrongTypeException;
@@ -114,7 +119,7 @@ abstract public class Element implements Serializable, ComparableMSE{
 
     /**
      * Return the Euclidean distance of both objects.
-     * If this.intersects(inObject) == true, the distance is 0.
+     * If <tt>this.intersects(inObject) == true</tt>, the distance is 0.
      *
      * @param inObject the object which has a 'distance' to <i>this</i>
      * @return the Euclidean distance as {@link Rational}
@@ -133,12 +138,12 @@ abstract public class Element implements Serializable, ComparableMSE{
 
 
     /**
-     * Returns true if both objects are equal.
-     * This is pretty much the same method as {@link #equal}, but must be implemented to be able to get back objects
+     * Returns <tt>true</tt> if both objects are equal.
+     * This is pretty much the same method as {@link #equal(Element)}, but must be implemented to be able to get back objects
      * from a hashtable.
      *
      * @param o the object to compare with
-     * @return true, if both objects are equal
+     * @return <tt>true</tt>, if both objects are equal
      */
     public abstract boolean equals(Object o);
     

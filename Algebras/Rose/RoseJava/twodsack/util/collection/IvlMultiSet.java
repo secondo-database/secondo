@@ -15,9 +15,10 @@ import twodsack.util.comparator.*;
 import java.util.*;
 
 /**
- * In an instance of IvlMultiSet, objects of type {@link twodsack.util.collectiontype} are stored. As in every multiset, this class allows
- * to store more than one of the same instances of Interval. This is an alternative implementation to {@link IvlList} and it also implements
- * the methods needed by SetOps.overlappingPairs().
+ * In an instance of IvlMultiSet, objects of type {@link twodsack.util.collectiontype} are stored. As in every {@link MultiSet},
+ * this class allows to store more than one of the same instances of {@link twodsack.util.collectiontype.Interval}. This is an
+ * alternative implementation to {@link IvlList} and it also implements
+ * the methods needed by the method <tt>overlappingPairs()</tt> in {@link twodsack.operation.setoperation.SetOps}.
  */
 public class IvlMultiSet extends MultiSet {
     
@@ -37,9 +38,10 @@ public class IvlMultiSet extends MultiSet {
      * methods
      */
     /**
-     * Returns the merged sets.
-     * For two sets (a,a,b,c) x (b,c,d) the result of merge is (a,b,c,d). Duplicates are removed.
-     * The <i>meet</i>parameter is passed to the IvlMergeComparator which is used for the constructor for the result IvlMultiSet.
+     * Returns the merged sets.<p>
+     * For two sets <tt>(a,a,b,c) x (b,c,d)</tt> the result of <i>merge</i> is <tt>(a,b,c,d)</tt>. Duplicates are removed.
+     * The <i>meet</i> parameter is passed to the {@link twodsack.util.comparator.IvlMergeComparator} which is used for the
+     * constructor for the resulting IvlMultiSet.
      *
      * @param set1 the first set
      * @param set2 the second set
@@ -68,13 +70,14 @@ public class IvlMultiSet extends MultiSet {
 
 
     /**
-     * Returns set1 minus set2.
-     * For two sets (a,a,b,c) x (b,c,d) the result of minus is (a,a).
-     * The <i>meet</i> parameter is passed to the constructor of the IvlMultiSet which needs to construct a IvlComparator with it.
+     * Returns set1 minus set2.<p>
+     * For two sets <tt>(a,a,b,c) x (b,c,d)</tt> the result of <i>minus</i> is <tt>(a,a)</tt>.
+     * The <i>meet</i> parameter is passed to the constructor of the IvlMultiSet which needs to construct a
+     * {@link twodsack.util.comparator.IvlComparator} with it.
      *
      * @param set1 the first set
      * @param set2 the second set
-     * @param meet is used for the IvlComparator that is passed to the constructor of the result IvlMultiSet
+     * @param meet is used for the IvlComparator that is passed to the constructor of the resulting IvlMultiSet
      */
     public static IvlMultiSet minus (IvlMultiSet set1, IvlMultiSet set2, boolean meet) {
 	if (set1.isEmpty() || set2.isEmpty()) return set1;
@@ -134,12 +137,13 @@ public class IvlMultiSet extends MultiSet {
 
 
     /**
-     * Returns the intersectin of two sets of Intervals.
-     * For two sets (a,a,b,c) x (b,c,d) the result of intersect is (b,c).
+     * Returns the intersection of two sets of Intervals.<p>
+     * For two sets <tt>(a,a,b,c) x (b,c,d)</tt> the result of <i>intersect</i> is <tt>(b,c)</tt>.
      *
      * @param set1 the first set
      * @param set2 the second set
-     * @param meet is passed to the IvlMergeComparator constructor which is needed for the constructor of the result IvlMultiSet
+     * @param meet is passed to the {@link twodsack.util.comparator.IvlMergeComparator} constructor which is needed for the constructor 
+     *             of the resulting IvlMultiSet
      */
     public static IvlMultiSet intersect (IvlMultiSet set1, IvlMultiSet set2, boolean meet) {
 	if (set1.isEmpty()) return set1;
@@ -170,12 +174,12 @@ public class IvlMultiSet extends MultiSet {
      * In <i>intStore</i> lists of intervals are stored which were already found as overlapping intervals. In there, the number of the
      * interval is stored as Integer object. If two intervals are found, it is looked up, whether this pair was found before. If so, it
      * is not stored in the result set.<p>
-     * If <i>sameSet</i> = true, set1 and set2 have the same elements. So, intervals with the same number or the same referenced object
-     * are not reported.
+     * If <i>sameSet</i> = <tt>true</tt>, <tt>set1</tt> and <tt>set2</tt> have the same elements. So, intervals with the same number
+     * or the same referenced object are not reported.
      *
-     * @param intStore an array of ProLinkedList(s); every list contains Integer values which are numbers of intervals
-     * @param sameSet true, if set1 and set2 are referencing the same set
-     * @param size the size of set1
+     * @param intStore an array of {@link twodsack.util.collection.ProLinkedList}s; every list contains Integer values which are numbers of intervals
+     * @param sameSet <tt>true</tt>, if <tt>set1</tt> and <tt>set2</tt> are referencing the same set
+     * @param size the size of <tt>set1</tt>
      * @param set1 the first set
      * @param set2 the second set
      * @param retSet new pairs are stored in this set; it is idenctical to the returned set

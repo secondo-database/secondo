@@ -8,7 +8,7 @@
 package twodsack.util;
 
 /**
- * This interface provides only one single method, namely {@link #compare}. <i>MSE</i> is short for
+ * This interface provides only one single method, namely {@link #compare(ComparableMSE)}. <i>MSE</i> is short for
  * <i>MultiSetElement</i>. Each data type that shall be used together with a <code>MultiSet</code>
  * must implement this interface.
  */

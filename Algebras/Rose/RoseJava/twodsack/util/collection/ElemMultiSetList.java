@@ -21,6 +21,15 @@ import java.io.Serializable;
 
 public class ElemMultiSetList extends LinkedList implements Serializable {
     /*
+     * constructors
+     */
+    /**
+     * Constructs an 'empty' instance.
+     */
+    public ElemMultiSetList(){}
+
+
+    /*
      * methods
      */ 
 
@@ -48,6 +57,7 @@ public class ElemMultiSetList extends LinkedList implements Serializable {
 	for (int i = 0; i < this.size(); i++) {
 	    System.out.println("Element["+i+"]: ");
 	    ((ElemMultiSet)this.get(i)).print();
+	    System.out.println();
 	}//for i
     }//end method print
 

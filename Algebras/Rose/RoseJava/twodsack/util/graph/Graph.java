@@ -25,10 +25,10 @@ import java.util.NoSuchElementException;
 
 
 /**
- * This class implements an undirected graph. The graph's vertices are of type {@link twodsack.setelement.Element}. The set of vertices <i>v</i>
- * is of type {@link twodsack.set.ElemMultiSet}. Additionally, the set of vertices is stored as Vertex[]. The successors for vertices
- * are stored in adjacency lists, which are implemented as LinketList(), here.<p>
- * The most interesting methods of this class are {@link #computeFaces}, which computes a set of faces for a graph, and {@link #connectedComponents}.
+ * This class implements an undirected graph. The graph's vertices are of type {@link twodsack.setelement.Element}. The set of vertices <i>V</i>
+ * is of type {@link twodsack.set.ElemMultiSet}. Additionally, the set of vertices is stored as Vertex array. The successors for vertices
+ * are stored in adjacency lists, which are implemented as {@link java.util.LinkedList}s, here.<p>
+ * The most interesting methods of this class are {@link #computeFaces()}, which computes a set of faces for a graph, and {@link #connectedComponents()}.
  * The latter computes the connected components of a graph and stores them in a {@link ConnectedComponentsPair}.<p>
  * Note, that the vertices for this graph can hold any type of objects that extends the Element class.
  */
@@ -46,7 +46,7 @@ public class Graph {
     /*
      * constructors
      */
-    /*
+    /**
      * Constructs an 'empty' graph.
      * All fields are initialized.
      */
@@ -59,8 +59,8 @@ public class Graph {
 
     /**
      * Constructs a graph from a set of edges.
-     * When using this constructor, the internal fields are set including the succLists fields. The succLists are the list of successors
-     * for each vertex. They are computed using a hash table.
+     * When using this constructor, the internal fields are set including the <tt>succLists</tt> field. The <tt>succLists</tt> are the list of
+     * successors for each vertex. They are computed using a hash table.
      *
      * @param edges the set of edges
      */
@@ -126,10 +126,10 @@ public class Graph {
 
     /**
      * Constructs a graph from sets of vertices and edges.
-     * When using this constructor, the internal fields are set including the succLists fields. The succLists are the list of successors
-     * for each vertex. They are computed using a hash table.
-     * Make sure, that the types of the objects stored in the vertices match the object types in the edges. Otherwise a WrongTypeException will
-     * be thrown.
+     * When using this constructor, the internal fields are set including the <tt>succLists</tt> field. The <tt>succLists</tt> are the
+     * lists of successors for each vertex. They are computed using a hash table.<p>
+     * Make sure, that the types of the objects stored in the vertices match the object types in the edges. Otherwise a 
+     * {@link twodsack.setelement.datatype.WrongTypeException} will be thrown.
      *
      * @param vertices the set of vertices
      * @param edges the set of edges
@@ -507,18 +507,19 @@ public class Graph {
 
     /**
      * Computes a reduced pair for a connected components.
-     * For every component, the vertices of compVertices may occur in more than one edge in the appropriate compEdges. In the result of this method
+     * For every component, the vertices of <tt>compVertices</tt> may occur in more than one edge in the appropriate <tt>compEdges</tt>.
+     * In the result of this method
      * this is no longer true. Example: A ConnectedComponentsPair could be:<p>
-     * compVertices: (A,B,C,D)<br>
-     * compEdges: (A-B, B-C, C-D)<br>
-     * As you can see, some of the vertices of compVertices occur more than once in compEdges. Now, a reduced pair is computed. One possible
-     * result could be:<p>
-     * compVertices: ()<br>
-     * compEdges: (A-B, C-D)<br>
+     * <tt>compVertices: (A,B,C,D)<br>
+     * compEdges: (A-B, B-C, C-D)</tt><p>
+     * As you can see, some of the vertices of <tt>compVertices</tt> occur more than once in <tt>compEdges</tt>. Now, a reduced pair is
+     * computed. One possible result could be:<p>
+     * <tt>compVertices: ()<br>
+     * compEdges: (A-B, C-D)</tt><p>
      * Another result is:<p>
-     * compVertices: (A,D)<br>
-     * compEdges: (B-C)<br>
-     * All of the vertices that are not used in the reduced set of edges are stored in compVertices.
+     * <tt>compVertices: (A,D)<br>
+     * compEdges: (B-C)</tt><p>
+     * All of the vertices that are not used in the reduced set of edges are stored in <tt>compVertices</tt>.
      *
      * @param ccp the 'in' pair
      * @return the reduced pair
@@ -630,7 +631,7 @@ public class Graph {
      * Returns the faces of this graph.
      * Here, the edges of the graph are interpreted as segments which bound a certain area. The graph's vertices are assumed to be points.
      * Then, the graph is a representation of a polygon which has faces. The face cycles of this polygon are stored as sets of segments
-     * in ElemMultiSet(s).
+     * in {@link twodsack.set.ElemMultiSet}s.
      * For each face, such a ElemMultiSet exist. Since the faces are computed beginning from the outside, the outmost face cycle is the
      * first cycle in the result list.
      *
@@ -715,7 +716,7 @@ public class Graph {
      * Returns the faces of this graph.
      * Here, the edges of the graph are interpreted as segments which bound a certain area. The graph's vertices are assumed to be points.
      * Then, the graph is a representation of a polygon which has faces. The face cycles of this polygon are stored as sets of segments
-     * in CycleList(s).
+     * in {@link twodsack.util.collection.CycleList}s.<p>
      * Since the faces are computed beginning from the outside, the outmost face cycle is the
      * first cycle in the result list.
      *

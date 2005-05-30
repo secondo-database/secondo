@@ -12,14 +12,13 @@ import twodsack.util.number.*;
 import java.util.*;
 
 /**
- * The PointTri_Ops class holds methods which all have one point value and one triangle value as 
- * parameters. Some of the methods that are implemented here, could also be implemented in class 
+ * The PointTri_Ops class holds methods which all have one {@link Point} object and one {@link Triangle} object as parameters.
+ * Some of the methods that are implemented here, could also be implemented in class 
  * Triangle or in class Point. To some point it is debatable, where these methods should be implemented.
- * When searching for a specific operation with the pair Point/Triangle as parameters you should also
+ * However, when searching for a specific operation with the pair Point/Triangle as parameters you should also
  * look in the class Point.
  */
 public class PointTri_Ops {
-    
     /*
      * fields
      */
@@ -27,16 +26,25 @@ public class PointTri_Ops {
     static final double DERIV_DOUBLE_NEG = RationalFactory.readDerivDoubleNeg();
     
     /*
+     * constructors
+     */
+    /**
+     * The standard constructor.
+     */
+    public PointTri_Ops(){}
+
+
+    /*
      * methods
      */
 
     /**
-     * Returns true, if the point lies inside of the triangle.
+     * Returns <tt>true</tt>, if the point lies inside of the triangle.
      * A point is not considered to ly <u>inside</u> of the triangle, if it's lying on its border.
      * 
      * @param p the point
      * @param t the triangle
-     * @return true, if the p lies inside of t
+     * @return <tt>true</tt>, if the <tt>p</tt> lies inside of <tt>t</tt>
      */
     public static boolean inside (Point p, Triangle t) {
 	Point[] vertices = t.vertices();
@@ -52,12 +60,12 @@ public class PointTri_Ops {
     
     
     /**
-     * Returns true, if the point lies on the border of the triangle.
-     * If the point is equal to one of the vertices of the triangle, true is returned.
+     * Returns <tt>true</tt>, if the point lies on the border of the triangle.
+     * If the point is equal to one of the vertices of the triangle, <tt>true</tt> is returned.
      *
      * @param p the point
      * @param t the triangle
-     * @return true, if p lies on the border of t
+     * @return <tt>true</tt>, if <tt>p</tt> lies on the border of <tt>t</tt>
      */
     public static boolean liesOnBorder (Point p, Triangle t) {
 	if (t.vertices()[0].equal(p) ||
@@ -76,11 +84,11 @@ public class PointTri_Ops {
     }//end method liesOnBorder
 
     /**
-     * Returns true, if the point equals a vertex of the triangle.
+     * Returns <tt>true</tt>, if the point equals a vertex of the triangle.
      *
      * @param p the point
      * @param t the triangle
-     * @return true, if p equals a vertex of t
+     * @return <tt>true</tt>, if <tt>p</tt> equals a vertex of <tt>t</tt>
      */
     public static boolean isVertex (Point p, Triangle t) {
 	if (t.vertices()[0].equal(p) ||
@@ -114,13 +122,13 @@ public class PointTri_Ops {
 
 
     /**
-     * Returns true, if the point is covered by the triangle.
-     * In particular, this method returns true, if the point lies on the triangle's border or equals
+     * Returns <tt>true</tt>, if the point is covered by the triangle.
+     * In particular, this method returns <tt>true</tt>, if the point lies on the triangle's border or equals
      * one of its vertices.
      *
      * @param p the point
      * @param t the triangle
-     * @return true, if p is covered by t
+     * @return <tt>true</tt>, if <tt>p</tt> is covered by <tt>t</tt>
      */
     public static boolean isCovered (Point p, Triangle t) {
 	Point[] vertices = t.vertices();
@@ -138,12 +146,12 @@ public class PointTri_Ops {
     /**
      * This is a supportive method for this class that computes the determinant for a 3*2 matrix.
      * The matrix is determined by the given three points (of a triangle mostly). The result is
-     * 0 if p,q,r is not a triangle, or a positive or negative number, if it is a triangle.
+     * 0 if <tt>p</tt>,<tt>q</tt>,<tt>r</tt> is not a triangle, or a positive or negative number, if it is a triangle.
      *
      * @param p the first point
      * @param q the second point
      * @param r the third point
-     * @return 0, if p,q,r is not a triangle
+     * @return 0, if <tt>p</tt>,<tt>q</tt>,<tt>r</tt> is not a triangle
      */
     protected static double det (Point p, Point q, Point r) {
 

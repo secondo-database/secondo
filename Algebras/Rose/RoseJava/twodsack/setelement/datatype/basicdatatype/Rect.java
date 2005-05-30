@@ -13,7 +13,8 @@ import java.io.*;
 
 
 /**
- * The Rect class implements a minimal bounding box for geometrical objects. The coordinates for the box's vertices
+ * The Rect class implements a minimal bounding box for geometrical objects.
+ * The coordinates for the box's vertices
  * are implemented as public fields. However, they should not be changed directly. Generally, a bounding box is constructed once
  * and not changed during its lifetime. If the box's object changes, the box is dismissed and computed again. Though this seems
  * to be a waste of time and space, this is not problem in practical use. The reason for this is, that usually bounding boxes
@@ -23,13 +24,44 @@ public class Rect implements Serializable {
     /*
      * fields
      */
+    /**
+     * x coordinate of the upper left point.
+     */
     public Rational ulx;
+
+    /**
+     * y coordinate of the upper left point.
+     */
     public Rational uly;
+
+    /**
+     * x coordinate of the upper right point.
+     */
     public Rational urx;
+
+    /**
+     * y coordinate of the upper right point.
+     */
     public Rational ury;
+
+    /**
+     * x coordinate of the lower left point.
+     */
     public Rational llx;
+
+    /**
+     * y coordinate of the lower left point.
+     */
     public Rational lly;
+
+    /**
+     * x coordinate of the lower right point.
+     */
     public Rational lrx;
+
+    /**
+     * y coordinate of the lower right point.
+     */
     public Rational lry;
    
     /*
@@ -74,10 +106,10 @@ public class Rect implements Serializable {
 
 
     /**
-     * Returns true, if the passed point is covered by the box.
+     * Returns <tt>true</tt>, if the passed point is covered by the box.
      *
      * @param inPoint the point
-     * @return true, if the point is covered
+     * @return <tt>true</tt>, if the point is covered
      */
     public boolean covers (Point inPoint) {
 	if (inPoint.x.greaterOrEqual(ulx) && 
@@ -102,10 +134,10 @@ public class Rect implements Serializable {
 
 
     /**
-     * Return true, if both boxes have common points.
+     * Return <tt>true</tt>, if both boxes have common points.
      *
      * @param inRect the second box
-     * @return true, if both boxes have at least one common point
+     * @return <tt>true</tt>, if both boxes have at least one common point
      */
     public boolean hasCommonPoints(Rect inRect) {
 	boolean xCommon = false;

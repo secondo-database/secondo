@@ -20,8 +20,16 @@ public class Edge implements ComparableMSE {
     /*
      * fields
      */
-    public static final double EPSILON = 0.01; //used in method rat
+    private static final double EPSILON = 0.01; //used in method rat
+
+    /**
+     * The first vertex of <i>this</i>.
+     */
     public Vertex first;
+
+    /**
+     * The second vertex of <i>this</i>.
+     */
     public Vertex second;
 
     
@@ -30,7 +38,7 @@ public class Edge implements ComparableMSE {
      */
     /**
      * The 'empty' constructor.
-     * Sets first,second fields to NULL.
+     * Sets <tt>first,second</tt> fields to NULL.
      */
     public Edge() {
 	first = null;
@@ -65,11 +73,11 @@ public class Edge implements ComparableMSE {
 
     /**
      * Returns that vertex of <i>this</i> which is not equal to the passed <i>inVertex</i>.
-     * Uses Vertex.compare() method for comparison.
+     * Uses <tt>Vertex.compare()</tt> method for comparison.
      *
      * @param inVertex the vertex to compare with
      * @return the 'other' vertex
-     * @throws NoEqualVertexFoundException if inVertex is not equal to one of the vertices of <i>this</i>
+     * @throws NoEqualVertexFoundException if <tt>inVertex</tt> is not equal to one of the vertices of <i>this</i>
      */
     public Vertex theOtherOne(Vertex inVertex) throws NoEqualVertexFoundException {
 	if (this.first.equal(inVertex)) return this.second;
@@ -82,7 +90,8 @@ public class Edge implements ComparableMSE {
 
     /**
      * Compares two edges and returns one of {0, 1, -1}.
-     * This method can <u>only</u> be used for two egdes which have vertices of type Point. Then, it defines an order on those pairs of 
+     * This method can <u>only</u> be used for two egdes which have vertices of type {@link twodsack.setelement.datatype.basicdatatype.Point}.
+     * Then, it defines an order on those pairs of 
      * points which are assumed to represent segments. The order defined is an order for halfsegments which is defined in the ROSE implementation
      * paper.<p>
      *

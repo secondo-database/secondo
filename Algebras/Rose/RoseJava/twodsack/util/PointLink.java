@@ -19,7 +19,14 @@ public class PointLink {
     /*
      * fields
      */
+    /**
+     * The referenced point.
+     */
     public Point linkedPoint;
+
+    /**
+     * The number of that point.
+     */
     public int number;
 
     /*

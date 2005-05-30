@@ -9,13 +9,13 @@ package twodsack.util.number;
 
 
 /**
- * This exception is thrown when the RationalFactory class tries to use a certain constructor for Rational types which doesn't exist in that class.
+ * This exception is thrown when the {@link RationalFactory} class tries to use a certain constructor for {@link Rational} types which doesn't exist in that class.
  */
 public class RationalClassConstructorNotFoundException extends RuntimeException {
     /**
      * Constructs an 'empty' exception.
      */
-    RationalClassConstructorNotFoundException() { super(); }
+    public RationalClassConstructorNotFoundException() { super(); }
 
 
     /**
@@ -23,6 +23,6 @@ public class RationalClassConstructorNotFoundException extends RuntimeException 
      *
      * @param s the error message
      */
-    RationalClassConstructorNotFoundException(String s) { super(s); }
+    public RationalClassConstructorNotFoundException(String s) { super(s); }
 
 }//end Exception RationalClassConstructorNotFoundException

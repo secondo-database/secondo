@@ -13,6 +13,14 @@ package twodsack.io;
  * transformations for geographical data, this class provides methods for the Mercator transformation.
  */
 public class Mercator {
+    /*
+     * constructors
+     */
+    /**
+     * Don't use this constructor.
+     */
+    private Mercator(){}
+
 
     /*
      * fields
@@ -24,7 +32,7 @@ public class Mercator {
      * methods
      */
     /**
-     * Computes the projection of the x coordinate.
+     * Computes the projection of the <tt>x</tt> coordinate.
      *
      * @param lambda lambda value
      * @param phi phi value
@@ -34,7 +42,7 @@ public class Mercator {
     }//end method getPrjX
     
     /**
-     * Computes the projection of the y coordinate.
+     * Computes the projection of the <tt>y</tt> coordinate.
      *
      * @param lambda lambda value
      * @param phi phi value

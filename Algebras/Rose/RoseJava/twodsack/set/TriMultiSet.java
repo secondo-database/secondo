@@ -45,10 +45,19 @@ public class TriMultiSet extends ElemMultiSet {
 	else super.print();
     }//end method print
 
+
+    /**
+     * Converts the passed {@link ElemMultiSet} to a <tt>TriMultiSet</tt>.<p>
+     * Make sure, that the elements stored in <tt>ems</tt> are really of type {@link twodsack.setelement.datatype.basicdatatype.Triangle}.
+     * Otherwise an exception will be thrown by the {@link TriangleComparator}.
+     *
+     * @param ems the set that shall be converted
+     * @return the converted set
+     */
     static public TriMultiSet convert(ElemMultiSet ems) {
 	TriMultiSet retSet = new TriMultiSet(new TriangleComparator());
 	retSet.setTreeSet(ems.treeSet());
-	//retSet.size = ems.size();
+
 	return retSet;
     }//end method convert
     

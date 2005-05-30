@@ -12,39 +12,49 @@ import java.io.Serializable;
 
 /**
  * This class implements a pair of objects which must implement the interface {@link Element}. These objects
- * are stored in fields <i>first</i> and <i>second</i>. Provided in this class are methods <code>equal</code>
- * and <code>equalOrInvertedEqual</code>, which can be used to check for equality. Note, that both objects
- * stored in the fields must be of the same type (e.g. Segment) when using methods like <code>equal</code> or
- * <code>compX</code> etc.
+ * are stored in fields {@link #first} and {@link #second}. Provided in this class are methods {@link #equal(ElemPair)}
+ * and {@link #equalOrInvertedEqual(ElemPair)}, which can be used to check for equality. Note, that both objects
+ * stored in the fields must be of the same type (e.g. Segment) when using methods like {@link #equal(ElemPair)} or
+ * {@link #compX(ElemPair)} etc.
  */
 public class ElemPair implements Serializable {
     /*
      * fields
      */
+    /**
+     * The first element of the pair.
+     */
     public Element first;
+
+
+    /**
+     * The second element of the pair.
+     */
     public Element second;
     
+
     /*
      * constructors
-     *
+     */
+
     /**
      * Standard constructor which fills in default values.
      */
     public ElemPair(){
 	first = null;
 	second = null;
-    };
+    }
     
 
     /**
-     * Sets <i>first</i> and <i>second</i> to the passed values. No elements are copied, just pointers are set.
+     * Sets {@link #first} and {@link #second} to the passed values. No elements are copied, just pointers are set.
      *
      * @param e1 the first element
      * @param e2 the second element
      */
     public ElemPair(Element e1, Element e2) {
-	first = e1;//(Element)e1.copy();
-	second = e2;//(Element)e2.copy();
+	first = e1;
+	second = e2;
     }
 
 
@@ -70,7 +80,7 @@ public class ElemPair implements Serializable {
      *
      * @param inEl the object to compare with
      * @return <code>true</code> if equal, <code>false</code> otherwise
-     * @see #equalOrInvertedEqual
+     * @see #equalOrInvertedEqual(ElemPair)
      */
     public boolean equal(ElemPair inEl) {
 	if (this.first.getClass() != inEl.first.getClass() ||
@@ -93,7 +103,7 @@ public class ElemPair implements Serializable {
      *
      * @param inEl the object to compare with
      * @return <code>true</code> if equal, <code>false</code> otherwise
-     * @see #equal
+     * @see #equal(ElemPair)
      */
     public boolean equalOrInvertedEqual (ElemPair inEl) {
 	if (this.equal(inEl)) {
@@ -115,7 +125,7 @@ public class ElemPair implements Serializable {
 
     
     /**
-     * Prints <code>first</code> and <code>second</code> to standard output.
+     * Prints {@link #first} and {@link #second} to standard output.
      *
      */
     public void print () {
@@ -133,9 +143,9 @@ public class ElemPair implements Serializable {
      * method.
      *
      * @param inPair the object to compare with
-     * @return {-1,0,1} depending on the mutual position of both objects
-     * @see #compY
-     * @see #compare
+     * @return one of {-1,0,1} depending on the mutual position of both objects
+     * @see #compY(ElemPair)
+     * @see #compare(ElemPair)
      */
     public byte compX (ElemPair inPair) throws WrongTypeException {
 	byte res = this.first.compX(inPair.first);
@@ -147,14 +157,14 @@ public class ElemPair implements Serializable {
 
     /**
      * Returns a value {-1,0,1} depending on the mutual position of two <code>ElemPair</code> instances.
-     * Note, that the stored objectsin <code>ElemPair</code> must be of the same type, otherwise
+     * Note, that the stored objects in <code>ElemPair</code> must be of the same type, otherwise a
      * {@link WrongTypeException} is thrown. Both objects are compared by their y-coordinates in this 
      * method.
      *
      * @param inPair the object to compare with
-     * @return {-1,0,1} depending on the mutual position of both objects
-     * @see #compX
-     * @see #compare
+     * @return one of {-1,0,1} depending on the mutual position of both objects
+     * @see #compX(ElemPair)
+     * @see #compare(ElemPair)
      */
     public byte compY (ElemPair inPair) throws WrongTypeException {
 	byte res = this.first.compY(inPair.first);
@@ -171,9 +181,9 @@ public class ElemPair implements Serializable {
      * method.
      *
      * @param inPair the object to compare with
-     * @return {-1,0,1} depending on the mutual position of both objects
-     * @see #compX
-     * @see #compY
+     * @return one of {-1,0,1} depending on the mutual position of both objects
+     * @see #compX(ElemPair)
+     * @see #compY(ElemPair)
      */
     public int compare (ElemPair inPair) throws WrongTypeException {
 	int res = this.first.compare(inPair.first);

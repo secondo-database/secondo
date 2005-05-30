@@ -8,9 +8,9 @@
 package twodsack.operation.setoperation;
 
 /**
- * An EarlyExit exception is used to allow to drop out of certain operations implemented in SetOps. An 
+ * An EarlyExit exception is used to allow to drop out of certain operations implemented in {@link SetOps}. An 
  * EarlyExit flag must be set when calling one of these operations. Then, at some point during the execution of the
- * operation, it may be clear that the result will be true or false. An EarlyExit exception is then thrown immediately.
+ * operation, it may be clear that the result will be <tt>true</tt> or <tt>false</tt>. An EarlyExit exception is then thrown, immediately.
  * The calling method catches the exception and has the result much earlier than when waiting for the whole 
  * set operation to finish.
  */
@@ -18,10 +18,10 @@ public class EarlyExit extends Exception {
     /**
      * The 'empty' constructor.
      */
-    EarlyExit() { super(); }
+    public EarlyExit() { super(); }
 
-    /*
+    /**
      * A constructor which allows to pass a message.
      */
-    EarlyExit(String s) { super(s); }
+    public EarlyExit(String s) { super(s); }
 }//end Exception EarlyExit

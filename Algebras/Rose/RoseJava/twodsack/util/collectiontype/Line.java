@@ -13,23 +13,44 @@ import twodsack.util.number.*;
 
 /**
  * Instances of type Line are used for the sweep status structure some sweep line algorithms for segments. It provides fields for storing
- * lines of the form <code>f(x) = mx + b</code>. m and b are stored directly as fields. Then, vert is a flag to store wether the Line is
- * a vertical line or not. seg is a reference to the original Segment instance and, furthermore, with number, one can assign a number to
- * the line.<p>
+ * lines of the form <code>f(x) = mx + b</code>. <tt>m</tt> and <tt>b</tt> are stored directly as fields. Then, <tt>vert</tt> is a flag to store wether
+ * the Line is a vertical line or not. <tt>seg</tt> is a reference to the original {@link twodsack.setelement.datatype.basicdatatype.Segment} instance
+ * and, furthermore, with <tt>number</tt>, one can assign a number to the line.<p>
  * The line is computed in such a way that the segment from which it was constructed, lies completely on it.
  */
 public class Line {
     /*
      * fields
      */
+    /**
+     * The factor <tt>m</tt> of the line equation.
+     * <p>See also method <code>copy</code>.
+     */
     public Rational m;
+
+    /**
+     * The factor <tt>b</tt> of the line equation.
+     */
     public Rational b;
+
+    /**
+     * Indicates whether the line is vertical or not.
+     */
     public boolean vert;
+
+    /**
+     * The referenced segment.
+     */
     public Segment seg;
+
+    /**
+     * A number for the line.
+     */
     public int number;
-    Rational mTMP1;
-    Rational mTMP2;
-    Rational bTMP;
+    
+    private Rational mTMP1;
+    private Rational mTMP2;
+    private Rational bTMP;
 
     
     /*
@@ -43,7 +64,7 @@ public class Line {
 
     /**
      * Constructs a new instance from seg.
-     * Depending on seg, Line.m and Line.b are computed, if the segment is not vertical.
+     * Depending on seg, <tt>Line.m</tt> and <tt>Line.b</tt> are computed if the segment is not vertical.
      *
      * @param seg the segment
      * @param number an int number

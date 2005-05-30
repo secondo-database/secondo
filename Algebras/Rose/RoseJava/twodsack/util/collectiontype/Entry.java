@@ -9,16 +9,28 @@ package twodsack.util.collectiontype;
 
 
 /**
- * Instances of Entry are used to store elements for a ProLinkedList. It has a field to store an object and two additional fields to store
- * pointers to other Entry instances.
+ * Instances of Entry are used to store elements for a {@link twodsack.util.collection.ProLinkedList}. It has a field to store an object and two
+ * additional fields to store pointers to other Entry instances.
  */
 public class Entry {
 
     /*
      * fields
      */
+    /**
+     * The <i>object</i> is stored in <tt>value</tt>.
+     */
     public Object value;
+
+
+    /**
+     * A pointer to the previous entry.
+     */
     public Entry prev;
+
+    /**
+     * A pointer to the next entry.
+     */
     public Entry next;
 
     /*

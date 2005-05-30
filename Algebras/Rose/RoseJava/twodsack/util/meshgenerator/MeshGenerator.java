@@ -20,10 +20,19 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 /**
- * This class provides the communication with an external meshing algorithm. The meshing algorithm is 
- * written in C. This C functions are used via the JNI (Java Native Interface).
+ * This class provides the communication with an external meshing algorithm.
+ * The meshing algorithm is 
+ * written in C. This C function is used via the JNI (Java Native Interface).
  */
 public class MeshGenerator {
+    /*
+     * constructors
+     */
+    /**
+     * The standard constructor.
+     */
+    public MeshGenerator(){}
+
 
     /**
      * Loads the MeshGenerator library.
@@ -34,8 +43,6 @@ public class MeshGenerator {
     }
 
     static final int NUMBER_OF_BUCKETS = 499; //choose a prime number
-    protected static int CALLS_OF_MESH1 = 0;
-    protected static int CALLS_OF_MESH2 = 0;
 
     //declare native method
     String arguments; //p = reads a poly file, q = quality mesh refinement
@@ -124,7 +131,7 @@ public class MeshGenerator {
      * @param qualityMesh <code>true</code> if a quality mesh shall be generated, if <code>false</code>
      *                    a simple triangulation is computed
      * @return the mesh, i.e. the set of triangles as <code>TriMultiSet</code>
-     * @see #computeMeshForSingleCycleHoles
+     * @see #computeMeshForSingleCycleHoles(CycleList,boolean)
      */
     public TriMultiSet computeMeshForSingleCycle (SegMultiSet border,boolean qualityMesh) {
 	//a certain set of variables is needed for the C-method
@@ -223,8 +230,6 @@ public class MeshGenerator {
 	regionlist = null;
 
 	//call C-code
-	CALLS_OF_MESH1++;
-
 	double[] triResultList = new MeshGenerator().triangulate(arguments,
 								 pointlist,
 								 pointattributelist,
@@ -288,7 +293,7 @@ public class MeshGenerator {
      * @param qualityMesh <code>true</code> if a quality mesh shall be generated, if <code>false</code>
      *                    a simple triangulation is computed
      * @return the mesh, i.e. the set of triangles as <code>TriMultiSet</code>
-     * @see #computeMeshForSingleCycle
+     * @see #computeMeshForSingleCycle(SegMultiSet,boolean)
      */
     public TriMultiSet computeMeshForSingleCycleHoles (CycleList borderCycles, boolean qualityMesh) {
 	//System.out.println("entering computeMeshForSingleCycleHoles...");
@@ -428,8 +433,6 @@ public class MeshGenerator {
 	regionlist = null;
 
 	//call C-code
-	CALLS_OF_MESH2++;
-	
 	
 	double[] triResultList = new MeshGenerator().triangulate(arguments,
 								 pointlist,

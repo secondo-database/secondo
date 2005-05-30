@@ -38,16 +38,16 @@ import javax.swing.JPanel;
  * DisplayGFX.
  * Use DisplayGFX as follows:<p><ol>
  * <li>define a new instance of DisplayGFX
- * <li>call initWindow() for the instance
- * <li>add all elements you want to be shown to DisplayGFX using addSet(x)
- * <li>call showIt(false) to finally open the graphics window
- * <li>use kill() to destroy the window
+ * <li>call {@link #initWindow} for the instance
+ * <li>add all elements you want to be shown to DisplayGFX using {@link #addSet(ElemMultiSet)}
+ * <li>call {@link #showIt} to finally open the graphics window
+ * <li>use {@link #kill} to destroy the window
  * </ol><p>
  * There are different colors used for every set added to DisplayGFX. These colors are defined
  * in a color table inside of the class and cannot be changed. The objects that are shown, will be 
  * enlarged to a certain size depending on the screen's resolution and the actual window size.
  * The size for points put in the DisplayGFX instance is fixed. This can be annoying, if the
- * coordinates of the other data have very small values. In this case, use the zoom() function
+ * coordinates of the other data have very small values. In this case, use the <tt>zoom()</tt> function
  * implemented for every Element type before adding the objects to the DisplayGFX instance.<p>
  * You can only have <u>one</u> window opened at a time.
  */
@@ -100,9 +100,10 @@ public class DisplayGFX {
     /**
      * Sets of elements can be added by this method.
      * Supported by DisplayGFX are objects of the type ElemMultiSet. Currently, display methods
-     * are implemented for PointMultiSet, SegMultiSet and TriMultiSet. If you want to display
-     * composite types, e.g. an instance of type Polygons, you have to pass the polygons border
-     * as a SegMultiSet or its interior passed as as a TriMultiSet.
+     * are implemented for {@link twodsack.set.PointMultiSet}, {@link twodsack.set.SegMultiSet} and {@link twodsack.set.TriMultiSet}.
+     * If you want to display
+     * composite types, e.g. an instance of type {@link twodsack.setelement.datatype.compositetype.Polygons}, you have to pass the polygons border
+     * as a {@link twodsack.set.SegMultiSet} or its interior passed as a {@link twodsack.set.TriMultiSet}.
      *
      * @param ems the set of elements that shall be added to DisplayGFX
      */
@@ -115,7 +116,7 @@ public class DisplayGFX {
      * Opens the window and draws all of the objects stored in DisplayGFX.
      * Initial size of the window is 640*480.
      *
-     * @param setCross draws a cross in the origin of the coordinate system (currently not implemented, use false)
+     * @param setCross draws a cross in the origin of the coordinate system (currently not implemented, use <tt>false</tt>)
      */
     public static void showIt (boolean setCross) {
 	if (emsList.isEmpty()) {

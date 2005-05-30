@@ -12,13 +12,12 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 /**
- * The <code>CycleList</code> class is simply a class with a different name for {@link LinkedList}.
+ * The <code>CycleList</code> class is simply a class with a different name for {@link java.util.LinkedList}.
  * It is used as return type or parameter type for several methods. This list should be used to
  * hold lists of segment cycles as shown below.
- * <p> ( ((a,b)(b,c)(c,d)) ((e,f)(f,g)(g,h)) ... )
+ * <p> <tt>( ((a,b)(b,c)(c,d)) ((e,f)(f,g)(g,h)) ... )</tt>
  */
 public class CycleList extends LinkedList {
-
     /**
      * Prints the elements of <code>this</code> to standard output.
      */

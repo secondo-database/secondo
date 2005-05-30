@@ -14,11 +14,12 @@ import java.util.*;
 
 /**
  * This class implements a comparator for Intervals. It implements only one single method and is used with any kind of collections
- * that need comparators. The objects that are accepted by the compare() method are of type MultiSetEntry. The objects stored in such
- * a MultiSetEntry must be of type Interval. If not, an exception is thrown.<p>
+ * that need comparators. The objects that are accepted by the {@link #compare(Object,Object)} method are of type {@link twodsack.util.collectiontype.MultiSetEntry}.
+ * The objects stored in such
+ * a MultiSetEntry must be of type {@link twodsack.util.collectiontype.Interval}. If not, an exception is thrown.<p>
  * The comparator's constructor needs a flag when construced: The <i>meet</i> flag indicates, how intervals which have the same
- * x coordinate are sorted. If meet==true, for two such intervals which have the same x coordinate and one is a left and the other
- * is a right interval, the left interval is defined to be smaller than the other one. If meet==true, the right interval is defined
+ * x coordinate are sorted. If <tt>meet==true</tt>, for two such intervals which have the same x coordinate and one is a left and the other
+ * is a right interval, the left interval is defined to be smaller than the other one. If <tt>meet==true</tt>, the right interval is defined
  * to be smaller than the left interval.
  */
 public class IvlComparator implements Comparator {
@@ -56,17 +57,17 @@ public class IvlComparator implements Comparator {
      * <p><ol>
      * <li>An interval with a smaller x coordinate is always smaller than the other.
      * <li>"blue" is considered to be smaller than "green".
-     * <li>If meet==true intervals are always sorted that way, that the most possible 'overlaps' of intervals occur; if meet==false
+     * <li>If <tt>meet==true</tt> intervals are always sorted that way, that the most possible 'overlaps' of intervals occur; if <tt>meet==false</tt>
      * intervals are sorted such, that a minimal number of 'overlaps' occurs.
-     * </ol>
+     * </ol><p>
      * Returns 0, if both intervals are equal.<p>
-     * Returns -1, if ino1.o is smaller.<p>
+     * Returns -1, if <tt>ino1.o</tt> is smaller.<p>
      * Returns 1 otherwise
      *
      * @param ino1 the first object
      * @param ino2 the second object
      * @return one of  {0, 1, -1} as int
-     * @throws WrongTypeException if ino1.o or ino2.o is not of type Interval
+     * @throws WrongTypeException if <tt>ino1.o</tt> or <tt>ino2.o</tt> is not of type {@link twodsack.util.collectiontype.Interval}
      */
     public int compare(Object ino1, Object ino2) throws WrongTypeException {
 	//For three segments s1=(1,1,3,1),s2=(3,0,3,2),s3=(3,1,5,1), the order is

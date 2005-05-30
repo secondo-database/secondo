@@ -9,13 +9,13 @@ package twodsack.util.number;
 
 
 /**
- * An instance of this exception is thrown when a class extending the Rational class is defined but doesn't exist.
+ * An instance of this exception is thrown when a class extending the {@link Rational} class is defined but doesn't exist.
  */
 public class RationalClassNotExistentException extends RuntimeException {
     /**
      * Constructs an 'empty' exception.
      */
-    RationalClassNotExistentException() { super(); }
+    public RationalClassNotExistentException() { super(); }
 
 
     /**
@@ -23,6 +23,6 @@ public class RationalClassNotExistentException extends RuntimeException {
      *
      * @param s the error message
      */
-    RationalClassNotExistentException(String s) { super(s); }
+    public RationalClassNotExistentException(String s) { super(s); }
 
 }//end Exception RationalClassNotExistentException

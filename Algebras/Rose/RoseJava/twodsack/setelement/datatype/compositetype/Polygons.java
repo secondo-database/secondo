@@ -234,7 +234,7 @@ public class Polygons extends Element implements Serializable {
      *
      * @param border of the <code>Polygons</code> value as {@link SegMultiSet}
      * @return set of triangles as {@link TriMultiSet}
-     * @see #computeMesh
+     * @see #computeMesh(SegMultiSet,boolean)
      */
     public static TriMultiSet computeTriangles(SegMultiSet border){
 	if (border.isEmpty()) return new TriMultiSet(new TriangleComparator());
@@ -1814,7 +1814,7 @@ public class Polygons extends Element implements Serializable {
     
     /**
      * Returns the area of <code>this</code>.
-     * If the area was not computed up to the request, it is computed and stored in a class variable.
+     * If the area was not computed up to the request, it is computed and stored in a class field.
      *
      * @return the area as double
      */
@@ -1829,7 +1829,7 @@ public class Polygons extends Element implements Serializable {
 
     /**
      * Returns the perimeter of <code>this</code>.
-     * If the perimeter was not computed up to the request, it is computed and stored in a class variable.
+     * If the perimeter was not computed up to the request, it is computed and stored in a class field.
      *
      * @return the perimeter as double
      */
@@ -1861,7 +1861,7 @@ public class Polygons extends Element implements Serializable {
     /**
      * Returns the border of <code>this</code>.
      * If the border was not computed up to the call of this method, it is computed from the
-     * set of triangles, stored in a class variable and is returned afterwards.
+     * set of triangles, stored in a class field and is returned afterwards.
      * 
      * @return the border as {@link SegMultiSet}
      */
@@ -1877,7 +1877,7 @@ public class Polygons extends Element implements Serializable {
     /**
      * Returns the set of triangles representing this <code>Polygons</code> instance.
      * If the triangles set was not computed up to the call of this method, it is computed from the border,
-     * stored in a class variable and is returned afterwards.
+     * stored in a class field and is returned afterwards.
      *
      * @return triangle set as {@link TriMultiSet}
      */
@@ -1893,7 +1893,7 @@ public class Polygons extends Element implements Serializable {
 
     /**
      * Makes a real copy of <code>this</code>.
-     * All of the class variables are copied (but NOT the bounding box). The copy is returned.
+     * All of the class fields are copied (but NOT the bounding box). The copy is returned.
      * Note, that the copy has return type {@link Element}.
      *
      * @return the copy as {@link Element}
@@ -1978,7 +1978,7 @@ public class Polygons extends Element implements Serializable {
 	    }//if
 
 	    try {
-		paramList[0] = Class.forName("Element");
+		paramList[0] = Class.forName("twodsack.setelement.Element");
 		Method m = c.getMethod("dist",paramList);
 		ElemPair retPair = SetOps.min(this.trilist,inPol.trilist,m);
 		retVal = retPair.first.dist(retPair.second);
@@ -2000,8 +2000,8 @@ public class Polygons extends Element implements Serializable {
 
     /**
      * Checks for intersection of two <code>Polygons</code> instances.
-     * If bothl, <code>this</code> and passed instance have at least one pair of intersecting
-     * triangles, <code>true</code> is returned. False otherwise.
+     * If both, <code>this</code> and passed instance have at least one pair of intersecting
+     * triangles, <code>true</code> is returned. <tt>false</tt> otherwise.
      *
      * @param  inElement must be an instance of <code>Polygons</code>
      * @return <code>true</code>, if a pair of intersecting triangles exists,
@@ -2027,7 +2027,7 @@ public class Polygons extends Element implements Serializable {
 	    }//if
 
 	    try {
-		paramList[0] = Class.forName("Element");
+		paramList[0] = Class.forName("twodsack.setelement.Element");
 		Method m = c.getMethod("intersects",paramList);
 		retList = SetOps.overlapJoin(this.trilist,inPol.trilist,m,true,true,false,0);
 	    } catch (Exception e) {
@@ -2047,7 +2047,7 @@ public class Polygons extends Element implements Serializable {
 
     /**
      * Prints some of the polygons' values to the standard output.
-     * The information written is: perimeter, area and the triangle set.
+     * The information written is <tt>perimeter</tt>, <tt>area</tt> and the <tt>triangle set</tt>.
      */
     public void print() {
 	System.out.println("Polygons:");
@@ -2065,32 +2065,66 @@ public class Polygons extends Element implements Serializable {
 
     /**
      * Returns a value {0, 1, -1} as compare value for two <code>Polygons</code> instances.
-     * The leftmost and upmost triangles of the sets of triangles of both instances are 
-     * compared if they are equal, the next triangles are compared in order. If all triangles
-     * are equal, 0 is returned (and both instances are equal). If, at some point, <code>this</code>
-     * has a triangle which is <i>smaller</i> than the other triangle, then -1 is returned.
-     * Otherwise, 1 is returned.
-     * Note, that the compare method for triangles is used for this comparison.
+     * The comparison of two <tt>Polygons</tt> instances is based on the comparison of their borders. The (sorted) borders are traversed in 
+     * parallel. If, at some point, the segment of one border is smaller than the actual segment of the other border, the Polygons instance
+     * itself is smaller.<p>
+     * Returns 0, if both borders are equal.<p>
+     * Returns -1, if <i>this</i> has the 'smaller' border.<p>
+     * Returns 1 otherwise.
      *
      * @param inElement the <code>Polygons</code> instance
      * @return 0,1,-1 depending on the mutual position of the instances
      * @throws WrongTypeException if the passed argument is not of type <code>Polygons</code>
      */
     public int compare (ComparableMSE inElement) throws WrongTypeException {
-	System.out.println("CAUTION: Polygons.compare is currently not implemented.");
-	return 0;
+	if (inElement instanceof Polygons) {
+	    Polygons inPol = (Polygons)inElement;
+	    
+	    //make sure that borders for both objects exist
+	    if (!this.borderDefined) {
+		this.border = this.computeBorder();
+		this.borderDefined = true;
+	    }//if
+	    if (!inPol.borderDefined) {
+		inPol.border = inPol.computeBorder();
+		inPol.borderDefined = true;
+	    }//if
+	    
+	    Object[] thisArr = this.border.toArray();
+	    Object[] inPolArr = inPol.border.toArray();
+	    
+	    int minLength,res;
+	    if (thisArr.length < inPolArr.length)
+		minLength = thisArr.length;
+	    else
+		minLength = inPolArr.length;
+	    
+	    for (int i = 0; i < minLength; i++) {
+		res = ((Segment)thisArr[i]).compare((Segment)inPolArr[i]);
+		if (res != 0) return res;
+	    }//for i
+	    
+	    //if all segments are equal and the lengthes are equal, too
+	    if (thisArr.length == inPolArr.length)
+		return 0;
+	    if (thisArr.length < inPolArr.length)
+		return -1;
+	    else
+		return 1;
+	}
+	else
+	    throw new WrongTypeException("Expected class Plygons - found "+inElement.getClass());
     }//end method compare
 
 
     /**
      * Returns a value {0, 1, -1} as compare value for two <code>Polygons</code> instances.
-     * The triangles of both instances are sorted and compared using only their x-coordinates.
-     * If all triangles are equal, 0 is returned (and both instances are equal w.r.t. their 
-     * x-coordinates). If, at some point, <code>this</code> has a triangle which is 
-     * <i>smaller</i> than the other triangle, then -1 is returned.
-     * Otherwise, 1 is returned.
-     * Note, that this method uses the bounding box coordinates for the comparison.
-     * CAUTION: This method is untested.
+     * The comparison of two <tt>Polygons</tt> instances is based on the comparison of their borders. The (sorted) borders are 
+     * traversed in parallel. If, at some point, the segment of one border is smaller than the actual segment of the other border (
+     * w.r.t. its x coordinate), the Polygons instance itself is said to be smaller.<p>
+     * Returns 0, if both borders are equal.<p>
+     * Returns -1, if <i>this</i> has the 'smaller' border.<p>
+     * Returns 1 otherwise
      *
      * @param inElement the <code>Polygons</code> instance
      * @return 0,1,-1 depending ont he mutual position of the instances
@@ -2099,27 +2133,52 @@ public class Polygons extends Element implements Serializable {
     public byte compX (Element inElement) throws WrongTypeException {
 	if (inElement instanceof Polygons) {
 	    Polygons inPol = (Polygons)inElement;
-	    if (this.bbox.ulx.less(inPol.bbox.ulx)) {
-		return -1; }
-	    else {
-		if (this.bbox.ulx.equal(inPol.bbox.ulx)) {
-		    return 0; }
-		else { return 1; }
-	    }//else
-	}//if
-	else { throw new WrongTypeException("Expected class Polygons - found "+inElement.getClass()); }
+	    
+	    //make sure that borders for both objects exist
+	    if (!this.borderDefined) {
+		this.border = this.computeBorder();
+		this.borderDefined = true;
+	    }//if
+	    if (!inPol.borderDefined) {
+		inPol.border = inPol.computeBorder();
+		inPol.borderDefined = true;
+	    }//if
+	    
+	    Object[] thisArr = this.border.toArray();
+	    Object[] inPolArr = inPol.border.toArray();
+	    
+	    int minLength,res;
+	    if (thisArr.length < inPolArr.length)
+		minLength = thisArr.length;
+	    else
+		minLength = inPolArr.length;
+	    
+	    for (int i = 0; i < minLength; i++) {
+		res = ((Segment)thisArr[i]).compX((Segment)inPolArr[i]);
+		if (res != 0) return (byte)res;
+	    }//for i
+	    
+	    //if all segments are equal and the lengthes are equal, too
+	    if (thisArr.length == inPolArr.length)
+		return 0;
+	    if (thisArr.length < inPolArr.length)
+		return -1;
+	    else
+		return 1;
+	}
+	else
+	    throw new WrongTypeException("Expected class Plygons - found "+inElement.getClass());
     }//end method compX
 
 
     /**
      * Returns a value {0, 1, -1} as compare value for two <code>Polygons</code> instances.
-     * The triangles of both instances are sorted and compared using only their y-coordinates.
-     * If all triangles are equal, 0 is returned (and both instances are equal w.r.t. their 
-     * y-coordinates). If, at some point, <code>this</code> has a triangle which is 
-     * <i>smaller</i> than the other triangle, then -1 is returned.
-     * Otherwise, 1 is returned.
-     * Note, that this method uses the bounding box coordinates for the comparison.
-     * CAUTION: This method is untested.
+     * The comparison of two <tt>Polygons</tt> instances is based on the comparison of their borders. The (sorted) borders are 
+     * traversed in parallel. If, at some point, the segment of one border is smaller than the actual segment of the other border (
+     * w.r.t. its y coordinate), the Polygons instance itself is said to be smaller.<p>
+     * Returns 0, if both borders are equal.<p>
+     * Returns -1, if <i>this</i> has the 'smaller' border.<p>
+     * Returns 1 otherwise
      *
      * @param inElement the <code>Polygons</code> instance
      * @return 0,1,-1 depending ont he mutual position of the instances
@@ -2128,21 +2187,47 @@ public class Polygons extends Element implements Serializable {
     public byte compY (Element inElement) throws WrongTypeException {
 	if (inElement instanceof Polygons) {
 	    Polygons inPol = (Polygons)inElement;
-	    if (this.bbox.lly.less(inPol.bbox.lly)) {
-		return -1; }
-	    else { 
-		if (this.bbox.lly.less(inPol.bbox.lly)) {
-		    return 0; }
-		else { return 1; }
-	    }//else
-	}//if
-	else { throw new WrongTypeException("Expected class Polygons - found "+inElement.getClass()); }
+	    
+	    //make sure that borders for both objects exist
+	    if (!this.borderDefined) {
+		this.border = this.computeBorder();
+		this.borderDefined = true;
+	    }//if
+	    if (!inPol.borderDefined) {
+		inPol.border = inPol.computeBorder();
+		inPol.borderDefined = true;
+	    }//if
+	    
+	    Object[] thisArr = this.border.toArray();
+	    Object[] inPolArr = inPol.border.toArray();
+	    
+	    int minLength,res;
+	    if (thisArr.length < inPolArr.length)
+		minLength = thisArr.length;
+	    else
+		minLength = inPolArr.length;
+	    
+	    for (int i = 0; i < minLength; i++) {
+		res = ((Segment)thisArr[i]).compY((Segment)inPolArr[i]);
+		if (res != 0) return (byte)res;
+	    }//for i
+	    
+	    //if all segments are equal and the lengthes are equal, too
+	    if (thisArr.length == inPolArr.length)
+		return 0;
+	    if (thisArr.length < inPolArr.length)
+		return -1;
+	    else
+		return 1;
+	}
+	else
+	    throw new WrongTypeException("Expected class Polygons - found "+inElement.getClass());
     }//end method compY
 
 
     /**
      * Checks for equality of two <code>Polygons</code> instances.
-     * The triangles sets of both instances are compared. If they are equal, <code>true</code> is
+     * The borders of both instances are compared. If they are equal, <code>true</code> is
      * returned. <code>false</code> otherwise.
      *
      * @param inElement the <code>Polygons</code> instance
@@ -2153,17 +2238,17 @@ public class Polygons extends Element implements Serializable {
 	if (inElement instanceof Polygons) {
 	    Polygons inPol = (Polygons)inElement;
 
-	    //make sure that trilists for both objects exist
-	    if (!this.trilistDefined) {
-		this.trilist = computeTriangles(this.border);
-		this.trilistDefined = true;
+	    //make sure that borders for both objects exist
+	    if (!this.borderDefined) {
+		this.border = this.computeBorder();
+		this.borderDefined = true;
 	    }//if
-	    if (!inPol.trilistDefined) {
-		inPol.trilist = computeTriangles(inPol.border);
-		inPol.trilistDefined = true;
+	    if (!inPol.borderDefined) {
+		inPol.border = inPol.computeBorder();
+		inPol.borderDefined = true;
 	    }//if
 
-	    if (SetOps.equal(this.trilist,inPol.trilist)) {
+	    if (SetOps.equal(this.border,inPol.border)) {
 		return true;
 	    }//if
 	}//if
@@ -2457,10 +2542,10 @@ public class Polygons extends Element implements Serializable {
      * A <code>Polygons</code> instance may be represented as set of cycles, which are sets of segments.
      * Now, all those segments are replaced by points. Thus, a cycle is broken up as shown below:
      * <p>
-     * (a,b)(b,c)(c,a) -> (a,b,c)
+     * <tt>(a,b)(b,c)(c,a) -> (a,b,c)</tt>
      * <p>
      * Look for more information about the <code>CycleListList</code> structure in class method
-     * <code>cyclesSegments</code>.
+     * <code>cyclesSegments</code>.<p>
      * Note: This method is usually used for the conversion to the nested list format used in SECONDO.
      *
      * @return sets of points representing the cycles of the <code>Polygons</code> instance.
@@ -2510,7 +2595,7 @@ public class Polygons extends Element implements Serializable {
     
 
     /**
-     * Computes and returns a triangulation of a set of segments passes as {@link SegMultiSet}.
+     * Computes and returns a triangulation of a set of segments passed as {@link SegMultiSet}.
      * The triangulation is computed using an external meshing algorithm written in C.
      * Before the meshing algorithm itself is executed, the set of single faces of the
      * represented polygons is computed. Then, for each face, the algorithm is executed.
@@ -2521,7 +2606,7 @@ public class Polygons extends Element implements Serializable {
      * @param border of the <code>Polygons</code> value as {@link SegMultiSet}
      * @param qualityMesh if <code>true</code>, use meshing algorith, else use Delauny triangulation
      * @return set of triangles as {@link TriMultiSet}
-     * @see #computeTriangles
+     * @see #computeTriangles(SegMultiSet)
      */
     public static TriMultiSet computeMesh(SegMultiSet border, boolean qualityMesh) {
 	if (border.isEmpty()) return new TriMultiSet(new TriangleComparator());
@@ -2575,10 +2660,11 @@ public class Polygons extends Element implements Serializable {
      *
      * @param border of the <code>Polygons</code> value as {@link SegMultiSet}
      * @return set of triangles as {@link TriMultiSet}
-     * @see #computeTriangles
-     * @see #computeMesh
+     * @throws TooManyCyclesException if number of cycles > 1
+     * @see #computeTriangles(SegMultiSet)
+     * @see #computeMesh(SegMultiSet,boolean)
      */
-    public static TriMultiSet computeMeshSingleCycle (SegMultiSet border) {
+    public static TriMultiSet computeMeshSingleCycle (SegMultiSet border) throws TooManyCyclesException {
 	if (border.isEmpty()) return new TriMultiSet(new TriangleComparator());
 	try {
 	    MeshGenerator myMG = new MeshGenerator();
@@ -2615,7 +2701,7 @@ public class Polygons extends Element implements Serializable {
      *
      * @param point the point to check
      * @param sms the segment set forming the border of the polygon
-     * @return true, if the point lies inside of the polygon and <i>not</i> on the border
+     * @return <tt>true</tt>, if the point lies inside of the polygon and <i>not</i> on the border
      **/
     public static boolean inside (Point point, SegMultiSet sms) {
 	int noTrueIntersections = 0;
@@ -2672,7 +2758,7 @@ public class Polygons extends Element implements Serializable {
 
 
     /**
-     * Returns the hashcode of the first triangle of the set representing the triangle.
+     * Returns the hashcode of the first triangle of the set representing the Polygons object.
      *
      * @return the hashcode
      */
@@ -2686,11 +2772,11 @@ public class Polygons extends Element implements Serializable {
 	    
 
     /**
-     * Returns true, if both polygons values are equal.
+     * Returns <tt>true</tt>, if both polygons values are equal.
      * Same as method equal, but this one overwrites the Object.hashCode method.
      *
      * @param o the object to compare with
-     * @return true, if both are equal
+     * @return <tt>true</tt>, if both are equal
      */
     public boolean equals (Object o) {
 	return (this.equal((Element)o));

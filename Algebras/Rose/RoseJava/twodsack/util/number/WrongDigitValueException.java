@@ -9,11 +9,13 @@ package twodsack.util.number;
 
 
 /**
- * The abstract Rational class defines a round() method. As a parameter for this method, a number must be specified which defines the number
- * of digits. Since this number must lie in a certain range, a WrongDigitValueException is thrown if it does not.
+ * The abstract {@link Rational} class defines a <tt>round()</tt> method.
+ * As a parameter for this method, a number must be specified which defines the number
+ * of digits. Since this number must lie in a certain range, a <tt>WrongDigitValueException</tt> is thrown if it does not.
  */
 public class WrongDigitValueException extends RuntimeException {
-    /*
+
+    /**
      * Constructs an 'empty' exception.
      */
     public WrongDigitValueException() { super(); }

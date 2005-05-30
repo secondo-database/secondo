@@ -12,23 +12,32 @@ import twodsack.util.collectiontype.*;
 import java.util.*;
 
 /**
- * The IvlComparatorNumber class implements one single method, compare(). It is used to sort objects of the type Interval by their number field.
+ * The IvlComparatorNumber class implements one single method, {@link #compare(Object,Object)}. It is used to sort objects of the type
+ * {@link twodsack.util.collectiontype.Interval} by their <tt>number</tt> field.
  */
 public class IvlComparatorNumber implements Comparator {
-    
+    /*
+     * constructors
+     */
+    /**
+     * The standard constructor.
+     */
+    public IvlComparatorNumber(){}
+
+
     /*
      * methods
      */
     /**
      * Compares two objects of type Interval and returns one of {0, 1, -1}.
      * Returns 0, if both numbers are equal.<p>
-     * Returns -1, if ino1 has the smaller number.<p>
+     * Returns -1, if <tt>ino1</tt> has the smaller number.<p>
      * Returns 1 otherwise.
      *
      * @param ino1 the first object
      * @param ino2 the second object
      * @return one of {0, 1, -1} as int
-     * @throws WrongTypeException if ino1 or ino2 are not of type Interval
+     * @throws WrongTypeException if <tt>ino1</tt> or <tt>ino2</tt> are not of type {@link twodsack.util.collectiontype.Interval}
      */
     public int compare(Object ino1, Object ino2) throws WrongTypeException {
 	if ((ino1 instanceof Interval) &&

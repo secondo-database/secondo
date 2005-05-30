@@ -13,10 +13,20 @@ import java.util.*;
 import java.io.*;
 
 /**
- * The PairMultiSetList class is an extension of a LinkedList that is used to store PairMultiSets. Instances of this class are needed
+ * The PairMultiSetList class is an extension of a LinkedList that is used to store objects of type {@link twodsack.set.PairMultiSet}.
+ * Instances of this class are needed
  * for storing connected components which are computed in the {@link twodsack.util.graph} class. 
  */
 public class PairMultiSetList extends LinkedList implements Serializable {
+    /*
+     * constructors
+     */
+    /**
+     * The standard constructor.
+     */
+    public PairMultiSetList(){}
+
+
     /**
      * Print the data of <i>this</i> to the standard output.
      */

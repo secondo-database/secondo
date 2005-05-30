@@ -9,7 +9,7 @@ package twodsack.util.collection;
 
 /**
  * A ComparatorNotDefinedException is thrown, when a method for a collection is called that needs a comparator. One example is the 
- * <code>remove</code> method for <code>ProLinkedList</code>. All of the other operations of that class work without the comparator.
+ * <code>remove()</code> method for {@link ProLinkedList}. All of the other operations of that class work without the comparator.
  * However, if remove shall be used, the class instance has to be constructed using a comparator.
  */
 public class ComparatorNotDefinedException extends RuntimeException {
@@ -17,7 +17,7 @@ public class ComparatorNotDefinedException extends RuntimeException {
     /**
      * The 'empty' constructor.
      */
-    ComparatorNotDefinedException() { super(); }
+    public ComparatorNotDefinedException() { super(); }
 
 
     /**
@@ -25,5 +25,5 @@ public class ComparatorNotDefinedException extends RuntimeException {
      * 
      * @param s the error message
      */
-    ComparatorNotDefinedException(String s) { super(s); }
+    public ComparatorNotDefinedException(String s) { super(s); }
 }//end class ComparatorNotDefinedException

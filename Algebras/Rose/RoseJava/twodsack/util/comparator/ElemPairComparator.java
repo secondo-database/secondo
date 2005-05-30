@@ -19,6 +19,15 @@ import java.util.Comparator;
  */
 public class ElemPairComparator implements Comparator {
     /*
+     * constructors
+     */
+    /**
+     * Constructs an 'empty' instance.
+     */
+    public ElemPairComparator(){}
+
+
+    /*
      * methods
      */
 
@@ -26,13 +35,13 @@ public class ElemPairComparator implements Comparator {
      * Compares two objects which must be of type <code>MultiSetEntry</code>.
      * The objects wrapped inside of <code>ino1</code> and <code>ino2</code> must be of type
      * {@link ElemPair}. The elements inside of those <code>ElemPair</code>s themselves must
-     * be of the same {@link Element} type.
+     * be of the same type implementing the {@link Element} class.
      * <p>The return value is 0 if both pairs are equal, -1 if <code>ino1</code> is smaller than
      * <code>ino2</code> and 1 otherwise.
      * 
      * @param ino1 the first object
      * @param ino2 the second object
-     * return {0,-1,1} depending on the objects
+     * @return {0,-1,1} depending on the objects
      */
     public int compare(Object ino1, Object ino2) {
 	

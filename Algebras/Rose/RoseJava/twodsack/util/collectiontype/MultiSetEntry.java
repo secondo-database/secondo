@@ -13,14 +13,22 @@ import java.io.*;
 
 
 /**
- * MultiSetEntry instances are the elements that are stored in MultiSet(s). They provide two fields: A value to store an object, and a number to
+ * MultiSetEntry instances are the elements that are stored in {@link twodsack.util.collection.MultiSet}s.
+ * They provide two fields: A <tt>value</tt> to store an object, and a <tt>number</tt> to
  * specify how many times the object occurs.
  */
 public class MultiSetEntry implements Comparable,Serializable {
     /*
      * fields
      */
+    /**
+     * The object that is wrapped in a MultiSetEntry.
+     */
     public Object value; //object to store
+
+    /**
+     * The number of same object values.
+     */
     public int number; //number of same objects
 
     
@@ -29,7 +37,7 @@ public class MultiSetEntry implements Comparable,Serializable {
      */
     /**
      * The 'empty' constructor.
-     * Sets value = null and number = -1.
+     * Sets <tt>value = null</tt> and <tt>number = -1</tt>.
      */
     public MultiSetEntry () {
 	this.value = null;
@@ -38,11 +46,11 @@ public class MultiSetEntry implements Comparable,Serializable {
 
 
     /**
-     * Constructs a MultiSetEntry from o.
-     * Sets this.number to number.
+     * Constructs a MultiSetEntry from <tt>o</tt>.
+     * Sets <tt>this.number</tt> to <tt>number</tt>.
      * 
      * @param o the new object
-     * @param number number of o
+     * @param number number of <tt>o</tt>
      */
     public MultiSetEntry (Object o, int number) {
 	this.value = o;
@@ -53,13 +61,13 @@ public class MultiSetEntry implements Comparable,Serializable {
     /**
      * Compares the objects of to instances of MultiSetEntry and returns one of {0, 1, -1}.
      * Returns 0, if both objects are equal.<p>
-     * Returns -1, if the this.o is smaller than inMSE.o.<p>
+     * Returns -1, if the <tt>this.o</tt> is smaller than <tt>inMSE.o</tt>.<p>
      * Returns 1 otherwise.<p>
-     * The compare() method of type o is used for the comparison.
+     * The <tt>compare()</tt> method of type <tt>o</tt> is used for the comparison.
      *
-     * @param inMSE this.o is compared to inMSE.o
+     * @param inMSE <tt>this.o</tt> is compared to <tt>inMSE.o</tt>
      * @return one of  {0, 1, -1} as int
-     * @throws WrongTypeException if this.o and inMSE.o are not of the same type
+     * @throws WrongTypeException if <tt>this.o</tt> and <tt>inMSE.o</tt> are not of the same type
      */
     public int compareTo(Object inMSE) {
 	if (!(inMSE instanceof MultiSetEntry)) throw new WrongTypeException("Expected "+this.getClass()+", found "+inMSE.getClass());

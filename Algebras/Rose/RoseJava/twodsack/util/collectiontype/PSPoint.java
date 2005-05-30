@@ -12,18 +12,38 @@ import twodsack.setelement.datatype.basicdatatype.*;
 import twodsack.util.*;
 
 /**
- * PSPoint stands for plane sweep point and is used to store a point together with some information about it. Hence, it has two int fields
+ * PSPoint stands for <i>plane sweep point</i> and is used to store a point together with some information about it.
+ * Hence, it has two int fields
  * to store array indices, one field to store the point itself and to boolean flags to tell, whether the point is a segment's startpoint or
- * intersection point.
+ * an intersection point.
  */
 public class PSPoint implements ComparableMSE {
     /*
      * fields
      */
+    /**
+     * The referenced point object.
+     */
     public Point point;
+
+    /**
+     * A number commonly used as index of an array.
+     */
     public int number; //mostly used for storing an index of an arry 
+
+    /**
+     * A number commonly used as index of an array.
+     */
     public int number2; //dito
+
+    /**
+     * Indicates whether the referenced point object is a segment's startpoint
+     */
     public boolean isStartpoint; //isStartpoint of segment
+
+    /**
+     * Indicates whether the refereced point is an intersection point of two segments.
+     */
     public boolean isIntPoint; //is intersection point
 
 
@@ -33,7 +53,7 @@ public class PSPoint implements ComparableMSE {
     /**
      * Constructs a new PSPoint instance with the passed parameters.
      *
-     * @param p the poin
+     * @param p the point
      * @param num the first array index
      * @param num2 the second array index
      * @param m isStartpoint
@@ -53,7 +73,7 @@ public class PSPoint implements ComparableMSE {
      */
     /**
      * Compares two PSPoints and returns one of {0, -1, 1}.
-     * Compares the fields p.x, p.y, isStartpoint, isIntPoint, number in that order.<p>
+     * Compares the fields <tt>p.x</tt>, <tt>p.y</tt>, <tt>isStartpoint</tt>, <tt>isIntPoint</tt>, <tt>number<tt> in that order.<p>
      * Returns 0, if both objects are equal.<p>
      * Returns -1, if <i>this</i> is smaller than <i>e</i>.<p>
      * Return 1 otherwise.

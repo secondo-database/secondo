@@ -21,6 +21,15 @@ import java.lang.Math.*;
  */
 public class Mathset {
     /*
+     * constructors
+     */
+    /**
+     * Don't use this constructor.
+     */
+    private Mathset(){};
+
+
+    /*
      * fields
      */    
     static final double DERIV_DOUBLE = RationalFactory.readDerivDouble();
@@ -80,7 +89,7 @@ public class Mathset {
      *
      * @param v1 the first vector
      * @param v2 the second vector
-     * @return the sum of v1,v2 as Point
+     * @return the sum of <tt>v1</tt>, <tt>v2</tt> as Point
      */
     public static Point sum(Point v1, Point v2) {
 	Point v = new Point((v1.x.plus(v2.x)),(v1.y.plus(v2.y)));
@@ -93,7 +102,7 @@ public class Mathset {
      *
      * @param v1 the first vector
      * @param v2 the second vector
-     * @return v1-v2 as Point
+     * @return <tt>v1</tt>-<tt>v2</tt> as Point
      */
     public static Point diff(Point v1, Point v2) {
 	Point v = new Point((v1.x.minus(v2.x)),(v1.y.minus(v2.y)));
@@ -108,7 +117,7 @@ public class Mathset {
      * @param v1 the first vector
      * @param v2 the second vector
      * @param in used to store the result
-     * @return v1-v2 as Point
+     * @return <tt>v1</tt>-<tt>v2</tt> as Point
      */
     public static Point diff(Point v1, Point v2, Point in) {
 	in.x.assign(v1.x.minus(v2.x,DIFF_RAT1));
@@ -122,7 +131,7 @@ public class Mathset {
      * 
      * @param v1 the first vector
      * @param v2 the second vector
-     * @return v1*v2 as Rational
+     * @return <tt>v1</tt>*<tt>v2</tt> as Rational
      */
     public static Rational prod(Point v1, Point v2) {
 	Rational e = RationalFactory.constRational((v1.x.times(v2.x)).plus(v1.y.times(v2.y)));
@@ -137,7 +146,7 @@ public class Mathset {
      * @param v1 the first vector
      * @param v2 the second vector
      * @param in used to store the result
-     * @return v1*v2 as Rational
+     * @return <tt>v1</tt>*<tt>v2</tt> as Rational
      */
     public static Rational prod(Point v1, Point v2, Rational in) {
 	in.assign((v1.x.times(v2.x,in)).plus(v1.y.times(v2.y,in),in));
@@ -184,11 +193,11 @@ public class Mathset {
 
 
     /**
-     * Returns true, if both segments are collinear.
+     * Returns <tt>true</tt>, if both segments are collinear.
      *
      * @param s1 the first segment
      * @param s2 the second segment
-     * @return true, if s1,s2 are collinear
+     * @return <tt>true</tt>, if <tt>s1</tt>, <tt>s2</tt> are collinear
      */
     public static boolean linearly_dependent(Segment s1, Segment s2) {
 	if (!preciseDefined) {
@@ -321,7 +330,7 @@ public class Mathset {
      * Normalizes the vector.
      *
      * @param p the 'in' vector
-     * @return the normalized p
+     * @return the normalized <tt>p</tt>
      */
     public static Point normalize(Point p){
 	p.x = p.x.dividedby(length(p));
@@ -331,9 +340,9 @@ public class Mathset {
     
 
     /**
-     * Returns one of {0, -1, 1} depending on the position of p and the line through g1,g2.
-     * Returns 0, if p lies on the line through g1,g2.<p>
-     * Returns 1, if p lies on the right side of the line through g1,g2.<p>
+     * Returns one of {0, -1, 1} depending on the position of <tt>p</tt> and the line through <tt>g1</tt>, <tt>g2</tt>.
+     * Returns 0, if <tt>p</tt> lies on the line through <tt>g1</tt>, <tt>g2</tt>.<p>
+     * Returns 1, if <tt>p</tt> lies on the right side of the line through <tt>g1</tt>, <tt>g2</tt>.<p>
      * Returns -1 otherwise.
      *
      * @param g1 the first point of the line
@@ -356,7 +365,7 @@ public class Mathset {
     
 
     /**
-     * Returns the projection of point p on the line through a,b.
+     * Returns the projection of point <tt>p</tt> on the line through <tt>a</tt>, <tt>b</tt>.
      *
      * @param p the point that is projected
      * @param a the first point of the line

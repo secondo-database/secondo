@@ -15,8 +15,9 @@ import java.util.*;
 
 /**
  * An IvlList is a list to store intervals. These intervals must be of type {@link twodsack.util.collectiontype.Interval} to assure that the operations of this class work
- * correctly. The most important operations of this class are the intersection/merge/overlappingIntervals methods which are all used by
- * SetOps.overlappingPairs().<p>
+ * correctly. The most important operations of this class are the
+ * {@link #intersect(IvlList,IvlList)}/{@link #merge(IvlList,IvlList,boolean)}/{@link #overlappingIntervals(ProLinkedList[],boolean,int,IvlList,IvlList,PairMultiSet)} methods which are all used by
+ * the method <tt>overlappingPairs()</tt> in {@link twodsack.operation.setoperation.SetOps}.<p>
  * This class extends {@link ProLinkedList} and not Sun's LinkedList. A ProLinkedList behaves better than a LinkedList when using iterators.
  */
 public class IvlList extends ProLinkedList {
@@ -39,6 +40,14 @@ public class IvlList extends ProLinkedList {
     
     
     /*
+     * constructors
+     */
+    /**
+     * The standard constructor.
+     */
+    public IvlList(){}
+
+    /*
      * methods
      */
     public void print() {
@@ -54,12 +63,13 @@ public class IvlList extends ProLinkedList {
 
     /**
      * Merges two instances of IvlList.
-     * Duplicates are removed, i.e. for two lists (a,b,c) x (b,c,d) the result is (a,b,c,d). The result list is constructed as a new instance
-     * of IvlList, if <i>keep</i> = true. Otherwise, the result list is stored in list1.
+     * Duplicates are removed, i.e. for two lists <tt>(a,b,c) x (b,c,d)</tt> the result is <tt>(a,b,c,d)</tt>.
+     * The result list is constructed as a new instance
+     * of IvlList, if <i>keep</i> == <tt>true</tt>. Otherwise, the result list is stored in <tt>list1</tt>.
      *
      * @param list2 the first list
      * @param list1 the second list
-     * @param keep if false, result is stored in list1; otherwise, a new list is constructed for the result
+     * @param keep if <tt>false</tt>, result is stored in <tt>list1</tt>; otherwise, a new list is constructed for the result
      * @return the merged lists
      */
     public static IvlList merge(IvlList list2, IvlList list1, boolean keep) {
@@ -262,12 +272,12 @@ public class IvlList extends ProLinkedList {
     
 
     /**
-     * Returns list1 minus list2.
-     * For two lists (a,b,c) x (b,c,d) the result of minus is (a)
+     * Returns <tt>list1</tt> minus <tt>list2</tt>.
+     * For two lists <tt>(a,b,c) x (b,c,d)</tt> the result of minus is <tt>(a)</tt>
      *
      * @param list1 the first list
      * @param list2 the second list
-     * @return list1 minus list2
+     * @return <tt>list1</tt> minus <tt>list2</tt>
      */
     public static IvlList minus(IvlList list1, IvlList list2) {
 	if (list1.isEmpty() || list2.isEmpty()) return list1;
@@ -339,11 +349,11 @@ public class IvlList extends ProLinkedList {
 
     /**
      * Returns the intersection of two IntervalList(s).
-     * For two lists (a,b,c) x (b,c,d) the result of intersect is (b,c).
+     * For two lists <tt>(a,b,c) x (b,c,d)</tt> the result of intersect is <tt>(b,c)</tt>.
      *
      * @param list1 the first list
      * @param list2 the second list
-     * @return the intersection of list1 and list2   
+     * @return the intersection of <tt>list1</tt> and <tt>list2</tt>   
      */
     public static IvlList intersect(IvlList list1, IvlList list2) {
 	if (list1.isEmpty()) return list1;
@@ -410,15 +420,15 @@ public class IvlList extends ProLinkedList {
      * In <i>intStore</i> lists of intervals are stored which were already found as overlapping intervals. In there, the number of the 
      * interval is stored. If two intervals are found, it is looked up, whether this pair was found before. If so, it is not stored in 
      * the result set.<p>
-     * If <i>sameSet</i> = true, list1 and list2 have the same elements. So intervals with the same number or the same referenced object
-     * are not reported.
+     * If <i>sameSet</i> == <tt>true</tt>, <tt>list1</tt> and <tt>list2</tt> have the same elements. So intervals with the same number
+     * or the same referenced object are not reported.
      *
      * @param intStore an array of ProLinkedList(s); every list contains Integer values which are numbers of intervals
-     * @param sameSet true, if list1 and list2 are referencing the same set
-     * @param size the size of list1
+     * @param sameSet true, if <tt>list1</tt> and <tt>list2</tt> are referencing the same set
+     * @param size the size of <tt>list1</tt>
      * @param list1 the first list of intervals
      * @param list2 the second list of intervals
-     * @param retList new pairs are stored in this sett; it is identical to the returned sett
+     * @param retList new pairs are stored in this set; it is identical to the returned set
      */
     public static PairMultiSet overlappingIntervals(ProLinkedList[] intStore, boolean sameSet, int size, IvlList list1, IvlList list2, PairMultiSet retList) {
 	if (list1.isEmpty() || list2.isEmpty()) return retList;
@@ -664,10 +674,10 @@ public class IvlList extends ProLinkedList {
      * Returns a <i>view</i> on <i>this</i>.
      * This means, that the head and last pointers of a new list are set to the <i>begin</i> and <i>end</i> positions including 
      * begin, but <u>not</u> end. These pointers point to the elements of the original IvlList, so changes on the elements
-     * affect the original. However, the size() method works correctly for the new list.
+     * affect the original. However, the {@link #size} method works correctly for the new list.
      *
      * @param begin the index of the first element that shall be in the view
-     * @param end the index of the first element that shall not be in the view; end >= begin
+     * @param end the index of the first element that shall not be in the view; <tt>end >= begin</tt>
      */
     public IvlList subList (int begin, int end) {
 	IvlList retList = new IvlList();

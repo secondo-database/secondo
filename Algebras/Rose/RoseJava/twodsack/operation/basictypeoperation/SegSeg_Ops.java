@@ -15,23 +15,32 @@ import twodsack.util.comparator.*;
 
 /**
  * The SegSeg_Ops class holds methods with parameter types <code>Segment x Segment</code>. The methods
- * in this class are all static. They are commonly used as parameter functions for set operions of 
- * class SetOps. If you don't find a specific method with the parameter types <code>Segment x Segment</code>
- * you should search for it in class Segment.
+ * in this class are all static. They are commonly used as parameter functions for set operations of 
+ * class {@link twodsack.operation.setoperation.SetOps}. If you don't find a specific method with the parameter types <code>Segment x Segment</code>
+ * you should search for it in class {@link Segment}.
  */
 
 public class SegSeg_Ops {
     /*
+     * constructors
+     */
+    /**
+     * The standard constructor.
+     */
+    public SegSeg_Ops(){}
+
+
+    /*
      * methods
      */
     /**
-     * Returns true if both segments have at least one common point.
-     * This method also returns true when s1,s2 are equal, overlap, intersect or if
+     * Returns <tt>true</tt> if both segments have at least one common point.
+     * This method also returns <tt>true</tt> when <tt>s1,s2</tt> are equal, overlap, intersect or if
      * one of the segment's endpoints lies on the other one.
      *
      * @param s1 the first segment
      * @param s2 the second segment
-     * @return true, if s1,s2 have at least one common point
+     * @return <tt>true</tt>, if <tt>s1,s2</tt> have at least one common point
      */
     public static boolean pointsInCommon(Segment s1, Segment s2) {
 	if (s1.equal(s2)) { return true; }
@@ -51,15 +60,15 @@ public class SegSeg_Ops {
 
 
     /**
-     * Returns true, if both segments meet.
+     * Returns <tt>true</tt>, if both segments meet.
      * The method name <i>pmeet</i> instead of <i>meet</i> indicates, that both segments 
-     * <i>properly</i> meet, i.e. this method returns true, if the endpoint of one segment
+     * <i>properly</i> meet, i.e. this method returns <tt>true</tt>, if the endpoint of one segment
      * lies on the other segment, but is <u>not</u> an endpoint of that segment. Furthermore,
      * both segments may not overlap.
      *
      * @param s1 the first segment
      * @param s2 the second segment
-     * @return true, if s1,s properly meet
+     * @return <tt>true</tt>, if <tt>s1,s2</tt> properly meet
      */
     public static boolean pmeet (Segment s1, Segment s2) {
 	if (s1.equal(s2)) return false;
@@ -76,12 +85,12 @@ public class SegSeg_Ops {
 
 
     /**
-     * Returns true, if both segments form a line.
+     * Returns <tt>true</tt>, if both segments form a line.
      * Two segments form a line, if <u>one</u> of their endpoints is equal. The segments don't 
      * need to be collinear to form a line.
      * @param s1 the first segment
      * @param s2 the second segment
-     * @return true, if s2,s2 form a line
+     * @return <tt>true</tt>, if <tt>s2,s2</tt> form a line
      */
     public static boolean formALine(Segment s1, Segment s2) {
 	boolean endpointEQ = false;
@@ -111,14 +120,15 @@ public class SegSeg_Ops {
     
 
     /**
-     * Returns true, if both segments form a single segments.
+     * Returns <tt>true</tt>, if both segments form a single segments.
      * Two segments form a segment, if one of their endpoints is equal, if they don't overlap
      * and if they are are collinear.<p>
-     * Same as adjacent
+     * Same as {@link #adjacent(Segment,Segment)}.
      *
      * @param s1 the first segment
      * @param s2 the second segment
-     * @return true, if s1,s2 form a segment
+     * @return <tt>true</tt>, if <tt>s1,s2</tt> form a segment
+     * @see #adjacent(Segment,Segment)
      */
     public static boolean formASegment(Segment s1, Segment s2) {
 	if (formALine(s1,s2) && Mathset.linearly_dependent(s1,s2))
@@ -128,18 +138,17 @@ public class SegSeg_Ops {
     
 
     /**
-     * Returns true, if both segments are adjacent.
+     * Returns <tt>true</tt>, if both segments are adjacent.
      * Two segments are adjacent, if one of their endpoints is equal, if they don't overlap
      * and if they are collinear.<p>
-     * Same as formASegment()
+     * Same as {@link #formASegment(Segment,Segment)}
      *
      * @param s1 the first segment
      * @param s2 the second segment
-     * @return true, if s1,s2 are adjacent
+     * @return <tt>true</tt>, if <tt>s1,s2</tt> are adjacent
+     * @see #formASegment(Segment,Segment)
      */
     public static boolean adjacent(Segment s1, Segment s2) {
-	//returns true if s1,s2 are collinear and their intersection is a point
-	//if (formALine(s1,s2) && (!overlap(s1,s2)) &&
 	if (formALine(s1,s2) && 
 	    Mathset.linearly_dependent(s1,s2)) { return true; }
 	else { return false; }
@@ -147,13 +156,13 @@ public class SegSeg_Ops {
     
 
     /**
-     * Returns true, if both segments overlap.
+     * Returns <tt>true</tt>, if both segments overlap.
      * Two segments overlap, if they are collinear and have an overlapping part that
      * is a segment itself. 
      *
      * @param s1 the first segment
      * @param s2 the second segment
-     * @return true, if s1,s2 overlap
+     * @return <tt>true</tt>, if <tt>s1,s2</tt> overlap
      */
     public static boolean overlap(Segment s1, Segment s2){
 	if (s1.equal(s2))
@@ -177,7 +186,7 @@ public class SegSeg_Ops {
      *
      * @param s1 the first segment
      * @param s2 the second segment
-     * @return the common part of s1,s2
+     * @return the common part of <tt>s1,s2</tt>
      */
     public static Segment commonPart(Segment s1, Segment s2){
 	if (overlap(s1,s2)) {
@@ -219,12 +228,12 @@ public class SegSeg_Ops {
     /**
      * Returns the union of both segments.
      * The union of two segments can be computed only for two overlapping segments. If the segments don't
-     * overlap, a NoOverlapException is thrown.
+     * overlap, a <tt>NoOverlapException</tt> is thrown.
      *
      * @param s1 the first segment
      * @param s2 the second segment
-     * @return the union of s1,s2
-     * @throws NoOverlapException
+     * @return the union of <tt>s1,s2</tt>
+     * @throws NoOverlapException if <tt>s1,s2</tt> don't overlap
      */
     public static Segment union (Segment s1, Segment s2)
 	throws NoOverlapException {
@@ -264,16 +273,16 @@ public class SegSeg_Ops {
 
 
     /**    
-     * Computes the symmetric difference of two segments.
+     * Computes the symmetric difference of two segments.<p>
      * The symmetric difference is computed as the union of both segments minus the overlapping part of both.
-     * For two equal segments, the resulting set is empty; for two non-overlapping segments s1,s2 the resulting set
-     * is {s1, s2}.<p>
+     * For two equal segments, the resulting set is empty; for two non-overlapping segments <tt>s1,s2</tt> the resulting set
+     * is <tt>{s1, s2}</tt>.<p>
      * Note that the result of this method is a SegMultiSet, i.e. a set of segments. If, particularly, both endpoints
      * of a segment lie on the other segment (but are not equal to its endpoints), the resulting set has two elements.
      *
      * @param s1 the first segment
      * @param s2 the second segment
-     * @return the symmetric difference of s1,s2
+     * @return the symmetric difference of <tt>s1,s2</tt>
      */
     public static SegMultiSet symDiff(Segment s1, Segment s2) {
 	SegMultiSet retSeg = new SegMultiSet(new SegmentComparator());
@@ -413,12 +422,13 @@ public class SegSeg_Ops {
 
     /**
      * Returns the overlapping part of two segments.
-     * Similar to commonPart() but has a different implementation.
+     * Similar to {@link #commonPart(Segment,Segment)} but has a different implementation.
      *
      * @param s1 the first segment
      * @param s2 the second segment
-     * @return the overlapping part of s1.s2
+     * @return the overlapping part of <tt>s1.s2</tt>
      * @throws NoOverlapException
+     * @see #commonPart(Segment,Segment)
      */
     public static Segment theOverlap(Segment s1, Segment s2)
 	throws NoOverlapException{
@@ -437,7 +447,7 @@ public class SegSeg_Ops {
      * 
      * @param s1 the first segment
      * @param s2 the second segment
-     * @return the concatenation of s1,s2
+     * @return the concatenation of <tt>s1,s2</tt>
      * @throws NoAdjacentSegmentException
      */
     public static Segment concat (Segment s1, Segment s2)
@@ -456,7 +466,7 @@ public class SegSeg_Ops {
 
     
     /**
-     * Returns the set of segments emerging from splitting two segments at the 'split' points.
+     * Returns the set of segments emerging from splitting two segments at the 'split' points.<p>
      * Split points of two segments are intersection points and endpoints lying on the other segment, i.e.
      * meeting and overlapping segments are split.
      * As an example, for two segments that meet, that segment which covers one endpoint of the other segment
@@ -464,7 +474,7 @@ public class SegSeg_Ops {
      *
      * @param s1 the first segment
      * @param s2 the second segment
-     * @return the set of segments emerging from splitting s1 and s2 at their split points.
+     * @return the set of segments emerging from splitting <tt>s1</tt> and <tt>s2</tt> at their split points.
      */
     public static SegMultiSet split (Segment s1, Segment s2) {
 	SegMultiSet retList = new SegMultiSet(new SegmentComparator());
@@ -591,7 +601,7 @@ public class SegSeg_Ops {
      *
      * @param seg1 the first segment
      * @param seg2 the second segment
-     * @return the set of segments resulting from subtracting s2 from s1
+     * @return the set of segments resulting from subtracting <tt>s2</tt> from <tt>s1</tt>
      */
     public static SegMultiSet minus (final Segment seg1, final Segment seg2) {
 	SegMultiSet retList = new SegMultiSet(new SegmentComparator());
@@ -647,12 +657,12 @@ public class SegSeg_Ops {
 
 			
     /**
-     * Returns true, if an enpoint of one segment lies on the other segment.
-     * If both segments only have one endpoint in common, this method returns false.
+     * Returns <tt>true</tt>, if an enpoint of one segment lies on the other segment.
+     * If both segments only have one endpoint in common, this method returns <tt>false</tt>.
      *
      * @param s1 the first segment
      * @param s2 the second segment
-     * @return true, if an endpoint of one segment lies on the other segment
+     * @return <tt>true</tt>, if an endpoint of one segment lies on the other segment
      */
     public static boolean pointOnTheOtherOne (Segment s1, Segment s2) {
 	if (PointSeg_Ops.liesOn(s1.getStartpoint(),s2) &&

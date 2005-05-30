@@ -17,8 +17,8 @@ import java.util.*;
  * Stored in a PointMultiSet are elements of type {@link Point}. Don't try to store any other objects in an instance of this
  * class. This will result in an Exception thrown by the {@link PointComparator}. The PointMultiSet class extends {@link ElemMultiSet}.
  * Only few additional methods are implemented.<p>
- * Two of the more interesting methods are the {@link #convert}, which does the convertion ElemMultiSet -> PointMultiSet and the
- * {@link #zoom} method, which allows to zoom all of the {@link Point} objects stored inside of a PointMultiSet instance.
+ * Two of the more interesting methods are the {@link #convert(ElemMultiSet)}, which does the conversion <tt>ElemMultiSet -> PointMultiSet</tt> and the
+ * {@link #zoom(Rational)} method, which allows to zoom all of the {@link Point} objects stored inside of a PointMultiSet instance.
  */
 public class PointMultiSet extends ElemMultiSet {
     /**
@@ -59,7 +59,7 @@ public class PointMultiSet extends ElemMultiSet {
 
     /**
      * Changes the coordinates of all points of <i>this</i> by multiplying them with fact.
-     * This is implemented by calling the Point.zoom() method.
+     * This is implemented by calling the <tt>Point.zoom()</tt> method.
      *
      * @param fact the number used to multiply with
      * @return the 'zoom'ed set

@@ -9,8 +9,8 @@ package twodsack.util.number;
 
 
 /**
- * Depending on the implementation of a Rational class extension, internal fields may overflow. In such cases, an instance of this class is 
- * thrown.
+ * Depending on the implementation of a {@link Rational} class extension, internal fields may overflow.
+ * In such cases, an instance of this class is thrown.
  */
 public class RationalOverflowException extends RuntimeException {
     /**

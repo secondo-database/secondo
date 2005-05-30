@@ -8,23 +8,32 @@
 package twodsack.util.number;
 
 /**
- * The Rational class is an abstract class that defines a set of methods. All those methods must be implemented by a class that implements
+ * The Rational class is an abstract class that defines a set of methods.
+ * All those methods must be implemented by a class that implements
  * a Rational type for the 2DSACK package. How a Rational type is implemented is left to the implementor. He may implement is as a pair
- * of integers, as double or whatever. However, some of the methods are especially for Rational types (such as getDenominator) and
+ * of integers, as double or whatever. However, some of the methods are especially for Rational types (such as {@link #getDenominator()}) and
  * they must be implemented.<p>
- * Additionally to the methods, a variable named <i>deriv</i> must be defined. It determines a derivation value, which is needed for 
- * equality checks. This variable may be zero. The type of the <i>deriv</i> variable must be the type of the implementing class, e.g. 
- * if your class is called RationalFloat, then there must be a field <br>
- * <i>static final RationalFloat deriv = new RationalFloat(0);</i><p>
+ * Additionally to the methods, a variable named <tt>deriv</tt> must be defined. It determines a derivation value, which is needed for 
+ * equality checks. This variable may be zero. The type of the <tt>deriv</tt> variable must be the type of the implementing class, e.g. 
+ * if your class is called <tt>RationalFloat</tt>, then there must be a field <br>
+ * <tt>static final RationalFloat deriv = new RationalFloat(0);</tt><p>
  * Furthermore, there must be constructors for the following types:<p>
- * <ul>
+ * <ul><tt>
  * <li>int
  * <li>double
  * <li>Rational
  * <li>int x int
- * </ul>
+ * </tt></ul>
  */
 abstract public class Rational {
+    /*
+     * constructors
+     */
+    /**
+     * The standard constructor.
+     */
+    public Rational(){}
+
     /**
      * Returns the numerator of the Rational.
      *
@@ -42,40 +51,40 @@ abstract public class Rational {
 
 
     /**
-     * Sets <i>this</i> to r.
+     * Sets <i>this</i> to <tt>r</tt>.
      *
-     * @param r the new Rational value r
+     * @param r the new Rational value <tt>r</tt>
      */
     abstract public void assign(Rational r);
     
 
     /**
-     * Sets <i>this</i> to i.
+     * Sets <i>this</i> to <tt>i</tt>.
      *
-     * @param i the new Rational value i
+     * @param i the new Rational value <tt>i</tt>
      */
     abstract public void assign(int i);
 
 
     /**
-     * Sets <i>this</i> to d.
+     * Sets <i>this</i> to <tt>d</tt>.
      *
-     * @param d the new Rational value d
+     * @param d the new Rational value <tt>d</tt>
      */
     abstract public void assign(double d);
 
 
     /**
-     * Returns <i>this</i> * r.
+     * Returns <i>this</i> * <tt>r</tt>.
      *
      * @param r the second factor
-     * @return product of this and r
+     * @return product of this and <tt>r</tt>
      */
     abstract public Rational times(Rational r);
 
 
     /**
-     * Returns <i>this</i> * i.
+     * Returns <i>this</i> * <tt>i</tt>.
      *
      * @param i the second factor
      */
@@ -83,161 +92,161 @@ abstract public class Rational {
 
 
     /**
-     * Returns <i>this</i> * r.
-     * Stores the result in <i>in</i>.
+     * Returns <i>this</i> * <tt>r</tt>.
+     * Stores the result in <tt>in</tt>.
      *
      * @param r the second factor
      * @param in the result is stored in this variable
-     * @return this * r
+     * @return this * <tt>r</tt>
      */
     abstract public Rational times(Rational r, Rational in);
 
 
     /**
-     * Returns <i>this</i> : r.
+     * Returns <i>this</i> : <tt>r</tt>.
      *
      * @param r the divisor
-     * @return this : r
+     * @return <i>this</i> : <tt>r</tt>
      */
     abstract public Rational dividedby (Rational r);
 
 
     /**
-     * Returns <i>this</i> : i.
+     * Returns <i>this</i> : <tt>i</tt>.
      *
      * @param i the divisor
-     * @return this : i
+     * @return <i>this</i> : <tt>i</tt>
      */
     abstract public Rational dividedby (int i);
 
 
     /**
-     * Returns <i>this</i> : r.
-     * The result is stored in <i>in</i>.
+     * Returns <i>this</i> : <tt>r</tt>.
+     * The result is stored in <tt>in</tt>.
      *
      * @param r the divisor
      * @param in the result is stored in this variable
-     * @return this : r
+     * @return <i>this</i> : <tt>r</tt>
      */
     abstract public Rational dividedby (Rational r, Rational in);
 
 
     /**
-     * Returns <i>this</i> + r.
+     * Returns <i>this</i> + <tt>r</tt>.
      *
      * @param r the summand
-     * @return this + r
+     * @return <i>this</i> + <tt>r</tt>
      */
     abstract public Rational plus(Rational r);
     
 
     /**
-     * Returns <i>this</i> + i.
+     * Returns <i>this</i> + <tt>i</tt>.
      *
      * @param i the summand
-     * @return this + i
+     * @return <i>this</i> + <tt>i</tt>
      */
     abstract public Rational plus(int i);
 
 
     /**
-     * Returns <i>this</i> + r.
-     * The result is stored in in.
+     * Returns <i>this</i> + <tt>r</tt>.
+     * The result is stored in <tt>in</tt>.
      *
      * @param r the summand
      * @param in the result is stored in this variable
-     * @return this + r
+     * @return <i>this</i> + <tt>r</tt>
      */
     abstract public Rational plus(Rational r, Rational in);
 
 
     /**
-     * Returns <i>this</i> - r.
+     * Returns <i>this</i> - <tt>r</tt>.
      *
      * @param r the minuend
-     * @return this - r
+     * @return <i>this</i> - <tt>r</tt>
      */
     abstract public Rational minus(Rational r);
 
 
     /**
-     * Returns <i>this</i> - i.
+     * Returns <i>this</i> - <tt>i</tt>.
      *
      * @param i the minuend
-     * @return this - i
+     * @return <i>this</i> - <tt>i</tt>
      */
     abstract public Rational minus(int i);
 
 
     /**
-     * Returns <i>this</i> - r.
-     * The result is stored in the variable <i>in</i>.
+     * Returns <i>this</i> - <tt>r</tt>.
+     * The result is stored in the variable <tt>in</tt>.
      *
      * @param r the minuend
      * @param in the result is stored in this variable
-     * @return this - r
+     * @return <i>this</i> - <tt>r</tt>
      */
     abstract public Rational minus(Rational r, Rational in);
 
 
     /**
-     * Returns true, if <i>this</i> is less than r.
+     * Returns <tt>true</tt>, if <i>this</i> is less than <tt>r</tt>.
      *
      * @param r the Rational to compare with
-     * @return true, if this < r
+     * @return <tt>true</tt>, if <i>this</i> < <tt>r</tt>
      */
     abstract public boolean less(Rational r);
 
 
     /**
-     * Returns true, if <i>this</i> is less than i.
+     * Returns <tt>true</tt>, if <i>this</i> is less than <tt>i</tt>.
      *
      * @param i the int to compare with
-     * @return true, if this < i
+     * @return <tt>true</tt>, if <i>this</i> < <tt>i</tt>
      */
     abstract public boolean less(int i);
 
 
     /**
-     * Returns true, if <i>this</i> is equal to r.
+     * Returns true, if <i>this</i> is equal to <tt>r</tt>.
      *
      * @param r the Rational to compare with
-     * @return true, if this = r
+     * @return <tt>true</tt>, if <i>this</i> = <tt>r</tt>
      */
     abstract public boolean equal(Rational r);
 
 
     /**
-     * Returns true, if <i>this</i> is equal to i.
+     * Returns <tt>true</tt>, if <i>this</i> is equal to <tt>i</tt>.
      *
      * @param i the int to compare with
-     * @return true, if this = i
+     * @return <tt>true</tt>, if <i>this</i> = <tt>i</tt>
      */
     abstract public boolean equal(int i);
 
 
     /**
-     * Returns true, if <i>this</i> is greater than r.
+     * Returns <tt>true</tt>, if <i>this</i> is greater than <tt>r</tt>.
      *
      * @param r the Rational to compare with
-     * @return true, if this > r
+     * @return <tt>true</tt>, if <i>this</i> > <tt>r</tt>
      */
     abstract public boolean greater(Rational r);
 
 
     /**
-     * Returns true, if <i>this</i> is greater than i.
+     * Returns <tt>true</tt>, if <i>this</i> is greater than <tt>i</tt>.
      *
      * @param i the int to compare with
-     * @return true, if this > i
+     * @return <tt>true</tt>, if <i>this</i> > <tt>i</tt>
      */
     abstract public boolean greater(int i);
 
 
     /**
-     * Compares <i>this</i> and r and returns one of {0, 1, -1}.
-     * Returns 0, if <i>this</i> = r<p>
-     * Returns -1, if <i>this</i> < r<p>
+     * Compares <i>this</i> and r and returns one of {0, 1, -1}.<p>
+     * Returns 0, if <i>this</i> = <tt>r</tt><p>
+     * Returns -1, if <i>this</i> < <tt>r</tt><p>
      * Returns 1 otherwise
      *
      * @param r the Rational to compare with
@@ -247,19 +256,19 @@ abstract public class Rational {
 
 
     /**
-     * Returns true, if <i>this</i> <= r.
+     * Returns <tt>true</tt>, if <i>this</i> <= <tt>r</tt>.
      *
      * @param r the Rational to compare with
-     * @return true if this <= r
+     * @return <tt>true</tt> if <i>this</i> <= <tt>r</tt>
      */
     abstract public boolean lessOrEqual(Rational r);
 
 
     /**
-     * Returns true, if <i>this</i> >= r.
+     * Returns <tt>true</tt>, if <i>this</i> >= <tt>r</tt>.
      *
      * @param r the Rational to compare with
-     * @return true if this >= r
+     * @return <tt>true</tt> if <i>this</i> >= <tt>r</tt>
      */
     abstract public boolean greaterOrEqual(Rational r);
 
@@ -267,7 +276,7 @@ abstract public class Rational {
     /**
      * Returns <i>this</i> as int.
      *
-     * @return this as int
+     * @return <i>this</i> as int
      */
     abstract public int getInt();
 
@@ -275,7 +284,7 @@ abstract public class Rational {
     /**
      * Returns <i>this</i> as double.
      *
-     * @return this as double
+     * @return <i>this</i> as double
      */
     abstract public double getDouble();
 
@@ -283,13 +292,13 @@ abstract public class Rational {
     /**
      * Converts <i>this</i> to a String.
      *
-     * @return this as String
+     * @return <i>this</i> as String
      */
     abstract public String toString();
 
 
     /**
-     * Returns a copy of this.
+     * Returns a copy of <i>this</i>.
      *
      * @return the copy
      */
@@ -299,7 +308,7 @@ abstract public class Rational {
     /**
      * Returns the absolute value of <i>this</i>.
      *
-     * @return |this|
+     * @return |<i>this</i>|
      */
     abstract public Rational abs();
 
@@ -315,9 +324,9 @@ abstract public class Rational {
     /**
      * Sets an field of the class to <i>b</i>.
      * The implementor can decide, whether the class should have a 'precise' and a 'less precise' implementation. By using this method
-     * a flag can be set to use the more or less precise version. PRECISE=true means, that the derivation value is automatically set to 0.
+     * a flag can be set to use the more or less precise version. <tt>PRECISE=true</tt> means, that the derivation value is automatically set to 0.
      *
-     * @param b PRECISE is set to this value
+     * @param b <tt>PRECISE</tt> is set to this value
      */
     abstract public void setPrecision(Boolean b);
     

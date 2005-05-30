@@ -23,6 +23,14 @@ import java.util.Comparator;
  */
 public class ElemComparator implements Comparator,Serializable {
     /*
+     * constructors
+     */
+    /**
+     * Constructs an 'empty' instance.
+     */
+    public ElemComparator(){}
+
+    /*
      * methods
      */
 

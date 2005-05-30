@@ -13,21 +13,30 @@ import java.lang.reflect.*;
 
 /**
  * In this class, methods for <code>Triangle x Triangle</code> can be found. If you are searching for specific
- * operations on triangles which are not in this class, have a look at class Triangle itself.
+ * operations on triangles which are not in this class, have a look at class {@link Triangle} itself.
  */
 public class TriTri_Ops {
+    /*
+     * constructors
+     */
+    /**
+     * The standard constructor.
+     */
+    public TriTri_Ops(){}
+
+
     /*
      * methods
      */
 
     /**
-     * Returns true, if the first triangle lies fully inside of the second triangle.
+     * Returns <tt>true</tt>, if the first triangle lies fully inside of the second triangle.<p>
      * The inside criterium is checked using the inside method for points and triangles. If all of the vertices of
-     * the first triangle are considered to be inside of the second triangle, this method returns true.
+     * the first triangle are considered to be inside of the second triangle, this method returns <tt>true</tt>.
      *
      * @param t1 the first triangle
      * @param t2 the second triangle
-     * @return true, if the first triangle lies inside of the second triangle
+     * @return <tt>true</tt>, if the first triangle lies inside of the second triangle
      */
     public static boolean inside(Triangle t1, Triangle t2) {
 	Point[] t1verts = t1.vertices();
@@ -42,13 +51,13 @@ public class TriTri_Ops {
 
 
     /**
-     * Returns true, if both triangles are area disjoint but have a common boundary.
+     * Returns <tt>true</tt>, if both triangles are area disjoint but have a common boundary.<p>
      * A common boundary means, that both triangles have a pair of overlapping (boundary) segments.
-     * If both triangles only meet in one point, this method returns false.
+     * If both triangles only meet in one point, this method returns <tt>false</tt>.
      *
      * @param t1 the first triangle
      * @param t2 the second triangle
-     * @return true, if t1,t2 are adjacent
+     * @return <tt>true</tt>, if <tt>t1,t2</tt> are adjacent
      */
     public static boolean adjacent(Triangle t1, Triangle t2) {
 	boolean t1IntersectsT2 = false;
@@ -71,13 +80,13 @@ public class TriTri_Ops {
 
 
     /**
-     * Returns true, if the triangles meet in one point.
-     * To return true, it is neccessary that both triangles only have <i>one</i> common point.
-     * If they have a common boundary, this method returns false.
+     * Returns <tt>true</tt>, if the triangles meet in one point.<p>
+     * To return <tt>true</tt>, it is neccessary that both triangles only have <i>one</i> common point.
+     * If they have a common boundary, this method returns <tt>false</tt>.
      *
      * @param t1 the first triangle
      * @param t2 the second triangle
-     * @return true, if t1,t2 meet
+     * @return <tt>true</tt>, if <tt>t1,t2</tt> meet
      */
     public static boolean meets(Triangle t1, Triangle t2) {
 	boolean t1IntersectsT2 = false;

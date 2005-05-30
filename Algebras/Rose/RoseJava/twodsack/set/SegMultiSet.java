@@ -42,7 +42,7 @@ public class SegMultiSet extends ElemMultiSet {
      * methods
      */
     /**
-     * Adds an segment. Aligns it first.
+     * Adds a segment. Aligns it first.
      *
      * @param inseg the segment that shall be added
      */
@@ -53,11 +53,11 @@ public class SegMultiSet extends ElemMultiSet {
 
 
     /**
-     * Returns true, if <i>this</i> already contains the given segment.
+     * Returns <tt>true</tt>, if <i>this</i> already contains the given segment.
      * The segment is align before testing.
      *
      * @param inseg the segment that shall be tested
-     * @return true, if the segment is already in <i>this</i>
+     * @return <tt>true</tt>, if the segment is already in <i>this</i>
      */
     public boolean contains(Segment inseg) {
 	inseg.align();
@@ -90,7 +90,7 @@ public class SegMultiSet extends ElemMultiSet {
 
     /**
      * Changes the coordinates of all segments of <i>this</i> by multiplying them with fact.
-     * This is implemented by calling the Segment.zoom() method.
+     * This is implemented by calling the <tt>zoom()</tt> method of class {@link Segment}.
      *
      * @param fact the number used to multiply with
      * @return the 'zoom'ed set

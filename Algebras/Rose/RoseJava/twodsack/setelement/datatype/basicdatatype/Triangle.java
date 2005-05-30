@@ -26,22 +26,47 @@ import java.io.*;
 
 
 /**
- * The Triangle class implements one of the three basic datatypes, a triangle. As fields, it has particularly a point array
- * of size 3 to hold the triangle's vertices. Furthermore, it has a bbox field for the bounding box and a segArr where the
- * segments of the triangle are stored. Note, that both, the bbox and segArr are not computed when constructing a new
- * triangle but only on demand. Two additional (private) fields, segArrDefined and bboxDefined are set to false, if the
+ * The Triangle class implements one of the three basic datatypes, a triangle.
+ * As fields, it has particularly a point array
+ * of size 3 to hold the triangle's vertices. Furthermore, it has a <tt>bbox</tt> field for the bounding box and a <tt>segArr</tt> where the
+ * segments of the triangle are stored. Note, that both, the <tt>bbox</tt> and <tt>segArr</tt> are not computed when constructing a new
+ * triangle but only on demand. Two additional (private) fields, <tt>segArrDefined</tt> and <tt>bboxDefined</tt> are set to <tt>false</tt>, if the
  * appropriate fields were not computed, yet.<p>
  * There is a special configuration field for the use of a <i>garbage test</i>. That garbage test is a method which is invoked,
- * when USE_GARBAGE_TEST is set to true. Then, when using one of the (overloaded) methods minus(), plus(), intersection(), 
+ * when <tt>USE_GARBAGE_TEST</tt> is set to <tt>true</tt>. Then, when using one of the (overloaded) methods <tt>minus()</tt>, <tt>plus()</tt>,
+ * <tt>intersection()</tt>, 
  * the input triangles are tested whether they have a certain minimum angle or side-length. If not, they are dumped, but the
- * execution of the program is not terminated. The critical values can be configured by setting CRITICAL_SIDE_LENGTH and 
- * CRITICAL_ANGLE. Initially, CRITICAL_SIDE_LENGTH is set to 0.0005, and CRITICAL_ANGLE is set to 0.25.
+ * execution of the program is not terminated. The critical values can be configured by setting <tt>CRITICAL_SIDE_LENGTH</tt> and 
+ * <tt>CRITICAL_ANGLE</tt>. Initially, <tt>CRITICAL_SIDE_LENGTH</tt> is set to 0.0005, and <tt>CRITICAL_ANGLE</tt> is set to 0.25.<p>
+ * When calling a triangle's constructor, the triangles vertices can be tested, whether they lie on a line or not. This is done, if the field
+ * <tt>TRIANGLE_TEST</tt> is set to <tt>true</tt> (default value is <tt>false</tt>. During this test, the values for <tt>DERIV_DOUBLE</tt> and
+ * <tt>DERIV_DOUBLE_NEG</tt> implemented in the {@link Rational} class extension are used.
  */
 public class Triangle extends Element implements Serializable {
 
-    //configuration fields
+    /*
+     * configuration fields
+     */
+    /**
+     * If <tt>true</tt>, triangles are checked for validity when constructed.<p>
+     * Whether a triangle is valid or not depends on the values of {@link #CRITICAL_SIDE_LENGTH} and {@link #CRITICAL_ANGLE}.
+     */
     public static boolean USE_GARBAGE_TEST = false;
+
+    /**
+     * If <tt>true</tt>, triangles are checked for validity when constructed.<p>
+     * If all the triangles vertices lie on one line, the triangle is invalid.
+     */
+    public static boolean TRIANGLE_TEST = false;
+
+    /**
+     * Defines the value for a minimum side length of a triangle.
+     */
     public static double CRITICAL_SIDE_LENGTH = 0.005;
+
+    /**
+     * Defines the value for a minimum (inner) angle of a triangle.
+     */
     public static double CRITICAL_ANGLE = 0.25;
 
     /*
@@ -84,6 +109,10 @@ public class Triangle extends Element implements Serializable {
     private Point[] vertices = new Point[3];
     private Segment[] segArr;
     private boolean segArrDefined;
+
+    /**
+     * The bounding box of the triangle.
+     */
     public Rect bbox;
     private boolean bboxDefined;
 
@@ -105,10 +134,10 @@ public class Triangle extends Element implements Serializable {
 
 
     /**
-     * Constructs a new triangle using the given points.
-     * While the construction of the triangle, the points are sorted using the {@link #compare} method.
+     * Constructs a new triangle using the given points.<p>
+     * While the construction of the triangle, the points are sorted using the {@link #compare(ComparableMSE)} method.
      *
-     * @throws NotAValidTriangleException
+     * @throws NotAValidTriangleException if triangle is not valid
      */
     public Triangle(Point p1, Point p2, Point p3) throws NotAValidTriangleException {
 	if (isTriangle(p1,p2,p3)) {
@@ -149,7 +178,7 @@ public class Triangle extends Element implements Serializable {
     /**
      * Returns the perimeter of <i>this</i>.
      *
-     * @return the perimeter as double
+     * @return the perimeter as <tt>double</tt>
      */
     public double perimeter() {
 	double sum = 0;
@@ -166,7 +195,7 @@ public class Triangle extends Element implements Serializable {
     /**
      * Returns the area of <i>this</i>.
      *
-     * @return the area as double
+     * @return the area as <tt>double</tt>
      */
   public double area() {
       Segment[] sArr = this.segmentArray();
@@ -186,14 +215,14 @@ public class Triangle extends Element implements Serializable {
   
 
     /**
-     * Sets the triangle's vertices to the given points.
-     * segArrDefined and bboxDefined are set to false.
+     * Sets the triangle's vertices to the given points.<p>
+     * <tt>segArrDefined</tt> and <tt>bboxDefined</tt> are set to <tt>false</tt>.
      *
      * @param p1 the first point
      * @param p2 the second point
      * @param p3 the third point
      *
-     * @return the changed triangle
+     * @return the modified triangle
      */
     public Triangle set (Point p1, Point p2, Point p3){
 	this.vertices[0] = p1;
@@ -207,11 +236,11 @@ public class Triangle extends Element implements Serializable {
 
 
     /**
-     * Sets the triangles vertices to the point given by the Point array.
-     * segArrDefined and bboxDefined are set to false.
+     * Sets the triangles vertices to the point given by the Point array.<p>
+     * <tt>segArrDefined</tt> and <tt>bboxDefined</tt> are set to false.
      *
      * @param p the Point array, must have three Point entries
-     * @return the changed triangle
+     * @return the modified triangle
      */
     public Triangle set (Point[] p){
 	this.vertices[0] = p[0];
@@ -225,7 +254,7 @@ public class Triangle extends Element implements Serializable {
   
 
     /**
-     * Returns the vertices of <i>this</i> as Point array.
+     * Returns the vertices of <i>this</i> as Point array.<p>
      * The returned array is <u>no</u> copy of the triangle's point array. Changes on the vertices affect the triangle.
      *
      * @return the vertices as Point array
@@ -237,7 +266,7 @@ public class Triangle extends Element implements Serializable {
 
 
     /**
-     * Returns the vertices of <i>this</i> as PointMultiSet.
+     * Returns the vertices of <i>this</i> as PointMultiSet.<p>
      * The points in the PointMultiSet are <u>not</u> copies of the triangle's points. Changes on the vertices affect the triangle.
      *
      * @return the vertices as PointMultiSet
@@ -253,38 +282,39 @@ public class Triangle extends Element implements Serializable {
     
 
     /**
-     * Returns true, if p,q,r form a triangle.
+     * Returns <tt>true</tt>, if <tt>p,q,r</tt> form a triangle.<p>
      * Whether the three points form a triangle or not is checked by finding out, whether all three are lying on one line.
-     * If so, false is returned.
+     * If so, <tt>false</tt> is returned.
      *
      * @param p the first point
      * @param q the second point
      * @param r the third point
-     * @return true, if p,q,r form a triangle
+     * @return <tt>true</tt>, if <tt>p,q,r</tt> form a triangle
      */
     public boolean isTriangle(Point p, Point q, Point r){
-	return true;
-	/*
-	double res1 = ((r.y.getDouble() + p.y.getDouble()) / 2) * (r.x.getDouble() - p.x.getDouble());
-	double res2 = ((q.y.getDouble() + r.y.getDouble()) / 2) * (q.x.getDouble() - r.x.getDouble());
-	double res3 = ((p.y.getDouble() + q.y.getDouble()) / 2) * (p.x.getDouble() - q.x.getDouble());
-	double result = res1+res2+res3;
-	
-	if (result < DERIV_DOUBLE &&
-	    result > DERIV_DOUBLE_NEG) {
-	    result = 0;
-	}//if
-	if (result > DERIV_DOUBLE ||
-	    result < DERIV_DOUBLE_NEG) 
+	if (!TRIANGLE_TEST)
 	    return true;
- 	else 
-	    return false;
-	*/
+	else {
+	    double res1 = ((r.y.getDouble() + p.y.getDouble()) / 2) * (r.x.getDouble() - p.x.getDouble());
+	    double res2 = ((q.y.getDouble() + r.y.getDouble()) / 2) * (q.x.getDouble() - r.x.getDouble());
+	    double res3 = ((p.y.getDouble() + q.y.getDouble()) / 2) * (p.x.getDouble() - q.x.getDouble());
+	    double result = res1+res2+res3;
+	    
+	    if (result < DERIV_DOUBLE &&
+		result > DERIV_DOUBLE_NEG) {
+		result = 0;
+	    }//if
+	    if (result > DERIV_DOUBLE ||
+		result < DERIV_DOUBLE_NEG) 
+		return true;
+	    else 
+		return false;
+	}//else
     }//end method isTriangle
     
 
     /**
-     * Returns a 'deep' copy of <i>this</i>.
+     * Returns a 'deep' copy of <i>this</i>.<p>
      * All of the triangle's vertices are copied, so any changes on the copy don't affect the original.
      *
      * @return the triangle's copy
@@ -299,8 +329,8 @@ public class Triangle extends Element implements Serializable {
     
     
     /**
-     * Returns the triangle's border segments as SegMultiSet
-     * The segments are not stored with the triangle's instance. With every call of this method, new instances of Segment
+     * Returns the triangle's border segments as SegMultiSet.<p>
+     * The segments are not stored with the triangle's instance. With every call of this method, new instances of {@link Segment}
      * are constructed. Therefore, when calling this method very often, the program may get very slow.
      * 
      * @return the border segments as SegMultiSet
@@ -318,7 +348,7 @@ public class Triangle extends Element implements Serializable {
     
     
     /**
-     * Returns the triangle's border segments as Segment array.
+     * Returns the triangle's border segments as Segment array.<p>
      * The segments are not stored with the triangle's instance. With every call of this method, new instances of Segment
      * are cosntructed. Therefore, when calling this method very often, the program may get very slow.
      *
@@ -351,11 +381,11 @@ public class Triangle extends Element implements Serializable {
     
 
     /**
-     * Returns true, if both triangles are equal.
+     * Returns <tt>true</tt>, if both triangles are equal.
      * 
      * @param trin the passed triangle
-     * @return true, if both triangles are equal
-     * @throws WrongTypeException
+     * @return <tt>true</tt>, if both triangles are equal
+     * @throws WrongTypeException if <tt>trin</tt> is not of type <tt>Triangle</tt>
      */
     public boolean equal(Element trin) throws WrongTypeException {
 	if (trin instanceof Triangle) {
@@ -379,17 +409,17 @@ public class Triangle extends Element implements Serializable {
     
 
     /**
-     * Compares the y-coordinates of the triangle's vertices and returns one of {0, 1, -1}.
+     * Compares the y-coordinates of the triangle's vertices and returns one of {0, 1, -1}.<p>
      * The vertices are compared in the order they are stored. When constructing a new triangle, the vertices are sorted by their
      * x-coordinate and then by their y-coordinate. Therefore, it may be, that the y-coordiate of the second vertex is smaller
-     * than the y-coordinate of the first vertex.
+     * than the y-coordinate of the first vertex.<p>
      * Returns 0, if the y-coordinates are equal.<p>
-     * Returns 1, if e has the smaller y-coordinate.<p>
+     * Returns 1, if <tt>e</tt> has the smaller y-coordinate.<p>
      * Returns -1 otherwise.
      *
      * @param e the 'in' element
-     * @return {0, 1, -1} as byte
-     * @throws WrongTypeException if e is not of type Triangle
+     * @return {0, 1, -1} as <tt>byte</tt>
+     * @throws WrongTypeException if <tt>e</tt> is not of type <tt>Triangle</tt>
      */
     public byte compY (Element e) throws WrongTypeException {
 	if (e instanceof Triangle) {
@@ -416,16 +446,16 @@ public class Triangle extends Element implements Serializable {
 
 
     /**
-     * Compares the x-coordinates of the triangle's vertices and returns one of {0, 1, -1}.
+     * Compares the x-coordinates of the triangle's vertices and returns one of {0, 1, -1}.<p>
      * The vertices are compared in the order they are stored. When constructing a new triangle, the vertices are sorted by
      * their x-coordinate and then by their y-coordinate as second key.<p>
      * Returns 0, if the x-coordinates are equal.<p>
-     * Returns 1, if e has the smaller x-coordiante.<p>
+     * Returns 1, if <tt>e</tt> has the smaller x-coordiante.<p>
      * Returns -1 otherwise
      *
      * @param e the 'in' element
-     * @return {0, 1, -1} as byte
-     * @throws WrongTypeException if e is not of type Triangle
+     * @return {0, 1, -1} as <tt>byte</tt>
+     * @throws WrongTypeException if <tt>e</tt> is not of type <tt>Triangle</tt>
      */
     public byte compX(Element e) throws WrongTypeException {
 	if (e instanceof Triangle) {
@@ -453,16 +483,16 @@ public class Triangle extends Element implements Serializable {
     
 
     /**
-     * Compares the coordinates of the triangle's vertices and returns one of {0, 1, -1}.
-     * The vertices are compared in the order they are stored. So, first this.vertices[0] is compared with e.vertices[0].
-     * Then, this.vertices[1] is compared with e.vertices[1] etc.<p>
+     * Compares the coordinates of the triangle's vertices and returns one of {0, 1, -1}.<p>
+     * The vertices are compared in the order they are stored. So, first <tt>this.vertices[0]</tt> is compared with <tt>e.vertices[0]</tt>.
+     * Then, <tt>this.vertices[1]</tt> is compared with <tt>e.vertices[1]</tt> etc.<p>
      * Returns 0, if all vertices are equal.<p>
-     * Returns 1, if e has smaller coordinates.<p>
+     * Returns 1, if <tt>e</tt> has smaller coordinates.<p>
      * Returns -1 otherwise
      *
      * @param e the 'in' element
      * @return {0, 1, -1} as int
-     * @throws WrongTypeException if e is not of type Triangle
+     * @throws WrongTypeException if <tt>e</tt> is not of type <tt>Triangle</tt>
      */
     public int compare (ComparableMSE e) throws WrongTypeException {
 	if (e instanceof Triangle) {
@@ -543,11 +573,11 @@ public class Triangle extends Element implements Serializable {
 
 
     /**
-     * Returns true, if both triangles have common points.
+     * Returns <tt>true</tt>, if both triangles have common points.
      *
      * @param e the 'in' triangle
-     * @return true, if both have at least one point in common
-     * @throws WrongTypeException if e is not of type Triangle
+     * @return <tt>true</tt>, if both have at least one point in common
+     * @throws WrongTypeException if <tt>e</tt> is not of type <tt>Triangle</tt>
      */
     public boolean intersects(Element e) throws WrongTypeException {
 	if (e instanceof Triangle) {
@@ -578,10 +608,10 @@ public class Triangle extends Element implements Serializable {
     
     
     /**
-     * Returns true, if both triangles have a common area.
+     * Returns <tt>true<7tt>, if both triangles have a common area.
      *
      * @param tin the 'in' triangle
-     * @return true, if both triangles have a common area
+     * @return <tt>true</tt>, if both triangles have a common area
      */
     public boolean pintersects(Triangle tin){
 	Segment[] thisSegs = this.segmentArray();
@@ -606,7 +636,7 @@ public class Triangle extends Element implements Serializable {
      * Return the number of tin's points which lie inside of <i>this</i>.
      *
      * @param tin the 'in' triangle
-     * @return the number of points as int
+     * @return the number of points as <tt>int</tt>
      */
     protected int noPointsInside(Triangle tin){
 	Point[] tinPl = new Point[3];
@@ -640,7 +670,7 @@ public class Triangle extends Element implements Serializable {
      *
      * @param e the 'in' element
      * @return the distance as Rational
-     * @throws WrongTypeException if e is not of type Triangle
+     * @throws WrongTypeException if <tt>e</tt> is not of type <tt>Triangle</tt>
      */
     public Rational dist(Element e) throws WrongTypeException {
 	if (e instanceof Triangle) {
@@ -669,8 +699,8 @@ public class Triangle extends Element implements Serializable {
 
 
     /**
-     * Computes a set of segments which is generated from <i>intersecting</i> both triangles.
-     * If two segments of t1,t2 pintersect or overlap, they are split.
+     * Computes a set of segments which is generated from <i>intersecting</i> both triangles.<p>
+     * If two segments of <tt>t1,t2</tt> pintersect or overlap, they are split.
      * Duplicates are removed from the return set.
      * 
      * @param t1 the first triangle
@@ -770,14 +800,14 @@ public class Triangle extends Element implements Serializable {
 
     
     /**
-     * Computes a set of segments which is generated from <i>intersecting</i> tIN with the polygon represented by tmsIN.
-     * If two segments of tIN, tmsIN pintersect or overlap, they are split.<p>
-     * The split points are stored in splitPoints. Note, that adjacent triangles in tmsIN may have two identical segments.
+     * Computes a set of segments which is generated from <i>intersecting</i> <att>tIN</tt> with the polygon represented by <tt>tmsIN</tt>.<p>
+     * If two segments of <tt>tIN</tt>, <tt>tmsIN</tt> <tt>pintersect</tt> or <tt>overlap</tt>, they are split.<p>
+     * The split points are stored in <tt>splitPoints</tt>. Note, that adjacent triangles in <tt>tmsIN</tt> may have two identical segments.
      * These duplicates are not removed. However, if two segments overlap, the overlapping part would occur twice. 
      * Duplicate segments of this kind are removed.
      *
      * @param tIN a single triangle
-     * @param tmsIN the set of triangles which has to be intersected with tIN
+     * @param tmsIN the set of triangles which has to be intersected with <tt>tIN</tt>
      * @param splitPoints the set of vertices and intersection points
      */
     protected static SegMultiSet computeSegSet (Triangle tIN, TriMultiSet tmsIN, PointMultiSet splitPoints) {
@@ -822,8 +852,8 @@ public class Triangle extends Element implements Serializable {
 	 * during the execution of the sweep. An intersection point can only be found, when
 	 * a new segment is inserted in the SSS, i.e. a startpoint is found.
 	 * Then, the intervals in SSS are traversed. If an interval exists that overlaps
-	 * the interval, check for intersection and eventually insert the new intersection
-	 * point in SES and splitPoints.
+	 * the interval, check for intersection and insert the new intersection
+	 * point in SES and splitPoints if there are any.
 	 */ 
 	it = ses.iterator();
 	ProIterator it2 = sss.listIterator(0);
@@ -993,7 +1023,7 @@ public class Triangle extends Element implements Serializable {
     
     
     /**
-     * Multiplies the coordinates of <i>this</i> with fact.
+     * Multiplies the coordinates of <i>this</i> with <tt>fact</tt>.
      *
      * @param fact the number which is multiplied with the coordinate values
      */
@@ -1005,10 +1035,10 @@ public class Triangle extends Element implements Serializable {
 
 
     /**
-     * Returns true, if the triangles borders are shorter than CRITICAL_SIDE_LENGTH or if the area is smaller than CRITICAL_AREA.
+     * Returns <tt>true</tt>, if the triangles borders are shorter than <tt>CRITICAL_SIDE_LENGTH</tt> or if the area is smaller than <tt>CRITICAL_AREA</tt>.
      * Additionally, a message is written to standard output, where the values for the length or area are shown.
      *
-     * @return true, if the triangle's edges or area are smaller than the defined values
+     * @return <tt>true</tt>, if the triangle's edges or area are smaller than the defined values
      */
     public boolean garbageTest() {
 	Segment[] sArr = this.segmentArray();
@@ -1041,12 +1071,12 @@ public class Triangle extends Element implements Serializable {
     
     
     /**
-     * Returns the border segments of the polygon which results from subtracting the polygon in ems from <i>this</i>.
-     * The passed ems may only contain triangles. Those triangles must represent a Polygons value, i.e. the 
+     * Returns the border segments of the polygon which results from subtracting the polygon in <tt>ems</tt> from <i>this</i>.<p>
+     * The passed <tt>ems</tt> may only contain triangles. Those triangles must represent a Polygons value, i.e. the 
      * triangles may not overlap, but they don't need to be adjacent.<p>
-     * The result is a Polygons value again like described above. In the result set it is represented by its boundary and
-     * then can be passed to a Polygons constructor. <p>
-     * If ems is equal to NULL of is empty, the segment set of <i>this</i> is returned.
+     * The result is a <tt>Polygons</tt> value again like described above. In the result set it is represented by its boundary and
+     * then can be passed to a <tt>Polygons</tt> constructor. <p>
+     * If <tt>ems</tt> is equal to <tt>NULL</tt> of is empty, the segment set of <i>this</i> is returned.
      * 
      * @param ems the set of triangles
      * @return a set of segments
@@ -1199,12 +1229,12 @@ public class Triangle extends Element implements Serializable {
 
 
     /**
-     * Returns the border segments of the polygon which results from intersecting the polygon in ems and <i>this</i>.
-     * The passed ems may only contain triangles. Those triangles must represent a Polygons value, i.e. the
+     * Returns the border segments of the polygon which results from intersecting the polygon in <tt>ems</tt> and <i>this</i>.<p>
+     * The passed ems may only contain triangles. Those triangles must represent a <tt>Polygons</tt> value, i.e. the
      * triangles may not overlap, but they don't need to be adjacent.<p>
-     * The result is a Polygons value again like described above. In the result set it is represented by its boundary and
-     * then can be passed to a Polygons constructor.<p>
-     * If ems is equal to NULL or is empty, NULL is returned.
+     * The result is a <tt>Polygons</tt> value again like described above. In the result set it is represented by its boundary and
+     * then can be passed to a <tt>Polygons</tt> constructor.<p>
+     * If <tt>ems</tt> is equal to <tt>NULL</tt> or is empty, <tt>NULL</tt> is returned.
      *
      * @param ems the set of triangles
      * @return a set of segments
@@ -1330,12 +1360,12 @@ public class Triangle extends Element implements Serializable {
 
 
     /**
-     * Returns the border segments of the polygon which results from adding the polygon in ems to <i>this</i>.
-     * The passed ems may only contain triangles. Those triangles must represent a Plygons value, i.e. the
+     * Returns the border segments of the polygon which results from adding the polygon in <tt>ems</tt> to <i>this</i>.<p>
+     * The passed <tt>ems</tt> may only contain triangles. Those triangles must represent a <tt>Polygons</tt> value, i.e. the
      * triangles may not overlap, but they don't need to be adjacent.<p>
-     * The result is a Polygons value again like described above. In the result set, it is represented by its boundary.
-     * It then can be passed to a Polygons constructor.<p>
-     * If ems is equal to NULL or is empty, the set of segments of <i>this</i> is returned
+     * The result is a <tt>Polygons</tt> value again like described above. In the result set, it is represented by its boundary.
+     * It then can be passed to a <tt>Polygons</tt> constructor.<p>
+     * If <tt>ems</tt> is equal to <tt>NULL</tt> or is empty, the set of segments of <i>this</i> is returned
      *
      * @param ems the set of triangles
      * @return a set of segments
@@ -1471,12 +1501,12 @@ public class Triangle extends Element implements Serializable {
 
 
     /**
-     * Returns true, if both points are covered by the same triangle of tms.
+     * Returns <tt>true</tt>, if both points are covered by the same triangle of <tt>tms</tt>.
      * 
      * @param p1 the first point
      * @param p2 the second point
      * @param tms the set of triangles
-     * @return true, if p1,p2 are covered by the same triangle of tms
+     * @return <tt>true</tt>, if <tt>p1,p2</tt> are covered by the same triangle of <tt>tms</tt>
      */
     private boolean coveredBySameTriangle(Point p1, Point p2, TriMultiSet tms) {
 	Iterator it = tms.iterator();
@@ -1492,13 +1522,13 @@ public class Triangle extends Element implements Serializable {
 
 
     /**
-     * Returns true, if a point p lying on the segment (p1,p2) is covered by any triangle of tms.
-     * p may not be p1 or p2.
+     * Returns <tt>true</tt>, if a point <tt>p</tt> lying on the segment <tt>(p1,p2)</tt> is covered by any triangle of <tt>tms</tt>.
+     * <tt>p</tt> may not be <tt>p1</tt> or <tt>p2</tt>.
      *
      * @param p1 the first point
      * @param p2 the second point
      * @param tms the set of triangles
-     * @return if p is covered by any triangle of tms
+     * @return <tt>true</tt>, if <tt>p</tt> is covered by any triangle of <tt>tms</tt>
      */    
     private static boolean segmentIsCoveredByTriangle(Point p1, Point p2, TriMultiSet tms) {
 	//compute a point on segment p1-p2
@@ -1514,13 +1544,13 @@ public class Triangle extends Element implements Serializable {
 
 
     /**
-     * Returns true, if a point p lying on the segment (p1,p2) lies inside of any triangle of tms.
-     * p may not be p1 or p2.
+     * Returns <tt>true</tt>, if a point <tt>p</tt> lying on the segment <tt>(p1,p2)</tt> lies inside of any triangle of <tt>tms</tt>.
+     * <tt>p</tt> may not be <tt>p1</tt> or <tt>p2</tt>.
      *
      * @param p1 the first point
      * @param p2 the second point
      * @param tms the set of triangles
-     * @return true, if p lies inside of any triangle of tms
+     * @return <tt>true</tt>, if <tt>p</tt> lies inside of any triangle of <tt>tms</tt>
      */
     private static boolean segmentInsideTriangle(Point p1, Point p2, TriMultiSet tms) {
 	//compute a point on segment p1-p2
@@ -1539,7 +1569,7 @@ public class Triangle extends Element implements Serializable {
      * Returns the hashcode for <i>this</i>.
      * All of the vertices coordinates are added up.
      *
-     * @return the hashcode as int
+     * @return the hashcode as <tt>int</tt>
      */
     public int hashCode() {
 	int sum = 0;
@@ -1551,10 +1581,10 @@ public class Triangle extends Element implements Serializable {
 
 
     /**
-     * Returns true, if both objects are equal.
+     * Returns <tt>true</tt>, if both objects are equal.
      *
      * @param o the object to compare with
-     * @return true, if <i>this</i> and o are equal
+     * @return <tt>true</tt>, if <i>this</i> and <tt>o</tt> are equal
      */
     public boolean equals (Object o) {
 	return (this.equal((Element)o));
@@ -1562,10 +1592,10 @@ public class Triangle extends Element implements Serializable {
 
 
     /**
-     * Converts the triangle's data to a String.
+     * Converts the triangle's data to a <tt>String</tt>.
      * Useful for pretty-printing.
      *
-     * @return the triangle data as String
+     * @return the triangle data as <tt>String</tt>
      */
     public String toString() {
 	return "triangle ("+this.vertices[0]+", "+this.vertices[1]+", "+this.vertices[2]+")";

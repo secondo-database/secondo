@@ -16,7 +16,7 @@ public class NoAdjacentSegmentException extends RuntimeException {
     /**
      * The 'empty' constructor for the exception.
      */
-    NoAdjacentSegmentException() { super(); }
+    public NoAdjacentSegmentException() { super(); }
 
 
     /**
@@ -24,5 +24,5 @@ public class NoAdjacentSegmentException extends RuntimeException {
      *
      * @param s the error description
      */
-    NoAdjacentSegmentException(String s) { super(s); }
+    public NoAdjacentSegmentException(String s) { super(s); }
 }//end class NoAdjacentSegmentException

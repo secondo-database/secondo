@@ -13,19 +13,39 @@ import java.util.*;
 
 
 /**
- * The ProListIterator is a list iterator that implements the ProIterator interface. It is used for the ProLinkedList type as has the main advantage
- * over standard iterators that it can be reset. By calling the method {@link #reset} the iterator is set to the beginning of the list.
- * Another improvement is the {@link #setList} method which can be used to reuse an iterator for another list.
+ * The ProListIterator is a list iterator that implements the {@link ProIterator} interface.
+ * It is used for the {@link ProLinkedList} type and has the main advantage
+ * over standard iterators that it can be reset. By calling the method {@link #reset()} the iterator is set to the beginning of the list.
+ * Another improvement is the {@link #setList(ProLinkedList)} method which can be used to reuse an iterator for another list.
  * 
  */
 public class ProListIterator implements ProIterator {
     /*
      * fields
      */
+    /**
+     * The entry that was returned at last.
+     */
     protected Entry lastReturned;
+
+    /**
+     * Points to the next entry.
+     */
     protected Entry next;
+
+    /**
+     * The index of the next entry.
+     */
     protected int nextIndex;
+
+    /**
+     * A value for controlling concurrent modification.
+     */
     protected int expectedModCount;
+
+    /**
+     * The list the iterator is applied to.
+     */
     protected ProLinkedList pll;
 
 
@@ -33,11 +53,11 @@ public class ProListIterator implements ProIterator {
      * constructors
      */
     /**
-     * Constructs a new iterator for inPll starting at index <i>index</i>.
+     * Constructs a new iterator for <tt>inPll</tt> starting at index <tt>index</tt>.
      *
      * @param inPll the list for which the iterator is constructed
      * @param index the start index for the iterator
-     * @throws IndexOutOfBoundsException if the index is too small or high
+     * @throws IndexOutOfBoundsException if the index is too small or too high
      */
     public ProListIterator (ProLinkedList inPll, int index) throws IndexOutOfBoundsException {
 	this.pll = inPll;
@@ -64,7 +84,7 @@ public class ProListIterator implements ProIterator {
      * methods
      */
     /**
-     * Returns true, if the set has at least one more element.
+     * Returns <tt>true</tt>, if the set has at least one more element.
      */
     public boolean hasNext() {
 	return nextIndex != pll.size;
@@ -106,9 +126,9 @@ public class ProListIterator implements ProIterator {
     
     
     /**
-     * Returns true, if the set has at least one more element at the positin before the actual element.
+     * Returns <tt>true</tt>, if the set has at least one more element at the position before the actual element.
      *
-     * @return true, if such an element exists
+     * @return <tt>true</tt>, if such an element exists
      */
     public boolean hasPrevious() {
 	return nextIndex != 0;
@@ -179,7 +199,7 @@ public class ProListIterator implements ProIterator {
     
 
     /**
-     * Sets the value of the last reeturned object to o.
+     * Sets the value of the last returned object to <tt>o</tt>.
      *
      * @param o the object that shall be added
      * @throws IllegalStateException if there was no object returned yet
@@ -193,7 +213,7 @@ public class ProListIterator implements ProIterator {
     
 
     /**
-     * Adds the object o before the object that was returned before.
+     * Adds the object <tt>o</tt> before the object that was returned before.
      *
      * @param o the object that shall be added
      */
@@ -206,7 +226,7 @@ public class ProListIterator implements ProIterator {
     
 
     /**
-     * Adds the object o after the object that was returned before.
+     * Adds the object <tt>o</tt> after the object that was returned before.
      *
      * @param o the object that shall be added
      */
@@ -221,8 +241,8 @@ public class ProListIterator implements ProIterator {
 
     /**
      * Checks whether the iterator was used properly.
-     * The proper use is calling hasNext() first and then one of the other operations. E.g. it is
-     * not allowed to call next() two times without any other operation between.
+     * The proper use is calling {@link #hasNext()} first and then one of the other operations. E.g. it is
+     * not allowed to call {@link next} two times without any other operation between.
      *
      * @throws ConcurrentModificationException if the iterator was not used properly
      */
@@ -246,8 +266,8 @@ public class ProListIterator implements ProIterator {
     /**
      * Sets the iterator to another list.
      * By doing this, the iterator can be used for another list without constructing a new iterator
-     * instance. After having set the list of the iterator's next() method returnes the first
-     * element of inPll.
+     * instance. After having set the list of the iterator's {@link #next()} method returns the first
+     * element of <tt>inPll</tt>.
      *
      * @param inPll the new list for the iterator
      */

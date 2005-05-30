@@ -17,7 +17,7 @@ import java.util.Vector;
 
 /**
  * In <code>SegTri_Ops</code> a set of static methods can be found which all have as parameter types
- * one instance of <code>Segment</code> and one instance of <code>Triangle</code>. Therefore, the 
+ * one instance of {@link Segment} and one instance of {@link Triangle}. Therefore, the 
  * class name is <code>SegTri_Ops</code>.
  */
 public class SegTri_Ops {
@@ -28,12 +28,22 @@ public class SegTri_Ops {
     static final PointComparator POINT_COMPARATOR = new PointComparator();
     static final SegmentComparator SEGMENT_COMPARATOR = new SegmentComparator();
 
+
+    /**
+     * constructors
+     */
+    /**
+     * The standard constructor.
+     */
+    public SegTri_Ops(){}
+
+
     /*
      * methods
      */
    
     /**
-     * Returns the list of segments resulting from subtracting a triangle from a segment.
+     * Returns the list of segments resulting from subtracting a triangle from a segment.<p>
      * For a pair of overlapping objects, one segment <code>s</code> and one triangle <code>t</code>
      * this method computes that part of the segment that is covered by the triangle and 
      * removes that part from the segment. The result may be empty (i.e. the segment fully lies
@@ -208,14 +218,14 @@ public class SegTri_Ops {
 	    
 
     /**
-     * Returns true if the intersection of the segment and the triangle again is a segment.
+     * Returns <tt>true</tt> if the intersection of the segment and the triangle again is a segment.<p>
      * This method returns <code>false</code> if the segment overlaps the border of the triangle.
      *
      * @param s the segment
      * @param t the triangle
      * @return {<code>true</code>, <code>false</code>} depending on the mutual position of both objects
      * @see #intersects(Segment,Triangle)
-     * @see #isCovered
+     * @see #isCovered(Segment,Triangle)
      */
     public static boolean pintersects (Segment s, Triangle t) {	
 	//does any of the segment's endpoints lie inside of triangle?
@@ -256,7 +266,7 @@ public class SegTri_Ops {
 
 
     /**
-     * Returns that part of the segment, which is covered by the triangle.
+     * Returns that part of the segment, which is covered by the triangle.<p>
      * Prerequisite: The segment and triange <i>must</i> have a common part. Otherwise the result may be wrong.
      *
      * @param s the segment
@@ -375,7 +385,7 @@ public class SegTri_Ops {
      * @param t the triangle
      * @return {<code>true</code>, <code>false</code>} depending on the mutual position of both objects
      * @see #pintersects(Segment,Triangle)
-     * @see #isCovered
+     * @see #isCovered(Segment,Triangle)
      */
     public static boolean intersects (Segment s, Triangle t) {
 	if (PointTri_Ops.inside(s.getStartpoint(),t) ||
@@ -444,12 +454,12 @@ public class SegTri_Ops {
      * @param s the segment
      * @param t the triangle
      * @return {<code>true</code>, <code>false</code>} depending on the mutual position of both objects
-     * @see #intersects
-     * @see #pintersects
+     * @see #intersects(Segment,Triangle)
+     * @see #pintersects(Segment,Triangle)
      */
     public static boolean isCovered (Segment s, Triangle t) {
 	if (overlapsBorder(s,t)) return true;
 	return pintersects(s,t);
-    }//end methodm isCovered
+    }//end method isCovered
         
 }//end class SegTri_Ops

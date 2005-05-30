@@ -21,13 +21,16 @@ import java.io.*;
 
 
 /**
- * The Segment class implements one of the three basic datatypes, a segment. The most interesting fields of this class are 
- * startpoint and endpoint, which are implemented as Point instances. Additionally, it has a bbox (a bounding box), a length
- * and two flags which indicate, whether a value for these fields was already computed (bboxDefined, lengthDefined). This
- * means, that the bbox (length) is not computed when a new instance of this class in constructed and bboxDefined
- * (lengthDefined) is initially set to false. Only when the bbox (length) is requested, is is computed and is set then.<p>
- * A sement can be <i>aligned</i>. An aligned segments startpoint is alway smaller than its endpoint. For this comparison of
- * points, the Point.compare() method is used. A segment is <i>not</i> aligned automatically when constructed.
+ * The Segment class implements one of the three basic datatypes, a segment.
+ * The most interesting (private) fields of this class are 
+ * <tt>startpoint</tt> and <tt>endpoint</tt>, which are implemented as {@link Point} instances. Additionally, it has a
+ * <tt>bbox</tt> (a bounding box), a <tt>length</tt>
+ * and two flags which indicate, whether a value for these fields was already computed (<tt>bboxDefined</tt>, <tt>lengthDefined</tt>). This
+ * means, that the <tt>bbox</tt> (or <tt>length</tt>) is not computed when a new instance of this class in constructed and <tt>bboxDefined</tt>
+ * (or <tt>lengthDefined</tt>) is initially set to <tt>false</tt>. Only when the <tt>bbox</tt> (or <tt>length</tt>) is requested,
+ * it is computed and is set then.<p>
+ * A segment can be <i>aligned</i>. An aligned segment's startpoint is alway smaller than its endpoint. For this comparison of
+ * points, the <tt>Point.compare()</tt> method is used. A segment is <i>not</i> aligned automatically when constructed.
  */
 public class Segment extends Element implements Serializable {
     
@@ -57,7 +60,7 @@ public class Segment extends Element implements Serializable {
      */
     /**
      * The 'empty' constructor. 
-     * Sets startpoint/endpoint to NULL.
+     * Sets <tt>startpoint</tt>/<tt>endpoint</tt> to <tt>NULL</tt>.
      */
     public Segment() {
 	this.startpoint = null;
@@ -68,7 +71,7 @@ public class Segment extends Element implements Serializable {
     
 
     /**
-     * Constructs a new segment with the double coordinates for the startpoint/endpoint.
+     * Constructs a new segment with the double coordinates for the <tt>startpoint</tt>/<tt>endpoint</tt>.
      *
      * @param x1 x coordinate of the startpoint
      * @param y1 y coordinate of the startpoint
@@ -88,7 +91,7 @@ public class Segment extends Element implements Serializable {
 
 
     /**
-     * A new segment is constructed using the passed points as startpoint/endpoint.
+     * A new segment is constructed using the passed points as <tt>startpoint</tt>/<tt>endpoint</tt>.
      *
      * @param p1 the startpoint
      * @param p2 the endpoint
@@ -129,9 +132,9 @@ public class Segment extends Element implements Serializable {
      * methods
      */
     /**
-     * Returns true, if <i>this</i> is a segment.
+     * Returns <tt>true</tt>, if <i>this</i> is a segment.
      *
-     * @return true, if startpoint/endpoint are not equal
+     * @return <tt>true</tt>, if <tt>startpoint</tt>/<tt>endpoint</tt> are not equal
      */
     private boolean isSegment() {
 	if (!this.startpoint.equal(this.endpoint)) { return true; }
@@ -140,7 +143,7 @@ public class Segment extends Element implements Serializable {
     
     
     /**
-     * Computes the length of <i>this</i> and sets this.length
+     * Computes the length of <i>this</i> and sets <i>this</i>.<tt>length</tt>.
      *
      * @return the length as double
      */
@@ -152,8 +155,8 @@ public class Segment extends Element implements Serializable {
     
     
     /**
-     * Sets the startpoint of <i>this</i> to p.
-     * Also sets bboxDefined = false and lengthDefined = false.
+     * Sets the startpoint of <i>this</i> to <tt>p</tt>.<p>
+     * Also sets <tt>bboxDefined</tt> = <tt>false</tt> and <tt>lengthDefined</tt> = <tt>false</tt>.
      * 
      * @param p the new startpoint
      * @return the changed segment
@@ -167,8 +170,8 @@ public class Segment extends Element implements Serializable {
     
 
     /**
-     * Sets the endpoint of <i>this</i> to p.
-     * Also sets bboxDefines = false and lengthDefined = false.
+     * Sets the endpoint of <i>this</i> to <tt>p</tt>.
+     * Also sets <tt>bboxDefines</tt> = <tt>false</tt> and <tt>lengthDefined</tt> = <tt>false</tt>.
      *
      * @param p the new endpoint
      * @return the changed segment
@@ -231,8 +234,8 @@ public class Segment extends Element implements Serializable {
 
 
     /**    
-     * Sets the segment's startpoint/endpoint to s,e.
-     * Also sets bboxDefined = false and lengthDefined = false.
+     * Sets the segment's <tt>startpoint</tt>/<tt>endpoint</tt> to <tt>s,e</tt>.
+     * Also sets <tt>bboxDefined</tt> = <tt>false</tt> and <tt>lengthDefined</tt> = <tt>false</tt>.
      *
      * @param s the new startpoint
      * @param e the new endpoint
@@ -248,8 +251,8 @@ public class Segment extends Element implements Serializable {
 
 
     /**
-     * Sets the coordinates of the segment's startpoint/endpoint to new coordinates.   
-     * Also sets bboxDefined = false and lengthDefined = false.
+     * Sets the coordinates of the segment's <tt>startpoint</tt>/<tt>endpoint</tt> to new coordinates.   
+     * Also sets <tt>bboxDefined</tt> = <tt>false</tt> and <tt>lengthDefined</tt> = <tt>false</tt>.
      *
      * @param x1 the new x coordinate for the startpoint
      * @param y1 the new y coordinate for the startpoint
@@ -286,8 +289,8 @@ public class Segment extends Element implements Serializable {
     
 
     /**
-     * Return that point of <i>this</i> which is not equal to p.
-     * Make sure, that p is really a point of <i>this</i>. Otherwise the result may be not correct.
+     * Return that point of <i>this</i> which is not equal to <tt>p</tt>.
+     * Make sure, that <tt>p</tt> is really a point of <i>this</i>. Otherwise the result may be not correct.
      * @param p a point of <i>this</i>
      * @return the other point of <i>this</i>
      */
@@ -298,12 +301,12 @@ public class Segment extends Element implements Serializable {
     
 
     /**
-     * Returns true, if <i>this</i> and segin are equal.
-     * Equality of two segments is computed by comparing their endpoints. Note, that (a,b) == (b,a).
+     * Returns <tt>true</tt>, if <i>this</i> and <tt>segin</tt> are equal.
+     * Equality of two segments is computed by comparing their endpoints. Note, that <tt>(a,b) == (b,a)</tt>.
      *
      * @param segin the 'in' segment
-     * @return true, if both segments are equal
-     * @throws WrongTypeException if segin is not of type Segment
+     * @return <tt>true</tt>, if both segments are equal
+     * @throws WrongTypeException if <tt>segin</tt> is not of type Segment
      */
     public boolean equal(Element segin) throws WrongTypeException {
 	if (segin instanceof Segment) {
@@ -322,14 +325,14 @@ public class Segment extends Element implements Serializable {
     
 
     /**
-     * Compares the x coordinates of the smallest endpoints of both segments and returns one of {0, 1, -1}.
+     * Compares the x coordinates of the smallest endpoints of both segments and returns one of {0, 1, -1}.<p>
      * Returns 0, if the x coordinates are equal.<p>
-     * Returns 1, if sin has the smaller x coordinate.<p>
+     * Returns 1, if <tt>sin</tt> has the smaller x coordinate.<p>
      * Returns -1 otherwise.
      *
      * @param sin the object to compare with
      * @return {0, 1, -1} as byte
-     * @throws WrongTypeException if sin is not of type Segment
+     * @throws WrongTypeException if <tt>sin</tt> is not of type Segment
      */
     public byte compX(Element sin) throws WrongTypeException {
 	if (sin instanceof Segment) {
@@ -352,14 +355,14 @@ public class Segment extends Element implements Serializable {
     
 
     /**
-     * Compares the y coordinates of the smallest endpoints of both segments and returns one of {0, 1, -1}.
+     * Compares the y coordinates of the smallest endpoints of both segments and returns one of {0, 1, -1}.<p>
      * Returns 0, if the y coordinates are equal.<p>
-     * Returns 1, if sin has the smaller y coordinate.<p>
+     * Returns 1, if <tt>sin</tt> has the smaller y coordinate.<p>
      * Returns -1 otherwise.
      *
      * @param sin the object to compare with
      * @return {0, 1, -1} as byte
-     * @throws WrongTypeException if sin is not of type Segment
+     * @throws WrongTypeException if <tt>sin</tt> is not of type Segment
      */
     public byte compY(Element sin) throws WrongTypeException {
 	if (sin instanceof Segment) {
@@ -383,7 +386,7 @@ public class Segment extends Element implements Serializable {
 
 
     /**
-     * Compares the coordinates of the smallest points of both segments and returns one of {0, 1, -1};
+     * Compares the coordinates of the smallest points of both segments and returns one of {0, 1, -1}.<p>
      * Returns 0, if both segments are equal.<p>
      * Returns 1, if <i>this</i> is greater.<p>
      * Returns -1 otherwise.<p>
@@ -445,11 +448,11 @@ public class Segment extends Element implements Serializable {
     
 
     /**
-     * Returns true, if <i>this</i> and e have common points.
+     * Returns <tt>true</tt>, if <i>this</i> and <tt>e</tt> have common points.
      *
      * @param e the 'in' segment
-     * @return true, if both segments have common points
-     * @throws WrongTypeException if e is not of type Segment
+     * @return <tt>true</tt>, if both segments have common points
+     * @throws WrongTypeException if <tt>e</tt> is not of type Segment
      */
     public boolean intersects (Element e) throws WrongTypeException {
 	if (e instanceof Segment) {
@@ -467,11 +470,11 @@ public class Segment extends Element implements Serializable {
     
     
     /**
-     * Returns true, if <i>this</i> and e have an intersection point that is not an endpoint of them.
+     * Returns <tt>true</tt>, if <i>this</i> and <tt>e</tt> have an intersection point that is not an endpoint of them.
      *
      * @param e the 'in' segment
-     * @return true, if both segments properly intersect
-     * @throws WrongTypeException if e is not of type Segment
+     * @return <tt>true</tt>, if both segments properly intersect
+     * @throws WrongTypeException if <tt>e</tt> is not of type Segment
      */
     public boolean pintersects(Element e) throws WrongTypeException {
 	if (e instanceof Segment) {
@@ -486,7 +489,7 @@ public class Segment extends Element implements Serializable {
 	    if (SegSeg_Ops.formALine(this,s) || SegSeg_Ops.formASegment(this,s)) { return false; }
 	    
 	    //if this.object's endpoints lie on different sides of s and
-	    //s's endpoints lie on different sides of this.object then return true
+	    //s's endpoints lie on different sides of this.object then return <tt>true</tt>
 	    int thiss;//this.object startpoint position regarding s
 	    int thise;//this.object endpoint position regarding s
 	    int ss;//dito
@@ -513,13 +516,13 @@ public class Segment extends Element implements Serializable {
     
 
     /**
-     * Returns the intersection point of <code>this</code> and inseg.
+     * Returns the intersection point of <code>this</code> and <tt>inseg</tt>.
      * Prerequisite: Both segments <i>must</i> have an intersection point. Otherwise a SegmentsDontIntersectException
      * is thrown.
      *
      * @param inseg the second segment
      * @return the intersection point
-     * @throws SegmentsDontIntersectException
+     * @throws SegmentsDontIntersectException if segments don't intersect
      */
     public Point intersection(Segment inseg) throws SegmentsDontIntersectException {
 	Point retPoint = new Point();
@@ -665,7 +668,7 @@ public class Segment extends Element implements Serializable {
 
     /**
      * Turns the segment.
-     * A segment (a,b) is (b,a) after having turned it.
+     * A segment <tt>(a,b)</tt> is <tt>(b,a)</tt> after having turned it.
      *
      * @return the turned segment
      */
@@ -713,17 +716,17 @@ public class Segment extends Element implements Serializable {
 
 
     /**
-     * Removes from <i>this</i> all overlapping segment parts in inSet.
-     * The ElemMultiSet inSet may only contain Segment instances which overlap <i>this</i> to guarantee a correct result. 
+     * Removes from <i>this</i> all overlapping segment parts in <tt>inSet</tt>.<p>
+     * The {@link twodsack.set.ElemMultiSet} <tt>inSet</tt> may only contain Segment instances which overlap <i>this</i> to guarantee a correct result. 
      * Then, all of the segments
      * contained in that set are subtracted from <i>this</i>.<p>
-     * Example: For a point P on segment A (not an endpoint of A) B and C 
-     * are the segments (A.start,P) and (P,A.end). Then, this.minus({B,C})
+     * Example: For a point <tt>P</tt> on segment <tt>A</tt> (not an endpoint of <tt>A</tt>) <tt>B</tt> and <tt>C</tt> 
+     * are the segments (<tt>A.start</tt>,<tt>P</tt>) and (<tt>P</tt>,<tt>A.end</tt>). Then, <i>this</i>.<tt>minus({B,C})</tt>
      * would return the empty set.<p>
-     * As a side effect, the segments in inSet are aligned afterwards.
+     * As a side effect, the segments in <tt>inSet</tt> are aligned afterwards.
      *
      * @param inSet the set of overlapping segments
-     * @return <i>this</i> minus inSet as SegMultiSet
+     * @return <i>this</i> minus <tt>inSet</tt> as SegMultiSet
      */
     public SegMultiSet minus (ElemMultiSet inSet) {
 	SegMultiSet retSet = new SegMultiSet(SEGMENT_COMPARATOR);
@@ -759,11 +762,11 @@ public class Segment extends Element implements Serializable {
 
 
     /**
-     * Returns <i>this</i> plus all segments of inSet.
-     * The ElemMultiSet inSet may only contain Segment instances which overlap <i>this</i> to guarantee a correct result.
-     * Then, all the segments contained in inSet and <i>this</i> are joined to a single segment.<p>
+     * Returns <i>this</i> plus all segments of <tt>inSet</tt>.<p>
+     * The {@link ElemMultiSet} <tt>inSet</tt> may only contain Segment instances which overlap <i>this</i> to guarantee a correct result.
+     * Then, all the segments contained in <tt>inSet</tt> and <i>this</i> are joined to a single segment.<p>
      * The resulting set always contains only one single segment. However, when using a set as return type this method
-     * is more compatible to the set operations in SetOps and its implemented similar to {@link #minus}
+     * is more compatible to the set operations in {@link twodsack.operation.setoperation.SetOps} and its implemented similar to {@link #minus(ElemMultiSet)}
      *
      * @param inSet the overlapping segments
      * @return the set with the joint segment
@@ -815,10 +818,10 @@ public class Segment extends Element implements Serializable {
 
 
     /**
-     * Returns true, if both objects are equal.
+     * Returns <tt>true</tt>, if both objects are equal.
      *
      * @param o the object to compare with
-     * @return true, if <i>this</i> and o area equal
+     * @return <tt>true</tt>, if <i>this</i> and <tt>o</tt> area equal
      */
     public boolean equals(Object o) {
 	//Neccessary to be used with hashing.

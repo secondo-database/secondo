@@ -13,17 +13,20 @@ import java.lang.reflect.*;
 
 
 /**
- * The RationalFactory class is used for the construction of numeric values. Therefor, it conatins a set of methods with the name
- * constRational() with different parameter types. This class supports the use of different implementations of the Rational class. Before
- * a Rational instance can be constructed, the class that shall be used has to be defined using the {@link #setClass} method. After that,
+ * The RationalFactory class is used for the construction of numeric values.
+ * Therefore, it conatins a set of methods with the name
+ * <tt>constRational()</tt> with different parameter types. This class supports the use of different implementations of the {@link Rational} class. Before
+ * a Rational instance can be constructed, the class that shall be used has to be defined using the {@link #setClass(Class)} method. After that,
  * this class can be used.<p>
  * Two extensions of the abstract Rational class are delivered with the 2DSACK package:<p>
  * <ul>
- * <li>RationalDouble
- * <li>RationalBigInteger
+ * <li>{@link RationalDouble}
+ * <li>{@link RationalBigInteger}
  * </ul>
- * Another method of this class can be used to set the PRECISE field. It defines wether a more or less precise computation is used. How
- * those two variants differ depends on the implementor of that class. The default value for PRECISE is true.
+ * Another method of this class can be used to set the <tt>PRECISE</tt> field. It defines wether a more or less precise computation is used. How
+ * those two variants differ depends on the implementor of that class. The default value for <tt>PRECISE</tt> is <tt>true</tt>.<p>
+ * The two fields <tt>DERIV_DOUBLE</tt> and <tt>DERIV_DOUBLE_NEG</tt> are read from the Rational implementations if <tt>PRECISE == false</tt>. In that
+ * case, at some places in the 2DSACK package where absolute precision is not necesseray, those values are used as additional derivation values.
  */
 public class RationalFactory {
     /*
@@ -38,9 +41,24 @@ public class RationalFactory {
     static private Object[] PARAM_VALUE_LIST_1 = new Object[1];
     static private Object[] PARAM_VALUE_LIST_2 = new Object[2];
     
+    /**
+     * A derivation value used for non-precise computations.
+     */
     static public double DERIV_DOUBLE;
+
+    /**
+     * A derivation value used for non-precise computations. Should be set to <tt>-1*DERIV_DOUBLE</tt>.
+     */
     static public double DERIV_DOUBLE_NEG;
 
+
+    /*
+     * constructors
+     */
+    /**
+     * Don't use this constructor.
+     */
+    private RationalFactory(){}
 
     /*
      * methods
@@ -56,9 +74,9 @@ public class RationalFactory {
 
 
     /**
-     * Sets the PRECISE value.
+     * Sets the <tt>PRECISE</tt> value.
      *
-     * @param prec the value for PRECISE
+     * @param prec the value for <tt>PRECISE</tt>
      */
     static public void setPrecision(boolean prec) {
 	PRECISE = new Boolean(prec);
@@ -93,7 +111,7 @@ public class RationalFactory {
 
 
     /**
-     * Returns the Class of the currently used Rational implemention.
+     * Returns the class of the currently used Rational implemention.
      *
      * @return the currently used Rational class
      */
@@ -103,10 +121,10 @@ public class RationalFactory {
 
 
     /**
-     * Returns the actual <i>deriv</i> value.
-     * Note: If PRECISE = true, the derivation value is returned, otherwise NULL is returned.
+     * Returns the actual <tt>deriv</tt> value.<p>
+     * Note: If <tt>PRECISE == true</tt>, the derivation value is returned, otherwise <tt>NULL</tt> is returned.
      *
-     * @return the deriv value as Rational
+     * @return the <tt>deriv</tt> value as Rational
      * @throws NoDerivationValueFoundException if the derivation value was not implemented in the Rational class extension
      */
     static public Rational readDeriv() throws NoDerivationValueFoundException {
@@ -130,13 +148,14 @@ public class RationalFactory {
 
 
     /**
-     * Returns the DERIV_DOUBLE value.
-     * Additionally to the <i>deriv</i> value, DERIV_DOUBLE is defined which is a doulbe value. Computations using this value instead of
-     * <i>deriv</i> are faster. Note, that this method needs a field DERIV_DOUBLE implemented in the Rational class extension.
+     * Returns the <tt>DERIV_DOUBLE</tt> value.<p>
+     * Additionally to the <tt>deriv</tt> value, <tt>DERIV_DOUBLE</tt> is defined which is a <tt>double</tt> value. Computations using this value 
+     * instead of
+     * <tt>deriv</tt> are faster. Note, that this method needs a field <tt>DERIV_DOUBLE</tt> implemented in the Rational class extension.
      *
-     * @return DERIV_DOUBLE as double
+     * @return <tt>DERIV_DOUBLE</tt> as <tt>double</tt>
      * @throws RationalClassUndefinedException if the Rational class extension was not defined
-     * @throws NoDerivationValueFoundException if DERIV_DOUBLE was not implemented
+     * @throws NoDerivationValueFoundException if <tt>DERIV_DOUBLE</tt> was not implemented
      */
     static public double readDerivDouble() throws RationalClassUndefinedException, NoDerivationValueFoundException {
 	if (RATIONAL_CLASS == null) {
@@ -152,14 +171,15 @@ public class RationalFactory {
 
 
     /**
-     * Returns the DERIV_DOULBE_NEG value.
-     * Additionally to the <i>deriv</i> value, DERIV_DOUBLE_NEG is defined which is a negative double value. Computations using a double
-     * value instead of a Rational value are faster. Note, that this method needs a field DERIV_DOUBLE_NEG implemented in the
+     * Returns the <tt>DERIV_DOULBE_NEG</tt> value.<p>
+     * Additionally to the <tt>deriv</tt> value, <tt>DERIV_DOUBLE_NEG</tt> is defined which is a negative <tt>double</tt> value.
+     * Computations using a <tt>double</tt>
+     * value instead of a Rational value are faster. Note, that this method needs a field <tt>DERIV_DOUBLE_NEG</tt> implemented in the
      * Rational class extension.
      *
-     * @return DERIV_DOUBLE_NEG as double
+     * @return <tt>DERIV_DOUBLE_NEG</tt> as <tt>double</tt>
      * @throws RationalClassUndefinedException if the Rational class extension was not defined
-     * @throws NoDerivationValuefoundException if DERIV_DOUBLE_NEG was not implemented
+     * @throws NoDerivationValuefoundException if <tt>DERIV_DOUBLE_NEG</tt> was not implemented
      */
     static public double readDerivDoubleNeg() {
 	if (RATIONAL_CLASS == null) {
@@ -175,9 +195,9 @@ public class RationalFactory {
 
 
     /**
-     * Returns the PRECISE value.
+     * Returns the <tt>PRECISE</tt> value.
      *
-     * @return the PRECISE value
+     * @return the <tt>PRECISE</tt> value
      */
     static public boolean readPrecise() {
 	if (PRECISE == null) {
@@ -189,12 +209,12 @@ public class RationalFactory {
 
 
     /**
-     * Constructs a new Rational instance with an int.
+     * Constructs a new Rational instance with an <tt>int</tt>.
      *
-     * @param i the int value
+     * @param i the <tt>int</tt> value
      * @return the new Rational instance
      * @throws RationalClassUndefinedException if the Rational class extension was not defined
-     * @throws RationalClassConstructorNotFoundException if the constructor for int values was not implemented
+     * @throws RationalClassConstructorNotFoundException if the constructor for <tt>int</tt> values was not implemented
      */
     static public Rational constRational(int i) throws RationalClassUndefinedException, RationalClassConstructorNotFoundException {
 	if (RATIONAL_CLASS == null) {
@@ -230,12 +250,12 @@ public class RationalFactory {
 
 
     /**
-     * Constructs a new Rational instance with a double.
+     * Constructs a new Rational instance with a <tt>double</tt>.
      *
-     * @param d the double value
+     * @param d the <tt>double</tt> value
      * @return the new Rational instance
      * @throws RationalClassUndefinedException if the Rational class extension was not defined
-     * @throws RationalClassConstructorNotFoundException if the constructor for double values was not implemented
+     * @throws RationalClassConstructorNotFoundException if the constructor for <tt>double</tt> values was not implemented
      */
     static public Rational constRational(double d) throws RationalClassUndefinedException, RationalClassConstructorNotFoundException {
 	if (RATIONAL_CLASS == null) {
@@ -310,20 +330,15 @@ public class RationalFactory {
 
 
     /**
-     * Constructs a new Rational instance with two int values.
+     * Constructs a new Rational instance with two <tt>int</tt> values.
      *
      * @param num the numerator
      * @param den the denominator
      * @return the new Rational instance
      * @throws RationalClassUndefinedException if the Rational class extension was not defined
-     * @throws RationalClassConstructorNotFoundException if the constructor for two int values was not implemented
+     * @throws RationalClassConstructorNotFoundException if the constructor for two <tt>int</tt> values was not implemented
      */    
-    static public Rational constRational(int num, int den) throws RationalClassUndefinedException, RationalClassConstructorNotFoundException {/*
- * Rational.java 2005-05-13
- *
- * Dirk Ansorge, FernUniversitaet Hagen
- *
- */
+    static public Rational constRational(int num, int den) throws RationalClassUndefinedException, RationalClassConstructorNotFoundException {
 	if (RATIONAL_CLASS == null) {
 	    throw new RationalClassUndefinedException("Error in RationalFactory: RATIONAL_CLASS must be set using setClass()");
 	}//if

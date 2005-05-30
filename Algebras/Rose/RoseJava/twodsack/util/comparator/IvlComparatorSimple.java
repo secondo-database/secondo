@@ -12,10 +12,19 @@ import twodsack.util.collectiontype.*;
 import java.util.*;
 
 /**
- * This class provides one single method: The compare method for two objects of type Interval. It can be used for all collections which
- * have objects of type Interval as elements.
+ * This class provides one single method: The {@link #compare(Object,Object)} method for two objects of type {@link twodsack.util.collectiontype.Interval}.
+ * It can be used for all collections which have objects of type Interval as elements.
  */
 public class IvlComparatorSimple implements Comparator {
+    /*
+     * constructors
+     */
+    /**
+     * The standard constructor.
+     */
+    public IvlComparatorSimple(){}
+
+
     /*
      * methods
      */
@@ -29,7 +38,7 @@ public class IvlComparatorSimple implements Comparator {
      * @param ino1 the first object
      * @param ino2 the second object
      * @return one of {0, 1, -1} as int
-     * @throws WrongTypeException if ino1 or ino2 is not of type Interval
+     * @throws WrongTypeException if <tt>ino1</tt> or <tt>ino2</tt> is not of type {@link twodsack.util.collectiontype.Interval}
      */
     public int compare (Object ino1, Object ino2) throws WrongTypeException {
 	if ((((MultiSetEntry)ino1).value instanceof Interval) &&

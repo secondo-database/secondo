@@ -23,11 +23,11 @@ import java.io.*;
 /**
  * The SetOps class is one of the central classes of the whole 2D-SACK package.
  * Collected in this class are all
- * of the genereric set operations the package offers. Sets in 2D-SACK are commonly ElemMultiSet, i.e. they
- * are one of {PointMultiSet, SegMultiSet, TriMultiSet}. Most of the operations provided here are made for this
- * type. Other types are PairMultiSet, LeftJoinPairMultiSet and, in one special case a LinkedList.<p>
- * A PairMultiSet is the result type of a join performed on two sets. Each element of such a set is an ElemPair
- * which holds two elements. A LeftJoinPairMultiSet is the result of an overlapLeftOuterjoin() and also has pairs
+ * of the genereric set operations the package offers. Sets in 2D-SACK are commonly {@link ElemMultiSet}, i.e. they
+ * are one of {{@link PointMultiSet}, {@link SegMultiSet}, {@link TriMultiSet}}. Most of the operations provided here are made for this
+ * type. Other types are {@link PairMultiSet}, {@link LeftJoinPairMultiSet} and, in one special case a LinkedList.<p>
+ * A PairMultiSet is the result type of a join performed on two sets. Each element of such a set is an {@link ElemPair}
+ * which holds two elements. A LeftJoinPairMultiSet is the result of an {@link #leftOuterJoin(ElemMultiSet,ElemMultiSet,Method)} and also has pairs
  * as elements. Such a pair looks like this: <code>(Element x ElemMultiSet)</code>. Finally, a LinkedList type
  * only appears in some sorting algorithm in this class.<p>
  * The operations in this class can be roughly divided in four groups:<ol>
@@ -37,11 +37,13 @@ import java.io.*;
  * <li> supporting operations
  * </ol><p>
  * E.g. the group for set operations for PairMultiSet(s) holds several join operations to construct PairMultiSets
- * from pairs of ElemMultiSet(s). Then, some other operations can be used for further processing, like filter(),
- * proj1() and map(). The operations in the other groups are quite similar.<p>
- * In this class, different implementations can be found for similar operations like join and overlapJoin or group
- * and overlapGroup. The <i>overlap</i> prefix indicates a method as using a special mechanism for speeding up
- * the operation. Whereas a simple join takes quite a long time, the overlapJoin uses a filter&refine technique
+ * from pairs of ElemMultiSet(s). Then, some other operations can be used for further processing, like {@link #filter(PairMultiSet,Method,boolean)},
+ * {@link #proj1(PairMultiSet)}, {@link #proj2(PairMultiSet)},  and four different versions of <tt>map(...)</tt>. The operations in the other
+ * groups are quite similar.<p>
+ * In this class, different implementations can be found for similar operations like <tt>join(...)</tt> and <tt>overlapJoin(...)</tt> or
+ * <tt>group(...)</tt>
+ * and <tt>overlapGroup</tt>. The <i>overlap</i> prefix indicates a method as using a special mechanism for speeding up
+ * the operation. Whereas a simple <tt>join</tt> takes quite a long time, the <tt>overlapJoin</tt> uses a filter&refine technique
  * to reduce the number of possibly interesting pairs of elements before executing (possibly) expensive following
  * operations. The only constraint for these overlap versions of methods is, that the passed predicate and operation
  * for this operation may work only <i>inside of bounding boxes</i>. This means for predicates, that it only holds for 
@@ -57,13 +59,23 @@ public class SetOps {
     static final LeftJoinPairComparator LEFTJOINPAIR_COMPARATOR = new LeftJoinPairComparator();
     static final ElemPairComparator ELEMPAIR_COMPARATOR = new ElemPairComparator();
 
+
+    /*
+     * constructors
+     */
+    /**
+     * The standard constructor.
+     */
+    public SetOps(){}
+
+
     /*
      * methods
      */
     
     /**
-     * Returns a set of elements which is 'reduced' using the passed predicate and method.
-     * This is another variant of the normal {@link #reduce} operation. For the functionality of reduce() itself,
+     * Returns a set of elements which is 'reduced' using the passed <tt>predicate</tt> and <tt>method</tt>.<p>
+     * This is another variant of the normal {@link #reduce(ElemMultiSet,Method,Method)} operation. For the functionality of <tt>reduce</tt> itself,
      * have a look at that method. <p>
      * Here, a plane sweep algorithm is used for the computation of the reduced set:<ul>
      * <li> construct the sweep event structure from the bounding boxes of the elements in ems; store the right and
@@ -72,22 +84,22 @@ public class SetOps {
      * <li> construct a sweep status structure (sss) which is initially empty but will hold intervals later on
      * <li> traverse the ses; for every element do:<ul>
      *  <li> if it is a left interval: check whether it overlaps any of the intervals in sss. If it does:<ul>
-     *   <li> evaluate the predicate for the two involved objects
-     *   <li> evaluate the operation if the predicate yields true
+     *   <li> evaluate the <tt>predicate</tt> for the two involved objects
+     *   <li> evaluate the operation if the <tt>predicate</tt> yields <tt>true</tt>
      *   <li> if the result of the operation is empty, delete the left and right intervals from ses and sss,
      *  otherwise adjust the intervals in ses and sss</ul>
      *  <li> if it is a left interval and the intervals don't overlap, add the interval to sss
      *  <li> if it is a right interval: add the object to the result set and delete the interval from sss</ul>
      * </ul>
-     * This method is successfully used in the SupportOps.minimal() method. There, it works for sets of segments,
-     * the predicate adjacent() and the method concat(). No other implementations were tested, yet.<p>
+     * This method is successfully used in the <tt>SupportOps.minimal()</tt> method. There, it works for sets of segments,
+     * the predicate <tt>adjacent()</tt> and the method <tt>concat()</tt>. No other implementations were tested, yet.<p>
      * Note, that the signature of all predicates and methods must be<br>
      * <code>Element x Element -> boolean</code> and <code>Element x Element -> Element</code>, resp.
      *
      * @param ems the input set of elements
      * @param predicate the method that is used to identify candidates for the second method
      * @param method the method that is invoked on pairs identified by the predicate
-     * @param meet if true, also objects of ems which have only adjacent bounding boxes are tested with predicate
+     * @param meet if <tt>true</tt>, also objects of <tt>ems</tt> which have only adjacent bounding boxes are tested with predicate
      * @return the 'reduced' set of objects
      */
     public static ElemMultiSet overlapReduceSweep (ElemMultiSet ems, Method predicate, Method method, boolean meet) {
@@ -276,12 +288,12 @@ public class SetOps {
 
     /**
      * Collects elements from the parameter set and stores them in the resulting set.
-     * Every element of ljpMS consists of a pair (Element x ElemMultiSet). This method traverses the set and
-     * stores the Element in the result set if Element != NULL. If Element == NULL, the ElemMultiSet is stored
+     * Every element of <tt>ljpMS</tt> consists of a pair <tt>(Element x ElemMultiSet)</tt>. This method traverses the set and
+     * stores the <tt>Element</tt> in the result set if <tt>Element != NULL</tt>. If <tt>Element == NULL</tt>, the <tt>ElemMultiSet</tt> is stored
      * in the result set instead.
      *
      * @param ljpMS the 'in' set
-     * @return the collected elements of ljpMS stored in an ElemMultiSet
+     * @return the collected elements of <tt>ljpMS</tt> stored in an <tt>ElemMultiSet</tt>
      */
     public static ElemMultiSet collect (LeftJoinPairMultiSet ljpMS) {
 	ElemMultiSet result = new ElemMultiSet(ELEM_COMPARATOR);
@@ -304,8 +316,8 @@ public class SetOps {
 
     /**
      * Collects elements from the parameter set and stores them in the resulting set.
-     * This method collects <i>only</i> the elements of the ElemMultiSets of every entry of ljpMS.
-     * The first entries, i.e. the Element part of every pair, is ignored.
+     * This method collects <i>only</i> the elements of the <tt>ElemMultiSet</tt>s of every entry of <tt>ljpMS</tt>.
+     * The first entries, i.e. the <tt>Element</tt> part of every pair, is ignored.
      *
      * @param ljpMS the 'in' set
      * @return the collected elements stored in a ElemMultiSet
@@ -330,38 +342,41 @@ public class SetOps {
 	
 
     /**
-     * For the two passed sets, a LeftJoinpPairMultiSet is computed where every element of the set has the form (Element x ElemMultiSet).
-     * For every pair Element x ElementOfEMS of this set element, the predicate holds. This set is computed as follows:<ul>
-     * <li> call overlapping pairs to find all the pairs e1 x e2, e1 element of el1 and e2 element of el2, which have
-     * overlapping bounding boxes; an EarlyExit exception is thrown when the earlyExit flag is set
-     * <li> in a filter step, the number of pairs is reduced using the passed predicate
+     * For the two passed sets, a LeftJoinpPairMultiSet is computed where every element of the set has the form <tt>(Element x ElemMultiSet)</tt>.
+     * For every pair <tt>Element x ElementOfEMS</tt> of this set element, the <tt>predicate</tt> holds. This set is computed as follows:<ul>
+     * <li> call <tt>overlappingPairs()</tt> to find all the pairs <tt>e1 x e2</tt>, <tt>e1</tt> element of <tt>el1</tt> and
+     * <tt>e2</tt> element of <tt>el2</tt>, which have
+     * overlapping bounding boxes; an {@link EarlyExit} exception is thrown when the <tt>earlyExit</tt> flag is set
+     * <li> in a filter step, the number of pairs is reduced using the passed <tt>predicate</tt>
      * <li> while the set of pairs is traversed, all pairs which have the same first element, are collected and all of them are
      * stored in one single entry of the resulting LeftJoinPairMultiSet
      * </ul>
      * The new LeftJoinPairMultiSet is returned, then.<p>
-     * This is the 'overlap' version of the normal leftOuterJoin(). It only works for predicates which solely hold
+     * This is the 'overlap' version of the normal {@link #leftOuterJoin(ElemMultiSet,ElemMultiSet,Method)}. It only works for predicates which solely hold
      * for elements with overlapping bounding boxes.<p>
-     * If, in a special case, for one element ex of el1 no element ey of el2 is found, the entry constructed in the
-     * resulting set is (ex x NULL), i.e. the ElemMultiSet is <u>not</u> initialized.<p>
-     * The predicate must have the signature <code>Element x Element -> boolean</code>.
+     * If, in a special case, for one element <tt>ex</tt> of <tt>el1</tt> no element <tt>ey</tt> of <tt>el2</tt> is found, the entry constructed in the
+     * resulting set is <tt>(ex x NULL)</tt>, i.e. the <tt>ElemMultiSet</tt> is <u>not</u> <tt>initialized</tt>.<p>
+     * The <tt>predicate</tt> must have the signature <code>Element x Element -> boolean</code>.
      *
      * @param el1 the first set of elements. These elements can be found again in the resulting LeftJoinPairMultiSet
-     * as the first entry of every (Element x ElemMultiSet). In particular, this means that if el1 is (e1, e2, e3...),
-     * the resulting set is ( (e1 x ems1), (e2 x ems2), (e3 x ems3) ...).
+     * as the first entry of every <tt>(Element x ElemMultiSet)</tt>. In particular, this means that if <tt>el1</tt> is <tt>(e1, e2, e3...)</tt>,
+     * the resulting set is <tt>( (e1 x ems1), (e2 x ems2), (e3 x ems3) ...)</tt>.
      * @param el2 the second set of elements. The elements of this set are found in the second entries (i.e. in the sets)
      * of the resulting LeftJoinPairMultiSet
      * @param predicate according to this predicate, the ElemMultiSet(s) in the LeftJoinPairMultiSet's entries are built
-     * @param useOvLapPairsMeet this flag is passed to overlappingPairs(); if true objects whith adjacent bounding boxes are
+     * @param useOvLapPairsMeet this flag is passed to <tt>overlappingPairs()</tt>; if <tt>true</tt> objects whith adjacent bounding boxes are
      * reported, too
-     * @param bboxFilter this flag is passed to overlappingPairs(); if true, in a pre-processing step the number of 
-     * candidates is reduced by removing objects of el1,el2 which don't overlap the unified bounding box of el1,el2 resp.
-     * @param earlyExit if true, an EarlyExit exception is thrown immediately when the first object of elN is found which
-     * doesn't have a partner in elM, i.e. at least one element of elM which has a bounding box that overlaps the 
-     * bounding box of the element of elN. N is the passed setNumber. earlyExit is evaluated in bboxFilter, so if shall
-     * be used, be sure that bboxFilter = true
+     * @param bboxFilter this flag is passed to <tt>overlappingPairs()</tt>; if <tt>true</tt>, in a pre-processing step the number of 
+     * candidates is reduced by removing objects of <tt>el1</tt>,</tt>el2</tt> which don't overlap the unified bounding box of <tt>el1</tt>,
+     * <tt>el2</tt> resp.
+     * @param earlyExit if <tt>true</tt>, an {@link EarlyExit} exception is thrown immediately when the first object of <tt>elN</tt> is found which
+     * doesn't have a partner in <tt>elM</tt>, i.e. at least one element of <tt>elM</tt> which has a bounding box that overlaps the 
+     * bounding box of the element of <tt>elN</tt>. <tt>N</tt> is the passed <tt>setNumber</tt>. earlyExit is evaluated in <tt>bboxFilter</tt>, so if shall
+     * be used, be sure that <tt>bboxFilter = true</tt>
      * @param setNumber must be 1 or 2; specifies the set for earlyExit
      * @return the resulting LeftJoinPairMultiSet
      * @throws EarlyExit
+     * @see #leftOuterJoin(ElemMultiSet,ElemMultiSet,Method)
      */    
     public static LeftJoinPairMultiSet overlapLeftOuterJoin (ElemMultiSet el1, ElemMultiSet el2, Method predicate, boolean useOvLapPairsMeet, boolean bboxFilter, boolean earlyExit, int setNumber)
     throws EarlyExit {
@@ -414,10 +429,10 @@ public class SetOps {
     
     
     /**
-     * Invokes the passed method on every pairs of elements in every entry of ljpl.
-     * An entry the passed ljpl has the form (Element x ElemMultiSet). Now, let the ElemMultiSet be (l1, l2 ... ln).
-     * Then, using the passed method subtractSets computes from such a pair (Element x (l1, l2 ... ln)) a new pair
-     * (method(Element,l1), method(Element,l2) ... method(Element,ln)).<p>
+     * Invokes the passed method on every pairs of elements in every entry of <tt>ljpl</tt>.
+     * An entry the passed <tt>ljpl</tt> has the form <tt>(Element x ElemMultiSet)</tt>. Now, let the ElemMultiSet be <tt>(l1, l2 ... ln)</tt>.
+     * Then, using the passed method <tt>subtractSets</tt> computes from such a pair <tt>(Element x (l1, l2 ... ln))</tt> a new pair
+     * <tt>(method(Element,l1), method(Element,l2) ... method(Element,ln))</tt>.<p>
      * The method must have the signature <code>Element x Element -> Element</code> or
      * <code>Element x Element -> ElemMultiSet</code>.
      *
@@ -440,11 +455,11 @@ public class SetOps {
 
 	//examine passed method
 	try {
-	    if (method.getReturnType().isInstance(Class.forName("Element")) ||
-		method.getReturnType().getSuperclass().isAssignableFrom(Class.forName("Element"))) {
+	    if (method.getReturnType().isInstance(Class.forName("twodsack.setelement.Element")) ||
+		method.getReturnType().getSuperclass().isAssignableFrom(Class.forName("twodsack.setelement.Element"))) {
 		metTypeElement = true; }
-	    if (method.getReturnType().isInstance(Class.forName("ElemMultiSet")) ||
-		method.getReturnType().getSuperclass().isAssignableFrom(Class.forName("ElemMultiSet"))) {
+	    if (method.getReturnType().isInstance(Class.forName("twodsack.set.ElemMultiSet")) ||
+		method.getReturnType().getSuperclass().isAssignableFrom(Class.forName("twodsack.set.ElemMultiSet"))) {
 		metTypeElemMultiSet = true; }
 	}//try
 	catch (Exception e) {
@@ -498,27 +513,28 @@ public class SetOps {
 
     /**
      * Returns a set of elements which is 'reduced' using the passed predicate and method.
-     * This is a variant of the normal {@link #reduce} operation. For the fuctionality of reduce() itself,
+     * This is a variant of the normal {@link #reduce(ElemMultiSet,Method,Method)} operation. For the fuctionality of <tt>reduce</tt> itself,
      * have a look at that method.<p>
      * This is a recursive algorithm which uses graph algorithms to find groups of candidates for the invocation
      * of the passed method. First note, that the predicate must be an 'overlap' predicate, i.e. is may only yield
-     * true, if the bounding boxes of both elements overlap or are adjacent at least. Additionally, the method
+     * <tt>true</tt>, if the bounding boxes of both elements overlap or are adjacent at least. Additionally, the method
      * may only return an object which bounding box lies inside of the bounding box of the bounding box of the 
      * objects it was constructed from (for clarification: the result may not be <i>bigger</i> than the original two
      * objects.)<p>
-     * overlapReduce(el,PRED,METH,...) works as follows:<ol>
-     * <li> perform overlappingPairs on el to find all pairs of candidates, result is called PL; if earlyExit flag is set,
-     * throw an EarlyExit exception if neccessary
-     * <li> filter PL using PRED
-     * <li> if no pairs exist, return el
-     * <li> build a graph with vertices (all elements of el) and edges; an edge exists between x,y (of el) if a pair
-     * (x,y) exists in PL
+     * <tt>overlapReduce(el,PRED,METH,...)</tt> works as follows:<ol>
+     * <li> perform <tt>overlappingPairs</tt> on <tt>el</tt> to find all pairs of candidates, result is called <tt>PL</tt>; if <tt>earlyExit</tt>
+     * flag is set,
+     * throw an <tt>EarlyExit</tt> exception if neccessary
+     * <li> filter <tt>PL</tt> using <tt>PRED</tt>
+     * <li> if then, no pairs still exist, return <tt>el</tt>
+     * <li> build a graph with vertices (all elements of <tt>el</tt>) and edges; an edge exists between <tt>x,y</tt> (of <tt>el</tt>) if a pair
+     * <tt>(x,y)</tt> exists in <tt>PL</tt>
      * <li> compute the connected components of that graph
-     * <li> for every component COMP of the connected components, do the following <ul>
+     * <li> for every component <tt>COMP</tt> of the connected components, do the following <ul>
      *  <li> compute a set of (independent) pairs of that component, such that no element is part of two pairs
-     *  <li> invoke the method METH on all those pairs
-     *  <li> replace every pair (x,y) with METH(x,y)
-     *  <li> call overlapReduce(COMP,...)
+     *  <li> invoke the method <tt>METH</tt> on all those pairs
+     *  <li> replace every pair <tt>(x,y)</tt> with <tt>METH(x,y)</tt>
+     *  <li> call <tt>overlapReduce(COMP,...)</tt>
      * </ul></ol><p>
      * The predicate must have the signature <code>Element x Element -> boolean</code> and method must have the signature
      * <code>Element x Element -> ElemMultiSet</code>
@@ -526,15 +542,15 @@ public class SetOps {
      * @param el the set that shall be reduced
      * @param predicate according to this predicate, candidates are filtered
      * @param method this method is invoked on the pairs of elements that were found
-     * @param ovLapPairsMeet this flag is passed to overlappingPairs(); if true, objects with adjacent bounding boxes are
+     * @param ovLapPairsMeet this flag is passed to <tt>overlappingPairs()</tt>; if <tt>true</tt>, objects with adjacent bounding boxes are
      * reported, too
-     * @param bboxFilter this flag is passed to overlappingPairs(); if true, in a pre-processing step the number of 
-     * candidates is reduced by removing objects of el1,el2 which don't overlap the unified bounding box of el1,el2 resp.
-     * @param earlyExit if true, an EarlyExit exception is thrown immediately when the first object of elN is found which
-     * doesn't have a partner in elM, i.e. at least one element of elM which has a bounding box that overlaps the 
-     * bounding box of the element of elN. N is the passed setNumber. earlyExit is evaluated in bboxFilter, so if shall
-     * be used, be sure that bboxFilter = true
-     * @param setNumber must be 1 or 2; specifies the set for earlyExit
+     * @param bboxFilter this flag is passed to <tt>overlappingPairs()</tt>; if <tt>true</tt>, in a pre-processing step the number of 
+     * candidates is reduced by removing objects of <tt>el1,el2</tt> which don't overlap the unified bounding box of <tt>el1,el2</tt> resp.
+     * @param earlyExit if <tt>true</tt>, an <tt>EarlyExit</tt> exception is thrown immediately when the first object of <tt>elN</tt> is found which
+     * doesn't have a partner in <tt>elM</tt>, i.e. at least one element of <tt>elM</tt> which has a bounding box that overlaps the 
+     * bounding box of the element of <tt>elN</tt>. <tt>N</tt> is the passed setNumber. <tt>earlyExit</tt> is evaluated in <tt>bboxFilter</tt>, so if shall
+     * be used, be sure that <tt>bboxFilter = true</tt>
+     * @param setNumber must be 1 or 2; specifies the set for <tt>earlyExit</tt>
      * @return the 'reduced' set of elements
      * @throws EarlyExit
      */ 
@@ -585,13 +601,13 @@ public class SetOps {
 
     /**
      * Lets through pairs of the set depending on the predicate and the 'keep' flag.
-     * If keep = true, a pair (x,y) is kept if predicate(x,y) = true. All other pairs are deleted. If keep = false,
+     * If <tt>keep = true</tt>, a pair <tt>(x,y)</tt> is kept if <tt>predicate(x,y) = true</tt>. All other pairs are deleted. If <tt>keep = false</tt>,
      * the inverse set is returned.<p>
      * The predicate must have the signature <code>Element x Element -> boolean</code>.
      * 
      * @param plIn the set of pairs
      * @param predicate the predicate that is used to filter the pairs
-     * @param keep if true, pairs are kept for which the predicate holds
+     * @param keep if <tt>true</tt>, pairs are kept for which the predicate holds
      * @return the filtered set
      */
     public static PairMultiSet filter (PairMultiSet plIn, Method predicate, boolean keep) {
@@ -634,24 +650,24 @@ public class SetOps {
     
 
     /**
-     * Divides the elements of the passed set in groups according to the parameter predicate.
-     * This is the 'overlap' variant of the ordinary {@link #group}. The result of this method is a list of ElemMultiSet(s).
-     * For every pair of elements (x,y) of such a group (ElemMultiSet), predicate(x,y) holds.<p>
+     * Divides the elements of the passed set in groups according to the parameter predicate.<p>
+     * This is the 'overlap' variant of the ordinary {@link #group(ElemMultiSet,Method)}. The result of this method is a list of <tt>ElemMultiSet</tt>(s).
+     * For every pair of elements <tt>(x,y)</tt> of such a group (<tt>ElemMultiSet</tt>), <tt>predicate(x,y)</tt> holds.<p>
      * First note, that the passed predicate must be an 'overlap' predicate. Such a predicate may only hold, if 
      * the bounding box of its parameter objects overlap or are adjacent at least.<p>
      * This method works as follows:<ul>
-     * <li> call overlappingPairs to compute the candidate pairs; store the result in PL
-     * <li> filter PL using predicate
-     * <li> construct a graph from PL using ems as vertices and PL as edges
+     * <li> call <tt>overlappingPairs</tt> to compute the candidate pairs; store the result in <tt>PL</tt>
+     * <li> filter <tt>PL</tt> using <tt>predicate</tt>
+     * <li> construct a graph from <tt>PL</tt> using <tt>ems</tt> as vertices and <tt>PL</tt> as edges
      * <li> compute the connected components for that graph
-     * <li> store all elements of such a component in a single ElemMultiSet; store all ElemMultiSet(s) in 
-     * a ElemMultiSetList
-     * <li> return that ElemMultiSetList<p>
+     * <li> store all elements of such a component in a single <tt>ElemMultiSet</tt>; store all <tt>ElemMultiSet</tt>(s) in 
+     * a <tt>ElemMultiSetList</tt>
+     * <li> return that <tt>ElemMultiSetList</tt><p>
      * The signature of the predicate must be <code>Element x Element -> boolean</code>.
      *
      * @param ems the set of elements that shall be divided in groups
      * @param predicate the predicate that is used to filter the candidate pairs
-     * @param ovLapPairsMeet this flag is passed to overlappingPairs(); if true, objects with adjacent bounding boxes are
+     * @param ovLapPairsMeet this flag is passed to <tt>overlappingPairs()</tt>; if <tt>true</tt>, objects with adjacent bounding boxes are
      * reported, too
      * @return the groups of elements
      */
@@ -684,28 +700,28 @@ public class SetOps {
 
     
     /**
-     * Computes a join on two element sets.
-     * This is a variant of the normal join operation which uses 'overlap' predicates. 
+     * Computes a join on two element sets.<p>
+     * This is a variant of the normal <tt>join</tt> operation which uses 'overlap' predicates. 
      * First note, that the passed predicate must be an 'overlap' predicate. Such a predicate may only hold, if 
      * the bounding box of its parameter objects overlap or are adjacent at least.<p>
-     * That 'overlap' predicate is also the join predicate. For all pairs (x,y) in the resulting set, that predicate holds.<p>
-     * The join is computed by first calling overlappingPairs(ems1,ems2,...). After that, the resulting set is filtered
+     * That 'overlap' predicate is also the join predicate. For all pairs <tt>(x,y)</tt> in the resulting set, that predicate holds.<p>
+     * The join is computed by first calling <tt>overlappingPairs(ems1,ems2,...)</tt>. After that, the resulting set is filtered
      * using predicate.<p>
      * The predicate must have the signature <code>Element x Element -> boolean</code>.
      *
      * @param ems1 the first set
      * @param ems2 the second set
      * @param predicate the join predicate
-     * @param ovLapPairsMeet this flag is passed to overlappingPairs(); if true, objects with adjacent bounding boxes are
+     * @param ovLapPairsMeet this flag is passed to <tt>overlappingPairs()</tt>; if <tt>true</tt>, objects with adjacent bounding boxes are
      * reported, too
-     * @param bboxFilter this flag is passed to overlappingPairs(); if true, in a pre-processing step the number of 
-     * candidates is reduced by removing objects of el1,el2 which don't overlap the unified bounding box of el1,el2 resp.
-     * @param earlyExit if true, an EarlyExit exception is thrown immediately when the first object of elN is found which
-     * doesn't have a partner in elM, i.e. at least one element of elM which has a bounding box that overlaps the 
-     * bounding box of the element of elN. N is the passed setNumber. earlyExit is evaluated in bboxFilter, so if shall
-     * be used, be sure that bboxFilter = true
-     * @param setNumber must be 1 or 2; specifies the set for earlyExit
-     * @return the PairMultiSet as join of ems1 and ems2
+     * @param bboxFilter this flag is passed to <tt>overlappingPairs()</tt>; if <tt>true</tt>, in a pre-processing step the number of 
+     * candidates is reduced by removing objects of <tt>el1,el2</tt> which don't overlap the unified bounding box of <tt>el1,el2</tt> resp.
+     * @param earlyExit if <tt>true</tt>, an <tt>EarlyExit</tt> exception is thrown immediately when the first object of <tt>elN</tt> is found which
+     * doesn't have a partner in <tt>elM</tt>, i.e. at least one element of <tt>elM</tt> which has a bounding box that overlaps the 
+     * bounding box of the element of <tt>elN</tt>. <tt>N</tt> is the passed setNumber. <tt>earlyExit</tt> is evaluated in <tt>bboxFilter</tt>, so if shall
+     * be used, be sure that <tt>bboxFilter = true</tt>
+     * @param setNumber must be 1 or 2; specifies the set for <tt>earlyExit</tt>
+     * @return the PairMultiSet as join of <tt>ems1</tt> and <tt>ems2</tt>
      * @throws EarlyExit
      */
     public static PairMultiSet overlapJoin (ElemMultiSet ems1, ElemMultiSet ems2, Method predicate, boolean ovLapPairsMeet, boolean bboxFilter, boolean earlyExit, int setNumber) 
@@ -723,118 +739,136 @@ public class SetOps {
     }//end method overlapJoin
    
 
-    /*
-    public static ElemListList group (ElemList el, Method predicate) {
-	//comment missing
-	//predicate(static): Element x Element -> boolean
-	//this method currently only supports static methods
-	ElemListList retList = new ElemListList();
-	Element[] paramList = new Element[2];
+    /**
+     * This method constructs groups from the passed set such that for every element <tt>e</tt> in a group another element <tt>f</tt> can be found with <tt>predicate(e,f) = true</tt>.<p>
+     * Example: Let the original set be <tt>{a,b,c,d}</tt>. Assume, that the predicate <tt>p</tt> holds for the pairs <tt>(a,b),(b,c)</tt>.
+     * Then, the resuliting groups are <tt>{a,b,c}, {d}</tt>.<p>
+     * The predicate's signature must be: <tt>Element x Element -> boolean</tt>
+     *
+     * @param ems the set that shall be divided in groups
+     * @param predicate the predicate that is responsible for the division into groups
+     * @return the list of groups
+     * @see #overlapGroup(ElemMultiSet,Method,boolean)
+     */
+    public static ElemMultiSetList group (ElemMultiSet ems, Method predicate) {
+	/*
+	 * This method works as follows: It traverses ems and for each element E it checks all already existing groups.
+	 * It traverses each group. For each element F of such group it invokes predicate(E,F) until the predicate holds.
+	 * Then, it stores the group in a special list. This is done for each group. The reason why this complicated 
+	 * computation is needed is that a new element E can _combine_ two or more groups. Therefore, all groups must be visited.
+	 * After all groups were checked, all groups in the special list are joined. If there is no entry in the special list
+	 * a new group is build for E.
+	 */	
+
+	ElemMultiSetList retList = new ElemMultiSetList();
+	
+	if (ems == null || ems.isEmpty()) return retList;
+	int paramTypeCount = Array.getLength(predicate.getParameterTypes());
+	Element[] paramList = new Element[paramTypeCount];
+
+	Iterator it = ems.iterator();
+	Iterator itRL, it2;
+	Element actElem1, actElem2;
+	ElemMultiSet actGroup;
 	boolean belongsToGroup = false;
-	LinkedList indexList = new LinkedList();
-	for (int i = 0; i < el.size(); i++) {
+	LinkedList idxList = new LinkedList();
+ 
+	//traverse elements of ems
+	while (it.hasNext()) {
+	    actElem1 = (Element)((MultiSetEntry)it.next()).value;
 	    belongsToGroup = false;
-	    indexList.clear();
-	    //no list exists, so build a new one and add element
+	    idxList.clear();
+	    
 	    if (retList.isEmpty()) {
-		//System.out.println("group:c1 -> build first group with element:");
-		//((Element)el.get(i)).print();
-		ElemList nl = new ElemList();
-		nl.add(el.get(i));
-		retList.add(nl.copy());
-	    }//if
-	    //there are already existing groups
-	    else {
-		for (int j = 0; j < retList.size(); j++) {
-		    //current list is empty
-		    //System.out.println("group:c2");
-		    if (((ElemList)retList.get(j)).isEmpty()) {
-			//System.out.println("group:c3 -> build new group with element");
-			//((Element)el.get(i)).print();
-			ElemList nl2 = new ElemList();
-			nl2.add(el.get(i));
-			retList.add(nl2.copy());
-		    }//if
-		    //current list is not empty
-		    //check wether predicate holds for any element of the list
-		    else {
-			//System.out.println("group:c3");
-			paramList[0] = (Element)el.get(i);
-			for (int k = 0; k < ((ElemList)retList.get(j)).size(); k++) {
-			    //System.out.println("group:c4 -> compare elements");
-			    paramList[1] = (Element)((ElemList)retList.get(j)).get(k);
-			    //System.out.println("Elements:");
-			    //paramList[0].print();
-			    //paramList[1].print();
-			    try {
-				belongsToGroup = ((Boolean)predicate.invoke(null,paramList)).booleanValue();
-			    }//try
-			    catch (Exception e) {
-				System.out.println("Exception: "+e.getClass()+" ---"+e.getMessage());
-				System.out.println("Error in SetOps.group. Can't invoke predicate.");
-				System.exit(0);
-			    }//catch
-			    if (belongsToGroup) {
-				//the current element could belong to several groups
-				//therefore the index j is stored
-				//System.out.println("group:c5 -> belongs to group");
-				//((ElemList)retList.get(j)).add(el.get(i));
-				indexList.add(new Integer(j));
-				belongsToGroup = false;
-				break;
-			    }//if
-			}//for k
-		    }//else
-		    if (belongsToGroup || indexList.size() > 0) {
-			//now merge all lists for which belongsToGroup is true
-			//if this is true for only one list then add current element
-			while (indexList.size() > 1)
-			    {
-				//merge last two lists
-				ElemList tmpList1 = (ElemList)retList.get(((Integer)indexList.get(indexList.size()-2)).intValue());
-				ElemList tmpList2 = (ElemList)retList.get(((Integer)indexList.get(indexList.size()-1)).intValue());
-				tmpList1.addAll(tmpList2);
-				retList.remove(((Integer)indexList.get(indexList.size()-1)).intValue());
-				indexList.remove(indexList.size()-1);
-			    }//do
-			//now only one list is left, so add current element
-			ElemList tmpList3 = (ElemList)retList.get(((Integer)indexList.getFirst()).intValue());
-			tmpList3.add(el.get(i));
-			belongsToGroup = true;
-			break;
-		    }//if
-		}//for j
-		if (!belongsToGroup) {
-		    //System.out.println("group:c6 -> build new group");
-		    //((Element)el.get(i)).print();
-		    ElemList nl3 = new ElemList();
-		    nl3.add(el.get(i));
-		    retList.add(nl3.copy());
-		    belongsToGroup = true;
-		}//if
-	    }//else
-	}//for i
-	//retList.print();
+		//build new group and add it to retList
+		ElemMultiSet group = new ElemMultiSet(ELEM_COMPARATOR);
+		group.add(actElem1);
+		retList.add(group);
+	    } else {
+		//other groups already exist
+		itRL = retList.listIterator(0);
+		while (itRL.hasNext()) {
+		    actGroup = (ElemMultiSet)itRL.next();
+
+		    it2 = actGroup.iterator();
+		    while (it2.hasNext()) {
+			actElem2 = (Element)((MultiSetEntry)it2.next()).value;
+			if (paramTypeCount == 1)
+			    //predicate is non-static
+			    paramList[0] = actElem2;
+			else {
+			    //predicate is static
+			    paramList[0] = actElem1;
+			    paramList[1] = actElem2;
+			}//else
+			
+			//evaluate predicate
+			try {
+			    belongsToGroup = ((Boolean)predicate.invoke(actElem1,paramList)).booleanValue();
+			} catch (Exception e) {
+			    System.out.println("Error in SetOps.group: Wasn't able to invoke predicate.");
+			    e.printStackTrace();
+			}//catch
+			
+			System.out.println(belongsToGroup);
+
+			if (belongsToGroup) {
+			    //actGroup.add(actElem2);
+			    idxList.add(actGroup);
+			    break;
+			}//if
+		    }//while it2
+		}//while itRL
+		
+		if (belongsToGroup || !idxList.isEmpty()) {
+		    //merge all groups for which belongsToGroup was true
+
+		    while (idxList.size() > 1) {
+			((ElemMultiSet)idxList.get(idxList.size()-2)).addAll((ElemMultiSet)idxList.get(idxList.size()-1));
+			//clear and remove second set
+			((ElemMultiSet)idxList.get(idxList.size()-1)).clear();
+			idxList.remove(idxList.size()-1);
+		    }//while
+		    
+		    //now, add the new element
+		    ((ElemMultiSet)idxList.get(0)).add(actElem1);
+
+		    //remove all empty groups from retList
+		    itRL = retList.listIterator(0);
+		    while (itRL.hasNext()) {
+			actGroup = (ElemMultiSet)itRL.next();
+			if (actGroup.isEmpty()) itRL.remove();
+		    }//while		    
+
+		} else {
+		    //actElem doesn't belong to any group
+		    //build new group and add it to retList
+
+		    ElemMultiSet group = new ElemMultiSet(ELEM_COMPARATOR);
+		    group.add(actElem1);
+		    retList.add(group);
+		}//else
+	    }//else other groups exist
+	}//while it hasNext
 
 	return retList;
-    }//end mehtod group
-    */
+    }//end method group
 
     
     /**
-     * This map method invokes the secMethod on pairs of elements of ljpl for  which the predicate holds.
-     * The mainMethod itself must be a set operation with the signature <code>Element x ElemMultiSet x predicate
+     * This map method invokes the <tt>secMethod</tt> on pairs of elements of <tt>ljpl</tt> for which the <tt>predicate</tt> holds.<p>
+     * The <tt>mainMethod</tt> itself must be a set operation with the signature <code>Element x ElemMultiSet x predicate
      * x secMethod -> ElemMultiSet</code>. Such a method can be found in this class.
-     * Then, this map operation only splits every entry of ljpl and calls
-     * mainMethod with the two objects of the entry and the parameters predicate and secMethod.<p>
+     * Then, this map operation only splits every entry of <tt>ljpl</tt> and calls
+     * <tt>mainMethod</tt> with the two objects of the entry and the parameters <tt>predicate</tt> and <tt>secMethod</tt>.<p>
      * The signatures for predicate and secMethod have to be <code>Element x Element -> boolean</code> and
      * <code>Element x Element -> Element</code>, resp.<p>
      * The resulting sets of mainMethods are collected and stored in the result set.
      * @param ljpl the 'in' set
-     * @param mainMethod this method is called for every entry of ljpl
-     * @param predicate the predicate is passed to mainMethod
-     * @param secMethod this method is passed to mainMethod
-     * @return the union of the results of mainMethod
+     * @param mainMethod this method is called for every entry of <tt>ljpl</tt>
+     * @param predicate the predicate is passed to <tt>mainMethod</tt>
+     * @param secMethod this method is passed to <tt>mainMethod</tt>
+     * @return the union of the results of <tt>mainMethod</tt>
      */
     public static ElemMultiSet map (LeftJoinPairMultiSet ljpl, Method mainMethod, Method predicate, Method secMethod) {
 	ElemMultiSet retList = new ElemMultiSet(ELEM_COMPARATOR);
@@ -909,13 +943,14 @@ public class SetOps {
    
 
     /**
-     * Returns true, if both sets are disjoint.
-     * Takes use of the intersects() method which must be implemented for each type which implements the Element interface.
-     * An overlapJoin() is computed using that intersects() method. If the result is empty, true is returned. False otherwise.
+     * Returns <tt>true</tt>, if both sets are disjoint.
+     * Takes use of the <tt>intersects()</tt> method which must be implemented for each type which implements the {@link Element} interface.
+     * An <tt>overlapJoin()</tt> is computed using that <tt>intersects()</tt> method. If the result is empty, <tt>true</tt> is returned.
+     * <tt>false</tt> otherwise.
      *
      * @param ems1 the first set
      * @param ems2 the second set
-     * @return true, if ems1,ems2 are disjoint
+     * @return <tt>true</tt>, if <tt>ems1,ems2</tt> are disjoint
      */
     public static boolean disjoint (ElemMultiSet ems1, ElemMultiSet ems2) {
 	if (ems1 == null || ems1.isEmpty() ||
@@ -926,7 +961,7 @@ public class SetOps {
 	Class c = ems1.first().getClass();
 	
 	try {
-	    paramList[0] = Class.forName("Element");
+	    paramList[0] = Class.forName("twodsack.setelement.Element");
 	    Method intersectsM = c.getMethod("intersects",paramList);
 	    rms = overlapJoin(ems1,ems2,intersectsM,true,true,false,0);
 	} catch (Exception e) {
@@ -941,14 +976,14 @@ public class SetOps {
 
 
     /**
-     * Returns true, if both sets are equal.
-     * Uses the compare() method which must be implemented for every type which implements the Element interface.<p>
-     * Throws a WrongTypeException, if the sets are not of the same type.<p>
-     * Note, that equal((a,a,b), (a,b)) returns false.
+     * Returns true, if both sets are equal.<p>
+     * Uses the <tt>compare()</tt> method which must be implemented for every type which implements the {@link Element} interface.<p>
+     * Throws a <tt>WrongTypeException</tt>, if the sets are not of the same type.<p>
+     * Note, that <tt>equal((a,a,b), (a,b))</tt> returns <tt>false</tt>.
      *
      * @param el1 the first set
      * @param el2 the second set
-     * @return true, if both sets are equal
+     * @return <tt>true</tt>, if both sets are equal
      */
     public static boolean equal (ElemMultiSet el1, ElemMultiSet el2) throws WrongTypeException {
 	if (el1.size() != el2.size()) return false;
@@ -966,6 +1001,80 @@ public class SetOps {
     }//end method equal
     
     
+    /**
+     * For two sets <tt>E,F</tt> and a predicate <tt>p</tt> this method returns a set of {@link LeftJoinPair}s where the first elements of the pairs are elements of <tt>E</tt> and their partners are elements of <tt>F</tt>.
+     * Each element of <tt>E</tt> appears exactly once in the resulting {@link LeftJoinPairMultiSet}. For all of the partners of such an
+     * element <tt>e</tt>, <tt>p(e,g)</tt>, <tt>g</tt> element of the partner set of <tt>e</tt>, holds.<p>
+     * Given an example, if <tt>E,F</tt> are sets of triangles and <tt>p</tt> is a predicate <tt>overlap: Triangle x Triangle -> boolean</tt>.
+     * <tt>E = {a,b,c,d}, F = {e,f,g}</tt>. Now, <tt>e</tt> overlaps <tt>a,b</tt> and <tt>g</tt> overlaps <tt>a,b,c</tt>. Then the result would be:<p>
+     * <tt>{<br>
+     *  (a x {e,g}),<br>
+     *  (b x {e,g}),<br>
+     *  (c x {g}),<br>
+     *  (d x {})<br>
+     * }</tt><p>
+     * The predicate must have the signature: <tt>Element x Element -> boolean</tt>.
+     *
+     * @param ems1 the first set
+     * @param ems2 the second set
+     * @param predicate the join predicate used to construct the <tt>LeftJoinPair</tt>s
+     * @return the resulting <tt>LeftJoinPairMultiSet</tt>
+     * @see #overlapLeftOuterJoin(ElemMultiSet,ElemMultiSet,Method,boolean,boolean,boolean,int)
+     */
+    public static LeftJoinPairMultiSet leftOuterJoin (ElemMultiSet ems1, ElemMultiSet ems2, Method predicate) {
+	LeftJoinPairMultiSet retSet = new LeftJoinPairMultiSet(LEFTJOINPAIR_COMPARATOR);
+	int paramTypeCount = Array.getLength(predicate.getParameterTypes());
+	boolean predHolds = false;
+	Element[] paramList = new Element[paramTypeCount];
+	
+	Iterator it1 = ems1.iterator();
+	Iterator it2;
+	Element actElem1,actElem2;
+
+	//traverse the first set
+	while (it1.hasNext()) {
+	    actElem1 = (Element)((MultiSetEntry)it1.next()).value;
+	    
+	    //construct new LeftJoinPair and initialize values
+	    LeftJoinPair newLjp = new LeftJoinPair();
+	    newLjp.element = actElem1;
+	    newLjp.elemSet = new ElemMultiSet(ELEM_COMPARATOR);
+	    
+	    //traverse the second set
+	    it2 = ems2.iterator();
+	    while (it2.hasNext()) {
+		actElem2 = (Element)((MultiSetEntry)it2.next()).value;
+		
+		//set paramList
+		if (paramTypeCount == 1)
+		    //predicate is non-static
+		    paramList[0] = actElem2;
+		else {
+		    //predicate is static
+		    paramList[0] = actElem1;
+		    paramList[1] = actElem2;
+		}//else
+		
+		//invoke predicate
+		try {
+		    predHolds = ((Boolean)predicate.invoke(actElem1,paramList)).booleanValue();
+		} catch (Exception e) {
+		    System.out.println("Error in SetOps.leftOuterJoin: Can't invoke predicate.");
+		    e.printStackTrace();
+		}//catch
+		
+		//add element to elemSet if predHolds == true
+		if (predHolds)
+		    newLjp.elemSet.add(actElem2);
+	    }//while it2
+
+	    //add new LeftJoinPair to retSet
+	    retSet.add(newLjp);
+	}//while it1
+
+	return retSet;
+    }//end method leftOuterJoin
+
     /*
     public static LeftJoinPairList leftOuterJoin (ElemList el1, ElemList el2, Method predicate) {
 	//returns a list of LeftJoinPairs which is the result of 
@@ -1034,19 +1143,19 @@ public class SetOps {
 
 
     /**
-     * For every pair (Element x ElemMultiSet) of ljpMS the method is invoked on that pair if the predicate holds.
-     * The predicate may be NULL. If so, it is assumed, that the predicate holds for all pairs o ljpMS. Then, the
+     * For every pair <tt>(Element x ElemMultiSet)</tt> of <tt>ljpMS</tt> the method is invoked on that pair if the predicate holds.
+     * The predicate may be <tt>NULL</tt>. If so, it is assumed, that the predicate holds for all pairs of <tt>ljpMS</tt>. Then, the
      * method is invoked on all entries with no further checks.<p>
-     * For every LeftJoinPair, the method is invoked on that pair, if the predicates holds (if not NULL). Then, the
-     * result of the method invocation is stored in LeftJoinPair.elemSet, i.e. it replaces the original
-     * ElemMultiSet. The first argument of the method (the Element) remains unchanged.<p>
+     * For every {@link LeftJoinPair}, the <tt>methody</tt> is invoked on that pair, if the <tt>predicate</tt> holds (if not <tt>NULL</tt>). Then, the
+     * result of the method invocation is stored in <tt>LeftJoinPair.elemSet</tt>, i.e. it replaces the original
+     * <tt>ElemMultiSet</tt>. The first argument of the method (the <tt>Element</tt>) remains unchanged.<p>
      * The allowed signature for predicate is <code>Element x ElemMultiSet -> boolean</code>. The method must have
      * the signature <code>Element x ElemMultiSet -> ElemMultiSet</code>.
      *
      * @param ljpMS the 'in' set
-     * @param predicate it checks whether the method may be invoked on a pair; may be NULL
+     * @param predicate it checks whether the <tt>method</tt> may be invoked on a pair; may be <tt>NULL</tt>
      * @param method is invoked on each pair for which the predicate holds
-     * @return the changed leftJoinPairMultiSet
+     * @return the changed <tt>leftJoinPairMultiSet</tt>
      */
     public static LeftJoinPairMultiSet map (LeftJoinPairMultiSet ljpMS, Method predicate, Method method) {
 	boolean predOkay = (predicate != null);
@@ -1123,15 +1232,15 @@ public class SetOps {
     
 
     /**
-     * As long as a pair e1 of el1 e2 of el2 exists which predicate(e1,e2) == true, replace e1 in el with method(e1,e2).
-     * The predicate an method must have the signature <code>Element x Element -> boolean</code> and
-     * <code>Element x Element -> Element</code> (of the same type as el1), resp.<p>
-     * This is a very time-consuming operation!
+     * As long as a pair <tt>e1</tt> of <tt>el1 x e2</tt> of <tt>el2</tt> exists which <tt>predicate(e1,e2) == true</tt>, replace <tt>e1</tt> in <tt>el</tt> with <tt>method(e1,e2)</tt>.
+     * The <tt>predicate</tt> and <tt>method</tt> must have the signature <code>Element x Element -> boolean</code> and
+     * <code>Element x Element -> Element</code> (of the same type as <tt>el1</tt>), resp.<p>
+     * This is a very expensive operation w.r.t. time consumption!
      *
      * @param el1 the first set
      * @param el2 the second set
-     * @param predicate chooses the candidates for method
-     * @param method is invoked on candidates selected by predicate
+     * @param predicate chooses the candidates for <tt>method</tt>
+     * @param method is invoked on candidates selected by <tt>predicate</tt>
      * @return the 'subtracted' set
      */
     public static ElemMultiSet subtract (ElemMultiSet el1, ElemMultiSet el2, Method predicate, Method  method) {
@@ -1243,14 +1352,15 @@ public class SetOps {
 
 
     /**
-     * Returns a pair of elements which returns the maximum value of all possible pairs of ems1,ems2 using method.
-     * All pairs of e1 of ems1 and e2 of ems2 are checked for their return value of method(e1,e2). That pair, which returns
+     * Returns a pair of elements which returns the maximum value of all possible pairs of <tt>ems1,ems2</tt> using method.<p>
+     * All pairs of <tt>e1</tt> of <tt>ems1</tt> and <tt>e2</tt> of <tt>ems2</tt> are checked for their return value of
+     * <tt>method(e1,e2)</tt>. That pair, which returns
      * the maximum value of all pairs, is returned.<p>
      * The passed method must have the signature <code>Element x Element -> Rational</code>.
      *
      * @param ems1 the first set
      * @param ems2 the second set
-     * @param method the method that is used to compute the values for ElemPair(s)
+     * @param method the method that is used to compute the values for <tt>ElemPair</tt>(s)
      * @return the pair with the maximum value
      */
     public static ElemPair max (ElemMultiSet ems1, ElemMultiSet ems2, Method method) {
@@ -1320,14 +1430,15 @@ public class SetOps {
 
 
     /**
-     * Returns a pair of elements which returns the minimum value of all possible pairs of ems1,ems2 using method.
-     * All pairs of e1 of ems1 and e2 of ems2 are checked for their return value of method(e1,e2). That pair, which returns
+     * Returns a pair of elements which returns the minimum value of all possible pairs of <tt>ems1,ems2</tt> using method.<p>
+     * All pairs of <tt>e1</tt> of <tt>ems1</tt> and <tt>e2</tt> of <tt>ems2</tt> are checked for their return value of
+     * <tt>method(e1,e2)</tt>. That pair, which returns
      * the minimum value of all pairs, is returned.<p>
      * The passed method must have the signature <code>Element x Element -> Rational</code>.
      *
      * @param el1 the first set
      * @param el2 the second set
-     * @param method the method that is used to compute the values for ElemPair(s)
+     * @param method the method that is used to compute the values for <tt>ElemPair</tt>(s)
      * @return the pair with the maximum value
      */
     public static ElemPair min (ElemMultiSet el1, ElemMultiSet el2, Method method) {
@@ -1404,20 +1515,20 @@ public class SetOps {
     
 
     /**
-     * As long as a pair e1,e2 of el exists with predicate(e1,e2) == true, replace both elements by method(e1,e2).
-     * The reduce operation traverses the set el and searches for pairs of elements for which the predicate holds.
-     * If such a pair is found, both elements are removed from the set and the result of the method invoked on that
+     * As long as a pair <tt>e1,e2</tt> of <tt>el</tt> exists with <tt>predicate(e1,e2) == true</tt>, replace both elements by <tt>method(e1,e2)</tt>.<p>
+     * The reduce operation traverses the set <tt>el</tt> and searches for pairs of elements for which the <tt>predicate</tt> holds.
+     * If such a pair is found, both elements are removed from the set and the result of the <tt>method</tt> invoked on that
      * pair is added to the set. If, at some point, no such pair can be found, reduce exits and returns the 'reduced' set.<p>
-     * The predicate must have the signature <code>Element x Element -> boolean</code>. The method must have the signature
+     * The <tt>predicate</tt> must have the signature <code>Element x Element -> boolean</code>. The <tt>method</tt> must have the signature
      * <code>Element x Element -> Element</code> (of the same type).<p>
-     * This method is very time consuming. Some other implementations of reduce exist and can be found in this class.
+     * This method is very time consuming. Some other implementations of <tt>reduce</tt> exist and can be found in this class.
      *
      * @param el the 'in' set that shall be reduced
      * @param predicate checks for candidates for the method
      * @param method is invoked on the candidates found by the predicate
      * @return the 'reduced' set
-     * @see #overlapReduce
-     * @see #overlapReduceSweep
+     * @see #overlapReduce(ElemMultiSet,Method,Method,boolean,boolean,boolean,int)
+     * @see #overlapReduceSweep(ElemMultiSet,Method,Method,boolean)
      */
     public static ElemMultiSet reduce (ElemMultiSet el, Method predicate, Method method) {
 	ElemMultiSet retSet = el.copy();
@@ -1435,11 +1546,11 @@ public class SetOps {
 	boolean metTypeElemMultiSet = false;
 
 	try {
-	    if (method.getReturnType().isInstance(Class.forName("Element")) ||
-		method.getReturnType().getSuperclass().isAssignableFrom(Class.forName("Element"))) {
+	    if (method.getReturnType().isInstance(Class.forName("twodsack.setelement.Element")) ||
+		method.getReturnType().getSuperclass().isAssignableFrom(Class.forName("twodsack.setelement.Element"))) {
 		metTypeElement = true; }
-	    if (method.getReturnType().isInstance(Class.forName("ElemMultiSet")) ||
-		method.getReturnType().getSuperclass().isAssignableFrom(Class.forName("ElemMultiSet"))) {
+	    if (method.getReturnType().isInstance(Class.forName("twodsack.set.ElemMultiSet")) ||
+		method.getReturnType().getSuperclass().isAssignableFrom(Class.forName("twodsack.set.ElemMultiSet"))) {
 		metTypeElemMultiSet = true; }
 	}//try
 	catch (Exception e) {
@@ -1543,6 +1654,57 @@ public class SetOps {
     }//end method reduce
     
 
+    /**
+     * From two sets <tt>E,F</tt> and a predicate <tt>p</tt> this method computes a set of pairs <tt>(e,f)</tt> with <tt>e</tt> element of
+     * <tt>E</tt>, <tt>f</tt> element of <tt>F</tt> and <tt>p(e,f) == true</tt>.<p>
+     * The predicate's signature must be <tt>Element x Element -> boolean</tt>. This method uses a O(n²) algorithm.
+     *
+     * @param ems1 the first set
+     * @param ems2 the second set
+     * @param predicate the join predicate
+     * @return the set of pairs
+     * @see #overlapJoin(ElemMultiSet,ElemMultiSet,Method,boolean,boolean,boolean,int)
+     */
+    public static PairMultiSet join (ElemMultiSet ems1, ElemMultiSet ems2, Method predicate) {
+	PairMultiSet retSet = new PairMultiSet(new ElemPairComparator());
+	if (ems1 == null || ems2 == null || ems1.isEmpty() || ems2.isEmpty()) return retSet;
+	
+	int paramTypeCount = Array.getLength(predicate.getParameterTypes());
+	Element[] paramList = new Element[paramTypeCount];
+
+	Iterator it1 = ems1.iterator();
+	Iterator it2;
+	Element actElem1, actElem2;
+	
+	while (it1.hasNext()) {
+	    actElem1 = (Element)((MultiSetEntry)it1.next()).value;
+	    it2 = ems2.iterator();
+	    while (it2.hasNext()) {
+		actElem2 = (Element)((MultiSetEntry)it2.next()).value;
+		
+		if (paramTypeCount == 1)
+		    //predicate is non-static
+		    paramList[0] = actElem2;
+		else {
+		    //predicate is static
+		    paramList[0] = actElem1;
+		    paramList[1] = actElem2;
+		}//else
+		
+		//invoke predicate
+		try {
+		    if (((Boolean)predicate.invoke(actElem1,paramList)).booleanValue())
+			retSet.add(new ElemPair(actElem1,actElem2));
+		} catch (Exception e) {
+		    System.out.println("Error in SetOps.join: Wasn't able to invoke predicate.");
+		    e.printStackTrace();
+		}//catch
+	    }//while it2
+	}//while it1
+
+	return retSet;
+    }//end method join
+
     /*
     public static PairMultiSet join (ElemMultiSet el1, ElemMultiSet el2, Method predicate) {
 	//computes the JOIN on el1,el2 using predicate
@@ -1596,9 +1758,9 @@ public class SetOps {
 
     
     /**
-     * Invokes the passed method on each pair of the passed PairMultiSet. The result is collected and returned.
+     * Invokes the passed method on each pair of the passed PairMultiSet. The result is collected and returned.<p>
      * The method must have the signature <code>Element x Element -> Element</code> or 
-     * <code>Element x Element -> ElemMultiSet.<p>
+     * <tt>Element x Element -> ElemMultiSet</tt>.<p>
      * At the end, duplicates are removed.
      *
      * @param pl the set of ElemPair(s)
@@ -1614,11 +1776,11 @@ public class SetOps {
 	boolean metTypeElement = false;
 	boolean metTypeElemList = false;
 	try {
-	    if (method.getReturnType().isInstance(Class.forName("Element")) ||
-		method.getReturnType().getSuperclass().isAssignableFrom(Class.forName("Element"))) {
+	    if (method.getReturnType().isInstance(Class.forName("twodsack.setelement.Element")) ||
+		method.getReturnType().getSuperclass().isAssignableFrom(Class.forName("twodsack.setelement.Element"))) {
 		metTypeElement = true; }
-	    if (method.getReturnType().isInstance(Class.forName("ElemMultiSet")) ||
-		method.getReturnType().getSuperclass().isAssignableFrom(Class.forName("ElemMultiSet"))) {
+	    if (method.getReturnType().isInstance(Class.forName("twodsack.set.ElemMultiSet")) ||
+		method.getReturnType().getSuperclass().isAssignableFrom(Class.forName("twodsack.set.ElemMultiSet"))) {
 		metTypeElemList = true; }
 	}//try
 	catch (Exception e) {
@@ -1679,16 +1841,16 @@ public class SetOps {
     
 
     /**
-     * Invokes the method on every element of the set and returns the resulting set.
+     * Invokes the method on every element of the set and returns the resulting set.<p>
      * Duplicates are removed afterwards.<p>
-     * The signature of the method m must be one of
-     * <code>Element -> Element</code>,
-     * <code>Element -> ElemMultiSet</code> or
+     * The signature of the method <tt>m</tt> must be one of
+     * <code>Element -> Element</code>,<p>
+     * <code>Element -> ElemMultiSet</code> or<p>
      * <code>Element -> Element[]</code>.
      *
      * @param el the 'in' set
-     * @param m the method that is invoked on the elements of el
-     * @return the changed el
+     * @param m the method that is invoked on the elements of <tt>el</tt>
+     * @return the changed <tt>el</tt>
      */
     public static ElemMultiSet map (ElemMultiSet el, Method m) {
 	ElemMultiSet retList = new ElemMultiSet(ELEM_COMPARATOR);
@@ -1699,11 +1861,11 @@ public class SetOps {
 	try {
 	    mRetTypeElemArray = m.getReturnType().isArray();
 	    if (!mRetTypeElemArray) {
-		mRetTypeElem = (m.getReturnType().isInstance(Class.forName("Element")) ||
-				m.getReturnType().getSuperclass().isAssignableFrom(Class.forName("Element")));
+		mRetTypeElem = (m.getReturnType().isInstance(Class.forName("twodsack.setelement.Element")) ||
+				m.getReturnType().getSuperclass().isAssignableFrom(Class.forName("twodsack.setelement.Element")));
 		if (!mRetTypeElem)
-		    mRetTypeElemMultiSet = (m.getReturnType().isInstance(Class.forName("ElemMultiSet")) ||
-					    m.getReturnType().getSuperclass().isAssignableFrom(Class.forName("ElemMultiSet"))); 
+		    mRetTypeElemMultiSet = (m.getReturnType().isInstance(Class.forName("twodsack.set.ElemMultiSet")) ||
+					    m.getReturnType().getSuperclass().isAssignableFrom(Class.forName("twodsack.set.ElemMultiSet"))); 
 	    }//if
 	} catch (Exception e) {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
@@ -1760,11 +1922,11 @@ public class SetOps {
 
     /**
      * Returns the disjoint union of both sets.
-     * This means that disjointUnion((a,b),(b,c)) -> (a,b,b,c).
+     * This means that <tt>disjointUnion((a,b),(b,c)) -> (a,b,b,c)</tt>.
      *
      * @param el1 the first set
      * @param el2 the second set
-     * @return the disjoint union of el1,el2
+     * @return the disjoint union of <tt>el1,el2</tt>
      */
     public static ElemMultiSet disjointUnion (ElemMultiSet el1, ElemMultiSet el2) {
 	ElemMultiSet eUnion = el1.copy();
@@ -1775,14 +1937,14 @@ public class SetOps {
     
 
     /**
-     * Returns the intersecion of both sets.
-     * This means that intersection((a,b),(b,c)) -> (b).<p>
-     * This method uses the compare() method which must be implemented for any type that implements the Element interface and
+     * Returns the intersecion of both sets.<p>
+     * This means that <tt>intersection((a,b),(b,c)) -> (b)</tt>.<p>
+     * This method uses the <tt>compare()</tt> method which must be implemented for any type that implements the Element interface and
      * throws a WrongTypeException if the sets are not of the same type.
      *
      * @param el1In the first set
      * @param el2In the second set
-     * @return the intersection of el1In,el2In
+     * @return the intersection of <tt>el1In,el2In</tt>
      * @throws WrongTypeException
      */
     public static ElemMultiSet intersection (ElemMultiSet el1In, ElemMultiSet el2In) throws WrongTypeException {
@@ -1829,14 +1991,14 @@ public class SetOps {
     
 
     /**    
-     * Returns the difference of the two sets.
-     * This means that difference((a,b,c),(a,b)) -> (c).<p>
-     * This method uses the compare() method which must be implemented for any type that implements the Element interface and
+     * Returns the difference of the two sets.<p>
+     * This means that <tt>difference((a,b,c),(a,b)) -> (c)</tt>.<p>
+     * This method uses the <tt>compare()</tt> method which must be implemented for any type that implements the <tt>Element</tt> interface and
      * throws a WrongTypeException if the sets are not of the same type.
      *
      * @param el1 the first set
      * @param el2 the second set
-     * @return the difference of el - el2
+     * @return the difference <tt>el - el2</tt>
      * @throws WrongTypeException
      */
     public static ElemMultiSet difference (ElemMultiSet el1, ElemMultiSet el2) throws WrongTypeException {
@@ -1893,11 +2055,11 @@ public class SetOps {
 
     /**
      * Removes the duplicates from the (multi-)set.
-     * As an ElemMultiSet is a set that allows duplicates, this method removes all duplicates, i.e.
-     * rdup((a,b,b,c)) -> (a,b,c).
+     * As an ElemMultiSet is a set type that allows duplicates, this method removes all duplicates, i.e.
+     * <tt>rdup((a,b,b,c)) -> (a,b,c)</tt>.
      *
      * @param elIn the 'in' set
-     * @return elIn without duplicates
+     * @return <tt>elIn</tt> without duplicates
      * @throws WrongTypeException
      */
     public static ElemMultiSet rdup (ElemMultiSet elIn) throws WrongTypeException {
@@ -1917,10 +2079,10 @@ public class SetOps {
 
     /**
      * Removes from the set all elements which are found more than once.
-     * This means that rdup2((a,b,b,c)) -> (a,c).
+     * This means that <tt>rdup2((a,b,b,c)) -> (a,c)</tt>.
      *
      * @param elIn the 'in' set
-     * @return elIn without any duplicates
+     * @return <tt>elIn</tt> without any duplicates
      */     
     public static ElemMultiSet rdup2 (ElemMultiSet elIn) {
 	Iterator it = elIn.iterator();
@@ -1936,13 +2098,13 @@ public class SetOps {
 
 
     /**
-     * Computes the union of both sets.
-     * This means that union((a,b),(b,c)) -> (a,b,c). The duplicates are removed.
-     * A WrongTypeException is thrown, if the sets are not of the same type.
+     * Computes the union of both sets.<p>
+     * This means that <tt>union((a,b),(b,c)) -> (a,b,c)</tt>. The duplicates are removed.
+     * A <tt>WrongTypeException</tt> is thrown, if the sets are not of the same type.
      *
      * @param el1 the first set
      * @param el2 the second set
-     * @return the union of el1,el2
+     * @return the union of <tt>el1,el2</tt>
      * @throws WrongTypeException
      */
     public static ElemMultiSet union (ElemMultiSet el1, ElemMultiSet el2) throws WrongTypeException {
@@ -1953,12 +2115,12 @@ public class SetOps {
     
 
     /**
-     * Sums up the results of method m invoked on every element of the set.
-     * Method m must have the signature <code>Element -> double</code>.
+     * Sums up the results of method <tt>m</tt> invoked on every element of the set.
+     * Method <tt>m</tt> must have the signature <code>Element -> double</code>.
      *
      * @param ems the 'in' set
      * @param m the method that is invoked on the elements of ems
-     * @return the sum of the results of m's invocation
+     * @return the sum of the results of <tt>m</tt>'s invocation
      */
     public static double sum (ElemMultiSet ems, Method m) {
 	double retSum = 0;
@@ -1983,32 +2145,32 @@ public class SetOps {
     
 
     /**
-     * Computes for two sets of geometrical objects a set of object pairs for which holds, that their bounding boxes overlap.
+     * Computes for two sets of geometrical objects a set of object pairs for which holds, that their bounding boxes overlap.<p>
      * This method implements a pretty complex DAC algorithm which is not described here.<p>
      * In general, pairs are computed for objects of two sets (which don't have to be of the same type). But, when using the 
-     * sameSet flag, one may indicate that the sets passed are actually the same object. In that case, all pairs of identical
-     * objects are removed. To clarify this: If overlappingPairs is invoked on (e1,e2,e3...) x (f1,f2,f3) one would get (at least)
-     * the pairs (e1,f1),(e2,f2),(e3,f3) because (e1,f2) etc. are identical and therefore have overlapping bounding boxes.
-     * If the sameSet flag is set, these pairs are not found in the resulting set.<p>
-     * Using the meet flag, the overlap of the object's bounding boxes is not required. Now, adjacency of bounding boxes is
+     * <tt>sameSet</tt> flag, one may indicate that the sets passed are actually the same object. In that case, all pairs of identical
+     * objects are removed. To clarify this: If <tt>overlappingPairs</tt> is invoked on <tt>(e1,e2,e3...) x (f1,f2,f3)</tt> one would get (at least)
+     * the pairs <tt<(e1,f1),(e2,f2),(e3,f3)</tt< because <tt>(e1,f2)</tt> etc. are identical and therefore have overlapping bounding boxes.
+     * If the <tt>sameSet</tt> flag is set, these pairs are not found in the resulting set.<p>
+     * Using the <tt>meet</tt> flag, an overlap of the object's bounding boxes is not required. Now, adjacency of bounding boxes is
      * sufficient for an object pair to be stored in the result set.<p>
-     * If the bboxFilter flag is set, first the bounding box of the complete sets el1,el2 is computed, i.e. that complete bounding box
-     * includes <u>all</u> of the set's objects. Then, all object's bounding boxes of el1 are checked against the el2 complete box.*
-     * Objects with boxes that don't intersect the set's box are removed. The same is done for the elements of el2 and the box of el1.
+     * If the <tt>bboxFilter</tt> flag is set, first the bounding box of the complete sets <tt>el1,el2</tt> is computed, i.e. that complete bounding box
+     * includes <u>all</u> of the set's objects. Then, all object's bounding boxes of <tt>el1</tt> are checked against the <tt>el2</tt> complete box.*
+     * Objects with boxes that don't intersect the set's box are removed. The same is done for the elements of <tt>el2</tt> and the box of <tt>el1</tt>.
      * <p>
-     * When using the earlyExit flag, the setNumber is evaluated. This number must be 1 or 2 and specifies one of the two sets. When,
-     * during the execution of bboxFilter one object of that set is removed for the reason that it doesn't overlap the big box
-     * of the other set, a NoOverlappingBoxFoundException is thrown.<p>
-     * Note, that the earlyExit flag can <u>only</u> be used together with the bboxFilter flag and the setNumber.
+     * When using the <tt>earlyExit</tt> flag, the <tt>setNumber</tt> is evaluated. This number must be 1 or 2 and specifies one of the two sets. When,
+     * during the execution of <tt>bboxFilter</tt> one object of that set is removed for the reason that it doesn't overlap the big box
+     * of the other set, a <tt>NoOverlappingBoxFoundException</tt> is thrown.<p>
+     * Note, that the <tt>earlyExit</tt> flag can <u>only</u> be used together with the <tt>bboxFilter</tt> flag and the <tt>setNumber</tt>.
      *
      * @param el1 the first set
      * @param el2 the second set
-     * @param sameSet choose true, if identical pairs should not be reported in the case that el1 == el2
-     * @param meet set to true, if adjancency for bounding boxed should suffice instead of overlap
-     * @param bboxFilter use true, if a filter step should be used to reduce the number of objects
-     * @param earlyExit if set to true, an NoOverlappingboxException will be thrown, if one element of the set specified by
+     * @param sameSet choose <tt>true</tt>, if identical pairs should not be reported in the case that <tt>el1 == el2</tt>
+     * @param meet set to <tt>true</tt>, if adjancency for bounding boxed should suffice instead of overlap
+     * @param bboxFilter use <tt>true</tt>, if a filter step should be used to reduce the number of objects
+     * @param earlyExit if set to <tt>true</tt>, an <tt>NoOverlappingboxException</tt> will be thrown, if one element of the set specified by
      * setNumber finds no partner
-     * @param setNumber specifies the set for earlyExit
+     * @param setNumber specifies the set for <tt>earlyExit</tt>
      * @return the set of object pairs which all have overlapping (or adjacent) bounding boxes
      * @throws NoOverlappingBoxFoundException
      */
@@ -2046,11 +2208,9 @@ public class SetOps {
 	    intStore[i] = new ProLinkedList(); }
 	
 	PairMultiSet pairList = new PairMultiSet(new ElemPairComparator());
-	int tmpCalls = ProLinkedList.countAccess;
 	int idx1 = 0;
 	int idx2 = ivlArr.length-1;
 	ResultList rl = computeOverlaps(intStore,inlist,sameSet,el1.size(),pairList,ivlArr,idx1,idx2);
-	int tmpCall2 = ProLinkedList.countAccess;
 	
 	return pairList;
     }//end method overlappingPairs
@@ -2068,8 +2228,8 @@ public class SetOps {
      * @param size the size of the first (initial)set
      * @param resultingPairs the set of pairs which has to be computed
      * @param ivlArr stores the left and right border intervals of the objects bounding boxes
-     * @param idx1 defines the actual left index on ivlArr
-     * @param idx2 defines the acutal right index on ivlArr
+     * @param idx1 defines the actual left index on <tt>ivlArr</tt>
+     * @param idx2 defines the acutal right index on <tt>ivlArr</tt>
      * @return the new ResulList structure
      */
     private static ResultList computeOverlaps(ProLinkedList[] intStore, ResultList il, boolean sameSet, int size, PairMultiSet resultingPairs,Object[] ivlArr, int idx1, int idx2) {
@@ -2193,16 +2353,16 @@ public class SetOps {
     
 
     /**
-     * Constructs a set of intervals which are the border intervals form the bounding boxes of el1's and el2's objects.
-     * This is a supportive method for the overlappingPairs method. From the elements of el1,el2, the vertical intervals
+     * Constructs a set of intervals which are the border intervals form the bounding boxes of <tt>el1</tt>'s and <tt>el2</tt>'s objects.
+     * This is a supportive method for the <tt>overlappingPairs</tt> method. From the elements of <tt>el1,el2</tt>, the vertical intervals
      * of the bounding boxes are taken and stored as intervals in the resulting MultiSet. All elements of el1 are marked
-     * with "blueleft" or "blueright" and elements of el2 are marked with "greenleft" and "greenright". Additionally,
+     * with "blueleft" or "blueright" and elements of <tt>el2</tt> are marked with "greenleft" and "greenright". Additionally,
      * all bounding boxes get a number which is assigned to the intervals. A flag is set for every interval, whether
      * the partner of an inerval is located at the same x-coordinate or not.
      *
      * @param el1 the first set
      * @param el2 the second set
-     * @param meet true, if adjacency of bounding boxes suffices for reporting it in the result set
+     * @param meet <tt>true</tt>, if adjacency of bounding boxes suffices for reporting it in the result set
      * @return the MultiSet with the intervals
      */
     static private MultiSet generateIntervalList (ElemMultiSet el1, ElemMultiSet el2, boolean meet) {
@@ -2281,8 +2441,8 @@ public class SetOps {
 
     /**
      * Sorts the input list using mergesort.
-     * First, elements are sorted using their compareX() method, then using their compareY() method.<p>
-     * This method may <i>only</i> used for Element lists.
+     * First, elements are sorted using their <tt>compareX()</tt> method, then using their <tt>compareY()</tt> method.<p>
+     * This method may <i>only</i> used for <tt>Element</tt> lists.
      * 
      * @param el the unsorted list
      * @return the sorted list
@@ -2293,7 +2453,7 @@ public class SetOps {
 
 
     /**
-     * This is a supportive method for mergesortXY.
+     * This is a supportive method for {@link #mergesortXY(LinkedList)}.
      *
      * @param list the list to be sorted
      * @param lo the bottom index
@@ -2313,12 +2473,12 @@ public class SetOps {
 
 
     /**
-     * Supportive method for mergesXY
+     * Supportive method for {@link #mergesXY(LinkedList,int,int)}.
      *
      * @param list the list to be sorted
      * @param lo the bottom index
      * @param hi the top index
-     * @return the list that is sorted from lo to hi
+     * @return the list that is sorted from <tt<lo</tt> to <tt>hi</tt>
      */
     private static void mergeXY(LinkedList list, int lo, int hi) {
 	int i,j,k,m,n = hi-lo+1;
@@ -2360,11 +2520,11 @@ public class SetOps {
  
     
     /**
-     * Returns the subsets of elements which bounding boxes overlap the bounding box of the element set of the other set.
+     * Returns the subsets of elements which bounding boxes overlap the bounding box of the element set of the other set.<p>
      * The bounding boxes for every passed set is computed first. Then, the intersection of these bounding boxes,
      * which is again a rectangle and can be described as the "convex hull rectangle", is computed.
      * Afterwards, the elements of both sets are compared to this convex hull rectangle. If the bounding box of such
-     * an elment has at least one common point with the hull, it belongs to the subset for a set. Subsets are computed
+     * an element has at least one common point with the hull, it belongs to the subset for a set. Subsets are computed
      * for both sets and are returned in an array.
      * The parameter <code>earlyExit</code> can be used to stop the execution of the calling algorithm. Therefore, 
      * a <code>setNumber</code> is passed together with <code>earlyExit</code>. If <code>true</code>,
@@ -2373,9 +2533,9 @@ public class SetOps {
      *
      * @param ems1 the first set of elements
      * @param ems2 the second set of elements
-     * @param earlyExit must be true, if execution shall be stopped
-     * @param setNumber the number of the set which is examined if earlyExit = true
-     * @return the subset
+     * @param earlyExit must be <tt>true</tt>, if execution shall be stopped
+     * @param setNumber the number of the set which is examined if <tt>earlyExit == true</tt>
+     * @return the subsets
      */
     public static ElemMultiSet[] bboxFilter (ElemMultiSet ems1, ElemMultiSet ems2, boolean earlyExit, int setNumber)
 	throws NoOverlappingBoxFoundException {

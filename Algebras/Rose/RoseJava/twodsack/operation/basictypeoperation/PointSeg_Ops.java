@@ -14,8 +14,8 @@ import twodsack.util.number.*;
 import java.util.*;
 
 /**
- * The PointSeg_Ops class holds methods which all have one point value and one segment value as
- * parameters. All of these methods also could have been implemented in class Point or class Segment
+ * The PointSeg_Ops class holds methods which all have one {@link Point} object and one {@link Segment} object as parameters.
+ * All of these methods also could have been implemented in class Point or class Segment
  * or both. The decision to put them in this class is debatable to some point, but it's better to
  * have them collected in one class instead of implementing them more than once.<p>
  * However, when searching for a specific operation with Point/Segment as parameters in some cases
@@ -29,25 +29,30 @@ public class PointSeg_Ops {
     static final double DERIV_DOUBLE = RationalFactory.readDerivDouble();
     static final double DERIV_DOUBLE_NEG = RationalFactory.readDerivDoubleNeg();
     static final double DERIV_DOUBLE_PLUS1 = DERIV_DOUBLE+1;
-    protected static boolean PRECISE;
-    protected static boolean preciseDefined;
+    private static boolean PRECISE;
+    private static boolean preciseDefined;
     
     
     /*
      *constructors
      */
-    
+    /**
+     * The standard constructor.
+     */
+    public PointSeg_Ops(){}
+
+
     /*
      * methods
      */
     /**
-     * Returns true, if the point p lies on the segment s.
-     * A point is considered to lie on a segment if the segment <u>coveres</u> the point, i.e.
-     * in the special case that a point is an endpoint of the segment, this method returns true.
+     * Returns <tt>true</tt>, if the point <tt>p</tt> lies on the segment <tt>s</tt>.
+     * A point is considered to lie on a segment if the segment <u>covers</u> the point, i.e.
+     * in the special case that a point is an endpoint of the segment, this method returns <tt>true</tt>.
      *
      * @param p the point
      * @param s the segment
-     * @return true, if the point is covered by the segment
+     * @return <tt>true</tt>, if the point is covered by the segment
      */
     public static boolean liesOn(Point p, Segment s) {
 	if (!preciseDefined) {
@@ -123,11 +128,11 @@ public class PointSeg_Ops {
     
 
     /**
-     * Returns true, if p is an endpoint of s.
+     * Returns true, if <tt>p</tt> is an endpoint of <tt>s</tt>.
      *
      * @param p the point
      * @param s the segment
-     * @return returns true, if one of the segment's endpoints equals p
+     * @return returns <tt>true</tt>, if one of the segment's endpoints equals <tt>p</tt>
      */
     public static boolean isEndpoint(Point p, Segment s) {
 	return (p.equal(s.getEndpoint()) || p.equal(s.getStartpoint()));

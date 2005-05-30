@@ -13,15 +13,24 @@ import twodsack.util.*;
 
 
 /**
- * This class implements the Vertex type for {@link twodsack.util.graph}. It is the counterpart to the {@link twodsack.util.graph.Edge}. A vertex
- * consist of a value field (where the object is stored) and a number. The number is an int value to identify the vertex. Only objects of type
- * Element can be stored inside of a vertex.
+ * This class implements the Vertex type for {@link twodsack.util.graph}.<p>
+ * It is the counterpart to the {@link twodsack.util.graph.Edge}. A vertex
+ * consist of a {@link #value} field (where the object is stored) and a {@link #number}. The <tt>number</tt> is an <tt>int</tt> value to
+ * identify the vertex. Only objects of type {@link Element} can be stored inside of a vertex.
  */
 public class Vertex implements ComparableMSE {
     /*
      * fields
      */
+    /**
+     * Object types can be stored in this field.
+     */
     public Object value;
+
+
+    /**
+     * An <tt>int</tt> number to identify each vertex.
+     */
     public int number;
 
 
@@ -29,7 +38,7 @@ public class Vertex implements ComparableMSE {
      * constructors
      */
     /**
-     * Constructs a new vertex from an Element type and a number.
+     * Constructs a new vertex from an <tt>Element</tt> type and a number.
      */
     public Vertex(Element val, int num) {
 	value = val;
@@ -60,8 +69,8 @@ public class Vertex implements ComparableMSE {
 
 
     /**
-     * Returns true, if the objects stored in both Vertex instances are equal.
-     * For the equality check the equal() method implemented for all objects of type Element is used.
+     * Returns <tt>true</tt>, if the objects stored in both Vertex instances are equal.<p>
+     * For the equality check the <tt>equal()</tt> method implemented for all objects of type {@link Element} is used.
      *
      * @param inVer the vertex to compare with
      * @return true, if both objects stored in the value fields are equal
@@ -73,15 +82,15 @@ public class Vertex implements ComparableMSE {
 
 
     /**
-     * Compares both Vertex instances and returns one of {0, 1, -1}.
-     * For the comparison the compare method implemented for all objects of type Element is used.<p>
+     * Compares both Vertex instances and returns one of {0, 1, -1}.<p>
+     * For the comparison the compare method implemented for all objects of type <tt>Element</tt> is used.<p>
      * Returns 0, if both objects are equal.<p>
      * Returns -1, if <i>this.value</i> is smaller than <i>inVertex.value</i>.<p>
      * Returns 1 otherwise
      *
      * @param inVertex the vertex to compare with
-     * @return one of {0, 1, -1} as int
-     * @throws WrongTypeException if inVertex.value is not of type Vertex
+     * @return one of {0, 1, -1} as <tt>int</tt>
+     * @throws WrongTypeException if <tt>inVertex.value</tt> is not of type Vertex
      */
     public int compare(ComparableMSE inVertex) throws WrongTypeException {
 	Vertex inV;

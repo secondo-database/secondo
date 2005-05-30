@@ -13,7 +13,7 @@ public class NoOverlapException extends RuntimeException {
     /**
      * The 'empty' constructor.
      */
-    NoOverlapException() { super(); }
+    public NoOverlapException() { super(); }
 
 
     /**
@@ -21,5 +21,5 @@ public class NoOverlapException extends RuntimeException {
      *
      * @param s the error message
      */
-    NoOverlapException(String s) { super(s); }
+    public NoOverlapException(String s) { super(s); }
 }//end class NoOverlapException

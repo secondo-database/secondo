@@ -8,7 +8,7 @@
 package twodsack.util.number;
 
 /**
- * This exception is thrown, when a division by zero occurs.
+ * This exception is thrown when a division by zero occurs.
  * Usually, this should be avoided by the implementor of the method.
  */
 public class DivisionByZeroException extends RuntimeException {

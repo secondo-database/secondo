@@ -52,6 +52,15 @@ public class SupportOps {
     final static TriangleComparator TRIANGLE_COMPARATOR = new TriangleComparator();
 
 
+    /*
+     * constructors
+     */
+    /**
+     * Don't use this constructor.
+     */
+    private SupportOps(){}
+
+
     /**
      * For a set of segments, <code>minimal</code> tests this set for adjacent segments and concats them.
      * This method is ment to be used for the border of a <code>Polygons</code> instance, but can be
@@ -63,12 +72,10 @@ public class SupportOps {
      * @param sl the set of segments
      * @param overlap If <code>false</code>, the more robust but slow <code>SetOps.reduce()</code> is
      * used to find pairs of adjacent segments. Otherwise, <code>SetOps.overlapReduceSweep</code> is used.
-     * @param bboxFilter if true, a bounding box filter is applied (may reduce the time spent for this operation)
+     * @param bboxFilter if <tt>true</tt>, a bounding box filter is applied (may reduce the time spent for this operation)
      * @return the new, reduced set of segments as <code>SegMultiSet</code>
      */
     public static SegMultiSet minimal (SegMultiSet sl, boolean overlap, boolean bboxFilter) {
-	//System.out.println("\nentering ROSEA.minimal...");
-	
 	SegMultiSet retList = new SegMultiSet(SEGMENT_COMPARATOR);
 	Class c = ssOpsClass;
 
@@ -96,14 +103,14 @@ public class SupportOps {
 	    e.printStackTrace();
 	    System.exit(0);
 	}//catch
-	//System.out.println("leaving SUPPO.minimal.");
+
 	return retList;
     }//end method minimal
 
 
     /**
-     * For a set of segments, <code>unique</code> finds pairs of overlapping pairs and removes the overlapping part.
-     * Generally, this method is used to compute the contour for a <code>Polygons</code> instance.
+     * For a set of segments, <code>unique</code> finds pairs of overlapping pairs and removes the overlapping part.<p>
+     * Generally, this method is used to compute the contour of a <code>Polygons</code> instance.
      * In that case, the passed set of segments consists of all border segments of the triangles
      * representing the <code>Polygons</code> instance. Nevertheless, this method can be applied on
      * an arbitrary set of segments.
@@ -114,7 +121,7 @@ public class SupportOps {
      * @param sl the set of segments
      * @param overlap If <code>false</code>, the more robust but slow <code>SetOps.reduce()</code> is
      * used to find pairs of overlapping segments. Otherwise, <code>SetOps.overlapReduce</code> is used.
-     * @param bboxFilter if true, a bounding box filter is used (may help to reduce time spent)
+     * @param bboxFilter if <tt>true</tt>, a bounding box filter is used (may help to reduce time spent)
      * @return the new, reduced set of segments as <code>SegMultiSet</code>
      */
     public static SegMultiSet unique (SegMultiSet sl, boolean overlap, boolean bboxFilter) {
@@ -157,7 +164,7 @@ public class SupportOps {
 
 
     /**
-     * The contour of a triangle set (representing a polygon) is computed with this method.
+     * The contour of a triangle set (representing a polygon) is computed with this method.<p>
      * This is done in three steps:
      * <p><ol>
      * <li>decomposition of all triangles into their segments</li>
@@ -176,8 +183,8 @@ public class SupportOps {
      * @param computeMinimalSet if <code>true</code>, <code>minimal</code> is used to reduce the set of segments in the
      *                          resulting set
      * @return the contour as <code>SegMultiSet</code>
-     * @see #minimal
-     * @see #unique
+     * @see #minimal(SegMultiSet,boolean,boolean)
+     * @see #unique(SegMultiSet,boolean,boolean)
      */
     public static SegMultiSet contourGeneral (TriMultiSet tl,boolean minOverlap,boolean uniOverlap,boolean bboxFilter, boolean computeMinimalSet) {
 	Class c = triClass;
@@ -202,15 +209,15 @@ public class SupportOps {
 
 
     /**
-     * The contour of a triangle set (representing a polygon) is computed with this method.
+     * The contour of a triangle set (representing a polygon) is computed with this method.<p>
      * When using this method instead of <code>contourGeneral</code> it is assumed, that the triangle set
      * was computed using the methods of class {@link twodsack.setelement.datatype.compositetype.Polygons}. In that case, bounding segments of the 
      * triangle set don't overlap. This method doesn't work for triangles with overlapping (instead of identical) segments.
-     * SupportOps.minimal() is executed on the resulting set to combine collinear and adjacent segments.
+     * {@link #minimal(SegMultiSet,boolean,boolean)} is executed on the resulting set to combine collinear and adjacent segments.
      *
      * @param ts the set of triangles
      * @return the contour as <code>SegMultiSet</code>
-     * @see #contourGeneral
+     * @see #contourGeneral(TriMultiSet,boolean,boolean,boolean,boolean)
      */
     public static SegMultiSet contour (TriMultiSet ts) {
 	SegMultiSet retSet = new SegMultiSet(SEGMENT_COMPARATOR);
@@ -232,7 +239,7 @@ public class SupportOps {
     
 
     /**
-     * Removes from the set of segments all parts that are covered by triangles of the triangle set.
+     * Removes from the set of segments all parts that are covered by triangles of the triangle set.<p>
      * For a set of segments that is completely covered by triangles, the returned set is empty.
      * This method works a follows:
      * <p><ol>
@@ -246,10 +253,10 @@ public class SupportOps {
      *
      * @param sl the set of segments
      * @param tl the set of triangles
-     * @param bboxFilter if true, a bounding box filter is applied (may help to reduce time spent)
-     * @param earlyExit if true, execution is stopped immediately, when no overlapping pair is found 
+     * @param bboxFilter if <tt>true</tt>, a bounding box filter is applied (may help to reduce time spent)
+     * @param earlyExit if <tt>true</tt>, execution is stopped immediately, when no overlapping pair is found 
      *                  for an element of the set specified by <code>setNumber</code>
-     * @param setNumber specifies the setNumber 
+     * @param setNumber specifies the <tt>setNumber</tt>
      * @return the set of remaining segments
      * @throws EarlyExit
      */
@@ -271,8 +278,8 @@ public class SupportOps {
 	LeftJoinPairMultiSet ljpl;
 
 	try {
-	    paramList[0] = Class.forName("ElemMultiSet");
-	    paramList[1] = Class.forName("ElemMultiSet");
+	    paramList[0] = Class.forName("twodsack.set.ElemMultiSet");
+	    paramList[1] = Class.forName("twodsack.set.ElemMultiSet");
 	    m1 = c.getMethod("isCovered",paramListST);
 	    paramList[2] = m1.getClass();
 	    paramList[3] = m1.getClass();
@@ -317,15 +324,15 @@ public class SupportOps {
     
    
     /**
-     * Returns <code>true</code> if the set of segments completely lies inside of the triangle set.
-     * Actually, this method implements a high level operation which would be a part of a possible
+     * Returns <code>true</code> if the set of segments completely lies inside of the triangle set.<p>
+     * Actually, this method implements a <i>high level</i> operation which would be a part of a possible
      * <i>target algebra</i>. But since it is needed at some places inside of the 2D-SACK framework,
      * an implementation is provided here.
      * 
      * @param sl the set of segments
      * @param tl the set of triangles
      * @param bboxFilter if <code>true</code>, a bounding box filter is used (may reduce the time spent)
-     * @param earlyExit if true, execution is stopped immediately, when no overlapping pair is found for 
+     * @param earlyExit if <tt>true</tt>, execution is stopped immediately, when no overlapping pair is found for 
      *                  an element of the set specified by <code>setNumber</code>
      * @param setNumber specifies the setNumber
      * @return {<code>true</code>, <code>false</code>} depending on the mutual position of the objects
@@ -340,8 +347,8 @@ public class SupportOps {
     
 
     /**
-     * Returns <code>true</code> if the set of points completely lies inside of the triangle set.
-     * Actuall, this method implements a high level operation which would be a part of a possible
+     * Returns <code>true</code> if the set of points completely lies inside of the triangle set.<p>
+     * Actually, this method implements a <i>high level</i> operation which would be a part of a possible
      * <i>target algebra</i>. But since it is needed at some places inside of the 2D-SACK framework,
      * an implementation is provided here.
      *
@@ -414,7 +421,7 @@ public class SupportOps {
     
     
      /**
-     * Returns that part of the first set of triangles, which is not covered by the second set of triangles.
+     * Returns that part of the first set of triangles, which is not covered by the second set of triangles.<p>
      * This method works as follows:
      * <p><ol>
      * <li>For each triangle of <code>tl1</code> find all overlapping triangles of <code>tl2</code>.
@@ -463,7 +470,7 @@ public class SupportOps {
 
 
     /**
-     * Returns the set of (not overlapping) triangles that covers the intersection of the passed two triangle sets.
+     * Returns the set of (not overlapping) triangles that covers the intersection of the passed two triangle sets.<p>
      * This method works as follows:
      * <p><ol>
      * <li>For each triangle of <code>ts1</code> find all overlapping triangles of <code>ts2</code>.
@@ -475,7 +482,7 @@ public class SupportOps {
      * @param ts1 the first set of triangles
      * @param ts2 the second set of triangles
      * @param bboxFilter if <code>true</code>, a bounding box filter is used (may reduce the time spent for this operation)
-     * @return the intersection of ts1, ts2
+     * @return the intersection of <tt>ts1, ts2</tt>
      */
     public static TriMultiSet intersection (TriMultiSet ts1, TriMultiSet ts2, boolean bboxFilter) {
 	TriMultiSet retSet = null;
@@ -511,15 +518,15 @@ public class SupportOps {
      * Returns the set of (not overlapping) triangles building the union of the passed two triangle sets.
      * This method works as follows:
      * <p><ol>
-     * <li>For the two triangle sets R and S,  Q =  minus(S,R) is computed</li>
-     * <li>compute disjointUnion(R,Q)(</li>
+     * <li>For the two triangle sets <tt>R</tt> and <tt>S</tt>,  <tt>Q = minus(S,R)</tt> is computed</li>
+     * <li>compute <tt>disjointUnion(R,Q)</tt></li>
      * </ol><p>
      * At the end, the set of triangles representing the union is returned.
      *
      * @param ts1 the first set of triangles
      * @param ts2 the second set of triangles
      * @param bboxFilter if <code>true</code>, a bounding box filter is used (may reduce the time spent for this operation)
-     * @return the union of ts1, ts2
+     * @return the union of <tt>ts1, ts2</tt>
      */
     public static TriMultiSet plus (TriMultiSet ts1, TriMultiSet ts2, boolean bboxFilter) {
 	TriMultiSet retSet = null;

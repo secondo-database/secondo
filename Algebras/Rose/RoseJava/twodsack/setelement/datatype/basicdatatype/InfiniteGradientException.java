@@ -15,7 +15,7 @@ public class InfiniteGradientException extends Exception {
     /**
      * The 'empty' constructor.
      */
-    InfiniteGradientException() { super(); }
+    public InfiniteGradientException() { super(); }
 
 
     /**
@@ -23,6 +23,6 @@ public class InfiniteGradientException extends Exception {
      *
      * @param s the error message
      */
-    InfiniteGradientException(String s) { super(s); }
+    public InfiniteGradientException(String s) { super(s); }
 
 }//end Exception InfiniteGradientException

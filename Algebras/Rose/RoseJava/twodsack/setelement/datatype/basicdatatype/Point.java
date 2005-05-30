@@ -18,10 +18,10 @@ import java.io.*;
  * The Point class implements one of the three basic datatypes, a point. As fields it has to coordinate values of type
  * {@link Rational}, a bounding box of type {@link Rect} and a flag, whether the bounding box is already defined or not.<p>
  * The fields of this class are all public, because inside of the 2D-SACK package the access to these values is needed
- * very often. However, to change the field values, the set() method(s) should be used.<p>
+ * very often. However, to change the fields' values, the <tt>set()</tt> method(s) should be used.<p>
  * The bounding box for a Point instance is not constructed automatically, when a constructor is called. It is not constructed
- * until the rect() method is called, but then, the bounding box is stored in the object's bbox field and only then the bboxDefined
- * flag is set.
+ * until the <tt>rect()</tt> method is called, but then, the bounding box is stored in the object's <tt>bbox</tt> field and only then the
+ * <tt>bboxDefined</tt> flag is set.
  */
 public class Point extends Element implements Serializable {
     
@@ -33,9 +33,24 @@ public class Point extends Element implements Serializable {
     static boolean PRECISE;
     static boolean preciseDefined;
 
+    /**
+     * The x coordinate.
+     */
     public Rational x; //x coordinate
+
+    /**
+     * The y coordinate.
+     */
     public Rational y; //y coordinate
+
+    /**
+     * The bounding box of the point.
+     */
     public Rect bbox;
+
+    /**
+     * Defines whether the bounding box is actually defined.
+     */
     public boolean bboxDefined;
     
     
@@ -84,12 +99,12 @@ public class Point extends Element implements Serializable {
      * methods
      */
     /**
-     * Sets the coordinates of <i>this</i> to x,y.
-     * Returns the changed point. Sets bboxDefined = false.
+     * Sets the coordinates of <i>this</i> to <tt>x</tt>, <tt>y</tt>.
+     * Returns the modified point. Sets <tt>bboxDefined = false</tt>.
      *
-     * @param x the x coordinate
-     * @param y the y coordinate
-     * @return the changed point
+     * @param x the <tt>x</tt> coordinate
+     * @param y the <tt>y</tt> coordinate
+     * @return the modified point
      */
     public Point set(double x, double y) {
 	this.x = RationalFactory.constRational(x);
@@ -101,11 +116,11 @@ public class Point extends Element implements Serializable {
     
 
     /**
-     * Sets the coordinates of <i>this</i> to p.x and p.y.
-     * Returns the changed point. Sets bboxDefined = false.
+     * Sets the coordinates of <i>this</i> to <tt>p.x</tt> and <tt>p.y</tt>.
+     * Returns the modified point. Sets <tt>bboxDefined = false</tt>.
      *
      * @param p the point with the new coordinates
-     * @return the changed point
+     * @return the modified point
      */
     public Point set(Point p) {
 	this.x = p.x;
@@ -117,12 +132,12 @@ public class Point extends Element implements Serializable {
 
 
     /**
-     * Sets the coordinates of <i>this</i> to x, y.
-     * Returns the changed point. Sets bboxDefined = false;
+     * Sets the coordinates of <i>this</i> to <tt>x</tt>, <tt>y</tt>.
+     * Returns the modified point. Sets <tt>bboxDefined = false</tt>;
      * 
-     * @param x the x coordinate
-     * @param y the y coordinate
-     * @return the changed point
+     * @param x the <tt>x</tt> coordinate
+     * @param y the <tt>y</tt> coordinate
+     * @return the modified point
      */
     public Point set(Rational x, Rational y) {
 	this.x = x;
@@ -149,12 +164,12 @@ public class Point extends Element implements Serializable {
     
 
     /**
-     * Returns true, if <i>this</i> and e are equal.
-     * Throws a WrongTypeException if e is not of type Point.
+     * Returns <tt>true</tt>, if <i>this</i> and <tt>e</tt> are equal.
+     * Throws a WrongTypeException if <tt>e</tt> is not of type Point.
      *
      * @param e the point to compare with
-     * @return true, if both objects are of type Point and have the same coordinates
-     * @throws WrongTypeException if e is not of type Point
+     * @return <tt>true</tt>, if both objects are of type Point and have the same coordinates
+     * @throws WrongTypeException if <tt>e</tt> is not of type Point
      */
     public boolean equal(Element e) throws WrongTypeException {
 	if (e instanceof Point) {
@@ -192,14 +207,14 @@ public class Point extends Element implements Serializable {
     
 
     /**
-     * Compares the y coordinates of both objects and returns one of {0, 1, -1}.
-     * Returns 0, if the y coordinates are equal.<p>
-     * Returns 1, if e has the smaller y coordinate.<p>
+     * Compares the <tt>y</tt> coordinates of both objects and returns one of {0, 1, -1}.<p>
+     * Returns 0, if the <tt>y</tt> coordinates are equal.<p>
+     * Returns 1, if <tt>e</tt> has the smaller <tt>y</tt> coordinate.<p>
      * Returns -1 otherwise.
      * 
      * @param e the object to compare with
      * @return {0, 1, -1} as int
-     * @throws WrongTypeException if e is not of type Point
+     * @throws WrongTypeException if <tt>e</tt> is not of type Point
      */
     public byte compY(Element e) throws WrongTypeException {
 	if (e instanceof Point) {
@@ -223,14 +238,14 @@ public class Point extends Element implements Serializable {
     
 
     /**
-     * Compares the x coordinates of both objects and returns one of {0, 1, -1}.
-     * Returns 0, if the x coordinates are equal.<p>
-     * Returns 1, if e has the smaller x coordinate.<p>
+     * Compares the <tt>x</tt> coordinates of both objects and returns one of {0, 1, -1}.<p>
+     * Returns 0, if the <tt>x</tt> coordinates are equal.<p>
+     * Returns 1, if <tt>e</tt> has the smaller <tt>x</tt> coordinate.<p>
      * Returns -1 otherwise.
      *
      * @param e the object to compare with
      * @return {0, 1, -1} as byte
-     * @throws WrongTypeException if e is not of type Point
+     * @throws WrongTypeException if <tt>e</tt> is not of type Point
      */
     public byte compX(Element e) throws WrongTypeException {
 	if (e instanceof Point) {
@@ -255,13 +270,13 @@ public class Point extends Element implements Serializable {
     
     /**
      * First, compares the x coordinates and then the y coordinates of both objects. Returns one of {0, 1, -1}.
-     * If the comparison of the x coordinate results in 0, the y coordinates are checked. If both results are 0,
-     * this.equal(e) == true.<p>
-     * A point is considered as 'smaller', if it has lower x coordinates and/or y coordinates than the other point.
+     * If the comparison of the <tt>x</tt> coordinate results in 0, the <tt>y</tt> coordinates are checked. If both results are 0,
+     * <tt>this.equal(e) == true</tt>.<p>
+     * A point is considered as 'smaller', if it has smaller <tt>x</tt> coordinates and/or <tt>y</tt> coordinates than the other point.
      *
      * @param e the object to compare with
      * @return {0, 1, -1} as int
-     * @throws WrongTypeException if e is not of type Point
+     * @throws WrongTypeException if <tt>e</tt> is not of type Point
      */
     public int compare(ComparableMSE e) throws WrongTypeException {
 	if (e instanceof Point) {
@@ -275,7 +290,7 @@ public class Point extends Element implements Serializable {
 
 
     /**
-     * Computes and sets the bounding box for <i>this</i> and sets the bboxDefined flag.
+     * Computes and sets the bounding box for <i>this</i> and sets the <tt>bboxDefined</tt> flag.
      *
      * @return the bounding box
      */
@@ -295,12 +310,12 @@ public class Point extends Element implements Serializable {
     
 
     /**
-     * Returns true, if both objects have common points.
-     * In this special case, true is returned if both objects are equal.
+     * Returns <tt>true</tt>, if both objects have common points.
+     * In this special case, <tt>true</tt> is returned if both objects are equal.
      *
      * @param e the object which is checked for intersection
-     * @return true, if both Point objects are equal
-     * @throws WrongTypeException if e is not of type Point
+     * @return <tt>true</tt>, if both Point objects are equal
+     * @throws WrongTypeException if <tt>e</tt> is not of type Point
      */
     public boolean intersects(Element e) throws WrongTypeException {
 	if (e instanceof Point) {
@@ -314,7 +329,7 @@ public class Point extends Element implements Serializable {
 
     /**
      * Returns the bounding box of <i>this</i>.
-     * If the bounding box was not already computed, that is done at this occasion. The bboxFlag is set, too.
+     * If the bounding box was not already computed, that is done at this occasion. The <tt>bboxFlag</tt> is set, too.
      *
      * @return the bounding box
      */
@@ -358,7 +373,7 @@ public class Point extends Element implements Serializable {
 
     /**
      * For two points, returns the smaller one.
-     * {@link #compare} is used in the implementation of this method.
+     * {@link #compare(ComparableMSE)} is used in the implementation of this method.
      *
      * @param p1 the first point
      * @param p2 the second point
@@ -372,7 +387,7 @@ public class Point extends Element implements Serializable {
 
     /**
      * For two points, returns the greater one.
-     * {@link #compare} is used in the implementation of this method.
+     * {@link #compare(ComparableMSE)} is used in the implementation of this method.
      */
     public static Point max (Point p1, Point p2) {
 	//System.out.println("max: p1.compare(p2): "+p1.compare(p2));
@@ -393,7 +408,7 @@ public class Point extends Element implements Serializable {
 
 
     /**
-     * Returns true, if both objects are equal.
+     * Returns <tt>true</tt>, if both objects are equal.
      *
      * @param o the object to compare with
      * @return true, if <i>this</i> and o are equal

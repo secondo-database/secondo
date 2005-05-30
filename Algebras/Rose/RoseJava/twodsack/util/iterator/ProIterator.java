@@ -12,13 +12,13 @@ import twodsack.util.collectiontype.*;
 
 /**
  * The ProIterator interface defines a set of methods which have to be implemented by all classes which implement this interface. In contrast
- * to Sun's Iterator interface, this interface offers a method {@link #reset} that sets the iterator back to the beginnig of the set it belongs to.
+ * to Sun's Iterator interface, this interface offers a method {@link #reset()} that sets the iterator back to the beginnig of the set it belongs to.
  * By using this method, it is no longer necessary to construct a new iterator everytime the iterator shall be reset.<p>
- * Note: The iterator implementing the ProIterator interface iterates over a set of Entry types.
+ * Note: The iterator implementing the ProIterator interface iterates over a set of {@link Entry} types.
  */
 public interface ProIterator {
     /**
-     * Returns true, if the set has at least one more element.
+     * Returns <tt>true</tt>, if the set has at least one more element.
      */
     public boolean hasNext();
 
@@ -36,7 +36,7 @@ public interface ProIterator {
     
 
     /**
-     * Returns true, if the set has at least one more element at the position before the actual element.
+     * Returns <tt>true</tt>, if the set has at least one more element at the position before the actual element.
      */
     public boolean hasPrevious();
 
@@ -66,7 +66,7 @@ public interface ProIterator {
 
 
     /**
-     * Sets the value of the last returned object to o.
+     * Sets the value of the last returned object to <tt>o</tt>.
      *
      * @param o the object that shall be added
      */
@@ -74,7 +74,7 @@ public interface ProIterator {
 
 
     /**
-     * Adds the object o before the object that was returned before.
+     * Adds the object <tt>o</tt> before the object that was returned before.
      *
      * @param o the object that shall be added
      */
@@ -82,7 +82,7 @@ public interface ProIterator {
 
 
     /**
-     * Adds the object o after the object that was returned before.
+     * Adds the object <tt>o</tt> after the object that was returned before.
      *
      * @param o the object that shall be added
      */

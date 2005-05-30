@@ -9,20 +9,47 @@ package twodsack.util.collection;
 
 
 /**
- * A ResultList is used as data structure for storing data between the different iterations of the DAC algorithm implemented in 
- * SetOps.overlappingPairs. Particularly, it stores several lists of intervals which have different marks.
+ * A ResultList is used as data structure for storing data between the different iterations of the DAC algorithm implemented in <tt>SetOps.overlappingPairs</tt>.
+ * Particularly, it stores several lists of intervals which have different marks.
  */
 public class ResultList {
     /*
      * fields
      */
-    public IvlList m;          //set of left and right interval borders
-    public IvlList blue;       //blue left and right interval borders
-    public IvlList green;      //green left and right interval borders
-    public IvlList blueLeft;   //blue left interval borders, right partner not in m
-    public IvlList blueRight;  //blue right interval borders, left partner not in m
-    public IvlList greenLeft;  //green left interval borders, right partner not in m
-    public IvlList greenRight; //green right interval borders, right partner not in m
+    /**
+     * Set of left and right interval borders.
+     */
+    public IvlList m;
+
+    /**
+     * Set of left and right interval borders marked with "blue".
+     */
+    public IvlList blue;
+
+    /**
+     * Set of left and right interval borders markes with "green".
+     */
+    public IvlList green;
+
+    /**
+     * Set of left interval borders marked with "blue". Right partners are not in <tt>m</tt>.
+     */
+    public IvlList blueLeft;
+
+    /**
+     * Set of right interval borders marked with "blue". Left partners are not in <tt>m</tt>.
+     */
+    public IvlList blueRight;
+
+    /**
+     * Set of left interval borders marked with "green". Right partners are not in <tt>m</tt>.
+     */
+    public IvlList greenLeft;
+
+    /**
+     * Set of right interval borders marked with "green". Left partners are not in <tt>m</tt>.
+     */
+    public IvlList greenRight;
     
 
     /*

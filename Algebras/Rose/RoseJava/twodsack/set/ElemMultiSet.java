@@ -42,9 +42,9 @@ public class ElemMultiSet extends MultiSet {
     /**
      * Returns a <i>real</i> copy of <code>this</code>, not only a clone.
      * That means, that every single element of the structure is copied.
-     * <p>See also method <code>clone</code>
      *
      * @return the copy
+     * @see #clone
      */
     public ElemMultiSet copy() {
 	ElemMultiSet retSet = new ElemMultiSet(new ElemComparator());
@@ -62,9 +62,9 @@ public class ElemMultiSet extends MultiSet {
     
     /**
      * Returns a clone of the structure.
-     * <p>See also method <code>copy</code>.
      *
      * @return the clone as <code>Object</code>
+     * @see #copy
      */
     public Object clone() {
 	//System.out.println("entering EMS.clone()...");

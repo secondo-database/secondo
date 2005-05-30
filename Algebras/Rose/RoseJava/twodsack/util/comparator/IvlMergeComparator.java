@@ -12,11 +12,12 @@ import twodsack.util.collectiontype.*;
 import java.util.*;
 
 /**
- * Implemented in this class is a comparator used in the merge() method for collections of type Interval. The intervals must be sorted in a 
- * certain way for that operation. This is done by using the compare() method of this class.<p>
+ * Implemented in this class is a comparator used in the <tt>merge()</tt> method for collections of type {@link twodsack.util.collectiontype.Interval}.
+ * The intervals must be sorted in a 
+ * certain way for that operation. This is done by using the {@link #compare(Object,Object)} method of this class.<p>
  * The comparator's constructor needs a flag when construced: The <i>meet</i> flag indicates, how intervals which have the same
- * x coordinate are sorted. If meet==true, for two such intervals which have the same x coordinate and one is a left and the other
- * is a right interval, the left interval is defined to be smaller than the other one. If meet==true, the right interval is defined
+ * x coordinate are sorted. If <tt>meet==true</tt>, for two such intervals which have the same x coordinate and one is a left and the other
+ * is a right interval, the left interval is defined to be smaller than the other one. If <tt>meet==true</tt>, the right interval is defined
  * to be smaller than the left interval.
  */
 public class IvlMergeComparator implements Comparator {
@@ -37,7 +38,8 @@ public class IvlMergeComparator implements Comparator {
     /**
      * Constructs a new comparator using the flag <i>meet</i>.
      *
-     * @param meet the flag to indicate how intervals with the same x coordinate shall be sorted; currently, this is only implemented for meet=false
+     * @param meet the flag to indicate how intervals with the same x coordinate shall be sorted; currently, this is only implemented for
+     * <tt>meet=false</tt>
      */
     public IvlMergeComparator(boolean meet) {
 	this.meet = meet;
@@ -49,21 +51,21 @@ public class IvlMergeComparator implements Comparator {
      */
     /**
      * Compares two objects and returns one of {0, 1, -1}.
-     * compares the objects stored in MultiSetEntry types. For the compare operation, some rules are defined:
+     * Compares the objects stored in {@link twodsack.util.collectiontype.MultiSetEntry} types. For the compare operation, some rules are defined:
      * <p><ol>
      * <li>An interval with a smaller x coordinate is alway smaller than the other interval.
      * <li>If both intervals have the same number, they are considered to be equal.
-     * <li>If meet==true, intervals are alway sorted that way, that the most possible 'overlaps' of intervals occur; if meet==false
-     * intervals are sorted such, that a minimal number of 'overlaps' occurs.
-     * </ol>
+     * <li>If <tt>meet==true</tt>, intervals are always sorted that way, that the most possible 'overlaps' of intervals occur; if
+     * <tt>meet==false</tt> intervals are sorted such, that a minimal number of 'overlaps' occurs.
+     * </ol><p>
      * Returns 0, if both intervals are equal.<p>
-     * Returns -1, if ino1.o is smaller.<p>
+     * Returns -1, if <tt>ino1.o</tt> is smaller.<p>
      * Returns 1 otherwise.
      *
      * @param ino1 the first object
      * @param ino2 the second object
      * @return one of {0, 1, -1} as int
-     * @throws WrongTypeException if ino1.o or ino2.o is not of type Interval
+     * @throws WrongTypeException if <tt>ino1.o</tt> or <tt>ino2.o</tt> is not of type {@link twodsack.util.collectiontype.Interval}
      */
     public int compare(Object ino1, Object ino2) {
 	if((((MultiSetEntry)ino1).value instanceof Interval) &&
