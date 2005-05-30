@@ -487,7 +487,7 @@ string DateTime::ToString() const{
     long min = value % 60;
     long hour = value / 60;
 
-    if(value==0) // without time
+    if(milliseconds==0) // without time
        return tmp.str();
 
     tmp << "-";
@@ -1071,7 +1071,6 @@ void DateTime::Add(const DateTime* P2){
    }
    long d = d1+d2;
    long ms = ms1+ms2;
-
    while(ms<0){ // this loop is excuted maximum two times
      d--;
      ms += MILLISECONDS;
