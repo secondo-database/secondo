@@ -451,7 +451,7 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println(Name+"::"+Name+"(const int size):");
    out.println("     objectData(size), ");
    out.println("     canDelete(false), ");
-   out.println("     defined(true) ");
+   out.println("     defined(false) ");
    out.println("    {obj=0;}\n\n");
 
    out.println("/*\n");
