@@ -1024,14 +1024,9 @@ private static void printStandardFunctions(PrintStream out,Class cls){
    out.println("*/");
    out.println("static Word Create"+Name+"(const ListExpr typeInfo){");
    out.println("   __TRACE__");
-   out.println("   jclass cls = "+Name+"_class;");
-   out.println("   if(cls==0) error(__LINE__); ");
-   out.println("   jmethodID mid;");
-   out.println("   mid = "+Name+"_std_constr_ID;");
-   out.println("   if(mid==0) error(__LINE__); ");
-   out.println("   jobject res = env->NewObject(cls,mid);");
-   out.println("   if(res==0) error(__LINE__);");
-   out.println("   return SetWord(new "+Name+"(res));");
+   out.println("   "+Name+"* res = new "+Name+"(1);");
+   out.println("   res->SetObject(0);");
+   out.println("   return SetWord(res);");
    out.println("}\n\n");
 
    out.println("/*\n");
