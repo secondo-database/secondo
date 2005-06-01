@@ -61,8 +61,25 @@ public class DisplayTimeGraph extends DisplayGraph
           2 : 0, Color.black));
       Dimension d = jc.getPreferredSize();
       jc.setBounds(start, (int)d.getHeight()*0 + 15, end - start, (int)d.getHeight());
+      
+      
       jc.setToolTipText(LEUtils.convertTimeToString(in.getStart()) + "..." +
           LEUtils.convertTimeToString(in.getEnd()));
+
+      jc.addMouseListener(new java.awt.event.MouseAdapter(){
+         public void mouseEntered(java.awt.event.MouseEvent evt){
+                int a = ToolTipManager.sharedInstance().getDismissDelay();
+                if(a!=40000)
+                     oldDelay=a;
+                ToolTipManager.sharedInstance().setDismissDelay(40000);
+               
+         }
+         public void mouseExited(java.awt.event.MouseEvent evt){
+                ToolTipManager.sharedInstance().setDismissDelay(oldDelay);
+         }
+         int oldDelay;   
+       });
+
       jp.setPreferredSize(new Dimension((int)((TimeBounds.getEnd() - TimeBounds.getStart())*PixelTime),
           25));
       jp.add(jc);
@@ -116,7 +133,6 @@ public class DisplayTimeGraph extends DisplayGraph
 	    return i;
      return -1;
   }
-
 
 
 }
