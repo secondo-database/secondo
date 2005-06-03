@@ -83,6 +83,7 @@ The class ~SecondoCatalog~ provides the following methods:
                               & OutObject                &   \\
                               & UpdateObject             &   \\
                               & CloneObject              &   \\
+                              & ModifyObject             &   \\
         ListTypes             & IsObjectName             & ListOperators        \\
         InsertType            & GetObject                & IsOperatorName       \\
         DeleteType            & GetObjectExpr            & GetOperatorId        \\
@@ -440,6 +441,17 @@ new value ~word~. Returns "false"[4] if object does not exist.
 /*
 Overwrites the value of the object with identifier ~objectName~ with a
 new value cloned from ~word~. Returns "false"[4] if object does not exist. 
+
+*NOTE*: Works only at the executable level.
+
+*/
+  bool ModifyObject( const string& objectName, const Word word );
+/*
+Overwrites the value of the object with identifier ~objectName~ with a
+new value ~word~. Returns "false"[4] if object does not exist.
+The difference between this function and ~UpdateObject~ is that the
+second opens the old object for deletion. This one assumes that the
+object is only modified, so that no deletion function is necessary.
 
 *NOTE*: Works only at the executable level.
 

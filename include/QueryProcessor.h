@@ -327,6 +327,12 @@ tree.
 /*
 Returns the type expression of the node ~s~ of the operator tree.
 
+*/
+  void SetModified( const Supplier s );
+/*
+Sets a node ~s~ of the operator tree as modified. The node must be
+of type ~Object~.
+
 3.2.2 Dealing with Counters
 
 There is an array of ~NO-COUNTERS~ counters available which can be used during
