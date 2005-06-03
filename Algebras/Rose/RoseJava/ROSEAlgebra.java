@@ -506,7 +506,10 @@ public class ROSEAlgebra {
 
     
     public static Regions rr_intersection (Regions r1, Regions r2) {
-	return new Regions(SupportOps.intersection(r1.triset,r2.triset,true));
+	Regions res = new Regions(SupportOps.intersection(r1.triset,r2.triset,true));
+	System.out.println("JAVA-RoseAlgebra: rr_intersection("+r1.triset.size()+","+r2.triset.size()+") -> "+res.triset.size());
+	return res;
+	//return new Regions(SupportOps.intersection(r1.triset,r2.triset,true));
     }//end method rr_intersection
     
     
@@ -800,6 +803,8 @@ public class ROSEAlgebra {
 	//returns -1, if l1 or l2 is empty
 	Rational retVal = RationalFactory.constRational(0);
 
+	if (ll_disjoint(l1,l2)) return retVal;
+
 	try {
 	    Method methodDIST = SEG_CLASS.getMethod("dist",PARAMLIST_E);
 	    ElemPair retPair = SetOps.min(l1.segset,l2.segset,methodDIST);
@@ -819,6 +824,8 @@ public class ROSEAlgebra {
     public static Rational lr_dist (Lines l, Regions r) {
 	//returns -1, if one of l,r is empty
 	Rational retVal = RationalFactory.constRational(0);
+
+	if (lr_intersects(l,r)) return retVal;
 
 	try {
 	    Method methodDIST = ST_OPS_CLASS.getMethod("dist",PARAMLIST_ST);
@@ -852,6 +859,8 @@ public class ROSEAlgebra {
 	//returns -1, if one of r1,r2 is empty
 	Rational retVal = RationalFactory.constRational(0);
 	
+	if (rr_disjoint(r1,r2)) return retVal;
+
 	try {
 	    Method methodDIST = TRI_CLASS.getMethod("dist",PARAMLIST_E);
 	    ElemPair retPair = SetOps.min(r1.triset,r2.triset,methodDIST);

@@ -371,7 +371,8 @@ The following function takes a java object of type Lines
 
 */
 static ListExpr Convert_JavaToC_Lines(jobject jLines) {
-  /* Get the class */
+
+   /* Get the class */
   jclass cls = env->FindClass("Lines");
   if (cls == 0) error(__FILE__,__LINE__);
   
@@ -1050,6 +1051,7 @@ private:
   jobject obj;
   FLOB objectData;
   bool canDelete;
+  bool Defined;
   void RestoreFLOBFromJavaObject();
   
 public:
@@ -1069,7 +1071,7 @@ public:
   FLOB *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
-    cout << "++++++++++++++++++++ called Finalize of CcPoints +++++++++++++++++++++++++" << endl;
+    //cout << "++++++++++++++++++++ called Finalize of CcPoints +++++++++++++++++++++++++" << endl;
     env->DeleteLocalRef(obj);
     env->DeleteLocalRef(cls);
     obj = 0;
@@ -1093,18 +1095,25 @@ public:
   CcPoints(const int size);
   /* retrieves the nested list representation of the underlying
      java object. */
+
+    void SetObject(jobject obj) {
+    this->obj = obj;
+  }
+
   bool GetNL(ListExpr &le);
   /* Destructor of CcPoints. This destructor destroys also the 
      object inside the JVM. */
+
   ~CcPoints() {
     //cout << "++++++++++++++++++++ called destructor of CcPoints +++++++++++++++++++++++++" << endl;    
     env->DeleteLocalRef(obj);
-    env->DeleteLocalRef(cls);
+    // env->DeleteLocalRef(cls);
     cls = 0;
     obj = 0;
   }
   /* Returns the pointer to the proper java objet. */
   jobject GetObj();
+  void Print();
   
 };
 
@@ -1125,15 +1134,20 @@ Inherited method of StandardAttribute
 
 */
 Attribute *CcPoints::Clone() {
-  if (cls == 0) RestoreJavaObjectFromFLOB();
-
-  jmethodID mid = env->GetMethodID(cls,"copy","()LPoints;");
-  if (mid == 0) error(__FILE__,__LINE__);
-  
-  jobject jobj = env->CallObjectMethod(obj,mid);
-  if(jobj==0) error(__FILE__,__LINE__);
-
-  return new CcPoints(jobj);
+  CcPoints* res = new CcPoints(objectData.Size());
+  res->CopyFrom(this);
+  return res;
+  /*
+    if (cls == 0) RestoreJavaObjectFromFLOB();
+    
+    jmethodID mid = env->GetMethodID(cls,"copy","()LPoints;");
+    if (mid == 0) error(__FILE__,__LINE__);
+    
+    jobject jobj = env->CallObjectMethod(obj,mid);
+    if(jobj==0) error(__FILE__,__LINE__);
+    
+    return new CcPoints(jobj);
+  */
 }
 
 /* 
@@ -1167,6 +1181,7 @@ Inherited method of StandardAttribute
 
 */
 void CcPoints::SetDefined(bool Defined) {
+  this->Defined = Defined;
 }
 
 /* 
@@ -1181,7 +1196,10 @@ void CcPoints::CopyFrom(StandardAttribute* right) {
   P->objectData.Get(0,P->objectData.Size(),data);
   objectData.Put(0,P->objectData.Size(),data);
   delete [] data;
-  RestoreJavaObjectFromFLOB();
+  //RestoreJavaObjectFromFLOB();
+  //if (obj)
+  // env->DeleteLocalRef(obj);
+  obj=0;
 }
 
 /* 
@@ -1253,6 +1271,7 @@ CcPoints::CcPoints(char *serial, int len) {
  */
 
 CcPoints::CcPoints(const int size):objectData(size),canDelete(false) {
+  SetDefined(true);
 }
 
 /* 
@@ -1269,6 +1288,7 @@ CcPoints::CcPoints(const ListExpr &le):objectData(1) {
   obj = Convert_CToJava_Points(le);
   canDelete = false;
   RestoreFLOBFromJavaObject();
+  SetDefined(true);
 }
 
 /* 
@@ -1283,6 +1303,7 @@ CcPoints::CcPoints(const jobject jobj):objectData(1) {
   if (cls == 0) error(__FILE__, __LINE__);
   obj = jobj;
   RestoreFLOBFromJavaObject();
+  SetDefined(true);
 }
 
 /* 
@@ -1412,6 +1433,14 @@ void CcPoints::RestoreJavaObjectFromFLOB(){
 }
 
 
+void CcPoints::Print() {
+  cls = env->FindClass("Points");
+  if (cls == 0) error(__FILE__,__LINE__);
+  jmethodID mid = env->GetMethodID(cls,"print","()V");
+  env->CallVoidMethod(obj,mid);
+}
+
+
 /*
 2.2 List Representation
 
@@ -1464,12 +1493,17 @@ Creation of a CcPoints object.
 
 */
 static Word CreateCcPoints(const ListExpr typeInfo) {
-  jclass cls = env->FindClass("Points");
-  jmethodID mid = env->GetMethodID(cls,"<init>","()V");
-  if(mid==0) error(__FILE__,__LINE__);
-  jobject P = env->NewObject(cls,mid);
-  if(P==0) error(__FILE__,__LINE__);
-  return (SetWord(new CcPoints(P)));
+  /*
+    jclass cls = env->FindClass("Points");
+    jmethodID mid = env->GetMethodID(cls,"<init>","()V");
+    if(mid==0) error(__FILE__,__LINE__);
+    jobject P = env->NewObject(cls,mid);
+    if(P==0) error(__FILE__,__LINE__);
+    return (SetWord(new CcPoints(P)));
+  */
+  CcPoints* res = new CcPoints(1);
+  res->SetObject(0);
+  return SetWord(res);
 }
 
 /* 
@@ -1510,7 +1544,8 @@ bool OpenCcPoints(SmiRecord& valueRecord,
 		  const ListExpr typeInfo,
 		  Word& value){
   CcPoints* P = (CcPoints*)TupleElement::Open(valueRecord,offset, typeInfo);
-  P->RestoreJavaObjectFromFLOB();
+  //P->RestoreJavaObjectFromFLOB();
+  P->SetObject(0);
   value = SetWord(P);
   return true;
 }
@@ -1637,6 +1672,7 @@ private:
   jobject obj;
   FLOB objectData;
   bool canDelete;
+  bool Defined;
   void RestoreFLOBFromJavaObject();
 
 public:
@@ -1656,7 +1692,7 @@ public:
   FLOB *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
-    cout << "++++++++++++++++++++ called Finalize of CcLines +++++++++++++++++++++++++" << endl;
+    //cout << "++++++++++++++++++++ called Finalize of CcLines +++++++++++++++++++++++++" << endl;
     env->DeleteLocalRef(obj);
     env->DeleteLocalRef(cls);
     cls = 0;
@@ -1681,17 +1717,24 @@ public:
   CcLines();
   CcLines(const int size);
   bool GetNL(ListExpr &le);
+  
+  void SetObject(jobject obj) {
+    this->obj = obj;
+  }
+
   /* Destructor of CcLines. This destructor destroys also the 
      object inside the JVM. */
   ~CcLines() {
     //cout << "++++++++++++++++++++ called destructor of CcLines +++++++++++++++++++++++++" << endl;
     env->DeleteLocalRef(obj);
-    env->DeleteLocalRef(cls);
+    //env->DeleteLocalRef(cls);
     cls = 0;
     obj = 0;
   }
   /* Returns the pointer to the proper java objet. */
   jobject GetObj();
+
+  void Print();
 };
 
 /* 
@@ -1711,15 +1754,20 @@ Inherited method of StandardAttribute
 
 */
 Attribute *CcLines::Clone() {
-  if (cls == 0) RestoreJavaObjectFromFLOB();
-
-  jmethodID mid = env->GetMethodID(cls,"copy","()LLines;");
-  if (mid == 0) error(__FILE__,__LINE__);
-  
-  jobject jobj = env->CallObjectMethod(obj,mid);
-  if (jobj == 0) error(__FILE__,__LINE__);
-
-  return new CcLines(jobj);
+  CcLines* res = new CcLines(objectData.Size());
+  res->CopyFrom(this);
+  return res;
+  /*
+    if (cls == 0) RestoreJavaObjectFromFLOB();
+    
+    jmethodID mid = env->GetMethodID(cls,"copy","()LLines;");
+    if (mid == 0) error(__FILE__,__LINE__);
+    
+    jobject jobj = env->CallObjectMethod(obj,mid);
+    if (jobj == 0) error(__FILE__,__LINE__);
+    
+    return new CcLines(jobj);
+  */
 }
 
 /* 
@@ -1753,6 +1801,7 @@ Inherited method of StandardAttribute
 
 */
 void CcLines::SetDefined(bool Defined) {
+  this->Defined = Defined;
 }
 
 /* 
@@ -1767,7 +1816,10 @@ void CcLines::CopyFrom(StandardAttribute* right) {
   L->objectData.Get(0,L->objectData.Size(),data);
   objectData.Put(0,L->objectData.Size(),data);
   delete [] data;
-  RestoreJavaObjectFromFLOB();
+  //RestoreJavaObjectFromFLOB();
+  //if (obj)
+  //  env->DeleteLocalRef(obj);
+  obj=0;
 }
 
 /* 
@@ -1838,6 +1890,7 @@ CcLines::CcLines(char *serial, int len) {
   */
 
 CcLines::CcLines(const int size):objectData(size),canDelete(false) {
+  SetDefined(true);
 }
 
 /*
@@ -1855,6 +1908,7 @@ CcLines::CcLines(const ListExpr &le):objectData(1) {
   obj = Convert_CToJava_Lines(le);
   canDelete = false;
   RestoreFLOBFromJavaObject();
+  SetDefined(true);
 }
 
 /* 
@@ -1862,13 +1916,14 @@ This constructor takes a pointer to a java object which is
    already created. 
 
 */
-CcLines::CcLines(const jobject jobj) {
+CcLines::CcLines(const jobject jobj) : objectData(1) {
   /* Get the Class Lines */
   canDelete = false;
   cls = env->FindClass("Lines");
   if (cls == 0) error(__FILE__, __LINE__);
   obj = jobj;
   RestoreFLOBFromJavaObject();
+  SetDefined(true);
 }
 
 /* 
@@ -1896,6 +1951,7 @@ retrieves the nested list representation of the underlying
 
 */
 bool CcLines::GetNL(ListExpr& le) {
+  //SetObject(0);
   if (!obj) RestoreJavaObjectFromFLOB();
   le = Convert_JavaToC_Lines(obj);
   return true;
@@ -1942,14 +1998,13 @@ restores the java object from FLOB
 */
 void CcLines::RestoreFLOBFromJavaObject(){
   jmethodID mid = env->GetMethodID(cls,"writeToByteArray","()[B");
-  if(mid == 0){
-    error(__FILE__,__LINE__);
-  }
+  if(mid == 0) error(__FILE__,__LINE__);
+  
   jbyteArray jbytes = (jbyteArray) env->CallObjectMethod(obj,mid);
-  if(jbytes == 0){
-    error(__FILE__,__LINE__);
-  }
+  if(jbytes == 0) error(__FILE__,__LINE__);
+  
   int size = env->GetArrayLength(jbytes);
+
   char *bytes = (char*) env->GetByteArrayElements(jbytes,0);
   objectData.Resize(size);
   objectData.Put(0,size,bytes);
@@ -1972,6 +2027,9 @@ void CcLines::RestoreJavaObjectFromFLOB(){
     return;
   }
   int size = objectData.Size();
+  
+  cout << "size of CcLines = " << size << endl;
+
   char *bytes = new char[size];
   objectData.Get(0,size,bytes);
   // copy the data into a java-array
@@ -1981,16 +2039,25 @@ void CcLines::RestoreJavaObjectFromFLOB(){
   if(mid == 0){
     error(__FILE__,__LINE__);
   }
-  jobject jres = env->CallStaticObjectMethod(cls,mid,jbytes);
-  if(jres == 0){
+  //jobject jres = env->CallStaticObjectMethod(cls,mid,jbytes);
+  obj = env->CallStaticObjectMethod(cls,mid,jbytes);
+  if(obj == 0){
     error(__FILE__,__LINE__);
   }
-  obj = jres;
+  //obj = jres;
   jbyte* elems = env->GetByteArrayElements(jbytes,0);
   env->ReleaseByteArrayElements(jbytes,elems,JNI_ABORT);
   delete [] bytes;
   bytes = NULL;
   env->DeleteLocalRef(jbytes);
+}
+
+
+void CcLines::Print() {
+  cls = env->FindClass("Lines");
+  if (cls == 0) error(__FILE__,__LINE__);
+  jmethodID mid = env->GetMethodID(cls,"print","()V");
+  env->CallVoidMethod(obj,mid);
 }
 
 
@@ -2049,12 +2116,20 @@ Creation of a CcLines object.
 
 */
 static Word CreateCcLines(const ListExpr typeInfo) {
-  jclass cls = env->FindClass("Lines");
-  jmethodID mid = env->GetMethodID(cls,"<init>","()V");
-  if(mid==0) error(__FILE__,__LINE__);
-  jobject P = env->NewObject(cls,mid);
-  if(P==0) error(__FILE__,__LINE__);
-  return (SetWord(new CcPoints(P)));
+  /*
+    jclass cls = env->FindClass("Lines");
+    jmethodID mid = env->GetMethodID(cls,"<init>","()V");
+    if(mid==0) error(__FILE__,__LINE__);
+    jobject P = env->NewObject(cls,mid);
+    if(P==0) error(__FILE__,__LINE__);
+    return (SetWord(new CcPoints(P)));
+  */
+
+  cout << "CreateCcLines" << endl;
+
+  CcLines* res = new CcLines(1);
+  res->SetObject(0);
+  return SetWord(res);
 }
 
 /* 
@@ -2095,7 +2170,8 @@ bool OpenCcLines(SmiRecord& valueRecord,
 		 const ListExpr typeInfo,
 		 Word& value){
   CcLines* L = (CcLines*) TupleElement::Open(valueRecord,offset, typeInfo);
-  L->RestoreJavaObjectFromFLOB();
+  //L->RestoreJavaObjectFromFLOB();
+  L->SetObject(0);
   value = SetWord(L);
   return true;
 }
@@ -2219,6 +2295,7 @@ private:
   jobject obj;
   FLOB objectData;
   bool canDelete;
+  bool Defined;
   void RestoreFLOBFromJavaObject();
 
 public:
@@ -2238,7 +2315,7 @@ public:
   FLOB *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
-    cout << "++++++++++++++++++++ called Finalize of CcRegions +++++++++++++++++++++++++" << endl;
+    //cout << "++++++++++++++++++++ called Finalize of CcRegions +++++++++++++++++++++++++" << endl;
     env->DeleteLocalRef(obj);
     env->DeleteLocalRef(cls);
     obj = 0;
@@ -2263,6 +2340,11 @@ public:
  /* retrieves the nested list representation of the underlying
      java object. */
   bool GetNL(ListExpr &le);
+  
+  void SetObject(jobject obj) {
+    this->obj = obj;
+  }
+
   /* Destructor of CcRegions. This destructor destroys also the 
      object inside the JVM. */
   ~CcRegions() {
@@ -2274,6 +2356,7 @@ public:
   }
   /* Returns the pointer to the proper java objet. */
   jobject GetObj();
+  void Print();
 };
 
 /* 
@@ -2293,6 +2376,10 @@ Inherited method of StandardAttribute
 
 */
 Attribute *CcRegions::Clone() {
+  CcRegions* res = new CcRegions(objectData.Size());
+  res->CopyFrom(this);
+  return res;
+  /*
   if (cls == 0) RestoreJavaObjectFromFLOB();
   
   jmethodID mid = env->GetMethodID(cls,"copy","()LRegions;");
@@ -2302,6 +2389,7 @@ Attribute *CcRegions::Clone() {
   if(jobj==0) error(__FILE__,__LINE__);
 
   return new CcRegions(jobj);
+  */
 }
 
 /* 
@@ -2335,21 +2423,28 @@ Inherited method of StandardAttribute
 
 */
 void CcRegions::SetDefined(bool Defined) {
+  this->Defined = Defined;
 }
 
 /* 
 Inherited method of StandardAttribute 
 
 */
-void CcRegions::CopyFrom(StandardAttribute* right) {
+void CcRegions::CopyFrom(StandardAttribute* right) { 
+  cout << "CcRegions::CopyFrom." << endl;
   CcRegions *R = (CcRegions *)right;
   cls = env->FindClass("Regions");
   objectData.Resize(R->objectData.Size());
+  cout << "objectData.Size: " << R->objectData.Size() << endl;
   char *data = new char[R->objectData.Size()];
   R->objectData.Get(0,R->objectData.Size(),data);
   objectData.Put(0,R->objectData.Size(),data);
   delete [] data;
-  RestoreJavaObjectFromFLOB();
+  cout << "objectData.Size" << objectData.Size() << endl;
+  //RestoreJavaObjectFromFLOB();
+  //if(obj)
+  //  env->DeleteLocalRef(obj);
+  obj=0;
 }
 
 /* 
@@ -2377,6 +2472,7 @@ void CcRegions::Initialize() {
   //RestoreJavaObjectFromFLOB();
   obj = 0;
   cls = 0;
+  Defined=true;
 }
 
 
@@ -2419,6 +2515,7 @@ CcRegions::CcRegions(char *serial, int len) {
  */
 
 CcRegions::CcRegions(const int size):objectData(size),canDelete(false) {
+  SetDefined(true);
 }
 
 /* 
@@ -2436,6 +2533,7 @@ CcRegions::CcRegions(const ListExpr &le):objectData(1) {
   obj = Convert_CToJava_Regions(le);
   canDelete = false;
   RestoreFLOBFromJavaObject();
+  SetDefined(true);
 }
 
 /* 
@@ -2445,13 +2543,14 @@ This constructor takes a pointer to a java object which is
 */
 CcRegions::CcRegions(const jobject jobj):objectData(1) {
   /* Get the Class RoseImExport */
-  cout << "CcRegions::constructor(jobject) called" << endl;
+  //cout << "CcRegions::constructor(jobject) called" << endl;
   //Application::PrintStacktrace();
   canDelete = false;
   cls = env->FindClass("Regions");
   if (cls == 0) error(__FILE__, __LINE__);
   obj = jobj;
   RestoreFLOBFromJavaObject();
+  SetDefined(true);
 }
 
 /* 
@@ -2480,6 +2579,11 @@ retrieves the nested list representation of the underlying
 
 */
 bool CcRegions::GetNL(ListExpr& le) {
+  if (!Defined) {
+    le = nl->TheEmptyList();
+    return true;
+  }
+  //cout << "CcRegions::GetNL: " << objectData.Size() << endl;
   if (!obj) RestoreJavaObjectFromFLOB();
   //le = nl->TheEmptyList();
   /*
@@ -2584,6 +2688,13 @@ void CcRegions::RestoreJavaObjectFromFLOB(){
   delete [] bytes;
   bytes = NULL;
   env->DeleteLocalRef(jbytes);
+  }
+
+void CcRegions::Print() {
+  cls = env->FindClass("Regions");
+  if (cls == 0) error(__FILE__,__LINE__);
+  jmethodID mid = env->GetMethodID(cls,"print","()V");
+  env->CallVoidMethod(obj,mid);
 }
 
 /*
@@ -2648,12 +2759,17 @@ Creation of a CcRegions object.
 
 */
 static Word CreateCcRegions(const ListExpr typeInfo) {
-  jclass cls = env->FindClass("Regions");
-  jmethodID mid = env->GetMethodID(cls,"<init>","()V");
-  if(mid==0) error(__FILE__,__LINE__);
-  jobject R = env->NewObject(cls,mid);
-  if(R==0) error(__FILE__,__LINE__);
-  return (SetWord(new CcRegions(R)));
+  /*
+    jclass cls = env->FindClass("Regions");
+    jmethodID mid = env->GetMethodID(cls,"<init>","()V");
+    if(mid==0) error(__FILE__,__LINE__);
+    jobject R = env->NewObject(cls,mid);
+    if(R==0) error(__FILE__,__LINE__);
+    return (SetWord(new CcRegions(R)));
+  */
+  CcRegions* res = new CcRegions(1);
+  res->SetObject(0);
+  return SetWord(res);
 }
 
 /* 
@@ -2694,7 +2810,7 @@ bool OpenCcRegions(SmiRecord& valueRecord,
 		   const ListExpr typeInfo,
 		   Word& value){
   CcRegions* R = (CcRegions*) TupleElement::Open(valueRecord,offset, typeInfo);
-  R->RestoreJavaObjectFromFLOB();
+  R->SetObject(0);
   value = SetWord(R);
   return true;
 }
@@ -2908,7 +3024,7 @@ type mapping function: cclines x cclines -> cclines
 
 */
 static ListExpr ccregionscclinescclines(ListExpr args) {
-  return typeMappingRose(args, "region", "line", "cclines");
+  return typeMappingRose(args, "region", "line", "line");
 }
 
 /* 
@@ -4967,6 +5083,8 @@ rl[_]intersection predicate for CcRegions and CcLines
 static int rl_intersectionFun(Word* args, Word& result, int message, 
 			      Word& local, Supplier s)
 {
+  cout << "rl_intersection" << endl;
+  
   CcLines *ccresult;
 
   CcRegions* ccr = ((CcRegions *)args[0].addr);
@@ -4979,12 +5097,16 @@ static int rl_intersectionFun(Word* args, Word& result, int message,
   //query processor has provided
   //a CcBool instance to take the result
   
+  cout << "rl_intersection2" << endl;
+
   ccresult = callJMethod_RLL("rl_intersection", ccr, ccl);
   result.addr = ccresult;
 
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value)
+
+  cout << "rl_intersection3" << endl;
 
   return 0;
 }
@@ -7357,11 +7479,27 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 
   env->CallStaticVoidMethod(clsRatFac, midRatFac, jstr);
 
-  jmethodID midPrecision = env->GetStaticMethodID
-    (clsRatFac, "setPrecision", "(Z)V");
+  jmethodID midPrecision = env->GetStaticMethodID(clsRatFac, "setPrecision", "(Z)V");
   if (midPrecision == 0) error(__FILE__,__LINE__);
 
   env->CallStaticVoidMethod(clsRatFac, midPrecision, false);
+
+  jmethodID midSetDeriv = env->GetStaticMethodID(clsRatFac, "setDerivDouble", "(D)V");
+  if (midSetDeriv == 0) error(__FILE__,__LINE__);
+
+  //set derivation value for 2DSACK package
+  env->CallStaticVoidMethod(clsRatFac, midSetDeriv, 0.00000001);
+
+  jmethodID midReadDeriv = env->GetStaticMethodID(clsRatFac, "readDerivDouble", "()D");
+  if (midReadDeriv == 0) error(__FILE__,__LINE__);
+
+  jmethodID midReadDerivN = env->GetStaticMethodID(clsRatFac, "readDerivDoubleNeg", "()D");
+  if (midReadDerivN == 0) error(__FILE__,__LINE__);
+  
+  jdouble resD = env->CallStaticDoubleMethod(clsRatFac, midReadDeriv);
+  jdouble resDN = env->CallStaticDoubleMethod(clsRatFac, midReadDerivN);
+
+  cout << "2DSACK algebra: derivation values set to " << resD << "/" << resDN << endl;
 
 
   nl = nlRef;

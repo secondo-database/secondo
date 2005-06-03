@@ -966,7 +966,7 @@ public class SetOps {
 	    rms = overlapJoin(ems1,ems2,intersectsM,true,true,false,0);
 	} catch (Exception e) {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
-	    System.out.println("Error in SetOps.disjoint. Can't get Method intersects");
+	    System.out.println("Error in SetOps.disjoint. Can't get Method intersects.");
 	    e.printStackTrace();
 	    System.exit(0);
 	}//catch
@@ -1075,71 +1075,6 @@ public class SetOps {
 	return retSet;
     }//end method leftOuterJoin
 
-    /*
-    public static LeftJoinPairList leftOuterJoin (ElemList el1, ElemList el2, Method predicate) {
-	//returns a list of LeftJoinPairs which is the result of 
-	//an operation that first performs a left outer join and
-	//then groups by left elements
-	//predicate must be a method Element x Element --> boolean
-	//predicate may be a static or non-static method
-
-	//CAUTION: WE NEED AN OVERLAP VERSION HERE, TOO!!!
-
-	//System.out.println("entering SO.leftOuterJoin...");
-
-	int paramTypeCountPred = Array.getLength(predicate.getParameterTypes());
-	LeftJoinPairList retList = new LeftJoinPairList();
-	boolean isTrue = false;
-	Element[] paramList = new Element[paramTypeCountPred];
-	ListIterator lit1 = el1.listIterator(0);
-	ListIterator lit2;
-	Element actEl1;
-	Element actEl2;
-
-	while (lit1.hasNext()) {
-	    actEl1 = (Element)lit1.next();
-	    //System.out.println("SO.loj: processing "+(lit1.nextIndex()-1));
-	    LeftJoinPair actLjp = new LeftJoinPair();
-	    actLjp.element = actEl1;
-	    //actEl.elemSet = ((ElemList)el2.copy());
-	    actLjp.elemSet = new ElemList();
-	    //actEl.elemSet.clear();//get an empty list
-	    lit2 = el2.listIterator(0);
-	    while (lit2.hasNext()) {
-		//for (int j = 0; j < el2.size(); j++) {
-		actEl2 = (Element)lit2.next();
-		//isTrue = false;
-		//if predicate has one argument
-		if (paramTypeCountPred == 1) {
-		    paramList[0] = actEl2;
-		}//if
-		//if predicate has two arguments (is static)
-		else {
-		    paramList[0] = actEl1;
-		    paramList[1] = actEl2;
-		}//else
-		try {
-		    isTrue = ((Boolean)predicate.invoke(actEl1,paramList)).booleanValue();
-		    //System.out.println("SO.leftOuterJoin:invoked predicate on: "+isTrue);
-		    //((Element)el1.get(i)).print();
-		    //((Element)el2.get(i)).print();
-		}//try
-		catch (Exception e) {
-		    System.out.println("Exception: "+e.getClass()+" ---"+e.getMessage());
-		    System.out.println("Error in subtract. Can't invoke predicate "+predicate);
-		    System.exit(0);
-		}//catch
-		if (isTrue) {
-		    actLjp.elemSet.add(actEl2);
-		}//if
-	    }//for j
-	    retList.add(actLjp);
-	}//for i
-	
-	//System.out.println("leaving leftOuterJoin.");
-	return retList;
-    }//end method leftOuterJoin
-    */
 
 
     /**
@@ -1705,56 +1640,6 @@ public class SetOps {
 	return retSet;
     }//end method join
 
-    /*
-    public static PairMultiSet join (ElemMultiSet el1, ElemMultiSet el2, Method predicate) {
-	//computes the JOIN on el1,el2 using predicate
-	//predicate must be a method Element,Element -> boolean (static or dynamic)
-	//complexity n^2
-	//System.out.println("entering SO.join...");
-	PairMultiSet retSet = new PairMultiSet(new ElemPairComparator());
-	int paramTypeCount = Array.getLength(predicate.getParameterTypes());
-	Element[] paramList = new Element[paramTypeCount];
-	
-	Iterator it1 = el1.iterator();
-	Iterator it2;
-	Element actElem1;
-	Element actElem2;
-	
-	while (it1.hasNext()) {
-	    actElem1 = (Element)it1.next();
-	    it2 = el2.iterator();
-	    while (it2.hasNext()) {
-		actElem2 = (Element)it2.next();
-		try {
-		    //if predicate has one argument
-		    if (paramTypeCount == 1) {
-			paramList[0] = actElem2;
-		    }//if
-		    //if predicate has two arguments (is static)
-		    else {
-			paramList[0] = actElem1;
-			paramList[1] = actElem2;
-		    }//else
-		    
-		    if (((Boolean)predicate.invoke(actElem1,paramList)).booleanValue()) {
-			retSet.add(new ElemPair(actElem1,actElem2));
-		    }//if
-		}//try
-		catch (Exception e) {
-		    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
-		    System.out.println("Error in SetOps.minus. Can't invoke predicate "+predicate);
-		    e.printStackTrace();
-		    System.exit(0);
-		}//catch
-	    }//while
-	}//while
-	//System.out.println("SO.join.retList("+retList.size()+"):"); //retList.print();
-	//System.exit(0);
-	//System.out.println("leaving SO.join.");
-	
-	return retSet;
-    }//end method join
-    */
 
     
     /**
@@ -1775,6 +1660,7 @@ public class SetOps {
 	ElemPair actPair;
 	boolean metTypeElement = false;
 	boolean metTypeElemList = false;
+	Element result;
 	try {
 	    if (method.getReturnType().isInstance(Class.forName("twodsack.setelement.Element")) ||
 		method.getReturnType().getSuperclass().isAssignableFrom(Class.forName("twodsack.setelement.Element"))) {
@@ -1812,7 +1698,10 @@ public class SetOps {
 
 		    //if returntype of m is Element
 		    if (metTypeElement) {
-			retSet.add((Element)(method.invoke(actPair.first,paramList)));
+			result = (Element)method.invoke(actPair.first,paramList);
+			if (result != null)
+			    retSet.add(result);
+			//retSet.add((Element)(method.invoke(actPair.first,paramList)));
 
 		    }//if
 		    //if returntype of m is ElemList
@@ -2184,7 +2073,8 @@ public class SetOps {
 	if (bboxFilter) {
 	    //Use bboxFilter to reduce number of elements.
 	    ElemMultiSet[] newSets = bboxFilter(el1,el2,earlyExit,setNumber);
-	    
+	    if (newSets[0].isEmpty() || newSets[1].isEmpty()) return pairs;
+
 	    //generate interval list which stores left,right vertical
 	    //intervals of the elements bboxes of el1,el2      
 	    MultiSet ems = generateIntervalList(newSets[0],newSets[1],meet);

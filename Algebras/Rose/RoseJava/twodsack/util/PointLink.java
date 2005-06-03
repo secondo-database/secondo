@@ -7,14 +7,13 @@
 
 package twodsack.util;
 
-/**
- * This class implements a pointer to a <code>Point</code> and the ability to give that point a number.
- * It is needed as a support structure for {@link MeshGenerator}. There, it is used in hash tables. For 
- * this reason, it implements the methods <code>hashCode</code> and <code>equals</code>.
- */
-
 import twodsack.setelement.datatype.basicdatatype.*;
 
+/**
+ * This class implements a pointer to a <code>Point</code> and the ability to give that point a number.
+ * It is needed as a support structure for {@link twodsack.util.meshgenerator.MeshGenerator}. There, it is used in hash tables. For 
+ * this reason, it implements the methods <code>hashCode</code> and <code>equals</code>.
+ */
 public class PointLink {
     /*
      * fields

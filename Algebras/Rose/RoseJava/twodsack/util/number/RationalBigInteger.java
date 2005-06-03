@@ -28,7 +28,9 @@ public class RationalBigInteger extends Rational implements Serializable{
      * fields
      */
     static final int NUM_DIGITS = 7; //number of digits used right of the decimal point
-    static final RationalBigInteger deriv = new RationalBigInteger(0,1);
+    static RationalBigInteger deriv = new RationalBigInteger(0,1);
+    static double DERIV_DOUBLE = 0;
+    static double DERIV_DOUBLE_NEG = 0;
     
     /**
      * A flag for 'precise' or 'not so precise' computation. If <tt>true</tt>, everything is computed using RationalBigIntegers. Otherwise,
@@ -550,4 +552,59 @@ public class RationalBigInteger extends Rational implements Serializable{
 	PRECISE = precise.booleanValue();
     }//end method setPrecision
     
+
+    /**
+     * Returns the derivation value for computations with <tt>deriv = true</tt>.
+     *
+     * @return the derivation value
+     */
+    public Rational getDeriv() {
+	return this.deriv;
+    }//end method getDeriv
+
+
+    /**
+     * Sets the derivation value <tt>deriv</tt>.
+     * This number is used for equality checks when <tt>PRECISE = true</tt>.
+     *
+     * @param r the new derivation value
+     */
+    public void setDeriv(Rational r) {
+	this.deriv = (RationalBigInteger)r;
+    }//end method setDeriv
+
+    
+    /**
+     * Sets the derivation values <tt>DERIV_DOUBLE</tt> and <tt>DERIV_DOUBLE_NEG</tt>.
+     * This value is used for <tt>PRECISE = false</tt>.
+     * <tt>DERIV_DOUBLE</tt> is set to <tt>d</tt> and <tt>DERIV_DOUBLE_NEG</tt> is set to <tt>-d</tt>.
+     *
+     * @param d the new derivation value
+     */
+    public void setDerivDouble(Double d) {
+	this.DERIV_DOUBLE = d.doubleValue();
+	this.DERIV_DOUBLE_NEG = -1*d.doubleValue();
+    }//end method setDerivDouble
+
+
+    /**
+     * Returns the <tt>DERIV_DOUBLE</tt> value.
+     *
+     * @return the derivation value
+     */
+    public double getDerivDouble() {
+	return this.DERIV_DOUBLE;
+    }//end method getDerivDouble
+
+
+    /**
+     * Returns the <tt>DERIV_DOUBLE_NEG</tt> value.
+     *
+     * @return the derivation value.
+     */
+    public double getDerivDoubleNeg() {
+	return this.DERIV_DOUBLE_NEG;
+    }//end method getDerivDoubleNeg
+
+
 }//end class RationalBigInteger

@@ -16,7 +16,11 @@ import java.io.*;
  * represented by a double. Of cause, it is well-known that computation with doubles is not precise. Hence, a derivation value is used to 
  * define a certain derivation which is allowed. So, for two Rational values <tt>P</tt> and <tt>Q</tt>, <tt>P</tt> == <tt>Q</tt> if
  * <tt>P</tt> > <tt>Q</tt>-<tt>deriv AND P</tt> < <tt>Q</tt> + <tt>deriv</tt>.<p>
- * By default, the value for deriv is set to 0.0000000001.<p>
+ * By default, the value for deriv is set to 0.0000000001. However, the derivation value can be set t0 0.<p>
+ * Computations are executed as described above, if the <tt>PRECISE</tt> flag is set to <tt>true</tt> (default = <tt>false</tt>).
+ * If <tt>PRECISE = false</tt>, two values stored in other fields, namely <tt>DERIV_DOUBLE</tt> and <tt>DERIV_DOUBLE_MINUS</tt> are used.
+ * These are double values which are used the same way as the <tt>deriv</tt> value above, but the computation is much faster. All critical computations
+ * are executed as computations on doubles, then.<p>
  * There is only one double (numerator) field inside of this class which stores the Rational. The denominator is supposed to be 1 always.
  */
 public class RationalDouble extends Rational implements Serializable{
@@ -24,9 +28,9 @@ public class RationalDouble extends Rational implements Serializable{
     /*
      * members
      */
-    static final RationalDouble deriv = new RationalDouble(0.0000000001); //allowed derivation for comparisons to be equal
-    static final double DERIV_DOUBLE = 0.00000001;
-    static final double DERIV_DOUBLE_NEG = -0.00000001;
+    static RationalDouble deriv = new RationalDouble(0.0000000001); //allowed derivation for comparisons to be equal
+    static double DERIV_DOUBLE = 0.00000001;
+    static double DERIV_DOUBLE_NEG = -0.00000001;
     static boolean PRECISE = false;
     private double d;	//numerator
     
@@ -492,4 +496,58 @@ public class RationalDouble extends Rational implements Serializable{
 	PRECISE = precise.booleanValue();
     }//end method setPrecision
 
+
+    /**
+     * Returns the derivation value for computations with <tt>deriv = true</tt>.
+     *
+     * @return the derivation value
+     */
+    public Rational getDeriv() {
+	return this.deriv;
+    }//end method getDeriv
+
+
+    /**
+     * Sets the derivation value <tt>deriv</tt>.
+     * This number is used for equality checks when <tt>PRECISE = true</tt>.
+     *
+     * @param r the new derivation value
+     */
+    public void setDeriv(Rational r) {
+	this.deriv = (RationalDouble)r;
+    }//end method setDeriv
+
+
+     /**
+     * Sets the derivation values <tt>DERIV_DOUBLE</tt> and <tt>DERIV_DOUBLE_NEG</tt>.
+     * This value is used for <tt>PRECISE = false</tt>.
+     * <tt>DERIV_DOUBLE</tt> is set to <tt>d</tt> and <tt>DERIV_DOUBLE_NEG</tt> is set to <tt>-d</tt>.
+     *
+     * @param d the new derivation value
+     */
+    public void setDerivDouble(Double d) {
+	this.DERIV_DOUBLE = d.doubleValue();
+	this.DERIV_DOUBLE_NEG = -1*d.doubleValue();
+    }//end method setDerivDouble
+
+
+    /**
+     * Returns the <tt>DERIV_DOUBLE</tt> value.
+     *
+     * @return the derivation value
+     */
+    public double getDerivDouble() {
+	return this.DERIV_DOUBLE;
+    }//end method getDerivDouble
+
+
+     /**
+     * Returns the <tt>DERIV_DOUBLE_NEG</tt> value.
+     *
+     * @return the derivation value.
+     */
+    public double getDerivDoubleNeg() {
+	return this.DERIV_DOUBLE_NEG;
+    }//end method getDerivDoubleNeg
+    
 }//end class RationalDouble

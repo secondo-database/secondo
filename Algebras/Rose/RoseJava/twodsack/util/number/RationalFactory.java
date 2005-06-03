@@ -23,10 +23,13 @@ import java.lang.reflect.*;
  * <li>{@link RationalDouble}
  * <li>{@link RationalBigInteger}
  * </ul>
- * Another method of this class can be used to set the <tt>PRECISE</tt> field. It defines wether a more or less precise computation is used. How
- * those two variants differ depends on the implementor of that class. The default value for <tt>PRECISE</tt> is <tt>true</tt>.<p>
- * The two fields <tt>DERIV_DOUBLE</tt> and <tt>DERIV_DOUBLE_NEG</tt> are read from the Rational implementations if <tt>PRECISE == false</tt>. In that
- * case, at some places in the 2DSACK package where absolute precision is not necesseray, those values are used as additional derivation values.
+ * Another method of this class can be used to set the <tt>PRECISE</tt> field. It defines wether a more or less precise computation is used.
+ * The default value for <tt>PRECISE</tt> is <tt>true</tt>. If <tt>true</tt>,
+ * for equality checks between Rationals a number <tt>deriv</tt> is used. Two Rationals <tt>r,s</tt> are supposed to be equal, if
+ * <tt>-deriv < r - s < deriv</tt>. <tt>deriv</tt> must be a field of the Rational class.<p>
+ * If <tt>PRESICE = false</tt> the same mechanism is used, but the computation is done by using doubles, which is faster but less precise.
+ * The two fields <tt>DERIV_DOUBLE</tt> and <tt>DERIV_DOUBLE_NEG</tt> are implemented in the Rational class, too. All three derivation values are
+ * read from the actual Rational implemention and can be read from this class, then.
  */
 public class RationalFactory {
     /*
@@ -41,6 +44,12 @@ public class RationalFactory {
     static private Object[] PARAM_VALUE_LIST_1 = new Object[1];
     static private Object[] PARAM_VALUE_LIST_2 = new Object[2];
     
+    /**
+     * A derivation value used for precise computations.
+     */
+    static public Rational deriv;
+
+
     /**
      * A derivation value used for non-precise computations.
      */
@@ -371,5 +380,44 @@ public class RationalFactory {
 	}//else
     }//end method constRational
 
+
+    /**
+     * Sets the <tt>deriv</tt> field of the actual Rational class.
+     *
+     * @param r the new derivation value
+     */
+    public static void setDeriv(Rational r) {
+	Class[] classParam = { RATIONAL_CLASS };
+	Object[] methParam = { r };
+	try {
+	    Method m = RATIONAL_CLASS.getMethod("setDeriv", classParam);
+	    m.invoke(r,methParam);
+	} catch (Exception e) {
+	    System.out.println("RationalFactory.setDeriv: Problems with method setDeriv.");
+	    e.printStackTrace();
+	    System.exit(0);
+	}//catch
+    }//end method setDeriv
+
+
+    /**
+     * Sets the <tt>DERIV_DOUBLE</tt> and <tt>DERIV_DOUBLE_NEG</tt> fields of the actual Rational class.
+     *
+     * @param d the new derivation value
+     */
+    public static void setDerivDouble(double d){
+	Double dd = new Double(d);
+	Class[] classParam = { dd.getClass() };
+	Object[] methParam = { dd };
+	Rational r = constRational(0);
+	try { 
+	    Method m = RATIONAL_CLASS.getMethod("setDerivDouble", classParam);
+	    m.invoke(r,methParam);
+	} catch (Exception e) {
+	    System.out.println("RationalFactory.setDerivDouble: Problems with method setDerivDouble.");
+	    e.printStackTrace();
+		System.exit(0);
+	}
+    }//end method setDerivDouble
 
 }//end class RationalFactory

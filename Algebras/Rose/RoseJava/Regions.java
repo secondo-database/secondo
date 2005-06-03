@@ -255,4 +255,8 @@ public class Regions implements Serializable{
 	return nr; 
     }//end method copy
 
+    public void print() {
+	this.triset.print();
+    }
+
 }//end class Regions

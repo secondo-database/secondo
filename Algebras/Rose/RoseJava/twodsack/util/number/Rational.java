@@ -13,10 +13,10 @@ package twodsack.util.number;
  * a Rational type for the 2DSACK package. How a Rational type is implemented is left to the implementor. He may implement is as a pair
  * of integers, as double or whatever. However, some of the methods are especially for Rational types (such as {@link #getDenominator()}) and
  * they must be implemented.<p>
- * Additionally to the methods, a variable named <tt>deriv</tt> must be defined. It determines a derivation value, which is needed for 
- * equality checks. This variable may be zero. The type of the <tt>deriv</tt> variable must be the type of the implementing class, e.g. 
- * if your class is called <tt>RationalFloat</tt>, then there must be a field <br>
- * <tt>static final RationalFloat deriv = new RationalFloat(0);</tt><p>
+ * For equality checks, there are two mechanisms in the 2DSACK package. For a class implementing the Rational type, a boolean field named <tt>PRECISE</tt>
+ * tells whether a number of type Rational (named <tt>deriv</tt>) or two numbers of type double (named <tt>DERIV_DOUBLE</tt> and <tt>DERIV_DOUBLE_NEG</tt>)
+ * are used. Make sure, that those fields are implemented.
+ *
  * Furthermore, there must be constructors for the following types:<p>
  * <ul><tt>
  * <li>int
@@ -329,5 +329,49 @@ abstract public class Rational {
      * @param b <tt>PRECISE</tt> is set to this value
      */
     abstract public void setPrecision(Boolean b);
+
     
+    /**
+     * Returns the derivation value for computations with <tt>deriv = true</tt>.
+     *
+     * @return the derivation value
+     */
+    abstract public Rational getDeriv();
+
+
+    /**
+     * Sets the derivation value <tt>deriv</tt>.
+     * This number is used for equality checks when <tt>PRECISE = true</tt>.
+     *
+     * @param r the new derivation value
+     */
+    abstract public void setDeriv(Rational r);
+
+    
+
+    /**
+     * Sets the derivation values <tt>DERIV_DOUBLE</tt> and <tt>DERIV_DOUBLE_NEG</tt>.
+     * This value is used for <tt>PRECISE = false</tt>.
+     * <tt>DERIV_DOUBLE</tt> is set to <tt>d</tt> and <tt>DERIV_DOUBLE_NEG</tt> is set to <tt>-d</tt>.
+     *
+     * @param d the new derivation value
+     */
+    abstract public void setDerivDouble(Double d);
+
+
+    /**
+     * Returns the <tt>DERIV_DOUBLE</tt> value.
+     *
+     * @return the derivation value
+     */
+    abstract public double getDerivDouble();
+
+
+    /**
+     * Returns the <tt>DERIV_DOUBLE_NEG</tt> value.
+     *
+     * @return the derivation value.
+     */
+    abstract public double getDerivDoubleNeg();
+
 }//end class Rational

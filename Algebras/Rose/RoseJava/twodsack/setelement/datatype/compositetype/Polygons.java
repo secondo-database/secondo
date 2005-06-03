@@ -2618,14 +2618,16 @@ public class Polygons extends Element implements Serializable {
 	    polCLL = myPOL.cyclesSegments();
 	} catch (Exception e) {
 	    System.out.println("\nError occured in Polygons.computeMesh(SegMultiSet,boolean): Probably, the segments don't form proper cycles.");
-	    System.out.println("Current segments are shown in JAVA window.");
-	    DisplayGFX gfx = new DisplayGFX();
-	    gfx.initWindow();
-	    gfx.addSet(border);
-	    gfx.showIt(false);
-	    try { int data = System.in.read(); }
-	    catch (Exception f) { System.exit(0); }
-	    gfx.kill();
+	    /*
+	      System.out.println("Current segments are shown in JAVA window.");
+	      DisplayGFX gfx = new DisplayGFX();	      
+	      gfx.initWindow();
+	      gfx.addSet(border);
+	      gfx.showIt(false);
+	      try { int data = System.in.read(); }
+	      catch (Exception f) { System.exit(0); }
+	      gfx.kill();
+	    */
 	    System.exit(0);
 	}//catch
 	

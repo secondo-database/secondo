@@ -118,6 +118,9 @@ public class Lines implements Serializable{
 	return new Lines(SegMultiSet.convert(this.segset.copy()));
     }//end method copy
     
+    public void print() {
+	this.segset.print();
+    }
 	
 }//end class Lines
     

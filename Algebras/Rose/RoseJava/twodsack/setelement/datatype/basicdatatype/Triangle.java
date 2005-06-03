@@ -584,6 +584,8 @@ public class Triangle extends Element implements Serializable {
 	    Triangle t;
 	    t = (Triangle)e;
 	    
+	    if (this.equal(t)) return true;
+
 	    boolean intersect = false;
 	    
 	    if (this.noPointsInside(t) > 0) {
@@ -711,7 +713,7 @@ public class Triangle extends Element implements Serializable {
 	//This implementation uses a plane sweep algorithm
 	t1 = (Triangle)t1.copy();
 	t2 = (Triangle)t2.copy();
-	
+
 	//find pairs of overlapping segments using a plane-sweep algorithm
 	//get segments arrays
 	Segment[] segArr1 = t1.segmentArray();
@@ -793,8 +795,6 @@ public class Triangle extends Element implements Serializable {
 	    }//else
 	}//while it
 	
-	SetOps.rdup(resSet);
-
 	return resSet;	
     }//end method computeSegSet
 
@@ -818,14 +818,24 @@ public class Triangle extends Element implements Serializable {
 
 	Triangle t = tIN;
 	TriMultiSet tms = tmsIN;
+	//add all segments of tmsIN to sms
 	SegMultiSet sms = new SegMultiSet(SEGMENT_COMPARATOR);
-	sms.add(t.segmentArray());
 	it = tms.iterator();
 	while (it.hasNext())
 	    sms.add(((Triangle)((MultiSetEntry)it.next()).value).segmentArray());
 
+	//remove (completely) from sms all duplicate segments
+	//'inner' segment duplicates are removed by doing this
 	sms = SegMultiSet.convert(SetOps.rdup2(sms));
 
+	//add tIn's segments to sms
+	sms.add(t.segmentArray());
+
+	//remove duplicates from sms
+	//now, all segments appear only once in the set
+	sms = SegMultiSet.convert(SetOps.rdup(sms));
+
+	//store all segments in an array
 	Segment[] allTSegs = new Segment[sms.size()];
 	it = sms.iterator();
 	int idx = 0;
@@ -840,7 +850,7 @@ public class Triangle extends Element implements Serializable {
 	for (int i = 0; i < allTSegs.length; i++) 
 	    arrCOP[i] = (Segment)allTSegs[i].copy();
 	allTSegs = arrCOP;
-		
+		 
 	MultiSet ses = new MultiSet(PSPOINT_COMPARATOR);
 	for (int i = 0; i < allTSegs.length; i++) {
 	    ses.add(new PSPoint(allTSegs[i].getStartpoint(),i,-1,true,false));
@@ -1283,7 +1293,7 @@ public class Triangle extends Element implements Serializable {
 	intPoints = PointMultiSet.convert(SetOps.intersection(thisPoints,tmsPoints));
 	intPoints.addAll(splitPoints);
 
-	//The set of segments returned by computeSegSets has duplicastes. These duplicates show, that
+	//The set of segments returned by computeSegSets has duplicates. These duplicates show, that
 	//these segments are from inside tms. They can be completely ignored, since they are not
 	//part of the tms' border.
 	SetOps.rdup2(segs);

@@ -109,7 +109,7 @@ public class PointTri_Ops {
     public static Rational dist(Point p, Triangle t) {
 	LinkedList distList = new LinkedList();
 	
-	if (inside(p,t)) return (RationalFactory.constRational(0));
+	if (isCovered(p,t)) return (RationalFactory.constRational(0));
 	Segment[] tArr = t.segmentArray();
 	for (int i = 0; i < 3; i++) { distList.add(PointSeg_Ops.dist(p,tArr[i])); }
 	Rational min = (Rational)distList.getFirst();

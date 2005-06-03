@@ -291,10 +291,12 @@ public class SegTri_Ops {
 	//case 2b: s lies fully inside of t, both endpoints lie on t's border
 	boolean startOnBorder = false;
 	boolean endOnBorder = false;
+	Point sStart = s.getStartpoint();
+	Point sEnd = s.getEndpoint();
 	Segment[] tArr = t.segmentArray();
 	for (int i = 0; i < 3; i ++) {
-	    if (!startOnBorder && PointSeg_Ops.liesOn(s.getStartpoint(),tArr[i])) startOnBorder = true;
-	    if (!endOnBorder && PointSeg_Ops.liesOn(s.getEndpoint(),tArr[i])) endOnBorder = true;
+	    if (!startOnBorder && PointSeg_Ops.liesOn(sStart,tArr[i])) startOnBorder = true;
+	    if (!endOnBorder && PointSeg_Ops.liesOn(sEnd,tArr[i])) endOnBorder = true;
 	}//for i
 	if (startOnBorder && endOnBorder) {
 	    return s;
@@ -309,36 +311,50 @@ public class SegTri_Ops {
 
 
 	//case 3/4: there are intersection points
-	Vector intPoints = new Vector(3);
+	Vector intPoints = new Vector(1);
 	boolean firstSaved = false;
 	Point intPoint;
 	boolean isEndPoint;
-
+	
 	for (int i = 0; i < tArr.length; i++) {
-	    if (s.intersects(tArr[i])) {
+	    if (s.pintersects(tArr[i])) {
 		isEndPoint = false;
 		intPoint = s.intersection(tArr[i]);
-		if (PointSeg_Ops.isEndpoint(intPoint,tArr[i])) {
-		    isEndPoint = true;
-		}
-		if (!isEndPoint) {
-		    intPoints.add(intPoint);
-		} else if (!firstSaved) {
-		    intPoints.add(intPoint);
-		    firstSaved = true;
-		}		
+		boolean equal2endpoints = intPoint.equal(sStart) || intPoint.equal(sEnd);
+		if (!equal2endpoints) {
+		    if (PointSeg_Ops.isEndpoint(intPoint,tArr[i])) {
+			isEndPoint = true;
+		    }
+		    if (!isEndPoint) {
+			intPoints.add(intPoint);
+		    } else if (!firstSaved) {
+			intPoints.add(intPoint);
+			firstSaved = true;
+		    }//else		
+		}//if
 	    }//if
 	}//for i
+	    
 
+	//compute intersection points
 
 	//case 3: one intersection point
 	if (intPoints.size() == 1) {
-	    if (PointTri_Ops.inside(s.getStartpoint(),t)) {
-		return(new Segment(s.getStartpoint(),(Point)intPoints.firstElement()));
-	    }//if
-	    else {
-		return(new Segment(s.getEndpoint(),(Point)intPoints.firstElement()));
-	    }//else
+	    if (PointTri_Ops.inside(sStart,t)) {
+		System.out.println("case 3.1");
+		return(new Segment(sStart,(Point)intPoints.firstElement()));
+	    } else
+		if (PointTri_Ops.liesOnBorder(sStart,t)) {
+		    System.out.println("case 3.2");
+		    return(new Segment(sStart,(Point)intPoints.firstElement()));
+		} else
+		    if (PointTri_Ops.liesOnBorder(sEnd,t)) {
+			System.out.println("case 3.3");
+			return(new Segment(sEnd,(Point)intPoints.firstElement()));
+		    } else {
+			System.out.println("case 3.4");
+			return(new Segment(sEnd,(Point)intPoints.firstElement()));
+		    }//else
 	}//if
 
 	//case 4: two intersection points
@@ -347,7 +363,16 @@ public class SegTri_Ops {
 	}//if
 	
 	//This case should never be reached.
-	return new Segment();
+	System.out.println("\nSegTri_Ops.intersection: Error in computation of intersection segment.");
+	System.out.println("actTri: "+t);
+	System.out.println("actSeg: "+sStart+"/"+sEnd);
+	System.out.println("startx: "+s.getStartpoint().x+", starty: "+	s.getStartpoint().y);
+	System.out.println("startOnBorder: "+startOnBorder+", endOnBorder: "+endOnBorder);
+	System.out.println("intPoints: ");
+	for (int ii = 0; ii < intPoints.size(); ii++)
+	    System.out.println(ii+": "+intPoints.get(ii)+" - equal sStart: "+sStart.equal((Point)intPoints.get(ii))+", equal sEnd: "+sEnd.equal((Point)intPoints.get(ii)));
+	
+	return null;
     }//end method intersection
 	
 
