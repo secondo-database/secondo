@@ -1824,6 +1824,62 @@ new value ~value~. Returns error 1 if object does not exist.
 }
 
 bool
+SecondoCatalog::ModifyObject( const string& objectName, const Word value )
+{
+/*
+Overwrites the value of the object with identifier ~objectName~ with a
+new value ~word~. Returns "false"[4] if object does not exist.
+The difference between this function and ~UpdateObject~ is that the
+second opens the old object for deletion. This one assumes that the
+object is only modified, so that no deletion function is necessary.
+
+*/
+  bool found = false;
+  ObjectsCatalog::iterator oPos = objects.find( objectName );
+  if ( oPos != objects.end() )
+  {
+    assert( oPos->second.state != EntryDelete );
+    assert( oPos->second.value.addr != value.addr );
+
+    (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
+    oPos->second.value = value;
+    oPos->second.valueDefined = true;
+    found = true;
+  }
+  else
+  {
+    ObjectsCatalogEntry oEntry;
+    SmiRecord oRec;
+    found = objCatalogFile.SelectRecord( SmiKey( objectName ), oRec );
+    if ( found )
+    {
+      oRec.Read( &oEntry.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
+      oRec.Read( &oEntry.valueRecordId, sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
+      oRec.Read( &oEntry.model, sizeof( Word ), CE_OBJS_MODEL );
+      oRec.Read( &oEntry.modelRecordId, sizeof( int ), CE_OBJS_MODEL_RECID );
+      oRec.Read( &oEntry.algebraId, sizeof( int ), CE_OBJS_ALGEBRA_ID );
+      oRec.Read( &oEntry.typeId, sizeof( int ), CE_OBJS_TYPE_ID );
+      int nameSize, exprSize, bufSize;
+      oRec.Read( &nameSize, sizeof( int ), CE_OBJS_TYPENAME_SIZE );
+      oRec.Read( &exprSize, sizeof( int ), CE_OBJS_TYPEEXPR_SIZE );
+      bufSize = (nameSize > exprSize) ? nameSize : exprSize;
+      char* buffer = new char[bufSize];
+      oRec.Read( buffer, nameSize, CE_OBJS_TYPEINFO_START );
+      oEntry.typeName.assign( buffer, nameSize );
+      oRec.Read( buffer, exprSize, CE_OBJS_TYPEINFO_START + nameSize );
+      oEntry.typeExpr.assign( buffer, exprSize );
+      delete []buffer;
+      oEntry.state = EntryUpdate;
+      oEntry.value = value;
+      oEntry.valueDefined = true;
+      objects.insert( make_pair( objectName, oEntry ) );
+    }
+  }
+  return (found);
+}
+
+
+bool
 SecondoCatalog::CloneObject( const string& objectName, const Word value )
 {
 /*

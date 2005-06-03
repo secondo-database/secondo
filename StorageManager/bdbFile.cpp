@@ -261,17 +261,7 @@ SmiFile::Create( const string& context /* = "Default" */ )
     SmiEnvironment::SetError( E_SMI_FILE_INVALIDNAME );
   }
 
-  if (rc == 0) 
-  {
-    return true;
-  } 
-  else 
-  {
-    string errMsg;
-    SmiEnvironment::GetLastErrorCode( errMsg );
-    cerr << errMsg << endl; 
-    return false; 
-  }
+  return (rc == 0);
 }
 
 bool
@@ -502,6 +492,7 @@ SmiFile::Open( const SmiFileId fileId, const string& context /* = "Default" */ )
       {
         SmiEnvironment::SetError( E_SMI_OK );
         opened = true;
+        this->fileId = fileId;
         impl->isSystemCatalogFile = (fileContext == "SecondoCatalog");
       }
       else
@@ -1338,11 +1329,6 @@ PrefetchingIteratorImpl::ReadCurrentRecordNumber(SmiRecordId& recordNumber)
 int PrefetchingIteratorImpl::ErrorCode()
 {
   return errorCode;
-}
-
-int PrefetchingIteratorImpl::Delete()
-{
-  return dbc->del( 0 );
 }
 
 /* --- bdbFile.cpp --- */

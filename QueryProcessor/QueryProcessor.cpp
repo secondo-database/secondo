@@ -445,7 +445,14 @@ struct OpNode
   ListExpr     typeExpr;
   AlgebraLevel nodeLevel;
   OpNodeType   nodetype;
-  bool isRoot;
+  bool         isRoot;
+  string       objectName; 
+/*
+This value ~objectName~ should be inside the ~OpNodeUnion~ in the
+struct ~OpNodeDirectObject~ because it is a property only for objects,
+but unions do not allow variable size objects inside it.
+
+*/
   union OpNodeUnion
   {
     struct OpNodeDirectObject
@@ -454,6 +461,7 @@ struct OpNode
       int  valNo;        /* needed for testing only */
       Word model;
       bool isConstant;
+      bool isModified;
     } dobj;
     struct OpNodeIndirectObject
     {
@@ -496,6 +504,7 @@ struct OpNode
         u.dobj.valNo = 0;        
         u.dobj.model = SetWord(Address(0));
         u.dobj.isConstant = false;
+        u.dobj.isModified = false;
         break;
       }
       case IndirectObject :
@@ -2193,6 +2202,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->nodetype = Pointer;
       node->isRoot = oldfirst;
       node->u.dobj.isConstant = true;
+      node->u.dobj.isModified = false;
       node->u.dobj.valNo = nl->IntValue( nl->Third( nl->First( expr ) ) );
       node->u.dobj.value = values[node->u.dobj.valNo].value;
       node->u.dobj.model = models[node->u.dobj.valNo];
@@ -2207,6 +2217,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->nodetype = Object;
       node->isRoot = oldfirst;  
       node->u.dobj.isConstant = true;
+      node->u.dobj.isModified = false;
       node->u.dobj.valNo = nl->IntValue( nl->Third( nl->First( expr ) ) );
       node->u.dobj.value = values[node->u.dobj.valNo].value;
       node->u.dobj.model = models[node->u.dobj.valNo];
@@ -2220,7 +2231,9 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->nodeLevel = level;
       node->nodetype = Object;
       node->isRoot = oldfirst;  
+      node->objectName = nl->SymbolValue( nl->First( nl->First( expr ) ) );
       node->u.dobj.isConstant = false;
+      node->u.dobj.isModified = false;
       node->u.dobj.valNo = nl->IntValue( nl->Third( nl->First( expr ) ) );
       node->u.dobj.value = values[node->u.dobj.valNo].value;
       node->u.dobj.model = models[node->u.dobj.valNo];
@@ -2575,7 +2588,12 @@ Deletes an operator tree object.
             if( tree->u.dobj.isConstant )
               (algebraManager->DeleteObj( algebraId, typeId )) ( tree->u.dobj.value );
             else
-              (algebraManager->CloseObj( algebraId, typeId )) ( tree->u.dobj.value );
+            {
+              if( tree->u.dobj.isModified )
+                GetCatalog( tree->nodeLevel )->ModifyObject( tree->objectName, tree->u.dobj.value );
+              else 
+                (algebraManager->CloseObj( algebraId, typeId )) ( tree->u.dobj.value );
+            }
           }
         }
         break;
@@ -2940,6 +2958,18 @@ Returns the type expression of the node ~s~ of the operator tree.
   return (tree->typeExpr);
 }
 
+void
+QueryProcessor::SetModified( const Supplier s )
+{
+/*
+Sets a node ~s~ of the operator tree as modified. The node must be
+of type ~Object~.
+
+*/
+  OpTree tree = (OpTree) s;
+  assert( tree->nodetype == Object );
+  tree->u.dobj.isModified = true;
+}
 
 /*
 1.3 Using Counters
