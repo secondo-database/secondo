@@ -1199,12 +1199,22 @@ used unchanged. If it is of the form arg(N), then it is a base relation; a
 
 res(N) => res(N).
 
+arg(N) => feed(rel(Name, *, Case)) :-
+  isStarQuery,
+  argument(N, rel(Name, *, Case)), 
+  !.
+
+arg(N) => rename(feed(rel(Name, Var, Case)), Var) :-
+  isStarQuery,
+  argument(N, rel(Name, Var, Case)), !,
+  !.
+
 arg(N) => project(feed(rel(Name, *, Case)), AttrNames) :-
   argument(N, rel(Name, *, Case)), !, 
   usedAttrList(rel(Name, *, Case), AttrNames).
 
 arg(N) => rename(project(feed(rel(Name, Var, Case)), AttrNames), Var) :-
-  argument(N, rel(Name, Var, Case)),
+  argument(N, rel(Name, Var, Case)), !,
   usedAttrList(rel(Name, Var, Case), AttrNames).
 
 /*
@@ -2419,10 +2429,15 @@ the functor ~lc~.
 
 callLookup(Query, Query2) :-
   newQuery,
+  starQuery(Query),
   lookup(Query, Query2), !.
 
+starQuery(select * from _) :- assert(isStarQuery), !.
+starQuery(select count(*) from _) :- assert(isStarQuery), !.
+starQuery(_).
+
 newQuery :- not(clearVariables), not(clearQueryRelations), 
-  not(clearQueryAttributes), not(clearUsedAttributes).
+  not(clearQueryAttributes), not(clearUsedAttributes), not(clearIsStarQuery).
 
 clearVariables :- retract(variable(_, _)), fail.
 
@@ -2431,6 +2446,8 @@ clearQueryRelations :- retract(queryRel(_, _)), fail.
 clearQueryAttributes :- retract(queryAttr(_)), fail.
 
 clearUsedAttributes :- retract(usedAttr(_, _)), fail.
+
+clearIsStarQuery :- retract(isStarQuery), fail.
 
 /*
 
@@ -2508,6 +2525,7 @@ Translate and store a single relation definition.
   variable/2,
   queryRel/2,
   queryAttr/1,
+  isStarQuery/0,
   usedAttr/2.
 
 
@@ -2943,6 +2961,26 @@ translate(Select from Rels where Preds, Stream, Select, Cost) :-
   bestPlan(Stream, Cost),
   !.
 
+/*
+Handle special case "select * from"
+
+*/
+
+translate(select * from Rel, feed(Rel), select *, 0) :-
+  not(is_list(Rel)),
+  !.
+
+translate(select * from [Rel], feed(Rel), select *, 0).
+
+translate(select * from [Rel | Rels], product(feed(Rel), Stream), select *, 0) :-
+  translate(select * from Rels, Stream, select *, _).
+
+
+/*
+Create feed project statements if possible 
+
+*/
+
 translate(Select from Rel, project(feed(Rel), AttrNames), Select, 0) :-
   not(is_list(Rel)),
   usedAttrList(Rel, AttrNames),
@@ -2964,7 +3002,6 @@ translate(Select from [Rel], feed(Rel), Select, 0).
 
 translate(Select from [Rel | Rels], product(feed(Rel), Stream), Select, 0) :-
   translate(Select from Rels, Stream, Select, _).
-
 
 
 /*
@@ -3142,7 +3179,6 @@ queryToStream(Query orderby SortAttrs, Stream2, Cost) :-
   finish(Stream, Select, SortAttrs, Stream2),
   !.
 
-
 queryToStream(Select from Rels where Preds, Stream2, Cost) :-
   translate(Select from Rels where Preds, Stream, Select1, Cost),
   finish(Stream, Select1, [], Stream2),
@@ -3153,8 +3189,9 @@ queryToStream(Select from Rels groupby Attrs, Stream2, Cost) :-
   finish(Stream, Select1, [], Stream2),
   !.
 
-queryToStream(Select from Rels, Stream, Cost) :-
-  translate(Select from Rels, Stream, _, Cost).
+queryToStream(Query, Stream2, Cost) :-
+  translate(Query, Stream, Select, Cost),
+  finish(Stream, Select, [], Stream2).
 
 /*
 ----    finish(Stream, Select, Sort, Stream2) :-
