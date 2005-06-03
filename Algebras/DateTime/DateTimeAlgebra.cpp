@@ -755,11 +755,21 @@ bool DateTime::ReadFrom(const ListExpr LE,const bool typeincluded){
   if(nl->AtomType(ValueList)==RealType ){
      if(type==instanttype){
         bool res = ReadFrom(nl->RealValue(ValueList));
-	return res;
+	      return res;
      }
      else
         return false;
   }
+  // accect also integer values
+  if(nl->AtomType(ValueList)==IntType ){
+     if(type==instanttype){
+        bool res = ReadFrom(nl->IntValue(ValueList));
+	      return res;
+     }
+     else
+        return false;
+  }
+
 
   // (day month year [hour minute [second [millisecond]]])
   if( (nl->ListLength(ValueList)>=3) && nl->ListLength(ValueList)<=7){
