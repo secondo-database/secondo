@@ -26,6 +26,7 @@ import  javax.swing.*;
 import  java.awt.geom.*;
 import  java.util.*;
 import  viewer.HoeseViewer;
+import javax.swing.border.*;
 
 
 /**
@@ -42,6 +43,9 @@ public class GraphWindow extends JLayeredPane
   ScaledLabel BackLabel;
 /** Main-application */
   HoeseViewer mw;
+
+/** a scalable image as background */
+  ScalableImage background=new ScalableImage(null);
 
   /** Creates a Graphwindow without any layer
    * @see <a href="Categorysrc.html#GraphWindow">Source</a>
@@ -60,9 +64,18 @@ public class GraphWindow extends JLayeredPane
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         int laynr = Integer.parseInt(evt.getActionCommand());
         Component[] com = getComponentsInLayer(laynr);
-        ((JComponent)com[0]).setVisible(((JToggleButton)evt.getSource()).isSelected());
+        if(com.length>0)
+           ((JComponent)com[0]).setVisible(((JToggleButton)evt.getSource()).isSelected());
       }
     };
+    // add a switch for the background
+    JToggleButton jt = new JToggleButton();
+    jt.setSelected(true);
+    jt.setAlignmentX(Component.CENTER_ALIGNMENT);
+    jt.setPreferredSize(new Dimension(10, 10));
+    jt.addActionListener(LayerButtonListener);
+    jt.setActionCommand("-1");
+    mw.addSwitch(jt,0);
   }
 
   /**
@@ -265,14 +278,50 @@ public class GraphWindow extends JLayeredPane
     //			try{
   }
 
+  public void updateBackground(){
+    BackGroundImage bgi = mw.getBackgroundImage();
+    if(bgi==null){
+      remove(background);
+      repaint();
+      return;
+    }
+    Image bgimg = bgi.getImage();
+    if(bgimg==null){
+       remove(background);
+       repaint();
+       return;
+    }
+    // ok a background is given
+    Image img2 = background.getImage();
+    if(bgimg==img2){ // no changes of the picture
+      return;
+    }
+
+    
+   if(img2==null){
+       add(background,new Integer(-1));
+    }
+    background.setImage(bgimg);
+    repaint();
+  }
+
   /**
    * draws all layers
    * @param g
    * @see <a href="Categorysrc.html#paintChildren">Source</a> 
    */
   public void paintChildren (Graphics g) {
+    // paint the background image
+    // first transform the boundig box for the background 
+    // to into screen coordinates
+    AffineTransform at = mw.allProjection;
+    Rectangle2D R = at.createTransformedShape(mw.getBackgroundImage().getBBox()).getBounds();
+    background.setBounds((int)R.getX(),(int)R.getY(),(int)R.getWidth(),(int)R.getHeight());
+
     Graphics2D g2 = (Graphics2D)g;
     g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+    
+    // mark the selected object
     super.paintChildren(g2);
     DsplGraph dg = mw.getSelGO();
 
@@ -293,24 +342,20 @@ public class GraphWindow extends JLayeredPane
 
 /** A Scalable JLabel for the background image
   */
-  class ScaledLabel extends JLabel {
+  class ScaledLabel extends JLabel implements java.awt.image.ImageObserver{
     public ScaledLabel (Icon image, int h) {
       super(image, h);
     }
 
     public void paintComponent (Graphics g) {
-     // if (actZF != mw.getZoomFactor()){
-     // 	System.out.println(actZF);
-     // 	Image im=((ImageIcon)getIcon()).getImage();
-     // 	actZF=mw.getZoomFactor();
-     // 	im=im.getScaledInstance((int)(iWidth*actZF),-1,Image.SCALE_SMOOTH);
-     // 	setIcon(new ImageIcon(im));
-     // 	System.out.println(actZF);
-     // }
       ((Graphics2D)g).scale(mw.getZoomFactor(), mw.getZoomFactor());
       super.paintComponent(g);
     }
   }
+
+
+
+
 }
 
 

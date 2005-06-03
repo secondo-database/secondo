@@ -37,6 +37,7 @@ import  gui.SecondoObject;
 import  gui.idmanager.*;
 import  project.*;
 import  components.*;
+import java.awt.image.*;
 
 /**
  * this is a viewer for spatial and temporal spatial objects
@@ -131,7 +132,7 @@ public class HoeseViewer extends SecondoViewer {
 
  /* settings-menu */
   private javax.swing.JMenu jMenuGui;
-  private JMenuItem jMenuBackground;
+  private JMenuItem jMenuBackgroundColor;
   private javax.swing.JMenuItem MINewCat;
 
   private JMenu Menu_Prj;
@@ -166,6 +167,9 @@ public class HoeseViewer extends SecondoViewer {
   private AbstractAction AACatEdit;
   private AbstractAction AAViewCat;
   private AbstractAction AAContext;
+  private AbstractAction AASetBackground;
+  private AbstractAction AARemoveBackground;
+  private AbstractAction AACaptureBackground;
   private AbstractAction AALabelAttr;
   private AbstractAction AA1;
   private AbstractAction AA2;
@@ -178,12 +182,18 @@ public class HoeseViewer extends SecondoViewer {
   private JFileChooser FC_Category=new JFileChooser();
   /** a FileChooser for References Attribute value -> Category */
   private JFileChooser FC_References = new JFileChooser();
+  /** a FileChooser for sving images as pong graphics */
+  private JFileChooser FC_Images = new JFileChooser();
   /** a dialog to input a time value */
   TimeInputDialog TimeInput = new TimeInputDialog(this.getMainFrame());
 
   private String TexturePath;
   private String CatPath;
   private String FileSeparator;
+
+
+  /** a dialog for assigning a background image */
+  private BackGroundImage bgImage;
 
 
   /**
@@ -233,6 +243,7 @@ public class HoeseViewer extends SecondoViewer {
            }
       }
     }
+
 
 
     MouseKoordLabel = new JLabel("-------/-------");
@@ -383,6 +394,7 @@ public class HoeseViewer extends SecondoViewer {
     DoQuerySelection = new QueryListSelectionListener();
     allProjection = new AffineTransform();
     allProjection.scale(ZoomFactor, ZoomFactor);
+    LayerSwitchBar = new JPanel();
     GraphDisplay = new GraphWindow(this);
     GraphDisplay.setOpaque(true); // needed for background-color
     MouseKoordLabel.setOpaque(true);
@@ -427,7 +439,6 @@ public class HoeseViewer extends SecondoViewer {
     //GraphDisplay.addMouseMotionListener(SelectionControl);
 
     SpatioTempPanel = new JPanel(new BorderLayout());
-    LayerSwitchBar = new JPanel();
     LayerSwitchBar.setPreferredSize(new Dimension(10, 10));
     LayerSwitchBar.setLayout(new BoxLayout(LayerSwitchBar, BoxLayout.Y_AXIS));
     GraphDisplay.createBackLayer(null, 0, 0);
@@ -451,6 +462,26 @@ public class HoeseViewer extends SecondoViewer {
     setLayout(new BorderLayout());
     add(pane,BorderLayout.CENTER);
     setDivider();
+    bgImage = new BackGroundImage(null);
+
+    /* initialize the file chooser for saving images */ 
+    FC_Images.setDialogTitle("Save PNG-Image");
+    javax.swing.filechooser.FileFilter filter = new javax.swing.filechooser.FileFilter(){
+        public boolean accept(File PathName){
+           if(PathName==null) return false;
+           if(PathName.isDirectory())
+              return true;
+           if(PathName.getName().endsWith(".png"))
+               return true;
+           else 
+              return false;                
+         }
+         public String getDescription(){
+           return "PNG images";
+         }
+    };
+    FC_Images.setFileFilter(filter);           
+
   }
 
 
@@ -570,8 +601,8 @@ public class HoeseViewer extends SecondoViewer {
 
  /** Menu Settings */
     jMenuGui = new javax.swing.JMenu();
-    jMenuBackground = jMenuGui.add("Background Color");
-    jMenuBackground.addActionListener(new ActionListener(){
+    jMenuBackgroundColor = new JMenuItem("Background Color");
+    jMenuBackgroundColor.addActionListener(new ActionListener(){
         public void actionPerformed(ActionEvent evt){
 	  Color OldBG = GraphDisplay.getBackground();
 	  Color BG = JColorChooser.showDialog(
@@ -729,8 +760,32 @@ public class HoeseViewer extends SecondoViewer {
     jMenu1.add(MI_LoadAttrCatLink);
     //jMenu1.add(MI_AppendAttrCatLink);
 
+    JMenuItem SaveGraph = new JMenuItem("Save Graphic");
+    SaveGraph.addActionListener(new ActionListener(){
+        public void actionPerformed(ActionEvent evt){
+           // create the image
+           Rectangle2D R = GraphDisplay.getBounds();
+           System.out.println("Restrict the size of the image  !!!");
+           BufferedImage bi = new BufferedImage((int)R.getWidth(),(int)R.getHeight(),
+                                                 BufferedImage.TYPE_INT_RGB);
+           Graphics2D g = bi.createGraphics();
+           GraphDisplay.printAll(g);
+           if(FC_Images.showSaveDialog(HoeseViewer.this)==FC_Images.APPROVE_OPTION){
+              File F = FC_Images.getSelectedFile();
+              try{
+                 javax.imageio.ImageIO.write(bi,"png",F); 
+              } catch(Exception e){
+                 MessageBox.showMessage("Error in saving image ");
+              }
+           }
+           g.dispose(); 
+           System.gc();
+           System.runFinalization();
+        }
+    });
 
-
+   jMenu1.addSeparator();
+   jMenu1.add(SaveGraph);
 
     MenuExtension.addMenu(jMenu1);
 
@@ -774,8 +829,89 @@ public class HoeseViewer extends SecondoViewer {
         on_Set_Kontext();
       }
     };
+    
+    JMenu BGMenu = new JMenu("BackGround");
+    
+    AASetBackground = new AbstractAction("set image") {
+      public void actionPerformed (java.awt.event.ActionEvent evt) {
+        bgImage.setVisible(true);
+        GraphDisplay.updateBackground(); 
+      }
+    };
 
-    MIsetKontext = jMenuGui.add(AAContext);
+    AARemoveBackground = new AbstractAction("remove image"){
+       public void actionPerformed(java.awt.event.ActionEvent evt){
+         bgImage.setImage(null);
+         GraphDisplay.updateBackground();
+       }
+    };
+
+    AACaptureBackground = new AbstractAction("capture image"){
+       public void actionPerformed(java.awt.event.ActionEvent evt){
+           Rectangle2D R = GraphDisplay.getBounds();
+           int w = (int) R.getWidth();
+           int h = (int) R.getHeight();
+           if(w<=0 | h<=0){
+              showMessage("cannot capture the background");
+              bgImage.setImage(null);
+              GraphDisplay.updateBackground();
+              return; 
+           } 
+           try{
+              boolean scale = false; // image to scale ?
+              double sf=1.0; // the scale factor
+              long MAXPIXELS = ScalableImage.getMaxPixels();            
+              if((long)w*h > MAXPIXELS){
+                 System.out.println("scale down the image because it's too big");
+                 sf = Math.sqrt( MAXPIXELS/ ((R.getWidth()*R.getHeight())));
+                 
+                 w = (int) (w*sf);
+                 h = (int) (h*sf);
+                 scale = true;
+              }
+
+              BufferedImage bi = new BufferedImage(w,h,BufferedImage.TYPE_3BYTE_BGR);
+              Graphics2D g = bi.createGraphics();
+              
+              if(scale){
+                AffineTransform sdat = new AffineTransform();
+                sdat.setToScale(sf,sf);   
+                g.setTransform(sdat);
+              } 
+
+              AffineTransform at = (AffineTransform) allProjection.clone();
+              
+              GraphDisplay.printAll(g);
+              AffineTransform Scale = new AffineTransform();
+              bgImage.setImage(bi);
+              // convert the bounding bocx of the GraphDisplay into
+              // world coordinates.
+              try{
+                  R.setRect(0,0,R.getWidth(),R.getHeight());    
+                  R = at.createInverse().createTransformedShape(R).getBounds();
+              } catch(Exception e){
+                  MessageBox.showMessage("Cannot determine the bounding box of this image");
+              }
+              bgImage.setBBox(R.getX(),R.getY(),R.getWidth(),R.getHeight());
+              g.dispose();
+              GraphDisplay.updateBackground();
+            }catch(Exception e){
+               // because large sized data are processed, a OutOfMemory error is possible
+               showMessage("an error in capturing the background is occured");
+               bgImage.setImage(null); 
+           }
+           System.gc();
+           System.runFinalization();
+       }
+    };
+   
+     
+    BGMenu.add(jMenuBackgroundColor);
+    BGMenu.add(AASetBackground); 
+    BGMenu.add(AARemoveBackground);
+    BGMenu.add(AACaptureBackground);
+
+   jMenuGui.add(BGMenu); 
 
     AAZoomOut = new AbstractAction("Zoom out"){
       public void actionPerformed (java.awt.event.ActionEvent evt) {
@@ -1687,6 +1823,13 @@ public boolean canDisplay(SecondoObject o){
     LayerSwitchBar.repaint();
   }
 
+  /** returns the actual backgroundimage 
+    */
+  public BackGroundImage getBackgroundImage(){
+    return bgImage;
+  }
+
+
 
 /** Listens to a selection change in a query list
   * @see <a href="MainWindowsrc.html#QueryListSelectionListener">Source</a>
@@ -2054,6 +2197,16 @@ public boolean canDisplay(SecondoObject o){
 	  Category.setTexturePath(TexturePath);
        }
 
+    String MaxPixels = configuration.getProperty("MAXPIXELS");
+    if(MaxPixels!=null){
+          MaxPixels=MaxPixels.trim();
+          try{
+             long mp = Long.parseLong(MaxPixels);
+             ScalableImage.setMaxPixels(mp); 
+          } catch(Exception e){
+            System.out.println("Error in readng MaxPixels");
+          } 
+    }
 
 
        String TMPReferencePath = configuration.getProperty("REFERENCE_PATH");
