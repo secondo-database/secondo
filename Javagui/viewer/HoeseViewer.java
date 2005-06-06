@@ -74,9 +74,6 @@ public class HoeseViewer extends SecondoViewer {
   /** The list of categories present in the app. */
   public Vector Cats;
 
-  /** The context-panel where to made context setting */
-  public ContextPanel context;
-
   /** The component which contains the togglebuttons for the layer at the left side of GraphWindow */
   public JPanel LayerSwitchBar;
 
@@ -87,8 +84,6 @@ public class HoeseViewer extends SecondoViewer {
   public Rectangle BBoxDC = new Rectangle(0, 0, 0, 0);
   private int oldDL;
 
-  /** True if a backimage is present */
-  public boolean hasBackImage = false;
   private boolean isMouseSelected = false;
   private DsplGraph selGraphObj;
   private DsplBase selBaseObj;
@@ -145,8 +140,6 @@ public class HoeseViewer extends SecondoViewer {
   private javax.swing.JMenuItem jMIShowCE;
   private javax.swing.JMenuItem MIQueryRep;
 
-  /** context menu item */
-  public javax.swing.JMenuItem MIsetKontext;
   private javax.swing.JMenuItem MILayerMgmt;
 
   /** Object Menu */
@@ -166,7 +159,6 @@ public class HoeseViewer extends SecondoViewer {
   private AbstractAction AAZoomOut;
   private AbstractAction AACatEdit;
   private AbstractAction AAViewCat;
-  private AbstractAction AAContext;
   private AbstractAction AASetBackground;
   private AbstractAction AARemoveBackground;
   private AbstractAction AACaptureBackground;
@@ -222,7 +214,6 @@ public class HoeseViewer extends SecondoViewer {
     initComponents();
     init();
     Cats = new Vector(30, 10);
-    context = new ContextPanel(this);
     Cats.add(Category.getDefaultCat());
     //Load S Categories
     String Catfiles = configuration.getProperty("StandardCats");
@@ -441,7 +432,6 @@ public class HoeseViewer extends SecondoViewer {
     SpatioTempPanel = new JPanel(new BorderLayout());
     LayerSwitchBar.setPreferredSize(new Dimension(10, 10));
     LayerSwitchBar.setLayout(new BoxLayout(LayerSwitchBar, BoxLayout.Y_AXIS));
-    GraphDisplay.createBackLayer(null, 0, 0);
     GeoScrollPane = new JScrollPane(GraphDisplay);
     SpatioTempPanel.add(GeoScrollPane, BorderLayout.CENTER);
     SpatioTempPanel.add(LayerSwitchBar, BorderLayout.WEST);
@@ -619,7 +609,6 @@ public class HoeseViewer extends SecondoViewer {
     MINewCat = new javax.swing.JMenuItem();
     isAutoCatMI = new javax.swing.JCheckBoxMenuItem();
     jSeparator5 = new javax.swing.JSeparator();
-    MIsetKontext = new javax.swing.JCheckBoxMenuItem();
     MILayerMgmt = new javax.swing.JMenuItem();
     Menu_Prj = new JMenu("Projections");
     MI_PrjSettings = Menu_Prj.add("Settings");
@@ -822,13 +811,6 @@ public class HoeseViewer extends SecondoViewer {
     };
 
     jMIShowCE = jMenuGui.add(AACatEdit);
-
-    AAContext = new AbstractAction("Set context") {
-      public void actionPerformed (java.awt.event.ActionEvent evt) {
-        MIsetKontext.setSelected(!MIsetKontext.isSelected());
-        on_Set_Kontext();
-      }
-    };
     
     JMenu BGMenu = new JMenu("BackGround");
     
@@ -952,22 +934,12 @@ public class HoeseViewer extends SecondoViewer {
         allProjection = new AffineTransform(m);
         BBoxDC.setSize((int)(BBoxDC.getWidth()*zf), (int)(BBoxDC.getHeight()*zf));
         GraphDisplay.updateLayersSize(BBoxDC);
-        if (!context.AutoProjRB.isSelected()) {
-          if (hasBackImage)
-            LayerSwitchBar.remove(0);
-          if (context.ImagePath != null)
-            addSwitch(GraphDisplay.createBackLayer(context.ImagePath, context.getMapOfs().getX()*zf,
-                context.getMapOfs().getY()*zf), 0);
-          else
-            GraphDisplay.createBackLayer(null, 0, 0);
-        }
         Point p = GeoScrollPane.getViewport().getViewPosition();
-	Rectangle VP = GeoScrollPane.getViewport().getViewRect();
-	int x = (int)p.getX();
-	int y = (int)p.getY();
-	x = (int)(((x+VP.width/2)*zf)-VP.width/2);
-	y = (int)(((y+VP.height/2)*zf)-VP.height/2);
-	//GeoScrollPane.getViewport().setViewPosition(new Point((int)(p.getX()*zf),(int)(p.getY()*zf)));
+        Rectangle VP = GeoScrollPane.getViewport().getViewRect();
+        int x = (int)p.getX();
+        int y = (int)p.getY();
+        x = (int)(((x+VP.width/2)*zf)-VP.width/2);
+        y = (int)(((y+VP.height/2)*zf)-VP.height/2);
         GeoScrollPane.getViewport().setViewPosition(new Point(x,y));
         GraphDisplay.repaint();
       }
@@ -991,21 +963,12 @@ public class HoeseViewer extends SecondoViewer {
         allProjection = new AffineTransform(m);
         BBoxDC.setSize((int)(BBoxDC.getWidth()*zf), (int)(BBoxDC.getHeight()*zf));
         GraphDisplay.updateLayersSize(BBoxDC);
-        if (!context.AutoProjRB.isSelected()) {
-          if (hasBackImage)
-            LayerSwitchBar.remove(0);
-          if (context.ImagePath != null)
-            addSwitch(GraphDisplay.createBackLayer(context.ImagePath, context.getMapOfs().getX()*zf,
-                context.getMapOfs().getY()*zf), 0);
-          else
-            GraphDisplay.createBackLayer(null, 0, 0);
-        }
         Point p = GeoScrollPane.getViewport().getViewPosition(); // left-top
-	Rectangle VP = GeoScrollPane.getViewport().getViewRect();
-	int x = (int)p.getX();
-	int y = (int)p.getY();
-	x = (int)(((x+VP.width/2)*zf)-VP.width/2);
-	y = (int)(((y+VP.height/2)*zf)-VP.height/2);
+        Rectangle VP = GeoScrollPane.getViewport().getViewRect();
+        int x = (int)p.getX();
+        int y = (int)p.getY();
+        x = (int)(((x+VP.width/2)*zf)-VP.width/2);
+        y = (int)(((y+VP.height/2)*zf)-VP.height/2);
         //GeoScrollPane.getViewport().setViewPosition(new Point((int)(p.getX()*zf),(int)(p.getY()*zf)));
         GeoScrollPane.getViewport().setViewPosition(new Point(x,y));
         GraphDisplay.repaint();
@@ -1211,7 +1174,7 @@ public class HoeseViewer extends SecondoViewer {
           return;
         }
         //oldLayer.getGeoObjects().remove(selGraphObj);
-        int min = hasBackImage ? 2 : 1;
+        int min = 1;
         Layer oldLayer = selGraphObj.getLayer();
         int aktno = GraphDisplay.getIndexOf(oldLayer);
         if (aktno < GraphDisplay.getComponentCount() - min)
@@ -1235,7 +1198,7 @@ public class HoeseViewer extends SecondoViewer {
           showMessage("No DsplGraph object selected!");
           return;
         }
-        int min = hasBackImage ? 2 : 1;
+        int min = 1;
         Layer oldLayer = selGraphObj.getLayer();
         oldLayer.setSelectedButton(false);
         oldLayer.removeGO(selGraphObj);
@@ -1407,36 +1370,6 @@ public boolean canDisplay(SecondoObject o){
 }
 
 
-
-  /**
-   * Shows/hides the context-panel where the TextWindowis displayed. Create an extra temporal projection-layer
-   * @see <a href="MainWindowsrc.html#on_Set_Kontext">Source</a>
-   */
-  public void on_Set_Kontext () {
-    if (MIsetKontext.isSelected()) {
-      JLabel l = context.getProjectionLabel();
-      l.setBounds(0, 0, GraphDisplay.getWidth(), GraphDisplay.getHeight());                     // oder BBoxDC
-      l.setVisible(false);
-      GraphDisplay.add(l, new Integer(20000));
-      GraphDisplay.removeMouseListener(SelectionControl);
-     // GraphDisplay.removeMouseMotionListener(SelectionControl);
-     // ensure to have the MouseListener only one time registered
-      GraphDisplay.removeMouseListener(context.getProjectionControl());
-      GraphDisplay.addMouseListener(context.getProjectionControl());
-      VisualPanel.setLeftComponent(context);
-    }
-    else {
-      GraphDisplay.removeMouseListener(context.getProjectionControl());
-      // ensure to register SelectionControl at most one time
-      GraphDisplay.removeMouseListener(SelectionControl);
-      GraphDisplay.addMouseListener(SelectionControl);
-     // GraphDisplay.addMouseMotionListener(SelectionControl);
-      GraphDisplay.remove(context.getProjectionLabel());
-      VisualPanel.setLeftComponent(TextDisplay);
-    }
-    // context.setVisible(true);
-  }
-
   /**
    * Adds a new QueryResult qr to the Textwindow
    * @param qr
@@ -1535,7 +1468,7 @@ public boolean canDisplay(SecondoObject o){
     if (returnVal == JFileChooser.APPROVE_OPTION) {
       File file = FC_Session.getSelectedFile();
       //					File file=new File("Session");
-      ListExpr le = ListExpr.fourElemList(ListExpr.symbolAtom("session"), context.getContextLE(), 
+      ListExpr le = ListExpr.fourElemList(ListExpr.symbolAtom("session"), ListExpr.theEmptyList(), 
           writeAllCats(), TextDisplay.convertAllQueryResults());
       String suc;
       if(le.writeToFile(file.getPath()) == 0)
@@ -1583,7 +1516,7 @@ public boolean canDisplay(SecondoObject o){
 
       le = le.rest();
       Cats = new Vector(10, 5);
-      context.setContextLE(le.first());
+      // insert here the list for restoring the Background
       readAllCats(le.second());
       if(!Cats.contains(Category.getDefaultCat()))
          Cats.add(Category.getDefaultCat());
@@ -1648,18 +1581,15 @@ public boolean canDisplay(SecondoObject o){
 
    // remove the categorys
     Cats = new  Vector(30,10);
-    context = new ContextPanel(this);
     Cats.add(Category.getDefaultCat());
 
     VisComPanel.setBottomComponent(dummy);
-    context.applyButtonPressed();
     String Catfile = configuration.getProperty("StandardCat");
     if (Catfile != null) {
       ListExpr le = new ListExpr();
       le.readFromFile(Catfile);
       readAllCats(le);
     }
-    on_Set_Kontext();
 
  }             //GEN-LAST:event_on_jMenu_NewSession
 
@@ -1689,8 +1619,8 @@ public boolean canDisplay(SecondoObject o){
    * @see <a href="MainWindowsrc.html#calcProjection">Source</a>
    */
   private AffineTransform calcProjection () {
-    double extra = context.getBordSpc();        //extra portion at every border of 30 pix
-    Rectangle2D.Double BBWC = context.getWBB();
+    double extra = 30;   //extra portion at every border of 30 pix
+    Rectangle2D.Double BBWC = BBoxWC;
    // System.out.println("bbwc:" + BBWC.toString());
     double wp1x = BBWC.getX();
     double wp1y = BBWC.getY();
@@ -1733,49 +1663,23 @@ public boolean canDisplay(SecondoObject o){
    * @see <a href="MainWindowsrc.html#updateViewParameter">Source</a>
    */
   public void updateViewParameter () {
-    //ClipRect=context.getClip();
-    boolean isAuto = context.AutoProjRB.isSelected();
     GraphDisplay.updateBoundingBox();           //fuer neue oder geloeschte Objekte
-    if (isAuto) {
-      if (ClipRect == null) {
-        double w = (double)GeoScrollPane.getViewport().getWidth();
-        double h = (double)GeoScrollPane.getViewport().getHeight();
-        ClipRect = new Rectangle(0, 0, (int)w, (int)h);
-      }
-      allProjection = calcProjection();         //addScaling(calcProjection());
+    if (ClipRect == null) {
+      double w = (double)GeoScrollPane.getViewport().getWidth();
+      double h = (double)GeoScrollPane.getViewport().getHeight();
+      ClipRect = new Rectangle(0, 0, (int)w, (int)h);
     }
-    else {
-      allProjection.setTransform(addScaling(context.calcManProjection()));
-    }
-    //if (ClipRect == null)
-    Rectangle rDC = (Rectangle)allProjection.createTransformedShape(context.getWBB()).getBounds();
-    //		} catch(Exception ex){
-    //	System.out.println(ex);
-    //	}
+    allProjection = calcProjection();         //addScaling(calcProjection());
+    System.out.println("BBoxWC =" + BBoxWC);
+    Rectangle2D rDC = (Rectangle2D)allProjection.createTransformedShape(BBoxWC).getBounds();
     double x = rDC.getX();
     double y = rDC.getY();
     double w = rDC.getWidth();
     double h = rDC.getHeight();
-    //if (x>0)
-    w += 2*context.getBordSpc();                //plus extra space
-    //if (y>0)
-    h += 2*context.getBordSpc();
+    w += 60;                //plus extra space
+    h += 60;
     BBoxDC = new Rectangle(0, 0, (int)w, (int)h);
-    //System.out.println("BBox:,BBoxWC");
     GraphDisplay.updateLayersSize(BBoxDC);
-    if (!isAuto) {
-      if (hasBackImage)
-        LayerSwitchBar.remove(0);
-      if (context.ImagePath != null)
-        addSwitch(GraphDisplay.createBackLayer(context.ImagePath, context.getMapOfs().getX(),
-            context.getMapOfs().getY()), 0);
-      else
-        GraphDisplay.createBackLayer(null, 0, 0);
-      //mw.LayerSwitchBar.add(mw.GraphDisplay.createBackLayer(ImagePath),0);
-      hasBackImage = (context.ImagePath != null);
-      //else
-      // GraphDisplay.updateLayersSize(ClipRect);
-    }
     GraphDisplay.repaint();
   }
 
@@ -1959,15 +1863,6 @@ public boolean canDisplay(SecondoObject o){
           BBoxDC.setSize((int)(BBoxDC.getWidth()*zf), (int)(BBoxDC.getHeight()*zf));
           //System.out.println("ClipRect:"+ClipRect.toString());
           GraphDisplay.updateLayersSize(BBoxDC);
-          if (!context.AutoProjRB.isSelected()) {
-            if (hasBackImage)
-              LayerSwitchBar.remove(0);
-            if (context.ImagePath != null)
-              addSwitch(GraphDisplay.createBackLayer(context.ImagePath, context.getMapOfs().getX()*zf,
-                  context.getMapOfs().getY()*zf), 0);
-            else
-              GraphDisplay.createBackLayer(null, 0, 0);
-          }
           GraphDisplay.scrollRectToVisible(new Rectangle((int)(r.getX()*zf),
               (int)(r.getY()*zf), (int)w, (int)h));
           //GeoScrollPane.getViewport().setViewPosition(new Point((int)(r.getX()*zf),(int)(r.getY()*zf)));

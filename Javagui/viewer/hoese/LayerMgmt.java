@@ -141,19 +141,9 @@ public class LayerMgmt extends javax.swing.JDialog {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
 	  mw.GraphDisplay.removeAll();
 	  mw.LayerSwitchBar.removeAll();
-	  if (mw.hasBackImage) {
-	    mw.GraphDisplay.add(mw.GraphDisplay.BackLabel, new Integer(-1));
-	    JToggleButton jt = new JToggleButton();
-	    jt.setSelected(true);
-	    jt.setAlignmentX(Component.CENTER_ALIGNMENT);
-	    jt.setPreferredSize(new Dimension(10, 10));
-	    jt.addActionListener(mw.GraphDisplay.LayerButtonListener);
-	    jt.setActionCommand("-1");
-	    mw.LayerSwitchBar.add(jt);	
-	    }
-	for (int i=0;i<LayerEntry.size();i++){
-	  Layer lay= (Layer)LayerEntry.elementAt(i);
-	  lay.LayerNo=i+1;    	
+	  for (int i=0;i<LayerEntry.size();i++){
+	      Layer lay= (Layer)LayerEntry.elementAt(i);
+	      lay.LayerNo=i+1;    	
     	  mw.GraphDisplay.add(lay, new Integer(i+1));
     	  mw.LayerSwitchBar.add(
     	  	lay.CreateLayerButton(mw.GraphDisplay.LayerButtonListener, i+1));

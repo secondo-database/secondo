@@ -39,8 +39,6 @@ public class GraphWindow extends JLayeredPane
   int highest = 0;
 /** Listens for events send by the layer-buttons */
   ActionListener LayerButtonListener;
-/** A scalable background-image used as lowest layer */
-  ScaledLabel BackLabel;
 /** Main-application */
   HoeseViewer mw;
 
@@ -124,33 +122,6 @@ public class GraphWindow extends JLayeredPane
     defCat.setPointasRect((Math.random() > 0.5));
     mw.Cats.add(defCat);
     return  defCat;
-  }
-
-  /**
-   * Creates the back-image-layer out of an imagefile with offsets xo,yo
-   * @param PathToImage A imagefilename String
-   * @return The layertoggle of this layer
-   * @see <a href="Categorysrc.html#createBackLayer">Source</a>
-   */
-  public JToggleButton createBackLayer (String PathToImage, double xo, double yo) {
-    if (BackLabel != null)
-      remove(BackLabel);
-    if (PathToImage == null) {
-      BackLabel = null;
-      return  null;
-    }
-    BackLabel = new ScaledLabel(new ImageIcon(ClassLoader.getSystemResource(PathToImage)), JLabel.LEFT);
-    BackLabel.setVerticalAlignment(JLabel.TOP);
-    BackLabel.setBounds((int)xo, (int)yo, (int)(-xo + mw.BBoxDC.getWidth()),
-        (int)(-yo + mw.BBoxDC.getHeight()));
-    add(BackLabel, new Integer(-1));
-    JToggleButton jt = new JToggleButton();
-    jt.setSelected(true);
-    jt.setAlignmentX(Component.CENTER_ALIGNMENT);
-    jt.setPreferredSize(new Dimension(10, 10));
-    jt.addActionListener(LayerButtonListener);
-    jt.setActionCommand("-1");
-    return  jt;
   }
 
   /**
@@ -255,27 +226,30 @@ public class GraphWindow extends JLayeredPane
    * @see <a href="Categorysrc.html#updateBoundingBox">Source</a> 
    */
   public void updateBoundingBox () {
-    Rectangle rDC = new Rectangle(0, 0, 0, 0);
     Rectangle2D.Double r = null;
     Interval in = null;
     for (int i = 0; i < getComponentCount(); i++)
       if (getComponent(i) instanceof Layer) {
         Layer l = (Layer)getComponent(i);
+        Rectangle2D.Double layer_box = l.getWorldCoordBounds();
         if (r == null)
-          r = l.getWorldCoordBounds(); 
-        else 
-          r = (Rectangle2D.Double)r.createUnion(l.getWorldCoordBounds());
-        if (l.getTimeBounds() != null)
+          r = layer_box; 
+        else{ 
+          if(layer_box!=null)
+              r = (Rectangle2D.Double)r.createUnion(layer_box);
+        }
+        if (l.getTimeBounds() != null){
+          Interval layer_interval = l.getTimeBounds(); 
           if (in == null)
-            in = l.getTimeBounds(); 
+            in = layer_interval; 
           else 
-            in = in.union(l.getTimeBounds());
+            if(layer_interval!=null)
+               in = in.union(l.getTimeBounds());
+        }
       }
     if (r != null)
       mw.BBoxWC = r;
-    //mw.TimeBounds=in;
     mw.setActualTime(in);
-    //			try{
   }
 
   public void updateBackground(){
@@ -338,21 +312,6 @@ public class GraphWindow extends JLayeredPane
      if(!found)
        super.addMouseListener(ML);
   }
-
-
-/** A Scalable JLabel for the background image
-  */
-  class ScaledLabel extends JLabel implements java.awt.image.ImageObserver{
-    public ScaledLabel (Icon image, int h) {
-      super(image, h);
-    }
-
-    public void paintComponent (Graphics g) {
-      ((Graphics2D)g).scale(mw.getZoomFactor(), mw.getZoomFactor());
-      super.paintComponent(g);
-    }
-  }
-
 
 
 
