@@ -97,7 +97,7 @@ public class HoeseViewer extends SecondoViewer {
   private JLabel actTimeLabel;
   private JButton DecrementSpeedBtn;
   private JButton IncrementSpeedBtn;
-  private JScrollPane GeoScrollPane;
+  public JScrollPane GeoScrollPane;
   private final String CONFIGURATION_FILE = "GBS.cfg";
   private final int NOT_ERROR_CODE = ServerErrorCodes.NOT_ERROR_CODE;
 
@@ -186,6 +186,9 @@ public class HoeseViewer extends SecondoViewer {
 
   /** a dialog for assigning a background image */
   private BackGroundImage bgImage;
+
+  /** the maximum number of pixels for capturing the bakcground */
+  private long MAXCAPTUREPIXELS = 10000000L;
 
 
   /**
@@ -842,14 +845,14 @@ public class HoeseViewer extends SecondoViewer {
            try{
               boolean scale = false; // image to scale ?
               double sf=1.0; // the scale factor
-              long MAXPIXELS = ScalableImage.getMaxPixels();            
+              long MAXPIXELS = MAXCAPTUREPIXELS;            
               if((long)w*h > MAXPIXELS){
-                 System.out.println("scale down the image because it's too big");
+                 //System.out.println("scale down the image because it's too big");
                  sf = Math.sqrt( MAXPIXELS/ ((R.getWidth()*R.getHeight())));
-                 
                  w = (int) (w*sf);
                  h = (int) (h*sf);
                  scale = true;
+                 //System.out.println("The resulting picture will have " + (w*h)+" pixels");
               }
 
               BufferedImage bi = new BufferedImage(w,h,BufferedImage.TYPE_3BYTE_BGR);
@@ -1670,7 +1673,6 @@ public boolean canDisplay(SecondoObject o){
       ClipRect = new Rectangle(0, 0, (int)w, (int)h);
     }
     allProjection = calcProjection();         //addScaling(calcProjection());
-    System.out.println("BBoxWC =" + BBoxWC);
     Rectangle2D rDC = (Rectangle2D)allProjection.createTransformedShape(BBoxWC).getBounds();
     double x = rDC.getX();
     double y = rDC.getY();
@@ -2100,6 +2102,17 @@ public boolean canDisplay(SecondoObject o){
              ScalableImage.setMaxPixels(mp); 
           } catch(Exception e){
             System.out.println("Error in readng MaxPixels");
+          } 
+    }
+    
+    String MaxCapPixels = configuration.getProperty("MAXCAPTUREPIXELS");
+    if(MaxCapPixels!=null){
+          MaxCapPixels=MaxCapPixels.trim();
+          try{
+             long mp = Long.parseLong(MaxCapPixels);
+             MAXCAPTUREPIXELS=mp; 
+          } catch(Exception e){
+            System.out.println("Error in readng MaxCapturePixels");
           } 
     }
 

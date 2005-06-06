@@ -4,6 +4,8 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.awt.geom.*;
+import java.awt.image.BufferedImage;
+
 
 
 /** This class provides an component which displays an image
@@ -12,26 +14,39 @@ import java.awt.geom.*;
 
 
 public class ScalableImage extends Component {
-    public ScalableImage (Image image) {
-      //setBorder( new BevelBorder(BevelBorder.RAISED) );
-      this.image = image;
+
+   /** Creates a new instance of type ScalableImage without any content. 
+     **/
+    public ScalableImage () {
+       this.image=null;
+       this.scaledImage = null;
+       this.clippedScaledImage=null;
     }
 
+    /** Draws this component 
+      * If an image is available, this image is painted otherwise nothing.
+      */
     public void paint(Graphics g) {
       super.paint(g);
       if(scaledImage!=null){
           g.drawImage(scaledImage,0,0,this);
+      }else if(clippedScaledImage!=null){
+          Rectangle2D b = getBounds();
+          int x = (int) (ClipRect.getX()-b.getX());
+          int y = (int) (ClipRect.getY()-b.getY());
+          g.drawImage(clippedScaledImage,x,y,this); 
       }
     }
 
-    public void setImage(Image img){
+   /** Sets a new image for this component 
+    */
+    public void setImage(BufferedImage img){
         this.image = img;
         if(img!=null){
             Rectangle2D bounds = getBounds();
             double w = bounds.getWidth();
             double h = bounds.getHeight();
             if((long)h*w>MAXPIXELS){
-                System.out.println("image too big, disable background");
                 this.scaledImage=null;
                 System.gc();
                 return;
@@ -45,11 +60,14 @@ public class ScalableImage extends Component {
         System.gc();
     }
 
+    /* Sets the bounds for this components.
+     * The contained image is resized to fit into the new 
+     * box
+     **/
     public void setBounds(int x, int y, int  w, int  h){
         Rectangle2D oldBounds = getBounds();
         if(oldBounds.getWidth()!=w || oldBounds.getHeight()!=h){
             if((long)h*w>MAXPIXELS){
-                System.out.println("image too big, disable background");
                 this.scaledImage=null;
             } else{ 
                if(w>0 && h>0 && image!=null)
@@ -61,9 +79,11 @@ public class ScalableImage extends Component {
             System.runFinalization();
         }
         super.setBounds(x,y,w,h);
+        ClipRect=null;    
     } 
     
-    public Image getImage(){ return image;}
+    /** Returns the managed image */
+    public BufferedImage getImage(){ return image;}
 
     /** Function for implementing the imageobserver interface */
     public boolean imageUpdate(Image img, int infoflags, int x, int y, int width, int height) {
@@ -74,19 +94,88 @@ public class ScalableImage extends Component {
        return true;
     }
 
+   /** Sets the cliprect */
+   public void setClipRect(Rectangle2D ClipRect){
+       if(scaledImage!=null || image==null || ClipRect==null){
+           this.ClipRect=ClipRect; 
+           clippedScaledImage = null;
+           changeClipRect();
+           return;
+       }
+       if(clippedScaledImage!=null){ // an image is already created
+          if(ClipRect.equals(this.ClipRect)){
+              return; // the same cliprect => no changes
+          } else{
+           clippedScaledImage=null;
+         }
+       }
+       this.ClipRect=ClipRect;
+       changeClipRect();
+       createClippedScaledImage();      
+   }
+
+  /** This method ensure that the cliprect in part of the bounds of this
+    * component.
+    */
+   private void changeClipRect(){
+       if(ClipRect==null) return;
+       Rectangle2D r = getBounds(); // the cliprectangle cannot be larger than the bounds
+       double x1 = Math.max(r.getX(),ClipRect.getX());
+       double y1 = Math.max((int)r.getY(),ClipRect.getY());
+       double x2 = Math.min( r.getX()+r.getWidth(),ClipRect.getX()+ClipRect.getWidth());
+       double y2 = Math.min( r.getY()+r.getHeight(),ClipRect.getY()+ClipRect.getHeight());
+       double w = Math.max(1,x2-x1);
+       double h = Math.max(1,y2-y1);
+       ClipRect.setRect(x1,y1,w,h);
+   }
+
+
+   /**  This function create a clip of the complete image to save memory;
+     */ 
+   private void createClippedScaledImage(){
+      if(image==null){
+        clippedScaledImage=null;
+        return;
+      }
+      Rectangle2D r = getBounds();
+       // first, we convert the cliprectangle into coordinated in the image
+      double iw = image.getWidth();
+      double ih = image.getHeight();
+      // copmpute the scale factors
+      double sfx = iw/r.getWidth();
+      double sfy = ih/r.getHeight();
+      clippedScaledImage=image.getSubimage((int)((ClipRect.getX()-r.getX())*sfx),
+                                           (int)((ClipRect.getY()-r.getY())*sfy),
+                                           Math.max(1,(int)(ClipRect.getWidth()*sfx)),
+                                           Math.max(1,(int)(ClipRect.getHeight()*sfy)));
+      clippedScaledImage=clippedScaledImage.getScaledInstance((int)ClipRect.getWidth(),
+                                                               (int)ClipRect.getHeight(),Image.SCALE_FAST);
+   } 
+
    public static long getMaxPixels(){
       return MAXPIXELS;
    }   
    public static void setMaxPixels(long maxpixels){
        // we require a minumum maxpixels of 1 million pixels
        MAXPIXELS = Math.max(1000000,maxpixels);
-       System.out.println("Set MaxPixels to " + MAXPIXELS);
    }
  
-    private Image image;
-    private Image scaledImage;
-    private static long MAXPIXELS = 10000000L;
-    
+  /* the managed image */
+    private BufferedImage image;
 
+   /** A scaled version of the managed image with at most MAXPIXELS
+     * pixels. 
+     * Using this picture avoids frequently computations on pictures 
+     */
+    private Image scaledImage;
+
+    /* The maximum number of pixels  for the scaled image */
+
+    private static long MAXPIXELS = 10000000L;
+
+    /* The clip when the numbe rof pixels is to large */
+    private Rectangle2D ClipRect;
+    /* the viewable clip */
+    private Image clippedScaledImage;
   }
 

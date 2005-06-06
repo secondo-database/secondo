@@ -67,6 +67,10 @@ CalcCats= OutLineWidth
 #external viewer
 txt= /usr/openwin/bin/xedit %f
 
+# maxsize for capturing a background image
+MAXCAPTUREPIXELS 15000000
+# maxsize for displaying a background image
+MAXPIXELS 8000000
 
 
 

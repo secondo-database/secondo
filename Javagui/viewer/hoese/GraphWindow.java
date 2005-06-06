@@ -27,6 +27,7 @@ import  java.awt.geom.*;
 import  java.util.*;
 import  viewer.HoeseViewer;
 import javax.swing.border.*;
+import java.awt.image.BufferedImage;
 
 
 /**
@@ -43,7 +44,7 @@ public class GraphWindow extends JLayeredPane
   HoeseViewer mw;
 
 /** a scalable image as background */
-  ScalableImage background=new ScalableImage(null);
+  ScalableImage background=new ScalableImage();
 
   /** Creates a Graphwindow without any layer
    * @see <a href="Categorysrc.html#GraphWindow">Source</a>
@@ -259,14 +260,14 @@ public class GraphWindow extends JLayeredPane
       repaint();
       return;
     }
-    Image bgimg = bgi.getImage();
+    BufferedImage bgimg = bgi.getImage();
     if(bgimg==null){
        remove(background);
        repaint();
        return;
     }
     // ok a background is given
-    Image img2 = background.getImage();
+    BufferedImage img2 = background.getImage();
     if(bgimg==img2){ // no changes of the picture
       return;
     }
@@ -291,7 +292,10 @@ public class GraphWindow extends JLayeredPane
     AffineTransform at = mw.allProjection;
     Rectangle2D R = at.createTransformedShape(mw.getBackgroundImage().getBBox()).getBounds();
     background.setBounds((int)R.getX(),(int)R.getY(),(int)R.getWidth(),(int)R.getHeight());
-
+    Rectangle2D R2 = mw.GeoScrollPane.getBounds();
+    Rectangle2D R3 = getBounds(); 
+    R2.setRect(-R3.getX(),-R3.getY(),R2.getWidth(),R2.getHeight());
+    background.setClipRect(R2);
     Graphics2D g2 = (Graphics2D)g;
     g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
     
