@@ -605,6 +605,30 @@ public MainWindow(String Title){
     loadHistory(new File(AUTO_HISTORY_FILE),false,false);
 
 
+    // we create a global keylistener for making screenshots
+    AWTEventListener SnapshotKL = new AWTEventListener(){
+      public void eventDispatched(AWTEvent e){
+          if(! (e instanceof KeyEvent))
+             return;
+          KeyEvent evt = (KeyEvent) e;
+          if(e.getID()!=KeyEvent.KEY_PRESSED)
+             return;
+          if(!evt.isAltDown())
+              return;
+          int c = evt.getKeyCode();
+          if(c==evt.VK_S){
+             if(saveSnapshot(true))
+                showMessage("Snapshot written");
+             evt.consume();
+          }
+          if(c==evt.VK_C){
+             if(saveSnapshot(false))
+                showMessage("Snapshot written");
+             evt.consume();
+          }
+      } 
+    };
+    Toolkit.getDefaultToolkit().addAWTEventListener(SnapshotKL,AWTEvent.KEY_EVENT_MASK);
 }
 
 
@@ -673,15 +697,30 @@ private BufferedImage makeSnapshot(){
    return bi;
 }
 
+/** Created a snapshot of the whole screen.
+  * If an error occurs, the result will be null.
+  **/
+private BufferedImage makeScreenSnapshot(){
+    try{
+       return (new Robot()).createScreenCapture( new Rectangle(Toolkit.getDefaultToolkit().getScreenSize()));
+    }catch(Exception e){
+        return null;
+    }
+}
+
 /** Saves a snapshot of the current state of Javagui */
-private boolean saveSnapShot(){
+private boolean saveSnapshot(boolean completeScreen){
+   BufferedImage snapshot;
+   if(completeScreen)
+      snapshot=makeScreenSnapshot();
+   else
+      snapshot = makeSnapshot();
+   if(snapshot==null){
+      showMessage("Error in creating snapshot");
+      return false;
+   }
    if(FC_Snapshot.showSaveDialog(this)==JFileChooser.APPROVE_OPTION){
        try{
-          BufferedImage snapshot = makeSnapshot();
-          if(snapshot==null){
-             showMessage("Error in creating snapshot");
-             return false;
-          }
           return javax.imageio.ImageIO.write(snapshot,"png",FC_Snapshot.getSelectedFile());
        } catch(Exception e){
            if(DEBUG_MODE)
@@ -693,6 +732,8 @@ private boolean saveSnapShot(){
    }else
       return false;
 }
+
+
 
 
 /**  reconstructed the menu updateRelationMenu
@@ -1521,10 +1562,18 @@ private void createMenuBar(){
    MI_Snapshot.setAccelerator(KeyStroke.getKeyStroke("alt C"));
    MI_Snapshot.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
-           if(saveSnapShot())
+           if(saveSnapshot(false))
               showMessage("Snapshot written");
        }
    });
+   JMenuItem MI_ScreenSnapshot = ProgramMenu.add("ScreenSnapshot");
+   MI_ScreenSnapshot.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+           if(saveSnapshot(true))
+              showMessage("Snapshot written");
+       }
+   });
+   MI_ScreenSnapshot.setAccelerator(KeyStroke.getKeyStroke("alt S"));
 
    MI_Close = ProgramMenu.add("Exit");
    MI_Close.addActionListener( new ActionListener(){
