@@ -28,6 +28,8 @@ import viewer.*;
 import java.util.*;
 import java.io.*;
 import gui.idmanager.*;
+import java.awt.image.BufferedImage;
+import java.awt.geom.*;
 
 public class MainWindow extends JFrame implements ResultProcessor,ViewerControl,SecondoChangeListener{
 
@@ -86,6 +88,7 @@ private JMenuItem MI_ClearHistory;
 private JMenuItem MI_ExtendHistory;
 private JMenuItem MI_ReplaceHistory;
 private JMenuItem MI_Close;
+private JMenuItem MI_Snapshot;
 
 private JMenu ServerMenu;
 private JMenuItem MI_Connect;
@@ -171,6 +174,7 @@ private String ObjectDirectory ="./"; // where search for Objects
 private JFileChooser FC_History = new JFileChooser();
 private JFileChooser FC_ExecuteFile = new JFileChooser();
 private JFileChooser FC_Database = new JFileChooser();
+private JFileChooser FC_Snapshot = new JFileChooser();
 private PriorityDialog PriorityDlg;
 
 
@@ -407,6 +411,7 @@ public MainWindow(String Title){
    String SecondoHomeDir = Config.getProperty("SECONDO_HOME_DIR");
    String HistoryDirectory="";
    String DatabaseDirectory="";
+   String SnapshotDirectory="";
 
    if(SecondoHomeDir==null){
      File F = new File("");
@@ -462,9 +467,10 @@ public MainWindow(String Title){
 
 
    if(SecondoHomeDir!=null){
-      ObjectDirectory = SecondoHomeDir+FS+"Data"+FS+"Guidatas"+FS+"gui"+FS+"objects";
-      HistoryDirectory = SecondoHomeDir+FS+"Data"+FS+"Guidatas"+FS+"gui"+FS+"histories";
+      ObjectDirectory = SecondoHomeDir+FS+"Data"+FS+"GuiData"+FS+"gui"+FS+"objects";
+      HistoryDirectory = SecondoHomeDir+FS+"Data"+FS+"GuiData"+FS+"gui"+FS+"histories";
       DatabaseDirectory = SecondoHomeDir+FS+"Data"+FS+"Databases";
+      SnapshotDirectory = SecondoHomeDir+FS+"Data"+FS+"GuiData"+FS+"gui"+FS+"snapshots";
    }
 
 
@@ -482,14 +488,34 @@ public MainWindow(String Title){
    if(TMPHistoryDirectory!=null)
         HistoryDirectory = TMPHistoryDirectory;
 
+   String TMPSnapshotDirectory= Config.getProperty("SNAPSHOT_DIRECTORY");
+   if(TMPSnapshotDirectory!=null)
+        SnapshotDirectory = TMPSnapshotDirectory;
 
    System.out.println("set objectdirectory to "+ObjectDirectory);
    System.out.println("set historydirectory to "+HistoryDirectory);
    System.out.println("set databasedirectory to "+DatabaseDirectory);
+   System.out.println("set snapshotdirectory to "+SnapshotDirectory);
 
    OList.setObjectDirectory(new File(ObjectDirectory));
    FC_History.setCurrentDirectory(new File(HistoryDirectory));
    FC_Database.setCurrentDirectory(new File(DatabaseDirectory));
+   FC_Snapshot.setCurrentDirectory(new File(SnapshotDirectory));
+   javax.swing.filechooser.FileFilter filter = new javax.swing.filechooser.FileFilter(){
+        public boolean accept(File PathName){
+             if(PathName==null) return false;
+             if(PathName.isDirectory())
+                 return true;
+             if(PathName.getName().endsWith(".png"))
+                  return true;
+             else
+                 return false;
+             }
+             public String getDescription(){
+               return "PNG images";
+             }
+        };
+    FC_Snapshot.setFileFilter(filter);
 
 
    StartScript = Config.getProperty("STARTSCRIPT");
@@ -632,6 +658,40 @@ private void updateObjectList(){
       LE = LE.rest();
    }
 
+}
+
+/** Creates a snapshot from the current Javagui. 
+  * If the snapshot can't be created, null is returned.
+  **/
+private BufferedImage makeSnapshot(){
+   Rectangle2D R = getBounds();
+   BufferedImage bi = new BufferedImage((int)R.getWidth(),(int)R.getHeight(),
+                                        BufferedImage.TYPE_INT_RGB);
+   Graphics2D g = bi.createGraphics();
+   this.printAll(g);
+   g.dispose();
+   return bi;
+}
+
+/** Saves a snapshot of the current state of Javagui */
+private boolean saveSnapShot(){
+   if(FC_Snapshot.showSaveDialog(this)==JFileChooser.APPROVE_OPTION){
+       try{
+          BufferedImage snapshot = makeSnapshot();
+          if(snapshot==null){
+             showMessage("Error in creating snapshot");
+             return false;
+          }
+          return javax.imageio.ImageIO.write(snapshot,"png",FC_Snapshot.getSelectedFile());
+       } catch(Exception e){
+           if(DEBUG_MODE)
+             e.printStackTrace();
+           showMessage("Error in saving snapshot");
+           return false;
+       } 
+
+   }else
+      return false;
 }
 
 
@@ -1456,7 +1516,15 @@ private void createMenuBar(){
    MI_ClearHistory.addActionListener(HistoryListener);
    MI_ExtendHistory.addActionListener(HistoryListener);
    MI_ReplaceHistory.addActionListener(HistoryListener);
-
+   
+   MI_Snapshot = ProgramMenu.add("Snapshot");
+   MI_Snapshot.setAccelerator(KeyStroke.getKeyStroke("alt C"));
+   MI_Snapshot.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+           if(saveSnapShot())
+              showMessage("Snapshot written");
+       }
+   });
 
    MI_Close = ProgramMenu.add("Exit");
    MI_Close.addActionListener( new ActionListener(){
