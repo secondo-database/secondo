@@ -6,7 +6,10 @@ import javax.swing.*;
 import java.awt.geom.*;
 import java.io.File;
 import java.awt.image.BufferedImage;
-
+import sj.lang.ListExpr;
+import tools.Base64Encoder;
+import tools.Base64Decoder;
+import java.io.*;
 
 /**
   * This class handles a image object together with an 
@@ -35,9 +38,12 @@ public class  BackGroundImage extends JDialog{
       P.add(RemoveImageBtn = new JButton("remove Image"));
       P.add(ImageName = new JLabel(""));
       getContentPane().setLayout(new BorderLayout());
-      JPanel P2 = new JPanel();
-      P2.add(P);
-      P2.add(new JLabel());
+      JPanel P2 = new JPanel(new GridLayout(2,1));
+      JPanel P4 = new JPanel();
+      P4.add(P); 
+      P2.add(P4);
+      imageDisplay = new ImageDisplay();
+      P2.add(imageDisplay);
       getContentPane().add(P2,BorderLayout.CENTER);
       JPanel CP = new JPanel(new GridLayout(2,2));
       CP.add(ApplyBtn = new JButton("Apply"));
@@ -89,7 +95,8 @@ private void selectImage(){
             return;
         }
         theImage = img;
-        ImageName.setText(f.getName()); 
+        imageDisplay.setImage(theImage);
+        ImageName.setText(f.getName());
      } catch(Exception e){
         viewer.MessageBox.showMessage("Error in creating image from file");
      }
@@ -98,6 +105,7 @@ private void selectImage(){
 
 private void removeImage(){
      theImage = null;
+     imageDisplay.setImage(theImage);
      ImageName.setText("");
 }
 
@@ -129,6 +137,7 @@ private void reset(){
 
 public void setImage(BufferedImage img){
    theImage = img;
+   imageDisplay.setImage(theImage);
    if(img==null)
       ImageName.setText("");
    else
@@ -158,9 +167,102 @@ public Rectangle2D.Double getBBox(){
    return bounds;
 }
 
+/** Returns the nested list representation of this BackgroundImage */
+public ListExpr toListExpr(String BackgroundImagePath){
+   ListExpr ImageList;
+   if(theImage==null){
+       ImageList = ListExpr.theEmptyList();
+   }else{
+      try{
+         // select a non-existent fileName for the image
+         File F = new File(BackgroundImagePath);
+         if(!F.exists()){
+            viewer.MessageBox.showMessage("Error in creating background image \n"+
+                                          " directory "+BackgroundImagePath +
+                                          "don't exists");
+            ImageList = ListExpr.theEmptyList();
+         } else if(!F.isDirectory()){
+            viewer.MessageBox.showMessage("Error in creating background image \n"+
+                                          BackgroundImagePath +
+                                          "is not a directory");
+            ImageList = ListExpr.theEmptyList();
+         } else{
+            if(!BackgroundImagePath.endsWith(File.separator))
+                BackgroundImagePath+=File.separator;
+             String FileName =  ".background";
+             int BGNumber = -1;
+             do{
+                BGNumber++;
+                F = new File(BackgroundImagePath+FileName+BGNumber+".png");
+             }while(F.exists());
+            javax.imageio.ImageIO.write(theImage,"png",F);
+            ImageList = ListExpr.textAtom(FileName+BGNumber+".png"); 
+         }
+      }catch(Exception e){
+         viewer.MessageBox.showMessage("cannot create the ListExpr for Background Image ");
+         e.printStackTrace();
+         ImageList=ListExpr.theEmptyList();
+      }
+   }
+   return ListExpr.fiveElemList(
+                ListExpr.realAtom(bounds.getX()),
+                ListExpr.realAtom(bounds.getY()),
+                ListExpr.realAtom(bounds.getWidth()),
+                ListExpr.realAtom(bounds.getHeight()),
+                ImageList);  
+
+}
+
+/** Reads the values from this component from a ListExpr **/
+public boolean readFromListExpr(ListExpr le,String BackgroundImagePath){
+   if(le.listLength()!=5)
+      return false;
+   if(le.first().atomType()!=le.REAL_ATOM    ||
+      le.second().atomType()!=le.REAL_ATOM   ||
+      le.third().atomType()!=le.REAL_ATOM    ||
+      le.fourth().atomType()!=le.REAL_ATOM)  
+      return false;
+   
+   ListExpr ImageList = le.fifth();
+   BufferedImage bi=null;
+   if(ImageList.atomType()==le.NO_ATOM){
+       if(!ImageList.isEmpty())
+           return false;
+   }else{
+     if(ImageList.atomType()!=le.TEXT_ATOM)
+         return false;
+     // try to restore the background from given file
+     if(!BackgroundImagePath.endsWith(File.separator))
+         BackgroundImagePath+=File.separator;
+     File F = new File(BackgroundImagePath+le.fifth().textValue());
+     if(!F.exists()){
+        viewer.MessageBox.showMessage("Background File not found");
+        bi = null;;
+     } else{ // ok file exists-> read the image
+        try{
+           bi = javax.imageio.ImageIO.read(F);
+        }catch(Exception e){
+             viewer.MessageBox.showMessage("Error in loading background-Image");
+             bi=null;   
+        }
+     }
+  }
+  
+  if(!setBBox(le.first().realValue(),le.second().realValue(),
+      le.third().realValue(),le.fourth().realValue())){
+      return false;
+   }
+   setImage(bi);
+   reset();
+   return true;
+}
+
+
+
 
 private BufferedImage theImage=null;
-private Rectangle2D.Double bounds = new Rectangle2D.Double(0,10,0,10);
+private ImageDisplay imageDisplay;
+private Rectangle2D.Double bounds = new Rectangle2D.Double(0,0,10,10);
 
 private JTextField XTF;
 private JTextField YTF;
@@ -174,6 +276,43 @@ private JButton ApplyBtn;
 private JButton OkBtn;
 private JButton CancelBtn;
 private JFileChooser FC = null;      
+
+private class ImageDisplay extends JLabel implements java.awt.image.ImageObserver{
+
+  public ImageDisplay(){}
+  public ImageDisplay(String str){super(str);}
+  
+  public void paint(Graphics g){
+    super.paint(g);
+    if(theImage!=null){
+       Rectangle2D bounds = getBounds();
+       int w = theImage.getWidth(this);
+       int h= theImage.getHeight(this);
+       double sf = Math.min(bounds.getWidth()/w,bounds.getHeight()/h);
+       int w1 = (int) (sf*w);
+       int h1 = (int) (sf*h);
+       int x = (int) ((bounds.getWidth()-w1) /2);
+       int y = (int) ((bounds.getHeight()-h1) /2);
+       g.drawImage(theImage,x,y,w1,h1,this);
+    }  
+  }
+ /** Function for implementing the imageobserver interface */
+    public boolean imageUpdate(Image img, int infoflags, int x, int y, int width, int height) {
+       if((infoflags & ALLBITS) >0){
+           repaint();
+           return  false;
+       }
+       return true;
+    }
+ 
+  public void setImage(Image img){
+        theImage = img;
+        repaint();
+  }
+  private Image theImage;
+
+}
+
 
 }
 

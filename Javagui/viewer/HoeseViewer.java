@@ -1471,7 +1471,8 @@ public boolean canDisplay(SecondoObject o){
     if (returnVal == JFileChooser.APPROVE_OPTION) {
       File file = FC_Session.getSelectedFile();
       //					File file=new File("Session");
-      ListExpr le = ListExpr.fourElemList(ListExpr.symbolAtom("session"), ListExpr.theEmptyList(), 
+      String DirName = FC_Session.getCurrentDirectory().getAbsolutePath();
+      ListExpr le = ListExpr.fourElemList(ListExpr.symbolAtom("session"), bgImage.toListExpr(DirName), 
           writeAllCats(), TextDisplay.convertAllQueryResults());
       String suc;
       if(le.writeToFile(file.getPath()) == 0)
@@ -1519,7 +1520,8 @@ public boolean canDisplay(SecondoObject o){
 
       le = le.rest();
       Cats = new Vector(10, 5);
-      // insert here the list for restoring the Background
+      String DirName = FC_Session.getCurrentDirectory().getAbsolutePath();
+      bgImage.readFromListExpr(le.first(),DirName);
       readAllCats(le.second());
       if(!Cats.contains(Category.getDefaultCat()))
          Cats.add(Category.getDefaultCat());
@@ -1539,7 +1541,8 @@ public boolean canDisplay(SecondoObject o){
             SO.fromList(QR.getListExpr());
             VC.addObject(SO);
          }
-      } 
+      }
+      GraphDisplay.updateBackground(); 
 
     }
     // Add your handling code here:
@@ -2301,13 +2304,4 @@ public boolean canDisplay(SecondoObject o){
 
 
 }
-
-
-
-
-
-
-
-
-
 
