@@ -37,6 +37,7 @@ This module initializes the JNI Environment. \\
 
 */
 
+#include <vector>
 using namespace std;
 
 #ifdef _WIN32
@@ -118,7 +119,7 @@ In this function a single line of the ini file is analyzed.
 
 */
 void processLine(const string& inputLine,string& classpath,
-                       string& libdir, string& version, string& heapMem){
+                       string& libdir, string& version, string& heapMem,vector<string>& xoptions){
  // remove comment
  int comment = inputLine.find("#");
  string line;
@@ -149,6 +150,9 @@ void processLine(const string& inputLine,string& classpath,
     version = line3;
  if(line[1]=='M')
     heapMem = line3;
+ if(line[1]=='A'){
+    xoptions.push_back(line3);
+ }
 }
 
 
@@ -162,7 +166,7 @@ opened or an error occurs in reading this file, readFile will return
 
 */
 int readFile(const string& FileName,string& classpath,
-                   string& libpath, string& version, string& heapMem){
+                   string& libpath, string& version, string& heapMem,vector<string>&  xoptions){
   // open the file
   ifstream infile(FileName.c_str());
   if(!infile){ // error in opening file
@@ -171,7 +175,7 @@ int readFile(const string& FileName,string& classpath,
   string line;
   while(!infile.eof()){
      getline(infile,line);
-     processLine(line,classpath,libpath,version,heapMem);
+     processLine(line,classpath,libpath,version,heapMem,xoptions);
   }
   infile.close();
   return 0;
@@ -237,8 +241,10 @@ JVMInitializer::JVMInitializer() {
   string libpath="";
   string versionstr="";
   string heapMemStr="";
+  vector<string> xoptions;  
+
   string FileName = getIniFile();
-  if(readFile(FileName,classpath,libpath,versionstr,heapMemStr)!=0)
+  if(readFile(FileName,classpath,libpath,versionstr,heapMemStr,xoptions)!=0)
      error(1);
 
   if(versionstr.size()==0){
@@ -285,8 +291,7 @@ JVMInitializer::JVMInitializer() {
   sprintf(lo,"%s",liboption.c_str());
   char mo[mem_mx_option.size()+1];
   sprintf(mo,"%s",mem_mx_option.c_str());
-
-  const unsigned int VM_MAXOPT = 3;
+  const unsigned int VM_MAXOPT = 3+xoptions.size();
   #ifdef JNI_VERSION_1_2
      JavaVMInitArgs vm_args;
 
@@ -294,6 +299,11 @@ JVMInitializer::JVMInitializer() {
      options[0].optionString = co;
      options[1].optionString = lo;
      options[2].optionString = mo;
+     for(int i=0;i<xoptions.size();i++){
+        char* xopt = new char[xoptions[i].size()+1];
+        sprintf(xopt,"%s",xoptions[i].c_str());
+        options[3+i].optionString = xopt;
+     }
 
      cout << "VM Options: " << endl;
      for (int i=0; i<VM_MAXOPT; i++) 
