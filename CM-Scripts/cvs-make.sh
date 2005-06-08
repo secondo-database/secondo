@@ -25,7 +25,7 @@ coDir=tmp_secondo_${date_ymd}_${date_HMS}
 cvsDir=/${CVSROOT#*/}
 coTag="HEAD"
 coModule="secondo"
-sendMail_deliver="true"
+sendMail_Deliver="true"
 
 declare -i numOfArgs=$#
 let numOfArgs++
@@ -134,7 +134,9 @@ fi
 if let $errors==0; then
 
 printSep "Running automatic tests"
-if ! ( ${scriptDir}/run-tests.sh )
+timeOut "300" "60" "${scriptDir}/run-tests.sh" 
+
+if let $rc!=0 
 then
   
   printf "%s\n" "Problems during test, sending a mail to:"

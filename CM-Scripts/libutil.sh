@@ -43,12 +43,14 @@ function printSep() {
 }
 
 # checkCmd $1
-#
 # $1 command
 #
 # execute a command. In case of an error display the
 # returncode
 declare -i rc=0
+
+
+
 function checkCmd() {
 
   printf "%s\n" "cmd: $*"
@@ -70,6 +72,47 @@ function checkCmd() {
   fi
 }
 
+
+# timeOut $1 $2 $3
+#
+# runs checkCmd and kills the process after time $1
+
+function timeOut() {
+
+checkCmd $3 &
+pid=$!
+
+typeset -i i=0
+typeset -i maxTime=$1
+typeset -i sleepTime=$2
+psCmd="ps --no-heading"
+printf "%s\n" "Timeout for PID = ${pid} in ${maxTime} seconds! (Live check every $2 seconds)."
+
+while $psCmd $pid >/dev/null
+do
+  sleep $sleepTime 
+  i=$i+$sleepTime
+  if [ $i -ge $maxTime ]
+  then
+    if $psCmd $pid >/dev/null
+    then
+      printf "%s\n" "Program is running longer than ${maxTime} seconds! - Killing $pid"
+      kill $pid
+
+      # if still alive force abortion
+      if $psCmd $pid >/dev/null
+      then
+        kill -9 $pid
+      fi
+
+    fi
+    break
+  fi
+done
+
+}
+
+
 # sendMail $1 $2 $3 [$4]
 #
 # $1 subject
@@ -79,14 +122,14 @@ function checkCmd() {
 #
 # Sends a mail (with a given attachment) to the list of
 # recipients.
-sendMail_deliver="true"
+sendMail_Deliver="true"
 function sendMail() {
 
   if [ "${4}" != "" ]; then
     attachment="-a ${4}"
   fi
 
-  if [ $sendMail_Deliver == "true" ]; then
+  if [ "$sendMail_Deliver" == "true" ]; then
   mail -s"$1" ${attachment} "$2" <<-EOFM
 $3
 EOFM
@@ -201,6 +244,11 @@ done
 
 checkCmd "echo 'hallo' > test.txt 2>&1"
 checkCmd "dfhsjhdfg > test.txt 2>&1"
+
+timeOut "6" "1" "sleep 8"
+timeOut "6" "3" "sleep 8"
+timeOut "7" "2" "sleep 6"
+timeOut "7" "8" "sleep 6"
 
 XmailBody="This is a generated message!  
 
