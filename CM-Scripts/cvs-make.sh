@@ -21,7 +21,7 @@ if [ -s $baseDir/libutil.sh ];
 then
   if ! source $baseDir/libutil.sh; then exit 1; fi
 else
-  exit; if ! source libutil.sh; then exit 1; fi
+  if ! source libutil.sh; then exit 1; fi
 fi
 
 #default options
@@ -126,7 +126,7 @@ printSep "Compiling SECONDO"
 declare -i errors=0
 cd $cbuildDir
 printf "\n%s" "$PWD"
-##checkCmd "make > ../make-all.log 2>&1" 
+checkCmd "make > ../make-all.log 2>&1" 
 
 if let $rc!=0; then
 
