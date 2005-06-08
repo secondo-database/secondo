@@ -11,13 +11,18 @@
 
 
 
-if [ -z $SECONDO_SDK ]; then
-source $HOME/.bashrc
-fi
+# set up environment for secondo
+if ! source ~/.secondorc; then exit 1; fi
 
+baseDir=$HOME/${0%/*}
 # include function definitions
 # libutil.sh must be in the search PATH 
-if ! source libutil.sh; then exit 1; fi
+if [ -s $baseDir/libutil.sh ]; 
+then
+  if ! source $baseDir/libutil.sh; then exit 1; fi
+else
+  exit; if ! source libutil.sh; then exit 1; fi
+fi
 
 #default options
 rootDir=$HOME
@@ -59,16 +64,25 @@ while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
 
    t) coTag=$OPTARG;;
 
-   n) sendMail_Deliver="false"
+   n) sendMail_Deliver="false";;
 
   esac
 
 done
 
 # derive some other important directories
-buildDir=${rootDir}/${coDir}
-scriptDir=${buildDir}/CM-Scripts
+cbuildDir=${rootDir}/${coDir}
+scriptDir=${cbuildDir}/CM-Scripts
 
+printSep "Startup parameters ($(date))"
+
+printf "%s\n" "Script = ${PWD}/$0"
+printf "%s\n" "rootDir = $rootDir"
+printf "%s\n" "cvsDir = $cvsDir"
+printf "%s\n" "coDir = $coDir"
+printf "%s\n" "coTag = $coTag"
+printf "%s\n" "coModule = $coModule"
+printf "%s\n" "sendMail_Deliver = $sendMail_Deliver"
 
 ## report host status 
 printSep "host status"
@@ -82,10 +96,12 @@ free -m
 
 ## checkout work copy
 printSep "Checking out work copy"
-setvar $buildDir
+setvar $cbuildDir
 printf "%s\n" "Environment settings"
 catvar
 
+printSep "Alias definitions"
+alias
 
 cvshist_result=$( cvs history -c -a -D yesterday -p secondo | 
                   awk '/./ { print $5 }' | sort | uniq | tr "\n" " " )
@@ -108,8 +124,9 @@ checkCmd "cvs -Q checkout -d $coDir secondo"
 printSep "Compiling SECONDO"
 
 declare -i errors=0
-cd $buildDir
-checkCmd "make > ../make-all.log 2>&1" 
+cd $cbuildDir
+printf "\n%s" "$PWD"
+##checkCmd "make > ../make-all.log 2>&1" 
 
 if let $rc!=0; then
 
@@ -136,12 +153,11 @@ if let $errors==0; then
 printSep "Running automatic tests"
 timeOut "300" "60" "${scriptDir}/run-tests.sh" 
 
-if let $rc!=0 
-then
+if let $rc!=0; then
   
   printf "%s\n" "Problems during test, sending a mail to:"
   printf "%s\n" "$recipients"
-  cat ${buildDir}/Tests/Testspecs/*.log > run-tests.log
+  cat ${cbuildDir}/Tests/Testspecs/*.log > run-tests.log
 
 mailBody="This is a generated message!  
 
@@ -175,6 +191,6 @@ cvs -nQ update
 
 ## clean up
 printSep "Cleaning up"
-rm -rf ${buildDir}
+rm -rf ${cbuildDir}
 
 exit $errors

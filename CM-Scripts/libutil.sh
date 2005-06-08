@@ -42,8 +42,8 @@ function printSep() {
   let stepCtr++
 }
 
-# checkCmd $1
-# $1 command
+# checkCmd $*
+# $* command
 #
 # execute a command. In case of an error display the
 # returncode
@@ -67,20 +67,21 @@ function checkCmd() {
     let rc=$?  # save returncode
 
     if [ $rc -ne 0 ]; then
-      printf "\n Failure! Command {${1}} returned with value ${rc} \n"
+      printf "\n Failure! Command {$*} returned with value ${rc} \n"
     fi
   fi
+  return $rc
 }
 
 
-# timeOut $1 $2 $3
+
+# terminateAfter $1 $2 $3 pid
 #
-# runs checkCmd and kills the process after time $1
+# $1 max time to wait
+# $2 time interval for alive check
+# $3 pid of the process to wait
 
-function timeOut() {
-
-checkCmd $3 &
-pid=$!
+function terminateAfter() {
 
 typeset -i i=0
 typeset -i maxTime=$1
@@ -98,8 +99,9 @@ do
     then
       printf "%s\n" "Program is running longer than ${maxTime} seconds! - Killing $pid"
       kill $pid
+      sleep 2
 
-      # if still alive force abortion
+      # if still alive force abort
       if $psCmd $pid >/dev/null
       then
         kill -9 $pid
@@ -109,6 +111,28 @@ do
     break
   fi
 done
+
+}
+
+
+# timeOut $1 $2 $3
+#
+# $1 max time to wait
+# $2 time interval for alive check
+# $3 command
+#
+# runs checkCmd and kills the process after timeout 
+
+function timeOut() {
+
+checkCmd $3 &
+pid=$!
+
+terminateAfter $1 $2 $pid
+wait $pid
+
+let rc=$?
+return $rc
 
 }
 
@@ -137,7 +161,7 @@ EOFM
   else
     printf "%s\n" "Test Mode: Not sending mails !!!"
     printf "%s\n" "Mail Command:"
-    printf "%s\n" "mail -s $1 $attchament $2"
+    printf "%s\n" "mail -s \"$1\" $attchment \"$2\""
 
   fi
 
@@ -250,6 +274,17 @@ timeOut "6" "3" "sleep 8"
 timeOut "7" "2" "sleep 6"
 timeOut "7" "8" "sleep 6"
 
+timeOut "5" "1" "echo 'test'; sleep 3; [ 1 == 2 ]"
+echo "rc = $rc"
+timeOut "5" "1" "echo 'test'; sleep 3; [ 1 == 1 ]"
+echo "rc = $rc"
+timeOut "5" "1" "echo 'test'; sleep 6; [ 1 == 2 ]"
+echo "rc = $rc"
+timeOut "5" "1" "echo 'test'; sleep 6; [ 1 == 1 ]"
+echo "rc = $rc"
+
+
+sendMail_Deliver="false"
 XmailBody="This is a generated message!  
 
   Users who comitted to CVS yesterday:
