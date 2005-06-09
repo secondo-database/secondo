@@ -73,6 +73,18 @@ function checkCmd() {
   return $rc
 }
 
+# findrec
+#
+# search recursively for child processes
+
+CHILDS=""
+function findrec {
+   nextchilds=$(ps h -o pid --ppid $1 2>/dev/null | cat)
+   CHILDS=$(echo "$nextchilds" "$CHILDS" )
+   for nc in  $nextchilds; do
+     findrec $nc
+   done
+}
 
 
 # terminateAfter $1 $2 $3 pid
@@ -98,22 +110,17 @@ do
     if $psCmd $pid >/dev/null
     then
       printf "%s\n" "Program is running longer than ${maxTime} seconds! - Killing $pid"
-      kill $pid
-      sleep 2
-
-      # if still alive force abort
-      if $psCmd $pid >/dev/null
-      then
-        kill -9 $pid
-      fi
-
+      CHILDS=""
+      findrec $pid
+      echo "Killing child pids" $CHILDS
+      kill -9 $CHILDS
+      kill -9 $pid
     fi
     break
   fi
 done
 
 }
-
 
 # timeOut $1 $2 $3
 #
