@@ -64,6 +64,11 @@ public class LEUtils {
           return new Double (value.realValue());
       }
 
+      // integer representation
+      if(value.atomType()==value.INT_ATOM){
+          return new Double (value.intValue());
+      }
+
       // all other representation are based on proper lists
       // not on atoms
       if(value.atomType()!=value.NO_ATOM)
