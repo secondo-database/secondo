@@ -11,8 +11,6 @@
 
 
 
-# set up environment for secondo
-if ! source ~/.secondorc; then exit 1; fi
 
 baseDir=$HOME/${0%/*}
 # include function definitions
@@ -69,6 +67,10 @@ while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
   esac
 
 done
+
+# set up environment for secondo
+source ~/.bashrc # this is needed when started by cron
+if ! source ~/.secondorc ""; then exit 1; fi
 
 # derive some other important directories
 cbuildDir=${rootDir}/${coDir}
