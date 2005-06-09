@@ -151,7 +151,16 @@ void processLine(const string& inputLine,string& classpath,
  if(line[1]=='M')
     heapMem = line3;
  if(line[1]=='A'){
-    xoptions.push_back(line3);
+    while(line3!=""){
+        int pos = line3.find(' ');
+        if(pos<0){
+           xoptions.push_back(line3);
+           line3="";
+        }else{
+           xoptions.push_back(line3.substr(0,pos));
+           line3 = trim(line3.substr(pos+1,line3.length()));
+        }
+	}
  }
 }
 
