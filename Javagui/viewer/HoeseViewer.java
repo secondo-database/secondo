@@ -163,8 +163,6 @@ public class HoeseViewer extends SecondoViewer {
   private AbstractAction AARemoveBackground;
   private AbstractAction AACaptureBackground;
   private AbstractAction AALabelAttr;
-  private AbstractAction AA1;
-  private AbstractAction AA2;
   private String tok, PickTok;
 
 
@@ -189,6 +187,9 @@ public class HoeseViewer extends SecondoViewer {
 
   /** the maximum number of pixels for capturing the bakcground */
   private long MAXCAPTUREPIXELS = 10000000L;
+
+  /** set the border when capturing the visible rectangle */
+  private int CaptureBorder = 200;
 
 
   /**
@@ -863,12 +864,9 @@ public class HoeseViewer extends SecondoViewer {
                 sdat.setToScale(sf,sf);   
                 g.setTransform(sdat);
               } 
-
-              AffineTransform at = (AffineTransform) allProjection.clone();
-              
               GraphDisplay.printAll(g);
-              AffineTransform Scale = new AffineTransform();
               bgImage.setImage(bi);
+              AffineTransform at = (AffineTransform) allProjection.clone();
               // convert the bounding bocx of the GraphDisplay into
               // world coordinates.
               try{
@@ -890,11 +888,105 @@ public class HoeseViewer extends SecondoViewer {
        }
     };
    
-     
+    AbstractAction AACaptureRect = new AbstractAction("capture visible rect"){
+       public void actionPerformed(java.awt.event.ActionEvent evt){
+           try{
+              // we will not scale it beacuse the maximum size is restricted by
+              // the screen size
+              Rectangle VisRect = GeoScrollPane.getBounds();
+              if(VisRect.getHeight()<=0 || VisRect.getWidth()<=0){
+                MessageBox.showMessage("cannot capture the rectangle");
+              }
+              int border = CaptureBorder; // later change for setting by the user
+              int vw = (int)VisRect.getWidth()+2*border;
+              int vh = (int)VisRect.getHeight()+2*border;
+              Rectangle2D R = GraphDisplay.getBounds();
+              BufferedImage bi = new BufferedImage(vw,vh,BufferedImage.TYPE_3BYTE_BGR);
+              Graphics2D g = bi.createGraphics();
+              g.setBackground(GraphDisplay.getBackground());
+              g.clearRect(0,0,vw,vh);
+              AffineTransform trans = new AffineTransform();
+              double x = R.getX()+border;
+              double y = R.getY()+border;
+              trans.setToTranslation(x,y);   
+              g.setTransform(trans);
+              GraphDisplay.printAll(g);
+              bgImage.setImage(bi);
+              // convert the bounding bocx of the GraphDisplay into
+              // world coordinates.
+              Rectangle R2= new Rectangle();
+              AffineTransform at = (AffineTransform) allProjection.clone();
+              try{
+                  R2.setRect(-x,-y,vw,vh);    
+                  R2 = at.createInverse().createTransformedShape(R2).getBounds();
+              } catch(Exception e){
+                  MessageBox.showMessage("Cannot determine the bounding box of this image");
+              }
+              bgImage.setBBox(R2.getX(),R2.getY(),R2.getWidth(),R2.getHeight());
+              g.dispose();
+              GraphDisplay.updateBackground();
+            }catch(Exception e){
+               // because large sized data are processed, a OutOfMemory error is possible
+               showMessage("an error in capturing the background is occured");
+               bgImage.setImage(null); 
+           }
+           System.gc();
+           System.runFinalization();
+       }
+    };
+    JMenu SelectBorder = new JMenu("Select Bordersize");
+    JRadioButtonMenuItem Border_0 = new JRadioButtonMenuItem("0");
+    SelectBorder.add(Border_0);
+    
+    JRadioButtonMenuItem Border_30 = new JRadioButtonMenuItem("30");
+    SelectBorder.add(Border_30);
+
+    JRadioButtonMenuItem Border_50 = new JRadioButtonMenuItem("50");
+    SelectBorder.add(Border_50); 
+
+    JRadioButtonMenuItem Border_100 = new JRadioButtonMenuItem("100");
+    SelectBorder.add(Border_100); 
+
+    JRadioButtonMenuItem Border_200 = new JRadioButtonMenuItem("200");
+    SelectBorder.add(Border_200); 
+
+    JRadioButtonMenuItem Border_500 = new JRadioButtonMenuItem("500");
+    SelectBorder.add(Border_500); 
+ 
+    ButtonGroup SelectBorderGroup = new ButtonGroup();
+    SelectBorderGroup.add(Border_0);
+    SelectBorderGroup.add(Border_30);
+    SelectBorderGroup.add(Border_50);
+    SelectBorderGroup.add(Border_100);
+    SelectBorderGroup.add(Border_200);
+    SelectBorderGroup.add(Border_500);
+    CaptureBorder=30;
+    Border_30.setSelected(true);
+    ActionListener SelectBorderListener = new ActionListener(){
+        public void actionPerformed(ActionEvent evt){
+           Object src = evt.getSource();
+           if(! (src instanceof JMenuItem)) 
+               return;
+           String Label = ((JMenuItem)src).getText().trim();
+           try{
+             CaptureBorder = Integer.parseInt(Label);
+           }catch(Exception e){
+              showMessage("Cannot determine the size of the border");
+           } 
+        }
+    };
+    Border_0.addActionListener(SelectBorderListener);
+    Border_30.addActionListener(SelectBorderListener);
+    Border_50.addActionListener(SelectBorderListener);
+    Border_100.addActionListener(SelectBorderListener);
+    Border_200.addActionListener(SelectBorderListener);
+    Border_500.addActionListener(SelectBorderListener);
     BGMenu.add(jMenuBackgroundColor);
     BGMenu.add(AASetBackground); 
     BGMenu.add(AARemoveBackground);
     BGMenu.add(AACaptureBackground);
+    BGMenu.add(AACaptureRect);
+    BGMenu.add(SelectBorder);
 
    jMenuGui.add(BGMenu); 
 
