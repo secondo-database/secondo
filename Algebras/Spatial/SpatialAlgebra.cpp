@@ -153,99 +153,6 @@ Point::Point( const Point& p ) :
 Point::~Point()
 {}
 
-inline const Coord& Point::GetX() const
-{
-  assert( defined );
-  return x;
-}
-
-inline const Coord& Point::GetY() const
-{
-  assert( defined );
-  return y;
-}
-
-inline const Rectangle<2> Point::BoundingBox() const
-{
-  return Rectangle<2>( true, this->x, this->x, this->y, this->y );
-}
-
-inline void Point::Set( const Coord& x, const Coord& y )
-{
-  defined = true;
-  this->x = x;
-  this->y = y;
-}
-
-inline void Point::Translate( const Coord& x, const Coord& y )
-{
-  this->x += x;
-  this->y += y;
-}
-
-inline Point& Point::operator=( const Point& p )
-{
-  defined = p.defined;
-  if( defined )
-  {
-    x = p.x;
-    y = p.y;
-  }
-  return *this;
-}
-
-inline bool Point::operator==( const Point& p ) const
-{
-  assert( defined && p.defined );
-  return x == p.x && y == p.y;
-}
-
-inline bool Point::operator!=( const Point& p ) const
-{
-  assert( defined && p.defined );
-  return x != p.x || y != p.y;
-}
-
-inline bool Point::operator<=( const Point& p ) const
-{
-  assert( defined && p.defined );
-  if( x < p.x )
-    return 1;
-  else if( x == p.x && y <= p.y )
-    return 1;
-  return 0;
-}
-
-inline bool Point::operator<( const Point& p ) const
-{
-  assert( defined && p.defined );
-  if( x < p.x )
-    return 1;
-  else if( x == p.x && y < p.y )
-    return 1;
-  return 0;
-}
-
-inline bool Point::operator>=( const Point& p ) const
-{
-  assert( defined && p.defined );
-  if( x > p.x )
-    return 1;
-  else if( x == p.x && y >= p.y )
-    return 1;
-  return 0;
-}
-
-inline bool Point::operator>( const Point& p ) const
-{
-  assert( defined && p.defined );
-  if( x > p.x )
-    return 1;
-  else if( x == p.x && y > p.y )
-    return 1;
-  return 0;
-}
-
 ostream& operator<<( ostream& o, const Point& p )
 {
   if( p.IsDefined() )
@@ -254,16 +161,6 @@ ostream& operator<<( ostream& o, const Point& p )
     o << "undef";
 
   return o;
-}
-
-inline bool Point::IsDefined() const
-{
-  return defined;
-}
-
-inline void Point::SetDefined( bool defined )
-{
-  this->defined = defined;
 }
 
 size_t Point::HashValue()

@@ -67,6 +67,7 @@ extern "C" {
 #include <signal.h>
 #include <string>
 #include <iostream>
+#include <cassert>
 
 #include "LogMsg.h"
 

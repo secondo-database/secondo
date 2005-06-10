@@ -58,6 +58,12 @@ SmiKeyedFile::SmiKeyedFile( const SmiKey::KeyDataType keyType,
 SmiKeyedFile::~SmiKeyedFile()
 {
 }
+
+SmiKey::KeyDataType 
+SmiKeyedFile::GetKeyType() const
+{
+  return keyDataType;
+}
   
 bool
 SmiKeyedFile::SelectRecord( const SmiKey& key,

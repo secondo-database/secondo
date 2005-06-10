@@ -35,6 +35,8 @@ using namespace std;
 #include <dlfcn.h>
 #endif
 
+#include <cassert>
+
 DynamicLibrary::DynamicLibrary()
   : libraryHandle( 0 ), libName( "" ), errorMessage( "" )
 {

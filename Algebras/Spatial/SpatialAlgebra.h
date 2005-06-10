@@ -1838,12 +1838,9 @@ Whether the half segments in the region value are sorted.
 };
 
 /*
-7.19 overloaded output operator
+8 Function headers
 
 */
-
-
-
 ostream& operator<<( ostream& o, CRegion& cr );
 
 Word InPoint( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct );
@@ -1856,11 +1853,119 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 Word
 InLine( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct ) ;
 
+/*
+9 Inline functions
+
+*/
+inline const Coord& Point::GetX() const
+{
+  assert( defined );
+  return x;
+}
+
+inline const Coord& Point::GetY() const
+{
+  assert( defined );
+  return y;
+}
+
+inline const Rectangle<2> Point::BoundingBox() const
+{
+  assert( defined );
+  return Rectangle<2>( true, this->x, this->x, this->y, this->y );
+}
+
+inline void Point::Set( const Coord& x, const Coord& y )
+{
+  defined = true;
+  this->x = x;
+  this->y = y;
+}
+
+inline void Point::Translate( const Coord& x, const Coord& y )
+{
+  assert( defined );
+  this->x += x;
+  this->y += y;
+}
+
+inline Point& Point::operator=( const Point& p )
+{
+  defined = p.defined;
+  if( defined )
+  {
+    x = p.x;
+    y = p.y;
+  }
+  return *this;
+}
+
+inline bool Point::operator==( const Point& p ) const
+{
+  assert( defined && p.defined );
+  return x == p.x && y == p.y;
+}
+
+inline bool Point::operator!=( const Point& p ) const
+{
+  assert( defined && p.defined );
+  return x != p.x || y != p.y;
+}
+
+inline bool Point::operator<=( const Point& p ) const
+{
+  assert( defined && p.defined );
+  if( x < p.x )
+    return 1;
+  else if( x == p.x && y <= p.y )
+    return 1;
+  return 0;
+}
+
+inline bool Point::operator<( const Point& p ) const
+{
+  assert( defined && p.defined );
+  if( x < p.x )
+    return 1;
+  else if( x == p.x && y < p.y )
+    return 1;
+  return 0;
+}
+
+inline bool Point::operator>=( const Point& p ) const
+{
+  assert( defined && p.defined );
+  if( x > p.x )
+    return 1;
+  else if( x == p.x && y >= p.y )
+    return 1;
+  return 0;
+}
+
+inline bool Point::operator>( const Point& p ) const
+{
+  assert( defined && p.defined );
+  if( x > p.x )
+    return 1;
+  else if( x == p.x && y > p.y )
+    return 1;
+  return 0;
+}
+
+inline bool Point::IsDefined() const
+{
+  return defined;
+}
+
+inline void Point::SetDefined( bool defined )
+{
+  this->defined = defined;
+}
 
 /*
-7.19 Auxiliary classes used by window clipping functions
+10 Auxiliary classes used by window clipping functions
 
-7.19.1 Edge Point
+10.1 Edge Point
 
 This class stores the information need about the points that lie on the window edge:
 - The point's coordinates
@@ -1992,7 +2097,7 @@ and the edge of the window in which it lies:
 };
 
 /*
-7.19.2 SCycle
+10.2 SCycle
 
 This class is used to store the information need for cycle computation which sets the face number,
 cycle number and edge number of the half segments.

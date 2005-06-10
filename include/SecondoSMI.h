@@ -1026,6 +1026,11 @@ only one record can be stored. Otherwise duplicate records are allowed.
 Destroys a file handle.
 
 */
+  SmiKey::KeyDataType GetKeyType() const;
+/*
+Returns the key type of the file.
+
+*/
   bool SelectRecord( const SmiKey& key,
                      SmiKeyedFileIterator& iterator,
                      const SmiFile::AccessType accessType =

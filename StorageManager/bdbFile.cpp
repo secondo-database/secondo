@@ -261,7 +261,17 @@ SmiFile::Create( const string& context /* = "Default" */ )
     SmiEnvironment::SetError( E_SMI_FILE_INVALIDNAME );
   }
 
-  return (rc == 0);
+  if (rc == 0)
+  {
+    return true;
+  }
+  else
+  {
+    string errMsg;
+    SmiEnvironment::GetLastErrorCode( errMsg );
+    cerr << errMsg << endl;
+    return false;
+  }
 }
 
 bool
@@ -403,7 +413,7 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
 }
 
 bool
-SmiFile::Open( const SmiFileId fileId, const string& context /* = "Default" */ )
+SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
 {
   assert ( !opened );
 	
@@ -418,29 +428,25 @@ SmiFile::Open( const SmiFileId fileId, const string& context /* = "Default" */ )
     {
       fileContext = context;
       fileName    = "";
-      if ( fileId != 0 )
-      {
-        this->fileId = fileId;
-      }
     }
-    else if ( SmiEnvironment::Implementation::LookUpCatalog( fileId, entry ) )
+    else if ( SmiEnvironment::Implementation::LookUpCatalog( fileid, entry ) )
     {
       // --- File found in permanent file catalog
       char* point = strchr( entry.fileName, '.' );
       *point = '\0';
       fileContext = entry.fileName;
       fileName = ++point;
-      this->fileId = fileId;
     }
     else
     {
       fileContext = context;
       fileName    = "";
     }
-    if ( fileId != 0 && fileContext == context )
+
+    if ( fileid != 0 && fileContext == context )
     {
       string bdbName =
-        SmiEnvironment::Implementation::ConstructFileName( fileId, impl->isTemporaryFile );
+        SmiEnvironment::Implementation::ConstructFileName( fileid, impl->isTemporaryFile );
 
       // --- Find out the appropriate Berkeley DB file type
       // --- and set required flags or options if necessary
@@ -487,12 +493,12 @@ SmiFile::Open( const SmiFileId fileId, const string& context /* = "Default" */ )
 
       u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
       u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ | commitFlag : 0;
+
       rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, flags, 0 );
       if ( rc == 0 )
       {
         SmiEnvironment::SetError( E_SMI_OK );
         opened = true;
-        this->fileId = fileId;
         impl->isSystemCatalogFile = (fileContext == "SecondoCatalog");
       }
       else
@@ -502,7 +508,7 @@ SmiFile::Open( const SmiFileId fileId, const string& context /* = "Default" */ )
     }
     else
     {
-      rc = (fileId == 0) ? E_SMI_FILE_NOFILEID : E_SMI_FILE_BADCONTEXT;
+      rc = (fileid == 0) ? E_SMI_FILE_NOFILEID : E_SMI_FILE_BADCONTEXT;
       SmiEnvironment::SetError( rc );
     }
   }
@@ -511,8 +517,13 @@ SmiFile::Open( const SmiFileId fileId, const string& context /* = "Default" */ )
     rc = E_SMI_FILE_INVALIDNAME;
     SmiEnvironment::SetError( E_SMI_FILE_INVALIDNAME );
   }
-
-  return (rc == 0);
+ 
+  if( rc == 0 )
+  {
+    fileId = fileid;
+    return true;
+  }
+  return false;
 }
 
 bool

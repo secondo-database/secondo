@@ -32,6 +32,7 @@ using namespace std;
 
 #include "SecondoConfig.h"
 #include <iostream>
+#include <cassert>
 
 #ifdef SECONDO_WIN32
 #  include <io.h>

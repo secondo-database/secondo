@@ -34,6 +34,7 @@ using namespace std;
 
 #include "SocketIO.h"
 #include <cstdio>
+#include <cassert>
 
 // --- SocketAddress ---
 
