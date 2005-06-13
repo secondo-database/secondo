@@ -6,6 +6,7 @@
  */
 package twodsack.operation.setoperation;
 
+import twodsack.io.*;
 import twodsack.operation.basictypeoperation.*;
 import twodsack.set.*;
 import twodsack.setelement.*;
@@ -545,21 +546,30 @@ public class SupportOps {
 	    boolean earlyExit = false;
 	    int setNumber = 0;
 	    LeftJoinPairMultiSet ljpMS = SetOps.overlapLeftOuterJoin(ts2,ts1,pintersectsM,meet,bboxFilter,earlyExit,setNumber);
-	    ljpMS = SetOps.map(ljpMS,null,minusM);
+	    System.out.print("1");
+	    ljpMS = SetOps.map(ljpMS,null,minusM);  
+	    System.out.print("-2");
 	    retSetS = SegMultiSet.convert(SetOps.rdup2(SetOps.collect(ljpMS)));
+	    System.out.print("-3");
 	    retSetS = minimal(retSetS,true,false);
+	    System.out.print("-4");
 	    retSet = Polygons.computeMesh(retSetS,true);
+	    System.out.print("-5");
 	} catch (Exception e) {
-	    System.out.println("Exception was thrown in ROSEAlgebra.plus(TriMultiSet,TriMultiSet,boolean):");
+	    System.out.println("An exception was caught in ROSEAlgebra.plus(TriMultiSet,TriMultiSet,boolean):");
 	    e.printStackTrace();
-	    System.exit(0);
+	    System.out.println("An empty value is returned.");
+	    return new TriMultiSet(TRIANGLE_COMPARATOR);
 	}//catch
 
 	//compute union
 	retSet.addAll(ts1);
-		
+	System.out.print("-6");
+	
 	retSetS = contourGeneral(retSet,true,true,true,true);
+	System.out.print("-7");
 	retSet = Polygons.computeMesh(retSetS,true);
+	System.out.print("-8: ");
 
 	return retSet;
 

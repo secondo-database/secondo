@@ -723,6 +723,9 @@ public class Graph {
      * @return the set of cycles representing the faces
      */
     public CycleList computeFaceCycles(){
+	System.out.println("Graph.computeFaceCycles...");
+
+
 	//first, sort the vertices in succLists such that
 	//the segments (which are formed by the pairs of vertices)
 	//are sorted as described in the ROSE implementation paper
@@ -796,6 +799,8 @@ public class Graph {
 	    retList.add(computeSegListFromCycle(cycle));
 	}//for
 	
+	System.out.println("\nleaving Graph.computeFaceCycles.");
+
 	return retList;
     }//end method computeFaceCycles
 
@@ -852,6 +857,7 @@ public class Graph {
      * @return the cycle of segments
      */
     private static LinkedList computeSegListFromCycle(LinkedList inCycle) {
+	System.out.println("\nGraph.computeSegListFromCycle...");
 	LinkedList retList = new LinkedList();
 
 	if (inCycle.size() < 3) {

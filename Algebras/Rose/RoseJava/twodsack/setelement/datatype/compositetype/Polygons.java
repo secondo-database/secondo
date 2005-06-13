@@ -2428,24 +2428,20 @@ public class Polygons extends Element implements Serializable {
      * @return the <code>CycleListList</code> representing the cycles of <code>this</code>
      */
     public CycleListList cyclesSegments() {
-	double tt01 = System.currentTimeMillis();
+	System.out.println("\nPol.cyclesSegments...");
 
 	//compute border form triangles if neccessary
 	if (!this.borderDefined) this.border = computeBorder();
 	
-	double tt02 = System.currentTimeMillis();
-
 	//if border has no elements, return empty structure
 	if (this.border.isEmpty()) return new CycleListList();
 	
 	Graph myGraph = new Graph(this.border);
 	CycleList cycList = myGraph.computeFaceCycles();
 
-	double tt03 = System.currentTimeMillis();
-
 	//construct the resulting structure as follows:
 	//A CycleListList is a list of CycleList(s) where each of the CycleLists
-	//has at least one cylce (the outer cycle for a face). All following cycles
+	//has at least one cylce (the outer cycle of a face). All following cycles
 	//are inner cycles and therefore are holes. Since new faces inside of 
 	//holes are not supported currently, no more checks are made for those inner
 	//cycles.
@@ -2533,6 +2529,8 @@ public class Polygons extends Element implements Serializable {
 	    }//else
 	}//while it
 
+	System.out.println("\nleaving Pol.cyclesSegments");
+
 	return retList;
     }//end method cyclesSegments
 	 
@@ -2609,6 +2607,7 @@ public class Polygons extends Element implements Serializable {
      * @see #computeTriangles(SegMultiSet)
      */
     public static TriMultiSet computeMesh(SegMultiSet border, boolean qualityMesh) {
+	System.out.println("\nPol.computeMesh...");
 	if (border.isEmpty()) return new TriMultiSet(new TriangleComparator());
 	
 	//compute the cycles of the polygon 
@@ -2617,7 +2616,7 @@ public class Polygons extends Element implements Serializable {
 	try {
 	    polCLL = myPOL.cyclesSegments();
 	} catch (Exception e) {
-	    System.out.println("\nError occured in Polygons.computeMesh(SegMultiSet,boolean): Probably, the segments don't form proper cycles.");
+	    System.out.println("\nException caught in Polygons.computeMesh(SegMultiSet,boolean): Probably, the segments don't form proper cycles.");
 	    /*
 	      System.out.println("Current segments are shown in JAVA window.");
 	      DisplayGFX gfx = new DisplayGFX();	      
@@ -2628,7 +2627,9 @@ public class Polygons extends Element implements Serializable {
 	      catch (Exception f) { System.exit(0); }
 	      gfx.kill();
 	    */
-	    System.exit(0);
+	    System.out.println("Returning empty object.");
+	    //System.exit(0);
+	    return new TriMultiSet(new TriangleComparator());
 	}//catch
 	
 	/* now every list in polCLL represents one face (at first position) and all holes
@@ -2650,8 +2651,10 @@ public class Polygons extends Element implements Serializable {
 	    actCycleList = (CycleList)it.next();
 	    resultSet.addAll(myMG.computeMeshForSingleCycleHoles(actCycleList,qualityMesh));
 	}//while
+
+	System.out.println("\nleaving Pol.computeMesh.");
 	return resultSet;
-    }//end method computeTriangles
+    }//end method computeMesh
 
 
     /**
@@ -2667,6 +2670,7 @@ public class Polygons extends Element implements Serializable {
      * @see #computeMesh(SegMultiSet,boolean)
      */
     public static TriMultiSet computeMeshSingleCycle (SegMultiSet border) throws TooManyCyclesException {
+	System.out.println("Pol.computeMeshSingleCycle...");
 	if (border.isEmpty()) return new TriMultiSet(new TriangleComparator());
 	try {
 	    MeshGenerator myMG = new MeshGenerator();

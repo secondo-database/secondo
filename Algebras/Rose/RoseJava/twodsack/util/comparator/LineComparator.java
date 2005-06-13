@@ -63,8 +63,8 @@ public class LineComparator implements Comparator,Serializable{
      * Compares two objects and returns one of {0, 1, -1}.
      * Both objects must be of type {@link twodsack.util.collectiontype.Line}. Then, the intersection point of both lines with the
      * y axis is computed (if any).<p>
-     * Return 0, if both intersection points are equal.<p>
-     * Return -1, if the intersection point of <tt>ino1</tt> and the y axis is smaller than the intersection point of <tt>ino2</tt> and the y axis.<p>
+     * Return 0, if both intersection points are equal AND the underlying segments are equal.<p>
+     * Return -1, if the intersection point of <tt>ino1</tt> and the y axis is smaller than the intersection point of <tt>ino2</tt> and the y axis OR if the intersection points are equal and <tt>ino1.seg < ino2.seg</tt>.<p>
      * Return 1 otherwise<p>
      * Note, that the y axis is not really considered to lie at position <tt>x = 0</tt>, but depends on the <tt>x</tt> coordinate in the classes <tt>x</tt> field.
      *
@@ -93,7 +93,7 @@ public class LineComparator implements Comparator,Serializable{
 	    if (l1.m.greater(l2.m)) return 1;
 	    if (l1.seg.getEndpoint().x.less(l2.seg.getEndpoint().x)) return -1;
 	    if (l1.seg.getEndpoint().x.greater(l2.seg.getEndpoint().x)) return 1;
-	    return 0;
+	    return l1.seg.compare(l2.seg);
 	}//if
 	else 
 	    throw new WrongTypeException("Exception in LineComparator: Expected type Line - found: "+((Entry)ino1).value.getClass()+"/"+((Entry)ino2).value.getClass());

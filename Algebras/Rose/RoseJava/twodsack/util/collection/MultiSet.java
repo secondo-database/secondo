@@ -384,4 +384,22 @@ public class MultiSet implements Serializable {
 	recomputeSize();
     }//end method setTreeSet
 
+
+    /**
+     * Returns <tt>true</tt> if any element stored in <i>this</i> appears at least twice.
+     *
+     * @return <tt>true</tt> if any element appears at least twice
+     */
+    public boolean hasDuplicates() {
+	Iterator it = this.iterator();
+	MultiSetEntry mse;
+	while (it.hasNext()) {
+	    mse = (MultiSetEntry)it.next();
+	    if (mse.number > 1) return true;
+	}//while
+	
+	return false;
+    }//end method hasDuplicates
+		
+
 }//end class MultiSet

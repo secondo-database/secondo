@@ -7,6 +7,7 @@
 
 package twodsack.setelement.datatype.basicdatatype;
 
+import twodsack.io.*;
 import twodsack.operation.basictypeoperation.*;
 import twodsack.operation.setoperation.*;
 import twodsack.set.*;
@@ -867,12 +868,14 @@ public class Triangle extends Element implements Serializable {
 	 */ 
 	it = ses.iterator();
 	ProIterator it2 = sss.listIterator(0);
+	ProIterator itVert = sss.listIterator(0);
 	PSPoint actPoint;
 	
 	boolean stillTrue;
 	Line actLine;
 	Line pred = null;
 	Line succ = null;
+	Line sssLine = null;
 	Entry actEntry = null;
 	Entry actEntry2 = null;
 	int count = 0;
@@ -881,7 +884,7 @@ public class Triangle extends Element implements Serializable {
 	    actPoint = (PSPoint)((MultiSetEntry)it.next()).value;
 	    it.remove();
 	    it2.reset();
-	    
+
 	    if (actPoint.isStartpoint) {
 		//actPoint is startpoint
 		//construct actLine and insert it at correct position in sss
@@ -904,34 +907,50 @@ public class Triangle extends Element implements Serializable {
 		//set actEntry to that entry that was just added
 		actEntry = sss.lastAdded;
 
-		//compute intersection points with neighbour lines in sss, if they exist
-		if (!(actEntry.prev == null)) {
-		    pred = (Line)actEntry.prev.value;
-		    if (pred.seg.pintersects(actLine.seg)) {
-			//insert intpoint in ses
-			ses.add(new PSPoint(pred.seg.intersection(actLine.seg),
-					    pred.number,actLine.number,false,true));
-			
+		//if actLine is vertical, test for intersection with all lines in sss		
+		if (actLine.vert) {
+		    itVert.reset();
+		    while (itVert.hasNext()) {
+			sssLine = (Line)itVert.next();
+			if (sssLine.seg.pintersects(actLine.seg)) {
+			    //insert intpoint in ses
+			    ses.add(new PSPoint(sssLine.seg.intersection(actLine.seg),
+						sssLine.number,actLine.number,false,true));
+			}//if
+		    }//while itVert
+		}//if actLine is vertical
+		    
+		else {
+		    //if actLine is not vertical,
+		    //compute intersection points with neighbour lines in sss, if they exist
+		    if (!(actEntry.prev == null)) {
+			pred = (Line)actEntry.prev.value;
+			if (pred.seg.pintersects(actLine.seg)) {
+			    //insert intpoint in ses
+			    ses.add(new PSPoint(pred.seg.intersection(actLine.seg),
+						pred.number,actLine.number,false,true));
+			    
+			}//if
+			if (!PointSeg_Ops.isEndpoint(actLine.seg.getStartpoint(),pred.seg) && 
+			    PointSeg_Ops.liesOn(actLine.seg.getStartpoint(),pred.seg)) {
+			    //insert meetpoint in ses
+			    ses.add(new PSPoint(actLine.seg.getStartpoint(),actLine.number,pred.number,false,true));
+			}//if
 		    }//if
-		    if (!PointSeg_Ops.isEndpoint(actLine.seg.getStartpoint(),pred.seg) && 
-			PointSeg_Ops.liesOn(actLine.seg.getStartpoint(),pred.seg)) {
-			//insert meetpoint in ses
-			ses.add(new PSPoint(actLine.seg.getStartpoint(),actLine.number,pred.number,false,true));
-		    }//if
-		}//if
-		if (!(actEntry.next == null)) {
-		    succ = (Line)actEntry.next.value;
-		    if (succ.seg.pintersects(actLine.seg)) {
-			//insert intpoint in ses
-			ses.add(new PSPoint(succ.seg.intersection(actLine.seg),
-					    succ.number,actLine.number,false,true));
-		    }//if
-		    if (!PointSeg_Ops.isEndpoint(actLine.seg.getStartpoint(),succ.seg) &&
-			PointSeg_Ops.liesOn(actLine.seg.getStartpoint(),succ.seg)) {
-			//insert meetpoint in ses
-			ses.add(new PSPoint(actLine.seg.getStartpoint(),actLine.number,succ.number,false,true));
-		    }//if 
-		}//if		
+		    if (!(actEntry.next == null)) {
+			succ = (Line)actEntry.next.value;
+			if (succ.seg.pintersects(actLine.seg)) {
+			    //insert intpoint in ses
+			    ses.add(new PSPoint(succ.seg.intersection(actLine.seg),
+						succ.number,actLine.number,false,true));
+			}//if
+			if (!PointSeg_Ops.isEndpoint(actLine.seg.getStartpoint(),succ.seg) &&
+			    PointSeg_Ops.liesOn(actLine.seg.getStartpoint(),succ.seg)) {
+			    //insert meetpoint in ses
+			    ses.add(new PSPoint(actLine.seg.getStartpoint(),actLine.number,succ.number,false,true));
+			}//if 
+		    }//if		
+		}//else
 	    }//if is startpoint
 	    
 	    else if (actPoint.isIntPoint) {

@@ -9,8 +9,10 @@ package twodsack.set;
 
 import twodsack.operation.setoperation.*;
 import twodsack.setelement.datatype.basicdatatype.*;
+import twodsack.util.collection.*;
 import twodsack.util.collectiontype.*;
 import twodsack.util.comparator.*; 
+import twodsack.util.graph.*;
 import twodsack.util.number.*;
 import java.util.*;
 import java.lang.reflect.*;
@@ -151,5 +153,18 @@ public class SegMultiSet extends ElemMultiSet {
 	
 	return allPoints;
     }//end method getAllPointsWithDuplicates
+
+
+    /**
+     * Returns <tt>true</tt> if the segments stored in the SegMultiSet form a proper cycle.<p>
+     * A proper cycle means, that the segments form the border of a polygon. No duplicate or intersecting segments may occur.
+     *
+     * @return <tt>true</tt> if the segments form such a proper cycle
+     */
+    public boolean checkForCycle() {
+	Graph myGraph = new Graph(this);
+	CycleList cl = myGraph.computeFaceCycles();
+	return cl.checkCycles();
+    }//end method checkForCycle
     
 }//end class SegMultiSet
