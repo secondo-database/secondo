@@ -85,7 +85,7 @@ public class DisplayGFX {
 		public void windowClosing(WindowEvent e) {
 		    //System.exit(0);
 		    f.dispose(); } } );
-	f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	//f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }//end method initWindow
     
 
@@ -127,7 +127,7 @@ public class DisplayGFX {
 	ShapeBuilder mySB = new ShapeBuilder(emsList,f);
 	mySB.init();
 	f.getContentPane().add(mySB, BorderLayout.CENTER);
-	System.out.println("Showing elements in JAVA window.");
+	//System.out.println("Showing elements in JAVA window.");
 	f.setSize(new Dimension(640,480));
 	
 	f.setVisible(true);
