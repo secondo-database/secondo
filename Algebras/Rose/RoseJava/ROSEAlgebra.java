@@ -587,7 +587,17 @@ public class ROSEAlgebra {
     
 
     public static Regions rr_plus (Regions r1, Regions r2) {
-	return new Regions(SupportOps.plus(r1.triset,r2.triset,false));
+	System.out.print("rr_plus("+r1.triset.size()+","+r2.triset.size()+") -> ");
+	Regions res;
+	try {
+	    res = new Regions(SupportOps.plus(r1.triset,r2.triset,false));
+	} catch (Exception e) {
+	    System.out.println("ROSEAlgebra.rr_plus: Caught an exception ("+e+"). Returning empty result.");
+	    res = new Regions();
+	}//catch
+	//return new Regions(SupportOps.plus(r1.triset,r2.triset,false));
+	System.out.println(res.triset.size());
+	return res;
     }//end method rr_plus
     
  

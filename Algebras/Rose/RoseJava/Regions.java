@@ -73,10 +73,12 @@ public class Regions implements Serializable{
 	}//if
 	else {
 	    noOfRegions++;
+	    System.out.println("\n########################### computation of triangle set for Region");
 	    System.out.println("\n---> REGION_NO."+noOfRegions+": compute Triangles... ");
 	    triset = computeTriSet(sl);
 	    noOfTris += triset.size();
 	    System.out.println(triset.size()+" triangle(s). Sum of triangles: "+noOfTris);
+	    System.out.println("\n########################### computation of cycles for Region");
 	    System.out.println("--->compute cycles... ");
 	    cycles = cyclesPoints();
 	    cyclesDefined = true;
@@ -174,12 +176,14 @@ public class Regions implements Serializable{
     public static Regions readFrom(byte[] buffer){
 	readFromCalls++;
 	System.out.print("readFromCalls: "+readFromCalls+": ");
+
 	try{
 	    ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(buffer));
 	    Regions res = (Regions) ois.readObject();
 	    ois.close();
 	    if (res.triset != null && res.cycles != null) 
 		System.out.println(res.triset.size()+" triangles, "+res.cycles.size()+" cycle(s).");
+
 	    return res;
 	} catch(Exception e){
 	    System.out.println("Error in Regions.readFrom().");
