@@ -1,3 +1,0 @@
-; \mingw\bin\dlltool.exe -z MeshGenerator.def.tmp MeshGenerator.o
-EXPORTS
-	Java_MeshGenerator_triangulate = 	Java_MeshGenerator_triangulate@88 ; 

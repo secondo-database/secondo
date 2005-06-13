@@ -6,6 +6,8 @@
  */
 package twodsack.util.meshgenerator;
 
+import java.io.*;
+import twodsack.io.*;
 import twodsack.operation.setoperation.*;
 import twodsack.set.*;
 import twodsack.setelement.datatype.basicdatatype.*;
@@ -42,9 +44,9 @@ public class MeshGenerator {
 	System.loadLibrary("MeshGenerator");
     }
 
-    static final int NUMBER_OF_BUCKETS = 499; //choose a prime number
+    private static final int NUMBER_OF_BUCKETS = 499; //choose a prime number
 
-    //declare native method
+    //declare native methods
     String arguments; //p = reads a poly file, q = quality mesh refinement
     double[] pointlist;
     double[] pointattributelist;
@@ -71,7 +73,7 @@ public class MeshGenerator {
     double[] regionlist;
     
     /**
-     * The native method that calls the C function.
+     * The native method that calls the C meshing function.
      * It only consists of the method declaration, i.e. the signature of the method. For detailed
      * information about all parameters have a look at <code>triangle.h</code>.
      @param arguments the command line switches that can be given to the C function
@@ -120,6 +122,11 @@ public class MeshGenerator {
 					);
 
     /**
+     * Another native method which is used to free the memory used by JNI after the mesh was computed.
+     */
+    private native void freeMemory();
+
+    /**
      * Computes a mesh for a polygon (consisting of a single cycle) given by <code>border</code>.
      * Inside of this method all parametric values for the C function are computed and collected.
      * Afterwards the C function <code>triangulate</code> is called (indirectly via the 
@@ -134,11 +141,33 @@ public class MeshGenerator {
      * @see #computeMeshForSingleCycleHoles(CycleList,boolean)
      */
     public TriMultiSet computeMeshForSingleCycle (SegMultiSet border,boolean qualityMesh) {
+	System.out.println("MG.computeMeshForSingleCycle");
+
+
 	//a certain set of variables is needed for the C-method
 	//compute these variables
 
 	if (qualityMesh) this.arguments = "pqQ";
 	else this.arguments = "pQ";
+
+	
+	System.out.print("-borderOKAY:"+border.checkForCycle());
+	System.out.print("-hasDuplicates:"+border.hasDuplicates());
+	
+	/*
+	BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
+	DisplayGFX gfx = new DisplayGFX();
+	  
+	gfx.initWindow();
+	gfx.addSet(border);
+	gfx.showIt(false);
+	try {
+	    String data = inBR.readLine();
+	}  catch (Exception e) {
+	    System.exit(0);
+	}//catch
+	gfx.kill();
+	*/
 
 	//pointlist: an array of the (border) points of the form 
 	//[x-coord p1][y-coord p1]...[xcoord pn][ycoord pn]
@@ -230,28 +259,35 @@ public class MeshGenerator {
 	regionlist = null;
 
 	//call C-code
-	double[] triResultList = new MeshGenerator().triangulate(arguments,
-								 pointlist,
-								 pointattributelist,
-								 pointmarkerlist,
-								 numberofpoints,
-								 numberofpointattributes,
-								 trianglelist,
-								 triangleattributelist,
-								 trianglearealist,
-								 neighborlist,
-								 numberoftriangles,
-								 numberofcorners,
-								 numberoftriangleattributes,
-								 segmentlist,
-								 segmentmarkerlist,
-								 numberofsegments,
-								 numberofholes,
-								 holelist,
-								 numberofregions,
-								 regionlist);
+	System.out.print("-PRE");
+	double[] triResultList = null;
+	try {
+	    triResultList = new MeshGenerator().triangulate(arguments,
+							    pointlist,
+							    pointattributelist,
+							    pointmarkerlist,
+							    numberofpoints,
+							    numberofpointattributes,
+							    trianglelist,
+							    triangleattributelist,
+							    trianglearealist,
+							    neighborlist,
+							    numberoftriangles,
+							    numberofcorners,
+							    numberoftriangleattributes,
+							    segmentlist,
+							    segmentmarkerlist,
+							    numberofsegments,
+							    numberofholes,
+							    holelist,
+							    numberofregions,
+							    regionlist);
+	} catch (Exception e) {
+	    System.out.println("\nException caught in C++ mesh generator. Returning empty value.");
+	    return new TriMultiSet(new TriangleComparator());
+	}//catch
 
-
+	System.out.print("-POST");
 	return buildTriangleSet(triResultList);
     }//end method computeMeshForSingleCycle
     
@@ -278,6 +314,13 @@ public class MeshGenerator {
 	    count = count+6;
 	}//while
 
+	//free the memory of the point array
+	try {
+	    (new MeshGenerator()).freeMemory();
+	} catch (Exception e) {
+	    System.out.println("Exception caught in MeshGenerator.buildTriangleSet. Problems with freeing memory.");
+	}//catch
+	
 	return retSet;
     }//end method buildTriangleSet
 
@@ -296,6 +339,9 @@ public class MeshGenerator {
      * @see #computeMeshForSingleCycle(SegMultiSet,boolean)
      */
     public TriMultiSet computeMeshForSingleCycleHoles (CycleList borderCycles, boolean qualityMesh) {
+	System.out.println("MG.computeMeshForSingleCycleHoles...");
+
+
 	//System.out.println("entering computeMeshForSingleCycleHoles...");
 	//a certain set of variables is needed for the C-method
 	//compute these variables
