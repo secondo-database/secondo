@@ -34,7 +34,7 @@ if [ "$1" = "clean" ]; then
   fi
 
   if [ "$ANSWER" = "y" ]; then
-     rm -f authordoc author dblp.tmp document keyword Titles.ascii
+     rm -f authordoc author dblp.tmp document keyword keyword_tmp
      make -s clean
      echo "all files removed"
   fi
@@ -97,6 +97,8 @@ if [ "$ANSWER" != "use" ]; then
   FilterHTML $DBLP_FILE | egrep -v "<ee>.*</ee>" | egrep -v "<url>[^(http:)]" | DoubleTitle | tee $DBLP_TMP | progress 5000
 fi
 
+echo "Line 100 reached"
+
 # check for existing Files
 EXIST=false
 if [ -f author ]; then
@@ -111,6 +113,11 @@ if [ -f document ]; then
    EXIST=true
 fi
 
+if [ -f keyword_tmp ]; then
+   EXIST=true
+fi
+
+echo "Line 117"
 
 # ask the user for the nexte step
 echo ""
@@ -129,6 +136,7 @@ fi
 
 if [ "$ANSWER" != "use" ]; then
    # Create the three relations author authordoc and document
+   # create also a temporary keyword file keyword_tmp
    echo "create the SECONDO-relations"
    rm -f access.db
    Parser "$DBLP_TMP"
@@ -141,33 +149,8 @@ if [ "$ANSWER" != "use" ]; then
 fi
 
 
-
-# create keywords
-echo "keywords"
-INPUT=overwrite
-if [ -f Titles.ascii ]; then
-   echo "File Titles.ascii exists"
-   N=$(ls -t "$DBLP_TMP" Titles.ascii | head -n 1)
-   if [ "$N" = "Titles.ascii" ]; then
-      echo "Titles.ascii is up to date"
-   else
-      echo "$DBLP_TMP is newer than Titles.ascii"
-   fi
-   select INPUT in "overwrite" "abort" "use"; do
-      break;
-   done
-   if [ "$INPUT" = "abort" ]; then
-      echo "Bye"
-      exit 0
-   fi
-fi
-
-if [ "$INPUT" = "overwrite" ]; then
-    echo "building file Titles.ascii, this can take several minutes"
-    grep -E "<title[^>]*>" "$DBLP_TMP" | sed  "s#<.[^>]*>##g" >Titles.ascii
-fi
-
-echo "Convert Titles.ascii to a Keywordrelation"
+echo "Convert keyword_tmp to a Keywordrelation"
 # call the Java program to build the Files
-COMMAND="java -Xmx180M KeyWordCreator Titles.ascii Exclusions keyword - 3"
+COMMAND="java -Xmx180M KeyWordCreator keyword_tmp Exclusions keyword - 3"
+
 $COMMAND

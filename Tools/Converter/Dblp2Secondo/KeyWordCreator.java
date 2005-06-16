@@ -59,6 +59,13 @@ private static void createTwoRelations(TreeSet Exclusions,String SourceFile,
            if(LineNo % 5000 ==0){
               System.out.println("Process Line Number "+LineNo);
            }
+           int pos = Line.indexOf(" ");
+           String IDStr;
+           if(pos>0){
+               IDStr = Line.substring(0,pos);
+               Line = Line.substring(pos);
+           } else
+               IDStr = "-1";  // invalid docid
            StringTokenizer ST = new StringTokenizer(Line.toLowerCase(),DELIM);
            String Token;
            while(ST.hasMoreTokens()){
@@ -71,7 +78,7 @@ private static void createTwoRelations(TreeSet Exclusions,String SourceFile,
                   if(Words.contains(wwi)){ // old keyword
                      WordWithID Existing = (WordWithID) Words.tailSet(wwi).first();
                      LWR lwr = new LWR();
-                     lwr.LineNo = LineNo;
+                     lwr.LineNo = IDStr;
                      lwr.WordID = Existing.id;
                      LineWordRel.add(lwr);
                   } else{ // new keyWord found
@@ -79,7 +86,7 @@ private static void createTwoRelations(TreeSet Exclusions,String SourceFile,
                      wwi.id = IDNo;
                      Words.add(wwi);
                      LWR lwr = new LWR();
-                     lwr.LineNo = LineNo;
+                     lwr.LineNo = IDStr;
                      lwr.WordID = IDNo;
                      LineWordRel.add(lwr);
                      if(IDNo % 5000 ==0)
@@ -163,6 +170,14 @@ private static void createSingleRelation(TreeSet Exclusions,String SourceFile,
            if(LineNo % 5000 ==0){
               System.out.println("Process Line Number "+LineNo);
            }
+           // get the documentid 
+           int pos = Line.indexOf(" ");
+           String DocIDString;
+           if(pos>0){
+              DocIDString = Line.substring(0,pos);
+              Line = Line.substring(pos); 
+           } else
+              DocIDString = "-1";
            StringTokenizer ST = new StringTokenizer(Line.toLowerCase(),DELIM);
            String Token;
            KeyWords.clear(); // remove old Words
@@ -176,7 +191,7 @@ private static void createSingleRelation(TreeSet Exclusions,String SourceFile,
            // write keywords from this line to the relation
            Iterator it = KeyWords.iterator();
            while(it.hasNext()){
-              out.write("     ( "+LineNo+" \""+it.next()+"\" )\n");
+              out.write("     ( "+DocIDString+" \""+it.next()+"\" )\n");
            }
            LineNo++;
         }
@@ -255,7 +270,7 @@ public static void main(String[] args){
 }// main
 
 private static class LWR implements Comparable{
-    int LineNo;
+    String LineNo;
     int WordID;
     public boolean equals(Object o){
       return compareTo(o)==0;
@@ -268,9 +283,9 @@ private static class LWR implements Comparable{
          return -1;
       if(WordID>lwr.WordID)
          return 1;
-      if(LineNo < lwr.LineNo)
+      if(LineNo.compareTo(lwr.LineNo)<0)
          return -1;
-      if(LineNo > lwr.LineNo)
+      if(LineNo.compareTo(lwr.LineNo)>0)
          return 1;
       return 0;
     }
@@ -305,7 +320,7 @@ private static class WordWithID implements Comparable{
 
 private static class Word_DocID implements Comparable{
    String word;
-   int docid;
+   String docid;
    public boolean equals(Object o){
       return compareTo(o)==0;
    }
@@ -316,9 +331,9 @@ private static class Word_DocID implements Comparable{
       if(! (o instanceof Word_DocID))
         return -1;
       Word_DocID wd = (Word_DocID) o;
-      if(docid<wd.docid)
+      if(docid.compareTo(wd.docid)<0)
          return -1;
-      if(docid>wd.docid)
+      if(docid.compareTo(wd.docid)>0)
          return 1;
       return word.compareTo(wd.word);
    }

@@ -34,6 +34,7 @@ int docid = 0, authorid = 0, aindex = 0, j, authorflag = 0;
 FILE* authorsfile;
 FILE* authordocfile;
 FILE* docsfile;
+FILE* tmpkwfile;
 
 DB *dbp;
 DBT key, data;
@@ -102,6 +103,9 @@ printschema() {
   fprintf(docsfile," <text>%s</text---> ", school);
   fprintf(docsfile," <text>%s</text---> ", publisher);
   fprintf(docsfile," \"%s\" )\n" , isbn);
+
+  fprintf(tmpkwfile,"%d %s\n",docid,title);
+
   title = ""; author = ""; editor = ""; booktitle = "";
   pages = ""; year = ""; journal = ""; volume = "";
   number = ""; month = ""; url = ""; school = "";
@@ -482,6 +486,8 @@ char** argv;
     authorsfile = fopen("author", "w");
     authordocfile = fopen("authordoc", "w");
     docsfile = fopen("document", "w");
+    tmpkwfile = fopen("keyword_tmp","w");
+    
 
     if(argc > 1){
        ifile = fopen(argv[1], "r");
