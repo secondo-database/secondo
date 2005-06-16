@@ -97,7 +97,6 @@ if [ "$ANSWER" != "use" ]; then
   FilterHTML $DBLP_FILE | egrep -v "<ee>.*</ee>" | egrep -v "<url>[^(http:)]" | DoubleTitle | tee $DBLP_TMP | progress 5000
 fi
 
-echo "Line 100 reached"
 
 # check for existing Files
 EXIST=false
@@ -117,7 +116,6 @@ if [ -f keyword_tmp ]; then
    EXIST=true
 fi
 
-echo "Line 117"
 
 # ask the user for the nexte step
 echo ""
