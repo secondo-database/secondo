@@ -21,6 +21,8 @@
 
 platform := $(SECONDO_PLATFORM)
 BDBDIR := $(BERKELEY_DB_DIR)
+
+
 LEX := flex
 LEX_LIB_FLAG := -lfl
 BDB_LIB_FLAG := -ldb
@@ -44,11 +46,13 @@ else
 endif
 
 BDB_INCLUDE_FLAG = -I$(BDBDIR)/include
+BDBLIB=$(BDBDIR)/lib
 BDB_LIB_DIR_FLAG = -L$(BDBDIR)/lib
 
 
 .PHONY: all
 all: DoubleTitle$(EXE_EXT) Parser KeyWordCreator.class progress FilterHTML
+	echo $(BDBDIR)
 
 
 progress: progress.cpp
@@ -68,7 +72,7 @@ FilterHTML.c: FilterHTML.l
 	$(LEX) -o FilterHTML.c FilterHTML.l
 
 Parser: DBLPParser.o dblp.o
-	gcc -o Parser DBLPParser.o dblp.o $(BDB_INCLUDE_FLAG) $(BDB_LIB_DIR_FLAG) $(LEX_LIB_FLAG) $(BDB_LIB_FLAG)
+	gcc -o Parser DBLPParser.o dblp.o $(BDBLIB)/libdb.a $(BDB_INCLUDE_FLAG) $(LEX_LIB_FLAG) 
 
 DBLPParser.o: DBLPParser.y.c
 	gcc -c -o DBLPParser.o  $(BDB_INCLUDE_FLAG) DBLPParser.y.c
