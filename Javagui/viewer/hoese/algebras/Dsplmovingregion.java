@@ -35,6 +35,7 @@ public class Dsplmovingregion extends DisplayTimeGraph {
   Vector RegionMaps;
   Rectangle2D.Double bounds;
   double bufferedTime;
+  int bufferedIndex=-1;
 
   /**
    * Gets the shape of this instance at the ActualTime
@@ -45,7 +46,7 @@ public class Dsplmovingregion extends DisplayTimeGraph {
 
   public Shape getRenderObject (AffineTransform at) {
     double t = RefLayer.getActualTime();
-    if (t != bufferedTime)
+    if((t != bufferedTime) || (bufferedIndex <0))
       RenderObject = getRenderObjectAtTime(t);
     return  RenderObject;
   }
@@ -57,7 +58,17 @@ public class Dsplmovingregion extends DisplayTimeGraph {
    */
   private Shape getRenderObjectAtTime (double t) {
     bufferedTime = t;
-    int index = getTimeIndex(t,Intervals);
+    int index;
+    if(bufferedIndex>=0){
+      Interval lastInterval = (Interval) Intervals.get(bufferedIndex);
+      if(lastInterval.isDefinedAt(t))
+         index = bufferedIndex;
+      else
+         index = getTimeIndex(t,Intervals); 
+    }else{
+       index = getTimeIndex(t,Intervals);
+    }
+    bufferedIndex = index;
     if(index<0){
       return (RenderObject=null);
     }
@@ -153,8 +164,9 @@ public class Dsplmovingregion extends DisplayTimeGraph {
     err = true;
     //System.out.println(value.writeListExprToString());
     // 	 areas = new Area();
-    RegionMaps = new Vector(value.listLength()+1);
-    Intervals = new Vector(value.listLength()+1);
+    int length = value.listLength();
+    RegionMaps = new Vector(length+1);
+    Intervals = new Vector(length+1);
     while (!value.isEmpty()) {      // scan each unit
       ListExpr unit = value.first();
       value = value.rest();
