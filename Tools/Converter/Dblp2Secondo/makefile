@@ -40,9 +40,10 @@ endif
 ifeq ($(platform),win32)
   EXE_EXT := ".exe"
   BDB_LIB_FLAG := -ldb32
+  LIB_FLAG := 
 else
   EXE_EXT :=
-  BDB_LIB_FLAG := $(BDB_LIB_FLAG) -lpthread
+  LIB_FLAG := -lpthread
 endif
 
 BDB_INCLUDE_FLAG = -I$(BDBDIR)/include
@@ -72,7 +73,7 @@ FilterHTML.c: FilterHTML.l
 	$(LEX) -o FilterHTML.c FilterHTML.l
 
 Parser: DBLPParser.o dblp.o
-	gcc -o Parser DBLPParser.o dblp.o $(BDBLIB)/libdb.a $(BDB_INCLUDE_FLAG) $(LEX_LIB_FLAG) 
+	gcc -o Parser DBLPParser.o dblp.o $(BDBLIB)/libdb.a $(BDB_INCLUDE_FLAG) $(LEX_LIB_FLAG) $(LIB_FLAG)
 
 DBLPParser.o: DBLPParser.y.c
 	gcc -c -o DBLPParser.o  $(BDB_INCLUDE_FLAG) DBLPParser.y.c
