@@ -350,6 +350,18 @@ public MainWindow(String Title){
       }
    }
 
+   String NLCache = Config.getProperty("NL_CACHE");
+   if(NLCache!=null){
+      try{
+        int tmp = Integer.parseInt(NLCache);
+        System.out.println("initialize NLCache : "+ tmp);
+        ListExpr.initialize(tmp);
+      } catch(Exception e){
+         System.err.println("invalid value for NLCACHE");
+      }
+   }
+
+
     String KnownViewers = Config.getProperty("KNOWN_VIEWERS");
     if(KnownViewers!=null){
         StringTokenizer View = new StringTokenizer(KnownViewers," ");

@@ -23,20 +23,21 @@
 
 include ../../makefile.inc
 
-all: Java_ListExpr langClasses
+all: DBArray.class Java_ListExpr langClasses
 
 langClasses: IntByReference.class ServerErrorCodes.class SecondoInterface.class \
              ESInterface.class ListExpr.class MyDataInputStream.class MyDataOutputStream.class
 
+CP:=$(CLASSPATH):$(JARS)
+
 Java_ListExpr:
 	(cd JavaListExpr; make all)
 
-CLASSPATH := $(CLASSPATH):$(JLEXCLASSESPATH):$(CUPCLASSESPATH):$(CUPCLASSESRUNTIME)
 
 
 #////////////// generic rules
 %.class: %.java
-	$(JAVAC) $(JAVACFLAGS) -classpath $(CLASSPATH) $<
+	$(JAVAC) $(JAVACFLAGS) -classpath $(CP) $<
 
 
 #////////// clean rules

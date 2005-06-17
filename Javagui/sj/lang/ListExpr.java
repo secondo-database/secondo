@@ -198,6 +198,15 @@ public class ListExpr extends Object {
     this.next = null;
   }
 
+/*
+ 3.4. Initzialize function
+
+This function is only needed for compatibility with the persistent version of this lists
+
+*/
+public static boolean initialize(int cachesize){ return true;}
+
+
   /*
    3.4 Public methods.
    The following public methods are defined to access to the ListExpr objects, and hence they can be used by the user code.

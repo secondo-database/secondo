@@ -8,8 +8,16 @@
 include ./makefile.inc
 
 .PHONY: all #creates the gui and all known viewers
-all: makedirs
+all: makedirs NLTest.class 
 	@chmod ugo+x sgui
+
+
+NLTest.class: NLTest.java
+	$(JAVAC) -classpath $(CLASSPATH):$(JARS) NLTest.java
+
+.PHONY:nltest
+nltest:
+	$(JAVA) -classpath $(CLASSPATH):$(JARS) NLTest
 
 
 .PHONY: help

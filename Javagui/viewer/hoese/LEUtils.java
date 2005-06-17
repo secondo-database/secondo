@@ -74,24 +74,25 @@ public class LEUtils {
       if(value.atomType()!=value.NO_ATOM)
           return null;
 
-
+      int length = value.listLength();
       // Julian representation
-      if(value.listLength()==2){
+      if(length==2){
          if(value.first().atomType()==value.INT_ATOM &&
-	    value.second().atomType()==value.INT_ATOM){
+            value.second().atomType()==value.INT_ATOM){
              double day = (double) value.first().intValue();
-	     double ms  = (double) value.second().intValue();
-	     return new Double(day + ms /86400000.0);
-	 } else
-	    return null;
+             double ms  = (double) value.second().intValue();
+             return new Double(day + ms /86400000.0);
+          } else
+             return null;
       }
 
       // Gregorian representation
+
       if(value.isEmpty())
          return null;
 
       //check for date in format (date day month year)
-      if(value.listLength()==4 &&
+      if(length==4 &&
          value.first().atomType()==ListExpr.SYMBOL_ATOM &&
          value.first().symbolValue().equals("date")){
          System.err.println("Deprecated version of instant (date day month year");
@@ -110,20 +111,21 @@ public class LEUtils {
       if(value.first().atomType()==value.SYMBOL_ATOM &&
          value.first().symbolValue().equals("datetime")){
          System.err.println("Deprecated nested list representation of time !!");
-	 value = value.rest();
+       	 value = value.rest();
+         length = length-1;
       }
 
       // at least (day month year) and has to be included
       // at most (day month year hour minute second millisecond) can be included
-      if(value.listLength()<3 || value.listLength()>7)
+      if(length<3 || length>7)
           return null;
 
       // all contained atoms has to be integers
       ListExpr tmp = value;
       while(!tmp.isEmpty()){
           if(tmp.first().atomType()!=tmp.INT_ATOM)
-	     return null;
-	  tmp = tmp.rest();
+	            return null;
+          tmp = tmp.rest();
       }
       int year=0,month=0,day=0,hour=0,minute=0,second=0,milli=0;
       // first we read the required parts
@@ -233,9 +235,10 @@ public class LEUtils {
    * @see generic.Interval
    */
   public static Interval readInterval (ListExpr le) {
-    if (le.listLength() != 4){
+     int length = le.listLength();
+     if (length != 4){
       if(Environment.DEBUG_MODE){
-         System.err.println("wrong listlength for interval (needed is 4) :" + le.listLength());
+         System.err.println("wrong listlength for interval (needed is 4) :" + length);
       }
       return  null;
     }
@@ -285,47 +288,48 @@ public class LEUtils {
          return new Double(le.realValue());
     }
     else {
-      if ((le.listLength() != 5)&& (le.listLength() != 6)){
-        System.out.println("Error: No correct rat expression: 5 elements needed");
+      int length = le.listLength();
+      if ((length != 5)&& (length != 6)){
+        System.out.println("Error: No correct rat expression: 5 or 6 elements needed");
         return  null;
       }
-      if (le.listLength()==5) {
-      if ((le.first().atomType() != ListExpr.SYMBOL_ATOM) || (le.second().atomType()
-          != ListExpr.INT_ATOM) || (le.third().atomType() != ListExpr.INT_ATOM)
-          || (le.fourth().atomType() != ListExpr.SYMBOL_ATOM) || (le.fifth().atomType()
-          != ListExpr.INT_ATOM)) {
-        System.out.println("Error: No correct rat5 expression: wrong types");
-        return  null;
-      }
-      if ((!le.first().symbolValue().equals("rat")) || (!le.fourth().symbolValue().equals("/"))) {
-        System.out.println("Error: No correct rat5 expression: wrong symbols"
-            + le.first().symbolValue() + ":" + le.fourth().symbolValue() +
-            ":");
-        return  null;
-      }
-      double g = (double)le.second().intValue();
-      return  new Double((Math.abs(g) + (double)le.third().intValue()/(double)le.fifth().intValue()));
-    }else {
-      if ((le.first().atomType() != ListExpr.SYMBOL_ATOM) || (le.second().atomType() != ListExpr.SYMBOL_ATOM)
-      ||(le.third().atomType()!= ListExpr.INT_ATOM) || (le.fourth().atomType() != ListExpr.INT_ATOM)
-          || (le.fifth().atomType() != ListExpr.SYMBOL_ATOM) || (le.sixth().atomType()
-          != ListExpr.INT_ATOM)) {
-        System.out.println("Error: No correct rat6 expression: wrong types");
-        return  null;
-      }
-      if ((!le.first().symbolValue().equals("rat")) ||
-      	  (!le.fifth().symbolValue().equals("/")  ) ||
-      	  !(le.second().symbolValue().equals("-")  ||
-      	    le.second().symbolValue().equals("+") )) {
-        System.out.println("Error: No correct rat6 expression: wrong symbols"
-            + le.first().symbolValue() + ":" + le.fifth().symbolValue() +
-            ":"+le.writeListExprToString());
-        return  null;
-      }
-      double g = (double)le.third().intValue();
-      double v=1;
-      if (le.second().symbolValue().equals("-")) v=-1;
-      return  new Double(v*(Math.abs(g) + (double)le.fourth().intValue()/(double)le.sixth().intValue()));
+      if (length==5) {
+         if ((le.first().atomType() != ListExpr.SYMBOL_ATOM) || (le.second().atomType()
+             != ListExpr.INT_ATOM) || (le.third().atomType() != ListExpr.INT_ATOM)
+             || (le.fourth().atomType() != ListExpr.SYMBOL_ATOM) || (le.fifth().atomType()
+             != ListExpr.INT_ATOM)) {
+             System.out.println("Error: No correct rat5 expression: wrong types");
+             return  null;
+          }
+          if ((!le.first().symbolValue().equals("rat")) || (!le.fourth().symbolValue().equals("/"))) {
+              System.out.println("Error: No correct rat5 expression: wrong symbols"
+                 + le.first().symbolValue() + ":" + le.fourth().symbolValue() +
+                  ":");
+              return  null;
+          }
+          double g = (double)le.second().intValue();
+          return  new Double((Math.abs(g) + (double)le.third().intValue()/(double)le.fifth().intValue()));
+      }else {
+         if ((le.first().atomType() != ListExpr.SYMBOL_ATOM) || (le.second().atomType() != ListExpr.SYMBOL_ATOM)
+              ||(le.third().atomType()!= ListExpr.INT_ATOM) || (le.fourth().atomType() != ListExpr.INT_ATOM)
+              || (le.fifth().atomType() != ListExpr.SYMBOL_ATOM) || (le.sixth().atomType()
+              != ListExpr.INT_ATOM)) {
+             System.out.println("Error: No correct rat6 expression: wrong types");
+             return  null;
+          }
+          if ((!le.first().symbolValue().equals("rat")) ||
+      	      (!le.fifth().symbolValue().equals("/")  ) ||
+      	      !(le.second().symbolValue().equals("-")  ||
+      	        le.second().symbolValue().equals("+") )) {
+              System.out.println("Error: No correct rat6 expression: wrong symbols"
+                  + le.first().symbolValue() + ":" + le.fifth().symbolValue() +
+                  ":"+le.writeListExprToString());
+              return  null;
+          }
+          double g = (double)le.third().intValue();
+          double v=1;
+          if (le.second().symbolValue().equals("-")) v=-1;
+          return  new Double(v*(Math.abs(g) + (double)le.fourth().intValue()/(double)le.sixth().intValue()));
     	}
     }
   }
