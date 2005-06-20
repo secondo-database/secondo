@@ -245,10 +245,6 @@ command and extracts the object dependencies from the annotated query.
 	cout << "created." << endl;
       }	
     }
-    
-    SecondoSystem::BeginTransaction();
-    updateTable();  
-    SecondoSystem::CommitTransaction();
   }
 
 
