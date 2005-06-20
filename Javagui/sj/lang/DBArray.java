@@ -179,12 +179,17 @@ private boolean initEnvironment(){
         DBDir = new File(Dir+Number);
         Number++;
      }
-     System.out.println("Creating new Directory "+Dir +Number+" for DBArrays");
-     DBDir.mkdir();  // create a directory if not exists
+     DBDir.deleteOnExit();
+     File EnvDir = DBDir;
+     System.out.println("Creating new Directory "+EnvDir.getName()+" for DBArrays");
+     EnvDir.mkdir();  // create a directory if not exists
      EnvironmentConfig envConf = new EnvironmentConfig();
      envConf.setTransactional(true); 
      envConf.setAllowCreate(true);
-     environment=new Environment(DBDir,envConf);
+     environment=new Environment(EnvDir,envConf);
+     // thread removing the temporal directory for the environment.
+     Thread t = new Thread(new RemoveDir(EnvDir));
+     Runtime.getRuntime().addShutdownHook(t);
      return true; 
     } catch(Exception e){
        if(DEBUG_MODE){
@@ -304,7 +309,6 @@ private boolean deleteFromDatabase(long key){
   }
 }
 
-
 /* 
 Private members
 
@@ -329,7 +333,6 @@ private static Environment environment=null;
 private static int DBNumber = 0;
 private Database database=null;
 
-
 private class Entry{
    public Entry(long key,byte[] data){
       this.key = key;
@@ -338,8 +341,34 @@ private class Entry{
    }
    long key;
    byte[] data;
-   boolean update; // flag specifiing whether on cache are newer data 
+   boolean update; // flag specifying whether on cache are newer data 
                    // than in the database
 } 
+
+static class RemoveDir implements Runnable {
+
+    RemoveDir(File file){
+      this.file = file;
+    }
+    
+    public void run() {
+       if(!deleteFile(this.file)){
+         System.out.println("Cannot delete the temporal directory : "+ file.getName());
+       }
+    }
+
+   // deletes F with subdirectories if F is a directory
+   public static boolean deleteFile(File F){
+       boolean ok;
+       if(F.isDirectory()){
+          File[] content = F.listFiles();
+          for(int i=0;i<content.length;i++)
+              deleteFile(content[i]);
+       }
+       return F.delete();
+   }
+
+    private File file;
+}
 
 }
