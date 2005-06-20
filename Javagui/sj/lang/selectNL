@@ -1,0 +1,23 @@
+#!/bin/bash
+# script copying the file given in the first argument into
+# the file ListExpr.java. If the files are equal, no
+# selection is maked. For reasons of security, an bnackup of the
+# old ListExpr.java is maked
+# last change: Th. Behr, June 2005
+
+if [ -z $1 ]; then
+   echo "missing argument "
+   exit 1
+fi
+
+if [ ! -f $1 ]; then
+  echo "File not exists "
+  exit 2
+fi
+
+diff $1 ListExpr.java >/dev/null
+
+if [ $? -ne "0" ]; then
+  cp -b $1 ListExpr.java
+fi
+
