@@ -1098,7 +1098,6 @@ catch(Exception e){
 
 
 public int readFromFile (String fileName) {
-    dbarray.printStatistics();
     long startTime = System.currentTimeMillis();
     FileReader inputReader;
     NLParser parser;
@@ -1139,8 +1138,6 @@ public int readFromFile (String fileName) {
       return  INPUT_STRING_ERROR;
     }
     // If no error, returns NO_ERROR_CODE.
-    System.out.println(" Reading a nested list from file "+fileName+" has taken "+ (System.currentTimeMillis()-startTime)+" milliseconds");
-    dbarray.printStatistics();
     return  this.NO_ERROR_CODE;
   }
 
