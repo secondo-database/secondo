@@ -32,8 +32,9 @@ endif
 
 all: SelectNL  DBArray.class Java_ListExpr langClasses
 
+.PHONY: SelectNL
 SelectNL:
-	selectNL $(NLFILE)
+	sh selectNL $(NLFILE)
 
 langClasses: IntByReference.class ServerErrorCodes.class SecondoInterface.class \
              ESInterface.class ListExpr.class MyDataInputStream.class MyDataOutputStream.class
