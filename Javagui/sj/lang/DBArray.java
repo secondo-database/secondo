@@ -232,6 +232,7 @@ database is removed.
 */
 public void finalize() throws Throwable{
   try{
+      database.close();
       environment.removeDatabase(null,DBName);
   } catch(Exception e){}
   super.finalize();
