@@ -3,6 +3,8 @@ package sj.lang;
 import com.sleepycat.je.*;
 import com.sleepycat.bind.tuple.LongBinding;
 import java.io.File;
+import java.util.List;
+import java.util.Vector;
 
 
 /**
@@ -188,7 +190,8 @@ private boolean initEnvironment(){
      envConf.setAllowCreate(true);
      environment=new Environment(EnvDir,envConf);
      // thread removing the temporal directory for the environment.
-     Thread t = new Thread(new RemoveDir(EnvDir));
+     rmEnv = new RemoveEnv(environment);
+     Thread t = new Thread(rmEnv);
      Runtime.getRuntime().addShutdownHook(t);
      return true; 
     } catch(Exception e){
@@ -212,6 +215,7 @@ private boolean initDatabase(){
      dbConf.setSortedDuplicates(false);
      DBName = "DB_Array_"+DBNumber;
      database = environment.openDatabase(null,DBName,dbConf);
+     rmEnv.addDatabase(database);
      DBNumber++; 
      return true; 
   } catch (DatabaseException e){
@@ -330,6 +334,7 @@ private int cached=0;
 
 /** The Database environment */
 private static Environment environment=null;
+private static RemoveEnv rmEnv;
 private static int DBNumber = 0;
 private Database database=null;
 
@@ -345,15 +350,49 @@ private class Entry{
                    // than in the database
 } 
 
-static class RemoveDir implements Runnable {
+static class RemoveEnv implements Runnable {
 
-    RemoveDir(File file){
-      this.file = file;
+    RemoveEnv(Environment env){
+      this.env = env;
+      databases = new Vector();
+    }
+
+    public void addDatabase(Database db){
+        if(!databases.contains(db))
+           databases.add(db);
     }
     
     public void run() {
-       if(!deleteFile(this.file)){
-         System.out.println("Cannot delete the temporal directory : "+ file.getName());
+       // first, close all databases
+       try{
+        for(int i=0;i<databases.size();i++)
+           ((Database)databases.get(i)).close();
+       } catch(Exception e){
+         e.printStackTrace();
+       }
+
+
+       try{
+           List DBNs = env.getDatabaseNames();
+           for(int i=0;i<DBNs.size();i++){
+              env.removeDatabase(null,(String)DBNs.get(i)); 
+            }
+       }catch(Exception e){
+         e.printStackTrace();
+       }
+       File file = null;
+       try{
+          file = env.getHome();
+          env.close();
+       } catch(Exception e){
+          e.printStackTrace();
+       }
+       if(file!=null){
+         if(!deleteFile(file)){
+             System.out.println("Cannot delete the temporal directory : "+ file);
+          }
+       }else{
+          System.err.println("Error in removing database environment");
        }
     }
 
@@ -368,7 +407,8 @@ static class RemoveDir implements Runnable {
        return F.delete();
    }
 
-    private File file;
+    private Environment env;
+    private Vector databases;
 }
 
 }
