@@ -38,6 +38,7 @@ Puts an new entry in the given array slot
 
 */
 public boolean put(long key, byte[] data){
+  writeAccesses++;
   int cacheIndex = (int)(key%cacheSize);
   // check whether this key is cashed
   Entry CE = cache[cacheIndex];
@@ -46,14 +47,21 @@ public boolean put(long key, byte[] data){
         CE = new Entry(key,data);
         CE.update=true;
         cache[cacheIndex] = CE;
+        cached++;
         return true;
      }
 
      if(CE.key==key){ // update in cache
+        if(CE.data.length!=data.length)
+            CE.update=true;
+        else{
+            CE.update=false;
+            for(int i=0;i<data.length&&!CE.update;i++)
+               CE.update = CE.data[i] == data[i];
+        }
         CE.data=data;
-        CE.update=true;
         return true;
-     }else{
+     }else{ // slot occupied by a different entry
         boolean res;
         if(CE.update)
            res = writeToDatabase(CE); // swap to disk
@@ -68,6 +76,7 @@ public boolean put(long key, byte[] data){
   }else{ // caching not allowed
       if((CE!=null) && (CE.key==key)){// remove from cache
          cache[cacheIndex] = null;
+         cached--;
       }
       return writeToDatabase(key,data);
   }
@@ -78,6 +87,7 @@ Gets the data from an array slot.
 
 */
 public byte[] get(long key){
+    readAccesses++;
     int cacheIndex = (int)(key%cacheSize);
     Entry CE = cache[cacheIndex];
     if(CE!=null && CE.key==key){ // found in cache
@@ -86,16 +96,17 @@ public byte[] get(long key){
        Entry DBE = readFromDatabase(key);
        if(DBE==null) // error occured
           return null;
-       if(DBE.data.length<maxDataSize){ // put in cache
+       if(DBE.data.length<maxDataSize){ // put into cache
           if(CE==null){
              // no entry in cache
-             cache[cacheIndex] = DBE;
              DBE.update = false; // equal values in cache and db
+             cache[cacheIndex] = DBE;
              return DBE.data; 
           } else{ // cache occupied
              if(CE.update)
                 if(!writeToDatabase(CE)) // error occured
                    return null;
+             DBE.update=false;
              cache[cacheIndex] = DBE;
              return DBE.data; 
           }
@@ -111,12 +122,32 @@ Deletes an entry from the array
 
 */
 public boolean delete(long key){
+   writeAccesses++;
    int cacheIndex = (int)(key%cacheSize);
    Entry CE = cache[cacheIndex];
-   if(CE!=null && CE.key==key)
+   if(CE!=null && CE.key==key){
       cache[cacheIndex]=null;
+      cached--;
+   }
    return deleteFromDatabase(key); 
 }
+
+
+/**
+Prints some statistics 
+
+*/
+public void printStatistics(){
+   System.out.println("*******************************");
+   System.out.println("CacheSize: " + cacheSize);
+   System.out.println("cached   : " + cached);
+   System.out.println("Read     : " + readAccesses);
+   System.out.println("DB-read  : " + dbreadAccesses);
+   System.out.println("write    : " + writeAccesses);
+   System.out.println("DB-write : " + dbwriteAccesses);
+   System.out.println("*******************************");
+}
+
 
 
 /**
@@ -217,6 +248,11 @@ private boolean writeToDatabase(long key, byte[] data){
        DatabaseEntry k= new DatabaseEntry();
        DatabaseEntry d = new DatabaseEntry(data);
        LongBinding.longToEntry(key,k);
+      // we con't allow duplicates in the database
+      // so, the old value is overwritten without
+      // deleting it before
+      // database.delete(null,k);
+       dbwriteAccesses++;
        if(database.put(null,k,d)!=OperationStatus.SUCCESS)
           return false;
        else
@@ -239,6 +275,7 @@ private Entry readFromDatabase(long key){
      DatabaseEntry k = new DatabaseEntry();
      DatabaseEntry d = new DatabaseEntry();
      LongBinding.longToEntry(key,k);
+     dbreadAccesses++;
      if(database.get(null,k,d,LockMode.DIRTY_READ)!=OperationStatus.SUCCESS)
           return null;
      return new Entry(key,d.getData());
@@ -258,6 +295,7 @@ private boolean deleteFromDatabase(long key){
     DatabaseEntry k = new DatabaseEntry();
     LongBinding.longToEntry(key,k);
     database.delete(null,k);
+    dbwriteAccesses++;
     return true;
   } catch(DatabaseException e){
       if(DEBUG_MODE)
@@ -278,6 +316,13 @@ private String DBName;
 
 private boolean DEBUG_MODE=true;
 private Entry[] cache; 
+
+private long readAccesses=0;
+private long writeAccesses=0;
+private long dbreadAccesses=0;
+private long dbwriteAccesses=0;
+private int cached=0;
+
 
 /** The Database environment */
 private static Environment environment=null;
