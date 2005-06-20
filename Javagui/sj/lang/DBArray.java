@@ -44,18 +44,25 @@ public boolean put(long key, byte[] data){
   if(data.length<maxDataSize){
      if(CE==null){ // slot is free
         CE = new Entry(key,data);
+        CE.update=true;
         cache[cacheIndex] = CE;
         return true;
      }
 
      if(CE.key==key){ // update in cache
         CE.data=data;
+        CE.update=true;
         return true;
      }else{
-        boolean res = writeToDatabase(CE); // swap to disk
+        boolean res;
+        if(CE.update)
+           res = writeToDatabase(CE); // swap to disk
+        else // cache and dba are equal
+           res = true;
         // update values in cache
         CE.key = key;
         CE.data=data;
+        CE.update=true;
         return res;
      }
   }else{ // caching not allowed
@@ -83,10 +90,12 @@ public byte[] get(long key){
           if(CE==null){
              // no entry in cache
              cache[cacheIndex] = DBE;
+             DBE.update = false; // equal values in cache and db
              return DBE.data; 
           } else{ // cache occupied
-             if(!writeToDatabase(CE)) // error occured
-                return null;
+             if(CE.update)
+                if(!writeToDatabase(CE)) // error occured
+                   return null;
              cache[cacheIndex] = DBE;
              return DBE.data; 
           }
@@ -280,9 +289,12 @@ private class Entry{
    public Entry(long key,byte[] data){
       this.key = key;
       this.data=data;
+      update = true;
    }
    long key;
    byte[] data;
+   boolean update; // flag specifiing whether on cache are newer data 
+                   // than in the database
 } 
 
 }
