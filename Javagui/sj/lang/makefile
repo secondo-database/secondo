@@ -23,7 +23,17 @@
 
 include ../../makefile.inc
 
-all: DBArray.class Java_ListExpr langClasses
+ifeq ($(NL_PERSISTENT),true)
+NLFILE:=PListExpr.java
+else
+NLFILE:=MListExpr.java
+endif
+
+
+all: SelectNL  DBArray.class Java_ListExpr langClasses
+
+SelectNL:
+	selectNL $(NLFILE)
 
 langClasses: IntByReference.class ServerErrorCodes.class SecondoInterface.class \
              ESInterface.class ListExpr.class MyDataInputStream.class MyDataOutputStream.class
