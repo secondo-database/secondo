@@ -44,7 +44,7 @@ PDF:=14_os_jpedal.jar
 BDB:=je.jar
 
 # switch for enabling persistent nested lists
-NL_PERSISTENT=true
+NL_PERSISTENT=false
 
 
 JLEXCLASSESPATH := $(LIBPATH)/$(JLEX)
