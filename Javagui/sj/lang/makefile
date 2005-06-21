@@ -24,17 +24,24 @@
 include ../../makefile.inc
 
 ifeq ($(NL_PERSISTENT),true)
-NLFILE:=PListExpr.java
+PERSISTENT_FLAG:=-DPERSISTENT
 else
-NLFILE:=MListExpr.java
+PERSISTENT_FLAS:=
 endif
 
 
-all: SelectNL  DBArray.class Java_ListExpr langClasses
+all: SelectNL DBArray.class Java_ListExpr langClasses
 
 .PHONY: SelectNL
 SelectNL:
-	sh selectNL $(NLFILE)
+	@echo "/* " > ListExpr.tmp
+	@echo "This file is created automatically. Please don't edit it. " >> ListExpr.tmp
+	@echo "If changes are requiered at the ListExpr class, make them in the" >> ListExpr.tmp
+	@echo "Original File 'ListExpr.both'">>ListExpr.tmp
+	@echo "*/">>ListExpr.tmp
+	$(CC) -E -xc -P -C $(PERSISTENT_FLAG) ListExpr.both >>ListExpr.tmp
+	diff ListExpr.tmp ListExpr.java >/dev/null || cp ListExpr.tmp ListExpr.java
+	rm ListExpr.tmp
 
 langClasses: IntByReference.class ServerErrorCodes.class SecondoInterface.class \
              ESInterface.class ListExpr.class MyDataInputStream.class MyDataOutputStream.class
@@ -54,6 +61,7 @@ Java_ListExpr:
 #////////// clean rules
 clean_local:
 	rm -f *.class
+	rm -f ListExpr.java
 
 clean: clean_local
 	(cd JavaListExpr; make clean)
