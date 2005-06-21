@@ -70,6 +70,7 @@ private static void convertFile(String FileName){
 
 
 public static void main(String[] args){
+  ListExpr.initialize(500000);
   IM = new ImportManager();
   for(int i=0;i<args.length;i++)
       convertFile(args[i]);

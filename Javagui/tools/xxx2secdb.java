@@ -109,6 +109,7 @@ private static void showUsage(String Message){
 }
 
 public static void main(String[] args){
+   ListExpr.initialize(500000);
    IM = new ImportManager();
    if(args.length<2){
        showUsage("Missing Parameter");
