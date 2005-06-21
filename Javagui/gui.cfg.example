@@ -86,3 +86,6 @@ USE_PERSISTENT_TEXT true
 #set the maximum size of a text atom managed in main memory
 #only meaningful if USE_PERSISTENT_TEXT is enabled
 MAX_INTERNAL_TEXT_LENGTH 1024
+
+#set the node cache for nested lists if persistent nested lists are used
+NL_CACHE 500000
