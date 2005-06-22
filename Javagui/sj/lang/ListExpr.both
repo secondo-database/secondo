@@ -99,7 +99,7 @@ public static boolean initialize(int cachesize){
       So all non-string-types are cached. furthermore all string with a
       length upto 30 characters are also chached.
    */
-   dbarray = new DBArray(cachesize,30);
+   dbarray = new DBArray(cachesize,(byte)30,128);
 #endif
    return true;
 }
@@ -569,6 +569,10 @@ public ListExpr rest () {
   * detected.
   * */
 public int readFromFile (String fileName) {
+    long startTime=0;
+    if(gui.Environment.MEASURE_TIME){
+      startTime = System.currentTimeMillis();  
+    }
     FileReader inputReader;
     NLParser parser;
     Symbol result;
@@ -607,7 +611,10 @@ public int readFromFile (String fileName) {
       }
       return  INPUT_STRING_ERROR;
     }
-    // If no error, returns NO_ERROR_CODE.
+    if(gui.Environment.MEASURE_TIME){
+       System.out.println("Building nested List from File " + fileName+" has taken "+ 
+                          (System.currentTimeMillis()-startTime) + "milliseconds");
+    } 
     return  this.NO_ERROR_CODE;
 }
 
