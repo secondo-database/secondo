@@ -1,8 +1,7 @@
 package sj.lang;
 
-import com.sleepycat.je.*;
-import com.sleepycat.bind.tuple.LongBinding;
 import java.io.File;
+import java.io.RandomAccessFile;
 import java.util.List;
 import java.util.Vector;
 
@@ -14,25 +13,38 @@ This Class provides an array of inifinity size
 
 public class DBArray{
 
+
+/** Creates a new Array with the given properties **/
+public DBArray(int cacheSize, byte maxDataSize){
+   this(cacheSize,maxDataSize,maxDataSize*4);
+}
+
+
 /**
 Create a new DBArray with given cachesize. The cachsize determines 
 not the size of the cahc in bytes bit in entries. Data greater than 
 maxDataSize are not cached.
 
 */
-public DBArray(int cacheSize, int maxDataSize){
+public DBArray(int cacheSize, byte maxDataSize, int dataSizeSecondStage){
     if(cacheSize<0)  cacheSize=1;
     // if this is the first dbarray => initialize a environment
-    if(environment==null){
+	if(tempDir==null){
         initEnvironment();
     }
     initDatabase();
     this.cacheSize = cacheSize;
-    this.maxDataSize = maxDataSize+1;
+    this.maxDataSize = Math.max(maxDataSize+1,9);
+    this.secondDataSize = Math.max(2*this.maxDataSize,dataSizeSecondStage);
     this.cache = new Entry[cacheSize];
     // init the cache
     for(int i=0;i<cacheSize;i++)
       cache[i]=null;
+
+    fileEntries1 = (int) (FILESIZE/(maxDataSize+4));
+    fileEntries2 = (int) (FILESIZE/secondDataSize);
+    connector1 = new byte[maxDataSize+4];
+    connector2 = new byte[secondDataSize];
 }
 
 /**
@@ -182,15 +194,10 @@ private boolean initEnvironment(){
         Number++;
      }
      DBDir.deleteOnExit();
-     File EnvDir = DBDir;
-     System.out.println("Creating new Directory "+EnvDir.getName()+" for DBArrays");
-     EnvDir.mkdir();  // create a directory if not exists
-     EnvironmentConfig envConf = new EnvironmentConfig();
-     envConf.setTransactional(true); 
-     envConf.setAllowCreate(true);
-     environment=new Environment(EnvDir,envConf);
-     // thread removing the temporal directory for the environment.
-     rmEnv = new RemoveEnv(environment);
+     tempDir = DBDir;
+     System.out.println("Creating new Directory "+tempDir.getName()+" for DBArrays");
+     tempDir.mkdir();  // create a directory if not exists
+     rmEnv = new RemoveEnv(tempDir);
      Thread t = new Thread(rmEnv);
      Runtime.getRuntime().addShutdownHook(t);
      return true; 
@@ -208,35 +215,11 @@ background memory.
 
 */
 private boolean initDatabase(){
-  try{ 
-     DatabaseConfig dbConf = new DatabaseConfig();
-     dbConf.setTransactional(false);
-     dbConf.setAllowCreate(true);
-     dbConf.setSortedDuplicates(false);
-     DBName = "DB_Array_"+DBNumber;
-     database = environment.openDatabase(null,DBName,dbConf);
-     rmEnv.addDatabase(database);
-     DBNumber++; 
-     return true; 
-  } catch (DatabaseException e){
-     if(DEBUG_MODE)
-        e.printStackTrace();
-     return false;
-  }
+   DBName = "DB_Array_"+DBNumber;
+   DBNumber++; 
+   return true; 
 }
 
-/**
-If this dbarray is not longer needed, the appropriate 
-database is removed.
-
-*/
-public void finalize() throws Throwable{
-  try{
-      database.close();
-      environment.removeDatabase(null,DBName);
-  } catch(Exception e){}
-  super.finalize();
-}
 
 /**
 This method write an entry to the background memory.
@@ -254,22 +237,91 @@ If the key exists, the data will be overwritten.
 
 */
 private boolean writeToDatabase(long key, byte[] data){
-   try{
-       DatabaseEntry k= new DatabaseEntry();
-       DatabaseEntry d = new DatabaseEntry(data);
-       LongBinding.longToEntry(key,k);
-      // we con't allow duplicates in the database
-      // so, the old value is overwritten without
-      // deleting it before
-      // database.delete(null,k);
-       dbwriteAccesses++;
-       if(database.put(null,k,d)!=OperationStatus.SUCCESS)
-          return false;
-       else
-          return true;
-   }catch(DatabaseException e){
+  try{
+     long FileNumber = key / fileEntries1;
+     String FileName = tempDir.getAbsolutePath()+File.separator+DBName+"_1_"+FileNumber;
+     if(lastUsedFile1==null || FileNumber!=lastUsedFileNumber1){
+        if(lastUsedFile1!=null)
+           lastUsedFile1.close();
+        lastUsedFile1 = new RandomAccessFile(FileName,"rw");
+        lastUsedFileNumber1 = FileNumber;
+        if(lastUsedFile1.length()!=FILESIZE)
+           lastUsedFile1.setLength(FILESIZE);
+     }
+     int length=data.length; 
+     if(length<maxDataSize){
+        // level 1 store the data in the first file
+        // put the length into the array
+        connector1[3]= (byte) (length&255);
+        length = length >> 8;
+        connector1[2] = (byte) (length&255);
+        length = length >> 8;
+        connector1[1] = (byte) (length&255);
+        length = length >> 8;
+        connector1[0] = (byte) (length&255);
+        // put the data in the array
+        System.arraycopy(data,0,connector1,4,data.length);
+        // write to file
+        long fileoffset = (key%fileEntries1)*connector1.length;
+        lastUsedFile1.seek(fileoffset);
+        lastUsedFile1.write(connector1);
+     }
+     else if(length<secondDataSize){
+        // first, write the entry into the first stage
+        // we use a negative value for indicating the 
+        // second stage
+        length = -length;
+        connector1[3]= (byte) (length&255);
+        length = length >> 8;
+        connector1[2] = (byte) (length&255);
+        length = length >> 8;
+        connector1[1] = (byte) (length&255);
+        length = length >> 8;
+        connector1[0] = (byte) (length&255);
+        // write to file
+        long fileoffset = (key%fileEntries1)*connector1.length;
+        lastUsedFile1.seek(fileoffset);
+        lastUsedFile1.write(connector1);
+        long FileNumber2 = key / fileEntries2;
+        String FileName2 = tempDir.getAbsolutePath()+File.separator+DBName+"_2_"+FileNumber2;
+        if(lastUsedFile2==null || FileNumber2!=lastUsedFileNumber2){
+           if(lastUsedFile2!=null)
+              lastUsedFile2.close();
+           lastUsedFile2 = new RandomAccessFile(FileName2,"rw");
+           lastUsedFileNumber2 = FileNumber2;
+        }
+        if(lastUsedFile2.length()!=FILESIZE)
+           lastUsedFile2.setLength(FILESIZE);
+        long fileoffset2 = (key%fileEntries2)*connector2.length;
+        lastUsedFile2.seek(fileoffset2);
+        lastUsedFile2.write(data);
+     }
+     else {
+       // we use -1 for indicating the third stage
+       // this is not conflicting with stage 2 because the
+       // length in the second stage must be greater than 1
+        length = -1;
+        connector1[3]= (byte) (length&255);
+        length = length >> 8;
+        connector1[2] = (byte) (length&255);
+        length = length >> 8;
+        connector1[1] = (byte) (length&255);
+        length = length >> 8;
+        connector1[0] = (byte) (length&255);
+        // write to file
+        long fileoffset = (key%fileEntries1)*connector1.length;
+        lastUsedFile1.seek(fileoffset);
+        lastUsedFile1.write(connector1);
+        // write the data into a single file
+        RandomAccessFile file3 = new RandomAccessFile(tempDir.getAbsolutePath()+File.separator+DBName+"_3_"+key,"rw");
+        file3.seek(0);
+        file3.write(data);
+        file3.close();
+     }
+     return true;     
+   }catch(Exception e){
       if(DEBUG_MODE)
-          e.printStackTrace();
+         e.printStackTrace();
       return false;
    }
 }
@@ -281,18 +333,60 @@ from the database.
   
 */
 private Entry readFromDatabase(long key){
-   try{
-     DatabaseEntry k = new DatabaseEntry();
-     DatabaseEntry d = new DatabaseEntry();
-     LongBinding.longToEntry(key,k);
-     dbreadAccesses++;
-     if(database.get(null,k,d,LockMode.DIRTY_READ)!=OperationStatus.SUCCESS)
-          return null;
-     return new Entry(key,d.getData());
-   } catch(DatabaseException e){
-        if(DEBUG_MODE)
-          e.printStackTrace();
+  try{
+    // first read the entry in the first stage
+    long FileNumber = key / fileEntries1;
+    String FileName = tempDir.getAbsolutePath()+File.separator+DBName+"_1_"+FileNumber;
+    if(lastUsedFile1==null || FileNumber!=lastUsedFileNumber1){
+       if(lastUsedFile1!=null)
+          lastUsedFile1.close();
+       lastUsedFile1 = new RandomAccessFile(FileName,"rw");
+       lastUsedFileNumber1=FileNumber;
+    }
+    if(lastUsedFile1.length()!=FILESIZE){
         return null;
+    }
+    long fileoffset1 =  (key%fileEntries1)*connector1.length;
+    lastUsedFile1.seek(fileoffset1);
+    lastUsedFile1.readFully(connector1);
+    // extract the length information from the byteblock;
+    int length = getPositiveInt(connector1[0]);
+    length = length << 8;
+    length = length | getPositiveInt(connector1[1]);
+    length = length << 8;
+    length = length | getPositiveInt(connector1[2]);
+    length = length << 8;
+    length = length | getPositiveInt(connector1[3]);
+    if(length == -1){ // third level
+        RandomAccessFile F = new RandomAccessFile(tempDir.getAbsolutePath()+File.separator+DBName+"_3_"+key,"r");
+        byte[] data = new byte[(int)F.length()];
+        F.readFully(data);
+        F.close();
+        return new Entry(key,data);
+    }
+    if(length >=0){ // first level
+       byte[] data = new byte[length];
+       System.arraycopy(connector1,4,data,0,length);
+       return new Entry(key,data);
+    }
+    // second level
+    long FileNumber2 = key/fileEntries2;
+    String FileName2 = tempDir.getAbsolutePath()+File.separator+DBName+"_2_"+FileNumber2;
+    if(lastUsedFile2==null || FileNumber2!=lastUsedFileNumber2){
+        if(lastUsedFile2!=null)
+            lastUsedFile2.close();
+        lastUsedFile2 = new RandomAccessFile(FileName2,"rw");
+        lastUsedFileNumber2 = FileNumber2;
+    }
+    long fileoffset2 = (key%fileEntries2)*connector2.length;
+    lastUsedFile2.seek(fileoffset2);
+    byte[] data = new byte[-length];
+    lastUsedFile2.readFully(data);
+    return new Entry(key,data);
+   }catch(Exception e){
+       if(DEBUG_MODE)
+          e.printStackTrace();
+       return null;
    }
 }
 
@@ -302,16 +396,46 @@ This function deletes an entry from the database.
 */
 private boolean deleteFromDatabase(long key){
   try{
-    DatabaseEntry k = new DatabaseEntry();
-    LongBinding.longToEntry(key,k);
-    database.delete(null,k);
-    dbwriteAccesses++;
+    long FileNumber = key / fileEntries1;
+    String FileName = tempDir.getAbsolutePath()+File.separator+DBName+"_1_"+FileNumber;
+    if(lastUsedFile1==null || FileNumber!=lastUsedFileNumber1){
+       if(lastUsedFile1!=null)
+          lastUsedFile1.close();
+       lastUsedFile1 = new RandomAccessFile(FileName,"rw");
+       lastUsedFileNumber1=FileNumber;
+    }
+    if(lastUsedFile1.length()!=FILESIZE){
+        return false;
+    }
+    long fileoffset1 =  (key%fileEntries1)*connector1.length;
+    lastUsedFile1.seek(fileoffset1);
+    lastUsedFile1.readFully(connector1);
+    // extract the length information from the byteblock;
+    int length = getPositiveInt(connector1[0]);
+    length = length << 8;
+    length = length | getPositiveInt(connector1[1]);
+    length = length << 8;
+    length = length | getPositiveInt(connector1[2]);
+    length = length << 8;
+    length = length | getPositiveInt(connector1[3]);
+    connector1[0]=0;
+    connector1[1]=0;
+    connector1[2]=0;
+    connector1[3]=0;
+    if(length == -1){ // third level
+        File F = new File(tempDir.getAbsolutePath()+File.separator+DBName+"_3_"+key);
+        if(!F.exists())
+            return false;
+        F.delete();
+    }
+    lastUsedFile1.seek(fileoffset1);
+    lastUsedFile1.write(connector1); 
     return true;
-  } catch(DatabaseException e){
-      if(DEBUG_MODE)
-         e.printStackTrace();
-      return false;
-  }
+   }catch(Exception e){
+       if(DEBUG_MODE)
+          e.printStackTrace();
+       return false;
+   }
 }
 
 /* 
@@ -321,6 +445,7 @@ Private members
 
 private int cacheSize;
 private int maxDataSize;
+private int secondDataSize;
 private String DBName;
 
 private boolean DEBUG_MODE=true;
@@ -333,11 +458,36 @@ private long dbwriteAccesses=0;
 private int cached=0;
 
 
+private static final long FILESIZE = 4195304;
+private int fileEntries1;
+private int fileEntries2;
+private RandomAccessFile lastUsedFile1;
+private long lastUsedFileNumber1;
+private RandomAccessFile lastUsedFile2;
+private long lastUsedFileNumber2;
+/** Byte array used for exchange data between file and memory 
+  * in the first stage
+  **/
+private byte[] connector1;
+/** Bytearray for data exchange between files and memory in the
+  * second stage
+  **/
+private byte[] connector2;
+
+private static File tempDir = null;
+
+private static int getPositiveInt(byte b){
+  if(b<0)
+     return 256+b;
+  else
+     return b;
+ }
+ 
+
 /** The Database environment */
-private static Environment environment=null;
 private static RemoveEnv rmEnv;
+
 private static int DBNumber = 0;
-private Database database=null;
 
 private class Entry{
    public Entry(long key,byte[] data){
@@ -353,48 +503,12 @@ private class Entry{
 
 static class RemoveEnv implements Runnable {
 
-    RemoveEnv(Environment env){
-      this.env = env;
-      databases = new Vector();
+    RemoveEnv(File dir){
+      this.directory = dir;
     }
 
-    public void addDatabase(Database db){
-        if(!databases.contains(db))
-           databases.add(db);
-    }
-    
     public void run() {
-       // first, close all databases
-       try{
-        for(int i=0;i<databases.size();i++)
-           ((Database)databases.get(i)).close();
-       } catch(Exception e){
-         e.printStackTrace();
-       }
-
-
-       try{
-           List DBNs = env.getDatabaseNames();
-           for(int i=0;i<DBNs.size();i++){
-              env.removeDatabase(null,(String)DBNs.get(i)); 
-            }
-       }catch(Exception e){
-         e.printStackTrace();
-       }
-       File file = null;
-       try{
-          file = env.getHome();
-          env.close();
-       } catch(Exception e){
-          e.printStackTrace();
-       }
-       if(file!=null){
-         if(!deleteFile(file)){
-             System.out.println("Cannot delete the temporal directory : "+ file);
-          }
-       }else{
-          System.err.println("Error in removing database environment");
-       }
+       deleteFile(directory);
     }
 
    // deletes F with subdirectories if F is a directory
@@ -408,8 +522,7 @@ static class RemoveEnv implements Runnable {
        return F.delete();
    }
 
-    private Environment env;
-    private Vector databases;
+    private File directory;
 }
 
 }

@@ -99,7 +99,7 @@ public static boolean initialize(int cachesize){
       So all non-string-types are cached. furthermore all string with a
       length upto 30 characters are also chached.
    */
-   dbarray = new DBArray(cachesize,(byte)30,128);
+   dbarray = new DBArray(cachesize,(byte)27,256);
 #endif
    return true;
 }
