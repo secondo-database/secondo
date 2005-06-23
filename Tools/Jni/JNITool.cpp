@@ -53,29 +53,29 @@ JNITool::JNITool(JNIEnv *env, NestedList *nl){
    nlclass = env->FindClass("sj/lang/ListExpr");
    assert(nlclass!=0);
    jfieldID fid;
-   fid = env->GetStaticFieldID(nlclass,"SYMBOL_ATOM","I");
+   fid = env->GetStaticFieldID(nlclass,"SYMBOL_ATOM","B");
    assert(fid!=0);
-   jsymbol_atom = env->GetStaticIntField(nlclass,fid);  
+   jsymbol_atom = env->GetStaticByteField(nlclass,fid);  
    
-   fid = env->GetStaticFieldID(nlclass,"STRING_ATOM","I");
+   fid = env->GetStaticFieldID(nlclass,"STRING_ATOM","B");
    assert(fid!=0);
-   jstring_atom = env->GetStaticIntField(nlclass,fid);  
+   jstring_atom = env->GetStaticByteField(nlclass,fid);  
 
-   fid = env->GetStaticFieldID(nlclass,"TEXT_ATOM","I");
+   fid = env->GetStaticFieldID(nlclass,"TEXT_ATOM","B");
    assert(fid!=0);
-   jtext_atom = env->GetStaticIntField(nlclass,fid);  
+   jtext_atom = env->GetStaticByteField(nlclass,fid);  
 
-   fid = env->GetStaticFieldID(nlclass,"REAL_ATOM","I");
+   fid = env->GetStaticFieldID(nlclass,"REAL_ATOM","B");
    assert(fid!=0);
-   jreal_atom = env->GetStaticIntField(nlclass,fid);  
+   jreal_atom = env->GetStaticByteField(nlclass,fid);  
 
-   fid = env->GetStaticFieldID(nlclass,"INT_ATOM","I");
+   fid = env->GetStaticFieldID(nlclass,"INT_ATOM","B");
    assert(fid!=0);
-   jint_atom = env->GetStaticIntField(nlclass,fid);  
+   jint_atom = env->GetStaticByteField(nlclass,fid);  
 
-   fid = env->GetStaticFieldID(nlclass,"NO_ATOM","I");
+   fid = env->GetStaticFieldID(nlclass,"NO_ATOM","B");
    assert(fid!=0);
-   jno_atom = env->GetStaticIntField(nlclass,fid); 
+   jno_atom = env->GetStaticByteField(nlclass,fid); 
 
    realAtomID = env->GetStaticMethodID(nlclass,"realAtom",
                                        "(D)Lsj/lang/ListExpr;");
@@ -266,8 +266,7 @@ into its c++ counterpart.
 
 ListExpr JNITool::GetCppList(JNIEnv* env, jobject obj){
 
-  int type = env->CallIntMethod(obj,atomTypeID);
-
+  int type =  env->CallIntMethod(obj,atomTypeID);
   if(type == jsymbol_atom){
       jobject jstr = env->CallObjectMethod(obj,symbolValueID);
       if(!jstr) Error(__LINE__);
