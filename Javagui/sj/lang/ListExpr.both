@@ -134,8 +134,8 @@ public static void setTempDir(String DirName){
       TEMPDIR = DirName;
    } else{
       if(!F.mkdirs()){
-        System.out.println("cannot create directory "+DirName+"for temporal storing of text atoms");
-        System.out.println("Directory name remains unchanged. ");
+        System.err.println("cannot create directory "+DirName+"for temporal storing of text atoms");
+        System.err.println("Directory name remains unchanged. ");
       }else{
         TEMPDIR=DirName;
       }
@@ -1317,7 +1317,8 @@ public void appendText(String text){
      setValue(NewText.length());
      update(); // update this (length)
      try{
-        if (! dbarray.put(v,NewText.getBytes("UTF-8"))){ // write new text into the dbarray
+        byte[] theData = NewText.getBytes("UTF-8");
+        if (! dbarray.put(v,theData)){ // write new text into the dbarray
              if(DEBUG_MODE){
                 System.err.println("Error in writing text to dbarray ");
               }
@@ -1932,6 +1933,12 @@ If an error occurs, the system will be stopped.
 private ListExpr(long key){
     this.key = key;
     this.data = dbarray.get(key);
+    if(DEBUG_MODE){
+      if(data.length!=17){
+         System.err.println("Error in getting data from DBarray"+key);
+         System.err.println("Expected : 17 bytes, received : "+ data.length+" bytes ");
+      }
+    }
 }
 /*
 2.2.1 getValue
@@ -1957,9 +1964,14 @@ representation.
 
 */
 private void setValue(long v){
-   for(int i=1;i<9;i++){
-      data[9-i] = (byte)(v&255);
-      v = v >> 8;
+    long v2 = v;
+    for(int i=0;i<8;i++){
+        data[8-i]=(byte)(v2&255);
+        v2=v2>>8;
+    }
+   if(DEBUG_MODE){
+      if(getValue()!=v)
+          System.err.println("Error in setValue method");
    }
 }
 
@@ -1982,10 +1994,16 @@ Sets a new next entry for this listExpr.
 
 */
 private void setNext(long v){
-   for(int i=9;i<17;i++){
-      data[17-i] = (byte)(v&255);
-      v = v << 8;
-   }
+    long v2=v;
+    for(int i=0;i<8;i++){
+        data[16-i]=(byte)(v2&255);
+        v2=v2>>8;
+    }
+    if(DEBUG_MODE){
+      if(getNext()!=v){
+         System.err.println("Error in setNext Method ");
+      } 
+    }
 }
 
 
