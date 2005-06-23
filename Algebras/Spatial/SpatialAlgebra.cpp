@@ -12253,6 +12253,7 @@ union_pps( Word* args, Word& result, int message, Word& local, Supplier s )
     }
     else
     {
+  ((Points *)result.addr)->Clear();
   Point auxp;
   ((Points *)result.addr)->StartBulkLoad();
   for (int i=0; i<ps->Size(); i++)
@@ -12270,7 +12271,6 @@ int
 union_psp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
-
     Point *p=((Point*)args[1].addr);
     Points *ps=((Points*)args[0].addr);
 
@@ -12281,6 +12281,7 @@ union_psp( Word* args, Word& result, int message, Word& local, Supplier s )
     }
     else
     {
+  ((Points *)result.addr)->Clear();
   Point auxp;
   ((Points *)result.addr)->StartBulkLoad();
   for (int i=0; i<ps->Size(); i++)
@@ -12306,6 +12307,7 @@ union_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 
     assert((ps1->IsOrdered())&&(ps2->IsOrdered()));
 
+    ((Points *)result.addr)->Clear();
     ((Points *)result.addr)->StartBulkLoad();
 
     for (int i=0; i<ps1->Size(); i++)
