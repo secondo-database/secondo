@@ -374,6 +374,7 @@ public void clearList(){
         VC.hideObject(this,SO);
     Objects.remove(0);
     myListModel.remove(0);
+    SO.toListExpr().destroy();
   }
   System.gc();
   updateList();
@@ -549,6 +550,7 @@ public boolean saveSelectedObject(){
      VC.hideObject(this,SO);
      myListModel.remove(index);
      Objects.remove(index);
+     SO.toListExpr().destroy();
      removed = true;
    }
    return removed;

@@ -1582,11 +1582,12 @@ public boolean canDisplay(SecondoObject o){
     if (returnVal == JFileChooser.APPROVE_OPTION) {
       on_jMenu_NewSession(evt);
       File file = FC_Session.getSelectedFile();
-      ListExpr le = new ListExpr();
+      ListExpr le=null;
       boolean ok = true;
       // try to load the ListExpr
       try{
-        if(le.readFromFile(file.getPath())!=0)
+        le = ListExpr.getListExprFromFile(file.getPath());
+        if(le==null)
            ok = false;
         }
         catch(Exception e){
@@ -1607,16 +1608,21 @@ public boolean canDisplay(SecondoObject o){
 
       if (!type.isAtom() || !(type.atomType()==ListExpr.SYMBOL_ATOM) || !type.symbolValue().equals("session")){
          showMessage(" the file contains no session ");
+         le.destroy();
          return;
       }
 
       le = le.rest();
+      type.destroy();
       Cats = new Vector(10, 5);
       String DirName = FC_Session.getCurrentDirectory().getAbsolutePath();
       bgImage.readFromListExpr(le.first(),DirName);
       readAllCats(le.second());
       if(!Cats.contains(Category.getDefaultCat()))
          Cats.add(Category.getDefaultCat());
+      
+      le.first().destroy();
+      le.second().destroy();
 
       TextDisplay.readAllQueryResults(le.third());
 
