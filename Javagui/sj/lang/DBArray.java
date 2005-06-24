@@ -253,9 +253,12 @@ private boolean writeToDatabase(long key, byte[] data){
      long FileNumber = key / fileEntries1;
      String FileName = tempDir.getAbsolutePath()+File.separator+DBName+"_1_"+FileNumber;
      if(lastUsedFile1==null || FileNumber!=lastUsedFileNumber1){
-        if(lastUsedFile1!=null)
+        if(lastUsedFile1!=null){
            lastUsedFile1.close();
+	   rmEnv.removeOpenFile(lastUsedFile1);
+	}   
         lastUsedFile1 = new RandomAccessFile(FileName,"rw");
+	rmEnv.addOpenFile(lastUsedFile1);
         lastUsedFileNumber1 = FileNumber;
         if(lastUsedFile1.length()!=FILESIZE)
            lastUsedFile1.setLength(FILESIZE);
@@ -299,9 +302,12 @@ private boolean writeToDatabase(long key, byte[] data){
         long FileNumber2 = key / fileEntries2;
         String FileName2 = tempDir.getAbsolutePath()+File.separator+DBName+"_2_"+FileNumber2;
         if(lastUsedFile2==null || FileNumber2!=lastUsedFileNumber2){
-           if(lastUsedFile2!=null)
+           if(lastUsedFile2!=null){
               lastUsedFile2.close();
+	      rmEnv.removeOpenFile(lastUsedFile2);
+	   }   
            lastUsedFile2 = new RandomAccessFile(FileName2,"rw");
+	   rmEnv.addOpenFile(lastUsedFile2);
            lastUsedFileNumber2 = FileNumber2;
         }
         if(lastUsedFile2.length()!=FILESIZE)
@@ -315,6 +321,7 @@ private boolean writeToDatabase(long key, byte[] data){
        // this is not conflicting with stage 2 because the
        // length in the second stage must be greater than 1
         dbwrite3++;
+	int datalength=length;
         length = -1;
         connector1[3]= (byte) (length&255);
         length = length >> 8;
@@ -329,6 +336,7 @@ private boolean writeToDatabase(long key, byte[] data){
         lastUsedFile1.write(connector1);
         // write the data into a single file
         RandomAccessFile file3 = new RandomAccessFile(tempDir.getAbsolutePath()+File.separator+DBName+"_3_"+key,"rw");
+	file3.setLength(datalength);
         file3.seek(0);
         file3.write(data);
         file3.close();
@@ -354,9 +362,12 @@ private Entry readFromDatabase(long key){
     long FileNumber = key / fileEntries1;
     String FileName = tempDir.getAbsolutePath()+File.separator+DBName+"_1_"+FileNumber;
     if(lastUsedFile1==null || FileNumber!=lastUsedFileNumber1){
-       if(lastUsedFile1!=null)
+       if(lastUsedFile1!=null){
+	  rmEnv.removeOpenFile(lastUsedFile1);
           lastUsedFile1.close();
+       }
        lastUsedFile1 = new RandomAccessFile(FileName,"rw");
+       rmEnv.addOpenFile(lastUsedFile1);
        lastUsedFileNumber1=FileNumber;
     }
     if(lastUsedFile1.length()!=FILESIZE){
@@ -392,9 +403,12 @@ private Entry readFromDatabase(long key){
     long FileNumber2 = key/fileEntries2;
     String FileName2 = tempDir.getAbsolutePath()+File.separator+DBName+"_2_"+FileNumber2;
     if(lastUsedFile2==null || FileNumber2!=lastUsedFileNumber2){
-        if(lastUsedFile2!=null)
+        if(lastUsedFile2!=null){
             lastUsedFile2.close();
+	    rmEnv.removeOpenFile(lastUsedFile2);
+	}    
         lastUsedFile2 = new RandomAccessFile(FileName2,"rw");
+	rmEnv.addOpenFile(lastUsedFile2);
         lastUsedFileNumber2 = FileNumber2;
     }
     long fileoffset2 = (key%fileEntries2)*connector2.length;
@@ -420,9 +434,12 @@ private boolean deleteFromDatabase(long key){
     if(!(new File(FileName)).exists()) // nothing to delete
       return true;
     if(lastUsedFile1==null || FileNumber!=lastUsedFileNumber1){ // open the file
-       if(lastUsedFile1!=null)
+       if(lastUsedFile1!=null){
           lastUsedFile1.close();
+	  rmEnv.removeOpenFile(lastUsedFile1);
+       }  
        lastUsedFile1 = new RandomAccessFile(FileName,"rw");
+       rmEnv.addOpenFile(lastUsedFile1);
        lastUsedFileNumber1=FileNumber;
     }
     if(lastUsedFile1.length()!=FILESIZE){ // corrupt file
@@ -470,7 +487,7 @@ private int dataSizeFirstStage;
 private int dataSizeSecondStage;
 private String DBName;
 
-private boolean DEBUG_MODE=true;
+private static boolean DEBUG_MODE=true;
 private Entry[] cache; 
 
 private long readAccesses=0;
@@ -531,7 +548,25 @@ static class RemoveEnv implements Runnable {
       this.directory = dir;
     }
 
+    public void addOpenFile(RandomAccessFile F){
+	if(!openFiles.contains(F))      
+            openFiles.add(F);
+    }	    
+
+    public void removeOpenFile(RandomAccessFile F){
+         openFiles.remove(F);
+    }	    
+
     public void run() {
+       //close open files
+       for(int i=0;i<openFiles.size();i++){
+            try{
+                 ((RandomAccessFile)openFiles.get(i)).close();
+            }catch(Exception e){
+                if(DEBUG_MODE)
+		     e.printStackTrace();	 
+            }		    
+       }	       
        deleteFile(directory);
     }
 
@@ -547,6 +582,7 @@ static class RemoveEnv implements Runnable {
    }
 
     private File directory;
+    private Vector openFiles=new Vector();
 }
 
 }
