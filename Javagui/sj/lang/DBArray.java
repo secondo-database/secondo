@@ -27,25 +27,33 @@ maxDataSize are not cached.
 
 */
 public DBArray(int cacheSize, byte maxDataSize, int dataSizeSecondStage){
-    if(cacheSize<0)  cacheSize=1;
+     this(cacheSize,maxDataSize,maxDataSize,dataSizeSecondStage);
+}
+
+
+public DBArray(int cacheSize, byte maxCacheSize,byte dataSizeFirstStage, int dataSizeSecondStage){
+  if(cacheSize<=0)  cacheSize=1;
     // if this is the first dbarray => initialize a environment
 	if(tempDir==null){
         initEnvironment();
-    }
-    initDatabase();
-    this.cacheSize = cacheSize;
-    this.maxDataSize = Math.max(maxDataSize+1,9);
-    this.secondDataSize = Math.max(2*this.maxDataSize,dataSizeSecondStage);
-    this.cache = new Entry[cacheSize];
-    // init the cache
-    for(int i=0;i<cacheSize;i++)
-      cache[i]=null;
+  }
+  initDatabase(); // create the database name
+  this.cacheSize           = cacheSize;
+  this.maxCacheSize        = Math.max(maxCacheSize+1,9);
+  this.dataSizeFirstStage  = dataSizeFirstStage;
+  this.dataSizeSecondStage = Math.max(2*this.dataSizeFirstStage,dataSizeSecondStage);
+  this.cache = new Entry[cacheSize];
+  // init the cache
+  for(int i=0;i<cacheSize;i++)
+     cache[i]=null;
 
-    fileEntries1 = (int) (FILESIZE/(maxDataSize+4));
-    fileEntries2 = (int) (FILESIZE/secondDataSize);
-    connector1 = new byte[maxDataSize+4];
-    connector2 = new byte[secondDataSize];
+  fileEntries1 = (int) (FILESIZE/(this.dataSizeFirstStage+4));
+  fileEntries2 = (int) (FILESIZE/this.dataSizeSecondStage);
+  connector1 = new byte[this.dataSizeFirstStage+4];
+  connector2 = new byte[this.dataSizeSecondStage];
+
 }
+
 
 /**
 Puts an new entry in the given array slot 
@@ -56,7 +64,7 @@ public boolean put(long key, byte[] data){
   int cacheIndex = (int)(key%cacheSize);
   // check whether this key is cashed
   Entry CE = cache[cacheIndex];
-  if(data.length<maxDataSize){
+  if(data.length<maxCacheSize){
      if(CE==null){ // slot is free
         CE = new Entry(key,data);
         CE.update=true;
@@ -110,7 +118,7 @@ public byte[] get(long key){
        Entry DBE = readFromDatabase(key);
        if(DBE==null) // error occured
           return null;
-       if(DBE.data.length<maxDataSize){ // put into cache
+       if(DBE.data.length<maxCacheSize){ // put into cache
           if(CE==null){
              // no entry in cache
              DBE.update = false; // equal values in cache and db
@@ -143,7 +151,8 @@ public boolean delete(long key){
       cache[cacheIndex]=null;
       cached--;
    }
-   return deleteFromDatabase(key); 
+   return true;
+  // return deleteFromDatabase(key); 
 }
 
 
@@ -158,7 +167,9 @@ public void printStatistics(){
    System.out.println("Read     : " + readAccesses);
    System.out.println("DB-read  : " + dbreadAccesses);
    System.out.println("write    : " + writeAccesses);
-   System.out.println("DB-write : " + dbwriteAccesses);
+   System.out.println("DB-write1 : " + dbwrite1);
+   System.out.println("DB-write2 : " + dbwrite2);
+   System.out.println("DB-write3 : " + dbwrite3);
    System.out.println("*******************************");
 }
 
@@ -238,6 +249,7 @@ If the key exists, the data will be overwritten.
 */
 private boolean writeToDatabase(long key, byte[] data){
   try{
+     
      long FileNumber = key / fileEntries1;
      String FileName = tempDir.getAbsolutePath()+File.separator+DBName+"_1_"+FileNumber;
      if(lastUsedFile1==null || FileNumber!=lastUsedFileNumber1){
@@ -249,7 +261,8 @@ private boolean writeToDatabase(long key, byte[] data){
            lastUsedFile1.setLength(FILESIZE);
      }
      int length=data.length; 
-     if(length<maxDataSize){
+     if(length<dataSizeFirstStage){
+        dbwrite1++;
         // level 1 store the data in the first file
         // put the length into the array
         connector1[3]= (byte) (length&255);
@@ -266,10 +279,11 @@ private boolean writeToDatabase(long key, byte[] data){
         lastUsedFile1.seek(fileoffset);
         lastUsedFile1.write(connector1);
      }
-     else if(length<secondDataSize){
+     else if(length<dataSizeSecondStage){
         // first, write the entry into the first stage
         // we use a negative value for indicating the 
         // second stage
+        dbwrite2++;
         length = -length;
         connector1[3]= (byte) (length&255);
         length = length >> 8;
@@ -300,6 +314,7 @@ private boolean writeToDatabase(long key, byte[] data){
        // we use -1 for indicating the third stage
        // this is not conflicting with stage 2 because the
        // length in the second stage must be greater than 1
+        dbwrite3++;
         length = -1;
         connector1[3]= (byte) (length&255);
         length = length >> 8;
@@ -334,6 +349,7 @@ from the database.
 */
 private Entry readFromDatabase(long key){
   try{
+    dbreadAccesses++;
     // first read the entry in the first stage
     long FileNumber = key / fileEntries1;
     String FileName = tempDir.getAbsolutePath()+File.separator+DBName+"_1_"+FileNumber;
@@ -357,6 +373,9 @@ private Entry readFromDatabase(long key){
     length = length | getPositiveInt(connector1[2]);
     length = length << 8;
     length = length | getPositiveInt(connector1[3]);
+    if(length==0){ // special case which can be solved without seeking in file
+      return new Entry(key,new byte[0]);
+    }
     if(length == -1){ // third level
         RandomAccessFile F = new RandomAccessFile(tempDir.getAbsolutePath()+File.separator+DBName+"_3_"+key,"r");
         byte[] data = new byte[(int)F.length()];
@@ -398,13 +417,15 @@ private boolean deleteFromDatabase(long key){
   try{
     long FileNumber = key / fileEntries1;
     String FileName = tempDir.getAbsolutePath()+File.separator+DBName+"_1_"+FileNumber;
-    if(lastUsedFile1==null || FileNumber!=lastUsedFileNumber1){
+    if(!(new File(FileName)).exists()) // nothing to delete
+      return true;
+    if(lastUsedFile1==null || FileNumber!=lastUsedFileNumber1){ // open the file
        if(lastUsedFile1!=null)
           lastUsedFile1.close();
        lastUsedFile1 = new RandomAccessFile(FileName,"rw");
        lastUsedFileNumber1=FileNumber;
     }
-    if(lastUsedFile1.length()!=FILESIZE){
+    if(lastUsedFile1.length()!=FILESIZE){ // corrupt file
         return false;
     }
     long fileoffset1 =  (key%fileEntries1)*connector1.length;
@@ -444,8 +465,9 @@ Private members
 */
 
 private int cacheSize;
-private int maxDataSize;
-private int secondDataSize;
+private int maxCacheSize;
+private int dataSizeFirstStage;
+private int dataSizeSecondStage;
 private String DBName;
 
 private boolean DEBUG_MODE=true;
@@ -454,11 +476,13 @@ private Entry[] cache;
 private long readAccesses=0;
 private long writeAccesses=0;
 private long dbreadAccesses=0;
-private long dbwriteAccesses=0;
+private long dbwrite1=0;
+private long dbwrite2=0;
+private long dbwrite3=0;
 private int cached=0;
 
 
-private static final long FILESIZE = 4195304;
+private static final long FILESIZE = 1048576; 
 private int fileEntries1;
 private int fileEntries2;
 private RandomAccessFile lastUsedFile1;
