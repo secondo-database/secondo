@@ -99,7 +99,7 @@ public static boolean initialize(int cachesize){
       So all non-string-types are cached. furthermore all string with a
       length upto 30 characters are also chached.
    */
-   dbarray = new DBArray(cachesize,(byte)27,256);
+   dbarray = new DBArray(cachesize,(byte)48,(byte)26,1024);
 #endif
    return true;
 }
@@ -306,23 +306,31 @@ public static ListExpr append (ListExpr lastElement, ListExpr newSon) {
 /** Destroys this list and also all sublists
   **/
 #endif
-public void destroy () {
+public void destroy() {
 #ifdef PERSISTENT
+   destroyrec();
+#endif
+}
+
+#ifdef PERSISTENT
+/** removes a complte list recursively **/
+private void destroyrec(){
    int at = atomType();
    if(at!=NO_ATOM){
        destroyValue();
        return;
    }
    long next = getNext();
+   int count=0;
    while (next!=0){
       ListExpr LE = new ListExpr(next);
       next = LE.getNext();
+      count++;
       LE.destroyValue();
    }
    destroyValue();
-#endif
 }
-
+#endif
 
 /** Returns true if this ListExpr object is an empty list, false
   *  otherwise.
@@ -569,6 +577,17 @@ public ListExpr rest () {
   * detected.
   * */
 public int readFromFile (String fileName) {
+    ListExpr LE = getListExprFromFile(fileName);
+    if(LE==null)
+        return READ_FROM_FILE_ERROR;
+    setValueTo(LE);
+    return NO_ERROR_CODE;    
+}
+
+/** This method returns the ListExpr stored in the file given by fileName.
+  * If an error occurs, the resukt will be null.
+  **/
+public static ListExpr getListExprFromFile(String fileName){
     long startTime=0;
     if(gui.Environment.MEASURE_TIME){
       startTime = System.currentTimeMillis();  
@@ -576,8 +595,6 @@ public int readFromFile (String fileName) {
     FileReader inputReader;
     NLParser parser;
     Symbol result;
-    //First of all, initializes this ListExpr to the empty list.
-    this.setValueTo(ListExpr.theEmptyList());
     try {
       inputReader = new FileReader(fileName);
       storeDirectory((new File(fileName)).getAbsolutePath());
@@ -586,36 +603,28 @@ public int readFromFile (String fileName) {
       inputReader.close();
       storeDirectory(null);
       if (result == null) {
-        // If the parser returns a null value, then an error was detected
-        // when parsing the input.
-        if (this.DEBUG_MODE) {
+        if (DEBUG_MODE) {
           System.err.println("DEBUG MODE: Error in line " + parser.linePos +
-              " when parsing input file in ReadFromFile()");
+              " when parsing input file"+fileName +" in Line "+parser.linePos);
         }
-        // It returns the line number where the error was detected.
-        return  parser.linePos;
-      }
-      // else, it sets this ListExpr to the value returned by the parser.
-      this.setValueTo((ListExpr)result.value);
+      }else if(gui.Environment.MEASURE_TIME){
+          System.out.println("Building nested List from File " + fileName+" has taken "+ 
+                              (System.currentTimeMillis()-startTime) + " milliseconds");
+      } 
+      return (ListExpr)result.value;
     } catch (FileNotFoundException except) {
-      // If it could not open the file, it returns READ_FROM_FILE_ERROR (-1).
-      if (this.DEBUG_MODE) {
-        System.err.println("DEBUG MODE: Error when opening file in readFromFile()");
+      if (DEBUG_MODE) {
+        System.err.println("DEBUG MODE: Error when opening file in getListExprFromFile()");
         except.printStackTrace();
       }
-      return  READ_FROM_FILE_ERROR;
+      return  null;
     } catch (Exception except) {
-      if (this.DEBUG_MODE) {
-        System.err.println("DEBUG MODE: EXCEPTION in readFromFile()");
+      if (DEBUG_MODE) {
+        System.err.println("DEBUG MODE: EXCEPTION in getListExprFromFile()");
         except.printStackTrace();
       }
-      return  INPUT_STRING_ERROR;
+      return  null;
     }
-    if(gui.Environment.MEASURE_TIME){
-       System.out.println("Building nested List from File " + fileName+" has taken "+ 
-                          (System.currentTimeMillis()-startTime) + "milliseconds");
-    } 
-    return  this.NO_ERROR_CODE;
 }
 
 
@@ -964,7 +973,7 @@ public static ListExpr readBinaryFrom(InputStream In){
 
 
 /** Stores the Directory of the given filename **/
- private void storeDirectory(String FileName){
+ private static void storeDirectory(String FileName){
     if(FileName==null)
        CurrentDir = null;
     else{
@@ -2040,24 +2049,31 @@ private void destroyValue(){
           long v = getValue();
           dbarray.delete(v);
           dbarray.delete(key);
+          break;
       }
       case STRING_ATOM :{
           long v = getValue();
           dbarray.delete(v);
           dbarray.delete(key);
+          break;
       }
       case TEXT_ATOM :{
           long v = getValue();
           dbarray.delete(v);
           dbarray.delete(key);
+          break;
       }
       case NO_ATOM:{
-         long v = getValue(); // detroy the value
-         (new ListExpr(v)).destroy();
+         long v = getValue(); 
+         if(v!=0){ // destros inner list if present
+            (new ListExpr(v)).destroyrec();
+         }
          dbarray.delete(key); // destroy itself
+         break;
       }
       default: {
-          System.err.println("DestroyValue: unknown atomtype detected");
+          System.err.println("DestroyValue: unknown atomtype detected"+at);
+          System.out.println(" key = "+ key);
       }
    }
 }
