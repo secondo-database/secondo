@@ -91,8 +91,8 @@ public ListExpr importFile(String FileName){
 
   // ever try to load this file as nested list
   t1 = System.currentTimeMillis();
-  ListExpr R = new ListExpr();
-  if(R.readFromFile(FileName)!=0){
+  ListExpr R = ListExpr.getListExprFromFile(FileName);
+  if(R==null){
      if(ErrorText.equals("no error"));
         ErrorText ="cannot load this file";
      return null;
@@ -109,8 +109,14 @@ private ListExpr extractFromObject(ListExpr LE){
    if(LE==null)
       return null;
    if(LE.listLength()==6 && LE.first().atomType()==ListExpr.SYMBOL_ATOM &&
-      LE.first().symbolValue().equals("OBJECT"))
-      return ListExpr.twoElemList(LE.fourth(),LE.fifth());
+      LE.first().symbolValue().equals("OBJECT")){
+      ListExpr res =ListExpr.twoElemList(LE.fourth(),LE.fifth());
+      LE.first().destroy();
+      LE.second().destroy();
+      LE.third().destroy();
+      LE.sixth().destroy();
+      return res;
+   }
    return LE;
 
 }
