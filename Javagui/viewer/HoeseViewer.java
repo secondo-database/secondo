@@ -2096,9 +2096,10 @@ public boolean canDisplay(SecondoObject o){
       ActualTime = anf;
       actTimeLabel.setText(LEUtils.convertTimeToString(ActualTime));
       makeSelectionVisible();
-      GraphDisplay.repaint();
       SelectionControl.drawRectangle();
+      GraphDisplay.repaint();
       //System.out.println(ActualTime);
+      
     }
   }
 
