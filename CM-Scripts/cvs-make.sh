@@ -86,6 +86,44 @@ printf "%s\n" "coTag = $coTag"
 printf "%s\n" "coModule = $coModule"
 printf "%s\n" "sendMail_Deliver = $sendMail_Deliver"
 
+
+## check if files in the module secondo were changed
+## since the last run
+lastChanges=$HOME/.last_changes_secondo
+lastDate=$(find $lastChanges -printf "%AY-%Am-%Ad %AH:%AM\n")
+cvs history -xMAR -a -D$lastDate -p secondo > $lastChanges
+hasChanged=$(cat $lastChanges | sed -ne'2p')
+
+if [ "$hasChanged" != "" ]; then
+ 
+printf "last changes:\n"
+cat $lastChanges
+
+cvshist_result=$( cat $lastChanges | 
+                  awk '/./ { print $5 }' | sort | uniq | tr "\n" " " )
+
+printf "%s\n" "cvs user who commited or added files yesterday:"
+printf "%s\n" "$cvshist_result"
+
+recipients=""
+for userName in $cvshist_result; do
+
+  mapStr "${cvsDir}/CVSROOT/users" "$userName" ":"
+  recipients="$recipients $mapStr_name2"
+
+done
+
+else
+
+  printf "\nNo changes since ${lastDate}! \n\n"
+  exit 1;
+
+fi
+
+exit
+
+
+
 ## report host status 
 printSep "host status"
 printf "%s\n" "uptime"
@@ -106,36 +144,6 @@ catvar
 printSep "Alias definitions"
 alias
 
-## check if files in the module secondo were changed
-## since the last run
-lastChanges=$HOME/.last_changes_secondo
-lastDate=find $lastChanges -printf "%AY-%Am-%Ad\n"
-cvs history -xMAR -a -D$lastDate -p secondo > $lastChanges
-hasChanged=$(cat $lastChanges | sed -ne'2p')
-
-if [ "$hasChanged" != "" ]; then
- 
-cvshist_result=$( cat lastChanges | 
-                  awk '/./ { print $5 }' | sort | uniq | tr "\n" " " )
-
-printf "%s\n" "cvs user who commited or added files yesterday:"
-printf "%s\n" "$cvshist_result"
-
-recipients=""
-for userName in $cvshist_result; do
-
-  mapStr "${cvsDir}/CVSROOT/users" "$userName" ":"
-  recipients="$recipients $mapStr_name2"
-
-done
-
-else
-
-  printf "No changes since ${lastDate} \n"
-  exit 1;
-
-fi
-exit
 
 
 cd $rootDir
