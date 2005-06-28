@@ -102,10 +102,20 @@ setvar $cbuildDir
 printf "%s\n" "Environment settings"
 catvar
 
+
 printSep "Alias definitions"
 alias
 
-cvshist_result=$( cvs history -c -a -D yesterday -p secondo | 
+## check if files in the module secondo were changed
+## since the last run
+lastChanges=$HOME/.last_changes_secondo
+lastDate=find $lastChanges -printf "%AY-%Am-%Ad\n"
+cvs history -xMAR -a -D$lastDate -p secondo > $lastChanges
+hasChanged=$(cat $lastChanges | sed -ne'2p')
+
+if [ "$hasChanged" != "" ]; then
+ 
+cvshist_result=$( cat lastChanges | 
                   awk '/./ { print $5 }' | sort | uniq | tr "\n" " " )
 
 printf "%s\n" "cvs user who commited or added files yesterday:"
@@ -118,6 +128,15 @@ for userName in $cvshist_result; do
   recipients="$recipients $mapStr_name2"
 
 done
+
+else
+
+  printf "No changes since ${lastDate} \n"
+  exit 1;
+
+fi
+exit
+
 
 cd $rootDir
 checkCmd "cvs -Q checkout -d $coDir secondo"
@@ -194,5 +213,17 @@ cvs -nQ update
 ## clean up
 printSep "Cleaning up"
 rm -rf ${cbuildDir}
+
+if [ $[errors] != 0 ]; then
+
+  printf "There were $errors errors!"
+
+else
+
+  # set label
+  cvs tag -d LAST_STABLE 
+  cvs tag LAST_STABLE
+
+fi
 
 exit $errors
