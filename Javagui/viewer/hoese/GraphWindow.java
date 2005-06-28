@@ -26,9 +26,8 @@ import  javax.swing.*;
 import  java.awt.geom.*;
 import  java.util.*;
 import  viewer.HoeseViewer;
-import javax.swing.border.*;
-import java.awt.image.BufferedImage;
-
+import  javax.swing.border.*;
+import  java.awt.image.BufferedImage;
 
 /**
  * This class implements the layer-stack for the graphical objects. The super class is a 
@@ -45,6 +44,12 @@ public class GraphWindow extends JLayeredPane
 
 /** a scalable image as background */
   ScalableImage background=new ScalableImage();
+
+/** a flag for ignoring a repaint message.
+    This can be used to make all changes without new drawing. 
+**/
+   private boolean ignorePaint = false; 
+    
 
   /** Creates a Graphwindow without any layer
    * @see <a href="Categorysrc.html#GraphWindow">Source</a>
@@ -77,15 +82,6 @@ public class GraphWindow extends JLayeredPane
     mw.addSwitch(jt,0);
   }
 
-  /**
-   * Craetes a copy of this object.
-   * @return A cloned object
-   * @exception CloneNotSupportedException
-   * @see <a href="Categorysrc.html#clone">Source</a>
-   */
-  public Object clone () throws CloneNotSupportedException {
-    return  super.clone();
-  }
 
   /**
    * Gets the applications transformation
@@ -95,6 +91,13 @@ public class GraphWindow extends JLayeredPane
   public AffineTransform getProjection () {
     return  mw.allProjection;
   }
+
+ /** Set the flag for switching off repainting of the screen.
+   **/
+   public void setIgnorePaint(boolean enabled){
+       ignorePaint=enabled;
+   }
+
 
   /**
    * This method creates a random category, used when automatic category is selected in the menu
@@ -286,6 +289,7 @@ public class GraphWindow extends JLayeredPane
    * @see <a href="Categorysrc.html#paintChildren">Source</a> 
    */
   public void paintChildren (Graphics g) {
+    if(ignorePaint) return;
     // paint the background image
     // first transform the boundig box for the background 
     // to into screen coordinates

@@ -1805,14 +1805,20 @@ public boolean canDisplay(SecondoObject o){
     if (!isMouseSelected) {
       double w = (double)GeoScrollPane.getViewport().getWidth();
       double h = (double)GeoScrollPane.getViewport().getHeight();
-      GeoScrollPane.getHorizontalScrollBar().setValue((int)(r.getX() + r.getWidth()/2
-          - w/2));
-      GeoScrollPane.getVerticalScrollBar().setValue((int)(r.getY() + r.getHeight()/2
-          - h/2));
+      double x = (double)-GraphDisplay.getX();
+      double y = (double)-GraphDisplay.getY();
+      double rmid_x = r.getX()+r.getWidth()/2;
+      double rmid_y = r.getY()+r.getHeight()/2;
+      int border = 60; 
+      if(rmid_x-x<border || // left 
+         rmid_x>x+w-border || // right
+         rmid_y-y<border || // above
+         rmid_y>y+h-border){ // under
+         GeoScrollPane.getHorizontalScrollBar().setValue((int)(rmid_x - w/2));
+         GeoScrollPane.getVerticalScrollBar().setValue((int)(rmid_y - h/2));
+      } 
     }
     isMouseSelected = false;
-    // selGraphObj.getLayer().scrollRectToVisible(
-    //         irect.createIntersection(s.getBounds()).getBounds());
   }
 
 
@@ -2093,11 +2099,13 @@ public boolean canDisplay(SecondoObject o){
       //System.out.println("anf"+e.getValue());
       if (anf == ActualTime)
         return;
+      GraphDisplay.setIgnorePaint(true);
       ActualTime = anf;
       actTimeLabel.setText(LEUtils.convertTimeToString(ActualTime));
       makeSelectionVisible();
-      SelectionControl.drawRectangle();
+      GraphDisplay.setIgnorePaint(false);
       GraphDisplay.repaint();
+      SelectionControl.drawRectangle();
       //System.out.println(ActualTime);
       
     }
