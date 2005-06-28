@@ -24,8 +24,9 @@ public class NMEA2Secondo{
 
 
 private static long days = 0;
+private static long hours = 0; // difference between local time and utc in milliseconds
 private static double lastTime = -100; // invalid value
-private static final double DAYMILLIS=86400000;
+private static final long DAYMILLIS=86400000;
 
 
 /** Return the value of this character as digit.
@@ -87,7 +88,7 @@ private static void processData(String Time, String Lat, String NS, String Lon, 
    if(EW.equals("W"))
       lon=-1*lon;
 
-   double t = T.doubleValue()/DAYMILLIS+days;
+   double t = (T.doubleValue()+hours)/DAYMILLIS+days;
    if(t<lastTime){ // a new day
        days++;
        t += 1;
@@ -122,11 +123,12 @@ private static void processLine(String line){
 
 /** Prints a explanation of the arguments for this programm and exists **/
 private static void showUsage(){
-   System.err.println(" java NMEA2Secondo [filename [timeoffset [epsilon]]]  [>outfile]");
+   System.err.println(" java NMEA2Secondo [filename [dayoffset  [houroffset [epsilon]]]]  [>outfile]");
    System.err.println(" where");
    System.err.println(" filename: the name of the file to convert or '-' for standardinput ");
-   System.err.println(" timeoffset: an integer number describing the distance to the 'NULLDAY' ");
-   System.err.println("             have a look to the DateTimeAlgebra for details about this date ");
+   System.err.println(" dayoffset: an integer number describing the distance to the 'NULLDAY' ");
+   System.err.println("             have a look to the DateTimeAlgebra for details about this date (see README)");
+   System.err.println("houroffset: an integer value describing the differenz between the local time and utc");
    System.err.println(" epsilon: maximum variance for summartizing units ");
    System.exit(0);
 
@@ -164,11 +166,20 @@ public static void main(String[] args){
      if(l>1){
         days = Long.parseLong(args[1]);
      }
-     if(l>2)
-        UnitWriter.EPSILON=Double.parseDouble(args[2]); 
+     if(l>2){
+        hours=Integer.parseInt(args[2])*60*60*1000;
+     }
+     if(l>3)
+        UnitWriter.EPSILON=Double.parseDouble(args[3]); 
    } catch(Exception e){
       showUsage();
    }
+   System.err.println("convert data with ethe following parameters:");
+   System.err.println(" file : "+args[0]);
+   System.err.println(" dayoffset :; " + days );
+   System.err.println(" houroffset : " + hours );
+   System.err.println(" epsilon    : " + UnitWriter.EPSILON);
+
 
    String line;
    // print header

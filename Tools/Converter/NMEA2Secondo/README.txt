@@ -11,13 +11,25 @@ To convert the file, perform the following steps:
 
 1. Compile the tool by calling make
 2. Run the tool with the required arguments
-java NMEA2Secondo filename [timeoffset [epsilon]]
+java NMEA2Secondo filename [dayoffset [houroffset [epsilon]]]
 
 The filename is the name of the file to convert or '-' for the standard input.
 
-The timeoffset is an integer value for the distance to the NULLDAY. In the current
+The dayoffset is an integer value for the distance to the NULLDAY. In the current
 implementation of the DateTime Algebra this date is fixed as "2000-01-03". This is required
 because no information about the date is available in the GPGGA dataset.
+To get the correct value for a desired day, use Secondo with enabled DateTimeAlgebra. 
+E.g. the value for 2005-06-27 can be get by the query:
+
+query [const instant value "2005-06-27"] - [const instant value 0.0]
+
+The result will be a duration with value (2002 0). Put the value 2002 as dayoffset into
+this converter.
+
+
+The houroffset is also an integer value describing the difference between local time and
+utc (coordinated universal time). For gemany, use 1 (or 2 for summer time). 
+
 
 Using the epsilon parameter, it is possible to control the number of created units. 
 If a new unit is an extension of the last one, we summarize the units when the 
