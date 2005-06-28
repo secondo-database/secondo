@@ -101,5 +101,5 @@ public static int[] fromJulian(int j)
       return res;
    }
 
-public static int NULL_DAY = 2451544; // make compatible with old hoese representation
+public static int NULL_DAY = 2451547; // make compatible with old hoese representation
 }
