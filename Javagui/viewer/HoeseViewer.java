@@ -834,9 +834,10 @@ public class HoeseViewer extends SecondoViewer {
 
     AACaptureBackground = new AbstractAction("capture image"){
        public void actionPerformed(java.awt.event.ActionEvent evt){
-           Rectangle2D R = GraphDisplay.getBounds();
-           int w = (int) R.getWidth();
-           int h = (int) R.getHeight();
+           Rectangle2D r1 = GraphDisplay.getBounds();
+           Rectangle2D R =  new Rectangle2D.Double(r1.getX(),r1.getY(),r1.getWidth(),r1.getHeight());
+           double w =  R.getWidth();
+           double h =  R.getHeight();
            if(w<=0 | h<=0){
               showMessage("cannot capture the background");
               bgImage.setImage(null);
@@ -847,16 +848,16 @@ public class HoeseViewer extends SecondoViewer {
               boolean scale = false; // image to scale ?
               double sf=1.0; // the scale factor
               long MAXPIXELS = MAXCAPTUREPIXELS;            
-              if((long)w*h > MAXPIXELS){
+              if((long)(w*h) > MAXPIXELS){
                  //System.out.println("scale down the image because it's too big");
                  sf = Math.sqrt( MAXPIXELS/ ((R.getWidth()*R.getHeight())));
-                 w = (int) (w*sf);
-                 h = (int) (h*sf);
+                 w =  (w*sf);
+                 h =  (h*sf);
                  scale = true;
                  //System.out.println("The resulting picture will have " + (w*h)+" pixels");
               }
 
-              BufferedImage bi = new BufferedImage(w,h,BufferedImage.TYPE_3BYTE_BGR);
+              BufferedImage bi = new BufferedImage((int)w,(int)h,BufferedImage.TYPE_3BYTE_BGR);
               Graphics2D g = bi.createGraphics();
               
               if(scale){
@@ -871,7 +872,7 @@ public class HoeseViewer extends SecondoViewer {
               // world coordinates.
               try{
                   R.setRect(0,0,R.getWidth(),R.getHeight());    
-                  R = at.createInverse().createTransformedShape(R).getBounds();
+                  R = at.createInverse().createTransformedShape(R).getBounds2D();
               } catch(Exception e){
                   MessageBox.showMessage("Cannot determine the bounding box of this image");
               }
@@ -914,11 +915,11 @@ public class HoeseViewer extends SecondoViewer {
               bgImage.setImage(bi);
               // convert the bounding bocx of the GraphDisplay into
               // world coordinates.
-              Rectangle R2= new Rectangle();
+              Rectangle2D R2= new Rectangle2D.Double();
               AffineTransform at = (AffineTransform) allProjection.clone();
               try{
                   R2.setRect(-x,-y,vw,vh);    
-                  R2 = at.createInverse().createTransformedShape(R2).getBounds();
+                  R2 = at.createInverse().createTransformedShape(R2).getBounds2D();
               } catch(Exception e){
                   MessageBox.showMessage("Cannot determine the bounding box of this image");
               }
