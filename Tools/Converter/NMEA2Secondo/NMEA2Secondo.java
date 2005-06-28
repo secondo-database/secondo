@@ -164,10 +164,22 @@ public static void main(String[] args){
      }
 
      if(l>1){
-        days = Long.parseLong(args[1]);
+        if(args[1].toLowerCase().equals("file")){
+            long ft = (new File(args[0])).lastModified();
+            ft = ft / DAYMILLIS;
+            /* 10959 : difference between Nullday used in Java ( 1970-01-01 ) and
+                       nullday used in Secondo's DateTimeAlgebra (2000-01-03)
+            */
+            days = ft - 10959;
+        } else
+            days = Long.parseLong(args[1]);
      }
      if(l>2){
-        hours=Integer.parseInt(args[2])*60*60*1000;
+        if(args[2].toLowerCase().equals("local")){
+           long date = (days+10959)*DAYMILLIS+43200000;  // to java nullday + 12 hours
+           hours = java.util.TimeZone.getDefault().getOffset(date);
+        }else
+           hours=Integer.parseInt(args[2])*60*60*1000;
      }
      if(l>3)
         UnitWriter.EPSILON=Double.parseDouble(args[3]); 

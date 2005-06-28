@@ -25,11 +25,16 @@ query [const instant value "2005-06-27"] - [const instant value 0.0]
 
 The result will be a duration with value (2002 0). Put the value 2002 as dayoffset into
 this converter.
+You can also use the keyword 'file' as parameter. In this case, the value is taken from
+the last modiification time of the file to convert. 
+
 
 
 The houroffset is also an integer value describing the difference between local time and
 utc (coordinated universal time). For gemany, use 1 (or 2 for summer time). 
-
+Instead of using a explicit value, you can also use the keyword 'local'. Than the 
+difference is taken from the system using the date given from days (to recognize daylight 
+time).
 
 Using the epsilon parameter, it is possible to control the number of created units. 
 If a new unit is an extension of the last one, we summarize the units when the 
