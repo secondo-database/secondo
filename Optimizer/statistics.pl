@@ -276,12 +276,22 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   atom_concat('query ', QueryAtom1, QueryAtom),
   %write('selectivity query : '),
   %write(QueryAtom),
+  get_time(Time1),
   secondo(QueryAtom, [int, ResCard]),
+  get_time(Time2),
+  Time is Time2 - Time1,
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  MSs is Minute *60000 + Sec*1000 + MilliSec,
+  write('Elapsed Time: '),
+  write(MSs),
+  write(' ms'),nl,
   Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
   write('selectivity : '),
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
+  MSsRes is MSs / 500,
+  assert(storedPET(PSimple, MSsRes)),
   assert(storedSel(PSimple, Sel)),
   !.
 
@@ -292,14 +302,24 @@ selectivity(pr(Pred, Rel), Sel) :-
   cardQuery(Pred, Rel, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  %write('selectivity query : '),
+  %write('selectivity query : '), 
   %write(QueryAtom),
+  get_time(Time1),
   secondo(QueryAtom, [int, ResCard]),
+  get_time(Time2),
+  Time is Time2 - Time1,
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  MSs is Minute *60000 + Sec*1000 + MilliSec,
+  write('Elapsed Time: '),
+  write(MSs),
+  write(' ms'),nl,
   Sel is (ResCard + 1)/ SampleCard,		% must not be 0
   write('selectivity : '),
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel), PSimple),
+  MSsRes is MSs / 2000,
+  assert(storedPET(PSimple, MSsRes)),
   assert(storedSel(PSimple, Sel)),
   !.
 
@@ -406,6 +426,27 @@ writeStoredSel(Stream) :-
   dynamic(storedSel/2),
   at_halt(writeStoredSels),
   readStoredSels.
+
+readStoredPETs :-
+  retractall(storedPET(_, _)),
+  [storedPETs].  
+
+writeStoredPETs :-
+  open('storedPETs.pl', write, FD),
+  write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
+  findall(_, writeStoredPET(FD), _),
+  close(FD).
+
+writeStoredPET(Stream) :-  
+  storedPET(X, Y),
+  replaceCharList(X, XReplaced),
+  write(Stream, storedPET(XReplaced, Y)),
+  write(Stream, '.\n').
+
+:-
+  dynamic(storedPET/2),
+  at_halt(writeStoredPETs),
+  readStoredPETs.
 
 
 /*
