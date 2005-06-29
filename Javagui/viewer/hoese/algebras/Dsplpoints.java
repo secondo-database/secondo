@@ -43,7 +43,6 @@ public class Dsplpoints extends DisplayGraph {
    */
   public void ScanValue (ListExpr value) {
     double koord[] = new double[2];
-    double x,y;
     points = new Vector(20, 20);
     while (!value.isEmpty()) {
       ListExpr v = value.first();
@@ -63,14 +62,11 @@ public class Dsplpoints extends DisplayGraph {
         v = v.rest();
       }
       if (!err) {
-        try{
-          x = ProjectionManager.getPrjX(koord[0],koord[1]);
-	  y = ProjectionManager.getPrjY(koord[0],koord[1]); 
-          Point2D.Double point = new Point2D.Double(x, y);
-          points.add(point);
-	} catch(Exception e){
-          System.out.println("error in project : ("+koord[0]+","+koord[1]+")");
-	}
+        if(!ProjectionManager.project(koord[0],koord[1],aPoint))
+           System.err.println("error in projection at coordinate ("+koord[0]+", "+koord[1]+")");
+        else{
+          points.add(new Point2D.Double(aPoint.x,aPoint.y));
+        }
       }
       value = value.rest();
     }

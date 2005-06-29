@@ -49,6 +49,8 @@ public class DisplayGraph extends DsplGeneric
  /** the typewidth to display in a relation */
  protected int minTypeWidth=0;
  protected int minValueWidth=0;
+ // a point for shippping data between this class and the projectionmanager
+ static java.awt.geom.Point2D.Double aPoint = new Point2D.Double();
 
 
   /**

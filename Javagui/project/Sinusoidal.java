@@ -23,15 +23,20 @@ package project;
 
 public class Sinusoidal implements Projection{
 
-   public double getPrjX(double lambda, double phi) throws InvalidInputException{
-      double phi_1 = phi*PI/180;
-      double L_1 = (lambda-Lambda_0)*PI/180;
-      double rr = L_1*Math.cos(phi_1);
-      return rr*180/PI;
-   }
-
-   public double getPrjY(double lambda, double phi) throws InvalidInputException{
-     return phi;
+   public boolean project(double lambda, double phi, java.awt.geom.Point2D.Double result){
+     double px=0,py=0;
+     try{
+        double phi_1 = phi*PI/180;
+        double L_1 = (lambda-Lambda_0)*PI/180;
+        double rr = L_1*Math.cos(phi_1);
+        px= rr*180/PI;
+        py= phi;
+     }catch(Exception e){
+        return false;
+     }   
+     result.x = px;
+     result.y = py;
+     return true;
    }
 
    public boolean showSettings(){
@@ -47,18 +52,19 @@ public class Sinusoidal implements Projection{
       return true;
    }
 
-   public double getOrigX(double x, double y){
-      x = x*PI/180;
-      y = y*PI/180;
-      double x_t = Lambda_0 + x / Math.cos(y);
-      return 180*x_t/PI;
+   public boolean getOrig(double x, double y, java.awt.geom.Point2D.Double result){
+      try{
+         x = x*PI/180;
+         y = y*PI/180;
+         double x_t = Lambda_0 + x / Math.cos(y);
+         result.x= 180*x_t/PI;
+         result.y = y;
+         return true;
+      }catch(Exception e){
+         return false;
+      }
+
    }
-
-   public double getOrigY(double x, double y){
-      return y;
-   }
-
-
 
    private double Lambda_0 = 0;
    private double secure_distance = 1;

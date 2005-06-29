@@ -23,27 +23,23 @@ package project;
 
 public class Mercator implements Projection{
 
-   public double getPrjX(double lambda, double phi) throws InvalidInputException{
-     //     if(lambda>180 || lambda<-180)
-       // throw new InvalidInputException("lambda out of range");
-     return lambda-Lambda_0;
-   }
-
-   public double getPrjY(double lambda, double phi) throws InvalidInputException{
+  public boolean project(double lambda, double phi, java.awt.geom.Point2D.Double result){
      if(phi>90 || phi<-90)
-        throw new InvalidInputException("phi out of range");
-     if( phi<=(-90+secure_distance))
-         // throw new InvalidInputException("phi is to near to a pol");
-	phi = -90+secure_distance;
-     if( phi>=(90-secure_distance))
+        return false;
+
+     if(phi<=(-90+secure_distance))
+	       phi = -90+secure_distance;
+     if(phi>=(90-secure_distance))
         phi = 90-secure_distance;
 
+     result.x = lambda-Lambda_0;
      double phi_2 = phi*PI/180;
      double y =   Math.log(Math.tan(PI/4 + phi_2/2))/LOG_E;
-     return y*180/PI;
-   }
-
-   public boolean showSettings(){
+     result.y = y*180/PI;
+     return true;
+  }
+   
+  public boolean showSettings(){
      System.out.println("Mercator.showSettings not implemented");
      return true;
    }
@@ -56,21 +52,22 @@ public class Mercator implements Projection{
       return true;
    }
 
-   public double getOrigX(double prjx, double prjy){
-      return prjx + Lambda_0; 
-   }
 
-   public double getOrigY(double prjx, double prjy) throws InvalidInputException{
-       try{
+  public boolean getOrig(double prjx, double prjy, java.awt.geom.Point2D.Double result){
+     double lambda = 0;
+     double phi = 0;
+     try{
+       lambda = prjx + Lambda_0; 
          prjy = prjy*PI/180;
          double res =  2*Math.atan(Math.exp(prjy))-0.5*PI;    
-         return res*180/PI;
-       } catch(Exception e){
-              throw new InvalidInputException("Mercator:getOrigY: prjy out of range");
-       }
-   }
-
-
+         phi = res*180/PI;
+     }catch(Exception e){
+        return false;
+     }
+     result.x = lambda;
+     result.y = phi;
+     return true;
+  }
 
    private double Lambda_0 = 0;
    private double secure_distance = 1;

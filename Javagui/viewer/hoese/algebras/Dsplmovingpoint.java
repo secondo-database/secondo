@@ -60,15 +60,10 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
     double x = pm.x1+Delta*(pm.x2-pm.x1);
     double y = pm.y1+Delta*(pm.y2-pm.y1);
 
-    //System.out.println("interval:"+in+"\nTime  "+DateTime.getString(t)+"\n PointMap="+pm);
-    //System.out.println("Delta ="+Delta+"\n(x,y)= "+x+","+y+"\n");
-
     point = new Point2D.Double(x, y);
 
     double pixy = Math.abs(Cat.getPointSize()/at.getScaleY());
-    //double pix = Cat.getPointSize();
     double pix = Math.abs(Cat.getPointSize()/at.getScaleX());
-    //Point2D p=at.transform(point,p);
     if (Cat.getPointasRect())
       RenderObject = new Rectangle2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy);
     else {
@@ -95,8 +90,16 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
         return  null;
       le = le.rest();
     }
-    return  new PointMap(value[0].doubleValue(), value[1].doubleValue(), value[2].doubleValue(),
-        value[3].doubleValue());
+    double x1, y1;
+    if(!ProjectionManager.project(value[0].doubleValue(),value[1].doubleValue(),aPoint)){
+        return null;
+    }
+    x1 = aPoint.x;
+    y1 = aPoint.y;
+    if(!ProjectionManager.project(value[2].doubleValue(),value[3].doubleValue(),aPoint)){
+      return null;
+    }
+    return  new PointMap(x1,y1,aPoint.x,aPoint.y);
   }
 
   /**
@@ -216,7 +219,6 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
        this.y1 = y1;
        this.x2 = x2;
        this.y2 = y2;
-
     }
 
     public String toString(){

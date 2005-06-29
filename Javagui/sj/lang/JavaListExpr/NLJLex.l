@@ -192,15 +192,15 @@ filename    =   "<file>".*"</file--->"
                   ListExpr value = null;
                   if (yytext().equals(".")){
                     // This special case is not accepted by the method
-                    // valueOf() in the Float class, but must be interpretted
-                    // by this scanner as the float point number 0.0
+                    // valueOf() in the Double class, but must be interpretted
+                    // by this scanner as the  point number 0.0
                     // Hence, this special case is "parsed" by hand.
-                    value = ListExpr.realAtom((float)0.0);
+                    value = ListExpr.realAtom(0.0);
                     return(new NLToken(NLToken.TT_REAL_ATOM, value, yychar+1,
                            yyline+1));
                   }
                   try{
-		    value = ListExpr.realAtom(Float.valueOf(yytext()).floatValue());
+		    value = ListExpr.realAtom(Double.parseDouble(yytext()));
                   }
 	          catch (NumberFormatException except){
                     // If an error when parsing occur, an unknown token was
@@ -326,6 +326,7 @@ filename    =   "<file>".*"</file--->"
                   // If an unknown token is read.
                   if (NLTokenizer.DEBUG_MODE){
                     System.err.println("DEBUG MODE: Error: Unknown token found when scanning the input in the NLTokenizer class.");
+                    System.err.println("The value is'"+yytext()+"'");
                   }
                   return (new NLToken(NLToken.error, null, yychar+1,
                           yyline+1));

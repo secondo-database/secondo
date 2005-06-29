@@ -23,12 +23,10 @@ package project;
 
 public class VoidProjection implements Projection{
 
-   public double getPrjX(double lambda, double phi) throws InvalidInputException{
-      return lambda;
-   }
-
-   public double getPrjY(double lambda, double phi) throws InvalidInputException{
-     return phi;
+   public boolean project(double lambda, double phi, java.awt.geom.Point2D.Double result){
+     result.x = lambda;
+     result.y = phi;
+     return true;
    }
 
    public boolean showSettings(){
@@ -44,14 +42,9 @@ public class VoidProjection implements Projection{
       return true;
    }
 
-   public double getOrigX(double prjX,double prjY) {
-      return prjX;
+   public boolean getOrig(double x, double y, java.awt.geom.Point2D.Double result){
+       result.x = x;
+       result.y = y;
+       return true;
    }
-
-   public double getOrigY(double prjX, double prjY){
-      return prjY;
-   }
-
-
-
 }

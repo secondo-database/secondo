@@ -72,7 +72,7 @@ public abstract boolean isDisplayed(SecondoObject o);
 
  protected ViewerControl VC=null;  // inform this Control if select/remove a Object
  
- protected boolean DEBUG_MODE=false;
+ public static boolean DEBUG_MODE=false;
  
  // set the debug mode of this viewer
  public void setDebugMode(boolean on){

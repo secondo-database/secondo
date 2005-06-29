@@ -41,6 +41,9 @@ public class Interval {
     end = aend;
     leftclosed = leftcl;
     rightclosed = rightcl;
+    if(viewer.HoeseViewer.DEBUG_MODE && start==end && (!leftclosed || !rightclosed)){
+        System.out.println("Warning: nonclosed interval of length null created !");
+    }
   }
 
   /** returns the String representation for this interval */
@@ -51,6 +54,19 @@ public class Interval {
     return res;
   }
 
+
+  /** returns the length of this interval in milliseconds **/
+  public long length(){
+      double diff = end-start;
+      return (long)(diff*86400000);
+  }
+
+  public String getDoubles(){
+     String r= leftclosed?"[":"(";
+     r+=start+"  -  "+end;
+     r = r + (rightclosed?"]":")");
+     return r; 
+  }
 
 
   /**

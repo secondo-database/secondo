@@ -24,13 +24,10 @@ import project.*;
 
 public class ProjectionManager {
 
-   public static double getPrjX(double lambda, double phi) throws InvalidInputException{
-      return P.getPrjX(lambda,phi);
-   }
 
-   public static double getPrjY(double lambda, double phi) throws InvalidInputException{
-      return P.getPrjY(lambda,phi);
-   }
+   public static boolean project(double x, double y, java.awt.geom.Point2D.Double result){
+      return P.project(x,y,result);
+   }   
 
 
    public static boolean showSettings(){
@@ -58,16 +55,10 @@ public class ProjectionManager {
       return P.isReversible();
    }
 
-   public static double getOrigX(double px, double py) throws InvalidInputException{
-      return P.getOrigX(px,py);
-   }
-
-   public static double getOrigY(double px, double py) throws InvalidInputException{
-      return P.getOrigY(px,py);
+   public static boolean getOrig(double px, double py, java.awt.geom.Point2D.Double result){
+      return P.getOrig(px,py,result);
    } 
 
-// private static  Projection P = new Mercator(); // later the equals-projection
-// private static  Projection P = new Mollweide();
 private static Projection P = new  VoidProjection();
 
 private static Projection VP = new VoidProjection();

@@ -58,15 +58,23 @@ public class Dsplrect extends DisplayGraph {
        double tx2 = X2.doubleValue();
        double ty1 = Y1.doubleValue();
        double ty2 = Y2.doubleValue();
-       double x1 = ProjectionManager.getPrjX(tx1,ty1);
-       double y1 = ProjectionManager.getPrjY(tx1,ty1);
-       double x2 = ProjectionManager.getPrjX(tx2,ty2);
-       double y2 = ProjectionManager.getPrjY(tx2,ty2);
-       double x = Math.min(x1,x2);
-       double w = Math.abs(x2-x1);
-       double y = Math.min(y1,y2);
-       double h = Math.abs(y2-y1);
-       rect = new Rectangle2D.Double(x,y,w,h);
+       if(!ProjectionManager.project(tx1,ty1,aPoint)){
+          err = true;
+       } else{
+          double x1 = aPoint.x;
+          double y1 = aPoint.y;
+          if(!ProjectionManager.project(tx2,ty2,aPoint)){
+             err=true;
+          }  else{
+            double x2 = aPoint.x;
+            double y2 = aPoint.y;
+            double x = Math.min(x1,x2);
+            double w = Math.abs(x2-x1);
+            double y = Math.min(y1,y2);
+            double h = Math.abs(y2-y1);
+            rect = new Rectangle2D.Double(x,y,w,h);
+          }        
+       }      
     }catch(Exception e){
        err = true;
     }

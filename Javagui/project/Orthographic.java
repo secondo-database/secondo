@@ -23,18 +23,22 @@ package project;
 
 public class Orthographic implements Projection{
 
-   public double getPrjX(double lambda, double phi) throws InvalidInputException{
-      double l1 = (lambda-Lambda_0)*PI/180;
-      double p1 = phi*PI/180;
-      double x= Math.cos(p1)*Math.sin(l1);
-      return x*180/PI;
-   }
 
-   public double getPrjY(double lambda, double phi) throws InvalidInputException{
-       double l1 = (lambda-Lambda_0)*PI/180;
-       double p1 = phi*PI/180;
-       double y = Math.cos(Phi_1)*Math.sin(p1)-Math.sin(Phi_1)*Math.cos(p1)*Math.cos(l1);
-       return y*180/PI;
+   public boolean project(double lambda, double phi,java.awt.geom.Point2D.Double result ){
+      double px=0,py=0;
+      try{
+				double l1 = (lambda-Lambda_0)*PI/180;
+				double p1 = phi*PI/180;
+				double x= Math.cos(p1)*Math.sin(l1);
+				px= x*180/PI;
+        double y = Math.cos(Phi_1)*Math.sin(p1)-Math.sin(Phi_1)*Math.cos(p1)*Math.cos(l1);
+        py = y*180/PI;
+      }catch(Exception e){
+         return false;
+      }
+      result.x = px;
+      result.y = py;
+      return true;
    }
 
    public boolean showSettings(){
@@ -50,7 +54,10 @@ public class Orthographic implements Projection{
       return true;
    }
 
-   public double getOrigX(double x, double y){
+   public boolean getOrig(double x, double y, java.awt.geom.Point2D.Double result){
+      double lambda=0;
+      double phi=0;
+      try{
         x = x*PI/180;
         y = y*PI/180;
         double p = Math.sqrt(x*x+y*y);
@@ -58,19 +65,17 @@ public class Orthographic implements Projection{
         double x_t =  Lambda_0 + Math.atan((x*Math.sin(c)) / 
                      (p*Math.cos(Phi_1)*Math.cos(c) - 
                       y*Math.sin(Phi_1)*Math.sin(c)  ));
-        return x_t*180/PI;
-   } 
+        lambda = x_t*180/PI;
+        double y_t = Math.asin( Math.cos(c)*Math.sin(Phi_1)+y*Math.sin(c)*Math.cos(Phi_1)/p);
+        phi= 180*y_t/PI;
 
-   public double getOrigY(double x, double y){
-     x = x*PI/180;
-     y = y*PI/180;
-     double p = Math.sqrt(x*x+y*y);
-     double c = Math.asin(p);
-     double y_t = Math.asin( Math.cos(c)*Math.sin(Phi_1)+y*Math.sin(c)*Math.cos(Phi_1)/p);
-     return 180*y_t/PI;
-
+      }catch(Exception e){
+          return false;
+      }
+      result.x = lambda;
+      result.y = phi;
+      return true;
    }
-
 
    private double Lambda_0 = 0;
    private double Phi_1 = 0*PI/180;

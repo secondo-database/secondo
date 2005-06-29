@@ -31,18 +31,17 @@ http://mathworld.wolfram.com/topics/MapProjections.html
 
 public interface Projection{
 
-   public double getPrjX(double lambda, double phi) throws InvalidInputException;
 
-   public double getPrjY(double lambda, double phi) throws InvalidInputException;
+   public boolean project(double lambda, double phi, java.awt.geom.Point2D.Double result);
+
+   public boolean getOrig(double px, double py, java.awt.geom.Point2D.Double result);
+      
 
    public boolean showSettings();
 
    public String getName();
 
    public boolean isReversible();
-
-   public double getOrigX(double prjX,double prjY) throws InvalidInputException;
-   public double getOrigY(double prjX,double prjY) throws InvalidInputException;
 
    static final double LOG_E = Math.log(Math.E);
    static final double PI = Math.PI;

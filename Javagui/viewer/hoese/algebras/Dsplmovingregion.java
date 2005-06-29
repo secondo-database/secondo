@@ -90,9 +90,13 @@ public class Dsplmovingregion extends DisplayTimeGraph {
              EdgeMap em = (EdgeMap) SingleCycle.get(j);
              double tmpx = em.x1+delta*(em.x2-em.x1);
 	     double tmpy = em.y1+delta*(em.y2-em.y1);
-	     float x = (float)ProjectionManager.getPrjX(tmpx,tmpy);
-	     float y = (float)ProjectionManager.getPrjY(tmpx,tmpy);
-             if(j==0)
+       if(!ProjectionManager.project(tmpx,tmpy,aPoint)){
+          System.err.println("wrong parameter for choosed projection");
+          return (RenderObject=null);
+       } 
+	     float x = (float)aPoint.x;
+	     float y = (float)aPoint.y;
+       if(j==0)
 	        GP.moveTo(x,y);
 	     else
 	        GP.lineTo(x,y);

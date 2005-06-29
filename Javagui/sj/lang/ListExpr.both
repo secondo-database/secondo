@@ -500,6 +500,9 @@ private final static int writeAppeningToString (ListExpr list, StringBuffer char
 
 
 
+public String toString(){
+     return writeListExprToString();
+}
 
 
 /** This method returns one string with the content of this ListExpr object

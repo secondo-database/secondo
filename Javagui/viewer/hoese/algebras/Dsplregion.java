@@ -69,24 +69,30 @@ public class Dsplregion extends DisplayGraph implements DsplSimple{
 	      Double x = LEUtils.readNumeric(P.first());
 	      Double y = LEUtils.readNumeric(P.second());
 	      if(x!=null && y!=null)
-	      try{
-	        float x1 = (float)ProjectionManager.getPrjX(x.doubleValue(),y.doubleValue());
-	        float y1 = (float)ProjectionManager.getPrjY(x.doubleValue(),y.doubleValue());
+	        try{
+            if(!ProjectionManager.project(x.doubleValue(),y.doubleValue(),aPoint)){
+               System.err.println("error in projection at ("+x+", "+y+")");
+                err=true;
+                return;
+             }else{
+	              float x1 = (float)aPoint.x;
+	              float y1 = (float)aPoint.y;
                 empty = false;
-	        if(isFirstPoint){
-	            GP.moveTo(x1,y1);
-		    isFirstPoint=false;
-	         }else{
-	            GP.lineTo(x1,y1);
-	         }
-	      } catch(Exception e){
-	         System.out.println("Error in Projection at ("+x+","+y+")");
-		 err=true;
-		 return;
-	      }
+	              if(isFirstPoint){
+	                  GP.moveTo(x1,y1);
+		                isFirstPoint=false;
+	              }else{
+	                 GP.lineTo(x1,y1);
+	              }
+	           } 
+          }catch(Exception e){
+	           System.out.println("Error in Projection at ("+x+","+y+")");
+		          err=true;
+		          return;
+	        }
 	      else{
 	        err=true;
-		return;
+          return;
 	      }
 	   }
 	   GP.closePath();

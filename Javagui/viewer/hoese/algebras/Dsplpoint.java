@@ -99,11 +99,10 @@ public class Dsplpoint extends DisplayGraph {
       v = v.rest();
     }
 
-    try{
-       double x = ProjectionManager.getPrjX(koord[0],koord[1]);
-       double y = ProjectionManager.getPrjY(koord[0],koord[1]);
-       point = new Point2D.Double(x,y);
-    }catch(Exception e){err=true;}
+    if(ProjectionManager.project(koord[0],koord[1],aPoint))
+          point = new Point2D.Double(aPoint.x,aPoint.y);
+    else
+       err = true;
   }
 
   /**

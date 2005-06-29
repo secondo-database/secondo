@@ -191,6 +191,11 @@ public class HoeseViewer extends SecondoViewer {
   /** set the border when capturing the visible rectangle */
   private int CaptureBorder = 200;
 
+  /** a point value for shipping data between this class and the ProjectionManager
+    **/
+  static java.awt.geom.Point2D.Double aPoint = new java.awt.geom.Point2D.Double();
+
+
 
   /**
    * Creates a MainWindow with all its components, initializes Secondo-Server, loads the
@@ -411,12 +416,12 @@ public class HoeseViewer extends SecondoViewer {
            MouseKoordLabel.setBackground(getBackground());
            double px = p.getX();
            double py = p.getY();
-           try{
-               double x = ProjectionManager.getOrigX(px,py);
-               double y = ProjectionManager.getOrigY(px,py);
+           if(ProjectionManager.getOrig(px,py,aPoint)){           
+               double x = aPoint.x;
+               double y = aPoint.y;
                MouseKoordLabel.setText( (""+x)+
                                          " / "+(""+y).concat(COORD_EXT).substring(0,MAX_COORD_LENGTH));    
-          }catch(Exception e2){
+          }else{
                MouseKoordLabel.setBackground(Color.RED);
                MouseKoordLabel.setText( (""+px) + " / "+ 
                                          (""+py).concat(COORD_EXT).substring(0,MAX_COORD_LENGTH));    

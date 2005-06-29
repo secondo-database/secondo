@@ -23,20 +23,15 @@ package project;
 
 public class Miller_Cylindrical implements Projection{
 
-   public double getPrjX(double lambda, double phi) throws InvalidInputException{
-     //     if(lambda>180 || lambda<-180)
-       // throw new InvalidInputException("lambda out of range");
-     return lambda-Lambda_0;
-   }
 
-   public double getPrjY(double lambda, double phi) throws InvalidInputException{
+   public boolean project(double lambda, double phi, java.awt.geom.Point2D.Double result){
      if(phi>90 || phi<-90)
-        throw new InvalidInputException("phi out of range");
-     
+        return false;
+     result.x = lambda - Lambda_0;
      double phi_2 = phi*PI/180;
      double y =  5/4* Math.log(Math.tan(PI/4 + 2*(phi_2/5)))/LOG_E;
-
-     return y*180/PI;
+     result.y = y*180/PI;
+     return true;
    }
 
    public boolean showSettings(){
@@ -52,13 +47,14 @@ public class Miller_Cylindrical implements Projection{
      return true;
    }
   
-   public double getOrigX(double x, double y){
-      return x + Lambda_0;
-   } 
-
-   public double getOrigY(double x, double y){
-
-       return 180*(2.5* Math.atan(Math.exp((y*4*PI)/(180*5))) - PI*5/8)/PI;
+   public boolean getOrig(double x, double y, java.awt.geom.Point2D.Double result){
+    try{
+      result.y = 180*(2.5* Math.atan(Math.exp((y*4*PI)/(180*5))) - PI*5/8)/PI;
+      result.x = x + Lambda_0;
+      return true;
+    } catch(Exception e){
+       return false;
+    }
    }
 
    private double Lambda_0 = 0;

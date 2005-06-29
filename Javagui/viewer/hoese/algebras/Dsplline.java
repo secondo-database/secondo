@@ -70,17 +70,27 @@ public class Dsplline extends DisplayGraph {
       }
       if (!err) {
         try{
-	   x1 = ProjectionManager.getPrjX(koord[0],koord[1]);
-	   y1 = ProjectionManager.getPrjY(koord[0],koord[1]);
-	   x2 = ProjectionManager.getPrjX(koord[2],koord[3]);
-           y2 = ProjectionManager.getPrjY(koord[2],koord[3]);
-           Line2D.Double line = new Line2D.Double(x1,y1,x2,y2);
-           lines.add(line);
-	} catch(Exception e){
-	   System.out.println("error in project segment ("+koord[0]+","+koord[1]+")->"+koord[2]+","+koord[3]+")");
-	}
+          if(!ProjectionManager.project(koord[0],koord[1],aPoint)){
+             err = true; 
+	           System.out.println("error in project segment ("+koord[0]+","+koord[1]+")->"+koord[2]+","+koord[3]+")");
+          }else{ 
+	           x1 = aPoint.x;
+	           y1 = aPoint.y;
+             if(!ProjectionManager.project(koord[2],koord[3],aPoint)){
+                err = true; 
+	              System.out.println("error in project segment ("+koord[0]+","+koord[1]+")->"+koord[2]+","+koord[3]+")");
+             }else{
+                x2 = aPoint.x;
+                y2 = aPoint.y;
+                Line2D.Double line = new Line2D.Double(x1,y1,x2,y2);
+                lines.add(line);
+             }
+         }
+	      } catch(Exception e){
+	           System.out.println("error in project segment ("+koord[0]+","+koord[1]+")->"+koord[2]+","+koord[3]+")");
+	        }
       }
-      value = value.rest();
+         value = value.rest();
     }
   }
 

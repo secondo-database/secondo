@@ -31,12 +31,12 @@ abstract class ProjectionAdapter implements Projection{
     return false;
  }
 
- public double getOrigX(double prjX, double prjY){
-    return prjX;
- } 
-
- public double getOrigY(double prjX, double prjY){
-   return prjY;
+ public boolean getOrig(double x, double y, java.awt.geom.Point2D.Double result){
+    if(result==null)
+        return false;
+    result.x=x;
+    result.y=y;
+    return true;
  }
 
 }

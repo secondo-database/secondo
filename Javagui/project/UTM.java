@@ -23,12 +23,11 @@ package project;
 
 public class UTM implements Projection{
 
-   public double getPrjX(double lambda, double phi) throws InvalidInputException{
+   public boolean project(double lambda, double phi, java.awt.geom.Point2D.Double result){
      double bw = lambda;
      double lw = phi;
      // zone number??
      long lzn =(int)((lw+180)/6) + 1;
-     System.out.println("lzn = "+lzn);
 		 long bd = (int)(1+(bw+80)/8);
      double br = bw*PI/180; 
      double tan1 = Math.tan(br);
@@ -49,41 +48,18 @@ public class UTM implements Projection{
      double dl4 = dl2*dl2;
      double dl3 = dl2*dl;
      double dl5 = dl4*dl;
-     double x,y;
+     double x;
      if(bw<0){
         x = 10e6 + 0.9996*(g + nd*cos2*tan1*dl2/2 + nd*cos4*tan1*(5-tan2+9*etasq)*dl4/24);
      }else{
         x = 0.9996*(g + nd*cos2*tan1*dl2/2 + nd*cos4*tan1*(5-tan2+9*etasq)*dl4/24) ;
      }
-     return x; 
-	 }
-
-   public double getPrjY(double lambda, double phi) throws InvalidInputException{
-     double bw = lambda;
-     double lw = phi;
-     double br = bw*PI/180; 
-     long lzn =(int)((lw+180)/6) + 1;
-     long lh = (lzn - 30)*6 - 3;
-     double cos1 = Math.cos(br);
-     double cos2 = cos1*cos1;
-     double cos4 = cos2*cos2;
-     double cos3 = cos2*cos1;
-     double cos5 = cos4*cos1;
-     double etasq = ex2*cos2;
-     double nd = c/Math.sqrt(1+etasq);
-     double dl = (lw - lh)*PI/180;
-     double dl2 = dl*dl;
-     double dl4 = dl2*dl2;
-     double dl3 = dl2*dl;
-     double dl5 = dl4*dl;
-     double tan1 = Math.tan(br);
-     double tan2 = tan1*tan1;
-     double tan4 = tan2*tan2;
+     result.x = x; 
      double y = 0.9996*(    nd*cos1*dl         + nd*cos3*(1-tan2+etasq)*dl3/6 +
                         nd*cos5*(5-18*tan2+tan4)*dl5/120) + 500000;
-     return y;
-
-    }
+     result.y = y;
+     return true;
+   }   
 
    public boolean showSettings(){
      return true;
@@ -97,13 +73,13 @@ public class UTM implements Projection{
       return false;
    }
 
-   public double getOrigX(double prjx, double prjy){
-      return prjx; 
+   public boolean getOrig(double x, double y, java.awt.geom.Point2D.Double result){
+      result.x = x;
+      result.y = y;
+      return true;
    }
 
-   public double getOrigY(double prjx, double prjy) throws InvalidInputException{
-      return prjy;
-   }
+
 
    // constants for the wgs84 date
    // big half axe

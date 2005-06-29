@@ -23,25 +23,26 @@ package project;
 
 public class PolyConic extends ProjectionAdapter{
 
-   public double getPrjX(double lambda, double phi) throws InvalidInputException{
-      if(Math.abs(phi)<5)
-         phi=5*signum(phi);
-      double phi_2 = phi*PI/180;
-      double lambda_2 = (lambda-Lambda_0)*PI/180;
-      double E = lambda_2*Math.sin(phi_2);
-      double x= cot(phi_2)*Math.sin(E);
-      return x*180/PI;
-   }
+   public boolean project(double lambda, double phi, java.awt.geom.Point2D.Double result){
+       double px = 0;
+       double py = 0;
+       try{
 
-   public double getPrjY(double lambda, double phi) throws InvalidInputException{
-      if(Math.abs(phi)<5)
-         phi=5*signum(phi);
-      double phi_2 = phi*PI/180;
-      double lambda_2 = (lambda-Lambda_0)*PI/180;
-      double E = lambda_2*Math.sin(phi_2);
-      double y = (phi-Phi_0)*PI/180+ cot(phi_2)*(1-Math.cos(E));
-      return y*180/PI;
-
+          if(Math.abs(phi)<5)
+              phi=5*signum(phi);
+          double phi_2 = phi*PI/180;
+          double lambda_2 = (lambda-Lambda_0)*PI/180;
+          double E = lambda_2*Math.sin(phi_2);
+          double x= cot(phi_2)*Math.sin(E);
+          px= x*180/PI;
+          double y = (phi-Phi_0)*PI/180+ cot(phi_2)*(1-Math.cos(E));
+          py = y*180/PI;
+       }catch(Exception e){
+          return false;
+       }
+       result.x = px;
+       result.y = py;
+       return true;
    }
 
    public boolean showSettings(){

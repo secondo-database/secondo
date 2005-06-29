@@ -23,22 +23,23 @@ package project;
 
 public class Cylindrical implements Projection{
 
-   public double getPrjX(double lambda, double phi) throws InvalidInputException{
-     return lambda-Lambda_0;
-   }
 
-   public double getPrjY(double lambda, double phi) throws InvalidInputException{
-     if(phi>90 || phi<-90)
-        throw new InvalidInputException("phi out of range");
+   public boolean project(double lambda, double phi, java.awt.geom.Point2D.Double result){
+     if(phi>90 || phi<90){
+        result.x = lambda;
+        result.y = phi;
+        return false;
+     }
+     result.x = lambda-Lambda_0;
      if( phi<=(-90+secure_distance))
-         // throw new InvalidInputException("phi is to near to a pol");
-	phi = -90+secure_distance;
+	      phi = -90+secure_distance;
      if( phi>=(90-secure_distance))
         phi = 90-secure_distance;
 
      double phi_2 = phi*PI/180;
      double y =   Math.tan(phi_2);
-     return y*180/PI;
+     result.y =  y*180/PI;
+     return true;
    }
 
    public boolean showSettings(){
@@ -49,15 +50,14 @@ public class Cylindrical implements Projection{
    public String getName(){
      return "Cylindrical";
    }
-   
-   public double getOrigX(double x, double y){
-     return x + Lambda_0;
-   }
 
-   public double getOrigY(double x, double y){
-      return (Math.atan((y * PI) / 180))*180/PI; 
-   }
-  
+
+   public boolean getOrig(double x, double y, java.awt.geom.Point2D.Double result){
+      result.x = x + Lambda_0;
+      result.y = (Math.atan((y * PI) / 180))*180/PI;
+      return true;
+   }    
+
    public boolean isReversible(){
       return true;
    }
@@ -66,3 +66,4 @@ public class Cylindrical implements Projection{
    private double secure_distance = 10;
 
 }
+
