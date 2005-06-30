@@ -1,0 +1,41 @@
+# makefile.optlib
+#
+# June 2005, M. Spiekermann - Integration of G. Zimbrao's implementation
+#
+# Definitions for the OPT++ library. You can find this library at 
+#
+#  http://csmr.ca.sandia.gov/opt++/ 
+#
+# Currently this library is only tested with linux. An installation procedure
+# is given below:
+#
+# 1) Download the source files and extract them in the directory OPTLIB_ROOT
+# 2) define the macro OPTLIB_ROOT below
+OPTLIB_ROOT := $(HOME)/secondo-root/newopt/OPT++2.1
+
+# 3) patch the code with the commands
+#      cp *.tgz <OPTLIB_ROOT>; cd <OPTLIB_ROOT>; tar -xvzf opt++_patch.tgz
+# 4) run ./configure
+# 5) run make; make tests
+# 6) run at top level of secondo 
+#      make ENTROPY=true
+# 7) change "calloptimizer.pl" to use the prolog files of this directory
+#
+# Note: If you want to switch back to the standard version you must do
+# a make clean 
+
+
+# definitions for the Opt++ library
+
+# library files
+TARGET_NAME    := linux
+NEWMAT_ROOT    := $(OPTLIB_ROOT)/newmat09
+OPTLIB_BUILD   := $(OPTLIB_ROOT)/lib
+OPTLIB_ARCHIVE := $(OPTLIB_BUILD)/libopt-$(TARGET_NAME).a
+NEWMAT_ARCHIVE := $(OPTLIB_BUILD)/libnewmat-$(TARGET_NAME).a
+OPTLIB_LIBS    := $(OPTLIB_ARCHIVE) $(NEWMAT_ARCHIVE) -lm
+
+# include directories
+OPTPP_INCL  := -I$(OPTLIB_ROOT)/include
+NEWMAT_INCL := -I$(NEWMAT_ROOT)
+

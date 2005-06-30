@@ -38,9 +38,19 @@ The optimizer is started by loading this file.
   assert(highNode(0)),
   assert(boundarySize(0)),
   assert(boundaryMaxSize(0)),
-  [optimizer],
-  [database],
+
+% Change comments to activate the entropy approach!
+%
+% Uncomment the next 3 lines to activate the entropy approach
+% ['./Entropy/optimizer'],
+% ['./Entropy/statistics'],
+% [addcounter],
+
+% comment the next 2 lines to deactivate the standard optimizer
+  [optimizer], 
   [statistics],
+
+  [database],
   [operators],
   [boundary],
   [searchtree].

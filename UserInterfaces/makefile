@@ -50,10 +50,21 @@ RL_COMPILE_FLAG = -DREADLINE
 RL_LD_FLAG = -lreadline -lncurses
 endif
 
+# Some optional switches used for providing a prolog
+# predicate which maximizes the entropy. For details
+# refer to "SecondoPL.cpp" and the subdirectory "Optimizer/Entropy"
+ifdef ENTROPY 
+
+include ../Optimizer/Entropy/makefile.optlib
+
+ENTROPY_OBJ := ../Optimizer/Entropy/entropy.$(OBJEXT) 
+APPLOBJECTS += callEntropy
+CCFLAGS += -DSECONDO_USE_ENTROPY
+endif
+
 
 CODE_DEPENDENCIES := $(patsubst %.$(OBJEXT), %.dep, $(APPLOBJECTS))
 APPLICATIONS := $(addsuffix $(EXEEXT), $(APPLICATIONS))
-
 #
 # TARGET SECTION
 #
@@ -79,6 +90,11 @@ TTYDemo: ../$(SECONDO_DEMO)/SecondoTTY$(SMIUP)$(EXEEXT)
 .PHONY: optimizer
 optimizer: $(OPTDIR)/SecondoPL$(EXEEXT) $(OPTDIR)/SecondoPLCS$(EXEEXT)
 
+:PHONE: callEntropy
+callEntropy:
+	$(MAKE) -C ../Optimizer/Entropy allEntropy
+
+
 .PHONY: clean
 clean:
 	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS)
@@ -94,14 +110,15 @@ CCFLAGS += $(DEFAULTCCFLAGS)
 	$(CC) -MM $(CCFLAGS) $< > $@
 
 %.$(OBJEXT): %.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) $(RL_COMPILE_FLAG)
+	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) $(RL_COMPILE_FLAG) 
 
 
 #  Rules for linkage
 
 APP_OBJECTS :=  DisplayTTY.o SecondoInterfaceGeneral.o AlgebraList.o
 
-$(BINDIR)/SecondoTTYBDB$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES) 
+
+$(BINDIR)/SecondoTTYBDB$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES)
 $(BINDIR)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG)
 
@@ -123,14 +140,13 @@ $(BINDIR)/TestRunner$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES)
 $(BINDIR)/TestRunner$(EXEEXT): TestRunner.o SecondoInterface.o  $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG)
 
+$(OPTDIR)/SecondoPL$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES)
+$(OPTDIR)/SecondoPL$(EXEEXT): SecondoPL.o SecondoInterface.o $(ENTROPY_OBJ) $(APP_OBJECTS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) $(OPTLIB_LIBS)
 
-$(OPTDIR)/SecondoPL$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES) 
-$(OPTDIR)/SecondoPL$(EXEEXT): SecondoPL.o SecondoInterface.o $(APP_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS)
-
-$(OPTDIR)/SecondoPLCS$(EXEEXT): $(SECLIBFILES) 
-$(OPTDIR)/SecondoPLCS$(EXEEXT): SecondoPL.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS) $(PLLDFLAGS) $(RL_LD_FLAG)
+$(OPTDIR)/SecondoPLCS$(EXEEXT): $(SECLIBFILES)
+$(OPTDIR)/SecondoPLCS$(EXEEXT): SecondoPL.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o $(ENTROPY_OBJ)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS) $(PLLDFLAGS) $(RL_LD_FLAG) $(OPTLIB_LIBS)
 
 
 include $(CODE_DEPENDENCIES:.cpp=.dep)

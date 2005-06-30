@@ -159,6 +159,7 @@ clean:
 	$(MAKE) -C UserInterfaces clean
 	$(MAKE) -C Jpl clean
 	$(MAKE) -C OptServer clean
+	$(MAKE) -C Optimizer clean
 	$(MAKE) -f ./makefile.libs clean
 
 .PHONY: realclean

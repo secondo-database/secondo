@@ -20,6 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+\vspace{1cm}
 \def\CC{C\raise.22ex\hbox{{\footnotesize +}}\raise.22ex\hbox{\footnotesize +}\xs
 pace}
 \centerline{\LARGE \bf  SecondoPL}
@@ -52,6 +53,10 @@ using namespace std;
 #include "Profiles.h"
 #include "LogMsg.h"
 #include "License.h"
+
+#ifdef SECONDO_USE_ENTROPY
+#include "../Optimizer/Entropy/entropy.h"
+#endif
 
 SecondoInterface* si = 0;
 NestedList* plnl = 0;
@@ -314,6 +319,137 @@ TermToListExpr(term_t t, NestedList* nl, bool& error)
   return result;
 }
 
+// some code below can only be translated
+// when the Optimizaton-Library (OPT++) is
+// present
+#ifdef SECONDO_USE_ENTROPY
+
+/*
+
+4 Function FloatListToVector
+
+Converts a PROLOG list of float numbers to a Vector of float numbers (double).
+
+*/
+void
+FloatListToVector(term_t t, std::vector<double>& v, bool& error)
+{
+  error = 1;
+  if( PL_is_list(t) )
+  {
+    term_t head = PL_new_term_ref();
+    term_t list = PL_copy_term_ref(t);
+
+    v.clear();
+    while( PL_get_list(list, head, list) )
+    {
+      double d;
+
+      if ( PL_get_float(head, &d) )
+        v.push_back(d);
+      else
+        return;
+    }
+
+    error = 0;
+  }
+}
+
+/*
+
+4 Function FloatListPairToVectorPair
+
+Converts a PROLOG list of (integer,float) pair to a vector of (int,float) pair.
+
+*/
+void
+FloatListPairToVectorPair(term_t t, std::vector<pair<int,double> >& v, bool& error)
+{
+  error = 1;
+  if( PL_is_list(t) )
+  {
+    // Outer list
+    term_t o_head = PL_new_term_ref();
+    term_t o_list = PL_copy_term_ref(t);
+
+    v.clear();
+    while( PL_get_list(o_list, o_head, o_list) )
+    {
+      pair<int,double> p;
+      term_t i_head = PL_new_term_ref();
+      term_t i_list = PL_copy_term_ref(o_head);
+
+      PL_get_list(i_list, i_head, i_list);
+      if ( PL_get_integer(i_head, &p.first) )
+        if ( PL_get_list(i_list, i_head, i_list) && PL_get_float(i_head, &p.second) )
+          v.push_back(p);
+        else
+          return;
+      else
+        return;
+    }
+
+    error = 0;
+  }
+}
+
+/*
+4 Function FloatVectorToList
+
+Converts a Vector of float numbers to a PROLOG list of float numbers (double).
+
+*/
+void
+FloatVectorToList(std::vector<double>& v,term_t& t, bool& error)
+{
+  term_t list = PL_copy_term_ref(t);
+  term_t head = PL_new_term_ref();
+  std::vector<double>::iterator iter;
+
+  error = 1;
+  for( iter = v.begin(); iter != v.end(); iter++ )
+  {
+    if ( !PL_unify_list(list, head, list) || !PL_unify_float(head, *iter) )
+      return;
+  }
+
+  error = !PL_unify_nil(list);
+}
+
+/*
+4 Function FloatVectorPairToListPair
+
+Converts a vector of (int,float) numbers to a PROLOG list of (integer,float).
+
+*/
+void
+FloatVectorPairToListPair(std::vector<pair<int,double> >& v,term_t& t, bool& error)
+{
+  // Outer list
+  term_t o_list = PL_copy_term_ref(t);
+  term_t o_head = PL_new_term_ref();
+  std::vector<pair<int,double> >::iterator iter;
+
+  error = 1;
+  for( iter = v.begin(); iter != v.end(); iter++ )
+  {
+    if ( !PL_unify_list(o_list, o_head, o_list) ) return;
+
+    term_t i_list = PL_copy_term_ref(o_head);
+    term_t i_head = PL_new_term_ref();
+
+    if ( !PL_unify_list(i_list, i_head, i_list) ) return;
+    if ( !PL_unify_integer(i_head, iter->first) ) return;
+    if ( !PL_unify_list(i_list, i_head, i_list) ) return;
+    if ( !PL_unify_float(i_head, iter->second) ) return;
+    if ( !PL_unify_nil(i_list) ) return;
+  }
+
+  error = !PL_unify_nil(o_list);
+}
+
+#endif
+
 /*
 
 4 Function pl\_print\_term\_le
@@ -430,11 +566,85 @@ pl_call_secondo(term_t command, term_t result)
   PL_fail;
 }
 
+#ifdef SECONDO_USE_ENTROPY
+
+/*
+
+4 Function pl\_maximize\_entropy
+
+Computes conditional probabilities using the Maximum Entropy Aproach
+Function to compute the conditional probabilities using Maximum Entropy Approach
+usage: 
+
+---- maximize_entropy( [p1 p2 p3 ... pn], [[1, cp1], [2, cp2] ...], result )
+----
+
+In this function is assumed the same codification of predicates using bits, as
+done in POG construction - that is, to the predicate n, if the ith-bit is set to 1
+then the ith-predicate is already evaluated.
+Each pi is the probability of predicate $2^i$
+Each pair $[n, cp$] is the given probability cp of joint predicates n using the ith-bit
+convention above.
+Result is in the form of a list of pairs $[n, cp]$ also.
+
+---- Example: if we call
+       maximize_entropy( [0.1, 0.3, 0.4], [[3,0.03],[5,0.04]], result )
+     the result should be
+       [[1,0.1],[2,0.3],[3,0.03],[4,0.4],[5,0.04],[6,0.12],[7,0.012]]
+----
+
+*/
+
+static foreign_t
+pl_maximize_entropy(term_t predicates, term_t probabilities, term_t result)
+{
+  // Type checking.
+  if( !PL_is_list(predicates) || !PL_is_list(probabilities) )
+    PL_fail;
+  else
+  {
+    std::vector<double> vectorPredicates;
+    std::vector<pair<int,double> > vectorProbabilities, vectorResult;
+    bool error1, error2;
+
+    FloatListToVector(predicates, vectorPredicates, error1);
+    FloatListPairToVectorPair(probabilities, vectorProbabilities, error2);
+    if( error1 || error2 )
+      PL_fail;
+    else
+    {
+      bool error;
+
+      try
+      {
+        maximize_entropy( vectorPredicates, vectorProbabilities, vectorResult );
+        FloatVectorPairToListPair(vectorResult, result, error);
+      }
+      catch(...)
+      {
+        PL_fail;
+      }
+
+      if( error )
+        PL_fail;
+    }
+
+    PL_succeed;
+  }
+}
+
+#endif
+
 PL_extension predicates[] =
 {
   { "secondo", 2, (void*)pl_call_secondo, 0 },
   { "secondo_error_info", 2, (void*)pl_get_error_info, 0 },
   { "secondo_print_le", 1, (void*)pl_print_term_le, 0 },
+
+#ifdef SECONDO_USE_ENTROPY
+  { "maximize_entropy", 3, (void*)pl_maximize_entropy, 0 },
+#endif
+
   { 0, 0, 0, 0 } /* terminating line */
 };
 
