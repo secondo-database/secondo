@@ -1,42 +1,40 @@
 package project;
 
 
+import javax.swing.*;
+
 public class WGSGK extends ProjectionAdapter{
 
 
-public String getName(){ return "WGS2GK";}
+public String getName(){ return "Gausss-Krueger";}
 
 private static class P3d{
   double x; double y; double z;
 }
 
-private static P3d p3d = new P3d();
 
-public boolean showSettings(){return true;}
+public boolean showSettings(){
+  gKSettings.setVisible(true);
+  return true;
+
+}
 
 public boolean project(double l1, double b1, java.awt.geom.Point2D.Double result){
+  if(!useWGS){
+     try{
+         double a = l1*Pi/180;
+         double b = b1*Pi/180;
+         BesselBLnachGaussKrueger(b,a,result);
+         return true;
+     } catch(Exception e){
+         e.printStackTrace();
+         return false;
+     }
+  }
    
-  /*
-
-    // Heimeier version , unprecise with jumps
-
-   wgs2pot(l1,b1,result);
-
-   System.out.println("Potsdam : "+ result.x + ", " + result.y);
-   double a = result.x*Pi/180;
-   double b = result.y*Pi/180;
-
-   BesselBLnachGaussKrueger(a,b,result);
-
-   return true;
-  */
-
-
   try{
-    // labonde - precise with jumps
 	  l1=Pi*l1/180;
 	  b1=Pi*b1/180;
-     
     double a=awgs;
 	  double b=bwgs;
 	  double eq=eqwgs;
@@ -66,35 +64,6 @@ public boolean project(double l1, double b1, java.awt.geom.Point2D.Double result
   }
 
 }
-
-
-
-
-
-public static double  Pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164;
-
-private static final double awgs = 6378137.0;         // WGS84 Semi-Major Axis = Equatorial Radius in meters
-private static final double bwgs = 6356752.314;      // WGS84 Semi-Minor Axis = Polar Radius in meters
-private static final double abes = 6377397.155;       // Bessel Semi-Major Axis = Equatorial Radius in meters
-private static final double bbes = 6356078.962;       // Bessel Semi-Minor Axis = Polar Radius in meters
-private static final double cbes = 111120.6196;       // Bessel latitude to Gauss-Krueger meters
-private static final double dx   = -585.7;                // Translation Parameter 1
-private static final double dy   = -87.0;                  // Translation Parameter 2
-private static final double dz   = -409.2;                // Translation Parameter 3
-private static final double rotx = 2.540423689E-6;   // Rotation Parameter 1
-private static final double roty = 7.514612057E-7;   // Rotation Parameter 2
-private static final double rotz = -1.368144208E-5;  // Rotation Parameter 3
-private static final double sc = 0.99999122;           // Scaling Factor
-private static double h1 = 0;
-// derived constants
-private static double eqwgs = (awgs*awgs-bwgs*bwgs)/(awgs*awgs);
-private static double eqbes = (abes*abes-bbes*bbes)/(abes*abes);
-
-
-
-// the meridian code digit
-private double MDC = 2.0;  // standard in Hagen
-
 
 void HelmertTransformation(double x,double y,double z,P3d p)
 {
@@ -131,10 +100,6 @@ void BesselBLnachGaussKrueger(double b,double ll,java.awt.geom.Point2D.Double re
   result.x = Re;
   result.y = Ho;
 }
-
-
-
-
 
 void BLRauenberg (double x,double y,double z,P3d result)
 {
@@ -182,45 +147,94 @@ double round(double src)
   return theInteger;
 }
 
-// heimeier vs. labonde
-private void  wgs2pot(double bw, double lw, java.awt.geom.Point2D.Double result){
-   double a = 6378137.000;
-   double fq = fq = 3.35281066e-3;
-   double f = fq - 1.003748e-5;
-   double dx = -587;
-   double dy = -16;
-   double dz = -393;
 
-   double e2q = (2*fq-fq*fq);
-   double e2 = (2*f-f*f);
-   double b1 = bw * (Pi/180);
-   double l1 = lw * (Pi/180);
 
-   double nd = a/Math.sqrt(1 - e2q*Math.sin(b1)*Math.sin(b1));
-   double xw = nd*Math.cos(b1)*Math.cos(l1);
-   double yw = nd*Math.cos(b1)*Math.sin(l1);
-   double zw = (1 - e2q)*nd*Math.sin(b1);
+public static double  Pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164;
 
-   double x = xw + dx;
-   double y = yw + dy;
-   double z = zw + dz;
-   double rb = Math.sqrt(x*x + y*y);
-   double b2 = (180/Pi) * Math.atan((z/rb)/(1-e2));  
-   double l2=0;
-   if(x>0){
-      l2 = (180/Pi) * Math.atan(y/x);
-   }else if (x<0 && y>0){
-      l2 = (180/Pi) * Math.atan(y/x) + 180; 
-   }else if(x<0 && y<0){
-      l2 = (180/Pi) * Math.atan(y/x) - 180;
-   }
-   result.x = l2;
-   result.y = b2;
-  
+private static final double awgs = 6378137.0;         // WGS84 Semi-Major Axis = Equatorial Radius in meters
+private static final double bwgs = 6356752.314;      // WGS84 Semi-Minor Axis = Polar Radius in meters
+private static final double abes = 6377397.155;       // Bessel Semi-Major Axis = Equatorial Radius in meters
+private static final double bbes = 6356078.962;       // Bessel Semi-Minor Axis = Polar Radius in meters
+private static final double cbes = 111120.6196;       // Bessel latitude to Gauss-Krueger meters
+private static final double dx   = -585.7;                // Translation Parameter 1
+private static final double dy   = -87.0;                  // Translation Parameter 2
+private static final double dz   = -409.2;                // Translation Parameter 3
+private static final double rotx = 2.540423689E-6;   // Rotation Parameter 1
+private static final double roty = 7.514612057E-7;   // Rotation Parameter 2
+private static final double rotz = -1.368144208E-5;  // Rotation Parameter 3
+private static final double sc = 0.99999122;           // Scaling Factor
+private static double h1 = 0;
+// derived constants
+private static double eqwgs = (awgs*awgs-bwgs*bwgs)/(awgs*awgs);
+private static double eqbes = (abes*abes-bbes*bbes)/(abes*abes);
+// point for shipping results
+private static P3d p3d = new P3d();
+// the meridian code digit
+private double MDC = 2.0;  // standard in Hagena
+private boolean useWGS = true; // usw coordinates in wgs ellipsoid
+private GKSettings gKSettings = new GKSettings(this);
+
+
+private static class GKSettings extends javax.swing.JDialog{
+
+  public GKSettings(WGSGK owner){
+      super(parent);
+      this.owner = owner; 
+      setSize(640,480);
+      ButtonGroup SourceEllipsoid = new ButtonGroup();     
+      SourceEllipsoid.add(UseWGS=new JRadioButton("WGS 84"));
+      SourceEllipsoid.add(UseBessel=new JRadioButton("Bessel"));
+      MDCField = new JTextField(4);
+      MDCField.setText("2");
+      JPanel P = new JPanel(new java.awt.GridLayout(3,1)); 
+      UseWGS.setSelected(true);
+      P.add(UseWGS);
+      P.add(UseBessel);
+      P.add(MDCField);     
+      getContentPane().setLayout(new java.awt.BorderLayout()); 
+      JPanel P1 = new JPanel(new java.awt.FlowLayout());
+      P1.add(P);
+      getContentPane().add(P1,java.awt.BorderLayout.CENTER);
+      JPanel P2 = new JPanel(new java.awt.GridLayout(1,2));
+      java.awt.event.ActionListener AL = new java.awt.event.ActionListener(){
+         public void actionPerformed(java.awt.event.ActionEvent evt){
+            Object src = evt.getSource();
+            if(okButton.equals(src)){
+                 try{
+                    GKSettings.this.owner.MDC = Integer.parseInt(MDCField.getText());
+                    GKSettings.this.owner.useWGS=UseWGS.isSelected();
+                    setVisible(false);
+                 }catch(Exception e){
+                      
+                 }
+
+            }else{
+              if(GKSettings.this.owner.useWGS){
+                 UseWGS.setSelected(true);
+              } else
+                 UseBessel.setSelected(true);
+              MDCField.setText(""+GKSettings.this.owner.MDC);
+              setVisible(false);
+            }
+         }
+      };
+      (okButton = new JButton("ok")).addActionListener(AL);
+      (cancelButton = new JButton("cancel")).addActionListener(AL);
+      P2.add(okButton);
+      P2.add(cancelButton);
+      getContentPane().add(P2,java.awt.BorderLayout.SOUTH); 
+  }
+
+  static javax.swing.JFrame parent=null;
+  JRadioButton UseWGS;
+  JRadioButton UseBessel;
+  JTextField   MDCField;
+  WGSGK owner;
+  JButton okButton;
+  JButton cancelButton;
+
+
 }
-
-
-
 
 
 } // close class
