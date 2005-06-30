@@ -15,8 +15,25 @@ private static P3d p3d = new P3d();
 public boolean showSettings(){return true;}
 
 public boolean project(double l1, double b1, java.awt.geom.Point2D.Double result){
-  try{
+   
+  /*
 
+    // Heimeier version , unprecise with jumps
+
+   wgs2pot(l1,b1,result);
+
+   System.out.println("Potsdam : "+ result.x + ", " + result.y);
+   double a = result.x*Pi/180;
+   double b = result.y*Pi/180;
+
+   BesselBLnachGaussKrueger(a,b,result);
+
+   return true;
+  */
+
+
+  try{
+    // labonde - precise with jumps
 	  l1=Pi*l1/180;
 	  b1=Pi*b1/180;
      
@@ -44,8 +61,10 @@ public boolean project(double l1, double b1, java.awt.geom.Point2D.Double result
 	  BesselBLnachGaussKrueger(b2,l2,result);
     return true;
   }catch(Exception e){
+     e.printStackTrace();
      return false;
   }
+
 }
 
 
@@ -72,6 +91,11 @@ private static double eqwgs = (awgs*awgs-bwgs*bwgs)/(awgs*awgs);
 private static double eqbes = (abes*abes-bbes*bbes)/(abes*abes);
 
 
+
+// the meridian code digit
+private double MDC = 2.0;  // standard in Hagen
+
+
 void HelmertTransformation(double x,double y,double z,P3d p)
 {
   p.x=dx+(sc*(1*x+rotz*y-roty*z));
@@ -83,7 +107,8 @@ void BesselBLnachGaussKrueger(double b,double ll,java.awt.geom.Point2D.Double re
 {
   double bg=180*b/Pi;
   double lng=180*ll/Pi;
-  double l0=3*round((180*ll/Pi)/3);
+//  double l0=3*round((180*ll/Pi)/3);
+  double l0 = 3*MDC;
   l0=Pi*l0/180;
   double l=ll-l0;
   double k=Math.cos(b);
@@ -100,11 +125,16 @@ void BesselBLnachGaussKrueger(double b,double ll,java.awt.geom.Point2D.Double re
   double Y=Ng*k*l+Ng*(Vq-t*t)*k*k*k*l*l*l/6+Ng*(5-18*t*t+t*t*t*t)*k*k*k*k*k*l*l*l*l*l/120;
   double kk=500000;
   double Pii=Pi;
-  double RVV=round((180*ll/Pii)/3);
+  //double RVV=round((180*ll/Pii)/3);
+  double RVV = MDC; 
   double Re=RVV*1000000+kk+Y;
   result.x = Re;
   result.y = Ho;
 }
+
+
+
+
 
 void BLRauenberg (double x,double y,double z,P3d result)
 {
@@ -133,6 +163,8 @@ double neuF(double f,double x,double y,double p)
   return(Math.atan(p/nnq));
 }
 
+
+
 double round(double src)
 {
   double theInteger;
@@ -149,4 +181,46 @@ double round(double src)
 
   return theInteger;
 }
+
+// heimeier vs. labonde
+private void  wgs2pot(double bw, double lw, java.awt.geom.Point2D.Double result){
+   double a = 6378137.000;
+   double fq = fq = 3.35281066e-3;
+   double f = fq - 1.003748e-5;
+   double dx = -587;
+   double dy = -16;
+   double dz = -393;
+
+   double e2q = (2*fq-fq*fq);
+   double e2 = (2*f-f*f);
+   double b1 = bw * (Pi/180);
+   double l1 = lw * (Pi/180);
+
+   double nd = a/Math.sqrt(1 - e2q*Math.sin(b1)*Math.sin(b1));
+   double xw = nd*Math.cos(b1)*Math.cos(l1);
+   double yw = nd*Math.cos(b1)*Math.sin(l1);
+   double zw = (1 - e2q)*nd*Math.sin(b1);
+
+   double x = xw + dx;
+   double y = yw + dy;
+   double z = zw + dz;
+   double rb = Math.sqrt(x*x + y*y);
+   double b2 = (180/Pi) * Math.atan((z/rb)/(1-e2));  
+   double l2=0;
+   if(x>0){
+      l2 = (180/Pi) * Math.atan(y/x);
+   }else if (x<0 && y>0){
+      l2 = (180/Pi) * Math.atan(y/x) + 180; 
+   }else if(x<0 && y<0){
+      l2 = (180/Pi) * Math.atan(y/x) - 180;
+   }
+   result.x = l2;
+   result.y = b2;
+  
+}
+
+
+
+
+
 } // close class
