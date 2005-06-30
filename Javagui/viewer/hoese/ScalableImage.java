@@ -139,17 +139,38 @@ public class ScalableImage extends Component {
       }
       Rectangle2D r = getBounds();
        // first, we convert the cliprectangle into coordinated in the image
-      double iw = image.getWidth();
-      double ih = image.getHeight();
+      int iw = image.getWidth();
+      int ih = image.getHeight();
       // copmpute the scale factors
-      double sfx = iw/r.getWidth();
-      double sfy = ih/r.getHeight();
-      clippedScaledImage=image.getSubimage((int)((ClipRect.getX()-r.getX())*sfx),
-                                           (int)((ClipRect.getY()-r.getY())*sfy),
-                                           Math.max(1,(int)(ClipRect.getWidth()*sfx)),
-                                           Math.max(1,(int)(ClipRect.getHeight()*sfy)));
-      clippedScaledImage=clippedScaledImage.getScaledInstance((int)ClipRect.getWidth(),
-                                                               (int)ClipRect.getHeight(),Image.SCALE_FAST);
+      double sfx = ((double)iw)/r.getWidth();
+      double sfy = ((double)ih)/r.getHeight();
+      int x = (int)((ClipRect.getX()-r.getX())*sfx);
+      int y = (int)((ClipRect.getY()-r.getY())*sfy);
+      int w = Math.max(1,(int)(ClipRect.getWidth()*sfx));
+      int h = Math.max(1,(int)(ClipRect.getHeight()*sfy));
+      if(x>iw || y > ih){
+        clippedScaledImage=null;
+        return;
+      }
+      if(x+h<0 || y+h<0){
+        clippedScaledImage=null;
+        return;
+      }
+      x = Math.max(0,x);
+      y = Math.max(0,y);
+      if(y+h>ih){
+         h = ih - y;
+      }
+      if(x+w>iw){
+         w = iw -x;  
+      }
+      clippedScaledImage=image.getSubimage(x,y,w,h);
+      int cw = ((int)ClipRect.getWidth());
+      int ch = (int)ClipRect.getHeight();
+      if(cw>0 && ch>0)
+         clippedScaledImage=clippedScaledImage.getScaledInstance(cw,ch,Image.SCALE_FAST);
+      else
+        clippedScaledImage = null;
    } 
 
    public static long getMaxPixels(){

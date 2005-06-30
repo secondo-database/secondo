@@ -43,7 +43,7 @@ public class GraphWindow extends JLayeredPane
   HoeseViewer mw;
 
 /** a scalable image as background */
-  ScalableImage background=new ScalableImage();
+ ScalableImage background=new ScalableImage();
 
 /** a flag for ignoring a repaint message.
     This can be used to make all changes without new drawing. 
@@ -73,13 +73,14 @@ public class GraphWindow extends JLayeredPane
       }
     };
     // add a switch for the background
-    JToggleButton jt = new JToggleButton();
-    jt.setSelected(true);
-    jt.setAlignmentX(Component.CENTER_ALIGNMENT);
-    jt.setPreferredSize(new Dimension(10, 10));
-    jt.addActionListener(LayerButtonListener);
-    jt.setActionCommand("-1");
-    mw.addSwitch(jt,0);
+    //JToggleButton jt = new JToggleButton();
+    //jt.setSelected(true);
+    //jt.setAlignmentX(Component.CENTER_ALIGNMENT);
+    //jt.setPreferredSize(new Dimension(10, 10));
+    //jt.addActionListener(LayerButtonListener);
+    //jt.setActionCommand("-1");
+    //mw.addSwitch(jt,0);
+    add(background,new Integer(-1));
   }
 
 
@@ -261,11 +262,15 @@ public class GraphWindow extends JLayeredPane
     if(bgi==null){
       remove(background);
       repaint();
+      if(gui.Environment.DEBUG_MODE){
+          System.err.println("cannot find the background ");
+      }
       return;
     }
     BufferedImage bgimg = bgi.getImage();
     if(bgimg==null){
-       remove(background);
+       //remove(background);
+       background.setImage(null);
        repaint();
        return;
     }
@@ -276,9 +281,9 @@ public class GraphWindow extends JLayeredPane
     }
 
     
-   if(img2==null){
-       add(background,new Integer(-1));
-    }
+   //if(img2==null){
+   //    add(background,new Integer(-1));
+   // }
     background.setImage(bgimg);
     repaint();
   }
