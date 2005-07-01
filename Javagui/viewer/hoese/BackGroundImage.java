@@ -25,7 +25,7 @@ public class  BackGroundImage extends JDialog{
   public BackGroundImage(Frame owner){
      // create the dialog
       super(owner,true);
-      JPanel P = new JPanel(new GridLayout(6,2));
+      JPanel P = new JPanel(new GridLayout(8,2));
       P.add(new JLabel("x",JLabel.RIGHT));
       P.add(XTF = new JTextField(6));
       P.add(new JLabel("y",JLabel.RIGHT));
@@ -34,6 +34,12 @@ public class  BackGroundImage extends JDialog{
       P.add(WTF = new JTextField(6));
       P.add(new JLabel("height",JLabel.RIGHT));
       P.add(HTF = new JTextField(6));
+      P.add(new JLabel(""));
+      useForBBox.setSelected(true);
+      P.add(useForBBox);
+      useTFW.setSelected(false);
+      P.add(useTFW);
+      P.add(loadTFW);
       P.add(SelectImageBtn = new JButton("select Image"));
       P.add(RemoveImageBtn = new JButton("remove Image"));
       P.add(ImageName = new JLabel(""));
@@ -79,13 +85,54 @@ public class  BackGroundImage extends JDialog{
      SelectImageBtn.addActionListener(AL);
      RemoveImageBtn.addActionListener(AL);
      OkBtn.addActionListener(AL);
+
+     loadTFW.addActionListener(new ActionListener(){
+         public void actionPerformed(ActionEvent evt){
+             if(!tfw.load()){
+                viewer.MessageBox.showMessage("Error in loading file");
+             }
+         }
+
+     });
+
+     useTFW.addChangeListener(new javax.swing.event.ChangeListener(){
+         public void stateChanged(javax.swing.event.ChangeEvent evt){
+            if(useTFW.isSelected()){
+               if(!tfw.initialized){
+                  useTFW.setSelected(false);
+                  viewer.MessageBox.showMessage("load tfw file first");
+                  return;
+               }
+               XTF.setEnabled(false);
+               YTF.setEnabled(false);
+               WTF.setEnabled(false);
+               HTF.setEnabled(false);
+               R1.setRect(0,0,100,100);
+               if(theImage!=null){
+                 R1.setRect(theImage.getMinX(),theImage.getMinY(),theImage.getWidth(),theImage.getHeight());
+               }
+               tfw.convertRectangle(R1,R2);
+               double w= Math.max(1,R2.getWidth());
+               double h = Math.max(1,R2.getHeight());
+               bounds.setRect(R2.getX(),R2.getY(),w,h);
+               reset();
+                
+            } else{
+               XTF.setEnabled(true);
+               YTF.setEnabled(true);
+               WTF.setEnabled(true);
+               HTF.setEnabled(true); 
+            }
+         }
+     });
+
+
+
      setSize(640,480);
      reset();// put the initail values into the textfields
   }
 
 private void selectImage(){
-  if(FC==null)
-     FC = new JFileChooser();
   if(FC.showOpenDialog(this)==FC.APPROVE_OPTION){
      File f = FC.getSelectedFile();
      try{
@@ -151,6 +198,11 @@ public boolean setBBox(double x, double y, double w, double h){
     reset(); // put the values into the textfields
     return true; 
 }
+
+public boolean useForBoundingBox(){
+   return useForBBox.isSelected();
+}
+
 
 /** 
   * Returns the image of this BackgroundImage 
@@ -268,6 +320,10 @@ private JTextField XTF;
 private JTextField YTF;
 private JTextField WTF;
 private JTextField HTF;
+private JRadioButton useTFW = new JRadioButton("use tfw");
+private JButton loadTFW = new JButton("loadTFW");
+
+
 private JButton SelectImageBtn;
 private JButton RemoveImageBtn;
 private JLabel ImageName;
@@ -275,7 +331,114 @@ private JButton ResetBtn;
 private JButton ApplyBtn;
 private JButton OkBtn;
 private JButton CancelBtn;
-private JFileChooser FC = null;      
+private JFileChooser FC = new JFileChooser();
+private TFW tfw = new TFW();
+private Rectangle2D.Double R1 = new Rectangle2D.Double();
+private Rectangle2D.Double R2 = new Rectangle2D.Double();
+private JRadioButton useForBBox = new JRadioButton("include in bbox");
+
+
+
+private class TFW{
+
+   String filename="";
+   double pixXSize=1.0;
+   double pixYSize=1.0;
+   double transX=0.0;
+   double transY=0.0;
+   double rotX=0.0;
+   double rotY=0.0;
+   boolean initialized = false;
+
+   void convertRectangle(Rectangle2D.Double source,Rectangle2D.Double result){
+      double xs1 = source.getX();
+      double ys1 = source.getY();
+      double xs2 = xs1+source.getWidth();
+      double ys2 = ys1+source.getHeight();
+      
+      double xr1 = pixXSize*xs1+rotX*ys1+transX;
+      double xr2 = pixXSize*xs2+rotX*ys2+transX;
+
+      double yr1 = pixYSize*ys1+rotY*xs1+transY;
+      double yr2 = pixYSize*ys2+rotY*xs2+transY;
+      double tmp;
+      if(yr1>yr2){
+        tmp = yr1;
+        yr1 = yr2;
+        yr2 = tmp;
+      }
+
+      result.setRect(xr1,yr1,xr2-xr1,yr2-yr1);
+   }
+
+   boolean load(){
+      if(FC.showOpenDialog(null)==FC.APPROVE_OPTION){
+         File file = FC.getSelectedFile();
+         try{
+            BufferedReader BR = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+            String line;
+            double tmpXSize=0,tmpYSize=0,tmpRotX=0,tmpRotY=0,tmpTransX=0,tmpTransY=0;
+            line = BR.readLine();
+            if(line==null)
+                return false;
+            line = line.trim().trim(); // remove " *"
+            tmpXSize=Double.parseDouble(line);
+             
+            line = BR.readLine();
+            if(line==null)
+                return false;
+            line = line.trim(); // remove " *"
+            tmpRotX=Double.parseDouble(line);
+            
+            line = BR.readLine();
+            if(line==null)
+                return false;
+            line = line.trim(); // remove " *"
+            tmpRotY=Double.parseDouble(line);
+
+            line = BR.readLine();
+            if(line==null)
+                return false;
+            line = line.trim(); // remove " *"
+            tmpYSize=Double.parseDouble(line);
+
+            line = BR.readLine();
+            if(line==null)
+                return false;
+            line = line.trim(); // remove " *"
+            tmpTransX=Double.parseDouble(line);
+
+            line = BR.readLine();
+            if(line==null)
+                return false;
+            line = line.trim(); // remove " *"
+            tmpTransY=Double.parseDouble(line);
+            BR.close();
+
+            if(tmpXSize<=0) return false;
+            if(tmpYSize==0) return false;
+
+            pixXSize = tmpXSize;
+            pixYSize = tmpYSize;
+            rotX = tmpRotX;
+            rotY = tmpRotY;
+            transX = tmpTransX;
+            transY = tmpTransY;
+            filename = file.getAbsolutePath();   
+            initialized=true;           
+            return true;
+          }catch(Exception e){
+             e.printStackTrace();
+             return false;
+          }
+      } else{
+        return true; // abort is not an error
+      }
+   } 
+
+}
+
+
 
 private class ImageDisplay extends JLabel implements java.awt.image.ImageObserver{
 
@@ -299,14 +462,30 @@ private class ImageDisplay extends JLabel implements java.awt.image.ImageObserve
  /** Function for implementing the imageobserver interface */
     public boolean imageUpdate(Image img, int infoflags, int x, int y, int width, int height) {
        if((infoflags & ALLBITS) >0){
+           if(useTFW.isSelected()){
+              R1.setRect(x,y,width,height);            
+              tfw.convertRectangle(R1,R2);
+              double w= Math.max(1,R2.getWidth());
+              double h = Math.max(1,R2.getHeight());
+              bounds.setRect(R2.getX(),R2.getY(),w,h);
+              reset();
+           }
            repaint();
            return  false;
        }
        return true;
     }
  
-  public void setImage(Image img){
+  public void setImage(BufferedImage img){
         theImage = img;
+         if(useTFW.isSelected()){
+              R1.setRect(img.getMinX(),img.getMinY(),img.getWidth(),img.getHeight());            
+              tfw.convertRectangle(R1,R2);
+              double w= Math.max(1,R2.getWidth());
+              double h = Math.max(1,R2.getHeight());
+              bounds.setRect(R2.getX(),R2.getY(),w,h);
+              reset();
+         }
         repaint();
   }
   private Image theImage;

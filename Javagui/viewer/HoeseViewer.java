@@ -826,7 +826,7 @@ public class HoeseViewer extends SecondoViewer {
     AASetBackground = new AbstractAction("set image") {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         bgImage.setVisible(true);
-        GraphDisplay.updateBackground(); 
+        GraphDisplay.updateBackground();
       }
     };
 

@@ -231,7 +231,13 @@ public class GraphWindow extends JLayeredPane
    * @see <a href="Categorysrc.html#updateBoundingBox">Source</a> 
    */
   public void updateBoundingBox () {
-    Rectangle2D.Double r = null;
+    Rectangle2D.Double r;
+    BackGroundImage bgi = mw.getBackgroundImage();
+    if(bgi.useForBoundingBox()){
+         r = (Rectangle2D.Double) bgi.getBBox().clone();
+    }else{
+         r = null;
+    }
     Interval in = null;
     for (int i = 0; i < getComponentCount(); i++)
       if (getComponent(i) instanceof Layer) {
@@ -267,9 +273,15 @@ public class GraphWindow extends JLayeredPane
       }
       return;
     }
+    if(bgi.useForBoundingBox()) {
+        ignorePaint=true;
+        updateBoundingBox();
+        ignorePaint=false;
+    }
+    mw.updateViewParameter();
+
     BufferedImage bgimg = bgi.getImage();
     if(bgimg==null){
-       //remove(background);
        background.setImage(null);
        repaint();
        return;
@@ -307,7 +319,6 @@ public class GraphWindow extends JLayeredPane
     background.setClipRect(R2);
     Graphics2D g2 = (Graphics2D)g;
     g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-    
     // mark the selected object
     super.paintChildren(g2);
     DsplGraph dg = mw.getSelGO();
