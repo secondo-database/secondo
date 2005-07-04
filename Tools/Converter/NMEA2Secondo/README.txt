@@ -43,4 +43,8 @@ epsilon. Use a negative value for epsilon to avoid summarization of units.
 
 
 
-
+TRACES2SecDB
+============
+Using this tool, you can convert a set of trace files into a single relation.
+Call this tool as follows:
+   Traces2SecDB {name of the relation}  file_1 ... file_n [>outfile]
