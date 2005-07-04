@@ -324,25 +324,26 @@ void MPoint::Trajectory( CLine& line )
   {
     Get( i, unit );
 
-    if( p.IsDefined() )
+    if( !AlmostEqual( unit.p0, unit.p1 ) )
     {
-      assert( AlmostEqual( unit.p0, p ) );
-      chs.Set( true, p, unit.p1 );
-      p.SetDefined( false );
-    }
-    else if( !AlmostEqual( unit.p0, unit.p1 ) )
-      chs.Set( true, unit.p0, unit.p1 );
-    else
-    {
-      assert( unit.p0.IsDefined() );
-      p = unit.p0;
-      continue;
-    }
+      if( p.IsDefined() )
+      {
+        assert( AlmostEqual( p, unit.p0 ) );
+        chs.Set( true, p, unit.p1 );
+      }
+      else
+      {
+        chs.Set( true, unit.p0, unit.p1 );
+      }
 
-    line += chs;
-    chs.SetLDP( false );
-    line += chs;
+      line += chs;
+      chs.SetLDP( false );
+      line += chs;
+
+      p = unit.p1;
+    }
   }
+
   line.EndBulkLoad();
 }
 

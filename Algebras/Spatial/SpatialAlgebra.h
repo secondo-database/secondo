@@ -86,7 +86,7 @@ precision (~Rational~).
 3 Auxiliary Functions
 
 */
-const double FACTOR = 0.0001;
+const double FACTOR = 0.000001;
 
 class Point;
 
