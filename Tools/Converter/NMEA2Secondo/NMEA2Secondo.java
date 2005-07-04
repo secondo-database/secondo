@@ -326,7 +326,7 @@ private double dX = 0.0;
 private double dY = 0.0;
 private boolean written = false;
 
-private static double EPSILON=0.000005;
+private static double EPSILON=0.00000;
 
 private static long writtenUnits = 0;
 private static long skippedPoints = 0;
