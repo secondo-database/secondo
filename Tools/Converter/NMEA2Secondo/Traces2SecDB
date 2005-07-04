@@ -17,7 +17,7 @@ ARGUMENTS=" file local 0.0 -value";
 
 # print header
 
-echo '( OBJECT '$NAME ' () (rel (tuple( (name string) (route mpoint)))) '
+echo '( OBJECT '$NAME ' () (rel (tuple( (name string) (trip mpoint)))) '
 echo '  ('
 
 for f in $* 
