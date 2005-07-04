@@ -35,7 +35,7 @@ public class  BackGroundImage extends JDialog{
       P.add(new JLabel("height",JLabel.RIGHT));
       P.add(HTF = new JTextField(6));
       P.add(new JLabel(""));
-      useForBBox.setSelected(true);
+      useForBBox.setSelected(false);
       P.add(useForBBox);
       useTFW.setSelected(false);
       P.add(useTFW);
