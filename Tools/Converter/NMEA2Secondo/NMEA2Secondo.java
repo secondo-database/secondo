@@ -110,13 +110,28 @@ private static void processLine(String line){
      System.err.println("Error in processing line "+line);
   }
 
-  String Time,Lat,Lon,EW,NS;
+  String Time,Lat,Lon,EW,NS,Qual,NOS;
   ST.nextToken(); // GPGGA
   Time = ST.nextToken();
   Lat = ST.nextToken();
   NS = ST.nextToken();
   Lon = ST.nextToken();
   EW = ST.nextToken();
+  Qual= ST.nextToken();
+  if("0".equals(Qual)){
+     badQual++;
+     return;
+  }
+  NOS = ST.nextToken();
+  try{
+      int nos = Integer.parseInt(NOS);
+      if(nos>=0 && nos<=satellites.length)
+           satellites[nos]++;
+      else
+          System.out.println("invalid number of satellites ");
+  }catch(Exception e){
+          System.out.println("invalid number of satellites ");
+  }
   // the other values are not of interest
   processData(Time,Lat,NS,Lon,EW);
 }
@@ -224,12 +239,20 @@ public static void main(String[] args){
    if(!writeOnlyValue){
        System.out.print("() )"); // close value list model mapping and close object
        unitWriter.printStatistic();
+       System.err.println(badQual+" point(s) removed because bad quality");
+       for(int i=0;i<satellites.length;i++){
+           if(satellites[i]>0){
+               System.err.println(satellites[i]+ " points with "+i+" satellites");
+           }
+       }
    }
    System.out.println();
 }
 
 
 private static UnitWriter unitWriter = new UnitWriter();
+private static int badQual=0;
+private static int[] satellites={0,0,0,0,0,0,0,0,0,0,0,0};
 
 private static class UnitWriter{
 
