@@ -156,6 +156,7 @@ public static void main(String[] args){
      in=new BufferedReader(new InputStreamReader(System.in));
    }
    // evaluate the arguments
+   boolean writeOnlyValue=false;
    try{
      int l = args.length;
      if(l>0){
@@ -183,20 +184,30 @@ public static void main(String[] args){
      }
      if(l>3)
         UnitWriter.EPSILON=Double.parseDouble(args[3]); 
+
+     if(l>4){
+         if(args[4].equals("-value")){
+            writeOnlyValue=true;
+         }
+     }
    } catch(Exception e){
       showUsage();
    }
-   System.err.println("convert data with ethe following parameters:");
-   System.err.println(" file : "+args[0]);
-   System.err.println(" dayoffset :; " + days );
-   System.err.println(" houroffset : " + hours );
-   System.err.println(" epsilon    : " + UnitWriter.EPSILON);
+   if(!writeOnlyValue){
+      System.err.println("convert data with ethe following parameters:");
+      System.err.println(" file : "+args[0]);
+      System.err.println(" dayoffset :; " + days );
+      System.err.println(" houroffset : " + hours );
+      System.err.println(" epsilon    : " + UnitWriter.EPSILON);
+   }
 
 
    String line;
    // print header
-   System.out.println("( OBJECT pm"+args[0].replace('.','_') + "()");
-   System.out.println("   mpoint");
+   if(!writeOnlyValue){
+      System.out.println("( OBJECT pm"+args[0].replace('.','_') + "()");
+      System.out.println("   mpoint");
+   }
    System.out.println("   (");
    try{
       line = in.readLine();
@@ -209,8 +220,12 @@ public static void main(String[] args){
      System.err.println("Error in processing file");
    }
    unitWriter.write(); // write the last unit
-   System.out.println(") () )"); // close value list model mapping and close object
-   unitWriter.printStatistic();
+   System.out.print(") ");
+   if(!writeOnlyValue){
+       System.out.print("() )"); // close value list model mapping and close object
+       unitWriter.printStatistic();
+   }
+   System.out.println();
 }
 
 

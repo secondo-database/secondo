@@ -1,0 +1,44 @@
+#!/bin/bash
+#
+# Script converting a set of traces into a relation of secondo.
+#
+
+
+if [ -z "$*" ]; then
+   echo "usage: Traces2SecDB <name of the relation> trace_1...trace_n"
+   exit -1
+fi
+
+NAME=$1
+shift
+
+CLASSPATH=$SECONDO_BUILD_DIR/Tools/Converter/NMEA2Secondo
+ARGUMENTS=" file local 0.0 -value";
+
+# print header
+
+echo '( OBJECT '$NAME ' () (rel (tuple( (name string) (route mpoint)))) '
+echo '  ('
+
+for f in $* 
+do
+  echo -ne '('
+# remove .trx from filename if exists
+  pos=`expr index "$f" '\.'`
+  pos=$(expr $pos - 1 )
+  if [ "$pos" -gt "0" ]; then
+     name=${f:0:pos}
+  else
+     name=$f
+  fi
+  echo -ne "\""$name"\" " 
+  java -classpath $CLASSPATH NMEA2Secondo $f $ARGUMENTS
+  if [ $? -ne "0" ]; then
+    echo "problem in calling java program" >&2
+    exit -1
+  fi
+  echo -ne ')'"\n"
+done                         
+
+# print end
+echo ' ) () )'; 
