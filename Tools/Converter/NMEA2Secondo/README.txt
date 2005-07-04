@@ -48,3 +48,12 @@ TRACES2SecDB
 Using this tool, you can convert a set of trace files into a single relation.
 Call this tool as follows:
    Traces2SecDB {name of the relation}  file_1 ... file_n [>outfile]
+
+
+NMEA2MReal
+==========
+
+This tool works as the NMEA2Secondo tool, but produces a moving real from the 
+altitude infromation in the file. 
+
+

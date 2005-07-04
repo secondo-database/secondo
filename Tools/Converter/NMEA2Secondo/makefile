@@ -19,11 +19,16 @@
 
 
 .PHONY: all
-all: NMEA2Secondo.class
+all: NMEA2Secondo.class NMEA2MReal.class 
 
 
 NMEA2Secondo.class: NMEA2Secondo.java
 	javac NMEA2Secondo.java
+
+
+NMEA2MReal.class: NMEA2MReal.java
+	javac NMEA2MReal.java
+
 
 .PHONY: clean
 clean:
