@@ -34,7 +34,7 @@ import gui.Environment;
 /**
  * A displayclass for the instant-type (spatiotemp algebra), alphanumeric with TimePanel
  */
-public class Dsplmovingreal extends DsplGeneric implements Timed{
+public class Dsplmovingreal extends DsplGeneric implements Timed,Function,ExternDisplay{
 
   Interval TimeBounds;
   Vector Intervals = new Vector(10, 5);
@@ -44,6 +44,16 @@ public class Dsplmovingreal extends DsplGeneric implements Timed{
   double max=Double.NEGATIVE_INFINITY ;
   final static int PSIZE=300;
   boolean err;
+
+
+  public boolean isExternDisplayed(){
+      return(functionframe.isVisible() && this.equals(functionframe.myreal));
+  }
+
+  public void  displayExtern(){
+      functionframe.setSource(this);
+      functionframe.setVisible(true);
+  }
 
 
   /** This method returns the "bounding box" 
@@ -134,10 +144,11 @@ public class Dsplmovingreal extends DsplGeneric implements Timed{
     *  The instant is just given as a double. 
     *  If the moving real is not defined at the given instant null is returned.
     **/
-  private   Double getValueAt(double time){
+  public    Double getValueAt(double time){
     int index = getIndexFrom(time);
     return getValueAt(time,index); 
-  } 
+  }
+
 
   /** Computes the value for a given index 
     * There is no check wether the given time is contained in
@@ -373,6 +384,50 @@ public class Dsplmovingreal extends DsplGeneric implements Timed{
       }
     }
   }
+
+private static  FunctionFrame functionframe = new FunctionFrame();
+
+private static class FunctionFrame extends JFrame{
+   public FunctionFrame(){
+      super();
+      setSize(640,480);
+      getContentPane().setLayout(new BorderLayout());
+      getContentPane().add(functionpanel,BorderLayout.CENTER);
+      JPanel P1 = new JPanel(new GridLayout(1,2));
+      P1.add(TimeLabel);
+      P1.add(ValueLabel);
+      getContentPane().add(P1,BorderLayout.NORTH);
+      functionpanel.addMouseMotionListener(new MouseMotionAdapter(){
+           public void mouseMoved(MouseEvent e){
+               if(functionpanel.getOrig(e.getX(),e.getY(),P)){
+                   TimeLabel.setText(DateTime.getString(P.x));
+                   ValueLabel.setText(""+P.y);
+
+               } else{ 
+                  TimeLabel.setText("");
+                  ValueLabel.setText("");
+               }
+           }
+      });
+      functionpanel.showCross(true); 
+   }
+
+
+   void setSource(Dsplmovingreal mr){
+        myreal = mr;
+        functionpanel.setFunction(mr);
+        functionpanel.setInterval(mr.TimeBounds.getStart(),mr.TimeBounds.getEnd());
+   }  
+
+ 
+   FunctionPanel functionpanel = new FunctionPanel();
+   Dsplmovingreal myreal;
+   JLabel TimeLabel = new JLabel("");
+   JLabel ValueLabel = new JLabel("");
+   Point2D.Double P = new Point2D.Double();
+} 
+
+
 }
 
 
