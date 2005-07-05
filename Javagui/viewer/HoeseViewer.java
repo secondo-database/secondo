@@ -1896,8 +1896,11 @@ public boolean canDisplay(SecondoObject o){
         dgorig.setSelected(true);
         dgorig.getLayer().setSelectedButton(true);
         selGraphObj = dgorig;
-        if (!isMouseSelected && (selGraphObj instanceof Timed))
-          TimeSlider.setValue((long)Math.round(((Timed)selGraphObj).getTimeBounds().getStart()*86400000));
+        if (!isMouseSelected && (selGraphObj instanceof Timed)){
+          Interval tb = ((Timed)selGraphObj).getTimeBounds();
+          if(tb!=null) 
+             TimeSlider.setValue((long)Math.round(tb.getStart()*86400000));
+        }
         makeSelectionVisible();
 	GraphDisplay.repaint();
       }

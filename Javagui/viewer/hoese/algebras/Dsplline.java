@@ -123,6 +123,9 @@ public boolean isLineType(){
 				}
         value = value.rest();
     }
+    if(first){ // empty line
+       GP=null;
+    }
   }
 
   /**
@@ -146,9 +149,12 @@ public boolean isLineType(){
     }
     else
       qr.addEntry(this);
-    bounds = new Rectangle2D.Double();
-    bounds.setRect(GP.getBounds2D());
-
+    if(GP==null)
+        bounds = null;
+    else{
+       bounds = new Rectangle2D.Double();
+       bounds.setRect(GP.getBounds2D());
+    }
   }
 
 

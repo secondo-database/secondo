@@ -137,6 +137,9 @@ public class DisplayGraph extends DsplGeneric
   public void draw (Graphics g) {
     Shape sh;
     Graphics2D g2 = (Graphics2D)g;
+    if(RefLayer==null){
+        return;
+    }
     AffineTransform af2 = RefLayer.getProjection();
     Shape render = getRenderObject(af2);
     if (render == null)

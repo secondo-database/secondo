@@ -113,6 +113,13 @@ public class Interval {
    */
   public Interval union (Interval iv) {
     Interval i = new Interval(0, 0, true, true);
+    if(iv==null){
+       i.leftclosed=leftclosed;
+       i.rightclosed=rightclosed;
+       i.start=start;
+       i.end=end;
+       return i;
+    }
     if (start < iv.start) {
       i.leftclosed = leftclosed;
       i.start = start;

@@ -45,6 +45,12 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
    * @see <a href="Dsplmovingpointsrc.html#getRenderObject">Source</a>
    */
   public Shape getRenderObject (AffineTransform at) {
+    if(Intervals==null || PointMaps==null){
+       return null;
+    }
+    if(RefLayer==null){
+       return null;    
+    }
     double t = RefLayer.getActualTime();
     int index = getTimeIndex(t,Intervals);
     if(index<0){
@@ -110,8 +116,12 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
    */
   private void ScanValue (ListExpr v) {
     err = true;
-    if (v.isEmpty())
+    if (v.isEmpty()){ //empty point
+      Intervals=null;
+      PointMaps=null;
+      err=false;
       return;
+    }
     while (!v.isEmpty()) {      // unit While maybe empty
       ListExpr aunit = v.first();
       ListExpr tmp = aunit;
@@ -184,6 +194,8 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
     //ListIterator li=iv.listIterator();
     bounds = null;
     TimeBounds = null;
+    if(Intervals==null) // empty moving point
+       return;
     for (int j = 0; j < Intervals.size(); j++) {
       Interval in = (Interval)Intervals.elementAt(j);
       PointMap pm = (PointMap)PointMaps.elementAt(j);

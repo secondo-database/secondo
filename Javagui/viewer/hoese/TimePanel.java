@@ -111,7 +111,8 @@ public class TimePanel extends javax.swing.JPanel               // implements Va
    * @see <a href="TimePanelsrc.html#calculateParameter">Source</a>
    */
   private void calculateParameter () {
-   long TimeInMinutes = (long)((TimeBounds.getEnd() - TimeBounds.getStart())*1440);
+    if(TimeBounds==null) return; // for empty objects 
+    long TimeInMinutes = (long)((TimeBounds.getEnd() - TimeBounds.getStart())*1440);
     if (TimeInMinutes < 2880) {
       TimeperPixel = 1;         //1=1 Minute
       bigdivision = 60;         //ist eine Stunde
@@ -170,6 +171,8 @@ public class TimePanel extends javax.swing.JPanel               // implements Va
    * @see <a href="TimePanelsrc.html#initComponents">Source</a>
    */
   private void initComponents () {
+    if(TimeBounds==null)
+        return; 
     String AttrName = "unknown";
     if (TimeObject instanceof DsplBase)
       AttrName = ((DsplBase)TimeObject).getAttrName();
