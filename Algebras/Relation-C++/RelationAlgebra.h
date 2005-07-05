@@ -924,19 +924,6 @@ enum RelationType { rel, tuple, stream, ccmap, ccbool, error };
 RelationType TypeOfRelAlgSymbol (ListExpr symbol);
 
 /*
-4.2 Macro ~CHECK\_COND~
-
-This macro makes reporting errors in type mapping functions more conveniently.
-
-*/
-#define CHECK_COND(cond, msg) \
-  if(!(cond)) \
-  {\
-    ErrorReporter::ReportError(msg);\
-    return nl->SymbolAtom("typeerror");\
-  };
-
-/*
 3.2 Function ~FindAttribute~
 
 Here ~list~ should be a list of pairs of the form (~name~,~datatype~).

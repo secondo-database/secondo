@@ -1377,6 +1377,7 @@ SecondoInterface::Command_Query( const AlgebraLevel level,
     errorCode = ERR_EXPR_NOT_EVALUABLE;  // Query not evaluable   
   }
   
+  qp.Destroy( tree, true ); 
   SmiEnvironment::SetFlag_NOSYNC(true);
   FinishCommand( errorCode );
   SmiEnvironment::SetFlag_NOSYNC(false);

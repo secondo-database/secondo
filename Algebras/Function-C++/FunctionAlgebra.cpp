@@ -110,7 +110,7 @@ SizeOfNothing()
 }
 
 /*
-2.2 The Functions Needed
+2.2 Type Constructor ~map~
 
 */
 Word
@@ -161,12 +161,181 @@ TypeConstructor functionMap( "map",             FunctionProperty,
                              DummyInModel,      DummyOutModel,
                              DummyValueToModel, DummyValueListToModel );
 
+/*
+2.3 Type Operator ~ANY~
+
+Type operators are used only for inferring argument types of parameter
+functions. They have a type mapping but no evaluation function.
+
+2.3.1 Type mapping function of operator ~ANY~
+
+The type operator ~ANY~ corresponds to the type of the first argument.
+
+----    x      -> x
+----
+
+*/
+ListExpr ANYTypeMap( ListExpr args )
+{
+  return nl->First( args );
+}
+
+const string ANYSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
+   "( <text>x -> x</text--->"
+   "<text>type operator</text--->"
+   "<text>Simply returns the type of the first argument.</text--->"
+   "<text></text---> ))";
+
+Operator ANY (
+      "ANY",
+      ANYSpec,
+      0,
+      Operator::DummyModel,
+      Operator::SimpleSelect,
+      ANYTypeMap );
+
+/*
+2.4 Operator ~use~
+
+2.4.1 Type mapping function of operator ~use~
+
+Result type of use operation.
+
+----    ( a x (a -> b) ) -> b
+----
+
+*/
+ListExpr UseTypeMap(ListExpr args)
+{
+  ListExpr first, second;
+  string argstr1, argstr2;
+
+  CHECK_COND( nl->ListLength(args) == 2,
+              "Operator use expects a list of length two.");
+
+  first = nl->First(args);
+  nl->WriteToString(argstr1, first);
+  second  = nl->Second(args);
+  nl->WriteToString(argstr2, first);
+
+  CHECK_COND( nl->ListLength( second ) == 3 &&
+              nl->IsEqual( nl->First( second ), "map" ),
+              "Operator use expects a mapping function as the second argument, but gets\n" + 
+              argstr2 + "." ); 
+
+  CHECK_COND( nl->Equal( first, nl->Second(second) ),
+              "Operator use expects that the first argument and the argument\n" 
+              "of the mapping function are equal, but gets\n" 
+              "First argument: " + argstr1 + "\n" +
+              "Mapping argument: " + argstr2 + "." );
+
+  return nl->Third( second );
+}
+
+/*
+2.4.2 Selection function of operator ~use~
+
+*/
+int
+UseSelect( ListExpr args )
+{
+  if( nl->IsAtom( nl->Third( nl->Second( args ) ) ) )
+    return 0;
+
+  if( nl->IsEqual( nl->First( nl->Third( nl->Second( args ) ) ), "stream" ) )
+    return 1;
+
+  return 0;
+}
+
+/*
+2.4.3 Value mapping function of operator ~use~
+
+*/
+int 
+Use_s(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  ArgVectorPointer funArgs;
+  Word w;
+
+  switch ( message )
+  {
+    case OPEN:
+      funArgs = qp->Argument( args[1].addr );
+      qp->Request( args[0].addr, w );
+      (*funArgs)[0] = w;
+      qp->Open( args[1].addr );
+      return 0;
+
+    case REQUEST:
+      qp->Request( args[1].addr, result );
+      if( qp->Received( args[1].addr ) )
+        return YIELD;
+      return CANCEL;
+
+    case CLOSE:
+      qp->Close( args[1].addr );
+      return 0;
+  }
+
+  return 0;
+}
+
+int
+Use_o(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  ArgVectorPointer funArgs = qp->Argument( args[1].addr );
+  (*funArgs)[0] = args[0];
+  qp->Request( args[1].addr, result );
+
+  return 0;
+}
+
+ValueMapping usemap[] = { Use_o, Use_s };
+ModelMapping nomodelmap[] = { Operator::DummyModel, Operator::DummyModel };
+
+/*
+
+2.4.3 Specification of operator ~use~
+
+*/
+const string UseSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                        "\"Example\" ) "
+                        "( <text>a x (a -> b) -> b</text--->"
+                        "<text>_ use [ fun ]</text--->"
+                        "<text>Calls the function passing as argument "
+                        "its own first argument.</text--->"
+                        "<text>query plz createbtree[Ort] use[fun( index: ANY ) "
+                        "Orte feed {o} loopjoin[index plz "
+                        "exactmatch[.Ort_o]] consume]</text--->))";
+
+/*
+2.4.3 Definition of operator ~use~
+
+*/
+Operator use (
+         "use",                  // name
+         UseSpec,                // specification
+         2, 	                   // the number of overloaded functions
+         usemap,                 // value mapping function array
+         nomodelmap,             // dummy model mapping, defines in Algebra.h
+         UseSelect,              // the selection function
+         UseTypeMap              // type mapping
+);
+
+/*
+3 Creating the Algebra
+
+*/
 class FunctionAlgebra : public Algebra
 {
  public:
   FunctionAlgebra() : Algebra()
   {
     AddTypeConstructor( &functionMap );
+    AddOperator( &ANY );
+    AddOperator( &use );
   }
   ~FunctionAlgebra() {};
 };
@@ -174,7 +343,7 @@ class FunctionAlgebra : public Algebra
 FunctionAlgebra functionAlgebra;
 
 /*
-7 Initialization
+4 Initialization
 
 Each algebra module needs an initialization function. The algebra manager
 has a reference to this function if this algebra is included in the list
