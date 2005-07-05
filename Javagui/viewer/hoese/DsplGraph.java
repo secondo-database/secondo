@@ -37,7 +37,10 @@ public interface DsplGraph extends DsplBase
   public boolean isPointType ();
 
 
-  ;
+  /**
+    *   determines whether the type is a line (no interior)
+    **/
+  public boolean isLineType();   
 
 
   /**

@@ -239,7 +239,12 @@ public class Layer extends JComponent {
     Shape sh = af2.createTransformedShape(render);
     if(sh==null) return;
 
-    g2.setComposite(Cat.getAlphaStyle());
+
+    if(!dg.isLineType()){
+       g2.setComposite(Cat.getAlphaStyle());
+    } else{
+      g2.setComposite(HoeseViewer.emptyStyle);
+    }
     g2.setStroke(Cat.getLineStroke());
     g2.setPaint(Cat.getFillStyle());
     Paint P = Cat.getFillStyle();
@@ -247,7 +252,7 @@ public class Layer extends JComponent {
     if (dg.isPointType()) {
       if (P instanceof TexturePaint){
         BufferedImage bi = ((TexturePaint)P).getImage();
-	if(bi==null) return;
+	    if(bi==null) return;
         g2.setPaint(new TexturePaint(bi,sh.getBounds2D()));
       }
       else if (P instanceof GradientPaint)
@@ -255,6 +260,7 @@ public class Layer extends JComponent {
           ((GradientPaint)Cat.getFillStyle()).getColor1(),(float)(sh.getBounds().getX()+sh.getBounds().getWidth()),
           (float)(sh.getBounds().getY()+sh.getBounds().getHeight()),((GradientPaint)Cat.getFillStyle()).getColor2(),false));
     }
+    
 
   }
 

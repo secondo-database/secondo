@@ -322,9 +322,16 @@ public class GraphWindow extends JLayeredPane
     // mark the selected object
     super.paintChildren(g2);
     DsplGraph dg = mw.getSelGO();
-
+    
     if ((dg != null) && (dg.getVisible())){
-      dg.draw(g2);              //the selected GraphObject must be drawn on top
+      if(!dg.isLineType())
+          dg.draw(g2);              //the selected GraphObject must be drawn on top
+      else{
+         Composite C = g2.getComposite();
+         g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.0f));
+         dg.draw(g2);
+         g2.setComposite(C);
+      } 
 	}
   }
 

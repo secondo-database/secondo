@@ -33,7 +33,7 @@ import  javax.swing.*;
  */
 public class Dsplintimeline extends Dsplline
     implements Timed {
-  Interval TimeBounds;
+    Interval TimeBounds;
 
   /** A method of the Timed-Interface
    * 
@@ -117,13 +117,8 @@ public class Dsplintimeline extends Dsplline
     } 
     else 
       qr.addEntry(this);
-    ListIterator li = lines.listIterator();
-    bounds = null;
-    while (li.hasNext())
-      if (bounds == null)
-        bounds = (Rectangle2D.Double)((Line2D.Double)li.next()).getBounds2D(); 
-      else 
-        bounds = (Rectangle2D.Double)bounds.createUnion(((Line2D.Double)li.next()).getBounds2D());
+    bounds = new Rectangle2D.Double();
+    bounds.setRect(GP.getBounds2D());
   }
 
   /**

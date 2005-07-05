@@ -62,6 +62,13 @@ public class DisplayGraph extends DsplGeneric
     return  ispointType;
   }
 
+  /** For LineTypes, no interior will be drawn
+    **/
+  public boolean isLineType(){
+    return false;
+  }
+
+
   /**
    *
    * @return The text of the label.

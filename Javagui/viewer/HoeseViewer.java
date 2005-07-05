@@ -195,7 +195,8 @@ public class HoeseViewer extends SecondoViewer {
     **/
   static java.awt.geom.Point2D.Double aPoint = new java.awt.geom.Point2D.Double();
 
-
+  /** an empty style for painting line objects */
+  public static Composite emptyStyle = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.0f);
 
   /**
    * Creates a MainWindow with all its components, initializes Secondo-Server, loads the
