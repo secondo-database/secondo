@@ -15,6 +15,9 @@ public FunctionPanel(){
         lastY = e.getY();
         repaint();
      }
+     public void mouseDragged(MouseEvent evt){
+        mouseMoved(evt);
+     }
   };
 
 }
@@ -61,8 +64,8 @@ public void paint(Graphics g){
     if(function==null)
        return;
 
-    int width=getWidth();
-    int height=getHeight();
+    int width=getWidth()-2*borderSize;
+    int height=getHeight()-2*borderSize;
     if(!y_computed)
         compute_y(width,height);
 
@@ -87,7 +90,7 @@ public void paint(Graphics g){
     Graphics2D g2 = (Graphics2D) g;
     g2.draw(GP);
     if(crossEnabled){
-        g.drawLine(lastX,0,lastX,height);
+        g.drawLine(lastX,0,lastX,height+2*borderSize);
      //   g.drawLine(lastX-20,lastY,lastX+20,lastY);
     }
     if(yEnabled){
@@ -137,6 +140,12 @@ public boolean setInterval(double xmin,double xmax){
 }
 
 
+public void setVirtualSize(double x, double  y){
+   setPreferredSize(new Dimension((int)x,(int)y));
+   revalidate();
+}
+
+
 /** computes the minumum and maximum y value
   */
 private void compute_y(int width,int height){
@@ -168,8 +177,8 @@ private void compute_y(int width,int height){
    at.setTransform(scaleX,0,0,scaleY,scaleX*tx,scaleY*ty); 
    at.preConcatenate(at.getTranslateInstance(0,-height));
    at.preConcatenate(at.getScaleInstance(1,-1));
-
- 
+   AffineTransform trans = (AffineTransform.getTranslateInstance(borderSize,borderSize));
+   at.preConcatenate(trans);
    try{
       at.createInverse().getMatrix(atinv);
    }catch(Exception e){
@@ -195,6 +204,7 @@ private boolean yEnabled=false;
 private MouseMotionListener MML;
 private Cursor defaultCursor = new Cursor(Cursor.DEFAULT_CURSOR);
 private Cursor crossCursor = new Cursor(Cursor.CROSSHAIR_CURSOR);
+private static final int borderSize = 35;
 
 
 }

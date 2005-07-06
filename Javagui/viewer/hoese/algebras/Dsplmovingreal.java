@@ -85,13 +85,8 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
     int cnt = 0;
     while (li.hasNext()) {
       Interval in = (Interval)li.next();
-      /*
-       Compute the used x-space in pixels for the current unit
-      */
       int start = (int)((in.getStart() - TimeBounds.getStart())*PixelTime);
       int end = (int)((in.getEnd() - TimeBounds.getStart())*PixelTime);
-      
-      /* Create a Label for this unit */      
       String bs = MRealMaps.elementAt(cnt).toString();
       MRealLabel jc = new MRealLabel(bs);
       jc.ValueIndex = cnt++;
@@ -100,9 +95,6 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
       jc.setForeground(Color.black);
       //jc.setBackground(Color.yellow);
       jc.setToolTipText("...");
-      /*
-       * compute the range of the values for the current unit
-       */
       MRealMap mr = (MRealMap)MRealMaps.elementAt(jc.ValueIndex);
       for (int x=start;x<=end;x++) {
       	 double actTime = (double)x/PixelTime+TimeBounds.getStart();
@@ -125,6 +117,7 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
     jp.setPreferredSize(new Dimension((int)((TimeBounds.getEnd() - TimeBounds.getStart())*PixelTime),
           PSIZE));
     return  jp;
+  
   }
 
 
@@ -392,7 +385,13 @@ private static class FunctionFrame extends JFrame{
       super();
       setSize(640,480);
       getContentPane().setLayout(new BorderLayout());
-      functionSP = new JScrollPane(functionpanel);
+      JPanel P2 = new JPanel(new BorderLayout());
+      P2.add(functionpanel,BorderLayout.CENTER);
+      functionSP = new JScrollPane(P2);
+      //P2.add(new JLabel(" "),BorderLayout.NORTH);
+      //P2.add(new JLabel(" "),BorderLayout.SOUTH);
+      //P2.add(new JLabel(" "),BorderLayout.EAST);
+      //P2.add(new JLabel(" "),BorderLayout.WEST);
       getContentPane().add(functionSP,BorderLayout.CENTER);
       JPanel P1 = new JPanel(new GridLayout(1,3));
       P1.add(TimeLabel);
@@ -404,8 +403,8 @@ private static class FunctionFrame extends JFrame{
                    TimeLabel.setText("x= "+DateTime.getString(P.x));
                    ValueLabel.setText("y= "+P.y);
                } else{ 
-                  TimeLabel.setText("");
-                  ValueLabel.setText("");
+                  TimeLabel.setText(" ");
+                  ValueLabel.setText(" ");
                }
            }
       });
@@ -413,12 +412,40 @@ private static class FunctionFrame extends JFrame{
       functionpanel.showY(true);
       closeBtn.addActionListener(new ActionListener() {
              public void actionPerformed(ActionEvent evt){
-                  setVisible(false);
+                setVisible(false);
              }
       });
       
-      getContentPane().add(closeBtn,BorderLayout.SOUTH);
+      //add(closeBtn,BorderLayout.SOUTH);
+      addMagnifier();
    }
+
+  private void addMagnifier(){
+      functionpanel.addMouseListener(new MouseAdapter(){
+         public void mouseClicked(MouseEvent evt){
+            double zf = 1.0;
+            if(evt.getButton()==evt.BUTTON1){
+                zf = 1.25;
+            }
+            if(evt.getButton()==evt.BUTTON3){
+                zf=0.75;
+            }
+            if(evt.getButton()==evt.BUTTON2){
+              //  zf=0.0;
+            }
+            Dimension oldDim = functionpanel.getSize();
+            functionpanel.setVirtualSize(oldDim.getWidth()*zf,oldDim.getHeight()*zf);
+            double x = evt.getX()*zf;
+            double y = evt.getY()*zf;
+            double nw = functionSP.getViewport().getWidth(); 
+            double nh = functionSP.getViewport().getHeight(); 
+            int px = Math.max(0,(int)(x-nw/2));
+            int py = Math.max(0,(int)(y-nh/2));
+            functionSP.getViewport().setViewPosition(new Point( px,py));
+         }
+      });
+  }
+   
 
 
    void setSource(Dsplmovingreal mr){
@@ -436,7 +463,8 @@ private static class FunctionFrame extends JFrame{
    Point2D.Double P = new Point2D.Double();
    Point2D.Double MP = new Point2D.Double();
    JButton closeBtn = new JButton("close");
-   JScrollPane functionSP; 
+   JScrollPane functionSP;
+
 } 
 
 
