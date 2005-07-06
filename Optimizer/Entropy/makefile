@@ -38,7 +38,7 @@ patch:
 	cp timers.c $(OPTLIB_ROOT)/src/Utils; 
 	cd $(OPTLIB_ROOT)/src/Utils; \
 	mv Makefile x.tmp; \
-	sed -e 's#\(CFLAGS.*\)-ansi #\1#' x.tmp > Makefile;
+	sed -e 's#\(CFLAGS.*\)-ansi #\1#' x.tmp > Makefile; \
 	rm x.tmp
 #endif
 	cd $(OPTLIB_ROOT); \

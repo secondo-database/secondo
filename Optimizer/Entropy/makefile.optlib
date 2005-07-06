@@ -11,12 +11,12 @@
 # is given below:
 #
 # 1) Download the source files and extract them in your $HOME directory 
-#    a) configure it, on windows use ./configure --host=i686-linux
+#    a) enter directory OPT++2.1. Configure it, on windows use ./configure --host=i686-linux
 #
 # 2) change the macro OPTLIB_ROOT below if necessary
 OPTLIB_ROOT := $(HOME)/OPT++2.1
 
-# 3) compile the Library with 
+# 3) Change to the directory Optimizer/Entropy; compile the Library with 
 #     make patch 
 #
 # 4) run at top level of secondo 
