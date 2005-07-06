@@ -3,8 +3,6 @@ entropy.cpp
 
 */
 
-#include <iostream>
-#include <iomanip>
 
 #include "NLF.h"
 #include "BoundConstraint.h"
@@ -16,6 +14,9 @@ entropy.cpp
 #include "OptQNewton.h"
 #include "OptConstrNewton.h"
 #include "entropy.h"
+
+#include <iostream>
+#include <iomanip>
 
 #define LOOP( i, v ) for( int i = 1; i <= v.Nrows(); i++ )
 #define BIT(j) (1<<(j))

@@ -11,12 +11,15 @@ include ./makefile.optlib
 
 # compiler setup
 CXX      := g++
-CXXFLAGS := -c -g -fwritable-strings -Wno-deprecated -static -ansi -pedantic
+CXXFLAGS := -c -g -D_G_HAVE_BOOL -fwritable-strings -ansi -Wno-deprecated -static -pedantic
 
 ENTROPY_OBJ := entropy entropy.o tmpent.o
 
+CURDIR := $(PWD)
+
 .PHONY: allEntropy
 allEntropy: $(ENTROPY_OBJ) 
+
 
 entropy: tmpent.o
 	$(CXX) -o $@ $< $(OPTLIB_LIBS)
@@ -26,6 +29,23 @@ entropy: tmpent.o
 entropy.o tmpent.o: entropy.cpp
 	$(CXX) -o entropy.o $(CXXFLAGS) -I. $(OPTPP_INCL) $(NEWMAT_INCL) $<
 	$(CXX) -o tmpent.o $(CXXFLAGS) -DSTAND_ALONE -I. $(OPTPP_INCL) $(NEWMAT_INCL) $<
+
+
+.PHONY: patch
+patch:
+	@echo "OPTLIB is in $(OPTLIB_ROOT)"
+#ifeq ($(platform),win32) 
+	cp timers.c $(OPTLIB_ROOT)/src/Utils; 
+	cd $(OPTLIB_ROOT)/src/Utils; \
+	mv Makefile x.tmp; \
+	sed -e 's#\(CFLAGS.*\)-ansi #\1#' x.tmp > Makefile;
+	rm x.tmp
+#endif
+	cd $(OPTLIB_ROOT); \
+	tar -xzf $(CURDIR)/opt++patch.tgz;
+	cd $(OPTLIB_ROOT); \
+	make; \
+	make tests
 
 
 .PHONY: clean

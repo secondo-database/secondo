@@ -142,11 +142,11 @@ $(BINDIR)/TestRunner$(EXEEXT): TestRunner.o SecondoInterface.o  $(APP_OBJECTS)
 
 $(OPTDIR)/SecondoPL$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES)
 $(OPTDIR)/SecondoPL$(EXEEXT): SecondoPL.o SecondoInterface.o $(ENTROPY_OBJ) $(APP_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) $(OPTLIB_LIBS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(OPTLIB_LIBS) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
 
 $(OPTDIR)/SecondoPLCS$(EXEEXT): $(SECLIBFILES)
 $(OPTDIR)/SecondoPLCS$(EXEEXT): SecondoPL.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o $(ENTROPY_OBJ)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS) $(PLLDFLAGS) $(RL_LD_FLAG) $(OPTLIB_LIBS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(PLLDFLAGS) $(RL_LD_FLAG) 
 
 
 include $(CODE_DEPENDENCIES:.cpp=.dep)
