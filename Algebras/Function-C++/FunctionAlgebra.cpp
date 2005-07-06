@@ -26,7 +26,9 @@ January 26, 2001 RHG
 
 April 2002 Ulrich Telle Port to C++
 
-The sole purpose of this little algebra is to provide a type constructor ~map~ which can be used to store the list expressions defining functions (abstractions).
+The sole purpose of this little algebra is to provide a type constructor ~map~ 
+which can be used to store the list expressions defining functions 
+(abstractions).
 
 */
 
@@ -196,23 +198,23 @@ Operator ANY (
       ANYTypeMap );
 
 /*
-2.4 Operator ~use~
+2.4 Operator ~within~
 
-2.4.1 Type mapping function of operator ~use~
+2.4.1 Type mapping function of operator ~within~
 
-Result type of use operation.
+Result type of within operation.
 
 ----    ( a x (a -> b) ) -> b
 ----
 
 */
-ListExpr UseTypeMap(ListExpr args)
+ListExpr WithinTypeMap(ListExpr args)
 {
   ListExpr first, second;
   string argstr1, argstr2;
 
   CHECK_COND( nl->ListLength(args) == 2,
-              "Operator use expects a list of length two.");
+              "Operator within expects a list of length two.");
 
   first = nl->First(args);
   nl->WriteToString(argstr1, first);
@@ -221,11 +223,11 @@ ListExpr UseTypeMap(ListExpr args)
 
   CHECK_COND( nl->ListLength( second ) == 3 &&
               nl->IsEqual( nl->First( second ), "map" ),
-              "Operator use expects a mapping function as the second argument, but gets\n" + 
+              "Operator within expects a mapping function as the second argument, but gets\n" + 
               argstr2 + "." ); 
 
   CHECK_COND( nl->Equal( first, nl->Second(second) ),
-              "Operator use expects that the first argument and the argument\n" 
+              "Operator within expects that the first argument and the argument\n" 
               "of the mapping function are equal, but gets\n" 
               "First argument: " + argstr1 + "\n" +
               "Mapping argument: " + argstr2 + "." );
@@ -234,11 +236,11 @@ ListExpr UseTypeMap(ListExpr args)
 }
 
 /*
-2.4.2 Selection function of operator ~use~
+2.4.2 Selection function of operator ~within~
 
 */
 int
-UseSelect( ListExpr args )
+WithinSelect( ListExpr args )
 {
   if( nl->IsAtom( nl->Third( nl->Second( args ) ) ) )
     return 0;
@@ -250,11 +252,11 @@ UseSelect( ListExpr args )
 }
 
 /*
-2.4.3 Value mapping function of operator ~use~
+2.4.3 Value mapping function of operator ~within~
 
 */
 int 
-Use_s(Word* args, Word& result, int message, Word& local, Supplier s)
+Within_s(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   ArgVectorPointer funArgs;
   Word w;
@@ -283,7 +285,7 @@ Use_s(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 int
-Use_o(Word* args, Word& result, int message, Word& local, Supplier s)
+Within_o(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   ArgVectorPointer funArgs = qp->Argument( args[1].addr );
   (*funArgs)[0] = args[0];
@@ -292,36 +294,36 @@ Use_o(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-ValueMapping usemap[] = { Use_o, Use_s };
+ValueMapping withinmap[] = { Within_o, Within_s };
 ModelMapping nomodelmap[] = { Operator::DummyModel, Operator::DummyModel };
 
 /*
 
-2.4.3 Specification of operator ~use~
+2.4.3 Specification of operator ~within~
 
 */
-const string UseSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string WithinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                         "\"Example\" ) "
                         "( <text>a x (a -> b) -> b</text--->"
-                        "<text>_ use [ fun ]</text--->"
+                        "<text>_ within [ fun ]</text--->"
                         "<text>Calls the function passing as argument "
                         "its own first argument.</text--->"
-                        "<text>query plz createbtree[Ort] use[fun( index: ANY ) "
+                        "<text>query plz createbtree[Ort] within[fun( index: ANY ) "
                         "Orte feed {o} loopjoin[index plz "
                         "exactmatch[.Ort_o]] consume]</text--->))";
 
 /*
-2.4.3 Definition of operator ~use~
+2.4.3 Definition of operator ~within~
 
 */
-Operator use (
-         "use",                  // name
-         UseSpec,                // specification
+Operator within (
+         "within",                  // name
+         WithinSpec,                // specification
          2, 	                   // the number of overloaded functions
-         usemap,                 // value mapping function array
+         withinmap,                 // value mapping function array
          nomodelmap,             // dummy model mapping, defines in Algebra.h
-         UseSelect,              // the selection function
-         UseTypeMap              // type mapping
+         WithinSelect,              // the selection function
+         WithinTypeMap              // type mapping
 );
 
 /*
@@ -335,7 +337,7 @@ class FunctionAlgebra : public Algebra
   {
     AddTypeConstructor( &functionMap );
     AddOperator( &ANY );
-    AddOperator( &use );
+    AddOperator( &within );
   }
   ~FunctionAlgebra() {};
 };
