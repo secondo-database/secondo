@@ -392,24 +392,32 @@ private static class FunctionFrame extends JFrame{
       super();
       setSize(640,480);
       getContentPane().setLayout(new BorderLayout());
-      getContentPane().add(functionpanel,BorderLayout.CENTER);
-      JPanel P1 = new JPanel(new GridLayout(1,2));
+      functionSP = new JScrollPane(functionpanel);
+      getContentPane().add(functionSP,BorderLayout.CENTER);
+      JPanel P1 = new JPanel(new GridLayout(1,3));
       P1.add(TimeLabel);
       P1.add(ValueLabel);
       getContentPane().add(P1,BorderLayout.NORTH);
       functionpanel.addMouseMotionListener(new MouseMotionAdapter(){
            public void mouseMoved(MouseEvent e){
-               if(functionpanel.getOrig(e.getX(),e.getY(),P)){
-                   TimeLabel.setText(DateTime.getString(P.x));
-                   ValueLabel.setText(""+P.y);
-
+               if(functionpanel.getOrig(e.getX(),e.getY(),P,MP)){
+                   TimeLabel.setText("x= "+DateTime.getString(P.x));
+                   ValueLabel.setText("y= "+P.y);
                } else{ 
                   TimeLabel.setText("");
                   ValueLabel.setText("");
                }
            }
       });
-      functionpanel.showCross(true); 
+      functionpanel.showCross(true);
+      functionpanel.showY(true);
+      closeBtn.addActionListener(new ActionListener() {
+             public void actionPerformed(ActionEvent evt){
+                  setVisible(false);
+             }
+      });
+      
+      getContentPane().add(closeBtn,BorderLayout.SOUTH);
    }
 
 
@@ -422,9 +430,13 @@ private static class FunctionFrame extends JFrame{
  
    FunctionPanel functionpanel = new FunctionPanel();
    Dsplmovingreal myreal;
-   JLabel TimeLabel = new JLabel("");
-   JLabel ValueLabel = new JLabel("");
+   JLabel TimeLabel = new JLabel(" ");
+   JLabel ValueLabel = new JLabel(" ");
+//   JLabel YPosLabel = new JLabel("");
    Point2D.Double P = new Point2D.Double();
+   Point2D.Double MP = new Point2D.Double();
+   JButton closeBtn = new JButton("close");
+   JScrollPane functionSP; 
 } 
 
 

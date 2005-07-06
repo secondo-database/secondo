@@ -19,14 +19,39 @@ public FunctionPanel(){
 
 }
 
+
+/** If enabled is set to true, around the cursur, a cross will be displayed.
+  * The cross takes the whole height of this panel and a width several pixels.
+  * This makes it possible to view the y value at the current position.
+  **/
 public void showCross(boolean enabled){
     if(enabled){
         removeMouseMotionListener(MML); 
         addMouseMotionListener(MML);
+        setCursor(crossCursor);
     } 
-    else
+    else{
         removeMouseMotionListener(MML);
+        setCursor(defaultCursor);
+    }
     crossEnabled=enabled; 
+}
+
+
+/** Enables displaying of the y coordinate at the current mouse position.
+  * Actually, the coordinate is only displayed if also the cross is activated.
+  **/
+public void showY(boolean enabled){
+    yEnabled=enabled;
+}
+
+
+public boolean isCrossEnabled(){
+      return crossEnabled;
+}
+
+public boolean isYEnabled(){
+    return yEnabled;
 }
 
 
@@ -63,26 +88,32 @@ public void paint(Graphics g){
     g2.draw(GP);
     if(crossEnabled){
         g.drawLine(lastX,0,lastX,height);
-       // g.drawLine(0,lastY,width,lastY);
+     //   g.drawLine(lastX-20,lastY,lastX+20,lastY);
+    }
+    if(yEnabled){
+        double my = atinv[1]*lastX+atinv[3]*lastY+atinv[5]; // position of the mouse
+        String Label = ""+my;
+        // Rectangle2D R  = g.getFont().getStringBounds(Label,g2.getFontRenderContext());
+        // g.drawString(""+my,lastX+2,lastY+(int)R.getHeight());
+         g.drawString(Label,lastX+2,lastY-2);
     }
 }
 
 
-
-
-
-public boolean getOrig(int mouseX,int mouseY,java.awt.geom.Point2D.Double result){
+public boolean getOrig(int mouseX,int mouseY,java.awt.geom.Point2D.Double result,Point2D.Double coords){
    if(atinv==null)
         return false;
    if(function==null) 
         return false;
    double x = atinv[0]*mouseX+atinv[2]*mouseY+atinv[4];
-  // result.y = atinv[1]*mouseX+atinv[3]*mouseY+atinv[5];
+   double my = atinv[1]*mouseX+atinv[3]*mouseY+atinv[5]; // position of the mouse
    Double y = function.getValueAt(x);
    if(y==null) 
         return false;
    result.x=x;
    result.y=y.doubleValue();
+   coords.x = x;
+   coords.y = my;
    
    return true;
 }
@@ -160,7 +191,10 @@ private GeneralPath GP = null;
 private boolean crossEnabled=false;
 private int lastX;
 private int lastY;
+private boolean yEnabled=false;
 private MouseMotionListener MML;
+private Cursor defaultCursor = new Cursor(Cursor.DEFAULT_CURSOR);
+private Cursor crossCursor = new Cursor(Cursor.CROSSHAIR_CURSOR);
 
 
 }
