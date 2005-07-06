@@ -385,13 +385,9 @@ private static class FunctionFrame extends JFrame{
       super();
       setSize(640,480);
       getContentPane().setLayout(new BorderLayout());
-      JPanel P2 = new JPanel(new BorderLayout());
-      P2.add(functionpanel,BorderLayout.CENTER);
-      functionSP = new JScrollPane(P2);
-      //P2.add(new JLabel(" "),BorderLayout.NORTH);
-      //P2.add(new JLabel(" "),BorderLayout.SOUTH);
-      //P2.add(new JLabel(" "),BorderLayout.EAST);
-      //P2.add(new JLabel(" "),BorderLayout.WEST);
+      functionpanel.setOpaque(true);
+      functionpanel.setBackground(Color.WHITE);
+      functionSP = new JScrollPane(functionpanel);
       getContentPane().add(functionSP,BorderLayout.CENTER);
       JPanel P1 = new JPanel(new GridLayout(1,3));
       P1.add(TimeLabel);
@@ -416,7 +412,7 @@ private static class FunctionFrame extends JFrame{
              }
       });
       
-      //add(closeBtn,BorderLayout.SOUTH);
+      getContentPane().add(closeBtn,BorderLayout.SOUTH);
       addMagnifier();
    }
 
@@ -431,7 +427,7 @@ private static class FunctionFrame extends JFrame{
                 zf=0.75;
             }
             if(evt.getButton()==evt.BUTTON2){
-              //  zf=0.0;
+               zf=0.0;
             }
             Dimension oldDim = functionpanel.getSize();
             functionpanel.setVirtualSize(oldDim.getWidth()*zf,oldDim.getHeight()*zf);
@@ -439,9 +435,9 @@ private static class FunctionFrame extends JFrame{
             double y = evt.getY()*zf;
             double nw = functionSP.getViewport().getWidth(); 
             double nh = functionSP.getViewport().getHeight(); 
-            int px = Math.max(0,(int)(x-nw/2));
-            int py = Math.max(0,(int)(y-nh/2));
-            functionSP.getViewport().setViewPosition(new Point( px,py));
+            double px = Math.max(0,(int)(x-nw/2));
+            double py = Math.max(0,(int)(y-nh/2));
+            functionSP.getViewport().setViewPosition(new Point( (int)px,(int)py));
          }
       });
   }

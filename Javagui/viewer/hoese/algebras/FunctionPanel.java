@@ -19,6 +19,12 @@ public FunctionPanel(){
         mouseMoved(evt);
      }
   };
+  addComponentListener(new ComponentAdapter(){
+      public void componentResized(ComponentEvent e){
+         GPcomputed=false;
+         repaint();
+      }
+  });
 
 }
 
@@ -66,29 +72,31 @@ public void paint(Graphics g){
 
     int width=getWidth()-2*borderSize;
     int height=getHeight()-2*borderSize;
-    if(!y_computed)
-        compute_y(width,height);
-
-    double dx = xmax-xmin;
-    boolean first = true;
-    GP = new GeneralPath();
-    for(int ix=0;ix<width;ix++){
-      double x = xmin+dx*ix/width;
-      if((y=function.getValueAt(x))!=null){
-          if(first){
-             GP.moveTo((float)x,(float)(y.doubleValue()));
-             first=false; 
-          } else{
-             GP.lineTo((float)x,(float)(y.doubleValue()));
-          }    
-
-      } else{ // unfefined state
-         first = true;
-      }
+    if(!GPcomputed){
+       if(!y_computed)
+           compute_y(width,height);
+       double dx = xmax-xmin;
+       boolean first = true;
+       GP = new GeneralPath();
+       for(int ix=0;ix<width;ix++){
+         double x = xmin+dx*ix/width;
+         if((y=function.getValueAt(x))!=null){
+             if(first){
+                GP.moveTo((float)x,(float)(y.doubleValue()));
+                first=false; 
+             } else{
+                GP.lineTo((float)x,(float)(y.doubleValue()));
+             }    
+         } else{ // unfefined state
+            first = true;
+         }
+       }
+       GP.transform(at);
+       GPcomputed=true;
     }
-    GP.transform(at);
     Graphics2D g2 = (Graphics2D) g;
-    g2.draw(GP);
+    if(GP!=null)
+      g2.draw(GP);
     if(crossEnabled){
         g.drawLine(lastX,0,lastX,height+2*borderSize);
      //   g.drawLine(lastX-20,lastY,lastX+20,lastY);
@@ -124,11 +132,13 @@ public boolean getOrig(int mouseX,int mouseY,java.awt.geom.Point2D.Double result
 
 public void setFunction(Function function){
     this.function=function;
+    GPcomputed=false;
 }
 
 public boolean setInterval(double xmin,double xmax){
     if(xmin==xmax)
       return false;
+     GPcomputed=false;
     if(xmin>xmax){
        this.xmax=xmin;
        this.xmin=xmax;
@@ -141,6 +151,7 @@ public boolean setInterval(double xmin,double xmax){
 
 
 public void setVirtualSize(double x, double  y){
+   GPcomputed=false;
    setPreferredSize(new Dimension((int)x,(int)y));
    revalidate();
 }
@@ -205,6 +216,7 @@ private MouseMotionListener MML;
 private Cursor defaultCursor = new Cursor(Cursor.DEFAULT_CURSOR);
 private Cursor crossCursor = new Cursor(Cursor.CROSSHAIR_CURSOR);
 private static final int borderSize = 35;
+private boolean GPcomputed=false;
 
 
 }
