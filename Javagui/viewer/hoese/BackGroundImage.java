@@ -49,7 +49,11 @@ public class  BackGroundImage extends JDialog{
       P4.add(P); 
       P2.add(P4);
       imageDisplay = new ImageDisplay();
-      P2.add(imageDisplay);
+      JPanel P5 = new JPanel(new BorderLayout());
+      P5.add(imageDisplay,BorderLayout.CENTER);
+      P5.add(pixX,BorderLayout.SOUTH);
+      P5.add(pixY,BorderLayout.WEST);
+      P2.add(P5);
       getContentPane().add(P2,BorderLayout.CENTER);
       JPanel CP = new JPanel(new GridLayout(2,2));
       CP.add(ApplyBtn = new JButton("Apply"));
@@ -331,6 +335,8 @@ private JButton ResetBtn;
 private JButton ApplyBtn;
 private JButton OkBtn;
 private JButton CancelBtn;
+private JLabel pixX = new JLabel("width= ",JLabel.CENTER);
+private JLabel pixY = new JLabel("height= ");
 private JFileChooser FC = new JFileChooser();
 private TFW tfw = new TFW();
 private Rectangle2D.Double R1 = new Rectangle2D.Double();
@@ -470,6 +476,8 @@ private class ImageDisplay extends JLabel implements java.awt.image.ImageObserve
               bounds.setRect(R2.getX(),R2.getY(),w,h);
               reset();
            }
+           pixX.setText("width = "+(width));
+           pixY.setText("height = "+(height));
            repaint();
            return  false;
        }
@@ -485,6 +493,13 @@ private class ImageDisplay extends JLabel implements java.awt.image.ImageObserve
               double h = Math.max(1,R2.getHeight());
               bounds.setRect(R2.getX(),R2.getY(),w,h);
               reset();
+         }
+         if(img!=null){
+             pixX.setText("width = "+img.getWidth());
+             pixY.setText("height = "+img.getHeight());
+         }else{
+             pixX.setText("width = ");
+             pixY.setText("height = ");
          }
         repaint();
   }
