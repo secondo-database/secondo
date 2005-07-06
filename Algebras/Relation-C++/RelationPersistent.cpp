@@ -1236,12 +1236,8 @@ void Relation::Clear()
 {
   privateRelation->noTuples = 0;
   privateRelation->totalSize = 0;
-  privateRelation->tupleFile.Close();
-  assert( privateRelation->tupleFile.Drop() );
-  assert( privateRelation->tupleFile.Create() );
-  privateRelation->lobFile.Close();
-  assert( privateRelation->lobFile.Drop() );
-  assert( privateRelation->lobFile.Create() );
+  assert( privateRelation->tupleFile.Truncate() );
+  assert( privateRelation->lobFile.Truncate() );
 }
 
 Tuple *Relation::GetTuple( const TupleId& id ) const

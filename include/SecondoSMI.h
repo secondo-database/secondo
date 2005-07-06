@@ -164,9 +164,9 @@ from their base class ~SmiFile~:
 [23]    Creation/Removal & Open/Close & Information \\
         [--------]
 	Create           & Open        & GetContext \\
-        Drop             & Close       & GetName    \\
-                         &             & GetFileId  \\
-                         &             & IsOpen     \\
+  Drop             & Close       & GetName    \\
+  Truncate         &             & GetFileId  \\
+                   &             & IsOpen     \\
 
 The class ~SmiRecordFile~ provides the following methods:
 
@@ -479,6 +479,12 @@ Closes an open ~SmiFile~.
 /*
 Erases a ~SmiFile~. It is necessary to close any record iterators or record
 handles before dropping a ~SmiFile~.
+
+*/
+  bool Truncate();
+/*
+Truncates a ~SmiFile~. It is necessary to close any record iterators or record
+handles before truncating a ~SmiFile~.
 
 */
   string GetContext();

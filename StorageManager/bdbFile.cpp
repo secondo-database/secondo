@@ -591,6 +591,14 @@ SmiFile::Drop()
   return (ok);
 }
 
+bool 
+SmiFile::Truncate()
+{
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
+  u_int32_t countp;
+  return impl->bdbFile->truncate( tid, &countp, 0 ) == 0;
+}
+
 string
 SmiFile::GetContext()
 {

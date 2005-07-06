@@ -383,20 +383,7 @@ BTree::~BTree()
 bool BTree::Truncate()
 {
   if( opened )
-  {
-    assert( file != 0 );
-    SmiKeyedFileIterator iter;
-    SmiRecord record;
-
-    if( !file->SelectAll( iter, SmiFile::Update, true ) )
-      return false;
-
-    while( iter.Next( record ) )
-    {
-      if( !file->DeleteRecord( record.GetKey() ) )
-        return false;
-    }
-  }
+    return file->Truncate();
   return true;
 }
 
@@ -874,6 +861,7 @@ CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
 
   if( !btree->IsOpened() )
     return CANCEL;
+  btree->Truncate();
 
   RelationIterator *iter = relation->MakeScan();
   Tuple* tuple;
