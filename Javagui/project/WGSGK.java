@@ -147,6 +147,11 @@ double round(double src)
   return theInteger;
 }
 
+public void enableWGS(boolean enabled){
+   gKSettings.UseWGS.setSelected(enabled);
+   useWGS=enabled;
+}
+
 
 
 public static double  Pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164;
