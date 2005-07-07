@@ -152,7 +152,10 @@ public void enableWGS(boolean enabled){
    useWGS=enabled;
 }
 
-
+public void setMeridian(int m){
+    MDC = m;
+    gKSettings.MDCField.setText(""+m);
+}
 
 public static double  Pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164;
 
