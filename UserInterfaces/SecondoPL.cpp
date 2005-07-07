@@ -53,7 +53,6 @@ using namespace std;
 #include "Profiles.h"
 #include "LogMsg.h"
 #include "License.h"
-#include "entropy.h"
 
 #ifdef SECONDO_USE_ENTROPY
 #include "../Optimizer/Entropy/entropy.h"
