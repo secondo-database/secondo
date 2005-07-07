@@ -70,7 +70,8 @@ CompoundConstraint* build_contraints( int& nVars,
 #endif
 
   // The sum of all probability must be 1
-  for(int i = 1; i <= nVars; i++) cteA(1,i) = 1.0;
+  for(int i = 1; i <= nVars; i++)
+    cteA(1,i) = 1.0;
   cteB(1) = 1.0;
 
   // Constraints for marginal probability
@@ -204,6 +205,7 @@ void find_initial_point( vector<double>& marginalProbability, ColumnVector& X )
 
   for( int i = 1; i <= nVars; i++ )
     A(nVars, i) = 1.0;
+
   B(nVars) = 1.0;
 
   // Find the solution of the linear equations
@@ -218,55 +220,75 @@ void maximize_entropy( vector<double>& marginalProbability,
                        vector<pair<int,double> >& jointProbability,
                        vector<pair<int,double> >& estimatedProbability )
 {
-  int nVars, maxIter;
-  Matrix A;
-  ColumnVector B;
-  CompoundConstraint* constraint =
-    build_contraints(nVars, marginalProbability, jointProbability, A, B);
-  NLF2 entropyProblem(nVars, f, init_f, constraint);
+  estimatedProbability.clear();
 
-  // This assignment must be done before the creation of "objfcn".
-  ptr_marginalProbability = &marginalProbability;
+  try
+  {
+    int nVars, maxIter;
+    Matrix A;
+    ColumnVector B;
+    CompoundConstraint* constraint = NULL;
+    try
+    {
+      constraint = build_contraints(nVars, marginalProbability, jointProbability, A, B);
+      NLF2 entropyProblem(nVars, f, init_f, constraint);
 
-  // To prevent long calculations
-  maxIter = 20000 / nVars;
-  OptNIPS objfcn(&entropyProblem);
-  OptNIPSLike_interpolate = true;
-  objfcn.setOutputFile("output.txt", 0);
-  objfcn.setFcnTol(1e-12);
-  objfcn.setConTol(1e-16);
-  objfcn.setGradTol(1e-16);
-  objfcn.setLineSearchTol(1e-16);
-  objfcn.setStepTol(1e-16);
-  objfcn.setMinStep(1e-24);
-  objfcn.setMaxIter(maxIter);
-  objfcn.setSearchStrategy(LineSearch);
-  objfcn.setMaxBacktrackIter(maxIter);
-  objfcn.setMeritFcn(NormFmu);
-  objfcn.optimize();
-  objfcn.printStatus("Solution from entropy");
-  objfcn.cleanup();
+      // To prevent long calculations
+      maxIter = 20000 / nVars;
+      ptr_marginalProbability = &marginalProbability;
+      OptNIPS objfcn(&entropyProblem);
+      OptNIPSLike_interpolate = true;
+      objfcn.setOutputFile("output.txt", 0);
+      objfcn.setFcnTol(1e-12);
+      objfcn.setConTol(1e-16);
+      objfcn.setGradTol(1e-16);
+      objfcn.setLineSearchTol(1e-16);
+      objfcn.setStepTol(1e-16);
+      objfcn.setMinStep(1e-24);
+      objfcn.setMaxIter(maxIter); 
+      objfcn.setSearchStrategy(LineSearch);
+      objfcn.setMaxBacktrackIter(maxIter);
+      objfcn.setMeritFcn(NormFmu);
+      try
+      {
+        objfcn.optimize();
+      }
+      catch(...)
+      {
+        cout << "Failed!" << endl;
+        // objfcn.optimize();
+      }
+      objfcn.printStatus("Solution from entropy");
 
-  cout << "Entropy: " << - entropyProblem.getF() << endl;
+      cout << "Entropy: " << - entropyProblem.getF() << endl;
 
 #ifdef STAND_ALONE
-  print_cond_prob(marginalProbability.size(), entropyProblem.getXc());
+      print_cond_prob(marginalProbability.size(), entropyProblem.getXc());
 #endif
 
-  estimatedProbability.clear();
-  ColumnVector const &x = entropyProblem.getXc();
+      ColumnVector const &x = entropyProblem.getXc();
 
-  for( int jp = 1; jp < nVars; jp++ )
-  {
-    double p = 0.0;
-    for( int i = 0; i < nVars; i++ )
-      if( (jp & i) == jp )
-        p += x(i);
+      for( int jp = 1; jp < nVars; jp++ )
+      {
+        double p = 0.0;
+        for( int i = 0; i < nVars; i++ )
+          if( (jp & i) == jp )
+            p += x(i);
 
-    estimatedProbability.push_back(pair<int,double>(jp, p));
+        estimatedProbability.push_back(pair<int,double>(jp, p));
+      }
+      objfcn.cleanup();
+    }
+    catch(...)
+    {
+      cout << "Unable to use entropy approach!" << endl;
+      delete constraint;
+    }
   }
-
-  ptr_marginalProbability = NULL;
+  catch(...)
+  {
+    cout << "Unable to use entropy approach!" << endl;
+  }
 }
 
 void init_f(int ndim, ColumnVector& x)
