@@ -19,7 +19,7 @@
 
 
 .PHONY: all
-all: NMEA2Secondo.class NMEA2MReal.class 
+all: NMEA2Secondo.class NMEA2MReal.class NMEA_SpeedExtractor.class MyStringTokenizer.class
 
 
 NMEA2Secondo.class: NMEA2Secondo.java
@@ -29,6 +29,11 @@ NMEA2Secondo.class: NMEA2Secondo.java
 NMEA2MReal.class: NMEA2MReal.java
 	javac NMEA2MReal.java
 
+NMEA_SpeedExtractor.class: NMEA_SpeedExtractor.java
+	javac NMEA_SpeedExtractor.java
+
+MyStringTokenizer.class: MyStringTokenizer.java
+	javac MyStringTokenizer.java
 
 .PHONY: clean
 clean:

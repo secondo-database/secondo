@@ -50,7 +50,7 @@ private static int c2i(char c){
   * milliseconds from the beginning of a day up to the
   * given time.
   **/
-private static Long getTime(String time){
+public static Long getTime(String time){
   // check format
   if(time.length()!=9 && time.length()!=10)
       return null;
@@ -68,7 +68,7 @@ private static Long getTime(String time){
 
 
 /** Processes a single date. **/
-private static void processData(String Time, String Height1,String Height2){
+public static void processData(String Time, String Height1,String Height2){
    Long T = getTime(Time);
    if(T==null){
        System.err.println("Error in computing time from: "+ Time);
@@ -238,7 +238,7 @@ private static UnitWriter unitWriter = new UnitWriter();
 
 /* unit writer for moving reals */
 
-private static class UnitWriter{
+public static class UnitWriter{
 
 
 /** Appends a new point in time
@@ -326,7 +326,7 @@ boolean write(){
 }
 
 
-private static void printStatistic(){
+public static void printStatistic(){
    System.err.println("written Units  : " + writtenUnits );
    System.err.println("skipped Points : " + skippedPoints);
 }
@@ -342,7 +342,7 @@ private double t2 = 0.0;
 private double dV = 0.0;
 private boolean written = false;
 
-private static double EPSILON=0.00000;
+static double EPSILON=0.00000;
 
 private static long writtenUnits = 0;
 private static long skippedPoints = 0;
