@@ -4089,6 +4089,7 @@ Word InRange( const ListExpr typeInfo, const ListExpr instance,
       Alpha *start = (Alpha *)InFun( nl->TheEmptyList(), nl->First( first ), errorPos, errorInfo, correct ).addr;
       if( correct == false )
       {
+        delete start;
         return SetWord( Address(0) );
       }
 
@@ -4096,6 +4097,7 @@ Word InRange( const ListExpr typeInfo, const ListExpr instance,
       if( correct == false )
       {
         delete start;
+        delete end;
         return SetWord( Address(0) );
       }
 
@@ -4111,6 +4113,8 @@ Word InRange( const ListExpr typeInfo, const ListExpr instance,
     else
     {
       correct = false;
+      range->Destroy();
+      delete range;
       return SetWord( Address(0) );
     }
   }
@@ -4253,10 +4257,13 @@ Word InIntime( const ListExpr typeInfo, const ListExpr instance,
   {
     Instant *instant = (Instant *)InInstant( nl->TheEmptyList(),
                                              nl->First( instance ),
-		                             errorPos, errorInfo, correct ).addr;
+		                                         errorPos, errorInfo, correct ).addr;
 
     if( correct == false )
+    {
+      delete instant;
       return SetWord( Address(0) );
+    }
 
     Alpha *value = (Alpha *)InFun( nl->TheEmptyList(), nl->Second( instance ), errorPos, errorInfo, correct ).addr;
     if( correct  )
@@ -4265,6 +4272,7 @@ Word InIntime( const ListExpr typeInfo, const ListExpr instance,
       delete value;
       return SetWord( intime );
     }
+    delete value;
   }
   correct = false;
   return SetWord( Address(0) );
@@ -4372,16 +4380,19 @@ Word InConstTemporalUnit( const ListExpr typeInfo, const ListExpr instance,
     ListExpr first = nl->First( instance );
 
     if( nl->ListLength( first ) == 4 &&
-	nl->IsAtom( nl->Third( first ) ) &&
-	nl->AtomType( nl->Third( first ) ) == BoolType &&
-	nl->IsAtom( nl->Fourth( first ) ) &&
-	nl->AtomType( nl->Fourth( first ) ) == BoolType )
+	      nl->IsAtom( nl->Third( first ) ) &&
+        nl->AtomType( nl->Third( first ) ) == BoolType &&
+        nl->IsAtom( nl->Fourth( first ) ) &&
+        nl->AtomType( nl->Fourth( first ) ) == BoolType )
     {
       Instant *start =
         (Instant *)InInstant( nl->TheEmptyList(), nl->First( first ),
 	                      errorPos, errorInfo, correct ).addr;
       if( correct == false )
+      {
+        delete start;
         return SetWord( Address(0) );
+      }
 
       Instant *end =
         (Instant *)InInstant( nl->TheEmptyList(), nl->Second( first ),
@@ -4389,6 +4400,7 @@ Word InConstTemporalUnit( const ListExpr typeInfo, const ListExpr instance,
       if( correct == false )
       {
         delete start;
+        delete end;
         return SetWord( Address(0) );
       }
 
@@ -4408,14 +4420,15 @@ Word InConstTemporalUnit( const ListExpr typeInfo, const ListExpr instance,
       {
         ConstTemporalUnit<Alpha> *constunit =
           new ConstTemporalUnit<Alpha>( tinterval, *value );
-        delete value;
-        return SetWord( constunit );
+
+        if( constunit->IsValid() )
+        {
+          delete value;
+          return SetWord( constunit );
+        }
+        delete constunit; 
       }
-    }
-    else
-    {
-      correct = false;
-      return SetWord( Address(0) );
+      delete value;
     }
   }
   correct = false;
@@ -4543,11 +4556,19 @@ Word InMapping( const ListExpr typeInfo, const ListExpr instance,
     Unit *unit = (Unit*)InUnit( nl->TheEmptyList(), first,
                                 errorPos, errorInfo, correct ).addr;
     if( correct == false )
+    {
+      correct = false;
+      delete unit;
+      m->Destroy();
+      delete m;
       return SetWord( Address(0) );
+    }
     m->Add( *unit );
     delete unit;
   }
+
   m->EndBulkLoad( true );
+
   if( m->IsValid() )
   {
     correct = true;

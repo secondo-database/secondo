@@ -1094,13 +1094,17 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
       Instant *start = (Instant *)InInstant( nl->TheEmptyList(), nl->First( first ),
                                              errorPos, errorInfo, correct ).addr;
       if( correct == false )
+      {
+        delete start;
         return SetWord( Address(0) );
+      }
 
       Instant *end = (Instant *)InInstant( nl->TheEmptyList(), nl->Second( first ),
                                            errorPos, errorInfo, correct ).addr;
       if( correct == false )
       {
         delete start;
+        delete end;
         return SetWord( Address(0) );
       }
 
@@ -1123,13 +1127,18 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
           nl->IsAtom( nl->Fourth( second ) ) &&
           nl->AtomType( nl->Fourth( second ) ) == BoolType )
       {
-        correct = true;
         UReal *ureal = new UReal( tinterval,
                                   nl->RealValue( nl->First( second ) ),
                                   nl->RealValue( nl->Second( second ) ),
                                   nl->RealValue( nl->Third( second ) ),
                                   nl->BoolValue( nl->Fourth( second ) ) );
-        return SetWord( ureal );
+
+        if( ureal->IsValid() )
+        {
+          correct = true;
+          return SetWord( ureal );
+        }
+        delete ureal;
       }
     }
   }
@@ -1307,7 +1316,10 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
                                              errorPos, errorInfo, correct ).addr;
 
       if( correct == false )
+      {
+        delete start;
         return SetWord( Address(0) );
+      }
 
       Instant *end = (Instant *)InInstant( nl->TheEmptyList(), nl->Second( first ),
                                            errorPos, errorInfo, correct ).addr;
@@ -1315,6 +1327,7 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
       if( correct == false )
       {
         delete start;
+        delete end;
         return SetWord( Address(0) );
       }
 
@@ -1336,13 +1349,18 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
           nl->IsAtom( nl->Fourth( second ) ) &&
           nl->AtomType( nl->Fourth( second ) ) == RealType )
       {
-         correct = true;
-         UPoint *upoint = new UPoint( tinterval,
-                                      nl->RealValue( nl->First( second ) ),
-                                      nl->RealValue( nl->Second( second ) ),
-                                      nl->RealValue( nl->Third( second ) ),
-                                      nl->RealValue( nl->Fourth( second ) ) );
-         return SetWord( upoint );
+        UPoint *upoint = new UPoint( tinterval,
+                                     nl->RealValue( nl->First( second ) ),
+                                     nl->RealValue( nl->Second( second ) ),
+                                     nl->RealValue( nl->Third( second ) ),
+                                     nl->RealValue( nl->Fourth( second ) ) );
+
+        if( upoint->IsValid() )
+        {
+          correct = true;
+          return SetWord( upoint );
+        }
+        delete upoint;  
       }
     }
   }
