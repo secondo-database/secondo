@@ -70,7 +70,7 @@ public void paint(Graphics g){
     if(function==null)
        return;
 
-    int width=getWidth()-2*borderSize;
+    width=getWidth()-2*borderSize;
     int height=getHeight()-2*borderSize;
     if(!GPcomputed){
        if(!y_computed)
@@ -82,10 +82,10 @@ public void paint(Graphics g){
          double x = xmin+dx*ix/width;
          if((y=function.getValueAt(x))!=null){
              if(first){
-                GP.moveTo((float)x,(float)(y.doubleValue()));
+                GP.moveTo((float)ix,(float)(y.doubleValue()));
                 first=false; 
              } else{
-                GP.lineTo((float)x,(float)(y.doubleValue()));
+                GP.lineTo((float)ix,(float)(y.doubleValue()));
              }    
          } else{ // unfefined state
             first = true;
@@ -116,7 +116,10 @@ public boolean getOrig(int mouseX,int mouseY,java.awt.geom.Point2D.Double result
         return false;
    if(function==null) 
         return false;
-   double x = atinv[0]*mouseX+atinv[2]*mouseY+atinv[4];
+   if(width<=0)
+        return false; 
+   double pixSize = (xmax-xmin)/width;
+   double x = (mouseX-borderSize)*pixSize+xmin;
    double my = atinv[1]*mouseX+atinv[3]*mouseY+atinv[5]; // position of the mouse
    Double y = function.getValueAt(x);
    if(y==null) 
@@ -180,9 +183,9 @@ private void compute_y(int width,int height){
    // now, the bounding box of the function is determined
    // we can compute an affine transformation for bringing the
    // function to screen
-   double scaleX =  width/dx;  
+   double scaleX =  1.0; //width/dx;  
    double scaleY =  height/dy;
-   double tx = -xmin;
+   double tx = 0; // -xmin;
    double ty = -ymin;
    AffineTransform Flip = new AffineTransform();
    at.setTransform(scaleX,0,0,scaleY,scaleX*tx,scaleY*ty); 
@@ -217,6 +220,7 @@ private Cursor defaultCursor = new Cursor(Cursor.DEFAULT_CURSOR);
 private Cursor crossCursor = new Cursor(Cursor.CROSSHAIR_CURSOR);
 private static final int borderSize = 35;
 private boolean GPcomputed=false;
+private int width; // width for function = whole width - 2*bordersize
 
 
 }
