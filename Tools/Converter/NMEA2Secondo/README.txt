@@ -47,7 +47,10 @@ TRACES2SecDB
 ============
 Using this tool, you can convert a set of trace files into a single relation.
 Call this tool as follows:
-   Traces2SecDB {name of the relation}  file_1 ... file_n [>outfile]
+   Traces2SecDB [-height | -speed] {name of the relation}  file_1 ... file_n [>outfile]
+
+Using the -height or the -speed switch, you can extract the desired information. Without 
+a swicth, the trip is extracted.
 
 
 NMEA2MReal

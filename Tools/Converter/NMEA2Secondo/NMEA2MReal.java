@@ -118,7 +118,18 @@ private static void processLine(String line){
      return;
   }
 
-  ST.nextToken(); // number of satellites
+  String Nos = ST.nextToken(); // number of satellites
+  try{
+     int nos = Integer.parseInt(Nos);
+     if(nos<3){
+          System.err.println("Too less satellies for determining hight");
+          return;
+     }
+  }catch(Exception e){
+     System.err.println("Error in determining number of satellites");
+     return;
+  }
+  
   ST.nextToken(); // horizontal dilution
   Alt1 = ST.nextToken(); // antenna altitude
   // the other values are not of interest

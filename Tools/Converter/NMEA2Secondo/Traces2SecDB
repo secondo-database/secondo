@@ -3,9 +3,27 @@
 # Script converting a set of traces into a relation of secondo.
 #
 
+#set defaults
+Converter=NMEA2Secondo
+Type=mpoint
+Name=trip
+
+if [ "$1" = "-height" ]; then
+   Converter=NMEA2MReal
+   Type=mreal
+   Name=height 
+   shift
+else
+   if [ "$1" = "-speed" ]; then
+      Converter=NMEA_SpeedExtractor
+      Type=mreal
+      Name=speed
+      shift
+   fi
+fi
 
 if [ -z "$*" ]; then
-   echo "usage: Traces2SecDB <name of the relation> trace_1...trace_n"
+   echo "usage: Traces2SecDB [-hight | -speed ] <name of the relation> trace_1...trace_n"
    exit -1
 fi
 
@@ -17,7 +35,7 @@ ARGUMENTS=" file local 0.0 -value";
 
 # print header
 
-echo '( OBJECT '$NAME ' () (rel (tuple( (name string) (trip mpoint)))) '
+echo '( OBJECT '$NAME ' () (rel (tuple( (name string) ('$Name' '$Type')))) '
 echo '  ('
 
 for f in $* 
@@ -32,7 +50,7 @@ do
      name=$f
   fi
   echo -ne "\""$name"\" " 
-  java -classpath $CLASSPATH NMEA2Secondo $f $ARGUMENTS
+  java -classpath $CLASSPATH $Converter $f $ARGUMENTS
   if [ $? -ne "0" ]; then
     echo "problem in calling java program" >&2
     exit -1
