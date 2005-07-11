@@ -51,8 +51,13 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
   }
 
   public void  displayExtern(){
-      functionframe.setSource(this);
-      functionframe.setVisible(true);
+      if(TimeBounds!=null){
+         functionframe.setSource(this);
+         functionframe.setVisible(true);
+         functionframe.toFront();
+      } else{
+         viewer.MessageBox.showMessage("The moving real is empty");
+      }
   }
 
 
@@ -70,7 +75,9 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
    * @return A JPanel component with the renderer
    */
   public JPanel getTimeRenderer (double PixTime) {
-    if(err)
+    if(err) // error
+       return null;
+    if(TimeBounds==null) // empty
        return null;
 
     // Create a MRealLabel for each unit and add it to
@@ -180,8 +187,10 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
    * @see <a href="Dsplmovingrealsrc.html#ScanValue">Source</a>
    */
   public void ScanValue (ListExpr v) {
-    if (v.isEmpty())
+    if (v.isEmpty()){
+      err=false; // allow empty mreals
       return;
+    }
     while (!v.isEmpty()) {
       ListExpr le = v.first();
       Interval in=null;
