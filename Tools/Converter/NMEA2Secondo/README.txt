@@ -43,20 +43,31 @@ epsilon. Use a negative value for epsilon to avoid summarization of units.
 
 
 
-TRACES2SecDB
-============
-Using this tool, you can convert a set of trace files into a single relation.
-Call this tool as follows:
-   Traces2SecDB [-height | -speed] {name of the relation}  file_1 ... file_n [>outfile]
-
-Using the -height or the -speed switch, you can extract the desired information. Without 
-a swicth, the trip is extracted.
-
 
 NMEA2MReal
 ==========
 
 This tool works as the NMEA2Secondo tool, but produces a moving real from the 
-altitude infromation in the file. 
+altitude information in the file.
+
+NMEA_SpeedExtractor
+==================
+
+This tool works as the NMEA2Secondo tool. It creates a single object of type
+mreal extracting the speed informatioon of the nmea trace. For using this tool,
+the GGA and the VTG data set must be contained in the file.
 
 
+
+TRACES2SecDB
+============
+Using this tool, you can convert a set of trace files into a single relation.
+Call this tool as follows:
+   Traces2SecDB [options] {name of the relation}  file_1 ... file_n [>outfile]
+
+allowed options are:
+   -height : extracts the height information from the files
+   -speed  : extracts the speed information from the files
+   -trace  : extracts the location information from the files
+   -all    : same as -height -speed -trace
+   -help   : displays a help screen
