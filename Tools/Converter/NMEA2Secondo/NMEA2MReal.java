@@ -35,6 +35,7 @@ private static long days = 0;
 private static long hours = 0; // difference between local time and utc in milliseconds
 private static double lastTime = -100; // invalid value
 private static final long DAYMILLIS=86400000;
+private static double maxDop = 100.0; // the maximum as default
 
 
 /** Return the value of this character as digit.
@@ -130,7 +131,17 @@ private static void processLine(String line){
      return;
   }
   
-  ST.nextToken(); // horizontal dilution
+  String Dop = ST.nextToken(); // horizontal dilution
+  try{
+    double dop = Double.parseDouble(Dop);
+    if(dop>maxDop){
+       System.err.println("dilution of precision too high");
+       return;
+    } 
+  }catch(Exception e){
+       return;
+  }
+
   Alt1 = ST.nextToken(); // antenna altitude
   // the other values are not of interest
   ST.nextToken(); // ignore unit (meters)
@@ -202,6 +213,20 @@ public static void main(String[] args){
         UnitWriter.EPSILON=Double.parseDouble(args[3]);
      if(l>4){
         writeOnlyValue= "-value".equals(args[4]);
+        if(!writeOnlyValue){ // try to get the dop from the argument
+            try{
+               double tmpdop = Double.parseDouble(args[4]);
+               if(tmpdop>0)
+                    maxDop = tmpdop;
+            } catch(Exception e){ System.err.println("unknown option");}
+        }
+     }
+     if((l>5) && (maxDop==100)){
+            try{
+               double tmpdop = Double.parseDouble(args[5]);
+               if(tmpdop>0)
+                    maxDop = tmpdop;
+            } catch(Exception e){ System.err.println("unknown option");}
      }
    } catch(Exception e){
       showUsage();
@@ -212,8 +237,8 @@ public static void main(String[] args){
       System.err.println(" dayoffset :; " + days );
       System.err.println(" houroffset : " + hours );
       System.err.println(" epsilon    : " + UnitWriter.EPSILON);
-    }
-
+      System.err.println(" max. dilution :" + maxDop);
+   }
 
    String line;
    // print header

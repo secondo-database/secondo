@@ -15,6 +15,7 @@ function showUsage() {
   echo " -height: extracts the height as a moving real" >&2
   echo " -speed: extracts the speed as a moving real" >&2
   echo " -all: the same as -trace -height -speed" >&2
+  echo " -maxDop=<maxDop>: sets the maximum dilution of prcision for measures of the height"
   echo " -help: this help message" >&2
   echo " Note: if no option is given, the tript is extracted from the nmea files" >&2
   exit 1
@@ -67,6 +68,9 @@ while [ "$OptId" = "-" ]; do
     -help)   
              showUsage
              ;;
+    -maxDop=[0-9]*)  
+             MAXDOP=${OPTION:8}
+             ;; 
     *)       
              extractOption ${OPTION:1} 
              ;;
@@ -124,7 +128,7 @@ do
   fi
   echo -ne "\""$name"\" "
   if [ "$TRACE" = "true" ]; then 
-      java -classpath $CLASSPATH NMEA2Secondo $f $ARGUMENTS
+      java -classpath $CLASSPATH NMEA2Secondo $f $ARGUMENTS $MAXDOP
   fi
   if [ $? -ne "0" ]; then
     echo "problem in calling java program" >&2
@@ -132,7 +136,7 @@ do
   fi
 
   if [ "$SPEED" = "true" ]; then 
-      java -classpath $CLASSPATH NMEA_SpeedExtractor $f $ARGUMENTS
+      java -classpath $CLASSPATH NMEA_SpeedExtractor $f $ARGUMENTS $MAXDOP
   fi
   if [ $? -ne "0" ]; then
     echo "problem in calling java program" >&2
@@ -140,7 +144,7 @@ do
   fi
 
   if [ "$HEIGHT" = "true" ]; then 
-      java -classpath $CLASSPATH NMEA2MReal $f $ARGUMENTS
+      java -classpath $CLASSPATH NMEA2MReal $f $ARGUMENTS $MAXDOP
   fi
   if [ $? -ne "0" ]; then
     echo "problem in calling java program" >&2

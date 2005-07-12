@@ -70,4 +70,5 @@ allowed options are:
    -speed  : extracts the speed information from the files
    -trace  : extracts the location information from the files
    -all    : same as -height -speed -trace
+   -maxDop=<maxdop>: evaluate the delution of precision field in measures of the height
    -help   : displays a help screen
