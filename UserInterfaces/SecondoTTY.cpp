@@ -37,6 +37,8 @@ Gettext() and getline() functions, to allow input commands of arbitrary size.
 Dec 2004, M. Spiekermann. The read in command lines will be separated by a "\\n"
 symbol, otherwise the parser can't calculate a position in terms of lines and cols. 
 
+July 2005, M. Spiekermann. Help message improved.
+
 \begin{center}
 \footnotesize
 \tableofcontents
@@ -162,14 +164,16 @@ SecondoTTY::Usage()
        << "                    OPTION = { LEVEL }" << endl
        << "                      LEVEL      - current level" << endl
        << "  DEBUG {0|1|2}   - set debug level:" << endl
-       << "                      0   - debug mode turned off" << endl
-       << "                      1   - debug mode turned on" << endl
-       << "                      2   - debug and trace mode turned on" << endl
+       << "                      0   - debug and trace turned off" << endl
+       << "                      1   - debug mode (show annotated query and operator tree)" << endl
+       << "                      2   - debug and trace (show also type mapping and recursive calls)" << endl
+       << "                      3   - trace more (construction of nodes of the operator tree, " 
+       << "                              and execution of the query processors Eval method)" << endl
        << "  Q, QUIT         - exit the program" << endl << endl
        << "  # ...           - comment line (first character"
        << " on line has to be '#')" << endl << endl
-       << "Additionally you may enter any valid Secondo command." << endl
-       << "Internal commands are restricted to ONE line, while Secondo"
+       << "Additionally you may enter any valid SECONDO command." << endl
+       << "Internal commands are restricted to ONE line, while SECONDO"
        << " commands may span" << endl
        << "several lines; a semicolon as the last character on a line"
        << " ends a command, but" << endl

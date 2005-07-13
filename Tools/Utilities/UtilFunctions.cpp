@@ -45,6 +45,7 @@ July 2004 M. Spiekermann, Implementation of showActiveFlags.
 #include "StopWatch.h"
 #include "LogMsg.h"
 #include "Counter.h"
+#include "CharTransform.h"
 
 using namespace std;
 
@@ -229,4 +230,13 @@ Counter::it;
 
 map<string,long>
 Counter::CounterMap;
+
+/*
+4 Implementation of ~operator<<~ for class ~tab~ see CharTransform.h
+
+*/
+
+ostream& operator << (ostream& os, const tab& f) {
+  return f(os);
+}
 

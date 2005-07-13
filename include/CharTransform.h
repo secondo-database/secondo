@@ -47,5 +47,24 @@ ToLowerProperFunction(char c)
   return tolower(c);
 }
 
+/*
+The class below can be used as a manipulator in streams:
+os << tab(5, 'x') will create "xxxxx".
+
+*/
+
+class tab {
+  char c;
+  int n;
+  public:
+  tab(int no=4, char ch=' ') : c(ch), n(no) {}
+  ostream& operator() (ostream& os) const {
+    for (int i=n; i!=0; i--) os.put(c);
+    return os; 
+  }
+};
+
+// Next operator implemented in UtilFunctions.cpp
+ostream& operator << (ostream& os, const tab& f);
 
 #endif /* CHAR_TRANSFORM_H */

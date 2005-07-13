@@ -64,6 +64,8 @@ January 26, 2001 RHG Added an ~isFunction~ parameter to procedure ~construct~.
 May 2002 Ulrich Telle Port to C++, integrated descriptive algebra level
 and function mapping.
 
+February 3, 2003 RHG Added QP\_COUNTER and QP\_COUNTERDEF.
+
 August 2004, M. Spiekermann. Private method ~TestOverloadedOperators~ introduced.
 This function checks a list of operators if they can map a given input type to 
 some other type. The first operator returning not result type "typeerror" will
@@ -76,8 +78,8 @@ variable will be set by the SecondoInterface at startup. The value can be define
 the configuration file. In the future it may be nice if the Query Processor computes
 this value based on a global memory limit per query. 
 
+June 2005, M. Spiekermann SetDeletFunction added.
 
-February 3, 2003 RHG Added QP\_COUNTER and QP\_COUNTERDEF.
 
 1.1 Overview
 
@@ -309,11 +311,19 @@ passed to the evaluation function in parameter ~opTreeNode~.
 
 */
   void ResultStorage( const Supplier s, const Word w );
+  void SetDeleteFunction( const Supplier s, const ObjectDeletion f );
 /*
 Some operators do not use the result storage and create their own
 storage for the result. This function is used for this case. They
 must call the first function ~ResultStorage~ and free it, and then 
-set the new one passed in ~w~.
+set the new one passed in ~w~. Moreover a function for deletion of the
+new type can be defined wit SetDeleteFunction
+
+*/
+  void DeleteResultStorage( const Supplier s);
+/*
+Delete the result by calling the appropriate delete function of the
+data type stored in the Supplier.  
 
 */
 
@@ -378,9 +388,10 @@ Construct an operator tree from ~expr~. Allocate argument vectors for all
 functions and then call ~subtree~ to do the job.
 
 */
-  ListExpr ListOfTree( OpTree tree );
+  ListExpr ListOfTree( OpTree tree, ostream& os );
 /*
 Represents an operator tree through a list expression. Used for testing.
+Additionally more detailed information will be printed into ~os~.
 
 */
   void SetDebugLevel( const int level );
@@ -541,7 +552,8 @@ tree is built, the ~Destroy~ function should be called.
                           const ListExpr expr );
   OpTree Subtree( const AlgebraLevel level,
                   const ListExpr expr,
-                  bool& first );
+                  bool& first,
+                  const OpNode* fatherNode = 0 );
 /*
 Construct operator tree recursively for a given annotated ~expr~. See
 ~Annotate~ and ~AnnotateFunction~ for the possible structures to be processed.
@@ -562,6 +574,8 @@ Construct operator tree recursively for a given annotated ~expr~. See
   bool testMode;
   bool debugMode;
   bool traceMode;
+  bool traceNodes;
+  map <int, bool> argsPrinted;
 
   struct ValueInfo
   {
@@ -624,6 +638,9 @@ public:
   static void ReportError(char* msg);
   static void GetErrorMessage(string& msg);
 };
+
+
+ostream& operator<<(ostream& os, const OpNode& node);
 
 #endif
 

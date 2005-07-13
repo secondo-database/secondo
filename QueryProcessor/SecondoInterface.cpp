@@ -1199,9 +1199,9 @@ which should be named Command\_<name>.
 
   // Creation and deletion of Objects
   LOGMSG( "SI:RelStatistics", 
-    Tuple::ShowTupleStatistics( true, cmsg.info() ); 
-    ShowStandardTypesStatistics( true, cmsg.info() ); 
-    cmsg.send();
+    Tuple::ShowTupleStatistics( true ); 
+    ShowStandardTypesStatistics( true ); 
+    //cmsg.send();
   ) 
 
   LOGMSG( "SI:ResultList",
@@ -1321,7 +1321,6 @@ SecondoInterface::Command_Query( const AlgebraLevel level,
     cmsg.info() << "Analyze " << queryTime.diffTimes() << endl;
     cmsg.send();
     queryTime.start();
-    //cerr << nl->ReportTableSizes() << endl;
   }
 
   if ( !defined ) // Undefined object value
