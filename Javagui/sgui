@@ -9,7 +9,7 @@ if [ -n "$SECONDO_JAVA" ]; then
   JAVA=$SECONDO_JAVA
   CLASSPATH=$SECONDO_JAVART
 else 
-  JAVA = java
+  JAVA=java -server
 fi
 
 $JAVA  -Xmx580M  -classpath $CP gui.MainWindow
