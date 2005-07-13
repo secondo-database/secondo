@@ -32,6 +32,9 @@ to files, screen or (in case of the server) to a client.
 
 May 2005 M. Spiekermann. Demangling of stack trace improved.
 
+July 2005 M. Spiekermann. Retrieval of the application name for the addr2line
+command instead of hard coded application name SecondoTTYBDB
+
 */
 
 #include <cstdio>
@@ -245,7 +248,11 @@ Application::PrintStacktrace(void)
 
   bool runaddr2line = RTFlag::isActive("DEBUG:DemangleStackTrace");
 
-  string cmdStr = "addr2line -C auto -fse SecondoTTYBDB ";
+  
+  Application* ap = Application::Instance();
+  string fullAppName = ap->GetApplicationPath() + "/" + ap->GetApplicationName();
+  string cmdStr = "addr2line -C auto -fse " + fullAppName + " "; 
+  cout << " Result of  " << cmdStr << endl;
   string addressList = "";
 
   for(int i=0;i<depth;i++)

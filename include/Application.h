@@ -287,7 +287,7 @@ Is the default signal handler for handling user signals (SIGUSR1 and SIGUSR2).
 
  static void Application::PrintStacktrace(void);
 /*
-Print out a stack trace in cas of abnormal program termination.
+Print out a stack trace in case of abnormal program termination.
 
 */
 
