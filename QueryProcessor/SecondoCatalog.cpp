@@ -1839,9 +1839,10 @@ object is only modified, so that no deletion function is necessary.
   if ( oPos != objects.end() )
   {
     assert( oPos->second.state != EntryDelete );
-    assert( oPos->second.value.addr != value.addr );
 
-    (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
+    if( oPos->second.value.addr != value.addr )
+      (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
+
     oPos->second.value = value;
     oPos->second.valueDefined = true;
     found = true;
