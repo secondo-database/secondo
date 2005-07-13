@@ -172,6 +172,12 @@ Precondition: DBState = dbClosed.
         SmiEnvironment::CloseDatabase();
         SmiEnvironment::EraseDatabase( dbname );
       }
+    } 
+    else 
+    {
+      SmiEnvironment::AbortTransaction();
+      // To do: Correct error handling
+      cerr << "scDescriptive->Open() failed!" << endl;
     }
   }
   return (ok);
@@ -231,6 +237,12 @@ Precondition: dbState = dbClosed.
         SmiEnvironment::AbortTransaction();
         SmiEnvironment::CloseDatabase();
       }
+    }
+    else 
+    {
+      SmiEnvironment::AbortTransaction();
+      // To do: Correct error handling
+      cerr << "scDescriptive->Open() failed!" << endl;
     }
   }
   return (ok);
