@@ -693,6 +693,7 @@ Acessing the first element is a basic operation defined above.
   inline ListExpr Fourth( const ListExpr list ) { return (NthElement( 4, 4, list )); };
   inline ListExpr  Fifth( const ListExpr list ) { return (NthElement( 5, 5, list )); };
   inline ListExpr  Sixth( const ListExpr list ) { return (NthElement( 6, 6, list )); };
+  inline ListExpr  Nth( int n, const ListExpr list ) { return (NthElement( n, n, list )); };
 
 /*
 A pointer to the respective element is returned. Result may be the empty list,
@@ -852,7 +853,7 @@ Afterwards you can easily iterate over the atoms.
 1.3.11 Size and Implementation Info
 
 */
-  const string ReportTableSizes();
+  const string ReportTableSizes(const bool prettyPrint = false);
   const string ReportTableStates() { 
     return ( "Nodes: " + nodeTable->StateToStr() + "\n" );
   }
@@ -956,7 +957,7 @@ Copies a nested list from ~this~ instance to the target instance.
   static bool          doDestroy;
   static const bool    isPersistent;
   void AppendShortText( const ListExpr atom,
-                   const string&  textBuffer );
+                        const string&  textBuffer );
 
 
 /*
