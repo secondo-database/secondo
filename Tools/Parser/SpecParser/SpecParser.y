@@ -29,6 +29,9 @@ February 2003 Ulrich Telle, adjusted for GNU C++ version 3.2
 May 2, 2003 RHG Prefixed ``ZZ'' to each operator token to avoid conflicts 
 under Windows.
 
+June 2005, M. Spiekermann. Now function lists for operators with 2 implicit arguments are
+supported. 
+
 */
 
 %{
@@ -427,6 +430,119 @@ loopjoinfun	: 	{paramno++;
 			if (hasfunction) {
 
 fprintf(yaccrules2, "%sfun\t: \t{paramno++;\n", operator1.c_str());
+fprintf(yaccrules2, "\t\t\tstrcpy(paramname, \"%s\");\n", parameter.c_str());
+fprintf(yaccrules2, "\t\t\tsprintf(param, \"%%s%%d\", paramname, paramno);\n");
+fprintf(yaccrules2, "\t\t\tstrcpy(paramstack[depth], param); depth++;\n");
+
+fprintf(yaccrules2, "\t\t\tparamno++;\n");
+fprintf(yaccrules2, "\t\t\tstrcpy(paramname, \"%s\");\n", parameter2.c_str());
+fprintf(yaccrules2, "\t\t\tsprintf(param2, \"%%s%%d\", paramname, paramno);\n");
+fprintf(yaccrules2, "\t\t\tstrcpy(paramstack[depth], param2); depth++;}\n");
+fprintf(yaccrules2, "\t\t  valueexpr\n");
+fprintf(yaccrules2, "\t\t\t{depth--; strcpy(param2, paramstack[depth]);\n");
+fprintf(yaccrules2, "\t\t\tstrcpy(paramtype2, \"%s\");\n", type2.c_str());
+
+fprintf(yaccrules2, "\t\t\tdepth--; strcpy(param, paramstack[depth]);\n");
+fprintf(yaccrules2, "\t\t\tstrcpy(paramtype, \"%s\");\n", type.c_str());
+fprintf(yaccrules2, "\t\t\t$$ = NestedText::Concat(NestedText::AtomC(\"(fun (\"),\n");
+fprintf(yaccrules2, "\t\t\t\tNestedText::Concat(NestedText::AtomC(param),\n");
+fprintf(yaccrules2, "\t\t\t\tNestedText::Concat(NestedText::AtomC(\" \"),\n");
+fprintf(yaccrules2, "\t\t\t\tNestedText::Concat(NestedText::AtomC(paramtype),\n");
+fprintf(yaccrules2, "\t\t\t\tNestedText::Concat(NestedText::AtomC(\") (\"),\n");
+
+fprintf(yaccrules2, "\t\t\t\tNestedText::Concat(NestedText::AtomC(param2),\n");
+fprintf(yaccrules2, "\t\t\t\tNestedText::Concat(NestedText::AtomC(\" \"),\n");
+fprintf(yaccrules2, "\t\t\t\tNestedText::Concat(NestedText::AtomC(paramtype2),\n");
+fprintf(yaccrules2, "\t\t\t\tNestedText::Concat(NestedText::AtomC(\") \"),\n");
+
+fprintf(yaccrules2, "\t\t\t\tNestedText::Concat($2,\n");
+fprintf(yaccrules2, "\t\t\t\t	NestedText::AtomC(\")\")	))))))))));}\n");
+fprintf(yaccrules2, "\t\t| function\n");
+fprintf(yaccrules2, "\t\t        {$$ = $1;}\n");
+fprintf(yaccrules2, "\t\t;\n\n");
+
+			}
+			if (hasfunctionlist) {
+
+/*
+groupbyfunlist	: groupbyfuns		{$$ = NestedText::Concat(NestedText::AtomC("("), 
+						NestedText::Concat($1,
+						NestedText::AtomC(")")     ));}
+		;
+
+*/
+
+fprintf(yaccrules2, "%sfunlist\t: %sfuns\n", operator1.c_str(), operator1.c_str());
+fprintf(yaccrules2, "\t\t\t{$$ = NestedText::Concat(NestedText::AtomC(\"(\"), \n");
+fprintf(yaccrules2, "\t\t\t\tNestedText::Concat($1,\n");
+fprintf(yaccrules2, "\t\t\t\tNestedText::AtomC(\")\")     ));}\n");
+fprintf(yaccrules2, "\t\t;\n\n");
+
+/*
+groupbyfuns	: 			{$$ = NestedText::AtomC("");}
+		| groupbyfun		{$$ = $1;}
+		| groupbyfuns ',' groupbyfun	
+					{$$ = NestedText::Concat($1,
+						NestedText::Concat(NestedText::AtomC(" "), $3));}
+		;
+
+*/
+
+fprintf(yaccrules2, "%sfuns\t: \t\t\t{$$ = NestedText::AtomC(\"\");}\n", operator1.c_str());
+fprintf(yaccrules2, "\t\t| %sfun\t\t{$$ = $1;}\n", operator1.c_str());
+fprintf(yaccrules2, "\t\t| %sfuns ',' %sfun	\n", operator1.c_str(), operator1.c_str());
+fprintf(yaccrules2, "\t\t\t\t\t{$$ = NestedText::Concat($1,\n");
+fprintf(yaccrules2, "\t\t\t\t\tNestedText::Concat(NestedText::AtomC(\" \"), $3));}\n");
+fprintf(yaccrules2, "\t\t;\n\n");
+
+/*
+groupbyfun	: naming groupbysimfun
+			{$$ = NestedText::Concat(NestedText::AtomC("("),
+				NestedText::Concat($1,
+				NestedText::Concat(NestedText::AtomC(" "),
+				NestedText::Concat($2,			
+					NestedText::AtomC(")")	))));}
+		| groupbysimfun		{$$ = $1;}
+		;
+
+*/
+
+fprintf(yaccrules2, "%sfun\t: naming %ssimfun\n", operator1.c_str(), operator1.c_str());
+fprintf(yaccrules2, "\t\t\t{$$ = NestedText::Concat(NestedText::AtomC(\"(\"),\n");
+fprintf(yaccrules2, "\t\t\t\tNestedText::Concat($1,\n");
+fprintf(yaccrules2, "\t\t\t\tNestedText::Concat(NestedText::AtomC(\" \"),\n");
+fprintf(yaccrules2, "\t\t\t\tNestedText::Concat($2,\n");
+fprintf(yaccrules2, "\t\t\t\t\tNestedText::AtomC(\")\")	))));}\n");
+fprintf(yaccrules2, "\t\t| %ssimfun\t\t{$$ = $1;}\n", operator1.c_str());
+fprintf(yaccrules2, "\t\t;\n\n");
+
+
+
+
+
+/*
+groupbysimfun	: 	{paramno++;
+			strcpy(paramname, "group");
+			sprintf(param, "%s%d", paramname, paramno);
+			strcpy(paramstack[depth], param); depth++;}
+		  valueexpr
+			{depth--; strcpy(param, paramstack[depth]);
+			strcpy(paramtype, "GROUP");
+
+			$$ = NestedText::Concat(NestedText::AtomC("(fun ("),
+				NestedText::Concat(NestedText::AtomC(param),
+				NestedText::Concat(NestedText::AtomC(" "),
+				NestedText::Concat(NestedText::AtomC(paramtype),
+				NestedText::Concat(NestedText::AtomC(") "),
+				NestedText::Concat($2,
+					NestedText::AtomC(")")	))))));}
+		| function
+		        {$$ = $1;}
+		;
+
+*/
+
+fprintf(yaccrules2, "%ssimfun\t: \t{paramno++;\n", operator1.c_str());
 fprintf(yaccrules2, "\t\t\tstrcpy(paramname, \"%s\");\n", parameter.c_str());
 fprintf(yaccrules2, "\t\t\tsprintf(param, \"%%s%%d\", paramname, paramno);\n");
 fprintf(yaccrules2, "\t\t\tstrcpy(paramstack[depth], param); depth++;\n");
