@@ -267,7 +267,7 @@ class CcString : public StandardAttribute
   STRING stringval;
 };
 
-ostream& ShowStandardTypesStatistics( const bool reset, ostream& o );
+void ShowStandardTypesStatistics( const bool reset );
 
 /*
 6 Some Functions Prototypes

@@ -175,6 +175,7 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "SecondoSystem.h" //operator queries
+#include "Counter.h"
 
 #include <iostream>
 #include <string>
@@ -4177,6 +4178,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccopifthenelse );
   }
   ~CcAlgebra1() {};
+
 };
 
 CcAlgebra1 ccalgebra1;
@@ -4240,12 +4242,18 @@ Here are some example queries:
 
 */
 
-ostream& ShowStandardTypesStatistics( const bool reset, ostream& o )
+void
+ShowStandardTypesStatistics( const bool reset )
 {
-  o << "CcInts    created: " << CcInt::intsCreated << " / deleted: " << CcInt::intsDeleted << endl
-    << "CcReals   created: " << CcReal::realsCreated << " / deleted: " << CcReal::realsDeleted << endl
-    << "CcBools   created: " << CcBool::boolsCreated << " / deleted: " << CcBool::boolsDeleted << endl
-    << "CcStrings created: " << CcString::stringsCreated << " / deleted: " << CcString::stringsDeleted << endl;
+  Counter::getRef("STD:INT_created") = CcInt::intsCreated;
+  Counter::getRef("STD:INT_deleted") = CcInt::intsDeleted; 
+  Counter::getRef("STD:REAL_created") = CcReal::realsCreated; 
+  Counter::getRef("STD:REAL_deleted") = CcReal::realsDeleted; 
+  Counter::getRef("STD:BOOL_created") = CcBool::boolsCreated; 
+  Counter::getRef("STD:BOOL_deleted") = CcBool::boolsDeleted; 
+  Counter::getRef("STD:STRING_created") = CcString::stringsCreated; 
+  Counter::getRef("STD:STRING_deleted") = CcString::stringsDeleted;
+
   if( reset )
   {
     CcInt::intsCreated = 0; CcInt::intsDeleted = 0;
@@ -4253,6 +4261,5 @@ ostream& ShowStandardTypesStatistics( const bool reset, ostream& o )
     CcBool::boolsCreated = 0; CcBool::boolsDeleted = 0;
     CcString::stringsCreated = 0; CcString::stringsDeleted = 0;
   }
-  return o;
 }
 

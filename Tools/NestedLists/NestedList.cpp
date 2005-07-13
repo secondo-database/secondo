@@ -103,6 +103,7 @@ using namespace std;
 #include "NLParser.h"
 #include "WinUnix.h"
 #include "LogMsg.h"
+#include "Counter.h"
 
 
 // used in PagedArray.h
@@ -2496,30 +2497,47 @@ NestedList::AtomType (const ListExpr atom )
 */
 
 const string
-NestedList::ReportTableSizes() {
+NestedList::ReportTableSizes( const bool prettyPrint /* = false */) {
 
-  ostringstream report;
-
+  string msg = "";
   const int tables=2;
   Cardinal pageChanges[tables], memSize[tables], slotAccess[tables];
 
   nodeTable->TotalMemory(memSize[0], pageChanges[0], slotAccess[0]);
   stringTable->TotalMemory(memSize[1], pageChanges[1], slotAccess[1]);
 
-  report << endl;
-  report << "List Info: slots/used [pageChanges/slotAccesses] - slotsize - used Bytes" << endl;
-  report << "------------------------------------------------------------------------" << endl;
+  if ( prettyPrint ) {
+    ostringstream report;
+    report << endl;
+    report << "List Info: slots/used [pageChanges/slotAccesses] - slotsize - used Bytes" << endl;
+    report << "------------------------------------------------------------------------" << endl;
 	 
-  report << "    nodes: " << nodeTable->Size() << "/" << nodeTable->NoEntries()   
-	 << " [" << pageChanges[0] << "/" << slotAccess[0] << "] - " 
+    report << "    nodes: " << nodeTable->Size() << "/" << nodeTable->NoEntries()   
+         << " [" << pageChanges[0] << "/" << slotAccess[0] << "] - " 
 	 << nodeTable->GetSlotSize() << " - " << memSize[0] << endl;
 	 
-  report << "      str: " << stringTable->Size() << "/" << stringTable->NoEntries() 
+    report << "      str: " << stringTable->Size() << "/" << stringTable->NoEntries() 
 	 << " [" << pageChanges[1] << "/" << slotAccess[1] << "] - "
 	 << stringTable->GetSlotSize() << " - " << memSize[1] << endl;
 
-  return report.str();
+    msg = report.str();
+  }
 
+  Counter::getRef("NL:Nodes_max") = nodeTable->Size(); 
+  Counter::getRef("NL:Nodes_used") = nodeTable->NoEntries();
+  Counter::getRef("NL:Nodes_pageChanges") = pageChanges[0];
+  Counter::getRef("NL:Nodes_slotAccesses") = slotAccess[0];
+  Counter::getRef("NL:Nodes_slotSize") = nodeTable->GetSlotSize();
+  Counter::getRef("NL:Nodes_usedBytes") = memSize[0];
+
+  Counter::getRef("NL:Str_max") = stringTable->Size();
+  Counter::getRef("NL:Str_used") = stringTable->NoEntries(); 
+  Counter::getRef("NL:Str_pageChanges") = pageChanges[1];
+  Counter::getRef("NL:Str_slotAccesses") = slotAccess[1];
+  Counter::getRef("NL:Str_slotSize") = stringTable->GetSlotSize(); 
+  Counter::getRef("NL:Str_usedBytes") = memSize[1];
+
+  return msg;
 }
 
 
