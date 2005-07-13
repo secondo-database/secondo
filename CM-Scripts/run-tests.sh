@@ -49,7 +49,7 @@ done
 
 printf "\n%s\n\n" "Running optimizer test ..."
 cd ${buildDir}/Optimizer
-checkCmd "time TestOptimizer > ${logFile} 2>&1"
+checkCmd "time TestOptimizer"
 if [ $? -ne 0 ]; then
   let error++
 fi
