@@ -21,7 +21,11 @@
 # interpreter respectively. We recommend to use jdk 1.4 or higher. If you
 # have different jdk versions change the names
 
+ifndef SECONDO_JAVAC 
 JAVAC = javac
+else
+JAVAC = $(SECONDO_JAVAC)
+endif
 JAVA = java
 JAVADOC = javadoc
 MAKE = make
@@ -53,6 +57,11 @@ MP3CLASSESPATH := $(LIBPATH)/$(MP3)
 PDFCLASSESPATH := $(LIBPATH)/$(PDF)
 
 CLASSPATH := $(GUIPATH)
+
+ifdef SECONDO_JAVART
+CLASSPATH := $(CLASSPATH):$(SECONDO_JAVART)
+endif
+
 JARS := $(JLEXCLASSESPATH):$(CUPCLASSESPATH):$(MP3CLASSESPATH):$(PDFCLASSESPATH)
 
 DOCPATH := ./doc
