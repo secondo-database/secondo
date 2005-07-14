@@ -185,3 +185,10 @@ $(net)/scripts/%.sh: $(SCRIPT_DIR)/%.sh
 $(net)/%.pdf: Documents/Installation/%.ps
 	ps2pdf $< $@
 
+# store modified files in a tar archive
+.PHONY: backup 
+backup: backup.tgz
+
+backup.tgz:
+	tar -cvzf $@ $$( cvs -nq update | grep ^[MAC] | sed -e "s/[M,A,C] //g" )
+
