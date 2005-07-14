@@ -89,3 +89,9 @@ MAX_INTERNAL_TEXT_LENGTH 1024
 
 #set the node cache for nested lists if persistent nested lists are used
 NL_CACHE 500000
+
+#set to true if you want information about needed times
+MEASURE_TIME false
+
+#set to true for getting information about memory usage
+MEASURE_MEMORY false
