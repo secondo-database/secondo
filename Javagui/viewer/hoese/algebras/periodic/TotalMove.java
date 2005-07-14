@@ -100,14 +100,14 @@ public boolean readFrom(ListExpr LE, Class linearClass){
       setUndefined();
       return false;
    }
-   Move move;
+   Move tmpmove;
    if(LE.second().listLength()<1){
       if(Environment.DEBUG_MODE)
          System.err.println("TotalMove.readFrom :: wrong list length for submove");
       setUndefined();
       return false;
    }
-   if(LE.second().first().atomType()!=LE.SYMBOL_ATOM){
+   if(LE.second().first().atomType()!=ListExpr.SYMBOL_ATOM){
       if(Environment.DEBUG_MODE)
          System.err.println("TotalMove.readFrom :: Wrong list type for subtype type descriptor");
       setUndefined();
@@ -121,12 +121,12 @@ public boolean readFrom(ListExpr LE, Class linearClass){
       return false;
    }
    if(typedes.equals("linear"))
-      move = LM;
+      tmpmove = LM;
    else if(typedes.equals("period"))
-      move = new PeriodMove();
+      tmpmove = new PeriodMove();
    else
-      move = new CompositeMove();
-   if(!move.readFrom(LE.second(),linearClass)){
+      tmpmove = new CompositeMove();
+   if(!tmpmove.readFrom(LE.second(),linearClass)){
       if(Environment.DEBUG_MODE)
          System.err.println("TotalMove.readFrom :: Error in Reading the Move");
       setUndefined();
@@ -134,7 +134,7 @@ public boolean readFrom(ListExpr LE, Class linearClass){
    }
    this.defined=true;
    this.start = T;
-   this.move = move;
+   this.move = tmpmove;
    return true;
 }
 

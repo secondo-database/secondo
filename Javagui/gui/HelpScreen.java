@@ -27,8 +27,8 @@ import java.awt.event.*;
 
 public class HelpScreen extends JDialog{
 
-public final int GUI_COMMANDS = 0;
-public final int SECONDO_COMMANDS = 1;
+public final static int GUI_COMMANDS = 0;
+public final static int SECONDO_COMMANDS = 1;
 
 
 private JScrollPane ScrollPane= new JScrollPane();

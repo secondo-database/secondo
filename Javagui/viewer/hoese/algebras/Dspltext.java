@@ -210,9 +210,9 @@ public TextViewerFrame(){
   getContentPane().setLayout(new BorderLayout());
   Display = new JEditorPane();
   if(EKPlain==null){
-      EKPlain = Display.createEditorKitForContentType("text/plain");
-      EKHtml = Display.createEditorKitForContentType("text/html");
-      EKRtf = Display.createEditorKitForContentType("text/rtf");
+      EKPlain = JEditorPane.createEditorKitForContentType("text/plain");
+      EKHtml = JEditorPane.createEditorKitForContentType("text/html");
+      EKRtf = JEditorPane.createEditorKitForContentType("text/rtf");
   }
 
   TextScrollPane = new JScrollPane(Display);
@@ -228,7 +228,7 @@ public TextViewerFrame(){
   });
   SearchField.addKeyListener(new KeyListener(){
      public void keyPressed(KeyEvent evt){
-         if(evt.getKeyCode()==evt.VK_ENTER)
+         if(evt.getKeyCode()==KeyEvent.VK_ENTER)
             searchText();
      }
      public void keyTyped(KeyEvent evt){}
@@ -271,7 +271,7 @@ public TextViewerFrame(){
          }
          Container CP=TextViewerFrame.this.getContentPane();
          if(TextViewerFrame.this.PlainBtn.equals(src)){
-              TextViewerFrame.this.Display.setEditorKit(TextViewerFrame.this.EKPlain);
+              TextViewerFrame.this.Display.setEditorKit(TextViewerFrame.EKPlain);
               TextViewerFrame.this.Display.setEditable(true);
               TextViewerFrame.this.Display.setText(TextViewerFrame.this.TheText);
               TextViewerFrame.this.Display.setCaretPosition(0);
@@ -291,7 +291,7 @@ public TextViewerFrame(){
          } else
          if(TextViewerFrame.this.HtmlBtn.equals(src)){
             try{
-              TextViewerFrame.this.Display.setEditorKit(TextViewerFrame.this.EKHtml);
+              TextViewerFrame.this.Display.setEditorKit(TextViewerFrame.EKHtml);
               TextViewerFrame.this.Display.setEditable(false);
               TextViewerFrame.this.Display.setText(TextViewerFrame.this.TheText);
               TextViewerFrame.this.Display.setCaretPosition(0);
@@ -314,7 +314,7 @@ public TextViewerFrame(){
          }else
          if(TextViewerFrame.this.RtfBtn.equals(src)){
             try{
-              TextViewerFrame.this.Display.setEditorKit(TextViewerFrame.this.EKRtf);
+              TextViewerFrame.this.Display.setEditorKit(TextViewerFrame.EKRtf);
               TextViewerFrame.this.Display.setEditable(false);
               TextViewerFrame.this.Display.setText(TextViewerFrame.this.TheText);
               TextViewerFrame.this.Display.setCaretPosition(0);
@@ -449,15 +449,15 @@ public void setSource(Dspltext S){
     HtmlBtn.setEnabled(true);
     RtfBtn.setEnabled(true);
     PdfBtn.setEnabled(true);
-    if(S.Type==S.PLAIN_TYPE){
+    if(S.Type==Dspltext.PLAIN_TYPE){
        Display.setEditorKit(EKPlain);
        PlainBtn.setEnabled(false);
        Display.setEditable(true); 
-    }else if(S.Type==S.HTML_TYPE){
+    }else if(S.Type==Dspltext.HTML_TYPE){
        Display.setEditorKit(EKHtml);
        HtmlBtn.setEnabled(false);
        Display.setEditable(false); 
-    } else if(S.Type==S.RTF_TYPE){
+    } else if(S.Type==Dspltext.RTF_TYPE){
        Display.setEditorKit(EKRtf);
        RtfBtn.setEnabled(false);
        Display.setEditable(false); 

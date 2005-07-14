@@ -66,8 +66,8 @@ public Color getMaxColor(){ return CHMax.getColor();}
 public void setMinColor(Color C){ CHMin.setColor(C);}
 public void setMaxColor(Color C){ CHMax.setColor(C);}
 
-public final int OK = 0;
-public final int CANCELED = 1;
+public final static int OK = 0;
+public final static int CANCELED = 1;
 private int Result;
 private JButton OkBtn = new JButton("ok");
 private JButton CancelBtn = new JButton("cancel");

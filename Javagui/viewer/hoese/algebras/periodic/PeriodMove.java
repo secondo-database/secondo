@@ -132,7 +132,7 @@ public boolean readFrom(ListExpr LE,Class linearClass){
       setUndefined();
       return false;
    }
-   if(LE.first().atomType()!=LE.SYMBOL_ATOM){
+   if(LE.first().atomType()!=ListExpr.SYMBOL_ATOM){
       if(Environment.DEBUG_MODE)
          System.err.println("PeriodMove.readFrom :: wrong type of typedescriptor");
       setUndefined();
@@ -144,7 +144,7 @@ public boolean readFrom(ListExpr LE,Class linearClass){
       setUndefined();
       return false;
    }
-   if(LE.second().atomType()!=LE.NO_ATOM){
+   if(LE.second().atomType()!=ListExpr.NO_ATOM){
       if(Environment.DEBUG_MODE)
          System.err.println("PeriodMove.readFrom :: value is not a list");
       setUndefined();
@@ -157,7 +157,7 @@ public boolean readFrom(ListExpr LE,Class linearClass){
       setUndefined();
       return false;
    }
-   if(Value.first().atomType()!=LE.INT_ATOM){
+   if(Value.first().atomType()!=ListExpr.INT_ATOM){
      if(Environment.DEBUG_MODE)
          System.err.println("PeriodMove.readFrom :: wrong type for repeatations");
       setUndefined();
@@ -170,13 +170,13 @@ public boolean readFrom(ListExpr LE,Class linearClass){
       setUndefined();
       return false;
    }
-   if(Value.second().atomType()!=LE.NO_ATOM || Value.second().listLength()<1){
+   if(Value.second().atomType()!=ListExpr.NO_ATOM || Value.second().listLength()<1){
       if(Environment.DEBUG_MODE)
          System.err.println("PeriodMove.readFrom :: wrong list type for submove");
       setUndefined();
       return false;
    }
-   if(Value.second().first().atomType()!=LE.SYMBOL_ATOM){
+   if(Value.second().first().atomType()!=ListExpr.SYMBOL_ATOM){
       if(Environment.DEBUG_MODE)
          System.err.println("PeriodMove.readFrom :: wrong listtype for type descriptor of the submove");
       setUndefined();

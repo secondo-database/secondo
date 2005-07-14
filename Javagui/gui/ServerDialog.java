@@ -32,7 +32,6 @@ private JTextField HostName;
 private JTextField PortAddress;
 private JButton OkBtn;
 private JButton CancelBtn;
-private JOptionPane OptionPane;  // to show a input error
 
 private int result;
 
@@ -95,7 +94,6 @@ public ServerDialog(Frame Owner){
    ContentPane.add(innerPanel1,BorderLayout.CENTER);
    ContentPane.add(innerPanel2,BorderLayout.SOUTH);
    addListener();
-   OptionPane = new JOptionPane(); 
 }
 
 
@@ -105,7 +103,7 @@ private void closeDialog(boolean accept){
      String HN = HostName.getText().trim();
      int Port = getPortAddress();
      if(HN.equals("") || Port<0)
-        OptionPane.showMessageDialog(null,"wrong inputs","error",JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(null,"wrong inputs","error",JOptionPane.ERROR_MESSAGE);
      else{
        result = OK;
        setVisible(false);      

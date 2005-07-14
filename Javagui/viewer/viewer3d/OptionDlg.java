@@ -82,7 +82,7 @@ public boolean apply(){
      return true;
   else{
      if(! (CB_Border.isSelected() | CB_Filled.isSelected())){
-        MDlg.showMessageDialog(this,"please select border or filled");
+        JOptionPane.showMessageDialog(this,"please select border or filled");
         return false;
      }
      else{
@@ -111,5 +111,4 @@ private JButton OkBtn = new JButton("ok");
 private JButton CancelBtn = new JButton("cancel");
 private JButton ResetBtn = new JButton("reset");; 
 private JButton ApplyBtn = new JButton("apply");
-private JOptionPane MDlg = new JOptionPane();
 }

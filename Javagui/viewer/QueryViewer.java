@@ -334,7 +334,7 @@ public void createShowMenu(){
 }
 
 private void showMessage(String Text){
-    OptionPane.showMessageDialog(this,Text);
+    JOptionPane.showMessageDialog(this,Text);
 }
 
 private Vector SubViewers = new Vector();
@@ -354,7 +354,6 @@ private JMenuItem MI_HideSelectedObject;
 private JMenuItem MI_HideSelectedAttribut;
 private JMenuItem MI_HideAllObjects;
 private JMenuItem MI_HideRelation;
-private JOptionPane OptionPane = new JOptionPane();
 
 }
 

@@ -51,9 +51,6 @@ public class TextWindow extends JPanel {
   private JTextField SearchText;
   private JButton SearchBtn;
 
-  private JOptionPane OptionPane = new JOptionPane();
-
-
  /**
    * Construktor 
    * @param   MainWindow aparent
@@ -134,12 +131,12 @@ public class TextWindow extends JPanel {
  private void search(){
    QueryResult QR = (QueryResult) QueryCombo.getSelectedItem();
    if(QR==null){
-     OptionPane.showMessageDialog(this,"no query result selected");
+     JOptionPane.showMessageDialog(this,"no query result selected");
      return;
    }
    String Text=SearchText.getText().trim();
    if(Text.equals("")){
-     OptionPane.showMessageDialog(this,"no text to search entered");
+     JOptionPane.showMessageDialog(this,"no text to search entered");
      return;
    }
 
@@ -149,7 +146,7 @@ public class TextWindow extends JPanel {
    if (Pos<0)
        Pos=QR.find(Text,false,1);
    if(Pos<0){
-     OptionPane.showMessageDialog(this,"text not found");
+     JOptionPane.showMessageDialog(this,"text not found");
      return;
    }   
    QR.setSelectedIndex(Pos);
@@ -225,7 +222,8 @@ public class TextWindow extends JPanel {
     left = layerl;
     for (int i = 0; i < qr.getGraphObjects().size(); i++) {
       DsplGraph dg = (DsplGraph)qr.getGraphObjects().elementAt(i);
-      int layernr = parent.GraphDisplay.getLayer(dg.getLayer());
+      //int layernr = parent.GraphDisplay.getLayer(dg.getLayer());
+      int layernr = JLayeredPane.getLayer(dg.getLayer());
       int layerpos = dg.getLayer().getGeoObjects().indexOf(dg);
       if (layerl.isEmpty()) {
         left = ListExpr.cons(ListExpr.intAtom(layernr), layerl);

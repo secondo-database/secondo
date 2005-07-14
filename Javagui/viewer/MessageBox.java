@@ -27,11 +27,11 @@ private MessageBox(){}; // we need no constructor
 
 
 public static void showMessage(String Text){
-  OptionPane.showMessageDialog(null,Text);
+  JOptionPane.showMessageDialog(null,Text);
 }
 
 public static int showQuestion(String ASK){
-  int res = OptionPane.showConfirmDialog(null,ASK,null,
+  int res = JOptionPane.showConfirmDialog(null,ASK,null,
                       JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE);
 
   if(res==JOptionPane.YES_OPTION)
@@ -41,7 +41,6 @@ public static int showQuestion(String ASK){
   return ERROR;
 }
 
-private static JOptionPane OptionPane = new JOptionPane();
 public static final int YES = 0;
 public static final int NO = 1;
 public static final int ERROR = -1;

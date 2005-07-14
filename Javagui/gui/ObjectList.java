@@ -35,11 +35,10 @@ import extern.binarylist.*;
 
 public class ObjectList extends JPanel{
 
-public final int NO_ERROR=0;
-public final int ERROR_NAME_EXISTS=1;
-public final int ERROR_OBJECT_NOT_FOUND=2;
+public final static int NO_ERROR=0;
+public final static int ERROR_NAME_EXISTS=1;
+public final static int ERROR_OBJECT_NOT_FOUND=2;
 
-private JOptionPane OptionPane;
 private JPanel ControlPanel;
 private JList Content;
 private JScrollPane ScrollPane;
@@ -64,11 +63,11 @@ private RenamePanel aRenamePanel;
 private ObjectListModel myListModel;
 private ImportManager importmanager = new ImportManager();
 
-private final String DisplayMark ="** ";    // ensure thas Displaymark and NoDisplayMark have the same length
-private final String NoDisplayMark ="   ";
+private final static String DisplayMark ="** ";    // ensure thas Displaymark and NoDisplayMark have the same length
+private final static String NoDisplayMark ="   ";
 
 private void showMessage(String text){
-  OptionPane.showMessageDialog(this,text);
+  JOptionPane.showMessageDialog(this,text);
 }
 
 
@@ -84,7 +83,6 @@ public String getErrorText(int ErrorCode){
 public ObjectList(ResultProcessor aRP,ViewerControl aVC){
   setLayout(new BorderLayout());
   ControlPanel = new JPanel();
-  OptionPane = new JOptionPane();
   add(ControlPanel,BorderLayout.NORTH);
   Content=new JList();
   myListModel = new ObjectListModel();
@@ -367,6 +365,8 @@ public void selectObject(SecondoObject SO){
 }
 
 public void clearList(){
+  long usedMemory = Environment.MEASURE_MEMORY?Environment.usedMemory():0L;
+
   int len=Objects.size();
   for(int i=0;i<len;i++){
     SecondoObject SO = (SecondoObject) Objects.get(0);
@@ -378,6 +378,11 @@ public void clearList(){
   }
   System.gc();
   updateList();
+  if(Environment.MEASURE_MEMORY){
+     System.out.println("Memory difference by clearing object list: "+
+                         Environment.formatMemory(Environment.usedMemory()-usedMemory));
+     Environment.printMemoryUsage();
+  }
 }
 
 
@@ -800,10 +805,10 @@ private class RenamePanel extends JPanel{
      NewName.addKeyListener(new KeyAdapter(){
       public void keyPressed(KeyEvent evt){
          int k = evt.getKeyCode();
-	 if (k==evt.VK_ENTER)
-	    accept();
-	 if(k==evt.VK_ESCAPE)
-	    cancel();
+         if (k==KeyEvent.VK_ENTER)
+             accept();
+         if(k==KeyEvent.VK_ESCAPE)
+            cancel();
        }
      });
 

@@ -381,7 +381,6 @@ private Matrix   ViewMatrix;  //   Matrices for the view pyramide
 private Matrix   ViewUndo; 
 
 /** a clipping-object */
-private Clipping Cl = new Clipping();
 
 /** compute the sort for the painter-algorithm */
 private double getSort(Figure3D Fig) {
@@ -412,7 +411,7 @@ private void transformFigure(Figure3D Fig, Matrix Mat) {
 private void clipFigure(Figure3D Fl) {
 
    transformFigure(Fl,ViewMatrix);
-   Cl.clipFigure(Fl,Volume.z_min/d);
+   Clipping.clipFigure(Fl,Volume.z_min/d);
    transformFigure(Fl,ViewUndo);
 }
 

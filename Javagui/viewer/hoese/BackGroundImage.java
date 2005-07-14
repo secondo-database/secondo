@@ -137,7 +137,7 @@ public class  BackGroundImage extends JDialog{
   }
 
 private void selectImage(){
-  if(FC.showOpenDialog(this)==FC.APPROVE_OPTION){
+  if(FC.showOpenDialog(this)==JFileChooser.APPROVE_OPTION){
      File f = FC.getSelectedFile();
      try{
         BufferedImage img = javax.imageio.ImageIO.read(f);
@@ -273,19 +273,19 @@ public ListExpr toListExpr(String BackgroundImagePath){
 public boolean readFromListExpr(ListExpr le,String BackgroundImagePath){
    if(le.listLength()!=5)
       return false;
-   if(le.first().atomType()!=le.REAL_ATOM    ||
-      le.second().atomType()!=le.REAL_ATOM   ||
-      le.third().atomType()!=le.REAL_ATOM    ||
-      le.fourth().atomType()!=le.REAL_ATOM)  
+   if(le.first().atomType()!=ListExpr.REAL_ATOM    ||
+      le.second().atomType()!=ListExpr.REAL_ATOM   ||
+      le.third().atomType()!=ListExpr.REAL_ATOM    ||
+      le.fourth().atomType()!=ListExpr.REAL_ATOM)  
       return false;
    
    ListExpr ImageList = le.fifth();
    BufferedImage bi=null;
-   if(ImageList.atomType()==le.NO_ATOM){
+   if(ImageList.atomType()==ListExpr.NO_ATOM){
        if(!ImageList.isEmpty())
            return false;
    }else{
-     if(ImageList.atomType()!=le.TEXT_ATOM)
+     if(ImageList.atomType()!=ListExpr.TEXT_ATOM)
          return false;
      // try to restore the background from given file
      if(!BackgroundImagePath.endsWith(File.separator))
@@ -378,7 +378,7 @@ private class TFW{
    }
 
    boolean load(){
-      if(FC.showOpenDialog(null)==FC.APPROVE_OPTION){
+      if(FC.showOpenDialog(null)==JFileChooser.APPROVE_OPTION){
          File file = FC.getSelectedFile();
          try{
             BufferedReader BR = new BufferedReader(new InputStreamReader(new FileInputStream(file)));

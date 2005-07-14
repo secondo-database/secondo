@@ -125,8 +125,8 @@ public boolean readFrom(ListExpr LE, Class linearClass){
      setUndefined();
      return false;
    }
-   if(LE.first().atomType()!=LE.SYMBOL_ATOM ||
-      LE.second().atomType() != LE.NO_ATOM){
+   if(LE.first().atomType()!=ListExpr.SYMBOL_ATOM ||
+      LE.second().atomType() != ListExpr.NO_ATOM){
       if(Environment.DEBUG_MODE)
         System.err.println("CompositeMove.readFrom : wrong types of the sublists");
      setUndefined();
@@ -152,7 +152,7 @@ public boolean readFrom(ListExpr LE, Class linearClass){
    while(!SubMoves.isEmpty() && ok){
      ListExpr SML = SubMoves.first();
      SubMoves = SubMoves.rest();
-     if(SML.listLength()<1 || SML.first().atomType()!=LE.SYMBOL_ATOM){
+     if(SML.listLength()<1 || SML.first().atomType()!=ListExpr.SYMBOL_ATOM){
        ok = false;
      }else{
        String type = SML.first().symbolValue();

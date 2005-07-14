@@ -79,7 +79,7 @@ public class Base64Decoder{
    /** decodes a String object 
      * if the string don't contains correct base64 encoded text, null is returned
      **/
-static    public byte[] decode(String Data){
+static public byte[] decode(String Data){
      int inLength = Data.length();
      int maxSize = (inLength*3)/4+1;   
      byte[] buffer = new byte[maxSize]; // buffer containing all bytes
@@ -91,7 +91,7 @@ static    public byte[] decode(String Data){
      int OutPos =0;  // Position in outbuffer
      int actualLength = 0; // 
      int len = Data.length(); 
-     int filled = 0;
+     int bfilled = 0;
      while(pos<len){
          // fill the InBuffer
          InPos=0;
@@ -123,14 +123,14 @@ static    public byte[] decode(String Data){
                  OutBuffer[i]=(byte)(all & 255);
 	         all = all >> 8;
              }
-             filled=3; // three bytes in outbuffer
+             bfilled=3; // three bytes in outbuffer
              if(InBuffer[3]=='='){
-                 filled=2;
+                 bfilled=2;
              }
              if(InBuffer[2]=='='){
-	      filled=1;
+	      bfilled=1;
              }
-             for(int i=0;i<filled;i++){
+             for(int i=0;i<bfilled;i++){
                  buffer[OutPos]=OutBuffer[i];
                  OutPos++;
              }

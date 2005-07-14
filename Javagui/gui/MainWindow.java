@@ -33,12 +33,12 @@ import java.awt.geom.*;
 
 public class MainWindow extends JFrame implements ResultProcessor,ViewerControl,SecondoChangeListener{
 
-public final String CONFIGURATION_FILE="gui.cfg";
-public final String AUTO_HISTORY_FILE=".gui_history";
+public final static String CONFIGURATION_FILE="gui.cfg";
+public final static String AUTO_HISTORY_FILE=".gui_history";
 // the last ... entries of the history are stored
-public final int AUTO_HISTORY_LENGTH=100;
-public final int MIN_FONTSIZE = 6;
-public final int MAX_FONTSIZE = 24;
+public final static int AUTO_HISTORY_LENGTH=100;
+public final static int MIN_FONTSIZE = 6;
+public final static int MAX_FONTSIZE = 24;
 
 // shows additional informations if an error is occured
 private boolean DEBUG_MODE = true;
@@ -48,7 +48,7 @@ The version-line of the history
 This line is used as the first line in a hisrory file 
 starting with version 2.0. 
 */
-private final String HIST_VERSION20_LINE = "# VER 2.0";
+private final static String HIST_VERSION20_LINE = "# VER 2.0";
 
 private JPanel PanelTop;        // change to the desired components
 private static CommandPanel ComPanel;
@@ -56,7 +56,6 @@ private ObjectList OList;
 private JPanel PanelTopRight;
 private JSplitPane HSplitPane;
 private JSplitPane VSplitPane;
-private JOptionPane OptionPane;  // to Display Messages
 private ServerDialog ServerDlg;
 private Vector VCLs;
 
@@ -181,7 +180,7 @@ private PriorityDialog PriorityDlg;
 
 /* display a message in a new frame */
 public void showMessage(String Text){
-  OptionPane.showMessageDialog(this,Text);
+  JOptionPane.showMessageDialog(this,Text);
 }
 
 /* return this */
@@ -193,7 +192,6 @@ public MainWindow(String Title){
   super(Title);
   String StartScript=null;
   setSize(800,600);
-  OptionPane = new JOptionPane();
   ServerDlg = new ServerDialog(this);
   MyHelp = new HelpScreen(this);
   this.getContentPane().setLayout(new BorderLayout());
@@ -412,6 +410,9 @@ public MainWindow(String Title){
    Environment.MEASURE_TIME=Measure_Time!=null &&
                             Measure_Time.toLowerCase().trim().equals("true");
 
+   String Measure_Memory = Config.getProperty("MEASURE_MEMORY");
+   Environment.MEASURE_MEMORY=Measure_Memory!=null &&
+                            Measure_Memory.toLowerCase().trim().equals("true");
 
    String FS = System.getProperty("file.separator");
    if(FS==null){
@@ -628,12 +629,12 @@ public MainWindow(String Title){
           if(!evt.isAltDown())
               return;
           int c = evt.getKeyCode();
-          if(c==evt.VK_S){
+          if(c==KeyEvent.VK_S){
              if(saveSnapshot(true))
                 showMessage("Snapshot written");
              evt.consume();
           }
-          if(c==evt.VK_C){
+          if(c==KeyEvent.VK_C){
              if(saveSnapshot(false))
                 showMessage("Snapshot written");
              evt.consume();
@@ -858,10 +859,10 @@ private void addViewer(SecondoViewer NewViewer){
 
 /** returns all loaded viewers */
 public SecondoViewer[] getViewers(){
-   SecondoViewer[] Viewers = new SecondoViewer[AllViewers.size()];
+   SecondoViewer[] tmpViewers = new SecondoViewer[AllViewers.size()];
    for(int i=0;i<AllViewers.size();i++)
-      Viewers[i] = (SecondoViewer) AllViewers.get(i);
-   return Viewers;
+      tmpViewers[i] = (SecondoViewer) AllViewers.get(i);
+   return tmpViewers;
 }
 
 
@@ -1285,7 +1286,7 @@ public static void main(String[] args){
   System.setErr(System.out);
   MainWindow SecGui = new MainWindow("Secondo-GUI");
   SecGui.setVisible(true);
-  SecGui.ComPanel.requestFocus();
+  MainWindow.ComPanel.requestFocus();
 }
 
 
@@ -1804,14 +1805,14 @@ private void createMenuBar(){
    MI_ShowSecondoCommands = HelpMenu.add("Show secondo commands");
    MI_ShowGuiCommands.addActionListener(new ActionListener(){
            public void actionPerformed(ActionEvent evt){
-               MyHelp.setMode(MyHelp.GUI_COMMANDS);
+               MyHelp.setMode(HelpScreen.GUI_COMMANDS);
                MyHelp.setVisible(true);
            }
         });
 
    MI_ShowSecondoCommands.addActionListener(new ActionListener(){
            public void actionPerformed(ActionEvent evt){
-               MyHelp.setMode(MyHelp.SECONDO_COMMANDS);
+               MyHelp.setMode(HelpScreen.SECONDO_COMMANDS);
                MyHelp.setVisible(true);
            }
         });
@@ -1887,10 +1888,19 @@ private void createMenuBar(){
 
 /** clear the History, the ObjectList and the Content of all Viewers */
 public void clearAll(){
+  long usedMemory=0;
+  if(Environment.MEASURE_MEMORY){
+      usedMemory=Environment.usedMemory();
+  } 
   ComPanel.clear();
   OList.clearList();
   for(int i=0;i<AllViewers.size();i++)
      ((SecondoViewer) AllViewers.get(i)).removeAll();
+  System.gc();
+  if(Environment.MEASURE_MEMORY){
+     System.out.println("Memory difference by clear: "+
+                         Environment.formatMemory(Environment.usedMemory()-usedMemory));
+  }
 }
 
 
@@ -2119,9 +2129,9 @@ private void getServerInfos(){
     MI_Algebras[index].addActionListener(new ActionListener(){
                       public void actionPerformed(ActionEvent evt){
 		         String cmd = "list algebra "+((JMenuItem)evt.getSource()).getText();
-			 MainWindow.this.ComPanel.appendText(cmd);
-			 MainWindow.this.ComPanel.addToHistory(cmd);
-		         MainWindow.this.ComPanel.execUserCommand(cmd);
+			 MainWindow.ComPanel.appendText(cmd);
+			 MainWindow.ComPanel.addToHistory(cmd);
+		   MainWindow.ComPanel.execUserCommand(cmd);
 		      }});
     Algebras=Algebras.rest();
     index++;
@@ -2152,9 +2162,9 @@ public boolean updateDatabases(){
     MI_OpenDatabases[index].addActionListener(new ActionListener(){
                            public void actionPerformed(ActionEvent evt){
 			      String cmd = "open database "+((JMenuItem)evt.getSource()).getText();
-			      MainWindow.this.ComPanel.appendText(cmd);
-			      MainWindow.this.ComPanel.addToHistory(cmd);
-			      MainWindow.this.ComPanel.execUserCommand(cmd);
+			      MainWindow.ComPanel.appendText(cmd);
+			      MainWindow.ComPanel.addToHistory(cmd);
+			      MainWindow.ComPanel.execUserCommand(cmd);
 			   }});
     MI_RestoreDatabases[index] = new JMenuItem(Name);
     MI_RestoreDatabases[index].addActionListener(new ActionListener(){
@@ -2164,12 +2174,12 @@ public boolean updateDatabases(){
 			      if(FC_Database.showOpenDialog(MainWindow.this)==JFileChooser.APPROVE_OPTION){
 			         String FName = FC_Database.getSelectedFile().getAbsolutePath();
 				 String cmd = cmd_part1+" "+FName;
-				 MainWindow.this.ComPanel.addToHistory(cmd);
-				 if(MainWindow.this.ComPanel.execUserCommand(cmd))
+				 MainWindow.ComPanel.addToHistory(cmd);
+				 if(MainWindow.ComPanel.execUserCommand(cmd))
 				    MessageBox.showMessage("restoring database successful");
 				 else
                                     MessageBox.showMessage("restoring database failed");
-			         MainWindow.this.ComPanel.showPrompt();
+			         MainWindow.ComPanel.showPrompt();
 			      }
 			   }});
 
@@ -2181,9 +2191,9 @@ public boolean updateDatabases(){
 			      int c = JOptionPane.showConfirmDialog(null,"really delete the database "+db+"?",
 			                                           "Confirm",JOptionPane.YES_NO_OPTION);
 			      if(c==JOptionPane.YES_OPTION){
-			         MainWindow.this.ComPanel.appendText(cmd);
-			         MainWindow.this.ComPanel.addToHistory(cmd);
-			         MainWindow.this.ComPanel.execUserCommand(cmd);
+			         MainWindow.ComPanel.appendText(cmd);
+			         MainWindow.ComPanel.addToHistory(cmd);
+			         MainWindow.ComPanel.execUserCommand(cmd);
 			      }
 			   }});
     Databases = Databases.rest();
@@ -2281,126 +2291,116 @@ class Command_Listener implements ActionListener{
                 String cmd = "";
                 if(Source.equals(MainWindow.this.MI_CreateDatabase)){
 		   ok = false;
-                   MainWindow.this.ComPanel.showPrompt();
-		   MainWindow.this.ComPanel.appendText("create database <dbname>");
+       MainWindow.ComPanel.showPrompt();
+		   MainWindow.ComPanel.appendText("create database <dbname>");
 		   return;
 		}
                 if(Source.equals(MainWindow.this.MI_SaveDatabase)){
                    ok = false;
-                   MainWindow.this.ComPanel.showPrompt();
-		   MainWindow.this.ComPanel.appendText("save database to <filename>");
+                   MainWindow.ComPanel.showPrompt();
+             		   MainWindow.ComPanel.appendText("save database to <filename>");
 		   return;
 		}
                 if(Source.equals(MainWindow.this.MI_SaveObject)){
                    ok = false;
-                   MainWindow.this.ComPanel.showPrompt();
-		   MainWindow.this.ComPanel.appendText("save <objname> to <filename>");
+                   MainWindow.ComPanel.showPrompt();
+		               MainWindow.ComPanel.appendText("save <objname> to <filename>");
 		   return;
 		}
                 if(Source.equals(MainWindow.this.MI_RestoreObject)){
                    ok = false;
-                   MainWindow.this.ComPanel.showPrompt();
-		   MainWindow.this.ComPanel.appendText("restore <objname> from <filename>");
+                   MainWindow.ComPanel.showPrompt();
+                   MainWindow.ComPanel.appendText("restore <objname> from <filename>");
 		   return;
 		}
 		if(Source.equals(MainWindow.this.MI_CreateType)){
-  		   ok = false;
-                   MainWindow.this.ComPanel.showPrompt();
-		   MainWindow.this.ComPanel.appendText("type <name> = <type expr>");
+ 		   ok = false;
+       MainWindow.ComPanel.showPrompt();
+		   MainWindow.ComPanel.appendText("type <name> = <type expr>");
 		   return;
-         	}
+   	}
 		if(Source.equals(MainWindow.this.MI_DeleteType)){
   		   ok = false;
-                   MainWindow.this.ComPanel.showPrompt();
-		   MainWindow.this.ComPanel.appendText("delete type <name>");
-		   return;
-         	}
+         MainWindow.ComPanel.showPrompt();
+         MainWindow.ComPanel.appendText("delete type <name>");
+         return;
+   	}
 		if(Source.equals(MainWindow.this.MI_CreateObject)){
   		   ok = false;
-                   MainWindow.this.ComPanel.showPrompt();
-		   MainWindow.this.ComPanel.appendText("create <objname> : <type expr>");
-		   return;
-         	}
+         MainWindow.ComPanel.showPrompt();
+         MainWindow.ComPanel.appendText("create <objname> : <type expr>");
+	       return;
+   	}
 		if(Source.equals(MainWindow.this.MI_UpdateObject)){
   		   ok = false;
-                   MainWindow.this.ComPanel.showPrompt();
-		   MainWindow.this.ComPanel.appendText("update <objname> := <value expr>");
-		   return;
-         	}
+         MainWindow.ComPanel.showPrompt();
+         MainWindow.ComPanel.appendText("update <objname> := <value expr>");
+         return;
+   	}
 		if(Source.equals(MainWindow.this.MI_DeleteObject)){
   		   ok = false;
-                   MainWindow.this.ComPanel.showPrompt();
-		   MainWindow.this.ComPanel.appendText("delete <objname>");
-		   return;
-         	}
+         MainWindow.ComPanel.showPrompt();
+	       MainWindow.ComPanel.appendText("delete <objname>");
+         return;
+   	}
 		if(Source.equals(MainWindow.this.MI_Let)){
   		   ok = false;
-                   MainWindow.this.ComPanel.showPrompt();
-		   MainWindow.this.ComPanel.appendText("let <objname> = <value expr>");
-		   return;
-         	}
+         MainWindow.ComPanel.showPrompt();
+         MainWindow.ComPanel.appendText("let <objname> = <value expr>");
+         return;
+   	}
 		if(Source.equals(MainWindow.this.MI_Query)){
   		   ok = false;
-                   MainWindow.this.ComPanel.showPrompt();
-		   MainWindow.this.ComPanel.appendText("query <value expr>");
-		   return;
-         	}
+         MainWindow.ComPanel.showPrompt();
+         MainWindow.ComPanel.appendText("query <value expr>");
+         return;
+   	}
 		if(Source.equals(MainWindow.this.MI_UpdateDatabases)){
-                   ok = false; // execute no Secondo command
-		   if(!MainWindow.this.updateDatabases())
-		      MessageBox.showMessage("error in reading databases");
-		   return;
-		}
-
-                if (Source.equals(MainWindow.this.MI_ListDatabases)){
-                    ok = true;
-                    cmd = "list databases";
-                }else
-                if (Source.equals(MainWindow.this.MI_ListTypes)){
-                    ok = true;
-                    cmd ="list types";
-                } else
-                if (Source.equals(MainWindow.this.MI_ListTypeConstructors)){
-                    ok = true;
-                    cmd ="list type constructors";
-                } else
-                if (Source.equals(MainWindow.this.MI_ListObjects)){
-                    ok = true;
-			  cmd ="list objects";
-                } else
-                if(Source.equals(MainWindow.this.MI_ListOperators)){
-                    ok = true;
-			  cmd="list operators";
-                } else
-                if(Source.equals(MainWindow.this.MI_ListAlgebras)){
-		   ok = true;
-                   cmd = "list algebras";
-		}else
-		if(Source.equals(MainWindow.this.MI_CloseDatabase)){
-		   ok = true;
-		   cmd = "close database";
-		} else
-		if(Source.equals(MainWindow.this.MI_BeginTransaction)){
-		   ok = true;
-		   cmd = "begin transaction";
-		} else
-        	if(Source.equals(MainWindow.this.MI_AbortTransaction)){
-		   ok = true;
-		   cmd = "abort transaction";
-		}else
-		if(Source.equals(MainWindow.this.MI_CommitTransaction)){
-		   ok = true;
-		   cmd = "commit transaction";
-		}
-		if (ok) {
-		    MainWindow.this.ComPanel.showPrompt();
-                    MainWindow.this.ComPanel.appendText(cmd);
-		    MainWindow.this.ComPanel.addToHistory(cmd);
-                    MainWindow.this.ComPanel.execUserCommand(cmd);
-                }
-             }
-        }
-       }
+         ok = false; // execute no Secondo command
+		     if(!MainWindow.this.updateDatabases())
+		          MessageBox.showMessage("error in reading databases");
+              return;
+         }
+         if(Source.equals(MainWindow.this.MI_ListDatabases)){
+               ok = true;
+               cmd = "list databases";
+         }else if (Source.equals(MainWindow.this.MI_ListTypes)){
+               ok = true;
+               cmd ="list types";
+         } else if (Source.equals(MainWindow.this.MI_ListTypeConstructors)){
+               ok = true;
+               cmd ="list type constructors";
+         } else if (Source.equals(MainWindow.this.MI_ListObjects)){
+               ok = true;
+               cmd ="list objects";
+         } else if(Source.equals(MainWindow.this.MI_ListOperators)){
+               ok = true;
+               cmd="list operators";
+         } else if(Source.equals(MainWindow.this.MI_ListAlgebras)){
+               ok = true;
+               cmd = "list algebras";
+         }else if(Source.equals(MainWindow.this.MI_CloseDatabase)){
+               ok = true;
+               cmd = "close database";
+         } else if(Source.equals(MainWindow.this.MI_BeginTransaction)){
+               ok = true;
+               cmd = "begin transaction";
+         } else if(Source.equals(MainWindow.this.MI_AbortTransaction)){
+                ok = true;
+                cmd = "abort transaction";
+         }else if(Source.equals(MainWindow.this.MI_CommitTransaction)){
+                ok = true;
+                cmd = "commit transaction";
+         }
+         if (ok) {
+		            MainWindow.ComPanel.showPrompt();
+                MainWindow.ComPanel.appendText(cmd);
+                MainWindow.ComPanel.addToHistory(cmd);
+                MainWindow.ComPanel.execUserCommand(cmd);
+         }
+      }
+  }
+}
 
 /** returns a small interface to secondo needed by the 'UpdateViewer'*/
 public static UpdateInterface getUpdateInterface(){

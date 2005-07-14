@@ -284,7 +284,7 @@ private void showPaintOptions(){
  private JComboBox ComboBox;
  private JLabel BoundingBoxLabel;
  private BoundingBox3D BoundingBox = new BoundingBox3D();
- private final String BBText = "BoundingBox =";
+ private final static String BBText = "BoundingBox =";
 }
 
 

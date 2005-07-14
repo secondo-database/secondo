@@ -544,12 +544,13 @@ public class CommandPanel extends JScrollPane {
 			   break;
 		case '\"' : curpos++;
 		            state=20;
-			    break;
+                break;
 		case ')'  : noOfBraces--;
 		            if(noOfBraces==0)
 			        state=18;
-			    curpos++;
-                default : curpos++;
+		    	    curpos++;
+              break;
+     default : curpos++;
 	     }
 	  } else if(state==20){
 	      if(c=='\"')
@@ -701,12 +702,12 @@ public class CommandPanel extends JScrollPane {
     if (command.startsWith("(")) {
       // if command is a list representation, then the command level to use
       // is EXEC_COMMAND_LISTEXPR_SYNTAX.
-      commandLevel = Secondointerface.EXEC_COMMAND_LISTEXPR_SYNTAX;
+      commandLevel = SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX;
     }
     else {
       // if command is not a list representation, then the command level to
       // use is EXEC_COMMAND_SOS_SYNTAX.
-      commandLevel = Secondointerface.EXEC_COMMAND_SOS_SYNTAX;
+      commandLevel = SecondoInterface.EXEC_COMMAND_SOS_SYNTAX;
     }
 
     // Executes the remote command.
@@ -763,12 +764,12 @@ public class CommandPanel extends JScrollPane {
     if (command.startsWith("(")) {
       // if command is a list representation, then the command level to use
       // is EXEC_COMMAND_LISTEXPR_SYNTAX.
-      commandLevel = Secondointerface.EXEC_COMMAND_LISTEXPR_SYNTAX;
+      commandLevel = SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX;
     }
     else {
       // if command is not a list representation, then the command level to
       // use is EXEC_COMMAND_SOS_SYNTAX.
-      commandLevel = Secondointerface.EXEC_COMMAND_SOS_SYNTAX;
+      commandLevel = SecondoInterface.EXEC_COMMAND_SOS_SYNTAX;
     }
     long starttime=0;
     if(Environment.MEASURE_TIME)
@@ -810,12 +811,12 @@ public class CommandPanel extends JScrollPane {
     if (command.startsWith("(")) {
       // if command is a list representation, then the command level to use
       // is EXEC_COMMAND_LISTEXPR_SYNTAX.
-      commandLevel = Secondointerface.EXEC_COMMAND_LISTEXPR_SYNTAX;
+      commandLevel = SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX;
     }
     else {
       // if command is not a list representation, then the command level to
       // use is EXEC_COMMAND_SOS_SYNTAX.
-      commandLevel = Secondointerface.EXEC_COMMAND_SOS_SYNTAX;
+      commandLevel = SecondoInterface.EXEC_COMMAND_SOS_SYNTAX;
     }
 
     long starttime=0;
@@ -1033,7 +1034,7 @@ public class CommandPanel extends JScrollPane {
       int keyCode = e.getKeyCode();
       int mod = e.getModifiersEx();
       if (keyCode == KeyEvent.VK_ENTER ) {
-        if((mod&e.SHIFT_DOWN_MASK)!=0){
+        if((mod&KeyEvent.SHIFT_DOWN_MASK)!=0){
            // Note: Pressing the return key together with the 
            // shift key has no affect in the JTextArea. Unfortunately,
            // the setModifier method is deprecated since java 1.1.4
@@ -1067,32 +1068,32 @@ public class CommandPanel extends JScrollPane {
       int p2 = C.getMark();
       int pos = SystemArea.getCaretPosition();
       if(p1<aktPos | p2<aktPos){
-         if( (mod&e.CTRL_DOWN_MASK)==0 ){ // no key allowed
+         if( (mod&KeyEvent.CTRL_DOWN_MASK)==0 ){ // no key allowed
               C.moveDot(aktPos);
               C.setDot(aktPos);
          }
          else {  // ctrl is pressed allow C and Control
-            if(keyCode!=e.VK_C & keyCode!=e.VK_CONTROL){
+            if(keyCode!=KeyEvent.VK_C & keyCode!=KeyEvent.VK_CONTROL){
               C.moveDot(aktPos);
               C.setDot(aktPos);
             }
          }
       }
-      if( ( ( (mod&e.CTRL_DOWN_MASK)!=0 & keyCode==e.VK_H ) |
-            ( keyCode==e.VK_BACK_SPACE))
+      if( ( ( (mod&KeyEvent.CTRL_DOWN_MASK)!=0 & keyCode==KeyEvent.VK_H ) |
+            ( keyCode==KeyEvent.VK_BACK_SPACE))
           && SystemArea.getCaretPosition()==aktPos){
         SystemArea.insert(" ",aktPos);
 
       }
       // avoid selection using keyboard
-      if(((mod&e.SHIFT_DOWN_MASK)!=0) & (keyCode==e.VK_LEFT | keyCode==e.VK_UP)){
+      if(((mod&KeyEvent.SHIFT_DOWN_MASK)!=0) & (keyCode==KeyEvent.VK_LEFT | keyCode==KeyEvent.VK_UP)){
          if(pos==aktPos){
              e.setKeyCode(0);
 	     return;
 	 }
       }
-      if(keyCode==e.VK_HOME | keyCode==e.VK_PAGE_UP){
-         if((mod&e.SHIFT_DOWN_MASK)!=0)
+      if(keyCode==KeyEvent.VK_HOME | keyCode==KeyEvent.VK_PAGE_UP){
+         if((mod&KeyEvent.SHIFT_DOWN_MASK)!=0)
 	    C.moveDot(aktPos);
 	 else{
 	    C.setDot(aktPos);
@@ -1110,7 +1111,7 @@ public class CommandPanel extends JScrollPane {
       }
 
 
-      if((mod&e.SHIFT_DOWN_MASK)!=0){
+      if((mod&KeyEvent.SHIFT_DOWN_MASK)!=0){
          if(keyCode==KeyEvent.VK_DOWN || keyCode==KeyEvent.VK_PAGE_DOWN ||
             keyCode==KeyEvent.VK_UP || keyCode==KeyEvent.VK_PAGE_UP) {
              e.setKeyCode(0);

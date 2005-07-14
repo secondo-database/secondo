@@ -190,6 +190,6 @@ public ID getID(){
 
 private Relation Rel;
 private int TupleSize;
-private final String SEPARATORSTRING="****************";
+private final static String SEPARATORSTRING="****************";
 
 }

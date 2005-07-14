@@ -95,14 +95,14 @@ public boolean readFromListExpr(ListExpr LE){
      return false;
   this.ScaleFactor = z;
 
-  ListExpr Triangles = LE.second();
+  ListExpr triangle_list = LE.second();
   SingleTriangle T;
   boolean ok = true;
-  while( !Triangles.isEmpty() & ok) {
+  while( !triangle_list.isEmpty() & ok) {
     T = new SingleTriangle();
-    if(T.readFromListExpr(Triangles.first())){
+    if(T.readFromListExpr(triangle_list.first())){
        SingleTriangles.add(T);
-       Triangles=Triangles.rest();
+       triangle_list=triangle_list.rest();
     }
     else{
        ok = false;
@@ -227,27 +227,27 @@ SingleFPoint P1,P2,P3;
 public boolean readFromListExpr(ListExpr LE){
   if(LE.listLength()!=3)
      return false;
-  SingleFPoint P1 = new SingleFPoint();
-  SingleFPoint P2 = new SingleFPoint();
-  SingleFPoint P3 = new SingleFPoint();
-  boolean ok =  P1.readFromListExpr(LE.first());
+  SingleFPoint tmpP1 = new SingleFPoint();
+  SingleFPoint tmpP2 = new SingleFPoint();
+  SingleFPoint tmpP3 = new SingleFPoint();
+  boolean ok =  tmpP1.readFromListExpr(LE.first());
   if(!ok)
      System.out.println("Error reading :"+LE.first().writeListExprToString());
   else{
-     ok = P2.readFromListExpr(LE.second());
+     ok = tmpP2.readFromListExpr(LE.second());
      if(!ok)
         System.out.println("Error reading :"+LE.second().writeListExprToString());
      else {
-        ok = P3.readFromListExpr(LE.third());
+        ok = tmpP3.readFromListExpr(LE.third());
         if(!ok)
 	  System.out.println("error reading :"+LE.third().writeListExprToString());
       }
   }
 
   if(ok){
-     this.P1 = P1;
-     this.P2 = P2;
-     this.P3 = P3;
+     this.P1 = tmpP1;
+     this.P2 = tmpP2;
+     this.P3 = tmpP3;
   }
   return ok;
 }

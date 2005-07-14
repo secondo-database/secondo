@@ -49,7 +49,7 @@ public boolean readFrom(ListExpr LE,Class linearClass){
          System.err.println("LinearMove.readFrom :: Wrong ListLength, should be 2, but is :"+LE.listLength());
       return false;
    }
-   if(LE.first().atomType()!=LE.SYMBOL_ATOM || !LE.first().symbolValue().equals("linear")){
+   if(LE.first().atomType()!=ListExpr.SYMBOL_ATOM || !LE.first().symbolValue().equals("linear")){
       if(Environment.DEBUG_MODE){
          System.err.println("LinearMove.readFrom :: Typdescriptor 'linear' not found ");
 	 System.err.println("list is "+LE.first().writeListExprToString());

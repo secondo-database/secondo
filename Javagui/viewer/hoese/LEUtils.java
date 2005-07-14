@@ -39,7 +39,7 @@ public class LEUtils {
       ListExpr value;
 
       if(le.listLength()==2){ // check for type
-         if(le.first().atomType()==le.SYMBOL_ATOM &&
+         if(le.first().atomType()==ListExpr.SYMBOL_ATOM &&
 	      ( le.first().symbolValue().equals("instant") ||
 	        le.first().symbolValue().equals("datetime"))){
                 value = le.second();	  // read over the type
@@ -51,7 +51,7 @@ public class LEUtils {
 
 
       // string representation
-      if(value.atomType()==value.STRING_ATOM){
+      if(value.atomType()==ListExpr.STRING_ATOM){
          long[] daymillis = DateTime.getDayMillis(value.stringValue());
          if(daymillis==null)
 	    return null;
@@ -60,25 +60,25 @@ public class LEUtils {
       }
 
       // real representation
-      if(value.atomType()==value.REAL_ATOM){
+      if(value.atomType()==ListExpr.REAL_ATOM){
           return new Double (value.realValue());
       }
 
       // integer representation
-      if(value.atomType()==value.INT_ATOM){
+      if(value.atomType()==ListExpr.INT_ATOM){
           return new Double (value.intValue());
       }
 
       // all other representation are based on proper lists
       // not on atoms
-      if(value.atomType()!=value.NO_ATOM)
+      if(value.atomType()!=ListExpr.NO_ATOM)
           return null;
 
       int length = value.listLength();
       // Julian representation
       if(length==2){
-         if(value.first().atomType()==value.INT_ATOM &&
-            value.second().atomType()==value.INT_ATOM){
+         if(value.first().atomType()==ListExpr.INT_ATOM &&
+            value.second().atomType()==ListExpr.INT_ATOM){
              double day = (double) value.first().intValue();
              double ms  = (double) value.second().intValue();
              return new Double(day + ms /86400000.0);
@@ -108,7 +108,7 @@ public class LEUtils {
 
 
       // check for an deprecated data version
-      if(value.first().atomType()==value.SYMBOL_ATOM &&
+      if(value.first().atomType()==ListExpr.SYMBOL_ATOM &&
          value.first().symbolValue().equals("datetime")){
          System.err.println("Deprecated nested list representation of time !!");
        	 value = value.rest();
@@ -123,7 +123,7 @@ public class LEUtils {
       // all contained atoms has to be integers
       ListExpr tmp = value;
       while(!tmp.isEmpty()){
-          if(tmp.first().atomType()!=tmp.INT_ATOM)
+          if(tmp.first().atomType()!=ListExpr.INT_ATOM)
 	            return null;
           tmp = tmp.rest();
       }

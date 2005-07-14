@@ -137,7 +137,7 @@ private boolean accept(){
   }
   catch(Exception e){
      ok = false;
-     OptionPane.showMessageDialog(this,"invalid values in fields (not a double)",
+     JOptionPane.showMessageDialog(this,"invalid values in fields (not a double)",
                                   "error",JOptionPane.ERROR_MESSAGE);
   }
 
@@ -153,13 +153,13 @@ private boolean accept(){
     windowok = WindowX >0 & WindowY>0;
  
     if (!viewcheck){
-       OptionPane.showMessageDialog(this,"Eye,VRP,ViewUp cannot be on a line",
+       JOptionPane.showMessageDialog(this,"Eye,VRP,ViewUp cannot be on a line",
                                     "error",JOptionPane.ERROR_MESSAGE);
        ok = false;
        }
     else
        if (!windowok) {
-          OptionPane.showMessageDialog(this,"Window must be greater then 0x0","error",
+          JOptionPane.showMessageDialog(this,"Window must be greater then 0x0","error",
                                         JOptionPane.ERROR_MESSAGE);
           ok = false;
        }
@@ -201,7 +201,7 @@ public void setBoundingBox(BoundingBox3D BB){
 /** compute a Proposal */
 public void makeProposal(){
   if(BB==null){
-     OptionPane.showMessageDialog(this,"no bounding box is set",
+     JOptionPane.showMessageDialog(this,"no bounding box is set",
                                   "error",JOptionPane.ERROR_MESSAGE);
      return;
   }
@@ -256,7 +256,6 @@ private JButton ApplyBtn = new JButton("apply");
 private JButton ProposalBtn = new JButton("proposal");
 private String State="ok";
 private int ResultValue;
-private JOptionPane OptionPane = new JOptionPane(); // to show Messages
 private BoundingBox3D BB = null;
 }
 

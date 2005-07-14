@@ -138,7 +138,7 @@ public static ListExpr toListExpr(){
       Last = AllLinks;
    }
    for(int i=1;i<MLPool.ManualLinks.size();i++)
-      Last = Last.append(Last,((AttrCatList)MLPool.ManualLinks.get(i)).toListExpr());
+      Last = ListExpr.append(Last,((AttrCatList)MLPool.ManualLinks.get(i)).toListExpr());
    return ListExpr.twoElemList(ListExpr.symbolAtom("AttrCatPool"),AllLinks);
 }
 

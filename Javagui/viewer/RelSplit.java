@@ -328,7 +328,7 @@ public boolean addRelation(SecondoObject SO){
 
 
 private void showMessage(String S){
-   OptionPane.showMessageDialog(this,S);
+   JOptionPane.showMessageDialog(this,S);
 }
 
 public void addMouseListener(MouseListener ml){
@@ -342,7 +342,6 @@ private Vector SecondoObjectVector;
 private DefaultComboBoxModel dummy= new DefaultComboBoxModel(); // to show nothing
 private JTextField SearchText;
 private JButton    GoBtn;
-private JOptionPane OptionPane = new JOptionPane();
 
 
 }

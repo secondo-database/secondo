@@ -98,8 +98,8 @@ public class HoeseViewer extends SecondoViewer {
   private JButton DecrementSpeedBtn;
   private JButton IncrementSpeedBtn;
   public JScrollPane GeoScrollPane;
-  private final String CONFIGURATION_FILE = "GBS.cfg";
-  private final int NOT_ERROR_CODE = ServerErrorCodes.NOT_ERROR_CODE;
+  private final static String CONFIGURATION_FILE = "GBS.cfg";
+  private final static int NOT_ERROR_CODE = ServerErrorCodes.NOT_ERROR_CODE;
 
 
    /** The maximum length of a number for the mousekoordlabel */
@@ -769,7 +769,7 @@ public class HoeseViewer extends SecondoViewer {
                                                  BufferedImage.TYPE_INT_RGB);
            Graphics2D g = bi.createGraphics();
            GraphDisplay.printAll(g);
-           if(FC_Images.showSaveDialog(HoeseViewer.this)==FC_Images.APPROVE_OPTION){
+           if(FC_Images.showSaveDialog(HoeseViewer.this)==JFileChooser.APPROVE_OPTION){
               File F = FC_Images.getSelectedFile();
               try{
                  javax.imageio.ImageIO.write(bi,"png",F); 
@@ -1137,7 +1137,7 @@ public class HoeseViewer extends SecondoViewer {
         TimeSlider.setUnitIncrement(l);
         TimeSlider.setBlockIncrement(l);
 	*/
-	if(TimeInput.inputTime()==TimeInput.OK){
+	if(TimeInput.inputTime()==TimeInputDialog.OK){
             RBMICustTI.setText(tok + " = " +TimeInput.getTimeString());
             long t = TimeInput.getTime();
 	    TimeSlider.setUnitIncrement(t);

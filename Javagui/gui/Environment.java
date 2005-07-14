@@ -27,5 +27,30 @@ public class Environment{
 
 public static boolean DEBUG_MODE = true;
 public static boolean MEASURE_TIME = true;
+public static boolean MEASURE_MEMORY = false;
+public static long usedMemory(){
+  return rt.totalMemory()-rt.freeMemory();
+}
+
+public static String formatMemory(long md){
+   String mem ="";
+   if(Math.abs(md)>=1048576){
+      mem = Double.toString(((int)(md/1048.576))/1000.0) + "MB"; 
+    } else if(Math.abs(md)>1024){
+      mem = Double.toString( ((int)(md/1.024))/1000.0 )+" kB";
+    } else{
+      mem = Long.toString(md)+" B";
+    }
+    return mem;
+}
+
+public static void printMemoryUsage(){
+    System.out.println("total Memory : "+formatMemory(rt.totalMemory()));
+    System.out.println("free Memory :"+formatMemory(rt.freeMemory()));
+
+}
+
+
+private static Runtime rt = Runtime.getRuntime();
 
 }

@@ -79,7 +79,7 @@ public TFWCreator(){
    imageControlPanel.add(loadButton);
    loadButton.addActionListener(new ActionListener(){
       public void actionPerformed(ActionEvent evt){
-         if(FC.showOpenDialog(TFWCreator.this)==FC.APPROVE_OPTION){
+         if(FC.showOpenDialog(TFWCreator.this)==JFileChooser.APPROVE_OPTION){
              File f = FC.getSelectedFile();
              try{
                  BufferedImage img = javax.imageio.ImageIO.read(f);
@@ -252,12 +252,12 @@ public TFWCreator(){
               }else{
                 int length = LE.listLength();
                 ListExpr value=null;
-                if(length==6  && LE.first().atomType()==LE.SYMBOL_ATOM && 
+                if(length==6  && LE.first().atomType()==ListExpr.SYMBOL_ATOM && 
                    LE.first().symbolValue().equals("OBJECT") &&
-                   LE.third().atomType()==LE.SYMBOL_ATOM &&
+                   LE.third().atomType()==ListExpr.SYMBOL_ATOM &&
                    LE.third().symbolValue().equals("point")){
                    value = LE.fourth();
-                }else if(length==2 && LE.first().atomType()==LE.SYMBOL_ATOM &&
+                }else if(length==2 && LE.first().atomType()==ListExpr.SYMBOL_ATOM &&
                          LE.first().symbolValue().equals("point")){
                    value = LE.second();
                 }else if(length==2){
@@ -398,7 +398,7 @@ public TFWCreator(){
              qx = (double)((int)(qx*10000+0.5))/100;
              quality +=" x : "+ qx+" %\n y : " + qy +" %\n"; 
           }
-          if(FC.showSaveDialog(TFWCreator.this)==FC.APPROVE_OPTION){
+          if(FC.showSaveDialog(TFWCreator.this)==JFileChooser.APPROVE_OPTION){
              PrintStream out=null;
              try{
                 out=new PrintStream(new FileOutputStream(FC.getSelectedFile()));
@@ -479,7 +479,7 @@ private class CrossSetter extends MouseInputAdapter{
    }
 
    public void mouseClicked(MouseEvent evt){
-      if(evt.getButton()==evt.BUTTON1){ // set Cross
+      if(evt.getButton()==MouseEvent.BUTTON1){ // set Cross
           if(xTF!=null)
               xTF.setText(""+evt.getX());
           if(yTF!=null)
@@ -490,7 +490,7 @@ private class CrossSetter extends MouseInputAdapter{
              pictureView.addCross(cross);
           }
        }
-       if(evt.getButton()==evt.BUTTON3){
+       if(evt.getButton()==MouseEvent.BUTTON3){
           if(xTF!=null)
               xTF.setText("0");
           if(yTF!=null)

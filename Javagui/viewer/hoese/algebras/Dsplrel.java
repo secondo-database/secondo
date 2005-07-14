@@ -44,10 +44,18 @@ public class Dsplrel extends DsplGeneric {
     if(gui.Environment.MEASURE_TIME){
       startTime = System.currentTimeMillis();
     }
+    long usedMemory=0;
+    if(gui.Environment.MEASURE_MEMORY){
+        usedMemory=gui.Environment.usedMemory();
+    }
     LEUtils.analyse(type.second(), value, qr);
     if(gui.Environment.MEASURE_TIME){
        System.out.println(" Building relation has taken :"+
                           (System.currentTimeMillis()-startTime)+" milliseconds");
+    }
+    if(gui.Environment.MEASURE_MEMORY){
+      System.out.println("Memory-Difference :"+ 
+                          gui.Environment.formatMemory( gui.Environment.usedMemory()-usedMemory));
     }
     return;
   }

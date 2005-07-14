@@ -116,7 +116,7 @@ extends SecondoViewer
  private int lastCol = -1;
 
  // the value of MAX_TEXT_LENGTH must be greater then five
- private final int 	MAX_TEXT_LENGTH=100;
+ private final static int 	MAX_TEXT_LENGTH=100;
 
 
 
@@ -1001,17 +1001,6 @@ This methode adds an Objects to the viewer, stores it and displays it.
  public void setViewerControl(ViewerControl VC){
       this.VC = VC;
  }
-
-
-/*
-
-3.20 Attribute ~ViewerControl~
-
-  Inform this Control if select/remove a Object.
-
-*/
-
- protected ViewerControl VC=null;
 
 
 

@@ -153,11 +153,11 @@ public class DsplGeneric implements DsplBase,DsplSimple {
   public static boolean isUndefined(ListExpr LE){
     if(LE==null)
        return true;
-    if(LE.atomType()==LE.SYMBOL_ATOM){
+    if(LE.atomType()==ListExpr.SYMBOL_ATOM){
        String v = LE.symbolValue();
        return v.equals("undef") || v.equals("undefined");
     }
-    if(LE.listLength()==1 && LE.first().atomType()==LE.SYMBOL_ATOM){
+    if(LE.listLength()==1 && LE.first().atomType()==ListExpr.SYMBOL_ATOM){
        String v = LE.first().symbolValue();
        return v.equals("undef") || v.equals("undefined");
     }

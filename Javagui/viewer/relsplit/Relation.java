@@ -71,14 +71,14 @@ public int find(String S,boolean CaseSensitiv,int OffSet){
   int pos = -1;
   String US = S.toUpperCase();
   for(int i=OffSet;i<SecondoObjects.size()&&!found;i++){
-     String Name = get(i).getName();
+     String tmpname = get(i).getName();
      if(CaseSensitiv){
-          if (Name.indexOf(S)>=0){
+          if (tmpname.indexOf(S)>=0){
                found=true;
                pos=i;
            }
      } else{
-          if (Name.toUpperCase().indexOf(US)>=0){
+          if (tmpname.toUpperCase().indexOf(US)>=0){
                found=true;
                pos=i;
            }
@@ -134,10 +134,10 @@ private boolean readValue(Head H,ListExpr ValueList){
 /** computes a short Name for a object */
 private String computeObjectName(String name,String type,ListExpr value){
   int len = head.getMaxNameLength();
-  String Name="";
+  String tmpname="";
   for(int i=0;i<len+1-name.length();i++)
-     Name = Name+" ";
-  Name += name+" ";
+     tmpname = tmpname+" ";
+  tmpname += name+" ";
 
   String ValueString;
   if(!value.isAtom() && value.listLength()==1 && value.first().atomType()==ListExpr.TEXT_ATOM)
@@ -149,11 +149,11 @@ private String computeObjectName(String name,String type,ListExpr value){
   else{
       int atomType = value.atomType();
       switch (atomType){
-        case ListExpr.REAL_ATOM : ValueString=""+value.realValue(); break;
+        case ListExpr.REAL_ATOM : ValueString=Double.toString(value.realValue()); break;
         case ListExpr.STRING_ATOM : ValueString= value.stringValue(); break;
-        case ListExpr.INT_ATOM : ValueString = ""+value.intValue(); break;
+        case ListExpr.INT_ATOM : ValueString = Integer.toString(value.intValue()); break;
         case ListExpr.SYMBOL_ATOM : ValueString = value.symbolValue(); break;
-        case ListExpr.BOOL_ATOM : ValueString = ""+value.boolValue(); break;
+        case ListExpr.BOOL_ATOM : ValueString = Boolean.toString(value.boolValue()); break;
         case ListExpr.TEXT_ATOM :  if(value.textLength()>48)
 	                               ValueString = "TEXT "+value.textLength()+" chars";
 				    else
@@ -163,7 +163,7 @@ private String computeObjectName(String name,String type,ListExpr value){
         default : ValueString = "unknow type";
       }
   }
-  return Name+": "+ValueString;
+  return tmpname+": "+ValueString;
 }
 
 

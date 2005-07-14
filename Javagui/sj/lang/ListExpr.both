@@ -192,8 +192,8 @@ public int getTextLength(){
 #ifndef PERSISTENT
      if(type!=TEXT_ATOM)
         return -1;
-     if(ExtFile!=null)
-         return (int)ExtFile.length();
+     if(value instanceof File)
+         return (int)((File)value).length();
      else
          return ((String)value).length();
 #else
@@ -210,7 +210,13 @@ public int getTextLength(){
   */
 public boolean isInMemory(){
 #ifndef PERSISTENT
-    return (type!=TEXT_ATOM) || (ExtFile==null);
+    if(type!=TEXT_ATOM)
+      return true;
+    if(value==null)
+       return true;
+    if(!(value instanceof File))
+       return true;
+    return false;
 #else
     return dbarray.isCached(key);
 #endif
@@ -593,7 +599,11 @@ public int readFromFile (String fileName) {
 public static ListExpr getListExprFromFile(String fileName){
     long startTime=0;
     if(gui.Environment.MEASURE_TIME){
-      startTime = System.currentTimeMillis();  
+      startTime = System.currentTimeMillis(); 
+    }
+    long usedMemory = 0;
+    if(gui.Environment.MEASURE_MEMORY){
+        usedMemory = gui.Environment.usedMemory();
     }
     FileReader inputReader;
     NLParser parser;
@@ -610,9 +620,16 @@ public static ListExpr getListExprFromFile(String fileName){
           System.err.println("DEBUG MODE: Error in line " + parser.linePos +
               " when parsing input file"+fileName +" in Line "+parser.linePos);
         }
-      }else if(gui.Environment.MEASURE_TIME){
-          System.out.println("Building nested List from File " + fileName+" has taken "+ 
+      }else {
+          if(gui.Environment.MEASURE_TIME){
+                System.out.println("Building nested List from File " + fileName+" has taken "+ 
                               (System.currentTimeMillis()-startTime) + " milliseconds");
+           }
+           if(gui.Environment.MEASURE_MEMORY){
+               long md = (gui.Environment.usedMemory()-usedMemory);
+               System.out.println("memory difference:"+gui.Environment.formatMemory(md) );
+               gui.Environment.printMemoryUsage();
+            }   
       } 
       return (ListExpr)result.value;
     } catch (FileNotFoundException except) {
@@ -705,88 +722,88 @@ private static boolean writeBinaryRec(ListExpr LE, MyDataOutputStream OS){
       switch(T){
           case BIN_BOOLEAN      : { OS.writeByte(T);
                                     boolean b = LE.boolValue();
-                                    byte value =(byte) (b?1:0);
-                                    OS.writeByte(value);
+                                    byte value1 =(byte) (b?1:0);
+                                    OS.writeByte(value1);
                                     return true;
                                   }
           case BIN_INTEGER      : { OS.writeByte(T);
-                                    int value = LE.intValue();
-                                    OS.writeInt(value);
+                                    int value1 = LE.intValue();
+                                    OS.writeInt(value1);
                                     return true;
                                   }
           case BIN_SHORTINT     : { OS.writeByte(T);
-                                    short value = (short) LE.intValue();
-                                    OS.writeShort(value);
+                                    short value1 = (short) LE.intValue();
+                                    OS.writeShort(value1);
                                     return true;
                                   }
           case BIN_BYTE         : { OS.writeByte(T);
-                                    byte value = (byte) LE.intValue();
-                                    OS.writeByte(value);
+                                    byte value1 = (byte) LE.intValue();
+                                    OS.writeByte(value1);
                                     return true;
                                   }
 
           case BIN_REAL         : { OS.writeByte(T);
-                                    double value = LE.realValue();
-                                    OS.writeReal(value);
+                                    double value1 = LE.realValue();
+                                    OS.writeReal(value1);
                                     return true;
                                   }
           case BIN_SHORTSTRING  : { OS.writeByte(T);
-                                    String value = LE.stringValue();
-                                    OS.writeByte((byte)value.length());
-                                    OS.writeString(value);
+                                    String value1 = LE.stringValue();
+                                    OS.writeByte((byte)value1.length());
+                                    OS.writeString(value1);
                                     return true;
                                   }
           case BIN_STRING      :  { OS.writeByte(T);
-                                    String value = LE.stringValue();
-                                    OS.writeShort((short)value.length());
-                                    OS.writeString(value);
+                                    String value1 = LE.stringValue();
+                                    OS.writeShort((short)value1.length());
+                                    OS.writeString(value1);
                                     return true;
                                   }
          case BIN_LONGSTRING  :  { OS.writeByte(T);
-                                    String value = LE.stringValue();
-                                    OS.writeInt(value.length());
-                                    OS.writeString(value);
+                                    String value1 = LE.stringValue();
+                                    OS.writeInt(value1.length());
+                                    OS.writeString(value1);
                                     return true;
                                   }
           case BIN_SHORTSYMBOL :  { OS.writeByte(T);
-                                    String value = LE.symbolValue();
-                                    OS.writeByte((byte)value.length());
-                                    OS.writeString(value);
+                                    String value1 = LE.symbolValue();
+                                    OS.writeByte((byte)value1.length());
+                                    OS.writeString(value1);
                                     return true;
                                   }
           case BIN_SYMBOL     :   { OS.writeByte(T);
-                                    String value = LE.symbolValue();
-                                    OS.writeShort((short)value.length());
-                                    OS.writeString(value);
+                                    String value1 = LE.symbolValue();
+                                    OS.writeShort((short)value1.length());
+                                    OS.writeString(value1);
                                     return true;
                                   }
 
           case BIN_LONGSYMBOL  :  { OS.writeByte(T);
-                                    String value = LE.symbolValue();
-                                    OS.writeInt(value.length());
-                                    OS.writeString(value);
+                                    String value1 = LE.symbolValue();
+                                    OS.writeInt(value1.length());
+                                    OS.writeString(value1);
                                     return true;
                                   }
 
           case BIN_SHORTTEXT   :  { OS.writeByte(T);
-                                    String value = LE.textValue();
-                                    int L = value.length();
+                                    String value1 = LE.textValue();
+                                    int L = value1.length();
                                     OS.writeByte((byte)L);
-                                    OS.writeString(value);
+                                    OS.writeString(value1);
                                     return true;
                                   }
           case BIN_TEXT        :  { OS.writeByte(T);
-                                    String value = LE.textValue();
-                                    int L = value.length();
+                                    String value1 = LE.textValue();
+                                    int L = value1.length();
                                     OS.writeShort((short)L);
-                                    OS.writeString(value);
+                                    OS.writeString(value1);
                                     return true;
                                   }
           case BIN_LONGTEXT   :  { OS.writeByte(T);
-                                   String value = LE.textValue();
-                                   int L = value.length();
+                                   String value1 = LE.textValue();
+                                   int L = value1.length();
                                    OS.writeInt(L);
-                                   OS.writeString(value);
+                                   OS.writeString(value1);
                                    return true;
                                  }
         case BIN_SHORTLIST   : { OS.writeByte(T);
@@ -1251,30 +1268,30 @@ public static ListExpr textAtom(String value){
 #ifndef PERSISTENT
     if(value.length()>MAX_INTERNAL_TEXT_LENGTH && USE_PERSISTENT_TEXT){
         // create a new File for this textAtom;
-        if(ExtFile==null){  // create a new  file
+        if(this.value==null || !(this.value instanceof File)){ // create a new File
+           File F;
            do{
-              ExtFile = new File( TEMPDIR+TMPSTART+LastUsedFileNumber);
+              F = new File( TEMPDIR+TMPSTART+LastUsedFileNumber);
               LastUsedFileNumber++;
-           }while(ExtFile.exists());
+           }while(F.exists());
+           this.value=F;
+           F.deleteOnExit();
         }
-        ExtFile.deleteOnExit();// ensure to delete this file
         DataOutputStream out = null;
         try{ // write Text into the File
             out = new DataOutputStream(
                           new BufferedOutputStream(
-                              new FileOutputStream(ExtFile)));
+                              new FileOutputStream((File)this.value)));
             out.writeBytes(value);
             out.flush();
             out.close();
-            this.value = null;
         }catch(Exception e){
             if(DEBUG_MODE){
                 e.printStackTrace();
             }
             System.err.println("Error in writing temporal file of text atom");
             System.err.println("Using main memory to store text!");
-            ExtFile=null;
-            this.value = value;
+            this.value = new String(value);
         }
 
     }else { // main memory based
@@ -1446,13 +1463,18 @@ public String textValue () {
         System.err.println(" the ListExpr object is not a text atom.");
       }
     }
-    if(ExtFile==null){ // main memory based
+    if(value==null || !(value instanceof File)){ // main memory based
+       if(DEBUG_MODE && value==null){
+          System.err.println("Error in ListExpr: value is null");
+          new Throwable().printStackTrace();
+       }
        return  (String)this.value;
     }else{
        try{
-         int len = (int)ExtFile.length();
+         File F = (File) value;
+         int len = (int)F.length();
          byte[] content = new byte[(int)len];
-         BufferedInputStream in = new BufferedInputStream(new FileInputStream(ExtFile));
+         BufferedInputStream in = new BufferedInputStream(new FileInputStream(F));
          int pos = 0;
          while(pos<len){
              pos += in.read(content,pos,len-pos);
@@ -1759,7 +1781,7 @@ public int readFromString (String chars) {
 		if (result == null) {
 			// If the parser returns a null value, then an error was detected
 			// when parsing the input.
-			if (this.DEBUG_MODE) {
+			if (ListExpr.DEBUG_MODE) {
 				System.err.println("DEBUG MODE: Error in character " + parser.charPos
 						+ " when parsing input string in ReadFromString()");
 			}
@@ -1776,7 +1798,7 @@ public int readFromString (String chars) {
 	} finally {
 		inputReader.close();
 	}
-	return  this.NO_ERROR_CODE;
+	return  ListExpr.NO_ERROR_CODE;
 }
 
 
@@ -1805,13 +1827,14 @@ public byte[] textValueAsByteArray () {
    long v = getValue();
    return getTextBytes(v);
 #else
-    if(ExtFile==null){ // main memory based
+    if(value==null || !(value instanceof File)){ // main memory based
        return  ((String)this.value).getBytes();
     }else{
        try{
-         int len = (int)ExtFile.length();
+         File F = (File) value;
+         int len = (int)F.length();
          byte[] content = new byte[(int)len];
-         BufferedInputStream in = new BufferedInputStream(new FileInputStream(ExtFile));
+         BufferedInputStream in = new BufferedInputStream(new FileInputStream(F));
          int pos = 0;
          while(pos<len){
              pos += in.read(content,pos,len-pos);
@@ -1847,10 +1870,10 @@ public InputStream textValueAsInputStream() throws IOException{
   if(b==null) return null;
   return new ByteArrayInputStream(b);
 #else
-  if(ExtFile==null){
+  if(!(value instanceof File)){
     return new ByteArrayInputStream( ((String)value).getBytes());
   }else{
-    return new FileInputStream(ExtFile);
+    return new FileInputStream((File)value);
   }
 #endif
 }
@@ -2215,7 +2238,6 @@ private final static String END_TEXT ="</text--->";
 private static String CurrentDir=null;
 
 #ifndef PERSISTENT
-private File ExtFile=null;
 private static final String TMPSTART="TMP_";
 private static int LastUsedFileNumber=0;
 private static String TEMPDIR =".";

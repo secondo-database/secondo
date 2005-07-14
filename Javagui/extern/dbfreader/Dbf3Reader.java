@@ -299,7 +299,7 @@ public boolean readFrom(byte[] Buffer,DB3RecordHeader RH){
    int MaxField = RH.getFieldNumber();
    if(MaxField<0)
       return false;
-   boolean isDeleted = Buffer[0]=='*';
+   isDeleted = Buffer[0]=='*';
    ListExpr TMP=null;
    ListExpr Last=null;
    ListExpr Next=null;

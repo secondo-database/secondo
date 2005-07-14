@@ -326,8 +326,8 @@ private double BorderSizeValue = 0.0;
 private boolean OrigAuto = false;
 private boolean OrigProportion = false;
 private int PointSize = 15;
-private final double MINWIDTH = 10;
-private final double MINHEIGHT = 10;
+private final static double MINWIDTH = 10;
+private final static double MINHEIGHT = 10;
 
 private JCheckBox BorderPaint = new JCheckBox("paint border of triangles");
 

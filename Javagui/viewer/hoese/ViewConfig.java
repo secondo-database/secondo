@@ -301,7 +301,7 @@ public class ViewConfig extends javax.swing.JDialog {
 	  LAC.setUpdateMode(true,RefName);
           LAC.setVisible(true);
 	  LAC.setUpdateMode(false,"");
-	  if(LAC.getRetValue()==LAC.OK) {
+	  if(LAC.getRetValue()==LinkAttrCat.OK) {
              String Name = LAC.getName();
              LinkComboBox.removeItem(RefName);
 	     LinkComboBox.addItem(Name);
@@ -483,7 +483,7 @@ public class ViewConfig extends javax.swing.JDialog {
 
     KeyListener RKL = new KeyAdapter(){
             public void keyPressed(KeyEvent evt){
-                if(evt.getKeyCode()==evt.VK_ENTER){
+                if(evt.getKeyCode()==KeyEvent.VK_ENTER){
                    if(evt.getSource().equals(CancelB)){
                       setVisible(false);
                       dispose();
@@ -491,7 +491,7 @@ public class ViewConfig extends javax.swing.JDialog {
 		   else
                       OKBActionPerformed();
                 }
-                if(evt.getKeyCode()==evt.VK_ESCAPE){
+                if(evt.getKeyCode()==KeyEvent.VK_ESCAPE){
                       setVisible(false);
                       dispose();
                 }
@@ -674,10 +674,10 @@ public class ViewConfig extends javax.swing.JDialog {
 	    return;
 	 }
 
-         ListIterator li = Query.getGraphObjects().listIterator();
-         int RefAttrIndex = LabelAList.indexOf(as);
-         ListExpr AttrValues = getAttrValues(RefAttrIndex);
-	  if(AttrValues==null){
+    ListIterator li = Query.getGraphObjects().listIterator();
+    int RefAttrIndex = LabelAList.indexOf(as);
+    ListExpr attrValueList = getAttrValues(RefAttrIndex);
+	  if(attrValueList==null){
 	     MessageBox.showMessage("no reference attribute selected");
 	     return;
 	  }
@@ -689,12 +689,12 @@ public class ViewConfig extends javax.swing.JDialog {
 	    return;
 	 }
 	 boolean found =false;
-	 int number = ACL.numberOfLinksFor(AttrValues);
+	 int number = ACL.numberOfLinksFor(attrValueList);
 	 if(number<1){
 	    MessageBox.showMessage("the selected reference contains no links for selected attribute");
 	    return;
 	 }
-	 if(number < AttrValues.listLength()){
+	 if(number < attrValueList.listLength()){
 	    if (MessageBox.showQuestion("not all attribute values have a refered category \n "+
 	                                "you want to use the default category ?")==MessageBox.NO)
 
@@ -702,7 +702,7 @@ public class ViewConfig extends javax.swing.JDialog {
 	 }
 
          // check for categories in selected references
-         Iterator it = ACL.getCatNames();
+   Iterator it = ACL.getCatNames();
 	 int numberNames=0;
 	 int failed =0;
 	 while(it.hasNext()){

@@ -43,7 +43,7 @@ private static void AppendObject(PrintStream out,String FileName,TreeSet ONames)
        System.err.println("Result is not an object");
        return;
     }
-    if(LE.first().atomType()!=LE.SYMBOL_ATOM ||
+    if(LE.first().atomType()!=ListExpr.SYMBOL_ATOM ||
        !LE.first().symbolValue().equals("OBJECT")){
        System.err.println("Result is not an object");
        return;

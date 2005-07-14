@@ -35,7 +35,7 @@ public class RelViewer extends SecondoViewer{
  private Vector Tables;
  private JPanel dummy;  // to show nothing
  // the value of MAX_TEXT_LENGTH must be greater then five
- private final int MAX_TEXT_LENGTH=100;
+ private final static int MAX_TEXT_LENGTH=100;
 
  /** creates a new RelationViewer **/
  public RelViewer(){
@@ -252,12 +252,6 @@ public class RelViewer extends SecondoViewer{
  public void setViewerControl(ViewerControl VC){
       this.VC = VC;
  }
-
- protected ViewerControl VC=null;  // inform this Control if select/remove a Object
-
-
-
-
 
 }
 

@@ -75,7 +75,7 @@ public boolean readFrom(ListExpr E){
       System.err.println("Time.readFrom: wrong ListLength");
     return false;
   }
-  if(E.first().atomType()!=E.SYMBOL_ATOM){
+  if(E.first().atomType()!=ListExpr.SYMBOL_ATOM){
      if(Environment.DEBUG_MODE)
         System.err.println("Time.readFrom: wrong list type of typedescriptor");
      return false;
@@ -92,7 +92,7 @@ public boolean readFrom(ListExpr E){
   }
   ListExpr V = E.second();
 
-  if(V.atomType()==V.STRING_ATOM){
+  if(V.atomType()==ListExpr.STRING_ATOM){
     long[] DM = DateTime.getDayMillis(V.stringValue());
     if(DM==null){
         if(Environment.DEBUG_MODE){
@@ -106,7 +106,7 @@ public boolean readFrom(ListExpr E){
      return true;
   }
   if(V.listLength()==2){
-     if(V.first().atomType()!=V.INT_ATOM || V.second().atomType()!=V.INT_ATOM){
+     if(V.first().atomType()!=ListExpr.INT_ATOM || V.second().atomType()!=ListExpr.INT_ATOM){
         if(Environment.DEBUG_MODE){
            System.err.println("Error in Reading Time in Format Days Milliseconds");
 	   return false;
@@ -265,5 +265,5 @@ private int sign(long L){
 
 private long milliseconds;
 private long day;
-public final long MILLISECONDS=86400000;
+public final static long MILLISECONDS=86400000;
 }

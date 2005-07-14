@@ -52,6 +52,8 @@ Java_ListExpr:
 	(cd JavaListExpr; make all)
 
 
+ListExpr.class: ListExpr.java
+	$(JAVAC) $(JAVACFLAGS) -classpath $(CP) ListExpr.java
 
 #////////////// generic rules
 %.class: %.java

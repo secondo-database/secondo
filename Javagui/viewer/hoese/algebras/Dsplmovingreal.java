@@ -429,13 +429,13 @@ private static class FunctionFrame extends JFrame{
       functionpanel.addMouseListener(new MouseAdapter(){
          public void mouseClicked(MouseEvent evt){
             double zf = 1.0;
-            if(evt.getButton()==evt.BUTTON1){
+            if(evt.getButton()==MouseEvent.BUTTON1){
                 zf = 1.25;
             }
-            if(evt.getButton()==evt.BUTTON3){
+            if(evt.getButton()==MouseEvent.BUTTON3){
                 zf=0.75;
             }
-            if(evt.getButton()==evt.BUTTON2){
+            if(evt.getButton()==MouseEvent.BUTTON2){
                zf=0.0;
             }
             Dimension oldDim = functionpanel.getSize();

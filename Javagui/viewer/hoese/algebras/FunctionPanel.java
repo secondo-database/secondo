@@ -78,6 +78,7 @@ public void paint(Graphics g){
        double dx = xmax-xmin;
        boolean first = true;
        GP = new GeneralPath();
+       Double y;
        for(int ix=0;ix<width;ix++){
          double x = xmin+dx*ix/width;
          if((y=function.getValueAt(x))!=null){
@@ -166,6 +167,7 @@ private void compute_y(int width,int height){
    boolean first=true;
    double dx = xmax-xmin;
    ymin=ymax=0;
+   Double y;
    for(int i=0;i<width;i++){
        double x = xmin + dx*i/width;
        if((y=function.getValueAt(x))!=null){
@@ -189,8 +191,8 @@ private void compute_y(int width,int height){
    double ty = -ymin;
    AffineTransform Flip = new AffineTransform();
    at.setTransform(scaleX,0,0,scaleY,scaleX*tx,scaleY*ty); 
-   at.preConcatenate(at.getTranslateInstance(0,-height));
-   at.preConcatenate(at.getScaleInstance(1,-1));
+   at.preConcatenate(AffineTransform.getTranslateInstance(0,-height));
+   at.preConcatenate(AffineTransform.getScaleInstance(1,-1));
    AffineTransform trans = (AffineTransform.getTranslateInstance(borderSize,borderSize));
    at.preConcatenate(trans);
    try{
@@ -207,7 +209,6 @@ private double xmax=1;
 private boolean y_computed=false;
 private double ymin;
 private double ymax;
-private static Double y;
 private AffineTransform at=new AffineTransform();
 private double[] atinv=new double[6];
 private GeneralPath GP = null;

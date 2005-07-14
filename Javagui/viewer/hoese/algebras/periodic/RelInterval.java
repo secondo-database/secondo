@@ -203,7 +203,7 @@ public boolean readFrom(ListExpr LE){
      return false;
   }
   // check the type
-  if(LE.first().atomType()!=LE.SYMBOL_ATOM || !LE.first().symbolValue().equals("rinterval")){
+  if(LE.first().atomType()!=ListExpr.SYMBOL_ATOM || !LE.first().symbolValue().equals("rinterval")){
      if(Environment.DEBUG_MODE){
         System.err.println("RelInterval.readFrom :: Typidentifier 'rinterval' not found");
      }
@@ -216,11 +216,11 @@ public boolean readFrom(ListExpr LE){
      return false;
   }
   // check the List
-  if(Value.first().atomType()!=LE.BOOL_ATOM ||
-     Value.second().atomType()!=LE.BOOL_ATOM ||
-     Value.third().atomType()!=LE.BOOL_ATOM ||
-     Value.fourth().atomType()!=LE.BOOL_ATOM ||
-     Value.fifth().atomType()!=LE.NO_ATOM){
+  if(Value.first().atomType()!=ListExpr.BOOL_ATOM ||
+     Value.second().atomType()!=ListExpr.BOOL_ATOM ||
+     Value.third().atomType()!=ListExpr.BOOL_ATOM ||
+     Value.fourth().atomType()!=ListExpr.BOOL_ATOM ||
+     Value.fifth().atomType()!=ListExpr.NO_ATOM){
        if(Environment.DEBUG_MODE){
          System.err.println("RelInterval.readFrom ::the Value List contains invalid types ");
        }

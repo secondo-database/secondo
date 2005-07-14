@@ -1452,17 +1452,17 @@ Returns the current Position expressed as a ~String~ (MM:SS)
   {
     try
     {
-      String time;
+      String mtime;
       long ticklength = sequencer.getMicrosecondPosition();
       ticklength      = ticklength / 1000000;
       long minutes    = ticklength / 60;
       ticklength      = ticklength - minutes*60;
       // length -> remaining seconds
-      time  = Long.toString(minutes);
-      time  += ":";
-      if (ticklength < 10) {time += "0";}
-      time  += Long.toString(ticklength);
-      return time;
+      mtime  = Long.toString(minutes);
+      mtime  += ":";
+      if (ticklength < 10) {mtime += "0";}
+      mtime  += Long.toString(ticklength);
+      return mtime;
     }
     catch (NullPointerException e)
     {

@@ -233,13 +233,13 @@ SingleFPoint P1,P2;
 public boolean readFromListExpr(ListExpr LE){
   if(LE.listLength()!=2)
      return false;
-  SingleFPoint P1 = new SingleFPoint();
-  SingleFPoint P2 = new SingleFPoint();
-  if(!( P1.readFromListExpr(LE.first()) && P2.readFromListExpr(LE.second())))
+  SingleFPoint tmpP1 = new SingleFPoint();
+  SingleFPoint tmpP2 = new SingleFPoint();
+  if(!( tmpP1.readFromListExpr(LE.first()) && tmpP2.readFromListExpr(LE.second())))
      return false; 
    
-  this.P1 = P1;
-  this.P2 = P2;
+  this.P1 = tmpP1;
+  this.P2 = tmpP2;
   return true;
 }
 

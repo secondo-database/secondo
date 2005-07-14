@@ -41,23 +41,23 @@ class Node{
      **/
    private boolean readLabel(ListExpr LE){
       int type = LE.atomType();
-      if(type==LE.INT_ATOM){
+      if(type==ListExpr.INT_ATOM){
          Label = ""+LE.intValue();
          return true; 
       }
-      if(type==LE.SYMBOL_ATOM){
+      if(type==ListExpr.SYMBOL_ATOM){
          Label = LE.symbolValue();
          return true;
       }
-      if(type==LE.REAL_ATOM){
+      if(type==ListExpr.REAL_ATOM){
          Label = ""+LE.realValue();
          return true;
       }
-      if(type== LE.STRING_ATOM){
+      if(type== ListExpr.STRING_ATOM){
          Label = LE.stringValue();
          return true;
       }
-      if(type==LE.TEXT_ATOM){
+      if(type==ListExpr.TEXT_ATOM){
          Label = LE.textValue();
          return true;
       }
@@ -71,7 +71,7 @@ class Node{
      * a single leaf labeled with "Error".
      */
    public boolean readFrom(ListExpr LE){
-       if(LE.atomType()!=LE.NO_ATOM){ // a leaf
+       if(LE.atomType()!=ListExpr.NO_ATOM){ // a leaf
           if(!readLabel(LE)){
             if(Environment.DEBUG_MODE){
                 System.err.println("Error in reading Label 1");
@@ -108,7 +108,7 @@ class Node{
        } else{ // without a enclosing list
             Sons = LE.rest();
        }
-       if(Sons.atomType()!=LE.NO_ATOM){ // a single leaf
+       if(Sons.atomType()!=ListExpr.NO_ATOM){ // a single leaf
            sons = new Node[1];
            sons[0] = new Node("",null); 
            sons[0].readFrom(Sons);
@@ -353,7 +353,7 @@ class TreePainterPanel extends JPanel{
             int y = evt.getY();
             int Bt = evt.getButton();
             Dimension D = getSize();
-            if(Bt==evt.BUTTON1){ // left button = zoom in
+            if(Bt==MouseEvent.BUTTON1){ // left button = zoom in
                  double sc = scalefactor;
                  tmpAT.setTransform(scalefactor,0,0,scalefactor,
                                     -x*scalefactor+D.getWidth()/2,
@@ -362,7 +362,7 @@ class TreePainterPanel extends JPanel{
                  repaint();
             }
  
-            if(Bt==evt.BUTTON3){ // right button = zoom out
+            if(Bt==MouseEvent.BUTTON3){ // right button = zoom out
                double sc = 1/scalefactor;
                tmpAT.setTransform(sc,0,0,sc,
                                   -x*sc+D.getWidth()/2,
@@ -370,7 +370,7 @@ class TreePainterPanel extends JPanel{
                AT.preConcatenate(tmpAT);
                repaint();
             }
-            if(Bt==evt.BUTTON2){ // middle button = go to the first view
+            if(Bt==MouseEvent.BUTTON2){ // middle button = go to the first view
                firstPaint=true;
                repaint();
             }
@@ -610,31 +610,31 @@ public TreeViewer(){
 
  KeyListener KL = new KeyAdapter(){
        public void keyPressed(KeyEvent evt){
-          if(evt.getKeyCode()==evt.VK_L && (evt.getModifiers() & evt.CTRL_MASK)>0){
+          if(evt.getKeyCode()==KeyEvent.VK_L && (evt.getModifiers() & KeyEvent.CTRL_MASK)>0){
               TPP.repaint();
           } else
-          if(evt.getKeyCode()==evt.VK_F && (evt.getModifiers() & evt.CTRL_MASK)>0){
+          if(evt.getKeyCode()==KeyEvent.VK_F && (evt.getModifiers() & KeyEvent.CTRL_MASK)>0){
                TPP.fit();
           } else
-            if(evt.getKeyCode()==evt.VK_PLUS && (evt.getModifiers() & evt.CTRL_MASK)>0){
+            if(evt.getKeyCode()==KeyEvent.VK_PLUS && (evt.getModifiers() & KeyEvent.CTRL_MASK)>0){
                 TPP.zoomIn();
             } else
-            if(evt.getKeyCode()==evt.VK_MINUS && (evt.getModifiers() & evt.CTRL_MASK)>0){
+            if(evt.getKeyCode()==KeyEvent.VK_MINUS && (evt.getModifiers() & KeyEvent.CTRL_MASK)>0){
                 TPP.zoomOut();
             } else
-            if (evt.getKeyCode()==evt.VK_LEFT){
+            if (evt.getKeyCode()==KeyEvent.VK_LEFT){
                 int d = (int) TPP.getSize().getWidth()/3;
                 TPP.moveXY(-d,0);
             } else
-            if (evt.getKeyCode()==evt.VK_RIGHT){
+            if (evt.getKeyCode()==KeyEvent.VK_RIGHT){
                 int d = (int) TPP.getSize().getWidth()/3;
                 TPP.moveXY(d,0);
             } else
-            if (evt.getKeyCode()==evt.VK_UP){
+            if (evt.getKeyCode()==KeyEvent.VK_UP){
                 int d = (int) TPP.getSize().getHeight()/3;
                 TPP.moveXY(0,-d);
             } else
-            if (evt.getKeyCode()==evt.VK_DOWN){
+            if (evt.getKeyCode()==KeyEvent.VK_DOWN){
                 int d = (int) TPP.getSize().getWidth()/3;
                 TPP.moveXY(0,d);
             }
@@ -692,7 +692,7 @@ public boolean canDisplay(SecondoObject o){
    if(LE.listLength()!=2)
      return false;
    LE = LE.first();
-   if(LE.atomType()!=LE.SYMBOL_ATOM)
+   if(LE.atomType()!=ListExpr.SYMBOL_ATOM)
       return false;
    if(!LE.symbolValue().equals("tree"))
       return  false;

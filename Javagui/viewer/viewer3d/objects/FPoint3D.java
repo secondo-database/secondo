@@ -80,14 +80,14 @@ private boolean readFromListExpr(ListExpr LE){
   this.ScaleFactor = z;
   
  // read the single Points
-  ListExpr Points = LE.second();
+  ListExpr points_le = LE.second();
   SingleFPoint P;
   boolean ok = true; 
-  while( !Points.isEmpty() & ok) {
+  while( !points_le.isEmpty() & ok) {
     P = new SingleFPoint();
-    if(P.readFromListExpr(Points.first())){
+    if(P.readFromListExpr(points_le.first())){
        SingleFPoints.add(P);
-       Points=Points.rest();
+       points_le=points_le.rest();
     }
     else
        ok = false;

@@ -196,32 +196,32 @@ public class AttrCatList{
    * link to a Category */
  public int  numberOfLinksFor(ListExpr List){
    ListExpr Values  = List;
-   int no =0;
+   int tno =0;
    while (!Values.isEmpty()){
      ListExpr LE=Values.first();
      Values = Values.rest();
     if(LE.atomType()==ListExpr.INT_ATOM){
          if(getCatName(LE.intValue())!=null)
-            no++;
+            tno++;
          }
       else if(LE.atomType()==ListExpr.REAL_ATOM){
            if(getCatName(LE.realValue())!=null)
-             no++;
+             tno++;
          }
       else if(LE.atomType()==ListExpr.BOOL_ATOM){
            if (getCatName(LE.boolValue())!=null)
-             no++;
+             tno++;
          }
       else if (LE.atomType()==ListExpr.STRING_ATOM){
            if(getCatName(LE.stringValue())!=null)
-              no++;
+              tno++;
          }
       else if (LE.atomType()==ListExpr.SYMBOL_ATOM){
            if (getCatName(LE.symbolValue())!=null)
-	      no++;
+	      tno++;
          }
    }
-   return no;
+   return tno;
  }
 
 
@@ -350,7 +350,7 @@ public ListExpr toListExpr(){
      Last = LinkList;
    }
    while(it.hasNext()){
-      Last = Last.append(Last,((Link) it.next()).toListExpr());
+      Last = ListExpr.append(Last,((Link) it.next()).toListExpr());
    }
    return ListExpr.twoElemList( ListExpr.symbolAtom("AttrCatLink"),ListExpr.twoElemList(
                            ListExpr.stringAtom(Name),LinkList));
@@ -576,10 +576,10 @@ private class StringComparator implements Comparator{
   }
 }
 
-private final int REALTYPE = 0;
-private final int STRINGTYPE =1;
-private final int INTTYPE = 2;
-private final int BOOLTYPE = 3;
+private final static int REALTYPE = 0;
+private final static int STRINGTYPE =1;
+private final static int INTTYPE = 2;
+private final static int BOOLTYPE = 3;
 
 
 } // class
