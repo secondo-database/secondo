@@ -2,6 +2,12 @@
 #
 # Jan 2005, M. Spiekermann. This is a small library
 # of functions useful for several shell scripts.
+#
+# July 2006, M. Spiekermann. Improvements for killing processes.
+# Since kill does not kill child processes the functions findChilds
+# and killProcess were introduced. Moreover the timeOut function was 
+# revised to work without active waiting. 
+#
 
 if [ -z "$BASH" ]; then
   printf "%s\n" "Error: You need a bash shell to run this script!"
@@ -34,12 +40,12 @@ date_HMS=${date_TimeStamp#*-}
 # $1 message
 #
 # print a separator with a number and a message
-declare -i stepCtr=1
+declare -i LU_STEPCTR=1
 function printSep() {
 
-  printf "\n%s\n" "Step ${stepCtr}: ${1}"
+  printf "\n%s\n" "Step ${LU_STEPCTR}: ${1}"
   printf "%s\n" "---------------------------------------------------------------------------"
-  let stepCtr++
+  let LU_STEPCTR++
 }
 
 # checkCmd $*
@@ -47,9 +53,7 @@ function printSep() {
 #
 # execute a command. In case of an error display the
 # returncode
-declare -i rc=0
-
-
+declare -i LU_RC=0
 
 function checkCmd() {
 
@@ -64,83 +68,130 @@ function checkCmd() {
       printf "%s\n" "-------------------------------------------------" >> $checkCmd_log
       eval "{ $*; } >> $checkCmd_log 2>&1"
     fi
-    let rc=$?  # save returncode
+    let LU_RC=$?  # save returncode
 
-    if [ $rc -ne 0 ]; then
-      printf "\n Failure! Command {$*} returned with value ${rc} \n"
+    if [ $LU_RC -ne 0 ]; then
+      printf "\n Failure! Command {$*} returned with value ${LU_RC} \n"
     fi
   fi
-  return $rc
+  return $LU_RC
 }
 
-# findrec
+# findChilds
 #
-# search recursively for child processes
+# search recursively for child processes. Result is stored
+# in global variable LU_CHILDS
 
-CHILDS=""
-function findrec {
-   nextchilds=$(ps h -o pid --ppid $1 2>/dev/null | cat)
-   CHILDS=$(echo "$nextchilds" "$CHILDS" )
-   for nc in  $nextchilds; do
-     findrec $nc
+LU_CHILDS=""
+function findChilds {
+
+   local nextChilds=$(ps h -o pid --ppid $1 2>/dev/null | cat)
+   local nc=""
+
+   LU_CHILDS="$nextChilds $LU_CHILDS"
+
+   for nc in  $nextChilds; do
+     findChilds $nc
    done
 }
 
 
-# terminateAfter $1 $2 $3 pid
+# isRunning $1
 #
-# $1 max time to wait
-# $2 time interval for alive check
-# $3 pid of the process to wait
+# PID to check
+#
+# checks if the given process is still running
 
-function terminateAfter() {
+function isRunning {
 
-typeset -i i=0
-typeset -i maxTime=$1
-typeset -i sleepTime=$2
-psCmd="ps --no-heading"
-printf "%s\n" "Timeout for PID = ${pid} in ${maxTime} seconds! (Live check every $2 seconds)."
-
-while $psCmd $pid >/dev/null
-do
-  sleep $sleepTime 
-  i=$i+$sleepTime
-  if [ $i -ge $maxTime ]
-  then
-    if $psCmd $pid >/dev/null
-    then
-      printf "%s\n" "Program is running longer than ${maxTime} seconds! - Killing $pid"
-      CHILDS=""
-      findrec $pid
-      echo "Killing child pids" $CHILDS
-      kill -9 $CHILDS
-      kill -9 $pid
-    fi
-    break
+  local psCmd="ps --no-heading"
+  if $psCmd $1 >/dev/null; then 
+    return 0
+  else
+    return 1
   fi
-done
 
 }
 
-# timeOut $1 $2 $3
+# killProcess $1
 #
-# $1 max time to wait
-# $2 time interval for alive check
-# $3 command
+# $1 PID to kill
+#
+# this function kills the process and its childs
+
+function killProcess {
+   echo -e "\n Time-out reached! Killing process $1"
+   findChilds $1
+   echo -e " Childs: $LU_CHILDS\n"
+   kill -9 $1 $LU_CHILDS 2>/dev/null
+   return 0
+}
+
+# killAfterTimeout $1 $2
+#
+# $1 PID to kill
+# $2 seconds to wait
+#
+# function sending SIGINT to $2 when timeout of $1 is reached.
+# Should only be started in background!
+
+function killAfterTimeOut {
+
+  sleep $2
+  # check if process is still running
+  if isRunning $1; then
+    killProcess $1
+  fi
+  exit 0
+}
+
+# timeOut $1 $2 .... 
+#
+# $1 max seconds to wait
+# $2 ... command and args
 #
 # runs checkCmd and kills the process after timeout 
 
 function timeOut() {
 
-checkCmd $3 &
-pid=$!
+  echo -e "${FUNCNAME}: args = $*\n"
 
-terminateAfter $1 $2 $pid
-wait $pid
+  local seconds=$1
+  shift
+  
+  # start backgound process for command
+  # and store its process id
+  eval $*&
+  local TIMEOUT_PID=$!
 
-let rc=$?
-return $rc
+  # start function (in backgound) which will 
+  # send kill the process which executes the comamnd
+  # after timeout
+  killAfterTimeOut $TIMEOUT_PID $seconds&
+  local FUNC_PID=$!
 
+  echo -e "${FUNCNAME}: command PID=$TIMEOUT_PID, killfunc PID=$FUNC_PID\n"
+
+  # wait for termination of the command 
+  wait $TIMEOUT_PID
+  local rc=$?
+  LU_RC=rc
+  
+  # if the command finished before timeout
+  # kill the sleeping process
+  if isRunning $FUNC_PID; then 
+    echo -e "${FUNCNAME}: Command finished before time-out!"
+    kill -9 $FUNC_PID
+  fi
+  return $rc
+
+}
+
+# lastRC 
+#
+# returns $LU_RC
+function lastRC {
+  return $LU_RC
 }
 
 
@@ -153,29 +204,40 @@ return $rc
 #
 # Sends a mail (with a given attachment) to the list of
 # recipients.
-sendMail_Deliver="true"
+LU_SENDMAIL="true"
 function sendMail() {
 
-  if [ "${4}" != "" ]; then
-    attachment="-a ${4}"
+  if [ "$1" == "" ]; then
+    echo -e "${FUNCNAME}: Error, no recipients in argument list!\n"
+    return 1
   fi
 
-  if [ "$sendMail_Deliver" == "true" ]; then
+  if [ "${4}" != "" ]; then
+    local attachment="-a ${4}"
+  fi
+
+  if [ "$LU_SENDMAIL" == "true" ]; then
+
+  # send mail
   mail -s"$1" ${attachment} "$2" <<-EOFM
 $3
 EOFM
-
+  
+  # print warning
   else
     printf "%s\n" "Test Mode: Not sending mails !!!"
-    printf "%s\n" "Mail Command:"
-    printf "%s\n" "mail -s \"$1\" $attchment \"$2\""
+    printf "%s\n" "Mail command:"
+    printf "%s\n" "  mail -s \"$1\" $attchment \"$2\""
+    printf "%s\n" "Mail body: $3"
 
   fi
-
+  return 0
 }
 
-#showGPL
+# showGPL
 #
+# Prints out the GPL disclaimer.
+
 function showGPL() {
 
   printf "%s\n"   "Copyright (C) 2004, University in Hagen,"
@@ -186,7 +248,7 @@ function showGPL() {
   printf "%s\n"   "FOR A PARTICULAR PURPOSE."
 }
 
-#uncompressFolders
+# uncompressFolders
 #
 # $1 list of directories
 #
@@ -196,8 +258,8 @@ function showGPL() {
 function uncompressFolders() {
 
 for folder in $*; do
-  zipFiles=$(find $folder -maxdepth 1 -name "*.zip")
-  gzFiles=$(find $folder -maxdepth 1 -name "*.*gz")
+  local zipFiles=$(find $folder -maxdepth 1 -name "*.zip")
+  local gzFiles=$(find $folder -maxdepth 1 -name "*.*gz")
   for file in $zipFiles; do
     printf "\n  processing $file ..."
     if { ! unzip -q -o $file; }; then
@@ -223,23 +285,28 @@ done
 # reads file $1 which contains a list of "name1 name2" entries
 # and returns name2 if "$1"=0"name1". The parameter name1 should 
 # be unique otherwise the first occurence will be used.
+
 function mapStr() {
 
-  sep=$3
+  local sep=$3
   if [ "$sep" == "" ]; then
     sep=" "
   fi
 
-  mapStr_line=$(grep $2 $1) 
-  mapStr_name1=${mapStr_line%%${sep}*}
-  if [ "$mapStr_name1" == "$2" ]; then
+  local line=$(grep $2 $1) 
+  local name1=${line%%${sep}*}
+  local name2=""
+
+  if [ "$name1" == "$2" ]; then
     #cut off name1 
-    mapStr_name2=${mapStr_line#*${sep}}
+    name2=${line#*${sep}}
     # remove trailing blanks
-    mapStr_name2=${mapStr_name2%% *} 
+    name2=${name2%% *} 
   else
-    mapStr_name2=""
-  fi 
+    name2=""
+  fi
+ 
+  LU_MAPSTR=$name2
 } 
 
 # define some environment variables
@@ -266,7 +333,9 @@ getTimeStamp
 #
 ####################################################################################
 
-if [ "$1" == "test" ]; then  
+LU_TRACE=0;
+
+if [ "$1" == "msgs" ]; then  
 
 for msg in "hallo" "dies" "ist" "ein" "test"
 do
@@ -274,24 +343,50 @@ do
 done 
 
 checkCmd "echo 'hallo' > test.txt 2>&1"
+rc=$?
+lastRC
+x=$?
+echo "rc = $rc, lastRC=$x"
+
 checkCmd "dfhsjhdfg > test.txt 2>&1"
+rc=$?
+lastRC
+x=$?
+echo "rc = $rc, lastRC=$x"
 
-timeOut "6" "1" "sleep 8"
-timeOut "6" "3" "sleep 8"
-timeOut "7" "2" "sleep 6"
-timeOut "7" "8" "sleep 6"
+fi
 
-timeOut "5" "1" "echo 'test'; sleep 3; [ 1 == 2 ]"
-echo "rc = $rc"
-timeOut "5" "1" "echo 'test'; sleep 3; [ 1 == 1 ]"
-echo "rc = $rc"
-timeOut "5" "1" "echo 'test'; sleep 6; [ 1 == 2 ]"
-echo "rc = $rc"
-timeOut "5" "1" "echo 'test'; sleep 6; [ 1 == 1 ]"
-echo "rc = $rc"
+if [ "$1" == "timeOut" ]; then  
 
+printSep "Command is running longer than timeout"
+timeOut 2 sleep 4
+printSep "Command finishs before timeout"
+timeOut 4 sleep 2
 
-sendMail_Deliver="false"
+printSep "Checking return codes"
+timeOut 5 "sleep 3; [ 1 == 2 ]"
+echo "LU_RC, rc = $LU_RC, $?"
+timeOut 5 "sleep 3; [ 1 == 1 ]"
+echo "LU_RC, rc = $LU_RC, $?"
+timeOut 5 "sleep 6; [ 1 == 2 ]"
+echo "LU_RC, rc = $LU_RC, $?"
+timeOut 5 "sleep 6; [ 1 == 1 ]"
+echo "LU_RC, rc = $LU_RC, $?"
+
+fi
+
+if [ "$1" == "killProcess" ]; then  
+  killProcess $2 $3
+fi
+
+if [ "$1" == "findChilds" ]; then  
+  findChilds $2
+  echo $LU_CHILDS
+fi
+
+if [ "$1" == "sendMail" ]; then  
+
+LU_SENDMAIL="false"
 XmailBody="This is a generated message!  
 
   Users who comitted to CVS yesterday:
@@ -304,16 +399,11 @@ sendMail "Test Mail!" "spieker root" "$XmailBody" "test.txt"
 
 fi
 
-if [ "$1" == "mapTest" ]; then
+if [ "$1" == "mapStr" ]; then
 
    cat $2
    mapStr "$2" "$3" "$4"
-   printf "%s\n" "\"$3\" -> \"$mapStr_name2\""
-fi
-
-if [ "$1" == "tty" ]; then
-
-runTTYBDB "list algebras;
-q;"
-
+   echo $name1 $name2
+   printf "%s\n" "\"$3\" -> \"$LU_MAPSTR\""
+   
 fi

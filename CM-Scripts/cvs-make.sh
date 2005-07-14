@@ -8,6 +8,7 @@
 # 03/02/28 M. Spiekermann
 # 04/01/27 M. Spiekermann, port from csh to bash 
 # 05/01/27 M. Spiekermann, major revision, automatic test runs
+# July 2005 M. Spiekermann, cvsDir was not set correctly.
 
 
 
@@ -25,10 +26,10 @@ fi
 #default options
 rootDir=$HOME
 coDir=tmp_secondo_${date_ymd}_${date_HMS}
-cvsDir=/${CVSROOT#*/}
+cvsDir=$HOME/cvsDir
 coTag="HEAD"
 coModule="secondo"
-sendMail_Deliver="true"
+LU_SENDMAIL="true"
 
 declare -i numOfArgs=$#
 let numOfArgs++
@@ -62,7 +63,7 @@ while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
 
    t) coTag=$OPTARG;;
 
-   n) sendMail_Deliver="false";;
+   n) LU_SENDMAIL="false";;
 
   esac
 
@@ -84,7 +85,7 @@ printf "%s\n" "cvsDir = $cvsDir"
 printf "%s\n" "coDir = $coDir"
 printf "%s\n" "coTag = $coTag"
 printf "%s\n" "coModule = $coModule"
-printf "%s\n" "sendMail_Deliver = $sendMail_Deliver"
+printf "%s\n" "LU_SENDMAIL = $LU_SENDMAIL"
 
 
 ## check if files in the module secondo were changed
@@ -109,7 +110,7 @@ recipients=""
 for userName in $cvshist_result; do
 
   mapStr "${cvsDir}/CVSROOT/users" "$userName" ":"
-  recipients="$recipients $mapStr_name2"
+  recipients="$recipients $LU_MAPSTR"
 
 done
 
@@ -144,8 +145,6 @@ catvar
 printSep "Alias definitions"
 alias
 
-
-
 cd $rootDir
 checkCmd "cvs -Q checkout -d $coDir secondo"
 
@@ -157,12 +156,13 @@ cd $cbuildDir
 printf "\n%s" "$PWD"
 checkCmd "make > ../make-all.log 2>&1" 
 
-if let $rc!=0; then
+# proceed if last command was successful
+if lastRC; then
 
   printf "%s\n" "Problems during build, sending a mail to:"
   printf "%s\n" "$recipients"
 
-mailBody="This is a generated message!  
+  mailBody="This is a generated message!  
 
   Users who committed to CVS yesterday:
   $cvshist_result
@@ -177,18 +177,18 @@ fi
 
 ## run tests
 
-if let $errors==0; then
+if [ $[errors] == 0 ]; then
 
 printSep "Running automatic tests"
-timeOut "300" "60" "${scriptDir}/run-tests.sh" 
+timeOut 300 $scriptDir/run-tests.sh
 
-if let $rc!=0; then
+if lastRC; then
   
   printf "%s\n" "Problems during test, sending a mail to:"
   printf "%s\n" "$recipients"
   cat ${cbuildDir}/Tests/Testspecs/*.log > run-tests.log
 
-mailBody="This is a generated message!  
+  mailBody="This is a generated message!  
 
   Users who committed to CVS yesterday:
   $cvshist_result
@@ -228,9 +228,8 @@ if [ $[errors] != 0 ]; then
 
 else
 
-  # set label
-  cvs tag -d LAST_STABLE 
-  cvs tag LAST_STABLE
+  # move label for stable version
+  cvs tag -F LAST_STABLE
 
 fi
 
