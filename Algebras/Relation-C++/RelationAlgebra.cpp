@@ -1042,9 +1042,8 @@ int
 Consume(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word actual;
-  Relation* rel;
 
-  rel = (Relation*)((qp->ResultStorage(s)).addr);
+  GenericRelation* rel = (Relation*)((qp->ResultStorage(s)).addr);
   if(rel->GetNoTuples() > 0)
   {
     rel->Clear();

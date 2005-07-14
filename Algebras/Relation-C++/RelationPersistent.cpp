@@ -44,6 +44,11 @@ November 2004 M. Spiekermann. The declarations of the PrivateRelation have been
 moved to the files RelationPersistent.h and RelationMainMemory.h. This was
 necessary to implement some little functions as inline functions.
 
+June 2005 M. Spiekermann. The tuple's size information will now be stored in
+member variables and only recomputed after attributes were changed. Changes in
+class ~TupleBuffer~ which allow to store tuples as "free" or "non-free" tuples
+in it.
+
 
 [TOC]
 
@@ -533,22 +538,17 @@ A tuple contains a pointer to a ~TMTuple~ from the Tuple Manager. For more infor
 about tuples in the TupleManager see the file TMTuple.h.
 
 */
-Tuple::Tuple( const TupleType& tupleType, const bool isFree ):
-  privateTuple( new PrivateTuple( tupleType, isFree ) )
+
+Tuple::Tuple( const TupleType& tupleType, const bool isFreeVal ):
+  privateTuple( new PrivateTuple( tupleType, isFreeVal ) )
   {
-    tuplesCreated++;
-    tuplesInMemory++;
-    if( tuplesInMemory > maximumTuples )
-      maximumTuples = tuplesInMemory;
+    Init(isFreeVal, tupleType.GetNoAttributes(), privateTuple );
   }
 
-Tuple::Tuple( const ListExpr typeInfo, const bool isFree ):
-  privateTuple( new PrivateTuple( typeInfo, isFree ) )
+Tuple::Tuple( const ListExpr typeInfo, const bool isFreeVal ):
+  privateTuple( new PrivateTuple( typeInfo, isFreeVal ) )
   {
-    tuplesCreated++;
-    tuplesInMemory++;
-    if( tuplesInMemory > maximumTuples )
-      maximumTuples = tuplesInMemory;
+    Init(isFreeVal, (privateTuple->tupleType).GetNoAttributes(), privateTuple);
   }
 
 Tuple::~Tuple()
@@ -579,8 +579,12 @@ void Tuple::SetTupleId( const TupleId& tupleId )
   privateTuple->tupleId = (SmiRecordId)tupleId;
 }
 
-const int Tuple::GetMemorySize() const
+const int Tuple::GetMemorySize()
 {
+  if ( !recomputeMemSize ) {
+    return tupleMemSize;
+  }
+
   int extensionSize = 0;
 
   for( int i = 0; i < privateTuple->tupleType.GetNoAttributes(); i++)
@@ -592,11 +596,17 @@ const int Tuple::GetMemorySize() const
         extensionSize += tmpFLOB->Size();
     }
   }
-  return privateTuple->tupleType.GetTotalSize() + extensionSize;
+  tupleMemSize = privateTuple->tupleType.GetTotalSize() + extensionSize;
+  recomputeMemSize = false;
+  return tupleMemSize;
 }
 
-const int Tuple::GetTotalSize() const
+const int Tuple::GetTotalSize()
 {
+  if ( !recomputeTotalSize ) {
+    return tupleTotalSize;
+  }
+
   int totalSize = privateTuple->tupleType.GetTotalSize();
 
   for( int i = 0; i < privateTuple->tupleType.GetNoAttributes(); i++)
@@ -606,7 +616,9 @@ const int Tuple::GetTotalSize() const
       totalSize += privateTuple->attributes[i]->GetFLOB(j)->Size();
     }
   }
-  return totalSize;
+  tupleTotalSize = totalSize;
+  recomputeTotalSize = false;
+  return tupleTotalSize; 
 }
 
 void Tuple::PutAttribute( const int index, Attribute* attr )
@@ -616,6 +628,9 @@ void Tuple::PutAttribute( const int index, Attribute* attr )
   if( privateTuple->attributes[index] != 0 )
     delete privateTuple->attributes[index];
   privateTuple->attributes[index] = attr;
+
+  recomputeMemSize = true;
+  recomputeTotalSize = true;
 }
 
 
@@ -687,12 +702,15 @@ The total size occupied by the tuples in the buffer.
 3.9.2 Implementation of the class ~TupleBuffer~
 
 */
-TupleBuffer::TupleBuffer( const size_t maxMemorySize ):
+TupleBuffer::TupleBuffer( const size_t maxMemorySize, bool isFree /* = false */ ):
 privateTupleBuffer( new PrivateTupleBuffer( maxMemorySize ) )
 {
+  isFreeStorageType = isFree;
   if (RTFlag::isActive("RA:TupleBufferInfo")) {
     cmsg.info() << "New Instance of TupleBuffer with size " 
-                << maxMemorySize/1024 << " kb" << endl;
+                << maxMemorySize/1024 
+                << " kb, isFreeStorageType = " << isFreeStorageType
+                << " address = " << (void*)this << endl;
     cmsg.send();
   }
 }
@@ -748,7 +766,7 @@ void TupleBuffer::AppendTuple( Tuple *t )
   {
     if( privateTupleBuffer->totalSize + t->GetTotalSize() <= privateTupleBuffer->MAX_MEMORY_SIZE )
     {
-      t->SetFree( false );
+      t->SetFree( isFreeStorageType );
       privateTupleBuffer->memoryBuffer.push_back( t );
       privateTupleBuffer->totalSize += t->GetTotalSize();
     }
@@ -844,7 +862,7 @@ The iterator if it is not in memory.
 */
 TupleBufferIterator::TupleBufferIterator( const TupleBuffer& tupleBuffer ):
   privateTupleBufferIterator( new PrivateTupleBufferIterator( tupleBuffer ) )
-  {}
+  { isFreeStorageType = tupleBuffer.isFreeStorageType; }
 
 TupleBufferIterator::~TupleBufferIterator()
 {
@@ -859,12 +877,23 @@ Tuple *TupleBufferIterator::GetNextTuple()
   }
   else
   {
-    if( privateTupleBufferIterator->currentTuple == privateTupleBufferIterator->tupleBuffer.privateTupleBuffer->memoryBuffer.size() )
+    if( privateTupleBufferIterator->currentTuple == 
+        privateTupleBufferIterator->tupleBuffer.privateTupleBuffer->memoryBuffer.size() )
       return 0;
 
-    Tuple *result = privateTupleBufferIterator->tupleBuffer.privateTupleBuffer->memoryBuffer[privateTupleBufferIterator->currentTuple];
+    Tuple *result = 
+      privateTupleBufferIterator->tupleBuffer.privateTupleBuffer->memoryBuffer[privateTupleBufferIterator->currentTuple];
+
     privateTupleBufferIterator->currentTuple++;
-    assert( !result->IsFree() );
+    if( result->IsFree() != isFreeStorageType ) {
+      cerr << "TupleBuffer [" 
+        << (void*)&(privateTupleBufferIterator->tupleBuffer) << "]" << endl;
+      cerr << "Problem with tuple " << privateTupleBufferIterator->currentTuple << endl;
+      cerr << "result->isFree : " <<  result->IsFree() << endl;
+      cerr << "isFreeStorage: " << isFreeStorageType << endl;
+      cerr << "tuple value:" << *result << endl;
+      assert(false);
+    };
     return result;
   }
 }
@@ -877,8 +906,8 @@ TupleId TupleBufferIterator::GetTupleId() const
   }
   else
   {
-	assert( privateTupleBufferIterator->currentTuple > 0 );
-	return privateTupleBufferIterator->currentTuple-1;
+    assert( privateTupleBufferIterator->currentTuple > 0 );
+    return privateTupleBufferIterator->currentTuple-1;
   }
 }
 
@@ -1448,6 +1477,7 @@ void Concat( Tuple *r, Tuple *s, Tuple *t )
   rnoattrs = r->GetNoAttributes();
   snoattrs = s->GetNoAttributes();
   tnoattrs = rnoattrs + snoattrs;
+  
 
   assert( t->GetNoAttributes() == tnoattrs );
 

@@ -22,6 +22,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 November 2004. M. Spiekermann
 
+June 2005 M. Spiekermann. The attributes array will now be a private member of
+the class ~Tuple~. Moreover it will be a member variable and calls for new and 
+delete are saved. 
+
 */
 
 #ifndef INC_RELALG_PERSISTENT_H
@@ -54,18 +58,16 @@ struct PrivateTuple
   PrivateTuple( const TupleType& tupleType, const bool isFree ):
     tupleId( 0 ),
     tupleType( tupleType ),
-    attributes( new (TupleElement*)[ tupleType.GetNoAttributes() ] ),
+    attributes( 0 ),
     tupleRecord( 0 ),
     lobFile( 0 ),
     tupleFile( 0 ),
     state( Fresh ),
     isFree( true ),
+    deleteAllowed( true ),
     memoryTuple( 0 ),
     extensionTuple( 0 )
-    {
-      for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
-        attributes[i] = 0;
-    }
+    {}
 /*
 The first constructor. It creates a fresh tuple from a ~tupleType~.
 
@@ -73,7 +75,7 @@ The first constructor. It creates a fresh tuple from a ~tupleType~.
   PrivateTuple( const ListExpr typeInfo, const bool isFree ):
     tupleId( 0 ),
     tupleType( typeInfo ),
-    attributes( new (TupleElement*)[ tupleType.GetNoAttributes() ] ),
+    attributes( 0 ),
     tupleRecord( 0 ),
     lobFile( 0 ),
     tupleFile( 0 ),
@@ -81,10 +83,7 @@ The first constructor. It creates a fresh tuple from a ~tupleType~.
     isFree( true ),
     memoryTuple( 0 ),
     extensionTuple( 0 )
-    {
-      for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
-        attributes[i] = 0;
-    }
+    {}
 /*
 The second constructor. It creates a fresh tuple from a ~typeInfo~.
 
@@ -120,7 +119,6 @@ The second constructor. It creates a fresh tuple from a ~typeInfo~.
       if( extensionTuple != 0 )
         free( extensionTuple );
     }
-    delete []attributes;
     delete tupleRecord;
   }
 /*
@@ -189,9 +187,12 @@ State of the tuple (Fresh, Solid).
 
 */
   bool isFree;
+  bool deleteAllowed;
 /*
-A flag that tells if a tuple is free for deletion. If a tuple is free, then a stream receiving
-the tuple can delete or reuse it
+Two flags that tells if a tuple is free for deletion. If a tuple is free, then a stream receiving
+the tuple can delete or reuse it. By default deleteAllowed is true, but in some situations this
+is not useful. e.g. if you want to use a TupleBuffer as input for a function several times, hence
+we can switch off the ~normal~ deletion procedure.
 
 */
   char *memoryTuple;
