@@ -41,7 +41,7 @@ StandardCats= Osnabrueck.cat
 
 
 #Projections to load
-PROJECTIONS Mercator Sinusoidal Miller_Cylindrical Cylindrical PolyConic Orthographic
+PROJECTIONS Mercator Sinusoidal Miller_Cylindrical Cylindrical PolyConic Orthographic WGSGK
 
 
 #Icons
@@ -69,7 +69,7 @@ txt= /usr/openwin/bin/xedit %f
 
 # maxsize for capturing a background image
 MAXCAPTUREPIXELS 15000000
-# maxsize for displaying a background image
+# maxsize for  complete background image
 MAXPIXELS 8000000
 
 
