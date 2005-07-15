@@ -104,7 +104,7 @@ public class HoeseViewer extends SecondoViewer {
 
    /** The maximum length of a number for the mousekoordlabel */
    private static final int MAX_COORD_LENGTH = 12;
-   /** Ensure that the next constant conatains at least MAX_COORD_LENGTH whitespaces*/
+   /** Ensure that the next constant contains at least MAX_COORD_LENGTH whitespaces*/
    private static final String COORD_EXT="             ";
 
   /** The main configuration parameter hash-table */
@@ -198,6 +198,12 @@ public class HoeseViewer extends SecondoViewer {
   /** an empty style for painting line objects */
   public static Composite emptyStyle = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.0f);
 
+  /** a button for creating a point sequence **/
+  private JButton createPointSequenceBtn;
+  private boolean createPointSequenceActivated=false;
+  private CreatePointSequenceListener createPointSequenceListener;
+
+
   /**
    * Creates a MainWindow with all its components, initializes Secondo-Server, loads the
    * standard-categories, etc.
@@ -279,6 +285,56 @@ public class HoeseViewer extends SecondoViewer {
     else
        DecrementSpeedBtn = new JButton("-");
 
+
+    createPointSequenceBtn = new JButton("  ");
+    createPointSequenceBtn.setOpaque(true);
+    createPointSequenceListener=new CreatePointSequenceListener();
+    createPointSequenceBtn.addActionListener(new ActionListener(){
+          public void actionPerformed(ActionEvent evt){
+              if(HoeseViewer.this.createPointSequenceActivated){
+                  createPointSequenceBtn.setBackground(dColor);
+                  createPointSequenceActivated=false;
+                  GraphDisplay.removeMouseListener(createPointSequenceListener);
+                  // create a Secondo_Object pointsequence form the points
+                  Vector points = createPointSequenceListener.points;
+                  if(points!=null){
+                      ListExpr le=null;
+                      ListExpr last=null;
+                      Point2D.Double P;
+                      if(points.size()>0){
+                         P=(Point2D.Double) points.get(0);
+                         le = ListExpr.oneElemList(
+                                  ListExpr.twoElemList(
+                                      ListExpr.realAtom(P.getX()),
+                                      ListExpr.realAtom(P.getY())));
+                         last=le;
+                      }
+                      for(int i=1;i<points.size();i++){
+                         P = (Point2D.Double) points.get(i);
+                         last = ListExpr.append(last,ListExpr.twoElemList(
+                                      ListExpr.realAtom(P.getX()),
+                                      ListExpr.realAtom(P.getY())));
+                       }
+                       ListExpr result = ListExpr.twoElemList(ListExpr.symbolAtom("pointsequence"),le);
+                       SecondoObject o = new SecondoObject(IDManager.getNextID());
+                       o.setName("ps");
+                       o.fromList(result);
+                       if(VC!=null)
+                          VC.addObject(o);
+                  }
+                  createPointSequenceListener.reset();
+                  SelectionControl.enableSelection(true); 
+                  GraphDisplay.repaint();
+              } else{
+                  createPointSequenceBtn.setBackground(aColor);
+                  createPointSequenceActivated=true; 
+                  SelectionControl.enableSelection(false);
+                  GraphDisplay.addMouseListener(createPointSequenceListener);
+              }            
+          }
+          Color aColor = Color.GREEN;
+          Color dColor = Color.LIGHT_GRAY;
+    });
 
 
     ActionListener SpeedControlListener = new ActionListener(){
@@ -380,6 +436,8 @@ public class HoeseViewer extends SecondoViewer {
     JPanel PositionsPanel = new JPanel(new GridLayout(1,2));
     PositionsPanel.add(actTimeLabel);
     PositionsPanel.add(MouseKoordLabel);
+    JPanel aPanel = new JPanel();
+    aPanel.add(createPointSequenceBtn);
 
     JPanel TimeSliderAndLabels = new JPanel(new BorderLayout());
     TimeSliderAndLabels.add(TimeSlider,BorderLayout.NORTH);
@@ -387,10 +445,8 @@ public class HoeseViewer extends SecondoViewer {
     actTimeLabel.setHorizontalAlignment(SwingConstants.CENTER);
     MouseKoordLabel.setHorizontalAlignment(SwingConstants.CENTER);
     jtb.add(TimeSliderAndLabels);
-
-
-    //jtb.add(MouseKoordLabel);
-
+    jtb.add(aPanel);   
+ 
     TextDisplay = new TextWindow(this);
     DoQuerySelection = new QueryListSelectionListener();
     allProjection = new AffineTransform();
@@ -437,7 +493,6 @@ public class HoeseViewer extends SecondoViewer {
 
     SelectionControl = new SelMouseAdapter();
     GraphDisplay.addMouseListener(SelectionControl);
-    //GraphDisplay.addMouseMotionListener(SelectionControl);
 
     SpatioTempPanel = new JPanel(new BorderLayout());
     LayerSwitchBar.setPreferredSize(new Dimension(10, 10));
@@ -1929,6 +1984,7 @@ public boolean canDisplay(SecondoObject o){
     private int targetY;    // last end-y position of selection rectangle
     private boolean isPainting = false; // is the selection rectangle painted ?
     private boolean isEnabled = false;
+    private boolean selectionEnabled=true;
 
 
     public void drawRectangle(){
@@ -1946,6 +2002,16 @@ public boolean canDisplay(SecondoObject o){
          G.drawRect(x,y,w,h);
 	}
 
+
+    /** enabled or disables the sleection of objects **/
+    public void enableSelection(boolean enable){
+        if(enable==selectionEnabled) return;
+        selectionEnabled= enable;
+        JComboBox cb = TextDisplay.getQueryCombo();
+        QueryResult qr = (QueryResult)cb.getSelectedItem();
+        if(qr!=null)
+           qr.clearSelection();
+    }
 
 
     public void mouseReleased (MouseEvent e) {
@@ -2018,6 +2084,8 @@ public boolean canDisplay(SecondoObject o){
     public void mouseMoved (MouseEvent e) {}
 
     public void mouseClicked (MouseEvent e) {
+      if(!selectionEnabled)
+          return;
       if (!((e.getModifiers() & InputEvent.BUTTON1_MASK) == InputEvent.BUTTON1_MASK))
          return;
       Point2D.Double p = new Point2D.Double();
@@ -2420,5 +2488,57 @@ public boolean canDisplay(SecondoObject o){
   }
 
 
+ class CreatePointSequenceListener extends MouseAdapter{
+			public void mouseClicked(MouseEvent evt){
+          if(evt.getButton()!=MouseEvent.BUTTON1)
+             return;
+					Point2D.Double p = new Point2D.Double();
+					double x=0, y=0;
+					 try {
+							p = (Point2D.Double)allProjection.inverseTransform(evt.getPoint(),p);
+					 } catch (Exception ex) {}
+					 // compute the inverse projection if possible 
+					 if(!ProjectionManager.isReversible()){
+							x = p.getX();
+							y = p.getY();           
+					 } else{
+						 x = p.getX();
+						 y = p.getY();
+						 if(ProjectionManager.getOrig(x,y,aPoint)){           
+								x = aPoint.x;
+								y = aPoint.y;
+						 }
+					 }
+           if(gp==null){
+              gp = new GeneralPath();
+              points = new  Vector();
+              gp.moveTo((float)x,(float)y);   
+              GraphDisplay.paintAdditional(gp); 
+           }else{
+              gp.lineTo((float)x,(float)y);
+           }
+           points.add(new Point2D.Double(x,y));
+           Graphics2D G = (Graphics2D)GraphDisplay.getGraphics();
+           G.draw(allProjection.createTransformedShape(gp));
+			}
+      
+      public void printPoints(){
+        if(points==null)
+           System.out.println("no points ");
+        else
+          for(int i=0;i<points.size();i++)
+              System.out.println(points.get(i));
+      }
+
+      public void reset(){
+          gp=null;
+          points=null;
+          GraphDisplay.paintAdditional(null);
+      }
+
+      private GeneralPath gp=null;
+      private Vector points=null;
+  
+ }
 }
 

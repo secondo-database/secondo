@@ -51,6 +51,10 @@ public class GraphWindow extends JLayeredPane
    private boolean ignorePaint = false; 
     
 
+/** a additional shape fpr painting **/
+   Shape additionalShape;
+
+
   /** Creates a Graphwindow without any layer
    * @see <a href="Categorysrc.html#GraphWindow">Source</a>
    */
@@ -98,6 +102,13 @@ public class GraphWindow extends JLayeredPane
    public void setIgnorePaint(boolean enabled){
        ignorePaint=enabled;
    }
+
+  /** sets a new shape for painting */
+  public void paintAdditional(Shape shp){
+      additionalShape=shp;
+  }
+
+
 
 
   /**
@@ -332,7 +343,10 @@ public class GraphWindow extends JLayeredPane
          dg.draw(g2);
          g2.setComposite(C);
       } 
-	}
+	  }
+    if(additionalShape!=null){
+       g2.draw(at.createTransformedShape(additionalShape));
+    } 
   }
 
   public void addMouseListener(MouseListener ML){
