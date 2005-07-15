@@ -38,26 +38,32 @@ e
 (create tenTest : (rel(tuple((no int)))));
 (update tenTest := ((rel(tuple((no int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10))));
 let tenNoInd = tenTest createbtree[no];
+let tenNoInd2 = tenTest feed addtupleid sortby[no asc] createbtree[no];
 
 (create twentyTest : (rel(tuple((no int)))));
 (update twentyTest := ((rel(tuple((no int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10)(11)(12)(13)(14)(15)(16)(17)(18)(19)(20))));
 let twentyNoInd = twentyTest createbtree[no];
+let twentyNoInd2 = twentyTest feed addtupleid sortby[no asc] createbtree[no];
 
 (create evenTest : (rel(tuple((no int)))));
 (update evenTest := ((rel(tuple((no int))))((2)(4)(6)(8)(10)(12)(14)(16)(18)(20))));
 let evenNoInd = evenTest createbtree[no];
+let evenNoInd2 = evenTest feed addtupleid sortby[no asc] createbtree[no];
 
 (create oddTest : (rel(tuple((no int)))));
 (update oddTest := ((rel(tuple((no int))))((1)(3)(5)(7)(9)(11)(13)(15)(17)(19))));
 let oddNoInd = oddTest createbtree[no];
+let oddNoInd2 = oddTest feed addtupleid sortby[no asc] createbtree[no];
 
 (create duplicatesTest : (rel(tuple((no int)))));
 (update duplicatesTest := ((rel(tuple((no int))))((1)(1)(1)(6)(6)(7)(9)(9)(9)(9))));
 let duplicatesNoInd = duplicatesTest createbtree[no];
+let duplicatesNoInd2 = duplicatesTest feed addtupleid sortby[no asc] createbtree[no];
 
 (create realTest : (rel(tuple((no real)))));
 (update realTest := ((rel(tuple((no real))))((1.0)(3.0)(-6.0)(7.0)(9.0)(0.875)(-9.875)(-23.625))));
 let realNoInd = realTest createbtree[no];
+let realNoInd2 = realTest feed addtupleid sortby[no asc] createbtree[no];
 
 (create EmployeeTest :
 	(rel
@@ -86,7 +92,9 @@ let realNoInd = realTest createbtree[no];
                 ("Myers" 17 2)
                 ("Simpson" 8 3))));
 let empNameInd = EmployeeTest createbtree[EName];
+let empNameInd2 = EmployeeTest feed addtupleid sortby[EName asc] createbtree[EName];
 let empDeptInd = EmployeeTest createbtree[DeptNr];
+let empDeptInd2 = EmployeeTest feed addtupleid sortby[DeptNr asc] createbtree[DeptNr];
 
 (create DeptTest : (rel
                 (tuple
@@ -183,10 +191,15 @@ let empDeptInd = EmployeeTest createbtree[DeptNr];
                 ("Wuppertal" 377000 5600 "0202" "W"))));
 
 let staedteSNameInd = StaedteTest createbtree[SName];
+let staedteSNameInd2 = StaedteTest feed addtupleid sortby[SName asc] createbtree[SName];
 let staedteBevInd = StaedteTest createbtree[Bev];
+let staedteBevInd2 = StaedteTest feed addtupleid sortby[Bev asc] createbtree[Bev];
 let staedtePLZInd = StaedteTest createbtree[PLZ];
+let staedtePLZInd2 = StaedteTest feed addtupleid sortby[PLZ asc] createbtree[PLZ];
 let staedteVorwahlInd = StaedteTest createbtree[Vorwahl];
+let staedteVorwahlInd2 = StaedteTest feed addtupleid sortby[Vorwahl asc] createbtree[Vorwahl];
 let staedteKennzeichenInd = StaedteTest createbtree[Kennzeichen];
+let staedteKennzeichenInd2 = StaedteTest feed addtupleid sortby[Kennzeichen asc] createbtree[Kennzeichen];
 
 #testcase MaxTest
 #yields (string "Luebeck")
@@ -308,6 +321,127 @@ query tenNoInd tenTest leftrange[3] twentyNoInd twentyTest leftrange[3] concat c
 #yields ((rel(tuple((no int)(mod2 int))))((1 1)(2 0)(3 1)))
 query tenNoInd tenTest leftrange[3] extend[mod2 : .no mod 2] consume;
 
+#testcase MaxTest
+#yields (string "Luebeck")
+query staedteSNameInd2 StaedteTest leftrange["M"] max[SName];
+
+#testcase BTreeOutputIsSorted
+#yields ((rel (tuple ((DeptNr int) (anz int))))((1 2) (2 4) (3 4)))
+query empDeptInd2 EmployeeTest leftrange[1000] groupby[DeptNr; anz : group feed count] consume;
+
+#testcase FilterByIndex
+#yields (int 5)
+query tenNoInd2 tenTest rightrange[6] consume count;
+
+#testcase rightrangeTypeMapping1
+#yields error
+query staedteSNameInd2 StaedteTest rightrange[6] consume count;
+
+#testcase rightrangeTypeMapping2
+#yields error
+query StaedteTest staedteSNameInd2 rightrange[6] consume count;
+
+#testcase rightrangeTypeMapping3
+#yields error
+query StaedteTest staedteSNameInd2 rightrange consume count;
+
+#testcase rightrangeTypeMapping4
+#yields error
+query StaedteTest staedteSNameInd2 rightrange[6, 6] consume count;
+
+#testcase LeftRangeInt
+#yields ((rel(tuple((no int))))((1)(2)(3)(4)(5)))
+query tenNoInd2 tenTest leftrange[5] consume;
+
+#testcase LeftRangeString
+#yields ((rel(tuple((SName string))))(("Aachen")("Berlin")("Bielefeld")))
+query staedteSNameInd2 StaedteTest leftrange["Bielefeld"] project[SName] consume;
+
+#testcase LeftRangeReal
+#yields ((rel(tuple((no real))))((-23.625)(-9.875)(-6.0)))
+query realNoInd2 realTest leftrange[0.0] consume;
+
+#testcase RightRangeInt
+#yields ((rel(tuple((no int))))((5)(6)(7)(8)(9)(10)))
+query tenNoInd2 tenTest rightrange[5] consume;
+
+#testcase RightRangeString
+#yields ((rel(tuple((SName string))))(("Wolfsburg")("Wuerzburg")("Wuppertal")))
+query staedteSNameInd2 StaedteTest rightrange["Wiesbadenappendix"] project[SName] consume;
+
+#testcase RightRangeReal
+#yields ((rel(tuple((no real))))((0.875)(1.0)(3.0)(7.0)(9.0)))
+query realNoInd2 realTest rightrange[0.0] consume;
+
+#testcase RangeInt
+#yields ((rel(tuple((no int))))((5)(6)(7)))
+query tenNoInd2 tenTest range[5, 7] consume;
+
+#testcase RangeString
+#yields ((rel(tuple((SName string))))(("Hamm")("Hannover")("Heidelberg")("Heilbronn")))
+query staedteSNameInd2 StaedteTest range["Hamf", "Heilbronn"] project[SName] consume;
+
+#testcase RangeReal
+#yields ((rel(tuple((no real))))((0.875)(1.0)(3.0)))
+query realNoInd2 realTest range[0.0, 6.5] consume;
+
+#testcase FarRangeString
+#yields ((rel(tuple((SName string))))(("Wolfsburg")("Wuerzburg")("Wuppertal")))
+query staedteSNameInd2 StaedteTest range["Wiesbadenappendix", "ZZZZ"] project[SName] consume;
+
+#testcase EmptyRangeInt
+#yields (int 0)
+query staedtePLZInd2 StaedteTest range[112133, 4345325] consume count;
+
+#testcase EmptyLeftRangeInt
+#yields (int 0)
+query staedtePLZInd2 StaedteTest leftrange[1] consume count;
+
+#testcase EmptyRightRangeInt
+#yields (int 0)
+query staedtePLZInd2 StaedteTest rightrange[999999] consume count;
+
+#testcase EmptyMatch1
+#yields (int 0)
+query staedtePLZInd2 StaedteTest exactmatch[9999999] consume count;
+
+#testcase EmptyMatch2
+#yields (int 0)
+query staedteSNameInd2 StaedteTest exactmatch["Achen"] consume count;
+
+#testcase ExactMatch1
+#yields ((rel(tuple((SName string))))(("Wolfsburg")))
+query staedteSNameInd2 StaedteTest exactmatch["Wolfsburg"] project[SName] consume;
+
+#testcase ExactMatch2
+#yields ((rel (tuple ((Bev int)))) ((239000)))
+query staedteSNameInd2 StaedteTest exactmatch["Aachen"] project[Bev] consume;
+
+#testcase duplicates1
+#yields ((rel(tuple((no int))))((9)(9)(9)(9)))
+query duplicatesNoInd2 duplicatesTest exactmatch[9] consume
+
+#testcase duplicates2
+#yields ((rel(tuple((no int))))((6)(6)(7)))
+query duplicatesNoInd2 duplicatesTest range[5,8] consume
+
+#testcase duplicates3
+#yields ((rel(tuple((no int))))((1)(1)(1)(6)(6)(7)))
+query duplicatesNoInd2 duplicatesTest leftrange[8] consume
+
+#testcase duplicates4
+#yields ((rel(tuple((no int))))((6)(6)(7)(9)(9)(9)(9)))
+query duplicatesNoInd2 duplicatesTest rightrange[6] consume
+
+#testcase ConcatTest
+#yields ((rel(tuple((no int))))((1)(2)(3)(1)(2)(3)))
+query tenNoInd2 tenTest leftrange[3] twentyNoInd2 twentyTest leftrange[3] concat consume;
+
+#testcase ExtendTest
+#yields ((rel(tuple((no int)(mod2 int))))((1 1)(2 0)(3 1)))
+query tenNoInd2 tenTest leftrange[3] extend[mod2 : .no mod 2] consume;
+
 #teardown
 close database;
 delete database btreetest;
+

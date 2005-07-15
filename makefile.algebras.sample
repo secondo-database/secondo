@@ -90,6 +90,9 @@ ALGEBRAS     +=	NetworkAlgebra
 ALGEBRA_DIRS += PlugJoin	
 ALGEBRAS     +=	PlugJoinAlgebra
 
+ALGEBRA_DIRS += TupleIdentifier	
+ALGEBRAS     +=	TupleIdentifierAlgebra
+
 
 #ALGEBRA_DIRS += MP3
 #ALGEBRAS     += MP3Algebra
