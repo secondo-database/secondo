@@ -102,6 +102,10 @@ private JMenu UpdateRelationsMenu;
 private JMenu UpdateIndexMenu;
 private JMenuItem MI_UpdateRelationList;
 private JMenuItem MI_UpdateIndexList;
+// flag indicating whether the entropy menu parts should be included
+private boolean useEntropy;
+private JMenuItem MI_EnableEntropy;
+private JMenuItem MI_DisableEntropy;
 private JMenuItem MI_OptimizerSettings;
 
 
@@ -229,7 +233,6 @@ public MainWindow(String Title){
 
   PriorityDlg = new PriorityDialog(this);
 
-  createMenuBar();
   CurrentViewer = null;
   ViewerMenuItems = new Vector(10);
   AllViewers = new Vector(10);
@@ -265,6 +268,15 @@ public MainWindow(String Title){
     }
   }
  int maxStringLength=48;
+ useEntropy=false;
+ if(config_file_ok){
+     String UseEntropy = Config.getProperty("USE_ENTROPY");
+     if(UseEntropy!=null){
+        if(UseEntropy.toLowerCase().trim().equals("true"))
+           useEntropy=true;
+     }
+ }
+ createMenuBar();
  if(config_file_ok){
     String TMPServerName = Config.getProperty("SERVERNAME");
     if (TMPServerName==null)
@@ -746,7 +758,18 @@ private boolean saveSnapshot(boolean completeScreen){
       return false;
 }
 
-
+/** Function enabling or disabling the entropy function of the 
+    Optimizer. **/
+private void enableEntropy(boolean on){
+    String command = on?"use_entropy":"dont_use_entropy";
+    ComPanel.appendText("\noptimizer "+command+"   ");
+    if(ComPanel.sendToOptimizer(command)==null){
+        ComPanel.appendText(" ... failed");
+    }else{
+        ComPanel.appendText(" ... successful");
+    }
+    ComPanel.showPrompt();
+}
 
 
 /**  reconstructed the menu updateRelationMenu
@@ -1661,6 +1684,23 @@ private void createMenuBar(){
    MI_UpdateRelationList.addActionListener(A);
    MI_UpdateIndexList.addActionListener(A);
 
+   JMenu Entropy = new JMenu("Entropy");
+   MI_EnableEntropy = Entropy.add("enable");
+   MI_DisableEntropy = Entropy.add("disable");
+   ActionListener EntropyListener = new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+              if(MI_EnableEntropy.equals(evt.getSource())){
+                  enableEntropy(true);
+              }else{
+                  enableEntropy(false);
+              }
+       }
+   }; 
+   MI_EnableEntropy.addActionListener(EntropyListener);
+   MI_DisableEntropy.addActionListener(EntropyListener); 
+
+   if(useEntropy) 
+      OptimizerCommandMenu.add(Entropy);
 
    MI_OptimizerSettings = OptimizerMenu.add("Settings");
    OptimizerMenu.addMenuListener(new MenuListener(){

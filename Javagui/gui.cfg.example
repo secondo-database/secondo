@@ -80,6 +80,9 @@ OPTIMIZER_PORT 1235
 #enable optimizer at start (true or false)
 ENABLE_OPTIMIZER true
 
+#adds the entropy items to the main menu
+USE_ENTROPY false
+
 #enable persitent storing of text atoms
 USE_PERSISTENT_TEXT true
 
