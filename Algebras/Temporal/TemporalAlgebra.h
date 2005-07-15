@@ -4013,8 +4013,8 @@ void Mapping<Unit, Alpha>::Final( Intime<Alpha>& result )
     units.Get( GetNoComponents()-1, unit );
 
     result.SetDefined( true );
-    unit.TemporalFunction( unit.timeInterval.start, result.value );
-    result.instant.CopyFrom( &unit.timeInterval.start );
+    unit.TemporalFunction( unit.timeInterval.end, result.value );
+    result.instant.CopyFrom( &unit.timeInterval.end );
   }
 }
 
