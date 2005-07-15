@@ -68,7 +68,7 @@ using namespace datetime;
 */
 void UReal::TemporalFunction( Instant& t, CcReal& result )
 {
-  assert( t.IsDefined() && timeInterval.Contains( t ) );
+  assert( t.IsDefined() );
 
   double res = a * pow( t.ToDouble() - timeInterval.start.ToDouble(), 2 ) +
                b * ( t.ToDouble() - timeInterval.start.ToDouble() ) +
@@ -108,7 +108,6 @@ void UReal::AtInterval( Interval<Instant>& i, TemporalUnit<CcReal>& result )
 void UPoint::TemporalFunction( Instant& t, Point& result )
 {
   assert( t.IsDefined() );
-  assert( timeInterval.Contains( t ) );
 
   if( t == timeInterval.start )
     result = p0;
