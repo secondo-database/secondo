@@ -26,7 +26,7 @@ fi
 #default options
 rootDir=$HOME
 coDir=tmp_secondo_${date_ymd}_${date_HMS}
-cvsDir=$HOME/cvsroot
+cvsDir=/home/cvsroot
 coTag="HEAD"
 coModule="secondo"
 LU_SENDMAIL="true"
@@ -90,17 +90,30 @@ printf "%s\n" "LU_SENDMAIL = $LU_SENDMAIL"
 
 ## check if files in the module secondo were changed
 ## since the last run
-lastChanges=$HOME/.last_changes_secondo
-lastDate=$(find $lastChanges -printf "%AY-%Am-%Ad %AH:%AM\n")
-cvs history -xMAR -a -D$lastDate -p secondo > $lastChanges
-hasChanged=$(cat $lastChanges | sed -ne'2p')
+last_changes=$HOME/.last_changes
+last_cvshist=$HOME/.last_cvshist
 
-if [ "$hasChanged" != "" ]; then
+# retrieve date of last run and store it in the first
+# line. This is more secure since time stamps of the file
+# may be corrupted by backup-script etc.
+lastDate=$(head -n1 $last_changes)
+cvs history -xMAR -a -D"$lastDate" -p secondo > $last_cvshist
+
+date +"%Y-%m-%d %H:%M" > $last_changes
+echo "----------------" >> $last_changes
+echo "Changes since last run (${lastDate}):" >> $last_changes
+echo "------------------------------------------" >> $last_changes
+cat $last_cvshist >> $last_changes
+
+# extract the 1st line of cvs history 
+hasChanged=$(head -n1 $last_cvshist)
+
+if [ "$hasChanged" != "No records selected." ]; then
  
 printf "last changes:\n"
-cat $lastChanges
+cat $last_changes
 
-cvshist_result=$( cat $lastChanges | 
+cvshist_result=$( cat $last_cvshist | 
                   awk '/./ { print $5 }' | sort | uniq | tr "\n" " " )
 
 printf "%s\n" "cvs user who commited or added files yesterday:"
@@ -121,8 +134,7 @@ else
 
 fi
 
-exit
-
+rm $last_cvshist
 
 
 ## report host status 
@@ -157,7 +169,7 @@ printf "\n%s" "$PWD"
 checkCmd "make > ../make-all.log 2>&1" 
 
 # proceed if last command was successful
-if lastRC; then
+if ! lastRC; then
 
   printf "%s\n" "Problems during build, sending a mail to:"
   printf "%s\n" "$recipients"
@@ -182,7 +194,7 @@ if [ $[errors] == 0 ]; then
 printSep "Running automatic tests"
 timeOut 300 $scriptDir/run-tests.sh
 
-if lastRC; then
+if ! lastRC; then
   
   printf "%s\n" "Problems during test, sending a mail to:"
   printf "%s\n" "$recipients"
@@ -218,10 +230,6 @@ find ./bin ! -path "*CVS*"
 printf "\n%s\n" "files unkown to CVS:"
 cvs -nQ update
 
-## clean up
-printSep "Cleaning up"
-rm -rf ${cbuildDir}
-
 if [ $[errors] != 0 ]; then
 
   printf "There were $errors errors!"
@@ -229,8 +237,14 @@ if [ $[errors] != 0 ]; then
 else
 
   # move label for stable version
-  cvs tag -F LAST_STABLE
+  printSep "Moving CVS tag LAST_STABLE"
+  cvs -Q tag -d LAST_STABLE 
+  cvs -Q tag LAST_STABLE
 
 fi
+
+## clean up
+printSep "Cleaning up"
+rm -rf ${cbuildDir}
 
 exit $errors

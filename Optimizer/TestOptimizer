@@ -47,18 +47,22 @@ checkCmd "tpcgen.sh -s ${scaleFactor} -b ${tempDir} > ${logFile} 2>&1"
 checkCmd "ttyrun.sh 'create database opt;' >> ${logFile} 2>&1" 
 checkCmd "ttyrun.sh 'restore database opt from opt;' >> ${logFile} 2>&1"
 
-if [ $rc -ne 0 ]; then
+if ! lastRC; then
   printf "%s\n" "Creation of test databases failed!"
   exit 1 
 fi
 
 # test optimizer
 checkCmd "plrun.sh 'optimizeExamples2(N,0), halt(N).' >> ${logFile} 2>&1"
-checkCmd "plrun.sh 'optimizeTPC2(N,0), halt(N).' >> ${logFile} 2>&1"
-
-if [ $rc -ne 0 ]; then
-  printf "%s\n" "Running optimizer tests failed!"
+if ! lastRC; then
+  printf "%s\n" "Running optimizer examples failed!"
   exit 2 
+fi
+
+checkCmd "plrun.sh 'optimizeTPC2(N,0), halt(N).' >> ${logFile} 2>&1"
+if ! lastRC; then
+  printf "%s\n" "Running TPC-queries failed!"
+  exit 3 
 fi
 
 rm -rf $tempDir
