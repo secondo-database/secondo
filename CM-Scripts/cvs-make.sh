@@ -26,7 +26,7 @@ fi
 #default options
 rootDir=$HOME
 coDir=tmp_secondo_${date_ymd}_${date_HMS}
-cvsDir=$HOME/cvsDir
+cvsDir=$HOME/cvsroot
 coTag="HEAD"
 coModule="secondo"
 LU_SENDMAIL="true"
