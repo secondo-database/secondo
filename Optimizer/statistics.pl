@@ -140,6 +140,9 @@ sampleNameS(Name, Sample) :-
 sampleNameJ(Name, Sample) :-
   atom_concat(Name, '_sample_j', Sample).
 
+sampleNameSmall(Name, Small) :-
+  atom_concat(Name, '_small', Small).
+
 possiblyRename(Rel, Renamed) :-
   Rel = rel(_, *, _),
   !,

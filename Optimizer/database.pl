@@ -64,6 +64,140 @@ downcase_list([], []).
 downcase_list([First1 | Rest1], [First2 | Rest2]) :-
   downcase_atom(First1, First2),
   downcase_list(Rest1, Rest2).
+
+time(Clause) :-
+  get_time(Time1),
+  (call(Clause) ; true),
+  get_time(Time2),
+  Time is Time2 - Time1,
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  MSs is Minute *60000 + Sec*1000 + MilliSec,
+  write('Elapsed Time: '),
+  write(MSs),
+  write(' ms'),nl.
+
+classifyRel(Rel, small) :-
+  card(Rel, Size),
+  Size < 1000,
+  !.
+
+classifyRel(Rel, middle) :-
+  card(Rel, Size),
+  Size < 100001,
+  Size > 999,
+  !.
+
+classifyRel(Rel, large) :-
+  card(Rel, Size),
+  Size > 100000,
+  !.
+
+createSmallRelation(Rel, ObjList) :-  % Rel in lc
+  spelling(Rel, Rel2),
+  Rel2 = lc(Rel3),
+  sampleNameSmall(Rel3, Small),
+  member(['OBJECT', Small, _ , [[_ | _]]], ObjList),
+  !.
+
+createSmallRelation(Rel, ObjList) :-  % Rel in uc
+  spelling(Rel, Rel2),
+  not(Rel2 = lc(_)),
+  upper(Rel2, URel),
+  sampleNameSmall(URel, Small),
+  member(['OBJECT', Small, _ , [[_ | _]]], ObjList),
+  !.
+
+createSmallRelation(Rel, _)  :-  % Rel in lc
+  classifyRel(Rel, small),
+  spelling(Rel, Rel2),
+  Rel2 = lc(Rel3),
+  sampleNameSmall(Rel3, Small),
+  concat_atom(['let ', Small, ' = ', Rel3, 
+    ' feed consume'], '', QueryAtom),  
+  secondo(QueryAtom),
+  card(Rel3, Card),
+  assert(storedCard(Small, Card)),
+  downcase_atom(Small, DCSmall),  
+  assert(storedSpell(DCSmall, lc(Small))),
+  !.
+
+createSmallRelation(Rel, _) :-  % Rel in uc
+  classifyRel(Rel, small),
+  spelling(Rel, Rel2),
+  upper(Rel2, URel),
+  sampleNameSmall(URel, Small),
+  concat_atom(['let ', Small, ' = ', URel, 
+    ' feed consume'], '', QueryAtom),
+  secondo(QueryAtom),
+  card(Rel2, Card),
+  lowerfl(Small, LSmall),
+  assert(storedCard(LSmall, Card)),
+  downcase_atom(Small, DCSmall),
+  assert(storedSpell(DCSmall, LSmall)),
+  !.
+
+createSmallRelation(Rel, _)  :-  % Rel in lc
+  classifyRel(Rel, middle),
+  spelling(Rel, Rel2),
+  Rel2 = lc(Rel3),
+  sampleNameSmall(Rel3, Small),
+  concat_atom(['let ', Small, ' = ', Rel3, 
+    ' sample[1000, 0.1] consume'], '', QueryAtom), 
+  secondo(QueryAtom),
+  card(Rel3, Card),
+  SmallCard is truncate(min(Card, max(1000, Card*0.1))),  
+  assert(storedCard(Small, SmallCard)),
+  downcase_atom(Small, DCSmall),  
+  assert(storedSpell(DCSmall, lc(Small))),
+  !.
+
+createSmallRelation(Rel, _)  :-  % Rel in uc
+  classifyRel(Rel, middle),
+  spelling(Rel, Rel2),
+  upper(Rel2, URel),
+  sampleNameSmall(URel, Small),
+  concat_atom(['let ', Small, ' = ', URel, 
+    ' sample[1000, 0.1] consume'], '', QueryAtom), 
+  secondo(QueryAtom),
+  card(Rel2, Card),
+  SmallCard is truncate(min(Card, max(1000, Card*0.1))),  
+  lowerfl(Small, LSmall),
+  assert(storedCard(LSmall, SmallCard)),
+  downcase_atom(Small, DCSmall),
+  assert(storedSpell(DCSmall, LSmall)),
+  !.
+
+createSmallRelation(Rel, _)  :-  % Rel in lc
+  classifyRel(Rel, large),
+  spelling(Rel, Rel2),
+  Rel2 = lc(Rel3),
+  sampleNameSmall(Rel3, Small),
+  concat_atom(['let ', Small, ' = ', Rel3, 
+    ' sample[10000, 0.01] consume'], '', QueryAtom), 
+  secondo(QueryAtom),
+  card(Rel3, Card),
+  SmallCard is truncate(min(Card, max(10000, Card*0.01))),  
+  assert(storedCard(Small, SmallCard)),
+  downcase_atom(Small, DCSmall),  
+  assert(storedSpell(DCSmall, lc(Small))),
+  !.
+
+createSmallRelation(Rel, _)  :-  % Rel in uc
+  classifyRel(Rel, large),
+  spelling(Rel, Rel2),
+  upper(Rel2, URel),
+  sampleNameSmall(URel, Small),
+  concat_atom(['let ', Small, ' = ', URel, 
+    ' sample[10000, 0.01] consume'], '', QueryAtom), 
+  secondo(QueryAtom),
+  card(Rel2, Card),
+  SmallCard is truncate(min(Card, max(10000, Card*0.01))),  
+  lowerfl(Small, LSmall),
+  assert(storedCard(LSmall, SmallCard)),
+  downcase_atom(Small, DCSmall),
+  assert(storedSpell(DCSmall, LSmall)),
+  !.
+
 /*
 Creates a sample relation, for determining the selectivity of a relation 
 object for a given predicate. The first two rules consider the case, that 
@@ -78,7 +212,6 @@ createSampleRelation(Rel, ObjList) :-  % Rel in lc
   member(['OBJECT', Sample1, _ , [[_ | _]]], ObjList),
   sampleNameJ(Rel3, Sample2),
   member(['OBJECT', Sample2, _ , [[_ | _]]], ObjList),
-  write('hier'),
   !.
 
 createSampleRelation(Rel, ObjList) :-  % Rel in uc
@@ -174,8 +307,16 @@ elements of ~AttList~. Index look up and creating sample relations
 are executed furthermore by this rule.
 
 */
+
+checkForIndex(_, []).
+
+checkForIndex(Rel, [First|Rest]) :-
+  updateIndex(Rel, First),
+  checkForIndex(Rel, Rest).
+
 relation(Rel, AttrList) :-
   storedRel(Rel, AttrList),
+  %checkForIndex(Rel, AttrList),
   !.
 
 relation(Rel, AttrList) :-
@@ -187,6 +328,7 @@ relation(Rel, AttrList) :-
   downcase_list(AttrList3, AttrList),
   assert(storedRel(Rel, AttrList)),
   spelling(Rel, _),
+  createSmallRelation(Rel, ObjList),
   createAttrSpelledAndIndexLookUp(Rel, AttrList3),
   card(Rel, _),
   tuplesize(Rel, _),
@@ -463,9 +605,11 @@ opened database. Depending on this result the dynamic predicate
 ~storedIndex/4~ or ~storedNoIndex/2~ is set. 
 
 */
-verifyIndexAndStoreIndex(Rel, Attr, Index) :- % Index exists
+verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType) :- % Index exists
   getSecondoList(ObjList),
   member(['OBJECT', Index, _ , [[IndexType | _]]], ObjList),
+    %write(Index),nl,
+    %write(IndexType),nl, 
   assert(storedIndex(Rel, Attr, IndexType, Index)),
   !.
 
@@ -508,26 +652,72 @@ index available for relation ~Rel~ and attribute ~Attr~.
 
 */
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in lc
+						     %rel in lc  						     
   not(Attr = _:_),                                   %succeeds
-  spelled(Rel:Attr, attr(Attr2, 0, l)),
+  spelled(Rel:Attr, attr(Attr2, 0, l)),              
+  spelled(Rel, _, l),
   atom_concat(Rel, '_', Index1),
   atom_concat(Index1, Attr2, Index),
-  verifyIndexAndStoreIndex(Rel, Attr, Index),
+  verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType),
+  concat_atom(['let ', Index, '_small', ' = ', Rel, 
+  '_small create', IndexType, ' [', Attr, ']'], '', QueryAtom),
+  secondo(QueryAtom),    
+  %write(QueryAtom),nl,
+  !.
+
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in lc
+                                                     %rel in uc
+  not(Attr = _:_),                                   %succeeds
+  spelled(Rel:Attr, attr(Attr2, 0, l)),  
+  spelling(Rel, Spelled),
+  Rel = Spelled,
+  upper(Rel, URel),
+  atom_concat(Rel, '_', Index1),
+  atom_concat(Index1, Attr2, Index),
+  verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType),
+  concat_atom(['let ', Index, '_small', ' = ', URel, 
+  '_small create', IndexType, ' [', Attr, ']'], '', QueryAtom),
+  secondo(QueryAtom),    
+  %write(QueryAtom),nl,
   !.
 
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), _) :-     %attr in lc
-  not(Attr = _:_),                                   %fails
+                                                     %fails
+  not(Attr = _:_),                                   
   spelled(Rel:Attr, attr(_, 0, l)),
   verifyIndexAndStoreNoIndex(Rel, Attr),
   !, fail.
 
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in uc
+                                               	     %rel in lc
   not(Attr = _:_),                                   %succeeds
-  spelled(Rel:Attr, attr(Attr2, 0, u)),
+  spelled(Rel:Attr, attr(Attr2, 0, u)),             
+  spelled(Rel, _, l),
   upper(Attr2, SpelledAttr),
   atom_concat(Rel, '_', Index1),
   atom_concat(Index1, SpelledAttr, Index),
-  verifyIndexAndStoreIndex(Rel, Attr, Index),
+  verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType),
+  concat_atom(['let ', Index, '_small', ' = ', Rel, 
+  '_small create', IndexType, ' [', SpelledAttr, ']'], '', QueryAtom),
+  secondo(QueryAtom),    
+  %write(QueryAtom),nl,
+  !.
+
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in uc
+                                                     %rel in uc
+  not(Attr = _:_),                                   %succeeds
+  spelled(Rel:Attr, attr(Attr2, 0, u)),              
+  spelling(Rel, Spelled),
+  Rel = Spelled,
+  upper(Rel, URel),
+  upper(Attr2, SpelledAttr),
+  atom_concat(Rel, '_', Index1),
+  atom_concat(Index1, SpelledAttr, Index),
+  verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType),
+  concat_atom(['let ', Index, '_small', ' = ', URel, 
+  '_small create', IndexType, ' [', SpelledAttr, ']'], '', QueryAtom),
+  secondo(QueryAtom),    
+  %write(QueryAtom),nl,
   !.
 
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), _) :-     %attr in uc
@@ -587,30 +777,23 @@ is updated, if an index has been added or an index has been deleted. Note,
 that all letters of ~Rel~ and ~Attr~ must be written in lower case.
 
 */
-updateIndex2(Rel, Attr) :-
-  spelled(Rel, SRel, _),
+updateIndex(Rel, Attr) :- % add index on small relation
+  spelled(Rel, SRel, _),  
   spelled(Rel:Attr, attr(Attr2, _, _)),
   storedNoIndex(SRel, Attr2),
-  retract(storedNoIndex(SRel, Attr2)),
+  retract(storedNoIndex(SRel, Attr2)),  
   hasIndex(rel(SRel, _, _),attr(Attr2, _, _), _).
 
-updateIndex2(Rel, Attr) :-
+updateIndex(Rel, Attr) :- % delete index on small relation
   spelled(Rel, SRel, _),
   spelled(Rel:Attr, attr(Attr2, _, _)),
   storedIndex(SRel, Attr2, _, Index),
-  retract(storedIndex(SRel, Attr2, _, Index)),
-  not(hasIndex(rel(SRel, _, _),attr(Attr2, _, _), Index)).
+  %concat_atom([X,Y], '_', Index),
+  retract(storedIndex(SRel, Attr2, _, Index)), 
+  assert(storedNoIndex(SRel, Attr2)),
+  concat_atom(['delete ', Index, '_small'], '', QueryAtom),
+  secondo(QueryAtom).
 
-updateIndex(Rel, Attr) :-
-  getSecondoList(ObjList),
-  updateIndex2(Rel, Attr),
-  retract(storedSecondoList(ObjList)), 
-  !.
-
-updateIndex(Rel, Attr) :-
-  getSecondoList(ObjList),
-  not(updateIndex2(Rel, Attr)),
-  retract(storedSecondoList(ObjList)), !, fail.
 /*
 1.5.2 Update Relations
 
@@ -657,34 +840,58 @@ retractSels(Rel) :-
 
 retractSels(_).
 
-updateRel(Rel) :-
-  spelled(Rel, Rel2, l),
-  sampleNameS(Rel2, Sample1),
+retractPETs(Rel) :-
+  storedPET(Term, _),
+  arg(1, Term, Arg1),
+  getRelAttrName(Rel, Arg1),
+  retract(storedPET(Term, _)),
+  retractPETs(Rel).
+
+retractPETs(Rel) :-
+  storedPET(Term, _),
+  arg(2, Term, Arg2),
+  getRelAttrName(Rel, Arg2),
+  retract(storedPET(Term, _)),
+  retractPETs(Rel).
+
+retractPETs(_).
+
+updateRel(Rel) :- % rel in lc
+  spelling(Rel, Spelled),
+  Spelled = lc(Rel),
+  sampleNameS(Rel, Sample1),
   concat_atom(['delete ', Sample1], '', QueryAtom1),
   secondo(QueryAtom1),
-  sampleNameJ(Rel2, Sample2),
+  sampleNameJ(Rel, Sample2),
   concat_atom(['delete ', Sample2], '', QueryAtom2),
   secondo(QueryAtom2),
+  sampleNameSmall(Rel, Small),
+  concat_atom(['delete ', Small], '',  QueryAtom3),
+  secondo(QueryAtom3),
   retract(storedSecondoList(_)),
   getSecondoList(_),
   lowerfl(Sample1, LSample1),
   downcase_atom(Sample1, DCSample1),
   lowerfl(Sample2, LSample2),
   downcase_atom(Sample2, DCSample2),
-  retractall(storedCard(Rel2, _)),
-  retractall(storedTupleSize(Rel2, _)),
+  retractall(storedCard(Rel, _)),
+  concat_atom([Rel,'_small'], '', Small2),
+  retractall(storedCard(Small2, _)),
+  retractall(storedTupleSize(Rel, _)),
   retractall(storedCard(LSample1, _)),
   retractall(storedCard(LSample2, _)),
   retractall(storedSpell(Rel, _)),
   retractall(storedSpell(Rel:_, _)),
   retractall(storedSpell(DCSample1, _)),
   retractall(storedSpell(DCSample2, _)),  
-  retractSels(Rel2),
+  retractall(storedSpell(Small2, _)),
+  retractSels(Rel),
+  retractPETs(Rel),
   retractall(storedRel(Rel, _)),
-  retractall(storedIndex(Rel2, _, _, _)),
-  retractall(storedNoIndex(Rel2, _)),!.
+  retractall(storedIndex(Rel, _, _, _)),
+  retractall(storedNoIndex(Rel, _)),!.
 
-updateRel(Rel) :-
+updateRel(Rel) :- % rel in uc
   spelled(Rel, Rel2, u),
   upper(Rel2, URel),
   sampleNameS(URel, Sample1),
@@ -693,6 +900,9 @@ updateRel(Rel) :-
   sampleNameJ(URel, Sample2),
   concat_atom(['delete ', Sample2], '', QueryAtom2),
   secondo(QueryAtom2),
+  sampleNameSmall(URel, Small),
+  concat_atom(['delete ', Small], '', QueryAtom3),
+  secondo(QueryAtom3),
   retract(storedSecondoList(_)),
   getSecondoList(_),
   lowerfl(Sample1, LSample1),
@@ -700,6 +910,8 @@ updateRel(Rel) :-
   lowerfl(Sample2, LSample2),
   downcase_atom(Sample2, DCSample2),
   retractall(storedCard(Rel2, _)),
+  concat_atom([Rel,'_small'], '', Small2),
+  retractall(storedCard(Small2, _)),
   retractall(storedTupleSize(Rel2, _)),
   retractall(storedCard(LSample1, _)),
   retractall(storedCard(LSample2, _)),
@@ -707,7 +919,9 @@ updateRel(Rel) :-
   retractall(storedSpell(Rel:_, _)),
   retractall(storedSpell(DCSample1, _)),
   retractall(storedSpell(DCSample2, _)),
+  retractall(storedSpell(Small2, _)),
   retractSels(Rel2),
+  retractPETs(Rel2),
   retractall(storedRel(Rel, _)),
   retractall(storedIndex(Rel2, _, _, _)),
   retractall(storedNoIndex(Rel2, _)).
