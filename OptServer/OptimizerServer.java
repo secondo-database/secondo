@@ -520,25 +520,37 @@ public class OptimizerServer extends Thread{
      * quit   : shuts down the server
      */
    public static void main(String[] args){
-       if(args.length!=1){
+       if(args.length<1){
         System.err.println("usage:  java OptimizerServer -classpath .:<jplclasses> OptimizerServer  PortNumber");
-	System.exit(1);
+      	System.exit(1);
+       }
+       // process options
+       Runtime rt = Runtime.getRuntime();
+       for(int i=0;i<args.length-1;i++){
+           if(args[i].equals("-trace_methods")){
+               rt.traceMethodCalls(true); 
+               System.out.println("enable method tracing");
+           }
+           if(args[i].equals("-trace_instructions")){
+               rt.traceInstructions(true);
+               System.out.println("enable instruction tracing");
+           }
        }
        System.out.println("\n\n");
        printLicence(System.out);
        System.out.println("\n");
-       String arg = args[0];
+       String arg = args[args.length-1];
        OptimizerServer OS = new OptimizerServer();
        try{
           int P = Integer.parseInt(arg);
-	  if(P<=0){
-	    System.err.println("the Portnumber must be greater then zero");
+          if(P<=0){
+            System.err.println("the Portnumber must be greater then zero");
             System.exit(1);
-	  }
-	  OS.PortNr=P;
-       }catch(Exception e){
+          }
+          OS.PortNr=P;
+        }catch(Exception e){
           System.err.println("the Portnumber must be an integer");
-	  System.exit(1);
+          System.exit(1);
        }
 
        try{
