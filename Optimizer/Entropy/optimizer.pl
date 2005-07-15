@@ -2458,6 +2458,7 @@ We introduce ~select~, ~from~, ~where~, and ~as~ as PROLOG operators:
 */
 
 :- op(990, fx, sql).
+:- op(990, fx, sql2).
 :- op(985, xfx, >>).
 :- op(950, fx, select).
 :- op(960, xfx, from).
@@ -3114,7 +3115,7 @@ translate2(Query, Stream2, Select, Cost2) :-
   warn_plan_changed(Stream1, Stream2).
 
 try_entropy(Stream1, Stream2, Cost1, Cost2) :-
-  useEntropy, highNode(HN), HN < 256, !,
+  useEntropy, highNode(HN), HN > 1, HN < 256, !,
   nl, write('*** Trying to use the Entropy-approach ******************************' ), nl, !,
   plan_to_atom(Stream1, FirstQuery),
   prepare_query_small(Stream1, PlanSmall),
@@ -3542,6 +3543,25 @@ sql(Term, SecondoQueryRest) :-
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
   query(Query).
+
+sql2 Term :-
+  isDatabaseOpen,
+  use_entropy,
+  mOptimize(Term, Query, Cost),
+  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
+  write('Estimated Cost: '), write(Cost), nl, nl,
+  query(Query),
+  dont_use_entropy.
+
+sql2(Term, SecondoQueryRest) :-
+  isDatabaseOpen,
+  use_entropy,
+  mStreamOptimize(Term, SecondoQuery, Cost),
+  concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
+  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
+  write('Estimated Cost: '), write(Cost), nl, nl,
+  query(Query),
+  dont_use_entropy.
 
 let(X, Term) :-
   isDatabaseOpen,
