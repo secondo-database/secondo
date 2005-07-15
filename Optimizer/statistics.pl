@@ -128,18 +128,12 @@ Auxiliary predicates for ~selectivity~.
 
 */
 
-/*sample(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
-  atom_concat(Rel, '_sample', Rel2).*/
-
 sampleS(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
   atom_concat(Rel, '_sample_s', Rel2).
 
 sampleJ(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
   atom_concat(Rel, '_sample_j', Rel2).
 
-/*sampleName(Name, Sample) :-
-  atom_concat(Name, '_sample', Sample).*/
-  
 sampleNameS(Name, Sample) :-
   atom_concat(Name, '_sample_s', Sample).
 

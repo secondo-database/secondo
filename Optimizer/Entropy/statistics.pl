@@ -128,17 +128,14 @@ Auxiliary predicates for ~selectivity~.
 
 */
 
-/*sample(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
-  atom_concat(Rel, '_sample', Rel2).*/
+small(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
+  atom_concat(Rel, '_small', Rel2).
 
 sampleS(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
   atom_concat(Rel, '_sample_s', Rel2).
 
 sampleJ(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
   atom_concat(Rel, '_sample_j', Rel2).
-
-/*sampleName(Name, Sample) :-
-  atom_concat(Name, '_sample', Sample).*/
   
 sampleNameS(Name, Sample) :-
   atom_concat(Name, '_sample_s', Sample).
@@ -224,15 +221,6 @@ dynamicCardQuery(Pred, Rel1, Rel2, Query) :-
   dynamicPossiblyRename(Rel1, Rel1Query),
   dynamicPossiblyRename(Rel2, Rel2Query),
   Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
-
-sels(Pred, Sel) :-
-  sample_sel(Pred, Sel),
-  !.
-
-sels(Pred, Sel) :-
-  commute(Pred, Pred2),
-  sample_sel(Pred2, Sel),
-  !.
 
 sels(Pred, Sel) :-
   sel(Pred, Sel),

@@ -20,6 +20,8 @@ entropy.cpp
 
 #define LOOP( i, v ) for( int i = 1; i <= v.Nrows(); i++ )
 #define BIT(j) (1<<(j))
+#define EPSILON 1.0e-64
+#define TOL     1.0e-6
 
 extern bool OptNIPSLike_interpolate;
 //Teste
@@ -169,6 +171,24 @@ int main( int argc, const char* argv[] )
 
 #endif
 
+// Basically this function assures that there will be no selectivity = 1 since
+// in these cases the algorithm does not converge. Since the results
+// are approximated, we'll decrease all the intermediate results by a small fraction.
+void adjust_joint_probabilities( vector<pair<int,double> >& jointProbability )
+{
+  if( jointProbability.size() > 0 )
+  {
+    double fc = 1 - 1e-9,
+           acc = fc;
+
+    for( int i = 0; i < jointProbability.size(); i++ )
+    {
+      jointProbability[i].second *= acc;
+      acc *= fc;
+    }
+  }
+}
+
 void print_constraints( Matrix& cteA, ColumnVector& cteB )
 {
   for( int i = 1; i <= cteA.Nrows(); i++ )
@@ -212,6 +232,33 @@ void find_initial_point( vector<double>& marginalProbability, ColumnVector& X )
   X = A.i() * B;
 }
 
+// Some tests are done to assure that this is a valid solution regardless of the
+// convergence or not of the problem.
+void verify_solution( const ColumnVector &x,
+                      const vector<pair<int,double> >& jointProbability,
+                      const vector<pair<int,double> >& estimatedProbability)
+{
+  // Check for negative probabilities - a small tolerance is allowed
+  for( int i=1; i < x.Nrows(); i++ )
+    if( x(i) < - TOL )
+      throw 0;
+
+  // Check for negative joint probabilities - no tolerance
+  for( int i=0; i < estimatedProbability.size(); i++ )
+    if( estimatedProbability[i].second < 0 )
+      throw 0;
+
+  // Check if the solution is close to measured joint probabilities
+  for( int i=0, j=0; i < estimatedProbability.size() && j < jointProbability.size(); i++ )
+    if( jointProbability[j].first == estimatedProbability[i].first )
+    {
+      if( fabs( jointProbability[j].second - estimatedProbability[i].second ) > TOL )
+        throw 0;
+
+      j++;
+    }
+}
+
 // This varible is used to bypass a flaw int the design of the library: we need
 // more parameters in the init_f function.
 static vector<double>* ptr_marginalProbability;
@@ -220,83 +267,92 @@ void maximize_entropy( vector<double>& marginalProbability,
                        vector<pair<int,double> >& jointProbability,
                        vector<pair<int,double> >& estimatedProbability )
 {
+  ptr_marginalProbability = &marginalProbability;
   estimatedProbability.clear();
 
+  // Some ajustments are made to assure convergence when we have some selectivity = 1
+  adjust_joint_probabilities(jointProbability);
   try
   {
     int nVars, maxIter;
     Matrix A;
     ColumnVector B;
     CompoundConstraint* constraint = NULL;
-    try
-    {
-      constraint = build_contraints(nVars, marginalProbability, jointProbability, A, B);
-      NLF2 entropyProblem(nVars, f, init_f, constraint);
+    constraint = build_contraints(nVars, marginalProbability, jointProbability, A, B);
+    NLF2 entropyProblem(nVars, f, init_f, constraint);
 
-      // To prevent long calculations
-      maxIter = 20000 / nVars;
-      ptr_marginalProbability = &marginalProbability;
-      OptNIPS objfcn(&entropyProblem);
-      OptNIPSLike_interpolate = true;
-      objfcn.setOutputFile("output.txt", 0);
-      objfcn.setFcnTol(1e-12);
-      objfcn.setConTol(1e-16);
-      objfcn.setGradTol(1e-16);
-      objfcn.setLineSearchTol(1e-16);
-      objfcn.setStepTol(1e-16);
-      objfcn.setMinStep(1e-24);
-      objfcn.setMaxIter(maxIter); 
-      objfcn.setSearchStrategy(LineSearch);
-      objfcn.setMaxBacktrackIter(maxIter);
-      objfcn.setMeritFcn(NormFmu);
-      try
-      {
-        objfcn.optimize();
-      }
-      catch(...)
-      {
-        cout << "Failed!" << endl;
-        // objfcn.optimize();
-      }
-      objfcn.printStatus("Solution from entropy");
+    // To prevent long calculations
+    maxIter = 20000 / nVars;
 
-      cout << "Entropy: " << - entropyProblem.getF() << endl;
+    OptNIPS objfcn(&entropyProblem);
+    OptNIPSLike_interpolate = true;
+    objfcn.setOutputFile("output.txt", 0);
+    objfcn.setFcnTol(1e-12);
+    objfcn.setConTol(1e-16);
+    objfcn.setGradTol(1e-16);
+    objfcn.setLineSearchTol(1e-16);
+    objfcn.setStepTol(1e-16);
+    objfcn.setMinStep(1e-16);
+    objfcn.setMaxIter(maxIter);
+    objfcn.setSearchStrategy(LineSearch);
+    objfcn.setMaxBacktrackIter(maxIter);
+    objfcn.setMeritFcn(NormFmu);
+
+    objfcn.optimize();
+    objfcn.printStatus("Solution from entropy");
+
+    cout << "Entropy: " << - entropyProblem.getF() << endl;
 
 #ifdef STAND_ALONE
-      print_cond_prob(marginalProbability.size(), entropyProblem.getXc());
+    print_cond_prob(marginalProbability.size(), entropyProblem.getXc());
 #endif
 
-      ColumnVector const &x = entropyProblem.getXc();
+    ColumnVector const &x = entropyProblem.getXc();
 
-      for( int jp = 1; jp < nVars; jp++ )
-      {
-        double p = 0.0;
-        for( int i = 0; i < nVars; i++ )
-          if( (jp & i) == jp )
-            p += x(i);
-
-        estimatedProbability.push_back(pair<int,double>(jp, p));
-      }
-      objfcn.cleanup();
-    }
-    catch(...)
+    estimatedProbability.clear();
+    for( int jp = 1; jp < nVars; jp++ )
     {
-      cout << "Unable to use entropy approach!" << endl;
-      delete constraint;
+      double p = 0.0;
+      for( int i = 0; i < nVars; i++ )
+        if( (jp & i) == jp )
+          p += x(i);
+
+      estimatedProbability.push_back(pair<int,double>(jp, p));
     }
+
+    objfcn.cleanup();
+
+    // Assures that the solution is ok, even if it didn't converge.
+    verify_solution( x, jointProbability, estimatedProbability );
   }
   catch(...)
   {
-    cout << "Unable to use entropy approach!" << endl;
+    // If any problem occurs, use the "independence of predicates" approach.
+    int nVars = 1 << marginalProbability.size();
+    ColumnVector x(nVars);
+    find_initial_point(marginalProbability, x );
+
+    estimatedProbability.clear();
+    for( int jp = 1; jp < nVars; jp++ )
+    {
+      double p = 0.0;
+      for( int i = 0; i < nVars; i++ )
+        if( (jp & i) == jp )
+          p += x(i);
+
+      estimatedProbability.push_back(pair<int,double>(jp, p));
+    }
+
+    cout << "Unable to use the entropy approach!" << endl;
   }
 }
 
 void init_f(int ndim, ColumnVector& x)
 {
   find_initial_point( *ptr_marginalProbability, x );
+  cout << "Initial point: " << endl << x << endl;
 }
 
-#define EPSILON 1.0e-64
 // Some adjustments to make the entropy function continuous and differentiable at 0.
 void f(int mode, int ndim, const ColumnVector& x, double& fx,
        ColumnVector& gx, SymmetricMatrix& Hx,
@@ -350,5 +406,4 @@ void f(int mode, int ndim, const ColumnVector& x, double& fx,
     result = NLPHessian;
   }
 }
-
 

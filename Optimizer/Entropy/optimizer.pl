@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -236,8 +236,7 @@ for nodes.
 
 For a given list of relations ~Rels~ and predicates ~Preds~, ~Nodes~ and
 ~Edges~ are the predicate order graph where edges are annotated with selection
-and join operations applied to the correct arguments. Moreover, for each edge possible
-translations into terms of the executable algebra are computed by the rule ~createPlanEdges~.
+and join operations applied to the correct arguments.
 
 Example call:
 
@@ -248,6 +247,7 @@ Example call:
 */
 
 pog(Rels, Preds, Nodes, Edges) :-
+  
   length(Rels, N), reverse(Rels, Rels2), deleteArguments,
   partition(Rels2, N, Partition0),
   length(Preds, M), reverse(Preds, Preds2),
@@ -257,17 +257,8 @@ pog(Rels, Preds, Nodes, Edges) :-
   deletePlanEdges, deleteVariables, deleteCounters, createPlanEdges,
   HighNode is 2**M -1,
   retract(highNode(_)), assert(highNode(HighNode)),
-  % uncomment next line for debugging
-  % showpog(Rels, Preds),
   deleteSizes,
   deleteCostEdges.
-
-showpog(Rels, Preds) :-
-  nl, write('Rels: '), write(Rels),
-  nl, write('Preds: '), write(Preds), 
-  nl, nl, write('Nodes: '), nl, writeNodes,
-  nl, nl, write('Edges: '), nl, writeEdges,
-  nl, nl, write('Plan Edges: '), nl, writePlanEdges.
 
 /*
 
@@ -845,9 +836,6 @@ deleteVariable :- retract(varDefined(_)), fail.
 deleteVariables :- not(deleteVariable).
 
 
-
-
-
 /*
 Arguments:
 
@@ -942,36 +930,6 @@ plan_to_atom(field(NewAttr, Expr), Result) :-
   plan_to_atom(attrname(NewAttr), NAtom),
   plan_to_atom(Expr, EAtom),
   concat_atom([NAtom, ': ', EAtom], '', Result).
-
-/*
-Special Operators for Algebras
-
-Picture Algebra:
-
-*/
-plan_to_atom(equals(X, Y, A, B), Result) :-
-  plan_to_atom(X, XAtom),
-  plan_to_atom(Y, YAtom),
-  plan_to_atom(A, AAtom),
-  plan_to_atom(B, BAtom),
-  concat_atom([XAtom, ' ', YAtom, ' equals[', AAtom, ', ', BAtom, ']'], '', Result),
-  !.
-
-plan_to_atom(like(X, Y, Z, A, B), Result) :-
-  plan_to_atom(X, XAtom),
-  plan_to_atom(Y, YAtom),
-  plan_to_atom(Z, ZAtom),
-  plan_to_atom(A, AAtom),
-  plan_to_atom(B, BAtom),
-  concat_atom([XAtom, ' like[', YAtom, ', ', ZAtom, ', ', AAtom, ', ', BAtom, ']'], 
-  '', Result),
-  !.
-
-/*
-End of Picture Algebra
-
-*/
-
 
 
 
@@ -1205,22 +1163,10 @@ used unchanged. If it is of the form arg(N), then it is a base relation; a
 res(N) => res(N).
 
 arg(N) => feed(rel(Name, *, Case)) :-
-  isStarQuery,
-  argument(N, rel(Name, *, Case)), 
-  !.
+  argument(N, rel(Name, *, Case)), !.
 
 arg(N) => rename(feed(rel(Name, Var, Case)), Var) :-
-  isStarQuery,
-  argument(N, rel(Name, Var, Case)), !,
-  !.
-
-arg(N) => project(feed(rel(Name, *, Case)), AttrNames) :-
-  argument(N, rel(Name, *, Case)), !, 
-  usedAttrList(rel(Name, *, Case), AttrNames).
-
-arg(N) => rename(project(feed(rel(Name, Var, Case)), AttrNames), Var) :-
-  argument(N, rel(Name, Var, Case)), !,
-  usedAttrList(rel(Name, Var, Case), AttrNames).
+  argument(N, rel(Name, Var, Case)).
 
 /*
 5.2.2 Translation of Selections
@@ -1483,19 +1429,16 @@ deletePlanEdge :-
 
 deletePlanEdges :- not(deletePlanEdge).
 
-planEdgeInfo(Source, Target, Plan, Result) :-
+writePlanEdge :-
+  planEdge(Source, Target, Plan, Result),
   write('Source: '), write(Source), nl,
   write('Target: '), write(Target), nl,
   write('Plan: '), wp(Plan), nl,
   % write(Plan), nl,
-  write('Result: '), write(Result), nl, nl.
-
-writePlanEdges2:-
-  planEdge(Source, Target, Plan, Result), 
-  planEdgeInfo(Source, Target, Plan, Result), 
+  write('Result: '), write(Result), nl, nl,
   fail.
 
-writePlanEdges :- not(writePlanEdges2).
+writePlanEdges :- not(writePlanEdge).
 
 
 
@@ -1588,6 +1531,36 @@ writeSize :-
   write('Selectivity: '), write(Sel), nl, nl,
   fail.
 writeSizes :- not(writeSize).
+
+writeFirstSize :-
+  firstResultSize(Node, Size),
+  write('Node: '), write(Node), nl,
+  write('Size: '), write(Size), nl, nl,
+  fail.
+writeFirstSize :-
+  firstEdgeSelectivity(Source, Target, Sel),
+  write('Source: '), write(Source), nl,
+  write('Target: '), write(Target), nl,
+  write('Selectivity: '), write(Sel), nl, nl,
+  fail.
+writeFirstSizes :- not(writeFirstSize).
+
+compareSize :-
+  firstResultSize(Node, Size1),
+  resultSize(Node, Size2),
+  write('Node: '), write(Node),
+  write(', Size: '), write(Size1),
+  write(' ==> '), write(Size2), nl, nl,
+  fail.
+compareSize :-
+  firstEdgeSelectivity(Source, Target, Sel1),
+  edgeSelectivity(Source, Target, Sel2),
+  write('Source: '), write(Source),
+  write(', Target: '), write(Target),
+  write(', Selectivity: '), write(Sel1),
+  write(' ==> '), write(Sel2), nl, nl,
+  fail.
+compareSizes :- not(compareSize).
 
 /*
 ----    deleteSizes :-
@@ -1802,26 +1775,18 @@ deleteCostEdge :-
 
 deleteCostEdges :- not(deleteCostEdge).
 
-
-costEdgeInfo(Edge) :-
-  Edge = costEdge(Source, Target, Plan, Result, Size, Cost),
-  costEdgeInfo(Source, Target, Plan, Result, Size, Cost).
-
-
-costEdgeInfo(Source, Target, Plan, Result, Size, Cost) :-
-  nl, write('Source: '), write(Source),
-  nl, write('Target: '), write(Target),
-  nl, write('Plan  : '), wp(Plan),
-  nl, write('Result: '), write(Result),
-  nl, write('Size  : '), write(Size),
-  nl, write('Cost  : '), write(Cost), nl. 
-
-writeCostEdges2 :-
+writeCostEdge :-
   costEdge(Source, Target, Plan, Result, Size, Cost),
-  costEdgeInfo(Source, Target, Plan, Result, Size, Cost), nl,
+  write('Source: '), write(Source), nl,
+  write('Target: '), write(Target), nl,
+  write('Plan: '), wp(Plan), nl,
+  write('Result: '), write(Result), nl, 
+  write('Size: '), write(Size), nl, 
+  write('Cost: '), write(Cost), nl, 
+  nl,
   fail.
 
-writeCostEdges :- not(writeCostEdges2).
+writeCostEdges :- not(writeCostEdge).
 
 /*
 ----    assignCosts
@@ -1844,7 +1809,7 @@ graph.
 
 9.1 Shortest Path Algorithm by Dijkstra
 
-We implement the shortest path algorithm by Dijkstra. There are two  
+We implement the shortest path algorithm by Dijkstra. There are two
 relevant sets of nodes: 
  
   * center: the nodes for which shortest paths have already been
@@ -1891,14 +1856,14 @@ successor(node(Source, Distance, Path), node(Target, Distance2, Path2)) :-
 
 /*
 
-----    dijkstra(Source, Dest, Path, Length) :- 
+----    dijkstra(Source, Dest, Path, Length) :-
 ----
 
 The shortest path from ~Source~ to ~Dest~ is ~Path~ of length ~Length~.
 
 */
  
-dijkstra(Source, Dest, Path, Length) :- 
+dijkstra(Source, Dest, Path, Length) :-
   emptyCenter,
   b_empty(Boundary),
   b_insert(Boundary, node(Source, 0, []), Boundary1),
@@ -1973,41 +1938,14 @@ the center, updating their distance if they are already present, to obtain
 ~BoundaryNew~. 
 
 */   
-putsuccessors(Boundary, Node, BoundaryNew) :-
+putsuccessors(Boundary, Node, BoundaryNew) :-  
+  findall(Succ, successor(Node, Succ), Successors),
 
-  % comment out next line for debugging infos
-  % succInfo(Node),
+        % write('successors of '), write(Node), nl,
+        % writeList(Successors), nl, nl,
 
-  findall(Succ, successor(Node, Succ), Successors), !,
   putsucc1(Boundary, Successors, BoundaryNew). 
-
-
-/* 
-Some predicates printing debugging output.
-
-*/  
-
-nodeInfo(Node) :-
-  node(Nr, D, L) = Node,
-  nl, write('Node      : '), write(Nr), 
-  nl, write('Distance  : '), write(D),
-  nl, write('Cost edges: '), nl, 
-  showCostEdges(L).
-
-showCostEdges([]) :- nl.
-showCostEdges([H|T]) :- 
-  costEdgeInfo(H), showCostEdges(T).
-
-showSuccList(Node) :- successor(Node, Succ), nodeInfo(Succ), fail.
-
-succInfo(Node) :-
-  nl, write('===> computing successors of'), nl,
-  nodeInfo(Node),
-  nl, nl, write('List of Successors:'), nl,
-  not(showSuccList(Node)), nl, nl.
-
-
-
+ 
 /* 
 ----    putsucc1(Boundary, Successors, BoundaryNew) :- 
 ----
@@ -2115,6 +2053,7 @@ deleteNodePlans :- not(deleteNodePlan).
 
 deleteNodePlan :- retract(nodePlan(_, _)), fail.
 
+% nCounter tracks the number of counters in queries to get the size of intermediate results.
 :-
   dynamic(nCounter/1).
 
@@ -2134,155 +2073,160 @@ deleteCounter :- retract(nCounter(_)), fail.
 
 deleteCounters :- not(deleteCounter).
 
-
 traversePath([]).
 
 traversePath([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
   embedSubPlans(Term, Term2),
-  nextCounter(Nc), retractall(resultCounter(Nc,_,_,_)),
+  nextCounter(Nc),
   assert(nodePlan(Result, counter(Nc,Term2))),
-  assert(resultCounter(Nc, Source, Target, Result)),
+  assert(smallResultCounter(Nc, Source, Target, Result)),
   traversePath(Path).
 
-deleteResultCounter :-
-  retractall(resultCounter(_,_,_,_)).
+deleteSmallResultCounter :-
+  retractall(smallResultCounter(_,_,_,_)).
 
-createNewResultSize([]).
-createNewResultSize([ [Nc,Value] | T ]) :-
-  resultCounter(Nc, _, _, Result ),
-  Value1 is Value - 1,
-  assert(newResultSize(Result, Value1)),
-  createNewResultSize( T ).
+createSmallResultSize([]).
+createSmallResultSize([ [Nc,Value] | T ]) :-
+  smallResultCounter(Nc, _, _, Result ),
+  assert(smallResultSize(Result, Value)),
+  createSmallResultSize( T ).
 
-createNewResultSizes2 :-
-  deleteNewResultSize,
-  secondo('list counters', C ),
-  createNewResultSize( C ).
+createSmallResultSizes2 :-
+  deleteSmallResultSize,
+  secondo('list counters', C ), !,
+  createSmallResultSize( C ).
 
-createNewResultSizes :-
-  deleteNewResultSize, !,
-  not(createNewResultSizes2).
+createSmallResultSizes :-
+  deleteSmallResultSize, !,
+  not(createSmallResultSizes2).
 
-deleteNewResultSize :-
-  retractall(newResultSize(_,_)).
+deleteSmallResultSize :-
+  retractall(smallResultSize(_,_)).
 
-deleteSampleSelectivity :-
-  retractall(sample_sel(_,_)).
+createSmallSelectivity :-
+  deleteSmallSelectivity, !,
+  not(createSmallSelectivity2).
 
-createSampleSelectivity :-
-  deleteSampleSelectivity,
-  not(createSampleSelectivity2).
+deleteSmallSelectivity :-
+  retractall(small_cond_sel(_,_,_,_)).
 
-createSampleSelectivity2 :-
-  resultCounter(_, Source, Target, Result),
-  newResultSize(Result, Value),
-  edge(Source,Target,Term,Result,_,_),
-  assignSampleSelectivity(Term,Result,Value),
-  fail.
+compute_sel( 0, 0, Sel ) :-
+  Sel is 1.
 
-assignSampleSelectivity(select(Arg, Pr), _, Value) :-
+compute_sel( Num, Den, Sel ) :-
+  Sel is Num / Den.
+
+assignSmallSelectivity(Source, Target, Result, select(Arg, _), Value) :-
   newResSize(Arg, Card),
-  Sel is Value / Card,
-  simplePred(Pr, SPr ),
-  assert(sample_sel(SPr,Sel)).
+  compute_sel( Value, Card, Sel ),!,
+  assert(small_cond_sel(Source, Target, Result, Sel)).
 
-assignSampleSelectivity(join(Arg1, Arg2, Pr), _, Value) :-
+assignSmallSelectivity(Source, Target, Result, join(Arg1, Arg2, _), Value) :-
   newResSize(Arg1, Card1),
   newResSize(Arg2, Card2),
-  Sel is Value / (Card1 * Card2), !,
-  simplePred(Pr, SPr ),
-  assert(sample_sel(SPr,Sel)).
+  Card is Card1 * Card2,
+  compute_sel( Value, Card, Sel ),!,
+  assert(small_cond_sel(Source, Target, Result, Sel)).
 
-small(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
-  atom_concat(Rel, '_small', Rel2).
+createSmallSelectivity2 :-
+  smallResultCounter(_, Source, Target, Result),
+  smallResultSize(Result, Value),
+  edge(Source,Target,Term,Result,_,_),
+  assignSmallSelectivity(Source, Target, Result, Term, Value),
+  fail.
 
 newResSize(arg(N), Size) :- argument(N, R ), small( R, rel(SRel, _, _)), card(SRel, Size), !.
-newResSize(res(N), Size) :- newResultSize(N, Size), !.
+newResSize(res(N), Size) :- smallResultSize(N, Size), !.
 
 /*
-query_sample prepares the query to be executed in the small database.
+prepare\_query\_small prepares the query to be executed in the small database.
 Assumes that the small database has the same indexes that are in the full database,
-but with the sufix '_small'
+but with the sufix '\_small'
 */
 
-query_sample(rel(Name, V, C), Result) :-
-  atom_concat( Name, '_small', NameSample ),
-  Result = rel(NameSample, V, C),
+prepare_query_small( count(Term), count(Result) ) :-
+  query_small(Term, Result).
+
+prepare_query_small( Term, count(Result) ) :-
+  query_small(Term, Result).
+
+query_small(rel(Name, V, C), Result) :-
+  atom_concat( Name, '_small', NameSmall ),
+  Result = rel(NameSmall, V, C),
   !.
 
-query_sample(exactmatch(IndexName, R, V), Result) :-
+query_small(exactmatch(IndexName, R, V), Result) :-
   atom_concat(IndexName,'_small', IndexNameSmall),
-  query_sample( R, R2 ),
+  query_small( R, R2 ),
   Result = exactmatch(IndexNameSmall, R2, V),
   !.
 
-/*
-To be modified - it should handle functors with any number of arguments. Currently it handles only from 1 to 5 arguments. It should handle lists, too.
-*/
+% To be modified - it should handle functors with any number of arguments. Currently it
+% handles only from 1 to 5 arguments. It should handle lists, too.
 
-query_sample( Term, Result ) :-
+query_small( Term, Result ) :-
   functor(Term, Fun, 1 ),
   arg(1, Term, Arg1),
-  query_sample(Arg1, Res1),
+  query_small(Arg1, Res1),
   Result =.. [Fun | [Res1]],
   !.
 
-query_sample( Term, Result ) :-
+query_small( Term, Result ) :-
   functor(Term, Fun, 2 ),
   arg(1, Term, Arg1),
   arg(2, Term, Arg2),
-  query_sample(Arg1, Res1),
-  query_sample(Arg2, Res2),
+  query_small(Arg1, Res1),
+  query_small(Arg2, Res2),
   Result =.. [Fun | [Res1, Res2]],
   !.
 
-query_sample( Term, Result ) :-
+query_small( Term, Result ) :-
   functor(Term, Fun, 3 ),
   arg(1, Term, Arg1),
   arg(2, Term, Arg2),
   arg(3, Term, Arg3),
-  query_sample(Arg1, Res1),
-  query_sample(Arg2, Res2),
-  query_sample(Arg3, Res3),
+  query_small(Arg1, Res1),
+  query_small(Arg2, Res2),
+  query_small(Arg3, Res3),
   Result =.. [Fun | [Res1, Res2, Res3]],
   !.
 
-query_sample( Term, Result ) :-
+query_small( Term, Result ) :-
   functor(Term, Fun, 4 ),
   arg(1, Term, Arg1),
   arg(2, Term, Arg2),
   arg(3, Term, Arg3),
   arg(4, Term, Arg4),
-  query_sample(Arg1, Res1),
-  query_sample(Arg2, Res2),
-  query_sample(Arg3, Res3),
-  query_sample(Arg4, Res4),
+  query_small(Arg1, Res1),
+  query_small(Arg2, Res2),
+  query_small(Arg3, Res3),
+  query_small(Arg4, Res4),
   Result =.. [Fun | [Res1, Res2, Res3, Res4]],
   !.
 
-query_sample( Term, Result ) :-
+query_small( Term, Result ) :-
   functor(Term, Fun, 5 ),
   arg(1, Term, Arg1),
   arg(2, Term, Arg2),
   arg(3, Term, Arg3),
   arg(4, Term, Arg4),
   arg(5, Term, Arg5),
-  query_sample(Arg1, Res1),
-  query_sample(Arg2, Res2),
-  query_sample(Arg3, Res3),
-  query_sample(Arg4, Res4),
-  query_sample(Arg5, Res5),
+  query_small(Arg1, Res1),
+  query_small(Arg2, Res2),
+  query_small(Arg3, Res3),
+  query_small(Arg4, Res4),
+  query_small(Arg5, Res5),
   Result =.. [Fun | [Res1, Res2, Res3, Res4, Res5]],
   !.
 
-query_sample( Term, Result ) :-
+query_small( Term, Result ) :-
   Result = Term,
   !.
 
 embedSubPlans(res(N), Term) :-
   nodePlan(N, Term), !.
 
-embedSubPlans(Term, Term2) :- 
+embedSubPlans(Term, Term2) :-
   compound(Term), !,
   Term =.. [Functor | Args],
   embedded(Args, Args2),
@@ -2310,9 +2254,8 @@ highestNode(Path, N) :-
 
 bestPlan :-
   assignCosts,
-  highNode(N), 
+  highNode(N),
   dijkstra(0, N, Path, Cost),
-%   writePath(Path),
   plan(Path, Plan),
   write('The best plan is:'), nl, nl,
   wp(Plan),
@@ -2320,12 +2263,9 @@ bestPlan :-
   write('The cost is: '), write(Cost), nl.
 
 bestPlan(Plan, Cost) :-
-  nl, write('Computing best Plan ...'), nl,
   assignCosts,
-%   writeCostEdges,
-  highNode(N), 
+  highNode(N),
   dijkstra(0, N, Path, Cost),
-%   writePath(Path),
   plan(Path, Plan).
 
 /*
@@ -2589,25 +2529,16 @@ the functor ~lc~.
 
 callLookup(Query, Query2) :-
   newQuery,
-  starQuery(Query),
   lookup(Query, Query2), !.
 
-starQuery(select * from _) :- assert(isStarQuery), !.
-starQuery(select count(*) from _) :- assert(isStarQuery), !.
-starQuery(_).
-
 newQuery :- not(clearVariables), not(clearQueryRelations), 
-  not(clearQueryAttributes), not(clearUsedAttributes), not(clearIsStarQuery).
+  not(clearQueryAttributes).
 
 clearVariables :- retract(variable(_, _)), fail.
 
 clearQueryRelations :- retract(queryRel(_, _)), fail.
 
 clearQueryAttributes :- retract(queryAttr(_)), fail.
-
-clearUsedAttributes :- retract(usedAttr(_, _)), fail.
-
-clearIsStarQuery :- retract(isStarQuery), fail.
 
 /*
 
@@ -2684,10 +2615,7 @@ Translate and store a single relation definition.
 :- dynamic
   variable/2,
   queryRel/2,
-  queryAttr/1,
-  isStarQuery/0,
-  usedAttr/2.
-
+  queryAttr/1.
 
 lookupRel(Rel as Var, rel(Rel2, Var, Case)) :-
   relation(Rel, _), !,
@@ -2745,8 +2673,7 @@ lookupAttrs(Attr, Attr2) :-
 lookupAttr(Var:Attr, attr(Var:Attr2, 0, Case)) :- !,
   variable(Var, Rel2),
   Rel2 = rel(Rel, _, _),
-  spelled(Rel:Attr, attr(Attr2, VA, Case)),
-  assert(usedAttr(Rel2, attr(Attr2, VA, Case))).
+  spelled(Rel:Attr, attr(Attr2, _, Case)).
 
 lookupAttr(Attr asc, Attr2 asc) :- !,
   lookupAttr(Attr, Attr2).
@@ -2755,10 +2682,8 @@ lookupAttr(Attr desc, Attr2 desc) :- !,
   lookupAttr(Attr, Attr2).
 
 lookupAttr(Attr, Attr2) :-
-  isAttribute(Attr, Rel),!,
-  spelled(Rel:Attr, Attr2),
-  queryRel(Rel, Rel2),
-  assert(usedAttr(Rel2, Attr2)).
+  isAttribute(Attr, Rel), !,
+  spelled(Rel:Attr, Attr2).
 
 lookupAttr(*, *) :- !.
 
@@ -2777,12 +2702,6 @@ lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
   write('***** Error: attribute name '), write(Name), 
   write(' doubly defined in query.'),
   nl.
-
-/*
-Currently terms involving operators with up to five arguments are handled. This may need to be extended in the future. Then ~lookupPreds~ should also be extended.
-
-*/
-
 
 lookupAttr(Term, Term2) :-
   compound(Term),
@@ -2803,59 +2722,7 @@ lookupAttr(Term, Term2) :-
   arg(1, Term2, Res1),
   arg(2, Term2, Res2).
 
-lookupAttr(Term, Term2) :-
-  compound(Term),
-  functor(Term, Op, 3),
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  lookupAttr(Arg1, Res1),
-  lookupAttr(Arg2, Res2),
-  lookupAttr(Arg3, Res3),
-  functor(Term2, Op, 3),
-  arg(1, Term2, Res1),
-  arg(2, Term2, Res2),
-  arg(3, Term2, Res3).
-
-lookupAttr(Term, Term2) :-
-  compound(Term),
-  functor(Term, Op, 4),
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  arg(4, Term, Arg4),
-  lookupAttr(Arg1, Res1),
-  lookupAttr(Arg2, Res2),
-  lookupAttr(Arg3, Res3),
-  lookupAttr(Arg4, Res4),
-  functor(Term2, Op, 4),
-  arg(1, Term2, Res1),
-  arg(2, Term2, Res2),
-  arg(3, Term2, Res3),
-  arg(4, Term2, Res4).
-
-lookupAttr(Term, Term2) :-
-  compound(Term),
-  functor(Term, Op, 5),
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  arg(4, Term, Arg4),
-  arg(5, Term, Arg5),
-  lookupAttr(Arg1, Res1),
-  lookupAttr(Arg2, Res2),
-  lookupAttr(Arg3, Res3),
-  lookupAttr(Arg4, Res4),
-  lookupAttr(Arg5, Res5),
-  functor(Term2, Op, 5),
-  arg(1, Term2, Res1),
-  arg(2, Term2, Res2),
-  arg(3, Term2, Res3),
-  arg(4, Term2, Res4),
-  arg(5, Term2, Res5).
-
-
-% may need to be extended to more than five arguments in a term.
+% may need to be extended to more than two arguments in a term.
 
 
 lookupAttr(Name, attr(Name, 0, u)) :-
@@ -2922,23 +2789,16 @@ found.
 lookupPred1(Var:Attr, attr(Var:Attr2, N1, Case), N, RelsBefore, N1, RelsAfter)
   :-
   variable(Var, Rel2), !,   Rel2 = rel(Rel, _, _),
-  spelled(Rel:Attr, attr(Attr2, X, Case)),
-  assert(usedAttr(Rel2, attr(Attr2, X, Case))),
+  spelled(Rel:Attr, attr(Attr2, _, Case)),
   N1 is N + 1,
   append(RelsBefore, [Rel2], RelsAfter).
 
 lookupPred1(Attr, attr(Attr2, N1, Case), N, RelsBefore, N1, RelsAfter) :-
   isAttribute(Attr, Rel), !,
-  spelled(Rel:Attr, attr(Attr2, X, Case)),
+  spelled(Rel:Attr, attr(Attr2, _, Case)),
   queryRel(Rel, Rel2),
-  assert(usedAttr(Rel2, attr(Attr2, X, Case))),
   N1 is N + 1,
   append(RelsBefore, [Rel2], RelsAfter).
-
-/*
-Currently terms involving operators with up to five arguments are handled. When this is extended, modify also ~lookupAttrs~.
-
-*/
 
 lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
   compound(Term),
@@ -2953,65 +2813,13 @@ lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
   functor(Term, F, 2), !,
   arg(1, Term, Arg1),
   arg(2, Term, Arg2),
-  lookupPred1(Arg1, Arg1Out,  N, RelsBefore, M1, RelsAfter1),
-  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1,  M, RelsAfter),
+  lookupPred1(Arg1, Arg1Out, N, RelsBefore, M1, RelsAfter1),
+  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1, M, RelsAfter),
   functor(Term2, F, 2),
   arg(1, Term2, Arg1Out),
   arg(2, Term2, Arg2Out).
 
-lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
-  compound(Term),
-  functor(Term, F, 3), !,
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  lookupPred1(Arg1, Arg1Out,  N, RelsBefore, M1, RelsAfter1),
-  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1, M2, RelsAfter2),
-  lookupPred1(Arg3, Arg3Out, M2, RelsAfter2,  M, RelsAfter),
-  functor(Term2, F, 3),
-  arg(1, Term2, Arg1Out),
-  arg(2, Term2, Arg2Out),
-  arg(3, Term2, Arg3Out).
-
-lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
-  compound(Term),
-  functor(Term, F, 4), !,
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  arg(4, Term, Arg4),
-  lookupPred1(Arg1, Arg1Out,  N, RelsBefore, M1, RelsAfter1),
-  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1, M2, RelsAfter2),
-  lookupPred1(Arg3, Arg3Out, M2, RelsAfter2, M3, RelsAfter3),
-  lookupPred1(Arg4, Arg4Out, M3, RelsAfter3,  M, RelsAfter),
-  functor(Term2, F, 4),
-  arg(1, Term2, Arg1Out),
-  arg(2, Term2, Arg2Out),
-  arg(3, Term2, Arg3Out),
-  arg(4, Term2, Arg4Out).
-
-lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
-  compound(Term),
-  functor(Term, F, 5), !,
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  arg(4, Term, Arg4),
-  arg(5, Term, Arg5),
-  lookupPred1(Arg1, Arg1Out,  N, RelsBefore, M1, RelsAfter1),
-  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1, M2, RelsAfter2),
-  lookupPred1(Arg3, Arg3Out, M2, RelsAfter2, M3, RelsAfter3),
-  lookupPred1(Arg4, Arg4Out, M3, RelsAfter3, M4, RelsAfter4),
-  lookupPred1(Arg5, Arg5Out, M4, RelsAfter4,  M, RelsAfter),
-  functor(Term2, F, 5),
-  arg(1, Term2, Arg1Out),
-  arg(2, Term2, Arg2Out),
-  arg(3, Term2, Arg3Out),
-  arg(4, Term2, Arg4Out),
-  arg(5, Term2, Arg5Out).
-
-
-% may need to be extended to operators with more than five arguments.
+% may need to be extended to operators with more than two arguments.
 
 lookupPred1(Term, Term, N, Rels, N, Rels) :-
   atom(Term),
@@ -3105,8 +2913,8 @@ only the cost for evaluating the essential part, the conjunctive query.
 */
 
 translate(Query groupby Attrs,
-        groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields), 
-        select Select2, Cost) :-
+          groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields),
+          select Select2, Cost) :-
   translate(Query, Stream, SelectClause, Cost),
   makeList(Attrs, Attrs2),
   attrnames(Attrs2, AttrNamesGroup),
@@ -3116,43 +2924,10 @@ translate(Query groupby Attrs,
   translateFields(SelAttrs, Attrs2, Fields, Select2),
   !.
 
-translate(Select from Rels where Preds, Stream, Select, Cost) :- 
+translate(Select from Rels where Preds, Stream, Select, Cost) :-
   pog(Rels, Preds, _, _),
   bestPlan(Stream, Cost),
   !.
-
-/*
-Handle special case "select * from"
-
-*/
-
-translate(select * from Rel, feed(Rel), select *, 0) :-
-  not(is_list(Rel)),
-  !.
-
-translate(select * from [Rel], feed(Rel), select *, 0).
-
-translate(select * from [Rel | Rels], product(feed(Rel), Stream), select *, 0) :-
-  translate(select * from Rels, Stream, select *, _).
-
-
-/*
-Create feed project statements if possible 
-
-*/
-
-translate(Select from Rel, project(feed(Rel), AttrNames), Select, 0) :-
-  not(is_list(Rel)),
-  usedAttrList(Rel, AttrNames),
-  !.
-
-translate(Select from [Rel], project(feed(Rel), AttrNames), Select, 0) :-
-  usedAttrList(Rel, AttrNames).
-
-translate(Select from [Rel | Rels], product(project(feed(Rel), AttrNames), Stream), Select, 0) :-
-  usedAttrList(Rel, AttrNames),
-  translate(Select from Rels, Stream, Select, _).
-
 
 translate(Select from Rel, feed(Rel), Select, 0) :-
   not(is_list(Rel)),
@@ -3162,21 +2937,6 @@ translate(Select from [Rel], feed(Rel), Select, 0).
 
 translate(Select from [Rel | Rels], product(feed(Rel), Stream), Select, 0) :-
   translate(Select from Rels, Stream, Select, _).
-
-
-/*
-The next predicate finds all attributes of a given relation ~Rel~
-which are needed in this query. The result can be used to create
-project(feed(..)) streams instead of simply feeding all attributes
-from a relation into a stream. The system predicate ~setof~ is used
-to find all goal for query ~usedAttr(Rel,X)~.
-
-*/
-
-usedAttrList(Rel, ResList) :- 
-  setof(X, usedAttr(Rel, X), R1),
-  %nl, write('AttrList: '), write(R1), nl,
-  attrnames(R1, ResList). 
 
 
 
@@ -3335,23 +3095,56 @@ queryToStream(Query first N, head(Stream, N), Cost) :-
   !.
 
 queryToStream(Query orderby SortAttrs, Stream2, Cost) :-
-  translate(Query, Stream, Select, Cost),
+  translate2(Query, Stream, Select, Cost),
   finish(Stream, Select, SortAttrs, Stream2),
   !.
 
-queryToStream(Select from Rels where Preds, Stream2, Cost) :-
-  translate(Select from Rels where Preds, Stream, Select1, Cost),
-  finish(Stream, Select1, [], Stream2),
-  !.
-
-queryToStream(Select from Rels groupby Attrs, Stream2, Cost) :-
-  translate(Select from Rels groupby Attrs, Stream, Select1, Cost),
-  finish(Stream, Select1, [], Stream2),
-  !.
-
 queryToStream(Query, Stream2, Cost) :-
-  translate(Query, Stream, Select, Cost),
+  translate2(Query, Stream, Select, Cost),
   finish(Stream, Select, [], Stream2).
+
+/*
+  Entropy stuff.
+*/
+
+translate2(Query, Stream2, Select, Cost2) :-
+  deleteSmallResults,
+  translate(Query, Stream1, Select, Cost1), !,
+  try_entropy(Stream1, Stream2, Cost1, Cost2), !,
+  warn_plan_changed(Stream1, Stream2).
+
+try_entropy(Stream1, Stream2, Cost1, Cost2) :-
+  useEntropy, highNode(HN), HN < 256, !,
+  nl, write('*** Trying to use the Entropy-approach ******************************' ), nl, !,
+  plan_to_atom(Stream1, FirstQuery),
+  prepare_query_small(Stream1, PlanSmall),
+  plan_to_atom(PlanSmall, SmallQuery),
+  write('The plan in small database is: '), nl, write(SmallQuery), nl, nl,
+  write('Executing the query in the small database...'),
+  deleteEntropyNodes, !,
+  query(SmallQuery), !, nl,
+  assignEntropyCost, !,
+  write('First Plan:'), nl, write( FirstQuery ), nl, nl,
+  write('Estimated Cost: '), write(Cost1), nl, nl,
+  entropyBestPlan(Stream2, Cost2).
+
+try_entropy(Stream1, Stream1, Cost1, Cost1).
+
+entropyBestPlan(Plan,Cost) :-
+  deleteCounters,
+  highNode(N),
+  dijkstra(0, N, Path, Cost),
+  plan(Path, Plan).
+
+warn_plan_changed(Plan1, Plan2) :-
+  not(Plan1 = Plan2),
+  nl,
+  write( '*******************************************************' ), nl,
+  write( '* * *  INITIAL PLAN CHANGED BY ENTROPY APPROACH!  * * *' ), nl,
+  write( '*******************************************************' ), nl.
+
+warn_plan_changed(_,_).
+
 
 /*
 ----    finish(Stream, Select, Sort, Stream2) :-
@@ -3365,6 +3158,7 @@ apply the final tranformations (extend, sort, project) to obtain ~Stream2~.
 finish(Stream, Select, Sort, Stream2) :-
   selectClause(Select, Extend, Project),
   finish2(Stream, Extend, Sort, Project, Stream2).
+
 
 
 selectClause(select *, [], *).
@@ -3512,46 +3306,51 @@ sqlToPlan(QueryText, Plan) :-
 11.3.8 Examples
 
 We can now formulate the previous example queries in the user level language.
-They are stored as prolog facts sqlExample/2. Examples can be called by
-testing the predicates example/1 or example/2. Moreover, they are also
-present as facts with name ~example<No>~.
 
-Below we present some generic rules for evaluating SQL examples.
+
+Example3:
 
 */
 
-showExample(Nr, Query) :- 
-  sqlExample(Nr, Query), 
-  nl, write('SQL: '), write(Query), nl, nl.
-
-example(Nr) :- showExample(Nr, Query), optimize(Query).
-example(Nr, Query, Cost) :- showExample(Nr, Example), optimize(Example, Query, Cost).
-
-
-/*
-Examples 14 - 21:
-
-*/
-
-
-sqlExample( 14,
-
+example14 :- optimize(
   select * from [staedte as s, plz as p] where [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0]
   ).
 
-sqlExample( 15,
+example14(Query, Cost) :- optimize(
+  select * from [staedte as s, plz as p] where [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0],
+  Query, Cost
+  ).
 
+
+/*
+Example4:
+
+*/
+example15 :- optimize(
   select * from staedte where bev > 500000
   ).
 
-
-sqlExample( 16,
-
-  select * from [staedte as s, plz as p] where [s:sname = p:ort, p:plz > 40000]
+example15(Query, Cost) :- optimize(
+  select * from staedte where bev > 500000,
+  Query, Cost
   ).
 
 /*
-Example 17. This may need a larger local stack size. Start Prolog as
+Example5:
+
+*/
+example16 :-  optimize(
+  select * from [staedte as s, plz as p] where [s:sname = p:ort, p:plz > 40000]
+  ).
+
+example16(Query, Cost) :-  optimize(
+  select * from [staedte as s, plz as p] where [s:sname = p:ort, p:plz > 40000],
+  Query, Cost
+  ).
+
+
+/*
+Example6. This may need a larger local stack size. Start Prolog as
 
 ----    pl -L4M
 ----
@@ -3559,8 +3358,7 @@ Example 17. This may need a larger local stack size. Start Prolog as
 which initializes the local stack to 4 MB.
 
 */
-
-sqlExample( 17,
+example17 :- optimize(
   select *
   from [staedte, plz as p1, plz as p2, plz as p3]
   where [
@@ -3576,9 +3374,29 @@ sqlExample( 17,
     p3:ort starts "M"]
   ).
 
+example17(Query, Cost) :- optimize(
+  select *
+  from [staedte, plz as p1, plz as p2, plz as p3]
+  where [
+    sname = p1:ort,
+    p1:plz = p2:plz + 1,
+    p2:plz = p3:plz * 5,
+    bev > 300000,
+    bev < 500000,
+    p2:plz > 50000,
+    p2:plz < 60000,
+    kennzeichen starts "W",
+    p3:ort contains "burg",
+    p3:ort starts "M"],
+  Query, Cost
+  ).
 
 
-sqlExample( 18,
+/*
+Example 18:
+
+*/
+example18 :- optimize(
   select *
   from [staedte, plz as p1]
   where [
@@ -3592,8 +3410,26 @@ sqlExample( 18,
     p1:ort starts "M"]
   ).
 
+example18(Query, Cost) :- optimize(
+  select *
+  from [staedte, plz as p1]
+  where [
+    sname = p1:ort,
+    bev > 300000,
+    bev < 500000,
+    p1:plz > 50000,
+    p1:plz < 60000,
+    kennzeichen starts "W",
+    p1:ort contains "burg",
+    p1:ort starts "M"],
+  Query, Cost
+  ).
 
-sqlExample( 19, 
+/*
+Example 19:
+
+*/
+example19 :- optimize(
   select *
   from [staedte, plz as p1, plz as p2]
   where [
@@ -3608,8 +3444,28 @@ sqlExample( 19,
     p1:ort starts "M"]
   ).
 
+example19(Query, Cost) :- optimize(
+  select *
+  from [staedte, plz as p1, plz as p2]
+  where [
+    sname = p1:ort,
+    p1:plz = p2:plz + 1,
+    bev > 300000,
+    bev < 500000,
+    p1:plz > 50000,
+    p1:plz < 60000,
+    kennzeichen starts "W",
+    p1:ort contains "burg",
+    p1:ort starts "M"],
+  Query, Cost
+  ).
 
-sqlExample( 20,
+
+/*
+Example 20:
+
+*/
+example20 :- optimize(
   select *
   from [staedte as s, plz as p]
   where [
@@ -3618,8 +3474,21 @@ sqlExample( 20,
     s:bev > 300000]
   ).
 
+example20(Query, Cost) :- optimize(
+  select *
+  from [staedte as s, plz as p]
+  where [
+    p:ort = s:sname,
+    p:plz > 40000,
+    s:bev > 300000],
+  Query, Cost
+  ).
 
-sqlExample( 21, 
+/*
+Example 21:
+
+*/
+example21 :- optimize(
   select *
   from [staedte, plz as p1, plz as p2, plz as p3]
   where [
@@ -3628,26 +3497,15 @@ sqlExample( 21,
     p2:plz = p3:plz * 5]
   ).
 
-
-example14 :- example(14).
-example15 :- example(15).
-example16 :- example(16).
-example17 :- example(17).
-example18 :- example(18).
-example19 :- example(19).
-example20 :- example(20).
-example21 :- example(21).
-
-
-example14(Query, Cost) :- example14(Query, Cost).
-example15(Query, Cost) :- example15(Query, Cost).
-example16(Query, Cost) :- example16(Query, Cost).
-example17(Query, Cost) :- example17(Query, Cost).
-example18(Query, Cost) :- example18(Query, Cost).
-example19(Query, Cost) :- example19(Query, Cost).
-example20(Query, Cost) :- example20(Query, Cost).
-example21(Query, Cost) :- example21(Query, Cost).
-
+example21(Query, Cost) :- optimize(
+  select *
+  from [staedte, plz as p1, plz as p2, plz as p3]
+  where [
+    sname = p1:ort,
+    p1:plz = p2:plz + 1,
+    p2:plz = p3:plz * 5],
+  Query, Cost
+  ).
 
 /*
 
@@ -3721,8 +3579,8 @@ streamOptimize(Term, Query, Cost) :-
         mStreamOptimize(union [Term], Query, Cost) :-
 ----
 
-Means ``multi-optimize''. Optimize a ~Term~ possibly consisting of several subexpressions to be independently optimized, as in union and intersection queries. ~mStreamOptimize~ is a variant returning a stream.
-
+Means ``multi-optimize''. Optimize a ~Term~ possibly consisting of several subexpressions to be independently optimized, as in union and intersection queries. ~mStreamOptimize~ is a variant
+returning a stream.
 */
 
 :-op(800, fx, union).
@@ -3738,7 +3596,6 @@ mOptimize(intersection Terms, Query, Cost) :-
 
 mOptimize(Term, Query, Cost) :-
   optimize(Term, Query, Cost).
-
 
 mStreamOptimize(union [Term], Query, Cost) :-
   streamOptimize(Term, QueryPart, Cost),
@@ -3763,12 +3620,13 @@ mStreamOptimize(intersection [Term | Terms], Query, Cost) :-
 mStreamOptimize(Term, Query, Cost) :-
   streamOptimize(Term, Query, Cost).
 
-
-
 /*
 Some auxiliary stuff.
 
 */
+
+listCounters :-
+  secondo('list counters').
 
 bestPlanCount :-
   bestPlan(P, _),
@@ -3789,61 +3647,122 @@ desplay(int, N) :-
   write(N),nl,
   fail.
 
+entropySel( 0, Target, Sel ) :-
+  entropy_node( Target, Sel ).
 
+entropySel( Source, Target, Sel ) :-
+  entropy_node( Source, P1 ),
+  entropy_node( Target, P2 ),
+  P1 > 0,
+  Sel is P2 / P1.
 /*
-  Sample optimizations routines
+Now it is assuming an implicit order. Should be altered to work in the same way as conditional probabilities
 */
 
-optimize_sample( Query ) :-
-  deleteNewResultSize,
-  deleteSampleSelectivity,
-  callLookup(Query, Query2),
-  queryToPlan(Query2, Plan, Cost),
-  plan_to_atom(Plan, FirstQuery),
-  write( 'First Plan:' ), nl, write( FirstQuery ), nl, nl,
-  query_sample(Plan, Plan2),
-  plan_to_atom(Plan2, SampleQuery),
-  write('The plan in sample is: '), nl,
-  write(SampleQuery), nl, nl,
-  write('Executing the query in the sample...'),
-  query(SampleQuery), nl, nl,
-  createNewResultSizes,
-  createSampleSelectivity,
-  write( 'First Plan:' ), nl, write( FirstQuery ), nl, nl,
-  write('Estimated Cost: '), write(Cost), nl, nl,
-  optimize(Query).
+createMarginalProbabilities( MP ) :-
+  createMarginalProbability( 0, MP ).
 
-optimize_sample( Query, FirstQuery, SecondQuery ) :-
-  deleteNewResultSize,
-  deleteSampleSelectivity,
-  callLookup(Query, Query2),
-  queryToPlan(Query2, Plan, Cost),
-  plan_to_atom(Plan, FirstQuery),
-  write( 'First Plan:' ), nl, write( FirstQuery ), nl, nl,
-  query_sample(Plan, Plan2),
-  plan_to_atom(Plan2, SampleQuery),
-  write('The plan in sample is: '), nl,
-  write(SampleQuery), nl, nl,
-  write('Executing the query in the sample...'),
-  query(SampleQuery), nl, nl,
-  createNewResultSizes,
-  createSampleSelectivity,
-  write( '*** First Plan:' ), nl, write( FirstQuery ), nl, nl,
-  write('Estimated Cost: '), write(Cost), nl, nl,
-  optimize(Query,SecondQuery,_),
-  nl, write( '*** Second Plan:' ), nl, write( SecondQuery ), nl, nl.
+createMarginalProbability( N, [Sel|T] ) :-
+  edgeSelectivity(N, M, Sel),
+  createMarginalProbability( M, T ).
 
-compare_plan( Query ) :-
-  optimize_sample( Query, FirstQuery, SecondQuery ), nl,
-  query( FirstQuery ), nl,
-  query( SecondQuery ).
+createMarginalProbability( _, [] ).
 
-compare_sel :-
-  storedSel( Pr, Sel1 ), sample_sel( Pr, Sel2 ),
-  Change is 100*((Sel2 / Sel1)-1),
-  write( Pr ), nl, write( Sel1 ), write( ' -> ' ), write( Sel2 ),
-  write( ' (' ), write( Change ), write( '%)' ), nl,nl,
+createJointProbabilities( JP ) :-
+  createJointProbability( 0, 1, [_|JP] ).
+
+createJointProbability( N0, AccSel, [[N1,CP1]|T] ) :-
+  small_cond_sel( N0, N1, _, Sel ),
+  CP1 is Sel * AccSel,
+  createJointProbability( N1, CP1, T ).
+
+createJointProbability( _, _, [] ).
+
+
+assignEntropyCost :-
+  createSmallResultSizes, !,
+  createSmallSelectivity, !,
+  createMarginalProbabilities( MP ),!,
+  createJointProbabilities( JP ),!,
+  saveFirstSizes,
+  deleteSizes,
+  deleteCostEdges,
+  maximize_entropy(MP, JP, Result), !,
+  createEntropyNode(Result),
+  assignEntropySizes,
+  write( MP ), write(', ') , write( JP ), nl, nl,
+  createCostEdges.
+
+assignEntropySizes :- not(assignEntropySizes1).
+
+assignEntropySizes1 :-
+  edge(Source, Target, Term, Result, _, _),
+  assignEntropySize(Source, Target, Term, Result),
   fail.
+
+assignEntropySize(Source, Target, select(Arg, _), Result) :-
+  resSize(Arg, Card),
+  entropySel(Source, Target, Sel),
+  Size is Card * Sel,
+  setNodeSize(Result, Size),
+  assert(edgeSelectivity(Source, Target, Sel)).
+
+assignEntropySize(Source, Target, join(Arg1, Arg2, _), Result) :-
+  resSize(Arg1, Card1),
+  resSize(Arg2, Card2),
+  entropySel(Source, Target, Sel),
+  Size is Card1 * Card2 * Sel,
+  setNodeSize(Result, Size),
+  assert(edgeSelectivity(Source, Target, Sel)).
+
+deleteEntropyNodes :-
+  retractall(entropy_node(_,_)).
+
+createEntropyNode( [] ).
+createEntropyNode( [[N,E]|L] ) :-
+  assert(entropy_node(N,E)),
+  createEntropyNode( L ).
+
+:- dynamic
+   smallResultSize/2,
+   smallResultCounter/4,
+   entropy_node/2,
+   small_cond_sel/4,
+   useEntropy/0,
+   firstResultSize/2,
+   firstEdgeSelectivity/3.
+
+useEntropy.
+
+use_entropy :-
+  assert(useEntropy).
+
+dont_use_entropy :-
+  retractall(useEntropy).
+
+deleteSmallResults :-
+  deleteSmallResultCounter,
+  deleteSmallResultSize,
+  deleteSmallSelectivity,
+  deleteFirstSizes.
+
+saveFirstSizes :-
+  not(copyFirstResultSize), !,
+  not(copyFirstEdgeSelectivity).
+
+copyFirstResultSize :-
+  resultSize(Result, Size),
+  assert(firstResultSize(Result, Size)),
+  fail.
+
+copyFirstEdgeSelectivity :-
+  edgeSelectivity(Source, Target, Sel),
+  assert(firstEdgeSelectivity(Source, Target, Sel)),
+  fail.
+
+deleteFirstSizes :-
+  retractall(firstResultSize(_,_)),
+  retractall(firstEdgeSelectivity(_,_,_)).
 
 
 

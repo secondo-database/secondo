@@ -201,7 +201,8 @@ public class OptimizerServer extends Thread{
 	  while(pl_query.hasMoreSolutions(Prolog.Q_NODEBUG)){
 	        number++;
 	        Hashtable solution = pl_query.nextSolution();
-                ret = ret+" "+solution.get(X);
+                // ret = ret+" "+solution.get(X);
+                ret = ""+solution.get(X);
 	  }
 	  if(number==0){
 	     if(trace)
