@@ -486,7 +486,8 @@ private class ImageDisplay extends JLabel implements java.awt.image.ImageObserve
  
   public void setImage(BufferedImage img){
         theImage = img;
-         if(useTFW.isSelected()){
+       
+         if(useTFW.isSelected()&&img!=null){
               R1.setRect(img.getMinX(),img.getMinY(),img.getWidth(),img.getHeight());            
               tfw.convertRectangle(R1,R2);
               double w= Math.max(1,R2.getWidth());
