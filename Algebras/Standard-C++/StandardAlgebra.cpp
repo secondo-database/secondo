@@ -1636,6 +1636,40 @@ ListExpr ifthenelseType(ListExpr args)
 }
 
 /*
+4.2.14 Type mapping function for the ~between~ operator:
+
+Type mapping for ~between~ is
+
+----	(T x T x T) -> bool
+----
+
+*/
+ListExpr
+CcBetweenTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2, arg3;
+  if ( nl->ListLength( args ) == 3 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    arg3 = nl->Second( args );
+    if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccint
+                                       && TypeOfSymbol( arg3 ) == ccint)
+      return (nl->SymbolAtom( "bool" ));
+    if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccreal
+                                        && TypeOfSymbol( arg3 ) == ccreal)
+      return (nl->SymbolAtom( "bool" ));
+    if ( TypeOfSymbol( arg1 ) == ccstring && TypeOfSymbol( arg2 ) == ccstring
+                                          && TypeOfSymbol( arg3 ) == ccstring)
+      return (nl->SymbolAtom( "bool" ));
+    if ( TypeOfSymbol( arg1 ) == ccbool && TypeOfSymbol( arg2 ) == ccbool
+                                        && TypeOfSymbol( arg3 ) == ccbool)
+      return (nl->SymbolAtom( "bool" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
 4.3 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -1745,6 +1779,38 @@ CcMathSelectIsEmpty( ListExpr args )
     return (3);
   return (-1); // This point should never be reached
 }
+
+/*
+4.3.3 Selection function  CcBetweenSelect
+
+It is used for the ~between~ operator.
+
+*/
+int
+CcBetweenSelect( ListExpr args )
+{
+  ListExpr arg1, arg2, arg3;
+  if ( nl->ListLength( args ) == 3 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    arg3 = nl->Second( args );
+    if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccint
+                                       && TypeOfSymbol( arg3 ) == ccint)
+      return ( 0 );
+    if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccreal
+                                        && TypeOfSymbol( arg3 ) == ccreal)
+      return ( 1 );
+    if ( TypeOfSymbol( arg1 ) == ccstring && TypeOfSymbol( arg2 ) == ccstring
+                                          && TypeOfSymbol( arg3 ) == ccstring)
+      return ( 2 );
+    if ( TypeOfSymbol( arg1 ) == ccbool && TypeOfSymbol( arg2 ) == ccbool
+                                        && TypeOfSymbol( arg3 ) == ccbool)
+      return ( 3 );
+  }
+  return ( -1 );
+}
+
 
 /*
 4.4 Value mapping functions of operator ~+~
@@ -3588,6 +3654,112 @@ ifthenelseFun(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 /*
+4.21 Value mapping functions of operator ~between~
+
+*/
+
+int CcBetween_iii(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result = qp->ResultStorage( s );
+  if ( ((CcInt*)args[0].addr)->IsDefined() &&
+       ((CcInt*)args[1].addr)->IsDefined() && ((CcInt*)args[2].addr)->IsDefined() )
+  {
+    if ( ((CcInt*)args[1].addr)->GetIntval() <= ((CcInt*)args[2].addr)->GetIntval() )
+    {
+      ((CcBool *)result.addr)->Set( true, (
+        ((CcInt*)args[0].addr)->GetIntval() >= 
+        ((CcInt*)args[1].addr)->GetIntval()) &&
+       (((CcInt*)args[0].addr)->GetIntval() <= 
+        ((CcInt*)args[2].addr)->GetIntval()));
+    }
+    else cerr << "ERROR in operator between: second argument must be less or"
+                 " equal third argument!" << endl;
+  }
+  else
+  {
+    ((CcBool *)result.addr)->Set( false, false );
+  }
+
+  return (0);
+}
+
+int CcBetween_rrr(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result = qp->ResultStorage( s );
+  if ( ((CcReal*)args[0].addr)->IsDefined() &&
+       ((CcReal*)args[1].addr)->IsDefined() && ((CcReal*)args[2].addr)->IsDefined() )
+  {
+    if ( ((CcReal*)args[1].addr)->GetRealval() <= ((CcReal*)args[2].addr)->GetRealval() )
+    {
+      ((CcBool *)result.addr)->Set( true, 
+      (((CcReal*)args[0].addr)->GetRealval() >= 
+       ((CcReal*)args[1].addr)->GetRealval()) &&
+      (((CcReal*)args[0].addr)->GetRealval() <= 
+       ((CcReal*)args[2].addr)->GetRealval()));
+    }
+    else cerr << "ERROR in operator between: second argument must be less or"
+                 " equal third argument!" << endl;     
+  }
+  else
+  {
+    ((CcBool *)result.addr)->Set( false, false );
+  }
+
+  return (0);
+}
+
+int CcBetween_sss(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result = qp->ResultStorage( s );
+  if ( ((CcString*)args[0].addr)->IsDefined() &&
+       ((CcString*)args[1].addr)->IsDefined() && ((CcString*)args[2].addr)->IsDefined() )
+  {
+    if ( strcmp( *((CcString*)args[1].addr)->GetStringval(),
+                 *((CcString*)args[2].addr)->GetStringval() ) <= 0 )
+    {
+      ((CcBool *)result.addr)->Set( true, ( 
+      (strcmp( *((CcString*)args[0].addr)->GetStringval(),
+               *((CcString*)args[1].addr)->GetStringval() ) >= 0 ) &&
+      (strcmp( *((CcString*)args[0].addr)->GetStringval(),
+               *((CcString*)args[2].addr)->GetStringval() ) <= 0 ) ));					  
+    }
+    else cerr << "ERROR in operator between: second argument must be less or"
+                 " equal third argument!" << endl;  
+  }                                 
+  else
+  {
+    ((CcBool *)result.addr)->Set( false, false );
+  }
+
+  return (0);
+}
+
+int CcBetween_bbb(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result = qp->ResultStorage( s );
+  if ( ((CcBool*)args[0].addr)->IsDefined() &&
+       ((CcBool*)args[1].addr)->IsDefined() && ((CcBool*)args[2].addr)->IsDefined() )
+  {
+    if ( ((CcBool*)args[1].addr)->GetBoolval() <= ((CcBool*)args[2].addr)->GetBoolval() )
+    {
+      ((CcBool *)result.addr)->Set( true, 
+      (((CcBool*)args[0].addr)->GetBoolval() >= 
+       ((CcBool*)args[1].addr)->GetBoolval()) &&
+      (((CcBool*)args[0].addr)->GetBoolval() <= 
+       ((CcBool*)args[2].addr)->GetBoolval()));
+    }
+    else cerr << "ERROR in operator between: second argument must be less or"
+                 " equal third argument!" << endl; 
+  }
+  else
+  {
+    ((CcBool *)result.addr)->Set( false, false );
+  }
+
+  return (0);
+}
+
+/*
 1.10 Operator Model Mappings
 
 */
@@ -3714,6 +3886,7 @@ ValueMapping ccoprelcountmap[] = { RelcountFun };
 ValueMapping ccoprelcountmap2[] = { RelcountFun2 };
 ValueMapping cckeywordsmap[] = { keywordsFun };
 ValueMapping ccifthenelsemap[] = { ifthenelseFun };
+ValueMapping ccbetweenmap[] = { CcBetween_iii, CcBetween_rrr, CcBetween_sss, CcBetween_bbb };
 
 ModelMapping ccnomodelmap[] = { CcNoModelMapping, CcNoModelMapping, CcNoModelMapping,
                                 CcNoModelMapping, CcNoModelMapping, CcNoModelMapping };
@@ -3997,6 +4170,17 @@ const string CCSpecIfthenelse  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 	     " NOTE: The second and the third argument must be of the same type T.</text--->"
              "<text>query ifthenelse(3 < 5,[const string value \"less\"],[const string value \"greater\"])</text--->"
              ") )";
+	     
+const string CCSpecBetween  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" )"
+                             "( <text>(T x T x T) ->  bool</text--->"
+             "<text>_ between[_, _]</text--->"
+             "<text>Returns true, if the first argument is in the range of the second"
+             " and third argument, otherwise false. T can be of type int, real, string or bool."
+	     " NOTE: The second argument must be less or equal than the third argument.</text--->"
+             "<text>query 5 between [3, 8], query \"house\" between [\"ha\", \"hu\"]</text--->"
+             ") )";
+
 
 
 const string specListHeader = "( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )";
@@ -4105,6 +4289,9 @@ Operator ccopkeywords( "keywords", CCSpecKeywords, 1, cckeywordsmap,
 
 Operator ccopifthenelse( "ifthenelse", CCSpecIfthenelse, 1, ccifthenelsemap, 
                          ccnomodelmap, Operator::SimpleSelect, ifthenelseType );
+			 
+Operator ccbetween( "between", CCSpecBetween, 4, ccbetweenmap, 
+                         ccnomodelmap, CcBetweenSelect, CcBetweenTypeMap );
 
 
 /*
@@ -4176,6 +4363,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccoprelcount2 );
     AddOperator( &ccopkeywords );
     AddOperator( &ccopifthenelse );
+    AddOperator( &ccbetween );
   }
   ~CcAlgebra1() {};
 
