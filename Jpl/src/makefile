@@ -31,7 +31,7 @@ ifdef ENTROPY
 include ../../Optimizer/Entropy/makefile.optlib
 
 LINKFILES += ../../Optimizer/Entropy/entropy.$(OBJEXT)
-LD_LINK_LIBS += -L$(OPTLIB_BUILD) -lopt-$(TARGET_NAME) -lnewmat-$(TARGET_NAME) 
+ENT_LINK_LIBS = -L$(OPTLIB_BUILD) -lopt-$(TARGET_NAME) -lnewmat-$(TARGET_NAME)
 CCFLAGS += -DSECONDO_USE_ENTROPY
 
 endif
@@ -49,10 +49,9 @@ build: $(OPTDIR)/$(SHARED_PREF)jpl.$(SHARED_EXT)
 $(JPL_LIB)/jpl.o:
 	$(CC) -c -fPIC -g -o $(JPL_LIB)/jpl.o $(INCLUDEFLAGS) jpl_fli_Prolog.c
 
-
 $(OPTDIR)/$(SHARED_PREF)jpl.$(SHARED_EXT):
 	$(CC) -shared $(EXEFLAGS) $(LDFLAGS) -Wl,-soname,$(SHARED_PREF)jpl.$(SHARED_EXT)\
-              -o $(OPTDIR)/$(SHARED_PREF)jpl.$(SHARED_EXT) $(LINKFILES) $(LD_LINK_LIBS) $(PLLDFLAGS) $(JPLDEF)
+              -o $(OPTDIR)/$(SHARED_PREF)jpl.$(SHARED_EXT) $(LINKFILES) $(ENT_LINK_LIBS) $(LD_LINK_LIBS) $(PLLDFLAGS) $(JPLDEF)
 
 .PHONY:clean
 clean:
