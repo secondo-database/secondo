@@ -51,7 +51,11 @@ public class PMPLinear extends LinearMove{
      return res;
   }
 
-  protected boolean readStartEnd(ListExpr start, ListExpr end){
+  protected boolean readMap(ListExpr map){
+     if(map.listLength()!=2)
+          return false;
+     ListExpr start = map.first();
+     ListExpr end = map.second();
      if(start.listLength()!=2 || end.listLength()!=2){
        if(Environment.DEBUG_MODE)
           System.err.println("PMPLinear.readStartEnd wrong ListLength");

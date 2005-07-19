@@ -28,40 +28,15 @@ import java.util.*;
 import viewer.hoese.algebras.periodic.*;
 import javax.swing.JPanel;
 
-public class Dsplpmpoint extends DisplayTimeGraph{
+public class Dsplpmreal extends DsplGeneric implements Function {
 
-Point2D.Double point;
-Rectangle2D.Double bounds;
-Class linearClass = (new PMPLinear()).getClass();
+Class linearClass = (new PMRealUnit()).getClass();
 Time T = new Time();
 TotalMove Move=null;
 
-public Shape getRenderObject(AffineTransform at){
-  if(Move==null){
-     RenderObject = null;
-     return null;
-  }
-  double t = RefLayer.getActualTime();
-  T.readFrom(t);
-  Point2D.Double Pos =  (Point2D.Double) Move.getObjectAt(T);
-  if(Pos==null){
-     RenderObject = null;
-     return null;
-  }
-  
-  double pixy = Math.abs(Cat.getPointSize()/at.getScaleY());
-  double pixx = Math.abs(Cat.getPointSize()/at.getScaleX());
-  if(Cat.getPointasRect()){
-    RenderObject = new Rectangle2D.Double(Pos.getX()-pixx/2,Pos.getY()-pixy/2,pixx,pixy);
-  }else{
-    RenderObject = new Ellipse2D.Double(Pos.getX()-pixx/2,Pos.getY()-pixy/2,pixx,pixy);
-  }
-  return RenderObject;
-}
 
 public void init(ListExpr type,ListExpr value,QueryResult qr){
   AttrName = type.symbolValue();
-  ispointType = true;
   Move = new TotalMove();
   if(!Move.readFrom(value,linearClass)){
      qr.addEntry("("+AttrName +" WrongListFormat )");
@@ -73,10 +48,6 @@ public void init(ListExpr type,ListExpr value,QueryResult qr){
   }
 
   qr.addEntry(this);
-  if(Move.getBoundingBox()==null){
-     System.err.println("Bounding Box can't be created");
-  }
-  bounds = Move.getBoundingBox().toRectangle2D();
   double StartTime = Move.getStartTime().getDouble();
   RelInterval D = Move.getInterval();
   if(D.isLeftInfinite())
@@ -89,17 +60,42 @@ public void init(ListExpr type,ListExpr value,QueryResult qr){
   TimeBounds = new Interval(StartTime,EndTime,D.isLeftClosed(),D.isRightClosed());
 }
 
-public JPanel getTimeRenderer(double PixelTime){
-   return new JPanel();
+/** Returns the interval of this periodic moving real */
+ public Interval getInterval(){
+    return TimeBounds;
+ }
+
+ /** Returns true when the function of this periodic moving real is displayed **/
+ public boolean isExternDisplayed(){
+      return(functionframe.isVisible() && this.equals(functionframe.getSource()));
+  }
+
+public void  displayExtern(){
+      if(TimeBounds!=null){
+         functionframe.setSource(this);
+         functionframe.setVisible(true);
+         functionframe.toFront();
+      } else{
+         viewer.MessageBox.showMessage("The periodic moving real is empty");
+      }
 }
 
-/* returns the minimum bounding box of this moving point */
-public Rectangle2D.Double getBounds(){
-   return bounds;
+
+public Double getValueAt(double x){
+  if(Move==null) return null;
+  if(!Move.isDefined()) return null;
+  anInstant.readFrom(x);
+  return (Double) Move.getObjectAt(anInstant);
 }
+
 
 // we need this beacuse the Hoese viewer can't handle infinite time intervals
 private static final double MaxToLeft = 3000;
 private static final double MaxToRight = 3000;
+private static Time anInstant = new Time();
+
+private Interval TimeBounds;
+
+private static FunctionFrame functionframe = new FunctionFrame();
 
 }

@@ -39,7 +39,7 @@ abstract public Object getObjectAt(Time T);
 
 
 /** reads the object value from LE */
-abstract protected boolean readStartEnd(ListExpr start, ListExpr end);
+abstract protected boolean readMap(ListExpr map);
 
 
 /** reads this from the Given ListExpr */
@@ -70,7 +70,7 @@ public boolean readFrom(ListExpr LE,Class linearClass){
         System.err.println("LinearMove.readFrom :: error in reading interval ");
      return false;
    }
-   defined = readStartEnd(Content.second(),Content.third());
+   defined = readMap(ListExpr.twoElemList(Content.second(),Content.third()));
    if(!defined & Environment.DEBUG_MODE)
       System.err.println("LinearMove.readFrom :: error in method readStartEnd");
    return defined;

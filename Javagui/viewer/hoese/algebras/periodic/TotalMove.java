@@ -95,16 +95,20 @@ public boolean readFrom(ListExpr LE, Class linearClass){
    if(!T.readFrom(LE.first())){
       if(Environment.DEBUG_MODE){
          System.err.println("TotalMove.readFrom :: The start time can't be readed");
-	 System.err.println("List is :" + LE.first().writeListExprToString());
+       	 System.err.println("List is :" + LE.first().writeListExprToString());
       }
       setUndefined();
       return false;
    }
    Move tmpmove;
    if(LE.second().listLength()<1){
-      if(Environment.DEBUG_MODE)
-         System.err.println("TotalMove.readFrom :: wrong list length for submove");
       setUndefined();
+      if(LE.second().atomType()==ListExpr.SYMBOL_ATOM && LE.second().symbolValue().equals("undefined")){
+          return true;
+      }
+      if(Environment.DEBUG_MODE){
+         System.err.println("TotalMove.readFrom :: wrong list length for submove");
+      }
       return false;
    }
    if(LE.second().first().atomType()!=ListExpr.SYMBOL_ATOM){
@@ -151,6 +155,11 @@ public BBox getBoundingBox(){
 public Time getStartTime(){
    return start;
 }
+
+public boolean isDefined(){
+   return defined;
+}
+
 
 /** sets this to be undefined */
 private void setUndefined(){

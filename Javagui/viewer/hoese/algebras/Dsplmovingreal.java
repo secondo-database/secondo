@@ -47,7 +47,7 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
 
 
   public boolean isExternDisplayed(){
-      return(functionframe.isVisible() && this.equals(functionframe.myreal));
+      return(functionframe.isVisible() && this.equals(functionframe.getSource()));
   }
 
   public void  displayExtern(){
@@ -177,6 +177,12 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
             return new Double(Math.sqrt(polyvalue));
          }
        }
+  }
+
+
+  /** Returns the interval of this moving real **/
+  public Interval getInterval(){
+    return TimeBounds;
   }
 
 
@@ -389,88 +395,6 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
 
 private static  FunctionFrame functionframe = new FunctionFrame();
 
-private static class FunctionFrame extends JFrame{
-   public FunctionFrame(){
-      super();
-      setSize(640,480);
-      getContentPane().setLayout(new BorderLayout());
-      functionpanel.setOpaque(true);
-      functionpanel.setBackground(Color.WHITE);
-      functionSP = new JScrollPane(functionpanel);
-      getContentPane().add(functionSP,BorderLayout.CENTER);
-      JPanel P1 = new JPanel(new GridLayout(1,3));
-      P1.add(TimeLabel);
-      P1.add(ValueLabel);
-      getContentPane().add(P1,BorderLayout.NORTH);
-      functionpanel.addMouseMotionListener(new MouseMotionAdapter(){
-           public void mouseMoved(MouseEvent e){
-               if(functionpanel.getOrig(e.getX(),e.getY(),P,MP)){
-                   TimeLabel.setText("x= "+DateTime.getString(P.x));
-                   ValueLabel.setText("y= "+P.y);
-               } else{ 
-                  TimeLabel.setText(" ");
-                  ValueLabel.setText(" ");
-               }
-           }
-      });
-      functionpanel.showCross(true);
-      functionpanel.showY(true);
-      closeBtn.addActionListener(new ActionListener() {
-             public void actionPerformed(ActionEvent evt){
-                setVisible(false);
-             }
-      });
-      
-      getContentPane().add(closeBtn,BorderLayout.SOUTH);
-      addMagnifier();
-   }
-
-  private void addMagnifier(){
-      functionpanel.addMouseListener(new MouseAdapter(){
-         public void mouseClicked(MouseEvent evt){
-            double zf = 1.0;
-            if(evt.getButton()==MouseEvent.BUTTON1){
-                zf = 1.25;
-            }
-            if(evt.getButton()==MouseEvent.BUTTON3){
-                zf=0.75;
-            }
-            if(evt.getButton()==MouseEvent.BUTTON2){
-               zf=0.0;
-            }
-            Dimension oldDim = functionpanel.getSize();
-            functionpanel.setVirtualSize(oldDim.getWidth()*zf,oldDim.getHeight()*zf);
-            double x = evt.getX()*zf;
-            double y = evt.getY()*zf;
-            double nw = functionSP.getViewport().getWidth(); 
-            double nh = functionSP.getViewport().getHeight(); 
-            double px = Math.max(0,(int)(x-nw/2));
-            double py = Math.max(0,(int)(y-nh/2));
-            functionSP.getViewport().setViewPosition(new Point( (int)px,(int)py));
-         }
-      });
-  }
-   
-
-
-   void setSource(Dsplmovingreal mr){
-        myreal = mr;
-        functionpanel.setFunction(mr);
-        functionpanel.setInterval(mr.TimeBounds.getStart(),mr.TimeBounds.getEnd());
-   }  
-
- 
-   FunctionPanel functionpanel = new FunctionPanel();
-   Dsplmovingreal myreal;
-   JLabel TimeLabel = new JLabel(" ");
-   JLabel ValueLabel = new JLabel(" ");
-//   JLabel YPosLabel = new JLabel("");
-   Point2D.Double P = new Point2D.Double();
-   Point2D.Double MP = new Point2D.Double();
-   JButton closeBtn = new JButton("close");
-   JScrollPane functionSP;
-
-} 
 
 
 }

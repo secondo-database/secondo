@@ -70,7 +70,11 @@ public class PMRegionLinear extends LinearMove{
      return new Area(GP);
   }
 
-  protected boolean readStartEnd(ListExpr start, ListExpr end){
+  protected boolean readMap(ListExpr map){
+    if(map.listLength()!=2)
+       return false;
+    ListExpr start = map.first();
+    ListExpr end = map.second();
     numberOfPoints=0;
     isstatic=true;
     bounds = new BBox(); // create an undefined BBox
