@@ -129,6 +129,14 @@ public class CategoryEditor extends javax.swing.JDialog {
     DeleteB = new javax.swing.JButton();
     ApplyB = new javax.swing.JButton();
     CancelB = new javax.swing.JButton();
+    String[] capOptions = {"butt","round","square"};
+    capStyle = new JComboBox(capOptions);
+    String[] joinOptions = {"bevel","miter","round"};
+    joinStyle= new JComboBox(joinOptions);
+
+
+
+
     getContentPane().setLayout(new java.awt.GridBagLayout());
     java.awt.GridBagConstraints gridBagConstraints1;
     //setResizable(false);
@@ -202,11 +210,33 @@ public class CategoryEditor extends javax.swing.JDialog {
     gridBagConstraints2 = new java.awt.GridBagConstraints();
     gridBagConstraints2.anchor = java.awt.GridBagConstraints.WEST;
     LineP.add(ColorB, gridBagConstraints2);
+    
+
+    gridBagConstraints2 = new GridBagConstraints();
+    LineP.add(new JLabel("cap style"), gridBagConstraints2);
+    gridBagConstraints2 = new GridBagConstraints();
+    LineP.add(capStyle, gridBagConstraints2);
+    
+    gridBagConstraints2 = new GridBagConstraints();
+    gridBagConstraints2.gridx=4;
+    gridBagConstraints2.gridy=1;
+    gridBagConstraints2.gridwidth=1;
+    LineP.add(new JLabel("join style"), gridBagConstraints2);
+    gridBagConstraints2 = new GridBagConstraints();
+    gridBagConstraints2.gridx=5;
+    gridBagConstraints2.gridy=1;
+    gridBagConstraints2.gridwidth=1;
+    LineP.add(joinStyle, gridBagConstraints2);
     gridBagConstraints1 = new java.awt.GridBagConstraints();
     gridBagConstraints1.gridx = 0;
     gridBagConstraints1.gridy = 2;
     gridBagConstraints1.gridwidth = 2;
     gridBagConstraints1.anchor = java.awt.GridBagConstraints.NORTHWEST;
+   
+    // set the cap and join style to be round
+    capStyle.setSelectedIndex(1);
+    joinStyle.setSelectedIndex(2); 
+
     getContentPane().add(LineP, gridBagConstraints1);
     FillStyleP.setLayout(new java.awt.GridBagLayout());
     java.awt.GridBagConstraints gridBagConstraints3;
@@ -379,7 +409,9 @@ public class CategoryEditor extends javax.swing.JDialog {
     CatCB.removeItemAt(aktIndex + 1);
     if (LeaveByApply) {
       closeDialog(null);
-    }  
+    }  else{
+      mw.repaint();
+    }
 
   }             //GEN-LAST:event_ApplyBActionPerformed
 
@@ -521,6 +553,21 @@ public class CategoryEditor extends javax.swing.JDialog {
     WidthT.setText(Float.toString(cat.getLineWidth()));
     ColorB.setBackground(cat.getLineColor());
     TypeCB.setSelectedIndex(cat.getLineStyle());
+    int cap = cat.getCapStyle();
+    int join = cat.getJoinStyle();
+    switch(cap){
+       case BasicStroke.CAP_BUTT: capStyle.setSelectedIndex(0);break;
+       case BasicStroke.CAP_ROUND: capStyle.setSelectedIndex(1);break;
+       case BasicStroke.CAP_SQUARE: capStyle.setSelectedIndex(2); break;
+       default: System.err.println("unknown cap style detected in category");
+    }
+    switch(join){
+       case BasicStroke.JOIN_BEVEL: joinStyle.setSelectedIndex(0);break;
+       case BasicStroke.JOIN_MITER: joinStyle.setSelectedIndex(1);break;
+       case BasicStroke.JOIN_ROUND: joinStyle.setSelectedIndex(2); break;
+       default: System.err.println("unknown join style detected in category");
+    }
+
     TransparencyT.setText(Float.toString(100.0f - ((AlphaComposite)cat.getAlphaStyle()).getAlpha()*100));
     GradientColorB.setBackground(Color.lightGray);
     SolidColorB.setBackground(Color.lightGray);
@@ -564,8 +611,23 @@ public class CategoryEditor extends javax.swing.JDialog {
     cat.setName((String)CatCB.getSelectedItem());
     cat.setPointasRect(RectRB.isSelected());
     cat.setPointSize(Double.parseDouble(SizeT.getText()));
-    cat.setLineStyle(TypeCB.getSelectedIndex());
-    cat.setLineWidth(Float.parseFloat(WidthT.getText()));
+    double linewidth = Double.parseDouble(WidthT.getText());
+    int cap=BasicStroke.CAP_BUTT;
+    switch(capStyle.getSelectedIndex()){
+        case 0 : cap = BasicStroke.CAP_BUTT;break;
+        case 1 : cap = BasicStroke.CAP_ROUND; break;
+        case 2 : cap = BasicStroke.CAP_SQUARE; break;
+        default: System.err.println("invalid value for cap style");
+    }    
+    int join = BasicStroke.JOIN_BEVEL;
+    switch(joinStyle.getSelectedIndex()){
+        case 0 : join = BasicStroke.JOIN_BEVEL;break;
+        case 1 : join = BasicStroke.JOIN_MITER;break;
+        case 2 : join = BasicStroke.JOIN_ROUND;break;
+        default: System.err.println("invalid value for join style");
+    }
+    int dash = TypeCB.getSelectedIndex();
+    cat.setLineStyle(dash,cap,join,linewidth);
     cat.setLineColor(ColorB.getBackground());
     float f = -Float.parseFloat(TransparencyT.getText())/100 + 1.0f;
     if (f > 1.0f)
@@ -623,6 +685,8 @@ public class CategoryEditor extends javax.swing.JDialog {
   private javax.swing.JButton DeleteB;
   private javax.swing.JButton ApplyB;
   private javax.swing.JButton CancelB;
+  private JComboBox capStyle;
+  private JComboBox joinStyle;
   // End of variables declaration//GEN-END:variables
 }
 

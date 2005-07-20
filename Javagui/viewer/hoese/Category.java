@@ -58,6 +58,11 @@ public class Category
   Color LineColor;
 /** No. of the dash pattern in the dash-array */
   int LineStyle;
+/** cap Style */
+  int capStyle = BasicStroke.CAP_ROUND;
+/** join style */
+  int joinStyle = BasicStroke.JOIN_ROUND;
+
 /** Width of the outline */
   float LineWidth;
 /** The style how areas are filled, maybe a color, texture, gradient */
@@ -135,6 +140,17 @@ public class Category
   public int getLineStyle () {
     return  LineStyle;
   }
+
+ /** returns the current cap style */
+  public int getCapStyle(){
+     return capStyle;
+  }
+
+  /** returns the current join style */
+  public int getJoinStyle(){
+     return joinStyle;
+  }
+
 
   /**
    *
@@ -227,12 +243,25 @@ public class Category
    */
   public void setLineStyle (int i) {
     if (i == 0)
-      LineStroke = new BasicStroke(LineWidth);
+      LineStroke = new BasicStroke(LineWidth,capStyle,joinStyle);
     else
-      LineStroke = new BasicStroke(LineWidth, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
-          10.0f, dash[i - 1], 0.0f);
+      LineStroke = new BasicStroke(LineWidth,capStyle,joinStyle, 10.0f, dash[i - 1], 0.0f);
     LineStyle = i;
   }
+
+  /**
+    * sets the Line style 
+    */
+   public void setLineStyle(int dash, int cap, int join, double width){
+      LineWidth = (float) width;
+      if(dash == 0)
+         LineStroke = new BasicStroke(LineWidth,cap,join);
+      else
+         LineStroke = new BasicStroke(LineWidth,cap,join,10.0f, Category.dash[dash - 1], 0.0f);
+      LineStyle = dash;
+      capStyle = cap;
+      joinStyle = join;
+   }  
 
   /**
    * Sets line width
