@@ -44,10 +44,17 @@ public class Dsplpointsequence extends DisplayGraph {
   /** flag defining whether the pointsequence is empty */
   boolean empty = true;
 
+  /** flag indicating to draw a filled shape */
+  boolean filled = false;
+ 
+  int pointnumber =0;
+
   
   /** returns true if this sequence contains two or more
       points. **/
   public boolean isLineType(){
+    if(pointnumber>2 && filled)
+       return false;
     return !single && !empty;
   }
 
@@ -64,7 +71,8 @@ public class Dsplpointsequence extends DisplayGraph {
   public void reset(){
     GP.reset();
     empty=true;
-    single=false; 
+    single=false;
+    pointnumber =0; 
   }
 
   /** Adds a single point to this sequence.
@@ -72,6 +80,7 @@ public class Dsplpointsequence extends DisplayGraph {
     * representation is changed, e.g. from point to line.
     **/
   public boolean add(double x, double y){
+     pointnumber++;
      if(empty){
        point.setLocation(x,y);
        GP.moveTo((float)x,(float)y);
@@ -95,7 +104,7 @@ public class Dsplpointsequence extends DisplayGraph {
           single=false;
           return true; // changed from point to line
        }
-       return false;
+       return !filled || pointnumber>3;
      }
   }
 
@@ -196,7 +205,10 @@ public class Dsplpointsequence extends DisplayGraph {
       return  false;
     Rectangle2D.Double r = new Rectangle2D.Double(xpos - 5.0*scalex, ypos -
         5.0*scaley, 10.0*scalex, 10.0*scaley);
-    return stroke.createStrokedShape(RenderObject).intersects(r);
+    if(!filled)
+       return stroke.createStrokedShape(RenderObject).intersects(r);
+    else
+       return RenderObject.intersects(r);
   }
 
 
@@ -218,6 +230,10 @@ public Shape getRenderObject (AffineTransform at) {
     return RenderObject;
 }
 
+/** sets the pointsequence to be drawn filled */
+public void fill(boolean enable){
+   filled=enable;
+}
 
 
 }

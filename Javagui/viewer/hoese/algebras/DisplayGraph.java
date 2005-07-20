@@ -150,13 +150,15 @@ public class DisplayGraph extends DsplGeneric
     if (render == null)
       return;
     sh = af2.createTransformedShape(render);
-    if (Cat.getFillStyle() != null && !isLineType())
+    if (Cat.getFillStyle() != null && !isLineType()){
+      g2.setPaint(Cat.getFillStyle());
       g2.fill(sh);
+    }
     g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
     Color aktLineColor = Cat.getLineColor();
     if (selected){
       aktLineColor = new Color(Color.white.getRGB() ^ Cat.getLineColor().getRGB());
-      }
+    }
     g2.setColor(aktLineColor);
     if ((Cat.getLineWidth() > 0.0f) || (selected)){
       if(Cat!=null)

@@ -203,6 +203,7 @@ public class HoeseViewer extends SecondoViewer {
 
   /** a button for creating a point sequence **/
   private JButton createPointSequenceBtn;
+  private JButton createFilledPointSequenceBtn;
   private boolean createPointSequenceActivated=false;
   private CreatePointSequenceListener createPointSequenceListener;
 
@@ -289,13 +290,22 @@ public class HoeseViewer extends SecondoViewer {
        DecrementSpeedBtn = new JButton("-");
 
 
-    createPointSequenceBtn = new JButton("  ");
+    createPointSequenceBtn = new JButton("o");
+    createFilledPointSequenceBtn = new JButton("*");
     createPointSequenceBtn.setOpaque(true);
     createPointSequenceListener=new CreatePointSequenceListener();
-    createPointSequenceBtn.addActionListener(new ActionListener(){
+    
+    ActionListener createPointSequenceAL = new ActionListener(){
           public void actionPerformed(ActionEvent evt){
+              Object src = evt.getSource();
+              if(!(src instanceof JButton))
+                 return;
+              JButton Butt = (JButton) src;
               if(HoeseViewer.this.createPointSequenceActivated){
-                  createPointSequenceBtn.setBackground(dColor);
+                  // finish the input
+                  if(!src.equals(lastSrc)) // ignore messages from the other button
+                    return;   
+                  Butt.setBackground(dColor);
                   createPointSequenceActivated=false;
                   GraphDisplay.removeMouseListener(createPointSequenceListener);
                   // create a Secondo_Object pointsequence form the points
@@ -345,8 +355,13 @@ public class HoeseViewer extends SecondoViewer {
                   createPointSequenceListener.reset();
                   SelectionControl.enableSelection(true); 
                   GraphDisplay.repaint();
-              } else{
-                  createPointSequenceBtn.setBackground(aColor);
+              } else{ // start input
+                  lastSrc = src;
+                  Butt.setBackground(aColor);
+                  if(Butt.equals(createFilledPointSequenceBtn))
+                      createPointSequenceListener.fill(true);
+                  else
+                      createPointSequenceListener.fill(false);  
                   createPointSequenceActivated=true; 
                   SelectionControl.enableSelection(false);
                   GraphDisplay.addMouseListener(createPointSequenceListener);
@@ -354,9 +369,11 @@ public class HoeseViewer extends SecondoViewer {
           }
           Color aColor = Color.GREEN;
           Color dColor = Color.LIGHT_GRAY;
-    });
+          Object lastSrc;
+    };
 
-
+    createPointSequenceBtn.addActionListener(createPointSequenceAL);
+    createFilledPointSequenceBtn.addActionListener(createPointSequenceAL);
     ActionListener SpeedControlListener = new ActionListener(){
          public void actionPerformed(ActionEvent evt){
             Object src = evt.getSource();
@@ -456,8 +473,9 @@ public class HoeseViewer extends SecondoViewer {
     JPanel PositionsPanel = new JPanel(new GridLayout(1,2));
     PositionsPanel.add(actTimeLabel);
     PositionsPanel.add(MouseKoordLabel);
-    JPanel aPanel = new JPanel();
+    JPanel aPanel = new JPanel(new GridLayout(2,1));
     aPanel.add(createPointSequenceBtn);
+    aPanel.add(createFilledPointSequenceBtn);
 
     JPanel TimeSliderAndLabels = new JPanel(new BorderLayout());
     TimeSliderAndLabels.add(TimeSlider,BorderLayout.NORTH);
@@ -2582,6 +2600,10 @@ public boolean canDisplay(SecondoObject o){
       
       public Category getCat(){
           return ps.getCategory();
+      }
+
+      public void fill(boolean on){
+          ps.fill(on);
       }
 
       private Dsplpointsequence ps =new Dsplpointsequence();
