@@ -34,12 +34,60 @@ public class Dsplpointsequence extends DisplayGraph {
   /** The bounding-box rectangle */
   Rectangle2D.Double bounds;
   /** The shape representing this sequence */
-  GeneralPath GP;
-  
+  GeneralPath GP = new GeneralPath();
+	/** If only one point is contained in the poinmtsequence,
+      we use a representation as a point */
+  Point2D.Double point=new Point2D.Double();
+  /** flag defining whether the pointsequence contains of a
+      single point **/
+  boolean single = false;
+  /** flag defining whether the pointsequence is empty */
+  boolean empty = true;
 
-public boolean isLineType(){
-  return true;
-}
+  
+  /** returns true if this sequence contains two or more
+      points. **/
+  public boolean isLineType(){
+    return !single && !empty;
+  }
+
+  /** returns true if this seuqnces consist of a single point **/
+  public boolean isPointType(){
+     return single && !empty;
+  }
+  /** returns true if this sequence is empty **/
+  public boolean isEmpty(){
+     return empty;
+  }
+
+  /** sets this sequence to be empty **/
+  public void reset(){
+    GP.reset();
+    empty=true;
+    single=false; 
+  }
+
+  /** Adds a single point to this sequence.
+    * The return value is true when the kind of the 
+    * representation is changed, e.g. from point to line.
+    **/
+  public boolean add(double x, double y){
+     if(empty){
+       point.setLocation(x,y);
+       GP.moveTo((float)x,(float)y);
+       empty=false;
+       single=true;
+       return true; // changed from empty to point
+     }else{
+       GP.lineTo((float)x,(float)y);
+       if(single){
+          single=false;
+          return true; // changed from point to line
+       }
+       return false;
+     }
+  }
+
 
 
  /**
@@ -48,19 +96,19 @@ public boolean isLineType(){
    * @see sj.lang.ListExpr
   */
   public void ScanValue (ListExpr value) {
-     boolean first = true;
-     err = false;
-     GP = new GeneralPath();
+      err = false;
+      GP.reset();
       while(!value.isEmpty()){
-         ListExpr point = value.first();
-         if(point.listLength()!=2){
+         ListExpr apoint = value.first();
+         if(apoint.listLength()!=2){
            err = true;
+           reset();
            return;
          }
-         Double X = LEUtils.readNumeric(point.first());
-         Double Y = LEUtils.readNumeric(point.second());
+         Double X = LEUtils.readNumeric(apoint.first());
+         Double Y = LEUtils.readNumeric(apoint.second());
          if(X==null || Y == null){
-            GP=null;
+            reset();
             err = true;
             return;
          }
@@ -70,22 +118,14 @@ public boolean isLineType(){
             err = true; 
             if(gui.Environment.DEBUG_MODE)
                System.out.println("error in project  point t("+x+" , " +y+")");
-            GP=null;
+            reset();
             return;
 				  }else{ 
 					   double x1 = aPoint.x;
 					   double y1 = aPoint.y;
-             if(first){
-                 GP.moveTo((float)x1,(float)y1);
-                 first=false;
-              }else{
-                  GP.lineTo((float)x1,(float)y1);
-              }
+             add(x1,y1);
           }
           value = value.rest();
-    }
-    if(first){ // empty sequence
-       GP=null;
     }
   }
 
@@ -100,22 +140,25 @@ public boolean isLineType(){
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
     AttrName = type.symbolValue();
     ScanValue(value);
-    RenderObject = GP;
     if (err) {
-      System.out.println("Error in ListExpr :parsing aborted");
+      System.err.println("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GA(pointsequence))"));
       bounds =null;
-      RenderObject=null;
       return;
     }
     else
-      qr.addEntry(this);
-    if(GP==null)
-        bounds = null;
-    else{
-       bounds = new Rectangle2D.Double();
-       bounds.setRect(GP.getBounds2D());
+    if(empty){
+       bounds = null;
+       qr.addEntry(AttrName + " : empty");
+       return;
     }
+    qr.addEntry(this);
+    bounds = new Rectangle2D.Double();
+    if(!single)
+       bounds.setRect(GP.getBounds2D());
+     else
+       bounds.setRect(point.getX(),point.getY(),0,0);
+  
   }
 
 
@@ -136,13 +179,36 @@ public boolean isLineType(){
    */
   public boolean contains (double xpos, double ypos, double scalex, double scaley) {
     if (bounds==null) return false; // an empty sequnece
-    if ((bounds.getWidth()*bounds.getHeight()!=0) && (!bounds.intersects(xpos - 5.0*scalex, ypos - 5.0*scaley, 10.0*scalex,
+    if ((bounds.getWidth()*bounds.getHeight()!=0) && 
+        (!bounds.intersects(xpos - 5.0*scalex, ypos - 5.0*scaley, 10.0*scalex,
         10.0*scaley)))
       return  false;
     Rectangle2D.Double r = new Rectangle2D.Double(xpos - 5.0*scalex, ypos -
         5.0*scaley, 10.0*scalex, 10.0*scaley);
-    return GP.intersects(r);
+    return RenderObject.intersects(r);
   }
+
+
+public Shape getRenderObject (AffineTransform at) {
+    if(empty)
+      return null;
+    if(single){
+       Rectangle2D.Double r = getBounds();
+       double pixy = Math.abs(Cat.getPointSize()/at.getScaleY());
+       double pix = Math.abs(Cat.getPointSize()/at.getScaleX());
+       if (Cat.getPointasRect())
+          RenderObject = new Rectangle2D.Double(r.getX()- pix/2, r.getY() - pixy/2, pix, pixy);
+       else {
+          RenderObject = new Ellipse2D.Double(r.getX()- pix/2, r.getY() - pixy/2, pix, pixy);
+        }
+    } else{
+     RenderObject = GP;
+    }
+    return RenderObject;
+}
+
+
+
 
 }
 
