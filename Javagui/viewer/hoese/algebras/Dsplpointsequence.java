@@ -77,9 +77,20 @@ public class Dsplpointsequence extends DisplayGraph {
        GP.moveTo((float)x,(float)y);
        empty=false;
        single=true;
+       bounds = new Rectangle2D.Double();
+       bounds.setRect(x,y,0,0);
        return true; // changed from empty to point
      }else{
        GP.lineTo((float)x,(float)y);
+       double x1 = bounds.getX();
+       double y1 = bounds.getY();
+       double x2 = x1+bounds.getWidth();
+       double y2 = y1+bounds.getHeight();
+       x1 = Math.min(x1,x);
+       y1 = Math.min(y1,y);
+       x2 = Math.max(x2,x);
+       y2 = Math.max(y2,y);
+       bounds.setRect(x1,y1,x2-x1,y2-y1);
        if(single){
           single=false;
           return true; // changed from point to line

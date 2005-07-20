@@ -99,7 +99,13 @@ public interface DsplGraph extends DsplBase
   public void draw (Graphics g);
 
 
+  /**
+   * This method is called to draw this object .
+   * @param g The graphic context to draw in.
+   */
+   public void draw (Graphics g,AffineTransform at);
 
+  
   /**
    * Drawing of labeltext.
    * @param g graphics context

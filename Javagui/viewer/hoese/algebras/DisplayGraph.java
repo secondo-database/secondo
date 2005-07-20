@@ -129,51 +129,38 @@ public class DisplayGraph extends DsplGeneric
     return  RenderObject;
   }
 
+  /** paints this component on g **/
+  public void draw(Graphics g){
+     if(RefLayer==null)
+        return;
+     draw(g,RefLayer.getProjection());
+  }
+
+
   /**
    * This method draws the RenderObject with ist viewattributes collected in the category
    * @param g The graphic context to draw in.
-   * @see <a href="DisplayGraphsrc.html#draw">Source</a>
    */
-  public void draw (Graphics g) {
+  public void draw (Graphics g,AffineTransform af2) {
     Shape sh;
     Graphics2D g2 = (Graphics2D)g;
-    if(RefLayer==null){
-        return;
-    }
-    AffineTransform af2 = RefLayer.getProjection();
     Shape render = getRenderObject(af2);
     if (render == null)
       return;
     sh = af2.createTransformedShape(render);
-    //	if (!selected)
-    /*
-    g2.setComposite(Cat.getAlphaStyle());
-    g2.setStroke(Cat.getLineStroke());
-    g2.setPaint(Cat.getFillStyle());
-    //the anchor of the texture has to do with Position of renderObject
-    if (ispointType) {
-      if (Cat.getFillStyle() instanceof TexturePaint)           // that indicates PointStyle
-        g2.setPaint(new TexturePaint(((TexturePaint)Cat.getFillStyle()).getImage(),
-            sh.getBounds2D()));
-      else if (Cat.getFillStyle() instanceof GradientPaint)           // that indicates PointStyle
-        g2.setPaint(new GradientPaint((float)sh.getBounds().getX(),(float)sh.getBounds().getY(),
-          ((GradientPaint)Cat.getFillStyle()).getColor1(),(float)(sh.getBounds().getX()+sh.getBounds().getWidth()),
-          (float)(sh.getBounds().getY()+sh.getBounds().getHeight()),((GradientPaint)Cat.getFillStyle()).getColor2(),false));
-    }
-     */
-
-    if (Cat.getFillStyle() != null)
+    if (Cat.getFillStyle() != null && !isLineType())
       g2.fill(sh);
-    //if (selected) g2.setColor(new Color(Cat.LineColor.getRGB() ^ Color.white.getRGB() ));
-    //else
     g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
     Color aktLineColor = Cat.getLineColor();
     if (selected){
       aktLineColor = new Color(Color.white.getRGB() ^ Cat.getLineColor().getRGB());
       }
     g2.setColor(aktLineColor);
-    if ((Cat.getLineWidth() > 0.0f) || (selected))
+    if ((Cat.getLineWidth() > 0.0f) || (selected)){
+      if(Cat!=null)
+          g2.setStroke(Cat.getLineStroke());
       g2.draw(sh);
+    }
     drawLabel(g2, render);
   }
 

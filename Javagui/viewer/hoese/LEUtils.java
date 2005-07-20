@@ -270,6 +270,37 @@ public class LEUtils {
     return  new Interval(start.doubleValue(), end.doubleValue(), leftcl, rightcl);
   }
 
+  /** checks whether the given character is a letter **/
+  public static boolean isLetter(char c){
+    return (c>='a' && c<='z') ||
+           (c>='A' && c<='Z');
+  }
+
+  /** checks whether the given character is a digit **/
+  public static boolean isDigit(char c){
+      return c>='0' && c<='9';
+  }  
+  
+
+
+   /** checks whether the given String is a correct symbolvalue **/
+  public static boolean isIdent(String s){
+     // checks s for the expression  {letter}({letter}|{digit}|{underscore})*
+      if(s==null)
+          return false;
+      int len = s.length();
+      if(len==0)
+          return false;
+      char c = s.charAt(0);
+      if(!isLetter(c))
+          return false;
+      for(int i=len-1;i!=0;i--)
+          if(!isLetter(c) && !isDigit(c) && c!='_')
+               return false;
+      return true;
+  } 
+
+
   /**
    * Reads an numeric (a rational or integer number) out of a listexpr and calculates a numeric value as double-value
    * @param le A ListExpr with a numeric expression

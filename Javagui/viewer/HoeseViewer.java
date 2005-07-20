@@ -37,7 +37,8 @@ import  gui.SecondoObject;
 import  gui.idmanager.*;
 import  project.*;
 import  components.*;
-import java.awt.image.*;
+import  java.awt.image.*;
+import  viewer.hoese.algebras.Dsplpointsequence;
 
 /**
  * this is a viewer for spatial and temporal spatial objects
@@ -136,6 +137,8 @@ public class HoeseViewer extends SecondoViewer {
 
   /** True if menu-entry 'automatic category' is selected */
   public javax.swing.JCheckBoxMenuItem isAutoCatMI;
+  private JMenuItem selectSequenceCat;
+
   private javax.swing.JSeparator jSeparator5;
   private javax.swing.JMenuItem jMIShowCE;
   private javax.swing.JMenuItem MIQueryRep;
@@ -315,24 +318,28 @@ public class HoeseViewer extends SecondoViewer {
                                       ListExpr.realAtom(P.getX()),
                                       ListExpr.realAtom(P.getY())));
                        }
-                       String Name = JOptionPane.showInputDialog("Please enter a name for the object");
+                       String Name=null;
+                       do{
+                          Name = JOptionPane.showInputDialog("Please enter a name for the object");
+                          if(Name!=null) Name = Name.trim();
+                       } while(Name!=null && !LEUtils.isIdent(Name));
                        if(Name!=null){
-                           ListExpr result = ListExpr.twoElemList(ListExpr.symbolAtom("pointsequence"),le);
-                           SecondoObject o = new SecondoObject(IDManager.getNextID());
-                           o.setName(Name);
-                           o.fromList(result);
-                          if(VC!=null){
-                             VC.addObject(o);
-                             String cmd = "let "+Name+" = [const pointsequence value "+le+"]";
-                             sj.lang.IntByReference errorCode = new sj.lang.IntByReference(0);
-                             ListExpr resultList = ListExpr.theEmptyList();
-                             StringBuffer errorMessage= new StringBuffer();
-                             if(!VC.execCommand(cmd,errorCode,resultList,errorMessage)){
-                                  MessageBox.showMessage("Error in storing pointsequence\n"+ 
-                                           sj.lang.ServerErrorCodes.getErrorMessageText(errorCode.value)+"\n"+
-                                           errorMessage);
-                             }
-                          }
+														ListExpr result = ListExpr.twoElemList(ListExpr.symbolAtom("pointsequence"),le);
+														SecondoObject o = new SecondoObject(IDManager.getNextID());
+														o.setName(Name);
+														o.fromList(result);
+														if(VC!=null){
+															VC.addObject(o);
+															String cmd = "let "+Name+" = [const pointsequence value "+le+"]";
+															sj.lang.IntByReference errorCode = new sj.lang.IntByReference(0);
+															ListExpr resultList = ListExpr.theEmptyList();
+															StringBuffer errorMessage= new StringBuffer();
+															if(!VC.execCommand(cmd,errorCode,resultList,errorMessage)){
+																	 MessageBox.showMessage("Error in storing pointsequence\n"+ 
+																						sj.lang.ServerErrorCodes.getErrorMessageText(errorCode.value)+"\n"+
+																						errorMessage);
+															}
+                         }
                        }
                   }
                   createPointSequenceListener.reset();
@@ -867,6 +874,35 @@ public class HoeseViewer extends SecondoViewer {
 
     isAutoCatMI.setText("Auto category");
     jMenuGui.add(isAutoCatMI);
+    selectSequenceCat = new JMenuItem("Category for sequences");
+    jMenuGui.add(selectSequenceCat);
+
+    selectSequenceCat.addActionListener(new ActionListener(){
+         public void actionPerformed(ActionEvent evt){
+             if(Cats==null || Cats.size()==0){
+                MessageBox.showMessage("No categories available");
+                return;
+             }
+             Category[] catarray = new Category[Cats.size()];
+             Category lastcat = createPointSequenceListener.getCat();
+             for(int i=0;i<catarray.length;i++){
+                  catarray[i] = (Category) Cats.get(i);
+             } 
+             Object res = JOptionPane.showInputDialog(HoeseViewer.this,
+                                                      "Select a category",
+                                                      "CategorySelector",
+                                                      JOptionPane.YES_NO_OPTION,
+                                                      null, // icon
+                                                      catarray,lastcat);
+             if(res!=null){
+                createPointSequenceListener.setCategory((Category)res);
+                if(createPointSequenceActivated && !res.equals(lastcat)){
+                     GraphDisplay.repaint();
+                }
+             }
+                                                       
+         }
+    });
 
     MIQueryRep = new JMenuItem("Query representation");
     MIQueryRep.addActionListener(new java.awt.event.ActionListener() {
@@ -2522,34 +2558,33 @@ public boolean canDisplay(SecondoObject o){
 								y = aPoint.y;
 						 }
 					 }
-           if(gp==null){
-              gp = new GeneralPath();
+           if(ps.isEmpty()){
               points = new  Vector();
-              gp.moveTo((float)x,(float)y);   
-              GraphDisplay.paintAdditional(gp); 
-           }else{
-              gp.lineTo((float)x,(float)y);
            }
+           boolean repchanged = ps.add(x,y);
+           GraphDisplay.paintAdditional(ps); 
+           if(repchanged)
+              GraphDisplay.repaint();
            points.add(new Point2D.Double(x,y));
            Graphics2D G = (Graphics2D)GraphDisplay.getGraphics();
-           G.draw(allProjection.createTransformedShape(gp));
+           ps.draw(G,allProjection);
 			}
-      
-      public void printPoints(){
-        if(points==null)
-           System.out.println("no points ");
-        else
-          for(int i=0;i<points.size();i++)
-              System.out.println(points.get(i));
-      }
 
       public void reset(){
-          gp=null;
+          ps.reset();
           points=null;
           GraphDisplay.paintAdditional(null);
       }
 
-      private GeneralPath gp=null;
+      public void setCategory(Category cat){
+          ps.setCategory(cat);
+      }
+      
+      public Category getCat(){
+          return ps.getCategory();
+      }
+
+      private Dsplpointsequence ps =new Dsplpointsequence();
       private Vector points=null;
   
  }

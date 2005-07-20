@@ -51,8 +51,8 @@ public class GraphWindow extends JLayeredPane
    private boolean ignorePaint = false; 
     
 
-/** a additional shape fpr painting **/
-   Shape additionalShape;
+/** a additional object for  painting **/
+   DsplGraph  additionalGraphObject;
 
 
   /** Creates a Graphwindow without any layer
@@ -104,8 +104,8 @@ public class GraphWindow extends JLayeredPane
    }
 
   /** sets a new shape for painting */
-  public void paintAdditional(Shape shp){
-      additionalShape=shp;
+  public void paintAdditional(DsplGraph g){
+      additionalGraphObject=g;
   }
 
 
@@ -344,8 +344,8 @@ public class GraphWindow extends JLayeredPane
          g2.setComposite(C);
       } 
 	  }
-    if(additionalShape!=null){
-       g2.draw(at.createTransformedShape(additionalShape));
+    if(additionalGraphObject!=null){
+      additionalGraphObject.draw(g2,at); 
     } 
   }
 
