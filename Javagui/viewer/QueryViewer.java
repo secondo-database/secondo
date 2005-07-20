@@ -25,6 +25,7 @@ import java.awt.event.*;
 import javax.swing.*;
 import sj.lang.ListExpr;
 import java.util.Vector;
+import sj.lang.IntByReference;
 
 public class QueryViewer extends SecondoViewer implements ViewerControl,ViewerChangeListener{
 
@@ -170,6 +171,34 @@ public void addViewerChangeListener(ViewerChangeListener VCL){
 
 public void removeViewerChangeListener(ViewerChangeListener VCL){
    System.out.println("QueryViewer.removeViewerChangeListener not implemented");
+}
+
+public int execCommand(String cmd){
+  if(VC!=null)
+      return VC.execCommand(cmd);
+  return 1;
+}
+public ListExpr getCommandResult(String cmd){
+  if(VC!= null)
+     return VC.getCommandResult(cmd);
+  else
+     return null;
+
+}
+public boolean execUserCommand(String cmd){
+   if(VC!=null)
+      return VC.execUserCommand(cmd);
+   else
+      return false;
+}
+public boolean execCommand(String cmd, IntByReference errorCode, ListExpr resultList, StringBuffer errorMessage){
+   if(VC!=null)
+      return VC.execCommand(cmd,errorCode,resultList,errorMessage);
+   else{
+         errorMessage.append("Queryviewer has no ViewerControl");
+         errorCode.value=-1;
+         return false;
+   }
 }
 
 

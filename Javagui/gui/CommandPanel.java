@@ -745,6 +745,19 @@ public class CommandPanel extends JScrollPane {
 
   }
 
+  /** Executes a command in sos syntax **/
+  public boolean execCommand(String cmd, IntByReference errorCode, ListExpr resultList,
+                             StringBuffer errorMessage){
+        if(!Secondointerface.isInitialized()){
+                errorMessage.append("You are not connected to a Secondo Server");
+                return false;
+        }
+        cmd = optimize(cmd);
+        IntByReference errorPos=new IntByReference();
+        Secondointerface.secondo(cmd,ListExpr.theEmptyList(),SecondoInterface.EXEC_COMMAND_SOS_SYNTAX,true,true,
+                resultList,errorCode,errorPos,errorMessage);
+        return errorCode.value==0;
+  }
 
 
   /** sends command to the SecondoServer the result is ignored

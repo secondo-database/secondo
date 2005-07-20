@@ -19,8 +19,11 @@
 
 package gui;
 
-import java.awt.*;
 import viewer.SecondoViewer;
+import sj.lang.ListExpr;
+import sj.lang.IntByReference;
+import java.awt.*;
+
 public interface ViewerControl{
 
  /** check if if the current viewer can display SO **/
@@ -67,6 +70,28 @@ public void addViewerChangeListener(ViewerChangeListener VCL);
 
 /** remove a ViewerChangeListener */
 public void removeViewerChangeListener(ViewerChangeListener VCL);
+
+/** Sends the command to the secondo server.
+  * The resulting list  of this command is ignored. 
+  * The return value is the secondo client error code, e.g.
+  * 0 if no error is occurred.
+  **/
+public int execCommand(String cmd);
+
+/** Sends cmd to the secondo server. The resulting list
+  * is returned from this method for postprocessing. If an
+  * error occurs, the result will be null.
+  **/
+public ListExpr getCommandResult(String cmd);
+
+/** Sends cmd to the secondo server. The command is
+  * processed like a command input from the user.
+  **/
+public boolean execUserCommand(String cmd);
+
+/** A general method for ececuting commands */
+public boolean execCommand(String cmd, IntByReference errorCode, ListExpr resultList, StringBuffer errorMessage);
+  
 
 }
 

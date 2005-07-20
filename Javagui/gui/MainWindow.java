@@ -2442,6 +2442,23 @@ class Command_Listener implements ActionListener{
   }
 }
 
+public int execCommand(String cmd){
+   return ComPanel.internCommand(cmd);
+}
+
+public ListExpr getCommandResult(String cmd){
+   return ComPanel.getCommandResult(cmd);
+}
+
+public boolean execUserCommand(String cmd){
+   return ComPanel.execUserCommand(cmd);
+}
+
+public boolean execCommand(String cmd, IntByReference errorCode,ListExpr resultList, StringBuffer errorMessage){
+     return ComPanel.execCommand(cmd,errorCode,resultList,errorMessage);
+}
+
+
 /** returns a small interface to secondo needed by the 'UpdateViewer'*/
 public static UpdateInterface getUpdateInterface(){
 	return ComPanel.getUpdateInterface();
