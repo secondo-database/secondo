@@ -51,6 +51,8 @@ public class DisplayGraph extends DsplGeneric
  protected int minValueWidth=0;
  // a point for shippping data between this class and the projectionmanager
  static java.awt.geom.Point2D.Double aPoint = new Point2D.Double();
+ // a basicstroke for easy creating stroked shapes for line objects
+ static BasicStroke stroke = new BasicStroke(); 
 
 
   /**

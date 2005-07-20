@@ -196,7 +196,7 @@ public class Dsplpointsequence extends DisplayGraph {
       return  false;
     Rectangle2D.Double r = new Rectangle2D.Double(xpos - 5.0*scalex, ypos -
         5.0*scaley, 10.0*scalex, 10.0*scaley);
-    return RenderObject.intersects(r);
+    return stroke.createStrokedShape(RenderObject).intersects(r);
   }
 
 
@@ -217,7 +217,6 @@ public Shape getRenderObject (AffineTransform at) {
     }
     return RenderObject;
 }
-
 
 
 

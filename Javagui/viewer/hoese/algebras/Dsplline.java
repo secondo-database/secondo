@@ -173,7 +173,6 @@ public boolean isLineType(){
    * @param scalex The actual x-zoomfactor
    * @param scaley The actual y-zoomfactor
    * @return true if x-, ypos is contained in this points type
-   * @see <a href="Dspllinesrc.html#contains">Source</a>
    */
   public boolean contains (double xpos, double ypos, double scalex, double scaley) {
     if (bounds==null) return false; // an empty line
@@ -182,7 +181,7 @@ public boolean isLineType(){
       return  false;
     Rectangle2D.Double r = new Rectangle2D.Double(xpos - 5.0*scalex, ypos -
         5.0*scaley, 10.0*scalex, 10.0*scaley);
-    return GP.intersects(r);
+    return stroke.createStrokedShape(GP).intersects(r);
   }
 
 }
