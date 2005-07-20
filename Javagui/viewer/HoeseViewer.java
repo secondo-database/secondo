@@ -315,12 +315,25 @@ public class HoeseViewer extends SecondoViewer {
                                       ListExpr.realAtom(P.getX()),
                                       ListExpr.realAtom(P.getY())));
                        }
-                       ListExpr result = ListExpr.twoElemList(ListExpr.symbolAtom("pointsequence"),le);
-                       SecondoObject o = new SecondoObject(IDManager.getNextID());
-                       o.setName("ps");
-                       o.fromList(result);
-                       if(VC!=null)
-                          VC.addObject(o);
+                       String Name = JOptionPane.showInputDialog("Please enter a name for the object");
+                       if(Name!=null){
+                           ListExpr result = ListExpr.twoElemList(ListExpr.symbolAtom("pointsequence"),le);
+                           SecondoObject o = new SecondoObject(IDManager.getNextID());
+                           o.setName(Name);
+                           o.fromList(result);
+                          if(VC!=null){
+                             VC.addObject(o);
+                             String cmd = "let "+Name+" = [const pointsequence value "+le+"]";
+                             sj.lang.IntByReference errorCode = new sj.lang.IntByReference(0);
+                             ListExpr resultList = ListExpr.theEmptyList();
+                             StringBuffer errorMessage= new StringBuffer();
+                             if(!VC.execCommand(cmd,errorCode,resultList,errorMessage)){
+                                  MessageBox.showMessage("Error in storing pointsequence\n"+ 
+                                           sj.lang.ServerErrorCodes.getErrorMessageText(errorCode.value)+"\n"+
+                                           errorMessage);
+                             }
+                          }
+                       }
                   }
                   createPointSequenceListener.reset();
                   SelectionControl.enableSelection(true); 
