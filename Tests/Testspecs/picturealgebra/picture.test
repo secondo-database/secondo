@@ -1,13 +1,13 @@
-delete database testall;
-create database testall;
-open database testall;
+delete database pictest;
+create database pictest;
+open database pictest;
 e
 
 # 
 # create test pictures
 #
 
-let pic15 = [const picture value undef ];
+create pic15 : picture;
 
 #testcase "create pic1"
 #yields success
@@ -443,28 +443,28 @@ query pic15 like [ 21.0, 1.0, 0, 9 ]
 query pic15 like [ 21.0, 1.0, 0, 50 ]
 
 #testcase "pic1 equals pic1"
-#yields (bool TRUE)
+#yields (real 0.0)
 query pic1 pic1 equals [ 1, 0 ] 
 
 #testcase "pic1 equals pic2"
-#yields (bool FALSE)
-query pic1 pic2 equals [ 1, 0 ] 
-
-#testcase "pic1 equals pic6"
-#yields (bool FALSE)
-query pic1 pic6 equals [ 1, 0 ] 
+#yields (bool TRUE)
+query (pic1 pic2 equals [ 1, 0 ]) < 3.7
 
 #testcase "pic1 equals pic6"
 #yields (bool TRUE)
-query pic1 pic6 equals [ 1, 1 ] 
+query (pic1 pic6 equals [ 1, 0 ]) < 4.7
+
+#testcase "pic1 equals pic6"
+#yields (bool TRUE)
+query (pic1 pic6 equals [ 1, 1 ]) < 4.7
 
 #testcase "pic1 equals scaled pic1 (1)"
-#yields (bool FALSE)
-query pic1 scale [ 25, 15 ] pic1 equals [ 5, 1 ] 
+#yields (bool TRUE)
+query (pic1 scale [ 25, 15 ] pic1 equals [ 5, 1 ]) < 29.0
 
 #testcase "pic1 equals scaled pic1 (2)"
 #yields (bool TRUE)
-query pic1 scale [ 25, 15 ] pic1 equals [ 6, 1 ] 
+query (pic1 scale [ 25, 15 ] pic1 equals [ 6, 1 ]) < 26.0
 
 #testcase "invalid like (1)"
 #yields (bool undef)
@@ -511,11 +511,11 @@ query pic1 flipleft [ -1 ] like [ 50, 2, 0, 50 ]
 query pic1 flipleft [ -1 ] like [ 50.0, 2.0, 0, 50 ]
 
 #testcase "equals on undef #1"
-#yields (bool undef)
+#yields (real undef)
 query pic1 flipleft [ -1 ] pic1 equals [ 50, 2 ]
 
 #testcase "equals on undef #2"
-#yields (bool undef)
+#yields (real undef)
 query pic1 pic1 flipleft [ -1 ] equals [ 50, 2 ]
 
 #
