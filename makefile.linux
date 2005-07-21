@@ -40,8 +40,13 @@ AR := ar
 RANLIB := ranlib
 CP := cp
 RM := rm -f
+
 LEX := flex
+ifndef SECONDO_YACC
 YACC := bison
+else
+YACC := $(SECONDO_YACC)
+endif
 
 # macros for shared library support
 ifeq ($(shared),yes)
