@@ -33,6 +33,8 @@ This module initializes the JNI Environment. \\
    changed 2005-04-04 by M. Spiekermann \\
       new parameter M in jni.ini introduced wich \\
       defined the maximum heap size of the VM in megabytes \\
+   changed 2005-07-21 by M. Spiekermann \\
+      Parameter L will be prefixed by variable J2SDK\_ROOT \\
 \end{center}
 
 */
@@ -85,10 +87,10 @@ string  itself is returned. Otherwise
 */
 string getAbsolutePath(string Path){
   if(Path[0]=='/' | Path[0]=='.')
-     return Path;
+    return Path;
   if(PATH_SEPARATOR==';' && Path.size()>1 && Path[1]==':'){
-    // an absolutte windows path
-         return Path;
+    // an absolute windows path
+    return Path;
   }
   string SecondoHome = getenv("SECONDO_BUILD_DIR");
   return SecondoHome+"/"+Path;
@@ -144,8 +146,18 @@ void processLine(const string& inputLine,string& classpath,
       classpath += PATH_SEPARATOR;
    classpath += getAbsolutePath(line3);
  }
- if(line[1]=='L')
-    libdir = line3;
+ if(line[1]=='L') {
+    string J2SDKRoot = getenv("J2SDK_ROOT");
+
+    if ( ((line3[0] != '.') && (line3[0] != '/')) && (J2SDKRoot != "") ) 
+    {
+      libdir = J2SDKRoot + "/" + line3;
+    } 
+    else 
+    {
+      libdir = line3;
+    } 
+ }
  if(line[1]=='V')
     version = line3;
  if(line[1]=='M')

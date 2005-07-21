@@ -33,20 +33,24 @@
 # Parameter %M introduced
 
 # set a lot of classpathes
+# If the path starts with '.' or '/' it is used as is
+# otherwise the value $SECONDO_BUILD_DIR will be prefixed.
 
-%P ../Algebras/JNIExample/JNIExampleAlgebra.jar
-%P ../Javagui
-%P ../Javagui/lib/JLex_v1.2.5.zip
-%P ../Javagui/lib/java_cup_v10k.zip
-%P ../Javagui/lib/java_cup_v10k_runtime.jar
-%P ../Javagui/lib/visualrt.zip
-%P ../Javagui
-%P ../Tools/Jni
-%P ../Algebras/Rose/RoseJava
-%P ../Algebras/Fuzzy
+%P Algebras/JNIExample/JNIExampleAlgebra.jar
+%P Javagui
+%P Javagui/lib/JLex_v1.2.5.zip
+%P Javagui/lib/java_cup_v10k.zip
+%P Javagui/lib/java_cup_v10k_runtime.jar
+%P Javagui/lib/visualrt.zip
+%P Javagui
+%P Tools/Jni
+%P Algebras/Rose/RoseJava
+%P Algebras/Fuzzy
 
 # set the lib path
-%L ../../secondo-sdk/j2sdk1.4.2_01/jre/bin/client
+# If the path starts with '.' or '/' it is used as is
+# otherwise the value $J2SDK_ROOT will be prefixed.
+%L jre/bin/client
 
 # set the version number 
 %V 1.4
