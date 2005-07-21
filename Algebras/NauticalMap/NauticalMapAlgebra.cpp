@@ -48,6 +48,7 @@ using namespace std;
 #include <iostream>
 #include <cstdlib>
 #include <unistd.h>
+
 #include "RelationAlgebra.h"
 #include "time.h"
 #include "NauticalMapAlgebra.h"
