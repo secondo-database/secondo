@@ -1830,10 +1830,10 @@ SecondoInterface::FinishCommand( SI_Error& errorCode )
     }
     else
     {
+      cerr << "Error: " << GetErrorMessage(errorCode) << " - aborting transaction!" << endl;
+      cerr.flush();
       if ( !SecondoSystem::AbortTransaction() )
       {
-        // store previous error which causes the abort.
-        cmsg.error() << "Error: " << GetErrorMessage(errorCode) << endl;
         errorCode = ERR_COMMIT_OR_ABORT_FAILED;
       }
     }
