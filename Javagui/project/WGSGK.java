@@ -62,8 +62,14 @@ public boolean project(double l1, double b1, java.awt.geom.Point2D.Double result
      e.printStackTrace();
      return false;
   }
-
 }
+
+public boolean isReversible(){ return true; }
+
+public boolean getOrig(double px, double py, java.awt.geom.Point2D.Double result){
+  return  gk2geo(px,py,result);
+}
+
 
 void HelmertTransformation(double x,double y,double z,P3d p)
 {
@@ -182,6 +188,105 @@ private double MDC = 2.0;  // standard in Hagena
 private boolean useWGS = true; // usw coordinates in wgs ellipsoid
 private GKSettings gKSettings = new GKSettings(this);
 
+
+/** This function computes the geo coordinates from the gauss krueger ones
+  * This is the java transformation of a Java script found at:
+  * http://calc.gknavigation.de/
+  **/
+public boolean gk2geo(double GKRight, double GKHeight, java.awt.geom.Point2D.Double result){
+   if(GKRight<1000000 || GKHeight<1000000)
+       return false;
+   double e2 = 0.0067192188;
+   double c = 6398786.849;
+
+   double bI = GKHeight/10000855.7646;
+   double bII = bI*bI;
+   double bf = 325632.08677 * bI * ((((((0.00000562025 * bII + 0.00022976983) 
+                                  * bII - 0.00113566119) 
+                                  * bII + 0.00424914906) 
+                                  * bII - 0.00831729565) 
+                                  * bII + 1));
+   bf /= 3600*rho;
+   double co = Math.cos(bf);
+   double g2 = e2 *(co*co);
+   double g1 = c/Math.sqrt(1+g2);
+   double t = Math.tan(bf);
+   double fa = (GKRight - Math.floor(GKRight/1000000)*1000000-500000)/g1;
+   double GeoDezRight = ((bf - fa * fa * t * (1 + g2) / 2 + 
+                          fa * fa * fa * fa * t * (5 + 3 * t * t + 6 * g2 - 6 * g2 * t * t) / 24) * rho);
+   double dl = fa - fa * fa * fa * (1 + 2 * t * t + g2) / 6 + 
+               fa * fa * fa * fa * fa * (1 + 28 * t * t + 24 * t * t * t * t) / 120;
+   
+   double Mer = Math.floor(GKRight/1000000);
+   double GeoDezHeight = dl*rho/co+Mer*3;
+   if(useWGS){
+      return bessel2WGS(GeoDezRight,GeoDezHeight,result);
+   }else{
+      result.setLocation(GeoDezHeight,GeoDezRight);
+      return true;
+   }
+}
+
+private boolean bessel2WGS(double geoDezRight, double geoDezHeight, java.awt.geom.Point2D.Double result){
+    double aBessel = abes;
+    double eeBessel = 0.0066743722296294277832;
+    double ScaleFactor = 0.00000982;
+    double RotXRad = -7.16069806998785E-06;
+    double RotYRad = 3.56822869296619E-07;
+    double RotZRad = 7.06858347057704E-06;
+    double ShiftXMeters = 591.28;
+    double ShiftYMeters = 81.35;
+    double ShiftZMeters = 396.39;
+    double aWGS84 = awgs;
+    double eeWGS84 = 0.0066943799;
+    geoDezRight = (geoDezRight/180)*PI;
+    geoDezHeight = (geoDezHeight/180)*PI;
+    double sinRight = Math.sin(geoDezRight);
+    double sinRight2 = sinRight*sinRight;
+    double n = eeBessel*sinRight2;
+    n = 1-n;
+    n = Math.sqrt(n);
+    n = aBessel/n;
+    double cosRight=Math.cos(geoDezRight);
+    double cosHeight=Math.cos(geoDezHeight);
+    double sinHeight = Math.sin(geoDezHeight);
+    double CartesianXMeters = n*cosRight*cosHeight;
+    double CartesianYMeters = n*cosRight*sinHeight;
+    double CartesianZMeters = n*(1-eeBessel)*sinRight;
+
+    double CartOutputXMeters = (1 + ScaleFactor) * CartesianXMeters + RotZRad * CartesianYMeters - 
+                               RotYRad * CartesianZMeters + ShiftXMeters;    
+    double CartOutputYMeters = -RotZRad * CartesianXMeters + (1 + ScaleFactor) * CartesianYMeters + 
+                               RotXRad * CartesianZMeters + ShiftYMeters;
+    double CartOutputZMeters = RotYRad * CartesianXMeters - RotXRad * CartesianYMeters + 
+                               (1 + ScaleFactor) * CartesianZMeters + ShiftZMeters;
+    
+     geoDezHeight = Math.atan(CartOutputYMeters/CartOutputXMeters);
+     double Latitude = (CartOutputXMeters*CartOutputXMeters)+(CartOutputYMeters*CartOutputYMeters);
+     Latitude = Math.sqrt(Latitude);
+     double InitLat = Latitude;
+     Latitude = CartOutputZMeters/Latitude;
+     Latitude = Math.atan(Latitude);
+     double LatitudeIt = 99999999;
+     do{
+        LatitudeIt = Latitude;
+        double sinLat = Math.sin(Latitude);
+        n = 1-eeWGS84*sinLat*sinLat;
+        n = Math.sqrt(n);
+        n = aWGS84/n;
+        Latitude = InitLat; // sqrt(CartoutputXMeters^2+CartOutputYMeters^2)
+        Latitude = (CartOutputZMeters+eeWGS84*n*Math.sin(LatitudeIt))/Latitude;
+        Latitude = Math.atan(Latitude);
+     } while(Math.abs(Latitude-LatitudeIt)>=0.000000000000001);
+
+     result.y = (Latitude/PI)*180;
+     result.x = (geoDezHeight/PI)*180;
+     return true;    
+}
+
+
+
+private static final double rho = 180/PI;
 
 private static class GKSettings extends javax.swing.JDialog{
 

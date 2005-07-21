@@ -2565,18 +2565,16 @@ public boolean canDisplay(SecondoObject o){
 							p = (Point2D.Double)allProjection.inverseTransform(evt.getPoint(),p);
 					 } catch (Exception ex) {}
 					 // compute the inverse projection if possible 
-					 if(!ProjectionManager.isReversible()){
-							x = p.getX();
-							y = p.getY();           
-					 } else{
-						 x = p.getX();
-						 y = p.getY();
-						 if(ProjectionManager.getOrig(x,y,aPoint)){           
-								x = aPoint.x;
-								y = aPoint.y;
-						 }
-					 }
-           if(ps.isEmpty()){
+					x = p.getX();
+					y = p.getY();           
+          if(!ProjectionManager.estimateOrig(x,y,aPoint)){
+              MessageBox.showMessage("Error in computing Projection");  
+              return;// ignore this point 
+          }else{
+              x = aPoint.x;
+              y = aPoint.y;
+          }
+          if(ps.isEmpty()){
               points = new  Vector();
            }
            boolean repchanged = ps.add(x,y);

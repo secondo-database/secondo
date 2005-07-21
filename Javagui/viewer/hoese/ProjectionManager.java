@@ -20,6 +20,7 @@
 package viewer.hoese;
 
 import project.*;
+import java.awt.geom.*;
 
 
 public class ProjectionManager {
@@ -57,10 +58,87 @@ public class ProjectionManager {
 
    public static boolean getOrig(double px, double py, java.awt.geom.Point2D.Double result){
       return P.getOrig(px,py,result);
-   } 
+   }
+   
+   public static boolean estimateOrig(double px,double py, java.awt.geom.Point2D.Double result){
+      java.awt.geom.Point2D.Double aPoint = new java.awt.geom.Point2D.Double();
+      if(P.isReversible()){
+         return  getOrig(px,py,result);
+      }
+      int maxIterations = 100000;
+      double x = 0;
+      double y = 0;
+      double maxError=0.0000001; // note that is the square root of the actual error
+      double minDx = 0.0000000001;
+      double minDy = 0.0000000001;
+      P.project(x,y,aPoint);
+      double error = (px-aPoint.x)*(px-aPoint.x) + (py-aPoint.y)*(py-aPoint.y);
+      double lastError=error;
+      double dx = 1;
+      double dy = 1;
+      int iterations = 0;
+      boolean changeX = true;
+      while( error>maxError   &&
+             iterations < maxIterations){
+         iterations++;
+         if(changeX){
+            x = x + dx;
+            // compute the new error
+            P.project(x,y,aPoint);
+            error = (px-aPoint.x)*(px-aPoint.x) + (py-aPoint.y)*(py-aPoint.y);
+            if(error < lastError){
+                 lastError = error;
+                 dx=dx*2;
+            } else {
+               x = x -dx; // switch to the last value// dont change lastError
+               if(dx>0)
+                  dx = -dx;
+               else{
+                  dx = -dx /2;
+                  if(dx < minDx)
+                      dx = minDx;
+               } 
+            }
+            changeX = false;
+         }  else { // changeY
+            y = y + dy;
+            // compute the new error
+            P.project(x,y,aPoint);
+            error = (px-aPoint.x)*(px-aPoint.x) + (py-aPoint.y)*(py-aPoint.y);
+            if(error < lastError){
+                 lastError = error;
+                 dy=dy*2;
+            } else {
+               y = y -dy; // switch to the last value// dont change lastError
+               if(dy>0)
+                  dy = -dy;
+               else{
+                  dy = -dy /2;
+                  if(dy < minDy)
+                     dy = minDy;
+               }
+            }
+            changeX = true;
+         }
+      }
+    if(iterations >= maxIterations){
+       if(gui.Environment.DEBUG_MODE){
+          System.err.println("give up after "+maxIterations+" iterations");
+          System.out.println("error was " + error);
+          System.out.println("Last values are " + x + " , " + y);
+       }
+       return false;
+    }
+    result.x = x;
+    result.y = y;
+    return true;
+
+   }
+ 
 
 private static Projection P = new  VoidProjection();
 
 private static Projection VP = new VoidProjection();
+private static double EPSILON=0.00001;
 
 }

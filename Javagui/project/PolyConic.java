@@ -23,20 +23,20 @@ package project;
 
 public class PolyConic extends ProjectionAdapter{
 
+
    public boolean project(double lambda, double phi, java.awt.geom.Point2D.Double result){
        double px = 0;
        double py = 0;
        try{
 
-          if(Math.abs(phi)<5)
-              phi=5*signum(phi);
-          double phi_2 = phi*PI/180;
-          double lambda_2 = (lambda-Lambda_0)*PI/180;
-          double E = lambda_2*Math.sin(phi_2);
-          double x= cot(phi_2)*Math.sin(E);
-          px= x*180/PI;
-          double y = (phi-Phi_0)*PI/180+ cot(phi_2)*(1-Math.cos(E));
-          py = y*180/PI;
+          lambda = lambda*PI/180;
+          phi = phi*PI/180;
+          double E = (lambda-Lambda_0)*Math.sin(phi);
+          double x = cot(phi)*Math.sin(E);
+          double y = (phi-Phi_0)+cot(phi)*(1-Math.cos(E)); 
+          px = x;
+          py = y;
+
        }catch(Exception e){
           return false;
        }
@@ -61,6 +61,35 @@ public class PolyConic extends ProjectionAdapter{
 
    private double signum(double d){
      return d>=0?1:-1;
+   }
+
+   public boolean isReversible(){return true;}
+
+   public boolean getOrig(double x , double y, java.awt.geom.Point2D.Double result){
+      try{
+         double A = Phi_0+y;
+         double B = x*x + A*A;
+         double phi = A;
+         double Delta_Phi= -(A*phi*(Math.tan(phi)+1)-phi-0.5*(phi*phi+B)*Math.tan(phi))   /  ( (phi-A)/Math.tan(phi)-1 );
+         int iterations = 10000;
+
+         while(Math.abs(Delta_Phi) > 0.00000000001 && iterations > 0){
+           iterations--;
+           phi = phi + Delta_Phi;
+           Delta_Phi= -(A*(phi*Math.tan(phi)+1)-phi-0.5*(phi*phi+B)*Math.tan(phi))   /  ( (phi-A)/Math.tan(phi)-1 );
+         }
+         if(iterations==0)
+            return false;
+         double lambda = Math.asin(x*Math.tan(phi))/Math.sin(phi)+Lambda_0; 
+         result.setLocation(lambda*180/PI,phi*180/PI);
+         return true;
+
+      }catch(Exception e){
+        return false;
+      }
+
+
+
    }
 
    private double Lambda_0 = 0;

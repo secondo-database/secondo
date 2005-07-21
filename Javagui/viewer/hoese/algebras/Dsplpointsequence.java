@@ -80,6 +80,12 @@ public class Dsplpointsequence extends DisplayGraph {
     * representation is changed, e.g. from point to line.
     **/
   public boolean add(double x, double y){
+     if(!ProjectionManager.project(x,y,aPoint)){
+        err = true;
+        return false;
+     }
+     x = aPoint.x;
+     y = aPoint.y;
      pointnumber++;
      if(empty){
        point.setLocation(x,y);
@@ -134,18 +140,14 @@ public class Dsplpointsequence extends DisplayGraph {
          }
          double x = X.doubleValue();
          double y = Y.doubleValue();
-    	   if(!ProjectionManager.project(x,y,aPoint)){
-            err = true; 
+         add(x,y);
+         if(err){
             if(gui.Environment.DEBUG_MODE)
                System.out.println("error in project  point t("+x+" , " +y+")");
             reset();
             return;
-				  }else{ 
-					   double x1 = aPoint.x;
-					   double y1 = aPoint.y;
-             add(x1,y1);
-          }
-          value = value.rest();
+         }
+         value = value.rest();
     }
   }
 
