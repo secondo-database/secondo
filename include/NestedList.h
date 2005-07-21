@@ -79,6 +79,9 @@ compact tables could be removed. All in all in the average case (no big text
 atoms) the memory representation of a nested list will only take about 50
 percent compared to the implementation before.
 
+July 2005, M. Spiekermann. Function ~TextAtom~ overloaded. Now a string can be passed
+directly in order to set a value.
+
 1.1 Overview
 
 A ~nested list~ can be viewed in two different ways. The first is to consider
@@ -731,6 +734,12 @@ two operations are offered:
 
 */
   ListExpr TextAtom();
+  inline ListExpr TextAtom(const string& value) 
+  { 
+    ListExpr l = TextAtom(); 
+    AppendText(l,value); 
+    return l;
+  }
   void AppendText( const ListExpr atom,
                    const string&  textBuffer );
 /*
