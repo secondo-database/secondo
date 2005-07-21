@@ -837,7 +837,6 @@ the system is terminated.
 int
 TestRunner::Execute()
 {
-  int rc = 0;
   cout << endl
        << "--- Secondo TestRunner ---"
        << endl << endl;
@@ -902,7 +901,7 @@ TestRunner::Execute()
 
     si->Terminate();
     delete si;
-    cout << "Secondo TestRunner terminated." << endl;
+    cout << "--- Secondo TestRunner terminated ---" << endl;
   }
   else
   {
