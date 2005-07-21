@@ -61,7 +61,6 @@ endif
 $(MODNAME).$(OBJEXT): $(MODNAME).cpp $(INCFILES)
 	$(CC) -c -o $(MODNAME).$(OBJEXT) $(MODNAME).cpp $(CCFLAGS)
 
-include ../../include.dep
 
 .PHONY: clean
 clean:

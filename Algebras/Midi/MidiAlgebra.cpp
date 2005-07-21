@@ -1855,38 +1855,6 @@ void* CastMidi( void* addr )
   return new (addr) Midi;
 }
 
-/*
-2.12 ~Open~-function
-
-*/
-bool OpenMidi(SmiRecord& valueRecord, const ListExpr typeInfo, Word& value)
-/*
-This Open function is implemented in the TupleElement class and uses the same
-method of the Tuple manager to open objects.
-
-*/
-{
-  Midi* midi = new Midi(true, 0, 0);
-  midi->Open(valueRecord, typeInfo);
-  value = SetWord(midi);
-  return true;
-}
-
-/*
-2.13 ~Save~-function
-
-*/
-bool SaveMidi(SmiRecord& valueRecord, const ListExpr typeInfo, Word& value)
-/*
-This Save function is implemented in the TupleElement class and uses the same
-method of the Tuple manager to save objects.
-
-*/
-{
-  Midi* midi = (Midi*) value.addr;
-  midi->Save(valueRecord, typeInfo);
-  return true;
-}
 
 /*
 2.14 Kind Checking Function
@@ -1910,7 +1878,7 @@ TypeConstructor midi(
         OutMidi,    InMidi,     //Out and In functions
         0,          0,          //list functions
         CreateMidi, DeleteMidi, //object creation and deletion
-        OpenMidi,   SaveMidi,   //object open and save
+        0,   0,                 //object open and save
         CloseMidi,  CloneMidi,  //object close and clone
         CastMidi,               //cast function
         SizeOfMidi,             //sizeof function

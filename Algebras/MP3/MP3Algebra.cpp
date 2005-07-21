@@ -1924,8 +1924,8 @@ ListExpr ID3Property() {
 	     nl->FiveElemList
 	     (nl->StringAtom("-> DATA"),
 	      nl->StringAtom("id3"),
-	      nl->StringAtom("( string string string int string string )"),
-	      nl->StringAtom(
+	      nl->TextAtom("( string string string int string string )"),
+	      nl->TextAtom(
 		  "( 'songname' 'author' 'album' 1984 'comment' 'Rock') "),
 	      nl->StringAtom(""))));
 }
