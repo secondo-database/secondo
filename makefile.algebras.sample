@@ -5,7 +5,7 @@
 ################################
 
 # Master switch to use all algebras
-SECONDO_ACTIVATE_ALL_ALGEBRAS := true
+#SECONDO_ACTIVATE_ALL_ALGEBRAS := true
  
 # never change this
 ALGEBRA_DIRS := Standard-C++
