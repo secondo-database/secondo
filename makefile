@@ -170,7 +170,7 @@ realclean: clean
 
 .PHONY: runtests 
 runtests:
-	CM-Scripts/run-tests.sh
+	cd CM-Scripts; run-tests.sh
 
 
 .PHONY: cvstest

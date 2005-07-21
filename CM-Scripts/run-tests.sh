@@ -6,16 +6,19 @@
 
 # include function definitions
 # libutil.sh must be in the same directory as this file
-if ! source libutil.sh; then exit 1; fi
+if ! source ./libutil.sh; then exit 1; fi
 
 inputDir="${buildDir}/Tests/Testspecs"
 testSuites=$(find ${inputDir} -name "*.test")
+
+
 
 printf "\n%s\n" "Running tests in ${buildDir}."
 
 #overule configuration file parameter
 dbDir="${buildDir}/test-databases-${date_TimeStamp}"
 export SECONDO_PARAM_SecondoHome="$dbDir"
+export SECONDO_PARAM_RTFlags="SI:NoQueryAnalysis,SI:NoCommandEcho" 
 
 if [ -d $dbDir ]; then
 
@@ -41,7 +44,7 @@ do
   printf "%s\n" "==================================================================="  > $logFile
   printf "%s\n" "===================================================================\n"  > $logFile
   checkCmd "time TestRunner -i  ${file} > ${logFile} 2>&1"
-  if [ $rc -ne 0 ]; then
+  if ! lastRC; then
     let error++
   fi
 done
@@ -50,7 +53,7 @@ done
 printf "\n%s\n\n" "Running optimizer test ..."
 cd ${buildDir}/Optimizer
 checkCmd "time TestOptimizer"
-if [ $? -ne 0 ]; then
+if ! lastRC; then
   let error++
 fi
 

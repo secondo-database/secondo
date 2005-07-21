@@ -3,6 +3,9 @@
 # Algebra Configuration File
 #
 ################################
+
+# Master switch to use all algebras
+SECONDO_ACTIVATE_ALL_ALGEBRAS := true
  
 # never change this
 ALGEBRA_DIRS := Standard-C++
@@ -32,6 +35,8 @@ ALGEBRA_DEPS :=
 # into an executable. If the algebra code itself depends on other
 # librares, e.g. the jpeg algebra depends on libjepeg, put these libraries
 # into the variable ALGEBRA_DEP.
+
+ALGEBRA_DEPS += jpeg
 
 ALGEBRA_DIRS += Function-C++
 ALGEBRAS     +=	FunctionAlgebra
@@ -99,7 +104,6 @@ ALGEBRAS     +=	TupleIdentifierAlgebra
 
 #ALGEBRA_DIRS += Picture 
 #ALGEBRAS     += PictureAlgebra
-#ALGEBRA_DEPS += jpeg           # libjpeg is used and must be installed
 
 #ALGEBRA_DIRS  += Midi
 #ALGEBRAS      += MidiAlgebra

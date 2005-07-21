@@ -104,6 +104,8 @@ echo "----------------" >> $last_changes
 echo "Changes since last run (${lastDate}):" >> $last_changes
 echo "------------------------------------------" >> $last_changes
 cat $last_cvshist >> $last_changes
+last_cvshist2=$(cat $last_cvshist)
+
 
 # extract the 1st line of cvs history 
 hasChanged=$(head -n1 $last_cvshist)
@@ -134,7 +136,6 @@ else
 
 fi
 
-rm $last_cvshist
 
 
 ## report host status 
@@ -166,6 +167,10 @@ printSep "Compiling SECONDO"
 declare -i errors=0
 cd $cbuildDir
 printf "\n%s" "$PWD"
+
+export SECONDO_ACTIVATE_ALL_ALGEBRAS="true"
+export SECONDO_YACC="/usr/bin/bison"
+
 checkCmd "make > ../make-all.log 2>&1" 
 
 # proceed if last command was successful
@@ -177,7 +182,7 @@ if ! lastRC; then
   mailBody="This is a generated message!  
 
   Users who committed to CVS yesterday:
-  $cvshist_result
+  $last_cvshist2
 
   You will find the output of make in the attached file.
   Please fix the problem as soon as possible."
@@ -192,23 +197,25 @@ fi
 if [ $[errors] == 0 ]; then
 
 printSep "Running automatic tests"
-timeOut 300 $scriptDir/run-tests.sh
+cd $scriptDir
+timeOut 300 run-tests.sh
 
 if ! lastRC; then
   
   printf "%s\n" "Problems during test, sending a mail to:"
   printf "%s\n" "$recipients"
-  cat ${cbuildDir}/Tests/Testspecs/*.log > run-tests.log
+  cd ${cbuildDir}/Tests
+  tar -czf run-tests-logfiles.tar.gz Testspecs/*.log
 
   mailBody="This is a generated message!  
 
   Users who committed to CVS yesterday:
-  $cvshist_result
+  $last_cvshist2
 
   You will find the output of run-tests in the attached file.
   Please fix the problem as soon as possible."
 
-  sendMail "Automatic tests failed!" "$recipients" "$mailBody" "./run-tests.log"
+  sendMail "Automatic tests failed!" "$recipients" "$mailBody" "./run-tests-logfiles.tar.gz"
   let errors++
 
 fi
@@ -216,6 +223,7 @@ fi
 fi
 
 
+cd $cbuildDir
 ## run make clean
 printSep "Cleaning SECONDO"
 checkCmd "make realclean > ../make-clean.log 2>&1" 
@@ -246,5 +254,6 @@ fi
 ## clean up
 printSep "Cleaning up"
 rm -rf ${cbuildDir}
+rm $last_cvshist
 
 exit $errors
