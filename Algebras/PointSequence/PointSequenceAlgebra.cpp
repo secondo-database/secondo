@@ -45,7 +45,7 @@ using namespace std;
 #include "DBArray.h"
 #include "SecondoSystem.h"
 #include "Attribute.h"
-#include "../Spatial/SpatialAlgebra.h"
+#include "SpatialAlgebra.h"
 
 
 extern NestedList* nl;
