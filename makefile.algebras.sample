@@ -98,6 +98,8 @@ ALGEBRAS     +=	PlugJoinAlgebra
 ALGEBRA_DIRS += TupleIdentifier	
 ALGEBRAS     +=	TupleIdentifierAlgebra
 
+ALGEBRA_DIRS += PointSequence	
+ALGEBRAS     +=	PointSequenceAlgebra
 
 #ALGEBRA_DIRS += MP3
 #ALGEBRAS     += MP3Algebra
