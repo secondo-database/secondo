@@ -138,6 +138,12 @@ public class HoeseViewer extends SecondoViewer {
   /** True if menu-entry 'automatic category' is selected */
   public javax.swing.JCheckBoxMenuItem isAutoCatMI;
   private JMenuItem selectSequenceCat;
+  private JRadioButtonMenuItem create_Rectangle_MI;
+  private JRadioButtonMenuItem create_PointSequence_MI;
+  private JRadioButtonMenuItem create_FilledPointSequence_MI;
+  private JRadioButtonMenuItem create_Points_MI;
+  private JRadioButtonMenuItem create_Line_MI;
+
 
   private javax.swing.JSeparator jSeparator5;
   private javax.swing.JMenuItem jMIShowCE;
@@ -203,7 +209,6 @@ public class HoeseViewer extends SecondoViewer {
 
   /** a button for creating a point sequence **/
   private JButton createPointSequenceBtn;
-  private JButton createFilledPointSequenceBtn;
   private boolean createPointSequenceActivated=false;
   private CreatePointSequenceListener createPointSequenceListener;
 
@@ -290,8 +295,7 @@ public class HoeseViewer extends SecondoViewer {
        DecrementSpeedBtn = new JButton("-");
 
 
-    createPointSequenceBtn = new JButton("o");
-    createFilledPointSequenceBtn = new JButton("*");
+    createPointSequenceBtn = new JButton();
     createPointSequenceBtn.setOpaque(true);
     createPointSequenceListener=new CreatePointSequenceListener();
     
@@ -308,63 +312,27 @@ public class HoeseViewer extends SecondoViewer {
                   Butt.setBackground(dColor);
                   createPointSequenceActivated=false;
                   GraphDisplay.removeMouseListener(createPointSequenceListener);
-                  // create a Secondo_Object pointsequence form the points
-                  Vector points = createPointSequenceListener.points;
-                  if(points!=null){
-                      ListExpr le=null;
-                      ListExpr last=null;
-                      Point2D.Double P;
-                      if(points.size()>0){
-                         P=(Point2D.Double) points.get(0);
-                         le = ListExpr.oneElemList(
-                                  ListExpr.twoElemList(
-                                      ListExpr.realAtom(P.getX()),
-                                      ListExpr.realAtom(P.getY())));
-                         last=le;
-                      }
-                      for(int i=1;i<points.size();i++){
-                         P = (Point2D.Double) points.get(i);
-                         last = ListExpr.append(last,ListExpr.twoElemList(
-                                      ListExpr.realAtom(P.getX()),
-                                      ListExpr.realAtom(P.getY())));
-                       }
-                       String Name=null;
-                       do{
-                          Name = JOptionPane.showInputDialog("Please enter a name for the object");
-                          if(Name!=null) Name = Name.trim();
-                       } while(Name!=null && !LEUtils.isIdent(Name));
-                       if(Name!=null){
-														ListExpr result = ListExpr.twoElemList(ListExpr.symbolAtom("pointsequence"),le);
-														SecondoObject o = new SecondoObject(IDManager.getNextID());
-														o.setName(Name);
-														o.fromList(result);
-														if(VC!=null){
-															VC.addObject(o);
-															String cmd = "let "+Name+" = [const pointsequence value "+le+"]";
-															sj.lang.IntByReference errorCode = new sj.lang.IntByReference(0);
-															ListExpr resultList = ListExpr.theEmptyList();
-															StringBuffer errorMessage= new StringBuffer();
-															if(!VC.execCommand(cmd,errorCode,resultList,errorMessage)){
-																	 MessageBox.showMessage("Error in storing pointsequence\n"+ 
-																						sj.lang.ServerErrorCodes.getErrorMessageText(errorCode.value)+"\n"+
-																						errorMessage);
-															}
-                         }
-                       }
-                  }
-                  createPointSequenceListener.reset();
+                  GraphDisplay.removeMouseMotionListener(createPointSequenceListener);
+                  createPointSequenceListener.closeSequence(); 
                   SelectionControl.enableSelection(true); 
                   GraphDisplay.repaint();
+                  create_Rectangle_MI.setEnabled(true);
+                  create_Points_MI.setEnabled(true);
+                  create_Line_MI.setEnabled(true);
+                  create_PointSequence_MI.setEnabled(true);
+                  create_FilledPointSequence_MI.setEnabled(true);
               } else{ // start input
                   lastSrc = src;
                   Butt.setBackground(aColor);
-                  if(Butt.equals(createFilledPointSequenceBtn))
-                      createPointSequenceListener.fill(true);
-                  else
-                      createPointSequenceListener.fill(false);  
                   createPointSequenceActivated=true; 
                   SelectionControl.enableSelection(false);
                   GraphDisplay.addMouseListener(createPointSequenceListener);
+                  GraphDisplay.addMouseMotionListener(createPointSequenceListener);
+                  create_Rectangle_MI.setEnabled(false);
+                  create_Points_MI.setEnabled(false);
+                  create_Line_MI.setEnabled(false);
+                  create_PointSequence_MI.setEnabled(false);
+                  create_FilledPointSequence_MI.setEnabled(false);
               }            
           }
           Color aColor = Color.GREEN;
@@ -373,7 +341,6 @@ public class HoeseViewer extends SecondoViewer {
     };
 
     createPointSequenceBtn.addActionListener(createPointSequenceAL);
-    createFilledPointSequenceBtn.addActionListener(createPointSequenceAL);
     ActionListener SpeedControlListener = new ActionListener(){
          public void actionPerformed(ActionEvent evt){
             Object src = evt.getSource();
@@ -475,7 +442,7 @@ public class HoeseViewer extends SecondoViewer {
     PositionsPanel.add(MouseKoordLabel);
     JPanel aPanel = new JPanel(new GridLayout(2,1));
     aPanel.add(createPointSequenceBtn);
-    aPanel.add(createFilledPointSequenceBtn);
+    aPanel.add(new JLabel());
 
     JPanel TimeSliderAndLabels = new JPanel(new BorderLayout());
     TimeSliderAndLabels.add(TimeSlider,BorderLayout.NORTH);
@@ -892,10 +859,52 @@ public class HoeseViewer extends SecondoViewer {
 
     isAutoCatMI.setText("Auto category");
     jMenuGui.add(isAutoCatMI);
-    selectSequenceCat = new JMenuItem("Category for sequences");
-    jMenuGui.add(selectSequenceCat);
+    JMenu createMenu = new JMenu("Object creation");
+    jMenuGui.add(createMenu);
+    selectSequenceCat = new JMenuItem("Select Category");
+    createMenu.add(selectSequenceCat);
 
-    selectSequenceCat.addActionListener(new ActionListener(){
+    create_Rectangle_MI=new JRadioButtonMenuItem("rectangle");
+    create_PointSequence_MI=new JRadioButtonMenuItem("point sequence");
+    create_FilledPointSequence_MI=new JRadioButtonMenuItem("filled point sequence");
+    create_Points_MI=new JRadioButtonMenuItem("points");
+    create_Line_MI=new JRadioButtonMenuItem("line");
+    
+    createMenu.add(create_Rectangle_MI);
+    createMenu.add(create_PointSequence_MI);
+    createMenu.add(create_FilledPointSequence_MI);
+    createMenu.add(create_Points_MI);
+    //createMenu.add(create_Line_MI);
+    ButtonGroup createTypes = new ButtonGroup();
+    createTypes.add(create_Rectangle_MI);
+    createTypes.add(create_PointSequence_MI);
+    createTypes.add(create_FilledPointSequence_MI);
+    createTypes.add(create_Points_MI);
+    createTypes.add(create_Line_MI);
+    create_PointSequence_MI.setSelected(true);
+
+    // add an changeListener for inrforming the createPointSequnceListener when needed
+    ChangeListener cL = new ChangeListener(){
+        public void stateChanged(ChangeEvent evt){
+           if(create_Rectangle_MI.isSelected())
+                createPointSequenceListener.setMode(CreatePointSequenceListener.RECTANGLE_MODE);
+           if(create_PointSequence_MI.isSelected())
+                createPointSequenceListener.setMode(CreatePointSequenceListener.POINT_SEQUENCE_MODE);
+           if(create_FilledPointSequence_MI.isSelected())
+                createPointSequenceListener.setMode(CreatePointSequenceListener.FILLED_POINT_SEQUENCE_MODE);
+           if(create_Points_MI.isSelected())
+                createPointSequenceListener.setMode(CreatePointSequenceListener.POINTS_MODE);
+           if(create_Line_MI.isSelected())
+                createPointSequenceListener.setMode(CreatePointSequenceListener.LINE_MODE);
+        }
+    };
+   create_Rectangle_MI.addChangeListener(cL); 
+   create_PointSequence_MI.addChangeListener(cL); 
+   create_FilledPointSequence_MI.addChangeListener(cL); 
+   create_Points_MI.addChangeListener(cL); 
+   create_Line_MI.addChangeListener(cL); 
+
+   selectSequenceCat.addActionListener(new ActionListener(){
          public void actionPerformed(ActionEvent evt){
              if(Cats==null || Cats.size()==0){
                 MessageBox.showMessage("No categories available");
@@ -2555,29 +2564,32 @@ public boolean canDisplay(SecondoObject o){
   }
 
 
- class CreatePointSequenceListener extends MouseAdapter{
+ class CreatePointSequenceListener extends MouseInputAdapter{
+
+    /** Will be called if an mouse click is performed. 
+      * This event is evaluated when the current mode is 
+      * unequal to the rectangle mode which have a special treatment.
+      * In all other modes. the new point is added to the current
+      * point sequence. 
+      **/
 			public void mouseClicked(MouseEvent evt){
+          if(mode==RECTANGLE_MODE){
+             return;
+          } 
           if(evt.getButton()!=MouseEvent.BUTTON1)
              return;
-					Point2D.Double p = new Point2D.Double();
-					double x=0, y=0;
-					 try {
-							p = (Point2D.Double)allProjection.inverseTransform(evt.getPoint(),p);
-					 } catch (Exception ex) {}
-					 // compute the inverse projection if possible 
-					x = p.getX();
-					y = p.getY();           
-          if(!ProjectionManager.estimateOrig(x,y,aPoint)){
+			
+          if(!computeOrig(evt.getPoint(),aPoint)){
               MessageBox.showMessage("Error in computing Projection");  
               return;// ignore this point 
-          }else{
-              x = aPoint.x;
-              y = aPoint.y;
           }
+          double x = aPoint.x;
+          double y = aPoint.y;
+
           if(ps.isEmpty()){
               points = new  Vector();
            }
-           boolean repchanged = ps.add(x,y);
+           boolean repchanged = ps.add(x,y) || mode==FILLED_POINT_SEQUENCE_MODE;
            GraphDisplay.paintAdditional(ps); 
            if(repchanged)
               GraphDisplay.repaint();
@@ -2586,26 +2598,260 @@ public boolean canDisplay(SecondoObject o){
            ps.draw(G,allProjection);
 			}
 
+      /** This function computes the coordinates in the 'world' from the 
+        * given mouse coordinates. 
+        **/
+      private boolean computeOrig(java.awt.Point orig, java.awt.geom.Point2D.Double result){
+          // first compute the virtual screen coordinates
+          Point2D.Double p = new Point2D.Double();
+          try{
+            p = (Point2D.Double) allProjection.inverseTransform(orig,p);
+          }catch(Exception e){} 
+          double x = p.getX();
+          double y = p.getY();
+          return ProjectionManager.estimateOrig(x,y,result);
+      }
+
+     /** Sets the current point sequnce to be empty. And removes a rectangle if there is one. 
+       **/ 
       public void reset(){
           ps.reset();
           points=null;
           GraphDisplay.paintAdditional(null);
+          if(isPainted)
+              paintRectangle();
+          rectangle_start=false;
+          isPainted=false;
       }
 
+      /** Sets the category for a point sequence.
+        * The drawing of a rectangle is not affected by this method 
+        **/
       public void setCategory(Category cat){
           ps.setCategory(cat);
       }
-      
+     
+      /** Returns the category which is curretly used for painting a
+        * point sequence 
+        **/ 
       public Category getCat(){
           return ps.getCategory();
       }
 
-      public void fill(boolean on){
-          ps.fill(on);
+      /** Will be called when the mouse is pressed.
+       * This event is only processed in the rectangle mode.
+       * It starts the painting and creating of a single rectangle. 
+       */
+      public void mousePressed(MouseEvent evt){
+         if(mode!=RECTANGLE_MODE)
+           return;
+         if(evt.getButton()!=MouseEvent.BUTTON1)
+           return;
+         x1 = evt.getX();
+         y1 = evt.getY();
+         rectangle_start=true;
       }
+
+      /** Will be called if the mouse is released.
+        * This event is only processed in rectangle mode.
+        * The user is asked for a name of the created rectangle.
+        * From the name and the rectangle, a SecondoObject instance
+        * will be created and stored in the object list and the
+        * database. 
+        */
+      public void mouseReleased(MouseEvent evt){
+         if(mode!=RECTANGLE_MODE)
+            return;
+         if(evt.getButton()!=MouseEvent.BUTTON1)
+            return;
+         if(!rectangle_start)
+            return;
+
+         if(isPainted)
+           paintRectangle();
+         isPainted=false;
+         x2 = evt.getX();
+         y2 = evt.getY();
+         rectangle_start=false;
+         // ask for the object name 
+         if(x1==x2 || y1==y2) // not a rectangle
+            return; 
+         String Name=getNameFromUser();
+         if(Name!=null){
+              Point p1 = new Point(Math.min(x1,x2),Math.min(y1,y2));
+              Point p2 = new Point(Math.max(x1,x2),Math.max(y1,y2));
+              if(!computeOrig(p1,aPoint)){
+                  MessageBox.showMessage("Error in computing a point from mouse coordinates");
+                  return;
+              }
+              double dx1 = aPoint.x;
+              double dy1 = aPoint.y;
+              if(!computeOrig(p2,aPoint)){
+                  MessageBox.showMessage("Error in computing a point from mouse coordinates");
+                  return;
+              }
+              double dx2 = aPoint.x;
+              double dy2 = aPoint.y;
+              ListExpr value = ListExpr.fourElemList(ListExpr.realAtom(Math.min(dx1,dx2)),
+                                                     ListExpr.realAtom(Math.max(dx1,dx2)),
+                                                     ListExpr.realAtom(Math.min(dy1,dy2)),
+                                                     ListExpr.realAtom(Math.max(dy1,dy2)));
+		    			ListExpr result = ListExpr.twoElemList(ListExpr.symbolAtom("rect"),value);
+              processSecondoObject(Name,"rect",result);
+         }
+         reset();
+      }
+
+      /** Called when the mouse is dragged.
+        * This event is for the rectangle  mode only.
+        * A rectangle from the starting coordinates up to the current
+        * coordinates will be drawn.
+        */
+      public void mouseDragged(MouseEvent evt){
+          if(mode!=RECTANGLE_MODE)
+              return;
+          if(!rectangle_start)
+              return;
+          if(isPainted)
+              paintRectangle();
+          x2 = evt.getX();
+          y2 = evt.getY();
+          paintRectangle();
+          isPainted=true;
+      }
+
+      /** Paints a rectangle in XOR mode from the current coordinates. */
+      private void paintRectangle(){
+         Graphics2D G = (Graphics2D) GraphDisplay.getGraphics();
+       	 G.setXORMode(Color.white);
+         int x = Math.min(x1,x2);
+         int w = Math.abs(x1-x2);
+         int y = Math.min(y1,y2);
+         int h= Math.abs(y1-y2);
+         G.drawRect(x,y,w,h);
+      }
+
+
+      /** Closed a Point sequence.
+        * The user will be asked for an object name.
+        * From the name and the current point sequence, an
+        * object is created. The type of the object depends on the
+        * current mode. After creating the object, it is stored in
+        * the object list and in the database. In the rectangle mode,
+        * this method will be have no effect.
+        **/
+      public void closeSequence(){
+         if(mode==RECTANGLE_MODE)
+             return;
+         if(mode==LINE_MODE){
+            MessageBox.showMessage("Creation of Lines not implemented\n store as point sequence");
+         }
+
+         if(points!=null){ // points are available
+            ListExpr value=null;
+            ListExpr last=null;
+            Point2D.Double P;
+            if(points.size()>0){
+               P=(Point2D.Double) points.get(0);
+               value = ListExpr.oneElemList(
+                       ListExpr.twoElemList(
+                       ListExpr.realAtom(P.getX()),
+                       ListExpr.realAtom(P.getY())));
+               last=value;
+             }
+             for(int i=1;i<points.size();i++){
+                 P = (Point2D.Double) points.get(i);
+                 last = ListExpr.append(last,ListExpr.twoElemList(
+                                      ListExpr.realAtom(P.getX()),
+                                      ListExpr.realAtom(P.getY())));
+             }
+             String Name=getNameFromUser();
+             if(Name!=null){
+                  String TypeName=null;
+                  switch(mode){
+                    case POINT_SEQUENCE_MODE : TypeName = "pointsequence"; break;
+                    case FILLED_POINT_SEQUENCE_MODE : TypeName = "pointsequence"; break;
+                    case LINE_MODE : TypeName ="pointsequence"; break;
+                    case POINTS_MODE : TypeName ="points";break;
+                    default : TypeName ="unknown"; System.err.println("invalid mode detected");
+                  }
+							  	ListExpr result = ListExpr.twoElemList(ListExpr.symbolAtom(TypeName),value);
+                  processSecondoObject(Name,TypeName,result);
+            }
+         } // points available
+         reset();
+      }
+
+      private boolean processSecondoObject(String Name,String typeName,ListExpr content){
+			  SecondoObject o = new SecondoObject(IDManager.getNextID());
+				o.setName(Name);
+				o.fromList(content);
+			  if(VC!=null){
+				 	VC.addObject(o);
+				  String cmd = "let "+Name+" = [const "+typeName+" value "+content.second()+"]";
+    			sj.lang.IntByReference errorCode = new sj.lang.IntByReference(0);
+					ListExpr resultList = ListExpr.theEmptyList();
+		   		StringBuffer errorMessage= new StringBuffer();
+			  	if(!VC.execCommand(cmd,errorCode,resultList,errorMessage)){
+							 MessageBox.showMessage("Error in storing pointsequence\n"+ 
+				      													sj.lang.ServerErrorCodes.getErrorMessageText(errorCode.value)+"\n"+
+						  													errorMessage);
+                return false;
+					}
+          return true;
+        }
+          return false;
+      }
+ 
+
+      /** Asks the user for a name until the name is a correct symbol **/
+      private String getNameFromUser(){
+         String Name=null;
+         do{
+           Name = JOptionPane.showInputDialog("Please enter a name for the object");
+           if(Name!=null) Name = Name.trim();
+         } while(Name!=null && !LEUtils.isIdent(Name));
+         return Name;
+      } 
+
+
+      public void setMode(int mode){
+         if(mode>=0 && mode<5 ){
+             this.mode=mode;
+             if(mode==POINT_SEQUENCE_MODE)
+                ps.setPaintMode(Dsplpointsequence.LINE_MODE);
+             if(mode==FILLED_POINT_SEQUENCE_MODE)
+                ps.setPaintMode(Dsplpointsequence.AREA_MODE);
+             if(mode==POINTS_MODE)
+                ps.setPaintMode(Dsplpointsequence.POINTS_MODE);
+             if(mode==LINE_MODE)
+                ps.setPaintMode(Dsplpointsequence.LINE_MODE);
+         }
+      }  
+
+      public int getMode(){
+         return mode;
+      }
+
 
       private Dsplpointsequence ps =new Dsplpointsequence();
       private Vector points=null;
+      private int mode=RECTANGLE_MODE;
+      // points for the rectangle
+      private int x1;
+      private int y1;
+      private int x2;
+      private int y2;
+      private boolean rectangle_start=false;
+      private boolean isPainted=false; // true if an rectangle is painted 
+      private boolean active=false;
+
+      private static final int POINT_SEQUENCE_MODE=0;
+      private static final int RECTANGLE_MODE=1;
+      private static final int FILLED_POINT_SEQUENCE_MODE=2;
+      private static final int POINTS_MODE=3;
+      private static final int LINE_MODE=4;
+
   
  }
 }

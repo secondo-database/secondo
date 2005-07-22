@@ -138,6 +138,10 @@ public class Dsplpoint extends DisplayGraph {
     return  new Rectangle2D.Double(point.getX(), point.getY(), 0, 0);
   }
 
+  public Point2D.Double getPoint(){
+     return point;
+  } 
+
 }
 
 

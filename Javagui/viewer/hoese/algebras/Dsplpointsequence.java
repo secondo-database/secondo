@@ -31,48 +31,62 @@ import viewer.hoese.*;
  * The displayclass of the pointsequnece .
  */
 public class Dsplpointsequence extends DisplayGraph {
+   /** paint this pointsequence as a line */
+   public final static int LINE_MODE=0;
+   /** paint this pointsequence as a set of points */
+   public final static int POINTS_MODE=1;
+   /** fill the shape */
+   public static final int AREA_MODE=2;  
   /** The bounding-box rectangle */
   Rectangle2D.Double bounds;
   /** The shape representing this sequence */
   GeneralPath GP = new GeneralPath();
-	/** If only one point is contained in the poinmtsequence,
-      we use a representation as a point */
-  Point2D.Double point=new Point2D.Double();
-  /** flag defining whether the pointsequence contains of a
-      single point **/
-  boolean single = false;
-  /** flag defining whether the pointsequence is empty */
-  boolean empty = true;
+  /** because of the reason of precision, we store the points also
+      in a vector **/
+  Vector points;
+  /** drawMode */
+  int mode = LINE_MODE;
 
-  /** flag indicating to draw a filled shape */
-  boolean filled = false;
- 
-  int pointnumber =0;
+  /** method changing the paint mode of this sequence */ 
+  public void  setPaintMode(int mode){
+     if(mode>=0 && mode<=2)
+        this.mode = mode;
+  }
 
   
-  /** returns true if this sequence contains two or more
-      points. **/
+  /** returns true if this sequence
+      should be drawn as line **/
   public boolean isLineType(){
-    if(pointnumber>2 && filled)
+    if(mode==POINTS_MODE)
        return false;
-    return !single && !empty;
+     if(points==null)
+       return false;
+    if(mode==LINE_MODE)
+       return points.size()>1;
+    // AREA_MODE
+    return points.size()==2;
   }
 
   /** returns true if this seuqnces consist of a single point **/
   public boolean isPointType(){
-     return single && !empty;
+     if(mode==POINTS_MODE)
+        return true;
+     if(points==null)
+        return true;
+     if(mode==LINE_MODE)
+        return points.size()>1;
+     // AREA_MODE
+     return points.size()==2; 
   }
   /** returns true if this sequence is empty **/
   public boolean isEmpty(){
-     return empty;
+     return points==null || points.size()==0;
   }
 
   /** sets this sequence to be empty **/
   public void reset(){
     GP.reset();
-    empty=true;
-    single=false;
-    pointnumber =0; 
+    points = null; 
   }
 
   /** Adds a single point to this sequence.
@@ -84,18 +98,18 @@ public class Dsplpointsequence extends DisplayGraph {
         err = true;
         return false;
      }
+     if(points==null)
+        points = new Vector();
      x = aPoint.x;
      y = aPoint.y;
-     pointnumber++;
-     if(empty){
-       point.setLocation(x,y);
+     if(isEmpty()){
+       points.add(new Dsplpoint(new Point2D.Double(x,y),this));
        GP.moveTo((float)x,(float)y);
-       empty=false;
-       single=true;
        bounds = new Rectangle2D.Double();
        bounds.setRect(x,y,0,0);
        return true; // changed from empty to point
      }else{
+       points.add(new Dsplpoint(new Point2D.Double(x,y),this));
        GP.lineTo((float)x,(float)y);
        double x1 = bounds.getX();
        double y1 = bounds.getY();
@@ -106,24 +120,26 @@ public class Dsplpointsequence extends DisplayGraph {
        x2 = Math.max(x2,x);
        y2 = Math.max(y2,y);
        bounds.setRect(x1,y1,x2-x1,y2-y1);
-       if(single){
-          single=false;
-          return true; // changed from point to line
-       }
-       return !filled || pointnumber>3;
+       if(mode==POINTS_MODE)
+          return false;
+       if(mode==LINE_MODE)
+          return points.size()==2; // from point to line
+       // AREA_MODE 
+          return points.size()==3 || points.size()==2; 
      }
   }
 
 
 
  /**
-   * Scans the representation of the sequnece datatype .
+   * Scans the representation of the sequence datatype .
    * @param v A list of segments
    * @see sj.lang.ListExpr
   */
   public void ScanValue (ListExpr value) {
       err = false;
       GP.reset();
+      points = new Vector(value.listLength()+2);
       while(!value.isEmpty()){
          ListExpr apoint = value.first();
          if(apoint.listLength()!=2){
@@ -169,17 +185,19 @@ public class Dsplpointsequence extends DisplayGraph {
       return;
     }
     else
-    if(empty){
+    if(isEmpty()){
        bounds = null;
        qr.addEntry(AttrName + " : empty");
        return;
     }
     qr.addEntry(this);
     bounds = new Rectangle2D.Double();
-    if(!single)
+    if(points.size()>1)
        bounds.setRect(GP.getBounds2D());
-     else
+     else{
+       Point2D.Double point = ((Dsplpoint)points.get(0)).getPoint();
        bounds.setRect(point.getX(),point.getY(),0,0);
+     }
   
   }
 
@@ -202,22 +220,37 @@ public class Dsplpointsequence extends DisplayGraph {
   public boolean contains (double xpos, double ypos, double scalex, double scaley) {
     if (bounds==null) return false; // an empty sequnece
     if ((bounds.getWidth()*bounds.getHeight()!=0) && 
-        (!bounds.intersects(xpos - 5.0*scalex, ypos - 5.0*scaley, 10.0*scalex,
-        10.0*scaley)))
+        (!bounds.intersects(xpos - 5.0*scalex, ypos - 5.0*scaley, 10.0*scalex, 10.0*scaley)))
       return  false;
-    Rectangle2D.Double r = new Rectangle2D.Double(xpos - 5.0*scalex, ypos -
-        5.0*scaley, 10.0*scalex, 10.0*scaley);
-    if(!filled)
-       return stroke.createStrokedShape(RenderObject).intersects(r);
-    else
+    Rectangle2D.Double r = new Rectangle2D.Double(xpos - 5.0*scalex, ypos - 5.0*scaley, 10.0*scalex, 10.0*scaley);
+    if(mode==AREA_MODE)
        return RenderObject.intersects(r);
+    if(mode==LINE_MODE)
+       return stroke.createStrokedShape(RenderObject).intersects(r);
+    // POINT_MODE
+    if(points==null)
+       return false;
+    int len = points.size();
+    for(int i=0;i<len;i++){
+      Point2D.Double p = ((Dsplpoint) points.get(i)).getPoint();
+      if(r.contains(p))
+         return true;
+    }
+    return false;
   }
 
 
 public Shape getRenderObject (AffineTransform at) {
-    if(empty)
+    if(isEmpty())
       return null;
-    if(single){
+    if(mode==POINTS_MODE){
+       GeneralPath rpoints = new GeneralPath();
+       for(int i=0;i<points.size();i++){
+            rpoints.append( ((Dsplpoint)points.get(i)).getRenderObject(at),false);
+       }
+       return rpoints;
+    }
+    if(points.size()==1){ // only one point
        Rectangle2D.Double r = getBounds();
        double pixy = Math.abs(Cat.getPointSize()/at.getScaleY());
        double pix = Math.abs(Cat.getPointSize()/at.getScaleX());
@@ -232,10 +265,7 @@ public Shape getRenderObject (AffineTransform at) {
     return RenderObject;
 }
 
-/** sets the pointsequence to be drawn filled */
-public void fill(boolean enable){
-   filled=enable;
-}
+
 
 
 }
