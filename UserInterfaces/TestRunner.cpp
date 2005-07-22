@@ -522,6 +522,7 @@ TestRunner::CallSecondo()
         cout << "while processing command " << endl << cmd << endl;
         cout << endl;
         skipToTearDown = true;
+        nErrors = -128;
       }
       break;
     case TESTCASE:
@@ -894,10 +895,14 @@ TestRunner::Execute()
     {
       cout << "There was *** 1 *** error." << endl;
     }
-    else
+    else if (nErrors > 1)
     {
       cout << "There were *** " << nErrors << " *** errors." << endl;
-    };
+    }
+    else 
+    {
+      cout << "There were Errors outside of the test cases!" << endl;
+    }
 
     si->Terminate();
     delete si;
