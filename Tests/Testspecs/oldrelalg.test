@@ -21,6 +21,8 @@
 # run with : Runner -c MyConfig.config <mrelalgtest
 # (Runner can be found in directory UserInterfaces)
 
+#stop the operator groupby causes a SIGSEGV!
+
 # clean up what may be left over from e.g. a segfault
 delete database mrelalgtest;
 

@@ -30,10 +30,10 @@ open database binfiletest;
 e
 
 (create geo : binfile);
-(update geo := (binfile <file>geo</file--->));
+(update geo := (binfile <file>binfile.test</file--->));
 
 (create jni : binfile);
-(update jni := (binfile <file>JNI.ini</file--->));
+(update jni := (binfile <file>relalg.test</file--->));
 
 (create relFile :
   (rel
