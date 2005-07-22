@@ -143,6 +143,7 @@ public class HoeseViewer extends SecondoViewer {
   private JRadioButtonMenuItem create_FilledPointSequence_MI;
   private JRadioButtonMenuItem create_Points_MI;
   private JRadioButtonMenuItem create_Line_MI;
+  private JRadioButtonMenuItem create_Point_MI;
 
 
   private javax.swing.JSeparator jSeparator5;
@@ -320,6 +321,7 @@ public class HoeseViewer extends SecondoViewer {
                   create_Points_MI.setEnabled(true);
                   create_Line_MI.setEnabled(true);
                   create_PointSequence_MI.setEnabled(true);
+                  create_Point_MI.setEnabled(true);
                   create_FilledPointSequence_MI.setEnabled(true);
               } else{ // start input
                   lastSrc = src;
@@ -333,6 +335,7 @@ public class HoeseViewer extends SecondoViewer {
                   create_Line_MI.setEnabled(false);
                   create_PointSequence_MI.setEnabled(false);
                   create_FilledPointSequence_MI.setEnabled(false);
+                  create_Point_MI.setEnabled(false);
               }            
           }
           Color aColor = Color.GREEN;
@@ -868,18 +871,21 @@ public class HoeseViewer extends SecondoViewer {
     create_PointSequence_MI=new JRadioButtonMenuItem("point sequence");
     create_FilledPointSequence_MI=new JRadioButtonMenuItem("filled point sequence");
     create_Points_MI=new JRadioButtonMenuItem("points");
+    create_Point_MI=new JRadioButtonMenuItem("point");
     create_Line_MI=new JRadioButtonMenuItem("line");
     
     createMenu.add(create_Rectangle_MI);
     createMenu.add(create_PointSequence_MI);
     createMenu.add(create_FilledPointSequence_MI);
     createMenu.add(create_Points_MI);
-    //createMenu.add(create_Line_MI);
+    createMenu.add(create_Point_MI);
+    createMenu.add(create_Line_MI);
     ButtonGroup createTypes = new ButtonGroup();
     createTypes.add(create_Rectangle_MI);
     createTypes.add(create_PointSequence_MI);
     createTypes.add(create_FilledPointSequence_MI);
     createTypes.add(create_Points_MI);
+    createTypes.add(create_Point_MI);
     createTypes.add(create_Line_MI);
     create_PointSequence_MI.setSelected(true);
 
@@ -894,6 +900,8 @@ public class HoeseViewer extends SecondoViewer {
                 createPointSequenceListener.setMode(CreatePointSequenceListener.FILLED_POINT_SEQUENCE_MODE);
            if(create_Points_MI.isSelected())
                 createPointSequenceListener.setMode(CreatePointSequenceListener.POINTS_MODE);
+           if(create_Point_MI.isSelected())
+                createPointSequenceListener.setMode(CreatePointSequenceListener.POINT_MODE);
            if(create_Line_MI.isSelected())
                 createPointSequenceListener.setMode(CreatePointSequenceListener.LINE_MODE);
         }
@@ -902,6 +910,7 @@ public class HoeseViewer extends SecondoViewer {
    create_PointSequence_MI.addChangeListener(cL); 
    create_FilledPointSequence_MI.addChangeListener(cL); 
    create_Points_MI.addChangeListener(cL); 
+   create_Point_MI.addChangeListener(cL); 
    create_Line_MI.addChangeListener(cL); 
 
    selectSequenceCat.addActionListener(new ActionListener(){
@@ -2586,6 +2595,19 @@ public boolean canDisplay(SecondoObject o){
           double x = aPoint.x;
           double y = aPoint.y;
 
+          if(mode==POINT_MODE){
+               ListExpr pointList = ListExpr.twoElemList( 
+                                            ListExpr.symbolAtom("point"),
+                                            ListExpr.twoElemList(
+                                                 ListExpr.realAtom(x),
+                                                 ListExpr.realAtom(y)));
+               String Name = getNameFromUser();
+               if(Name!=null){
+                   processSecondoObject(Name,"point",pointList);
+               }
+               return;
+          }
+
           if(ps.isEmpty()){
               points = new  Vector();
            }
@@ -2741,37 +2763,70 @@ public boolean canDisplay(SecondoObject o){
         * this method will be have no effect.
         **/
       public void closeSequence(){
-         if(mode==RECTANGLE_MODE)
+         if(mode==RECTANGLE_MODE || mode==POINT_MODE)
              return;
-         if(mode==LINE_MODE){
-            MessageBox.showMessage("Creation of Lines not implemented\n store as point sequence");
-         }
-
          if(points!=null){ // points are available
-            ListExpr value=null;
+            ListExpr value=new ListExpr();
             ListExpr last=null;
             Point2D.Double P;
-            if(points.size()>0){
-               P=(Point2D.Double) points.get(0);
-               value = ListExpr.oneElemList(
-                       ListExpr.twoElemList(
-                       ListExpr.realAtom(P.getX()),
-                       ListExpr.realAtom(P.getY())));
-               last=value;
-             }
-             for(int i=1;i<points.size();i++){
-                 P = (Point2D.Double) points.get(i);
-                 last = ListExpr.append(last,ListExpr.twoElemList(
-                                      ListExpr.realAtom(P.getX()),
-                                      ListExpr.realAtom(P.getY())));
-             }
+            if(mode!=LINE_MODE){
+								if(points.size()>0){
+									 P=(Point2D.Double) points.get(0);
+                   value.destroy();
+									 value = ListExpr.oneElemList(
+													 ListExpr.twoElemList(
+													 ListExpr.realAtom(P.getX()),
+													 ListExpr.realAtom(P.getY())));
+									 last=value;
+								 }
+								 for(int i=1;i<points.size();i++){
+										 P = (Point2D.Double) points.get(i);
+										 last = ListExpr.append(last,ListExpr.twoElemList(
+																					ListExpr.realAtom(P.getX()),
+																					ListExpr.realAtom(P.getY())));
+								 }
+             } else{ //LINE_MODE
+               if(points.size()>2){
+                  double lastx;
+                  double lasty;
+                  double x,y;
+                  P = (Point2D.Double)points.get(0);
+                  lastx = P.x;
+                  lasty = P.y;
+                  boolean first=true;
+                  //ListExpr last; // the last list element
+                  for(int i=1;i<points.size();i++){
+                     P = (Point2D.Double)points.get(i);
+                     x = P.x;
+                     y = P.y;
+                     if(x!=lastx || y != lasty){
+                         ListExpr Segment = ListExpr.fourElemList(ListExpr.realAtom(lastx),
+                                                                  ListExpr.realAtom(lasty),
+                                                                  ListExpr.realAtom(x),
+                                                                  ListExpr.realAtom(y));
+												 lastx=x;
+                         lasty=y; 
+												 if(first){
+														 value.destroy();
+														 value = ListExpr.oneElemList(Segment);
+														 last  = value;
+														 first = false;
+												 } else{
+													 last = ListExpr.append(last,Segment);
+												 }
+																					
+                     } 
+                  } // for 
+                } // more than two points
+             } // LINE_MODE
+
              String Name=getNameFromUser();
              if(Name!=null){
                   String TypeName=null;
                   switch(mode){
                     case POINT_SEQUENCE_MODE : TypeName = "pointsequence"; break;
                     case FILLED_POINT_SEQUENCE_MODE : TypeName = "pointsequence"; break;
-                    case LINE_MODE : TypeName ="pointsequence"; break;
+                    case LINE_MODE : TypeName ="line"; break;
                     case POINTS_MODE : TypeName ="points";break;
                     default : TypeName ="unknown"; System.err.println("invalid mode detected");
                   }
@@ -2816,7 +2871,7 @@ public boolean canDisplay(SecondoObject o){
 
 
       public void setMode(int mode){
-         if(mode>=0 && mode<5 ){
+         if(mode>=0 && mode<6 ){
              this.mode=mode;
              if(mode==POINT_SEQUENCE_MODE)
                 ps.setPaintMode(Dsplpointsequence.LINE_MODE);
@@ -2826,6 +2881,8 @@ public boolean canDisplay(SecondoObject o){
                 ps.setPaintMode(Dsplpointsequence.POINTS_MODE);
              if(mode==LINE_MODE)
                 ps.setPaintMode(Dsplpointsequence.LINE_MODE);
+             if(mode==POINT_MODE)
+                ps.setPaintMode(Dsplpointsequence.POINTS_MODE);
          }
       }  
 
@@ -2851,6 +2908,7 @@ public boolean canDisplay(SecondoObject o){
       private static final int FILLED_POINT_SEQUENCE_MODE=2;
       private static final int POINTS_MODE=3;
       private static final int LINE_MODE=4;
+      private static final int POINT_MODE=5;
 
   
  }
