@@ -30,14 +30,8 @@ ALGOBJ := AlgebraList.o
 
 CCFLAGS = $(DEFAULTCCFLAGS)
 
-DEP_FILES += AlgebraList.dep
-
 .PHONY: all
 all: createAlgList $(OBJECTS) 
-
-AlgebraList.dep: $(ALGFILE) 
-
-include $(DEP_FILES) 
 
 .PHONY: createAlgList
 createAlgList:
