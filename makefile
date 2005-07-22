@@ -175,7 +175,7 @@ runtests:
 
 .PHONY: cvstest
 cvstest:
-	CM-Scripts/cvs-make.sh -r$(HOME)
+	cd CM-Scripts; cvs-make.sh -r$(HOME)
 
 
 include ./makefile.cm
