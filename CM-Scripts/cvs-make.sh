@@ -228,7 +228,7 @@ if [ $[errors] == 0 ]; then
   if ! lastRC; then
     
     printf "%s\n" "Problems during test, sending a mail"
-    cd Tests 
+    cd $cBuildDir/Tests 
     attachment2="./run-tests-logfiles.tar.gz"
     tar -czf $attachment2 Testspecs/*.log
 
