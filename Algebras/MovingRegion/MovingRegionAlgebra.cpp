@@ -1548,10 +1548,36 @@ static ModelMapping nomodelmap[] = { NoModelMapping };
 
 */
 
+// used by intersection
+
+static ListExpr MPointMRegionToMPointTypeMap(ListExpr args) {
+    if (MRA_DEBUG) cerr << "MPointMRegionToMPointTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 2 
+	&& nl->IsEqual(nl->First(args), "mpoint")
+	&& nl->IsEqual(nl->Second(args), "mregion"))
+	return nl->SymbolAtom("mpoint");
+    else
+	return nl->SymbolAtom("typeerror");
+}
+
+// used by inside
+
+static ListExpr MPointMRegionToMBoolTypeMap(ListExpr args) {
+    if (MRA_DEBUG) cerr << "MPointMRegionToMBoolTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 2 
+	&& nl->IsEqual(nl->First(args), "mpoint")
+	&& nl->IsEqual(nl->Second(args), "mregion"))
+	return nl->SymbolAtom("mbool");
+    else
+	return nl->SymbolAtom("typeerror");
+}
+
 // used by atinstant
 
 static ListExpr MRegionInstantToIRegionTypeMap(ListExpr args) {
-    if (MRA_DEBUG) cerr << "MRegionInstantToCRegionTypeMap() called" << endl;
+    if (MRA_DEBUG) cerr << "MRegionInstantToIRegionTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 2 
 	&& nl->IsEqual(nl->First(args), "mregion")
@@ -1563,8 +1589,8 @@ static ListExpr MRegionInstantToIRegionTypeMap(ListExpr args) {
 
 // used by traversed
 
-static ListExpr MRegionToCRegionTypeMap(ListExpr args) {
-    if (MRA_DEBUG) cerr << "MRegionToCRegionTypeMap() called" << endl;
+static ListExpr MRegionToRegionTypeMap(ListExpr args) {
+    if (MRA_DEBUG) cerr << "MRegionToRegionTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 1 
 	&& nl->IsEqual(nl->First(args), "mregion"))
@@ -1640,6 +1666,21 @@ static ListExpr PresentTypeMap(ListExpr args) {
 
 */
 
+// used by intersection, inside
+
+static int MPointMRegionSelect(ListExpr args) {
+    if (MRA_DEBUG) cerr << "MPointMRegionSelect() called" << endl;
+
+    if (nl->ListLength(args) == 2
+	&& nl->SymbolValue(nl->First(args)) == "mpoint"
+	&& nl->SymbolValue(nl->Second(args)) == "mregion")
+	return 0;
+    else
+	return -1;
+}
+
+// used by initial, final, deftime, traversed
+
 static int MRegionSelect(ListExpr args) {
     if (MRA_DEBUG) cerr << "MRegionSelect() called" << endl;
 
@@ -1649,6 +1690,8 @@ static int MRegionSelect(ListExpr args) {
     else
 	return -1;
 }
+
+// used by atinstant
 
 static int MRegionInstantSelect(ListExpr args) {
     if (MRA_DEBUG) cerr << "MRegionInstantSelect() called" << endl;
@@ -1660,6 +1703,8 @@ static int MRegionInstantSelect(ListExpr args) {
     else
 	return -1;
 }
+
+// used by inst, val
 
 static int IRegionSelect(ListExpr args) {
     if (MRA_DEBUG) cerr << "IRegionSelect() called" << endl;
@@ -1703,10 +1748,30 @@ static int TraversedValueMap(Word* args,
 			     int message, 
 			     Word& local, 
 			     Supplier s) {
-    if (MRA_DEBUG) cerr << "TraversedValuMap() called" << endl;
+    if (MRA_DEBUG) cerr << "TraversedValueMap() called" << endl;
 
     ((MRegion*) args[0].addr)->Traversed();
     
+    assert(false);
+}
+
+static int IntersectionValueMap(Word* args, 
+				Word& result, 
+				int message, 
+				Word& local, 
+				Supplier s) {
+    if (MRA_DEBUG) cerr << "IntersectionValuMap() called" << endl;
+
+    assert(false);
+}
+
+static int InsideValueMap(Word* args, 
+			  Word& result, 
+			  int message, 
+			  Word& local, 
+			  Supplier s) {
+    if (MRA_DEBUG) cerr << "InsideValuMap() called" << endl;
+
     assert(false);
 }
 
@@ -1714,6 +1779,8 @@ static int TraversedValueMap(Word* args,
 1.1 Value mapping arrays
 
 */
+
+// *hm* remove value mapping array from non-overloaded operators
 
 static ValueMapping atinstantvaluemap[] = 
     { MappingAtInstant<MRegion, CRegion> };
@@ -1739,6 +1806,12 @@ static ValueMapping presentvaluemap[] =
 
 static ValueMapping traversedvaluemap[] = 
     { TraversedValueMap };
+
+static ValueMapping intersectionvaluemap[] = 
+    { IntersectionValueMap };
+
+static ValueMapping insidevaluemap[] = 
+    { InsideValueMap };
 
 /*
 1.1 Operator specifications
@@ -1803,6 +1876,20 @@ static const string traversedspec =
     "    <text>traversed( _ )</text--->"
     "    <text>Projection of a moving region into the plane.</text--->"
     "    <text>traversed(mregion1)</text---> ) )";
+
+static const string intersectionspec = 
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>(mpoint mregion) -> mpoint</text--->"
+    "    <text>_ intersection _</text--->"
+    "    <text>Intersection between mpoint and mregion.</text--->"
+    "    <text>mpoint1 intersection mregion1</text---> ) )";
+
+static const string insidespec = 
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>(mpoint mregion) -> mbool</text--->"
+    "    <text>_ intersection _</text--->"
+    "    <text>Calculates if and when mpoint is inside mregion.</text--->"
+    "    <text>mpoint1 inside mregion1</text---> ) )";
 
 /*
 1.1 Operator creation
@@ -1871,7 +1958,23 @@ static Operator traversed("traversed",
 			  traversedvaluemap,
 			  nomodelmap,
 			  MRegionSelect,
-			  MRegionToCRegionTypeMap);
+			  MRegionToRegionTypeMap);
+
+static Operator intersection("intersection",
+			     intersectionspec,
+			     1,
+			     intersectionvaluemap,
+			     nomodelmap,
+			     MPointMRegionSelect,
+			     MPointMRegionToMPointTypeMap);
+
+static Operator inside("inside",
+		       insidespec,
+		       1,
+		       insidevaluemap,
+		       nomodelmap,
+		       MPointMRegionSelect,
+		       MPointMRegionToMBoolTypeMap);
 
 // ************************************************************************
 
@@ -1905,6 +2008,8 @@ public:
 	AddOperator(&deftime);
 	AddOperator(&present);
 	AddOperator(&traversed);
+	AddOperator(&intersection);
+	AddOperator(&inside);
     }
     ~MovingRegionAlgebra() {}
 };
