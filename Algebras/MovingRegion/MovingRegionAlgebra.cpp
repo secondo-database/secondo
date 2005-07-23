@@ -1073,6 +1073,7 @@ public:
     FLOB *GetFLOB(const int i);
 
     void Traversed(void);
+    void Intersection(MPoint& mp);
 
     friend Word InMRegion(const ListExpr typeInfo, 
 			  const ListExpr instance,
@@ -1394,6 +1395,160 @@ void MRegion::Traversed(void) {
     assert(false);
 }
 
+void MRegion::Intersection(MPoint& mp) {
+    if (MRA_DEBUG) cerr << "MRegion::Intersection() called" << endl;
+
+    int mrUnit = 0;
+    int mpUnit = 0;
+
+    URegion ur;
+    UPoint up;
+
+    Get(0, ur);
+    mp.Get(0, up);
+
+    while (mrUnit < GetNoComponents() && mpUnit < mp.GetNoComponents()) {
+	if (MRA_DEBUG) 
+	    cerr << "MRegion::Intersection() mrUnit=" 
+		 << mrUnit 
+		 << " mpUnit=" 
+		 << mpUnit 
+		 << endl;
+
+	if (ur.timeInterval.start.Compare(&up.timeInterval.start) == 0
+	    && ur.timeInterval.end.Compare(&up.timeInterval.end) == 0) {
+	    // case 1
+
+	    if (MRA_DEBUG) {
+		cerr << "MRegion::Intersection()   ur: |-----|" << endl;
+		cerr << "MRegion::Intersection()   up: |-----|" << endl;
+	    }
+
+	    if (++mrUnit < GetNoComponents()) Get(mrUnit, ur);
+	    if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
+	} else if (ur.timeInterval.Inside(up.timeInterval)) {
+	    // case 2
+
+	    if (MRA_DEBUG) {
+		cerr << "MRegion::Intersection()   ur:  |---|" << endl;
+		cerr << "MRegion::Intersection()   up: |-----|" << endl;
+	    }
+
+	    if (++mrUnit < GetNoComponents()) Get(mrUnit, ur);
+	} else if (up.timeInterval.Inside(ur.timeInterval)) {
+	    // case 3
+
+	    if (MRA_DEBUG) {
+		cerr << "MRegion::Intersection()   ur: |-----|" << endl;
+		cerr << "MRegion::Intersection()   up:  |---|" << endl;
+	    }
+
+	    if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
+	} else if (ur.timeInterval.Intersects(up.timeInterval)) {
+	    if (MRA_DEBUG) 
+		cerr << "MRegion::Intersection()   intersect" << endl;
+
+	    if (ur.timeInterval.start.Compare(&up.timeInterval.end) == 0 
+		&& ur.timeInterval.lc 
+		&& up.timeInterval.rc) {
+		// case 4.1
+
+		if (MRA_DEBUG) {
+		    cerr << "MRegion::Intersection()   ur:     [---|" << endl;
+		    cerr << "MRegion::Intersection()   up: |---]" << endl;
+		}
+
+		if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
+	    } else if (ur.timeInterval.end.Compare(&up.timeInterval.start) == 0
+		       && ur.timeInterval.rc
+		       && up.timeInterval.lc) {
+		// case 4.2
+
+		if (MRA_DEBUG) {
+		    cerr << "MRegion::Intersection()   ur: |---]" << endl;
+		    cerr << "MRegion::Intersection()   up:     [---|" << endl;
+		}
+
+		if (++mrUnit < GetNoComponents()) Get(mrUnit, ur);
+	    } else if (ur.timeInterval.start.Compare(
+			   &up.timeInterval.start) < 0) {
+		// case 4.3
+
+		if (MRA_DEBUG) {
+		    cerr << "MRegion::Intersection()   ur: |----|" << endl;
+		    cerr << "MRegion::Intersection()   up:    |----|" << endl;
+		}
+
+		if (++mrUnit < GetNoComponents()) Get(mrUnit, ur);
+	    } else if (ur.timeInterval.start.Compare(
+			   &up.timeInterval.start) == 0) {
+		// If the following assertion would not hold, we had 
+		// case 2 or 3
+		assert(!ur.timeInterval.lc || !up.timeInterval.rc);
+
+		if (ur.timeInterval.end.Compare(&up.timeInterval.end) < 0) {
+		    // case 4.4.1
+
+		    if (MRA_DEBUG) {
+			cerr << "MRegion::Intersection()   ur: )---|" 
+			     << endl;
+			cerr << "MRegion::Intersection()   up: (------|" 
+			     << endl;
+		    }
+
+		    if (++mrUnit < GetNoComponents()) Get(mrUnit, ur);
+		} else {
+		    // case 4.4.2
+
+		    // If the following assertion would not hold, we had
+		    // case 2 or 3 again.
+		    assert(ur.timeInterval.end.Compare(
+			       &up.timeInterval.end) > 0);
+
+		    if (MRA_DEBUG) {
+			cerr << "MRegion::Intersection()   ur: )------|" 
+			     << endl;
+			cerr << "MRegion::Intersection()   up: (---|" 
+			     << endl;
+		    }
+
+		    if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
+		}
+	    } else {
+		// case 4.5
+
+		if (MRA_DEBUG) {
+		    cerr << "MRegion::Intersection()   ur:    |----|" << endl;
+		    cerr << "MRegion::Intersection()   up: |----|" << endl;
+		}
+
+		if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
+	    }
+	} else if (ur.timeInterval.start.Compare(
+		       &up.timeInterval.start) <= 0) {
+	    // case 5
+
+	    if (MRA_DEBUG) {
+		cerr << "MRegion::Intersection()   ur: |--|" << endl;
+		cerr << "MRegion::Intersection()   up:      |--|" << endl;
+	    }
+	    
+	    if (++mrUnit < GetNoComponents()) Get(mrUnit, ur);
+	} else {
+	    // case 6
+
+	    if (MRA_DEBUG) {
+		cerr << "MRegion::Intersection()   ur:      |--|" << endl;
+		cerr << "MRegion::Intersection()   up: |--|" << endl;
+	    }
+
+	    if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
+	}
+    }
+
+    assert(false);
+}
+
 /*
 1.1 Algebra integration
 
@@ -1552,6 +1707,9 @@ static ModelMapping nomodelmap[] = { NoModelMapping };
 
 static ListExpr MPointMRegionToMPointTypeMap(ListExpr args) {
     if (MRA_DEBUG) cerr << "MPointMRegionToMPointTypeMap() called" << endl;
+
+    cerr << nl->SymbolValue(nl->First(args)) << endl;
+    cerr << nl->SymbolValue(nl->Second(args)) << endl;
 
     if (nl->ListLength(args) == 2 
 	&& nl->IsEqual(nl->First(args), "mpoint")
@@ -1755,12 +1913,15 @@ static int TraversedValueMap(Word* args,
     assert(false);
 }
 
+
 static int IntersectionValueMap(Word* args, 
 				Word& result, 
 				int message, 
 				Word& local, 
 				Supplier s) {
     if (MRA_DEBUG) cerr << "IntersectionValuMap() called" << endl;
+
+    ((MRegion*) args[1].addr)->Intersection(* (MPoint*) args[0].addr);
 
     assert(false);
 }
