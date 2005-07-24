@@ -129,6 +129,20 @@ public:
         startY(_startY),
         endX(_endX),
         endY(_endY) {
+	if (MRA_DEBUG)
+	    cerr << "MPointData() called "
+		 << faceno
+		 << " "
+		 << cycleno
+		 << " "
+		 << _startX
+		 << " "
+		 << _startY
+		 << " "
+		 << _endX
+		 << " "
+		 << _endY
+		 << endl;
     }
 
     unsigned int GetFaceNo(void) { return faceno; }
@@ -1058,6 +1072,18 @@ class MRegion : public Mapping<URegion, CRegion> {
 private: 
     DBArray<MPointData> mpointdata;
 
+    void AddRefinementUnits(vector<URegion*>& vur,
+			    vector<UPoint*>& vup,
+			    URegion& ur,
+			    UPoint& up,
+			    Instant& start,
+			    Instant& end,
+			    bool lc,
+			    bool rc);
+    void RefinementPartition(MPoint& mp,
+			     vector<URegion*>& vur,
+			     vector<UPoint*>& vup);
+
 public:
     MRegion() {
         if (MRA_DEBUG) cerr << "MRegion::MRegion(int) called" << endl;
@@ -1395,8 +1421,89 @@ void MRegion::Traversed(void) {
     assert(false);
 }
 
-void MRegion::Intersection(MPoint& mp) {
-    if (MRA_DEBUG) cerr << "MRegion::Intersection() called" << endl;
+void MRegion::AddRefinementUnits(vector<URegion*>& vur,
+				 vector<UPoint*>& vup,
+				 URegion& ur,
+				 UPoint& up,
+				 Instant& start,
+				 Instant& end,
+				 bool lc,
+				 bool rc) {
+    if (MRA_DEBUG) cerr << "MRegion::AddRefinementUnits() called" << endl;
+
+    if (MRA_DEBUG) 
+	cerr << "MRegion::AddRefinementUnits() start="
+	     << start.ToDouble()
+	     << " end="
+	     << end.ToDouble()
+	     << " lc="
+	     << lc
+	     << " rc="
+	     << rc
+	     << endl;
+
+    Interval<Instant> iv(start, end, lc, rc);
+
+    URegion* rur = new URegion(iv);
+
+    double t0 = 
+	(start.ToDouble()-ur.timeInterval.start.ToDouble())/
+	(ur.timeInterval.end.ToDouble()-ur.timeInterval.start.ToDouble());
+    double t1 = 
+	(end.ToDouble()-ur.timeInterval.start.ToDouble())/
+	(ur.timeInterval.end.ToDouble()-ur.timeInterval.start.ToDouble());
+
+    if (MRA_DEBUG) 
+	cerr << "MRegion::AddRefinementUnits() URegion t0="
+	     << t0
+	     << " t1="
+	     << t1
+	     << endl;
+
+    for (int i = 0; i < ur.GetPointsNum(); i++) {
+	if (MRA_DEBUG) 
+	    cerr << "MRegion::AddRefinementUnits() point #" << i << endl;
+
+	MPointData dmp;
+	ur.GetPoint(i, dmp);
+
+	rur->AddPoint(
+	    i,
+	    dmp.GetFaceNo(),
+	    dmp.GetCycleNo(),
+	    dmp.GetStartX()+(dmp.GetEndX()-dmp.GetStartX())*t0,
+	    dmp.GetStartY()+(dmp.GetEndY()-dmp.GetStartY())*t0,
+	    dmp.GetStartX()+(dmp.GetEndX()-dmp.GetStartX())*t1,
+	    dmp.GetStartY()+(dmp.GetEndY()-dmp.GetStartY())*t1);
+    }
+
+    vur.push_back(rur);
+
+    t0 = (start.ToDouble()-up.timeInterval.start.ToDouble())/
+	 (up.timeInterval.end.ToDouble()-up.timeInterval.start.ToDouble());
+    t1 = (end.ToDouble()-up.timeInterval.start.ToDouble())/
+	 (up.timeInterval.end.ToDouble()-up.timeInterval.start.ToDouble());
+
+    if (MRA_DEBUG) 
+	cerr << "MRegion::AddRefinementUnits() UPoint t0="
+	     << t0
+	     << " t1="
+	     << t1
+	     << endl;
+
+    vup.push_back(
+	new UPoint(
+	    iv,
+	    up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*t0,
+	    up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*t0,
+	    up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*t1,
+	    up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*t1));
+}
+
+void MRegion::RefinementPartition(MPoint& mp,
+				  vector<URegion*>& vur,
+				  vector<UPoint*>& vup) {
+    if (MRA_DEBUG) cerr << "MRegion::RefinementPartition() called" << endl;
 
     int mrUnit = 0;
     int mpUnit = 0;
@@ -1424,6 +1531,16 @@ void MRegion::Intersection(MPoint& mp) {
 		cerr << "MRegion::Intersection()   up: |-----|" << endl;
 	    }
 
+	    AddRefinementUnits(
+		vur,
+		vup,
+		ur,
+		up,
+		ur.timeInterval.start,
+		ur.timeInterval.end,
+		ur.timeInterval.lc && up.timeInterval.lc,
+		ur.timeInterval.rc && up.timeInterval.rc);
+
 	    if (++mrUnit < GetNoComponents()) Get(mrUnit, ur);
 	    if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
 	} else if (ur.timeInterval.Inside(up.timeInterval)) {
@@ -1434,6 +1551,16 @@ void MRegion::Intersection(MPoint& mp) {
 		cerr << "MRegion::Intersection()   up: |-----|" << endl;
 	    }
 
+	    AddRefinementUnits(
+		vur,
+		vup,
+		ur,
+		up,
+		ur.timeInterval.start,
+		ur.timeInterval.end,
+		ur.timeInterval.lc,
+		ur.timeInterval.rc);
+
 	    if (++mrUnit < GetNoComponents()) Get(mrUnit, ur);
 	} else if (up.timeInterval.Inside(ur.timeInterval)) {
 	    // case 3
@@ -1442,6 +1569,16 @@ void MRegion::Intersection(MPoint& mp) {
 		cerr << "MRegion::Intersection()   ur: |-----|" << endl;
 		cerr << "MRegion::Intersection()   up:  |---|" << endl;
 	    }
+
+	    AddRefinementUnits(
+		vur,
+		vup,
+		ur,
+		up,
+		up.timeInterval.start,
+		up.timeInterval.end,
+		up.timeInterval.lc,
+		up.timeInterval.rc);
 
 	    if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
 	} else if (ur.timeInterval.Intersects(up.timeInterval)) {
@@ -1458,6 +1595,16 @@ void MRegion::Intersection(MPoint& mp) {
 		    cerr << "MRegion::Intersection()   up: |---]" << endl;
 		}
 
+		AddRefinementUnits(
+		    vur,
+		    vup,
+		    ur,
+		    up,
+		    ur.timeInterval.start,
+		    ur.timeInterval.start,
+		    true,
+		    true);
+
 		if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
 	    } else if (ur.timeInterval.end.Compare(&up.timeInterval.start) == 0
 		       && ur.timeInterval.rc
@@ -1469,6 +1616,16 @@ void MRegion::Intersection(MPoint& mp) {
 		    cerr << "MRegion::Intersection()   up:     [---|" << endl;
 		}
 
+		AddRefinementUnits(
+		    vur,
+		    vup,
+		    ur,
+		    up,
+		    ur.timeInterval.end,
+		    ur.timeInterval.end,
+		    true,
+		    true);
+
 		if (++mrUnit < GetNoComponents()) Get(mrUnit, ur);
 	    } else if (ur.timeInterval.start.Compare(
 			   &up.timeInterval.start) < 0) {
@@ -1478,6 +1635,16 @@ void MRegion::Intersection(MPoint& mp) {
 		    cerr << "MRegion::Intersection()   ur: |----|" << endl;
 		    cerr << "MRegion::Intersection()   up:    |----|" << endl;
 		}
+
+		AddRefinementUnits(
+		    vur,
+		    vup,
+		    ur,
+		    up,
+		    up.timeInterval.start,
+		    ur.timeInterval.end,
+		    up.timeInterval.lc,
+		    ur.timeInterval.rc);
 
 		if (++mrUnit < GetNoComponents()) Get(mrUnit, ur);
 	    } else if (ur.timeInterval.start.Compare(
@@ -1496,6 +1663,16 @@ void MRegion::Intersection(MPoint& mp) {
 			     << endl;
 		    }
 
+		    AddRefinementUnits(
+			vur,
+			vup,
+			ur,
+			up,
+			ur.timeInterval.start,
+			ur.timeInterval.end,
+			ur.timeInterval.lc && up.timeInterval.lc,
+			ur.timeInterval.rc);
+
 		    if (++mrUnit < GetNoComponents()) Get(mrUnit, ur);
 		} else {
 		    // case 4.4.2
@@ -1512,6 +1689,16 @@ void MRegion::Intersection(MPoint& mp) {
 			     << endl;
 		    }
 
+		    AddRefinementUnits(
+			vur,
+			vup,
+			ur,
+			up,
+			ur.timeInterval.start,
+			up.timeInterval.end,
+			ur.timeInterval.lc && up.timeInterval.lc,
+			up.timeInterval.rc);
+
 		    if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
 		}
 	    } else {
@@ -1521,6 +1708,16 @@ void MRegion::Intersection(MPoint& mp) {
 		    cerr << "MRegion::Intersection()   ur:    |----|" << endl;
 		    cerr << "MRegion::Intersection()   up: |----|" << endl;
 		}
+
+		AddRefinementUnits(
+		    vur,
+		    vup,
+		    ur,
+		    up,
+		    ur.timeInterval.start,
+		    up.timeInterval.end,
+		    ur.timeInterval.lc,
+		    up.timeInterval.rc);
 
 		if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
 	    }
@@ -1545,6 +1742,25 @@ void MRegion::Intersection(MPoint& mp) {
 	    if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
 	}
     }
+}
+
+void MRegion::Intersection(MPoint& mp) {
+    if (MRA_DEBUG) cerr << "MRegion::Intersection() called" << endl;
+
+    vector<URegion*> vur;
+    vector<UPoint*> vup;
+
+    RefinementPartition(mp, vur, vup);
+
+    if (MRA_DEBUG) cerr << "MRegion::Intersection() #1" << endl;
+
+    for (unsigned int i = 0; i < vur.size(); i++) {
+	if (MRA_DEBUG) cerr << "MRegion::Intersection() #1 i=" << i << endl;
+	delete vur[i];
+	delete vup[i];
+    }
+
+    if (MRA_DEBUG) cerr << "MRegion::Intersection() #3" << endl;
 
     assert(false);
 }
