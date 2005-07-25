@@ -176,7 +176,7 @@ $mailFooter
 mailBody2="
 $mailHeader
 
-You will find the output of run-tests.sh in the attached file.
+You will find the log files of the failed tests in the attached file.
 $mailFooter"
 
 # only for testing
@@ -225,12 +225,16 @@ if [ $[errors] == 0 ]; then
   cd $scriptDir
   timeOut 300 run-tests.sh
 
+
   if ! lastRC; then
     
     printf "%s\n" "Problems during test, sending a mail"
-    cd $cBuildDir/Tests 
+    
+    # creating tar archive
+    errorListFile="$cbuildDir/run-tests.errors"
+    errorList=$(cat $errorListFile)
     attachment2="./run-tests-logfiles.tar.gz"
-    tar -czf $attachment2 Testspecs/*.log
+    tar -czvf $attachment2 $errorList
 
     sendMail "Automatic tests failed!" "$mailRecipients" "$mailBody2" "$attachment2"
     let errors++

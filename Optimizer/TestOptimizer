@@ -35,7 +35,7 @@ tempDir="${PWD}/tmp_opt_${date_ymd}_${date_HMS}"
 mkdir $tempDir
 export SECONDO_PARAM_SecondoHome=$tempDir
 declare -i error=0
-logFile="${PWD}/$0.log"
+logFile="${PWD}/optimizer.test.log"
 
 TPC_GEN_DIR=${SECONDO_BUILD_DIR}/Tools/Generators/TPC-H
 cd $TPC_GEN_DIR/secondo

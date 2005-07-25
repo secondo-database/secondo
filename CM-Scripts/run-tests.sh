@@ -8,6 +8,9 @@
 # libutil.sh must be in the same directory as this file
 if ! source ./libutil.sh; then exit 1; fi
 
+errorListFile="$buildDir/run-tests.errors"
+rm $errorListFile
+
 inputDir="${buildDir}/Tests/Testspecs"
 testSuites=$(find ${inputDir} -name "*.test")
 
@@ -46,6 +49,7 @@ do
   checkCmd "time TestRunner -i  ${file} > ${logFile} 2>&1"
   if ! lastRC; then
     let error++
+    echo "Tests/Testspecs/$logFile" >> $errorListFile
   fi
 done
 
@@ -55,8 +59,8 @@ cd ${buildDir}/Optimizer
 checkCmd "time TestOptimizer"
 if ! lastRC; then
   let error++
+  echo "Optimizer/optimizer.test.log" >> $errorListFile
 fi
-
 
 #clean up
 printf "\n%s\n\n" "Cleaning up ..."

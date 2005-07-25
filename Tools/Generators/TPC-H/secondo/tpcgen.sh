@@ -58,6 +58,8 @@ if [ -z $buildDir ]; then
   exit 1
 fi 
 
+
+
 printf "\n%s\n" "Creating database ${dbName} with a scale factor ${scaleFactor}!"
 
 tpcDir=${buildDir}/Tools/Generators/TPC-H
@@ -66,7 +68,11 @@ tempDir=./tmp_tpcgen_${date_ymd}_${date_HMS}
 # Generate data
 printSep "Generating TPC-H data"
 cd $tpcDir
-checkCmd "dbgen -v -f -s $scaleFactor" 
+if [ ! -e dbgen ]; then
+make
+fi
+
+checkCmd "dbgen -f -s $scaleFactor" 
 mkdir $tempDir
 if [ $? -ne 0 ]; then
   exit 1
