@@ -41,15 +41,13 @@ The optimizer is started by loading this file.
 
 % Change comments to activate the entropy approach!
 %
-% Uncomment the next 3 lines to activate the entropy approach
+% Uncomment the next line to activate the entropy approach
  ['./Entropy/optimizer'],
- ['./Entropy/statistics'],
- [addcounter],
 
-% comment the next 2 lines to deactivate the standard optimizer
+% comment the next line to deactivate the standard optimizer
 %  [optimizer], 
-%  [statistics],
 
+  [statistics],
   [database],
   [operators],
   [boundary],

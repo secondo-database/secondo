@@ -2135,6 +2135,9 @@ createSmallSelectivity2 :-
   assignSmallSelectivity(Source, Target, Result, Term, Value),
   fail.
 
+small(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
+  atom_concat(Rel, '_small', Rel2).
+
 newResSize(arg(N), Size) :- argument(N, R ), small( R, rel(SRel, _, _)), card(SRel, Size), !.
 newResSize(res(N), Size) :- smallResultSize(N, Size), !.
 
@@ -3783,7 +3786,22 @@ copyFirstEdgeSelectivity :-
 deleteFirstSizes :-
   retractall(firstResultSize(_,_)),
   retractall(firstEdgeSelectivity(_,_,_)).
+  
+quit :- 
+  halt.
 
+argList( 1, [_] ).
+argList( N, [_|L] ) :-
+  N1 is N-1,
+  argList( N1, L ).
+
+showValues( Pred, Arity ) :-
+  not(showValues2( Pred, Arity )).
+
+showValues2( Pred, Arity ) :-
+  argList( Arity, L ),
+  P=..[Pred|L], !, P, nl, write( P ), fail.
+  
 
 
 

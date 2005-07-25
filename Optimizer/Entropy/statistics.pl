@@ -48,6 +48,8 @@ sel(plz:ort = staedte:sName, 0.0031).
 sel(plz:pLZ = (plz:pLZ)+1, 0.00001644).
 sel((plz:pLZ)-1 = plz:pLZ, 0.00001644).
 sel(plz:pLZ = (plz:pLZ)*5, 0.0000022).
+sel(plz:pLZ = plz:pLZ, 0.000146).
+sel(plz:pLZ * 3 = plz:pLZ * 3, 0.000146).
 sel(plz:pLZ > 40000, 0.55).
 sel(plz:pLZ > 50000, 0.48).
 sel(plz:pLZ < 60000, 0.64).
@@ -126,20 +128,20 @@ Auxiliary predicates for ~selectivity~.
 
 */
 
-small(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
-  atom_concat(Rel, '_small', Rel2).
-
 sampleS(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
   atom_concat(Rel, '_sample_s', Rel2).
 
 sampleJ(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
   atom_concat(Rel, '_sample_j', Rel2).
-  
+
 sampleNameS(Name, Sample) :-
   atom_concat(Name, '_sample_s', Sample).
 
 sampleNameJ(Name, Sample) :-
   atom_concat(Name, '_sample_j', Sample).
+
+sampleNameSmall(Name, Small) :-
+  atom_concat(Name, '_small', Small).
 
 possiblyRename(Rel, Renamed) :-
   Rel = rel(_, *, _),
@@ -224,7 +226,7 @@ sels(Pred, Sel) :-
   sel(Pred, Sel),
   !.
 
-sels(Pred, Sel) :- 
+sels(Pred, Sel) :-
   commute(Pred, Pred2),
   sel(Pred2, Sel),
   !.
@@ -253,9 +255,8 @@ be retrieved only once.
 
 */
 
-
 % Selectivities must not be 0
- 
+
 selectivity(P, Sel) :-
   simplePred(P, PSimple),
   sels(PSimple, Sel),
@@ -330,8 +331,8 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   dynamicCardQuery(Pred, Rel1, Rel2, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  write('selectivity query : '),
-  write(QueryAtom),
+  %write('selectivity query : '),
+  %write(QueryAtom),
   secondo(QueryAtom, [int, ResCard]),
   Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
   write('selectivity : '),
@@ -423,6 +424,27 @@ writeStoredSel(Stream) :-
   dynamic(storedSel/2),
   at_halt(writeStoredSels),
   readStoredSels.
+
+readStoredPETs :-
+  retractall(storedPET(_, _)),
+  [storedPETs].  
+
+writeStoredPETs :-
+  open('storedPETs.pl', write, FD),
+  write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
+  findall(_, writeStoredPET(FD), _),
+  close(FD).
+
+writeStoredPET(Stream) :-  
+  storedPET(X, Y),
+  replaceCharList(X, XReplaced),
+  write(Stream, storedPET(XReplaced, Y)),
+  write(Stream, '.\n').
+
+:-
+  dynamic(storedPET/2),
+  at_halt(writeStoredPETs),
+  readStoredPETs.
 
 
 /*

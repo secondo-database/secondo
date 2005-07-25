@@ -210,6 +210,15 @@ void adjust_joint_probabilities( const vector<double>& margProb,
   ColumnVector minP(nVars), maxP(nVars);
   int njp = 0;
 
+  // Error in input size - just truncate
+  if( jntProb.size() >= margProb.size() )
+  {
+    vector<pair<int,double> > aux = jntProb;
+
+    jntProb.resize(margProb.size() - 1);
+    for( int i = 0; i < jntProb.size(); i++ )
+      jntProb[i] = aux[i];
+  }
   // Generic Ranges
   for( int i = 1; i <= nVars; i++ )
   {
@@ -439,15 +448,35 @@ void maximize_entropy( vector<double>& marginalProbability,
     // Some adjustments are made to ensure convergence when we have any selectivity = 1
     adjust_joint_probabilities(marginalProbability, jointProbability);
 
-    // First optimization problem
-    find_viable_solution(marginalProbability, jointProbability, tols, initPoint);
-    compute_probabilities(initPoint, estimatedProbability);
-    verify_solution(initPoint, jointProbability, estimatedProbability);
+    if( marginalProbability.size() > 2 && jointProbability.size() > 0 )
+    {
+      // First optimization problem
+      find_viable_solution(marginalProbability, jointProbability, tols, initPoint);
+      compute_probabilities(initPoint, estimatedProbability);
+      // verify_solution(initPoint, jointProbability, estimatedProbability);
 
-    // Second optimization problem
-    find_optimal_solution(marginalProbability, jointProbability, tols, x);
-    compute_probabilities(x, estimatedProbability);
-    verify_solution(x, jointProbability, estimatedProbability);
+      // Second optimization problem
+      find_optimal_solution(marginalProbability, jointProbability, tols, x);
+      compute_probabilities(x, estimatedProbability);
+      verify_solution(x, jointProbability, estimatedProbability);
+    }
+    else // In these cases we don't need to use a numerical method
+      if( marginalProbability.size() > 1 && jointProbability.size() == 0 )
+      {
+        find_independent_solution(marginalProbability, x );
+        compute_probabilities(x, estimatedProbability);
+      }
+      else if( marginalProbability.size() == 2 && jointProbability.size() == 1 )
+      {
+        estimatedProbability.push_back(pair<int,double>(1, marginalProbability[0]));
+        estimatedProbability.push_back(pair<int,double>(2, marginalProbability[1]));
+        estimatedProbability.push_back(jointProbability[0]);
+      }
+      else // marginalProbability.size() == 1 && jointProbability.size() == 0
+      {
+        estimatedProbability.push_back(pair<int,double>(1, marginalProbability[0]));
+      }
+    cout << "Entropy approach converged!" << endl;
   }
   catch(...)
   {
