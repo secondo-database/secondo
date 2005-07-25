@@ -1845,13 +1845,18 @@ ostream& operator<<( ostream& o, CRegion& cr );
 
 Word InPoint( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct );
 ListExpr OutPoint( ListExpr typeInfo, Word value );
-
-
-Word
-InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct );
+ListExpr
+OutPoint( ListExpr typeInfo, Word value );
 
 Word
 InLine( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct ) ;
+ListExpr
+OutLine( ListExpr typeInfo, Word value );
+
+Word
+InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct );
+ListExpr
+OutRegion( ListExpr typeInfo, Word value );
 
 /*
 9 Inline functions

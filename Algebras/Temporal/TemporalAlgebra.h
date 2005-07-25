@@ -4671,5 +4671,44 @@ void* CastMapping(void* addr)
   return new (addr) Mapping;
 }
 
+/*
+6 Header functions
+
+*/
+template <class Mapping>
+int MappingIsEmpty( Word* args, Word& result, int message, Word& local, Supplier s );
+template <class Unit>
+int UnitIsEmpty( Word* args, Word& result, int message, Word& local, Supplier s );
+template <class Mapping>
+int MappingEqual( Word* args, Word& result, int message, Word& local, Supplier s );
+template <class Mapping>
+int MappingNotEqual( Word* args, Word& result, int message, Word& local, Supplier s );
+template <class Alpha>
+int IntimeInst( Word* args, Word& result, int message, Word& local, Supplier s );
+template <class Alpha>
+int IntimeVal( Word* args, Word& result, int message, Word& local, Supplier s );
+template <class Mapping, class Alpha>
+int MappingNoComponents( Word* args, Word& result, int message, Word& local, Supplier s );
+template <class Mapping, class Alpha>
+int MappingAtInstant( Word* args, Word& result, int message, Word& local, Supplier s );
+template <class Mapping>
+int MappingAtPeriods( Word* args, Word& result, int message, Word& local, Supplier s );
+template <class Mapping>
+int MappingDefTime( Word* args, Word& result, int message, Word& local, Supplier s );
+template <class Mapping>
+int MappingPresent_i( Word* args, Word& result, int message, Word& local, Supplier s );
+template <class Mapping>
+int MappingPresent_p( Word* args, Word& result, int message, Word& local, Supplier s );
+template <class Mapping, class Alpha>
+int MappingPasses( Word* args, Word& result, int message, Word& local, Supplier s );
+template <class Mapping, class Unit, class Alpha>
+int MappingInitial( Word* args, Word& result, int message, Word& local, Supplier s );
+template <class Mapping, class Unit, class Alpha>
+int MappingFinal( Word* args, Word& result, int message, Word& local, Supplier s );
+template <class Mapping, class Unit, class Alpha>
+int MappingAt( Word* args, Word& result, int message, Word& local, Supplier s );
+template <class Mapping, class Unit>
+int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s);
+
 
 #endif // _TEMPORAL_ALGEBRA_H_
