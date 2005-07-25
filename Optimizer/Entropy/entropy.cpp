@@ -20,58 +20,69 @@ entropy.cpp
 
 #define LOOP( i, v ) for( int i = 1; i <= v.Nrows(); i++ )
 #define BIT(j) (1<<(j))
-#define EPSILON 1.0e-64
-#define TOL     1.0e-6
+#define EPSILON     1.0e-96
+#define TOL_INIT    1.0e-8
+#define TOL_SOL     1.0e-6
 
-extern bool OptNIPSLike_interpolate;
-//Teste
-void maximize_entropy( vector<double>& marginalProbability,
-                       vector<pair<int,double> >& jointProbability,
-                       vector<pair<int,double> >& estimatedProbability );
 
-//#define BOUND_CONSTRAINTS
 /*
-Actually we don't need the boundary constraints for probabilities since the
-entropy function is convex and its value is zero in the valid boundary:
+Since this method is very sensible to the initial point, we are solving two problems:
+first we find a viable solution (VS) to be the initial point, then we find the
+optimal solution (OS). To find a viable solution we just set a boundary constrained
+problem.
+
+Once we've found a viable solution we don't need the boundary constraints for
+probabilities since the entropy function is convex and its value is zero in the
+valid boundary:
 
 ---- E(0) => - 0 ln(0) = 0, E(1) => - 1 ln(1) = 0.
 ----
 
-Without these constraints the method converges faster and more accurattely since we don't
-have to use the log penalty function. They are here only for debugging purposes.
+Without these constraints the second problem converges faster and more accurattely
+because we don't have to use the log penalty function, which introduces round off
+errors.
 
 */
 
+#define BOUND_CONSTRAINTS
+
 using namespace std;
+extern bool OptNIPSLike_interpolate;
 
-void init_f(int ndim, ColumnVector& x);
-void f(int mode, int ndim, const ColumnVector& x, double& fx,
-       ColumnVector& gx, SymmetricMatrix& Hx, int& result);
+void init_f_VS(int ndim, ColumnVector& x);
+void init_f_OS(int ndim, ColumnVector& x);
+void f_VS(int mode, int ndim, const ColumnVector& x, double& fx,
+          ColumnVector& gx, SymmetricMatrix& Hx, int& result);
+void f_OS(int mode, int ndim, const ColumnVector& x, double& fx,
+          ColumnVector& gx, SymmetricMatrix& Hx, int& result);
+
 void print_constraints(Matrix& cteA, ColumnVector& cteB);
-void eliminate_variables( const Matrix& cteA );
 
-CompoundConstraint* build_contraints( int& nVars,
-                                      vector<double>& marginalProbability,
-                                      vector<pair<int,double> >& jointProbability,
-                                      Matrix& cteA, ColumnVector& cteB )
-// The number of independent variables after simplifications can change
+BoundConstraint* build_bound_contraints( const vector<double>& marginalProbability,
+                                         const vector<pair<int,double> >& jointProbability )
 {
   const int nPred = marginalProbability.size(),
-            nGiven = jointProbability.size();
-
-  nVars = 1 << nPred;
-  cteB.ReSize(nPred+nGiven+1);
-  cteA.ReSize(nPred+nGiven+1, nVars); // Constraint: cteA . X = cteB
-
-#ifdef BOUND_CONSTRAINTS
+            nGiven = jointProbability.size(),
+            nVars = 1 << marginalProbability.size();
   ColumnVector lower(nVars), upper(nVars);   // Constraint: lower <= x <= upper
 
   // Boundary constraints for probability
   LOOP( i, lower ) lower(i) = 0.0;
   LOOP( i, upper ) upper(i) = 1.0;
-#endif
 
-  // The sum of all probability must be 1
+  return new BoundConstraint(nVars, lower, upper);
+}
+
+LinearEquation* build_linear_contraints( const vector<double>& marginalProbability,
+                                         const vector<pair<int,double> >& jointProbability )
+{
+  const int nPred = marginalProbability.size(),
+            nGiven = jointProbability.size(),
+            nVars = 1 << marginalProbability.size();
+  Matrix cteA(nPred+nGiven+1, nVars); // Constraint: cteA . X = cteB
+  ColumnVector cteB(nPred+nGiven+1);
+
+  // The sum of all probabilities must be 1
   for(int i = 1; i <= nVars; i++)
     cteA(1,i) = 1.0;
   cteB(1) = 1.0;
@@ -96,14 +107,7 @@ CompoundConstraint* build_contraints( int& nVars,
     cteB(j+nPred+2) = jointProbability[j].second;
   }
 
-  print_constraints( cteA, cteB );
-
-#ifdef BOUND_CONSTRAINTS
-  return new CompoundConstraint( new BoundConstraint(nVars, lower, upper),
-                                 new LinearEquation(cteA, cteB) );
-#else
-  return new CompoundConstraint( new LinearEquation(cteA, cteB) );
-#endif
+  return new LinearEquation(cteA, cteB);
 }
 
 ostream& operator << (ostream& o, const ColumnVector& v)
@@ -116,11 +120,17 @@ ostream& operator << (ostream& o, const ColumnVector& v)
 
 void print_cond_prob( int npred, const ColumnVector& x )
 {
+  double p = 0.0;
   cout << x << endl;
+
+  for( int i = 1; i <= (1 << npred); i++ )
+    p += x(i);
+
+  cout << "All (must be 1): " << p << endl;
 
   for( int jp = 1; jp < (1 << npred); jp++ )
   {
-    double p = 0.0;
+    p = 0.0;
     cout << jp << ": ";
     for( int i = 0; i < (1 << npred); i++ )
       if( (jp & i) == jp )
@@ -171,21 +181,66 @@ int main( int argc, const char* argv[] )
 
 #endif
 
-// Basically this function assures that there will be no selectivity = 1 since
-// in these cases the algorithm does not converge. Since the results
-// are approximated, we'll decrease all the intermediate results by a small fraction.
-void adjust_joint_probabilities( vector<pair<int,double> >& jointProbability )
-{
-  if( jointProbability.size() > 0 )
-  {
-    double fc = 1 - 1e-9,
-           acc = fc;
+ // Auxiliar function that check ranges for marginal probabilities and sum of all probs
+ // assuring feasilbility. For example, if p(A) = 0.6 and p(B) = 0.7, p(A.B) must be in
+ // the range [0.3, 0.6]
+ void adjust_ranges( const int nVars, ColumnVector& minP, ColumnVector& maxP )
+ {
+   for( int i = 1; i < nVars; i++ )
+     for( int j = 1; j < nVars; j <<= 1 )
+       if( (i & j) == 0 )
+       {
+         if( minP(i) + minP(j) >= 1)
+           minP(i|j) = fmax(minP(i|j), minP(i) + minP(j) - 1) ;
 
-    for( int i = 0; i < jointProbability.size(); i++ )
-    {
-      jointProbability[i].second *= acc;
-      acc *= fc;
-    }
+         maxP(i|j) = fmin(maxP(i|j), fmin(maxP(i), maxP(j)));
+       }
+}
+
+// This function ensures that there will be no selectivity equals to 0 or 1
+// since in these cases the algorithm does not converge. Since the results
+// are approximated, we'll change the intermediate results by a small fraction
+// when it happens. Also, we check for feasibility since the marginal probabilities
+// are measured in one sample and the joint probabilities in another, which may
+// cause strange results.
+void adjust_joint_probabilities( const vector<double>& margProb,
+                                 vector<pair<int,double> >& jntProb )
+{
+  const int nVars = 1 << margProb.size();
+  ColumnVector minP(nVars), maxP(nVars);
+  int njp = 0;
+
+  // Generic Ranges
+  for( int i = 1; i <= nVars; i++ )
+  {
+    minP(i) = 0.0 + TOL_INIT;
+    maxP(i) = 1.0 - TOL_INIT;
+  }
+
+  // Ranges for marginal Probabilities
+  for( int i = 0; i < margProb.size(); i++ )
+    minP(1 << i) = maxP(1 << i) = margProb[i];
+
+  // Verify feasibility
+  adjust_ranges( nVars, minP, maxP );
+
+  // Check each joint probability against ranges and adjust them
+  for( int i = 0; i < jntProb.size(); i++ )
+  {
+    const int node = jntProb[i].first;
+    double prob = jntProb[i].second;
+
+    // Change probabilities to agree with ranges
+    if( prob < minP(node) + TOL_INIT )
+      prob = minP(node) + TOL_INIT;
+    else if( prob > maxP(node) - TOL_INIT )
+      prob = maxP(node) - TOL_INIT;
+
+    // Define new ranges
+    minP(node) = jntProb[i].second = maxP(node) = prob;
+
+    jntProb[i].second = prob;
+    adjust_ranges( nVars, minP, maxP );
   }
 }
 
@@ -200,15 +255,14 @@ void print_constraints( Matrix& cteA, ColumnVector& cteB )
   }
 }
 
-// The algorithm is very sensible to the initial point, so we compute a solution
-// assuming that there is no correlation between predicates, hoping that it
-// is close enough to the ME solution.
-void find_initial_point( vector<double>& marginalProbability, ColumnVector& X )
+// Computes a solution assuming that there is no correlation between predicates
+void find_independent_solution( const vector<double>& margProb, ColumnVector& X )
 {
-  const int nVars = 1 << marginalProbability.size();
+  const int nVars = 1 << margProb.size();
   ColumnVector B(nVars);
   Matrix A(nVars, nVars);
 
+  // Compute joint probabilities
   for( int pred = 1; pred < nVars; pred++ )
   {
     double prob = 1.0;
@@ -216,9 +270,9 @@ void find_initial_point( vector<double>& marginalProbability, ColumnVector& X )
     for( int i = 1; i <= nVars; i++ )
       A(pred, i) = ((pred & i) == pred)? 1.0 : 0.0;
 
-    for( int j = 0; j < marginalProbability.size(); j++ )
+    for( int j = 0; j < margProb.size(); j++ )
       if( (pred & BIT(j)) == BIT(j) )
-        prob *= marginalProbability[j];
+        prob *= margProb[j];
 
     B(pred) = prob;
   }
@@ -232,16 +286,100 @@ void find_initial_point( vector<double>& marginalProbability, ColumnVector& X )
   X = A.i() * B;
 }
 
-// Some tests are done to assure that this is a valid solution regardless of the
+// The algorithm is very sensible to the initial point, so we compute a viable
+// solution and use it as initial point
+void find_viable_solution( const vector<double>& margProb,
+                           const vector<pair<int,double> >& jntProb,
+                           TOLS& tols,
+                           ColumnVector& x )
+{
+  const int nVars = 1 << margProb.size();
+  CompoundConstraint *constraints =
+    new CompoundConstraint(build_bound_contraints(margProb, jntProb),
+                           build_linear_contraints(margProb, jntProb));
+  NLF2 viableSolutionProblem(nVars, f_VS, init_f_VS, constraints);
+  OptNIPS solver(&viableSolutionProblem, tols);
+
+  solver.setOutputFile("output.txt", 0);
+  solver.setSearchStrategy(LineSearch);
+  solver.setMeritFcn(NormFmu);
+  solver.optimize();
+  solver.printStatus("Viable Solution");
+  x = viableSolutionProblem.getXc();
+  solver.cleanup();
+
+  for( int i=1; i <= nVars; i++ )
+    if( x(i) < EPSILON )
+      x(i) = EPSILON;
+}
+
+void find_optimal_solution( const vector<double>& margProb,
+                            const vector<pair<int,double> >& jntProb,
+                            TOLS& tols,
+                            ColumnVector& x )
+{
+  const int nVars = 1 << margProb.size();
+  CompoundConstraint *constraint =
+    new CompoundConstraint(build_linear_contraints(margProb, jntProb));
+  NLF2 entropyProblem(nVars, f_OS, init_f_OS, constraint);
+  OptNIPS solver(&entropyProblem, tols);
+
+  solver.setOutputFile("output.txt", 1);
+  solver.setSearchStrategy(LineSearch);
+  solver.setMeritFcn(ArgaezTapia);
+  solver.optimize();
+  solver.printStatus("Solution for Entropy");
+  x = entropyProblem.getXc();
+  solver.cleanup();
+
+  for( int i=1; i <= nVars; i++ )
+    if( x(i) < EPSILON )
+      x(i) = EPSILON;
+
+  cout << "Entropy: " << - entropyProblem.getF() << endl;
+
+#ifdef STAND_ALONE
+  print_cond_prob(margProb.size(), x);
+#endif
+}
+
+// Computes the combined probabilities from solution
+void compute_probabilities(const ColumnVector &x,
+                           vector<pair<int,double> >& estimatedProbability)
+{
+  estimatedProbability.clear();
+
+  for( int jp = 1; jp < x.Nrows(); jp++ )
+  {
+    double p = 0.0;
+
+    for( int i = 0; i < x.Nrows(); i++ )
+      if( (jp & i) == jp )
+        p += x(i);
+
+    estimatedProbability.push_back(pair<int,double>(jp, p));
+  }
+}
+
+// Some tests are done to ensure that this is a valid solution regardless of the
 // convergence or not of the problem.
 void verify_solution( const ColumnVector &x,
                       const vector<pair<int,double> >& jointProbability,
                       const vector<pair<int,double> >& estimatedProbability)
 {
+  double sum = 0.0;
+
   // Check for negative probabilities - a small tolerance is allowed
-  for( int i=1; i < x.Nrows(); i++ )
-    if( x(i) < - TOL )
+  for( int i=1; i <= x.Nrows(); i++ )
+    if( x(i) < - TOL_SOL )
       throw 0;
+
+  // Check the sum of probabilities
+  for( int i=1; i <= x.Nrows(); i++ )
+    sum += x(i);
+
+  if( fabs( sum - 1 ) > TOL_SOL )
+    throw 0;
 
   // Check for negative joint probabilities - no tolerance
   for( int i=0; i < estimatedProbability.size(); i++ )
@@ -252,111 +390,114 @@ void verify_solution( const ColumnVector &x,
   for( int i=0, j=0; i < estimatedProbability.size() && j < jointProbability.size(); i++ )
     if( jointProbability[j].first == estimatedProbability[i].first )
     {
-      if( fabs( jointProbability[j].second - estimatedProbability[i].second ) > TOL )
+      if( fabs( jointProbability[j].second - estimatedProbability[i].second ) > TOL_SOL )
         throw 0;
 
       j++;
     }
 }
 
-// This varible is used to bypass a flaw int the design of the library: we need
+// These varibles are used to bypass a flaw int the design of the library: we need
 // more parameters in the init_f function.
-static vector<double>* ptr_marginalProbability;
+static vector<double>* ptrMargProb;
+static vector<pair<int,double> >* ptrJointProb;
+static ColumnVector* ptrInitPoint;
 
 void maximize_entropy( vector<double>& marginalProbability,
                        vector<pair<int,double> >& jointProbability,
                        vector<pair<int,double> >& estimatedProbability )
 {
-  ptr_marginalProbability = &marginalProbability;
+  TOLS tols;
+  const int nVars = 1 << marginalProbability.size(),
+            maxIter = 20000 / nVars;
+  ColumnVector initPoint(nVars),
+               x(nVars);
+
+  ptrMargProb = &marginalProbability;
+  ptrJointProb= &jointProbability;
+  ptrInitPoint = &initPoint;
+
   estimatedProbability.clear();
 
-  // Some ajustments are made to assure convergence when we have some selectivity = 1
-  adjust_joint_probabilities(jointProbability);
+  // Sets tolerance values
+  tols.setDefaultTol();
+  tols.setMinStep(1e-16);
+  tols.setStepTol(1e-12);
+  tols.setFTol(1e-12);
+  tols.setCTol(1e-12);
+  tols.setGTol(1e-12);
+  tols.setLSTol(1e-12);
+  tols.setMaxIter(maxIter);
+  tols.setMaxBacktrackIter(4*maxIter);
+  tols.setMaxFeval(maxIter);
+
+  // Library flaw
+  OptNIPSLike_interpolate = true;
+
   try
   {
-    int nVars, maxIter;
-    Matrix A;
-    ColumnVector B;
-    CompoundConstraint* constraint = NULL;
-    constraint = build_contraints(nVars, marginalProbability, jointProbability, A, B);
-    NLF2 entropyProblem(nVars, f, init_f, constraint);
+    // Some adjustments are made to ensure convergence when we have any selectivity = 1
+    adjust_joint_probabilities(marginalProbability, jointProbability);
 
-    // To prevent long calculations
-    maxIter = 20000 / nVars;
+    // First optimization problem
+    find_viable_solution(marginalProbability, jointProbability, tols, initPoint);
+    compute_probabilities(initPoint, estimatedProbability);
+    verify_solution(initPoint, jointProbability, estimatedProbability);
 
-    OptNIPS objfcn(&entropyProblem);
-    OptNIPSLike_interpolate = true;
-    objfcn.setOutputFile("output.txt", 0);
-    objfcn.setFcnTol(1e-12);
-    objfcn.setConTol(1e-16);
-    objfcn.setGradTol(1e-16);
-    objfcn.setLineSearchTol(1e-16);
-    objfcn.setStepTol(1e-16);
-    objfcn.setMinStep(1e-16);
-    objfcn.setMaxIter(maxIter);
-    objfcn.setSearchStrategy(LineSearch);
-    objfcn.setMaxBacktrackIter(maxIter);
-    objfcn.setMeritFcn(NormFmu);
-
-    objfcn.optimize();
-    objfcn.printStatus("Solution from entropy");
-
-    cout << "Entropy: " << - entropyProblem.getF() << endl;
-
-#ifdef STAND_ALONE
-    print_cond_prob(marginalProbability.size(), entropyProblem.getXc());
-#endif
-
-    ColumnVector const &x = entropyProblem.getXc();
-
-    estimatedProbability.clear();
-    for( int jp = 1; jp < nVars; jp++ )
-    {
-      double p = 0.0;
-      for( int i = 0; i < nVars; i++ )
-        if( (jp & i) == jp )
-          p += x(i);
-
-      estimatedProbability.push_back(pair<int,double>(jp, p));
-    }
-
-    objfcn.cleanup();
-
-    // Assures that the solution is ok, even if it didn't converge.
-    verify_solution( x, jointProbability, estimatedProbability );
+    // Second optimization problem
+    find_optimal_solution(marginalProbability, jointProbability, tols, x);
+    compute_probabilities(x, estimatedProbability);
+    verify_solution(x, jointProbability, estimatedProbability);
   }
   catch(...)
   {
     // If any problem occurs, use the "independence of predicates" approach.
-    int nVars = 1 << marginalProbability.size();
-    ColumnVector x(nVars);
-    find_initial_point(marginalProbability, x );
-
-    estimatedProbability.clear();
-    for( int jp = 1; jp < nVars; jp++ )
-    {
-      double p = 0.0;
-      for( int i = 0; i < nVars; i++ )
-        if( (jp & i) == jp )
-          p += x(i);
-
-      estimatedProbability.push_back(pair<int,double>(jp, p));
-    }
+    find_independent_solution(marginalProbability, x );
+    compute_probabilities(x, estimatedProbability);
 
     cout << "Unable to use the entropy approach!" << endl;
   }
 }
 
-void init_f(int ndim, ColumnVector& x)
+void init_f_VS(int ndim, ColumnVector& x)
 {
-  find_initial_point( *ptr_marginalProbability, x );
+  double val = 1.0;
+
+  // Adjust initial values for first problem
+  if( ndim > 3 && ptrJointProb->size() > 1 )
+  {
+    double v1 = (*ptrJointProb)[ptrJointProb->size()-1].second,
+           v2 = (*ptrJointProb)[ptrJointProb->size()-2].second - v1;
+
+    val -= v1 + v2;
+    for( int i = 1; i <= ndim; i++ )
+      x(i) = val / ndim;
+
+    x(ndim-1) = (*ptrJointProb)[ptrJointProb->size()-1].second;
+    x(ndim/2 - 1) = (*ptrJointProb)[ptrJointProb->size()-2].second - x(ndim-1);
+  }
+  else
+    for( int i = 1; i <= ndim; i++ )
+      x(i) = 1.0 / ndim;
+
+#ifdef STAND_ALONE
   cout << "Initial point: " << endl << x << endl;
+#endif
+}
+
+// ptrInitPoint holds the solution of first optimization problem
+void init_f_OS(int, ColumnVector& x)
+{
+  x = *ptrInitPoint;
+
+#ifdef STAND_ALONE
+  cout << "Viable point: " << endl << x << endl;
+#endif
 }
 
 // Some adjustments to make the entropy function continuous and differentiable at 0.
-void f(int mode, int ndim, const ColumnVector& x, double& fx,
-       ColumnVector& gx, SymmetricMatrix& Hx,
-       int& result)
+void f_OS(int mode, int ndim, const ColumnVector& x, double& fx,
+          ColumnVector& gx, SymmetricMatrix& hx, int& result)
 {
   if( mode & NLPFunction )
   {
@@ -385,7 +526,7 @@ void f(int mode, int ndim, const ColumnVector& x, double& fx,
       if( xi > EPSILON )
         gx(i) = log(xi) + 1;
       else
-        gx(i) = log(EPSILON) + 1;
+        gx(i) = log(EPSILON);
     }
 
     result = NLPGradient;
@@ -398,12 +539,44 @@ void f(int mode, int ndim, const ColumnVector& x, double& fx,
       const double xi = x(i);
 
       if( xi > EPSILON )
-        Hx(i,i) = 1.0/xi;
+        hx(i,i) = 1.0/xi;
       else
-        Hx(i,i) = 0;
+        hx(i,i) = 0;
     }
 
     result = NLPHessian;
   }
 }
+
+// Very simple function to get consistent probabilities for start point
+void f_VS(int mode, int ndim, const ColumnVector& x, double& fx,
+       ColumnVector& gx, SymmetricMatrix& hx,
+       int& result)
+{
+  if( mode & NLPFunction )
+  {
+    double val = 0.0;
+
+    LOOP( i, x ) val += - x(i);
+
+    fx = val;
+    result = NLPFunction;
+  }
+
+  if( mode & NLPGradient )
+  {
+    LOOP( i, x ) gx(i) = - 1.0;
+
+    result = NLPGradient;
+  }
+
+  if( mode & NLPHessian )
+  {
+    LOOP( i, x ) hx(i,i) = 0.0;
+
+    result = NLPHessian;
+  }
+}
+
+
 

@@ -1,5 +1,5 @@
-
-
+quit :- 
+  halt.
 
 argList( 1, [_] ).
 argList( N, [_|L] ) :-

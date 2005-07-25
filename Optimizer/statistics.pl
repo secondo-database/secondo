@@ -255,6 +255,7 @@ be retrieved only once.
 
 */
 
+// Selectivities must not be 0
 
 selectivity(P, Sel) :-
   simplePred(P, PSimple),

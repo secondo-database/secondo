@@ -48,8 +48,6 @@ sel(plz:ort = staedte:sName, 0.0031).
 sel(plz:pLZ = (plz:pLZ)+1, 0.00001644).
 sel((plz:pLZ)-1 = plz:pLZ, 0.00001644).
 sel(plz:pLZ = (plz:pLZ)*5, 0.0000022).
-sel(plz:pLZ = plz:pLZ, 0.000146).
-sel(plz:pLZ * 3 = plz:pLZ * 3, 0.000146).
 sel(plz:pLZ > 40000, 0.55).
 sel(plz:pLZ > 50000, 0.48).
 sel(plz:pLZ < 60000, 0.64).
@@ -256,6 +254,8 @@ be retrieved only once.
 */
 
 
+% Selectivities must not be 0
+ 
 selectivity(P, Sel) :-
   simplePred(P, PSimple),
   sels(PSimple, Sel),
@@ -273,12 +273,22 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   atom_concat('query ', QueryAtom1, QueryAtom),
   %write('selectivity query : '),
   %write(QueryAtom),
+  get_time(Time1),
   secondo(QueryAtom, [int, ResCard]),
+  get_time(Time2),
+  Time is Time2 - Time1,
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  MSs is Minute *60000 + Sec*1000 + MilliSec,
+  write('Elapsed Time: '),
+  write(MSs),
+  write(' ms'),nl,
   Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
   write('selectivity : '),
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
+  MSsRes is MSs / 500,
+  assert(storedPET(PSimple, MSsRes)),
   assert(storedSel(PSimple, Sel)),
   !.
 
@@ -289,14 +299,24 @@ selectivity(pr(Pred, Rel), Sel) :-
   cardQuery(Pred, Rel, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  %write('selectivity query : '),
+  %write('selectivity query : '), 
   %write(QueryAtom),
+  get_time(Time1),
   secondo(QueryAtom, [int, ResCard]),
+  get_time(Time2),
+  Time is Time2 - Time1,
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  MSs is Minute *60000 + Sec*1000 + MilliSec,
+  write('Elapsed Time: '),
+  write(MSs),
+  write(' ms'),nl,
   Sel is (ResCard + 1)/ SampleCard,		% must not be 0
   write('selectivity : '),
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel), PSimple),
+  MSsRes is MSs / 2000,
+  assert(storedPET(PSimple, MSsRes)),
   assert(storedSel(PSimple, Sel)),
   !.
 
@@ -310,8 +330,8 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   dynamicCardQuery(Pred, Rel1, Rel2, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  %write('selectivity query : '),
-  %write(QueryAtom),
+  write('selectivity query : '),
+  write(QueryAtom),
   secondo(QueryAtom, [int, ResCard]),
   Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
   write('selectivity : '),
