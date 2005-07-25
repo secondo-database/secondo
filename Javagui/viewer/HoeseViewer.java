@@ -144,6 +144,7 @@ public class HoeseViewer extends SecondoViewer {
   private JRadioButtonMenuItem create_Points_MI;
   private JRadioButtonMenuItem create_Line_MI;
   private JRadioButtonMenuItem create_Point_MI;
+  private JRadioButtonMenuItem create_Region_MI;
 
 
   private javax.swing.JSeparator jSeparator5;
@@ -323,6 +324,7 @@ public class HoeseViewer extends SecondoViewer {
                   create_PointSequence_MI.setEnabled(true);
                   create_Point_MI.setEnabled(true);
                   create_FilledPointSequence_MI.setEnabled(true);
+                  create_Region_MI.setEnabled(true);
               } else{ // start input
                   lastSrc = src;
                   Butt.setBackground(aColor);
@@ -336,6 +338,7 @@ public class HoeseViewer extends SecondoViewer {
                   create_PointSequence_MI.setEnabled(false);
                   create_FilledPointSequence_MI.setEnabled(false);
                   create_Point_MI.setEnabled(false);
+                  create_Region_MI.setEnabled(false);
               }            
           }
           Color aColor = Color.GREEN;
@@ -863,16 +866,17 @@ public class HoeseViewer extends SecondoViewer {
     isAutoCatMI.setText("Auto category");
     jMenuGui.add(isAutoCatMI);
     JMenu createMenu = new JMenu("Object creation");
-    jMenuGui.add(createMenu);
+   // jMenuGui.add(createMenu); // moved into the main menu
     selectSequenceCat = new JMenuItem("Select Category");
     createMenu.add(selectSequenceCat);
 
-    create_Rectangle_MI=new JRadioButtonMenuItem("rectangle");
-    create_PointSequence_MI=new JRadioButtonMenuItem("point sequence");
-    create_FilledPointSequence_MI=new JRadioButtonMenuItem("filled point sequence");
-    create_Points_MI=new JRadioButtonMenuItem("points");
-    create_Point_MI=new JRadioButtonMenuItem("point");
-    create_Line_MI=new JRadioButtonMenuItem("line");
+    create_Rectangle_MI=new JRadioButtonMenuItem("Rectangle");
+    create_PointSequence_MI=new JRadioButtonMenuItem("Point sequence");
+    create_FilledPointSequence_MI=new JRadioButtonMenuItem("Filled point sequence");
+    create_Points_MI=new JRadioButtonMenuItem("Points");
+    create_Point_MI=new JRadioButtonMenuItem("Point");
+    create_Line_MI=new JRadioButtonMenuItem("Line");
+    create_Region_MI = new JRadioButtonMenuItem("Region");
     
     createMenu.add(create_Rectangle_MI);
     createMenu.add(create_PointSequence_MI);
@@ -880,6 +884,7 @@ public class HoeseViewer extends SecondoViewer {
     createMenu.add(create_Points_MI);
     createMenu.add(create_Point_MI);
     createMenu.add(create_Line_MI);
+    createMenu.add(create_Region_MI);
     ButtonGroup createTypes = new ButtonGroup();
     createTypes.add(create_Rectangle_MI);
     createTypes.add(create_PointSequence_MI);
@@ -887,6 +892,7 @@ public class HoeseViewer extends SecondoViewer {
     createTypes.add(create_Points_MI);
     createTypes.add(create_Point_MI);
     createTypes.add(create_Line_MI);
+    createTypes.add(create_Region_MI);
     create_PointSequence_MI.setSelected(true);
 
     // add an changeListener for inrforming the createPointSequnceListener when needed
@@ -904,6 +910,8 @@ public class HoeseViewer extends SecondoViewer {
                 createPointSequenceListener.setMode(CreatePointSequenceListener.POINT_MODE);
            if(create_Line_MI.isSelected())
                 createPointSequenceListener.setMode(CreatePointSequenceListener.LINE_MODE);
+           if(create_Region_MI.isSelected())
+                createPointSequenceListener.setMode(CreatePointSequenceListener.REGION_MODE);
         }
     };
    create_Rectangle_MI.addChangeListener(cL); 
@@ -911,7 +919,8 @@ public class HoeseViewer extends SecondoViewer {
    create_FilledPointSequence_MI.addChangeListener(cL); 
    create_Points_MI.addChangeListener(cL); 
    create_Point_MI.addChangeListener(cL); 
-   create_Line_MI.addChangeListener(cL); 
+   create_Line_MI.addChangeListener(cL);
+   create_Region_MI.addChangeListener(cL); 
 
    selectSequenceCat.addActionListener(new ActionListener(){
          public void actionPerformed(ActionEvent evt){
@@ -1287,6 +1296,7 @@ public class HoeseViewer extends SecondoViewer {
     });
     //RBMITimeFrame
     MenuExtension.addMenu(jMenuGui);
+    MenuExtension.addMenu(createMenu);
 
     MenuObject.setText("Object");
     MIHideObject.setText("Hide");
@@ -2611,7 +2621,8 @@ public boolean canDisplay(SecondoObject o){
           if(ps.isEmpty()){
               points = new  Vector();
            }
-           boolean repchanged = ps.add(x,y) || mode==FILLED_POINT_SEQUENCE_MODE;
+           boolean repchanged = ps.add(x,y) || mode==FILLED_POINT_SEQUENCE_MODE ||
+                                               mode==REGION_MODE;
            GraphDisplay.paintAdditional(ps); 
            if(repchanged)
               GraphDisplay.repaint();
@@ -2753,6 +2764,32 @@ public boolean canDisplay(SecondoObject o){
          G.drawRect(x,y,w,h);
       }
 
+     
+      
+      /** Checks whether the given vector of  points is a simple
+        *  Region.
+        **/ 
+       private boolean isPolygon(Vector points){
+           // in the pointvector cannot be intersection segments
+           if(haveIntersections(points,null))
+              return false;
+           
+           int size = points.size();
+           if(size<3)
+              return false;
+           // missing check for building a region (points not on a single segment
+           return true; 
+       }
+
+
+       /** check wether the segments in the pointsequnece stored in points
+         * have any intersections.
+         * If p is not null, p is assumed to be the last element in points.
+         **/
+       private boolean haveIntersections(Vector points, Point2D.Double p){
+            // missing implementation
+            return false;
+       }
 
       /** Closed a Point sequence.
         * The user will be asked for an object name.
@@ -2769,7 +2806,7 @@ public boolean canDisplay(SecondoObject o){
             ListExpr value=new ListExpr();
             ListExpr last=null;
             Point2D.Double P;
-            if(mode!=LINE_MODE){
+            if(mode!=LINE_MODE ){
 								if(points.size()>0){
 									 P=(Point2D.Double) points.get(0);
                    value.destroy();
@@ -2785,7 +2822,8 @@ public boolean canDisplay(SecondoObject o){
 																					ListExpr.realAtom(P.getX()),
 																					ListExpr.realAtom(P.getY())));
 								 }
-             } else{ //LINE_MODE
+             }
+             if(mode==LINE_MODE){ 
                if(points.size()>2){
                   double lastx;
                   double lasty;
@@ -2819,7 +2857,15 @@ public boolean canDisplay(SecondoObject o){
                   } // for 
                 } // more than two points
              } // LINE_MODE
-
+             if(mode==REGION_MODE){
+              // first component, face
+               if(!isPolygon(points)){
+                 MessageBox.showMessage("Points don't build a valid polygon.");
+                 reset();
+                 return;
+               } 
+               value = ListExpr.oneElemList(ListExpr.oneElemList(value));
+             }
              String Name=getNameFromUser();
              if(Name!=null){
                   String TypeName=null;
@@ -2828,6 +2874,7 @@ public boolean canDisplay(SecondoObject o){
                     case FILLED_POINT_SEQUENCE_MODE : TypeName = "pointsequence"; break;
                     case LINE_MODE : TypeName ="line"; break;
                     case POINTS_MODE : TypeName ="points";break;
+                    case REGION_MODE : TypeName ="region";break;
                     default : TypeName ="unknown"; System.err.println("invalid mode detected");
                   }
 							  	ListExpr result = ListExpr.twoElemList(ListExpr.symbolAtom(TypeName),value);
@@ -2871,7 +2918,7 @@ public boolean canDisplay(SecondoObject o){
 
 
       public void setMode(int mode){
-         if(mode>=0 && mode<6 ){
+         if(mode>=0 && mode<7 ){
              this.mode=mode;
              if(mode==POINT_SEQUENCE_MODE)
                 ps.setPaintMode(Dsplpointsequence.LINE_MODE);
@@ -2883,6 +2930,8 @@ public boolean canDisplay(SecondoObject o){
                 ps.setPaintMode(Dsplpointsequence.LINE_MODE);
              if(mode==POINT_MODE)
                 ps.setPaintMode(Dsplpointsequence.POINTS_MODE);
+             if(mode==REGION_MODE)
+                ps.setPaintMode(Dsplpointsequence.AREA_MODE);
          }
       }  
 
@@ -2909,6 +2958,7 @@ public boolean canDisplay(SecondoObject o){
       private static final int POINTS_MODE=3;
       private static final int LINE_MODE=4;
       private static final int POINT_MODE=5;
+      private static final int REGION_MODE=6;
 
   
  }
