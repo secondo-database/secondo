@@ -2591,7 +2591,7 @@ public boolean canDisplay(SecondoObject o){
       * In all other modes. the new point is added to the current
       * point sequence. 
       **/
-			public void mouseClicked(MouseEvent evt){
+        public void mouseClicked(MouseEvent evt){
           if(mode==RECTANGLE_MODE){
              return;
           } 
@@ -2609,8 +2609,8 @@ public boolean canDisplay(SecondoObject o){
                ListExpr pointList = ListExpr.twoElemList( 
                                             ListExpr.symbolAtom("point"),
                                             ListExpr.twoElemList(
-                                                 ListExpr.realAtom(x),
-                                                 ListExpr.realAtom(y)));
+                                            ListExpr.realAtom(x),
+                                            ListExpr.realAtom(y)));
                String Name = getNameFromUser();
                if(Name!=null){
                    processSecondoObject(Name,"point",pointList);
@@ -2620,16 +2620,24 @@ public boolean canDisplay(SecondoObject o){
 
           if(ps.isEmpty()){
               points = new  Vector();
-           }
+          }
+          Point2D.Double thePoint = new Point2D.Double(x,y);
+          if(mode==REGION_MODE){
+              if(haveIntersections(points,thePoint)){
+                  MessageBox.showMessage("Intersection detected");
+                  return;
+              }
+          }
+
            boolean repchanged = ps.add(x,y) || mode==FILLED_POINT_SEQUENCE_MODE ||
                                                mode==REGION_MODE;
            GraphDisplay.paintAdditional(ps); 
            if(repchanged)
               GraphDisplay.repaint();
-           points.add(new Point2D.Double(x,y));
+           points.add(thePoint);
            Graphics2D G = (Graphics2D)GraphDisplay.getGraphics();
            ps.draw(G,allProjection);
-			}
+}
 
       /** This function computes the coordinates in the 'world' from the 
         * given mouse coordinates. 
@@ -2771,23 +2779,35 @@ public boolean canDisplay(SecondoObject o){
         **/ 
        private boolean isPolygon(Vector points){
            // in the pointvector cannot be intersection segments
-           if(haveIntersections(points,null))
-              return false;
-           
            int size = points.size();
            if(size<3)
+              return false;
+           if(haveIntersections(points,(Point2D.Double)points.get(0)))
               return false;
            // missing check for building a region (points not on a single segment
            return true; 
        }
 
-
-       /** check wether the segments in the pointsequnece stored in points
-         * have any intersections.
-         * If p is not null, p is assumed to be the last element in points.
+       /** Checks whether the segment from the last point in the points vector
+         * has an intersection with a segment in the pointsequence represented
+         * by points.
          **/
        private boolean haveIntersections(Vector points, Point2D.Double p){
-            // missing implementation
+            int size = points.size();
+            if(size<2) // no segments in points
+               return false;
+            Point2D.Double p1 = (Point2D.Double) points.get(size-1);
+            Point2D.Double p2;
+            // create the line from the last point to the new point
+            Line2D.Double line = new Line2D.Double(p1.x,p1.y,p.x,p.y);
+            // iterate over all segments in points
+            p1 = (Point2D.Double) points.get(0);
+            for(int i=1;i<points.size()-1;i++){
+               p2 = (Point2D.Double)points.get(i);
+               if(line.intersectsLine(p1.x,p1.y,p2.x,p2.y))
+                  return true;
+               p1 = p2;
+            }
             return false;
        }
 
@@ -2807,21 +2827,21 @@ public boolean canDisplay(SecondoObject o){
             ListExpr last=null;
             Point2D.Double P;
             if(mode!=LINE_MODE ){
-								if(points.size()>0){
-									 P=(Point2D.Double) points.get(0);
-                   value.destroy();
-									 value = ListExpr.oneElemList(
-													 ListExpr.twoElemList(
-													 ListExpr.realAtom(P.getX()),
-													 ListExpr.realAtom(P.getY())));
-									 last=value;
-								 }
-								 for(int i=1;i<points.size();i++){
-										 P = (Point2D.Double) points.get(i);
-										 last = ListExpr.append(last,ListExpr.twoElemList(
-																					ListExpr.realAtom(P.getX()),
-																					ListExpr.realAtom(P.getY())));
-								 }
+              if(points.size()>0){
+                P=(Point2D.Double) points.get(0);
+                value.destroy();
+                value = ListExpr.oneElemList(
+                           ListExpr.twoElemList(
+                                 ListExpr.realAtom(P.getX()),
+                                  ListExpr.realAtom(P.getY())));
+                last=value;
+              }
+              for(int i=1;i<points.size();i++){
+                 P = (Point2D.Double) points.get(i);
+                 last = ListExpr.append(last,ListExpr.twoElemList(
+                             ListExpr.realAtom(P.getX()),
+                             ListExpr.realAtom(P.getY())));
+              }
              }
              if(mode==LINE_MODE){ 
                if(points.size()>2){
@@ -2859,7 +2879,7 @@ public boolean canDisplay(SecondoObject o){
              } // LINE_MODE
              if(mode==REGION_MODE){
               // first component, face
-               if(!isPolygon(points)){
+               if(points.size()<3){
                  MessageBox.showMessage("Points don't build a valid polygon.");
                  reset();
                  return;
