@@ -44,8 +44,9 @@ The optimizer is started by loading this file.
 % Uncomment the next line to activate the entropy approach
 % ['./Entropy/optimizer'],
 
-% comment the next line to deactivate the standard optimizer
+% Uncomment the next line to activate the standard optimizer
   [optimizer], 
+
 
   [statistics],
   [database],
