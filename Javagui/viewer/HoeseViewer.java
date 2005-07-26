@@ -226,7 +226,7 @@ public class HoeseViewer extends SecondoViewer {
       System.err.println("Error loading L&F: " + exc);
       if(DEBUG_MODE){
         System.err.println(exc);
-	exc.printStackTrace();
+  exc.printStackTrace();
       }
     }
 
@@ -234,7 +234,7 @@ public class HoeseViewer extends SecondoViewer {
     FileSeparator = SystemProps.getProperty("file.separator");
     if(FileSeparator==null){
         FileSeparator ="/";
-	System.out.println("i can't determine the Systems file separator");
+  System.out.println("i can't determine the Systems file separator");
      }
      TexturePath = FileSeparator;
 
@@ -249,10 +249,10 @@ public class HoeseViewer extends SecondoViewer {
       while(ST.hasMoreTokens()){
         String FileName = CatPath+ST.nextToken().trim();
         ListExpr le = new ListExpr();
-	File F1 = new File(FileName);
-	if(!F1.exists()){
-	   System.out.println("i can't find the StandardCategoryFile "+FileName);
-	}else
+  File F1 = new File(FileName);
+  if(!F1.exists()){
+     System.out.println("i can't find the StandardCategoryFile "+FileName);
+  }else
            if(le.readFromFile(FileName)!=0){
               System.out.println("i can't load the file "+FileName);
            } else{
@@ -670,16 +670,16 @@ public class HoeseViewer extends SecondoViewer {
     jMenuBackgroundColor = new JMenuItem("Background Color");
     jMenuBackgroundColor.addActionListener(new ActionListener(){
         public void actionPerformed(ActionEvent evt){
-	  Color OldBG = GraphDisplay.getBackground();
-	  Color BG = JColorChooser.showDialog(
+    Color OldBG = GraphDisplay.getBackground();
+    Color BG = JColorChooser.showDialog(
                      HoeseViewer.this,
                      "Choose Background Color",
-		     OldBG
+         OldBG
                      );
-	   if(!OldBG.equals(BG)){
-	      GraphDisplay.setBackground(BG);
-	   }
-	}
+     if(!OldBG.equals(BG)){
+        GraphDisplay.setBackground(BG);
+     }
+  }
     });
 
     MINewCat = new javax.swing.JMenuItem();
@@ -745,15 +745,15 @@ public class HoeseViewer extends SecondoViewer {
             Cats = new Vector(30, 10);
             Cats.add(Category.getDefaultCat());
             suc ="OK";
-	    if (readAllCats(le))
-	       MessageBox.showMessage("categories loaded");
-	    else
-	       MessageBox.showMessage("error in categories");
+      if (readAllCats(le))
+         MessageBox.showMessage("categories loaded");
+      else
+         MessageBox.showMessage("error in categories");
           }
           else{
             suc = "Failed";
-	    MessageBox.showMessage("error in categories");
-	  }
+      MessageBox.showMessage("error in categories");
+    }
         }
       }
     });
@@ -764,7 +764,7 @@ public class HoeseViewer extends SecondoViewer {
     MISaveCat.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         FC_Category.setFileSelectionMode(JFileChooser.FILES_ONLY);
-	int returnVal = FC_Category.showSaveDialog(HoeseViewer.this);
+  int returnVal = FC_Category.showSaveDialog(HoeseViewer.this);
         if (returnVal == JFileChooser.APPROVE_OPTION) {
           File file = FC_Category.getSelectedFile();
           ListExpr le = writeAllCats();
@@ -785,28 +785,28 @@ public class HoeseViewer extends SecondoViewer {
     MI_SaveAttrCatLink.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
            if(ManualLinkPool.numberOfLinks()==0){
-	      showMessage("no references defined");
-	      return;
-	   }
-	   if(FC_References.showSaveDialog(HoeseViewer.this)==JFileChooser.APPROVE_OPTION){
+        showMessage("no references defined");
+        return;
+     }
+     if(FC_References.showSaveDialog(HoeseViewer.this)==JFileChooser.APPROVE_OPTION){
               ListExpr LE = ManualLinkPool.toListExpr();
-	      File f = FC_References.getSelectedFile();
-	      if(LE.writeToFile(f.getPath())!=0)
-	           showMessage("saves references failed");
-	      else
-	           showMessage("save references successful");
-	   }
+        File f = FC_References.getSelectedFile();
+        if(LE.writeToFile(f.getPath())!=0)
+             showMessage("saves references failed");
+        else
+             showMessage("save references successful");
+     }
        }});
 
     MI_LoadAttrCatLink.setText("Load  Attribute -> Category");
     MI_LoadAttrCatLink.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
           if(FC_References.showOpenDialog(HoeseViewer.this)==JFileChooser.APPROVE_OPTION)
-	     if (loadReferences(FC_References.getSelectedFile())){
-	         showMessage("load references successful");
-	     }else{
+       if (loadReferences(FC_References.getSelectedFile())){
+           showMessage("load references successful");
+       }else{
                 showMessage("load references failed");
-	     }
+       }
     }});
 
 
@@ -865,7 +865,7 @@ public class HoeseViewer extends SecondoViewer {
 
     isAutoCatMI.setText("Auto category");
     jMenuGui.add(isAutoCatMI);
-    JMenu createMenu = new JMenu("Object creation");
+    JMenu createMenu = new JMenu("Object Creation");
    // jMenuGui.add(createMenu); // moved into the main menu
     selectSequenceCat = new JMenuItem("Select Category");
     createMenu.add(selectSequenceCat);
@@ -1277,7 +1277,7 @@ public class HoeseViewer extends SecondoViewer {
     RBMICustTI.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         /*
-	String input = JOptionPane.showInputDialog("Insert a time increment in msec.");
+  String input = JOptionPane.showInputDialog("Insert a time increment in msec.");
         long l = 1;
         try {
           l = Long.parseLong(input);
@@ -1285,13 +1285,13 @@ public class HoeseViewer extends SecondoViewer {
         RBMICustTI.setText(tok + " = " + l + " msec.");
         TimeSlider.setUnitIncrement(l);
         TimeSlider.setBlockIncrement(l);
-	*/
-	if(TimeInput.inputTime()==TimeInputDialog.OK){
+  */
+  if(TimeInput.inputTime()==TimeInputDialog.OK){
             RBMICustTI.setText(tok + " = " +TimeInput.getTimeString());
             long t = TimeInput.getTime();
-	    TimeSlider.setUnitIncrement(t);
+      TimeSlider.setUnitIncrement(t);
             TimeSlider.setBlockIncrement(t);
-	}
+  }
       }
     });
     //RBMITimeFrame
@@ -1559,7 +1559,7 @@ public boolean addProjection(String Name){
  catch(Exception e){ 
      if(DEBUG_MODE){
          System.out.println(e); 
-	 e.printStackTrace();
+   e.printStackTrace();
      }
      return false;}
 }
@@ -1719,7 +1719,7 @@ public boolean canDisplay(SecondoObject o){
     int returnVal = FC_Session.showSaveDialog(HoeseViewer.this);
     if (returnVal == JFileChooser.APPROVE_OPTION) {
       File file = FC_Session.getSelectedFile();
-      //					File file=new File("Session");
+      //          File file=new File("Session");
       String DirName = FC_Session.getCurrentDirectory().getAbsolutePath();
       ListExpr le = ListExpr.fourElemList(ListExpr.symbolAtom("session"), bgImage.toListExpr(DirName), 
           writeAllCats(), TextDisplay.convertAllQueryResults());
@@ -1899,7 +1899,7 @@ public boolean canDisplay(SecondoObject o){
       wpw = 1; 
     else if (wph == 0)
       wph = 1;
-    // now division by zero impossible	
+    // now division by zero impossible  
     double m00, m11;
     if (w/wpw > h/wph) {        //keep aspect ratio
       //h-=60;  
@@ -2029,7 +2029,7 @@ public boolean canDisplay(SecondoObject o){
       }
       if(theList.getModel().getSize()<1){// an empty list
          GraphDisplay.repaint(); // remove an old selection
-	 return;
+   return;
       }
       o = theList.getSelectedValue();
       if (o instanceof Timed) {
@@ -2052,7 +2052,7 @@ public boolean canDisplay(SecondoObject o){
              TimeSlider.setValue((long)Math.round(tb.getStart()*86400000));
         }
         makeSelectionVisible();
-	GraphDisplay.repaint();
+  GraphDisplay.repaint();
       }
       else if (o instanceof DsplBase) {
         selBaseObj = (DsplBase)o;
@@ -2084,18 +2084,18 @@ public boolean canDisplay(SecondoObject o){
 
     public void drawRectangle(){
          if(!isEnabled) return;
-	 int x1 = startX;
-	 int x2 = targetX;
-	 int y1 = startY;
-	 int y2 = targetY;
+   int x1 = startX;
+   int x2 = targetX;
+   int y1 = startY;
+   int y2 = targetY;
          Graphics2D G = (Graphics2D) GraphDisplay.getGraphics();
-	 G.setXORMode(Color.white);
+   G.setXORMode(Color.white);
          int x = Math.min(x1,x2);
          int w = Math.abs(x1-x2);
          int y = Math.min(y1,y2);
          int h= Math.abs(y1-y2);
          G.drawRect(x,y,w,h);
-	}
+  }
 
 
     /** enabled or disables the sleection of objects **/
@@ -2112,16 +2112,16 @@ public boolean canDisplay(SecondoObject o){
     public void mouseReleased (MouseEvent e) {
       if ((e.getModifiers() & InputEvent.BUTTON3_MASK) == InputEvent.BUTTON3_MASK & isEnabled) {
       {
-	  if(isPainting)
+    if(isPainting)
              drawRectangle();
           isPainting=false;
           int x = Math.min(startX,targetX);
           int wi = Math.abs(startX-targetX);
-	  int y = Math.min(startY,targetY);
+    int y = Math.min(startY,targetY);
           int he = Math.abs(startY-targetY);
 
 
-	  Rectangle2D r = new Rectangle2D.Double(x,y,wi,he);
+    Rectangle2D r = new Rectangle2D.Double(x,y,wi,he);
           GraphDisplay.removeMouseMotionListener(this);
 
 
@@ -2147,7 +2147,7 @@ public boolean canDisplay(SecondoObject o){
               (int)(r.getY()*zf), (int)w, (int)h));
           //GeoScrollPane.getViewport().setViewPosition(new Point((int)(r.getX()*zf),(int)(r.getY()*zf)));
           GraphDisplay.repaint();
-	  isEnabled = false;
+    isEnabled = false;
         }
       }
     }
@@ -2157,12 +2157,12 @@ public boolean canDisplay(SecondoObject o){
       if ((e.getModifiers() & InputEvent.BUTTON3_MASK) == InputEvent.BUTTON3_MASK) {
          startX = e.getX();
          startY = e.getY();
-	 targetX = startX;
-	 targetY = startY;
-	 drawRectangle();
+   targetX = startX;
+   targetY = startY;
+   drawRectangle();
          isPainting=true;
-	 isEnabled = true;
-	 GraphDisplay.addMouseMotionListener(this);
+   isEnabled = true;
+   GraphDisplay.addMouseMotionListener(this);
 
       }
     }
@@ -2303,7 +2303,7 @@ public boolean canDisplay(SecondoObject o){
     catch(Exception e){
        if(DEBUG_MODE){
           System.err.println(e);
-	  e.printStackTrace();
+    e.printStackTrace();
        }
        return;
     }
@@ -2316,11 +2316,11 @@ public boolean canDisplay(SecondoObject o){
        String SecondoHome = configuration.getProperty("SECONDO_HOME");
        if(SecondoHome==null){
            String T = (new File("")).getAbsolutePath();
-	   T = T.substring(0,T.length()-8)+FileSeparator;
+     T = T.substring(0,T.length()-8)+FileSeparator;
            if(! (new File(T)).exists())
-	      SecondoHome ="";
-	   else
-	      SecondoHome =T;
+        SecondoHome ="";
+     else
+        SecondoHome =T;
        }
 
        String HoeseHome = SecondoHome+"Data"+FileSeparator+"Guidatas"+FileSeparator+"hoese"+FileSeparator;
@@ -2337,7 +2337,7 @@ public boolean canDisplay(SecondoObject o){
           CatPath = TmpCatPath.trim();
 
        if(!CatPath.endsWith(FileSeparator))
- 	   CatPath += FileSeparator;
+      CatPath += FileSeparator;
 
 
        File F;
@@ -2365,16 +2365,16 @@ public boolean canDisplay(SecondoObject o){
           TexturePath = TMPTexturePath.trim();
 
        if(!TexturePath.endsWith(FileSeparator))
-	   TexturePath += FileSeparator;
+     TexturePath += FileSeparator;
 
        F = new File(TexturePath);
        if(!F.exists()){
           System.out.println("the TEXTURE_PATH in "+CONFIGURATION_FILE+" is setted to a non existing Path");
-	  System.out.println("please set this variable to a existing non relative pathname");
+    System.out.println("please set this variable to a existing non relative pathname");
        }else{
-	  CategoryEditor.setTextureDirectory(new File(TexturePath));
-	  System.out.println("set TexturePath to "+TexturePath);
-	  Category.setTexturePath(TexturePath);
+    CategoryEditor.setTextureDirectory(new File(TexturePath));
+    System.out.println("set TexturePath to "+TexturePath);
+    Category.setTexturePath(TexturePath);
        }
 
     String MaxPixels = configuration.getProperty("MAXPIXELS");
@@ -2418,11 +2418,11 @@ public boolean canDisplay(SecondoObject o){
        String StdRef = configuration.getProperty("STD_REFERENCE");
        if(StdRef!=null){
          F = new File(ReferencePath+StdRef);
-	 if(!F.exists())
-	   System.out.println("the Reference-File "+StdRef+" not exists");
-	 else
-	   if(!loadReferences(F))
-	     System.out.println("i can't load the reference file :"+StdRef);
+   if(!F.exists())
+     System.out.println("the Reference-File "+StdRef+" not exists");
+   else
+     if(!loadReferences(F))
+       System.out.println("i can't load the reference file :"+StdRef);
        }
 
        String Prjs = configuration.getProperty("PROJECTIONS");
@@ -2430,18 +2430,18 @@ public boolean canDisplay(SecondoObject o){
           System.out.println("PROJECTIONS not found in " +CONFIGURATION_FILE);
        else{
           boolean ok = true;
-	  String Errors ="";
+    String Errors ="";
           StringTokenizer ST = new StringTokenizer(Prjs.trim());
-	  while(ST.hasMoreTokens()){
-	     String name = ST.nextToken();
+    while(ST.hasMoreTokens()){
+       String name = ST.nextToken();
              if(!addProjection(name)){
-	        ok = false;
-		Errors +="  "+name;
-	     }
-	  }
-	  if(!ok){
-	    MessageBox.showMessage("not all projections loaded \n errors in \n"+Errors);
-	  }
+          ok = false;
+    Errors +="  "+name;
+       }
+    }
+    if(!ok){
+      MessageBox.showMessage("not all projections loaded \n errors in \n"+Errors);
+    }
 
 
        }
@@ -2486,12 +2486,12 @@ public boolean canDisplay(SecondoObject o){
         else {
           //inc = (dir*TimeSlider.getUnitIncrement());
           //TimeSlider.setValue(v + inc);
-	  if(forward && !TimeSlider.next()){
+    if(forward && !TimeSlider.next()){
              AnimTimer.stop();
           }
-	  if(!forward && !TimeSlider.back()){
-	     AnimTimer.stop();
-	  }
+    if(!forward && !TimeSlider.back()){
+       AnimTimer.stop();
+    }
         }
       }
     });
@@ -2548,32 +2548,32 @@ public boolean canDisplay(SecondoObject o){
      public boolean addProjection(Projection P){
         if(P==null) return false;
         if(Projections.contains(P)) return false;
-	String Name = P.getName();
-	JCheckBoxMenuItem MI = new JCheckBoxMenuItem(Name);
-	Menu.add(MI);
-	if(Projections.size()==0){
-	    MI.setState(true);
-	    selectedIndex = 0;
-	}
+  String Name = P.getName();
+  JCheckBoxMenuItem MI = new JCheckBoxMenuItem(Name);
+  Menu.add(MI);
+  if(Projections.size()==0){
+      MI.setState(true);
+      selectedIndex = 0;
+  }
 
-	MI.addActionListener(this);
-	MenuItems.add(MI);
-	Projections.add(P);
-	return true;
+  MI.addActionListener(this);
+  MenuItems.add(MI);
+  Projections.add(P);
+  return true;
      }
 
      public void actionPerformed(ActionEvent evt){
         Object source = evt.getSource();
-	int index = MenuItems.indexOf(source);
-	if(index<0) return;
-	if(index==selectedIndex) return;
+  int index = MenuItems.indexOf(source);
+  if(index<0) return;
+  if(index==selectedIndex) return;
 
 
-	ProjectionManager.setProjection((Projection)Projections.get(index));
-	if(selectedIndex>=0)
-	  ((JCheckBoxMenuItem)MenuItems.get(selectedIndex)).setState(false);
+  ProjectionManager.setProjection((Projection)Projections.get(index));
+  if(selectedIndex>=0)
+    ((JCheckBoxMenuItem)MenuItems.get(selectedIndex)).setState(false);
         selectedIndex=index;
-	((JCheckBoxMenuItem)source).setState(true);
+  ((JCheckBoxMenuItem)source).setState(true);
      }
 
      private Vector Projections = new Vector();
@@ -2597,7 +2597,7 @@ public boolean canDisplay(SecondoObject o){
           } 
           if(evt.getButton()!=MouseEvent.BUTTON1)
              return;
-			
+      
           if(!computeOrig(evt.getPoint(),aPoint)){
               MessageBox.showMessage("Error in computing Projection");  
               return;// ignore this point 
@@ -2737,7 +2737,7 @@ public boolean canDisplay(SecondoObject o){
                                                      ListExpr.realAtom(Math.max(dx1,dx2)),
                                                      ListExpr.realAtom(Math.min(dy1,dy2)),
                                                      ListExpr.realAtom(Math.max(dy1,dy2)));
-		    			ListExpr result = ListExpr.twoElemList(ListExpr.symbolAtom("rect"),value);
+              ListExpr result = ListExpr.twoElemList(ListExpr.symbolAtom("rect"),value);
               processSecondoObject(Name,"rect",result);
          }
          reset();
@@ -2764,7 +2764,7 @@ public boolean canDisplay(SecondoObject o){
       /** Paints a rectangle in XOR mode from the current coordinates. */
       private void paintRectangle(){
          Graphics2D G = (Graphics2D) GraphDisplay.getGraphics();
-       	 G.setXORMode(Color.white);
+          G.setXORMode(Color.white);
          int x = Math.min(x1,x2);
          int w = Math.abs(x1-x2);
          int y = Math.min(y1,y2);
@@ -2862,17 +2862,17 @@ public boolean canDisplay(SecondoObject o){
                                                                   ListExpr.realAtom(lasty),
                                                                   ListExpr.realAtom(x),
                                                                   ListExpr.realAtom(y));
-												 lastx=x;
+                         lastx=x;
                          lasty=y; 
-												 if(first){
-														 value.destroy();
-														 value = ListExpr.oneElemList(Segment);
-														 last  = value;
-														 first = false;
-												 } else{
-													 last = ListExpr.append(last,Segment);
-												 }
-																					
+                         if(first){
+                             value.destroy();
+                             value = ListExpr.oneElemList(Segment);
+                             last  = value;
+                             first = false;
+                         } else{
+                           last = ListExpr.append(last,Segment);
+                         }
+                                          
                      } 
                   } // for 
                 } // more than two points
@@ -2897,7 +2897,7 @@ public boolean canDisplay(SecondoObject o){
                     case REGION_MODE : TypeName ="region";break;
                     default : TypeName ="unknown"; System.err.println("invalid mode detected");
                   }
-							  	ListExpr result = ListExpr.twoElemList(ListExpr.symbolAtom(TypeName),value);
+                  ListExpr result = ListExpr.twoElemList(ListExpr.symbolAtom(TypeName),value);
                   processSecondoObject(Name,TypeName,result);
             }
          } // points available
@@ -2905,21 +2905,21 @@ public boolean canDisplay(SecondoObject o){
       }
 
       private boolean processSecondoObject(String Name,String typeName,ListExpr content){
-			  SecondoObject o = new SecondoObject(IDManager.getNextID());
-				o.setName(Name);
-				o.fromList(content);
-			  if(VC!=null){
-				 	VC.addObject(o);
-				  String cmd = "let "+Name+" = [const "+typeName+" value "+content.second()+"]";
-    			sj.lang.IntByReference errorCode = new sj.lang.IntByReference(0);
-					ListExpr resultList = ListExpr.theEmptyList();
-		   		StringBuffer errorMessage= new StringBuffer();
-			  	if(!VC.execCommand(cmd,errorCode,resultList,errorMessage)){
-							 MessageBox.showMessage("Error in storing pointsequence\n"+ 
-				      													sj.lang.ServerErrorCodes.getErrorMessageText(errorCode.value)+"\n"+
-						  													errorMessage);
+        SecondoObject o = new SecondoObject(IDManager.getNextID());
+        o.setName(Name);
+        o.fromList(content);
+        if(VC!=null){
+           VC.addObject(o);
+          String cmd = "let "+Name+" = [const "+typeName+" value "+content.second()+"]";
+          sj.lang.IntByReference errorCode = new sj.lang.IntByReference(0);
+          ListExpr resultList = ListExpr.theEmptyList();
+           StringBuffer errorMessage= new StringBuffer();
+          if(!VC.execCommand(cmd,errorCode,resultList,errorMessage)){
+               MessageBox.showMessage("Error in storing pointsequence\n"+ 
+                                        sj.lang.ServerErrorCodes.getErrorMessageText(errorCode.value)+"\n"+
+                                        errorMessage);
                 return false;
-					}
+          }
           return true;
         }
           return false;
