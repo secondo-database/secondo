@@ -322,6 +322,9 @@ void find_viable_solution( const vector<double>& margProb,
       x(i) = EPSILON;
 }
 
+
+MeritFcn meritFcn;
+
 void find_optimal_solution( const vector<double>& margProb,
                             const vector<pair<int,double> >& jntProb,
                             TOLS& tols,
@@ -335,7 +338,7 @@ void find_optimal_solution( const vector<double>& margProb,
 
   solver.setOutputFile("output.txt", 1);
   solver.setSearchStrategy(LineSearch);
-  solver.setMeritFcn(ArgaezTapia);
+  solver.setMeritFcn(meritFcn);
   solver.optimize();
   solver.printStatus("Solution for Entropy");
   x = entropyProblem.getXc();
@@ -418,7 +421,7 @@ void maximize_entropy( vector<double>& marginalProbability,
 {
   TOLS tols;
   const int nVars = 1 << marginalProbability.size(),
-            maxIter = 20000 / nVars;
+            maxIter = 10000 / nVars;
   ColumnVector initPoint(nVars),
                x(nVars);
 
@@ -437,7 +440,7 @@ void maximize_entropy( vector<double>& marginalProbability,
   tols.setGTol(1e-12);
   tols.setLSTol(1e-12);
   tols.setMaxIter(maxIter);
-  tols.setMaxBacktrackIter(4*maxIter);
+  tols.setMaxBacktrackIter(maxIter);
   tols.setMaxFeval(maxIter);
 
   // Library flaw
@@ -450,10 +453,22 @@ void maximize_entropy( vector<double>& marginalProbability,
 
     if( marginalProbability.size() > 2 && jointProbability.size() > 0 )
     {
-      // First optimization problem
-      find_viable_solution(marginalProbability, jointProbability, tols, initPoint);
-      compute_probabilities(initPoint, estimatedProbability);
-      // verify_solution(initPoint, jointProbability, estimatedProbability);
+      try
+      {
+        // First optimization problem
+        find_viable_solution(marginalProbability, jointProbability, tols, initPoint);
+        compute_probabilities(initPoint, estimatedProbability);
+        verify_solution(initPoint, jointProbability, estimatedProbability);
+        meritFcn = ArgaezTapia;
+      }
+      catch(...)
+      { // If some error occurs, try using a neutral approach for init point
+        cout << "Viable point search failed..." << endl;
+        for( int i = 1; i <= nVars; i++ )
+          initPoint(i) = 1.0;
+
+        meritFcn = NormFmu;
+      }
 
       // Second optimization problem
       find_optimal_solution(marginalProbability, jointProbability, tols, x);
@@ -498,12 +513,12 @@ void init_f_VS(int ndim, ColumnVector& x)
     double v1 = (*ptrJointProb)[ptrJointProb->size()-1].second,
            v2 = (*ptrJointProb)[ptrJointProb->size()-2].second - v1;
 
-    val -= v1 + v2;
+    val = (val - v1 - v2) / (ndim - 2);
     for( int i = 1; i <= ndim; i++ )
-      x(i) = val / ndim;
+      x(i) = val;
 
-    x(ndim-1) = (*ptrJointProb)[ptrJointProb->size()-1].second;
-    x(ndim/2 - 1) = (*ptrJointProb)[ptrJointProb->size()-2].second - x(ndim-1);
+    x(ndim-1) = v1;
+    x(ndim/2 - 1) = v2;
   }
   else
     for( int i = 1; i <= ndim; i++ )
