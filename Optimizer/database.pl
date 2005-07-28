@@ -114,7 +114,7 @@ createSmallRelation(Rel, _)  :-  % Rel in lc
   sampleNameSmall(Rel3, Small),
   concat_atom(['let ', Small, ' = ', Rel3, 
     ' feed consume'], '', QueryAtom),  
-  secondo(QueryAtom),
+  tryCreate(QueryAtom),
   card(Rel3, Card),
   assert(storedCard(Small, Card)),
   downcase_atom(Small, DCSmall),  
@@ -128,7 +128,7 @@ createSmallRelation(Rel, _) :-  % Rel in uc
   sampleNameSmall(URel, Small),
   concat_atom(['let ', Small, ' = ', URel, 
     ' feed consume'], '', QueryAtom),
-  secondo(QueryAtom),
+  tryCreate(QueryAtom),
   card(Rel2, Card),
   lowerfl(Small, LSmall),
   assert(storedCard(LSmall, Card)),
@@ -143,7 +143,7 @@ createSmallRelation(Rel, _)  :-  % Rel in lc
   sampleNameSmall(Rel3, Small),
   concat_atom(['let ', Small, ' = ', Rel3, 
     ' sample[1000, 0.1] consume'], '', QueryAtom), 
-  secondo(QueryAtom),
+  tryCreate(QueryAtom),
   card(Rel3, Card),
   SmallCard is truncate(min(Card, max(1000, Card*0.1))),  
   assert(storedCard(Small, SmallCard)),
@@ -158,7 +158,7 @@ createSmallRelation(Rel, _)  :-  % Rel in uc
   sampleNameSmall(URel, Small),
   concat_atom(['let ', Small, ' = ', URel, 
     ' sample[1000, 0.1] consume'], '', QueryAtom), 
-  secondo(QueryAtom),
+  tryCreate(QueryAtom),
   card(Rel2, Card),
   SmallCard is truncate(min(Card, max(1000, Card*0.1))),  
   lowerfl(Small, LSmall),
@@ -174,7 +174,7 @@ createSmallRelation(Rel, _)  :-  % Rel in lc
   sampleNameSmall(Rel3, Small),
   concat_atom(['let ', Small, ' = ', Rel3, 
     ' sample[10000, 0.01] consume'], '', QueryAtom), 
-  secondo(QueryAtom),
+  tryCreate(QueryAtom),
   card(Rel3, Card),
   SmallCard is truncate(min(Card, max(10000, Card*0.01))),  
   assert(storedCard(Small, SmallCard)),
@@ -189,7 +189,7 @@ createSmallRelation(Rel, _)  :-  % Rel in uc
   sampleNameSmall(URel, Small),
   concat_atom(['let ', Small, ' = ', URel, 
     ' sample[10000, 0.01] consume'], '', QueryAtom), 
-  secondo(QueryAtom),
+  tryCreate(QueryAtom),
   card(Rel2, Card),
   SmallCard is truncate(min(Card, max(10000, Card*0.01))),  
   lowerfl(Small, LSmall),
@@ -233,8 +233,8 @@ createSampleRelation(Rel, _)  :-  % Rel in lc
   sampleNameJ(Rel3, Sample2),
   concat_atom(['let ', Sample2, ' = ', Rel3, 
     ' sample[500, 0.00001] consume'], '', QueryAtom2),    
-  secondo(QueryAtom1),
-  secondo(QueryAtom2),
+  tryCreate(QueryAtom1),
+  tryCreate(QueryAtom2),
   card(Rel3, Card),
   SampleCard1 is truncate(min(Card, max(2000, Card*0.00001))),
   SampleCard2 is truncate(min(Card, max(500, Card*0.00001))),
@@ -255,8 +255,8 @@ createSampleRelation(Rel, _) :-  % Rel in uc
   sampleNameJ(URel, Sample2),
   concat_atom(['let ', Sample2, ' = ', URel, 
     ' sample[500, 0.00001] consume'], '', QueryAtom2),
-  secondo(QueryAtom1),
-  secondo(QueryAtom2),
+  tryCreate(QueryAtom1),
+  tryCreate(QueryAtom2),
   card(Rel2, Card),
   SampleCard1 is truncate(min(Card, max(2000, Card*0.00001))),
   lowerfl(Sample1, LSample1),
@@ -661,7 +661,7 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in lc
   verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType),
   concat_atom(['let ', Index, '_small', ' = ', Rel, 
   '_small create', IndexType, ' [', Attr, ']'], '', QueryAtom),
-  secondo(QueryAtom),    
+  tryCreate(QueryAtom),    
   %write(QueryAtom),nl,
   !.
 
@@ -677,7 +677,7 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in lc
   verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType),
   concat_atom(['let ', Index, '_small', ' = ', URel, 
   '_small create', IndexType, ' [', Attr, ']'], '', QueryAtom),
-  secondo(QueryAtom),    
+  tryCreate(QueryAtom),    
   %write(QueryAtom),nl,
   !.
 
@@ -699,7 +699,7 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in uc
   verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType),
   concat_atom(['let ', Index, '_small', ' = ', Rel, 
   '_small create', IndexType, ' [', SpelledAttr, ']'], '', QueryAtom),
-  secondo(QueryAtom),    
+  tryCreate(QueryAtom),    
   %write(QueryAtom),nl,
   !.
 
@@ -716,7 +716,7 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in uc
   verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType),
   concat_atom(['let ', Index, '_small', ' = ', URel, 
   '_small create', IndexType, ' [', SpelledAttr, ']'], '', QueryAtom),
-  secondo(QueryAtom),    
+  tryCreate(QueryAtom),    
   %write(QueryAtom),nl,
   !.
 
@@ -861,13 +861,13 @@ updateRel(Rel) :- % rel in lc
   Spelled = lc(Rel),
   sampleNameS(Rel, Sample1),
   concat_atom(['delete ', Sample1], '', QueryAtom1),
-  secondo(QueryAtom1),
+  tryDelete(QueryAtom1),
   sampleNameJ(Rel, Sample2),
   concat_atom(['delete ', Sample2], '', QueryAtom2),
-  secondo(QueryAtom2),
+  tryDelete(QueryAtom2),
   sampleNameSmall(Rel, Small),
   concat_atom(['delete ', Small], '',  QueryAtom3),
-  secondo(QueryAtom3),
+  tryDelete(QueryAtom3),
   retract(storedSecondoList(_)),
   getSecondoList(_),
   lowerfl(Sample1, LSample1),
@@ -896,13 +896,13 @@ updateRel(Rel) :- % rel in uc
   upper(Rel2, URel),
   sampleNameS(URel, Sample1),
   concat_atom(['delete ', Sample1], '', QueryAtom1),
-  secondo(QueryAtom1),
+  tryDelete(QueryAtom1),
   sampleNameJ(URel, Sample2),
   concat_atom(['delete ', Sample2], '', QueryAtom2),
-  secondo(QueryAtom2),
+  tryDelete(QueryAtom2),
   sampleNameSmall(URel, Small),
   concat_atom(['delete ', Small], '', QueryAtom3),
-  secondo(QueryAtom3),
+  tryDelete(QueryAtom3),
   retract(storedSecondoList(_)),
   getSecondoList(_),
   lowerfl(Sample1, LSample1),
@@ -995,7 +995,18 @@ writeStoredTupleSize(Stream) :-
   at_halt(writeStoredTupleSizes),
   readStoredTupleSizes.
 
+% try to create/delete samples and ignore error codes.
 
+tryCreate(QueryAtom) :- 
+  secondo(QueryAtom), !.
+  
+tryCreate(_) :-
+  write('Using existing object!' ), nl.
+
+tryDelete(QueryAtom) :- 
+  secondo(QueryAtom), !.
+  
+tryDelete(_).
 
 
 

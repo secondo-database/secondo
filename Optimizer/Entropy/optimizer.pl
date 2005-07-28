@@ -247,7 +247,7 @@ Example call:
 */
 
 pog(Rels, Preds, Nodes, Edges) :-
-  
+
   length(Rels, N), reverse(Rels, Rels2), deleteArguments,
   partition(Rels2, N, Partition0),
   length(Preds, M), reverse(Preds, Preds2),
@@ -3112,7 +3112,8 @@ queryToStream(Query, Stream2, Cost) :-
 */
 
 translate2(Query, Stream2, Select, Cost2) :-
-  deleteSmallResults,
+  deleteSmallResults,   
+  retractall(highNode(_)),assert(highNode(0)),
   translate(Query, Stream1, Select, Cost1), !,
   try_entropy(Stream1, Stream2, Cost1, Cost2), !,
   warn_plan_changed(Stream1, Stream2).
@@ -3762,7 +3763,7 @@ use_entropy :-
 
 dont_use_entropy :-
   retractall(useEntropy).
-
+  
 deleteSmallResults :-
   deleteSmallResultCounter,
   deleteSmallResultSize,

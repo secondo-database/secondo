@@ -312,6 +312,7 @@ void find_viable_solution( const vector<double>& margProb,
   solver.setOutputFile("output.txt", 0);
   solver.setSearchStrategy(LineSearch);
   solver.setMeritFcn(NormFmu);
+//  solver.setDebug();
   solver.optimize();
   solver.printStatus("Viable Solution");
   x = viableSolutionProblem.getXc();
@@ -338,7 +339,8 @@ void find_optimal_solution( const vector<double>& margProb,
 
   solver.setOutputFile("output.txt", 1);
   solver.setSearchStrategy(LineSearch);
-  solver.setMeritFcn(meritFcn);
+//  solver.setMeritFcn(meritFcn);
+  solver.setMeritFcn(NormFmu);
   solver.optimize();
   solver.printStatus("Solution for Entropy");
   x = entropyProblem.getXc();
@@ -435,10 +437,10 @@ void maximize_entropy( vector<double>& marginalProbability,
   tols.setDefaultTol();
   tols.setMinStep(1e-16);
   tols.setStepTol(1e-12);
-  tols.setFTol(1e-12);
-  tols.setCTol(1e-12);
-  tols.setGTol(1e-12);
-  tols.setLSTol(1e-12);
+  tols.setFTol(1e-9);
+  tols.setCTol(1e-9);
+  tols.setGTol(1e-9);
+  tols.setLSTol(1e-8);
   tols.setMaxIter(maxIter);
   tols.setMaxBacktrackIter(maxIter);
   tols.setMaxFeval(maxIter);
