@@ -18,5 +18,3 @@ operator insidescanned alias INSIDESCANNED pattern  _ infixop _
 operator insideold alias INSIDEOLD pattern  _ infixop _
 operator translate alias TRANSLATE pattern  _ op [list]
 operator clip alias CLIP pattern  op (_, _)
-operator windowclippingin alias WINDOWCLIPPINGIN pattern op ( _ , _)
-operator windowclippingout alias WINDOWCLIPPINGOUT pattern op ( _ , _)

@@ -25,24 +25,30 @@
 
 include ../../makefile.env
 
-ALGFILE := AlgebraList.i
-ALGOBJ := AlgebraList.o
-
 CCFLAGS = $(DEFAULTCCFLAGS)
 
-.PHONY: all
-all: createAlgList $(OBJECTS) 
+DEP_FILES += AlgebraList.dep
 
-.PHONY: createAlgList
-createAlgList:
-	@rm -f $(ALGFILE)
-ifndef SECONDO_ACTIVATE_ALL_ALGEBRAS
-	chmod 755 ./alg.bash && ./alg.bash $(ALGEBRAS) $(JNI_ALGEBRAS) > $(ALGFILE)
+.PHONY: all
+all: $(OBJECTS)
+
+AlgebraList.dep: AlgebraList.i
+
+include $(DEP_FILES) 
+
+# special rule for AlgebraList.o
+AlgebraList.$(OBJEXT): AlgebraList.cpp
+	$(CC) -c -o $@ $< $(CCFLAGS)
+	cp $@ $(LIBDIR)/$@
+
+ifeq ($(alg),auto)
+AlgebraList.i: AlgebraList.i.cfg $(BUILDDIR)/makefile.algebras
+	rm -f $@
+	@chmod 755 ./alg.bash && ./alg.bash $(ALGEBRAS) $(JNI_ALGEBRAS) > $@
 else
-	sed -e "s#ALGEBRA(#ALGEBRA_INCLUDE(#" AlgebraList.i.cfg > $(ALGFILE)
+AlgebraList.i: AlgebraList.i.cfg
+	$(cp-config-file)
 endif
-	$(CC) -c -o AlgebraList.$(OBJEXT) AlgebraList.cpp $(CCFLAGS)
-	cp $(ALGOBJ) $(LIBDIR)/$(ALGOBJ)
 
 .PHONY: clean
 clean:

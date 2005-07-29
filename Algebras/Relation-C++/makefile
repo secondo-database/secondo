@@ -25,7 +25,8 @@
 
 include ../../makefile.env
 
-CCFLAGS := $(PICFLAG) $(DEFAULTCCFLAGS) -I../OldRelation-C++
+MODNAME = RelationAlgebra
+CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS) -I../OldRelation-C++
 
 # define the compiler flag -DRELALG_PERSISTENT in the file 
 # makefile.env to compile the Persistent Relational Algebra.

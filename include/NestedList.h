@@ -79,9 +79,6 @@ compact tables could be removed. All in all in the average case (no big text
 atoms) the memory representation of a nested list will only take about 50
 percent compared to the implementation before.
 
-July 2005, M. Spiekermann. Function ~TextAtom~ overloaded. Now a string can be passed
-directly in order to set a value.
-
 1.1 Overview
 
 A ~nested list~ can be viewed in two different ways. The first is to consider
@@ -696,7 +693,6 @@ Acessing the first element is a basic operation defined above.
   inline ListExpr Fourth( const ListExpr list ) { return (NthElement( 4, 4, list )); };
   inline ListExpr  Fifth( const ListExpr list ) { return (NthElement( 5, 5, list )); };
   inline ListExpr  Sixth( const ListExpr list ) { return (NthElement( 6, 6, list )); };
-  inline ListExpr  Nth( int n, const ListExpr list ) { return (NthElement( n, n, list )); };
 
 /*
 A pointer to the respective element is returned. Result may be the empty list,
@@ -734,12 +730,6 @@ two operations are offered:
 
 */
   ListExpr TextAtom();
-  inline ListExpr TextAtom(const string& value) 
-  { 
-    ListExpr l = TextAtom(); 
-    AppendText(l,value); 
-    return l;
-  }
   void AppendText( const ListExpr atom,
                    const string&  textBuffer );
 /*
@@ -862,7 +852,7 @@ Afterwards you can easily iterate over the atoms.
 1.3.11 Size and Implementation Info
 
 */
-  const string ReportTableSizes(const bool prettyPrint = false);
+  const string ReportTableSizes();
   const string ReportTableStates() { 
     return ( "Nodes: " + nodeTable->StateToStr() + "\n" );
   }
@@ -966,7 +956,7 @@ Copies a nested list from ~this~ instance to the target instance.
   static bool          doDestroy;
   static const bool    isPersistent;
   void AppendShortText( const ListExpr atom,
-                        const string&  textBuffer );
+                   const string&  textBuffer );
 
 
 /*

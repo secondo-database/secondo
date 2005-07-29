@@ -1,7 +1,22 @@
-import twodsack.set.*;
-import twodsack.setelement.datatype.basicdatatype.*;
-import twodsack.util.comparator.*;
-import twodsack.util.number.*;
+//This file is part of SECONDO.
+
+//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Database Systems for New Applications.
+
+//SECONDO is free software; you can redistribute it and/or modify
+//it under the terms of the GNU General Public License as published by
+//the Free Software Foundation; either version 2 of the License, or
+//(at your option) any later version.
+
+//SECONDO is distributed in the hope that it will be useful,
+//but WITHOUT ANY WARRANTY; without even the implied warranty of
+//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//GNU General Public License for more details.
+
+//You should have received a copy of the GNU General Public License
+//along with SECONDO; if not, write to the Free Software
+//Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
 import java.lang.reflect.*;
 import java.io.*;
 import java.util.*;
@@ -10,44 +25,38 @@ public class Points implements Serializable{
     //this class implements the Points value of the ROSE algebra
 
     //members
-    public PointMultiSet pointset; //the set of points
+    public PointList pointlist; //the list of points
     
     //constructors
     public Points() {
 	//System.out.println("--> constructed an empty POINTS object");
-	pointset = new PointMultiSet(new PointComparator());
+	pointlist = new PointList();
     }
 
-    public Points(PointMultiSet pl) {
-	//System.out.println("--> constructed a POINTS object from a pointset");
-	//pointset = PointMultiSet.convert(pl.copy());
-	pointset = pl;
+    public Points(PointList pl) {
+	//System.out.println("--> constructed a POINTS object from a pointlist");
+	pointlist = PointList.convert(pl.copy());
     }
 
     //methods
-    public int size() {
-	return this.pointset.size();
-    }//end method size
-
-
     public void add(Point p) {
 	//adds p to this
-	this.pointset.add(p);
+	this.pointlist.add(p);
     }//end method add
 
     public void add(Rational x, Rational y) {
 	//constructs a new Point object and adds it to this
-	this.pointset.add(new Point(x,y));
+	this.pointlist.add(new Point(x,y));
     }//end method add
 
     public void add(int x, int y) {
 	//constructs a new Point object and adds it to this
-	this.pointset.add(new Point(x,y));
+	this.pointlist.add(new Point(x,y));
     }//end method add
 
     public void add(double x, double y) {
 	//constructs a new Point object and adds it to this
-	this.pointset.add(new Point(x,y));
+	this.pointlist.add(new Point(x,y));
     }//end method add
 
 
@@ -63,7 +72,7 @@ public class Points implements Serializable{
     }//end method readFrom
 
 
-    /** this method serializes an object */
+    /** this method serialized an object */
     public  byte[] writeToByteArray(){
 	
 	try{
@@ -75,13 +84,11 @@ public class Points implements Serializable{
 	    objectout.close();
 	    return  res;
 	} catch(Exception e){
-	    System.out.println("Error in Points.writeToByteArray."+e); 
-	    e.printStackTrace();
 	    return null;
 	}
     }//end method writeToByteArray
 
-    /* DEACTIVATED W.R.T. MULTISETS
+
     public int compare (Points pIn) {
 	//returns 0 if this == pin
 	//as long as elements in sorted lists from the beginning to the
@@ -94,7 +101,7 @@ public class Points implements Serializable{
 	//return -1 if this is shorter than pIn
 	//return +1 if pIn is shorter than this
 
-	//first, sort both pointsets
+	//first, sort both pointlists
 	PointList thiscop = (PointList)this.pointlist.clone();
 	PointList pincop = (PointList)pIn.pointlist.clone();
 	
@@ -117,17 +124,11 @@ public class Points implements Serializable{
 	if (!lit1.hasNext()) return -1;
 	else return 1;
     }//end method compare
-    */
 
     public Points copy () {
-	return new Points(PointMultiSet.convert(this.pointset.copy()));
+	return new Points(this.pointlist);
     }//end method copy
 
-    
-    public void print() {
-	this.pointset.print();
-    }
-
-
+	
 }//end class Points
     

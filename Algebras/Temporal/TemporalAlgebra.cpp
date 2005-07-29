@@ -68,7 +68,7 @@ using namespace datetime;
 */
 void UReal::TemporalFunction( Instant& t, CcReal& result )
 {
-  assert( t.IsDefined() );
+  assert( t.IsDefined() && timeInterval.Contains( t ) );
 
   double res = a * pow( t.ToDouble() - timeInterval.start.ToDouble(), 2 ) +
                b * ( t.ToDouble() - timeInterval.start.ToDouble() ) +
@@ -108,6 +108,7 @@ void UReal::AtInterval( Interval<Instant>& i, TemporalUnit<CcReal>& result )
 void UPoint::TemporalFunction( Instant& t, Point& result )
 {
   assert( t.IsDefined() );
+  assert( timeInterval.Contains( t ) );
 
   if( t == timeInterval.start )
     result = p0;
@@ -323,26 +324,25 @@ void MPoint::Trajectory( CLine& line )
   {
     Get( i, unit );
 
-    if( !AlmostEqual( unit.p0, unit.p1 ) )
+    if( p.IsDefined() )
     {
-      if( p.IsDefined() )
-      {
-        assert( AlmostEqual( p, unit.p0 ) );
-        chs.Set( true, p, unit.p1 );
-      }
-      else
-      {
-        chs.Set( true, unit.p0, unit.p1 );
-      }
-
-      line += chs;
-      chs.SetLDP( false );
-      line += chs;
-
-      p = unit.p1;
+      assert( AlmostEqual( unit.p0, p ) );
+      chs.Set( true, p, unit.p1 );
+      p.SetDefined( false );
     }
-  }
+    else if( !AlmostEqual( unit.p0, unit.p1 ) )
+      chs.Set( true, unit.p0, unit.p1 );
+    else
+    {
+      assert( unit.p0.IsDefined() );
+      p = unit.p0;
+      continue;
+    }
 
+    line += chs;
+    chs.SetLDP( false );
+    line += chs;
+  }
   line.EndBulkLoad();
 }
 
@@ -1093,17 +1093,13 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
       Instant *start = (Instant *)InInstant( nl->TheEmptyList(), nl->First( first ),
                                              errorPos, errorInfo, correct ).addr;
       if( correct == false )
-      {
-        delete start;
         return SetWord( Address(0) );
-      }
 
       Instant *end = (Instant *)InInstant( nl->TheEmptyList(), nl->Second( first ),
                                            errorPos, errorInfo, correct ).addr;
       if( correct == false )
       {
         delete start;
-        delete end;
         return SetWord( Address(0) );
       }
 
@@ -1126,18 +1122,13 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
           nl->IsAtom( nl->Fourth( second ) ) &&
           nl->AtomType( nl->Fourth( second ) ) == BoolType )
       {
+        correct = true;
         UReal *ureal = new UReal( tinterval,
                                   nl->RealValue( nl->First( second ) ),
                                   nl->RealValue( nl->Second( second ) ),
                                   nl->RealValue( nl->Third( second ) ),
                                   nl->BoolValue( nl->Fourth( second ) ) );
-
-        if( ureal->IsValid() )
-        {
-          correct = true;
-          return SetWord( ureal );
-        }
-        delete ureal;
+        return SetWord( ureal );
       }
     }
   }
@@ -1315,10 +1306,7 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
                                              errorPos, errorInfo, correct ).addr;
 
       if( correct == false )
-      {
-        delete start;
         return SetWord( Address(0) );
-      }
 
       Instant *end = (Instant *)InInstant( nl->TheEmptyList(), nl->Second( first ),
                                            errorPos, errorInfo, correct ).addr;
@@ -1326,7 +1314,6 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
       if( correct == false )
       {
         delete start;
-        delete end;
         return SetWord( Address(0) );
       }
 
@@ -1348,18 +1335,13 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
           nl->IsAtom( nl->Fourth( second ) ) &&
           nl->AtomType( nl->Fourth( second ) ) == RealType )
       {
-        UPoint *upoint = new UPoint( tinterval,
-                                     nl->RealValue( nl->First( second ) ),
-                                     nl->RealValue( nl->Second( second ) ),
-                                     nl->RealValue( nl->Third( second ) ),
-                                     nl->RealValue( nl->Fourth( second ) ) );
-
-        if( upoint->IsValid() )
-        {
-          correct = true;
-          return SetWord( upoint );
-        }
-        delete upoint;  
+         correct = true;
+         UPoint *upoint = new UPoint( tinterval,
+                                      nl->RealValue( nl->First( second ) ),
+                                      nl->RealValue( nl->Second( second ) ),
+                                      nl->RealValue( nl->Third( second ) ),
+                                      nl->RealValue( nl->Fourth( second ) ) );
+         return SetWord( upoint );
       }
     }
   }

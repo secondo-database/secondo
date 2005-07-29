@@ -25,17 +25,11 @@
 
 include ../makefile.env
 
-ifdef SECONDO_ACTIVATE_ALL_ALGEBRAS
-
-$(warning Activating all Algebras!)
-ALGEBRA_DIRS := $(shell find $(BUILDDIR)/Algebras -maxdepth 1 -type d ! -name "Algebras" ! -name "Management" ! -name "CVS" -printf "%f ")
-endif
-
 ALL_ALGEBRA_DIRS := $(ALGEBRA_DIRS)
 ifeq ($(USE_JNI),"true")
 ALL_ALGEBRA_DIRS += $(JNI_ALGEBRA_DIRS)
 endif
- 
+
 
 .PHONY: all
 all: buildlibs
@@ -72,7 +66,6 @@ specs.test: $(SPECFILES) ../makefile.algebras
 buildlibs:
 	@echo -e "\n *** Building algebra libs ***\n";
 	for dir in $(ALL_ALGEBRA_DIRS); do \
-	  export ALG_DIR_NAME="$$dir"; \
           if !($(MAKE) -C $$dir) then \
             exit 1; \
           fi \
@@ -84,7 +77,6 @@ buildlibs:
 clean:
 	rm -f specs specs.test
 	for dir in $(ALL_ALGEBRA_DIRS); do \
-	  export ALG_DIR_NAME="$$dir"; \
           if !($(MAKE) -C $$dir clean) then \
             exit 1; \
           fi \

@@ -17,22 +17,24 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-# filename RoseJava/makefile
+# file: viewer/hoese/algebras/makefile
 #
-# last change: 05-2003; Th. Behr
-# adapted to ROSEAlgebra: 2005-04-21
+# last change: 05-2003; Thomas Behr
 
 include ../makefile.inc
-CLASSFILES = ROSEAlgebra.class Lines.class Points.class Regions.class
 
-.PHONY:all
+
+JAVAFILES =$(shell find -name "*.java")
+TMPFILES = $(subst .java,.class,$(JAVAFILES))
+CLASSFILES = $(subst ./,,$(TMPFILES))
+
+.PHONY: all
 all: $(CLASSFILES)
-	(cd twodsack; make all)
 
-%.class:%.java
-	$(JAVAC) -classpath $(CLASSPATH) $<   
+%.class: %.java
+	$(JAVAC) -classpath $(CLASSPATH) $<
+
 
 .PHONY: clean
 clean:
-	(cd twodsack; make clean)
 	rm -f *.class

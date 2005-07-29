@@ -487,7 +487,7 @@ string DateTime::ToString() const{
     long min = value % 60;
     long hour = value / 60;
 
-    if(milliseconds==0) // without time
+    if(value==0) // without time
        return tmp.str();
 
     tmp << "-";
@@ -755,21 +755,11 @@ bool DateTime::ReadFrom(const ListExpr LE,const bool typeincluded){
   if(nl->AtomType(ValueList)==RealType ){
      if(type==instanttype){
         bool res = ReadFrom(nl->RealValue(ValueList));
-	      return res;
+	return res;
      }
      else
         return false;
   }
-  // accect also integer values
-  if(nl->AtomType(ValueList)==IntType ){
-     if(type==instanttype){
-        bool res = ReadFrom(nl->IntValue(ValueList));
-	      return res;
-     }
-     else
-        return false;
-  }
-
 
   // (day month year [hour minute [second [millisecond]]])
   if( (nl->ListLength(ValueList)>=3) && nl->ListLength(ValueList)<=7){
@@ -1081,6 +1071,7 @@ void DateTime::Add(const DateTime* P2){
    }
    long d = d1+d2;
    long ms = ms1+ms2;
+
    while(ms<0){ // this loop is excuted maximum two times
      d--;
      ms += MILLISECONDS;

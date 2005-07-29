@@ -22,9 +22,6 @@
 # SECONDO makefile for Midi Algebra
 #
 # $Log$
-# Revision 1.2  2005/01/04 15:27:05  hoffman
-# Added GPL License
-#
 # Revision 1.1  2004/03/01 16:07:27  dansorge
 # Added new Midi algebra.
 #
@@ -180,6 +177,7 @@ endif
 $(MODNAME).$(OBJEXT): $(MODNAME).cpp $(INCFILES)
 	$(CC) -c -o $(MODNAME).$(OBJEXT) $(MODNAME).cpp $(CCFLAGS)
 
+include ../../include.dep
 
 .PHONY: clean
 clean:

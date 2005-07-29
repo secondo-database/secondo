@@ -1,8 +1,21 @@
-import twodsack.set.*;
-import twodsack.setelement.datatype.*;
-import twodsack.setelement.datatype.compositetype.*;
-import twodsack.util.collection.*;
-import twodsack.util.comparator.*;
+//This file is part of SECONDO.
+
+//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Database Systems for New Applications.
+
+//SECONDO is free software; you can redistribute it and/or modify
+//it under the terms of the GNU General Public License as published by
+//the Free Software Foundation; either version 2 of the License, or
+//(at your option) any later version.
+
+//SECONDO is distributed in the hope that it will be useful,
+//but WITHOUT ANY WARRANTY; without even the implied warranty of
+//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//GNU General Public License for more details.
+
+//You should have received a copy of the GNU General Public License
+//along with SECONDO; if not, write to the Free Software
+//Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import java.lang.reflect.*;
 import java.io.*;
@@ -12,89 +25,70 @@ public class Regions implements Serializable{
     //this class implements the Regions value of the ROSE algebra
 
     //members
-    public TriMultiSet triset = null; //the triangle set representing the Regions value
-    public double perimeter = 0; //the Regions' perimeter
-    public double area = 0; //the Regions' area 
-    private boolean cyclesDefined = false; //true, if the cycle list was already computed
-    private CycleListListPoints cycles = null; //the list of cycles
-
-    //static counter variables
-    private static int noOfTris = 0;
-    private static int noOfRegions = 0;
-    private static int readFromCalls = 0;
+    public TriList trilist; //the triangle set representing the Regions value
+    public double perimeter; //the Regions' perimeter
+    public double area; //the Regions' area 
 
     //constructors
     public Regions() {
 	//System.out.println("--> constructed an empty REGIONS object");
-	triset = new TriMultiSet(new TriangleComparator());
+	trilist = new TriList();
 	perimeter = 0;
 	area = 0;
-	cyclesDefined = false;
-	cycles = null;
     }
 
-    public Regions(TriMultiSet tl) {
+    public Regions(TriList tl) {
 	//System.out.println("R.const: entered constructor");
 	//System.out.print("--> constructing a REGIONS object from triangle list("+tl.size()+")...");
-	if (tl == null || tl.isEmpty()) {
-	    triset = tl;
+	if (tl.isEmpty()) {
+	    trilist = tl;
 	    perimeter = 0;
 	    area = 0;
-	    cyclesDefined = false;
-	    cycles = null;
 	}//if
-	else if(!isRegularTriSet(tl)) {
+	else if(!isRegularTriList(tl)) {
 	    System.out.println("Error in Regions: tried to construct bad Region.");
 	    System.exit(0);
 	}//if
 	else {
 	    //System.out.println("R.const: entered else...");
-	    triset = TriMultiSet.convert(tl.copy());
-	    //System.out.println("R.const: converted trilset");
+	    trilist = TriList.convert(tl.copy());
+	    //System.out.println("R.const: converted trilist");
 	    //perimeter = computePerimeter();
 	    //System.out.println("R.const: computed perimeter");
 	    //area = computeArea();
 	    //System.out.println("R.const: computed area");
-	    cyclesDefined = false;
-	    cycles = null;
 	}//else
 	//System.out.println("done"); 
     }
 
-    public Regions(SegMultiSet sl) {
+    public Regions(SegList sl) {
 	//System.out.print("--> constructing a REGIONS object from segment list (size: "+sl.size()+")...");
 	//System.out.println("\nsegList: "); sl.print();
-	if (sl == null || sl.isEmpty()) {
-	    triset = new TriMultiSet(new TriangleComparator());
+	if (sl.isEmpty()) {
+	    trilist = new TriList();
 	    perimeter = 0;
 	    area = 0;
-	    cyclesDefined = false;
-	    cycles = null;
 	}//if
 	else {
-	    noOfRegions++;
-	    System.out.println("\n########################### computation of triangle set for Region");
-	    System.out.println("\n---> REGION_NO."+noOfRegions+": compute Triangles... ");
-	    triset = computeTriSet(sl);
-	    noOfTris += triset.size();
-	    System.out.println(triset.size()+" triangle(s). Sum of triangles: "+noOfTris);
-	    System.out.println("\n########################### computation of cycles for Region");
-	    System.out.println("--->compute cycles... ");
-	    cycles = cyclesPoints();
-	    cyclesDefined = true;
-	    System.out.println(cycles.size()+" cycle(s) found.");
+	    //System.out.print("triangles...");
+	    trilist = computeTriList(sl);
+	    //System.out.print("perimeter...");
+	    //perimeter = computePerimeter();
+	    //System.out.print("area...");
+	    //area = computeArea();
+	    //System.out.println("done.");
 	}//else
     }
 
     public Regions(Lines l) {
 	//System.out.print("--> constructing a REGIONS object from LINES object...");
-	if (l.segset.isEmpty()) {
-	    triset = new TriMultiSet(new TriangleComparator());
+	if (l.seglist.isEmpty()) {
+	    trilist = new TriList();
 	    perimeter = 0;
 	    area = 0;
 	}//if
 	else {
-	    triset = computeTriSet(l.segset);
+	    trilist = computeTriList(l.seglist);
 	    //perimeter = computePerimeter();
 	    //area = computeArea();
 	    //System.out.println("done");
@@ -102,36 +96,31 @@ public class Regions implements Serializable{
     }
 
     //methods
-    private TriMultiSet computeTriSet(SegMultiSet sms) {
+    private TriList computeTriList(SegList sl) {
 	//sl must be a regular border of a Regions value
 	//returns the triangulation of the Region
-	return Polygons.computeMesh(sms,true);  
-    }//end method computeTriSet
+	return Polygons.computeTriangles(sl);
+    }//end method computeTriList
 	
-    /*
+
     private double computePerimeter() {
 	//computes the Regions' perimeter
 	return ROSEAlgebra.r_perimeter(this);
     }//end method computePerimeter
-    */
+
     
-    /*
     private double computeArea() {
 	//computes the Regions' area
 	return ROSEAlgebra.r_area(this);
     }//end method computeArea
-    */
+
     
-    private boolean isRegularTriSet(TriMultiSet tl) {
+    private boolean isRegularTriList(TriList tl) {
 	//returns true if tl doesn't have intersecting triangles
 	//untested!!!
 
-	//System.out.println("entering R.isRegularTriSet...");
+	//System.out.println("entering R.isRegularTriList...");
 
-	return true;
-
-
-	/*
 	Class c = (new Triangle()).getClass();
 	Class[] paramList = new Class[1];
 	boolean retVal = false;
@@ -153,41 +142,28 @@ public class Regions implements Serializable{
 	    System.exit(0);
 	}//catch
 	return false;
-	*/
-    }//end method isRegularTriSet
+    }//end method isRegularTriList
 
-    
-    public CycleListListPoints cyclesPoints() {
-	//returns the cycles of this as an CycleListListPoints
+
+    protected ElemListListList cyclesPoints() {
+	//returns the cycles of this as an ElemListListList
 	//which has points as elements
-	
-	if (this.cyclesDefined) {
-	    return this.cycles;
-	}//if
-	else {
-	    Polygons pol = new Polygons(triset);
-	    this.cycles = pol.cyclesPoints();
-	    this.cyclesDefined = true;
-	    return this.cycles;
-	}//else
+	//System.out.println("entering Regions.cyclesPoints()...trilist.size="+trilist.size());
+	Polygons pol = new Polygons(trilist);
+	ElemListListList elll = pol.cyclesPoints();
+	//System.out.println("\ncomputed ElemListListList: "); elll.print();
+	//System.out.println("leaving Regions.cyclesPoints()...");
+	return elll;
     }//end method cyclesPoints
 
     
     public static Regions readFrom(byte[] buffer){
-	readFromCalls++;
-	System.out.print("readFromCalls: "+readFromCalls+": ");
-
 	try{
 	    ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(buffer));
 	    Regions res = (Regions) ois.readObject();
 	    ois.close();
-	    if (res.triset != null && res.cycles != null) 
-		System.out.println(res.triset.size()+" triangles, "+res.cycles.size()+" cycle(s).");
-
 	    return res;
 	} catch(Exception e){
-	    System.out.println("Error in Regions.readFrom().");
-	    e.printStackTrace();
 	    return null;
 	}
     }//end method readFrom
@@ -204,14 +180,11 @@ public class Regions implements Serializable{
 	    byte[] res = byteout.toByteArray();
 	    objectout.close();
 	    return  res;
-	} catch(Exception e) {
-	    System.out.println("Error in Regions.writeToByteArray: "+e);
-	    e.printStackTrace();
-	    return null; }
+	} catch(Exception e) { return null; }
 	
     }//end method writeToByteArray
 
-    /*
+
     public int compare (Regions rIn) {
 	//returns 0 if this == pin
 	//as long as elements in sorted lists from the beginning to the
@@ -224,7 +197,7 @@ public class Regions implements Serializable{
 	//return -1 if this is shorter than rIn
 	//return +1 if rIn is shorter than this
 
-	//first sort both trisets
+	//first sort both trilists
 	TriList thiscop = (TriList)this.trilist.clone();
 	TriList rincop = (TriList)this.trilist.clone();
 	
@@ -247,20 +220,13 @@ public class Regions implements Serializable{
 	if (!lit1.hasNext()) return -1;
 	else return 1;
     }//end method compare
-    */
 
-    
+
     public Regions copy () {
 	//return new Regions(this.trilist);
 	Regions nr = new Regions();
-	nr.triset = TriMultiSet.convert(this.triset.copy());
-	nr.cyclesDefined = true;
-	nr.cycles = this.cycles.copy();
-	return nr; 
+	nr.trilist = TriList.convert(this.trilist.copy());
+	return nr;
     }//end method copy
-
-    public void print() {
-	this.triset.print();
-    }
-
+	
 }//end class Regions

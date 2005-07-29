@@ -69,7 +69,7 @@ class TupleIdentifier: public StandardAttribute
   void     SetTid( TupleId tid);
   TupleIdentifier*   Clone();
   int NumOfFLOBs();
-  inline bool IsDefined() const 
+   inline bool IsDefined() const 
   { 
     return (defined); 
   }

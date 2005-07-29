@@ -21,17 +21,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
-//[TOC] [\tableofcontents]
 
 [1] Header File of the Spatial Algebra
 
 February, 2003 Victor Teixeira de Almeida
 
 March-July, 2003 Zhiming DING
-
-January, 2005 Leonardo Guerreiro Azevedo
-
-[TOC]
 
 1 Overview
 
@@ -70,10 +65,6 @@ shows examples of these spatial data types.
   #endif
 #endif
 
-#define PI 3.146264371
-
-enum WindowEdge { WTOP, WBOTTOM, WLEFT, WRIGHT };
-
 /*
 There are two main defines that will control how the coordinate system is
 implemented, namely ~RATIONAL\_COORDINATES~ and ~WITH\_ARBITRARY\_PRECISION~.
@@ -86,7 +77,7 @@ precision (~Rational~).
 3 Auxiliary Functions
 
 */
-const double FACTOR = 0.000001;
+const double FACTOR = 0.0001;
 
 class Point;
 
@@ -350,7 +341,7 @@ as an attribute.
 3.4 Attributes
 
 */
-  protected:
+  private:
 
     Coord x;
 /*
@@ -589,7 +580,7 @@ using ROSE algebra algorithms (DZM).
     void GetPt( Point& p );
     void InsertPt( Point& p );
 
-    void Clear();
+    void     Clear();
 
     private:
 /*
@@ -683,9 +674,8 @@ struct AttrType
   int cycleno;
   int edgeno;
   int coverageno;  //this number is used for the fast spacial scan of the inside_pr algorithm
+  //set<int> attr;
   int attr;
-  bool insideAbove; //indicates if the region's area is above or left of its segment
-  int partnerno; //store the position of the partner half segment in half segment ordered array
 };
 
 /*
@@ -913,33 +903,13 @@ is crossing each other.
 */
     bool overlap( const CHalfSegment& chs) const;
 /*
-5.7 Clipping functions
+This function computes whether  two half segments overlap each other. If their inner part
+intersect, then the result is true.
 
-5.7.1 Clipping window
-
-The CohenSutherlandLineClipping function implements the Cohen and Sutherland algorithm
-for clipping a line to a clipping window.
-
-The WindowClippingIn computes the part of the segment that is inside the window, if
-it exists. The inside parameter is set to true if there is a partion of the line
-inside the window. The pointIntersection parameter is set to true if the intersection
-part of the segment is a point instead of a segment.
-
-*/
-   void CohenSutherlandLineClipping(const Rectangle<2> &window,
-                            double &x0, double &y0, double &x1, double &y1,
-                            bool &accept);
-
-   void WindowClippingIn(const Rectangle<2> &window, CHalfSegment &chsInside, bool &inside,
-                         bool &isIntersectionPoint,Point &intersectionPoint);
-
-
-/*
-Returns a segment representing the part of the half segment that is inside the window.
 */
 
 /*
-5.8 Inside Function
+5.7 Inside Function
 
 *Semantics:* This operation computes whether one half segment is inside another. If segment A is part of
 another segment B, then we say A is inside B. eg. -------======-------.
@@ -949,7 +919,7 @@ another segment B, then we say A is inside B. eg. -------======-------.
 */
     bool Inside(const CHalfSegment& chs) const ;
 /*
-5.9 Contain Function
+5.8 Contain Function
 
 *Semantics:* This operation computes whether one point is contained in a half segment. If a point P is inside
 a segment S, then we say P is contained by S. eg. ---------o---------.
@@ -959,7 +929,7 @@ a segment S, then we say P is contained by S. eg. ---------o---------.
 */
     bool Contains( const Point& p ) const;
 /*
-5.10 rayAbove Function
+5.9 rayAbove Function
 
 *Semantics:* This function decides whether a half segment is above a point. This is
 useful when we want to decide whether a point is inside a region.
@@ -982,7 +952,7 @@ useful when we want to decide whether a point is inside a region.
     double Distance( const Point& p ) const;
 
 /*
-5.12 attribute comparison Functions
+5.11 attribute comparison Functions
 
 *Semantics:* These two operations compare two half segments according to their attribute values. They are
 used for the logicsort() function.
@@ -992,11 +962,10 @@ used for the logicsort() function.
 */
     int logicless(const CHalfSegment& chs) const;
     int logicgreater(const CHalfSegment& chs) const;
-    bool LogicEqual(const CHalfSegment& chs) const;
 
   private:
 /*
-5.13 Properties
+5.11 Properties
 
 */
     bool defined;
@@ -1024,7 +993,7 @@ paper.
 */
 };
 /*
-5.14 overloaded output operator
+5.12 overloaded output operator
 
 */
 ostream& operator<<( ostream& o, const CHalfSegment& chs );
@@ -1074,7 +1043,6 @@ This constructor should not be used.
 This function decides whether the half segments in the line value is sorted.
 
 */
-
     bool IsEmpty() const;
 /*
 This function decides whether the line value is empty.
@@ -1122,16 +1090,6 @@ This function marks the end of a bulk load and sorts the half segments.
 
 */
     bool operator==(CLine& cl);
-
-/*
-6.4.2 Operation $!=$ (~equal~)
-
-*Semantics:* $this !=cl$. It decides whether two line values are different.
-
-*Complexity:* $O( n )$
-
-*/
-    bool operator!=(CLine& cl);
 /*
 6.4.3 Operation $+=$ (~Union~)
 
@@ -1198,37 +1156,11 @@ get the current half segment from the line value according to the ~pos~ pointer.
 
 */
     void InsertHs( CHalfSegment& chs );
-
-/*
-6.7 Window clipping functions
-
-6.7.1 WindowClippingIn
-
-This function returns the part of the line that is inside the window.
-The inside parameter is set to true if there is at least one segment
-part inside the window. If the intersection part is a point, then
-it is not considered in the result.
-
-*/
-void WindowClippingIn(Rectangle<2> &window,CLine &clippedLine,bool &inside);
-
-/*
-6.7.2 WindowClippingOut
-
-This function returns the part of the line that is outside the window.
-The outside parameter is set to true if there is at least one part of the segment
-that is outside of the window. If the intersection part is a point, then
-it is not considered in the result.
-
-*/
-
-void WindowClippingOut(Rectangle<2> &window,CLine &clippedLine,bool &outside);
-
 /*
 insert a half segment into the line value, and put the ~pos~ pointer to this newly inserted
 half segment.
 
-6.8 Functions needed to import the the ~Line~ data type to tuple
+6.7 Functions needed to import the the ~Line~ data type to tuple
 
 There are totally 10 functions which are defined as virtual functions. They need
 to be defined here in order for the Point data type to be used in Tuple definition
@@ -1248,13 +1180,9 @@ as an attribute.
     //CLine*    Clone() ;
     ostream& Print( ostream &os );
     void     Clear();
-
-
-    void CohenSutherlandLineClipping(const Rectangle<2> &window,
-                            CHalfSegment &chsInside, bool &accept);
   private:
 /*
-6.9 Private member functions
+6.7 Private member functions
 
 */
     void Sort();
@@ -1267,7 +1195,7 @@ Sorts (quick-sort algorithm) the persistent array of half segments in the line v
 Searches (binary search algorithm) for a half segment in the line value and
 returns its position. Returns -1 if the half segment is not found.
 
-6.10 Atrtibutes
+6.8 Atrtibutes
 
 */
     DBArray<CHalfSegment> line;
@@ -1293,7 +1221,7 @@ Whether the half segments in the line value are sorted.
 };
 
 /*
-6.11 overloaded output operator
+6.9 overloaded output operator
 
 */
 ostream& operator<<( ostream& o, CLine& cl );
@@ -1305,8 +1233,6 @@ This class implements the memory representation of the ~region~ type constructor
 composed of a set of faces. Each face consists of a ouer cycle and a groups of holes.
 
 */
-
-class EdgePoint;
 
 class CRegion : public StandardSpatialAttribute<2>
 {
@@ -1438,18 +1364,8 @@ of different cycles can intersect each other;
 
 */
     CRegion& operator-=(const CHalfSegment& chs);
-
 /*
-7.5.2 Operation $!=$ (~not equal~)
 
-*Semantics:* $this !=cr$. It decides whether two region values are not identical.
-
-*Complexity:* $O( n )$
-
-*/
-    bool operator!=(CRegion& cr);
-
-/*
 7.6 Clone Function
 
 */
@@ -1497,20 +1413,10 @@ read the ~attr~ value of the current half segment from the region value. The cur
 half segment is indicated by ~pos~
 
 */
-  const AttrType& GetAttr(int position);
-/*
-read the ~attr~ value of the half segment at the position ~position~ from the region value.
-
-*/
     void UpdateAttr( AttrType& attr );
 /*
 update the ~attr~ value of the current half segment from the region value.The current
 half segment is indicated by ~pos~
-
-*/
-    void UpdateAttr( int position, AttrType& ATTR );
-/*
-update the ~attr~ value of the half segment at position ~position~  from the region value.
 
 7.8 contain function (point)
 
@@ -1576,228 +1482,9 @@ as an attribute.
     ostream& Print( ostream &os );
     void     Clear();
 
-
-
-
-/*
-
-*Semantics:* This function sets the attribute InsideAbove of each region's half segment.
-             This attribute indicates if the area of the region lies above or left of the half segment.
-
-*Complexity:* $O( n log n ) $  where ~n~ is the number of segments of the region.
-
-*/
-/*
-7.13 set partner number function
-
-*/
-
-   void SetPartnerNo();
-
-/*
-7.14 Get cycle direction functions
-
-These functions determine the direction of a region's cycle that was typed by
-the user. It is returned true if the cycle is clockwise (the enclosed part is on
-the right) or false if the cycle is counterclockwise (the cycle has the enclosed
-part on the left). The points were typed in the order A, P and B, and P is the
-leftmost point of the cycle.
-
-*/
-
-  static bool GetCycleDirection(const Point &pA, const Point &pP, const Point &pB);
-
-  bool GetCycleDirection();
-
-
-
-/*
-7.15 window clipping functions
-
-*/
-
-/*
-7.15.1 Window clipping IN function
-
-This function returns the clipped half segments that are within a window, which
-result from the clipping of a region to a clip window.
-
-*/
-
-void WindowClippingIn(const Rectangle<2> &window,CRegion &clippedRegion);
-
-/*
-7.15.2 Window clipping OUT function
-
-This function returns the clipped half segments that are outside a window, which
-result from the clipping of a region to a clip window.
-
-*/
-
-void WindowClippingOut(const Rectangle<2> &window,CRegion &clippedRegion);
-/*
-7.15.3 Get clipped half segment function
-
-This function returns the clipped half segments resulting from the clipping of a
-region to a clip window. It calls the ~GetClippedHSIn~ in order to get the clipped
-half segments that are within the window, or ~GetClippedHSOut~ in order to get
-the clipped half segments thar are outside the window. Afterwards it calls the
-function ~CreateNewSegments~ to create the new half segments resulting from the connection
-of the points that lies on the window's edges. Finally, it calls the function
-~CreateNewSegmentsWindowVertices~ in order to create half segments corresponding
-to the edges of the window. These half segments are only created if the window's
-edge is completly inside the window.
-
-*/
-  void GetClippedHS(const Rectangle<2> &window,CRegion &clippedRegion,bool inside);
-
-/*
-7.15.4 Get clipped half segment IN function
-
-This function returns the clipped half segments (that are within the window)
-resulting from the clipping of a region to a clip window.
-
-*/
-
-  void GetClippedHSIn(const Rectangle<2> &window,CRegion &clippedRegion,
-                             vector<EdgePoint> pointsOnEdge[4],int &partnerno);
-
-/*
-7.15.5 Get clipped half segment OUT function
-
-This function returns the clipped half segments (that are outside the window)
-resulting from the clipping of a region to a clip window.
-
-*/
-
- void GetClippedHSOut(const Rectangle<2> &window,CRegion &clippedRegion,
-                             vector<EdgePoint> pointsOnEdge[4],int &partnerno);
-
-/*
-7.15.6 Add clipped half segment function
-
-This function is just used in order to add clipped half segments to the clipped
-region.
-
-*/
-   void AddClippedHS(const Point &pl,const Point &pr, AttrType &attr,int &partnerno);
-
-/*
-7.15.7 Clipped half segment on edge function
-
-This function checks if the clipped half segment lies on one of the window's edges,
-and if it happens the end points of the half segment are add to the corresponding
-list of the ~points on edge~. The ~points on edge~ list are used to create the
-new half segments that lies on edge.
-
-*/
-   static bool ClippedHSOnEdge(const Rectangle<2> &window,const CHalfSegment &chs,
-                             bool clippingIn,vector<EdgePoint> pointsOnEdge[4]);
-
-/*
-7.15.8 Create new segments function
-
-This function creates the half segments resulting from the connection
-of the points that lies on the window's edges.
-
-*/
-   static void CreateNewSegments(vector <EdgePoint>pointsOnEdge, CRegion &cr,
-                                const Point &bPoint,const Point &ePoint,
-                                WindowEdge edge,int &partnerno,bool inside);
-/*
-7.15.9 Create new segments function
-
-This function creates new half segments corresponding to the edges of the window.
-These half segments are only created if the window's edge is completly inside
-the window.
-
-*/
-   void CreateNewSegmentsWindowVertices(const Rectangle<2> &window,
-                                vector<EdgePoint> pointsOnEdge[4],CRegion &cr,
-                                int &partnerno,bool inside);
-
-
-
-/*
-7.15.10 Compute region function
-
-This function computes a region from a list of half segments, in other orders
-it sets the face number, cycle number and edge number of the half segments.
-It calls the function ~GetNewFaceNo~ in order to get a new face number, and
-it calls the function compute cycle to compute the cycle and edge numbers.
-There are two pre-requisite: the partner number of the half segments must be already set,
-and they need to be ordered in the half segment order.
-
-*/
-   void ComputeRegion();
-
-/*
-7.15.11 Compute cycle functions
-
-The following functions are used to compute the cycle and edge numbers of cycles.
-
-7.15.11.1. Compute cycle function
-
-This function sets the cycle and edge number of a face's cycle. It calls the functions
-~GetAdjacentHS~ and ~SearchForCriticalPoint~.
-
-*/
-   void ComputeCycle(CHalfSegment &chs, int faceno,
-                  int cycleno,int &edgeno, bool *cycle);
-
-/*
-
-7.15.11.2. Is CriticalPoint function
-
-Returns if a point (adjacentPoint) is a critical point.
-
-*/
-
-bool IsCriticalPoint(const Point &adjacentPoint,const int &chsPosition);
-
-/*
-
-7.15.11.2. Get adjacent half segment function
-
-This function returns the adjacent half segment of chs that hasn't set the
-cycle and edge numbers yet. It also returns the point that belongs to both half segments, and
-also if this point is a critical one.
-
-*/
-
-  bool GetAdjacentHS(const CHalfSegment &chs, const int &chsPosition,
-                     int &position, const int &partnerno,
-                     const int &partnernoP, CHalfSegment &adjacentCHS,
-                     const Point &adjacentPoint, Point &newAdjacentPoint,
-                     bool *cycle, int step);
-/*
-
-7.15.11.3. Search for critical point
-
-This function returns if a half segment has critical point.
-
-*/
-   bool SearchForCriticalPoint(Point &p, int chsPosition);
-/*
-7.15.12 Get new face number function
-
-This function finds the face number for a cycle. It finds it the cycle
-is a hole of an existing face, or if it is a cycle of a new face.
-
-*/
-   int GetNewFaceNo(CHalfSegment &chsS,bool *cycle);
-
-
-
-/*
-7.16 Intersect funcion
-
-*/
-bool Intersects(CRegion &r);
-
   private:
 /*
-7.17 Private member functions
+7.13 Private member functions
 
 */
     void Sort();
@@ -1810,10 +1497,8 @@ sorts (quick-sort algorithm) the persistent array of half segments in the region
 /*
 searches (binary search algorithm) for a half segment in the region value and
 returns its position. Returns -1 if the half segment is not found.
-*/
 
-/*
-7.18 Atrtibutes
+7.14 Atrtibutes
 
 */
     DBArray<CHalfSegment> region;
@@ -1838,340 +1523,20 @@ Whether the half segments in the region value are sorted.
 };
 
 /*
-8 Function headers
+7.15 overloaded output operator
 
 */
 ostream& operator<<( ostream& o, CRegion& cr );
 
 Word InPoint( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct );
 ListExpr OutPoint( ListExpr typeInfo, Word value );
-ListExpr
-OutPoint( ListExpr typeInfo, Word value );
-
-Word
-InLine( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct ) ;
-ListExpr
-OutLine( ListExpr typeInfo, Word value );
-
-Word
-InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct );
-ListExpr
-OutRegion( ListExpr typeInfo, Word value );
-
-/*
-9 Inline functions
-
-*/
-inline const Coord& Point::GetX() const
-{
-  assert( defined );
-  return x;
-}
-
-inline const Coord& Point::GetY() const
-{
-  assert( defined );
-  return y;
-}
-
-inline const Rectangle<2> Point::BoundingBox() const
-{
-  assert( defined );
-  return Rectangle<2>( true, this->x, this->x, this->y, this->y );
-}
-
-inline void Point::Set( const Coord& x, const Coord& y )
-{
-  defined = true;
-  this->x = x;
-  this->y = y;
-}
-
-inline void Point::Translate( const Coord& x, const Coord& y )
-{
-  assert( defined );
-  this->x += x;
-  this->y += y;
-}
-
-inline Point& Point::operator=( const Point& p )
-{
-  defined = p.defined;
-  if( defined )
-  {
-    x = p.x;
-    y = p.y;
-  }
-  return *this;
-}
-
-inline bool Point::operator==( const Point& p ) const
-{
-  assert( defined && p.defined );
-  return x == p.x && y == p.y;
-}
-
-inline bool Point::operator!=( const Point& p ) const
-{
-  assert( defined && p.defined );
-  return x != p.x || y != p.y;
-}
-
-inline bool Point::operator<=( const Point& p ) const
-{
-  assert( defined && p.defined );
-  if( x < p.x )
-    return 1;
-  else if( x == p.x && y <= p.y )
-    return 1;
-  return 0;
-}
-
-inline bool Point::operator<( const Point& p ) const
-{
-  assert( defined && p.defined );
-  if( x < p.x )
-    return 1;
-  else if( x == p.x && y < p.y )
-    return 1;
-  return 0;
-}
-
-inline bool Point::operator>=( const Point& p ) const
-{
-  assert( defined && p.defined );
-  if( x > p.x )
-    return 1;
-  else if( x == p.x && y >= p.y )
-    return 1;
-  return 0;
-}
-
-inline bool Point::operator>( const Point& p ) const
-{
-  assert( defined && p.defined );
-  if( x > p.x )
-    return 1;
-  else if( x == p.x && y > p.y )
-    return 1;
-  return 0;
-}
-
-inline bool Point::IsDefined() const
-{
-  return defined;
-}
-
-inline void Point::SetDefined( bool defined )
-{
-  this->defined = defined;
-}
-
-/*
-10 Auxiliary classes used by window clipping functions
-
-10.1 Edge Point
-
-This class stores the information need about the points that lie on the window edge:
-- The point's coordinates
-- The direction of the point which represents where is the area of the region related to the point.
-- If the point must be rejected during the creation of the new segments that lie on the window's edges.
-
-*/
-class EdgePoint : public Point
-{
-
-  public:
-    EdgePoint(): Point()
-    {
-    }
-
-    EdgePoint(const Point p,const bool dir,const bool reject): Point(p)
-    {
-       direction = dir;
-       rejected = reject;
-    }
-
-    void Set(const Coord& X, const Coord& Y,const bool dir, const bool reject)
-    {
-      x = X;
-      y = Y;
-      direction = dir;
-      defined = true;
-      rejected = reject;
-    }
-
-    void Set(const Point p,const bool dir,const bool reject)
-    {
-      Set(p.GetX(),p.GetY(),dir,reject);
-    }
-
-    void  Set( const Coord& X, const Coord& Y)
-    {
-       defined=true;
-       rejected = false;
-       x=X;
-       y=Y;
-    }
-
-
-
-    EdgePoint& operator=(const EdgePoint& p)
-    {
-      defined = p.IsDefined();
-      if( defined )
-      {
-        x = p.GetX();
-        y = p.GetY();
-        direction = p.direction;
-        rejected = p.rejected;
-      }
-      return *this;
-    }
-
-    static EdgePoint* GetEdgePoint(const Point &p,const Point &p2,bool insideAbove,
-                                   const Point &v,const bool reject);
-
-    bool operator==(const EdgePoint& p)
-    {
-      if( AlmostEqual( this->GetX(), p.GetX() ) &&
-          AlmostEqual( this->GetY(), p.GetY() ) &&
-          (this->direction == p.direction)  &&
-          (this->rejected == p.rejected) )
-          return true;
-      return false;
-    }
-
-    bool operator!=(const EdgePoint &p)
-    {
-      return !(*this==p);
-    }
-
-
-    inline bool EdgePoint::operator<( const EdgePoint& p ) const
-    {
-      assert( defined && p.defined );
-      if( this->x < p.x )
-        return 1;
-      else
-        if( this->x == p.x && this->y < p.y )
-          return 1;
-        else
-          if( this->x == p.x && this->y == p.y )
-          { //If both points has the same coordinates, if they have diferent directions
-            //the less one will be that has the attribute direction true (left and down),
-            //otherwise, both have direction true, and the less one will be that was rejected.
-            //The rejected points come before accepted points
-            if (this->direction == p.direction)
-            {
-              if (this->rejected)
-                return 1;
-            }
-            else if (this->direction)
-              return 1;
-          }
-      return 0;
-    }
-
-
-
-    /*
-    Assignement operator redefinition.
-
-    *Precondition:* ~p.IsDefined()~
-
-    */
-    /*
-      This function sets the value of the "attr" argument of a half segment.
-    */
-
-    bool direction;
-
-/*
-The direction attributes represents where is the area of the region related to the point
-and the edge of the window in which it lies:
---> For horizontal edges (top and bottom edges), its value is true if the area of the region
-    is on the left (<==), and false if it lies on the right (==>).
---> For vertical edges (left and right edges), its value is true if the area of the region
-    is down the point (DOWN), and false otherwise (UP).
-
-*/
-
-    bool rejected;
-    //Indicates if the point is of a segment that was rejected
-};
-
-/*
-10.2 SCycle
-
-This class is used to store the information need for cycle computation which sets the face number,
-cycle number and edge number of the half segments.
-
-*/
-
-class SCycle
-{
-  public:
-    CHalfSegment chs1,chs2;
-    int chs1PosRight,chs1PosLeft,
-        chs2PosRight,chs2PosLeft;
-    bool goToCHS1Right,goToCHS1Left,
-         goToCHS2Right,goToCHS2Left;
-    int chs1Partnerno,chs2Partnerno;
-    Point *criticalPoint;
-    Point nextPoint;
-
-    SCycle(){}
-
-    SCycle(const CHalfSegment &chs, const int partnerno,
-           const CHalfSegment &chsP,const int partnernoP,
-           Point *criticalP,const Point &nextPOINT)
-    {
-      chs1 = chs;
-      chs2 = chsP;
-      chs1PosRight = chs1PosLeft = partnernoP;
-      chs2PosRight = chs2PosLeft = partnerno;
-      chs1Partnerno = partnerno;
-      chs2Partnerno = partnernoP;
-
-      goToCHS1Right=goToCHS1Left=goToCHS2Right=goToCHS2Left=true;
-      criticalPoint = criticalP;
-      nextPoint = nextPOINT;
-
-    }
-
-    SCycle(const SCycle &sAux)
-    {
-      chs1 = sAux.chs1;
-      chs2 = sAux.chs2;
-      chs1PosRight  = sAux.chs1PosRight;
-      chs1PosLeft   = sAux.chs1PosLeft;
-      chs1Partnerno = sAux.chs1Partnerno ;
-      goToCHS1Right = sAux.goToCHS1Right;
-      goToCHS1Left  = sAux.goToCHS1Left;
-
-      chs2PosRight  = sAux.chs2PosRight;
-      chs2PosLeft   = sAux.chs2PosLeft;
-      chs2Partnerno = sAux.chs2Partnerno ;
-      goToCHS2Right = sAux.goToCHS2Right;
-      goToCHS2Left  = sAux.goToCHS2Left;
-
-      criticalPoint = sAux.criticalPoint;
-      nextPoint     = sAux.nextPoint;
-
-    }
-
-    ~SCycle()
-    {
-      if (criticalPoint==NULL)
-      {
-        delete criticalPoint;
-        criticalPoint=NULL;
-      }
-    }
-};
-
-double Angle(const Point &v, const Point &p1, const Point &p2);
-double VectorSize(const Point &p1, const Point &p2);
 
 #endif // __SPATIAL_ALGEBRA_H__
+
+
+/*
+8 Operations of the Spatial Algebra
+
+See ~Operations to be Implemented in the Spatial Algebra~ for the discription of operations of the spatial algebra.
+
+*/

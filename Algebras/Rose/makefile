@@ -19,9 +19,9 @@
 
 ########################################################################
 #
-# SECONDO makefile for Rose Algebra
+# SECONDO makefile for fuzzy Algebra
 #
-# 04-2005 
+# 06-2003 
 #
 ########################################################################
 
@@ -57,7 +57,6 @@ endif
 clean:
 	$(MAKE) -f makejava clean
 	$(RM) $(OBJECTS) $(DEP_FILES) $(LIBOBJ) *.class *~
-	rm -f *.o
 
 
 

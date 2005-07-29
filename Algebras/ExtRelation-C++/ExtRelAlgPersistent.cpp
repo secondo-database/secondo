@@ -1,4 +1,4 @@
-/*
+/* 
 ---- 
 This file is part of SECONDO.
 
@@ -44,7 +44,6 @@ for details.
 #include "RelationAlgebra.h"
 #include "CPUTimeMeasurer.h"
 #include "QueryProcessor.h"
-#include "SecondoInterface.h"
 #include "StopWatch.h"
 
 #include <vector>
@@ -162,7 +161,7 @@ writing small results to disk). When the buffer of unsorted tuples is full it
 will be sorted and written into a new relation.  While filling the buffer we
 can keep track if the inserted tuples are in ascending or descending order.
 This algorithm will adapt to sorted streams and will only need N (already sorted)
-or 2N (sorted in opposite order) comparisons in that case.  
+or 2N (sorted in opposite order) comparisons.  
 
 */
 
@@ -207,11 +206,14 @@ class SortByLocalInfo
         if(qp->Received(stream.addr))
         {
           tupleType = new TupleType( ((Tuple*)wTuple.addr)->GetTupleType() );
-
-          MAX_TUPLES_IN_MEMORY = qp->MemoryAvailableForOperator() / ((Tuple*)wTuple.addr)->GetMemorySize();
-          cmsg.info("ERA:ShowMemInfo") << "Sortby.MAX_MEMORY (" 
-                                       << qp->MemoryAvailableForOperator()/1024 << " kb) = " 
-                                       << MAX_TUPLES_IN_MEMORY << " tuples" << endl;
+          // MAX_TUPLES_IN_MEMORY = qp->MemoryAvailableForOperator() / ((Tuple*)wTuple.addr)->GetMemorySize();
+          char* memSizeStr = getenv("SECONDO_SORT_MAXTUPLES");
+          if ( memSizeStr ) {
+            MAX_TUPLES_IN_MEMORY = atoi(memSizeStr);
+          } else { 
+            MAX_TUPLES_IN_MEMORY = 16 * 1024 * 1024 / ((Tuple*)wTuple.addr)->GetMemorySize();
+          }
+          cmsg.info() << "Sort.MAX_TUPLES_IN_MEMORY: " << MAX_TUPLES_IN_MEMORY << endl;
           cmsg.send();
         }
         // Reserving memory does not work correctly in all situations
@@ -317,6 +319,7 @@ class SortByLocalInfo
           
           qp->Request(stream.addr, wTuple);
         }
+        cout << "Stream finished!" << endl;
         ShowPartitionInfo(c,a,n,m,r);
 
         // delete lastTuple and minTuple if allowed
@@ -359,8 +362,7 @@ class SortByLocalInfo
     ~SortByLocalInfo()
     {
       if ( !mergeTuples.empty() ) {
-        cmsg.warning() << "Warning SortByLocalInfo contains " 
-                       << mergeTuples.size() <<" tuples!" << endl;
+        cmsg.warning() << "Warning SortByLocalInfo contains tuples!" << endl;
         cmsg.send();
       }
 
@@ -433,7 +435,7 @@ class SortByLocalInfo
 
     void ShowPartitionInfo(int c, int a, int n, int m, int r) {
 
-      if ( RTFlag::isActive("ERA:Sort:PartitionInfo") ) {
+      if ( RTFlag::isActive("Sort:Stat") ) {
 
         cmsg.info() << "Partition finished: processed tuples=" << c 
                     << ", append minimum=" << m 
@@ -551,7 +553,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 2.2 Operator ~mergejoin~
 
-This operator computes the equijoin of two streams.
+This operator computes the equijoin two streams.
 
 2.2.1 Auxiliary definitions for value mapping function of operator ~mergejoin~
 
@@ -691,9 +693,9 @@ private:
   void ReadFrom( RelationIterator *iter, vector<Tuple*>& bucket )
   {
     size_t i = 0;
-    Tuple *t = 0;
+    Tuple *t;
 
-    while( (i < MAX_TUPLES_IN_MEMORY) && ((t = iter->GetNextTuple()) != 0) )
+    while( i < MAX_TUPLES_IN_MEMORY && (t = iter->GetNextTuple()) != 0 )
     {
       t->SetFree( false );
       bucket.push_back( t );
@@ -706,12 +708,8 @@ private:
     vector<Tuple*>::iterator i = bucket.begin();
     while( i != bucket.end() )
     {
-      if (*i) {
-        (*i)->DeleteIfAllowed();
-      } else {
-        cmsg.error() << "Warning: Null Pointer in Bucket!" << endl;
-        cmsg.send();
-      }
+      Tuple *t = *i;
+      t->DeleteIfAllowed();
       i++;
     }
     bucket.clear();
@@ -719,12 +717,12 @@ private:
 
   size_t MAX_TUPLES_IN_MEMORY;
 public:
-  MergeJoinLocalInfo( Word streamA, Word attrIndexA,
-                      Word streamB, Word attrIndexB, 
-                      bool expectSorted, Supplier s  ) :
-    traceFlag("ERA:TraceMergeJoin")
+  MergeJoinLocalInfo(Word streamA, Word attrIndexA,
+    Word streamB, Word attrIndexB, bool expectSorted,
+    Supplier s) :
+    traceFlag("Merge:Trace")
   {
-    assert(streamA.addr != 0);
+     assert(streamA.addr != 0);
     assert(streamB.addr != 0);
     assert(attrIndexA.addr != 0);
     assert(attrIndexB.addr != 0);
@@ -754,26 +752,20 @@ public:
       SortBy<false, false>(bArgs, bResult, OPEN, streamBLocalInfo, 0);
     }
 
-    ListExpr resultType = 
-                SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
+    ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
     resultTupleType = new TupleType( nl->Second( resultType ) );
 
-    Tuple *tupleA = NextATuple();
-    Tuple *tupleB = NextBTuple();
+    Tuple *tupleA = NextATuple(),
+          *tupleB = NextBTuple();
 
     if( tupleA != 0 && tupleB != 0 )
     {
-      long sizeTupleA = tupleA->GetMemorySize();
-      long sizeTupleB = tupleB->GetMemorySize();
-      long tupleSize = sizeTupleA > sizeTupleB ? sizeTupleA : sizeTupleB;
-      
-      MAX_TUPLES_IN_MEMORY = qp->MemoryAvailableForOperator() / ( 2 * tupleSize  );
-
-      cmsg.info("ERA:ShowMemInfo") 
-        << "MergeJoin.MAX_MEMORY (" 
-        << qp->MemoryAvailableForOperator()/1024  
-        << " kb): " << MAX_TUPLES_IN_MEMORY << endl;
-      cmsg.send();
+      long sizeTupleA = tupleA->GetMemorySize(),
+           sizeTupleB = tupleB->GetMemorySize(),
+           tupleSize = sizeTupleA > sizeTupleB ? sizeTupleA : sizeTupleB;
+//      MAX_TUPLES_IN_MEMORY = qp->MemoryAvailableForOperator() / ( 2 * tupleSize );
+      MAX_TUPLES_IN_MEMORY = 16 * 1024 * 1024 / ( 2 * tupleSize );
+      cout << "Merge.MAX_TUPLES_IN_MEMORY: " << MAX_TUPLES_IN_MEMORY << endl;
     }
   }
 
@@ -797,7 +789,7 @@ public:
 
   Tuple *NextResultTuple()
   {
-    Tuple *tupleA = 0, *tupleB = 0;
+    Tuple *tupleA, *tupleB;
     Tuple *resultTuple = 0;
 
     if( bucketA.size() > 0 )
@@ -906,28 +898,27 @@ public:
       }
 
       int cmp = CompareTuples( tupleA, tupleB );
-     
-      if (RTFlag::isActive(traceFlag)) { 
-      cmsg.info() << "Comp A: " << *tupleA << " - B: " << *tupleB 
-                  << " = " << cmp << endl; 
-      cmsg.send(); 
+      
+      if ( RTFlag::isActive( traceFlag ) ) {
+
+        cout << "Comp A: " << *tupleA << " - B: " << *tupleB 
+             << " = " << cmp << endl; 
       }
 
       if( cmp == 0 )
-      // The tuples are equal. We must store them in a buffer if it fits
-      // or on disk otherwise
+      // The tuples are equal. We must store them in a buffer if it fits or in
+      // the disk otherwise
       {
-        Tuple *equalTupleB = tupleB->Clone();
-        Tuple *equalTupleA = tupleA->Clone();
+        Tuple *equalTupleB = tupleB->Clone(),
+              *equalTupleA = tupleA->Clone();
 
         bucketA.push_back( tupleA );
         bucketB.push_back( tupleB );
 
         tupleA = NextATuple();
-        if ( tupleA && RTFlag::isActive(traceFlag) ) {
-          cmsg.info() << "    A: " << *(tupleA) << endl
-                      << "  eqB: " << *(equalTupleB ) << endl;
-          cmsg.send();
+        if ( tupleA && RTFlag::isActive( traceFlag ) ) {
+          cout << "    A: " << *(tupleA) << endl;
+          cout << "  eqB: " << *(equalTupleB ) << endl;
         }
         while( tupleA != 0 && CompareTuples( tupleA, equalTupleB ) == 0 )
         {
@@ -1184,13 +1175,9 @@ private:
     if(qp->Received(streamB.addr))
     {
       Tuple *tupleB = (Tuple*)tupleWord.addr;
-      MAX_TUPLES_IN_BUCKET = qp->MemoryAvailableForOperator() / ( nBuckets * tupleB->GetMemorySize());
-      cmsg.info("ERA:ShowMemInfo") 
-        << "HashJoin.MAX_TUPLES_IN_MEMORY (" 
-        << qp->MemoryAvailableForOperator()/1024 
-        << " kb): " << nBuckets * MAX_TUPLES_IN_BUCKET << endl
-        << "HashJoin.MAX_TUPLES_IN_BUCKET: " << MAX_TUPLES_IN_BUCKET << endl;
-      cmsg.send();
+//      MAX_TUPLES_IN_BUCKET = qp->MemoryAvailableForOperator() / ( nBuckets * tupleB->GetMemorySize() );
+      MAX_TUPLES_IN_BUCKET = 16 * 1024 * 1024 / ( nBuckets * tupleB->GetMemorySize() );
+      cout << "HashJoin.MAX_TUPLES_IN_BUCKET: " << MAX_TUPLES_IN_BUCKET << endl;
     }
 
     while(qp->Received(streamB.addr))
@@ -1433,14 +1420,11 @@ private:
   Tuple *tupleA;
   TupleBuffer* relA;
   TupleBufferIterator* iterTuplesRelA;
-  long relA_Mem;
   bool firstPassA;
-  bool memInfoShown;
   size_t hashA;
 
   vector< vector<Tuple*> > bucketsB;
   vector<Tuple*>::iterator iterTuplesBucketB;
-  long bucketsB_Mem;
   bool remainTuplesB, bFitsInMemory;
   Word wTupleB;
 
@@ -1498,19 +1482,9 @@ private:
       if(qp->Received(streamB.addr))
       {
         Tuple *tupleB = (Tuple*)wTupleB.addr;
-
-        // reserve 3/4 of memory for buffering tuples of B;
-        // Before retrieving the allowed memory size from the 
-        // configuration file it was set to 12MB for B and 4MB for A (see below)
-        bucketsB_Mem = (3 * qp->MemoryAvailableForOperator())/4;
-        relA_Mem = qp->MemoryAvailableForOperator()/4;
-        MAX_TUPLES_IN_MEMORY = bucketsB_Mem / tupleB->GetMemorySize();
-
-        cmsg.info("ERA:ShowMemInfo") 
-          << "HashJoin.MAX_MEMORY (" 
-          << qp->MemoryAvailableForOperator()/1024 
-          << " kb): = " << MAX_TUPLES_IN_MEMORY << " Tuples in HashBucketsB" << endl;
-        cmsg.send();
+//        MAX_TUPLES_IN_MEMORY = qp->MemoryAvailableForOperator() / ( tupleB->GetMemorySize() );
+        MAX_TUPLES_IN_MEMORY = 12 * 1024 * 1024 / tupleB->GetMemorySize();
+        cout << "HashJoin.MAX_TUPLES_IN_MEMORY: " << MAX_TUPLES_IN_MEMORY << endl;
       }
     }
 
@@ -1546,7 +1520,6 @@ public:
     Word streamB, Word attrIndexBWord, Word nBucketsWord,
     Supplier s)
   {
-    memInfoShown = false;
     this->streamA = streamA;
     this->streamB = streamB;
 
@@ -1571,10 +1544,8 @@ public:
     remainTuplesB = FillHashBucketsB();
     bFitsInMemory  = !remainTuplesB;
 
-    if( !bFitsInMemory ) {
-      // reserve 1/4 of the allowed memory for buffering tuples of A
-      relA = new TupleBuffer( relA_Mem );
-    }
+    if( !bFitsInMemory )
+      relA = new TupleBuffer( 4 * 1024 * 1024 );
 
     qp->Open(streamA.addr);
     NextTupleA();
@@ -1617,14 +1588,6 @@ bucket that the tuple coming from A hashes is also initialized.
         tupleA = ((Tuple*)wTupleA.addr)->CloneIfNecessary();
         if( tupleA != wTupleA.addr )
           ((Tuple*)wTupleA.addr)->DeleteIfAllowed();
-        
-        if (!memInfoShown) {
-          cmsg.info("ERA:ShowMemInfo") 
-            << "TupleBuffer for relA can hold " 
-            << relA_Mem / tupleA->GetMemorySize() << " tuples" << endl;
-          cmsg.send();
-          memInfoShown = true;
-        }
       }
       else
       {

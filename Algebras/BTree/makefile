@@ -26,7 +26,7 @@
 include ../../makefile.env
 
 MODNAME = BTreeAlgebra
-CCFLAGS = $(DEFAULTCCFLAGS) -I../Relation-C++ -I../TupleIdentifier
+CCFLAGS = $(DEFAULTCCFLAGS) -I../Relation-C++
 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)

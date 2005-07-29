@@ -102,19 +102,6 @@ type constructors.
 #define ALGEBRA_H
 
 /*
-1.3 Macro ~CHECK\_COND~
-
-This macro makes reporting errors in type mapping functions more conveniently.
-
-*/
-#define CHECK_COND(cond, msg) \
-  if(!(cond)) \
-  {\
-    ErrorReporter::ReportError(msg);\
-    return nl->SymbolAtom("typeerror");\
-  };
-
-/*
 1.4 Class "Operator"[1]
 
 An operator instance consists of

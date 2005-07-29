@@ -1,7 +1,22 @@
-import twodsack.set.*;
-import twodsack.setelement.datatype.basicdatatype.*;
-import twodsack.util.comparator.*;
-import twodsack.util.number.*;
+//This file is part of SECONDO.
+
+//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Database Systems for New Applications.
+
+//SECONDO is free software; you can redistribute it and/or modify
+//it under the terms of the GNU General Public License as published by
+//the Free Software Foundation; either version 2 of the License, or
+//(at your option) any later version.
+
+//SECONDO is distributed in the hope that it will be useful,
+//but WITHOUT ANY WARRANTY; without even the implied warranty of
+//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//GNU General Public License for more details.
+
+//You should have received a copy of the GNU General Public License
+//along with SECONDO; if not, write to the Free Software
+//Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
 import java.io.*;
 import java.util.*;
 
@@ -9,37 +24,37 @@ public class Lines implements Serializable{
     //this class implements the Lines value of the ROSE algebra
 
     //members
-    public SegMultiSet segset; //the set of segments
+    public SegList seglist; //the list of segments
     
     //constructors
     public Lines() {
 	//System.out.println("--> constructed an empty LINES object");
-	segset = new SegMultiSet(new SegmentComparator());
+	seglist = new SegList();
     }
 
-    public Lines(SegMultiSet sl) {
-	segset = sl;//SegMultiSet.convert(sl.copy());
+    public Lines(SegList sl) {
+	seglist = SegList.convert(sl.copy());
     }
 
     //methods
     public void add(double x1, double y1, double x2, double y2) {
 	//constructs a new Segment and adds it to this
-	this.segset.add(new Segment(x1,y1,x2,y2));
+	this.seglist.add(new Segment(x1,y1,x2,y2));
     }//end method add
 
     public void add(Rational x1, Rational y1, Rational x2, Rational y2) {
 	//constructs a new segment and adds it to this
-	this.segset.add(new Segment(x1,y1,x2,y2));
+	this.seglist.add(new Segment(x1,y1,x2,y2));
     }//end method add
 
     public void add(int x1, int y1, int x2, int y2) {
 	//constructs a new segment
-	this.segset.add(new Segment(x1,y1,x2,y2));
+	this.seglist.add(new Segment(x1,y1,x2,y2));
     }//end method add
 
     public void add(Segment s) {
-	//adds s to segset
-	this.segset.add(s);
+	//adds s to seglist
+	this.seglist.add(s);
     }//end method add
 	
     public static Lines readFrom(byte[] buffer){
@@ -70,7 +85,6 @@ public class Lines implements Serializable{
 	}
     }//end method writeToByteArray
     
-    /*
     public int compare (Lines lIn) {
 	//returns 0 if this == pin
 	//as long as elements in sorted lists from the beginning to the
@@ -83,7 +97,7 @@ public class Lines implements Serializable{
 	//return -1 if this is shorter than lIn
 	//return +1 if lIn is shorter than this
 
-	//first, align an sort both SegSets
+	//first, align an sort both SegLists
 	SegList thiscop = (SegList)this.seglist.clone();
 	SegList lincop = (SegList)lIn.seglist.clone();
 	
@@ -112,15 +126,11 @@ public class Lines implements Serializable{
 	if (!lit1.hasNext()) return -1;
 	else return 1;
     }//end method compare
-    */
-    
+
     public Lines copy () {
-	return new Lines(SegMultiSet.convert(this.segset.copy()));
+	return new Lines(this.seglist);
     }//end method copy
     
-    public void print() {
-	this.segset.print();
-    }
 	
 }//end class Lines
     

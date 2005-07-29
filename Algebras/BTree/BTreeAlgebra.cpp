@@ -323,7 +323,7 @@ opened( false )
 {
   if( keyType != SmiKey::Unknown )
   {
-    file = new SmiKeyedFile( keyType, temporary );
+    file = new SmiKeyedFile( keyType,false, temporary );
     if( file->Create() )
       opened = true;
     else
@@ -342,7 +342,7 @@ opened( false )
   if( record.Read( &fileId, sizeof(SmiFileId) ) != sizeof(SmiFileId) )
     return;
  
-  this->file = new SmiKeyedFile( keyType );
+  this->file = new SmiKeyedFile( keyType,false );
   if( file->Open( fileId ) )
     opened = true;
   else 
@@ -358,7 +358,7 @@ opened( false )
 {
   if( keyType != SmiKey::Unknown )
   {
-    file = new SmiKeyedFile( keyType );
+    file = new SmiKeyedFile( keyType,false );
     if( file->Open( fileId ) )
       opened = true;
     else
@@ -384,7 +384,20 @@ BTree::~BTree()
 bool BTree::Truncate()
 {
   if( opened )
-    return file->Truncate();
+  {
+    assert( file != 0 );
+    SmiKeyedFileIterator iter;
+    SmiRecord record;
+
+    if( !file->SelectAll( iter, SmiFile::Update, true ) )
+      return false;
+
+    while( iter.Next( record ) )
+    {
+      if( !file->DeleteRecord( record.GetKey() ) )
+        return false;
+    }
+  }
   return true;
 }
 
@@ -414,6 +427,16 @@ bool BTree::Append( const SmiKey& smiKey, SmiRecordId id )
         return true;
       file->DeleteRecord(smiKey);
     }
+  }
+  return false;
+}
+
+bool BTree::Delete( const SmiKey& smiKey, const SmiRecordId id )
+{
+  if( opened )
+  {
+    assert(file != 0);
+    return file->DeleteRecord( smiKey, false, id );
   }
   return false;
 }
@@ -788,142 +811,73 @@ TypeConstructor cppbtree( "btree",				BTreeProp,
 */
 ListExpr CreateBTreeTypeMap(ListExpr args)
 {
-  string argstr;
-
-  CHECK_COND(nl->ListLength(args) == 2, 
-             "Operator createbtree expects a list of length two");
-
-  ListExpr first = nl->First(args);
-
-  nl->WriteToString(argstr, first);
-  CHECK_COND((nl->IsEqual(nl->First(first), "rel") && IsRelDescription(first)) ||
-             (nl->IsEqual(nl->First(first), "stream") && IsTupleDescription(nl->Second(nl->Second(first)))),
-             "Operator createbtree expects as first argument a list with structure\n"
-             "rel(tuple ((a1 t1)...(an tn))) or stream (tuple ((a1 t1)...(an tn)))\n"
-             "Operator createbtree gets a list with structure '" + argstr + "'."); 
-
-  ListExpr second = nl->Second(args);
-  nl->WriteToString(argstr, second);
-  
-  CHECK_COND(nl->IsAtom(second) && nl->AtomType(second) == SymbolType, 
-             "Operator createbtree expects as second argument an attribute name\n"
-             "bug gets '" + argstr + "'.");
-
-  string attrName = nl->SymbolValue(second);
-  ListExpr tupleDescription = nl->Second(first),
-           attrList = nl->Second(tupleDescription);
-
-  nl->WriteToString(argstr, attrList);
+  string attrName;
+  char* errmsg = "Incorrect input for operator createbtree.";
   int attrIndex;
   ListExpr attrType;
-  CHECK_COND((attrIndex = FindAttribute(attrList, attrName, attrType)) > 0, 
-             "Operator createbtree expects as a second argument an attribute name\n"
-             "Attribute name '" + attrName + "' is not known.\n"
-             "Known Attribute(s): " + argstr);
+
+  CHECK_COND(!nl->IsEmpty(args), errmsg);
+  CHECK_COND(nl->ListLength(args) == 2, errmsg);
+
+  ListExpr relDescription = nl->First(args);
+  ListExpr attrNameLE = nl->Second(args);
+
+  CHECK_COND(nl->IsAtom(attrNameLE), errmsg);
+  CHECK_COND(nl->AtomType(attrNameLE) == SymbolType, errmsg);
+  attrName = nl->SymbolValue(attrNameLE);
+
+  CHECK_COND(!nl->IsEmpty(relDescription), errmsg);
+  CHECK_COND(nl->ListLength(relDescription) == 2, errmsg);
+
+  ListExpr relSymbol = nl->First(relDescription);;
+  ListExpr tupleDescription = nl->Second(relDescription);
+
+  CHECK_COND(nl->IsAtom(relSymbol), errmsg);
+  CHECK_COND(nl->AtomType(relSymbol) == SymbolType, errmsg);
+  CHECK_COND(nl->SymbolValue(relSymbol) == "rel", errmsg);
+
+  CHECK_COND(nl->ListLength(tupleDescription) == 2, errmsg);
+  ListExpr tupleSymbol = nl->First(tupleDescription);;
+  ListExpr attrList = nl->Second(tupleDescription);
+
+  CHECK_COND(nl->IsAtom(tupleSymbol), errmsg);
+  CHECK_COND(nl->AtomType(tupleSymbol) == SymbolType, errmsg);
+  CHECK_COND(nl->SymbolValue(tupleSymbol) == "tuple", errmsg);
+  CHECK_COND(IsTupleDescription(attrList), errmsg);
+  CHECK_COND((attrIndex = FindAttribute(attrList, attrName, attrType)) > 0, errmsg);
 
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   AlgebraManager* alg = SecondoSystem::GetAlgebraManager();
-  nl->WriteToString(argstr, attrType);
   CHECK_COND(nl->SymbolValue(attrType) == "string" ||
              nl->SymbolValue(attrType) == "int" ||
              nl->SymbolValue(attrType) == "real" ||
-             alg->CheckKind("INDEXABLE", attrType, errorInfo), 
-             "Operator createbtree expects as a second argument an attribute of types\n"
-             "int, real, string, or any attribute that implements the kind INDEXABLE\n"
-             "but gets '" + argstr + "'.");
+             alg->CheckKind("INDEXABLE", attrType, errorInfo), errmsg);
 
-  if( nl->IsEqual(nl->First(first), "rel") )
-  {
-    return nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
-        nl->OneElemList(
-          nl->IntAtom(attrIndex)),
-        nl->ThreeElemList(
-          nl->SymbolAtom("btree"),
-          tupleDescription,
-          attrType));
-  }
-  else // nl->IsEqual(nl->First(first), "stream")
-  {
-    // Find the attribute with type tid
-    ListExpr first, rest, newAttrList, lastNewAttrList;
-    int j, tidIndex = 0;
-    string type;
-    bool firstcall = true;
+  ListExpr resultType =
+    nl->ThreeElemList(
+      nl->SymbolAtom("APPEND"),
+      nl->OneElemList(
+        nl->IntAtom(attrIndex)),
+      nl->ThreeElemList(
+        nl->SymbolAtom("btree"),
+        tupleDescription,
+        attrType));
 
-    rest = attrList;
-    j = 1;
-    while (!nl->IsEmpty(rest))
-    {
-      first = nl->First(rest);
-      rest = nl->Rest(rest);
-
-      type = nl->SymbolValue(nl->Second(first));
-      if (type == "tid")
-      {
-        nl->WriteToString(argstr, attrList);
-        CHECK_COND(tidIndex == 0,
-                   "Operator createbtree expects as first argument a stream with\n"
-                   "one and only one attribute of type tid but gets\n'" + argstr + "'.");
-        tidIndex = j;
-      }
-      else
-      {
-        if (firstcall)
-        {
-          firstcall = false;
-          newAttrList = nl->OneElemList(first);
-          lastNewAttrList = newAttrList;
-        }
-        else
-        {
-          lastNewAttrList = nl->Append(lastNewAttrList, first);
-        }
-      }
-      j++;
-    }
-    CHECK_COND( tidIndex != 0,
-                "Operator createbtree expects as first argument a stream with\n"
-                "one and only one attribute of type tid but gets\n'" + argstr + "'.");
-
-    return nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
-        nl->TwoElemList(
-          nl->IntAtom(attrIndex),
-          nl->IntAtom(tidIndex)),
-        nl->ThreeElemList(
-          nl->SymbolAtom("btree"),
-          nl->TwoElemList(
-            nl->SymbolAtom("tuple"),
-            newAttrList),
-          attrType));
-  }
+  return resultType;
 }
 
 /*
-6.2 Selection function of operator ~createbtree~
 
-*/
-int CreateBTreeSelect( ListExpr args )
-{
-  if( nl->IsEqual(nl->First(nl->First(args)), "rel") )
-    return 0;
-  if( nl->IsEqual(nl->First(nl->First(args)), "stream") )
-    return 1; 
-  return -1;
-}
-
-/*
 6.2 Value mapping function of operator ~createbtree~
 
 */
 int
-CreateBTreeValueMapping_Rel(Word* args, Word& result, int message, Word& local, Supplier s)
+CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   result = qp->ResultStorage(s);
 
   Relation* relation = (Relation*)args[0].addr;
-  BTree* btree = (BTree*)result.addr;
+  BTree* btree = (BTree*)qp->ResultStorage(s).addr;
   int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
 
   assert(btree != 0);
@@ -931,7 +885,6 @@ CreateBTreeValueMapping_Rel(Word* args, Word& result, int message, Word& local, 
 
   if( !btree->IsOpened() )
     return CANCEL;
-  btree->Truncate();
 
   RelationIterator *iter = relation->MakeScan();
   Tuple* tuple;
@@ -943,68 +896,29 @@ CreateBTreeValueMapping_Rel(Word* args, Word& result, int message, Word& local, 
     {
       AttrToKey( (StandardAttribute *)tuple->GetAttribute(attrIndex), key, btree->GetKeyType() );
       btree->Append( key, iter->GetTupleId() );
+      tuple->DeleteIfAllowed();
     }
-    tuple->DeleteIfAllowed();
   }
   delete iter;
 
   return 0;
 }
-
-int
-CreateBTreeValueMapping_Stream(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  result = qp->ResultStorage(s);
-  BTree* btree = (BTree*)result.addr;
-  int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
-      tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
-  Word wTuple;
-
-  assert(btree != 0);
-  if( !btree->IsOpened() )
-    return CANCEL;
-  btree->Truncate();
-
-  qp->Open(args[0].addr);
-  qp->Request(args[0].addr, wTuple);
-  while (qp->Received(args[0].addr))
-  {
-    Tuple* tuple = (Tuple*)wTuple.addr;
-    SmiKey key;
-    if( (StandardAttribute *)tuple->GetAttribute(attrIndex)->IsDefined() &&
-        (StandardAttribute *)tuple->GetAttribute(tidIndex)->IsDefined() )
-    {
-      AttrToKey( (StandardAttribute *)tuple->GetAttribute(attrIndex), key, btree->GetKeyType() );
-      btree->Append( key, ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->GetTid() );
-    }
-    tuple->DeleteIfAllowed();
-   
-    qp->Request(args[0].addr, wTuple); 
-  }
-  qp->Close(args[0].addr);
-
-  return 0;
-}
-
 /*
 
 6.3 Specification of operator ~createbtree~
 
 */
-const string CreateBTreeSpec  = "( ( \"1st Signature\" \"2nd Signature\" "
-                                "\"Syntax\" \"Meaning\" \"1st Example\" "
-                                "\"2nd Example\" ) "
-                                "( <text>((rel (tuple (x1 t1)...(xn tn)))) xi)"
-								                " -> (btree (tuple ((x1 t1)...(xn tn))) ti)</text--->"
-                                "<text>((stream (tuple (x1 t1)...(xn tn) (id tid))) xi)"
-								                " -> (btree (tuple ((x1 t1)...(xn tn))) ti)</text--->"
+const string CreateBTreeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+                                "( <text>((rel (tuple ((x1 t1)...(xn tn))))"
+                								" xi)"
+								                " -> (btree (tuple ((x1 t1)...(xn tn))) ti)"
+                 								"</text--->"
 						                    "<text>_ createbtree [ _ ]</text--->"
              						        "<text>Creates a btree. The key type ti must"
-						                		" be either string or int or real or to implement the"
-                                " kind INDEXABLE.</text--->"
-            						        "<text>let mybtree = ten createbtree [nr]</text--->"
-                                "<text>let mybtree = ten feed extend[id: tupleid(.)] "
-                                "sortby[no asc] createbtree[no]</text--->"
+						                		" be either string or int or real.</text--->"
+            						        "<text>let mybtree = ten createbtree [nr]"
+						                		"</text--->"
              						        ") )";
 
 /*
@@ -1012,19 +926,13 @@ const string CreateBTreeSpec  = "( ( \"1st Signature\" \"2nd Signature\" "
 6.4 Definition of operator ~createbtree~
 
 */
-ValueMapping createbtreemap[] = { CreateBTreeValueMapping_Rel, 
-                                  CreateBTreeValueMapping_Stream };
-ModelMapping btreenomodelmap[] = { Operator::DummyModel, 
-                                   Operator::DummyModel };
-
 Operator createbtree (
-          "createbtree",             // name
-          CreateBTreeSpec,           // specification
-          2,	                       // number of overloaded functions
-          createbtreemap,            // value mapping
-          btreenomodelmap,           // dummy model mapping, defines in Algebra.h
-          CreateBTreeSelect,         // trivial selection function
-          CreateBTreeTypeMap         // type mapping
+          "createbtree",                // name
+          CreateBTreeSpec,              // specification
+          CreateBTreeValueMapping,                  // value mapping
+          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
+          Operator::SimpleSelect,         // trivial selection function
+          CreateBTreeTypeMap           // type mapping
 );
 
 const int LEFTRANGE = 0;
@@ -1400,6 +1308,482 @@ Operator rightrange (
 );
 
 /*
+6.15 Operator ~insertbtree~ 
+
+For each tuple of the inputstream inserts an entry into the btree. The entry is built from the attribute 
+of the tuple over which the tree is built and the tuple-identifier of the inserted tuple which is extracted
+as the last attribute of the tuple of the inputstream.
+
+
+6.15.0 General Type mapping function of operators ~insertbtree~, ~deletebtree~ and ~updatebtree~
+
+
+Type mapping ~insertbtree~ and ~deletebtree~ 
+
+----     (stream (tuple ((a1 x1) ... (an xn) (TID tid)))) (btree X ti)) ai
+
+        -> (stream (tuple ((a1 x1) ... (an xn) (TID tid))))
+
+        where X = (tuple ((a1 x1) ... (an xn)))
+----
+
+Type mapping ~updatebtree~
+
+----     (stream (tuple ((a1 x1) ... (an xn) (a1_old x1) ... (an_old xn) (TID tid)))) (btree X ti)) ai
+
+        -> (stream (tuple ((a1 x1) ... (an xn) (a1_old x1) ... (an_old xn)(TID tid))))
+
+        where X = (tuple ((a1 x1) ... (an xn)))
+----
+
+
+*/
+
+ListExpr allUpdatesBTreeTypeMap( const ListExpr& args, string opName )
+{
+  	ListExpr  rest,next,listn,lastlistn,restBTreeAttrs,oldAttribute, outList;
+  	string argstr, argstr2, oldName;
+  
+
+   	/* Split argument in three parts */
+  	ListExpr streamDescription = nl->First(args);
+  	ListExpr btreeDescription = nl->Second(args);
+  	ListExpr nameOfKeyAttribute = nl->Third(args);
+
+	// Test stream
+  	nl->WriteToString(argstr, streamDescription);
+  	CHECK_COND(nl->ListLength(streamDescription) == 2  &&
+             	(TypeOfRelAlgSymbol(nl->First(streamDescription)) == stream) &&
+             	(nl->ListLength(nl->Second(streamDescription)) == 2) &&
+             	(TypeOfRelAlgSymbol(nl->First(nl->Second(streamDescription))) == tuple) &&
+       			(nl->ListLength(nl->Second(streamDescription)) == 2) &&
+       			(IsTupleDescription(nl->Second(nl->Second(streamDescription)))),
+    			"Operator " + opName + " expects as first argument a list with structure "
+    			"(stream (tuple ((a1 t1)...(an tn)(TID tid)))\n "
+    			"Operator " + opName + " gets as first argument '" + argstr + "'." );
+    
+  	// Proceed to last attribute of stream-tuples
+  	rest = nl->Second(nl->Second(streamDescription));
+  	while (!(nl->IsEmpty(rest)))
+  	{
+     	next = nl->First(rest);
+     	rest = nl->Rest(rest);
+  	}
+  	
+  	CHECK_COND(!(nl->IsAtom(next)) &&
+             	(nl->IsAtom(nl->Second(next)))&&
+             	(nl->AtomType(nl->Second(next)) == SymbolType) &&
+             	 (nl->SymbolValue(nl->Second(next)) == "tid") ,
+    			"Operator " + opName + ": Type of last attribute of tuples of the inputstream must be tid" );
+ 	// Test btree
+
+  	/* handle btree part of argument */
+  	CHECK_COND(!nl->IsEmpty(btreeDescription), "Operator " + opName + ": Description for the btree may not be empty");
+  	CHECK_COND(!nl->IsAtom(btreeDescription), "Operator " + opName + ": Description for the btree may not be an atom");
+  	CHECK_COND(nl->ListLength(btreeDescription) == 3, "Operator " + opName + ": Description for the btree must consist of three parts");
+
+  	ListExpr btreeSymbol = nl->First(btreeDescription);;
+  	ListExpr btreeTupleDescription = nl->Second(btreeDescription);
+  	ListExpr btreeKeyType = nl->Third(btreeDescription);
+
+  	/* handle btree type constructor */
+  	CHECK_COND(nl->IsAtom(btreeSymbol), "Operator " + opName + ": First part of the btree-description has to be 'btree'");
+  	CHECK_COND(nl->AtomType(btreeSymbol) == SymbolType, "Operator " + opName + ": First part of the btree-description has to be 'bree' ");
+  	CHECK_COND(nl->SymbolValue(btreeSymbol) == "btree","Operator " + opName + ": First part of the btree-description has to be 'bree' ");
+
+  	/* handle btree tuple description */
+  	CHECK_COND(!nl->IsEmpty(btreeTupleDescription), "Operator " + opName + ": Second part of the btree-description has to be a tuple-description ");
+  	CHECK_COND(!nl->IsAtom(btreeTupleDescription), "Operator " + opName + ": Second part of the btree-description has to be a tuple-description ");
+  	CHECK_COND(nl->ListLength(btreeTupleDescription) == 2, "Operator " + opName + ": Second part of the btree-description has to be a tuple-description ");
+  	ListExpr btreeTupleSymbol = nl->First(btreeTupleDescription);;
+  	ListExpr btreeAttrList = nl->Second(btreeTupleDescription);
+
+  	CHECK_COND(nl->IsAtom(btreeTupleSymbol),"Operator " + opName + ": Second part of the btree-description has to be a tuple-description ");
+  	CHECK_COND(nl->AtomType(btreeTupleSymbol) == SymbolType, "Operator " + opName + ": Second part of the btree-description has to be a tuple-description ");
+  	CHECK_COND(nl->SymbolValue(btreeTupleSymbol) == "tuple", "Operator " + opName + ": Second part of the btree-description has to be a tuple-description ");
+  	CHECK_COND(IsTupleDescription(btreeAttrList), "Operator " + opName + ": Second part of the btree-description has to be a tuple-description ");
+  
+   	/* Handle key-part of btreedescription */
+  	CHECK_COND(nl->IsAtom(btreeKeyType), "Operator " + opName + ": Key of the btree has to be an atom");
+  	CHECK_COND(nl->AtomType(btreeKeyType) == SymbolType,"Operator " + opName + ": Key of the btree has to be an atom");
+  
+  	// Handle third argument which shall be the name of the attribute of the streamtuples
+  	// that serves as the key for the btree
+  	// Later on it is checked if this name is an attributename of the inputtuples
+  	CHECK_COND(nl->IsAtom(nameOfKeyAttribute), "Operator " + opName + ": Name of the key-attribute of the streamtuples has to be an atom");
+  	CHECK_COND(nl->AtomType(nameOfKeyAttribute) == SymbolType, "Operator " + opName + ": Name of the key-attribute of the streamtuples has to be an atom");
+
+  	//Test if stream-tupledescription fits to btree-tupledescription
+  	rest = nl->Second(nl->Second(streamDescription));
+  	CHECK_COND(nl->ListLength(rest) > 1 , "Operator " + opName + ": There must be at least two attributes in the tuples of the tuple-stream");
+  	// For updates the inputtuples need to carry the old attributevalues after the
+  	// new values but their names with an additional _old at the end
+  	if (opName == "updatebtree"){
+  		listn = nl->OneElemList(nl->First(rest));
+  		lastlistn = listn;
+  		rest = nl->Rest(rest);
+  		// Compare first part of the streamdescription
+  		while (nl->ListLength(rest) > nl->ListLength(btreeAttrList) + 1)
+  		{
+     		lastlistn = nl->Append(lastlistn,nl->First(rest));
+     		rest = nl->Rest(rest);
+  		}
+  		CHECK_COND(nl->Equal(listn,btreeAttrList), "Operator " + opName + ":  First part of the tupledescription of the stream "
+  					"has to be the same as the tupledescription of the btree");
+  		// Compare second part of the streamdescription
+  		restBTreeAttrs = btreeAttrList;
+  		while (nl->ListLength(rest) >  1)
+  		{
+  	 		nl->WriteToString(oldName, nl->First(nl->First(restBTreeAttrs)));
+  	 		oldName += "_old";
+  	 		oldAttribute = nl->TwoElemList(nl->SymbolAtom(oldName),nl->Second(nl->First(restBTreeAttrs)));
+  	 		CHECK_COND(nl->Equal(oldAttribute,nl->First(rest)), "Operator " + opName + ":  Second part of the tupledescription of the stream "
+     					"without the last attribute has to be the same as the tupledescription of the btree except for that"
+     					" the attributenames carry an additional '_old.'");
+     		rest = nl->Rest(rest);
+     		restBTreeAttrs = nl->Rest(restBTreeAttrs);
+  		}
+  	}
+  	// For insert and delete check whether tupledescription of the stream without the last 
+  	//attribute is the same as the tupledescription of the btree 
+  	else{
+  		listn = nl->OneElemList(nl->First(rest));
+  		lastlistn = listn;
+  		rest = nl->Rest(rest);
+  		while (nl->ListLength(rest) > 1)
+  		{
+     		lastlistn = nl->Append(lastlistn,nl->First(rest));
+     		rest = nl->Rest(rest);
+  		}
+  		CHECK_COND(nl->Equal(listn,btreeAttrList), "Operator " + opName + ": tupledescription of the stream without the"
+  					"last attribute has to be the same as the tupledescription of the btree");
+  	}
+  
+  
+	// Test if attributename of the third argument exists as a name in the attributlist of the streamtuples
+	string attrname = nl->SymbolValue(nameOfKeyAttribute);
+	ListExpr attrtype;
+	int j = FindAttribute(listn,attrname,attrtype);
+	CHECK_COND(j != 0, "Operator " + opName + ": Name of the attribute that shall contain the keyvalue for the"
+	 			"btree was not found as a name of the attributes of the tuples of the inputstream"); 
+	//Test if type of the attriubte which shall be taken as a key is the same as the keytype of the btree
+	CHECK_COND(nl->Equal(attrtype,btreeKeyType), "Operator " + opName + ": Type of the attribute that shall contain the keyvalue for the"
+	 			"btree is not the same as the keytype of the btree");
+	//Append the index of the attribute over which the btree is built to the resultlist. 
+	outList = nl->ThreeElemList(nl->SymbolAtom("APPEND"), nl->OneElemList(nl->IntAtom(j)),streamDescription);
+  	return outList;
+}
+
+/*
+6.15.1 TypeMapping of operator ~insertbtree~
+
+*/
+ListExpr insertBTreeTypeMap(ListExpr args){
+	return allUpdatesBTreeTypeMap(args, "insertbtree");
+}
+
+
+
+/*
+6.15.2 ValueMapping of operator ~insertbtree~
+
+*/
+
+int insertBTreeValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word t, argBTree, attrPos;
+  Tuple* tup;
+  BTree* btree;
+  CcInt* indexp;
+  int index;
+  Attribute* keyAttr;
+  Attribute* tidAttr;
+  TupleId oldTid;
+  SmiKey key;
+  
+  
+
+  switch (message)
+  {
+    case OPEN :
+      qp->Open(args[0].addr);
+      qp->Request(args[3].addr,attrPos);
+      indexp = ((CcInt*)attrPos.addr);
+      local = SetWord(indexp );
+      return 0;
+
+    case REQUEST :
+      index = ((CcInt*) local.addr)->GetIntval();
+      qp->Request(args[1].addr, argBTree);
+      btree = (BTree*)(argBTree.addr);    
+      assert(btree != 0);
+      qp->Request(args[0].addr,t);     
+      if (qp->Received(args[0].addr))
+      {
+        tup = (Tuple*)t.addr;
+       	keyAttr = tup->GetAttribute(index - 1);
+       	tidAttr = tup->GetAttribute(tup->GetNoAttributes() - 1);
+       	oldTid = ((TupleIdentifier*)tidAttr)->GetTid();
+       	AttrToKey((StandardAttribute*)keyAttr, key, btree->GetKeyType());
+       	btree->Append(key,oldTid);
+        result = SetWord(tup);
+        return YIELD;
+      }
+      else
+        return CANCEL;
+
+    case CLOSE :
+    	qp->Close(args[0].addr);
+    	qp->SetModified(args[1].addr);
+        return 0;
+  }
+  return 0;
+}
+
+/*
+6.15.3 Specification of operator ~insertbtree~
+
+*/
+const string insertBTreeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" ) "
+                           "( <text>stream(tuple(x@[TID tid])) x (btree(tuple(x) ti) xi)"
+                           " -> stream(tuple(x@[TID tid]))] "
+                           "</text--->"
+                           "<text>_ _ insertbtree [_]</text--->"
+                           "<text>Inserts references to the tuples with TupleId 'tid' "
+                           "into the btree.</text--->"
+                           "<text>query neueStaedte feed staedte insert staedte_Name "
+                           " insertbtree [Name] count "
+                           "</text--->"
+                           ") )";
+
+/*
+6.15.4 Definition of operator ~insertbtree~
+
+*/
+Operator insertbtree (
+         "insertbtree",              // name
+         insertBTreeSpec,            // specification
+         insertBTreeValueMap,                // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         Operator::SimpleSelect,          // trivial selection function
+         insertBTreeTypeMap          // type mapping
+);
+
+
+/*
+6.16 Operator ~deletebtree~ 
+
+For each tuple of the inputstream deletes the corresponding entry from the btree. The entry is built from the attribute 
+of the tuple over which the tree is built and the tuple-identifier of the deleted tuple which is extracted
+as the last attribute of the tuple of the inputstream.
+
+
+6.16.1 TypeMapping of operator ~deletebtree~
+
+*/
+
+ListExpr deleteBTreeTypeMap(ListExpr args){
+	return allUpdatesBTreeTypeMap(args, "deletebtree");
+}
+
+/*
+6.16.1 ValueMapping of operator ~deletebtree~
+
+*/
+
+int deleteBTreeValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word t, argBTree, attrPos;
+  Tuple* tup;
+  BTree* btree;
+  CcInt* indexp;
+  int index;
+  Attribute* keyAttr;
+  Attribute* tidAttr;
+  TupleId oldTid;
+  SmiKey key;
+  
+
+  switch (message)
+  {
+    case OPEN :
+      qp->Open(args[0].addr);
+      qp->Request(args[3].addr,attrPos);
+      indexp = ((CcInt*)attrPos.addr);
+      local = SetWord(indexp );
+      return 0;
+
+    case REQUEST :
+      index = ((CcInt*) local.addr)->GetIntval();
+      qp->Request(args[1].addr, argBTree);
+      btree = (BTree*)(argBTree.addr);    
+      assert(btree != 0);
+      qp->Request(args[0].addr,t);    
+      if (qp->Received(args[0].addr))
+      {
+        tup = (Tuple*)t.addr;
+       	keyAttr = tup->GetAttribute(index - 1);
+       	tidAttr = tup->GetAttribute(tup->GetNoAttributes() - 1);
+       	oldTid = ((TupleIdentifier*)tidAttr)->GetTid();
+       	AttrToKey((StandardAttribute*)keyAttr, key, btree->GetKeyType());
+       	btree->Delete(key,oldTid);
+        result = SetWord(tup);
+        return YIELD;
+      }
+      else
+        return CANCEL;
+
+    case CLOSE :
+      qp->Close(args[0].addr);
+      qp->SetModified(args[1].addr);
+      return 0;
+  }
+  return 0;
+}
+
+/*
+6.16.3 Specification of operator ~deletebtree~
+
+*/
+const string deleteBTreeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" ) "
+                           "( <text>stream(tuple(x@[TID tid])) x (btree(tuple(x) ti) xi)"
+                           " -> stream(tuple(x@[TID tid]))] "
+                           "</text--->"
+                           "<text>_ _ deletebtree [_]</text--->"
+                           "<text>Deletes the references to the tuples with TupleId 'tid' "
+                           "from the btree.</text--->"
+                           "<text>query alteStaedte feed staedte deletesearch staedte_Name "
+                           " deletebtree [Name] count "
+                           "</text--->"
+                           ") )";
+
+/*
+6.16.4 Definition of operator ~deletebtree~
+
+*/
+Operator deletebtree (
+         "deletebtree",              // name
+         deleteBTreeSpec,            // specification
+         deleteBTreeValueMap,                // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         Operator::SimpleSelect,          // trivial selection function
+         deleteBTreeTypeMap          // type mapping
+);
+
+
+/*
+2.17 Operator ~updatebtree~ 
+
+For each tuple of the inputstream updates the entry in the btree. The entry is built from the attribute 
+of the tuple over which the tree is built and the tuple-identifier of the updated tuple which is extracted
+as the last attribute of the tuple of the inputstream.
+
+2.17.1 TypeMapping of operator ~updatebtree~
+
+*/
+
+ListExpr updateBTreeTypeMap(ListExpr args){
+	return allUpdatesBTreeTypeMap(args, "updatebtree");
+}
+
+/*
+
+2.17.2 ValueMapping of operator ~updatebtree~
+
+*/
+
+int updateBTreeValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word t, argBTree, attrPos;
+  Tuple* tup;
+  BTree* btree;
+  CcInt* indexp;
+  int index;
+  Attribute* keyAttr;
+  Attribute* oldKeyAttr;
+  Attribute* tidAttr;
+  TupleId oldTid;
+  SmiKey key, oldKey;
+  
+
+  switch (message)
+  {
+    case OPEN :
+      qp->Open(args[0].addr);
+      qp->Request(args[3].addr,attrPos);
+      indexp = ((CcInt*)attrPos.addr);
+      local = SetWord(indexp );
+      return 0;
+
+    case REQUEST :
+      index = ((CcInt*) local.addr)->GetIntval();
+      qp->Request(args[1].addr, argBTree);
+      btree = (BTree*)(argBTree.addr);    
+      assert(btree != 0);
+      qp->Request(args[0].addr,t);
+      if (qp->Received(args[0].addr))
+      {
+        tup = (Tuple*)t.addr;
+       	keyAttr = tup->GetAttribute(index - 1);
+       	oldKeyAttr = tup->GetAttribute((tup->GetNoAttributes()-1)/2 + index -1);
+       	tidAttr = tup->GetAttribute(tup->GetNoAttributes() - 1);
+       	oldTid = ((TupleIdentifier*)tidAttr)->GetTid();
+       	AttrToKey((StandardAttribute*)keyAttr, key, btree->GetKeyType());
+       	AttrToKey((StandardAttribute*)oldKeyAttr, oldKey, btree->GetKeyType());
+       	// Only update if key has changed
+       	if ((key > oldKey) || (oldKey > key)){
+       		btree->Delete(oldKey,oldTid);
+       		btree->Append(key,oldTid);
+       	}
+        result = SetWord(tup);
+        return YIELD;
+      }
+      else
+        return CANCEL;
+
+    case CLOSE :
+      qp->Close(args[0].addr);
+      qp->SetModified(args[1].addr);
+      return 0;
+  }
+  return 0;
+}
+
+/*
+2.17.3 Specification of operator ~updatebtree~
+
+*/
+const string updateBTreeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" ) "
+                           "( <text>stream(tuple(x@[(a1_old x1)...(an_old xn)(TID tid)])) x (btree(tuple(x) ti) xi)"
+                           " -> stream(tuple(x@[(a1_old x1)...(an_old xn)(TID tid)]))] "
+                           "</text--->"
+                           "<text>_ _ updatebtree [_]</text--->"
+                           "<text>Updates references to the tuples with TupleId 'tid' "
+                           "in the btree.</text--->"
+                           "<text>query staedte feed filter [.Name = 'Hargen'] staedte updatedirect [Name: "
+                           "'Hagen'] staedte_Name updatebtree [Name] count "
+                           "</text--->"
+                           ") )";
+
+/*
+2.17.4 Definition of operator ~updatebtree~
+
+*/
+Operator updatebtree (
+         "updatebtree",              // name
+         updateBTreeSpec,            // specification
+         updateBTreeValueMap,                // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         Operator::SimpleSelect,          // trivial selection function
+         updateBTreeTypeMap          // type mapping
+);
+
+
+
+/*
 
 7 Definition and initialization of btree algebra
 
@@ -1416,6 +1800,9 @@ class BTreeAlgebra : public Algebra
     AddOperator(&leftrange);
     AddOperator(&rightrange);
     AddOperator(&cpprange);
+    AddOperator(&insertbtree);
+    AddOperator(&deletebtree);
+    AddOperator(&updatebtree);
   }
   ~BTreeAlgebra() {};
 };

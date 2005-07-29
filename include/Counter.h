@@ -66,10 +66,8 @@ be introduced and called at a suitable position.
 #define CLASS_COUNTER_H
 
 #include <map>
-#include <vector>
 #include <string>
 #include <iostream>
-#include <algorithm>
 
 #include "LogMsg.h"
 
@@ -106,12 +104,8 @@ public:
   static void reportValues() {
 
     static int nr = 0;
-    static size_t mapsize = 0;
-    int colSepWidth = 2; 
-    int windowWidth = 80;
-
-    const string colSepStr(colSepWidth,' ');
-    const string sep(windowWidth,'_');
+    static size_t mapsize = 0; 
+    const string sep(60,'_');
     const string csvsep="|";
     ostream& clog = cmsg.file("cmd-counters.csv");  
 
@@ -127,39 +121,12 @@ public:
       mapsize = CounterMap.size();
     }
 
-    cout << sep << endl << "Counter Values:" << endl;
+    cout << sep << endl << "Counter Values ...  ";
     clog << ++nr;
-
-    // calculate the longest entry
-    int maxEntryLen = 0;
-    vector<string> entryTable;
     for (it=CounterMap.begin(); it!=CounterMap.end(); it++) {
-      
-       stringstream counter;
-       counter << it->first << " = " << it->second;
-       int len = counter.str().length();
-       if ( len > maxEntryLen ) {
-         maxEntryLen = len;
-       }
-       entryTable.push_back( counter.str() );
+
+       cout << it->first << "=" << it->second << ", ";
        clog << csvsep << it->second;
-    }
-    int colMax = windowWidth / (maxEntryLen + colSepWidth);
- 
-    // pretty print counter values
-    sort( entryTable.begin(), entryTable.end() );
-    vector<string>::const_iterator it2=entryTable.begin();
-    int colNr = 0;
-    while ( it2 != entryTable.end() ) {
-     
-     string xspace(maxEntryLen - it2->length(), ' '); 
-     cout << colSepStr << *it2 << xspace;
-     it2++; 
-     colNr++;
-     if ( colNr == colMax ) {
-       cout << endl;
-       colNr = 0;
-     } 
     }
     cout << endl << sep << endl << endl;
     clog << endl;

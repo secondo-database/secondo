@@ -4013,8 +4013,8 @@ void Mapping<Unit, Alpha>::Final( Intime<Alpha>& result )
     units.Get( GetNoComponents()-1, unit );
 
     result.SetDefined( true );
-    unit.TemporalFunction( unit.timeInterval.end, result.value );
-    result.instant.CopyFrom( &unit.timeInterval.end );
+    unit.TemporalFunction( unit.timeInterval.start, result.value );
+    result.instant.CopyFrom( &unit.timeInterval.start );
   }
 }
 
@@ -4089,7 +4089,6 @@ Word InRange( const ListExpr typeInfo, const ListExpr instance,
       Alpha *start = (Alpha *)InFun( nl->TheEmptyList(), nl->First( first ), errorPos, errorInfo, correct ).addr;
       if( correct == false )
       {
-        delete start;
         return SetWord( Address(0) );
       }
 
@@ -4097,7 +4096,6 @@ Word InRange( const ListExpr typeInfo, const ListExpr instance,
       if( correct == false )
       {
         delete start;
-        delete end;
         return SetWord( Address(0) );
       }
 
@@ -4113,8 +4111,6 @@ Word InRange( const ListExpr typeInfo, const ListExpr instance,
     else
     {
       correct = false;
-      range->Destroy();
-      delete range;
       return SetWord( Address(0) );
     }
   }
@@ -4257,13 +4253,10 @@ Word InIntime( const ListExpr typeInfo, const ListExpr instance,
   {
     Instant *instant = (Instant *)InInstant( nl->TheEmptyList(),
                                              nl->First( instance ),
-		                                         errorPos, errorInfo, correct ).addr;
+		                             errorPos, errorInfo, correct ).addr;
 
     if( correct == false )
-    {
-      delete instant;
       return SetWord( Address(0) );
-    }
 
     Alpha *value = (Alpha *)InFun( nl->TheEmptyList(), nl->Second( instance ), errorPos, errorInfo, correct ).addr;
     if( correct  )
@@ -4272,7 +4265,6 @@ Word InIntime( const ListExpr typeInfo, const ListExpr instance,
       delete value;
       return SetWord( intime );
     }
-    delete value;
   }
   correct = false;
   return SetWord( Address(0) );
@@ -4380,19 +4372,16 @@ Word InConstTemporalUnit( const ListExpr typeInfo, const ListExpr instance,
     ListExpr first = nl->First( instance );
 
     if( nl->ListLength( first ) == 4 &&
-	      nl->IsAtom( nl->Third( first ) ) &&
-        nl->AtomType( nl->Third( first ) ) == BoolType &&
-        nl->IsAtom( nl->Fourth( first ) ) &&
-        nl->AtomType( nl->Fourth( first ) ) == BoolType )
+	nl->IsAtom( nl->Third( first ) ) &&
+	nl->AtomType( nl->Third( first ) ) == BoolType &&
+	nl->IsAtom( nl->Fourth( first ) ) &&
+	nl->AtomType( nl->Fourth( first ) ) == BoolType )
     {
       Instant *start =
         (Instant *)InInstant( nl->TheEmptyList(), nl->First( first ),
 	                      errorPos, errorInfo, correct ).addr;
       if( correct == false )
-      {
-        delete start;
         return SetWord( Address(0) );
-      }
 
       Instant *end =
         (Instant *)InInstant( nl->TheEmptyList(), nl->Second( first ),
@@ -4400,7 +4389,6 @@ Word InConstTemporalUnit( const ListExpr typeInfo, const ListExpr instance,
       if( correct == false )
       {
         delete start;
-        delete end;
         return SetWord( Address(0) );
       }
 
@@ -4420,15 +4408,14 @@ Word InConstTemporalUnit( const ListExpr typeInfo, const ListExpr instance,
       {
         ConstTemporalUnit<Alpha> *constunit =
           new ConstTemporalUnit<Alpha>( tinterval, *value );
-
-        if( constunit->IsValid() )
-        {
-          delete value;
-          return SetWord( constunit );
-        }
-        delete constunit; 
+        delete value;
+        return SetWord( constunit );
       }
-      delete value;
+    }
+    else
+    {
+      correct = false;
+      return SetWord( Address(0) );
     }
   }
   correct = false;
@@ -4556,19 +4543,11 @@ Word InMapping( const ListExpr typeInfo, const ListExpr instance,
     Unit *unit = (Unit*)InUnit( nl->TheEmptyList(), first,
                                 errorPos, errorInfo, correct ).addr;
     if( correct == false )
-    {
-      correct = false;
-      delete unit;
-      m->Destroy();
-      delete m;
       return SetWord( Address(0) );
-    }
     m->Add( *unit );
     delete unit;
   }
-
   m->EndBulkLoad( true );
-
   if( m->IsValid() )
   {
     correct = true;
@@ -4670,45 +4649,6 @@ void* CastMapping(void* addr)
 {
   return new (addr) Mapping;
 }
-
-/*
-6 Header functions
-
-*/
-template <class Mapping>
-int MappingIsEmpty( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Unit>
-int UnitIsEmpty( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping>
-int MappingEqual( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping>
-int MappingNotEqual( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Alpha>
-int IntimeInst( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Alpha>
-int IntimeVal( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping, class Alpha>
-int MappingNoComponents( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping, class Alpha>
-int MappingAtInstant( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping>
-int MappingAtPeriods( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping>
-int MappingDefTime( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping>
-int MappingPresent_i( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping>
-int MappingPresent_p( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping, class Alpha>
-int MappingPasses( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping, class Unit, class Alpha>
-int MappingInitial( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping, class Unit, class Alpha>
-int MappingFinal( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping, class Unit, class Alpha>
-int MappingAt( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping, class Unit>
-int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s);
 
 
 #endif // _TEMPORAL_ALGEBRA_H_
