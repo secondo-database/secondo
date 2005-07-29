@@ -148,6 +148,12 @@ Inserts in the B-Tree the pair <~key~, ~recordid~>.
 
 */
 
+    bool Delete(const SmiKey& key, const SmiRecordId id);
+/*
+Deletes in the B-Tree the pair <~key~, ~recordid~>.
+
+*/
+
     SmiKeyedFile* GetFile() const;
 /*
 Returns the B-Tree file.

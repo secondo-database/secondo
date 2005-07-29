@@ -1,4 +1,4 @@
-#This file is part of SECONDO.
+#This file is part of SECONDO. 
 
 #Copyright (C) 2004, University in Hagen, Department of Computer Science, 
 #Database Systems for New Applications.
@@ -21,4 +21,10 @@ operator createbtree alias CREATEBTREE pattern _ op [ _ ]
 operator leftrange alias LEFTRANGE pattern _ _ op [ _ ]
 operator rightrange alias RIGHTRANGE pattern _ _ op [ _ ]
 operator range alias RANGE pattern _ _ op [ _, _ ]
+operator insertbtree alias INSERTBTREE pattern _ _ op [ _ ]
+operator deletebtree alias DELETEBTREE pattern _ _ op [ _ ]
+operator updatebtree alias UPDATEBTREE pattern _ _ op [ _ ]
 operator exactmatch alias EXACTMATCH pattern _ _ op [ _ ]
+
+
+

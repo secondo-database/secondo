@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -50,11 +50,7 @@ Stefan Dieker, 03/05/98
 */
 #include "SecondoSMI.h"
 
-#ifdef PERSISTENT_FLOB
-enum FLOB_Type {Destroyed, InMemory, InDiskSmall, InDiskLarge, InDiskMemory};
-#else
 enum FLOB_Type {Destroyed, InMemory, InDiskSmall, InDiskLarge};
-#endif
 
 /*
 3 class FLOB
@@ -77,7 +73,7 @@ class FLOB
 
   public:
 
-    static const int SWITCH_THRESHOLD;
+    static const size_t SWITCH_THRESHOLD;
 /*
 This is the tresholdsize for a FLOB.  Whenever the size of this FLOB exceeds
 the thresholdsize the data will stored in a separate file for lobs.
@@ -93,7 +89,7 @@ This constructor should not be used.
 Create a new FLOB from scratch.
 
 */
-    FLOB( int sz );
+    FLOB( size_t sz );
 
 /*
 3.3 Destructor
@@ -110,7 +106,7 @@ Deletes the FLOB instance.
 Brings a disk lob to memory, i.e., converts a flob in ~InDiskLarge~
 state to a ~InMemory~ state.
 
-*/ 
+*/
     char *BringToMemory();
 
 /*
@@ -119,15 +115,15 @@ state to a ~InMemory~ state.
 Read by copying
 
 */
-    void Get( int offset, int length, void *target );
+    void Get( size_t offset, size_t length, void *target );
 
 /*
-3.6	Put
+3.6 Put
 
 Write Flob data into source.
 
 */
-    void Put( int offset, int length, const void *source );
+    void Put( size_t offset, size_t length, const void *source );
 
 /*
 3.7 Size
@@ -135,7 +131,7 @@ Write Flob data into source.
 Returns the size of a FLOB.
 
 */
-    int Size() const;
+    size_t Size() const;
 
 
 /*
@@ -144,10 +140,10 @@ Returns the size of a FLOB.
 Resizes the FLOB.
 
 */
-    void Resize( int size );
+    void Resize( size_t size );
 
 /*
-3.8 Clear 
+3.8 Clear
 
 Clears the FLOB.
 
@@ -156,7 +152,7 @@ Clears the FLOB.
 
 
 /*
-3.8 Destroy 
+3.8 Destroy
 
 Destroys the physical representation of the FLOB.
 
@@ -164,30 +160,40 @@ Destroys the physical representation of the FLOB.
     void Destroy();
 
 /*
-3.9 Restore
-
-Restore from byte string.
-
-*/
-    void Restore( void *address );
-
-/*
 3.10 SaveToLob
 
+Saves the FLOB to the LOB file. The FLOB must be a LOB. The type is set
+to ~InDiskLarge~.
+
 */
-    void SaveToLob( SmiRecordFile& lobFile, SmiRecordId lobId = 0 );
+    size_t SaveToLob( SmiRecordFile& lobFile, SmiRecordId lobId = 0 );
 
 /*
 3.10 SetLobFile
+
+Sets the LOB file. The FLOB must be a LOB.
 
 */
     void SetLobFile( SmiRecordFile* lobFile );
 
 /*
-3.11 SaveToTupleRecord
+3.11 SaveToExtensionTuple
+
+Saves the FLOB to a buffer of an extension tuple and sets its type to ~InDiskSmall~.
 
 */
-    void SaveToExtensionTuple( void *extensionTuple = 0 );
+    void SaveToExtensionTuple( void *extensionTuple );
+
+/*
+3.12 ReadFromExtensionTuple
+
+Reads the FLOB value from an extension tuple. There are two ways of reading, one uses
+a Prefetching Iterator and the other reads directly from the SMI Record.
+The FLOB must be small.
+
+*/
+    size_t ReadFromExtensionTuple( PrefetchingIterator& iter, size_t offset );
+    size_t ReadFromExtensionTuple( SmiRecord& record, size_t offset );
 
 /*
 3.10 IsLob
@@ -207,20 +213,21 @@ Returns true, if value stored in underlying LOB, otherwise false.
   protected:
 
     FLOB_Type type;
-    int size;
+    size_t size;
 
     union FLOB_Descriptor
     {
       struct InMemory
       {
         char *buffer;
-        bool freeBuffer;
       } inMemory;
+
       struct InDiskLarge
       {
-    	SmiRecordFile *lobFile;
+        SmiRecordFile *lobFile;
         SmiRecordId lobId;
       } inDiskLarge;
+
     } fd;
 };
 

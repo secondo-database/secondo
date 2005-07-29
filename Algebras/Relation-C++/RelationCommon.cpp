@@ -52,8 +52,6 @@ Algebra. These common functionalities belongs to this implementation file.
 #include "SecondoSystem.h"
 #include "QueryProcessor.h"
 #include "NestedList.h"
-#include "Counter.h"
-
 #include <set>
 
 extern NestedList *nl;
@@ -117,7 +115,7 @@ TupleType::TupleType( const TupleType& tupleType ):
   }
 }
 
-TupleType::TupleType( const int noAttrs, AttributeType* attrs ):
+TupleType::TupleType( const int noAttrs, AttributeType *attrs ):
   noAttributes( noAttrs ),
   attrTypeArray( attrs ),
   totalSize( 0 )
@@ -140,7 +138,6 @@ TupleType::~TupleType()
 */
 Tuple *Tuple::Clone( const bool isFree ) const
 {
-  Counter::getRef("RA:ClonedTuples")++;
   Tuple *result = new Tuple( this->GetTupleType(), isFree );
   for( int i = 0; i < this->GetNoAttributes(); i++ )
   {
@@ -166,12 +163,11 @@ CcTuple *Tuple::CloneToMemoryTuple( const bool isFree ) const
   return result;
 }
 
-void
-Tuple::ShowTupleStatistics( const bool reset )
+ostream& Tuple::ShowTupleStatistics( const bool reset, ostream& o )
 {
-  Counter::getRef("RA:CreatedTuples") = Tuple::tuplesCreated; 
-  Counter::getRef("RA:DeletedTuples") = Tuple::tuplesDeleted; 
-  Counter::getRef("RA:MaxTuplesInMem") = Tuple::maximumTuples; 
+  o << "Tuples created: " << Tuple::tuplesCreated << endl
+    << "Tuples deleted: " << Tuple::tuplesDeleted << endl
+    << "Maximum # of tuples in memory: " << Tuple::maximumTuples << endl;
 
   if( reset )
   {
@@ -180,6 +176,8 @@ Tuple::ShowTupleStatistics( const bool reset )
     maximumTuples = 0;
     tuplesInMemory = 0;
   }
+
+  return o;
 }
 
 ostream &operator<< (ostream &os, TupleElement &attrib)

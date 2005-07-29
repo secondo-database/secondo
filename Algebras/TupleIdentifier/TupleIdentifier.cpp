@@ -39,8 +39,9 @@ for the implementation of operators to update relations.
 
 using namespace std;
 
-#include "RelationAlgebra.h"
+
 #include "TupleIdentifier.h"
+	
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -78,7 +79,7 @@ TupleIdentifier::~TupleIdentifier() {}
 
 TupleId TupleIdentifier::GetTid() {return tid;}
 
-void TupleIdentifier::SetTid(TupleId TID) {tid = TID; defined = true;}
+void TupleIdentifier::SetTid(TupleId TID) {tid = TID;}
 
 TupleIdentifier* TupleIdentifier::Clone() { return new TupleIdentifier( *this ); }
 
@@ -215,225 +216,6 @@ TypeConstructor tupleIdentifier(
     TypeConstructor::DummyValueListToModel );
 
 /*
-3 Operators
-
-3.1 Operator ~tupleid~
-
-Returns the tuple identifier.
-
-3.1.1 Type mapping function of operator ~tupleid~
-
-Operator ~tupleid~ accepts a tuple and returns an integer.
-
-----    (tuple x)           -> tid
-----
-
-*/
-ListExpr
-TupleIdTypeMap(ListExpr args)
-{
-  ListExpr first;
-  string argstr;
-
-  CHECK_COND(nl->ListLength(args) == 1,
-  "Operator tupleid expects a list of length one.");
-
-  first = nl->First(args);
-
-  nl->WriteToString(argstr, first);
-  CHECK_COND(  nl->ListLength(first) == 2 &&
-               TypeOfRelAlgSymbol(nl->First(first)) == tuple &&
-               IsTupleDescription(nl->Second(first)),
-  "Operator tupleid expects a list with structure "
-  "(tuple ((a1 t1)...(an tn)))\n"
-  "Operator tupleid gets a list with structure '" + argstr + "'.");
-
-  return nl->SymbolAtom("tid");
-}
-
-/*
-3.1.2 Value mapping function of operator ~tupleid~
-
-*/
-int
-TIDTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  Tuple* t = (Tuple*)args[0].addr;
-  result = qp->ResultStorage(s);
-  ((TupleIdentifier *) result.addr)->SetTid( t->GetTupleId() );
-  return 0;
-}
-
-/*
-3.1.3 Specification of operator ~tupleid~
-
-*/
-const string TupleIdSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>(tuple x) -> int</text--->"
-                            "<text>tupleid( _ )</text--->"
-                            "<text>Returns the identification of the tuple.</text--->"
-                            "<text>query cities feed filter[ tupleid(.) < 100 ]"
-                            " consume</text--->) )";
-
-/*
-3.1.4 Definition of operator ~tupleid~
-
-*/
-Operator tidtupleid (
-         "tupleid",             // name
-         TupleIdSpec,           // specification
-         TIDTupleId,            // value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         Operator::SimpleSelect,         // trivial selection function
-         TupleIdTypeMap         // type mapping
-);
-
-/*
-3.2 Operator ~addtupleid~
-
-Appends the tuple identifier as an attribute in the stream of tuples.
-
-3.1.1 Type mapping function of operator ~addtupleid~
-
-Operator ~addtupleid~ accepts a stream of tuples and returns the same stream
-with the tuple identifier attribute in the end.
-
-----    (stream (tuple ((x1 t1) ... (xn tn))))   -> 
-        (stream (tuple ((x1 t1) ... (xn tn) (id tid))))
-----
-
-*/
-ListExpr
-AddTupleIdTypeMap(ListExpr args)
-{
-  ListExpr first;
-  string argstr;
-
-  CHECK_COND(nl->ListLength(args) == 1,
-  "Operator addtupleid expects a list of length one.");
-
-  first = nl->First(args);
-
-  nl->WriteToString(argstr, first);
-  CHECK_COND(  nl->ListLength(first) == 2 &&
-               TypeOfRelAlgSymbol(nl->First(first)) == stream &&
-               TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple &&
-               IsTupleDescription(nl->Second(nl->Second(first))),
-  "Operator addtupleid expects a list with structure "
-  "(stream (tuple ((a1 t1)...(an tn))))\n"
-  "Operator addtupleid gets a list with structure '" + argstr + "'.");
-
-  ListExpr rest = nl->Second(nl->Second(first)),
-           newAttrList, lastNewAttrList;
-  bool firstcall = true;
-
-  while (!nl->IsEmpty(rest))
-  {
-    first = nl->First(rest);
-    rest = nl->Rest(rest);
-
-    if (firstcall)
-    {
-      firstcall = false;
-      newAttrList = nl->OneElemList(first);
-      lastNewAttrList = newAttrList;
-    }
-    else
-    {
-      lastNewAttrList = nl->Append(lastNewAttrList, first);
-    }
-  }
-  lastNewAttrList = nl->Append(lastNewAttrList, 
-                               nl->TwoElemList(
-                                 nl->SymbolAtom("id"),
-                                 nl->SymbolAtom("tid")));
-  
-  return nl->TwoElemList(
-           nl->SymbolAtom("stream"),
-           nl->TwoElemList(
-             nl->SymbolAtom("tuple"),
-             newAttrList));
-}
-
-/*
-3.1.2 Value mapping function of operator ~addtupleid~
-
-*/
-int
-TIDAddTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  TupleType *resultTupleType;
-  ListExpr resultType;
-  Word t;
-
-  switch (message)
-  {
-    case OPEN :
-
-      qp->Open(args[0].addr);
-      resultType = GetTupleResultType( s );
-      resultTupleType = new TupleType( nl->Second( resultType ) );
-      local = SetWord( resultTupleType );
-      return 0;
-
-    case REQUEST :
-
-      resultTupleType = (TupleType *)local.addr;
-      qp->Request(args[0].addr,t);
-      if (qp->Received(args[0].addr))
-      {
-        Tuple *tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( *resultTupleType, true );
-        assert( newTuple->GetNoAttributes() == tup->GetNoAttributes() + 1 );
-        for( int i = 0; i < tup->GetNoAttributes(); i++ )
-          newTuple->PutAttribute( i, tup->GetAttribute( i )->Clone() );
-        newTuple->PutAttribute( newTuple->GetNoAttributes() - 1, new TupleIdentifier( true, tup->GetTupleId() ) );
-
-        tup->DeleteIfAllowed();
-        result = SetWord(newTuple);
-        return YIELD;
-      }
-      else
-        return CANCEL;
-
-    case CLOSE :
-
-      resultTupleType = (TupleType *)local.addr;
-      delete resultTupleType;
-      qp->Close(args[0].addr);
-      return 0;
-  }
-  return 0;
-}
-
-/*
-3.1.3 Specification of operator ~addtupleid~
-
-*/
-const string AddTupleIdSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                               "\"Example\" ) "
-                               "( <text>(stream (tuple ((x1 t1) ... (xn tn)))) ->"
-                               "(stream (tuple ((x1 t1) ... (xn tn) (id tid))))</text--->"
-                               "<text>_ addtupleid</text--->"
-                               "<text>Appends the tuple identifier in the tuple type</text--->"
-                               "<text>query cities feed addtupleid consume</text--->) )";
-
-/*
-3.1.4 Definition of operator ~addtupleid~
-
-*/
-Operator tidaddtupleid (
-         "addtupleid",             // name
-         AddTupleIdSpec,           // specification
-         TIDAddTupleId,            // value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         Operator::SimpleSelect,         // trivial selection function
-         AddTupleIdTypeMap         // type mapping
-);
-
-
-/*
 5 Creating the Algebra
 
 */
@@ -445,9 +227,8 @@ class TupleIdentifierAlgebra : public Algebra
   {
     AddTypeConstructor( &tupleIdentifier );
     tupleIdentifier.AssociateKind( "DATA" );
-
-    AddOperator( &tidtupleid );
-    AddOperator( &tidaddtupleid );
+    
+    
   }
   ~TupleIdentifierAlgebra() {};
 };

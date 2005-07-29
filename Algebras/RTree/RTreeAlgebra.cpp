@@ -1,4 +1,4 @@
-/*
+/* 
 ----
 This file is part of SECONDO.
 
@@ -67,6 +67,7 @@ using namespace std;
 #include "RectangleAlgebra.h"
 #include "RTreeAlgebra.h"
 #include "CPUTimeMeasurer.h"
+#include "TupleIdentifier.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -863,6 +864,670 @@ Operator windowintersects (
          WindowIntersectsTypeMap    // type mapping
 );
 
+
+/*
+7.3 Operator ~insertrtree~
+
+For each tuple of the inputstream inserts an entry into the rtree. The entry is built from the 
+spatial-attribute over which the tree is built and the tuple-identifier wich is extracted from the 
+input-tuples as the last attribute. The inputstream is returned again as the result of this operator.
+
+
+7.3.0 General Type mapping function of operators ~insertrtree~, ~deletertree~ and ~updatertree~
+
+
+
+
+Type mapping ~insertrtree~ and ~deletertree~ on a rtree
+
+----     (stream (tuple ((a1 x1) ... (an xn) (tid int)))) (rtree X ti) ai
+
+        -> (stream (tuple ((a1 x1) ... (an xn) (TID tid))))
+
+        where X = (tuple ((a1 x1) ... (an xn)))
+----
+
+Type mapping ~updatertree~ on a rtree
+
+----     (stream (tuple ((a1 x1) ... (an xn)(a1_old x1)... (an_old xn) (TID tid)))) (rtree X ti) ai
+
+        -> (stream (tuple ((a1 x1) ... (an xn)(a1_old x1) (an_old xn) (TID tid))))
+
+        where X = (tuple ((a1 x1) ... (an xn)))
+----
+
+*/
+
+ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
+{
+  	ListExpr  rest,next,listn,lastlistn,restRTreeAttrs, oldAttribute,outList;
+  	string argstr, argstr2, oldName;
+  
+  	AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
+  	ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  
+
+   	/* Split argument in three parts */
+  	ListExpr streamDescription = nl->First(args);
+  	ListExpr rtreeDescription = nl->Second(args);
+  	ListExpr nameOfKeyAttribute = nl->Third(args);
+
+	// Test stream
+  	nl->WriteToString(argstr, streamDescription);
+  	CHECK_COND(nl->ListLength(streamDescription) == 2  &&
+             	(TypeOfRelAlgSymbol(nl->First(streamDescription)) == stream) &&
+             	(nl->ListLength(nl->Second(streamDescription)) == 2) &&
+             	(TypeOfRelAlgSymbol(nl->First(nl->Second(streamDescription))) == tuple) &&
+       			(nl->ListLength(nl->Second(streamDescription)) == 2) &&
+       			(IsTupleDescription(nl->Second(nl->Second(streamDescription)))),
+    			"Operator " + opName + " expects as first argument a list with structure "
+    			"(stream (tuple ((a1 t1)...(an tn)(tid real)))\n"
+    			"Operator " + opName + " gets as first argument '" + argstr + "'." );
+    // Test if last attribute is of type 'tid'
+  	rest = nl->Second(nl->Second(streamDescription));
+  	while (!(nl->IsEmpty(rest)))
+  	{
+     	next = nl->First(rest);
+     	rest = nl->Rest(rest);
+  	}
+  	CHECK_COND(!(nl->IsAtom(next)) &&
+             	(nl->IsAtom(nl->Second(next)))&&
+             	(nl->AtomType(nl->Second(next)) == SymbolType)&&
+             	(nl->SymbolValue(nl->Second(next)) == "tid"),
+    			"Operator " + opName + ": Type of last attribute of tuples of the inputstream must be tid" );
+ 	// Test rtree
+
+  	/* handle rtree part of argument */
+  	CHECK_COND(!nl->IsEmpty(rtreeDescription), "Operator " + opName + ": Description for the rtree may not be empty");
+  	CHECK_COND(!nl->IsAtom(rtreeDescription), "Operator " + opName + ": Description for the rtree may not be an atom");
+  	CHECK_COND(nl->ListLength(rtreeDescription) == 3, "Operator " + opName + ": Description for the rtree must consist of three parts");
+
+  	ListExpr rtreeSymbol = nl->First(rtreeDescription);;
+  	ListExpr rtreeTupleDescription = nl->Second(rtreeDescription);
+  	ListExpr rtreeKeyType = nl->Third(rtreeDescription);
+
+  	/* handle rtree type constructor */
+  	CHECK_COND(nl->IsAtom(rtreeSymbol), "Operator " + opName + ": First part of the rtree-description has to be 'rtree'");
+  	CHECK_COND(nl->AtomType(rtreeSymbol) == SymbolType, "Operator " + opName + ": First part of the rtree-description has to be 'bree' ");
+  	CHECK_COND(nl->SymbolValue(rtreeSymbol) == "rtree","Operator " + opName + ": First part of the rtree-description has to be 'bree' ");
+	/* handle btree tuple description */
+  	CHECK_COND(!nl->IsEmpty(rtreeTupleDescription), "Operator " + opName + ": Second part of the rtree-description has to be a tuple-description ");
+  	CHECK_COND(!nl->IsAtom(rtreeTupleDescription), "Operator " + opName + ": Second part of the rtree-description has to be a tuple-description ");
+  	CHECK_COND(nl->ListLength(rtreeTupleDescription) == 2, "Operator " + opName + ": Second part of the rtree-description has to be a tuple-description ");
+  	ListExpr rtreeTupleSymbol = nl->First(rtreeTupleDescription);;
+  	ListExpr rtreeAttrList = nl->Second(rtreeTupleDescription);
+
+  	CHECK_COND(nl->IsAtom(rtreeTupleSymbol),"Operator " + opName + ": Second part of the rtree-description has to be a tuple-description ");
+  	CHECK_COND(nl->AtomType(rtreeTupleSymbol) == SymbolType, "Operator " + opName + ": Second part of the rtree-description has to be a tuple-description ");
+  	CHECK_COND(nl->SymbolValue(rtreeTupleSymbol) == "tuple", "Operator " + opName + ": Second part of the rtree-description has to be a tuple-description ");
+  	CHECK_COND(IsTupleDescription(rtreeAttrList), "Operator " + opName + ": Second part of the rtree-description has to be a tuple-description ");
+  
+   	/* Handle key-part of rtreedescription */
+  	CHECK_COND(nl->IsAtom(rtreeKeyType), "Operator " + opName + ": Key of the rtree has to be an atom");
+  	CHECK_COND(nl->AtomType(rtreeKeyType) == SymbolType,"Operator " + opName + ": Key of the rtree has to be an atom");
+  
+  	// Handle third argument which shall be the name of the attribute of the streamtuples
+  	// that serves as the key for the rtree
+  	// Later on it is checked if this name is an attributename of the inputtuples
+  	CHECK_COND(nl->IsAtom(nameOfKeyAttribute), "Operator " + opName + ": Name of the key-attribute of the streamtuples has to be an atom");
+  	CHECK_COND(nl->AtomType(nameOfKeyAttribute) == SymbolType, "Operator " + opName + ": Name of the key-attribute of the streamtuples has to be an atom");
+
+  	// Check whether tupledescription of the stream without the last attribute is the same as the tupledescription of the rtree 
+  	rest = nl->Second(nl->Second(streamDescription));
+  	CHECK_COND(nl->ListLength(rest) > 1 , "Operator " + opName + ": There must be at least two attributes in the tuples of the tuple-stram");
+	//Test if stream-tupledescription fits to btree-tupledescription
+  	listn = nl->OneElemList(nl->First(rest));
+  	lastlistn = listn;
+  	rest = nl->Rest(rest);
+  	// For updates the inputtuples need to carry the old attributevalues after the
+  	// new values but their names with an additional _old at the end
+  	if (opName == "updatebtree"){
+  		// Compare first part of the streamdescription
+  		while (nl->ListLength(rest) > nl->ListLength(rtreeAttrList) + 1){
+     		lastlistn = nl->Append(lastlistn,nl->First(rest));
+     		rest = nl->Rest(rest);
+  		}
+  		CHECK_COND(nl->Equal(listn,rtreeAttrList), "Operator " + opName + ": First part of the tupledescription of the stream "
+  			"has to be the same as the tupledescription of the rtree");
+  		// Compare second part of the streamdescription
+  		restRTreeAttrs = rtreeAttrList;
+  		while (nl->ListLength(rest) >  1){
+  	 		nl->WriteToString(oldName, nl->First(nl->First(restRTreeAttrs)));
+  	 		oldName += "_old";
+  	 		oldAttribute = nl->TwoElemList(nl->SymbolAtom(oldName),nl->Second(nl->First(restRTreeAttrs)));
+  	 		CHECK_COND(nl->Equal(oldAttribute,nl->First(rest)), "Operator " + opName + ": Second part of the tupledescription of the stream "
+     					"without the last attribute has to be the same as the tupledescription of the rtree except for that"
+     					" the attributenames carry an additional '_old.'");
+     		rest = nl->Rest(rest);
+     		restRTreeAttrs = nl->Rest(restRTreeAttrs);
+  		}		
+  	}
+  	// For insert and delete check whether tupledescription of the stream without the last 
+  	//attribute is the same as the tupledescription of the rtree 
+  	else{ // operators insertrtree and deletertree
+  		while (nl->ListLength(rest) > 1){
+     		lastlistn = nl->Append(lastlistn,nl->First(rest));
+     		rest = nl->Rest(rest);
+  		}
+  		CHECK_COND(nl->Equal(listn,rtreeAttrList), "Operator " + opName + ": tupledescription of the stream without the"
+  					"last attribute has to be the same as the tupledescription of the rtree");
+  	}
+  	
+	// Test if attributename of the third argument exists as a name in the attributlist of the streamtuples
+	string attrname = nl->SymbolValue(nameOfKeyAttribute);
+	ListExpr attrType;
+	int j = FindAttribute(listn,attrname,attrType);
+	CHECK_COND(j != 0, "Operator " + opName + ": Name of the attribute that shall contain the keyvalue for the"
+	 			"rtree was not found as a name of the attributes of the tuples of the inputstream"); 
+	//Test if type of the attriubte which shall be taken as a key is the same as the keytype of the rtree
+	CHECK_COND(nl->Equal(attrType,rtreeKeyType), "Operator " + opName + ": Type of the attribute that shall contain the keyvalue for the"
+	 			"rtree is not the same as the keytype of the rtree");
+	// Check if indexed attribute has a spatial-type
+	CHECK_COND(algMgr->CheckKind("SPATIAL2D", attrType, errorInfo)||
+             	algMgr->CheckKind("SPATIAL3D", attrType, errorInfo)||
+             	algMgr->CheckKind("SPATIAL4D", attrType, errorInfo)||
+             	nl->IsEqual(attrType, "rect")||
+             	nl->IsEqual(attrType, "rect3")||
+             	nl->IsEqual(attrType, "rect4"),
+             	"Operator " + opName + " expects that attribute "+attrname+"\n"
+             	"belongs to kinds SPATIAL2D, SPATIAL3D, or SPATIAL4D\n"
+             	"or rect, rect3, and rect4.");
+     // Extract dimension and spatianltype to append them to the resultlist
+	 int dim = 0;
+	 int spatial = 0;
+	 if (nl->IsEqual(attrType, "rect"))
+		dim = 2; 
+	 if (nl->IsEqual(attrType, "rect3"))
+		dim = 3;
+	 if (nl->IsEqual(attrType, "rect4"))
+		dim = 4;
+	 if (algMgr->CheckKind("SPATIAL2D", attrType, errorInfo)){
+		dim = 2;
+		spatial = 1; 
+	 }
+	 if (algMgr->CheckKind("SPATIAL3D", attrType, errorInfo)){
+		dim = 3;
+		spatial = 1; 
+	 }
+	 if (algMgr->CheckKind("SPATIAL4D", attrType, errorInfo)){
+		dim = 4;
+		spatial = 1; 
+	 }
+	 //Append the index of the attribute over which the btree is built to the resultlist. 
+	 ListExpr append = nl->OneElemList(nl->IntAtom(j));
+	 ListExpr lastAppend = append;
+	 //Append the dimension of the spatial-attribute to the resutllist.
+	 lastAppend = nl->Append(lastAppend,nl->IntAtom(dim));
+	 //Append if the index-attribute is of 'rect'- or 'spatial'-type
+	 lastAppend = nl->Append(lastAppend,nl->IntAtom(spatial));
+	 //Append the index of the attribute over which the btree is built to the resultlist. 
+	 outList = nl->ThreeElemList(nl->SymbolAtom("APPEND"), nl->OneElemList(append),streamDescription);
+  	 return outList;
+}
+
+/*
+
+7.3.1 TypeMapping of operator ~insertrtree~
+
+*/
+
+ListExpr insertRTreeTypeMap(ListExpr args){
+	return allUpdatesRTreeTypeMap(args, "insertrtree");
+}
+
+/*
+
+7.3.2 ValueMapping of operator ~insertrtree~
+
+*/
+
+
+template<unsigned dim>
+ void insertRTree_rect(Word& rtreeWord, Attribute* keyAttr, TupleId& oldTid){
+	R_Tree<dim> *rtree = (R_Tree<dim>*)rtreeWord.addr;  
+    BBox<dim> *box = (BBox<dim>*)keyAttr;
+    R_TreeEntry<dim> e( *box, oldTid );
+    rtree->Insert( e );
+}
+
+template<unsigned dim>
+ void insertRTree_spatial(Word& rtreeWord, Attribute* keyAttr, TupleId& oldTid){
+	R_Tree<dim> *rtree = (R_Tree<dim>*)rtreeWord.addr;  
+    BBox<dim> box = ((StandardSpatialAttribute<dim>*)keyAttr)->BoundingBox();
+    R_TreeEntry<dim> e( box, oldTid );
+    rtree->Insert( e );
+}
+
+int insertRTreeValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word t, argRTree, attrPos, dimWord, spatialWord;
+  Tuple* tup;
+  CcInt* indexp;
+  CcInt* dimp;
+  CcInt* spatialp;
+  int index, dim, spatial;
+  Attribute* keyAttr;
+  Attribute* tidAttr;
+  TupleId oldTid;
+  SmiKey key;
+  int* localTransport;
+  Supplier suppIndex, suppDim, suppSpatial;
+  
+
+  switch (message)
+  {
+    case OPEN :
+      qp->Open(args[0].addr);
+      suppIndex = qp->GetSupplier(args[3].addr,0);
+      qp->Request(suppIndex,attrPos);
+      indexp = ((CcInt*)attrPos.addr);
+      suppDim = qp->GetSupplier(args[3].addr,1);
+      qp->Request(suppDim,dimWord);
+      dimp = ((CcInt*)dimWord.addr);
+      suppSpatial = qp->GetSupplier(args[3].addr,2);
+      qp->Request(suppSpatial,spatialWord);
+      spatialp = ((CcInt*)spatialWord.addr);
+      localTransport = new int[3];
+      localTransport[0] = indexp->GetIntval();
+      localTransport[1] = dimp->GetIntval();
+      localTransport[2] = spatialp->GetIntval();
+      local = SetWord(localTransport );
+      return 0;
+
+    case REQUEST :
+	  localTransport = (int*) local.addr;
+      index = localTransport[0];
+      dim = localTransport[1];
+      spatial = localTransport[2];
+      qp->Request(args[0].addr,t);
+      qp->Request(args[1].addr, argRTree);
+      if (qp->Received(args[0].addr))
+      {
+        tup = (Tuple*)t.addr;
+       	keyAttr = tup->GetAttribute(index - 1);      
+       	tidAttr = tup->GetAttribute(tup->GetNoAttributes() - 1);
+       	oldTid = ((TupleIdentifier*)tidAttr)->GetTid();
+       	if (spatial){
+       		switch(dim){
+       		case 2: insertRTree_spatial<2>(argRTree,keyAttr,oldTid); break;
+       		case 3: insertRTree_spatial<3>(argRTree,keyAttr,oldTid); break;
+       		case 4: insertRTree_spatial<4>(argRTree,keyAttr,oldTid); break;
+       		default: cout << "Error: Trying to enter an entry with dimension: " << dim << " into a rtree" << endl;
+       		}
+       	}
+       	else{
+       		switch(dim){
+       		case 2: insertRTree_rect<2>(argRTree,keyAttr,oldTid); break;
+       		case 3: insertRTree_rect<3>(argRTree,keyAttr,oldTid); break;
+       		case 4: insertRTree_rect<4>(argRTree,keyAttr,oldTid); break;
+       		default: cout << "Error: Trying to enter an entry with dimension: " << dim << " into a rtree" << endl;
+       		}
+       	}
+        result = SetWord(tup);
+        return YIELD;
+      }
+      else
+        return CANCEL;
+
+    case CLOSE :
+  		localTransport = (int*) local.addr;
+    	delete[] localTransport;
+    	qp->Close(args[0].addr);
+    	qp->SetModified(args[1].addr);
+        return 0;
+  }
+  return 0;
+}
+
+/*
+7.3.3 Specification of operator ~insertrtree~
+
+*/
+const string insertRTreeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" ) "
+                           "( <text>stream(tuple(x@[TID:tid])) x rtree(tuple(x) ti) x xi"
+                           " -> stream(tuple(x@[TID:tid]))] "
+                           "</text--->"
+                           "<text>_ _ insertrtree [_]</text--->"
+                           "<text>Inserts references to the tuples with TupleId 'TID' "
+                           "into the rtree.</text--->"
+                           "<text>query neueStaedte feed staedte insert staedte_Ort "
+                           " insertrtree [Ort] count "
+                           "</text--->"
+                           ") )";
+
+/*
+7.3.4 Definition of operator ~insertrtree~
+
+*/
+Operator insertrtree (
+         "insertrtree",              // name
+         insertRTreeSpec,            // specification
+         insertRTreeValueMap,                // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         Operator::SimpleSelect,          // trivial selection function
+         insertRTreeTypeMap          // type mapping
+);
+
+/*
+7.4 Operator ~deletertree~
+
+For each tuple of the inputstream removes an entry from the rtree. The entry is built from the 
+spatial-attribute over which the tree is built and the tuple-identifier wich is extracted from the 
+input-tuples as the last attribute. The inputstream is returned again as the result of this operator.
+
+
+7.4.1 Type mapping function of operator ~deletertree~
+
+
+*/
+
+ListExpr deleteRTreeTypeMap( ListExpr args )
+{
+  return allUpdatesRTreeTypeMap(args, "deletertree");
+}
+
+/*
+7.4.1 Value mapping function of operator ~deletertree~
+
+
+*/
+
+template<unsigned dim>
+ void deleteRTree_rect(Word& rtreeWord, Attribute* keyAttr, TupleId& oldTid){
+	R_Tree<dim> *rtree = (R_Tree<dim>*)rtreeWord.addr;  
+    BBox<dim> *box = (BBox<dim>*)keyAttr;
+    R_TreeEntry<dim> e( *box, oldTid );
+    rtree->Remove( e );
+}
+
+template<unsigned dim>
+ void deleteRTree_spatial(Word& rtreeWord, Attribute* keyAttr, TupleId& oldTid){
+	R_Tree<dim> *rtree = (R_Tree<dim>*)rtreeWord.addr;  
+    BBox<dim> box = ((StandardSpatialAttribute<dim>*)keyAttr)->BoundingBox();
+    R_TreeEntry<dim> e( box, oldTid );
+    rtree->Remove( e );
+}
+
+int deleteRTreeValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word t, argRTree, attrPos, dimWord, spatialWord;
+  Tuple* tup;
+  CcInt* indexp;
+  CcInt* dimp;
+  CcInt* spatialp;
+  int index, dim, spatial;
+  Attribute* keyAttr;
+  Attribute* tidAttr;
+  TupleId oldTid;
+  SmiKey key;
+  int* localTransport;
+  Supplier suppIndex, suppDim, suppSpatial;
+  
+
+  switch (message)
+  {
+    case OPEN :
+      qp->Open(args[0].addr);
+      suppIndex = qp->GetSupplier(args[3].addr,0);
+      qp->Request(suppIndex,attrPos);
+      indexp = ((CcInt*)attrPos.addr);
+      suppDim = qp->GetSupplier(args[3].addr,1);
+      qp->Request(suppDim,dimWord);
+      dimp = ((CcInt*)dimWord.addr);
+      suppSpatial = qp->GetSupplier(args[3].addr,2);
+      qp->Request(suppSpatial,spatialWord);
+      spatialp = ((CcInt*)spatialWord.addr);
+      localTransport = new int[3];
+      localTransport[0] = indexp->GetIntval();
+      localTransport[1] = dimp->GetIntval();
+      localTransport[2] = spatialp->GetIntval();
+      local = SetWord(localTransport );
+      return 0;
+
+    case REQUEST :
+	  localTransport = (int*) local.addr;
+      index = localTransport[0];
+      dim = localTransport[1];
+      spatial = localTransport[2];
+      qp->Request(args[0].addr,t);
+      qp->Request(args[1].addr, argRTree);
+      if (qp->Received(args[0].addr))
+      {
+        tup = (Tuple*)t.addr;
+       	keyAttr = tup->GetAttribute(index - 1);      
+       	tidAttr = tup->GetAttribute(tup->GetNoAttributes() - 1);
+       	oldTid = ((TupleIdentifier*)tidAttr)->GetTid();
+       	if (spatial){
+       		switch(dim){
+       		case 2: deleteRTree_spatial<2>(argRTree,keyAttr,oldTid); break;
+       		case 3: deleteRTree_spatial<3>(argRTree,keyAttr,oldTid); break;
+       		case 4: deleteRTree_spatial<4>(argRTree,keyAttr,oldTid); break;
+       		default: cout << "Error: Trying to remove an entry with dimension: " << dim << " from a rtree" << endl;
+       		}
+       	}
+       	else{
+       		switch(dim){
+       		case 2: deleteRTree_rect<2>(argRTree,keyAttr,oldTid); break;
+       		case 3: deleteRTree_rect<3>(argRTree,keyAttr,oldTid); break;
+       		case 4: deleteRTree_rect<4>(argRTree,keyAttr,oldTid); break;
+       		default: cout << "Error: Trying to remove an entry with dimension: " << dim << " from a rtree" << endl;
+       		}
+       	}
+        result = SetWord(tup);
+        return YIELD;
+      }
+      else
+        return CANCEL;
+
+    case CLOSE :
+  		localTransport = (int*) local.addr;
+    	delete[] localTransport;
+    	qp->Close(args[0].addr);
+    	qp->SetModified(args[1].addr);
+        return 0;
+  }
+  return 0;
+}
+
+/*
+7.4.3 Specification of operator ~deletertree~
+
+*/
+const string deleteRTreeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" ) "
+                           "( <text>stream(tuple(x@[TID: tid])) x rtree(tuple(x) ti) x xi)"
+                           " -> stream(tuple(x@[TID: tid]))] "
+                           "</text--->"
+                           "<text>_ _ deletertree [_]</text--->"
+                           "<text>Deletes references to the tuples with TupleId 'TID' "
+                           "from the rtree.</text--->"
+                           "<text>query staedte feed filter [.Name = 'Hagen'] "
+                           " staedte deletedirect staedte_Ort deletertree [Ort] count "
+                           "</text--->"
+                           ") )";
+
+/*
+7.4.4 Definition of operator ~deletertree~
+
+*/
+Operator deletertree (
+         "deletertree",              // name
+         deleteRTreeSpec,            // specification
+         deleteRTreeValueMap,                // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         Operator::SimpleSelect,          // trivial selection function
+         deleteRTreeTypeMap          // type mapping
+);
+
+/*
+7.5 Operator ~updatertree~
+
+For each tuple of the inputstream checks if the attribute over which the tree has been built has changed.
+If it has changed the old entry for this tuple is removed and a new one is inserted. 
+The entry is built from the spatial-attribute over which the tree is built and the tuple-identifier 
+wich is extracted from the input-tuples as the last attribute. The inputstream is returned 
+again as the result of this operator.
+
+
+7.5.1 Type mapping function of operator ~updatertree~
+
+
+*/
+
+ListExpr updateRTreeTypeMap( ListExpr args )
+{
+  return allUpdatesRTreeTypeMap (args, "updatebtree");
+}
+
+/*
+7.5.1 Value mapping function of operator ~updatertree~
+
+
+*/
+
+int updateRTreeValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word t, argRTree, attrPos, dimWord, spatialWord;
+  Tuple* tup;
+  CcInt* indexp;
+  CcInt* dimp;
+  CcInt* spatialp;
+  int index, dim, spatial;
+  Attribute* keyAttr;
+  Attribute* oldKeyAttr;
+  Attribute* tidAttr;
+  TupleId oldTid;
+  SmiKey key;
+  int* localTransport;
+  Supplier suppIndex, suppDim, suppSpatial;
+  
+
+  switch (message)
+  {
+    case OPEN :
+      qp->Open(args[0].addr);
+      suppIndex = qp->GetSupplier(args[3].addr,0);
+      qp->Request(suppIndex,attrPos);
+      indexp = ((CcInt*)attrPos.addr);
+      suppDim = qp->GetSupplier(args[3].addr,1);
+      qp->Request(suppDim,dimWord);
+      dimp = ((CcInt*)dimWord.addr);
+      suppSpatial = qp->GetSupplier(args[3].addr,2);
+      qp->Request(suppSpatial,spatialWord);
+      spatialp = ((CcInt*)spatialWord.addr);
+      localTransport = new int[3];
+      localTransport[0] = indexp->GetIntval();
+      localTransport[1] = dimp->GetIntval();
+      localTransport[2] = spatialp->GetIntval();
+      local = SetWord(localTransport );
+      return 0;
+
+    case REQUEST :
+	  localTransport = (int*) local.addr;
+      index = localTransport[0];
+      dim = localTransport[1];
+      spatial = localTransport[2];
+      qp->Request(args[0].addr,t);
+      qp->Request(args[1].addr, argRTree);
+      if (qp->Received(args[0].addr))
+      {
+        tup = (Tuple*)t.addr;
+       	keyAttr = tup->GetAttribute(index - 1); 
+       	int noOfAttrs = tup->GetNoAttributes();
+       	int oldIndex = (noOfAttrs - 1)/2 + index -1;
+       	oldKeyAttr = tup->GetAttribute(oldIndex); 
+       	tidAttr = tup->GetAttribute(tup->GetNoAttributes() - 1);
+       	oldTid = ((TupleIdentifier*)tidAttr)->GetTid();
+       	if (spatial){
+       		switch(dim){
+       			case 2: if ((((StandardSpatialAttribute<2>*) keyAttr)->BoundingBox()) != (((StandardSpatialAttribute<2>*) oldKeyAttr)->BoundingBox())){ 
+       						deleteRTree_spatial<2>(argRTree,oldKeyAttr,oldTid);
+       						insertRTree_spatial<2>(argRTree,keyAttr,oldTid); 	     						
+       					}
+       					break;
+       			case 3: if ((((StandardSpatialAttribute<3>*) keyAttr)->BoundingBox()) != (((StandardSpatialAttribute<3>*) oldKeyAttr)->BoundingBox())){ 
+       						deleteRTree_spatial<3>(argRTree,oldKeyAttr,oldTid);
+       						insertRTree_spatial<3>(argRTree,keyAttr,oldTid); 	
+       					}
+       					break;
+       			case 4: if ((((StandardSpatialAttribute<4>*) keyAttr)->BoundingBox()) != (((StandardSpatialAttribute<4>*) oldKeyAttr)->BoundingBox())){ 
+       						deleteRTree_spatial<4>(argRTree,oldKeyAttr,oldTid);
+       						insertRTree_spatial<4>(argRTree,keyAttr,oldTid); 	
+       					}
+       					break;
+       			default: cout << "Error: Trying to update an entry with dimension: " << dim << " from a rtree" << endl;
+       		}
+       	}
+       	else{
+       		switch(dim){
+       			case 2: if (((Rectangle<2>*) keyAttr) != ((Rectangle<2>*) oldKeyAttr)){ 
+       						deleteRTree_rect<2>(argRTree,oldKeyAttr,oldTid);
+       						insertRTree_rect<2>(argRTree,keyAttr,oldTid); 	
+       					}
+       					break;
+       			case 3: if (((Rectangle<3>*) keyAttr) != ((Rectangle<3>*) oldKeyAttr)){ 
+       						deleteRTree_rect<3>(argRTree,oldKeyAttr,oldTid);
+       						insertRTree_rect<3>(argRTree,keyAttr,oldTid); 	
+       					}
+       					break;
+       			case 4: if (((Rectangle<4>*) keyAttr) != ((Rectangle<4>*) oldKeyAttr)){ 
+       						deleteRTree_rect<4>(argRTree,oldKeyAttr,oldTid);
+       						insertRTree_rect<4>(argRTree,keyAttr,oldTid); 	
+       					}
+       					break;
+       			default: cout << "Error: Trying to update an entry with dimension: " << dim << " from a rtree" << endl;
+       		}
+       	}
+        result = SetWord(tup);
+        return YIELD;
+      }
+      else
+        return CANCEL;
+
+    case CLOSE :
+  		localTransport = (int*) local.addr;
+    	delete[] localTransport;
+    	qp->Close(args[0].addr);
+    	qp->SetModified(args[1].addr);
+        return 0;
+  }
+  return 0;
+}
+
+/*
+7.5.3 Specification of operator ~updatertree~
+
+*/
+const string updateRTreeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" ) "
+                           "( <text>stream(tuple(x@[(a1_old x1) ... (an_old xn) (TID: tid)])) "
+                           "x rtree(tuple(x) ti) x xi"
+                           " -> stream(tuple(x@[(a1_old x1) ... (an_old xn) (TID: tid)]))] "
+                           "</text--->"
+                           "<text>_ _ updatertree [_]</text--->"
+                           "<text>Updates references to the tuples with TupleId 'TID'"
+                           "in the rtree.</text--->"
+                           "<text>query staedte feed filter [.Name = 'Hagen'] "
+                           " staedte updatedirect [Ort : newRegion] staedte_Ort updatertree [Ort] count "
+                           "</text--->"
+                           ") )";
+
+/*
+7.5.4 Definition of operator ~updatertree~
+
+*/
+Operator updatertree (
+         "updatertree",              // name
+         updateRTreeSpec,            // specification
+         updateRTreeValueMap,                // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         Operator::SimpleSelect,          // trivial selection function
+         updateRTreeTypeMap          // type mapping
+);
+
+
+
 /*
 6 Definition and initialization of RTree Algebra
 
@@ -878,6 +1543,9 @@ class RTreeAlgebra : public Algebra
 
     AddOperator( &creatertree );
     AddOperator( &windowintersects );
+    AddOperator( &insertrtree );
+    AddOperator( &deletertree );
+    AddOperator( &updatertree );
   }
   ~RTreeAlgebra() {};
 };

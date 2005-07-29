@@ -1,4 +1,4 @@
-/*
+/*  
 ---- 
 This file is part of SECONDO.
 
@@ -33,13 +33,6 @@ inline functions implemented in the header file. This reduced code redundance
 since the same code written in RelationMainMemory and RelationPersistent can be
 kept together here and may improve performance when the code is compiled with
 optimization flags.
-
-June-July 2004 M. Spiekermann. Changes in class ~Tuple~ and ~TupleBuffer~. Storing the
-attribute array as member variable in class Tuple reduces processing overhead. Moreover the
-array is needed for both implementations "persistent" and "memory" hence it should not be
-maintained in class ~privateTuple~. The TupleBuffer was extended. The TupleBuffer constructor
-was extended by a new boolean parameter which indicates whether the tuples in it are stored as
-"free" or "non-free" tuples. 
 
 [TOC]
 
@@ -102,8 +95,6 @@ Algebra implementation figure below.
 #include "Algebra.h"
 #include "StandardAttribute.h"
 #include "NestedList.h"
-
-#define MAX_NUM_OF_ATTR 20
 
 class CcTuple;
 
@@ -233,7 +224,7 @@ needs to set the ~totalSize~ attribute.
 Number of attributes.
 
 */
-   AttributeType* attrTypeArray;
+    AttributeType *attrTypeArray;
 /*
 Array of attribute type descriptions.
 
@@ -243,7 +234,6 @@ Array of attribute type descriptions.
 Sum of all attribute sizes.
 
 */
-
 };
 
 /*
@@ -309,7 +299,7 @@ Acts as the ~Out~ function, but uses internal representation for the objects.
 The destructor.
 
 */
-    static void ShowTupleStatistics( const bool reset = false );
+    static ostream& ShowTupleStatistics( const bool reset = false, ostream& o = cout );
 /*
 Shows tuple statistics. If ~reset~ is set to true, the values of the tuple statistics are
 set to zero.
@@ -328,7 +318,11 @@ construction time, the tuple does not know its id.
 */
     inline Attribute* GetAttribute( const int index ) const 
     {
-      return (Attribute *)attributes[index];
+#ifdef RELALG_PERSISTENT        
+      return (Attribute *)privateTuple->attributes[index];
+#else
+      return privateTuple->attrArray[ index ];
+#endif
     }
 /*
 Returns the attribute at position ~index~ inside the tuple.
@@ -339,12 +333,19 @@ Returns the attribute at position ~index~ inside the tuple.
 Puts an attribute in the position ~index~ inside the tuple.
 
 */
-    const int GetMemorySize();
+
+    void UpdateAttributes( const vector<int>& changedIndices,const vector<Attribute*>& newAttrs );
+/*
+Puts the attributes from 'newAttrs' at the corresponding position from 'changedIndices' into the tuple. Destroys the
+physical representations of the old attributes and saves the new tuple to disk.
+
+*/
+    const int GetMemorySize() const;
 /*
 Returns the size of the memory (in bytes) used by the tuple.
 
 */
-    const int GetTotalSize();
+    const int GetTotalSize() const;
 /*
 Returns the total size of the tuple taking into consideration the tuple and the
 LOBs.
@@ -352,7 +353,11 @@ LOBs.
 */
     inline const int GetNoAttributes() const 
     {
-      return noAttributes;
+#ifdef RELALG_PERSISTENT 
+      return privateTuple->tupleType.GetNoAttributes();
+#else
+      return privateTuple->tupleType->GetNoAttributes();
+#endif
     }
 /*
 Returns the number of attributes of the tuple.
@@ -366,21 +371,13 @@ Returns the number of attributes of the tuple.
       return *(privateTuple->tupleType);
 #endif
     }
-
-    inline void SetTupleType(const TupleType& type)
-    {
-      privateTuple->tupleType = type;
-      noAttributes = type.GetNoAttributes();
-    }
-
-
 /*
 Returns the tuple type.
 
 */
     inline const bool IsFree() const 
     {
-      return isFree;
+      return privateTuple->isFree;
     }
 /*
 Returns if a tuple is free.
@@ -389,8 +386,7 @@ Returns if a tuple is free.
 */
     inline void SetFree( const bool onoff ) 
     {
-      if (!protectState)
-        isFree = onoff;
+      privateTuple->isFree = onoff;
     }
 /*
 Turns the tuple free (or not) for deletion.
@@ -408,7 +404,7 @@ Creates a new memory tuple which is a clone of this tuple.
 */
     inline Tuple *CloneIfNecessary() 
     {
-      if( isFree )
+      if( privateTuple->isFree )
         return this;
       else
         return this->Clone( false );
@@ -419,109 +415,32 @@ Calls the ~Clone~ function if it is a free tuple.
 */
     inline void DeleteIfAllowed() 
     {
-      if( isFree && !keepInMemory )
+      if( privateTuple->isFree )
         delete this;
     }
-
-/*
-The function below will protect the tuple for deletion. If called
-with value ~true~ the function ~DeleteIfAllowed~ will never delete the
-tuple.
-
-
-*/
-    inline void KeepInMemory( const bool onoff )
-    {
-      keepInMemory = onoff; 
-    }
-
-/*
-If ProtectState(true) was called  SetFree will have no effect.
-
-*/
-    inline void ProtectState( const bool onoff )
-    {
-      protectState = onoff;
-    }
-
 /*
 Deletes the tuple if it is allowed, i.e., a free tuple.
 
 */
     inline PrivateTuple *GetPrivateTuple()
-    { 
-      return privateTuple; 
-    }
-
+      { return privateTuple; }
 /*
 Function to give outside access to the private part of the tuple class.
 
 */
-
   private:
     static long tuplesCreated;
     static long tuplesDeleted;
     static long tuplesInMemory;
     static long maximumTuples;
-
-    inline void InitAttrArray()
-    {
-      for( int i = 0; i < noAttributes; i++ )
-        attributes[i] = 0;
-    }
-
-    inline void Init(bool IsFree, int NoAttr, PrivateTuple* pt)
-    {
-      isFree = IsFree;
-      keepInMemory = false;
-      protectState = false;
-      recomputeTotalSize = true;
-      recomputeMemSize = true;
-
-      noAttributes = NoAttr;
-      pt->attributes = &attributes[0];
-
-      InitAttrArray();
-
-      tupleMemSize = 0;
-      tupleTotalSize = 0;
-
-      tuplesCreated++;
-      tuplesInMemory++;
-      if( tuplesInMemory > maximumTuples ) {
-	maximumTuples = tuplesInMemory;
-      }
-    }
-
-
 /*
 Variables used for tuple statistics.
 
 */
 
-    bool isFree;
-    bool keepInMemory;
-    bool protectState;
-    bool recomputeMemSize;
-    bool recomputeTotalSize;
-
-    int noAttributes;
-    int tupleMemSize;
-    int tupleTotalSize;
-
-    TupleElement* attributes[MAX_NUM_OF_ATTR];
-
-/*
-Two flags that tells if a tuple is free for deletion. If a tuple is free, then a stream receiving
-the tuple can delete or reuse it. By default ~deleteAllowed~ is true, but in some situations this
-is not useful, e.g. if you want to use a TupleBuffer as input for a function several times, hence
-we can switch off the ~normal~ deletion procedure.
-
-*/
-
     PrivateTuple *privateTuple;
 /*
-The private implementation dependent attributes of the class ~Tuple~.
+The private attributes of the class ~Tuple~.
 
 */
 };
@@ -645,6 +564,7 @@ class GenericRelation
     virtual const double GetTotalSize() const = 0;
     virtual void Clear() = 0;
     virtual void AppendTuple( Tuple *t ) = 0;
+    //virtual bool DeleteTuple( Tuple *t ) = 0;
     virtual Tuple *GetTuple( const TupleId& id ) const = 0;
     virtual GenericRelationIterator *MakeScan() const = 0;
 };
@@ -696,7 +616,6 @@ Returns the tuple identification of the current tuple.
 
   private:
     PrivateTupleBufferIterator *privateTupleBufferIterator;
-    bool isFreeStorageType;
 };
 
 /*
@@ -716,7 +635,7 @@ for the Main Memory Relational Algebra and for the Persistent Relational Algebra
 class TupleBuffer : public GenericRelation
 {
   public:
-    TupleBuffer( const size_t maxMemorySize = 4 * 1024 * 1024, bool isFree = false );
+    TupleBuffer( const size_t maxMemorySize = 33554432 );
 /*
 The constructor. Creates an empty tuple buffer.
 
@@ -768,7 +687,6 @@ Returns a ~TupleBufferIterator~ for a new scan.
 
   private:
     PrivateTupleBuffer *privateTupleBuffer;
-    bool isFreeStorageType;
 };
 
 /*
@@ -816,7 +734,7 @@ to the next tuple. Returns NULL if the cursor is in the end of a relation.
 */
     TupleId GetTupleId() const;
 /*
-Returns the tuple identification of the current tuple.
+Returns the tuple identifier of the current tuple.
 
 */
     const bool EndOfScan();
@@ -950,9 +868,24 @@ Corresponds to the ~Clone~-function of type constructor ~rel~.
 Appends a tuple to the relation. Returns the size in bytes occupied by the tuple.
 
 */
+    bool DeleteTuple( Tuple *tuple );
+/*
+Deletes the tuple from the relation. Returns false if the tuple could not be deleted.
+
+*/
+    void UpdateTuple( Tuple *tuple, const vector<int>& changedIndices, const vector<Attribute *>& newAttrs );
+/*
+Updates the tuple by putting the new attributes at the positions given by 'changedIndices' and adjusts the physical representation.
+
+*/
     Tuple* GetTuple( const TupleId& tupleId ) const;
 /*
 Returns the tuple identified by ~tupleId~.
+
+*/
+    const TupleType& GetTupleType() const;
+/*
+Returns the tupletype of the tuples of the relation.
 
 */
     void Clear();
@@ -1012,6 +945,19 @@ of these symbols, then the value ~error~ is returned.
 */
 enum RelationType { rel, tuple, stream, ccmap, ccbool, error };
 RelationType TypeOfRelAlgSymbol (ListExpr symbol);
+
+/*
+4.2 Macro ~CHECK\_COND~
+
+This macro makes reporting errors in type mapping functions more conveniently.
+
+*/
+#define CHECK_COND(cond, msg) \
+  if(!(cond)) \
+  {\
+    ErrorReporter::ReportError(msg);\
+    return nl->SymbolAtom("typeerror");\
+  };
 
 /*
 3.2 Function ~FindAttribute~
