@@ -40,7 +40,7 @@ public class Dsplpointsequence extends DisplayGraph {
   /** The bounding-box rectangle */
   Rectangle2D.Double bounds;
   /** The shape representing this sequence */
-  GeneralPath GP = new GeneralPath();
+  GeneralPath GP = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
   /** because of the reason of precision, we store the points also
       in a vector **/
   Vector points;

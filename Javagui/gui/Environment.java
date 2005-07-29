@@ -19,6 +19,8 @@
 
 package gui;
 
+import tools.TextFormat;
+
 /* This class provides some variables for globale use.
  *
  */
@@ -28,6 +30,8 @@ public class Environment{
 public static boolean DEBUG_MODE = true;
 public static boolean MEASURE_TIME = true;
 public static boolean MEASURE_MEMORY = false;
+public static boolean FORMATTED_TEXT = false;
+
 public static long usedMemory(){
   return rt.totalMemory()-rt.freeMemory();
 }
@@ -41,13 +45,17 @@ public static String formatMemory(long md){
     } else{
       mem = Long.toString(md)+" B";
     }
+    if(FORMATTED_TEXT){
+        mem = TextFormat.BLUE+mem+TextFormat.NORMAL;
+    }
     return mem;
 }
 
 public static void printMemoryUsage(){
-    System.out.println("total Memory : "+formatMemory(rt.totalMemory()));
-    System.out.println("free Memory :"+formatMemory(rt.freeMemory()));
-
+    String F1=FORMATTED_TEXT?TextFormat.GREEN+TextFormat.BG_BLACK:"";
+    String F2=FORMATTED_TEXT?TextFormat.NORMAL:"";
+    System.out.println(F1+ "total Memory :"+F2+" "+formatMemory(rt.totalMemory()));
+    System.out.println(F1+ "free Memory  :"+F2+" "+formatMemory(rt.freeMemory()));
 }
 
 

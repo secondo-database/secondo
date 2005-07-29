@@ -179,6 +179,9 @@ private JFileChooser FC_ExecuteFile = new JFileChooser();
 private JFileChooser FC_Database = new JFileChooser();
 private JFileChooser FC_Snapshot = new JFileChooser();
 private PriorityDialog PriorityDlg;
+private String ErrorFormat = "";
+private String OkFormat = "";
+private String EndFormat="";
 
 
 
@@ -249,14 +252,15 @@ public MainWindow(String Title){
   File CF = new File(CONFIGURATION_FILE);
   boolean config_file_ok =true;
   if(!CF.exists()){
+     System.err.print(ErrorFormat);
      System.err.println("Javagui: configuration file not found");
-     System.err.println("searched configuration file: "+CF.getAbsolutePath());
+     System.err.println("searched configuration file: "+CF.getAbsolutePath()+EndFormat);
      config_file_ok = false;
   }
 
   if(config_file_ok){
     try{
-      System.out.println("load configuration datas from: "+CF.getAbsolutePath());
+      System.out.println(OkFormat+"load configuration datas from: "+CF.getAbsolutePath()+EndFormat);
       FileInputStream CFG = new FileInputStream(CF);
       Config.load(CFG);
       CFG.close();
@@ -275,39 +279,51 @@ public MainWindow(String Title){
         if(UseEntropy.toLowerCase().trim().equals("true"))
            useEntropy=true;
      }
+     UseEntropy=null;
+
+     String UseFormattedText = Config.getProperty("FORMATTED_TEXT");
+     if(UseFormattedText!=null){
+        if(UseFormattedText.toLowerCase().trim().equals("true")){
+           Environment.FORMATTED_TEXT=true;
+           ErrorFormat=tools.TextFormat.RED;
+           OkFormat=tools.TextFormat.GREEN;
+           EndFormat=tools.TextFormat.NORMAL;
+        }
+     }
+     UseFormattedText=null;
  }
  createMenuBar();
  if(config_file_ok){
     String TMPServerName = Config.getProperty("SERVERNAME");
     if (TMPServerName==null)
-      System.out.println("Servername not found in "+CONFIGURATION_FILE);
+      System.err.println(ErrorFormat+"Servername not found in "+CONFIGURATION_FILE+EndFormat);
     else{
       ServerName = TMPServerName;
-      System.out.println("set ServerName to "+ServerName);
+      System.out.println(OkFormat+"set ServerName to "+ServerName+EndFormat);
     }
 
     String TMPServerPort = Config.getProperty("SERVERPORT");
     if(TMPServerPort==null)
-       System.out.println("Serverport not found in "+CONFIGURATION_FILE);
+       System.err.println(ErrorFormat+"Serverport not found in "+CONFIGURATION_FILE+EndFormat);
     else{
        try{
           int PortInt = (new Integer(TMPServerPort)).intValue();
           if(PortInt <0)
-            System.out.println("ServerPort in "+CONFIGURATION_FILE+" less than 0");
+            System.err.println(ErrorFormat+"ServerPort in "+CONFIGURATION_FILE+" less than 0"+EndFormat);
           else{
-            System.out.println("set port to "+PortInt);
+            System.out.println(OkFormat+"set port to "+PortInt+EndFormat);
             ServerPort = PortInt;
           }
        }
         catch(Exception wrongport){
-          System.out.println("error in ServerPort (not an Integer)");
+          System.err.println(ErrorFormat+"error in ServerPort (not an Integer)"+EndFormat);
         }
     }
 
 
     String Connection = Config.getProperty("START_CONNECTION");
     if(Connection==null)
-       System.out.println("START_CONNECTION not found in "+CONFIGURATION_FILE);
+       System.err.println(ErrorFormat+"START_CONNECTION not found in "+CONFIGURATION_FILE+EndFormat);
     else{
        Connection=Connection.trim().toLowerCase();
        if(Connection.equals("true"))
@@ -315,7 +331,7 @@ public MainWindow(String Title){
        else if(Connection.equals("false"))
            StartConnection = false;
        else{
-           System.out.println("START_CONNECTION has unknown value in "+CONFIGURATION_FILE);
+           System.err.println(ErrorFormat+"START_CONNECTION has unknown value in "+CONFIGURATION_FILE+EndFormat);
            System.out.println("allowed values are  true  and false");
        }
     }
@@ -323,28 +339,28 @@ public MainWindow(String Title){
 
     String FontSize = Config.getProperty("COMMAND_FONTSIZE");
     if(FontSize==null)
-       System.out.println("COMMAND_FONTSIZE NOT found in "+CONFIGURATION_FILE);
+       System.err.println(ErrorFormat+"COMMAND_FONTSIZE NOT found in "+CONFIGURATION_FILE+EndFormat);
     else{
        try{
            int size = Integer.parseInt(FontSize.trim());
 	   ComPanel.setFontSize(size);
        }
        catch(Exception e){
-           System.out.println("COMMAND_FONTSIZE has no valid value (not an integer)");
+           System.err.println(ErrorFormat+"COMMAND_FONTSIZE has no valid value (not an integer)"+EndFormat);
        }
 
     }
 
     FontSize = Config.getProperty("LIST_FONTSIZE");
     if(FontSize==null)
-        System.out.println("LIST_FONTSIZE not found in "+CONFIGURATION_FILE);
+        System.err.println(ErrorFormat+"LIST_FONTSIZE not found in "+CONFIGURATION_FILE+EndFormat);
     else{
       try{
          int size = Integer.parseInt(FontSize.trim());
 	 OList.setFontSize(size);
       }
       catch(Exception e){
-         System.out.println("LIST_FONTSIZE has no valid value (not an integer)");
+         System.err.println(ErrorFormat+"LIST_FONTSIZE has no valid value (not an integer)"+EndFormat);
       }
 
     }
@@ -356,7 +372,7 @@ public MainWindow(String Title){
 	 if(tmp>0)
 	    maxStringLength = tmp;
       } catch(Exception e){
-         System.out.println("invalid value for MAX_STRING_LENGTH");
+         System.err.println(ErrorFormat+"invalid value for MAX_STRING_LENGTH"+EndFormat);
       }
    }
 
@@ -364,10 +380,10 @@ public MainWindow(String Title){
    if(NLCache!=null){
       try{
         int tmp = Integer.parseInt(NLCache);
-        System.out.println("initialize NLCache : "+ tmp);
+        System.out.println(OkFormat+"initialize NLCache : "+ tmp+EndFormat);
         ListExpr.initialize(tmp);
       } catch(Exception e){
-         System.err.println("invalid value for NLCACHE");
+         System.err.println(ErrorFormat+"invalid value for NLCACHE"+EndFormat);
       }
    }
 
@@ -391,15 +407,15 @@ public MainWindow(String Title){
              Class VC = Class.forName(ClassName);
              Object Cand = VC.newInstance();
              if(Cand instanceof SecondoViewer){
-                System.out.println("addViewer "+ViewerName);
+                System.out.println(OkFormat+"addViewer "+ViewerName+EndFormat);
                 addViewer((SecondoViewer)Cand);
               }
              else
-               System.out.println(ViewerName+" is not a SecondoViewer");
+               System.err.println(ErrorFormat+ViewerName+" is not a SecondoViewer"+EndFormat);
             }catch(Exception e){
             if(DEBUG_MODE)
                e.printStackTrace();
-           System.out.println("cannot load viewer:"+ViewerName+"\n");
+           System.err.println(ErrorFormat+"cannot load viewer:"+ViewerName+EndFormat+"\n");
            }
         }
    }
@@ -421,14 +437,20 @@ public MainWindow(String Title){
    String Measure_Time = Config.getProperty("MEASURE_TIME");
    Environment.MEASURE_TIME=Measure_Time!=null &&
                             Measure_Time.toLowerCase().trim().equals("true");
+   if(Environment.MEASURE_TIME){
+     System.out.println(OkFormat+"Enable messages about used time."+EndFormat);
+   }
 
    String Measure_Memory = Config.getProperty("MEASURE_MEMORY");
    Environment.MEASURE_MEMORY=Measure_Memory!=null &&
                             Measure_Memory.toLowerCase().trim().equals("true");
+   if(Environment.MEASURE_MEMORY){
+      System.out.println(OkFormat+"Enable messages about the used memory."+EndFormat);
+   }
 
    String FS = System.getProperty("file.separator");
    if(FS==null){
-      System.out.println("error in reading file separator");
+      System.err.println(ErrorFormat+"error in reading file separator"+EndFormat);
       FS="/";
    }
 
@@ -479,13 +501,14 @@ public MainWindow(String Title){
           } else{
              maxTextLength=tmpMaxTextLength;
              if(persistentText){
-                System.out.println("Swap texts with length greater than "+maxTextLength+" to file");
+                System.out.println(OkFormat+"Swap texts with length greater than "+maxTextLength+
+                                   " to file"+EndFormat);
              }
           }
        }catch(Exception e){
-           System.err.println("MAX_INTERNAL_STRING_LENGTH must be an positive integer");
+           System.err.println(ErrorFormat+"MAX_INTERNAL_STRING_LENGTH must be an positive integer");
            System.err.println(" the actual value is :"+MAX_INTERNAL_TEXT_LENGTH);
-           System.err.println(" use default value   :"+maxTextLength);
+           System.err.println(" use default value   :"+maxTextLength+EndFormat);
        }
    } 
    ListExpr.setMaxInternalTextLength(maxTextLength);
@@ -517,10 +540,12 @@ public MainWindow(String Title){
    if(TMPSnapshotDirectory!=null)
         SnapshotDirectory = TMPSnapshotDirectory;
 
+   System.out.print(OkFormat);
    System.out.println("set objectdirectory to "+ObjectDirectory);
    System.out.println("set historydirectory to "+HistoryDirectory);
    System.out.println("set databasedirectory to "+DatabaseDirectory);
    System.out.println("set snapshotdirectory to "+SnapshotDirectory);
+   System.out.println(EndFormat);
 
    OList.setObjectDirectory(new File(ObjectDirectory));
    FC_History.setCurrentDirectory(new File(HistoryDirectory));
@@ -549,7 +574,7 @@ public MainWindow(String Title){
    String OptHost = Config.getProperty("OPTIMIZER_HOST");
    if(OptHost==null){
       OptHost ="localhost";  // the default value
-      System.err.println("OPTIMIZER_HOST not defined, use default: "+OptHost);
+      System.err.println(ErrorFormat+"OPTIMIZER_HOST not defined, use default: "+OptHost+EndFormat);
    }
    String OptPortString = Config.getProperty("OPTIMIZER_PORT");
    int OptPort = 1235; // default value
@@ -557,27 +582,27 @@ public MainWindow(String Title){
       try{
         int P = Integer.parseInt(OptPortString);
         if(P<=0){
-          System.err.println("optimizer-port has no valid value");
+          System.err.println(ErrorFormat+"optimizer-port has no valid value"+EndFormat);
 	}else
 	   OptPort = P;
        }
        catch(Exception e){
-          System.err.println("optimizer-port is not a valid integer");
+          System.err.println(ErrorFormat+"optimizer-port is not a valid integer"+EndFormat);
        }
    }else{
-      System.err.println("OPTIMIZER_PORT not defined, use default: "+OptPort);
+      System.err.println(ErrorFormat+"OPTIMIZER_PORT not defined, use default: "+OptPort+EndFormat);
    }
    ComPanel.setOptimizer(OptHost,OptPort);
    String OptEnable = Config.getProperty("ENABLE_OPTIMIZER");
    if(OptEnable==null)
-      System.err.println("ENABLE_OPTIMIZER not defined in configuration file");
+      System.err.println(ErrorFormat+"ENABLE_OPTIMIZER not defined in configuration file"+EndFormat);
    else  {
       OptEnable=OptEnable.trim().toLowerCase();
       if(OptEnable.equals("true"))
           if(!ComPanel.enableOptimizer())
-	     System.err.println("error in enabling optimizer");
+	     System.err.println(ErrorFormat+"error in enabling optimizer"+EndFormat);
 	  else
-	     System.err.println("optimizer enabled");
+	     System.err.println(OkFormat+"optimizer enabled"+EndFormat);
    }
 
    String ShowLicence = Config.getProperty("SHOW_LICENCE");
@@ -603,7 +628,7 @@ public MainWindow(String Title){
 
   if(StartScript!=null){
       StartScript = StartScript.trim();
-      System.out.println("execute "+StartScript);
+      System.out.println(OkFormat+"execute "+StartScript+EndFormat);
       if (StartScript.endsWith("-i")){
          StartScript = StartScript.substring(0,StartScript.length()-2).trim();
          executeFile(StartScript,true);
@@ -1247,6 +1272,7 @@ private int executeFile(String FileName,boolean ignoreErrors){
   catch(Exception e){
     ComPanel.appendText("a IO error is occurred\n");
     if(DEBUG_MODE){
+       System.out.println(ErrorFormat+"io error occured"+EndFormat);
        System.out.println(e);
        e.printStackTrace();
     }   
@@ -1369,7 +1395,7 @@ public boolean canActualDisplay(SecondoObject SO){
     catch(Exception e){
        if(DEBUG_MODE)
           e.printStackTrace();
-       System.out.println("error in method canDisplay in the current Viewer");
+       System.out.println(ErrorFormat+"error in method canDisplay in the current Viewer"+EndFormat);
        return false;
     }
 }
@@ -1383,7 +1409,7 @@ public boolean isActualDisplayed(SecondoObject SO){
      catch(Exception e){ 
         if(DEBUG_MODE)
            e.printStackTrace();
-        System.out.println("error in current Viewer "+CurrentViewer+" method: isDisplayed");
+        System.out.println(ErrorFormat+"error in current Viewer "+CurrentViewer+" method: isDisplayed"+EndFormat);
         return false;
      }
 } 
@@ -1409,7 +1435,7 @@ public boolean showObject(SecondoObject SO){
         }  
      }      
      catch(Exception e){
-        System.out.println("error in Viewer :"+CurrentViewer+" method addObject");
+        System.out.println(ErrorFormat+"error in Viewer :"+CurrentViewer+" method addObject"+EndFormat);
         if(DEBUG_MODE)
            e.printStackTrace();
         return false;
@@ -1431,7 +1457,7 @@ public void hideObject(Object Sender,SecondoObject SO){
         catch(Exception e){
            if(DEBUG_MODE)
               e.printStackTrace();
-           System.out.println("an Exception is occured in removeObject-Method of a Viewer");
+           System.out.println(ErrorFormat+"an Exception is occured in removeObject-Method of a Viewer"+EndFormat);
         }
      }
 }
@@ -1938,8 +1964,8 @@ public void clearAll(){
      ((SecondoViewer) AllViewers.get(i)).removeAll();
   System.gc();
   if(Environment.MEASURE_MEMORY){
-     System.out.println("Memory difference by clear: "+
-                         Environment.formatMemory(Environment.usedMemory()-usedMemory));
+     System.out.println(OkFormat+ "Memory difference by clear: "+
+                         Environment.formatMemory(Environment.usedMemory()-usedMemory)+EndFormat);
   }
 }
 
@@ -2152,7 +2178,7 @@ private void getServerInfos(){
 
   ListExpr Algebras = ComPanel.getCommandResult("list algebras");
   if(Algebras==null){
-     System.err.println("Error in reading algebras from server");
+     System.err.println(ErrorFormat+"Error in reading algebras from server"+EndFormat);
      return;
   }
   Algebras = Algebras.second().second();

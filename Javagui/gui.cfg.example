@@ -98,3 +98,8 @@ MEASURE_TIME false
 
 #set to true for getting information about memory usage
 MEASURE_MEMORY false
+
+#set to true if you want formatted (colored) textmessages on the console
+#if Javagui should be run on a MS-DOS environment, ensure to have set this 
+# value to false
+FORMATTED_TEXT true
