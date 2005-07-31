@@ -16,6 +16,102 @@ Some nice introduction should be found here.
 // code requiring attention is marked with *hm*!! 
 
 /*
+
+Intersection of two trapezoids with parallel sides parallel to (x, y)-plane.
+
+Points 
+$A = (a_1, a_2, a_3)$,
+$B = (b_1, b_2, a_3)$,
+$C = (c_1, c_2, c_3)$,
+$D = (d_1, d_2, c_3)$,
+$E = (e_1, e_2, e_3)$,
+$F = (f_1, f_2, e_3)$,
+$G = (g_1, g_2, g_3)$ and
+$H = (h_1, h_2, g_3).$
+
+Trapezoids
+$T_1 = (A, B, C, D)$ and 
+$T_2 = (E, F, G, H)$.
+
+$T_1$ is in plane
+$A + (B-A) \cdot X + (C-A) \cdot Y$.
+$T_2$ is in plane
+$E + (F-E) \cdot S + (G-E) \cdot T$.
+
+Intersection of both planes is the solution of linear systems of equation with 
+coefficients
+
+\begin{eqnarray}
+\begin{array}{ccc}
+\begin{array}{cccc}
+b_1-a_1 & c_1-a_1 & f_1-e_1 & g_1-e_1 \\
+b_2-a_2 & c_2-a_2 & f_2-e_2 & g_2-e_2 \\
+      0 & c_3-a_3 &       0 & g_3-e_3
+\end{array} & \left| \begin{array}{c}
+e_1-a_1 \\
+e_2-a_2 \\
+e_3-a_3 
+\end{array} \right.
+\end{array}
+\nonumber \end{eqnarray}
+
+The following cases need to be examined:
+
+\begin{enumerate}
+\item
+There are no solutions. In this case, the two planes spanned by $T_1$ and 
+$T_2$ are parallel and do not touch each other.
+
+\item
+The solution is a line. In this case, if the line is both within $T_1$ and
+$T_2$, the two trapezoids intersect.
+
+\item
+Otherwise, both trapezoids are in the same plane. In this case, it must be
+checked if both trapezoids overlap, which is very simple.
+\end{enumerate}
+
+*/
+
+
+
+
+/*
+
+The following approach is used to check the validity of the points in
+each unit of a moving region:
+
+If $(t_1, t_2, true, true)$ is the interval of the unit,
+the moving region is allowed to degenerate in instants $t_1$ and $t_2$. If
+the unit's interval is half-open, ie.\ $(t_1, t_2, false, true)$ or 
+$(t_1, t_2, true, false)$, the moving region is allowed to generate in 
+instants $t_1$ or $t_2$. However, for all all instants $t$ with 
+$t_1 < t < t_2$, the moving region must not degenerate. 
+
+Two distinct cases are considered:
+
+\begin{enumerate}
+\item
+For point intervals $(t, t, true, true)$, the moving region must not
+degenerate in instant $t$ and the unit is checked like a spatial region.
+
+\item
+For non-point intervals $(t_1, t_2, lc, rc)$ with $t_1 \ne t_2$ and 
+$lc, rc \in \{true, false\}$, the value of the unit at instant 
+$t = (t2-t1)/2$ is calculated. As the moving region must not degenerate
+at instant $t$, this value is checked like a spatial region. If successful,
+it is checked that no trapezoid, which is spanned by a moving segment in
+the unit, is intersecting or touching in its interior any other moving
+segment.
+\end{enumerate}
+
+The spatial region in both cases is used to calculate the value of the
+~insideLeftOrAbove~ attribute of each segment.
+
+*/
+
+
+/*
 1 Defines and includes
 
 */
@@ -1752,15 +1848,10 @@ void MRegion::Intersection(MPoint& mp) {
 
     RefinementPartition(mp, vur, vup);
 
-    if (MRA_DEBUG) cerr << "MRegion::Intersection() #1" << endl;
-
     for (unsigned int i = 0; i < vur.size(); i++) {
-	if (MRA_DEBUG) cerr << "MRegion::Intersection() #1 i=" << i << endl;
 	delete vur[i];
 	delete vup[i];
     }
-
-    if (MRA_DEBUG) cerr << "MRegion::Intersection() #3" << endl;
 
     assert(false);
 }
