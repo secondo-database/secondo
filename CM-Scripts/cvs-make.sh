@@ -13,6 +13,7 @@
 
 
 
+
 baseDir=$HOME/${0%/*}
 # include function definitions
 # libutil.sh must be in the search PATH 
@@ -22,6 +23,30 @@ then
 else
   if ! source libutil.sh; then exit 1; fi
 fi
+
+
+# makeSecondo $1
+#
+# $1 file name for make's output
+function makeSecondo() {
+
+local msgFile=$1
+
+catvar > $msgFile
+checkCmd "make >> ../$msgFile 2>&1" 
+
+# proceed if last command was successful
+if ! lastRC; then
+
+  printf "%s\n" "Problems during build, sending a mail"
+
+  sendMail "Building SECONDO failed!" "$mailRecipients" "$mailBody1" "$msgFile"
+  let errors++ 
+
+fi
+
+}
+
 
 #default options
 rootDir=$HOME
@@ -205,17 +230,11 @@ printf "\n%s\n" "Entering directory $PWD"
 export SECONDO_ACTIVATE_ALL_ALGEBRAS="true"
 export SECONDO_YACC="/usr/bin/bison"
 
-checkCmd "make > ../make-all.log 2>&1" 
+makeSecondo "make-allalgebras.log"
 
-# proceed if last command was successful
-if ! lastRC; then
+unset SECONDO_ACTIVATE_ALL_ALGEBRAS
+makeSecondo "make-nojni.log" 
 
-  printf "%s\n" "Problems during build, sending a mail"
-
-  sendMail "Building SECONDO failed!" "$mailRecipients" "$mailBody1" "../make-all.log"
-  let errors++ 
-
-fi
 
 ## run tests
 
@@ -234,6 +253,7 @@ if [ $[errors] == 0 ]; then
     errorListFile="$cbuildDir/run-tests.errors"
     errorList=$(cat $errorListFile)
     attachment2="./run-tests-logfiles.tar.gz"
+    cd $cbuildDir
     tar -czvf $attachment2 $errorList
 
     sendMail "Automatic tests failed!" "$mailRecipients" "$mailBody2" "$attachment2"
