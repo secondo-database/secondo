@@ -32,8 +32,8 @@ function makeSecondo() {
 
 local msgFile=$1
 
-catvar > $msgFile
-checkCmd "make >> ../$msgFile 2>&1" 
+CM-Scripts/catvar.sh
+checkCmd "make > ../$msgFile 2>&1"
 
 # proceed if last command was successful
 if ! lastRC; then
@@ -250,11 +250,11 @@ if [ $[errors] == 0 ]; then
     printf "%s\n" "Problems during test, sending a mail"
     
     # creating tar archive
-    errorListFile="$cbuildDir/run-tests.errors"
-    errorList=$(cat $errorListFile)
+    startedTests="$cbuildDir/started-tests"
+    passedTests="$cbuildDir/passeded-tests"
     attachment2="./run-tests-logfiles.tar.gz"
     cd $cbuildDir
-    tar -czvf $attachment2 $errorList
+    tar -czvf $attachment2 --files-from $startedTests --exclude-from $passedTests 
 
     sendMail "Automatic tests failed!" "$mailRecipients" "$mailBody2" "$attachment2"
     let errors++

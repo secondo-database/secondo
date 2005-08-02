@@ -8,13 +8,13 @@
 # libutil.sh must be in the same directory as this file
 if ! source ./libutil.sh; then exit 1; fi
 
-errorListFile="$buildDir/run-tests.errors"
-rm $errorListFile
+startedTests="$buildDir/started-tests"
+passedTests="$buildDir/passed-tests"
+rm -f $startedTests
+rm -f $passedTests
 
 inputDir="${buildDir}/Tests/Testspecs"
 testSuites=$(find ${inputDir} -name "*.test")
-
-
 
 printf "\n%s\n" "Running tests in ${buildDir}."
 
@@ -46,10 +46,12 @@ do
   cd $baseDir
   printf "%s\n" "==================================================================="  > $logFile
   printf "%s\n" "===================================================================\n"  > $logFile
+  echo "Tests/Testspecs/$logFile" >> $startedTests
   checkCmd "time TestRunner -i  ${file} > ${logFile} 2>&1"
-  if ! lastRC; then
+  if lastRC; then
+    echo "Tests/Testspecs/$logFile" >> $passedTests
+  else
     let error++
-    echo "Tests/Testspecs/$logFile" >> $errorListFile
   fi
 done
 
