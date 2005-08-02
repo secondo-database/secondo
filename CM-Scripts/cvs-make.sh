@@ -251,7 +251,7 @@ if [ $[errors] == 0 ]; then
     
     # creating tar archive
     startedTests="$cbuildDir/started-tests"
-    passedTests="$cbuildDir/passeded-tests"
+    passedTests="$cbuildDir/passed-tests"
     attachment2="./run-tests-logfiles.tar.gz"
     cd $cbuildDir
     tar -czvf $attachment2 --files-from $startedTests --exclude-from $passedTests 

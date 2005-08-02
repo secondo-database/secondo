@@ -14,7 +14,7 @@ rm -f $startedTests
 rm -f $passedTests
 
 inputDir="${buildDir}/Tests/Testspecs"
-testSuites=$(find ${inputDir} -name "*.test")
+testSuites=$(find $buildDir -path "*Tests*.test" -printf "%P\n")
 
 printf "\n%s\n" "Running tests in ${buildDir}."
 
@@ -35,33 +35,32 @@ else
 
 fi
 
-
 declare -i error=0
 for testName in $testSuites
 do 
   baseDir=${testName%/*}
-  file=${testName##*/}
-  logFile="${file}.log"
-  printf "\n%s\n" "Running ${file} in directory $baseDir"
+  logFile="${testName}.log"
+  printf "\n%s\n" "Running ${testName} in directory $baseDir"
   cd $baseDir
   printf "%s\n" "==================================================================="  > $logFile
   printf "%s\n" "===================================================================\n"  > $logFile
-  echo "Tests/Testspecs/$logFile" >> $startedTests
-  checkCmd "time TestRunner -i  ${file} > ${logFile} 2>&1"
+  echo "$logFile" >> $startedTests
+  checkCmd "time TestRunner -i  ${testName} > ${logFile} 2>&1"
   if lastRC; then
-    echo "Tests/Testspecs/$logFile" >> $passedTests
+    echo "$logFile" >> $passedTests
   else
     let error++
   fi
 done
 
-
 printf "\n%s\n\n" "Running optimizer test ..."
 cd ${buildDir}/Optimizer
+echo "Optimizer/optimizer.test.log" >> $startedTests
 checkCmd "time TestOptimizer"
-if ! lastRC; then
+if lastRC; then
+  echo "Optimizer/optimizer.test.log" >> $passedTests
+else
   let error++
-  echo "Optimizer/optimizer.test.log" >> $errorListFile
 fi
 
 #clean up
