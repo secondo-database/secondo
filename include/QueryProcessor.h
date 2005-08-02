@@ -80,7 +80,6 @@ this value based on a global memory limit per query.
 
 June 2005, M. Spiekermann SetDeletFunction added.
 
-
 1.1 Overview
 
 This module describes the interface of module ~QueryProcessor~.

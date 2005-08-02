@@ -119,9 +119,6 @@ The destructor.
 
       maxElements = newSize;
       FLOB::Resize( newSize * sizeof( DBArrayElement ) );
-
-      assert( FLOB::Size() % sizeof( DBArrayElement ) == 0 );
-      assert( maxElements == FLOB::Size() / (int)sizeof( DBArrayElement ) );
     }
 
     void Clear()
@@ -166,9 +163,6 @@ The destructor.
         FLOB::Put( index * sizeof( DBArrayElement ),
                    sizeof( DBArrayElement ),
                    &elem );
-
-        assert( FLOB::Size() % sizeof( DBArrayElement ) == 0 );
-        assert( maxElements == FLOB::Size() / (int)sizeof( DBArrayElement ) );
       }
     }
 

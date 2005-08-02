@@ -131,6 +131,13 @@ Saves a fresh tuple into ~tuplefile~ and ~lobfile~. Returns the total size of
 the tuple saved.
 
 */
+
+  const int UpdateSave(const vector<int>& changedIndices );
+/*
+Saves a solid tuple with updated attributes and reuses the old record. Returns the total size of
+the tuple saved.
+
+*/
   const bool Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
                    SmiRecordId rid );
 /*

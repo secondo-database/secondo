@@ -1,4 +1,4 @@
-/*
+/* 
 ---- 
 This file is part of SECONDO.
 
@@ -197,6 +197,12 @@ void Tuple::PutAttribute( const int index, Attribute* attr )
 {
   assert( index >= 0 && index < privateTuple->tupleType->GetNoAttributes() );
   privateTuple->attrArray[ index ] = attr;
+}
+
+void Tuple::UpdateAttributes(const vector<int>& changedIndices, const vector<Attribute*>& newAttrs){
+	cout << "This functionality is not yet implemented for the RelationMainMemoryAlgebra" << endl;
+	assert(false);
+
 }
 
 const int Tuple::GetMemorySize() const
@@ -685,6 +691,19 @@ void Relation::AppendTuple( Tuple *tuple )
   privateRelation->totalSize += tuple->GetTotalSize();
 }
 
+bool Relation::DeleteTuple( Tuple *tuple )
+{
+  cout << "This functionality is not yet implemented for the RelationMainMemoryAlgebra" << endl;
+  assert(false);
+  	
+}
+
+void Relation::UpdateTuple( Tuple *tuple, const vector<int>& changedIndices,const vector<Attribute *>& newAttrs ){
+	cout << "This functionality is not yet implemented for the RelationMainMemoryAlgebra" << endl;
+	assert(false);
+	
+}
+
 Tuple* Relation::GetTuple( const TupleId& tupleId ) const
 {
   return (*privateRelation->tupleArray)[ tupleId ];
@@ -712,6 +731,11 @@ void Relation::Clear()
 const int Relation::GetNoTuples() const
 {
   return privateRelation->noTuples;
+}
+
+const TupleType& Relation::GetTupleType() const
+{
+  return privateRelation->tupleType;
 }
 
 const double Relation::GetTotalSize() const

@@ -122,10 +122,7 @@ class TupleElement // renamed, previous name: TupleElem
       for( int i = 0; i < elem->NumOfFLOBs(); i++ )
       {
         FLOB *tmpFLOB = elem->GetFLOB(i);
-        if( tmpFLOB->IsLob() )
-          tmpFLOB->SaveToLob( *SecondoSystem::GetFlobFile() );
-        else
-          extensionSize += tmpFLOB->Size();
+        extensionSize += tmpFLOB->Size();
       }
 
       // Move FLOB data to extension tuple
@@ -137,11 +134,8 @@ class TupleElement // renamed, previous name: TupleElem
         for( int i = 0; i < elem->NumOfFLOBs(); i++ )
         {
           FLOB *tmpFLOB = elem->GetFLOB(i);
-          if( !tmpFLOB->IsLob() )
-          {
-            tmpFLOB->SaveToExtensionTuple( extensionPtr );
-            extensionPtr += tmpFLOB->Size();
-          }
+          tmpFLOB->SaveToExtensionTuple( extensionPtr );
+          extensionPtr += tmpFLOB->Size();
         }
       }
 
@@ -162,8 +156,8 @@ class TupleElement // renamed, previous name: TupleElem
       NestedList *nl = SecondoSystem::GetNestedList();
       AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
       int algId = nl->IntValue( nl->First( typeInfo ) ),
-          typeId = nl->IntValue( nl->Second( typeInfo ) ),
-          size = (algMgr->SizeOfObj(algId, typeId))();
+          typeId = nl->IntValue( nl->Second( typeInfo ) );
+      size_t size = (algMgr->SizeOfObj(algId, typeId))();
 
       TupleElement *elem = (TupleElement*)(algMgr->CreateObj(algId, typeId))( typeInfo ).addr;
       // Read the element
@@ -171,36 +165,14 @@ class TupleElement // renamed, previous name: TupleElem
       elem = (TupleElement*)(algMgr->Cast(algId, typeId))( elem );
       offset += size;
 
-      // Calculate the extension size
-      int extensionSize = 0;
+      // Save the FLOBs
       for( int i = 0; i < elem->NumOfFLOBs(); i++ )
       {
         FLOB *tmpFLOB = elem->GetFLOB(i);
-        if( tmpFLOB->IsLob() )
-          tmpFLOB->SetLobFile( SecondoSystem::GetFlobFile() );
-        else
-          extensionSize += tmpFLOB->Size();
+        tmpFLOB->ReadFromExtensionTuple( valueRecord, offset );
+        offset += tmpFLOB->Size();
       }
 
-      // Read the extension size
-      char *extensionElement = 0;
-      if( extensionSize > 0 )
-      {
-        extensionElement = (char*)malloc( extensionSize );
-        valueRecord.Read( extensionElement, extensionSize, offset );
-      }
-
-      // Restore the FLOB data
-      char *extensionPtr = extensionElement;
-      for( int i = 0; i < elem->NumOfFLOBs(); i++ )
-      {
-        FLOB* tmpFLOB = elem->GetFLOB(i);
-        if( !tmpFLOB->IsLob() )
-        {
-          tmpFLOB->Restore( extensionPtr );
-          extensionPtr = extensionPtr + tmpFLOB->Size();
-        }
-      }
       return elem;
     }
 

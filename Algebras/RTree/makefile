@@ -26,7 +26,7 @@
 include ../../makefile.env
 
 MODNAME = RTreeAlgebra
-CCFLAGS = $(DEFAULTCCFLAGS) -I../Relation-C++ -I../Spatial -I../Rectangle
+CCFLAGS = $(DEFAULTCCFLAGS) -I../Relation-C++ -I../Spatial -I../Rectangle -I../TupleIdentifier
 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)

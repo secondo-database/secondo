@@ -1,4 +1,4 @@
-/*
+/*  
 ---- 
 This file is part of SECONDO.
 
@@ -339,6 +339,13 @@ Returns the attribute at position ~index~ inside the tuple.
 Puts an attribute in the position ~index~ inside the tuple.
 
 */
+
+    void UpdateAttributes( const vector<int>& changedIndices,const vector<Attribute*>& newAttrs );
+/*
+Puts the attributes from 'newAttrs' at the corresponding position from 'changedIndices' into the tuple. Destroys the
+physical representations of the old attributes and saves the new tuple to disk.
+
+*/
     const int GetMemorySize();
 /*
 Returns the size of the memory (in bytes) used by the tuple.
@@ -645,6 +652,7 @@ class GenericRelation
     virtual const double GetTotalSize() const = 0;
     virtual void Clear() = 0;
     virtual void AppendTuple( Tuple *t ) = 0;
+    //virtual bool DeleteTuple( Tuple *t ) = 0;
     virtual Tuple *GetTuple( const TupleId& id ) const = 0;
     virtual GenericRelationIterator *MakeScan() const = 0;
 };
@@ -816,7 +824,7 @@ to the next tuple. Returns NULL if the cursor is in the end of a relation.
 */
     TupleId GetTupleId() const;
 /*
-Returns the tuple identification of the current tuple.
+Returns the tuple identifier of the current tuple.
 
 */
     const bool EndOfScan();
@@ -950,9 +958,24 @@ Corresponds to the ~Clone~-function of type constructor ~rel~.
 Appends a tuple to the relation. Returns the size in bytes occupied by the tuple.
 
 */
+    bool DeleteTuple( Tuple *tuple );
+/*
+Deletes the tuple from the relation. Returns false if the tuple could not be deleted.
+
+*/
+    void UpdateTuple( Tuple *tuple, const vector<int>& changedIndices, const vector<Attribute *>& newAttrs );
+/*
+Updates the tuple by putting the new attributes at the positions given by 'changedIndices' and adjusts the physical representation.
+
+*/
     Tuple* GetTuple( const TupleId& tupleId ) const;
 /*
 Returns the tuple identified by ~tupleId~.
+
+*/
+    const TupleType& GetTupleType() const;
+/*
+Returns the tupletype of the tuples of the relation.
 
 */
     void Clear();

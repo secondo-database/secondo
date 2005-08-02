@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -51,7 +51,7 @@ Stefan Dieker, 03/05/98
 2.1 The threshold size is set to 1K.
 
 */
-const int FLOB::SWITCH_THRESHOLD = 1024;
+const size_t FLOB::SWITCH_THRESHOLD = 1024;
 
 /*
 
@@ -61,19 +61,17 @@ Create a new InMemory FLOB and initializes it with
 size ~sz~.
 
 */
-FLOB::FLOB( int sz ) :
+FLOB::FLOB( size_t sz ) :
 type( InMemory )
 {
   size = sz;
   if( sz > 0 )
   {
     fd.inMemory.buffer = (char*)malloc( sz );
-    fd.inMemory.freeBuffer = true;
   }
   else
   {
     fd.inMemory.buffer = 0;
-    fd.inMemory.freeBuffer = false;
   }
   assert( (size > 0  && fd.inMemory.buffer != 0 ) ||
           (size == 0 && fd.inMemory.buffer == 0 ) );
@@ -89,7 +87,7 @@ FLOB::~FLOB()
 {
   if( type == InMemory )
   {
-    if( fd.inMemory.freeBuffer )
+    if( fd.inMemory.buffer != 0 )
       free( fd.inMemory.buffer );
   }
 }
@@ -113,7 +111,6 @@ char *FLOB::BringToMemory()
 
     type = InMemory;
     fd.inMemory.buffer = buffer;
-    fd.inMemory.freeBuffer = true;
   }
 
   assert( type == InMemory );
@@ -126,7 +123,7 @@ char *FLOB::BringToMemory()
 Read by copying
 
 */
-void FLOB::Get( int offset, int length, void *target )
+void FLOB::Get( size_t offset, size_t length, void *target )
 {
   assert( type != Destroyed );
   assert( size > 0 );
@@ -153,12 +150,12 @@ void FLOB::Get( int offset, int length, void *target )
 }
 
 /*
-2.8	Put
+2.8 Put
 
 Write Flob data into source.
 
 */
-void FLOB::Put( int offset, int length, const void *source)
+void FLOB::Put( size_t offset, size_t length, const void *source)
 {
   assert( type != Destroyed );
   assert( size > 0 );
@@ -166,7 +163,7 @@ void FLOB::Put( int offset, int length, const void *source)
   if( type == InMemory )
   {
     assert( fd.inMemory.buffer != 0 && offset + length <= size );
-    memcpy( fd.inMemory.buffer + offset, source, length ); 
+    memcpy( fd.inMemory.buffer + offset, source, length );
 
     assert( (size > 0  && fd.inMemory.buffer != 0 ) ||
             (size == 0 && fd.inMemory.buffer == 0 ) );
@@ -189,13 +186,13 @@ void FLOB::Put( int offset, int length, const void *source)
 Returns the size of a FLOB.
 
 */
-int FLOB::Size() const
+size_t FLOB::Size() const
 {
   return size;
 }
 
 /*
-2.10 Destroy 
+2.10 Destroy
 
 Destroys the physical representation of the FLOB.
 
@@ -209,11 +206,8 @@ void FLOB::Destroy()
     if( size > 0 )
     {
       assert( fd.inMemory.buffer != 0 );
-      if( fd.inMemory.freeBuffer )
-      {
-        free( fd.inMemory.buffer );
-        fd.inMemory.buffer = 0;
-      }
+      free( fd.inMemory.buffer );
+      fd.inMemory.buffer = 0;
     }
   }
   else if( type == InDiskLarge )
@@ -228,7 +222,7 @@ void FLOB::Destroy()
 }
 
 /*
-2.10 Clear 
+2.10 Clear
 
 Clears the FLOB.
 
@@ -241,12 +235,10 @@ void FLOB::Clear()
   {
     if( size > 0 )
     {
-      if( fd.inMemory.freeBuffer == true )
-      {
-        free( fd.inMemory.buffer ); 
-        fd.inMemory.buffer = 0;
-        size = 0;
-      }
+      assert( fd.inMemory.buffer != 0 );
+      free( fd.inMemory.buffer );
+      fd.inMemory.buffer = 0;
+      size = 0;
     }
   }
 }
@@ -257,27 +249,20 @@ void FLOB::Clear()
 Resizes the FLOB.
 
 */
-void FLOB::Resize( int newSize )
+void FLOB::Resize( size_t newSize )
 {
   assert( type != Destroyed );
-  assert( newSize > 0 );
+  assert( newSize > 0 ); // Use Clear
 
   if( type == InMemory )
   {
     if( size == 0 )
-    {
-      fd.inMemory.freeBuffer = true;
       fd.inMemory.buffer = (char *) malloc( newSize );
-    }
-    else if( fd.inMemory.freeBuffer == true )
-    {
-      fd.inMemory.buffer = (char *)realloc( fd.inMemory.buffer, newSize ); 
-    }
     else
-      // This code cannot be reached because the other
-      // cases are not implemented yet.
-      assert( false );
-    
+    {
+      assert( fd.inMemory.buffer != 0 );
+      fd.inMemory.buffer = (char *)realloc( fd.inMemory.buffer, newSize );
+    }
     assert( (newSize > 0  && fd.inMemory.buffer != 0 ) ||
             (newSize == 0 && fd.inMemory.buffer == 0 ) );
   }
@@ -307,49 +292,54 @@ void FLOB::SetLobFile( SmiRecordFile* lobFile )
 2.10 SaveToLob
 
 */
-void FLOB::SaveToLob( SmiRecordFile& lobFile, SmiRecordId lobId )
+size_t FLOB::SaveToLob( SmiRecordFile& lobFile, SmiRecordId lobId )
 {
   assert( type == InMemory && size > SWITCH_THRESHOLD );
+  assert( fd.inMemory.buffer != 0 );
 
+  size_t result = 0;
   SmiRecord lob;
   if( lobId == 0 )
     assert( lobFile.AppendRecord( lobId, lob ) );
   else
     assert( lobFile.SelectRecord( lobId, lob ) );
 
-  lob.Write( fd.inMemory.buffer, size, 0 );
+  result = lob.Write( fd.inMemory.buffer, size, 0 );
 
-  if( fd.inMemory.freeBuffer )
-  {
-    free( fd.inMemory.buffer );
-    fd.inMemory.buffer = 0;
-    fd.inMemory.freeBuffer = false;
-  }
+  free( fd.inMemory.buffer );
+  fd.inMemory.buffer = 0;
 
   type = InDiskLarge;
   fd.inDiskLarge.lobFile = 0;
   fd.inDiskLarge.lobId = lobId;
+
+  return result;
 }
 
+
 /*
-2.10 SaveToExtensionTuple
+3.11 SaveToExtensionTuple
+
+Saves the FLOB to a buffer of an extension tuple and sets its type to ~InDiskSmall~.
 
 */
 void FLOB::SaveToExtensionTuple( void *extensionTuple )
 {
-  assert( type == InMemory && size <= SWITCH_THRESHOLD );
+  assert( type == InMemory );
+
+// VTA
+// I would like to have here the restriction:
+// assert( size <= SWITCH_THRESHOLD );
+// But the standalone objects call this function also for LOBs.
 
   if( size > 0 )
   {
+    assert( fd.inMemory.buffer != 0 );
     if( extensionTuple != 0 )
       Get( 0, size, extensionTuple );
 
-    if( fd.inMemory.freeBuffer )
-    {
-      free( fd.inMemory.buffer );
-      fd.inMemory.buffer = 0;
-      fd.inMemory.freeBuffer = false;
-    }
+    free( fd.inMemory.buffer );
+    fd.inMemory.buffer = 0;
   }
   else
   {
@@ -357,6 +347,63 @@ void FLOB::SaveToExtensionTuple( void *extensionTuple )
   }
 
   type = InDiskSmall;
+}
+
+
+/*
+3.12 ReadFromExtensionTuple
+
+Reads the FLOB value from an extension tuple. There are two ways of reading, one uses
+a Prefetching Iterator and the other reads directly from the SMI Record.
+The FLOB must be small.
+
+*/
+size_t FLOB::ReadFromExtensionTuple( PrefetchingIterator& iter, const size_t offset )
+{
+  assert( type == InDiskSmall );
+
+// VTA
+// I would like to have here the restriction:
+// assert( size <= SWITCH_THRESHOLD );
+// But the standalone objects call this function also for LOBs.
+
+  size_t result = 0;
+
+  type = InMemory;
+
+  if( size > 0 )
+  {
+    fd.inMemory.buffer = (char*)malloc( size );
+    result = iter.ReadCurrentData( fd.inMemory.buffer, size, offset );
+  }
+  else
+    fd.inMemory.buffer = 0;
+
+  return result;
+}
+
+size_t FLOB::ReadFromExtensionTuple( SmiRecord& record, const size_t offset )
+{
+  assert( type == InDiskSmall );
+
+// VTA
+// I would like to have here the restriction:
+// assert( size <= SWITCH_THRESHOLD );
+// But the standalone objects call this function also for LOBs.
+
+  size_t result = 0;
+
+  type = InMemory;
+
+  if( size > 0 )
+  {
+    fd.inMemory.buffer = (char*)malloc( size );
+    result = record.Read( fd.inMemory.buffer, size, offset );
+  }
+  else
+    fd.inMemory.buffer = 0;
+
+  return result;
 }
 
 /*
@@ -386,20 +433,5 @@ bool FLOB::IsLob() const
 FLOB_Type FLOB::GetType() const
 {
   return type;
-}
-
-/*
-2.12 Restore
-
-Restore from byte string.
-
-*/
-void FLOB::Restore( void *newBuffer )
-{
-  assert( type == InDiskSmall );
-
-  type = InMemory;
-  fd.inMemory.buffer = (char*)newBuffer;
-  fd.inMemory.freeBuffer = false;
 }
 

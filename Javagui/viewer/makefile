@@ -44,9 +44,10 @@ VIEWER_CLASSES := \
 		MP3V.class \
 		MidiViewer.class \
                 TreeViewer.class \
-                PictureViewer.class
+                PictureViewer.class\
+                UpdateViewer.class
 
-VIEWER_DIRS := fuzzy2d midi relsplit viewer3d hoese pictureviewer
+VIEWER_DIRS := fuzzy2d midi relsplit viewer3d hoese pictureviewer update
 
 
 # compile all viewers

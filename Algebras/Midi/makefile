@@ -22,6 +22,13 @@
 # SECONDO makefile for Midi Algebra
 #
 # $Log$
+#
+# Revision 1.3  2005/07/21 17:39:46  spieker
+# Some old code corrected, since the algebra was excluded for a long time
+#
+# Revision 1.2.4.1  2005/07/29 11:22:07  spieker
+# merged trunk from Root-Of-RelUpdate to HEAD
+#
 # Revision 1.2  2005/01/04 15:27:05  hoffman
 # Added GPL License
 #

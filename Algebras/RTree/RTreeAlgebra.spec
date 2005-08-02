@@ -1,4 +1,4 @@
-#This file is part of SECONDO.
+#This file is part of SECONDO. 
 
 #Copyright (C) 2004, University in Hagen, Department of Computer Science, 
 #Database Systems for New Applications.
@@ -19,3 +19,8 @@
 
 operator creatertree alias CREATERTREE pattern _ op [ _ ]
 operator windowintersects alias WINDOWINTERSECTS pattern _ _ op [ _ ]
+operator insertrtree alias INSERTRTREE pattern _ _ op [ _ ]
+operator deletertree alias DELETERTREE pattern _ _ op [ _ ]
+operator updatertree alias UPDATERTREE pattern _ _ op [ _ ]
+
+

@@ -27,7 +27,7 @@ include ../../makefile.env
 
 MODNAME = ExtRelationAlgebra
 
-CCFLAGS = $(DEFAULTCCFLAGS) -I../Relation-C++
+CCFLAGS = $(DEFAULTCCFLAGS) -I../Relation-C++ -I../TupleIdentifier
 
 # define the compiler flag -DRELALG_PERSISTENT in the file 
 # makefile.env to compile the Persistent Relational Algebra.
