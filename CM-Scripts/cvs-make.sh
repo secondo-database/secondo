@@ -25,23 +25,24 @@ else
 fi
 
 
-# makeSecondo $1
+# makeSecondo $1 $2
 #
 # $1 file name for make's output
+# $2 subject for email
 function makeSecondo() {
 
 local msgFile=$1
+local subject=$2
 
 CM-Scripts/catvar.sh
-checkCmd "make > ../$msgFile 2>&1"
+checkCmd "make > $msgFile 2>&1"
 
 # proceed if last command was successful
 if ! lastRC; then
 
   printf "%s\n" "Problems during build, sending a mail"
 
-  sendMail "Building SECONDO failed!" "$mailRecipients" "$mailBody1" "$msgFile"
-  let errors++ 
+  sendMail $subject "$mailRecipients" "$mailBody1" "$msgFile"
 
 fi
 
@@ -230,15 +231,16 @@ printf "\n%s\n" "Entering directory $PWD"
 export SECONDO_ACTIVATE_ALL_ALGEBRAS="true"
 export SECONDO_YACC="/usr/bin/bison"
 
-makeSecondo "make-allalgebras.log"
+makeSecondo "make-allalgebras.log" "Building SECONDO with all algebras failed!"
 
+checkCmd "make realclean > make-clean.log 2>&1" 
 unset SECONDO_ACTIVATE_ALL_ALGEBRAS
-makeSecondo "make-nojni.log" 
+makeSecondo "make-nojni.log" "Building SECONDO failed!"
 
 
 ## run tests
 
-if [ $[errors] == 0 ]; then
+if [ $? == 0 ]; then
 
   printSep "Running automatic tests"
   cd $scriptDir
@@ -266,14 +268,14 @@ fi
 
 if [ $[errors] != 0 ]; then
 
-  printf "There were $errors errors!"
+  printf "\n *** There were $errors errors in the automatic tests! ***\n"
 
 else
 
   cd $cbuildDir
   ## run make clean
   printSep "Cleaning SECONDO"
-  checkCmd "make realclean > ../make-clean.log 2>&1" 
+  checkCmd "make realclean > make-clean.log 2>&1" 
 
   printSep "Check for undeleted files ( *.{o,a,so,dll,class} )"
   find . -iregex ".*\.\([oa]\|so\|dll\|class\)"
