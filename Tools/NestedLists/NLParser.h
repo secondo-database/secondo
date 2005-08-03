@@ -39,6 +39,7 @@ class NLParser
   virtual ~NLParser();
   int         yyparse();
   ListExpr    GetNestedList() { return listExpression; }
+  static int         yydebug;
  protected:
   ListExpr    listExpression;
   stack<ListExpr> lists;
@@ -52,7 +53,6 @@ class NLParser
   static ListExpr    yylval;
   static int         yychar;
   static int         yynerrs;
-  static int         yydebug;
 
   friend class NLScanner;
 };
