@@ -106,8 +106,8 @@ This function removes spaces at begin and end of the given string
 string trim(const string& s){
   if(s.length() == 0)
        return s;
-  int start = s.find_first_not_of(" \t");
-  int end = s.find_last_not_of(" \t");
+  size_t start = s.find_first_not_of(" \t");
+  size_t end = s.find_last_not_of(" \t");
   if(start == string::npos) // No non-spaces
      return "";
   return string(s, start, end - start + 1);
@@ -123,16 +123,15 @@ In this function a single line of the ini file is analyzed.
 void processLine(const string& inputLine,string& classpath,
                        string& libdir, string& version, string& heapMem,vector<string>& xoptions){
  // remove comment
- int comment = inputLine.find("#");
+ size_t comment = inputLine.find("#");
  string line;
  if(comment != string::npos){
     line = inputLine.substr(0,comment);
  }else
     line = string(inputLine);
 
- int len = line.size();
  // find the first not space character
- int i=line.find_first_not_of(" \t");
+ size_t i=line.find_first_not_of(" \t");
  if(i==string::npos)
     return;
  if(line[i]!='%') // ignore lines without this switch
@@ -249,14 +248,12 @@ calls leads to no action.
 */
 JVMInitializer::JVMInitializer() {
   if(initialized) return; // initialize only one time
-
   jint res;
   cout << "Initializing the JNI. " << endl;
 
   initialized =false;
   int major=0; // version part
   int minor=0; // version part
-  int number=0;
 
   string classpath="";
   string libpath="";
@@ -320,14 +317,14 @@ JVMInitializer::JVMInitializer() {
      options[0].optionString = co;
      options[1].optionString = lo;
      options[2].optionString = mo;
-     for(int i=0;i<xoptions.size();i++){
+     for(unsigned int i=0;i<xoptions.size();i++){
         char* xopt = new char[xoptions[i].size()+1];
         sprintf(xopt,"%s",xoptions[i].c_str());
         options[3+i].optionString = xopt;
      }
 
      cout << "VM Options: " << endl;
-     for (int i=0; i<VM_MAXOPT; i++) 
+     for (unsigned int i=0; i<VM_MAXOPT; i++) 
      {
        cout << "  " << options[i].optionString << endl;
      }

@@ -32,7 +32,7 @@ wrapper:
 	$(MAKE) -C wrapper all
 
 JVMInit.o: JVMInit.cpp
-	$(CC) -c $(JNIINCLUDE)  JVMInit.cpp -o JVMInit.o
+	$(CC) -c $(JNIINCLUDE)  $(DEFAULTCCFLAGS) JVMInit.cpp -o JVMInit.o
 
 JNITool.o: JNITool.cpp
 	$(CC) -c $(JNIINCLUDE) $(DEFAULTCCFLAGS) JNITool.cpp -o JNITool.o
