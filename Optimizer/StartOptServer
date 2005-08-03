@@ -29,4 +29,13 @@ if [ "$SECONDO_PLATFORM" != win32 ]; then
    unset SWI_HOME_DIR
 fi
 
-java -classpath ../Jpl/lib/classes/:. OptimizerServer $PORT
+if [ -n SECONDO_JAVA ]; then
+    JAVA=$SECONDO_JAVA
+    CLASSPATH=$SECONDO_JAVART
+else
+    JAVA=java
+fi
+
+cmd="$JAVA -classpath ../Jpl/lib/classes/:.:$CLASSPATH OptimizerServer $PORT"
+echo $cmd
+$cmd
