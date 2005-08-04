@@ -104,8 +104,8 @@ ALGEBRAS     +=	PointSequenceAlgebra
 #ALGEBRA_DIRS += MP3
 #ALGEBRAS     += MP3Algebra
 
-#ALGEBRA_DIRS += Picture 
-#ALGEBRAS     += PictureAlgebra
+ALGEBRA_DIRS += Picture 
+ALGEBRAS     += PictureAlgebra
 
 #ALGEBRA_DIRS  += Midi
 #ALGEBRAS      += MidiAlgebra
