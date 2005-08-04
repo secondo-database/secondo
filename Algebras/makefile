@@ -72,7 +72,6 @@ specs.test: $(SPECFILES) ../makefile.algebras
 buildlibs:
 	@echo -e "\n *** Building algebra libs ***\n";
 	for dir in $(ALL_ALGEBRA_DIRS); do \
-	  export ALG_DIR_NAME="$$dir"; \
           if !($(MAKE) -C $$dir) then \
             exit 1; \
           fi \
@@ -84,7 +83,6 @@ buildlibs:
 clean:
 	rm -f specs specs.test
 	for dir in $(ALL_ALGEBRA_DIRS); do \
-	  export ALG_DIR_NAME="$$dir"; \
           if !($(MAKE) -C $$dir clean) then \
             exit 1; \
           fi \
