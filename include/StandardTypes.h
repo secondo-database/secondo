@@ -282,6 +282,9 @@ ListExpr OutCcInt( ListExpr typeinfo, Word value );
 Word InCcReal( ListExpr typeInfo, ListExpr value, 
                int errorPos, ListExpr& errorInfo, bool& correct );
 ListExpr OutCcReal( ListExpr typeinfo, Word value );
+Word InCcString( ListExpr typeInfo, ListExpr value,
+                 int errorPos, ListExpr& errorInfo, bool& correct );
+ListExpr OutCcString( ListExpr typeinfo, Word value );
 
 #endif
 
