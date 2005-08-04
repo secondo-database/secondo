@@ -29,7 +29,7 @@ function runTest() {
   local testName=$2
   local runCmd=$3
   local logFile=$runDir/${testName}.log
-  local waitSeconds=120
+  local waitSeconds=240
 
   if [ "$4" != "" ]; then
     waitSeconds=$4
