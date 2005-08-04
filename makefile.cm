@@ -190,5 +190,5 @@ $(net)/%.pdf: Documents/Installation/%.ps
 backup: backup.tgz
 
 backup.tgz:
-	tar -cvzf $@ $$( cvs -nq update | grep ^[MAC] | sed -e "s/[M,A,C] //g" )
+	tar -cvzf $@ $$( cvs -nq update | grep "^[MAC] " | sed -e "s#[M,A,C] ##g" )
 
