@@ -124,7 +124,6 @@ The spatial region in both cases is used to calculate the value of the
 #include "StandardTypes.h"
 
 #include "TemporalAlgebra.h"
-#include "IntegrationHack.h"
 
 #include "DateTime.h"
 using namespace datetime;

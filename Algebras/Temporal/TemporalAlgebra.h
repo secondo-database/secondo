@@ -4672,43 +4672,306 @@ void* CastMapping(void* addr)
 }
 
 /*
-6 Header functions
+6 Operators value mapping template functions 
+
+6.1 Value mapping functions of operator ~isempty~
 
 */
 template <class Mapping>
-int MappingIsEmpty( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Unit>
-int UnitIsEmpty( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping>
-int MappingEqual( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping>
-int MappingNotEqual( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Alpha>
-int IntimeInst( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Alpha>
-int IntimeVal( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping, class Alpha>
-int MappingNoComponents( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping, class Alpha>
-int MappingAtInstant( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping>
-int MappingAtPeriods( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping>
-int MappingDefTime( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping>
-int MappingPresent_i( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping>
-int MappingPresent_p( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping, class Alpha>
-int MappingPasses( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping, class Unit, class Alpha>
-int MappingInitial( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping, class Unit, class Alpha>
-int MappingFinal( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping, class Unit, class Alpha>
-int MappingAt( Word* args, Word& result, int message, Word& local, Supplier s );
-template <class Mapping, class Unit>
-int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s);
+int MappingIsEmpty( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if( ((Mapping*)args[0].addr)->IsEmpty() )
+    ((CcBool*)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+  return 0;
+}
 
+template <class Unit>
+int UnitIsEmpty( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if( !((Unit*)args[0].addr)->IsDefined() )
+    ((CcBool*)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+  return 0;
+}
+
+/*
+6.2 Value mapping functions of operator $=$ (~equal~)
+
+*/
+template <class Mapping>
+int MappingEqual( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if( *((Mapping*)args[0].addr) == *((Mapping*)args[1].addr) )
+    ((CcBool*)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+  return 0;
+}
+
+/*
+6.3 Value mapping functions of operator $\#$ (~not equal~)
+
+*/
+template <class Mapping>
+int MappingNotEqual( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if( *((Mapping*)args[0].addr) != *((Mapping*)args[1].addr) )
+    ((CcBool*)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+  return 0;
+}
+
+/*
+6.4 Value mapping functions of operator ~inst~
+
+*/
+template <class Alpha>
+int IntimeInst( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Intime<Alpha>* i = (Intime<Alpha>*)args[0].addr;
+
+  if( i->IsDefined() )
+    ((Instant*)result.addr)->CopyFrom( &((Intime<Alpha>*)args[0].addr)->instant );
+  else
+    ((Instant*)result.addr)->SetDefined( false );
+
+  return 0;
+}
+
+/*
+6.5 Value mapping functions of operator ~val~
+
+*/
+template <class Alpha>
+int IntimeVal( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Intime<Alpha>* i = (Intime<Alpha>*)args[0].addr;
+
+  if( i->IsDefined() )
+    ((Alpha*)result.addr)->CopyFrom( &((Intime<Alpha>*)args[0].addr)->value );
+  else
+    ((Alpha*)result.addr)->SetDefined( false );
+
+  return 0;
+}
+
+/*
+6.6 Value mapping functions of operator ~no\_components~
+
+*/
+template <class Mapping, class Alpha>
+int MappingNoComponents( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  ((CcInt*)result.addr)->Set( true, ((Mapping*)args[0].addr)->GetNoComponents() );
+  return 0;
+}
+
+/*
+6.7 Value mapping functions of operator ~atinstant~
+
+*/
+template <class Mapping, class Alpha>
+int MappingAtInstant( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Intime<Alpha>* pResult = (Intime<Alpha>*)result.addr;
+
+  ((Mapping*)args[0].addr)->AtInstant( *((Instant*)args[1].addr), *pResult );
+
+  return 0;
+}
+
+/*
+6.8 Value mapping functions of operator ~atperiods~
+
+*/
+template <class Mapping>
+int MappingAtPeriods( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  ((Mapping*)args[0].addr)->AtPeriods( *((Periods*)args[1].addr), *((Mapping*)result.addr) );
+  return 0;
+}
+
+/*
+6.9 Value mapping functions of operator ~deftime~
+
+*/
+template <class Mapping>
+int MappingDefTime( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  ((Mapping*)args[0].addr)->DefTime( *(Periods*)result.addr );
+  return 0;
+}
+
+/*
+6.10 Value mapping functions of operator ~present~
+
+*/
+template <class Mapping>
+int MappingPresent_i( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  Mapping *m = ((Mapping*)args[0].addr);
+  Instant* inst = ((Instant*)args[1].addr);
+
+  if( !inst->IsDefined() )
+    ((CcBool *)result.addr)->Set( false, false );
+  else if( m->Present( *inst ) )
+    ((CcBool *)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+
+  return 0;
+}
+
+template <class Mapping>
+int MappingPresent_p( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  Mapping *m = ((Mapping*)args[0].addr);
+  Periods* periods = ((Periods*)args[1].addr);
+
+  if( periods->IsEmpty() )
+    ((CcBool *)result.addr)->Set( false, false );
+  else if( m->Present( *periods ) )
+    ((CcBool *)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+
+  return 0;
+}
+
+/*
+6.11 Value mapping functions of operator ~passes~
+
+*/
+template <class Mapping, class Alpha>
+int MappingPasses( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  Mapping *m = ((Mapping*)args[0].addr);
+  Alpha* val = ((Alpha*)args[1].addr);
+
+  if( !val->IsDefined() )
+    ((CcBool *)result.addr)->Set( false, false );
+  else if( m->Passes( *val ) )
+    ((CcBool *)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+
+  return 0;
+}
+
+/*
+6.12 Value mapping functions of operator ~initial~
+
+*/
+template <class Mapping, class Unit, class Alpha>
+int MappingInitial( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  ((Mapping*)args[0].addr)->Initial( *((Intime<Alpha>*)result.addr) );
+  return 0;
+}
+
+/*
+6.13 Value mapping functions of operator ~final~
+
+*/
+template <class Mapping, class Unit, class Alpha>
+int MappingFinal( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  ((Mapping*)args[0].addr)->Final( *((Intime<Alpha>*)result.addr) );
+  return 0;
+}
+
+/*
+6.14 Value mapping functions of operator ~at~
+
+*/
+template <class Mapping, class Unit, class Alpha>
+int MappingAt( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  Mapping *m = ((Mapping*)args[0].addr);
+  Alpha* val = ((Alpha*)args[1].addr);
+  Mapping* pResult = ((Mapping*)result.addr);
+
+  pResult->Clear();
+  m->At( *val, *pResult );
+
+  return 0;
+}
+
+/*
+6.15 Value mapping functions of operator ~units~
+
+*/
+struct UnitsLocalInfo
+{
+  Word mWord;     // the address of the moving point/int/real value
+  int unitIndex;  // current item index
+};
+
+template <class Mapping, class Unit>
+int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Mapping* m;
+  Unit* unit;
+  UnitsLocalInfo *localinfo;
+
+  switch( message )
+  {
+    case OPEN:
+
+      localinfo = new UnitsLocalInfo;
+      qp->Request(args[0].addr, localinfo->mWord);
+      localinfo->unitIndex = 0;
+      local = SetWord(localinfo);
+      return 0;
+
+    case REQUEST:
+
+      if( local.addr == 0 )
+        return CANCEL;
+      localinfo = (UnitsLocalInfo *) local.addr;
+      m = (Mapping*)localinfo->mWord.addr;
+      if( (0 <= localinfo->unitIndex) && (localinfo->unitIndex < m->GetNoComponents()) )
+      {
+        unit = new Unit;
+        m->Get( localinfo->unitIndex++, *unit );
+
+        result = SetWord( unit );
+        return YIELD;
+      }
+      return CANCEL;
+
+    case CLOSE:
+
+      if( local.addr != 0 )
+        delete (UnitsLocalInfo *)local.addr;
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
 
 #endif // _TEMPORAL_ALGEBRA_H_
