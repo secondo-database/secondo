@@ -25,6 +25,11 @@
 
 include ../../makefile.env
 
+ifndef ALG_DIR_NAME
+DIR_NAME=$(subst /, ,$(shell pwd))
+ALG_DIR_NAME=$(word $(words $(DIR_NAME)),$(DIR_NAME))
+endif
+
 MODNAME = DateTimeAlgebra
 CCFLAGS = $(DEFAULTCCFLAGS)
 
