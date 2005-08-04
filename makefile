@@ -165,7 +165,7 @@ clean:
 .PHONY: realclean
 realclean: clean
 	$(MAKE) -C Javagui clean
-	rm $(CONFIG_FILES) 
+	rm -f $(CONFIG_FILES) 
 
 
 .PHONY: runtests 
