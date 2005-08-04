@@ -989,7 +989,7 @@ public:
   CcPoints(const jobject jobj);
   /* This constructor creates an empty CcPoints object. */	
   CcPoints();
-  CcPoints(const int size);
+  CcPoints(size_t size);
   /* retrieves the nested list representation of the underlying
      java object. */
 
@@ -1152,7 +1152,7 @@ CcPoints::CcPoints(char *serial, int len) {
 }
  */
 
-CcPoints::CcPoints(const int size):objectData(size),canDelete(false) {
+CcPoints::CcPoints(size_t size):objectData(size),canDelete(false) {
   SetDefined(true);
 }
 
@@ -1359,7 +1359,7 @@ Creation of a CcPoints object.
 
 */
 static Word CreateCcPoints(const ListExpr typeInfo) {
-  CcPoints* res = new CcPoints(1);
+  CcPoints* res = new CcPoints((size_t)1);
   res->SetObject(0);
   return SetWord(res);
 }
@@ -1570,7 +1570,7 @@ public:
      java object. */
   /* This constructor creates an empty CcLines object. */	
   CcLines();
-  CcLines(const int size);
+  CcLines(size_t size);
   bool GetNL(ListExpr &le);
   
   void SetObject(jobject obj) {
@@ -1729,7 +1729,7 @@ CcLines::CcLines(char *serial, int len) {
 }
   */
 
-CcLines::CcLines(const int size):objectData(size),canDelete(false) {
+CcLines::CcLines(size_t size):objectData(size),canDelete(false) {
   SetDefined(true);
 }
 
@@ -1942,7 +1942,7 @@ Creation of a CcLines object.
 static Word CreateCcLines(const ListExpr typeInfo) {
   cout << "CreateCcLines" << endl;
 
-  CcLines* res = new CcLines(1);
+  CcLines* res = new CcLines((size_t)1);
   res->SetObject(0);
   return SetWord(res);
 }
@@ -2148,7 +2148,7 @@ public:
   CcRegions(const jobject jobj);
   /* This constructor creates an empty CcRegions object. */	
   CcRegions();
-  CcRegions(const int size);
+  CcRegions(size_t size);
  /* retrieves the nested list representation of the underlying
      java object. */
   bool GetNL(ListExpr &le);
@@ -2311,7 +2311,7 @@ CcRegions::CcRegions(char *serial, int len) {
 }
  */
 
-CcRegions::CcRegions(const int size):objectData(size),canDelete(false) {
+CcRegions::CcRegions(size_t size):objectData(size),canDelete(false) {
   SetDefined(true);
 }
 
@@ -2532,7 +2532,7 @@ Creation of a CcRegions object.
 
 */
 static Word CreateCcRegions(const ListExpr typeInfo) {
-  CcRegions* res = new CcRegions(1);
+  CcRegions* res = new CcRegions((size_t)1);
   res->SetObject(0);
   return SetWord(res);
 }
