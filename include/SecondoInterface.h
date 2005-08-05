@@ -1013,7 +1013,9 @@ Needed to support ~derived~ Objects
 Sets the debug level of the query processor.
 
 */
-	
+
+  bool IsCSImplementation() const { return isCSImpl; }
+
  protected:
  private:
   void StartCommand();
@@ -1037,6 +1039,8 @@ Sets the debug level of the query processor.
 
   bool        initialized;       // state of interface
   bool        activeTransaction; // state of transaction block
+  bool        isCSImpl;          // CS-Implementation or not
+
   NestedList  *nl, *al;          // References of
                                  // nested list containers
   Socket*     server;            // used in C/S version only

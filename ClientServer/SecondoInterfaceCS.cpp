@@ -48,8 +48,11 @@ skipline( istream&  strm )
   return (strm);
 }
 
-SecondoInterface::SecondoInterface()
-  : initialized( false ), activeTransaction( false ), server( 0 )
+SecondoInterface::SecondoInterface() : 
+  initialized( false ), 
+  activeTransaction( false ),
+  isCSImpl( true ), 
+  server( 0 )
 {
   nl = new NestedList();
   al = nl;
@@ -73,7 +76,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
 {
   string secHost = host;
   string secPort = port;
-  string line;
+  string line = "";
   if ( !initialized )
   {
     cout << "Initializing the Secondo system ..." << endl;

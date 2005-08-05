@@ -93,3 +93,4 @@ SecondoInterface::GetErrorMessage( int& errorCode )
   return defaultMsg.str();
 }
 
+

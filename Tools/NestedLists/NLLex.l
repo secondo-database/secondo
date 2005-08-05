@@ -83,17 +83,18 @@ int yyFlexLexer::yylex()
 }
 
 %}
-otherChar      [^\(\)\"A-Za-z0-9_ \a\b\f\n\r\t\v]
-letter         [a-zA-Z]
-digit          [0-9]
-ident          {letter}({letter}|{digit}|_)*
-math           {otherChar}{otherChar}*
-symbol         {math}|{ident}
-num1	       [-+]?{digit}+\.?([eE][-+]?{digit}+)?
-num2	       [-+]?{digit}*\.{digit}+([eE][-+]?{digit}+)?
-number	       {num1}|{num2}
+otherChar       [^\(\)\"A-Za-z0-9_ \a\b\f\n\r\t\v]
+letter          [a-zA-Z]
+digit           [0-9]
+ident           {letter}({letter}|{digit}|_)*
+math            {otherChar}{otherChar}*
+symbol          {math}|{ident}
+num1	        [-+]?{digit}+\.?([eE][-+]?{digit}+)?
+num2	        [-+]?{digit}*\.{digit}+([eE][-+]?{digit}+)?
+number	        {num1}|{num2}
 
-string         \"[^\"]*\"
+string          \"[^\"]*\"
+simpletext	"'"[^']*"'"		
 
 file		"<file>"[^<]+"</file--->"
 
@@ -124,6 +125,14 @@ file		"<file>"[^<]+"</file--->"
 			yylval = nl->BoolAtom( false );
 			return (ZZBOOLEAN);
 		        }
+
+
+<INITIAL>{simpletext}	{ string value(yytext);
+                          value = value.substr(1,value.length()-2);
+                          ListExpr newText = nl->TextAtom(value);
+                          yylval = newText;
+			  return (ZZTEXT);
+                        }
 
 <INITIAL>"<text>"       { cols += yyleng;
                         // change to state TEXT

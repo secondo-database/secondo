@@ -223,11 +223,13 @@ public:
   }
   inline ostream& info()    { stdOutput = 1; return buffer; }
   inline ostream& warning() { stdOutput = 1; return buffer; }
-  inline ostream& error()   { stdOutput = 2; return buffer; }  
+  inline ostream& error()   { stdOutput = 2; return buffer; } 
+
+  inline const string& normal() { static const string s("\033[0m"); return s; } 
+  inline const string& red() { static const string s("\033[31m"); return s; } 
 
   inline void send() {
   
-    //buffer << ends;
     switch (stdOutput) { 
 
     case 3:
@@ -235,9 +237,16 @@ public:
       (*fp) << buffer.str();
        break;
     }
+    case 2: 
+    {
+      cerr << red() << "Error: " << buffer.str() << normal();
+      allErrors << "Error: " << buffer.str();
+      break;
+    }
     case 1: 
     {
       cout << buffer.str();
+      allErrors << buffer.str();
       break;
     }
     case 0:
@@ -258,7 +267,6 @@ public:
 
   inline string getErrorMsg() {
 
-    //allErrors << ends;
     string result = allErrors.str();
     allErrors.str("");
     allErrors.clear(); 

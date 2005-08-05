@@ -850,6 +850,7 @@ NestedList::ReadFromFile ( const string& fileName, ListExpr& list )
   bool success = false;
   list = 0;
   ifstream ifile( fileName.c_str() );
+  
   if ( ifile )
   {
     NLParser* nlParser = new NLParser( this, &ifile );
@@ -860,6 +861,11 @@ NestedList::ReadFromFile ( const string& fileName, ListExpr& list )
     }
     delete nlParser;
     ifile.close();
+  }
+  else
+  {
+    cmsg.error() << "Could not access file '" << fileName << "'" << endl;
+    cmsg.send();
   }
   return (success);
 }
@@ -922,10 +928,14 @@ NestedList::WriteAtom( const ListExpr atom, bool toScreen )
 
         } else {
          
+          static const size_t len=48;
           string textFragment = "";
           TextScan textScan = CreateTextScan( atom );
-          GetText( textScan, 48, textFragment );
-          *outStream << textFragment << " ... (text atom truncated after 48 bytes)";          
+          GetText( textScan, len, textFragment );
+          *outStream << textFragment;
+          if ( textFragment.length() > len ) {
+            *outStream << " ... (text atom truncated after " << len << " bytes)";          
+          }
           DestroyTextScan ( textScan );
  
         }
@@ -2388,7 +2398,8 @@ NestedList::EndOfText( const TextScan textScan )
 
 /*
 9.6.5 Alternative function for iteration over text atoms. This
-      was implemented, since EndOfText has not been used.
+was implemented, since EndOfText has not been used in the complete
+SECONDO code.
 
 */
 
@@ -2470,6 +2481,19 @@ NestedList::Text2String( const ListExpr& textAtom, string& resultStr ) {
   resultStr = outStream.str();
 
 }
+
+string
+NestedList::Text2String( const ListExpr& textAtom ) {
+
+  ostringstream outStream; 
+  string textFragment = "";
+  while ( GetNextText(textAtom, textFragment, 1024) ) {
+     outStream << textFragment;
+  }
+  return outStream.str();
+
+}
+
 
 /*
 

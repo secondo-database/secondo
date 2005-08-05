@@ -152,12 +152,16 @@ database	:	ZZCREATE ZZDATABASE ZZIDENTIFIER
 				{PRINTF("(save "); PRINT($2); 
 				 PRINTF(" to "); PRINT($4); 
 				PRINTF(")\n");}
-		|	ZZRESTORE ZZDATABASE ZZIDENTIFIER ZZFROM ZZIDENTIFIER
+		|	ZZRESTORE ZZDATABASE ZZIDENTIFIER ZZFROM filename 
 				{PRINTF("(restore database "); PRINT($3); 
 				PRINTF(" from "); PRINT($5); PRINTF(")\n");}
-		|	ZZRESTORE ZZIDENTIFIER ZZFROM ZZIDENTIFIER
+		|	ZZRESTORE ZZIDENTIFIER ZZFROM filename 
 				{PRINTF("(restore "); PRINT($2); 
 				PRINTF(" from "); PRINT($4); PRINTF(")\n");}
+		;
+
+filename	:	ZZIDENTIFIER 
+		|	ZZTEXT
 		;
 
 inquiries	:	ZZLIST ZZDATABASES
@@ -367,6 +371,7 @@ valueexpr	: ZZIDENTIFIER				{$$ = $1;}
 				NestedText::Concat(NestedText::AtomC(" "), 
 				NestedText::Concat($1,
 				NestedText::AtomC(")")     )))));}
+
 
 /* algebra specific part */
 

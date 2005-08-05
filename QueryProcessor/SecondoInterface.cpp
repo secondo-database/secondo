@@ -124,10 +124,14 @@ DerivedObj::ObjRecord::id = 0;
 
 */
 
-SecondoInterface::SecondoInterface()
-  : initialized( false ), activeTransaction( false ), nl( 0 ), server( 0 ), derivedObjPtr(0)
-{
-}
+SecondoInterface::SecondoInterface() : 
+  initialized( false ), 
+  activeTransaction( false ), 
+  isCSImpl( false ), 
+  nl( 0 ), 
+  server( 0 ), 
+  derivedObjPtr(0)
+{}
 
 
 /*
@@ -704,7 +708,8 @@ which should be named Command\_<name>.
                (nl->AtomType( nl->Third( list )) == SymbolType) &&
                 nl->IsEqual( nl->Fourth( list ), "from" ) &&
                 nl->IsAtom( nl->Fifth( list )) &&
-               (nl->AtomType( nl->Fifth( list )) == SymbolType) )
+               ( (nl->AtomType( nl->Fifth( list )) == SymbolType) 
+                 || (nl->AtomType( nl->Fifth( list )) == TextType))  )
       {
         if ( sys.IsDatabaseOpen() )
         {
@@ -713,7 +718,15 @@ which should be named Command\_<name>.
         else
         {
           dbName = nl->SymbolValue( nl->Third( list ) );
-          filename = nl->SymbolValue( nl->Fifth( list ) );
+          ListExpr fifth = nl->Fifth( list );
+          if ( nl->AtomType( fifth) == SymbolType ) 
+          {
+            filename = nl->SymbolValue( fifth );
+          }
+          else
+          {
+            filename = nl->Text2String( fifth );
+          } 
           errorCode = sys.RestoreDatabase( dbName, filename, errorInfo );          
         }
 
@@ -807,7 +820,8 @@ which should be named Command\_<name>.
              (nl->AtomType( nl->Second( list )) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), "from" ) &&
               nl->IsAtom( nl->Fourth( list )) &&
-             (nl->AtomType( nl->Fourth( list )) == SymbolType) )
+             ( (nl->AtomType( nl->Fourth( list )) == SymbolType) 
+               || (nl->AtomType( nl->Fourth( list )) == TextType)) )
     {
       if ( !sys.IsDatabaseOpen() )
       {
@@ -816,7 +830,16 @@ which should be named Command\_<name>.
       else
       {
         objName = nl->SymbolValue( nl->Second( list ) );
-        filename = nl->SymbolValue( nl->Fourth( list ) );
+        ListExpr fourth =  nl->Fourth( list );
+        if (nl->AtomType(fourth) == SymbolType) 
+        { 
+          filename = nl->SymbolValue( fourth );
+        }
+        else
+        {
+          filename = nl->Text2String( fourth );
+        }
+        
 
         if ( sys.IsDatabaseObject( objName ) )
         {
@@ -1261,8 +1284,10 @@ which should be named Command\_<name>.
    errorMessage += repMsg + "\n";
 
    cmsg.send(); // flush cmsg buffer
-   errorMessage += cmsg.getErrorMsg();
-   errorMessage += GetErrorMessage(errorCode);
+   if ( isCSImpl ) {
+     errorMessage += cmsg.getErrorMsg();
+     errorMessage += GetErrorMessage(errorCode);
+   }
  }
  return;
 }

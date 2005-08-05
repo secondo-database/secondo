@@ -828,6 +828,7 @@ Returns the number of characters of ~textAtom~.
 */
 
 void Text2String( const ListExpr& textAtom, string& resultStr );
+string Text2String( const ListExpr& textAtom);
 
 /*
 Transforms the text atom into C++ string object 

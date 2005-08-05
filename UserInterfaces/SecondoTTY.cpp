@@ -607,9 +607,11 @@ SecondoTTY::CallSecondo()
 
   // printing out error messages
   cerr << endl;
-  cerr << errorMessage << endl;
-  cerr << cmsg.getErrorMsg() << endl;
-
+  if ( errorMessage != "" ) 
+  {
+    cerr << errorMessage << endl;
+  }
+ 
   return (outList);
 }
 

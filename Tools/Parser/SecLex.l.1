@@ -67,6 +67,7 @@ num1	       	[-+]?{digit}+\.?([eE][-+]?{digit}+)?
 num2	       	[-+]?{digit}*\.{digit}+([eE][-+]?{digit}+)?
 number	       	{num1}|{num2}
 string         	\"[^\"]*\"   
+simpletext	"'"[^']*"'"
 textstart       "<text>"
 textend         "</text--->"
 file	  	"<file>"[^<\n]+"</file--->"
@@ -140,3 +141,5 @@ value		{yylval = NestedText::Atom( yytext, yyleng ); return ZZVALUE;}
 <TEXT_SP>.|\n      { text_sp->put(yytext[0]); }
 
 {file}		{yylval = NestedText::Atom( yytext, yyleng ); return ZZFILE;}
+
+{simpletext}	{yylval = NestedText::Atom( yytext, yyleng ); return ZZTEXT;}
