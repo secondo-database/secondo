@@ -249,7 +249,7 @@ if [ $? == 0 ]; then
 
   printSep "Running automatic tests"
   cd $scriptDir
-  run-tests.sh
+  checkCmd "run-tests.sh"
 
   if ! lastRC; then
     
