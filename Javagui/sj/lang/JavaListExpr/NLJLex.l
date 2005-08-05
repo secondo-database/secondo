@@ -155,6 +155,7 @@ ident       =   {letter}({letter}|{digit}|_)*
 math        =   {otherChar}{otherChar}*
 symbol      =   {math}|{ident}
 string      =   \"[^\"]*\"
+simpletext  =   "'"[^']*"'"
 filename    =   "<file>".*"</file--->"
 
 
@@ -233,6 +234,14 @@ filename    =   "<file>".*"</file--->"
                   // without the doble quotes at the start and end.
                   return(new NLToken(NLToken.TT_STRING_ATOM,
                          ListExpr.stringAtom(yytext().substring(1,yytext().length() - 1)),
+                         yychar+1, yyline+1));
+                }
+
+<YYINITIAL> {simpletext} {
+                  // If it finds an ~textAtom~, it returns its content,
+                  // without the  quotes at the start and end.
+                  return(new NLToken(NLToken.TT_TEXT_ATOM,
+                         ListExpr.textAtom(yytext().substring(1,yytext().length() - 1)),
                          yychar+1, yyline+1));
                 }
 
