@@ -3,7 +3,7 @@
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of MovingRegion Algebra
+[1] Implementation of MovingRegion algebra
 
 [TOC]
 
@@ -117,6 +117,7 @@ The spatial region in both cases is used to calculate the value of the
 */
 
 #include <queue>
+#include <stdexcept>
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -132,6 +133,10 @@ static NestedList* nl;
 static QueryProcessor* qp;
 
 const bool MRA_DEBUG = true;
+
+static bool nearlyEqual(double a, double b) {
+    return abs(a-b) <= 0.00001;
+}
 
 // ************************************************************************
 
@@ -198,54 +203,99 @@ static TypeConstructor iregion(
 
 */
 
-class MPointData {
+class MSegmentData {
 private:
     unsigned int faceno;
     unsigned int cycleno;
-    double startX;
-    double startY;
-    double endX;
-    double endY;
+    unsigned int segmentno;
+
+    bool insideLeftOrAbove;
+    bool degeneratedInitial;
+    bool degeneratedFinal;
+
+    double initialStartX;
+    double initialStartY;
+    double initialEndX;
+    double initialEndY;
+
+    double finalStartX;
+    double finalStartY;
+    double finalEndX;
+    double finalEndY;
 
 public:
-    MPointData() {
-        //cerr << "MPointData::MPointData() called" << endl;
+    MSegmentData() {
+        cerr << "MSegmentData::MSegmentData() #1 called" << endl;
     }
 
-    MPointData(unsigned int _faceno, 
-                unsigned int _cycleno, 
-                double _startX, 
-                double _startY, 
-                double _endX, 
-                double _endY) :
-        faceno(_faceno),
-        cycleno(_cycleno),
-        startX(_startX),
-        startY(_startY),
-        endX(_endX),
-        endY(_endY) {
+    MSegmentData(unsigned int fno, 
+		 unsigned int cno, 
+		 unsigned int sno,
+		 bool iloa,
+		 bool di,
+		 bool df,
+		 double il,
+		 double isx,
+		 double isy,
+		 double iex,
+		 double iey,
+		 double fsx,
+		 double fsy,
+		 double fex,
+		 double fey) :
+        faceno(fno),
+        cycleno(cno),
+        segmentno(sno),
+	insideLeftOrAbove(iloa),
+	degeneratedInitial(di),
+	degeneratedFinal(df),
+	initialStartX(isx),
+	initialStartY(isy),
+	initialEndX(iex),
+	initialEndY(iey),
+	finalStartX(fsx),
+	finalStartY(fsy),
+	finalEndX(fex),
+	finalEndY(fey)  {
 	if (MRA_DEBUG)
-	    cerr << "MPointData() called "
+	    cerr << "MSegmentData::MSegmentData() #2 called "
 		 << faceno
 		 << " "
 		 << cycleno
 		 << " "
-		 << _startX
+		 << segmentno
 		 << " "
-		 << _startY
+		 << insideLeftOrAbove
 		 << " "
-		 << _endX
+		 << degeneratedInitial
 		 << " "
-		 << _endY
+		 << degeneratedFinal
+		 << " "
+		 << initialStartX
+		 << " "
+		 << initialStartY
+		 << " "
+		 << initialEndX
+		 << " "
+		 << initialEndY
+		 << " "
+		 << finalStartX
+		 << " "
+		 << finalStartY
+		 << " "
+		 << finalEndX
+		 << " "
+		 << finalEndY
 		 << endl;
-    }
 
-    unsigned int GetFaceNo(void) { return faceno; }
-    unsigned int GetCycleNo(void) { return cycleno; }
-    double GetStartX(void) { return startX; }
-    double GetStartY(void) { return startY; }
-    double GetEndX(void) { return endX; }
-    double GetEndY(void) { return endY; }
+	double idx = (iex-isx)/il;
+	double idy = (iey-isy)/il;
+	double fdx = (fex-fsx)/il;
+	double fdy = (fey-fsy)/il;
+
+	if (!nearlyEqual(idx, fdx) || !nearlyEqual(idy, fdy))
+	    throw invalid_argument("initial and final segment not colinear");
+    }
 };
 
 /*
@@ -258,9 +308,9 @@ private:
     // *hm* Confirm whether two roles of URegion are really required
     enum { UNDEF, NORMAL, EMBEDDED } role;
 
-    DBArray<MPointData>* points;
-    unsigned int pointsStartPos;
-    unsigned int pointsNum;
+    DBArray<MSegmentData>* segments;
+    unsigned int segmentsStartPos;
+    unsigned int segmentsNum;
 
 public:
     URegion() {
@@ -268,13 +318,13 @@ public:
     }
 
     URegion(Interval<Instant>& interval,
-	    DBArray<MPointData>* ps,
+	    DBArray<MSegmentData>* segs,
 	    unsigned int pos) : 
         SpatialTemporalUnit<CRegion, 3>(interval),
 	role(EMBEDDED),
-        points(ps),
-	pointsStartPos(pos),
-	pointsNum(0) {
+        segments(segs),
+	segmentsStartPos(pos),
+	segmentsNum(0) {
         if (MRA_DEBUG) 
             cerr << "URegion::URegion() #2 called" << endl;
     }
@@ -282,22 +332,21 @@ public:
     URegion(Interval<Instant>& interval) :
 	SpatialTemporalUnit<CRegion, 3>(interval),
 	role(NORMAL),
-        points(new DBArray<MPointData>(0)),
-	pointsStartPos(0),
-	pointsNum(0) {
+        segments(new DBArray<MSegmentData>(0)),
+	segmentsStartPos(0),
+	segmentsNum(0) {
         if (MRA_DEBUG) 
             cerr << "URegion::URegion() #2 called" << endl;
     }
 
-    void AddPoint(unsigned int pointno,
-                  unsigned int faceno,
-                  unsigned int cycleno,
-                  double startX,
-                  double startY,
-                  double endX,
-                  double endY);
-    int GetPointsNum(void);
-    void GetPoint(int pos, MPointData& dmp);
+    bool AddSegment(unsigned int faceno,
+		    unsigned int cycleno,
+		    unsigned int segmentno,
+		    double intervalLen,
+		    ListExpr start,
+		    ListExpr end);
+    int GetSegmentsNum(void);
+    void GetSegment(int pos, MSegmentData& dms);
 
     void Destroy(void);
 
@@ -316,7 +365,7 @@ void URegion::Destroy(void) {
 
     assert(role == NORMAL || role == EMBEDDED);
 
-    if (role == NORMAL) points->Destroy();
+    if (role == NORMAL) segments->Destroy();
 }
 
 URegion* URegion::Clone(void) {
@@ -342,6 +391,10 @@ const Rectangle<3> URegion::BoundingBox() const {
 
 void URegion::TemporalFunction(Instant& t, CRegion& res) {
     if (MRA_DEBUG) cerr << "URegion::TemporalFunction() called" << endl;
+
+    assert(false);
+
+#ifdef SCHMUH
 
     assert(t.IsDefined());
     assert(timeInterval.Contains(t));
@@ -712,7 +765,8 @@ void URegion::TemporalFunction(Instant& t, CRegion& res) {
 
     // *hm* UGLY & MEMORY LEAK
     memcpy(&res, cr, sizeof(*cr));
-    
+
+#endif // SCHMUH
 }
 
 bool URegion::Passes(CRegion& val) {
@@ -727,37 +781,96 @@ bool URegion::At(CRegion& val, TemporalUnit<CRegion>& result) {
     assert(false);
 }
 
-void URegion::AddPoint(unsigned int pointno,
-                       unsigned int faceno,
-                       unsigned int cycleno,
-                       double startX,
-                       double startY,
-                       double endX,
-                       double endY) {
-    //if (MRA_DEBUG) cerr << "URegion::AddPoint() called" << endl;
+bool URegion::AddSegment(unsigned int faceno,
+			 unsigned int cycleno,
+			 unsigned int segmentno,
+			 double intervalLen,
+			 ListExpr start, 
+			 ListExpr end) {
+    if (MRA_DEBUG) cerr << "URegion::AddSegment() called" << endl;
 
     assert(role == NORMAL || role == EMBEDDED);
 
-    MPointData dmp(faceno, cycleno, startX, startY, endX, endY);
-    points->Resize(pointsStartPos+pointsNum+1);
-    points->Put(pointsStartPos+pointsNum, dmp);
-    pointsNum++;
+    if (nl->ListLength(start) != 4
+	|| !nl->IsAtom(nl->First(start))
+	|| nl->AtomType(nl->First(start)) != RealType
+	|| !nl->IsAtom(nl->Second(start))
+	|| nl->AtomType(nl->Second(start)) != RealType
+	|| !nl->IsAtom(nl->Third(start))
+	|| nl->AtomType(nl->Third(start)) != RealType
+	|| !nl->IsAtom(nl->Fourth(start))
+	|| nl->AtomType(nl->Fourth(start)) != RealType) {
+	cerr << "start point "
+	     << nl->ToString(start)
+	     << " not in format (<real> <real> real> <real>)" 
+	     << endl;
+	return false;
+    }
+
+    if (nl->ListLength(end) != 4
+	|| !nl->IsAtom(nl->First(end))
+	|| nl->AtomType(nl->First(end)) != RealType
+	|| !nl->IsAtom(nl->Second(end))
+	|| nl->AtomType(nl->Second(end)) != RealType
+	|| !nl->IsAtom(nl->Third(end))
+	|| nl->AtomType(nl->Third(end)) != RealType
+	|| !nl->IsAtom(nl->Fourth(end))
+	|| nl->AtomType(nl->Fourth(end)) != RealType) {
+	cerr << "end point " 
+	     << nl->ToString(end) 
+	     << " not in format (<real> <real> real> <real>)" 
+	     << endl;
+	return false;
+    }
+
+    try {
+	MSegmentData dms(faceno, 
+			 cycleno, 
+			 segmentno, 
+			 false,
+			 false,
+			 false,
+			 intervalLen,
+			 nl->RealValue(nl->First(start)), 
+			 nl->RealValue(nl->Second(start)), 
+			 nl->RealValue(nl->Third(start)), 
+			 nl->RealValue(nl->Fourth(start)), 
+			 nl->RealValue(nl->First(end)), 
+			 nl->RealValue(nl->Second(end)), 
+			 nl->RealValue(nl->Third(end)), 
+			 nl->RealValue(nl->Fourth(end)));
+
+	segments->Resize(segmentsStartPos+segmentsNum+1);
+	segments->Put(segmentsStartPos+segmentsNum, dms);
+	segmentsNum++;
+    } catch (invalid_argument& e) {
+	cerr << "checking segment " 
+	     << nl->ToString(start) 
+	     << " - "
+	     << nl->ToString(end) 
+	     << " failed: " 
+	     << e.what()
+	     << endl;
+	return false;
+    }
+
+    return true;
 }
 
-int URegion::GetPointsNum(void) {
-    //if (MRA_DEBUG) cerr << "URegion::GetPointNum() called" << endl;
+int URegion::GetSegmentsNum(void) {
+    if (MRA_DEBUG) cerr << "URegion::GetSegmentsNum() called" << endl;
 
     assert(role == NORMAL || role == EMBEDDED);
 
-    return pointsNum;
+    return segmentsNum;
 }
 
-void URegion::GetPoint(int pos, MPointData& dmp) {
-    //if (MRA_DEBUG) cerr << "URegion::GetPoint() called, pos=" << pos << endl;
+void URegion::GetSegment(int pos, MSegmentData& dms) {
+    if (MRA_DEBUG) cerr << "URegion::GetSegment() called, pos=" << pos << endl;
 
     assert(role == NORMAL || role == EMBEDDED);
 
-    points->Get(pointsStartPos+pos, dmp);
+    segments->Get(segmentsStartPos+pos, dms);
 }
 
 /*
@@ -812,6 +925,11 @@ static bool CheckURegion(ListExpr type, ListExpr& errorInfo) {
 static ListExpr OutURegion(ListExpr typeInfo, Word value) {
     if (MRA_DEBUG) cerr << "OutURegion() called" << endl;
 
+    assert(false);
+
+    return 0;
+
+#ifdef SCHMUH
     URegion* ur = (URegion*) value.addr;
 
     ListExpr res = 
@@ -900,6 +1018,7 @@ static ListExpr OutURegion(ListExpr typeInfo, Word value) {
     }
 
     return res;
+#endif // SCHMUH
 }
 
 // *hm* No verification on data done yet
@@ -909,14 +1028,12 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 			      const int errorPos, 
 			      ListExpr& errorInfo, 
 			      bool& correct,
-			      DBArray<MPointData>* points,
-			      unsigned int pointsStartPos) {
+			      DBArray<MSegmentData>* segments,
+			      unsigned int segmentsStartPos) {
     if (MRA_DEBUG) cerr << "InURegionEmbedded() called" << endl;
 
     if (nl->ListLength(instance) == 0) {
-        if (MRA_DEBUG) 
-            cerr << "InURegion() unit not in format (<interval> <face>*)" 
-                 << endl;
+	cerr << "uregion not in format (<interval> <face>*)" << endl;
         correct = false;
         return SetWord(Address(0));
     }
@@ -937,10 +1054,8 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
         || nl->AtomType(nl->Third(interval)) != BoolType
         || !nl->IsAtom(nl->Fourth(interval))
         || nl->AtomType(nl->Fourth(interval)) != BoolType) {
-        if (MRA_DEBUG) 
-            cerr << "InURegion() "
-                 << "interval not in format (<real> <real> <bool> <bool>)" 
-                 << endl;
+	cerr << "uregion interval not in format (<real> <real> <bool> <bool>)" 
+	     << endl;
         correct = false;
         return SetWord(Address(0));
     }
@@ -952,10 +1067,11 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
                               errorInfo, 
                               correct).addr;
     if (!correct) {
-        if (MRA_DEBUG) cerr << "InURegion() invalid start time" << endl;
+        cerr << "uregion interval invalid start time" << endl;
         correct = false;
         return SetWord(Address(0));
     }
+
     Instant *end = 
         (Instant *) InInstant(nl->TheEmptyList(), 
                               nl->Second(interval),
@@ -963,7 +1079,7 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
                               errorInfo, 
                               correct ).addr;
     if (!correct) {
-        if (MRA_DEBUG) cerr << "InURegion() invalid end time" << endl;
+        cerr << "uregion interval invalid end time" << endl;
         correct = false;
         delete start;
         return SetWord(Address(0));
@@ -973,14 +1089,107 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
                                 *end,
                                 nl->BoolValue(nl->Third(interval)),
                                 nl->BoolValue(nl->Fourth(interval)));
-    
+
+    double intervalLen = end-start;
+
     delete start;
     delete end;
 
     URegion* uregion =
-	points == 0 
+	segments == 0 
 	? new URegion(tinterval)
-	: new URegion(tinterval, points, pointsStartPos);
+	: new URegion(tinterval, segments, segmentsStartPos);
+
+    unsigned int faceno = 0;
+    ListExpr faces = nl->Rest(instance);
+
+    if (nl->ListLength(faces) == 0) {
+	cerr << "uregion should contain at least one face" << endl;
+	delete uregion;
+        correct = false;
+        return SetWord(Address(0));
+    }
+
+    while (!nl->IsEmpty(faces)) {
+        if (MRA_DEBUG) cerr << "InURegion() face #" << faceno << endl;
+
+        ListExpr cycles = nl->First(faces);
+
+	if (nl->ListLength(cycles) == 0) {
+	    cerr << "uregion face should contain at least one cycle" << endl;
+	    delete uregion;
+	    correct = false;
+	    return SetWord(Address(0));
+	}
+
+        unsigned int cycleno = 0;
+        unsigned int pointno = 0;
+
+        while (!nl->IsEmpty(cycles)) {
+	    if (MRA_DEBUG) cerr << "InURegion()   cycle #" << cycleno << endl;
+
+            ListExpr cyclepoints = nl->First(cycles);
+
+	    if (nl->ListLength(cyclepoints) < 3) {
+		cerr << "uregion cycle should contain at least three points" 
+		     << endl;
+		delete uregion;
+		correct = false;
+		return SetWord(Address(0));
+	    }
+	    
+	    ListExpr firstPoint = nl->First(cyclepoints);
+	    ListExpr prevPoint = 0;
+
+            while (!nl->IsEmpty(cyclepoints)) {
+		if (MRA_DEBUG) 
+		    cerr << "InURegion()     point #" << pointno << endl;
+
+                ListExpr point = nl->First(cyclepoints);
+
+		if (prevPoint != 0 
+		    && !uregion->AddSegment(faceno, 
+					    cycleno, 
+					    pointno, 
+					    intervalLen,
+					    prevPoint, 
+					    point)) {
+		    cerr << "uregion's segment checks failed" << endl;
+		    delete uregion;
+		    correct = false;
+		    return SetWord(Address(0));
+		}
+
+		prevPoint = point;
+                cyclepoints = nl->Rest(cyclepoints);
+                pointno++;
+	    }
+
+	    if (!uregion->AddSegment(faceno,
+				     cycleno,
+				     pointno,
+				     intervalLen,
+				     prevPoint, 
+				     firstPoint)) {
+		cerr << "uregion's segment checks failed" << endl;
+		delete uregion;
+		correct = false;
+		return SetWord(Address(0));
+	    }
+
+            cycles = nl->Rest(cycles);
+            cycleno++;
+	}
+
+        faces = nl->Rest(faces);
+	faceno++;
+    }
+
+    assert(false);
+
+    return SetWord(0);
+
+#ifdef SCHMUH
 
     unsigned int faceno = 0;
     ListExpr faces = nl->Rest(instance);
@@ -1044,6 +1253,7 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 
     correct = true;
     return SetWord(Address(uregion));
+#endif // SCHMUH
 }
 
 static Word InURegion(const ListExpr typeInfo, 
@@ -1165,7 +1375,7 @@ public:
 
 class MRegion : public Mapping<URegion, CRegion> {
 private: 
-    DBArray<MPointData> mpointdata;
+    DBArray<MSegmentData> msegmentdata;
 
     void AddRefinementUnits(vector<URegion*>& vur,
 			    vector<UPoint*>& vup,
@@ -1186,7 +1396,7 @@ public:
 
     MRegion(const int n) :
         Mapping<URegion, CRegion>(n),
-	mpointdata(0) {
+	msegmentdata(0) {
         if (MRA_DEBUG) cerr << "MRegion::MRegion(int) called" << endl;
     }
 
@@ -1216,7 +1426,7 @@ FLOB* MRegion::GetFLOB(const int i) {
     assert(false);
     assert(i == 0 || i == 1);
 
-    return i == 0 ? Mapping<URegion, CRegion>::GetFLOB(0) : &mpointdata;
+    return i == 0 ? Mapping<URegion, CRegion>::GetFLOB(0) : &msegmentdata;
 }
 
 static void addSegment(priority_queue<PlaneSweepStopPoint>& pq,
@@ -1250,6 +1460,9 @@ static void addSegment(priority_queue<PlaneSweepStopPoint>& pq,
 void MRegion::Traversed(void) {
     if (MRA_DEBUG) cerr << "MRegion::Traversed() called" << endl;
 
+    assert(false);
+
+#ifdef SCHMUH
     priority_queue<PlaneSweepStopPoint> pq;
 
     for (int i = 0; i < GetNoComponents(); i++) {
@@ -1514,6 +1727,7 @@ void MRegion::Traversed(void) {
     }
 
     assert(false);
+#endif // SCHMUH
 }
 
 void MRegion::AddRefinementUnits(vector<URegion*>& vur,
@@ -1525,6 +1739,10 @@ void MRegion::AddRefinementUnits(vector<URegion*>& vur,
 				 bool lc,
 				 bool rc) {
     if (MRA_DEBUG) cerr << "MRegion::AddRefinementUnits() called" << endl;
+
+    assert(false);
+
+#ifdef SCHMUH
 
     if (MRA_DEBUG) 
 	cerr << "MRegion::AddRefinementUnits() start="
@@ -1593,6 +1811,7 @@ void MRegion::AddRefinementUnits(vector<URegion*>& vur,
 	    up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*t0,
 	    up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*t1,
 	    up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*t1));
+#endif // SCHMUH
 }
 
 void MRegion::RefinementPartition(MPoint& mp,
@@ -1949,8 +2168,8 @@ Word InMRegion(const ListExpr typeInfo,
 		errorPos, 
 		errorInfo,
 		correct,
-		&mr->mpointdata,
-		mr->mpointdata.Size()).addr;
+		&mr->msegmentdata,
+		mr->msegmentdata.Size()).addr;
 	if(correct == false) return SetWord(Address(0));
 	mr->Add(*ur);
 	delete ur;
