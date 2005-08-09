@@ -53,7 +53,7 @@ e_2-a_2 \\
 e_3-a_3 
 \end{array} \right.
 \end{array}
-\nonumber \end{eqnarray}
+\nonumber\end{eqnarray}
 
 The following cases need to be examined:
 
@@ -134,8 +134,259 @@ static QueryProcessor* qp;
 
 const bool MRA_DEBUG = true;
 
+const double eps = 0.00001;
+
 static bool nearlyEqual(double a, double b) {
-    return abs(a-b) <= 0.00001;
+    return abs(a-b) <= eps;
+}
+
+static bool lowerOrNearlyEqual(double a, double b) {
+    return a < b || nearlyEqual(a, b);
+}
+
+static bool greaterOrNearlyEqual(double a, double b) {
+    return a > b || nearlyEqual(a, b);
+}
+
+static void minmax4(double a, 
+		    double b, 
+		    double c, 
+		    double d, 
+		    double& min, 
+		    double& max) {
+    if (MRA_DEBUG) cerr << "minmax4() called" << endl;
+
+    min = a;
+    max = a;
+
+    if (b < min) min = b;
+    if (b > max) max = b;
+    if (c < min) min = c;
+    if (c > max) max = c;
+    if (d < min) min = d;
+    if (d > max) max = d;
+}
+
+enum GaussSolution { NONE, UNIQUE, INFINITE };
+
+static void GaussTransform(const unsigned int n, 
+			   const unsigned int m, 
+			   double** a, 
+			   double* b) {
+    for (unsigned int i = 0; i < n-1; i++) {
+	cerr << "i=" << i << endl;
+	unsigned int j;
+	for (j = i; j < n && a[i][j] == 0; j++);
+	cerr << " pivot " << j << endl;
+	if (j == n) continue;
+	if (j != i) {
+	    double dummy = b[i];
+	    b[i] = b[j];
+	    b[j] = dummy;
+	    for (unsigned int k = 0; k < m; k++) {
+		dummy = a[i][k];
+		a[i][k] = a[j][k];
+		a[j][k] = dummy;
+	    }
+	}
+	for (j = i+1; j < n; j++) {
+	    cerr << " j=" << j << endl;
+	    double f = a[j][i]/a[i][i];
+	    cerr << "  f=" << f << endl;
+	    a[j][i] = 0;
+	    for (unsigned int k = i+1; k < m; k++) a[j][k] -= a[i][k]*f;
+	    b[j] -= b[i]*f;
+	}
+
+	for (j = 0; j < n; j++) {
+	    for (unsigned int k = 0; k < m; k++) printf("%7.3f ", a[j][k]);
+	    printf("| %7.3f\n", b[j]);
+	}
+    }
+}
+
+static GaussSolution GaussAnalyse(const unsigned int n, 
+				  const unsigned int m,
+				  double** a, 
+				  double* b,
+				  double s[]) {
+    GaussSolution res;
+
+    if (a[n-1][m-1] == 0) {
+	if (b[n-1] == 0) {
+	    cerr << "unendlich viele Loesungen" << endl;
+	    res = INFINITE;
+	} else {
+	    cerr << "keine Loesungen" << endl;
+	    res = NONE;
+	}
+    } else {
+	res = UNIQUE;
+
+	for (int i = n-1; i >= 0; i--) {
+	    cerr << "i=" << i << endl;
+	    
+	    s[i] = b[i];
+	    for (unsigned int j = i+1; j < m; j++) s[i] -= a[i][j]*s[j];
+	    s[i] /= a[i][i];
+	    
+	    cerr << " s=" << s[i] << endl;
+	}
+    }
+
+    return res;
+}
+
+static GaussSolution Gauss(const unsigned int n, 
+			   const unsigned int m,
+			   double** a, 
+			   double* b, 
+			   double s[]) {
+
+
+    for (unsigned j = 0; j < n; j++) {
+	for (unsigned int k = 0; k < m; k++) printf("%7.3f ", a[j][k]);
+	printf("| %7.3f\n", b[j]);
+    }
+
+    GaussTransform(n, m, a, b);
+
+    GaussSolution res = GaussAnalyse(n, m, a, b, s);
+
+    return res;
+}
+
+/*
+1.1 Function ~specialTrapezoidIntersection()~
+
+Returns ~true~ if and only if the two specified special trapezoids intersect.
+
+The two trapezoids must meet the following conditions. These conditions are
+not checked in the function. If the conditions are not met, the function will
+deliver incorrect results.
+
+Trapezoid 1 is spanned by points ~(t1p1x, t1p1y, 0)~, ~(t1p2x, t1p2y, 0)~, 
+and ~(t1p3x, t1p3y, dt)~. ~(t1p4x, t1p4x, dt)~ is required for boundary
+checking only. Lines ~(t1p1x, t1p1y, 0)~ to ~(t1p2x, t1p2y, 0)~ and
+~(t1p3x, t1p3y, dt)~ to ~(t1p4x, t1p4x, dt)~ are collinear.
+
+Trapezoid 2 is spanned by points ~(t2p1x, t2p1y, 0)~, ~(t2p2x, t2p2y, 0)~, 
+and ~(t2p3x, t2p3y, dt)~. ~(t2p4x, t2p4x, dt)~ is required for boundary
+checking only. Lines ~(t2p1x, t2p1y, 0)~ to ~(t2p2x, t2p2y, 0)~ and
+~(t2p3x, t2p3y, dt)~ to ~(t2p4x, t2p4x, dt)~ are collinear.
+
+*/
+
+static bool specialTrapezoidIntersection(double dt,
+					 double t1p1x,
+					 double t1p1y,
+					 double t1p2x,
+					 double t1p2y,
+					 double t1p3x,
+					 double t1p3y,
+					 double t1p4x,
+					 double t1p4y,
+					 double t2p1x,
+					 double t2p1y,
+					 double t2p2x,
+					 double t2p2y,
+					 double t2p3x,
+					 double t2p3y,
+					 double t2p4x,
+					 double t2p4y) {
+    if (MRA_DEBUG) cerr << "specialTrapezoidIntersection() called" << endl;
+
+/*
+First, lets check the bounding boxes in the $(x, y)$-plane of the two 
+trapezoids.
+
+*/
+
+    double t1MinX;
+    double t1MaxX;
+    double t1MinY;
+    double t1MaxY;
+
+    minmax4(t1p1x, t1p2x, t1p3x, t1p4x, t1MinX, t1MaxX);
+    minmax4(t1p1y, t1p2y, t1p3y, t1p4y, t1MinY, t1MaxY);
+
+    double t2MinX;
+    double t2MaxX;
+    double t2MinY;
+    double t2MaxY;
+
+    minmax4(t2p1x, t2p2x, t2p3x, t2p4x, t2MinX, t2MaxX);
+    minmax4(t2p1y, t2p2y, t2p3y, t2p4y, t2MinY, t2MaxY);
+
+    if (MRA_DEBUG) {
+	cerr << "specialTrapezoidIntersection() t1MinX=" 
+	     << t1MinX
+	     << " t1MaxX="
+	     << t1MaxX
+	     << " t1MinY="
+	     << t1MinY
+	     << " t1MaxY="
+	     << t1MaxY
+	     << endl;
+	cerr << "specialTrapezoidIntersection() t2MinX=" 
+	     << t2MinX
+	     << " t2MaxX="
+	     << t2MaxX
+	     << " t2MinY="
+	     << t2MinY
+	     << " t2MaxY="
+	     << t2MaxY
+	     << endl;
+    }
+
+    if (lowerOrNearlyEqual(t1MaxX, t2MinX)
+	|| greaterOrNearlyEqual(t1MinX, t2MaxX)
+	|| lowerOrNearlyEqual(t1MaxY, t2MinY)
+	|| greaterOrNearlyEqual(t1MinY, t2MaxY)) {
+	if (MRA_DEBUG) 
+	    cerr << "specialTrapezoidIntersection() no bbox overlap" << endl;
+
+	return false;
+    }
+
+/*
+The bounding boxes of the trapezoids overlap. To determine if they actual
+intersect, we first calculate the intersection of the two planes spanned
+by the trapezoid.
+
+The plane spanned by trapezoid 1 is 
+$(t1p1x,t1p1y,0)+(t1p2x-t1p1x,t1p2y-t1p1y,0)\cdot s+(t1p3x-t1p1x,t1p3y-t1p1y,dt)\cdot t$. The plane spanned by trapezoid 2 is
+$(t2p1x,t2p1y,0)+(t2p2x-t2p1x,t2p2y-t2p1y,0)\cdot s'+(t2p3x-t2p1x,t2p3y-t2p1y,dt)\cdot t'$.
+
+The intersection of the two planes is the solution of the linear system of
+equations
+\begin{eqnarray}
+\begin{array}{ccc}
+\begin{array}{cccc}
+t1p2x-t1p1x & t1p3x-t1p1x & t2p1x-t2p2x & t2p1x-t2p3x \\
+t1p2y-t1p1y & t1p3y-t1p1y & t2p1y-t2p2y & t2p1y-t2p3y \\ 
+     0      &     dt      &      0      &     -dt
+\end{array} & \left| \begin{array}{c}
+t2p1x-t1p1x \\
+t2p1y-t1p1y \\
+0
+\end{array} \right.
+\end{array}
+\nonumber\end{eqnarray}
+
+*/
+
+    double a[3][4] = {{ t1p2x-t1p1x, t1p3x-t1p1x, t2p1x-t2p2x, t2p1x-t2p3x },
+		      { t1p2y-t1p1y, t1p3y-t1p1y, t2p1y-t2p2y, t2p1y-t2p3y },
+		      { 0,           dt,          0,           -dt         }};
+    double b[3] = { t2p1x-t1p1x, t2p1y-t1p1y, 0 };
+
+    double* ap[] = { a[0], a[1], a[2] };
+    double s[3];
+
+    Gauss(3, 4, ap, b, s);
+
+    return false;
 }
 
 // ************************************************************************
@@ -225,7 +476,8 @@ private:
 
 public:
     MSegmentData() {
-        cerr << "MSegmentData::MSegmentData() #1 called" << endl;
+        if (MRA_DEBUG) 
+	    cerr << "MSegmentData::MSegmentData() #1 called" << endl;
     }
 
     MSegmentData(unsigned int fno, 
@@ -258,19 +510,21 @@ public:
 	finalEndX(fex),
 	finalEndY(fey)  {
 	if (MRA_DEBUG)
-	    cerr << "MSegmentData::MSegmentData() #2 called "
+	    cerr << "MSegmentData::MSegmentData() #2 called counter=["
 		 << faceno
 		 << " "
 		 << cycleno
 		 << " "
 		 << segmentno
-		 << " "
+		 << "] flags=["
 		 << insideLeftOrAbove
 		 << " "
 		 << degeneratedInitial
 		 << " "
 		 << degeneratedFinal
-		 << " "
+		 << "] il="
+		 << il
+		 << " initial=["
 		 << initialStartX
 		 << " "
 		 << initialStartY
@@ -278,7 +532,7 @@ public:
 		 << initialEndX
 		 << " "
 		 << initialEndY
-		 << " "
+		 << "] final=["
 		 << finalStartX
 		 << " "
 		 << finalStartY
@@ -286,16 +540,71 @@ public:
 		 << finalEndX
 		 << " "
 		 << finalEndY
+		 << "]"
 		 << endl;
 
-	double idx = (iex-isx)/il;
-	double idy = (iey-isy)/il;
-	double fdx = (fex-fsx)/il;
-	double fdy = (fey-fsy)/il;
+/*
+Check whether initial and final segment are collinear,
 
-	if (!nearlyEqual(idx, fdx) || !nearlyEqual(idy, fdy))
-	    throw invalid_argument("initial and final segment not colinear");
+*/
+	bool collinear;
+
+	if (nearlyEqual(isx, iex) && nearlyEqual(fsx, fex)) {
+/*
+Both segments are vertical. Check if both segments have the same
+orientation.
+
+*/
+	    if (MRA_DEBUG) 
+		cerr << "MSegmentData::MSegmentData() both vertical" << endl;
+
+	    collinear = 
+		(lowerOrNearlyEqual(isy, iey) 
+		 && lowerOrNearlyEqual(fsy, fey))
+		|| (greaterOrNearlyEqual(isy, iey)
+		    && greaterOrNearlyEqual(fsy, fey));
+	} else if (nearlyEqual(isx, iex) || nearlyEqual(fsx, fex)) {
+/*
+Only initial or final segment is vertical but not both.
+
+*/
+	    if (MRA_DEBUG) 
+		cerr << "MSegmentData::MSegmentData() one vertical" << endl;
+
+	    collinear = false;
+	} else {
+/*
+Both segments are not vertical.
+
+*/
+	    if (MRA_DEBUG) 
+		cerr << "MSegmentData::MSegmentData() none vertical" << endl;
+
+	    double id = (iey-isy)/(iex-isx);
+	    double fd = (fey-fsy)/(fex-fsx);
+
+	    if (MRA_DEBUG) 
+		cerr << "MSegmentData::MSegmentData() id=" 
+		     << id
+		     << " fd="
+		     << fd 
+		     << endl;
+
+	    collinear = nearlyEqual(id, fd);
+	}
+
+	if (!collinear)
+	    throw invalid_argument("initial and final segment not collinear");
     }
+
+/*
+Since no other classes are accessing the private attributes of
+~MSegmentData~, we declare ~URegion~ as friend. This is shorter,
+yet somewhat clumsy than creating attribute access functions.
+
+*/
+    // *hm* is there a better solution?
+    friend class URegion; 
 };
 
 /*
@@ -833,12 +1142,86 @@ bool URegion::AddSegment(unsigned int faceno,
 			 intervalLen,
 			 nl->RealValue(nl->First(start)), 
 			 nl->RealValue(nl->Second(start)), 
-			 nl->RealValue(nl->Third(start)), 
-			 nl->RealValue(nl->Fourth(start)), 
 			 nl->RealValue(nl->First(end)), 
 			 nl->RealValue(nl->Second(end)), 
+			 nl->RealValue(nl->Third(start)), 
+			 nl->RealValue(nl->Fourth(start)), 
 			 nl->RealValue(nl->Third(end)), 
 			 nl->RealValue(nl->Fourth(end)));
+
+	for (unsigned int i = 0; i < segmentsNum; i++) {
+	    if (MRA_DEBUG) cerr << "URegion::AddSegment() i=" << i << endl;
+
+	    MSegmentData existingDms;
+	    
+	    segments->Get(i, existingDms);
+
+	    if ((nearlyEqual(dms.initialStartX, existingDms.initialStartX)
+		 && nearlyEqual(dms.initialStartY, 
+				existingDms.initialStartY)
+		 && nearlyEqual(dms.initialEndX, 
+				existingDms.initialEndX)
+		 && nearlyEqual(dms.initialEndY, 
+				existingDms.initialEndY))
+		|| (nearlyEqual(dms.initialStartX, 
+				existingDms.initialEndX)
+		    && nearlyEqual(dms.initialStartY, 
+				   existingDms.initialEndY)
+		    && nearlyEqual(dms.initialEndX, 
+				   existingDms.initialStartX)
+		    && nearlyEqual(dms.initialEndY, 
+				   existingDms.initialStartY))) {
+		if (MRA_DEBUG) 
+		    cerr << "URegion::AddSegment() degen'ed initial in " 
+			 << i
+			 << endl;
+
+		dms.degeneratedInitial = true;
+	    }
+
+	    if ((nearlyEqual(dms.finalStartX, existingDms.finalStartX)
+		 && nearlyEqual(dms.finalStartY, 
+				existingDms.finalStartY)
+		 && nearlyEqual(dms.finalEndX, 
+				existingDms.finalEndX)
+		 && nearlyEqual(dms.finalEndY, 
+				existingDms.finalEndY))
+		|| (nearlyEqual(dms.finalStartX, 
+				existingDms.finalEndX)
+		    && nearlyEqual(dms.finalStartY, 
+				   existingDms.finalEndY)
+		    && nearlyEqual(dms.finalEndX, 
+				   existingDms.finalStartX)
+		    && nearlyEqual(dms.finalEndY, 
+				   existingDms.finalStartY))) {
+		if (MRA_DEBUG) 
+		    cerr << "URegion::AddSegment() degen'ed final in " 
+			 << i
+			 << endl;
+
+		dms.degeneratedFinal = true;
+	    }
+
+	    specialTrapezoidIntersection(intervalLen,
+					 existingDms.initialStartX,
+					 existingDms.initialStartY,
+					 existingDms.initialEndX,
+					 existingDms.initialEndY,
+					 existingDms.finalStartX,
+					 existingDms.finalStartY,
+					 existingDms.finalEndX,
+					 existingDms.finalEndY,
+					 dms.initialStartX,
+					 dms.initialStartY,
+					 dms.initialEndX,
+					 dms.initialEndY,
+					 dms.finalStartX,
+					 dms.finalStartY,
+					 dms.finalEndX,
+					 dms.finalEndY);
+
+	    if (i == 0 && segmentno == 2) exit(1);
+	}
 
 	segments->Resize(segmentsStartPos+segmentsNum+1);
 	segments->Put(segmentsStartPos+segmentsNum, dms);
@@ -1090,7 +1473,7 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
                                 nl->BoolValue(nl->Third(interval)),
                                 nl->BoolValue(nl->Fourth(interval)));
 
-    double intervalLen = end-start;
+    double intervalLen = end->ToDouble()-start->ToDouble();
 
     delete start;
     delete end;
