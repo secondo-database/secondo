@@ -7,8 +7,6 @@ e
 # create test pictures
 #
 
-create pic15 : picture;
-
 #testcase "create pic1"
 #yields success
 let pic1 = 
@@ -529,16 +527,16 @@ query rel1 feed filter [ .pic like [ 21.0, 1.0, 0, 9 ] ] count
 
 #testcase "rel1 operation (2)"
 #yields (int 1)
-query rel1 feed filter [ .pic pic1 equals [ 1, 0 ] ] count
+query rel1 feed filter [ .pic pic1 equals [ 1, 0 ] = 0.0 ] count
 
 #testcase "rel1 operation (3)"
 #yields (int 3)
-query rel1 feed filter [ .pic pic1 equals [ 1, 1 ] ] count
+query rel1 feed filter [ .pic pic1 equals [ 5, 100 ] < 3.0 ] count
 
 #testcase "rel1 operation (4)"
 #yields (int 1)
 query rel1 feed 
-  filter [ .pic pic1 equals [ 1, 0 ] ]
+  filter [ .pic pic1 equals [ 1, 0 ] = 0.0 ]
   extend [ 
     pic_hist_red: .pic colordist [ 0 ],
     pic_hist_green: .pic colordist [ 1 ],
@@ -553,7 +551,7 @@ query rel1 feed extend [
     pic_hist_green: .pic colordist [ 1 ],
     pic_hist_blue: .pic colordist [ 2 ],
     pic_hist_brightness: .pic colordist [ 3 ] ] 
-  filter [ .pic pic1 equals [ 1, 0 ] ]
+  filter [ .pic pic1 equals [ 1, 0 ] = 0.0 ]
   count
 
 #testcase "rel1 operation (6)"
@@ -567,7 +565,7 @@ query rel1 feed extend [
     picb: .pic scale [ -1, -1 ],
     picc: .pic flipleft [ -1 ] colordist [ 4 ],
     picd: .pic cut [ -1, -1, -1, -1 ]  ]
-  filter [ .pic pic1 equals [ 1, 0 ] ]
+  filter [ .pic pic1 equals [ 1, 0 ] = 0.0 ]
   count
 
 #teardown

@@ -29,11 +29,11 @@ create database binfiletest;
 open database binfiletest;
 e
 
-(create geo : binfile);
-(update geo := (binfile <file>binfile.test</file--->));
+(create a : binfile);
+(update a := (binfile <file>binfile.test</file--->));
 
-(create jni : binfile);
-(update jni := (binfile <file>relalg.test</file--->));
+(create b : binfile);
+(update b := (binfile <file>relalg.test</file--->));
 
 (create relFile :
   (rel
@@ -60,13 +60,13 @@ e
     )
   )
   (
-    (1 <file>JNI.ini</file---> "JNI2.ini")
+    (1 <file>../../lib/libsmibdb.a</file---> "libsdb")
   )
 ) );
 
 #testcase binfile1
 #yields (bool TRUE)
-query geo saveto "geo2";
+query a saveto "a.tmp";
 
 #testcase binfile2
 #yields (int 1)

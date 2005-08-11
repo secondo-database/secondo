@@ -77,7 +77,7 @@ query a - b
 query a * b 
 
 #testcase a/c
-#yields (real 2.5)
+#yields (real 3.5)
 query a / c 
 
 #testcase a mod c
@@ -85,7 +85,7 @@ query a / c
 query a mod c 
  
 #testcase a div c
-#yields (int 2)
+#yields (int 3)
 query a div c 
 
 #testcase a>b
@@ -101,7 +101,7 @@ query a >= b
 query b > a 
 
 #testcase b<=a
-#yields (bool FALSE)
+#yields (bool TRUE)
 query b <= a 
 
 #testcase a=a
@@ -126,19 +126,19 @@ query randint (9) >= 0
 
 #testcase maxrand
 #yields success
-query maxrand
+query randmax()
 
 #testcase nextseq
-#yields (int 1)
-query nextseq()
+#yields (int 0)
+query seqnext()
 
 #testcase initseq
 #yields success 
-query initseq (100)
+query seqinit(100)
 
 #testcase nextseq
-#yields (int 101)
-query nextseq ()
+#yields (int 100)
+query seqnext()
 
 #testcase log
 #yields (int 8)
@@ -168,11 +168,11 @@ query "starts" starts "xv"
 
 #testcase contains 1
 #yields (bool TRUE)
-query "starts" constains "rt"
+query "starts" contains "rt"
 
 #testcase contains 2 
 #yields (bool FALSE)
-query "starts" constains "xc"
+query "starts" contains "xc"
 
 #testcase substr
 #yields (bool TRUE)
