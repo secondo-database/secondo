@@ -84,7 +84,7 @@ done
 # Other tests not executed by the TestRunner application
 #
 
-runTest ${buildDir}/Optimizer "TestOptimizer" "time TestOptimizer" 180
+runTest ${buildDir}/Optimizer "TestOptimizer" "time TestOptimizer" 300
 
 cd $buildDir
 tar -cvzf failedTests.tar.gz $failedTests
@@ -93,7 +93,7 @@ tar -cvzf failedTests.tar.gz $failedTests
 printf "\n%s\n\n" "Cleaning up ..."
 rm -rf $dbDir
 
-if [ $[error] > 0 ]; then
+if [ $error -gt 0 ]; then
   echo -e "*** Errors: ${error} ***\n"
   echo -e "*** Logfiles: $failedTests \n"
 else
