@@ -17,11 +17,11 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-#operator contains alias CONTAINS pattern _ infixop _
-#operator union alias UNION pattern _ infixop _
-#operator inside alias INSIDE pattern _ infixop _
-#operator intersection alias INTERSECTION pattern _ infixop _
-#operator intersects alias INTERSECTS pattern _ infixop _
+operator contains alias CONTAINS pattern _ infixop _
+operator union alias UNION pattern _ infixop _
+operator inside alias INSIDE pattern _ infixop _
+operator intersection alias INTERSECTION pattern _ infixop _
+operator intersects alias INTERSECTS pattern _ infixop _
 
 
 

@@ -48,7 +48,7 @@ using namespace std;
 #include <stack>
 #include <time.h>
 
-static NestedList* nl;
+extern NestedList* nl;
 static QueryProcessor* qp;
 
 #include "Attribute.h"

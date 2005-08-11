@@ -33,8 +33,7 @@ operator <= alias LE pattern _ infixop _
 operator >= alias GE pattern _ infixop _
 operator # alias NE pattern _ infixop _
 
-# need not be defined - is predefined this way in the Secondo parser:
-# operator = alias EQ pattern _ infixop _  
+operator = alias EQ pattern _ infixop _  
 
 operator not alias NOT pattern op ( _ )
 operator and alias AND pattern  _ infixop _

@@ -119,7 +119,6 @@ The following is what is technically exported from this file:
 #ifndef NESTED_TEXT_H
 #define NESTED_TEXT
 
-#include <string>
 
 #include "MemCTable.h"
 

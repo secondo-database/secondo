@@ -38,5 +38,5 @@ operator count_channels    alias COUNT_CHANNELS    pattern _ op [_]
 operator get_name          alias GET_NAME          pattern _ op
 
 # Operator saveto is also defined in the BinaryFileAlgebra
-# operator saveto          alias SAVETO            pattern _ infixop _
+operator saveto          alias SAVETO            pattern _ infixop _
 

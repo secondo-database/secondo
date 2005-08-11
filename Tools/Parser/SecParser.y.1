@@ -29,6 +29,7 @@ yyerror need to be moved to SecParser.cpp.
 #include <cstdio>
 #include <string>
 #include <string.h>
+#include <stack>
 
 #include "NestedText.h"
 
@@ -40,11 +41,17 @@ extern int yylex();
 string* yacc_outtext;
 
 typedef char cstring[50];
-cstring param, param2, paramname, paramtype, paramtype2;
-int paramno, depth;
-cstring paramstack[20];
+cstring param1, param2, paramname, paramtype, paramtype2;
+int paramno;
+stack<string> paramstack;
 
 extern void yyerror( char* s );
+
+void emptystack(){
+   while(!paramstack.empty())
+        paramstack.pop();
+}
+
 
 void PRINTF (char *s)
 {
@@ -66,7 +73,7 @@ void PRINT (int i)
 	ZZTYPE ZZDELETE ZZCREATE ZZUPDATE ZZKILL ZZQUERY ZZMODEL ZZLET ZZDERIVE ZZPERSISTENT
 	ZZBEGIN1 ZZTRANSACTION ZZCOMMIT ZZABORT ZZDATABASE ZZOPEN ZZCLOSE ZZSAVE ZZTO
 	ZZRESTORE ZZFROM ZZLIST ZZDATABASES ZZCONSTRUCTORS ZZOPERATORS ZZTYPES
-	ZZOBJECTS ZZASSIGN ZZDOUBLE ZZEQ ZZVALUE ZZCOUNTERS ZZALGEBRAS ZZALGEBRA 
-	ZZTEXT ZZFILE
+	ZZOBJECTS ZZASSIGN ZZDOUBLE ZZVALUE ZZCOUNTERS ZZALGEBRAS ZZALGEBRA 
+	ZZTEXT ZZFILE ZZINFIXOP ZZPREFIXOP 
 
 

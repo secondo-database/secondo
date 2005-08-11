@@ -118,8 +118,8 @@ types		{yylval = NestedText::Atom( yytext, yyleng ); return ZZTYPES;}
 objects		{yylval = NestedText::Atom( yytext, yyleng ); return ZZOBJECTS;}
 counters	{yylval = NestedText::Atom( yytext, yyleng ); return ZZCOUNTERS;}
 ".."		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDOUBLE;}
-"="		{yylval = NestedText::Atom( yytext, yyleng ); return ZZEQ;}
 value		{yylval = NestedText::Atom( yytext, yyleng ); return ZZVALUE;}
+"="		{yylval = NestedText::Atom( yytext, yyleng ); return ZZINFIXOP;}
 {textstart}	{if(text_sp)
                    delete text_sp;
                  text_sp = new ostringstream(); 

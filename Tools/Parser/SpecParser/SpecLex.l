@@ -30,7 +30,6 @@ March 2002 Ulrich Telle Port to C++, using ~flex~ and ~bison~ instead of ~lex~ a
 #include "SpecParser.tab.hpp"
 #include "NestedText.h"
 
-extern int yylval;
 
 #define YY_NO_UNPUT
 %}
@@ -43,29 +42,30 @@ math           {otherChar}{1,20}
 comment        ^#.*
 space	       [ \t\n]+
 
+%option yylineno
 
 %%
 
 {comment}       {return ZZCOMMENT;} 
 {space}  	; /* ignore spaces */
 
-fun		{yylval = NestedText::Atom( yytext, yyleng ); return ZZFUN;}
-operator	{return ZZOPERATOR;}
-pattern		{return ZZPATTERN;}
-op		{return ZZOP;}
-infixop		{return ZZINFIXOP;}
-alias		{return ZZALIAS;}
-list		{return ZZLIST;}
-implicit	{return ZZIMPLICIT;}
-parameter	{return ZZPARAMETER;}
+fun		      {yylval.text = strdup(yytext); return ZZFUN;}
+operator	  {return ZZOPERATOR;}
+pattern		  {return ZZPATTERN;}
+op		      {return ZZOP;}
+infixop		  {return ZZINFIXOP;}
+alias		    {return ZZALIAS;}
+list		    {return ZZLIST;}
+implicit	  {return ZZIMPLICIT;}
+parameter	  {return ZZPARAMETER;}
 parameters	{return ZZPARAMETERS;}
-type		{return ZZTYPE;}
-types		{return ZZTYPES;}
-funlist		{return ZZFUNLIST;}
+type		    {return ZZTYPE;}
+types		    {return ZZTYPES;}
+funlist		  {return ZZFUNLIST;}
 
-{ident}		{yylval = NestedText::Atom( yytext, yyleng ); return ZZIDENTIFIER;}
-{math}		{yylval = NestedText::Atom( yytext, yyleng ); return ZZSYMBOL;}
-.               {yylval = NestedText::Atom( yytext, yyleng ); return yytext[0];}
+{ident}		  {yylval.text = strdup(yytext); return ZZIDENTIFIER;}
+{math}		  {yylval.text = strdup(yytext); return ZZSYMBOL;}
+.           {yylval.text = strdup(yytext); return yytext[0];}
 
 
 

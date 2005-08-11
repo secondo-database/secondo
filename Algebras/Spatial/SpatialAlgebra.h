@@ -50,6 +50,7 @@ shows examples of these spatial data types.
 #include "StandardAttribute.h"
 #include "DBArray.h"
 #include "RectangleAlgebra.h"
+#include "TopRel.h"
 
 //#define RATIONAL_COORDINATES
 #define DOUBLE_COORDINATES
@@ -295,6 +296,7 @@ Assignement operator redefinition.
 
 */
     void Intersection( Points& ps, Point& result ) const;
+
 /*
 3.3.10 Operation ~minus~ (with ~point~)
 
@@ -487,6 +489,15 @@ return ~true~ if found and ~false~ if not.
 */
     bool Contains(Points& ps);
 /*
+3.3.10 Operation GetTopRel
+
+*Precondition:* IsDefined() \& IsOrdered
+
+*/
+   Int9M GetTopRel(Points& ps);
+
+
+/*
 Returns ~true~ if this point set contains the ~ps~ point set and
 ~false~ otherwise.
 
@@ -590,22 +601,7 @@ using ROSE algebra algorithms (DZM).
     void InsertPt( Point& p );
 
     void Clear();
-
-    private:
 /*
-4.5 Private member functions
-
-*/
-    void Sort();
-/*
-Sorts the persistent array of points.
-
-*/
-    int Position(const Point&);
-/*
-Searches (binary search algorithm) for a point in the point set and
-returns its position. Returns -1 if the point is not found.
-
 4.6 Functions needed to import the the ~Points~ data type to tuple
 
 There are totally 10 functions which are defined as virtual functions. They need
@@ -625,6 +621,24 @@ as an attribute.
     int      Sizeof() const;
     Points*    Clone() ;
     ostream& Print( ostream &os );
+
+    private:
+/*
+4.5 Private member functions
+
+*/
+    void Sort();
+/*
+Sorts the persistent array of points.
+
+*/
+    int Position(const Point&);
+/*
+Searches (binary search algorithm) for a point in the point set and
+returns its position. Returns -1 if the point is not found.
+
+*/
+
 
 /*
 4.6 Atrtibutes

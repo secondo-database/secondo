@@ -50,7 +50,6 @@ specs: specs.test
             exit 1; \
           fi \
         done
-	cat $@ | sort -b | ./specs.awk
 	@echo -e "\n *** Master spec file specs succesfully concatenated. ***\n"
 
 

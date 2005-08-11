@@ -63,7 +63,7 @@ using namespace std;
 #include <jni.h>
 #include <JVMInit.h>
 
-static NestedList* nl;
+extern NestedList* nl;
 static QueryProcessor* qp;
 static JVMInitializer *jvminit=0;
 static JNIEnv *env;

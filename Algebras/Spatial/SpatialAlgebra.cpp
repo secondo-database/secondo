@@ -1,4 +1,5 @@
 /*
+
 ----
 This file is part of SECONDO.
 
@@ -53,6 +54,7 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
+#include "TopRel.h"
 #include <vector>
 #include <iostream>
 #include <string>
@@ -927,7 +929,7 @@ Points& Points::operator+=(const Point& p)
     }
 
     if (!found)
-      points.Put( points.Size(), p );
+      points.Append(p);
   }
   else
   {
@@ -1111,6 +1113,48 @@ bool Points::Contains( Points& ps )
   assert( true );
   return true;
 }
+
+Int9M Points::GetTopRel(Points& ps){
+
+    bool ii,ib,ie,bi,bb,be,ei,eb,ee;
+    ii=ib=ie=bi=bb=be=ei=eb=false;
+    ee=true;
+    assert(ordered);
+    // we perform a parallel scan
+    Point p1,p2;
+    int i=0,j=0; // actual positions
+    int mi=Size();
+    int mj=ps.Size();
+    if(mi>0) Get(0,p1);
+    if(mj>0) ps.Get(0,p2);
+    bool done=false;
+    while(i<mi && j<mj && !done){
+       int cmp = p1.Compare(&p2);
+       if(cmp==0){
+          ii = true;
+          i++;
+          j++;
+          if(i<mi) Get(i,p1);
+          if(j<mj) ps.Get(j,p2);
+       } else if(cmp<0){
+          ie=true;
+          i++;
+          if(i<mi)Get(i,p1);
+       }else{ // cmp>0
+          ei=true; 
+          j++;
+          if(j<mj)ps.Get(j,p2);
+       }
+       done = ii && ie && ei; 
+    }
+    if(i<mi) // not all points of this processed
+       ie=true; 
+    if(j<mj)
+       ei=true;
+    Int9M res(ii,ib,ie,bi,bb,be,ei,eb,ee);
+    return res; 
+}
+
 
 bool Points::Inside( Points& ps )
 {
@@ -8290,6 +8334,23 @@ intersectionMap( ListExpr args )
 
 
 /*
+10.1.6 Type mapping fucntion for the toprel operator
+
+*/
+ListExpr TopRelMap(ListExpr args){
+    if(nl->ListLength(args)!=2){
+        ErrorReporter::ReportError("two arguments required \n");
+        return nl->SymbolAtom("typeerror");
+    }
+    if(nl->IsEqual(nl->First(args),"points") &&
+       nl->IsEqual(nl->First(args),"points"))
+       return nl->SymbolAtom("int9m");
+    ErrorReporter::ReportError("two points values required\n");
+    return nl->SymbolAtom("typeerror");
+}
+
+
+/*
 10.1.5 Type mapping function for operator ~minus~
 
 This type mapping function is the one for ~minus~ operator. This is a SET operation
@@ -10298,6 +10359,17 @@ SpatialInside_psps( Word* args, Word& result, int message, Word& local, Supplier
   return (0);
 }
 
+
+int
+SpatialTopRel_psps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+   result = qp->ResultStorage( s );
+   Points* ps1 = (Points*) args[0].addr;
+   Points* ps2 = (Points*) args[1].addr;
+   ((Int9M*)result.addr)->Equalize(ps1->GetTopRel(*ps2));
+   return 0;
+}
+
 int
 SpatialInside_psl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -12253,16 +12325,17 @@ union_pps( Word* args, Word& result, int message, Word& local, Supplier s )
     }
     else
     {
-  ((Points *)result.addr)->Clear();
+  Points TMP(1);
   Point auxp;
-  ((Points *)result.addr)->StartBulkLoad();
+  TMP.StartBulkLoad();
   for (int i=0; i<ps->Size(); i++)
   {
       ps->Get(i, auxp);
-      *((Points*)result.addr) += auxp;
+      TMP += auxp;
   }
-  *((Points*)result.addr) += *p;
-  ((Points *)result.addr)->EndBulkLoad();
+  TMP += *p;
+  TMP.EndBulkLoad();
+  (*((Points *)result.addr)) = TMP;
   return (0);
     }
 }
@@ -12281,16 +12354,17 @@ union_psp( Word* args, Word& result, int message, Word& local, Supplier s )
     }
     else
     {
-  ((Points *)result.addr)->Clear();
+  Points TMP(1);
   Point auxp;
-  ((Points *)result.addr)->StartBulkLoad();
+  TMP.StartBulkLoad();
   for (int i=0; i<ps->Size(); i++)
   {
       ps->Get(i, auxp);
-      *((Points*)result.addr) += auxp;
+      TMP += auxp;
   }
-  *((Points*)result.addr) += *p;
-  ((Points*)result.addr)->EndBulkLoad();
+  TMP += *p;
+  TMP.EndBulkLoad();
+  (*((Points*) result.addr)) = TMP;
   return (0);
     }
 }
@@ -12307,23 +12381,23 @@ union_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 
     assert((ps1->IsOrdered())&&(ps2->IsOrdered()));
 
-    ((Points *)result.addr)->Clear();
-    ((Points *)result.addr)->StartBulkLoad();
+    Points TMP(1);
+    TMP.StartBulkLoad();
 
     for (int i=0; i<ps1->Size(); i++)
     {
   ps1->Get(i, auxp);
-  *((Points*)result.addr) += auxp;
+     TMP += auxp;
     }
 
     for (int i=0; i<ps2->Size(); i++)
     {
-  ps2->Get(i, auxp);
-  if (!(ps1->Contains(auxp)))
-      *((Points*)result.addr) += auxp;
+       ps2->Get(i, auxp);
+      TMP += auxp;
     }
 
-    ((Points *)result.addr)->EndBulkLoad();
+    TMP.EndBulkLoad();
+    (*((Points *)result.addr))=TMP;
     return (0);
 }
 
@@ -14179,6 +14253,14 @@ const string SpatialSpecClip  =
         "<text>query clip ( line1, box1 )</text--->"
         ") )";
 
+const string SpatialTopRel  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+        "( <text>points x points -> int9m </text--->"
+        "<text>toprel(_,_)</text--->"
+        "<text>computes the 9 intersectionmatrix represention the "
+        " topological relationship betwwen the arguments</text--->"
+        "<text>query toprel(p1,p2)</text--->"
+        ") )";
 
 /*
 10.5.3 Definition of the operators
@@ -14326,6 +14408,8 @@ Operator spatialclip
         ( "clip", SpatialSpecClip, 1, spatialclipmap, spatialnomodelmap,
           SimpleSelect, clipMap );
 
+Operator toprel("toprel", SpatialTopRel,SpatialTopRel_psps,Operator::DummyModel, 
+                Operator::SimpleSelect,TopRelMap);
 
 
 
@@ -14389,6 +14473,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialwindowclippingin );
     AddOperator( &spatialwindowclippingout );
     AddOperator( &spatialclip );
+    AddOperator( &toprel);
   }
   ~SpatialAlgebra() {};
 };

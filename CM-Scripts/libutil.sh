@@ -136,7 +136,6 @@ function killProcess {
 # Should only be started in background!
 
 function killAfterTimeOut {
-
   sleep $2
   # check if process is still running
   if isRunning $1; then
