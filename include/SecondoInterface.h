@@ -77,11 +77,13 @@ the header file to facalitate maintenance. Moreover, new private methods for som
 Secondo commands have been declared to reduce the complex nesting in the 
 implementation of the ~Secondo~ function.
 
-Sept 2004, M. Spiekermann. A bug in the error handling of restore database has been fixed. 
+September 2004, M. Spiekermann. A bug in the error handling of restore database has been fixed. 
 Error code definitions have been moved to ErrorCodes.h. in order to make them available also 
 in other modules like SecondoSystem. 
 
-Dec 2004, M. Spiekermann. A new function implementing the ~set~ command was added.
+December 2004, M. Spiekermann. A new function implementing the ~set~ command was added.
+
+August 2005, M. Spiekermann. New private members ~SetFileName~ and ~isCSImpl~ supplemented.
 
 1.1 Overview
 
@@ -778,7 +780,7 @@ the second initializes the RTFlags found in the configuration file.
 2.2 Error Messages
 
 */
-  static string GetErrorMessage( int& errorCode );
+  static string GetErrorMessage( const int errorCode );
 /*
 Error messages 1 through 30 are generated within ~SecondoInterface~ and
 directly returned in procedure ~Secondo~. Error messages larger than 40
@@ -1014,12 +1016,14 @@ Sets the debug level of the query processor.
 
 */
 
-  bool IsCSImplementation() const { return isCSImpl; }
+  //bool IsCSImplementation() const { return isCSImpl; }
 
  protected:
  private:
   void StartCommand();
   void FinishCommand( SI_Error& errorCode );
+  void SetFileName(string& filename, const ListExpr atom) const;
+
 	
   // implementation of SECONDO commands
   SI_Error Command_Query( const AlgebraLevel level, const ListExpr list, 

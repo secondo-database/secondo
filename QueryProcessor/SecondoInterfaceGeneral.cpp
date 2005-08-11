@@ -70,27 +70,46 @@ map<int,string> SecondoInterface::errors;
 
 */
 string
-SecondoInterface::GetErrorMessage( int& errorCode )
+SecondoInterface::GetErrorMessage( const int errorCode )
 {
-  if ( errorCode < 0) {
-    return "";
-  }
   if ( !errMsgInitialized )
   {
     InitErrorMessages();
     errMsgInitialized = true;
   }
   stringstream defaultMsg;
-  defaultMsg << "Error " << errorCode <<": ";
+  defaultMsg << "(No " << errorCode <<") ";
 
   map<int,string>::iterator errPos = errors.find( errorCode );
-  errorCode = -1;
   if ( errPos != errors.end() )
   {
     return (defaultMsg.str() + errPos->second);
+  } 
+  else
+  {
+    defaultMsg  
+      << " Unknown Error! No message for error code No" 
+      << errorCode << "found"; 
   }
-  defaultMsg  << " Unknown Error!" << ends;
   return defaultMsg.str();
 }
 
+
+/*
+1.5 Extract filename from symbol or text atom
+
+*/
+
+void
+SecondoInterface::SetFileName(string& filename, const ListExpr atom) const
+{
+  if ( NList(atom).isAtom( SymbolType ) ) 
+  {
+    filename = nl->SymbolValue( atom );
+  }
+  else
+  {
+    filename = nl->Text2String( atom );
+  } 
+}
 

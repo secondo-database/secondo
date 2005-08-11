@@ -432,7 +432,6 @@ which should be named Command\_<name>.
 
   StopWatch cmdTime;  // measure the time used for executing the command.
 
-  SecParser sp;
   NestedList* nl = SecondoSystem::GetNestedList();
   NestedList* al = SecondoSystem::GetAppNestedList();
 
@@ -451,6 +450,8 @@ which should be named Command\_<name>.
   errorList    = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   errorInfo    = errorList;
   resultList   = nl->TheEmptyList();
+
+  SecParser sp; // translates SECONDO syntax into nested list expression
 
   switch (commandLevel)
   {
@@ -517,14 +518,21 @@ which should be named Command\_<name>.
       errorCode = ERR_CMD_LEVEL_NOT_YET_IMPL;  // Command level not implemented
       break;
     }
-  } // switch
+  } // end of switch
+
   if ( errorCode != 0 )
   {
-    cmsg.send();
-    errorMessage += cmsg.getErrorMsg();
-    errorMessage += GetErrorMessage( errorCode );
-    return;
+     cmsg.send(); // flush cmsg buffer
+     if ( isCSImpl ) {
+       errorMessage += cmsg.getErrorMsg();
+       errorMessage += GetErrorMessage(errorCode);
+     }
+     return;
   }
+
+
+  // RUN COMMAND !!!
+
   SecondoSystem::SetAlgebraLevel( level );
 
   // local references of important objects
@@ -686,7 +694,8 @@ which should be named Command\_<name>.
       else if ( nl->IsEqual( first, "save" ) && (length == 4) &&
                 nl->IsEqual( nl->Third( list ), "to" ) &&
                 nl->IsAtom( nl->Fourth( list )) &&
-               (nl->AtomType( nl->Fourth( list )) == SymbolType) )
+                ( (nl->AtomType( nl->Fourth( list )) == SymbolType) 
+                   || (nl->AtomType( nl->Fourth( list )) == TextType))  )
       {
         if ( !sys.IsDatabaseOpen() )
         {
@@ -708,8 +717,8 @@ which should be named Command\_<name>.
                (nl->AtomType( nl->Third( list )) == SymbolType) &&
                 nl->IsEqual( nl->Fourth( list ), "from" ) &&
                 nl->IsAtom( nl->Fifth( list )) &&
-               ( (nl->AtomType( nl->Fifth( list )) == SymbolType) 
-                 || (nl->AtomType( nl->Fifth( list )) == TextType))  )
+                ( (nl->AtomType( nl->Fifth( list )) == SymbolType) 
+                  || (nl->AtomType( nl->Fifth( list )) == TextType))  )
       {
         if ( sys.IsDatabaseOpen() )
         {
@@ -718,15 +727,7 @@ which should be named Command\_<name>.
         else
         {
           dbName = nl->SymbolValue( nl->Third( list ) );
-          ListExpr fifth = nl->Fifth( list );
-          if ( nl->AtomType( fifth) == SymbolType ) 
-          {
-            filename = nl->SymbolValue( fifth );
-          }
-          else
-          {
-            filename = nl->Text2String( fifth );
-          } 
+          SetFileName(filename, nl->Fifth( list ));
           errorCode = sys.RestoreDatabase( dbName, filename, errorInfo );          
         }
 
@@ -830,16 +831,7 @@ which should be named Command\_<name>.
       else
       {
         objName = nl->SymbolValue( nl->Second( list ) );
-        ListExpr fourth =  nl->Fourth( list );
-        if (nl->AtomType(fourth) == SymbolType) 
-        { 
-          filename = nl->SymbolValue( fourth );
-        }
-        else
-        {
-          filename = nl->Text2String( fourth );
-        }
-        
+        SetFileName(filename, nl->Fourth( list ));
 
         if ( sys.IsDatabaseObject( objName ) )
         {
@@ -1275,7 +1267,7 @@ which should be named Command\_<name>.
     cmsg.send();
  } 
  
- if ( errorCode > 0) { // translate error code into text
+ if ( errorCode != 0) { // translate error code into text
 
    // check if the queryprocessor reports errors
    string repMsg("");
