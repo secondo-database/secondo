@@ -83,7 +83,7 @@ in other modules like SecondoSystem.
 
 December 2004, M. Spiekermann. A new function implementing the ~set~ command was added.
 
-August 2005, M. Spiekermann. New private members ~SetFileName~ and ~isCSImpl~ supplemented.
+August 2005, M. Spiekermann. New private member ~isCSImpl~ supplemented.
 
 1.1 Overview
 
@@ -1022,8 +1022,6 @@ Sets the debug level of the query processor.
  private:
   void StartCommand();
   void FinishCommand( SI_Error& errorCode );
-  void SetFileName(string& filename, const ListExpr atom) const;
-
 	
   // implementation of SECONDO commands
   SI_Error Command_Query( const AlgebraLevel level, const ListExpr list, 

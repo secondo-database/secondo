@@ -94,22 +94,3 @@ SecondoInterface::GetErrorMessage( const int errorCode )
   return defaultMsg.str();
 }
 
-
-/*
-1.5 Extract filename from symbol or text atom
-
-*/
-
-void
-SecondoInterface::SetFileName(string& filename, const ListExpr atom) const
-{
-  if ( NList(atom).isAtom( SymbolType ) ) 
-  {
-    filename = nl->SymbolValue( atom );
-  }
-  else
-  {
-    filename = nl->Text2String( atom );
-  } 
-}
-
