@@ -71,6 +71,7 @@ October 14, 2004 RHG Added text atoms and file atoms for nested lists.
 /* commands */
 
 commands	:	command
+		|	command ';'
 		|	commands ';' command
 		;
 
