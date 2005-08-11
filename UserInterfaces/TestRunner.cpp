@@ -20,16 +20,13 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-\def\CC{C\raise.22ex\hbox{{\footnotesize +}}\raise.22ex\hbox{\footnotesize +}\xs
-pace}
-\centerline{\LARGE \bf  TestRunner}
 
-\centerline{Friedhelm Becker , Dec1997}
+August 2005, M. Spiekermann. The semantics of reading input files was changed.
+Now commands can end with spaces and also a "blank" or a newline will indicate
+the end of a command. Moreover, reporting of the error and success messages has
+been changed and was implemented in special functions.  Finally, unused
+functions and variables were removed!.
 
-\begin{center}
-\footnotesize
-\tableofcontents
-\end{center}
 
 1 Overview
 
@@ -46,6 +43,8 @@ using namespace std;
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <utility>
+
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -58,6 +57,8 @@ using namespace std;
 #include "NestedList.h"
 #include "DisplayTTY.h"
 #include "CharTransform.h"
+#include "LogMsg.h"
+
 
 static const bool needIdent = false;
 
@@ -65,22 +66,36 @@ class TestRunner : public Application
 {
  public:
   TestRunner( const int argc, const char** argv );
-  virtual ~TestRunner() {};
-  bool AbortOnSignal( int sig );
+  virtual ~TestRunner() { };
+  int  Execute();
+
+ private:
+
   void ProcessFile( const string& fileName );
   void ProcessCommand();
   void ProcessCommands();
+
   bool CheckConfiguration();
-  int  Execute();
-  void ShowPrompt( const bool first );
-  void TypeOutputList ( ListExpr list );
-  bool IsInternalCommand( const string& line );
-  bool GetCommand();
-  void ShowQueryResult( ListExpr list );
-  void WriteErrorList ( ListExpr list );
   ListExpr CallSecondo();
   void CallSecondo2();
- private:
+  void RegisterError();
+ 
+ 
+  // read only functions 
+  bool AbortOnSignal( int sig ) const;
+  bool IsInternalCommand( const string& line ) const;
+  bool GetCommand();
+
+  void ShowErrCodeInfo( const int errorCode, 
+                        const string& errorMessage, 
+                        const ListExpr outList      ) const;
+
+  void ShowCommand( const string& cmd) const;
+  void ShowTestErrorMsg() const;
+  void ShowErrorSummary() const;
+  void ShowTestSuccessMsg(const string& msg) const;
+  void WriteErrorList ( ListExpr list ) const;
+
   string            parmFile;
   string            user;
   string            pswd;
@@ -91,10 +106,15 @@ class TestRunner : public Application
   string            cmd;
   bool              isStdInput;
   bool              quit;
+  bool              verbose;
   NestedList*       nl;
   AlgebraLevel      currentLevel;
   bool              isQuery;
   SecondoInterface* si;
+
+  typedef list< pair<int,int> > ErrorInfo; 
+  ErrorInfo errorLines;
+
 
   /* the following variables and constants are 
      needed for maintaining the test state */
@@ -105,7 +125,8 @@ class TestRunner : public Application
   bool yieldsError;
   bool skipToTearDown;
   int testCaseNumber;
-  int nErrors;
+  int testCaseLine;
+  int numErrors;
 
   static const int START = 0;
   static const int SETUP = 1;
@@ -134,11 +155,15 @@ TestRunner::TestRunner( const int argc, const char** argv )
   state = START;
   skipToTearDown = false;
   testCaseNumber = 0;
-  nErrors = 0;
+  testCaseLine = 0;
+  numErrors = 0;
+
+  verbose = false;
+
 }
 
 bool
-TestRunner::AbortOnSignal( int sig )
+TestRunner::AbortOnSignal( int sig ) const
 {
   return (true);
 }
@@ -166,12 +191,116 @@ TestRunner::ProcessFile( const string& fileName )
 }
 
 void
+TestRunner::ShowTestSuccessMsg(const string& msg) const
+{
+  cout
+    << color(green)
+    << "*** OK " << "Testcase " << testCaseNumber << " \"" << testCaseName << "\" "
+    << msg << color(normal) << endl;
+}
+
+
+void
+TestRunner::ShowTestErrorMsg() const
+{
+  cout
+    << endl << color(red) 
+    << "*** ERROR at line " << testCaseLine 
+    << " in Testcase No " << testCaseNumber << " \"" << testCaseName << "\"." 
+    << color(normal) << endl;
+  return;
+}
+
+
+void
+TestRunner::ShowErrCodeInfo(  const int errorCode, 
+                              const string& errorMessage, 
+                              const ListExpr outList      ) const
+{
+   cout 
+     << "But got error : " <<  errorCode << endl
+     << "  code2Msg    : \"" << SecondoInterface::GetErrorMessage( errorCode ) << "\""
+     << endl;
+
+   if ( errorMessage.length() > 0 ) {
+   cout 
+     << "  add. string : \"" << errorMessage << "\"" << endl;
+   }
+
+   if ( !nl->IsEmpty(outList) ) 
+   {
+     cout << " Errorlist: " << endl;
+     WriteErrorList(outList);
+   }
+}
+
+
+void
+TestRunner::ShowCommand( const string& cmd) const
+{
+  cout 
+    << endl
+    << "Command was : " << endl 
+    << "  " << cmd << endl;
+}
+
+
+void 
+TestRunner::ShowErrorSummary() const 
+{
+  cout 
+    << endl 
+    << "TEST SUMMARY :" << endl
+    << "--------------" << endl;
+
+  if(numErrors == 0)
+  {
+    cout << "There were *** no *** errors." << endl;
+  }
+  else if(numErrors == 1)
+  {
+    cout << "There was *** 1 *** error." << endl;
+  }
+  else if (numErrors > 1)
+  {
+    cout << "There were *** " << numErrors << " *** errors." << endl;
+  }
+  else 
+  {
+    cout << "There were Errors outside of the test cases!" << endl;
+  }
+
+  if ( numErrors > 0 ) {
+
+    cout << endl << "<testno>@<lineno> which caused an error: ";
+    ErrorInfo::const_iterator it = errorLines.begin();
+    while ( it != errorLines.end() )  
+    {
+      cout << " " << it->first << "@" << it->second;
+      it++;
+    }
+    cout << endl << endl;
+  }
+
+}
+
+void
+TestRunner::RegisterError()
+{
+  numErrors++;
+  errorLines.push_back( make_pair(testCaseNumber, testCaseLine) );
+  ShowTestErrorMsg();
+}
+
+
+void
 TestRunner::ProcessCommand()
 {
-  string cmdWord;
+  string cmdWord = "";
   istringstream is( cmd );
   is >> cmdWord;
-  transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(), ToUpperProperFunction );
+  transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(), 
+             ToUpperProperFunction );
 
   if ( cmdWord == "D" || cmdWord == "DESCRIPTIVE" )
   {
@@ -223,18 +352,15 @@ TestRunner::ProcessCommand()
   }
 }
 
-void
-TestRunner::ShowPrompt( const bool first )
-{
-}
 
 bool
-TestRunner::IsInternalCommand( const string& line )
+TestRunner::IsInternalCommand( const string& line ) const
 {
-  string cmdWord;
+  string cmdWord = "";
   istringstream is( line );
   is >> cmdWord;
-  transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(), ToUpperProperFunction );
+  transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(), 
+             ToUpperProperFunction );
 
   return ( cmdWord == "?" || cmdWord == "HELP"        ||
            cmdWord == "D" || cmdWord == "DESCRIPTIVE" ||
@@ -247,6 +373,7 @@ TestRunner::IsInternalCommand( const string& line )
 bool
 TestRunner::GetCommand()
 {
+  static int lineCtr = 0;
   bool complete = false;
   bool first = true;
   string line = "";
@@ -254,29 +381,34 @@ TestRunner::GetCommand()
   while (!complete && !cin.eof() && !cin.fail())
   {
     line = "";
-    ShowPrompt( first );
     getline( cin, line );
+    lineCtr++;
     if ( line.length() > 0 )
     {
-      if ( line[0] != '#' )        // Process if not comment line
+      if ( line[0] != '#' )    // Process if not comment line
       {
-        if ( line[line.length()-1] == ';' )
+        if ( line[line.length()-1] == ';' ) // check for command end
         {
           complete = true;
           line.erase( line.length()-1 );
         }
-        if ( first )               // Check for single line command
+        if ( first ) // check for an internal command      
         {
-          if ( !complete )
+          if ( !complete ) // check only if no command end was found
           {
             complete = IsInternalCommand( line );
           }
           cmd = line + " ";
-          first = false;
+          first = false;  // don't check again
         }
-        else
+        else // concat command parts
         {
-          cmd = cmd + line + " ";
+          // check if line contains only spaces
+          if ( isSpaceStr(line) ) {
+            complete = true; // command ends
+          } else {
+            cmd = cmd + line + " "; // concat command parts
+          }
         }
       }
       else
@@ -286,9 +418,10 @@ TestRunner::GetCommand()
         {
           /* assume that this line is part of a real comment */
         }
-        else
+        else // check if TestRunner directives are present
         {
-          while(line[line.size() - 1] == '\\')
+          // if a continuation symbol \ is found concat the lines
+          while(line[line.size() - 1] == '\\') 
           {
             line.erase(line.size() - 1);
             string nextline;
@@ -305,12 +438,14 @@ TestRunner::GetCommand()
           string command;
           string restOfLine;
 
+          // remove spaces after # symbol
           while(isspace(current) && pos < line.size() - 1)
           {
             pos++;
             current = line[pos];
           }
 
+          // extract the first word and save it in variable command
           command += current;
           while(isalpha(current) && pos < line.size() - 1)
           {
@@ -328,7 +463,8 @@ TestRunner::GetCommand()
           {
             restOfLine.erase(0, 1);
           }
-
+          
+          // check for TestRunner directives
           if(command.find("setup") == 0)
           {
             if(state != START)
@@ -359,6 +495,7 @@ TestRunner::GetCommand()
             state = TESTCASE;
             testCaseName = restOfLine;
             testCaseNumber++;
+            testCaseLine = lineCtr;
           }
           else if(command.find("yields") == 0)
           {
@@ -387,9 +524,10 @@ TestRunner::GetCommand()
 
       }
     }
-    else                           // Empty line ends command
+    else  // Empty line ends command
     {
-      complete = cmd.length() > 0;
+      // check if cmd contains information, otherwise continue
+      complete = (cmd.length() > 0); 
       first = true;
     }
   }
@@ -416,10 +554,11 @@ This Function prints an errortext.
 */
 
 void
-TestRunner::WriteErrorList ( ListExpr list )
+TestRunner::WriteErrorList ( const ListExpr errList ) const
 {
-  int errorCode;
-  string errorText;
+  int errorCode = 0;
+  string errorText = "";
+  ListExpr list = errList;
 
   if ( !nl->IsEmpty( list ) )
   {
@@ -468,6 +607,13 @@ TestRunner::CallSecondo()
 
   if(!skipToTearDown)
   {
+    if (verbose) { 
+      cmsg.info() 
+        << "Passing command >>" 
+        << cmd << "<< to the secondo interface!" << endl;
+      cmsg.send();
+    }
+ 
     if ( cmd[0] == '(' )
     {
       if ( nl->ReadFromString( cmd, cmdList ) )
@@ -487,6 +633,17 @@ TestRunner::CallSecondo()
     }
   }
 
+  const int n = 30;
+  const string ra(n,'>'); 
+  const string la(n,'<'); 
+  stringstream tmp;
+  tmp << color(red) << ra << color(normal);
+  const string rightArrow = tmp.str();
+  tmp.str("");
+  tmp << color(red) << la << color(normal);
+  const string leftArrow = tmp.str();
+
+
   switch(state)
   {
     case START:
@@ -494,60 +651,53 @@ TestRunner::CallSecondo()
       {
         /* should we report errors in the intial section? */
         cout
-          << "Encountered error in initial section." << endl;
-        cout << "    error code : " << errorCode << endl;
-        cout << "    " << SecondoInterface::GetErrorMessage( errorCode ) << endl;
-        if ( errorMessage.length() > 0 )
-        {
-          cout << "    " << errorMessage << endl;
-        }
-        WriteErrorList(outList);
-        cout << "while processing command " << endl << cmd << endl;
-        cout << endl;
+          << color(red)
+          << "*** Encountered error in initial section. ***" << endl
+          << color(normal)
+          << rightArrow << endl;
+        ShowErrCodeInfo(errorCode, errorMessage, outList);
+        ShowCommand(cmd);
+        cout
+          << leftArrow << endl;
       }
       break;
     case SETUP:
       if(errorCode != 0)
       {
         cout
-          << "*** Encountered error during setup, skipping to teardown. ***"
-          << endl;
-        cout << "    error code : " << errorCode << endl;
-        cout << "    " << SecondoInterface::GetErrorMessage( errorCode ) << endl;
-        if ( errorMessage.length() > 0 )
-        {
-          cout << "    " << errorMessage << endl;
-        }
-        WriteErrorList(outList);
-        cout << "while processing command " << endl << cmd << endl;
-        cout << endl;
+          << "*** Encountered error during setup, skipping to teardown. ***" << endl
+          << rightArrow << endl;
+        ShowErrCodeInfo(errorCode, errorMessage, outList);
+        ShowCommand(cmd);
         skipToTearDown = true;
-        nErrors = -128;
+        numErrors = -128;
+        cout
+          << leftArrow << endl;
       }
       break;
     case TESTCASE:
       if(!skipToTearDown)
       {
-        if(errorCode == 0 && yieldsError)
+ 
+        if( (errorCode == 0) && yieldsError)
         {
-          nErrors++;
-          cout
-            << "*** ERROR *** : Testcase "
-            << testCaseNumber << " : " << testCaseName
-            << " suceeded, but should not do so." << endl;
-          cout
-            << "Expected error but got result : ";
+          RegisterError();
+          cout 
+            << color(red)
+            << "The test suceeded, but an error was expected!" << endl
+            << color(normal)
+            << rightArrow << endl
+            << "Result : " << endl;
           nl->WriteListExpr(outList, cout);
-          cout << endl << "command was : " << endl << cmd << endl;
-          cout << endl;
-        }
-        else if(errorCode > 0 && yieldsError)
-        {
+          ShowCommand(cmd);
           cout
-            << "*** OK *** Testcase " << testCaseNumber << " : " << testCaseName <<
-            " returned an error as expected." << endl;
+            << leftArrow << endl;
         }
-        else if(errorCode == 0 && !yieldsError)
+        else if( (errorCode != 0) && yieldsError)
+        {
+           ShowTestSuccessMsg("returned an error as expected.");
+        }
+        else if( (errorCode == 0) && !yieldsError)
         {
           if(yields.find("success") == string::npos)
           {
@@ -555,74 +705,69 @@ TestRunner::CallSecondo()
             nl->ReadFromString(yields, expectedResult);
             if(nl->Equal(outList, expectedResult))
             {
-              cout
-                << "*** OK *** Testcase " << testCaseNumber << " : " << testCaseName
-                << " suceeded as expected." << endl;
+              ShowTestSuccessMsg("succeeded as expected.");
             }
             else
             {
-              nErrors++;
-              cout << "*** ERROR *** Testcase "
-                << testCaseNumber << " : " << testCaseName
-                << " returned unexpected results." << endl;
-              cout << "Expected : ";
+              RegisterError();
+              cout 
+                << color(red)
+                << "The test returned unexpected results!" << endl
+                << rightArrow << endl
+                << color(normal)
+                << "Expected : " << endl;
               nl->WriteListExpr(expectedResult, cout);
               cout << endl << "But got : ";
               nl->WriteListExpr(outList, cout);
-              cout << endl << "command was : " << endl << cmd << endl;
-              cout << endl;
+              ShowCommand(cmd);
+              cout
+                << leftArrow << endl;
             }
           }
           else
           {
-            cout
-              << "*** OK *** Testcase " << testCaseNumber << " : "
-              << testCaseName << " suceeded as expected." << endl;
+            ShowTestSuccessMsg("succeeded as expected.");
           }
         }
-        else if(errorCode > 0 && !yieldsError)
+        else if( (errorCode != 0) && !yieldsError)
         {
-          nErrors++;
-          cout
-            << "*** ERROR *** : Testcase "
-            << testCaseNumber << " : " << testCaseName
-            << " returned an error, but should not do so." << endl;
-          cout
+          RegisterError();
+          cout 
+            << color(red)
+            << "The test returned an error, but should not do so!" << endl
+            << color(normal)
+            << rightArrow << endl
             << "Expected result : " << endl
-            << yields << endl
-            << "but got error : " << endl;
-          cout << "    error code : " << errorCode << endl;
-          cout << "    " << SecondoInterface::GetErrorMessage( errorCode ) << endl;
-          if ( errorMessage.length() > 0 )
-          {
-            cout << "    " << errorMessage << endl;
-          }
-          WriteErrorList(outList);
-          cout << "command was : " << endl << cmd << endl;
-          cout << endl;
+            << yields << endl;
+          ShowErrCodeInfo(errorCode, errorMessage, outList);
+          ShowCommand(cmd);
+          cout
+            << leftArrow << endl;
+        }
+        else { // default
+
+          assert( false ); // should never happen
         }
       }
       break;
     case TEARDOWN:
-      if(errorCode > 0)
+      if(errorCode != 0)
       {
         cout
-          << "*** Encountered error during teardown. ***" << endl;
-          cout << "    error code : " << errorCode << endl;
-          cout << "    " << SecondoInterface::GetErrorMessage( errorCode ) << endl;
-          if ( errorMessage.length() > 0 )
-          {
-            cout << "    " << errorMessage << endl;
-          }
-          WriteErrorList(outList);
-          cout << "command was : " << endl << cmd << endl;
-          cout << endl;
+          << color(red)
+          << "*** Encountered error during teardown. ***" << endl 
+          << color(normal)
+          << rightArrow << endl;
+          ShowErrCodeInfo(errorCode, errorMessage, outList);
+          ShowCommand(cmd);
+        cout
+          << leftArrow << endl;
       }
 
       break;
   }
 
-  if ( errorCode > 0 )
+  if ( errorCode != 0 )
   {
     nl->Destroy( outList );
     outList = nl->TheEmptyList();
@@ -871,6 +1016,14 @@ TestRunner::Execute()
       }
       nl = si->GetNestedList();
       DisplayTTY::Initialize( si );
+
+
+      // check RTFlags
+      if ( RTFlag::isActive("Test:Verbose") ) {
+        verbose = true;
+      } 
+
+
       ProcessCommands();
       if ( iFileName.length() > 0 )
       {
@@ -887,22 +1040,7 @@ TestRunner::Execute()
         }
       }
     }
-    if(nErrors == 0)
-    {
-      cout << "There were *** no *** errors." << endl;
-    }
-    else if(nErrors == 1)
-    {
-      cout << "There was *** 1 *** error." << endl;
-    }
-    else if (nErrors > 1)
-    {
-      cout << "There were *** " << nErrors << " *** errors." << endl;
-    }
-    else 
-    {
-      cout << "There were Errors outside of the test cases!" << endl;
-    }
+    ShowErrorSummary();
 
     si->Terminate();
     delete si;
@@ -912,7 +1050,7 @@ TestRunner::Execute()
   {
     return -1;
   }
-  return (nErrors);
+  return (numErrors);
 }
 
 /*
