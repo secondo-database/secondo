@@ -40,6 +40,7 @@ July 2004 M. Spiekermann, Implementation of showActiveFlags.
 
 #include <map>
 #include <sstream>
+#include <vector>
 #include <string>
 
 #include "StopWatch.h"
@@ -166,11 +167,9 @@ StopWatch::diffTimes() {
 
 */
 
-map<string,bool>::iterator
-RTFlag::it;
+map<string,bool>::iterator RTFlag::it;
 
-map<string,bool>
-RTFlag::flagMap;
+map<string,bool> RTFlag::flagMap;
 
 
 void
@@ -215,6 +214,12 @@ RTFlag::initByString( const string &keyList ) {
      flagMap[key] = true;
    }
 
+
+   // actions based on some activated flags
+   if ( RTFlag::isActive("CMSG:Color") ) {
+     color::useColors(true);
+   }
+
    delete [] pbuf;
 }
 
@@ -224,12 +229,9 @@ RTFlag::initByString( const string &keyList ) {
 
 */
 
+map<string,long>::iterator Counter::it;
 
-map<string,long>::iterator
-Counter::it;
-
-map<string,long>
-Counter::CounterMap;
+map<string,long> Counter::CounterMap;
 
 /*
 4 Implementation of ~operator<<~ for class ~tab~ see CharTransform.h
@@ -238,5 +240,18 @@ Counter::CounterMap;
 
 ostream& operator << (ostream& os, const tab& f) {
   return f(os);
+}
+
+
+/*
+5 Parts of class ~color~
+
+*/
+
+vector<string> color::col;
+int color::n = 1;
+
+ostream& operator << (ostream& os, const color& c) {
+  return c(os);
 }
 
