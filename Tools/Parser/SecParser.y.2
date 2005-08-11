@@ -146,10 +146,10 @@ database	:	ZZCREATE ZZDATABASE ZZIDENTIFIER
 				PRINTF(")\n");}
 		|	ZZCLOSE ZZDATABASE 
 				{PRINTF("(close database)\n");}
-		|	ZZSAVE ZZDATABASE ZZTO ZZIDENTIFIER
+		|	ZZSAVE ZZDATABASE ZZTO filename
 				{PRINTF("(save database to "); PRINT($4); 
 				PRINTF(")\n");}
-		|	ZZSAVE ZZIDENTIFIER ZZTO ZZIDENTIFIER
+		|	ZZSAVE ZZIDENTIFIER ZZTO filename
 				{PRINTF("(save "); PRINT($2); 
 				 PRINTF(" to "); PRINT($4); 
 				PRINTF(")\n");}
