@@ -20,11 +20,18 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+Dec. 2002, H. Bals
+July 2005, M. Spiekermann, class ~tab~ added. 
+August 2005, M. Spiekermann, new class ~color~ and new function ~isSpaceStr~ added. 
+
+
 */
 #ifndef CHAR_TRANSFORM_H
 #define CHAR_TRANSFORM_H
 
 #include <cstdlib>
+#include <vector>
+#include <string>
 
 /*
 
@@ -49,22 +56,94 @@ ToLowerProperFunction(char c)
 
 /*
 The class below can be used as a manipulator in streams:
-os << tab(5, 'x') will create "xxxxx".
+os << tab(5, 'x') will create "xxxxx". Without parameters
+the default tab(4, ' ') will be used.
 
 */
 
 class tab {
+
   char c;
   int n;
-  public:
+  
+public:
   tab(int no=4, char ch=' ') : c(ch), n(no) {}
-  ostream& operator() (ostream& os) const {
+  ~tab(){}
+
+  inline ostream& operator() (ostream& os) const 
+  {
     for (int i=n; i!=0; i--) os.put(c);
     return os; 
   }
 };
 
-// Next operator implemented in UtilFunctions.cpp
+// The next operator is implemented in file "UtilFunctions.cpp"
 ostream& operator << (ostream& os, const tab& f);
+
+
+/*
+The class below can be used as manipulator in streams. If the
+runtime flag "CMSG:Color" is set os << color(red) will return
+a escape sequence which switches to color red on "some" terminals.
+Without the flag an empty string will be returned. 
+
+*/
+
+typedef enum {normal, red, green, blue} ColorCode;
+
+class color {
+
+  ColorCode c;
+  static vector<string> col;
+  static int n;
+
+public:
+  color(const ColorCode C = normal) :c(C) { col.resize(n); }
+
+  static void useColors(const bool value) {
+
+    if ( value ) 
+    {
+      n = 4; // must be changed when new colors are added
+      col.resize(n);
+      col[normal % n] = "\033[0m"; 
+      col[red % n] = "\033[31m";
+      col[green % n] = "\033[32m";
+      col[blue % n] = "\033[34m"; 
+    }
+    else
+    {
+      vector<string>::iterator it = col.begin();
+      while ( it != col.end() )
+      {
+        *it = "";
+        it++;
+      }
+    } 
+  }
+
+  inline ostream& operator() (ostream& os) const 
+  { 
+    os << col[c % n]; 
+    return os; 
+  }
+
+};
+
+// The next operator is implemented in file "UtilFunctions.cpp"
+ostream& operator << (ostream& os, const color& c);
+
+
+/*
+The function below checks if a string contains only white space
+characters or if it is empty.
+
+*/
+
+inline bool 
+isSpaceStr(const string& s)
+{
+  return s.find_first_not_of(" \t\v\n") == string::npos; 
+}
 
 #endif /* CHAR_TRANSFORM_H */

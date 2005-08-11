@@ -42,14 +42,18 @@ setting of tabstops in editors will mess the code formatting.
 
 Dec 2004, M. Spiekermann. New function ~setFlag~ implemented.
 
-Jan 2005, M. Spiekermann. Some "stringstream << ends"[1] have been removed. The ~ends~
-function adds a byte of value 0 to the ~stringstreams~ and also into their
-resulting strings. This caused a hard to find bug (Value = is a whitespace) in
-nested list text atoms since value 0 is the only one which is used internally
-in text records to distinguish between empty and non empty space. 
+Jan 2005, M. Spiekermann. Some "stringstream << ends"[1] have been removed. The
+~ends~ function adds a byte of value 0 to the ~stringstreams~ and also into
+their resulting strings. This caused a hard to find bug (Value = is a
+whitespace) in nested list text atoms since value 0 is the only one which is
+used internally in text records to distinguish between empty and non empty
+space. 
 
 May 2005, M. Spiekermann. cmsg.info overloaded.
 
+August 2005, M. Spiekermann. Redirection of output corrected. Moreover, strings
+containing only white spaces will be ignored. Errors will be printed in color,
+if the appropriate flag is set.
 
 1.1 Overview
 
@@ -75,13 +79,13 @@ All flags should be documented in the configuration file. However, the
 mechanism is quite simple, take care to use the same string constants in your
 code and in the configuration file otherwise you will get in trouble. 
 
-Sending information to ~cout~ or ~cerr~ is not a good idea, since in a 
-client server setup these information will not transfered to the client. Hence
-a global message object ~cmsg~ of class ~CMsg~ will be used as transmitter for
-messages. There are four methods which return the reference to an ostream object.
-Additonally, you can easily send data to a file. Currently, the messages are not
-send to a client via the socket communication but this can easily be integrated
-later.
+Sending information to ~cout~ or ~cerr~ is not a good idea, since in a client
+server setup these information will not transfered to the client. Hence a
+global message object ~cmsg~ of class ~CMsg~ will be used as transmitter for
+messages. There are four methods which return the reference to an ostream
+object.  Additonally, you can easily send data to a file. Currently, the
+messages are not send to a client via the socket communication but this can
+easily be integrated later.
 
 Here are some examples how to use the interface:
 
@@ -96,8 +100,8 @@ Here are some examples how to use the interface:
      cmsg.file("my-logfile.log") << "Information send to my-logfile.log" << endl;
 ----
 
-Before changing the output channel it is important to clear the messsage buffer with
-the ~send~ method.
+Before changing the output channel it is important to clear the messsage buffer
+with the ~send~ method.
 
 */
 
@@ -106,16 +110,20 @@ the ~send~ method.
 #define CLASS_RTFLAG_H
 
 #include <map>
+#include <vector>
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <sstream>
+
+#include <CharTransform.h>
 
 using namespace std;
 
 #ifndef LOGMSG_OFF
 #define LOGMSG(a, b) if ( RTFlag::isActive(a) ) { b }
 #endif
+
 
 class RTFlag {
 
@@ -162,20 +170,23 @@ private:
 };
 
 
+
+
 class CMsg {
 
 public:
   
   CMsg() : 
-  stdOutput(1), 
-  fp(new ofstream()),
-  logFileStr("secondo.log")
+    stdOutput(1), 
+    fp(new ofstream()),
+    logFileStr("secondo.log")
   {
     files[logFileStr] = fp;
     fp->open(logFileStr.c_str()); 
     buffer.str("");
     allErrors.str("");
     devnull.str("");
+
   }
   ~CMsg() // close open files
   {
@@ -225,11 +236,14 @@ public:
   inline ostream& warning() { stdOutput = 1; return buffer; }
   inline ostream& error()   { stdOutput = 2; return buffer; } 
 
-  inline const string& normal() { static const string s("\033[0m"); return s; } 
-  inline const string& red() { static const string s("\033[31m"); return s; } 
-
   inline void send() {
-  
+    
+    if ( isSpaceStr( buffer.str() ) ) {
+      buffer.str("");
+      buffer.clear();
+      return;
+    }
+
     switch (stdOutput) { 
 
     case 3:
@@ -239,7 +253,7 @@ public:
     }
     case 2: 
     {
-      cerr << red() << "Error: " << buffer.str() << normal();
+      cerr << color(red) << "Error: " << buffer.str() << color(normal);
       allErrors << "Error: " << buffer.str();
       break;
     }
@@ -270,6 +284,11 @@ public:
     string result = allErrors.str();
     allErrors.str("");
     allErrors.clear(); 
+  
+    if ( isSpaceStr(result) ) {
+      result = "";
+    }
+
     return result;
   }
 
@@ -282,7 +301,7 @@ private:
   stringstream devnull;
   const string logFileStr;
   map<string,ofstream*> files;
-
+  
 };
 
 // defined in Application.cpp
