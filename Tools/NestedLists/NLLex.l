@@ -57,6 +57,8 @@ using namespace std;
 #include "NLParser.h"
 #include "NLParser.tab.hpp"
 
+#include "LogMsg.h"
+
 #define yylval NLParser::yylval
 
 int yywrap();
@@ -171,7 +173,8 @@ file		"<file>"[^<]+"</file--->"
 			if ( yyleng - 2 > MAX_STRINGSIZE )
 			{
 			  yyleng = MAX_STRINGSIZE + 2;
-			  printf("Warning: string %s was truncated!\n", yytext);
+			  cmsg.warning() << "Warning: string " << yytext << " was truncated!" << endl;
+                          cmsg.send();
 			}
 
 			s = strncpy( s, &yytext[1], yyleng-2 );
@@ -181,8 +184,14 @@ file		"<file>"[^<]+"</file--->"
 		        }
 
 <INITIAL>{symbol}  { cols += yyleng;
-                   yylval = nl->SymbolAtom( yytext );
-                   return (ZZSYMBOL);
+		     if ( yyleng > MAX_STRINGSIZE )
+	             {
+	               cmsg.error() << "Symbol " << yytext << " too long!" << endl;
+                       cmsg.send();
+                       return(ZZERROR);
+		     }
+                     yylval = nl->SymbolAtom( yytext );
+                     return (ZZSYMBOL);
                    }
 
 <INITIAL>{file}  { /* files are expanded to base64 encoded text atoms */
@@ -201,8 +210,9 @@ file		"<file>"[^<]+"</file--->"
 		 inFile.open(fileNameStr.c_str(), ios::binary);
 		 if ( !inFile.is_open() ) {
 
-		    cerr << "can not open file '" << fileNameStr << "'" << endl;
-                    return (ZZNOFILE);
+		    cmsg.error() << "can not open file '" << fileNameStr << "'" << endl;
+                    cmsg.send();
+                    return (ZZERROR);
 
                  } else {
 

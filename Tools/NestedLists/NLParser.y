@@ -36,7 +36,7 @@ stack depth remains bounded for lists of arbitrary length.
 December 6, 2002 M. Spiekermann Construction of the list revised. Usage of a stack data
 structure avoids to create nodes which were only used in the construction process.
 
-Dec 2004, M. Spiekermann. Macr YYERROR\_VERBOSE defined.
+Dec 2004, M. Spiekermann. Macro YYERROR\_VERBOSE defined.
 
 */
 %{
@@ -53,7 +53,7 @@ Dec 2004, M. Spiekermann. Macr YYERROR\_VERBOSE defined.
 
 %verbose
 
-%token ZZINTEGER ZZREAL ZZBOOLEAN ZZSYMBOL ZZSTRING ZZTEXT ZZOPEN ZZCLOSE ZZNOFILE ZZERROR
+%token ZZINTEGER ZZREAL ZZBOOLEAN ZZSYMBOL ZZSTRING ZZTEXT ZZOPEN ZZCLOSE ZZERROR
 
 
 %%
@@ -68,7 +68,7 @@ ok : list {
 list	: ZZOPEN rest 	{$$ = $2;}
 	;
 
-rest	: ZZCLOSE		{$$ = nl->TheEmptyList();}
+rest	: ZZCLOSE	{$$ = nl->TheEmptyList();}
 	| seq ZZCLOSE	{$$ = lists.top(); lists.pop();}
 	;
 
