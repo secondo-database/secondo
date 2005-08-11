@@ -297,7 +297,6 @@ This function is called when a postfix operator including 'fun' or
 
 void print_complex_postfix_without_implicit_parameters(){
   const string opname = currenttranslation.opname->str();  
-  const string token = currenttranslation.token->str();
   /* Found an operator with function arguments */
   // define a new token from the alias
   string newtoken = currenttranslation.alias;
@@ -585,7 +584,7 @@ specs		  : spec
 spec      :  ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN pattern implicit
             {   processedSpecifications++;
                 (*currenttranslation.opname) << $2;
-                currenttranslation.alias = $3;
+                currenttranslation.alias = $4;
                 // check for new operator
                 string op = string($2);
                 string opWithPattern= op+" "+currenttranslation.pattern->str();
