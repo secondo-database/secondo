@@ -157,6 +157,7 @@ NestedList::NestedList( SmiRecordFile* ptr2RecFile, Cardinal NodeEntries, Cardin
    nodeTable = 0;
    textTable = 0;
    initializeListMemory(NodeEntries, ConstEntries, StringEntries, TextEntries);
+   typeError = SymbolAtom("typeerror");
 }
 
 
@@ -2563,5 +2564,4 @@ NestedList::ReportTableSizes( const bool prettyPrint /* = false */) {
 
   return msg;
 }
-
 

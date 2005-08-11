@@ -867,6 +867,10 @@ SecondoSystem::SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
 {
   nl = new NestedList();
   al = new NestedList();
+
+  //cout << "nl:" << (void*)nl << endl;
+  //cout << "al:" << (void*)al << endl;
+
   algebraManager = new AlgebraManager( *nl, getAlgebraEntryFunc );
   queryProcessor = new QueryProcessor( nl, algebraManager );
   flobFile = new SmiRecordFile( false );

@@ -104,6 +104,7 @@ using namespace std;
 #include "LogMsg.h"
 #include "Counter.h"
 #include "DerivedObj.h"
+#include "NList.h"
 
 extern AlgebraListEntry& GetAlgebraEntry( const int j );
 
@@ -533,6 +534,8 @@ which should be named Command\_<name>.
 
   // RUN COMMAND !!!
 
+  NList nlist(list);
+
   SecondoSystem::SetAlgebraLevel( level );
 
   // local references of important objects
@@ -550,6 +553,7 @@ which should be named Command\_<name>.
   if ( length > 1 )
   {
     first = nl->First( list );
+    NList nfirst(first);
 
     // --- Transaction handling
 
@@ -691,11 +695,10 @@ which should be named Command\_<name>.
           derivedObjPtr = 0;
         }
       }
-      else if ( nl->IsEqual( first, "save" ) && (length == 4) &&
-                nl->IsEqual( nl->Third( list ), "to" ) &&
-                nl->IsAtom( nl->Fourth( list )) &&
-                ( (nl->AtomType( nl->Fourth( list )) == SymbolType) 
-                   || (nl->AtomType( nl->Fourth( list )) == TextType))  )
+      else if ( nfirst.isEqual("save") && 
+                nlist.hasLength(4) &&
+                nlist.elem(3).isEqual("to") &&
+                ( nlist.isSymbol(4) || nlist.isText(4)) )
       {
         if ( !sys.IsDatabaseOpen() )
         {
@@ -704,7 +707,8 @@ which should be named Command\_<name>.
         else
         {
           StartCommand();
-          filename = nl->SymbolValue( nl->Fourth( list ) );
+          filename = nlist.elem(4).str();
+
           if ( !sys.SaveDatabase( filename, *derivedObjPtr ) )
           {
             errorCode = ERR_PROBLEM_IN_WRITING_TO_FILE;  // Problem in writing to file
@@ -712,13 +716,11 @@ which should be named Command\_<name>.
           FinishCommand( errorCode );
         }
       }
-      else if ( nl->IsEqual( first, "restore" ) &&
-               (length == 5) && nl->IsAtom( nl->Third( list )) &&
-               (nl->AtomType( nl->Third( list )) == SymbolType) &&
-                nl->IsEqual( nl->Fourth( list ), "from" ) &&
-                nl->IsAtom( nl->Fifth( list )) &&
-                ( (nl->AtomType( nl->Fifth( list )) == SymbolType) 
-                  || (nl->AtomType( nl->Fifth( list )) == TextType))  )
+      else if ( nfirst.isEqual("restore") && 
+                nlist.hasLength(5) && 
+                nlist.isSymbol(3) &&
+                nlist.elem(4).isEqual("from") &&
+                ( nlist.isSymbol(5) || nlist.isText(5) )  )
       {
         if ( sys.IsDatabaseOpen() )
         {
@@ -726,8 +728,8 @@ which should be named Command\_<name>.
         }
         else
         {
-          dbName = nl->SymbolValue( nl->Third( list ) );
-          SetFileName(filename, nl->Fifth( list ));
+          dbName = nlist.third().str();
+          filename = nlist.fifth().str();
           errorCode = sys.RestoreDatabase( dbName, filename, errorInfo );          
         }
 
@@ -782,15 +784,14 @@ which should be named Command\_<name>.
 
     // --- Writing command for objects
 
-    else if ( nl->IsEqual( first, "save" ) &&
-              nl->IsEqual( nl->Third( list ), "to" ) && (length == 4) &&
-              nl->IsAtom( nl->Second( list )) &&
-              nl->AtomType( nl->Second( list )) == SymbolType &&
-              nl->IsAtom( nl->Fourth( list )) &&
-              nl->AtomType( nl->Fourth( list )) == SymbolType )
+    else if ( nfirst.isEqual("save") &&
+              nlist.hasLength(4) &&
+              nlist.elem(3).isEqual("to") &&
+              nlist.isSymbol(2) &&
+              (nlist.isText(4) || nlist.isSymbol(4)) ) 
     {
-      filename = nl->SymbolValue( nl->Fourth( list ) );
-      string objectname = nl->SymbolValue( nl->Second( list ) );
+      filename = nlist.elem(4).str();
+      string objectname = nlist.elem(2).str();
 
       if ( !sys.IsDatabaseOpen() )
       {
@@ -816,13 +817,11 @@ which should be named Command\_<name>.
 
     // --- Reading command for objects
 
-    else if ( nl->IsEqual( first, "restore" ) &&
-             (length == 4) && nl->IsAtom( nl->Second( list )) &&
-             (nl->AtomType( nl->Second( list )) == SymbolType) &&
-              nl->IsEqual( nl->Third( list ), "from" ) &&
-              nl->IsAtom( nl->Fourth( list )) &&
-             ( (nl->AtomType( nl->Fourth( list )) == SymbolType) 
-               || (nl->AtomType( nl->Fourth( list )) == TextType)) )
+    else if ( nfirst.isEqual("restore") &&
+              nlist.hasLength(4) &&
+              nlist.isSymbol(2) &&
+              nlist.third().isEqual("from") &&
+              ( nlist.isSymbol(4) || nlist.isText(4) ) )
     {
       if ( !sys.IsDatabaseOpen() )
       {
@@ -830,8 +829,8 @@ which should be named Command\_<name>.
       }
       else
       {
-        objName = nl->SymbolValue( nl->Second( list ) );
-        SetFileName(filename, nl->Fourth( list ));
+        objName = nlist.second().str();
+        filename = nlist.fourth().str();
 
         if ( sys.IsDatabaseObject( objName ) )
         {

@@ -793,6 +793,8 @@ There are corresponding procedures to get typed values from atoms:
 
 */
 
+ const ListExpr TypeError() const { return typeError; }
+
 /*
 Again, the treatment of ~Text~ values is a little more difficult.
 To read from a ~Text~ atom, a ~TextScan~ is opened.
@@ -969,7 +971,8 @@ Copies a nested list from ~this~ instance to the target instance.
   
   byte  GetBinaryType(ListExpr list);
   char* hton(long value);
-  void  NestedList::swap(char* buffer); 
+  void  NestedList::swap(char* buffer);
+  ListExpr typeError; 
   
   CTable<NodeRecord>   *nodeTable;   // nodes
   //CTable<Constant>     *intTable;    // ints;
@@ -997,27 +1000,6 @@ to deleting parts of nested lists which are still in use elsewhere.
 };
 
 
-/*
-The class below can be used to simplify the check of
-a list structure, e.g. Atom(a).is(SymbolType) will return
-true, if a is an atom and a symbol.
-
-*/
-
-extern NestedList* nl;
-class NList {
-
- ListExpr l;
-
- public:
-  NList(const ListExpr L) : l(l) {}
-  ~NList() {}
-  inline bool isAtom(const NodeType t) const
-  {
-    return ( nl->IsAtom(l) && (nl->AtomType(l) == t) );
-  }
-
-}; 
 
 
 #endif
