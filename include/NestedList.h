@@ -263,6 +263,7 @@ const NodeType SymbolType = 6;
 const NodeType TextType = 7;
 
 
+
 /*
 Is an enumeration of the different node types of a nested list.
 
@@ -499,6 +500,19 @@ Returns "true"[4] if ~list~ is the empty list.
 Returns "true"[4] if ~list~ is an atom.
 
 */
+  inline bool IsNodeType( const NodeType n, const ListExpr list )
+  {
+    if ( IsEmpty( list ) )
+    {
+       return (false);
+    }
+    else
+    {
+      return ((*nodeTable)[list].nodeType == n);
+    }
+  };
+
+
   inline bool EndOfList( ListExpr list )
   {
     if ( IsEmpty( list ) )
@@ -981,6 +995,30 @@ to deleting parts of nested lists which are still in use elsewhere.
 
 */
 };
+
+
+/*
+The class below can be used to simplify the check of
+a list structure, e.g. Atom(a).is(SymbolType) will return
+true, if a is an atom and a symbol.
+
+*/
+
+extern NestedList* nl;
+class NList {
+
+ ListExpr l;
+
+ public:
+  NList(const ListExpr L) : l(l) {}
+  ~NList() {}
+  inline bool isAtom(const NodeType t) const
+  {
+    return ( nl->IsAtom(l) && (nl->AtomType(l) == t) );
+  }
+
+}; 
+
 
 #endif
 
