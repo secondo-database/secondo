@@ -122,8 +122,13 @@ function isRunning {
 function killProcess {
    echo -e "\n Time-out reached! Killing process $1"
    findChilds $1
+   if [ -z $2 ]; then
+      sig=-9
+   else
+      sig=$2
+   fi
    echo -e " Childs: $LU_CHILDS\n"
-   kill -9 $1 $LU_CHILDS 2>/dev/null
+   kill $sig $1 $LU_CHILDS >/dev/null 2>&1
    return 0
 }
 
@@ -180,7 +185,7 @@ function timeOut() {
   # kill the sleeping process
   if isRunning $FUNC_PID; then 
     echo -e "${FUNCNAME}: Command finished before time-out!"
-    kill -9 $FUNC_PID
+    killProcess $FUNC_PID -15 >/dev/null 2>&1
   fi
   return $rc
 
