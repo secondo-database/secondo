@@ -25,17 +25,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
-[1] Stream Example Algebra
+[1] RemoteStream Algebra
 
-July 2002 RHG
+August 2005 GZS
 
-This little algebra demonstrates the use of streams and parameter functions
-in algebra operators. It does not introduce any type constructors, but has
-several operators to manipulate streams.
+1 RemoteStream Algebra
 
-1 Preliminaries
-
-1.1 Includes
+This algebra allows distributed query processing by connecting streams by
+sockets.
 
 */
 
@@ -56,38 +53,35 @@ extern QueryProcessor *qp;
 
 /*
 
-2 Creating Operators
+2 Overview
 
-2.1 Overview
+This Algebra has two operators: ~send~ and ~receive~
 
-This algebra provides the following operators:
+The ~send~ operator expects a stream and a port number, and start to listen to
+that port. It returns the number of tuples sent.
 
-  * int x int [->] stream(int)  intstream
+  * stream(tuple) port [->] int       send
 
-    Creates a stream of integers containing all integers between the first and
-the second argument. If the second argument is smaller than the first, the
-stream will be empty.
+The port number must be in the format pNNNN. For example, to send
+data from rel ~ten~ through port ~1032~ we write
 
-  * stream(int) [->] int  count
+  query ten feed send\[p1032\]
 
-    Returns the number of elements in an integer stream.
+The ~receive~ operator expetcs a hostname and a port, and produces a stream:
 
-
-  * stream(int) [->] stream(int)    printintstream
-
-    Prints out all elements of the stream
-
-  * stream(int) x (int [->] bool) [->] stream(int)  filter
-
-    Filters the elements of an integer stream by a predicate.
+  * hostname port [->] stream(tuple)      receive
 
 
-2.2 Type Mapping Function
+2.1 Type Mapping Function
 
-Operator ~send~ accepts a stream of tuples and returns an integer.
+Type mapping for ~send~ is
 
-----    (stream (tuple x)) int -> int
-----
+----	((stream tuple) int) -> (int)
+
+
+Type mapping for ~receive~ is
+
+----	(hostname port) -> (stream tuple)
 
 
 */
@@ -109,7 +103,7 @@ TSendTypeMap(ListExpr args)
               TypeOfRelAlgSymbol(nl->First(first)) == stream  &&
               TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
     "Operator send expects a list with structure "
-    "((stream (tuple ((a1 t1)...(an tn)))) int)\n"
+    "((stream (tuple ((a1 t1)...(an tn)))) port)\n"
     "Operator count gets a list with structure '" + argstr + "'.");
 
   second = nl->Second(args);
@@ -154,9 +148,9 @@ TReceiveTypeMap(ListExpr args)
 
   first = nl->First(args);
   CHECK_COND( nl->IsAtom(first) && nl->AtomType(first) == SymbolType,
-    "Operator send expects as first argument a symbol atom (host name, p.e. localhost)." );
+    "Operator receive expects as first argument a symbol atom (host name, p.e. localhost)." );
 
-  // por enauqnto aceita apenas hostname sem "pontos" no nome.
+  // by now accepts only hostnames without dots in the name.
 
   second = nl->Second(args);
   CHECK_COND( nl->IsAtom(second) && nl->AtomType(second) == SymbolType,
@@ -188,7 +182,7 @@ TReceiveTypeMap(ListExpr args)
 
 
 /*
-4.3 Value Mapping Function
+3 Value Mapping Function
 
 */
 
@@ -319,7 +313,7 @@ TReceiveStream(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 /*
-4.4 Definition of Operators
+4 Definition of Operators
 
 */
 
@@ -338,7 +332,7 @@ const string receiveSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "<text>receive [ _ ]</text--->"
                             "<text>Read the tuples of "
                             "a stream.</text--->"
-                            "<text>query host receive[p1032] consume</text--->"
+                            "<text>query receive(hostname,p1032) consume</text--->"
                             ") )";
 
 
@@ -386,18 +380,6 @@ RemoteStreamAlgebra remoteStreamAlgebra;
 
 /*
 6 Initialization
-
-Each algebra module needs an initialization function. The algebra manager
-has a reference to this function if this algebra is included in the list
-of required algebras, thus forcing the linker to include this module.
-
-The algebra manager invokes this function to get a reference to the instance
-of the algebra class and to provide references to the global nested list
-container (used to store constructor, type, operator and object information)
-and to the query processor.
-
-The function has a C interface to make it possible to load the algebra
-dynamically at runtime.
 
 */
 
