@@ -450,19 +450,22 @@ void print_complex_postfix(){
 	(*yaccrules1) << ");";
 	(*yaccrules1) << "\t\t  }\n";
 
-  // print the rule for the function to yaccrules 2
-  (*yaccrules2) << funname << ":   naming "<< funname << "_1" <<  endl;
-  (*yaccrules2) << "\t\t  {$$ = NestedText::Concat(NestedText::AtomC(\"(\"), " << endl;
-  (*yaccrules2) << "\t\t        NestedText::Concat($1, " << endl;
-  (*yaccrules2) << "\t\t        NestedText::Concat(NestedText::AtomC(\" \")," << endl;
-  (*yaccrules2) << "\t\t        NestedText::Concat($2, " << endl;
-  (*yaccrules2) << "\t\t        NestedText::AtomC(\")\")  ))));} " << endl;
-  (*yaccrules2) << "\t\t  | " << funname << "_1   {$$ = $1;} " << endl;
-  (*yaccrules2) << "\t\t ; " << endl;
+  if(funlist_used) { // without a function list wo don't allow naming of functions 
+		// print the rule for the function to yaccrules 2
+		(*yaccrules2) << funname << ":   naming "<< funname << "_1" <<  endl;
+		(*yaccrules2) << "\t\t  {$$ = NestedText::Concat(NestedText::AtomC(\"(\"), " << endl;
+		(*yaccrules2) << "\t\t        NestedText::Concat($1, " << endl;
+		(*yaccrules2) << "\t\t        NestedText::Concat(NestedText::AtomC(\" \")," << endl;
+		(*yaccrules2) << "\t\t        NestedText::Concat($2, " << endl;
+		(*yaccrules2) << "\t\t        NestedText::AtomC(\")\")  ))));} " << endl;
+		(*yaccrules2) << "\t\t  | " << funname << "_1   {$$ = $1;} " << endl;
+		(*yaccrules2) << "\t\t ; " << endl;
+  }
 
+  string extension = funlist_used? "_1":"";
 
   // write the real function scheme
-  (*yaccrules2) << funname << "_1 :  { " << endl;
+  (*yaccrules2) << funname << extension << " :  { " << endl;
   for(int i=0;i<sizei;i++){
        (*yaccrules2) << "\t\t paramno++; " << endl;
        (*yaccrules2) << "\t\t strcpy(paramname,\"";
@@ -492,6 +495,7 @@ void print_complex_postfix(){
   }
   (*yaccrules2) << ";" << endl;
   (*yaccrules2) << "\t\t }" << endl;
+  (*yaccrules2) << "\t\t | function { $$ = $1; } " << endl;
   (*yaccrules2) << "\t\t ;\n";
   
   if(funlist_used) {
@@ -633,14 +637,7 @@ prefix		: ZZOP '('simpleargscomma')'
                    (*currenttranslation.pattern) << ",_";
                }
                (*currenttranslation.pattern) << ")";
-            /*	
-		      | ZZOP '_'
-            {  currenttranslation.isSimple=true;           
-               (*currenttranslation.token) << "ZZPREFIXOP";
-               (*currenttranslation.pattern) << "op _"; 
             }
-          */
-           }
 		      ;
 
 postfix		: simpleargsblank ZZOP
