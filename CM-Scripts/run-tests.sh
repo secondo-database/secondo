@@ -77,7 +77,8 @@ for testName in $testSuites
 do 
   runDir=${testName%/*}
   testFile=${testName##*/}
-  runTest $runDir $testFile "time TestRunner -i  ${testFile}" 
+  runTest $runDir $testFile "time TestRunner -i  ${testFile}"
+  wait $! 
 done
 
 #
