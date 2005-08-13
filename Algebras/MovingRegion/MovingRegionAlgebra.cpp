@@ -17,7 +17,7 @@ Some nice introduction should be found here.
 
 /*
 
-Intersection of two trapezoids with parallel sides parallel to (x, y)-plane.
+Intersection of two trapeziums with parallel sides parallel to (x, y)-plane.
 
 Points 
 $A = (a_1, a_2, a_3)$,
@@ -29,7 +29,7 @@ $F = (f_1, f_2, e_3)$,
 $G = (g_1, g_2, g_3)$ and
 $H = (h_1, h_2, g_3).$
 
-Trapezoids
+Trapeziums
 $T_1 = (A, B, C, D)$ and 
 $T_2 = (E, F, G, H)$.
 
@@ -64,11 +64,11 @@ $T_2$ are parallel and do not touch each other.
 
 \item
 The solution is a line. In this case, if the line is both within $T_1$ and
-$T_2$, the two trapezoids intersect.
+$T_2$, the two trapeziums intersect.
 
 \item
-Otherwise, both trapezoids are in the same plane. In this case, it must be
-checked if both trapezoids overlap, which is very simple.
+Otherwise, both trapeziums are in the same plane. In this case, it must be
+checked if both trapeziums overlap, which is very simple.
 \end{enumerate}
 
 */
@@ -100,7 +100,7 @@ For non-point intervals $(t_1, t_2, lc, rc)$ with $t_1 \ne t_2$ and
 $lc, rc \in \{true, false\}$, the value of the unit at instant 
 $t = (t2-t1)/2$ is calculated. As the moving region must not degenerate
 at instant $t$, this value is checked like a spatial region. If successful,
-it is checked that no trapezoid, which is spanned by a moving segment in
+it is checked that no trapezium, which is spanned by a moving segment in
 the unit, is intersecting or touching in its interior any other moving
 segment.
 \end{enumerate}
@@ -148,6 +148,16 @@ static bool greaterOrNearlyEqual(double a, double b) {
     return a > b || nearlyEqual(a, b);
 }
 
+static void minmax2(double a, 
+		    double b, 
+		    double& min, 
+		    double& max) {
+    if (MRA_DEBUG) cerr << "minmax4() called" << endl;
+
+    min = a < b ? a : b;
+    max = a > b ? a : b;
+}
+
 static void minmax4(double a, 
 		    double b, 
 		    double c, 
@@ -166,8 +176,6 @@ static void minmax4(double a,
     if (d < min) min = d;
     if (d > max) max = d;
 }
-
-enum GaussSolution { NONE, UNIQUE, INFINITE };
 
 static void GaussTransform(const unsigned int n, 
 			   const unsigned int m, 
@@ -205,79 +213,28 @@ static void GaussTransform(const unsigned int n,
     }
 }
 
-static GaussSolution GaussAnalyse(const unsigned int n, 
-				  const unsigned int m,
-				  double** a, 
-				  double* b,
-				  double s[]) {
-    GaussSolution res;
-
-    if (a[n-1][m-1] == 0) {
-	if (b[n-1] == 0) {
-	    cerr << "unendlich viele Loesungen" << endl;
-	    res = INFINITE;
-	} else {
-	    cerr << "keine Loesungen" << endl;
-	    res = NONE;
-	}
-    } else {
-	res = UNIQUE;
-
-	for (int i = n-1; i >= 0; i--) {
-	    cerr << "i=" << i << endl;
-	    
-	    s[i] = b[i];
-	    for (unsigned int j = i+1; j < m; j++) s[i] -= a[i][j]*s[j];
-	    s[i] /= a[i][i];
-	    
-	    cerr << " s=" << s[i] << endl;
-	}
-    }
-
-    return res;
-}
-
-static GaussSolution Gauss(const unsigned int n, 
-			   const unsigned int m,
-			   double** a, 
-			   double* b, 
-			   double s[]) {
-
-
-    for (unsigned j = 0; j < n; j++) {
-	for (unsigned int k = 0; k < m; k++) printf("%7.3f ", a[j][k]);
-	printf("| %7.3f\n", b[j]);
-    }
-
-    GaussTransform(n, m, a, b);
-
-    GaussSolution res = GaussAnalyse(n, m, a, b, s);
-
-    return res;
-}
-
 /*
-1.1 Function ~specialTrapezoidIntersection()~
+1.1 Function ~specialTrapeziumIntersection()~
 
-Returns ~true~ if and only if the two specified special trapezoids intersect.
+Returns ~true~ if and only if the two specified special trapeziums intersect.
 
-The two trapezoids must meet the following conditions. These conditions are
+The two trapeziums must meet the following conditions. These conditions are
 not checked in the function. If the conditions are not met, the function will
 deliver incorrect results.
 
-Trapezoid 1 is spanned by points ~(t1p1x, t1p1y, 0)~, ~(t1p2x, t1p2y, 0)~, 
+Trapezium 1 is spanned by points ~(t1p1x, t1p1y, 0)~, ~(t1p2x, t1p2y, 0)~, 
 and ~(t1p3x, t1p3y, dt)~. ~(t1p4x, t1p4x, dt)~ is required for boundary
 checking only. Lines ~(t1p1x, t1p1y, 0)~ to ~(t1p2x, t1p2y, 0)~ and
 ~(t1p3x, t1p3y, dt)~ to ~(t1p4x, t1p4x, dt)~ are collinear.
 
-Trapezoid 2 is spanned by points ~(t2p1x, t2p1y, 0)~, ~(t2p2x, t2p2y, 0)~, 
+Trapezium 2 is spanned by points ~(t2p1x, t2p1y, 0)~, ~(t2p2x, t2p2y, 0)~, 
 and ~(t2p3x, t2p3y, dt)~. ~(t2p4x, t2p4x, dt)~ is required for boundary
 checking only. Lines ~(t2p1x, t2p1y, 0)~ to ~(t2p2x, t2p2y, 0)~ and
 ~(t2p3x, t2p3y, dt)~ to ~(t2p4x, t2p4x, dt)~ are collinear.
 
 */
 
-static bool specialTrapezoidIntersection(double dt,
+static bool specialTrapeziumIntersection(double dt,
 					 double t1p1x,
 					 double t1p1y,
 					 double t1p2x,
@@ -294,11 +251,13 @@ static bool specialTrapezoidIntersection(double dt,
 					 double t2p3y,
 					 double t2p4x,
 					 double t2p4y) {
-    if (MRA_DEBUG) cerr << "specialTrapezoidIntersection() called" << endl;
+    if (MRA_DEBUG) 
+	cerr << "specialTrapeziumIntersection() called" 
+	     << endl;
 
 /*
 First, lets check the bounding boxes in the $(x, y)$-plane of the two 
-trapezoids.
+trapeziums.
 
 */
 
@@ -319,7 +278,7 @@ trapezoids.
     minmax4(t2p1y, t2p2y, t2p3y, t2p4y, t2MinY, t2MaxY);
 
     if (MRA_DEBUG) {
-	cerr << "specialTrapezoidIntersection() t1MinX=" 
+	cerr << "specialTrapeziumIntersection() t1MinX=" 
 	     << t1MinX
 	     << " t1MaxX="
 	     << t1MaxX
@@ -328,7 +287,7 @@ trapezoids.
 	     << " t1MaxY="
 	     << t1MaxY
 	     << endl;
-	cerr << "specialTrapezoidIntersection() t2MinX=" 
+	cerr << "specialTrapeziumIntersection() t2MinX=" 
 	     << t2MinX
 	     << " t2MaxX="
 	     << t2MaxX
@@ -344,18 +303,47 @@ trapezoids.
 	|| lowerOrNearlyEqual(t1MaxY, t2MinY)
 	|| greaterOrNearlyEqual(t1MinY, t2MaxY)) {
 	if (MRA_DEBUG) 
-	    cerr << "specialTrapezoidIntersection() no bbox overlap" << endl;
+	    cerr << "specialTrapeziumIntersection() no bbox overlap" 
+		 << endl;
 
 	return false;
     }
 
 /*
-The bounding boxes of the trapezoids overlap. To determine if they actual
-intersect, we first calculate the intersection of the two planes spanned
-by the trapezoid.
+Now, lets see if the trapeziums touch in one edge.
 
-The plane spanned by trapezoid 1 is 
-$(t1p1x,t1p1y,0)+(t1p2x-t1p1x,t1p2y-t1p1y,0)\cdot s+(t1p3x-t1p1x,t1p3y-t1p1y,dt)\cdot t$. The plane spanned by trapezoid 2 is
+*/
+
+    if ((nearlyEqual(t1p1x, t2p1x) 
+	 && nearlyEqual(t1p1y, t2p1y)
+	 && nearlyEqual(t1p3x, t2p3x)
+	 && nearlyEqual(t1p3y, t2p3y))
+	|| (nearlyEqual(t1p1x, t2p2x) 
+	    && nearlyEqual(t1p1y, t2p2y)
+	    && nearlyEqual(t1p3x, t2p4x)
+	    && nearlyEqual(t1p3y, t2p4y))
+	|| (nearlyEqual(t1p2x, t2p1x) 
+	    && nearlyEqual(t1p2y, t2p1y)
+	    && nearlyEqual(t1p4x, t2p3x)
+	    && nearlyEqual(t1p4y, t2p3y))
+	|| (nearlyEqual(t1p2x, t2p2x) 
+	    && nearlyEqual(t1p2y, t2p2y)
+	    && nearlyEqual(t1p4x, t2p4x)
+	    && nearlyEqual(t1p4y, t2p4y))) {
+	if (MRA_DEBUG) 
+	    cerr << "specialTrapeziumIntersection() touching" 
+		 << endl;
+
+	return false;
+    }
+
+/*
+The bounding boxes of the trapeziums overlap but they do not touch in one
+edge. To determine if they actually intersect, we first calculate the 
+intersection of the two planes spanned by the trapezium.
+
+The plane spanned by trapezium 1 is 
+$(t1p1x,t1p1y,0)+(t1p2x-t1p1x,t1p2y-t1p1y,0)\cdot s+(t1p3x-t1p1x,t1p3y-t1p1y,dt)\cdot t$. The plane spanned by trapezium 2 is
 $(t2p1x,t2p1y,0)+(t2p2x-t2p1x,t2p2y-t2p1y,0)\cdot s'+(t2p3x-t2p1x,t2p3y-t2p1y,dt)\cdot t'$.
 
 The intersection of the two planes is the solution of the linear system of
@@ -372,19 +360,166 @@ t2p1y-t1p1y \\
 0
 \end{array} \right.
 \end{array}
-\nonumber\end{eqnarray}
+\nonumber\end{eqnarray}.
+
+We are applying the Gaussian elimination to the linear system of equations:
 
 */
 
-    double a[3][4] = {{ t1p2x-t1p1x, t1p3x-t1p1x, t2p1x-t2p2x, t2p1x-t2p3x },
-		      { t1p2y-t1p1y, t1p3y-t1p1y, t2p1y-t2p2y, t2p1y-t2p3y },
-		      { 0,           dt,          0,           -dt         }};
-    double b[3] = { t2p1x-t1p1x, t2p1y-t1p1y, 0 };
+    double a[3][4] = 
+	{{ t1p2x-t1p1x, t1p3x-t1p1x, t2p1x-t2p2x, t2p1x-t2p3x },
+	 { t1p2y-t1p1y, t1p3y-t1p1y, t2p1y-t2p2y, t2p1y-t2p3y },
+	 { 0,           dt,          0,           -dt         }};
+    double b[3] = 
+	{ t2p1x-t1p1x, t2p1y-t1p1y, 0 };
 
     double* ap[] = { a[0], a[1], a[2] };
-    double s[3];
 
-    Gauss(3, 4, ap, b, s);
+    GaussTransform(3, 4, ap, b);
+
+/*
+Now, the linear system of equation has the following format
+\begin{eqnarray}
+\begin{array}{ccc}
+\begin{array}{cccc}
+\ast & \ast & \ast & \ast \\
+0    & \ast & \ast & \ast \\
+0    & 0    & c1   & c2 
+\end{array} & \left| \begin{array}{c}
+\ast \\
+\ast \\
+b
+\end{array} \right.
+\end{array}
+\nonumber\end{eqnarray}
+The asterisk denotes arbitrary values.
+
+If $c1=0$, $c2=0$ and $b\ne0$, the two planes are parallel and not identical:
+They do not intersect. If $c1=0$, $c2=0$ and $b=0$, the two planes are 
+identical and we have to check if the two trapeziums overlap.
+
+*/
+
+    if (nearlyEqual(ap[2][2], 0.0) && nearlyEqual(ap[2][2], 0.0)) {
+	if (nearlyEqual(b[2], 0.0)) {
+	    if (MRA_DEBUG) 
+		cerr << "specialTrapeziumIntersection() identicial" 
+		     << endl;
+
+	    minmax2(t1p1x, t1p2x, t1MinX, t1MaxX);
+	    minmax2(t1p1y, t1p2y, t1MinY, t1MaxY);
+	    minmax2(t2p1x, t2p2x, t2MinX, t2MaxY);
+	    minmax2(t2p1y, t2p2y, t2MinX, t2MaxY);
+
+	    if (MRA_DEBUG) {
+		cerr << "specialTrapeziumIntersection() p1+p2 t1MinX=" 
+		     << t1MinX
+		     << " t1MaxX="
+		     << t1MaxX
+		     << " t1MinY="
+		     << t1MinY
+		     << " t1MaxY="
+		     << t1MaxY
+		     << endl;
+		cerr << "specialTrapeziumIntersection() t2MinX=" 
+		     << t2MinX
+		     << " t2MaxX="
+		     << t2MaxX
+		     << " t2MinY="
+		     << t2MinY
+		     << " t2MaxY="
+		     << t2MaxY
+		     << endl;
+	    }
+
+	    if (((lowerOrNearlyEqual(t1MinX, t2MinX)
+		  && lowerOrNearlyEqual(t2MinX, t1MaxX))
+		 || (lowerOrNearlyEqual(t1MinX, t2MaxX)
+		     && lowerOrNearlyEqual(t2MaxX, t1MaxX))
+		 || (lowerOrNearlyEqual(t2MinX, t1MinX)
+		     && lowerOrNearlyEqual(t1MaxX, t2MaxX)))
+		&& ((lowerOrNearlyEqual(t1MinY, t2MinY)
+		  && lowerOrNearlyEqual(t2MinY, t1MaxY))
+		 || (lowerOrNearlyEqual(t1MinY, t2MaxY)
+		     && lowerOrNearlyEqual(t2MaxY, t1MaxY))
+		 || (lowerOrNearlyEqual(t2MinY, t1MinY)
+		     && lowerOrNearlyEqual(t1MaxY, t2MaxY)))) {
+		if (MRA_DEBUG) 
+		    cerr << "specialTrapeziumIntersection() overlap p1-p2" 
+			 << endl;
+
+		return true;
+	    }
+
+	    minmax2(t1p3x, t1p4x, t1MinX, t1MaxX);
+	    minmax2(t1p3y, t1p4y, t1MinY, t1MaxY);
+	    minmax2(t2p3x, t2p4x, t2MinX, t2MaxY);
+	    minmax2(t2p3y, t2p4y, t2MinX, t2MaxY);
+
+	    if (MRA_DEBUG) {
+		cerr << "specialTrapeziumIntersection() p3+p4 t1MinX=" 
+		     << t1MinX
+		     << " t1MaxX="
+		     << t1MaxX
+		     << " t1MinY="
+		     << t1MinY
+		     << " t1MaxY="
+		     << t1MaxY
+		     << endl;
+		cerr << "specialTrapeziumIntersection() t2MinX=" 
+		     << t2MinX
+		     << " t2MaxX="
+		     << t2MaxX
+		     << " t2MinY="
+		     << t2MinY
+		     << " t2MaxY="
+		     << t2MaxY
+		     << endl;
+	    }
+
+	    if (((lowerOrNearlyEqual(t1MinX, t2MinX)
+		  && lowerOrNearlyEqual(t2MinX, t1MaxX))
+		 || (lowerOrNearlyEqual(t1MinX, t2MaxX)
+		     && lowerOrNearlyEqual(t2MaxX, t1MaxX))
+		 || (lowerOrNearlyEqual(t2MinX, t1MinX)
+		     && lowerOrNearlyEqual(t1MaxX, t2MaxX)))
+		&& ((lowerOrNearlyEqual(t1MinY, t2MinY)
+		  && lowerOrNearlyEqual(t2MinY, t1MaxY))
+		 || (lowerOrNearlyEqual(t1MinY, t2MaxY)
+		     && lowerOrNearlyEqual(t2MaxY, t1MaxY))
+		 || (lowerOrNearlyEqual(t2MinY, t1MinY)
+		     && lowerOrNearlyEqual(t1MaxY, t2MaxY)))) {
+		if (MRA_DEBUG) 
+		    cerr << "specialTrapeziumIntersection() overlap p3-p4" 
+			 << endl;
+	    }
+
+	} else {
+	    if (MRA_DEBUG) 
+		cerr << "specialTrapeziumIntersection() parallel" 
+		     << endl;
+
+	    return false;
+	}
+    }
+
+/*
+Otherwise, the two planes intersect in a line, which we need to
+calculate now. We have to consider the following cases: For $c1=0$, it 
+follows that $t'=b/c2$ with $s'$ arbitrary; for $c2=0$, it follows that 
+$s'=b/c1$ with $t'$ arbitrary; otherwise, it follows that 
+$s'=(b-c2\cdot t')/c1$ with $t'$ arbitrary.
+
+Inserting $s'$ and $t'$ into the equation of the plane spanned by 
+trapezium 2 provides the equation of the intersection line.
+
+*/
+
+    if (MRA_DEBUG) 
+	cerr << "specialTrapeziumIntersection() intersect" 
+	     << endl;
+
+    assert(false);
 
     return false;
 }
@@ -1202,7 +1337,7 @@ bool URegion::AddSegment(unsigned int faceno,
 		dms.degeneratedFinal = true;
 	    }
 
-	    specialTrapezoidIntersection(intervalLen,
+	    specialTrapeziumIntersection(intervalLen,
 					 existingDms.initialStartX,
 					 existingDms.initialStartY,
 					 existingDms.initialEndX,
@@ -1219,8 +1354,6 @@ bool URegion::AddSegment(unsigned int faceno,
 					 dms.finalStartY,
 					 dms.finalEndX,
 					 dms.finalEndY);
-
-	    if (i == 0 && segmentno == 2) exit(1);
 	}
 
 	segments->Resize(segmentsStartPos+segmentsNum+1);
