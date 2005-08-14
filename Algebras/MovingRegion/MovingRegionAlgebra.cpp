@@ -16,102 +16,6 @@ Some nice introduction should be found here.
 // code requiring attention is marked with *hm*!! 
 
 /*
-
-Intersection of two trapeziums with parallel sides parallel to (x, y)-plane.
-
-Points 
-$A = (a_1, a_2, a_3)$,
-$B = (b_1, b_2, a_3)$,
-$C = (c_1, c_2, c_3)$,
-$D = (d_1, d_2, c_3)$,
-$E = (e_1, e_2, e_3)$,
-$F = (f_1, f_2, e_3)$,
-$G = (g_1, g_2, g_3)$ and
-$H = (h_1, h_2, g_3).$
-
-Trapeziums
-$T_1 = (A, B, C, D)$ and 
-$T_2 = (E, F, G, H)$.
-
-$T_1$ is in plane
-$A + (B-A) \cdot X + (C-A) \cdot Y$.
-$T_2$ is in plane
-$E + (F-E) \cdot S + (G-E) \cdot T$.
-
-Intersection of both planes is the solution of linear systems of equation with 
-coefficients
-
-\begin{eqnarray}
-\begin{array}{ccc}
-\begin{array}{cccc}
-b_1-a_1 & c_1-a_1 & f_1-e_1 & g_1-e_1 \\
-b_2-a_2 & c_2-a_2 & f_2-e_2 & g_2-e_2 \\
-      0 & c_3-a_3 &       0 & g_3-e_3
-\end{array} & \left| \begin{array}{c}
-e_1-a_1 \\
-e_2-a_2 \\
-e_3-a_3 
-\end{array} \right.
-\end{array}
-\nonumber\end{eqnarray}
-
-The following cases need to be examined:
-
-\begin{enumerate}
-\item
-There are no solutions. In this case, the two planes spanned by $T_1$ and 
-$T_2$ are parallel and do not touch each other.
-
-\item
-The solution is a line. In this case, if the line is both within $T_1$ and
-$T_2$, the two trapeziums intersect.
-
-\item
-Otherwise, both trapeziums are in the same plane. In this case, it must be
-checked if both trapeziums overlap, which is very simple.
-\end{enumerate}
-
-*/
-
-
-
-
-/*
-
-The following approach is used to check the validity of the points in
-each unit of a moving region:
-
-If $(t_1, t_2, true, true)$ is the interval of the unit,
-the moving region is allowed to degenerate in instants $t_1$ and $t_2$. If
-the unit's interval is half-open, ie.\ $(t_1, t_2, false, true)$ or 
-$(t_1, t_2, true, false)$, the moving region is allowed to generate in 
-instants $t_1$ or $t_2$. However, for all all instants $t$ with 
-$t_1 < t < t_2$, the moving region must not degenerate. 
-
-Two distinct cases are considered:
-
-\begin{enumerate}
-\item
-For point intervals $(t, t, true, true)$, the moving region must not
-degenerate in instant $t$ and the unit is checked like a spatial region.
-
-\item
-For non-point intervals $(t_1, t_2, lc, rc)$ with $t_1 \ne t_2$ and 
-$lc, rc \in \{true, false\}$, the value of the unit at instant 
-$t = (t2-t1)/2$ is calculated. As the moving region must not degenerate
-at instant $t$, this value is checked like a spatial region. If successful,
-it is checked that no trapezium, which is spanned by a moving segment in
-the unit, is intersecting or touching in its interior any other moving
-segment.
-\end{enumerate}
-
-The spatial region in both cases is used to calculate the value of the
-~insideLeftOrAbove~ attribute of each segment.
-
-*/
-
-
-/*
 1 Defines and includes
 
 */
@@ -133,6 +37,11 @@ static NestedList* nl;
 static QueryProcessor* qp;
 
 const bool MRA_DEBUG = true;
+
+/*
+1 Helper functions
+
+*/
 
 const double eps = 0.00001;
 
@@ -218,7 +127,342 @@ static void GaussTransform(const unsigned int n,
 }
 
 /*
-1.1 Function ~specialTrapeziumIntersection()~
+1.1 Function ~specialSegmentIntersects2()~
+
+Returns ~true~ if the specified segment and line intersect.
+
+The segment connects the points $(l1p1x, l1p1y, z)$ and $(l1p2x, l1p2y, z)$,
+ie.\ segment 1 is parallel to the $(x, y)$-plane.
+
+The line is $P+Q\cdot t$. The line must not be parallel to the $(x, y)-plane$.
+
+*/
+
+static bool specialSegmentIntersects2(double z,
+				      double l1p1x,
+				      double l1p1y,
+				      double l1p2x,
+				      double l1p2y,
+				      double* P,
+				      double* Q) {
+    if (MRA_DEBUG) {
+	cerr << "specialLineIntersects1() called" 
+	     << endl;
+	cerr << "specialLineIntersects1() line 1: (" 
+	     << l1p1x
+	     << ", "
+	     << l1p1y
+	     << ", "
+	     << z
+	     << ")-("
+	     << l1p2x
+	     << ", "
+	     << l1p2y
+	     << ", "
+	     << z
+	     << ")"
+	     << endl;
+	cerr << "specialLineIntersects1() line 2: (" 
+	     << P[0]
+	     << ", "
+	     << P[1]
+	     << ", "
+	     << P[2]
+	     << ")-("
+	     << Q[0]
+	     << ", "
+	     << Q[1]
+	     << ", "
+	     << Q[2]
+	     << ")*t"
+	     << endl;
+    }
+
+/*
+Calculate point $(x, y)$ where the line intersects the plane parallel to the
+$(x, y)$-plane with distance z from the $(x, y)$-plane.
+
+*/
+
+    double t2 = (z-P[2])/Q[2];
+
+    if (MRA_DEBUG)
+	cerr << "specialLineIntersects1() t=" 
+	     << t2
+	     << endl;
+
+    double x = P[0]+Q[0]*t2;
+    double y = P[1]+Q[1]*t2;
+
+    if (MRA_DEBUG)
+	cerr << "specialLineIntersects1() x=" 
+	     << x
+	     << " y="
+	     << y
+	     << endl;
+
+    double l1MinX = l1p1x < l1p2x ? l1p1x : l1p2x;
+    double l1MaxX = l1p1x > l1p2x ? l1p1x : l1p2x;
+    double l1MinY = l1p1y < l1p2y ? l1p1y : l1p2y;
+    double l1MaxY = l1p1y > l1p2y ? l1p1y : l1p2y;
+
+    if (nearlyEqual(l1p1x, l1p2x) && nearlyEqual(l1p1y, l1p2y)) {
+/*
+The segment is actually a point.
+
+*/
+
+	if (nearlyEqual(l1p1x, x) && nearlyEqual(l1p1y, y)) {
+	    if (MRA_DEBUG)
+		cerr 
+		    << "specialLineIntersects1() intersects #1" 
+		    << endl;
+
+	    return true;
+	} else {
+	    if (MRA_DEBUG)
+		cerr 
+		    << "specialLineIntersects1() no intersection #1" 
+		    << endl;
+
+	    return false;
+	}
+    } else if (nearlyEqual(l1p1x, l1p2x)) {
+/*
+The segment is vertical in the $(x, y)$-plane.
+
+*/
+
+	if (nearlyEqual(y, l1p1y)
+	    && lowerOrNearlyEqual(l1MinY, y)
+	    && lowerOrNearlyEqual(y, l1MaxY)) {
+	    if (MRA_DEBUG)
+		cerr 
+		    << "specialLineIntersects1() intersects #2" 
+		    << endl;
+
+	    return true;
+	} else {
+	    if (MRA_DEBUG)
+		cerr 
+		    << "specialLineIntersects1() no intersection #2" 
+		    << endl;
+
+	    return false;
+	}
+    } else if (nearlyEqual(l1p1y, l1p2y)) {
+/*
+The segment is horizontal in the $(x, y)$-plane.
+
+*/
+
+	if (nearlyEqual(x, l1p1x)
+	    && lowerOrNearlyEqual(l1MinX, x)
+	    && lowerOrNearlyEqual(x, l1MaxX)) {
+	    if (MRA_DEBUG)
+		cerr 
+		    << "specialLineIntersects1() intersects #3" 
+		    << endl;
+
+	    return true;
+	} else {
+	    if (MRA_DEBUG)
+		cerr 
+		    << "specialLineIntersects1() no intersection #3" 
+		    << endl;
+
+	    return false;
+	}
+    } else {
+/*
+Otherwise, $l1p1x\ne l1p2x$ and $l1p1y\ne l1p2y$ so that we can happily
+use the quotients below.
+
+First, check whether $(x, y)$ is on the line through the segment.
+
+*/
+
+	double t1 = (x-l1p1x)/(l1p2x-l1p1x);
+
+	if (!nearlyEqual(t1, (y-l1p1y)/(l1p2y-l1p1y))) {
+	    if (MRA_DEBUG)
+		cerr 
+		    << "specialLineIntersects1() no intersection #4a" 
+		    << endl;
+
+	    return false;
+	}
+
+/*
+Verify that $(x, y)$ is actually on the segment: As we already know that
+it is on the line through the segment, we just have to check its bounding
+box parallel to the $(x, y)$-plane.
+
+*/
+
+	if (lower(x, l1MinX)
+	    || lower(l1MaxX, x)
+	    || lower(y, l1MinY)
+	    || lower(l1MaxY, y)) {
+	    if (MRA_DEBUG)
+		cerr << "specialLineIntersects1() no intersection #4b" 
+		     << endl;
+
+	    return false;
+	}
+	
+	if (MRA_DEBUG)
+	    cerr << "specialLineIntersects1() intersects" << endl;
+
+	return true;
+    }
+}
+
+/*
+1.1 Function ~specialSegmentIntersects1()~
+
+Returns ~true~ if the two specified segments intersect.
+
+The two lines must meet the following conditions.
+
+Segment 1 connects the points $(l1p1x, l1p1y, 0)$ and $(l1p2x, l1p2y, dt)$.
+
+Segment 2 connects the points $(l2p1x, l2p1y, 0)$ and $(l2p2x, l2p2y, dt)$.
+
+Both must not be on the same line.
+
+*/
+
+static bool specialSegmentIntersects1(double dt,
+				      double l1p1x,
+				      double l1p1y,
+				      double l1p2x,
+				      double l1p2y,
+				      double l2p1x,
+				      double l2p1y,
+				      double l2p2x,
+				      double l2p2y) {
+    if (MRA_DEBUG) {
+	cerr << "specialLineIntersects1() called" 
+	     << endl;
+	cerr << "specialLineIntersects1() line 1: (" 
+	     << l1p1x
+	     << ", "
+	     << l1p1y
+	     << ", 0.0)-("
+	     << l1p2x
+	     << ", "
+	     << l1p2y
+	     << ", "
+	     << dt
+	     << ")"
+	     << endl;
+	cerr << "specialLineIntersects1() line 2: (" 
+	     << l2p1x
+	     << ", "
+	     << l2p1y
+	     << ", 0.0)-("
+	     << l2p2x
+	     << ", "
+	     << l2p2y
+	     << ", "
+	     << dt
+	     << ")"
+	     << endl;
+    }
+
+/*
+The line through segment 1 is 
+$(l1p1x, l1p1y, 0)+(l1p2x-l1p1x, l1p2y-l1p2y, dt)\cdot s$.
+The line through segment 2 is 
+$(l2p1x, l2p1y, 0)+(l2p2x-l1p1x, l2p2y-l2p2y, dt)\cdot t$.
+
+The intersection of the two lines is the solution of the following
+linear system of equations:
+\begin{eqnarray}
+\begin{array}{ccc}
+\begin{array}{cc}
+l1p2x-l1p1x & l2p1x-l2p2x \\
+l1p2y-l1p1y & l2p1y-l2p2y \\
+dt          & -dt
+\end{array} & \left| \begin{array}{c}
+l2p1x-l1p1x \\
+l2p1y-l1p1y \\
+0
+\end{array} \right.
+\end{array}
+\nonumber\end{eqnarray}
+
+We put the left handed sides of the equations in matrix $a$ and the right
+handed sides into array $b$ and are applying the Gaussian elimination to these:
+
+*/
+
+    double A[3][2] = 
+	{{ l1p2x-l1p1x, l2p1x-l2p2x },
+	 { l1p2y-l1p1y, l2p1y-l2p2y },
+	 { dt,          -dt         }};
+    double B[3] = 
+	{ l2p1x-l1p1x, l2p1y-l1p1y, 0 };
+
+    double* Ap[] = { A[0], A[1], A[2] };
+
+    GaussTransform(3, 2, Ap, B);
+
+/*
+Now, the linear system of equation has the following format
+\begin{eqnarray}
+\begin{array}{ccc}
+\begin{array}{cc}
+\ast & \ast  \\
+0    & \ast  \\
+0    & c 
+\end{array} & \left| \begin{array}{c}
+\ast \\
+\ast \\
+b
+\end{array} \right.
+\end{array}
+\nonumber\end{eqnarray}
+The asterisk denotes arbitrary values.
+
+If $c=0$ and $b\ne 0$, the two lines do not intersect.
+If $c=0$ and $b=0$, the two lines are identical, which must not happen
+do to the conditions for the two segments, which are described above.
+$c\ne 0$ implies that $t=b/c$.
+
+Inserting $t$ into the equation of line 2 yields the value $z=dt\cdot b/c$
+for the third component. If $0\le z \le dt$, the two segments intersect.
+
+*/
+
+    if (nearlyEqual(Ap[2][1], 0.0)) {
+	assert(!nearlyEqual(B[2], 0.0));
+
+	if (MRA_DEBUG)
+	    cerr << "specialLineIntersects1() do not intersect #1" 
+		 << endl;
+    }
+
+    double z = dt*B[2]/Ap[2][1];
+
+    if (lowerOrNearlyEqual(0.0, z) && lowerOrNearlyEqual(z, dt)) {
+	if (MRA_DEBUG)
+	    cerr << "specialLineIntersects1() intersect" 
+		 << endl;
+
+	return true;
+    } else {
+	if (MRA_DEBUG)
+	    cerr << "specialLineIntersects1() do not intersect #2" 
+		 << endl;
+
+	return false;
+    }
+}
+
+/*
+1.1 Function ~specialTrapeziumIntersects()~
 
 Returns ~true~ if and only if the two specified special trapeziums intersect.
 
@@ -226,41 +470,49 @@ The two trapeziums must meet the following conditions. These conditions are
 not checked in the function. If the conditions are not met, the function will
 deliver incorrect results.
 
-Trapezium 1 is spanned by points ~(t1p1x, t1p1y, 0)~, ~(t1p2x, t1p2y, 0)~, 
-and ~(t1p3x, t1p3y, dt)~. ~(t1p4x, t1p4x, dt)~ is required for boundary
-checking only. Lines ~(t1p1x, t1p1y, 0)~ to ~(t1p2x, t1p2y, 0)~ and
+Trapezium 1 is spanned by segments ~(t1p1x, t1p1y, 0)~ to ~(t1p2x, t1p2y, 0)~, 
+~(t1p1x, t1p1y, 0)~ to ~(t1p3x, t1p3y, dt)~, ~(t1p3x, t1p3y, dt)~ to 
+~(t1p4x, t1p4x, dt)~ and ~(t1p2x, t1p2y, 0)~ to ~(t1p4x, t1p4x, dt)~.
+Allowed are either ~(t1p1x, t1p1y, 0)=(t1p2x, t1p2y, 0)~ or
+~(t1p3x, t1p3y, dt)=(t1p4x, t1p4x, dt)~ but not both. Segments 
+~(t1p1x, t1p1y, 0)~ to ~(t1p2x, t1p2y, 0)~ and 
 ~(t1p3x, t1p3y, dt)~ to ~(t1p4x, t1p4x, dt)~ are collinear.
 
-Trapezium 2 is spanned by points ~(t2p1x, t2p1y, 0)~, ~(t2p2x, t2p2y, 0)~, 
-and ~(t2p3x, t2p3y, dt)~. ~(t2p4x, t2p4x, dt)~ is required for boundary
-checking only. Lines ~(t2p1x, t2p1y, 0)~ to ~(t2p2x, t2p2y, 0)~ and
+Trapezium 2 is spanned by segments ~(t2p1x, t2p1y, 0)~ to ~(t2p2x, t2p2y, 0)~, 
+~(t2p1x, t2p1y, 0)~ to ~(t2p3x, t2p3y, dt)~, ~(t2p3x, t2p3y, dt)~ to
+~(t2p4x, t2p4x, dt)~ and ~(t2p2x, t2p2y, 0)~ to ~(t2p4x, t2p4x, dt)~.
+Allowed are either ~(t2p1x, t2p1y, 0)=(t2p2x, t2p2y, 0)~ or
+~(t2p3x, t2p3y, dt)=(t2p4x, t2p4x, dt)~ but not both. Segments
+~(t2p1x, t2p1y, 0)~ to ~(t2p2x, t2p2y, 0)~ and
 ~(t2p3x, t2p3y, dt)~ to ~(t2p4x, t2p4x, dt)~ are collinear.
+
+$dt$ must be greater than $0$.
 
 */
 
-static bool specialTrapeziumIntersection(double dt,
-					 double t1p1x,
-					 double t1p1y,
-					 double t1p2x,
-					 double t1p2y,
-					 double t1p3x,
-					 double t1p3y,
-					 double t1p4x,
-					 double t1p4y,
-					 double t2p1x,
-					 double t2p1y,
-					 double t2p2x,
-					 double t2p2y,
-					 double t2p3x,
-					 double t2p3y,
-					 double t2p4x,
-					 double t2p4y) {
+static bool specialTrapeziumIntersects(double dt,
+				       double t1p1x,
+				       double t1p1y,
+				       double t1p2x,
+				       double t1p2y,
+				       double t1p3x,
+				       double t1p3y,
+				       double t1p4x,
+				       double t1p4y,
+				       double t2p1x,
+				       double t2p1y,
+				       double t2p2x,
+				       double t2p2y,
+				       double t2p3x,
+				       double t2p3y,
+				       double t2p4x,
+				       double t2p4y) {
     if (MRA_DEBUG) 
-	cerr << "specialTrapeziumIntersection() called" 
+	cerr << "specialTrapeziumIntersects() called" 
 	     << endl;
 
     if (MRA_DEBUG) {
-	cerr << "specialTrapeziumIntersection() trapezium 1: (" 
+	cerr << "specialTrapeziumIntersects() trapezium 1: (" 
 	     << t1p1x
 	     << ", "
 	     << t1p1y
@@ -278,7 +530,7 @@ static bool specialTrapeziumIntersection(double dt,
 	     << t1p4y
 	     << ")"
 	     << endl;
-	cerr << "specialTrapeziumIntersection() trapezium 2: (" 
+	cerr << "specialTrapeziumIntersects() trapezium 2: (" 
 	     << t2p1x
 	     << ", "
 	     << t2p1y
@@ -321,7 +573,7 @@ trapeziums.
     minmax4(t2p1y, t2p2y, t2p3y, t2p4y, t2MinY, t2MaxY);
 
     if (MRA_DEBUG) {
-	cerr << "specialTrapeziumIntersection() t1MinX=" 
+	cerr << "specialTrapeziumIntersects() t1MinX=" 
 	     << t1MinX
 	     << " t1MaxX="
 	     << t1MaxX
@@ -330,7 +582,7 @@ trapeziums.
 	     << " t1MaxY="
 	     << t1MaxY
 	     << endl;
-	cerr << "specialTrapeziumIntersection() t2MinX=" 
+	cerr << "specialTrapeziumIntersects() t2MinX=" 
 	     << t2MinX
 	     << " t2MaxX="
 	     << t2MaxX
@@ -346,7 +598,7 @@ trapeziums.
 	|| lowerOrNearlyEqual(t1MaxY, t2MinY)
 	|| greaterOrNearlyEqual(t1MinY, t2MaxY)) {
 	if (MRA_DEBUG) 
-	    cerr << "specialTrapeziumIntersection() no bbox overlap" 
+	    cerr << "specialTrapeziumIntersects() no bbox overlap" 
 		 << endl;
 
 	return false;
@@ -374,7 +626,7 @@ Now, lets see if the trapeziums touch in one edge.
 	    && nearlyEqual(t1p4x, t2p4x)
 	    && nearlyEqual(t1p4y, t2p4y))) {
 	if (MRA_DEBUG) 
-	    cerr << "specialTrapeziumIntersection() touching" 
+	    cerr << "specialTrapeziumIntersects() touching" 
 		 << endl;
 
 	return false;
@@ -385,39 +637,90 @@ The bounding boxes of the trapeziums overlap but they do not touch in one
 edge. To determine if they actually intersect, we first calculate the 
 intersection of the two planes spanned by the trapezium.
 
-The plane spanned by trapezium 1 is 
-$(t1p1x,t1p1y,0)+(t1p2x-t1p1x,t1p2y-t1p1y,0)\cdot s+(t1p3x-t1p1x,t1p3y-t1p1y,dt)\cdot t$. The plane spanned by trapezium 2 is
-$(t2p1x,t2p1y,0)+(t2p2x-t2p1x,t2p2y-t2p1y,0)\cdot s'+(t2p3x-t2p1x,t2p3y-t2p1y,dt)\cdot t'$.
-
-The intersection of the two planes is the solution of the linear system of
-equations
-\begin{eqnarray}
-\begin{array}{ccc}
-\begin{array}{cccc}
-t1p2x-t1p1x & t1p3x-t1p1x & t2p1x-t2p2x & t2p1x-t2p3x \\
-t1p2y-t1p1y & t1p3y-t1p1y & t2p1y-t2p2y & t2p1y-t2p3y \\ 
-     0      &     dt      &      0      &     -dt
-\end{array} & \left| \begin{array}{c}
-t2p1x-t1p1x \\
-t2p1y-t1p1y \\
-0
-\end{array} \right.
-\end{array}
-\nonumber\end{eqnarray}.
-
-We put the left handed sides of the equations in matrix $a$ and the right
-handed sides into array $b$ and are applying the Gaussian elimination to these:
+Create equations for the two planes spanned by the trapeziums, 
+considering that one edge of
+each trapezium may be a single point: Plane 1 is
+$T1B+T1A\cdot (s, t)$ and Plane 2 is $T2B+T1B\cdot (s', t')$.
 
 */
 
-    double A[3][4] = 
-	{{ t1p2x-t1p1x, t1p3x-t1p1x, t2p1x-t2p2x, t2p1x-t2p3x },
-	 { t1p2y-t1p1y, t1p3y-t1p1y, t2p1y-t2p2y, t2p1y-t2p3y },
-	 { 0,           dt,          0,           -dt         }};
-    double B[3] = 
-	{ t2p1x-t1p1x, t2p1y-t1p1y, 0 };
+    double T1A[3][2];
+    double T1B[3];
 
-    double* Ap[] = { A[0], A[1], A[2] };
+    if (nearlyEqual(t1p1x, t1p2x) && nearlyEqual(t1p1y, t1p2y)) {
+	T1A[0][0] = t1p4x-t1p3x;
+	T1A[1][0] = t1p4y-t1p3y;
+	T1A[2][0] = 0;
+
+	T1A[0][1] = t1p1x-t1p3x;
+	T1A[1][1] = t1p1y-t1p3y;
+	T1A[2][1] = -dt;
+
+	T1B[0] = t1p3x;
+	T1B[1] = t1p3y;
+	T1B[2] = dt;
+    } else {
+	T1A[0][0] = t1p2x-t1p1x;
+	T1A[1][0] = t1p2y-t1p1y;
+	T1A[2][0] = 0;
+
+	T1A[0][1] = t1p3x-t1p1x;
+	T1A[1][1] = t1p3y-t1p1y;
+	T1A[2][1] = dt;
+
+	T1B[0] = t1p1x;
+	T1B[1] = t1p1y;
+	T1B[2] = 0;
+    }
+
+    double T2A[3][2];
+    double T2B[3];
+
+    if (nearlyEqual(t2p1x, t2p2x) && nearlyEqual(t2p1y, t2p2y)) {
+	T2A[0][0] = t2p4x-t1p3x;
+	T2A[1][0] = t2p4y-t1p3y;
+	T2A[2][0] = 0;
+
+	T2A[0][1] = t2p1x-t1p3x;
+	T2A[1][1] = t2p1y-t1p3y;
+	T2A[2][1] = -dt;
+
+	T2B[0] = t2p3x;
+	T2B[1] = t2p3y;
+	T2B[2] = dt;
+    } else {
+	T2A[0][0] = t1p2x-t1p1x;
+	T2A[1][0] = t1p2y-t1p1y;
+	T2A[2][0] = 0;
+
+	T2A[0][1] = t1p3x-t1p1x;
+	T2A[1][1] = t1p3y-t1p1y;
+	T2A[2][1] = dt;
+
+	T2B[0] = t1p1x;
+	T2B[1] = t1p1y;
+	T2B[2] = 0;
+    }
+
+/*
+Create a linear system of equations $A$ and $B$, which represents
+$T1B+T1A\cdot (s, t)=T2B+T1B\cdot (s', t')$. Apply Gaussian elimination to
+$A$ and $B$.
+
+*/
+
+    double A[3][4];
+    double B[3];
+    double* Ap[3];
+
+    for (unsigned int i = 0; i < 3; i++) {
+	A[i][0] = T1A[i][0];
+	A[i][1] = T1A[i][1];
+	A[i][2] = -T2A[i][0];
+	A[i][3] = -T2A[i][1];
+	B[i] = T1B[i]-T1B[i];
+	Ap[i] = A[i];
+    }
 
     GaussTransform(3, 4, Ap, B);
 
@@ -447,94 +750,42 @@ identical and we have to check if the two trapeziums overlap.
     if (nearlyEqual(Ap[2][2], 0.0) && nearlyEqual(Ap[2][3], 0.0)) {
 	if (nearlyEqual(B[2], 0.0)) {
 /*
-Both planes are identical. Therefore, we just have to check whether the
-bounding boxes of the two segments parallel to the $(x, y)$-plane of each
-trapezium overlap. If so, the trapeziums overlap.
+They overlap if one of the segments of each trapezium, which are not 
+parallel to the $(x, y)$-plane, intersect with another of such segments
+of the other trapezium.
 
 */
-
 	    if (MRA_DEBUG) 
-		cerr << "specialTrapeziumIntersection() identicial" 
+		cerr << "specialTrapeziumIntersects() identicial" 
 		     << endl;
 
-	    minmax2(t1p1x, t1p2x, t1MinX, t1MaxX);
-	    minmax2(t1p1y, t1p2y, t1MinY, t1MaxY);
-	    minmax2(t2p1x, t2p2x, t2MinX, t2MaxY);
-	    minmax2(t2p1y, t2p2y, t2MinX, t2MaxY);
-
-	    if (MRA_DEBUG) {
-		cerr << "specialTrapeziumIntersection() p1+p2 t1MinX=" 
-		     << t1MinX
-		     << " t1MaxX="
-		     << t1MaxX
-		     << " t1MinY="
-		     << t1MinY
-		     << " t1MaxY="
-		     << t1MaxY
-		     << endl;
-		cerr << "specialTrapeziumIntersection() t2MinX=" 
-		     << t2MinX
-		     << " t2MaxX="
-		     << t2MaxX
-		     << " t2MinY="
-		     << t2MinY
-		     << " t2MaxY="
-		     << t2MaxY
-		     << endl;
-	    }
-
-	    if (lower(t2MaxX, t1MinX)
-		|| lower(t1MaxX, t2MinX)
-		|| lower(t2MaxY, t1MinY)
-		|| lower(t1MaxY, t2MinY)) {
+	    if (specialSegmentIntersects1(dt,
+					  t1p1x, t1p1y, t1p3x, t1p3y,
+					  t2p1x, t2p1y, t2p3x, t2p3y)
+		|| specialSegmentIntersects1(dt,
+					     t1p1x, t1p1y, t1p3x, t1p3y,
+					     t2p2x, t2p2y, t2p4x, t2p4y)
+		|| specialSegmentIntersects1(dt,
+					     t1p2x, t1p2y, t1p4x, t1p4y,
+					     t2p1x, t2p1y, t2p3x, t2p3y)
+		|| specialSegmentIntersects1(dt,
+					     t1p2x, t1p2y, t1p4x, t1p4y,
+					     t2p2x, t2p2y, t2p4x, t2p4y)) {
 		if (MRA_DEBUG) 
-		    cerr << "specialTrapeziumIntersection() overlap p3-p4" 
+		    cerr << "specialTrapeziumIntersects() intersects" 
+			 << endl;
+
+		return true;
+	    } else {
+		if (MRA_DEBUG) 
+		    cerr << "specialTrapeziumIntersects() do not intersect" 
 			 << endl;
 
 		return false;
 	    }
-
-	    minmax2(t1p3x, t1p4x, t1MinX, t1MaxX);
-	    minmax2(t1p3y, t1p4y, t1MinY, t1MaxY);
-	    minmax2(t2p3x, t2p4x, t2MinX, t2MaxY);
-	    minmax2(t2p3y, t2p4y, t2MinX, t2MaxY);
-
-	    if (MRA_DEBUG) {
-		cerr << "specialTrapeziumIntersection() p3+p4 t1MinX=" 
-		     << t1MinX
-		     << " t1MaxX="
-		     << t1MaxX
-		     << " t1MinY="
-		     << t1MinY
-		     << " t1MaxY="
-		     << t1MaxY
-		     << endl;
-		cerr << "specialTrapeziumIntersection() t2MinX=" 
-		     << t2MinX
-		     << " t2MaxX="
-		     << t2MaxX
-		     << " t2MinY="
-		     << t2MinY
-		     << " t2MaxY="
-		     << t2MaxY
-		     << endl;
-	    }
-
-	    if (lower(t2MaxX, t1MinX)
-		|| lower(t1MaxX, t2MinX)
-		|| lower(t2MaxY, t1MinY)
-		|| lower(t1MaxY, t2MinY)) {
-		if (MRA_DEBUG) 
-		    cerr << "specialTrapeziumIntersection() overlap p3-p4" 
-			 << endl;
-
-		return false;
-	    }
-
-	    return true;
 	} else {
 	    if (MRA_DEBUG) 
-		cerr << "specialTrapeziumIntersection() parallel" 
+		cerr << "specialTrapeziumIntersects() parallel" 
 		     << endl;
 
 	    return false;
@@ -555,7 +806,7 @@ will use in notation $P+Q\cdot u$.
 */
 
     if (MRA_DEBUG) 
-	cerr << "specialTrapeziumIntersection() intersect" 
+	cerr << "specialTrapeziumIntersects() intersect" 
 	     << endl;
 
     double P[3];
@@ -567,51 +818,81 @@ Case 1: $c1=0$.
 
 */
 
-	double f = B[2]/Ap[2][3];
+	double f = B[2]/Ap[2][3]; // = b/c2
 
-	P[0] = t2p1x+(t2p3x-t2p1x)*f;
-	P[1] = t2p1y+(t2p3y-t2p1y)*f;
-	P[2] = dt*f;
-
-	Q[0] = t2p2x-t2p1x;
-	Q[1] = t2p2x-t2p1x;
-	Q[2] = 0;
+	for (unsigned int i = 0; i < 3; i++) {
+	    P[i] = T2B[i]+T2A[i][1]*f;
+	    Q[i] = T2A[i][0];
+	}
     } else if (nearlyEqual(Ap[2][3], 0.0)) {
 /*
 Case 2: $c2=0$.
 
 */
 
-	double f = B[2]/Ap[2][2];
+	double f = B[2]/Ap[2][2]; // = b/c1
 
-	P[0] = t2p1x+(t2p2x-t2p2y)*f;
-	P[1] = t2p1y+(t2p2y-t2p2y)*f;
-	P[2] = 0;
-
-	Q[0] = t2p3x-t2p1x;
-	Q[1] = t2p3y-t2p1y;
-	Q[2] = dt;
+	for (unsigned int i = 0; i < 3; i++) {
+	    P[i] = T2B[i]+T2A[i][0]*f;
+	    Q[i] = T2A[i][1];
+	}
     } else {
 /*
 Case 3: $c1\ne 0$ and $c2\ne 0$.
 
+Inserting $s'=(b-c2\cdot t')/c1$ into $T2B+T1B\cdot (s', t')$ yields
+\begin{eqnarray}
+\left(
+\begin{array}{c} 
+T2B[0] \\
+T2B[1] \\
+T2B[2] 
+\end{array}
+\right)+\left(
+\begin{array}{c} 
+T2A[0][0] \\
+T2A[1][0] \\
+T2A[2][0] 
+\end{array}
+\right)\cdot (b-c2\cdot t')/c1+\left(
+\begin{array}{c}
+T2A[0][1] \\
+T2A[1][1] \\
+T2A[2][1] 
+\end{array}
+\right)\cdot t'
+\nonumber\end{eqnarray}
+and
+\begin{eqnarray}
+\left(
+\begin{array}{c} 
+T2B[0]+T2A[0][0]\cdot b/c1 \\
+T2B[1]+T2A[1][0]\cdot b/c1 \\
+T2B[2]+T2A[2][0]\cdot b/c1
+\end{array}
+\right)+
+\left(
+\begin{array}{c}
+ T2A[0][1]-T2A[0][0]\cdot c2/c1 \\
+ T2A[1][1]-T2A[1][0]\cdot c2/c1 \\
+ T2A[2][1]-T2A[2][0]\cdot c2/c1
+\end{array}
+\right)\cdot t'
+\nonumber\end{eqnarray}
+
 */
 
-	double f = B[2]/Ap[2][2];
+	double f1 = B[2]/Ap[2][2];    // = b/c1
+	double f2 = A[2][3]/Ap[2][2]; // = c2/c1
 
-	P[0] = t2p1x+(t2p2x-t2p1x)*f;
-	P[1] = t2p1y+(t2p2y-t2p1y)*f;
-	P[2] = 0;
-
-	f = A[2][3]/Ap[2][2];
-
-	Q[0] = t2p3x-t2p1x-(t2p2x-t2p1x)*f;
-	Q[1] = t2p3y-t2p1y-(t2p2y-t2p1y)*f;
-	Q[2] = dt;
+	for (unsigned int i = 0; i < 3; i++) {
+	    P[i] = T2B[i]+T2A[i][0]*f1;
+	    Q[i] = T2A[i][1]+T2A[i][0]*f2;
+	}
     }
 
     if (MRA_DEBUG) 
-	cerr << "specialTrapeziumIntersection() (" 
+	cerr << "specialTrapeziumIntersects() (" 
 	     << P[0]
 	     << ", "
 	     << P[1]
@@ -627,49 +908,137 @@ Case 3: $c1\ne 0$ and $c2\ne 0$.
 	     << endl;
 
 /*
-Now, we have to check whether the intersection line intersects the
-at least one segment parallel to the $(x, y)$-plane of each trapezium.
-This is done by calculating the points $(x1, y1, 0)$ and $(x2, y2, dt)$
-on the intersection line, if they exist, and checking whether these
-points are in the bounding boxes of the relevant segments.
+Now, we have to check whether the intersection line intersects at least one
+of the segments of each trapezium.
 
 If $Q[2]=0$, the intersection line is parallel to the $(x, y)$-plane.
 
 */
 
     if (nearlyEqual(Q[2], 0.0)) {
-	assert(false);
-    } else {
-	// P[2]+Q[2]*u1 = 0 <=> u1 = -P[2]/Q[2] 
-	// P[2]+Q[2]*u2 = dt <=> u2 = (dt-P[2])/Q[2]
+/*
+Check whether the intersection line is within the z-Range covered by the two
+trapeziums.
 
-	double u1 = -P[2]/Q[2];
-	double u2 = (dt-P[2])/Q[2];
-
-	double x1 = P[0]+Q[0]*u1;
-	double y1 = P[1]+Q[1]*u1;
-
-	double x2 = P[0]+Q[0]*u2;
-	double y2 = P[1]+Q[1]*u2;
-
+*/
 	if (MRA_DEBUG) 
-	    cerr << "specialTrapeziumIntersection() intersection (" 
-		 << x1
-		 << ", "
-		 << y1
-		 << ", 0.0)-("
-		 << x2
-		 << ", "
-		 << y2
-		 << ", " 
-		 << dt
-		 << ")"
+	    cerr << "specialTrapeziumIntersects() intersection line "
+		 << "parallel to (x, y)-plane" 
 		 << endl;
 
-	assert(false);
+	if (lower(P[2], 0) || lower(dt, P[2])) {
+	    if (MRA_DEBUG) 
+		cerr << "specialTrapeziumIntersects() no intersection" 
+		     << endl;
+
+	    return false;
+	}
+
+/*
+Calculate the points where the trapeziums' segments intersect with the
+intersection line.
+
+*/
+
+	double ip1x = t1p1x+(t1p3x-t1p1x)*P[2]/dt;
+	double ip1y = t1p1y+(t1p3y-t1p1y)*P[2]/dt;
+
+	double ip2x = t1p2x+(t1p4x-t1p2x)*P[2]/dt;
+	double ip2y = t1p2y+(t1p4y-t1p2y)*P[2]/dt;
+
+	double ip3x = t2p1x+(t2p3x-t2p1x)*P[2]/dt;
+	double ip3y = t2p1y+(t2p3y-t2p1y)*P[2]/dt;
+
+	double ip4x = t2p2x+(t2p4x-t2p2x)*P[2]/dt;
+	double ip4y = t2p2y+(t2p4y-t2p2y)*P[2]/dt;
+
+/*
+Check for overlaps.
+
+*/
+
+	double ip1ip2MinX = ip1x < ip2x ? ip1x : ip2x;
+	double ip1ip2MaxX = ip1x > ip2x ? ip1x : ip2x;
+
+	double ip1ip2MinY = ip1y < ip2y ? ip1y : ip2y;
+	double ip1ip2MaxY = ip1y > ip2y ? ip1y : ip2y;
+
+	double ip3ip4MinX = ip3x < ip4x ? ip3x : ip4x;
+	double ip3ip4MaxX = ip3x > ip4x ? ip3x : ip4x;
+
+	double ip3ip4MinY = ip3y < ip4y ? ip3y : ip4y;
+	double ip3ip4MaxY = ip3y > ip4y ? ip3y : ip4y;
+
+	if (lower(ip1ip2MaxX, ip3ip4MinX)
+	    || lower(ip3ip4MaxX, ip1ip2MinX)
+	    || lower(ip1ip2MaxY, ip3ip4MinY)
+	    || lower(ip3ip4MaxY, ip1ip2MinY)) {
+	    if (MRA_DEBUG) 
+		cerr << "specialTrapeziumIntersects() no intersection" 
+		     << endl;
+
+	    return false;
+	} else {
+	    if (MRA_DEBUG) 
+		cerr << "specialTrapeziumIntersects() intersection" 
+		     << endl;
+
+	    return true;
+	}
+    } else {
+/*
+Intersection line hits $(x, y)$-plane in $(P[0], P[1], 0)$ and the
+plane parallel to $(x, y)$-plane in distance $dt$ in 
+$(P[0]+Q[0], P[1]+Q[1], dt)$ as we have handled the case $Q[2]=0$
+separately.
+
+*/
+
+	if ((specialSegmentIntersects2(
+		0,
+		t1p1x, t1p1y, t1p2x, t1p2y,
+		P, Q)
+	    || specialSegmentIntersects1(
+		dt, 
+		t1p1x, t1p1y, t1p3x, t1p3y, 
+		P[0], P[1], P[0]+Q[0], P[1]+Q[1])
+	    || specialSegmentIntersects1(
+		dt,
+		t1p2x, t1p2y, t1p4x, t1p4y, 
+		P[0], P[1], P[0]+Q[0], P[1]+Q[1])
+	    || specialSegmentIntersects2(
+		dt,
+		t1p3x, t1p3y, t1p4x, t1p4y, 
+		P, Q))
+	    && (specialSegmentIntersects2(
+		    0,
+		    t2p1x, t2p1y, t2p2x, t2p2y, 
+		    P, Q)
+		|| specialSegmentIntersects1(
+		    dt,
+		    t2p1x, t2p1y, t2p3x, t2p3y,
+		    P[0], P[1], P[0]+Q[0], P[1]+Q[1])
+		|| specialSegmentIntersects1(
+		    dt,
+		    t2p2x, t2p2y, t2p4x, t2p4y,
+		    P[0], P[1], P[0]+Q[0], P[1]+Q[1])
+		|| specialSegmentIntersects2(
+		    dt,
+		    t2p3x, t2p3y, t2p4x, t2p4y, 
+		    P, Q))) {
+	    if (MRA_DEBUG) 
+		cerr << "specialTrapeziumIntersects() intersect" 
+		     << endl;
+
+	    return true;
+	} else {
+	    if (MRA_DEBUG) 
+		cerr << "specialTrapeziumIntersects() no intersection" 
+		     << endl;
+
+	    return false;
+	}
     }
-    
-    return false;
 }
 
 // ************************************************************************
@@ -1485,23 +1854,23 @@ bool URegion::AddSegment(unsigned int faceno,
 		dms.degeneratedFinal = true;
 	    }
 
-	    specialTrapeziumIntersection(intervalLen,
-					 existingDms.initialStartX,
-					 existingDms.initialStartY,
-					 existingDms.initialEndX,
-					 existingDms.initialEndY,
-					 existingDms.finalStartX,
-					 existingDms.finalStartY,
-					 existingDms.finalEndX,
-					 existingDms.finalEndY,
-					 dms.initialStartX,
-					 dms.initialStartY,
-					 dms.initialEndX,
-					 dms.initialEndY,
-					 dms.finalStartX,
-					 dms.finalStartY,
-					 dms.finalEndX,
-					 dms.finalEndY);
+	    specialTrapeziumIntersects(intervalLen,
+				       existingDms.initialStartX,
+				       existingDms.initialStartY,
+				       existingDms.initialEndX,
+				       existingDms.initialEndY,
+				       existingDms.finalStartX,
+				       existingDms.finalStartY,
+				       existingDms.finalEndX,
+				       existingDms.finalEndY,
+				       dms.initialStartX,
+				       dms.initialStartY,
+				       dms.initialEndX,
+				       dms.initialEndY,
+				       dms.finalStartX,
+				       dms.finalStartY,
+				       dms.finalEndX,
+				       dms.finalEndY);
 	}
 
 	segments->Resize(segmentsStartPos+segmentsNum+1);
@@ -1684,6 +2053,40 @@ static ListExpr OutURegion(ListExpr typeInfo, Word value) {
     return res;
 #endif // SCHMUH
 }
+
+/*
+
+The following approach is used to check the validity of the points in
+each unit of a moving region:
+
+If $(t_1, t_2, true, true)$ is the interval of the unit,
+the moving region is allowed to degenerate in instants $t_1$ and $t_2$. If
+the unit's interval is half-open, ie.\ $(t_1, t_2, false, true)$ or 
+$(t_1, t_2, true, false)$, the moving region is allowed to generate in 
+instants $t_1$ or $t_2$. However, for all all instants $t$ with 
+$t_1 < t < t_2$, the moving region must not degenerate. 
+
+Two distinct cases are considered:
+
+\begin{enumerate}
+\item
+For point intervals $(t, t, true, true)$, the moving region must not
+degenerate in instant $t$ and the unit is checked like a spatial region.
+
+\item
+For non-point intervals $(t_1, t_2, lc, rc)$ with $t_1 \ne t_2$ and 
+$lc, rc \in \{true, false\}$, the value of the unit at instant 
+$t = (t2-t1)/2$ is calculated. As the moving region must not degenerate
+at instant $t$, this value is checked like a spatial region. If successful,
+it is checked that no trapezium, which is spanned by a moving segment in
+the unit, is intersecting or touching in its interior any other moving
+segment.
+\end{enumerate}
+
+The spatial region in both cases is used to calculate the value of the
+~insideLeftOrAbove~ attribute of each segment.
+
+*/
 
 // *hm* No verification on data done yet
 
