@@ -78,18 +78,23 @@ echo "     (OBJECTS " >>"$FILE"
 # process all arguments
 while [ -n "$1" ]; do
    echo "process $1" >&2
-   LASTINPATH="${1//#*\//}" 
-   if [ -d $1 ]; then
-     find $1 -maxdepth 1 -iname '*.zip' -exec unzip {} -d $TMPDIR \; >/dev/null
+   F=$1
+   if [ "${F:(-1)}" == "/" ]; then
+     # last char is a slash , remove it
+     F=${F%%/}
+   fi
+   LASTINPATH="${F//#*\//}" 
+   if [ -d "$F" ]; then
+     find "$F" -maxdepth 1 -iname '*.zip' -exec unzip {} -d $TMPDIR \; >/dev/null
      if [ $? -ne "0" ]; then
         echo " error in extracting files " >&2;
         exit 1;
      fi
    else
-     if [ -f $1 ]; then
-        unzip $1 -d $TMPDIR >/dev/null
+     if [ -f "$F" ]; then
+        unzip "$F" -d $TMPDIR >/dev/null
         if [ $? -ne "0" ]; then
-           echo "problem in extracting file $1 "  >&2
+           echo "problem in extracting file $F "  >&2
            exit 1
         fi
      else
