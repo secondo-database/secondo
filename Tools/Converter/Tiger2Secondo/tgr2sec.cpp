@@ -152,7 +152,7 @@ class RT1{
 public: 
  
 bool read(const string& line){
-   if(line.length()<229){
+   if(line.length()<228){
       return false;
    }
    if(line[0]!='1')
@@ -377,11 +377,16 @@ Adds all points included in this to lw
   }
 
   bool readFrom(string& line){
-     if(line.length()<209){
+     if(line.length()<208){
+	cerr << "RT2: expected string of minimum length of 209, line has ";
+        cerr << line.length() << " characters" << endl;	
         return false;
      }
-     if(line[0]!='2')
+     if(line[0]!='2'){
+        cerr << "RT2 :  line must start with '2', but starts with ";
+        cerr <<	line[0]    << endl;
         return false;
+     }	
      TLID = trim(line.substr(5,10));
      char rtsq[4];
      for(int i=0;i<3;i++)
@@ -1424,13 +1429,20 @@ bool writeRT1_2Relation(string filename, ostream& out){
    if(!rt2in){
      cerr << "Error in opening rt2 file " << endl; 
    } else{
+     int no=0;	   
      while(!rt2in.eof()){
        string line;
        getline(rt2in,line);
+       no++;
        RT2 rt2;
-       if(rt2.readFrom(line)){
-          allRT2.push_back(rt2);
-       }
+       if(line!=""){
+          if(rt2.readFrom(line)){
+             allRT2.push_back(rt2);
+          }else{
+             cerr << "wrong data detectec in " << fnrt2;
+	     cerr << " line " << no << endl;
+          }
+       }  
      }
      rt2in.close();
    }
@@ -1992,7 +2004,6 @@ int main(int argc,char** argv){
    ready=true; // here we can finish the database
 
    signal(SIGTERM,onExit);
-   signal(SIGQUIT,onExit);
    signal(SIGABRT,onExit);
    signal(SIGINT,onExit);
 
