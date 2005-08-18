@@ -31,7 +31,7 @@ August 2005 GZS
 
 1 RemoteStream Algebra
 
-This algebra allows distributed query processing by connecting streams by
+This algebra allows distributed query processing by connecting streams 
 sockets.
 
 */
