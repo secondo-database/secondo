@@ -33,6 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <vector>
 #include <algorithm>
 #include <signal.h>
+#include <ios>
+#include <iomanip>
 
 
 
@@ -94,7 +96,7 @@ the segment from the last point to the new point is written and the given
 point is the new last one.
 
 */
-   void addPoint(long x, long y){
+   void addPoint(double x, double y){
       assert(opened);
       if(points>0 &&( x!=px || y !=py)){
           (*out) << "(" << px << " " << py << " " << x << " " << y << ") ";
@@ -138,8 +140,8 @@ new line.
 
 private:
    int points;
-   long px;
-   long py;
+   double px;
+   double py;
    ostream* out;
    bool opened;
 };
@@ -203,24 +205,24 @@ string getTRACT90R(){ return getString(177,182);}
 string getBLOCK90L(){ return getString(183,186);}
 string getBLOCK90R(){ return getString(187,190);}
 
-long getFRLONG(){
+double getFRLONG(){
    string r1 = getString(191,200);
-   return  atol(r1.c_str());
+   return  atol(r1.c_str())/1000000.0;
 }
 
-long getFRLAT(){
+double getFRLAT(){
    string r1 = getString(201,209);
-   return atol(r1.c_str());
+   return atol(r1.c_str())/1000000.0;
 }
 
-long  getTOLONG(){
+double  getTOLONG(){
    string r1 = getString(210,219);
-   return  atol(r1.c_str());
+   return  atol(r1.c_str())/1000000.0;
 }
 
-long getTOLAT(){
+double getTOLAT(){
    string r1 = getString(220,228);
-   return atol(r1.c_str());
+   return atol(r1.c_str())/1000000.0;
 }
 
 private :
@@ -231,9 +233,6 @@ private :
        res += data[i];
      }
      return trim(res);
-  }
-  unsigned long getLong(int a, int b){
-     return atol(getString(a,b).c_str());
   }
 };
 
@@ -398,8 +397,8 @@ Adds all points included in this to lw
         string lon = trim(line.substr(i*19+18,10));
         string lat = trim(line.substr(i*19+28,9));
         if(lon!=""){
-            long x = atol(lon.c_str());
-            long y = atol(lat.c_str());
+            double x = atol(lon.c_str())/1000000.0;
+            double y = atol(lat.c_str())/1000000.0;
             if(x!=0 || y!=0){
                points[2*nop] = x; 
                points[2*nop+1] = y ; 
@@ -415,7 +414,7 @@ private:
    string TLID;
    unsigned int  RTSQ;
    int   nop;
-   long points[20];
+   double points[20];
 
 };
 
@@ -737,15 +736,15 @@ class RT7{
    string getFILE(){ return trim(data.substr(5,5)); }
    string getLAND(){ return trim(data.substr(10,10)); }
    string getSOURCE(){ return trim(data.substr(20,1)); }
-   string getCFCC(){ return trim(data.substr(21,3)); }
-   string getLANAME(){ return trim(data.substr(24,30)); }
-   long getLALONG(){ return atol(trim(data.substr(54,10)).c_str()); }
-   long getLALAT(){ return atol(trim(data.substr(64,9)).c_str()); }
+   string getCFCC(){return trim(data.substr(21,3)); }
+   string getLANAME(){return trim(data.substr(24,30)); }
+   double getLALONG(){return atol(trim(data.substr(54,10)).c_str())/1000000.0;}
+   double getLALAT(){return atol(trim(data.substr(64,9)).c_str())/1000000.0;}
 
    bool isPoint(){
-      long x = getLALONG();
-      long y = getLALAT();
-      return x!=0 || y !=0;
+      double x = getLALONG();
+      double y = getLALAT();
+      return x!=0.0 || y !=0.0;
    }
 private:
    string data;
@@ -1156,8 +1155,12 @@ class RTP{
     string getFILE(){ return trim(data.substr(5,5));}
     string getCENID(){ return trim(data.substr(10,5));}
     string getPOLYID(){ return trim(data.substr(15,10));}
-    long getPOLYLONG(){ return atol(trim(data.substr(25,10)).c_str());}
-    long getPOLYLAT(){ return atol(trim(data.substr(35,9)).c_str());}
+    double getPOLYLONG(){ 
+        return atol(trim(data.substr(25,10)).c_str())/1000000.0;
+    }
+    double getPOLYLAT(){
+        return atol(trim(data.substr(35,9)).c_str())/1000000.0;
+    }
 
     static string Extension(){ return "RTP";}
 
@@ -1982,6 +1985,8 @@ int main(int argc,char** argv){
     ;
   }
 
+  (*out) << fixed; // print out doubles with a fixed format
+  (*out) << setprecision(8); // print out 8 digits after the comma
 
   bool rel=false;
   for(int i=0;i<17;i++){
