@@ -4,7 +4,7 @@
 #
 # Open a database and run a query using SecondoPL.
 
-pl="SecondoPL -L4m"
+pl="SecondoPL -L8m"
 # run query 
 
 cd $SECONDO_BUILD_DIR/Optimizer
