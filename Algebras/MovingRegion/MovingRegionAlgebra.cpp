@@ -98,35 +98,66 @@ static void GaussTransform(const unsigned int n,
 			   const unsigned int m, 
 			   double** a, 
 			   double* b) {
+    if (MRA_DEBUG) 
+	cerr << "GaussTransform() called, n=" << n << " m=" << m << endl;
+
+    if (MRA_DEBUG)
+	for (unsigned int j = 0; j < n; j++) {
+	    for (unsigned int k = 0; k < m; k++) 
+		printf("%7.3f ", a[j][k]);
+	    printf("| %7.3f\n", b[j]);
+	}
+
     for (unsigned int i = 0; i < n-1; i++) {
 	cerr << "i=" << i << endl;
 	unsigned int j;
-	for (j = i; j < n && a[i][j] == 0; j++);
-	cerr << " pivot " << j << endl;
-	if (j == n) continue;
-	if (j != i) {
-	    double dummy = b[i];
-	    b[i] = b[j];
-	    b[j] = dummy;
-	    for (unsigned int k = 0; k < m; k++) {
-		dummy = a[i][k];
-		a[i][k] = a[j][k];
-		a[j][k] = dummy;
+	for (j = i; j < n && a[j][i] == 0; j++)
+	    if (MRA_DEBUG)
+		cerr << " failed as pivot: a[" 
+		     << j 
+		     << "][" 
+		     << i 
+		     << "]=" 
+		     << a[j][i] 
+		     << endl;
+	if (j != n) {
+	    if (MRA_DEBUG)
+		cerr << " pivot: a[" 
+		     << j 
+		     << "][" 
+		     << i 
+		     << "]=" 
+		     << a[j][i] 
+		     << endl;
+	    if (j != i) {
+		double dummy = b[i];
+		b[i] = b[j];
+		b[j] = dummy;
+		for (unsigned int k = 0; k < m; k++) {
+		    dummy = a[i][k];
+		    a[i][k] = a[j][k];
+		    a[j][k] = dummy;
+		}
+	    }
+	    for (j = i+1; j < n; j++) {
+		double f = a[j][i]/a[i][i];
+		if (MRA_DEBUG) {
+		    cerr << " j=" << j << endl;
+		    cerr << "  f=" << f << endl;
+		}
+		a[j][i] = 0;
+		for (unsigned int k = i+1; k < m; k++) 
+		    a[j][k] -= a[i][k]*f;
+		b[j] -= b[i]*f;
 	    }
 	}
-	for (j = i+1; j < n; j++) {
-	    cerr << " j=" << j << endl;
-	    double f = a[j][i]/a[i][i];
-	    cerr << "  f=" << f << endl;
-	    a[j][i] = 0;
-	    for (unsigned int k = i+1; k < m; k++) a[j][k] -= a[i][k]*f;
-	    b[j] -= b[i]*f;
-	}
 
-	for (j = 0; j < n; j++) {
-	    for (unsigned int k = 0; k < m; k++) printf("%7.3f ", a[j][k]);
-	    printf("| %7.3f\n", b[j]);
-	}
+	if (MRA_DEBUG)
+	    for (j = 0; j < n; j++) {
+		for (unsigned int k = 0; k < m; k++) 
+		    printf("%7.3f ", a[j][k]);
+		printf("| %7.3f\n", b[j]);
+	    }
     }
 }
 
@@ -150,9 +181,9 @@ static bool specialSegmentIntersects2(double z,
 				      double* P,
 				      double* Q) {
     if (MRA_DEBUG) {
-	cerr << "specialLineIntersects1() called" 
+	cerr << "specialSegmentIntersects2() called" 
 	     << endl;
-	cerr << "specialLineIntersects1() line 1: (" 
+	cerr << "specialSegmentIntersects2() line 1: (" 
 	     << l1p1x
 	     << ", "
 	     << l1p1y
@@ -166,7 +197,7 @@ static bool specialSegmentIntersects2(double z,
 	     << z
 	     << ")"
 	     << endl;
-	cerr << "specialLineIntersects1() line 2: (" 
+	cerr << "specialSegmentIntersects2() line 2: (" 
 	     << P[0]
 	     << ", "
 	     << P[1]
@@ -191,7 +222,7 @@ $(x, y)$-plane with distance z from the $(x, y)$-plane.
     double t2 = (z-P[2])/Q[2];
 
     if (MRA_DEBUG)
-	cerr << "specialLineIntersects1() t=" 
+	cerr << "specialSegmentIntersects2() t=" 
 	     << t2
 	     << endl;
 
@@ -199,7 +230,7 @@ $(x, y)$-plane with distance z from the $(x, y)$-plane.
     double y = P[1]+Q[1]*t2;
 
     if (MRA_DEBUG)
-	cerr << "specialLineIntersects1() x=" 
+	cerr << "specialSegmentIntersects2() x=" 
 	     << x
 	     << " y="
 	     << y
@@ -210,6 +241,17 @@ $(x, y)$-plane with distance z from the $(x, y)$-plane.
     double l1MinY = l1p1y < l1p2y ? l1p1y : l1p2y;
     double l1MaxY = l1p1y > l1p2y ? l1p1y : l1p2y;
 
+    if (MRA_DEBUG)
+	cerr << "specialSegmentIntersects2() l1MinX=" 
+	     << l1MinX
+	     << " l1MaxX="
+	     << l1MaxX
+	     << " l1MinX="
+	     << l1MinY
+	     << " l1MaxY="
+	     << l1MaxY
+	     << endl;
+
     if (nearlyEqual(l1p1x, l1p2x) && nearlyEqual(l1p1y, l1p2y)) {
 /*
 The segment is actually a point.
@@ -219,14 +261,14 @@ The segment is actually a point.
 	if (nearlyEqual(l1p1x, x) && nearlyEqual(l1p1y, y)) {
 	    if (MRA_DEBUG)
 		cerr 
-		    << "specialLineIntersects1() intersects #1" 
+		    << "specialSegmentIntersects2() intersects #1" 
 		    << endl;
 
 	    return true;
 	} else {
 	    if (MRA_DEBUG)
 		cerr 
-		    << "specialLineIntersects1() no intersection #1" 
+		    << "specialSegmentIntersects2() no intersection #1" 
 		    << endl;
 
 	    return false;
@@ -237,19 +279,19 @@ The segment is vertical in the $(x, y)$-plane.
 
 */
 
-	if (nearlyEqual(y, l1p1y)
+	if (nearlyEqual(x, l1p1x)
 	    && lowerOrNearlyEqual(l1MinY, y)
 	    && lowerOrNearlyEqual(y, l1MaxY)) {
 	    if (MRA_DEBUG)
 		cerr 
-		    << "specialLineIntersects1() intersects #2" 
+		    << "specialSegmentIntersects2() intersects #2" 
 		    << endl;
 
 	    return true;
 	} else {
 	    if (MRA_DEBUG)
 		cerr 
-		    << "specialLineIntersects1() no intersection #2" 
+		    << "specialSegmentIntersects2() no intersection #2" 
 		    << endl;
 
 	    return false;
@@ -260,19 +302,19 @@ The segment is horizontal in the $(x, y)$-plane.
 
 */
 
-	if (nearlyEqual(x, l1p1x)
+	if (nearlyEqual(y, l1p1y)
 	    && lowerOrNearlyEqual(l1MinX, x)
 	    && lowerOrNearlyEqual(x, l1MaxX)) {
 	    if (MRA_DEBUG)
 		cerr 
-		    << "specialLineIntersects1() intersects #3" 
+		    << "specialSegmentIntersects2() intersects #3" 
 		    << endl;
 
 	    return true;
 	} else {
 	    if (MRA_DEBUG)
 		cerr 
-		    << "specialLineIntersects1() no intersection #3" 
+		    << "specialSegmentIntersects2() no intersection #3" 
 		    << endl;
 
 	    return false;
@@ -291,7 +333,7 @@ First, check whether $(x, y)$ is on the line through the segment.
 	if (!nearlyEqual(t1, (y-l1p1y)/(l1p2y-l1p1y))) {
 	    if (MRA_DEBUG)
 		cerr 
-		    << "specialLineIntersects1() no intersection #4a" 
+		    << "specialSegmentIntersects2() no intersection #4a" 
 		    << endl;
 
 	    return false;
@@ -309,14 +351,14 @@ box parallel to the $(x, y)$-plane.
 	    || lower(y, l1MinY)
 	    || lower(l1MaxY, y)) {
 	    if (MRA_DEBUG)
-		cerr << "specialLineIntersects1() no intersection #4b" 
+		cerr << "specialSegmentIntersects2() no intersection #4b" 
 		     << endl;
 
 	    return false;
 	}
 	
 	if (MRA_DEBUG)
-	    cerr << "specialLineIntersects1() intersects" << endl;
+	    cerr << "specialSegmentIntersects2() intersects" << endl;
 
 	return true;
     }
@@ -347,9 +389,9 @@ static bool specialSegmentIntersects1(double dt,
 				      double l2p2x,
 				      double l2p2y) {
     if (MRA_DEBUG) {
-	cerr << "specialLineIntersects1() called" 
+	cerr << "specialSegmentIntersects1() called" 
 	     << endl;
-	cerr << "specialLineIntersects1() line 1: (" 
+	cerr << "specialSegmentIntersects1() line 1: (" 
 	     << l1p1x
 	     << ", "
 	     << l1p1y
@@ -361,7 +403,7 @@ static bool specialSegmentIntersects1(double dt,
 	     << dt
 	     << ")"
 	     << endl;
-	cerr << "specialLineIntersects1() line 2: (" 
+	cerr << "specialSegmentIntersects1() line 2: (" 
 	     << l2p1x
 	     << ", "
 	     << l2p1y
@@ -414,55 +456,70 @@ handed sides into array $b$ and are applying the Gaussian elimination to these:
     GaussTransform(3, 2, Ap, B);
 
 /*
-Now, the linear system of equation has the following format
-\begin{eqnarray}
-\begin{array}{ccc}
-\begin{array}{cc}
-\ast & \ast  \\
-0    & \ast  \\
-0    & c 
-\end{array} & \left| \begin{array}{c}
-\ast \\
-\ast \\
-b
-\end{array} \right.
-\end{array}
-\nonumber\end{eqnarray}
-The asterisk denotes arbitrary values.
+Now, we will determine the solution $t$ from the transformed system.
+We examine each row from the bottom to the top:
 
-If $c=0$ and $b\ne 0$, the two lines do not intersect.
-If $c=0$ and $b=0$, the two lines are identical, which must not happen
-do to the conditions for the two segments, which are described above.
-$c\ne 0$ implies that $t=b/c$.
+*/
 
-Inserting $t$ into the equation of line 2 yields the value $z=dt\cdot b/c$
+    for (int i = 2; i >= 0; i--) {
+	if (!nearlyEqual(Ap[i][0], 0.0)) break;
+
+/*
+Row is in format $0 c \left| b \right.$.
+
+*/
+
+	if (nearlyEqual(Ap[i][1], 0.0)) {
+/*
+Row is in format $0 0 \left| b \right.$. Check if there is a contradiction
+indicating that there are no solutions.
+
+*/
+
+	    if (nearlyEqual(B[i], 0.0)) 
+		continue;
+	    else {
+		if (MRA_DEBUG)
+		    cerr << "specialSegmentIntersects1() do not intersect #1" 
+			 << endl;
+
+		return false;
+	    }
+	} else {
+	    double z = dt*B[i]/Ap[i][1];
+
+/*
+Row is in format $0 c \left| b \right.$ with $c\ne 0$. All rows below are
+entirely 0.
+Inserting $t=b/c$ into the equation of line 2 yields the value $z=dt\cdot b/c$
 for the third component. If $0\le z \le dt$, the two segments intersect.
 
 */
 
-    if (nearlyEqual(Ap[2][1], 0.0)) {
-	assert(!nearlyEqual(B[2], 0.0));
+	    if (MRA_DEBUG)
+		cerr << "specialSegmentIntersects1() z=" << z << endl; 
 
-	if (MRA_DEBUG)
-	    cerr << "specialLineIntersects1() do not intersect #1" 
-		 << endl;
+	    if (lowerOrNearlyEqual(0.0, z) && lowerOrNearlyEqual(z, dt)) {
+		if (MRA_DEBUG)
+		    cerr << "specialSegmentIntersects1() intersect" 
+			 << endl;
+
+		return true;
+	    } else {
+		if (MRA_DEBUG)
+		    cerr << "specialSegmentIntersects1() do not intersect #2" 
+			 << endl;
+		
+		return false;
+	    }
+	}
     }
 
-    double z = dt*B[2]/Ap[2][1];
+/*
+This should not happen since both segments must not be on the same line.
 
-    if (lowerOrNearlyEqual(0.0, z) && lowerOrNearlyEqual(z, dt)) {
-	if (MRA_DEBUG)
-	    cerr << "specialLineIntersects1() intersect" 
-		 << endl;
-
-	return true;
-    } else {
-	if (MRA_DEBUG)
-	    cerr << "specialLineIntersects1() do not intersect #2" 
-		 << endl;
-
-	return false;
-    }
+*/
+    assert(false);
 }
 
 /*
@@ -474,7 +531,9 @@ result of this function except the additional parameter ~detailedResult~,
 which will receive a numeric representation of the specific case 
 responsible for the return value of the function. ~detailedResult~ is
 only used for unit testing: Since this function is quite complex, we have
-introduced this parameter to facilitate detailed unit testing.
+introduced this parameter to facilitate detailed unit testing. Since
+~detailedResult~ is used for unit testing only, it is not described in
+complete detail here.
 
 */
 
@@ -584,14 +643,15 @@ trapeziums.
 	     << endl;
     }
 
-    if (lowerOrNearlyEqual(t1MaxX, t2MinX)
-	|| greaterOrNearlyEqual(t1MinX, t2MaxX)
-	|| lowerOrNearlyEqual(t1MaxY, t2MinY)
-	|| greaterOrNearlyEqual(t1MinY, t2MaxY)) {
+    if (lower(t1MaxX, t2MinX)
+	|| lower(t2MaxX, t1MinX)
+	|| lower(t1MaxY, t2MinY)
+	|| lower(t2MaxY, t1MinY)) {
 	if (MRA_DEBUG) 
 	    cerr << "specialTrapeziumIntersects() no bbox overlap" 
 		 << endl;
 
+	detailedResult = 1;
 	return false;
     }
 
@@ -620,6 +680,7 @@ Now, lets see if the trapeziums touch in one edge.
 	    cerr << "specialTrapeziumIntersects() touching" 
 		 << endl;
 
+	detailedResult = 2;
 	return false;
     }
 
@@ -668,34 +729,34 @@ $T1B+T1A\cdot (s, t)$ and Plane 2 is $T2B+T1B\cdot (s', t')$.
     double T2B[3];
 
     if (nearlyEqual(t2p1x, t2p2x) && nearlyEqual(t2p1y, t2p2y)) {
-	T2A[0][0] = t2p4x-t1p3x;
-	T2A[1][0] = t2p4y-t1p3y;
+	T2A[0][0] = t2p4x-t2p3x;
+	T2A[1][0] = t2p4y-t2p3y;
 	T2A[2][0] = 0;
 
-	T2A[0][1] = t2p1x-t1p3x;
-	T2A[1][1] = t2p1y-t1p3y;
+	T2A[0][1] = t2p1x-t2p3x;
+	T2A[1][1] = t2p1y-t2p3y;
 	T2A[2][1] = -dt;
 
 	T2B[0] = t2p3x;
 	T2B[1] = t2p3y;
 	T2B[2] = dt;
     } else {
-	T2A[0][0] = t1p2x-t1p1x;
-	T2A[1][0] = t1p2y-t1p1y;
+	T2A[0][0] = t2p2x-t2p1x;
+	T2A[1][0] = t2p2y-t2p1y;
 	T2A[2][0] = 0;
 
-	T2A[0][1] = t1p3x-t1p1x;
-	T2A[1][1] = t1p3y-t1p1y;
+	T2A[0][1] = t2p3x-t2p1x;
+	T2A[1][1] = t2p3y-t2p1y;
 	T2A[2][1] = dt;
 
-	T2B[0] = t1p1x;
-	T2B[1] = t1p1y;
+	T2B[0] = t2p1x;
+	T2B[1] = t2p1y;
 	T2B[2] = 0;
     }
 
 /*
 Create a linear system of equations $A$ and $B$, which represents
-$T1B+T1A\cdot (s, t)=T2B+T1B\cdot (s', t')$. Apply Gaussian elimination to
+$T1B+T1A\cdot (s, t)=T2B+T2A\cdot (s', t')$. Apply Gaussian elimination to
 $A$ and $B$.
 
 */
@@ -709,7 +770,7 @@ $A$ and $B$.
 	A[i][1] = T1A[i][1];
 	A[i][2] = -T2A[i][0];
 	A[i][3] = -T2A[i][1];
-	B[i] = T1B[i]-T1B[i];
+	B[i] = T2B[i]-T1B[i];
 	Ap[i] = A[i];
     }
 
@@ -747,7 +808,7 @@ of the other trapezium.
 
 */
 	    if (MRA_DEBUG) 
-		cerr << "specialTrapeziumIntersects() identicial" 
+		cerr << "specialTrapeziumIntersects() identical plane" 
 		     << endl;
 
 	    if (specialSegmentIntersects1(dt,
@@ -766,12 +827,14 @@ of the other trapezium.
 		    cerr << "specialTrapeziumIntersects() intersects" 
 			 << endl;
 
+		detailedResult = 3;
 		return true;
 	    } else {
 		if (MRA_DEBUG) 
 		    cerr << "specialTrapeziumIntersects() do not intersect" 
 			 << endl;
 
+		detailedResult = 4;
 		return false;
 	    }
 	} else {
@@ -779,6 +842,7 @@ of the other trapezium.
 		cerr << "specialTrapeziumIntersects() parallel" 
 		     << endl;
 
+	    detailedResult = 5;
 	    return false;
 	}
     }
@@ -831,7 +895,7 @@ Case 2: $c2=0$.
 /*
 Case 3: $c1\ne 0$ and $c2\ne 0$.
 
-Inserting $s'=(b-c2\cdot t')/c1$ into $T2B+T1B\cdot (s', t')$ yields
+Inserting $s'=(b-c2\cdot t')/c1$ into $T2B+T2A\cdot (s', t')$ yields
 \begin{eqnarray}
 \left(
 \begin{array}{c} 
@@ -876,9 +940,16 @@ T2B[2]+T2A[2][0]\cdot b/c1
 	double f1 = B[2]/Ap[2][2];    // = b/c1
 	double f2 = A[2][3]/Ap[2][2]; // = c2/c1
 
+	if (MRA_DEBUG) 
+	    cerr << "specialTrapeziumIntersects() f1=" 
+		 << f1
+		 << " f2="
+		 << f2
+		 << endl;
+
 	for (unsigned int i = 0; i < 3; i++) {
 	    P[i] = T2B[i]+T2A[i][0]*f1;
-	    Q[i] = T2A[i][1]+T2A[i][0]*f2;
+	    Q[i] = T2A[i][1]-T2A[i][0]*f2;
 	}
     }
 
@@ -922,6 +993,7 @@ trapeziums.
 		cerr << "specialTrapeziumIntersects() no intersection" 
 		     << endl;
 
+	    detailedResult = 6;
 	    return false;
 	}
 
@@ -944,7 +1016,8 @@ intersection line.
 	double ip4y = t2p2y+(t2p4y-t2p2y)*P[2]/dt;
 
 /*
-Check for overlaps.
+Check for overlaps of the bounding boxes of the two intersection segments.
+If they overlap, the sections intersect.
 
 */
 
@@ -968,12 +1041,20 @@ Check for overlaps.
 		cerr << "specialTrapeziumIntersects() no intersection" 
 		     << endl;
 
-	    return false;
+/*
+This case should never happen.
+
+*/
+
+	    assert(false);
+
+	    // return false;
 	} else {
 	    if (MRA_DEBUG) 
 		cerr << "specialTrapeziumIntersects() intersection" 
 		     << endl;
 
+	    detailedResult = 7;
 	    return true;
 	}
     } else {
@@ -1021,12 +1102,14 @@ separately.
 		cerr << "specialTrapeziumIntersects() intersect" 
 		     << endl;
 
+	    detailedResult = 8;
 	    return true;
 	} else {
 	    if (MRA_DEBUG) 
 		cerr << "specialTrapeziumIntersects() no intersection" 
 		     << endl;
 
+	    detailedResult = 9;
 	    return false;
 	}
     }
