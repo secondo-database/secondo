@@ -38,6 +38,10 @@ static QueryProcessor* qp;
 
 const bool MRA_DEBUG = true;
 
+static int simpleSelect(ListExpr args) {
+    return 0;
+}
+
 /*
 1 Helper functions
 
@@ -462,31 +466,15 @@ for the third component. If $0\le z \le dt$, the two segments intersect.
 }
 
 /*
-1.1 Function ~specialTrapeziumIntersects()~
+1.1 Function ~specialTrapeziumIntersects()~ (for unit testing)
+\label{stiut}
 
-Returns ~true~ if and only if the two specified special trapeziums intersect.
-
-The two trapeziums must meet the following conditions. These conditions are
-not checked in the function. If the conditions are not met, the function will
-deliver incorrect results.
-
-Trapezium 1 is spanned by segments ~(t1p1x, t1p1y, 0)~ to ~(t1p2x, t1p2y, 0)~, 
-~(t1p1x, t1p1y, 0)~ to ~(t1p3x, t1p3y, dt)~, ~(t1p3x, t1p3y, dt)~ to 
-~(t1p4x, t1p4x, dt)~ and ~(t1p2x, t1p2y, 0)~ to ~(t1p4x, t1p4x, dt)~.
-Allowed are either ~(t1p1x, t1p1y, 0)=(t1p2x, t1p2y, 0)~ or
-~(t1p3x, t1p3y, dt)=(t1p4x, t1p4x, dt)~ but not both. Segments 
-~(t1p1x, t1p1y, 0)~ to ~(t1p2x, t1p2y, 0)~ and 
-~(t1p3x, t1p3y, dt)~ to ~(t1p4x, t1p4x, dt)~ are collinear.
-
-Trapezium 2 is spanned by segments ~(t2p1x, t2p1y, 0)~ to ~(t2p2x, t2p2y, 0)~, 
-~(t2p1x, t2p1y, 0)~ to ~(t2p3x, t2p3y, dt)~, ~(t2p3x, t2p3y, dt)~ to
-~(t2p4x, t2p4x, dt)~ and ~(t2p2x, t2p2y, 0)~ to ~(t2p4x, t2p4x, dt)~.
-Allowed are either ~(t2p1x, t2p1y, 0)=(t2p2x, t2p2y, 0)~ or
-~(t2p3x, t2p3y, dt)=(t2p4x, t2p4x, dt)~ but not both. Segments
-~(t2p1x, t2p1y, 0)~ to ~(t2p2x, t2p2y, 0)~ and
-~(t2p3x, t2p3y, dt)~ to ~(t2p4x, t2p4x, dt)~ are collinear.
-
-$dt$ must be greater than $0$.
+See section \ref{stinu} for a full description of the parameters and 
+result of this function except the additional parameter ~detailedResult~,
+which will receive a numeric representation of the specific case 
+responsible for the return value of the function. ~detailedResult~ is
+only used for unit testing: Since this function is quite complex, we have
+introduced this parameter to facilitate detailed unit testing.
 
 */
 
@@ -506,10 +494,13 @@ static bool specialTrapeziumIntersects(double dt,
 				       double t2p3x,
 				       double t2p3y,
 				       double t2p4x,
-				       double t2p4y) {
+				       double t2p4y,
+				       unsigned int& detailedResult) {
     if (MRA_DEBUG) 
-	cerr << "specialTrapeziumIntersects() called" 
+	cerr << "specialTrapeziumIntersects() (w/ detailedResult) called" 
 	     << endl;
+
+    detailedResult = 0;
 
     if (MRA_DEBUG) {
 	cerr << "specialTrapeziumIntersects() trapezium 1: (" 
@@ -1039,6 +1030,74 @@ separately.
 	    return false;
 	}
     }
+}
+
+/*
+1.1 Function ~specialTrapeziumIntersects()~ (for normal use)
+\label{stinu}
+
+Returns ~true~ if and only if the two specified special trapeziums intersect.
+
+The two trapeziums must meet the following conditions. These conditions are
+not checked in the function. If the conditions are not met, the function will
+deliver incorrect results.
+
+Trapezium 1 is spanned by segments ~(t1p1x, t1p1y, 0)~ to ~(t1p2x, t1p2y, 0)~, 
+~(t1p1x, t1p1y, 0)~ to ~(t1p3x, t1p3y, dt)~, ~(t1p3x, t1p3y, dt)~ to 
+~(t1p4x, t1p4x, dt)~ and ~(t1p2x, t1p2y, 0)~ to ~(t1p4x, t1p4x, dt)~.
+Allowed are either ~(t1p1x, t1p1y, 0)=(t1p2x, t1p2y, 0)~ or
+~(t1p3x, t1p3y, dt)=(t1p4x, t1p4x, dt)~ but not both. Segments 
+~(t1p1x, t1p1y, 0)~ to ~(t1p2x, t1p2y, 0)~ and 
+~(t1p3x, t1p3y, dt)~ to ~(t1p4x, t1p4x, dt)~ are collinear.
+
+Trapezium 2 is spanned by segments ~(t2p1x, t2p1y, 0)~ to ~(t2p2x, t2p2y, 0)~, 
+~(t2p1x, t2p1y, 0)~ to ~(t2p3x, t2p3y, dt)~, ~(t2p3x, t2p3y, dt)~ to
+~(t2p4x, t2p4x, dt)~ and ~(t2p2x, t2p2y, 0)~ to ~(t2p4x, t2p4x, dt)~.
+Allowed are either ~(t2p1x, t2p1y, 0)=(t2p2x, t2p2y, 0)~ or
+~(t2p3x, t2p3y, dt)=(t2p4x, t2p4x, dt)~ but not both. Segments
+~(t2p1x, t2p1y, 0)~ to ~(t2p2x, t2p2y, 0)~ and
+~(t2p3x, t2p3y, dt)~ to ~(t2p4x, t2p4x, dt)~ are collinear.
+
+$dt$ must be greater than $0$.
+
+*/
+
+static bool specialTrapeziumIntersects(double dt,
+				       double t1p1x,
+				       double t1p1y,
+				       double t1p2x,
+				       double t1p2y,
+				       double t1p3x,
+				       double t1p3y,
+				       double t1p4x,
+				       double t1p4y,
+				       double t2p1x,
+				       double t2p1y,
+				       double t2p2x,
+				       double t2p2y,
+				       double t2p3x,
+				       double t2p3y,
+				       double t2p4x,
+				       double t2p4y) {
+    if (MRA_DEBUG) 
+	cerr << "specialTrapeziumIntersects() called" 
+	     << endl;
+
+    unsigned int detailedResult;
+
+/*
+This function is just a thin wrapper around the function in section
+\ref{stiut}, throwing away the parameter ~detailedResult~, which is 
+only used for unit testing.
+
+*/
+
+    return
+	specialTrapeziumIntersects(
+	    dt,
+	    t1p1x, t1p1y, t1p2x, t1p2y, t1p3x, t1p3y, t1p4x, t1p4y,
+	    t2p1x, t2p1y, t2p2x, t2p2y, t2p3x, t2p3y, t2p4x, t2p4y,
+	    detailedResult);
 }
 
 // ************************************************************************
@@ -3412,6 +3471,23 @@ static ListExpr PresentTypeMap(ListExpr args) {
 }
 
 /*
+Used for unit testing only.
+
+*/
+
+static ListExpr Unittest1TypeMap(ListExpr args) {
+    if (MRA_DEBUG) cerr << "Unittest1TypeMap() called" << endl;
+
+    if (nl->ListLength(args) != 17) return nl->SymbolAtom("typeerror");
+
+    for (; !nl->IsEmpty(args); args = nl->Rest(args))
+	if (nl->SymbolValue(nl->First(args)) != "real") 
+	    return nl->SymbolAtom("typeerror");
+
+    return nl->SymbolAtom("int");
+}
+
+/*
 1.1 Selection functions
 
 */
@@ -3527,6 +3603,51 @@ static int InsideValueMap(Word* args,
 
     assert(false);
 }
+
+/*
+Used for unit testing only.
+
+*/
+
+static int Unittest1ValueMap(Word* args, 
+			     Word& result, 
+			     int message, 
+			     Word& local, 
+			     Supplier s) {
+    if (MRA_DEBUG) cerr << "Unittest1ValueMap() called" << endl;
+
+    unsigned int detailedResult;
+
+    specialTrapeziumIntersects(
+	((CcReal*) args[0].addr)->GetRealval(),  // dt
+	((CcReal*) args[1].addr)->GetRealval(),  // t1p1x
+	((CcReal*) args[2].addr)->GetRealval(),  // t1p1y
+	((CcReal*) args[3].addr)->GetRealval(),  // t1p2x
+	((CcReal*) args[4].addr)->GetRealval(),  // t1p2y
+	((CcReal*) args[5].addr)->GetRealval(),  // t1p3x
+	((CcReal*) args[6].addr)->GetRealval(),  // t1p3y
+	((CcReal*) args[7].addr)->GetRealval(),  // t1p4x
+	((CcReal*) args[8].addr)->GetRealval(),  // t1p4y
+	((CcReal*) args[9].addr)->GetRealval(),  // t2p1x
+	((CcReal*) args[10].addr)->GetRealval(), // t2p1y
+	((CcReal*) args[11].addr)->GetRealval(), // t2p2x
+	((CcReal*) args[12].addr)->GetRealval(), // t2p2y
+	((CcReal*) args[13].addr)->GetRealval(), // t2p3x
+	((CcReal*) args[14].addr)->GetRealval(), // t2p3y
+	((CcReal*) args[15].addr)->GetRealval(), // t2p4x
+	((CcReal*) args[16].addr)->GetRealval(), // t2p4y
+	detailedResult);
+
+    if (MRA_DEBUG) cerr << "Unittest1ValueMap() #1" << endl;
+
+    result = qp->ResultStorage( s );
+    ((CcInt *)result.addr)->Set(true, detailedResult);
+
+    if (MRA_DEBUG) cerr << "Unittest1ValueMap() #2" << endl;
+
+    return 0;
+}
+
 
 /*
 1.1 Value mapping arrays
@@ -3645,6 +3766,18 @@ static const string insidespec =
     "    <text>mpoint1 inside mregion1</text---> ) )";
 
 /*
+Used for unit testing only.
+
+*/
+
+static const string unittest1spec = 
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>unit testing only</text--->"
+    "    <text>unit testing only</text--->"
+    "    <text>unit testing only</text--->"
+    "    <text>unit testing only</text---> ) )";
+
+/*
 1.1 Operator creation
 
 */
@@ -3729,6 +3862,18 @@ static Operator inside("inside",
 		       MPointMRegionSelect,
 		       MPointMRegionToMBoolTypeMap);
 
+/*
+Used for unit testing only.
+
+*/
+
+static Operator unittest1("unittest1",
+			  unittest1spec,
+			  Unittest1ValueMap,
+			  Operator::DummyModel,
+			  simpleSelect,
+			  Unittest1TypeMap);
+
 // ************************************************************************
 
 /*
@@ -3763,6 +3908,12 @@ public:
 	AddOperator(&traversed);
 	AddOperator(&intersection);
 	AddOperator(&inside);
+
+/*
+Used for unit testing only.
+
+*/
+	AddOperator(&unittest1);
     }
     ~MovingRegionAlgebra() {}
 };
