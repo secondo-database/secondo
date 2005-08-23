@@ -366,6 +366,7 @@ box parallel to the $(x, y)$-plane.
 
 /*
 1.1 Function ~specialSegmentIntersects1()~
+\label{ssi}
 
 Returns ~true~ if the two specified segments intersect.
 
@@ -377,6 +378,9 @@ Segment 2 connects the points $(l2p1x, l2p1y, 0)$ and $(l2p2x, l2p2y, dt)$.
 
 Both must not be on the same line.
 
+$z$ will contain the $z$-coordinate of the intersection point, if it 
+exists.
+
 */
 
 static bool specialSegmentIntersects1(double dt,
@@ -387,9 +391,10 @@ static bool specialSegmentIntersects1(double dt,
 				      double l2p1x,
 				      double l2p1y,
 				      double l2p2x,
-				      double l2p2y) {
+				      double l2p2y,
+				      double& z) {
     if (MRA_DEBUG) {
-	cerr << "specialSegmentIntersects1() called" 
+	cerr << "specialSegmentIntersects1() w/ z component called" 
 	     << endl;
 	cerr << "specialSegmentIntersects1() line 1: (" 
 	     << l1p1x
@@ -486,7 +491,7 @@ indicating that there are no solutions.
 		return false;
 	    }
 	} else {
-	    double z = dt*B[i]/Ap[i][1];
+	    z = dt*B[i]/Ap[i][1];
 
 /*
 Row is in format $0 c \left| b \right.$ with $c\ne 0$. All rows below are
@@ -520,6 +525,36 @@ This should not happen since both segments must not be on the same line.
 
 */
     assert(false);
+}
+
+/*
+1.1 Function ~specialSegmentIntersects1()~
+
+Same as function in section \ref{ssi}, but not returning the $z$-coordinate
+of the intersection point.
+
+*/
+
+static bool specialSegmentIntersects1(double dt,
+				      double l1p1x,
+				      double l1p1y,
+				      double l1p2x,
+				      double l1p2y,
+				      double l2p1x,
+				      double l2p1y,
+				      double l2p2x,
+				      double l2p2y) {
+    if (MRA_DEBUG)
+	cerr << "specialSegmentIntersects1() w/o z-component called" 
+	     << endl;
+
+    double dummy;
+
+    return
+	specialSegmentIntersects1(dt,
+				  l1p1x, l1p1y, l1p2x, l1p2y,
+				  l2p1x, l2p1y, l2p2x, l2p2y,
+				  dummy);
 }
 
 /*
@@ -1066,42 +1101,101 @@ separately.
 
 */
 
-	if ((specialSegmentIntersects2(
-		0,
-		t1p1x, t1p1y, t1p2x, t1p2y,
-		P, Q)
-	    || specialSegmentIntersects1(
+	double z;
+
+	double t1zMin = dt;
+	double t1zMax = 0;
+	bool t1Intersects = false;
+
+	if (specialSegmentIntersects2(0, t1p1x, t1p1y, t1p2x, t1p2y, P, Q)) {
+	    t1zMin = t1zMin > 0 ? 0 : t1zMin;
+	    t1zMax = t1zMax < 0 ? 0 : t1zMax;
+	    t1Intersects = true;
+	}
+	if (specialSegmentIntersects2(dt, t1p3x, t1p3y, t1p4x, t1p4y, P, Q)) {
+	    t1zMin = t1zMin > dt ? dt : t1zMin;
+	    t1zMax = t1zMax < dt ? dt : t1zMax;
+	    t1Intersects = true;
+	}
+	if (specialSegmentIntersects1(
 		dt, 
 		t1p1x, t1p1y, t1p3x, t1p3y, 
-		P[0], P[1], P[0]+Q[0], P[1]+Q[1])
-	    || specialSegmentIntersects1(
+		P[0], P[1], P[0]+Q[0], P[1]+Q[1])) {
+	    t1zMin = t1zMin > z ? z : t1zMin;
+	    t1zMax = t1zMax < z ? z : t1zMax;
+	    t1Intersects = true;
+	}
+	if (specialSegmentIntersects1(
 		dt,
 		t1p2x, t1p2y, t1p4x, t1p4y, 
-		P[0], P[1], P[0]+Q[0], P[1]+Q[1])
-	    || specialSegmentIntersects2(
+		P[0], P[1], P[0]+Q[0], P[1]+Q[1],
+		z)) {
+	    t1zMin = t1zMin > z ? z : t1zMin;
+	    t1zMax = t1zMax < z ? z : t1zMax;
+	    t1Intersects = true;
+	}
+
+	double t2zMin = dt;
+	double t2zMax = 0;
+	bool t2Intersects = false;
+
+	if (specialSegmentIntersects2(0, t2p1x, t2p1y, t2p2x, t2p2y, P, Q)) {
+	    t2zMin = t2zMin > 0 ? 0 : t2zMin;
+	    t2zMax = t2zMax < 0 ? 0 : t2zMax;
+	    t2Intersects = true;
+	}
+	if (specialSegmentIntersects2(dt, t2p3x, t2p3y, t2p4x, t2p4y, P, Q)) {
+	    t2zMin = t2zMin > dt ? dt : t2zMin;
+	    t2zMax = t2zMax < dt ? dt : t2zMax;
+	    t2Intersects = true;
+	}
+	if (specialSegmentIntersects1(
 		dt,
-		t1p3x, t1p3y, t1p4x, t1p4y, 
-		P, Q))
-	    && (specialSegmentIntersects2(
-		    0,
-		    t2p1x, t2p1y, t2p2x, t2p2y, 
-		    P, Q)
-		|| specialSegmentIntersects1(
-		    dt,
-		    t2p1x, t2p1y, t2p3x, t2p3y,
-		    P[0], P[1], P[0]+Q[0], P[1]+Q[1])
-		|| specialSegmentIntersects1(
-		    dt,
-		    t2p2x, t2p2y, t2p4x, t2p4y,
-		    P[0], P[1], P[0]+Q[0], P[1]+Q[1])
-		|| specialSegmentIntersects2(
-		    dt,
-		    t2p3x, t2p3y, t2p4x, t2p4y, 
-		    P, Q))) {
+		t2p1x, t2p1y, t2p3x, t2p3y,
+		P[0], P[1], P[0]+Q[0], P[1]+Q[1],
+		z)) {
+	    t2zMin = t2zMin > z ? z : t2zMin;
+	    t2zMax = t2zMax < z ? z : t2zMax;
+	    t2Intersects = true;
+	}
+	if (specialSegmentIntersects1(
+		dt,
+		t2p2x, t2p2y, t2p4x, t2p4y,
+		P[0], P[1], P[0]+Q[0], P[1]+Q[1],
+		z)) {
+	    t2zMin = t2zMin > z ? z : t2zMin;
+	    t2zMax = t2zMax < z ? z : t2zMax;
+	    t2Intersects = true;
+	}
+
+	if (MRA_DEBUG) {
+	    cerr << "specialTrapeziumIntersects() t1Intersects="
+		 << t1Intersects
+		 << endl;
+	    if (t1Intersects)
+		cerr << "specialTrapeziumIntersects() t1zMin="
+		     << t1zMin
+		     << " t1zMax="
+		     << t1zMax
+		     << endl;
+	    cerr << "specialTrapeziumIntersects() t2Intersects="
+		 << t2Intersects
+		 << endl;
+	    if (t2Intersects)
+		cerr << "specialTrapeziumIntersects() t2zMin="
+		     << t2zMin
+		     << " t2zMax="
+		     << t2zMax
+		     << endl;
+	}
+
+	if (t1Intersects
+	    && t2Intersects
+	    && !(lower(t1zMax, t2zMin) || lower(t2zMax, t1zMin))) {
 	    if (MRA_DEBUG) 
 		cerr << "specialTrapeziumIntersects() intersect" 
 		     << endl;
-
+	    
 	    detailedResult = 8;
 	    return true;
 	} else {
