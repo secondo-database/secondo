@@ -704,7 +704,7 @@ class PointSequenceAlgebra : public Algebra
 
     //the lines below define that poin110tsequence
     //can be used in places where types of kind SIMPLE are expected
-    pointsequence.AssociateKind("SIMPLE");
+    pointsequence.AssociateKind("DATA");
     
     AddOperator ( &c2point );   	     
     AddOperator ( &c2points );  
