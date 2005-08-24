@@ -35,7 +35,7 @@ tempDir="${PWD}/tmp_opt_${date_ymd}_${date_HMS}"
 mkdir $tempDir
 export SECONDO_PARAM_SecondoHome=$tempDir
 declare -i error=0
-logFile="${PWD}/optimizer.test.log"
+logFile="${PWD}/TestOptimizer.log"
 
 TPC_GEN_DIR=${SECONDO_BUILD_DIR}/Tools/Generators/TPC-H
 cd $TPC_GEN_DIR/secondo
@@ -43,7 +43,7 @@ cd $TPC_GEN_DIR/secondo
 printf "%s\n" "Logfile: $logFile"
 
 # create databases
-checkCmd "tpcgen.sh -s ${scaleFactor} -b ${tempDir} > ${logFile} 2>&1"
+checkCmd "tpcgen.sh -s ${scaleFactor} -b ${tempDir} >> ${logFile} 2>&1"
 checkCmd "ttyrun.sh 'create database opt;' >> ${logFile} 2>&1" 
 checkCmd "ttyrun.sh 'restore database opt from opt;' >> ${logFile} 2>&1"
 
