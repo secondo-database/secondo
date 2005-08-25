@@ -65,8 +65,7 @@ struct PrivateTuple
     state( Fresh ),
     isFree( true ),
     deleteAllowed( true ),
-    memoryTuple( 0 ),
-    extensionTuple( 0 )
+    memoryTuple( 0 )
     {}
 /*
 The first constructor. It creates a fresh tuple from a ~tupleType~.
@@ -81,8 +80,7 @@ The first constructor. It creates a fresh tuple from a ~tupleType~.
     tupleFile( 0 ),
     state( Fresh ),
     isFree( true ),
-    memoryTuple( 0 ),
-    extensionTuple( 0 )
+    memoryTuple( 0 )
     {}
 /*
 The second constructor. It creates a fresh tuple from a ~typeInfo~.
@@ -96,7 +94,6 @@ The second constructor. It creates a fresh tuple from a ~typeInfo~.
       // created outside the tuple and inserted in the tuple using the
       // ~PutAttribute~ method. In this way, they must be deleted.
     {
-      assert( extensionTuple == 0 );
       for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
       {
         if( attributes[i] != 0 )
@@ -114,10 +111,8 @@ The second constructor. It creates a fresh tuple from a ~typeInfo~.
         for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
           attributes[i]->GetFLOB(j)->Clear();
       }
-
+      assert( memoryTuple != 0 );
       free( memoryTuple );
-      if( extensionTuple != 0 )
-        free( extensionTuple );
     }
     delete tupleRecord;
   }
@@ -205,11 +200,6 @@ we can switch off the ~normal~ deletion procedure.
   char *memoryTuple;
 /*
 Stores the attributes array in memory.
-
-*/
-  char *extensionTuple;
-/*
-Stores the extension (small FLOBs) in memory.
 
 */
 };
