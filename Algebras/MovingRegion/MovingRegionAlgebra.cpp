@@ -104,8 +104,8 @@ static void GaussTransform(const unsigned int n,
     if (MRA_DEBUG)
 	for (unsigned int j = 0; j < n; j++) {
 	    for (unsigned int k = 0; k < m; k++) 
-		printf("%7.3f ", a[j][k]);
-	    printf("| %7.3f\n", b[j]);
+		fprintf(stderr, "%7.3f ", a[j][k]);
+	    fprintf(stderr, "| %7.3f\n", b[j]);
 	}
 
     for (unsigned int i = 0; i < n-1; i++) {
@@ -155,8 +155,8 @@ static void GaussTransform(const unsigned int n,
 	if (MRA_DEBUG)
 	    for (j = 0; j < n; j++) {
 		for (unsigned int k = 0; k < m; k++) 
-		    printf("%7.3f ", a[j][k]);
-		printf("| %7.3f\n", b[j]);
+		    fprintf(stderr, "%7.3f ", a[j][k]);
+		fprintf(stderr, "| %7.3f", b[j]);
 	    }
     }
 }
@@ -376,8 +376,6 @@ Segment 1 connects the points $(l1p1x, l1p1y, 0)$ and $(l1p2x, l1p2y, dt)$.
 
 Segment 2 connects the points $(l2p1x, l2p1y, 0)$ and $(l2p2x, l2p2y, dt)$.
 
-Both must not be on the same line.
-
 $z$ will contain the $z$-coordinate of the intersection point, if it 
 exists.
 
@@ -420,6 +418,21 @@ static bool specialSegmentIntersects1(double dt,
 	     << dt
 	     << ")"
 	     << endl;
+    }
+
+/*
+Check if both segments are identical.
+
+*/
+    if (nearlyEqual(l1p1x, l2p1x)
+	&& nearlyEqual(l1p1y, l2p1y)
+	&& nearlyEqual(l1p2x, l2p2x)
+	&& nearlyEqual(l1p2y, l2p2y)) {
+	if (MRA_DEBUG)
+	    cerr << "specialSegmentIntersects1() same segment" 
+		 << endl;
+	
+	return false;
     }
 
 /*
@@ -1486,6 +1499,17 @@ Both segments are not vertical.
 	    throw invalid_argument("initial and final segment not collinear");
     }
 
+    unsigned int GetFaceNo(void) { return faceno; }
+    unsigned int GetCycleNo(void) { return cycleno; }
+    unsigned int GetSegmentNo(void) { return segmentno; }
+    double GetInitialStartX(void) { return initialStartX; }
+    double GetInitialStartY(void) { return initialStartY; }
+    double GetInitialEndX(void) { return initialEndX; }
+    double GetInitialEndY(void) { return initialEndY; }
+    double GetFinalStartX(void) { return finalStartX; }
+    double GetFinalStartY(void) { return finalStartY; }
+    double GetFinalEndX(void) { return finalEndX; }
+    double GetFinalEndY(void) { return finalEndY; }
     bool GetInsideLeftOrAbove(void) { return insideLeftOrAbove; }
 /*
 Since no other classes are accessing the private attributes of
@@ -1994,7 +2018,14 @@ bool URegion::AddSegment(CRegion& cr,
 			 double intervalLen,
 			 ListExpr start, 
 			 ListExpr end) {
-    if (MRA_DEBUG) cerr << "URegion::AddSegment() called" << endl;
+    if (MRA_DEBUG) 
+	cerr << "URegion::AddSegment() called " 
+	     << faceno
+	     << " "
+	     << cycleno
+	     << " "
+	     << segmentno
+	     << endl;
 
     assert(role == NORMAL || role == EMBEDDED);
 
@@ -2296,11 +2327,102 @@ static bool CheckURegion(ListExpr type, ListExpr& errorInfo) {
 }
 
 static ListExpr OutURegion(ListExpr typeInfo, Word value) {
-    if (MRA_DEBUG) cerr << "OutURegion() called" << endl;
+     if (MRA_DEBUG) cerr << "OutURegion() called" << endl;
 
-    assert(false);
+    URegion* ur = (URegion*) value.addr;
 
-    return 0;
+    int num = ur->GetSegmentsNum();
+
+    ListExpr faces = nl->TheEmptyList();
+    ListExpr facesLastElem = faces;
+
+    ListExpr face = nl->TheEmptyList();
+    ListExpr faceLastElem = face;
+    ListExpr cycle = nl->TheEmptyList();
+    ListExpr cycleLastElem = cycle;
+
+    for (int i = 0; i < num; i++) {
+        if (MRA_DEBUG) cerr << "OutURegion() segment #" << i << endl;
+
+	MSegmentData dms;
+	ur->GetSegment(i, dms);
+
+        if (MRA_DEBUG) 
+            cerr << "OutURegion() point is "
+		 << dms.GetFaceNo()
+		 << " "
+		 << dms.GetCycleNo()
+		 << " ("
+                 << dms.GetInitialStartX()
+                 << ", "
+                 << dms.GetInitialStartY()
+                 << ", "
+                 << dms.GetFinalStartX()
+                 << ", "
+                 << dms.GetFinalStartY()
+                 << ")"
+                 << endl;
+
+        ListExpr p = 
+            nl->FourElemList(
+                nl->RealAtom(dms.GetInitialStartX()),
+                nl->RealAtom(dms.GetInitialStartY()),
+                nl->RealAtom(dms.GetFinalStartX()),
+                nl->RealAtom(dms.GetFinalStartY()));
+
+        if (cycle == nl->TheEmptyList()) {
+            if (MRA_DEBUG) cerr << "OutURegion() new cycle" << endl;
+            cycle = nl->OneElemList(p);
+            cycleLastElem = cycle;
+        } else {
+            if (MRA_DEBUG) cerr << "OutURegion() existing cycle" << endl;
+            cycleLastElem = nl->Append(cycleLastElem, p);
+        }
+
+	MSegmentData nextDms;
+	if (i < num-1) ur->GetSegment(i+1, nextDms);
+
+        if (i == num-1 || dms.GetCycleNo() != nextDms.GetCycleNo()) {
+            if (MRA_DEBUG) cerr << "OutURegion() end of cycle" << endl;
+
+            if (face == nl->TheEmptyList()) {
+                if (MRA_DEBUG) cerr << "OutURegion() new face" << endl;
+                face = nl->OneElemList(cycle);
+                faceLastElem = face;
+            } else {
+                if (MRA_DEBUG) cerr << "OutURegion() existing face" << endl;
+                faceLastElem = nl->Append(faceLastElem, cycle);
+            }
+
+            if (i == num-1 || dms.GetFaceNo() != nextDms.GetFaceNo()) {
+                if (MRA_DEBUG) cerr << "OutURegion() end of face" << endl;
+		if (faces == nl->TheEmptyList()) {
+		    faces = nl->OneElemList(face);
+		    facesLastElem = faces;
+		} else 
+		    facesLastElem = nl->Append(facesLastElem, face);
+                
+                face = nl->TheEmptyList();
+                faceLastElem = face;
+            }
+
+            cycle = nl->TheEmptyList();
+            cycleLastElem = cycle;
+        }
+    }
+
+    ListExpr res = 
+        nl->TwoElemList(
+            nl->FourElemList(
+                OutDateTime(nl->TheEmptyList(), 
+                            SetWord(&ur->timeInterval.start)),
+                OutDateTime(nl->TheEmptyList(), 
+                            SetWord(&ur->timeInterval.end)),
+                nl->BoolAtom(ur->timeInterval.lc),
+                nl->BoolAtom(ur->timeInterval.rc)),
+	    faces);
+
+    return res;
 
 #ifdef SCHMUH
     URegion* ur = (URegion*) value.addr;
@@ -2509,7 +2631,7 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 
     unsigned int faceno = 0;
     unsigned int partnerno = 0;
-    ListExpr faces = nl->Rest(instance);
+    ListExpr faces = nl->Second(instance);
 
     CRegion cr(0);
     cr.StartBulkLoad();
@@ -2658,7 +2780,7 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 
 	    uregion->GetSegment(i, dms);
 
-	    cerr << "segment #"
+	    cerr << "InURegion() segment #"
 		 << i
 		 << ": "
 		 << dms.faceno
@@ -2919,7 +3041,8 @@ For unit testing only.
 */
 
     int Unittest2(int pos) {
-        if (MRA_DEBUG) cerr << "MRegion::Unittest2() called" << endl;
+        if (MRA_DEBUG) 
+	    cerr << "MRegion::Unittest2() called pos=" << pos << endl;
 
 	if (pos < 0 || pos >= msegmentdata.Size()) return -1;
 
@@ -3633,7 +3756,7 @@ static ListExpr MRegionProperty() {
 static bool CheckMRegion(ListExpr type, ListExpr& errorInfo) {
     if (MRA_DEBUG) cerr << "CheckMRegion() called" << endl;
 
-    return nl->IsEqual(type, "mregion");
+    return nl->IsEqual(type, "movingregion");
 }
 
 static ListExpr OutMRegion(ListExpr typeInfo, Word value) {
@@ -3706,7 +3829,7 @@ Word InMRegion(const ListExpr typeInfo,
 }
 
 static TypeConstructor mregion(
-    "mregion",
+    "movingregion",
     MRegionProperty,
     OutMRegion, 
     InMRegion,
@@ -3755,7 +3878,7 @@ static ListExpr MPointMRegionToMPointTypeMap(ListExpr args) {
 
     if (nl->ListLength(args) == 2 
 	&& nl->IsEqual(nl->First(args), "mpoint")
-	&& nl->IsEqual(nl->Second(args), "mregion"))
+	&& nl->IsEqual(nl->Second(args), "movingregion"))
 	return nl->SymbolAtom("mpoint");
     else
 	return nl->SymbolAtom("typeerror");
@@ -3768,7 +3891,7 @@ static ListExpr MPointMRegionToMBoolTypeMap(ListExpr args) {
 
     if (nl->ListLength(args) == 2 
 	&& nl->IsEqual(nl->First(args), "mpoint")
-	&& nl->IsEqual(nl->Second(args), "mregion"))
+	&& nl->IsEqual(nl->Second(args), "movingregion"))
 	return nl->SymbolAtom("mbool");
     else
 	return nl->SymbolAtom("typeerror");
@@ -3780,7 +3903,7 @@ static ListExpr MRegionInstantToIRegionTypeMap(ListExpr args) {
     if (MRA_DEBUG) cerr << "MRegionInstantToIRegionTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 2 
-	&& nl->IsEqual(nl->First(args), "mregion")
+	&& nl->IsEqual(nl->First(args), "movingregion")
 	&& nl->IsEqual(nl->Second(args), "instant"))
 	return nl->SymbolAtom("iregion");
     else
@@ -3793,7 +3916,7 @@ static ListExpr MRegionToRegionTypeMap(ListExpr args) {
     if (MRA_DEBUG) cerr << "MRegionToRegionTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 1 
-	&& nl->IsEqual(nl->First(args), "mregion"))
+	&& nl->IsEqual(nl->First(args), "movingregion"))
 	return nl->SymbolAtom("region");
     else
 	return nl->SymbolAtom("typeerror");
@@ -3805,7 +3928,7 @@ static ListExpr MRegionToIRegionTypeMap(ListExpr args) {
     if (MRA_DEBUG) cerr << "MRegionToIRegionTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 1 
-	&& nl->IsEqual(nl->First(args), "mregion"))
+	&& nl->IsEqual(nl->First(args), "movingregion"))
 	return nl->SymbolAtom("iregion");
     else
 	return nl->SymbolAtom("typeerror");
@@ -3817,7 +3940,7 @@ static ListExpr MRegionToPeriodsTypeMap(ListExpr args) {
     if (MRA_DEBUG) cerr << "MRegionToPeriodsTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 1 
-	&& nl->IsEqual(nl->First(args), "mregion"))
+	&& nl->IsEqual(nl->First(args), "movingregion"))
 	return nl->SymbolAtom("periods");
     else
 	return nl->SymbolAtom("typeerror");
@@ -3853,7 +3976,7 @@ static ListExpr PresentTypeMap(ListExpr args) {
     if (MRA_DEBUG) cerr << "PresentTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 2 
-	&& nl->IsEqual(nl->First(args), "mregion")
+	&& nl->IsEqual(nl->First(args), "movingregion")
 	&& (nl->IsEqual(nl->Second(args), "instant")
 	    || nl->IsEqual(nl->Second(args), "periods"))) 
 	return nl->SymbolAtom("bool");
@@ -3882,9 +4005,9 @@ static ListExpr Unittest2TypeMap(ListExpr args) {
     if (MRA_DEBUG) cerr << "Unittest2TypeMap() called" << endl;
 
     if (nl->ListLength(args) == 2 
-	&& nl->IsEqual(nl->First(args), "mregion")
+	&& nl->IsEqual(nl->First(args), "movingregion")
 	&& nl->IsEqual(nl->Second(args), "int")) 
-	return nl->SymbolAtom("bool");
+	return nl->SymbolAtom("int");
     else
 	return nl->SymbolAtom("typeerror");
 }
@@ -3901,7 +4024,7 @@ static int MPointMRegionSelect(ListExpr args) {
 
     if (nl->ListLength(args) == 2
 	&& nl->SymbolValue(nl->First(args)) == "mpoint"
-	&& nl->SymbolValue(nl->Second(args)) == "mregion")
+	&& nl->SymbolValue(nl->Second(args)) == "movingregion")
 	return 0;
     else
 	return -1;
@@ -3913,7 +4036,7 @@ static int MRegionSelect(ListExpr args) {
     if (MRA_DEBUG) cerr << "MRegionSelect() called" << endl;
 
     if (nl->ListLength(args) == 1
-	&& nl->SymbolValue(nl->First(args)) == "mregion")
+	&& nl->SymbolValue(nl->First(args)) == "movingregion")
 	return 0;
     else
 	return -1;
@@ -3925,7 +4048,7 @@ static int MRegionInstantSelect(ListExpr args) {
     if (MRA_DEBUG) cerr << "MRegionInstantSelect() called" << endl;
 
     if (nl->ListLength(args) == 2
-	&& nl->SymbolValue(nl->First(args)) == "mregion"
+	&& nl->SymbolValue(nl->First(args)) == "movingregion"
 	&& nl->SymbolValue(nl->Second(args)) == "instant")
 	return 0;
     else
@@ -3955,11 +4078,11 @@ static int PresentSelect(ListExpr args) {
     if (MRA_DEBUG) cerr << "PresentSelect() called" << endl;
 
     if (nl->ListLength(args) == 2
-	&& nl->SymbolValue(nl->First(args)) == "mregion"
+	&& nl->SymbolValue(nl->First(args)) == "movingregion"
 	&& nl->SymbolValue(nl->Second(args)) == "instant")
 	return 0;
     else if (nl->ListLength(args) == 2
-	&& nl->SymbolValue(nl->First(args)) == "mregion"
+	&& nl->SymbolValue(nl->First(args)) == "movingregion"
 	&& nl->SymbolValue(nl->Second(args)) == "periods")
 	return 1;
     else
@@ -4058,10 +4181,10 @@ static int Unittest2ValueMap(Word* args,
     if (MRA_DEBUG) cerr << "Unittest2ValueMap() called" << endl;
 
     result = qp->ResultStorage(s);
-    ((CcBool *)result.addr)->Set(
+    ((CcInt *)result.addr)->Set(
 	true, 
 	((MRegion*) args[0].addr)->Unittest2(
-	    ((CcInt*) args[0].addr)->GetIntval()));
+	    ((CcInt*) args[1].addr)->GetIntval()));
 
     return 0;
 }
