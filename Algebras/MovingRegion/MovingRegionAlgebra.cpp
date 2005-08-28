@@ -1343,7 +1343,9 @@ static TypeConstructor iregion(
 */
 
 class MSegmentData {
-private:
+// *hm* Debug only, set attributes to private later again
+// private:
+public:
     unsigned int faceno;
     unsigned int cycleno;
     unsigned int segmentno;
@@ -1362,7 +1364,6 @@ private:
     double finalEndX;
     double finalEndY;
 
-public:
     MSegmentData() {
         if (MRA_DEBUG) 
 	    cerr << "MSegmentData::MSegmentData() #1 called" << endl;
@@ -1485,6 +1486,7 @@ Both segments are not vertical.
 	    throw invalid_argument("initial and final segment not collinear");
     }
 
+    bool GetInsideLeftOrAbove(void) { return insideLeftOrAbove; }
 /*
 Since no other classes are accessing the private attributes of
 ~MSegmentData~, we declare ~URegion~ as friend. This is shorter,
@@ -1493,6 +1495,7 @@ yet somewhat clumsy than creating attribute access functions.
 */
     // *hm* is there a better solution?
     friend class URegion; 
+
 };
 
 /*
@@ -1536,12 +1539,16 @@ public:
             cerr << "URegion::URegion() #2 called" << endl;
     }
 
-    bool AddSegment(unsigned int faceno,
+    bool AddSegment(CRegion& cr,
+		    CRegion& rDir,
+		    unsigned int faceno,
 		    unsigned int cycleno,
 		    unsigned int segmentno,
+		    unsigned int pointno,
 		    double intervalLen,
 		    ListExpr start,
 		    ListExpr end);
+    void SetSegmentInsideLeftOrAbove(int pos, bool insideLeftOrAbove);
     int GetSegmentsNum(void);
     void GetSegment(int pos, MSegmentData& dms);
 
@@ -1978,9 +1985,12 @@ bool URegion::At(CRegion& val, TemporalUnit<CRegion>& result) {
     assert(false);
 }
 
-bool URegion::AddSegment(unsigned int faceno,
+bool URegion::AddSegment(CRegion& cr,
+			 CRegion& rDir,
+			 unsigned int faceno,
 			 unsigned int cycleno,
 			 unsigned int segmentno,
+			 unsigned int partnerno,
 			 double intervalLen,
 			 ListExpr start, 
 			 ListExpr end) {
@@ -1988,39 +1998,35 @@ bool URegion::AddSegment(unsigned int faceno,
 
     assert(role == NORMAL || role == EMBEDDED);
 
-    if (nl->ListLength(start) != 4
-	|| !nl->IsAtom(nl->First(start))
-	|| nl->AtomType(nl->First(start)) != RealType
-	|| !nl->IsAtom(nl->Second(start))
-	|| nl->AtomType(nl->Second(start)) != RealType
-	|| !nl->IsAtom(nl->Third(start))
-	|| nl->AtomType(nl->Third(start)) != RealType
-	|| !nl->IsAtom(nl->Fourth(start))
-	|| nl->AtomType(nl->Fourth(start)) != RealType) {
-	cerr << "start point "
-	     << nl->ToString(start)
-	     << " not in format (<real> <real> real> <real>)" 
-	     << endl;
-	return false;
-    }
-
-    if (nl->ListLength(end) != 4
-	|| !nl->IsAtom(nl->First(end))
-	|| nl->AtomType(nl->First(end)) != RealType
-	|| !nl->IsAtom(nl->Second(end))
-	|| nl->AtomType(nl->Second(end)) != RealType
-	|| !nl->IsAtom(nl->Third(end))
-	|| nl->AtomType(nl->Third(end)) != RealType
-	|| !nl->IsAtom(nl->Fourth(end))
-	|| nl->AtomType(nl->Fourth(end)) != RealType) {
-	cerr << "end point " 
-	     << nl->ToString(end) 
-	     << " not in format (<real> <real> real> <real>)" 
-	     << endl;
-	return false;
-    }
-
     try {
+	if (nl->ListLength(start) != 4
+	    || !nl->IsAtom(nl->First(start))
+	    || nl->AtomType(nl->First(start)) != RealType
+	    || !nl->IsAtom(nl->Second(start))
+	    || nl->AtomType(nl->Second(start)) != RealType
+	    || !nl->IsAtom(nl->Third(start))
+	    || nl->AtomType(nl->Third(start)) != RealType
+	    || !nl->IsAtom(nl->Fourth(start))
+	    || nl->AtomType(nl->Fourth(start)) != RealType)
+	    throw invalid_argument(
+		"start point "
+		+nl->ToString(start)
+		+" not in format (<real> <real> real> <real>)");
+
+	if (nl->ListLength(end) != 4
+	    || !nl->IsAtom(nl->First(end))
+	    || nl->AtomType(nl->First(end)) != RealType
+	    || !nl->IsAtom(nl->Second(end))
+	    || nl->AtomType(nl->Second(end)) != RealType
+	    || !nl->IsAtom(nl->Third(end))
+	    || nl->AtomType(nl->Third(end)) != RealType
+	    || !nl->IsAtom(nl->Fourth(end))
+	    || nl->AtomType(nl->Fourth(end)) != RealType)
+	    throw invalid_argument(
+		"end point " 
+		+nl->ToString(end) 
+		+" not in format (<real> <real> real> <real>)");
+	
 	MSegmentData dms(faceno, 
 			 cycleno, 
 			 segmentno, 
@@ -2037,6 +2043,14 @@ bool URegion::AddSegment(unsigned int faceno,
 			 nl->RealValue(nl->Third(end)), 
 			 nl->RealValue(nl->Fourth(end)));
 
+	if (nearlyEqual(dms.initialStartX, dms.initialEndX)
+	    && nearlyEqual(dms.initialStartY, dms.initialEndY)
+	    && nearlyEqual(dms.finalStartX, dms.finalEndX)
+	    && nearlyEqual(dms.finalStartY, dms.finalEndY)) 
+	    throw invalid_argument(
+		"segment may be reduced to point in initial or "
+		"final instant but not both");
+
 	for (unsigned int i = 0; i < segmentsNum; i++) {
 	    if (MRA_DEBUG) cerr << "URegion::AddSegment() i=" << i << endl;
 
@@ -2044,7 +2058,8 @@ bool URegion::AddSegment(unsigned int faceno,
 	    
 	    segments->Get(i, existingDms);
 
-	    if ((nearlyEqual(dms.initialStartX, existingDms.initialStartX)
+	    if ((nearlyEqual(dms.initialStartX, 
+			     existingDms.initialStartX)
 		 && nearlyEqual(dms.initialStartY, 
 				existingDms.initialStartY)
 		 && nearlyEqual(dms.initialEndX, 
@@ -2067,7 +2082,8 @@ bool URegion::AddSegment(unsigned int faceno,
 		dms.degeneratedInitial = true;
 	    }
 
-	    if ((nearlyEqual(dms.finalStartX, existingDms.finalStartX)
+	    if ((nearlyEqual(dms.finalStartX, 
+			     existingDms.finalStartX)
 		 && nearlyEqual(dms.finalStartY, 
 				existingDms.finalStartY)
 		 && nearlyEqual(dms.finalEndX, 
@@ -2090,6 +2106,18 @@ bool URegion::AddSegment(unsigned int faceno,
 		dms.degeneratedFinal = true;
 	    }
 
+	    if (nearlyEqual(intervalLen, 0.0)
+		&& (dms.degeneratedInitial || dms.degeneratedFinal))
+		throw invalid_argument(
+		    "units with point time interval must not "
+		    "be degenerated");
+	    else if (!nearlyEqual(intervalLen, 0.0)
+		       && dms.degeneratedInitial
+		       && dms.degeneratedFinal) 
+		throw invalid_argument(
+		    "units must not degenerate both in initial and "
+		    "final instant");
+
 	    specialTrapeziumIntersects(intervalLen,
 				       existingDms.initialStartX,
 				       existingDms.initialStartY,
@@ -2109,6 +2137,73 @@ bool URegion::AddSegment(unsigned int faceno,
 				       dms.finalEndY);
 	}
 
+	double t = nearlyEqual(intervalLen, 0.0) ? 0 : 0.5;
+	double xs = dms.initialStartX+(dms.finalStartX-dms.initialStartX)*t;
+	double ys = dms.initialStartY+(dms.finalStartY-dms.initialStartY)*t;
+	double xe = dms.initialEndX+(dms.finalEndX-dms.initialEndX)*t;
+	double ye = dms.initialEndY+(dms.finalEndY-dms.initialEndY)*t;
+
+	assert(!nearlyEqual(xs, xe) || !nearlyEqual(ys, ye));
+
+	Point s(true, xs, ys);
+	Point e(true, xe, ye);
+	CHalfSegment chs(true, true, s, e);
+
+	chs.attr.faceno = faceno;
+	chs.attr.cycleno = cycleno;
+	chs.attr.partnerno = partnerno;
+
+	chs.attr.insideAbove = chs.GetLP() == s;
+
+	if (MRA_DEBUG) {
+	    cerr << "URegion::AddSegment() initial "
+		 << dms.initialStartX
+		 << " "
+		 << dms.initialStartY
+		 << " "
+		 << dms.initialEndX
+		 << " "
+		 << dms.initialEndY
+		 << endl;
+	    cerr << "URegion::AddSegment() final "
+		 << dms.finalStartX
+		 << " "
+		 << dms.finalStartY
+		 << " "
+		 << dms.finalEndX
+		 << " "
+		 << dms.finalEndY
+		 << endl;
+	}
+
+	if (MRA_DEBUG) 
+	    cerr << "URegion::AddSegment() "
+		 << faceno
+		 << " "
+		 << cycleno
+		 << " "
+		 << partnerno
+		 << " ("
+		 << xs
+		 << ", "
+		 << ys
+		 << ")-("
+		 << xe
+		 << ", "
+		 << ye
+		 << ") iloa="
+		 << chs.attr.insideAbove
+		 << endl;
+
+	if (!cr.insertOK(chs)) 
+	    throw invalid_argument("CRegion checks for segment failed");
+
+	cr += chs;
+	rDir += chs;
+
+	chs.SetLDP(false);
+	cr += chs;
+
 	segments->Resize(segmentsStartPos+segmentsNum+1);
 	segments->Put(segmentsStartPos+segmentsNum, dms);
 	segmentsNum++;
@@ -2124,6 +2219,15 @@ bool URegion::AddSegment(unsigned int faceno,
     }
 
     return true;
+}
+
+void URegion::SetSegmentInsideLeftOrAbove(int pos, bool insideLeftOrAbove) {
+    if (MRA_DEBUG) cerr << "URegion::GetSegmentLeftOrAbove() called" << endl;
+
+    MSegmentData dms;
+    segments->Get(segmentsStartPos+pos, dms);
+    dms.insideLeftOrAbove = insideLeftOrAbove;
+    segments->Put(segmentsStartPos+pos, dms);
 }
 
 int URegion::GetSegmentsNum(void) {
@@ -2404,7 +2508,11 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 	: new URegion(tinterval, segments, segmentsStartPos);
 
     unsigned int faceno = 0;
+    unsigned int partnerno = 0;
     ListExpr faces = nl->Rest(instance);
+
+    CRegion cr(0);
+    cr.StartBulkLoad();
 
     if (nl->ListLength(faces) == 0) {
 	cerr << "uregion should contain at least one face" << endl;
@@ -2426,10 +2534,15 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 	}
 
         unsigned int cycleno = 0;
-        unsigned int pointno = 0;
+	unsigned int pointno;
 
         while (!nl->IsEmpty(cycles)) {
 	    if (MRA_DEBUG) cerr << "InURegion()   cycle #" << cycleno << endl;
+
+	    pointno = 0;
+
+	    CRegion rDir(0);
+	    rDir.StartBulkLoad();
 
             ListExpr cyclepoints = nl->First(cycles);
 
@@ -2444,6 +2557,8 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 	    ListExpr firstPoint = nl->First(cyclepoints);
 	    ListExpr prevPoint = 0;
 
+	    unsigned int initialSegmentsNum = uregion->GetSegmentsNum();
+
             while (!nl->IsEmpty(cyclepoints)) {
 		if (MRA_DEBUG) 
 		    cerr << "InURegion()     point #" << pointno << endl;
@@ -2451,9 +2566,12 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
                 ListExpr point = nl->First(cyclepoints);
 
 		if (prevPoint != 0 
-		    && !uregion->AddSegment(faceno, 
+		    && !uregion->AddSegment(cr,
+					    rDir,
+					    faceno, 
 					    cycleno, 
 					    pointno, 
+					    partnerno,
 					    intervalLen,
 					    prevPoint, 
 					    point)) {
@@ -2466,11 +2584,15 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 		prevPoint = point;
                 cyclepoints = nl->Rest(cyclepoints);
                 pointno++;
+		partnerno++;
 	    }
 
-	    if (!uregion->AddSegment(faceno,
+	    if (!uregion->AddSegment(cr,
+				     rDir,
+				     faceno,
 				     cycleno,
 				     pointno,
+				     partnerno,
 				     intervalLen,
 				     prevPoint, 
 				     firstPoint)) {
@@ -2478,6 +2600,46 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 		delete uregion;
 		correct = false;
 		return SetWord(Address(0));
+	    }
+
+	    partnerno++;
+
+	    rDir.EndBulkLoad();
+
+	    bool direction = rDir.GetCycleDirection();
+
+	    int h = cr.Size()-(rDir.Size()*2);
+	    int i = initialSegmentsNum;
+	    while (h < cr.Size()) {
+                CHalfSegment chsInsideAbove;
+                bool insideAbove;
+
+                cr.Get(h, chsInsideAbove);
+
+		if (MRA_DEBUG) 
+		    cerr << "InURegion() i=" 
+			 << i 
+			 << " insideAbove=" 
+			 << chsInsideAbove.attr.insideAbove 
+			 << endl;
+
+                if (direction == chsInsideAbove.attr.insideAbove) 
+                    insideAbove = false;
+                else
+                    insideAbove = true;
+                if (cycleno > 0) insideAbove = !insideAbove;
+
+                //chsInsideAbove.attr.insideAbove = insideAbove;
+                //cr.UpdateAttr(h, chsInsideAbove.attr);
+
+                //cr.Get(h+1, chsInsideAbove);
+                //chsInsideAbove.attr.insideAbove = insideAbove;
+                //cr.UpdateAttr(h+1, chsInsideAbove.attr);
+
+		uregion->SetSegmentInsideLeftOrAbove(i, insideAbove);
+
+                h += 2;
+		i++;
 	    }
 
             cycles = nl->Rest(cycles);
@@ -2488,9 +2650,45 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 	faceno++;
     }
 
-    assert(false);
+    cr.EndBulkLoad();
 
-    return SetWord(0);
+    if (MRA_DEBUG) 
+	for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
+	    MSegmentData dms;
+
+	    uregion->GetSegment(i, dms);
+
+	    cerr << "segment #"
+		 << i
+		 << ": "
+		 << dms.faceno
+		 << " "
+		 << dms.cycleno
+		 << " "
+		 << dms.segmentno
+		 << " i=("
+		 << dms.initialStartX
+		 << ", "
+		 << dms.initialStartY
+		 << ", "
+		 << dms.initialEndX
+		 << ", "
+		 << dms.initialEndY
+		 << ") f=("
+		 << dms.finalStartX
+		 << ", "
+		 << dms.finalStartY
+		 << ", "
+		 << dms.finalEndX
+		 << ", "
+		 << dms.finalEndY
+		 << ") iloa="
+		 << dms.insideLeftOrAbove
+		 << endl;
+	}
+
+    correct = true;
+    return SetWord(Address(uregion));
 
 #ifdef SCHMUH
 
@@ -2714,6 +2912,22 @@ public:
 			  const int errorPos, 
 			  ListExpr& errorInfo, 
 			  bool& correct);
+
+/*
+For unit testing only.
+
+*/
+
+    int Unittest2(int pos) {
+        if (MRA_DEBUG) cerr << "MRegion::Unittest2() called" << endl;
+
+	if (pos < 0 || pos >= msegmentdata.Size()) return -1;
+
+	MSegmentData dms;
+	msegmentdata.Get(pos, dms);
+
+	return dms.GetInsideLeftOrAbove() ? 1 : 0;
+    }
 };
 
 int MRegion::NumOfFLOBs() {
@@ -3664,6 +3878,17 @@ static ListExpr Unittest1TypeMap(ListExpr args) {
     return nl->SymbolAtom("int");
 }
 
+static ListExpr Unittest2TypeMap(ListExpr args) {
+    if (MRA_DEBUG) cerr << "Unittest2TypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 2 
+	&& nl->IsEqual(nl->First(args), "mregion")
+	&& nl->IsEqual(nl->Second(args), "int")) 
+	return nl->SymbolAtom("bool");
+    else
+	return nl->SymbolAtom("typeerror");
+}
+
 /*
 1.1 Selection functions
 
@@ -3817,10 +4042,26 @@ static int Unittest1ValueMap(Word* args,
 
     if (MRA_DEBUG) cerr << "Unittest1ValueMap() #1" << endl;
 
-    result = qp->ResultStorage( s );
+    result = qp->ResultStorage(s);
     ((CcInt *)result.addr)->Set(true, detailedResult);
 
     if (MRA_DEBUG) cerr << "Unittest1ValueMap() #2" << endl;
+
+    return 0;
+}
+
+static int Unittest2ValueMap(Word* args, 
+			     Word& result, 
+			     int message, 
+			     Word& local, 
+			     Supplier s) {
+    if (MRA_DEBUG) cerr << "Unittest2ValueMap() called" << endl;
+
+    result = qp->ResultStorage(s);
+    ((CcBool *)result.addr)->Set(
+	true, 
+	((MRegion*) args[0].addr)->Unittest2(
+	    ((CcInt*) args[0].addr)->GetIntval()));
 
     return 0;
 }
@@ -3947,7 +4188,7 @@ Used for unit testing only.
 
 */
 
-static const string unittest1spec = 
+static const string unittestspec = 
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>unit testing only</text--->"
     "    <text>unit testing only</text--->"
@@ -4045,11 +4286,17 @@ Used for unit testing only.
 */
 
 static Operator unittest1("unittest1",
-			  unittest1spec,
+			  unittestspec,
 			  Unittest1ValueMap,
 			  Operator::DummyModel,
 			  simpleSelect,
 			  Unittest1TypeMap);
+static Operator unittest2("unittest2",
+			  unittestspec,
+			  Unittest2ValueMap,
+			  Operator::DummyModel,
+			  simpleSelect,
+			  Unittest2TypeMap);
 
 // ************************************************************************
 
@@ -4091,6 +4338,7 @@ Used for unit testing only.
 
 */
 	AddOperator(&unittest1);
+	AddOperator(&unittest2);
     }
     ~MovingRegionAlgebra() {}
 };
