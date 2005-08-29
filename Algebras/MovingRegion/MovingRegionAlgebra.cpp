@@ -1563,6 +1563,13 @@ public:
             cerr << "URegion::URegion() #2 called" << endl;
     }
 
+    void SetMSegmentData(DBArray<MSegmentData>* s) {
+        if (MRA_DEBUG) 
+            cerr << "URegion::SetMSegmentData() called" << endl;
+
+	segments = s;
+    }
+
     bool AddSegment(CRegion& cr,
 		    CRegion& rDir,
 		    unsigned int faceno,
@@ -2262,7 +2269,10 @@ void URegion::SetSegmentInsideLeftOrAbove(int pos, bool insideLeftOrAbove) {
 }
 
 int URegion::GetSegmentsNum(void) {
-    if (MRA_DEBUG) cerr << "URegion::GetSegmentsNum() called" << endl;
+    if (MRA_DEBUG) 
+	cerr << "URegion::GetSegmentsNum() called, num=" 
+	     << segmentsNum
+	     << endl;
 
     assert(role == NORMAL || role == EMBEDDED);
 
@@ -3035,6 +3045,14 @@ public:
 			  ListExpr& errorInfo, 
 			  bool& correct);
 
+    void Get(const int i, URegion& ur) {
+        if (MRA_DEBUG) 
+	    cerr << "MRegion::Get() called i=" << i << endl;
+
+	Mapping<URegion, CRegion>::Get(i, ur);
+	ur.SetMSegmentData(&msegmentdata);
+    }
+
 /*
 For unit testing only.
 
@@ -3056,14 +3074,12 @@ For unit testing only.
 int MRegion::NumOfFLOBs() {
     if (MRA_DEBUG) cerr << "MRegion::NumOfFLOBs() called" << endl;
 
-    assert(false);
     return 2;
 }
 
 FLOB* MRegion::GetFLOB(const int i) {
     if (MRA_DEBUG) cerr << "MRegion::GetFLOB() called" << endl;
 
-    assert(false);
     assert(i == 0 || i == 1);
 
     return i == 0 ? Mapping<URegion, CRegion>::GetFLOB(0) : &msegmentdata;
