@@ -46,3 +46,6 @@ GNU General Public License for more details.
 # define VERBATIM 285
 # define PARFORMAT 286
 # define CHARFORMAT 287
+# define TTFORMAT 288
+# define DUS 289
+# define BLANKDUS 289

@@ -37,6 +37,7 @@ digit		[0-9]
 num		({digit}{digit}|{digit})
 ref		"["{num}"]"
 verbatim	"----"
+tt        "__"
 
 head1		{num}" "
 head2		{num}"."{head1}
@@ -83,14 +84,18 @@ figure		"                "
 [0-9]			{yylval = atom(yytext, yyleng); return(DIGIT);}
 "[~]"			{yylval = atom(yytext, yyleng); return(TILDE);}
 "[*]"			{yylval = atom(yytext, yyleng); return(STAR);}
+"[__]"			{yylval = atom(yytext, yyleng); return(DUS);}
 "[\"]"			{yylval = atom(yytext, yyleng); return(QUOTE);}
 " ~ "			{yylval = atom(yytext, yyleng); return(BLANKTILDE);}
 " * "			{yylval = atom(yytext, yyleng); return(BLANKSTAR);}
+" __ "			{yylval = atom(yytext, yyleng); return(BLANKDUS);}
 " \" "			{yylval = atom(yytext, yyleng); return(BLANKQUOTE);}
 {other}			{yylval = atom(yytext, yyleng); return(OTHER);}
-.			{yylval = atom(yytext, yyleng); return(yytext[0]);}
+.			          {yylval = atom(yytext, yyleng); return(yytext[0]);}
 "paragraph" 		{yylval = atom(yytext, yyleng); return(PARFORMAT);}
 "characters" 		{yylval = atom(yytext, yyleng); return(CHARFORMAT);}
+{tt}          	{yylval = atom(yytext, yyleng); return(TTFORMAT);}
+
 
 %%
 

@@ -79,10 +79,10 @@ followed by an empty line is written to the output file. To understand the outpu
 %}
 
 %token OPEN, CLOSE, EPAR, DEFLINE, LETTER, DIGIT, OTHER, TILDE, STAR,
-	QUOTE, BLANKTILDE, BLANKSTAR, BLANKQUOTE,
+	QUOTE, BLANKTILDE, BLANKSTAR, BLANKQUOTE, DUS, BLANKDUS,
 	HEAD1, HEAD2, HEAD3, HEAD4, HEAD5, ENUM1, ENUM2, BULLET1, BULLET2,
 	FOLLOW1, FOLLOW2, DISPLAY, FIGURE, STARTREF, REF, VERBATIM,
-	PARFORMAT, CHARFORMAT
+	PARFORMAT, CHARFORMAT, TTFORMAT
 %%
 
 /*
@@ -109,6 +109,7 @@ chars 		:
 		| chars text_char	{print($2);}
 		| chars TILDE		{print($2);}
 		| chars STAR		{print($2);}
+		| chars DUS		{print($2);}
 		| chars QUOTE		{print($2);}
 		| chars '\"'		{print($2);}
 		| chars '*'		{print($2);}
@@ -118,6 +119,7 @@ chars 		:
 		| chars follow_elem	{print($2);}
 		| chars EPAR		{print($2);}
 		| chars DEFLINE		{print($2);}
+    | chars TTFORMAT  {print($2);}
 		;
 
 elements	: 
@@ -276,8 +278,10 @@ figure_text 	:			{$$ = atomc("");}
 		| figure_text ftext_char {$$ = concat($1, $2);}
 		| figure_text TILDE 	{$$ = concat($1, atomc("~"));}
 		| figure_text STAR 	{$$ = concat($1, atomc("*"));}
+		| figure_text DUS 	{$$ = concat($1, atomc("__"));}
 		| figure_text QUOTE 	{$$ = concat($1, atomc("\""));}
 		| figure_text emphasized {$$ = concat($1, $2);}
+		| figure_text typewriter {$$ = concat($1, $2);}
 		| figure_text bold_face	{$$ = concat($1, $2);}
 		| figure_text special_char_format {$$ = concat($1, $2);}
 		| figure_text follow_elem {$$ = concat($1, $2);}
@@ -403,8 +407,10 @@ netext		: start_elem		{$$ = $1;}
 start_elem	: text_char		{$$ = $1;}
 		| TILDE 		{$$ = atomc("~");}
 		| STAR 			{$$ = atomc("*");}
+		| DUS 			{$$ = atomc("__");}
 		| QUOTE 		{$$ = atomc("\"");}
 		| emphasized		{$$ = $1;}
+		| typewriter		{$$ = $1;}
 		| bold_face		{$$ = $1;}
 		| special_char_format	{$$ = $1;}
 		| bracketed		{$$ = $1;}
@@ -436,6 +442,7 @@ ftext_char 	: LETTER 		{$$ = $1;}
 		| OTHER			{$$ = $1;}
 		| BLANKTILDE 		{$$ = $1;}
 		| BLANKSTAR 		{$$ = $1;}
+		| BLANKDUS 		{$$ = $1;}
 		| BLANKQUOTE		{$$ = $1;}
 		| '\\'			{$$ = $1;}
 		| ' '			{$$ = $1;}
@@ -445,6 +452,9 @@ ftext_char 	: LETTER 		{$$ = $1;}
 		;
 
 emphasized 	: '~' unemph_list '~'	{$$ = $2;}
+		;
+
+typewriter 	: TTFORMAT  untt_list TTFORMAT	{$$ = $2;}
 		;
 
 bold_face 	: '*' unbold_list '*'	{$$ = $2;}
@@ -457,9 +467,24 @@ unemph_list	:			{$$ = atomc("");}
 unemph		: text_char		{$$ = $1;}
 		| TILDE 		{$$ = atomc("~");}
 		| STAR 			{$$ = atomc("*");}
+		| DUS 			{$$ = atomc("__");}
 		| QUOTE 		{$$ = atomc("\"");}
 		| follow_elem		{$$ = $1;}
 		| '*' unboldemph_list '*'	{$$ = $2;}
+		| special_char_format	{$$ = $1;}
+		| bracketed		{$$ = $1;}
+		;
+
+untt_list	:			{$$ = atomc("");}
+		| untt_list untt	{$$ = concat($1, $2);}
+		;
+
+untt		: text_char		{$$ = $1;}
+		| TILDE 		{$$ = atomc("~");}
+		| STAR 			{$$ = atomc("*");}
+		| DUS 			{$$ = atomc("__");}
+		| QUOTE 		{$$ = atomc("\"");}
+		| follow_elem		{$$ = $1;}
 		| special_char_format	{$$ = $1;}
 		| bracketed		{$$ = $1;}
 		;
@@ -471,6 +496,7 @@ unbold_list	:			{$$ = atomc("");}
 unbold		: text_char		{$$ = $1;}
 		| TILDE 		{$$ = atomc("~");}
 		| STAR 			{$$ = atomc("*");}
+		| DUS 			{$$ = atomc("__");}
 		| QUOTE 		{$$ = atomc("\"");}
 		| follow_elem		{$$ = $1;}
 		| '~' unboldemph_list '~'	{$$ = $2;}
@@ -485,6 +511,7 @@ unboldemph_list	:			{$$ = atomc("");}
 unboldemph	: text_char		{$$ = $1;}
 		| TILDE 		{$$ = atomc("~");}
 		| STAR 			{$$ = atomc("*");}
+		| DUS 			{$$ = atomc("__");}
 		| QUOTE 		{$$ = atomc("\"");}
 		| follow_elem		{$$ = $1;}
 		| special_char_format	{$$ = $1;}
@@ -498,6 +525,7 @@ plain_list	:			{$$ = atomc("");}
 plain		: text_char		{$$ = $1;}
 		| TILDE 		{$$ = atomc("~");}
 		| STAR 			{$$ = atomc("*");}
+		| DUS 			{$$ = atomc("__");}
 		| QUOTE 		{$$ = atomc("\"");}
 		| bracketed		{$$ = $1;}
 		;
@@ -544,6 +572,7 @@ btext 		:			{$$ = atomc("");}
 		| btext text_char	{$$ = concat($1, $2);}
 		| btext TILDE 		{$$ = concat($1, atomc("~"));}
 		| btext STAR 		{$$ = concat($1, atomc("*"));}
+		| btext DUS 		{$$ = concat($1, atomc("__"));}
 		| btext QUOTE 		{$$ = concat($1, atomc("\""));}
 		| btext follow_elem	{$$ = concat($1, $2);}
 		| btext '\"'		{$$ = concat($1, $2);}
@@ -586,6 +615,7 @@ btext2 		:			{$$ = atomc("");}
 		| btext2 text_char	{$$ = concat($1, $2);}
 		| btext2 TILDE		{$$ = concat($1, $2);}
 		| btext2 STAR		{$$ = concat($1, $2);}
+		| btext2 DUS		{$$ = concat($1, $2);}
 		| btext2 QUOTE		{$$ = concat($1, $2);}
 		| btext2 follow_elem	{$$ = concat($1, $2);}
 		| btext2 '\"'		{$$ = concat($1, $2);}
