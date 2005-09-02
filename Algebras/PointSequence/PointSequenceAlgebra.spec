@@ -20,3 +20,6 @@
 operator c2point alias C2POINT pattern op (_)
 operator c2points alias C2POINTS pattern op (_)
 operator c2line alias C2LINE pattern op (_)
+operator c2reg alias C2REG pattern op (_)
+operator c2rect alias C2RECT pattern op (_)
+operator rect2ps alias RECT2PS pattern op (_)
