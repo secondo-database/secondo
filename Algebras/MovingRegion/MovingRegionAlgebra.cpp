@@ -1377,8 +1377,8 @@ public:
     double finalEndX;
     double finalEndY;
 
-    bool isPointInInitial;
-    bool isPointInFinal;
+    bool pointInitial;
+    bool pointFinal;
 
     MSegmentData() {
         if (MRA_DEBUG) 
@@ -1452,8 +1452,8 @@ public:
 Calculate whether segment is point in initial or final instant.
 
 */
-	isPointInInitial = nearlyEqual(isx, iex) && nearlyEqual(isy, iey);
-	isPointInFinal = nearlyEqual(fsx, fex) && nearlyEqual(fsy, fey);
+	pointInitial = nearlyEqual(isx, iex) && nearlyEqual(isy, iey);
+	pointFinal = nearlyEqual(fsx, fex) && nearlyEqual(fsy, fey);
 
 /*
 Check whether initial and final segment are collinear,
@@ -1461,7 +1461,7 @@ Check whether initial and final segment are collinear,
 */
 	bool collinear;
 
-	if (isPointInInitial && isPointInFinal) {
+	if (pointInitial && pointFinal) {
 /* 
 Error: A segment may not be reduced to a point both in initial and final
 instant.
@@ -1474,7 +1474,7 @@ instant.
 	    throw invalid_argument("both initial and final segment "
 				   "reduced to point, which is not "
 				   "allowed");
-	} else if (isPointInInitial) {
+	} else if (pointInitial) {
 /* 
 Only initial segment reduced to point. Initial and final segment are trivially
 collinear.
@@ -1485,7 +1485,7 @@ collinear.
 		     << endl;
 
 	    collinear = true;
-	} else if (isPointInFinal) {
+	} else if (pointFinal) {
 /*
 Only final segment reduced to point. Initial and final segment are trivially
 collinear.
@@ -2133,8 +2133,8 @@ bool URegion::AddSegment(CRegion& cr,
 	    
 	    segments->Get(i, existingDms);
 
-	    if (!dms.isPointInInitial
-		&& !existingDms.isPointInInitial
+	    if (!dms.pointInitial
+		&& !existingDms.pointInitial
 		&& ((nearlyEqual(dms.initialStartX, 
 				 existingDms.initialStartX)
 		     && nearlyEqual(dms.initialStartY, 
@@ -2157,10 +2157,13 @@ bool URegion::AddSegment(CRegion& cr,
 			 << endl;
 
 		dms.degeneratedInitial = true;
+		existingDms.degeneratedInitial = true;
+
+		segments->Put(i, existingDms);
 	    }
 
-	    if (!dms.isPointInFinal
-		&& !existingDms.isPointInFinal
+	    if (!dms.pointFinal
+		&& !existingDms.pointFinal
 	        && ((nearlyEqual(dms.finalStartX, 
 				 existingDms.finalStartX)
 		     && nearlyEqual(dms.finalStartY, 
@@ -2183,8 +2186,11 @@ bool URegion::AddSegment(CRegion& cr,
 			 << endl;
 
 		dms.degeneratedFinal = true;
-	    }
+		existingDms.degeneratedFinal = true;
 
+		segments->Put(i, existingDms);
+	    }
+	    
 	    if (nearlyEqual(intervalLen, 0.0)
 		&& (dms.degeneratedInitial || dms.degeneratedFinal))
 		throw invalid_argument(
@@ -2665,10 +2671,10 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
         return SetWord(Address(0));
     }
 
-    Interval<Instant> tinterval(*start, 
-                                *end,
-                                nl->BoolValue(nl->Third(interval)),
-                                nl->BoolValue(nl->Fourth(interval)));
+    bool lc = nl->BoolValue(nl->Third(interval));
+    bool rc = nl->BoolValue(nl->Fourth(interval));
+
+    Interval<Instant> tinterval(*start, *end, lc, rc);
 
     double intervalLen = end->ToDouble()-start->ToDouble();
 
@@ -2825,6 +2831,9 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 
     cr.EndBulkLoad();
 
+    bool nonTrivialInitial = false;
+    bool nonTrivialFinal = false;
+
     if (MRA_DEBUG) 
 	for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
 	    MSegmentData dms;
@@ -2855,10 +2864,46 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 		 << dms.finalEndX
 		 << ", "
 		 << dms.finalEndY
-		 << ") iloa="
+		 << ") flags="
 		 << dms.insideLeftOrAbove
+		 << " "
+		 << dms.pointInitial
+		 << " "
+		 << dms.pointFinal
+		 << " "
+		 << dms.degeneratedInitial
+		 << " "
+		 << dms.degeneratedFinal
 		 << endl;
 	}
+
+    for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
+	    MSegmentData dms;
+	    uregion->GetSegment(i, dms);
+
+	    if (!dms.pointInitial && !dms.degeneratedInitial) 
+		nonTrivialInitial = true;
+	    if (!dms.pointFinal && !dms.degeneratedFinal) 
+		nonTrivialFinal = true;
+    }
+
+    if (lc && !nonTrivialInitial) {
+	cerr << "no non-trivial segments in initial instant but " 
+	     << "time interval closed on left side" 
+	     << endl;
+	delete uregion;
+	correct = false;
+	return SetWord(Address(0));
+    }
+
+    if (rc && !nonTrivialFinal) {
+	cerr << "no non-trivial segments in final instant but " 
+	     << "time interval closed on right side" 
+	     << endl;
+	delete uregion;
+	correct = false;
+	return SetWord(Address(0));
+    }
 
     correct = true;
     return SetWord(Address(uregion));
