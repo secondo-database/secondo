@@ -1377,6 +1377,9 @@ public:
     double finalEndX;
     double finalEndY;
 
+    bool isPointInInitial;
+    bool isPointInFinal;
+
     MSegmentData() {
         if (MRA_DEBUG) 
 	    cerr << "MSegmentData::MSegmentData() #1 called" << endl;
@@ -1446,12 +1449,54 @@ public:
 		 << endl;
 
 /*
+Calculate whether segment is point in initial or final instant.
+
+*/
+	isPointInInitial = nearlyEqual(isx, iex) && nearlyEqual(isy, iey);
+	isPointInFinal = nearlyEqual(fsx, fex) && nearlyEqual(fsy, fey);
+
+/*
 Check whether initial and final segment are collinear,
 
 */
 	bool collinear;
 
-	if (nearlyEqual(isx, iex) && nearlyEqual(fsx, fex)) {
+	if (isPointInInitial && isPointInFinal) {
+/* 
+Error: A segment may not be reduced to a point both in initial and final
+instant.
+
+*/
+	    if (MRA_DEBUG) 
+		cerr << "MSegmentData::MSegmentData() both reduced" 
+		     << endl;
+
+	    throw invalid_argument("both initial and final segment "
+				   "reduced to point, which is not "
+				   "allowed");
+	} else if (isPointInInitial) {
+/* 
+Only initial segment reduced to point. Initial and final segment are trivially
+collinear.
+
+*/
+	    if (MRA_DEBUG) 
+		cerr << "MSegmentData::MSegmentData() initial reduced" 
+		     << endl;
+
+	    collinear = true;
+	} else if (isPointInFinal) {
+/*
+Only final segment reduced to point. Initial and final segment are trivially
+collinear.
+
+*/
+	    if (MRA_DEBUG) 
+		cerr << "MSegmentData::MSegmentData() final reduced" 
+		     << endl;
+
+	    collinear = true;
+	} else if (nearlyEqual(isx, iex) && nearlyEqual(fsx, fex)) {
 /*
 Both segments are vertical. Check if both segments have the same
 orientation.
@@ -2081,14 +2126,6 @@ bool URegion::AddSegment(CRegion& cr,
 			 nl->RealValue(nl->Third(end)), 
 			 nl->RealValue(nl->Fourth(end)));
 
-	if (nearlyEqual(dms.initialStartX, dms.initialEndX)
-	    && nearlyEqual(dms.initialStartY, dms.initialEndY)
-	    && nearlyEqual(dms.finalStartX, dms.finalEndX)
-	    && nearlyEqual(dms.finalStartY, dms.finalEndY)) 
-	    throw invalid_argument(
-		"segment may be reduced to point in initial or "
-		"final instant but not both");
-
 	for (unsigned int i = 0; i < segmentsNum; i++) {
 	    if (MRA_DEBUG) cerr << "URegion::AddSegment() i=" << i << endl;
 
@@ -2096,22 +2133,24 @@ bool URegion::AddSegment(CRegion& cr,
 	    
 	    segments->Get(i, existingDms);
 
-	    if ((nearlyEqual(dms.initialStartX, 
-			     existingDms.initialStartX)
-		 && nearlyEqual(dms.initialStartY, 
-				existingDms.initialStartY)
-		 && nearlyEqual(dms.initialEndX, 
-				existingDms.initialEndX)
-		 && nearlyEqual(dms.initialEndY, 
-				existingDms.initialEndY))
-		|| (nearlyEqual(dms.initialStartX, 
-				existingDms.initialEndX)
-		    && nearlyEqual(dms.initialStartY, 
-				   existingDms.initialEndY)
-		    && nearlyEqual(dms.initialEndX, 
-				   existingDms.initialStartX)
-		    && nearlyEqual(dms.initialEndY, 
-				   existingDms.initialStartY))) {
+	    if (!dms.isPointInInitial
+		&& !existingDms.isPointInInitial
+		&& ((nearlyEqual(dms.initialStartX, 
+				 existingDms.initialStartX)
+		     && nearlyEqual(dms.initialStartY, 
+				    existingDms.initialStartY)
+		     && nearlyEqual(dms.initialEndX, 
+				    existingDms.initialEndX)
+		     && nearlyEqual(dms.initialEndY, 
+				    existingDms.initialEndY))
+		    || (nearlyEqual(dms.initialStartX, 
+				    existingDms.initialEndX)
+			&& nearlyEqual(dms.initialStartY, 
+				       existingDms.initialEndY)
+			&& nearlyEqual(dms.initialEndX, 
+				       existingDms.initialStartX)
+			&& nearlyEqual(dms.initialEndY, 
+				       existingDms.initialStartY)))) {
 		if (MRA_DEBUG) 
 		    cerr << "URegion::AddSegment() degen'ed initial in " 
 			 << i
@@ -2120,22 +2159,24 @@ bool URegion::AddSegment(CRegion& cr,
 		dms.degeneratedInitial = true;
 	    }
 
-	    if ((nearlyEqual(dms.finalStartX, 
-			     existingDms.finalStartX)
-		 && nearlyEqual(dms.finalStartY, 
-				existingDms.finalStartY)
-		 && nearlyEqual(dms.finalEndX, 
-				existingDms.finalEndX)
-		 && nearlyEqual(dms.finalEndY, 
-				existingDms.finalEndY))
-		|| (nearlyEqual(dms.finalStartX, 
-				existingDms.finalEndX)
-		    && nearlyEqual(dms.finalStartY, 
-				   existingDms.finalEndY)
-		    && nearlyEqual(dms.finalEndX, 
-				   existingDms.finalStartX)
-		    && nearlyEqual(dms.finalEndY, 
-				   existingDms.finalStartY))) {
+	    if (!dms.isPointInFinal
+		&& !existingDms.isPointInFinal
+	        && ((nearlyEqual(dms.finalStartX, 
+				 existingDms.finalStartX)
+		     && nearlyEqual(dms.finalStartY, 
+				    existingDms.finalStartY)
+		     && nearlyEqual(dms.finalEndX, 
+				    existingDms.finalEndX)
+		     && nearlyEqual(dms.finalEndY, 
+				    existingDms.finalEndY))
+		    || (nearlyEqual(dms.finalStartX, 
+				    existingDms.finalEndX)
+			&& nearlyEqual(dms.finalStartY, 
+				       existingDms.finalEndY)
+			&& nearlyEqual(dms.finalEndX, 
+				       existingDms.finalStartX)
+			&& nearlyEqual(dms.finalEndY, 
+				       existingDms.finalStartY)))) {
 		if (MRA_DEBUG) 
 		    cerr << "URegion::AddSegment() degen'ed final in " 
 			 << i
@@ -2147,7 +2188,7 @@ bool URegion::AddSegment(CRegion& cr,
 	    if (nearlyEqual(intervalLen, 0.0)
 		&& (dms.degeneratedInitial || dms.degeneratedFinal))
 		throw invalid_argument(
-		    "units with point time interval must not "
+		    "units with zero length time interval must not "
 		    "be degenerated");
 	    else if (!nearlyEqual(intervalLen, 0.0)
 		       && dms.degeneratedInitial
