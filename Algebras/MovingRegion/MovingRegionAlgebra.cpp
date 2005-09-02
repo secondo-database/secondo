@@ -156,7 +156,7 @@ static void GaussTransform(const unsigned int n,
 	    for (j = 0; j < n; j++) {
 		for (unsigned int k = 0; k < m; k++) 
 		    fprintf(stderr, "%7.3f ", a[j][k]);
-		fprintf(stderr, "| %7.3f", b[j]);
+		fprintf(stderr, "| %7.3f\n", b[j]);
 	    }
     }
 }
@@ -165,6 +165,7 @@ static void GaussTransform(const unsigned int n,
 1.1 Function ~specialSegmentIntersects2()~
 
 Returns ~true~ if the specified segment and line intersect.
+It is not considered as intersection if they touch in their end points.
 
 The segment connects the points $(l1p1x, l1p1y, z)$ and $(l1p2x, l1p2y, z)$,
 ie.\ segment 1 is parallel to the $(x, y)$-plane.
@@ -257,22 +258,12 @@ $(x, y)$-plane with distance z from the $(x, y)$-plane.
 The segment is actually a point.
 
 */
-
-	if (nearlyEqual(l1p1x, x) && nearlyEqual(l1p1y, y)) {
-	    if (MRA_DEBUG)
-		cerr 
-		    << "specialSegmentIntersects2() intersects #1" 
-		    << endl;
-
-	    return true;
-	} else {
-	    if (MRA_DEBUG)
-		cerr 
-		    << "specialSegmentIntersects2() no intersection #1" 
-		    << endl;
-
-	    return false;
-	}
+	if (MRA_DEBUG)
+	    cerr 
+		<< "specialSegmentIntersects2() no intersection #1" 
+		<< endl;
+	
+	return false;
     } else if (nearlyEqual(l1p1x, l1p2x)) {
 /*
 The segment is vertical in the $(x, y)$-plane.
@@ -280,8 +271,8 @@ The segment is vertical in the $(x, y)$-plane.
 */
 
 	if (nearlyEqual(x, l1p1x)
-	    && lowerOrNearlyEqual(l1MinY, y)
-	    && lowerOrNearlyEqual(y, l1MaxY)) {
+	    && lower(l1MinY, y)
+	    && lower(y, l1MaxY)) {
 	    if (MRA_DEBUG)
 		cerr 
 		    << "specialSegmentIntersects2() intersects #2" 
@@ -303,8 +294,8 @@ The segment is horizontal in the $(x, y)$-plane.
 */
 
 	if (nearlyEqual(y, l1p1y)
-	    && lowerOrNearlyEqual(l1MinX, x)
-	    && lowerOrNearlyEqual(x, l1MaxX)) {
+	    && lower(l1MinX, x)
+	    && lower(x, l1MaxX)) {
 	    if (MRA_DEBUG)
 		cerr 
 		    << "specialSegmentIntersects2() intersects #3" 
@@ -346,10 +337,10 @@ box parallel to the $(x, y)$-plane.
 
 */
 
-	if (lower(x, l1MinX)
-	    || lower(l1MaxX, x)
-	    || lower(y, l1MinY)
-	    || lower(l1MaxY, y)) {
+	if (lowerOrNearlyEqual(x, l1MinX)
+	    || lowerOrNearlyEqual(l1MaxX, x)
+	    || lowerOrNearlyEqual(y, l1MinY)
+	    || lowerOrNearlyEqual(l1MaxY, y)) {
 	    if (MRA_DEBUG)
 		cerr << "specialSegmentIntersects2() no intersection #4b" 
 		     << endl;
@@ -368,7 +359,8 @@ box parallel to the $(x, y)$-plane.
 1.1 Function ~specialSegmentIntersects1()~
 \label{ssi}
 
-Returns ~true~ if the two specified segments intersect.
+Returns ~true~ if the two specified segments intersect. 
+It is not considered as intersection if they touch in their end points.
 
 The two lines must meet the following conditions.
 
@@ -510,14 +502,16 @@ indicating that there are no solutions.
 Row is in format $0 c \left| b \right.$ with $c\ne 0$. All rows below are
 entirely 0.
 Inserting $t=b/c$ into the equation of line 2 yields the value $z=dt\cdot b/c$
-for the third component. If $0\le z \le dt$, the two segments intersect.
+for the third component. If $0\le z \le dt$, the two segments intersect. If
+$z=0$ or $z=dt$, they touch at one of their end points, which is not considered
+as intersection.
 
 */
 
 	    if (MRA_DEBUG)
 		cerr << "specialSegmentIntersects1() z=" << z << endl; 
 
-	    if (lowerOrNearlyEqual(0.0, z) && lowerOrNearlyEqual(z, dt)) {
+	    if (lower(0.0, z) && lower(z, dt)) {
 		if (MRA_DEBUG)
 		    cerr << "specialSegmentIntersects1() intersect" 
 			 << endl;
@@ -1036,7 +1030,7 @@ trapeziums.
 		 << "parallel to (x, y)-plane" 
 		 << endl;
 
-	if (lower(P[2], 0) || lower(dt, P[2])) {
+	if (lowerOrNearlyEqual(P[2], 0) || lowerOrNearlyEqual(dt, P[2])) {
 	    if (MRA_DEBUG) 
 		cerr << "specialTrapeziumIntersects() no intersection" 
 		     << endl;
@@ -1062,6 +1056,7 @@ intersection line.
 
 	double ip4x = t2p2x+(t2p4x-t2p2x)*P[2]/dt;
 	double ip4y = t2p2y+(t2p4y-t2p2y)*P[2]/dt;
+
 
 /*
 Check for overlaps of the bounding boxes of the two intersection segments.
@@ -1323,11 +1318,11 @@ static ListExpr IRegionProperty() {
 static bool CheckIRegion(ListExpr type, ListExpr& errorInfo) {
     if (MRA_DEBUG) cerr << "CheckIRegion() called" << endl;
 
-    return nl->IsEqual(type, "iregion");
+    return nl->IsEqual(type, "intimeregion");
 }
 
 static TypeConstructor iregion(
-    "iregion",
+    "intimeregion",
     IRegionProperty,
     OutIntime<CRegion, OutRegion>, 
     InIntime<CRegion, InRegion>,
@@ -1355,6 +1350,12 @@ static TypeConstructor iregion(
 
 */
 
+enum DegenMode { UNKNOWN, 
+		 NONE, 
+		 IGNORE, 
+		 INSIDELEFTORABOVE, 
+		 NOTINSIDELEFTORABOVE };
+
 class MSegmentData {
 // *hm* Debug only, set attributes to private later again
 // private:
@@ -1364,8 +1365,11 @@ public:
     unsigned int segmentno;
 
     bool insideLeftOrAbove;
-    bool degeneratedInitial;
-    bool degeneratedFinal;
+
+    int degeneratedInitialNext;
+    int degeneratedFinalNext;
+    DegenMode degeneratedInitial;
+    DegenMode degeneratedFinal;
 
     double initialStartX;
     double initialStartY;
@@ -1389,8 +1393,6 @@ public:
 		 unsigned int cno, 
 		 unsigned int sno,
 		 bool iloa,
-		 bool di,
-		 bool df,
 		 double il,
 		 double isx,
 		 double isy,
@@ -1404,8 +1406,10 @@ public:
         cycleno(cno),
         segmentno(sno),
 	insideLeftOrAbove(iloa),
-	degeneratedInitial(di),
-	degeneratedFinal(df),
+	degeneratedInitialNext(-1),
+	degeneratedFinalNext(-1),
+	degeneratedInitial(UNKNOWN),
+	degeneratedFinal(UNKNOWN),
 	initialStartX(isx),
 	initialStartY(isy),
 	initialEndX(iex),
@@ -1424,9 +1428,9 @@ public:
 		 << "] flags=["
 		 << insideLeftOrAbove
 		 << " "
-		 << degeneratedInitial
+		 << degeneratedInitialNext
 		 << " "
-		 << degeneratedFinal
+		 << degeneratedFinalNext
 		 << "] il="
 		 << il
 		 << " initial=["
@@ -1627,6 +1631,7 @@ public:
     void SetSegmentInsideLeftOrAbove(int pos, bool insideLeftOrAbove);
     int GetSegmentsNum(void);
     void GetSegment(int pos, MSegmentData& dms);
+    void PutSegment(int pos, MSegmentData& dms);
 
     void Destroy(void);
 
@@ -1672,381 +1677,161 @@ const Rectangle<3> URegion::BoundingBox() const {
 void URegion::TemporalFunction(Instant& t, CRegion& res) {
     if (MRA_DEBUG) cerr << "URegion::TemporalFunction() called" << endl;
 
-    assert(false);
-
-#ifdef SCHMUH
-
     assert(t.IsDefined());
     assert(timeInterval.Contains(t));
 
     Instant t0 = timeInterval.start;
     Instant t1 = timeInterval.end;
 
-    if (MRA_DEBUG) cerr << "URegion::TemporalFunction() trace#1.1" << endl;
+    bool initialInstant = nearlyEqual(t0.ToDouble(), t.ToDouble());
+    bool finalInstant = nearlyEqual(t1.ToDouble(), t.ToDouble());
+
+    double f =
+	nearlyEqual(t0.ToDouble(), t1.ToDouble()) ? 0 : (t-t0)/(t1-t0);
+
+    int partnerno = 0;
+
     CRegion* cr = new CRegion(0);
 
     cr->StartBulkLoad();
 
-    // all half segments in one face will have the same fcno
-    // all half segments in one cycle will have the same ccno
-    // two half segments will have the same edno. edno is only unique 
-    // over these pairs within one cycle.
-    // two half segments will have the same partnerno. edno is unique
-    // over all these pairs.
-    int fcno = -1;
-    int ccno = -1;
-    int edno = -1;
-    int partnerno = 0;
-
-    unsigned int pos = 0;
-
-    // this loop goes through all faces...
-    while (pos < pointsNum) {
-	if (MRA_DEBUG) 
-	    cerr << "URegion::TemporalFunction() new face" << endl;
-
-	// isCycle will be true if current cycle is not a hole cycle
-	bool isCycle = true;
-
-	fcno++;
-	ccno = -1;
-	edno = -1;
-
-	// this loop goes through all cycles of the current face
-	// *hm* No exit condition for current face -> bug!
-	while (pos < pointsNum) {
+    for (int i = 0; i < segments->Size(); i++) {
 	    if (MRA_DEBUG) 
-		cerr << "URegion::TemporalFunction() new cyle" << endl;
+		cerr << "URegion::TemporalFunction() segment #" << i << endl; 
 
-	    ccno++;
-	    edno = -1;
-
-	    // cycle must have at least three edges
-	    assert(pos+2 < pointsNum);
-
-	    // cyclepoints is used to check whether we have duplicate points
-	    // in the cycle
-	    Points cyclepoints(0);
-
-	    // *hm* dunno
-	    CRegion* rDir = new CRegion(0);
-
-	    rDir->StartBulkLoad();
-
-	    // get first point from DBArray
-	    MPointData dmp;
-	    points->Get(pointsStartPos+pos, dmp);
-	    pos++;
+	    MSegmentData dms;
+	    segments->Get(i, dms);
+	    
+	    double xs = 
+		dms.initialStartX+(dms.finalStartX-dms.initialStartX)*f;
+	    double ys = 
+		dms.initialStartY+(dms.finalStartY-dms.initialStartY)*f;
+	    double xe = 
+		dms.initialEndX+(dms.finalEndX-dms.initialEndX)*f;
+	    double ye = 
+		dms.initialEndY+(dms.finalEndY-dms.initialEndY)*f;
 
 	    if (MRA_DEBUG) 
-		cerr << "URegion::TemporalFunction() first vertex pos="
-		     << pos
-		     << " x=" 
-		     << dmp.GetStartX()
-		     << " y="
-		     << dmp.GetStartY()
+		cerr << "URegion::TemporalFunction()   value is " 
+		     << xs << " " << ys << " " << xe << " " << ye 
 		     << endl;
 
-	    // create Point instance with coordinates of first point at 
-	    // instant t
-	    Point currvertex(true, 
-			     (dmp.GetEndX()-dmp.GetStartX())*((t-t0)/(t1-t0))
-			     +dmp.GetStartX(),
-			     (dmp.GetEndY()-dmp.GetStartY())*((t-t0)/(t1-t0))
-			     +dmp.GetStartY());
-
-	    // store first point in cyclepoints
-	    cyclepoints.StartBulkLoad();
-	    cyclepoints += currvertex;
-	    cyclepoints.EndBulkLoad();
-
-	    // since we are adding half segments, we need to remember
-	    // the previous point: current half segment connects previous
-	    // and current point
-	    Point prevvertex = currvertex;
-
-	    // required later to connect first and last point to close
-	    // the cycle
-	    Point firstvertex = currvertex;
-
-	    // *hm* Not sure. I think, though, that p1 and p2 are a complicated
-	    // way to remember the previous point, and that proper usage of 
-	    // prevvertex would make these obsolete
-	    Point p1 = currvertex;
-	    Point p2;
-
-	    // this loop goes through all points of the current cycle
-	    // *hm* No exit condition for current cycle -> bug!
-	    while (pos < pointsNum) {
+	    if (nearlyEqual(xs, xe) && nearlyEqual(ys, ye)) {
 		if (MRA_DEBUG) 
-		    cerr << "URegion::TemporalFunction() new edge" << endl;
-
-		// get current point from DBArray
-		points->Get(pointsStartPos+pos, dmp);
-		pos++;
-
-		if (MRA_DEBUG) 
-		    cerr << "URegion::TemporalFunction() current vertex pos="
-			 << pos
-			 << " x=" 
-			 << dmp.GetStartX()
-			 << " y="
-			 << dmp.GetStartY()
+		    cerr << "URegion::TemporalFunction()   reduced to point" 
 			 << endl;
-		if (MRA_DEBUG) 
-		    cerr << "URegion::TemporalFunction() previous vertex pos="
-			 << pos
-			 << " x=" 
-			 << prevvertex.GetX()
-			 << " y="
-			 << prevvertex.GetY()
-			 << endl;
-
-		// set previously created Point instance to coordinates of 
-		// current point at instant t
-		currvertex.Set(
-		    (dmp.GetEndX()-dmp.GetStartX())*((t-t0)/(t1-t0))
-		    +dmp.GetStartX(),
-		    (dmp.GetEndY()-dmp.GetStartY())*((t-t0)/(t1-t0))
-		    +dmp.GetStartY());
-
-		// check if current point is a duplicate
-		assert(!cyclepoints.Contains(currvertex));
-
-		if (MRA_DEBUG) 
-		    cerr << "URegion::TemporalFunction() trace#2" << endl;
-
-		// add current point to cyclepoints
-		cyclepoints.StartBulkLoad();
-		cyclepoints += currvertex;
-		cyclepoints.EndBulkLoad();
-
-		// *hm* dunno
-		p2 = currvertex;
-
-		if (MRA_DEBUG) 
-		    cerr << "URegion::TemporalFunction() trace#3" << endl;
-
-		// create the half segment, which connects prevvertex
-		// and currvertex
-		CHalfSegment chs(true, true, prevvertex, currvertex);
-
-		// remember currvertex for next half segment in next iteration
-		prevvertex = currvertex;
-
-		// assign fcno, ccno, edno and partnerno as described above
-		edno++;
-
-		chs.attr.faceno = fcno;
-		chs.attr.cycleno = ccno;
-		chs.attr.edgeno = edno;
-		chs.attr.partnerno = partnerno;
-		partnerno++;
-
-		// *hm* Based on the assumption, that p1 contains the
-		// previous point, the next statement will store in
-		// chs.attr.insideAbove whether chs contains the two
-		// points in swapped order.
-
-
-// observation for cycles (for whole cycle, exactly the opposite holds):
-// 
-// cylce clockwise && p1 > p2 => inside is left or above of seg(p1, p2)
-// cycle clockwise && p1 < p2 => inside is right or below of seg(p1, p2)
-// 
-// cycle counterclockwise && p1 < p2 => inside is left or above of seg(p1, p2)
-// cycle counterclockwise && p1 > p2 => inside is right or below of seg(p1, p2)
-// 
-// algorithm:
-// 
-// calculate insideAbove for each half segment. insideAbove will be true if and
-// only if the inside is left or above the half segment
-// 
-// 1. check for each segment whether p1 < p2 and store true in insideAbove,
-//    if so.
-// 
-// 2. correct insideAbove:
-// 
-//    (a) if cycle clockwise & p1 < p2 => insideAbove = false
-//    (b) if cycle counterclockwise & p1 > p2 => insideAbove = false
-// 
-// 3. correct insideAbove again:
-// 
-//    if we are dealing with a hole cycle, invert insideAbove.
-
-		chs.attr.insideAbove = chs.GetLP() == p1;
-		if (MRA_DEBUG)
-		    cerr << "URegion::TemporalFunction() p1 x="
-			 << p1.GetX()
-			 << " y="
-			 << p1.GetY()
-			 << endl;
-		if (MRA_DEBUG)
-		    cerr << "URegion::TemporalFunction() prevvertex x="
-			 << prevvertex.GetX()
-			 << " y="
-			 << prevvertex.GetY()
-			 << endl;
-		if (MRA_DEBUG)
-		    cerr << "URegion::TemporalFunction() chs.GetLP() x="
-			 << chs.GetLP().GetX()
-			 << " y="
-			 << chs.GetLP().GetY()
-			 << endl;
-
-		// hzm *dunno*
-		p1 = p2;
-
-		if (MRA_DEBUG) 
-		    cerr << "URegion::TemporalFunction() trace#4" << endl;
-
-		// *hm* dunno
-		assert(cr->insertOK(chs));
-
-		if (MRA_DEBUG) 
-		    cerr << "URegion::TemporalFunction() trace#5.1" << endl;
-
-		// add half segment to result
-		*cr += chs;
-		if (MRA_DEBUG) 
-		    cerr << "URegion::TemporalFunction() trace#5.2" << endl;
-
-		// *hm* dunno
-		*rDir += chs;
-
-		if (MRA_DEBUG) 
-		    cerr << "URegion::TemporalFunction() trace#6" << endl;
-
-		// add other side of half segment
-		chs.SetLDP(false);
-
-		*cr += chs;
-
-		if (MRA_DEBUG) 
-		    cerr << "URegion::TemporalFunction() trace#7" << endl;
+		continue;
 	    }
 
-	    if (MRA_DEBUG) 
-		cerr << "URegion::TemporalFunction() trace#8.2" << endl;
+	    assert(dms.degeneratedInitial != UNKNOWN);
+	    assert(dms.degeneratedFinal != UNKNOWN);
 
-	    // create half segment connect first and last point
-	    CHalfSegment chs(true, true, firstvertex, currvertex);
+	    if ((initialInstant && dms.degeneratedInitial == IGNORE)
+		|| (finalInstant && dms.degeneratedFinal == IGNORE)) {
+		if (MRA_DEBUG) 
+		    cerr << "URegion::TemporalFunction()   ignored degenerated"
+			 << endl;
+		continue;
+	    }
 
-	    if (MRA_DEBUG) 
-		cerr << "URegion::TemporalFunction() first vertex pos="
-		     << pos
-		     << " x=" 
-		     << chs.GetLP().GetX()
-		     << " y="
-		     << chs.GetLP().GetY()
-		     << endl;
-	    if (MRA_DEBUG) 
-		cerr << "URegion::TemporalFunction() current vertex pos="
-		     << pos
-		     << " x=" 
-		     << chs.GetRP().GetX()
-		     << " y="
-		     << chs.GetRP().GetY()
-		     << endl;
+	    Point s(true, xs, ys);
+	    Point e(true, xe, ye);
+	    CHalfSegment chs(true, true, s, e);
 
-	    // assign fcno, ccno, edno and partnerno as described above
-	    edno++;
+	    chs.attr.partnerno = partnerno++;
 
-	    chs.attr.faceno = fcno;
-	    chs.attr.cycleno = ccno;
-	    chs.attr.edgeno = edno;
-	    chs.attr.partnerno = partnerno;
-	    partnerno++;
+	    if (initialInstant 
+		 && dms.degeneratedInitial == INSIDELEFTORABOVE)
+		chs.attr.insideAbove = true;
+	    else if (initialInstant 
+		 && dms.degeneratedInitial == NOTINSIDELEFTORABOVE)
+		chs.attr.insideAbove = false;
+	    else if (finalInstant 
+		 && dms.degeneratedFinal == INSIDELEFTORABOVE)
+		chs.attr.insideAbove = true;
+	    else if (finalInstant 
+		 && dms.degeneratedFinal == NOTINSIDELEFTORABOVE)
+		chs.attr.insideAbove = false;
+	    else
+		chs.attr.insideAbove = dms.insideLeftOrAbove;
 
-	    // *hm* dunno
-	    chs.attr.insideAbove = chs.GetRP() == firstvertex;
-
-	    // *hm* dunno
-	    assert(cr->insertOK(chs));
-
-	    // add half segment to result
 	    *cr += chs;
 
-	    // *hm* dunno
-	    *rDir += chs;
-
-	    // add other side of half segment
 	    chs.SetLDP(false);
 
 	    *cr += chs;
-
-	    rDir->EndBulkLoad();
-	    
-	    if (MRA_DEBUG) 
-		cerr << "URegion::TemporalFunction() trace#8.2" << endl;
-
-	    // direction = true <=> cycle goes clockwise
-	    // direction = false <=> cycle goes counterclockwise
-	    bool direction = rDir->GetCycleDirection();
-
-	    if (MRA_DEBUG) 
-		cerr << "URegion::TemporalFunction() trace#8.3" << endl;
-
-	    int h = cr->Size()-(rDir->Size()*2);
-	    while (h < cr->Size()) {
-		CHalfSegment chsInsideAbove;
-		bool insideAbove;
-
-		cr->Get(h, chsInsideAbove);
-
-		if (direction == chsInsideAbove.attr.insideAbove) 
-		    insideAbove = false;
-		else
-		    insideAbove = true;
-		if (!isCycle) insideAbove = !insideAbove;
-
-		chsInsideAbove.attr.insideAbove = insideAbove;
-		cr->UpdateAttr(h, chsInsideAbove.attr);
-
-		cr->Get(h+1, chsInsideAbove);
-		chsInsideAbove.attr.insideAbove = insideAbove;
-		cr->UpdateAttr(h+1, chsInsideAbove.attr);
-
-		h += 2;
-	    }
-
-	    delete rDir;
-
-	    // only the first cycle is not hole cycle. since we already
-	    // processed the first cycle, all remaining cycles are hole
-	    // cycles.
-	    isCycle = false;
-
-	    if (MRA_DEBUG) 
-		cerr << "URegion::TemporalFunction() trace#9" << endl;
-	}
     }
-
-    if (MRA_DEBUG) 
-	cerr << "URegion::TemporalFunction() trace#10" << endl;
-
-    // *hm* add marker for end of half segment list
-    CHalfSegment chs(false);
-    assert(cr->insertOK(chs));
-
-    if (MRA_DEBUG) 
-	cerr << "URegion::TemporalFunction() trace#11" << endl;
 
     cr->EndBulkLoad();
 
-    if (MRA_DEBUG) 
-	cerr << "URegion::TemporalFunction() trace#12" << endl;
-
-    // *hm* dunno
+//    cr->Sort();
     cr->SetPartnerNo();
 
-    if (MRA_DEBUG) 
-	cerr << "URegion::TemporalFunction() trace#13" << endl;
+    if (MRA_DEBUG)
+	for (int i = 0; i < cr->Size(); i++) {
+	    CHalfSegment chs;
+	    cr->Get(i, chs);
+
+	    cerr << "URegion::TemporalFunction() segment #"
+		 << i 
+		 << " lp=("
+		 << chs.GetLP().GetX()
+		 << ", "
+		 << chs.GetLP().GetY()
+		 << ") rp=("
+		 << chs.GetRP().GetX()
+		 << ", "
+		 << chs.GetRP().GetY()
+		 << ") ldp="
+		 << chs.GetLDP()
+		 << " attr="
+		 << chs.attr.faceno
+		 << " "
+		 << chs.attr.cycleno
+		 << " "
+		 << chs.attr.edgeno
+		 << " "
+		 << chs.attr.partnerno
+		 << " "
+		 << chs.attr.insideAbove
+		 << endl;
+	}
+
+    cr->ComputeRegion();
+
+    if (MRA_DEBUG)
+	for (int i = 0; i < cr->Size(); i++) {
+	    CHalfSegment chs;
+	    cr->Get(i, chs);
+
+	    cerr << "URegion::TemporalFunction() segment #"
+		 << i 
+		 << " lp=("
+		 << chs.GetLP().GetX()
+		 << ", "
+		 << chs.GetLP().GetY()
+		 << ") rp=("
+		 << chs.GetRP().GetX()
+		 << ", "
+		 << chs.GetRP().GetY()
+		 << ") ldp="
+		 << chs.GetLDP()
+		 << " attr="
+		 << chs.attr.faceno
+		 << " "
+		 << chs.attr.cycleno
+		 << " "
+		 << chs.attr.edgeno
+		 << " "
+		 << chs.attr.partnerno
+		 << " "
+		 << chs.attr.insideAbove
+		 << endl;
+	}
 
     // *hm* UGLY & MEMORY LEAK
     memcpy(&res, cr, sizeof(*cr));
 
-#endif // SCHMUH
 }
 
 bool URegion::Passes(CRegion& val) {
@@ -2114,8 +1899,6 @@ bool URegion::AddSegment(CRegion& cr,
 			 cycleno, 
 			 segmentno, 
 			 false,
-			 false,
-			 false,
 			 intervalLen,
 			 nl->RealValue(nl->First(start)), 
 			 nl->RealValue(nl->Second(start)), 
@@ -2126,14 +1909,20 @@ bool URegion::AddSegment(CRegion& cr,
 			 nl->RealValue(nl->Third(end)), 
 			 nl->RealValue(nl->Fourth(end)));
 
-	for (unsigned int i = 0; i < segmentsNum; i++) {
+	if (MRA_DEBUG) 
+	    cerr << "URegion::AddSegment() segmentsNum=" 
+		 << segmentsNum 
+		 << endl;
+
+	for (int i = segmentsNum-1; i >= 0; i--) {
 	    if (MRA_DEBUG) cerr << "URegion::AddSegment() i=" << i << endl;
 
 	    MSegmentData existingDms;
 	    
 	    segments->Get(i, existingDms);
 
-	    if (!dms.pointInitial
+	    if (dms.degeneratedInitialNext < 0
+		&& !dms.pointInitial
 		&& !existingDms.pointInitial
 		&& ((nearlyEqual(dms.initialStartX, 
 				 existingDms.initialStartX)
@@ -2156,13 +1945,14 @@ bool URegion::AddSegment(CRegion& cr,
 			 << i
 			 << endl;
 
-		dms.degeneratedInitial = true;
-		existingDms.degeneratedInitial = true;
+		dms.degeneratedInitialNext = 0;
+		existingDms.degeneratedInitialNext = segmentsNum+1;
 
 		segments->Put(i, existingDms);
 	    }
 
-	    if (!dms.pointFinal
+	    if (dms.degeneratedFinalNext < 0
+		&& !dms.pointFinal
 		&& !existingDms.pointFinal
 	        && ((nearlyEqual(dms.finalStartX, 
 				 existingDms.finalStartX)
@@ -2185,41 +1975,43 @@ bool URegion::AddSegment(CRegion& cr,
 			 << i
 			 << endl;
 
-		dms.degeneratedFinal = true;
-		existingDms.degeneratedFinal = true;
+		dms.degeneratedFinalNext = 0;
+		existingDms.degeneratedFinalNext = segmentsNum+1;
 
 		segments->Put(i, existingDms);
 	    }
 	    
 	    if (nearlyEqual(intervalLen, 0.0)
-		&& (dms.degeneratedInitial || dms.degeneratedFinal))
+		&& (dms.degeneratedInitialNext >= 0 
+		    || dms.degeneratedFinalNext >= 0))
 		throw invalid_argument(
 		    "units with zero length time interval must not "
 		    "be degenerated");
 	    else if (!nearlyEqual(intervalLen, 0.0)
-		       && dms.degeneratedInitial
-		       && dms.degeneratedFinal) 
+		     && dms.degeneratedInitialNext >= 0
+		     && dms.degeneratedFinalNext >= 0) 
 		throw invalid_argument(
 		    "units must not degenerate both in initial and "
 		    "final instant");
 
-	    specialTrapeziumIntersects(intervalLen,
-				       existingDms.initialStartX,
-				       existingDms.initialStartY,
-				       existingDms.initialEndX,
-				       existingDms.initialEndY,
-				       existingDms.finalStartX,
-				       existingDms.finalStartY,
-				       existingDms.finalEndX,
-				       existingDms.finalEndY,
-				       dms.initialStartX,
-				       dms.initialStartY,
-				       dms.initialEndX,
-				       dms.initialEndY,
-				       dms.finalStartX,
-				       dms.finalStartY,
-				       dms.finalEndX,
-				       dms.finalEndY);
+	    if (specialTrapeziumIntersects(intervalLen,
+					   existingDms.initialStartX,
+					   existingDms.initialStartY,
+					   existingDms.initialEndX,
+					   existingDms.initialEndY,
+					   existingDms.finalStartX,
+					   existingDms.finalStartY,
+					   existingDms.finalEndX,
+					   existingDms.finalEndY,
+					   dms.initialStartX,
+					   dms.initialStartY,
+					   dms.initialEndX,
+					   dms.initialEndY,
+					   dms.finalStartX,
+					   dms.finalStartY,
+					   dms.finalEndX,
+					   dms.finalEndY)) 
+		throw invalid_argument("moving segments intersect");
 	}
 
 	double t = nearlyEqual(intervalLen, 0.0) ? 0 : 0.5;
@@ -2332,6 +2124,13 @@ void URegion::GetSegment(int pos, MSegmentData& dms) {
     assert(role == NORMAL || role == EMBEDDED);
 
     segments->Get(segmentsStartPos+pos, dms);
+}
+void URegion::PutSegment(int pos, MSegmentData& dms) {
+    if (MRA_DEBUG) cerr << "URegion::PutSegment() called, pos=" << pos << endl;
+
+    assert(role == NORMAL || role == EMBEDDED);
+
+    segments->Put(segmentsStartPos+pos, dms);
 }
 
 /*
@@ -2607,6 +2406,31 @@ The spatial region in both cases is used to calculate the value of the
 
 */
 
+// observation for cycles (for whole cycle, exactly the opposite holds):
+// 
+// cylce clockwise && p1 > p2 => inside is left or above of seg(p1, p2)
+// cycle clockwise && p1 < p2 => inside is right or below of seg(p1, p2)
+// 
+// cycle counterclockwise && p1 < p2 => inside is left or above of seg(p1, p2)
+// cycle counterclockwise && p1 > p2 => inside is right or below of seg(p1, p2)
+// 
+// algorithm:
+// 
+// calculate insideAbove for each half segment. insideAbove will be true if and
+// only if the inside is left or above the half segment
+// 
+// 1. check for each segment whether p1 < p2 and store true in insideAbove,
+//    if so.
+// 
+// 2. correct insideAbove:
+// 
+//    (a) if cycle clockwise & p1 < p2 => insideAbove = false
+//    (b) if cycle counterclockwise & p1 > p2 => insideAbove = false
+// 
+// 3. correct insideAbove again:
+// 
+//    if we are dealing with a hole cycle, invert insideAbove.
+
 // *hm* No verification on data done yet
 
 static Word InURegionEmbedded(const ListExpr typeInfo, 
@@ -2871,20 +2695,154 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 		 << " "
 		 << dms.pointFinal
 		 << " "
-		 << dms.degeneratedInitial
+		 << dms.degeneratedInitialNext
 		 << " "
-		 << dms.degeneratedFinal
+		 << dms.degeneratedFinalNext
 		 << endl;
 	}
 
     for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
-	    MSegmentData dms;
-	    uregion->GetSegment(i, dms);
+	MSegmentData dms;
+	uregion->GetSegment(i, dms);
 
-	    if (!dms.pointInitial && !dms.degeneratedInitial) 
-		nonTrivialInitial = true;
-	    if (!dms.pointFinal && !dms.degeneratedFinal) 
-		nonTrivialFinal = true;
+	if (!dms.pointInitial && dms.degeneratedInitialNext < 0) 
+	    nonTrivialInitial = true;
+	if (!dms.pointFinal && dms.degeneratedFinalNext < 0) 
+	    nonTrivialFinal = true;
+	
+	if (dms.degeneratedInitial == UNKNOWN) {
+	    if (dms.degeneratedInitialNext >= 0) {
+		MSegmentData degenDms;
+		unsigned int numInsideLeftOrAbove = 0;
+		unsigned int numNotInsideLeftOrAbove = 0;
+		for (int j = i+1; 
+		     j != 0; 
+		     j = degenDms.degeneratedInitialNext) {
+		    uregion->GetSegment(j-1, degenDms);
+		    if (MRA_DEBUG)
+			cerr << "InURegion() degen-magic-i "
+			     << i
+			     << " "
+			     << j-1
+			     << endl;
+		    if (degenDms.insideLeftOrAbove) 
+			numInsideLeftOrAbove++;
+		    else
+			numNotInsideLeftOrAbove++;
+		    if (j != i+1) {
+			degenDms.degeneratedInitial = IGNORE;
+			uregion->PutSegment(j-1, degenDms);
+		    }
+		}
+
+		if (MRA_DEBUG)
+		    cerr << "InURegion() degen-magic-i result "
+			 << numInsideLeftOrAbove
+			 << " "
+			 << numNotInsideLeftOrAbove
+			 << endl;
+
+		if (numInsideLeftOrAbove == numNotInsideLeftOrAbove) {
+		    dms.degeneratedInitial = IGNORE;
+		} else if (numInsideLeftOrAbove == numNotInsideLeftOrAbove+1) {
+		    dms.degeneratedInitial = INSIDELEFTORABOVE;
+		} else if (numInsideLeftOrAbove+1 == numNotInsideLeftOrAbove) {
+		    dms.degeneratedInitial = NOTINSIDELEFTORABOVE;
+		} else {
+		    cerr << "segment (" 
+			 << dms.initialStartX
+			 << ", "
+			 << dms.initialStartY
+			 << ")-("
+			 << dms.initialEndX
+			 << ", "
+			 << dms.initialEndY
+			 << ") / ("
+			 << dms.finalStartX
+			 << ", "
+			 << dms.finalStartY
+			 << ")-("
+			 << dms.finalEndX
+			 << ", "
+			 << dms.finalEndY
+			 << ") incorrectly degenerated in initial instant"
+			 << endl;
+
+		    delete uregion;
+		    correct = false;
+		    return SetWord(Address(0));
+		}
+	    } else 
+		dms.degeneratedInitial = NONE;
+	} 
+		
+	if (dms.degeneratedFinal == UNKNOWN) {
+	    if (dms.degeneratedFinalNext >= 0) {
+		MSegmentData degenDms;
+		unsigned int numInsideLeftOrAbove = 0;
+		unsigned int numNotInsideLeftOrAbove = 0;
+		for (int j = i+1; 
+		     j != 0; 
+		     j = degenDms.degeneratedFinalNext) {
+		    uregion->GetSegment(j-1, degenDms);
+		    if (MRA_DEBUG)
+			cerr << "InURegion() degen-magic-f "
+			     << i
+			     << " "
+			     << j-1
+			     << endl;
+		    if (degenDms.insideLeftOrAbove) 
+			numInsideLeftOrAbove++;
+		    else
+			numNotInsideLeftOrAbove++;
+		    if (j != i+1) {
+			degenDms.degeneratedFinal = IGNORE;
+			uregion->PutSegment(j-1, degenDms);
+		    }
+		}
+		
+		if (MRA_DEBUG)
+		    cerr << "InURegion() degen-magic-f result "
+			 << numInsideLeftOrAbove
+			 << " "
+			 << numNotInsideLeftOrAbove
+			 << endl;
+		
+		if (numInsideLeftOrAbove == numNotInsideLeftOrAbove) {
+		    dms.degeneratedFinal = IGNORE;
+		} else if (numInsideLeftOrAbove == numNotInsideLeftOrAbove+1) {
+		    dms.degeneratedFinal = INSIDELEFTORABOVE;
+		} else if (numInsideLeftOrAbove+1 == numNotInsideLeftOrAbove) {
+		    dms.degeneratedFinal = NOTINSIDELEFTORABOVE;
+		} else {
+		    cerr << "segment (" 
+			 << dms.initialStartX
+			 << ", "
+			 << dms.initialStartY
+			 << ")-("
+			 << dms.initialEndX
+			 << ", "
+			 << dms.initialEndY
+			 << ") / ("
+			 << dms.finalStartX
+			 << ", "
+			 << dms.finalStartY
+			 << ")-("
+			 << dms.finalEndX
+			 << ", "
+			 << dms.finalEndY
+			 << ") incorrectly degenerated in final instant"
+			 << endl;
+		    
+		    delete uregion;
+		    correct = false;
+		    return SetWord(Address(0));
+		}
+	    } else 
+		dms.degeneratedFinal = NONE;
+	} 
+
+	uregion->PutSegment(i, dms);
     }
 
     if (lc && !nonTrivialInitial) {
@@ -2907,72 +2865,6 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 
     correct = true;
     return SetWord(Address(uregion));
-
-#ifdef SCHMUH
-
-    unsigned int faceno = 0;
-    ListExpr faces = nl->Rest(instance);
-    while (!nl->IsEmpty(faces)) {
-        if (MRA_DEBUG) cerr << "InURegion() next face" << endl;
-
-        ListExpr cycles = nl->First(faces);
-        unsigned int cycleno = 0;
-        unsigned int pointno = 0;
-        while (!nl->IsEmpty(cycles)) {
-            if (MRA_DEBUG) cerr << "InURegion() next cycle" << endl;
-
-            ListExpr cyclepoints = nl->First(cycles);
-            while (!nl->IsEmpty(cyclepoints)) {
-                if (MRA_DEBUG) cerr << "InURegion() next point" << endl;
-
-                ListExpr point = nl->First(cyclepoints);
-
-                if (nl->ListLength(point) != 4
-                    || !nl->IsAtom(nl->First(point))
-                    || nl->AtomType(nl->First(point)) != RealType
-                    || !nl->IsAtom(nl->Second(point))
-                    || nl->AtomType(nl->Second(point)) != RealType
-                    || !nl->IsAtom(nl->Third(point))
-                    || nl->AtomType(nl->Third(point)) != RealType
-                    || !nl->IsAtom(nl->Fourth(point))
-                    || nl->AtomType(nl->Fourth(point)) != RealType) {
-                    if (MRA_DEBUG) 
-                        cerr << "InURegion() "
-                             << "point not in format "
-                             << "(<real> <real> <real> <real>)" 
-                             << endl;
-                    correct = false;
-                    delete uregion;
-                    return SetWord(Address(0));
-                }
-
-                uregion->AddPoint(pointno, 
-                                  faceno,
-                                  cycleno,
-                                  nl->RealValue(nl->First(point)),
-                                  nl->RealValue(nl->Second(point)),
-                                  nl->RealValue(nl->Third(point)),
-                                  nl->RealValue(nl->Fourth(point)));
-
-                cyclepoints = nl->Rest(cyclepoints);
-                pointno++;
-            }
-
-            cycles = nl->Rest(cycles);
-            cycleno++;
-        }
-
-        faces = nl->Rest(faces);
-    }
-
-    int num = uregion->GetPointsNum();
-    if (MRA_DEBUG) cerr << "InURegion() #points=" << num << endl;
-
-    if (MRA_DEBUG) cerr << "InURegion() success" << endl;
-
-    correct = true;
-    return SetWord(Address(uregion));
-#endif // SCHMUH
 }
 
 static Word InURegion(const ListExpr typeInfo, 
@@ -4007,7 +3899,7 @@ static ListExpr MRegionInstantToIRegionTypeMap(ListExpr args) {
     if (nl->ListLength(args) == 2 
 	&& nl->IsEqual(nl->First(args), "movingregion")
 	&& nl->IsEqual(nl->Second(args), "instant"))
-	return nl->SymbolAtom("iregion");
+	return nl->SymbolAtom("intimeregion");
     else
 	return nl->SymbolAtom("typeerror");
 }
@@ -4031,7 +3923,7 @@ static ListExpr MRegionToIRegionTypeMap(ListExpr args) {
 
     if (nl->ListLength(args) == 1 
 	&& nl->IsEqual(nl->First(args), "movingregion"))
-	return nl->SymbolAtom("iregion");
+	return nl->SymbolAtom("intimeregion");
     else
 	return nl->SymbolAtom("typeerror");
 }
@@ -4054,7 +3946,7 @@ static ListExpr IRegionToInstantTypeMap(ListExpr args) {
     if (MRA_DEBUG) cerr << "IRegionToInstantTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 1 
-	&& nl->IsEqual(nl->First(args), "iregion"))
+	&& nl->IsEqual(nl->First(args), "intimeregion"))
 	return nl->SymbolAtom("instant");
     else
 	return nl->SymbolAtom("typeerror");
@@ -4066,7 +3958,7 @@ static ListExpr IRegionToRegionTypeMap(ListExpr args) {
     if (MRA_DEBUG) cerr << "IRegionToRegionTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 1 
-	&& nl->IsEqual(nl->First(args), "iregion"))
+	&& nl->IsEqual(nl->First(args), "intimeregion"))
 	return nl->SymbolAtom("region");
     else
 	return nl->SymbolAtom("typeerror");
@@ -4170,7 +4062,7 @@ static int IRegionSelect(ListExpr args) {
 	     << endl;
 
     if (nl->ListLength(args) == 1
-	&& nl->SymbolValue(nl->First(args)) == "iregion")
+	&& nl->SymbolValue(nl->First(args)) == "intimeregion")
 	return 0;
     else
 	return -1;
