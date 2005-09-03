@@ -1695,12 +1695,12 @@ void URegion::TemporalFunction(Instant& t, CRegion& res) {
 
     cr->StartBulkLoad();
 
-    for (int i = 0; i < segments->Size(); i++) {
+    for (unsigned int i = 0; i < segmentsNum; i++) {
 	    if (MRA_DEBUG) 
 		cerr << "URegion::TemporalFunction() segment #" << i << endl; 
 
 	    MSegmentData dms;
-	    segments->Get(i, dms);
+	    segments->Get(segmentsStartPos+i, dms);
 	    
 	    double xs = 
 		dms.initialStartX+(dms.finalStartX-dms.initialStartX)*f;
@@ -2440,7 +2440,10 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 			      bool& correct,
 			      DBArray<MSegmentData>* segments,
 			      unsigned int segmentsStartPos) {
-    if (MRA_DEBUG) cerr << "InURegionEmbedded() called" << endl;
+    if (MRA_DEBUG) 
+	cerr << "InURegionEmbedded() called, segmentsStartPos=" 
+	     << segmentsStartPos
+	     << endl;
 
     if (nl->ListLength(instance) == 0) {
 	cerr << "uregion not in format (<interval> <face>*)" << endl;
@@ -2984,21 +2987,569 @@ public:
 
 */
 
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+class RefinementPartition {
+private:
+    vector< Interval<Instant>* > iv;
+    vector<Unit1*> vur;
+    vector<Unit2*> vup;
+
+    void AddUnits(Unit1* ur,
+		  Unit2* up,
+		  Instant& start,
+		  Instant& end,
+		  bool lc,
+		  bool rc);
+
+public:
+    RefinementPartition(Mapping1& mr, Mapping2& mp);
+    ~RefinementPartition();
+};
+
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+void RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::AddUnits(
+    Unit1* ur,
+    Unit2* up,
+    Instant& start,
+    Instant& end,
+    bool lc,
+    bool rc) {
+    if (MRA_DEBUG) {
+	cerr << "RP::AddUnits() called" << endl;
+	cerr << "RP::AddUnits() start="
+	     << start.ToDouble()
+	     << " end="
+	     << end.ToDouble()
+	     << " lc="
+	     << lc
+	     << " rc="
+	     << rc
+	     << endl;
+    }
+
+    Interval<Instant>* civ = new Interval<Instant>(start, end, lc, rc);
+
+    iv.push_back(civ);
+    vur.push_back(ur);
+    vup.push_back(up);
+
+#ifdef SCHMUH
+    Interval<Instant> iv(start, end, lc, rc);
+
+    URegion* rur = new URegion(iv);
+
+    double t0 = 
+	(start.ToDouble()-ur.timeInterval.start.ToDouble())/
+	(ur.timeInterval.end.ToDouble()-ur.timeInterval.start.ToDouble());
+    double t1 = 
+	(end.ToDouble()-ur.timeInterval.start.ToDouble())/
+	(ur.timeInterval.end.ToDouble()-ur.timeInterval.start.ToDouble());
+
+    if (MRA_DEBUG) 
+	cerr << "MRegion::AddRefinementUnits() URegion t0="
+	     << t0
+	     << " t1="
+	     << t1
+	     << endl;
+
+    for (int i = 0; i < ur.GetPointsNum(); i++) {
+	if (MRA_DEBUG) 
+	    cerr << "MRegion::AddRefinementUnits() point #" << i << endl;
+
+	MPointData dmp;
+	ur.GetPoint(i, dmp);
+
+	rur->AddPoint(
+	    i,
+	    dmp.GetFaceNo(),
+	    dmp.GetCycleNo(),
+	    dmp.GetStartX()+(dmp.GetEndX()-dmp.GetStartX())*t0,
+	    dmp.GetStartY()+(dmp.GetEndY()-dmp.GetStartY())*t0,
+	    dmp.GetStartX()+(dmp.GetEndX()-dmp.GetStartX())*t1,
+	    dmp.GetStartY()+(dmp.GetEndY()-dmp.GetStartY())*t1);
+    }
+
+    vur.push_back(rur);
+
+    t0 = (start.ToDouble()-up.timeInterval.start.ToDouble())/
+	 (up.timeInterval.end.ToDouble()-up.timeInterval.start.ToDouble());
+    t1 = (end.ToDouble()-up.timeInterval.start.ToDouble())/
+	 (up.timeInterval.end.ToDouble()-up.timeInterval.start.ToDouble());
+
+    if (MRA_DEBUG) 
+	cerr << "MRegion::AddRefinementUnits() UPoint t0="
+	     << t0
+	     << " t1="
+	     << t1
+	     << endl;
+
+    vup.push_back(
+	new UPoint(
+	    iv,
+	    up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*t0,
+	    up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*t0,
+	    up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*t1,
+	    up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*t1));
+#endif // SCHMUH
+}
+
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
+    Mapping1& mr,
+    Mapping2& mp) {
+    if (MRA_DEBUG) 
+	cerr << "RP::RP() called" << endl;
+
+    int mrUnit = 0;
+    int mpUnit = 0;
+
+    URegion ur;
+    UPoint up;
+
+    mr.Get(0, ur);
+    mp.Get(0, up);
+
+    Instant t;
+    bool c;
+
+    if (ur.timeInterval.start < up.timeInterval.start) {
+	t = ur.timeInterval.start;
+        c = !ur.timeInterval.lc;
+    } else {
+	t = up.timeInterval.start;
+        c = !up.timeInterval.lc;
+    }
+
+    while (mrUnit < mr.GetNoComponents() && mpUnit < mp.GetNoComponents()) {
+	if (MRA_DEBUG) 
+	    cerr << "RP::RP() mrUnit=" 
+		 << mrUnit 
+		 << " mpUnit=" 
+		 << mpUnit 
+		 << " t="
+		 << t.ToDouble()
+		 << endl;
+
+	if (ur.timeInterval.start.Compare(&up.timeInterval.start) == 0
+	    && ur.timeInterval.end.Compare(&up.timeInterval.end) == 0) {
+	    // case 1
+
+	    if (MRA_DEBUG) {
+		cerr << "RP::RP()   ur: |-----|" << endl;
+		cerr << "RP::RP()   up: |-----|" << endl;
+	    }
+
+	    if (!(ur.timeInterval.lc && up.timeInterval.lc)) {
+		if (ur.timeInterval.lc)
+		    AddUnits(
+			&ur,
+			0,
+			ur.timeInterval.start,
+			ur.timeInterval.start,
+			true,
+			true);
+		else if (up.timeInterval.lc)
+		    AddUnits(
+			0,
+			&up,
+			ur.timeInterval.start,
+			ur.timeInterval.start,
+			true,
+			true);
+	    }
+
+	    AddUnits(
+		&ur,
+		&up,
+		ur.timeInterval.start,
+		ur.timeInterval.end,
+		ur.timeInterval.lc && up.timeInterval.lc,
+		ur.timeInterval.rc && up.timeInterval.rc);
+
+	    if (!(ur.timeInterval.rc && up.timeInterval.rc)) {
+		if (ur.timeInterval.rc) {
+		    AddUnits(
+			&ur,
+			0,
+			ur.timeInterval.end,
+			ur.timeInterval.end,
+			true,
+			true);
+		    c = true;
+		} else if (up.timeInterval.rc) {
+		    AddUnits(
+			0,
+			&up,
+			ur.timeInterval.end,
+			ur.timeInterval.end,
+			true,
+			true);
+		    c = true;
+		} else 
+		    c = false;
+	    } else
+		c = false;
+
+	    t = ur.timeInterval.end;
+
+	    if (++mrUnit < mr.GetNoComponents()) mr.Get(mrUnit, ur);
+	    if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
+	} else if (ur.timeInterval.Inside(up.timeInterval)) {
+	    // case 2
+
+	    if (MRA_DEBUG) {
+		cerr << "RP::RP()   ur:  |---|" << endl;
+		cerr << "RP::RP()   up: |-----|" << endl;
+	    }
+
+	    if ((t > up.timeInterval.start || t == up.timeInterval.start)
+		&& t < ur.timeInterval.start)
+		AddUnits(
+		    0,
+		    &up, 
+		    t,
+		    ur.timeInterval.start,
+		    !c,
+		    !ur.timeInterval.lc);
+
+	    AddUnits(
+		&ur,
+		&up,
+		ur.timeInterval.start,
+		ur.timeInterval.end,
+		ur.timeInterval.lc,
+		ur.timeInterval.rc);
+
+	    t = ur.timeInterval.end;
+	    c = ur.timeInterval.rc;
+
+	    if (++mrUnit < mr.GetNoComponents()) mr.Get(mrUnit, ur);
+	} else if (up.timeInterval.Inside(ur.timeInterval)) {
+	    // case 3
+
+	    if (MRA_DEBUG) {
+		cerr << "RP::RP()   ur: |-----|" << endl;
+		cerr << "RP::RP()   up:  |---|" << endl;
+	    }
+
+	    if ((t > ur.timeInterval.start || t == ur.timeInterval.start)
+		&& t < up.timeInterval.start)
+		AddUnits(
+		    &ur,
+		    0,
+		    t,
+		    up.timeInterval.start,
+		    !c,
+		    !up.timeInterval.lc);
+
+	    AddUnits(
+		&ur,
+		&up,
+		up.timeInterval.start,
+		up.timeInterval.end,
+		up.timeInterval.lc,
+		up.timeInterval.rc);
+
+	    t = up.timeInterval.end;
+	    c = up.timeInterval.rc;
+
+	    if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
+	} else if (ur.timeInterval.Intersects(up.timeInterval)) {
+	    if (MRA_DEBUG) 
+		cerr << "RP::RP()   intersect" << endl;
+
+	    if (ur.timeInterval.start.Compare(&up.timeInterval.end) == 0 
+		&& ur.timeInterval.lc 
+		&& up.timeInterval.rc) {
+		// case 4.1
+
+		if (MRA_DEBUG) {
+		    cerr << "RP::RP()   ur:     [---|" << endl;
+		    cerr << "RP::RP()   up: |---]" << endl;
+		}
+
+		if ((t > up.timeInterval.start || t == up.timeInterval.start)
+		    && t < up.timeInterval.end)
+		    AddUnits(
+			0,
+			&up,
+			t,
+			up.timeInterval.end,
+			!c,
+			false);
+
+		AddUnits(
+		    &ur,
+		    &up,
+		    ur.timeInterval.start,
+		    ur.timeInterval.start,
+		    true,
+		    true);
+
+		t = up.timeInterval.start;
+		c = true;
+
+		if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
+	    } else if (ur.timeInterval.end.Compare(&up.timeInterval.start) == 0
+		       && ur.timeInterval.rc
+		       && up.timeInterval.lc) {
+		// case 4.2
+
+		if (MRA_DEBUG) {
+		    cerr << "RP::RP()   ur: |---]" << endl;
+		    cerr << "RP::RP()   up:     [---|" << endl;
+		}
+
+		if ((t > ur.timeInterval.start || t == ur.timeInterval.start)
+		    && t < ur.timeInterval.end)
+		    AddUnits(
+			&ur,
+			0,
+			t,
+			ur.timeInterval.end,
+			!c,
+			false);
+
+		AddUnits(
+		    &ur,
+		    &up,
+		    up.timeInterval.start,
+		    up.timeInterval.start,
+		    true,
+		    true);
+
+		t = ur.timeInterval.end;
+		c = true;
+
+		if (++mrUnit < mr.GetNoComponents()) mr.Get(mrUnit, ur);
+	    } else if (ur.timeInterval.start.Compare(
+			   &up.timeInterval.start) < 0) {
+		// case 4.3
+
+		if (MRA_DEBUG) {
+		    cerr << "RP::RP()   ur: |----|" << endl;
+		    cerr << "RP::RP()   up:    |----|" << endl;
+		}
+
+		if ((t > ur.timeInterval.start || t == ur.timeInterval.start)
+		    && t < up.timeInterval.start)
+		    AddUnits(
+			&ur,
+			0,
+			t,
+			up.timeInterval.start,
+			!c,
+			!up.timeInterval.lc);
+
+		AddUnits(
+		    &ur,
+		    &up,
+		    up.timeInterval.start,
+		    ur.timeInterval.end,
+		    up.timeInterval.lc,
+		    ur.timeInterval.rc);
+
+		t = ur.timeInterval.end;
+		c = ur.timeInterval.rc;
+
+		if (++mrUnit < mr.GetNoComponents()) mr.Get(mrUnit, ur);
+	    } else if (ur.timeInterval.start.Compare(
+			   &up.timeInterval.start) == 0) {
+		// If the following assertion would not hold, we had 
+		// case 2 or 3
+		assert(!ur.timeInterval.lc || !up.timeInterval.rc);
+
+		if (ur.timeInterval.end.Compare(&up.timeInterval.end) < 0) {
+		    // case 4.4.1
+
+		    if (MRA_DEBUG) {
+			cerr << "RP::RP()   ur: ]---|" 
+			     << endl;
+			cerr << "RP::RP()   up: [------|" 
+			     << endl;
+		    }
+
+		    AddUnits(
+			&ur,
+			&up,
+			ur.timeInterval.start,
+			ur.timeInterval.end,
+			ur.timeInterval.lc && up.timeInterval.lc,
+			ur.timeInterval.rc);
+
+		    t = ur.timeInterval.end;
+		    c = ur.timeInterval.rc;
+
+		    if (++mrUnit < mr.GetNoComponents()) mr.Get(mrUnit, ur);
+		} else {
+		    // case 4.4.2
+
+		    // If the following assertion would not hold, we had
+		    // case 2 or 3 again.
+		    assert(ur.timeInterval.end.Compare(
+			       &up.timeInterval.end) > 0);
+
+		    if (MRA_DEBUG) {
+			cerr << "RP::RP()   ur: ]------|" 
+			     << endl;
+			cerr << "RP::RP()   up: [---|" 
+			     << endl;
+		    }
+
+		    AddUnits(
+			&ur,
+			&up,
+			ur.timeInterval.start,
+			up.timeInterval.end,
+			ur.timeInterval.lc && up.timeInterval.lc,
+			up.timeInterval.rc);
+
+		    t = up.timeInterval.end;
+		    c = up.timeInterval.rc;
+
+		    if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
+		}
+	    } else {
+		// case 4.5
+
+		if (MRA_DEBUG) {
+		    cerr << "RP::RP()   ur:    |----|" << endl;
+		    cerr << "RP::RP()   up: |----|" << endl;
+		}
+
+		if ((t > up.timeInterval.start || t == up.timeInterval.start)
+		    && t < ur.timeInterval.start)
+		    AddUnits(
+			0,
+			&up,
+			t,
+			ur.timeInterval.start,
+			!c,
+			!ur.timeInterval.lc);
+
+		AddUnits(
+		    &ur,
+		    &up,
+		    ur.timeInterval.start,
+		    up.timeInterval.end,
+		    ur.timeInterval.lc,
+		    up.timeInterval.rc);
+
+		t = up.timeInterval.end;
+		c = up.timeInterval.rc;
+
+		if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
+	    }
+	} else if (ur.timeInterval.end.Compare(
+		       &up.timeInterval.start) <= 0) {
+	    // case 5
+
+	    if (MRA_DEBUG) {
+		cerr << "RP::RP()   ur: |--|" << endl;
+		cerr << "RP::RP()   up:      |--|" << endl;
+	    }
+
+	    AddUnits(
+		&ur, 
+		0,
+		t,
+		ur.timeInterval.end,
+		!c,
+		ur.timeInterval.lc);
+	    
+	    t = up.timeInterval.start;
+	    c = !up.timeInterval.lc;
+	    
+	    if (++mrUnit < mr.GetNoComponents()) mr.Get(mrUnit, ur);
+	} else {
+	    // case 6
+
+	    if (MRA_DEBUG) {
+		cerr << "RP::RP()   ur:      |--|" << endl;
+		cerr << "RP::RP()   up: |--|" << endl;
+	    }
+
+	    AddUnits(
+		0,
+		&up,
+		t,
+		up.timeInterval.end,
+		!c,
+		up.timeInterval.lc);
+
+	    t = ur.timeInterval.start;
+	    c = !ur.timeInterval.lc;
+
+	    if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
+	}
+    }
+
+    if (mrUnit < mr.GetNoComponents()) {
+	if (t < ur.timeInterval.end)
+	    AddUnits(
+		&ur, 
+		0,
+		t,
+		ur.timeInterval.end,
+		!c,
+		ur.timeInterval.rc);
+	mrUnit++;
+
+	while (mrUnit < mr.GetNoComponents()) {
+	    mr.Get(mrUnit, ur);
+
+	    AddUnits(
+		&ur, 
+		0,
+		ur.timeInterval.start,
+		ur.timeInterval.end,
+		ur.timeInterval.lc,
+		ur.timeInterval.rc);
+
+	    mrUnit++;
+	}
+    }
+
+    if (mpUnit < mp.GetNoComponents()) {
+	if (t < up.timeInterval.end)
+	    AddUnits(
+		0,
+		&up,
+		t,
+		up.timeInterval.end,
+		!c,
+		up.timeInterval.rc);
+	mpUnit++;
+
+	while (mpUnit < mp.GetNoComponents()) {
+	    mp.Get(mpUnit, up);
+
+	    AddUnits(
+		0,
+		&up, 
+		up.timeInterval.start,
+		up.timeInterval.end,
+		up.timeInterval.lc,
+		up.timeInterval.rc);
+
+	    mpUnit++;
+	}
+    }
+
+    assert(false);
+}
+
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::~RefinementPartition() {
+    if (MRA_DEBUG) 
+	cerr << "RP::~RP() called" << endl;
+
+    for (unsigned int i = 0; i < iv.size(); i++) delete iv[i];
+}
+
 class MRegion : public Mapping<URegion, CRegion> {
 private: 
     DBArray<MSegmentData> msegmentdata;
-
-    void AddRefinementUnits(vector<URegion*>& vur,
-			    vector<UPoint*>& vup,
-			    URegion& ur,
-			    UPoint& up,
-			    Instant& start,
-			    Instant& end,
-			    bool lc,
-			    bool rc);
-    void RefinementPartition(MPoint& mp,
-			     vector<URegion*>& vur,
-			     vector<UPoint*>& vup);
 
 public:
     MRegion() {
@@ -3364,346 +3915,10 @@ void MRegion::Traversed(void) {
 #endif // SCHMUH
 }
 
-void MRegion::AddRefinementUnits(vector<URegion*>& vur,
-				 vector<UPoint*>& vup,
-				 URegion& ur,
-				 UPoint& up,
-				 Instant& start,
-				 Instant& end,
-				 bool lc,
-				 bool rc) {
-    if (MRA_DEBUG) cerr << "MRegion::AddRefinementUnits() called" << endl;
-
-    assert(false);
-
-#ifdef SCHMUH
-
-    if (MRA_DEBUG) 
-	cerr << "MRegion::AddRefinementUnits() start="
-	     << start.ToDouble()
-	     << " end="
-	     << end.ToDouble()
-	     << " lc="
-	     << lc
-	     << " rc="
-	     << rc
-	     << endl;
-
-    Interval<Instant> iv(start, end, lc, rc);
-
-    URegion* rur = new URegion(iv);
-
-    double t0 = 
-	(start.ToDouble()-ur.timeInterval.start.ToDouble())/
-	(ur.timeInterval.end.ToDouble()-ur.timeInterval.start.ToDouble());
-    double t1 = 
-	(end.ToDouble()-ur.timeInterval.start.ToDouble())/
-	(ur.timeInterval.end.ToDouble()-ur.timeInterval.start.ToDouble());
-
-    if (MRA_DEBUG) 
-	cerr << "MRegion::AddRefinementUnits() URegion t0="
-	     << t0
-	     << " t1="
-	     << t1
-	     << endl;
-
-    for (int i = 0; i < ur.GetPointsNum(); i++) {
-	if (MRA_DEBUG) 
-	    cerr << "MRegion::AddRefinementUnits() point #" << i << endl;
-
-	MPointData dmp;
-	ur.GetPoint(i, dmp);
-
-	rur->AddPoint(
-	    i,
-	    dmp.GetFaceNo(),
-	    dmp.GetCycleNo(),
-	    dmp.GetStartX()+(dmp.GetEndX()-dmp.GetStartX())*t0,
-	    dmp.GetStartY()+(dmp.GetEndY()-dmp.GetStartY())*t0,
-	    dmp.GetStartX()+(dmp.GetEndX()-dmp.GetStartX())*t1,
-	    dmp.GetStartY()+(dmp.GetEndY()-dmp.GetStartY())*t1);
-    }
-
-    vur.push_back(rur);
-
-    t0 = (start.ToDouble()-up.timeInterval.start.ToDouble())/
-	 (up.timeInterval.end.ToDouble()-up.timeInterval.start.ToDouble());
-    t1 = (end.ToDouble()-up.timeInterval.start.ToDouble())/
-	 (up.timeInterval.end.ToDouble()-up.timeInterval.start.ToDouble());
-
-    if (MRA_DEBUG) 
-	cerr << "MRegion::AddRefinementUnits() UPoint t0="
-	     << t0
-	     << " t1="
-	     << t1
-	     << endl;
-
-    vup.push_back(
-	new UPoint(
-	    iv,
-	    up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*t0,
-	    up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*t0,
-	    up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*t1,
-	    up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*t1));
-#endif // SCHMUH
-}
-
-void MRegion::RefinementPartition(MPoint& mp,
-				  vector<URegion*>& vur,
-				  vector<UPoint*>& vup) {
-    if (MRA_DEBUG) cerr << "MRegion::RefinementPartition() called" << endl;
-
-    int mrUnit = 0;
-    int mpUnit = 0;
-
-    URegion ur;
-    UPoint up;
-
-    Get(0, ur);
-    mp.Get(0, up);
-
-    while (mrUnit < GetNoComponents() && mpUnit < mp.GetNoComponents()) {
-	if (MRA_DEBUG) 
-	    cerr << "MRegion::Intersection() mrUnit=" 
-		 << mrUnit 
-		 << " mpUnit=" 
-		 << mpUnit 
-		 << endl;
-
-	if (ur.timeInterval.start.Compare(&up.timeInterval.start) == 0
-	    && ur.timeInterval.end.Compare(&up.timeInterval.end) == 0) {
-	    // case 1
-
-	    if (MRA_DEBUG) {
-		cerr << "MRegion::Intersection()   ur: |-----|" << endl;
-		cerr << "MRegion::Intersection()   up: |-----|" << endl;
-	    }
-
-	    AddRefinementUnits(
-		vur,
-		vup,
-		ur,
-		up,
-		ur.timeInterval.start,
-		ur.timeInterval.end,
-		ur.timeInterval.lc && up.timeInterval.lc,
-		ur.timeInterval.rc && up.timeInterval.rc);
-
-	    if (++mrUnit < GetNoComponents()) Get(mrUnit, ur);
-	    if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
-	} else if (ur.timeInterval.Inside(up.timeInterval)) {
-	    // case 2
-
-	    if (MRA_DEBUG) {
-		cerr << "MRegion::Intersection()   ur:  |---|" << endl;
-		cerr << "MRegion::Intersection()   up: |-----|" << endl;
-	    }
-
-	    AddRefinementUnits(
-		vur,
-		vup,
-		ur,
-		up,
-		ur.timeInterval.start,
-		ur.timeInterval.end,
-		ur.timeInterval.lc,
-		ur.timeInterval.rc);
-
-	    if (++mrUnit < GetNoComponents()) Get(mrUnit, ur);
-	} else if (up.timeInterval.Inside(ur.timeInterval)) {
-	    // case 3
-
-	    if (MRA_DEBUG) {
-		cerr << "MRegion::Intersection()   ur: |-----|" << endl;
-		cerr << "MRegion::Intersection()   up:  |---|" << endl;
-	    }
-
-	    AddRefinementUnits(
-		vur,
-		vup,
-		ur,
-		up,
-		up.timeInterval.start,
-		up.timeInterval.end,
-		up.timeInterval.lc,
-		up.timeInterval.rc);
-
-	    if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
-	} else if (ur.timeInterval.Intersects(up.timeInterval)) {
-	    if (MRA_DEBUG) 
-		cerr << "MRegion::Intersection()   intersect" << endl;
-
-	    if (ur.timeInterval.start.Compare(&up.timeInterval.end) == 0 
-		&& ur.timeInterval.lc 
-		&& up.timeInterval.rc) {
-		// case 4.1
-
-		if (MRA_DEBUG) {
-		    cerr << "MRegion::Intersection()   ur:     [---|" << endl;
-		    cerr << "MRegion::Intersection()   up: |---]" << endl;
-		}
-
-		AddRefinementUnits(
-		    vur,
-		    vup,
-		    ur,
-		    up,
-		    ur.timeInterval.start,
-		    ur.timeInterval.start,
-		    true,
-		    true);
-
-		if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
-	    } else if (ur.timeInterval.end.Compare(&up.timeInterval.start) == 0
-		       && ur.timeInterval.rc
-		       && up.timeInterval.lc) {
-		// case 4.2
-
-		if (MRA_DEBUG) {
-		    cerr << "MRegion::Intersection()   ur: |---]" << endl;
-		    cerr << "MRegion::Intersection()   up:     [---|" << endl;
-		}
-
-		AddRefinementUnits(
-		    vur,
-		    vup,
-		    ur,
-		    up,
-		    ur.timeInterval.end,
-		    ur.timeInterval.end,
-		    true,
-		    true);
-
-		if (++mrUnit < GetNoComponents()) Get(mrUnit, ur);
-	    } else if (ur.timeInterval.start.Compare(
-			   &up.timeInterval.start) < 0) {
-		// case 4.3
-
-		if (MRA_DEBUG) {
-		    cerr << "MRegion::Intersection()   ur: |----|" << endl;
-		    cerr << "MRegion::Intersection()   up:    |----|" << endl;
-		}
-
-		AddRefinementUnits(
-		    vur,
-		    vup,
-		    ur,
-		    up,
-		    up.timeInterval.start,
-		    ur.timeInterval.end,
-		    up.timeInterval.lc,
-		    ur.timeInterval.rc);
-
-		if (++mrUnit < GetNoComponents()) Get(mrUnit, ur);
-	    } else if (ur.timeInterval.start.Compare(
-			   &up.timeInterval.start) == 0) {
-		// If the following assertion would not hold, we had 
-		// case 2 or 3
-		assert(!ur.timeInterval.lc || !up.timeInterval.rc);
-
-		if (ur.timeInterval.end.Compare(&up.timeInterval.end) < 0) {
-		    // case 4.4.1
-
-		    if (MRA_DEBUG) {
-			cerr << "MRegion::Intersection()   ur: )---|" 
-			     << endl;
-			cerr << "MRegion::Intersection()   up: (------|" 
-			     << endl;
-		    }
-
-		    AddRefinementUnits(
-			vur,
-			vup,
-			ur,
-			up,
-			ur.timeInterval.start,
-			ur.timeInterval.end,
-			ur.timeInterval.lc && up.timeInterval.lc,
-			ur.timeInterval.rc);
-
-		    if (++mrUnit < GetNoComponents()) Get(mrUnit, ur);
-		} else {
-		    // case 4.4.2
-
-		    // If the following assertion would not hold, we had
-		    // case 2 or 3 again.
-		    assert(ur.timeInterval.end.Compare(
-			       &up.timeInterval.end) > 0);
-
-		    if (MRA_DEBUG) {
-			cerr << "MRegion::Intersection()   ur: )------|" 
-			     << endl;
-			cerr << "MRegion::Intersection()   up: (---|" 
-			     << endl;
-		    }
-
-		    AddRefinementUnits(
-			vur,
-			vup,
-			ur,
-			up,
-			ur.timeInterval.start,
-			up.timeInterval.end,
-			ur.timeInterval.lc && up.timeInterval.lc,
-			up.timeInterval.rc);
-
-		    if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
-		}
-	    } else {
-		// case 4.5
-
-		if (MRA_DEBUG) {
-		    cerr << "MRegion::Intersection()   ur:    |----|" << endl;
-		    cerr << "MRegion::Intersection()   up: |----|" << endl;
-		}
-
-		AddRefinementUnits(
-		    vur,
-		    vup,
-		    ur,
-		    up,
-		    ur.timeInterval.start,
-		    up.timeInterval.end,
-		    ur.timeInterval.lc,
-		    up.timeInterval.rc);
-
-		if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
-	    }
-	} else if (ur.timeInterval.start.Compare(
-		       &up.timeInterval.start) <= 0) {
-	    // case 5
-
-	    if (MRA_DEBUG) {
-		cerr << "MRegion::Intersection()   ur: |--|" << endl;
-		cerr << "MRegion::Intersection()   up:      |--|" << endl;
-	    }
-	    
-	    if (++mrUnit < GetNoComponents()) Get(mrUnit, ur);
-	} else {
-	    // case 6
-
-	    if (MRA_DEBUG) {
-		cerr << "MRegion::Intersection()   ur:      |--|" << endl;
-		cerr << "MRegion::Intersection()   up: |--|" << endl;
-	    }
-
-	    if (++mpUnit < mp.GetNoComponents()) mp.Get(mpUnit, up);
-	}
-    }
-}
-
 void MRegion::Intersection(MPoint& mp) {
     if (MRA_DEBUG) cerr << "MRegion::Intersection() called" << endl;
 
-    vector<URegion*> vur;
-    vector<UPoint*> vup;
-
-    RefinementPartition(mp, vur, vup);
-
-    for (unsigned int i = 0; i < vur.size(); i++) {
-	delete vur[i];
-	delete vup[i];
-    }
+    RefinementPartition<MRegion, MPoint, URegion, UPoint> rp(*this, mp);
 
     assert(false);
 }
