@@ -1353,8 +1353,8 @@ static TypeConstructor iregion(
 enum DegenMode { UNKNOWN, 
 		 NONE, 
 		 IGNORE, 
-		 INSIDELEFTORABOVE, 
-		 NOTINSIDELEFTORABOVE };
+		 INSIDEABOVE, 
+		 NOTINSIDEABOVE };
 
 class MSegmentData {
 // *hm* Debug only, set attributes to private later again
@@ -1364,7 +1364,7 @@ public:
     unsigned int cycleno;
     unsigned int segmentno;
 
-    bool insideLeftOrAbove;
+    bool insideAbove;
 
     int degeneratedInitialNext;
     int degeneratedFinalNext;
@@ -1392,7 +1392,7 @@ public:
     MSegmentData(unsigned int fno, 
 		 unsigned int cno, 
 		 unsigned int sno,
-		 bool iloa,
+		 bool ia,
 		 double il,
 		 double isx,
 		 double isy,
@@ -1405,7 +1405,7 @@ public:
         faceno(fno),
         cycleno(cno),
         segmentno(sno),
-	insideLeftOrAbove(iloa),
+	insideAbove(ia),
 	degeneratedInitialNext(-1),
 	degeneratedFinalNext(-1),
 	degeneratedInitial(UNKNOWN),
@@ -1426,7 +1426,7 @@ public:
 		 << " "
 		 << segmentno
 		 << "] flags=["
-		 << insideLeftOrAbove
+		 << insideAbove
 		 << " "
 		 << degeneratedInitialNext
 		 << " "
@@ -1559,7 +1559,7 @@ Both segments are not vertical.
     double GetFinalStartY(void) { return finalStartY; }
     double GetFinalEndX(void) { return finalEndX; }
     double GetFinalEndY(void) { return finalEndY; }
-    bool GetInsideLeftOrAbove(void) { return insideLeftOrAbove; }
+    bool GetInsideAbove(void) { return insideAbove; }
 /*
 Since no other classes are accessing the private attributes of
 ~MSegmentData~, we declare ~URegion~ as friend. This is shorter,
@@ -1628,7 +1628,7 @@ public:
 		    double intervalLen,
 		    ListExpr start,
 		    ListExpr end);
-    void SetSegmentInsideLeftOrAbove(int pos, bool insideLeftOrAbove);
+    void SetSegmentInsideAbove(int pos, bool insideAbove);
     int GetSegmentsNum(void);
     void GetSegment(int pos, MSegmentData& dms);
     void PutSegment(int pos, MSegmentData& dms);
@@ -1741,19 +1741,19 @@ void URegion::TemporalFunction(Instant& t, CRegion& res) {
 	    chs.attr.partnerno = partnerno++;
 
 	    if (initialInstant 
-		 && dms.degeneratedInitial == INSIDELEFTORABOVE)
+		 && dms.degeneratedInitial == INSIDEABOVE)
 		chs.attr.insideAbove = true;
 	    else if (initialInstant 
-		 && dms.degeneratedInitial == NOTINSIDELEFTORABOVE)
+		 && dms.degeneratedInitial == NOTINSIDEABOVE)
 		chs.attr.insideAbove = false;
 	    else if (finalInstant 
-		 && dms.degeneratedFinal == INSIDELEFTORABOVE)
+		 && dms.degeneratedFinal == INSIDEABOVE)
 		chs.attr.insideAbove = true;
 	    else if (finalInstant 
-		 && dms.degeneratedFinal == NOTINSIDELEFTORABOVE)
+		 && dms.degeneratedFinal == NOTINSIDEABOVE)
 		chs.attr.insideAbove = false;
 	    else
-		chs.attr.insideAbove = dms.insideLeftOrAbove;
+		chs.attr.insideAbove = dms.insideAbove;
 
 	    *cr += chs;
 
@@ -2068,7 +2068,7 @@ bool URegion::AddSegment(CRegion& cr,
 		 << xe
 		 << ", "
 		 << ye
-		 << ") iloa="
+		 << ") ia="
 		 << chs.attr.insideAbove
 		 << endl;
 
@@ -2098,12 +2098,12 @@ bool URegion::AddSegment(CRegion& cr,
     return true;
 }
 
-void URegion::SetSegmentInsideLeftOrAbove(int pos, bool insideLeftOrAbove) {
+void URegion::SetSegmentInsideAbove(int pos, bool insideAbove) {
     if (MRA_DEBUG) cerr << "URegion::GetSegmentLeftOrAbove() called" << endl;
 
     MSegmentData dms;
     segments->Get(segmentsStartPos+pos, dms);
-    dms.insideLeftOrAbove = insideLeftOrAbove;
+    dms.insideAbove = insideAbove;
     segments->Put(segmentsStartPos+pos, dms);
 }
 
@@ -2402,7 +2402,7 @@ segment.
 \end{enumerate}
 
 The spatial region in both cases is used to calculate the value of the
-~insideLeftOrAbove~ attribute of each segment.
+~insideAbove~ attribute of each segment.
 
 */
 
@@ -2642,7 +2642,7 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
                 //chsInsideAbove.attr.insideAbove = insideAbove;
                 //cr.UpdateAttr(h+1, chsInsideAbove.attr);
 
-		uregion->SetSegmentInsideLeftOrAbove(i, insideAbove);
+		uregion->SetSegmentInsideAbove(i, insideAbove);
 
                 h += 2;
 		i++;
@@ -2692,7 +2692,7 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 		 << ", "
 		 << dms.finalEndY
 		 << ") flags="
-		 << dms.insideLeftOrAbove
+		 << dms.insideAbove
 		 << " "
 		 << dms.pointInitial
 		 << " "
@@ -2716,8 +2716,8 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 	if (dms.degeneratedInitial == UNKNOWN) {
 	    if (dms.degeneratedInitialNext >= 0) {
 		MSegmentData degenDms;
-		unsigned int numInsideLeftOrAbove = 0;
-		unsigned int numNotInsideLeftOrAbove = 0;
+		unsigned int numInsideAbove = 0;
+		unsigned int numNotInsideAbove = 0;
 		for (int j = i+1; 
 		     j != 0; 
 		     j = degenDms.degeneratedInitialNext) {
@@ -2728,10 +2728,10 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 			     << " "
 			     << j-1
 			     << endl;
-		    if (degenDms.insideLeftOrAbove) 
-			numInsideLeftOrAbove++;
+		    if (degenDms.insideAbove) 
+			numInsideAbove++;
 		    else
-			numNotInsideLeftOrAbove++;
+			numNotInsideAbove++;
 		    if (j != i+1) {
 			degenDms.degeneratedInitial = IGNORE;
 			uregion->PutSegment(j-1, degenDms);
@@ -2740,17 +2740,17 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 
 		if (MRA_DEBUG)
 		    cerr << "InURegion() degen-magic-i result "
-			 << numInsideLeftOrAbove
+			 << numInsideAbove
 			 << " "
-			 << numNotInsideLeftOrAbove
+			 << numNotInsideAbove
 			 << endl;
 
-		if (numInsideLeftOrAbove == numNotInsideLeftOrAbove) {
+		if (numInsideAbove == numNotInsideAbove) {
 		    dms.degeneratedInitial = IGNORE;
-		} else if (numInsideLeftOrAbove == numNotInsideLeftOrAbove+1) {
-		    dms.degeneratedInitial = INSIDELEFTORABOVE;
-		} else if (numInsideLeftOrAbove+1 == numNotInsideLeftOrAbove) {
-		    dms.degeneratedInitial = NOTINSIDELEFTORABOVE;
+		} else if (numInsideAbove == numNotInsideAbove+1) {
+		    dms.degeneratedInitial = INSIDEABOVE;
+		} else if (numInsideAbove+1 == numNotInsideAbove) {
+		    dms.degeneratedInitial = NOTINSIDEABOVE;
 		} else {
 		    cerr << "segment (" 
 			 << dms.initialStartX
@@ -2782,8 +2782,8 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 	if (dms.degeneratedFinal == UNKNOWN) {
 	    if (dms.degeneratedFinalNext >= 0) {
 		MSegmentData degenDms;
-		unsigned int numInsideLeftOrAbove = 0;
-		unsigned int numNotInsideLeftOrAbove = 0;
+		unsigned int numInsideAbove = 0;
+		unsigned int numNotInsideAbove = 0;
 		for (int j = i+1; 
 		     j != 0; 
 		     j = degenDms.degeneratedFinalNext) {
@@ -2794,10 +2794,10 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 			     << " "
 			     << j-1
 			     << endl;
-		    if (degenDms.insideLeftOrAbove) 
-			numInsideLeftOrAbove++;
+		    if (degenDms.insideAbove) 
+			numInsideAbove++;
 		    else
-			numNotInsideLeftOrAbove++;
+			numNotInsideAbove++;
 		    if (j != i+1) {
 			degenDms.degeneratedFinal = IGNORE;
 			uregion->PutSegment(j-1, degenDms);
@@ -2806,17 +2806,17 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 		
 		if (MRA_DEBUG)
 		    cerr << "InURegion() degen-magic-f result "
-			 << numInsideLeftOrAbove
+			 << numInsideAbove
 			 << " "
-			 << numNotInsideLeftOrAbove
+			 << numNotInsideAbove
 			 << endl;
 		
-		if (numInsideLeftOrAbove == numNotInsideLeftOrAbove) {
+		if (numInsideAbove == numNotInsideAbove) {
 		    dms.degeneratedFinal = IGNORE;
-		} else if (numInsideLeftOrAbove == numNotInsideLeftOrAbove+1) {
-		    dms.degeneratedFinal = INSIDELEFTORABOVE;
-		} else if (numInsideLeftOrAbove+1 == numNotInsideLeftOrAbove) {
-		    dms.degeneratedFinal = NOTINSIDELEFTORABOVE;
+		} else if (numInsideAbove == numNotInsideAbove+1) {
+		    dms.degeneratedFinal = INSIDEABOVE;
+		} else if (numInsideAbove+1 == numNotInsideAbove) {
+		    dms.degeneratedFinal = NOTINSIDEABOVE;
 		} else {
 		    cerr << "segment (" 
 			 << dms.initialStartX
@@ -2961,21 +2961,21 @@ private:
     double y;
     double partnerX;
     double partnerY;
-    bool insideLeftOrAbove;
+    bool insideAbove;
 
 public:
     PlaneSweepStopPoint(double xx, 
 			double yy, 
 			double xp, 
 			double yp, 
-			bool iloa) : 
-	x(xx), y(yy), partnerX(xp), partnerY(yp), insideLeftOrAbove(iloa) {}
+			bool ia) : 
+	x(xx), y(yy), partnerX(xp), partnerY(yp), insideAbove(ia) {}
 
     double GetX() { return x; }
     double GetY() { return y; }
     double GetPartnerX() { return partnerX; }
     double GetPartnerY() { return partnerY; }
-    bool GetInsideLeftOrAbove() { return insideLeftOrAbove; }
+    bool GetInsideAbove() { return insideAbove; }
 
     bool operator<(const PlaneSweepStopPoint& p) const {
 	return x > p.x || (x == p.x && y > p.y);
@@ -3004,6 +3004,27 @@ private:
 public:
     RefinementPartition(Mapping1& mr, Mapping2& mp);
     ~RefinementPartition();
+
+    unsigned int Size(void ) { 
+	if (MRA_DEBUG)
+	    cerr << "RP::Size() called" << endl;
+	    
+	return iv.size(); 
+    }
+
+    void Get(unsigned int pos, 
+	     Interval<Instant>*& civ, 
+	     Unit1*& ur, 
+	     Unit2*& up) {
+	if (MRA_DEBUG)
+	    cerr << "RP::Get() called" << endl;
+	    
+	assert(pos < iv.size());
+
+	civ = iv[pos];
+        ur = vur[pos];
+	up = vup[pos];
+    }
 };
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
@@ -3535,8 +3556,6 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 	    mpUnit++;
 	}
     }
-
-    assert(false);
 }
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
@@ -3596,7 +3615,7 @@ For unit testing only.
 	MSegmentData dms;
 	msegmentdata.Get(pos, dms);
 
-	return dms.GetInsideLeftOrAbove() ? 1 : 0;
+	return dms.GetInsideAbove() ? 1 : 0;
     }
 };
 
@@ -3619,7 +3638,7 @@ static void addSegment(priority_queue<PlaneSweepStopPoint>& pq,
 		       double startY, 
 		       double endX, 
 		       double endY, 
-		       bool insideLeftOrAbove) {
+		       bool insideAbove) {
     cerr << "segment: (" 
 	 << startX 
 	 << ", " 
@@ -3629,11 +3648,11 @@ static void addSegment(priority_queue<PlaneSweepStopPoint>& pq,
 	 << ", " 
 	 << endY 
 	 << ") insideAbove=" 
-	 << insideLeftOrAbove 
+	 << insideAbove 
 	 << endl;
 
-    PlaneSweepStopPoint sp1(startX, startY, endX, endY, insideLeftOrAbove);
-    PlaneSweepStopPoint sp2(endX, endY, startX, startY, insideLeftOrAbove);
+    PlaneSweepStopPoint sp1(startX, startY, endX, endY, insideAbove);
+    PlaneSweepStopPoint sp2(endX, endY, startX, startY, insideAbove);
 
     pq.push(sp1);
     pq.push(sp2);
@@ -3682,7 +3701,7 @@ void MRegion::Traversed(void) {
 		     << chs.GetRP().GetY()
 		     << ") LDP="
 		     << chs.GetLDP()
-		     << " insideLeftOrAbove="
+		     << " insideAbove="
 		     << chs.GetAttr().insideAbove
 		     << " partnerno="
 		     << chs.GetAttr().partnerno
@@ -3796,12 +3815,12 @@ void MRegion::Traversed(void) {
 // 1. Calculate X coordinate x1, where extension of chs touches X axis.
 // 2. Calculate X coordinate x2, where extension of dmp1-dmp2 touches X axis.
 // 3. If x1 < x2: 
-//      insideLeftOrAbove(chs) = !(ascending(chs) || vertical(chs))
-//      insideLeftOrAbove(dmp1-dmp2) = ascending(dmp1-dmp2) || vertical(dmp1-dmp2)
+//      insideAbove(chs) = !(ascending(chs) || vertical(chs))
+//      insideAbove(dmp1-dmp2) = ascending(dmp1-dmp2) || vertical(dmp1-dmp2)
 // 
 //    If x1 > x2: 
-//      insideLeftOrAbove(chs) = ascending(chs) || vertical(chs)
-//      insideLeftOrAbove(dmp1-dmp2) = !(ascending(dmp1-dmp2) || vertical(dmp1-dmp2))
+//      insideAbove(chs) = ascending(chs) || vertical(chs)
+//      insideAbove(dmp1-dmp2) = !(ascending(dmp1-dmp2) || vertical(dmp1-dmp2))
 //      If x1 = x2: ignore this area?
 // 
 // Line (x1, y1, x2, y2),
@@ -3904,8 +3923,8 @@ void MRegion::Traversed(void) {
 		 << sp.GetPartnerX()
 		 << ", "
 		 << sp.GetPartnerY()
-		 << ") insideLeftOrAbove="
-		 << sp.GetInsideLeftOrAbove()
+		 << ") insideAbove="
+		 << sp.GetInsideAbove()
 		 << endl;
 
 	pq.pop();
@@ -3919,6 +3938,37 @@ void MRegion::Intersection(MPoint& mp) {
     if (MRA_DEBUG) cerr << "MRegion::Intersection() called" << endl;
 
     RefinementPartition<MRegion, MPoint, URegion, UPoint> rp(*this, mp);
+
+    for (unsigned int i = 0; i < rp.Size(); i++) {
+	Interval<Instant>* iv;
+	URegion* ur;
+	UPoint* up;
+
+	rp.Get(i, iv, ur, up);
+
+	if (MRA_DEBUG) 
+	    cerr << "MRegion::Intersection() interval#"
+		 << i
+		 << ": "
+		 << iv->start.ToDouble()
+		 << " "
+		 << iv->end.ToDouble()
+		 << " "
+		 << iv->lc
+		 << " "
+		 << iv->rc
+		 << " "
+		 << (unsigned int) ur
+		 << " "
+		 << (unsigned int) up
+		 << endl;
+
+	if (ur == 0 || up == 0) continue;
+
+	if (MRA_DEBUG) 
+	    cerr << "MRegion::Intersection() both elements present" << endl;
+
+    }
 
     assert(false);
 }
