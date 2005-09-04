@@ -700,7 +700,7 @@ trapeziums.
     }
 
 /*
-Now, lets see if the trapeziums touch in one edge.
+Now, lets see if the trapeziums touch in one segment.
 
 */
 
@@ -730,13 +730,13 @@ Now, lets see if the trapeziums touch in one edge.
 
 /*
 The bounding boxes of the trapeziums overlap but they do not touch in one
-edge. To determine if they actually intersect, we first calculate the 
+segment. To determine if they actually intersect, we first calculate the 
 intersection of the two planes spanned by the trapezium.
 
 Create equations for the two planes spanned by the trapeziums, 
 considering that one edge of
 each trapezium may be a single point: Plane 1 is
-$T1B+T1A\cdot (s, t)$ and Plane 2 is $T2B+T1B\cdot (s', t')$.
+$T1B+T1A\cdot (s, t)$ and Plane 2 is $T2B+T1A\cdot (s', t')$.
 
 */
 
@@ -1298,13 +1298,14 @@ The trapezium is spanned by the points ~(l1p1x, l1p1y, l1t)~,
 ~(l1p2x, l1p2y, l1t)~, ~(l2p1x, l2p1y, l2t)~ and
 ~(l2p2x, l2p2y, l2t)~. ~(l1p1x, l1p1y, l1t)=(l1p2x, l1p2y, l1t)~ or
 ~(l2p1x, l2p1y, l2t)=(l2p2x, l2p2y, l2t)~ is allowed but not both.
+~l1t=l2t~ is allowed.
 
 The segment is spanned by the points ~(p1x, p1y, p1t)~ and ~(p2x, p2y, p2t)~.
-~(p1x, p1y, p1t)=(p2x, p2y, p2t)~ is allowed.
+~(p1x, p1y, p1t)=(p2x, p2y, p2t)~ is allowed. ~p1t=p2t~ is allowed.
 
 */
 
-void specialIntersectionTrapeziumSegment(double l1t,
+bool specialIntersectionTrapeziumSegment(double l1t,
 					 double l1p1x,
 					 double l1p1y,
 					 double l1p2x,
@@ -1320,7 +1321,13 @@ void specialIntersectionTrapeziumSegment(double l1t,
 					 double p2t,
 					 double p2x,
 					 double p2y) {
-    if (MRA_DEBUG) cerr << "sITS called" << endl;
+    if (MRA_DEBUG) cerr << "sITS() called" << endl;
+
+/*
+Check bounding boxes in $(x, y)$-plane of trapzium and segment. If they
+do not overlap, trapezium and segment do not intersect.
+
+*/
 
     double tMinX;
     double tMaxX;
@@ -1335,6 +1342,77 @@ void specialIntersectionTrapeziumSegment(double l1t,
     double lMinY = p1y < p2y ? p1y : p2y;
     double lMaxY = p1y > p2y ? p1y : p2y;
 
+    if (lower(tMaxX, lMinX)
+	|| lower(lMaxX, tMinX)
+	|| lower(tMaxY, lMinY)
+	|| lower(lMaxY, tMinY)) {
+	if (MRA_DEBUG) cerr << "sITS() no bbox overlap" << endl;
+
+	return false;
+    }
+
+/*
+Create equations for the plane spanned by the trapezium and the line
+through the segment. Keep in mind that the trapezium might be a triangle
+and that the line might be point only.
+
+The plane is $P1+P2\cdot (s, t)$, where $T1$ is a vector with three elements 
+and $T2$ a matrix with three rows and two columns, and the line is 
+$L1+L2\cdot u$, where both $L1$ and $L2$ are vectors with three elements.
+
+The interesection between plane and line is the solution of the equation
+$P2\cdot (s, t)-L2\cdot u=L1-T1$. Present the left handed side by the 
+matrix $A$ with three rows and three colums and the right handed side by
+the verctor $B$ with three elements.
+
+*/
+
+    double A[3][3];
+    double B[3];
+
+    if (nearlyEqual(l1p1x, l1p2x) && nearlyEqual(l1p1y, l1p2y)) {
+	B[0] = -l2p1x;
+	B[1] = -l2p1y;
+	B[2] = -l2t;
+
+	A[0][0] = l2p2x-l2p1x;
+	A[1][0] = l2p2y-l2p1y;
+	A[2][0] = 0;
+	A[0][1] = l1p1x-l2p1x;
+	A[1][1] = l1p1y-l2p1y;
+	A[2][1] = l1t-l2t;
+    } else {
+	B[0] = -l1p1x;
+	B[1] = -l1p1y;
+	B[2] = -l1t;
+
+	A[0][0] = l1p2x-l1p1x;
+	A[1][0] = l1p2y-l1p1y;
+	A[2][0] = 0;
+	A[0][1] = l2p1x-l1p1x;
+	A[1][1] = l2p1y-l1p1y;
+	A[2][1] = l2t-l1t;
+    }
+
+    B[0] += p1x;
+    B[1] += p1y;
+    B[2] += p1t;
+
+    A[0][2] = p1x-p2x;
+    A[1][2] = p1y-p2y;
+    A[2][2] = p1t-p2t;
+
+/*
+Apply Gauss elimination.
+
+*/
+
+    double* Ap[3];
+    for (unsigned int i = 0; i < 3; i++) Ap[i] = A[i];
+
+    GaussTransform(3, 3, Ap, B);
+
+    return false;
 
 #ifdef SCHMUH
 /*
@@ -1358,6 +1436,9 @@ $A$ and $B$.
     }
 
     GaussTransform(3, 4, Ap, B);
+
+    if (nearlyEqual(A[2][2], 0.0) && !nearlyEqual(B[2])) {
+    }
 
 /*
 Now, the linear system of equation has the following format
@@ -2442,7 +2523,9 @@ static ListExpr OutURegion(ListExpr typeInfo, Word value) {
 	MSegmentData nextDms;
 	if (i < num-1) ur->GetSegment(i+1, nextDms);
 
-        if (i == num-1 || dms.GetCycleNo() != nextDms.GetCycleNo()) {
+        if (i == num-1 
+	    || dms.GetCycleNo() != nextDms.GetCycleNo()
+	    || dms.GetFaceNo() != nextDms.GetFaceNo()) {
             if (MRA_DEBUG) cerr << "OutURegion() end of cycle" << endl;
 
             if (face == nl->TheEmptyList()) {
@@ -3069,6 +3152,49 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 	correct = false;
 	return SetWord(Address(0));
     }
+ 
+   if (MRA_DEBUG) 
+	for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
+	    MSegmentData dms;
+
+	    uregion->GetSegment(i, dms);
+
+	    cerr << "InURegion() resulting segment #"
+		 << i
+		 << ": "
+		 << dms.faceno
+		 << " "
+		 << dms.cycleno
+		 << " "
+		 << dms.segmentno
+		 << " i=("
+		 << dms.initialStartX
+		 << ", "
+		 << dms.initialStartY
+		 << ", "
+		 << dms.initialEndX
+		 << ", "
+		 << dms.initialEndY
+		 << ") f=("
+		 << dms.finalStartX
+		 << ", "
+		 << dms.finalStartY
+		 << ", "
+		 << dms.finalEndX
+		 << ", "
+		 << dms.finalEndY
+		 << ") flags="
+		 << dms.insideAbove
+		 << " "
+		 << dms.pointInitial
+		 << " "
+		 << dms.pointFinal
+		 << " "
+		 << dms.degeneratedInitialNext
+		 << " "
+		 << dms.degeneratedFinalNext
+		 << endl;
+	}
 
     correct = true;
     return SetWord(Address(uregion));
