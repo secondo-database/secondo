@@ -164,7 +164,8 @@ static void GaussTransform(const unsigned int n,
 /*
 1.1 Function ~specialSegmentIntersects2()~
 
-Returns ~true~ if the specified segment and line intersect.
+Returns ~true~ if the specified segment and line intersect
+in three-dimensional space $(x, y, t)$.
 It is not considered as intersection if they touch in their end points.
 
 The segment connects the points $(l1p1x, l1p1y, z)$ and $(l1p2x, l1p2y, z)$,
@@ -359,7 +360,8 @@ box parallel to the $(x, y)$-plane.
 1.1 Function ~specialSegmentIntersects1()~
 \label{ssi}
 
-Returns ~true~ if the two specified segments intersect. 
+Returns ~true~ if the two specified segments intersect
+in three-dimensional space $(x, y, t)$.
 It is not considered as intersection if they touch in their end points.
 
 The two lines must meet the following conditions.
@@ -1221,7 +1223,8 @@ separately.
 1.1 Function ~specialTrapeziumIntersects()~ (for normal use)
 \label{stinu}
 
-Returns ~true~ if and only if the two specified special trapeziums intersect.
+Returns ~true~ if and only if the two specified special trapeziums intersect
+in three-dimensional space $(x, y, t)$.
 
 The two trapeziums must meet the following conditions. These conditions are
 not checked in the function. If the conditions are not met, the function will
@@ -1283,6 +1286,102 @@ only used for unit testing.
 	    t1p1x, t1p1y, t1p2x, t1p2y, t1p3x, t1p3y, t1p4x, t1p4y,
 	    t2p1x, t2p1y, t2p2x, t2p2y, t2p3x, t2p3y, t2p4x, t2p4y,
 	    detailedResult);
+}
+
+/*
+1.1 Function ~specialIntersectionTrapeziumSegment()~
+
+Calculates the intersection of a trapezium and a segment 
+in three-dimensional space $(x, y, t)$.
+
+The trapezium is spanned by the points ~(l1p1x, l1p1y, l1t)~,
+~(l1p2x, l1p2y, l1t)~, ~(l2p1x, l2p1y, l2t)~ and
+~(l2p2x, l2p2y, l2t)~. ~(l1p1x, l1p1y, l1t)=(l1p2x, l1p2y, l1t)~ or
+~(l2p1x, l2p1y, l2t)=(l2p2x, l2p2y, l2t)~ is allowed but not both.
+
+The segment is spanned by the points ~(p1x, p1y, p1t)~ and ~(p2x, p2y, p2t)~.
+~(p1x, p1y, p1t)=(p2x, p2y, p2t)~ is allowed.
+
+*/
+
+void specialIntersectionTrapeziumSegment(double l1t,
+					 double l1p1x,
+					 double l1p1y,
+					 double l1p2x,
+					 double l1p2y,
+					 double l2t,
+					 double l2p1x,
+					 double l2p1y,
+					 double l2p2x,
+					 double l2p2y,
+					 double p1t,
+					 double p1x,
+					 double p1y,
+					 double p2t,
+					 double p2x,
+					 double p2y) {
+    if (MRA_DEBUG) cerr << "sITS called" << endl;
+
+    double tMinX;
+    double tMaxX;
+    double tMinY;
+    double tMaxY;
+
+    minmax4(l1p1x, l1p2x, l2p1x, l2p2x, tMinX, tMaxX);
+    minmax4(l1p1y, l1p2y, l2p1y, l2p2y, tMinY, tMaxY);
+
+    double lMinX = p1x < p2x ? p1x : p2x;
+    double lMaxX = p1x > p2x ? p1x : p2x;
+    double lMinY = p1y < p2y ? p1y : p2y;
+    double lMaxY = p1y > p2y ? p1y : p2y;
+
+
+#ifdef SCHMUH
+/*
+Create a linear system of equations $A$ and $B$, which represents
+$T1B+T1A\cdot (s, t)=T2B+T2A\cdot (s', t')$. Apply Gaussian elimination to
+$A$ and $B$.
+
+*/
+
+    double A[3][4];
+    double B[3];
+    double* Ap[3];
+
+    for (unsigned int i = 0; i < 3; i++) {
+	A[i][0] = T1A[i][0];
+	A[i][1] = T1A[i][1];
+	A[i][2] = -T2A[i][0];
+	A[i][3] = -T2A[i][1];
+	B[i] = T2B[i]-T1B[i];
+	Ap[i] = A[i];
+    }
+
+    GaussTransform(3, 4, Ap, B);
+
+/*
+Now, the linear system of equation has the following format
+\begin{eqnarray}
+\begin{array}{ccc}
+\begin{array}{cccc}
+\ast & \ast & \ast & \ast \\
+0    & \ast & \ast & \ast \\
+0    & 0    & c1   & c2 
+\end{array} & \left| \begin{array}{c}
+\ast \\
+\ast \\
+b
+\end{array} \right.
+\end{array}
+\nonumber\end{eqnarray}
+The asterisk denotes arbitrary values.
+
+If $c1=0$, $c2=0$ and $b\ne0$, the two planes are parallel and not identical:
+They do not intersect. If $c1=0$, $c2=0$ and $b=0$, the two planes are 
+identical and we have to check if the two trapeziums overlap.
+
+*/
+#endif
 }
 
 // ************************************************************************
@@ -1633,6 +1732,8 @@ public:
     void GetSegment(int pos, MSegmentData& dms);
     void PutSegment(int pos, MSegmentData& dms);
 
+    void RestrictedIntersection(UPoint& up, Interval<Instant>& iv);
+
     void Destroy(void);
 
     virtual void TemporalFunction(Instant& t, CRegion& result);
@@ -1669,6 +1770,109 @@ const Rectangle<3> URegion::BoundingBox() const {
     if (MRA_DEBUG) cerr << "URegion::BoundingBox() called" << endl;
 
     assert(false);
+}
+
+/*
+1.1.1 Method ~URegion::RestrictedIntersection()~
+
+Checks whether the point unit ~up~ intersects this region unit, while
+both units are restrictured to the interval ~iv~, which must be inside
+the interval of the two units (this is not checked and must be assured
+before this method is called!).
+
+*/
+
+void URegion::RestrictedIntersection(UPoint& up, Interval<Instant>& iv) {
+    if (MRA_DEBUG) {
+	cerr << "URegion::RI() called" << endl;	
+	cerr << "URegion::RI() this=" << (unsigned int) this << endl;	
+	cerr << "URegion::RI() up=" << (unsigned int) &up << endl;	
+    }
+
+    if (MRA_DEBUG)
+	cerr << "URegion::RI() #segments=" << segmentsNum << endl;
+
+    for (unsigned int i = 0; i < segmentsNum; i++) {
+	MSegmentData dms;
+	segments->Get(i+segmentsStartPos, dms);
+
+	if (MRA_DEBUG) {
+	    cerr << "URegion::RI() segment #" 
+		 << i 
+		 << ": ["
+		 << timeInterval.start.ToDouble()
+		 << " "
+		 << timeInterval.end.ToDouble()
+		 << " "
+		 << timeInterval.lc
+		 << " "
+		 << timeInterval.rc
+		 << "] ("
+		 << dms.initialStartX
+		 << " "
+		 << dms.initialStartY
+		 << " "
+		 << dms.initialEndX
+		 << " "
+		 << dms.initialEndY
+		 << ")-("
+		 << dms.finalStartX
+		 << " "
+		 << dms.finalStartY
+		 << " "
+		 << dms.finalEndX
+		 << " "
+		 << dms.finalEndY
+		 << ") ia="
+		 << dms.insideAbove
+		 << endl;
+	    cerr << "URegion::RI() point is ["
+		 << up.timeInterval.start.ToDouble()
+		 << " "
+		 << up.timeInterval.end.ToDouble()
+		 << " "
+		 << up.timeInterval.lc
+		 << " "
+		 << up.timeInterval.rc
+		 << "] ("
+		 << up.p0.GetX()
+		 << " "
+		 << up.p0.GetY()
+		 << " "
+		 << up.p1.GetX()
+		 << " "
+		 << up.p1.GetY()
+		 << ")"
+		 << endl;
+	    cerr << "URegion::RI() iv is ["
+		 << iv.start.ToDouble()
+		 << " "
+		 << iv.end.ToDouble()
+		 << " "
+		 << iv.lc
+		 << " "
+		 << iv.rc
+		 << "]"
+		 << endl;
+	}
+
+	specialIntersectionTrapeziumSegment(timeInterval.start.ToDouble(),
+					    dms.initialStartX,
+					    dms.initialStartY,
+					    dms.initialEndX,
+					    dms.initialEndY,
+					    timeInterval.end.ToDouble(),
+					    dms.finalStartX,
+					    dms.finalStartY,
+					    dms.finalEndX,
+					    dms.finalEndY,
+					    up.timeInterval.start.ToDouble(),
+					    up.p0.GetX(),
+					    up.p0.GetY(),
+					    up.timeInterval.end.ToDouble(),
+					    up.p1.GetX(),
+					    up.p1.GetY());
+    }
 }
 
 // *hm* directly adapted from InRegion(), probably O(n^2) process 
@@ -2991,11 +3195,11 @@ template<class Mapping1, class Mapping2, class Unit1, class Unit2>
 class RefinementPartition {
 private:
     vector< Interval<Instant>* > iv;
-    vector<Unit1*> vur;
-    vector<Unit2*> vup;
+    vector<int> vur;
+    vector<int> vup;
 
-    void AddUnits(Unit1* ur,
-		  Unit2* up,
+    void AddUnits(int urPos, 
+		  int upPos, 
 		  Instant& start,
 		  Instant& end,
 		  bool lc,
@@ -3012,10 +3216,7 @@ public:
 	return iv.size(); 
     }
 
-    void Get(unsigned int pos, 
-	     Interval<Instant>*& civ, 
-	     Unit1*& ur, 
-	     Unit2*& up) {
+    void Get(unsigned int pos, Interval<Instant>*& civ, int& ur, int& up) {
 	if (MRA_DEBUG)
 	    cerr << "RP::Get() called" << endl;
 	    
@@ -3029,8 +3230,8 @@ public:
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
 void RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::AddUnits(
-    Unit1* ur,
-    Unit2* up,
+    int urPos,
+    int upPos,
     Instant& start,
     Instant& end,
     bool lc,
@@ -3045,14 +3246,18 @@ void RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::AddUnits(
 	     << lc
 	     << " rc="
 	     << rc
+	     << " urPos="
+	     << urPos
+	     << " upPos="
+	     << upPos
 	     << endl;
     }
 
     Interval<Instant>* civ = new Interval<Instant>(start, end, lc, rc);
 
     iv.push_back(civ);
-    vur.push_back(ur);
-    vup.push_back(up);
+    vur.push_back(urPos);
+    vup.push_back(upPos);
 
 #ifdef SCHMUH
     Interval<Instant> iv(start, end, lc, rc);
@@ -3163,16 +3368,16 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 	    if (!(ur.timeInterval.lc && up.timeInterval.lc)) {
 		if (ur.timeInterval.lc)
 		    AddUnits(
-			&ur,
-			0,
+			mrUnit,
+			-1,
 			ur.timeInterval.start,
 			ur.timeInterval.start,
 			true,
 			true);
 		else if (up.timeInterval.lc)
 		    AddUnits(
-			0,
-			&up,
+			-1,
+			mpUnit,
 			ur.timeInterval.start,
 			ur.timeInterval.start,
 			true,
@@ -3180,8 +3385,8 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 	    }
 
 	    AddUnits(
-		&ur,
-		&up,
+		mrUnit,
+		mpUnit,
 		ur.timeInterval.start,
 		ur.timeInterval.end,
 		ur.timeInterval.lc && up.timeInterval.lc,
@@ -3190,8 +3395,8 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 	    if (!(ur.timeInterval.rc && up.timeInterval.rc)) {
 		if (ur.timeInterval.rc) {
 		    AddUnits(
-			&ur,
-			0,
+			mrUnit,
+			-1,
 			ur.timeInterval.end,
 			ur.timeInterval.end,
 			true,
@@ -3199,8 +3404,8 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 		    c = true;
 		} else if (up.timeInterval.rc) {
 		    AddUnits(
-			0,
-			&up,
+			-1,
+			mpUnit,
 			ur.timeInterval.end,
 			ur.timeInterval.end,
 			true,
@@ -3226,16 +3431,16 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 	    if ((t > up.timeInterval.start || t == up.timeInterval.start)
 		&& t < ur.timeInterval.start)
 		AddUnits(
-		    0,
-		    &up, 
+		    -1,
+		    mpUnit, 
 		    t,
 		    ur.timeInterval.start,
 		    !c,
 		    !ur.timeInterval.lc);
 
 	    AddUnits(
-		&ur,
-		&up,
+		mrUnit,
+		mpUnit,
 		ur.timeInterval.start,
 		ur.timeInterval.end,
 		ur.timeInterval.lc,
@@ -3256,16 +3461,16 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 	    if ((t > ur.timeInterval.start || t == ur.timeInterval.start)
 		&& t < up.timeInterval.start)
 		AddUnits(
-		    &ur,
-		    0,
+		    mrUnit,
+		    -1,
 		    t,
 		    up.timeInterval.start,
 		    !c,
 		    !up.timeInterval.lc);
 
 	    AddUnits(
-		&ur,
-		&up,
+		mrUnit,
+		mpUnit,
 		up.timeInterval.start,
 		up.timeInterval.end,
 		up.timeInterval.lc,
@@ -3292,16 +3497,16 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 		if ((t > up.timeInterval.start || t == up.timeInterval.start)
 		    && t < up.timeInterval.end)
 		    AddUnits(
-			0,
-			&up,
+			-1,
+			mpUnit,
 			t,
 			up.timeInterval.end,
 			!c,
 			false);
 
 		AddUnits(
-		    &ur,
-		    &up,
+		    mrUnit,
+		    mpUnit,
 		    ur.timeInterval.start,
 		    ur.timeInterval.start,
 		    true,
@@ -3324,16 +3529,16 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 		if ((t > ur.timeInterval.start || t == ur.timeInterval.start)
 		    && t < ur.timeInterval.end)
 		    AddUnits(
-			&ur,
-			0,
+			mrUnit,
+			-1,
 			t,
 			ur.timeInterval.end,
 			!c,
 			false);
 
 		AddUnits(
-		    &ur,
-		    &up,
+		    mrUnit,
+		    mpUnit,
 		    up.timeInterval.start,
 		    up.timeInterval.start,
 		    true,
@@ -3355,16 +3560,16 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 		if ((t > ur.timeInterval.start || t == ur.timeInterval.start)
 		    && t < up.timeInterval.start)
 		    AddUnits(
-			&ur,
-			0,
+			mrUnit,
+			-1,
 			t,
 			up.timeInterval.start,
 			!c,
 			!up.timeInterval.lc);
 
 		AddUnits(
-		    &ur,
-		    &up,
+		    mrUnit,
+		    mpUnit,
 		    up.timeInterval.start,
 		    ur.timeInterval.end,
 		    up.timeInterval.lc,
@@ -3391,8 +3596,8 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 		    }
 
 		    AddUnits(
-			&ur,
-			&up,
+			mrUnit,
+			mpUnit,
 			ur.timeInterval.start,
 			ur.timeInterval.end,
 			ur.timeInterval.lc && up.timeInterval.lc,
@@ -3418,8 +3623,8 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 		    }
 
 		    AddUnits(
-			&ur,
-			&up,
+			mrUnit,
+			mpUnit,
 			ur.timeInterval.start,
 			up.timeInterval.end,
 			ur.timeInterval.lc && up.timeInterval.lc,
@@ -3441,16 +3646,16 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 		if ((t > up.timeInterval.start || t == up.timeInterval.start)
 		    && t < ur.timeInterval.start)
 		    AddUnits(
-			0,
-			&up,
+			-1,
+			mpUnit,
 			t,
 			ur.timeInterval.start,
 			!c,
 			!ur.timeInterval.lc);
 
 		AddUnits(
-		    &ur,
-		    &up,
+		    mrUnit,
+		    mpUnit,
 		    ur.timeInterval.start,
 		    up.timeInterval.end,
 		    ur.timeInterval.lc,
@@ -3471,8 +3676,8 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 	    }
 
 	    AddUnits(
-		&ur, 
-		0,
+		mrUnit, 
+		-1,
 		t,
 		ur.timeInterval.end,
 		!c,
@@ -3491,8 +3696,8 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 	    }
 
 	    AddUnits(
-		0,
-		&up,
+		-1,
+		mpUnit,
 		t,
 		up.timeInterval.end,
 		!c,
@@ -3508,8 +3713,8 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
     if (mrUnit < mr.GetNoComponents()) {
 	if (t < ur.timeInterval.end)
 	    AddUnits(
-		&ur, 
-		0,
+		mrUnit, 
+		-1,
 		t,
 		ur.timeInterval.end,
 		!c,
@@ -3520,8 +3725,8 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 	    mr.Get(mrUnit, ur);
 
 	    AddUnits(
-		&ur, 
-		0,
+		mrUnit, 
+		-1,
 		ur.timeInterval.start,
 		ur.timeInterval.end,
 		ur.timeInterval.lc,
@@ -3534,8 +3739,8 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
     if (mpUnit < mp.GetNoComponents()) {
 	if (t < up.timeInterval.end)
 	    AddUnits(
-		0,
-		&up,
+		-1,
+		mpUnit,
 		t,
 		up.timeInterval.end,
 		!c,
@@ -3546,8 +3751,8 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 	    mp.Get(mpUnit, up);
 
 	    AddUnits(
-		0,
-		&up, 
+		-1,
+		mpUnit, 
 		up.timeInterval.start,
 		up.timeInterval.end,
 		up.timeInterval.lc,
@@ -3937,14 +4142,27 @@ void MRegion::Traversed(void) {
 void MRegion::Intersection(MPoint& mp) {
     if (MRA_DEBUG) cerr << "MRegion::Intersection() called" << endl;
 
+/*
+First, the refinement partition for the moving region and point must be
+calculated.
+
+*/
     RefinementPartition<MRegion, MPoint, URegion, UPoint> rp(*this, mp);
 
+/*
+
+For each interval in the refinement partition, we have to check whether
+it maps to a region and point unit. If not, there is obvious no intersection
+during this interval and we can skip if. Otherwise, we check if the region
+and point unit, both restricted to this interval, intersect.
+
+*/
     for (unsigned int i = 0; i < rp.Size(); i++) {
 	Interval<Instant>* iv;
-	URegion* ur;
-	UPoint* up;
+	int urPos;
+	int upPos;
 
-	rp.Get(i, iv, ur, up);
+	rp.Get(i, iv, urPos, upPos);
 
 	if (MRA_DEBUG) 
 	    cerr << "MRegion::Intersection() interval#"
@@ -3958,16 +4176,23 @@ void MRegion::Intersection(MPoint& mp) {
 		 << " "
 		 << iv->rc
 		 << " "
-		 << (unsigned int) ur
+		 << urPos
 		 << " "
-		 << (unsigned int) up
+		 << upPos
 		 << endl;
 
-	if (ur == 0 || up == 0) continue;
+	if (urPos == -1 || upPos == -1) continue;
+
+	URegion ur;
+	UPoint up;
+
+	Get(urPos, ur);
+	mp.Get(upPos, up);
 
 	if (MRA_DEBUG) 
 	    cerr << "MRegion::Intersection() both elements present" << endl;
 
+	ur.RestrictedIntersection(up, *iv);
     }
 
     assert(false);
