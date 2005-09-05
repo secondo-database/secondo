@@ -29,7 +29,7 @@ if [ "$SECONDO_PLATFORM" != win32 ]; then
    unset SWI_HOME_DIR
 fi
 
-if [ -n SECONDO_JAVA ]; then
+if [ "$SECONDO_JAVA" != "" ]; then
     JAVA=$SECONDO_JAVA
     CLASSPATH=$SECONDO_JAVART
 else
