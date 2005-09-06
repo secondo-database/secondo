@@ -53,8 +53,6 @@ using namespace std;
 #include "Profiles.h"
 #include "LogMsg.h"
 #include "License.h"
-#include "Application.h"
-
 
 #ifdef SECONDO_USE_ENTROPY
 #include "../Optimizer/Entropy/entropy.h"
@@ -66,15 +64,6 @@ NestedList* plnl = 0;
 int lastErrorCode = 0;
 string lastErrorMessage = "";
 int success = 0;
-
-
-class SecondoPLApp: Application{
-  public:
-     SecondoPLApp(int argc,const char** argv);
-     int Execute();
-};
-
-
 
 /*
 
@@ -667,11 +656,11 @@ removed from the argument vector and the argument count is
 reduced by 2. Returns the FileName on success and NULL otherwise.
 
 */
-const char* GetConfigFileNameFromArgV(int& argc,const char** argv)
+char* GetConfigFileNameFromArgV(int& argc, char** argv)
 {
   int i = 0;
   int j;
-  const char* result;
+  char* result;
 
   if((result = getenv("SECONDO_CONFIG")) != 0)
   {
@@ -708,7 +697,7 @@ configuration file. Return true iff successful.
 
 */
 bool
-StartSecondoC(const char* configFileName)
+StartSecondoC(char* configFileName)
 {
   string user = "";
   string pswd = "";
@@ -745,7 +734,7 @@ This function registers the secondo predicate at the prolog engine.
 
 int registerSecondo(){
   cout << "register secondo" << endl;
-  const char* configFile;
+  char* configFile;
   atexit(handle_exit);
 
   /* Start Secondo and remove Secondo command line arguments
@@ -765,10 +754,13 @@ int registerSecondo(){
 }
 
 
-SecondoPLApp::SecondoPLApp(int argc,const  char** argv):Application(argc,argv){
+
+int
+main(int argc, char **argv)
+{
   cout << License::getStr() << endl;
 
-  const char* configFile;
+  char* configFile;
 
   atexit(handle_exit);
 
@@ -787,10 +779,8 @@ SecondoPLApp::SecondoPLApp(int argc,const  char** argv):Application(argc,argv){
   /* initialize the prologb engine */
   char * initargs[argc+3];
   int p=0;
-  for(p=0;p<argc;p++){   // copy arguments
-     initargs[p] = new char[sizeof(argv[p])+1];
-     sprintf(initargs[p],"%s",argv[p]);
-  }
+  for(p=0;p<argc;p++)   // copy arguments
+     initargs[p]=argv[p];
   initargs[argc] ="pl";
   initargs[argc+1] ="-g";
   initargs[argc+2] ="true";
@@ -814,20 +804,9 @@ SecondoPLApp::SecondoPLApp(int argc,const  char** argv):Application(argc,argv){
   PL_install_readline();
 #endif
 
-
-}
-
-int SecondoPLApp::Execute(){
-  return PL_toplevel();
+  success = PL_toplevel();
   // this function never returns. Entering "halt." at the Userinterface
   // calls exit().
-}
-
-int
-main(int argc, const char **argv)
-{
-  SecondoPLApp* app = new SecondoPLApp(argc,argv);
-  return app->Execute(); 
 
 }
 
