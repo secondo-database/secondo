@@ -1291,34 +1291,105 @@ only used for unit testing.
 /*
 1.1 Function ~specialIntersectionTrapeziumSegment()~
 
+*/
+
+bool specialInsidePointTrapezium(double t,
+				 double x,
+				 double y,
+				 double t1,
+				 double l1p1x,
+				 double l1p1y,
+				 double l1p2x,
+				 double l1p2y,
+				 double t2,
+				 double l2p1x,
+				 double l2p1y,
+				 double l2p2x,
+				 double l2p2y) {
+    if (MRA_DEBUG) cerr << "sIPT() called" << endl;
+
+    if (!(lowerOrNearlyEqual(t1, t) && lowerOrNearlyEqual(t, t2))
+	&& !(lowerOrNearlyEqual(t2, t) && lowerOrNearlyEqual(t, t1))) {
+	if (MRA_DEBUG) cerr << "sIPT() t check failed" << endl;
+
+	return false;
+    }
+
+    if (MRA_DEBUG) cerr << "sIPT() t check succeeded" << endl;
+
+    double x1;
+    double y1;
+    double x2;
+    double y2;
+
+    if (nearlyEqual(t1, t2)) {
+	x1 = l1p1x;
+	y1 = l1p1y;
+	x2 = l1p2x;
+	y2 = l1p2y;
+    } else {
+	double f = (t-t1)/(t2-t1);
+
+	if (MRA_DEBUG) cerr << "sIPT() f=" << f << endl;
+
+	x1 = l1p1x+(l2p1x-l1p1x)*f;
+	y1 = l1p1y+(l2p1y-l1p1y)*f;
+	x2 = l1p2x+(l2p2x-l1p2x)*f;
+	y2 = l1p2y+(l2p2y-l1p2y)*f;
+    }
+
+    if (MRA_DEBUG) 
+	cerr << "sIPT() x1=" << x1
+	     << " y1=" << y1
+	     << " x2=" << x2
+	     << " y2=" << y2
+	     << endl;
+
+    if (((lowerOrNearlyEqual(x1, x) && lowerOrNearlyEqual(x, x2))
+	 || (lowerOrNearlyEqual(x2, x) && lowerOrNearlyEqual(x, x1)))
+	&& ((lowerOrNearlyEqual(y1, y) && lowerOrNearlyEqual(y, y2))
+	    || (lowerOrNearlyEqual(y2, y) && lowerOrNearlyEqual(y, y1)))) {
+	if (MRA_DEBUG) cerr << "sIPT() inside" << endl;
+
+	return true;
+    } else {
+	if (MRA_DEBUG) cerr << "sIPT() not inside" << endl;
+
+	return false;
+    }
+}
+
+/*
+1.1 Function ~specialIntersectionTrapeziumSegment()~
+
 Calculates the intersection of a trapezium and a segment 
 in three-dimensional space $(x, y, t)$.
 
-The trapezium is spanned by the points ~(l1p1x, l1p1y, l1t)~,
-~(l1p2x, l1p2y, l1t)~, ~(l2p1x, l2p1y, l2t)~ and
-~(l2p2x, l2p2y, l2t)~. ~(l1p1x, l1p1y, l1t)=(l1p2x, l1p2y, l1t)~ or
-~(l2p1x, l2p1y, l2t)=(l2p2x, l2p2y, l2t)~ is allowed but not both.
-~l1t=l2t~ is allowed.
+The trapezium is spanned by the points ~(l1p1x, l1p1y, t1)~,
+~(l1p2x, l1p2y, t1)~, ~(l2p1x, l2p1y, t2)~ and
+~(l2p2x, l2p2y, t2)~. ~(l1p1x, l1p1y, t1)=(l1p2x, l1p2y, t1)~ or
+~(l2p1x, l2p1y, t2)=(l2p2x, l2p2y, t2)~ is allowed but not both.
+~l1t=l2t~ is allowed. 
 
-The segment is spanned by the points ~(p1x, p1y, p1t)~ and ~(p2x, p2y, p2t)~.
-~(p1x, p1y, p1t)=(p2x, p2y, p2t)~ is allowed. ~p1t=p2t~ is allowed.
+The segment is spanned by the points ~(p1x, p1y, t1)~ and ~(p2x, p2y, t2)~.
+~(p1x, p1y, t1)=(p2x, p2y, t1)~ is allowed.
+
+~t1=t2~ is allowed.
 
 */
 
-bool specialIntersectionTrapeziumSegment(double l1t,
+bool specialIntersectionTrapeziumSegment(double t1,
+					 double t2,
 					 double l1p1x,
 					 double l1p1y,
 					 double l1p2x,
 					 double l1p2y,
-					 double l2t,
 					 double l2p1x,
 					 double l2p1y,
 					 double l2p2x,
 					 double l2p2y,
-					 double p1t,
 					 double p1x,
 					 double p1y,
-					 double p2t,
 					 double p2x,
 					 double p2y) {
     if (MRA_DEBUG) cerr << "sITS() called" << endl;
@@ -1373,34 +1444,34 @@ the verctor $B$ with three elements.
     if (nearlyEqual(l1p1x, l1p2x) && nearlyEqual(l1p1y, l1p2y)) {
 	B[0] = -l2p1x;
 	B[1] = -l2p1y;
-	B[2] = -l2t;
+	B[2] = -t2;
 
 	A[0][0] = l2p2x-l2p1x;
 	A[1][0] = l2p2y-l2p1y;
 	A[2][0] = 0;
 	A[0][1] = l1p1x-l2p1x;
 	A[1][1] = l1p1y-l2p1y;
-	A[2][1] = l1t-l2t;
+	A[2][1] = t1-t2;
     } else {
 	B[0] = -l1p1x;
 	B[1] = -l1p1y;
-	B[2] = -l1t;
+	B[2] = -t1;
 
 	A[0][0] = l1p2x-l1p1x;
 	A[1][0] = l1p2y-l1p1y;
 	A[2][0] = 0;
 	A[0][1] = l2p1x-l1p1x;
 	A[1][1] = l2p1y-l1p1y;
-	A[2][1] = l2t-l1t;
+	A[2][1] = t2-t1;
     }
 
     B[0] += p1x;
     B[1] += p1y;
-    B[2] += p1t;
+    B[2] += t1;
 
     A[0][2] = p1x-p2x;
     A[1][2] = p1y-p2y;
-    A[2][2] = p1t-p2t;
+    A[2][2] = t1-t2;
 
 /*
 Apply Gauss elimination.
@@ -1412,7 +1483,47 @@ Apply Gauss elimination.
 
     GaussTransform(3, 3, Ap, B);
 
-    return false;
+/*
+Analyse solutions.
+
+*/
+
+    if (nearlyEqual(A[2][2], 0.0)) {
+	if (nearlyEqual(B[2], 0.0)) {
+	    assert(false);
+	} else {
+	    if (MRA_DEBUG) cerr << "sITS() no solution" << endl;
+
+	    return false;
+	}
+    } else {
+	double u = B[2]/A[2][2];
+	double x = p1x+(p2x-p1x)*u;
+	double y = p1y+(p2y-p1y)*u;
+	double t = t1+(t2-t1)*u;
+
+	if (MRA_DEBUG) 
+	    cerr << "sITS() intersection with u="
+		 << u
+		 << " (" << x << " " << y << " " << t << ")"
+		 << endl;
+
+	specialInsidePointTrapezium(t,
+				    x,
+				    y,
+				    t1,
+				    l1p1x,
+				    l1p1y,
+				    l1p2x,
+				    l1p2y,
+				    t2,
+				    l2p1x,
+				    l2p1y,
+				    l2p2x,
+				    l2p2y);
+
+	return false;
+    }
 
 #ifdef SCHMUH
 /*
@@ -1740,6 +1851,11 @@ Both segments are not vertical.
     double GetFinalEndX(void) { return finalEndX; }
     double GetFinalEndY(void) { return finalEndY; }
     bool GetInsideAbove(void) { return insideAbove; }
+
+    void restrictToInterval(Interval<Instant> origIv, 
+			    Interval<Instant> restrIv, 
+			    MSegmentData& rDms);
+
 /*
 Since no other classes are accessing the private attributes of
 ~MSegmentData~, we declare ~URegion~ as friend. This is shorter,
@@ -1750,6 +1866,56 @@ yet somewhat clumsy than creating attribute access functions.
     friend class URegion; 
 
 };
+
+void MSegmentData::restrictToInterval(Interval<Instant> origIv, 
+				      Interval<Instant> restrIv, 
+				      MSegmentData& rDms) {
+    if (MRA_DEBUG) 
+	cerr << "MSegmentData::restrictToInterval() called" << endl;
+
+    rDms.faceno = faceno;
+    rDms.cycleno = cycleno;
+    rDms.segmentno = segmentno;
+
+    rDms.insideAbove = insideAbove;
+
+    rDms.degeneratedInitialNext = degeneratedInitialNext;
+    rDms.degeneratedFinalNext = degeneratedFinalNext;
+    rDms.degeneratedInitial = degeneratedInitial;
+    rDms.degeneratedFinal = degeneratedFinal;
+
+    if (nearlyEqual(origIv.end.ToDouble(), origIv.start.ToDouble())) {
+	rDms.initialStartX = initialStartX;
+	rDms.initialStartY = initialStartY;
+	rDms.initialEndX = initialEndX;
+	rDms.initialEndY = initialEndY;
+	rDms.finalStartX = finalStartX;
+	rDms.finalStartY = finalStartY;
+	rDms.finalEndX = finalEndX;
+	rDms.finalEndY = finalEndY;
+    } else {
+	double ti = 
+	    (restrIv.start.ToDouble()-origIv.start.ToDouble())
+	    /(origIv.end.ToDouble()-origIv.start.ToDouble());
+	double tf = 
+	    (restrIv.end.ToDouble()-origIv.start.ToDouble())
+	    /(origIv.end.ToDouble()-origIv.start.ToDouble());
+
+	if (MRA_DEBUG) 
+	    cerr << "MSegmentData::restrictToInterval() ti=" 
+		 << ti << " tf=" << tf 
+		 << endl;
+
+	rDms.initialStartX = initialStartX+(finalStartX-initialStartX)*ti;
+	rDms.initialStartY = initialStartY+(finalStartY-initialStartY)*ti;
+	rDms.initialEndX = initialEndX+(finalEndX-initialEndX)*ti;
+	rDms.initialEndY = initialEndY+(finalEndY-initialEndY)*ti;
+	rDms.finalStartX = initialStartX+(finalStartX-initialStartX)*tf;
+	rDms.finalStartY = initialStartY+(finalStartY-initialStartY)*tf;
+	rDms.finalEndX = initialEndX+(finalEndX-initialEndX)*tf;
+	rDms.finalEndY = initialEndY+(finalEndY-initialEndY)*tf;
+    }
+}
 
 /*
 1.1 Class ~URegion~
@@ -1853,6 +2019,32 @@ const Rectangle<3> URegion::BoundingBox() const {
     assert(false);
 }
 
+static void restrictUPointToInterval(UPoint& up, 
+				     Interval<Instant> iv, 
+				     UPoint& rUp) {
+    if (MRA_DEBUG) cerr << "restrictUPointToInterval() called" << endl;
+
+    if (nearlyEqual(iv.start.ToDouble(), iv.end.ToDouble())) 
+	rUp = up;
+    else {
+	double ti =
+	    (iv.start.ToDouble()-up.timeInterval.start.ToDouble())
+	    /(up.timeInterval.end.ToDouble()-up.timeInterval.start.ToDouble());
+	double tf =
+	    (iv.end.ToDouble()-up.timeInterval.start.ToDouble())
+	    /(up.timeInterval.end.ToDouble()-up.timeInterval.start.ToDouble());
+
+	UPoint dummy(
+	    iv,
+	    up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*ti,
+	    up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*ti,
+	    up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*tf,
+	    up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*tf);
+
+	rUp = dummy;
+    }
+}
+
 /*
 1.1.1 Method ~URegion::RestrictedIntersection()~
 
@@ -1937,22 +2129,58 @@ void URegion::RestrictedIntersection(UPoint& up, Interval<Instant>& iv) {
 		 << endl;
 	}
 
-	specialIntersectionTrapeziumSegment(timeInterval.start.ToDouble(),
-					    dms.initialStartX,
-					    dms.initialStartY,
-					    dms.initialEndX,
-					    dms.initialEndY,
-					    timeInterval.end.ToDouble(),
-					    dms.finalStartX,
-					    dms.finalStartY,
-					    dms.finalEndX,
-					    dms.finalEndY,
-					    up.timeInterval.start.ToDouble(),
-					    up.p0.GetX(),
-					    up.p0.GetY(),
-					    up.timeInterval.end.ToDouble(),
-					    up.p1.GetX(),
-					    up.p1.GetY());
+	UPoint rUp;
+	restrictUPointToInterval(up, iv, rUp);
+	
+	MSegmentData rDms;
+	dms.restrictToInterval(timeInterval, iv, rDms);
+
+	if (MRA_DEBUG) {
+	    cerr << "URegion::RI() segment restricted to iv is ("
+		 << rDms.initialStartX
+		 << " "
+		 << rDms.initialStartY
+		 << " "
+		 << rDms.initialEndX
+		 << " "
+		 << rDms.initialEndY
+		 << ")-("
+		 << rDms.finalStartX
+		 << " "
+		 << rDms.finalStartY
+		 << " "
+		 << rDms.finalEndX
+		 << " "
+		 << rDms.finalEndY
+		 << ")"
+		 << endl;
+	    cerr << "URegion::RI() point restricted to iv is ("
+		 << rUp.p0.GetX()
+		 << " "
+		 << rUp.p0.GetY()
+		 << " "
+		 << rUp.p1.GetX()
+		 << " "
+		 << rUp.p1.GetY()
+		 << ")"
+		 << endl;
+	}
+
+	specialIntersectionTrapeziumSegment(
+	    iv.start.ToDouble(),
+	    iv.end.ToDouble(),
+	    rDms.initialStartX,
+	    rDms.initialStartY,
+	    rDms.initialEndX,
+	    rDms.initialEndY,
+	    rDms.finalStartX,
+	    rDms.finalStartY,
+	    rDms.finalEndX,
+	    rDms.finalEndY,
+	    rUp.p0.GetX(),
+	    rUp.p0.GetY(),
+	    rUp.p1.GetX(),
+	    rUp.p1.GetY());
     }
 }
 
