@@ -161,19 +161,18 @@ const int PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile )
 
     // Move FLOB data to extension tuple.
     if( extensionSize > 0 )
-    {
       extensionTuple = (char *)malloc(extensionSize);
-      char *extensionPtr = extensionTuple;
-      for( int i = 0; i < tupleType.GetNoAttributes(); i++)
+
+    char *extensionPtr = extensionTuple;
+    for( int i = 0; i < tupleType.GetNoAttributes(); i++)
+    {
+      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
       {
-        for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
+        FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
+        if( !tmpFLOB->IsLob() )
         {
-          FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-          if( !tmpFLOB->IsLob() )
-          {
-            tmpFLOB->SaveToExtensionTuple( extensionPtr );
-            extensionPtr += tmpFLOB->Size();
-          }
+          tmpFLOB->SaveToExtensionTuple( extensionPtr );
+          extensionPtr += tmpFLOB->Size();
         }
       }
     }
@@ -199,19 +198,18 @@ const int PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile )
 
     // Move FLOB data to extension tuple.
     if( extensionSize > 0 )
-    {
       extensionTuple = (char *)malloc(extensionSize);
-      char *extensionPtr = extensionTuple;
-      for( int i = 0; i < tupleType.GetNoAttributes(); i++)
+
+    char *extensionPtr = extensionTuple;
+    for( int i = 0; i < tupleType.GetNoAttributes(); i++)
+    {
+      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
       {
-        for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
+        FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
+        if( !tmpFLOB->IsLob() )
         {
-          FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-          if( !tmpFLOB->IsLob() )
-          {
-            tmpFLOB->SaveToExtensionTuple( extensionPtr );
-            extensionPtr += tmpFLOB->Size();
-          }
+          tmpFLOB->SaveToExtensionTuple( extensionPtr );
+          extensionPtr += tmpFLOB->Size();
         }
       }
     }

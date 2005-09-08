@@ -128,15 +128,14 @@ class TupleElement // renamed, previous name: TupleElem
       // Move FLOB data to extension tuple
       char *extensionElement = 0;
       if( extensionSize > 0 )
-      {
         extensionElement = (char *)malloc( extensionSize );
-        char *extensionPtr = extensionElement;
-        for( int i = 0; i < elem->NumOfFLOBs(); i++ )
-        {
-          FLOB *tmpFLOB = elem->GetFLOB(i);
-          tmpFLOB->SaveToExtensionTuple( extensionPtr );
-          extensionPtr += tmpFLOB->Size();
-        }
+
+      char *extensionPtr = extensionElement;
+      for( int i = 0; i < elem->NumOfFLOBs(); i++ )
+      {
+        FLOB *tmpFLOB = elem->GetFLOB(i);
+        tmpFLOB->SaveToExtensionTuple( extensionPtr );
+        extensionPtr += tmpFLOB->Size();
       }
 
       // Write the element
