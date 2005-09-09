@@ -521,13 +521,14 @@ which should be named Command\_<name>.
     }
   } // end of switch
 
+
   if ( errorCode != 0 )
   {
      cmsg.send(); // flush cmsg buffer
      if ( isCSImpl ) {
        errorMessage += cmsg.getErrorMsg();
-       errorMessage += GetErrorMessage(errorCode);
      }
+     errorMessage += GetErrorMessage(errorCode);
      return;
   }
 
@@ -1265,9 +1266,8 @@ which should be named Command\_<name>.
     cmsg.info() << endl << "Command " << cmdTime.diffTimes() << endl;
     cmsg.send();
  } 
- 
- if ( errorCode != 0) { // translate error code into text
 
+ if ( errorCode != 0) { // translate error code into text
    // check if the queryprocessor reports errors
    string repMsg("");
    ErrorReporter::GetErrorMessage(repMsg);
@@ -1277,8 +1277,9 @@ which should be named Command\_<name>.
    cmsg.send(); // flush cmsg buffer
    if ( isCSImpl ) {
      errorMessage += cmsg.getErrorMsg();
-     errorMessage += GetErrorMessage(errorCode);
    }
+   errorMessage += GetErrorMessage(errorCode);
+
  }
  return;
 }
