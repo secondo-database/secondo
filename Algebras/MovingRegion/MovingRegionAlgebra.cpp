@@ -65,6 +65,12 @@ static bool lower(double a, double b) {
     return a < b-eps;
 }
 
+static bool between(double a, double x, double b) {
+    return 
+	(lowerOrNearlyEqual(a, x) && lowerOrNearlyEqual(x, b))
+	|| (lowerOrNearlyEqual(b, x) && lowerOrNearlyEqual(x, a));
+}
+
 static void minmax2(double a, 
 		    double b, 
 		    double& min, 
@@ -1378,7 +1384,7 @@ The segment is spanned by the points ~(p1x, p1y, t1)~ and ~(p2x, p2y, t2)~.
 
 */
 
-bool specialIntersectionTrapeziumSegment(double t1,
+void specialIntersectionTrapeziumSegment(double t1,
 					 double t2,
 					 double l1p1x,
 					 double l1p1y,
@@ -1391,7 +1397,15 @@ bool specialIntersectionTrapeziumSegment(double t1,
 					 double p1x,
 					 double p1y,
 					 double p2x,
-					 double p2y) {
+					 double p2y,
+					 bool& ip1present,
+					 double& ip1x,
+					 double& ip1y,
+					 double& ip1t,
+					 bool& ip2present,
+					 double& ip2x,
+					 double& ip2y,
+					 double& ip2t) {
     if (MRA_DEBUG) cerr << "sITS() called" << endl;
 
 /*
@@ -1419,7 +1433,10 @@ do not overlap, trapezium and segment do not intersect.
 	|| lower(lMaxY, tMinY)) {
 	if (MRA_DEBUG) cerr << "sITS() no bbox overlap" << endl;
 
-	return false;
+	ip1present = false;
+	ip2present = false;
+
+	return;
     }
 
 /*
@@ -1490,11 +1507,159 @@ Analyse solutions.
 
     if (nearlyEqual(A[2][2], 0.0)) {
 	if (nearlyEqual(B[2], 0.0)) {
-	    assert(false);
+/*
+Segment in same plane as trapezium.
+
+*/
+
+	    if (MRA_DEBUG) cerr << "sITS() in same plane" << endl;
+/*
+The following cases have to be considered: Segment entirely outside
+trapezium, segment entirely inside trapezium, $(p1x, p1y, t1)$ inside
+trapezium, $(p2x, p2y, t2)$ inside trapezium and $(p1x, p1y, t1)$ and
+$(p2x, p2y, t2)$ outside trapezium but still intersecting with trapezium.
+
+*/
+
+	    bool p1in = 
+		between(l1p1x, p1x, l1p2x) && between(l1p1y, p1x, l1p2y);
+	    bool p2in = 
+		between(l2p1x, p2x, l2p2x) && between(l2p1y, p2x, l2p2y);
+
+	    if (p1in && p2in) {
+		if (MRA_DEBUG) cerr << "sITS() entirely in trapezium" << endl;
+
+		ip1present = true;
+		ip2present = true;
+
+		ip1x = p1x;
+		ip1y = p1y;
+		ip1t = t1;
+
+		ip2x = p2x;
+		ip2y = p2y;
+		ip2t = t2;
+
+		return;
+	    } else {
+		if (MRA_DEBUG) 
+		    cerr << "sITS() not entirely in trapezium" << endl;
+
+		double l1p1t;
+		bool l1p1is =
+		    specialSegmentIntersects1(t2-t1,
+					      l1p1x, l1p1y, l2p1x, l2p1y,
+					      p1x, p1y, p2x, p2y,
+					      l1p1t);
+
+		double l1p2t;
+		bool l1p2is =
+		    specialSegmentIntersects1(t2-t1,
+					      l1p2x, l1p2y, l2p2x, l2p2y,
+					      p1x, p1y, p2x, p2y,
+					      l1p2t);
+
+		if (p1in) {
+		    if (MRA_DEBUG) cerr << "sITS() p1 in trapezium" 
+					<< endl;
+
+		    assert(l1p1is || l1p2is);
+
+		    ip1present = true;
+		    ip2present = true;
+
+		    ip1x = p1x;
+		    ip1y = p1y;
+		    ip1t = t1;
+		    
+		    if (l1p1is) {
+			ip2x = p1x+(p2x-p1x)*l1p1t/(t2-t1);
+			ip2y = p1y+(p2y-p1y)*l1p1t/(t2-t1);
+			ip2t = l1p1t;
+		    } else {
+			ip2x = p1x+(p2x-p1x)*l1p2t/(t2-t1);
+			ip2y = p1y+(p2y-p1y)*l1p2t/(t2-t1);
+			ip2t = l1p2t;
+		    }
+
+		    return;
+		} else if (p2in) {
+		    if (MRA_DEBUG) cerr << "sITS() p2 in trapezium" << endl;
+
+		    assert(l1p1is || l1p2is);
+
+		    ip1present = true;
+		    ip2present = true;
+
+		    ip2x = p2x;
+		    ip2y = p2y;
+		    ip2t = t2;
+
+		    if (l1p1is) {
+			ip1x = p1x+(p2x-p1x)*l1p1t/(t2-t1);
+			ip1y = p1y+(p2y-p1y)*l1p1t/(t2-t1);
+			ip1t = l1p1t;
+		    } else {
+			ip1x = p1x+(p2x-p1x)*l1p2t/(t2-t1);
+			ip1y = p1y+(p2y-p1y)*l1p2t/(t2-t1);
+			ip1t = l1p2t;
+		    }
+
+		    return;
+		} else {
+		    if (MRA_DEBUG) 
+			cerr << "sITS() neither p1 nor p2 in trapezium" 
+			     << endl;
+
+		    if (l1p1is && l1p2is) {
+			if (MRA_DEBUG) 
+			    cerr << "sITS() intersects trapezium" 
+				 << endl;
+
+			ip1present = true;
+			ip2present = true;
+
+			if (l1p1t < l1p2t) {
+			    ip1x = p1x+(p2x-p1x)*l1p1t/(t2-t1);
+			    ip1y = p1y+(p2y-p1y)*l1p1t/(t2-t1);
+			    ip1t = l1p1t;
+
+			    ip2x = p1x+(p2x-p1x)*l1p2t/(t2-t1);
+			    ip2y = p1y+(p2y-p1y)*l1p2t/(t2-t1);
+			    ip2t = l1p2t;
+			} else {
+			    ip1x = p1x+(p2x-p1x)*l1p2t/(t2-t1);
+			    ip1y = p1y+(p2y-p1y)*l1p2t/(t2-t1);
+			    ip1t = l1p2t;
+
+			    ip2x = p1x+(p2x-p1x)*l1p1t/(t2-t1);
+			    ip2y = p1y+(p2y-p1y)*l1p1t/(t2-t1);
+			    ip2t = l1p1t;
+			}
+
+			return;
+		    } else {
+			if (MRA_DEBUG) 
+			    cerr << "sITS() entirely outside trapezium" 
+				 << endl;
+
+			assert(!l1p1is && !l1p2is);
+
+			ip1present = false;
+			ip2present = false;
+
+			return;
+		    }
+		}
+	    }
+
 	} else {
 	    if (MRA_DEBUG) cerr << "sITS() no solution" << endl;
 
-	    return false;
+	    ip1present = false;
+	    ip2present = false;
+
+	    return;
 	}
     } else {
 	double u = B[2]/A[2][2];
@@ -1508,72 +1673,29 @@ Analyse solutions.
 		 << " (" << x << " " << y << " " << t << ")"
 		 << endl;
 
-	specialInsidePointTrapezium(t,
-				    x,
-				    y,
-				    t1,
-				    l1p1x,
-				    l1p1y,
-				    l1p2x,
-				    l1p2y,
-				    t2,
-				    l2p1x,
-				    l2p1y,
-				    l2p2x,
-				    l2p2y);
+	ip2present = false;
 
-	return false;
+	if (specialInsidePointTrapezium(t, x, y,
+					t1, l1p1x, l1p1y, l1p2x, l1p2y,
+					t2, l2p1x, l2p1y, l2p2x, l2p2y)) {
+
+	    if (MRA_DEBUG) 
+		cerr << "sITS() intersection is inside" << endl;
+
+	    ip1present = true;
+
+	    ip1x = x;
+	    ip1y = y;
+	    ip1t = t;
+	} else {
+	    if (MRA_DEBUG) 
+		cerr << "sITS() intersection is not inside" << endl;
+
+	    ip1present = false;
+	}
+
+	return;
     }
-
-#ifdef SCHMUH
-/*
-Create a linear system of equations $A$ and $B$, which represents
-$T1B+T1A\cdot (s, t)=T2B+T2A\cdot (s', t')$. Apply Gaussian elimination to
-$A$ and $B$.
-
-*/
-
-    double A[3][4];
-    double B[3];
-    double* Ap[3];
-
-    for (unsigned int i = 0; i < 3; i++) {
-	A[i][0] = T1A[i][0];
-	A[i][1] = T1A[i][1];
-	A[i][2] = -T2A[i][0];
-	A[i][3] = -T2A[i][1];
-	B[i] = T2B[i]-T1B[i];
-	Ap[i] = A[i];
-    }
-
-    GaussTransform(3, 4, Ap, B);
-
-    if (nearlyEqual(A[2][2], 0.0) && !nearlyEqual(B[2])) {
-    }
-
-/*
-Now, the linear system of equation has the following format
-\begin{eqnarray}
-\begin{array}{ccc}
-\begin{array}{cccc}
-\ast & \ast & \ast & \ast \\
-0    & \ast & \ast & \ast \\
-0    & 0    & c1   & c2 
-\end{array} & \left| \begin{array}{c}
-\ast \\
-\ast \\
-b
-\end{array} \right.
-\end{array}
-\nonumber\end{eqnarray}
-The asterisk denotes arbitrary values.
-
-If $c1=0$, $c2=0$ and $b\ne0$, the two planes are parallel and not identical:
-They do not intersect. If $c1=0$, $c2=0$ and $b=0$, the two planes are 
-identical and we have to check if the two trapeziums overlap.
-
-*/
-#endif
 }
 
 // ************************************************************************
@@ -1979,7 +2101,9 @@ public:
     void GetSegment(int pos, MSegmentData& dms);
     void PutSegment(int pos, MSegmentData& dms);
 
-    void RestrictedIntersection(UPoint& up, Interval<Instant>& iv);
+    void RestrictedIntersection(UPoint& up, 
+				Interval<Instant>& iv,
+				MPoint& res);
 
     void Destroy(void);
 
@@ -2055,7 +2179,49 @@ before this method is called!).
 
 */
 
-void URegion::RestrictedIntersection(UPoint& up, Interval<Instant>& iv) {
+enum TsiType { ENTER, LEAVE, IN_PLANE };
+
+class TrapeziumSegmentIntersection {
+public:
+    TsiType type;
+
+    double ip1x;
+    double ip1y;
+    double ip1t;
+
+    double ip2x;
+    double ip2y;
+    double ip2t;
+
+    bool operator<(const TrapeziumSegmentIntersection& tsi) const {
+	return ip1t < tsi.ip1t;
+    }
+};
+
+static bool pointAboveSegment(double x,
+			      double y,
+			      double p1x,
+			      double p1y,
+			      double p2x,
+			      double p2y) {
+    if (MRA_DEBUG)
+	cerr << "pointAboveSegment() called" << endl;	
+
+    if (nearlyEqual(p1x, p2x)) 
+	return x <= p1x;
+    else if (nearlyEqual(p1y, p2y)) 
+	return y >= p1y;
+    else {
+	double t = (x-p1x)/(p2x-p1x);
+	double py = p1y+(p2y-p1y)*t;
+
+	return y >= py;
+    }
+}
+
+void URegion::RestrictedIntersection(UPoint& up, 
+				     Interval<Instant>& iv,
+				     MPoint& res) {
     if (MRA_DEBUG) {
 	cerr << "URegion::RI() called" << endl;	
 	cerr << "URegion::RI() this=" << (unsigned int) this << endl;	
@@ -2064,6 +2230,8 @@ void URegion::RestrictedIntersection(UPoint& up, Interval<Instant>& iv) {
 
     if (MRA_DEBUG)
 	cerr << "URegion::RI() #segments=" << segmentsNum << endl;
+
+    vector<TrapeziumSegmentIntersection> vtsi;
 
     for (unsigned int i = 0; i < segmentsNum; i++) {
 	MSegmentData dms;
@@ -2166,21 +2334,226 @@ void URegion::RestrictedIntersection(UPoint& up, Interval<Instant>& iv) {
 		 << endl;
 	}
 
+	bool ip1present;
+	double ip1x;
+	double ip1y;
+	double ip1t;
+	bool ip2present;
+	double ip2x;
+	double ip2y;
+        double ip2t;
+
 	specialIntersectionTrapeziumSegment(
-	    iv.start.ToDouble(),
-	    iv.end.ToDouble(),
-	    rDms.initialStartX,
-	    rDms.initialStartY,
-	    rDms.initialEndX,
-	    rDms.initialEndY,
-	    rDms.finalStartX,
-	    rDms.finalStartY,
-	    rDms.finalEndX,
-	    rDms.finalEndY,
-	    rUp.p0.GetX(),
-	    rUp.p0.GetY(),
-	    rUp.p1.GetX(),
-	    rUp.p1.GetY());
+	    iv.start.ToDouble(), iv.end.ToDouble(),
+	    rDms.initialStartX, rDms.initialStartY, 
+	    rDms.initialEndX, rDms.initialEndY,
+	    rDms.finalStartX, rDms.finalStartY, 
+	    rDms.finalEndX, rDms.finalEndY,
+	    rUp.p0.GetX(), rUp.p0.GetY(),
+	    rUp.p1.GetX(), rUp.p1.GetY(),
+	    ip1present, ip1x, ip1y, ip1t,
+	    ip2present, ip2x, ip2y, ip2t);
+
+	if (MRA_DEBUG) {
+	    cerr << "URegion::RI() ip1present=" << ip1present << endl;
+	    cerr << "URegion::RI() ip2present=" << ip2present << endl;
+	}
+
+	if (ip1present) {
+	    TrapeziumSegmentIntersection tsi;
+
+	    tsi.ip1x = ip1x;
+	    tsi.ip1y = ip1y;
+	    tsi.ip1t = ip1t;
+
+	    if (ip2present) {
+		tsi.type = IN_PLANE;
+		tsi.ip2x = ip2x;
+		tsi.ip2y = ip2y;
+		tsi.ip2t = ip2t;
+	    } else {
+		double p1x, p1y, p2x, p2y;
+
+		if (nearlyEqual(iv.start.ToDouble(), iv.end.ToDouble())) {
+		    p1x = dms.initialStartX;
+		    p1y = dms.initialStartY;
+		    p2x = dms.initialEndX;
+		    p2y = dms.initialEndY;
+		} else {
+		    double f = 
+			(ip1t-iv.start.ToDouble())
+			/(iv.end.ToDouble()-iv.start.ToDouble());
+
+		    p1x = 
+			dms.initialStartX
+			+(dms.finalStartX-dms.initialStartX)*f;
+		    p1y = 
+			dms.initialStartY
+			+(dms.finalStartY-dms.initialStartY)*f;
+		    p2x =
+			dms.initialEndX
+			+(dms.finalEndX-dms.initialEndX)*f;
+		    p2y =
+			dms.initialEndY
+			+(dms.finalEndY-dms.initialEndY)*f;
+		}
+
+		if (nearlyEqual(rUp.p0.GetX(), ip1x)
+		    && nearlyEqual(rUp.p0.GetY(), ip1y)) {
+		    if (pointAboveSegment(rUp.p1.GetX(), rUp.p1.GetY(),
+					  p1x, p1y, p2x, p2y)) {
+			tsi.type = dms.insideAbove ? ENTER : LEAVE;
+		    } else {
+			tsi.type = dms.insideAbove ? LEAVE : ENTER;
+		    }
+		} else if (nearlyEqual(rUp.p1.GetX(), ip1x)
+			   && nearlyEqual(rUp.p1.GetY(), ip1y)) {
+		    if (pointAboveSegment(rUp.p0.GetX(), rUp.p0.GetY(),
+					  p1x, p1y, p2x, p2y)) {
+			tsi.type = dms.insideAbove ? LEAVE : ENTER;
+		    } else {
+			tsi.type = dms.insideAbove ? ENTER : LEAVE;
+		    }
+		} else if (pointAboveSegment(rUp.p0.GetX(), rUp.p0.GetY(),
+					     p1x, p1y, p2x, p2y)) {
+		    if (dms.insideAbove)
+			tsi.type = LEAVE;
+		    else 
+			tsi.type = ENTER;
+		} else {
+		    if (dms.insideAbove)
+			tsi.type = ENTER;
+		    else 
+			tsi.type = LEAVE;
+		}
+
+		if (MRA_DEBUG)
+		    cerr << "URegion::RI() tsi.type=" << tsi.type
+			 << " dms.insideAbove=" << dms.insideAbove
+			 << endl;
+	    }
+
+	    vtsi.push_back(tsi);
+
+	    if (MRA_DEBUG) cerr << "URegion::RI() added" << endl;
+	}
+    }
+
+    if (MRA_DEBUG) cerr << "URegion::RI() vtsi.size()=" << vtsi.size() << endl;
+
+    sort(vtsi.begin(), vtsi.end());
+
+    bool prev = false;
+    unsigned int prev_c;
+    unsigned int prev_i;
+    
+    for (unsigned int i = 0; i < vtsi.size(); i++) {
+	if (MRA_DEBUG) {
+	    cerr << "URegion::RI() intersection #"
+		 << i
+		 << ": type="
+		 << vtsi[i].type
+		 << " ip1=["
+		 << vtsi[i].ip1x
+		 << " "
+		 << vtsi[i].ip1y
+		 << " "
+		 << vtsi[i].ip1t
+		 << "]";
+	    if (vtsi[i].type == IN_PLANE)
+		cerr << " ip2=["
+		     << vtsi[i].ip2x
+		     << " "
+		     << vtsi[i].ip2y
+		     << " "
+		     << vtsi[i].ip2t
+		     << "]";
+	    cerr << endl;
+	}
+
+	if (i == 0 && vtsi[i].type == LEAVE) {
+	    bool rc =
+		nearlyEqual(vtsi[i].ip1t, iv.end.ToDouble())
+		? iv.rc
+		: true;
+
+	    Instant end(instanttype);
+	    end.ReadFrom(vtsi[i].ip1t);
+	    
+	    Interval<Instant> resiv(iv.start, end, iv.lc, rc);
+
+	    prev = true;
+	    prev_i = i;
+	    prev_c = rc;
+
+	    UPoint rUp;
+	    restrictUPointToInterval(up, iv, rUp);
+
+	    UPoint resup(resiv, 
+			 rUp.p0.GetX(), rUp.p0.GetY(), 
+			 vtsi[i].ip1x, vtsi[i].ip1y);
+
+	    res.Add(resup);
+	}
+
+	if (i > 0 && vtsi[i].type == LEAVE) {
+	    bool lc = 
+		nearlyEqual(vtsi[i-1].ip1t, iv.start.ToDouble())
+		? iv.lc
+		: true;
+
+	    if (prev
+		&& nearlyEqual(vtsi[prev_i].ip1t, vtsi[i-1].ip1t)
+		&& prev_c)
+		lc = false;
+
+	    bool rc =
+		nearlyEqual(vtsi[i].ip1t, iv.end.ToDouble())
+		? iv.rc
+		: true;
+
+	    Instant start(instanttype), end(instanttype);
+	    start.ReadFrom(vtsi[i-1].ip1t);
+	    end.ReadFrom(vtsi[i].ip1t);
+
+	    Interval<Instant> resiv(start, end, lc, rc);
+
+	    prev = true;
+	    prev_i = i;
+	    prev_c = rc;
+
+	    UPoint resup(resiv, 
+			 vtsi[i-1].ip1x, vtsi[i-1].ip1y,
+			 vtsi[i].ip1x, vtsi[i].ip1y);
+
+	    res.Add(resup);
+	}
+
+	if (i+1 == vtsi.size() && vtsi[i].type == ENTER) {
+	    bool lc = 
+		nearlyEqual(vtsi[i].ip1t, iv.start.ToDouble())
+		? iv.lc
+		: true;
+
+	    if (prev
+		&& nearlyEqual(vtsi[prev_i].ip1t, vtsi[i].ip1t)
+		&& prev_c)
+		lc = false;
+
+	    Instant start(instanttype);
+	    start.ReadFrom(vtsi[i].ip1t);
+
+	    Interval<Instant> resiv(start, iv.end, lc, iv.rc);
+
+	    UPoint rUp;
+	    restrictUPointToInterval(up, iv, rUp);
+
+	    UPoint resup(resiv, 
+			 vtsi[i].ip1x, vtsi[i].ip1y,
+			 rUp.p1.GetX(), rUp.p1.GetY());
+
+	    res.Add(resup);
+	}
     }
 }
 
@@ -4144,7 +4517,7 @@ public:
     FLOB *GetFLOB(const int i);
 
     void Traversed(void);
-    void Intersection(MPoint& mp);
+    void Intersection(MPoint& mp, MPoint& res);
 
     friend Word InMRegion(const ListExpr typeInfo, 
 			  const ListExpr instance,
@@ -4493,8 +4866,10 @@ void MRegion::Traversed(void) {
 #endif // SCHMUH
 }
 
-void MRegion::Intersection(MPoint& mp) {
+void MRegion::Intersection(MPoint& mp, MPoint& res) {
     if (MRA_DEBUG) cerr << "MRegion::Intersection() called" << endl;
+
+    res = 0;
 
 /*
 First, the refinement partition for the moving region and point must be
@@ -4546,10 +4921,10 @@ and point unit, both restricted to this interval, intersect.
 	if (MRA_DEBUG) 
 	    cerr << "MRegion::Intersection() both elements present" << endl;
 
-	ur.RestrictedIntersection(up, *iv);
+	ur.RestrictedIntersection(up, *iv, res);
     }
 
-    assert(false);
+    res.SetDefined(true);
 }
 
 /*
@@ -4952,9 +5327,11 @@ static int IntersectionValueMap(Word* args,
 				Supplier s) {
     if (MRA_DEBUG) cerr << "IntersectionValuMap() called" << endl;
 
-    ((MRegion*) args[1].addr)->Intersection(* (MPoint*) args[0].addr);
+    result = qp->ResultStorage(s);
+    ((MRegion*) args[1].addr)->Intersection(* (MPoint*) args[0].addr,
+					    * (MPoint*) result.addr);
 
-    assert(false);
+    return 0;
 }
 
 static int InsideValueMap(Word* args, 
