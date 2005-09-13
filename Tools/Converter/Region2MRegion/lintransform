@@ -1,0 +1,4 @@
+CP1=$SECONDO_BUILD_DIR/Javagui
+CP=$CP1:$CP1/lib/java_cup_v10k_runtime.jar:$CP1/lib/JLex_v1.2.6.jar
+
+java -classpath .:$CP RegTransLinear $*

@@ -1,0 +1,115 @@
+Moving Region Creator
+=====================
+
+Getting the Region Data
+-----------------------
+
+This simple tool can create a moving region from a static one.
+The region must be given as nested list in any file. You can get such
+region data from any database containing simple regions.
+For example, to get the county 'Altmarkkreis Salzwedel' from the database 'germany',
+you have to (assumed the database germany is restored already):
+	- start the SecondoServer and Javagui
+  - perfom the following commmands:
+       open database germany
+       query Kreis feed filter[.KName contains "Salzwedel"] extract [Gebiet]
+  - After that, press the save button in the Javagui and save the result 
+    into a file.
+
+
+Creating a File describing the Transformations
+----------------------------------------------
+
+The second thing you need is a file containing the wanted transformations.
+This file  must also be in nested list format. The list structure is:
+
+( (<affine transform>) (<affine transform>) ... )
+
+Each affine transformation is used to build a single unit. The interval of this
+unit can't be changed in this implementation. It is fixed to be six hours. Also
+the start time can't be changed. 
+
+
+Each affine transformation is a composition of a basic affine transformation.
+As a nested list, the structure is:
+
+<affine transform> = (<basic transform> <basic transform> ... )
+
+
+A basic transformation is one of rotation, scale or translation. 
+Note that a rotation exceeds the abilities of our model for moving regions.
+This is implemented for completness of the affine transformation.
+The same thing is a scale with a factor of or less than zero in any direction. 
+Furthermore, the value for the x and the y scale must be equal to ensure
+parallel lines.
+Neverless, you can animate such 'invalid' moving regions using the Hoese Viewer.
+Summarized, a valid transformation can only consist of
+any translation and scale where the values for the x and the y scale are
+equals and greater than zero.
+
+
+
+The basic tranformation has the format:
+
+Translation:
+   ( translate  (<dx>  <dy>))
+
+Scale:
+   ( scale (<sx> <sy>))
+
+Rotation
+   (rotate <angle>)
+
+dx, dy, sx, sy, and angle can be of type integer or of type double.
+
+
+You can find examples of transformation files in transform1 ... tranform4.
+Note that transform3 uses a rotation. The result will be nice in the HoeseViewer
+but invalid for mnoving region data.
+
+
+
+Calling the tool
+----------------
+
+First, you have to compile the required tools using make.
+After that, call the tool in the following way
+   lintransform <regionfile> <transformation file> <output file> [init]
+
+where
+  <regionfile>          : name of the file containing the region data
+  <transformation file> : name of the file containing the list of affine transformations
+  <output file>         : name of the file to create, Note that no check is performed whether
+                          the file exists. If a file with this name exists, it is overwritten
+                          without asking the user
+  [init]                : this is an optional parameter. If this parameter is given, the first
+                          transformation is not used to create a unit. In this case, the
+                          first transformation prepares the data of the region for further 
+                          processing. 
+
+
+Using the created data
+----------------------
+
+The moving region written in the <output file> can be read into Javagui using the load button.
+You can animate it in the familiar way. If the MovingRegionAlgebra is included in the 
+Secondo system, you can also use the 'store' button for creating a database object from the 
+data.
+
+ 
+                 
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
