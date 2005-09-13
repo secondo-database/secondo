@@ -476,8 +476,8 @@ void print_complex_postfix(){
   (*yaccrules2) << "\t\t }" << endl;  
   (*yaccrules2) << "\t valueexpr" << endl;
   (*yaccrules2) << "\t\t { " << endl;
-  for(int i=0;i<sizei;i++){
-     (*yaccrules2) << "\t\t strcpy(param" << (i+1) << ",paramstack.top().c_str());" << endl;
+  for(int i=sizei;i>0;i--){
+     (*yaccrules2) << "\t\t strcpy(param" << (i) << ",paramstack.top().c_str());" << endl;
      (*yaccrules2) << "\t\t paramstack.pop();" << endl;
   }
   
@@ -540,13 +540,13 @@ void printtranslation(){
 	int implicitTypesSize = currenttranslation.implicitTypes->size();
 	if(implicitNamesSize!=implicitTypesSize){
        cerr << " error in line " << yylineno << endl;
-			 cout << ("Different sizes for implicit names and types ");
-			 cout << " Names : ";
+			 cerr << ("Different sizes for implicit names and types ");
+			 cerr << " Names : ";
 			 for(int i=0;i<implicitNamesSize;i++)
-						cout << ((*currenttranslation.implicitNames)[i]) << endl;
+						cerr << ((*currenttranslation.implicitNames)[i]) << endl;
 			 cout << " Types : ";
 			 for(int i=0;i<implicitTypesSize;i++)
-						cout << ((*currenttranslation.implicitTypes)[i]) << endl;
+						cerr << ((*currenttranslation.implicitTypes)[i]) << endl;
 			finalize();
 			 exit(-1);
 	}
