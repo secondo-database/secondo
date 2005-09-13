@@ -2233,9 +2233,13 @@ void URegion::RestrictedIntersection(UPoint& up,
 
     vector<TrapeziumSegmentIntersection> vtsi;
 
+    UPoint rUp;
+    restrictUPointToInterval(up, iv, rUp);
+	
+
     for (unsigned int i = 0; i < segmentsNum; i++) {
 	MSegmentData dms;
-	segments->Get(i+segmentsStartPos, dms);
+	GetSegment(i, dms);
 
 	if (MRA_DEBUG) {
 	    cerr << "URegion::RI() segment #" 
@@ -2297,9 +2301,6 @@ void URegion::RestrictedIntersection(UPoint& up,
 		 << endl;
 	}
 
-	UPoint rUp;
-	restrictUPointToInterval(up, iv, rUp);
-	
 	MSegmentData rDms;
 	dms.restrictToInterval(timeInterval, iv, rDms);
 
@@ -2555,6 +2556,111 @@ void URegion::RestrictedIntersection(UPoint& up,
 	    res.Add(resup);
 	}
     }
+
+    if (!prev) {
+	if (MRA_DEBUG)
+	    cerr << "URegion::RI() no intersection in whole unit" << endl;
+
+	double t = (iv.end.ToDouble()-iv.start.ToDouble())/2;
+
+	if (MRA_DEBUG)
+	    cerr << "URegion::RI() t=" << t << endl;
+
+	double f;
+
+	if (nearlyEqual(up.timeInterval.start.ToDouble(),
+			up.timeInterval.end.ToDouble())) 
+	    f = 0;
+	else 
+	    f = (t-up.timeInterval.start.ToDouble())
+		/(up.timeInterval.end.ToDouble()
+		  -up.timeInterval.start.ToDouble());
+
+	double x = up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*f;
+	double y = up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*f;
+
+	if (MRA_DEBUG)
+	    cerr << "URegion::RI() x=" << x << " y=" << y << endl;
+
+	if (nearlyEqual(timeInterval.start.ToDouble(),
+			timeInterval.end.ToDouble())) 
+	    f = 0;
+	else 
+	    f = (t-timeInterval.start.ToDouble())
+		/(timeInterval.end.ToDouble()-timeInterval.start.ToDouble());
+
+	unsigned int num = 0;
+
+	bool onPlumbline = false;
+
+	for (unsigned int i = 0; i < segmentsNum; i++) {
+	    if (MRA_DEBUG)
+		cerr << "URegion::RI() segment #" << i << endl;
+
+	    MSegmentData dms;
+	    GetSegment(i, dms);
+
+	    double p1x = 
+		dms.initialStartX
+		+(dms.finalStartX-dms.initialStartX)*f;
+	    double p1y = 
+		dms.initialStartY
+		+(dms.finalStartY-dms.initialStartY)*f;
+	    double p2x =
+		dms.initialEndX
+		+(dms.finalEndX-dms.initialEndX)*f;
+	    double p2y =
+		dms.initialEndY
+		+(dms.finalEndY-dms.initialEndY)*f;
+
+	    if (MRA_DEBUG)
+		cerr << "URegion::RI() p1x=" << p1x 
+		     << " p1y=" << p1y
+		     << " p2x=" << p2x
+		     << " p2y=" << p2y
+		     << endl;
+
+	    if (nearlyEqual(p1x, p2x)) {
+		if (MRA_DEBUG)
+		    cerr << "URegion::RI() vertical, ignored" << endl;
+
+		onPlumbline = false;
+	    } else if (!between(p1x, x, p2x)) {
+		if (MRA_DEBUG)
+		    cerr << "URegion::RI() x not between p1x and p1y, ignored"
+			 << endl;
+
+		assert(!onPlumbline);
+	    } else {
+		// solve p1x+(p2x-p1x)*s = x
+
+		double s = (x-p1x)/(p2x-p1x);
+		double ys = p1y+(p2y-p1y)*s;
+
+		if (MRA_DEBUG)
+		    cerr << "URegion::RI() ys=" << ys << endl;
+
+		if (lower(y, ys)) {
+		    if (MRA_DEBUG)
+			cerr << "URegion::RI() below" << endl;
+
+		    if (!onPlumbline) num++;
+
+		    onPlumbline = nearlyEqual(p2x, x);
+		} else {
+		    if (MRA_DEBUG)
+			cerr << "URegion::RI() not below" << endl;
+		}
+	    }
+
+	    if (MRA_DEBUG)
+		cerr << "URegion::RI() num=" << num << endl;
+	}
+	
+	if (num > 0 && num % 2 == 1) res.Add(rUp);
+    }
+
+    res.SetDefined(!res.IsEmpty());
 }
 
 // *hm* directly adapted from InRegion(), probably O(n^2) process 
@@ -4924,7 +5030,12 @@ and point unit, both restricted to this interval, intersect.
 	ur.RestrictedIntersection(up, *iv, res);
     }
 
-    res.SetDefined(true);
+    if (MRA_DEBUG) 
+	cerr << "MRegion::Intersection() res.IsEmpty()=" 
+	     << res.IsEmpty() 
+	     << endl;
+
+    res.SetDefined(!res.IsEmpty());
 }
 
 /*
