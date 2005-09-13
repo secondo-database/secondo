@@ -4961,7 +4961,7 @@ static ListExpr MRegionProperty() {
 		nl->StringAtom("Example List")),
             nl->FourElemList(
 		nl->StringAtom("-> MAPPING"),
-		nl->StringAtom("(mregion)"),
+		nl->StringAtom("(movingregion)"),
 		listrep,
 		example));
 }
@@ -5041,6 +5041,188 @@ Word InMRegion(const ListExpr typeInfo,
     }
 }
 
+static bool OpenMRegion(SmiRecord& rec, 
+			size_t& offset,
+			const ListExpr typeInfo,
+			Word& w) {
+    if (MRA_DEBUG) cerr << "OpenMRegion() called" << endl;
+
+    MRegion* mr = new MRegion(0);
+    w.addr = mr;
+
+    unsigned int savelen = (char*) (mr->GetFLOB(0))-(char*)mr;
+
+    if (rec.Read(mr, savelen, 0) != savelen) {
+	cerr << "OpenMRegion() could not read class data" << endl;
+	delete mr;
+	return false;
+    }
+
+    DBArray<URegion>* ura = (DBArray<URegion>*) (mr->GetFLOB(0));
+    DBArray<MSegmentData>* dmsa = (DBArray<MSegmentData>*) (mr->GetFLOB(1));
+
+    unsigned int numUnits;
+    unsigned int numSegments;
+
+    unsigned int pos = savelen;
+
+    if (rec.Read(&numUnits, sizeof(unsigned int), pos) 
+	    != sizeof(unsigned int)) {
+	cerr << "OpenMRegion() could not read number of units" << endl;
+	delete mr;
+	return false;
+    }
+
+    pos += sizeof(unsigned int);
+
+    if (MRA_DEBUG) cerr << "OpenMRegion() numUnits=" << numUnits << endl;
+
+    if (rec.Read(&numSegments, sizeof(unsigned int), pos) 
+	    != sizeof(unsigned int)) {
+	cerr << "OpenMRegion() could not read number of segments" << endl;
+	delete mr;
+	return false;
+    }
+
+    pos += sizeof(unsigned int);
+
+    if (MRA_DEBUG) cerr << "OpenMRegion() numSegments=" << numSegments << endl;
+
+    ura->Resize(numUnits);
+    dmsa->Resize(numSegments);
+
+    for (unsigned int i = 0; i < numUnits; i++) {
+	if (MRA_DEBUG) cerr << "OpenMRegion() reading unit #" << i << endl;
+
+	URegion ur;
+
+	if (rec.Read(&ur, sizeof(URegion), pos) != sizeof(URegion)) {
+	    cerr << "OpenMRegion() could not read region unit #" 
+		 << i
+		 << endl;
+	    delete mr;
+	    return false;
+	}
+
+	ur.SetMSegmentData(dmsa);
+
+	ura->Put(i, ur);
+
+	pos += sizeof(URegion);
+    }
+
+    for (unsigned int i = 0; i < numSegments; i++) {
+ 	if (MRA_DEBUG) cerr << "OpenMRegion() reading segment #" << i << endl;
+
+	MSegmentData dms;
+
+	if (rec.Read(&dms, sizeof(MSegmentData), pos) 
+	    != sizeof(MSegmentData)) {
+	    cerr << "OpenMRegion() could not read moving segment #" 
+		 << i
+		 << endl;
+	    delete mr;
+	    return false;
+	}
+
+	dmsa->Put(i, dms);
+
+	pos += sizeof(MSegmentData);
+    }
+
+    return true;
+}
+
+static bool SaveMRegion(SmiRecord& rec, 
+			size_t& offset,
+			const ListExpr typeInfo,
+			Word& w) {
+    if (MRA_DEBUG) cerr << "SaveMRegion() called" << endl;
+
+    MRegion* mr = (MRegion*) w.addr;
+
+    unsigned int savelen = (char*)mr->GetFLOB(0)-(char*)mr;
+
+    if (MRA_DEBUG) {
+    	cerr << "SaveMRegion() sizeof(StandardAttribute)=" 
+	     << sizeof(StandardAttribute)
+	     << endl;
+    	cerr << "SaveMRegion() sizeof(Mapping<URegion, CRegion>)=" 
+	     << sizeof(Mapping<URegion, CRegion>)
+	     << endl;
+    	cerr << "SaveMRegion() sizeof(MRegion)=" 
+	     << sizeof(MRegion)
+	     << endl;
+    	cerr << "SaveMRegion() savelen=" 
+	     << savelen
+	     << endl;
+    }
+
+    if (rec.Write(mr, savelen, 0) != savelen) {
+	cerr << "SaveMRegion() could not write class data" << endl;
+	return false;
+    }
+
+    DBArray<URegion>* ura = (DBArray<URegion>*) mr->GetFLOB(0);
+    DBArray<MSegmentData>* dmsa = (DBArray<MSegmentData>*) mr->GetFLOB(1);
+
+    unsigned int numUnits = ura->Size();
+    unsigned int numSegments = dmsa->Size();
+
+    unsigned int pos = savelen;
+
+    if (rec.Write(&numUnits, sizeof(unsigned int), pos) 
+	    != sizeof(unsigned int)) {
+	cerr << "SaveMRegion() could not write number of units" << endl;
+	return false;
+    }
+
+    pos += sizeof(unsigned int);
+
+    if (rec.Write(&numSegments, sizeof(unsigned int), pos) 
+	    != sizeof(unsigned int)) {
+	cerr << "SaveMRegion() could not write number of segments" << endl;
+	return false;
+    }
+
+    pos += sizeof(unsigned int);
+
+    for (unsigned int i = 0; i < numUnits; i++) {
+	if (MRA_DEBUG) cerr << "SaveMRegion() saving unit #" << i << endl;
+
+	URegion ur;
+	ura->Get(i, ur);
+
+	if (rec.Write(&ur, sizeof(URegion), pos) != sizeof(URegion)) {
+	    cerr << "SaveMRegion() could not write region unit #" 
+		 << i
+		 << endl;
+	    return false;
+	}
+
+	pos += sizeof(URegion);
+    }
+
+    for (unsigned int i = 0; i < numSegments; i++) {
+ 	if (MRA_DEBUG) cerr << "SaveMRegion() saving segment #" << i << endl;
+
+	MSegmentData dms;
+	dmsa->Get(i, dms);
+
+	if (rec.Write(&dms, sizeof(MSegmentData), pos) 
+	        != sizeof(MSegmentData)) {
+	    cerr << "SaveMRegion() could not write moving segment #" 
+		 << i
+		 << endl;
+	    return false;
+	}
+
+	pos += sizeof(MSegmentData);
+    }
+
+    return true;
+}
+
 static TypeConstructor mregion(
     "movingregion",
     MRegionProperty,
@@ -5048,7 +5230,7 @@ static TypeConstructor mregion(
     InMRegion,
     0, 0, // SaveToList, RestoreFromList
     CreateMapping<MRegion>, DeleteMapping<MRegion>,
-    0, 0, // open, save
+    OpenMRegion, SaveMRegion,
     CloseMapping<MRegion>, CloneMapping<MRegion>,
     CastMapping<MRegion>,
     SizeOfMapping<MRegion>,
