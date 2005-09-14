@@ -229,9 +229,9 @@ RTFlag::initByString( const string &keyList ) {
 
 */
 
-map<string,long>::iterator Counter::it;
+map<string, Counter::CounterInfo>::iterator Counter::it;
 
-map<string,long> Counter::CounterMap;
+map<string, Counter::CounterInfo> Counter::CounterMap;
 
 /*
 4 Implementation of ~operator<<~ for class ~tab~ see CharTransform.h

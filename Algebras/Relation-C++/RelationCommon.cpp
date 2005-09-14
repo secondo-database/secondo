@@ -59,10 +59,11 @@ Algebra. These common functionalities belongs to this implementation file.
 extern NestedList *nl;
 extern QueryProcessor *qp;
 
-long Tuple::tuplesCreated = 0;
-long Tuple::tuplesDeleted = 0;
-long Tuple::maximumTuples = 0;
-long Tuple::tuplesInMemory = 0;
+long& Tuple::tuplesCreated = Counter::getRef("RA:CreatedTuples", false); 
+long& Tuple::tuplesDeleted = Counter::getRef("RA:DeletedTuples", false); 
+long& Tuple::maximumTuples = Counter::getRef("RA:MaxTuplesInMem", false); 
+long& Tuple::tuplesInMemory = Counter::getRef("RA:TuplesInMem", false); ;
+
 /*
 These variables are used for tuple statistics.
 
@@ -166,20 +167,12 @@ CcTuple *Tuple::CloneToMemoryTuple( const bool isFree ) const
   return result;
 }
 
-void
-Tuple::ShowTupleStatistics( const bool reset )
+void Tuple::SetCounterReport(const bool val)
 {
-  Counter::getRef("RA:CreatedTuples") = Tuple::tuplesCreated; 
-  Counter::getRef("RA:DeletedTuples") = Tuple::tuplesDeleted; 
-  Counter::getRef("RA:MaxTuplesInMem") = Tuple::maximumTuples; 
-
-  if( reset )
-  {
-    tuplesCreated = 0;
-    tuplesDeleted = 0;
-    maximumTuples = 0;
-    tuplesInMemory = 0;
-  }
+  Counter::reportValue("RA:CreatedTuples", val );
+  Counter::reportValue("RA:DeletedTuples", val);
+  Counter::reportValue("RA:MaxTuplesInMem", val);
+  Counter::reportValue("RA:TuplesInMem", val);
 }
 
 ostream &operator<< (ostream &os, TupleElement &attrib)

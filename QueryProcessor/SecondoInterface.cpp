@@ -532,6 +532,11 @@ which should be named Command\_<name>.
      return;
   }
 
+  // Initialize Counters for the creation and deletion of objects
+  LOGMSG( "SI:RelStatistics", 
+    Tuple::SetCounterReport( true ); 
+    ShowStandardTypesStatistics( true ); 
+  ) 
 
   // RUN COMMAND !!!
 
@@ -1212,12 +1217,6 @@ which should be named Command\_<name>.
     Counter::resetAll();
   }
 
-  // Creation and deletion of Objects
-  LOGMSG( "SI:RelStatistics", 
-    Tuple::ShowTupleStatistics( true ); 
-    ShowStandardTypesStatistics( true ); 
-    //cmsg.send();
-  ) 
 
   LOGMSG( "SI:ResultList",
     cmsg.info() << endl << "### Result List before copying: " 
@@ -1370,8 +1369,16 @@ SecondoInterface::Command_Query( const AlgebraLevel level,
      if (!RTFlag::isActive("SI:NoQueryAnalysis")) 
      {
        cmsg.info() << "Execute " << queryTime.diffTimes() << endl;
-       cmsg.info() << nl.ReportTableSizes() << endl;
        cmsg.send();
+     }
+     if (RTFlag::isActive("NL:MemInfo")) 
+     {
+       cmsg.info() << nl.ReportTableSizes(true) << endl;
+       cmsg.send();
+     }
+     else
+     {
+       nl.ReportTableSizes(false);
      }
 
   }

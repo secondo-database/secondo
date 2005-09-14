@@ -2522,7 +2522,7 @@ NestedList::AtomType (const ListExpr atom )
 */
 
 const string
-NestedList::ReportTableSizes( const bool prettyPrint /* = false */) {
+NestedList::ReportTableSizes( const bool onOff, const bool prettyPrint /* = false */) {
 
   string msg = "";
   const int tables=2;
@@ -2548,19 +2548,19 @@ NestedList::ReportTableSizes( const bool prettyPrint /* = false */) {
     msg = report.str();
   }
 
-  Counter::getRef("NL:Nodes_max") = nodeTable->Size(); 
-  Counter::getRef("NL:Nodes_used") = nodeTable->NoEntries();
-  Counter::getRef("NL:Nodes_pageChanges") = pageChanges[0];
-  Counter::getRef("NL:Nodes_slotAccesses") = slotAccess[0];
-  Counter::getRef("NL:Nodes_slotSize") = nodeTable->GetSlotSize();
-  Counter::getRef("NL:Nodes_usedBytes") = memSize[0];
+  Counter::getRef("NL:Nodes_max", onOff) = nodeTable->Size(); 
+  Counter::getRef("NL:Nodes_used", onOff) = nodeTable->NoEntries();
+  Counter::getRef("NL:Nodes_pageChanges", onOff) = pageChanges[0];
+  Counter::getRef("NL:Nodes_slotAccesses", onOff) = slotAccess[0];
+  Counter::getRef("NL:Nodes_slotSize", onOff) = nodeTable->GetSlotSize();
+  Counter::getRef("NL:Nodes_usedBytes", onOff) = memSize[0];
 
-  Counter::getRef("NL:Str_max") = stringTable->Size();
-  Counter::getRef("NL:Str_used") = stringTable->NoEntries(); 
-  Counter::getRef("NL:Str_pageChanges") = pageChanges[1];
-  Counter::getRef("NL:Str_slotAccesses") = slotAccess[1];
-  Counter::getRef("NL:Str_slotSize") = stringTable->GetSlotSize(); 
-  Counter::getRef("NL:Str_usedBytes") = memSize[1];
+  Counter::getRef("NL:Str_max", onOff) = stringTable->Size();
+  Counter::getRef("NL:Str_used", onOff) = stringTable->NoEntries(); 
+  Counter::getRef("NL:Str_pageChanges", onOff) = pageChanges[1];
+  Counter::getRef("NL:Str_slotAccesses", onOff) = slotAccess[1];
+  Counter::getRef("NL:Str_slotSize", onOff) = stringTable->GetSlotSize(); 
+  Counter::getRef("NL:Str_usedBytes", onOff) = memSize[1];
 
   return msg;
 }

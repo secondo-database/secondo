@@ -66,6 +66,7 @@ be introduced and called at a suitable position.
 #define CLASS_COUNTER_H
 
 #include <map>
+//#include <pair>
 #include <vector>
 #include <string>
 #include <iostream>
@@ -82,26 +83,39 @@ public:
   Counter(){};
   ~Counter(){};
 
-  static long& getRef( const string& identifier ) { 
+  static long& getRef( const string& identifier, const bool val = true ) { 
     
-    if ( (it=CounterMap.find( identifier )) != CounterMap.end() ) { 
-      return it->second; 
-  
-    } else { 
+    if ( (it=CounterMap.find( identifier )) != CounterMap.end() ) 
+    { 
+      it->second.second = val;
+      return it->second.first; 
+    } 
+    else 
+    { 
       // initialize new Counter;
-      long& CounterRef = CounterMap[identifier];
+      long& CounterRef = CounterMap[identifier].first;
+      CounterMap[identifier].second = val;
       CounterRef = 0;
       return CounterRef;
     }
   };
 	
 	
-	static void resetAll() {
+  static void resetAll() {
 	 
-	   for ( it = CounterMap.begin(); it != CounterMap.end(); it++ ) {
-		   it->second = 0;
-		}
-	}
+    for ( it = CounterMap.begin(); it != CounterMap.end(); it++ ) 
+    {
+     it->second.first = 0;
+    }
+  }
+
+  static void reportValue( const string& identifier, const bool val) 
+  {
+    if ( (it=CounterMap.find( identifier )) != CounterMap.end() ) 
+    {
+      it->second.second = val;
+    }
+  }
 
   static void reportValues() {
 
@@ -136,13 +150,16 @@ public:
     for (it=CounterMap.begin(); it!=CounterMap.end(); it++) {
       
        stringstream counter;
-       counter << it->first << " = " << it->second;
-       int len = counter.str().length();
-       if ( len > maxEntryLen ) {
-         maxEntryLen = len;
+       if ( it->second.second ) 
+       {
+         counter << it->first << " = " << it->second.first;
+         int len = counter.str().length();
+         if ( len > maxEntryLen ) {
+           maxEntryLen = len;
+         }
+         entryTable.push_back( counter.str() );
+         clog << csvsep << it->second.first;
        }
-       entryTable.push_back( counter.str() );
-       clog << csvsep << it->second;
     }
     int colMax = windowWidth / (maxEntryLen + colSepWidth);
  
@@ -167,10 +184,12 @@ public:
 
   };
 
+  typedef pair<long,bool> CounterInfo;
+
 private:
 
-  static map<string,long> CounterMap;
-  static map<string,long>::iterator it;
+  static map<string, CounterInfo> CounterMap;
+  static map<string, CounterInfo>::iterator it;
 
 };
 

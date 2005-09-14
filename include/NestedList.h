@@ -879,7 +879,7 @@ Afterwards you can easily iterate over the atoms.
 1.3.11 Size and Implementation Info
 
 */
-  const string ReportTableSizes(const bool prettyPrint = false);
+  const string ReportTableSizes(const bool onOff, const bool prettyPrint = false);
   const string ReportTableStates() { 
     return ( "Nodes: " + nodeTable->StateToStr() + "\n" );
   }

@@ -309,10 +309,10 @@ Acts as the ~Out~ function, but uses internal representation for the objects.
 The destructor.
 
 */
-    static void ShowTupleStatistics( const bool reset = false );
+    //static void ShowTupleStatistics( const bool reset = false );
+    static void SetCounterReport(const bool val);
 /*
-Shows tuple statistics. If ~reset~ is set to true, the values of the tuple statistics are
-set to zero.
+Shows tuple statistics if invoekd with ~true~ 
 
 */
     const TupleId& GetTupleId() const;
@@ -466,10 +466,10 @@ Function to give outside access to the private part of the tuple class.
 */
 
   private:
-    static long tuplesCreated;
-    static long tuplesDeleted;
-    static long tuplesInMemory;
-    static long maximumTuples;
+    static long& tuplesCreated;
+    static long& tuplesDeleted;
+    static long& tuplesInMemory;
+    static long& maximumTuples;
 
     inline void InitAttrArray()
     {
