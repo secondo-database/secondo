@@ -156,6 +156,7 @@ such as "ArgVectorPointer"[4], "Supplier"[4], "Word"[4], "Address"[4], etc.
 #include "SecondoCatalog.h"
 #include "SecondoSystem.h"
 #include "MemCTable.h"
+#include "LogMsg.h"
 
 struct OpNode;
 typedef OpNode* OpTree;
@@ -261,9 +262,17 @@ can be set by writing into the fields of this argument vector.
 */
 
   void Request( const Supplier s, Word& word );
+  inline Word Request( const Supplier supp )
+  {
+    Word result;
+    Request( supp, result );
+    return result;
+  }
+
 /*
 Calls the parameter function (to which the arguments must have been supplied
-before). The result is returned in ~result~. 
+before). The result is returned in ~result~. The second variant has a smarter
+signature. 
 
 */
   bool Received( const Supplier s );
@@ -607,37 +616,6 @@ of the type constructor associated with the ~value~.
 
   long maxMemPerOperator;
 };
-
-/*
-
-4 Class ErrorReporter
-
-This class contains only static member functions. These functions 
-permit reporting an error message (~ReportError~) and
-retrieving it (~GetErrorMessage~). Once an error message has been
-retrieved, it is removed. If there is no error message, the function
-~RemoveErrorMessage~ sets its argument to ~""~. 
-
-An example of the usage of function ~ReportError~ is given in the 
-type mapping function of operator ~feed~ in the relational algebra.
-
-*/
-
-class ErrorReporter
-{
-private:
-  static bool receivedMessage;
-  static string message;
-
-public:
-  static bool FreezeMessage;
-  static bool TypeMapError;
-  static void Reset() { TypeMapError=false; message=""; }
-  static void ReportError(string msg);
-  static void ReportError(char* msg);
-  static void GetErrorMessage(string& msg);
-};
-
 
 ostream& operator<<(ostream& os, const OpNode& node);
 

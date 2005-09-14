@@ -109,6 +109,23 @@ with the ~send~ method.
 #ifndef CLASS_RTFLAG_H
 #define CLASS_RTFLAG_H
 
+
+
+// some macros which may be useful for tracing the program execution
+#ifdef TRACE_ON
+#define ETRACE(a) { a }
+#define TRACE(a) {cout << a << ":" << endl;}
+#define NTRACE(n,a) {static int ctr=0; ctr++; if ( (ctr % n)  == 0) {cout << ctr << " - " << a << ":" << endl; }}
+#define SHOW(a) {cout << "  " << #a << " = " << a << endl;} 
+#else
+#define ETRACE(a)
+#define TRACE(a) 
+#define NTRACE(n,a) 
+#define SHOW(a) 
+#endif
+
+
+
 #include <map>
 #include <vector>
 #include <string>
@@ -260,7 +277,6 @@ public:
     case 1: 
     {
       cout << buffer.str();
-      allErrors << buffer.str();
       break;
     }
     case 0:
@@ -306,5 +322,38 @@ private:
 
 // defined in Application.cpp
 extern CMsg cmsg;
+
+
+/*
+
+4 Class ErrorReporter
+
+This class contains only static member functions. These functions 
+permit reporting an error message (~ReportError~) and
+retrieving it (~GetErrorMessage~). Once an error message has been
+retrieved, it is removed. If there is no error message, the function
+~RemoveErrorMessage~ sets its argument to ~""~. 
+
+It should be used only for reporting ~type error~ messages.
+An example of the usage of function ~ReportError~ is given in the 
+type mapping function of operator ~feed~ in the relational algebra.
+
+*/
+
+class ErrorReporter
+{
+private:
+  static bool receivedMessage;
+  static string message;
+
+public:
+  static bool FreezeMessage;
+  static bool TypeMapError;
+  static void Reset() { TypeMapError=false; message=""; }
+  static void ReportError(string msg);
+  static void ReportError(char* msg);
+  static void GetErrorMessage(string& msg);
+};
+
 
 #endif
