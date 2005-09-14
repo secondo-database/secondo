@@ -2044,6 +2044,25 @@ void MSegmentData::restrictToInterval(Interval<Instant> origIv,
 
 */
 
+enum TsiType { ENTER, LEAVE, IN_PLANE };
+
+class TrapeziumSegmentIntersection {
+public:
+    TsiType type;
+
+    double ip1x;
+    double ip1y;
+    double ip1t;
+
+    double ip2x;
+    double ip2y;
+    double ip2t;
+
+    bool operator<(const TrapeziumSegmentIntersection& tsi) const {
+	return ip1t < tsi.ip1t;
+    }
+};
+
 class URegion : public SpatialTemporalUnit<CRegion, 3> {
 private:
     // *hm* Confirm whether two roles of URegion are really required
@@ -2052,6 +2071,17 @@ private:
     DBArray<MSegmentData>* segments;
     unsigned int segmentsStartPos;
     unsigned int segmentsNum;
+
+    unsigned int URegion::Plumbline(UPoint& up, Interval<Instant>& iv);
+    void URegion::RestrictedIntersectionFind(
+	UPoint& up, 
+	Interval<Instant>& iv,
+	vector<TrapeziumSegmentIntersection>& vtsi);
+    void URegion::RestrictedIntersectionProcess(
+	UPoint& up, 
+	Interval<Instant>& iv,
+	vector<TrapeziumSegmentIntersection>& vtsi,
+	MPoint& res);
 
 public:
     URegion() {
@@ -2179,25 +2209,6 @@ before this method is called!).
 
 */
 
-enum TsiType { ENTER, LEAVE, IN_PLANE };
-
-class TrapeziumSegmentIntersection {
-public:
-    TsiType type;
-
-    double ip1x;
-    double ip1y;
-    double ip1t;
-
-    double ip2x;
-    double ip2y;
-    double ip2t;
-
-    bool operator<(const TrapeziumSegmentIntersection& tsi) const {
-	return ip1t < tsi.ip1t;
-    }
-};
-
 static bool pointAboveSegment(double x,
 			      double y,
 			      double p1x,
@@ -2219,30 +2230,125 @@ static bool pointAboveSegment(double x,
     }
 }
 
-void URegion::RestrictedIntersection(UPoint& up, 
-				     Interval<Instant>& iv,
-				     MPoint& res) {
-    if (MRA_DEBUG) {
-	cerr << "URegion::RI() called" << endl;	
-	cerr << "URegion::RI() this=" << (unsigned int) this << endl;	
-	cerr << "URegion::RI() up=" << (unsigned int) &up << endl;	
-    }
+unsigned int URegion::Plumbline(UPoint& up, Interval<Instant>& iv) {
+    if (MRA_DEBUG) cerr << "URegion::Plumbline() called" << endl;
+
+    double t = (iv.end.ToDouble()-iv.start.ToDouble())/2;
 
     if (MRA_DEBUG)
-	cerr << "URegion::RI() #segments=" << segmentsNum << endl;
+	cerr << "URegion::Plumbline() t=" << t << endl;
 
-    vector<TrapeziumSegmentIntersection> vtsi;
+    double f;
+
+    if (nearlyEqual(up.timeInterval.start.ToDouble(),
+		    up.timeInterval.end.ToDouble())) 
+	f = 0;
+    else 
+	f = (t-up.timeInterval.start.ToDouble())
+	    /(up.timeInterval.end.ToDouble()
+	      -up.timeInterval.start.ToDouble());
+    
+    double x = up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*f;
+    double y = up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*f;
+    
+    if (MRA_DEBUG)
+	cerr << "URegion::Plumbline() x=" << x << " y=" << y << endl;
+    
+    if (nearlyEqual(timeInterval.start.ToDouble(),
+		    timeInterval.end.ToDouble())) 
+	f = 0;
+    else 
+	f = (t-timeInterval.start.ToDouble())
+	    /(timeInterval.end.ToDouble()-timeInterval.start.ToDouble());
+    
+    unsigned int num = 0;
+    
+    bool onPlumbline = false;
+    
+    for (unsigned int i = 0; i < segmentsNum; i++) {
+	if (MRA_DEBUG)
+	    cerr << "URegion::Plumbline() segment #" << i << endl;
+	
+	MSegmentData dms;
+	GetSegment(i, dms);
+	
+	double p1x = 
+	    dms.initialStartX
+	    +(dms.finalStartX-dms.initialStartX)*f;
+	double p1y = 
+	    dms.initialStartY
+	    +(dms.finalStartY-dms.initialStartY)*f;
+	double p2x =
+	    dms.initialEndX
+	    +(dms.finalEndX-dms.initialEndX)*f;
+	double p2y =
+	    dms.initialEndY
+	    +(dms.finalEndY-dms.initialEndY)*f;
+	
+	if (MRA_DEBUG)
+	    cerr << "URegion::Plumbline() p1x=" << p1x 
+		 << " p1y=" << p1y
+		 << " p2x=" << p2x
+		 << " p2y=" << p2y
+		 << endl;
+	
+	if (nearlyEqual(p1x, p2x)) {
+	    if (MRA_DEBUG)
+		cerr << "URegion::Plumbline() vertical, ignored" << endl;
+	    
+	    onPlumbline = false;
+	} else if (!between(p1x, x, p2x)) {
+	    if (MRA_DEBUG)
+		cerr << "URegion::Plumbline() x not between p1x, p1y, ignored"
+		     << endl;
+	    
+	    assert(!onPlumbline);
+	} else {
+	    // solve p1x+(p2x-p1x)*s = x
+	    
+	    double s = (x-p1x)/(p2x-p1x);
+	    double ys = p1y+(p2y-p1y)*s;
+	    
+	    if (MRA_DEBUG)
+		cerr << "URegion::Plumbline() ys=" << ys << endl;
+	    
+	    if (lower(y, ys)) {
+		if (MRA_DEBUG)
+		    cerr << "URegion::Plumbline() below" << endl;
+		
+		if (!onPlumbline) num++;
+		
+		onPlumbline = nearlyEqual(p2x, x);
+	    } else {
+		if (MRA_DEBUG)
+		    cerr << "URegion::Plumbline() not below" << endl;
+	    }
+	}
+	
+	if (MRA_DEBUG)
+	    cerr << "URegion::Plumbline() num=" << num << endl;
+    }
+
+    return num;
+}
+
+void URegion::RestrictedIntersectionFind(
+    UPoint& up, 
+    Interval<Instant>& iv,
+    vector<TrapeziumSegmentIntersection>& vtsi) {
+
+    if (MRA_DEBUG) 
+	cerr << "URegion::RIF() called" << endl;
 
     UPoint rUp;
     restrictUPointToInterval(up, iv, rUp);
 	
-
     for (unsigned int i = 0; i < segmentsNum; i++) {
 	MSegmentData dms;
 	GetSegment(i, dms);
 
 	if (MRA_DEBUG) {
-	    cerr << "URegion::RI() segment #" 
+	    cerr << "URegion::RIF() segment #" 
 		 << i 
 		 << ": ["
 		 << timeInterval.start.ToDouble()
@@ -2271,7 +2377,7 @@ void URegion::RestrictedIntersection(UPoint& up,
 		 << ") ia="
 		 << dms.insideAbove
 		 << endl;
-	    cerr << "URegion::RI() point is ["
+	    cerr << "URegion::RIF() point is ["
 		 << up.timeInterval.start.ToDouble()
 		 << " "
 		 << up.timeInterval.end.ToDouble()
@@ -2289,7 +2395,7 @@ void URegion::RestrictedIntersection(UPoint& up,
 		 << up.p1.GetY()
 		 << ")"
 		 << endl;
-	    cerr << "URegion::RI() iv is ["
+	    cerr << "URegion::RIF() iv is ["
 		 << iv.start.ToDouble()
 		 << " "
 		 << iv.end.ToDouble()
@@ -2305,7 +2411,7 @@ void URegion::RestrictedIntersection(UPoint& up,
 	dms.restrictToInterval(timeInterval, iv, rDms);
 
 	if (MRA_DEBUG) {
-	    cerr << "URegion::RI() segment restricted to iv is ("
+	    cerr << "URegion::RIF() segment restricted to iv is ("
 		 << rDms.initialStartX
 		 << " "
 		 << rDms.initialStartY
@@ -2323,7 +2429,7 @@ void URegion::RestrictedIntersection(UPoint& up,
 		 << rDms.finalEndY
 		 << ")"
 		 << endl;
-	    cerr << "URegion::RI() point restricted to iv is ("
+	    cerr << "URegion::RIF() point restricted to iv is ("
 		 << rUp.p0.GetX()
 		 << " "
 		 << rUp.p0.GetY()
@@ -2356,8 +2462,8 @@ void URegion::RestrictedIntersection(UPoint& up,
 	    ip2present, ip2x, ip2y, ip2t);
 
 	if (MRA_DEBUG) {
-	    cerr << "URegion::RI() ip1present=" << ip1present << endl;
-	    cerr << "URegion::RI() ip2present=" << ip2present << endl;
+	    cerr << "URegion::RIF() ip1present=" << ip1present << endl;
+	    cerr << "URegion::RIF() ip2present=" << ip2present << endl;
 	}
 
 	if (ip1present) {
@@ -2436,13 +2542,18 @@ void URegion::RestrictedIntersection(UPoint& up,
 
 	    vtsi.push_back(tsi);
 
-	    if (MRA_DEBUG) cerr << "URegion::RI() added" << endl;
+	    if (MRA_DEBUG) cerr << "URegion::RIF() added" << endl;
 	}
     }
+}
 
-    if (MRA_DEBUG) cerr << "URegion::RI() vtsi.size()=" << vtsi.size() << endl;
+void URegion::RestrictedIntersectionProcess(
+    UPoint& up, 
+    Interval<Instant>& iv,
+    vector<TrapeziumSegmentIntersection>& vtsi,
+    MPoint& res) {
 
-    sort(vtsi.begin(), vtsi.end());
+    if (MRA_DEBUG) cerr << "URegion::RIP() added" << endl;
 
     bool prev = false;
     unsigned int prev_c;
@@ -2450,7 +2561,7 @@ void URegion::RestrictedIntersection(UPoint& up,
     
     for (unsigned int i = 0; i < vtsi.size(); i++) {
 	if (MRA_DEBUG) {
-	    cerr << "URegion::RI() intersection #"
+	    cerr << "URegion::RIP() intersection #"
 		 << i
 		 << ": type="
 		 << vtsi[i].type
@@ -2556,108 +2667,35 @@ void URegion::RestrictedIntersection(UPoint& up,
 	    res.Add(resup);
 	}
     }
+}
 
-    if (!prev) {
+void URegion::RestrictedIntersection(UPoint& up, 
+				     Interval<Instant>& iv,
+				     MPoint& res) {
+    if (MRA_DEBUG) cerr << "URegion::RI() called" << endl;	
+
+    vector<TrapeziumSegmentIntersection> vtsi;
+
+    RestrictedIntersectionFind(up, iv, vtsi);
+    
+    if (MRA_DEBUG) cerr << "URegion::RI() vtsi.size()=" << vtsi.size() << endl;
+
+    sort(vtsi.begin(), vtsi.end());
+
+    RestrictedIntersectionProcess(up, iv, vtsi, res);
+
+    if (res.IsEmpty()) {
 	if (MRA_DEBUG)
 	    cerr << "URegion::RI() no intersection in whole unit" << endl;
 
-	double t = (iv.end.ToDouble()-iv.start.ToDouble())/2;
+	unsigned int num = Plumbline(up, iv);
 
-	if (MRA_DEBUG)
-	    cerr << "URegion::RI() t=" << t << endl;
+	if (num > 0 && num % 2 == 1) {
+	    UPoint rUp;
+	    restrictUPointToInterval(up, iv, rUp);
 
-	double f;
-
-	if (nearlyEqual(up.timeInterval.start.ToDouble(),
-			up.timeInterval.end.ToDouble())) 
-	    f = 0;
-	else 
-	    f = (t-up.timeInterval.start.ToDouble())
-		/(up.timeInterval.end.ToDouble()
-		  -up.timeInterval.start.ToDouble());
-
-	double x = up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*f;
-	double y = up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*f;
-
-	if (MRA_DEBUG)
-	    cerr << "URegion::RI() x=" << x << " y=" << y << endl;
-
-	if (nearlyEqual(timeInterval.start.ToDouble(),
-			timeInterval.end.ToDouble())) 
-	    f = 0;
-	else 
-	    f = (t-timeInterval.start.ToDouble())
-		/(timeInterval.end.ToDouble()-timeInterval.start.ToDouble());
-
-	unsigned int num = 0;
-
-	bool onPlumbline = false;
-
-	for (unsigned int i = 0; i < segmentsNum; i++) {
-	    if (MRA_DEBUG)
-		cerr << "URegion::RI() segment #" << i << endl;
-
-	    MSegmentData dms;
-	    GetSegment(i, dms);
-
-	    double p1x = 
-		dms.initialStartX
-		+(dms.finalStartX-dms.initialStartX)*f;
-	    double p1y = 
-		dms.initialStartY
-		+(dms.finalStartY-dms.initialStartY)*f;
-	    double p2x =
-		dms.initialEndX
-		+(dms.finalEndX-dms.initialEndX)*f;
-	    double p2y =
-		dms.initialEndY
-		+(dms.finalEndY-dms.initialEndY)*f;
-
-	    if (MRA_DEBUG)
-		cerr << "URegion::RI() p1x=" << p1x 
-		     << " p1y=" << p1y
-		     << " p2x=" << p2x
-		     << " p2y=" << p2y
-		     << endl;
-
-	    if (nearlyEqual(p1x, p2x)) {
-		if (MRA_DEBUG)
-		    cerr << "URegion::RI() vertical, ignored" << endl;
-
-		onPlumbline = false;
-	    } else if (!between(p1x, x, p2x)) {
-		if (MRA_DEBUG)
-		    cerr << "URegion::RI() x not between p1x and p1y, ignored"
-			 << endl;
-
-		assert(!onPlumbline);
-	    } else {
-		// solve p1x+(p2x-p1x)*s = x
-
-		double s = (x-p1x)/(p2x-p1x);
-		double ys = p1y+(p2y-p1y)*s;
-
-		if (MRA_DEBUG)
-		    cerr << "URegion::RI() ys=" << ys << endl;
-
-		if (lower(y, ys)) {
-		    if (MRA_DEBUG)
-			cerr << "URegion::RI() below" << endl;
-
-		    if (!onPlumbline) num++;
-
-		    onPlumbline = nearlyEqual(p2x, x);
-		} else {
-		    if (MRA_DEBUG)
-			cerr << "URegion::RI() not below" << endl;
-		}
-	    }
-
-	    if (MRA_DEBUG)
-		cerr << "URegion::RI() num=" << num << endl;
+	    res.Add(rUp);
 	}
-	
-	if (num > 0 && num % 2 == 1) res.Add(rUp);
     }
 
     res.SetDefined(!res.IsEmpty());
@@ -4608,6 +4646,11 @@ class MRegion : public Mapping<URegion, CRegion> {
 private: 
     DBArray<MSegmentData> msegmentdata;
 
+    void Intersection(
+	MPoint& mp, 
+	MPoint& res, 
+	RefinementPartition<MRegion, MPoint, URegion, UPoint>& rp);
+
 public:
     MRegion() {
         if (MRA_DEBUG) cerr << "MRegion::MRegion(int) called" << endl;
@@ -4624,6 +4667,7 @@ public:
 
     void Traversed(void);
     void Intersection(MPoint& mp, MPoint& res);
+    void Inside(MPoint& mp, MBool& res);
 
     friend Word InMRegion(const ListExpr typeInfo, 
 			  const ListExpr instance,
@@ -4972,17 +5016,14 @@ void MRegion::Traversed(void) {
 #endif // SCHMUH
 }
 
-void MRegion::Intersection(MPoint& mp, MPoint& res) {
-    if (MRA_DEBUG) cerr << "MRegion::Intersection() called" << endl;
+void MRegion::Intersection(
+    MPoint& mp, 
+    MPoint& res, 
+    RefinementPartition<MRegion, MPoint, URegion, UPoint>& rp) {
+
+    if (MRA_DEBUG) cerr << "MRegion::Intersection() #1 called" << endl;
 
     res = 0;
-
-/*
-First, the refinement partition for the moving region and point must be
-calculated.
-
-*/
-    RefinementPartition<MRegion, MPoint, URegion, UPoint> rp(*this, mp);
 
 /*
 
@@ -5036,6 +5077,173 @@ and point unit, both restricted to this interval, intersect.
 	     << endl;
 
     res.SetDefined(!res.IsEmpty());
+}
+
+void MRegion::Intersection(MPoint& mp, MPoint& res) {
+    if (MRA_DEBUG) cerr << "MRegion::Intersection() #2 called" << endl;
+
+    RefinementPartition<MRegion, MPoint, URegion, UPoint> rp(*this, mp);
+
+    Intersection(mp, res, rp);
+}
+
+void MRegion::Inside(MPoint& mp, MBool& res) {
+    if (MRA_DEBUG) cerr << "MRegion::Inside() called" << endl;
+
+    RefinementPartition<MRegion, MPoint, URegion, UPoint> rp(*this, mp);
+
+    MPoint resMp;
+    Intersection(mp, resMp, rp);
+
+    int mpPos = 0;
+
+    for (unsigned int rpPos = 0; rpPos < rp.Size(); rpPos++) {
+	if (MRA_DEBUG) 
+	    cerr << "MRegion::Inside() rpPos=" << rpPos << endl;
+
+	Interval<Instant>* iv;
+	int urPos;
+	int upPos;
+
+	rp.Get(rpPos, iv, urPos, upPos);
+
+	double prev = iv->start.ToDouble();
+	bool prev_c = !iv->lc;
+
+	for (; mpPos < resMp.GetNoComponents(); mpPos++) {
+	    if (MRA_DEBUG) 
+		cerr << "MRegion::Inside()   mpPos=" << mpPos << endl;
+
+	    UPoint up;
+	    resMp.Get(mpPos, up);
+
+	    if (MRA_DEBUG) 
+		cerr << "MRegion::Inside()     rp iv=["
+		     << iv->start.ToDouble()
+		     << " "
+		     << iv->end.ToDouble()
+		     << " "
+		     << iv->lc
+		     << " "
+		     << iv->rc
+		     << "] up iv=["
+		     << up.timeInterval.start.ToDouble()
+		     << " "
+		     << up.timeInterval.end.ToDouble()
+		     << " "
+		     << up.timeInterval.lc
+		     << " "
+		     << up.timeInterval.rc
+		     << "] prev="
+		     << prev
+		     << endl;
+
+	    if ((lower(iv->start.ToDouble(), 
+		       up.timeInterval.start.ToDouble())
+		 || (nearlyEqual(iv->start.ToDouble(),
+				 up.timeInterval.start.ToDouble())
+		     && (iv->lc || !up.timeInterval.lc)))
+		&& (lower(up.timeInterval.end.ToDouble(),
+			  iv->end.ToDouble())
+		    || (nearlyEqual(up.timeInterval.end.ToDouble(),
+				    iv->end.ToDouble())
+			&& (!up.timeInterval.rc || iv->rc)))) {
+
+		if (MRA_DEBUG) 
+		    cerr << "MRegion::Inside()     inside" << endl;
+
+		if (lower(prev, up.timeInterval.start.ToDouble())
+		    || (nearlyEqual(prev, up.timeInterval.start.ToDouble())
+			&& !prev_c
+			&& !up.timeInterval.lc)) {
+		    if (MRA_DEBUG) 
+			cerr << "MRegion::Inside()     adding f for interval [" 
+			     << prev
+			     << " "
+			     << up.timeInterval.start.ToDouble()
+			     << " "
+			     << !prev_c
+			     << " "
+			     << !up.timeInterval.lc
+			     << "]"
+			     << endl;
+
+		    Instant start(instanttype);
+		    start.ReadFrom(prev);
+	    
+		    Interval<Instant> resiv(start, 
+					    up.timeInterval.start, 
+					    !prev_c,
+					    !up.timeInterval.lc);
+
+		    CcBool bv(true, false);
+		    UBool ub(resiv, bv);
+
+		    res.Add(ub);
+		}
+
+		if (MRA_DEBUG) 
+		    cerr << "MRegion::Inside()     adding t for interval [" 
+			 << up.timeInterval.start.ToDouble()
+			 << " "
+			 << up.timeInterval.end.ToDouble()
+			 << " "
+			 << up.timeInterval.lc
+			 << " "
+			 << up.timeInterval.rc
+			 << "]"
+			 << endl;
+
+		Interval<Instant> resiv(up.timeInterval.start, 
+					up.timeInterval.end, 
+					up.timeInterval.lc,
+					up.timeInterval.rc);
+
+		CcBool bv(true, true);
+		UBool ub(resiv, bv);
+		
+		res.Add(ub);
+
+		prev = up.timeInterval.end.ToDouble();
+		prev_c = up.timeInterval.rc;
+	    } else {
+		if (MRA_DEBUG) 
+		    cerr << "MRegion::Inside()     not inside" << endl;
+
+		break;
+	    }
+	}
+
+	if (lower(prev, iv->end.ToDouble())
+	    || (nearlyEqual(prev, iv->end.ToDouble())
+		&& !prev_c
+		&& iv->rc)) {
+	    if (MRA_DEBUG) 
+		cerr << "MRegion::Inside()     adding f for interval [" 
+		     << prev
+		     << " "
+		     << iv->end.ToDouble()
+		     << " "
+		     << !prev_c
+		     << " "
+		     << iv->rc
+		     << "]"
+		     << endl;
+
+	    Instant start(instanttype);
+	    start.ReadFrom(prev);
+	    
+	    Interval<Instant> resiv(start, 
+				    iv->end, 
+				    !prev_c,
+				    iv->rc);
+	    
+	    CcBool bv(true, false);
+	    UBool ub(resiv, bv);
+	    
+	    res.Add(ub);
+	}
+    }    
 }
 
 /*
@@ -5618,7 +5826,7 @@ static int IntersectionValueMap(Word* args,
 				int message, 
 				Word& local, 
 				Supplier s) {
-    if (MRA_DEBUG) cerr << "IntersectionValuMap() called" << endl;
+    if (MRA_DEBUG) cerr << "IntersectionValueMap() called" << endl;
 
     result = qp->ResultStorage(s);
     ((MRegion*) args[1].addr)->Intersection(* (MPoint*) args[0].addr,
@@ -5632,9 +5840,13 @@ static int InsideValueMap(Word* args,
 			  int message, 
 			  Word& local, 
 			  Supplier s) {
-    if (MRA_DEBUG) cerr << "InsideValuMap() called" << endl;
+    if (MRA_DEBUG) cerr << "InsideValueMap() called" << endl;
 
-    assert(false);
+    result = qp->ResultStorage(s);
+    ((MRegion*) args[1].addr)->Inside(* (MPoint*) args[0].addr,
+				      * (MBool*) result.addr);
+
+    return 0;
 }
 
 /*
