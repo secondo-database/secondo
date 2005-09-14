@@ -31,6 +31,9 @@ was made (fixed size for the vector of tuples).
 Nov 2004. M. Spiekermann. The Algorithm for external sorting was changed. See below 
 for details.
 
+Sept. 2005. M. Spiekermann. Sortby altered for usage of class ~TupleBuffer~. Moreover,
+a memory leak in the ~sortmergejoin~ value mapping was fixed. 
+
 [1] Implementation of the Module Extended Relation Algebra for Persistent storage
 
 [TOC]
@@ -96,7 +99,9 @@ public:
     // It would be nice to have also an < operator in the class
     // Tuple. Moreover lexicographical comparison should be done by means of
     // TupleCompareBy and an appropriate sort order specification, 
-    Counter::getRef("TupleAndRelPos::less")++;
+    static long& ctr = Counter::getRef("TupleAndRelPos::less");
+    ctr++;
+
     if (!this->tuple || !ref.tuple) {
       return true;
     }
@@ -206,30 +211,28 @@ class SortByLocalInfo
 
         if(qp->Received(stream.addr))
         {
-          tupleType = new TupleType( ((Tuple*)wTuple.addr)->GetTupleType() );
+          Tuple* t = static_cast<Tuple*>( wTuple.addr );
+          tupleType = new TupleType( t->GetTupleType() );
 
-          MAX_TUPLES_IN_MEMORY = qp->MemoryAvailableForOperator() / ((Tuple*)wTuple.addr)->GetMemorySize();
-          cmsg.info("ERA:ShowMemInfo") << "Sortby.MAX_MEMORY (" 
-                                       << qp->MemoryAvailableForOperator()/1024 << " kb) = " 
-                                       << MAX_TUPLES_IN_MEMORY << " tuples" << endl;
+          MAX_TUPLES_IN_MEMORY 
+          = qp->MemoryAvailableForOperator() / t->GetMemorySize();
+          cmsg.info("ERA:ShowMemInfo") 
+            << "Sortby.MAX_MEMORY (" 
+            << qp->MemoryAvailableForOperator()/1024 << " kb) = " 
+            << MAX_TUPLES_IN_MEMORY << " tuples" << endl;
           cmsg.send();
         }
-        // Reserving memory does not work correctly in all situations
-        //currentRun->reserve(MAX_TUPLES_IN_MEMORY+100); 
-        //nextRun->reserve(MAX_TUPLES_IN_MEMORY+100);
 
-        Relation *rel=0;
+        TupleBuffer *rel=0;
         TupleAndRelPos lastTuple(0, tupleCmpBy);
         TupleAndRelPos minTuple(0, tupleCmpBy);
         while(qp->Received(stream.addr)) // consume the stream completely
         {
           c++; // tuple counter;
-          Tuple *t = ((Tuple*)wTuple.addr)->CloneIfNecessary();
+          Tuple *t = static_cast<Tuple*>( wTuple.addr )->CloneIfNecessary();
           if( t != wTuple.addr ) {
-            ((Tuple*)wTuple.addr)->DeleteIfAllowed();
+            static_cast<Tuple*>( wTuple.addr )->DeleteIfAllowed();
           }
-          t->SetFree( false );
-          assert( (t!=0) );                 
           
           TupleAndRelPos nextTuple(t, tupleCmpBy); 
           //cout << "  Next:" << *t << endl;           
@@ -244,22 +247,23 @@ class SortByLocalInfo
             if ( newRelation ) { // create new relation
             
               r++;
-              rel = new Relation( *tupleType, true );
-              RelationIterator *iter = rel->MakeScan();
-              relations.push_back( pair<Relation*, RelationIterator*>( rel, iter ) );
+              rel = new TupleBuffer( 0 );
+              TupleBufferIterator *iter = 0;
+              relations.push_back( make_pair( rel, iter ) );
               newRelation = false;
               
               // get first tuple and store it in an relation
               currentRun->push(nextTuple);
               minTuple = currentRun->top();
-              AppendToRel(*rel, minTuple);
+              //AppendToRel(*rel, minTuple);
+              rel->AppendTuple( minTuple.tuple );
               lastTuple = minTuple;
               currentRun->pop();              
               
             } else { // check if nextTuple can be saved in current relation
               
-              //cout << "  MIN : " << *minTuple.tuple << endl;
-              //cout << "  LAST: " << *lastTuple.tuple << endl;
+              //SHOW(*minTuple.tuple)
+              //SHOW(*lastTuple.tuple);
               TupleAndRelPos copyOfLast = lastTuple;
               if ( nextTuple < lastTuple ) { // nextTuple is in order              
 
@@ -267,7 +271,8 @@ class SortByLocalInfo
                   // the current relation and push
                   currentRun->push(nextTuple);
                   minTuple = currentRun->top();
-                  AppendToRel(*rel, minTuple);
+                  //AppendToRel(*rel, minTuple);
+                  rel->AppendTuple( minTuple.tuple );
                   lastTuple = minTuple;
                   currentRun->pop();
                   m++;
@@ -281,7 +286,8 @@ class SortByLocalInfo
             
                   // Append the minimum to the current relation    
                   minTuple = currentRun->top();
-                  AppendToRel(*rel, minTuple);
+                  //AppendToRel(*rel, minTuple);
+                  rel->AppendTuple( minTuple.tuple );
                   lastTuple = minTuple;
                   currentRun->pop();
                   
@@ -304,9 +310,7 @@ class SortByLocalInfo
 
               // delete last tuple if saved to relation and
               // not referenced by minTuple
-              if ( copyOfLast.tuple 
-                   && (copyOfLast.tuple != minTuple.tuple) 
-                   && (copyOfLast.pos == 1) ) 
+              if ( copyOfLast.tuple && (copyOfLast.tuple != minTuple.tuple) ) 
               {
                 copyOfLast.tuple->SetFree(true);
                 copyOfLast.tuple->DeleteIfAllowed();
@@ -320,16 +324,14 @@ class SortByLocalInfo
         ShowPartitionInfo(c,a,n,m,r);
 
         // delete lastTuple and minTuple if allowed
-        if ( lastTuple.pos && lastTuple.tuple ) {
+        if ( lastTuple.tuple ) {
           lastTuple.tuple->SetFree(true);
           lastTuple.tuple->DeleteIfAllowed();
         }
-        /*
-        if ( minTuple.pos && minTuple.tuple ) {
+        if ( (minTuple.tuple != lastTuple.tuple) ) {
           minTuple.tuple->SetFree(true);
           minTuple.tuple->DeleteIfAllowed();
         }
-        */
 
         qp->Close(stream.addr);
 
@@ -349,11 +351,13 @@ class SortByLocalInfo
         // Get next tuple from each relation and push it into the heap.
         for( size_t i = 0; i < relations.size(); i++ )
         {
+          relations[i].second = relations[i].first->MakeScan();
           Tuple *t = relations[i].second->GetNextTuple();
           if( t != 0 ) {
              mergeTuples.push( TupleAndRelPos(t, tupleCmpBy, i+1) );
           }
         }
+        TRACE( relations.size() << " partitions created!")
       }
 
     ~SortByLocalInfo()
@@ -416,20 +420,6 @@ class SortByLocalInfo
     }
 
   private:
-    inline void AppendToRel( Relation &rel, TupleAndRelPos& t )
-    {
-        Tuple *tp = t.tuple->CloneIfNecessary();
-        //cout << *tp << endl;
-        rel.AppendTuple( tp );
-
-        if( tp != t.tuple ) {
-          t.pos=1; 
-          // this indicates that the tuple was saved to disk
-          // since it may be needed for further comparisons
-          // it will be deleted in the code above. 
-        }
-        tp->DeleteIfAllowed();
-    }
 
     void ShowPartitionInfo(int c, int a, int n, int m, int r) {
 
@@ -445,15 +435,19 @@ class SortByLocalInfo
       }
     }
 
-    size_t MAX_TUPLES_IN_MEMORY;
     Word stream;
-    vector<TupleAndRelPos> tuples;
     size_t currentIndex;
+
+    // tuple information
     LexicographicalTupleCompare *lexiTupleCmp;
     TupleCompareBy *tupleCmpBy;
     bool lexicographic;
     TupleType *tupleType;
-    vector< pair<Relation*, RelationIterator*> > relations;
+
+    // sorted runs created by in memory heap filtering 
+    size_t MAX_TUPLES_IN_MEMORY;
+    typedef pair<TupleBuffer*, TupleBufferIterator*> SortedRun;
+    vector< SortedRun > relations;
     PrioQueue<TupleAndRelPos> queue[2];
     priority_queue<TupleAndRelPos> mergeTuples;
 };
@@ -882,7 +876,7 @@ public:
       }
       else
       {
-        resultTuple = new Tuple( *resultTupleType, false );
+        resultTuple = new Tuple( *resultTupleType, true );
         Concat( bucketA[indexA], bucketB[indexB++], resultTuple );
       }
     }
@@ -1004,7 +998,7 @@ public:
         // Only one equal tuple.
         {
           assert( relationA == 0 && relationB == 0 );
-          resultTuple = new Tuple( *resultTupleType, false );
+          resultTuple = new Tuple( *resultTupleType, true );
           Concat( bucketA[0], bucketB[0], resultTuple );
           ClearBucket( bucketA );
           ClearBucket( bucketB );
