@@ -804,7 +804,7 @@ void TupleBuffer::AppendTuple( Tuple *t )
         cmsg.info() << "Changing TupleBuffer's state from inMemory -> !inMemory" << endl;
         cmsg.send();
       }
-      privateTupleBuffer->diskBuffer = new Relation( t->GetTupleType() );
+      privateTupleBuffer->diskBuffer = new Relation( t->GetTupleType(), true );
 
       vector<Tuple*>::iterator iter = privateTupleBuffer->memoryBuffer.begin();
       while( iter != privateTupleBuffer->memoryBuffer.end() )
