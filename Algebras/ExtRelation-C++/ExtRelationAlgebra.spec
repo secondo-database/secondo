@@ -53,7 +53,7 @@ operator sample alias SAMPLEFEED pattern _ op [_, _]
 
 operator aggregate alias AGGREGATE pattern _ op [ _; fun; _ ] implicit parameter tuple type TUPLE
 
-operator symmproduct alias SYMMPRODUCT pattern _ _ op [ fun ] implicit parameters lefttuple, righttuple types TUPLE, TUPLE2
+operator symmjoin alias SYMMJOIN pattern _ _ op [ fun ] implicit parameters lefttuple, righttuple types TUPLE, TUPLE2
 
 operator createinsertrel alias CREATEINSERTREL pattern _ op
 
@@ -89,5 +89,5 @@ operator appendidentifier alias APPENDIDENTIFIER pattern _ op
 
 operator deletebyid alias DELETEBYID pattern _ op [ _ ]
 
-operator updatebyid alias UPDATEBYID pattern _ _ op [ _; funlist]implicit parameter tuple type TUPLE
+operator updatebyid alias UPDATEBYID pattern _ op [ _; funlist]implicit parameter tuple type TUPLE
 

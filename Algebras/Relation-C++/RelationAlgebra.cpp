@@ -781,8 +781,8 @@ ListExpr TUPLETypeMap(ListExpr args)
   ListExpr first;
   string argstr;
 
-  CHECK_COND(nl->ListLength(args) == 1,
-  "Type operator TUPLE expects a list of length one.");
+  CHECK_COND(!nl->IsAtom(args),
+  "Type operator TUPLE expects a list and not an atom.");
     
   first = nl->First(args);
   nl->WriteToString(argstr, first);

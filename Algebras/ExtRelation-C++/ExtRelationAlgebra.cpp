@@ -7705,11 +7705,11 @@ Operator extreldeletebyid (
 
 2.34.1 Type mapping function of operator ~updatebyid~
 
-----    ((stream (tuple (X)))) x (rel (tuple (X)))) x (tid) x ((ai1 (map x xi1)) ... (aij (map x xij))))
+----    ((rel (tuple (X)))) x (tid) x ((ai1 (map x xi1)) ... (aij (map x xij))))
 
         -> (stream (tuple (X @ (a1_old x1) ... (an_old xn)(TID tid)))))
 
-        where X = (tuple ((a1 x1) ... (an xn))) and ai1 - aij in (a1 .. an)
+        where X = ((a1 x1) ... (an xn)) and ai1 - aij in (a1 .. an)
 ----
 
 */
@@ -7726,14 +7726,12 @@ ListExpr updateByIdTypeMap(ListExpr args)
 	errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
   
   
-  	CHECK_COND(nl->ListLength(args) == 4,
-    			"Operator updatebyid expects a list of length two.");
+  	CHECK_COND(nl->ListLength(args) == 3,
+    			"Operator updatebyid expects a list of length three.");
   
-    // !!!!!!!!!  The first argument is a stream of tuples which is actually only needed
-    // to receive a correct implicite parameter of type tuple
-  	first = nl->Second(args);
-  	second = nl->Third(args);
-  	third = nl->Fourth(args);
+  	first = nl->First(args);
+  	second = nl->Second(args);
+  	third = nl->Third(args);
     // Check relation
   	nl->WriteToString(argstr, first);
   	CHECK_COND(nl->ListLength(first) == 2  &&
@@ -7871,12 +7869,10 @@ int updateByIdValueMap(Word* args, Word& result, int message, Word& local, Suppl
       	*firstcall = false;
       	resultType = GetTupleResultType( s );
       	resultTupleType = new TupleType( nl->Second( resultType ) );
-      	// !!!!!!!!!  The first argument is a stream of tuples which is actually only needed
-    	// to receive a correct implicite parameter of type tuple
-      	qp->Request(args[1].addr, argRelation);
+      	qp->Request(args[0].addr, argRelation);
       	relation = (Relation*)(argRelation.addr);    
       	assert(relation != 0);  
-      	qp->Request(args[2].addr, argTid);
+      	qp->Request(args[1].addr, argTid);
       	tid = (TupleIdentifier*)(argTid.addr);      
         resultTuple = new Tuple( *resultTupleType, true );
         updateTuple = relation->GetTuple(tid->GetTid());
@@ -7888,17 +7884,17 @@ int updateByIdValueMap(Word* args, Word& result, int message, Word& local, Suppl
         for (int i = 0; i < updateTuple->GetNoAttributes(); i++){
         	resultTuple->PutAttribute( updateTuple->GetNoAttributes() +i, updateTuple->GetAttribute(i)->Clone());	
         }
-        qp->Request(args[4].addr, noWord);
+        qp->Request(args[3].addr, noWord);
         // Number of attributes to be replaced
         noOfAttrs = ((CcInt*)noWord.addr)->GetIntval();
         // Supplier for the functions
-        supplier = args[3].addr;
+        supplier = args[2].addr;
         vector<int>* changedIndices = new vector<int>(noOfAttrs);
         vector<Attribute*>* newAttrs = new vector<Attribute*>(noOfAttrs);
         for (int i=1; i <= noOfAttrs; i++)
         {
           // Get next appended index
-          son = qp->GetSupplier(args[5].addr, i-1);
+          son = qp->GetSupplier(args[4].addr, i-1);
           qp->Request(son, elem);
           index = ((CcInt*)elem.addr)->GetIntval() -1;
           (*changedIndices)[i-1] = index;
@@ -7930,7 +7926,7 @@ int updateByIdValueMap(Word* args, Word& result, int message, Word& local, Suppl
     case CLOSE :
     	firstcall = (bool*) local.addr;
     	delete firstcall;
-    	qp->SetModified(args[1].addr);
+    	qp->SetModified(args[0].addr);
         return 0;
   }
   return 0;
@@ -7974,11 +7970,11 @@ Operator extrelupdatebyid (
 
 /*
 
-5.10 Operator ~symmproduct~
+5.10 Operator ~symmjoin~
 
-5.10.1 Type mapping function of operator ~symmproduct~
+5.10.1 Type mapping function of operator ~symmjoin~
 
-Result type of symmproduct operation.
+Result type of symmjoin operation.
 
 ----    ((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym))))
 
@@ -7986,14 +7982,14 @@ Result type of symmproduct operation.
 ----
 
 */
-ListExpr SymmProductTypeMap(ListExpr args)
+ListExpr SymmJoinTypeMap(ListExpr args)
 {
   ListExpr first, second, third,
            list, list1, list2;
   string argstr, argstr2;
 
   CHECK_COND(nl->ListLength(args) == 3,
-    "Operator symmproduct expects a list of length three.");
+    "Operator symmjoin expects a list of length three.");
 
   first = nl->First(args);
   second = nl->Second(args);
@@ -8004,9 +8000,9 @@ ListExpr SymmProductTypeMap(ListExpr args)
              TypeOfRelAlgSymbol(nl->First(first)) == stream &&
              nl->ListLength(nl->Second(first)) == 2 &&
              TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
-    "Operator symmproduct expects a first list with structure "
+    "Operator symmjoin expects a first list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator symmproduct gets a first list with structure '" + argstr + "'.");
+    "Operator symmjoin gets a first list with structure '" + argstr + "'.");
 
   list1 = nl->Second(nl->Second(first));
 
@@ -8015,18 +8011,18 @@ ListExpr SymmProductTypeMap(ListExpr args)
              TypeOfRelAlgSymbol(nl->First(second)) == stream &&
              nl->ListLength(nl->Second(second)) == 2 &&
              TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple,
-    "Operator symmproduct expects a second list with structure "
+    "Operator symmjoin expects a second list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator symmproduct gets a second list with structure '" + argstr + "'.");
+    "Operator symmjoin gets a second list with structure '" + argstr + "'.");
 
   nl->WriteToString(argstr, third);
   CHECK_COND(nl->ListLength(third) == 4 &&
              TypeOfRelAlgSymbol(nl->First(third)) == ccmap &&
              TypeOfRelAlgSymbol(nl->Fourth(third)) == ccbool,
-    "Operator symmproduct expects a third list with structure "
+    "Operator symmjoin expects a third list with structure "
     "(map (tuple ((a11 t11)...(a1n t1n)))\n"
     "     (tuple ((a21 t21)...(a2n t2n))) bool)\n"
-    "Operator symmproduct gets a third list with structure '" + argstr + "'.");
+    "Operator symmjoin gets a third list with structure '" + argstr + "'.");
 
   list2 = nl->Second(nl->Second(second));
   list = ConcatLists(list1, list2);
@@ -8034,7 +8030,7 @@ ListExpr SymmProductTypeMap(ListExpr args)
   nl->WriteToString(argstr, list1);
   nl->WriteToString(argstr2, list2);
   CHECK_COND( CompareNames(list),
-              "Operator symmproduct: found doubly "
+              "Operator symmjoin: found doubly "
               "defined attribute names in concatenated list.\n"
               "The first attribute list is '" + argstr + "'\n"
               "and the second is '" + argstr2 + "'\n" );
@@ -8045,10 +8041,10 @@ ListExpr SymmProductTypeMap(ListExpr args)
 }
 /*
 
-5.10.2 Value mapping function of operator ~symmproduct~
+5.10.2 Value mapping function of operator ~symmjoin~
 
 */
-struct SymmProductLocalInfo
+struct SymmJoinLocalInfo
 {
   TupleType *resultTupleType;
 
@@ -8063,20 +8059,20 @@ struct SymmProductLocalInfo
 };
 
 int
-SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
+SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word r, l;
-  SymmProductLocalInfo* pli;
+  SymmJoinLocalInfo* pli;
 
   switch (message)
   {
     case OPEN :
     {
       long MAX_MEMORY = qp->MemoryAvailableForOperator();
-      cmsg.info("ERA:ShowMemInfo") << "SymmProduct.MAX_MEMORY (" 
+      cmsg.info("ERA:ShowMemInfo") << "SymmJoin.MAX_MEMORY (" 
                                    << MAX_MEMORY/1024 << " MB): " << endl;
       cmsg.send();
-      pli = new SymmProductLocalInfo;
+      pli = new SymmJoinLocalInfo;
       pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
       pli->rightIter = 0;
       pli->leftRel = new TupleBuffer( MAX_MEMORY / 2 );
@@ -8097,7 +8093,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
     }
     case REQUEST :
     {
-      pli = (SymmProductLocalInfo*)local.addr;
+      pli = (SymmJoinLocalInfo*)local.addr;
 
       while( 1 )
         // This loop will end in some of the returns.
@@ -8268,7 +8264,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
     }
     case CLOSE :
     {
-      pli = (SymmProductLocalInfo*)local.addr;
+      pli = (SymmJoinLocalInfo*)local.addr;
 
       if( pli->currTuple != 0 )
         pli->currTuple->DeleteIfAllowed();
@@ -8302,35 +8298,35 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
 
 /*
 
-5.10.3 Specification of operator ~symmproduct~
+5.10.3 Specification of operator ~symmjoin~
 
 */
-const string SymmProductSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string SymmJoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
                                 "( <text>((stream (tuple (x1 ... xn))) (stream "
                                 "(tuple (y1 ... ym)))) (map (tuple (x1 ... xn)) "
                                 "(tuple (y1 ... ym)) -> bool) -> (stream (tuple (x1 "
                                 "... xn y1 ... ym)))</text--->"
-                                "<text>_ _ symmproduct[ fun ]</text--->"
+                                "<text>_ _ symmjoin[ fun ]</text--->"
                                 "<text>Computes a Cartesian product stream from "
                                 "its two argument streams filtering by the third "
                                 "argument.</text--->"
                                 "<text>query ten feed {a} twenty feed {b} "
-                                "symmproduct[.no_a = .no_b] count</text--->"
+                                "symmjoin[.no_a = .no_b] count</text--->"
                                 " ) )";
 
 /*
 
-5.10.4 Definition of operator ~symmproduct~
+5.10.4 Definition of operator ~symmjoin~
 
 */
-Operator extrelsymmproduct (
-         "symmproduct",            // name
-         SymmProductSpec,          // specification
-         SymmProduct,              // value mapping
+Operator extrelsymmjoin (
+         "symmjoin",            // name
+         SymmJoinSpec,          // specification
+         SymmJoin,              // value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,         // trivial selection function
-         SymmProductTypeMap,        // type mapping
+         SymmJoinTypeMap,        // type mapping
          Operator::DummyCost   // cost function
 //         true                   // needs large amounts of memory
 );
@@ -8398,7 +8394,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelappendidentifier);
     AddOperator(&extreldeletebyid);
     AddOperator(&extrelupdatebyid);
-    AddOperator(&extrelsymmproduct);
+    AddOperator(&extrelsymmjoin);
   }
   ~ExtRelationAlgebra() {};
 };
