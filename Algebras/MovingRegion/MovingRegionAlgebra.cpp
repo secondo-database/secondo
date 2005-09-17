@@ -2108,6 +2108,8 @@ public:
 	segmentsNum(0) {
         if (MRA_DEBUG) 
             cerr << "URegion::URegion() #2 called" << endl;
+
+	assert(false);
     }
 
     void SetMSegmentData(DBArray<MSegmentData>* s) {
@@ -3952,6 +3954,8 @@ static Word InURegion(const ListExpr typeInfo,
 		      bool& correct) {
     if (MRA_DEBUG) cerr << "InURegion() called" << endl;
 
+    assert(false);
+
     return 
 	InURegionEmbedded(typeInfo, 
 			  instance, 
@@ -4651,6 +4655,16 @@ private:
 	MPoint& res, 
 	RefinementPartition<MRegion, MPoint, URegion, UPoint>& rp);
 
+    void InsideAddUBool(MBool& res,
+			double starttime,
+			double endtime,
+			bool lc,
+			bool rc,
+			bool value,
+			double& prev,
+			bool& prev_c,
+			UBool*& pending);
+	
 public:
     MRegion() {
         if (MRA_DEBUG) cerr << "MRegion::MRegion(int) called" << endl;
@@ -5087,6 +5101,79 @@ void MRegion::Intersection(MPoint& mp, MPoint& res) {
     Intersection(mp, res, rp);
 }
 
+void MRegion::InsideAddUBool(MBool& res,
+			     double starttime,
+			     double endtime,
+			     bool lc,
+			     bool rc,
+			     bool value,
+			     double& prev,
+			     bool& prev_c,
+			     UBool*& pending) {
+    if (MRA_DEBUG) 
+	cerr << "MRegion::InsideAddUBool() called, value=" << value << endl;
+
+    Instant start(instanttype);
+    start.ReadFrom(starttime);
+
+    Instant end(instanttype);
+    end.ReadFrom(endtime);
+	    
+    CcBool bv(true, value);
+
+    if (pending) {
+	if (MRA_DEBUG) {
+	    cerr << "MRegion::InsideAddUBool() pending end="
+		 << pending->timeInterval.end.ToDouble()
+		 << " rc="
+		 << pending->timeInterval.rc
+		 << endl;
+	    cerr << "MRegion::InsideAddUBool() current start=" 
+		 << starttime
+		 << " lc="
+		 << lc
+		 << endl;
+	}
+
+	if (nearlyEqual(starttime, pending->timeInterval.end.ToDouble())
+	    && (pending->timeInterval.rc || lc)
+	    && pending->constValue.GetBoolval() == value) {
+	    
+	    if (MRA_DEBUG) 
+		cerr << "MRegion::InsideAddUBool() connecting" << endl;
+
+	    Interval<Instant> iv(pending->timeInterval.start,
+				 end,
+				 pending->timeInterval.lc,
+				 rc);
+
+	    delete pending;
+	    pending = new UBool(iv, bv);
+	} else {
+	    if (MRA_DEBUG) 
+		cerr << "MRegion::InsideAddUBool() not connecting" << endl;
+
+	    res.Add(*pending);
+	    delete pending;
+
+	    Interval<Instant> iv(start, end, lc, rc);
+
+	    pending = new UBool(iv, bv);
+	}
+    } else {
+	if (MRA_DEBUG) 
+	    cerr << "MRegion::InsideAddUBool() pending does not exist" 
+		 << endl;
+
+	Interval<Instant> iv(start, end, lc, rc);
+
+	pending = new UBool(iv, bv);
+    }
+
+    prev = endtime;
+    prev_c = rc;
+}
+
 void MRegion::Inside(MPoint& mp, MBool& res) {
     if (MRA_DEBUG) cerr << "MRegion::Inside() called" << endl;
 
@@ -5096,6 +5183,8 @@ void MRegion::Inside(MPoint& mp, MBool& res) {
     Intersection(mp, resMp, rp);
 
     int mpPos = 0;
+
+    UBool* pending = 0;
 
     for (unsigned int rpPos = 0; rpPos < rp.Size(); rpPos++) {
 	if (MRA_DEBUG) 
@@ -5168,18 +5257,15 @@ void MRegion::Inside(MPoint& mp, MBool& res) {
 			     << "]"
 			     << endl;
 
-		    Instant start(instanttype);
-		    start.ReadFrom(prev);
-	    
-		    Interval<Instant> resiv(start, 
-					    up.timeInterval.start, 
-					    !prev_c,
-					    !up.timeInterval.lc);
-
-		    CcBool bv(true, false);
-		    UBool ub(resiv, bv);
-
-		    res.Add(ub);
+		    InsideAddUBool(res,
+				   prev,
+				   up.timeInterval.start.ToDouble(),
+				   !prev_c,
+				   !up.timeInterval.lc,
+				   false,
+				   prev,
+				   prev_c,
+				   pending);
 		}
 
 		if (MRA_DEBUG) 
@@ -5194,18 +5280,15 @@ void MRegion::Inside(MPoint& mp, MBool& res) {
 			 << "]"
 			 << endl;
 
-		Interval<Instant> resiv(up.timeInterval.start, 
-					up.timeInterval.end, 
-					up.timeInterval.lc,
-					up.timeInterval.rc);
-
-		CcBool bv(true, true);
-		UBool ub(resiv, bv);
-		
-		res.Add(ub);
-
-		prev = up.timeInterval.end.ToDouble();
-		prev_c = up.timeInterval.rc;
+		InsideAddUBool(res,
+			       up.timeInterval.start.ToDouble(),
+			       up.timeInterval.end.ToDouble(),
+			       up.timeInterval.lc,
+			       up.timeInterval.rc,
+			       true,
+			       prev,
+			       prev_c,
+			       pending);
 	    } else {
 		if (MRA_DEBUG) 
 		    cerr << "MRegion::Inside()     not inside" << endl;
@@ -5230,20 +5313,24 @@ void MRegion::Inside(MPoint& mp, MBool& res) {
 		     << "]"
 		     << endl;
 
-	    Instant start(instanttype);
-	    start.ReadFrom(prev);
-	    
-	    Interval<Instant> resiv(start, 
-				    iv->end, 
-				    !prev_c,
-				    iv->rc);
-	    
-	    CcBool bv(true, false);
-	    UBool ub(resiv, bv);
-	    
-	    res.Add(ub);
+	    InsideAddUBool(res,
+			   prev,
+			   iv->end.ToDouble(),
+			   !prev_c,
+			   iv->rc,
+			   false,
+			   prev,
+			   prev_c,
+			   pending);
 	}
-    }    
+    }
+
+    if (pending) {
+	res.Add(*pending);
+	delete pending;
+    }
+
+    res.SetDefined(!res.IsEmpty());
 }
 
 /*
