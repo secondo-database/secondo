@@ -2082,6 +2082,16 @@ private:
 	Interval<Instant>& iv,
 	vector<TrapeziumSegmentIntersection>& vtsi,
 	MPoint& res);
+    void URegion::RestrictedIntersectionAddUPoint(MPoint& res,
+						  double starttime,
+						  double endtime,
+						  bool lc,
+						  bool rc,
+						  double x0,
+						  double y0,
+						  double x1,
+						  double y1,
+						  UPoint*& pending);
 
 public:
     URegion() {
@@ -2549,6 +2559,93 @@ void URegion::RestrictedIntersectionFind(
     }
 }
 
+void URegion::RestrictedIntersectionAddUPoint(MPoint& res,
+					      double starttime,
+					      double endtime,
+					      bool lc,
+					      bool rc,
+					      double x0,
+					      double y0,
+					      double x1,
+					      double y1,
+					      UPoint*& pending) {
+    if (MRA_DEBUG) cerr << "URegion::RIAUP() added" << endl;
+
+    Instant start(instanttype);
+    start.ReadFrom(endtime);
+
+    Instant end(instanttype);
+    end.ReadFrom(endtime);
+	    
+    if (pending) {
+	if (nearlyEqual(pending->timeInterval.end.ToDouble(), starttime)
+	    && (pending->timeInterval.rc || lc)
+	    && nearlyEqual(pending->p1.GetX(), x0)
+	    && nearlyEqual(pending->p1.GetY(), y0)) {
+
+	    if (nearlyEqual(pending->timeInterval.start.ToDouble(), 
+			    pending->timeInterval.end.ToDouble())) {
+		Interval<Instant> iv(start, 
+				     end, 
+				     true,
+				     rc);
+
+		delete pending;
+		pending = new UPoint(iv, x0, y0, x1, y1);
+
+		return;
+	    } else if (nearlyEqual(starttime, endtime)) {
+		Interval<Instant> iv(pending->timeInterval.start, 
+				     pending->timeInterval.end, 
+				     pending->timeInterval.lc,
+				     true);
+		
+		UPoint* dummy = new UPoint(iv, 
+					   pending->p0.GetX(), 
+					   pending->p0.GetY(), 
+					   pending->p1.GetX(), 
+					   pending->p1.GetY());
+		delete pending;
+		pending = dummy;
+
+		return;
+	    } else {
+		double f = 
+		    (pending->timeInterval.start.ToDouble()-starttime)
+		    /(endtime-starttime);
+
+		double x = x0+(x1-x0)*f;
+		double y = y0+(y1-y0)*f;
+
+		if (nearlyEqual(pending->p0.GetX(), x)
+		    && nearlyEqual(pending->p0.GetY(), y)) {
+		    Interval<Instant> iv(pending->timeInterval.start, 
+					 end, 
+					 pending->timeInterval.lc,
+					 rc);
+		
+		    UPoint* dummy = new UPoint(iv, 
+					       pending->p0.GetX(), 
+					       pending->p0.GetY(), 
+					       x1, 
+					       y1);
+		    delete pending;
+		    pending = dummy;
+
+		    return;
+		}
+	    }
+	}
+    }
+    
+    res.Add(*pending);
+    delete pending;
+
+    Interval<Instant> iv(start, end, lc, rc);
+
+    pending = new UPoint(iv, x0, y0, x1, y1);
+}
+
 void URegion::RestrictedIntersectionProcess(
     UPoint& up, 
     Interval<Instant>& iv,
@@ -2557,9 +2654,10 @@ void URegion::RestrictedIntersectionProcess(
 
     if (MRA_DEBUG) cerr << "URegion::RIP() added" << endl;
 
-    bool prev = false;
-    unsigned int prev_c;
-    unsigned int prev_i;
+    int prev_i = -1;
+    bool prev_c;
+
+    UPoint* pending = 0;
     
     for (unsigned int i = 0; i < vtsi.size(); i++) {
 	if (MRA_DEBUG) {
@@ -2590,24 +2688,24 @@ void URegion::RestrictedIntersectionProcess(
 		nearlyEqual(vtsi[i].ip1t, iv.end.ToDouble())
 		? iv.rc
 		: true;
-
-	    Instant end(instanttype);
-	    end.ReadFrom(vtsi[i].ip1t);
-	    
-	    Interval<Instant> resiv(iv.start, end, iv.lc, rc);
-
-	    prev = true;
-	    prev_i = i;
-	    prev_c = rc;
-
+		
 	    UPoint rUp;
 	    restrictUPointToInterval(up, iv, rUp);
+    
+	    RestrictedIntersectionAddUPoint(
+		res,
+		iv.start.ToDouble(),
+		vtsi[i].ip1t,
+		iv.lc,
+		rc,
+		rUp.p0.GetX(), 
+		rUp.p0.GetY(), 
+		vtsi[i].ip1x, 
+		vtsi[i].ip1y,
+		pending);
 
-	    UPoint resup(resiv, 
-			 rUp.p0.GetX(), rUp.p0.GetY(), 
-			 vtsi[i].ip1x, vtsi[i].ip1y);
-
-	    res.Add(resup);
+	    prev_i = i;
+	    prev_c = rc;
 	}
 
 	if (i > 0 && vtsi[i].type == LEAVE) {
@@ -2616,7 +2714,7 @@ void URegion::RestrictedIntersectionProcess(
 		? iv.lc
 		: true;
 
-	    if (prev
+	    if (prev_i >= 0
 		&& nearlyEqual(vtsi[prev_i].ip1t, vtsi[i-1].ip1t)
 		&& prev_c)
 		lc = false;
@@ -2626,21 +2724,20 @@ void URegion::RestrictedIntersectionProcess(
 		? iv.rc
 		: true;
 
-	    Instant start(instanttype), end(instanttype);
-	    start.ReadFrom(vtsi[i-1].ip1t);
-	    end.ReadFrom(vtsi[i].ip1t);
+	    RestrictedIntersectionAddUPoint(
+		res,
+		vtsi[i-1].ip1t,
+		vtsi[i].ip1t,
+		lc,
+		rc,
+		vtsi[i-1].ip1x, 
+		vtsi[i-1].ip1y,
+		vtsi[i].ip1x, 
+		vtsi[i].ip1y,
+		pending);
 
-	    Interval<Instant> resiv(start, end, lc, rc);
-
-	    prev = true;
 	    prev_i = i;
 	    prev_c = rc;
-
-	    UPoint resup(resiv, 
-			 vtsi[i-1].ip1x, vtsi[i-1].ip1y,
-			 vtsi[i].ip1x, vtsi[i].ip1y);
-
-	    res.Add(resup);
 	}
 
 	if (i+1 == vtsi.size() && vtsi[i].type == ENTER) {
@@ -2649,25 +2746,31 @@ void URegion::RestrictedIntersectionProcess(
 		? iv.lc
 		: true;
 
-	    if (prev
+	    if (prev_i >= 0
 		&& nearlyEqual(vtsi[prev_i].ip1t, vtsi[i].ip1t)
 		&& prev_c)
 		lc = false;
 
-	    Instant start(instanttype);
-	    start.ReadFrom(vtsi[i].ip1t);
-
-	    Interval<Instant> resiv(start, iv.end, lc, iv.rc);
-
 	    UPoint rUp;
 	    restrictUPointToInterval(up, iv, rUp);
 
-	    UPoint resup(resiv, 
-			 vtsi[i].ip1x, vtsi[i].ip1y,
-			 rUp.p1.GetX(), rUp.p1.GetY());
-
-	    res.Add(resup);
+	    RestrictedIntersectionAddUPoint(
+		res,
+		vtsi[i].ip1t,
+		iv.end.ToDouble(),
+		lc,
+		iv.rc,
+		vtsi[i].ip1x, 
+		vtsi[i].ip1y,
+		rUp.p1.GetX(), 
+		rUp.p1.GetY(),
+		pending);
 	}
+    }
+
+    if (pending) {
+	res.Add(*pending);
+	delete pending;
     }
 }
 
@@ -5142,13 +5245,32 @@ void MRegion::InsideAddUBool(MBool& res,
 	    if (MRA_DEBUG) 
 		cerr << "MRegion::InsideAddUBool() connecting" << endl;
 
-	    Interval<Instant> iv(pending->timeInterval.start,
-				 end,
-				 pending->timeInterval.lc,
-				 rc);
+	    if (nearlyEqual(pending->timeInterval.start.ToDouble(),
+			    pending->timeInterval.end.ToDouble())) {
+		Interval<Instant> iv(start,
+				     end,
+				     true,
+				     rc);
 
-	    delete pending;
-	    pending = new UBool(iv, bv);
+		delete pending;
+		pending = new UBool(iv, bv);
+	    } else if (nearlyEqual(starttime, endtime)) {
+		Interval<Instant> iv(pending->timeInterval.start,
+				     pending->timeInterval.end,
+				     pending->timeInterval.lc,
+				     true);
+
+		delete pending;
+		pending = new UBool(iv, bv);
+	    } else {
+		Interval<Instant> iv(pending->timeInterval.start,
+				     end,
+				     pending->timeInterval.lc,
+				     rc);
+
+		delete pending;
+		pending = new UBool(iv, bv);
+	    }
 	} else {
 	    if (MRA_DEBUG) 
 		cerr << "MRegion::InsideAddUBool() not connecting" << endl;
