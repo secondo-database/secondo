@@ -2073,15 +2073,6 @@ private:
     unsigned int segmentsNum;
 
     unsigned int URegion::Plumbline(UPoint& up, Interval<Instant>& iv);
-    void URegion::RestrictedIntersectionFind(
-	UPoint& up, 
-	Interval<Instant>& iv,
-	vector<TrapeziumSegmentIntersection>& vtsi);
-    void URegion::RestrictedIntersectionProcess(
-	UPoint& up, 
-	Interval<Instant>& iv,
-	vector<TrapeziumSegmentIntersection>& vtsi,
-	MPoint& res);
     void URegion::RestrictedIntersectionAddUPoint(MPoint& res,
 						  double starttime,
 						  double endtime,
@@ -2092,6 +2083,16 @@ private:
 						  double x1,
 						  double y1,
 						  UPoint*& pending);
+    void URegion::RestrictedIntersectionFind(
+	UPoint& up, 
+	Interval<Instant>& iv,
+	vector<TrapeziumSegmentIntersection>& vtsi);
+    bool URegion::RestrictedIntersectionProcess(
+	UPoint& up, 
+	Interval<Instant>& iv,
+	vector<TrapeziumSegmentIntersection>& vtsi,
+	MPoint& res,
+	UPoint*& pending);
 
 public:
     URegion() {
@@ -2145,7 +2146,8 @@ public:
 
     void RestrictedIntersection(UPoint& up, 
 				Interval<Instant>& iv,
-				MPoint& res);
+				MPoint& res,
+				UPoint*& pending);
 
     void Destroy(void);
 
@@ -2569,22 +2571,28 @@ void URegion::RestrictedIntersectionAddUPoint(MPoint& res,
 					      double x1,
 					      double y1,
 					      UPoint*& pending) {
-    if (MRA_DEBUG) cerr << "URegion::RIAUP() added" << endl;
+    if (MRA_DEBUG) cerr << "URegion::RIAUP() called" << endl;
 
     Instant start(instanttype);
-    start.ReadFrom(endtime);
+    start.ReadFrom(starttime);
 
     Instant end(instanttype);
     end.ReadFrom(endtime);
 	    
     if (pending) {
+	if (MRA_DEBUG) cerr << "URegion::RIAUP() pending exists" << endl;
+
 	if (nearlyEqual(pending->timeInterval.end.ToDouble(), starttime)
 	    && (pending->timeInterval.rc || lc)
 	    && nearlyEqual(pending->p1.GetX(), x0)
 	    && nearlyEqual(pending->p1.GetY(), y0)) {
 
+	    if (MRA_DEBUG) cerr << "URegion::RIAUP() intervals match" << endl;
+
 	    if (nearlyEqual(pending->timeInterval.start.ToDouble(), 
 			    pending->timeInterval.end.ToDouble())) {
+		if (MRA_DEBUG) cerr << "URegion::RIAUP() merge #1" << endl;
+
 		Interval<Instant> iv(start, 
 				     end, 
 				     true,
@@ -2593,8 +2601,15 @@ void URegion::RestrictedIntersectionAddUPoint(MPoint& res,
 		delete pending;
 		pending = new UPoint(iv, x0, y0, x1, y1);
 
+		if (MRA_DEBUG) 
+		    cerr << "URegion::RIAUP() pending=" 
+			 << (unsigned int) pending 
+			 << endl;
+
 		return;
 	    } else if (nearlyEqual(starttime, endtime)) {
+		if (MRA_DEBUG) cerr << "URegion::RIAUP() merge #2" << endl;
+
 		Interval<Instant> iv(pending->timeInterval.start, 
 				     pending->timeInterval.end, 
 				     pending->timeInterval.lc,
@@ -2608,8 +2623,16 @@ void URegion::RestrictedIntersectionAddUPoint(MPoint& res,
 		delete pending;
 		pending = dummy;
 
+		    if (MRA_DEBUG) 
+			cerr << "URegion::RIAUP() pending=" 
+			     << (unsigned int) pending 
+			     << endl;
+
 		return;
 	    } else {
+		if (MRA_DEBUG) 
+		    cerr << "URegion::RIAUP() checking endpoints" << endl;
+
 		double f = 
 		    (pending->timeInterval.start.ToDouble()-starttime)
 		    /(endtime-starttime);
@@ -2619,6 +2642,8 @@ void URegion::RestrictedIntersectionAddUPoint(MPoint& res,
 
 		if (nearlyEqual(pending->p0.GetX(), x)
 		    && nearlyEqual(pending->p0.GetY(), y)) {
+		    if (MRA_DEBUG) cerr << "URegion::RIAUP() merge #3" << endl;
+
 		    Interval<Instant> iv(pending->timeInterval.start, 
 					 end, 
 					 pending->timeInterval.lc,
@@ -2632,33 +2657,61 @@ void URegion::RestrictedIntersectionAddUPoint(MPoint& res,
 		    delete pending;
 		    pending = dummy;
 
+		    if (MRA_DEBUG) 
+			cerr << "URegion::RIAUP() pending=" 
+			     << (unsigned int) pending 
+			     << endl;
+
 		    return;
 		}
 	    }
 	}
     }
     
-    res.Add(*pending);
-    delete pending;
+    if (MRA_DEBUG) cerr << "URegion::RIAUP() no merge" << endl;
+
+    if (pending) {
+	if (MRA_DEBUG) 
+	    cerr << "URegion::RIAUP() adding " 
+		 << (unsigned int) pending 
+		 << " iv=["
+		 << pending->timeInterval.start.ToDouble()
+		 << " "
+		 << pending->timeInterval.end.ToDouble()
+		 << " "
+		 << pending->timeInterval.lc
+		 << " "
+		 << pending->timeInterval.rc
+		 << "]"
+		 << endl;
+
+	res.Add(*pending);
+	delete pending;
+    }
 
     Interval<Instant> iv(start, end, lc, rc);
 
     pending = new UPoint(iv, x0, y0, x1, y1);
+
+    if (MRA_DEBUG) 
+	cerr << "URegion::RIAUP() pending=" 
+	     << (unsigned int) pending 
+	     << endl;
+
 }
 
-void URegion::RestrictedIntersectionProcess(
+bool URegion::RestrictedIntersectionProcess(
     UPoint& up, 
     Interval<Instant>& iv,
     vector<TrapeziumSegmentIntersection>& vtsi,
-    MPoint& res) {
+    MPoint& res,
+    UPoint*& pending) {
 
     if (MRA_DEBUG) cerr << "URegion::RIP() added" << endl;
 
     int prev_i = -1;
     bool prev_c;
 
-    UPoint* pending = 0;
-    
     for (unsigned int i = 0; i < vtsi.size(); i++) {
 	if (MRA_DEBUG) {
 	    cerr << "URegion::RIP() intersection #"
@@ -2666,18 +2719,14 @@ void URegion::RestrictedIntersectionProcess(
 		 << ": type="
 		 << vtsi[i].type
 		 << " ip1=["
-		 << vtsi[i].ip1x
-		 << " "
-		 << vtsi[i].ip1y
-		 << " "
-		 << vtsi[i].ip1t
+		 << vtsi[i].ip1x << " " << vtsi[i].ip1y << " " << vtsi[i].ip1t
 		 << "]";
 	    if (vtsi[i].type == IN_PLANE)
 		cerr << " ip2=["
-		     << vtsi[i].ip2x
-		     << " "
-		     << vtsi[i].ip2y
-		     << " "
+		     << vtsi[i].ip2x 
+		     << " " 
+		     << vtsi[i].ip2y 
+		     << " " 
 		     << vtsi[i].ip2t
 		     << "]";
 	    cerr << endl;
@@ -2694,14 +2743,8 @@ void URegion::RestrictedIntersectionProcess(
     
 	    RestrictedIntersectionAddUPoint(
 		res,
-		iv.start.ToDouble(),
-		vtsi[i].ip1t,
-		iv.lc,
-		rc,
-		rUp.p0.GetX(), 
-		rUp.p0.GetY(), 
-		vtsi[i].ip1x, 
-		vtsi[i].ip1y,
+		iv.start.ToDouble(), vtsi[i].ip1t, iv.lc, rc,
+		rUp.p0.GetX(), rUp.p0.GetY(), vtsi[i].ip1x, vtsi[i].ip1y,
 		pending);
 
 	    prev_i = i;
@@ -2726,14 +2769,8 @@ void URegion::RestrictedIntersectionProcess(
 
 	    RestrictedIntersectionAddUPoint(
 		res,
-		vtsi[i-1].ip1t,
-		vtsi[i].ip1t,
-		lc,
-		rc,
-		vtsi[i-1].ip1x, 
-		vtsi[i-1].ip1y,
-		vtsi[i].ip1x, 
-		vtsi[i].ip1y,
+		vtsi[i-1].ip1t, vtsi[i].ip1t, lc, rc,
+		vtsi[i-1].ip1x, vtsi[i-1].ip1y,	vtsi[i].ip1x, vtsi[i].ip1y,
 		pending);
 
 	    prev_i = i;
@@ -2756,27 +2793,21 @@ void URegion::RestrictedIntersectionProcess(
 
 	    RestrictedIntersectionAddUPoint(
 		res,
-		vtsi[i].ip1t,
-		iv.end.ToDouble(),
-		lc,
-		iv.rc,
-		vtsi[i].ip1x, 
-		vtsi[i].ip1y,
-		rUp.p1.GetX(), 
-		rUp.p1.GetY(),
+		vtsi[i].ip1t, iv.end.ToDouble(), lc, iv.rc,
+		vtsi[i].ip1x, vtsi[i].ip1y, rUp.p1.GetX(), rUp.p1.GetY(),
 		pending);
+
+	    prev_i = 0;
 	}
     }
 
-    if (pending) {
-	res.Add(*pending);
-	delete pending;
-    }
+    return prev_i >= 0;
 }
 
 void URegion::RestrictedIntersection(UPoint& up, 
 				     Interval<Instant>& iv,
-				     MPoint& res) {
+				     MPoint& res,
+				     UPoint*& pending) {
     if (MRA_DEBUG) cerr << "URegion::RI() called" << endl;	
 
     vector<TrapeziumSegmentIntersection> vtsi;
@@ -2787,9 +2818,7 @@ void URegion::RestrictedIntersection(UPoint& up,
 
     sort(vtsi.begin(), vtsi.end());
 
-    RestrictedIntersectionProcess(up, iv, vtsi, res);
-
-    if (res.IsEmpty()) {
+    if (!RestrictedIntersectionProcess(up, iv, vtsi, res, pending)) {
 	if (MRA_DEBUG)
 	    cerr << "URegion::RI() no intersection in whole unit" << endl;
 
@@ -2799,11 +2828,13 @@ void URegion::RestrictedIntersection(UPoint& up,
 	    UPoint rUp;
 	    restrictUPointToInterval(up, iv, rUp);
 
-	    res.Add(rUp);
+	    RestrictedIntersectionAddUPoint(
+		res,
+		iv.start.ToDouble(), iv.end.ToDouble(),	iv.lc, iv.rc,
+		rUp.p0.GetX(), rUp.p0.GetY(), rUp.p1.GetX(), rUp.p1.GetY(),
+		pending);
 	}
     }
-
-    res.SetDefined(!res.IsEmpty());
 }
 
 // *hm* directly adapted from InRegion(), probably O(n^2) process 
@@ -5142,6 +5173,8 @@ void MRegion::Intersection(
 
     res = 0;
 
+    UPoint* pending = 0;
+
 /*
 
 For each interval in the refinement partition, we have to check whether
@@ -5185,7 +5218,12 @@ and point unit, both restricted to this interval, intersect.
 	if (MRA_DEBUG) 
 	    cerr << "MRegion::Intersection() both elements present" << endl;
 
-	ur.RestrictedIntersection(up, *iv, res);
+	ur.RestrictedIntersection(up, *iv, res, pending);
+    }
+
+    if (pending) {
+	res.Add(*pending);
+	delete pending;
     }
 
     if (MRA_DEBUG) 
@@ -5194,6 +5232,7 @@ and point unit, both restricted to this interval, intersect.
 	     << endl;
 
     res.SetDefined(!res.IsEmpty());
+
 }
 
 void MRegion::Intersection(MPoint& mp, MPoint& res) {
