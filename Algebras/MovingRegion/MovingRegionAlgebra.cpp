@@ -1207,7 +1207,15 @@ separately.
 
 	if (t1Intersects
 	    && t2Intersects
-	    && !(lower(t1zMax, t2zMin) || lower(t2zMax, t1zMin))) {
+	    && !(lower(t1zMax, t2zMin) || lower(t2zMax, t1zMin))
+	    && !(nearlyEqual(t1zMax, 0.0)
+		 && nearlyEqual(t1zMin, 0.0)
+		 && nearlyEqual(t2zMax, 0.0)
+		 && nearlyEqual(t2zMin, 0.0))
+	    && !(nearlyEqual(t1zMax, dt)
+		 && nearlyEqual(t1zMin, dt)
+		 && nearlyEqual(t2zMax, dt)
+		 && nearlyEqual(t2zMin, dt))) {
 	    if (MRA_DEBUG) 
 		cerr << "specialTrapeziumIntersects() intersect" 
 		     << endl;
@@ -2218,17 +2226,62 @@ static bool pointAboveSegment(double x,
 			      double p2x,
 			      double p2y) {
     if (MRA_DEBUG)
-	cerr << "pointAboveSegment() called" << endl;	
+	cerr << "pointAboveSegment() called p=(" << x << " " << y
+	     << ") p1=(" << p1x << " " << p1y
+	     << ") p2=(" << p2x << " " << p2y << ")"
+	     << endl;	
 
-    if (nearlyEqual(p1x, p2x)) 
+    if (nearlyEqual(p1x, p2x)) {
+	if (MRA_DEBUG)
+	    cerr << "pointAboveSegment() p1x=p2x" << endl;	
+
 	return x <= p1x;
-    else if (nearlyEqual(p1y, p2y)) 
+    } else if (nearlyEqual(p1y, p2y)) {
+	if (MRA_DEBUG)
+	    cerr << "pointAboveSegment() p1y=p2y" << endl;	
+
 	return y >= p1y;
-    else {
+    } else {
+	if (MRA_DEBUG)
+	    cerr << "pointAboveSegment() other" << endl;	
+
 	double t = (x-p1x)/(p2x-p1x);
 	double py = p1y+(p2y-p1y)*t;
 
 	return y >= py;
+    }
+}
+
+static bool pointBelowSegment(double x,
+			      double y,
+			      double p1x,
+			      double p1y,
+			      double p2x,
+			      double p2y) {
+    if (MRA_DEBUG)
+	cerr << "pointBelowSegment() called p=(" << x << " " << y
+	     << ") p1=(" << p1x << " " << p1y
+	     << ") p2=(" << p2x << " " << p2y << ")"
+	     << endl;	
+
+    if (nearlyEqual(p1x, p2x)) {
+	if (MRA_DEBUG)
+	    cerr << "pointBelowSegment() p1x=p2x" << endl;	
+
+	return x >= p1x;
+    } else if (nearlyEqual(p1y, p2y)) {
+	if (MRA_DEBUG)
+	    cerr << "pointBelowSegment() p1y=p2y" << endl;	
+
+	return y <= p1y;
+    } else {
+	if (MRA_DEBUG)
+	    cerr << "pointBelowSegment() other" << endl;	
+
+	double t = (x-p1x)/(p2x-p1x);
+	double py = p1y+(p2y-p1y)*t;
+
+	return y <= py;
     }
 }
 
@@ -2293,10 +2346,22 @@ void URegion::RestrictedIntersectionFindNormal(
 	    tsi.type = rDms.insideAbove ? LEAVE : ENTER;
 	}
 
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFN() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
+
+	vtsi.push_back(tsi);
+
 	if (pointAboveSegment(rUp.p1.GetX(), rUp.p1.GetY(),
 			      rDms.finalStartX, rDms.finalStartY,
 			      rDms.finalEndX, rDms.finalEndY)) {
 	    tsi.type = tsi.type == ENTER ? LEAVE : ENTER;
+
+	    if (MRA_DEBUG)
+		cerr << "URegion::RIFN() adding " 
+		     << tsi.type<<" "<<tsi.x<<" "<<tsi.y<<" "<<tsi.t
+		     << endl;
 	    
 	    vtsi.push_back(tsi);
 	}
@@ -2312,11 +2377,23 @@ void URegion::RestrictedIntersectionFindNormal(
 	    tsi.type = rDms.insideAbove ? ENTER : LEAVE;
 	}
 
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFN() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
+
+	vtsi.push_back(tsi);
+
 	if (pointAboveSegment(rUp.p0.GetX(), rUp.p0.GetY(),
 			      rDms.initialStartX, rDms.initialStartY,
 			      rDms.initialEndX, rDms.initialEndY)) {
 	    tsi.type = tsi.type == ENTER ? LEAVE : ENTER;
 	    
+	    if (MRA_DEBUG)
+		cerr << "URegion::RIFN() adding " 
+		     << tsi.type<<" "<<tsi.x<<" "<<tsi.y<<" "<<tsi.t
+		     << endl;
+
 	    vtsi.push_back(tsi);
 	}
     } else if (pointAboveSegment(rUp.p0.GetX(), rUp.p0.GetY(),
@@ -2325,6 +2402,11 @@ void URegion::RestrictedIntersectionFindNormal(
 	    cerr << "URegion::RIFN() p0 above segment" << endl;
 	
 	tsi.type = rDms.insideAbove ? LEAVE : ENTER;
+
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFN() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
 	
 	vtsi.push_back(tsi);
 	
@@ -2333,21 +2415,36 @@ void URegion::RestrictedIntersectionFindNormal(
 			      rDms.finalEndX, rDms.finalEndY)) {
 	    tsi.type = rDms.insideAbove ? ENTER : LEAVE;
 	    
+	    if (MRA_DEBUG)
+		cerr << "URegion::RIFN() adding " 
+		     << tsi.type<<" "<<tsi.x<<" "<<tsi.y<<" "<<tsi.t
+		     << endl;
+
 	    vtsi.push_back(tsi);
 	}
     } else {
 	if (MRA_DEBUG)
-	    cerr << "URegion::RIFN() p1 above segment" << endl;
+	    cerr << "URegion::RIFN() p0 below segment" << endl;
 	
 	tsi.type = rDms.insideAbove ? ENTER : LEAVE;
 	
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFN() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
+
 	vtsi.push_back(tsi);
 	
-	if (pointAboveSegment(rUp.p0.GetX(), rUp.p0.GetY(),
-			      rDms.initialStartX, rDms.initialStartY,
-			      rDms.initialEndX, rDms.initialEndY)) {
+	if (pointBelowSegment(rUp.p1.GetX(), rUp.p1.GetY(),
+			      rDms.finalStartX, rDms.finalStartY,
+			      rDms.finalEndX, rDms.finalEndY)) {
 	    tsi.type = rDms.insideAbove ? LEAVE : ENTER;
 	    
+	    if (MRA_DEBUG)
+		cerr << "URegion::RIFN() adding " 
+		     << tsi.type<<" "<<tsi.x<<" "<<tsi.y<<" "<<tsi.t
+		     << endl;
+
 	    vtsi.push_back(tsi);
 	}
     }
@@ -2934,7 +3031,11 @@ void URegion::RestrictedIntersectionAddUPoint(MPoint& res,
 		 << "]"
 		 << endl;
 
-	res.Add(*pending);
+	if (!(nearlyEqual(pending->timeInterval.start.ToDouble(),
+			  pending->timeInterval.end.ToDouble())
+	      && (!pending->timeInterval.lc || !pending->timeInterval.rc))) 
+	    res.Add(*pending);
+
 	delete pending;
     }
 
@@ -2965,6 +3066,16 @@ bool URegion::RestrictedIntersectionProcess(
 
     unsigned int pos = 0;
 
+    if (MRA_DEBUG && vtsi.size() > 0) 
+	cerr << "URegion::RIP() intersection dump #"
+	     << 0
+	     << " type="
+	     << vtsi[0].type
+	     << " ip=["
+	     << vtsi[0].x << " " << vtsi[0].y << " " << vtsi[0].t
+	     << "]"
+	     << endl;
+
     for (unsigned int i = 1; i < vtsi.size(); i++) {
 	if (MRA_DEBUG) 
 	    cerr << "URegion::RIP() intersection dump #"
@@ -2973,7 +3084,8 @@ bool URegion::RestrictedIntersectionProcess(
 		 << vtsi[i].type
 		 << " ip=["
 		 << vtsi[i].x << " " << vtsi[i].y << " " << vtsi[i].t
-		 << "]"
+		 << "] pos="
+		 << pos
 		 << endl;
 
 	if (vtsi[i].type == vtsi[pos].type) {
@@ -4284,6 +4396,7 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 	uregion->PutSegment(i, dms);
     }
 
+#ifdef SCHMUH
     if (lc && !nonTrivialInitial) {
 	cerr << "no non-trivial segments in initial instant but " 
 	     << "time interval closed on left side" 
@@ -4301,6 +4414,7 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 	correct = false;
 	return SetWord(Address(0));
     }
+#endif
  
    if (MRA_DEBUG) 
 	for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
@@ -5490,7 +5604,11 @@ and point unit, both restricted to this interval, intersect.
     }
 
     if (pending) {
-	res.Add(*pending);
+	if (!(nearlyEqual(pending->timeInterval.start.ToDouble(),
+			  pending->timeInterval.end.ToDouble())
+	      && (!pending->timeInterval.lc || !pending->timeInterval.rc))) 
+	    res.Add(*pending);
+
 	delete pending;
     }
 
