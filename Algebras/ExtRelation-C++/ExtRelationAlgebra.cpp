@@ -8098,7 +8098,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       while( 1 )
         // This loop will end in some of the returns.
       {
-        if( pli->right )
+        if( pli->right && !pli->rightFinished )
           // Get the tuple from the right stream and match it with the left stored
           // buffer
         {
@@ -8179,7 +8179,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             }
           }
         }
-        else
+        else if( !pli->leftFinished )
           // Get the tuple from the left stream and match it with the right stored
           // buffer
         {
