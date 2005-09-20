@@ -8056,6 +8056,8 @@ struct SymmJoinLocalInfo
   Tuple *currTuple;
   bool rightFinished;
   bool leftFinished;
+  int nRight;
+  int nLeft;
 };
 
 int
@@ -8081,6 +8083,8 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       pli->currTuple = 0;
       pli->rightFinished = false;
       pli->leftFinished = false;
+      pli->nRight = 0;
+      pli->nLeft = 0;
 
       ListExpr resultType = GetTupleResultType( s );
       pli->resultTupleType = new TupleType( nl->Second( resultType ) );
@@ -8098,13 +8102,14 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       while( 1 )
         // This loop will end in some of the returns.
       {
-        if( pli->right && !pli->rightFinished )
+        if( pli->right )
           // Get the tuple from the right stream and match it with the left stored
           // buffer
         {
           if( pli->currTuple == 0 )
           {
             qp->Request(args[0].addr, r);
+            pli->nRight++;
             if( qp->Received( args[0].addr ) )
             {
               pli->currTuple = (Tuple*)r.addr;
@@ -8138,6 +8143,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
               // is not finished.
             {
               pli->rightRel->AppendTuple( pli->currTuple );
+              pli->right = false;
             }
 
             pli->currTuple->DeleteIfAllowed();
@@ -8146,7 +8152,6 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             delete pli->leftIter;
             pli->leftIter = 0;
 
-            pli->right = false;
             continue; // Go back to the loop
           }
           else
@@ -8179,13 +8184,14 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             }
           }
         }
-        else if( !pli->leftFinished )
+        else 
           // Get the tuple from the left stream and match it with the right stored
           // buffer
         {
           if( pli->currTuple == 0 )
           {
             qp->Request(args[1].addr, l);
+            pli->nLeft++;
             if( qp->Received( args[1].addr ) )
             {
               pli->currTuple = (Tuple*)l.addr;
@@ -8219,6 +8225,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
               // is not finished.
             {
               pli->leftRel->AppendTuple( pli->currTuple );
+              pli->right = true;
             }
 
             pli->currTuple->DeleteIfAllowed();
@@ -8227,7 +8234,6 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             delete pli->rightIter;
             pli->rightIter = 0;
 
-            pli->right = true;
             continue; // Go back to the loop
           }
           else
@@ -8284,6 +8290,10 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
         pli->leftRel->Clear();
         delete pli->leftRel;
       }
+
+      cout << "symmjoin: " << endl  
+           << pli->nRight << " requests on the right stream" << endl 
+           << pli->nLeft << " requests on the left stream" << endl;
 
       delete pli;
 
