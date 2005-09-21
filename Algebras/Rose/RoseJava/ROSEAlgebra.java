@@ -5,8 +5,12 @@ import twodsack.setelement.*;
 import twodsack.setelement.datatype.basicdatatype.*;
 import twodsack.setelement.datatype.compositetype.*;
 import twodsack.util.collection.*;
+import twodsack.util.collectiontype.*;
 import twodsack.util.comparator.*;
 import twodsack.util.number.*;
+
+import twodsack.io.*;
+import twodsack.util.meshgenerator.*;
 
 import java.util.*;
 import java.lang.reflect.*;
@@ -587,7 +591,34 @@ public class ROSEAlgebra {
     
 
     public static Regions rr_plus (Regions r1, Regions r2) {
-	System.out.print("rr_plus("+r1.triset.size()+","+r2.triset.size()+") -> ");
+	MeshGenerator myMG = new MeshGenerator();
+	myMG.GENERATOR = "Triangle";
+	/*
+	  BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
+	  DisplayGFX gfx = new DisplayGFX();
+	  gfx.initWindow();
+	  gfx.addSet(r1.triset);
+	  gfx.addSet(r2.triset);
+	  gfx.showIt(false);
+	  try { String data = inBR.readLine();
+	  } catch (Exception e) {
+	  System.exit(0);
+	  }//catch
+	  gfx.kill();
+	*/
+
+	/*
+	TriMultiSet tmp = new TriMultiSet(new TriangleComparator());
+	tmp.add(new Triangle(new Point(1,1), new Point(2,1), new Point(1,2)));
+	tmp.add(new Triangle(new Point(2,1), new Point(2,2), new Point(1,2)));
+	r1.triset = tmp;
+	TriMultiSet tmp2 = new TriMultiSet(new TriangleComparator());
+	tmp2.add(new Triangle(new Point(2,2), new Point(3,2), new Point(2,3)));
+	tmp2.add(new Triangle(new Point(3,2), new Point(3,3), new Point(2,3)));
+	r2.triset = tmp2;
+	*/
+
+	System.out.print("RA.rr_plus("+r1.triset.size()+","+r2.triset.size()+") -> ");
 	Regions res;
 	try {
 	    res = new Regions(SupportOps.plus(r1.triset,r2.triset,false));
@@ -596,7 +627,23 @@ public class ROSEAlgebra {
 	    res = new Regions();
 	}//catch
 	//return new Regions(SupportOps.plus(r1.triset,r2.triset,false));
+	System.out.println("\nFinished computation of rr_plus.");
 	System.out.println(res.triset.size());
+	//System.out.println("returning empty list from rr_plus.");
+	//return new Regions();
+	
+	/*
+	  DisplayGFX gfx1 = new DisplayGFX();
+	  gfx1.initWindow();
+	  gfx1.addSet(res.triset);
+	  //gfx1.addSet(r2.triset);
+	  gfx1.showIt(false);
+	  try { String data = inBR.readLine();
+	  } catch (Exception e) {
+	  System.exit(0);
+	  }//catch
+	  gfx1.kill();
+	*/
 	return res;
     }//end method rr_plus
     
@@ -634,6 +681,40 @@ public class ROSEAlgebra {
 
 
     public static Regions rr_minus (Regions r1, Regions r2) {
+	/*
+	  TriMultiSet tr1 = new TriMultiSet(new TriangleComparator());
+	  TriMultiSet tr2 = new TriMultiSet(new TriangleComparator());
+	  tr1.add(new Triangle(new Point(0,0),new Point(0,1),new Point(1,0)));
+	  tr1.add(new Triangle(new Point(0,1),new Point(1,0),new Point(1,1)));
+	  tr2.add(new Triangle(new Point(1,0),new Point(2,0),new Point(1,1)));
+	  tr2.add(new Triangle(new Point(1,1),new Point(2,0),new Point(2,2)));
+	  r1.triset = tr1;
+	  r2.triset = tr2;
+	*/
+	/*
+	  BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
+	  DisplayGFX gfx = new DisplayGFX();
+	  gfx.initWindow();
+	  gfx.addSet(r1.triset);
+	  gfx.addSet(r2.triset);
+	  gfx.showIt(false);
+	  try { String data = inBR.readLine();
+	  } catch (Exception e) {
+	  System.exit(0);
+	  }//catch
+	  gfx.kill();
+	*/
+	/*
+	System.out.println("r1.triset.size: "+r1.triset.size()+", r2.triset.size: "+r2.triset.size());
+	Iterator it = r1.triset.iterator();
+	Rational fact = RationalFactory.constRational(10000);
+	while (it.hasNext())
+	    ((Triangle)((MultiSetEntry)it.next()).value).zoom(fact);
+	it = r2.triset.iterator();
+	while (it.hasNext())
+	    ((Triangle)((MultiSetEntry)it.next()).value).zoom(fact);	
+	System.out.println("r1.triset.size: "+r1.triset.size()+", r2.triset.size: "+r2.triset.size());
+	*/
 	return new Regions(SupportOps.minus(r1.triset,r2.triset,true));
     }//end method rr_minus
     

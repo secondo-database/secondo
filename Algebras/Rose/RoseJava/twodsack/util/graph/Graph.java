@@ -7,6 +7,8 @@
 
 package twodsack.util.graph;
 
+import java.io.*;
+import twodsack.io.*;
 import twodsack.operation.setoperation.*;
 import twodsack.set.*;
 import twodsack.setelement.*;
@@ -65,10 +67,22 @@ public class Graph {
      * @param edges the set of edges
      */
     public Graph(SegMultiSet edges) {
-	double tt01 = System.currentTimeMillis();
-	ElemMultiSet cleanList = makeCleanList(edges);
-	double tt02 = System.currentTimeMillis();
+	
+	BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
+	DisplayGFX gfx = new DisplayGFX();
+	gfx.initWindow();
+	gfx.addSet(edges);
+	gfx.showIt(false);
+	try { String data = inBR.readLine();
+	} catch (Exception e) {
+	    System.exit(0);
+	}//catch
+	gfx.kill();
+	
+	System.out.println("\nGraph(): edges.size: "+edges.size());
+	ElemMultiSet cleanList = makeCleanList(edges); cleanList.print();
 
+	System.out.println("Graph(): cleanList.size: "+cleanList.size());
 	int initialCapacity = NUMBER_OF_BUCKETS;
 	Hashtable pointsHT = new Hashtable(initialCapacity);
 	
@@ -77,26 +91,44 @@ public class Graph {
 	PointLink htEntry;
 	Segment actSeg;
 	int counter = 0;
+	int count2 = 0;
 	while (eit.hasNext()) {
+	    System.out.println("\nSegment "+count2);
 	    actSeg = (Segment)((MultiSetEntry)eit.next()).value;
 	    htEntry = new PointLink(actSeg.getStartpoint());
 	    //check whether htEntry already exists in hash table
 	    //if not, give it a new number and insert it
+	    System.out.println("searching for entry...");
 	    if (!pointsHT.containsKey(htEntry.linkedPoint)) {
-		htEntry.number = counter;
+	    htEntry.number = counter;
 		counter++;
 		pointsHT.put(htEntry.linkedPoint,htEntry);
+
+		PointLink pl = (PointLink)pointsHT.get(actSeg.getStartpoint());
+		//System.out.println("checking startpoint: point - "+pl.linkedPoint.equal(actSeg.getStartpoint())+", counter: "+counter+", pointNum: "+pl.number);
+		System.out.println("checking startpoint: counter: "+counter+", pointNum: "+pl.number);
 	    }//if
+	    else System.out.println("Startpoint already in HT. num: "+((PointLink)pointsHT.get(actSeg.getStartpoint())).number);
 	    
 	    //do the same with endpoint
 	    htEntry = new PointLink(actSeg.getEndpoint());
+	    System.out.println("searching for entry...");
 	    if (!pointsHT.containsKey(htEntry.linkedPoint)) {
-		htEntry.number = counter;
+	    htEntry.number = counter;
 		counter++;
 		pointsHT.put(htEntry.linkedPoint,htEntry);
-	    }//if
-	}//while eit
 
+		PointLink pl2 = (PointLink)pointsHT.get(actSeg.getEndpoint());
+		//System.out.println("checking endpoint: point  "+pl2.linkedPoint.equal(actSeg.getEndpoint())+", counter: "+counter+", pointNum: "+pl2.number);
+		System.out.println("checking endpoint: counter: "+counter+", pointNum: "+pl2.number);
+	    }//if
+	    else System.out.println("Endpoint already in HT. num: "+((PointLink)pointsHT.get(actSeg.getEndpoint())).number);
+	    count2++;
+	}//while eit
+	
+	System.out.println("Graph(): Construction of hashtable finished. counter: "+counter);
+	//System.out.println("hashTable: "+pointsHT);
+	
 	//construct list of vertices from hashtable
 	Enumeration enum = pointsHT.elements();
 	vArr = new Vertex[counter];
@@ -107,20 +139,27 @@ public class Graph {
 	}//while enum
 	
 	//construct succLists
+	count2 = 0;
 	succLists = new LinkedList[vArr.length];
 	for (int i = 0; i < succLists.length; i++) succLists[i] = new LinkedList();
 	eit = cleanList.iterator();
 	int pointPosS;
 	int pointPosE;
 	while (eit.hasNext()) {
+	    System.out.println("\nSegment "+count2);
 	    actSeg = (Segment)((MultiSetEntry)eit.next()).value;
-	    //get the numbers of the segments endpoints
+	    //get the numbers of the segments' endpoints
 	    pointPosS = ((PointLink)pointsHT.get(actSeg.getStartpoint())).number;
 	    pointPosE = ((PointLink)pointsHT.get(actSeg.getEndpoint())).number;
+	    System.out.println("pointPosS: "+pointPosS+", pointPosE: "+pointPosE);
 	    //set the proper vertices in succLists
 	    succLists[pointPosS].add(vArr[pointPosE]);
 	    succLists[pointPosE].add(vArr[pointPosS]);
+	    count2++;
 	}//while eit
+
+	System.out.println("Graph(): printSuccLists: "); printSuccLists();
+	//System.exit(0);
     }
 
 
@@ -723,9 +762,6 @@ public class Graph {
      * @return the set of cycles representing the faces
      */
     public CycleList computeFaceCycles(){
-	System.out.println("Graph.computeFaceCycles...");
-
-
 	//first, sort the vertices in succLists such that
 	//the segments (which are formed by the pairs of vertices)
 	//are sorted as described in the ROSE implementation paper
@@ -746,6 +782,8 @@ public class Graph {
 	//make working-copy of succLists
 	LinkedList[] succListsCOP = (LinkedList[])this.succLists.clone();
 
+	System.out.println("succlists: "); printSuccLists();
+
 	//sorting
 	for (int i = 0; i < succListsCOP.length; i++) {
 	    //generate edges from pairs of vertices
@@ -756,9 +794,8 @@ public class Graph {
 	    //rebuild succListsCOP
 	    succListsCOP[i] = extractVerticesOtherThanX(edges,vArr[i]);
 	}//for i
-	
-	//System.out.println("\nGRAPH:"); this.print();
-	
+
+	/* find cycles */
 	//loop while edges exist
 	while (thereAreEdgesLeft(succListsCOP)) {
 	    //find starting point by taking the leftmost and downmost point
@@ -775,7 +812,7 @@ public class Graph {
 	    succListsCOP[startVertex.number].removeFirst();
 	    Vertex prevVertex = startVertex;
 
-	    //follow predessessing edges (according to the sorting) and mark edges
+	    //follow predecessing edges (according to the sorting) and mark edges
 	    //until first vertex is found again
 	    int prevVertexPos = -1;
 	    int newActVertexPos = -1;
@@ -799,8 +836,6 @@ public class Graph {
 	    retList.add(computeSegListFromCycle(cycle));
 	}//for
 	
-	System.out.println("\nleaving Graph.computeFaceCycles.");
-
 	return retList;
     }//end method computeFaceCycles
 
@@ -819,7 +854,15 @@ public class Graph {
 	    Vertex actV = (Vertex)lit.next();
 	    if (actV.equal(vert)) return lit.nextIndex()-1;
 	}//while
-	throw new NoSuchElementException();
+	System.out.println("\nVertex list: ");
+	lit = vertList.listIterator(0);
+	if (vertList.isEmpty())
+	    System.out.println("Graph.getPosOfVertex: vertList is empty!");
+	else {
+	    while (lit.hasNext())
+		((Element)((Vertex)lit.next()).value).print();
+	}//else
+	throw new NoSuchElementException(vert+" cannot be found in vertex list. Typically, this error is a precision error. Change the value for DerivDouble in Algebra Initialization.");
     }//end getPosOfVertex
 
 
@@ -857,7 +900,6 @@ public class Graph {
      * @return the cycle of segments
      */
     private static LinkedList computeSegListFromCycle(LinkedList inCycle) {
-	System.out.println("\nGraph.computeSegListFromCycle...");
 	LinkedList retList = new LinkedList();
 
 	if (inCycle.size() < 3) {
@@ -961,110 +1003,5 @@ public class Graph {
 		    
 	return retList;
     }//end method sortEdgeListWithRespectToHalfSegmentsOrder
-    /*
-    public MultiSet reduce (Method predicate, Method method) {
-	//comment missing
-
-	//get information about method
-	ElemMultiSet retSet;
-	int paramTypeCount = Array.getLength(method.getParameterTypes());
-	Element[] paramList = new Element[paramTypeCount];
-	boolean metTypeElement = false;
-	boolean metTypeElemList = false;
-	try {
-	    if (method.getReturnType().isInstance(Class.forName("Element")) ||
-		method.getReturnType().getSuperclass().isAssignableFrom(Class.forName("Element"))) {
-		metTypeElement = true; }
-	    if (method.getReturnType().isInstance(Class.forName("ElemMultiSet")) ||
-		method.getReturnType().getSuperclass().isAssignableFrom(Class.forName("ElemMultiSet"))) {
-		metTypeElemList = true; }
-	}//try
-	catch (Exception e) {
-	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
-	    System.out.println("Error in Graph.reduce: can't examine method.");
-	    e.printStackTrace();
-	    System.exit(0);
-	}//catch
-	
-	int predParamTypeCount = Array.getLength(predicate.getParameterTypes());
-	Element[] predParamList = new Element[predParamTypeCount];
-
-	Vertex actVertex;
-	Iterator it1,it2;
-	ElemMultiSet ems;
-	ElemComparator ec = new ElemComparator();
-	ElemMultiSet firstSet,secondSet:
-	Element firstEl,secondEl;
-	boolean predHolds = false;
-	
-	for (int vCount = 0; vCount < succLists.length; vCount++) {
-	    while (succLists[vCount] != null && !succLists[vCount].isEmpty()) {
-		actVertex = (Vertex)succLists[vCount].getFirst();
-		
-		firstSet = actVertex.value;
-		secondSet = actVerex.value;
-
-		while (!secondSet.isEmpty()) {
-		    it1 = firstSet.iterator();
-		    it2 = secondSet.iterator();
-		    
-		    while(it1.hasNext()) {
-			firstEl = (Element)it1.next();
-			while (it2.hasNext()) {
-			    secondEl = (Element)it2.next();
-			    
-			    //check whether method shall be applied
-			    if (predParamTypeCount == 1) predParamList[0] = secondEl;
-			    else {
-				predParamList[0] = firstEl;
-				predParamList[1] = secondEl;
-			    }//else
-			    try {
-				predHolds = ((Boolean)predicate.invoke(firstEl,predParamList)).booleanValue();
-			    } catch (Exception e) {
-				System.out.println("Error in Graph.reduce(): can't invoke predicate.");
-				e.printStackTrace();
-				System.exit(0);
-			    }//catch
-			    
-			    if (predHolds) {
-				
-				//compute result of 'edge'
-				if (paramTypeCount == 1) paramList[0] = secondEl;
-				else {
-				    paramList[0] = firstEl;
-				    paramList[1] = secondEl;
-				}//else
-				try {
-				    ems = new ElemMultiSet(ec);
-				    if (metTypeElement)
-					ems.add((Element)(method.invoke(firstEl,paramList)));
-				    else {
-					if (metTypeelemList) 
-					    ems.addAll((ElemMultiSet)(method.invoke(firstEl,paramList)));
-					else {
-					    System.out.println("Error in Graph.reduce: can't invoke method");
-					    System.exit(0);
-					}//else
-				    }//else
-				} catch (Exception e) {
-				    System.out.println("Exceptoin: "+e.getClass()+" --- "+e.getMessage());
-				    System.out.println("Error in Graph.reduce(). Can't invoke method "+method);
-				    e.printStackTrace();
-				    System.exit(0);
-				}//catch
-			    }//predHolds
-			    
-			    //result is computed for one pair of elements of the two sets (if predHolds = true)
-			    //remove both used elements from sets
-			    if (predHolds) {
-				it1.remove();
-				it2.remove();
-				break;
-			    }//if
-			}//while it2
-		    }//while it1
-		}//while 
-		*/
-
+ 
 }//end class Graph

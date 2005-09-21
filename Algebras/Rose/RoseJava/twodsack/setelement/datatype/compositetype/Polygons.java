@@ -2113,7 +2113,7 @@ public class Polygons extends Element implements Serializable {
 		return 1;
 	}
 	else
-	    throw new WrongTypeException("Expected class Plygons - found "+inElement.getClass());
+	    throw new WrongTypeException("Expected class Polygons - found "+inElement.getClass());
     }//end method compare
 
 
@@ -2428,9 +2428,10 @@ public class Polygons extends Element implements Serializable {
      * @return the <code>CycleListList</code> representing the cycles of <code>this</code>
      */
     public CycleListList cyclesSegments() {
-	System.out.println("\nPol.cyclesSegments...");
-
 	//compute border form triangles if neccessary
+
+	//System.out.println("\nEntering cyclesSegments.");
+
 	if (!this.borderDefined) this.border = computeBorder();
 	
 	//if border has no elements, return empty structure
@@ -2439,11 +2440,14 @@ public class Polygons extends Element implements Serializable {
 	Graph myGraph = new Graph(this.border);
 	CycleList cycList = myGraph.computeFaceCycles();
 
+	//System.out.println("border.size: "+border.size()+", cycList.size: "+cycList.size());
+	//System.out.println("\n^^^^^^^^^^^^^^^^^^ testing cyclelist in cyclesSegments: "+cycList.checkCycles());
+
 	//construct the resulting structure as follows:
 	//A CycleListList is a list of CycleList(s) where each of the CycleLists
-	//has at least one cylce (the outer cycle of a face). All following cycles
+	//has at least one cycle (the outer cycle of a face). All following cycles
 	//are inner cycles and therefore are holes. Since new faces inside of 
-	//holes are not supported currently, no more checks are made for those inner
+	//holes (islands) are not supported currently, no more checks are made for those inner
 	//cycles.
 	//The algorithm first stores the outmost cycle as the outer cycle of the
 	//first face. All subsequent cycles are compared to every first cycle of 
@@ -2457,17 +2461,37 @@ public class Polygons extends Element implements Serializable {
 	cycList.removeFirst();
 	retList.add(firstList);
 	LinkedList triSetList = new LinkedList();
-
-	//store in triSetList the triangulations for every outer cycle
-	//That way, they must be computed only once for every face.
-	TriMultiSet tmsFirst = computeMeshSingleCycle(SegMultiSet.convert(SupportOps.convert((LinkedList)firstList.getFirst())));
-	triSetList.add(tmsFirst);
-
-	//store in bboxList the bounding boxes for every outer cycle
-	//bounding boxes are computed from the triangulations
-	LinkedList bboxList = new LinkedList();
-	bboxList.add(tmsFirst.rect());
 	
+	//Store in triSetList the triangulations for every outer cycle
+	//That way, they must be computed only once for every face.
+	//Do this ONLY, if cycList has more than one cycle!
+	MeshGenerator myMG = new MeshGenerator();
+
+
+	//new line for Triangle
+	//TriMultiSet tmsFirst = myMG.computeMeshForSingleCycleHoles(firstList,false);
+
+	//line that works with NetGen
+	TriMultiSet tmsFirst;
+	LinkedList bboxList = null;
+	if (!cycList.isEmpty()) {
+	    if (myMG.GENERATOR == "NetGen")
+		tmsFirst = myMG.computeMeshWithNetGenHoles(firstList,false);
+	    else
+		tmsFirst = myMG.computeMeshForSingleCycleHoles(firstList,false);
+	    
+	    //original line
+	    //	TriMultiSet tmsFirst = computeMeshSingleCycle(SegMultiSet.convert(SupportOps.convert((LinkedList)firstList.getFirst())));
+	    
+	    
+	    triSetList.add(tmsFirst);
+	    
+	    //store in bboxList the bounding boxes for every outer cycle
+	    //bounding boxes are computed from the triangulations
+	    bboxList = new LinkedList();
+	    bboxList.add(tmsFirst.rect());
+	}//if	
+
 	//now traverse the list and check all other cycles
 	Iterator it = cycList.iterator();
 	Iterator itOuterCycles;
@@ -2519,8 +2543,21 @@ public class Polygons extends Element implements Serializable {
 		retList.add(newFace);
 		it.remove();
 
-		//construct the TriMultiSet for the new outer cycle
-		TriMultiSet newTMS = computeMeshSingleCycle(SegMultiSet.convert(SupportOps.convert((LinkedList)newFace.getFirst())));
+		TriMultiSet newTMS = null;
+
+		//new line for Triangle
+		//TriMultiSet newTMS = myMG.computeMeshForSingleCycleHoles(firstList,false);
+
+		//construct the TriMultiSet for the new outer cycle; line that works for NetGen
+		if (myMG.GENERATOR == "NetGen")
+		    newTMS = myMG.computeMeshWithNetGenHoles(newFace,false);
+		else
+		    newTMS = myMG.computeMeshForSingleCycleHoles(firstList,false);
+
+
+		//old line that works for Triangle
+		//    TriMultiSet newTMS = computeMeshSingleCycle(SegMultiSet.convert(SupportOps.convert((LinkedList)newFace.getFirst())));
+		
 		triSetList.add(newTMS);
 
 		//construct the bounding box for the new outer cycle
@@ -2529,8 +2566,13 @@ public class Polygons extends Element implements Serializable {
 	    }//else
 	}//while it
 
-	System.out.println("\nleaving Pol.cyclesSegments");
-
+	/*
+	System.out.println("\n^^^^^^^^^^^^^^^^^^LAST testing cycles in retList:");
+	for (int i = 0; i < retList.size(); i++) 
+	    System.out.println(i+": "+ ((CycleList)retList.get(i)).checkCycles());
+	System.out.println("leaving cyclesSegments.");
+	*/
+	
 	return retList;
     }//end method cyclesSegments
 	 
@@ -2607,7 +2649,9 @@ public class Polygons extends Element implements Serializable {
      * @see #computeTriangles(SegMultiSet)
      */
     public static TriMultiSet computeMesh(SegMultiSet border, boolean qualityMesh) {
-	System.out.println("\nPol.computeMesh...");
+       
+	//System.out.println("\nEntering Pol.computMesh.");
+
 	if (border.isEmpty()) return new TriMultiSet(new TriangleComparator());
 	
 	//compute the cycles of the polygon 
@@ -2616,7 +2660,8 @@ public class Polygons extends Element implements Serializable {
 	try {
 	    polCLL = myPOL.cyclesSegments();
 	} catch (Exception e) {
-	    System.out.println("\nException caught in Polygons.computeMesh(SegMultiSet,boolean): Probably, the segments don't form proper cycles.");
+	    e.printStackTrace();
+	    System.out.println("\nException caught in Polygons.computeMesh(SegMultiSet,boolean): One reason may be that the segments don't form proper cycles.");
 	    /*
 	      System.out.println("Current segments are shown in JAVA window.");
 	      DisplayGFX gfx = new DisplayGFX();	      
@@ -2628,7 +2673,7 @@ public class Polygons extends Element implements Serializable {
 	      gfx.kill();
 	    */
 	    System.out.println("Returning empty object.");
-	    //System.exit(0);
+
 	    return new TriMultiSet(new TriangleComparator());
 	}//catch
 	
@@ -2647,12 +2692,24 @@ public class Polygons extends Element implements Serializable {
 	Iterator it = polCLL.iterator();
 	CycleList actCycleList;
 	MeshGenerator myMG = new MeshGenerator();
+	//System.out.println("Pol.computeMesh: polCLL.size:"+polCLL.size());
 	while (it.hasNext()) {
+	    //System.out.println("\n######################### Pol.computeMeshSingleCycle: calling MG.computeMeshWithNetGenHoles.");
 	    actCycleList = (CycleList)it.next();
-	    resultSet.addAll(myMG.computeMeshForSingleCycleHoles(actCycleList,qualityMesh));
-	}//while
 
-	System.out.println("\nleaving Pol.computeMesh.");
+	    //original line for Triangle
+	    //resultSet.addAll(myMG.computeMeshForSingleCycleHoles(actCycleList,qualityMesh));
+	    
+	    if (myMG.GENERATOR == "NetGen")
+		//line that works for NetGen
+		resultSet.addAll(myMG.computeMeshWithNetGenHoles(actCycleList,qualityMesh));
+	    else
+		resultSet.addAll(myMG.computeMeshForSingleCycleHoles(actCycleList,qualityMesh));
+
+	}//while
+	
+	//System.out.println("leaving computeMesh");
+	
 	return resultSet;
     }//end method computeMesh
 
@@ -2670,11 +2727,21 @@ public class Polygons extends Element implements Serializable {
      * @see #computeMesh(SegMultiSet,boolean)
      */
     public static TriMultiSet computeMeshSingleCycle (SegMultiSet border) throws TooManyCyclesException {
-	System.out.println("Pol.computeMeshSingleCycle...");
 	if (border.isEmpty()) return new TriMultiSet(new TriangleComparator());
 	try {
+	    //System.out.println("\n######################### Pol.computeMeshSingleCycle: calling MG.copmuteMeshWithNetGen.");
 	    MeshGenerator myMG = new MeshGenerator();
-	    TriMultiSet computedMesh = myMG.computeMeshForSingleCycle(border,false);
+	    TriMultiSet computedMesh = null;
+
+	    //original line for Triangle
+	    //TriMultiSet computedMesh = myMG.computeMeshForSingleCycle(border,false);
+
+	    if (myMG.GENERATOR == "NetGen")
+		//line that works for NetGen
+		computedMesh = myMG.computeMeshWithNetGen(border,false);
+	    else
+		computedMesh = myMG.computeMeshForSingleCycle(border,false);
+
 	    return computedMesh;
 	} catch (Exception e) {throw new TooManyCyclesException("The number of cycles for this method is limited to 1. The polygon passed probably has more cycles."); }
     }//end method computeMeshSingleCycle

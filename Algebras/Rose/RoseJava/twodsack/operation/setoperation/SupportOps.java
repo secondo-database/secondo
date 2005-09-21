@@ -14,6 +14,7 @@ import twodsack.setelement.datatype.basicdatatype.*;
 import twodsack.setelement.datatype.compositetype.*;
 import twodsack.util.collectiontype.*;
 import twodsack.util.comparator.*;
+import twodsack.util.number.*;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -135,7 +136,7 @@ public class SupportOps {
 	try {
 	    Method m1 = c.getMethod("overlap",paramListSS);
 	    Method m2 = c.getMethod("symDiff",paramListSS);
-	    if (!overlap) { retList = (SegMultiSet)SetOps.reduce(sl,m1,m2); }
+	    if (!overlap) { retList = SegMultiSet.convert(SetOps.reduce(sl,m1,m2)); }
 	    else { 
 		try {
 		    boolean meet = true;
@@ -160,7 +161,7 @@ public class SupportOps {
 	    e.printStackTrace();
 	    System.exit(0);
 	}//catch
-	return retList;
+	return SegMultiSet.convert(SetOps.rdup2(retList));
     }//end method unique
 
 
@@ -453,11 +454,21 @@ public class SupportOps {
 	    boolean meet = false;
 	    boolean earlyExit = false;
 	    int setNumber = 0;
+	    System.out.println("SO.minus: tl1.size: "+tl1.size()+", tl2.size: "+tl2.size());
 	    LeftJoinPairMultiSet ljpMS = SetOps.overlapLeftOuterJoin(tl1,tl2,m1,meet,bboxFilter,earlyExit,setNumber);
+	    System.out.println("SO.minus: after overlapLeftOuterJoin ljpMS.size: "+ljpMS.size());
+
+	    /* test case: REMOVE */
+	    for (int i = 0; i < 3; i++)
+		ljpMS.removeAllOfThisKind(ljpMS.first());
+
 	    ljpMS = SetOps.map(ljpMS,null,m4);
 	    SegMultiSet retSetS = SegMultiSet.convert(SetOps.rdup2(SetOps.collect(ljpMS)));
+	    System.out.println("SO.minus: passed convert,rdup2,collect");
 	    retSetS = minimal(retSetS,true,false);
+	    System.out.println("SO.minus: passed minimal, retSetS.size: "+retSetS.size());
 	    retSet = Polygons.computeMesh(retSetS,true);
+	    System.out.println("SO.minus: after computeMesh retSet.size: "+retSet.size());
 	}//try
 	catch (Exception e) {
 	    System.out.println("Exception was thrown in ROSEAlgebra.minus(TriMultiSet,TriMultiSet):");
@@ -530,6 +541,9 @@ public class SupportOps {
      * @return the union of <tt>ts1, ts2</tt>
      */
     public static TriMultiSet plus (TriMultiSet ts1, TriMultiSet ts2, boolean bboxFilter) {
+
+	//System.out.println("Entering SO.plus.");
+
 	TriMultiSet retSet = null;
 	
 	Class c = (new Triangle()).getClass();
@@ -545,16 +559,18 @@ public class SupportOps {
 	    boolean meet = false;
 	    boolean earlyExit = false;
 	    int setNumber = 0;
+	    //System.out.println("calling ovLOJ from SO.plus.");
 	    LeftJoinPairMultiSet ljpMS = SetOps.overlapLeftOuterJoin(ts2,ts1,pintersectsM,meet,bboxFilter,earlyExit,setNumber);
-	    System.out.print("1");
+	    //System.out.println("calling map from SO.plus.");
 	    ljpMS = SetOps.map(ljpMS,null,minusM);  
-	    System.out.print("-2");
+	    //System.out.println("calling collect+rdup2 from SO.plus.");
 	    retSetS = SegMultiSet.convert(SetOps.rdup2(SetOps.collect(ljpMS)));
-	    System.out.print("-3");
-	    retSetS = minimal(retSetS,true,false);
-	    System.out.print("-4");
-	    retSet = Polygons.computeMesh(retSetS,true);
-	    System.out.print("-5");
+	    //System.out.println("calling minimal from SO.plus.");
+	    
+	    //a minimal operation is not really needed at this point; it's done later
+	    //retSetS = minimal(retSetS,true,false);
+	    System.out.println("\ncalling computeMesh(1) from SO.plus.");
+	    retSet = Polygons.computeMesh(retSetS,false);
 	} catch (Exception e) {
 	    System.out.println("An exception was caught in ROSEAlgebra.plus(TriMultiSet,TriMultiSet,boolean):");
 	    e.printStackTrace();
@@ -563,16 +579,36 @@ public class SupportOps {
 	}//catch
 
 	//compute union
+
 	retSet.addAll(ts1);
-	System.out.print("-6");
 	
-	retSetS = contourGeneral(retSet,true,true,true,true);
-	System.out.print("-7");
-	retSet = Polygons.computeMesh(retSetS,true);
-	System.out.print("-8: ");
+	retSetS = contourGeneral(retSet,true,true,true,true); 
 
+	/*
+	BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
+	DisplayGFX gfx = new DisplayGFX();
+	
+	gfx.initWindow();
+	gfx.addSet(retSet);
+	gfx.addSet(contour(retSet));
+	//gfx.addSet(ts1);
+	//gfx.addSet(ts2);
+	//gfx.addSet(contour(ts2));
+	//gfx.addSet(retSetS);
+	//gfx.addSet(retSetS2);
+	gfx.showIt(false);
+	try {
+	    String data = inBR.readLine();
+	} catch (Exception e) {
+	    System.exit(0);
+	}//catch
+	gfx.kill();
+	*/
+	System.out.println("\ncalling computeMesh(2) from SO.plus.");
+	retSet = Polygons.computeMesh(retSetS,false);
+
+	System.out.println("\nleaving SuppO.plus.");
 	return retSet;
-
     }//end method plus
 	   
 }//end class SupportOps

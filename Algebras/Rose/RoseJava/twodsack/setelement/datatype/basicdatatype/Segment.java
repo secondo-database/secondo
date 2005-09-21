@@ -137,8 +137,11 @@ public class Segment extends Element implements Serializable {
      * @return <tt>true</tt>, if <tt>startpoint</tt>/<tt>endpoint</tt> are not equal
      */
     private boolean isSegment() {
+	return true;
+	/*
 	if (!this.startpoint.equal(this.endpoint)) { return true; }
 	else { return false; }
+	*/
     }//end method isSegment()
     
     

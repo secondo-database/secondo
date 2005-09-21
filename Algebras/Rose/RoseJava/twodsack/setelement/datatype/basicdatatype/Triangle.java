@@ -1056,10 +1056,11 @@ public class Triangle extends Element implements Serializable {
      *
      * @param fact the number which is multiplied with the coordinate values
      */
-    protected void zoom (Rational fact) {
+    public void zoom (Rational fact) {
 	this.vertices[0].zoom(fact);
 	this.vertices[1].zoom(fact);
 	this.vertices[2].zoom(fact);
+	segArrDefined = false;
     }//end method zoom
 
 
@@ -1114,6 +1115,23 @@ public class Triangle extends Element implements Serializable {
 	if (ems == null || ems.isEmpty()) return this.segmentMultiSet();
 
 	TriMultiSet tms = TriMultiSet.convert(ems);
+
+	BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
+	DisplayGFX gfx = new DisplayGFX();
+	
+	gfx.initWindow();
+	gfx.addSet(tms);
+	TriMultiSet nms = new TriMultiSet(new TriangleComparator());
+	nms.add(this);
+	gfx.addSet(nms);
+	gfx.showIt(false);
+	try {
+	    String data = inBR.readLine();
+	} catch (Exception e) {
+	    System.exit(0);
+	}//catch
+	gfx.kill();
+
 
 	//copy tms to array
 	Triangle[] tmsArr = new Triangle[tms.size()];
@@ -1180,9 +1198,48 @@ public class Triangle extends Element implements Serializable {
 	
 	Object[] segsArr = segs.toArray();
     
+	DisplayGFX gfx2 = new DisplayGFX();
+	
+	gfx2.initWindow();
+	SegMultiSet nms2 = new SegMultiSet(new SegmentComparator());
+	Iterator tits = tms.iterator();
+	while (tits.hasNext())
+	    nms2.addAll(((Triangle)((MultiSetEntry)tits.next()).value).segmentMultiSet());
+	gfx2.addSet(nms2);
+	gfx2.addSet(this.segmentMultiSet());
+	//gfx2.addSet(intPoints);
+	gfx.showIt(false);
+	try {
+	    String data = inBR.readLine();
+	} catch (Exception e) {
+	    System.exit(0);
+	}//catch
+	gfx2.kill();
+
+	
+
+
 	for (int i = 0; i < segsArr.length; i++) {
 	    Segment actSeg = (Segment)segsArr[i];
 	    
+	    System.out.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ --> "+i);
+	    DisplayGFX gfx3 = new DisplayGFX();
+	    
+	    gfx3.initWindow();
+	    gfx3.addSet(nms2);
+	    gfx3.addSet(this.segmentMultiSet());
+	    SegMultiSet nms3 = new SegMultiSet(new SegmentComparator());
+	    nms3.add(actSeg);
+	    gfx3.addSet(nms3);
+	    gfx.showIt(false);
+	    try {
+		String data = inBR.readLine();
+	    } catch (Exception e) {
+		System.exit(0);
+	    }//catch
+	    gfx3.kill();
+
+
 	    p1 = actSeg.getStartpoint();
 	    p2 = actSeg.getEndpoint();
 	    
@@ -1199,8 +1256,12 @@ public class Triangle extends Element implements Serializable {
 	    if (!p2vertexB) p2insideB = Polygons.inside(p2,tmsBorder);
 	    else p2insideB = false;
 
+	    System.out.println("p1vertexA: "+p1vertexA+", p1vertexB: "+p1vertexB+", p2vertexA: "+p2vertexA+", p2vertexB: "+p2vertexB+", p1elementX: "+p1elementX+", p2elementX: "+p2elementX+", p1insideB: "+p1insideB+", p2insideB: "+p2insideB);
+
+
 	    if (p1vertexA && p2vertexA && !p1elementX && !p2elementX &&
 		((!p1vertexB || !p2vertexB) && (!p1insideB || !p2insideB))) {
+		System.out.println("case 1");
 		chosenSegs.add(actSeg);
 	    }//if
 	    
@@ -1208,43 +1269,56 @@ public class Triangle extends Element implements Serializable {
 		p1insideA = PointTri_Ops.inside(p1,this);
 		p2insideA = PointTri_Ops.inside(p2,this);
 		
+		System.out.println("p1insideA: "+p1insideA+", p2insideA: "+p2insideA);
+
 		if ((p1vertexB && p2vertexB) &&
 		    ((!p1insideA || !p2insideA) && (p1insideA && p2insideA))) {
 		    chosenSegs.add(actSeg);
+		    System.out.println("case 2");
 		}//if
 		
 		else if (((p1vertexA && p2elementX && !p1insideB) ||
 			  (p2vertexA && p1elementX && !p2insideB)) &&
 			 !(p1elementX && p1elementX)) {
+		    System.out.println("case 3");
 		    chosenSegs.add(actSeg);
 		}//if
 		
 		else if ((p1vertexB && p2elementX && p1insideA) ||
 			 (p2vertexB && p1elementX && p2insideA)) {
+		    System.out.println("case 4");
 		    chosenSegs.add(actSeg);
 		}//if
 		
 		else if (p1vertexB && p2vertexB && p1insideA && p2insideA) {
+		    System.out.println("case 5");
 		    chosenSegs.add(actSeg);
 		}//if
 		
 		else if ((p1vertexA && !p1elementX && !p1insideB) ||
 			 (p2vertexA && !p2elementX && !p2insideB)) {
+		    System.out.println("case 6");
 		    chosenSegs.add(actSeg);
 		}//if
 		
 		else {
 		    boolean p1p2SegmentInsideB = segmentIsCoveredByTriangle(p1,p2,tms);
+
+		    System.out.println("p1p2SegmentInsideB: "+p1p2SegmentInsideB);
+
 		    if (!p1p2SegmentInsideB) {
+			System.out.println("case 7");
 			chosenSegs.add(actSeg);
 		    }//ifp1 = actSeg.getStartpoint();
 	  
 		
 		    if (p1elementX && p2elementX && !SegTri_Ops.overlapsBorder(actSeg,this)) {
+			System.out.println("case 8");
 			chosenSegs.add(actSeg);
 		    }//if
 		    
 		    else {
+			System.out.println("Don't take this segment!");
 			//don't take this segment
 		    }//else
 		
@@ -1253,6 +1327,23 @@ public class Triangle extends Element implements Serializable {
 	    
 	}//while it
 	    
+	//BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
+	DisplayGFX gfx1 = new DisplayGFX();
+	
+	gfx1.initWindow();
+	gfx1.addSet(chosenSegs);
+	//TriMultiSet nms = new TriMultiSet(new TriangleComparator());
+	//nms.add(this);
+	//gfx1.addSet(nms);
+	gfx1.showIt(false);
+	try {
+	    String data = inBR.readLine();
+	} catch (Exception e) {
+	    System.exit(0);
+	}//catch
+	gfx1.kill();
+
+
 	return chosenSegs;
     }//end method minus
 

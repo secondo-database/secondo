@@ -22,6 +22,11 @@ import twodsack.util.comparator.*;
 
 public class SegSeg_Ops {
     /*
+     * fields
+     */
+    private static SegmentComparator SEGMENT_COMPARATOR = new SegmentComparator();
+    
+    /*
      * constructors
      */
     /**
@@ -238,8 +243,8 @@ public class SegSeg_Ops {
     public static Segment union (Segment s1, Segment s2)
 	throws NoOverlapException {
 	Segment retSeg = null;
-	Point p1 = new Point();
-	Point p2 = new Point();
+	Point p1 = null;
+	Point p2 = null;
 	
 	if (s1.equal(s2)) { return s1; }
 	
@@ -285,14 +290,15 @@ public class SegSeg_Ops {
      * @return the symmetric difference of <tt>s1,s2</tt>
      */
     public static SegMultiSet symDiff(Segment s1, Segment s2) {
-	SegMultiSet retSeg = new SegMultiSet(new SegmentComparator());
-	Point p1 = new Point();
-	Point p2 = new Point();
-	Point p3 = new Point();
-	Point p4 = new Point();
+	SegMultiSet retSeg = new SegMultiSet(SEGMENT_COMPARATOR);
+	Point p1 = null;
+	Point p2 = null;
+	Point p3 = null;
+	Point p4 = null;
 	
 	//if s1,s2 equal return mt
-	if (s1.equal(s2)) { return retSeg; }
+	if (s1.equal(s2)) { 
+	    return retSeg; }
 
 	//if s1,s2 overlap...
 	if (overlap(s1,s2)) {
@@ -416,6 +422,7 @@ public class SegSeg_Ops {
 	    retSeg.add(s1);
 	    retSeg.add(s2);
 	}//else
+
 	return retSeg;
     }//end method symDiff
 
@@ -477,7 +484,7 @@ public class SegSeg_Ops {
      * @return the set of segments emerging from splitting <tt>s1</tt> and <tt>s2</tt> at their split points.
      */
     public static SegMultiSet split (Segment s1, Segment s2) {
-	SegMultiSet retList = new SegMultiSet(new SegmentComparator());
+	SegMultiSet retList = new SegMultiSet(SEGMENT_COMPARATOR);
 	Point intPoint;
 	Point intPoint1;
 	Point intPoint2;
@@ -604,7 +611,7 @@ public class SegSeg_Ops {
      * @return the set of segments resulting from subtracting <tt>s2</tt> from <tt>s1</tt>
      */
     public static SegMultiSet minus (final Segment seg1, final Segment seg2) {
-	SegMultiSet retList = new SegMultiSet(new SegmentComparator());
+	SegMultiSet retList = new SegMultiSet(SEGMENT_COMPARATOR);
 	if (!overlap(seg1,seg2)) {
 	    retList.add(seg1);
 	    return retList;

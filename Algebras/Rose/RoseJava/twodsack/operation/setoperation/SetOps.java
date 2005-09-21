@@ -1467,6 +1467,7 @@ public class SetOps {
      */
     public static ElemMultiSet reduce (ElemMultiSet el, Method predicate, Method method) {
 	ElemMultiSet retSet = el.copy();
+
 	boolean stillExist;
 	boolean isTrue;
 	int paramTypeCountPred = Array.getLength(predicate.getParameterTypes());
@@ -1502,6 +1503,66 @@ public class SetOps {
 	int number1;
 	MultiSetEntry mse2;
 	int number2;
+
+	//first, handle multiple elements:
+	//the set is traversed and for all duplicates, the entries are replaced by the method result,
+	//if the predicate holds
+	it1 = retSet.iterator();
+	while(it1.hasNext()) {
+	    mse1 = (MultiSetEntry)it1.next();
+	    if (mse1.number > 1) {
+		//check for predicate
+		
+		//if predicate has one argument
+		if (paramTypeCountPred == 1)
+		    paramList[0] = (Element)mse1.value;
+		//if predicate has two arguments (is static)
+		else {
+		    paramList[0] = (Element)mse1.value;
+		    paramList[1] = (Element)mse1.value;
+		}//else
+		isTrue = false;
+		try {
+		    isTrue = ((Boolean)predicate.invoke(mse1.value,paramList)).booleanValue();
+		} catch (Exception e) {
+		    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+		    System.out.println("Error in SetOps.reduce: Problem with using predicate.");
+		    e.printStackTrace();
+		    System.exit(0);
+		}//catch
+		
+		if (isTrue) {
+		    paramListMet[0] = (Element)mse1.value;
+		    paramListMet[1] = (Element)mse1.value;
+		    try {
+			//if method has returnType Element
+			if (metTypeElement)
+			    retSet.add((Element)(method.invoke(null,paramListMet)));
+			else {
+			    if (metTypeElemMultiSet)
+				retSet.addAll((ElemMultiSet)(method.invoke(null,paramListMet)));
+			    else {
+				System.out.println("ERROR in SO.reduce(): can't invoke method");
+				System.exit(0);
+			    }//else
+			}//else
+		    } catch (Exception e) {
+			System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+			System.out.println("Error in SetOps.reduce: Problem with using method.");
+			e.printStackTrace();
+			System.exit(0);
+		    }//catch
+		    
+		    //remove element from set
+		    it1.remove();
+		}//if isTrue
+	    }//if mse1.number > 1
+	}//while it.hasNext
+
+	//now, all duplicates should be removed
+	
+	//start processing the remaining elements
+       
 	do {
 	    //reset loop variables
 	    stillExist = false;
@@ -1512,79 +1573,75 @@ public class SetOps {
 		//get element from first set
 		mse1 = (MultiSetEntry)it1.next();
 		actElem1 = (Element)mse1.value;
-		for (int nummse1 = 0; nummse1 < mse1.number; nummse1++) {
+		isTrue = false;
+		it2 = retSet.iterator();
+		while (it2.hasNext()) {
+		    //get element from second set
+		    mse2 = (MultiSetEntry)it2.next();
+		    if (((Object)mse2).equals((Object)mse1))
+			if (it2.hasNext()) mse2 = (MultiSetEntry)it2.next();
+			else break;
+			
+		    number2 = mse2.number;
+		    actElem2 = (Element)mse2.value;
+		    
+		    //if predicate has one argument
+		    if (paramTypeCountPred == 1)
+			paramList[0] = actElem2;
+		    //if predicate has two arguments (is static)
+		    else {
+			paramList[0] = actElem1;
+			paramList[1] = actElem2;
+		    }//else
 		    isTrue = false;
-		    it2 = retSet.iterator();
-		    while (it2.hasNext()) {
-			//get element from second set
-			mse2 = (MultiSetEntry)it2.next();
-			number2 = mse2.number;
-			actElem2 = (Element)mse2.value;
-			for (int nummse2 = 0; nummse2 < mse2.number; nummse2++) {
-			    
-			    //if predicate has one argument
-			    if (paramTypeCountPred == 1)
-				paramList[0] = actElem2;
-			    //if predicate has two arguments (is static)
+		    try {
+			isTrue = ((Boolean)predicate.invoke(actElem1,paramList)).booleanValue();
+		    }//try
+		    catch (Exception e) {
+			System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+			System.out.println("Error in SetOps.reduce: Problem with using predicate.");
+			e.printStackTrace();
+			System.exit(0);
+		    }//catch
+		    
+		    if (isTrue) {
+			paramListMet[0] = actElem1;
+			paramListMet[1] = actElem2;
+			try {
+			    //if method has returnType Element
+			    if (metTypeElement)
+				retSet.add((Element)(method.invoke(null,paramListMet)));
 			    else {
-				paramList[0] = actElem1;
-				paramList[1] = actElem2;
-			    }//else
-			    isTrue = false;
-			    try {
-				isTrue = ((Boolean)predicate.invoke(actElem1,paramList)).booleanValue();
-			    }//try
-			    catch (Exception e) {
-				System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
-				System.out.println("Error in SetOps.reduce: Problem with using predicate.");
-				e.printStackTrace();
-				System.exit(0);
-			    }//catch
-
-			    if (isTrue) {
-				paramListMet[0] = actElem1;
-				paramListMet[1] = actElem2;
-				try {
-				    //if method has returnType Element
-				    if (metTypeElement)
-					retSet.add((Element)(method.invoke(null,paramListMet)));
-				    else {
-					if (metTypeElemMultiSet)
-					    retSet.addAll((ElemMultiSet)(method.invoke(null,paramListMet)));
-					else {
-					    System.out.println("ERROR in SO.reduce): can't invoke method");
-					    System.exit(0);
-					}//else
-				    }//else
-				}//try
-				catch (Exception e) {
-				    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
-				    System.out.println("Error in SetOps.reduce: Problem with using method.");
-				    e.printStackTrace();
+				if (metTypeElemMultiSet)
+				    retSet.addAll((ElemMultiSet)(method.invoke(null,paramListMet)));
+				else {
+				    System.out.println("ERROR in SO.reduce(): can't invoke method");
 				    System.exit(0);
-				}//catch
-				
-				//now remove elements from retSet
-				retSet.removeOneEntry(actElem1);
-				retSet.removeOneEntry(actElem2);
-				
-				stillExist = true;
-				isTrue = false;
-				if (retSet.isEmpty())
-				    stillExist = false;
-			    }//if isTrue
-			    if (stillExist) break;
-			}//for nummse2
-			if (stillExist) break;
-		    }//while it2
+				}//else
+			    }//else
+			}//try
+			catch (Exception e) {
+			    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+			    System.out.println("Error in SetOps.reduce: Problem with using method.");
+			    e.printStackTrace();
+			    System.exit(0);
+			}//catch
+			
+			//now remove elements from retSet
+			retSet.removeOneEntry(actElem1);
+			retSet.removeOneEntry(actElem2);
+			
+			stillExist = true;
+			isTrue = false;
+			if (retSet.isEmpty())
+			    stillExist = false;
+		    }//if isTrue
 		    if (stillExist) break;
-		}//for nummse1
+		}//while it2
 		if (stillExist) break;
 	    }//while it1
-	    break;
 	} while (stillExist);
-				    
-					   
+				    	   
 	return retSet;
     }//end method reduce
     

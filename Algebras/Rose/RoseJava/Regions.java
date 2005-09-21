@@ -73,12 +73,12 @@ public class Regions implements Serializable{
 	}//if
 	else {
 	    noOfRegions++;
-	    System.out.println("\n########################### computation of triangle set for Region");
+	    //System.out.println("\n########################### computation of triangle set for Region");
 	    System.out.println("\n---> REGION_NO."+noOfRegions+": compute Triangles... ");
 	    triset = computeTriSet(sl);
 	    noOfTris += triset.size();
 	    System.out.println(triset.size()+" triangle(s). Sum of triangles: "+noOfTris);
-	    System.out.println("\n########################### computation of cycles for Region");
+	    //System.out.println("\n########################### computation of cycles for Region");
 	    System.out.println("--->compute cycles... ");
 	    cycles = cyclesPoints();
 	    cyclesDefined = true;

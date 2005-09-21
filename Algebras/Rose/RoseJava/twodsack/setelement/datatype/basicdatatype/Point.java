@@ -192,15 +192,23 @@ public class Point extends Element implements Serializable {
 		double px = p.x.getDouble();
 		double py = p.y.getDouble();
 		
+		/*
 		double diffx = tx - px;
 		double diffy = ty - py;
-
+		
 		if ((diffx < DERIV_DOUBLE && diffx > DERIV_DOUBLE_NEG) &&
 		    (diffy < DERIV_DOUBLE && diffy > DERIV_DOUBLE_NEG))
 		    return true;
 		else return false;
-		}//else
-		
+		*/
+		double diffx = Math.abs(tx-px);
+		double diffy = Math.abs(ty-py);
+		if (diffx < DERIV_DOUBLE && diffy < DERIV_DOUBLE)
+		    return true;
+		else 
+		    return false;
+	    }//else
+	    
 	}//if
 	else { throw new WrongTypeException("Expected: "+this.getClass()+" - Found: "+e.getClass()); }
     }//end method equal

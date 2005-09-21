@@ -4759,6 +4759,7 @@ void exactinit()
   /*   one without causing roundoff.  (Also check if the sum is equal to     */
   /*   the previous sum, for machines that round up instead of using exact   */
   /*   rounding.  Not that these routines will work on such machines.)       */
+
   do {
     lastcheck = check;
     epsilon *= half;
@@ -4768,6 +4769,7 @@ void exactinit()
     every_other = !every_other;
     check = 1.0 + epsilon;
   } while ((check != 1.0) && (check != lastcheck));
+
   splitter += 1.0;
   /* Error bounds for orientation and incircle tests. */
   resulterrbound = (3.0 + 8.0 * epsilon) * epsilon;
@@ -4780,6 +4782,7 @@ void exactinit()
   o3derrboundA = (7.0 + 56.0 * epsilon) * epsilon;
   o3derrboundB = (3.0 + 28.0 * epsilon) * epsilon;
   o3derrboundC = (26.0 + 288.0 * epsilon) * epsilon * epsilon;
+
 }
 
 /*****************************************************************************/
@@ -6480,6 +6483,8 @@ struct mesh *m;
 #endif /* not ANSI_DECLARATORS */
 
 {
+  //printf("reached triangleinit\n");
+  
   m->vertices.maxitems = m->triangles.maxitems = m->subsegs.maxitems =
     m->viri.maxitems = m->badsubsegs.maxitems = m->badtriangles.maxitems =
     m->flipstackers.maxitems = m->splaynodes.maxitems = 0l;
@@ -7712,6 +7717,8 @@ struct otri *searchtri;
   long i, j;
   triangle ptr;                         /* Temporary variable used by sym(). */
 
+  //b->verbose = 3;
+
   if (b->verbose > 2) {
     printf("  Randomly sampling for a triangle near point (%.12g, %.12g).\n",
            searchpoint[0], searchpoint[1]);
@@ -7760,24 +7767,39 @@ struct otri *searchtri;
   sampleblocks = m->samples / samplesperblock;
   sampleblock = m->triangles.firstblock;
   sampletri.orient = 0;
+  
+  //printf("-lc1");
+
   for (i = 0; i < sampleblocks; i++) {
     alignptr = (unsigned long) (sampleblock + 1);
     firsttri = (triangle *) (alignptr + (unsigned long) m->triangles.alignbytes
                       - (alignptr % (unsigned long) m->triangles.alignbytes));
+    //printf("-lc1.1");
     for (j = 0; j < samplesperblock; j++) {
       if (i == triblocks - 1) {
         samplenum = randomnation((unsigned int)
                                  (m->triangles.maxitems - (i * TRIPERBLOCK)));
+	//printf("-lc1.2");
       } else {
+	//printf("-lc1.3");
         samplenum = randomnation(TRIPERBLOCK);
       }
+      //printf("-lc1.3.1");
       sampletri.tri = (triangle *)
-                      (firsttri + (samplenum * m->triangles.itemwords));
+	(firsttri + (samplenum * m->triangles.itemwords));
+      //printf("-lc1.3.2: ");
+      //if (sampletri.tri == NULL) printf("sampletri.tri is NULL");
+      //else printf("sampletri.tri != NULL");
+      //if (sampletri.tri[1] == NULL) printf("sampletri.tri[1] is NULL");
+      //else printf("sampletri.tri[1] != NULL");
+
       if (!deadtri(sampletri.tri)) {
+	//printf("-lc1.4");
         org(sampletri, torg);
         dist = (searchpoint[0] - torg[0]) * (searchpoint[0] - torg[0]) +
                (searchpoint[1] - torg[1]) * (searchpoint[1] - torg[1]);
         if (dist < searchdist) {
+	  //printf("-lc1.5");
           otricopy(sampletri, *searchtri);
           searchdist = dist;
           if (b->verbose > 2) {
@@ -7790,9 +7812,14 @@ struct otri *searchtri;
     sampleblock = (VOID **) *sampleblock;
   }
 
+  //printf("-lc2");
+
   /* Where are we? */
   org(*searchtri, torg);
   dest(*searchtri, tdest);
+  
+  //printf("-lc3");
+
   /* Check the starting triangle's vertices. */
   if ((torg[0] == searchpoint[0]) && (torg[1] == searchpoint[1])) {
     return ONVERTEX;
@@ -7801,6 +7828,9 @@ struct otri *searchtri;
     lnextself(*searchtri);
     return ONVERTEX;
   }
+
+  //printf("-lc4");
+
   /* Orient `searchtri' to fit the preconditions of calling preciselocate(). */
   ahead = counterclockwise(m, b, torg, tdest, searchpoint);
   if (ahead < 0.0) {
@@ -7814,6 +7844,8 @@ struct otri *searchtri;
       return ONEDGE;
     }
   }
+
+  //printf("-preciselocate");
   return preciselocate(m, b, searchpoint, searchtri, 0);
 }
 
@@ -11841,12 +11873,17 @@ int newmark;
   enum finddirectionresult collinear;
   subseg sptr;                      /* Temporary variable used by tspivot(). */
 
+  //printf("-a1");
   collinear = finddirection(m, b, searchtri, endpoint2);
+  //printf("-a2");
   dest(*searchtri, rightvertex);
+  //printf("-a3");
   apex(*searchtri, leftvertex);
+  //printf("-a4");
   if (((leftvertex[0] == endpoint2[0]) && (leftvertex[1] == endpoint2[1])) ||
       ((rightvertex[0] == endpoint2[0]) && (rightvertex[1] == endpoint2[1]))) {
     /* The segment is already an edge in the mesh. */
+    //printf("-a5");
     if ((leftvertex[0] == endpoint2[0]) && (leftvertex[1] == endpoint2[1])) {
       lprevself(*searchtri);
     }
@@ -11854,6 +11891,7 @@ int newmark;
     insertsubseg(m, b, searchtri, newmark);
     return 1;
   } else if (collinear == LEFTCOLLINEAR) {
+    //printf("-a6");
     /* We've collided with a vertex between the segment's endpoints. */
     /* Make the collinear vertex be the triangle's origin. */
     lprevself(*searchtri);
@@ -11862,12 +11900,14 @@ int newmark;
     return scoutsegment(m, b, searchtri, endpoint2, newmark);
   } else if (collinear == RIGHTCOLLINEAR) {
     /* We've collided with a vertex between the segment's endpoints. */
+    //printf("-a7");
     insertsubseg(m, b, searchtri, newmark);
     /* Make the collinear vertex be the triangle's origin. */
     lnextself(*searchtri);
     /* Insert the remainder of the segment. */
     return scoutsegment(m, b, searchtri, endpoint2, newmark);
   } else {
+    //printf("-a8");
     lnext(*searchtri, crosstri);
     tspivot(crosstri, crosssubseg);
     /* Check for a crossing segment. */
@@ -12271,6 +12311,9 @@ int newmark;
 #endif /* not ANSI_DECLARATORS */
 
 {
+  //b->verbose = 2;
+  //printf("\n");
+
   struct otri searchtri1, searchtri2;
   triangle encodedtri;
   vertex checkvertex;
@@ -12284,36 +12327,48 @@ int newmark;
   /* Find a triangle whose origin is the segment's first endpoint. */
   checkvertex = (vertex) NULL;
   encodedtri = vertex2tri(endpoint1);
+  //printf("check0");
   if (encodedtri != (triangle) NULL) {
     decode(encodedtri, searchtri1);
     org(searchtri1, checkvertex);
   }
+  //printf("check0.5");
   if (checkvertex != endpoint1) {
     /* Find a boundary triangle to search from. */
     searchtri1.tri = m->dummytri;
+    //printf("-0.6");
     searchtri1.orient = 0;
     symself(searchtri1);
+    //printf("-0.7");
     /* Search for the segment's first endpoint by point location. */
     if (locate(m, b, endpoint1, &searchtri1) != ONVERTEX) {
+      //printf("-0.8");
       printf(
         "Internal error in insertsegment():  Unable to locate PSLG vertex\n");
       printf("  (%.12g, %.12g) in triangulation.\n",
              endpoint1[0], endpoint1[1]);
       internalerror();
     }
+    //printf("-0.9");
   }
+
+  //printf("check1");
+
   /* Remember this triangle to improve subsequent point location. */
   otricopy(searchtri1, m->recenttri);
+  //printf("-a");
   /* Scout the beginnings of a path from the first endpoint */
   /*   toward the second.                                   */
   if (scoutsegment(m, b, &searchtri1, endpoint2, newmark)) {
     /* The segment was easily inserted. */
     return;
   }
+  //printf("-b");
   /* The first endpoint may have changed if a collision with an intervening */
   /*   vertex on the segment occurred.                                      */
   org(searchtri1, endpoint1);
 
+  //printf("-c");
   /* Find a triangle whose origin is the segment's second endpoint. */
   checkvertex = (vertex) NULL;
   encodedtri = vertex2tri(endpoint2);
@@ -12321,6 +12376,8 @@ int newmark;
     decode(encodedtri, searchtri2);
     org(searchtri2, checkvertex);
   }
+  //printf("check2");
+
   if (checkvertex != endpoint2) {
     /* Find a boundary triangle to search from. */
     searchtri2.tri = m->dummytri;
@@ -12335,6 +12392,9 @@ int newmark;
       internalerror();
     }
   }
+  
+  //printf("check3");
+
   /* Remember this triangle to improve subsequent point location. */
   otricopy(searchtri2, m->recenttri);
   /* Scout the beginnings of a path from the second endpoint */
@@ -12346,6 +12406,8 @@ int newmark;
   /* The second endpoint may have changed if a collision with an intervening */
   /*   vertex on the segment occurred.                                       */
   org(searchtri2, endpoint2);
+
+  //printf("check4");
 
 #ifndef REDUCED
 #ifndef CDT_ONLY
@@ -12362,6 +12424,7 @@ int newmark;
   }
 #endif /* not CDT_ONLY */
 #endif /* not REDUCED */
+  printf("check5");
 }
 
 /*****************************************************************************/

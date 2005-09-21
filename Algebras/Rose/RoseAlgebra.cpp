@@ -1029,7 +1029,7 @@ Inherited method of StandardAttribute
 
 */
 Attribute *CcPoints::Clone() {
-  CcPoints* res = new CcPoints(objectData.Size());
+  CcPoints* res = new CcPoints((size_t)objectData.Size());
   res->CopyFrom(this);
   return res;
 }
@@ -1607,7 +1607,7 @@ Inherited method of StandardAttribute
 
 */
 Attribute *CcLines::Clone() {
-  CcLines* res = new CcLines(objectData.Size());
+  CcLines* res = new CcLines((size_t)objectData.Size());
   res->CopyFrom(this);
   return res;
 }
@@ -2129,7 +2129,7 @@ public:
   FLOB *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
-    //cout << "++++++++++++++++++++ called Finalize of CcRegions +++++++++++++++++++++++++" << endl;
+    cout << "++++++++++++++++++++ called Finalize of CcRegions +++++++++++++++++++++++++" << endl;
     env->DeleteLocalRef(obj);
     obj = 0;
   }
@@ -2160,7 +2160,7 @@ public:
   /* Destructor of CcRegions. This destructor destroys also the 
      object inside the JVM. */
   ~CcRegions() {
-    //cout << "++++++++++++++++++++ called destructor of CcRegions +++++++++++++++++++++++++" << endl;
+    cout << "++++++++++++++++++++ called destructor of CcRegions +++++++++++++++++++++++++" << endl;
     env->DeleteLocalRef(obj);
     obj = 0;
   }
@@ -2186,7 +2186,7 @@ Inherited method of StandardAttribute
 
 */
 Attribute *CcRegions::Clone() {
-  CcRegions* res = new CcRegions(objectData.Size());
+  CcRegions* res = new CcRegions((size_t)objectData.Size());
   res->CopyFrom(this);
   return res;
 }
@@ -7165,7 +7165,7 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   if (midSetDeriv == 0) error(__FILE__,__LINE__);
 
   //set derivation value for 2DSACK package
-  env->CallStaticVoidMethod(clsRationalFactory, midSetDeriv, 0.00000001);
+  env->CallStaticVoidMethod(clsRationalFactory, midSetDeriv, 0.00000000001);
 
   jmethodID midReadDeriv = env->GetStaticMethodID(clsRationalFactory, "readDerivDouble", "()D");
   if (midReadDeriv == 0) error(__FILE__,__LINE__);

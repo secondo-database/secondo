@@ -151,24 +151,7 @@ JNIEXPORT jobjectArray JNICALL Java_twodsack_util_meshgenerator_MeshGenerator_tr
   free(mid.segmentmarkerlist);
   free(mid.edgelist);
   free(mid.edgemarkerlist);
-  /*
-  free(in.pointlist);
-  free(in.pointattributelist);
-  free(in.trianglelist);
-  free(in.triangleattributelist);
-  free(in.trianglearealist);
-  free(in.neighborlist);
-  free(in.segmentmarkerlist);
-  free(in.segmentlist);
-  free(in.holelist);
-  free(in.regionlist);
-  free(in.edgelist);
-  
-  free(out.pointlist);
-  free(out.pointattributelist);
-  free(out.trianglelist);
-  free(out.triangleattributelist);
-  */
+ 
   return returnArray;
   
 }

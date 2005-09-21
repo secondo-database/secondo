@@ -58,6 +58,16 @@ public class Vertex implements ComparableMSE {
     }//end method print
 
 
+    /**
+     * Returns the data of <i>this</i> as String.
+     *
+     * @return the data as String
+     */
+    public String toString() {
+	return "Vertex ("+number+", "+(Element)value+")";
+    }//end method toString
+
+
     /*
      * Returns a shallow copy of <i>this</i>
      *

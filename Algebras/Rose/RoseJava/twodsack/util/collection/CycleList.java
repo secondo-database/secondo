@@ -65,29 +65,17 @@ public class CycleList extends LinkedList {
      * The cycles must have the following structure:<p>
      * <tt>( (a,b)(b,c)(c,d)(d,a) )</tt><p>
      * If they do, <tt>true</tt> is returned. <tt>false</tt> otherwise. If a cycle's size is smaller than 3, <tt>false</tt> is returned.
-     * Note, that is is not checked, whether segments intersect, which is not allowed for proper cycles.
+     * Note, that is is not checked, whether segments intersect, which is not allowed for proper cycles. Furthmore, one should know that 
+     * this method ONLY works for lists of Segments.
      * @return <tt>true</tt> if <i>this</i> is a proper cycle.
      */
     public boolean checkCycles() {
-	System.out.println("\nCL.checkCycles...("+this.size()+")");
 	ListIterator lit = this.listIterator(0);
-	
-	/*
-	  while (lit.hasNext()) {
-	  System.out.println("\nLIST "+lit.nextIndex());
-	  LinkedList actList = (LinkedList)lit.next();
-	  ListIterator lit2 = actList.listIterator();
-	  while (lit2.hasNext())
-	  System.out.println("["+lit2.nextIndex()+"]: "+(Segment)lit2.next());
-	  }//while
-	  System.out.println();
-	*/
-	
-	
+		
 	Iterator outerIT = this.listIterator(0);
 	LinkedList actCycle;
 	int num = 0;
-	System.out.print("-clLENGTH:"+this.size());
+
 	while (outerIT.hasNext()) {
 	    actCycle = (LinkedList)outerIT.next();
 	    
