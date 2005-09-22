@@ -2090,7 +2090,7 @@ void SEntry::SetO (int newO) 		{ o = newO; }
 
 
 const double SEntry::GetY(Coord x) const  {
- /*  Coord res;
+   Coord res;
    bool end = false;
    if (ch.GetLP().GetX() == x) { end = true; res = ch.GetLP().GetY(); }
    else if (ch.GetRP().GetX() == x) { end = true; res = ch.GetRP().GetY(); }
@@ -2103,13 +2103,13 @@ const double SEntry::GetY(Coord x) const  {
       return y;
    }
      else {
- */   #ifdef RATIONAL_COORDINATES
+    #ifdef RATIONAL_COORDINATES
       double xv = (x.IsInteger()? x.IntValue(): x.Value()) ;
       #else
       double xv = x ;
       #endif
       return ( slope*xv + a);
-  // }
+   }
 }
 
 bool SEntry::Equal (const SEntry in2) const
