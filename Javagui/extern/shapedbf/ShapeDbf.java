@@ -37,16 +37,20 @@ public ListExpr getList(String FileName){
   String DBFName = FileName.substring(0,FileName.length()-3)+"dbf";
   ShapeReader SR = new ShapeReader();
   ListExpr L1 = SR.getList(ShapeFileName);
+
   if(L1==null){
      LastError = "shapereader : "+SR.getErrorString();
      return null;
   }
+
   Dbf3Reader DR = new Dbf3Reader();
   ListExpr L2 = DR.getList(DBFName);
+
   if(L2==null){
      LastError = "db3reader: "+DR.getErrorString();
      return null;
   }
+
   ListExpr T1 = L1.first();
   ListExpr T2 = L2.first();
   ListExpr V1 = L1.second();
@@ -57,6 +61,8 @@ public ListExpr getList(String FileName){
   }
   ListExpr TupleList = T2.second().second();
   //System.err.println("TupleList ="+TupleList.writeListExprToString());
+  int length = TupleList.listLength();
+  
   Vector UsedNames = new Vector(TupleList.listLength());
   while(!TupleList.isEmpty()){
      UsedNames.add(TupleList.first().first().symbolValue());
@@ -84,17 +90,22 @@ public ListExpr getList(String FileName){
 
   TupleList = T2.second().second();
   ListExpr Last = TupleList;
+
   // find the Last Tuple in DBFList
   while(Last.listLength()!=1)
      Last = Last.rest();
+
   Last = ListExpr.append(Last,TupleNumber);
   Last = ListExpr.append(Last,TupleShape);
 
   while(!V2.isEmpty()&&!V1.isEmpty()){
      ListExpr Tupel = V2.first();
      Last = Tupel;
-     while(Last.listLength()!=1)
+     int alength = Last.listLength();
+     while(alength!=1){
         Last = Last.rest();
+        alength--;
+     }
      Last = ListExpr.append(Last,V1.first().first());
      Last = ListExpr.append(Last,V1.first().second());
      V2 = V2.rest();

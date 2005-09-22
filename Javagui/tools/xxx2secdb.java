@@ -87,8 +87,9 @@ private static void AppendObject(PrintStream out,String FileName,TreeSet ONames)
 				     LE.first(),
 				     LE.second(),
 				     ListExpr.theEmptyList());
-
-  out.print(outList.writeListExprToString());
+  
+ //  out.print(outList.writeListExprToString());
+    outList.writeTo(out,false);
 
 }
 
