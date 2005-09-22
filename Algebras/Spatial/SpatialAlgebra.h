@@ -913,6 +913,28 @@ This function decides whether two half segments intersect in the following manne
 the first segment and a innerpoint of the second segment is the same.
 
 */
+
+
+
+
+
+
+
+
+bool innerInter( const CHalfSegment& chs,  Point& resp,
+                   CHalfSegment& rchs, bool& first, bool& second ) const;
+
+
+
+
+
+
+
+
+
+
+
+
     bool cross( const CHalfSegment& chs ) const;
 /*
 This function computes whether two half segments intersect with their mid-points. Be aware
