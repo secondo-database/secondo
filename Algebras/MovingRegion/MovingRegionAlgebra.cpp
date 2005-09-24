@@ -1771,11 +1771,11 @@ static TypeConstructor iregion(
 
 */
 
-enum DegenMode { UNKNOWN, 
-		 NONE, 
-		 IGNORE, 
-		 INSIDEABOVE, 
-		 NOTINSIDEABOVE };
+enum DegenMode { DGM_UNKNOWN, 
+				 DGM_NONE, 
+				 DGM_IGNORE, 
+				 DGM_INSIDEABOVE, 
+				 DGM_NOTINSIDEABOVE };
 
 class MSegmentData {
 // *hm* Debug only, set attributes to private later again
@@ -1829,8 +1829,8 @@ public:
 	insideAbove(ia),
 	degeneratedInitialNext(-1),
 	degeneratedFinalNext(-1),
-	degeneratedInitial(UNKNOWN),
-	degeneratedFinal(UNKNOWN),
+	degeneratedInitial(DGM_UNKNOWN),
+	degeneratedFinal(DGM_UNKNOWN),
 	initialStartX(isx),
 	initialStartY(isy),
 	initialEndX(iex),
@@ -3269,11 +3269,11 @@ void URegion::TemporalFunction(Instant& t, CRegion& res) {
 		continue;
 	    }
 
-	    assert(dms.degeneratedInitial != UNKNOWN);
-	    assert(dms.degeneratedFinal != UNKNOWN);
+	    assert(dms.degeneratedInitial != DGM_UNKNOWN);
+	    assert(dms.degeneratedFinal != DGM_UNKNOWN);
 
-	    if ((initialInstant && dms.degeneratedInitial == IGNORE)
-		|| (finalInstant && dms.degeneratedFinal == IGNORE)) {
+	    if ((initialInstant && dms.degeneratedInitial == DGM_IGNORE)
+		|| (finalInstant && dms.degeneratedFinal == DGM_IGNORE)) {
 		if (MRA_DEBUG) 
 		    cerr << "URegion::TemporalFunction()   ignored degenerated"
 			 << endl;
@@ -3287,16 +3287,16 @@ void URegion::TemporalFunction(Instant& t, CRegion& res) {
 	    chs.attr.partnerno = partnerno++;
 
 	    if (initialInstant 
-		 && dms.degeneratedInitial == INSIDEABOVE)
+		 && dms.degeneratedInitial == DGM_INSIDEABOVE)
 		chs.attr.insideAbove = true;
 	    else if (initialInstant 
-		 && dms.degeneratedInitial == NOTINSIDEABOVE)
+		 && dms.degeneratedInitial == DGM_NOTINSIDEABOVE)
 		chs.attr.insideAbove = false;
 	    else if (finalInstant 
-		 && dms.degeneratedFinal == INSIDEABOVE)
+		 && dms.degeneratedFinal == DGM_INSIDEABOVE)
 		chs.attr.insideAbove = true;
 	    else if (finalInstant 
-		 && dms.degeneratedFinal == NOTINSIDEABOVE)
+		 && dms.degeneratedFinal == DGM_NOTINSIDEABOVE)
 		chs.attr.insideAbove = false;
 	    else
 		chs.attr.insideAbove = dms.insideAbove;
@@ -4261,7 +4261,7 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 	if (!dms.pointFinal && dms.degeneratedFinalNext < 0) 
 	    nonTrivialFinal = true;
 	
-	if (dms.degeneratedInitial == UNKNOWN) {
+	if (dms.degeneratedInitial == DGM_UNKNOWN) {
 	    if (dms.degeneratedInitialNext >= 0) {
 		MSegmentData degenDms;
 		unsigned int numInsideAbove = 0;
@@ -4281,7 +4281,7 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 		    else
 			numNotInsideAbove++;
 		    if (j != i+1) {
-			degenDms.degeneratedInitial = IGNORE;
+			degenDms.degeneratedInitial = DGM_IGNORE;
 			uregion->PutSegment(j-1, degenDms);
 		    }
 		}
@@ -4294,11 +4294,11 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 			 << endl;
 
 		if (numInsideAbove == numNotInsideAbove) {
-		    dms.degeneratedInitial = IGNORE;
+		    dms.degeneratedInitial = DGM_IGNORE;
 		} else if (numInsideAbove == numNotInsideAbove+1) {
-		    dms.degeneratedInitial = INSIDEABOVE;
+		    dms.degeneratedInitial = DGM_INSIDEABOVE;
 		} else if (numInsideAbove+1 == numNotInsideAbove) {
-		    dms.degeneratedInitial = NOTINSIDEABOVE;
+		    dms.degeneratedInitial = DGM_NOTINSIDEABOVE;
 		} else {
 		    cerr << "segment (" 
 			 << dms.initialStartX
@@ -4324,10 +4324,10 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 		    return SetWord(Address(0));
 		}
 	    } else 
-		dms.degeneratedInitial = NONE;
+		dms.degeneratedInitial = DGM_NONE;
 	} 
 		
-	if (dms.degeneratedFinal == UNKNOWN) {
+	if (dms.degeneratedFinal == DGM_UNKNOWN) {
 	    if (dms.degeneratedFinalNext >= 0) {
 		MSegmentData degenDms;
 		unsigned int numInsideAbove = 0;
@@ -4347,7 +4347,7 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 		    else
 			numNotInsideAbove++;
 		    if (j != i+1) {
-			degenDms.degeneratedFinal = IGNORE;
+			degenDms.degeneratedFinal = DGM_IGNORE;
 			uregion->PutSegment(j-1, degenDms);
 		    }
 		}
@@ -4360,11 +4360,11 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 			 << endl;
 		
 		if (numInsideAbove == numNotInsideAbove) {
-		    dms.degeneratedFinal = IGNORE;
+		    dms.degeneratedFinal = DGM_IGNORE;
 		} else if (numInsideAbove == numNotInsideAbove+1) {
-		    dms.degeneratedFinal = INSIDEABOVE;
+		    dms.degeneratedFinal = DGM_INSIDEABOVE;
 		} else if (numInsideAbove+1 == numNotInsideAbove) {
-		    dms.degeneratedFinal = NOTINSIDEABOVE;
+		    dms.degeneratedFinal = DGM_NOTINSIDEABOVE;
 		} else {
 		    cerr << "segment (" 
 			 << dms.initialStartX
@@ -4390,7 +4390,7 @@ static Word InURegionEmbedded(const ListExpr typeInfo,
 		    return SetWord(Address(0));
 		}
 	    } else 
-		dms.degeneratedFinal = NONE;
+		dms.degeneratedFinal = DGM_NONE;
 	} 
 
 	uregion->PutSegment(i, dms);
