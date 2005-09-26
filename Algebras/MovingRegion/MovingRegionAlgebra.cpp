@@ -5918,7 +5918,22 @@ static bool OpenMRegion(SmiRecord& rec,
     MRegion* mr = new MRegion(0);
     w.addr = mr;
 
-    unsigned int savelen = (char*) (mr->GetFLOB(0))-(char*)mr;
+    if (MRA_DEBUG) cerr << "OpenMRegion() #1a" << endl;
+    DBArray<URegion>* ura = (DBArray<URegion>*) (mr->GetFLOB(0));
+    if (MRA_DEBUG) cerr << "OpenMRegion() #1b" << endl;
+    DBArray<MSegmentData>* dmsa = (DBArray<MSegmentData>*) (mr->GetFLOB(1));
+    if (MRA_DEBUG) cerr << "OpenMRegion() #1c" << endl;
+
+    //from Attribute
+    //bool defined;  
+    //
+    //from Mapping
+    //bool canDestroy;
+    //bool ordered;
+
+    unsigned int savelen = (char*) ura-(char*) mr;
+
+    if (MRA_DEBUG) cerr << "OpenMRegion() savelen=" << savelen << endl;
 
     if (rec.Read(mr, savelen, 0) != savelen) {
 	cerr << "OpenMRegion() could not read class data" << endl;
@@ -5926,13 +5941,12 @@ static bool OpenMRegion(SmiRecord& rec,
 	return false;
     }
 
-    DBArray<URegion>* ura = (DBArray<URegion>*) (mr->GetFLOB(0));
-    DBArray<MSegmentData>* dmsa = (DBArray<MSegmentData>*) (mr->GetFLOB(1));
-
     unsigned int numUnits;
     unsigned int numSegments;
 
     unsigned int pos = savelen;
+
+    if (MRA_DEBUG) cerr << "OpenMRegion() #3" << endl;
 
     if (rec.Read(&numUnits, sizeof(unsigned int), pos) 
 	    != sizeof(unsigned int)) {
