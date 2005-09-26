@@ -43,7 +43,7 @@ static int simpleSelect(ListExpr args) {
 }
 
 /*
-1 Helper functions
+1 Generic helper functions
 
 */
 
@@ -71,16 +71,6 @@ static bool between(double a, double x, double b) {
 	|| (lowerOrNearlyEqual(b, x) && lowerOrNearlyEqual(x, a));
 }
 
-static void minmax2(double a, 
-		    double b, 
-		    double& min, 
-		    double& max) {
-    if (MRA_DEBUG) cerr << "minmax4() called" << endl;
-
-    min = a < b ? a : b;
-    max = a > b ? a : b;
-}
-
 static void minmax4(double a, 
 		    double b, 
 		    double c, 
@@ -99,6 +89,11 @@ static void minmax4(double a,
     if (d < min) min = d;
     if (d > max) max = d;
 }
+
+/*
+1 Geometric and math functions
+
+*/
 
 static void GaussTransform(const unsigned int n, 
 			   const unsigned int m, 
@@ -1765,6 +1760,52 @@ static TypeConstructor iregion(
 // ************************************************************************
 
 /*
+1.1 Helper class ~TraversedStopPoint~
+
+*/
+
+class TraversedStopPoint {
+private:
+    unsigned int partnerNo;
+    double x0;
+    double y0;
+    double x1;
+    double y1;
+    bool insideAbove;
+    bool isStartPoint;
+
+public:
+    TraversedStopPoint(unsigned int pn, 
+		       double xx0, 
+		       double yy0, 
+		       double xx1, 
+		       double yy1, 
+		       bool ia) 
+	: partnerNo(pn), 
+	  x0(xx0), 
+	  y0(yy0), 
+	  x1(xx1), 
+	  y1(yy1), 
+	  insideAbove(ia), 
+	  isStartPoint(false) {}
+
+    double GetX0() { return x0; }
+    double GetY0() { return y0; }
+    double GetX1() { return x1; }
+    double GetY1() { return y1; }
+    unsigned int GetPartnerNo() { return partnerNo; }
+    void SetStartPoint() { isStartPoint = true; }
+    unsigned int IsStartPoint() { return isStartPoint; }
+    bool GetInsideAbove() { return insideAbove; }
+
+    bool operator<(const TraversedStopPoint& p) const {
+	return x0 > p.x0 || (x0 == p.x0 && y0 > p.y0);
+    }
+};
+
+// ************************************************************************
+
+/*
 1 Data type ~uregion~
 
 1.1 Helper class ~MPointData~ 
@@ -2180,6 +2221,8 @@ public:
 				Interval<Instant>& iv,
 				MPoint& res,
 				UPoint*& pending);
+
+    void GetTraversedStopPoints(priority_queue<TraversedStopPoint>& pq);
 
     void Destroy(void);
 
@@ -3217,6 +3260,122 @@ void URegion::RestrictedIntersection(UPoint& up,
     }
 }
 
+static void AddTraversedStopPoint(priority_queue<TraversedStopPoint>& pq,
+				  unsigned int partnerNo,
+				  double x0, 
+				  double y0,
+				  double x1,
+				  double y1,
+				  bool insideAbove) {
+    if (MRA_DEBUG) 
+	cerr << "AddTraversedStopPoint() called, partnerNo=" 
+	     << partnerNo 
+	     << endl;
+
+    if (nearlyEqual(x0, x1) && nearlyEqual(y0, y1)) return;
+
+    TraversedStopPoint p1(partnerNo, x0, y0, x1, y1, insideAbove);
+    TraversedStopPoint p2(partnerNo, x1, y1, x0, y0, insideAbove);
+    
+    if (p1 < p2)
+	p2.SetStartPoint();
+    else 
+	p1.SetStartPoint();
+
+    pq.push(p1);
+    pq.push(p2);
+}
+
+static bool CalculateTrapeziumInsideAbove(double t1p1x, double t1p1y,
+					  double t1p2x, double t1p2y,
+					  double t2p1x, double t2p1y,
+					  double t2p2x, double t2p2y) {
+    if (MRA_DEBUG) cerr << "URegion::CTIA() called" << endl;
+
+    if (nearlyEqual(t1p1x, t2p1x) && nearlyEqual(t1p1y, t2p1y)) {
+	if (MRA_DEBUG) cerr << "URegion::CTIAbove() using p2" << endl;
+
+	assert(!nearlyEqual(t1p2x, t2p2x) || !nearlyEqual(t1p2y, t2p2y));
+
+	return
+	    lower(t1p2y, t2p2y)
+	    || (nearlyEqual(t1p2y, t2p2y) && lowerOrNearlyEqual(t1p2x, t2p2x));
+    } else {
+	if (MRA_DEBUG) cerr << "URegion::CTIAbove() using p1" << endl;
+
+	return
+	    lower(t1p1y, t2p1y)
+	    || (nearlyEqual(t1p1y, t2p1y) && lowerOrNearlyEqual(t1p1x, t2p1x));
+    }
+}
+
+void URegion::GetTraversedStopPoints(priority_queue<TraversedStopPoint>& pq) {
+    if (MRA_DEBUG) cerr << "URegion::GetTraversedStopPoints() called" << endl;
+
+    for (unsigned int i = 0; i < segmentsNum; i++) {
+	if (MRA_DEBUG) 
+	    cerr << "URegion::GetTraversedStopPoints() segment #" << i << endl;
+
+	unsigned int partnerNo = 5*(segmentsStartPos+i);
+
+	if (MRA_DEBUG) 
+	    cerr << "URegion::GetTraversedStopPoints() partnerNo=" 
+		 << partnerNo 
+		 << endl;
+
+	MSegmentData dms;
+	segments->Get(segmentsStartPos+i, dms);
+
+	AddTraversedStopPoint(
+	    pq, 
+	    partnerNo,
+	    dms.initialStartX, dms.initialStartY,
+	    dms.initialEndX, dms.initialEndY,
+	    dms.insideAbove);
+	
+	// now add segments which enclose trapezium described by this
+	// moving segment
+
+	bool ia1 =
+	    CalculateTrapeziumInsideAbove(
+		dms.initialStartX, dms.initialStartY,
+		dms.initialEndX, dms.initialEndY,
+		dms.finalStartX, dms.finalStartY,
+		dms.finalEndX, dms.finalEndY);
+	bool ia2 =
+	    CalculateTrapeziumInsideAbove(
+		dms.initialStartX, dms.initialStartY,
+		dms.finalStartX, dms.finalStartY,
+		dms.initialEndX, dms.initialEndY,
+		dms.finalEndX, dms.finalEndY);
+
+	AddTraversedStopPoint(
+	    pq, 
+	    partnerNo+1,
+	    dms.initialStartX, dms.initialStartY,
+	    dms.initialEndX, dms.initialEndY,
+	    ia1);
+	AddTraversedStopPoint(
+	    pq, 
+	    partnerNo+2,
+	    dms.finalStartX, dms.finalStartY,
+	    dms.finalEndX, dms.finalEndY,
+	    !ia1);
+	AddTraversedStopPoint(
+	    pq, 
+	    partnerNo+3,
+	    dms.initialStartX, dms.initialStartY,
+	    dms.finalStartX, dms.finalStartY,
+	    ia2);
+	AddTraversedStopPoint(
+	    pq, 
+	    partnerNo+4,
+	    dms.initialEndX, dms.initialEndY,
+	    dms.finalEndX, dms.finalEndY,
+	    !ia2);
+    }    
+}
+
 // *hm* directly adapted from InRegion(), probably O(n^2) process 
 // *hm* understand insideAbove calculation
 
@@ -3827,97 +3986,6 @@ static ListExpr OutURegion(ListExpr typeInfo, Word value) {
 	    faces);
 
     return res;
-
-#ifdef SCHMUH
-    URegion* ur = (URegion*) value.addr;
-
-    ListExpr res = 
-        nl->OneElemList(
-            nl->FourElemList(
-                OutDateTime(nl->TheEmptyList(), 
-                            SetWord(&ur->timeInterval.start)),
-                OutDateTime(nl->TheEmptyList(), 
-                            SetWord(&ur->timeInterval.end)),
-                nl->BoolAtom(ur->timeInterval.lc),
-                nl->BoolAtom(ur->timeInterval.rc)));
-    ListExpr resLastElem = res;
-
-    int num = ur->GetPointsNum();
-    if (MRA_DEBUG) cerr << "OutURegion() #points=" << num << endl;
-
-    ListExpr face = nl->TheEmptyList();
-    ListExpr faceLastElem = face;
-    ListExpr cycle = nl->TheEmptyList();
-    ListExpr cycleLastElem = cycle;
-
-    MPointData nextDmp;
-    if (num > 0) ur->GetPoint(0, nextDmp);
-
-    for (int i = 0; i < num; i++) {
-        if (MRA_DEBUG) cerr << "OutURegion() point #" << i << endl;
-
-        MPointData dmp = nextDmp;
-        if (i != num-1) ur->GetPoint(i+1, nextDmp);
-
-        if (MRA_DEBUG) 
-            cerr << "OutURegion() point is ("
-                 << dmp.GetFaceNo()
-                 << ", "
-                 << dmp.GetCycleNo()
-                 << ", "
-                 << dmp.GetStartX()
-                 << ", "
-                 << dmp.GetStartY()
-                 << ", "
-                 << dmp.GetEndX()
-                 << ", "
-                 << dmp.GetEndY()
-                 << ")"
-                 << endl;
-
-        ListExpr p = 
-            nl->FourElemList(
-                nl->RealAtom(dmp.GetStartX()),
-                nl->RealAtom(dmp.GetStartY()),
-                nl->RealAtom(dmp.GetEndX()),
-                nl->RealAtom(dmp.GetEndY()));
-
-        if (cycle == nl->TheEmptyList()) {
-            if (MRA_DEBUG) cerr << "OutURegion() new cycle" << endl;
-            cycle = nl->OneElemList(p);
-            cycleLastElem = cycle;
-        } else {
-            if (MRA_DEBUG) cerr << "OutURegion() existing cycle" << endl;
-            cycleLastElem = nl->Append(cycleLastElem, p);
-        }
-
-        if (i == num-1 || dmp.GetCycleNo() != nextDmp.GetCycleNo()) {
-            if (MRA_DEBUG) cerr << "OutURegion() end of cycle" << endl;
-
-            if (face == nl->TheEmptyList()) {
-                if (MRA_DEBUG) cerr << "OutURegion() new face" << endl;
-                face = nl->OneElemList(cycle);
-                faceLastElem = face;
-            } else {
-                if (MRA_DEBUG) cerr << "OutURegion() existing face" << endl;
-                faceLastElem = nl->Append(faceLastElem, cycle);
-            }
-
-            if (i == num-1 || dmp.GetFaceNo() != nextDmp.GetFaceNo()) {
-                if (MRA_DEBUG) cerr << "OutURegion() end of face" << endl;
-                resLastElem = nl->Append(resLastElem, face);
-                
-                face = nl->TheEmptyList();
-                faceLastElem = face;
-            }
-
-            cycle = nl->TheEmptyList();
-            cycleLastElem = cycle;
-        }
-    }
-
-    return res;
-#endif // SCHMUH
 }
 
 /*
@@ -4546,36 +4614,7 @@ static TypeConstructor uregion(
 /*
 1 ~mregion~
 
-1.1 Helper class ~PlaneSweepStopPoint~
-
 */
-
-class PlaneSweepStopPoint {
-private:
-    double x;
-    double y;
-    double partnerX;
-    double partnerY;
-    bool insideAbove;
-
-public:
-    PlaneSweepStopPoint(double xx, 
-			double yy, 
-			double xp, 
-			double yp, 
-			bool ia) : 
-	x(xx), y(yy), partnerX(xp), partnerY(yp), insideAbove(ia) {}
-
-    double GetX() { return x; }
-    double GetY() { return y; }
-    double GetPartnerX() { return partnerX; }
-    double GetPartnerY() { return partnerY; }
-    bool GetInsideAbove() { return insideAbove; }
-
-    bool operator<(const PlaneSweepStopPoint& p) const {
-	return x > p.x || (x == p.x && y > p.y);
-    }
-};
 
 /*
 1.1 Class ~MRegion~
@@ -4649,65 +4688,6 @@ void RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::AddUnits(
     iv.push_back(civ);
     vur.push_back(urPos);
     vup.push_back(upPos);
-
-#ifdef SCHMUH
-    Interval<Instant> iv(start, end, lc, rc);
-
-    URegion* rur = new URegion(iv);
-
-    double t0 = 
-	(start.ToDouble()-ur.timeInterval.start.ToDouble())/
-	(ur.timeInterval.end.ToDouble()-ur.timeInterval.start.ToDouble());
-    double t1 = 
-	(end.ToDouble()-ur.timeInterval.start.ToDouble())/
-	(ur.timeInterval.end.ToDouble()-ur.timeInterval.start.ToDouble());
-
-    if (MRA_DEBUG) 
-	cerr << "MRegion::AddRefinementUnits() URegion t0="
-	     << t0
-	     << " t1="
-	     << t1
-	     << endl;
-
-    for (int i = 0; i < ur.GetPointsNum(); i++) {
-	if (MRA_DEBUG) 
-	    cerr << "MRegion::AddRefinementUnits() point #" << i << endl;
-
-	MPointData dmp;
-	ur.GetPoint(i, dmp);
-
-	rur->AddPoint(
-	    i,
-	    dmp.GetFaceNo(),
-	    dmp.GetCycleNo(),
-	    dmp.GetStartX()+(dmp.GetEndX()-dmp.GetStartX())*t0,
-	    dmp.GetStartY()+(dmp.GetEndY()-dmp.GetStartY())*t0,
-	    dmp.GetStartX()+(dmp.GetEndX()-dmp.GetStartX())*t1,
-	    dmp.GetStartY()+(dmp.GetEndY()-dmp.GetStartY())*t1);
-    }
-
-    vur.push_back(rur);
-
-    t0 = (start.ToDouble()-up.timeInterval.start.ToDouble())/
-	 (up.timeInterval.end.ToDouble()-up.timeInterval.start.ToDouble());
-    t1 = (end.ToDouble()-up.timeInterval.start.ToDouble())/
-	 (up.timeInterval.end.ToDouble()-up.timeInterval.start.ToDouble());
-
-    if (MRA_DEBUG) 
-	cerr << "MRegion::AddRefinementUnits() UPoint t0="
-	     << t0
-	     << " t1="
-	     << t1
-	     << endl;
-
-    vup.push_back(
-	new UPoint(
-	    iv,
-	    up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*t0,
-	    up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*t0,
-	    up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*t1,
-	    up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*t1));
-#endif // SCHMUH
 }
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
@@ -5180,6 +5160,9 @@ private:
 			double& prev,
 			bool& prev_c,
 			UBool*& pending);
+
+    void TraversedPlaneSweep1(priority_queue<TraversedStopPoint>& pq1,
+			      priority_queue<TraversedStopPoint>& pq2);
 	
 public:
     MRegion() {
@@ -5245,41 +5228,222 @@ FLOB* MRegion::GetFLOB(const int i) {
     return i == 0 ? Mapping<URegion, CRegion>::GetFLOB(0) : &msegmentdata;
 }
 
-static void addSegment(priority_queue<PlaneSweepStopPoint>& pq,
-		       double startX, 
-		       double startY, 
-		       double endX, 
-		       double endY, 
-		       bool insideAbove) {
-    cerr << "segment: (" 
-	 << startX 
-	 << ", " 
-	 << startY 
-	 << ")-(" 
-	 << endX 
-	 << ", " 
-	 << endY 
-	 << ") insideAbove=" 
-	 << insideAbove 
-	 << endl;
+// segments must not be reduced to point (assured by AddTraversedStopPoint())
+// s1p1 < s1p2
+// s2p1 < s2p1
 
-    PlaneSweepStopPoint sp1(startX, startY, endX, endY, insideAbove);
-    PlaneSweepStopPoint sp2(endX, endY, startX, startY, insideAbove);
+static void segmentSeparation(double s1p1x,
+			      double s1p1y,
+			      double s1p2x,
+			      double s1p2y,
+			      double s2p1x,
+			      double s2p1y,
+			      double s2p2x,
+			      double s2p2y) {
+    if (MRA_DEBUG) cerr << "segmentSeparation() called" << endl;
 
-    pq.push(sp1);
-    pq.push(sp2);
+    double v1;
+    double v2;
+
+    if (nearlyEqual(s1p1x, s1p2x)) {
+	if (MRA_DEBUG) cerr << "segmentSeparation() vertical" << endl;
+
+	assert(nearlyEqual(s2p1x, s2p2x));
+
+	// (s1p1x, s1p1y)+(0, s1p2y-s1p1y)*v
+	// s2p1y = s1p1y+(s1p2y-s1p1y)*v1 <=> v1 = (s2p1y-s1p1y)/(s1p2y-s1p1y)
+	// s2p2y = s1p1y+(s1p2y-s1p1y)*v2 <=> v2 = (s2p2y-s1p1y)/(s1p2y-s1p1y)
+
+	v1 = (s2p1y-s1p1y)/(s1p2y-s1p1y);
+	v2 = (s2p2y-s1p1y)/(s1p2y-s1p1y);
+    } else {
+	if (MRA_DEBUG) cerr << "segmentSeparation() non vertical" << endl;
+
+	// (s1p1x, s1p1y)+(s1p2x-s1p1x, s1p2y-s1p1y)*v
+	// s2p1x = s1p1x+(s1p2x-s1p1x)*v1 <=> v1 = (s2p1x-s1p1x)/(s1p2x-s1p1x)
+	// s2p2x = s1p1x+(s1p2x-s1p1x)*v2 <=> v2 = (s2p2x-s1p1x)/(s1p2x-s1p1x)
+
+	v1 = (s2p1x-s1p1x)/(s1p2x-s1p1x);
+	v2 = (s2p2x-s1p1x)/(s1p2x-s1p1x);
+    }
+
+    if (lowerOrNearlyEqual(0.0, v1) 
+	&& lowerOrNearlyEqual(v1, 1.0) 
+	&& lowerOrNearlyEqual(1.0, v2)) {
+	// s1: |-----|
+        // s2:    |-----|
+	// 0 <= v1 <= 1 and 1 <= v2
+
+	assert(false);
+    } else if (lowerOrNearlyEqual(v1, 1.0) 
+	       && lowerOrNearlyEqual(0.0, v2)
+	       && lowerOrNearlyEqual(v2, 1.0)) {
+	// s1:    |-----|
+        // s2: |-----|
+	// v1 <= 1 and 0 <= v2 <= 1
+
+	assert(false);
+    } else if (lowerOrNearlyEqual(v1, 0.0) && lowerOrNearlyEqual(1.0, v2)) {
+	// s1:   |-|
+        // s2: |-----|
+	// v1 <= 0 and 1 <= v2
+
+	assert(false);
+    } else if (lowerOrNearlyEqual(0.0, v1) && lowerOrNearlyEqual(v2, 1.0)) {
+        // s1: |-----|
+	// s2:   |-|
+	// 0 <= v1 and v2 <= 1
+
+	assert(false);
+    } else {
+	// should never happen
+
+	assert(false);
+    }
+
 }
 
+static void segmentIntersection(double s1p1x,
+				double s1p1y,
+				double s1p2x,
+				double s1p2y,
+				double s2p1x,
+				double s2p1y,
+				double s2p2x,
+				double s2p2y) {
+    if (MRA_DEBUG) cerr << "segmentIntersection() called" << endl;
 
-// *hm* no holes covered
+    if (nearlyEqual(s1p1x, s1p2x)) {
+	if (MRA_DEBUG) cerr << "segmentIntersection() s1 vertical" << endl;
+
+	if (nearlyEqual(s2p1x, s2p2x)) {
+	    // Fall s1p1x == s1p2x und s2p1x == s2p2x
+	    //   Parallel oder auf gleicher Geraden
+
+	    if (MRA_DEBUG) cerr << "segmentIntersection() s2 vertical" << endl;
+
+	    if (nearlyEqual(s1p1x, s2p1x)) {
+		if (MRA_DEBUG) 
+		    cerr << "segmentIntersection() on same line" << endl;
+
+		assert(false);
+	    } else {
+		if (MRA_DEBUG) 
+		    cerr << "segmentIntersection() on distinct lines" << endl;
+
+		assert(false);
+	    }
+	} else {
+	    // Case s1p1x == s1p2x and s2p1x != s2p2x
+	    //   Swap both segments
+
+	    if (MRA_DEBUG) 
+		cerr << "segmentIntersection() s2 not vertical" << endl;
+
+	    return
+		segmentIntersection(s2p1x, s2p1y, s2p2x, s2p2y,
+				    s1p1x, s2p1y, s2p2x, s2p2y);
+	}
+
+	assert(false);
+    }
+
+
+    // (s1p1x, s1py)+(s1p2x-s1p1x, s1p2y-s1p1y)*s
+    // (s2p1x, s2py)+(s2p2x-s2p1x, s2p2y-s2p1y)*t
+
+    // Solve:
+    //   s1p2x-s1p1x  s2p1x-s2p2x | s2p1x-s1p1x   
+    //   s1p2y-s1p1y  s2p1y-s2p2y | s2p1y-s1p1y   
+
+    // Result:
+    //   s1p2x-s1p1x  s2p1x-s2p2x | s2p1x-s1p1x   
+    //        0            b      |      c
+
+    //   a = -(s1p2y-s1p1y)/(s1p2x-s1p1x)
+    //   b = s2p1y-s2p2y-a*(s2p1x-s2p2x)
+    //   c = s2p1y-s1p1y-a*(s2p1x-s1p1x)
+
+    // Fall b == 0 und c == 0
+    //   auf gleicher Geraden
+
+    // Fall b == 0 und c != 0
+    //   parallel
+
+    // sonst
+    //   t = c/b
+    //   ix = s2p1x+(s2p2x-s2p1x)*t
+    //   iy = s2p1y+(s2p2y-s2p1y)*t
+    
+    //   s1p1x+(s1p2x-s2p1x)*s = ix <=> s = (ix-s1p1x)/(s1p2x-s2p1x)
+    
+    // Fall 0 <= s <= 1 und 0 <= t <= 1:
+    //   (ix, iy) ist gesuchte Lösung
+
+    // sonst
+    //   keine Lösung
+}
+
+void MRegion::TraversedPlaneSweep1(priority_queue<TraversedStopPoint>& pq1,
+				   priority_queue<TraversedStopPoint>& pq2) {
+    if (MRA_DEBUG) cerr << "MRegion::TraversedPlaneSweep1() called" << endl;
+
+    vector<TraversedStopPoint> sl;
+
+    while (!pq1.empty()) {
+	TraversedStopPoint p = pq1.top();
+	pq1.pop();
+
+	if (MRA_DEBUG)
+	    cerr << "MRegion::TraversedPlaneSweep1() pq element [" 
+		 << p.GetPartnerNo()
+		 << " "
+		 << p.GetX0()
+		 << " "
+		 << p.GetY0()
+		 << " "
+		 << p.GetX1()
+		 << " "
+		 << p.GetY1()
+		 << " "
+		 << p.GetInsideAbove()
+		 << " "
+		 << p.IsStartPoint()
+		 << "]"
+		 << endl;
+
+	if (p.IsStartPoint()) {
+	    sl.push_back(p);
+	} else {
+	    vector<TraversedStopPoint>::iterator pos;
+
+	    for (pos = sl.begin(); 
+		 pos != sl.end() && pos->GetPartnerNo() != p.GetPartnerNo(); 
+		 pos++);
+
+	    if (MRA_DEBUG) 
+		cerr << "MRegion::TraversedPlaneSweep1() removing "
+		     << pos->GetPartnerNo() 
+		     << endl;
+
+	    sl.erase(pos);
+	}
+
+	if (MRA_DEBUG) {
+	    cerr << "MRegion::TraversedPlaneSweep1() sl=";
+	    for (vector<TraversedStopPoint>::iterator pos = sl.begin(); 
+		 pos != sl.end(); 
+		 pos++)
+		cerr << pos->GetPartnerNo() << " ";
+	    cerr << endl;
+	}
+    }
+}
 
 void MRegion::Traversed(void) {
     if (MRA_DEBUG) cerr << "MRegion::Traversed() called" << endl;
 
-    assert(false);
-
-#ifdef SCHMUH
-    priority_queue<PlaneSweepStopPoint> pq;
+    priority_queue<TraversedStopPoint> pq1;
 
     for (int i = 0; i < GetNoComponents(); i++) {
 	if (MRA_DEBUG) cerr << "MRegion::Traversed() unit #" << i << endl;
@@ -5287,263 +5451,14 @@ void MRegion::Traversed(void) {
 	URegion ur;
 	Get(i, ur);
 
-	// *hm* how to handle uregions, which are degenerated during initial
-	// instant?
-
-	CRegion cr;
-	ur.TemporalFunction(ur.timeInterval.start, cr);
-
-	for (int j = 0; j < cr.Size(); j++) {
-	    CHalfSegment chs;
-	    cr.Get(j, chs);
-
-	    if (!chs.GetLDP()) continue;
-
-	    if (MRA_DEBUG) 
-		cerr << "MRegion::Traversed() chs #" << j << endl;
-
-	    if (MRA_DEBUG) 
-		cerr << "MRgion::Traversed()   start ("
-		     << chs.GetLP().GetX()
-		     << ", "
-		     << chs.GetLP().GetY()
-		     << ")-("
-		     << chs.GetRP().GetX()
-		     << ", "
-		     << chs.GetRP().GetY()
-		     << ") LDP="
-		     << chs.GetLDP()
-		     << " insideAbove="
-		     << chs.GetAttr().insideAbove
-		     << " partnerno="
-		     << chs.GetAttr().partnerno
-		     << " edgeno="
-		     << chs.GetAttr().edgeno
-		     << endl;
-
-	    addSegment(pq,
-		       chs.GetLP().GetX(),
-		       chs.GetLP().GetY(),
-		       chs.GetRP().GetX(),
-		       chs.GetRP().GetY(),
-		       chs.GetAttr().insideAbove);
-
-	    MPointData dmp1;
-	    ur.GetPoint(chs.GetAttr().edgeno, dmp1);
-
-	    MPointData dmp2;
-	    if (chs.GetAttr().edgeno+1 == ur.GetPointsNum()) 
-		ur.GetPoint(0, dmp2);
-	    else
-		ur.GetPoint(chs.GetAttr().edgeno+1, dmp2);
-
-	    if (dmp1.GetEndX() > dmp2.GetEndX()
-		|| (dmp1.GetEndX() == dmp2.GetEndX()
-		    && dmp1.GetEndY() == dmp2.GetEndY())) {
-		if (MRA_DEBUG) 
-		    cerr << "MRegion::Traversed()   swapping" << endl;
-
-		MPointData dummy = dmp1;
-		dmp1 = dmp2;
-		dmp2 = dummy;
-	    }
-
-	    if (MRA_DEBUG) 
-		cerr << "MRegion::Traversed()   end ("
-		     << dmp1.GetEndX()
-		     << ", "
-		     << dmp1.GetEndY()
-		     << ")-("
-		     << dmp2.GetEndX()
-		     << ", "
-		     << dmp2.GetEndY()
-		     << ")"
-		     << endl;
-
-	    if (chs.GetLP().GetY() == chs.GetRP().GetY()) {
-		if (MRA_DEBUG) 
-		    cerr << "MRegion::Traversed()   horizontal" << endl;
-
-		assert(dmp1.GetEndY() == dmp2.GetEndY());
-
-		if (chs.GetLP().GetY() < dmp1.GetEndY()) {
-		    addSegment(pq,
-			       chs.GetLP().GetX(),
-			       chs.GetLP().GetY(),
-			       chs.GetRP().GetX(),
-			       chs.GetRP().GetY(),
-			       true);
-		    addSegment(pq,
-			       dmp1.GetEndX(),
-			       dmp1.GetEndY(),
-			       dmp2.GetEndX(),
-			       dmp2.GetEndY(),
-			       false);
-		    addSegment(pq,
-			       chs.GetLP().GetX(),
-			       chs.GetLP().GetY(),
-			       dmp1.GetEndX(),
-			       dmp1.GetEndY(),
-			       chs.GetLP().GetX() > dmp1.GetEndX());
-		    addSegment(pq,
-			       chs.GetRP().GetX(),
-			       chs.GetRP().GetY(),
-			       dmp2.GetEndX(),
-			       dmp2.GetEndY(),
-			       chs.GetRP().GetX() <= dmp2.GetEndX());
-		} else if (chs.GetLP().GetY() > dmp1.GetEndY()) {
-		    addSegment(pq,
-			       chs.GetLP().GetX(),
-			       chs.GetLP().GetY(),
-			       chs.GetRP().GetX(),
-			       chs.GetRP().GetY(),
-			       false);
-		    addSegment(pq,
-			       dmp1.GetEndX(),
-			       dmp1.GetEndY(),
-			       dmp2.GetEndX(),
-			       dmp2.GetEndY(),
-			       true);
-		    addSegment(pq,
-			       chs.GetLP().GetX(),
-			       chs.GetLP().GetY(),
-			       dmp1.GetEndX(),
-			       dmp1.GetEndY(),
-			       chs.GetLP().GetX() < dmp1.GetEndX());
-		    addSegment(pq,
-			       chs.GetRP().GetX(),
-			       chs.GetRP().GetY(),
-			       dmp2.GetEndX(),
-			       dmp2.GetEndY(),
-			       chs.GetRP().GetX() >= dmp2.GetEndX());
-		} else
-		    // *hm* what to do here?
-		    assert(false);
-	    } else {
-		if (MRA_DEBUG) 
-		    cerr << "MRegion::Traversed()   other" << endl;
-// Algorithm:
-// 
-// 1. Calculate X coordinate x1, where extension of chs touches X axis.
-// 2. Calculate X coordinate x2, where extension of dmp1-dmp2 touches X axis.
-// 3. If x1 < x2: 
-//      insideAbove(chs) = !(ascending(chs) || vertical(chs))
-//      insideAbove(dmp1-dmp2) = ascending(dmp1-dmp2) || vertical(dmp1-dmp2)
-// 
-//    If x1 > x2: 
-//      insideAbove(chs) = ascending(chs) || vertical(chs)
-//      insideAbove(dmp1-dmp2) = !(ascending(dmp1-dmp2) || vertical(dmp1-dmp2))
-//      If x1 = x2: ignore this area?
-// 
-// Line (x1, y1, x2, y2),
-// y1+(y2-y1)*t0 = 0 <=> t0 = y1 / (y1-y2),
-// extension of line hits X axis in point (x1+(x2-x1)*t0, 0).
-
-		double start_t0 = 
-		    chs.GetLP().GetY()/(chs.GetLP().GetY()-chs.GetRP().GetY());
-		double start_x0 = 
-		    chs.GetLP().GetX()
-		    +(chs.GetRP().GetX()-chs.GetLP().GetX())*start_t0;
-
-		if (MRA_DEBUG) 
-		    cerr << "MRegion::Traversed()   start_x0=" 
-			 << start_x0 
-			 << endl;
-
-		double end_t0 = 
-		    dmp1.GetEndY()/(dmp1.GetEndY()-dmp2.GetEndY());
-		double end_x0 = 
-		    dmp1.GetEndX()+(dmp2.GetEndX()-dmp1.GetEndX())*end_t0;
-
-		if (MRA_DEBUG) 
-		    cerr << "MRegion::Traversed()   end_x0=" 
-			 << end_x0 
-			 << endl;
-
-		if (start_x0 < end_x0) {
-		    addSegment(pq,
-			       chs.GetLP().GetX(),
-			       chs.GetLP().GetY(),
-			       chs.GetRP().GetX(),
-			       chs.GetRP().GetY(),
-			       !(chs.GetRP().GetY() > chs.GetLP().GetY()
-				 || chs.GetRP().GetX() == chs.GetLP().GetX()));
-		    addSegment(pq,
-			       dmp1.GetEndX(),
-			       dmp1.GetEndY(),
-			       dmp2.GetEndX(),
-			       dmp2.GetEndY(),
-			       dmp2.GetEndY() > dmp1.GetEndY()
-			       || dmp1.GetEndX() == dmp2.GetEndX());
-		    addSegment(pq,
-			       chs.GetLP().GetX(),
-			       chs.GetLP().GetY(),
-			       dmp1.GetEndX(),
-			       dmp1.GetEndY(),
-			       chs.GetLP().GetY() < chs.GetRP().GetY());
-		    addSegment(pq,
-			       chs.GetRP().GetX(),
-			       chs.GetRP().GetY(),
-			       dmp2.GetEndX(),
-			       dmp2.GetEndY(),
-			       chs.GetLP().GetY() > chs.GetRP().GetY());
-		} else if (start_x0 > end_x0) {
-		    addSegment(pq,
-			       chs.GetLP().GetX(),
-			       chs.GetLP().GetY(),
-			       chs.GetRP().GetX(),
-			       chs.GetRP().GetY(),
-			       chs.GetRP().GetY() > chs.GetLP().GetY()
-				 || chs.GetRP().GetX() == chs.GetLP().GetX());
-		    addSegment(pq,
-			       dmp1.GetEndX(),
-			       dmp1.GetEndY(),
-			       dmp2.GetEndX(),
-			       dmp2.GetEndY(),
-			       !(dmp2.GetEndY() > dmp1.GetEndY()
-				 || dmp1.GetEndX() == dmp2.GetEndX()));
-		    addSegment(pq,
-			       chs.GetLP().GetX(),
-			       chs.GetLP().GetY(),
-			       dmp1.GetEndX(),
-			       dmp1.GetEndY(),
-			       chs.GetLP().GetY() < chs.GetRP().GetY());
-		    addSegment(pq,
-			       chs.GetRP().GetX(),
-			       chs.GetRP().GetY(),
-			       dmp2.GetEndX(),
-			       dmp2.GetEndY(),
-			       chs.GetLP().GetY() > chs.GetRP().GetY());
-		} else
-		    // *hm* what to do here?
-		    assert(false);
-
-	    }
-	}
+	ur.GetTraversedStopPoints(pq1);
     }
 
+    priority_queue<TraversedStopPoint> pq2;
 
-    while (!pq.empty()) {
-	PlaneSweepStopPoint sp = pq.top();
-
-	if (MRA_DEBUG) 
-	    cerr << "MRegion::Traversed() stop point (" 
-		 << sp.GetX()
-		 << ", "
-		 << sp.GetY()
-		 << ")-("
-		 << sp.GetPartnerX()
-		 << ", "
-		 << sp.GetPartnerY()
-		 << ") insideAbove="
-		 << sp.GetInsideAbove()
-		 << endl;
-
-	pq.pop();
-    }
+    TraversedPlaneSweep1(pq1, pq2);
 
     assert(false);
-#endif // SCHMUH
 }
 
 void MRegion::Intersection(
@@ -6829,3 +6744,466 @@ Algebra* InitializeMovingRegionAlgebra(NestedList* nlRef,
     qp = qpRef;
     return &movingRegionAlgebra;
 }
+
+#ifdef SCHMUH
+static void addSegment(priority_queue<PlaneSweepStopPoint>& pq,
+		       double startX, 
+		       double startY, 
+		       double endX, 
+		       double endY, 
+		       bool insideAbove) {
+    cerr << "segment: (" 
+	 << startX 
+	 << ", " 
+	 << startY 
+	 << ")-(" 
+	 << endX 
+	 << ", " 
+	 << endY 
+	 << ") insideAbove=" 
+	 << insideAbove 
+	 << endl;
+
+    PlaneSweepStopPoint sp1(startX, startY, endX, endY, insideAbove);
+    PlaneSweepStopPoint sp2(endX, endY, startX, startY, insideAbove);
+
+    pq.push(sp1);
+    pq.push(sp2);
+}
+#endif // SCHMUH
+
+#ifdef SCHMUH
+// from RefinementPartition
+
+    Interval<Instant> iv(start, end, lc, rc);
+
+    URegion* rur = new URegion(iv);
+
+    double t0 = 
+	(start.ToDouble()-ur.timeInterval.start.ToDouble())/
+	(ur.timeInterval.end.ToDouble()-ur.timeInterval.start.ToDouble());
+    double t1 = 
+	(end.ToDouble()-ur.timeInterval.start.ToDouble())/
+	(ur.timeInterval.end.ToDouble()-ur.timeInterval.start.ToDouble());
+
+    if (MRA_DEBUG) 
+	cerr << "MRegion::AddRefinementUnits() URegion t0="
+	     << t0
+	     << " t1="
+	     << t1
+	     << endl;
+
+    for (int i = 0; i < ur.GetPointsNum(); i++) {
+	if (MRA_DEBUG) 
+	    cerr << "MRegion::AddRefinementUnits() point #" << i << endl;
+
+	MPointData dmp;
+	ur.GetPoint(i, dmp);
+
+	rur->AddPoint(
+	    i,
+	    dmp.GetFaceNo(),
+	    dmp.GetCycleNo(),
+	    dmp.GetStartX()+(dmp.GetEndX()-dmp.GetStartX())*t0,
+	    dmp.GetStartY()+(dmp.GetEndY()-dmp.GetStartY())*t0,
+	    dmp.GetStartX()+(dmp.GetEndX()-dmp.GetStartX())*t1,
+	    dmp.GetStartY()+(dmp.GetEndY()-dmp.GetStartY())*t1);
+    }
+
+    vur.push_back(rur);
+
+    t0 = (start.ToDouble()-up.timeInterval.start.ToDouble())/
+	 (up.timeInterval.end.ToDouble()-up.timeInterval.start.ToDouble());
+    t1 = (end.ToDouble()-up.timeInterval.start.ToDouble())/
+	 (up.timeInterval.end.ToDouble()-up.timeInterval.start.ToDouble());
+
+    if (MRA_DEBUG) 
+	cerr << "MRegion::AddRefinementUnits() UPoint t0="
+	     << t0
+	     << " t1="
+	     << t1
+	     << endl;
+
+    vup.push_back(
+	new UPoint(
+	    iv,
+	    up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*t0,
+	    up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*t0,
+	    up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*t1,
+	    up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*t1));
+#endif // SCHMUH
+
+
+#ifdef SCHMUH
+// old OutURegion() code
+
+    URegion* ur = (URegion*) value.addr;
+
+    ListExpr res = 
+        nl->OneElemList(
+            nl->FourElemList(
+                OutDateTime(nl->TheEmptyList(), 
+                            SetWord(&ur->timeInterval.start)),
+                OutDateTime(nl->TheEmptyList(), 
+                            SetWord(&ur->timeInterval.end)),
+                nl->BoolAtom(ur->timeInterval.lc),
+                nl->BoolAtom(ur->timeInterval.rc)));
+    ListExpr resLastElem = res;
+
+    int num = ur->GetPointsNum();
+    if (MRA_DEBUG) cerr << "OutURegion() #points=" << num << endl;
+
+    ListExpr face = nl->TheEmptyList();
+    ListExpr faceLastElem = face;
+    ListExpr cycle = nl->TheEmptyList();
+    ListExpr cycleLastElem = cycle;
+
+    MPointData nextDmp;
+    if (num > 0) ur->GetPoint(0, nextDmp);
+
+    for (int i = 0; i < num; i++) {
+        if (MRA_DEBUG) cerr << "OutURegion() point #" << i << endl;
+
+        MPointData dmp = nextDmp;
+        if (i != num-1) ur->GetPoint(i+1, nextDmp);
+
+        if (MRA_DEBUG) 
+            cerr << "OutURegion() point is ("
+                 << dmp.GetFaceNo()
+                 << ", "
+                 << dmp.GetCycleNo()
+                 << ", "
+                 << dmp.GetStartX()
+                 << ", "
+                 << dmp.GetStartY()
+                 << ", "
+                 << dmp.GetEndX()
+                 << ", "
+                 << dmp.GetEndY()
+                 << ")"
+                 << endl;
+
+        ListExpr p = 
+            nl->FourElemList(
+                nl->RealAtom(dmp.GetStartX()),
+                nl->RealAtom(dmp.GetStartY()),
+                nl->RealAtom(dmp.GetEndX()),
+                nl->RealAtom(dmp.GetEndY()));
+
+        if (cycle == nl->TheEmptyList()) {
+            if (MRA_DEBUG) cerr << "OutURegion() new cycle" << endl;
+            cycle = nl->OneElemList(p);
+            cycleLastElem = cycle;
+        } else {
+            if (MRA_DEBUG) cerr << "OutURegion() existing cycle" << endl;
+            cycleLastElem = nl->Append(cycleLastElem, p);
+        }
+
+        if (i == num-1 || dmp.GetCycleNo() != nextDmp.GetCycleNo()) {
+            if (MRA_DEBUG) cerr << "OutURegion() end of cycle" << endl;
+
+            if (face == nl->TheEmptyList()) {
+                if (MRA_DEBUG) cerr << "OutURegion() new face" << endl;
+                face = nl->OneElemList(cycle);
+                faceLastElem = face;
+            } else {
+                if (MRA_DEBUG) cerr << "OutURegion() existing face" << endl;
+                faceLastElem = nl->Append(faceLastElem, cycle);
+            }
+
+            if (i == num-1 || dmp.GetFaceNo() != nextDmp.GetFaceNo()) {
+                if (MRA_DEBUG) cerr << "OutURegion() end of face" << endl;
+                resLastElem = nl->Append(resLastElem, face);
+                
+                face = nl->TheEmptyList();
+                faceLastElem = face;
+            }
+
+            cycle = nl->TheEmptyList();
+            cycleLastElem = cycle;
+        }
+    }
+
+    return res;
+#endif // SCHMUH
+
+#ifdef SCHMUH
+// old Traversed() code
+
+    priority_queue<PlaneSweepStopPoint> pq;
+
+    for (int i = 0; i < GetNoComponents(); i++) {
+	if (MRA_DEBUG) cerr << "MRegion::Traversed() unit #" << i << endl;
+
+	URegion ur;
+	Get(i, ur);
+
+	// *hm* how to handle uregions, which are degenerated during initial
+	// instant?
+
+	CRegion cr;
+	ur.TemporalFunction(ur.timeInterval.start, cr);
+
+	for (int j = 0; j < cr.Size(); j++) {
+	    CHalfSegment chs;
+	    cr.Get(j, chs);
+
+	    if (!chs.GetLDP()) continue;
+
+	    if (MRA_DEBUG) 
+		cerr << "MRegion::Traversed() chs #" << j << endl;
+
+	    if (MRA_DEBUG) 
+		cerr << "MRgion::Traversed()   start ("
+		     << chs.GetLP().GetX()
+		     << ", "
+		     << chs.GetLP().GetY()
+		     << ")-("
+		     << chs.GetRP().GetX()
+		     << ", "
+		     << chs.GetRP().GetY()
+		     << ") LDP="
+		     << chs.GetLDP()
+		     << " insideAbove="
+		     << chs.GetAttr().insideAbove
+		     << " partnerno="
+		     << chs.GetAttr().partnerno
+		     << " edgeno="
+		     << chs.GetAttr().edgeno
+		     << endl;
+
+	    addSegment(pq,
+		       chs.GetLP().GetX(),
+		       chs.GetLP().GetY(),
+		       chs.GetRP().GetX(),
+		       chs.GetRP().GetY(),
+		       chs.GetAttr().insideAbove);
+
+	    MPointData dmp1;
+	    ur.GetPoint(chs.GetAttr().edgeno, dmp1);
+
+	    MPointData dmp2;
+	    if (chs.GetAttr().edgeno+1 == ur.GetPointsNum()) 
+		ur.GetPoint(0, dmp2);
+	    else
+		ur.GetPoint(chs.GetAttr().edgeno+1, dmp2);
+
+	    if (dmp1.GetEndX() > dmp2.GetEndX()
+		|| (dmp1.GetEndX() == dmp2.GetEndX()
+		    && dmp1.GetEndY() == dmp2.GetEndY())) {
+		if (MRA_DEBUG) 
+		    cerr << "MRegion::Traversed()   swapping" << endl;
+
+		MPointData dummy = dmp1;
+		dmp1 = dmp2;
+		dmp2 = dummy;
+	    }
+
+	    if (MRA_DEBUG) 
+		cerr << "MRegion::Traversed()   end ("
+		     << dmp1.GetEndX()
+		     << ", "
+		     << dmp1.GetEndY()
+		     << ")-("
+		     << dmp2.GetEndX()
+		     << ", "
+		     << dmp2.GetEndY()
+		     << ")"
+		     << endl;
+
+	    if (chs.GetLP().GetY() == chs.GetRP().GetY()) {
+		if (MRA_DEBUG) 
+		    cerr << "MRegion::Traversed()   horizontal" << endl;
+
+		assert(dmp1.GetEndY() == dmp2.GetEndY());
+
+		if (chs.GetLP().GetY() < dmp1.GetEndY()) {
+		    addSegment(pq,
+			       chs.GetLP().GetX(),
+			       chs.GetLP().GetY(),
+			       chs.GetRP().GetX(),
+			       chs.GetRP().GetY(),
+			       true);
+		    addSegment(pq,
+			       dmp1.GetEndX(),
+			       dmp1.GetEndY(),
+			       dmp2.GetEndX(),
+			       dmp2.GetEndY(),
+			       false);
+		    addSegment(pq,
+			       chs.GetLP().GetX(),
+			       chs.GetLP().GetY(),
+			       dmp1.GetEndX(),
+			       dmp1.GetEndY(),
+			       chs.GetLP().GetX() > dmp1.GetEndX());
+		    addSegment(pq,
+			       chs.GetRP().GetX(),
+			       chs.GetRP().GetY(),
+			       dmp2.GetEndX(),
+			       dmp2.GetEndY(),
+			       chs.GetRP().GetX() <= dmp2.GetEndX());
+		} else if (chs.GetLP().GetY() > dmp1.GetEndY()) {
+		    addSegment(pq,
+			       chs.GetLP().GetX(),
+			       chs.GetLP().GetY(),
+			       chs.GetRP().GetX(),
+			       chs.GetRP().GetY(),
+			       false);
+		    addSegment(pq,
+			       dmp1.GetEndX(),
+			       dmp1.GetEndY(),
+			       dmp2.GetEndX(),
+			       dmp2.GetEndY(),
+			       true);
+		    addSegment(pq,
+			       chs.GetLP().GetX(),
+			       chs.GetLP().GetY(),
+			       dmp1.GetEndX(),
+			       dmp1.GetEndY(),
+			       chs.GetLP().GetX() < dmp1.GetEndX());
+		    addSegment(pq,
+			       chs.GetRP().GetX(),
+			       chs.GetRP().GetY(),
+			       dmp2.GetEndX(),
+			       dmp2.GetEndY(),
+			       chs.GetRP().GetX() >= dmp2.GetEndX());
+		} else
+		    // *hm* what to do here?
+		    assert(false);
+	    } else {
+		if (MRA_DEBUG) 
+		    cerr << "MRegion::Traversed()   other" << endl;
+// Algorithm:
+// 
+// 1. Calculate X coordinate x1, where extension of chs touches X axis.
+// 2. Calculate X coordinate x2, where extension of dmp1-dmp2 touches X axis.
+// 3. If x1 < x2: 
+//      insideAbove(chs) = !(ascending(chs) || vertical(chs))
+//      insideAbove(dmp1-dmp2) = ascending(dmp1-dmp2) || vertical(dmp1-dmp2)
+// 
+//    If x1 > x2: 
+//      insideAbove(chs) = ascending(chs) || vertical(chs)
+//      insideAbove(dmp1-dmp2) = !(ascending(dmp1-dmp2) || vertical(dmp1-dmp2))
+//      If x1 = x2: ignore this area?
+// 
+// Line (x1, y1, x2, y2),
+// y1+(y2-y1)*t0 = 0 <=> t0 = y1 / (y1-y2),
+// extension of line hits X axis in point (x1+(x2-x1)*t0, 0).
+
+		double start_t0 = 
+		    chs.GetLP().GetY()/(chs.GetLP().GetY()-chs.GetRP().GetY());
+		double start_x0 = 
+		    chs.GetLP().GetX()
+		    +(chs.GetRP().GetX()-chs.GetLP().GetX())*start_t0;
+
+		if (MRA_DEBUG) 
+		    cerr << "MRegion::Traversed()   start_x0=" 
+			 << start_x0 
+			 << endl;
+
+		double end_t0 = 
+		    dmp1.GetEndY()/(dmp1.GetEndY()-dmp2.GetEndY());
+		double end_x0 = 
+		    dmp1.GetEndX()+(dmp2.GetEndX()-dmp1.GetEndX())*end_t0;
+
+		if (MRA_DEBUG) 
+		    cerr << "MRegion::Traversed()   end_x0=" 
+			 << end_x0 
+			 << endl;
+
+		if (start_x0 < end_x0) {
+		    addSegment(pq,
+			       chs.GetLP().GetX(),
+			       chs.GetLP().GetY(),
+			       chs.GetRP().GetX(),
+			       chs.GetRP().GetY(),
+			       !(chs.GetRP().GetY() > chs.GetLP().GetY()
+				 || chs.GetRP().GetX() == chs.GetLP().GetX()));
+		    addSegment(pq,
+			       dmp1.GetEndX(),
+			       dmp1.GetEndY(),
+			       dmp2.GetEndX(),
+			       dmp2.GetEndY(),
+			       dmp2.GetEndY() > dmp1.GetEndY()
+			       || dmp1.GetEndX() == dmp2.GetEndX());
+		    addSegment(pq,
+			       chs.GetLP().GetX(),
+			       chs.GetLP().GetY(),
+			       dmp1.GetEndX(),
+			       dmp1.GetEndY(),
+			       chs.GetLP().GetY() < chs.GetRP().GetY());
+		    addSegment(pq,
+			       chs.GetRP().GetX(),
+			       chs.GetRP().GetY(),
+			       dmp2.GetEndX(),
+			       dmp2.GetEndY(),
+			       chs.GetLP().GetY() > chs.GetRP().GetY());
+		} else if (start_x0 > end_x0) {
+		    addSegment(pq,
+			       chs.GetLP().GetX(),
+			       chs.GetLP().GetY(),
+			       chs.GetRP().GetX(),
+			       chs.GetRP().GetY(),
+			       chs.GetRP().GetY() > chs.GetLP().GetY()
+				 || chs.GetRP().GetX() == chs.GetLP().GetX());
+		    addSegment(pq,
+			       dmp1.GetEndX(),
+			       dmp1.GetEndY(),
+			       dmp2.GetEndX(),
+			       dmp2.GetEndY(),
+			       !(dmp2.GetEndY() > dmp1.GetEndY()
+				 || dmp1.GetEndX() == dmp2.GetEndX()));
+		    addSegment(pq,
+			       chs.GetLP().GetX(),
+			       chs.GetLP().GetY(),
+			       dmp1.GetEndX(),
+			       dmp1.GetEndY(),
+			       chs.GetLP().GetY() < chs.GetRP().GetY());
+		    addSegment(pq,
+			       chs.GetRP().GetX(),
+			       chs.GetRP().GetY(),
+			       dmp2.GetEndX(),
+			       dmp2.GetEndY(),
+			       chs.GetLP().GetY() > chs.GetRP().GetY());
+		} else
+		    // *hm* what to do here?
+		    assert(false);
+
+	    }
+	}
+    }
+
+
+    while (!pq.empty()) {
+	PlaneSweepStopPoint sp = pq.top();
+
+	if (MRA_DEBUG) 
+	    cerr << "MRegion::Traversed() stop point (" 
+		 << sp.GetX()
+		 << ", "
+		 << sp.GetY()
+		 << ")-("
+		 << sp.GetPartnerX()
+		 << ", "
+		 << sp.GetPartnerY()
+		 << ") insideAbove="
+		 << sp.GetInsideAbove()
+		 << endl;
+
+	pq.pop();
+    }
+
+    assert(false);
+#endif // SCHMUH
+
+#ifdef SCHMUH
+static void minmax2(double a, 
+		    double b, 
+		    double& min, 
+		    double& max) {
+    if (MRA_DEBUG) cerr << "minmax4() called" << endl;
+
+    min = a < b ? a : b;
+    max = a > b ? a : b;
+}
+#endif // SCHMUH
