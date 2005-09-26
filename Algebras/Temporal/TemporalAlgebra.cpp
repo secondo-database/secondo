@@ -315,7 +315,6 @@ void MPoint::Trajectory( CLine& line )
   line.Clear();
   line.StartBulkLoad();
 
-  Point p( false );
   CHalfSegment chs( false );
   UPoint unit;
 
@@ -325,21 +324,11 @@ void MPoint::Trajectory( CLine& line )
 
     if( !AlmostEqual( unit.p0, unit.p1 ) )
     {
-      if( p.IsDefined() )
-      {
-        assert( AlmostEqual( p, unit.p0 ) );
-        chs.Set( true, p, unit.p1 );
-      }
-      else
-      {
-        chs.Set( true, unit.p0, unit.p1 );
-      }
+      chs.Set( true, unit.p0, unit.p1 );
 
       line += chs;
       chs.SetLDP( false );
       line += chs;
-
-      p = unit.p1;
     }
   }
 
