@@ -50,6 +50,7 @@ called Relational Algebra and Extended Relational Algebra.
 #include <vector>
 #include <deque>
 #include <sstream>
+#include <stack>
 
 #include "RelationAlgebra.h"
 #include "QueryProcessor.h"
@@ -4642,6 +4643,145 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 /*
+2.18.2 Value mapping function of operator ~aggregate\_new~
+
+*/
+struct AggrStruct
+{
+  inline AggrStruct( long level, Word value ):
+  level( level ), value( value )
+  {}
+
+  inline AggrStruct( const AggrStruct& a ):
+  level( a.level ), value( a.value )
+  {}
+
+  inline AggrStruct& operator=( const AggrStruct& a )
+  { level = a.level; value = a.value; return *this; }
+
+  long level;
+  Word value;
+    // if the level is 0 then value contains a tuple pointer, otherwise
+    // it contains a previous result of the aggregate operator
+};
+
+int AggregateNew(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  // The argument vector contains the following values:
+  // args[0] = stream of tuples
+  // args[1] = attribute name
+  // args[2] = mapping function
+  // args[3] = zero value
+  // args[4] = attribute index added by APPEND
+
+  Word t1, t2, iterWord;
+  ArgVectorPointer vector = qp->Argument(args[2].addr);
+
+  qp->Open(args[0].addr);
+  result = qp->ResultStorage(s);
+  int index = ((CcInt*)args[4].addr)->GetIntval();
+
+  // read the first tuple
+  qp->Request( args[0].addr, t1 );
+  if( !qp->Received( args[0].addr ) )
+    ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)args[3].addr );
+  else
+  {
+    stack<AggrStruct> aggrStack;
+
+    // read the second tuple
+    qp->Request( args[0].addr, t2 );
+    if( !qp->Received( args[0].addr ) )
+      ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)((Tuple*)t1.addr)->GetAttribute( index-1 ) );
+    else
+    {
+      // match both tuples and put the result into the stack
+      (*vector)[0] = SetWord( ((Tuple*)t1.addr)->GetAttribute( index-1 ) );
+      (*vector)[1] = SetWord( ((Tuple*)t2.addr)->GetAttribute( index-1 ) );
+      qp->Request( args[2].addr, iterWord );
+      aggrStack.push( AggrStruct( 1, iterWord ) ); // level 1 because we matched two level 0 tuples
+      qp->ReInitResultStorage( args[2].addr );
+      ((Tuple*)t1.addr)->DeleteIfAllowed();
+      ((Tuple*)t2.addr)->DeleteIfAllowed();
+
+      // process the rest of the tuples
+      qp->Request( args[0].addr, t1 );
+      while( qp->Received( args[0].addr ) )
+      {
+        long level = 0;
+        iterWord = SetWord( ((Tuple*)t1.addr)->GetAttribute( index-1 ) );
+        while( !aggrStack.empty() && aggrStack.top().level == level )
+        {
+          (*vector)[0] = aggrStack.top().level == 0 ? SetWord( ((Tuple*)aggrStack.top().value.addr)->GetAttribute( index-1 ) )
+                                                    : aggrStack.top().value;
+          (*vector)[1] = iterWord;
+          qp->Request(args[2].addr, iterWord);
+          if( aggrStack.top().level == 0 )
+            ((Tuple*)aggrStack.top().value.addr)->DeleteIfAllowed();
+          else
+            delete (StandardAttribute*)aggrStack.top().value.addr;
+          aggrStack.pop();
+          level++;
+        }
+        if( level == 0 )
+          aggrStack.push( AggrStruct( level, t1 ) );
+        else
+        {
+          aggrStack.push( AggrStruct( level, iterWord ) );
+          qp->ReInitResultStorage( args[2].addr );
+          ((Tuple*)t1.addr)->DeleteIfAllowed();
+        }
+        qp->Request( args[0].addr, t1 );
+      }
+
+      // if the stack contains only one entry, then we are done
+      if( aggrStack.size() == 1 )
+      {
+        assert( aggrStack.top().level > 0 );
+        delete (StandardAttribute*)aggrStack.top().value.addr;
+        ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)aggrStack.top().value.addr );
+      }
+      else
+        // the stack must contain more elements and we call the aggregate function for them
+      {
+        iterWord = aggrStack.top().value;
+        int level = aggrStack.top().level;
+        aggrStack.pop();
+
+        while( !aggrStack.empty() )
+        {
+          Word resultWord;
+          (*vector)[0] = level == 0 ? SetWord( ((Tuple*)iterWord.addr)->GetAttribute( index-1 ) )
+                                    : iterWord;
+          assert( aggrStack.top().level > 0 );
+          (*vector)[1] = aggrStack.top().value;
+          qp->Request( args[2].addr, resultWord );
+
+          if( level == 0 )
+            ((Tuple*)iterWord.addr)->DeleteIfAllowed();
+          else
+            delete (StandardAttribute*)iterWord.addr;
+
+          delete (StandardAttribute*)aggrStack.top().value.addr;
+
+          iterWord = resultWord;
+          level++;
+          qp->ReInitResultStorage( args[2].addr );
+
+          aggrStack.pop();
+        }
+
+        ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)iterWord.addr );
+        delete (StandardAttribute*)iterWord.addr;
+      }
+    }
+  }
+  qp->Close(args[0].addr);
+
+  return 0;
+}
+
+/*
 2.18.3 Specification of operator ~aggregate~
 
 */
@@ -4658,6 +4798,22 @@ const string AggregateSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               ") )";
 
 /*
+2.18.3 Specification of operator ~aggregate\_new~
+
+*/
+const string AggregateNewSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                 "\"Example\" ) "
+                                 "( <text>(stream(tuple((a1 t1) ... (an tn))) ai"
+                                 "((ti ti) -> t) t -> t</text--->"
+                                 "<text>_ aggregate_new [_; fun; _]</text--->"
+                                 "<text>Aggregates the values from the attribute"
+                                 "in the tuple given the function and the empty"
+                                 " value.</text--->"
+                                 "<text>query ten feed aggregate_new[no; "
+                                 "fun(i1: int, i2: int) i1+i2; 0]</text--->"
+                                 ") )";
+
+/*
 2.18.4 Definition of operator ~aggregate~
 
 */
@@ -4665,6 +4821,19 @@ Operator extrelaggregate (
          "aggregate",              // name
          AggregateSpec,            // specification
          Aggregate,                // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         Operator::SimpleSelect,          // trivial selection function
+         AggregateTypeMap          // type mapping
+);
+
+/*
+2.18.4 Definition of operator ~aggregate\_new~
+
+*/
+Operator extrelaggregatenew (
+         "aggregate_new",              // name
+         AggregateNewSpec,            // specification
+         AggregateNew,                // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          AggregateTypeMap          // type mapping
@@ -8376,6 +8545,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelloopsel);
     AddOperator(&extrelgroupby);
     AddOperator(&extrelaggregate);
+    AddOperator(&extrelaggregatenew);
     AddOperator(&extrelcreateinsertrel);
     AddOperator(&extrelcreatedeleterel);
     AddOperator(&extrelcreateupdaterel);

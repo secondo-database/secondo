@@ -52,6 +52,7 @@ operator extract alias EXTRACT pattern _ op [ _ ]
 operator sample alias SAMPLEFEED pattern _ op [_, _]
 
 operator aggregate alias AGGREGATE pattern _ op [ _; fun; _ ] implicit parameter tuple type TUPLE
+operator aggregate_new alias AGGREGATE_NEW pattern _ op [ _; fun; _ ] implicit parameter tuple type TUPLE
 
 operator symmjoin alias SYMMJOIN pattern _ _ op [ fun ] implicit parameters lefttuple, righttuple types TUPLE, TUPLE2
 

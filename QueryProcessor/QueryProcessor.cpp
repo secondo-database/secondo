@@ -3214,6 +3214,15 @@ QueryProcessor::DeleteResultStorage( const Supplier s )
   }
 }
 
+void 
+QueryProcessor::ReInitResultStorage( const Supplier s )
+{
+  OpTree tree = (OpTree) s;
+  tree->u.op.resultWord =
+    (algebraManager->CreateObj( tree->u.op.resultAlgId,
+                                tree->u.op.resultTypeId ))( GetCatalog( tree->nodeLevel )->NumericType( tree->typeExpr ) );
+}
+
 int
 QueryProcessor::GetNoSons( const Supplier s )
 {

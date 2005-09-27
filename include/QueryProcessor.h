@@ -334,7 +334,15 @@ Delete the result by calling the appropriate delete function of the
 data type stored in the Supplier.  
 
 */
+  void ReInitResultStorage( const Supplier s );
+/*
+Re-Initialize the result storage. Some operators need to take control
+of the result storage. In this case, the query processor will leave
+the control of the actual result storage and creates a new one. The
+operator that calls this function is responsible for releasing the
+memory allocated for the old result storage.
 
+*/
   int GetNoSons( const Supplier s );
 /*
 Returns the number of sons of the operator node ~s~ of the operator
