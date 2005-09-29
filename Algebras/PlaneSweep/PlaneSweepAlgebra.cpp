@@ -1163,7 +1163,8 @@ class PQueue
 {
 public:
    PQueue();
-   ~PQueue() { qu.Clear(); }
+   void Clear() { qu.Clear(); };
+   ~PQueue() { qu.Clear(); };
    void insert (XEvent& event);
    XEvent getFirstAndDelete();
    bool isEmpty();
@@ -1389,7 +1390,8 @@ class StatusLine
 public:
    friend class VList;
    StatusLine();
-   ~StatusLine() {};
+   void Clear() { ssl.Clear(); };
+   ~StatusLine() { ssl.Clear(); };
    void Insert(Coord x, SSSEntry& entry, Segment sgs[], PQueue& pq);
    void Delete(Coord x, Coord oldx, SSSEntry& entry, Segment sgs[],
       PQueue& pq );
@@ -2065,6 +2067,7 @@ void MakeRealm::REALM(CRegion* reg1, CRegion* reg2, CRegion* result1,
    }
    list<CHalfSegment> res1, res2;
    PerformPlaneSweep(pqueue, segs, res1, res2, count);
+   pqueue.Clear();
    //  reconstruction of first region
    result1->Clear();
    result1->StartBulkLoad();
@@ -2427,7 +2430,9 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
       }
       else  {   cout << " wrong eventkind !!!!!!!!!!!!!!!!!!!!"; }
    }
+   sl.Clear();
 }
+
 /*
 4 Plane-Sweep-Algorithmen for Operators
 
@@ -2442,6 +2447,7 @@ Results for different typs of arguments for each operator was created as describ
 class for representing entries in the Sweepline-Status-Struktur. Each entry store the CHalfsegment and the segment classsifikation for this segment.
 
 */
+
 class SEntry {
 public:
    SEntry() {};
@@ -2460,7 +2466,7 @@ public:
    bool Equal (const SEntry in2) const;
    SEntry& operator= (const SEntry& in);
 
-public:  // eigentlich private
+public:
    double GetSlope() const;
    double GetA() const;
 
@@ -2776,6 +2782,7 @@ void SLine::SLineOutput(const Coord x)
    cout << " in output fertig " << endl;
 }
 
+
 /*
 4.3 class MakeOp
 
@@ -2785,6 +2792,7 @@ The algorithmen computes segment classifikations like described in ROSE-Algebra.
 For both arguments the first segment was selected. If this segment is a left segment, it was inserted in sweep line. The segment classification was computed. If the segment belongs to a line, the segment was deleted at once. If the selected segment was a right segment of a region, it is deleted from the sweep line. If the segment classification has the searched vlaues it is added into result.
 
 */
+
 enum State {FIRST, SECOND, BOTH};
 
 class MakeOp
@@ -2901,6 +2909,8 @@ CRegion* MakeOp::Intersection(CRegion* reg1, CRegion* reg2)
       } //  end else
       oldSweep = aktSweep ;
    } // end while
+   res1->Destroy(); delete res1;
+   res2->Destroy(); delete res2;
    result->EndBulkLoad();
    result->SetPartnerNo();
    result->ComputeRegion();
@@ -2974,6 +2984,8 @@ CRegion* MakeOp::Intersection(CRegion* reg1, CRegion* reg2)
       } //  end else
       oldSweep = aktSweep ;
    } // end while
+   resline->Destroy(); delete resline;
+   resregion->Destroy(); delete resregion;
    result->EndBulkLoad();
    return result;
 }
@@ -3005,6 +3017,8 @@ CLine* MakeOp::Intersection(CLine* line1, CLine* line2)
       else if ( chs1 < chs2)  i ++;
       else if (chs1 > chs2)   j ++;
    } // end while
+   res1->Destroy(); delete res1;
+   res2->Destroy(); delete res2;
    result->EndBulkLoad();
    return result;
 }
@@ -3079,6 +3093,8 @@ bool MakeOp::P_Intersects(CRegion* reg1, CRegion* reg2)
       } //  end else
       oldSweep = aktSweep ;
    } // end while
+   res1->Destroy(); delete res1;
+   res2->Destroy(); delete res2;
    return false;
 }
 
@@ -3147,6 +3163,8 @@ bool MakeOp::P_Intersects(CRegion* reg, CLine* line)
       } //  end else
       oldSweep = aktSweep ;
    } // end while
+   resline->Destroy(); delete resline;
+   resregion->Destroy(); delete resregion;
    return false;
 }
 
@@ -3172,6 +3190,8 @@ bool MakeOp::P_Intersects(CLine* line1, CLine* line2)
       else if ( chs1 < chs2)  i ++;
       else if (chs1 > chs2)   j ++;
    } // end while
+   res1->Destroy(); delete res1;
+   res2->Destroy(); delete res2;
    return false;
 }
 
@@ -3240,6 +3260,8 @@ bool MakeOp::Intersects(CRegion* reg1, CRegion* reg2)
       } //  end else
       oldSweep = aktSweep ;
    } // end while
+   res1->Destroy(); delete res1;
+   res2->Destroy(); delete res2;
    return false;
 }
 
@@ -3307,6 +3329,8 @@ bool MakeOp::Intersects (CRegion* reg, CLine* line) {
       }
       oldSweep = aktSweep ;
    } // end while
+   res1->Destroy(); delete res1;
+   res2->Destroy(); delete res2;
    return false;
 }
 
@@ -3333,6 +3357,8 @@ bool MakeOp::Intersects (CLine* line1, CLine* line2)
       if ( chs1 < chs2)       i ++;
       else if (chs1 > chs2)   j ++;
    } // end while
+   res1->Destroy(); delete res1;
+   res2->Destroy(); delete res2;
    return false;
 }
 
@@ -3423,7 +3449,8 @@ CRegion* MakeOp::Union(CRegion* reg1, CRegion* reg2)
       } //  end else
       oldSweep = aktSweep ;
    } // end while
-
+   res1->Destroy(); delete res1;
+   res2->Destroy(); delete res2;
    result->EndBulkLoad();
    result->SetPartnerNo();
    for (int i=0; i < result->Size(); i++) {
@@ -3466,6 +3493,8 @@ CLine* MakeOp::Union(CLine* line1, CLine* line2)
       else if ( j < res2->Size() )
          { res2->Get(j,chs2);  j ++;  (*result) += chs2; }
    } // end while
+   res1->Destroy(); delete res1;
+   res2->Destroy(); delete res2;
    result->EndBulkLoad();
    return result;
 }
@@ -3573,6 +3602,8 @@ CRegion* MakeOp::Minus(CRegion* reg1, CRegion* reg2)
       } //  end else
       oldSweep = aktSweep ;
    } // end while
+   res1->Destroy(); delete res1;
+   res2->Destroy(); delete res2;
    result->EndBulkLoad();
    result->SetPartnerNo();
    result->ComputeRegion();
@@ -3643,6 +3674,8 @@ CLine* MakeOp::Minus(CLine* line, CRegion* reg)
       } //  end else
       oldSweep = aktSweep ;
    } // end while
+   resLine->Destroy(); delete resLine;
+   resReg->Destroy(); delete resReg;
    result->EndBulkLoad();
    return result;
 
@@ -3679,6 +3712,8 @@ CLine* MakeOp::Minus(CLine* line1, CLine* line2)
 	 (*result) += chs1;
       }
    }
+   res1->Destroy(); delete res1;
+   res2->Destroy(); delete res2;
    result -> EndBulkLoad() ;
    return result;
 }
@@ -3777,7 +3812,7 @@ static int realm_lr( Word* args, Word& result, int message,
       CRegion* test2 = new CRegion(0);
       MakeRealm mr;
       mr.REALM( l1, r2, test1 , test2 );
-      ((CLine *)result.addr) = test1->Clone();
+      ((CLine *)result.addr) = test1;
       return(0);
    }
    else  {
@@ -3803,7 +3838,7 @@ static int realm_rl( Word* args, Word& result, int message,
       CRegion* test2 = new CRegion(0);
       MakeRealm mr;
       mr.REALM( l1, r2, test1 , test2 );
-      ((CRegion *)result.addr) = test2->Clone();
+      ((CRegion *)result.addr) = test2;
       return(0);
    }
    else  {
@@ -3828,7 +3863,7 @@ static int realm_ll( Word* args, Word& result, int message,
       CLine* test2 = new CLine(0);
       MakeRealm mr;
       mr.REALM( l1, l2, test1 , test2 );
-      ((CLine *)result.addr) = test1->Clone();
+      ((CLine *)result.addr) = test1;
       return(0);
    }
    else
@@ -3854,7 +3889,7 @@ static int realm_rr( Word* args, Word& result, int message,
       CRegion* test2 = new CRegion(0);
       MakeRealm mr;
       mr.REALM( r1, r2, test1 , test2 );
-      ((CRegion *)result.addr) = test1->Clone();
+      ((CRegion *)result.addr) = test1;
       return(0);
    }
    else
@@ -3937,7 +3972,7 @@ static int Inter_ll( Word* args, Word& result, int message,
 	    if ( res->IsEmpty() )
 	       ((CLine *)result.addr)->SetDefined( false );
             else
-	       ((CLine *)result.addr) = res ->Clone();
+	       ((CLine *)result.addr) = res;
             return(0);
          }
          else   {
@@ -3952,7 +3987,7 @@ static int Inter_ll( Word* args, Word& result, int message,
 	 if ( res->IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    ((CLine *)result.addr) = res ->Clone();
+	    ((CLine *)result.addr) = res;
          return(0);
       }
    }
@@ -3986,7 +4021,7 @@ static int Inter_lr( Word* args, Word& result, int message,
 	    if (res->IsEmpty() )
 	      ((CLine *)result.addr)->SetDefined( false );
             else
-	      ((CLine *)result.addr) = res ->Clone();
+	      ((CLine *)result.addr) = res ;
             return(0);
          }
          else   {
@@ -4001,7 +4036,7 @@ static int Inter_lr( Word* args, Word& result, int message,
 	 if (res->IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    ((CLine *)result.addr) = res ->Clone();
+	    ((CLine *)result.addr) = res;
          return(0);
       }
    }
@@ -4035,7 +4070,7 @@ static int Inter_rl ( Word* args, Word& result, int message,
 	    if (res->IsEmpty() )
 	       ((CLine *)result.addr)->SetDefined( false );
             else
-	       ((CLine *)result.addr) = res ->Clone();
+	       ((CLine *)result.addr) = res;
             return(0);
          }
          else   {
@@ -4050,7 +4085,7 @@ static int Inter_rl ( Word* args, Word& result, int message,
 	 if (res->IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    ((CLine *)result.addr) = res ->Clone();
+	    ((CLine *)result.addr) = res;
          return(0);
       }
    }
@@ -4084,7 +4119,7 @@ static int Inter_rr( Word* args, Word& result, int message,
 	    if ( res->IsEmpty() )
 	       ((CRegion *)result.addr)->SetDefined( false );
             else
-	       ((CRegion *)result.addr) = res ->Clone();
+	       ((CRegion *)result.addr) = res;
             return(0);
          }
          else   { // no intersection possible
@@ -4099,7 +4134,7 @@ static int Inter_rr( Word* args, Word& result, int message,
 	 if ( res->IsEmpty() )
 	    ((CRegion *)result.addr)->SetDefined( false );
          else
-            ((CRegion *)result.addr) = res ->Clone();
+            ((CRegion *)result.addr) = res;
          return(0);
       }
    }
@@ -4405,18 +4440,18 @@ Word& local, Supplier s )
          return (0);
       }
       else if (r1->IsEmpty() ) {
-         ((CRegion *)result.addr) = r2 ->Clone();
+         ((CRegion *)result.addr) = r2;
          return(0);
       }
       else if (r2->IsEmpty() ) {
-         ((CRegion *)result.addr) = r1 ->Clone();
+         ((CRegion *)result.addr) = r1;
          return(0);
       }
       else {
          CRegion* res = new CRegion(0);
          MakeOp mo;
          res = mo.Union( r1, r2 );
-         ((CRegion *)result.addr) = res ->Clone();
+         ((CRegion *)result.addr) = res;
          return(0);
       }
    }
@@ -4438,7 +4473,7 @@ static int Union_lr( Word* args, Word& result, int message,
    CLine *line = ((CLine*)args[0].addr);
    CRegion *reg = ((CRegion*)args[1].addr);
    if ( !reg->IsEmpty()&&line->IsDefined()&&reg->IsDefined()) {
-      ((CRegion *)result.addr) = reg ->Clone();
+      ((CRegion *)result.addr) = reg;
       return(0);
    }
    else  {
@@ -4459,7 +4494,7 @@ Word& local, Supplier s )
    CRegion *reg = ((CRegion*)args[0].addr);
    if ( ! reg -> IsEmpty() && line->IsDefined() &&
    reg->IsDefined() )    {
-      ((CRegion *)result.addr) = reg ->Clone();
+      ((CRegion *)result.addr) = reg;
       return(0);
    }
    else  {
@@ -4484,14 +4519,14 @@ Word& local, Supplier s )
          return(0);
       }
       else if (line2->IsEmpty() ) {
-         ((CLine *)result.addr) = line1 ->Clone();
+         ((CLine *)result.addr) = line1;
          return(0);
       }
       else {
          CLine* res = new CLine(0);
          MakeOp mo;
          res = mo.Union( line1, line2 );
-         ((CLine *)result.addr) = res ->Clone();
+         ((CLine *)result.addr) = res;
          return(0);
       }
    }
@@ -4575,7 +4610,7 @@ static int Minus_rr( Word* args, Word& result, int message,
          return(0);
       }
       else if ( r2->IsEmpty() ) {
-         ((CRegion *)result.addr) = r1 ->Clone();
+         ((CRegion *)result.addr) = r1;
          return(0);
       }
       else if (r1->BoundingBox().IsDefined() &&
@@ -4587,11 +4622,11 @@ static int Minus_rr( Word* args, Word& result, int message,
 	    if (res->IsEmpty() )
 	       ((CRegion *)result.addr)->SetDefined( false );
             else
-	       ((CRegion *)result.addr) = res ->Clone();
+	       ((CRegion *)result.addr) = res;
             return(0);
          }
          else   {
-            ((CRegion *)result.addr) = r1; // res ->Clone() ;
+            ((CRegion *)result.addr) = r1;
             return (0);
          }
       }
@@ -4602,7 +4637,7 @@ static int Minus_rr( Word* args, Word& result, int message,
 	 if (res->IsEmpty() )
 	    ((CRegion *)result.addr)->SetDefined( false );
          else
-	    ((CRegion *)result.addr) = res ->Clone();
+	    ((CRegion *)result.addr) = res;
          return(0);
       }
    }
@@ -4636,11 +4671,11 @@ Word& local, Supplier s )
 	    if ( res -> IsEmpty() )
 	       ((CLine *)result.addr)->SetDefined( false );
             else
-	       ((CLine *)result.addr) = res ->Clone();
+	       ((CLine *)result.addr) = res;
             return(0);
          }
          else   {
-            ((CLine *)result.addr) = line->Clone();
+            ((CLine *)result.addr) = line;
             return (0);
          }
       }
@@ -4651,7 +4686,7 @@ Word& local, Supplier s )
          if ( res -> IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    ((CLine *)result.addr) = res ->Clone();
+	    ((CLine *)result.addr) = res;
          return(0);
       }
    } // if IsDefined()
@@ -4673,7 +4708,7 @@ Word& local, Supplier s )
    CRegion *reg = ((CRegion*)args[0].addr);
    if ( ! line->IsEmpty() && line->IsDefined() &&
    reg->IsDefined() )    {
-      ((CRegion *)result.addr) = reg ->Clone();
+      ((CRegion *)result.addr) = reg ;
       return(0);
    }
    else  {
@@ -4698,7 +4733,7 @@ Word& local, Supplier s )
 	 return (0);
       }
       else if (line2->IsEmpty() ) {
-         ((CLine *)result.addr) = line1 -> Clone();
+         ((CLine *)result.addr) = line1;
          return (0);
       }
       else if (line1->BoundingBox().IsDefined() &&
@@ -4711,7 +4746,7 @@ Word& local, Supplier s )
 	    if (res->IsEmpty() )
 	       ((CLine *)result.addr)->SetDefined( false );
             else
-	       ((CLine *)result.addr) = res ->Clone();
+	       ((CLine *)result.addr) = res;
             return(0);
 	 }
 	 else {
@@ -4726,7 +4761,7 @@ Word& local, Supplier s )
 	 if (res ->IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    ((CLine *)result.addr) = res ->Clone();
+	    ((CLine *)result.addr) = res;
          return(0);
       }
    }
