@@ -1293,7 +1293,7 @@ indexselect(arg(N), pr(Y touches attr(AttrName, Arg, Case), Rel)) => X :-
   indexselect(arg(N), pr(attr(AttrName, Arg, Case) touches Y, Rel)) => X.
 
 indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) touches Y, _)) =>
-  filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), attr(AttrName, Arg, AttrCase) intersects Y)
+  filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), attr(AttrName, Arg, AttrCase) touches Y)
   :-
   argument(N, rel(Name, *, Case)),
   !,
