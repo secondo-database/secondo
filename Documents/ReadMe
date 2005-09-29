@@ -1,7 +1,8 @@
 
-This directory contains the latest documentation of SECONDO
-provided in PDF format. The Sources are maintained in the
-cvs module secondo-documents.
+This directory contains the latest documentation of SECONDO provided in PDF
+format. The sources are maintained in the cvs module secondo-documents. More
+recent information about new features problem etc. can be found in the file
+Secondo-News.txt
 
-06.10.2004, M. Spiekermann
+29.09.2005, M. Spiekermann
 
