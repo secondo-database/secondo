@@ -189,7 +189,7 @@ include ./makefile.cm
 ######################################################
 
 .PHONY: update-config 
-update-config: config showjni
+update-config: config showjni Documents/.Secondo-News.txt
 
 .PHONY: showjni
 showjni:
@@ -197,6 +197,13 @@ showjni:
 
 .PHONY: config
 config: $(CONFIG_FILES) 
+
+# Alert for new information in Secondo-News
+Documents/.Secondo-News.txt : Documents/Secondo-News.txt
+	@touch $@ 
+	@echo -e "\n *** New information in the file $< *** \n"
+	@head -n 20 $< | sed -ne '10~1p'
+	@echo -e "  *** file truncated after 20 lines *** \n" 
 
 bin/SecondoConfig.ini: bin/SecondoConfig.example
 	$(cp-config-file)

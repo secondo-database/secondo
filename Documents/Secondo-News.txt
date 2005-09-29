@@ -739,13 +739,15 @@ Bye Markus
 ===============================================================================
 Hello all,
 
-I have changed some makefiles and created some new ones since some
-of them were too complex. Now the structure is as follows (-> indicates a include relation)
+I have changed some makefiles and created some new ones since some of them were
+too complex. Now the structure is as follows (-> indicates a include relation)
 
 makefile -> makfile.env
              
-The top level makefile should only call other makfiles in an appropriate order. The rules
-for creating libraries were moved to a file makefile.libs. Every sub level makefile includes makefile.env which contains all basic definitions such as names of tools, directories for searching includes, etc. 
+The top level makefile should only call other makfiles in an appropriate order.
+The rules for creating libraries were moved to a file makefile.libs. Every sub
+level makefile includes makefile.env which contains all basic definitions such
+as names of tools, directories for searching includes, etc. 
 
 makfile.env 
 ->makefile.jni
@@ -753,29 +755,32 @@ makfile.env
 ->makefile.optimizer 
 ->makefile.{.linux,.win32}
 
-makefile.algebras is used for the definition of algebra names and directories where their
-source code resides. This makes ist more convenient to switch on/off algebras since you have
-only to comment out two lines and edit the file /Algebras/Management/AlgebraList.i. You
-don't have to change the file Algebras/makefile anymore. I corrected also the dependencies
-so that you don't need to do a "make clean" after Algebra re-configuration. But be careful, there
-may be some interdependencies between Algebras. Every algebra implementor who knows about 
-dependencies should document them in this file.
+makefile.algebras is used for the definition of algebra names and directories
+where their source code resides. This makes ist more convenient to switch
+on/off algebras since you have only to comment out two lines and edit the file
+/Algebras/Management/AlgebraList.i. You don't have to change the file
+Algebras/makefile anymore. I corrected also the dependencies so that you don't
+need to do a "make clean" after Algebra re-configuration. But be careful, there
+may be some interdependencies between Algebras. Every algebra implementor who
+knows about dependencies should document them in this file.
 
-makefile.jni contains information about JNI-Algebras written in Java. Currently, this doesn't
-work properly but will be corrected next week. The compilation of JNI-Algebras is controlled
-by the macro USE_JNI in the makefile.env
+makefile.jni contains information about JNI-Algebras written in Java.
+Currently, this doesn't work properly but will be corrected next week. The
+compilation of JNI-Algebras is controlled by the macro USE_JNI in the
+makefile.env
 
-makefile.optimizer contains information about the Prolog and JPL installation. If this file
-detects that Prolog is installed (this is determined by some environment variables which have to
-be set manually after prolog installation) the optimizer will be compiled. Additonally, the JPL based
-Optimizer Server will be compiled. 
+makefile.optimizer contains information about the Prolog and JPL installation.
+If this file detects that Prolog is installed (this is determined by some
+environment variables which have to be set manually after prolog installation)
+the optimizer will be compiled. Additonally, the JPL based Optimizer Server
+will be compiled. 
 
 Finally, here are some installation instructions: 
 
-MS-Windows: The Berkeley-DB will now be installed
-at a global place in the file system, therefore you will have to change some environment variables.
-When you have already installed Secondo from the CD-ROM and you want to make a new inital 
-copy from the cvs server do the following:
+MS-Windows: The Berkeley-DB will now be installed at a global place in the file
+system, therefore you will have to change some environment variables.  When you
+have already installed Secondo from the CD-ROM and you want to make a new
+inital copy from the cvs server do the following:
 
 cvs update secondo
 cd secondo/Win32
@@ -784,15 +789,17 @@ cd MSYS
 make install
 notepad /etc/setvar.bash
 
-Set up your Prolog and J2SDK installation directories. After you have done this you will never have to change to the Win32 directory and run "make install" anymore.
+Set up your Prolog and J2SDK installation directories. After you have done this
+you will never have to change to the Win32 directory and run "make install"
+anymore.
 
 Linux: Replace your setvar.bash script with the version in the secondo directory
 Maybe it was renamed try 
 
 which setvar
 
-to determine the location. Otherwise look into your  .profile or .bashrc shell configuration
-file. Adjust the Prolog and J2SDK directories.
+to determine the location. Otherwise look into your  .profile or .bashrc shell
+configuration file. Adjust the Prolog and J2SDK directories.
 
 
 If you have problems, please contact me.
