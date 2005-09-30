@@ -176,6 +176,7 @@ public boolean readFrom(byte[] Buffer){
     FieldLength=8;
 
   Name = Name.trim();
+  Name = Name.replace(' ','_').replace('/','_'); // add futher non allowed values for symbols
   return true;
 }
 
