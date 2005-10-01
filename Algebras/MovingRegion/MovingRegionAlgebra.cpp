@@ -2090,7 +2090,7 @@ void MSegmentData::restrictToInterval(Interval<Instant> origIv,
 
 */
 
-enum TsiType { ENTER, LEAVE, IGNORE };
+enum TsiType { TSI_ENTER, TSI_LEAVE, TSI_IGNORE };
 
 class TrapeziumSegmentIntersection {
 public:
@@ -2419,9 +2419,9 @@ void URegion::RestrictedIntersectionFindNormal(
 
 	if (pointAboveSegment(rUp.p1.GetX(), rUp.p1.GetY(),
 			      p1x, p1y, p2x, p2y)) {
-	    tsi.type = rDms.insideAbove ? ENTER : LEAVE;
+	    tsi.type = rDms.insideAbove ? TSI_ENTER : TSI_LEAVE;
 	} else {
-	    tsi.type = rDms.insideAbove ? LEAVE : ENTER;
+	    tsi.type = rDms.insideAbove ? TSI_LEAVE : TSI_ENTER;
 	}
 
 	if (MRA_DEBUG)
@@ -2434,7 +2434,7 @@ void URegion::RestrictedIntersectionFindNormal(
 	if (pointAboveSegment(rUp.p1.GetX(), rUp.p1.GetY(),
 			      rDms.finalStartX, rDms.finalStartY,
 			      rDms.finalEndX, rDms.finalEndY)) {
-	    tsi.type = tsi.type == ENTER ? LEAVE : ENTER;
+	    tsi.type = tsi.type == TSI_ENTER ? TSI_LEAVE : TSI_ENTER;
 
 	    if (MRA_DEBUG)
 		cerr << "URegion::RIFN() adding " 
@@ -2450,9 +2450,9 @@ void URegion::RestrictedIntersectionFindNormal(
 	
 	if (pointAboveSegment(rUp.p0.GetX(), rUp.p0.GetY(),
 			      p1x, p1y, p2x, p2y)) {
-	    tsi.type = rDms.insideAbove ? LEAVE : ENTER;
+	    tsi.type = rDms.insideAbove ? TSI_LEAVE : TSI_ENTER;
 	} else {
-	    tsi.type = rDms.insideAbove ? ENTER : LEAVE;
+	    tsi.type = rDms.insideAbove ? TSI_ENTER : TSI_LEAVE;
 	}
 
 	if (MRA_DEBUG)
@@ -2465,7 +2465,7 @@ void URegion::RestrictedIntersectionFindNormal(
 	if (pointAboveSegment(rUp.p0.GetX(), rUp.p0.GetY(),
 			      rDms.initialStartX, rDms.initialStartY,
 			      rDms.initialEndX, rDms.initialEndY)) {
-	    tsi.type = tsi.type == ENTER ? LEAVE : ENTER;
+	    tsi.type = tsi.type == TSI_ENTER ? TSI_LEAVE : TSI_ENTER;
 	    
 	    if (MRA_DEBUG)
 		cerr << "URegion::RIFN() adding " 
@@ -2479,7 +2479,7 @@ void URegion::RestrictedIntersectionFindNormal(
 	if (MRA_DEBUG)
 	    cerr << "URegion::RIFN() p0 above segment" << endl;
 	
-	tsi.type = rDms.insideAbove ? LEAVE : ENTER;
+	tsi.type = rDms.insideAbove ? TSI_LEAVE : TSI_ENTER;
 
 	if (MRA_DEBUG)
 	    cerr << "URegion::RIFN() adding " 
@@ -2491,7 +2491,7 @@ void URegion::RestrictedIntersectionFindNormal(
 	if (pointAboveSegment(rUp.p1.GetX(), rUp.p1.GetY(),
 			      rDms.finalStartX, rDms.finalStartY,
 			      rDms.finalEndX, rDms.finalEndY)) {
-	    tsi.type = rDms.insideAbove ? ENTER : LEAVE;
+	    tsi.type = rDms.insideAbove ? TSI_ENTER : TSI_LEAVE;
 	    
 	    if (MRA_DEBUG)
 		cerr << "URegion::RIFN() adding " 
@@ -2504,7 +2504,7 @@ void URegion::RestrictedIntersectionFindNormal(
 	if (MRA_DEBUG)
 	    cerr << "URegion::RIFN() p0 below segment" << endl;
 	
-	tsi.type = rDms.insideAbove ? ENTER : LEAVE;
+	tsi.type = rDms.insideAbove ? TSI_ENTER : TSI_LEAVE;
 	
 	if (MRA_DEBUG)
 	    cerr << "URegion::RIFN() adding " 
@@ -2516,7 +2516,7 @@ void URegion::RestrictedIntersectionFindNormal(
 	if (pointBelowSegment(rUp.p1.GetX(), rUp.p1.GetY(),
 			      rDms.finalStartX, rDms.finalStartY,
 			      rDms.finalEndX, rDms.finalEndY)) {
-	    tsi.type = rDms.insideAbove ? LEAVE : ENTER;
+	    tsi.type = rDms.insideAbove ? TSI_LEAVE : TSI_ENTER;
 	    
 	    if (MRA_DEBUG)
 		cerr << "URegion::RIFN() adding " 
@@ -2562,10 +2562,10 @@ void URegion::RestrictedIntersectionFindInPlane(
 	    cerr << "URegion::RIFIP() up on segment" 
 		 << endl;
 	
-	tsi.type = ip1t < ip2t ? ENTER : LEAVE;
+	tsi.type = ip1t < ip2t ? TSI_ENTER : TSI_LEAVE;
 	vtsi.push_back(tsi);
 	    
-	tsi.type = ip1t < ip2t ? LEAVE : ENTER;
+	tsi.type = ip1t < ip2t ? TSI_LEAVE : TSI_ENTER;
 	tsi.x = ip2x;
 	tsi.y = ip2y;
 	tsi.t = ip2t;
@@ -2575,10 +2575,10 @@ void URegion::RestrictedIntersectionFindInPlane(
 	if (MRA_DEBUG)
 	    cerr << "URegion::RIFIP() ip1=p0" << endl;
 
-	tsi.type = ENTER;
+	tsi.type = TSI_ENTER;
 	vtsi.push_back(tsi);
 
-	tsi.type = LEAVE;
+	tsi.type = TSI_LEAVE;
 	tsi.x = ip2x;
 	tsi.y = ip2y;
 	tsi.t = ip2t;
@@ -2588,10 +2588,10 @@ void URegion::RestrictedIntersectionFindInPlane(
 	if (MRA_DEBUG)
 	    cerr << "URegion::RIFIP() ip1=p1" << endl;
 	
-	tsi.type = LEAVE;
+	tsi.type = TSI_LEAVE;
 	vtsi.push_back(tsi);
 
-	tsi.type = ENTER;
+	tsi.type = TSI_ENTER;
 	tsi.x = ip2x;
 	tsi.y = ip2y;
 	tsi.t = ip2t;
@@ -2601,10 +2601,10 @@ void URegion::RestrictedIntersectionFindInPlane(
 	if (MRA_DEBUG)
 	    cerr << "URegion::RIFIP() ip2=p0" << endl;
 	
-	tsi.type = LEAVE;
+	tsi.type = TSI_LEAVE;
 	vtsi.push_back(tsi);
 
-	tsi.type = ENTER;
+	tsi.type = TSI_ENTER;
 	tsi.x = ip2x;
 	tsi.y = ip2y;
 	tsi.t = ip2t;
@@ -2614,10 +2614,10 @@ void URegion::RestrictedIntersectionFindInPlane(
 	if (MRA_DEBUG)
 	    cerr << "URegion::RIFIP() ip2=p1" << endl;
 	
-	tsi.type = ENTER;
+	tsi.type = TSI_ENTER;
 	vtsi.push_back(tsi);
 
-	tsi.type = LEAVE;
+	tsi.type = TSI_LEAVE;
 	tsi.x = ip2x;
 	tsi.y = ip2y;
 	tsi.t = ip2t;
@@ -2626,10 +2626,10 @@ void URegion::RestrictedIntersectionFindInPlane(
 	if (MRA_DEBUG)
 	    cerr << "URegion::RIFIP() up covers segment" << endl;
 
-	tsi.type = ip1t < ip2t ? ENTER : LEAVE;
+	tsi.type = ip1t < ip2t ? TSI_ENTER : TSI_LEAVE;
 	vtsi.push_back(tsi);
 
-	tsi.type = ip1t < ip2t ? LEAVE : ENTER;
+	tsi.type = ip1t < ip2t ? TSI_LEAVE : TSI_ENTER;
 	tsi.x = ip2x;
 	tsi.y = ip2y;
 	tsi.t = ip2t;
@@ -3166,7 +3166,7 @@ bool URegion::RestrictedIntersectionProcess(
 		 << endl;
 
 //	if (vtsi[i].type == vtsi[pos].type) {
-	if (vtsi[i].type == IGNORE) {
+	if (vtsi[i].type == TSI_IGNORE) {
 	    if (MRA_DEBUG) 
 		cerr << "URegion::RIP() removing" << endl;
 	} else {
@@ -3190,7 +3190,7 @@ bool URegion::RestrictedIntersectionProcess(
 		 << endl;
 	}
 
-	if (i == 0 && vtsi[i].type == LEAVE) {
+	if (i == 0 && vtsi[i].type == TSI_LEAVE) {
 	    bool rc =
 		nearlyEqual(vtsi[i].t, iv.end.ToDouble())
 		? iv.rc
@@ -3209,7 +3209,7 @@ bool URegion::RestrictedIntersectionProcess(
 	    prev_c = rc;
 	}
 
-	if (i > 0 && vtsi[i].type == LEAVE) {
+	if (i > 0 && vtsi[i].type == TSI_LEAVE) {
 	    bool lc = 
 		nearlyEqual(vtsi[i-1].t, iv.start.ToDouble())
 		? iv.lc
@@ -3235,7 +3235,7 @@ bool URegion::RestrictedIntersectionProcess(
 	    prev_c = rc;
 	}
 
-	if (i == pos && vtsi[i].type == ENTER) {
+	if (i == pos && vtsi[i].type == TSI_ENTER) {
 	    bool lc = 
 		nearlyEqual(vtsi[i].t, iv.start.ToDouble())
 		? iv.lc
@@ -3297,7 +3297,7 @@ void URegion::RestrictedIntersectionFix(
 		 && nearlyEqual(vtsi[j].x, x)
 		 && nearlyEqual(vtsi[j].y, y);
 	     j++) {
-	    if (vtsi[j].type == ENTER) 
+	    if (vtsi[j].type == TSI_ENTER) 
 		numEnter++;
 	    else 
 		numLeave++;
@@ -3317,24 +3317,24 @@ blubb
 */
 	if (j > i) {
 	    if (numEnter == numLeave) {
-		if (i > 0 && lastType == ENTER) {
-		    vtsi[i].type = LEAVE;
-		    vtsi[i+1].type = ENTER;
-		    lastType = ENTER;
+		if (i > 0 && lastType == TSI_ENTER) {
+		    vtsi[i].type = TSI_LEAVE;
+		    vtsi[i+1].type = TSI_ENTER;
+		    lastType = TSI_ENTER;
 		} else {
-		    vtsi[i].type = ENTER;
-		    vtsi[i+1].type = LEAVE;
-		    lastType = LEAVE;
+		    vtsi[i].type = TSI_ENTER;
+		    vtsi[i+1].type = TSI_LEAVE;
+		    lastType = TSI_LEAVE;
 		}
-		for (unsigned int k = i+2; k <= j; k++) vtsi[k].type = IGNORE;
+		for (unsigned int k = i+2; k <= j; k++) vtsi[k].type = TSI_IGNORE;
 	    } else if (numEnter > numLeave) {
-		vtsi[i].type = ENTER;
-		for (unsigned int k = i+1; k <= j; k++) vtsi[k].type = IGNORE;
-		lastType = ENTER;
+		vtsi[i].type = TSI_ENTER;
+		for (unsigned int k = i+1; k <= j; k++) vtsi[k].type = TSI_IGNORE;
+		lastType = TSI_ENTER;
 	    } else {
-		vtsi[i].type = LEAVE;
-		for (unsigned int k = i+1; k <= j; k++) vtsi[k].type = IGNORE;
-		lastType = LEAVE;
+		vtsi[i].type = TSI_LEAVE;
+		for (unsigned int k = i+1; k <= j; k++) vtsi[k].type = TSI_IGNORE;
+		lastType = TSI_LEAVE;
 	    }
 
 	    i = j;
