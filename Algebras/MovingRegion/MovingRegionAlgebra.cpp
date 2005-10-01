@@ -1855,7 +1855,6 @@ public:
 		 unsigned int cno, 
 		 unsigned int sno,
 		 bool ia,
-		 double il,
 		 double isx,
 		 double isy,
 		 double iex,
@@ -1893,9 +1892,7 @@ public:
 		 << degeneratedInitialNext
 		 << " "
 		 << degeneratedFinalNext
-		 << "] il="
-		 << il
-		 << " initial=["
+		 << "] initial=["
 		 << initialStartX
 		 << " "
 		 << initialStartY
@@ -2093,7 +2090,7 @@ void MSegmentData::restrictToInterval(Interval<Instant> origIv,
 
 */
 
-enum TsiType { ENTER, LEAVE };
+enum TsiType { ENTER, LEAVE, IGNORE };
 
 class TrapeziumSegmentIntersection {
 public:
@@ -2139,10 +2136,6 @@ private:
 	double& ip1x,
 	double& ip1y,
 	double& ip1t,
-	bool& ip2present,
-	double& ip2x,
-	double& ip2y,
-	double& ip2t,
 	vector<TrapeziumSegmentIntersection>& vtsi);
     void RestrictedIntersectionFindInPlane(    
 	Interval<Instant>& iv,
@@ -2166,6 +2159,8 @@ private:
 	vector<TrapeziumSegmentIntersection>& vtsi,
 	MPoint& res,
 	UPoint*& pending);
+    void RestrictedIntersectionFix(
+	vector<TrapeziumSegmentIntersection>& vtsi);
     
 public:
     URegion() {
@@ -2180,6 +2175,7 @@ public:
         segments(segs),
 	segmentsStartPos(pos),
 	segmentsNum(0) {
+
         if (MRA_DEBUG) 
             cerr << "URegion::URegion() #2 called" << endl;
     }
@@ -2190,10 +2186,53 @@ public:
         segments(new DBArray<MSegmentData>(0)),
 	segmentsStartPos(0),
 	segmentsNum(0) {
+
         if (MRA_DEBUG) 
-            cerr << "URegion::URegion() #2 called" << endl;
+            cerr << "URegion::URegion() #3 called" << endl;
 
 	assert(false);
+    }
+
+    URegion(Interval<Instant>& interval,
+	    CRegion& region,
+	    DBArray<MSegmentData>* segs,
+	    unsigned int pos) : 
+        SpatialTemporalUnit<CRegion, 3>(interval),
+	role(EMBEDDED),
+        segments(segs),
+	segmentsStartPos(pos),
+	segmentsNum(0) {
+
+        if (MRA_DEBUG) 
+            cerr << "URegion::URegion() #4 called" << endl;
+
+	for (int i = 0; i < region.Size(); i += 2) {
+	    CHalfSegment thisChs;
+	    region.Get(i, thisChs);
+
+	    CHalfSegment nextChs;
+	    region.Get(i+1 == region.Size() ? 0 : i+1, nextChs);
+
+	    MSegmentData dms(thisChs.GetAttr().faceno,
+			     thisChs.GetAttr().cycleno,
+			     thisChs.GetAttr().edgeno,
+			     thisChs.GetAttr().insideAbove,
+			     thisChs.GetLP().GetX(),
+			     thisChs.GetLP().GetY(),
+			     thisChs.GetRP().GetX(),
+			     thisChs.GetRP().GetY(),
+			     thisChs.GetLP().GetX(),
+			     thisChs.GetLP().GetY(),
+			     thisChs.GetRP().GetX(),
+			     thisChs.GetRP().GetY());
+
+	    dms.degeneratedInitial = DGM_NONE;
+	    dms.degeneratedFinal = DGM_NONE;
+
+	    segments->Resize(segmentsStartPos+segmentsNum+1);
+	    segments->Put(segmentsStartPos+segmentsNum, dms);
+	    segmentsNum++;
+	}
     }
 
     void SetMSegmentData(DBArray<MSegmentData>* s) {
@@ -2336,10 +2375,6 @@ void URegion::RestrictedIntersectionFindNormal(
     double& ip1x,
     double& ip1y,
     double& ip1t,
-    bool& ip2present,
-    double& ip2x,
-    double& ip2y,
-    double& ip2t,
     vector<TrapeziumSegmentIntersection>& vtsi) {
 
     if (MRA_DEBUG) 
@@ -2923,7 +2958,6 @@ void URegion::RestrictedIntersectionFind(
 		RestrictedIntersectionFindNormal(
 		    iv, rUp, rDms,
 		    ip1present, ip1x, ip1y, ip1t,
-		    ip2present, ip2x, ip2y, ip2t,
 		    vtsi);
 	    }
 	}
@@ -3131,7 +3165,8 @@ bool URegion::RestrictedIntersectionProcess(
 		 << pos
 		 << endl;
 
-	if (vtsi[i].type == vtsi[pos].type) {
+//	if (vtsi[i].type == vtsi[pos].type) {
+	if (vtsi[i].type == IGNORE) {
 	    if (MRA_DEBUG) 
 		cerr << "URegion::RIP() removing" << endl;
 	} else {
@@ -3227,6 +3262,88 @@ bool URegion::RestrictedIntersectionProcess(
     return prev_i >= 0;
 }
 
+void URegion::RestrictedIntersectionFix(
+    vector<TrapeziumSegmentIntersection>& vtsi) {
+
+    TsiType lastType;
+
+    if (MRA_DEBUG) 
+	for (unsigned int i = 0; i < vtsi.size(); i++)
+	    cerr << "URegion::RIFix() intersection dump #"
+		 << 0
+		 << " type="
+		 << vtsi[0].type
+		 << " ip=["
+		 << vtsi[0].x << " " << vtsi[0].y << " " << vtsi[0].t
+		 << "]"
+		 << endl;
+	    
+
+    for (unsigned int i = 0; i < vtsi.size(); i++) {
+	if (MRA_DEBUG) 
+	    cerr << "URegion::RIFix() post-sort i=" << i << endl;
+
+	unsigned int j;
+	unsigned int numEnter = 0;
+	unsigned int numLeave = 0;
+
+	double t = vtsi[i].t;
+	double x = vtsi[i].x;
+	double y = vtsi[i].y;
+
+	for (j = i; 
+	     j < vtsi.size()
+		 && nearlyEqual(vtsi[j].t, t)
+		 && nearlyEqual(vtsi[j].x, x)
+		 && nearlyEqual(vtsi[j].y, y);
+	     j++) {
+	    if (vtsi[j].type == ENTER) 
+		numEnter++;
+	    else 
+		numLeave++;
+	}
+
+	j--;
+
+	if (MRA_DEBUG) {
+	    cerr << "URegion::RIFix() post-sort j=" << j << endl;
+	    cerr << "URegion::RIFix() post-sort numEnter=" << numEnter << endl;
+	    cerr << "URegion::RIFix() post-sort numLeave=" << numLeave << endl;
+	}
+
+/*
+blubb
+
+*/
+	if (j > i) {
+	    if (numEnter == numLeave) {
+		if (i > 0 && lastType == ENTER) {
+		    vtsi[i].type = LEAVE;
+		    vtsi[i+1].type = ENTER;
+		    lastType = ENTER;
+		} else {
+		    vtsi[i].type = ENTER;
+		    vtsi[i+1].type = LEAVE;
+		    lastType = LEAVE;
+		}
+		for (unsigned int k = i+2; k <= j; k++) vtsi[k].type = IGNORE;
+	    } else if (numEnter > numLeave) {
+		vtsi[i].type = ENTER;
+		for (unsigned int k = i+1; k <= j; k++) vtsi[k].type = IGNORE;
+		lastType = ENTER;
+	    } else {
+		vtsi[i].type = LEAVE;
+		for (unsigned int k = i+1; k <= j; k++) vtsi[k].type = IGNORE;
+		lastType = LEAVE;
+	    }
+
+	    i = j;
+	} else {
+	    lastType = vtsi[i].type;
+	}
+    }
+}
+
 void URegion::RestrictedIntersection(UPoint& up, 
 				     Interval<Instant>& iv,
 				     MPoint& res,
@@ -3240,6 +3357,8 @@ void URegion::RestrictedIntersection(UPoint& up,
     if (MRA_DEBUG) cerr << "URegion::RI() vtsi.size()=" << vtsi.size() << endl;
 
     sort(vtsi.begin(), vtsi.end());
+
+    RestrictedIntersectionFix(vtsi);
 
     if (!RestrictedIntersectionProcess(up, iv, vtsi, res, pending)) {
 	if (MRA_DEBUG)
@@ -3604,7 +3723,6 @@ bool URegion::AddSegment(CRegion& cr,
 			 cycleno, 
 			 segmentno, 
 			 false,
-			 intervalLen,
 			 nl->RealValue(nl->First(start)), 
 			 nl->RealValue(nl->Second(start)), 
 			 nl->RealValue(nl->First(end)), 
@@ -5172,7 +5290,27 @@ public:
     MRegion(const int n) :
         Mapping<URegion, CRegion>(n),
 	msegmentdata(0) {
+
         if (MRA_DEBUG) cerr << "MRegion::MRegion(int) called" << endl;
+    }
+
+    MRegion(MPoint& mp, CRegion& r) :
+        Mapping<URegion, CRegion>(0),
+	msegmentdata(0) {
+
+	if (MRA_DEBUG) 
+	    cerr << "MRegion::MRegion(MPoint, CRegion) called" << endl;
+
+	r.logicsort();
+
+	for (int i = 0; i < mp.GetNoComponents(); i++) {
+	    UPoint up;
+	    
+	    mp.Get(i, up);
+
+	    URegion ur(up.timeInterval, r, &msegmentdata, msegmentdata.Size());
+	    Add(ur);
+	}
     }
 
     int NumOfFLOBs();
@@ -6187,6 +6325,19 @@ static ListExpr MRegionInstantToIRegionTypeMap(ListExpr args) {
 	return nl->SymbolAtom("typeerror");
 }
 
+// used by at
+
+static ListExpr MPointRegionToMPointTypeMap(ListExpr args) {
+    if (MRA_DEBUG) cerr << "MPointRegionToMPointTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 2 
+	&& nl->IsEqual(nl->First(args), "mpoint")
+	&& nl->IsEqual(nl->Second(args), "region"))
+	return nl->SymbolAtom("mpoint");
+    else
+	return nl->SymbolAtom("typeerror");
+}
+
 // used by traversed
 
 static ListExpr MRegionToRegionTypeMap(ListExpr args) {
@@ -6332,6 +6483,19 @@ static int MRegionInstantSelect(ListExpr args) {
 	return -1;
 }
 
+// used by at
+
+static int MPointRegionSelect(ListExpr args) {
+    if (MRA_DEBUG) cerr << "MPointRegionSelect() called" << endl;
+
+    if (nl->ListLength(args) == 2
+	&& nl->SymbolValue(nl->First(args)) == "mpoint"
+	&& nl->SymbolValue(nl->Second(args)) == "region")
+	return 0;
+    else
+	return -1;
+}
+
 // used by inst, val
 
 static int IRegionSelect(ListExpr args) {
@@ -6408,6 +6572,22 @@ static int InsideValueMap(Word* args,
     result = qp->ResultStorage(s);
     ((MRegion*) args[1].addr)->Inside(* (MPoint*) args[0].addr,
 				      * (MBool*) result.addr);
+
+    return 0;
+}
+
+static int AtValueMap(Word* args, 
+		      Word& result, 
+		      int message, 
+		      Word& local, 
+		      Supplier s) {
+    if (MRA_DEBUG) cerr << "AtValueMap() called" << endl;
+
+    MRegion* mr = new MRegion(* (MPoint*) args[0].addr, 
+			      * (CRegion*) args[1].addr);
+
+    result = qp->ResultStorage(s);
+    mr->Intersection(* (MPoint*) args[0].addr, * (MPoint*) result.addr);
 
     return 0;
 }
@@ -6511,6 +6691,9 @@ static ValueMapping intersectionvaluemap[] =
 static ValueMapping insidevaluemap[] = 
     { InsideValueMap };
 
+static ValueMapping atvaluemap[] = 
+    { AtValueMap };
+
 /*
 1.1 Operator specifications
 
@@ -6588,6 +6771,13 @@ static const string insidespec =
     "    <text>_ intersection _</text--->"
     "    <text>Calculates if and when mpoint is inside mregion.</text--->"
     "    <text>mpoint1 inside mregion1</text---> ) )";
+
+static const string atspec = 
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>(mpoint region) -> mregion</text--->"
+    "    <text>_ at _</text--->"
+    "    <text>Restrict moving point to region.</text--->"
+    "    <text>mpoint1 at region1</text---> ) )";
 
 /*
 Used for unit testing only.
@@ -6686,6 +6876,14 @@ static Operator inside("inside",
 		       MPointMRegionSelect,
 		       MPointMRegionToMBoolTypeMap);
 
+static Operator at("at",
+		   atspec,
+		   1,
+		   atvaluemap,
+		   nomodelmap,
+		   MPointRegionSelect,
+		   MPointRegionToMPointTypeMap);
+
 /*
 Used for unit testing only.
 
@@ -6738,6 +6936,7 @@ public:
 	AddOperator(&traversed);
 	AddOperator(&intersection);
 	AddOperator(&inside);
+	AddOperator(&at);
 
 /*
 Used for unit testing only.
