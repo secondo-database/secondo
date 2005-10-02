@@ -36,7 +36,7 @@ using namespace datetime;
 static NestedList* nl;
 static QueryProcessor* qp;
 
-const bool MRA_DEBUG = false;
+const bool MRA_DEBUG = true;
 
 static int simpleSelect(ListExpr args) {
     return 0;
@@ -47,7 +47,7 @@ static int simpleSelect(ListExpr args) {
 
 */
 
-const double eps = 0.00001;
+const double eps = 0.00000001;
 
 static bool nearlyEqual(double a, double b) {
     return abs(a-b) <= eps;
@@ -3267,7 +3267,7 @@ bool URegion::RestrictedIntersectionProcess(
     unsigned int pos = 0;
 
     if (MRA_DEBUG && vtsi.size() > 0) 
-	cerr << "URegion::RIP() intersection dump #"
+	cerr << "URegion::RIP() (pre) intersection dump #"
 	     << 0
 	     << " type="
 	     << vtsi[0].type
@@ -3314,6 +3314,9 @@ bool URegion::RestrictedIntersectionProcess(
 	}
 
 	if (i == 0 && vtsi[i].type == TSI_LEAVE) {
+	    if (MRA_DEBUG) 
+		cerr << "URegion::RIP() special case (start)" << endl;
+
 	    bool rc =
 		nearlyEqual(vtsi[i].t, iv.end.ToDouble())
 		? iv.rc
@@ -3359,6 +3362,9 @@ bool URegion::RestrictedIntersectionProcess(
 	}
 
 	if (i == pos && vtsi[i].type == TSI_ENTER) {
+	    if (MRA_DEBUG) 
+		cerr << "URegion::RIP() special case (end)" << endl;
+
 	    bool lc = 
 		nearlyEqual(vtsi[i].t, iv.start.ToDouble())
 		? iv.lc
@@ -4960,7 +4966,7 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
     }
 
     while (mrUnit < mr.GetNoComponents() && mpUnit < mp.GetNoComponents()) {
-	if (MRA_DEBUG) 
+	if (MRA_DEBUG) {
 	    cerr << "RP::RP() mrUnit=" 
 		 << mrUnit 
 		 << " mpUnit=" 
@@ -4968,6 +4974,27 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>::RefinementPartition(
 		 << " t="
 		 << t.ToDouble()
 		 << endl;
+	    cerr << "RP::RP() mrUnit interval=["
+		 << ur.timeInterval.start.ToDouble()
+		 << " "
+		 << ur.timeInterval.end.ToDouble()
+		 << " "
+		 << ur.timeInterval.lc
+		 << " "
+		 << ur.timeInterval.rc
+		 << "]"
+		 << endl;
+	    cerr << "RP::RP() mpUnit interval=["
+		 << up.timeInterval.start.ToDouble()
+		 << " "
+		 << up.timeInterval.end.ToDouble()
+		 << " "
+		 << up.timeInterval.lc
+		 << " "
+		 << up.timeInterval.rc
+		 << "]"
+		 << endl;
+	}
 
 	if (ur.timeInterval.start.Compare(&up.timeInterval.start) == 0
 	    && ur.timeInterval.end.Compare(&up.timeInterval.end) == 0) {
@@ -5431,6 +5458,24 @@ public:
 	    UPoint up;
 	    
 	    mp.Get(i, up);
+
+	    if (MRA_DEBUG) 
+		cerr << "MRegion::MRegion(MPoint, CRegion) i="
+		     << i
+		     << " interval=["
+		     << up.timeInterval.start.ToString()
+		     << " ("
+		     << up.timeInterval.start.ToDouble()
+		     << ") "
+		     << up.timeInterval.end.ToString()
+		     << "("
+		     << up.timeInterval.end.ToDouble()
+		     << ") "
+		     << up.timeInterval.lc
+		     << " "
+		     << up.timeInterval.rc
+		     << "]"
+		     << endl;
 
 	    URegion ur(up.timeInterval, r, &msegmentdata, msegmentdata.Size());
 	    Add(ur);
