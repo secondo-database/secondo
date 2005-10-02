@@ -36,7 +36,7 @@ using namespace datetime;
 static NestedList* nl;
 static QueryProcessor* qp;
 
-const bool MRA_DEBUG = true;
+const bool MRA_DEBUG = false;
 
 static int simpleSelect(ListExpr args) {
     return 0;
@@ -110,7 +110,7 @@ static void GaussTransform(const unsigned int n,
 	}
 
     for (unsigned int i = 0; i < n-1; i++) {
-	cerr << "i=" << i << endl;
+	if (MRA_DEBUG) cerr << "i=" << i << endl;
 	unsigned int j;
 	for (j = i; j < n && a[j][i] == 0; j++)
 	    if (MRA_DEBUG)
@@ -2330,6 +2330,9 @@ static bool pointAboveSegment(double x,
 	double t = (x-p1x)/(p2x-p1x);
 	double py = p1y+(p2y-p1y)*t;
 
+	if (MRA_DEBUG)
+	    cerr << "pointAboveSegment() py=" << py << endl;	
+
 	return y >= py;
     }
 }
@@ -2406,14 +2409,42 @@ void URegion::RestrictedIntersectionFindNormal(
 	    +(rDms.finalEndY-rDms.initialEndY)*f;
     }
 
+    if (MRA_DEBUG) 
+	cerr << "URegion::RIFN() p1=(" << p1x << " " << p1y << ") p2=("
+	     << p2x << " " << p2y << ")"
+	     << endl;
+
     TrapeziumSegmentIntersection tsi;
 
     tsi.x = ip1x;
     tsi.y = ip1y;
     tsi.t = ip1t;
 
-    if (nearlyEqual(rUp.p0.GetX(), ip1x)
-	&& nearlyEqual(rUp.p0.GetY(), ip1y)) {
+    if (nearlyEqual(p1x, ip1x)
+	&& nearlyEqual(p1y, ip1y)
+	&& nearlyEqual(p2x, ip1x)
+	&& nearlyEqual(p2y, ip1y)) {
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFN() through p0 and p1" << endl;
+
+	tsi.type = TSI_ENTER;
+
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFN() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
+
+	vtsi.push_back(tsi);
+
+	tsi.type = TSI_LEAVE;
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFN() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
+
+	vtsi.push_back(tsi);
+    } else if (nearlyEqual(rUp.p0.GetX(), ip1x)
+	       && nearlyEqual(rUp.p0.GetY(), ip1y)) {
 	if (MRA_DEBUG)
 	    cerr << "URegion::RIFN() through p0" << endl;
 
@@ -2563,12 +2594,24 @@ void URegion::RestrictedIntersectionFindInPlane(
 		 << endl;
 	
 	tsi.type = ip1t < ip2t ? TSI_ENTER : TSI_LEAVE;
+
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFIP() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
+
 	vtsi.push_back(tsi);
 	    
 	tsi.type = ip1t < ip2t ? TSI_LEAVE : TSI_ENTER;
 	tsi.x = ip2x;
 	tsi.y = ip2y;
 	tsi.t = ip2t;
+
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFIP() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
+
 	vtsi.push_back(tsi);
     } else if (nearlyEqual(ip1x, rUp.p0.GetX()) 
 	       && nearlyEqual(ip1y, rUp.p0.GetY())) {
@@ -2576,12 +2619,24 @@ void URegion::RestrictedIntersectionFindInPlane(
 	    cerr << "URegion::RIFIP() ip1=p0" << endl;
 
 	tsi.type = TSI_ENTER;
+
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFIP() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
+
 	vtsi.push_back(tsi);
 
 	tsi.type = TSI_LEAVE;
 	tsi.x = ip2x;
 	tsi.y = ip2y;
 	tsi.t = ip2t;
+
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFIP() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
+
 	vtsi.push_back(tsi);
     } else if (nearlyEqual(ip1x, rUp.p1.GetX()) 
 	       && nearlyEqual(ip1y, rUp.p1.GetY())) {
@@ -2589,12 +2644,24 @@ void URegion::RestrictedIntersectionFindInPlane(
 	    cerr << "URegion::RIFIP() ip1=p1" << endl;
 	
 	tsi.type = TSI_LEAVE;
+
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFIP() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
+
 	vtsi.push_back(tsi);
 
 	tsi.type = TSI_ENTER;
 	tsi.x = ip2x;
 	tsi.y = ip2y;
 	tsi.t = ip2t;
+
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFIP() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
+
 	vtsi.push_back(tsi);
     } else if (nearlyEqual(ip2x, rUp.p0.GetX()) 
 	       && nearlyEqual(ip2y, rUp.p0.GetY())) {
@@ -2602,12 +2669,24 @@ void URegion::RestrictedIntersectionFindInPlane(
 	    cerr << "URegion::RIFIP() ip2=p0" << endl;
 	
 	tsi.type = TSI_LEAVE;
+
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFIP() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
+
 	vtsi.push_back(tsi);
 
 	tsi.type = TSI_ENTER;
 	tsi.x = ip2x;
 	tsi.y = ip2y;
 	tsi.t = ip2t;
+
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFIP() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
+
 	vtsi.push_back(tsi);
     } else if (nearlyEqual(ip2x, rUp.p1.GetX()) 
 	       && nearlyEqual(ip2y, rUp.p1.GetY())) {
@@ -2615,24 +2694,48 @@ void URegion::RestrictedIntersectionFindInPlane(
 	    cerr << "URegion::RIFIP() ip2=p1" << endl;
 	
 	tsi.type = TSI_ENTER;
+
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFIP() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
+
 	vtsi.push_back(tsi);
 
 	tsi.type = TSI_LEAVE;
 	tsi.x = ip2x;
 	tsi.y = ip2y;
 	tsi.t = ip2t;
+
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFIP() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
+
 	vtsi.push_back(tsi);
     } else {
 	if (MRA_DEBUG)
 	    cerr << "URegion::RIFIP() up covers segment" << endl;
 
 	tsi.type = ip1t < ip2t ? TSI_ENTER : TSI_LEAVE;
+
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFIP() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
+
 	vtsi.push_back(tsi);
 
 	tsi.type = ip1t < ip2t ? TSI_LEAVE : TSI_ENTER;
 	tsi.x = ip2x;
 	tsi.y = ip2y;
 	tsi.t = ip2t;
+
+	if (MRA_DEBUG)
+	    cerr << "URegion::RIFIP() adding " 
+		 << tsi.type << " " << tsi.x << " " << tsi.y << " " << tsi.t
+		 << endl;
+
 	vtsi.push_back(tsi);
     }
 }
@@ -2676,10 +2779,16 @@ before this method is called!).
 unsigned int URegion::Plumbline(UPoint& up, Interval<Instant>& iv) {
     if (MRA_DEBUG) cerr << "URegion::Plumbline() called" << endl;
 
-    double t = (iv.end.ToDouble()-iv.start.ToDouble())/2;
+    double t = iv.start.ToDouble()+(iv.end.ToDouble()-iv.start.ToDouble())/2;
 
     if (MRA_DEBUG)
-	cerr << "URegion::Plumbline() t=" << t << endl;
+	cerr << "URegion::Plumbline() iv.start=" 
+	     << iv.start.ToDouble()
+	     << " iv.end="
+	     << iv.end.ToDouble()
+	     << " t=" 
+	     << t 
+	     << endl;
 
     double f;
 
@@ -2691,6 +2800,17 @@ unsigned int URegion::Plumbline(UPoint& up, Interval<Instant>& iv) {
 	    /(up.timeInterval.end.ToDouble()
 	      -up.timeInterval.start.ToDouble());
     
+    if (MRA_DEBUG)
+	cerr << "URegion::Plumbline() f=" << f << endl;
+
+    if (MRA_DEBUG)
+	cerr << "URegion::Plumbline() p0=(" 
+	     << up.p0.GetX() << " " << up.p0.GetY()
+	     << ") p1=("
+	     << up.p1.GetX() << " " << up.p1.GetY()
+	     << ")"
+	     << endl;
+
     double x = up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*f;
     double y = up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*f;
     
@@ -2942,7 +3062,10 @@ void URegion::RestrictedIntersectionFind(
 	    if (MRA_DEBUG)
 		cerr << "URegion::RIF() intersection" << endl;
 
-	    if (ip2present) {
+	    if (ip2present
+		&& !(nearlyEqual(ip1x, ip2x)
+		     && nearlyEqual(ip1y, ip2y)
+		     && nearlyEqual(ip1t, ip2t))) {
 		if (MRA_DEBUG)
 		    cerr << "URegion::RIF() in plane" << endl;
 
@@ -3270,11 +3393,11 @@ void URegion::RestrictedIntersectionFix(
     if (MRA_DEBUG) 
 	for (unsigned int i = 0; i < vtsi.size(); i++)
 	    cerr << "URegion::RIFix() intersection dump #"
-		 << 0
+		 << i
 		 << " type="
-		 << vtsi[0].type
+		 << vtsi[i].type
 		 << " ip=["
-		 << vtsi[0].x << " " << vtsi[0].y << " " << vtsi[0].t
+		 << vtsi[i].x << " " << vtsi[i].y << " " << vtsi[i].t
 		 << "]"
 		 << endl;
 	    
@@ -3348,7 +3471,8 @@ void URegion::RestrictedIntersection(UPoint& up,
 				     Interval<Instant>& iv,
 				     MPoint& res,
 				     UPoint*& pending) {
-    if (MRA_DEBUG) cerr << "URegion::RI() called" << endl;	
+    if (MRA_DEBUG) 
+	cerr << endl << endl << endl << "URegion::RI() called" << endl;	
 
     vector<TrapeziumSegmentIntersection> vtsi;
 
