@@ -65,7 +65,7 @@ LIST_FONTSIZE 12
 # set to true if you want to use binary nested lists in
 # client server communication
 # ensure to have the same setting in SecondoConfig.ini
-USE_BINARY_LISTS false
+USE_BINARY_LISTS true 
 
 # the maximal string length for string atoms in nested lists
 # ensure to have the value used in SECONDO
