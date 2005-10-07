@@ -1423,6 +1423,8 @@ private:
 
   Word streamA;
   Word streamB;
+  bool streamAClosed;
+  bool streamBClosed;
 
   Tuple *tupleA;
   TupleBuffer* relA;
@@ -1526,8 +1528,10 @@ private:
     if( i >= MAX_TUPLES_IN_MEMORY && qp->Received(streamB.addr) )
       remainTuples = true;
 
-    if( !remainTuples )
+    if( !remainTuples ) {
       qp->Close(streamB.addr);
+      streamBClosed = true;
+    }
 
     return remainTuples;
   }
@@ -1562,6 +1566,7 @@ public:
     tupleA = 0;
 
     qp->Open(streamB.addr);
+    streamBClosed = false;
     remainTuplesB = FillHashBucketsB();
     bFitsInMemory  = !remainTuplesB;
 
@@ -1571,6 +1576,7 @@ public:
     }
 
     qp->Open(streamA.addr);
+    streamAClosed = false;
     NextTupleA();
 /*
 At this moment we have a tuple of the stream A and a hash table in memory
@@ -1584,12 +1590,24 @@ bucket that the tuple coming from A hashes is also initialized.
   ~HashJoinLocalInfo()
   {
     ClearBucketsB();
+
+    // delete tuple buffer and its iterator if necessary
     if( !bFitsInMemory )
     {
       assert( relA != 0 );
-      relA->Clear();
+      //relA->Clear();
       delete relA;
     }
+
+    if ( iterTuplesRelA )
+      delete iterTuplesRelA;
+    
+    // close open streams if necessary
+    if ( !streamAClosed )
+      qp->Close(streamA.addr);
+    if ( !streamBClosed )
+      qp->Open(streamB.addr);
+
     delete resultTupleType;
   }
 
@@ -1624,6 +1642,7 @@ bucket that the tuple coming from A hashes is also initialized.
       {
         tupleA = 0;
         qp->Close(streamA.addr);
+        streamAClosed = true;
         return false;
       }
     }
@@ -1635,6 +1654,7 @@ bucket that the tuple coming from A hashes is also initialized.
       if( (tupleA = iterTuplesRelA->GetNextTuple()) == 0 )
       {
 	delete iterTuplesRelA;
+        iterTuplesRelA = 0;
     	return false;
       }
     }
