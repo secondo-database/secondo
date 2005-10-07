@@ -2323,7 +2323,7 @@ public boolean canDisplay(SecondoObject o){
         SecondoHome =T;
        }
 
-       String HoeseHome = SecondoHome+"Data"+FileSeparator+"Guidatas"+FileSeparator+"hoese"+FileSeparator;
+       String HoeseHome = SecondoHome+"Data"+FileSeparator+"GuiData"+FileSeparator+"hoese"+FileSeparator;
        CatPath = HoeseHome+"categories";
        SessionPath = HoeseHome+"sessions";
        TexturePath = HoeseHome+"textures";
