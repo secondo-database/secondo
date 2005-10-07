@@ -103,7 +103,7 @@ Algebra implementation figure below.
 #include "StandardAttribute.h"
 #include "NestedList.h"
 
-#define MAX_NUM_OF_ATTR 20
+#define MAX_NUM_OF_ATTR 10 
 
 class CcTuple;
 
@@ -486,8 +486,15 @@ Function to give outside access to the private part of the tuple class.
       recomputeMemSize = true;
 
       noAttributes = NoAttr;
-      pt->attributes = &attributes[0];
+      
+      if ( noAttributes > MAX_NUM_OF_ATTR ) {
+        attributes = new (TupleElement*)[noAttributes];
+      } 
+      else {
+        attributes = defAttributes;
+      }
 
+      pt->attributes = attributes;
       InitAttrArray();
 
       tupleMemSize = 0;
@@ -516,7 +523,8 @@ Variables used for tuple statistics.
     int tupleMemSize;
     int tupleTotalSize;
 
-    TupleElement* attributes[MAX_NUM_OF_ATTR];
+    TupleElement** attributes;
+    TupleElement* defAttributes[MAX_NUM_OF_ATTR];
 
 /*
 Two flags that tells if a tuple is free for deletion. If a tuple is free, then a stream receiving

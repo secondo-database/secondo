@@ -233,6 +233,10 @@ const int PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile )
   rc = tupleRecord->Write( memoryTuple, tupleType.GetTotalSize(), 0) && rc;
   if( extensionSize > 0 )
     rc = tupleRecord->Write( extensionTuple, extensionSize, tupleType.GetTotalSize() ) && rc;
+  
+  // delete tupleRecord;
+  // The delete causes problems with berkeley-db, hence it was
+  // commented. But now we have a memory leak here.
 
   state = Solid;
 
@@ -557,6 +561,8 @@ Tuple::~Tuple()
   tuplesDeleted++;
   tuplesInMemory--;
   delete privateTuple;
+  if (noAttributes > MAX_NUM_OF_ATTR)
+    delete [] attributes;
 }
 
 Tuple *Tuple::RestoreFromList( ListExpr typeInfo, ListExpr value, 
