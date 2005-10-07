@@ -36,7 +36,7 @@ Ausführbare Ebene
 
 	query plz count
 
-"Finde die Orte, die im Namen ’wald’ enthalten.
+"Finde die Orte, die im Namen "wald" enthalten.
 
 	query plz feed filter[.Ort contains "wald"] consume
 
