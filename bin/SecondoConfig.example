@@ -71,7 +71,7 @@ SecondoPort=1234
 
 # Print the counter values of Class Counter (refer Counter.h) after every query
 # command
-RTFlags = SI:PrintCounters
+#RTFlags = SI:PrintCounters
 
 
 # Supress to measure cpu-time,real-time, and nested list 
@@ -98,8 +98,8 @@ RTFlags = SI:PrintCounters
 ### CLIENT / SERVER
 ###
 
-# This flag controls the generation of binary lists.
-#RTFlags +=  Server:BinaryTransfer
+# This flag controls if binary encoded or textual lists are transferred.
+RTFlags +=  Server:BinaryTransfer
 
 # If set, a result.bnl file is created on the server side.
 #RTFlags += Server:ResultFile
