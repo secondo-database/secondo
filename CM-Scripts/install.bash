@@ -190,7 +190,7 @@ checkCmd "tar -xzf $cdpath/extras/jcvs/jcvs*.tgz"
 
 cd $HOME
 printSep "Uncompressing SECONDO source files ..."
-checkCmd "tar -xzf $platformdir/secondo-${platform}.tgz"
+checkCmd "tar -xzf secondo-*.tgz"
 
 if [ "$platform" != "linux" ]; then
 
@@ -222,36 +222,30 @@ printf "%s\n" "extending \$PATH and testing GCC version"
 printf "\n%s\n" "PATH=$PATH"
 gcc --version
 
-printSep "Compiling Berkeley-DB ..."
-cd $temp/db-*/build_unix
-checkCmd "../dist/configure --prefix=$sdk --enable-cxx"
-checkCmd "make && make install"
 
-printSep "Compiling libncurses ..."
-cd $temp/ncurses-*
-checkCmd "./configure --prefix=$sdk"
-checkCmd "make && make install" 
+export CFLAGS="-I$sdk/bin/include" 
+export LDFLAGS="-L$sdk/lib"
 
-printSep "Compiling SWI-Prolog ..."
-cd $temp/readline-* 
-checkCmd "./configure --prefix=$sdk --with-curses"
-checkCmd "make && make install"
-cd $temp/pl-*
-checkCmd "./configure --prefix=$sdk"
-checkCmd "make && make install"
+# $1 = package
+# $2 = directory
+# $3 = options
+#
+function installPackage {
 
-printSep "Compiling flex and bison, the scanner and parser generators"
-cd $temp/flex-*
-checkCmd "./configure --prefix=$sdk"
-checkCmd "make && make install"
-cd $temp/bison-*
-checkCmd "./configure --prefix=$sdk"
-checkCmd "make && make install"
+  printSep "Compiling package $1 ..."
+  cd $2
+  checkCmd "../dist/configure --prefix=$sdk $3 CFLAGS=$CFLAGS LDFLAGS=$LDFLAGS" 
+  checkCmd "make && make install"
 
-printSep "Compiling JPEG library ..."
-cd $temp/jpeg-*
-checkCmd "./configure --prefix=$sdk"
-checkCmd "make && make install && make install-lib"
+}
+
+#installPackage "Berkeley-DB" $temp/db-*/build_unix --enable-cxx
+installPackage "lib curses" $temp/ncurses-*
+installPackage "lib readline" $temp/readline-* --with-curses 
+installPackage "SWI-Prolog" $temp/pl-* 
+installPackage "flex,a scanner generator" $temp/flex-* 
+installPackage "bison,a parser generator" $temp/bison-* 
+installPackage "lib jpeg" $temp/jpeg-* 
 
 copyConfigFiles
 
