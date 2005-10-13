@@ -18,6 +18,7 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 include ../../../makefile.env
+include ../../../Javagui/makefile.inc
 
 # get all class files in this directory
 TMPFILES =$(shell find -maxdepth 1 -name "*.java")
@@ -26,7 +27,11 @@ JAVAFILES = $(subst ./,,$(TMPFILES))
 
 
 .PHONY: all
-all: fli $(JPL_CLASS_TARGET)/jpl/Query.class
+all: check fli $(JPL_CLASS_TARGET)/jpl/Query.class
+
+.PHONY: check
+check:
+	$(checkjavac)
 
 .PHONY: fli
 fli:
@@ -34,7 +39,7 @@ fli:
 
 
 $(JPL_CLASS_TARGET)/jpl/Query.class:
-	javac -classpath $(JPL_CLASSPATH) -d $(JPL_CLASS_TARGET) $(JAVAFILES)
+	$(JAVAC) -classpath $(JPL_CLASSPATH) -d $(JPL_CLASS_TARGET) $(JAVAFILES)
 
 .PHONY: clean
 clean:

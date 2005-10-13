@@ -3,15 +3,17 @@
 # last change 05-2003; Thomas Behr
 #
 #             10-2003; M. Spiekermann, automatic creation of configuration files added.
-# 2004-01 stefan.wich@fernuni-hagen.de: doc sj.lang added
+
 
 include ./makefile.inc
 
 .PHONY: all #creates the gui and all known viewers
-all: makedirs  
+all: check makedirs
 	@chmod ugo+x sgui
 
-
+.PHONY: check
+check:
+	$(checkjavac)
 
 .PHONY:nltest
 nltest:

@@ -26,9 +26,18 @@ JAVAC = javac
 else
 JAVAC = $(SECONDO_JAVAC)
 endif
+
 JAVA = java
 JAVADOC = javadoc
 MAKE = make
+
+define checkjavac
+	@$(JAVAC) -help > /dev/null 2>&1; \
+        if [ $$? != 0 ]; then \
+          echo -e "\n Error: The command \"$(JAVAC) --help\" returns an error. Check your Java SDK configuration! \n"; \
+	  exit 127; \
+        fi
+endef
 
 # SECONDOPATH should be a shell-variable
 ifndef SECONDO_BUILD_DIR
