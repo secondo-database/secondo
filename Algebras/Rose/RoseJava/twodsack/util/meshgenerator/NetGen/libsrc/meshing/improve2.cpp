@@ -1,7 +1,16 @@
+/*
+  improve2.cpp is part of the NetGen package.
+
+*/
+
 #include <mystdlib.h>
 
 #include "meshing.hpp"
 #include <opti.hpp>
+
+//added by dirk ansorge
+#define SMALLLIB
+//end
 
 #ifndef SMALLLIB
 #include <visual.hpp>
