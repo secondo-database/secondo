@@ -43,8 +43,8 @@ date_HMS=${date_TimeStamp#*-}
 declare -i LU_STEPCTR=1
 function printSep() {
 
-  printf "\n%s\n" "Step ${LU_STEPCTR}: ${1}"
-  printf "%s\n" "---------------------------------------------------------------------------"
+  printx "\n%s\n" "Step ${LU_STEPCTR}: ${1}"
+  printx "%s\n" "---------------------------------------------------------------------------"
   let LU_STEPCTR++
 }
 
@@ -77,6 +77,22 @@ function checkCmd() {
   return $LU_RC
 }
 
+# printx
+#
+# print to screen and into logfile
+function printx {
+
+  arg1=$1
+  arg2=$2
+  shift
+  shift
+  printf "$arg1" "$arg2"
+  if [ "$checkCmd_log" != "" ]; then
+    printf "$arg1" "$arg2" >> $checkCmd_log
+  fi
+
+}
+
 # findChilds
 #
 # search recursively for child processes. Result is stored
@@ -104,9 +120,9 @@ function findChilds {
 
 function isRunning {
 
-  local psCmd="ps --no-heading"
-  if $psCmd $1 >/dev/null; then 
-    return 0
+  if [ "$1" != "" ]; then
+    ps -p $1 > /dev/null
+    return $?
   else
     return 1
   fi

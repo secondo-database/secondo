@@ -24,7 +24,6 @@ if [ ! -d "$prologdir" ]; then
    printf  "%s\n"   "         You may need to configure the .secondo.win32rc."
 fi
 
-
 export PATH="$sdk/bin:$sdk/lib:/c/mingw/bin:$PATH"
 
 printSep "Installing unzip ..."
@@ -39,6 +38,7 @@ uncompressFolders "$platformdir/gnu" "$platformdir/non-gnu"
 printf "\n"
 printSep "Compiling Berkeley-DB ..."
 $xterm -title "Berkeley-DB Compilation" -e tail -f $logfile &
+xtermPID=$!
 cd $sdk/db-*/build_unix
 checkCmd "../dist/configure --prefix=$sdk --enable-cxx --enable-mingw"
 checkCmd "make && make install"

@@ -38,6 +38,7 @@ pat2="[${alpha}0-9_]"
 
 defVar=$(grep -no "$pat2\+=" $1)
 
+# remove line numbers
 echo -e "$defVar"  | sed -e 's#'$pat1'\('$pat2'\+\)=.*#\1#g;' | sort | uniq > $defVarFile
 
 #extract used variables
