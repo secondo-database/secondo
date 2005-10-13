@@ -4,4 +4,4 @@
 echo ""
 echo "Environment variables used by SECONDO:"
 echo "--------------------------------------"
-env | grep -e "\(SECONDO_\|^LD.\|_DIR\|PL_\|CVSR\)" | sort | sed -e's#\(.*\)=\(.*\)#\1 = "\2"\n--#g'
+env | grep -e "\(SECONDO_\|LD_LIB\|^PATH\|INCLUDE\|BERKELEY\|PL_\|CVSROOT\)" | sort | sed -e's#\(.*\)=\(.*\)#\1 = "\2"\n--#g'

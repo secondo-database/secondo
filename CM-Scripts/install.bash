@@ -34,7 +34,6 @@ function copyConfigFiles() {
 function abort {
 
   if isRunning $xtermPID; then
-    ps
     kill -9 $xtermPID
   fi
   if isRunning $j2XtermPID; then
@@ -153,6 +152,7 @@ function unInstall {
       sleep 1
     done
     echo -e "\a\a\a"
+    printf "\n%s\n" "Deleting files ..." 
     for xdir in $dirs $HOME/.secondo*rc; do
       rm -rf $xdir
     done
@@ -206,7 +206,7 @@ echo "#########################################################" >> $logfile
 printSep "SECONDO Source Files"
 if [ ! -e $HOME/secondo/makefile ]; then
   cd $HOME
-  printSep "Uncompressing SECONDO source files ..."
+  printx "\n%s\n" "Uncompressing SECONDO source files ..."
   checkCmd "tar -xzf $cdpath/secondo-*.*gz"
   if [ $? != 0 ]; then
     printx "\n%s\n" "Can't extract Secondo's sources. Please download them from \"www.informatik.fernuni-hagen.de/secondo\"."
@@ -259,6 +259,7 @@ if [ ! -d $temp/gcc* ]; then
 cd $temp
 printSep "Uncompressing 3d-party tools ..."
 uncompressFolders "$platformdir/gnu" "$platformdir/non-gnu" "$platformdir/prolog"
+echo -e "\n\n"
 fi
 
 $xterm -title "Installation Protocol" -e tail -f $logfile & 
