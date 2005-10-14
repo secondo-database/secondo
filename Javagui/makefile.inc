@@ -21,15 +21,15 @@
 # interpreter respectively. We recommend to use jdk 1.4 or higher. If you
 # have different jdk versions change the names
 
-ifndef SECONDO_JAVAC 
-JAVAC = javac
+ifndef SECONDO_JAVAC
+JAVAC := javac
 else
-JAVAC = $(SECONDO_JAVAC)
+JAVAC := $(SECONDO_JAVAC)
 endif
 
-JAVA = java
-JAVADOC = javadoc
-MAKE = make
+JAVA := java
+JAVADOC := javadoc
+MAKE := make
 
 define checkjavac
 	@$(JAVAC) -help > /dev/null 2>&1; \

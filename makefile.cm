@@ -25,6 +25,15 @@
 
 $(shell rm -f .show-update-msg)
 
+# some direcories used to build tar.gz files for
+# Secondo sources or installation kits
+pref := SECONDO_CD
+net := $(SECONDO_SDK_ROOT)/$(pref)
+
+ifndef $(websrv)
+websrv := $(PWD)/websrv
+endif
+
 # Rules for copying configuration scripts
 SCRIPT_DIR := ./CM-Scripts
 SCRIPT_FILES := $(SECONDO_SDK)/bin/setvar.bash \
@@ -83,14 +92,13 @@ show-separator:
 # rules for deployment of source files
 # default value for cvs tag 
 
+
 INSTALL_SCRIPTS := $(net)/scripts/winsetup.sh \
 		   $(net)/scripts/libutil.sh
 
 WIN_SRC := $(net)/secondo$(VERSION)-CP1252.zip
-WIN_BIG := $(net)/secondo$(VERSION)-CP1252-withDocAndDB.zip
 
-LIN_SRC := $(net)/secondo$(VERSION)-LAT1.tar.bz2
-LIN_BIG := $(net)/secondo$(VERSION)-LAT1-withDocAndDB.tar.bz2
+LIN_SRC := $(net)/secondo$(VERSION)-LAT1.tar.gz
 
 SRC_FILES := $(WIN_SRC) $(WIN_BIG) $(LIN_SRC) $(LIN_BIG) 
 
@@ -104,15 +112,33 @@ dist: tag-version  dist-scripts src-archives $(INSTGUIDE_FILES) linux-sdk win32-
 .PHONY: dist-scripts
 dist-scripts: $(net)/installsdk $(INSTALL_SCRIPTS)
 
+
+define mkwebdir
+if [ ! -d $(websrv) ]; then mkdir -p $(websrv); fi
+endef
+
 .PHONY: linux-sdk
 linux-sdk: 
-	rm -f $@
-	cd $(net) && tar -cvzf $@ Linux*Guide.pdf linux scripts installsdk
+	$(mkwebdir)
+	rm -f $(websrv)/$@.tar.gz
+	tar -C $(SECONDO_SDK_ROOT) -cvzf $(websrv)/$@.tar.gz \
+	$(pref)/Linux-Installation-Guide.pdf $(pref)/installsdk $(pref)/linux $(pref)/scripts --exclude $(pref)/linux/j2sdk* 
 
 .PHONY: win32-sdk
-win32-sdk:
-	rm -f $@
-	cd $(net) && zip -9 -r $@ Win*Guide MSYS-* win32 scripts installsdk 
+win32-sdk: 
+	$(mkwebdir)
+	rm -f $(websrv)/$@.zip
+	cd $(SECONDO_SDK_ROOT) && zip -9 -r $(websrv)/$@.zip \
+	$(pref)/Windows-Installation-Guide.pdf $(pref)/MSYS-* $(pref)/installsdk \
+	$(pref)/win32/prolog $(pref)/win32/mingw $(pref)/win32/non-gnu $(pref)/win32/gnu $(pref)/scripts
+
+
+.PHONY: techdoc 
+techdoc: $(net)/documentation/* 
+	$(mkwebdir)
+	rm -f $(websrv)/secondo-$@.zip
+	cd $(net) && zip -9 -r $(websrv)/secondo-$@.zip documentation 
+
 
 SECONDO_DEMO = secondo-demo
 
@@ -135,28 +161,37 @@ demo: $(BIN_FILES)
 	rm -rf $(SECONDO_DEMO)
 
 
-tag := $(shell echo -n "Secondo-CD-"; date "+%y%m%d")
 .PHONY: tag-version
 tag-version:
+ifndef $(tag)
+	@echo -e "\n Error: Variable tag not set! \n"; exit 1
+else
 	cvs tag -F $(tag) 
+endif
 
 .PHONY: src-archives
-src-archives:
-	cvs export -d secondo -r$(tag) secondo
-ifeq ($(platform),win32)
-	$(error Target dist not supported on windows!)
-else	
-	rm -rf $(SRC_FILES)
-	tar -cjf $(LIN_BIG) secondo/*
-	find secondo ! -type d ! -name "opt" ! -name "geo" ! -name ".sda" \
-                     ! -name ".sxd" ! -name ".canvas" ! -path "*/Data/*" ! -name "*.pdf" > SRC_FILES
-	find secondo/Data ! -type d -size -10k >> SRC_FILES
-	tar -cjf $(LIN_SRC) -T SRC_FILES
+src-archives: secondo/makefile
+	$(mkwebdir)
+	rm -rf $(SRC_FILES) .SRC_FILES
+	find secondo ! -type d \
+                     ! -name "opt" \
+                     ! -name "geo" \
+                     ! -name ".sda" \
+                     ! -name ".sxd" \
+                     ! -name ".canvas" \
+                     ! -path "*/Data/*" \
+                     ! -path "*/Generators/TPC-H/*" \
+                     ! -path "*/Algebras/NauticalMap*" \
+                     ! -name "*.pdf" > .SRC_FILES
+	find secondo/Data ! -type d -size -10k >> .SRC_FILES
+	tar -czf $(LIN_SRC) -T .SRC_FILES
 	find secondo ! \( \
           -type d \
-          -or -name "*.zip" \
-          -or -name "*.jar" \
           -or -name "*.bmp" \
+          -or -name "*.zip" \
+          -or -name "*.tgz" \
+          -or -name "*.gz" \
+          -or -name "*.jar" \
           -or -name "*.gif" \
           -or -name "*.jpg" \
           -or -name "*.sxd" \
@@ -169,10 +204,12 @@ else
           -or -path "*javazoom*" \
         \) \
         -exec recode lat1..cp1252 {} \;
-	zip -9 -r $(WIN_BIG) secondo/*
-	cat SRC_FILES | zip -9 -r $(WIN_SRC) -@
-endif
-	rm -r secondo
+	cat SRC_FILES | zip -9 -r $(WIN_SRC) -@ > /dev/null
+#	rm -r secondo
+
+secondo/makefile:
+	cvs -Q export -rHEAD secondo 
+
 
 $(net)/installsdk: $(SCRIPT_DIR)/install.bash
 	cp $< $@

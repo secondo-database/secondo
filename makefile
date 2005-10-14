@@ -31,6 +31,29 @@ ifneq ($(PWD),$(BUILDDIR))
     tree and enter the command setvar )
 endif
 
+
+# check if java compiler is working
+include ./Javagui/makefile.inc
+compileJava := "$(shell $(JAVAC) -help > /dev/null 2>&1; if [ $$? != 0 ]; then echo "false"; else echo "true"; fi)"
+
+define javac-msg
+  @echo ""
+  @echo "Warning: The command \"$(JAVAC) -help\" returned an error!"
+  @echo "         Please check your Java 2 SDK configuration an run again."
+endef
+
+# check if J2SDK_ROOT is present
+j2sdkIsPresent := "$(shell if [ "$$J2SDK_ROOT" != "" ] && [ -e "$$J2SDK_ROOT" ]; then echo "true"; else echo "false"; fi)"
+
+define j2sdk-msg
+  @echo ""
+  @echo "Warning: The variable J2SDK_ROOT is not set or points to an non existing directory."
+  @echo "         Please check the settings in file ~/.secondo.$(platform).rc and run again."
+endef
+
+
+
+
 # Configuration files which will be created as a copy of example files
 # The corresponding .example files are stored in the CVS
 
@@ -50,9 +73,25 @@ ALL_TARGETS = makedirs \
 	update-config
 
 .PHONY: all
-all: $(ALL_TARGETS) 
+all: jnicheck $(ALL_TARGETS) 
+
+.PHONY: jnicheck
+jnicheck:
+ifeq ($(USE_JNI),"true")
+ifeq ($(j2sdkIsPresent),"false")
+	@echo -e "\nJNI based algebras can not be compiled!" 
+	$(j2sdk-msg)
+	@exit 1
+endif 
+endif
 
 
+.PHONY: show-vars
+show-vars:
+	@echo "USE_JNI = <$(USE_JNI)>"
+	@echo "compileJava = <$(compileJava)>"
+	@echo "j2sdkIsPresent = <$(j2sdkIsPresent)>"
+	@echo "JAVAC = <$(JAVAC)>"
 
 .PHONY: javagui
 javagui: java2
@@ -79,6 +118,7 @@ makedirs:
 	$(MAKE) -C UserInterfaces
 
 
+
 .PHONY: libs
 libs: makedirs buildlibs
 
@@ -98,8 +138,13 @@ java: java2 update-config
 
 .PHONY: java2
 java2:
+ifeq ($(compileJava),"true")
 	@echo -e "\n *** Compiling the java based GUI *** \n"
 	$(MAKE) -C Javagui all
+else
+	@echo -e "\nThe java based GUI was not compiled!"
+	$(javac-msg)
+endif
 
 
 .PHONY: optimizer
@@ -112,13 +157,28 @@ optimizer2: makedirs buildlibs buildalg
 
 .PHONY: optserver
 optserver:
+ifeq ($(compileJava),"true")
 ifeq ($(optimizer),"true")
+ifeq ($(j2sdkIsPresent),"true")
 	@echo -e "\n *** Building JPL and the optimizer server *** \n"
 	$(MAKE) -C Jpl all
 	$(MAKE) -C OptServer all
 	@chmod ugo+x Optimizer/StartOptServer
 endif
+endif
+endif
 
+.PHONY: optsrv-msg
+optsrv-msg:
+ifeq ($(compileJava),"true")
+ifeq ($(j2sdkIsPresent),"false")
+	@echo -e "\nJPL and the optimizer server were not compiled!"
+	$(j2sdk-msg)
+endif
+else
+	@echo -e "\nJPL and the optimizer server were not compiled!"
+	$(javac-msg)
+endif
 
 .PHONY: TTY
 TTY: TTY2 update-config
@@ -189,7 +249,7 @@ include ./makefile.cm
 ######################################################
 
 .PHONY: update-config 
-update-config: config showjni Documents/.Secondo-News.txt
+update-config: config optsrv-msg showjni Documents/.Secondo-News.txt
 
 .PHONY: showjni
 showjni:
