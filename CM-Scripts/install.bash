@@ -99,7 +99,7 @@ if [ $platform != "linux" ]; then
     instpath=$HOME/tmp_drv_c
     msysdir="$instpath/msys/1.0"
   fi
-  platformdir=$PWD/windows
+  platformdir=$PWD/win32
   encoding="CP1252"	
  
 else
@@ -191,7 +191,7 @@ fi
 
 
 # create directories and logfile
-for xdir in "$sdk/bin" "$temp" "$build"; do
+for xdir in "$sdk/bin" "$temp"; do
   if [ ! -d $xdir ]; then
     mkdir -p $xdir
   fi
@@ -206,11 +206,18 @@ date >> $logfile
 echo "#########################################################" >> $logfile
 
 printSep "SECONDO Source Files"
-if [ ! -e $HOME/secondo ]; then
+if [ ! -d $HOME/secondo ]; then
   cd $HOME
   printx "\n%s\n" "Uncompressing SECONDO source files ..."
-  checkCmd "tar -xzf $cdpath/secondo-*${encoding}.*gz"
-  if [ $? != 0 ]; then
+  srcfile=$cdpath/secondo-*${encoding}.*
+  if [ "$platform" == "linux" ]; then
+    checkCmd "tar -xzf $srcfile"
+    extractOk="$?"
+  else
+    checkCmd "unzip -q -o $srcfile"
+    extractOk="$?"
+  fi
+  if [ "$extractOk" != "0" ]; then
     printx "\n%s\n" "Can't extract Secondo's sources. Please download them from \"www.informatik.fernuni-hagen.de/secondo\"."
     abort
   fi
