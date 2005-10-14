@@ -100,6 +100,7 @@ if [ $platform != "linux" ]; then
     msysdir="$instpath/msys/1.0"
   fi
   platformdir=$PWD/windows
+  encoding="CP1252"	
  
 else
 
@@ -109,6 +110,7 @@ else
     instpath=$HOME
   fi
   platformdir=$PWD/linux
+  ecoding="LAT1"	
 
 fi
 
@@ -204,14 +206,16 @@ date >> $logfile
 echo "#########################################################" >> $logfile
 
 printSep "SECONDO Source Files"
-if [ ! -e $HOME/secondo/makefile ]; then
+if [ ! -e $HOME/secondo ]; then
   cd $HOME
   printx "\n%s\n" "Uncompressing SECONDO source files ..."
-  checkCmd "tar -xzf $cdpath/secondo-*.*gz"
+  checkCmd "tar -xzf $cdpath/secondo-*${encoding}.*gz"
   if [ $? != 0 ]; then
     printx "\n%s\n" "Can't extract Secondo's sources. Please download them from \"www.informatik.fernuni-hagen.de/secondo\"."
     abort
   fi
+else
+  printx "\n%s\n" "Source directory is already present!"
 fi
 
 printSep "JAVA SDK"
