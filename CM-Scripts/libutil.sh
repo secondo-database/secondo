@@ -26,6 +26,15 @@ fi
 # recognize aliases also in an non interactive shell
 shopt -s expand_aliases
 
+function win32Host {
+
+  if [ "$OSTYPE" == "msys" ]; then
+    return 0
+  fi 
+  return 1
+}
+
+
 # getTimeStamp
 function getTimeStamp() {
 
@@ -290,25 +299,104 @@ function showGPL() {
 # For each direcory all *.gz files are assumed to be a tar archive and
 # all *.zip files a zip archive
 
-function uncompressFolders() {
+function uncompressFolders {
 
-for folder in $*; do
-  local zipFiles=$(find $folder -maxdepth 1 -name "*.zip")
-  local gzFiles=$(find $folder -maxdepth 1 -name "*.*gz")
-  for file in $zipFiles; do
-    printf "\n  processing $file ..."
-    if { ! unzip -q -o $file; }; then
-      exit 21 
+  local err=""
+
+  for folder in $*; do
+    local files=$(find $folder -maxdepth 1 -iname "*.zip" -or -iname "*.*gz")
+    printx "\n"
+    for file in $files; do
+      printx "%s\n" "  processing $file ..."
+      uncompress $file
+      if [ $? -ne 0 ]; then
+        err="true"
+      fi
+    done
+  done
+
+  if [ -n "$err" ]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+# $1 extraction dir
+# $2, .. $n files
+function uncompressFiles {
+
+  local dir=$1
+  local err=""
+
+  # change dir
+  if ! cd $1; then
+    return $?
+  fi
+  
+  shift
+  # check if files are present
+  if [ -z "$*" ]; then
+    return 1;
+  fi
+
+  # uncompress files
+  for file in $*; do
+    uncompress $file
+    if [ $? -ne 0 ]; then
+      err="true"
     fi
   done
-  for file in $gzFiles; do
-    printf "\n  processing $file ..."
-    if { ! tar -xzf $file; }; then
-      exit 22 
-    fi
-  done
-done
 
+  if [ -n "$err" ]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+# $1 file
+# $2 target dir
+function uncompress {
+
+  local storedPWD=$PWD
+  local rc=0
+  local run=""
+
+  if [ -z $1 ]; then
+    return 0
+  fi
+
+  if [ -n "$2" ]; then
+    if [ ! -d $2 ]; then
+      printx "\n%s\n" "function uncompress: Directory $2 does not exist!"
+      return 1;
+    else
+      cd $2
+    fi
+  fi
+
+  local suffix=${1##*.}
+  if [ "$suffix" == "gz" -o "$suffix" == "GZ" ]; then
+    checkCmd "tar -xzf $1"
+    rc=$?
+    run="true"
+  fi
+
+  if [ "$suffix" == "zip" -o "$suffix" == "ZIP" ]; then
+    checkCmd "unzip -q -o $1"
+    rc=$? 
+    run="true"
+  fi
+
+  if [ -n "$run" ]; then
+    cd $storedPWD
+    return $rc
+  fi
+
+  cd $storedPWD
+  printx "\n%s\n" "function uncompress: Don't know how to handle suffix \"$suffix\"."
+  return 1;
 }
 
 # mapStr
@@ -450,4 +538,32 @@ if [ "$1" == "mapStr" ]; then
    echo $name1 $name2
    printf "%s\n" "\"$3\" -> \"$LU_MAPSTR\""
    
+fi
+
+if [ "$1" == "uncompress" ]; then
+  uncompress $2 $3
+fi
+
+if [ "$1" == "uncompressFolders" ]; then
+  shift
+  xdir="/tmp/libutil-tests"
+  rm -rf $xdir
+  mkdir $xdir
+  cd $xdir
+  if [ $? -ne 0 ]; then
+    exit $?
+  fi
+  uncompressFolders $*
+fi
+
+if [ "$1" == "uncompressFiles" ]; then
+  shift
+  xdir="/tmp/libutil-tests"
+  rm -rf $xdir
+  mkdir $xdir
+  cd $xdir
+  if [ $? -ne 0 ]; then
+    exit $?
+  fi
+  uncompressFiles $*
 fi
