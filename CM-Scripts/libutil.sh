@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Jan 2005, M. Spiekermann. This is a small library
 # of functions useful for several shell scripts.
@@ -101,7 +101,15 @@ function printx {
 LU_CHILDS=""
 function findChilds {
 
-   local nextChilds=$(ps h -o pid --ppid $1 2>/dev/null | cat)
+   if [ "$platform" != "linux" ]; then
+     # the msys sed implementation has problems with \t.
+     # the next variable holds a TAB value
+     local t=" "
+     #ps -f | sed -ne "s#\([^ $t]*\)[ $t]\+\([0-9]\+\)[ $t]\+$1[ $t].*#\2#p" | cat
+     local nextChilds=$(ps -f | sed -ne "s#\([^ $t]*\)[ $t]\+\([0-9]\+\)[ $t]\+$1[ $t].*#\2#p" | cat)
+   else
+     local nextChilds=$(ps h -o pid --ppid $1 2>/dev/null | cat)
+   fi
    local nc=""
 
    LU_CHILDS="$nextChilds $LU_CHILDS"
@@ -121,8 +129,14 @@ function findChilds {
 function isRunning {
 
   if [ "$1" != "" ]; then
-    ps -p $1 > /dev/null
-    return $?
+    if [ "$platform" != "linux" ]; then
+      ps -f | sed -ne 's#\([^ \t]*\)[ \t]*\([0-9]\+\).*#_\2_#p' | grep "_$1_" > /dev/null
+      rc=$?
+    else
+      ps -p $1 > /dev/null
+      rc=$?
+    fi 
+    return $rc
   else
     return 1
   fi
@@ -136,14 +150,14 @@ function isRunning {
 # this function kills the process and its childs
 
 function killProcess {
-   echo -e "\n Time-out reached! Killing process $1"
+   printx "\n%s\n" " Killing process $1"
    findChilds $1
    if [ -z $2 ]; then
       sig=-9
    else
       sig=$2
    fi
-   echo -e " Childs: $LU_CHILDS\n"
+   printx "%s\n" " Killing child processes: $LU_CHILDS"
    kill $sig $1 $LU_CHILDS >/dev/null 2>&1
    return 0
 }
@@ -160,6 +174,7 @@ function killAfterTimeOut {
   sleep $2
   # check if process is still running
   if isRunning $1; then
+    printx "\n%s\n" "Timeout for process $1 reached!"
     killProcess $1
   fi
   exit 0
@@ -402,6 +417,15 @@ fi
 if [ "$1" == "findChilds" ]; then  
   findChilds $2
   echo $LU_CHILDS
+fi
+
+if [ "$1" == "isRunning" ]; then
+  if isRunning $2; then
+    echo "Yes"
+  else
+    echo "No"
+  fi
+  exit $?
 fi
 
 if [ "$1" == "sendMail" ]; then  

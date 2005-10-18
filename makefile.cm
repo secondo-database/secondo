@@ -27,7 +27,7 @@ $(shell rm -f .show-update-msg)
 
 # some direcories used to build tar.gz files for
 # Secondo sources or installation kits
-pref := SECONDO_CD
+pref := SECONDO_INSTALLATION_KIT
 net := $(SECONDO_SDK_ROOT)/$(pref)
 
 # local directory for tar archives

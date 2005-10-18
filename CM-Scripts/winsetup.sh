@@ -24,12 +24,6 @@ if [ ! -d "$prologdir" ]; then
    printf  "%s\n"   "         You may need to configure the .secondo.win32rc."
 fi
 
-export PATH="$sdk/bin:$sdk/lib:/c/mingw/bin:$PATH"
-
-printSep "Installing unzip ..."
-cd $sdk/bin
-checkCmd "$platformdir/non-gnu/unzip/unz550xN.exe" 
-checkCmd "unzip -q -o $platformdir/non-gnu/unzip/zip23xN.zip"
 
 printSep "Uncompressing 3d-party tools ..."
 cd $sdk

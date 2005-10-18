@@ -205,6 +205,18 @@ echo "#########################################################" >> $logfile
 date >> $logfile
 echo "#########################################################" >> $logfile
 
+# On windows we need to install unzip first
+if [ "$platform" != "linux" ]; then
+  export PATH="$sdk/bin:$sdk/lib:/c/mingw/bin:$PATH"
+
+  if [ ! -e $sdk/bin/unzip.exe ]; then
+    printSep "Installing unzip ..."
+    cd $sdk/bin
+    checkCmd "$platformdir/non-gnu/unzip/unz550xN.exe" 
+    checkCmd "unzip -q -o $platformdir/non-gnu/unzip/zip23xN.zip"
+  fi
+fi
+
 printSep "SECONDO Source Files"
 if [ ! -d $HOME/secondo ]; then
   cd $HOME
@@ -218,7 +230,7 @@ if [ ! -d $HOME/secondo ]; then
     extractOk="$?"
   fi
   if [ "$extractOk" != "0" ]; then
-    printx "\n%s\n" "Can't extract Secondo's sources. Please download them from \"www.informatik.fernuni-hagen.de/secondo\"."
+    printx "\n%s\N" "Can't extract Secondo's sources. Please download them from \"www.informatik.fernuni-hagen.de/secondo\" and put the zip or tar.gz archive into this directory."
     abort
   fi
 else
