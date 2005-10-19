@@ -28,23 +28,36 @@ import java.util.*;
 import viewer.hoese.algebras.periodic.*;
 import javax.swing.JPanel;
 
-public class Dsplpmreal extends DsplGeneric implements Function {
+public class Dsplpmreal extends DsplGeneric implements Function,ExternDisplay {
 
 Class linearClass = (new PMRealUnit()).getClass();
 Time T = new Time();
 TotalMove Move=null;
+String Entry=""; // text to display in textual list 
 
+public String toString(){
+   return Entry;
+}
 
-public void init(ListExpr type,ListExpr value,QueryResult qr){
+public void init(ListExpr type,int typewidth,ListExpr value,int valuewidth,QueryResult qr){
   AttrName = type.symbolValue();
   Move = new TotalMove();
+  String V; // value of this pmreal
+  V = "pmreal";
+  boolean ok = true;
   if(!Move.readFrom(value,linearClass)){
-     qr.addEntry("("+AttrName +" WrongListFormat )");
-     return;
+     V = "wrong list format";
+     ok = false;
   }
   if(!Move.isDefined()){
-     qr.addEntry(AttrName+" : undefined ");
-     return;
+     V = "undefined";
+     ok = false;
+  }
+  AttrName = extendString(AttrName,typewidth);
+  Entry = AttrName + " : "+V;
+  if(!ok){
+    qr.addEntry(Entry);
+    return;
   }
 
   qr.addEntry(this);
@@ -59,6 +72,9 @@ public void init(ListExpr type,ListExpr value,QueryResult qr){
     EndTime += D.getLength().getDouble();
   TimeBounds = new Interval(StartTime,EndTime,D.isLeftClosed(),D.isRightClosed());
 }
+
+
+
 
 /** Returns the interval of this periodic moving real */
  public Interval getInterval(){

@@ -57,10 +57,11 @@ public boolean readFrom(ListExpr LE,Class linearClass){
       return false;
    }
    ListExpr Content = LE.second();
-   if(Content.listLength()!=3){
+   int len = Content.listLength();
+   if( (len!=3) && (len!=2) ){
      if(Environment.DEBUG_MODE)
         System.err.println("LinearMove.readFrom :: wrong listLength of the value, \n "+
-	                   " expected : 3 ; get :"+Content.listLength());
+	                   " expected : 3 or 2 ; get :"+Content.listLength());
      return false;
    }
    if(interval==null)
@@ -70,7 +71,12 @@ public boolean readFrom(ListExpr LE,Class linearClass){
         System.err.println("LinearMove.readFrom :: error in reading interval ");
      return false;
    }
-   defined = readMap(ListExpr.twoElemList(Content.second(),Content.third()));
+   if(len==3)
+       defined = readMap(ListExpr.twoElemList(Content.second(),Content.third()));
+   else // len = 2
+       defined = readMap(Content.second());
+
+
    if(!defined & Environment.DEBUG_MODE)
       System.err.println("LinearMove.readFrom :: error in method readStartEnd");
    return defined;
