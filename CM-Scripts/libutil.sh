@@ -9,10 +9,170 @@
 # revised to work without active waiting. 
 #
 
+
+# recognize aliases also in an non interactive shell
+shopt -s expand_aliases
+
+
+LU_LOG_INIT=""
+LU_TESTMODE=""
+
+# getTimeStamp
+function getTimeStamp {
+
+  date_TimeStamp=$(date "+%y%m%d-%H%M%S")
+  date_ymd=${date_TimeStamp%-*}
+  date_HMS=${date_TimeStamp#*-}
+}
+
+# print to logfile
+#
+function printl {
+  if [ -n "$LU_LOG_INIT" ]; then
+    printf "$1" "$2" >> $LU_LOG
+  fi
+}
+
+# print to screen and into logfile if $LU_LOG is nonzero
+#
+function printx {
+
+  printf "$1" "$2"
+  printl "$1" "$2"
+}
+
+LU_RULER="--------------------------------------------------------------------"
+# 
+#
+function printlr {
+  printl "%s\n" $LU_RULER
+}
+
+function printxr {
+  printx "%s\n" $LU_RULER
+}
+
+# $1 variable name
+function varValue {
+
+  LU_VARVALUE=""
+  if [ $# -eq 0 ]; then
+    return 1
+  fi
+  
+  LU_VARVALUE="\"$(env | grep ^$1=)\""
+  return 0
+}
+
+
+# $1 mode = [err, warn, info]
+# $2 msg
+function showMsg {
+
+  local normal="\033[0m"
+  local red="\033[31m"
+  local green="\033[32m"
+  local blue="\033[34m"
+  local col=$normal
+  local msg=""
+
+  if [ $# == 2 ]; then
+    if [ "$1" == "err" ]; then
+      col=$red
+      msg="ERROR: "      
+    fi
+    if [ "$1" == "warn" ]; then
+      col=$blue
+      msg="WARNING: "
+    fi  
+    if [ "$1" == "info" ]; then
+      col=$green
+    fi
+    if [ "$1" == "em" ]; then
+      col=$blue
+    fi  
+    shift
+  fi
+
+  echo -e "${col}${msg}${1}${normal}\n" 
+  if [ -n "$LU_LOG_INIT" ]; then
+    echo -e "${1}\n" >> $LU_LOG 
+  fi
+}
+
+# check if we are running in a bash
 if [ -z "$BASH" ]; then
-  printf "%s\n" "Error: You need a bash shell to run this script!"
+  showMsg "ERROR: You need a bash shell to run this script!"
   exit 1
 fi
+
+# check if /tmp is present and writable and create a user specific
+# subdir variables LU_TMP and LU_USERTMP are defined afterwards
+#
+function createTempDir {
+
+  LU_TMP=/tmp
+  if [ ! -w /tmp ]; then
+    showMsg "warn" "Directory \"/tmp\" not present or not writable!" 
+    if [ ! -w "$HOME" ]; then
+      varValue HOME
+      showMsg "err" "Directory $LU_VARVALUE not present or not writeable!" 
+      exit 1
+    fi
+    LU_TMP=$HOME/tmp
+  fi
+
+  LU_USERTMP=$LU_TMP/shlog-$USER
+  if [ ! -d "$LU_USERTMP" ]; then
+    mkdir -p $LU_USERTMP
+    if [ $? -ne 0 ]; then
+     varValue LU_USERTMP
+     showMsg "err" "Could not create directory $LU_VARVALUE"
+     exit 1
+    fi
+  fi
+
+  return 0
+}
+
+# write startup information into logfile
+# $1 writable logfile
+#
+function initLogFile {
+
+  if [ -n "$1" ]; then
+    LU_LOG=$1
+  else
+    createTempDir
+    LU_LOG=$LU_USERTMP/sh_$$.log
+  fi
+
+  if [ -n "$LU_LOG" ]; then
+    checkCmd touch $LU_LOG
+    if [ $? -ne 0 ]; then
+      varValue LU_LOG
+      showMsg "err" "Can't touch logfile $LU_VARVALUE!"
+      exit 1
+    fi
+  else
+    showMsg "err" "No logfile defined!"
+    exit 1
+  fi 
+  LU_LOG_INIT="true" 
+
+  # set native language support to US English in order to
+  # avoid exotic messages in th log file
+  export LANG="en_US"
+
+  printl "%s\n" "############################################"
+  printl "%s\n" "# Log of $(date)"
+  printl "%s\n" "############################################"
+  printl "%s\n" "Environment settings:"
+  env 2>&1 >> $LU_LOG
+  printl "%s\n" "############################################"
+}
+
+
 
 if [ "$OSTYPE" == "msys" ]; then
    prefix=/c
@@ -23,8 +183,6 @@ else
 fi
 
 
-# recognize aliases also in an non interactive shell
-shopt -s expand_aliases
 
 function win32Host {
 
@@ -35,14 +193,6 @@ function win32Host {
 }
 
 
-# getTimeStamp
-function getTimeStamp() {
-
-date_TimeStamp=$(date "+%y%m%d-%H%M%S")
-date_ymd=${date_TimeStamp%-*}
-date_HMS=${date_TimeStamp#*-}
-
-}
 
 # printSep $1
 #
@@ -50,10 +200,10 @@ date_HMS=${date_TimeStamp#*-}
 #
 # print a separator with a number and a message
 declare -i LU_STEPCTR=1
-function printSep() {
+function printSep {
 
   printx "\n%s\n" "Step ${LU_STEPCTR}: ${1}"
-  printx "%s\n" "---------------------------------------------------------------------------"
+  printx "%s\n" "$LU_RULER" 
   let LU_STEPCTR++
 }
 
@@ -64,43 +214,28 @@ function printSep() {
 # returncode
 declare -i LU_RC=0
 
-function checkCmd() {
+function checkCmd {
 
-  printf "%s\n" "cmd: $*"
-  if [ "$testMode" != "true" ]; then
+  printlr
+  printl "%s\n" "pwd: $PWD"
+  printl "%s\n" "cmd: $*"
+  if [ "$LU_TESTMODE" != "true" ]; then
     # call command using eval 
-    if [ -z $checkCmd_log ]; then
+    if [ -z "$LU_LOG_INIT" ]; then
       eval "$*"  
     else
-      printf "%s\n" "-------------------------------------------------" >> $checkCmd_log
-      printf "%s\n" "msg for: $*" >> $checkCmd_log
-      printf "%s\n" "-------------------------------------------------" >> $checkCmd_log
-      eval "{ $*; } >> $checkCmd_log 2>&1"
+      eval "{ $*; } >> $LU_LOG 2>&1"
     fi
     let LU_RC=$?  # save returncode
 
     if [ $LU_RC -ne 0 ]; then
-      printf "\n Failure! Command {$*} returned with value ${LU_RC} \n"
+      showMsg "err" "Command {$*} returned with value ${LU_RC}"
     fi
   fi
+  printlr
   return $LU_RC
 }
 
-# printx
-#
-# print to screen and into logfile
-function printx {
-
-  arg1=$1
-  arg2=$2
-  shift
-  shift
-  printf "$arg1" "$arg2"
-  if [ "$checkCmd_log" != "" ]; then
-    printf "$arg1" "$arg2" >> $checkCmd_log
-  fi
-
-}
 
 # findChilds
 #
@@ -159,14 +294,14 @@ function isRunning {
 # this function kills the process and its childs
 
 function killProcess {
-   printx "\n%s\n" " Killing process $1"
+   printl "\n%s\n" " Killing process $1"
    findChilds $1
    if [ -z $2 ]; then
       sig=-9
    else
       sig=$2
    fi
-   printx "%s\n" " Killing child processes: $LU_CHILDS"
+   printl "%s\n" " Killing child processes: $LU_CHILDS"
    kill $sig $1 $LU_CHILDS >/dev/null 2>&1
    return 0
 }
@@ -307,7 +442,6 @@ function uncompressFolders {
     local files=$(find $folder -maxdepth 1 -iname "*.zip" -or -iname "*.*gz")
     printx "\n"
     for file in $files; do
-      printx "%s\n" "  processing $file ..."
       uncompress $file
       if [ $? -ne 0 ]; then
         err="true"
@@ -369,7 +503,7 @@ function uncompress {
 
   if [ -n "$2" ]; then
     if [ ! -d $2 ]; then
-      printx "\n%s\n" "function uncompress: Directory $2 does not exist!"
+      showMsg "err" "uncompress: Directory $2 does not exist!"
       return 1;
     else
       cd $2
@@ -377,7 +511,7 @@ function uncompress {
   fi
 
   local suffix=${1##*.}
-  if [ "$suffix" == "gz" -o "$suffix" == "GZ" ]; then
+  if [ "$suffix" == "gz" -o "$suffix" == "GZ" -o "$suffix" == "tgz" -o "$suffix" == "TGZ" ]; then
     checkCmd "tar -xzf $1"
     rc=$?
     run="true"
@@ -395,7 +529,7 @@ function uncompress {
   fi
 
   cd $storedPWD
-  printx "\n%s\n" "function uncompress: Don't know how to handle suffix \"$suffix\"."
+  showMsg "warn" "uncompress: Don't know how to handle suffix \"$suffix\"."
   return 1;
 }
 
@@ -567,3 +701,17 @@ if [ "$1" == "uncompressFiles" ]; then
   fi
   uncompressFiles $*
 fi
+
+if [ "$1" == "varValue" ]; then
+  varValue $2
+  echo -e "\n rc=$?"
+  echo -e "\n <$LU_VARVALUE> \n"
+  exit $?
+fi
+
+if [ "$1" == "initLogFile" ]; then
+  initLogFile
+  echo -e "\n rc=$?"
+  exit $?
+fi
+

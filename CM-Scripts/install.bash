@@ -9,9 +9,9 @@
 # 05/18/10 M. Spiekermann, some additonal messages. Improvements for win32 installation  
 
 # include function definitions
-# libutil.sh must be in the search PATH 
-if ! source ./scripts/libutil.sh; then 
-  printf "%s\n" "This script needs routines from the file ./scripts/libutil.sh"
+libFile="./scripts/bin/libutil.sh"
+if ! source $libFile; then 
+  printf "%s\n" "This script needs routines from the file $libFile"
   exit 1; 
 fi
 
@@ -19,26 +19,18 @@ xterm=$(which rxvt)
 if [ -z $xterm ]; then
   xterm=$(which xterm)
   if [ -z $xterm ]; then
-    printf "%s\n" "Warning: No grapichal console like  rxvt or xterm avaliable."
+    showMsg "warn" "No grapichal console like  rxvt or xterm avaliable."
   else
     xterm=""
   fi
 fi
 
-# some function declarations
-function copyConfigFiles() {
-
-  printSep "Copying configuration files ..."
-  make -C $build SECONDO_SDK=$sdk platform=$platform -f makefile.cm update-environment
-  printf  "\n\n%s\n\n" "Proceed with the installation guide ..."
-}
-
-
 function showBashrcMsg {
 
-  printx "%s\n"   "* Before compiling SECONDO run \"source \$HOME/.secondorc"
-  printx "%s\n"   "* For convenience you may store the command in \$HOME/.bashrc"
-  printx "%s\n"   "* in order to execute it automatically at startup of a new shell."
+  printx "\n"
+  showMsg "em" "Note: Before compiling SECONDO run \"source \$HOME/.secondorc \n\
+For convenience you may store the command in \$HOME/.bashrc \n\
+in order to execute it automatically at startup of a new shell. \n"
 }
 
 
@@ -57,76 +49,118 @@ function installPackage {
     conf=$6
   fi
 
-  local instOK="$sdk/.INST_OK_$2"
+  printx "%s\n" "Installing package \"$1\" ..."
+
+  local file=${2##*/}
+  local instOK="$temp/.INST_OK_PCKG_$file"
   if [ ! -e $instOK ]; then
     
     # extract files for package
+    printx "%s\n" "Uncompressing file $2 ..."
     uncompress $2 $temp
-    if [ $? -eq 0 ]; then
-      touch $instOK;
+    if [ $? -ne 0 ]; then
+      return 1
     fi
 
     # compile package if necessary
     if [ "$3" != "" ]; then
       printSep "Compiling package $1 ..."
-      cd "$2"
+      cd $3
       checkCmd "$conf --prefix=$sdk $5 --disable-nls $configVars"  
+      if [ $? -ne 0 ]; then
+        return 1;
+      fi
       checkCmd "make"
+      if [ $? -ne 0 ]; then
+        return 1;
+      fi
       for target in $4; do
         checkCmd "make $target"
+        if [ $? -ne 0 ]; then
+          return 1;
+        fi
       done
     fi
   else
-    printx "%s\n" "Package $1 seems to be already installed!"
+    showMsg "info" "Package \"$1\" seems to be already installed!"
   fi
+
+  checkCmd "touch $instOK"
+  return 0
 }
 
-# $1 = package info
-# $2 = mode = [ dir, files ]
+# $1 package info
+# $2 mode = [ dir, files, file ]
 # $3 [ $* ] files or dir  
 function uncompressPackage {
 
-  if [ $# -ne 3 ]; then
+  if [ $# -le 2 ]; then
     return 1;
   fi
 
-  pintx "%s\n" "Installing package $1"
-
+  local pckgInfo=$1
   local mode=$2
   shift
   shift
+
+  printx "%s\n" "Installing package \"$pckgInfo\" ..."
   
   # uncompress all zip files of a given directory
   if [ "$mode" == "dir" ]; then
     local dir="$*"
     local folder=${dir##*/}
-    local checkFile=$sdk/.INST_OK_DIR_$folder
+    local checkFile=$temp/.INST_OK_DIR_$folder
     if [ ! -e $checkFile ]; then
       uncompressFolders $dir
       if [ $? -eq 0 ]; then
         touch $checkFile
-      fi
+        return 0
+      else
+        return 1
+      fi 
+    else
+     showMsg "info" "Package \"$pckgInfo\" seems to be already installed"
     fi
+    return 0
   fi
 
   # uncompress all given files
   if [ "$mode" == "files" ]; then
-    local checkFile=$sdk/.INST_OK_FILES_$1
+    local file=${1##*/}
+    local checkFile=$temp/.INST_OK_FILES_$file
     if [ ! -e $checkFile ]; then
       uncompressFiles $sdk $*
       if [ $? -eq 0 ]; then
         touch $checkFile
-      fi
+        return 0
+      else
+        return 1
+      fi 
+    else
+     showMsg "info" "Package \"$pckgInfo\" seems to be already installed"
     fi
+    return 0
   fi
 
   # uncompress a single file
-  local checkFile=$sdk/.INST_OK_$1
-  if [ ! -e $checkFile ]; then
-    uncompressFiles $sdk $*
-    if [ $? -eq 0 ]; then
-      touch $checkFile
+  if [ "$mode" == "file" ]; then
+    local file=${1##*/}
+    local checkFile=$temp/.INST_OK_FILE_$file
+    if [ ! -e $checkFile ]; then
+      uncompressFiles $sdk $*
+      if [ $? -eq 0 ]; then
+	touch $checkFile
+	return 0
+      else
+	return 1
+      fi
+    else
+      showMsg "info" "Package \"PckgInfo\" seems to be already installed"
     fi
+    return 0
+  else
+    showMsg "err" "uncompressPackge - Unknown mode \"$mode\""
+    return 1
   fi
 
 }
@@ -134,25 +168,31 @@ function uncompressPackage {
 
 function unInstall {
 
-    dirs="$sdk $temp $build"
+    local dirs="$sdk $temp $build"
     if win32Host; then
       if [ -e $mingwdir ]; then
         dirs="$dirs $mingwdir"
       fi
     fi 
-    printf "%s\n" "About to delete the following directories and files:"
+    printx "%s\n" "About to delete the following directories and files:"
     for xdir in $dirs $HOME/.secondo*rc; do
-      printf "%s\n" "  $xdir"
+      printx "%s\n" "  $xdir"
     done
-    printf "%s" "Cancel with Ctrl-C. Deletion starts in 5 seconds!  "
-    for ctr in 5 4 3 2 1; do
-      printf "$ctr "
-      sleep 1
+
+    local opt1="Delete"
+    local opt2="Abort"
+    select choice in "$opt1" "$opt2"; do
+      if [ $choice == $opt1 ]; then
+        break
+      else
+        abort
+      fi
     done
-    echo -e "\a\a\a"
-    printf "\n%s\n" "Deleting files ..." 
+
     for xdir in $dirs $HOME/.secondo*rc; do
+      printf "%s\n" "Deleting $xdir ..."
       rm -rf $xdir
+      LU_LOG_INIT=""
     done
 }
 
@@ -184,6 +224,8 @@ function abort {
 
 function finish {
 
+  printSep "Copying configuration files ..."
+  make -s -C $build SECONDO_SDK=$sdk platform=$platform -f makefile.cm update-environment 2>&1 | tee -a $logfile
   showBashrcMsg
   abort
 }
@@ -265,25 +307,35 @@ fi
 # set variables for important directories
 cdpath=$PWD
 sdk=$instpath/secondo-sdk
-temp=$HOME/temp-build
+temp=/tmp/secondo-sdk-installation
 build=$HOME/secondo
 prologdir=$sdk/pl
 
-printf "\n%s\n" "*** Installation of the SECONDO DEVELOPMENT TOOLKIT ***" 
-printf "\n%s\n" "    Installation source: $cdpath"
-printf "%s\n"   "    Target for tools   : $sdk"
-printf "%s\n"   "    Target for SECONDO : $build"
-printf "%s\n"   "    Temporary directory: $temp"
-printf "%s\n"   "    Recognized platform: $platform"
+# init log file
+mkdir -p $temp
+logfile="$temp/secondo-install.log"
+initLogFile $logfile
+if [ $? -ne 0 ]; then
+  showMsg "err" "Could not create log file. Giving up!"
+  abort
+fi
+logfile=$LU_LOG
 
-for xdir in "$sdk" "$prologdir" "$sdk/bin" "$temp" "$build"; do
+printx "\n%s\n" "*** Installation of the SECONDO DEVELOPMENT TOOLKIT ***" 
+printx "\n%s\n" "    Installation source: $cdpath"
+printx "%s\n"   "    Target for tools   : $sdk"
+printx "%s\n"   "    Target for SECONDO : $build"
+printx "%s\n"   "    Temporary directory: $temp"
+printx "%s\n\n" "    Recognized platform: $platform"
+
+for xdir in "$sdk" "$prologdir" "$sdk/bin" "$build"; do
   if [ -d $xdir ]; then
-    printf "\n%s\n" "WARNING: Directory $xdir already exists."
+    showMsg "warn" "Directory $xdir already exists."
   fi 
 done
 
-printf "\n%s\n" "This procedure will install various 3rd party tools on your computer."
-printf "%s\n"   "We assume that you have read the installation guide. What would you like to do now?"
+printx "\n%s\n" "This procedure will install various 3rd party tools on your computer."
+printx "%s\n"   "We assume that you have read the installation guide. What would you like to do now?"
 
 opt1="Install"
 opt2="Uninstall"
@@ -302,6 +354,9 @@ select choice in "$opt1" "$opt2" "$opt3"; do
   fi 
 done
 
+printx "%s\n" "Starting installation!"
+printx "%s\n" "Log information will be written to $logfile"
+
 if [ "$testMode" == "true" ]; then
   mkdir -p $HOME
   if win32Host; then
@@ -311,19 +366,11 @@ fi
 
 
 # create directories and logfile
-for xdir in "$sdk/bin" "$temp"; do
+for xdir in "$sdk/bin"; do
   if [ ! -d $xdir ]; then
     mkdir -p $xdir
   fi
 done
-logfile="$temp/secondo-install.log"
-if [ ! -e $logfile ]; then
-touch $logfile
-fi
-checkCmd_log=$logfile
-echo "#########################################################" >> $logfile
-date >> $logfile
-echo "#########################################################" >> $logfile
 
 # On windows we need to install unzip first
 if win32Host; then
@@ -341,13 +388,14 @@ printSep "SECONDO Source Files"
 if [ ! -d $HOME/secondo ]; then
   printx "\n%s\n" "Uncompressing SECONDO source files ..."
   srcfile=$cdpath/secondo-*${encoding}.*
-  uncompress $srcfile $HOME
-  if [ $? -ne 0 ]; then
-    printx "\n%s\N" "Can't extract Secondo's sources. Please download them from \"www.informatik.fernuni-hagen.de/secondo\" and put the zip or tar.gz archive into this directory."
+  if [ ! -e $srcfile ]; then
+    showMsg "err" "Can't extract Secondo's sources. Please download them from \
+\"www.informatik.fernuni-hagen.de/secondo\" and put the zip or tar.gz archive into this directory."
     abort
   fi
+  uncompress $srcfile $HOME
 else
-  printx "\n%s\n" "Source directory is already present!"
+  showMsg "info" "Source directory is already present!"
 fi
 
 printSep "JAVA SDK"
@@ -355,10 +403,12 @@ if [ ! -e $sdk/j2sdk*/LICENSE ]; then
 
   j2dir=$cdpath/$platform/j2sdk
   if [ ! -e $j2dir ]; then
-    printx "\n%s\n" "Warning: The script needs Sun's J2SDK installation kit in directory $j2dir."
-    printx "%s\n"   "But this directory is not present. Hence this script will not install"
-    printx "%s\n"   "a JAVA-SDK. Please install it later manually. Depending on which version"
-    printx "%s\n"   "will be been installed adjust the variable \$J2SDK_ROOT in the file \$HOME/.secondo${platform}rc"
+    showMsg "warn" "The script needs Sun's J2SDK installation kit in directory \n\
+  \"$j2dir\" \n\
+But this directory is not present. Hence this script will not install \n\
+a JAVA-SDK. Please install it later manually. Depending on which version \n\
+will be installed adjust the variable \$J2SDK_ROOT in the file \n\
+\$HOME/.secondo${platform}rc"
   else
     printx "\n%s\n" "Installing Java SDK ..."
     if win32Host; then
@@ -390,37 +440,50 @@ fi
 
 if win32Host; then
 
-  printSep "Starting MinGW Installer ..."
+  printSep "MinGW Installation"
   cd $platformdir/mingw
-  checkCmd Min*.exe
+  checkFile=$temp/.INST_OK_MINGW
+  if [ ! -e $checkFile ]; then 
+    checkCmd Min*.exe
+  else
+    showMsg "info" "MinGW seems to be already installed!"
+  fi
 
   if [ ! -d "$mingwdir" ]; then
-     printx  "\n%s\n" " WARNING: Recommended installation directory $mingwdir not found." 
-     printx  "%s\n"   "          You may need to configure .secondo.win32rc."
+     showMsg "warn" "Recommended installation directory $mingwdir not found. \ 
+You may need to configure .secondo.win32rc."
+  else 
+     touch $checkFile
   fi
    
-  printSep  "Starting SWI-Prolog Installer ..."
+  printSep  "SWI-Prolog Installation"
   cd $platformdir/prolog
-  checkCmd w32pl*.exe
+  checkFile=$temp/.INST_OK_SWIPROLOG
+  if [ ! -e $checkFile ]; then
+    checkCmd w32pl*.exe
+  else
+    showMsg "info" "SWI-Prolog seems to be already installed!"
+  fi
 
   if [ ! -d "$prologdir" ]; then
-     printx  "\n%s\n" "WARNING: Recommended installation directory $prologdir not found." 
-     printx  "%s\n"   "         You may need to configure the .secondo.win32rc."
+     showMsg "Recommended installation directory $prologdir not found. \ 
+You may need to configure the .secondo.win32rc."
+  else 
+     touch $checkFile
   fi
 
   printSep "Silent installation of other tools ..."
   cd $sdk
-  uncompressPackage "GNU Tools: bison, etc." "dir" $platformdir/gnu
-  uncompressPackage "JPEG-Library" "files" $platformdir/non-gnu/jpeg-*
-  uncompressPackage "Flex" $platFormdir/non-gnu/flex-*
-  uncompressPackage "CVS-Client" $platformdir/non-gnu/cvs-*
+  uncompressPackage "GNU Tools: bison, etc." "dir"   $platformdir/gnu
+  uncompressPackage "JPEG-Library"           "files" $platformdir/non-gnu/jpeg-*
+  uncompressPackage "Flex"                   "file"  $platformdir/non-gnu/flex-*
+  uncompressPackage "CVS-Client"             "file"  $platformdir/non-gnu/cvs-*
 
   if [ -n $xterm ]; then
     $xterm -title "Make's messages for building Berkeley-DB" -e tail -f $logfile &
     xtermPID=$!
   fi
 
-  printx "\n\n"
   installPackage "Berkeley-DB" $platformdir/non-gnu/db-* $temp/db-*/build_unix install "--enable-cxx --enable-mingw" ../dist/configure
 
   finish
@@ -438,8 +501,8 @@ $xterm -title "Installation Protocol" -e tail -f $logfile &
 xtermPID=$!
 sleep 1
 if ! isRunning $!; then
-  printx "\n%s\n" "Warning: Could not start $xterm in backgound."
-  printx "%s\n\n" "Make's output will not be displayed but kept in $logfile."
+  showMsg "warn" "Could not start $xterm in backgound. Make's output will not \
+be displayed but kept in $logfile."
 fi
 
 cd $platformdir
