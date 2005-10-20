@@ -119,15 +119,16 @@ function createTempDir {
       showMsg "err" "Directory $LU_VARVALUE not present or not writeable!" 
       exit 1
     fi
-    LU_TMP=$HOME/tmp
+    LU_TMP=$HOME/0tmp$!
+    if ! mkdir -p $LU_TMP; then
+      showMsg "err" "Could not create directory \"$LU_TMP\""
+    fi
   fi
 
   LU_USERTMP=$LU_TMP/shlog-$USER
   if [ ! -d "$LU_USERTMP" ]; then
-    mkdir -p $LU_USERTMP
-    if [ $? -ne 0 ]; then
-     varValue LU_USERTMP
-     showMsg "err" "Could not create directory $LU_VARVALUE"
+    if ! mkdir -p $LU_USERTMP; then
+     showMsg "err" "Could not create directory \"$LU_USERTMP\""
      exit 1
     fi
   fi
@@ -406,7 +407,7 @@ EOFM
   else
     printf "%s\n" "Test Mode: Not sending mails !!!"
     printf "%s\n" "Mail command:"
-    printf "%s\n" "  mail -s \"$1\" $attchment \"$2\""
+    printf "%s\n" "  mail -s \"$1\" $attachment \"$2\""
     printf "%s\n" "Mail body: $3"
 
   fi
@@ -567,17 +568,16 @@ function mapStr() {
 } 
 
 # define some environment variables
-TEMP="/tmp"
-if [ ! -d $TEMP ]; then
-  printf "%s\n" "creating directory ${TEMP}"
-fi 
+createTempDir
+TEMP=$LU_TMP
 
+# some important directories in SECONDO's source tree 
 buildDir=${SECONDO_BUILD_DIR}
 scriptDir=${buildDir}/CM-Scripts
 binDir=${buildDir}/bin
 optDir=${buildDir}/Optimizer
 
-
+# extend PATH varaibles for using SECONDO inside shell scripts
 PATH="${PATH}:${binDir}:${optDir}:${scriptDir}"
 LD_LIBRARY_PATH="/lib:${LD_LIBRARY_PATH}"
 

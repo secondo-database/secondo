@@ -32,7 +32,9 @@ net := $(SECONDO_SDK_ROOT)/$(pref)
 netsc := $(SECONDO_SDK_ROOT)/$(pref)/scripts
 
 # local directory for tar archives
+ifndef websrv
 websrv := $(PWD)/websrv
+endif
 
 define mkwebdir
 if [ ! -d $(websrv) ]; then mkdir -p $(websrv); fi
@@ -62,7 +64,8 @@ RC_FILES := $(HOME)/.secondorc \
 
 RC_FILES2 := $(netsc)/home/.secondorc \
 	    $(netsc)/home/.secondo.sdkrc \
-            $(netsc)/home/.secondo.$(platform)rc
+            $(netsc)/home/.secondo.linuxrc \
+            $(netsc)/home/.secondo.win32rc
 
 .PHONY: update-environment 
 update-environment: show-separator $(SCRIPT_FILES) $(RC_FILES) $(PROFILE_NAME) show-update-msg
@@ -116,18 +119,13 @@ show-separator:
 # rules for deployment of source files
 # default value for cvs tag 
 
-
-INSTALL_SCRIPTS := $(net)/scripts/libutil.sh
-
 WIN_SRC := $(net)/secondo-$(tag)-CP1252.zip
-
 LIN_SRC := $(net)/secondo-$(tag)-LAT1.tar.gz
-
 SRC_FILES := $(WIN_SRC) $(LIN_SRC)
 
- 
-.PHONY: dist
-dist: checkroot tag-version dist-scripts src-archives linux-sdk win32-sdk
+# update the installation kit 
+.PHONY: update-sdk 
+update-sdk: checkroot tag-version sdk-scripts src-archives linux-sdk win32-sdk
 
 .PHONY: checkroot
 checkroot:
@@ -138,8 +136,9 @@ else
 	echo -e "\nDirectory net=\"$(net)\" does not exist!\n"; exit 2; fi
 endif
 
-.PHONY: dist-scripts
-dist-scripts: $(net)/installsdk $(INSTALL_SCRIPTS) $(SCRIPT_FILES2) $(RC_FILES2) $(PROFILE_NAME2)
+# update script files
+.PHONY: sdk-scripts
+sdk-scripts: $(net)/installsdk $(INSTALL_SCRIPTS) $(SCRIPT_FILES2) $(RC_FILES2) $(PROFILE_NAME2)
 
 .PHONY: linux-sdk
 linux-sdk: 
@@ -239,10 +238,6 @@ secondo/makefile:
 
 
 $(net)/installsdk: $(SCRIPT_DIR)/install.bash
-	cp $< $@
-	chmod 755 $@
-
-$(net)/scripts/%.sh: $(SCRIPT_DIR)/%.sh
 	cp $< $@
 	chmod 755 $@
 
