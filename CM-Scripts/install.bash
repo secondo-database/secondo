@@ -15,15 +15,6 @@ if ! source $libFile; then
   exit 1; 
 fi
 
-xterm=$(which rxvt)
-if [ -z $xterm ]; then
-  xterm=$(which xterm)
-  if [ -z $xterm ]; then
-    showMsg "warn" "No grapichal console like  rxvt or xterm avaliable."
-  else
-    xterm=""
-  fi
-fi
 
 function showBashrcMsg {
 
@@ -65,24 +56,24 @@ function installPackage {
     # compile package if necessary
     if [ "$3" != "" ]; then
       printx "%s\n" "Compiling package $1 ..."
-      cd $3
-      checkCmd "$conf --prefix=$sdk $5 --disable-nls $configureFlags"  
+      assert cd $3
+      checkCmd $conf --prefix=$sdk $5 --disable-nls $configureFlags
       if [ $? -ne 0 ]; then
         return 1;
       fi
-      checkCmd "make"
+      checkCmd make
       if [ $? -ne 0 ]; then
         return 1;
       fi
       for target in $4; do
-        checkCmd "make $target"
+        checkCmd make $target
         if [ $? -ne 0 ]; then
           return 1;
         fi
       done
     fi
-    checkCmd "touch $instOK"
-    showMsg "-> done!"
+    checkCmd touch $instOK
+    showMsg "info" "-> done!"
   else
     showMsg "info" "-> already done!"
   fi
@@ -171,8 +162,10 @@ function unInstall {
 
     local dirs="$sdk $temp $build"
     if win32Host; then
+      showMsg "warn" "Please remove MinGW and Java 2 SDK by using window's system \n\
+control software installation dialog!"
       if [ -e $mingwdir ]; then
-        dirs="$dirs $mingwdir"
+        dirs="$dirs $mingwdir $msysdir"
       fi
     fi 
     printx "%s\n" "About to delete the following directories and files:"
@@ -197,31 +190,6 @@ function unInstall {
     done
 }
 
-# $1 title
-# $* options after xterm -e
-function startupXterm {
-
-  local title=$1
-  shift
-  if [ "$*" == "" ]; then
-   return 0
-  fi
-
-  if [ -n $xterm ]; then
-    $xterm -title "$title" -e tail -f $logfile &
-    lastPID=""
-    sleep 1
-    if ! isRunning $!; then
-      showMsg "err" "Could not start \"$xterm -e $*\" in backgound." 
-      return 1 
-    fi
-    lastPID=$!
-  else
-    showMsg "err" "No graphical console present!" 
-    return 1
-  fi
-  return 0
-}
 
 
 # $1 requested version number
@@ -239,6 +207,10 @@ function checkGCC {
 
 function abort {
 
+  if ! win32Host; then
+    xhost -
+  fi
+
   if isRunning $xtermPID; then
     killProcess $xtermPID
   fi
@@ -251,18 +223,40 @@ function abort {
 
 function copyConfigFiles {
 
-  printSep "Copying configuration files ..."
-  CheckCmd cp -b $cdpath/scripts/home/.secondo* $HOME
-  if win32Host; then
-    CheckCmd cp -b $cdpath/scripts/home/.profile $HOME
-  fi 
-  CheckCmd cp -b $cdpath/scripts/bin/* $sdk/bin
+  printSep "Copying configuration files"
+  local checkFile=$temp/.INT_OK_RCFILES
+  local err=""
+    if [ ! -e $checkFile ]; then
+    printx "%s\n" "Creating \$HOME/.secondo*"
+    if ! checkCmd cp -b $cdpath/scripts/home/.secondo* $HOME; then
+      err="true" 
+    fi
+    if win32Host; then
+      printx "%s\n" "Creating \$HOME/.profile"
+      if ! checkCmd cp -b $cdpath/scripts/home/.profile $HOME; then
+        err="true" 
+      fi 
+    fi 
+    printx "%s\n" "Copying some shell scripts to \"$sdk/bin\""
+    if ! checkCmd cp -b $cdpath/scripts/bin/* $sdk/bin; then
+      err="true"
+    fi
+    showMsg "info" "-> done!"
+  else
+    showMsg "info" "-> already done!"
+  fi
+
+  if [ "$err" == "true" ]; then
+    return 1
+  fi
+  return 0
 
 }
 
 
 function finish {
 
+  copyConfigFiles
   showBashrcMsg
   abort
 }
@@ -328,6 +322,7 @@ if win32Host; then
  
 else
 
+  xhost +
   if [ "$testMode" == "true" ]; then
     HOME=/tmp/installsdk/$USER
   fi
@@ -347,6 +342,7 @@ prologdir=$sdk/pl
 
 
 if [ "$testMode" == "true" ]; then
+  printf "\n"
   showMsg "info" "Running in test mode. \$HOME set to \"$HOME\""
   mkdir -p $HOME
   mkdir -p $instpath
@@ -406,19 +402,14 @@ printx "%s\n" "Starting installation!"
 printx "%s\n" "Log information will be written to $logfile"
 
 if [ "$testMode" == "true" ]; then
-  mkdir -p $HOME
+  assert mkdir -p $HOME
   if win32Host; then
-    mkdir -p $instpath
+    assert mkdir -p $instpath
   fi
 fi
 
-
-# create directories and logfile
-#for xdir in "$sdk/bin"; do
-#  if [ ! -d $xdir ]; then
-#    mkdir -p $xdir
-#  fi
-#done
+# create sdk directory
+assert mkdir -p $sdk/bin
 
 # On windows we need to install unzip first
 if win32Host; then
@@ -426,13 +417,13 @@ if win32Host; then
 
   if [ ! -e $sdk/bin/unzip.exe ]; then
     printSep "Installing unzip ..."
-    cd $sdk/bin
+    assert cd $sdk/bin
     checkCmd "$platformdir/non-gnu/unzip/unz550xN.exe" 
     checkCmd "unzip -q -o $platformdir/non-gnu/unzip/zip23xN.zip"
   fi
 fi
 
-printSep "Installing SECONDO's Source Files"
+printSep "Installing SECONDO's source files"
 if [ ! -d $HOME/secondo ]; then
   printx "%s\n" "Uncompressing source files ..."
   srcfile=$cdpath/secondo-*${encoding}.*
@@ -462,36 +453,36 @@ will be installed adjust the variable \$J2SDK_ROOT in the file \n\
   else
     printx "%s\n" "Installing Java SDK ..."
     if win32Host; then
-      cd $j2dir
+      assert cd $j2dir
       CheckCmd j2sdk*windows*.exe
     else
-      cd $sdk
+      assert cd $sdk
       j2file=$j2dir/j2sdk*.bin
-      if ! startupXterm "JAVA 2 SDK Installation" $j2file; then
+      startupXterm "JAVA 2 SDK Installation" $j2file
+      if [ $? -ne 0 ]; then
        printx "Running $j2file directly"
-       checkCmd $j2file
+       $j2file
       else
-        j2XtermPID=$lastPID
+       j2XtermPID=$LU_xPID
       fi
     fi
   fi
-
 else  
   printx "%s\n" "-> J2SDK seems to be already installed!"
 fi
 
 
-checkFile=$sdk/j2sdk*/LICENSE
+checkFile=$temp/.INST_OK_JCVS
 if [ -e $cdpath/extras/jcvs/jcvs*.*gz ]; then
   printx "%s\n" "Uncompressing JCVS, a java cvs client ... "
   if [ ! -e $checkFile ]; then
-    cd $sdk
+    assert cd $sdk
     checkCmd tar -xzf $cdpath/extras/jcvs/jcvs*.*gz
     if [ $? -eq 0 ]; then
-      touch $checkFile 
+      assert touch $checkFile 
     fi
   else
-    printx "%s\n" "-> already done!"
+    showMsg "info" "-> already done!"
   fi
 fi
 
@@ -502,7 +493,7 @@ fi
 if win32Host; then
 
   printSep "MinGW (GCC 3.2 windows port) Installation"
-  cd $platformdir/mingw
+  assert cd $platformdir/mingw
   checkFile=$temp/.INST_OK_MINGW
   if [ ! -e $checkFile ]; then 
     checkCmd Min*.exe
@@ -515,11 +506,11 @@ if win32Host; then
 You may need to configure .secondo.win32rc."
   else 
      touch $checkFile
-     showMsg "-> done!"
+     showMsg "info" "-> done!"
   fi
    
   printSep  "SWI-Prolog Installation"
-  cd $platformdir/prolog
+  assert cd $platformdir/prolog
   checkFile=$temp/.INST_OK_SWIPROLOG
   if [ ! -e $checkFile ]; then
     checkCmd w32pl*.exe
@@ -532,11 +523,11 @@ You may need to configure .secondo.win32rc."
 You may need to configure the .secondo.win32rc."
   else 
      touch $checkFile
-     showMsg "-> done!"
+     showMsg "info" "-> done!"
   fi
 
   printSep "Installation of Tools from the gnuwin32 project ..."
-  cd $sdk
+  assert cd $sdk
   uncompressPackage "GNU Tools: bison, etc." "dir"   $platformdir/gnu
   uncompressPackage "JPEG-Library"           "files" $platformdir/non-gnu/jpeg-*
   uncompressPackage "Flex"                   "file"  $platformdir/non-gnu/flex-*
@@ -545,7 +536,7 @@ You may need to configure the .secondo.win32rc."
   if ! startupXterm "Messages from make" tail -f $logfile; then
     printx "%s\n" "Messages from make are kept in $logfile"
   else
-    xtermPID=$lastPID
+    xtermPID=$LU_xPID
   fi
 
   printSep "Installation of Berkeley-DB"
@@ -562,7 +553,7 @@ fi
 if ! startupXterm "Messages from make" tail -f $logfile; then
   printx "%s\n" "Messages from make are kept in $logfile"
 else
-  xtermPID=$lastPID
+  xtermPID=$LU_xPID
 fi
 
 

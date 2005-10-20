@@ -106,6 +106,21 @@ if [ -z "$BASH" ]; then
   exit 1
 fi
 
+# assert - check if a command was succesful
+#
+# $* cmd
+function assert {
+
+  if ! $*; then
+    showMsg "err" "Assertion failed!"
+    printx "%s\n" "pwd: $PWD" 
+    printx "%s\n" "cmd: $*"
+    exit 1
+  fi
+  return 0 
+}
+
+
 # check if /tmp is present and writable and create a user specific
 # subdir variables LU_TMP and LU_USERTMP are defined afterwards
 #
@@ -507,7 +522,7 @@ function uncompress {
       showMsg "err" "uncompress: Directory $2 does not exist!"
       return 1;
     else
-      cd $2
+      assert cd $2
     fi
   fi
 
@@ -525,11 +540,11 @@ function uncompress {
   fi
 
   if [ -n "$run" ]; then
-    cd $storedPWD
+    assert cd $storedPWD
     return $rc
   fi
 
-  cd $storedPWD
+  assert cd $storedPWD
   showMsg "warn" "uncompress: Don't know how to handle suffix \"$suffix\"."
   return 1;
 }
@@ -567,9 +582,50 @@ function mapStr() {
   LU_MAPSTR=$name2
 } 
 
+# $1 title
+# $* options after xterm -e
+function startupXterm {
+
+  local title=$1
+  shift
+  if [ "$*" == "" ]; then
+   return 0
+  fi
+
+  if [ -n $LU_xterm ]; then
+    $LU_xterm -title "$title" -e $* &
+    LU_xPID=""
+    sleep 1
+    if ! isRunning $!; then
+      showMsg "err" "Could not start \"$LU_xterm -e $*\" in backgound." 
+      return 1 
+    fi
+    LU_xPID=$!
+  else
+    showMsg "err" "No graphical console present!" 
+    return 1
+  fi
+  return 0
+}
+
+
+
 # define some environment variables
 createTempDir
 TEMP=$LU_TMP
+
+# check if a graphical console is present
+LU_xterm=$(which rxvt)
+if [ -z $LU_xterm ]; then
+  LU_xterm=$(which xterm)
+  if [ -z $LU_xterm ]; then
+    showMsg "warn" "No grapichal console like  rxvt or xterm avaliable."
+  else
+    LU_xterm=""
+  fi
+fi
+
+
 
 # some important directories in SECONDO's source tree 
 buildDir=${SECONDO_BUILD_DIR}
@@ -681,9 +737,9 @@ fi
 if [ "$1" == "uncompressFolders" ]; then
   shift
   xdir="/tmp/libutil-tests"
-  rm -rf $xdir
-  mkdir $xdir
-  cd $xdir
+  assert rm -rf $xdir
+  assert mkdir $xdir
+  assert cd $xdir
   if [ $? -ne 0 ]; then
     exit $?
   fi
@@ -693,9 +749,9 @@ fi
 if [ "$1" == "uncompressFiles" ]; then
   shift
   xdir="/tmp/libutil-tests"
-  rm -rf $xdir
-  mkdir $xdir
-  cd $xdir
+  assert rm -rf $xdir
+  assert mkdir $xdir
+  assert cd $xdir
   if [ $? -ne 0 ]; then
     exit $?
   fi
@@ -715,3 +771,8 @@ if [ "$1" == "initLogFile" ]; then
   exit $?
 fi
 
+if [ "$1" == "startupXterm" ]; then
+  title="$2"
+  shift 2
+  startupXterm "$title" $*
+fi
