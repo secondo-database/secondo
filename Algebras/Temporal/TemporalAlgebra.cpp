@@ -2391,7 +2391,7 @@ PeriodsPeriodsTypeMapPeriods( ListExpr args )
 }
 
 /*
-10.1.15 Type mapping function "UPointTypeMapRect3"
+16.1.14 Type mapping function "UPointTypeMapRect3"
 
 This type mapping function is used for the ~bbox~ operator.
 
@@ -2405,6 +2405,30 @@ ListExpr UPointTypeMapRect3( ListExpr args )
 
     if( nl->IsEqual( arg1, "upoint" ) )
       return (nl->SymbolAtom( "rect3" ));
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+16.1.15 Type mapping function "MPointTypeMapTranslate"
+
+This type mapping function is used for the ~translate~ operator.
+
+*/
+ListExpr MPointTypeMapTranslate( ListExpr args )
+{
+  ListExpr arg1, arg2;
+
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg1, "mpoint" ) &&
+        nl->IsEqual(nl->First( arg2 ), "duration") &&
+	nl->IsEqual(nl->Second( arg2 ), "real") &&
+        nl->IsEqual(nl->Third( arg2 ), "real")) {
+      return (nl->SymbolAtom( "mpoint" )); }
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -3103,6 +3127,59 @@ UPointBBox( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+16.3.31 Value mapping functions of operator ~translate~
+
+*/
+static int
+MPointTranslate( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  Word t;
+  double dx,dy;
+  DateTime* dd;
+  UPoint uPoint;
+  MPoint* mp, *mpResult;
+  
+  result = qp->ResultStorage( s );
+
+  mp= (MPoint*)args[0].addr,
+  mpResult = (MPoint*)result.addr;
+
+  Supplier son = qp->GetSupplier( args[1].addr, 0 );
+  qp->Request( son, t );
+  dd = (DateTime *)t.addr;
+	
+  son = qp->GetSupplier( args[1].addr, 1 );
+  qp->Request( son, t );
+  dx = ((CcReal *)t.addr)->GetRealval();
+  
+  son = qp->GetSupplier( args[1].addr, 2 );
+  qp->Request( son, t );
+  dy = ((CcReal *)t.addr)->GetRealval();
+
+  if ( mp->IsDefined() )
+  {
+    mpResult->Clear();
+    mpResult->StartBulkLoad();
+    for( int i = 0; i < mp->GetNoComponents(); i++ )
+    {
+      mp->Get( i, uPoint );
+      uPoint.p0.Set( uPoint.p0.GetX() + dx, uPoint.p0.GetY() + dy );
+      uPoint.p1.Set( uPoint.p1.GetX() + dx, uPoint.p1.GetY() + dy );
+      uPoint.timeInterval.start.Add(dd);
+      uPoint.timeInterval.end.Add(dd);
+      mpResult->Add(uPoint);
+    }
+    mpResult->EndBulkLoad();
+    return 0;
+  }
+  else
+  {
+    mpResult->SetDefined( false );
+    return 0;
+  }
+}
+
+/*
 16.3.32 Value mapping functions of operator ~theyear~
 
 */
@@ -3758,6 +3835,14 @@ const string TemporalSpecBBox  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                     "<text>Returns the 3d bounding box of the unit.</text--->"
                                     "<text>query bbox( upoint1 )</text--->"
                                     ") )";
+				    
+const string MPointSpecTranslate  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                    "\"Example\" ) "
+                                    "( <text>mpoint x duration x real x real -> mpoint</text--->"
+                                    "<text>_ translate[list]</text--->"
+                                    "<text>Moves the object parallely for distance and time.</text--->"
+                                    "<text>query mp1 translate[[const duration value (5 10)],5.0,8.0]</text--->"
+                                    ") )";
 
 const string TemporalSpecTheYear  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
@@ -4052,6 +4137,13 @@ Operator temporalbbox( "bbox",
                        Operator::SimpleSelect,
                        UPointTypeMapRect3 );
 
+Operator temporaltranslate( "translate",
+                       MPointSpecTranslate,
+                       MPointTranslate,
+                       Operator::DummyModel,
+                       Operator::SimpleSelect,
+                       MPointTypeMapTranslate );
+
 Operator temporaltheyear( "theyear",
                           TemporalSpecTheYear,
                           TheYear,
@@ -4196,6 +4288,7 @@ class TemporalAlgebra : public Algebra
 
     AddOperator( &temporalat );
     AddOperator( &temporaldistance );
+    AddOperator( &temporaltranslate );
 
     AddOperator( &temporaltheyear );
     AddOperator( &temporalthemonth );
