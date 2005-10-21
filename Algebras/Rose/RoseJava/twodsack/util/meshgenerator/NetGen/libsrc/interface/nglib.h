@@ -1,5 +1,6 @@
 /*
-  nglib.h is part of the NetGen package.
+
+nglib.h is part of the NetGen package.
 
 */
 
@@ -10,6 +11,7 @@
 
 // added by dirk ansorge
 #define SMALLLIB
+
 // end
   /**************************************************************************/
   /* File:   nglib.hh                                                       */
@@ -17,11 +19,12 @@
   /* Date:   7. May. 2000                                                   */
   /**************************************************************************/
 
-/*
+  /*
   
   Interface to the netgen meshing kernel
   
-*/
+  */
+
 
 /// Data type for NETGEN mesh
 typedef void * Ng_Mesh;

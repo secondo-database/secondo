@@ -5,18 +5,18 @@
  * 
  */
 
-#include <jni.h>
-//#include "NetGen/libsrc/interface/nglib.h"
 #include "MeshGenerator.h"
 #include <stdio.h>
-#include <iostream>
-//#include <NetGen/libsrc/geom2d/splinegeometry2.hpp>
-//#include <NetGen/libsrc/geom2d/geometry2d.hpp>
 
 /*
- * comment...
+ * This C file implements the interface between the JAVA code of the 2DSACK package and the NetGen code which is written in C++. There are two
+ * functions in this class which are <tt>triangulateNetGen</tt> and <tt>freeMemoryNetGen</tt>. The first is for computing the triangulation, whereas
+ * the latter is for freeing some used memory to prevent memory leaks.<p>
+ * Communication between JAVA and C++ is done unsing the JNI (JAVA NATIVE INTERFACE). The .h file for this C code is generated automatically by calling
+ * javah.
  */
 
+//nglib.h provides the NetGen interface functions
 namespace nglib {
 #include "NetGen/libsrc/interface/nglib.h"
 }
@@ -24,6 +24,7 @@ namespace nglib {
 using namespace nglib;
 static jdoubleArray returnArray;
 static Ng_Geometry_2D * geom;
+
 
 JNIEXPORT jdoubleArray JNICALL Java_twodsack_util_meshgenerator_MeshGenerator_triangulateNetGen (JNIEnv *env, jobject obj, jdoubleArray pointArray, int numberofpoints, jintArray lengthArray, int numberOfLengthes, jbooleanArray directionArray, int numberOfDirections) {
  
@@ -37,24 +38,24 @@ JNIEXPORT jdoubleArray JNICALL Java_twodsack_util_meshgenerator_MeshGenerator_tr
   jint* lengthArrBody = (env)->GetIntArrayElements(lengthArray,0);
   jboolean * directionArrBody = (env)->GetBooleanArrayElements(directionArray,0);
   
-
-  //load geometry from disk
-  //geom = Ng_LoadGeometry_2D ("square.in2d");
-  geom = Ng_ConstructGeometry_2D(pointListBody,numberofpoints,lengthArrBody,numberOfLengthes,directionArrBody,numberOfDirections);
+  //constructs the polygon structure as a NetGen geometry
+  geom = Ng_ConstructGeometry_2D(pointListBody,numberofpoints,(int*)lengthArrBody,numberOfLengthes,directionArrBody,numberOfDirections);
   
-  Ng_Meshing_Parameters mParam;// = Ng_Meshing_Parameters();
+  //the Meshing_Parameters define how the triangulation is computed
+  Ng_Meshing_Parameters mParam;
   mParam.maxh = 1.141421; //This is a value for the number of generated triangles. Must be 0 < maxh < 1.41422.
-  mParam.fineness = 0; //0 .. coarse, 1 .. fine
-  mParam.secondorder = 0; //?
+  //mParam.fineness = 0; //0 .. coarse, 1 .. fine --> is not implemented by NetGen programmers!!!
+  //mParam.secondorder = 0; //--> is not implemented by NetGen programmers!!!
 
+  //computes a mesh from geometry
   Ng_GenerateMesh_2D (geom, &mesh, &mParam); //geom = input data, mesh = output data, mParam = meshing function parameters
   
-  int matnum; //number for point/segment enumeration?!
+  int matnum; //number for point/segment enumeration
   int numberTris = Ng_GetNE_2D(mesh);
   int nodes[3]; //point coordinates?!
   double point[2]; //segment's endpoints
 
-  //free all memory used by array above
+  //free all memory used by arrays above
   (env)->ReleaseDoubleArrayElements(pointArray,pointListBody,JNI_ABORT);
   (env)->DeleteLocalRef(pointArray);
   (env)->ReleaseIntArrayElements(lengthArray,lengthArrBody,JNI_ABORT);
@@ -103,14 +104,14 @@ JNIEXPORT jdoubleArray JNICALL Java_twodsack_util_meshgenerator_MeshGenerator_tr
 
   Ng_DeleteMesh(mesh);
   
-  //delete (SplineGeometry2d*)geom;
-  //Ng_CleanUp(geom);
   Ng_Exit();
   
   return returnArray;
-
 }
 
+/**
+ * Frees some memory by deleting the point array. Call this only after the triangles were constructed on the JAVA side.
+ */
 JNIEXPORT void JNICALL Java_twodsack_util_meshgenerator_MeshGenerator_freeMemoryNetGen (JNIEnv * env, jobject obj) {
   if (returnArray != 0) {
     (env)->ReleaseDoubleArrayElements(returnArray,0,JNI_ABORT);

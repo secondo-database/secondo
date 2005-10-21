@@ -1,0 +1,2 @@
+; c:\mingw\bin\dlltool.exe -z ThirdPartyCode.def.tmp NetGen/NGlibs/nglib.o
+EXPORTS

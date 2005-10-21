@@ -31,6 +31,11 @@ public class MeshGenerator {
     /*
      * members
      */
+    /**
+     * The static member variable <tt>GENERATOR</tt> decides which of two different mesh generator implementations is used.
+     * The valid values are <tt>"Triangle"</tt> and <tt>"NetGen"</tt>.<br>
+     * The default value is "NetGen".
+     */
     //public static String GENERATOR = "Triangle";
     public static String GENERATOR = "NetGen";
 
@@ -44,12 +49,15 @@ public class MeshGenerator {
 
 
     /**
-     * Loads the MeshGenerator library.
-     * This is an *.dll file generated from the original C file.
+     * Loads the MeshGenerator libraries.
+     * These are *.dll files generated from the original C/C++ files. The loaded libraries are <tt>MeshGenerator.dll</tt>,
+     * <tt>ThirdPartyCode.dll</tt> and <tt>MGNetGen.dll</tt>.
      */
     static {
+	//System.out.println(System.getProperty("java.library.path")); //show the library path where the dll-files should be
 	System.loadLibrary("MeshGenerator");
-	System.loadLibrary("MeshGeneratorNetGen");
+	System.loadLibrary("ThirdPartyCode");
+	System.loadLibrary("MGNetGen");
     }
 
     private static final int NUMBER_OF_BUCKETS = 499; //choose a prime number
@@ -81,7 +89,7 @@ public class MeshGenerator {
     double[] regionlist;
     
     /**
-     * The native method that calls the C meshing function.
+     * A native method that calls the C meshing function when <tt>GENERATOR</tt> is set to <tt>"Triangle"</tt>.
      * It only consists of the method declaration, i.e. the signature of the method. For detailed
      * information about all parameters have a look at <code>triangle.h</code>.
      @param arguments the command line switches that can be given to the C function
@@ -129,52 +137,51 @@ public class MeshGenerator {
 					double[] regionlist
 					);
     
-    //private native double[] triangulateNetGen (double[] pointlist, int numberofpoints, boolean direction);
+
+    /**
+     * A native method that calls the C++ meshing function when <tt>GENERATOR</tt> is set to <tt>"NetGen"</tt>.
+     * It only consists of the method declaration, i.e. the signature of the method. For detailed
+     * information about all parameters have a look at {@link computeMeshWithNetGenHoles}
+     * @param pointsArray all points of the polygon in order [x0,y0, ... ,xn,yn]
+     * @param numberOfPoints the total number of points
+     * @param lengthArray stores the length of the cycles
+     * @param lengthes the size of the lengthArray
+     * @param directionArray stores a boolean array for every cycle which indicates, how it is directed
+     * @param numberOfDirections the size of the directionArray
+     * @return an array which stores the point coordinates of the resulting triangles
+     */
     private native double[] triangulateNetGen (double[] pointsArray, int numberOfPoints,
 					       int[] lengthArray, int lenghtes,
 					       boolean[] directionArray, int numberOfDirections);
 
     /**
-     * Another native method which is used to free the memory used by JNI after the mesh was computed.
+     * Another native method which is used to free the memory used by JNI after the mesh was computed (using Triangle as mesher).
      */
     private native void freeMemory();
 
+
+    /**
+     * A native method that frees the memory used by JNI after a mesh was computed with the NetGen mesher.
+     */
     private native void freeMemoryNetGen();
 
     
+    /**
+     * Computes a triangulation for a single polygon with any number of holes.
+     * The polygon must be given as an <tt>CycleList</tt> that consist of a list of cycles. The first cycle is always the outer cycle of the
+     * polygon, whereas all further cycles are holes inside of that outer cycle. The list structure is<p>
+     * ( (segments of outer cycle) (segments of 1st hole) ... (segments of nth hole) )<p>
+     * From the list, three arrays are computed, which are 1) a point array, 2) a length array and 3) a direction array. The point array simply stores the point
+     * coordinates for all cycle points. They are stored in order. The second array stores the lengthes of the cycles, i.e. if the first (face) cycle
+     * has 10 points (and therefore uses the array positions 0..19 for in the point array), it stores the integer value 20 (which can be used as
+     * an array index for the beginning of the next cycle, if any). The third array stores the 'direction' value for each cycle. The direction of a 
+     * cycle tells wether the points are given in clockwise (<tt>true</tt>) or counterclockwise (<tt>false</tt>) order.
+     *
+     * @param borderCycles the list of cycles representing a polygon
+     * @param qualityMesh not implemented for NetGen mesher
+     * @return the set of triangles for the polygon
+     */
     public TriMultiSet computeMeshWithNetGenHoles(CycleList borderCycles, boolean qualityMesh) {
-	//computes a triangulation for a set of cycles forming polygons with holes;
-	//Note, that borderCycles consists of exactly ONE outer cycle and an arbitrary number of holes.
-	//The structure of the list is: ( (segments of outer cycle) (segments of hole1)...(segments of holen) ).
-	
-	//From the list of cycles, we compute three arrays. The first array stores the point coordinates. The points of all cycles
-	//in borderCycles are stored in order. The second array stores the length of the cycles, i.e. if the first face cycle has
-	//10 points (and uses the array positions 0..19 for the point coordinates), it stores the integer value 20 (which can be
-	//used as array index for the next cycle). The third array stores the direction value for each cycle.
-	//System.out.println("\n**************************************************************");
-	//System.out.println("Entering computeMeshWithNetGenHoles...");
-	//System.out.println("borderCycles.checkCycles(): "+borderCycles.checkCycles());
-	/* TESTCASE */
-	/*
-	SegMultiSet border = new SegMultiSet(new SegmentComparator());
-	border.add(new Segment(0,0,0,1));
-	border.add(new Segment(0,1,1,1));
-	border.add(new Segment(1,1,1,0));
-	border.add(new Segment(1,0,0,0));
-	border.add(new Segment(0.25,0.25,0.75,0.25));
-	border.add(new Segment(0.75,0.25,0.75,0.75));
-	border.add(new Segment(0.75,0.75,0.25,0.75));
-	border.add(new Segment(0.25,0.75,0.25,0.25));
-	border.add(new Segment(0.1,0.75,0.25,0.9));
-	border.add(new Segment(0.25,0.9,0.1,0.9));
-	border.add(new Segment(0.1,0.9,0.1,0.75));
-	
-	Graph borderGraph = new Graph(border);
-	borderCycles = borderGraph.computeFaceCycles();
-	*/
-
-	//System.out.println("borderCycles:"); borderCycles.print();
-
 	int numberOfCycles = borderCycles.size();
 	int totalNumberOfPoints = 0;
 	int[] lengthArray = new int[numberOfCycles];
@@ -199,7 +206,7 @@ public class MeshGenerator {
 	    //Then, a cycle is computed from 'border'. Depending on the collected points and data it can be
 	    //analyzed how the cycle should be _directed_. The direction is stored in the directionArray.
 	    //Point coordinates are stored in the pointsArray and cycles lengthes are stored in the lengthArray.
-
+	    
 	    boolean direction = false; //false=counterclockwise, true=clockwise
 	    Point p = ((Segment)actCycle.getFirst()).getStartpoint(); //smallest point of border
 	    Segment smallSeg1 = (Segment)actCycle.getFirst();
@@ -226,9 +233,7 @@ public class MeshGenerator {
 		direction = false;
 	    else
 		direction = true;
-
-	    //System.out.println("cyclenumber: "+i+", p: "+p+", a: "+a+", b: "+b+", direction: "+direction);
-
+	    
 	    //set direction value
 	    //invert value if cycle is a hole, i.e. i > 0
 	    if (i == 0)
@@ -256,70 +261,32 @@ public class MeshGenerator {
 			  
 	double[] triResultList = null;
 
-	/*
-	System.out.println("JAVA (pointsArray):");
-	for (int i = 0; i < pointsArray.length; i++) 
-	    System.out.println("["+i+"]: "+pointsArray[i]);
-	System.out.println();
-	System.out.println("JAVA (lengthArray):");
-	for (int i = 0; i < lengthArray.length; i++)
-	    System.out.println("["+i+"]: "+lengthArray[i]);
-	System.out.println();
-	System.out.println("JAVA (directionArray:");
-	for (int i = 0; i < directionArray.length; i++)
-	    System.out.println("["+i+"]: "+directionArray[i]);
-	System.out.println();
-	*/ 
-	//System.out.println("Calling triangulateNetGen");
 	try {
 	    triResultList = new MeshGenerator().triangulateNetGen(pointsArray,pointsArray.length,lengthArray,lengthArray.length,directionArray,directionArray.length);
 	} catch (Exception e) {
 	    System.out.println("MG.computeMeshWithNetGen: An exception was thrown while executing native triangulateNetGen().");
 	}//catch
 
-	//System.out.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-	//System.out.println("back from C++-Code, triResultList.length: "+triResultList.length);
-
 	TriMultiSet resSet = buildTriangleSet(triResultList);
 	//System.out.println("\nresSet:"); resSet.print();
 	
 
-	System.out.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+	System.out.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MG.java: Back from NetGen");
 	System.out.println("The number of triangles is: "+resSet.size()+", total number of points: "+totalNumberOfPoints);
-	/*
-	BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
-	DisplayGFX gfx = new DisplayGFX();
-	gfx.initWindow();
-	gfx.addSet(resSet);
-	//gfx.addSet(border);
-	gfx.showIt(false);
-	try { String data = inBR.readLine();
-	} catch (Exception e) {
-	    System.exit(0);
-	}//catch
-	gfx.kill();
-	*/
 	return resSet;
 	
     }//end method computeMeshWithNetGenHoles
 
     
+    /**
+     * Compute a triangulation for a polygon without holes.
+     * The polygon consists of only one single cycle, namely the face/outer cycle.
+     *
+     * @param border the border of the polygon
+     * @param qualityMesh currently not implemented for NetGen mesher
+     * @return the set of triangles for the polygon
+     */
     public TriMultiSet computeMeshWithNetGen(SegMultiSet border, boolean qualityMesh) {
-	//computes a triangulation for a polygon without holes
-
-	/* TESTCASE */
-	/*
-	border.clear();
-	border.add(new Segment(0,0,0,1));
-	border.add(new Segment(0,1,1,1));
-	border.add(new Segment(1,1,1,0));
-	border.add(new Segment(1,0,0,0));
-	border.add(new Segment(0.25,0.25,0.75,0.25));
-	border.add(new Segment(0.75,0.25,0.75,0.75));
-	border.add(new Segment(0.75,0.75,0.25,0.75));
-	border.add(new Segment(0.25,0.75,0.25,0.25));
-	*/
-
 	//construct a graph from border
 	Graph borderGraph = new Graph(border);
 	
@@ -331,94 +298,6 @@ public class MeshGenerator {
 	}//if
 
 	return computeMeshWithNetGenHoles(cycles,false);
-
-	/*
-
-	//First, the smallest point is extracted from 'border' together with both segments it connects.
-	//Then, a cycle is computed from 'border'. Depending on the collected points and data it can be
-	//analyzed how the cycle should be _directed_. This means, that the segment's direction of an
-	//outer cycle (i.e. not a hole, which would be an inner cycle) is counterclockwise.
-	//After this information was gained, an array of double coordinates (of the segment's points) is
-	//constructed which is passed to the NetGen triangulator.
-
-	boolean direction = false; //false=counterclockwise, true=clockwise
-	Point p = ((Segment)border.first()).getStartpoint(); //smallest point of border
-	Iterator it = border.iterator();
-	Segment smallSeg1 = (Segment)((MultiSetEntry)it.next()).value;
-	Segment smallSeg2 = (Segment)((MultiSetEntry)it.next()).value;
-	boolean seg1vert = smallSeg1.getStartpoint().x.equal(smallSeg1.getEndpoint().x);
-	boolean seg2vert = smallSeg2.getStartpoint().x.equal(smallSeg2.getEndpoint().x);
-	Point a = smallSeg1.getEndpoint();
-	Point b = smallSeg2.getEndpoint();
-	
-	if (seg1vert)
-	    if (a.y.greater(p.y))
-		direction = false;
-	    else
-		direction = true;
-	if (seg2vert)
-	    if (p.y.greater(b.y))
-		direction = false;
-	    else
-		direction = true;
-	
-	double mpa = ((a.y.minus(p.y)).dividedby(a.x.minus(p.x))).getDouble();
-	double mpb = ((b.y.minus(p.y)).dividedby(b.y.minus(p.y))).getDouble();
-	if (mpa > mpb)
-	    direction = false;
-	else
-	    direction = true;
-
-	System.out.println("p: "+p+", a: "+a+", b: "+b+", direction: "+direction);
-
-	//construct the double array
-	double[] paramPoints = new double[border.size()*2];
-	it = ((LinkedList)cycles.get(0)).listIterator(0);
-	Segment actSeg;
-	int arrCount = 0;
-
-	//store initial point in paramPoints
-	actSeg = (Segment)it.next();
-	paramPoints[arrCount] = actSeg.getStartpoint().x.getDouble();
-	paramPoints[arrCount+1] = actSeg.getStartpoint().y.getDouble();
-	arrCount = arrCount+2;
-
-	while (it.hasNext()) {
-	    actSeg = (Segment)it.next();
-	    paramPoints[arrCount] = actSeg.getStartpoint().x.getDouble();
-	    paramPoints[arrCount+1] = actSeg.getStartpoint().y.getDouble();
-	    arrCount = arrCount+2;
-	}//while    
-			  
-	double[] triResultList = null;
-	 
-	try {
-	    triResultList = new MeshGenerator().triangulateNetGen(paramPoints,paramPoints.length,direction);
-	} catch (Exception e) {
-	    System.out.println("MG.computeMeshWithNetGen: An exception was thrown while executing native triangulateNetGen().");
-	}//catch
-
-	System.out.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-	System.out.println("back from C++-Code, triResultList.length: "+triResultList.length);
-
-	TriMultiSet resSet = buildTriangleSet(triResultList);
-	//System.out.println("\nresSet:"); resSet.print();
-	
-	BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
-	DisplayGFX gfx = new DisplayGFX();
-	gfx.initWindow();
-	gfx.addSet(resSet);
-	gfx.addSet(border);
-	gfx.showIt(false);
-	try { String data = inBR.readLine();
-	} catch (Exception e) {
-	    System.exit(0);
-	}//catch
-	gfx.kill();
-	
-	return resSet;
-	*/	
-
     }//end method computMeshWithNetGen
 
 
@@ -595,8 +474,10 @@ public class MeshGenerator {
 
 	//free the memory of the point array
 	try {
-	    (new MeshGenerator()).freeMemory();
-	    (new MeshGenerator()).freeMemoryNetGen();
+	    if (GENERATOR == "Triangle")
+		(new MeshGenerator()).freeMemory();
+	    else
+		(new MeshGenerator()).freeMemoryNetGen();
 	} catch (Exception e) {
 	    System.out.println("Exception caught in MeshGenerator.buildTriangleSet. Problems with freeing memory.");
 	}//catch

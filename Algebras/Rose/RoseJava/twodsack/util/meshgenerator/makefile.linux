@@ -1,28 +1,1 @@
-include ../../../../makefile.inc
-
-.PHONY: all
-
-all: Triangle/triangle.o MeshGenerator.h libMeshGenerator.so libMeshGeneratorNetGen.so 
-
-Triangle/triangle.o: Triangle/triangle.c
-	cd Triangle;gcc -ggdb -O -c triangle.c -DTRILIBRARY -LINUX -DNO_TIMER
-
-libMeshGenerator.so: MeshGenerator.o
-	gcc -ggdb -shared -o libMeshGenerator.so MeshGenerator.o Triangle/triangle.o
-
-libMeshGeneratorNetGen.so: MeshGeneratorNetGen.o
-	cd NetGen;make;mv libMeshGeneratorNetGen.so ../libMeshGeneratorNetGen.so
-
-MeshGenerator.o: MeshGenerator.c
-	gcc -ggdb -fPIC -D_REENTRANT -Wall -I$(J2SDK_ROOT)/include -I$(J2SDK_ROOT)/include/linux -I. -c MeshGenerator.c -o MeshGenerator.o
-
-MeshGeneratorNetGen.o: MeshGeneratorNetGen.c
-	gcc -xc++ -ggdb -fPIC -D_REENTRANT -Wall -I$(J2SDK_ROOT)/include -I$(J2SDK_ROOT)/include/linux -I. -c MeshGeneratorNetGen.c -o MeshGeneratorNetGen.o
-
-MeshGenerator.h:
-	javah -classpath $(CLASSPATH) -o MeshGenerator.h twodsack.util.meshgenerator.MeshGenerator
-
-.PHONY: clean
-clean:
-	rm -f *.so *.h *.class *.o Triangle/triangle.o
-	cd NetGen; make clean
+include ../../../../makefile.inc.PHONY: allall: Triangle/triangle.o MeshGenerator.h libMeshGenerator.so libMeshGeneratorNetGen.so Triangle/triangle.o: Triangle/triangle.c	cd Triangle;gcc -ggdb -O -c triangle.c -DTRILIBRARY -LINUX -DNO_TIMERlibMeshGenerator.so: MeshGenerator.o	gcc -ggdb -shared -o libMeshGenerator.so MeshGenerator.o Triangle/triangle.olibMeshGeneratorNetGen.so: MeshGeneratorNetGen.o	cd NetGen;make;mv libMeshGeneratorNetGen.so ../libMeshGeneratorNetGen.soMeshGenerator.o: MeshGenerator.c	gcc -ggdb -fPIC -D_REENTRANT -Wall -I$(J2SDK_ROOT)/include -I$(J2SDK_ROOT)/include/linux -I. -c MeshGenerator.c -o MeshGenerator.oMeshGeneratorNetGen.o: MeshGeneratorNetGen.c	gcc -xc++ -ggdb -fPIC -D_REENTRANT -Wall -I$(J2SDK_ROOT)/include -I$(J2SDK_ROOT)/include/linux -I. -c MeshGeneratorNetGen.c -o MeshGeneratorNetGen.oMeshGenerator.h:	javah -classpath $(CLASSPATH) -o MeshGenerator.h twodsack.util.meshgenerator.MeshGenerator.PHONY: cleanclean:	rm -f *.so *.h *.class *.o Triangle/triangle.o	cd NetGen; make clean

@@ -1,3 +1,9 @@
+/*
+
+genmesh2d.cpp is part of the NETGEN package
+
+*/
+
 #include <mystdlib.h>
 #include <csg.hpp>
 #include <geometry2d.hpp>
@@ -50,6 +56,7 @@ namespace netgen
     mp.blockfill = 0;
     mp.filldist = 0;
     mp.grading = 10;
+    mp.parthread = 0; //make sure, this is ALWAYS = 0
     /*
     cout << "Meshing Parameters:" << endl;
     cout << "optimize2d: " << (&mp)->optimize2d << endl;

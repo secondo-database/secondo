@@ -3,6 +3,8 @@
 This header file is part of the NetGen package.
 
 */
+
+
 #ifndef FILE_MYSTDLIB
 #define FILE_MYSTDLIB
 
@@ -46,8 +48,13 @@ This header file is part of the NetGen package.
   /*** Windows headers ***/
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
-#include <afxwin.h>
-#include <afxmt.h>
+
+  /* changed by dirk ansorge */
+#include <./winlibsVC/afxwin.h>
+
+
+#include <./winlibsVC/afxmt.h>
+ 
 #include <windows.h>
 #undef WIN32_LEAN_AND_MEAN
 #include <winnt.h>

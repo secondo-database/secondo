@@ -8,15 +8,15 @@
  * Make sure that you have the makefile.windows file.
  */
 
-#include <jni.h>
 #define REAL double
 #include "MeshGenerator.h"
 #include "Triangle/triangle.h"
 #include <stdio.h>
 
 /*
- * This C file implements only one single function. It is the triangulate() function which is a native function that is called by Java
- * code of the class twodsack.util.meshgenerator.Meshgenerator. Communication between Java and C is possible using the JNI (Java Native
+ * This C file implements only two functions. It is the triangulate() function which is a native function that is called by Java
+ * code of the class twodsack.util.meshgenerator.Meshgenerator and the freeMemory() function to remove some datastructures to prevent memory leaks.
+ * Communication between Java and C is possible using the JNI (Java Native
  * Interface). It allows to call C code from Java and vice versa. Since the mesh generator that is used inside of the 2DSACK package
  * is written in C code, we need the JNI here. The .h file for this file is generated automatically by calling javah.<p>
  * The implementation of this function takes the big number of parameters and transforms it in a way that the C mesh generator can use it.

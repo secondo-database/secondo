@@ -1,3 +1,10 @@
+/*
+  
+meshtype.cpp is part of the NETGEN mesh package
+
+*/
+
+
 #include <mystdlib.h>
 
 #include "meshing.hpp"
@@ -19,7 +26,7 @@ namespace netgen
     for (int k = 0; k < cnt; k++)
       if (mgi[k].trignum == gi.trignum)
 	return 0;
-  
+    
     if (cnt < MULTIPOINTGEOMINFO_MAX)
       {
 	mgi[cnt] = gi;
@@ -196,21 +203,21 @@ Element2d :: Element2d (int pi1, int pi2, int pi3, int pi4)
 }
 
 
-/*
-void Element2d :: SetType (ELEMENT_TYPE atyp)
-{
-  typ = atyp;
-  switch (typ)
-    {
-    case TRIG: np = 3; break;
-    case QUAD: np = 4; break;
-    case TRIG6: np = 6; break;
-    case QUAD6: np = 6; break;
-    default:
-      PrintSysError ("Element2d::SetType, illegal type ", typ);
-    }
-}
-*/
+  /*
+  void Element2d :: SetType (ELEMENT_TYPE atyp)
+  {
+    typ = atyp;
+    switch (typ)
+      {
+      case TRIG: np = 3; break;
+      case QUAD: np = 4; break;
+      case TRIG6: np = 6; break;
+      case QUAD6: np = 6; break;
+      default:
+        PrintSysError ("Element2d::SetType, illegal type ", typ);
+      }
+  }
+  */
 
 
 void Element2d :: GetBox (const T_POINTS & points, Box3d & box) const
@@ -284,12 +291,13 @@ void Element2d :: NormalizeNumbering2 ()
     }
   else
     {
-      int mini = 1;
-      for (int i = 2; i <= GetNP(); i++)
+	  int mini = 1;
+		int	i;
+      for (i = 2; i <= GetNP(); i++)
 	if (PNum(i) < PNum(mini)) mini = i;
       
       Element2d hel = (*this);
-      for (int i = 1; i <= GetNP(); i++)
+      for (i = 1; i <= GetNP(); i++)
 	PNum(i) = hel.PNumMod (i+mini-1);
     }
 }
@@ -582,12 +590,13 @@ CalcJacobianBadnessDirDeriv (const ARRAY<Point2d> & points,
 
 	  // Frobenius norm
 	  double frob = 0;
-	  for (int j = 0; j < 4; j++) 
+		int j;
+	  for (j = 0; j < 4; j++) 
 	    frob += sqr (trans(j));
 	  frob = sqrt (frob);
 	  
 	  double dfrob = 0;
-	  for (int j = 0; j < 4; j++)
+	  for (j = 0; j < 4; j++)
 	    dfrob += trans(j) * dtrans(j);
 	  dfrob = dfrob / frob;
 	  
@@ -633,12 +642,13 @@ CalcJacobianBadnessDirDeriv (const ARRAY<Point2d> & points,
 
       // Frobenius norm
       double frob = 0;
-      for (int j = 1; j <= 4; j++)
+	  int j;
+      for (j = 1; j <= 4; j++)
 	frob += sqr (trans.Get(j));
       frob = sqrt (frob);
       
       double dfrob = 0;
-      for (int j = 1; j <= 4; j++)
+      for (j = 1; j <= 4; j++)
 	dfrob += trans.Get(j) * dtrans.Get(j);
       dfrob = dfrob / frob;
       

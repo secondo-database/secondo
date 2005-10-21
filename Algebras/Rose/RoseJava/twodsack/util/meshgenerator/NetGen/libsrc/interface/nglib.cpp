@@ -1,15 +1,24 @@
-/**************************************************************************/
-/* File:   nglib.cc                                                       */
-/* Author: Joachim Schoeberl                                              */
-/* Date:   7. May. 2000                                                   */
-/**************************************************************************/
-
 /*
+
+nglib.cpp is part of the NETGEN package
+
+*/
+
+
+  /**************************************************************************/
+  /* File:   nglib.cc                                                       */
+  /* Author: Joachim Schoeberl                                              */
+  /* Date:   7. May. 2000                                                   */
+  /**************************************************************************/
+
+  /*
   
   Interface to the netgen meshing kernel
   
-*/
+  */
 
+// added by dirk ansorge
+//#include <winuser.h>
 
 #include <mystdlib.h>
 #include <myadt.hpp>
