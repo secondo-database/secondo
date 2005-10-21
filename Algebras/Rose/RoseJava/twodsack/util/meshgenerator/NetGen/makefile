@@ -4,10 +4,18 @@
 # Dirk Ansorge, FernUniversitaet Hagen
 #
 
+include ../../../../makefile.inc
+
+platform := $(SECONDO_PLATFORM)
+
 .PHONY: all
 
+ifeq ($(platform),win32)
 MYLIBS=NGlibs/nglib.o NGlibs/stlgeom.o NGlibs/stlgeomchart.o NGlibs/stlline.o NGlibs/stltopology.o NGlibs/stltool.o NGlibs/meshstlsurface.o NGlibs/gprim.o NGlibs/geomtest3d.o NGlibs/meshing2.o NGlibs/meshsurf.o NGlibs/netrule2.o NGlibs/stlgeommesh.o NGlibs/meshclass.o NGlibs/clusters.o NGlibs/topology.o NGlibs/improve2.o NGlibs/meshtype.o NGlibs/meshtool.o NGlibs/msghandler.o NGlibs/ngexception.o NGlibs/geom3d.o NGlibs/surface.o NGlibs/parser2.o NGlibs/improve2gen.o NGlibs/mystring.o NGlibs/densemat.o NGlibs/hashtabl.o NGlibs/moveablemem.o NGlibs/localh.o NGlibs/brick.o NGlibs/triapprox.o NGlibs/polynomial.o NGlibs/adfront2.o NGlibs/splinegeometry2.o NGlibs/meshfunc2d.o NGlibs/table.o NGlibs/flags.o NGlibs/symbolta.o NGlibs/bitarray.o NGlibs/optmem.o NGlibs/triarls.o NGlibs/quadrls.o NGlibs/adfront3.o NGlibs/geom2dmesh.o NGlibs/ruler2.o NGlibs/spline2d.o NGlibs/curvedelems2.o NGlibs/geomsearch.o NGlibs/curvedelems.o NGlibs/algprim.o NGlibs/meshfunc.o NGlibs/improve3.o NGlibs/meshing3.o NGlibs/delaunay.o NGlibs/pyramidrls.o NGlibs/pyramid2rls.o NGlibs/seti.o NGlibs/prism2rls.o NGlibs/netrule3.o NGlibs/global.o NGlibs/bfgs.o NGlibs/smoothing3.o NGlibs/linsearch.o NGlibs/smoothing2.o NGlibs/hprefinement.o NGlibs/tetrarls.o NGlibs/bisect.o NGlibs/secondorder.o NGlibs/sort.o NGlibs/parser3.o NGlibs/geom2d.o NGlibs/ruler3.o NGlibs/genmesh2d.o NGlibs/geomfuncs.o NGlibs/VCmtex.o NGlibs/VCmtcore.o NGlibs/VCobjcore.o NGlibs/VCexcept.o ../MeshGeneratorNetGen.o
 
+else
+MYLIBS=NGlibs/nglib.o NGlibs/stlgeom.o NGlibs/stlgeomchart.o NGlibs/stlline.o NGlibs/stltopology.o NGlibs/stltool.o NGlibs/meshstlsurface.o NGlibs/gprim.o NGlibs/geomtest3d.o NGlibs/meshing2.o NGlibs/meshsurf.o NGlibs/netrule2.o NGlibs/stlgeommesh.o NGlibs/meshclass.o NGlibs/clusters.o NGlibs/topology.o NGlibs/improve2.o NGlibs/meshtype.o NGlibs/meshtool.o NGlibs/msghandler.o NGlibs/ngexception.o NGlibs/geom3d.o NGlibs/surface.o NGlibs/parser2.o NGlibs/improve2gen.o NGlibs/mystring.o NGlibs/densemat.o NGlibs/hashtabl.o NGlibs/moveablemem.o NGlibs/localh.o NGlibs/brick.o NGlibs/triapprox.o NGlibs/polynomial.o NGlibs/adfront2.o NGlibs/splinegeometry2.o NGlibs/meshfunc2d.o NGlibs/table.o NGlibs/flags.o NGlibs/symbolta.o NGlibs/bitarray.o NGlibs/optmem.o NGlibs/triarls.o NGlibs/quadrls.o NGlibs/adfront3.o NGlibs/geom2dmesh.o NGlibs/ruler2.o NGlibs/spline2d.o NGlibs/curvedelems2.o NGlibs/geomsearch.o NGlibs/curvedelems.o NGlibs/algprim.o NGlibs/meshfunc.o NGlibs/improve3.o NGlibs/meshing3.o NGlibs/delaunay.o NGlibs/pyramidrls.o NGlibs/pyramid2rls.o NGlibs/seti.o NGlibs/prism2rls.o NGlibs/netrule3.o NGlibs/global.o NGlibs/bfgs.o NGlibs/smoothing3.o NGlibs/linsearch.o NGlibs/smoothing2.o NGlibs/hprefinement.o NGlibs/tetrarls.o NGlibs/bisect.o NGlibs/secondorder.o NGlibs/sort.o NGlibs/parser3.o NGlibs/geom2d.o NGlibs/ruler3.o NGlibs/genmesh2d.o NGlibs/geomfuncs.o  ../MeshGeneratorNetGen.o
+endif
 
 all: libMeshGeneratorNetGen.so
 
