@@ -2,15 +2,19 @@
 
 # assert that a default user name
 # and home directory exists
-if [ "x$LOGNAME" == "x" ]; then
-  LOGNAME="unknown"
+if [ "$LOGNAME" == "" ]; then
+  echo -e "\$LOGNAME is empty! Set to \"nodbody\"."
+  LOGNAME="nobody"
 fi
 
 export USER=$LOGNAME
 export HOME="/home/$LOGNAME"
 
 if [ ! -d "$HOME" ]; then
-  mkdir -p "$HOME"
+  if ! mkdir -p "$HOME"; then
+    echo -e "ERROR: Could not create directory \$HOME=\"$HOME\"."
+    echo -e "       You will have no home directory."
+  fi
 fi
 
 # simulate linux like bash behaviour

@@ -15,6 +15,12 @@ if ! source $libFile; then
   exit 1; 
 fi
 
+if win32Host; then
+  shProfile="./scripts/home/_profile"
+  if [ -f $shProfile ]; then
+    source $shProfile
+  fi  
+fi  
 
 function showBashrcMsg {
 
@@ -24,6 +30,26 @@ For convenience you may store the command in the file \"\$HOME/.bashrc\" \n\
 in order to execute it automatically at startup of a new shell. \n"
 }
 
+# The next two function are used to set checkpoints
+# for sucessful installation steps
+
+# $1 name
+function checkPoint {
+  
+  local file="$sdk/_DONE_$1"
+  if [ -e "$file" ]; then
+    return 0
+  fi
+  return 1
+}
+
+# $1 name
+function setCheckPoint {
+
+  local file="$sdk/_DONE_$1"
+  checkCmd touch $file
+  showMsg "info" "-> OK!"
+}
 
 # $1 = package info
 # $2 = package file 
@@ -38,13 +64,12 @@ function installPackage {
   if [ "$6" != "" ]; then
     conf=$6
   fi
-
+  
   printx "%s\n" "Installing package \"$1\" ..."
 
   local file=${2##*/}
-  local instOK="$temp/.INST_OK_PCKG_$file"
-  printl "%s\n" "checkFile = $instOK" 
-  if [ ! -e $instOK ]; then
+  local name="PCKG_$file"
+  if ! checkPoint "$name"; then
     
     # extract files for package
     printx "%s\n" "Uncompressing files ..."
@@ -55,7 +80,7 @@ function installPackage {
 
     # compile package if necessary
     if [ "$3" != "" ]; then
-      printx "%s\n" "Compiling package $1 ..."
+      printx "%s\n" "Compiling package ..."
       assert cd $3
       checkCmd $conf --prefix=$sdk $5 --disable-nls $configureFlags
       if [ $? -ne 0 ]; then
@@ -72,14 +97,14 @@ function installPackage {
         fi
       done
     fi
-    checkCmd touch $instOK
-    showMsg "info" "-> done!"
+    setCheckPoint "$name" 
   else
     showMsg "info" "-> already done!"
   fi
 
   return 0
 }
+
 
 # $1 package info
 # $2 mode = [ dir, files, file ]
@@ -101,11 +126,11 @@ function uncompressPackage {
   if [ "$mode" == "dir" ]; then
     local dir="$*"
     local folder=${dir##*/}
-    local checkFile=$temp/.INST_OK_DIR_$folder
-    if [ ! -e $checkFile ]; then
+    local name="UNCOMP_DIR_$folder"
+    if ! checkPoint "$name"; then
       uncompressFolders $dir
       if [ $? -eq 0 ]; then
-        touch $checkFile
+        setCheckPoint "$name"
         return 0
       else
         return 1
@@ -119,11 +144,11 @@ function uncompressPackage {
   # uncompress all given files
   if [ "$mode" == "files" ]; then
     local file=${1##*/}
-    local checkFile=$temp/.INST_OK_FILES_$file
-    if [ ! -e $checkFile ]; then
+    local name="UNCOMP_FILES_$file"
+    if ! checkPoint "$name"; then
       uncompressFiles $sdk $*
       if [ $? -eq 0 ]; then
-        touch $checkFile
+        setCheckPoint "$name"
         return 0
       else
         return 1
@@ -137,11 +162,11 @@ function uncompressPackage {
   # uncompress a single file
   if [ "$mode" == "file" ]; then
     local file=${1##*/}
-    local checkFile=$temp/.INST_OK_FILE_$file
-    if [ ! -e $checkFile ]; then
+    local name="UNCOMP_FILE_$file"
+    if ! checkPoint "$name"; then
       uncompressFiles $sdk $*
       if [ $? -eq 0 ]; then
-	touch $checkFile
+        setCheckPoint "$name"
 	return 0
       else
 	return 1
@@ -162,10 +187,11 @@ function unInstall {
 
     local dirs="$sdk $temp $build"
     if win32Host; then
-      showMsg "warn" "Please remove MinGW and Java 2 SDK by using window's system \n\
-control software installation dialog!"
+      showMsg "warn" "We assume that you have removed MinGW by using windows' system \n\
+control software installation utility and SWI-Prolog by its \n\
+uninstall tool unwise.exe!"
       if [ -e $mingwdir ]; then
-        dirs="$dirs $mingwdir $msysdir"
+        dirs="$dirs $mingwdir"
       fi
     fi 
     printx "%s\n" "About to delete the following directories and files:"
@@ -176,7 +202,7 @@ control software installation dialog!"
     local opt1="Delete"
     local opt2="Abort"
     select choice in "$opt1" "$opt2"; do
-      if [ $choice == $opt1 ]; then
+      if [ "$choice" == "$opt1" ]; then
         break
       else
         abort
@@ -188,6 +214,16 @@ control software installation dialog!"
       rm -rf $xdir
       LU_LOG_INIT=""
     done
+
+    if win32Host; then
+      printx "\n" 
+      showMsg "em" "If Java 2 has been installed remove it with it's uninstall program or \n\
+window's system control."
+      showMsg "em" "Now you can remove the MSYS installation by using window's system \n\
+control. If the directory /c/msys will not be deleted, \n\
+delete it with a file manager."
+    fi
+
 }
 
 
@@ -207,10 +243,6 @@ function checkGCC {
 
 function abort {
 
-  if ! win32Host; then
-    xhost -
-  fi
-
   if isRunning $xtermPID; then
     killProcess $xtermPID
   fi
@@ -224,35 +256,63 @@ function abort {
 function copyConfigFiles {
 
   printSep "Copying configuration files"
-  local checkFile=$temp/.INT_OK_RCFILES
-  local err=""
-    if [ ! -e $checkFile ]; then
+  local check="COPY_RCFILES"
+  assert cd $cdpath/scripts
+  let LU_ERRORS=0
+  if ! checkPoint "$check"; then
+    
     printx "%s\n" "Creating \$HOME/.secondo*"
-    if ! checkCmd cp -b $cdpath/scripts/home/.secondo* $HOME; then
-      err="true" 
-    fi
+    checkCmd cp -b home/secondorc $HOME/.secondorc
+    checkCmd cp -b home/secondo.sdkrc $HOME/.secondo.sdkrc
+    checkCmd cp -b home/secondo.${platform}rc $HOME/.${platform}rc
     if win32Host; then
       printx "%s\n" "Creating \$HOME/.profile"
-      if ! checkCmd cp -b $cdpath/scripts/home/.profile $HOME; then
-        err="true" 
-      fi 
+      checkCmd cp -b home/profile $HOME/.profile
     fi 
     printx "%s\n" "Copying some shell scripts to \"$sdk/bin\""
-    if ! checkCmd cp -b $cdpath/scripts/bin/* $sdk/bin; then
-      err="true"
-    fi
-    showMsg "info" "-> done!"
+    checkCmd cp -b $cdpath/scripts/bin/* $sdk/bin
   else
     showMsg "info" "-> already done!"
+    return 0
   fi
 
-  if [ "$err" == "true" ]; then
+  if [ $LU_ERRORS -eq 0 ]; then
+    setCheckPoint "$check"
+    return 0
+  fi
+  return 1 
+}
+
+
+function installJava {
+
+  if win32Host; then
+    assert cd $j2dir
+    j2sdk*windows*.exe
+  else
+    assert cd $sdk
+    local j2file=$j2dir/j2sdk*.bin
+    startupXterm "JAVA 2 SDK Installation" $j2file
+    if [ $? -ne 0 ]; then
+     printx "Running $j2file directly"
+     $j2file
+    else
+     j2XtermPID=$LU_xPID
+    fi
+  fi
+}
+
+
+# $1 directory
+function checkInstDir {
+
+  if [ ! -d "$1" ]; then
+    showMsg "warn" "Recommended installation directory \"$1\" \n\
+not found. You need to modify file \"~/.secondo.${platform}rc\"."
     return 1
   fi
   return 0
-
 }
-
 
 function finish {
 
@@ -260,6 +320,12 @@ function finish {
   showBashrcMsg
   abort
 }
+
+##########################################################
+###
+### Start of the Script
+###
+##########################################################
 
 #default options
 testMode="false"
@@ -293,27 +359,49 @@ done
 printf "\n"
 showGPL
 
+# init log file
+temp=$LU_TMP/installsdk
+mkdir -p $temp
+logfile="$temp/secondo-install.log"
+initLogFile $logfile
+if [ $? -ne 0 ]; then
+  showMsg "err" "Could not create log file. Giving up!"
+  abort
+fi
+logfile=$LU_LOG
+
+# check if $USER is defined
+if [ "$USER" == "" ]; then
+  if [ "$LOGNAME" == "" ]; then
+    showMsg "warn" "The variable \$USER and \$LOGNAME are empty. \$USER will be set to \"nobody\"."
+    USER="nobody"
+  else
+    USER="$LOGNAME"
+  fi  
+fi  
+
+# check if $HOME exists
+if [ ! -w "$HOME" ]; then
+  showMsg "err" "Directory \$HOME=\"$HOME\" does not exist or you have no write access."
+  HOME2=/home/$USER
+  if [ "$HOME2" != "$HOME" ]; then
+    showMsg "warn" "Trying to create \$HOME=\"$HOME2\""
+    assert mkdir -p $HOME2
+    HOME=$HOME2
+  else
+    abort
+  fi  
+fi
+
 # Set up variables for important directories
 # Do some OS-specific settings
 if win32Host; then
 
-  # set up $USER and $HOME
-  USER=$LOGNAME 
-  if [ "$USER" == "" ]; then
-    showMsg "warn" "The variable \$LOGNAME is empty. Trying to create a home directory for user \"nobody\"."
-    USER="nobody"
-    HOME=/home/$USER
-    mkdir -p $HOME
-    if [ $? -ne 0 ]; then
-      showMsg "err" "Could not create directory \"$HOME\""
-      abort
-    fi
-  fi
-
   instpath=/c
   if [ "$testMode" == "true" ]; then
-    instpath=tmp/installsdk/C
-    HOME=$instpath/$msysdir/home/$USER
+    instpath=$temp/C
+    msysdir="$instpath/msys/1.0"
+    HOME=$msysdir/home/$USER
   fi
   msysdir="$instpath/msys/1.0"
   mingwdir="$instpath/mingw"
@@ -322,7 +410,6 @@ if win32Host; then
  
 else
 
-  xhost +
   if [ "$testMode" == "true" ]; then
     HOME=/tmp/installsdk/$USER
   fi
@@ -335,7 +422,6 @@ fi
 # set variables for important directories
 cdpath=$PWD
 sdk=$instpath/secondo-sdk
-temp=$LU_TMP/installsdk
 build=$HOME/secondo
 prologdir=$sdk/pl
 
@@ -343,27 +429,13 @@ prologdir=$sdk/pl
 
 if [ "$testMode" == "true" ]; then
   printf "\n"
-  showMsg "info" "Running in test mode. \$HOME set to \"$HOME\""
+  showMsg "info" "Running in test mode: \$HOME set to \"$HOME\""
   mkdir -p $HOME
   mkdir -p $instpath
 fi
 
-# check if $HOME exists
-if [ ! -d $HOME ]; then
-  showMsg "err" "You have no home dir! Please create directory \"$HOME\"."
-  abort 
-fi
 
 
-# init log file
-mkdir -p $temp
-logfile="$temp/secondo-install.log"
-initLogFile $logfile
-if [ $? -ne 0 ]; then
-  showMsg "err" "Could not create log file. Giving up!"
-  abort
-fi
-logfile=$LU_LOG
 
 printx "\n%s\n" "*** Installation of the SECONDO DEVELOPMENT TOOLKIT ***" 
 printx "\n%s\n" "    Installation source: $cdpath"
@@ -373,7 +445,7 @@ printx "%s\n"   "    Temporary directory: $temp"
 printx "%s\n\n" "    Recognized platform: $platform"
 
 for xdir in "$sdk" "$prologdir" "$sdk/bin" "$build"; do
-  if [ -d $xdir ]; then
+  if [ -d "$xdir" ]; then
     showMsg "warn" "Directory $xdir already exists."
   fi 
 done
@@ -398,8 +470,8 @@ select choice in "$opt1" "$opt2" "$opt3"; do
   fi 
 done
 
-printx "%s\n" "Starting installation!"
-printx "%s\n" "Log information will be written to $logfile"
+showMsg "info" "Starting installation! Log information will be written to \n\
+$logfile"
 
 if [ "$testMode" == "true" ]; then
   assert mkdir -p $HOME
@@ -432,15 +504,22 @@ if [ ! -d $HOME/secondo ]; then
 \"www.informatik.fernuni-hagen.de/secondo\" and extract the zip or tar.gz archive \n\
 into directory \$HOME/secondo."
   else 
-    uncompress $srcfile $HOME
+    if uncompress $srcfile $HOME; then
+      showMsg "info" "-> OK!"
+    fi  
   fi
 else
   showMsg "info" "-> Source directory is already present!"
 fi
 
-printSep "JAVA 2 SDK"
-checkFile=$sdk/j2sdk*/LICENSE
-if [ ! -e $checkFile ]; then
+printSep "JAVA 2 SDK Version 1.4.2"
+if win32Host; then
+  javaInstDir="$sdk/j2sdk1.4.2"
+else  
+  javaInstDir="$sdk/j2sdk1.4.2_01"
+fi
+
+if [ ! -d $javaInstDir ]; then
 
   j2dir=$cdpath/$platform/j2sdk
   if [ ! -e $j2dir ]; then
@@ -451,35 +530,34 @@ a JAVA-SDK. Please install it later manually. Depending on which version \n\
 will be installed adjust the variable \$J2SDK_ROOT in the file \n\
 \$HOME/.secondo.${platform}rc"
   else
-    printx "%s\n" "Installing Java SDK ..."
-    if win32Host; then
-      assert cd $j2dir
-      CheckCmd j2sdk*windows*.exe
+    printx "%s\n" "Installing Java SDK. If you don't want to install it since "
+    printx "%s\n" "you have already a SDK of this version or higher omit this step."
+    opt1="Install Java 2 SDK"
+    opt2="Don't intall"
+    
+    select choice in "$opt1" "$opt2"; do
+    if [ "$choice" == "$opt1" ]; then
+      installJava
+      break
     else
-      assert cd $sdk
-      j2file=$j2dir/j2sdk*.bin
-      startupXterm "JAVA 2 SDK Installation" $j2file
-      if [ $? -ne 0 ]; then
-       printx "Running $j2file directly"
-       $j2file
-      else
-       j2XtermPID=$LU_xPID
-      fi
+      break
     fi
+    done
   fi
 else  
-  printx "%s\n" "-> J2SDK seems to be already installed!"
+  showMsg "info" "-> J2SDK seems to be already installed!"
 fi
 
-
-checkFile=$temp/.INST_OK_JCVS
+checkInstDir "$javaInstDir"
+  
+check="UNCOMP_JCVS"
 if [ -e $cdpath/extras/jcvs/jcvs*.*gz ]; then
   printx "%s\n" "Uncompressing JCVS, a java cvs client ... "
-  if [ ! -e $checkFile ]; then
+  if ! checkPoint "$check"; then
     assert cd $sdk
     checkCmd tar -xzf $cdpath/extras/jcvs/jcvs*.*gz
     if [ $? -eq 0 ]; then
-      assert touch $checkFile 
+      setCheckPoint "$check"
     fi
   else
     showMsg "info" "-> already done!"
@@ -494,37 +572,29 @@ if win32Host; then
 
   printSep "MinGW (GCC 3.2 windows port) Installation"
   assert cd $platformdir/mingw
-  checkFile=$temp/.INST_OK_MINGW
-  if [ ! -e $checkFile ]; then 
+  check="INST_MINGW"
+  if ! checkPoint "$check"; then 
     checkCmd Min*.exe
+    if checkInstDir "$mingwdir"; then
+      setCheckPoint "$check"
+    fi
   else
     showMsg "info" "-> MinGW seems to be already installed!"
   fi
 
-  if [ ! -d "$mingwdir" ]; then
-     showMsg "warn" "Recommended installation directory $mingwdir not found. \ 
-You may need to configure .secondo.win32rc."
-  else 
-     touch $checkFile
-     showMsg "info" "-> done!"
-  fi
    
   printSep  "SWI-Prolog Installation"
   assert cd $platformdir/prolog
-  checkFile=$temp/.INST_OK_SWIPROLOG
-  if [ ! -e $checkFile ]; then
+  check="INST_SWIPROLOG"
+  if ! checkPoint "$check"; then
     checkCmd w32pl*.exe
+    if checkInstDir "$prologdir"; then
+      setCheckPoint "$check"
+    fi
   else
     showMsg "info" "-> SWI-Prolog seems to be already installed!"
   fi
 
-  if [ ! -d "$prologdir" ]; then
-     showMsg "Recommended installation directory $prologdir not found. \ 
-You may need to configure the .secondo.win32rc."
-  else 
-     touch $checkFile
-     showMsg "info" "-> done!"
-  fi
 
   printSep "Installation of Tools from the gnuwin32 project ..."
   assert cd $sdk

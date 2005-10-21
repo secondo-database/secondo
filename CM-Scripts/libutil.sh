@@ -13,9 +13,42 @@
 # recognize aliases also in an non interactive shell
 shopt -s expand_aliases
 
-
+# global variables used to store results 
+LU_LOG=""
 LU_LOG_INIT=""
+
+LU_VARVALUE=""
+
+LU_TMP=""
+LU_USERTMP=""
+
+LU_CHILDS=""
+
+LU_MAPSTR=""
+LU_xPID=""
+
+declare -i LU_STEPCTR=1
+declare -i LU_RC=0
+declare -i LU_ERRORS=0
+
+# global constants which influence the 
+# behaviour of some functions
 LU_TESTMODE=""
+LU_SENDMAIL="true"
+
+LU_RULER="--------------------------------------------------------------------"
+
+# colors
+LU_normal="\033[0m"
+LU_red="\033[31m"
+LU_green="\033[32m"
+LU_blue="\033[34m"
+
+###################################################################
+###
+###  Start of function definitions
+###
+###################################################################
 
 # getTimeStamp
 function getTimeStamp {
@@ -41,7 +74,6 @@ function printx {
   printl "$1" "$2"
 }
 
-LU_RULER="--------------------------------------------------------------------"
 # 
 #
 function printlr {
@@ -69,32 +101,28 @@ function varValue {
 # $2 msg
 function showMsg {
 
-  local normal="\033[0m"
-  local red="\033[31m"
-  local green="\033[32m"
-  local blue="\033[34m"
-  local col=$normal
+  local col=$LU_normal
   local msg=""
 
   if [ $# == 2 ]; then
     if [ "$1" == "err" ]; then
-      col=$red
+      col=$LU_red
       msg="ERROR: "      
     fi
     if [ "$1" == "warn" ]; then
-      col=$blue
+      col=$LU_blue
       msg="WARNING: "
     fi  
     if [ "$1" == "info" ]; then
-      col=$green
+      col=$LU_green
     fi
     if [ "$1" == "em" ]; then
-      col=$blue
+      col=$LU_blue
     fi  
     shift
   fi
 
-  echo -e "${col}${msg}${1}${normal}\n" 
+  echo -e "${col}${msg}${1}${LU_normal}\n" 
   if [ -n "$LU_LOG_INIT" ]; then
     echo -e "${1}\n" >> $LU_LOG 
   fi
@@ -215,7 +243,6 @@ function win32Host {
 # $1 message
 #
 # print a separator with a number and a message
-declare -i LU_STEPCTR=1
 function printSep {
 
   printx "\n%s\n" "Step ${LU_STEPCTR}: ${1}"
@@ -228,7 +255,6 @@ function printSep {
 #
 # execute a command. In case of an error display the
 # returncode
-declare -i LU_RC=0
 
 function checkCmd {
 
@@ -242,11 +268,11 @@ function checkCmd {
     else
       eval "{ $*; } >> $LU_LOG 2>&1"
     fi
-    let LU_RC=$?  # save returncode
-
+    LU_RC=$?  # save returncode
     if [ $LU_RC -ne 0 ]; then
       showMsg "err" "Command {$*} returned with value ${LU_RC}"
-    fi
+      let LU_ERRORS+=1  
+    fi  
   fi
   printlr
   return $LU_RC
@@ -258,7 +284,6 @@ function checkCmd {
 # search recursively for child processes. Result is stored
 # in global variable LU_CHILDS
 
-LU_CHILDS=""
 function findChilds {
 
    if [ "$platform" != "linux" ]; then
@@ -399,7 +424,6 @@ function lastRC {
 #
 # Sends a mail (with a given attachment) to the list of
 # recipients.
-LU_SENDMAIL="true"
 function sendMail() {
 
   if [ "$1" == "" ]; then
@@ -456,7 +480,6 @@ function uncompressFolders {
 
   for folder in $*; do
     local files=$(find $folder -maxdepth 1 -iname "*.zip" -or -iname "*.*gz")
-    printx "\n"
     for file in $files; do
       uncompress $file
       if [ $? -ne 0 ]; then
@@ -467,7 +490,8 @@ function uncompressFolders {
 
   if [ -n "$err" ]; then
     return 1
-  else
+
+else
     return 0
   fi
 }
@@ -593,9 +617,13 @@ function startupXterm {
   fi
 
   if [ -n $LU_xterm ]; then
+
+	  ## in some situations xhost access control must be disabled	  
+    xhost + > /dev/null 2>&1	  
     $LU_xterm -title "$title" -e $* &
     LU_xPID=""
     sleep 1
+    xhost - > /dev/null 2>&1	  
     if ! isRunning $!; then
       showMsg "err" "Could not start \"$LU_xterm -e $*\" in backgound." 
       return 1 
@@ -608,7 +636,11 @@ function startupXterm {
   return 0
 }
 
-
+###################################################################
+###
+###  End of function definitions
+###
+###################################################################
 
 # define some environment variables
 createTempDir
@@ -640,13 +672,11 @@ LD_LIBRARY_PATH="/lib:${LD_LIBRARY_PATH}"
 #initialize date_ variables
 getTimeStamp
 
-####################################################################################
+########################################################
 #
-# Test functions
+# Tests 
 #
-####################################################################################
-
-LU_TRACE=0;
+########################################################
 
 if [ "$1" == "msgs" ]; then  
 
