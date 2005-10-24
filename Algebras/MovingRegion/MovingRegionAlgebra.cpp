@@ -36,7 +36,7 @@ using namespace datetime;
 static NestedList* nl;
 static QueryProcessor* qp;
 
-const bool MRA_DEBUG = true;
+const bool MRA_DEBUG = false;
 
 static int simpleSelect(ListExpr args) {
     return 0;
