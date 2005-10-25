@@ -30,7 +30,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[Oe] [\"{O}]
 //[Ue] [\"{U}]
 //[**] [$**$]
-//[star] [$*$]
 //[toc] [\tableofcontents]
 //[=>] [\verb+=>+]
 //[:Section Translation] [\label{sec:translation}]
@@ -2434,9 +2433,7 @@ callLookup(Query, Query2) :-
   lookup(Query, Query2), !.
 
 starQuery(select * from _) :- assert(isStarQuery), !.
-starQuery(select * from _ first _) :- assert(isStarQuery), !.
 starQuery(select count(*) from _) :- assert(isStarQuery), !.
-starQuery(select count(*) from _ first _) :- assert(isStarQuery), !.
 starQuery(_).
 
 newQuery :- not(clearVariables), not(clearQueryRelations), 
@@ -3138,7 +3135,7 @@ names have been looked up already.
 
 */
 
-queryToPlan(Query, count(Stream), Cost) :-
+queryToPlan(Query, Stream, Cost) :-
   countQuery(Query),
   queryToStream(Query, Stream, Cost),
   !.
@@ -3157,7 +3154,6 @@ Check whether ~Query~ is a counting query.
 
 
 countQuery(select count(*) from _) :- !.
-countQuery(select count(*) from _ first _) :- !.
 
 countQuery(Query groupby _) :-
   countQuery(Query).
@@ -3241,17 +3237,14 @@ fSort(Stream, SortAttrs, sortby(Stream, AttrNames)) :-
 
 
 
-/*
-don't modify the stream if the projection is [star] 
-or count([star]).
-
-*/
 fProject(Stream, *, Stream) :- !.
-fProject(Stream, count(*), Stream) :- !.
 
+fProject(Stream, count(*), count(Stream)) :- !.
 
 fProject(Stream, Project, project(Stream, AttrNames)) :-
   attrnames(Project, AttrNames).
+
+
 
 
 extendProject([], [], []).
