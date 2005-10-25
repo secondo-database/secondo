@@ -82,7 +82,7 @@ function installPackage {
     if [ "$3" != "" ]; then
       printx "%s\n" "Compiling package ..."
       assert cd $3
-      checkCmd $conf --prefix=$sdk $5 --disable-nls $configureFlags
+      checkCmd bash $conf --prefix=$sdk $5 --disable-nls $configureFlags
       if [ $? -ne 0 ]; then
         return 1;
       fi
@@ -261,10 +261,10 @@ function copyConfigFiles {
   let LU_ERRORS=0
   if ! checkPoint "$check"; then
     
-    printx "%s\n" "Creating \$HOME/.secondo*"
+    printx "%s\n" "Creating \$HOME/.secondo*rc files"
     checkCmd cp -b home/secondorc $HOME/.secondorc
     checkCmd cp -b home/secondo.sdkrc $HOME/.secondo.sdkrc
-    checkCmd cp -b home/secondo.${platform}rc $HOME/.${platform}rc
+    checkCmd cp -b home/secondo.${platform}rc $HOME/.secondo${platform}rc
     if win32Host; then
       printx "%s\n" "Creating \$HOME/.profile"
       checkCmd cp -b home/profile $HOME/.profile

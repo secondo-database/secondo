@@ -616,7 +616,7 @@ function startupXterm {
    return 0
   fi
 
-  if [ -n $LU_xterm ]; then
+  if [ -n "$LU_xterm" ]; then
 
 	  ## in some situations xhost access control must be disabled	  
     xhost + > /dev/null 2>&1	  
@@ -647,16 +647,16 @@ createTempDir
 TEMP=$LU_TMP
 
 # check if a graphical console is present
-LU_xterm=$(which rxvt)
-if [ -z $LU_xterm ]; then
-  LU_xterm=$(which xterm)
-  if [ -z $LU_xterm ]; then
-    showMsg "warn" "No grapichal console like  rxvt or xterm avaliable."
+if ! which rxvt; then
+  if ! which xterm; then
+    showMsg "warn" "No grapichal console like  rxvt or xterm available."
+    LU_xterm="" 
   else
-    LU_xterm=""
+    LU_xterm="xterm"
   fi
+else
+  LU_xterm="rxvt"
 fi
-
 
 
 # some important directories in SECONDO's source tree 
