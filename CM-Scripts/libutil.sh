@@ -647,8 +647,10 @@ createTempDir
 TEMP=$LU_TMP
 
 # check if a graphical console is present
-if ! which rxvt; then
-  if ! which xterm; then
+which rxvt > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+  which xterm > /dev/null 2>&1
+  if [ $? -ne 0 ]; then
     showMsg "warn" "No grapichal console like  rxvt or xterm available."
     LU_xterm="" 
   else

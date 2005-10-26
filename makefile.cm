@@ -19,11 +19,10 @@
 #
 ########################################################################
 #
-# makefile.cm - rules for CM and deploament related tasks
+# makefile.cm - rules for CM and deployment related tasks
 #
 #########################################################################
 
-$(shell rm -f .show-update-msg)
 
 # some direcories used to build tar.gz files for
 # Secondo sources or installation kits
@@ -32,40 +31,49 @@ net := $(SECONDO_SDK_ROOT)/$(pref)
 netsc := $(SECONDO_SDK_ROOT)/$(pref)/scripts
 
 # local directory for tar archives
-ifndef websrv
-websrv := $(PWD)/websrv
+ifndef tempdir
+tempdir := /tmp/make-$(USER)
+endif
+shrc := $(shell if [ ! -d $(tempdir) ]; then if ! mkdir -p $(tempdir); then echo "false"; fi fi)
+ifeq ($(shrc),false)
+$(error Could not create directory $(tempdir)!)
 endif
 
-define mkwebdir
-if [ ! -d $(websrv) ]; then mkdir -p $(websrv); fi
-endef
 
+# run some shell commands
+tsdk := $(tempdir)/sdk_dist
+tnew := $(tempdir)/sdk_changed 
+tupd := $(tempdir)/show_update_msg
+
+shrc := $(shell rm -f $(tupd))
+shrc := $(shell if [ ! -e $(tsdk) ]; then touch $(tsdk); fi)
+shrc := $(shell if [ ! -e $(tnew) ]; then touch $(tnew); fi)
 
 # Rules for copying configuration scripts
 SCRIPT_DIR := ./CM-Scripts
 SCRIPT_FILES := $(SECONDO_SDK)/bin/setvar.bash \
 		$(SECONDO_SDK)/bin/libutil.sh \
 		$(SECONDO_SDK)/bin/catvar.sh \
-		$(SECONDO_SDK)/bin/aliaslist.sh \
+		$(SECONDO_SDK)/bin/aliaslist.sh
 
 SCRIPT_FILES2 := $(netsc)/bin/setvar.bash \
 		$(netsc)/bin/libutil.sh \
 		$(netsc)/bin/catvar.sh \
-		$(netsc)/bin/aliaslist.sh \
+		$(netsc)/bin/aliaslist.sh
 
 ifeq ($(platform),win32)
 PROFILE_NAME := $(HOME)/.profile
 endif
-PROFILE_NAME2 := $(netsc)/home/.profile
+PROFILE_NAME2 := $(netsc)/home/profile
 
 RC_FILES := $(HOME)/.secondorc \
 	    $(HOME)/.secondo.sdkrc \
             $(HOME)/.secondo.$(platform)rc
 
-RC_FILES2 := $(netsc)/home/.secondorc \
-	    $(netsc)/home/.secondo.sdkrc \
-            $(netsc)/home/.secondo.linuxrc \
-            $(netsc)/home/.secondo.win32rc
+RC_FILES2 := $(netsc)/home/secondorc \
+	    $(netsc)/home/secondo.sdkrc \
+            $(netsc)/home/secondo.linuxrc \
+            $(netsc)/home/secondo.win32rc
 
 .PHONY: update-environment 
 update-environment: show-separator $(SCRIPT_FILES) $(RC_FILES) $(PROFILE_NAME) show-update-msg
@@ -82,7 +90,7 @@ UPDATE_MSG := "\n\
   of your current running shell will not be modified.\n"
 	
 $(SCRIPT_FILES): $(SECONDO_SDK)/bin/%sh: $(SCRIPT_DIR)/%sh
-	@touch .show-update-msg
+	@touch $(tupd)
 	@cp --backup $< $@
 	@echo " updating" $@
 
@@ -90,25 +98,25 @@ $(SCRIPT_FILES2): $(netsc)/bin/%sh: $(SCRIPT_DIR)/%sh
 	cp $< $@
 
 $(RC_FILES): $(HOME)/.sec%rc: $(SCRIPT_DIR)/.sec%rc
-	@touch .show-update-msg
+	@touch $(tupd)
 	@cp --backup $< $@
 	@echo " updating " $@
 
-$(RC_FILES2): $(netsc)/home/.sec%rc: $(SCRIPT_DIR)/.sec%rc
+$(RC_FILES2): $(netsc)/home/%rc: $(SCRIPT_DIR)/.%rc
 	cp $< $@
 
 $(HOME)/.profile: $(SCRIPT_DIR)/.profile
-	@touch .show-update-msg
+	@touch $(tupd)
 	@cp --backup $< $@
 	@echo " updating" $@
 
-$(netsc)/home/.profile: $(SCRIPT_DIR)/.profile
+$(netsc)/home/profile: $(SCRIPT_DIR)/.profile
 	cp $< $@
 
 
 .PHONY: show-update-msg
 show-update-msg:
-	@if [ -f .show-update-msg ]; then echo -e $(UPDATE_MSG); \
+	@if [ -e $(tupd) ]; then echo -e $(UPDATE_MSG); \
 	else echo -e " ... are up to date.\n"; fi
 
 .PHONY: show-separator
@@ -119,16 +127,44 @@ show-separator:
 # rules for deployment of source files
 # default value for cvs tag 
 
-WIN_SRC := $(net)/secondo-$(tag)-CP1252.zip
-LIN_SRC := $(net)/secondo-$(tag)-LAT1.tar.gz
+WIN_SRC := $(tempdir)/secondo-$(tag)-CP1252.zip
+LIN_SRC := $(tempdir)/secondo-$(tag)-LAT1.tar.gz
 SRC_FILES := $(WIN_SRC) $(LIN_SRC)
+ALL_SDK_SCRIPTS := $(net)/installsdk $(INSTALL_SCRIPTS) $(SCRIPT_FILES2) $(RC_FILES2) $(PROFILE_NAME2)
+
 
 # update the installation kit 
 .PHONY: update-sdk 
-update-sdk: checkroot tag-version sdk-scripts src-archives linux-sdk win32-sdk
+update-sdk: checkrootdir $(tnew) $(tsdk) 
 
-.PHONY: checkroot
-checkroot:
+# special target which only updates script files
+.PHONY: sdk-scripts
+sdk-scripts: $(tnew)
+
+$(tnew): $(ALL_SDK_SCRIPTS)
+	touch $@
+
+# special target which create new secondo source archives
+.PHONY: src-dist
+src-dist: src-archives
+	touch $@ 
+
+# create new installation kits
+.PHONY: sdk-dist
+sdk-dist: $(tsdk)
+
+$(tsdk): $(tnew)
+	make linux-sdk
+	make win32-sdk
+	rm -rf $(tempdir)/secondo-cd*
+	make isoimage
+	touch $@
+
+
+
+# check if a root for the secondo SDK tools is present
+.PHONY: checkrootdir
+checkrootdir:
 ifndef SECONDO_SDK_ROOT
 	@echo -e "\nError: SECONDO_SDK_ROOT not defined!\n"; exit 1
 else
@@ -136,31 +172,34 @@ else
 	echo -e "\nDirectory net=\"$(net)\" does not exist!\n"; exit 2; fi
 endif
 
-# update script files
-.PHONY: sdk-scripts
-sdk-scripts: $(net)/installsdk $(INSTALL_SCRIPTS) $(SCRIPT_FILES2) $(RC_FILES2) $(PROFILE_NAME2)
 
 .PHONY: linux-sdk
-linux-sdk: 
-	$(mkwebdir)
-	rm -f $(websrv)/$@.tar.gz
-	tar -C $(SECONDO_SDK_ROOT) -cvzf $(websrv)/$@.tar.gz \
+linux-sdk:
+	rm -f $(tempdir)/$@.tar.gz
+	tar -C $(SECONDO_SDK_ROOT) -cvzf $(tempdir)/$@.tar.gz \
 	$(pref)/Linux-Installation-Guide.pdf $(pref)/installsdk $(pref)/linux $(pref)/scripts --exclude $(pref)/linux/j2sdk* 
 
 .PHONY: win32-sdk
-win32-sdk: 
-	$(mkwebdir)
-	rm -f $(websrv)/$@.zip
-	cd $(SECONDO_SDK_ROOT) && zip -9 -r $(websrv)/$@.zip \
+win32-sdk:
+	rm -f $(tempdir)/$@.zip
+	cd $(SECONDO_SDK_ROOT) && zip -9 -r $(tempdir)/$@.zip \
 	$(pref)/Windows-Installation-Guide.pdf $(pref)/MSYS-* $(pref)/installsdk \
 	$(pref)/win32/prolog $(pref)/win32/mingw $(pref)/win32/non-gnu $(pref)/win32/gnu $(pref)/scripts
 
+# create a iso image with Rockridge and Joliet extensions 
+.PHONY: isoimage
+isoimage: $(tempdir)/secondo-cd.iso.zip
 
-.PHONY: techdoc 
-techdoc: $(net)/documentation/* 
-	$(mkwebdir)
-	rm -f $(websrv)/secondo-$@.zip
-	cd $(net) && zip -9 -r $(websrv)/secondo-$@.zip documentation 
+$(tempdir)/secondo-cd.iso.zip: $(tempdir)/secondo-cd.iso
+	zip -9 $@ $<
+
+$(tempdir)/secondo-cd.iso: $(net)
+	mkisofs -J -r -iso-level 2 -graft-points -o $@ /=$(net)
+
+.PHONY: doc-dist 
+doc-dist: $(net)/documentation
+	rm -f $(tempdir)/secondo-$@.zip
+	cd $(net) && zip -9 -r $(tempdir)/secondo-$@.zip documentation 
 
 
 SECONDO_DEMO = secondo-demo
@@ -184,34 +223,39 @@ demo: $(BIN_FILES)
 	rm -rf $(SECONDO_DEMO)
 
 
+define checkTag
+  @if [ -z "$(tag)" ]; then echo -e "\n Error: Variable \"tag\" not set! \n"; exit 1; fi
+endef
+
+
 .PHONY: tag-version
 tag-version:
-ifndef tag
-	@echo -e "\n Error: Variable tag not set! \n"; exit 1
-else
-	cvs -Q tag -F $(tag) 
-endif
+	$(checkTag)
+	cvs -Q tag -F $(tag)
 
-fileList := .SRC_FILES
+
+fileList := $(tempdir)/_SRC_FILE_LIST
 .PHONY: src-archives
-src-archives: .srcfileList
-	$(mkwebdir)
+src-archives: $(fileList) 
 	rm -rf $(SRC_FILES)
 	tar -czf $(LIN_SRC) -T $<
+# a list of file endings which need not to be recoded
 	find secondo ! \( \
           -type d \
           -or -name "*.bmp" \
           -or -name "*.zip" \
           -or -name "*.tgz" \
-          -or -name "*.gz" \
           -or -name "*.jar" \
+          -or -name "*.dll" \
           -or -name "*.gif" \
           -or -name "*.jpg" \
           -or -name "*.sxd" \
           -or -name "*.sda" \
           -or -name "*.fig" \
           -or -name "*.pdf" \
+          -or -name "*.eps" \
           -or -name "*.fm" \
+          -or -name "*.gz" \
           -or -name "*.book" \
           -or -name "*.canvas" \
           -or -path "*javazoom*" \
@@ -220,7 +264,7 @@ src-archives: .srcfileList
 	cat $< | zip -9 -r $(WIN_SRC) -@ > /dev/null
 	rm -rf secondo
 
-.srcfileList: secondo/makefile
+$(fileList): secondo/makefile
 	find secondo ! -type d \
                      ! -name "opt" \
                      ! -name "geo" \
@@ -234,6 +278,7 @@ src-archives: .srcfileList
 	find secondo/Data ! -type d -size -10k >> $@
 
 secondo/makefile:
+	$(checkTag)
 	cvs -Q export -r$(tag) secondo 
 
 

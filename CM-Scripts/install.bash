@@ -61,6 +61,16 @@ function setCheckPoint {
 function installPackage {
 
   local conf="./configure"
+  
+  # There's a posix fix in bash 3.0 which breaks older script code.
+  # bash 2.05 accepts command "trap 0", but version 3.0 needs
+  # "trap - 0". As a result some configure scripts stop with
+  # an error, e.g. for gcc 3.2.3. A solution is to start the
+  # configure script with bash which turns off posix compatibility mode.
+  if ! win32Host; then
+    local bashCmd="bash"
+  fi
+
   if [ "$6" != "" ]; then
     conf=$6
   fi
@@ -82,7 +92,7 @@ function installPackage {
     if [ "$3" != "" ]; then
       printx "%s\n" "Compiling package ..."
       assert cd $3
-      checkCmd bash $conf --prefix=$sdk $5 --disable-nls $configureFlags
+      checkCmd $bashCmd $conf --prefix=$sdk $5 --disable-nls $configureFlags
       if [ $? -ne 0 ]; then
         return 1;
       fi
@@ -231,6 +241,8 @@ delete it with a file manager."
 # $1 requested version number
 function checkGCC {
 
+  echo "PATH: $PATH" >> $logfile
+  echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH" >> $logfile
   checkCmd "gcc --version >> $logfile"
   checkCmd "gcc --print-search-dirs >> $logfile"
 
@@ -264,7 +276,7 @@ function copyConfigFiles {
     printx "%s\n" "Creating \$HOME/.secondo*rc files"
     checkCmd cp -b home/secondorc $HOME/.secondorc
     checkCmd cp -b home/secondo.sdkrc $HOME/.secondo.sdkrc
-    checkCmd cp -b home/secondo.${platform}rc $HOME/.secondo${platform}rc
+    checkCmd cp -b home/secondo.${platform}rc $HOME/.secondo.${platform}rc
     if win32Host; then
       printx "%s\n" "Creating \$HOME/.profile"
       checkCmd cp -b home/profile $HOME/.profile
@@ -283,12 +295,23 @@ function copyConfigFiles {
   return 1 
 }
 
+# $1 directory
+function checkInstDir {
+
+  if [ ! -d "$1" ]; then
+    showMsg "warn" "Recommended installation directory \"$1\" \n\
+not found. You need to modify file \"~/.secondo.${platform}rc\"."
+    return 1
+  fi
+  return 0
+}
 
 function installJava {
 
   if win32Host; then
     assert cd $j2dir
     j2sdk*windows*.exe
+    checkInstDir $javaInstDir
   else
     assert cd $sdk
     local j2file=$j2dir/j2sdk*.bin
@@ -302,17 +325,6 @@ function installJava {
   fi
 }
 
-
-# $1 directory
-function checkInstDir {
-
-  if [ ! -d "$1" ]; then
-    showMsg "warn" "Recommended installation directory \"$1\" \n\
-not found. You need to modify file \"~/.secondo.${platform}rc\"."
-    return 1
-  fi
-  return 0
-}
 
 function finish {
 
@@ -360,9 +372,9 @@ printf "\n"
 showGPL
 
 # init log file
-temp=$LU_TMP/installsdk
+temp=$LU_TMP/secondo-tmp/$USER
 mkdir -p $temp
-logfile="$temp/secondo-install.log"
+logfile="$temp/installsdk.log"
 initLogFile $logfile
 if [ $? -ne 0 ]; then
   showMsg "err" "Could not create log file. Giving up!"
@@ -548,8 +560,6 @@ else
   showMsg "info" "-> J2SDK seems to be already installed!"
 fi
 
-checkInstDir "$javaInstDir"
-  
 check="UNCOMP_JCVS"
 if [ -e $cdpath/extras/jcvs/jcvs*.*gz ]; then
   printx "%s\n" "Uncompressing JCVS, a java cvs client ... "
@@ -630,22 +640,24 @@ fi
 #
 # GCC 3.2.3 installation
 #
+export PATH=".:$sdk/bin:$PATH"
+export LD_LIBRARY_PATH=".:$sdk/lib:$LD_LIBRARY_PATH"
 printSep "Installation of GCC 3.2.3"
 if checkGCC "3.2.3"; then
   showMsg "info" "Your system's GCC has already version \"3.2.3\" \n\
 hence we will not install it again below $sdk"
-  export PATH=".:$sdk/bin:$PATH"
 else
   # Compile GCC 3.2.3
   gccfiles=$platformdir/gnu/gcc-*
   installPackage "GCC with C++ support" "$gccfiles"  $temp/gcc-* "bootstrap install"
-  configureFlags="CFLAGS=-I$sdk/include LDFLAGS=-L$sdk/lib"
-  export PATH=".:$sdk/bin:$PATH"
+  assert hash -r
   if ! checkGCC "3.2.3"; then
     showMsg "err" "Something went wrong! gcc --version does not report version 3.2.3" 
     abort
   fi
 fi
+
+configureFlags="CFLAGS=-I$sdk/include LDFLAGS=-L$sdk/lib"
 
 printSep "Compiling other packages ..."
 
