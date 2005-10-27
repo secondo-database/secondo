@@ -257,6 +257,9 @@ be retrieved only once.
 
 % Selectivities must not be 0
 
+selectivity(pr(Pred, Rel, Rel), Sel) :-
+  selectivity(pr(Pred, Rel), Sel), !.
+
 selectivity(P, Sel) :-
   simplePred(P, PSimple),
   sels(PSimple, Sel),
@@ -288,7 +291,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
-  MSsRes is MSs / 500,
+  MSsRes is MSs / (SampleCard1 * SampleCard2),
   assert(storedPET(PSimple, MSsRes)),
   assert(storedSel(PSimple, Sel)),
   !.
@@ -316,7 +319,7 @@ selectivity(pr(Pred, Rel), Sel) :-
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel), PSimple),
-  MSsRes is MSs / 2000,
+  MSsRes is MSs / SampleCard,
   assert(storedPET(PSimple, MSsRes)),
   assert(storedSel(PSimple, Sel)),
   !.
