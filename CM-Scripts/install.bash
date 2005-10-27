@@ -16,7 +16,7 @@ if ! source $libFile; then
 fi
 
 if win32Host; then
-  shProfile="./scripts/home/_profile"
+  shProfile="./scripts/home/profile"
   if [ -f $shProfile ]; then
     source $shProfile
   fi  
