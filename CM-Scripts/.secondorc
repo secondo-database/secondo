@@ -19,31 +19,22 @@
 #
 # DO NOT CHANGE THIS FILE!
 
-if [ "$OSTYPE" == "msys" ]; then
-   prefix=/c
-   platform="win32"
-else 
-   prefix=$HOME
-   platform="linux"
+# include alias definitions and default
+# values
+alias setvar > /dev/null
+if [ $? -ne 0 ]; then
+  source ~/.secondo.aliases
 fi
 
-# define important base directories
-buildDir=$HOME/secondo
-if [ "$1" != "" ]; then
-buildDir=$1
-fi
+# define short variables for important base directories
+buildDir=$SECONDO_BUILD_DIR
+sdkDir=$SECONDO_SDK
 
 # test if $buildDir seems to be a SECONDO source tree 
 if ! [ -d ${buildDir}/Algebras/Standard-C++ ]; then
   printf "%s\n" "The directory ${buildDir} seems not to be a secondo source tree!"
   printf "%s\n" "Setting \$SECONDO_BUILD_DIR=\$HOME/secondo."
   buildDir=${HOME}/secondo
-fi
-
-# define a directory for the secondo development tools
-sdkDir=${prefix}/secondo-sdk
-if [ "$SECONDO_SDK" != "" ]; then
-sdkDir=$SECONDO_SDK
 fi
 
 ok="true"
@@ -61,17 +52,11 @@ fi
 
 if [ "$ok" == "true" ]; then
 
-# export variables to the environment which are
-# evaluated by make
-export SECONDO_SDK=$sdkDir
-export SECONDO_BUILD_DIR=$buildDir
-export SECONDO_PLATFORM=$platform
-
 # include platform specific definitions
 source ${HOME}/.secondo.${platform}rc
 
-# include command aliases
-source ${sdkDir}/bin/aliaslist.sh
+# include common definitions
+source ${HOME}/.secondo.sdkrc
 
 # include common definitions
 source ${HOME}/.secondo.sdkrc

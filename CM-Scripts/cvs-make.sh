@@ -23,6 +23,7 @@
 
 
 
+
 baseDir=$HOME/${0%/*}
 # include function definitions
 # libutil.sh must be in the search PATH 
@@ -32,6 +33,7 @@ then
 else
   if ! source libutil.sh; then exit 1; fi
 fi
+
 
 
 # makeSecondo $1 $2

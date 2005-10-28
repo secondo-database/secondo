@@ -10,7 +10,7 @@
 #
 
 
-# recognize aliases also in an non interactive shell
+# recognize aliases also in a non interactive shell
 shopt -s expand_aliases
 
 # global variables used to store results 

@@ -10,13 +10,9 @@ else
    platform="linux"
 fi
 
-# set default values
-${SECONDO_SDK:=$prefix/secondo-sdk}
-${SECONDO_BUILD_DIR:=$prefix/secondo}
-
-# export variables used by make
-export SECONDO_SDK
-export SECONDO_BUILD_DIR
+# set default values and export variables used by make
+export SECONDO_SDK=${SECONDO_SDK:=$prefix/secondo-sdk}
+export SECONDO_BUILD_DIR=${SECONDO_BUILD_DIR:=$prefix/secondo}
 export SECONDO_PLATFORM=$platform
 
 # function newAlias
@@ -60,8 +56,8 @@ newAlias SecondoMonitor "SecondoMonitorBDB -s"
 alias setvar="source ${SECONDO_SDK}/bin/setvar.bash" 
 alias catvar="${SECONDO_SDK}/bin/catvar.sh" 
 alias secinit="source $HOME/.secondorc"
-alias secenv="source ${SECONDO_SDK}/bin/setvar.bash"
-alias secroot="${SECONDO_SDK}/bin/catvar.sh"
+alias secroot="source ${SECONDO_SDK}/bin/setvar.bash"
+alias secenv="${SECONDO_SDK}/bin/catvar.sh"
 
 # CVS
 alias jcvs='java -jar ${SECONDO_SDK}/jCVS-5.2.2/jars/jcvsii.jar'
