@@ -718,6 +718,10 @@ In the target language, we use the following operators:
 
                                 where Tuple3 = Tuple1 o Tuple2
 
+        symmjoin:       stream(Tuple1) x stream(Tuple2) x (Tuple 1 x Tuple 2 -> bool) -> stream(Tuple3)
+
+                                where Tuple3 = Tuple1 o Tuple2
+
         hashjoin:       stream(Tuple1) x stream(Tuple2) x attrname1 x attrname2
                                 x nbuckets -> stream(Tuple3)
 
@@ -846,7 +850,16 @@ deleteVariable :- retract(varDefined(_)), fail.
 deleteVariables :- not(deleteVariable).
 
 
+/*
+  The plan_to_atom(attr(Name, Arg, Case), Result) predicate was not able to discriminate wether 
+  to return '..Name' or '.Name' for Arg=2. Now, we use a dynamic prediacte use_double_dots/0
+  to solve this. If use_double_dots/0 is defined, Result => '..Arg'. If use_double_dots/0 is 
+  undefined Result => '.Arg'.
+  Use this method whenever the abbreviated selection funtion '..Argument' is needed to refer to 
+  the second argument of a join predicate. For an example see plan_to_atom(symmjoin(X, Y, M), Result).
+*/
 
+:- dynamic(use_double_dots/0).
 
 
 /*
@@ -901,6 +914,17 @@ see below.
 plan_to_atom(sample(Rel, S, T), Result) :-
   plan_to_atom(Rel, ResRel),
   concat_atom([ResRel, 'sample[', S, ', ', T, '] '], '', Result),
+  !.
+
+/*  symmjoin added by Ch. Duentgen */
+plan_to_atom(symmjoin(X, Y, M), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  assert(use_double_dots),  % tell plan_to_atom/2 to return '..Attrname'
+  plan_to_atom(M, MAtom),
+  retract(use_double_dots), % reset plan_to_atom/2 to standard-mode
+  concat_atom([XAtom, YAtom, 'symmjoin[',
+    MAtom, '] '], '', Result),
   !.
 
 plan_to_atom(hashjoin(X, Y, A, B, C), Result) :-
@@ -1034,9 +1058,31 @@ plan_to_atom(desc(Attr), Result) :-
   plan_to_atom(Attr, AttrAtom), 
   atom_concat(AttrAtom, ' desc', Result).
 
+/* 
+Predicate plan_to_atom/2 was modified to fit with symmjoin by Ch. Duentgen 
+Original was:
+  plan_to_atom(attr(Name, Arg, Case), Result) :-
+    plan_to_atom(a(Name, Arg, Case), ResA),
+    atom_concat('.', ResA, Result).
+*/
+
+plan_to_atom(attr(Name, Arg, Case), Result) :-
+  Arg = 2,
+  use_double_dots, % check whether dynamic predicate indicates to use '..'-Notation 
+  plan_to_atom(a(Name, Arg, Case), ResA),
+  atom_concat('..', ResA, Result),
+  !.
+
 plan_to_atom(attr(Name, Arg, Case), Result) :-
   plan_to_atom(a(Name, Arg, Case), ResA),
-  atom_concat('.', ResA, Result).
+  atom_concat('.', ResA, Result),
+  !.
+
+/*
+  End of modification
+*/
+
+
 
 plan_to_atom(attrname(attr(Name, Arg, Case)), Result) :-
   plan_to_atom(a(Name, Arg, Case), Result).
@@ -1312,6 +1358,16 @@ A join can always be translated to filtering the Cartesian product.
 join(Arg1, Arg2, pr(Pred, _, _)) => filter(product(Arg1S, Arg2S), Pred) :-
   Arg1 => Arg1S,
   Arg2 => Arg2S.
+
+/*
+... but especially for large objects/expensive predicates, a symmjoin is faster:
+
+*/
+
+join(Arg1, Arg2, pr(Pred, _, _)) => symmjoin(Arg1S, Arg2S, Pred) :-
+  Arg1 => Arg1S,
+  Arg2 => Arg2S.
+
 
 join(Arg1, Arg2, pr(X<Y, _, _)) => loopjoin(Arg1S, fun([param(t, tuple)], 
   filter(Arg2S, attribute(t, attrname(Attr1)) < Attr2))) :-
@@ -1749,6 +1805,19 @@ cost(sortmergejoin(X, Y, _, _), Sel, S, C) :-
     A * SizeX * log(SizeX + 1) +
     A * SizeY * log(SizeY + 1) +                % sorting the arguments
     B * S.                                      % parallel scan of sorted relations
+
+
+/* 
+   Simple costs estimation for ~symmjoin~
+*/
+cost(symmjoin(X, Y, _), Sel, S, C) :-
+  cost(X, 1, SizeX, CostX),
+  cost(Y, 1, SizeY, CostY),
+  symmjoinTC(A, B),                   % fetch relative costs
+  S is SizeX * SizeY * Sel,           % calculate size of result
+  C is CostX + CostY +                % cost to produce the arguments
+    A * SizeX + A * SizeY +           % cost to write to buffers
+    B * S.                            % cost to produce result tuples
 
 
 cost(extend(X, _), Sel, S, C) :-

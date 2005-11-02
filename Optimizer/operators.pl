@@ -56,6 +56,8 @@ hashjoinTC(1.5, 0.65).
 
 sortmergejoinTC(0.3, 0.73).
 
+symmjoinTC(1.4, 0.7).
+
 extendTC(1.5).
 
 removeTC(0.6).

@@ -88,6 +88,7 @@ secondoOp(feed, postfix, 1).
 secondoOp(consume, postfix, 1).
 secondoOp(count, postfix, 1).
 secondoOp(product, postfix, 2).
+secondoOp(symmjoin, postfixbrackets, 3).
 secondoOp(filter, postfixbrackets, 2).
 secondoOp(loopjoin, postfixbrackets, 2).
 secondoOp(exactmatch, postfixbrackets, 3).
