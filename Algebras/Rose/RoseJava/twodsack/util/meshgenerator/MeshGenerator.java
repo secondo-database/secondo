@@ -36,8 +36,8 @@ public class MeshGenerator {
      * The valid values are <tt>"Triangle"</tt> and <tt>"NetGen"</tt>.<br>
      * The default value is "NetGen".
      */
-    //public static String GENERATOR = "Triangle";
-    public static String GENERATOR = "NetGen";
+    public static String GENERATOR = "Triangle";
+    //public static String GENERATOR = "NetGen";
 
     /*
      * constructors
@@ -55,9 +55,24 @@ public class MeshGenerator {
      */
     static {
 	//System.out.println(System.getProperty("java.library.path")); //show the library path where the dll-files should be
-	System.loadLibrary("MeshGenerator");
-	System.loadLibrary("ThirdPartyCode");
-	System.loadLibrary("MGNetGen");
+	//load libraries dependant on system
+	String os = System.getProperty("os.name");
+	System.out.println("OS: -"+os+"-");
+	if (os.equals(new String("Linux"))) {
+	    System.out.println("...loading MeshGenerator(LINUX)");
+	    System.loadLibrary("MeshGenerator");
+	    //System.loadLibrary("ThirdPartyCode");
+	    System.out.println("...loading MeshGeneratorNetGen(LINUX)");
+	    System.loadLibrary("MeshGeneratorNetGen");
+	} else {
+	    //must be "Windows"
+	    System.out.println("...loading MeshGenerator(WINDOWS)");
+	    System.loadLibrary("MeshGenerator");
+	    System.out.println("...loading ThirdPartyCode(WINDWOS)");
+	    System.loadLibrary("ThirdPartyCode");
+	    System.out.println("...loading MGNetGen(WINDOWS)");
+	    System.loadLibrary("MGNetGen");
+	}//else
     }
 
     private static final int NUMBER_OF_BUCKETS = 499; //choose a prime number
@@ -182,6 +197,8 @@ public class MeshGenerator {
      * @return the set of triangles for the polygon
      */
     public TriMultiSet computeMeshWithNetGenHoles(CycleList borderCycles, boolean qualityMesh) {
+	System.out.println("MG.computeMeshWithNetGenHoles:");
+	borderCycles.print();
 	int numberOfCycles = borderCycles.size();
 	int totalNumberOfPoints = 0;
 	int[] lengthArray = new int[numberOfCycles];

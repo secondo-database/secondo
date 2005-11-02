@@ -4,7 +4,7 @@
 # Dirk Ansorge, FernUniversitaet Hagen
 #
 
-include ../../../../makefile.inc
+include ../../../../../makefile.inc
 
 platform := $(SECONDO_PLATFORM)
 
