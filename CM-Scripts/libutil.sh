@@ -426,30 +426,38 @@ function lastRC {
 # recipients.
 function sendMail() {
 
-  if [ "$1" == "" ]; then
-    echo -e "${FUNCNAME}: Error, no recipients in argument list!\n"
+  # check mandatory arguments
+  if [ $# -lt 3 ]; then
+    echo -e "\n ${FUNCNAME}: Error, less than 3 arguments!\n"
     return 1
   fi
 
-  if [ "${4}" != "" ]; then
-    local attachment="-a ${4}"
+  if [ "$2" == "" ]; then
+    echo -e "\n ${FUNCNAME}: Error, 2nd argument is empty!\n"
+    return 1
+  fi
+ 
+  # check optional argument 
+  if [ "$4" != "" ]; then
+    local attachment="-a $4"
   fi
 
-  if [ "$LU_SENDMAIL" == "true" ]; then
+  # print mail command 
+  printf "%s\n"   "Sending Mail:"
+  printf "%s\n"   "  mail -s \"$1\" $attachment \"$2\""
+  printf "%s\n"   "Mail body: $3"
+  printf "%s\n\n" "-------------------"
 
   # send mail
-  mail -s"$1" ${attachment} "$2" <<-EOFM
+  if [ "$LU_SENDMAIL" == "true" ]; then
+
+    mail -s"$1" ${attachment} "$2" <<-EOFM
 $3
 EOFM
-  
-  # print warning
   else
-    printf "%s\n" "Test Mode: Not sending mails !!!"
-    printf "%s\n" "Mail command:"
-    printf "%s\n" "  mail -s \"$1\" $attachment \"$2\""
-    printf "%s\n" "Mail body: $3"
-
-  fi
+    printf "%s\n" "Test Mode - mail not send!"
+  fi 
+ 
   return 0
 }
 

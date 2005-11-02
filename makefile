@@ -263,7 +263,7 @@ Documents/.Secondo-News.txt : Documents/Secondo-News.txt
 	@touch $@ 
 	@echo -e "\n *** New information in the file $< *** \n"
 	@head -n 20 $< | sed -ne '10~1p'
-	@echo -e "  *** file truncated after 20 lines *** \n" 
+	@echo -e "\n *** file truncated after 20 lines *** \n" 
 
 bin/SecondoConfig.ini: bin/SecondoConfig.example
 	$(cp-config-file)

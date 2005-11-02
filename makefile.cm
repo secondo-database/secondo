@@ -27,8 +27,8 @@
 # some direcories used to build tar.gz files for
 # Secondo sources or installation kits
 pref := SECONDO_INSTALLATION_KIT
-net := $(SECONDO_SDK_ROOT)/$(pref)
-netsc := $(SECONDO_SDK_ROOT)/$(pref)/scripts
+net := $(SECONDO_INST_KIT_ROOT)/$(pref)
+netsc := $(net)/scripts
 
 # local directory for tar archives
 ifndef tempdir
@@ -51,32 +51,55 @@ shrc := $(shell if [ ! -e $(tnew) ]; then touch $(tnew); fi)
 
 # Rules for copying configuration scripts
 SCRIPT_DIR := ./CM-Scripts
-SCRIPT_FILES := $(SECONDO_SDK)/bin/setvar.bash \
-		$(SECONDO_SDK)/bin/libutil.sh \
-		$(SECONDO_SDK)/bin/catvar.sh \
-		$(SECONDO_SDK)/bin/aliaslist.sh
 
-SCRIPT_FILES2 := $(netsc)/bin/setvar.bash \
-		$(netsc)/bin/libutil.sh \
-		$(netsc)/bin/catvar.sh \
-		$(netsc)/bin/aliaslist.sh
+SCRIPT_FILES := setvar.bash \
+		libutil.sh \
+		catvar.sh
 
+RC_FILES_1 := secondorc \
+	      secondo.sdkrc \
+	      secondo.aliases
+
+RC_FILES_2 := secondo.linuxrc \
+              secondo.win32rc \
+	      profile	
+
+RC_FILES_OS := $(RC_FILES_1) secondo.$(platform)rc 
 ifeq ($(platform),win32)
-PROFILE_NAME := $(HOME)/.profile
+RC_FILES_OS += profile
 endif
-PROFILE_NAME2 := $(netsc)/home/profile
 
-RC_FILES := $(HOME)/.secondorc \
-	    $(HOME)/.secondo.sdkrc \
-            $(HOME)/.secondo.$(platform)rc
+SDK_SCRIPTS_BIN := $(addprefix $(SECONDO_SDK)/bin/, $(SCRIPT_FILES))
+SDK_SCRIPTS_HOME := $(addprefix $(HOME)/., $(RC_FILES_OS))
 
-RC_FILES2 := $(netsc)/home/secondorc \
-	    $(netsc)/home/secondo.sdkrc \
-            $(netsc)/home/secondo.linuxrc \
-            $(netsc)/home/secondo.win32rc
+INST_KIT_BIN := $(addprefix $(netsc)/bin/, $(SCRIPT_FILES))
+INST_KIT_HOME := $(addprefix $(netsc)/home/, $(RC_FILES_1) $(RC_FILES_2))
+
+
+# Files located at the web server
+websrv := $(SECONDO_WEBSRV_ROOT)/files
+
+lin_guide := Linux-Installation-Guide.pdf
+win_guide := Windows-Installation-Guide.pdf
+
+lin_sdk := linux-sdk.tar.gz
+win_sdk := win32-sdk.zip
+iso_sdk := secondo-cd.iso.zip
+
+INST_GUIDES := $(addprefix $(websrv)/, $(lin_guide) $(win_guide))
+INST_KITS := $(addprefix $(websrv)/, $(lin_sdk) $(win_sdk) $(iso_sdk))
+
+
+WIN_SRC := $(tempdir)/secondo-$(tag)-CP1252.zip
+LIN_SRC := $(tempdir)/secondo-$(tag)-LAT1.tar.gz
+SRC_FILES := $(WIN_SRC) $(LIN_SRC)
+
+ALL_SDK_SCRIPTS := $(net)/installsdk $(INST_KIT_BIN) $(INST_KIT_HOME)
+
 
 .PHONY: update-environment 
-update-environment: show-separator $(SCRIPT_FILES) $(RC_FILES) $(PROFILE_NAME) show-update-msg
+update-environment: show-separator $(SDK_SCRIPTS_BIN) $(SDK_SCRIPTS_HOME) show-update-msg
+
 
 UPDATE_MSG := "\n\
   Configuration Setup has been updated. If you have made changes\n\
@@ -89,28 +112,21 @@ UPDATE_MSG := "\n\
   make are processed in a new subshell, hence the environment\n\
   of your current running shell will not be modified.\n"
 	
-$(SCRIPT_FILES): $(SECONDO_SDK)/bin/%sh: $(SCRIPT_DIR)/%sh
+VPATH := $(SCRIPT_DIR)
+$(SECONDO_SDK)/bin/%: %
 	@touch $(tupd)
 	@cp --backup $< $@
 	@echo " updating" $@
 
-$(SCRIPT_FILES2): $(netsc)/bin/%sh: $(SCRIPT_DIR)/%sh
-	cp $< $@
-
-$(RC_FILES): $(HOME)/.sec%rc: $(SCRIPT_DIR)/.sec%rc
-	@touch $(tupd)
-	@cp --backup $< $@
-	@echo " updating " $@
-
-$(RC_FILES2): $(netsc)/home/%rc: $(SCRIPT_DIR)/.%rc
-	cp $< $@
-
-$(HOME)/.profile: $(SCRIPT_DIR)/.profile
+$(HOME)/.%: .%
 	@touch $(tupd)
 	@cp --backup $< $@
 	@echo " updating" $@
 
-$(netsc)/home/profile: $(SCRIPT_DIR)/.profile
+$(netsc)/home/%: .%
+	cp $< $@
+
+$(netsc)/bin/%: %
 	cp $< $@
 
 
@@ -122,16 +138,6 @@ show-update-msg:
 .PHONY: show-separator
 show-separator:
 	@echo -e "\n *** Bash environment setup files *** \n"
-
-
-# rules for deployment of source files
-# default value for cvs tag 
-
-WIN_SRC := $(tempdir)/secondo-$(tag)-CP1252.zip
-LIN_SRC := $(tempdir)/secondo-$(tag)-LAT1.tar.gz
-SRC_FILES := $(WIN_SRC) $(LIN_SRC)
-ALL_SDK_SCRIPTS := $(net)/installsdk $(INSTALL_SCRIPTS) $(SCRIPT_FILES2) $(RC_FILES2) $(PROFILE_NAME2)
-
 
 # update the installation kit 
 .PHONY: update-sdk 
@@ -160,13 +166,29 @@ $(tsdk): $(tnew)
 	make isoimage
 	touch $@
 
+vpath %-Installation-Guide.pdf $(net)
+vpath %.zip $(tempdir)
+vpath %.gz $(tempdir)
 
+# copy to web server
+.PHONY: copy2web
+copy2web: checkrootdir $(INST_GUIDES) $(INST_KITS)
+
+
+$(websrv)/%-Installation-Guide.pdf: %-Installation-Guide.pdf
+	cp $< $@
+
+$(websrv)/%.zip: %.zip
+	cp $< $@
+
+$(websrv)/%.gz: %.gz
+	cp $< $@
 
 # check if a root for the secondo SDK tools is present
 .PHONY: checkrootdir
 checkrootdir:
-ifndef SECONDO_SDK_ROOT
-	@echo -e "\nError: SECONDO_SDK_ROOT not defined!\n"; exit 1
+ifndef SECONDO_INST_KIT_ROOT
+	@echo -e "\nError: SECONDO_INST_KIT_ROOT not defined!\n"; exit 1
 else
 	@if [ ! -e $(net) ]; then \
 	echo -e "\nDirectory net=\"$(net)\" does not exist!\n"; exit 2; fi
@@ -176,13 +198,13 @@ endif
 .PHONY: linux-sdk
 linux-sdk:
 	rm -f $(tempdir)/$@.tar.gz
-	tar -C $(SECONDO_SDK_ROOT) -cvzf $(tempdir)/$@.tar.gz \
+	tar -C $(SECONDO_INST_KIT_ROOT) -cvzf $(tempdir)/$@.tar.gz \
 	$(pref)/Linux-Installation-Guide.pdf $(pref)/installsdk $(pref)/linux $(pref)/scripts --exclude $(pref)/linux/j2sdk* 
 
 .PHONY: win32-sdk
 win32-sdk:
 	rm -f $(tempdir)/$@.zip
-	cd $(SECONDO_SDK_ROOT) && zip -9 -r $(tempdir)/$@.zip \
+	cd $(SECONDO_INST_KIT_ROOT) && zip -9 -r $(tempdir)/$@.zip \
 	$(pref)/Windows-Installation-Guide.pdf $(pref)/MSYS-* $(pref)/installsdk \
 	$(pref)/win32/prolog $(pref)/win32/mingw $(pref)/win32/non-gnu $(pref)/win32/gnu $(pref)/scripts
 
@@ -202,25 +224,38 @@ doc-dist: $(net)/documentation
 	cd $(net) && zip -9 -r $(tempdir)/secondo-$@.zip documentation 
 
 
-SECONDO_DEMO = secondo-demo
+SECONDO_DEMO = $(tempdir)/secondo-demo
 
-BIN_FILES := bin/SecondoTTYBDB \
-	bin/SecondoListener \
-	bin/SecondoMonitorBDB \
-	bin/SecondoRegistrar \
-	bin/SecondoCheckpoint \
-	bin/SecondoServerBDB \
+SECONDO_APP := SecondoTTYBDB \
+	       SecondoListener \
+	       SecondoMonitorBDB \
+	       SecondoRegistrar \
+	       SecondoCheckpoint \
+	       SecondoServerBDB
+
+DEMO_BIN_FILES := $(addprefix $(SECONDO_DEMO)/bin/, $(SECONDO_APP))
+DEMO_QUERY := bin/testqueries
+DEMO_MAN := Documents/SecondoManual.pdf
+DEMO_ARCHIVE := $(tempdir)/secondo-demo.tar.gz
+
+vpath Secondo% bin
 
 .PHONY: demo
-demo: $(BIN_FILES) 
-	mkdir $(SECONDO_DEMO)
-	mkdir $(SECONDO_DEMO)/bin
-	cp $< $(SECONDO_DEMO)/bin
-	strip $(SECONDO_DEMO)/bin/*
-	cp bin/testqueries $(SECONDO_DEMO)/bin
-	cp Documents/SecondoManual.pdf $(SECONDO_DEMO)
-	tar -cvzf secondo-demo.tar.gz $(SECONDO_DEMO)/*
-	rm -rf $(SECONDO_DEMO)
+demo: mkdemodir $(DEMO_ARCHIVE) 
+
+$(DEMO_ARCHIVE): $(DEMO_BIN_FILES) $(DEMO_QUERY) $(DEMO_MAN)
+	cp $(DEMO_QUERY) $(SECONDO_DEMO)/bin
+	cp $(DEMO_MAN) $(SECONDO_DEMO)
+	cd $(tempdir); tar -cvzf $@ secondo-demo
+
+.PHONY: mkdemodir
+mkdemodir:
+	mkdir -p $(SECONDO_DEMO)/bin
+
+
+$(SECONDO_DEMO)/bin/Secondo%: Secondo%
+	cp $< $@
+	strip $@
 
 
 define checkTag
@@ -282,7 +317,7 @@ secondo/makefile:
 	cvs -Q export -r$(tag) secondo 
 
 
-$(net)/installsdk: $(SCRIPT_DIR)/install.bash
+$(net)/installsdk: install.bash
 	cp $< $@
 	chmod 755 $@
 

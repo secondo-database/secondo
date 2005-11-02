@@ -25,9 +25,9 @@ fi
 function showBashrcMsg {
 
   printx "\n"
-  showMsg "em" "Note: Before compiling SECONDO run \"source \$HOME/.secondorc\" \n\
-For convenience you may store the command in the file \"\$HOME/.bashrc\" \n\
-in order to execute it automatically at startup of a new shell. \n"
+  showMsg "em" "Note: Before compiling SECONDO run \"source ~/.secondorc\" \n\
+otherwise some environment variables are not set to their correct values \n\
+and make will abort with an error."
 }
 
 # The next two function are used to set checkpoints
@@ -205,8 +205,10 @@ uninstall tool unwise.exe!"
       fi
     fi 
     printx "%s\n" "About to delete the following directories and files:"
-    for xdir in $dirs $HOME/.secondo*rc; do
+    local delDir=""
+    for xdir in $dirs $HOME/.secondo*; do
       printx "%s\n" "  $xdir"
+      delDir="$delDir $xdir"
     done
 
     local opt1="Delete"
@@ -219,7 +221,7 @@ uninstall tool unwise.exe!"
       fi
     done
 
-    for xdir in $dirs $HOME/.secondo*rc; do
+    for xdir in $delDir; do
       printf "%s\n" "Deleting $xdir ..."
       rm -rf $xdir
       LU_LOG_INIT=""
@@ -273,14 +275,15 @@ function copyConfigFiles {
   let LU_ERRORS=0
   if ! checkPoint "$check"; then
     
-    printx "%s\n" "Creating \$HOME/.secondo*rc files"
-    checkCmd cp -b home/secondorc $HOME/.secondorc
-    checkCmd cp -b home/secondo.sdkrc $HOME/.secondo.sdkrc
-    checkCmd cp -b home/secondo.${platform}rc $HOME/.secondo.${platform}rc
+    printx "%s\n" "Creating \$HOME/.secondo* files"
+    local dotfiles=""
+    dotfiles="secondorc secondo.sdkrc secondo.${platform}rc secondo.aliases"
     if win32Host; then
-      printx "%s\n" "Creating \$HOME/.profile"
-      checkCmd cp -b home/profile $HOME/.profile
+      dotfiles="$dotfiles profile"
     fi 
+    for file in $dotfiles; do
+      checkCmd cp -b home/$file $HOME/.$file
+    done 
     printx "%s\n" "Copying some shell scripts to \"$sdk/bin\""
     checkCmd cp -b $cdpath/scripts/bin/* $sdk/bin
   else
@@ -545,7 +548,7 @@ will be installed adjust the variable \$J2SDK_ROOT in the file \n\
     printx "%s\n" "Installing Java SDK. If you don't want to install it since "
     printx "%s\n" "you have already a SDK of this version or higher omit this step."
     opt1="Install Java 2 SDK"
-    opt2="Don't intall"
+    opt2="Don't install"
     
     select choice in "$opt1" "$opt2"; do
     if [ "$choice" == "$opt1" ]; then

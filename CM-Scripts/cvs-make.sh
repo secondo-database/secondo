@@ -46,15 +46,15 @@ local msgFile=$1
 local subject=$2
 
 cd $cbuildDir
-CM-Scripts/catvar.sh
-checkCmd "make" > $msgFile 2>&1
+CM-Scripts/catvar.sh > $msgFile 2>&1
+checkCmd "make" >> $msgFile 2>&1
 
 # proceed if last command was successful
-if ! lastRC; then
+if [ $? -ne 0 ]; then
 
-  printf "%s\n" "Problems during build, sending a mail"
+  printf "%s\n" "Problems during build, sending a mail."
 
-  sendMail $subject "$mailRecipients" "$mailBody1" "$msgFile"
+  sendMail "$subject" "$mailRecipients" "$mailBody1" "$msgFile"
 
 fi
 
@@ -253,7 +253,7 @@ if [ $? == 0 ]; then
   cd $scriptDir
   checkCmd "run-tests.sh"
 
-  if ! lastRC; then
+  if [ $? -ne 0 ]; then
     
     printf "%s\n" "Problems during test, sending a mail"
     

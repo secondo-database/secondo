@@ -19,9 +19,8 @@
 #
 # DO NOT CHANGE THIS FILE!
 
-# include alias definitions and default
-# values
-alias setvar > /dev/null
+# include alias definitions and default values
+alias secinit >& /dev/null
 if [ $? -ne 0 ]; then
   source ~/.secondo.aliases
 fi
