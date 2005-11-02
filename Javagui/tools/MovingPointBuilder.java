@@ -54,37 +54,37 @@ public MovingPointBuilder(String FileName,Time StartTime,boolean reverse,int rep
      Vector Durations = new Vector();  // stores durations between points
      // read the points
      while(R.ready()){
-	pointlist pl = new pointlist(reverse);
-	String line;
-	line = readLine(R);
-	if(line!=null){
-	   int secduration=0;
-	   try{
+    pointlist pl = new pointlist(reverse);
+    String line;
+    line = readLine(R);
+    if(line!=null){
+       int secduration=0;
+       try{
               secduration = Integer.parseInt(line);
            }catch(Exception e){
              System.err.println("error in parsing duration " +line_number);
-	     System.exit(0);
-	   }
-	   line = readLine(R);
-	   if(line==null || !line.equals("<points>")){
+         System.exit(0);
+       }
+       line = readLine(R);
+       if(line==null || !line.equals("<points>")){
               System.err.println("wrong fileformat"+line_number);
-	      System.exit(1);
-	   }
-	   line = readLine(R);
-	   while(!line.equals("</points>")){
-	      point p = new point(line);
-	      if(p.isDefined())
+          System.exit(1);
+       }
+       line = readLine(R);
+       while(!line.equals("</points>")){
+          point p = new point(line);
+          if(p.isDefined())
                  pl.add(p);
-	       else{
-	          System.err.println("undefined point at line "+line_number+"  :"+line);
-		  System.exit(0);
-	       }
-	      line = readLine(R);
+           else{
+              System.err.println("undefined point at line "+line_number+"  :"+line);
+          System.exit(0);
            }
-	   Time duration = new Time(0,secduration*1000);
-	   PointLists.add(pl);
+          line = readLine(R);
+           }
+       Time duration = new Time(0,secduration*1000);
+       PointLists.add(pl);
            Durations.add(duration);
-	}
+    }
      }
 
      // output the result
@@ -104,9 +104,9 @@ public MovingPointBuilder(String FileName,Time StartTime,boolean reverse,int rep
             index = reverse ? size-1-i : i;
             pointlist pl =  (pointlist) PointLists.get(index);
             Time duration = (Time) Durations.get(index);
-	    String units = pl.getUnitsString(CurrentTime,duration);
-	    CurrentTime.addInternal(duration);
-	    System.out.println(units+"\n");
+            String units = pl.getUnitsString(CurrentTime,duration);
+            CurrentTime.addInternal(duration);
+            System.out.println(units+"\n");
         }
         System.out.println("))"); // close attribute one and tuple
       }
@@ -147,22 +147,22 @@ public static void main(String[] args){
       try{
          int r = Integer.parseInt(args[no_options+2]);
          int d = Integer.parseInt(args[no_options+3]);
-	 if(r<0){
-	    System.err.println("repeats must be greater then zero");
-	    System.exit(1);
-	 }
-	 if(r>0){
-	    repeats=r;
-	    if(d<=0){
-	       System.err.println("distance must be greater then zero");
-	       System.exit(1);
-	    }
+     if(r<0){
+        System.err.println("repeats must be greater then zero");
+        System.exit(1);
+     }
+     if(r>0){
+        repeats=r;
+        if(d<=0){
+           System.err.println("distance must be greater then zero");
+           System.exit(1);
+        }
             distance = d;
-	 }
+     }
       }
       catch(Exception e){
         System.err.println(" repeats and distance must be integer values");
-	System.exit(1);
+    System.exit(1);
       }
   }
 
@@ -249,7 +249,10 @@ private class pointlist{
     return (point) PL.get(index);
   }
 
+
+  // returns all units as a single string
   public String getUnitsString(Time starttime, Time duration){
+     // at least two points are required
      if(PL.size()<2)
         return null;
 
@@ -261,19 +264,25 @@ private class pointlist{
       double allLength=0;
       point p1,p2;
       for(int i=0;i<PL.size()-1;i++){
+           // get the start and end point of this unit
             p1 = (point) getPointAt(i);
-	    p2 = (point) getPointAt(i+1);
+            p2 = (point) getPointAt(i+1);
             dist = p1.distance(p2);
-	    if(L==0)
-	       currentduration = duration;
-	    else{
+            if(L==0)
+                 currentduration = duration;
+            else{
                currentduration  = duration.mul(dist/L);
             }
-	    res +="( \n"; // open unit
+            res +="( \n"; // open unit
             res += "( \n " + currentTime.getListExprString(true) +"\n"; // open interval
-	    currentTime.addInternal(currentduration);
+            currentTime.addInternal(currentduration);
+            // correct errors resulting of inexact computations using doubles
+            if(i==PL.size()-2){
+               currentTime.equalize(starttime);
+               currentTime.addInternal(duration);
+            }
             res +=  currentTime.getListExprString(true) +"\n";
-	    res += "   TRUE \n     FALSE )\n";  // close interval
+            res += "   TRUE \n     FALSE )\n";  // close interval
             res += "  ( "+p1+" "+p2+"))\n\n";   // open points close points close unit
       }
       return res;

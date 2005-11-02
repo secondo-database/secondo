@@ -263,6 +263,12 @@ private int sign(long L){
    return 1;
 }
 
+public void equalize(Time T2){
+   this.milliseconds=T2.milliseconds;
+   this.day = T2.day;
+}
+
+
 private long milliseconds;
 private long day;
 public final static long MILLISECONDS=86400000;
