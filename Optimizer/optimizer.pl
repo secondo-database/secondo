@@ -789,7 +789,7 @@ notation.
 
 Parameter functions are written as
 
-----    fun([param(Var1, Type1), ..., paran(VarN, TypeN)], Expr)
+----    fun([param(Var1, Type1), ..., param(VarN, TypeN)], Expr)
 ----
         
 
@@ -851,16 +851,121 @@ deleteVariables :- not(deleteVariable).
 
 
 /*
-  The plan_to_atom(attr(Name, Arg, Case), Result) predicate was not able to discriminate wether 
-  to return '..Name' or '.Name' for Arg=2. Now, we use a dynamic prediacte use_double_dots/0
-  to solve this. If use_double_dots/0 is defined, Result => '..Arg'. If use_double_dots/0 is 
-  undefined Result => '.Arg'.
-  Use this method whenever the abbreviated selection funtion '..Argument' is needed to refer to 
-  the second argument of a join predicate. For an example see plan_to_atom(symmjoin(X, Y, M), Result).
+  The plan_to_atom(attr(Name, Arg, Case), Result) predicate is not able to discriminate wether 
+  to return '..Name' or '.Name' for Arg=2. 
+  Now, we use a predicate consider_Arg2(T1, T2) to return a term T2, that is deferred from
+  term T1 by replacing all occurances of attr(_, 2, _) in against attr2(_, 2, _). 
 */
 
-:- dynamic(use_double_dots/0).
+consider_Arg2(Pred, Pred) :- 
+  atomic(Pred).                  
 
+consider_Arg2(Pred, Pred2) :- 
+  compound(Pred),               
+  functor(Pred, Op, 1),
+  arg(1, Pred, Arg1),
+  consider_Arg2(Arg1, Res1),  
+  functor(Pred2, Op, 1),      
+  arg(1, Pred2, Res1).          
+
+consider_Arg2(Pred, Pred2) :-            
+  compound(Pred),                       
+  functor(Pred, Op, 2),                  
+  arg(1, Pred, Arg1),
+  arg(2, Pred, Arg2),
+  consider_Arg2(Arg1, Res1),  
+  consider_Arg2(Arg2, Res2),
+  functor(Pred2, Op, 2),       
+  arg(1, Pred2, Res1),
+  arg(2, Pred2, Res2).
+
+consider_Arg2(Pred, Pred2) :-      % This is the interesting case
+  compound(Pred),                  % where to change attr/3 to
+  functor(Pred, attr, 3),          % attr2/3
+  arg(1, Pred, AName),
+  arg(2, Pred, 2),
+  arg(3, Pred, ASpell),
+  functor(Pred2, attr2, 3),
+  arg(1, Pred2, AName),
+  arg(2, Pred2, 2),
+  arg(3, Pred2, ASpell).       % OK
+
+consider_Arg2(Pred, Pred2) :- 
+  % analyse Pred 
+  compound(Pred),
+  functor(Pred, Op, 3),
+  arg(1, Pred, Arg1),
+  arg(2, Pred, Arg2),
+  arg(3, Pred, Arg3),
+  % consider_Arg2 recursively
+  consider_Arg2(Arg1, Res1),
+  consider_Arg2(Arg2, Res2),
+  consider_Arg2(Arg3, Res3),
+  % build up Pred2 
+  functor(Pred2, Op, 3),
+  arg(1, Pred2, Res1),
+  arg(2, Pred2, Res2),
+  arg(3, Pred2, Res3).
+
+consider_Arg2(Pred, Pred2) :- 
+  % analyse Pred 
+  compound(Pred),
+  functor(Pred, Op, 3),
+  arg(1, Pred, Arg1),
+  arg(2, Pred, Arg2),
+  arg(3, Pred, Arg3),
+  % consider_Arg2 recursively
+  consider_Arg2(Arg1, Res1),
+  consider_Arg2(Arg2, Res2),
+  consider_Arg2(Arg3, Res3),
+  % build up Pred2 
+  functor(Pred2, Op, 3),
+  arg(1, Pred2, Res1),
+  arg(2, Pred2, Res2),
+  arg(3, Pred2, Res3).
+
+consider_Arg2(Pred, Pred2) :- 
+  % analyse Pred 
+  compound(Pred),
+  functor(Pred, Op, 4),
+  arg(1, Pred, Arg1),
+  arg(2, Pred, Arg2),
+  arg(3, Pred, Arg3),
+  arg(4, Pred, Arg4),
+  % consider_Arg2 recursively
+  consider_Arg2(Arg1, Res1),
+  consider_Arg2(Arg2, Res2),
+  consider_Arg2(Arg3, Res3),
+  consider_Arg2(Arg4, Res4),
+  % build up Pred2 
+  functor(Pred2, Op, 4),
+  arg(1, Pred2, Res1),
+  arg(2, Pred2, Res2),
+  arg(3, Pred2, Res3),
+  arg(4, Pred2, Res4).
+
+consider_Arg2(Pred, Pred2) :- 
+  % analyse Pred 
+  compound(Pred),
+  functor(Pred, Op, 5),
+  arg(1, Pred, Arg1),
+  arg(2, Pred, Arg2),
+  arg(3, Pred, Arg3),
+  arg(4, Pred, Arg4),
+  arg(5, Pred, Arg5),
+  % consider_Arg2 recursively
+  consider_Arg2(Arg1, Res1),
+  consider_Arg2(Arg2, Res2),
+  consider_Arg2(Arg3, Res3),
+  consider_Arg2(Arg4, Res4),
+  consider_Arg2(Arg5, Res5),
+  % build up Pred2 
+  functor(Pred2, Op, 5),
+  arg(1, Pred2, Res1),
+  arg(2, Pred2, Res2),
+  arg(3, Pred2, Res3),
+  arg(4, Pred2, Res4),
+  arg(5, Pred2, Res5).
 
 /*
 Arguments:
@@ -916,13 +1021,11 @@ plan_to_atom(sample(Rel, S, T), Result) :-
   concat_atom([ResRel, 'sample[', S, ', ', T, '] '], '', Result),
   !.
 
-/*  symmjoin added by Ch. Duentgen */
 plan_to_atom(symmjoin(X, Y, M), Result) :-
   plan_to_atom(X, XAtom),
   plan_to_atom(Y, YAtom),
-  assert(use_double_dots),  % tell plan_to_atom/2 to return '..Attrname'
-  plan_to_atom(M, MAtom),
-  retract(use_double_dots), % reset plan_to_atom/2 to standard-mode
+  consider_Arg2(M, M2),          % transform second arg/3 to arg2/3
+  plan_to_atom(M2, MAtom),
   concat_atom([XAtom, YAtom, 'symmjoin[',
     MAtom, '] '], '', Result),
   !.
@@ -1058,31 +1161,21 @@ plan_to_atom(desc(Attr), Result) :-
   plan_to_atom(Attr, AttrAtom), 
   atom_concat(AttrAtom, ' desc', Result).
 
-/* 
-Predicate plan_to_atom/2 was modified to fit with symmjoin by Ch. Duentgen 
-Original was:
-  plan_to_atom(attr(Name, Arg, Case), Result) :-
-    plan_to_atom(a(Name, Arg, Case), ResA),
-    atom_concat('.', ResA, Result).
-*/
-
-plan_to_atom(attr(Name, Arg, Case), Result) :-
-  Arg = 2,
-  use_double_dots, % check whether dynamic predicate indicates to use '..'-Notation 
-  plan_to_atom(a(Name, Arg, Case), ResA),
-  atom_concat('..', ResA, Result),
-  !.
-
 plan_to_atom(attr(Name, Arg, Case), Result) :-
   plan_to_atom(a(Name, Arg, Case), ResA),
   atom_concat('.', ResA, Result),
   !.
 
-/*
-  End of modification
-*/
+plan_to_atom(attr2(Name, Arg, Case), Result) :-
+  Arg = 2,
+  plan_to_atom(a(Name, Arg, Case), ResA),
+  atom_concat('..', ResA, Result),
+  !.
 
-
+plan_to_atom(attr2(Name, Arg, Case), Result) :-
+  plan_to_atom(a(Name, Arg, Case), ResA),
+  atom_concat('.', ResA, Result),
+  !.
 
 plan_to_atom(attrname(attr(Name, Arg, Case)), Result) :-
   plan_to_atom(a(Name, Arg, Case), Result).
@@ -1816,7 +1909,8 @@ cost(symmjoin(X, Y, _), Sel, S, C) :-
   symmjoinTC(A, B),                   % fetch relative costs
   S is SizeX * SizeY * Sel,           % calculate size of result
   C is CostX + CostY +                % cost to produce the arguments
-    A * SizeX + A * SizeY +           % cost to write to buffers
+    A * SizeX + A * SizeY +           % cost to handle buffers
+    SizeY * SizeY +                   % cost to collide all pair of elements
     B * S.                            % cost to produce result tuples
 
 
@@ -1876,7 +1970,8 @@ costEdgeInfo(Edge) :-
 costEdgeInfo(Source, Target, Plan, Result, Size, Cost) :-
   nl, write('Source: '), write(Source),
   nl, write('Target: '), write(Target),
-  nl, write('Plan  : '), wp(Plan),
+  nl, write('PlanSQL '), write(Plan),
+  nl, write('PlanSEC '), wp(Plan),
   nl, write('Result: '), write(Result),
   nl, write('Size  : '), write(Size),
   nl, write('Cost  : '), write(Cost), nl. 
@@ -3445,7 +3540,7 @@ example(Nr, Query, Cost) :- showExample(Nr, Example), optimize(Example, Query, C
 
 
 /*
-Examples 14 - 21:
+Examples 14 - 22:
 
 */
 
@@ -3454,6 +3549,12 @@ sqlExample( 14,
 
   select * from [staedte as s, plz as p] where [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0]
   ).
+
+sqlExample( 22,
+
+  select * from [staedte as s, plz as p] where [s:sname = p:ort, p:plz > 40000, (p:plz mod 5) = 0]
+  ).
+
 
 sqlExample( 15,
 
@@ -3553,6 +3654,7 @@ example18 :- example(18).
 example19 :- example(19).
 example20 :- example(20).
 example21 :- example(21).
+example22 :- example(22).
 
 
 example14(Query, Cost) :- example14(Query, Cost).
@@ -3563,6 +3665,7 @@ example18(Query, Cost) :- example18(Query, Cost).
 example19(Query, Cost) :- example19(Query, Cost).
 example20(Query, Cost) :- example20(Query, Cost).
 example21(Query, Cost) :- example21(Query, Cost).
+example22(Query, Cost) :- example22(Query, Cost).
 
 
 /*
