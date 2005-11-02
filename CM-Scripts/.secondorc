@@ -20,10 +20,11 @@
 # DO NOT CHANGE THIS FILE!
 
 # include alias definitions and default values
-alias secinit >& /dev/null
+alias secinit > /dev/null 2>&1
 if [ $? -ne 0 ]; then
   source ~/.secondo.aliases
 fi
+shopt -s expand_aliases
 
 # define short variables for important base directories
 buildDir=$SECONDO_BUILD_DIR
@@ -49,7 +50,6 @@ if ! [ -d $sdkDir ]; then
   ok="false" 
 fi
 
-if [ "$ok" == "true" ]; then
 
 # include platform specific definitions
 source ${HOME}/.secondo.${platform}rc
@@ -57,8 +57,7 @@ source ${HOME}/.secondo.${platform}rc
 # include common definitions
 source ${HOME}/.secondo.sdkrc
 
-# include common definitions
-source ${HOME}/.secondo.sdkrc
+if [ "$ok" == "true" ]; then
 
 # set common variables
 source ${sdkDir}/bin/setvar.bash ${buildDir}

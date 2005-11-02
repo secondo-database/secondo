@@ -8,6 +8,8 @@
 # 05/12/10 M. Spiekermann, Compilation of 3d party packages improved and uninstall function added  
 # 05/18/10 M. Spiekermann, Code structured into many new functions. Easier to test and maintain.   
 
+startDir=$PWD
+
 # include function definitions
 libFile="./scripts/bin/libutil.sh"
 if ! source $libFile; then 
@@ -420,7 +422,7 @@ if win32Host; then
   fi
   msysdir="$instpath/msys/1.0"
   mingwdir="$instpath/mingw"
-  platformdir=$PWD/win32
+  platformdir=$startDir/win32
   encoding="CP1252"
  
 else
@@ -429,13 +431,13 @@ else
     HOME=/tmp/installsdk/$USER
   fi
   instpath=$HOME
-  platformdir=$PWD/linux
+  platformdir=$startDir/linux
   encoding="LAT1"
 
 fi
 
 # set variables for important directories
-cdpath=$PWD
+cdpath=$startDir
 sdk=$instpath/secondo-sdk
 build=$HOME/secondo
 prologdir=$sdk/pl
