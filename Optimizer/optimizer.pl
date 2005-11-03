@@ -1909,8 +1909,7 @@ cost(symmjoin(X, Y, _), Sel, S, C) :-
   symmjoinTC(A, B),                   % fetch relative costs
   S is SizeX * SizeY * Sel,           % calculate size of result
   C is CostX + CostY +                % cost to produce the arguments
-    A * SizeX + A * SizeY +           % cost to handle buffers
-    SizeY * SizeY +                   % cost to collide all pair of elements
+    A * (SizeX * SizeY) +             % cost to handle buffers and collision
     B * S.                            % cost to produce result tuples
 
 
@@ -3550,12 +3549,6 @@ sqlExample( 14,
   select * from [staedte as s, plz as p] where [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0]
   ).
 
-sqlExample( 22,
-
-  select * from [staedte as s, plz as p] where [s:sname = p:ort, p:plz > 40000, (p:plz mod 5) = 0]
-  ).
-
-
 sqlExample( 15,
 
   select * from staedte where bev > 500000
@@ -3644,6 +3637,13 @@ sqlExample( 21,
     p1:plz = p2:plz + 1,
     p2:plz = p3:plz * 5]
   ).
+
+
+sqlExample( 22,
+
+  select * from [staedte as s, plz as p] where [s:sname = p:ort, p:plz > 40000, (p:plz mod 5) = 0]
+  ).
+
 
 
 example14 :- example(14).
