@@ -1969,8 +1969,7 @@ costEdgeInfo(Edge) :-
 costEdgeInfo(Source, Target, Plan, Result, Size, Cost) :-
   nl, write('Source: '), write(Source),
   nl, write('Target: '), write(Target),
-  nl, write('PlanSQL '), write(Plan),
-  nl, write('PlanSEC '), wp(Plan),
+  nl, write('Plan  : '), wp(Plan),
   nl, write('Result: '), write(Result),
   nl, write('Size  : '), write(Size),
   nl, write('Cost  : '), write(Cost), nl. 
