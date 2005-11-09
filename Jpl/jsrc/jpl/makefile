@@ -39,7 +39,7 @@ fli:
 
 
 $(JPL_CLASS_TARGET)/jpl/Query.class:
-	$(JAVAC) -classpath $(JPL_CLASSPATH) -d $(JPL_CLASS_TARGET) $(JAVAFILES)
+	$(JAVAC) -classpath $(CLASSPATH):$(JPL_CLASSPATH) -d $(JPL_CLASS_TARGET) $(JAVAFILES)
 
 .PHONY: clean
 clean:

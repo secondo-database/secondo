@@ -27,7 +27,7 @@ JAVAFILES = $(subst ./,,$(TMPFILES))
 all:$(JPL_CLASS_TARGET)/jpl/fli/Prolog.class
 
 $(JPL_CLASS_TARGET)/jpl/fli/Prolog.class:
-	$(JAVAC) -classpath $(JPL_CLASSPATH) -d $(JPL_CLASS_TARGET) $(JAVAFILES)
+	$(JAVAC) -classpath $(CLASSPATH):$(JPL_CLASSPATH) -d $(JPL_CLASS_TARGET) $(JAVAFILES)
 
 .PHONY: clean
 clean:
