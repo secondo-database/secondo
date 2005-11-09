@@ -88,6 +88,7 @@ today               & [->] instant
 */
 
 #include "DateTime.h"
+#include "BigInt.h"
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -109,6 +110,7 @@ extern QueryProcessor *qp;
 using namespace std;
 
 namespace datetime{
+
 
 /*
 ~GetValue~
@@ -753,12 +755,8 @@ bool DateTime::ReadFrom(const ListExpr LE,const bool typeincluded){
   }
   // real representation
   if(nl->AtomType(ValueList)==RealType ){
-     if(type==instanttype){
         bool res = ReadFrom(nl->RealValue(ValueList));
 	      return res;
-     }
-     else
-        return false;
   }
   // accect also integer values
   if(nl->AtomType(ValueList)==IntType ){
@@ -1246,6 +1244,48 @@ void DateTime::Mul(const double factor){
 }
 
 /*
+~Div~
+
+This operator computes how often ~dividend~ is contained whithin this
+DateTime. This DateTime, the dividend, and ~remainder~ must be of 
+type ~duration~.  
+
+*/
+ long DateTime::Div(DateTime dividend, DateTime& remainder,bool& overflow){
+   // first, create a bigint from this and the divident
+   BigInt<2> MyValue(day);
+   BigInt<2> MyMillis(milliseconds);
+   BigInt<2> DivValue(dividend.day);
+   BigInt<2> DivMillis(dividend.milliseconds);
+   // create the Bigint Milliseconds
+   bool of;
+   BigInt<2> BIMILLISECONDS(MILLISECONDS);
+   MyValue.MulInternal(BIMILLISECONDS,of);
+   DivValue.MulInternal(BIMILLISECONDS,of);
+   MyValue.AddInternal(MyMillis,of);
+   DivValue.AddInternal(DivMillis,of);
+   // create values for result and remainder
+   BigInt<2> Result(0), biremainder(0);
+   Result = MyValue.Div(DivValue,biremainder);
+   long result = Result.ToLong(overflow); 
+   // the biremainder must be devided into day and milliseconds 
+   // We store the results into DivValue and DivMillis
+   DivValue = biremainder.Div(BIMILLISECONDS,DivMillis);
+   long l1 = DivMillis.ToLong(of);
+   remainder.day = DivValue.ToLong( of);
+   remainder.milliseconds = l1;
+   if(remainder.milliseconds<0){
+      remainder.milliseconds += MILLISECONDS;
+      remainder.day--;
+   }
+   remainder.defined=true;
+   return result;
+ }
+
+
+
+
+/*
 ~Operator mul~
 
 This operator has the same functionality like the ~Mul~ function
@@ -1365,6 +1405,7 @@ void DateTime::ReadFrom( const char *src )
 {
   ReadFrom( string(src) );
 }
+
 
 /*
 2 Algebra Functions
@@ -1723,6 +1764,19 @@ ListExpr TheInstantTM(ListExpr args){
    return nl->SymbolAtom("instant");
 }
 
+ListExpr DivTM(ListExpr args){
+   if(nl->ListLength(args)!=2){
+      ErrorReporter::ReportError("Two arguments required\n");
+      return nl->SymbolAtom("typeerror");
+   }
+   if(!nl->IsEqual(nl->First(args),"duration") ||
+      !nl->IsEqual(nl->Second(args),"duration")){
+      ErrorReporter::ReportError("two duration values expected\n");
+      return nl->SymbolAtom("typeerror");
+   }
+   return nl->SymbolAtom("int");
+}
+
 
 /*
 4.2 Value Mappings
@@ -1923,14 +1977,25 @@ int AfterFun(Word* args, Word& result, int message, Word& local, Supplier s){
 }
 
 int MulFun(Word* args, Word& result, int message, Word& local, Supplier s){
-    result = qp->ResultStorage(s);
-    DateTime* T1 = (DateTime*) args[0].addr;
-    CcInt* Fact = (CcInt*) args[1].addr;
-    DateTime* TRes = T1->Clone();
-    TRes->Mul(Fact->GetIntval());
-    ((DateTime*) result.addr)->Equalize(TRes);
-    delete TRes;
-    return 0;
+	result = qp->ResultStorage(s);
+	DateTime* T1 = (DateTime*) args[0].addr;
+	CcInt* Fact = (CcInt*) args[1].addr;
+	DateTime* TRes = T1->Clone();
+	TRes->Mul(Fact->GetIntval());
+	((DateTime*) result.addr)->Equalize(TRes);
+	delete TRes;
+	return 0;
+}
+
+int DivFun(Word* args, Word& result, int message, Word& local, Supplier s){
+	result = qp->ResultStorage(s);
+	DateTime* T1 = (DateTime*) args[0].addr;
+	DateTime* T2 = (DateTime*) args[1].addr;
+  DateTime Remainder(durationtype);
+  bool overflow=false;
+  long res = T1->Div( (*T2),Remainder,overflow);
+	((CcInt*) result.addr)->Set(true,res);
+	return 0;
 }
 
 int WeekdayFun(Word* args, Word& result, int message,
@@ -2095,6 +2160,12 @@ const string WeekdaySpec =
    "   \"returns the weekday in human readable format\" "
    "   \" query weekday_of(today())\" ))";
 
+const string DivSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \"duration x duration -> int\""
+   " \"  _ / _  \" "
+   "   \"Computes how often the second argument is part of the first one\" "
+   "   \" query a / b \" ))";
 /*
 4.3 ValueMappings of overloaded Operators
 
@@ -2224,6 +2295,13 @@ Operator dt_minus(
        Operator::SimpleSelect,
        MinusCheck);
 
+Operator dt_div(
+       "/", // name
+       DivSpec, // specification
+       DivFun,
+       Operator::DummyModel,
+       Operator::SimpleSelect,
+       DivTM);
 
 Operator dt_less(
        "<", // name
@@ -2311,6 +2389,7 @@ class DateTimeAlgebra : public Algebra
     AddOperator(&dt_now);
     AddOperator(&dt_today);
     AddOperator(&dt_theInstant);
+    AddOperator(&dt_div);
 
   }
   ~DateTimeAlgebra() {};
