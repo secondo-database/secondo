@@ -61,7 +61,7 @@ using namespace std;
 
 #define yylval NLParser::yylval
 
-int yywrap();
+extern "C" int yywrap();
 
 char buffer[MAX_STRINGSIZE+1];
 char *s = buffer;
@@ -241,5 +241,5 @@ file		"<file>"[^<]+"</file--->"
                  return (ZZERROR); 
                }
 %%
-int yywrap() { return 1; }
+extern "C" int yywrap() { return 1; }
 

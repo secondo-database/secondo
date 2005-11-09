@@ -57,7 +57,7 @@ void Picture::Scale(Picture *pic, int w, int h) {
 	return;
     }
 
-    unsigned int size	= 0;
+    unsigned long size	= 0;
     char *buffer	= GetJPEGData(size);
     // create picture
     JPEGPicture *jpg	= new JPEGPicture((unsigned char*)buffer, (unsigned long)size);
@@ -69,7 +69,7 @@ void Picture::Scale(Picture *pic, int w, int h) {
     delete jpg;
 
     // generate scaled jpg
-    buffer = (char*)scale->GetJpegData((unsigned long)size);
+    buffer = (char*)scale->GetJpegData(size);
 
     // delete scale
     delete scale;
@@ -95,7 +95,7 @@ void Picture::Cut(Picture *pic, int x, int y, int w, int h) {
 	return;
     }
 
-    unsigned int size	= 0;
+    unsigned long size	= 0;
     char *buffer	= GetJPEGData(size);
     // create picture
     JPEGPicture *jpg	= new JPEGPicture((unsigned char*)buffer, (unsigned long)size);
@@ -116,7 +116,7 @@ void Picture::Cut(Picture *pic, int x, int y, int w, int h) {
     }
 
     // generate cutted jpg
-    buffer = (char*)cut->GetJpegData((unsigned long)size);
+    buffer = (char*)cut->GetJpegData(size);
 
     // delete image
     delete cut;
@@ -139,7 +139,7 @@ void Picture::FlipLeft(Picture *pic, int n) {
 	return;
     }
 
-    unsigned int size	= 0;
+    unsigned long size	= 0;
     char *buffer	= GetJPEGData(size);
     // create picture
      JPEGPicture *jpg	= new JPEGPicture((unsigned char*)buffer, (unsigned long)size);
@@ -151,7 +151,7 @@ void Picture::FlipLeft(Picture *pic, int n) {
     delete jpg;
 
     // generate flipped jpg
-    buffer = (char*)flip->GetJpegData((unsigned long)size);
+    buffer = (char*)flip->GetJpegData(size);
 
     // delete flip
     delete flip;
@@ -167,7 +167,7 @@ void Picture::FlipLeft(Picture *pic, int n) {
 void Picture::Mirror(Picture *pic, bool dir) {
     if (PA_DEBUG) cerr << "Picture::Mirror() called" << endl;
 
-    unsigned int size	= 0;
+    unsigned long size	= 0;
     char *buffer	= GetJPEGData(size);
     // create picture
     JPEGPicture *jpg	= new JPEGPicture((unsigned char*)buffer, (unsigned long)size);
@@ -179,7 +179,7 @@ void Picture::Mirror(Picture *pic, bool dir) {
     delete jpg;
 
     // generate mirrored jpg
-    buffer = (char*)mirror->GetJpegData((unsigned long)size);
+    buffer = (char*)mirror->GetJpegData(size);
 
     // delete mirror
     delete mirror;

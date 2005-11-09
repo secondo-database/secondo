@@ -28,8 +28,8 @@ SECONDO to use ~Histogram~ plus basic SECONDO operators on ~histogram~.
 
 using namespace std;
 
+#include <cmath>
 #include "NestedList.h"
-
 #include "PictureAlgebra.h"
 #include "JPEGPicture.h"
 
@@ -55,7 +55,7 @@ histgram. Furthermore some private variables such as ~channel~ and the
 
 */
 Histogram::Histogram( unsigned char * rgbData,
-		      unsigned int rgbSize,
+		      unsigned long rgbSize,
 		      HistogramChannel _channel) {
 
     if (PA_DEBUG) cerr << "Histogram::Histogram()-1 called" << endl;
@@ -285,7 +285,7 @@ int Histogram::Compare(Attribute* a) {
     //
     for ( int i=0; i< 256; i++ )
     {
-	if ( abs( histogram[i] - h->histogram[i]) < DIFFERENZ_DELTA )
+	if ( fabs( histogram[i] - h->histogram[i]) < DIFFERENZ_DELTA )
 		continue;
 
 	if ( histogram[i] < h->histogram[i] )

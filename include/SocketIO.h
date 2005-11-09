@@ -706,7 +706,7 @@ for sockets. Separate buffers for reading and writing are implemented.
 
 */
 
-class SDB_EXPORT SocketBuffer : public std::streambuf
+class SDB_EXPORT SocketBuffer : public streambuf
 {
  public:
   SocketBuffer( Socket& socket );
@@ -729,7 +729,7 @@ Checks whether the stream buffer is ready for operation.
 Closes the stream buffer.
 
 */
-  streampos seekoff( streamoff, ios::seek_dir, int )
+  streampos seekoff( streamoff, ios::seekdir, int )
     { return EOF; }
 /*
 Disallows seeking in the stream buffer since a TCP stream is strictly

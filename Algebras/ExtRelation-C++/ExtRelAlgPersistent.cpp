@@ -170,20 +170,6 @@ This algorithm will adapt to sorted streams and will only need N (already sorted
 or 2N (sorted in opposite order) comparisons in that case.  
 
 */
-
-template<class T> 
-class PrioQueue : public priority_queue<T> {
-
-public:
-  PrioQueue() : priority_queue<T>() {};
-  ~PrioQueue() {};
-  
-  size_t capacity() { return c.capacity(); }
-  void reserve(size_t n) { c.reserve(n); }
-};
-
-
-
 class SortByLocalInfo
 {
   public:
@@ -199,8 +185,8 @@ class SortByLocalInfo
         // mergeTuples( PairTupleCompareBy( tupleCmpBy )). It does only work if
         // mergeTuples is a local variable which does not help us in this case.
         // Hence a new class TupleAndRelPos was defined to define a '<' operator. 
-        PrioQueue<TupleAndRelPos>* currentRun = &queue[0];
-        PrioQueue<TupleAndRelPos>* nextRun = &queue[1];
+        priority_queue<TupleAndRelPos>* currentRun = &queue[0];
+        priority_queue<TupleAndRelPos>* nextRun = &queue[1];
        
         Word wTuple = SetWord(Address(0));
         size_t  c = 0, i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
@@ -296,7 +282,7 @@ class SortByLocalInfo
                   newRelation = true;
                   
                   // swap queues
-                  PrioQueue<TupleAndRelPos> *helpRun = currentRun;
+                  priority_queue<TupleAndRelPos> *helpRun = currentRun;
                   currentRun = nextRun;
                   nextRun = helpRun;
                   ShowPartitionInfo(c,a,n,m,r);
@@ -448,7 +434,7 @@ class SortByLocalInfo
     size_t MAX_TUPLES_IN_MEMORY;
     typedef pair<TupleBuffer*, TupleBufferIterator*> SortedRun;
     vector< SortedRun > relations;
-    PrioQueue<TupleAndRelPos> queue[2];
+    priority_queue<TupleAndRelPos> queue[2];
     priority_queue<TupleAndRelPos> mergeTuples;
 };
 

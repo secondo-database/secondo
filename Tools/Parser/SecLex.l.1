@@ -53,7 +53,7 @@ October 14, 2004 RHG Added text and file tokens.
 
 #define yylval xxlval
 extern int yylval;
-int yywrap();
+extern "C" int yywrap();
 
 ostringstream* text_sp = 0;
 

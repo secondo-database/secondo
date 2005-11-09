@@ -310,7 +310,7 @@ const typename CTable<T>::Iterator
 CTable<T>::Iterator::operator++( int )
 {
   assert( ct != 0 );
-  CTable<T>::Iterator temp( *this );
+  typename CTable<T>::Iterator temp( *this );
   while (current < ct->highestValid && !ct->valid[++current] );
   return temp;
 }

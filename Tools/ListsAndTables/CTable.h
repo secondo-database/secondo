@@ -658,7 +658,7 @@ template<typename T>
 typename CTable<T>::Iterator
 CTable<T>::Begin() {
 
-  return CTable<T>::Iterator( this );
+  return typename CTable<T>::Iterator( this );
 }
 
 /*
@@ -672,7 +672,7 @@ template<typename T>
 typename CTable<T>::Iterator
 CTable<T>::End() {
 
-  return CTable<T>::Iterator( this, false );
+  return typename CTable<T>::Iterator( this, false );
 }
 
 

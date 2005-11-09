@@ -488,7 +488,7 @@ Function to give outside access to the private part of the tuple class.
       noAttributes = NoAttr;
       
       if ( noAttributes > MAX_NUM_OF_ATTR ) {
-        attributes = new (TupleElement*)[noAttributes];
+        attributes = new TupleElement*[noAttributes];
       } 
       else {
         attributes = defAttributes;

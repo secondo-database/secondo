@@ -72,6 +72,8 @@ derived attribute class must implement.
 #include "FLOB.h"
 #include "TupleElement.h"
 
+extern NestedList *nl;
+
 class Attribute : public TupleElement
 {
 public:

@@ -151,7 +151,7 @@ size ~size~ for the specified ~channel~ (see the description of
 
 */
     Histogram(unsigned char* imgdata, 
-	      unsigned int size, 
+	      unsigned long size, 
 	      HistogramChannel channel);
 
 /*
@@ -304,7 +304,7 @@ Private method ~createHistograms()~ creates all four histograms for the
 attribute ~histogram~.
 
 */
-    void createHistograms(char * imgdata, unsigned int size);
+    void createHistograms(char * imgdata, unsigned long size);
 
 /*
 
@@ -342,7 +342,7 @@ respective private attributes.
 
 */
     Picture(char* imgdata,
-	    unsigned int size,
+	    unsigned long size,
 	    string fn,
 	    string cat,
 	    bool isp,
@@ -363,7 +363,7 @@ value mapping functions of the picture operators to fill the result picture.
 
 */
     void Set(char* imgdata,
-	    unsigned int size,
+	    unsigned long size,
 	    string fn,
 	    string cat,
 	    bool isp,
@@ -390,7 +390,7 @@ efficient way to implement this method. ~size~ will be set to the total size
 in bytes of the binary data returned.
 
 */
-    char* GetJPEGData(unsigned int& size);
+    char* GetJPEGData(unsigned long& size);
 
 /*
 

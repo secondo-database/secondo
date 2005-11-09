@@ -1274,7 +1274,7 @@ had an overflow during inserting tuples in the R-Tree.
 
 */
 
-    void R_TreePnJ<dim>::Info();
+    void Info();
 /*
 Prints some information about the generated R-Tree on the screen.
 Perhaps for debugging or some other interesting aspects of the R-Tree.
@@ -1282,7 +1282,7 @@ Perhaps for debugging or some other interesting aspects of the R-Tree.
 */
 
 
-    void R_TreePnJ<dim>::DebugOutput(ArrayIndex nodeNo);
+    void DebugOutput(ArrayIndex nodeNo);
 /*
 For debugging purposes only.
 If nodeNo == -1 the entire tree is printed on cout.
@@ -1291,7 +1291,7 @@ Otherwise the node rtree[address] with address==nodeNo is printed.
 */
 
   private:
-    R_TreeNodePnJ<dim>* rtree;
+    R_TreeNodePnJ<dim>** rtree;
 /*
 The array for the R-Tree.
 
@@ -1518,12 +1518,14 @@ scanFlag( false )
   path[0] = 0;  //the root node
 
   // the array for the nodes
-  rtree  =  new R_TreeNodePnJ<dim>[header.maxNodeCount](true, MinEntries(), MaxEntries() ) ;
+  rtree = new R_TreeNodePnJ<dim>*[header.maxNodeCount];
+  for( int i = 0; i < header.maxNodeCount; i++ )
+    rtree[i] = new R_TreeNodePnJ<dim>( true, MinEntries(), MaxEntries() ) ;
 
   header.leavesCount = 1;
 
   //pointer to the first array-element
-  nodePtr = rtree;
+  nodePtr = rtree[0];
   nodePtrNo = 0;
 
   header.nodeCount = 1;
@@ -1540,7 +1542,9 @@ scanFlag( false )
 template <unsigned dim>
 R_TreePnJ<dim>::~R_TreePnJ()
 {
-   delete [] rtree;
+  for( int i = 0; i < header.maxNodeCount; i++ )
+    delete rtree[i];
+  delete [] rtree;
 }
 
 /*
@@ -1550,11 +1554,11 @@ R_TreePnJ<dim>::~R_TreePnJ()
 template <unsigned dim>
 R_TreeNodePnJ<dim>* R_TreePnJ<dim>::FlushLeave( const ArrayIndex& address )
 { // only fullLeaves may be flushed
-  assert ( rtree[address].IsLeaf() &&
-           (rtree[address].EntryCount() == rtree[address].MaxEntries()) );
+  assert ( rtree[address]->IsLeaf() &&
+           (rtree[address]->EntryCount() == rtree[address]->MaxEntries()) );
 
-  R_TreeNodePnJ<dim>* node = new R_TreeNodePnJ<dim>( rtree[address] );
-  rtree[address].Flush();
+  R_TreeNodePnJ<dim>* node = new R_TreeNodePnJ<dim>( *rtree[address] );
+  rtree[address]->Flush();
   return node;
 }
 
@@ -1565,8 +1569,8 @@ R_TreeNodePnJ<dim>* R_TreePnJ<dim>::FlushLeave( const ArrayIndex& address )
 template<unsigned dim>
 int R_TreePnJ<dim>::SizeOfRTree() const
 {
-  return (rtree[0].Size() * header.maxNodeCount) +  //sizeof (root-node) * max#
-         SizeOfRTreeHeader();                       //SizeOfHeader
+  return (rtree[0]->Size() * header.maxNodeCount) +  //sizeof (root-node) * max#
+         SizeOfRTreeHeader();                        //SizeOfHeader
 }
 
 /*
@@ -1587,7 +1591,7 @@ template <unsigned dim>
 BBox<dim> R_TreePnJ<dim>::BoundingBox()
   // Returns the bounding box of this R_Tree
 {
-  BBox<dim> result = rtree[0].BoundingBox();
+  BBox<dim> result = rtree[0]->BoundingBox();
   return result;
 }
 
@@ -1737,7 +1741,7 @@ void R_TreePnJ<dim>::GotoLevel( const int& level )
     if( nodePtr == NULL )
       {
         nodePtrNo = path [currLevel];
-        nodePtr = &rtree [nodePtrNo];
+        nodePtr = rtree[nodePtrNo];
       }
   }
   else
@@ -1746,7 +1750,7 @@ void R_TreePnJ<dim>::GotoLevel( const int& level )
 
     currLevel = level;
     nodePtrNo = path[currLevel];
-    nodePtr = &rtree [nodePtrNo];
+    nodePtr = rtree[nodePtrNo];
   }
 }
 
@@ -1765,7 +1769,7 @@ void R_TreePnJ<dim>::DownLevel( const int& entryNo )
   path[ currLevel+1 ] = (*nodePtr)[ entryNo ].pointer;
   currLevel += 1;
   nodePtrNo = path[ currLevel ];
-  nodePtr = &rtree [ nodePtrNo ];
+  nodePtr = rtree[ nodePtrNo ];
 }
 
 /*
@@ -1803,14 +1807,14 @@ void R_TreePnJ<dim>::InsertEntry( const R_TreeEntryPnJ<dim>& entry )
 
         BBox<dim> n1Box( n1->BoundingBox() );
         ArrayIndex node1recno = header.nodeCount;
-        rtree[node1recno] = *n1;
+        *rtree[node1recno] = *n1;
         delete n1;
         assert( nodePtr->Insert( R_TreeEntryPnJ<dim>( n1Box, node1recno ) ) );
 
         BBox<dim> n2Box( n2->BoundingBox() );
         header.nodeCount++;
         ArrayIndex node2recno = header.nodeCount;
-        rtree[node2recno] = *n2;;
+        *rtree[node2recno] = *n2;;
         delete n2;
         assert( nodePtr->Insert( R_TreeEntryPnJ<dim>( n2Box, node2recno ) ) );
 
@@ -1825,7 +1829,7 @@ void R_TreePnJ<dim>::InsertEntry( const R_TreeEntryPnJ<dim>& entry )
 
         ArrayIndex newNoderecno = header.nodeCount;
         R_TreeEntryPnJ<dim> newEntry( n2->BoundingBox(), newNoderecno );
-        rtree[newNoderecno] = *n2;
+        *rtree[newNoderecno] = *n2;
         delete n2;
 
         header.nodeCount++;
@@ -1947,7 +1951,7 @@ void R_TreePnJ<dim>::UpLevel()
 
   currLevel -= 1;
   nodePtrNo = path[currLevel];
-  nodePtr = &rtree [nodePtrNo ];
+  nodePtr = rtree[ nodePtrNo ];
 }
 
 /*
@@ -2117,7 +2121,7 @@ bool R_TreePnJ<dim>::First (const BBox<dim>& box, R_TreeEntryPnJ<dim>& result,
   reportLevel = replevel;
 
   //Load root node
-  nodePtr = &rtree[0];
+  nodePtr = rtree[0];
   nodePtrNo = 0;
   currLevel = 0;
 
@@ -2203,12 +2207,12 @@ void R_TreePnJ<dim>::Info()
 
   for (int i = 0; i <= NodeCount() - 1; i++)
   {
-    if  ( rtree[i].IsLeaf() )
+    if  ( rtree[i]->IsLeaf() )
     {
-      if ( rtree[i].EntryCount() == rtree[i].MaxEntries() )
+      if ( rtree[i]->EntryCount() == rtree[i]->MaxEntries() )
         { fullLeavesNo++; }
 
-      if ( rtree[i].IsInsertOverflow() )
+      if ( rtree[i]->IsInsertOverflow() )
         { emptyLeavesNo++; }
     }
   else
@@ -2232,7 +2236,7 @@ void R_TreePnJ<dim>::Info()
     if (do_axis_split) cout << "do_axis_split" << endl << endl;
 
   cout << "SizeOfRTreeEntry:    " << sizeof( R_TreeEntryPnJ<dim> ) << " Bytes" << endl;
-  cout << "SizeOfRTreeNode:     " << rtree[0].Size() << " Bytes" << endl;
+  cout << "SizeOfRTreeNode:     " << rtree[0]->Size() << " Bytes" << endl;
   cout << "SizeOfRTree:         " << SizeOfRTree ()
                                   <<" = "<<SizeOfRTree()/1024<<" kBytes"
                                   <<" = "<<SizeOfRTree()/1048576<<" MBytes"<<endl;
@@ -2255,7 +2259,7 @@ void R_TreePnJ<dim>::DebugOutput(ArrayIndex nodeNo)
   for (int j = begin; j <= end; j ++)
     {
      cout << endl << "Node:" << j << endl;
-     (rtree[j]).Print(cout);
+     (rtree[j])->Print(cout);
     }
 }
 

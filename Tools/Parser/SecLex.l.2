@@ -27,4 +27,4 @@ yylval = NestedText::Atom( yytext, yyleng ); return ZZIDENTIFIER;}
 .		{yylval = NestedText::Atom( yytext, yyleng ); return yytext[0];}
 
 %%
-int yywrap() { return 1; }
+extern "C" int yywrap() { return 1; }

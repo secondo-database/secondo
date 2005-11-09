@@ -117,9 +117,9 @@ Picture::Picture(string imgdataB64,
 
     Base64 b64;
 
-    unsigned int size = b64.sizeDecoded(imgdataB64.size());
+    unsigned long size = b64.sizeDecoded(imgdataB64.size());
     char* imgdata = new char[size];
-    unsigned int len = b64.decode(imgdataB64, imgdata);
+    unsigned long len = b64.decode(imgdataB64, imgdata);
 
     if (PA_DEBUG) {
 	cerr << "Picture::Picture()-1 size=" << size << endl;
@@ -188,7 +188,7 @@ Picture::Picture(string imgdataB64,
 	    delete[] imgdata;
 
 	    // generate jpeg data
-	    imgdata = (char*)converter->GetJpegData((unsigned long)len);
+	    imgdata = (char*)converter->GetJpegData(len);
 
 	    strcat(filename, ".JPG");
 
@@ -219,7 +219,7 @@ Picture::Picture(string imgdataB64,
 }
 
 Picture::Picture(char* imgdata,
-		 unsigned int size,
+		 unsigned long size,
 		 string fn,
 		 string cat,
 		 bool isp,
@@ -252,7 +252,7 @@ Picture::~Picture(void) {
 
 */
 
-void Picture::createHistograms(char* imgdata, unsigned int size) {
+void Picture::createHistograms(char* imgdata, unsigned long size) {
     if (PA_DEBUG) cerr << "Picture::createHistograms called" << endl;
 
     JPEGPicture rgb( (unsigned char *) imgdata, size );
@@ -300,7 +300,7 @@ string Picture::GetJPEGBase64Data(void) {
 
     Base64 b64;
 
-    unsigned int size;
+    unsigned long size;
     char* imgdata = GetJPEGData(size);
 
     string res;
@@ -317,7 +317,7 @@ string Picture::GetJPEGBase64Data(void) {
     return res;
 }
 
-char* Picture::GetJPEGData(unsigned int& size) {
+char* Picture::GetJPEGData(unsigned long& size) {
     if (PA_DEBUG) cerr << "Picture::GetJPEGData() called" << endl;
 
     size = jpegData.Size();
@@ -334,7 +334,7 @@ char* Picture::GetJPEGData(unsigned int& size) {
 */
 
 void Picture::Set(char* imgdata,
-		  unsigned int size,
+		  unsigned long size,
 		  string fn,
 		  string cat,
 		  bool isp,
@@ -381,7 +381,7 @@ size_t Picture::HashValue(void) {
 
     h = 5*h+(isPortrait ? 1 : 0);
 
-    unsigned int size;
+    unsigned long size;
     char* buf = GetJPEGData(size);
     for (unsigned int i = 0; i < size; i++) h = 5*h+buf[i];
 
@@ -407,7 +407,7 @@ void Picture::CopyFrom(StandardAttribute* attr) {
 	if (PA_DEBUG) 
 	    cerr << "Picture::CopyFrom() filename" << p->filename << endl;
     
-	unsigned int size;
+	unsigned long size;
 	char* buf = p->GetJPEGData(size);
     
 	jpegData.Resize(size);
@@ -473,7 +473,7 @@ Picture* Picture::Clone(void) {
 bool Picture::Export(string filename) {
     if (PA_DEBUG) cerr << "Picture::Export() called" << endl;
 
-    unsigned int size;
+    unsigned long size;
     char* buf = GetJPEGData(size);
 
     ofstream ofs(filename.c_str(), ios::out|ios::trunc|ios::binary);
@@ -497,7 +497,7 @@ bool Picture::Display(void) {
 #ifndef SECONDO_WIN32 
 
     static unsigned int fileCtr = 0;
-    unsigned int size;
+    unsigned long size;
     char* buf = GetJPEGData(size);
 
     stringstream fileStr;
@@ -576,10 +576,10 @@ int Picture::SimpleCompare(Attribute* a) {
 
     Picture* p = (Picture*) a;
 
-    unsigned int size1;
+    unsigned long size1;
     char* buf1 = GetJPEGData(size1);
 
-    unsigned int size2;
+    unsigned long size2;
     char* buf2 = p->GetJPEGData(size2);
 
     int size = size1 < size2 ? size1 : size2;
@@ -914,7 +914,7 @@ static bool SavePicture(SmiRecord& rec, size_t& offset,
     }
     pos += sizeof(bool);
 
-    unsigned int jpegSize;
+    unsigned long jpegSize;
     char* jpegData = p->GetJPEGData(jpegSize);
 
     if (rec.Write(&jpegSize, sizeof(unsigned int), pos) 

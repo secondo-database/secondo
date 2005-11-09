@@ -1084,7 +1084,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 */
   virtual void TemporalFunction( Instant& t, Alpha& result )
   {
-    assert( t.IsDefined() && timeInterval.Contains( t ) );
+    assert( t.IsDefined() && this->timeInterval.Contains( t ) );
     result.CopyFrom( &constValue );
   }
 
@@ -1146,14 +1146,14 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 
   virtual ConstTemporalUnit<Alpha>* Clone()
   {
-    return (new ConstTemporalUnit<Alpha>( timeInterval, constValue) );
+    return (new ConstTemporalUnit<Alpha>( this->timeInterval, constValue) );
   }
 
   virtual void CopyFrom( StandardAttribute* right )
   {
     ConstTemporalUnit<Alpha>* i = (ConstTemporalUnit<Alpha>*)right;
 
-    timeInterval.CopyFrom( i->timeInterval );
+    this->timeInterval.CopyFrom( i->timeInterval );
     constValue.CopyFrom( &i->constValue );
   }
 
@@ -4591,7 +4591,7 @@ template <class Mapping>
 bool OpenMapping( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 {
   Mapping *m = new Mapping( 0 );
-  mpoint->Open( valueRecord, typeInfo );
+  m->Open( valueRecord, typeInfo );
   value = SetWord( m );
   return true;
 }

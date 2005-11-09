@@ -570,7 +570,7 @@ Counts the number of built R-Trees.
 */
 #endif
 
-    TupleBuffer* SpatialJoinLocalInfo<dim>::StreamBuffer (const Word stream);
+    TupleBuffer* StreamBuffer (const Word stream);
 /*
 Creates a TupleBuffer and receives the tuples of the ~stream~ one by one.
 They are appended to the buffer. If the stream is empty '0' is returned.
@@ -1561,7 +1561,8 @@ void SpatialJoinLocalInfo<dim>::FlushBufferToFile
 
   for (CI p=m->begin(); p!=m->end(); ++p)
   {
-    Write (mm, (ArrayIndex)p->first, p->second.actualRId, p->second.actualRId);
+    ArrayIndex i = p->first;
+    Write (mm, i, p->second.actualRId, p->second.actualRId);
   }
 };
 

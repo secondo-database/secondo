@@ -95,7 +95,7 @@ makeascii: PDMakeASCII.c PDNestedText.o PDParserASCII.y lex.yy.c PDNestedText.h 
 	$(CC) $(OPTIONS) -o $@ $< y.tab.c PDNestedText.o $(LINKLIBS)
 
 enumerate: enumerate.l
-	$(LEX) -o $@.yy.c $<
+	$(LEX) -o$@.yy.c $<
 	$(CC) -o $@ $@.yy.c $(LINKLIBS)
 
 

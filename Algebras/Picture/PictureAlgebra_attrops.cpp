@@ -51,7 +51,7 @@ of the methods implemented here.
 int Picture::GetWidth(void) {
     if (PA_DEBUG) cerr << "Picture::Width() called" << endl;
 
-    unsigned int size;
+    unsigned long size;
     char *buffer = GetJPEGData(size);
 
     int width = JPEGPicture::GetWidth((unsigned char*)buffer, size);
@@ -65,7 +65,7 @@ int Picture::GetHeight(void) {
     if (PA_DEBUG) cerr << "Picture::Height() called" << endl;
 
 
-    unsigned int size;
+    unsigned long size;
     char *buffer = GetJPEGData(size);
 
     int height = JPEGPicture::GetHeight((unsigned char*)buffer, size);
@@ -79,7 +79,7 @@ bool Picture::IsGrayScale(void) {
     if (PA_DEBUG) cerr << "Picture::IsGrayScale() called" << endl;
 
 
-    unsigned int size;
+    unsigned long size;
     char *buffer = GetJPEGData(size);
 
     bool grayscale = JPEGPicture::IsGrayScale((unsigned char*)buffer, size);

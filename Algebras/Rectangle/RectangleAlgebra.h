@@ -48,6 +48,9 @@ can be represented by four, six or eight numbers (two for each dimension).
 #ifndef __RECTANGLE_ALGEBRA_H__
 #define __RECTANGLE_ALGEBRA_H__
 
+using namespace std;
+
+#include <cmath>
 #include "stdarg.h"
 
 #ifdef SECONDO_WIN32

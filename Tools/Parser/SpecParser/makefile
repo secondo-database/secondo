@@ -28,8 +28,8 @@ include ../../../makefile.env
 all: Parser$(EXEEXT) Parser2$(EXEEXT)
 
 lex.yy.cpp lex2.yy.cpp: SpecLex.l
-	$(LEX) -o lex.yy.cpp SpecLex.l
-	$(LEX) -d -o lex2.yy.cpp SpecLex.l
+	$(LEX) -olex.yy.cpp SpecLex.l
+	$(LEX) -d -olex2.yy.cpp SpecLex.l
 
 SpecParser.tab.hpp SpecParser.tab.cpp: SpecParser.y
 	$(YACC) -d -o SpecParser.tab.cpp SpecParser.y
