@@ -917,7 +917,8 @@ The ~Open~ function reads the DateTime value from the argument
 this is very simple.
 
 */
-void DateTime::Open(SmiRecord& valueRecord, size_t& offset, const ListExpr typeinfo){
+void DateTime::Open(SmiRecord& valueRecord, size_t& offset,
+                    const ListExpr typeinfo){
    ReadFromSmiRecord(valueRecord,offset);
 }
 
@@ -949,7 +950,8 @@ The ~Save~ functions saves the data of the DateTime value to
 *valueRecord*.
 
 */
-void DateTime::Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeinfo){
+void DateTime::Save(SmiRecord& valueRecord, size_t& offset,
+                    const ListExpr typeinfo){
    WriteToSmiRecord(valueRecord,offset);
 }
 
