@@ -52,7 +52,7 @@ will change the type of the this object to a {\tt duration}.
 #include "StandardAttribute.h"
 
   // milliseconds of a single day
-#define MILLISECONDS 86400000
+#define MILLISECONDS 86400000L
 
 
 /*
@@ -340,6 +340,17 @@ may be false. (a is a double-constant and d a duration value).
 */
      void Mul(const double factor);
 
+/*
+~Div~
+
+By calling this function, one can compute how often
+a duration is contained within another duration. 
+The result will be of type integer. The remainder is returned
+in the corresponding argument - also as duration type -. 
+
+*/
+    long Div(DateTime dividend, DateTime& remainder,bool& overflow);
+
 
 /*
 ~Operator +~
@@ -487,6 +498,8 @@ delta in [0,1].
 
 */
   bool Split(const double delta, DateTime& Rest);
+
+
 
   private:
     // the data-part of datetime
