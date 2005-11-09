@@ -27,4 +27,15 @@ operator hour_of alias HOUR pattern  op ( _ )
 operator minute_of alias MINUTE pattern  op ( _ )
 operator second_of alias SECOND pattern  op ( _ )
 operator millisecond_of alias MILLISECOND pattern  op ( _ )
+operator + alias PLUS pattern _ infixop _
+operator - alias MINUS pattern _ infixop _
+operator = alias EQUAL pattern _ infixop _
+operator < alias LESS pattern _ infixop _
+operator > alias GREATER pattern _ infixop _
+operator * alias PRODUCT pattern _ infixop _
+operator now alias NOW pattern op()
+operator today alias TODAY pattern op()
+operator theInstant alias THEINSTANT pattern op(_)
+operator / alias DIVIDE pattern _ infixop _
+
 
