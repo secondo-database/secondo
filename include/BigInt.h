@@ -43,6 +43,7 @@ for storing the absolute value of this number.
 #ifndef BIGINT_H
 #define BIGINT_H
 
+
 /*
 1 Preparations
 
@@ -54,6 +55,7 @@ So, we have to include the iostream header.
 */
 
 #include<iostream>
+#include <assert.h>
 
 /*
 1.2 Some Forward declarations
@@ -619,7 +621,6 @@ BigInt<size> Div(const BigInt<size> divisor, BigInt<size>& remainder)const{
      n2.ShiftRight1();
    }
    remainder.Equalize(n1); 
-   cout << "This = " << (*this) << endl;
    remainder.signum = this->signum;
    result.signum=!(this->signum ^ divisor.signum);   
    return result;
@@ -813,7 +814,7 @@ This is the general version of the shiftright operator.
 void ShiftRight(const int positions){
   if(positions==0)
      return;
-  int jump  = position / 32;
+  int jump  = positions / 32;
   int shift = positions % 32;
   unsigned long tmp;
   for(unsigned int i=0;i<size;i++){
