@@ -393,6 +393,11 @@ valueexpr	: ZZIDENTIFIER				{$$ = $1;}
 				NestedText::Concat($3,
 				NestedText::AtomC(")")     ))));
       }
+    | ZZPREFIXOP '(' ')'
+			{$$ = NestedText::Concat(NestedText::AtomC("("), 
+				NestedText::Concat($1, 
+				NestedText::AtomC(")")     ));
+      }
       
 
 /* algebra specific part */

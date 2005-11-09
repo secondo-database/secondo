@@ -638,6 +638,13 @@ prefix		: ZZOP '('simpleargscomma')'
                }
                (*currenttranslation.pattern) << ")";
             }
+          | ZZOP '(' ')'
+            {  currenttranslation.isSimple = true;
+               (*currenttranslation.token) << "ZZPREFIXOP";
+               (*currenttranslation.pattern) << "op(";
+               (*currenttranslation.pattern) << ")";
+            }
+            
 		      ;
 
 postfix		: simpleargsblank ZZOP
