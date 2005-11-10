@@ -67,7 +67,8 @@ The type system of the Temporal Algebra can be seen below.
 #include "RectangleAlgebra.h"
 #include "DateTime.h"
 
-
+extern NestedList* nl;
+extern QueryProcessor* qp;
 
 /*
 3 C++ Classes (Defintion)

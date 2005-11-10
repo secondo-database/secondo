@@ -33,8 +33,8 @@ Some nice introduction should be found here.
 #include "DateTime.h"
 using namespace datetime;
 
-static NestedList* nl;
-static QueryProcessor* qp;
+extern NestedList* nl;
+extern QueryProcessor* qp;
 
 const bool MRA_DEBUG = false;
 
