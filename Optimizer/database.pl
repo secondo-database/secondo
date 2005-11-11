@@ -276,10 +276,10 @@ respective values to the dynamic predicates ~storedIndex/4~ or
 
 */
 lookupIndex(Rel, Attr) :-
-  not(hasIndex(rel(Rel, _, _), attr(Attr, _, _), _)).
+  not( hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) ).
 
 lookupIndex(Rel, Attr) :-
-  hasIndex(rel(Rel, _, _), attr(Attr, _, _), _).
+  hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _).
 
 /*
 Gets the spelling of each attribute name of a relation and stores 
@@ -592,11 +592,11 @@ writeStoredCard(Stream) :-
 /*
 1.4 Looking Up For Existing Indexes
 
----- hasIndex(rel(Rel, _, _),attr(Attr, _, _), IndexName) :-
+---- hasIndex(rel(Rel, _, _),attr(Attr, _, _), IndexName, IndexType) :-
 ----
 
 If it exists, the index name for relation ~Rel~ and attribute ~Attr~
-is ~IndexName~.
+is ~IndexName~. The type of the index is ~IndexType~.
 
 1.4.1 Auxiliary Rule
 
@@ -626,22 +626,22 @@ The first rule simply reduces an attribute of the form e.g. p:ort just
 to its attribute name e.g. ort.
 
 */
-hasIndex(rel(Rel, _, _), attr(_:A, _, _), IndexName) :-
-  hasIndex(rel(Rel, _, _), attr(A, _, _), IndexName).
+hasIndex(rel(Rel, _, _), attr(_:A, _, _), IndexName, _) :-
+  hasIndex(rel(Rel, _, _), attr(A, _, _), IndexName, _).
 /*
 Gets the index name ~Index~ for relation ~Rel~ and attribute ~Attr~
 via dynamic predicate ~storedIndex/4~.
 
 */
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :-
-  storedIndex(Rel, Attr, _, Index),
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, Type) :-
+  storedIndex(Rel, Attr, Type, Index),
   !.
 /*
 If there is information stored in local memory, that there is no index
 for relation ~Rel~ and attribute ~Attr~ then this rule fails.
 
 */
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), _) :-
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
   storedNoIndex(Rel, Attr),
   !,
   fail.
@@ -651,9 +651,9 @@ name ~Attr~ is written in lower or in upper case and if there is an
 index available for relation ~Rel~ and attribute ~Attr~.
 
 */
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in lc
-						     %rel in lc  						     
-  not(Attr = _:_),                                   %succeeds
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :- %attr in lc
+						                %rel in lc  						     
+  not(Attr = _:_),                                              %succeeds
   spelled(Rel:Attr, attr(Attr2, 0, l)),              
   spelled(Rel, _, l),
   atom_concat(Rel, '_', Index1),
@@ -665,9 +665,9 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in lc
   %write(QueryAtom),nl,
   !.
 
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in lc
-                                                     %rel in uc
-  not(Attr = _:_),                                   %succeeds
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :- %attr in lc
+                                                                %rel in uc
+  not(Attr = _:_),                                              %succeeds
   spelled(Rel:Attr, attr(Attr2, 0, l)),  
   spelling(Rel, Spelled),
   Rel = Spelled,
@@ -681,16 +681,16 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in lc
   %write(QueryAtom),nl,
   !.
 
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), _) :-     %attr in lc
-                                                     %fails
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-     %attr in lc
+                                                        %fails
   not(Attr = _:_),                                   
   spelled(Rel:Attr, attr(_, 0, l)),
   verifyIndexAndStoreNoIndex(Rel, Attr),
   !, fail.
 
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in uc
-                                               	     %rel in lc
-  not(Attr = _:_),                                   %succeeds
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :- %attr in uc
+                                               	                %rel in lc
+  not(Attr = _:_),                                              %succeeds
   spelled(Rel:Attr, attr(Attr2, 0, u)),             
   spelled(Rel, _, l),
   upper(Attr2, SpelledAttr),
@@ -703,9 +703,9 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in uc
   %write(QueryAtom),nl,
   !.
 
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in uc
-                                                     %rel in uc
-  not(Attr = _:_),                                   %succeeds
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :- %attr in uc
+                                                                %rel in uc
+  not(Attr = _:_),                                              %succeeds
   spelled(Rel:Attr, attr(Attr2, 0, u)),              
   spelling(Rel, Spelled),
   Rel = Spelled,
@@ -720,8 +720,8 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in uc
   %write(QueryAtom),nl,
   !.
 
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), _) :-     %attr in uc
-  not(Attr = _:_),                                   %fails
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-     %attr in uc
+  not(Attr = _:_),                                      %fails
   spelled(Rel:Attr, attr(_, 0, u)),
   verifyIndexAndStoreNoIndex(Rel, Attr),
   !, fail.
@@ -782,7 +782,7 @@ updateIndex(Rel, Attr) :- % add index on small relation
   spelled(Rel:Attr, attr(Attr2, _, _)),
   storedNoIndex(SRel, Attr2),
   retract(storedNoIndex(SRel, Attr2)),  
-  hasIndex(rel(SRel, _, _),attr(Attr2, _, _), _).
+  hasIndex(rel(SRel, _, _),attr(Attr2, _, _), _, _).
 
 updateIndex(Rel, Attr) :- % delete index on small relation
   spelled(Rel, SRel, _),
