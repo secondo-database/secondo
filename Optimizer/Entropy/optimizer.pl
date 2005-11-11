@@ -1196,14 +1196,14 @@ indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
   :-
   argument(N, rel(Name, *, Case)),
   !,
-  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName).
+  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
 
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
   rename(exactmatch(IndexName, rel(Name, Var, Case), Y), Var)
   :-
   argument(N, rel(Name, Var, Case)),
   !,
-  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName).
+  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
 
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) <= Y, Rel)) => X :-
   indexselect(arg(N), pr(Y >= attr(AttrName, Arg, Case), Rel)) => X.
@@ -1213,14 +1213,14 @@ indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
   :-
   argument(N, rel(Name, *, Case)),
   !,
-  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName).
+  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
 
 indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
   rename(leftrange(IndexName, rel(Name, Var, Case), Y), Var)
   :-
   argument(N, rel(Name, Var, Case)),
   !,
-  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName).
+  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
 
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) >= Y, Rel)) => X :-
   indexselect(arg(N), pr(Y <= attr(AttrName, Arg, Case), Rel)) => X.
@@ -1230,14 +1230,14 @@ indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
   :-
   argument(N, rel(Name, *, Case)),
   !,
-  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName).
+  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
 
 indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
   rename(rightrange(IndexName, rel(Name, Var, Case), Y), Var)
   :-
   argument(N, rel(Name, Var, Case)),
   !,
-  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName).
+  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
 
 %fapra1590
 indexselect(arg(N), pr(Y touches attr(AttrName, Arg, Case), Rel)) => X :-
@@ -1248,7 +1248,7 @@ indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) touches Y, _)) =>
   :-
   argument(N, rel(Name, *, Case)),
   !,
-  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName).
+  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
 
 /*
 Here ~ArgS~ is meant to indicate ``argument stream''.
@@ -1283,7 +1283,7 @@ join(Arg1, arg(N), pr(X=Y, _, _)) => loopjoin(Arg1S, MatchExpr) :-
   isOfSecond(Attr2, X, Y),
   isNotOfSecond(Expr1, X, Y),
   argument(N, RelDescription),
-  hasIndex(RelDescription, Attr2, IndexName),
+  hasIndex(RelDescription, Attr2, IndexName, btree),
   Arg1 => Arg1S,
   exactmatch(IndexName, arg(N), Expr1) => MatchExpr.
 
@@ -1291,7 +1291,7 @@ join(arg(N), Arg2, pr(X=Y, _, _)) => loopjoin(Arg2S, MatchExpr) :-
   isOfFirst(Attr1, X, Y),
   isNotOfFirst(Expr2, X, Y),
   argument(N, RelDescription),
-  hasIndex(RelDescription, Attr1, IndexName),
+  hasIndex(RelDescription, Attr1, IndexName, btree),
   Arg2 => Arg2S,
   exactmatch(IndexName, arg(N), Expr2) => MatchExpr.
 
