@@ -232,7 +232,7 @@ sels(Pred, Sel) :-
   !.
 
 sels(Pred, Sel) :-
-  storedSel(Pred, Sel),
+  storedSel(Pred, Sel),,
   !.
 
 sels(Pred, Sel) :-
@@ -256,6 +256,9 @@ be retrieved only once.
 */
 
 % Selectivities must not be 0
+
+selectivity(pr(Pred, Rel, Rel), Sel) :-
+  selectivity(pr(Pred, Rel), Sel), !.
 
 selectivity(P, Sel) :-
   simplePred(P, PSimple),
@@ -283,12 +286,15 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   write('Elapsed Time: '),
   write(MSs),
   write(' ms'),nl,
+  MSsRes is MSs / (SampleCard1 * SampleCard2),
   Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
-  write('selectivity : '),
+  write('Predicate Cost: '),
+  write(MSsRes),
+  write(' ms'),nl,
+  write('Selectivity : '),
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
-  MSsRes is MSs / 500,
   assert(storedPET(PSimple, MSsRes)),
   assert(storedSel(PSimple, Sel)),
   !.
@@ -311,12 +317,15 @@ selectivity(pr(Pred, Rel), Sel) :-
   write('Elapsed Time: '),
   write(MSs),
   write(' ms'),nl,
+  MSsRes is MSs / SampleCard,
   Sel is (ResCard + 1)/ SampleCard,		% must not be 0
-  write('selectivity : '),
+  write('Predicate Cost: '),
+  write(MSsRes),
+  write(' ms'),nl,
+  write('Selectivity : '),
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel), PSimple),
-  MSsRes is MSs / 2000,
   assert(storedPET(PSimple, MSsRes)),
   assert(storedSel(PSimple, Sel)),
   !.
@@ -335,7 +344,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   %write(QueryAtom),
   secondo(QueryAtom, [int, ResCard]),
   Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
-  write('selectivity : '),
+  write('Selectivity : '),
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
@@ -353,7 +362,7 @@ selectivity(pr(Pred, Rel), Sel) :-
   %write(QueryAtom),
   secondo(QueryAtom, [int, ResCard]),
   Sel is (ResCard + 1)/ SampleCard,		% must not be 0
-  write('selectivity : '),
+  write('Selectivity : '),
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel), PSimple),
@@ -446,6 +455,17 @@ writeStoredPET(Stream) :-
   at_halt(writeStoredPETs),
   readStoredPETs.
 
+writePETs :-
+  findall(_, writePET, _).
+
+writePET :-
+  storedPET(X, Y),
+  replaceCharList(X, XReplaced),
+  write('Predicate: '),
+  write(XReplaced),
+  write(', Cost: '),
+  write(Y),
+  write(' ms\n').
 
 /*
 1.5 Examples
