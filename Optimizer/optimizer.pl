@@ -1667,6 +1667,8 @@ available.
 
 */
 
+:- dynamic(edgePredicateCost/3).
+
 assignSizes :- not(assignSizes1).
 
 assignSizes1 :-
@@ -1679,7 +1681,11 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
   selectivity(Pred, Sel),
   Size is Card * Sel,
   setNodeSize(Result, Size),
-  assert(edgeSelectivity(Source, Target, Sel)).
+  predicateCost(Pred, PredCost),
+  !,
+  assert(edgeSelectivity(Source, Target, Sel)),
+  assert(edgePredicateCost(Source, Target, PredCost)).
+  
 
 assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   resSize(Arg1, Card1),
@@ -1687,7 +1693,11 @@ assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   selectivity(Pred, Sel),
   Size is Card1 * Card2 * Sel,
   setNodeSize(Result, Size),
-  assert(edgeSelectivity(Source, Target, Sel)).
+  predicateCost(Pred, PredCost),
+  !,
+  assert(edgeSelectivity(Source, Target, Sel)),
+  assert(edgePredicateCost(Source, Target, PredCost)).
+
 
 /*
 ----    setNodeSize(Node, Size) :-
@@ -1744,6 +1754,7 @@ Delete node sizes and selectivities of edges.
 
 deleteSize :- retract(resultSize(_, _)), fail.
 deleteSize :- retract(edgeSelectivity(_, _, _)), fail.
+deleteSize :- retract(edgePredicateCosts( _, _, _)), fail.
 deleteSizes :- not(deleteSize).
 
 
@@ -1767,10 +1778,10 @@ operator of this kind occurs within the term.
 
 */
 
-cost(rel(Rel, _, _), _, Size, 0) :-
+cost(rel(Rel, _, _), _, Size, _, 0) :-
   card(Rel, Size).
 
-cost(res(N), _, Size, 0) :-
+cost(res(N), _, Size, _, 0) :-
   resultSize(N, Size).
 
 /*
@@ -1778,8 +1789,8 @@ cost(res(N), _, Size, 0) :-
 
 */
 
-cost(feed(X), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(feed(X), Sel, S, PredCost, C) :-
+  cost(X, Sel, S, PredCost, C1),
   feedTC(A),
   C is C1 + A * S.
 
@@ -1789,39 +1800,33 @@ be determined in experiments. These constants are kept in file ``Operators.pl''.
 
 */
 
-cost(consume(X), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(consume(X), Sel, S, PredCost, C) :-
+  cost(X, Sel, S, PredCost, C1),
   consumeTC(A),
   C is C1 + A * S.
 
-cost(filter(X, _), Sel, S, C) :-
-  cost(X, 1, SizeX, CostX),
+cost(filter(X, _), Sel, S, PredCost, C) :-
+  cost(X, 1, SizeX, PredCost, CostX),
   filterTC(A),
   S is SizeX * Sel,
-  C is CostX + A * SizeX.
+  C is CostX + ( A + PredCost) * SizeX. %PredCost applied
 
-/*
-For the moment we assume a cost of 1 for evaluating a predicate; this should be
-changed shortly.
-
-*/
-
-cost(product(X, Y), _, S, C) :-
-  cost(X, 1, SizeX, CostX),
-  cost(Y, 1, SizeY, CostY),
+cost(product(X, Y), _, S, PredCost, C) :-
+  cost(X, 1, SizeX, PredCost, CostX),
+  cost(Y, 1, SizeY, PredCost, CostY),
   productTC(A, B),
   S is SizeX * SizeY,
   C is CostX + CostY + SizeY * B + S * A.
 
 
-cost(leftrange(_, Rel, _), Sel, Size, Cost) :-
-  cost(Rel, 1, RelSize, _),
+cost(leftrange(_, Rel, _), Sel, Size, PredCost, Cost) :-
+  cost(Rel, 1, RelSize, PredCost, _),
   leftrangeTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
 
-cost(rightrange(_, Rel, _), Sel, Size, Cost) :-
-  cost(Rel, 1, RelSize, _),
+cost(rightrange(_, Rel, _), Sel, Size, PredCost, Cost) :-
+  cost(Rel, 1, RelSize, PredCost, _),
   leftrangeTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
@@ -1840,27 +1845,27 @@ input stream arrives, it is also possible to estimate the
 overall index join cost.
 
 */
-cost(exactmatchfun(_, Rel, _), Sel, Size, Cost) :-
-  cost(Rel, 1, RelSize, _),
+cost(exactmatchfun(_, Rel, _), Sel, Size, PredCost, Cost) :-
+  cost(Rel, 1, RelSize, PredCost, _),
   exactmatchTC(C),
   Size is Sel * RelSize,
-  Cost is Sel * RelSize * C.
+  Cost is Sel * RelSize * (C + PredCost).
 
-cost(exactmatch(_, Rel, _), Sel, Size, Cost) :-
-  cost(Rel, 1, RelSize, _),
+cost(exactmatch(_, Rel, _), Sel, Size, PredCost, Cost) :-
+  cost(Rel, 1, RelSize, PredCost, _),
   exactmatchTC(C),
   Size is Sel * RelSize,
-  Cost is Sel * RelSize * C.
+  Cost is Sel * RelSize * (C + PredCost).
 
-cost(loopjoin(X, Y), Sel, S, Cost) :-
-  cost(X, 1, SizeX, CostX),
-  cost(Y, Sel, SizeY, CostY),
+cost(loopjoin(X, Y), Sel, S, PredCost, Cost) :-
+  cost(X, 1, SizeX, PredCost, CostX),
+  cost(Y, Sel, SizeY, PredCost, CostY),
   S is SizeX * SizeY,
   loopjoinTC(C),
-  Cost is C * SizeX + CostX + SizeX * CostY.
+  Cost is C * SizeX + CostX + SizeX * CostY.  % PredCost still not considered here!
 
-cost(fun(_, X), Sel, Size, Cost) :-
-  cost(X, Sel, Size, Cost).
+cost(fun(_, X), Sel, Size, PredCost, Cost) :-
+  cost(X, Sel, Size, PredCost, Cost).
 
 
 
@@ -1878,64 +1883,64 @@ of computing products of buckets. Therefore that term
 was considered unnecessary.
 
 */
-cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, C) :-
-  cost(X, 1, SizeX, CostX),
-  cost(Y, 1, SizeY, CostY),
+cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, PredCost, C) :-
+  cost(X, 1, SizeX, PredCost, CostX),
+  cost(Y, 1, SizeY, PredCost, CostY),
   hashjoinTC(A, B),
   S is SizeX * SizeY * Sel,
-  C is CostX + CostY +                          % producing the arguments
-    A * NBuckets * (SizeX/NBuckets + 1) *       % computing the product for each
-      (SizeY/NBuckets +1) +                     % pair of buckets
-    B * S.                                      % producing the result tuples
+  C is CostX + CostY +                                  % producing the arguments
+    (A + PredCost) * NBuckets * (SizeX/NBuckets + 1) *  % computing the product for each
+      (SizeY/NBuckets +1) +                             % pair of buckets
+    B * S.                                              % producing the result tuples
 
 
-cost(sortmergejoin(X, Y, _, _), Sel, S, C) :-
-  cost(X, 1, SizeX, CostX),
-  cost(Y, 1, SizeY, CostY),
+cost(sortmergejoin(X, Y, _, _), Sel, S, PredCost, C) :-
+  cost(X, 1, SizeX, PredCost, CostX),
+  cost(Y, 1, SizeY, PredCost, CostY),
   sortmergejoinTC(A, B),
   S is SizeX * SizeY * Sel,
   C is CostX + CostY +                          % producing the arguments
-    A * SizeX * log(SizeX + 1) +
-    A * SizeY * log(SizeY + 1) +                % sorting the arguments
-    B * S.                                      % parallel scan of sorted relations
+    A * SizeX * log(SizeX + 1) +                % sorting the arguments
+    A * SizeY * log(SizeY + 1) +                %   individual cost of ordering predicate still not applied!
+    (B + PredCost) * S.                         % parallel scan of sorted relations
 
 
 /* 
    Simple costs estimation for ~symmjoin~
 */
-cost(symmjoin(X, Y, _), Sel, S, C) :-
-  cost(X, 1, SizeX, CostX),
-  cost(Y, 1, SizeY, CostY),
-  symmjoinTC(A, B),                   % fetch relative costs
-  S is SizeX * SizeY * Sel,           % calculate size of result
-  C is CostX + CostY +                % cost to produce the arguments
-    A * (SizeX * SizeY) +             % cost to handle buffers and collision
-    B * S.                            % cost to produce result tuples
+cost(symmjoin(X, Y, _), Sel, S, PredCost, C) :-
+  cost(X, 1, SizeX, PredCost, CostX),
+  cost(Y, 1, SizeY, PredCost, CostY),
+  symmjoinTC(A, B),                     % fetch relative costs
+  S is SizeX * SizeY * Sel,             % calculate size of result
+  C is CostX + CostY +                  % cost to produce the arguments
+    (A + PredCost) * (SizeX * SizeY) +  % cost to handle buffers and collision
+    B * S.                              % cost to produce result tuples
 
 
-cost(extend(X, _), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(extend(X, _), Sel, S, PredCost, C) :-
+  cost(X, Sel, S, PredCost, C1),
   extendTC(A),
   C is C1 + A * S.
 
-cost(remove(X, _), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(remove(X, _), Sel, S, PredCost, C) :-
+  cost(X, Sel, S, PredCost, C1),
   removeTC(A),
   C is C1 + A * S.
 
-cost(project(X, _), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(project(X, _), Sel, S, PredCost, C) :-
+  cost(X, Sel, S, PredCost, C1),
   projectTC(A),
   C is C1 + A * S.
 
-cost(rename(X, _), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(rename(X, _), Sel, S, PredCost, C) :-
+  cost(X, Sel, S, PredCost, C1),
   renameTC(A),
   C is C1 + A * S.
 
 %fapra1590
-cost(windowintersects(_, Rel, _), Sel, Size, Cost) :-
-  cost(Rel, 1, RelSize, _),
+cost(windowintersects(_, Rel, _), Sel, Size, PredCost, Cost) :-
+  cost(Rel, 1, RelSize, PredCost, _),
   windowintersectsTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
@@ -1949,7 +1954,8 @@ These are plan edges extended by a cost measure.
 createCostEdge :-
   planEdge(Source, Target, Term, Result),
   edgeSelectivity(Source, Target, Sel),
-  cost(Term, Sel, Size, Cost),
+  edgePredicateCost(Source, Target, PredCost),
+  cost(Term, Sel, Size, PredCost, Cost),
   assert(costEdge(Source, Target, Term, Result, Size, Cost)),
   fail.
 
@@ -1970,6 +1976,7 @@ costEdgeInfo(Source, Target, Plan, Result, Size, Cost) :-
   nl, write('Source: '), write(Source),
   nl, write('Target: '), write(Target),
   nl, write('Plan  : '), wp(Plan),
+%  nl, write('        '), write(Plan),  % for testing
   nl, write('Result: '), write(Result),
   nl, write('Size  : '), write(Size),
   nl, write('Cost  : '), write(Cost), nl. 

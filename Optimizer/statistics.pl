@@ -222,6 +222,10 @@ dynamicCardQuery(Pred, Rel1, Rel2, Query) :-
   dynamicPossiblyRename(Rel2, Rel2Query),
   Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
 
+/*
+  % the first two clauses for sels/2 are needed for using hard coded 
+  % selectivities. Since these cause problems with non-existing 
+  % predicate cost, they should be omitted.
 sels(Pred, Sel) :-
   sel(Pred, Sel),
   !.
@@ -230,6 +234,7 @@ sels(Pred, Sel) :-
   commute(Pred, Pred2),
   sel(Pred2, Sel),
   !.
+*/
 
 sels(Pred, Sel) :-
   storedSel(Pred, Sel),
@@ -466,6 +471,31 @@ writePET :-
   write(', Cost: '),
   write(Y),
   write(' ms\n').
+
+/* 
+
+----  predicateCost(Pred,Cost)
+----
+
+Unifies ~Cost~ with the estimated cost per predicate ~Pred~.
+
+*/
+
+predicateCost(Pred,Cost) :- 
+  simplePred(Pred, PSimple),
+  storedPET(PSimple, Cost), 
+  !.
+
+predicateCost(Pred, Cost) :- 
+  simplePred(Pred, PSimple),
+  commute(PSimple, PSC),
+  storedPET(PSC, Cost), 
+  !.
+
+predicateCost(Pred, _) :-
+  nl, write('Error in Optimizer: predicateCost/2 failed for '),
+  write(Pred),
+  fail.
 
 /*
 1.5 Examples
