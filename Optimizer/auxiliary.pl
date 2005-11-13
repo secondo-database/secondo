@@ -193,6 +193,11 @@ display(string, N) :-
   !,
   term_to_atom(String, N), 
   displayString(String).
+
+display(date, N) :-
+  !,
+  term_to_atom(String, N), 
+  displayString(String).
   
 display(instant, N) :-
   !,
