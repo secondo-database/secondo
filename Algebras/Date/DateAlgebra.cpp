@@ -259,7 +259,7 @@ int Date::Compare(Attribute * arg)
                  else if ((this->GetMonth())<(d->GetMonth())) res=-1;
                       else
                          if ((this->GetDay())>(d->GetDay())) res=1;
-                         else if ((this->GetDay())<(d->GetDay())) res=1;
+                         else if ((this->GetDay())<(d->GetDay())) res=-1;
                               else res=0;
        }
   return (res);
@@ -387,7 +387,11 @@ InDate( const ListExpr typeInfo, const ListExpr instance,
   Date* newdate;
   string inputStr;
   char *i, *j;
-  int dot=0;
+  int dot = 0;
+  int hyphen = 0;
+  int Year;
+  int Month;
+  int Day;
   char buf[100];
 
   if (nl->IsAtom(instance) && nl->AtomType(instance)==StringType)
@@ -404,42 +408,71 @@ InDate( const ListExpr typeInfo, const ListExpr instance,
     newdate = new Date(false, 0, 0, 0);
     return SetWord(newdate);
   }
-  else   //"1998-02-01" or "1999-2-1"
+  else   //"1998-02-01" or "1999-2-1" or "1.2.1998" or "02.01.1999"
   {
     strcpy(buf, c_string);
     int bufLen=strlen(buf);
+
+
     //basic check on date format
     for ( i=buf; i<buf+bufLen; i++)
     {
         if (*i=='.') dot++;
-        if ((*i!='.') && ((*i<'0') || (*i>'9')))
+        if (*i=='-') hyphen++;
+
+        if ((*i!='.') && (*i!='-') && ((*i<'0') || (*i>'9')))
         {
             cout <<">>>invalid date!<<<"<<endl;
             correct = false;
             return SetWord(Address(0));
         }
     }
-    if (dot!=2)
+
+
+    if ((hyphen == 2) && (dot == 0)) 	//format is "1998-02-01"
     {
+      //extract the year, month, day information from the date
+      i=buf; j=i;
+      while ((*j!='-') && (j<buf+bufLen))  j++;
+      *j=0;
+      Year=atoi(i);
+
+      i=j+1; j=i;
+      while ((*j!='-') && (j<buf+bufLen))  j++;
+      *j=0;
+      Month=atoi(i);
+
+      i=j+1; j=i;
+      while ((*j!='-') && (j<buf+bufLen))  j++;
+      *j=0;
+      Day=atoi(i);
+    }
+    else 
+      if ((hyphen == 0) && (dot == 2))	//format is "1.2.1998"
+      {
+        //extract the year, month, day information from the date
+        i=buf; j=i;
+        while ((*j!='.') && (j<buf+bufLen))  j++;
+        *j=0;
+        Day=atoi(i);
+
+        i=j+1; j=i;
+        while ((*j!='.') && (j<buf+bufLen))  j++;
+        *j=0;
+        Month=atoi(i);
+
+        i=j+1; j=i;
+        while ((*j!='.') && (j<buf+bufLen))  j++;
+        *j=0;
+        Year=atoi(i);
+      }
+      else
+      {
          cout <<">>>invalid date!<<<"<<endl;
          correct = false;
          return SetWord(Address(0));
-    }
-    //extract the year, month, day information from the date
-    i=buf; j=i;
-    while ((*j!='.') && (j<buf+bufLen))  j++;
-    *j=0;
-    int Day=atoi(i);
+      }
 
-    i=j+1; j=i;
-    while ((*j!='.') && (j<buf+bufLen))  j++;
-    *j=0;
-    int Month=atoi(i);
-
-    i=j+1; j=i;
-    while ((*j!='.') && (j<buf+bufLen))  j++;
-    *j=0;
-    int Year=atoi(i);
 
     if (isdate(Day, Month, Year))
     {
@@ -513,8 +546,8 @@ DateProperty()
 {
   ListExpr listreplist = nl->TextAtom();
   ListExpr examplelist = nl->TextAtom();
-  nl->AppendText(listreplist, "\"<day>.<month>.<year>\"");
-  nl->AppendText(examplelist, "\"9.5.1955\"");
+  nl->AppendText(listreplist, "Either \"<day>.<month>.<year>\" or \"<year>-<month>-<day>\"");
+  nl->AppendText(examplelist, "\"9.5.1955\" or \"09.05.1955\" or \"1955-5-9\" or \"1955-05-09\"");
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
                              nl->StringAtom("Example Type List"),
