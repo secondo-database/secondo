@@ -1620,14 +1620,18 @@ Type mapping for ~ifthenelse~ is
 */
 ListExpr ifthenelseType(ListExpr args)
 {
-  ListExpr arg1, arg2, arg3;
+  ListExpr arg1, arg2, arg3, errorInfo;
   if ( nl->ListLength( args ) == 3 )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
     arg3 = nl->Third( args );
-    if (nl->Equal(arg2, arg3) and ( nl->SymbolValue(arg1) == "bool" ))
-        {    
+    errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+
+    if (nl->Equal(arg2, arg3) && nl->SymbolValue(arg1) == "bool" &&
+        SecondoSystem::GetAlgebraManager()->CheckKind("DATA", arg2, errorInfo) &&
+        SecondoSystem::GetAlgebraManager()->CheckKind("DATA", arg3, errorInfo) )
+    {    
       return arg2;
     }  
   }
@@ -3635,22 +3639,22 @@ are separated by a space character.
 int
 ifthenelseFun(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-    for(int i=0;i<3;i++)
-        if (!((StandardAttribute*)args[i].addr)->IsDefined() )
-            return -1;
-        
     result = qp->ResultStorage( s );    
-    
-    if(((CcBool*)args[0].addr)->GetBoolval())
+
+    if (!((CcBool*)args[0].addr)->IsDefined() )
     {
-        result.addr=args[1].addr;   
+        ((StandardAttribute*)result.addr)->SetDefined( false );
+    }
+    else if(((CcBool*)args[0].addr)->GetBoolval())
+    {
+        ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)args[1].addr );   
     }
     else    
     {
-        result.addr=args[2].addr;   
+        ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)args[2].addr );   
     }
     
-  return 0;
+    return 0;
 }
 
 /*
@@ -4167,7 +4171,8 @@ const string CCSpecIfthenelse  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "<text>Returns the second argument, if the boolean value expression, given"
              " as a first argument, can be evaluated to true."
              " If not, the operator returns the third argument."
-	     " NOTE: The second and the third argument must be of the same type T.</text--->"
+	     " NOTE: The second and the third argument must be of the same type T"
+             " of kind DATA.</text--->"
              "<text>query ifthenelse(3 < 5,[const string value \"less\"],[const string value \"greater\"])</text--->"
              ") )";
 	     
