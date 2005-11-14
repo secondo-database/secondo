@@ -851,14 +851,15 @@ deleteVariables :- not(deleteVariable).
 
 
 /*
-  The plan_to_atom(attr(Name, Arg, Case), Result) predicate is not able to discriminate wether 
-  to return '..Name' or '.Name' for Arg=2. 
-  Now, we use a predicate consider_Arg2(T1, T2) to return a term T2, that is deferred from
-  term T1 by replacing all occurances of attr(_, 2, _) in against attr2(_, 2, _). 
+The ~plan\_to\_atom(attr(Name, Arg, Case), Result)~ predicate is not able to distinguish whether 
+to return ~.Name~ or ~..Name~ for ~Arg~ = 2. Now, we use a predicate ~consider\_Arg2(T1, T2)~ to return a term ~T2~, that is constructed from term ~T1~ by replacing all occurrences of ~attr(\_, 2, \_)~ in it by ~attr2(\_, 2, \_)~.
+ 
 */
 
 consider_Arg2(Pred, Pred) :- 
-  atomic(Pred).                  
+  atomic(Pred).
+
+consider_Arg2(attr(Name, 2, Case), attr2(Name, 2, Case)):- !.                 
 
 consider_Arg2(Pred, Pred2) :- 
   compound(Pred),               
@@ -879,65 +880,45 @@ consider_Arg2(Pred, Pred2) :-
   arg(1, Pred2, Res1),
   arg(2, Pred2, Res2).
 
-consider_Arg2(Pred, Pred2) :-      % This is the interesting case
-  compound(Pred),                  % where to change attr/3 to
-  functor(Pred, attr, 3),          % attr2/3
-  arg(1, Pred, AName),
-  arg(2, Pred, 2),
-  arg(3, Pred, ASpell),
-  functor(Pred2, attr2, 3),
-  arg(1, Pred2, AName),
-  arg(2, Pred2, 2),
-  arg(3, Pred2, ASpell).       % OK
-
 consider_Arg2(Pred, Pred2) :- 
-  % analyse Pred 
   compound(Pred),
   functor(Pred, Op, 3),
   arg(1, Pred, Arg1),
   arg(2, Pred, Arg2),
   arg(3, Pred, Arg3),
-  % consider_Arg2 recursively
   consider_Arg2(Arg1, Res1),
   consider_Arg2(Arg2, Res2),
   consider_Arg2(Arg3, Res3),
-  % build up Pred2 
   functor(Pred2, Op, 3),
   arg(1, Pred2, Res1),
   arg(2, Pred2, Res2),
   arg(3, Pred2, Res3).
 
 consider_Arg2(Pred, Pred2) :- 
-  % analyse Pred 
   compound(Pred),
   functor(Pred, Op, 3),
   arg(1, Pred, Arg1),
   arg(2, Pred, Arg2),
   arg(3, Pred, Arg3),
-  % consider_Arg2 recursively
   consider_Arg2(Arg1, Res1),
   consider_Arg2(Arg2, Res2),
   consider_Arg2(Arg3, Res3),
-  % build up Pred2 
   functor(Pred2, Op, 3),
   arg(1, Pred2, Res1),
   arg(2, Pred2, Res2),
   arg(3, Pred2, Res3).
 
 consider_Arg2(Pred, Pred2) :- 
-  % analyse Pred 
   compound(Pred),
   functor(Pred, Op, 4),
   arg(1, Pred, Arg1),
   arg(2, Pred, Arg2),
   arg(3, Pred, Arg3),
   arg(4, Pred, Arg4),
-  % consider_Arg2 recursively
   consider_Arg2(Arg1, Res1),
   consider_Arg2(Arg2, Res2),
   consider_Arg2(Arg3, Res3),
   consider_Arg2(Arg4, Res4),
-  % build up Pred2 
   functor(Pred2, Op, 4),
   arg(1, Pred2, Res1),
   arg(2, Pred2, Res2),
@@ -945,7 +926,6 @@ consider_Arg2(Pred, Pred2) :-
   arg(4, Pred2, Res4).
 
 consider_Arg2(Pred, Pred2) :- 
-  % analyse Pred 
   compound(Pred),
   functor(Pred, Op, 5),
   arg(1, Pred, Arg1),
@@ -953,13 +933,11 @@ consider_Arg2(Pred, Pred2) :-
   arg(3, Pred, Arg3),
   arg(4, Pred, Arg4),
   arg(5, Pred, Arg5),
-  % consider_Arg2 recursively
   consider_Arg2(Arg1, Res1),
   consider_Arg2(Arg2, Res2),
   consider_Arg2(Arg3, Res3),
   consider_Arg2(Arg4, Res4),
   consider_Arg2(Arg5, Res5),
-  % build up Pred2 
   functor(Pred2, Op, 5),
   arg(1, Pred2, Res1),
   arg(2, Pred2, Res2),
@@ -1444,32 +1422,13 @@ Here ~ArgS~ is meant to indicate ``argument stream''.
 
 5.2.3 Translation of Joins
 
-A join can always be translated to filtering the Cartesian product.
-
-*/
-
-join(Arg1, Arg2, pr(Pred, _, _)) => filter(product(Arg1S, Arg2S), Pred) :-
-  Arg1 => Arg1S,
-  Arg2 => Arg2S.
-
-/*
-... but especially for large objects/expensive predicates, a symmjoin is faster:
+A join can always be translated to a ~symmjoin~.
 
 */
 
 join(Arg1, Arg2, pr(Pred, _, _)) => symmjoin(Arg1S, Arg2S, Pred) :-
   Arg1 => Arg1S,
   Arg2 => Arg2S.
-
-
-join(Arg1, Arg2, pr(X<Y, _, _)) => loopjoin(Arg1S, fun([param(t, tuple)], 
-  filter(Arg2S, attribute(t, attrname(Attr1)) < Attr2))) :-
-  X = attr(_, _, _),
-  Y = attr(_, _, _), !,
-  Arg1 => Arg1S,
-  Arg2 => Arg2S,
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
 
 /*
 
@@ -1631,7 +1590,7 @@ deletePlanEdges :- not(deletePlanEdge).
 planEdgeInfo(Source, Target, Plan, Result) :-
   write('Source: '), write(Source), nl,
   write('Target: '), write(Target), nl,
-  write('Plan: '), wp(Plan), nl,
+  write('Plan  : '), wp(Plan), nl,
   % write(Plan), nl,
   write('Result: '), write(Result), nl, nl.
 
@@ -1909,6 +1868,7 @@ cost(sortmergejoin(X, Y, _, _), Sel, S, PredCost, C) :-
 
 /* 
    Simple costs estimation for ~symmjoin~
+
 */
 cost(symmjoin(X, Y, _), Sel, S, PredCost, C) :-
   cost(X, 1, SizeX, PredCost, CostX),
@@ -3653,15 +3613,6 @@ example20 :- example(20).
 example21 :- example(21).
 
 
-example14(Query, Cost) :- example14(Query, Cost).
-example15(Query, Cost) :- example15(Query, Cost).
-example16(Query, Cost) :- example16(Query, Cost).
-example17(Query, Cost) :- example17(Query, Cost).
-example18(Query, Cost) :- example18(Query, Cost).
-example19(Query, Cost) :- example19(Query, Cost).
-example20(Query, Cost) :- example20(Query, Cost).
-example21(Query, Cost) :- example21(Query, Cost).
-
 
 /*
 
@@ -3798,10 +3749,7 @@ bestPlanConsume :-
   nl, write(Q), nl,
   query(Q).
   
-desplay(int, N) :-
-  !,
-  write(N),nl,
-  fail.
+
 
 
 
