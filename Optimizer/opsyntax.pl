@@ -42,6 +42,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, or).
 :- op(800, fx, not).
 
+:- op(800, xfx, present).
+:- op(800, xfx, passes).
+:- op(800, xfx, atinstant).
+:- op(800, xfx, atperiods).
+:- op(800, xfx, at).
+
+:- op(800, xfx, simpleequals).
+
+
+
+
 /*
 
 ----	secondoOp(Op, Syntax, NoArgs) :-
@@ -67,13 +78,18 @@ For all other forms, a plan_to_atom rule has to be programmed explicitly.
 */
 
 secondoOp(distance, prefix, 2).
+secondoOp(intersects_new, prefix, 2).
+secondoOp(intersection_new, prefix, 2).
+secondoOp(union_new, prefix, 2).
+secondoOp(minus_new, prefix, 2).
+
+
 secondoOp(feed, postfix, 1).
 secondoOp(consume, postfix, 1).
 secondoOp(count, postfix, 1).
 secondoOp(product, postfix, 2).
 secondoOp(filter, postfixbrackets, 2).
 secondoOp(loopjoin, postfixbrackets, 2).
-secondoOp(symmjoin, postfixbrackets, 3).
 secondoOp(exactmatch, postfixbrackets, 3).
 secondoOp(leftrange, postfixbrackets, 3).
 secondoOp(rightrange, postfixbrackets, 3).
@@ -88,6 +104,8 @@ secondoOp(avg, postfixbrackets, 2).
 secondoOp(tuplesize, postfix, 1).
 secondoOp(head, postfixbrackets, 2).
 secondoOp(windowintersects, postfixbrackets, 3).
+
+
 
 
 
