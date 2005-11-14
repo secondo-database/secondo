@@ -242,7 +242,8 @@ sels(Pred, Sel) :-
 
 sels(Pred, Sel) :-
   commute(Pred, Pred2),
-  storedSel(Pred2, Sel).
+  storedSel(Pred2, Sel),
+  !.
 
 /*
 
@@ -263,7 +264,8 @@ be retrieved only once.
 % Selectivities must not be 0
 
 selectivity(pr(Pred, Rel, Rel), Sel) :-
-  selectivity(pr(Pred, Rel), Sel), !.
+  selectivity(pr(Pred, Rel), Sel), 
+  !.
 
 selectivity(P, Sel) :-
   simplePred(P, PSimple),
@@ -481,16 +483,16 @@ Unifies ~Cost~ with the estimated cost per predicate ~Pred~.
 
 */
 
-predicateCost(Pred,Cost) :- 
+predicateCost(Pred,Cost) :-
+  !, 
   simplePred(Pred, PSimple),
-  storedPET(PSimple, Cost), 
-  !.
+  storedPET(PSimple, Cost).
 
 predicateCost(Pred, Cost) :- 
+  !,
   simplePred(Pred, PSimple),
   commute(PSimple, PSC),
-  storedPET(PSC, Cost), 
-  !.
+  storedPET(PSC, Cost).
 
 predicateCost(Pred, _) :-
   nl, write('Error in Optimizer: predicateCost/2 failed for '),

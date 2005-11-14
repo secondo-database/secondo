@@ -1058,7 +1058,7 @@ plan_to_atom(groupby(Stream, GroupAttrs, Fields), Result) :-
 plan_to_atom(extend(Stream, Fields), Result) :-
   plan_to_atom(Stream, SAtom),
   plan_to_atom(Fields, FAtom),
-  concat_atom([SAtom, 'extend[', FAtom, ']'], '', Result),
+  concat_atom([SAtom, 'extend[', FAtom, '] '], '', Result),
   !.
 
 plan_to_atom(field(NewAttr, Expr), Result) :-
@@ -1682,9 +1682,9 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
   Size is Card * Sel,
   setNodeSize(Result, Size),
   predicateCost(Pred, PredCost),
-  !,
   assert(edgeSelectivity(Source, Target, Sel)),
-  assert(edgePredicateCost(Source, Target, PredCost)).
+  assert(edgePredicateCost(Source, Target, PredCost)),
+  !.
   
 
 assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
@@ -1694,9 +1694,9 @@ assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   Size is Card1 * Card2 * Sel,
   setNodeSize(Result, Size),
   predicateCost(Pred, PredCost),
-  !,
   assert(edgeSelectivity(Source, Target, Sel)),
-  assert(edgePredicateCost(Source, Target, PredCost)).
+  assert(edgePredicateCost(Source, Target, PredCost)),
+  !.
 
 
 /*
@@ -1727,7 +1727,7 @@ resSize(res(N), Size) :- resultSize(N, Size), !.
 ----    writeSizes :-
 ----
 
-Write sizes and selectivities.
+Write sizes, selectivities and predicate costs.
 
 */
 
@@ -1738,9 +1738,11 @@ writeSize :-
   fail.
 writeSize :-
   edgeSelectivity(Source, Target, Sel),
+  edgePredicateCost(Source, Target, PredCost),
   write('Source: '), write(Source), nl,
   write('Target: '), write(Target), nl,
-  write('Selectivity: '), write(Sel), nl, nl,
+  write('Selectivity: '), write(Sel), nl, 
+  write('Predicate cost: '), write(PredCost), nl, nl,
   fail.
 writeSizes :- not(writeSize).
 
@@ -1754,7 +1756,7 @@ Delete node sizes and selectivities of edges.
 
 deleteSize :- retract(resultSize(_, _)), fail.
 deleteSize :- retract(edgeSelectivity(_, _, _)), fail.
-deleteSize :- retract(edgePredicateCosts( _, _, _)), fail.
+deleteSize :- retract(edgePredicateCost( _, _, _)), fail.
 deleteSizes :- not(deleteSize).
 
 
@@ -1763,16 +1765,17 @@ deleteSizes :- not(deleteSize).
 
 8.1 The Costs of Terms
 
-----    cost(Term, Sel, Size, Cost) :-
+----    cost(Term, Sel, Size, PredCost, Cost) :-
 ----
 
 The cost of an executable ~Term~ representing a predicate with selectivity ~Sel~
-is ~Cost~ and the size of the result is ~Size~.
+and predicate cost ~PredCost~ is ~Cost~ and the size of the result is ~Size~.
 
 This is evaluated recursively descending into the term. When the operator
 realizing the predicate (e.g. ~filter~) is encountered, the selectivity ~Sel~ is
-used to determine the size of the result. It is assumed that only a single
-operator of this kind occurs within the term.
+used to determine the size of the result. The cost for a single evaluation 
+of that predicate ~PedCost~ is taken into account when estimating the total 
+cost. It is assumed that only a single operator of this kind occurs within the term.
 
 8.1.1 Arguments
 
@@ -1809,7 +1812,7 @@ cost(filter(X, _), Sel, S, PredCost, C) :-
   cost(X, 1, SizeX, PredCost, CostX),
   filterTC(A),
   S is SizeX * Sel,
-  C is CostX + ( A + PredCost) * SizeX. %PredCost applied
+  C is CostX + ( A + PredCost) * SizeX.
 
 cost(product(X, Y), _, S, PredCost, C) :-
   cost(X, 1, SizeX, PredCost, CostX),
@@ -1817,7 +1820,6 @@ cost(product(X, Y), _, S, PredCost, C) :-
   productTC(A, B),
   S is SizeX * SizeY,
   C is CostX + CostY + SizeY * B + S * A.
-
 
 cost(leftrange(_, Rel, _), Sel, Size, PredCost, Cost) :-
   cost(Rel, 1, RelSize, PredCost, _),
@@ -1917,7 +1919,6 @@ cost(symmjoin(X, Y, _), Sel, S, PredCost, C) :-
     (A + PredCost) * (SizeX * SizeY) +  % cost to handle buffers and collision
     B * S.                              % cost to produce result tuples
 
-
 cost(extend(X, _), Sel, S, PredCost, C) :-
   cost(X, Sel, S, PredCost, C1),
   extendTC(A),
@@ -1966,11 +1967,9 @@ deleteCostEdge :-
 
 deleteCostEdges :- not(deleteCostEdge).
 
-
 costEdgeInfo(Edge) :-
   Edge = costEdge(Source, Target, Plan, Result, Size, Cost),
   costEdgeInfo(Source, Target, Plan, Result, Size, Cost).
-
 
 costEdgeInfo(Source, Target, Plan, Result, Size, Cost) :-
   nl, write('Source: '), write(Source),
@@ -3644,14 +3643,6 @@ sqlExample( 21,
     p2:plz = p3:plz * 5]
   ).
 
-
-sqlExample( 22,
-
-  select * from [staedte as s, plz as p] where [s:sname = p:ort, p:plz > 40000, (p:plz mod 5) = 0]
-  ).
-
-
-
 example14 :- example(14).
 example15 :- example(15).
 example16 :- example(16).
@@ -3660,7 +3651,6 @@ example18 :- example(18).
 example19 :- example(19).
 example20 :- example(20).
 example21 :- example(21).
-example22 :- example(22).
 
 
 example14(Query, Cost) :- example14(Query, Cost).
@@ -3671,7 +3661,6 @@ example18(Query, Cost) :- example18(Query, Cost).
 example19(Query, Cost) :- example19(Query, Cost).
 example20(Query, Cost) :- example20(Query, Cost).
 example21(Query, Cost) :- example21(Query, Cost).
-example22(Query, Cost) :- example22(Query, Cost).
 
 
 /*
