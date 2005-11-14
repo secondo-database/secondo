@@ -101,6 +101,12 @@ ALGEBRAS     +=	TupleIdentifierAlgebra
 ALGEBRA_DIRS += PointSequence	
 ALGEBRAS     +=	PointSequenceAlgebra
 
+ALGEBRA_DIRS += MovingRegion	
+ALGEBRAS     +=	MovingRegionAlgebra
+
+ALGEBRA_DIRS += PlaneSweep	
+ALGEBRAS     +=	PlaneSweepAlgebra
+
 #ALGEBRA_DIRS += MP3
 #ALGEBRAS     += MP3Algebra
 
