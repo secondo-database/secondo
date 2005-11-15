@@ -57,7 +57,7 @@ TreeLex.o: TreeLex.c
 	$(CC) -c -o TreeLex.o TreeLex.c
 
 TreeLex.c: TreeLex.l TreeParser.y.c
-	$(LEX) -o TreeLex.c TreeLex.l
+	$(LEX) -oTreeLex.c TreeLex.l
 
 Tree.o: Tree.c Tree.h makefile
 	$(CC) -c -o Tree.o Tree.c

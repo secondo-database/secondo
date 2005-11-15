@@ -787,6 +787,25 @@ main(int argc, char **argv)
   if(!PL_initialise(argc+3,initargs))
       PL_halt(1);
   else{
+
+    {
+      // VTA - 15.11.2005
+      // I added this piece of code in order to run with newer versions
+      // of prolog. Without this code, the libraries (e.g. list.pl) are
+      // not automatically loaded. It seems that something in our code
+      // (auxiliary.pl and calloptimizer.pl) prevents them to be 
+      // automatically loaded. In order to solve this problem I added
+      // a call to 'member(x, []).' so that the libraries are loaded 
+      // before running our scripts.
+      term_t t0 = PL_new_term_refs(2),
+             t1 = t0+1;
+      PL_put_atom_chars(t0, "x");
+      PL_put_list_chars(t1, "");
+      predicate_t p = PL_predicate("member",2,"");
+      PL_call_predicate(NULL,PL_Q_NORMAL,p,t0);
+    }
+          
+
      /* load the auxiliary and calloptimizer */
      term_t a0 = PL_new_term_refs(1);
      static predicate_t p = PL_predicate("consult",1,"");

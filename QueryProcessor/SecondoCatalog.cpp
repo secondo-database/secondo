@@ -2419,11 +2419,10 @@ bool
 SecondoCatalog::CleanUp( const bool revert )
 {
   bool ok = true;
-  TypesCatalog::iterator tPos;
   if ( !revert )
   {
     SmiRecord tRec;
-    for ( tPos = types.begin(); tPos != types.end(); tPos++ )
+    for ( TypesCatalog::iterator tPos = types.begin(); tPos != types.end(); tPos++ )
     {
       switch (tPos->second.state)
       {
@@ -2467,8 +2466,6 @@ SecondoCatalog::CleanUp( const bool revert )
       }
     }
   }
-  ObjectsCatalog::iterator oPos;
-  SmiRecord oRec;
 
 /*
 In this first iteration:
@@ -2478,7 +2475,7 @@ In this first iteration:
  * In the deletion, only the catalog part of the object is deleted.
 
 */
-  for ( oPos = objects.begin(); oPos != objects.end(); oPos++ )
+  for ( ObjectsCatalog::iterator oPos = objects.begin(); oPos != objects.end(); oPos++ )
   {
     switch (oPos->second.state)
     {
@@ -2486,6 +2483,7 @@ In this first iteration:
       {
         if ( !revert )
         {
+          SmiRecord oRec;
           if ( objCatalogFile.InsertRecord( SmiKey( oPos->first ), oRec ) )
           {
             bool f = false;
@@ -2529,6 +2527,7 @@ In this first iteration:
       {
         if ( !revert )
         {
+          SmiRecord oRec;
           if ( objCatalogFile.SelectRecord( SmiKey( oPos->first ), oRec, SmiFile::Update ) )
           {
             bool f = false;
@@ -2630,7 +2629,7 @@ save process. Then, if it occurs, the database state will be
 preserved and the objects are created with undefined values.
 
 */
-  for ( oPos = objects.begin(); oPos != objects.end(); oPos++ )
+  for ( ObjectsCatalog::iterator oPos = objects.begin(); oPos != objects.end(); oPos++ )
   {
     switch (oPos->second.state)
     {
@@ -2638,6 +2637,7 @@ preserved and the objects are created with undefined values.
       {
         if ( !revert )
         {
+          SmiRecord oRec;
           if ( objCatalogFile.SelectRecord( SmiKey( oPos->first ), oRec, SmiFile::Update ) )
           {
             if ( oPos->second.valueDefined )
@@ -2672,6 +2672,7 @@ preserved and the objects are created with undefined values.
       {
         if ( !revert )
         {
+          SmiRecord oRec;
           if ( objCatalogFile.SelectRecord( SmiKey( oPos->first ), oRec, SmiFile::Update ) )
           {
             oRec.Write( &oPos->second.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );

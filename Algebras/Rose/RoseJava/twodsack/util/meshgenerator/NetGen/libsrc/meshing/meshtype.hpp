@@ -959,6 +959,8 @@ inline void Element :: GetFace (int i, Element2d & face) const
 /**
    Identification of periodic surfaces, close surfaces, etc. 
  */
+class Mesh;
+
 class Identifications
 {
 private:

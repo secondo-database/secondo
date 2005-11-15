@@ -101,7 +101,15 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
     u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
     rc = impl->bdbFile->get( 0, &key, &data, flags );
   }
+
+// VTA - 15.11.2005 - to compile with the new version of Berkeley DB
+#if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 2)
   if ( rc == ENOMEM )
+#else
+#if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 3)
+  if ( rc == DB_BUFFER_SMALL )
+#endif
+#endif
   {
     if ( record.initialized )
     {

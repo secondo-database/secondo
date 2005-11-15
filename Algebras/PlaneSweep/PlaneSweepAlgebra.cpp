@@ -168,7 +168,7 @@ template<class E> class BinTreeNode
 {
 public:
 
-   BinTreeNode<E>() {};
+   BinTreeNode() {};
    E GetEntry()				{ return entry;}
    void SetEntry(const E& newentry)	{ entry.Set(newentry); }
    BinTreeNode<E>* GetNext()		{ return Next; }
@@ -196,8 +196,8 @@ This tree is a binary tree (a red-black-tree) with a doubled linked list, which 
 template<class E> class BinTree
 {
 public:
-   BinTree<E>();
-   ~BinTree<E>();
+   BinTree();
+   ~BinTree();
    // different function to insert entries in the tree
    BinTreeNode<E>* Insert(const E &entry, const Coord x);
    BinTreeNode<E>* Insert(const E &entry,const Coord x,Segment sgs[]);
@@ -207,7 +207,7 @@ public:
    void Delete (const E &entry, const Coord x);
    void DeleteNode (BinTreeNode<E>* node) ;
    // to use the tree as a priority queue
-   E BinTree<E>::GetFirstAndDelete () ;
+   E GetFirstAndDelete();
    void Clear();
    BinTreeNode<E>* GetFirst();
    BinTreeNode<E>* GetLast();
@@ -220,7 +220,7 @@ public:
    BinTreeNode<E>* Find (const E &entry, const Coord x,
       const E &old, BinTreeNode<E>* oldnode);
 
-   void BinTree<E>::Output() ;
+   void Output();
 
 protected:
    // compare - functions to searxh thr right node
@@ -3812,7 +3812,7 @@ static int realm_lr( Word* args, Word& result, int message,
       CRegion* test2 = new CRegion(0);
       MakeRealm mr;
       mr.REALM( l1, r2, test1 , test2 );
-      ((CLine *)result.addr) = test1;
+      result = SetWord(test1);
       return(0);
    }
    else  {
@@ -3838,7 +3838,7 @@ static int realm_rl( Word* args, Word& result, int message,
       CRegion* test2 = new CRegion(0);
       MakeRealm mr;
       mr.REALM( l1, r2, test1 , test2 );
-      ((CRegion *)result.addr) = test2;
+      result = SetWord(test2);
       return(0);
    }
    else  {
@@ -3863,7 +3863,7 @@ static int realm_ll( Word* args, Word& result, int message,
       CLine* test2 = new CLine(0);
       MakeRealm mr;
       mr.REALM( l1, l2, test1 , test2 );
-      ((CLine *)result.addr) = test1;
+      result = SetWord(test1);
       return(0);
    }
    else
@@ -3889,7 +3889,7 @@ static int realm_rr( Word* args, Word& result, int message,
       CRegion* test2 = new CRegion(0);
       MakeRealm mr;
       mr.REALM( r1, r2, test1 , test2 );
-      ((CRegion *)result.addr) = test1;
+      result = SetWord(test1);
       return(0);
    }
    else
@@ -3972,7 +3972,7 @@ static int Inter_ll( Word* args, Word& result, int message,
 	    if ( res->IsEmpty() )
 	       ((CLine *)result.addr)->SetDefined( false );
             else
-	       ((CLine *)result.addr) = res;
+	       result = SetWord(res);
             return(0);
          }
          else   {
@@ -3987,7 +3987,7 @@ static int Inter_ll( Word* args, Word& result, int message,
 	 if ( res->IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    ((CLine *)result.addr) = res;
+	    result = SetWord(res);
          return(0);
       }
    }
@@ -4021,7 +4021,7 @@ static int Inter_lr( Word* args, Word& result, int message,
 	    if (res->IsEmpty() )
 	      ((CLine *)result.addr)->SetDefined( false );
             else
-	      ((CLine *)result.addr) = res ;
+	      result = SetWord(res);
             return(0);
          }
          else   {
@@ -4036,7 +4036,7 @@ static int Inter_lr( Word* args, Word& result, int message,
 	 if (res->IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    ((CLine *)result.addr) = res;
+	    result = SetWord(res);
          return(0);
       }
    }
@@ -4070,7 +4070,7 @@ static int Inter_rl ( Word* args, Word& result, int message,
 	    if (res->IsEmpty() )
 	       ((CLine *)result.addr)->SetDefined( false );
             else
-	       ((CLine *)result.addr) = res;
+	       result = SetWord(res);
             return(0);
          }
          else   {
@@ -4085,7 +4085,7 @@ static int Inter_rl ( Word* args, Word& result, int message,
 	 if (res->IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    ((CLine *)result.addr) = res;
+	    result = SetWord(res);
          return(0);
       }
    }
@@ -4119,7 +4119,7 @@ static int Inter_rr( Word* args, Word& result, int message,
 	    if ( res->IsEmpty() )
 	       ((CRegion *)result.addr)->SetDefined( false );
             else
-	       ((CRegion *)result.addr) = res;
+	       result = SetWord(res);
             return(0);
          }
          else   { // no intersection possible
@@ -4134,7 +4134,7 @@ static int Inter_rr( Word* args, Word& result, int message,
 	 if ( res->IsEmpty() )
 	    ((CRegion *)result.addr)->SetDefined( false );
          else
-            ((CRegion *)result.addr) = res;
+            result = SetWord(res);
          return(0);
       }
    }
@@ -4440,18 +4440,18 @@ Word& local, Supplier s )
          return (0);
       }
       else if (r1->IsEmpty() ) {
-         ((CRegion *)result.addr) = r2;
+         result = SetWord(r2);
          return(0);
       }
       else if (r2->IsEmpty() ) {
-         ((CRegion *)result.addr) = r1;
+         result = SetWord(r1);
          return(0);
       }
       else {
          CRegion* res = new CRegion(0);
          MakeOp mo;
          res = mo.Union( r1, r2 );
-         ((CRegion *)result.addr) = res;
+         result = SetWord(res);
          return(0);
       }
    }
@@ -4473,7 +4473,7 @@ static int Union_lr( Word* args, Word& result, int message,
    CLine *line = ((CLine*)args[0].addr);
    CRegion *reg = ((CRegion*)args[1].addr);
    if ( !reg->IsEmpty()&&line->IsDefined()&&reg->IsDefined()) {
-      ((CRegion *)result.addr) = reg;
+      result = SetWord(reg);
       return(0);
    }
    else  {
@@ -4494,7 +4494,7 @@ Word& local, Supplier s )
    CRegion *reg = ((CRegion*)args[0].addr);
    if ( ! reg -> IsEmpty() && line->IsDefined() &&
    reg->IsDefined() )    {
-      ((CRegion *)result.addr) = reg;
+      result = SetWord(reg);
       return(0);
    }
    else  {
@@ -4519,14 +4519,14 @@ Word& local, Supplier s )
          return(0);
       }
       else if (line2->IsEmpty() ) {
-         ((CLine *)result.addr) = line1;
+         result = SetWord(line1);
          return(0);
       }
       else {
          CLine* res = new CLine(0);
          MakeOp mo;
          res = mo.Union( line1, line2 );
-         ((CLine *)result.addr) = res;
+         result = SetWord(res);
          return(0);
       }
    }
@@ -4610,7 +4610,7 @@ static int Minus_rr( Word* args, Word& result, int message,
          return(0);
       }
       else if ( r2->IsEmpty() ) {
-         ((CRegion *)result.addr) = r1;
+         result = SetWord(r1);
          return(0);
       }
       else if (r1->BoundingBox().IsDefined() &&
@@ -4622,11 +4622,11 @@ static int Minus_rr( Word* args, Word& result, int message,
 	    if (res->IsEmpty() )
 	       ((CRegion *)result.addr)->SetDefined( false );
             else
-	       ((CRegion *)result.addr) = res;
+	       result = SetWord(res);
             return(0);
          }
          else   {
-            ((CRegion *)result.addr) = r1;
+            result = SetWord(r1);
             return (0);
          }
       }
@@ -4637,7 +4637,7 @@ static int Minus_rr( Word* args, Word& result, int message,
 	 if (res->IsEmpty() )
 	    ((CRegion *)result.addr)->SetDefined( false );
          else
-	    ((CRegion *)result.addr) = res;
+	    result = SetWord(res);
          return(0);
       }
    }
@@ -4671,11 +4671,11 @@ Word& local, Supplier s )
 	    if ( res -> IsEmpty() )
 	       ((CLine *)result.addr)->SetDefined( false );
             else
-	       ((CLine *)result.addr) = res;
+	       result = SetWord(res);
             return(0);
          }
          else   {
-            ((CLine *)result.addr) = line;
+            result = SetWord(line);
             return (0);
          }
       }
@@ -4686,7 +4686,7 @@ Word& local, Supplier s )
          if ( res -> IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    ((CLine *)result.addr) = res;
+	    result = SetWord(res);
          return(0);
       }
    } // if IsDefined()
@@ -4708,7 +4708,7 @@ Word& local, Supplier s )
    CRegion *reg = ((CRegion*)args[0].addr);
    if ( ! line->IsEmpty() && line->IsDefined() &&
    reg->IsDefined() )    {
-      ((CRegion *)result.addr) = reg ;
+      result = SetWord(reg);
       return(0);
    }
    else  {
@@ -4733,7 +4733,7 @@ Word& local, Supplier s )
 	 return (0);
       }
       else if (line2->IsEmpty() ) {
-         ((CLine *)result.addr) = line1;
+         result = SetWord(line1);
          return (0);
       }
       else if (line1->BoundingBox().IsDefined() &&
@@ -4746,11 +4746,11 @@ Word& local, Supplier s )
 	    if (res->IsEmpty() )
 	       ((CLine *)result.addr)->SetDefined( false );
             else
-	       ((CLine *)result.addr) = res;
+	       result = SetWord(res);
             return(0);
 	 }
 	 else {
-	    ((CLine *) result.addr) = line1;
+	    result = SetWord(line1);
 	    return(0);
 	 }
       }
@@ -4761,7 +4761,7 @@ Word& local, Supplier s )
 	 if (res ->IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    ((CLine *)result.addr) = res;
+	    result = SetWord(res);
          return(0);
       }
    }
