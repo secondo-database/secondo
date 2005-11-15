@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[Oe] [\"{O}]
 //[Ue] [\"{U}]
 //[**] [$**$]
-//[star] [$*$]
+//[star] [$*$]" 
 //[toc] [\tableofcontents]
 //[=>] [\verb+=>+]
 //[:Section Translation] [\label{sec:translation}]
@@ -1605,7 +1605,7 @@ writePlanEdges :- not(writePlanEdges2).
 
 
 /*
-7 Assigning Sizes and Selectivities to the Nodes and Edges of the POG
+7 Assigning Sizes, Selectivities and Predicate Costs to the Nodes and Edges of the POG
 
 ----    assignSizes.
         deleteSizes.
@@ -1614,7 +1614,7 @@ writePlanEdges :- not(writePlanEdges2).
 Assign sizes (numbers of tuples) to all nodes in the pog, based on the
 cardinalities of the argument relations and the selectivities of the
 predicates. Store sizes as facts of the form resultSize(Result, Size). Store
-selectivities as facts of the form edgeSelectivity(Source, Target, Sel).
+selectivities and predicate costs as facts of the form edgeSelectivity(Source, Target, Sel, PredCost).
 
 Delete sizes from memory.
 
@@ -1625,8 +1625,6 @@ created. This will ensure that for an edge the size of its argument nodes are
 available.
 
 */
-
-:- dynamic(edgePredicateCost/3).
 
 assignSizes :- not(assignSizes1).
 
@@ -1641,8 +1639,7 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
   Size is Card * Sel,
   setNodeSize(Result, Size),
   predicateCost(Pred, PredCost),
-  assert(edgeSelectivity(Source, Target, Sel)),
-  assert(edgePredicateCost(Source, Target, PredCost)),
+  assert(edgeSelectivity(Source, Target, Sel, PredCost)),
   !.
   
 
@@ -1653,8 +1650,7 @@ assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   Size is Card1 * Card2 * Sel,
   setNodeSize(Result, Size),
   predicateCost(Pred, PredCost),
-  assert(edgeSelectivity(Source, Target, Sel)),
-  assert(edgePredicateCost(Source, Target, PredCost)),
+  assert(edgeSelectivity(Source, Target, Sel, PredCost)),
   !.
 
 
@@ -1696,8 +1692,7 @@ writeSize :-
   write('Size: '), write(Size), nl, nl,
   fail.
 writeSize :-
-  edgeSelectivity(Source, Target, Sel),
-  edgePredicateCost(Source, Target, PredCost),
+  edgeSelectivity(Source, Target, Sel, PredCost),
   write('Source: '), write(Source), nl,
   write('Target: '), write(Target), nl,
   write('Selectivity: '), write(Sel), nl, 
@@ -1714,8 +1709,7 @@ Delete node sizes and selectivities of edges.
 */
 
 deleteSize :- retract(resultSize(_, _)), fail.
-deleteSize :- retract(edgeSelectivity(_, _, _)), fail.
-deleteSize :- retract(edgePredicateCost( _, _, _)), fail.
+deleteSize :- retract(edgeSelectivity(_, _, _, _)), fail.
 deleteSizes :- not(deleteSize).
 
 
@@ -1914,8 +1908,7 @@ These are plan edges extended by a cost measure.
 
 createCostEdge :-
   planEdge(Source, Target, Term, Result),
-  edgeSelectivity(Source, Target, Sel),
-  edgePredicateCost(Source, Target, PredCost),
+  edgeSelectivity(Source, Target, Sel, PredCost),
   cost(Term, Sel, Size, PredCost, Cost),
   assert(costEdge(Source, Target, Term, Result, Size, Cost)),
   fail.
