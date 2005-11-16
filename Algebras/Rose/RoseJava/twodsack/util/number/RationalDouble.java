@@ -28,9 +28,9 @@ public class RationalDouble extends Rational implements Serializable{
     /*
      * members
      */
-    static RationalDouble deriv = new RationalDouble(0.0000000001); //allowed derivation for comparisons to be equal
-    static double DERIV_DOUBLE = 0.00000001;
-    static double DERIV_DOUBLE_NEG = -0.00000001;
+    static RationalDouble deriv = new RationalDouble(0.0000000001); //allowed derivation for comparisons to be equal; nine 0s
+    static double DERIV_DOUBLE = 0.000001; //seven 0s
+    static double DERIV_DOUBLE_NEG = -0.000001; //seven 0s
     static boolean PRECISE = false;
     private double d;	//numerator
     
