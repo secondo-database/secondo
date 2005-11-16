@@ -760,12 +760,10 @@ SmiFileIterator::Next( SmiRecord& record )
 
     // --- Initialize record handle if record is available
 // VTA - 15.11.2005 - to compile with the new version of Berkeley DB
-#if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 2)
-    if ( rc == ENOMEM )
-#else
 #if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 3)
     if ( rc == DB_BUFFER_SMALL )
-#endif
+#else
+    if ( rc == ENOMEM )
 #endif
     {
       if ( record.initialized )
@@ -918,12 +916,10 @@ bool PrefetchingIteratorImpl::NewPrefetch()
   if(errorCode != 0)
   {
 // VTA - 15.11.2005 - to compile with the new version of Berkeley DB
-#if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 2)
-    if ( errorCode == ENOMEM )
-#else
 #if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 3)
     if ( errorCode == DB_BUFFER_SMALL )
-#endif
+#else
+    if ( errorCode == ENOMEM )
 #endif
     {
       Dbt buf;

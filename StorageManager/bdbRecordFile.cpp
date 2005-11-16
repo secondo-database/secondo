@@ -103,12 +103,10 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
   }
 
 // VTA - 15.11.2005 - to compile with the new version of Berkeley DB
-#if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 2)
-  if ( rc == ENOMEM )
-#else
 #if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 3)
   if ( rc == DB_BUFFER_SMALL )
-#endif
+#else
+  if ( rc == ENOMEM )
 #endif
   {
     if ( record.initialized )
