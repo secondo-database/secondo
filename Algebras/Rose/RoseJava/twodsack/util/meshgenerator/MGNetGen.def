@@ -1,4 +1,0 @@
-; c:\mingw\bin\dlltool.exe -z MGNetGen.def.tmp MeshGeneratorNetGen.o
-EXPORTS
-	Java_twodsack_util_meshgenerator_MeshGenerator_triangulateNetGen = 	_Z64Java_twodsack_util_meshgenerator_MeshGenerator_triangulateNetGenP7JNIEnv_P8_jobjectP13_jdoubleArrayiP10_jintArrayiP14_jbooleanArrayi@32 ; 
-	Java_twodsack_util_meshgenerator_MeshGenerator_freeMemoryNetGen = 	Java_twodsack_util_meshgenerator_MeshGenerator_freeMemoryNetGen@8 ; 
