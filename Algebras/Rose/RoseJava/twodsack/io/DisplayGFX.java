@@ -144,6 +144,7 @@ class ShapeBuilder extends JPanel {
     /*
      * fields
      */
+    final double pointSize = 0.00005; //size for points in point sets
     final Color bg = Color.white;
     final Color fg = Color.black;
     LinkedList emsList;
@@ -281,7 +282,7 @@ class ShapeBuilder extends JPanel {
 		//Every point is drawn as a small rectangle of side length 4. This may be
 		//inappropriate for some object coordinates. In that case, change the 
 		//value of sideLength below.
-		int sideLength = 4;
+		double sideLength = pointSize;
 		while (pit.hasNext()) {
 		    actPoint = (Point)((MultiSetEntry)pit.next()).value;
 		    GeneralPath gp = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
