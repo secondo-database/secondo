@@ -12,8 +12,10 @@ import twodsack.set.*;
 import twodsack.setelement.*;
 import twodsack.setelement.datatype.basicdatatype.*;
 import twodsack.setelement.datatype.compositetype.*;
+import twodsack.util.collection.*;
 import twodsack.util.collectiontype.*;
 import twodsack.util.comparator.*;
+import twodsack.util.graph.*;
 import twodsack.util.number.*;
 import java.lang.reflect.Method;
 import java.util.Iterator;
@@ -42,9 +44,11 @@ public class SupportOps {
     static final Class ptOpsClass = (new PointTri_Ops()).getClass();
     static final Class ssOpsClass = (new SegSeg_Ops()).getClass();
     static final Class stOpsClass = (new SegTri_Ops()).getClass();
+    static final Class ttOpsClass = (new TriTri_Ops()).getClass();
     static final Class emsClass = (new ElemMultiSet(new ElemComparator())).getClass();
 
     final static Class[] paramListPT = { pointClass, triClass };
+    final static Class[] paramListTT = { triClass, triClass };
     final static Class[] paramListST = { segClass, triClass };
     final static Class[] paramListSS = { segClass, segClass };
     final static Class[] paramListEMS = { emsClass };
@@ -75,36 +79,63 @@ public class SupportOps {
      * @param overlap If <code>false</code>, the more robust but slow <code>SetOps.reduce()</code> is
      * used to find pairs of adjacent segments. Otherwise, <code>SetOps.overlapReduceSweep</code> is used.
      * @param bboxFilter if <tt>true</tt>, a bounding box filter is applied (may reduce the time spent for this operation)
+     * @param handleCycles if <tt>true</tt>, the set of segments is divided into cycles it may build. Then,
+     *                     minimal is invoked on every cycle.
      * @return the new, reduced set of segments as <code>SegMultiSet</code>
      */
-    public static SegMultiSet minimal (SegMultiSet sl, boolean overlap, boolean bboxFilter) {
+    public static SegMultiSet minimal (SegMultiSet sl, boolean overlap, boolean bboxFilter, boolean handleCycles) {
 	SegMultiSet retList = new SegMultiSet(SEGMENT_COMPARATOR);
 	Class c = ssOpsClass;
 
 	try {
 	    Method m1 = c.getMethod("adjacent",paramListSS);
 	    Method m2 = c.getMethod("concat",paramListSS);
-	    if (!overlap) { retList = SegMultiSet.convert(SetOps.reduce(sl,m1,m2)); }
-	    else {
-		try {
-		    boolean meet = true;
-		    boolean earlyExit = false;
-		    int setNumber = 0;
-		    //retList = SegMultiSet.convert(SetOps.overlapReduce(sl,m1,m2,meet,bboxFilter,earlyExit,setNumber)); 
-		    retList = SegMultiSet.convert(SetOps.overlapReduceSweep(sl,m1,m2,meet));
-		} catch (Exception e) {
-		    System.out.println("SupportOps.minimal: Caught unexpected exception: "+e);
-		    e.printStackTrace();
-		    System.exit(0);
-		}//catch 
+
+	    if (handleCycles) {
+		//compute the cycles of sl
+		Graph myGraph = new Graph(sl);
+		ElemMultiSetList emsl = myGraph.computeFaces();
+		//compute minimal for every single cycle of emsl
+		for (int i = 0; i < emsl.size(); i++)
+		    if (!overlap)
+			retList.addAll(SegMultiSet.convert(SetOps.reduce((ElemMultiSet)emsl.get(i),m1,m2)));
+		    else {
+			try {
+			    boolean meet = true;
+			    boolean earlyExit = false;
+			    int setNumber = 0;
+			    retList.addAll(SegMultiSet.convert(SetOps.overlapReduceSweep((ElemMultiSet)emsl.get(i),m1,m2,meet)));
+			} catch (Exception e) {
+			    System.out.println("SupportOps.minimal: Caucht unexpected exception: "+e);
+			    e.printStackTrace();
+			    System.exit(0);
+			}//catch
+		    }//else
+	    }//if handleCycles
+	    else {	
+		if (!overlap)
+		    retList = SegMultiSet.convert(SetOps.reduce(sl,m1,m2));
+		else {
+		    try {
+			boolean meet = true;
+			boolean earlyExit = false;
+			int setNumber = 0;
+			//retList = SegMultiSet.convert(SetOps.overlapReduce(sl,m1,m2,meet,bboxFilter,earlyExit,setNumber)); 
+			retList = SegMultiSet.convert(SetOps.overlapReduceSweep(sl,m1,m2,meet));
+		    } catch (Exception e) {
+			System.out.println("SupportOps.minimal: Caught unexpected exception: "+e);
+			e.printStackTrace();
+			System.exit(0);
+		    }//catch 
+		}//else
 	    }//else
-	}//try
-	catch (Exception e) {
-	    System.out.println("Exception was thrown in SupportOps.minimal(SegMultiSet,boolean):");
-	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
-	    e.printStackTrace();
-	    System.exit(0);
-	}//catch
+	    }//try
+	    catch (Exception e) {
+		System.out.println("Exception was thrown in SupportOps.minimal(SegMultiSet,boolean):");
+		System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+		e.printStackTrace();
+		System.exit(0);
+	    }//catch
 
 	return retList;
     }//end method minimal
@@ -184,17 +215,18 @@ public class SupportOps {
      * @param bboxFilter if <code>true</code>, a bounding box filter is used (may reduce time spent for this operation)
      * @param computeMinimalSet if <code>true</code>, <code>minimal</code> is used to reduce the set of segments in the
      *                          resulting set
+     * @param handleCycles this parameter is passed to {@link minimal}
      * @return the contour as <code>SegMultiSet</code>
      * @see #minimal(SegMultiSet,boolean,boolean)
      * @see #unique(SegMultiSet,boolean,boolean)
      */
-    public static SegMultiSet contourGeneral (TriMultiSet tl,boolean minOverlap,boolean uniOverlap,boolean bboxFilter, boolean computeMinimalSet) {
+    public static SegMultiSet contourGeneral (TriMultiSet tl,boolean minOverlap,boolean uniOverlap,boolean bboxFilter, boolean computeMinimalSet, boolean handleCycles) {
 	Class c = triClass;
 	SegMultiSet retList = new SegMultiSet(SEGMENT_COMPARATOR);
 	try {
 	    Method m = c.getMethod("segmentArray",null);
 	    if (computeMinimalSet) 
-		retList = minimal(unique(SegMultiSet.convert(SetOps.map(tl,m)),uniOverlap,bboxFilter),minOverlap,bboxFilter);
+		retList = minimal(unique(SegMultiSet.convert(SetOps.map(tl,m)),uniOverlap,bboxFilter),minOverlap,bboxFilter,handleCycles);
 	    else
 		retList = unique(SegMultiSet.convert(SetOps.map(tl,m)),uniOverlap,bboxFilter);
 	}//try
@@ -215,13 +247,16 @@ public class SupportOps {
      * When using this method instead of <code>contourGeneral</code> it is assumed, that the triangle set
      * was computed using the methods of class {@link twodsack.setelement.datatype.compositetype.Polygons}. In that case, bounding segments of the 
      * triangle set don't overlap. This method doesn't work for triangles with overlapping (instead of identical) segments.
-     * {@link #minimal(SegMultiSet,boolean,boolean)} is executed on the resulting set to combine collinear and adjacent segments.
+     * {@link #minimal(SegMultiSet,boolean,boolean)} is executed on the resulting set to combine collinear and adjacent segments,
+     * if <tt>minimal</tt> parameter is set.
      *
      * @param ts the set of triangles
+     * @param minimal if <tt>true</tt>, <tt>minimal</tt> is invoked on the resulting segment set.
+     * @param handleCycles this parameter is passed to {@link minimal}
      * @return the contour as <code>SegMultiSet</code>
      * @see #contourGeneral(TriMultiSet,boolean,boolean,boolean,boolean)
      */
-    public static SegMultiSet contour (TriMultiSet ts) {
+    public static SegMultiSet contour (TriMultiSet ts, boolean minimal, boolean handleCycles) {
 	SegMultiSet retSet = new SegMultiSet(SEGMENT_COMPARATOR);
 	Triangle actTri;
 	Segment[] actSegs;
@@ -234,7 +269,10 @@ public class SupportOps {
 	    retSet.add(actSegs[2]);
 	}//while
 
-	retSet = minimal(SegMultiSet.convert(SetOps.rdup2(retSet)),true,false);
+	if (minimal)
+	    retSet = minimal(SegMultiSet.convert(SetOps.rdup2(retSet)),true,false,handleCycles);
+	else
+	    retSet = SegMultiSet.convert(SetOps.rdup2(retSet));
 	
 	return retSet;
     }//end method contour
@@ -465,7 +503,7 @@ public class SupportOps {
 	    ljpMS = SetOps.map(ljpMS,null,m4);
 	    SegMultiSet retSetS = SegMultiSet.convert(SetOps.rdup2(SetOps.collect(ljpMS)));
 	    System.out.println("SO.minus: passed convert,rdup2,collect");
-	    retSetS = minimal(retSetS,true,false);
+	    retSetS = minimal(retSetS,true,false,true);
 	    System.out.println("SO.minus: passed minimal, retSetS.size: "+retSetS.size());
 	    retSet = Polygons.computeMesh(retSetS,true);
 	    System.out.println("SO.minus: after computeMesh retSet.size: "+retSet.size());
@@ -514,7 +552,7 @@ public class SupportOps {
 	    LeftJoinPairMultiSet ljpMS = SetOps.overlapLeftOuterJoin(ts1,ts2,pintersectsM,meet,bboxFilter,earlyExit,setNumber);
 	    ljpMS = SetOps.map(ljpMS,null,intersectionM);
 	    SegMultiSet retSetS = SegMultiSet.convert(SetOps.rdup2(SetOps.collect2nd(ljpMS)));
-	    retSetS = minimal(retSetS,true,false);
+	    retSetS = minimal(retSetS,true,false,true);
 	    retSet = Polygons.computeMesh(retSetS,true);
 	} catch (Exception e) {
 	    System.out.println("SupportOps.intersection: Caught an unexpected exception: "+e);
@@ -534,81 +572,343 @@ public class SupportOps {
      * <li>compute <tt>disjointUnion(R,Q)</tt></li>
      * </ol><p>
      * At the end, the set of triangles representing the union is returned.
+     * Using the <tt>recomputeTriangleSet</tt> switch, the user may decide, whether for two polygons, which don't
+     * overlap, but meet, the result is re-triangulated or not. The number um triangles is reduced in most cases,
+     * when the result is re-triangulated.<p>
+     * Note: When setting <tt>recomputeTriangleSet = false</tt>, the resulting triangle set cannot be used with
+     * {@link contour} no more. The more expensive {@link contourGeneral} has to be used to compute the contour
+     * of such a triangle set.
      *
      * @param ts1 the first set of triangles
      * @param ts2 the second set of triangles
      * @param bboxFilter if <code>true</code>, a bounding box filter is used (may reduce the time spent for this operation)
+     * @param recomputeTriangleSet if <tt>true</tt> the result of the <tt>plus</tt> operation is triangulated for two
+     *        polygons which don't overlap but meet only
      * @return the union of <tt>ts1, ts2</tt>
      */
-    public static TriMultiSet plus (TriMultiSet ts1, TriMultiSet ts2, boolean bboxFilter) {
+    public static TriMultiSet plus (TriMultiSet ts1, TriMultiSet ts2, boolean bboxFilter, boolean recomputeTriangleSet) {
+	System.out.println("Entering SO.plus.");
 
-	//System.out.println("Entering SO.plus.");
+	Runtime rt = Runtime.getRuntime();
 
-	TriMultiSet retSet = null;
+	System.out.println("JAVA memory total: "+Double.toString(((int)(rt.totalMemory()/1048.567))/1000.0)+" mb");
+	System.out.println("JAVA memory free: "+Double.toString(((int)(rt.freeMemory()/1048.567))/1000.0)+" mb\n");
+
+	double x0 = System.currentTimeMillis();
+	PairSet ps = overlappingPairs(ts1,ts2);
+	double x1 = System.currentTimeMillis();
+	System.out.println("time for ovPairs: "+(x1-x0)+" ms");
+
+	System.out.println("overlappingPairs found: "+ps.pairSet.size());
+	/*
+	  BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
+	  try {
+	  String data = inBR.readLine();
+	  } catch (Exception e) {
+	  System.exit(0);
+	  }//catch
+	*/
+
+	TriMultiSet retSet = new TriMultiSet(TRIANGLE_COMPARATOR);
+
+	//if number of pairs found == 0, then just sum up triangle sets and return
+	if (ps.pairSet.size() == 0) {
+	    retSet.addAll(ts1);
+	    retSet.addAll(ts2);
+	    return retSet;
+	}//if
+
+	//...otherwise, compute plus for the pairs and add all regions which are not involved in pairs directly
+	//put in the retSet all unused triangles from tms1 (which are now in ps.firstSet and
+	//put in the set the results of the minus operation invoked on the pairs of ps.pairSet
+
+	retSet.addAll(ps.firstSet);
+	retSet.addAll(ps.secondSet);
 	
-	Class c = (new Triangle()).getClass();
+	//compute minus for all pairs in ps.pairSet
+	Iterator it = ps.pairSet.iterator();
 	Class c2 = (new ElemMultiSet(ELEM_COMPARATOR)).getClass();
-	Class[] paramListT = { c };
+	Class[] paramListT = { triClass };
 	Class[] paramListTMS = { c2 };
 	SegMultiSet retSetS = null;
+	Method pintersectsM, minusM;
 
 	try {
-	    Method pintersectsM = c.getMethod("pintersects",paramListT);
-	    Method minusM = c.getMethod("minus",paramListTMS);
-
-	    boolean meet = false;
-	    boolean earlyExit = false;
-	    int setNumber = 0;
-	    //System.out.println("calling ovLOJ from SO.plus.");
-	    LeftJoinPairMultiSet ljpMS = SetOps.overlapLeftOuterJoin(ts2,ts1,pintersectsM,meet,bboxFilter,earlyExit,setNumber);
-	    //System.out.println("calling map from SO.plus.");
-	    ljpMS = SetOps.map(ljpMS,null,minusM);  
-	    //System.out.println("calling collect+rdup2 from SO.plus.");
-	    retSetS = SegMultiSet.convert(SetOps.rdup2(SetOps.collect(ljpMS)));
-	    //System.out.println("calling minimal from SO.plus.");
-	    
-	    //a minimal operation is not really needed at this point; it's done later
-	    //retSetS = minimal(retSetS,true,false);
-	    System.out.println("\ncalling computeMesh(1) from SO.plus.");
-	    retSet = Polygons.computeMesh(retSetS,false);
+	    pintersectsM = triClass.getMethod("pintersects",paramListT);
+	    minusM = triClass.getMethod("minus",paramListTMS);
 	} catch (Exception e) {
-	    System.out.println("An exception was caught in ROSEAlgebra.plus(TriMultiSet,TriMultiSet,boolean):");
+	    System.out.println("Caught an exception in SupportOps.plus.");
 	    e.printStackTrace();
-	    System.out.println("An empty value is returned.");
+	    System.out.println("Returning empty value.");
 	    return new TriMultiSet(TRIANGLE_COMPARATOR);
 	}//catch
 
-	//compute union
+	boolean meet = false;
+	boolean earlyExit = false;
+	int setNumber = 0;
+	LeftJoinPairMultiSet ljpMS;
+	ElemPair actPair;
+	int itno = 0;
 
-	retSet.addAll(ts1);
-	
-	retSetS = contourGeneral(retSet,true,true,true,true); 
+	while (it.hasNext()) {
+	    System.out.println("\nexamine pair "+itno+" of "+(ps.pairSet.size()-1)); itno++;
+	    actPair = (ElemPair)((MultiSetEntry)it.next()).value;
+	    /*
+	      System.out.println("printing pairs:\nfirst:");
+	      ((EMSPointer)actPair.first).set.print();
+	      System.out.println("second:");
+	      ((EMSPointer)actPair.second).set.print();
+	    */
+	    try {
+		ljpMS = SetOps.overlapLeftOuterJoin(((EMSPointer)actPair.second).set,((EMSPointer)actPair.first).set,pintersectsM,meet,bboxFilter,earlyExit,setNumber);
+	    } catch (Exception e) {
+		System.out.println("Caught unexpected exception. Returning empty value.");
+		e.printStackTrace();
+		return new TriMultiSet(TRIANGLE_COMPARATOR);
+	    }//catch
 
+	    //if the number of overlapping triangles is 0, re-retriangulate, if switch RECOMPUTETRIANGLESET=true
+	    //if RECOMPUTETRIANGLESET=false, simply add triangle set to result set
+	    System.out.println("\nnumber of overlapping pairs: "+ljpMS.size());
+	    Iterator sit = ljpMS.iterator();
+	    int cc = 0;
+	    while (sit.hasNext()) {
+		LeftJoinPair pp = (LeftJoinPair)((MultiSetEntry)sit.next()).value;
+		if (pp.elemSet != null) cc++;
+	    }
+
+	    System.out.println("non-empty pairs: "+cc);
+
+	    if (recomputeTriangleSet) {
+		
+		System.out.println("compute new triangulation");
+		ljpMS = SetOps.map(ljpMS,null,minusM);
+		retSetS = SegMultiSet.convert(SetOps.rdup2(SetOps.collect(ljpMS)));
+		System.out.println("retSetS.size(initial): "+retSetS.size());
+		retSetS.addAll(contour(TriMultiSet.convert(((EMSPointer)actPair.first).set),true,false));
+		System.out.println("retSetS.size(All): "+retSetS.size());
+		retSetS = unique(retSetS,true,false);
+		System.out.println("retSEtS.size(unique): "+retSetS.size());		
+		retSet.addAll(Polygons.computeMesh(retSetS,true));
+		
+	    } else {
+		System.out.println("simply adding sets");
+		retSet.addAll(((EMSPointer)actPair.second).set);
+		retSet.addAll(((EMSPointer)actPair.first).set);
+	    }//else
+	}//while it
+       
+
+	/* OLD CODE */
 	/*
-	BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
-	DisplayGFX gfx = new DisplayGFX();
-	
-	gfx.initWindow();
-	gfx.addSet(retSet);
-	gfx.addSet(contour(retSet));
-	//gfx.addSet(ts1);
-	//gfx.addSet(ts2);
-	//gfx.addSet(contour(ts2));
-	//gfx.addSet(retSetS);
-	//gfx.addSet(retSetS2);
-	gfx.showIt(false);
-	try {
-	    String data = inBR.readLine();
-	} catch (Exception e) {
-	    System.exit(0);
-	}//catch
-	gfx.kill();
+	  Class c2 = (new ElemMultiSet(ELEM_COMPARATOR)).getClass();
+	  Class[] paramListT = { triClass };
+	  Class[] paramListTMS = { c2 };
+	  SegMultiSet retSetS = null;
+	  
+	  try {
+	  Method pintersectsM = triClass.getMethod("pintersects",paramListT);
+	  Method minusM = triClass.getMethod("minus",paramListTMS);
+	  
+	  boolean meet = false;
+	  boolean earlyExit = false;
+	  int setNumber = 0;
+	  //System.out.println("calling ovLOJ from SO.plus.");
+	  LeftJoinPairMultiSet ljpMS = SetOps.overlapLeftOuterJoin(ts2,ts1,pintersectsM,meet,bboxFilter,earlyExit,setNumber);
+	  System.out.println("calling map from SO.plus.");
+	  ljpMS = SetOps.map(ljpMS,null,minusM);  
+	  System.out.println("calling collect+rdup2 from SO.plus.");
+	  retSetS = SegMultiSet.convert(SetOps.rdup2(SetOps.collect(ljpMS)));
+	  //System.out.println("calling minimal from SO.plus.");
+	  
+	  //a minimal operation is not really needed at this point; it's done later
+	  //retSetS = minimal(retSetS,true,false);
+	  System.out.println("\ncalling computeMesh(1) from SO.plus.");
+	  retSet = Polygons.computeMesh(retSetS,false);
+	  } catch (Exception e) {
+	  System.out.println("An exception was caught in ROSEAlgebra.plus(TriMultiSet,TriMultiSet,boolean):");
+	  e.printStackTrace();
+	  System.out.println("An empty value is returned.");
+	  return new TriMultiSet(TRIANGLE_COMPARATOR);
+	  }//catch
+	  
+	  //compute union
+	  retSet.addAll(ts1);
+	  System.out.println("elements in retSet (after union): "+retSet.size());
+	  
+	  retSetS = contourGeneral(retSet,true,true,true,false,true);
+	  retSet = Polygons.computeMesh(retSetS,false);
 	*/
-	System.out.println("\ncalling computeMesh(2) from SO.plus.");
-	retSet = Polygons.computeMesh(retSetS,false);
 
 	System.out.println("\nleaving SuppO.plus.");
 	return retSet;
     }//end method plus
+
+
+    /**
+     * Computes pairs of polygons which have overlapping bounding boxes.
+     * This method first groups the triangles of every triangle in such a way, that every group builds a polygon which is not 
+     * adjacent to any other group. After that, bounding boxes are computed for every polygon. Then, pairs of polygons are computed
+     * where the bounding boxes of the polygons overlap. These pairs are returned in the <tt>PairSets</tt> return type together
+     * with two sets of polygons (e.g. triangle sets) of both initial sets which are not involved in those pairs.
+     *
+     * @param tms1 the first set of triangles
+     * @param tms2 the second set of triangles
+     * @return the resulting sets stored in a <tt>PairSet</tt>
+     */
+    public static PairSet overlappingPairs (TriMultiSet tms1, TriMultiSet tms2) {
+	//compute groups for both triangle sets
+	ElemMultiSetList groups1, groups2;
+	PairMultiSet pairs = null;
+	Method padjacent = null;
+	
+	try {
+	    padjacent = ttOpsClass.getMethod("adjacent",paramListTT);
+	} catch (Exception e) {
+	    System.out.println("Error in SupportOps.overlappingPairs.");
+	    e.printStackTrace();
+	    System.exit(0);
+	}//catch
+	
+	groups1 = SetOps.overlapGroup(tms1,padjacent,true);
+	groups2 = SetOps.overlapGroup(tms2,padjacent,true);
+	
+	System.out.println("Set1 has "+groups1.size()+" cycle(s), Set2 has "+groups2.size()+" cycle(s).");
+	
+	System.out.println("showing the cycles of set1:");
+	
+	BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
+	DisplayGFX gfx = new DisplayGFX();
+	gfx.initWindow();
+	gfx.addSet(SupportOps.contourGeneral(tms1,true,true,false,true,true));
+	SegMultiSet tt = new SegMultiSet(SEGMENT_COMPARATOR);
+	for (int i = 0; i < groups1.size(); i++) 
+	    tt.addAll(contour(TriMultiSet.convert((ElemMultiSet)groups1.get(i)),true,false));
+	gfx.addSet(tt);
+	gfx.showIt(false);
+	try { String data = inBR.readLine();
+	} catch (Exception e) {
+	    System.exit(0);
+	}//catch
+	gfx.kill();
+
+	System.out.println("showing the cycles of set2:");
+	DisplayGFX gfx1 = new DisplayGFX();
+	gfx1.initWindow();
+	gfx1.addSet(SupportOps.contourGeneral(tms2,true,true,false,true,true));
+	SegMultiSet tt2 = new SegMultiSet(SEGMENT_COMPARATOR);
+	for (int i = 0; i < groups2.size(); i++) 
+	    tt2.addAll(contour(TriMultiSet.convert((ElemMultiSet)groups2.get(i)),true,false));
+	gfx1.addSet(tt2);
+	gfx1.showIt(false);
+	try { String data = inBR.readLine();
+	} catch (Exception e) {
+	    System.exit(0);
+	}//catch
+	gfx1.kill();
+
+	//wrap sets in EMSPointers and store them in ElemMultiSets
+	Iterator git = groups1.iterator();
+	int number = 0;
+	ElemMultiSet actSet;
+	ElemMultiSet groups1EMS = new ElemMultiSet(ELEM_COMPARATOR);
+	while (git.hasNext()) {
+	    actSet = (ElemMultiSet)git.next();
+	    groups1EMS.add(new EMSPointer(actSet,actSet.rect(),number));
+	    number++;
+	}//while
+	
+	git = groups2.iterator();
+	number = 0;
+	ElemMultiSet groups2EMS = new ElemMultiSet(ELEM_COMPARATOR);
+	while (git.hasNext()) {
+	    actSet = (ElemMultiSet)git.next();
+	    groups2EMS.add(new EMSPointer(actSet,actSet.rect(),number));
+	    number++;
+	}//while git
+	
+	//compute pairs of overlapping EMSPointers
+	try {
+	    pairs = SetOps.overlappingPairs(groups1EMS,groups2EMS,false,true,false,false,-1);
+	} catch (Exception e) {
+	    System.out.println("Caught an unexpected exception in SupportOps.overlappingPairs.");
+	    e.printStackTrace();
+	    System.exit(0);
+	}//catch
+	
+	//build return set
+	//construct boolean arrays for groups1EMS and groups1EMS, where TRUE stands for "is used in pairs"
+	boolean[] groups1Used = new boolean[groups1EMS.size()];
+	boolean[] groups2Used = new boolean[groups2EMS.size()];
+
+	//System.out.println("constructed arrays of size "+groups1Used.length+" and "+groups2Used.length);
+
+	//initialize boolean arrays
+	for (int i = 0; i < groups1Used.length; i++) groups1Used[i] = false;
+	for (int i = 0; i < groups2Used.length; i++) groups2Used[i] = false;
+	
+	//traverse pairs and build new PairMultiSet, where the first element is a EMS of groups1EMS and
+	//the second set is the union of all EMS of groups2EMS which occur as pairs of the first element
+	//in PAIRS. e.g.:
+	//pairs: <1,12> <1,13> <2,14> <3,20> <3,21>
+	//pairSet: <1, (union of 12,13)> <2,14> <3, (union of 20,21)>
+
+	PairSet retSet = new PairSet();
+	
+	Iterator it = pairs.iterator();
+	EMSPointer actGroup1,actGroup2;
+	ElemPair actPair = null;
+	int lastKey = -1;
+	MultiSetEntry mse;
+	while (it.hasNext()) {
+	    System.out.println("  find actGroups");
+	    mse = (MultiSetEntry)it.next();
+	    actGroup1 = (EMSPointer)(((ElemPair)mse.value).first);
+	    actGroup2 = (EMSPointer)(((ElemPair)mse.value).second);
+	    //mark groups in boolean arrays
+	    System.out.println("  mark groups");
+	    groups1Used[actGroup1.key] = true;
+	    groups2Used[actGroup2.key] = true;
+	    
+	    //a pair with a new group was found
+	    if (lastKey != actGroup1.key) {
+		System.out.println("  pair with new group found");
+		//construct new entry in retPair
+		ElemPair newPair = new ElemPair(actGroup1,actGroup2);
+		actPair = newPair;
+		retSet.pairSet.add(newPair);
+		lastKey = actGroup1.key;
+	    } else {
+		//a pair with the actual key already exists
+		//add triangles of actGroup2 to actual pair
+		System.out.println("  key already exists");
+		((EMSPointer)(actPair.second)).set.addAll(actGroup2.set);
+	    }//else
+	}//while
+
+	System.out.println("traverse group sets...");
+
+	//now traverse group sets and store all elements from unused sets in retSet.firstSet
+	//and retSet.secondSet
+	it = groups1EMS.iterator();
+	while (it.hasNext()) {
+	    actGroup1 = (EMSPointer)((MultiSetEntry)it.next()).value;
+	    if (!groups1Used[actGroup1.key])
+		retSet.firstSet.addAll(actGroup1.set);
+	}//while
+
+	it = groups2EMS.iterator();
+	while (it.hasNext()) {
+	    actGroup2 = (EMSPointer)((MultiSetEntry)it.next()).value;
+	    if (!groups2Used[actGroup2.key])
+		retSet.secondSet.addAll(actGroup2.set);
+	}//while
+	
+	System.out.println("retSet: "+retSet.firstSet.size()+" triangle(s) in firstSet; "+retSet.secondSet.size+" triangle(s) in secondSet; "+retSet.pairSet.size+" pairs in pairSet");
+	    
+	System.out.println("...leaving SO.overlappingPairs");
+
+	return retSet;
+    }//end method overlappingPairs
 	   
 }//end class SupportOps
