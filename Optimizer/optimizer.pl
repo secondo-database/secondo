@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[Oe] [\"{O}]
 //[Ue] [\"{U}]
 //[**] [$**$]
-//[star] [$*$]" 
+//[star] [$*$]
 //[toc] [\tableofcontents]
 //[=>] [\verb+=>+]
 //[:Section Translation] [\label{sec:translation}]
@@ -1605,7 +1605,7 @@ writePlanEdges :- not(writePlanEdges2).
 
 
 /*
-7 Assigning Sizes, Selectivities and Predicate Costs to the Nodes and Edges of the POG
+7 Assigning Sizes and Selectivities to the Nodes and Edges of the POG
 
 ----    assignSizes.
         deleteSizes.
@@ -1614,11 +1614,11 @@ writePlanEdges :- not(writePlanEdges2).
 Assign sizes (numbers of tuples) to all nodes in the pog, based on the
 cardinalities of the argument relations and the selectivities of the
 predicates. Store sizes as facts of the form resultSize(Result, Size). Store
-selectivities and predicate costs as facts of the form edgeSelectivity(Source, Target, Sel, PredCost).
+selectivities as facts of the form edgeSelectivity(Source, Target, Sel).
 
 Delete sizes from memory.
 
-7.1 Assigning Sizes and Selectivities
+7.1 Assigning Sizes, Selectivities and Predicate Costs
 
 It is important that edges are processed in the order in which they have been
 created. This will ensure that for an edge the size of its argument nodes are
@@ -1638,8 +1638,7 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
   selectivity(Pred, Sel),
   Size is Card * Sel,
   setNodeSize(Result, Size),
-  predicateCost(Pred, PredCost),
-  assert(edgeSelectivity(Source, Target, Sel, PredCost)),
+  assert(edgeSelectivity(Source, Target, Sel)),
   !.
   
 
@@ -1649,8 +1648,7 @@ assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   selectivity(Pred, Sel),
   Size is Card1 * Card2 * Sel,
   setNodeSize(Result, Size),
-  predicateCost(Pred, PredCost),
-  assert(edgeSelectivity(Source, Target, Sel, PredCost)),
+  assert(edgeSelectivity(Source, Target, Sel)),
   !.
 
 
@@ -1682,7 +1680,7 @@ resSize(res(N), Size) :- resultSize(N, Size), !.
 ----    writeSizes :-
 ----
 
-Write sizes, selectivities and predicate costs.
+Write sizes and selectivitiess.
 
 */
 
@@ -1692,11 +1690,10 @@ writeSize :-
   write('Size: '), write(Size), nl, nl,
   fail.
 writeSize :-
-  edgeSelectivity(Source, Target, Sel, PredCost),
+  edgeSelectivity(Source, Target, Sel),
   write('Source: '), write(Source), nl,
   write('Target: '), write(Target), nl,
-  write('Selectivity: '), write(Sel), nl, 
-  write('Predicate cost: '), write(PredCost), nl, nl,
+  write('Selectivity: '), write(Sel), nl, nl,
   fail.
 writeSizes :- not(writeSize).
 
@@ -1709,7 +1706,7 @@ Delete node sizes and selectivities of edges.
 */
 
 deleteSize :- retract(resultSize(_, _)), fail.
-deleteSize :- retract(edgeSelectivity(_, _, _, _)), fail.
+deleteSize :- retract(edgeSelectivity(_, _, _)), fail.
 deleteSizes :- not(deleteSize).
 
 
@@ -1718,26 +1715,25 @@ deleteSizes :- not(deleteSize).
 
 8.1 The Costs of Terms
 
-----    cost(Term, Sel, Size, PredCost, Cost) :-
+----    cost(Term, Sel, Size, Cost) :-
 ----
 
-The cost of an executable ~Term~ representing a predicate with selectivity ~Sel~
-and predicate cost ~PredCost~ is ~Cost~ and the size of the result is ~Size~.
+The cost of an executable ~Term~ representing a predicate with selectivity ~Sel~ 
+is ~Cost~ and the size of the result is ~Size~.
 
 This is evaluated recursively descending into the term. When the operator
 realizing the predicate (e.g. ~filter~) is encountered, the selectivity ~Sel~ is
-used to determine the size of the result. The cost for a single evaluation 
-of that predicate ~PedCost~ is taken into account when estimating the total 
-cost. It is assumed that only a single operator of this kind occurs within the term.
+used to determine the size of the result.
+It is assumed that only a single operator of this kind occurs within the term.
 
 8.1.1 Arguments
 
 */
 
-cost(rel(Rel, _, _), _, Size, _, 0) :-
+cost(rel(Rel, _, _), _, Size, 0) :-
   card(Rel, Size).
 
-cost(res(N), _, Size, _, 0) :-
+cost(res(N), _, Size, 0) :-
   resultSize(N, Size).
 
 /*
@@ -1745,8 +1741,8 @@ cost(res(N), _, Size, _, 0) :-
 
 */
 
-cost(feed(X), Sel, S, PredCost, C) :-
-  cost(X, Sel, S, PredCost, C1),
+cost(feed(X), Sel, S, C) :-
+  cost(X, Sel, S, C1),
   feedTC(A),
   C is C1 + A * S.
 
@@ -1756,32 +1752,32 @@ be determined in experiments. These constants are kept in file ``Operators.pl''.
 
 */
 
-cost(consume(X), Sel, S, PredCost, C) :-
-  cost(X, Sel, S, PredCost, C1),
+cost(consume(X), Sel, S, C) :-
+  cost(X, Sel, S, C1),
   consumeTC(A),
   C is C1 + A * S.
 
-cost(filter(X, _), Sel, S, PredCost, C) :-
-  cost(X, 1, SizeX, PredCost, CostX),
+cost(filter(X, _), Sel, S, C) :-
+  cost(X, 1, SizeX, CostX),
   filterTC(A),
   S is SizeX * Sel,
-  C is CostX + ( A + PredCost) * SizeX.
+  C is CostX + A * SizeX.
 
-cost(product(X, Y), _, S, PredCost, C) :-
-  cost(X, 1, SizeX, PredCost, CostX),
-  cost(Y, 1, SizeY, PredCost, CostY),
+cost(product(X, Y), _, S, C) :-
+  cost(X, 1, SizeX, CostX),
+  cost(Y, 1, SizeY, CostY),
   productTC(A, B),
   S is SizeX * SizeY,
   C is CostX + CostY + SizeY * B + S * A.
 
-cost(leftrange(_, Rel, _), Sel, Size, PredCost, Cost) :-
-  cost(Rel, 1, RelSize, PredCost, _),
+cost(leftrange(_, Rel, _), Sel, Size, Cost) :-
+  cost(Rel, 1, RelSize, _),
   leftrangeTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
 
-cost(rightrange(_, Rel, _), Sel, Size, PredCost, Cost) :-
-  cost(Rel, 1, RelSize, PredCost, _),
+cost(rightrange(_, Rel, _), Sel, Size, Cost) :-
+  cost(Rel, 1, RelSize, _),
   leftrangeTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
@@ -1800,27 +1796,27 @@ input stream arrives, it is also possible to estimate the
 overall index join cost.
 
 */
-cost(exactmatchfun(_, Rel, _), Sel, Size, PredCost, Cost) :-
-  cost(Rel, 1, RelSize, PredCost, _),
+cost(exactmatchfun(_, Rel, _), Sel, Size, Cost) :-
+  cost(Rel, 1, RelSize, _),
   exactmatchTC(C),
   Size is Sel * RelSize,
-  Cost is Sel * RelSize * (C + PredCost).
+  Cost is Sel * RelSize * C.
 
-cost(exactmatch(_, Rel, _), Sel, Size, PredCost, Cost) :-
-  cost(Rel, 1, RelSize, PredCost, _),
+cost(exactmatch(_, Rel, _), Sel, Size, Cost) :-
+  cost(Rel, 1, RelSize, _),
   exactmatchTC(C),
   Size is Sel * RelSize,
-  Cost is Sel * RelSize * (C + PredCost).
+  Cost is Sel * RelSize * C.
 
-cost(loopjoin(X, Y), Sel, S, PredCost, Cost) :-
-  cost(X, 1, SizeX, PredCost, CostX),
-  cost(Y, Sel, SizeY, PredCost, CostY),
+cost(loopjoin(X, Y), Sel, S, Cost) :-
+  cost(X, 1, SizeX, CostX),
+  cost(Y, Sel, SizeY, CostY),
   S is SizeX * SizeY,
   loopjoinTC(C),
-  Cost is C * SizeX + CostX + SizeX * CostY.  % PredCost still not considered here!
+  Cost is C * SizeX + CostX + SizeX * CostY.
 
-cost(fun(_, X), Sel, Size, PredCost, Cost) :-
-  cost(X, Sel, Size, PredCost, Cost).
+cost(fun(_, X), Sel, Size, Cost) :-
+  cost(X, Sel, Size, Cost).
 
 
 
@@ -1838,64 +1834,64 @@ of computing products of buckets. Therefore that term
 was considered unnecessary.
 
 */
-cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, PredCost, C) :-
-  cost(X, 1, SizeX, PredCost, CostX),
-  cost(Y, 1, SizeY, PredCost, CostY),
+cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, C) :-
+  cost(X, 1, SizeX, CostX),
+  cost(Y, 1, SizeY, CostY),
   hashjoinTC(A, B),
   S is SizeX * SizeY * Sel,
   C is CostX + CostY +                                  % producing the arguments
-    (A + PredCost) * NBuckets * (SizeX/NBuckets + 1) *  % computing the product for each
+    A * NBuckets * (SizeX/NBuckets + 1) *               % computing the product for each
       (SizeY/NBuckets +1) +                             % pair of buckets
     B * S.                                              % producing the result tuples
 
 
-cost(sortmergejoin(X, Y, _, _), Sel, S, PredCost, C) :-
-  cost(X, 1, SizeX, PredCost, CostX),
-  cost(Y, 1, SizeY, PredCost, CostY),
+cost(sortmergejoin(X, Y, _, _), Sel, S, C) :-
+  cost(X, 1, SizeX, CostX),
+  cost(Y, 1, SizeY, CostY),
   sortmergejoinTC(A, B),
   S is SizeX * SizeY * Sel,
   C is CostX + CostY +                          % producing the arguments
     A * SizeX * log(SizeX + 1) +                % sorting the arguments
     A * SizeY * log(SizeY + 1) +                %   individual cost of ordering predicate still not applied!
-    (B + PredCost) * S.                         % parallel scan of sorted relations
+    B * S.                                      % parallel scan of sorted relations
 
 
 /* 
    Simple costs estimation for ~symmjoin~
 
 */
-cost(symmjoin(X, Y, _), Sel, S, PredCost, C) :-
-  cost(X, 1, SizeX, PredCost, CostX),
-  cost(Y, 1, SizeY, PredCost, CostY),
+cost(symmjoin(X, Y, _), Sel, S, C) :-
+  cost(X, 1, SizeX, CostX),
+  cost(Y, 1, SizeY, CostY),
   symmjoinTC(A, B),                     % fetch relative costs
   S is SizeX * SizeY * Sel,             % calculate size of result
   C is CostX + CostY +                  % cost to produce the arguments
-    (A + PredCost) * (SizeX * SizeY) +  % cost to handle buffers and collision
+    A * (SizeX * SizeY) +               % cost to handle buffers and collision
     B * S.                              % cost to produce result tuples
 
-cost(extend(X, _), Sel, S, PredCost, C) :-
-  cost(X, Sel, S, PredCost, C1),
+cost(extend(X, _), Sel, S, C) :-
+  cost(X, Sel, S, C1),
   extendTC(A),
   C is C1 + A * S.
 
-cost(remove(X, _), Sel, S, PredCost, C) :-
-  cost(X, Sel, S, PredCost, C1),
+cost(remove(X, _), Sel, S, C) :-
+  cost(X, Sel, S, C1),
   removeTC(A),
   C is C1 + A * S.
 
-cost(project(X, _), Sel, S, PredCost, C) :-
-  cost(X, Sel, S, PredCost, C1),
+cost(project(X, _), Sel, S, C) :-
+  cost(X, Sel, S, C1),
   projectTC(A),
   C is C1 + A * S.
 
-cost(rename(X, _), Sel, S, PredCost, C) :-
-  cost(X, Sel, S, PredCost, C1),
+cost(rename(X, _), Sel, S, C) :-
+  cost(X, Sel, S, C1),
   renameTC(A),
   C is C1 + A * S.
 
 %fapra1590
-cost(windowintersects(_, Rel, _), Sel, Size, PredCost, Cost) :-
-  cost(Rel, 1, RelSize, PredCost, _),
+cost(windowintersects(_, Rel, _), Sel, Size, Cost) :-
+  cost(Rel, 1, RelSize, _),
   windowintersectsTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
@@ -1908,8 +1904,8 @@ These are plan edges extended by a cost measure.
 
 createCostEdge :-
   planEdge(Source, Target, Term, Result),
-  edgeSelectivity(Source, Target, Sel, PredCost),
-  cost(Term, Sel, Size, PredCost, Cost),
+  edgeSelectivity(Source, Target, Sel),
+  cost(Term, Sel, Size, Cost),
   assert(costEdge(Source, Target, Term, Result, Size, Cost)),
   fail.
 
@@ -1929,7 +1925,7 @@ costEdgeInfo(Source, Target, Plan, Result, Size, Cost) :-
   nl, write('Target: '), write(Target),
   nl, write('Plan  : '), wp(Plan),
 %  nl, write('        '), write(Plan),  % for testing
-  nl, write('Result: '), write(Result),
+  nl, write('Result: '), write(Result), 
   nl, write('Size  : '), write(Size),
   nl, write('Cost  : '), write(Cost), nl. 
 

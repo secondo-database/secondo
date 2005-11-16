@@ -222,6 +222,10 @@ dynamicCardQuery(Pred, Rel1, Rel2, Query) :-
   dynamicPossiblyRename(Rel2, Rel2Query),
   Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
 
+/*
+  % the first two clauses for sels/2 are needed for using hard coded 
+  % selectivities. Since these cause problems with non-existing 
+  % predicate cost, they should be omitted.
 sels(Pred, Sel) :-
   sel(Pred, Sel),
   !.
@@ -231,13 +235,16 @@ sels(Pred, Sel) :-
   sel(Pred2, Sel),
   !.
 
+*/
+
 sels(Pred, Sel) :-
   storedSel(Pred, Sel),
   !.
 
 sels(Pred, Sel) :-
   commute(Pred, Pred2),
-  storedSel(Pred2, Sel).
+  storedSel(Pred2, Sel),
+  !.
 
 /*
 
@@ -258,7 +265,8 @@ be retrieved only once.
 % Selectivities must not be 0
 
 selectivity(pr(Pred, Rel, Rel), Sel) :-
-  selectivity(pr(Pred, Rel), Sel), !.
+  selectivity(pr(Pred, Rel), Sel), 
+  !.
 
 selectivity(P, Sel) :-
   simplePred(P, PSimple),
@@ -466,6 +474,7 @@ writePET :-
   write(', Cost: '),
   write(Y),
   write(' ms\n').
+
 
 /*
 1.5 Examples
