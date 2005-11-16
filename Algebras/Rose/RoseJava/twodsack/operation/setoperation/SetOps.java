@@ -742,7 +742,7 @@ public class SetOps {
     /**
      * This method constructs groups from the passed set such that for every element <tt>e</tt> in a group another element <tt>f</tt> can be found with <tt>predicate(e,f) = true</tt>.<p>
      * Example: Let the original set be <tt>{a,b,c,d}</tt>. Assume, that the predicate <tt>p</tt> holds for the pairs <tt>(a,b),(b,c)</tt>.
-     * Then, the resuliting groups are <tt>{a,b,c}, {d}</tt>.<p>
+     * Then, the resulting groups are <tt>{a,b,c}, {d}</tt>.<p>
      * The predicate's signature must be: <tt>Element x Element -> boolean</tt>
      *
      * @param ems the set that shall be divided in groups

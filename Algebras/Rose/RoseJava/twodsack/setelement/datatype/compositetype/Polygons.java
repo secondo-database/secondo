@@ -219,7 +219,7 @@ public class Polygons extends Element implements Serializable {
 	boolean bboxFilter = true;
 	boolean computeMinimalSet = false;
 	//return this.border = SupportOps.contour(this.trilist,useOverlapAtMINIMAL,useOverlapAtUNIQUE,bboxFilter,computeMinimalSet);
-	return this.border = SupportOps.contour(this.trilist);
+	return this.border = SupportOps.contour(this.trilist,true,true);
     }//end method computeBorder
     
 
@@ -2460,112 +2460,116 @@ public class Polygons extends Element implements Serializable {
 	firstList.add(cycList.getFirst());
 	cycList.removeFirst();
 	retList.add(firstList);
-	LinkedList triSetList = new LinkedList();
 	
 	//Store in triSetList the triangulations for every outer cycle
 	//That way, they must be computed only once for every face.
 	//Do this ONLY, if cycList has more than one cycle!
-	MeshGenerator myMG = new MeshGenerator();
-
-
-	//new line for Triangle
-	//TriMultiSet tmsFirst = myMG.computeMeshForSingleCycleHoles(firstList,false);
-
-	//line that works with NetGen
-	TriMultiSet tmsFirst;
-	LinkedList bboxList = null;
-	if (!cycList.isEmpty()) {
-	    if (myMG.GENERATOR == "NetGen")
-		tmsFirst = myMG.computeMeshWithNetGenHoles(firstList,false);
-	    else
-		tmsFirst = myMG.computeMeshForSingleCycleHoles(firstList,false);
-	    
-	    //original line
-	    //	TriMultiSet tmsFirst = computeMeshSingleCycle(SegMultiSet.convert(SupportOps.convert((LinkedList)firstList.getFirst())));
+	if (cycList.size() > 0) {
+	    LinkedList triSetList = new LinkedList();
+	    MeshGenerator myMG = new MeshGenerator();
 	    
 	    
-	    triSetList.add(tmsFirst);
+	    //new line for Triangle
+	    //TriMultiSet tmsFirst = myMG.computeMeshForSingleCycleHoles(firstList,false);
 	    
-	    //store in bboxList the bounding boxes for every outer cycle
-	    //bounding boxes are computed from the triangulations
-	    bboxList = new LinkedList();
-	    bboxList.add(tmsFirst.rect());
-	}//if	
-
-	//now traverse the list and check all other cycles
-	Iterator it = cycList.iterator();
-	Iterator itOuterCycles;
-	CycleList actCL = null;
-	LinkedList actCycle;
-	LinkedList firstCycle;
-	Segment testSeg;
-	Point tp1,tp2;
-	boolean found;
-	TriMultiSet actTMS;
-	Iterator tit;
-	Rect actRect;
-	Iterator bit;
-	while (it.hasNext()) {
-	    found = false;
-	    actCycle = (LinkedList)it.next();
-	    itOuterCycles = retList.iterator();
-	    tit = triSetList.iterator();
-	    bit = bboxList.iterator();
-	    testSeg = (Segment)actCycle.getFirst();
-	    tp1 = testSeg.getStartpoint();
-	    tp2 = testSeg.getEndpoint();
-	    while (itOuterCycles.hasNext()) {
-		actCL = (CycleList)itOuterCycles.next();
-		actTMS = (TriMultiSet)tit.next();
-		actRect = (Rect)bit.next();
-		firstCycle = (LinkedList)actCL.getFirst();
-
-		//first, check whether tp1 or tp2 lie inside of the bounding box,
-		//if true, check for inside
-		if (actRect.covers(tp1) &&
-		    (inside(tp1,actTMS) ||
-		     inside(tp2,actTMS))) {
-
-		    found = true;
-		    break;
-		}//if
-	    }//while itOuterCycles
-	    
-	    //if found=true, move cycle to appropriate CycleList
-	    if (found) {
-		actCL.add(actCycle);
-		it.remove();
-	    } else {
-		//found= false, cycle must be an outer cycle of a new face
-		//construct this new face as new CycleList
-		CycleList newFace = new CycleList();
-		newFace.add(actCycle);
-		retList.add(newFace);
-		it.remove();
-
-		TriMultiSet newTMS = null;
-
-		//new line for Triangle
-		//TriMultiSet newTMS = myMG.computeMeshForSingleCycleHoles(firstList,false);
-
-		//construct the TriMultiSet for the new outer cycle; line that works for NetGen
+	    //line that works with NetGen
+	    TriMultiSet tmsFirst;
+	    LinkedList bboxList = null;
+	    if (!cycList.isEmpty()) {
 		if (myMG.GENERATOR == "NetGen")
-		    newTMS = myMG.computeMeshWithNetGenHoles(newFace,false);
+		    tmsFirst = myMG.computeMeshWithNetGenHoles(firstList,false);
 		else
-		    newTMS = myMG.computeMeshForSingleCycleHoles(firstList,false);
-
-
-		//old line that works for Triangle
-		//    TriMultiSet newTMS = computeMeshSingleCycle(SegMultiSet.convert(SupportOps.convert((LinkedList)newFace.getFirst())));
+		    tmsFirst = myMG.computeMeshForSingleCycleHoles(firstList,false);
 		
-		triSetList.add(newTMS);
+		//original line
+		//	TriMultiSet tmsFirst = computeMeshSingleCycle(SegMultiSet.convert(SupportOps.convert((LinkedList)firstList.getFirst())));
+		
+		
+		triSetList.add(tmsFirst);
+		
+		//store in bboxList the bounding boxes for every outer cycle
+		//bounding boxes are computed from the triangulations
+		bboxList = new LinkedList();
+		bboxList.add(tmsFirst.rect());
+	    }//if	
+	    
+	    //now traverse the list and check all other cycles
+	    Iterator it = cycList.iterator();
+	    Iterator itOuterCycles;
+	    CycleList actCL = null;
+	    LinkedList actCycle;
+	    LinkedList firstCycle;
+	    Segment testSeg;
+	    Point tp1,tp2;
+	    boolean found;
+	    TriMultiSet actTMS;
+	    Iterator tit;
+	    Rect actRect;
+	    Iterator bit;
+	    while (it.hasNext()) {
+		found = false;
+		actCycle = (LinkedList)it.next();
+		itOuterCycles = retList.iterator();
+		tit = triSetList.iterator();
+		bit = bboxList.iterator();
+		testSeg = (Segment)actCycle.getFirst();
+		tp1 = testSeg.getStartpoint();
+		tp2 = testSeg.getEndpoint();
+		int outCount = 0; //remove this!!!
+		while (itOuterCycles.hasNext()) {
+		    actCL = (CycleList)itOuterCycles.next();
+		    actTMS = (TriMultiSet)tit.next();
+		    actRect = (Rect)bit.next();
+		    firstCycle = (LinkedList)actCL.getFirst();
+		    
+		    //first, check whether tp1 or tp2 lie inside of the bounding box,
+		    //if true, check for inside
 
-		//construct the bounding box for the new outer cycle
-		Rect newRect = newTMS.rect();
-		bboxList.add(newRect);
-	    }//else
-	}//while it
+		    if (actRect.covers(tp1) &&
+			(inside(tp1,actTMS) ||
+			 inside(tp2,actTMS))) {
+		    
+			found = true;
+			break;
+		    }//if
+		}//while itOuterCycles
+		
+		//if found=true, move cycle to appropriate CycleList
 
+		if (found) {
+		    actCL.add(actCycle);
+		    it.remove();
+		} else {
+		    //found= false, cycle must be an outer cycle of a new face
+		    //construct this new face as new CycleList
+		    CycleList newFace = new CycleList();
+		    newFace.add(actCycle);
+		    retList.add(newFace);
+		    it.remove();
+		    
+		    TriMultiSet newTMS = null;
+		    
+		    //new line for Triangle
+		    //TriMultiSet newTMS = myMG.computeMeshForSingleCycleHoles(firstList,false);
+		    
+		    //construct the TriMultiSet for the new outer cycle; line that works for NetGen
+		    if (myMG.GENERATOR == "NetGen")
+			newTMS = myMG.computeMeshWithNetGenHoles(newFace,false);
+		    else
+			newTMS = myMG.computeMeshForSingleCycleHoles(newFace,false);
+		    
+		    
+		    //old line that works for Triangle
+		    //    TriMultiSet newTMS = computeMeshSingleCycle(SegMultiSet.convert(SupportOps.convert((LinkedList)newFace.getFirst())));
+		    
+		    triSetList.add(newTMS);
+		    
+		    //construct the bounding box for the new outer cycle
+		    Rect newRect = newTMS.rect();
+		    bboxList.add(newRect);
+		}//else
+	    }//while it
+	}//if cycList.size > 0
 	/*
 	System.out.println("\n^^^^^^^^^^^^^^^^^^LAST testing cycles in retList:");
 	for (int i = 0; i < retList.size(); i++) 
@@ -2677,6 +2681,8 @@ public class Polygons extends Element implements Serializable {
 	    return new TriMultiSet(new TriangleComparator());
 	}//catch
 	
+	//System.out.println("P.computeMesh: polCLL:"); polCLL.print();
+
 	/* now every list in polCLL represents one face (at first position) and all holes
 	 * in the following, i.e. (read it top-down)
 	 * {

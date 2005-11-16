@@ -57,20 +57,19 @@ public class MeshGenerator {
 	//System.out.println(System.getProperty("java.library.path")); //show the library path where the dll-files should be
 	//load libraries dependant on system
 	String os = System.getProperty("os.name");
-	System.out.println("OS: -"+os+"-");
+	//System.out.println("OS: -"+os+"-");
 	if (os.equals(new String("Linux"))) {
-	    System.out.println("...loading MeshGenerator(LINUX)");
+	    //System.out.println("...loading MeshGenerator(LINUX)");
 	    System.loadLibrary("MeshGenerator");
-	    //System.loadLibrary("ThirdPartyCode");
-	    System.out.println("...loading MeshGeneratorNetGen(LINUX)");
+	    //System.out.println("...loading MeshGeneratorNetGen(LINUX)");
 	    System.loadLibrary("MeshGeneratorNetGen");
 	} else {
 	    //must be "Windows"
-	    System.out.println("...loading MeshGenerator(WINDOWS)");
+	    //System.out.println("...loading MeshGenerator(WINDOWS)");
 	    System.loadLibrary("MeshGenerator");
-	    System.out.println("...loading ThirdPartyCode(WINDWOS)");
+	    //System.out.println("...loading ThirdPartyCode(WINDWOS)");
 	    System.loadLibrary("ThirdPartyCode");
-	    System.out.println("...loading MGNetGen(WINDOWS)");
+	    //System.out.println("...loading MGNetGen(WINDOWS)");
 	    System.loadLibrary("MGNetGen");
 	}//else
     }
@@ -197,8 +196,8 @@ public class MeshGenerator {
      * @return the set of triangles for the polygon
      */
     public TriMultiSet computeMeshWithNetGenHoles(CycleList borderCycles, boolean qualityMesh) {
-	System.out.println("MG.computeMeshWithNetGenHoles:");
-	borderCycles.print();
+	//System.out.println("MG.computeMeshWithNetGenHoles:");
+	//borderCycles.print();
 	int numberOfCycles = borderCycles.size();
 	int totalNumberOfPoints = 0;
 	int[] lengthArray = new int[numberOfCycles];
@@ -336,7 +335,7 @@ public class MeshGenerator {
 	//a certain set of variables is needed for the C-method
 	//compute these variables
 
-	System.out.println("\n~~~~~ computeMeshForSingeCycle");
+	//System.out.println("\n~~~~~ computeMeshForSingeCycle");
 
 	if (qualityMesh) this.arguments = "pqQ";
 	else this.arguments = "pQ";

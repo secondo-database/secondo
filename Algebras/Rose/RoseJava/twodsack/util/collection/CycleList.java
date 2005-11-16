@@ -26,6 +26,9 @@ public class CycleList extends LinkedList {
      * Prints the elements of <code>this</code> to standard output.
      */
     public void print() {
+	if (this.size() == 0) {
+	    System.out.println("List is empty.");
+	}//if
 	LinkedList actList;
 	for (int i = 0; i < this.size(); i++) {
 	    actList = (LinkedList)this.get(i);
