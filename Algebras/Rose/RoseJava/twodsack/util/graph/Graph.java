@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
+import java.util.Stack;
 
 
 /**
@@ -67,7 +68,8 @@ public class Graph {
      * @param edges the set of edges
      */
     public Graph(SegMultiSet edges) {
-	
+	/*
+	System.out.println("Graph.init: displaying edge set.");
 	BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
 	DisplayGFX gfx = new DisplayGFX();
 	gfx.initWindow();
@@ -78,11 +80,10 @@ public class Graph {
 	    System.exit(0);
 	}//catch
 	gfx.kill();
+	*/
 	
-	System.out.println("\nGraph(): edges.size: "+edges.size());
-	ElemMultiSet cleanList = makeCleanList(edges); cleanList.print();
+	ElemMultiSet cleanList = makeCleanList(edges);
 
-	System.out.println("Graph(): cleanList.size: "+cleanList.size());
 	int initialCapacity = NUMBER_OF_BUCKETS;
 	Hashtable pointsHT = new Hashtable(initialCapacity);
 	
@@ -93,12 +94,10 @@ public class Graph {
 	int counter = 0;
 	int count2 = 0;
 	while (eit.hasNext()) {
-	    System.out.println("\nSegment "+count2);
 	    actSeg = (Segment)((MultiSetEntry)eit.next()).value;
 	    htEntry = new PointLink(actSeg.getStartpoint());
 	    //check whether htEntry already exists in hash table
 	    //if not, give it a new number and insert it
-	    System.out.println("searching for entry...");
 	    if (!pointsHT.containsKey(htEntry.linkedPoint)) {
 	    htEntry.number = counter;
 		counter++;
@@ -106,13 +105,11 @@ public class Graph {
 
 		PointLink pl = (PointLink)pointsHT.get(actSeg.getStartpoint());
 		//System.out.println("checking startpoint: point - "+pl.linkedPoint.equal(actSeg.getStartpoint())+", counter: "+counter+", pointNum: "+pl.number);
-		System.out.println("checking startpoint: counter: "+counter+", pointNum: "+pl.number);
 	    }//if
-	    else System.out.println("Startpoint already in HT. num: "+((PointLink)pointsHT.get(actSeg.getStartpoint())).number);
 	    
 	    //do the same with endpoint
 	    htEntry = new PointLink(actSeg.getEndpoint());
-	    System.out.println("searching for entry...");
+	
 	    if (!pointsHT.containsKey(htEntry.linkedPoint)) {
 	    htEntry.number = counter;
 		counter++;
@@ -120,14 +117,9 @@ public class Graph {
 
 		PointLink pl2 = (PointLink)pointsHT.get(actSeg.getEndpoint());
 		//System.out.println("checking endpoint: point  "+pl2.linkedPoint.equal(actSeg.getEndpoint())+", counter: "+counter+", pointNum: "+pl2.number);
-		System.out.println("checking endpoint: counter: "+counter+", pointNum: "+pl2.number);
 	    }//if
-	    else System.out.println("Endpoint already in HT. num: "+((PointLink)pointsHT.get(actSeg.getEndpoint())).number);
 	    count2++;
 	}//while eit
-	
-	System.out.println("Graph(): Construction of hashtable finished. counter: "+counter);
-	//System.out.println("hashTable: "+pointsHT);
 	
 	//construct list of vertices from hashtable
 	Enumeration enum = pointsHT.elements();
@@ -146,21 +138,16 @@ public class Graph {
 	int pointPosS;
 	int pointPosE;
 	while (eit.hasNext()) {
-	    System.out.println("\nSegment "+count2);
 	    actSeg = (Segment)((MultiSetEntry)eit.next()).value;
 	    //get the numbers of the segments' endpoints
 	    pointPosS = ((PointLink)pointsHT.get(actSeg.getStartpoint())).number;
 	    pointPosE = ((PointLink)pointsHT.get(actSeg.getEndpoint())).number;
-	    System.out.println("pointPosS: "+pointPosS+", pointPosE: "+pointPosE);
 	    //set the proper vertices in succLists
 	    succLists[pointPosS].add(vArr[pointPosE]);
 	    succLists[pointPosE].add(vArr[pointPosS]);
 	    count2++;
 	}//while eit
-
-	System.out.println("Graph(): printSuccLists: "); printSuccLists();
-	//System.exit(0);
-    }
+    }//end constructor
 
 
     /**
@@ -677,76 +664,15 @@ public class Graph {
      * @return the set of cycles representing the faces
      */
     public ElemMultiSetList computeFaces(){
-	//first, sort the vertices in succLists such that
-	//the segments (which are formed by the pairs of vertices)
-	//are sorted as described in the ROSE implementation paper
-	//-> sorting of halfsegments.
-	//here, only the vertices are sorted. Not more is needed
-	//(especially no construction of halfsegments).
-       ElemMultiSetList retList = new ElemMultiSetList();
-	boolean isNotEmpty = false;
-	for (int i = 0; i < succLists.length; i++) {
-	    if (succLists[i].size() > 0) {
-		isNotEmpty = true;
-		break;
-	    }//if
-	}//while it
-	if (isNotEmpty == false) return retList;
-
-	//make working-copy of succLists
-	LinkedList[] succListsCOP = (LinkedList[])this.succLists.clone();
-
-	//sorting
-	for (int i = 0; i < succListsCOP.length; i++) {
-	    //generate edges from pairs of vertices
-	    LinkedList edges = new LinkedList();
-	    ListIterator lit = succListsCOP[i].listIterator(0);
-	    while (lit.hasNext()) edges.add(new Edge(vArr[i],(Vertex)lit.next()));
-	    edges = sortEdgeListWithRespectToHalfSegmentsOrder(edges);
-	    //rebuild succListsCOP
-	    succListsCOP[i] = extractVerticesOtherThanX(edges,vArr[i]);
+	ElemMultiSetList retList = new ElemMultiSetList();
+	CycleList cl = computeFaceCycles();
+	
+	//store all cycles of cl in retList
+	for (int i = 0; i < cl.size(); i++) {
+	    SegMultiSet sms = SegMultiSet.convert(SupportOps.convert(((LinkedList)cl.get(i))));
+	    //retList.add(SegMultiSet.convert((LinkedList)cl.get(i)));
+	    retList.add(sms);
 	}//for i
-	
-	//loop while edges exist
-	while (thereAreEdgesLeft(succListsCOP)) {
-	    //find starting point by taking the leftmost and downmost point
-	    Vertex startVertex = getStartVertex(succListsCOP);
-	    
-	    //initialize cycle data structure
-	    LinkedList cycle = new LinkedList();
-
-	    //begin with following the first edge; choose the one wich is minimal
-	    //store in cycle and remove edge from succLists
-	    cycle.add(startVertex);
-	    Vertex actVertex = (Vertex)succListsCOP[startVertex.number].getFirst();
-	    cycle.add(actVertex);
-	    succListsCOP[startVertex.number].removeFirst();
-	    Vertex prevVertex = startVertex;
-
-	    //follow predessessing edges (according to the sorting) and mark edges
-	    //until first vertex is found again
-	    int prevVertexPos = -1;
-	    int newActVertexPos = -1;
-	    do {
-		prevVertexPos = getPosOfVertex(prevVertex,succListsCOP[actVertex.number]);
-		newActVertexPos = (prevVertexPos+succListsCOP[actVertex.number].size()-1) % succListsCOP[actVertex.number].size();
-		prevVertex = actVertex;
-		actVertex = (Vertex)succListsCOP[actVertex.number].get(newActVertexPos);
-		//add vertex to actual cycle
-		cycle.add(actVertex);
-		//remove vertices from succListsCOP
-		succListsCOP[prevVertex.number].remove(prevVertexPos);
-		//get position of the vertex which shall be deleted
-		prevVertexPos = getPosOfVertex(actVertex,succListsCOP[prevVertex.number]);
-		succListsCOP[prevVertex.number].remove(prevVertexPos);
-	    } while (!actVertex.equal(startVertex));
-
-	    //remove one last vertex from succListsCOP
-	    succListsCOP[actVertex.number].remove(getPosOfVertex(prevVertex,succListsCOP[actVertex.number]));
-	    //add cycle to retList
-	    retList.add(computeSMSFromCycle(cycle));
-	}//for
-	
 	return retList;
     }//end method computeFaces
     
@@ -766,9 +692,11 @@ public class Graph {
 	//the segments (which are formed by the pairs of vertices)
 	//are sorted as described in the ROSE implementation paper
 	//-> sorting of halfsegments.
-	//here, only the vertices are sorted. Not more is needed
+	//here, only the vertices are sorted. More is not needed
 	//(especially no construction of halfsegments).
 	
+	//System.out.println("\nEntering Graph.computeFaceCycles.");
+
 	CycleList retList = new CycleList();
 	boolean isNotEmpty = false;
 	for (int i = 0; i < succLists.length; i++) {
@@ -782,7 +710,7 @@ public class Graph {
 	//make working-copy of succLists
 	LinkedList[] succListsCOP = (LinkedList[])this.succLists.clone();
 
-	System.out.println("succlists: "); printSuccLists();
+	//System.out.println("\nGraph.computeFaceCycles: succlists (unsorted): "); printSuccLists();
 
 	//sorting
 	for (int i = 0; i < succListsCOP.length; i++) {
@@ -798,44 +726,17 @@ public class Graph {
 	/* find cycles */
 	//loop while edges exist
 	while (thereAreEdgesLeft(succListsCOP)) {
-	    //find starting point by taking the leftmost and downmost point
+	    //find starting point: Select leftmost and downmost point
 	    Vertex startVertex = getStartVertex(succListsCOP);
 	    
-	    //initialize cycle data structure
-	    LinkedList cycle = new LinkedList();
+	    //System.out.println("startVertex: "+startVertex);
 
-	    //begin with following the first edge; choose the one wich is minimal
-	    //store in cycle and remove edge from succLists
-	    cycle.add(startVertex);
-	    Vertex actVertex = (Vertex)succListsCOP[startVertex.number].getFirst();
-	    cycle.add(actVertex);
-	    succListsCOP[startVertex.number].removeFirst();
-	    Vertex prevVertex = startVertex;
+	    //call sub-routine findCycles
+	    findCycles(succListsCOP,startVertex,retList);
+	}//while
 
-	    //follow predecessing edges (according to the sorting) and mark edges
-	    //until first vertex is found again
-	    int prevVertexPos = -1;
-	    int newActVertexPos = -1;
-	    do {
-		prevVertexPos = getPosOfVertex(prevVertex,succListsCOP[actVertex.number]);
-		newActVertexPos = (prevVertexPos+succListsCOP[actVertex.number].size()-1) % succListsCOP[actVertex.number].size();
-		prevVertex = actVertex;
-		actVertex = (Vertex)succListsCOP[actVertex.number].get(newActVertexPos);
-		//add vertex to actual cycle
-		cycle.add(actVertex);
-		//remove vertices from succListsCOP
-		succListsCOP[prevVertex.number].remove(prevVertexPos);
-		//get position of the vertex which shall be deleted
-		prevVertexPos = getPosOfVertex(actVertex,succListsCOP[prevVertex.number]);
-		succListsCOP[prevVertex.number].remove(prevVertexPos);
-	    } while (!actVertex.equal(startVertex));
-
-	    //remove one last vertex from succListsCOP
-	    succListsCOP[actVertex.number].remove(getPosOfVertex(prevVertex,succListsCOP[actVertex.number]));
-	    //add cycle to retList
-	    retList.add(computeSegListFromCycle(cycle));
-	}//for
-	
+	//System.out.println(" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Graph.computeFaceCycles END");
+	//retList.print();
 	return retList;
     }//end method computeFaceCycles
 
@@ -854,6 +755,7 @@ public class Graph {
 	    Vertex actV = (Vertex)lit.next();
 	    if (actV.equal(vert)) return lit.nextIndex()-1;
 	}//while
+	//an error ocurred, print error messages
 	System.out.println("\nVertex list: ");
 	lit = vertList.listIterator(0);
 	if (vertList.isEmpty())
@@ -968,7 +870,7 @@ public class Graph {
 
 
     /**
-     * Returnes the sorted paramter list.
+     * Returns the sorted paramter list.
      * The elements are sorted using the order for halfsegments (described in the ROSE implementation paper).
      *
      * @param edges the list of edges
@@ -1004,4 +906,242 @@ public class Graph {
 	return retList;
     }//end method sortEdgeListWithRespectToHalfSegmentsOrder
  
+
+    /**
+     * Supportive method for computeFaceCycles. Computes all cycles connected to the starting point.
+     * At least one new cycle is added to <tt>retlist</tt> for every call of <tt>findCycles</tt>.
+     * 
+     * @param succLists is a copy of the adjacency lists for the graph; may be modified
+     * @param startVertex the point from where the search for cycles begins
+     * @param retList all found cycles are added to this list
+     */
+    private void findCycles (LinkedList[] succLists, Vertex startVertex, CycleList retList) {
+	//The algorithm for finding cycles works as follows: First, find a starting vertex. This is the
+	//bottom left vertex. Then, follow the edges from there. The next edge is given by chosing the
+	//_predecessor_ in the succLists (or the next vertex resp.). Remove the edge from succLists and
+	//mark the vertex as visited (in the visited array). Push all visited vertices on the stack.
+	//When meeting a vertex again (entry in visited array is TRUE), remove all entries from the stack
+	//until the actual vertex is found. Store all these vertices as new cycle. Then continue with
+	//following edges.
+	//Note: All edges must be removed twice, since every edge has two entries in succLists.
+
+	Stack stack = new Stack();
+	//initialize visited
+	boolean[] visited = new boolean[succLists.length];
+	for (int i = 0; i < visited.length; i++)
+	    visited[i] = false;
+
+	/*
+	  System.out.println("\n****************************Entering findCycles.**********************************");
+	  System.out.println("startVertex: "+startVertex);
+	  System.out.println("succLists(sorted):");
+	  for (int i = 0; i < vArr.length; i++) {
+	  System.out.println("\nvertex: ");
+	  vArr[i].print();
+	  System.out.println("successors: ");
+	  for (int j = 0; j < succLists[i].size(); j++) {
+	  ((Vertex)succLists[i].get(j)).print(); }
+	  }//for i
+	*/
+
+	//push startVertex on stack, set visited
+	
+	//System.out.println("-->pushing startVertex on stack: "+startVertex);
+	stack.push(startVertex);
+	visited[startVertex.number] = true;
+
+	Vertex stackVertex = null;
+
+	//follow edges until no more edges exist
+	Vertex actVertex = startVertex;
+	Vertex nextVertex = null;
+	Vertex prevVertex = null;
+	boolean alreadySet = false;
+	do {
+	    //System.out.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iterater through edges");
+	    
+	    //get next Vertex
+	    if (!alreadySet)
+		nextVertex = getPredecessor(succLists,actVertex,prevVertex);
+	    else
+		alreadySet = false;
+	    //System.out.println("next vertex: "+nextVertex);
+
+	    //remove edge by removing both involved vertices from succLists
+	    //System.out.println("removing vertices from "+actVertex+"/"+nextVertex);
+	    //removeVertices(succLists,actVertex,nextVertex);
+	    
+	    
+	    if (visited[nextVertex.number]) {
+		//finished another cycle, remove it from stack and store it
+		LinkedList newCycle = new LinkedList();
+		newCycle.add(nextVertex);
+		//System.out.println("--> found new cycle");
+
+		//find next vertex before the cycle vertices are deleted
+		Vertex nextVertexS = getPredecessor(succLists,nextVertex,actVertex);
+		
+		alreadySet = true;
+
+		//pop elements form stack until element is equal to nextVertex
+		do {
+		    stackVertex = (Vertex)stack.pop();
+		    newCycle.add(stackVertex);
+		    
+		    //System.out.println("    popping "+stackVertex);
+		} while (!stackVertex.equal(nextVertex));
+		
+		//push nextVertex on stack again
+		stack.push(nextVertex);
+
+		//add new cycle to retList
+		retList.add(computeSegListFromCycle(newCycle));
+		//System.out.println("    added cycle("+newCycle.size()+") to retList");
+
+		//remove edges from succLists
+		for (int i = 0; i < newCycle.size()-1; i++)
+		    removeVertices(succLists,(Vertex)newCycle.get(i),(Vertex)newCycle.get(i+1));
+		
+		actVertex = nextVertex;
+		nextVertex = nextVertexS;
+	       
+	    } else {
+		//set visited for nextVertex
+		visited[nextVertex.number] = true;
+		//push nextVertex on stack
+		stack.push(nextVertex);
+		//System.out.println("pushing on stack: "+nextVertex);
+		
+		prevVertex = actVertex;
+		actVertex = nextVertex;
+	    }//else
+	    
+	    //prevVertex = actVertex;
+	    //actVertex = nextVertex;
+	    
+	    //System.out.println("checking loop condition: prevVertex "+prevVertex+", actVertex: "+actVertex+", sL(actVertex): "+succLists[actVertex.number].size());
+
+	} while (succLists[actVertex.number].size() > 0);
+
+
+
+	/* --->>>> old code
+
+	//follow the first (minimal) edge of startpoint in succLists and push it on the stack, set visited
+	Vertex actVertex = (Vertex)succLists[startVertex.number].getFirst();
+	System.out.println("\nvisited next vertex: "+actVertex);
+	stack.push(
+	Vertex prevVertex = startVertex;
+	//remove first edge
+	succLists[startVertex.number].removeFirst();
+	
+	//MISSING: REMOVAL OF THE OTHER VERTEX IN TARGET NODE
+	
+	//follow predecessing edges (according to the sorting)
+	//until a vertex with out-degree > 2 is found or
+	//until startVertex is found again
+	int prevVertexPos = -1;
+	int newActVertexPos = -1;
+	do {
+	    if (actVertex.equal(startVertex)) {
+		//closed a cycle; came back to startVertex
+		//store cycle in retList and BREAK
+		System.out.println("--->closed a cycle");
+		retList.add(computeSegListFromCycle(actCycle));
+		break;
+	    }//if
+	    else if (succLists[actVertex.number].size() > 2) {
+		//found another cycle; call findCycles recursively
+		System.out.println("-->found another cycle");
+		findCycles(succLists,actVertex,retList);
+	    }//else if
+	    else {
+		//nothing special, just follow the predecessing edges and
+		//delete the visited vertex
+		System.out.println("-->follow edges");
+		prevVertexPos = getPosOfVertex(prevVertex,succLists[actVertex.number]);
+		newActVertexPos = (prevVertexPos+succLists[actVertex.number].size()-1) % succLists[actVertex.number].size();
+		prevVertex = actVertex;
+		actVertex = (Vertex)succLists[actVertex.number].get(newActVertexPos);
+		System.out.println("   visiting vertex "+actVertex);
+		//add vertex to actual cycle
+		actCycle.add(actVertex);
+		//remove vertices from succLists
+		succLists[prevVertex.number].remove(prevVertexPos);
+		//get position of the vertex which shall be deleted
+		prevVertexPos = getPosOfVertex(actVertex,succLists[prevVertex.number]);
+		succLists[prevVertex.number].remove(prevVertexPos);
+	    }//else
+	} while (true);
+
+	//remove one last vertex from succLists
+	succLists[actVertex.number].remove(getPosOfVertex(prevVertex,succLists[actVertex.number]));
+
+	*/
+    }//end method findCycles
+
+
+    /**
+     * Supportive method for findCycles. Removes vertices from succList.
+     * Given, the succLists and two vertices, this method removes the first vertex from the successor list of the other
+     * one and vice versa.
+     *
+     * @param succLists the successor lists
+     * @param firstVertex one of the vertices
+     * @param secondVertex the other vertex
+     */
+    private void removeVertices (LinkedList[] succLists, Vertex firstVertex, Vertex secondVertex) {
+	Iterator it;
+	Vertex actVertex;
+	//remove firstVertex from list of secondVertex
+	it = succLists[secondVertex.number].iterator();
+	while (it.hasNext()) {
+	    actVertex = (Vertex)it.next();
+	    if (actVertex.equal(firstVertex)) it.remove();
+	}//while
+		
+	//remove secondVertex from list of firstVertex
+	it = succLists[firstVertex.number].iterator();
+	while (it.hasNext()) {
+	    actVertex = (Vertex)it.next();
+	    if (actVertex.equal(secondVertex)) it.remove();
+	}//while
+    }//end method removeVertices
+
+
+    /**
+     * Supportive method for findCycles. Returns the vertex which is the predecessor of a certain vertex from <tt>succLists</tt>.
+     * Note: A special case occurs, if <tt>prevVertex</tt> = null. Then, the first vertex of the appropriate <tt>succLists</tt> is returned.
+     * @param succLists the successor lists
+     * @param actVertex the actual vertex
+     * @param prevVertex the previous vertex
+     * @return the vertex which is the predecessor of <tt>actVertex</tt>
+     */
+    private Vertex getPredecessor(LinkedList[] succLists, Vertex actVertex, Vertex prevVertex) {
+	int sLaV = succLists[actVertex.number].size();
+	//special case:
+	if ((prevVertex == null) || (sLaV == 1))
+	    return (Vertex)succLists[actVertex.number].getFirst();
+
+	//System.out.println("++++++++++++++++++++++++++++++++ get Predecessor START");
+	//System.out.println("actVertex: "+actVertex+", prevVertex: "+prevVertex);
+	//System.out.println("actual succList: ");
+	//for (int i = 0; i < sLaV; i++)
+	//    System.out.print((Vertex)succLists[actVertex.number].get(i)+" ");
+	//System.out.println();
+	
+	//find actVertex in list
+	int pos = -1;
+	Vertex sVertex;
+	//get position of prevVertex
+	for (int i = 0; i < sLaV; i++) {
+	    sVertex = (Vertex)succLists[actVertex.number].get(i);
+	    if (sVertex.equal(prevVertex)) pos = i;
+	}//for i
+	
+	//return predecessor
+	//System.out.println("++++++++++++++++++++++++++++++++ get Predecessor END");
+	return (Vertex)succLists[actVertex.number].get((sLaV+pos-1)%sLaV);
+    }//end method getPredecessor
+
 }//end class Graph
