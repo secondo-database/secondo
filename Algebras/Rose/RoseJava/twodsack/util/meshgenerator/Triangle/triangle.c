@@ -12424,7 +12424,7 @@ int newmark;
   }
 #endif /* not CDT_ONLY */
 #endif /* not REDUCED */
-  printf("check5");
+  //printf("check5");
 }
 
 /*****************************************************************************/
