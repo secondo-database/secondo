@@ -1118,7 +1118,8 @@ ensureDatabaseOptOpen :-
   !.
 
 ensureDatabaseOptOpen :- 
-  nl, write('ERROR in optimizer: ensureDatabaseOptOpen/0 failed'), nl,
+  nl, write('ERROR in optimizer: ensureDatabaseOptOpen/0 failed.'), 
+  nl, write('      Optimizer requires database opt to be properly installed.'), nl,
   fail.
 
 /*
