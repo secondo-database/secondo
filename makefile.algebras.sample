@@ -11,6 +11,7 @@
 ALGEBRA_DIRS := Standard-C++
 ALGEBRAS     := StandardAlgebra
 ALGEBRA_DEPS := 
+ALGEBRA_DEP_DIRS := 
 
 # comment out or add new algebras in this file. 
 # You have to define an algebra name and a directory
@@ -33,10 +34,11 @@ ALGEBRA_DEPS :=
 # ALGEBRAS defines a list of names which are later prefixed by 
 # -lname1 -lname2 ... etc. This is used to link the algebra objects
 # into an executable. If the algebra code itself depends on other
-# librares, e.g. the jpeg algebra depends on libjepeg, put these libraries
-# into the variable ALGEBRA_DEP.
+# librares, e.g. the jpeg algebra depends on libjpeg, put these libraries
+# and its directory into the variable ALGEBRA_DEPS and ALGEBRA_DEP_DIRS.
 
 ALGEBRA_DEPS += jpeg
+ALGEBRA_DEP_DIRS += $(SECONDO_SDK)/lib
 
 ALGEBRA_DIRS += Function-C++
 ALGEBRAS     +=	FunctionAlgebra
@@ -100,12 +102,6 @@ ALGEBRAS     +=	TupleIdentifierAlgebra
 
 ALGEBRA_DIRS += PointSequence	
 ALGEBRAS     +=	PointSequenceAlgebra
-
-ALGEBRA_DIRS += MovingRegion	
-ALGEBRAS     +=	MovingRegionAlgebra
-
-ALGEBRA_DIRS += PlaneSweep	
-ALGEBRAS     +=	PlaneSweepAlgebra
 
 #ALGEBRA_DIRS += MP3
 #ALGEBRAS     += MP3Algebra

@@ -88,6 +88,7 @@ iso_sdk := secondo-cd.iso.zip
 
 INST_GUIDES := $(addprefix $(websrv)/, $(lin_guide) $(win_guide))
 INST_KITS := $(addprefix $(websrv)/, $(lin_sdk) $(win_sdk) $(iso_sdk))
+INST_KITS2 := $(addprefix $(tempdir)/, $(lin_sdk) $(win_sdk))
 
 
 WIN_SRC := $(tempdir)/secondo-$(tag)-CP1252.zip
@@ -153,18 +154,11 @@ $(tnew): $(ALL_SDK_SCRIPTS)
 # special target which create new secondo source archives
 .PHONY: src-dist
 src-dist: src-archives
-	touch $@ 
+	touch $(tnew) 
 
 # create new installation kits
 .PHONY: sdk-dist
-sdk-dist: $(tsdk)
-
-$(tsdk): $(tnew)
-	make linux-sdk
-	make win32-sdk
-	rm -rf $(tempdir)/secondo-cd*
-	make isoimage
-	touch $@
+sdk-dist: $(INST_KITS2) $(tempdir)/secondo-cd.iso.zip
 
 vpath %-Installation-Guide.pdf $(net)
 vpath %.zip $(tempdir)
@@ -195,16 +189,14 @@ else
 endif
 
 
-.PHONY: linux-sdk
-linux-sdk:
-	rm -f $(tempdir)/$@.tar.gz
-	tar -C $(SECONDO_INST_KIT_ROOT) -cvzf $(tempdir)/$@.tar.gz \
+$(tempdir)/linux-sdk.tar.gz: $(tnew)
+	rm -f $@
+	tar -C $(SECONDO_INST_KIT_ROOT) -cvzf $@ \
 	$(pref)/Linux-Installation-Guide.pdf $(pref)/installsdk $(pref)/linux $(pref)/scripts --exclude $(pref)/linux/j2sdk* 
 
-.PHONY: win32-sdk
-win32-sdk:
-	rm -f $(tempdir)/$@.zip
-	cd $(SECONDO_INST_KIT_ROOT) && zip -9 -r $(tempdir)/$@.zip \
+$(tempdir)/win32-sdk.zip: $(tnew)
+	rm -f $@
+	cd $(SECONDO_INST_KIT_ROOT) && zip -9 -r $@ \
 	$(pref)/Windows-Installation-Guide.pdf $(pref)/MSYS-* $(pref)/installsdk \
 	$(pref)/win32/prolog $(pref)/win32/mingw $(pref)/win32/non-gnu $(pref)/win32/gnu $(pref)/scripts
 
@@ -213,9 +205,11 @@ win32-sdk:
 isoimage: $(tempdir)/secondo-cd.iso.zip
 
 $(tempdir)/secondo-cd.iso.zip: $(tempdir)/secondo-cd.iso
+	rm -rf $@
 	zip -9 $@ $<
 
-$(tempdir)/secondo-cd.iso: $(net)
+$(tempdir)/secondo-cd.iso: $(tnew)
+	rm -rf $@
 	mkisofs -J -r -iso-level 2 -graft-points -o $@ /=$(net)
 
 .PHONY: doc-dist 
