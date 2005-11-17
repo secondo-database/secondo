@@ -1009,6 +1009,189 @@ tryDelete(QueryAtom) :-
 tryDelete(_).
 
 
+/*
+2. Machine Dependent Information
+
+[File ~database.pl~]
+
+The optimizer needs to know some details on the machine, SECONDO runs on.
+
+2.1 Inquire machine speed constants
+
+The machine speed has strong impact on the cost of executing database operations.
+All constants used in costs estimation are with regard to a reference system.
+Actual cost are calculated by applying factors for the actuaql system's CPU- and
+FS-speed. These factors are measured once by sending queries to SECONDO and stored
+on disk for later use. 
+
+*/
+
+/*
+~machineSpeedFactor(CPU,FS)~ unifies ~CPU~ with the current machine's CPU speed and 
+~FS~ with its FS speed with regard to some reference system. The predicate can be used 
+to read the machine's relative speed and scale costs within the optimizer's cost functions.
+
+*/
+
+machineSpeedFactor(CPU, FS) :-
+  storedMachineSpeedFactor(CPU, FS),
+  !.
+
+machineSpeedFactor(CPU, FS) :-
+  setMachineSpeedFactor,
+  storedMachineSpeedFactor(CPU, FS),
+  !.
+ 
+/* 
+
+2.1.1 Auxiliary predicates to ~machineSpeedFactor/2~
+
+*/
+
+referenceSpeed(2489.74, 39696.67).        % (CPUtime, FStime) determine the times needed by the reference system
+ 
+/*
+~queryTime(Query, TimeMS)~ unifies ~TimeMS~ with the time in ms that it takes SECONDO to run ~Query~
+
+*/
+
+queryTime(Query, TimeMS) :- 
+  atom_concat('query ', Query, SecQuery),
+  get_time(Time1),
+  secondo(SecQuery, _),   
+  get_time(Time2),
+  Time is (Time2 - Time1),
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  TimeMS is (Minute * 60000) + (Sec*1000) + MilliSec,
+  !.
+
+wqt(Query) :- % write QueryTime for testing
+  atom_concat('query ', Query, SecQuery),
+  get_time(Time1),
+  secondo(SecQuery, _),   
+  get_time(Time2),
+  Time is (Time2 - Time1),
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  TimeMS is (Minute * 60000) + (Sec*1000) + MilliSec,
+  nl, write(TimeMS), write(' ms'), nl,
+  !.
+
+
+/*
+
+The predicate ~fibonacci(N, M)~ recursively calculates the ~N~th Fibonacci number ~M~. This 
+extremely expensive function is used to measure CPU speed.
+
+~determineCostCPU(Time)~ unifies ~Time~ with the average time in ms for evaluating ~fibonacci(31, X)~
+trice.
+
+*/
+
+fibonacci(1, 1) :- !.
+fibonacci(2, 1) :- !.
+fibonacci(N, M) :-
+  N1 is N - 1,
+  N2 is N - 2,
+  fibonacci(N1, M1),
+  fibonacci(N2, M2),
+  M is M1 + M2,
+  !.
+
+determineCostCPU(Cost) :-
+  get_time(Time1),
+  fibonacci(31, _),
+  get_time(Time2),
+  Time is Time2 - Time1,
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  Cost is Minute *60000 + Sec*1000 + MilliSec,
+  !. 
+ 
+ensureDatabaseOptOpen :- 
+  isDatabaseOpen,
+  secondo('close database',_),
+  open('database opt'),
+  !.
+
+ensureDatabaseOptOpen :- 
+  notIsDatabaseOpen,
+  open('database opt'),
+  !.
+
+ensureDatabaseOptOpen :- 
+  nl, write('ERROR in optimizer: ensureDatabaseOptOpen/0 failed'), nl,
+  fail.
+
+/*
+~setMachineSpeedFactor/0~ is run to initialize ~storedMachineSpeedFactor/2~.
+~updateMachineSpeedFactor/0~ can be invoked to update the stored speed factors.
+~machineSpeedFactor/0~ will print the stored speed factors.
+
+*/
+
+setMachineSpeedFactor :-
+  storedMachineSpeedFactor( _, _),
+  !.
+
+setMachineSpeedFactor :-
+  not(storedMachineSpeedFactor( _, _)),
+  referenceSpeed(CPUref, FSref),
+  determineCostCPU(C1),
+  determineCostCPU(C2),
+  determineCostCPU(C3),
+  CPUtime is (C1 + C2 + C3) / 3,
+  % CAUTION: The opt database will be opened and closed!
+  ensureDatabaseOptOpen,
+  FSquery = 'plz feed {p1} filter[.PLZ_p1 < 15000] plz feed {p2} filter[.PLZ_p2 < 15000] symmjoin[.Ort_p1 = ..Ort_p2] count',
+  queryTime(FSquery, _),          % Execute a query with high FS cost  (large relation, large tuplesize, trivial predicate)
+  queryTime(FSquery, FStime),     %   Do this twice and used second result to avoid errors caused by buffering effects
+  FactorCPU is CPUtime / CPUref,  % Factors > 1 means the host is slower than the reference system
+  FactorFS  is FStime  / FSref,      
+  assert(storedMachineSpeedFactor(FactorCPU, FactorFS)), % store in tuple machineSpeedFactor(FactorCPU, FactorFS)
+  secondo('close database'),
+  !.
+
+setMachineSpeedFactor :- 
+  nl, write('ERROR in optimizer:setMachineSpeedFactor/0 failed'), nl,
+  fail.
+
+updateMachineSpeedFactor :-
+  retract(storedMachineSpeedFactor( _, _)),
+  setMachineSpeedFactor,
+  !.
+
+machineSpeedFactor :-
+  machineSpeedFactor(CPU, FS),
+  nl, write('Stored machine speed factor:'),
+  write(' CPU='), write(CPU),
+  write(' FS='), write(FS), nl,
+  !.
+
+
+/*
+2.1.2  Storing and Loading Machine Speed Data
+
+Data stored in ~MachineSpeedFactor(X,Y)~ can be written to and read from disk using writeMachineSpeedFactor/0~ and
+~readMachineSpeedFactor/0~. At the optimizer's startup, the file ~storedMachineSpeedFactor.pl~ will be consulted to
+retrieve a saved machineSpeedFactor.
+
+*/
+
+readMachineSpeedFactor :-
+  retractall(storedMachineSpeedFactor(_, _)),
+  [storedMachineSpeedFactor].
+
+writeMachineSpeedFactor :-
+  open('storedMachineSpeedFactor.pl', write, FD),
+  write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
+  storedMachineSpeedFactor(X, Y),
+  write(FD, storedMachineSpeedFactor(X, Y)),
+  write(FD, '.\n'),
+  close(FD).
+
+:-  dynamic(storedMachineSpeedFactor/2).
+:-  at_halt(writeMachineSpeedFactor).
+:-  readMachineSpeedFactor.
+:-  setMachineSpeedFactor.
 
 
 

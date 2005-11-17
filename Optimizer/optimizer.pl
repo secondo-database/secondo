@@ -1605,7 +1605,7 @@ writePlanEdges :- not(writePlanEdges2).
 
 
 /*
-7 Assigning Sizes and Selectivities to the Nodes and Edges of the POG
+7 Assigning Sizes, Selectivities and Predictate Costs to the Nodes and Edges of the POG
 
 ----    assignSizes.
         deleteSizes.
@@ -1638,7 +1638,8 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
   selectivity(Pred, Sel),
   Size is Card * Sel,
   setNodeSize(Result, Size),
-  assert(edgeSelectivity(Source, Target, Sel)),
+  predicateCost(Pred, PredCost),
+  assert(edgeSelectivity(Source, Target, Sel, PredCost)),
   !.
   
 
@@ -1648,7 +1649,8 @@ assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   selectivity(Pred, Sel),
   Size is Card1 * Card2 * Sel,
   setNodeSize(Result, Size),
-  assert(edgeSelectivity(Source, Target, Sel)),
+  predicateCost(Pred, PredCost),
+  assert(edgeSelectivity(Source, Target, Sel, PredCost)),
   !.
 
 
@@ -1680,7 +1682,7 @@ resSize(res(N), Size) :- resultSize(N, Size), !.
 ----    writeSizes :-
 ----
 
-Write sizes and selectivitiess.
+Write sizes, selectivities and predicate costs.
 
 */
 
@@ -1690,10 +1692,11 @@ writeSize :-
   write('Size: '), write(Size), nl, nl,
   fail.
 writeSize :-
-  edgeSelectivity(Source, Target, Sel),
+  edgeSelectivity(Source, Target, Sel, PredCost),
   write('Source: '), write(Source), nl,
   write('Target: '), write(Target), nl,
-  write('Selectivity: '), write(Sel), nl, nl,
+  write('Selectivity: '), write(Sel), nl, 
+  write('Predicate cost: '), write(PredCost), nl, nl,
   fail.
 writeSizes :- not(writeSize).
 
@@ -1706,7 +1709,7 @@ Delete node sizes and selectivities of edges.
 */
 
 deleteSize :- retract(resultSize(_, _)), fail.
-deleteSize :- retract(edgeSelectivity(_, _, _)), fail.
+deleteSize :- retract(edgeSelectivity(_, _, _, _)), fail.
 deleteSizes :- not(deleteSize).
 
 
@@ -1715,25 +1718,26 @@ deleteSizes :- not(deleteSize).
 
 8.1 The Costs of Terms
 
-----    cost(Term, Sel, Size, Cost) :-
+----    cost(Term, Sel, Size, PredCost, Cost) :-
 ----
 
-The cost of an executable ~Term~ representing a predicate with selectivity ~Sel~ 
-is ~Cost~ and the size of the result is ~Size~.
+The cost of an executable ~Term~ representing a predicate with selectivity ~Sel~
+and predicate cost ~PredCost~ is ~Cost~ and the size of the result is ~Size~.
 
 This is evaluated recursively descending into the term. When the operator
 realizing the predicate (e.g. ~filter~) is encountered, the selectivity ~Sel~ is
-used to determine the size of the result.
-It is assumed that only a single operator of this kind occurs within the term.
+used to determine the size of the result. The cost for a single evaluation 
+of that predicate ~PedCost~ is taken into account when estimating the total 
+cost. It is assumed that only a single operator of this kind occurs within the term.
 
 8.1.1 Arguments
 
 */
 
-cost(rel(Rel, _, _), _, Size, 0) :-
+cost(rel(Rel, _, _), _, Size, _, 0) :-
   card(Rel, Size).
 
-cost(res(N), _, Size, 0) :-
+cost(res(N), _, Size, _, 0) :-
   resultSize(N, Size).
 
 /*
@@ -1741,8 +1745,8 @@ cost(res(N), _, Size, 0) :-
 
 */
 
-cost(feed(X), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(feed(X), Sel, S, PredCost, C) :-
+  cost(X, Sel, S, PredCost, C1),
   feedTC(A),
   C is C1 + A * S.
 
@@ -1752,32 +1756,32 @@ be determined in experiments. These constants are kept in file ``Operators.pl''.
 
 */
 
-cost(consume(X), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(consume(X), Sel, S, PredCost, C) :-
+  cost(X, Sel, S, PredCost, C1),
   consumeTC(A),
   C is C1 + A * S.
 
-cost(filter(X, _), Sel, S, C) :-
-  cost(X, 1, SizeX, CostX),
+cost(filter(X, _), Sel, S, PredCost, C) :-
+  cost(X, 1, SizeX, PredCost, CostX),
   filterTC(A),
   S is SizeX * Sel,
-  C is CostX + A * SizeX.
+  C is CostX + ( A + PredCost) * SizeX.
 
-cost(product(X, Y), _, S, C) :-
-  cost(X, 1, SizeX, CostX),
-  cost(Y, 1, SizeY, CostY),
+cost(product(X, Y), _, S, PredCost, C) :-
+  cost(X, 1, SizeX, PredCost, CostX),
+  cost(Y, 1, SizeY, PredCost, CostY),
   productTC(A, B),
   S is SizeX * SizeY,
   C is CostX + CostY + SizeY * B + S * A.
 
-cost(leftrange(_, Rel, _), Sel, Size, Cost) :-
-  cost(Rel, 1, RelSize, _),
+cost(leftrange(_, Rel, _), Sel, Size, PredCost, Cost) :-
+  cost(Rel, 1, RelSize, PredCost, _),
   leftrangeTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
 
-cost(rightrange(_, Rel, _), Sel, Size, Cost) :-
-  cost(Rel, 1, RelSize, _),
+cost(rightrange(_, Rel, _), Sel, Size, PredCost, Cost) :-
+  cost(Rel, 1, RelSize, PredCost, _),
   leftrangeTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
@@ -1796,27 +1800,27 @@ input stream arrives, it is also possible to estimate the
 overall index join cost.
 
 */
-cost(exactmatchfun(_, Rel, _), Sel, Size, Cost) :-
-  cost(Rel, 1, RelSize, _),
+cost(exactmatchfun(_, Rel, _), Sel, Size, PredCost, Cost) :-
+  cost(Rel, 1, RelSize, PredCost, _),
   exactmatchTC(C),
   Size is Sel * RelSize,
-  Cost is Sel * RelSize * C.
+  Cost is Sel * RelSize * (C + PredCost).
 
-cost(exactmatch(_, Rel, _), Sel, Size, Cost) :-
-  cost(Rel, 1, RelSize, _),
+cost(exactmatch(_, Rel, _), Sel, Size, PredCost, Cost) :-
+  cost(Rel, 1, RelSize, PredCost, _),
   exactmatchTC(C),
   Size is Sel * RelSize,
-  Cost is Sel * RelSize * C.
+  Cost is Sel * RelSize * (C + PredCost).
 
-cost(loopjoin(X, Y), Sel, S, Cost) :-
-  cost(X, 1, SizeX, CostX),
-  cost(Y, Sel, SizeY, CostY),
+cost(loopjoin(X, Y), Sel, S, PredCost, Cost) :-
+  cost(X, 1, SizeX, PredCost, CostX),
+  cost(Y, Sel, SizeY, PredCost, CostY),
   S is SizeX * SizeY,
   loopjoinTC(C),
-  Cost is C * SizeX + CostX + SizeX * CostY.
+  Cost is C * SizeX + CostX + SizeX * CostY.  % PredCost still not considered here!
 
-cost(fun(_, X), Sel, Size, Cost) :-
-  cost(X, Sel, Size, Cost).
+cost(fun(_, X), Sel, Size, PredCost, Cost) :-
+  cost(X, Sel, Size, PredCost, Cost).
 
 
 
@@ -1833,65 +1837,115 @@ hashing was always ten or more times smaller than the cost
 of computing products of buckets. Therefore that term
 was considered unnecessary.
 
+New estimation of hashjopin costs:
+
+INPUT:
+  A: cost to insert a tuple into hash table
+  B: cost to compare tuples on equality
+  C: cost to create a result tuple f(Tx + Ty)
+  D: cost to write/read a tuple in/from an in-memory array
+  E: cost to write/read a tuple in/from an on-disk array
+  #X: Size of relation X
+  #Y: Size of relation Y
+  Tx: Tuplesize of relation X
+  Ty: Tuplesize of relation Y
+  S:  Selectivity
+  MaxMem: Maximum memory for hashjoin operator
+  NBuckets: Number of buckets in hash table
+--------
+  MemSizeX = 0.25*MaxMem 
+  MemSizeY = 0.75*MaxMem
+--------
+
+1. case: Both argument relation X,Y fit into memory
+      
+Cost = 
+         cost(X)+cost(Y)                          % create input streams
+       + A * #X                                   % inserting pointers to X into hash table
+       + B * #X * (#Y/NBuckets+1)                 % collide pairs from twin-buckets
+       + C * S * #X * #Y                          % create result tuples
+
+2. case: X fits in memory, but Y does not
+
+Cost =
+         cost(X)+cost(Y)                          % create input streams
+       + A * #Y                                   % insert pointers to X into hash table
+       + B * #X * (MemsizeY/(Tx * NBuckets) * (#Y/Memsize+1) % collide pairs 
+       + D * #X * (#Y/Memsize+1)                  % 
+       + C * S * #X * #Y                          % create result tuples
+
+3. case: X does not fit in memory, but Y does
+  
+   (just like 2. case)
+
+4. case: neither X, nor Y fit in memory
+
+Cost =
+         cost(X)+cost(Y)                          % create input streams
+       + A * #Y                                   % insert pointers to Y in has table
+       + B * #X * (Memsize/NBuckets) * #Y/Memsize % collide
+       + E * #X * #Y/Memsize                      % 
+       + C * S * #X * #Y                          % create result tuples
+
 */
-cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, C) :-
-  cost(X, 1, SizeX, CostX),
-  cost(Y, 1, SizeY, CostY),
+cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, PredCost, C) :-
+  cost(X, 1, SizeX, PredCost, CostX),
+  cost(Y, 1, SizeY, PredCost, CostY),
   hashjoinTC(A, B),
   S is SizeX * SizeY * Sel,
   C is CostX + CostY +                                  % producing the arguments
-    A * NBuckets * (SizeX/NBuckets + 1) *               % computing the product for each
+    (A + PredCost) * NBuckets * (SizeX/NBuckets + 1) *  % computing the product for each
       (SizeY/NBuckets +1) +                             % pair of buckets
     B * S.                                              % producing the result tuples
 
 
-cost(sortmergejoin(X, Y, _, _), Sel, S, C) :-
-  cost(X, 1, SizeX, CostX),
-  cost(Y, 1, SizeY, CostY),
+cost(sortmergejoin(X, Y, _, _), Sel, S, PredCost, C) :-
+  cost(X, 1, SizeX, PredCost, CostX),
+  cost(Y, 1, SizeY, PredCost, CostY),
   sortmergejoinTC(A, B),
   S is SizeX * SizeY * Sel,
   C is CostX + CostY +                          % producing the arguments
     A * SizeX * log(SizeX + 1) +                % sorting the arguments
     A * SizeY * log(SizeY + 1) +                %   individual cost of ordering predicate still not applied!
-    B * S.                                      % parallel scan of sorted relations
+    (B + PredCost) * S.                         % parallel scan of sorted relations
 
 
 /* 
    Simple costs estimation for ~symmjoin~
 
 */
-cost(symmjoin(X, Y, _), Sel, S, C) :-
-  cost(X, 1, SizeX, CostX),
-  cost(Y, 1, SizeY, CostY),
+cost(symmjoin(X, Y, _), Sel, S, PredCost, C) :-
+  cost(X, 1, SizeX, PredCost, CostX),
+  cost(Y, 1, SizeY, PredCost, CostY),
   symmjoinTC(A, B),                     % fetch relative costs
   S is SizeX * SizeY * Sel,             % calculate size of result
   C is CostX + CostY +                  % cost to produce the arguments
-    A * (SizeX * SizeY) +               % cost to handle buffers and collision
+    (A + PredCost) * (SizeX * SizeY) +  % cost to handle buffers and collision
     B * S.                              % cost to produce result tuples
 
-cost(extend(X, _), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(extend(X, _), Sel, S, PredCost, C) :-
+  cost(X, Sel, S, PredCost, C1),
   extendTC(A),
   C is C1 + A * S.
 
-cost(remove(X, _), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(remove(X, _), Sel, S, PredCost, C) :-
+  cost(X, Sel, S, PredCost, C1),
   removeTC(A),
   C is C1 + A * S.
 
-cost(project(X, _), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(project(X, _), Sel, S, PredCost, C) :-
+  cost(X, Sel, S, PredCost, C1),
   projectTC(A),
   C is C1 + A * S.
 
-cost(rename(X, _), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(rename(X, _), Sel, S, PredCost, C) :-
+  cost(X, Sel, S, PredCost, C1),
   renameTC(A),
   C is C1 + A * S.
 
 %fapra1590
-cost(windowintersects(_, Rel, _), Sel, Size, Cost) :-
-  cost(Rel, 1, RelSize, _),
+cost(windowintersects(_, Rel, _), Sel, Size, PredCost, Cost) :-
+  cost(Rel, 1, RelSize, PredCost, _),
   windowintersectsTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
@@ -1904,8 +1958,8 @@ These are plan edges extended by a cost measure.
 
 createCostEdge :-
   planEdge(Source, Target, Term, Result),
-  edgeSelectivity(Source, Target, Sel),
-  cost(Term, Sel, Size, Cost),
+  edgeSelectivity(Source, Target, Sel, PredCost),
+  cost(Term, Sel, Size, PredCost, Cost),
   assert(costEdge(Source, Target, Term, Result, Size, Cost)),
   fail.
 

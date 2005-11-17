@@ -382,6 +382,31 @@ selectivity(P, _) :- write('Error in optimizer: cannot find selectivity for '),
 
 /*
 
+An enhanced version of the ~selectivity~ predicate, that shall improve the estimation
+of predicate costs.
+
+Mode of operation:
+
+- When the optimizer gets started for the first time, a ~MachineSpeedFactor~ is 
+calculated by sending queries to the system and relating the query time to that 
+used on a reference system. The factor is stored in a constant and saved to disc 
+for later use.
+
+- All CPU- and READ/WRITE costs in cost functions are scaled according to the ~MachineSpeedFactor~.
+
+- General costs for operations like reading/writing relations from/to disc, are estimated by 
+  cost functions, buffer sizes, tuple sizes, regarding system speed.
+
+- PredicateCost is estimated by running a query on a sample and measuring query time. 
+  Overhead for reading/writing and passing relations and tuples are considered before
+  calculating the cost of a single predicate evaluation.
+
+*/
+
+
+
+/*
+
 The selectivities retrieved via Secondo queries can be loaded
 (by calling ~readStoredSels~) and stored (by calling
 ~writeStoredSels~).
@@ -475,6 +500,30 @@ writePET :-
   write(Y),
   write(' ms\n').
 
+/* 
+
+----  predicateCost(Pred,Cost)
+----
+
+Unifies ~Cost~ with the estimated cost per predicate ~Pred~.
+
+*/
+
+predicateCost(Pred,Cost) :-
+  !, 
+  simplePred(Pred, PSimple),
+  storedPET(PSimple, Cost).
+
+predicateCost(Pred, Cost) :- 
+  !,
+  simplePred(Pred, PSimple),
+  commute(PSimple, PSC),
+  storedPET(PSC, Cost).
+
+predicateCost(Pred, _) :-
+  nl, write('Error in Optimizer: predicateCost/2 failed for '),
+  write(Pred),
+  fail.
 
 /*
 1.5 Examples
