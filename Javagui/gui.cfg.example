@@ -18,7 +18,8 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 # set the name of Secondo-Server
-SERVERNAME localhost
+# set to "localhost" 
+SERVERNAME 127.0.0.1
 
 # set the port address of Secondo-Server
 SERVERPORT 1234
