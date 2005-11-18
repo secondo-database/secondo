@@ -68,10 +68,33 @@ renameTC(0.1).
 
 windowintersectsTC(0.1).
 
+/*
+2 Properties For Certain Operators
+
+Several operators, like geometric predicates who use bounding boxes, have properties, that
+require them to be handle differently in some ways.
 
 
+*/
 
-
+isBBoxOperator(intersects).
+isBBoxOperator(inside).
+isBBoxOperator(insideold).
+isBBoxOperator(touches).
+isBBoxOperator(attached).
+isBBoxOperator(overlaps).
+isBBoxOperator(onborder).
+isBBoxOperator(ininterior).
+isBBoxOperator(touchpoints).
+isBBoxOperator(commonborder).
+isBBoxOperator(commonborderscan).
+%isBBoxOperator(minus).
+%isBBoxOperator(union).
+%isBBoxOperator(crossings).
+%isBBoxOperator(distance).
+%isBBoxOperator(direction).
+%isBBoxOperator(insidepathlength).
+%isBBoxOperator(insidescanned).
 
 
 

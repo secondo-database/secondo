@@ -223,6 +223,27 @@ dynamicCardQuery(Pred, Rel1, Rel2, Query) :-
   Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
 
 /*
+~getSelectivityDivisor(Pred, ResultSize, QuerySize, Divisor)~ 
+is used to detremine the divisor within the ~selectivity~ predicates.
+
+It unifies ~Divisor~ with ~ResultSize~ when ~osBBoxOperator(Pred)~ holds
+and ~QuerySize~ otherwise.
+
+*/
+
+getSelectivityDivisor(Pred, ResultSize, _, ResultSize) :-
+  compound(Pred),
+  functor(Pred, T, _),
+  isBBoxOperator(T),
+  nl, write('BBox-Predicate: '), write(Pred), nl,
+  !.
+
+getSelectivityDivisor(Pred, _, QuerySize, QuerySize) :- 
+  nl, write('Ordinary predicate: '), write(Pred), nl,
+  !.
+
+
+/*
   % the first two clauses for sels/2 are needed for using hard coded 
   % selectivities. Since these cause problems with non-existing 
   % predicate cost, they should be omitted.
@@ -294,7 +315,8 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   write('Elapsed Time: '),
   write(MSs),
   write(' ms'),nl, 
-  MSsRes is MSs / (SampleCard1 * SampleCard2), 
+  getSelectivityDivisor(Pred, ResCard, (SampleCard1 * SampleCard2), Divisor),
+  MSsRes is MSs / Divisor, 
   Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
   write('Predicate Cost: '),
   write(MSsRes),
@@ -324,12 +346,13 @@ selectivity(pr(Pred, Rel), Sel) :-
   MSs is Minute *60000 + Sec*1000 + MilliSec,
   write('Elapsed Time: '),
   write(MSs),
-  write(' ms'),nl,
-  MSsRes is MSs / SampleCard,
+  write(' ms'), nl,
+  getSelectivityDivisor(Pred, ResCard, SampleCard, Divisor),
+  MSsRes is MSs / Divisor,
   Sel is (ResCard + 1)/ SampleCard,		% must not be 0
   write('Predicate Cost: '),
   write(MSsRes),
-  write(' ms'),nl,
+  write(' ms'), nl,
   write('Selectivity : '),
   write(Sel),
   nl,
@@ -357,6 +380,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   nl,
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
   assert(storedSel(PSimple, Sel)),
+  nl, write('WARNING: selectivity(pr(Pred, Rel1, Rel2), Sel): deprecated clause1 used!'), nl,
   !.
 
 selectivity(pr(Pred, Rel), Sel) :-
@@ -375,35 +399,11 @@ selectivity(pr(Pred, Rel), Sel) :-
   nl,
   simplePred(pr(Pred, Rel), PSimple),
   assert(storedSel(PSimple, Sel)),
+  nl, write('WARNING: selectivity(pr(Pred, Rel1, Rel2), Sel): deprecated clause2 used!'), nl,
   !.
 
 selectivity(P, _) :- write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl, fail.
-
-/*
-
-An enhanced version of the ~selectivity~ predicate, that shall improve the estimation
-of predicate costs.
-
-Mode of operation:
-
-- When the optimizer gets started for the first time, a ~MachineSpeedFactor~ is 
-calculated by sending queries to the system and relating the query time to that 
-used on a reference system. The factor is stored in a constant and saved to disc 
-for later use.
-
-- All CPU- and READ/WRITE costs in cost functions are scaled according to the ~MachineSpeedFactor~.
-
-- General costs for operations like reading/writing relations from/to disc, are estimated by 
-  cost functions, buffer sizes, tuple sizes, regarding system speed.
-
-- PredicateCost is estimated by running a query on a sample and measuring query time. 
-  Overhead for reading/writing and passing relations and tuples are considered before
-  calculating the cost of a single predicate evaluation.
-
-*/
-
-
 
 /*
 
@@ -500,30 +500,6 @@ writePET :-
   write(Y),
   write(' ms\n').
 
-/* 
-
-----  predicateCost(Pred,Cost)
-----
-
-Unifies ~Cost~ with the estimated cost per predicate ~Pred~.
-
-*/
-
-predicateCost(Pred,Cost) :-
-  !, 
-  simplePred(Pred, PSimple),
-  storedPET(PSimple, Cost).
-
-predicateCost(Pred, Cost) :- 
-  !,
-  simplePred(Pred, PSimple),
-  commute(PSimple, PSC),
-  storedPET(PSC, Cost).
-
-predicateCost(Pred, _) :-
-  nl, write('Error in Optimizer: predicateCost/2 failed for '),
-  write(Pred),
-  fail.
 
 /*
 1.5 Examples
