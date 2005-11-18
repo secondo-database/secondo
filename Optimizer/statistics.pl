@@ -122,7 +122,7 @@ simplePred(X, _) :- throw(X).
 
 /*
 
-1.4 Retrieving, Storing, and Loading Selectivities
+1.4 Retrieving, Storing, and Loading Selectivities and Predicate Costs
 
 Auxiliary predicates for ~selectivity~.
 
@@ -500,6 +500,28 @@ writePET :-
   write(Y),
   write(' ms\n').
 
+
+/*
+ ~predicateCost(Pred, PredCost)~ unifies ~PredCost~ with the cost for
+ evaluating the  predicate ~Pred~ once.
+ 
+*/
+
+predicateCost(Pred, PredCost) :-
+  simplePred(Pred, SPred),
+  storedPET(SPred, PredCost),
+  !.
+
+predicateCost(Pred, PredCost) :-
+  simplePred(Pred, SPred),
+  commute(SPred, CPred),
+  storedPET(CPred, PredCost),
+  !.
+
+predicateCost( Pred, _) :-
+  nl, write('ERROR in optimizer: predicateCost('), 
+  write(Pred), write(') failed.'), nl,
+  fail.
 
 /*
 1.5 Examples
