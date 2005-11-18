@@ -224,21 +224,24 @@ dynamicCardQuery(Pred, Rel1, Rel2, Query) :-
 
 /*
 ~getSelectivityDivisor(Pred, ResultSize, QuerySize, Divisor)~ 
-is used to detremine the divisor within the ~selectivity~ predicates.
+is used to determine the divisor within the ~selectivity~ predicates. 
 
 It unifies ~Divisor~ with ~ResultSize~ when ~osBBoxOperator(Pred)~ holds
-and ~QuerySize~ otherwise.
+and ~QuerySize~ otherwise. To avoid division by zero exceptions, ~Divisor~ 
+is at least 1.
 
 */
 
-getSelectivityDivisor(Pred, ResultSize, _, ResultSize) :-
+getSelectivityDivisor(Pred, ResultSize, _, Divisor) :-
   compound(Pred),
   functor(Pred, T, _),
   isBBoxOperator(T),
+  Divisor is max(ResultSize, 1),
   nl, write('BBox-Predicate: '), write(Pred), nl,
   !.
 
-getSelectivityDivisor(Pred, _, QuerySize, QuerySize) :- 
+getSelectivityDivisor(Pred, _, QuerySize, Divisor) :- 
+  Divisor is max(QuerySize, 1),
   nl, write('Ordinary predicate: '), write(Pred), nl,
   !.
 
@@ -317,7 +320,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   write(' ms'),nl, 
   getSelectivityDivisor(Pred, ResCard, (SampleCard1 * SampleCard2), Divisor),
   MSsRes is MSs / Divisor, 
-  Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
+  Sel is max(ResCard,1) / (SampleCard1 * SampleCard2),	% must not be 0
   write('Predicate Cost: '),
   write(MSsRes),
   write(' ms'),nl,
@@ -349,7 +352,7 @@ selectivity(pr(Pred, Rel), Sel) :-
   write(' ms'), nl,
   getSelectivityDivisor(Pred, ResCard, SampleCard, Divisor),
   MSsRes is MSs / Divisor,
-  Sel is (ResCard + 1)/ SampleCard,		% must not be 0
+  Sel is max(ResCard,1)/ SampleCard,		% must not be 0
   write('Predicate Cost: '),
   write(MSsRes),
   write(' ms'), nl,
@@ -373,12 +376,23 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   atom_concat('query ', QueryAtom1, QueryAtom),
   %write('selectivity query : '),
   %write(QueryAtom),
+  get_time(Time1),
   secondo(QueryAtom, [int, ResCard]),
-  Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
+  get_time(Time2),
+  Time is Time2 - Time1,
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  MSs is Minute *60000 + Sec*1000 + MilliSec,
+  write('Elapsed Time: '),
+  write(MSs),
+  write(' ms'),nl, 
+  getSelectivityDivisor(Pred, ResCard, (SampleCard1 * SampleCard2), Divisor),
+  MSsRes is MSs / Divisor, 
+  Sel is max(ResCard,1) / (SampleCard1 * SampleCard2),	% must not be 0
   write('Selectivity : '),
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
+  assert(storedPET(PSimple, MSsRes)),
   assert(storedSel(PSimple, Sel)),
   nl, write('WARNING: selectivity(pr(Pred, Rel1, Rel2), Sel): deprecated clause1 used!'), nl,
   !.
@@ -392,12 +406,23 @@ selectivity(pr(Pred, Rel), Sel) :-
   atom_concat('query ', QueryAtom1, QueryAtom),
   %write('selectivity query : '),
   %write(QueryAtom),
+  get_time(Time1),
   secondo(QueryAtom, [int, ResCard]),
-  Sel is (ResCard + 1)/ SampleCard,		% must not be 0
+  get_time(Time2),
+  Time is Time2 - Time1,
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  MSs is Minute *60000 + Sec*1000 + MilliSec,
+  write('Elapsed Time: '),
+  write(MSs),
+  write(' ms'), nl,
+  getSelectivityDivisor(Pred, ResCard, SampleCard, Divisor),
+  MSsRes is MSs / Divisor,
+  Sel is max(ResCard,1)/ SampleCard,		% must not be 0
   write('Selectivity : '),
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel), PSimple),
+  assert(storedPET(PSimple, MSsRes)),
   assert(storedSel(PSimple, Sel)),
   nl, write('WARNING: selectivity(pr(Pred, Rel1, Rel2), Sel): deprecated clause2 used!'), nl,
   !.
