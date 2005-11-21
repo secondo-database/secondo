@@ -262,4 +262,4 @@ NGlibs/VCexcept.o: libsrc/include/winlibsVC/except.cpp
 .PHONY: clean
 
 clean:
-	cd NGlibs; rm *.o
+	cd NGlibs; rm -f *.o
