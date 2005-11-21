@@ -112,12 +112,12 @@ public class ROSEAlgebra {
     
     
     public static boolean ll_equal (Lines l1, Lines l2) {
-	return SetOps.equal(SupportOps.minimal(l1.segset,true,false),SupportOps.minimal(l2.segset,true,false));
+	return SetOps.equal(SupportOps.minimal(l1.segset,true,false,false),SupportOps.minimal(l2.segset,true,false,false));
     }//end method ll_equal
     
 
     public static boolean rr_equal (Regions r1, Regions r2) {	
-	return ll_equal(new Lines(SupportOps.contour(r1.triset)),new Lines(SupportOps.contour(r2.triset)));
+	return ll_equal(new Lines(SupportOps.contour(r1.triset,true,false)),new Lines(SupportOps.contour(r2.triset,true,false)));
     }//end method rr_equal
 
    
@@ -219,8 +219,8 @@ public class ROSEAlgebra {
     
     public static boolean rr_edge_inside (Regions r1, Regions r2) {
 	//returns true if r1 is edge_inside of r2
-	SegMultiSet r1contour = SupportOps.contour(r1.triset);
-	SegMultiSet r2contour = SupportOps.contour(r2.triset);
+	SegMultiSet r1contour = SupportOps.contour(r1.triset,true,false);
+	SegMultiSet r2contour = SupportOps.contour(r2.triset,true,false);
 	return lr_inside(new Lines(r1contour),r2) &&
 	    !ll_border_in_common(new Lines(r1contour), new Lines(r2contour));
     }//end method rr_edge_inside
@@ -253,7 +253,7 @@ public class ROSEAlgebra {
 	PointMultiSet retSet = null;
 	
 	try {
-	    retSet = PointMultiSet.convert(SetOps.rdup(SetOps.proj1(SetOps.overlapJoin(insidePoints,SupportOps.contour(r1.triset),methodLIESON,true,true,true,1))));
+	    retSet = PointMultiSet.convert(SetOps.rdup(SetOps.proj1(SetOps.overlapJoin(insidePoints,SupportOps.contour(r1.triset,true,false),methodLIESON,true,true,true,1))));
 	} catch
 	    (Exception EarlyExit) {
 	    return false;
@@ -369,7 +369,7 @@ public class ROSEAlgebra {
 
  	try {
 	    Method methodOVERLAP = SS_OPS_CLASS.getMethod("overlap",PARAMLIST_SS);
-	    retSet = SetOps.overlapJoin(l.segset,SupportOps.contour(r.triset),methodOVERLAP,true,true,false,0);
+	    retSet = SetOps.overlapJoin(l.segset,SupportOps.contour(r.triset,true,false),methodOVERLAP,true,true,false,0);
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.exit(0);
@@ -387,7 +387,7 @@ public class ROSEAlgebra {
 
     
     public static boolean rr_border_in_common (Regions r1, Regions r2) {
-	return ll_border_in_common(new Lines(SupportOps.contour(r1.triset)),new Lines(SupportOps.contour(r2.triset)));
+	return ll_border_in_common(new Lines(SupportOps.contour(r1.triset,true,false)),new Lines(SupportOps.contour(r2.triset,true,false)));
     }//end method rr_border_in_common
     
 
@@ -467,7 +467,7 @@ public class ROSEAlgebra {
 	try {
 	    Method methodLIESON = PS_OPS_CLASS.getMethod("liesOn",PARAMLIST_PS);
 	    try {
-		retSet = PointMultiSet.convert(SetOps.rdup(SetOps.proj1(SetOps.overlapJoin(p.pointset,SupportOps.contour(r.triset),methodLIESON,true,true,true,1))));
+		retSet = PointMultiSet.convert(SetOps.rdup(SetOps.proj1(SetOps.overlapJoin(p.pointset,SupportOps.contour(r.triset,true,false),methodLIESON,true,true,true,1))));
 	    } catch (Exception EarlyExit) {
 		return false; 
 	    }//catch
@@ -524,7 +524,7 @@ public class ROSEAlgebra {
 	    Method methodPINTERSECTS = ST_OPS_CLASS.getMethod("pintersects",PARAMLIST_ST);
 	    Method methodINTERSECTION = ST_OPS_CLASS.getMethod("intersection",PARAMLIST_ST);
 	    
-	    retSet = SupportOps.minimal(SegMultiSet.convert(SetOps.map(SetOps.overlapJoin(l.segset,r.triset,methodPINTERSECTS,true,true,false,0),methodINTERSECTION)),true,true);
+	    retSet = SupportOps.minimal(SegMultiSet.convert(SetOps.map(SetOps.overlapJoin(l.segset,r.triset,methodPINTERSECTS,true,true,false,0),methodINTERSECTION)),true,true,false);
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.exit(0);
@@ -592,13 +592,94 @@ public class ROSEAlgebra {
 
     public static Regions rr_plus (Regions r1, Regions r2) {
 	MeshGenerator myMG = new MeshGenerator();
-	myMG.GENERATOR = "Triangle";
+	//myMG.GENERATOR = "Triangle";
+	myMG.GENERATOR = "NetGen";
+
+	TriMultiSet tmp = new TriMultiSet(new TriangleComparator());
+	/* Ex 1
+	   tmp.add(new Triangle(new Point(1,1), new Point(1,2), new Point(2,1)));
+	   tmp.add(new Triangle(new Point(1,2), new Point(2,1), new Point(2,2)));
+	*/
+	/* Ex 2 
+	   tmp.add(new Triangle(new Point(1,1), new Point(1,2), new Point(1.5,1.5)));
+	   tmp.add(new Triangle(new Point(1,1), new Point(2,1), new Point(1.5,1.5)));
+	   tmp.add(new Triangle(new Point(1,2), new Point(1.5,1.5), new Point(1.5,2)));
+	   tmp.add(new Triangle(new Point(1.5,1.5), new Point(2,1.5), new Point(2,1)));
+	*/
+	/* Ex 3
+	   tmp.add(new Triangle(new Point(1,1), new Point(2,2.5), new Point(2.5,1)));
+	   tmp.add(new Triangle(new Point(2.5,1), new Point(4,2.5), new Point(4.5,1)));
+	   tmp.add(new Triangle(new Point(2,2.5), new Point(3,4.5), new Point(4,2.5)));
+	*/
+	/* Ex 4 
+	tmp.add(new Triangle(new Point(1.5,0.5), new Point(3,2.5), new Point(4.5,0.5)));
+	tmp.add(new Triangle(new Point(1.5,0.5), new Point(1.5,3.5), new Point(3,2.5)));
+	tmp.add(new Triangle(new Point(3,2.5), new Point(3,4), new Point(4.5,4)));
+	tmp.add(new Triangle(new Point(3,2.5), new Point(4.5,4), new Point(4.5,0.5)));
+	*/
+	/* Ex 5 
+	   tmp.add(new Triangle(new Point(2,1), new Point(2,5), new Point(3,4)));
+	   tmp.add(new Triangle(new Point(2,1), new Point(4,1), new Point(3,4)));
+	   tmp.add(new Triangle(new Point(2,5), new Point(3,4), new Point(6,5)));
+	   tmp.add(new Triangle(new Point(4,1), new Point(5,3), new Point(6,1)));
+	   tmp.add(new Triangle(new Point(6,1), new Point(5,3), new Point(6,5)));
+	   tmp.add(new Triangle(new Point(3,4), new Point(5,3), new Point(6,5)));
+	*/
+	/* Ex 6 
+	   tmp.add(new Triangle(new Point(4,3), new Point(4,4), new Point(5,4)));
+	   tmp.add(new Triangle(new Point(4,3), new Point(5,3), new Point(5,4)));
+	   tmp.add(new Triangle(new Point(5,6), new Point(6,6), new Point(6,5)));
+	   tmp.add(new Triangle(new Point(5,6), new Point(5,5), new Point(6,5)));
+	   tmp.add(new Triangle(new Point(9,3), new Point(9,2), new Point(11,2)));
+	   tmp.add(new Triangle(new Point(9,3), new Point(11,3), new Point(11,2)));
+	   tmp.add(new Triangle(new Point(11,4), new Point(11,5), new Point(12,5)));
+	   tmp.add(new Triangle(new Point(11,4), new Point(12,4), new Point(12,5)));
+	   
+	   r1.triset = tmp;
+	*/
+	TriMultiSet tmp2 = new TriMultiSet(new TriangleComparator());
+	/* Ex 1 
+	   tmp2.add(new Triangle(new Point(2,2), new Point(2,3), new Point(3,2)));
+	   tmp2.add(new Triangle(new Point(3,3), new Point(2,3), new Point(3,2)));
+	*/
+	/* Ex 2
+	   tmp2.add(new Triangle(new Point(1.5,2), new Point(1.5,2.5), new Point(2,2)));
+	   tmp2.add(new Triangle(new Point(2,2), new Point(2,1.5), new Point(2.5,1.5)));
+	   tmp2.add(new Triangle(new Point(1.5,2.5), new Point(2,2), new Point(2.5,2.5)));
+	   tmp2.add(new Triangle(new Point(2.5,2.5), new Point(2,2), new Point(2.5,1.5)));
+	*/
+	/* Ex 3 
+	   tmp2.add(new Triangle(new Point(4,2.5), new Point(5.5,4.5), new Point(6,2.5)));
+	   tmp2.add(new Triangle(new Point(4.5,1), new Point(6,2.5), new Point(6,1)));
+	*/
+	/* Ex 4 
+	tmp2.add(new Triangle(new Point(1,5), new Point(1.5,3.5), new Point(3,4)));
+	*/
+	/* Ex 5
+	   tmp2.add(new Triangle(new Point(6,5), new Point(6,7), new Point(8,5)));
+	   tmp2.add(new Triangle(new Point(8,5), new Point(9,7), new Point(10,5)));
+	   tmp2.add(new Triangle(new Point(9,7), new Point(10,5), new Point(10,9)));
+	   tmp2.add(new Triangle(new Point(9,7), new Point(8,8), new Point(10,9)));
+	   tmp2.add(new Triangle(new Point(6,7), new Point(8,8), new Point(6,9)));
+	   tmp2.add(new Triangle(new Point(6,9), new Point(8,8), new Point(10,9)));
+	*/
+	/* Ex 6
+	   tmp2.add(new Triangle(new Point(1,5), new Point(1,7), new Point(3,7)));
+	   tmp2.add(new Triangle(new Point(1,5), new Point(3,5), new Point(3,7)));
+	   tmp2.add(new Triangle(new Point(9,1), new Point(10,1), new Point(9,2)));
+	   tmp2.add(new Triangle(new Point(9,2), new Point(10,2), new Point(10,1)));
+	   tmp2.add(new Triangle(new Point(9,3), new Point(11,3), new Point(11,5)));
+	   tmp2.add(new Triangle(new Point(9,3), new Point(9,5), new Point(11,5)));
+	   
+	   r2.triset = tmp2;
+	*/
+
 	/*
 	  BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
 	  DisplayGFX gfx = new DisplayGFX();
 	  gfx.initWindow();
-	  gfx.addSet(r1.triset);
-	  gfx.addSet(r2.triset);
+	  gfx.addSet(SupportOps.contourGeneral(r1.triset,true,true,false,true,true));
+	  gfx.addSet(SupportOps.contourGeneral(r2.triset,true,true,false,true,true));
 	  gfx.showIt(false);
 	  try { String data = inBR.readLine();
 	  } catch (Exception e) {
@@ -607,23 +688,13 @@ public class ROSEAlgebra {
 	  gfx.kill();
 	*/
 
-	/*
-	TriMultiSet tmp = new TriMultiSet(new TriangleComparator());
-	tmp.add(new Triangle(new Point(1,1), new Point(2,1), new Point(1,2)));
-	tmp.add(new Triangle(new Point(2,1), new Point(2,2), new Point(1,2)));
-	r1.triset = tmp;
-	TriMultiSet tmp2 = new TriMultiSet(new TriangleComparator());
-	tmp2.add(new Triangle(new Point(2,2), new Point(3,2), new Point(2,3)));
-	tmp2.add(new Triangle(new Point(3,2), new Point(3,3), new Point(2,3)));
-	r2.triset = tmp2;
-	*/
-
 	System.out.print("RA.rr_plus("+r1.triset.size()+","+r2.triset.size()+") -> ");
 	Regions res;
 	try {
-	    res = new Regions(SupportOps.plus(r1.triset,r2.triset,false));
+	    res = new Regions(SupportOps.plus(r1.triset,r2.triset,false,true));
 	} catch (Exception e) {
 	    System.out.println("ROSEAlgebra.rr_plus: Caught an exception ("+e+"). Returning empty result.");
+	    e.printStackTrace();
 	    res = new Regions();
 	}//catch
 	//return new Regions(SupportOps.plus(r1.triset,r2.triset,false));
@@ -635,7 +706,11 @@ public class ROSEAlgebra {
 	/*
 	  DisplayGFX gfx1 = new DisplayGFX();
 	  gfx1.initWindow();
-	  gfx1.addSet(res.triset);
+	  gfx1.addSet(SupportOps.contourGeneral(r1.triset,true,true,false,true,true));
+	  //gfx1.addSet(r1.triset);
+	  gfx1.addSet(SupportOps.contourGeneral(r2.triset,true,true,false,true,true));
+	  //gfx1.addSet(r2.triset);
+	  gfx1.addSet(SupportOps.contourGeneral(res.triset,true,true,false,true,true));
 	  //gfx1.addSet(r2.triset);
 	  gfx1.showIt(false);
 	  try { String data = inBR.readLine();
@@ -644,6 +719,7 @@ public class ROSEAlgebra {
 	  }//catch
 	  gfx1.kill();
 	*/
+
 	return res;
     }//end method rr_plus
     
@@ -734,7 +810,7 @@ public class ROSEAlgebra {
 	if (joinSet.isEmpty()) return new Lines(retSet);
 	try {
 	    Method methodTHEOVERLAP = SS_OPS_CLASS.getMethod("theOverlap",PARAMLIST_SS);
-	    retSet = SupportOps.minimal(SegMultiSet.convert(SetOps.map(joinSet,methodTHEOVERLAP)),true,true);
+	    retSet = SupportOps.minimal(SegMultiSet.convert(SetOps.map(joinSet,methodTHEOVERLAP)),true,true,false);
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.exit(0);
@@ -745,7 +821,7 @@ public class ROSEAlgebra {
     
 
     public static Lines lr_common_border (Lines l, Regions r) {
-	return ll_common_border(l,new Lines(SupportOps.contour(r.triset)));
+	return ll_common_border(l,new Lines(SupportOps.contour(r.triset,true,false)));
     }//end method lr_common_border
 
 
@@ -755,7 +831,7 @@ public class ROSEAlgebra {
     
 
     public static Lines rr_common_border (Regions r1, Regions r2) {
-	return ll_common_border(new Lines(SupportOps.contour(r1.triset)),new Lines(SupportOps.contour(r2.triset)));
+	return ll_common_border(new Lines(SupportOps.contour(r1.triset,true,false)),new Lines(SupportOps.contour(r2.triset,true,false)));
     }//end method rr_common_border
     
 
@@ -775,7 +851,7 @@ public class ROSEAlgebra {
 
    
     public static Points r_vertices (Regions r) {
-	return l_vertices(new Lines(SupportOps.contour(r.triset)));
+	return l_vertices(new Lines(SupportOps.contour(r.triset,true,true)));
     }//end method r_vertices
     
 
@@ -785,7 +861,7 @@ public class ROSEAlgebra {
 
 
     public static Lines r_contour(Regions r) {
-	return new Lines(SupportOps.contour(r.triset));
+	return new Lines(SupportOps.contour(r.triset,true,true));
     }//end method r_contour
 
     
@@ -1025,7 +1101,7 @@ public class ROSEAlgebra {
 
    
     public static double r_perimeter (Regions r) {
-	return l_length(new Lines(SupportOps.contour(r.triset)));
+	return l_length(new Lines(SupportOps.contour(r.triset,true,false)));
     }//end method r_perimeter
 
 }//end class ROSEAlgebras

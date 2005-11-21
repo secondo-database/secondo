@@ -630,7 +630,7 @@ public class SupportOps {
 	Class c2 = (new ElemMultiSet(ELEM_COMPARATOR)).getClass();
 	Class[] paramListT = { triClass };
 	Class[] paramListTMS = { c2 };
-	SegMultiSet retSetS = null;
+	SegMultiSet retSetS = new SegMultiSet(SEGMENT_COMPARATOR);
 	Method pintersectsM, minusM;
 
 	try {
@@ -660,7 +660,12 @@ public class SupportOps {
 	      ((EMSPointer)actPair.second).set.print();
 	    */
 	    try {
-		ljpMS = SetOps.overlapLeftOuterJoin(((EMSPointer)actPair.second).set,((EMSPointer)actPair.first).set,pintersectsM,meet,bboxFilter,earlyExit,setNumber);
+		//ljpMS = SetOps.overlapLeftOuterJoin(((EMSPointer)actPair.second).set,((EMSPointer)actPair.first).set,pintersectsM,meet,bboxFilter,earlyExit,setNumber);
+		//recompute sizes for sets
+		((EMSPointer)actPair.first).set.recomputeSize();
+		((EMSPointer)actPair.second).set.recomputeSize();
+		ljpMS = SetOps.overlapLeftOuterJoin(((EMSPointer)actPair.first).set,((EMSPointer)actPair.second).set,pintersectsM,meet,bboxFilter,earlyExit,setNumber);
+		
 	    } catch (Exception e) {
 		System.out.println("Caught unexpected exception. Returning empty value.");
 		e.printStackTrace();
@@ -680,17 +685,9 @@ public class SupportOps {
 	    System.out.println("non-empty pairs: "+cc);
 
 	    if (recomputeTriangleSet) {
-		
-		System.out.println("compute new triangulation");
 		ljpMS = SetOps.map(ljpMS,null,minusM);
-		retSetS = SegMultiSet.convert(SetOps.rdup2(SetOps.collect(ljpMS)));
-		System.out.println("retSetS.size(initial): "+retSetS.size());
-		retSetS.addAll(contour(TriMultiSet.convert(((EMSPointer)actPair.first).set),true,false));
-		System.out.println("retSetS.size(All): "+retSetS.size());
-		retSetS = unique(retSetS,true,false);
-		System.out.println("retSEtS.size(unique): "+retSetS.size());		
-		retSet.addAll(Polygons.computeMesh(retSetS,true));
-		
+		retSetS.addAll(SegMultiSet.convert(SetOps.collect(ljpMS)));
+		//System.out.println("retSetS after adding ljpMS: "); retSetS.print();
 	    } else {
 		System.out.println("simply adding sets");
 		retSet.addAll(((EMSPointer)actPair.second).set);
@@ -698,47 +695,11 @@ public class SupportOps {
 	    }//else
 	}//while it
        
-
-	/* OLD CODE */
-	/*
-	  Class c2 = (new ElemMultiSet(ELEM_COMPARATOR)).getClass();
-	  Class[] paramListT = { triClass };
-	  Class[] paramListTMS = { c2 };
-	  SegMultiSet retSetS = null;
-	  
-	  try {
-	  Method pintersectsM = triClass.getMethod("pintersects",paramListT);
-	  Method minusM = triClass.getMethod("minus",paramListTMS);
-	  
-	  boolean meet = false;
-	  boolean earlyExit = false;
-	  int setNumber = 0;
-	  //System.out.println("calling ovLOJ from SO.plus.");
-	  LeftJoinPairMultiSet ljpMS = SetOps.overlapLeftOuterJoin(ts2,ts1,pintersectsM,meet,bboxFilter,earlyExit,setNumber);
-	  System.out.println("calling map from SO.plus.");
-	  ljpMS = SetOps.map(ljpMS,null,minusM);  
-	  System.out.println("calling collect+rdup2 from SO.plus.");
-	  retSetS = SegMultiSet.convert(SetOps.rdup2(SetOps.collect(ljpMS)));
-	  //System.out.println("calling minimal from SO.plus.");
-	  
-	  //a minimal operation is not really needed at this point; it's done later
-	  //retSetS = minimal(retSetS,true,false);
-	  System.out.println("\ncalling computeMesh(1) from SO.plus.");
-	  retSet = Polygons.computeMesh(retSetS,false);
-	  } catch (Exception e) {
-	  System.out.println("An exception was caught in ROSEAlgebra.plus(TriMultiSet,TriMultiSet,boolean):");
-	  e.printStackTrace();
-	  System.out.println("An empty value is returned.");
-	  return new TriMultiSet(TRIANGLE_COMPARATOR);
-	  }//catch
-	  
-	  //compute union
-	  retSet.addAll(ts1);
-	  System.out.println("elements in retSet (after union): "+retSet.size());
-	  
-	  retSetS = contourGeneral(retSet,true,true,true,false,true);
-	  retSet = Polygons.computeMesh(retSetS,false);
-	*/
+	//now, add to retSetS all second sets which are involved (add them one time only)
+	retSetS.addAll(contour(TriMultiSet.convert(ps.fourthSet),true,false));
+	retSetS = unique(retSetS,true,false);
+	retSetS = minimal(retSetS,true,false,true);
+	retSet.addAll(Polygons.computeMesh(retSetS,false));
 
 	System.out.println("\nleaving SuppO.plus.");
 	return retSet;
@@ -775,38 +736,6 @@ public class SupportOps {
 	
 	System.out.println("Set1 has "+groups1.size()+" cycle(s), Set2 has "+groups2.size()+" cycle(s).");
 	
-	System.out.println("showing the cycles of set1:");
-	
-	BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
-	DisplayGFX gfx = new DisplayGFX();
-	gfx.initWindow();
-	gfx.addSet(SupportOps.contourGeneral(tms1,true,true,false,true,true));
-	SegMultiSet tt = new SegMultiSet(SEGMENT_COMPARATOR);
-	for (int i = 0; i < groups1.size(); i++) 
-	    tt.addAll(contour(TriMultiSet.convert((ElemMultiSet)groups1.get(i)),true,false));
-	gfx.addSet(tt);
-	gfx.showIt(false);
-	try { String data = inBR.readLine();
-	} catch (Exception e) {
-	    System.exit(0);
-	}//catch
-	gfx.kill();
-
-	System.out.println("showing the cycles of set2:");
-	DisplayGFX gfx1 = new DisplayGFX();
-	gfx1.initWindow();
-	gfx1.addSet(SupportOps.contourGeneral(tms2,true,true,false,true,true));
-	SegMultiSet tt2 = new SegMultiSet(SEGMENT_COMPARATOR);
-	for (int i = 0; i < groups2.size(); i++) 
-	    tt2.addAll(contour(TriMultiSet.convert((ElemMultiSet)groups2.get(i)),true,false));
-	gfx1.addSet(tt2);
-	gfx1.showIt(false);
-	try { String data = inBR.readLine();
-	} catch (Exception e) {
-	    System.exit(0);
-	}//catch
-	gfx1.kill();
-
 	//wrap sets in EMSPointers and store them in ElemMultiSets
 	Iterator git = groups1.iterator();
 	int number = 0;
@@ -889,12 +818,15 @@ public class SupportOps {
 	System.out.println("traverse group sets...");
 
 	//now traverse group sets and store all elements from unused sets in retSet.firstSet
-	//and retSet.secondSet
+	//and retSet.secondSet; store used elements of retSet.firstSet in thirdSet and used
+	//elements of retSet.secondet in fourthSet
 	it = groups1EMS.iterator();
 	while (it.hasNext()) {
 	    actGroup1 = (EMSPointer)((MultiSetEntry)it.next()).value;
 	    if (!groups1Used[actGroup1.key])
 		retSet.firstSet.addAll(actGroup1.set);
+	    else
+		retSet.thirdSet.addAll(actGroup1.set);
 	}//while
 
 	it = groups2EMS.iterator();
@@ -902,6 +834,8 @@ public class SupportOps {
 	    actGroup2 = (EMSPointer)((MultiSetEntry)it.next()).value;
 	    if (!groups2Used[actGroup2.key])
 		retSet.secondSet.addAll(actGroup2.set);
+	    else
+		retSet.fourthSet.addAll(actGroup2.set);
 	}//while
 	
 	System.out.println("retSet: "+retSet.firstSet.size()+" triangle(s) in firstSet; "+retSet.secondSet.size+" triangle(s) in secondSet; "+retSet.pairSet.size+" pairs in pairSet");

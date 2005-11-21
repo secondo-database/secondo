@@ -2122,7 +2122,7 @@ public class SetOps {
      */
     public static PairMultiSet overlappingPairs(ElemMultiSet el1, ElemMultiSet el2, boolean sameSet, boolean meet, boolean bboxFilter, boolean earlyExit, int setNumber) throws NoOverlappingBoxFoundException {
 	PairMultiSet pairs = new PairMultiSet(new ElemPairComparator());
-	
+		
 	if (el1.isEmpty() || el2.isEmpty()) return pairs;
 	
 	Object[] ivlArr;
@@ -2359,7 +2359,6 @@ public class SetOps {
 	    actRect = actEl.rect();
 	    buddy = actRect.ulx.equal(actRect.urx);
 	    for (int msenum = 0; msenum < mse.number; msenum++) {
-
 		retSet.add(new Interval(
 					actRect.lly,
 					actRect.uly,
