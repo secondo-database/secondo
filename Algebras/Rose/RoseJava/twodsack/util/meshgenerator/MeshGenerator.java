@@ -400,14 +400,14 @@ public class MeshGenerator {
 	}//while sit
 
 	//construct pointlist from elements of the hashtable
-	Enumeration enum = pointsHT.elements();
+	Enumeration enumr = pointsHT.elements();
 	double[] pointlist = new double[counter*2];
 	Object elem;
-	while (enum.hasMoreElements()) {
-	    elem = enum.nextElement();
+	while (enumr.hasMoreElements()) {
+	    elem = enumr.nextElement();
 	    pointlist[((PointLink)elem).number*2] = ((PointLink)elem).linkedPoint.x.getDouble();
 	    pointlist[((PointLink)elem).number*2+1] = ((PointLink)elem).linkedPoint.y.getDouble();
-	}//while enum
+	}//while enumr
 
 	pointattributelist = new double[pointlist.length/2];
 	pointmarkerlist = new int[pointlist.length/2];
@@ -604,14 +604,14 @@ public class MeshGenerator {
 	}//while sit
 	
 	//construct pointlist from elements of the hashtable
-	Enumeration enum = pointsHT.elements();
+	Enumeration enumr = pointsHT.elements();
 	double[] pointlist = new double[counter*2];
 	Object elem;
-	while (enum.hasMoreElements()) {
-	    elem = enum.nextElement();
+	while (enumr.hasMoreElements()) {
+	    elem = enumr.nextElement();
 	    pointlist[((PointLink)elem).number*2] = ((PointLink)elem).linkedPoint.x.getDouble();
 	    pointlist[((PointLink)elem).number*2+1] = ((PointLink)elem).linkedPoint.y.getDouble();
-	}//while enum
+	}//while enumr
 
 
 	pointattributelist = new double[pointlist.length/2];

@@ -122,13 +122,13 @@ public class Graph {
 	}//while eit
 	
 	//construct list of vertices from hashtable
-	Enumeration enum = pointsHT.elements();
+	Enumeration enumr = pointsHT.elements();
 	vArr = new Vertex[counter];
 	Object elem;
-	while (enum.hasMoreElements()) {
-	    elem = enum.nextElement();
+	while (enumr.hasMoreElements()) {
+	    elem = enumr.nextElement();
 	    vArr[((PointLink)elem).number] = new Vertex(((PointLink)elem).linkedPoint,((PointLink)elem).number);
-	}//while enum
+	}//while enumr
 	
 	//construct succLists
 	count2 = 0;
@@ -189,13 +189,13 @@ public class Graph {
 
 
 	//construct list of vertices from hashtable
-	Enumeration enum = vertexHT.elements();
+	Enumeration enumr = vertexHT.elements();
 	vArr = new Vertex[counter];
 	ObjectLink elem;
-	while (enum.hasMoreElements()) {
-	    elem = (ObjectLink)enum.nextElement();
+	while (enumr.hasMoreElements()) {
+	    elem = (ObjectLink)enumr.nextElement();
 	    vArr[((ObjectLink)elem).number] = new Vertex((Element)elem.linkedObject,((ObjectLink)elem).number);
-	}//while enum
+	}//while enumr
 
 
 	//construct succLists
@@ -271,13 +271,13 @@ public class Graph {
 	}//while it
 
 	//construct list of vertices from hashtable
-	Enumeration enum = vertexHT.elements();
+	Enumeration enumr = vertexHT.elements();
 	vArr = new Vertex[counter];
 	ObjectLink elem;
-	while (enum.hasMoreElements()) {
-	    elem = (ObjectLink)enum.nextElement();
+	while (enumr.hasMoreElements()) {
+	    elem = (ObjectLink)enumr.nextElement();
 	    vArr[((ObjectLink)elem).number] = new Vertex((Element)elem.linkedObject,((ObjectLink)elem).number);
-	}//while enum
+	}//while enumr
 
 	//construct succLists
 	succLists = new LinkedList[vArr.length];

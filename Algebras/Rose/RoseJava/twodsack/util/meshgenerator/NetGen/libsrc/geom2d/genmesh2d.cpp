@@ -144,7 +144,7 @@ namespace netgen
 					   (*mesh)[si].p1 + 1 - PointIndex::BASE, gi, gi);
 	  }
 
-	h = 1.14142;
+	//h = 1.14142;
 	cout << "GenerateMesh(*mesh,h,domnr), h: " << h << endl;
 	mparam.checkoverlap = 0;
 	meshing.GenerateMesh (*mesh, h, domnr);
