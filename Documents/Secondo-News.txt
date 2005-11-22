@@ -6,7 +6,22 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below the ruler and not at the end.
 
-=============================================================================== 
+===============================================================================
+
+2005-11-22 Problems with Javagui using Java Version 1.5
+===============================================================================
+When you are using Javagui with Sun's Java Version 1.5, the snapshot function
+of Javagui leads to a hang up of the Java Virtual Machine on linux systems. 
+The error message will be:
+    "Couldn't execl robot child process: Permission denied"
+
+To solve this problem, go into the jdk/jre/lib/i386 subfolder of your java 
+installation and change the file "awt_robot" to be executable using the command
+   chmod ugo+x awt_robot
+Depending on the installation of the java sdk it may be required to do that
+with root rights. If you don't have root access, install your private java-sdk 
+or ask your administrator. 
+ 
 
 2005-10-26  Notes for Problems on newer Linux Systems:
 =============================================================================== 
