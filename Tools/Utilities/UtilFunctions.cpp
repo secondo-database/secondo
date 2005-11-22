@@ -34,6 +34,7 @@ July 2004 M. Spiekermann, Implementation of showActiveFlags.
 
 #include <string.h>
 #include <time.h>
+#include <sys/time.h>
 #include <math.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -57,8 +58,6 @@ using namespace std;
 
 
 StopWatch::StopWatch() :
-startReal(0),
-stopReal(0),
 startCPU(0),
 stopCPU(0)
 {
@@ -69,7 +68,11 @@ stopCPU(0)
 void
 StopWatch::start() {
 
+#ifndef SECONDO_WIN32
+  gettimeofday(&startReal, 0);
+#else
   time(&startReal);
+#endif 
   startCPU=clock();
 }
 
@@ -77,8 +80,14 @@ StopWatch::start() {
 const double
 StopWatch::diffSecondsReal() {
 
-  time(&stopReal);
+#ifndef SECONDO_WIN32
+  gettimeofday(&stopReal, 0);
+  double diffSec = (stopReal.tv_sec - startReal.tv_sec)*1.0;
+  diffSec += (stopReal.tv_usec - startReal.tv_usec)*1.0 / 1000000;
+  return diffSec;
+#else
   return difftime(stopReal, startReal);
+#endif
 }
 
 
@@ -128,9 +137,7 @@ StopWatch::diffReal() {
 
   ostringstream buffer;
   
-  double seconds = diffSecondsReal();		   
-				            	   
-  buffer << "Elapsed time: " << minutesAndSeconds( seconds ) << " minutes."; 
+  buffer << "Elapsed time: " << diffSecondsReal() << " seconds."; 
   
   return buffer.str(); 
 }
@@ -154,9 +161,19 @@ StopWatch::diffTimes() {
    double sReal = diffSecondsReal();
    double sCPU = diffSecondsCPU();
    
-   buffer << "Times (real/cpu): " 
-          << minutesAndSeconds(sReal)  
-          << "min / " << sCPU << "sec = " << sReal/sCPU;
+   buffer << "Times (real/cpu): ";
+
+   if (sReal > 60.0) 
+   {
+     buffer << minutesAndSeconds(sReal) << "min ";
+     buffer << "(" << sReal << "sec) /";  
+   }
+   else
+   {
+     buffer << sReal << "sec / ";  
+   }
+
+   buffer << sCPU << "sec = " << sReal/sCPU;
 	  
    return buffer.str();  
 }
