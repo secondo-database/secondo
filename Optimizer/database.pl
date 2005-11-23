@@ -1065,18 +1065,7 @@ queryTime(Query, TimeMS) :-
   TimeMS is (Minute * 60000) + (Sec*1000) + MilliSec,
   !.
 
-wqt(Query) :- % write QueryTime for testing
-  atom_concat('query ', Query, SecQuery),
-  get_time(Time1),
-  secondo(SecQuery, _),   
-  get_time(Time2),
-  Time is (Time2 - Time1),
-  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
-  TimeMS is (Minute * 60000) + (Sec*1000) + MilliSec,
-  nl, write(TimeMS), write(' ms'), nl,
-  !.
-
-
+ 
 /*
 
 The predicate ~fibonacci(N, M)~ recursively calculates the ~N~th Fibonacci number ~M~. This 
@@ -1195,10 +1184,47 @@ writeMachineSpeedFactor :-
 :-  setMachineSpeedFactor.
 
 
+/*
+Some preticates for testing
+
+*/
 
 
+wqt(Query) :- % write QueryTime for testing
+  atom_concat('query ', Query, SecQuery),
+  get_time(Time1),
+  secondo(SecQuery, _),   
+  get_time(Time2),
+  Time is (Time2 - Time1),
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  TimeMS is (Minute * 60000) + (Sec*1000) + MilliSec,
+  nl, write(TimeMS), write(' ms'), nl,
+  !.
 
+mqt2(Query, 1, Result) :-         % auxiliary predicate to mqt/2
+  atom_concat('query ', Query, SecQuery),
+  get_time(Time1),
+  secondo(SecQuery, _),   
+  get_time(Time2),
+  Time is (Time2 - Time1),
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  Result is (Minute * 60000) + (Sec*1000) + MilliSec,
+  !.
 
+mqt2(Query, N, Result) :- % auxiliary predicate to mqt/2
+  N2 is N - 1,
+  mqt2(Query, N2, Result2),
+  atom_concat('query ', Query, SecQuery),
+  get_time(Time1),
+  secondo(SecQuery, _),   
+  get_time(Time2),
+  Time is (Time2 - Time1),
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  Result3 is (Minute * 60000) + (Sec*1000) + MilliSec,
+  Result is min(Result2, Result3),
+  !.
 
-
-
+mqt(Query, N) :-      % write minimal execution time of N executions of Query (for testing)
+  mqt2(Query, N, Result),
+  nl, write(Result), write(' ms'), nl,
+  !.

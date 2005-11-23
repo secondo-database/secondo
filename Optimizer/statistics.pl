@@ -171,8 +171,9 @@ cardQuery(Pred, Rel1, Rel2, Query) :-
   sampleJ(Rel2, Rel2S),
   possiblyRename(Rel1S, Rel1Query),
   possiblyRename(Rel2S, Rel2Query),
-  transformPred(Pred, t, 1, Pred2),
-  Query = count(loopsel(Rel1Query, fun([param(t, tuple)], filter(Rel2Query, Pred2)))).
+%  transformPred(Pred, t, 1, Pred2),
+%  Query = count(loopsel(Rel1Query, fun([param(t, tuple)], filter(Rel2Query, Pred2)))).
+  Query = count(symmjoin(Rel1Query, Rel2Query, Pred)).
 
 /*
 
@@ -317,9 +318,11 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   MSs is Minute *60000 + Sec*1000 + MilliSec,
   write('Elapsed Time: '),
   write(MSs),
-  write(' ms'),nl, 
+  write(' ms'), nl, 
+  calculateOverheadCost(Query, SampleCard1, SampleCard2, ResCard, OverheadCost), 
+  write('Overhead Time: '), write(OverheadCost), write(' ms'), nl,
   getSelectivityDivisor(Pred, ResCard, (SampleCard1 * SampleCard2), Divisor),
-  MSsRes is MSs / Divisor, 
+  MSsRes is max(MSs-OverheadCost,1) / Divisor, 
   Sel is max(ResCard,1) / (SampleCard1 * SampleCard2),	% must not be 0
   write('Predicate Cost: '),
   write(MSsRes),
@@ -350,8 +353,10 @@ selectivity(pr(Pred, Rel), Sel) :-
   write('Elapsed Time: '),
   write(MSs),
   write(' ms'), nl,
+  calculateOverheadCost(Query, SampleCard, 0, ResCard, OverheadCost), 
+  write('Overhead Time: '), write(OverheadCost), write(' ms'), nl,
   getSelectivityDivisor(Pred, ResCard, SampleCard, Divisor),
-  MSsRes is MSs / Divisor,
+  MSsRes is max(MSs-OverheadCost,1) / Divisor,
   Sel is max(ResCard,1)/ SampleCard,		% must not be 0
   write('Predicate Cost: '),
   write(MSsRes),
@@ -385,8 +390,10 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   write('Elapsed Time: '),
   write(MSs),
   write(' ms'),nl, 
+  calculateOverheadCost(Query, SampleCard1, SampleCard2, ResCard, OverheadCost), 
+  write('Overhead Time: '), write(OverheadCost), write(' ms'), nl,
   getSelectivityDivisor(Pred, ResCard, (SampleCard1 * SampleCard2), Divisor),
-  MSsRes is MSs / Divisor, 
+  MSsRes is max(MSs-OverheadCost,1) / Divisor, 
   Sel is max(ResCard,1) / (SampleCard1 * SampleCard2),	% must not be 0
   write('Selectivity : '),
   write(Sel),
@@ -415,8 +422,10 @@ selectivity(pr(Pred, Rel), Sel) :-
   write('Elapsed Time: '),
   write(MSs),
   write(' ms'), nl,
+  calculateOverheadCost(Query, SampleCard, 0, ResCard, OverheadCost), 
+  write('Overhead Time: '), write(OverheadCost), write(' ms'), nl,
   getSelectivityDivisor(Pred, ResCard, SampleCard, Divisor),
-  MSsRes is MSs / Divisor,
+  MSsRes is max(MSs-OverheadCost,1) / Divisor,
   Sel is max(ResCard,1)/ SampleCard,		% must not be 0
   write('Selectivity : '),
   write(Sel),
@@ -546,6 +555,57 @@ predicateCost(Pred, PredCost) :-
 predicateCost( Pred, _) :-
   nl, write('ERROR in optimizer: predicateCost('), 
   write(Pred), write(') failed.'), nl,
+  fail.
+
+/*
+Advanced estimation of predicate costs.
+
+The execution time for an selectivity-query depends on
+ 1) the operators/predicates used within the query
+ 2) the size of the samples
+ 3) the hit-rate (result size/query size) of the query
+
+Time is needed for:
+
+ 0) Invoking Secondo (1.0-2.5 ms)
+ 1) Parsing the query and building the operator tree (0.5-1.3 ms)
+ 2) Opening relation tables (cardinality, tuplesize) 
+ 3) Performing the operations
+ 4) Constructing result tuples (0.3 ms/Tupel?)
+ 5) Passing the result to the optimizer (neglible fpr cardinality query)
+
+Steps 0, 1, 2, 5 form an overhead that becomes the more significant, the 
+smaller the argument relations to the query are. To avoid deviation
+in the cost calculation, these costs must be considered. and should be
+subtracted from the execution time prior to dividing it by the query size.
+    %  - costs for count:    4.37 ms + 0.000438 ms/Tupel
+    %  - costs for filter    3 ms + 0.000106 ms/Tupel (ohne Prädikat)
+    %  - costs for Rel feed: 0.01 ms/Tupel
+    %  - costs for symmjoin: 260 ms + 0.00221 ms * (R1Size * R2Size) 
+
+
+
+*/
+
+calculateOverheadCost(count(filter( _, _)), R1Size, R2Size, ResultSize, OverheadCost) :- 
+  OverheadCost is 
+    2 +                              %  call Secondo, analyse query
+    4.37 + 0.000438 * ResultSize +   %  count
+    3 + 0.000106 * (R1Size+R2Size) + %  filter (w/o predicate)
+    0.01 * (R1Size + R2Size),        %  Rel feed 
+  !.
+
+calculateOverheadCost(count(symmjoin( _, _, _)), R1Size, R2Size, ResultSize, OverheadCost) :- 
+  OverheadCost is
+    2 +                                %  call Secondo, analyse query
+    4.37 + 0.000438 * ResultSize +     %  count
+    200 + 0.002 * R1Size * R2Size +    %  symmjoin
+    0.01 * (R1Size + R2Size),          %  Rel1 feed Rel2 feed
+  !.
+
+calculateOverheadCost( Q, RS1, RS2, RS3, _) :-
+  nl, write('ERROR in optimizer: claculateOverheadCost('), write(Q), write(', '),
+  write(RS1), write(', '), write(RS2), write(', '), write(RS3), write(') failed.'), nl,
   fail.
 
 /*

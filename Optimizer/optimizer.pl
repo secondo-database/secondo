@@ -1430,6 +1430,16 @@ join(Arg1, Arg2, pr(Pred, _, _)) => symmjoin(Arg1S, Arg2S, Pred) :-
   Arg1 => Arg1S,
   Arg2 => Arg2S.
 
+
+/*
+product-filter join - for testing only!
+
+*/
+join(Arg1, Arg2, pr(Pred, A1, A2)) => filter(product(Arg1S, Arg2S), pr(Pred, A1, A2)) :-
+  Arg1 => Arg1S,
+  Arg2 => Arg2S.
+
+
 /*
 
 Index joins:
@@ -1959,6 +1969,7 @@ These are plan edges extended by a cost measure.
 createCostEdge :-
   planEdge(Source, Target, Term, Result),
   edgeSelectivity(Source, Target, Sel, PredCost),
+%  cost(Term, Sel, Size, 0, Cost),
   cost(Term, Sel, Size, PredCost, Cost),
   assert(costEdge(Source, Target, Term, Result, Size, Cost)),
   fail.
