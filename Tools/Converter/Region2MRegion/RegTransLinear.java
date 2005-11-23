@@ -1,6 +1,7 @@
 import sj.lang.ListExpr;
 import viewer.hoese.*;
 import java.io.*;
+import java.util.Vector;
 
 /**
   * This class creates a moving Region like described in the article
@@ -128,10 +129,10 @@ private static void writeRegMap(ListExpr Start, ListExpr End){
 }
 
 /**This function writes a single unit computed from the arguments to the
-  * standard output
+  * out
   **/
 private static void writeUnit(double startTime, double moveTime,ListExpr Start, ListExpr End){
-   out.println("(");  // open unit
+     out.println("(");  // open unit
      out.print("  ("); // open interval
      out.print(DateTime.getListString(startTime,false));
      out.print(" "+DateTime.getListString(startTime+moveTime,false));
@@ -141,54 +142,15 @@ private static void writeUnit(double startTime, double moveTime,ListExpr Start, 
      out.println(")"); // close unit
 }
 
-
-
-public static void main(String[] args){
-  if(args.length<3){
-     System.err.println ("missing argument");
-     System.err.println("usage:java RegTransformer RegionFile TransformFile outFile [init]");
-     System.exit(64); // command line usage error
-  }
-  ListExpr RegList = new ListExpr();
-  if(RegList.readFromFile(args[0])!=0){
-    System.err.println(" error in reading RegionFile");
-    System.exit(65);
-  }
-  ListExpr TransformList = new ListExpr();
-  if(TransformList.readFromFile(args[1])!=0){
-     System.err.println("error in reading transformation file");
-     System.exit(65);
-  }
-
-  if(RegList.listLength()!=2){
-     System.err.println("RegionFile contains not a Region");
-     System.exit(65);
-  }
-
-  if(RegList.first().atomType()!=RegList.SYMBOL_ATOM || !RegList.first().symbolValue().equals("region")){
-     System.err.println("RegionFile contains not a Region");
-     System.exit(65);
-  }
-  try{
-    out = new PrintStream(new FileOutputStream(args[2]));
-  }catch(Exception e){
-    System.err.println("error in opening output file"); 
-    System.exit(73); // can't create user output file
-  }
-  init = false;
-  if(args.length>3 && args[3].equals("init"))
-    init = true;
-
-  ATransform AT = new ATransform();
-  ListExpr RValue = RegList.second();
+/* write the value of a moving region resulting from the
+ * region in the list to the standard output.
+ */
+private static void writeMRegionValue(ListExpr RValue,ListExpr TransformList,double startTime, double moveTime){
   ListExpr NextValue;
-  firstRun=true; // only needed to count the number of
-                 // contained points
-  double startTime = 0.0;
-  double moveTime = 0.25; // this means 6 hours
-  out.println("( movingregion "); // oopen object and write type
   out.println("("); // open value
   firstUnit =true;
+  ATransform AT = new ATransform();
+  
   while(!TransformList.isEmpty()){
      if(!AT.readFrom(TransformList.first())){
        System.err.println("error in TransformationList");
@@ -205,9 +167,135 @@ public static void main(String[] args){
      startTime += moveTime;
      RValue = NextValue;
   }
+    out.println(")"); // close value 
+}
 
-    out.println("))"); // close value and object
-    System.err.println("processed "+points+" points");
+private static void processRelation(ListExpr Type, ListExpr Value,ListExpr TransformList,
+                                    double startTime, double moveTime ){
+   Vector V = new Vector(5); // store all attributnumbers containing regions
+   ListExpr Tuple = Type.second();
+   if(Tuple.atomType()!=ListExpr.NO_ATOM && Tuple.listLength()!=2){
+        System.err.println("error in tuple definition");
+        System.exit(65);
+   } 
+   ListExpr AttrList = Tuple.second();
+   int number=1;
+   out.print(" (rel(tuple (");
+   while(!AttrList.isEmpty()){
+      ListExpr First = AttrList.first();
+      if(First.listLength()!=2){
+         System.err.println("error in analyse of attribute list"); 
+      }
+      ListExpr TNList = First.second();
+
+      if(TNList.atomType()==ListExpr.SYMBOL_ATOM && TNList.symbolValue().equals("region")){
+         V.add(new Integer(number));
+         out.print("(");
+         First.first().writeTo(out,false);
+         out.print(" movingregion)");
+      } else{
+         First.writeTo(out,false); 
+      }
+      number++;
+      AttrList = AttrList.rest();
+   }
+   out.println(")))");
+   out.println("("); // open value list
+   while(!Value.isEmpty()){
+      out.println("( ");
+      ListExpr CV = Value.first(); // the current tuple
+      number = 1;
+      while(!CV.isEmpty()){
+        Integer currentInt=new Integer(number);
+        ListExpr Attr=CV.first();
+        if(V.contains(currentInt)){ // a region
+         writeMRegionValue(Attr,TransformList,startTime,moveTime);  
+        } else{
+             Attr.writeTo(out,false);
+             out.print(" ");
+        }
+        CV = CV.rest();
+        number++;
+      } 
+      out.println(")");
+      Value=Value.rest();
+   }
+
+   out.println(")"); // close relation
+
+}
+
+
+public static void main(String[] args){
+  if(args.length<3){
+     System.err.println ("missing argument");
+     System.err.println("usage:java RegTransformer {RegionFile|RelationFile} TransformFile outFile [init]");
+     System.exit(64); // command line usage error
+  }
+  ListExpr RegList = new ListExpr();
+  if(RegList.readFromFile(args[0])!=0){
+    System.err.println(" error in reading RegionFile");
+    System.exit(65);
+  }
+  ListExpr TransformList = new ListExpr();
+  if(TransformList.readFromFile(args[1])!=0){
+     System.err.println("error in reading transformation file");
+     System.exit(65);
+  }
+
+  try{
+    out = new PrintStream(new FileOutputStream(args[2]));
+  }catch(Exception e){
+    System.err.println("error in opening output file"); 
+    System.exit(73); // can't create user output file
+  }
+  init = false;
+  if(args.length>3 && args[3].equals("init"))
+    init = true;
+  
+  double startTime = 0.0;
+  double moveTime = 0.25; // this means 6 hours
+  boolean isObject = false;
+  ListExpr Sixth=null;
+  if(RegList.listLength()==6 && RegList.first().atomType()==ListExpr.SYMBOL_ATOM &&
+     RegList.first().symbolValue().equals("OBJECT")){
+     Sixth=RegList.sixth();
+     isObject=true;
+     out.print(" ( OBJECT ");
+     RegList.second().writeTo(out,false);
+     out.print(" ");
+     RegList.third().writeTo(out,false);
+     out.println(" ");
+     RegList=ListExpr.twoElemList(RegList.fourth(),RegList.fifth());
+  }
+
+  if(RegList.first().atomType()==RegList.SYMBOL_ATOM && RegList.first().symbolValue().equals("region")){
+  // process a single region
+      ListExpr RValue = RegList.second();
+      firstRun=true; // only needed to count the number of
+                 // contained points
+      out.println("( movingregion "); // open attribute
+
+      writeMRegionValue(RValue,TransformList,startTime,moveTime);
+      out.println(")"); // close object
+      System.err.println("processed "+points+" points");
+  } else{
+      ListExpr Type = RegList.first();
+      if(Type.atomType()==ListExpr.NO_ATOM && Type.listLength()==2 && Type.first().atomType()==ListExpr.SYMBOL_ATOM &&
+         Type.first().symbolValue().equals("rel")){
+           processRelation(Type,RegList.second(),TransformList,startTime,moveTime);
+      } else{
+         System.err.println("No relation and no single region");
+     }
+  }
+  if(isObject){
+     out.print(" ");
+     Sixth.writeTo(out,false);
+     out.println(" )");
+
+  }
+
+
     try{
        out.close();
     }catch(Exception e){
