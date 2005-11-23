@@ -185,6 +185,8 @@ public class TimePanel extends javax.swing.JPanel               // implements Va
  //       - TimeBounds.getStart())*PixelTime), 25));
     JPanel jp = TimeObject.getTimeRenderer(PixelTime);
     TimeObjectsPanel.add(jp);
+    HoeseViewer.setAllOpaque(this,true);
+    HoeseViewer.setAllBackgrounds(this,mw.getBackground());
   }
   private Lineal columnView;
   private Interval TimeBounds;                  //=new sj.display.Interval(1,2,true,true);

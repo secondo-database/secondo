@@ -282,6 +282,9 @@ public class TextWindow extends JPanel {
       //Query lesen
       Current = le.first();
       QueryResult qr = new QueryResult(Current.first().stringValue(), Current.second());
+      // ensure to take the background from the textarea for this new object
+      qr.setOpaque(this.isOpaque());
+      qr.setBackground(this.getBackground());
       if (parent.addQueryResult(qr)) {
         ListExpr CatList = Current.third();
         ListExpr LayerList = Current.fourth();
@@ -377,6 +380,10 @@ public class TextWindow extends JPanel {
           q.clearSelection();
     qr.setToolTipText(qr.toString());
     QueryCombo.addItem(qr);
+    // ensure that the querycombo has the same background like 
+    // its environment
+    QueryCombo.setOpaque(this.isOpaque());
+    QueryCombo.setBackground(this.getBackground());
   }
 
 /** Starts scanning of the query result qr for datatypes

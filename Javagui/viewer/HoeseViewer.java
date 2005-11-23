@@ -27,6 +27,7 @@ import  java.io.*;
 import  java.util.Properties;
 import  java.util.Vector;
 import  java.util.StringTokenizer;
+import  java.util.Enumeration;
 import  sj.lang.ListExpr;
 import  java.util.ListIterator;
 import  javax.swing.event.*;
@@ -39,6 +40,7 @@ import  project.*;
 import  components.*;
 import  java.awt.image.*;
 import  viewer.hoese.algebras.Dsplpointsequence;
+import javax.swing.plaf.basic.*;
 
 /**
  * this is a viewer for spatial and temporal spatial objects
@@ -129,6 +131,7 @@ public class HoeseViewer extends SecondoViewer {
  /* settings-menu */
   private javax.swing.JMenu jMenuGui;
   private JMenuItem jMenuBackgroundColor;
+  private static boolean changeAllBackgrounds=true; 
   private javax.swing.JMenuItem MINewCat;
 
   private JMenu Menu_Prj;
@@ -226,7 +229,7 @@ public class HoeseViewer extends SecondoViewer {
       System.err.println("Error loading L&F: " + exc);
       if(DEBUG_MODE){
         System.err.println(exc);
-  exc.printStackTrace();
+        exc.printStackTrace();
       }
     }
 
@@ -311,7 +314,7 @@ public class HoeseViewer extends SecondoViewer {
                   // finish the input
                   if(!src.equals(lastSrc)) // ignore messages from the other button
                     return;   
-                  Butt.setBackground(dColor);
+                  Butt.setBackground(Butt.getParent().getBackground());
                   createPointSequenceActivated=false;
                   GraphDisplay.removeMouseListener(createPointSequenceListener);
                   GraphDisplay.removeMouseMotionListener(createPointSequenceListener);
@@ -342,7 +345,7 @@ public class HoeseViewer extends SecondoViewer {
               }            
           }
           Color aColor = Color.GREEN;
-          Color dColor = Color.LIGHT_GRAY;
+//          Color dColor = Color.LIGHT_GRAY;
           Object lastSrc;
     };
 
@@ -466,6 +469,8 @@ public class HoeseViewer extends SecondoViewer {
     GraphDisplay = new GraphWindow(this);
     GraphDisplay.setOpaque(true); // needed for background-color
     MouseKoordLabel.setOpaque(true);
+
+
     MouseKoordLabel.setHorizontalAlignment(SwingConstants.RIGHT);
     GraphDisplay.addMouseMotionListener(new MouseMotionListener() {
       public void mouseMoved (MouseEvent e) {
@@ -504,7 +509,6 @@ public class HoeseViewer extends SecondoViewer {
 
     SelectionControl = new SelMouseAdapter();
     GraphDisplay.addMouseListener(SelectionControl);
-
     SpatioTempPanel = new JPanel(new BorderLayout());
     LayerSwitchBar.setPreferredSize(new Dimension(10, 10));
     LayerSwitchBar.setLayout(new BoxLayout(LayerSwitchBar, BoxLayout.Y_AXIS));
@@ -512,6 +516,7 @@ public class HoeseViewer extends SecondoViewer {
     SpatioTempPanel.add(GeoScrollPane, BorderLayout.CENTER);
     SpatioTempPanel.add(LayerSwitchBar, BorderLayout.WEST);
     VisComPanel = new JSplitPane(JSplitPane.VERTICAL_SPLIT, SpatioTempPanel,dummy);
+    
     VisComPanel.setOneTouchExpandable(true);
     VisComPanel.setResizeWeight(1);
     TimeDisplay = new TimePanel(this);
@@ -547,7 +552,36 @@ public class HoeseViewer extends SecondoViewer {
          }
     };
     FC_Images.setFileFilter(filter);           
+    if(changeAllBackgrounds){
+       setAllOpaque(this,false);
+    }
 
+  }
+
+  /* sets all contained componenets to be opaque */
+  public static void setAllOpaque(Component C,boolean enable){
+      if(C instanceof JComponent)
+         ((JComponent) C).setOpaque(enable);
+      if(C instanceof Container){
+         Component[] Comps = ((Container)C).getComponents();
+         if(Comps!=null){
+             for(int i=0;i<Comps.length;i++){
+                setAllOpaque(Comps[i],enable);
+             }
+         }
+      }
+  }
+  /* sets all contained componenets to the desired background */
+  public static void setAllBackgrounds(Component C,Color color){
+      C.setBackground(color);
+      if(C instanceof Container){
+         Component[] Comps = ((Container)C).getComponents();
+         if(Comps!=null){
+             for(int i=0;i<Comps.length;i++){
+                setAllBackgrounds(Comps[i],color);
+             }
+         }
+      }
   }
 
 
@@ -670,15 +704,19 @@ public class HoeseViewer extends SecondoViewer {
     jMenuBackgroundColor = new JMenuItem("Background Color");
     jMenuBackgroundColor.addActionListener(new ActionListener(){
         public void actionPerformed(ActionEvent evt){
-    Color OldBG = GraphDisplay.getBackground();
-    Color BG = JColorChooser.showDialog(
-                     HoeseViewer.this,
-                     "Choose Background Color",
-         OldBG
-                     );
-     if(!OldBG.equals(BG)){
-        GraphDisplay.setBackground(BG);
-     }
+            Color OldBG = GraphDisplay.getBackground();
+            Color BG = JColorChooser.showDialog(
+                            HoeseViewer.this,
+                            "Choose Background Color",
+                             OldBG);
+            if(!OldBG.equals(BG)){
+                GraphDisplay.setBackground(BG);
+                if(changeAllBackgrounds){
+                   setAllOpaque(HoeseViewer.this,true); 
+                   TimeSlider.setOpaque(false);
+                   setAllBackgrounds(HoeseViewer.this,BG);
+                }
+            }
   }
     });
 
@@ -2979,8 +3017,7 @@ public boolean canDisplay(SecondoObject o){
       private static final int LINE_MODE=4;
       private static final int POINT_MODE=5;
       private static final int REGION_MODE=6;
-
-  
  }
+
 }
 
