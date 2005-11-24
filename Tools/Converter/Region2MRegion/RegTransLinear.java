@@ -90,8 +90,16 @@ private static void writePointMap(ListExpr Start, ListExpr End){
       System.err.println(" End ="+End.writeListExprToString());
       System.exit(65); // data format error
    }
-   out.println("("+X1.doubleValue()+" "+Y1.doubleValue()+" "+
-                          X2.doubleValue()+" "+Y2.doubleValue()+")");
+//   out.println("("+X1.doubleValue()+" "+Y1.doubleValue()+" "+
+//                          X2.doubleValue()+" "+Y2.doubleValue()+")");
+
+   double x1 = X1.doubleValue();
+   double x2 = X2.doubleValue();
+   double y1 = Y1.doubleValue();
+   double y2 = Y2.doubleValue();
+
+   out.println("("+Format.format(x1)+" "+Format.format(y1)+" "+
+                          Format.format(x2)+" "+Format.format(y2)+")");
 
 }
 
@@ -134,8 +142,8 @@ private static void writeRegMap(ListExpr Start, ListExpr End){
 private static void writeUnit(double startTime, double moveTime,ListExpr Start, ListExpr End){
      out.println("(");  // open unit
      out.print("  ("); // open interval
-     out.print(DateTime.getListString(startTime,false));
-     out.print(" "+DateTime.getListString(startTime+moveTime,false));
+     out.print("\""+DateTime.getString(startTime)+"\"");
+     out.print(" \""+DateTime.getString(startTime+moveTime)+"\"");
      out.print(" TRUE FALSE ");
      out.println(" )"); // close interval
      writeRegMap(Start,End);  // write the map
@@ -227,6 +235,11 @@ private static void processRelation(ListExpr Type, ListExpr Value,ListExpr Trans
 
 
 public static void main(String[] args){
+
+  java.text.DecimalFormatSymbols dfs = new java.text.DecimalFormatSymbols();
+  dfs.setDecimalSeparator('.');
+  Format = new java.text.DecimalFormat(FormatString,dfs);
+
   if(args.length<3){
      System.err.println ("missing argument");
      System.err.println("usage:java RegTransformer {RegionFile|RelationFile} TransformFile outFile [init]");
@@ -307,4 +320,6 @@ public static void main(String[] args){
   static PrintStream out;
   static boolean init;
   static boolean firstUnit;
+  static java.text.DecimalFormat Format;
+  static String FormatString = "#.#####";
 }
