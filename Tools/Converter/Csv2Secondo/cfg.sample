@@ -31,7 +31,7 @@ Separator   \t
 # name type (\t name type )*
 # the allowed types are:
 #   - int
-#   - float
+#   - real 
 #   - string
 #   - text
 #   - point
@@ -42,6 +42,11 @@ Separator   \t
 
 
 Scheme  Name string \t No int \t Position point
+
+# object name (optional)
+# The keyword Object can be used to define an object name.
+# if no object name is specified the name of the CVS-file will be used.
+# Object Myrel
 
 # checknumeric (optional)
 # remove the comment in the next line to check float and int values

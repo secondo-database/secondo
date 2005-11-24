@@ -22,6 +22,8 @@
 
 .PHONY: all
 all: CSV2Secondo.class
+	cp csv2rel ../../../bin
+	chmod u+x ../../../bin/csv2rel
 
 CSV2Secondo.class: CSV2Secondo.java
 	javac CSV2Secondo.java

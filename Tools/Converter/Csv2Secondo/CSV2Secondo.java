@@ -42,7 +42,7 @@ public boolean printType(String Line){
         Type = ST2.nextToken().trim().toLowerCase();
      else
         error("Missing Type in Attr"+Attr);      
-     if( !Type.equals("int") & !Type.equals("text") & !Type.equals("float") &
+     if( !Type.equals("int") & !Type.equals("text") & !Type.equals("real") &
           !Type.equals("point") & !Type.equals("string") && !Type.equals("spoint")){
            error("unknown type "+Type);
      }
@@ -152,7 +152,7 @@ private boolean printLine(String Line){
          ValuePos++;
          System.out.print(" (<text>"+Value1+"</text--->) ");
       }   
-      else if(Type.equals("float")){
+      else if(Type.equals("real")){
         Value1=((String)Values.get(ValuePos)).trim();
         ValuePos++;
         if(checknumeric){
@@ -193,12 +193,15 @@ public void convert(String CfgFile,String SourceFile){
   Enumeration Keys = Cfg.propertyNames();
   boolean SeparatorFound = false;
   boolean SchemeFound = false;
+  boolean ObjectFound = false;
   String Key;
   // check for Separator and Scheme key
   while(Keys.hasMoreElements()){
      Key = (String) Keys.nextElement();
      if(Key.equals("Separator"))
         SeparatorFound =true;
+     if(Key.equals("Object"))
+        ObjectFound =true;
      if(Key.equals("Scheme"))
         SchemeFound = true;   
   }
@@ -216,6 +219,14 @@ public void convert(String CfgFile,String SourceFile){
      error("empty scheme specification in configuration file ");
   String NoLines = Cfg.getProperty("IgnoreLines");
   
+  String OName = "CSV_Obj";
+  if (ObjectFound)
+  {
+    OName = Cfg.getProperty("Object");
+    if(OName.equals(""))
+       error("empty object specification in configuration file ");
+  }
+
   LinesToIgnore = new Vector();
   if(NoLines!=null){
       StringTokenizer ST = new StringTokenizer(NoLines,",");
@@ -227,10 +238,14 @@ public void convert(String CfgFile,String SourceFile){
     
   try{
       BufferedReader CSVin = new BufferedReader(new FileReader(SourceFile));
-      int iodot=SourceFile.indexOf(".");
-      String OName = SourceFile;
-      if(iodot>0)
+   
+      if (! ObjectFound)
+      {
+        int iodot=SourceFile.indexOf(".");
+        OName = SourceFile;
+        if(iodot>0)
           OName = SourceFile.substring(0,iodot);
+      }
 
       boolean ok = true;
       System.out.println("( OBJECT "+OName+" () "); // open object

@@ -1,0 +1,3 @@
+#!/bin/sh
+
+java -cp "../Tools/Converter/Csv2Secondo" CSV2Secondo $*
