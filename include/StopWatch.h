@@ -35,6 +35,8 @@ An instance could be used as a clock to measure time differences.
 
 #include <string>
 
+#include "SecondoConfig.h"
+
 using namespace std;
 
 class StopWatch {

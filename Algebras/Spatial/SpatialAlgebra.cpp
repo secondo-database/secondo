@@ -59,7 +59,9 @@ using namespace std;
 #include <string>
 #include <cmath>
 
-#ifdef SECONDO_WIN32
+// gcc on windows before version 3.4 does not
+// have defined M_PI.
+#ifndef M_PI
 const double M_PI = acos( -1.0 );
 #endif
 

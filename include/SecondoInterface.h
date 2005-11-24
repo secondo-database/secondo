@@ -119,13 +119,15 @@ in the treatment of the database state in database commands.
 #include <map>
 #include <list>
 
-#include "SocketIO.h"
 #include "NestedList.h"
 #include "AlgebraTypes.h"
 
 // forward declaration to avoid cyclic includes
 class DerivedObj;
 
+// forward declaration to tight up includes. (e.g. Windows headers are messing
+// up the namespace)
+class Socket;
 
 /************************************************************************** 
 2.1 Class "SecondoInterface"[1]

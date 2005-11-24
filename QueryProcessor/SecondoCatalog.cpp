@@ -79,11 +79,12 @@ The names of existing databases are stored in a list ~DBTable~.
 
 */
 
-using namespace std;
 
-#include "SecondoCatalog.h"
 #include "SecondoSystem.h"
 #include "DerivedObj.h"
+#include "SecondoCatalog.h"
+
+using namespace std;
 
 /**************************************************************************
 2.2 Types

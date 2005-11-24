@@ -77,7 +77,7 @@ The class ~SmiEnvironment~ provides the following methods:
 using namespace std;
 
 #ifdef SECONDO_WIN32
-#include <windows.h>
+#include <windef.h>
 typedef DWORD FileAttributes;
 #else
 typedef uint32_t FileAttributes;

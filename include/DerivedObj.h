@@ -65,7 +65,7 @@ use this object.
 
 using namespace std;
 
-class DerivedObj{
+class DerivedObj {
 
 public:
    DerivedObj() : 

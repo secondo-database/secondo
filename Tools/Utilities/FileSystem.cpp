@@ -35,7 +35,8 @@ using namespace std;
 #include <cassert>
 
 #ifdef SECONDO_WIN32
-#  include <io.h>
+#include <io.h>
+#include <windows.h>
 #else
 #include <unistd.h>
 #include <sys/stat.h>

@@ -38,6 +38,7 @@ using namespace std;
 #include <sstream>
 
 #include "SecondoInterface.h"
+#include "SocketIO.h"
 #include "Profiles.h"
 #include "LogMsg.h"
 
