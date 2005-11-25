@@ -48,6 +48,7 @@ July 2004 M. Spiekermann, Implementation of showActiveFlags.
 #include "LogMsg.h"
 #include "Counter.h"
 #include "CharTransform.h"
+#include "NList.h"
 
 using namespace std;
 
@@ -86,6 +87,7 @@ StopWatch::diffSecondsReal() {
   diffSec += (stopReal.tv_usec - startReal.tv_usec)*1.0 / 1000000;
   return diffSec;
 #else
+  time(&stopReal);
   return difftime(stopReal, startReal);
 #endif
 }
@@ -270,5 +272,11 @@ int color::n = 1;
 
 ostream& operator << (ostream& os, const color& c) {
   return c(os);
+}
+
+
+ostream& operator<<(ostream& os, const NList& n) { 
+  os << n.convertToString(); 
+  return os;
 }
 
