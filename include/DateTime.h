@@ -327,7 +327,7 @@ The allowed signatures for Minus are:\\
 For the ~Mul~ function  the this object must be of type {\tt duration}.
 
 */
-     void Mul(const int factor);
+     void Mul(const long factor);
 
 /*
 ~Mul~
@@ -387,7 +387,7 @@ This Operator divides a DateTime by another dateTime
 This Operator multiplies a DateTime by a int and double number
 
 */
-    DateTime operator*(const int factor)const;
+    DateTime operator*(const long factor)const;
     DateTime operator*(const double factor)const;
 
 /*

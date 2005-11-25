@@ -1186,7 +1186,7 @@ double DateTime::operator/(const DateTime T2)const{
 Computes a multiple of a duration.
 
 */
-void DateTime::Mul(const int factor){
+void DateTime::Mul(const long factor){
    assert(type==durationtype);
    long d = day;
    long ms = milliseconds;
@@ -1294,7 +1294,7 @@ This operator has the same functionality like the ~Mul~ function
 returning the result in a new instance.
 
 */
-DateTime DateTime::operator*(const int factor)const{
+DateTime DateTime::operator*(const long factor)const{
    DateTime Result(*this);
    Result.Mul(factor);
    return Result;
@@ -1983,7 +1983,7 @@ int MulFun(Word* args, Word& result, int message, Word& local, Supplier s){
 	DateTime* T1 = (DateTime*) args[0].addr;
 	CcInt* Fact = (CcInt*) args[1].addr;
 	DateTime* TRes = T1->Clone();
-	TRes->Mul(Fact->GetIntval());
+	TRes->Mul((long)Fact->GetIntval());
 	((DateTime*) result.addr)->Equalize(TRes);
 	delete TRes;
 	return 0;

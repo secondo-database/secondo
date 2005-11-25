@@ -61,6 +61,9 @@ JPL_CLASS_TARGET := $(JPL_LIB)/classes
 JPL_JAVA_SOURCES := $(JPL_ROOT)/jsrc
 JPL_DOC_TARGET := $(JPL_ROOT)/doc
 JPL_CLASSPATH := .:$(JPL_CLASS_TARGET)
+ifdef SECONDO_JAVART
+  JPL_CLASSPATH := $(JPL_CLASSPATH):$(SECONDO_JAVART)
+endif
 JPL_SRC := $(JPL_ROOT)/src
 # directory which contains SecondoPl.o
 SECONDOPL_DIR := $(BUILDDIR)/UserInterfaces
