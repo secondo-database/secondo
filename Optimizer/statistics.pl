@@ -224,16 +224,17 @@ dynamicCardQuery(Pred, Rel1, Rel2, Query) :-
   Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
 
 /*
-~getSelectivityDivisor(Pred, ResultSize, QuerySize, Divisor)~ 
-is used to determine the divisor within the ~selectivity~ predicates. 
 
+----    getPredCostDivisor(Pred, ResultSize, QuerySize, Divisor)
+----
+is used to determine the divisor within the ~selectivity~ predicates. 
 It unifies ~Divisor~ with ~ResultSize~ when ~osBBoxOperator(Pred)~ holds
 and ~QuerySize~ otherwise. To avoid division by zero exceptions, ~Divisor~ 
 is at least 1.
 
 */
 
-getSelectivityDivisor(Pred, ResultSize, _, Divisor) :-
+getPredCostDivisor(Pred, ResultSize, _, Divisor) :-
   compound(Pred),
   functor(Pred, T, _),
   isBBoxOperator(T),
@@ -241,10 +242,86 @@ getSelectivityDivisor(Pred, ResultSize, _, Divisor) :-
   nl, write('BBox-Predicate: '), write(Pred), nl,
   !.
 
-getSelectivityDivisor(Pred, _, QuerySize, Divisor) :- 
+getPredCostDivisor(Pred, _, QuerySize, Divisor) :- 
   Divisor is max(QuerySize, 1),
   nl, write('Ordinary predicate: '), write(Pred), nl,
   !.
+
+/*
+----    cacheRelation(Rel, SName) 
+----
+ensures the presence of relation ~RelName~ in the system's caches 
+by posing a simple query to secondo. The four last used Relations are deemed resident within the
+caches. The name ~SName~ is used to identify the relation in cachedRelation(RelName, N).
+
+*/
+
+:- dynamic(cachedRelation/2).
+:- dynamic(cachedRelCounter/1).
+
+incCachedRelCounter :-
+  cachedRelCounter(N),
+  !,
+  N1 is mod((N+1),4),
+  retract(cachedRelCounter(N)),
+  assert(cachedRelCounter(N1)),
+  !.
+
+incCachedRelCounter :-
+  assert(cachedRelCounter(0)),
+  !.
+
+retractCacheRelations(N) :-
+  retract(cachedRelation( _, N)),
+  retractCacheRelations(N).
+
+cacheRelation( _, SName) :-
+  cachedRelation(SName, _),  
+  nl, write('Relation '), write(SName), write(' is still in cache.\n'),
+  !.
+
+cacheRelation(Rel, SName) :-
+  sampleS(Rel, RelS),
+  possiblyRename(RelS, Q1),
+  plan_to_atom(count(Q1), Q2),
+  atom_concat('query ', Q2, Q3),
+  secondo(Q3),
+  incCachedRelCounter,
+  cachedRelCounter(N),
+  not(retractCacheRelations(N)),  
+  assert(cachedRelation(SName, N)),
+  incCachedRelCounter,
+  nl, write('Cached relation '), write(SName), write('.\n'),
+  !.
+
+cacheRelation(Rel) :-
+  nl, write('ERROR in optimizer: cacheRelation('), write(Rel), write(') failed.\n'),
+  fail.
+
+
+/*
+----     calculateSelectionPredicateCost(QueryTime, Divisor, PredCost) 
+----
+unifies ~PedCost~ with the predicate cost for a selection predicate,
+
+----     calculateJoinPredicateCost(Tq, T0, Ttg, ResultSize, Divisor, PredCost) 
+----
+unifies ~PredCost~ with the predicate cost for a join predicate.
+
+*/
+calculateSelectionPredicateCost(QueryTime, Divisor, PredCost) :- 
+  QueryTime > 200,                                       % return non-standard predicate cost
+  PredCost is (QueryTime - 50) / Divisor,
+  !.
+
+calculateSelectionPredicateCost( _, _, 0.001) :-  !. % return base predicate cost
+
+calculateJoinPredicateCost(Tq, T0, Ttg, ResultSize, Divisor, PredCost) :- 
+  (Tq - T0 - ResultSize * Ttg) > 100,
+  PredCost is (Tq - T0 - ResultSize * Ttg) / Divisor,
+  !.
+
+calculateJoinPredicateCost(_, _, _, _, _, 0.001) :- !. % return base predicate cost
 
 
 /*
@@ -301,9 +378,11 @@ selectivity(P, Sel) :-
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   Rel1 = rel(BaseName1, _, _),
   sampleNameJ(BaseName1, SampleName1),
+  cacheRelation(Rel1, SampleName1),
   card(SampleName1, SampleCard1),
   Rel2 = rel(BaseName2, _, _),
   sampleNameJ(BaseName2, SampleName2),
+  cacheRelation(Rel2, SampleName2),
   card(SampleName2, SampleCard2),
   cardQuery(Pred, Rel1, Rel2, Query),
   plan_to_atom(Query, QueryAtom1),
@@ -319,25 +398,26 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   write('Elapsed Time: '),
   write(MSs),
   write(' ms'), nl, 
-  calculateOverheadCost(Query, SampleCard1, SampleCard2, ResCard, OverheadCost), 
-  write('Overhead Time: '), write(OverheadCost), write(' ms'), nl,
-  getSelectivityDivisor(Pred, ResCard, (SampleCard1 * SampleCard2), Divisor),
-  MSsRes is max(MSs-OverheadCost,1) / Divisor, 
-  Sel is max(ResCard,1) / (SampleCard1 * SampleCard2),	% must not be 0
+  sampleRuntimes(Rel1, Rel2, T0, Ttg),
+%  getPredCostDivisor(Pred, ResCard, (SampleCard1 * SampleCard2), Divisor),
+  Divisor is (SampleCard1 * SampleCard2),                % comment out and uncomment previous line to use BBox-Modification
+  calculateJoinPredicateCost(MSs, T0, Ttg, ResCard, Divisor, PredCost),
+  Sel is max(ResCard,1) / (SampleCard1 * SampleCard2),   % must not be 0
   write('Predicate Cost: '),
-  write(MSsRes),
-  write(' ms'),nl,
+  write(PredCost),
+  write(' ms'), nl,
   write('Selectivity : '),
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
-  assert(storedPET(PSimple, MSsRes)),
+  assert(storedPET(PSimple, PredCost)),
   assert(storedSel(PSimple, Sel)),
   !.
 
 selectivity(pr(Pred, Rel), Sel) :-
   Rel = rel(BaseName, _, _),
   sampleNameS(BaseName, SampleName),
+  cacheRelation(Rel, SampleName),
   card(SampleName, SampleCard),
   cardQuery(Pred, Rel, Query),
   plan_to_atom(Query, QueryAtom1),
@@ -353,21 +433,23 @@ selectivity(pr(Pred, Rel), Sel) :-
   write('Elapsed Time: '),
   write(MSs),
   write(' ms'), nl,
-  calculateOverheadCost(Query, SampleCard, 0, ResCard, OverheadCost), 
-  write('Overhead Time: '), write(OverheadCost), write(' ms'), nl,
-  getSelectivityDivisor(Pred, ResCard, SampleCard, Divisor),
-  MSsRes is max(MSs-OverheadCost,1) / Divisor,
-  Sel is max(ResCard,1)/ SampleCard,		% must not be 0
+%  getPredCostDivisor(Pred, ResCard, SampleCard, Divisor),
+  Divisor is (SampleCard),                % comment out and uncomment previous line to use BBox-Modification
+  calculateSelectionPredicateCost(MSs, Divisor, PredCost),
+  Sel is max(ResCard,1)/ SampleCard,	  % must not be 0
   write('Predicate Cost: '),
-  write(MSsRes),
+  write(PredCost),
   write(' ms'), nl,
   write('Selectivity : '),
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel), PSimple),
-  assert(storedPET(PSimple, MSsRes)),
+  assert(storedPET(PSimple, PredCost)),
   assert(storedSel(PSimple, Sel)),
   !.
+
+
+/* Deprecated selectivity clauses using dynamicCardQueries new calculation of predicate costs not implemented herein!
 
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   Rel1 = rel(BaseName1, _, _),
@@ -389,12 +471,12 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   MSs is Minute *60000 + Sec*1000 + MilliSec,
   write('Elapsed Time: '),
   write(MSs),
-  write(' ms'),nl, 
-  calculateOverheadCost(Query, SampleCard1, SampleCard2, ResCard, OverheadCost), 
+  write(' ms'), nl, 
   write('Overhead Time: '), write(OverheadCost), write(' ms'), nl,
-  getSelectivityDivisor(Pred, ResCard, (SampleCard1 * SampleCard2), Divisor),
-  MSsRes is max(MSs-OverheadCost,1) / Divisor, 
-  Sel is max(ResCard,1) / (SampleCard1 * SampleCard2),	% must not be 0
+%  getPredCostDivisor(Pred, ResCard, (SampleCard1 * SampleCard2), Divisor),
+  Divisor is (SampleCard1 * SampleCard2),                % comment out and uncomment previous line to use BBox-Modification
+  MSsRes is max(MSs,1) / Divisor, 
+  Sel is max(ResCard,1) / (SampleCard1 * SampleCard2),	 % must not be 0
   write('Selectivity : '),
   write(Sel),
   nl,
@@ -422,10 +504,9 @@ selectivity(pr(Pred, Rel), Sel) :-
   write('Elapsed Time: '),
   write(MSs),
   write(' ms'), nl,
-  calculateOverheadCost(Query, SampleCard, 0, ResCard, OverheadCost), 
-  write('Overhead Time: '), write(OverheadCost), write(' ms'), nl,
-  getSelectivityDivisor(Pred, ResCard, SampleCard, Divisor),
-  MSsRes is max(MSs-OverheadCost,1) / Divisor,
+%  getPredCostDivisor(Pred, ResCard, SampleCard, Divisor),
+  Divisor is SampleCard,                % comment out and uncomment previous line to use BBox-Modification
+  MSsRes is max(MSs,1) / Divisor,
   Sel is max(ResCard,1)/ SampleCard,		% must not be 0
   write('Selectivity : '),
   write(Sel),
@@ -435,6 +516,7 @@ selectivity(pr(Pred, Rel), Sel) :-
   assert(storedSel(PSimple, Sel)),
   nl, write('WARNING: selectivity(pr(Pred, Rel1, Rel2), Sel): deprecated clause2 used!'), nl,
   !.
+*/
 
 selectivity(P, _) :- write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl, fail.
@@ -536,6 +618,107 @@ writePET :-
 
 
 /*
+----    storedSampleRuntimes(R1, R2, T0, Ttg)
+----
+This dynamic predicate is used to store reference times for joins on relations ~R1~ and ~R2~.
+~T0~ is the time used by ~query R1 feed R1 feed symmjoin[FALSE] count~, while ~Ttg~ is the
+time used to construct a single result tuple for a join between ~R1~ and ~R2~.
+
+*/
+
+readStoredSampleRuntimes :-
+  retractall(storedSampleRuntimes( _, _, _, _)),
+  [storedSampleRuntimes].  
+
+writeStoredSampleRuntimes :-
+  open('storedSampleRuntimes.pl', write, FD),
+  write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
+  findall(_, writeStoredSampleRuntimes(FD), _),
+  close(FD).
+
+writeStoredSampleRuntimes(Stream) :-  
+  storedSampleRuntimes(R1, R2, T0, Ttg),
+  write(Stream, storedSampleRuntimes(R1, R2, T0, Ttg)),
+  write(Stream, '.\n').
+
+showStoredSampleRuntimes :-
+  findall(_, showStoredSampleRuntime, _).
+
+showStoredSampleRuntime :-
+  storedSampleRuntimes(R1, R2, T0, Ttg),
+  write('( '), write(R1),
+  write('  x  '), write(R2),
+  write('): TO: '), write(T0),write(' ms'),
+  write(', Ttg: '),write(Ttg),write(' ms\n').
+
+:-
+  dynamic(storedSampleRuntimes/4),
+  at_halt(writeStoredSampleRuntimes),
+  readStoredSampleRuntimes.
+
+returnTtg(T0, T100, Ttg) :-
+  T100 > T0,
+  Ttg is (T100 - T0) / 100,
+  !.
+returnTtg( _, _, 0.0035) :- !. % return base cost for tuple generation
+
+sampleRuntimes(R1, R2, T0, Ttg) :-
+  R1 = rel(BaseName1, _, _),
+  sampleNameJ(BaseName1, SampleName1),
+  R2 = rel(BaseName2, _, _),
+  sampleNameJ(BaseName2, SampleName2),
+  storedSampleRuntimes(SampleName1, SampleName2, T0, Ttg),
+  !.
+
+
+sampleRuntimes(R1, R2, T0, Ttg) :-
+  R1 = rel(BaseName1, _, _),
+  sampleNameJ(BaseName1, SampleName1),
+  R2 = rel(BaseName2, _, _),
+  sampleNameJ(BaseName2, SampleName2),
+  storedSampleRuntimes(SampleName2, SampleName1, T0, Ttg),
+  !.
+
+sampleRuntimes(R1, R2, T0, Ttg) :-
+  sampleJ(R1, R1S),
+  sampleJ(R2, R2S),
+  possiblyRename(R1S, R1Q),
+  possiblyRename(R2S, R2Q),
+  plan_to_atom(R1Q, R1A),
+  plan_to_atom(R2Q, R2A),    
+  atom_concat('query ', R1A, Q1),
+  atom_concat(Q1, R2A, Q2),
+  atom_concat(Q2, ' symmjoin[FALSE] count', T0Query),
+  atom_concat(Q2, ' symmjoin[TRUE] head[100] count', T100Query),
+  % run a query to get the base runtime T0 for a join
+  nl, write('sampleRuntimes/4 T0-Query: '), write(T0Query), nl,
+  get_time(TimeA1),
+  secondo(T0Query, [int, _]),
+  get_time(TimeA2),
+  TimeA is TimeA2 - TimeA1,
+  convert_time(TimeA, _, _, _, _, MinuteA, SecA, MilliSecA),
+  T0 is MinuteA *60000 + SecA*1000 + MilliSecA,
+  % run a query to estimate the tuple generation time Ttg
+  nl, write('sampleRuntimes/4 T100-Query: '), write(T100Query), nl,
+  get_time(TimeB1),
+  secondo(T100Query, [int, _]),
+  get_time(TimeB2),
+  TimeB is TimeB2 - TimeB1,
+  convert_time(TimeB, _, _, _, _, MinuteB, SecB, MilliSecB),
+  T100 is MinuteB *60000 + SecB*1000 + MilliSecB,
+  returnTtg(T0, T100, Ttg),
+  R1 = rel(BaseName1, _, _),
+  sampleNameJ(BaseName1, SampleName1),
+  R2 = rel(BaseName2, _, _),
+  sampleNameJ(BaseName2, SampleName2),
+  assert(storedSampleRuntimes(SampleName1, SampleName2, T0, Ttg)),
+  !.
+
+sampleRuntimes(R1, R2, _, _) :-
+  nl, write('ERROR in optimizer: sampleRuntime('), write(R1), write(', '), write(R2), write(', _, _) failed.\n'),
+  fail.
+
+/*
  ~predicateCost(Pred, PredCost)~ unifies ~PredCost~ with the cost for
  evaluating the  predicate ~Pred~ once.
  
@@ -555,57 +738,6 @@ predicateCost(Pred, PredCost) :-
 predicateCost( Pred, _) :-
   nl, write('ERROR in optimizer: predicateCost('), 
   write(Pred), write(') failed.'), nl,
-  fail.
-
-/*
-Advanced estimation of predicate costs.
-
-The execution time for an selectivity-query depends on
- 1) the operators/predicates used within the query
- 2) the size of the samples
- 3) the hit-rate (result size/query size) of the query
-
-Time is needed for:
-
- 0) Invoking Secondo (1.0-2.5 ms)
- 1) Parsing the query and building the operator tree (0.5-1.3 ms)
- 2) Opening relation tables (cardinality, tuplesize) 
- 3) Performing the operations
- 4) Constructing result tuples (0.3 ms/Tupel?)
- 5) Passing the result to the optimizer (neglible fpr cardinality query)
-
-Steps 0, 1, 2, 5 form an overhead that becomes the more significant, the 
-smaller the argument relations to the query are. To avoid deviation
-in the cost calculation, these costs must be considered. and should be
-subtracted from the execution time prior to dividing it by the query size.
-    %  - costs for count:    4.37 ms + 0.000438 ms/Tupel
-    %  - costs for filter    3 ms + 0.000106 ms/Tupel (ohne Prädikat)
-    %  - costs for Rel feed: 0.01 ms/Tupel
-    %  - costs for symmjoin: 260 ms + 0.00221 ms * (R1Size * R2Size) 
-
-
-
-*/
-
-calculateOverheadCost(count(filter( _, _)), R1Size, R2Size, ResultSize, OverheadCost) :- 
-  OverheadCost is 
-    2 +                              %  call Secondo, analyse query
-    4.37 + 0.000438 * ResultSize +   %  count
-    3 + 0.000106 * (R1Size+R2Size) + %  filter (w/o predicate)
-    0.01 * (R1Size + R2Size),        %  Rel feed 
-  !.
-
-calculateOverheadCost(count(symmjoin( _, _, _)), R1Size, R2Size, ResultSize, OverheadCost) :- 
-  OverheadCost is
-    2 +                                %  call Secondo, analyse query
-    4.37 + 0.000438 * ResultSize +     %  count
-    200 + 0.002 * R1Size * R2Size +    %  symmjoin
-    0.01 * (R1Size + R2Size),          %  Rel1 feed Rel2 feed
-  !.
-
-calculateOverheadCost( Q, RS1, RS2, RS3, _) :-
-  nl, write('ERROR in optimizer: claculateOverheadCost('), write(Q), write(', '),
-  write(RS1), write(', '), write(RS2), write(', '), write(RS3), write(') failed.'), nl,
   fail.
 
 /*

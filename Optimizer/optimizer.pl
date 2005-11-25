@@ -1855,34 +1855,37 @@ INPUT:
   C: cost to create a result tuple f(Tx + Ty)
   D: cost to write/read a tuple in/from an in-memory array
   E: cost to write/read a tuple in/from an on-disk array
-  #X: Size of relation X
-  #Y: Size of relation Y
+  SX: Size of relation X
+  SY: Size of relation Y
   Tx: Tuplesize of relation X
   Ty: Tuplesize of relation Y
   S:  Selectivity
   MaxMem: Maximum memory for hashjoin operator
   NBuckets: Number of buckets in hash table
+
 --------
+
   MemSizeX = 0.25*MaxMem 
   MemSizeY = 0.75*MaxMem
+
 --------
 
 1. case: Both argument relation X,Y fit into memory
       
 Cost = 
          cost(X)+cost(Y)                          % create input streams
-       + A * #X                                   % inserting pointers to X into hash table
-       + B * #X * (#Y/NBuckets+1)                 % collide pairs from twin-buckets
-       + C * S * #X * #Y                          % create result tuples
+       + A * SX                                   % inserting pointers to X into hash table
+       + B * SX * (SY/NBuckets+1)                 % collide pairs from twin-buckets
+       + C * S * SX * SY                          % create result tuples
 
 2. case: X fits in memory, but Y does not
 
 Cost =
          cost(X)+cost(Y)                          % create input streams
-       + A * #Y                                   % insert pointers to X into hash table
-       + B * #X * (MemsizeY/(Tx * NBuckets) * (#Y/Memsize+1) % collide pairs 
-       + D * #X * (#Y/Memsize+1)                  % 
-       + C * S * #X * #Y                          % create result tuples
+       + A * SY                                   % insert pointers to X into hash table
+       + B * SX * (MemsizeY/(Tx * NBuckets) * (SY/Memsize+1) % collide pairs 
+       + D * SX * (SY/Memsize+1)                  % 
+       + C * S * SX * SY                          % create result tuples
 
 3. case: X does not fit in memory, but Y does
   
@@ -1892,10 +1895,10 @@ Cost =
 
 Cost =
          cost(X)+cost(Y)                          % create input streams
-       + A * #Y                                   % insert pointers to Y in has table
-       + B * #X * (Memsize/NBuckets) * #Y/Memsize % collide
-       + E * #X * #Y/Memsize                      % 
-       + C * S * #X * #Y                          % create result tuples
+       + A * SY                                   % insert pointers to Y in has table
+       + B * SX * (Memsize/NBuckets) * SY/Memsize % collide
+       + E * SX * SY/Memsize                      % 
+       + C * S * SX * SY                          % create result tuples
 
 */
 cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, PredCost, C) :-
