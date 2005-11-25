@@ -13,7 +13,6 @@ cd ${SECONDO_BUILD_DIR}/Optimizer
 if [ "$1" != "" ]; then
 
 time $pl <<< "[autotest].
-['${TPC_QUERY_DIR}/tpcqueries'].
 $1"
 
 else

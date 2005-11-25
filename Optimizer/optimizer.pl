@@ -2547,17 +2547,15 @@ the functor ~lc~.
 
 callLookup(Query, Query2) :-
   newQuery,
-  starQuery(Query),
   lookup(Query, Query2), !.
 
-starQuery(select * from _) :- assert(isStarQuery), !.
-starQuery(select * from _ first _) :- assert(isStarQuery), !.
-starQuery(select count(*) from _) :- assert(isStarQuery), !.
-starQuery(select count(*) from _ first _) :- assert(isStarQuery), !.
-starQuery(_).
-
-newQuery :- not(clearVariables), not(clearQueryRelations), 
-  not(clearQueryAttributes), not(clearUsedAttributes), not(clearIsStarQuery).
+newQuery :- 
+  not(clearVariables), 
+  not(clearQueryRelations), 
+  not(clearQueryAttributes), 
+  not(clearUsedAttributes), 
+  not(clearIsStarQuery),
+  not(clearIsCountQuery).
 
 clearVariables :- retract(variable(_, _)), fail.
 
@@ -2568,6 +2566,7 @@ clearQueryAttributes :- retract(queryAttr(_)), fail.
 clearUsedAttributes :- retract(usedAttr(_, _)), fail.
 
 clearIsStarQuery :- retract(isStarQuery), fail.
+clearIsCountQuery :- retract(isCountQuery), fail.
 
 /*
 
@@ -2646,6 +2645,7 @@ Translate and store a single relation definition.
   queryRel/2,
   queryAttr/1,
   isStarQuery/0,
+  isCountQuery/0,
   usedAttr/2.
 
 
@@ -2720,9 +2720,9 @@ lookupAttr(Attr, Attr2) :-
   queryRel(Rel, Rel2),
   assert(usedAttr(Rel2, Attr2)).
 
-lookupAttr(*, *) :- !.
+lookupAttr(*, *) :- assert(isStarQuery), !.
 
-lookupAttr(count(*), count(*)) :- !.
+lookupAttr(count(*), count(*)) :- assert(isCountQuery), !.
 
 lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
   lookupAttr(Expr, Expr2),
@@ -3081,47 +3081,38 @@ translate(Select from Rels where Preds, Stream, Select, Cost) :-
   bestPlan(Stream, Cost),
   !.
 
-/*
-Handle special case "select * from"
 
-*/
-
-translate(select * from Rel, feed(Rel), select *, 0) :-
+translate(Select from Rel, Stream, Select, 0) :-
   not(is_list(Rel)),
-  !.
+  makeStream(Rel, Stream), !.
 
-translate(select * from [Rel], feed(Rel), select *, 0).
+translate(Select from [Rel], Stream, Select, 0) :-
+  makeStream(Rel, Stream).
 
-translate(select * from [Rel | Rels], product(feed(Rel), Stream), select *, 0) :-
-  translate(select * from Rels, Stream, select *, _).
+translate(Select from [Rel | Rels], product(S1, S2), Select, 0) :-
+  makeStream(Rel, S1),
+  translate(Select from Rels, S2, Select, _).
 
 
 /*
-Create feed project statements if possible 
+Create a stream for a given relation. Use projections if possible 
+and rename attributes if necessary. 
 
 */
 
-translate(Select from Rel, project(feed(Rel), AttrNames), Select, 0) :-
-  not(is_list(Rel)),
+makeStream(Rel, Stream) :-
+  isStarQuery,
+  renameIfNecessary(feed(Rel), Rel, Stream), !.
+
+makeStream(Rel, Stream) :-
   usedAttrList(Rel, AttrNames),
-  !.
+  renameIfNecessary(project(feed(Rel), AttrNames), Rel, Stream), !. 
 
-translate(Select from [Rel], project(feed(Rel), AttrNames), Select, 0) :-
-  usedAttrList(Rel, AttrNames).
+makeStream(Rel, Stream) :-
+  renameIfNecessary(feed(Rel), Rel, Stream), !.
 
-translate(Select from [Rel | Rels], product(project(feed(Rel), AttrNames), Stream), Select, 0) :-
-  usedAttrList(Rel, AttrNames),
-  translate(Select from Rels, Stream, Select, _).
-
-
-translate(Select from Rel, feed(Rel), Select, 0) :-
-  not(is_list(Rel)),
-  !.
-
-translate(Select from [Rel], feed(Rel), Select, 0).
-
-translate(Select from [Rel | Rels], product(feed(Rel), Stream), Select, 0) :-
-  translate(Select from Rels, Stream, Select, _).
+renameIfNecessary(Stream, rel(_, *, _), Stream).
+renameIfNecessary(Stream, rel(_, Var, _), rename(Stream, Var)).
 
 
 /*
@@ -3137,7 +3128,6 @@ usedAttrList(Rel, ResList) :-
   setof(X, usedAttr(Rel, X), R1),
   %nl, write('AttrList: '), write(R1), nl,
   attrnames(R1, ResList). 
-
 
 
 
@@ -3256,31 +3246,13 @@ names have been looked up already.
 */
 
 queryToPlan(Query, count(Stream), Cost) :-
-  countQuery(Query),
+  isCountQuery,
   queryToStream(Query, Stream, Cost),
   !.
 
 queryToPlan(Query, consume(Stream), Cost) :-
   queryToStream(Query, Stream, Cost).
 
-
-/*
-----    countQuery(Query) :-
-----
-
-Check whether ~Query~ is a counting query.
-
-*/
-
-
-countQuery(select count(*) from _) :- !.
-countQuery(select count(*) from _ first _) :- !.
-
-countQuery(Query groupby _) :-
-  countQuery(Query).
-
-countQuery(Query orderby _) :-
-  countQuery(Query).
 
 /*
 
@@ -3365,7 +3337,6 @@ or count([star]).
 */
 fProject(Stream, *, Stream) :- !.
 fProject(Stream, count(*), Stream) :- !.
-
 
 fProject(Stream, Project, project(Stream, AttrNames)) :-
   attrnames(Project, AttrNames).

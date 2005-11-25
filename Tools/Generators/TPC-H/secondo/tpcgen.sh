@@ -69,22 +69,22 @@ tempDir=./tmp_tpcgen_${date_ymd}_${date_HMS}
 printSep "Generating TPC-H data"
 cd $tpcDir
 if [ ! -e dbgen ]; then
-make
+assert make
 fi
 
 checkCmd "dbgen -f -s $scaleFactor" 
-mkdir $tempDir
 if [ $? -ne 0 ]; then
   exit 1
 else
+  assert mkdir $tempDir
   printf "%s\n" "Moving files into ${tempdir}"
-  mv *_tbl $tempDir
+  assert mv *_tbl $tempDir
 fi
 
 
 # restore TPC-H Benchmark tables created by dbgen
 printSep "Restore database $dbName"
-cd $tempDir
+assert cd $tempDir
 
 
 export SECONDO_PARAM_SecondoHome=$bdbHome
