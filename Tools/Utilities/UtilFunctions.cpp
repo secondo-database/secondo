@@ -275,8 +275,4 @@ ostream& operator << (ostream& os, const color& c) {
 }
 
 
-ostream& operator<<(ostream& os, const NList& n) { 
-  os << n.convertToString(); 
-  return os;
-}
 
