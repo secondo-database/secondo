@@ -47,7 +47,14 @@ static int simpleSelect(ListExpr args) {
 
 */
 
+// *hm* REVIEW OF eps REQUIRED DUE TO MULTIPLE ISSUE REPORTS, WHICH COULD BE
+// TRACED BACK TO ROUNDING ISSUES (Prof. Gueting, Thomas)!
+
+// this value required for Prof. Gueting's example before Australia
 const double eps = 0.00000001;
+
+// Original eps value
+// const double eps = 0.00001;
 
 static bool nearlyEqual(double a, double b) {
     return abs(a-b) <= eps;
@@ -229,6 +236,19 @@ $(x, y)$-plane with distance z from the $(x, y)$-plane.
 	     << t2
 	     << endl;
 
+/*
+If $t2<>z$, the segments do not intersect.
+
+*/
+    if (!nearlyEqual(t2, z)) {
+	if (MRA_DEBUG)
+	    cerr 
+		<< "specialSegmentIntersects2() no intersection #0" 
+		<< endl;
+
+	return false;
+    }
+
     double x = P[0]+Q[0]*t2;
     double y = P[1]+Q[1]*t2;
 
@@ -249,7 +269,7 @@ $(x, y)$-plane with distance z from the $(x, y)$-plane.
 	     << l1MinX
 	     << " l1MaxX="
 	     << l1MaxX
-	     << " l1MinX="
+	     << " l1MinY="
 	     << l1MinY
 	     << " l1MaxY="
 	     << l1MaxY
@@ -416,17 +436,35 @@ static bool specialSegmentIntersects1(double dt,
     }
 
 /*
-Check if both segments are identical.
+Check if both segments are identical or touch in their endpoints.
 
 */
-    if (nearlyEqual(l1p1x, l2p1x)
-	&& nearlyEqual(l1p1y, l2p1y)
-	&& nearlyEqual(l1p2x, l2p2x)
-	&& nearlyEqual(l1p2y, l2p2y)) {
-	if (MRA_DEBUG)
-	    cerr << "specialSegmentIntersects1() same segment" 
-		 << endl;
-	
+    if (nearlyEqual(l1p1x, l2p1x) && nearlyEqual(l1p1y, l2p1y)) {
+	if (nearlyEqual(l1p2x, l2p2x) && nearlyEqual(l1p2y, l2p2y)) {
+	    if (MRA_DEBUG)
+		cerr << "specialSegmentIntersects1() same segment" 
+		     << endl;
+
+	    return false;
+	} else {
+	    if (MRA_DEBUG)
+		cerr << "specialSegmentIntersects1() segments touch in (" 
+		     << l1p1x
+		     << ", "
+		     << l1p1y
+		     << ")"
+		     << endl;
+	    return false;
+	}
+    } else if (nearlyEqual(l1p2x, l2p2x) && nearlyEqual(l1p2y, l2p2y)) {
+	    if (MRA_DEBUG)
+		cerr << "specialSegmentIntersects1() segments touch in (" 
+		     << l1p2x
+		     << ", "
+		     << l1p2y
+		     << ")"
+		     << endl;
+
 	return false;
     }
 
@@ -788,6 +826,7 @@ $T1B+T1A\cdot (s, t)$ and Plane 2 is $T2B+T1A\cdot (s', t')$.
     } else {
 	T2A[0][0] = t2p2x-t2p1x;
 	T2A[1][0] = t2p2y-t2p1y;
+
 	T2A[2][0] = 0;
 
 	T2A[0][1] = t2p3x-t2p1x;
@@ -1148,6 +1187,8 @@ separately.
 
 	double t2zMin = dt;
 	double t2zMax = 0;
+
+
 	bool t2Intersects = false;
 
 	if (specialSegmentIntersects2(0, t2p1x, t2p1y, t2p2x, t2p2y, P, Q)) {
