@@ -85,7 +85,7 @@ done
 # Other tests not executed by the TestRunner application
 #
 
-runTest ${buildDir}/Optimizer "TestOptimizer" "time TestOptimizer" 300
+runTest ${buildDir}/Optimizer "TestOptimizer" "time TestOptimizer" 600
 
 cd $buildDir
 tar -cvzf failedTests.tar.gz $failedTests
