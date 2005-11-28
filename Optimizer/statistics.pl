@@ -273,27 +273,28 @@ retractCacheRelations(N) :-
   retract(cachedRelation( _, N)),
   retractCacheRelations(N).
 
-cacheRelation( _, SName) :-
-  cachedRelation(SName, _),  
-%  nl, write('Relation '), write(SName), write(' is still in cache.\n'),
-  !.
-
-cacheRelation(Rel, SName) :-
-  sampleS(Rel, RelS),
-  possiblyRename(RelS, Q1),
-  plan_to_atom(count(Q1), Q2),
-  atom_concat('query ', Q2, Q3),
-  secondo(Q3),
-  incCachedRelCounter,
-  cachedRelCounter(N),
-  not(retractCacheRelations(N)),  
-  assert(cachedRelation(SName, N)),
-  incCachedRelCounter,
-%  nl, write('Cached relation '), write(SName), write('.\n'),
+cacheRelation(Rel) :-
+  Rel = rel(RName, _, _),  
+  cachedRelation(RName, _),  
+%  nl, write('===> Relation '), write(Rel), write(' is still in cache.\n'),
   !.
 
 cacheRelation(Rel) :-
-  nl, write('ERROR in optimizer: cacheRelation('), write(Rel), write(') failed.\n'),
+  Query = (count(Rel)),
+  Rel = rel(RName, _, _),
+  plan_to_atom(Query, QueryAtom1),
+  atom_concat('query ', QueryAtom1, QueryAtom),
+  secondo(QueryAtom),
+  incCachedRelCounter,
+  cachedRelCounter(N),
+  not(retractCacheRelations(N)),  
+  assert(cachedRelation(RName, N)), 
+%  nl, write('===> Cached relation '), write(Rel), write('.\n'),
+  !.
+
+cacheRelation(Rel) :-
+  nl, write('ERROR in optimizer: cacheRelation('), 
+  write(Rel), write(') failed.\n'),
   fail.
 
 
@@ -376,13 +377,13 @@ selectivity(P, Sel) :-
   !.
 
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
-  Rel1 = rel(BaseName1, _, _),
+  Rel1 = rel(BaseName1, A1, S1),
   sampleNameJ(BaseName1, SampleName1),
-  cacheRelation(Rel1, SampleName1),
+  cacheRelation(rel(SampleName1, A1, S1)),
   card(SampleName1, SampleCard1),
-  Rel2 = rel(BaseName2, _, _),
+  Rel2 = rel(BaseName2, A2, S2),
   sampleNameJ(BaseName2, SampleName2),
-  cacheRelation(Rel2, SampleName2),
+  cacheRelation(rel(SampleName2, A2, S2)),
   card(SampleName2, SampleCard2),
   cardQuery(Pred, Rel1, Rel2, Query),
   plan_to_atom(Query, QueryAtom1),
@@ -403,6 +404,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   Divisor is (SampleCard1 * SampleCard2),                % comment out and uncomment previous line to use BBox-Modification
   calculateJoinPredicateCost(MSs, T0, Ttg, ResCard, Divisor, PredCost),
   Sel is max(ResCard,1) / (SampleCard1 * SampleCard2),   % must not be 0
+  write('Cost evaluation for join predicate '), write(pr(Pred, Rel1, Rel2)), nl,
   write('  Tq='), write(MSs), nl,
   write('  T0='), write(T0), nl,
   write('  Ttg='), write(Ttg), nl,
@@ -421,9 +423,9 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   !.
 
 selectivity(pr(Pred, Rel), Sel) :-
-  Rel = rel(BaseName, _, _),
+  Rel = rel(BaseName, A, S),
   sampleNameS(BaseName, SampleName),
-  cacheRelation(Rel, SampleName),
+  cacheRelation(rel(SampleName, A, S)),
   card(SampleName, SampleCard),
   cardQuery(Pred, Rel, Query),
   plan_to_atom(Query, QueryAtom1),
@@ -443,6 +445,7 @@ selectivity(pr(Pred, Rel), Sel) :-
   Divisor is (SampleCard),                % comment out and uncomment previous line to use BBox-Modification
   calculateSelectionPredicateCost(MSs, Divisor, PredCost),
   Sel is max(ResCard,1)/ SampleCard,	  % must not be 0
+  write('Cost evaluation for selection predicate '), write(pr(Pred, Rel)), nl,
   write('  Tq='), write(MSs), nl,
   write('  ResCard='), write(ResCard), nl,
   write('  SampleCard='), write(SampleCard), nl,
