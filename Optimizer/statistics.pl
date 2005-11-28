@@ -211,9 +211,6 @@ transformPred(Pred, Param, Arg, Pred2) :-
 
 transformPred(Pred, _, _, Pred).
 
-
-%  Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
-
 dynamicCardQuery(Pred, Rel, Query) :-
   dynamicPossiblyRename(Rel, RelQuery),
   Query = count(filter(RelQuery, Pred)).
@@ -228,7 +225,7 @@ dynamicCardQuery(Pred, Rel1, Rel2, Query) :-
 ----    getPredCostDivisor(Pred, ResultSize, QuerySize, Divisor)
 ----
 is used to determine the divisor within the ~selectivity~ predicates. 
-It unifies ~Divisor~ with ~ResultSize~ when ~osBBoxOperator(Pred)~ holds
+It unifies ~Divisor~ with ~ResultSize~ when ~isBBoxOperator(Pred)~ holds
 and ~QuerySize~ otherwise. To avoid division by zero exceptions, ~Divisor~ 
 is at least 1.
 
@@ -251,8 +248,9 @@ getPredCostDivisor(Pred, _, QuerySize, Divisor) :-
 ----    cacheRelation(Rel, SName) 
 ----
 ensures the presence of relation ~RelName~ in the system's caches 
-by posing a simple query to secondo. The four last used Relations are deemed resident within the
-caches. The name ~SName~ is used to identify the relation in cachedRelation(RelName, N).
+by posing a simple query to secondo. The six last used Relations are 
+deemed resident within the caches. The name ~SName~ is used to 
+identify the relation in cachedRelation(RelName, N).
 
 */
 
@@ -262,7 +260,7 @@ caches. The name ~SName~ is used to identify the relation in cachedRelation(RelN
 incCachedRelCounter :-
   cachedRelCounter(N),
   !,
-  N1 is mod((N+1),4),
+  N1 is mod((N+1),6),  % here, the second argument to mod is the number of relations resident in memory
   retract(cachedRelCounter(N)),
   assert(cachedRelCounter(N1)),
   !.
@@ -277,7 +275,7 @@ retractCacheRelations(N) :-
 
 cacheRelation( _, SName) :-
   cachedRelation(SName, _),  
-  nl, write('Relation '), write(SName), write(' is still in cache.\n'),
+%  nl, write('Relation '), write(SName), write(' is still in cache.\n'),
   !.
 
 cacheRelation(Rel, SName) :-
@@ -291,7 +289,7 @@ cacheRelation(Rel, SName) :-
   not(retractCacheRelations(N)),  
   assert(cachedRelation(SName, N)),
   incCachedRelCounter,
-  nl, write('Cached relation '), write(SName), write('.\n'),
+%  nl, write('Cached relation '), write(SName), write('.\n'),
   !.
 
 cacheRelation(Rel) :-
@@ -302,11 +300,13 @@ cacheRelation(Rel) :-
 /*
 ----     calculateSelectionPredicateCost(QueryTime, Divisor, PredCost) 
 ----
-unifies ~PedCost~ with the predicate cost for a selection predicate,
+This predicate gets the selectivity query time ~QueryTime~ and a ~Divisor~ and 
+unifies ~PedCost~ with the predicate cost for a selection predicate.
 
 ----     calculateJoinPredicateCost(Tq, T0, Ttg, ResultSize, Divisor, PredCost) 
 ----
-unifies ~PredCost~ with the predicate cost for a join predicate.
+For a selectivity query time ~Tq~, an empty query time ~T0~, tuple generation time ~Ttg~ and a ~Divisor~, 
+this predicate unifies ~PredCost~ with the predicate cost for a join predicate.
 
 */
 calculateSelectionPredicateCost(QueryTime, Divisor, PredCost) :- 
@@ -403,6 +403,12 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   Divisor is (SampleCard1 * SampleCard2),                % comment out and uncomment previous line to use BBox-Modification
   calculateJoinPredicateCost(MSs, T0, Ttg, ResCard, Divisor, PredCost),
   Sel is max(ResCard,1) / (SampleCard1 * SampleCard2),   % must not be 0
+  write('  Tq='), write(MSs), nl,
+  write('  T0='), write(T0), nl,
+  write('  Ttg='), write(Ttg), nl,
+  write('  ResCard='), write(ResCard), nl,
+  write('  ProdCard='), write(SampleCard1 * SampleCard2), nl,
+  write('  Divisor='), write(Divisor), nl,
   write('Predicate Cost: '),
   write(PredCost),
   write(' ms'), nl,
@@ -437,6 +443,10 @@ selectivity(pr(Pred, Rel), Sel) :-
   Divisor is (SampleCard),                % comment out and uncomment previous line to use BBox-Modification
   calculateSelectionPredicateCost(MSs, Divisor, PredCost),
   Sel is max(ResCard,1)/ SampleCard,	  % must not be 0
+  write('  Tq='), write(MSs), nl,
+  write('  ResCard='), write(ResCard), nl,
+  write('  SampleCard='), write(SampleCard), nl,
+  write('  Divisor='), write(Divisor), nl,
   write('Predicate Cost: '),
   write(PredCost),
   write(' ms'), nl,
@@ -449,7 +459,7 @@ selectivity(pr(Pred, Rel), Sel) :-
   !.
 
 
-/* Deprecated selectivity clauses using dynamicCardQueries new calculation of predicate costs not implemented herein!
+/*  Deprecated selectivity clauses using dynamicCardQueries new calculation of predicate costs not implemented herein!
 
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   Rel1 = rel(BaseName1, _, _),
@@ -566,6 +576,14 @@ replaceCharList(InTerm, OutTerm) :-
 
 replaceCharList(X, X).
 
+
+/*
+
+The following predicates are used to write/read selectivity and predicate cost 
+data to/from disk and to list the data.
+
+*/
+
 writeStoredSels :-
   open('storedSels.pl', write, FD),
   write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
@@ -622,7 +640,9 @@ writePET :-
 ----
 This dynamic predicate is used to store reference times for joins on relations ~R1~ and ~R2~.
 ~T0~ is the time used by ~query R1 feed R1 feed symmjoin[FALSE] count~, while ~Ttg~ is the
-time used to construct a single result tuple for a join between ~R1~ and ~R2~.
+time used to construct a single result tuple for a join between ~R1~ and ~R2~. 
+
+There are predicates to write/read reference times to/from disk and to show it to the user.
 
 */
 
@@ -646,15 +666,25 @@ showStoredSampleRuntimes :-
 
 showStoredSampleRuntime :-
   storedSampleRuntimes(R1, R2, T0, Ttg),
-  write('( '), write(R1),
+  write('('), write(R1),
   write('  x  '), write(R2),
-  write('): TO: '), write(T0),write(' ms'),
-  write(', Ttg: '),write(Ttg),write(' ms\n').
+  write(') -->  TO='), write(T0), write('ms'),
+  write(', Ttg='), write(Ttg), write('ms\n').
 
 :-
   dynamic(storedSampleRuntimes/4),
   at_halt(writeStoredSampleRuntimes),
   readStoredSampleRuntimes.
+
+/*
+---- sampleRuntimes(R1, R2, T0, Ttg)
+----
+
+This predicate uses three queries on samples to calculate the query 
+time ~T0~ for an empty join and the per tuple result generation time ~Ttg~ 
+on Relations ~R1~ and ~R2~.
+
+*/
 
 returnTtg(T0, T100, Ttg) :-
   T100 > T0,
@@ -669,7 +699,6 @@ sampleRuntimes(R1, R2, T0, Ttg) :-
   sampleNameJ(BaseName2, SampleName2),
   storedSampleRuntimes(SampleName1, SampleName2, T0, Ttg),
   !.
-
 
 sampleRuntimes(R1, R2, T0, Ttg) :-
   R1 = rel(BaseName1, _, _),
@@ -691,7 +720,7 @@ sampleRuntimes(R1, R2, T0, Ttg) :-
   atom_concat(Q2, ' symmjoin[FALSE] count', T0Query),
   atom_concat(Q2, ' symmjoin[TRUE] head[100] count', T100Query),
   % run a query to get the base runtime T0 for a join
-  nl, write('sampleRuntimes/4 T0-Query: '), write(T0Query), nl,
+%  nl, write('sampleRuntimes/4 T0-Query: '), write(T0Query), nl,
   get_time(TimeA1),
   secondo(T0Query, [int, _]),
   get_time(TimeA2),
@@ -699,7 +728,7 @@ sampleRuntimes(R1, R2, T0, Ttg) :-
   convert_time(TimeA, _, _, _, _, MinuteA, SecA, MilliSecA),
   T0 is MinuteA *60000 + SecA*1000 + MilliSecA,
   % run a query to estimate the tuple generation time Ttg
-  nl, write('sampleRuntimes/4 T100-Query: '), write(T100Query), nl,
+%  nl, write('sampleRuntimes/4 T100-Query: '), write(T100Query), nl,
   get_time(TimeB1),
   secondo(T100Query, [int, _]),
   get_time(TimeB2),
@@ -719,8 +748,11 @@ sampleRuntimes(R1, R2, _, _) :-
   fail.
 
 /*
- ~predicateCost(Pred, PredCost)~ unifies ~PredCost~ with the cost for
- evaluating the  predicate ~Pred~ once.
+----  ~predicateCost(Pred, PredCost)~ 
+----
+unifies ~PredCost~ with the cost for evaluating the  predicate ~Pred~ once. 
+Predicate cost data is generated once per predicate, and will be stored on 
+disk between sessions.
  
 */
 

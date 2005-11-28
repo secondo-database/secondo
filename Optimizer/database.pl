@@ -855,7 +855,7 @@ retractPETs(Rel) :-
   retractPETs(Rel).
 
 retractPETs(_).
-
+  
 updateRel(Rel) :- % rel in lc
   spelling(Rel, Spelled),
   Spelled = lc(Rel),
@@ -885,6 +885,8 @@ updateRel(Rel) :- % rel in lc
   retractall(storedSpell(DCSample1, _)),
   retractall(storedSpell(DCSample2, _)),  
   retractall(storedSpell(Small2, _)),
+  retractall(storedSampleRuntimes(DCSample2, _, _, _)),
+  retractall(storedSampleRuntimes(_, DCSample2, _, _)),
   retractSels(Rel),
   retractPETs(Rel),
   retractall(storedRel(Rel, _)),
@@ -920,6 +922,8 @@ updateRel(Rel) :- % rel in uc
   retractall(storedSpell(DCSample1, _)),
   retractall(storedSpell(DCSample2, _)),
   retractall(storedSpell(Small2, _)),
+  retractall(storedSampleRuntimes(DCSample2, _, _, _)),
+  retractall(storedSampleRuntimes(_, DCSample2, _, _)),
   retractSels(Rel2),
   retractPETs(Rel2),
   retractall(storedRel(Rel, _)),
@@ -1007,6 +1011,7 @@ tryDelete(QueryAtom) :-
   secondo(QueryAtom), !.
   
 tryDelete(_).
+
 
 
 /*

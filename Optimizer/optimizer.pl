@@ -1435,10 +1435,12 @@ join(Arg1, Arg2, pr(Pred, _, _)) => symmjoin(Arg1S, Arg2S, Pred) :-
 product-filter join - for testing only!
 
 */
+
+/*
 join(Arg1, Arg2, pr(Pred, A1, A2)) => filter(product(Arg1S, Arg2S), pr(Pred, A1, A2)) :-
   Arg1 => Arg1S,
   Arg2 => Arg2S.
-
+*/
 
 /*
 
