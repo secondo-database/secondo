@@ -106,6 +106,8 @@ using namespace std;
 #include "Counter.h"
 
 
+
+
 // used in PagedArray.h
 unsigned int FileCtr = 0;
 
@@ -191,6 +193,7 @@ NestedList::initializeListMemory( Cardinal NodeEntries, Cardinal ConstEntries,
    nodeTable   = new CTable<NodeRecord>(NodeEntries);
    stringTable = new CTable<StringRecord>(StringEntries);
    textTable   = new CTable<TextRecord>(TextEntries);
+   typeError = SymbolAtom("typeerror");
 }
 
 
