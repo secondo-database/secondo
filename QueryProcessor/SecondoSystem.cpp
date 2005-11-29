@@ -312,9 +312,16 @@ Precondition: dbState = dbOpen.
 
 */
   ListExpr objectList, typeExpr, valueList, modelList;
-  Word value, model;
-  bool defined, hasTypeName;
-  string typeName, typeExprString;
+  objectList = typeExpr = valueList = modelList = nl->TheEmptyList();
+
+  Word value = SetWord(0);
+  Word model = SetWord(0);
+
+  bool defined = false;
+  bool hasTypeName = false;
+
+  string typeName = "";
+  string typeExprString="";
 
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
   {
