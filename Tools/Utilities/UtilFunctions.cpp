@@ -163,7 +163,7 @@ StopWatch::diffTimes() {
    double sReal = diffSecondsReal();
    double sCPU = diffSecondsCPU();
    
-   buffer << "Times (real/cpu): ";
+   buffer << "Times (elapsed / cpu): ";
 
    if (sReal > 60.0) 
    {
@@ -176,6 +176,7 @@ StopWatch::diffTimes() {
    }
 
    buffer << sCPU << "sec = " << sReal/sCPU;
+   //buffer << " / ticks = " << (stopCPU - startCPU) << "[" << stopCPU << " - " << startCPU << "]";
 	  
    return buffer.str();  
 }
@@ -275,4 +276,8 @@ ostream& operator << (ostream& os, const color& c) {
 }
 
 
+ostream& operator<<(ostream& os, const NList& n) { 
+  os << n.convertToString(); 
+  return os;
+}
 
