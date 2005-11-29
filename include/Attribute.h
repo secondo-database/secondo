@@ -110,11 +110,12 @@ However, TupleElement is the base class for the hierachy
 TupleElement -> Attribute -> StandardAttribute -> IndexableStandardAttribute
 ----
 
-In a future redesign this should be structured more simple. Moreover Polymorphism
-is known to be a performance brake since the derived classes need to store a pointer 
-to a table of functions. Moreover, this pointer is also saved in our standard 
-mechanism of making attributes persistent on disk. For small data types like int this
-(and the defined flag) blows up the size dramatically (12 bytes instead of 4).  
+In a future redesign this should be structured more simple. Moreover
+Polymorphism is known to be a performance brake since the derived classes need
+to store a pointer to a table of functions. Moreover, this pointer is also
+saved in our standard mechanism of making attributes persistent on disk. For
+small data types like int this (and the defined flag) blows up the size
+dramatically (12 bytes instead of 4).  
 
 Below theres a proposal for a simple redesign concerning the defined status of 
 an attribute:
@@ -134,9 +135,10 @@ private:
 };
 
 /* 
-The next class defines some default functions which can be passed to the constructor of class
-~TypeConstructor~. Whenever these defaults are not sufficient you must inherhit from this base
-class and overwrite (hide) the default implementation.
+The next class defines some default functions which can be passed to the
+constructor of class ~TypeConstructor~. Whenever these defaults are not
+sufficient you must inherhit from this base class and overwrite (hide) the
+default implementation.
 
 */
 
@@ -169,7 +171,7 @@ template<class T>
 template<class T>
   Word Clone( const Word& w )
   {
-    return SetWord( ((T *)w.addr)->Clone() );
+    return SetWord( new T(*(T *)w.addr) );
   }
 
 template<class T>
@@ -204,7 +206,7 @@ template<class T>
 bool
 SimpleCheck( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, T::Name() ));
+  return (nl->IsEqual( type, T::Symbol() ));
 }
 
 
