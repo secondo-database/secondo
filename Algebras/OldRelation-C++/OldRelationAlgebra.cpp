@@ -55,6 +55,8 @@ of these symbols, then the value ~error~ is returned.
 
 #include "OldRelationAlgebra.h"
 #include "CPUTimeMeasurer.h"
+#include "QueryProcessor.h"
+#include "LogMsg.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -1092,10 +1094,13 @@ CcFilterTypeMap(ListExpr args)
 static int
 CcFilter(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  bool found;
-  Word elem, funresult;
+  Word elem = SetWord(0);
+  Word funresult = SetWord(0);
+
+  bool found = false;
+  CcTuple* tuple = 0;
+
   ArgVectorPointer funargs;
-  CcTuple* tuple;
 
   switch ( message )
   {
@@ -1199,11 +1204,18 @@ append it to the given arguments.
 ListExpr 
 CcProjectTypeMap(ListExpr args)
 {
-  bool firstcall;
-  int noAttrs, j;
-  ListExpr first, second, first2, attrtype, newAttrList, lastNewAttrList,
-           lastNumberList, numberList, outlist;
-  string attrname;
+  bool firstcall = false;
+  int noAttrs = 0, j = 0;
+
+  ListExpr first, second, first2;
+  ListExpr attrtype, newAttrList, lastNewAttrList;
+  ListExpr lastNumberList, numberList, outlist;
+  
+  first = second = first2 = nl->TheEmptyList();
+  attrtype = newAttrList = lastNewAttrList = nl->TheEmptyList();
+  lastNumberList = numberList = outlist = nl->TheEmptyList();
+
+  string attrname = "";
 
   firstcall = true;
   if (nl->ListLength(args) == 2)
@@ -1388,11 +1400,18 @@ append it to the given arguments.
 ListExpr 
 CcRemoveTypeMap(ListExpr args)
 {
-  bool firstcall;
-  int noAttrs, j;
-  ListExpr first, second, first2, attrtype, newAttrList, lastNewAttrList,
-           lastNumberList, numberList, outlist;
-  string attrname;
+  bool firstcall = false;
+  int noAttrs = 0, j = 0;
+
+  ListExpr first, second, first2;
+  ListExpr attrtype, newAttrList, lastNewAttrList;
+  ListExpr lastNumberList, numberList, outlist;
+
+  first = second = first2 = nl->TheEmptyList();
+  attrtype = newAttrList = lastNewAttrList = nl->TheEmptyList();
+  lastNumberList = numberList = outlist = nl->TheEmptyList();
+
+  string attrname = "";
   set<int> removeSet;
   removeSet.clear();
 
@@ -2061,11 +2080,9 @@ const string CcCountSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 static int
 CcCountSelect( ListExpr args )
 {
-  ListExpr first ;
-
   if(nl->ListLength(args) == 1)
   {
-    first = nl->First(args);
+     ListExpr first = nl->First(args);
     if(nl->ListLength(first) == 2)
     {
       if (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
@@ -2125,10 +2142,16 @@ Type mapping for ~rename~ is
 static ListExpr
 CcRenameTypeMap( ListExpr args )
 {
-  ListExpr first, first2, second, rest, listn, lastlistn;
-  string  attrname;
-  string  attrnamen;
+  ListExpr first, first2, second;
+  ListExpr rest, listn, lastlistn;
+
+  first = first2 = second = nl->TheEmptyList();
+  rest = listn = lastlistn = nl->TheEmptyList();
+
+  string  attrname = "";
+  string  attrnamen = "";
   bool firstcall = true;
+
   if(nl->ListLength(args) == 2)
   {
     first = nl->First(args);
@@ -5316,13 +5339,13 @@ Type mapping for ~concat~ is
 */
 ListExpr CcGetAttrTypeList (ListExpr l)
 {
-  ListExpr first, olist, lastolist, attrlist;
+  ListExpr olist = nl->TheEmptyList();
+  ListExpr lastolist = nl->TheEmptyList();
+  ListExpr attrlist = l;
 
-  olist = nl->TheEmptyList();
-  attrlist = l;
   while (!nl->IsEmpty(attrlist))
   {
-    first = nl->First(attrlist);
+    ListExpr first = nl->First(attrlist);
     attrlist = nl->Rest(attrlist);
     if (olist == nl->TheEmptyList())
     {

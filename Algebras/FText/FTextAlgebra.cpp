@@ -911,11 +911,11 @@ ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
 */
 {
   struct TheText {int start, strlength; const char* subw;}* thetext;
-  Word arg0;
-  int textcursor, state;
-  string tmpstr;
-  char c;
-  FText* returnsentence;
+  Word arg0 = SetWord(0);
+  int textcursor = 0, state = 0;
+  string tmpstr = "";
+  char c = 0;
+  FText* returnsentence = 0;
 
   switch( message )
   {

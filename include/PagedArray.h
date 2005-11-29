@@ -246,7 +246,7 @@ private:
     void* bufPtr = BufInfo[bufNr].bufPtr;
     // write bufNr to disk
     SmiRecord record;
-    SmiRecordId recId; 
+    SmiRecordId recId = 0; 
     if ( !BufInfo[bufNr].recExists ) { // a new record is needed
 
       record.Finish(); 

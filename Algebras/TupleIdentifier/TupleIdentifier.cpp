@@ -324,8 +324,9 @@ AddTupleIdTypeMap(ListExpr args)
   "(stream (tuple ((a1 t1)...(an tn))))\n"
   "Operator addtupleid gets a list with structure '" + argstr + "'.");
 
-  ListExpr rest = nl->Second(nl->Second(first)),
-           newAttrList, lastNewAttrList;
+  ListExpr rest = nl->Second(nl->Second(first));
+  ListExpr newAttrList = nl->TheEmptyList();
+  ListExpr lastNewAttrList = nl->TheEmptyList();
   bool firstcall = true;
 
   while (!nl->IsEmpty(rest))

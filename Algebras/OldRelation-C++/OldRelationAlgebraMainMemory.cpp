@@ -282,15 +282,16 @@ in nested list format.
 */
 ListExpr OutCcTuple (ListExpr typeInfo, Word  value)
 {
-  int attrno, algebraId, typeId;
-  ListExpr l, lastElem, attrlist, first, valuelist;
-  CcTuple* tupleptr;
+  int attrno = 0, algebraId = 0, typeId = 0;
+  
+  ListExpr l, lastElem, first, valuelist;
+  l = lastElem = first = valuelist = nl->TheEmptyList();
 
-  tupleptr = (CcTuple*)value.addr;
+  ListExpr attrlist = nl->Second(nl->First(typeInfo));
+
+  CcTuple* tupleptr = (CcTuple*)value.addr;
   AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  attrlist = nl->Second(nl->First(typeInfo));
-  attrno = 0;
-  l = nl->TheEmptyList();
+  
   while (!nl->IsEmpty(attrlist))
   {
     first = nl->First(attrlist);
@@ -327,15 +328,15 @@ tests.
 */
 ListExpr SaveToListCcTuple (ListExpr typeInfo, Word  value)
 {
-  int attrno, algebraId, typeId;
-  ListExpr l, lastElem, attrlist, first, valuelist;
-  CcTuple* tupleptr;
+  int attrno = 0, algebraId = 0, typeId = 0;
 
-  tupleptr = (CcTuple*)value.addr;
+  ListExpr l, lastElem, first, valuelist;
+  l = lastElem = first = valuelist = nl->TheEmptyList();
+  ListExpr attrlist = nl->Second(nl->First(typeInfo));
+
+  CcTuple* tupleptr = (CcTuple*)value.addr;
   AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  attrlist = nl->Second(nl->First(typeInfo));
-  attrno = 0;
-  l = nl->TheEmptyList();
+
   while (!nl->IsEmpty(attrlist))
   {
     first = nl->First(attrlist);
@@ -889,13 +890,13 @@ CcTuple* CcRelIT::GetNextTuple()
 */
 ListExpr OutCcRel(ListExpr typeInfo, Word  value)
 {
-  CcTuple* t;
+  CcTuple* t = 0;
+
   ListExpr l, lastElem, tlist, TupleTypeInfo;
+  l = lastElem = tlist = TupleTypeInfo = nl->TheEmptyList();
 
   CcRel* r = (CcRel*)(value.addr);
-
   CcRelIT* rit = r->MakeNewScan();
-  l = nl->TheEmptyList();
 
   //cerr << "OutRel " << endl;
   while ( (t = rit->GetNextTuple()) != 0 )
@@ -924,13 +925,13 @@ ListExpr OutCcRel(ListExpr typeInfo, Word  value)
 */
 ListExpr SaveToListCcRel(ListExpr typeInfo, Word value)
 {
-  CcTuple* t;
+  CcTuple* t = 0;
+  
   ListExpr l, lastElem, tlist, TupleTypeInfo;
+  l = lastElem = tlist = TupleTypeInfo = nl->TheEmptyList();
 
   CcRel* r = (CcRel*)(value.addr);
-
   CcRelIT* rit = r->MakeNewScan();
-  l = nl->TheEmptyList();
 
   //cerr << "OutRel " << endl;
   while ( (t = rit->GetNextTuple()) != 0 )
@@ -1180,12 +1181,12 @@ OpenCcRel( SmiRecord& valueRecord,
            Word& value )
 {
   NestedList* nl = SecondoSystem::GetNestedList();
-  ListExpr valueList;
-  string valueString;
-  int valueLength;
+  ListExpr valueList = nl->TheEmptyList();
+  string valueString = "";
+  int valueLength = 0;
 
   SmiKey mykey;
-  SmiRecordId recId;
+  SmiRecordId recId = 0;
   mykey = valueRecord.GetKey();
   assert( mykey.GetKey(recId) );
 
@@ -1204,7 +1205,7 @@ OpenCcRel( SmiRecord& valueRecord,
   // check whether value was cached
 
   bool found = false;
-  int pos;
+  int pos = 0;
   for ( int j = 0; j < cachesize; j++ )
     if ( key[j]  == recId ) {
       found = true;

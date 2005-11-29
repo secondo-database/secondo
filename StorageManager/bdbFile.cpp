@@ -979,16 +979,16 @@ bool PrefetchingIteratorImpl::NewPrefetch()
 
 bool PrefetchingIteratorImpl::RightBoundaryExceeded()
 {
-  size_t cmpLength;
-  int rc;
-  void* key;
-  size_t keyLength;
+  size_t cmpLength = 0;
+  int rc = 0;
+  void* key = 0;
+  size_t keyLength = 0;
   
-  long keyLong;
-  long boundaryLong;
+  long keyLong = 0;
+  long boundaryLong = 0;
   
-  double keyDouble;
-  double boundaryDouble;
+  double keyDouble = 0;
+  double boundaryDouble = 0;
 
   if(searchType == ALL || searchType == RIGHTRANGE)
   {

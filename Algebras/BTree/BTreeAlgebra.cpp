@@ -1074,7 +1074,7 @@ ListExpr IndexQueryTypeMap(ListExpr args)
   ListExpr relDescription = nl->Second(args);
   ListExpr keyDescription = nl->Third(args);
 
-  ListExpr secondKeyDescription;
+  ListExpr secondKeyDescription = nl->TheEmptyList();
   if(nKeys == 2)
   {
     secondKeyDescription = nl->Fourth(args);

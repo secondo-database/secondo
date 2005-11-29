@@ -99,8 +99,8 @@ the year of 100BC.
 bool isdate(int  Day, int Month, int Year)
 {
     bool res=true;
-    bool leapyear;
-    int daysinmonth;
+    bool leapyear=false;
+    int daysinmonth=0;
     if  (((Year % 4==0) && (Year % 100!=0)) || (Year % 400==0))
             leapyear=true; else leapyear=false;
     if ((Month<1)||(Month>12)) res=false;
@@ -272,8 +272,8 @@ void Date::successor(Date *d, Date *s)
     int Year, Month, Day;
     Year=d->GetYear(); Month=d->GetMonth(); Day=d->GetDay();
 //    cout<<"OldDate"<<Year<<":"<<Month<<":"<<Day<<endl;
-    bool leapyear;
-    int daysinmonth;
+    bool leapyear=false;
+    int daysinmonth=0;
     if  (((Year % 4==0) && (Year % 100!=0)) || (Year % 400==0))
              leapyear=true;
     else  leapyear=false;
