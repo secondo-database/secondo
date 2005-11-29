@@ -146,4 +146,24 @@ isSpaceStr(const string& s)
   return s.find_first_not_of(" \t\v\n") == string::npos; 
 }
 
+class SpecialChars {
+
+public:
+  const char sp; // space
+  const char dq; // double quote
+  const char sq; // single quote
+  const char lb; // left round brace
+  const char rb; // right round brace
+
+  SpecialChars() : 
+    sp(' '),
+    dq('"'),
+    sq('\''),
+    lb('('),
+    rb(')')
+  {}
+
+};
+
+
 #endif /* CHAR_TRANSFORM_H */
