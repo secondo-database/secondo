@@ -144,7 +144,7 @@ class Operator
             const string& spec,
             const int noF,
             ValueMapping vms[],
-	          ModelMapping mms[],
+	    ModelMapping mms[],
             SelectFunction sf,
       	    TypeMapping tm,
             CostMapping cm = Operator::DummyCost );
@@ -189,7 +189,7 @@ the argument types ~argtypes~.
                         Word& local,
                         Supplier s )
 	{	
-	  assert(index < numOfFunctions);																					
+	  assert((0 <= index) && (index < numOfFunctions));
 	  return (*valueMap[index])( args, result, message, local, s );
 	}	
 
