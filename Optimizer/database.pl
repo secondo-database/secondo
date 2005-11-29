@@ -841,17 +841,17 @@ retractSels(Rel) :-
 retractSels(_).
 
 retractPETs(Rel) :-
-  storedPET(Term, _),
+  storedPET(Term, _, _, _, _, _, _, _),
   arg(1, Term, Arg1),
   getRelAttrName(Rel, Arg1),
-  retract(storedPET(Term, _)),
+  retract(storedPET(Term, _, _, _, _, _, _, _)),
   retractPETs(Rel).
 
 retractPETs(Rel) :-
-  storedPET(Term, _),
+  storedPET(Term, _, _, _, _, _, _, _),
   arg(2, Term, Arg2),
   getRelAttrName(Rel, Arg2),
-  retract(storedPET(Term, _)),
+  retract(storedPET(Term, _, _, _, _, _, _, _)),
   retractPETs(Rel).
 
 retractPETs(_).
@@ -885,8 +885,8 @@ updateRel(Rel) :- % rel in lc
   retractall(storedSpell(DCSample1, _)),
   retractall(storedSpell(DCSample2, _)),  
   retractall(storedSpell(Small2, _)),
-  retractall(storedSampleRuntimes(DCSample2, _, _, _)),
-  retractall(storedSampleRuntimes(_, DCSample2, _, _)),
+  retractall(storedSampleRuntimes(DCSample2, _, _, _, _)),
+  retractall(storedSampleRuntimes(_, DCSample2, _, _, _)),
   retractSels(Rel),
   retractPETs(Rel),
   retractall(storedRel(Rel, _)),
@@ -922,8 +922,8 @@ updateRel(Rel) :- % rel in uc
   retractall(storedSpell(DCSample1, _)),
   retractall(storedSpell(DCSample2, _)),
   retractall(storedSpell(Small2, _)),
-  retractall(storedSampleRuntimes(DCSample2, _, _, _)),
-  retractall(storedSampleRuntimes(_, DCSample2, _, _)),
+  retractall(storedSampleRuntimes(DCSample2, _, _, _, _)),
+  retractall(storedSampleRuntimes(_, DCSample2, _, _, _)),
   retractSels(Rel2),
   retractPETs(Rel2),
   retractall(storedRel(Rel, _)),

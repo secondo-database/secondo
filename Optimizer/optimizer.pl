@@ -3507,13 +3507,15 @@ optimize(Query) :-
   plan_to_atom(Plan, SecondoQuery),
   write('The plan is: '), nl, nl,
   write(SecondoQuery), nl, nl,
-  write('Estimated Cost: '), write(Cost), nl, nl.
+  write('Estimated Cost: '), write(Cost), nl, nl,
+  invalidateRelationCache.
 
 
 optimize(Query, QueryOut, CostOut) :-
   callLookup(Query, Query2),
   queryToPlan(Query2, Plan, CostOut),
-  plan_to_atom(Plan, QueryOut).
+  plan_to_atom(Plan, QueryOut),
+  invalidateRelationCache.
 
 /*
 ----    sqlToPlan(QueryText, Plan)
@@ -3738,7 +3740,8 @@ returning a stream.
 streamOptimize(Term, Query, Cost) :-
   callLookup(Term, Term2),
   queryToStream(Term2, Plan, Cost),
-  plan_to_atom(Plan,  Query).
+  plan_to_atom(Plan,  Query),
+  invalidateRelationCache.
 
 /*
 ----    mOptimize(Term, Query, Cost) :-
