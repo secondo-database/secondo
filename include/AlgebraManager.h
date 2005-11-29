@@ -81,6 +81,10 @@ September 2003 Frank Hoffmann Added ~ListAlgebras~ and ~GetAlgebraId~
 August 2004, M. Spiekermann. Getting an algebra name by its ID is now supported
 with the function ~GetAlgebraName~
 
+July 2005, M. Spiekermann. Ugly idention corrected. Missing return statement in
+function ExecuteCost corrected.
+
+
 1.1 Overview
 
 The "Secondo"[3] algebra manager is responsible for registering and initializing
@@ -665,33 +669,39 @@ Returns the address of the evaluation function of the - possibly
 overloaded - operator ~opFunId~ of algebra ~algebraId~.
 
 */
-    inline Word TransformModel( const int algebraId, const int opFunId, 
-		                            ArgVector args, Supplier tree )
-		{
-		  int opId  = opFunId % 65536;
-      int funId = opFunId / 65536;
-      return getOperator(algebraId, opId)->CallModelMapping(funId, args, tree);
-		}
+
+  inline Word TransformModel( const int algebraId, const int opFunId, 
+                              ArgVector args, Supplier tree )
+  {
+    int opId  = opFunId % 65536;
+    int funId = opFunId / 65536;
+    return getOperator(algebraId, opId)->CallModelMapping(funId, args, tree);
+  }
+
 /*
 Returns the address of the model mapping function of the - possibly
 overloaded - operator ~opFunId~ of algebra ~algebraId~.
 
 */
-    inline ListExpr TransformType( const int algebraId, const int operatorId, 
-		                               const ListExpr typeList ) 
-		{
-		  return getOperator(algebraId, operatorId)->CallTypeMapping(typeList);
-		}
+
+  inline ListExpr TransformType( const int algebraId, const int operatorId, 
+	                         const ListExpr typeList ) 
+  {
+    return getOperator(algebraId, operatorId)->CallTypeMapping(typeList);
+  }
+
 /*
 Returns the address of the type mapping function of operator
 ~operatorId~ of algebra ~algebraId~.
 
 */
   
-    inline ListExpr ExecuteCost( const int algebraId, const int operatorId ) 
-		{
-		  assert(false);
-		};
+  inline ListExpr ExecuteCost( const int algebraId, const int operatorId ) 
+  {
+    assert(false);
+    return 0;
+  }
+
 /*
 Returns the address of the cost estimating function of operator
 ~operatorId~ of algebra ~algebraId~. Currently, this function is never called!
@@ -900,18 +910,18 @@ algebra modules.
   void InitOpPtrField();
   inline Operator* getOperator(const int algebraId, const int opId) {
   
-    assert( algebraId < MAX_ALG );
-    assert( (opId < MAX_OP) );
+  assert( algebraId < MAX_ALG );
+  assert( (opId < MAX_OP) );
   
-    Operator* op = opPtrField[algebraId][opId];
+  Operator* op = opPtrField[algebraId][opId];
   
-    if ( op == 0 ) {
+  if ( op == 0 ) {
   
-      op = algebra[algebraId]->GetOperator( opId );
-      opPtrField[algebraId][opId] = op;
-    }  
+    op = algebra[algebraId]->GetOperator( opId );
+    opPtrField[algebraId][opId] = op;
+  }  
   
-    return op;
+  return op;
   }
 
 };

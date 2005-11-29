@@ -50,6 +50,9 @@ October 2003 Victor Almeida added the functions ~Open~ and ~Save~
 November 2004 M. Spiekermann. Some uninitialized variables were set to 
 avoid warnings when compiler flag -O2 is used.
 
+July 2005 M. Spiekermann. Missing return statements in ~Print()~ and ~GetFlob()~ 
+added.
+
 1.1 Overview
 
 The ~Tuple Manager~ is an important support component for the relational
@@ -94,19 +97,25 @@ class TupleElement // renamed, previous name: TupleElem
 {
   public:
     virtual ~TupleElement()
-      {}
+    {}
 
     virtual int NumOfFLOBs()
-      { return 0; }
+    { return 0; }
 
     virtual FLOB* GetFLOB( const int )
-      { assert( false ); }
+    { 
+      assert( false );
+      return 0; 
+    }
 
     virtual void Initialize() {}
     virtual void Finalize()   {}
 
     virtual ostream& Print( ostream& os )
-      { assert( false ); }
+    { 
+      assert( false );
+      return os; 
+    }
 
     static void Save( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo, TupleElement *elem )
     {
