@@ -44,23 +44,27 @@ printf "%s\n" "Logfile: $logFile"
 
 # create databases
 checkCmd "tpcgen.sh -s ${scaleFactor} -b ${tempDir} >> ${logFile} 2>&1"
+if [ $? -ne 0 ]; then
+  exit 1
+  printf "%s\n" "Generation of TPC-H data failed!"
+fi
 checkCmd "ttyrun.sh 'create database opt;' >> ${logFile} 2>&1" 
 checkCmd "ttyrun.sh 'restore database opt from opt;' >> ${logFile} 2>&1"
 
-if ! lastRC; then
+if [ $? -ne 0 ]; then
   printf "%s\n" "Creation of test databases failed!"
   exit 1 
 fi
 
 # test optimizer
-checkCmd "plrun.sh 'optimizeExamples2(N,0), halt(N).' >> ${logFile} 2>&1"
-if ! lastRC; then
+checkCmd "plrun.sh 'openOpt, runExamples2(N,0), halt(N).' >> ${logFile} 2>&1"
+if [ $? -ne 0 ]; then
   printf "%s\n" "Running optimizer examples failed!"
   exit 2 
 fi
 
-checkCmd "plrun.sh 'optimizeTPC2(N,0), halt(N).' >> ${logFile} 2>&1"
-if ! lastRC; then
+checkCmd "plrun.sh 'openTPC, runTPCExamples2(N,0), halt(N).' >> ${logFile} 2>&1"
+if [ $? -ne 0 ]; then
   printf "%s\n" "Running TPC-queries failed!"
   exit 3 
 fi

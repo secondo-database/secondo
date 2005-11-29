@@ -32,6 +32,16 @@ The optimizer is started by loading this file.
 
 */
 
+% Prolog 5.4.7. does not show a prompt when started in rxvt on
+% windows using SecondoPL. The predicate below will solve this.
+% The solution was found in the SWI-Prolog mailing list.
+% http://gollem.science.uva.nl/SWI-Prolog/mailinglist/archive/2005/q3/0349.html
+
+getprompt :- 
+  current_stream(0, read, ConIn), set_stream(ConIn, tty(true)),
+  current_stream(1, write, ConOut), set_stream(ConOut, tty(true)),
+  current_stream(2, write, ConErr), set_stream(ConErr, tty(true)). 
+
 :- [opsyntax].
 
 :-
@@ -44,12 +54,13 @@ The optimizer is started by loading this file.
 % Uncomment the next line to activate the entropy approach
 % ['./Entropy/optimizer'],
 
-% Uncomment the next line to activate the standard optimizer
+% Load files for standard optimizer
   [optimizer], 
-
-
   [statistics],
   [database],
   [operators],
   [boundary],
-  [searchtree].
+  [searchtree],
+  nl, write('Note: Version 5.4.7 shows in the MSYS console no prompt!'), nl,
+  write('A workaround is to type in the predicate "getprompt."'), nl, nl.
+  
