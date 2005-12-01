@@ -82,17 +82,25 @@ public class Dsplmovingbool extends Dsplinstant {
     ////System.out.println(v.writeListExprToString());
     while (!v.isEmpty()) {
       ListExpr le = v.first();
-      //System.out.println(le.writeListExprToString());
-      if (le.listLength() != 5)
-        return;
-      Interval in = LEUtils.readInterval(ListExpr.fourElemList(le.first(), 
-          le.second(), le.third(), le.fourth()));
+      int len = le.listLength();
+      ListExpr value;
+      Interval in;
+      if (len == 5){
+          in =  LEUtils.readInterval(ListExpr.fourElemList(le.first(), 
+                                    le.second(), le.third(), le.fourth()));
+          value = le.fifth();
+      } else if(len==2){
+           in = LEUtils.readInterval(le.first());
+           value = le.second();
+      } else{ // wrong list length
+           return;
+      }
       if (in == null)
         return;
       Intervals.add(in);
-      if (le.fifth().atomType() != ListExpr.BOOL_ATOM)
+      if (value.atomType() != ListExpr.BOOL_ATOM)
         return;
-      boolean b = le.fifth().boolValue();
+      boolean b = value.boolValue();
       Bools.add(new Boolean(b));
       v = v.rest();
     }
