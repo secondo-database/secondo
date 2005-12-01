@@ -231,7 +231,7 @@ Defines a dummy cost mapping function for operators.
 
 */
   const string& GetName() { return name;}
-	const string& GetSpecString() {return specString; }
+  const string& GetSpecString() {return specString; }
  
 	
 	private:
@@ -359,6 +359,7 @@ Returns the properties of the type constructor as a nested list.
   void     Close( Word& w );
   Word     Clone( const Word& w );
   int      SizeOf();
+  string&  Name() { return name; }
 
   Word     InModel( ListExpr, ListExpr, int );
   ListExpr OutModel( ListExpr, Word );

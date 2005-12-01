@@ -27,6 +27,8 @@ implementation of ~GetAlgebraName~ was done.
 
 #include <string>
 #include <algorithm>
+#include <fstream>
+
 using namespace std;
 
 #include "AlgebraManager.h"
@@ -37,10 +39,13 @@ using namespace std;
 
 AlgebraManager::AlgebraManager( NestedList& nlRef, GetAlgebraEntryFunction getAlgebraEntryFunc )
 {
-  int j;
+
+
+  int j = 0;
   nl = &nlRef;
   getAlgebraEntry = getAlgebraEntryFunc;
   maxAlgebraId = 0;
+
   for ( j = 0; (*getAlgebraEntry)( j ).algebraId > 0; j++ )
   {
     if ( (*getAlgebraEntry)( j ).useAlgebra )
@@ -59,6 +64,7 @@ AlgebraManager::AlgebraManager( NestedList& nlRef, GetAlgebraEntryFunction getAl
     algType[j] = UndefinedLevel;
   }
   InitOpPtrField();
+
 }
 
 AlgebraManager::~AlgebraManager()
@@ -131,9 +137,14 @@ void
 AlgebraManager::LoadAlgebras()
 {
   QueryProcessor* qp = SecondoSystem::GetQueryProcessor();
-  TypeConstructor* tc;
-  int j, k;
-  
+  TypeConstructor* tc = 0;
+  int j = 0, k = 0;
+ 
+  ofstream f("storedTypeSizes.pl", ios_base::out | ios_base::trunc);
+  f << "% Automatic generated file, do not edit." << endl;
+  f << "% For each datatype the return value of its 'SizeOf' function is stored here." << endl;
+  f << endl;
+ 
   for ( j = 0; (*getAlgebraEntry)( j ).algebraId > 0; j++ )
   {
     string algNameStr = (*getAlgebraEntry)( j ).algebraName;
@@ -178,6 +189,8 @@ AlgebraManager::LoadAlgebras()
       for ( k = 0; k < algebra[(*getAlgebraEntry)( j ).algebraId]->GetNumTCs(); k++ )
       {
         tc = algebra[(*getAlgebraEntry)( j ).algebraId]->GetTypeConstructor( k );
+        // write information about type constructors into a file
+        f << "secDatatype('" << tc->Name() << "', " << tc->SizeOf() << ")." << endl;
         for ( vector<string>::size_type idx = 0; idx < tc->kinds.size(); idx++ )
         {
           if ( tc->kinds[idx] != "" )
@@ -188,6 +201,7 @@ AlgebraManager::LoadAlgebras()
       }
     }
   }
+  f.close();
 }
 
 void
