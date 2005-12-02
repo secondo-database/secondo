@@ -38,42 +38,51 @@ constants below are quite accurate e.g. for examples 14 to
 
 */
 
+/*
+
+ Old tuple constants
+
+*/
+
 feedTC(0.4).
-
 consumeTC(1.0).
-
 filterTC(1.68).
-
 productTC(1.26, 0.4).
-
 leftrangeTC(10).
-
 loopjoinTC(1.0).
-
 exactmatchTC(10.0).
-
 hashjoinTC(1.5, 0.65).
-
 sortmergejoinTC(0.3, 0.73).
-
 symmjoinTC(1.4, 0.7).
-
 extendTC(1.5).
-
 removeTC(0.6).
-
 projectTC(0.71).
-
 renameTC(0.1).
-
 windowintersectsTC(0.1).
+
+/*
+  
+  New tuple constants
+
+  A: cost to insert a tuple into an im-memory array
+  B: cost to compare tuples on equality (0.001 ms)
+  C: cost to create a result tuple f(Tx + Ty)
+  D: cost to write/read a tuple in/from an in-memory array
+  E: cost to write a tuple to an on-disk array
+  F: cost to read a tuple from an on-disk array
+  MaxMem: maximal memory size per operator
+
+*/
+
+%            A       B       C       D       E    F      MaxMem
+hashjoinTC(0.0001, 0.001, 0.0035, 0.0001, 0.001, 0.001, 4194304).
+symmjoinTC(0.0001,   *  , 0.0035, 0.0001, 0.001, 0.001, 4194304).
 
 /*
 2 Properties For Certain Operators
 
 Several operators, like geometric predicates who use bounding boxes, have properties, that
 require them to be handle differently in some ways.
-
 
 */
 
@@ -97,6 +106,41 @@ isBBoxOperator(commonborderscan).
 %isBBoxOperator(insidescanned).
 
 
+/*
+3 Properties For Certain OperatorsDatatypes
+
+~noFlobType(Type)~ indicates that Secondo datatype ~type~ does not have any
+flobs. For attributes of these datatypes, the average inline flob size is not queried
+to determine attribute sizes.
+
+*/
+
+noFlobType(int).
+noFlobType(real).
+noFlobType(bool).
+noFlobType(string).
+noFlobType(xpoint).
+noFlobType(xrectangle).
+noFlobType(date).
+noFlobType(point).
+% noFlobType(text). ???
+noFlobType(rect).
+noFlobType(rect3).
+noFlobType(rect4).
+noFlobType(rint).
+noFlobType(rreal).
+% noFlobType(periods). ???
+noFlobType(ibool).
+noFlobType(iint).
+noFlobType(ireal).
+noFlobType(ipoint).
+noFlobType(ubool).
+noFlobType(uint).
+noFlobType(ureal).
+noFlobType(upoint).
+noFlobType(instant).
+noFlobType(duration).
+noFlobType(tid).
 
 
 

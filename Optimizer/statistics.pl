@@ -309,9 +309,10 @@ invalidateRelationCache :-
  not(retractCacheRelations(_)).
 
 /*
-----     calculatePredicateCost(QueryTime, Divisor, PredCost) 
+----     calculatePredicateCost(Tq, T0, Ttg, ResCard, Divisor, PredCost) 
 ----
-This predicate gets the selectivity query time ~QueryTime~ and a ~Divisor~ and 
+This predicate gets the query time ~QueryTime~, empty query time ~T0~,
+tuple generation cost ~Ttg~, result cardinality ~ResCard~ and a ~Divisor~ and 
 unifies ~PedCost~ with the predicate cost for a predicate.
 
 */
@@ -401,6 +402,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   Divisor is TotalCard,                % comment out and uncomment previous line to use BBox-Modification
   calculatePredicateCost(Tq, T0, Ttg, ResCard, Divisor, PredCost),
   Sel is max(ResCard,1) / TotalCard,   % must not be 0
+  simplePred(pr(Pred, Rel1, Rel2), PSimple),
   write('Cost evaluation for join predicate '), write(PSimple), nl,
   write('  Tq='), write(Tq), nl,
   write('  T0='), write(T0), nl,
@@ -410,7 +412,6 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   write('  Divisor='), write(Divisor), nl,
   write('Predicate Cost: '), write(PredCost),write(' ms'), nl,
   write('Selectivity : '), write(Sel), nl,
-  simplePred(pr(Pred, Rel1, Rel2), PSimple),
   assert(storedPET(PSimple, PredCost, T0, T100, Tq, Ttg, ResCard, TotalCard)),
   assert(storedSel(PSimple, Sel)),
   !.
@@ -432,11 +433,12 @@ selectivity(pr(Pred, Rel), Sel) :-
   convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
   Tq is Minute *60000 + Sec*1000 + MilliSec,
   write('Elapsed Time: '), write(Tq), write(' ms'), nl,
-  sampleRuntimesS(Rel, T0, T100, Ttg),
+  sampleRuntimesS(Rel, T0),
 %  getPredCostDivisor(Pred, ResCard, SampleCard, Divisor),
   Divisor is (SampleCard),                % comment out and uncomment previous line to use BBox-Modification
-  calculatePredicateCost(Tq, T0, Ttg, ResCard, Divisor, PredCost),
+  calculatePredicateCost(Tq, T0, 0, ResCard, Divisor, PredCost),
   Sel is max(ResCard,1)/ SampleCard,	  % must not be 0
+  simplePred(pr(Pred, Rel), PSimple),
   write('Cost evaluation for selection predicate '), write(PSimple), nl,
   write('  Tq='), write(Tq), nl,
   write('  ResCard='), write(ResCard), nl,
@@ -444,8 +446,7 @@ selectivity(pr(Pred, Rel), Sel) :-
   write('  Divisor='), write(Divisor), nl,
   write('Predicate Cost: '), write(PredCost), write(' ms'), nl,
   write('Selectivity : '), write(Sel), nl,
-  simplePred(pr(Pred, Rel), PSimple),
-  assert(storedPET(PSimple, PredCost, T0, T100, Tq, Ttg, ResCard, SampleCard)),
+  assert(storedPET(PSimple, PredCost, T0, *, Tq, *, ResCard, SampleCard)),
   assert(storedSel(PSimple, Sel)),
   !.
 
@@ -470,10 +471,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   Time is Time2 - Time1,
   convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
   Tq is Minute *60000 + Sec*1000 + MilliSec,
-  write('Elapsed Time: '),
-  write(Tq),
-  write(' ms'), nl, 
-  write('Overhead Time: '), write(OverheadCost), write(' ms'), nl,
+  write('Elapsed Time: '), write(Tq), write(' ms'), nl, 
 %  getPredCostDivisor(Pred, ResCard, (SampleCard1 * SampleCard2), Divisor),
   Divisor is (SampleCard1 * SampleCard2),                % comment out and uncomment previous line to use BBox-Modification
   PredCost is max(Tq,1) / Divisor, 
@@ -494,8 +492,7 @@ selectivity(pr(Pred, Rel), Sel) :-
   dynamicCardQuery(Pred, Rel, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  %write('selectivity query : '),
-  %write(QueryAtom),
+  %write('selectivity query : '), write(QueryAtom),
   get_time(Time1),
   secondo(QueryAtom, [int, ResCard]),
   get_time(Time2),
@@ -617,30 +614,41 @@ writePETs :-
 writePET :-
   storedPET(P, PC, T0, T100, Tq, Ttg, ResCard, TotalCard),
   replaceCharList(P, PReplaced),
-  write('Predicate: '), write(PReplaced),
-  write(', Cost: '), write(PC),
-  write(', T0='), write(T0),
+  write(PReplaced), write(', Cost: '), write(PC), nl,
+  write('     T0='), write(T0),
   write(', T100='), write(T100),
   write(', Tq='), write(Tq),
   write(', Ttg='), write(Ttg),
   write(', ResCard='), write(ResCard),
   write(', TotalCard='), write(TotalCard),
-  write(' ms\n').
+  nl.
+
+writePETsShort :-
+	write('Cost [ms] \t\t Predicate\n'),
+  findall(_, writePETshort, _).
+
+writePETshort :-
+  storedPET(P, PC, _, _, _, _, _, _),
+  replaceCharList(P, PReplaced),
+  write(PC), write('\t\t'), write(PReplaced), nl.
 
 
 /*
-----    storedSampleRuntimes(R1, R2, T0, Ttg)
+----    storedSampleRuntimes(R1, R2, T0, T100, Ttg, Mode)
 ----
 This dynamic predicate is used to store reference times for joins on relations ~R1~ and ~R2~.
-~T0~ is the time used by ~query R1 feed R1 feed symmjoin[FALSE] count~, while ~Ttg~ is the
-time used to construct a single result tuple for a join between ~R1~ and ~R2~. 
+~T0~ is the time used by ~query R1 feed R1 feed symmjoin[FALSE] count~ resp. ~R1 feed 
+filter[FALSE] count~, while ~Ttg~ is the time used to construct a single result tuple for a 
+join between ~R1~ and ~R2~. ~T100~ is the time used for ~query R1 feed R2 feed 
+symmjoin[TRUE] head[100] count~ resp. ~query R1 feed filter[TRUE] head[100] count~.
+~Mode~ is used to tell selection-runtimes (s) from join-runtimes (j)
 
 There are predicates to write/read reference times to/from disk and to show it to the user.
 
 */
 
 readStoredSampleRuntimes :-
-  retractall(storedSampleRuntimes( _, _, _, _, _)),
+  retractall(storedSampleRuntimes( _, _, _, _, _, _)),
   [storedSampleRuntimes].  
 
 writeStoredSampleRuntimes :-
@@ -650,23 +658,28 @@ writeStoredSampleRuntimes :-
   close(FD).
 
 writeStoredSampleRuntimes(Stream) :-  
-  storedSampleRuntimes(R1, R2, T0, T100, Ttg),
-  write(Stream, storedSampleRuntimes(R1, R2, T0, T100, Ttg)),
+  storedSampleRuntimes(R1, R2, T0, T100, Ttg, Mode),
+  write(Stream, storedSampleRuntimes(R1, R2, T0, T100, Ttg, Mode)),
   write(Stream, '.\n').
 
 showStoredSampleRuntimes :-
   findall(_, showStoredSampleRuntime, _).
 
 showStoredSampleRuntime :-
-  storedSampleRuntimes(R1, R2, T0, T100, Ttg),
+  storedSampleRuntimes(R1, _, T0, _, _, s),
+  write('('), write(R1),
+  write('):  TO='), write(T0), write('ms\n').
+
+showStoredSampleRuntime :-
+  storedSampleRuntimes(R1, R2, T0, T100, Ttg, j),
   write('('), write(R1),
   write('  x  '), write(R2),
-  write(') -->  TO='), write(T0), write('ms'),
-  write(', T100='), write(T100), write('ms'),  
+  write('):  TO='), write(T0), write('ms'),
+  write(', T100='), write(T100), write('ms'),
   write(', Ttg='), write(Ttg), write('ms\n').
 
 :-
-  dynamic(storedSampleRuntimes/5),
+  dynamic(storedSampleRuntimes/6),
   at_halt(writeStoredSampleRuntimes),
   readStoredSampleRuntimes.
 
@@ -692,7 +705,7 @@ sampleRuntimesJ(R1, R2, T0, T100, Ttg) :-
   sampleNameJ(BaseName1, SampleName1),
   R2 = rel(BaseName2, _, _),
   sampleNameJ(BaseName2, SampleName2),
-  storedSampleRuntimes(SampleName1, SampleName2, T0, T100, Ttg),
+  storedSampleRuntimes(SampleName1, SampleName2, T0, T100, Ttg, j),
   !.
 
 sampleRuntimesJ(R1, R2, T0, T100, Ttg) :-
@@ -700,7 +713,7 @@ sampleRuntimesJ(R1, R2, T0, T100, Ttg) :-
   sampleNameJ(BaseName1, SampleName1),
   R2 = rel(BaseName2, _, _),
   sampleNameJ(BaseName2, SampleName2),
-  storedSampleRuntimes(SampleName2, SampleName1, T0, T100, Ttg),
+  storedSampleRuntimes(SampleName2, SampleName1, T0, T100, Ttg, j),
   !.
 
 sampleRuntimesJ(R1, R2, T0, T100, Ttg) :-
@@ -735,11 +748,11 @@ sampleRuntimesJ(R1, R2, T0, T100, Ttg) :-
   sampleNameJ(BaseName1, SampleName1),
   R2 = rel(BaseName2, _, _),
   sampleNameJ(BaseName2, SampleName2),
-  assert(storedSampleRuntimes(SampleName1, SampleName2, T0, T100, Ttg)),
+  assert(storedSampleRuntimes(SampleName1, SampleName2, T0, T100, Ttg, j)),
   !.
 
-sampleRuntimesJ(R1, R2, _, _, _) :-
-  nl, write('ERROR in optimizer: sampleRuntimesJ('), write(R1), write(', '), write(R2), write(', _, _, _) failed.\n'),
+sampleRuntimesJ(R1, R2, _, _, _, _) :-
+  nl, write('ERROR in optimizer: sampleRuntimesJ('), write(R1), write(', '), write(R2), write(', _, _, _, _) failed.\n'),
   fail.
 
 /*
@@ -751,19 +764,18 @@ on Relation ~Rel~.
 
 */
 
-sampleRuntimesS(Rel, T0, T100, Ttg) :-
+sampleRuntimesS(Rel, T0) :-
   Rel = rel(BaseName, _, _),
   sampleNameS(BaseName, SampleName),
-  storedSampleRuntimes(SampleName, *, T0, T100, Ttg),
+  storedSampleRuntimes(SampleName, _, T0, _, _, s),
   !.
 
-sampleRuntimesS(R1, T0, T100, Ttg) :-
+sampleRuntimesS(R1, T0) :-
   sampleS(R1, R1S),
   possiblyRename(R1S, R1Q),
   plan_to_atom(R1Q, R1A),
   atom_concat('query ', R1A, Q2),
   atom_concat(Q2, ' filter[FALSE] count', T0Query),
-  atom_concat(Q2, ' filter[TRUE] head[100] count', T100Query),
   % run a query to get the base runtime T0 for a selection
 %  nl, write('sampleRuntimesS/4 T0-Query: '), write(T0Query), nl,
   get_time(TimeA1),
@@ -772,22 +784,13 @@ sampleRuntimesS(R1, T0, T100, Ttg) :-
   TimeA is TimeA2 - TimeA1,
   convert_time(TimeA, _, _, _, _, MinuteA, SecA, MilliSecA),
   T0 is MinuteA *60000 + SecA*1000 + MilliSecA,
-  % run a query to estimate the tuple generation time Ttg
-%  nl, write('sampleRuntimesS/4 T100-Query: '), write(T100Query), nl,
-  get_time(TimeB1),
-  secondo(T100Query, [int, _]),
-  get_time(TimeB2),
-  TimeB is TimeB2 - TimeB1,
-  convert_time(TimeB, _, _, _, _, MinuteB, SecB, MilliSecB),
-  T100 is MinuteB *60000 + SecB*1000 + MilliSecB,
-  returnTtg(T0, T100, Ttg),
   R1 = rel(BaseName1, _, _),
   sampleNameS(BaseName1, SampleName1),
-  assert(storedSampleRuntimes(SampleName1, *, T0, T100, Ttg)),
+  assert(storedSampleRuntimes(SampleName1, *, T0, *, *, s)),
   !.
 
-sampleRuntimesS(R, _, _, _) :-
-  nl, write('ERROR in optimizer: sampleRuntimesS('), write(R), write(', _, _, _) failed.\n'),
+sampleRuntimesS(R, _) :-
+  nl, write('ERROR in optimizer: sampleRuntimesS('), write(R), write(', _) failed.\n'),
   fail.
 
 /*
