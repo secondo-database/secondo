@@ -434,6 +434,16 @@ a query result of type Word. This static method can be used for Secondo queries
 within an operator implementation of an algebra.
 
 */
+
+  void DestroyValuesArray( const AlgebraLevel level );
+/*
+Destroys the ~values~ array. This function is used when there is a failure
+in the Annotate process and the query tree is not built. When the query 
+tree is built, the ~Destroy~ function should be called. 
+
+*/
+
+
  private:
   void GetVariable( const string& name, NameIndex& varnames,
                     const VarEntryTable& vartable,
@@ -544,12 +554,12 @@ function body.
 
   ListExpr TestOverloadedOperators( const string& operatorSymbolStr, 
                                     ListExpr opList, 
-																		ListExpr typeList,
-																		int& alId,
-																		int& opId,
-																		int& opFunId,
-																		const bool checkFunId,
-																		const bool traceMode     );
+                                    ListExpr typeList, 
+                                    int& alId, 
+                                    int& opId, 
+                                    int& opFunId, 
+                                    const bool checkFunId, 
+                                    const bool traceMode     );
 /*
 Test all possible type mappings for overloaded operators. The output of the
 first successfully applied type mapping will be returned.
@@ -557,15 +567,9 @@ first successfully applied type mapping will be returned.
 */ 
 
 
-  void DestroyValuesArray( const AlgebraLevel level );
-/*
-Destroys the ~values~ array. This function is used when there is a failure
-in the Annotate process and the query tree is not built. When the query 
-tree is built, the ~Destroy~ function should be called. 
-
-*/
   bool IsCorrectTypeExpr( const AlgebraLevel level,
                           const ListExpr expr );
+
   OpTree Subtree( const AlgebraLevel level,
                   const ListExpr expr,
                   bool& first,

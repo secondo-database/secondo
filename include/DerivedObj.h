@@ -29,6 +29,11 @@ May 06, 2004. M. Spiekermann: Initial Version
 May 20, 2004. M. Spiekermann: A bug during Berkeley-DB environment close has
 been fixed.  Now the relation object will be closed properly in the destructor
 
+Dec 02, 2006. M. Spiekermann: A new update value is now created by ~inObject~ instead
+of a little query. Moreover, some changes in the Algebra interface made it necessary to
+call ~QP::DestroyValuesArray~, since ~QP::AnnotateX~ open objects. Now the derive command
+works again. 
+
 This class creates and maintains the system table 
 
 SEC\_DERIVED\_OBJ(name: string, value: text, usedObj: text)
@@ -86,16 +91,13 @@ public:
        assert( ok && defined );
        derivedObjValueList = ctlg.OutObject(typeExpr(), derivedObjWord);
        DerivedObjMemoryRep( derivedObjValueList );
+       ctlg.CloseObject( typeExpr(), derivedObjWord );
        tableExists = true;
      }
    
    }
    ~DerivedObj(){ // close relation object
   
-     if ( tableExists ) {
-        ctlg.CloseObject( typeExpr(), derivedObjWord );
-     }
-
      // free allocated memory
      for ( vector<ObjRecord*>::const_iterator it = derivedObjRecords.begin();
            it != derivedObjRecords.end();
@@ -113,6 +115,9 @@ public:
 
    void createTableIfNecessary() {
    
+     if (tableExists)
+       return;
+
      if ( !ctlg.IsObjectName(derivedObjRelName) ) { 
      
         string typeName = "";
@@ -140,6 +145,10 @@ command and extracts the object dependencies from the annotated query.
       // extract dependent objects
       bool defined = false;	  
       ListExpr annotatedList = qp.AnnotateX( ExecutableLevel, valueExpr, defined);
+
+      // delete and close objects which were opened during annotate
+      qp.DestroyValuesArray(ExecutableLevel);
+
       //nl.WriteListExpr(annotatedList);
       vector<ListExpr> atoms;
       nl.ExtractAtoms(annotatedList, atoms);
@@ -424,22 +433,22 @@ private:
    // and updates the relation object.
    void updateTable() {
    
-      OpTree tree;
       Word result;
-      bool correct=false, evaluable=false, defined=false, isFunction=false;
-      ListExpr newValue = DerivedObjList(), resultType;
+      bool correct=false, defined=false;
+      ListExpr newValue = DerivedObjList();
       
-      qp.Construct( ExecutableLevel, nl.TwoElemList(typeExpr(), newValue), correct, evaluable, defined,
-                    isFunction, tree, resultType );
-		    
+      const int errorPos = 0;
+      ListExpr errorInfo = 0;
+
+      result = ctlg.InObject( typeExpr(), newValue, errorPos,
+                              errorInfo, correct );
       assert( correct );
-      assert( evaluable );
-      assert( defined );
-      assert( !isFunction );
-      
-      qp.Eval( tree, result, 1);
-      ctlg.UpdateObject(derivedObjRelName, result );
-      qp.Destroy( tree, false );         
+
+      defined = false;
+      bool ok = false;
+
+      ok = ctlg.UpdateObject(derivedObjRelName, result );
+      assert( ok );
    }
 
 
