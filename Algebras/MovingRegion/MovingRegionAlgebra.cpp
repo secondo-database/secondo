@@ -4875,7 +4875,7 @@ static void* CastURegion(void* addr) {
 static int SizeOfURegion() {
     if (MRA_DEBUG) cerr << "SizeOfURegion() called" << endl;
 
-    assert(false);
+    return 0;
 }
 
 static TypeConstructor uregion(
