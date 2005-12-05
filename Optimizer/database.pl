@@ -1116,7 +1116,7 @@ writeStoredAttrSize(Stream) :-
 
 showStoredAttrSize :-
   storedAttrSize(Rel, Attr, Type, CoreSize, InFlobSize),
-  write(Rel), write('.'), write(Attr), write(': '), write(Type), 
+  write(Rel), write('.'), write(Attr), write(': \t'), write(Type), 
   write(' ('), write(CoreSize),write('/'), write(InFlobSize), write(')\n').
 
 showStoredAttrSizes :-

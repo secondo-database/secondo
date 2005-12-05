@@ -1558,6 +1558,12 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg2S, Arg1S,
+        attrname(Attr2), attrname(Attr1), 997)   :-
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+
 /*
 
 ----    isOfFirst(Attr, X, Y)
@@ -1616,7 +1622,7 @@ writePlanEdges :- not(writePlanEdges2).
 
 
 /*
-7 Assigning Sizes, Selectivities and Predictate Costs to the Nodes and Edges of the POG
+7 Assigning Sizes, TupleSizes, Selectivities and Predictate Costs to the Nodes and Edges of the POG
 
 ----    assignSizes.
         deleteSizes.
@@ -1624,7 +1630,8 @@ writePlanEdges :- not(writePlanEdges2).
 
 Assign sizes (numbers of tuples) to all nodes in the pog, based on the
 cardinalities of the argument relations and the selectivities of the
-predicates. Store sizes as facts of the form resultSize(Result, Size). Store
+predicates. Store sizes as facts of the form resultSize(Result, Size). Stored
+result tuple sizes as facts of the form resultTupleSize(Result, Size), stored
 selectivities as facts of the form edgeSelectivity(Source, Target, Sel).
 
 Delete sizes from memory.
@@ -1646,9 +1653,11 @@ assignSizes1 :-
 
 assignSize(Source, Target, select(Arg, Pred), Result) :-
   resSize(Arg, Card),
+  resTupleSize(Arg, ArgTupleSize),
   selectivity(Pred, Sel),
   Size is Card * Sel,
   setNodeSize(Result, Size),
+  setNodeTupleSize(Result, ArgTupleSize),
   predicateCost(Pred, PredCost),
   assert(edgeSelectivity(Source, Target, Sel, PredCost)),
   !.
@@ -1657,9 +1666,13 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
 assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   resSize(Arg1, Card1),
   resSize(Arg2, Card2),
+  resTupleSize(Arg1, TSize1),
+  resTupleSize(Arg2, TSize2),
   selectivity(Pred, Sel),
   Size is Card1 * Card2 * Sel,
+  TSize is TSize1 + TSize2,
   setNodeSize(Result, Size),
+  setNodeTupleSize(Result, TSize),
   predicateCost(Pred, PredCost),
   assert(edgeSelectivity(Source, Target, Sel, PredCost)),
   !.
@@ -1677,6 +1690,17 @@ setNodeSize(Node, _) :- resultSize(Node, _), !.
 setNodeSize(Node, Size) :- assert(resultSize(Node, Size)).
 
 /*
+----    setNodeTupleSize(Node, Size) :-
+----
+
+Set the tuple size of node ~Node~ to ~Size~ if no size has been assigned before.
+
+*/
+
+setNodeTupleSize(Node, _) :- resultTupleSize(Node, _), !.
+setNodeTupleSize(Node, Size) :- assert(resultTupleSize(Node, Size)).
+
+/*
 ----    resSize(Arg, Size) :-
 ----
 
@@ -1690,6 +1714,25 @@ resSize(arg(N), _) :- write('Error in optimizer: cannot find cardinality for '),
 resSize(res(N), Size) :- resultSize(N, Size), !.
 
 /*
+----    resTupleSize(Arg, Size) :-
+----
+
+Argument ~Arg~ has tuple size ~Size~.
+
+*/
+
+resTupleSize(arg(N), TupleSize) :- 
+  argument(N, Rel), 
+  Rel = rel(_, _, _),
+  calculateQueryTupleSize(Rel, CoreTupleSize, InFlobSize),
+  TupleSize is CoreTupleSize + InFlobSize,
+  !.
+resTupleSize(arg(N), _) :- write('Error in optimizer: cannot find tuple size for '),
+  argument(N, Rel), wp(Rel), nl, fail.
+resTupleSize(res(N), Size) :- resultTupleSize(N, Size), !.
+
+
+/*
 ----    writeSizes :-
 ----
 
@@ -1699,8 +1742,10 @@ Write sizes, selectivities and predicate costs.
 
 writeSize :-
   resultSize(Node, Size),
-  write('Node: '), write(Node), nl,
-  write('Size: '), write(Size), nl, nl,
+  resultTupleSize(Node, TSize),
+  write('Node:       '), write(Node), nl,
+  write('Size:       '), write(Size), nl, 
+  write('Tuple Size: '), write(TSize), nl, nl,
   fail.
 writeSize :-
   edgeSelectivity(Source, Target, Sel, PredCost),
@@ -1720,6 +1765,7 @@ Delete node sizes and selectivities of edges.
 */
 
 deleteSize :- retract(resultSize(_, _)), fail.
+deleteSize :- retract(resultTupleSize(_, _)), fail.
 deleteSize :- retract(edgeSelectivity(_, _, _, _)), fail.
 deleteSizes :- not(deleteSize).
 
@@ -1760,14 +1806,15 @@ gsf(M, N, S) :-
 
 */
 
-cost(rel(Rel, _, _), _, Size, TupleSize, _, 0) :-
+cost(rel(Rel, X, Y), _, Size, TupleSize, _, 0) :-
 %  getRelationTupleSize(Rel, TupleSize),
-  TupleSize is 12, % to be exchanged for actual tuple size
+  calculateQueryTupleSize(rel(Rel, X, Y), CoreTupleSize, InFlobSize),
+  TupleSize is  CoreTupleSize +  InFlobSize,
   card(Rel, Size).
 
 cost(res(N), _, Size, TupleSize, _, 0) :-
 %  getResultTupleSize(N, TupleSize),
-  TupleSize is 14, % to be exchanged for actual tuple size
+  resultTupleSize(N, TupleSize), % to be exchanged for actual tuple size
   resultSize(N, Size).
 
 /*
@@ -1884,6 +1931,7 @@ regarded as a cheap predicate.
 */
 
 /*
+
 cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, PredCost, C) :-
   hashjoinTC(A, B, C, _, _, _, MaxMem),
   MemSizeX is 0.25*MaxMem,
@@ -1891,8 +1939,8 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, PredCost, C) :-
   cost(X, 1, CX, Tx, PredCost, CostArgX),
   cost(Y, 1, CY, Ty, PredCost, CostArgY),
   % test for case1: Both argument relations X,Y fit into memory  
-  (CX * Tx) <= MemSizeX, 
-  (CY * Ty) <= MemSizeY,      
+  (CX * Tx) =< MemSizeX, 
+  (CY * Ty) =< MemSizeY,      
   MemSizeTY is max(1,(MemSizeY / Ty)), % amount of Y-tuples fitting into MemY
   MemSizeTY is max(1,(MemSizeX / Tx)), % amount of X-tuples fitting into MemX
   C is CostArgX + CostArgY                        % create input streams
@@ -1900,8 +1948,7 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, PredCost, C) :-
        + B * CX * max((CY/NBuckets,1))            % collide each X-tuple with Y-tuples from hashed bucket
        + C * Sel * CX * CY,                       % create result tuples
   ResSize is CX * CY * Sel,
-  TupleSize is Tx + Ty,
-  !.
+  TupleSize is Tx + Ty.
 
 cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, PredCost, C) :-
   hashjoinTC(A, B, C, _, E, _, MaxMem),
@@ -1921,8 +1968,7 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, PredCost, C) :-
                                                      % once per hash table
        + C * Sel * CX * CY,                          % create result tuples
   ResSize is CX * CY * Sel,
-  TupleSize is Tx + Ty,
-  !.
+  TupleSize is Tx + Ty.
 
 cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, PredCost, C) :-
   hashjoinTC(A, B, C, D, _, _, MaxMem),
@@ -1932,9 +1978,7 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, PredCost, C) :-
   cost(Y, 1, CY, Ty, PredCost, CostArgY),
   % test for case2 and case3, which have identical cost functions:
   % case2: X fits in memory, but Y does not 
-  %  (CX * Tx) <= MemSizeX, (CY * Ty) >  MemSizeY,            
-  % case3: X does not fit in memory, but Y does  
-  %  (CX * Tx) > MemSizeX, (CY * Ty) <= MemSizeY,                                 
+  (CX * Tx) =< MemSizeX, (CY * Ty) >  MemSizeY,            
   MemSizeTY is max(1,(MemSizeY / Ty)), % amount of Y-tuples fitting into MemY
   MemSizeTY is max(1,(MemSizeX / Tx)), % amount of X-tuples fitting into MemX
   C is CostArgX + CostArgY                        % create input streams
@@ -1945,8 +1989,29 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, PredCost, C) :-
        + D * CX * (CY/MemSizeTY)                  % read X-tuples from memory once per hashtable
        + C * Sel * CX * CY,                       % create result tuples
   ResSize is CX * CY * Sel,
-  TupleSize is Tx + Ty,
-  !.
+  TupleSize is Tx + Ty.
+
+cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, PredCost, C) :-
+  hashjoinTC(A, B, C, D, _, _, MaxMem),
+  MemSizeX is 0.25*MaxMem,
+  MemSizeY is 0.75*MaxMem,
+  cost(X, 1, CX, Tx, PredCost, CostArgX),
+  cost(Y, 1, CY, Ty, PredCost, CostArgY),
+  % test for case2 and case3, which have identical cost functions:
+  % case3: X does not fit in memory, but Y does  (Same cost function as in case2!)
+  (CX * Tx) > MemSizeX, (CY * Ty) =< MemSizeY,                                 
+  MemSizeTY is max(1,(MemSizeY / Ty)), % amount of Y-tuples fitting into MemY
+  MemSizeTY is max(1,(MemSizeX / Tx)), % amount of X-tuples fitting into MemX
+  C is CostArgX + CostArgY                        % create input streams
+       + A * CY                                   % insert pointers to Y into hash table
+       + B * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
+                                                  % compare each X-tuple with
+                                                  % the hashed Y-tuples from several hashtables
+       + D * CX * (CY/MemSizeTY)                  % read X-tuples from memory once per hashtable
+       + C * Sel * CX * CY,                       % create result tuples
+  ResSize is CX * CY * Sel,
+  TupleSize is Tx + Ty.
+
 
 */
 
@@ -1954,6 +2019,7 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, PredCost, C) :-
   Old cost function for ~hashjoin~
 
 */
+
 
 
 cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, TupleSize, PredCost, C) :-
@@ -1966,6 +2032,7 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, TupleSize, PredCost, C) :-
     (A + PredCost) * NBuckets * (SizeX/NBuckets + 1) *  % computing the product for each
       (SizeY/NBuckets +1) +                             % pair of buckets
     B * S.                                              % producing the result tuples
+
 
 
 cost(sortmergejoin(X, Y, _, _), Sel, S, TupleSize, PredCost, C) :-
@@ -2031,8 +2098,7 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
        + C * CX * CY * Sel           % create result tuples  
        + D * (  min(CX,CY) * max(CX,CY)
               + min(CX,CY) * (max(CX,CY)-min(CX,CY))), % read X/Y-tuples from memory
-  ResSize is CX * CY * Sel, 
-  !.
+  ResSize is CX * CY * Sel.
 
 cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
   symmjoinTC(A, _, C, D, E, F, MaxMem),
@@ -2052,8 +2118,7 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
               +(CY-CX)*CX)           % read X/Y-tuples from memory
        + E * CX                      % write Y-tuples to disk
        + F * gsf(OY,CX),             % read Y-tuples from disk
-  ResSize is CX * CY * Sel, 
-  !.
+  ResSize is CX * CY * Sel.
 
 cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
   symmjoinTC(A, _, C, D, _, _, MaxMem),
@@ -2071,8 +2136,7 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
        + C * CX * CY * Sel           % create result tuples  
        + D * ( CX*CX
               +(CY-CX)*CX),          % read X/Y-tuples from memory
-  ResSize is CX * CY * Sel, 
-  !.
+  ResSize is CX * CY * Sel.
  
 cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
   symmjoinTC(A, _, C, D, E, F, MaxMem),
@@ -2092,8 +2156,7 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
        + E * CY                      % write Y-tuples to disk
        + F * ( gsf(OY,CY)
               +(CX-CY)*CY),          % read X/Y-tuples from disk
-  ResSize is CX * CY * Sel, 
-  !.
+  ResSize is CX * CY * Sel.
 
 cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
   symmjoinTC(A, _, C, D, E, F, MaxMem),
@@ -2113,8 +2176,7 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
               +(CX-CY)*CY)           % read X/Y-tuples from memory
        + E * CY                      % write X-tuples to disk
        + F * gsf(OX,CY),             % read X-tuples from disk
-  ResSize is CY * CX * Sel, 
-  !.
+  ResSize is CY * CX * Sel.
 
 cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
   symmjoinTC(A, _, C, D, _, _, MaxMem),
@@ -2132,8 +2194,7 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
        + C * CY * CX * Sel           % create result tuples  
        + D * ( CY*CY
               +(CX-CY)*CY),          % read X/Y-tuples from memory
-  ResSize is CY * CX * Sel, 
-  !.
+  ResSize is CY * CX * Sel.
  
 cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
   symmjoinTC(A, _, C, D, E, F, MaxMem),
@@ -2153,8 +2214,7 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
        + E * CX                      % write X-tuples to disk
        + F * ( gsf(OX,CX)
               +(CY-CX)*CX),          % read X/Y-tuples from disk
-  ResSize is CY * CX * Sel, 
-  !.
+  ResSize is CY * CX * Sel.
 
 cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
   symmjoinTC(A, _, C, D, E, F, MaxMem),
@@ -2177,8 +2237,7 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
        + F * ( gsf(OX,OY)            
               +gsf(OY,CX)            
               +(CY-CX)*CX),          % read X/Y-tuples from disk
-  ResSize is CX * CY * Sel, 
-  !.
+  ResSize is CX * CY * Sel.
 
 cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
   symmjoinTC(A, _, C, D, E, F, MaxMem),
@@ -2201,8 +2260,7 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
        + F * ( gsf(OY,OX)
               +gsf(OX,CX)
               +(CY-CX)*CX),          % read X/Y-tuples from disk
-  ResSize is CX * CY * Sel, 
-  !.
+  ResSize is CX * CY * Sel.
 
 cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
   symmjoinTC(A, _, C, D, E, F, MaxMem),
@@ -2225,8 +2283,7 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
        + F * ( gsf(OY,OX)
               +gsf(OX,CY)
               +(CX-CY)*CY),          % read X/Y-tuples from disk
-  ResSize is CY * CX * Sel, 
-  !.
+  ResSize is CY * CX * Sel.
 
 cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
   symmjoinTC(A, _, C, D, E, F, MaxMem),
@@ -2249,8 +2306,7 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
        + F * ( gsf(OX,OY)
               +gsf(OY,CY)
               +(CX-CY)*CY),          % read X/Y-tuples from disk
-  ResSize is CX * CY * Sel, 
-  !.
+  ResSize is CX * CY * Sel.
 
 */
 
@@ -4120,10 +4176,44 @@ bestPlanConsume :-
   query.
 
 */
-usedAttrListAtom(Rel, [LD]) :-
+usedAttrListAtom(Rel, Result) :-
   usedAttrList(Rel, LT), 
-  plan_to_atom(LT, LA), 
-  downcase_atom(LA, LD).
+  plan_to_atom(LT, LA),
+  downcase_atom(LA, LD),
+  concat_atom(['[',LD,']'], LDL),
+  term_to_atom(Result, LDL).
+
+
+/*
+  ~atomicAttrName(AttrTermList, AttrNameList)~ unifies ~AttrNameList~
+  with the list of atomic attribute names from ~AttrTermList~.
+
+*/
+
+
+% test: calculateProjectedTupleSize(rel(plz, p, l), [attr(plz, 1, u), attr(ort, 1, u)],X,Y).
+
+atomicAttrName([attr(_:Name, _, _)], [Result]) :-
+  downcase_atom(Name, NameD),
+  term_to_atom(Result, NameD),
+  !.
+
+atomicAttrName([attr(Name, _, _)], [Result]) :-
+  downcase_atom(Name, NameD),
+  term_to_atom(Result, NameD),
+  !.
+
+atomicAttrName([attr(_:Name, _, _) | Rest], [Result | MoreResults]) :-
+  downcase_atom(Name, NameD),
+  term_to_atom(Result, NameD),
+  atomicAttrName(Rest, MoreResults),
+  !.
+
+atomicAttrName([attr(Name, _, _) | Rest], [Result | MoreResults]) :-
+  downcase_atom(Name, NameD),
+  term_to_atom(Result, NameD),
+  atomicAttrName(Rest, MoreResults),
+  !.
 
 /* 
   ~calculateProjectedTupleSizeA(RelName, AttrNameList, CoreTupleSize, AvgInFlobSize)~ calculates
@@ -4132,7 +4222,7 @@ usedAttrListAtom(Rel, [LD]) :-
   be atomic terms.
 
   ~calculateProjectedProjectedTupleSize(Rel, AttrList, CoreTupleSize, InFlobSize)~ does the same for 
-  ~Rel~ and the attributes given as complex terms.
+  relation ~Rel~ and the attribute list  ~AttrList~ given as complex terms.
 
 */
 calculateProjectedTupleSizeA(RelName, [AttrName], CoreTupleSize, InFlobSize) :-
@@ -4144,23 +4234,24 @@ calculateProjectedTupleSizeA(RelName, [AttrName | Rest], CoreTupleSize, InFlobSi
   CoreTupleSize is C1+C2,
   InFlobSize is A1+A2.
   
-calculateProjecteTupleSize(Rel, AttrList, CoreTupleSize, InFlobSize) :-
+calculateProjectedTupleSize(Rel, AttrList, CoreTupleSize, InFlobSize) :-
   Rel = rel(R, _, _),
-  downcase_atom(R, RD),
-  plan_to_atom(AttrList, LA), 
-  downcase_atom(LA, LD),
-  calculateProjectedTupleSizeA(RD, LD, CoreTupleSize, InFlobSize).
+  downcase_atom(R, RelName),
+  atomicAttrName(AttrList, AttrNameList),
+  calculateProjectedTupleSizeA(RelName, AttrNameList, CoreTupleSize, InFlobSize).
 
 /*
-  ~calculateActualTupleSize(Rel, CoreTupleSize, InFlobSize)~ unifies ~CoreTupleSize~ and ~InFlobSize~
+  ~calculateQueryTupleSize(Rel, CoreTupleSize, InFlobSize)~ unifies ~CoreTupleSize~ and ~InFlobSize~
   with the tuple sizes ~relation ~Rel~ will have in this query after it has been projected according
   to the SQL select clause.
 
-  The result can be used to annotate the actual tuple sizes to each node of the pog.
+  The result is used to annotate the actual tuple sizes to each node of the pog.
 
 */
-calculateActualTupleSize(Rel, CoreTupleSize, InFlobSize) :-
+calculateQueryTupleSize(Rel, CoreTupleSize, InFlobSize) :-
   usedAttrListAtom(Rel, UsedAttr),
-  calculateProjecteTupleSize(Rel, UsedAttr, CoreTupleSize, InFlobSize).
+  Rel = rel(R, _, _),
+  downcase_atom(R, RelName),
+  calculateProjectedTupleSizeA(RelName, UsedAttr, CoreTupleSize, InFlobSize).
 
 

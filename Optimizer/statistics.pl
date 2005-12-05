@@ -614,8 +614,8 @@ writePETs :-
 writePET :-
   storedPET(P, PC, T0, T100, Tq, Ttg, ResCard, TotalCard),
   replaceCharList(P, PReplaced),
-  write(PReplaced), write(', Cost: '), write(PC), nl,
-  write('     T0='), write(T0),
+  write(PReplaced), write(', \tCost: '), write(PC), nl,
+  write('\tT0='), write(T0),
   write(', T100='), write(T100),
   write(', Tq='), write(Tq),
   write(', Ttg='), write(Ttg),
@@ -668,13 +668,13 @@ showStoredSampleRuntimes :-
 showStoredSampleRuntime :-
   storedSampleRuntimes(R1, _, T0, _, _, s),
   write('('), write(R1),
-  write('):  TO='), write(T0), write('ms\n').
+  write('):  \tTO='), write(T0), write('ms\n').
 
 showStoredSampleRuntime :-
   storedSampleRuntimes(R1, R2, T0, T100, Ttg, j),
   write('('), write(R1),
   write('  x  '), write(R2),
-  write('):  TO='), write(T0), write('ms'),
+  write('):  \tTO='), write(T0), write('ms'),
   write(', T100='), write(T100), write('ms'),
   write(', Ttg='), write(Ttg), write('ms\n').
 
