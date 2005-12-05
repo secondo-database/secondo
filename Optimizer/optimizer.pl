@@ -1434,12 +1434,13 @@ join(Arg1, Arg2, pr(Pred, _, _)) => symmjoin(Arg1S, Arg2S, Pred) :-
 product-filter join - for testing only!
 
 */
-
-/*
 join(Arg1, Arg2, pr(Pred, A1, A2)) => filter(product(Arg1S, Arg2S), pr(Pred, A1, A2)) :-
   Arg1 => Arg1S,
   Arg2 => Arg2S.
-*/
+
+join(Arg1, Arg2, pr(Pred, A1, A2)) => filter(product(Arg2S, Arg1S), pr(Pred, A1, A2)) :-
+  Arg1 => Arg1S,
+  Arg2 => Arg2S.
 
 /*
 
@@ -1792,6 +1793,7 @@ cost. It is assumed that only a single operator of this kind occurs within the t
 
 ----    gsf(M, N, S)
 ----
+
 calculates $S=\sum_{i=1}^{N-M}{i+M} = {(N-M)(N+1)}\over{2}$.
 
 */
@@ -1845,6 +1847,10 @@ cost(filter(X, _), Sel, S, TupleSize, PredCost, C) :-
   S is SizeX * Sel,
   C is CostX + ( A + PredCost) * SizeX.
 
+/*
+ Old, simple cost estimation for product
+
+
 cost(product(X, Y), _, S, TupleSize, PredCost, C) :-
   cost(X, 1, SizeX, TupleSize1, PredCost, CostX),
   cost(Y, 1, SizeY, TupleSize2, PredCost, CostY),
@@ -1852,6 +1858,38 @@ cost(product(X, Y), _, S, TupleSize, PredCost, C) :-
   TupleSize is TupleSize1 + TupleSize2,
   S is SizeX * SizeY,
   C is CostX + CostY + SizeY * B + S * A.
+
+*/
+
+cost(product(X, Y), _, ResultCard, ResultTupleSize, PredCost, Cost) :-
+  % the product operator is not symmetric. Y is buffered and X will get consumed.
+  cost(X, 1, CX, Tx, PredCost, CostX),
+  cost(Y, 1, CY, Ty, PredCost, CostY),
+  productTC(A, _, C, D, _, _, MaxMem),
+  OY is (MaxMem / Ty),
+  % case1: Y fits into memory
+  CY =< OY,
+  ResultCard is CX * CY,
+  ResultTupleSize is Tx + Ty,
+  Cost is CostX + CostY      % produce input streams
+        + A * CY             % write Y-tuples to in-memory buffer
+        + D * CX * CY        % read Y-tuples from in-memory buffer
+        + C * ResultCard.    % generate result tuples
+
+cost(product(X, Y), _, ResultCard, ResultTupleSize, PredCost, Cost) :-
+  cost(X, 1, CX, Tx, PredCost, CostX),
+  cost(Y, 1, CY, Ty, PredCost, CostY),
+  productTC(A, _, C, _, E, F, MaxMem),
+  OY is (MaxMem / Ty),
+  % case2: Y does not fit into memory
+  CY > OY,
+  ResultCard is CX * CY,
+  ResultTupleSize is Tx + Ty,
+  Cost is CostX + CostY      % produce input streams
+        + A * OY             % write Y-tuples to in-memory buffer
+        + E * CY             % write Y-tuples to disk
+        + F * CX * CY        % read Y-tuples from disk
+        + C * ResultCard.    % generate result tuple
 
 cost(leftrange(_, Rel, _), Sel, Size, TupleSize, PredCost, Cost) :-
   cost(Rel, 1, RelSize, TupleSize, PredCost, _),
@@ -2025,6 +2063,11 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, TupleSize, PredCost, C) :-
 
 */
 
+
+/*
+  Simple cost estimation for sortmergejoin
+
+*/
 cost(sortmergejoin(X, Y, _, _), Sel, S, TupleSize, PredCost, C) :-
   cost(X, 1, SizeX, TupleSizeX, PredCost, CostX),
   cost(Y, 1, SizeY, TupleSizeY, PredCost, CostY),
@@ -2035,6 +2078,23 @@ cost(sortmergejoin(X, Y, _, _), Sel, S, TupleSize, PredCost, C) :-
     A * SizeX * log(SizeX + 1) +                % sorting the arguments
     A * SizeY * log(SizeY + 1) +                %   individual cost of ordering predicate still not applied!
     (B + PredCost) * S.                         % parallel scan of sorted relations
+
+/*
+  Detailed cost estimation for sortmergejoin
+
+cost(sortmergejoin(X, Y, _, _), Sel, ResultCard, ResultTupleSize, PredCost, Cost) :-
+  generate input streams
+  sorting X
+  sorting Y
+  joining X and Y:
+    read X/Y from memory/disk
+    evaluate check join predicate
+    Generating result tuples
+
+  ResultTupleSize is Tx + Ty,
+  ResultCard is CX * CY * Sel,
+  
+*/
 
 
 /* 

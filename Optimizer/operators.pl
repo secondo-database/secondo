@@ -77,6 +77,7 @@ windowintersectsTC(0.1).
 %            A       B       C       D       E    F      MaxMem
 hashjoinTC(0.001, 0.001, 0.0035, 0.0001, 0.001, 0.002, 4194304).
 symmjoinTC(0.001,   *  , 0.0035, 0.0001, 0.001, 0.002, 4194304).
+productTC(0.001,   *  , 0.0035, 0.0001, 0.001, 0.002, 4194304).
 
 /*
 2 Properties For Certain Operators
