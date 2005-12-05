@@ -276,7 +276,7 @@ retractCacheRelations(N) :-
 cacheRelation(Rel) :-
   Rel = rel(RName, _, _),  
   cachedRelation(RName, _),  
-  nl, write('===> Relation '), write(Rel), write(' is still in cache.\n'),
+%  nl, write('===> Relation '), write(Rel), write(' is still in cache.\n'),
   !.
 
 cacheRelation(Rel) :-
@@ -289,7 +289,7 @@ cacheRelation(Rel) :-
   cachedRelCounter(N),
   not(retractCacheRelations(N)),  
   assert(cachedRelation(RName, N)), 
-  nl, write('===> Cached relation '), write(Rel), write('.\n'),
+%  nl, write('===> Cached relation '), write(Rel), write('.\n'),
   !.
 
 cacheRelation(Rel) :-
@@ -395,7 +395,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   Time is Time2 - Time1,
   convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
   Tq is Minute*60000 + Sec*1000 + MilliSec,
-  write('Elapsed Time: '), write(Tq), write(' ms'), nl, 
+%  write('Elapsed Time: '), write(Tq), write(' ms'), nl, 
   sampleRuntimesJ(Rel1, Rel2, T0, T100, Ttg),
   TotalCard is (SampleCard1 * SampleCard2),
 %  getPredCostDivisor(Pred, ResCard, ProdSize, Divisor),
@@ -404,12 +404,12 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   Sel is max(ResCard,1) / TotalCard,   % must not be 0
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
   write('Cost evaluation for join predicate '), write(PSimple), nl,
-  write('  Tq='), write(Tq), nl,
-  write('  T0='), write(T0), nl,
-  write('  Ttg='), write(Ttg), nl,
-  write('  ResCard='), write(ResCard), nl,
-  write('  ProdCard='), write(TotalCard), nl,
-  write('  Divisor='), write(Divisor), nl,
+%  write('  Tq='), write(Tq), nl,
+%  write('  T0='), write(T0), nl,
+%  write('  Ttg='), write(Ttg), nl,
+%  write('  ResCard='), write(ResCard), nl,
+%  write('  ProdCard='), write(TotalCard), nl,
+%  write('  Divisor='), write(Divisor), nl,
   write('Predicate Cost: '), write(PredCost),write(' ms'), nl,
   write('Selectivity : '), write(Sel), nl,
   assert(storedPET(PSimple, PredCost, T0, T100, Tq, Ttg, ResCard, TotalCard)),
@@ -432,7 +432,7 @@ selectivity(pr(Pred, Rel), Sel) :-
   Time is Time2 - Time1,
   convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
   Tq is Minute *60000 + Sec*1000 + MilliSec,
-  write('Elapsed Time: '), write(Tq), write(' ms'), nl,
+%  write('Elapsed Time: '), write(Tq), write(' ms'), nl,
   sampleRuntimesS(Rel, T0),
 %  getPredCostDivisor(Pred, ResCard, SampleCard, Divisor),
   Divisor is (SampleCard),                % comment out and uncomment previous line to use BBox-Modification
@@ -440,10 +440,10 @@ selectivity(pr(Pred, Rel), Sel) :-
   Sel is max(ResCard,1)/ SampleCard,	  % must not be 0
   simplePred(pr(Pred, Rel), PSimple),
   write('Cost evaluation for selection predicate '), write(PSimple), nl,
-  write('  Tq='), write(Tq), nl,
-  write('  ResCard='), write(ResCard), nl,
-  write('  SampleCard='), write(SampleCard), nl,
-  write('  Divisor='), write(Divisor), nl,
+%  write('  Tq='), write(Tq), nl,
+%  write('  ResCard='), write(ResCard), nl,
+%  write('  SampleCard='), write(SampleCard), nl,
+%  write('  Divisor='), write(Divisor), nl,
   write('Predicate Cost: '), write(PredCost), write(' ms'), nl,
   write('Selectivity : '), write(Sel), nl,
   assert(storedPET(PSimple, PredCost, T0, *, Tq, *, ResCard, SampleCard)),

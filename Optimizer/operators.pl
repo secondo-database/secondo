@@ -64,7 +64,7 @@ windowintersectsTC(0.1).
   
   New tuple constants
 
-  A: cost to insert a tuple into an im-memory array
+  A: cost to insert a tuple into an in-memory array
   B: cost to compare tuples on equality (0.001 ms)
   C: cost to create a result tuple f(Tx + Ty)
   D: cost to write/read a tuple in/from an in-memory array
@@ -75,8 +75,8 @@ windowintersectsTC(0.1).
 */
 
 %            A       B       C       D       E    F      MaxMem
-hashjoinTC(0.0001, 0.001, 0.0035, 0.0001, 0.001, 0.001, 4194304).
-symmjoinTC(0.0001,   *  , 0.0035, 0.0001, 0.001, 0.001, 4194304).
+hashjoinTC(0.001, 0.001, 0.0035, 0.0001, 0.001, 0.002, 4194304).
+symmjoinTC(0.001,   *  , 0.0035, 0.0001, 0.001, 0.002, 4194304).
 
 /*
 2 Properties For Certain Operators
