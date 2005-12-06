@@ -46,7 +46,7 @@ constants below are quite accurate e.g. for examples 14 to
 
 feedTC(0.4).
 consumeTC(1.0).
-filterTC(1.68).
+%filterTC(1.68).
 productTC(1.26, 0.4).
 leftrangeTC(10).
 loopjoinTC(1.0).
@@ -78,7 +78,7 @@ windowintersectsTC(0.1).
 hashjoinTC(0.001, 0.001, 0.0035, 0.0001, 0.001, 0.002, 4194304).
 symmjoinTC(0.001,   *  , 0.0035, 0.0001, 0.001, 0.002, 4194304).
 productTC(0.001,   *  , 0.0035, 0.0001, 0.001, 0.002, 4194304).
-
+filterTC(0.007).
 /*
 2 Properties For Certain Operators
 

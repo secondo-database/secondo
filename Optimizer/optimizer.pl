@@ -1794,14 +1794,14 @@ cost. It is assumed that only a single operator of this kind occurs within the t
 ----    gsf(M, N, S)
 ----
 
-calculates $S=\sum_{i=1}^{N-M}{i+M} = {(N-M)(N+1)}\over{2}$.
+calculates $S=\sum_{i=1}^{N-M}{i+M} = {(N-M)(N+M+1)}\over{2}$.
 
 */
 
 :- arithmetic_function(gsf/2).
 
 gsf(M, N, S) :-
-  S is (N-M)*(N+1)*0.5.
+  S is (N-M)*(N+M+1)*0.5.
 
 
 /*
@@ -1850,7 +1850,6 @@ cost(filter(X, _), Sel, S, TupleSize, PredCost, C) :-
 /*
  Old, simple cost estimation for product
 
-
 cost(product(X, Y), _, S, TupleSize, PredCost, C) :-
   cost(X, 1, SizeX, TupleSize1, PredCost, CostX),
   cost(Y, 1, SizeY, TupleSize2, PredCost, CostY),
@@ -1861,10 +1860,10 @@ cost(product(X, Y), _, S, TupleSize, PredCost, C) :-
 
 */
 
-cost(product(X, Y), _, ResultCard, ResultTupleSize, PredCost, Cost) :-
+cost(product(X, Y), _, ResultCard, ResultTupleSize, B, Cost) :-
   % the product operator is not symmetric. Y is buffered and X will get consumed.
-  cost(X, 1, CX, Tx, PredCost, CostX),
-  cost(Y, 1, CY, Ty, PredCost, CostY),
+  cost(X, 1, CX, Tx, B, CostX),
+  cost(Y, 1, CY, Ty, B, CostY),
   productTC(A, _, C, D, _, _, MaxMem),
   OY is (MaxMem / Ty),
   % case1: Y fits into memory
@@ -1876,9 +1875,9 @@ cost(product(X, Y), _, ResultCard, ResultTupleSize, PredCost, Cost) :-
         + D * CX * CY        % read Y-tuples from in-memory buffer
         + C * ResultCard.    % generate result tuples
 
-cost(product(X, Y), _, ResultCard, ResultTupleSize, PredCost, Cost) :-
-  cost(X, 1, CX, Tx, PredCost, CostX),
-  cost(Y, 1, CY, Ty, PredCost, CostY),
+cost(product(X, Y), _, ResultCard, ResultTupleSize, B, Cost) :-
+  cost(X, 1, CX, Tx, B, CostX),
+  cost(Y, 1, CY, Ty, B, CostY),
   productTC(A, _, C, _, E, F, MaxMem),
   OY is (MaxMem / Ty),
   % case2: Y does not fit into memory
@@ -1947,7 +1946,7 @@ New cost function of ~hashjoin~:
 
 INPUT:\\
   A: cost to insert a tuple into hash table \\
-  B: cost to compare tuples on equality (0.001 ms)\\
+  B: cost to compare tuples/evaluate predicate (predicate cost)\\
   C: cost to create a result tuple f(Tx + Ty)\\
   D: cost to write/read a tuple in/from an in-memory array\\
   E: cost to write a tuple to an on-disk array\\
@@ -1963,18 +1962,14 @@ INPUT:\\
   MemSizeX = 0.25*MaxMem; this one is used to hold X-tuples hashed against the hash table\\
   MemSizeY = 0.75*MaxMem; this one is used for the hash table of Y-tuples\\
 
-As only ~equality~ is allowed as a Predicate to the hash-join, 
-predicate costs are not considered explicitly. Equality is 
-regarded as a cheap predicate.
-
 */
 
-cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, PredCost, Cost) :-
+cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, B, Cost) :-
   hashjoinTC(A, B, C, _, _, _, MaxMem),
   MemSizeX is 0.25*MaxMem,
   MemSizeY is 0.75*MaxMem,
-  cost(X, 1, CX, Tx, PredCost, CostArgX),
-  cost(Y, 1, CY, Ty, PredCost, CostArgY),
+  cost(X, 1, CX, Tx, B, CostArgX),
+  cost(Y, 1, CY, Ty, B, CostArgY),
   % test for case1: Both argument relations X,Y fit into memory  
   (CX * Tx) =< MemSizeX, 
   (CY * Ty) =< MemSizeY,      
@@ -1985,12 +1980,12 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, PredCost, Cost) :-
   ResSize is CX * CY * Sel,
   TupleSize is Tx + Ty.
 
-cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, PredCost, Cost) :-
+cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, B, Cost) :-
   hashjoinTC(A, B, C, _, E, _, MaxMem),
   MemSizeX is 0.25*MaxMem,
   MemSizeY is 0.75*MaxMem,
-  cost(X, 1, CX, Tx, PredCost, CostArgX),
-  cost(Y, 1, CY, Ty, PredCost, CostArgY),
+  cost(X, 1, CX, Tx, B, CostArgX),
+  cost(Y, 1, CY, Ty, B, CostArgY),
   % test for case4: neither X, nor Y fit in memory                                       
   (CX * Tx) > MemSizeX,
   (CY * Ty) > MemSizeY,
@@ -2005,12 +2000,12 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, PredCost, Cost) :-
   ResSize is CX * CY * Sel,
   TupleSize is Tx + Ty.
 
-cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, PredCost, Cost) :-
+cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, B, Cost) :-
   hashjoinTC(A, B, C, D, _, _, MaxMem),
   MemSizeX is 0.25*MaxMem,
   MemSizeY is 0.75*MaxMem,
-  cost(X, 1, CX, Tx, PredCost, CostArgX),
-  cost(Y, 1, CY, Ty, PredCost, CostArgY),
+  cost(X, 1, CX, Tx, B, CostArgX),
+  cost(Y, 1, CY, Ty, B, CostArgY),
   % test for case2 and case3, which have identical cost functions:
   % case2: X fits in memory, but Y does not 
   (CX * Tx) =< MemSizeX, 
@@ -2026,12 +2021,12 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, PredCost, Cost) :-
   ResSize is CX * CY * Sel,
   TupleSize is Tx + Ty.
 
-cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, PredCost, Cost) :-
+cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, B, Cost) :-
   hashjoinTC(A, B, C, D, _, _, MaxMem),
   MemSizeX is 0.25*MaxMem,
   MemSizeY is 0.75*MaxMem,
-  cost(X, 1, CX, Tx, PredCost, CostArgX),
-  cost(Y, 1, CY, Ty, PredCost, CostArgY),
+  cost(X, 1, CX, Tx, B, CostArgX),
+  cost(Y, 1, CY, Ty, B, CostArgY),
   % test for case2 and case3, which have identical cost functions:
   % case3: X does not fit in memory, but Y does  (Same cost function as in case2!)
   (CX * Tx) >  MemSizeX, 
@@ -2065,12 +2060,38 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, TupleSize, PredCost, C) :-
 
 
 /*
+  This cost function for ~sort~ relies on the operator's  implementation
+  in ExtRelAlgPersistent.
+
+cost(sort(X,_), Sel, Card, Tx, PredCost, Cost) :-
+  sortTC(A, _, C, D, E, F, MaxMem),
+   % A: cost to insert into heap
+   % E: cost to read tuple from on-disk relation 
+   % F: cost to write tuple to on-disk relation
+   
+  cost(X, Sel, Card, Tx, PredCost, CostX),
+  B is 0.001,                                      % cost for comparison of tuples
+  HeapSize is MaxMem / (Tx + 40),                  % determine heapsize in tuples
+  PartitionNumber is 1,                            % calculate average number of partion files generated ???????
+  PartitionCard is Card / PartitionNumber,         % calculate average size of partition files in tuples
+  Cost is CostX                                    % produce argument stream
+        + A                                        % create first heap
+        + A                                        % create second heap
+        + A                                        % insert tuples into heap
+        + F                                        % create temporary relation on disk
+        + F                                        % write tuple to relation on disk
+        + E                                        % read tuple from relation on disk
+        + 0.
+
+*/
+
+/*
   Simple cost estimation for sortmergejoin
 
 */
-cost(sortmergejoin(X, Y, _, _), Sel, S, TupleSize, PredCost, C) :-
-  cost(X, 1, SizeX, TupleSizeX, PredCost, CostX),
-  cost(Y, 1, SizeY, TupleSizeY, PredCost, CostY),
+cost(sortmergejoin(X, Y, XA, YA), Sel, S, TupleSize, PredCost, C) :-
+  cost(sort(X, 0), 1, SizeX, TupleSizeX, PredCost, CostX),
+  cost(sort(Y, 0), 1, SizeY, TupleSizeY, PredCost, CostY),
   TupleSize is TupleSizeX + TupleSizeY,
   sortmergejoinTC(A, B),
   S is SizeX * SizeY * Sel,
@@ -2132,11 +2153,10 @@ INPUT:\\
 
 */
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
+cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, Cost) :-
   symmjoinTC(A, _, C, D, _, _, MaxMem),
-  B is PredCost,
-  cost(X, 1, CX, Tx, PredCost, CostX),
-  cost(Y, 1, CY, Ty, PredCost, CostY),
+  cost(X, 1, CX, Tx, B, CostX),
+  cost(Y, 1, CY, Ty, B, CostY),
   % case1: X and Y fit into memory; OK
   (CX * Tx) =< (0.5 * MaxMem), (CY * Ty) =<  (0.5 * MaxMem),
   TupleSize is Tx + Ty,
@@ -2148,11 +2168,10 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
               + min(CX,CY) * (max(CX,CY)-min(CX,CY))), % read X/Y-tuples from memory
   ResSize is CX * CY * Sel.
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
+cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, Cost) :-
   symmjoinTC(A, _, C, D, E, F, MaxMem),
-  B is PredCost,
-  cost(X, 1, CX, Tx, PredCost, CostX),
-  cost(Y, 1, CY, Ty, PredCost, CostY),
+  cost(X, 1, CX, Tx, B, CostX),
+  cost(Y, 1, CY, Ty, B, CostY),
   OY is min(CY,MaxMem/(2 * Ty)), % from this tuple+1 on, Y will be entirely buffered on disk
   % case 2.1: X fits in memory, but Y does not; CX =< CY; OY =< CX
   (CX * Tx) =< (0.5 * MaxMem), (CY * Ty) > (0.5 * MaxMem), CX =< CY, OY =< CX,
@@ -2168,11 +2187,10 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
        + F * gsf(OY,CX),             % read Y-tuples from disk
   ResSize is CX * CY * Sel.
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
+cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, Cost) :-
   symmjoinTC(A, _, C, D, _, _, MaxMem),
-  B is PredCost,
-  cost(X, 1, CX, Tx, PredCost, CostX),
-  cost(Y, 1, CY, Ty, PredCost, CostY),
+  cost(X, 1, CX, Tx, B, CostX),
+  cost(Y, 1, CY, Ty, B, CostY),
   OY is min(CY,MaxMem/(2 * Ty)),    % from this tuple+1 on, Y will be entirely buffered on disk
   % case 2.2: X fits in memory, but Y does not; CX =< CY; OY > CX
   % this case has the same cost function as case1!
@@ -2186,11 +2204,10 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
               +(CY-CX)*CX),          % read X/Y-tuples from memory
   ResSize is CX * CY * Sel.
  
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
+cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, Cost) :-
   symmjoinTC(A, _, C, D, E, F, MaxMem),
-  B is PredCost,
-  cost(X, 1, CX, Tx, PredCost, CostX),
-  cost(Y, 1, CY, Ty, PredCost, CostY),
+  cost(X, 1, CX, Tx, B, CostX),
+  cost(Y, 1, CY, Ty, B, CostY),
   OY is min(CY,MaxMem/(2 * Ty)),    % from this tuple+1 on, Y will be entirely buffered on disk
   % case 2.3: X fits in memory, but Y does not; CX > CY
   (CX * Tx) =< (0.5 * MaxMem), (CY * Ty) > (0.5 * MaxMem), CX > CY,
@@ -2206,11 +2223,10 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
               +(CX-CY)*CY),          % read X/Y-tuples from disk
   ResSize is CX * CY * Sel.
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
+cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, Cost) :-
   symmjoinTC(A, _, C, D, E, F, MaxMem),
-  B is PredCost,
-  cost(X, 1, CX, Tx, PredCost, CostX),
-  cost(Y, 1, CY, Ty, PredCost, CostY),
+  cost(X, 1, CX, Tx, B, CostX),
+  cost(Y, 1, CY, Ty, B, CostY),
   OX is min(CX,MaxMem/(2 * Tx)), % from this tuple+1 on, X will be entirely buffered on disk
   % case 3.1: Y fits in memory, but X does not; CY =< CX; OX =< CY
   (CY * Ty) =< (0.5 * MaxMem), (CX * Tx) > (0.5 * MaxMem), CY =< CX, OX =< CY, 
@@ -2226,11 +2242,10 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
        + F * gsf(OX,CY),             % read X-tuples from disk
   ResSize is CY * CX * Sel.
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
+cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, Cost) :-
   symmjoinTC(A, _, C, D, _, _, MaxMem),
-  B is PredCost,
-  cost(X, 1, CX, Tx, PredCost, CostX),
-  cost(Y, 1, CY, Ty, PredCost, CostY),
+  cost(X, 1, CX, Tx, B, CostX),
+  cost(Y, 1, CY, Ty, B, CostY),
   OX is min(CX,MaxMem/(2 * Tx)),    % from this tuple+1 on, X will be entirely buffered on disk
   % case 3.2: Y fits in memory, but X does not; CY =< CX; OX > CY
   % this case has the same cost function as case1!
@@ -2244,11 +2259,10 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
               +(CX-CY)*CY),          % read X/Y-tuples from memory
   ResSize is CY * CX * Sel.
  
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
+cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, Cost) :-
   symmjoinTC(A, _, C, D, E, F, MaxMem),
-  B is PredCost,
-  cost(X, 1, CX, Tx, PredCost, CostX),
-  cost(Y, 1, CY, Ty, PredCost, CostY),
+  cost(X, 1, CX, Tx, B, CostX),
+  cost(Y, 1, CY, Ty, B, CostY),
   OX is min(CX,MaxMem/(2 * Tx)),    % from this tuple+1 on, X will be entirely buffered on disk
   % case 3.3: Y fits in memory, but X does not; CY > CX
   (CY * Ty) =< (0.5 * MaxMem), (CX * Tx) > (0.5 * MaxMem), CY > CX,
@@ -2264,11 +2278,10 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
               +(CY-CX)*CX),          % read X/Y-tuples from disk
   ResSize is CY * CX * Sel.
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
+cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, Cost) :-
   symmjoinTC(A, _, C, D, E, F, MaxMem),
-  B is PredCost,
-  cost(X, 1, CX, Tx, PredCost, CostX),
-  cost(Y, 1, CY, Ty,PredCost, CostY),
+  cost(X, 1, CX, Tx, B, CostX),
+  cost(Y, 1, CY, Ty,B, CostY),
   OX is min(CX,MaxMem/(2 * Tx)), % from this tuple+1 on, X will be entirely buffered on disk
   OY is min(CY,MaxMem/(2 * Ty)), % from this tuple+1 on, Y will be entirely buffered on disk
   % case 4.1: neither X nor Y fit into memory; CX =< CY, OX =< OY
@@ -2287,11 +2300,10 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
               +(CY-CX)*CX),          % read X/Y-tuples from disk
   ResSize is CX * CY * Sel.
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
+cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, Cost) :-
   symmjoinTC(A, _, C, D, E, F, MaxMem),
-  B is PredCost,
-  cost(X, 1, CX, Tx, PredCost, CostX),
-  cost(Y, 1, CY, Ty, PredCost, CostY),
+  cost(X, 1, CX, Tx, B, CostX),
+  cost(Y, 1, CY, Ty, B, CostY),
   OX is min(CX,MaxMem/(2 * Tx)), % from this tuple+1 on, X will be entirely buffered on disk
   OY is min(CY,MaxMem/(2 * Ty)), % from this tuple+1 on, Y will be entirely buffered on disk
   % case 4.2: neither X nor Y fit into memory; CX =< CY, OX > OY
@@ -2310,17 +2322,16 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
               +(CY-CX)*CX),          % read X/Y-tuples from disk
   ResSize is CX * CY * Sel.
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
+cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, Cost) :-
   symmjoinTC(A, _, C, D, E, F, MaxMem),
-  B is PredCost,
-  cost(X, 1, CX, Tx, PredCost, CostX),
-  cost(Y, 1, CY, Ty, PredCost, CostY),
+  cost(X, 1, CX, Tx, B, CostX),
+  cost(Y, 1, CY, Ty, B, CostY),
   OX is min(CX,MaxMem/(2 * Tx)), % from this tuple+1 on, X will be entirely buffered on disk
   OY is min(CY,MaxMem/(2 * Ty)), % from this tuple+1 on, Y will be entirely buffered on disk
   % case 4.3: neither X nor Y fit into memory; CY =< CX, OY =< OX
   (CX * Tx) > (0.5 * MaxMem), (CY * Ty) > (0.5 * MaxMem), CY =< CX, OY =< OX,
   TupleSize is Tx + Ty,
-  C is CostX + CostY
+  Cost is CostX + CostY
        + A * (OY + OX)               % write elements to buffer in memory.
        + B * CY * CX                 % check join condition
        + C * CY * CX * Sel           % create result tuples  
@@ -2333,11 +2344,10 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, C) :-
               +(CX-CY)*CY),          % read X/Y-tuples from disk
   ResSize is CY * CX * Sel.
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
+cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, Cost) :-
   symmjoinTC(A, _, C, D, E, F, MaxMem),
-  B is PredCost,
-  cost(X, 1, CX, Tx, PredCost, CostX),
-  cost(Y, 1, CY, Ty, PredCost, CostY),
+  cost(X, 1, CX, Tx, B, CostX),
+  cost(Y, 1, CY, Ty, B, CostY),
   OX is min(CX,MaxMem/(2 * Tx)), % from this tuple+1 on, X will be entirely buffered on disk
   OY is min(CY,MaxMem/(2 * Ty)), % from this tuple+1 on, Y will be entirely buffered on disk
   % case 4.4: neither X nor Y fit into memory; CY =< CX, OY > OX
@@ -2358,18 +2368,19 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, PredCost, Cost) :-
 
 cost(extend(X, _), Sel, S, TupleSize, PredCost, C) :-
   cost(X, Sel, S, TupleSize1, PredCost, C1),
-  TupleSize is TupleSize1 + 12,                      % TupleSize should be increased by the real extension size
+  TupleSize is TupleSize1 + 12,      % TupleSize should be increased by the real extension size
   extendTC(A),
-  C is C1 + A * S.
+  C is C1 + A * S.                   % costs for evaluation of map to generate value 
+                                     % for new attributes not yet considered!
 
 cost(remove(X, _), Sel, S, TupleSize, PredCost, C) :-
   cost(X, Sel, S, TupleSize1, PredCost, C1),
-  TupleSize is TupleSize1 - 12,                      % TupleSize should be increaseddecreased by the real removal size
+  TupleSize is TupleSize1 - 12,      % TupleSize should be decreased by the real removal size
   removeTC(A),
   C is C1 + A * S.
 
 cost(project(X, _), Sel, S, TupleSize, PredCost, C) :-
-  cost(X, Sel, S, TupleSize, PredCost, C1),          % TupleSize should be reduced according to the projection!
+  cost(X, Sel, S, TupleSize, PredCost, C1), % TupleSize should be reduced according to the projection!
   projectTC(A),
   C is C1 + A * S.
 
