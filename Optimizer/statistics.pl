@@ -403,7 +403,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   calculatePredicateCost(Tq, T0, Ttg, ResCard, Divisor, PredCost),
   Sel is max(ResCard,1) / TotalCard,   % must not be 0
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
-  write('Cost evaluation for join predicate '), write(PSimple), nl,
+  nl, write('Cost evaluation for join predicate '), write(PSimple), nl,
 %  write('  Tq='), write(Tq), nl,
 %  write('  T0='), write(T0), nl,
 %  write('  Ttg='), write(Ttg), nl,
@@ -439,7 +439,7 @@ selectivity(pr(Pred, Rel), Sel) :-
   calculatePredicateCost(Tq, T0, 0, ResCard, Divisor, PredCost),
   Sel is max(ResCard,1)/ SampleCard,	  % must not be 0
   simplePred(pr(Pred, Rel), PSimple),
-  write('Cost evaluation for selection predicate '), write(PSimple), nl,
+  nl, write('Cost evaluation for selection predicate '), write(PSimple), nl,
 %  write('  Tq='), write(Tq), nl,
 %  write('  ResCard='), write(ResCard), nl,
 %  write('  SampleCard='), write(SampleCard), nl,
@@ -794,11 +794,13 @@ sampleRuntimesS(R, _) :-
   fail.
 
 /*
-----  ~predicateCost(Pred, PredCost, T0, T100, Tq, ResCard, TotalCard)~ 
+----  ~predicateCost(Pred, PredCost)~
 ----
 unifies ~PredCost~ with the cost for evaluating the  predicate ~Pred~ once. 
 Predicate cost data is generated once per predicate, and will be stored on 
-disk between sessions. Additional information is stored to trace the calculation
+disk between sessions in a table  
+ ~storedPET(Pred, PredCost, T0, T100, Tq, ResCard, TotalCard)~ 
+Additional information is stored to trace the calculation
 of ~RedCost~: ~T0~ is the time used by an empty query, ~T100~ is the times consumend
 to generate 100 tuples without evaluating ~Pred~, ~Tq~ is a time consumed by evaluating
 ~Pred~ on sample relation(s), ~ResCard~ is the result cardinality of the sample query,
@@ -821,6 +823,14 @@ predicateCost( Pred, _) :-
   nl, write('ERROR in optimizer: predicateCost('), 
   write(Pred), write(') failed.'), nl,
   fail.
+
+/*
+---- ~tupleGenerationCost(Arg1, Arg2, Cost)~
+----
+unifies ~Cost~ with the cost to create a single result tuple on a
+join of ~Arg1~ and ~Arg2~. 
+
+*/
 
 /*
 1.5 Examples
