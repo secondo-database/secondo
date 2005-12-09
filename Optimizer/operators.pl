@@ -82,7 +82,7 @@ MaxMem:  maximal memory size per operator
 ----
 
   Additional cost factors, that are special to certain operators should be defined as tuple constants
-  operatorTC(...).
+  ~operatorTC(...)~.
 
 */
 

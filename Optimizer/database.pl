@@ -1279,9 +1279,9 @@ machineSpeedFactor :-
 /*
 2.1.2  Storing and Loading Machine Speed Data
 
-Data stored in ~MachineSpeedFactor(X,Y)~ can be written to and read from disk using writeMachineSpeedFactor/0~ and
-~readMachineSpeedFactor/0~. At the optimizer's startup, the file ~storedMachineSpeedFactor.pl~ will be consulted to
-retrieve a saved machineSpeedFactor.
+Data stored in ~MachineSpeedFactor(X,Y)~ can be written to and read from disk using ~writeMachineSpeedFactor/0~ and
+~readMachineSpeedFactor/0~. At the optimizer's startup, the file ~xstoredMachineSpeedFactor.pl~ will be consulted to
+retrieve a saved ~machineSpeedFactor~.
 
 */
 

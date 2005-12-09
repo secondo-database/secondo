@@ -271,7 +271,6 @@ showpog(Rels, Preds) :-
   nl, nl, write('Plan Edges: '), nl, writePlanEdges.
 
 /*
-
 3.2 partition
 
 ----    partition(Rels, N, Partition0) :-
@@ -292,7 +291,6 @@ partition([Rel | Rels], N, [Arp | Arps]) :-
 
 
 /*
-
 3.3 pog2
 
 ----    pog2(Partition0, NoOfPreds, Preds, Nodes, Edges) :-
@@ -687,7 +685,6 @@ example3 :- pog([rel(staedte, s, u), rel(plz, p, l)],
    pr((attr(p:pLZ, 1, u) mod 5) = 0, rel(plz, p, l))], _, _).
 
 /*
-
 The two queries mentioned above are:
 
 */
@@ -718,7 +715,8 @@ In the target language, we use the following operators:
 
                                 where Tuple3 = Tuple1 o Tuple2
 
-        symmjoin:       stream(Tuple1) x stream(Tuple2) x (Tuple 1 x Tuple 2 -> bool) -> stream(Tuple3)
+        symmjoin:       stream(Tuple1) x stream(Tuple2) x 
+                                (Tuple 1 x Tuple 2 -> bool) -> stream(Tuple3)
 
                                 where Tuple3 = Tuple1 o Tuple2
 
@@ -820,7 +818,6 @@ wp(Plan) :-
   write(PlanAtom).
 
 /*
-
 Function ~newVariable~ outputs a new unique variable name.
 The variable name is unique in the sense that ~newVariable~ never
 outputs the same name twice (in a PROLOG session). 
@@ -852,7 +849,9 @@ deleteVariables :- not(deleteVariable).
 
 /*
 The ~plan\_to\_atom(attr(Name, Arg, Case), Result)~ predicate is not able to distinguish whether 
-to return ~.Name~ or ~..Name~ for ~Arg~ = 2. Now, we use a predicate ~consider\_Arg2(T1, T2)~ to return a term ~T2~, that is constructed from term ~T1~ by replacing all occurrences of ~attr(\_, 2, \_)~ in it by ~attr2(\_, 2, \_)~.
+to return ~.Name~ or ~..Name~ for ~Arg~ = 2. Now, we use a predicate ~consider\_Arg2(T1, T2)~ to
+ return a term ~T2~, that is constructed from term ~T1~ by replacing all occurrences of 
+~attr(\_, 2, \_)~ in it by ~attr2(\_, 2, \_)~.
  
 */
 
@@ -1071,12 +1070,6 @@ plan_to_atom(like(X, Y, Z, A, B), Result) :-
 End of Picture Algebra
 
 */
-
-
-
-
-
-
 
 
 plan_to_atom(exactmatchfun(IndexName, Rel, attr(Name, R, Case)), Result) :-
@@ -1623,7 +1616,7 @@ writePlanEdges :- not(writePlanEdges2).
 
 
 /*
-7 Assigning Sizes, TupleSizes, Selectivities and Predictate Costs to the Nodes and Edges of the POG
+7 Assigning Sizes, TupleSizes, Selectivities and Predicate Costs to the Nodes and Edges of the POG
 
 ----    assignSizes.
         deleteSizes.
@@ -1661,7 +1654,8 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
   setNodeTupleSize(Result, ArgTupleSize),
   predicateCost(Pred, PredCost),
   assert(edgeSelectivity(Source, Target, Sel, PredCost, 0.0035)), 
-  % tuple generation cost was set to 0.0035, as '*' caused problems within query
+  % tuple generation cost was set to 0.0035, 
+  % as '*' caused problems within query
   % sql select[kname] from[kreis] where[gebiet touches magdeburg].
   !.
   
@@ -1678,7 +1672,7 @@ assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   setNodeTupleSize(Result, TSize),
   predicateCost(Pred, PredCost),
   Pred = pr( _, R1, R2),
-  sampleRuntimesJ(R1,R2, _, _,TupleGenerationCost),  % CAVE: for ad-hoc joins is no info present!
+  sampleRuntimesJ(R1,R2, _, _,TupleGenerationCost),  % CAVE: no info present for ad-hoc joins!
   assert(edgeSelectivity(Source, Target, Sel, PredCost, TupleGenerationCost)),
   !.
 
@@ -1781,64 +1775,60 @@ deleteSizes :- not(deleteSize).
 
 8.1 The Costs of Terms
 
-----    cost(Term, Sel, Size, TupleSize, PredCost, TC, Cost) :-
+----    cost(Term, Sel, Size, TupleSize, PredCost, TC, Cost)
 ----
 
 The cost of an executable ~Term~ representing a predicate with selectivity ~Sel~, 
 predicate cost ~PredCost~, tuple generation cost ~TC~ is ~Cost~ and the size of 
-the result is ~Size~, while the tuplesize is ~TupleSize~.
+the result is ~Size~, while its tuplesize is ~TupleSize~.
 
 This is evaluated recursively descending into the term. When the operator
 realizing the predicate (e.g. ~filter~) is encountered, the selectivity ~Sel~ is
 used to determine the size of the result. The cost for a single evaluation 
-of that predicate ~PedCost~ is taken into account when estimating the total 
-cost. It is assumed that only a single operator of this kind occurs within the term.
+of that predicate ~PedCost~ and possibly the cost to generate a result tuple ~TC~
+is taken into account when estimating the total cost. It is assumed that only a 
+single operator of this kind occurs within the term.
 
 The base cost factors are defined in file ``operators.pl''. 
 
-A standard naming schema for cost factors is used to enhance the readybility of 
-the cost functions:
+A standard naming scheme for cost factors is used to enhance the readability of the cost functions:
 
-   RTM:  ReadTupleMem, 
-   WTM:  WriteTupleMem, 
-   RTD:  ReadTupleDisk, 
-   WTD:  WriteTupleDisk, 
-   RPD:  ReadPageDisk, 
-   WPD:  WritePageDisk, 
-   FND:  FileNewDisk, 
-   FDD:  FileDeleteDisk, 
-   FOD:  FileOpenDisk, 
-   FCD:  FileClose, 
-MaxMem:  maximum memory size per operator
-    TC:  TupleCreate,
-     B:  PredicateCost/ cost of evaluating an ordering predicate
-   Sel:  Selectivity
-    CX:  Cardinality of first argument
-    CX:  Cardinality of second argument
-    Tx:  TupleSize of first argument
-    Ty:  TupleSize of second argument
+----   RTM:  ReadTupleMem 
+       WTM:  WriteTupleMem 
+       RTD:  ReadTupleDisk 
+       WTD:  WriteTupleDisk 
+       RPD:  ReadPageDisk 
+       WPD:  WritePageDisk 
+       FND:  FileNewDisk 
+       FDD:  FileDeleteDisk 
+       FOD:  FileOpenDisk 
+       FCD:  FileClose 
+    MaxMem:  maximum memory size per operator
+        TC:  TupleCreate
+         B:  PredicateCost/cost of evaluating of an ordering predicate
+       Sel:  Selectivity
+        CX:  Cardinality of first argument
+        CX:  Cardinality of second argument
+        Tx:  TupleSize of first argument
+        Ty:  TupleSize of second argument
+----
 
 8.1.0 Auxiliary Predicates to cost
 
 ----    gsf(M, N, S)
+        log(B, V, R)
 ----
 
-calculates $S=\sum_{i=1}^{N-M}{i+M} = {(N-M)(N+M+1)}\over{2}$.
-
-----    log(B, V, R)
-----
-
-calculates $R = log_B V$.
+These predicates calculate $S=\sum_{i=1}^{N-M}{i+M} = {{(N-M)(N+M+1)}\over{2}}$
+and $R = log_B V$.
 
 */
 
 :- arithmetic_function(gsf/2).
-
 gsf(M, N, S) :-
   S is (N-M)*(N+M+1)*0.5.
 
 :- arithmetic_function(log/2).
-
 log(Base, Value, Result) :-
   Result is log(Value) / log(Base).
 
@@ -1917,20 +1907,21 @@ cost(product(X, Y), _, ResultCard, ResultTupleSize, B, TC, Cost) :-
         + TC * ResultCard.     % generate result tuple
 
 /*
-  A: cost to open/close a BTree 
-  B: cost for evaluation of the selection predicate 
-  C: cost to open/close BTree 
-  D: cost to read a diskpage 
+
+  A: cost to open/close a BTree \\
+  B: cost for evaluation of the selection predicate \\
+  C: cost to open/close BTree \\
+  D: cost to read a diskpage \\
   
   Uses a btree-index to select tuples from a relation.
-  The index must be opened. The predicate is always ${}>= Y$
-  for ~rightrange~, ${}<= Y$ for ~leftrange~, and ${}= Y$ for 
+  The index must be opened. The predicate is always ${X}\geq v$
+  for ~rightrange~, ${}\leq v$ for ~leftrange~, and ${}= v$ for 
   ~exactmatch~.
   
   To estimate the number of disk accesses, we query the 
   hight and the keys-per-leafe size $K$ of the BTree.
-  then we expect to access $\mbox{hight}+(\mbox{Sel}*\mbox{RelSize})/K$ disk pages 
-  and evalute $\mbox{Hight}+K/2$ times the comparisons.
+  then we expect to access $\mbox{hight}+{\mbox{Sel} \cdot \mbox{RelSize}}\over K$ disk pages 
+  and evalute ${\mbox{Hight}+K}\over 2$ times the comparisons.
   
 */
 
@@ -1955,7 +1946,6 @@ cost(rightrange(_, Rel, _), Sel, Size, TupleSize, B, TC, Cost) :-
         + TC * Sel * RelSize.             % produce tuple stream
 
 /*
-
 Simplistic cost estimation for loop joins.
 
 If attribute values are assumed independent, then the selectivity
@@ -2013,14 +2003,11 @@ cost(fun(_, X), Sel, Size, TupleSize, PredCost, TC, Cost) :-
 
 
 /*
-
 New cost function for ~hashjoin~:
 
   NBuckets: Number of buckets in hash table
-
-  MemSizeX = 0.25*MaxMem; this one is used to hold X-tuples hashed against the hash table
-
-  MemSizeY = 0.75*MaxMem; this one is used for the hash table of Y-tuples
+  MemSizeX = 0.25[*]MaxMem; this one is used to hold X-tuples hashed against the hash table
+  MemSizeY = 0.75[*]MaxMem; this one is used for the hash table of Y-tuples
 
 */
 
@@ -2050,15 +2037,15 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, B, TC, Cost) :-
   (CX * (Tx+12)) > MemSizeX,
   (CY * (Ty+12)) > MemSizeY,
   MemSizeTY is max(1,(MemSizeY / Ty)),
-  Cost is CostArgX + CostArgY                        % create input streams
-       + WTM * CY                                    % insert pointers to Y in hash tables
+  Cost is CostArgX + CostArgY          % create input streams
+       + WTM * CY                      % insert pointers to Y in hash tables
        + B * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
-                                                     % compare X- and Y-tuples
-       + 2 * (FND + FDD)                             % create and delete temp files
-       + WTD * CX                                    % write X-tuples to disk
-       + RTD * CX * CY/MemSizeTY                     % X-tuples to be read from disk
-                                                     % once per hash table
-       + TC * Sel * CX * CY,                         % create result tuples
+                                       % compare X- and Y-tuples
+       + 2 * (FND + FDD)               % create and delete temp files
+       + WTD * CX                      % write X-tuples to disk
+       + RTD * CX * CY/MemSizeTY       % X-tuples to be read from disk
+                                       % once per hash table
+       + TC * Sel * CX * CY,           % create result tuples
   ResSize is CX * CY * Sel,
   TupleSize is Tx + Ty.
 
@@ -2072,14 +2059,14 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, B, TC, Cost) :-
   % case2: X fits in memory, but Y does not 
   (CX * (Tx+12)) =< MemSizeX, 
   (CY * (Ty+12)) >  MemSizeY,            
-  MemSizeTY is max(1,(MemSizeY / Ty)),            % amount of Y-tuples fitting into MemY
-  Cost is CostArgX + CostArgY                     % create input streams
-       + WTM * CY                                 % insert Y-tuples into hash table
+  MemSizeTY is max(1,(MemSizeY / Ty)), % amount of Y-tuples fitting into MemY
+  Cost is CostArgX + CostArgY          % create input streams
+       + WTM * CY                      % insert Y-tuples into hash table
        + B * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
-                                                  % compare each X-tuple with
-                                                  % the hashed Y-tuples from several hashtables
-       + RTM * CX * (CY/MemSizeTY)                % read X-tuples from memory once per hashtable
-       + TC * Sel * CX * CY,                      % create result tuples
+                                       % compare each X-tuple with
+                                       % the hashed Y-tuples from several hashtables
+       + RTM * CX * (CY/MemSizeTY)     % read X-tuples from memory once per hashtable
+       + TC * Sel * CX * CY,           % create result tuples
   ResSize is CX * CY * Sel,
   TupleSize is Tx + Ty.
 
@@ -2094,13 +2081,13 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, B, TC, Cost) :-
   (CX * (Tx+12)) >  MemSizeX, 
   (CY * (Ty+12)) =< MemSizeY,                                 
   MemSizeTY is max(1,(MemSizeY / Ty)), % amount of Y-tuples fitting into MemY
-  Cost is CostArgX + CostArgY                     % create input streams
-       + WTM * CY                                 % insert Y-tuplesinto hash table
+  Cost is CostArgX + CostArgY          % create input streams
+       + WTM * CY                      % insert Y-tuplesinto hash table
        + B * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
-                                                  % compare each X-tuple with
-                                                  % the hashed Y-tuples from several hashtables
-       + RTM * CX * (CY/MemSizeTY)                % read X-tuples from memory once per hashtable
-       + TC * Sel * CX * CY,                      % create result tuples
+                                       % compare each X-tuple with
+                                       % the hashed Y-tuples from several hashtables
+       + RTM * CX * (CY/MemSizeTY)     % read X-tuples from memory once per hashtable
+       + TC * Sel * CX * CY,           % create result tuples
   ResSize is CX * CY * Sel,
   TupleSize is Tx + Ty.
 
@@ -2118,19 +2105,19 @@ cost(sort(X,_), Sel, Card, Tx, PredCost, TC, Cost) :-
   cost(X, Sel, Card, Tx, PredCost, TC, CostX),
   cost_factors(RTM, WTM, _, _, _, _, _, _, _, _, MaxMem),
   sortTC(B),
-  HeapSize is MaxMem / (Tx + 12),                  % determine heapsize in tuples
+  HeapSize is MaxMem / (Tx + 12),      % determine heapsize in tuples
   % case1: complete relation fits into memory - no merging needed
   Card =< HeapSize,
-  Cost is CostX                                    % produce argument stream
-        + WTM * Card *0.5 *log(2,Card)             % inserts into heap 
-        + RTM * Card                               % reads from heap 
-        + B * Card * log(2,Card).                  % compare a pair of tuples (building the heap)
+  Cost is CostX                        % produce argument stream
+        + WTM * Card *0.5 *log(2,Card) % inserts into heap 
+        + RTM * Card                   % reads from heap 
+        + B * Card * log(2,Card).      % compare a pair of tuples (building the heap)
 
 cost(sort(X,_), Sel, Card, Tx, PredCost, TC, Cost) :-
   cost(X, Sel, Card, Tx, PredCost, TC, CostX),
   cost_factors(RTM, WTM, RTD, WTD, _, _, FND, FDD, FOD, FCD, MaxMem),
   sortTC(B),
-  HeapSize is MaxMem / (Tx + 12),                  % determine heapsize in tuples
+  HeapSize is MaxMem / (Tx + 12),      % determine heapsize in tuples
   % case2: relation does not fit into memory
   Card > HeapSize,
   PartCard is 2 * HeapSize,                        % calculate average cardinality of partion files generated
@@ -2153,8 +2140,8 @@ cost(sort(X,_), Sel, Card, Tx, PredCost, TC, Cost) :-
   on the values of the join attributes. An option would be to recognize only
   those cases, that perform very bad, because the buffers overflow to disk.
 
-  Problem: We do not know, how large the equivalence classes of A x B 
-  with respect to "A=B" are. So, we even don't know how much of the buffers
+  Problem: We do not know, how large the equivalence classes of $A \times B$ 
+  with respect to ``A=B'' are. So, we even don't know how much of the buffers
   is used and how many tuples have to be temporarily stored to disk relations.
 
   For the sake of simplicity we assume, that all tuples with a common join 
@@ -2168,32 +2155,16 @@ cost(sortmergejoin(X, Y, _, _), Sel, ResultCard, ResultTupleSize, B, TC, Cost) :
   cost_factors(RTM, WTM, _, _, _, _, _, _, _, _, _),
   ResultTupleSize is Tx + Ty,
   ResultCard is CX * CY * Sel,
-  Cost is CostX + CostY                           % producing and sorting the arguments
-                                                  % (Individual cost of ordering still not applied!)
-        + WTM * (CX+CY) * sqrt(Sel)               % write tuples to buffer/memory; A BAD ESTIMATION !!!
-        + B * CX * CY                             % compare tuples (B could also be fixed, e.g. 0.001)
-        + RTM * (CX+CY) * sqrt(Sel)               % read tuples from buffer/memory; A BAD ESTIMATION !!!
-        + TC * ResultCard.                        % create result tuple
+  Cost is CostX + CostY                % producing and sorting the arguments
+                                       % (Individual cost of ordering still not applied!)
+        + WTM * (CX+CY) * sqrt(Sel)    % write tuples to buffer/memory; A BAD ESTIMATION !!!
+        + B * CX * CY                  % compare tuples (B could also be fixed, e.g. 0.001)
+        + RTM * (CX+CY) * sqrt(Sel)    % read tuples from buffer/memory; A BAD ESTIMATION !!!
+        + TC * ResultCard.             % create result tuple
 
 
 /*
-
    Detailed cost function for ~symmjoin~
-
-INPUT:
-
-  A: cost to write a tuple into an in-memory array 
-  B: cost to check join condition (evaluate the predicate); B = PredCost
-  C: cost to create a result tuple;  C=f(Tx + Ty)
-  D: cost to read a tuple from an in-memory array
-  E: cost to write a tuple in an on-disk array
-  F: cost to read a tuple fron an on-disk array
-  CX: Cardinality of relation X
-  CY: Cardinality of relation Y
-  Tx: Tuplesize of relation X
-  Ty: Tuplesize of relation Y
-  Sel: Selectivity
-  MaxMem: Maximum memory for symmjoin operator
 
 */
 
@@ -4349,7 +4320,7 @@ calculateProjectedTupleSize(Rel, AttrList, CoreTupleSize, InFlobSize) :-
 
 /*
   ~calculateQueryTupleSize(Rel, CoreTupleSize, InFlobSize)~ unifies ~CoreTupleSize~ and ~InFlobSize~
-  with the tuple sizes ~relation ~Rel~ will have in this query after it has been projected according
+  with the tuple sizes relation ~Rel~ will have in this query after it has been projected according
   to the SQL select clause.
 
   The result is used to annotate the actual tuple sizes to each node of the pog.

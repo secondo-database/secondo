@@ -326,6 +326,7 @@ calculatePredicateCost(_, _, _, _, _, 0.001) :- !. % return base predicate cost
 
 
 /*
+----
   % the first two clauses for sels/2 are needed for using hard coded 
   % selectivities. Since these cause problems with non-existing 
   % predicate cost, they should be omitted.
@@ -337,6 +338,8 @@ sels(Pred, Sel) :-
   commute(Pred, Pred2),
   sel(Pred2, Sel),
   !.
+
+----
 
 */
 
@@ -356,8 +359,8 @@ sels(Pred, Sel) :-
 
 The selectivity of predicate ~P~ is ~Sel~.
 
-If ~selectivity~ is called, it first tries to look up
-the selectivity via the predicate ~sel~. If no selectivity
+If ~selectivity~ is called, it first tries to look up the 
+selectivity via the predicate ~sel~. If no selectivity
 is found, a Secondo query is issued, which determines the
 selectivity. The retrieved selectitivity is then stored in
 predicate ~storedSel~. This ensures that a selectivity has to
@@ -451,7 +454,11 @@ selectivity(pr(Pred, Rel), Sel) :-
   !.
 
 
-/*  Deprecated selectivity clauses using dynamicCardQueries new calculation of predicate costs not implemented herein!
+/*  
+  *Deprecated selectivity clauses using dynamicCardQueries*  
+  New calculation of predicate costs not implemented herein!
+
+----
 
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   Rel1 = rel(BaseName1, _, _),
@@ -512,6 +519,8 @@ selectivity(pr(Pred, Rel), Sel) :-
   assert(storedSel(PSimple, Sel)),
   nl, write('WARNING: selectivity(pr(Pred, Rel1, Rel2), Sel): deprecated clause2 used!'), nl,
   !.
+----
+
 */
 
 selectivity(P, _) :- write('Error in optimizer: cannot find selectivity for '),
@@ -831,6 +840,9 @@ unifies ~Cost~ with the cost to create a single result tuple on a
 join of ~Arg1~ and ~Arg2~. 
 
 */
+
+tupleGenerationCost(Arg1, Arg2, Cost) :-
+  storedSampleRuntimes()
 
 /*
 1.5 Examples
