@@ -1750,9 +1750,9 @@ writeSize :-
   edgeSelectivity(Source, Target, Sel, PredCost, TupleGenerationCost),
   write('Source:        '), write(Source), nl,
   write('Target:        '), write(Target), nl,
-  write('Selectivity:          '), write(Sel), nl, 
-  write('Predicate cost:       '), write(PredCost), nl, 
-  write('Tule generation cost: '), write(TupleGenerationCost), nl, nl,
+  write('Selectivity:           '), write(Sel), nl, 
+  write('Predicate cost:        '), write(PredCost), nl, 
+  write('Tuple generation cost: '), write(TupleGenerationCost), nl, nl,
   fail.
 writeSizes :- not(writeSize).
 

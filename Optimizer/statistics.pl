@@ -245,12 +245,11 @@ getPredCostDivisor(Pred, _, QuerySize, Divisor) :-
   !.
 
 /*
-----    cacheRelation(Rel, SName) 
+----    cacheRelation(Rel) 
 ----
 ensures the presence of relation ~RelName~ in the system's caches 
 by posing a simple query to secondo. The 4 last used Relations are 
-deemed resident within the caches. The name ~SName~ is used to 
-identify the relation in cachedRelation(RelName, N).
+deemed resident within the caches. 
 
 */
 
@@ -832,17 +831,6 @@ predicateCost( Pred, _) :-
   nl, write('ERROR in optimizer: predicateCost('), 
   write(Pred), write(') failed.'), nl,
   fail.
-
-/*
----- ~tupleGenerationCost(Arg1, Arg2, Cost)~
-----
-unifies ~Cost~ with the cost to create a single result tuple on a
-join of ~Arg1~ and ~Arg2~. 
-
-*/
-
-tupleGenerationCost(Arg1, Arg2, Cost) :-
-  storedSampleRuntimes()
 
 /*
 1.5 Examples
