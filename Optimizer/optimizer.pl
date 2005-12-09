@@ -1794,7 +1794,7 @@ used to determine the size of the result. The cost for a single evaluation
 of that predicate ~PedCost~ is taken into account when estimating the total 
 cost. It is assumed that only a single operator of this kind occurs within the term.
 
-The base cost factors are defined in file [operators.pl]. 
+The base cost factors are defined in file ``operators.pl''. 
 
 A standard naming schema for cost factors is used to enhance the readybility of 
 the cost functions:
@@ -1825,10 +1825,11 @@ MaxMem:  maximum memory size per operator
 
 calculates $S=\sum_{i=1}^{N-M}{i+M} = {(N-M)(N+M+1)}\over{2}$.
 
-----    lob(B, V, R)
+----    log(B, V, R)
 ----
 
-calculates $log_B
+calculates $R = log_B V$.
+
 */
 
 :- arithmetic_function(gsf/2).
@@ -1916,19 +1917,20 @@ cost(product(X, Y), _, ResultCard, ResultTupleSize, B, TC, Cost) :-
         + TC * ResultCard.     % generate result tuple
 
 /*
-  A: cost to open/close a BTree
-  B: cost for evaluation selection predicate
-  C: cost to open/close BTree
-  D: cost to read a diskpage
+  A: cost to open/close a BTree 
+  B: cost for evaluation of the selection predicate 
+  C: cost to open/close BTree 
+  D: cost to read a diskpage 
   
   Uses a btree-index to select tuples from a relation.
-  The index must be opened. The predicate is always '>= Y'
-  for 'rightrange' and '<=' for 'leftrange'.
+  The index must be opened. The predicate is always ${}>= Y$
+  for ~rightrange~, ${}<= Y$ for ~leftrange~, and ${}= Y$ for 
+  ~exactmatch~.
   
   To estimate the number of disk accesses, we query the 
-  hight and the keys-per-leafe size K of the BTree.
-  then we expect to access hight+(Sel*RelSize)/K disk pages 
-  and evalute Hight+K/2 times the comparisonsthe predicate.
+  hight and the keys-per-leafe size $K$ of the BTree.
+  then we expect to access $\mbox{hight}+(\mbox{Sel}*\mbox{RelSize})/K$ disk pages 
+  and evalute $\mbox{Hight}+K/2$ times the comparisons.
   
 */
 
@@ -2031,10 +2033,10 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, B, TC, Cost) :-
   % test for case1: Both argument relations X,Y fit into memory  
   (CX * (Tx+12)) =< MemSizeX, 
   (CY * (Ty+12)) =< MemSizeY,      
-  Cost is CostArgX + CostArgY                     % create input streams
-       + WTM * CX                                   % inserting pointers to Y into hash table
-       + B * CX * max((CY/NBuckets),1)            % collide each X-tuple with Y-tuples from hashed bucket
-       + TC * Sel * CX * CY,                       % create result tuples
+  Cost is CostArgX + CostArgY             % create input streams
+       + WTM * CX                         % inserting pointers to Y into hash table
+       + B * CX * max((CY/NBuckets),1)    % collide each X-tuple with Y-tuples from hashed bucket
+       + TC * Sel * CX * CY,              % create result tuples
   ResSize is CX * CY * Sel,
   TupleSize is Tx + Ty.
 
@@ -2178,19 +2180,20 @@ cost(sortmergejoin(X, Y, _, _), Sel, ResultCard, ResultTupleSize, B, TC, Cost) :
 
    Detailed cost function for ~symmjoin~
 
-INPUT:\\
-  A: cost to write a tuple into an in-memory array \\
-  B: cost to check join condition (evaluate the predicate); B = PredCost\\
-  C: cost to create a result tuple;  C=f(Tx + Ty)\\
-  D: cost to read a tuple from an in-memory array\\
-  E: cost to write a tuple in an on-disk array\\
+INPUT:
+
+  A: cost to write a tuple into an in-memory array 
+  B: cost to check join condition (evaluate the predicate); B = PredCost
+  C: cost to create a result tuple;  C=f(Tx + Ty)
+  D: cost to read a tuple from an in-memory array
+  E: cost to write a tuple in an on-disk array
   F: cost to read a tuple fron an on-disk array
-  CX: Cardinality of relation X\\
-  CY: Cardinality of relation Y\\
-  Tx: Tuplesize of relation X\\
-  Ty: Tuplesize of relation Y\\
-  Sel: Selectivity\\
-  MaxMem: Maximum memory for symmjoin operator\\
+  CX: Cardinality of relation X
+  CY: Cardinality of relation Y
+  Tx: Tuplesize of relation X
+  Ty: Tuplesize of relation Y
+  Sel: Selectivity
+  MaxMem: Maximum memory for symmjoin operator
 
 */
 
