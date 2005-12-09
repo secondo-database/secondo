@@ -58,13 +58,13 @@ constants below are quite accurate e.g. for examples 14 to
 %removeTC(0.6).
 %projectTC(0.71).
 %renameTC(0.1).
-windowintersectsTC(0.1).
+%windowintersectsTC(0.1).
 
 
 /*
   General cost factors, given in milliseconds [ms] per operation on the reference system
  
-  A standard schema is used to enhance the readybility the cost functions:
+  A standard schema is used to enhance the readybility of the cost functions:
 
    RTM:  ReadTupleMem, 
    WTM:  WriteTupleMem, 
@@ -76,7 +76,7 @@ windowintersectsTC(0.1).
    FDD:  FileDeleteDisk, 
    FOD:  FileOpenDisk, 
    FCD:  FileClose, 
-    TC:  TupleCreate,
+
 MaxMem:  maximal memory size per operator
 
   Additional cost factors, that are special to certain operators should be defined as tuple constants
@@ -87,15 +87,15 @@ MaxMem:  maximal memory size per operator
 %cost_factors(   RTM,   WTM,   RTD,   WTD,   RPD,   WPD,   FND,   FDD,   FOD,   FCD,  MaxMem).
  cost_factors( 0.001, 0.001, 0.001, 0.002, 1.000, 1.500, 3.000, 3.000, 0.500, 0.500, 4194304).
 
-  loopjoinTC(0.100).      % overhead for opening stream Y,
-      sortTC(0.003).      % evaluating ordering predicate
-    filterTC(0.007).
-      feedTC(0.4).
-   consumeTC(1.0).
-    extendTC(0.014).
-    removeTC(0.009).
-    renameTC(0.007).
-   projectTC(0.014).
+loopjoinTC(0.100).      % overhead for opening stream Y,
+sortTC(0.003).      % evaluating ordering predicate
+filterTC(0.007).
+feedTC(0.4).
+consumeTC(1.0).
+extendTC(0.014).
+removeTC(0.009).
+renameTC(0.007).
+projectTC(0.014).
 
 
 /*

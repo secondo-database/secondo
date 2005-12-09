@@ -1660,7 +1660,9 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
   setNodeSize(Result, Size),
   setNodeTupleSize(Result, ArgTupleSize),
   predicateCost(Pred, PredCost),
-  assert(edgeSelectivity(Source, Target, Sel, PredCost, * )),
+  assert(edgeSelectivity(Source, Target, Sel, PredCost, 0.0035)), 
+  % tuple generation cost was set to 0.0035, as '*' caused problems within query
+  % sql select[kname] from[kreis] where[gebiet touches magdeburg].
   !.
   
 
@@ -1791,6 +1793,30 @@ realizing the predicate (e.g. ~filter~) is encountered, the selectivity ~Sel~ is
 used to determine the size of the result. The cost for a single evaluation 
 of that predicate ~PedCost~ is taken into account when estimating the total 
 cost. It is assumed that only a single operator of this kind occurs within the term.
+
+The base cost factors are defined in file [operators.pl]. 
+
+A standard naming schema for cost factors is used to enhance the readybility of 
+the cost functions:
+
+   RTM:  ReadTupleMem, 
+   WTM:  WriteTupleMem, 
+   RTD:  ReadTupleDisk, 
+   WTD:  WriteTupleDisk, 
+   RPD:  ReadPageDisk, 
+   WPD:  WritePageDisk, 
+   FND:  FileNewDisk, 
+   FDD:  FileDeleteDisk, 
+   FOD:  FileOpenDisk, 
+   FCD:  FileClose, 
+MaxMem:  maximum memory size per operator
+    TC:  TupleCreate,
+     B:  PredicateCost/ cost of evaluating an ordering predicate
+   Sel:  Selectivity
+    CX:  Cardinality of first argument
+    CX:  Cardinality of second argument
+    Tx:  TupleSize of first argument
+    Ty:  TupleSize of second argument
 
 8.1.0 Auxiliary Predicates to cost
 
@@ -2413,11 +2439,15 @@ cost(rename(X, _), Sel, S, TupleSize, PredCost, TC, C) :-
   C is C1 + A * S.
 
 %fapra1590
-cost(windowintersects(_, Rel, _), Sel, Size, TupleSize, PredCost, TC, Cost) :-
-  cost(Rel, 1, RelSize, TupleSize, TC, PredCost, _),
-  windowintersectsTC(C),
+% See cost(leftrang(...),...) for comments on future refinements.
+cost(windowintersects(_, Rel, _), Sel, Size, TupleSize, B, TC, Cost) :-
+  cost(Rel, 1, RelSize, TupleSize, TC, B, _),
+  cost_factors(_,_,_,_,RPD,_,_,_,FOD,FCD,_),
   Size is Sel * RelSize,
-  Cost is Sel * RelSize * C.
+  Cost is FOD + FCD                       % open/close RTree file        
+        + B * (log(2,RelSize)+Size)       % find all matches,           later: B * (Hight + K/2)
+        + RPD * log(2,RelSize)            % read index pages from disk, later: D * (Hight + Sel*RelSize/K)
+        + TC * Sel * RelSize.             % produce tuple stream
 
 
 /*
