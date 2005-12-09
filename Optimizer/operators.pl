@@ -66,6 +66,7 @@ constants below are quite accurate e.g. for examples 14 to
  
   A standard schema is used to enhance the readybility of the cost functions:
 
+----
    RTM:  ReadTupleMem, 
    WTM:  WriteTupleMem, 
    RTD:  ReadTupleDisk, 
@@ -78,6 +79,7 @@ constants below are quite accurate e.g. for examples 14 to
    FCD:  FileClose, 
 
 MaxMem:  maximal memory size per operator
+----
 
   Additional cost factors, that are special to certain operators should be defined as tuple constants
   operatorTC(...).
