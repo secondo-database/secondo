@@ -318,7 +318,7 @@ unifies ~PedCost~ with the predicate cost for a predicate.
 
 calculatePredicateCost(Tq, T0, Ttg, ResultCard, Divisor, PredCost) :- 
   (Tq - T0 - ResultCard * Ttg) > 100,
-  PredCost is (Tq - T0 - ResultCard * Ttg) / Divisor,
+  PredCost is max(((Tq - T0 - ResultCard * Ttg) / Divisor), 0.001),
   !.
 
 calculatePredicateCost(_, _, _, _, _, 0.001) :- !. % return base predicate cost
@@ -590,6 +590,15 @@ writeStoredSel(Stream) :-
   write(Stream, storedSel(XReplaced, Y)),
   write(Stream, '.\n').
 
+showStoredSel :- 
+  storedSel(X, Y),
+  write(X), write(':\t'),
+  write(Y), nl.
+
+showStoredSels :-
+  write('Stored selectivities:\n'),
+  findall(_, showStoredSel, _).
+ 
 :-
   dynamic(storedSel/2),
   at_halt(writeStoredSels),
@@ -703,10 +712,10 @@ time ~Ttg~ on Relations ~R1~ and ~R2~.
 */
 
 returnTtg(T0, T100, Ttg) :-
-  T100 > T0,
-  Ttg is (T100 - T0) / 100,
+%  T100 > T0,
+  Ttg is max((T100 - T0) / 100,0.0035),
   !.
-returnTtg( _, _, 0.0035) :- !. % return base cost for tuple generation
+%returnTtg( _, _, 0.0035) :- !. % return base cost for tuple generation
 
 sampleRuntimesJ(R1, R2, T0, T100, Ttg) :-
   R1 = rel(BaseName1, _, _),

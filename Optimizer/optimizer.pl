@@ -1943,8 +1943,8 @@ cost(leftrange(_, Rel, _), Sel, Size, TupleSize, B, TC, Cost) :-
   Size is Sel * RelSize,
   Cost is CostR                           % produce input stream
         + FOD + FCD                       % open/close btree file        
-        + B * log(2,RelSize)              % later: B * (Hight + K/2)
-        + RPD * log(2,RelSize)            % later: D * (Hight + Sel*RelSize/K)
+        + B * log(2,RelSize)              % later: RPD * (Hight + K/2)
+        + RPD * log(2,RelSize)            % later: RPD * (Hight + Sel*RelSize/K)
         + TC * Sel * RelSize.             % produce tuple stream
 
 cost(rightrange(_, Rel, _), Sel, Size, TupleSize, B, TC, Cost) :-
@@ -2173,6 +2173,15 @@ cost(sortmergejoin(X, Y, _, _), Sel, ResultCard, ResultTupleSize, B, TC, Cost) :
         + B * CX * CY                  % compare tuples (B could also be fixed, e.g. 0.001)
         + RTM * (CX+CY) * sqrt(Sel)    % read tuples from buffer/memory; A BAD ESTIMATION !!!
         + TC * ResultCard.             % create result tuple
+
+
+/*
+ One can easiliy add a cost function for a ~mergejoin~ by copying the clause for sortmergejoin 
+ and changing the first two literals to
+
+*/
+%  cost(X, 1, CX, Tx, PredCost, TC, CostX),
+%  cost(Y, 1, CY, Ty, PredCost, TC, CostY),
 
 
 /*

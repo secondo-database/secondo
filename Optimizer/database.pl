@@ -401,6 +401,14 @@ writeStoredRel(Stream) :-
   write(Stream, storedRel(X, Y)),
   write(Stream, '.\n').
 
+showStoredRel :-
+  storedRel(X, Y),
+  write(X), write(':\t'), write(Y), nl.
+
+showStoredRels :- 
+  write('Stored relation schemas:\n'),
+  findall(_, showStoredRel, _).
+
 :-
   dynamic(storedRel/2),
   at_halt(writeStoredRels),
