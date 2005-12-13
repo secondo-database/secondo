@@ -33,11 +33,12 @@ public class MeshGenerator {
      */
     /**
      * The static member variable <tt>GENERATOR</tt> decides which of two different mesh generator implementations is used.
-     * The valid values are <tt>"Triangle"</tt> and <tt>"NetGen"</tt>.<br>
-     * The default value is "NetGen".
+     * The valid values are <tt>"Triangle"</tt>, <tt>"NetGen"</tt> and <tt>"Mehlhorn"</tt>.<br>
+     * The default value is "Mehlhorn".
      */
-    public static String GENERATOR = "Triangle";
+    //public static String GENERATOR = "Triangle";
     //public static String GENERATOR = "NetGen";
+    public static String GENERATOR = "Mehlhorn";
 
     /*
      * constructors
@@ -57,19 +58,13 @@ public class MeshGenerator {
 	//System.out.println(System.getProperty("java.library.path")); //show the library path where the dll-files should be
 	//load libraries dependant on system
 	String os = System.getProperty("os.name");
-	//System.out.println("OS: -"+os+"-");
 	if (os.equals(new String("Linux"))) {
-	    //System.out.println("...loading MeshGenerator(LINUX)");
 	    System.loadLibrary("MeshGenerator");
-	    //System.out.println("...loading MeshGeneratorNetGen(LINUX)");
 	    System.loadLibrary("MeshGeneratorNetGen");
 	} else {
 	    //must be "Windows"
-	    //System.out.println("...loading MeshGenerator(WINDOWS)");
 	    System.loadLibrary("MeshGenerator");
-	    //System.out.println("...loading ThirdPartyCode(WINDWOS)");
 	    System.loadLibrary("ThirdPartyCode");
-	    //System.out.println("...loading MGNetGen(WINDOWS)");
 	    System.loadLibrary("MGNetGen");
 	}//else
     }
@@ -196,8 +191,6 @@ public class MeshGenerator {
      * @return the set of triangles for the polygon
      */
     public TriMultiSet computeMeshWithNetGenHoles(CycleList borderCycles, boolean qualityMesh) {
-	//System.out.println("MG.computeMeshWithNetGenHoles:");
-	//borderCycles.print();
 	int numberOfCycles = borderCycles.size();
 	int totalNumberOfPoints = 0;
 	int[] lengthArray = new int[numberOfCycles];
@@ -284,13 +277,8 @@ public class MeshGenerator {
 	}//catch
 
 	TriMultiSet resSet = buildTriangleSet(triResultList);
-	//System.out.println("\nresSet:"); resSet.print();
-	
 
-	System.out.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MG.java: Back from NetGen");
-	System.out.println("The number of triangles is: "+resSet.size()+", total number of points: "+totalNumberOfPoints);
-	return resSet;
-	
+	return resSet;	
     }//end method computeMeshWithNetGenHoles
 
     
@@ -334,13 +322,8 @@ public class MeshGenerator {
     public TriMultiSet computeMeshForSingleCycle (SegMultiSet border,boolean qualityMesh) {
 	//a certain set of variables is needed for the C-method
 	//compute these variables
-
-	//System.out.println("\n~~~~~ computeMeshForSingeCycle");
-
 	if (qualityMesh) this.arguments = "pqQ";
 	else this.arguments = "pQ";
-
-	//this.arguments = "pQl";
 
 	//pointlist: an array of the (border) points of the form 
 	//[x-coord p1][y-coord p1]...[xcoord pn][ycoord pn]
@@ -519,13 +502,9 @@ public class MeshGenerator {
 	//a certain set of variables is needed for the C-method
 	//compute these variables
 
-	//System.out.println("\n~~~~~ computeMeshForSingeCycleHoles");
-	
 	if (qualityMesh) this.arguments = "pqQ";
 	else this.arguments = "pQ";
 
-	//this.arguments = "pQl";
-	
 	//pointlist: an array of the (border) points of the form 
 	//[x-coord p1][y-coord p1]...[xcoord pn][ycoord pn]
 	
@@ -655,8 +634,9 @@ public class MeshGenerator {
 	numberofregions = 0;
 	regionlist = null;
 
+	System.out.println("numberofholes: "+numberofholes);
+
 	//call C-code
-	
 	double[] triResultList = new MeshGenerator().triangulate(arguments,
 								 pointlist,
 								 pointattributelist,

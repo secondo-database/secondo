@@ -7,6 +7,8 @@
 
 package twodsack.util.collection;
 
+import twodsack.set.*;
+import twodsack.setelement.*;
 import twodsack.util.collectiontype.*;
 import twodsack.util.iterator.*;
 import java.util.*;
@@ -81,6 +83,28 @@ public class ProLinkedList implements Cloneable {
 	last = new Entry(null);
 	comparator = c;
     }
+
+
+    /**
+     * Constructs a new instance from the passed MultiSet.
+     * The passed comparator is used for the construction of the new list.
+     *
+     * @param c the new comparator
+     * @param ms the mMultiSet
+     */
+    public ProLinkedList(MultiSet ems, Comparator c) {
+	comparator = c;
+	modCount = 0;
+	size = 0;
+	head = new Entry(null);
+	last = new Entry(null);
+	Iterator it = ems.iterator();
+	Object actElem;
+	while (it.hasNext()) {
+	    actElem = ((MultiSetEntry)it.next()).value;
+	    this.add(actElem);
+	}//while it
+    }
     
 
     /*
@@ -130,6 +154,61 @@ public class ProLinkedList implements Cloneable {
     }//end method add
 
 
+    /**
+     * Adds an object to <i>this</i>.
+     * The new element will be sorted correctly in the list using the comparator of <i>this</i>.
+     * If no comparator is specified, an exception is thrown.
+     *
+     * @param o the new element
+     * @return the position of the list where the new element was added; first position is 0
+     * @throws ComparatorNotDefinedException if no comparator is defined
+     */
+    public int addSorted (Object o) {
+	int pos = -1;
+	if (this.comparator == null)
+	    throw new ComparatorNotDefinedException("Comparator is needed for this operation. Use constructor ProLinkedList(Comparator).");
+	Entry newEntry = new Entry(o);
+	lastAdded = newEntry;
+	if (head.next == null) {
+	    head.next = newEntry;
+	    last.next = newEntry;
+	    pos = 0;
+	}//if
+	else if (comparator.compare(o,head.next.value) == -1) {
+	    //if new entry is smaller than first entry
+	    newEntry.next = head.next;
+	    newEntry.prev = null;
+	    head.next.prev = newEntry;
+	    head.next = newEntry;
+	    pos = 0;
+	}//if
+	//if new entry is greater than last entry
+	else if (comparator.compare(o,last.next.value) == 1) {
+	    newEntry.prev = last.next;
+	    newEntry.next = null;
+	    last.next.next = newEntry;
+	    last.next = newEntry;
+	    pos = this.size;
+	}//if
+	else {
+	    //traverse list using comparator
+	    Entry nextEntry = head.next;
+	    pos = 0;
+	    while (comparator.compare(o,nextEntry.value) >= 0) {
+		nextEntry = nextEntry.next;
+		pos++;
+	    }//while
+	    newEntry.next = nextEntry;
+	    newEntry.prev = nextEntry.prev;
+	    nextEntry.prev.next = newEntry;
+	    nextEntry.prev = newEntry;
+	}//else
+	this.size++;
+	this.modCount++;
+	return pos;
+    }//end method addSorted
+
+ 
     /**
      * Returns the first element of <i>this</i>.
      *

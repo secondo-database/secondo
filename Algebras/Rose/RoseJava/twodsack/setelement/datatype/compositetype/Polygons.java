@@ -41,6 +41,9 @@ import java.io.Serializable;
 public class Polygons extends Element implements Serializable {
     
     //members
+    private static final PointComparator POINT_COMPARATOR = new PointComparator();
+    private static final SegmentComparator SEGMENT_COMPARATOR = new SegmentComparator();
+    private static final TriangleComparator TRIANGLE_COMPARATOR = new TriangleComparator();
     private static Segment PLUMBLINE = new Segment(0,0,1,1);
 
     private boolean trilistDefined;
@@ -232,6 +235,8 @@ public class Polygons extends Element implements Serializable {
      * <p>Note: The decomposition is applied only when the borders of segment cycles meet in at least
      * one point, i.e. two faces meet or a hole meets the border of a polygon.
      *
+     * Note: This method is deprecated. Use {@link #computeMesh} instead.
+     *
      * @param border of the <code>Polygons</code> value as {@link SegMultiSet}
      * @return set of triangles as {@link TriMultiSet}
      * @see #computeMesh(SegMultiSet,boolean)
@@ -292,26 +297,35 @@ public class Polygons extends Element implements Serializable {
      * This method implements the plane-sweep algorithm.
      * The algorithm does not work for borders with cycles. Therefore the cycles must be removed before.
      * This can be done using the methods in class {@link Graph}.
-     * NOTE: The method {@link sortBorder} is used here. It probably has time complexity O(n²) and
-     * should be improved!
      *
      * @param border the border of a single connected component as {@link SegMultiSet}
      * @return a triangulation as {@link TriMultiSet}
      */
-    private static TriMultiSet computeTrianglesSUB(SegMultiSet border){	
-	if (border.isEmpty()) return new TriMultiSet(new TriangleComparator());
+    private static TriMultiSet computeTrianglesSUB(SegMultiSet border){
+	//System.out.println("Triangulator: Mehlhorn.");
+	/*
+	  DisplayGFX gfx = new DisplayGFX();	      
+	  gfx.initWindow();
+	  gfx.addSet(border);
+	  gfx.showIt(false);
+	  try { int data = System.in.read(); }
+	  catch (Exception f) { System.exit(0); }
+	  gfx.kill();
+	*/
+
+	if (border.isEmpty()) return new TriMultiSet(TRIANGLE_COMPARATOR);
 
 	LinkedList borderVerts = new LinkedList(); //vertices of polygon border
 	LinkedList xstruct = new LinkedList(); //x-structure for sweep line algo
-	TriMultiSet tl = new TriMultiSet(new TriangleComparator()); //store the generated triangles in here
+	TriMultiSet tl = new TriMultiSet(TRIANGLE_COMPARATOR); //store the generated triangles in here
 	
 	//construct borderVerts from this.border
-	Point new1 = new Point();
-	Point new2 = new Point();
+	Point new1;// = new Point();
+	Point new2;// = new Point();
 	boolean isnew1 = true;
 	boolean isnew2 = true;
 	
-	PointMultiSet tempBV = new PointMultiSet(new PointComparator());
+	PointMultiSet tempBV = new PointMultiSet(POINT_COMPARATOR);
 	Iterator it = border.iterator();
 	while (it.hasNext()) {
 	    Segment actSeg = (Segment)((MultiSetEntry)it.next()).value;
@@ -331,80 +345,53 @@ public class Polygons extends Element implements Serializable {
 	SetOps.mergesortXY(borderVerts);
 	xstruct = (LinkedList)borderVerts;
 	
-
-	//compute sorted border list
-	//convert border to LinkedList as parameter for sortBorder
-	LinkedList borderlink = new LinkedList();
-	Iterator jit = border.iterator();
-	while (jit.hasNext()) borderlink.add(((Element)((MultiSetEntry)jit.next()).value).copy());
-	
-	LinkedList sortedBorder = sortBorder(borderlink,(Point)xstruct.getFirst());
+	//compute a graph from vertices to be able to compute the attribute of a vertex efficiently
+	Graph polGraph = new Graph(border);
 
 	//
 	//DO THE SWEEP!!!
 	//
-	Point x = new Point();
+	Point x;
 	boolean first = false;
-	Segment found1 = new Segment();
-	Segment found2 = new Segment();
-	Segment seg1 = new Segment();
-	Segment seg2 = new Segment();
+	Segment found1 = null;
+	Segment found2 = null;
+	Segment seg1,seg2;
 	int pCUp = 0;
 	int pCDown = 0;
 	int yElemPos = 0;
-	SweepStElem newElem = new SweepStElem();
+	SweepStElem newElem;
 	Rational angle = RationalFactory.constRational(0);
 	LinkedList delList = new LinkedList();
 	LinkedList delListInt = new LinkedList();
 	String attribute = "";
-	
+	ListIterator xit = xstruct.listIterator(0);
+
 	//init y-structure
 	//ystruct should be organized that way that the element with the lowest y-value
 	// is first
 	LinkedList ystruct = new LinkedList();
-	Segment actSeg = new Segment();
-	
-	//sweep starts
-	for (int i = 0; i < xstruct.size(); i++) {
-	    //check attribute of current Point
-	    x = (Point)xstruct.get(i);
-	    attribute = attribute(x,sortedBorder);
+	Segment actSeg;
+	Vertex xVertex;
 
+	//sweep starts
+	while (xit.hasNext()) {
+	    //check attribute of current Point
+	    x = (Point)xit.next();
+	    xVertex = polGraph.getVertex(x);
+	    attribute = attribute(x,xVertex,polGraph);
+	    
 	    if (attribute == "start") {
 		
 		//find the corresponding segments seg1, seg2
 		first = false;
-		
-		it = border.iterator();
-		while (it.hasNext()) {
-		    actSeg = (Segment)((MultiSetEntry)it.next()).value;
-		    if (PointSeg_Ops.isEndpoint(x,actSeg)) {
-			if (!first) {
-			    found1 = actSeg;
-			    first = true;
-			}//if
-			else {
-			    found2 = actSeg;
-			    break;
-			}//else
-		    }//if
-		}//while
-		
+
+		Vertex[] neighbours = polGraph.getNeighbours(xVertex);
+		Point pd1 = (Point)neighbours[0].value;
+		Point pd2 = (Point)neighbours[1].value;
+
 		//build seg1,seg2 from found1,found2
 		//such that seg1 is the "lower element" and x is its endpoint
 		//and seg2 is the "higher element" and x is its startpoint
-		
-		//what are the two points which are different from x?
-		Point pd1 = new Point();
-		Point pd2 = new Point();
-		
-		if ((found1.getStartpoint()).equal(x)) {
-		    pd1 = found1.getEndpoint(); }
-		else { pd1 = found1.getStartpoint(); }
-		if ((found2.getStartpoint()).equal(x)) {
-		    pd2 = found2.getEndpoint(); }
-		else { pd2 = found2.getStartpoint(); }
-		
 		byte compare = Mathset.pointPosition(x,pd1,pd2);
 		
 		boolean pd1first = false;
@@ -466,12 +453,11 @@ public class Polygons extends Element implements Serializable {
 		    else {
 			//x lies in an "in" interval of ystruct
 			//add triangulation segments to tl
-			
 			Point lastP = yElem.rimoEl;
 			
 			//compute index of lastP
 			int indexLP = -1;
-			
+						    
 			for (int j = 0; j < yElem.pointChain.size(); j++) {
 			    if (((Point)yElem.pointChain.get(j)).equal(lastP)) {
 				indexLP = j;
@@ -514,49 +500,13 @@ public class Polygons extends Element implements Serializable {
 			
 			//update ystruct
 			//build two new SweepStElems and insert them in ystruct
-			
-			//find the two neighbour points for x
-			LinkedList xNb1 = new LinkedList();
-			LinkedList xNb2 = new LinkedList();
-			
-			first = false;
-
-			Iterator iit = border.iterator();
-			Segment actSEG;
-			while (iit.hasNext()) {
-			    actSEG = (Segment)((MultiSetEntry)iit.next()).value;
-			    if (actSEG.getStartpoint().equal(x) ||
-				actSEG.getEndpoint().equal(x)) {
-				PointMultiSet pms = actSEG.endpoints();
-				Iterator pit = pms.iterator();
-				if (!first) {
-				    while (pit.hasNext()) xNb1.add(((MultiSetEntry)pit.next()).value);
-				    first = true;
-				}//if
-				else {
-				    while (pit.hasNext()) xNb2.add(((MultiSetEntry)pit.next()).value);
-				    break;
-				}//else
-			    }//if
-			}//for
-			
-			//extract the desired point from segments
-			Point tnb1 = (Point)xNb1.get(0);
-			Point tnb2 = (Point)xNb1.get(1);
-			Point tnb3 = (Point)xNb2.get(0);
-			Point tnb4 = (Point)xNb2.get(1);
-			Point nb1 = null;
-			Point nb2 = null;
-			
-			if (((Point)tnb1).equal(x)) { nb1 = tnb2; }
-			else { nb1 = (Point)tnb1.copy(); }
-			if (((Point)tnb3).equal(x)) { nb2 = tnb4; }
-			else { nb2 = (Point)tnb3.copy(); }
+			Point nb1 = pd1;
+			Point nb2 = pd2;
 			//swap if nb1.y > nb2.y
 			if (Mathset.pointPosition(x,nb1,nb2) == -1) {
-			    Point nb3 = (Point)nb1.copy();
-			    nb1 = (Point)nb2.copy();
-			    nb2 = (Point)nb3.copy();
+			    Point nb3 = nb1;
+			    nb1 = nb2;
+			    nb2 = nb3;
 			}//if
 			
 			//build lower element
@@ -566,16 +516,16 @@ public class Polygons extends Element implements Serializable {
 			if (border.contains(new Segment(x,nb1)) ||
 			    border.contains(new Segment(nb1,x))) {
 			    for (int j = pCDown; j > -1; j--) {
-				lower.pointChain.addFirst(((Point)yElem.pointChain.get(j)).copy());
+				lower.pointChain.addFirst((Point)yElem.pointChain.get(j));
 			    }//for j
 			}//if
 			else {
 			    for (int j = pCDown; j > -1; j--) {
-				lower.pointChain.add(((Point)yElem.pointChain.get(j)).copy());
+				lower.pointChain.add((Point)yElem.pointChain.get(j));
 			    }//for j
 			}//else
-			lower.pointChain.add((Point)x.copy());
-			lower.pointChain.add((Point)nb2.copy());
+			lower.pointChain.add(x);
+			lower.pointChain.add(nb2);
 			lower.rimoEl = x;
 			
 			//build upper element
@@ -584,16 +534,16 @@ public class Polygons extends Element implements Serializable {
 			if (border.contains(new Segment(x,nb2)) ||
 			    border.contains(new Segment(nb2,x))) {
 			    for (int j = pCUp; j < yElem.pointChain.size(); j++) {
-				upper.pointChain.add(((Point)yElem.pointChain.get(j)).copy());
+				upper.pointChain.add((Point)yElem.pointChain.get(j));
 			    }//for j
 			}//if
 			else {
 			    for (int j = pCUp; j < yElem.pointChain.size(); j++) {
-				upper.pointChain.addFirst(((Point)yElem.pointChain.get(j)).copy());
+				upper.pointChain.addFirst((Point)yElem.pointChain.get(j));
 			    }//for
 			}//else
-			upper.pointChain.addFirst((Point)x.copy());
-			upper.pointChain.addFirst((Point)nb1.copy());
+			upper.pointChain.addFirst(x);
+			upper.pointChain.addFirst(nb1);
 			upper.rimoEl = x;
 			
 			//insert elements in ystruct
@@ -617,25 +567,7 @@ public class Polygons extends Element implements Serializable {
 		    //whethter this is the case and fix it.
 		    SweepStElem yElem = (SweepStElem)ystruct.get(yElemPos);
 		    if (yElem.pointChain.isEmpty()) {
-			//System.out.println("CAUTION: index for empty pointChain was returned by method INTERVAL");
-			//System.out.print("-->can be fixed: ");
 			if ((yElemPos < 3) && (yElem.pointChain.size() < 7)) {
-			    //System.out.println("NO(1)");
-			    //System.out.println("actual configuration:");
-			    //System.out.println("x: "); x.print();
-			    //System.out.println("attribute: "+attribute);
-			    
-			    /*
-			      System.out.println("ystruct:");
-			      for (int ys = 0; ys < ystruct.size(); ys++) {
-			      LinkedList actPC = ((SweepStElem)ystruct.get(ys)).pointChain;
-			      for (int idx = 0; idx < actPC.size(); idx++)
-			      ((Point)actPC.get(idx)).print();
-			      }//for ys
-			      System.out.println();
-			      System.out.println("comp: interval:"+interval(x,ystruct)+" - interval2:"+interval2(x,ystruct)+" - interval3:"+interval3(x,ystruct)+" --> "+yElemPos);
-			      System.exit(0);
-			    */
 			}//if
 			else if ((yElemPos > 2) &&
 				 (x.equal((Point)((SweepStElem)ystruct.get(yElemPos-1)).pointChain.getFirst()) ||
@@ -657,65 +589,30 @@ public class Polygons extends Element implements Serializable {
 		    //update ystruct
 		    //add the "following" element of x to pointChain
 		    //find the two neighbour points for x
-		    LinkedList xNb1 = new LinkedList();
-		    LinkedList xNb2 = new LinkedList();
-		    Point xFoll = new Point();
 		    
-		    first = false;
-		    
-		    it = border.iterator();
-		    while (it.hasNext()) {
-			actSeg = (Segment)((MultiSetEntry)it.next()).value;
-			if (PointSeg_Ops.isEndpoint(x,actSeg)) {
-			    if (!first) {
-				PointMultiSet pms = actSeg.endpoints();
-				Iterator pit = pms.iterator();
-				while (pit.hasNext()) xNb1.add((Point)((MultiSetEntry)pit.next()).value);
-				first = true;
-			    }//if
-			    else {
-				PointMultiSet pms = actSeg.endpoints();
-				Iterator pit = pms.iterator();
-				while (pit.hasNext()) xNb2.add((Point)((MultiSetEntry)pit.next()).value);
-				break;
-			    }//else
-			}//if
-		    }//while
-		    
-		    
+		    Vertex[] neighbours = polGraph.getNeighbours(xVertex);
+		    Point np1 = (Point)neighbours[0].value;
+		    Point np2 = (Point)neighbours[1].value;
+		    Point xFoll = null;
 		    boolean found = false;
-		    //extract the desired point from segments
-		    Point tnp1 = (Point)xNb1.get(0);
-		    Point tnp2 = (Point)xNb1.get(1);
-		    Point tnp3 = (Point)xNb2.get(0);
-		    Point tnp4 = (Point)xNb2.get(1);
-		    
-		    Point np1 = new Point();
-		    Point np2 = new Point();
-		    
-		    if (tnp1.equal(x)) { np1 = tnp2; }
-		    else { np1 = (Point)tnp1.copy(); }
-		    if (tnp3.equal(x)) { np2 = tnp4; }
-		    else { np2 = (Point)tnp3.copy(); }
 		    
 		    if (x.equal((Point)yElem.pointChain.getFirst())) {
-			if (np1.equal((Point)yElem.pointChain.get(1)))
-			    {
-				xFoll = (Point)np2.copy();
-				found = true;
-			    }//if
+			if (np1.equal((Point)yElem.pointChain.get(1))) {
+			    xFoll = np2;
+			    found = true;
+			}//if
 			else {
-			    xFoll = (Point)np1.copy();
+			    xFoll = np1;
 			    found = true;
 			}//else
 		    }//if
 		    if (x.equal((Point)yElem.pointChain.getLast())) {
 			if (np1.equal((Point)yElem.pointChain.get(yElem.pointChain.size()-2))) {
-			    xFoll = (Point)np2.copy();
+			    xFoll = np2;
 			    found = true;
 			}//if
 			else {
-			    xFoll = (Point)np1.copy();
+			    xFoll = np1;
 			    found = true;
 			}//else
 		    }//if
@@ -735,10 +632,13 @@ public class Polygons extends Element implements Serializable {
 		    
 		    //add xFoll to pointChain
 		    if (x.equal((Point)yElem.pointChain.getFirst())) {
-			yElem.pointChain.addFirst(xFoll.copy());
+			yElem.pointChain.addFirst(xFoll);
 		    }//if
-		    else { yElem.pointChain.addLast(xFoll.copy()); }
-		    yElem.rimoEl = (Point)x.copy();
+		    else {
+			yElem.pointChain.addLast(xFoll);
+		    }//else
+		    
+		    yElem.rimoEl = x;
 		    //now ystruct is updated
 		    
 		    //compute triangles
@@ -873,7 +773,7 @@ public class Polygons extends Element implements Serializable {
 			    //now we have exactly that case
 			    //add points of next to current
 			    for (int ad = 2; ad < next.pointChain.size(); ad++) {
-				current.pointChain.add(((Point)next.pointChain.get(ad)).copy());
+				current.pointChain.add((Point)next.pointChain.get(ad));
 			    }//for ad
 			    
 			    //remove yElems
@@ -893,20 +793,7 @@ public class Polygons extends Element implements Serializable {
 		    if (attribute == "end") {
 			//find the corresponding segments seg1, seg2
 			first = false;
-			
-			it = border.iterator();
-			while (it.hasNext()) {
-			    actSeg = (Segment)((MultiSetEntry)it.next()).value;
-			    if (!first) {
-				found1 = (Segment)actSeg.copy();
-				first = true;
-			    }//if
-			    else {
-				found2 = (Segment)actSeg.copy();
-				break;
-			    }//else
-			}//while
-			
+
 			//find the proper position in ystruct
 			yElemPos = interval(x, ystruct);
 			
@@ -962,9 +849,6 @@ public class Polygons extends Element implements Serializable {
 			    
 			    //compute triangles for prev
 			    if (prevLiesTop) {
-				//Trying to handle a special case by substituting this:
-				//for (int j = 1; j < prev.pointChain.size()-2; j++) {
-				//by this:
 				for (int j = 1; j < prev.pointChain.size()-2; j++) {
 				    
 				    boolean compute = false;
@@ -982,9 +866,6 @@ public class Polygons extends Element implements Serializable {
 				}//for j
 			    }//if
 			    else {
-				//trying to handle a special case by substituting this:
-				//for (int j = prev.pointChain.size()-2; j > 1; j--) {
-				//by this:
 				for (int j = prev.pointChain.size()-2; j > 1; j--) {
 				    boolean compute = false;
 				    if (Mathset.pointPosition(x,(Point)prev.pointChain.get(j-1),(Point)prev.pointChain.get(j)) == 1) { compute = true; }
@@ -1003,9 +884,6 @@ public class Polygons extends Element implements Serializable {
 			    
 			    //compute triangles for foll
 			    if (!follLiesTop) {
-				//trying to handle a special case by substituting this:
-				//for (int j = foll.pointChain.size()-2; j > 1; j--) {
-				//by this:
 				for (int j = foll.pointChain.size()-2; j > 1; j--) {
 				    boolean compute = false;
 				    if (Mathset.pointPosition(x,(Point)foll.pointChain.get(j-1),(Point)foll.pointChain.get(j)) == 1) { compute = true; }
@@ -1021,9 +899,6 @@ public class Polygons extends Element implements Serializable {
 				}//for j
 			    }//if
 			    else {
-				//trying to handle a special case by substituting this:
-				//for (int j = 1; j < foll.pointChain.size()-2; j++) {
-				//by this:
 				for (int j = 1; j < foll.pointChain.size()-2; j++) {
 				    boolean compute = false;
 				    if (Mathset.pointPosition(x,(Point)foll.pointChain.get(j+1),(Point)foll.pointChain.get(j)) == -1) { compute = true; }
@@ -1035,7 +910,8 @@ public class Polygons extends Element implements Serializable {
 			    pCfoll = j+1;
 			    computedAnyFoll = true;
 				    }//if
-				    else { break; }
+				    else
+					break;
 				}//for j
 				
 			    }//else
@@ -1282,7 +1158,7 @@ public class Polygons extends Element implements Serializable {
 
 			    ystruct.remove(yElemPos);
 			    ystruct.remove(yElemPos-1);
-			    			}//else
+			}//else
 		    }//if
 		    //now all operations for attribute=="end" are done
 		    
@@ -1591,7 +1467,6 @@ public class Polygons extends Element implements Serializable {
 		//CAUTION: The computation of intersection points using the sweepline
 		//doesn't work if the segments are vertical! This must be checked first.
 
-
 		Point int1 = null;
 		if (((Point)actSSE.pointChain.getFirst()).compX((Point)actSSE.pointChain.get(1)) == 0) {
 		    int1 = (Point)actSSE.pointChain.getFirst();
@@ -1668,149 +1543,118 @@ public class Polygons extends Element implements Serializable {
      * on the border.
      *
      * @param x the query point
-     * @param sortedBorder sorted border of the <code>Polygons</code> value 
+     * @param xVertex the vertex for <tt>x</tt> in <tt>graph</tt>
+     * @param graph the graph representing the region
      * @return the proper result, which is "start", "end" or "bend"
      */
-    private static String attribute(Point x, LinkedList sortedBorder) {
-	//compute sorted border
-	LinkedList border = resortBorder(sortedBorder,x);
-
-	//from sortedborder extract the bordercycle which includes x
-	LinkedList borderCycle = new LinkedList();
-	boolean found = false;
-	borderCycle.add(border.getFirst());
-	int iterator = 1;
-	ListIterator lit = border.listIterator(1);
-	Segment actSeg;
-	while (!found) {
-	    if (lit.hasNext()) {
-		actSeg = (Segment)lit.next();
-		if (PointSeg_Ops.isEndpoint(x,actSeg)) {
-		    found = true; }
-		borderCycle.add(actSeg);
-		iterator++;
-	    }//if
-	}//while
-		
-	//search in borderCycle to find the next points in both directions
-	// which have different x-coordinates
-	int down = 0;
-	int up = 0;
-	boolean diffXcoord = false;
-	Point nextPoint = new Point();
-	Point actPoint = x;
-	int actPos = 0;
-	actSeg = (Segment)borderCycle.getFirst();
-	while (!diffXcoord) {
-	    nextPoint = actSeg.theOtherOne(actPoint);
-	    if (!nextPoint.x.equal(actPoint.x)) {
-		if (nextPoint.x.less(actPoint.x)) {
-		    up = -1;
-		    diffXcoord = true;
-		}//if
-		else {
-		    up = 1;
-		    diffXcoord = true;
-		}//else
-	    }//if
-	    else {
-		actPos++;
-		actSeg = (Segment)borderCycle.get(actPos);
-		actPoint = nextPoint;
-	    }//else
-	}//while
+    private static String attribute(Point x, Vertex xVertex, Graph graph) {
+	//get the vertex from graph
+	//Vertex xVertex = graph.getVertex(x);
 	
-	//now do that also in the other direction
-	diffXcoord = false;
-	nextPoint = new Point();
-	actPoint = x;
-	actPos = borderCycle.size()-1;
-	actSeg = (Segment)borderCycle.getLast();
-	while (!diffXcoord) {
-	    nextPoint = actSeg.theOtherOne(actPoint);
-	    if (!nextPoint.x.equal(actPoint.x)) {
-		if (nextPoint.x.less(actPoint.x)) {
-		    down = -1;
-		    diffXcoord = true;
-		}//if
-		else {
-		    down = 1;
-		    diffXcoord = true;
-		}//else
-	    }//if
-	    else {
-		actPos--;
-		actSeg = (Segment)borderCycle.get(actPos);
-		actPoint = nextPoint;
-	    }//else
-	}//while
-
-	//find out if up is really the upper point and vice versa
-	//also compute attributes for direct neighbours to determine
-	//wether a point is "bend"
-	int nextUp = 0;
-	int nextDown = 0;
-	nextUp = (((Segment)borderCycle.getFirst()).getEndpoint()).compX(x);
-	nextDown = (((Segment)borderCycle.getLast()).getStartpoint()).compX(x);
-
-	Point upP = ((Segment)borderCycle.getFirst()).getEndpoint();
-	Point downP = ((Segment)borderCycle.getLast()).getStartpoint();
-
-	if (borderCycle.size()<3) {
-	    System.out.println("Pol.attribute: borderCycle is smaller than 3!");
-	    System.out.println("x:");
-	    x.print();
-	    System.out.println();
-	    for (int idx = 0; idx < borderCycle.size(); idx++) {
-		((Point)(borderCycle.get(idx))).print(); }
+	//get neighbours from graph
+	Vertex[] neighbours = graph.getNeighbours(xVertex);
+	
+	//if neighbours has more or less than two elements, exit
+	if (neighbours.length != 2) {
+	    System.out.println("Polygons.attribute: Border doesn't form proper cycles. Exit.");
+	    System.out.println("x: "+x);
+	    System.out.println("neighbour's array:");
+	    for (int i = 0; i < neighbours.length; i++) {
+		System.out.println("["+i+"] "+neighbours[i].value);
+	    }//for i
 	    System.exit(0);
 	}//if
-	if (!isUpperSegment((Segment)borderCycle.getFirst(),(Segment)borderCycle.getLast())) {
 
-	    //swap up and down
-	    int help = up;
-	    up = down;
-	    down = help;
-	    //swap nextUp and nextDown
-	    help = nextUp;
-	    nextUp = nextDown;
-	    nextDown = help;
-	}//if
+	//extract both vertices from array
+	Vertex vert1 = neighbours[0];
+	Vertex vert2 = neighbours[1];
+	
+	//compute comparison values
+	Point point1 = (Point)vert1.value;
+	Point point2 = (Point)vert2.value;
+	int quadFirst = quadrant(x,point1);
+	int quadSecond = quadrant(x,point2);
+	int vertFirst = vertical(x,point1);
+	int vertSecond = vertical(x,point2);
 
-	//now return the right attributeß
-	if ((nextUp == 1) && (nextDown == 1)) {
-	    return "start"; }
-	else if ((nextUp == 1) && (nextDown == -1)) {
-	    return "bend"; }
-	else if ((nextUp == -1) && (nextDown == 1)) {
-	    return "bend"; }
-	else if ((nextUp == -1) && (nextDown == -1)) {
-	    return "end"; }
-	else if ((nextUp == 1) && (nextDown == 0) && (down == 1)) {
-	    return "start"; }
-	else if ((nextUp == 1) && (nextDown == 0) && (down == -1)) {
-	    return "start"; } //this was originally bend
-	else if ((nextUp == -1) && (nextDown == 0) && (down == 1)) {
-	    return "bend"; }
-	else if ((nextUp == -1) && (nextDown == 0) && (down == -1)) {
-	    return "bend"; }
-	else if ((nextUp == 0) && (nextDown == -1) && (up == 1)) {
-	    return "end"; } //this was bend 
-	else if ((nextUp == 0) && (nextDown == -1) && (up == -1)) {
-	    return "end"; }
-	else if ((nextUp == 0) && (nextDown == 1) && (up == 1)) {
-	    return "bend"; }
-	else if ((nextUp == 0) && (nextDown == 1) && (up == -1)) {
-	    return "bend"; }
-	else if ((nextUp == 0) && (nextDown == 0)) {
-	    return "bend"; }
+	//depending on comparison value, return correct attribute;
+	//32 different cases exist, where 8 cases are for START, 
+	//another 8 cases are for END; all other cases are BEND cases
+	if ((quadFirst == 2 && quadSecond == 2) || //case 8
+	    ((quadFirst == 2 && vertSecond == 2) || (quadSecond == 2 && vertFirst == 2)) || //case 9
+	    ((quadFirst == 2 && quadSecond == 4) || (quadFirst == 4 && quadSecond == 2)) || //case 10
+	    ((quadFirst == 2 && vertSecond == 3) || (quadSecond == 2 && vertFirst == 3)) || //case 11
+	    ((quadFirst == 4 && vertSecond == 2) || (quadSecond == 4 && vertFirst == 2)) || //case 15
+	    ((vertFirst == 2 && vertSecond == 3) || (vertFirst == 3 && vertSecond == 2)) || //case 16
+	    (quadFirst == 4 && quadSecond == 4) || //case 20
+	    ((quadFirst == 4 && vertSecond == 3)  || (quadSecond == 4 && vertFirst == 3))) //case 21
+	    return "start";
+
+	if (((quadFirst == 3 && vertSecond == 1) || (quadSecond == 3 && vertFirst == 1)) || //case 5
+	    ((vertFirst == 1 && vertSecond == 4) || (vertFirst == 4 && vertSecond == 1)) || //case 6
+	    ((quadFirst == 1 && vertSecond == 1) || (quadSecond == 1 && vertFirst == 1)) || //case 7
+	    (quadFirst == 3 && quadSecond == 3) || //case 28
+	    ((quadFirst == 3 && vertSecond == 4) || (quadSecond == 3 && vertFirst == 4)) || //case 29
+	    ((quadFirst == 1 && quadSecond == 3) || (quadFirst == 3 && quadSecond == 1)) || //case 30
+	    ((quadFirst == 1 && vertSecond == 4) || (quadSecond == 1 && vertFirst == 4)) || //case 31
+	    (quadFirst == 1 && quadSecond == 1)) //case 32
+	    return "end";
 	
-	
-	System.out.println("Pol.attribute: cant find attribute.");
-	System.exit(0);
-	return "";
+	return "bend";
     }//end method attribute
   
+
+    /**
+     * For two points <tt>x,p</tt> returns the quadrant of <tt>p</tt> with <tt>x</tt> the origin of the coordinate system.
+     * Returns 0 if <tt>p</tt> lies on one of the axis.
+     * @param x the coordinate system's origin
+     * @param p the query point
+     * @return 1..4 if the point lies in one quadrant; 0 if the point lies on one axis 
+     */
+    private static int quadrant(Point x, Point p) {
+	if (p.x.less(x.x)) {
+	    if (p.y.greater(x.y))
+		return 1;
+	    if (p.y.less(x.y))
+		return 3;
+	    else return 0;
+	}
+	if (p.x.greater(x.x)) {
+	    if (p.y.greater(x.y))
+		return 2;
+	    if (p.y.less(x.y))
+		return 4;
+	}//if
+	return 0;
+    }//end method quadrant
+
+    
+    /**
+     * For two points <tt>x,p</tt> return a number for a part of the coordinate system's axis on which <tt>p</tt> lies.
+     * <tt>x</tt> is the coordinate system's origin. The positive part of the y-axis has number 1. The other numbers
+     * are counted clockwise.
+     *
+     * @param x the coordinate system's origin
+     * @param p the query point
+     * @return 1..4 if the point lies on one axis; 0 if both points are identical
+     */
+    private static int vertical(Point x, Point p) {
+	if (p.x.equal(x.x)) {
+	    if (p.y.greater(x.y))
+		return 1;
+	    if (p.y.less(x.y))
+		return 3;
+	    else return 0;
+	}//if
+	if (p.y.equal(x.y)) {
+	    if (p.x.less(x.x))
+		return 4;
+	    if (p.x.greater(x.x))
+		return 2;
+	}//if
+	return 0;
+    }//end method vertical
+
     
     /**
      * Returns the area of <code>this</code>.
@@ -2328,98 +2172,8 @@ public class Polygons extends Element implements Serializable {
 
     
     /**
-     * Checks for two segments that form a line, if the first segment is above the other one.
-     * If <code>seg1</code> is above <code>seg2</code>, return <code>true</code>,
-     * otherwise <code>false</code>.
-     * This method is only used in the <code>attribute</code> method of this class. For this
-     * method, only four different cases are relevant. Therefore, all other cases are ignored.
-     *
-     * @param seg1 the first segment
-     * @param seg2 the second segment
-     * @return true, if <code>seg1</code> is above <code>seg2</code>, <code>false</code> otherwise
-     */
-    private static boolean isUpperSegment(Segment seg1, Segment seg2) {
-	if (!SegSeg_Ops.formALine(seg1,seg2)) {
-	    System.out.println("Polygons.isUpperSegment: segments don't form a line");
-	    System.out.println("segment1: "); seg1.print();
-	    System.out.println("segment2: "); seg2.print();
-	    System.exit(0);
-	}//if
-	//find common point
-	Point x = new Point();
-	if (PointSeg_Ops.isEndpoint(seg1.getStartpoint(),seg2)) {
-	    x = seg1.getStartpoint(); }
-	else { x = seg1.getEndpoint(); }
-	Point seg1o = seg1.theOtherOne(x);
-	Point seg2o = seg2.theOtherOne(x);
-	
-	if (seg1o.x.equal(x.x) && seg1o.y.greater(x.y)) {
-	    return true; }
-	if (seg1o.x.equal(x.x) && seg1o.y.less(x.y)) {
-	    return false; }
-	if (seg2o.x.equal(x.x) && seg2o.y.greater(x.y)) {
-	    return false; }
-	if (seg2o.x.equal(x.x) && seg2o.y.less(x.y)) {
-	    return true; }
-	
-	return true;
-    }//end method isUpperSegment
-	
-
-    /**
-     * Sorts <code>border</code>, starting with x.
-     * This method is only used in class method <code>attribute</code>.
-     * The border is sorted as shown below:
-     * <p>
-     * (x,a)(a,b)...(s,x)
-     * <p>
-     * The border first was sorted using class method <code>sortBorder</code> somewhere before.
-     * Here, the order is preconditioned and the existing cycle (<code>border</code> <i>must</i>
-     * be a single cycle) is re-arranged that way, that <code>x</code> now is the starting point.
-     *
-     * @param border a cycle of segments that has to be re-arranged
-     * @param x the new starting point for the cycle
-     * @return the re-arranged cycle
-     */
-    private static LinkedList resortBorder(LinkedList border, Point x) {
-	LinkedList retList = new LinkedList();
-	
-	//all work is already done:
-	if (((Segment)border.getFirst()).getStartpoint().equal(x)) {
-	    return border; }
-
-	Segment actSeg = new Segment();
-	//find segment with (x,a)
-	ListIterator it = border.listIterator(0);
-	while (it.hasNext()) {
-	    actSeg = (Segment)it.next();
-	    if (actSeg.getStartpoint().equal(x)) {
-		//found that segment!
-		break; }
-	}//while
-	
-	int posOfX = it.nextIndex()-1;
-
-	//copy all following segments to retList
-	retList.add(actSeg);
-	while (it.hasNext()) {
-	    retList.add(it.next()); }
-	
-	//now copy all segments from the beginning
-	//up to the position of x
-	if (!(posOfX == 0)) {
-	    it = border.listIterator(0);
-	    while (it.nextIndex() < posOfX) {
-		retList.add(it.next()); }
-	}//if
-
-	return retList;
-    }//end method resortBorder
-	
-
-    /**
      * Returns the cycles of <code>this</code> as a <code>CycleListList</code>.
-     * For every componenent (cycle) there is a single list in the resulting structure.
+     * For every component (cycle) there is a single list in the resulting structure.
      * The first element of the <code>CycleListList</code> is the outer cycle of the 
      * <code>Polygons</code> value and all others are holes.
      * Elements of <code>CycleListList</code> are of type {@link Segment}.
@@ -2428,9 +2182,7 @@ public class Polygons extends Element implements Serializable {
      * @return the <code>CycleListList</code> representing the cycles of <code>this</code>
      */
     public CycleListList cyclesSegments() {
-	//compute border form triangles if neccessary
-
-	//System.out.println("\nEntering cyclesSegments.");
+	//compute border from triangles if necessary
 
 	if (!this.borderDefined) this.border = computeBorder();
 	
@@ -2439,9 +2191,6 @@ public class Polygons extends Element implements Serializable {
 	
 	Graph myGraph = new Graph(this.border);
 	CycleList cycList = myGraph.computeFaceCycles();
-
-	//System.out.println("border.size: "+border.size()+", cycList.size: "+cycList.size());
-	//System.out.println("\n^^^^^^^^^^^^^^^^^^ testing cyclelist in cyclesSegments: "+cycList.checkCycles());
 
 	//construct the resulting structure as follows:
 	//A CycleListList is a list of CycleList(s) where each of the CycleLists
@@ -2467,23 +2216,20 @@ public class Polygons extends Element implements Serializable {
 	if (cycList.size() > 0) {
 	    LinkedList triSetList = new LinkedList();
 	    MeshGenerator myMG = new MeshGenerator();
-	    
-	    
-	    //new line for Triangle
-	    //TriMultiSet tmsFirst = myMG.computeMeshForSingleCycleHoles(firstList,false);
-	    
-	    //line that works with NetGen
-	    TriMultiSet tmsFirst;
+	    	    
+	    TriMultiSet tmsFirst = null;
 	    LinkedList bboxList = null;
 	    if (!cycList.isEmpty()) {
 		if (myMG.GENERATOR == "NetGen")
 		    tmsFirst = myMG.computeMeshWithNetGenHoles(firstList,false);
-		else
+		else if (myMG.GENERATOR == "Triangle") {
 		    tmsFirst = myMG.computeMeshForSingleCycleHoles(firstList,false);
-		
-		//original line
-		//	TriMultiSet tmsFirst = computeMeshSingleCycle(SegMultiSet.convert(SupportOps.convert((LinkedList)firstList.getFirst())));
-		
+		} else if (myMG.GENERATOR == "Mehlhorn") {
+		    tmsFirst = computeTrianglesSUB(CycleList.convert(firstList));
+		} else {
+		    System.out.println("You chose a non-existing triangulator/mesher.");
+		    System.exit(0);
+		}//else
 		
 		triSetList.add(tmsFirst);
 		
@@ -2515,7 +2261,7 @@ public class Polygons extends Element implements Serializable {
 		testSeg = (Segment)actCycle.getFirst();
 		tp1 = testSeg.getStartpoint();
 		tp2 = testSeg.getEndpoint();
-		int outCount = 0; //remove this!!!
+		
 		while (itOuterCycles.hasNext()) {
 		    actCL = (CycleList)itOuterCycles.next();
 		    actTMS = (TriMultiSet)tit.next();
@@ -2549,18 +2295,16 @@ public class Polygons extends Element implements Serializable {
 		    
 		    TriMultiSet newTMS = null;
 		    
-		    //new line for Triangle
-		    //TriMultiSet newTMS = myMG.computeMeshForSingleCycleHoles(firstList,false);
-		    
-		    //construct the TriMultiSet for the new outer cycle; line that works for NetGen
 		    if (myMG.GENERATOR == "NetGen")
 			newTMS = myMG.computeMeshWithNetGenHoles(newFace,false);
-		    else
+		    else if (myMG.GENERATOR == "Triangle") {
 			newTMS = myMG.computeMeshForSingleCycleHoles(newFace,false);
-		    
-		    
-		    //old line that works for Triangle
-		    //    TriMultiSet newTMS = computeMeshSingleCycle(SegMultiSet.convert(SupportOps.convert((LinkedList)newFace.getFirst())));
+		    } else if (myMG.GENERATOR == "Mehlhorn") {
+			newTMS = computeTrianglesSUB(CycleList.convert(newFace));
+		    } else {
+			System.out.println("You chose a non-existing triangulator/mesher.");
+			System.exit(0);
+		    }//else
 		    
 		    triSetList.add(newTMS);
 		    
@@ -2570,16 +2314,113 @@ public class Polygons extends Element implements Serializable {
 		}//else
 	    }//while it
 	}//if cycList.size > 0
-	/*
-	System.out.println("\n^^^^^^^^^^^^^^^^^^LAST testing cycles in retList:");
-	for (int i = 0; i < retList.size(); i++) 
-	    System.out.println(i+": "+ ((CycleList)retList.get(i)).checkCycles());
-	System.out.println("leaving cyclesSegments.");
-	*/
 	
 	return retList;
     }//end method cyclesSegments
 	 
+
+    /**
+     * Re-implementation of cyclesSegments.
+     */
+    public CycleListList cyclesSegments2() {
+	//compute border from triangles if necessary
+	if (!this.borderDefined) this.border = computeBorder();
+	
+	//if border has no elements, return empty structure
+	if (this.border.isEmpty()) return new CycleListList();
+	
+	Graph myGraph = new Graph(this.border);
+	CycleList cycList = myGraph.computeFaceCycles();
+
+	//construct the resulting structure as follows:
+	//A CycleListList is a list of CycleList(s) where each of the CycleLists
+	//has at least one cycle (the outer cycle of a face). All following cycles
+	//are inner cycles and therefore are holes. Since new faces inside of 
+	//holes (islands) are not supported currently, no more checks are made for those inner
+	//cycles.
+	//The algorithm first stores the outmost cycle as the outer cycle of the
+	//first face. All subsequent cycles are compared to every first cycle of 
+	//the CycleLists stored in CycleListList. If it lies inside of an outer cycle,
+	//it is stored as hole cycle in the appropriate CycleList.
+	CycleListList retList = new CycleListList();
+	CycleList firstList = new CycleList();
+
+	//add first cycle of cycList
+	firstList.add(cycList.getFirst());
+	cycList.removeFirst();
+	retList.add(firstList);
+
+	//if cycList no more entries, we're done
+	if (cycList.size() > 0) {
+	    //Store in bboxList the bbox for every outer cycle;
+	    //store in smsList the SegMultiSets of every cycle.
+	    LinkedList bboxList = new LinkedList();
+	    LinkedList smsList = new LinkedList();
+	    SegMultiSet actSMS = CycleList.convert(firstList);
+	    smsList.add(actSMS);
+	    bboxList.add(actSMS.rect());
+	    
+	    //now traverse the cycle list and check all other cycles
+	    Iterator it = cycList.iterator();
+	    Iterator itOuterCycles,bit,sit;
+	    CycleList actCL = null;
+	    LinkedList actCycle,firstCycle;
+	    Segment testSeg;
+	    Point tp1,tp2;
+	    boolean found;
+	    Rect actRect;
+	    
+	    while (it.hasNext()) {
+		found = false;
+		actCycle = (LinkedList)it.next();
+		itOuterCycles = retList.iterator();
+		bit = bboxList.iterator();
+		sit = smsList.iterator();
+		testSeg = (Segment)actCycle.getFirst();
+		tp1 = testSeg.getStartpoint();
+		tp2 = testSeg.getEndpoint();
+		
+		while (itOuterCycles.hasNext()) {
+		    actCL = (CycleList)itOuterCycles.next();
+		    actRect = (Rect)bit.next();
+		    actSMS = (SegMultiSet)sit.next();
+		    firstCycle = (LinkedList)actCL.getFirst();
+		    
+		    //first, check whether tp1 of tp2 lie inside of the bounding box;
+		    //if true, check for inside
+		    if (actRect.covers(tp1) &&
+			(inside(tp1,actSMS) ||
+			 inside(tp2,actSMS))) {
+			found = true;
+			break;
+		    }//if
+		}//while itOuterCycles
+		
+		//if found=true, move cycle to appropriate CycleList
+		if (found) {
+		    actCL.add(actCycle);
+		    it.remove();
+		} else {
+		    //found=false, cycle must be an outer cycle of a new face;
+		    //construct this new face as new CycleList
+		    CycleList newFace = new CycleList();
+		    newFace.add(actCycle);
+		    retList.add(newFace);
+		    it.remove();
+		    
+		    //store sms and bbox for the new face
+		    actSMS = SegMultiSet.convert(SupportOps.convert(actCycle));
+		    smsList.add(actSMS);
+		    bboxList.add(actSMS.rect());
+		}//else
+	    }//while it
+	}//if cycList.size > 0
+	
+	return retList;
+    }//end method cyclesSegments2
+	
+	
+
 
     /**
      * Returns the cycles of <code>this</code> as lists of points.
@@ -2596,7 +2437,11 @@ public class Polygons extends Element implements Serializable {
      */
     public CycleListListPoints cyclesPoints () {
 	CycleListListPoints retList = new CycleListListPoints();
-	CycleListList cyc = this.cyclesSegments();
+	CycleListList cyc = this.cyclesSegments2();
+	//CycleListList cyc2 = this.cyclesSegments2();
+	
+	//System.out.println("\ncyclesPoints.compare: ");
+	//System.out.println(cyc.equal(cyc2));
 
 	ListIterator lit1 = cyc.listIterator(0);
 	CycleList actComp;
@@ -2653,36 +2498,22 @@ public class Polygons extends Element implements Serializable {
      * @see #computeTriangles(SegMultiSet)
      */
     public static TriMultiSet computeMesh(SegMultiSet border, boolean qualityMesh) {
-       
-	//System.out.println("\nEntering Pol.computMesh.");
-
 	if (border.isEmpty()) return new TriMultiSet(new TriangleComparator());
 	
 	//compute the cycles of the polygon 
 	Polygons myPOL = new Polygons(border);
 	CycleListList polCLL = null;
+	CycleListList polCLL2 = null;
 	try {
-	    polCLL = myPOL.cyclesSegments();
+	    polCLL = myPOL.cyclesSegments2();
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("\nException caught in Polygons.computeMesh(SegMultiSet,boolean): One reason may be that the segments don't form proper cycles.");
-	    /*
-	      System.out.println("Current segments are shown in JAVA window.");
-	      DisplayGFX gfx = new DisplayGFX();	      
-	      gfx.initWindow();
-	      gfx.addSet(border);
-	      gfx.showIt(false);
-	      try { int data = System.in.read(); }
-	      catch (Exception f) { System.exit(0); }
-	      gfx.kill();
-	    */
 	    System.out.println("Returning empty object.");
 
 	    return new TriMultiSet(new TriangleComparator());
 	}//catch
 	
-	//System.out.println("P.computeMesh: polCLL:"); polCLL.print();
-
 	/* now every list in polCLL represents one face (at first position) and all holes
 	 * in the following, i.e. (read it top-down)
 	 * {
@@ -2698,23 +2529,21 @@ public class Polygons extends Element implements Serializable {
 	Iterator it = polCLL.iterator();
 	CycleList actCycleList;
 	MeshGenerator myMG = new MeshGenerator();
-	//System.out.println("Pol.computeMesh: polCLL.size:"+polCLL.size());
-	while (it.hasNext()) {
-	    //System.out.println("\n######################### Pol.computeMeshSingleCycle: calling MG.computeMeshWithNetGenHoles.");
-	    actCycleList = (CycleList)it.next();
 
-	    //original line for Triangle
-	    //resultSet.addAll(myMG.computeMeshForSingleCycleHoles(actCycleList,qualityMesh));
-	    
+	while (it.hasNext()) {
+	    actCycleList = (CycleList)it.next();
 	    if (myMG.GENERATOR == "NetGen")
-		//line that works for NetGen
 		resultSet.addAll(myMG.computeMeshWithNetGenHoles(actCycleList,qualityMesh));
-	    else
+	    else if (myMG.GENERATOR == "Triangle") {
 		resultSet.addAll(myMG.computeMeshForSingleCycleHoles(actCycleList,qualityMesh));
+	    } else if (myMG.GENERATOR == "Mehlhorn") {
+		resultSet.addAll(computeTrianglesSUB(CycleList.convert(actCycleList)));
+	    } else {
+		System.out.println("You chose a non-existing triangulator/mesher.");
+		System.exit(0);
+	    }//else
 
 	}//while
-	
-	//System.out.println("leaving computeMesh");
 	
 	return resultSet;
     }//end method computeMesh

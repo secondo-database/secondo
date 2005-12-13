@@ -531,28 +531,28 @@ public class Triangle extends Element implements Serializable {
 	    for (int i = 1; i < 3; i++) {
 		if (tmp.less(vertices[i].x)) { tmp = vertices[i].x; }
 	    }//for
-	    hxv = tmp;//.copy();
+	    hxv = tmp;
 	    
 	    //compute lxv
 	    tmp = vertices[0].x;    
 	    for (int i = 1; i < 3; i++) {
 		if (tmp.greater(vertices[i].x)) { tmp = vertices[i].x; }
 	    }//for
-	    lxv = tmp;//.copy();
+	    lxv = tmp;
 	    
 	    //compute hyv
 	    tmp = vertices[0].y;
 	    for (int i = 1; i < 3; i++) {
 		if (tmp.less(vertices[i].y)) { tmp = vertices[i].y; }
 	    }//for
-	    hyv = tmp;//.copy();
+	    hyv = tmp;
 	    
 	    //compute lyv
 	    tmp = vertices[0].y;
 	    for (int i = 1; i < 3; i++) {
 		if (tmp.greater(vertices[i].y)) { tmp = vertices[i].y; }
 	    }//for
-	    lyv = tmp;//.copy();
+	    lyv = tmp;
 	    
 	    //set rectangle
 	    this.bbox = new Rect(lxv,hyv,hxv,lyv);
@@ -1116,7 +1116,6 @@ public class Triangle extends Element implements Serializable {
     public SegMultiSet minus (ElemMultiSet ems) {
 	//System.out.println("Triangle.minus...");
 	if (ems == null || ems.isEmpty()) {
-	    //System.out.println("ems is empty");
 	    return this.segmentMultiSet();
 	}//if
 
@@ -1127,24 +1126,6 @@ public class Triangle extends Element implements Serializable {
 	
 	TriMultiSet tms = TriMultiSet.convert(ems);
 	    
-	/*
-	  BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
-	  DisplayGFX gfx = new DisplayGFX();
-	  
-	  gfx.initWindow();
-	  gfx.addSet(tms);
-	  TriMultiSet nms = new TriMultiSet(new TriangleComparator());
-	  nms.add(this);
-	  gfx.addSet(nms);
-	  gfx.showIt(false);
-	  try {
-	  String data = inBR.readLine();
-	  } catch (Exception e) {
-	  System.exit(0);
-	  }//catch
-	  gfx.kill();
-	*/
-	
 	//copy tms to array
 	Triangle[] tmsArr = new Triangle[tms.size()];
 	Iterator tit = tms.iterator();
@@ -1175,7 +1156,7 @@ public class Triangle extends Element implements Serializable {
 
 	SegMultiSet segs = computeSegSet(this,tms,splitPoints);
 
-	SegMultiSet chosenSegs = null;//new SegMultiSet(SEGMENT_COMPARATOR);
+	SegMultiSet chosenSegs = new SegMultiSet(SEGMENT_COMPARATOR);
 	SegMultiSet tmsBorder = new SegMultiSet(SEGMENT_COMPARATOR);
 	
 	for (int i = 0; i < tmsArr.length; i++) {
@@ -1210,53 +1191,9 @@ public class Triangle extends Element implements Serializable {
 	
 	Object[] segsArr = segs.toArray();
     
-	/*
-	  DisplayGFX gfx2 = new DisplayGFX();
-	  
-	  gfx2.initWindow();
-	  SegMultiSet nms2 = new SegMultiSet(new SegmentComparator());
-	  Iterator tits = tms.iterator();
-	  while (tits.hasNext())
-	  nms2.addAll(((Triangle)((MultiSetEntry)tits.next()).value).segmentMultiSet());
-	  gfx2.addSet(nms2);
-	  gfx2.addSet(this.segmentMultiSet());
-	  gfx2.addSet(intPoints);
-	  System.out.println("number of intpoints: "+intPoints.size());
-	  gfx.showIt(false);
-	  try {
-	  String data = inBR.readLine();
-	  } catch (Exception e) {
-	  System.exit(0);
-	  }//catch
-	  gfx2.kill();
-	*/
-	
-
-
 	for (int i = 0; i < segsArr.length; i++) {
 	    Segment actSeg = (Segment)segsArr[i];
 	    
-	    /*	    
-		   System.out.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ --> "+i);
-		   System.out.println("actSeg: "+actSeg);
-		   DisplayGFX gfx3 = new DisplayGFX();
-		   
-		   gfx3.initWindow();
-		   //gfx3.addSet(nms2);
-		   gfx3.addSet(this.segmentMultiSet());
-		   SegMultiSet nms3 = new SegMultiSet(new SegmentComparator());
-		   nms3.add(actSeg);
-		   gfx3.addSet(nms3);
-		   gfx3.addSet(actSeg.endpoints());
-		   gfx.showIt(false);
-		   try {
-		   String data = inBR.readLine();
-		   } catch (Exception e) {
-		   System.exit(0);
-		   }//catch
-		   gfx3.kill();
-	    */
-
 	    p1 = actSeg.getStartpoint();
 	    p2 = actSeg.getEndpoint();
 	    
@@ -1272,10 +1209,6 @@ public class Triangle extends Element implements Serializable {
 	    else p1insideB = false;
 	    if (!p2vertexB) p2insideB = Polygons.inside(p2,tmsBorder);
 	    else p2insideB = false;
-
-	    //System.out.println("p1vertexA: "+p1vertexA+", p1vertexB: "+p1vertexB+", p2vertexA: "+p2vertexA+", p2vertexB: "+p2vertexB+", p1elementX: "+p1elementX+", p2elementX: "+p2elementX+", p1insideB: "+p1insideB+", p2insideB: "+p2insideB);
-
-	    /* NEW CASES */
 	    
 	    //BEGIN Part 1: Selection of segments from the triangle
 	    boolean p1onBorderB = (p1vertexA && p1vertexB) || p1elementX;
@@ -1291,7 +1224,6 @@ public class Triangle extends Element implements Serializable {
 	    
 	    else {
 		boolean p1p2SegmentInsideB = segmentIsCoveredByTriangle(p1,p2,tms);
-		//System.out.println("p1p2SegmentInsideB: "+p1p2SegmentInsideB);
 		
 		if (((p1onBorderB && !p2onBorderB) || (!p1onBorderB && p2onBorderB)) && //XOR
 		    (!p1p2SegmentInsideB)) {
@@ -1336,14 +1268,11 @@ public class Triangle extends Element implements Serializable {
 		  }//if
 		*/
 				
-		//BEGIN of part 2: Selecting segments of polygon.
-		
+		//BEGIN of part 2: Selecting segments of polygon.		
 		else {
 		    p1insideA = PointTri_Ops.inside(p1,this);
 		    p2insideA = PointTri_Ops.inside(p2,this);
-		    
-		    //System.out.println("p1insideA: "+p1insideA+", p2insideA: "+p2insideA);
-		    
+		    		    
 		    if (p1vertexB && p2vertexB &&
 			p1insideA && p2insideA) {
 			//System.out.println("case 8");
@@ -1354,8 +1283,6 @@ public class Triangle extends Element implements Serializable {
 			boolean p1onBorderA = PointTri_Ops.liesOnBorder(p1,this);
 			boolean p2onBorderA = PointTri_Ops.liesOnBorder(p2,this);
 			
-			//System.out.println("p1onBorderA: "+p1onBorderA+", p2onBorderA: "+p2onBorderA);
-			
 			if ((p1vertexB && p1insideA && p2onBorderA) ||
 			    (p2vertexB && p2insideA && p1onBorderA)) {
 			    //System.out.println("case 9");
@@ -1364,7 +1291,6 @@ public class Triangle extends Element implements Serializable {
 			
 			else {
 			    boolean segOverlapsBorderA = SegTri_Ops.overlapsBorder(actSeg,this);
-			    //System.out.println("segOverlapsBorderA: "+segOverlapsBorderA);
 			    
 			    if ((p1onBorderA && p2onBorderA) &&
 				!segOverlapsBorderA) {
@@ -1372,28 +1298,33 @@ public class Triangle extends Element implements Serializable {
 				chosenSegs.add(actSeg);
 			    }//if
 			    
-			    else if (p1vertexB && p2vertexB &&
-				     segOverlapsBorderA) {
-				//System.out.println("case 11");
-				chosenSegs.add(actSeg);
-			    }//if
-			    
 			    else {
-				boolean segmentOverlapsB = overlaps(actSeg,tmsBorder);
+				boolean triangleOverlaps = triangleOverlaps(this,tms,actSeg);
 				
-				//System.out.println("segmentOverlapsB: "+segmentOverlapsB);
-				
-				if ((p1vertexB || p1elementX) && (p2vertexB || p2elementX) &&
-				    p1onBorderA && p2onBorderA &&
+				if (p1vertexB && p2vertexB &&
 				    segOverlapsBorderA &&
-				    segmentOverlapsB) {
-				    //System.out.println("case 12/13");
+				    !triangleOverlaps) {
+				    //System.out.println("case 11");
 				    chosenSegs.add(actSeg);
-				}//else
-				
+				}//if
 				
 				else {
-				    //System.out.println("not implemented -> not chosen");
+				    boolean segmentOverlapsB = overlaps(actSeg,tmsBorder);
+				    
+				    if ((p1vertexB || p1elementX) && (p2vertexB || p2elementX) &&
+					p1onBorderA && p2onBorderA &&
+					segOverlapsBorderA &&
+					segmentOverlapsB &&
+					!triangleOverlaps) {
+					//System.out.println("case 12/13");
+					
+					chosenSegs.add(actSeg);
+				    }//else
+				    
+				    
+				    else {
+					//System.out.println("not implemented -> not chosen");
+				    }//else
 				}//else
 			    }//else
 			}//else
@@ -1401,24 +1332,7 @@ public class Triangle extends Element implements Serializable {
 		}//else
 	    }//else     
 	}//while it
-	    
-	/*
-	  DisplayGFX gfx1 = new DisplayGFX();
-	  
-	  gfx1.initWindow();
-	  gfx1.addSet(chosenSegs);
-	  //TriMultiSet nms = new TriMultiSet(new TriangleComparator());
-	  //nms.add(this);
-	  //gfx1.addSet(nms);
-	  gfx1.showIt(false);
-	  try {
-	  String data = inBR.readLine();
-	  } catch (Exception e) {
-	  System.exit(0);
-	  }//catch
-	  gfx1.kill();
-	*/
-	
+	    	
 	return chosenSegs;
     }//end method minus
 
@@ -1551,7 +1465,7 @@ public class Triangle extends Element implements Serializable {
 	}//for i
 
 	return chosenSegs;
-    }//end method 
+    }//end method intersection
 
 
     /**
@@ -1776,6 +1690,30 @@ public class Triangle extends Element implements Serializable {
 	}//while
 	return false;
     }//end method overlaps
+
+
+    /**
+     * Returns <tt>true</tt>, if that triangle of tms, which has <tt>actSeg</tt> as border, overlaps <tt>t</tt>.
+     * Returns <tt>false</tt> otherwise.
+     *
+     * @param t the triangle that may be overlapped
+     * @param tms the set of triangle from which a certain triangle may overlap <tt>t</tt>
+     * @param actSeg one of the bordersegments (or is part) of one of <tt>tms'</tt> triangles
+     * @return <tt>true</tt> if the triangle overlaps <tt>t</tt>, <tt>false</tt> otherwise
+     */
+    private static boolean triangleOverlaps (Triangle t, TriMultiSet tms, Segment actSeg) {
+	//find the proper triangle from tms
+	Iterator it = tms.iterator();
+	Triangle actTri = null;
+	while (it.hasNext()) {
+	    actTri = (Triangle)((MultiSetEntry)it.next()).value;
+	    if (SegTri_Ops.overlapsBorder(actSeg,actTri)) break;
+	}//while
+	if (actTri != null && t.pintersects(actTri))
+	    return true;
+	else
+	    return false;
+    }//end method triangleOverlaps
 
 
     /**

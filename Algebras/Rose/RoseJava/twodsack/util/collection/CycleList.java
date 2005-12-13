@@ -22,6 +22,9 @@ import java.util.*;
  * <p> <tt>( ((a,b)(b,c)(c,a)), ((e,f)(f,g)(g,e)), ... )</tt>
  */
 public class CycleList extends LinkedList {
+
+    private static final SegmentComparator SEGMENT_COMPARATOR = new SegmentComparator();
+
     /**
      * Prints the elements of <code>this</code> to standard output.
      */
@@ -125,5 +128,69 @@ public class CycleList extends LinkedList {
 	
 	return true;
     }//end method checkCycle
+
+
+    /**
+     * Stores all segments of <tt>inlist</tt> in a <tt>SegMultiSet</tt>.
+     *
+     * @param inlist the list that shall be converted
+     * @return the new <tt>SegMultiSet</tt>
+     */
+    public static SegMultiSet convert(CycleList inlist) {
+	SegMultiSet retSet = new SegMultiSet(SEGMENT_COMPARATOR);
+	Iterator it = inlist.iterator();
+	LinkedList actList;
+	Iterator it2;
+
+	while (it.hasNext()) {
+	    actList = (LinkedList)it.next();
+	    it2 = actList.iterator();
+	    while (it2.hasNext())
+		retSet.add((Segment)it2.next());
+	}//while
+
+	return retSet;
+    }//end method convert
+
+
+    /**
+     * Returns the bounding box of the cycle.
+     *
+     * @return the bounding box
+     */
+    /* UNTESTED
+    public Rect rect() {
+	if (this == null)
+	    return null;
+	
+	Rational ulx,uly,lrx,lry;
+	Segment actSeg = (Segment)((Segment)((LinkedList)this.first()).first()).copy;
+	actSeg.align();
+	ulx = actSeg.startpoint.x;
+	uly = actSeg.startpoint.y;
+	lrx = actSeg.endpoint.x;
+	lry = actSeg.endpoint.y;
+	
+	Iterator it1 = this.iterator();
+	Iterator it2;
+	while (it1.hasNext()) {
+	    it2 = ((LinkedList)it1.next());
+	    while (it2.hasNext()) {
+		actSeg = (Segment)it2.next();
+		if (actSeg.startpoint.x.less(ulx)) ulx = actSeg.startpoint.x;
+		if (actSeg.startpoint.x.greater(lrx)) lrx = actSeg.startpoint.x;
+		if (actSeg.endpoint.x.less(ulx)) ulx = actSeg.endpoint.x;
+		if (actSeg.endpoint.x.greater(lrx)) lrx = actSeg.endpoint;
+
+		if (actSeg.startpoint.y.less(lry)) lry = actSeg.startpoint.y;
+		if (actSeg.startpoint.y.greater(uly)) uly = actSeg.startpoint.y;
+		if (actSeg.endpoint.y.less(lry)) lry = actSeg.endpoint.y;
+		if (actSeg.endpoint.y.greater(uly)) = actSeg.endpoint.y;
+	    }//while it2
+	}//while it1
+
+	return new Rect(ulx,uly,lrx,lry);
+    }//end method rect
+    UNTESTED */
     
 }//end class CycleList

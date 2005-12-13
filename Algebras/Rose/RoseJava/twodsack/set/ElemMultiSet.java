@@ -11,9 +11,7 @@ import twodsack.setelement.datatype.basicdatatype.*;
 import twodsack.util.collection.*;
 import twodsack.util.collectiontype.*;
 import twodsack.util.comparator.*;
-import java.util.Iterator;
-import java.util.TreeSet;
-import java.util.Comparator;
+import java.util.*;
 
 /**
  * This class provides an extension of {@link MultiSet} that is only for type {@link Element}.
@@ -125,5 +123,23 @@ public class ElemMultiSet extends MultiSet {
 	}//while it
 	return r;
     }//end method rect
+
+    
+    /**
+     * Stores the elements of <tt>this</tt> in a vector.
+     *
+     * @return the new vector
+     */
+    public Vector toVector() {
+	Vector retVec = new Vector(this.size());
+	Iterator it = this.iterator();
+	Element actEl;
+	while (it.hasNext()) {
+	    actEl = (Element)((MultiSetEntry)it.next()).value;
+	    retVec.add(actEl);
+	}//while
+
+	return retVec;
+    }//end method toVector
 
 }//end class ElemMultiSet

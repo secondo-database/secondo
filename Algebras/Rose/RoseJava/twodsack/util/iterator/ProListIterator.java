@@ -87,7 +87,8 @@ public class ProListIterator implements ProIterator {
      * Returns <tt>true</tt>, if the set has at least one more element.
      */
     public boolean hasNext() {
-	return nextIndex != pll.size;
+	if (next != null) return true;
+	else return false;
     }//end method hasNext
     
 
@@ -99,8 +100,10 @@ public class ProListIterator implements ProIterator {
      */
     public Object next() throws NoSuchElementException{
 	checkForComodification();
-	if (nextIndex == pll.size)
-	    throw new NoSuchElementException();
+	//	if (nextIndex == pll.size)
+	//  throw new NoSuchElementException();
+	if (next == null)
+	    throw new NoSuchElementException("Pointer to next element is equal to NULL.");
 	lastReturned = next;
 	next = next.next;
 	nextIndex++;
@@ -279,5 +282,4 @@ public class ProListIterator implements ProIterator {
 	reset();
     }//end method setList
 
-    
 }//end class ProListIterator

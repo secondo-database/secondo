@@ -44,7 +44,21 @@ public class Graph {
     private ElemMultiSet v; //vertices
     private Vertex[] vArr; //array of vertices
     private LinkedList[] succLists; //lists of successors for every vertex
-    
+
+    /**
+     * Stored in this array is the same set of vertices as in vArr. Unlike <tt>vArr</tt>, the vertices are sorted in ascending order.
+     * The array has size n. This array is used to support the <tt>getVertex</tt> method, particularly it allows binary search.
+     */
+    private Vertex[] sortedVertices;
+    /**
+     * This array stores the indices which 'translate' from <tt>sortedVertices</tt> to <tt>vArr</tt>, i.e. the vertex V with with
+     * sortedVertices[i] = V can be found in vArr[indexArray[i]].
+     */
+    private int[] indexArray;
+    /**
+     * This flag is true, if <tt>sortedVertices</tt> is defined.
+     */
+    private boolean sortedVerticesValid = false;
 
     /*
      * constructors
@@ -67,21 +81,7 @@ public class Graph {
      *
      * @param edges the set of edges
      */
-    public Graph(SegMultiSet edges) {
-	/*
-	System.out.println("Graph.init: displaying edge set.");
-	BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
-	DisplayGFX gfx = new DisplayGFX();
-	gfx.initWindow();
-	gfx.addSet(edges);
-	gfx.showIt(false);
-	try { String data = inBR.readLine();
-	} catch (Exception e) {
-	    System.exit(0);
-	}//catch
-	gfx.kill();
-	*/
-	
+    public Graph(SegMultiSet edges) {	
 	ElemMultiSet cleanList = makeCleanList(edges);
 
 	int initialCapacity = NUMBER_OF_BUCKETS;
@@ -104,7 +104,6 @@ public class Graph {
 		pointsHT.put(htEntry.linkedPoint,htEntry);
 
 		PointLink pl = (PointLink)pointsHT.get(actSeg.getStartpoint());
-		//System.out.println("checking startpoint: point - "+pl.linkedPoint.equal(actSeg.getStartpoint())+", counter: "+counter+", pointNum: "+pl.number);
 	    }//if
 	    
 	    //do the same with endpoint
@@ -116,7 +115,6 @@ public class Graph {
 		pointsHT.put(htEntry.linkedPoint,htEntry);
 
 		PointLink pl2 = (PointLink)pointsHT.get(actSeg.getEndpoint());
-		//System.out.println("checking endpoint: point  "+pl2.linkedPoint.equal(actSeg.getEndpoint())+", counter: "+counter+", pointNum: "+pl2.number);
 	    }//if
 	    count2++;
 	}//while eit
@@ -163,10 +161,8 @@ public class Graph {
      */
     public Graph(ElemMultiSet vertices,PairMultiSet edges) throws WrongTypeException {
 	v = makeCleanList(vertices.copy());
-	
-	/* NEW implementation uses PointLink and hashing to construct succLists */
 	PairMultiSet cleanEdges = makeCleanList(edges.copy());
-
+	
 	int initialCapacity = NUMBER_OF_BUCKETS;
 	Hashtable vertexHT = new Hashtable(initialCapacity);
 	
@@ -187,7 +183,6 @@ public class Graph {
 	    }//if
 	}//while it
 
-
 	//construct list of vertices from hashtable
 	Enumeration enumr = vertexHT.elements();
 	vArr = new Vertex[counter];
@@ -196,7 +191,6 @@ public class Graph {
 	    elem = (ObjectLink)enumr.nextElement();
 	    vArr[((ObjectLink)elem).number] = new Vertex((Element)elem.linkedObject,((ObjectLink)elem).number);
 	}//while enumr
-
 
 	//construct succLists
 	succLists = new LinkedList[vArr.length];
@@ -219,12 +213,11 @@ public class Graph {
 	    succLists[pos1].add(vArr[pos2]);
 	    succLists[pos2].add(vArr[pos1]);
 	}//while it
-
     }
 
 
     /**
-     * Cosntructs a subgraph from vertices and edges.
+     * Constructs a subgraph from vertices and edges.
      *
      * @param msV the set of vertices
      * @param msE the set of edges
@@ -247,7 +240,6 @@ public class Graph {
 	/* COPY from constructor above */
 	v = makeCleanList(vertices.copy());
 	    
-	/* NEW implementation uses PointLink and hashing to construct succLists */
 	PairMultiSet cleanEdges = makeCleanList(edges.copy());
 	
 	int initialCapacity = NUMBER_OF_BUCKETS;
@@ -710,8 +702,6 @@ public class Graph {
 	//make working-copy of succLists
 	LinkedList[] succListsCOP = (LinkedList[])this.succLists.clone();
 
-	//System.out.println("\nGraph.computeFaceCycles: succlists (unsorted): "); printSuccLists();
-
 	//sorting
 	for (int i = 0; i < succListsCOP.length; i++) {
 	    //generate edges from pairs of vertices
@@ -734,9 +724,7 @@ public class Graph {
 	    //call sub-routine findCycles
 	    findCycles(succListsCOP,startVertex,retList);
 	}//while
-
-	//System.out.println(" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Graph.computeFaceCycles END");
-	//retList.print();
+	
 	return retList;
     }//end method computeFaceCycles
 
@@ -931,22 +919,8 @@ public class Graph {
 	for (int i = 0; i < visited.length; i++)
 	    visited[i] = false;
 
-	/*
-	  System.out.println("\n****************************Entering findCycles.**********************************");
-	  System.out.println("startVertex: "+startVertex);
-	  System.out.println("succLists(sorted):");
-	  for (int i = 0; i < vArr.length; i++) {
-	  System.out.println("\nvertex: ");
-	  vArr[i].print();
-	  System.out.println("successors: ");
-	  for (int j = 0; j < succLists[i].size(); j++) {
-	  ((Vertex)succLists[i].get(j)).print(); }
-	  }//for i
-	*/
-
 	//push startVertex on stack, set visited
 	
-	//System.out.println("-->pushing startVertex on stack: "+startVertex);
 	stack.push(startVertex);
 	visited[startVertex.number] = true;
 
@@ -958,26 +932,19 @@ public class Graph {
 	Vertex prevVertex = null;
 	boolean alreadySet = false;
 	do {
-	    //System.out.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iterater through edges");
-	    
 	    //get next Vertex
 	    if (!alreadySet)
 		nextVertex = getPredecessor(succLists,actVertex,prevVertex);
 	    else
 		alreadySet = false;
-	    //System.out.println("next vertex: "+nextVertex);
-
-	    //remove edge by removing both involved vertices from succLists
-	    //System.out.println("removing vertices from "+actVertex+"/"+nextVertex);
-	    //removeVertices(succLists,actVertex,nextVertex);
-	    
-	    
+	
+	    //remove edge by removing both involved vertices from succLists    
+	    //...
 	    if (visited[nextVertex.number]) {
 		//finished another cycle, remove it from stack and store it
 		LinkedList newCycle = new LinkedList();
 		newCycle.add(nextVertex);
-		//System.out.println("--> found new cycle");
-
+		
 		//find next vertex before the cycle vertices are deleted
 		Vertex nextVertexS = getPredecessor(succLists,nextVertex,actVertex);
 		
@@ -987,8 +954,6 @@ public class Graph {
 		do {
 		    stackVertex = (Vertex)stack.pop();
 		    newCycle.add(stackVertex);
-		    
-		    //System.out.println("    popping "+stackVertex);
 		} while (!stackVertex.equal(nextVertex));
 		
 		//push nextVertex on stack again
@@ -996,7 +961,6 @@ public class Graph {
 
 		//add new cycle to retList
 		retList.add(computeSegListFromCycle(newCycle));
-		//System.out.println("    added cycle("+newCycle.size()+") to retList");
 
 		//remove edges from succLists
 		for (int i = 0; i < newCycle.size()-1; i++)
@@ -1010,74 +974,11 @@ public class Graph {
 		visited[nextVertex.number] = true;
 		//push nextVertex on stack
 		stack.push(nextVertex);
-		//System.out.println("pushing on stack: "+nextVertex);
 		
 		prevVertex = actVertex;
 		actVertex = nextVertex;
-	    }//else
-	    
-	    //prevVertex = actVertex;
-	    //actVertex = nextVertex;
-	    
-	    //System.out.println("checking loop condition: prevVertex "+prevVertex+", actVertex: "+actVertex+", sL(actVertex): "+succLists[actVertex.number].size());
-
+	    }//else    	    
 	} while (succLists[actVertex.number].size() > 0);
-
-
-
-	/* --->>>> old code
-
-	//follow the first (minimal) edge of startpoint in succLists and push it on the stack, set visited
-	Vertex actVertex = (Vertex)succLists[startVertex.number].getFirst();
-	System.out.println("\nvisited next vertex: "+actVertex);
-	stack.push(
-	Vertex prevVertex = startVertex;
-	//remove first edge
-	succLists[startVertex.number].removeFirst();
-	
-	//MISSING: REMOVAL OF THE OTHER VERTEX IN TARGET NODE
-	
-	//follow predecessing edges (according to the sorting)
-	//until a vertex with out-degree > 2 is found or
-	//until startVertex is found again
-	int prevVertexPos = -1;
-	int newActVertexPos = -1;
-	do {
-	    if (actVertex.equal(startVertex)) {
-		//closed a cycle; came back to startVertex
-		//store cycle in retList and BREAK
-		System.out.println("--->closed a cycle");
-		retList.add(computeSegListFromCycle(actCycle));
-		break;
-	    }//if
-	    else if (succLists[actVertex.number].size() > 2) {
-		//found another cycle; call findCycles recursively
-		System.out.println("-->found another cycle");
-		findCycles(succLists,actVertex,retList);
-	    }//else if
-	    else {
-		//nothing special, just follow the predecessing edges and
-		//delete the visited vertex
-		System.out.println("-->follow edges");
-		prevVertexPos = getPosOfVertex(prevVertex,succLists[actVertex.number]);
-		newActVertexPos = (prevVertexPos+succLists[actVertex.number].size()-1) % succLists[actVertex.number].size();
-		prevVertex = actVertex;
-		actVertex = (Vertex)succLists[actVertex.number].get(newActVertexPos);
-		System.out.println("   visiting vertex "+actVertex);
-		//add vertex to actual cycle
-		actCycle.add(actVertex);
-		//remove vertices from succLists
-		succLists[prevVertex.number].remove(prevVertexPos);
-		//get position of the vertex which shall be deleted
-		prevVertexPos = getPosOfVertex(actVertex,succLists[prevVertex.number]);
-		succLists[prevVertex.number].remove(prevVertexPos);
-	    }//else
-	} while (true);
-
-	//remove one last vertex from succLists
-	succLists[actVertex.number].remove(getPosOfVertex(prevVertex,succLists[actVertex.number]));
-
-	*/
     }//end method findCycles
 
 
@@ -1122,13 +1023,6 @@ public class Graph {
 	//special case:
 	if ((prevVertex == null) || (sLaV == 1))
 	    return (Vertex)succLists[actVertex.number].getFirst();
-
-	//System.out.println("++++++++++++++++++++++++++++++++ get Predecessor START");
-	//System.out.println("actVertex: "+actVertex+", prevVertex: "+prevVertex);
-	//System.out.println("actual succList: ");
-	//for (int i = 0; i < sLaV; i++)
-	//    System.out.print((Vertex)succLists[actVertex.number].get(i)+" ");
-	//System.out.println();
 	
 	//find actVertex in list
 	int pos = -1;
@@ -1140,8 +1034,179 @@ public class Graph {
 	}//for i
 	
 	//return predecessor
-	//System.out.println("++++++++++++++++++++++++++++++++ get Predecessor END");
 	return (Vertex)succLists[actVertex.number].get((sLaV+pos-1)%sLaV);
     }//end method getPredecessor
+
+
+    /**
+     * For a given Point instance, this method returns the Vertex of the graph.
+     * Note: Works only, if the vertices of <tt>this</tt> store Element types.
+     *
+     * @param the element
+     * @return the vertex for the element
+     * @throws WrongTypeException if vertices don't store Element types
+     */
+    public Vertex getVertex(Element queryElement) throws WrongTypeException {
+	//check for correct type
+	if (!(vArr[0].value instanceof Element))
+	    throw new WrongTypeException("Graph.getVertex: Graph has vertex types "+vArr[0].value.getClass()+". Class Element is needed instead.");
+
+	//look whether sortedVertices already exists
+	if (!sortedVerticesValid) {
+	    //sort!
+	    sortVertices();
+	    this.sortedVerticesValid = true;
+	}//if
+	//binary search
+	int pos = binarySearch(sortedVertices,0,vArr.length,queryElement);
+	if (pos > -1) return vArr[indexArray[pos]];
+	else {
+	    System.out.println("Vertex wasn't found in vertex array.");
+	    for (int i = 0; i < vArr.length; i++) 
+		System.out.println("["+i+"] "+((Element)vArr[i].value));
+	    System.exit(0);
+	    return null;
+	}//else
+    }//end  method getVertex
+
+
+    private int binarySearch(Vertex[] arr, int low, int high, Element el) {
+	if (low > high)
+	    return -1;
+	else {
+	    int m = (int)((low+high) / 2);
+	    int comp = ((Element)arr[m].value).compare(el);
+	    if (comp == 0) {
+		return m;
+	    }//if
+	    else {
+		if (comp == -1)
+		    return binarySearch(arr,m+1,high,el);
+		else
+		    return binarySearch(arr,low,m-1,el);
+	    }//else
+	}//else
+    }//end method binarySearch
+
+
+
+    /**
+     * Returns a sorted version of vArr.
+     * Uses quicksort to sort the vertices. Stored in the second fields are the indexes for the vertices in vArr.
+     */
+    private void sortVertices() {
+	//construct new sortedVertices array
+	this.sortedVertices = new Vertex[vArr.length];
+	this.indexArray = new int[vArr.length];
+	for (int i = 0; i < vArr.length; i++) {
+	    sortedVertices[i] = (Vertex)(vArr[i].copy());
+	    indexArray[i] = i;
+	}//for i
+	
+	//sort array
+	quicksort(sortedVertices,0,sortedVertices.length-1,this.indexArray);
+    }//end method sortVertices
+
+    /**
+     * This is the standard quicksort algorithm
+     */
+    private static void quicksort(Vertex[] arr, int i, int j,int[] idxArr) {
+	int k, xIndex;
+	if (i < j) {
+	    xIndex = findX(arr,i,j);
+	    if (xIndex != -1) {
+		//DIVIDE
+		k = partition(arr,i,j,(Element)arr[xIndex].value,idxArr);
+		//CONQUER
+		quicksort(arr,i,k-1,idxArr);
+		quicksort(arr,k,j,idxArr);
+		//MERGE - nothing
+	    }//if
+	}//if
+    }//end method quicksort
+
+    /**
+     * This method is part of the quicksort algorithm.
+     */
+    private static int partition (Vertex[] arr, int i, int j, Element x, int[] idxArr) {
+	int l = i;
+	int r = j;
+	while (l < r) {
+	    while (((Element)arr[l].value).compare(x) == -1) l++;
+	    while (x.compare((Element)arr[r].value) == -1) r--;
+	    if (l < r) swap(arr,l,r,idxArr);
+	}//while
+	return l;
+    }//end method partition
+
+
+    /**
+     * This method is part of the quicksort algorithm.
+     */
+    private static int findX(Vertex[] arr, int i, int j) {
+	int k = i+1;
+	while (k <= j && ((Element)arr[k].value).equal((Element)arr[k-1].value)) k++;
+	if (k > j) return -1;
+	else if (((Element)arr[k-1].value).compare((Element)arr[k].value) == -1)
+	    return k;
+	else return k-1;
+    }//end method findX
+
+    /**
+     * This method is part of the quicksort algorithm.
+     */
+    private static void swap(Vertex[] arr, int l, int r, int[] idxArr) {
+	Vertex tmpV = (Vertex)arr[l].copy();
+	int tmpI = idxArr[l];
+	arr[l] = arr[r];
+	idxArr[l] = idxArr[r];
+	arr[r] = tmpV;
+	idxArr[r] = tmpI;
+    }//end method swap
+    
+
+    /**
+     * For a pair of vertices, this method returns another vertex, which is the 'successor' of these vertices.
+     * For three vertices <tt>a,b,c</tt> with <tt>b,c</tt> neighbours of <tt>a</tt>, this method returns <tt>c</tt>
+     * when called with <tt>b</tt> as queryVertex and <tt>a</tt> as prevVertex.<p>
+     * Note: It is assumed, that a vertex has the degree 2.
+     *
+     * @param queryVertex the returned vertex is a neighbour of this vertex
+     * @param prevVertex this vertex is another neighbour of queryVertex
+     * @return the vertex which is a neighbour of queryVertex but which is not equal to prevVertex
+     */
+    public Vertex getNextVertex(Vertex queryVertex, Vertex prevVertex) {
+	if (succLists[queryVertex.number].size() != 2) {
+	    System.out.println("Graph.getNextVertex: Too many neighbour vertices. May have only two neighbours.");
+	    System.exit(0);
+	}//if
+	//get both neighbour vertices from succLists
+	Vertex v0 = (Vertex)succLists[queryVertex.number].get(0);
+	Vertex v1 = (Vertex)succLists[queryVertex.number].get(1);
+	
+	//return correct vertex
+	if (((Element)v0.value).equal((Element)prevVertex.value))
+	    return v1;
+	else
+	    return v0;							
+    }//end method getNextVertex
+
+
+    /**
+     * For a queryVertex this method returns an array of all neighbours of this vertex.
+     *
+     * @param queryVertex the vertex for which the neighbours are demanded
+     * @return an array with the neighbour vertices
+     */    
+    public Vertex[] getNeighbours(Vertex queryVertex) {
+	//construct new array
+	Vertex[] resArr = new Vertex[succLists[queryVertex.number].size()];
+       
+	//store vertices in resArr
+	for (int i = 0; i < resArr.length; i++)
+	    resArr[i] = (Vertex)succLists[queryVertex.number].get(i);
+
+	return resArr;
+    }//end method getNeighbours
 
 }//end class Graph

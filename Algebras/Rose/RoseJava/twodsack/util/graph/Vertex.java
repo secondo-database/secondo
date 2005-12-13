@@ -68,7 +68,7 @@ public class Vertex implements ComparableMSE {
     }//end method toString
 
 
-    /*
+    /**
      * Returns a shallow copy of <i>this</i>
      *
      * @return the copy
