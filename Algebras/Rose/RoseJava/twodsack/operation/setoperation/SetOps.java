@@ -7,6 +7,7 @@
 
 package twodsack.operation.setoperation;
 
+import twodsack.io.*;
 import twodsack.set.*;
 import twodsack.setelement.*;
 import twodsack.setelement.datatype.*;
@@ -15,6 +16,7 @@ import twodsack.util.collection.*;
 import twodsack.util.collectiontype.*;
 import twodsack.util.comparator.*;
 import twodsack.util.graph.*;
+import twodsack.util.iterator.*;
 import twodsack.util.number.*;
 import java.util.*;
 import java.lang.reflect.*;
@@ -78,7 +80,7 @@ public class SetOps {
      * This is another variant of the normal {@link #reduce(ElemMultiSet,Method,Method)} operation. For the functionality of <tt>reduce</tt> itself,
      * have a look at that method. <p>
      * Here, a plane sweep algorithm is used for the computation of the reduced set:<ul>
-     * <li> construct the sweep event structure from the bounding boxes of the elements in ems; store the right and
+     * <li> construct the sweep event structure (ses) from the bounding boxes of the elements in ems; store the right and
      * left interval borders 
      * <li> sort the intervals by their x-coordinate, lower y-coordinate, upper y-coordinate, in that order
      * <li> construct a sweep status structure (sss) which is initially empty but will hold intervals later on
@@ -197,7 +199,7 @@ public class SetOps {
 			try {
 			    predTrue = ((Boolean)predicate.invoke((Element)elemStore[sssIvl.number],paramListP)).booleanValue();
 			} catch (Exception e) {
-			    System.out.println("Exception in SetOps.overlapReduce when evaluating predicate.");
+			    System.out.println("Exception in SetOps.overlapReduceSweep when evaluating predicate.");
 			    System.out.println("elemStore[sssIvl.number]: "+(Element)elemStore[sssIvl.number]);
 			    System.out.println("elemStore[actIvl.number]: "+(Element)elemStore[actIvl.number]);
 			    e.printStackTrace();
@@ -231,7 +233,8 @@ public class SetOps {
 			    actIvl.left = resultElement.rect().lly;
 			    actIvl.right = resultElement.rect().uly;
 			    
-			    //remove the sssIvl from sss and remove right interval with number = sssIvl.number from ses
+			    //remove the sssIvl from sss and remove right interval with number = sssIvl.number from ses,
+			    //i.e. remove the interval also from ses, where its "blueright" interval still exists
 			    it2.remove();
 			    removedIvl = false;
 			    for (int i = sesIdx; i < sesArr.length; i++) {
@@ -265,7 +268,7 @@ public class SetOps {
 	    }//if blueleft
 
 
-	    //the actually visited interval is marked with blueleft
+	    //the actually visited interval is marked with blueright
 	    else {
 		//store the object linked to the interval in the result set
 		resultSet.add(elemStore[actIvl.number]);
@@ -285,6 +288,279 @@ public class SetOps {
 	return resultSet;
     }//end method overlapReduceSweep
 
+
+
+    /**
+     * This method is a variant of overlapReduceSweep for methods of type <tt>Element x Element -> ElemMultiSet</tt>.
+     * More information about this method can be found there.
+     *
+     * @param ems the input set of elements
+     * @param predicate the method that is used to identify candidates for the second method
+     * @param method the method that is invoked on pairs identified by the predicate
+     * @param meet if <tt>true</tt>, also objects of <tt>ems</tt> which have only adjacent bounding boxes are tested with predicate
+     * @return the 'reduced' set of objects      
+     */
+    public static ElemMultiSet overlapReduceSweep2 (ElemMultiSet ems, Method predicate, Method method, boolean meet) {
+	//construct sweep event structure (ses) from ems;
+	//the left an right intervals of the bounding boxes of all elements in ems are stored in ses
+	if (ems.isEmpty()) return ems;
+	
+	//get some information about the passed methods
+	int paramTypeCountP = Array.getLength(predicate.getParameterTypes());
+	int paramTypeCountM = Array.getLength(method.getParameterTypes());
+	Element[] paramListP = new Element[paramTypeCountP];
+	Element[] paramListM = new Element[paramTypeCountM];
+
+	//the elements of ems are stored in a Vector we need a dynamic structure here in contrast the 
+	//ordinary overlapReduceSweep, since the SES is changed during the sweep
+	Vector elemStore = ems.toVector();
+	int number = ems.size();
+	
+	//declare the sweep event structure (SES) and fill it with the left and right borders of the
+	//bounding boxes of all elements of ems
+	IvlComparator ivlComp = new IvlComparator(meet);
+	MultiSet ses = new MultiSet(ivlComp);
+	ProLinkedList sesList;
+	Element actEl,actEl2;
+	Rect actRect;
+	boolean buddy;
+	for (int i = 0; i < elemStore.size(); i++) {
+	    actEl = (Element)elemStore.get(i);
+	    actRect = actEl.rect();
+	    buddy = actRect.ulx.equal(actRect.urx);
+	    ses.add(new Interval(actRect.lly,actRect.uly,"blueleft",actRect.ulx,null,i,buddy));
+	    ses.add(new Interval(actRect.lry,actRect.ury,"blueright",actRect.urx,null,i,buddy));
+	}//for i
+	
+	//declare the sweep status structure SSS
+	MultiSet sss = new MultiSet(new IvlComparator(meet));
+	Interval actIvl,actIvl2,sesIvl;
+	Interval sssIvl = null;
+	Iterator it2,it4;
+	ProListIterator it,it3;
+	boolean predTrue = false;
+	boolean resultIsEmpty,removedIvl,ivlOverlap = false;
+	ElemMultiSet resultSet = new ElemMultiSet(ELEM_COMPARATOR);
+	ElemMultiSet resultEMS = null;
+	int sweepPointer;
+
+	sesList = new ProLinkedList(ses,new IvlComparatorSimpleType(meet));
+	
+	//start the sweep
+	it = sesList.listIterator(0);
+	sweepPointer = -1;
+	//while there are elements left in SES, continue with the sweep
+	while (it.hasNext()) {
+	    actIvl = (Interval)it.next();
+	    sweepPointer++;
+	    
+	    //the actually visited interval is marked with either "blueleft" or "blueright";
+	    //handle "blueleft" first
+	    if (actIvl.mark == "blueleft") {
+
+		resultIsEmpty = false;
+		predTrue = false;
+		it2 = sss.iterator();
+		
+		//now, traverse the intervals already stored in SSS
+		while (it2.hasNext()) {
+		    sssIvl = (Interval)(((MultiSetEntry)it2.next()).value);
+		    predTrue = false;
+
+		    if (actIvl.right.less(sssIvl.left)) {
+			//break;
+		    }
+		    else {
+			//define ivlOverlap = true, if actIvl and sssIvl overlap
+			//in case flag meet is true, ivlOverlap = true if the intervals are adjacent, too
+			if (!meet)
+			    ivlOverlap =
+				(sssIvl.left.less(actIvl.left) && sssIvl.right.greaterOrEqual(actIvl.left)) ||
+				(sssIvl.left.equal(actIvl.left) && sssIvl.right.greater(actIvl.left)) ||
+				(sssIvl.left.greater(actIvl.left) && sssIvl.left.less(actIvl.right));
+			else
+			    ivlOverlap = 
+				(sssIvl.left.less(actIvl.left) && sssIvl.right.greaterOrEqual(actIvl.left)) ||
+				(sssIvl.left.equal(actIvl.left) && sssIvl.right.greater(actIvl.left)) ||
+				(sssIvl.left.greater(actIvl.left) && sssIvl.left.less(actIvl.right)) ||
+				sssIvl.right.equal(actIvl.left) || sssIvl.left.equal(actIvl.right);;
+		    }//else
+		    
+		    //if both intervals overlap check the predicate
+		    if (ivlOverlap) {
+			//now check for predicate
+			
+			//if predicate has one argument
+			if (paramTypeCountP == 1) paramListP[0] = (Element)elemStore.get(actIvl.number);
+			//if predicate has two arguments
+			else {
+			    paramListP[0] = (Element)elemStore.get(sssIvl.number);
+			    paramListP[1] = (Element)elemStore.get(actIvl.number);
+			}//else
+
+			//evaluate predicate
+			try {
+			    predTrue = ((Boolean)predicate.invoke((Element)elemStore.get(sssIvl.number),paramListP)).booleanValue();
+			} catch (Exception e) {
+			    System.out.println("Exception in SetOps.overlapReduceSweep2 when evaluating predicate.");
+			    System.out.println("elemStore.get(sssIvl.number): "+(Element)elemStore.get(sssIvl.number));
+			    System.out.println("elemStore.get(actIvl.number): "+(Element)elemStore.get(actIvl.number));
+			    e.printStackTrace();
+			    System.exit(0);
+			}//catch
+			
+			//invoke method on the elements linked to the intervals, if the predicate yields true
+			if (predTrue) {
+
+			    //evaluate method, note that result may be empty
+			    if (paramTypeCountM == 1) paramListM[0] = (Element)elemStore.get(actIvl.number);
+			    else {
+				paramListM[0] = (Element)elemStore.get(sssIvl.number);
+				paramListM[1] = (Element)elemStore.get(actIvl.number);
+			    }//else
+
+			    //evaluate method
+			    try {
+				resultEMS = (ElemMultiSet)method.invoke((Element)elemStore.get(sssIvl.number),paramListM);
+			    } catch (Exception e) {
+				System.out.println("Exception in SetOps.overlapReduceSweep when evaluating method.");
+				System.out.println("elemStore.get(sssIvl.number): "+(Element)elemStore.get(sssIvl.number));
+				System.out.println("elemStore.get(actIvl.number): "+(Element)elemStore.get(actIvl.number));
+				e.printStackTrace();
+				System.exit(0);
+			    }//catch
+
+			    if ((resultEMS == null) || resultEMS.isEmpty()) resultIsEmpty = true;
+			    else resultIsEmpty = false;
+
+			    //remove the sssIvl from sss and remove both intervals marked with sssIvl.number from SES
+			    //System.out.println("\nremove sssIvl and its partner from sss and ses. sssIvl.number: "+sssIvl.number);
+			    it2.remove();
+			    it3 = sesList.listIterator(0);
+			    int ct = 0;
+			    while (it3.hasNext()) {
+				actIvl2 = (Interval)it3.next();
+				
+				if (actIvl2.number == sssIvl.number) {
+				    it3.remove();
+				    ct++;
+				}//if
+				if (ct == 2) break;
+			    }//while it3
+			    sweepPointer--;
+			}//if predTrue			
+		    }//if ivlOverlap
+		    //if method was invoked, break
+		    if (predTrue) break;
+		}//while it
+
+		if (predTrue) {		    
+		    //delete actIvl and its partner from SES
+		    it3 = sesList.listIterator(0);
+		    int ct = 0;
+
+		    int ct1 = 0;
+		    while (it3.hasNext()) {
+
+			actIvl2 = (Interval)it3.next();
+			ct1++;
+			if (actIvl2.number == actIvl.number) {
+			    it3.remove();
+			    ct++;
+			}//if
+			if (ct == 2) break;
+		    }//while it
+		    if (ct != 2) {
+			System.out.println("\nct = "+ct);
+			System.out.println("\ndelete actIvl and its partner from SES. actIvl.nr: "+actIvl.number);
+			System.out.println("\n********************************");
+			System.out.println("SESLIST:");
+			for (int i = 0; i < sesList.size(); i++) {
+			    System.out.print("["+i+"] ");((Interval)sesList.get(i)).print();
+			}
+			System.out.println("********************************");
+			System.exit(0);
+		    }
+
+		    sweepPointer--;
+		    
+		    //if the result of the method invocation is not empty, add all new objects to SES and elemStore;
+		    int pos;
+		    if (!resultIsEmpty) {
+			it4 = resultEMS.iterator();
+			while (it4.hasNext()) {
+			    actEl2 = (Element)((MultiSetEntry)it4.next()).value;
+
+			    elemStore.add(actEl2);
+			    actRect = actEl2.rect();
+			    buddy = actRect.ulx.equal(actRect.urx);
+
+			    pos = sesList.addSorted(new Interval(actRect.lly,actRect.uly,"blueleft",actRect.ulx,null,number,buddy));
+			    //one or none of the new intervals may have been added BEFORE the actual x;
+			    //set pointer to pos-1 or pos-2, resp.
+			    if (pos <= sweepPointer) {
+				sweepPointer++;
+			    }//if
+			    pos = sesList.addSorted(new Interval(actRect.lry,actRect.ury,"blueright",actRect.urx,null,number,buddy));
+
+			    if (pos <= sweepPointer) {
+				sweepPointer++;
+			    }//if
+			    number++;
+			}//while it4
+			
+			it.reset();
+			for (int i = 0; i < sweepPointer+1; i++) it.next();
+		    } else {
+		      
+			//if result is empty, two intervals were deleted, that have positions < X;
+			//decrease sweepPointer by 2
+			it.reset();
+			for (int i = 0; i < sweepPointer+1; i++) it.next();			
+		    }//else
+		   
+		} else {
+		    //if predTrue = false;
+		    //simply add actIvl to sss
+		    sss.add(actIvl);
+		}//else
+	    }//if blueleft
+	    
+	    //the actually visited interval is marked "blueright"
+	    else {
+		//store the object linked to the interval in the result set
+		resultSet.add(elemStore.get(actIvl.number));
+		
+		//remove left interval from sss
+		it2 = sss.iterator();
+		while (it2.hasNext()) {
+		    sesIvl = (Interval)(((MultiSetEntry)it2.next()).value);
+		    if (sesIvl.number == actIvl.number) {
+			it2.remove();
+			break;
+		    }//if
+		}//while it2
+
+		//remove both intervals from ses
+		it.remove(); //removes right interval
+		it.reset();
+		while (it.hasNext()) {
+		    sesIvl = (Interval)(it.next());
+		    if (sesIvl.number == actIvl.number) {
+			it.remove();
+			break;
+		    }//if
+		}//while it
+
+		sweepPointer = sweepPointer-2;
+		it.reset();
+		for (int i = 0; i < sweepPointer+1; i++)
+		    if (it.hasNext()) it.next();
+	    }//if blueright
+	}//while it
+
+	return resultSet;
+    }//end method overlapReduceSweep2
 
     /**
      * Collects elements from the parameter set and stores them in the resulting set.
@@ -677,6 +953,9 @@ public class SetOps {
 	boolean bboxFilter = false;
 	boolean earlyExit = false;
 	PairMultiSet pl = null;
+
+	double tt01 = System.currentTimeMillis();
+
 	try {
 	    pl = overlappingPairs(ems,ems,sameSet,ovLapPairsMeet,bboxFilter,earlyExit,0);
 	} catch (Exception e) {
@@ -685,16 +964,36 @@ public class SetOps {
 	    System.exit(0);
 	}//catch
 
+	double tt02 = System.currentTimeMillis();
+
 	//filter method: remove pairs for which predicate doesn't hold
 	pl = filter(pl,predicate,true);
+
+	double tt03 = System.currentTimeMillis();
 
 	//construct a graph with vertices: elements and edges exist for pairs of elements
 	Graph g = new Graph(ems,pl);
 
+	double tt04 = System.currentTimeMillis();
+
 	//compute the connected components
 	ConnectedComponentsPair ccp = g.connectedComponents();
+	
+	double tt05 = System.currentTimeMillis();
+
 	ElemMultiSetList retList = ccp.verticesToEMSList();
 	
+	double tt06 = System.currentTimeMillis();
+	/*
+	  System.out.println("\n+++++++++++++++++++++++++++++++++++++");
+	  System.out.println("costs for overlapGroup (in detail):");
+	  System.out.println("overlappingPairs: "+(tt02-tt01)+" ms");
+	  System.out.println("filter: "+(tt03-tt02)+" ms");
+	  System.out.println("construct graph: "+(tt04-tt03)+" ms");
+	  System.out.println("connectedComponents: "+(tt05-tt04)+" ms");
+	  System.out.println("construct result list: "+(tt06-tt05)+" ms");
+	  System.out.println("+++++++++++++++++++++++++++++++++++++");
+	*/
 	return retList;
     }//end method overlapGroup
 
