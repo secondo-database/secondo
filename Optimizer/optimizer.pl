@@ -3252,7 +3252,7 @@ lookupAttr(Attr, Attr2) :-
 
 lookupAttr(*, *) :- assert(isStarQuery), !.
 
-lookupAttr(count(*), count(*)) :- !.
+lookupAttr(count(*), count(*)) :- assert(isCountQuery), !.
 
 lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
   lookupAttr(Expr, Expr2),
@@ -3612,15 +3612,37 @@ translate(Select from Rels where Preds, Stream, Select, Cost) :-
   !.
 
 
-translate(Select from Rel, feed(Rel), Select, 0) :-
+translate(Select from Rel, Stream, Select, 0) :-
   not(is_list(Rel)),
-  !.
+  makeStream(Rel, Stream), !.
 
-translate(Select from [Rel], feed(Rel), Select, 0). 
+translate(Select from [Rel], Stream, Select, 0) :-
+  makeStream(Rel, Stream).
 
-translate(Select from [Rel | Rels], product(feed(Rel), Stream), Select, 0) :-
-  translate(Select from Rels, Stream, Select, _).
+translate(Select from [Rel | Rels], product(S1, S2), Select, 0) :-
+  makeStream(Rel, S1),
+  translate(Select from Rels, S2, Select, _).
 
+
+/*
+Create a stream for a given relation. Use projections if possible 
+and rename attributes if necessary. 
+
+*/
+
+makeStream(Rel, Stream) :-
+  isStarQuery,
+  renameIfNecessary(feed(Rel), Rel, Stream), !.
+
+makeStream(Rel, Stream) :-
+  usedAttrList(Rel, AttrNames),
+  renameIfNecessary(project(feed(Rel), AttrNames), Rel, Stream), !. 
+
+makeStream(Rel, Stream) :-
+  renameIfNecessary(feed(Rel), Rel, Stream), !.
+
+renameIfNecessary(Stream, rel(_, *, _), Stream).
+renameIfNecessary(Stream, rel(_, Var, _), rename(Stream, Var)).
 
 
 /*
@@ -3754,34 +3776,12 @@ names have been looked up already.
 */
 
 queryToPlan(Query, count(Stream), Cost) :-
-  countQuery(Query),
+  isCountQuery,
   queryToStream(Query, Stream, Cost),
   !.
 
 queryToPlan(Query, consume(Stream), Cost) :-
   queryToStream(Query, Stream, Cost).
-
-
-/*
-----	countQuery(Query) :-
-----
-
-Check whether ~Query~ is a counting query.
-
-*/
-
-countQuery(select count(*) from _) :- !.
-
-countQuery(Query groupby _) :-
-  countQuery(Query).
-
-countQuery(Query orderby _) :-
-  countQuery(Query).
-
-countQuery(Query first _) :-
-  countQuery(Query).
-
-
 
 
 /*
