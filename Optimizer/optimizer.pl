@@ -3089,6 +3089,18 @@ translate(Select from Rels where Preds, Stream, Select, Cost) :-
   bestPlan(Stream, Cost),
   !.
 
+/*
+Below we will handle the case of queries without where-clause. This results
+in simple cartesian products of the relations in the from-clause. We think
+this case is very unimportant and we don't want to make the code complicated by
+applying projections for removing unnecessary attributes which might be a performance
+benefit if a groupby- or orderby- clause is present. The product will be computed
+by the symmjoin operator with a constant filter function which returns always true.
+This operator work well and has symmetric costs, whereas product has antisymmetric
+costs. 
+
+*/
+
 
 translate(Select from Rel, Stream, Select, 0) :-
   not(is_list(Rel)),
@@ -3097,30 +3109,16 @@ translate(Select from Rel, Stream, Select, 0) :-
 translate(Select from [Rel], Stream, Select, 0) :-
   makeStream(Rel, Stream).
 
-translate(Select from [Rel | Rels], symmjoin(S1, S2, fun([param(t1, tuple), param(t2, tuple2)], true)), Select, 0) :-
+translate(Select from [Rel | Rels], 
+            symmjoin(S1, S2, fun([param(t1, tuple), param(t2, tuple2)], true)), 
+            Select, 0) :-
   makeStream(Rel, S1),
   translate(Select from Rels, S2, Select, _).
 
+makeStream(Rel, feed(Rel)) :- Rel = rel(_, *, _), !.
 
-/*
-Create a stream for a given relation. Use projections if possible 
-and rename attributes if necessary. 
+makeStream(Rel, rename(feed(Rel), Var)) :- Rel = rel(_, Var, _).
 
-*/
-
-makeStream(Rel, Stream) :-
-  isStarQuery,
-  renameIfNecessary(feed(Rel), Rel, Stream), !.
-
-makeStream(Rel, Stream) :-
-  usedAttrList(Rel, AttrNames),
-  renameIfNecessary(project(feed(Rel), AttrNames), Rel, Stream), !. 
-
-makeStream(Rel, Stream) :-
-  renameIfNecessary(feed(Rel), Rel, Stream), !.
-
-renameIfNecessary(Stream, rel(_, *, _), Stream).
-renameIfNecessary(Stream, rel(_, Var, _), rename(Stream, Var)).
 
 
 /*
@@ -3277,6 +3275,8 @@ countQuery(Query groupby _) :-
 countQuery(Query orderby _) :-
   countQuery(Query).
 
+countQuery(Query first _) :-
+  countQuery(Query).
 
 
 
