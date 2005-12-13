@@ -7,6 +7,7 @@
 
 package twodsack.operation.basictypeoperation;
 
+import twodsack.io.*;
 import twodsack.operation.basictypeoperation.*;
 import twodsack.set.*;
 import twodsack.setelement.datatype.basicdatatype.*;
@@ -240,31 +241,36 @@ public class SegSeg_Ops {
      * @return the union of <tt>s1,s2</tt>
      * @throws NoOverlapException if <tt>s1,s2</tt> don't overlap
      */
-    public static Segment union (Segment s1, Segment s2)
-	throws NoOverlapException {
+    public static Segment union (Segment s1, Segment s2) throws NoOverlapException {
 	Segment retSeg = null;
 	Point p1 = null;
 	Point p2 = null;
 	
-	if (s1.equal(s2)) { return s1; }
+	if (s1.equal(s2)) { return (Segment)s1.copy(); }
 	
 	if (overlap(s1,s2)) {
 	    if (PointSeg_Ops.liesOn(s1.getStartpoint(),s2) &&
-		!PointSeg_Ops.liesOn(s1.getEndpoint(),s2)) { p1 = s1.getEndpoint(); }//if
+		!PointSeg_Ops.liesOn(s1.getEndpoint(),s2)) {
+		p1 = s1.getEndpoint(); }//if
 	    else {
 		if (PointSeg_Ops.liesOn(s1.getEndpoint(),s2) &&
-		    !PointSeg_Ops.liesOn(s1.getStartpoint(),s2)) { p1 = s1.getStartpoint(); }//else
-		else {
+		    !PointSeg_Ops.liesOn(s1.getStartpoint(),s2)) {
+		    p1 = s1.getStartpoint(); }//else
+		else if ((PointSeg_Ops.liesOn(s1.getStartpoint(),s2)) &&
+			 (PointSeg_Ops.liesOn(s1.getEndpoint(),s2))){
 		    //both points lie on s2
 		    return (Segment)s2.copy();
 		}//else
 	    }//else
 	    if (PointSeg_Ops.liesOn(s2.getStartpoint(),s1) &&
-		!PointSeg_Ops.liesOn(s2.getEndpoint(),s1)) { p2 = s2.getEndpoint(); }//if
+		!PointSeg_Ops.liesOn(s2.getEndpoint(),s1)) {
+		p2 = s2.getEndpoint(); }//if
 	    else {
 		if (PointSeg_Ops.liesOn(s2.getEndpoint(),s1) &&
-		    !PointSeg_Ops.liesOn(s2.getStartpoint(),s1)) { p2 = s2.getStartpoint(); }//else
-		else {
+		    !PointSeg_Ops.liesOn(s2.getStartpoint(),s1)) {
+		    p2 = s2.getStartpoint(); }//else
+		else if (PointSeg_Ops.liesOn(s2.getStartpoint(),s1) &&
+			 PointSeg_Ops.liesOn(s2.getEndpoint(),s1)){
 		    //both points lie on s1
 		    return (Segment)s1.copy();
 		}//else
@@ -302,6 +308,12 @@ public class SegSeg_Ops {
 
 	//if s1,s2 overlap...
 	if (overlap(s1,s2)) {
+
+	    Segment union = union(s1,s2);
+	    Segment ovLap = theOverlap(s1,s2);
+	    retSeg = minus(union,ovLap);
+
+	    /*
 	    //if s1 fully lies on s2
 	    if (PointSeg_Ops.liesOn(s1.getStartpoint(),s2) &&
 		PointSeg_Ops.liesOn(s1.getEndpoint(),s2)) {
@@ -313,12 +325,12 @@ public class SegSeg_Ops {
 			(new Segment(s1.getStartpoint(),s2.getEndpoint())).length()) {
 			retSeg.add(new Segment(s1.getStartpoint(),s2.getStartpoint()));
 			retSeg.add(new Segment(s1.getEndpoint(),s2.getEndpoint()));
-			return retSeg;
+			//return retSeg;
 		    }//if
 		    else {
 			retSeg.add(new Segment(s1.getStartpoint(),s2.getEndpoint()));
 			retSeg.add(new Segment(s1.getEndpoint(),s2.getStartpoint()));
-			return retSeg;
+			//return retSeg;
 		    }//if
 		}//if
 
@@ -326,11 +338,11 @@ public class SegSeg_Ops {
 		if (PointSeg_Ops.isEndpoint(s1.getStartpoint(),s2)) { 
 		    if (s1.getStartpoint().equal(s2.getStartpoint())) {
 			retSeg.add(new Segment(s1.getEndpoint(),s2.getEndpoint()));
-			return retSeg;
+			//return retSeg;
 		    }//if
 		    else {
 			retSeg.add(new Segment(s1.getEndpoint(),s2.getStartpoint()));
-			return retSeg;
+			//return retSeg;
 		    }//else
 		}//if
 		
@@ -339,11 +351,11 @@ public class SegSeg_Ops {
 		    
 		    if (s1.getEndpoint().equal(s2.getStartpoint())) {
 			retSeg.add(new Segment(s1.getStartpoint(),s2.getEndpoint()));
-			return retSeg;
+			//return retSeg;
 		    }//if
 		    else {
 			retSeg.add(new Segment(s1.getStartpoint(),s2.getStartpoint()));
-			return retSeg;
+			//return retSeg;
 		    }//else
 		}//if
 	    }//if
@@ -361,12 +373,12 @@ public class SegSeg_Ops {
 			((new Segment(s2.getStartpoint(),s1.getEndpoint())).length())) {
 			retSeg.add(new Segment(s2.getStartpoint(),s1.getStartpoint()));
 			retSeg.add(new Segment(s2.getEndpoint(),s1.getEndpoint()));
-			return retSeg;
+			//return retSeg;
 		    }//if
 		    else {
 			retSeg.add(new Segment(s2.getStartpoint(),s1.getEndpoint()));
 			retSeg.add(new Segment(s2.getEndpoint(),s1.getStartpoint()));
-			return retSeg;
+			//return retSeg;
 		    }//if
 		}//if
 
@@ -374,11 +386,11 @@ public class SegSeg_Ops {
 		if (PointSeg_Ops.isEndpoint(s2.getStartpoint(),s1)) {
 		    if (s2.getStartpoint().equal(s1.getStartpoint())) {
 			retSeg.add(new Segment(s2.getEndpoint(),s1.getEndpoint()));
-			return retSeg;
+			//return retSeg;
 		    }//if
 		    else {
 			retSeg.add(new Segment(s2.getEndpoint(),s1.getStartpoint()));
-			return retSeg;
+			//return retSeg;
 		    }//else
 		}//if
 
@@ -386,11 +398,11 @@ public class SegSeg_Ops {
 		if (PointSeg_Ops.isEndpoint(s2.getEndpoint(),s1)) {
 		    if (s2.getEndpoint().equal(s1.getStartpoint())) {
 			retSeg.add(new Segment(s2.getStartpoint(),s1.getEndpoint()));
-			return retSeg;
+			//return retSeg;
 		    }//if
 		    else {
 			retSeg.add(new Segment(s2.getStartpoint(),s1.getStartpoint()));
-			return retSeg;
+			//return retSeg;
 		    }//else
 		}//if
 	    }//if
@@ -415,6 +427,7 @@ public class SegSeg_Ops {
 		retSeg.add(new Segment(p1,p2));
 		retSeg.add(new Segment(p3,p4));
 	    }//if
+	    */
 	}//if s1,s2 overlap
 	else {
 	    //s1,s2 don't overlap
@@ -603,7 +616,7 @@ public class SegSeg_Ops {
 
 
     /**
-     * Subracts the second segments from the first segment and returns the non-overlapping part(s) as SegMultiSet.
+     * Subracts the second segment from the first segment and returns the non-overlapping part(s) as SegMultiSet.
      * If both segments don't overlap, the first segment is returned unchanged.
      *
      * @param seg1 the first segment
@@ -659,6 +672,7 @@ public class SegSeg_Ops {
 	}//if
 
 	//This point should never be reached.
+	if (true) throw new RuntimeException("Reached point of no return in SegSeg_Ops.minus.");
 	return retList;
     }//end method minus
 
