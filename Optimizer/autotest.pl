@@ -66,7 +66,7 @@ sqlExampleList(List) :-
   findall(X, sqlExample(_,X), List).
 
 genExampleList(L) :-
-  findall(X, genquery(X), L).
+  findall(X, genQuery(X), L).
 
 /*
 The predicate ~addfirst/3~ adds a first 3 clause if the
@@ -95,6 +95,9 @@ showTPCExamples :-
   findall(X, tpcQuery(_,X), List),
   showQueries(List).
 
+showGenExamples :-
+  findall(X, genQuery(X), List),
+  showQueries(List).
 
 showQueries(L) :-
   nl, write('List of Queries:'), nl, write('==================='),
@@ -184,6 +187,8 @@ genAttr(count(*)).
 sAttr(p:plz).
 sAttr(s:sname).
 
+gAttr([p:ort, count(*) as nr]).
+
 whereClause(p:plz < 45678).
 whereClause(p:plz = 37263).
 whereClause(p:plz = s:plz).
@@ -202,8 +207,22 @@ query1(select S from Rel where W) :-
   relations(Rel),
   whereClause(W).
 
-genquery(X first 3) :-
+query2(select S from Rel where W) :-
+  gAttr(S),
+  relations(Rel),
+  whereClause(W).
+
+genQuery(X first 3) :-
   query1(X).
 
-genquery(X) :-
+genQuery(X orderby p:plz) :-
+  query1(X).
+
+genQuery(X orderby p:plz first 3) :-
+  query1(X).
+
+genQuery(X groupby p:ort first 3) :-
+  query2(X).
+
+genQuery(X) :-
   query1(X).

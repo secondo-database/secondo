@@ -1097,7 +1097,7 @@ plan_to_atom(rename(X, Y), Result) :-
 plan_to_atom(fun(Params, Expr), Result) :-
   params_to_atom(Params, ParamAtom),
   plan_to_atom(Expr, ExprAtom),
-  concat_atom(['fun ', ParamAtom, ExprAtom], '', Result),
+  concat_atom(['fun (', ParamAtom, ') ', ExprAtom], '', Result),
   !.
 
 
@@ -1166,6 +1166,10 @@ plan_to_atom(a(X, _, u), X2) :-
   upper(X, X2),
   !.
 
+
+plan_to_atom(true, Result) :-
+  concat_atom(['TRUE'], '', Result),
+  !.
 
 /*
 Translation of operators driven by predicate ~secondoOp~ in 
@@ -1282,11 +1286,19 @@ plan_to_atom(X, _) :-
 
 params_to_atom([], ' ').
 
+params_to_atom([param(Var, Type)], Result) :-
+  type_to_atom(Type, TypeAtom),
+  concat_atom([Var, ': ', TypeAtom], '', Result),
+  !.
+
 params_to_atom([param(Var, Type) | Params], Result) :-
   type_to_atom(Type, TypeAtom),
   params_to_atom(Params, ParamsAtom),
-  concat_atom(['(', Var, ': ', TypeAtom, ') ', ParamsAtom], '', Result),
+  concat_atom([Var, ': ', TypeAtom, ', ', ParamsAtom], '', Result),
   !.
+
+
+
 
 type_to_atom(tuple, 'TUPLE').           
 type_to_atom(tuple2, 'TUPLE2').
@@ -3084,8 +3096,7 @@ newQuery :-
   not(clearQueryRelations), 
   not(clearQueryAttributes), 
   not(clearUsedAttributes), 
-  not(clearIsStarQuery),
-  not(clearIsCountQuery).
+  not(clearIsStarQuery).
 
 clearVariables :- retract(variable(_, _)), fail.
 
@@ -3096,7 +3107,6 @@ clearQueryAttributes :- retract(queryAttr(_)), fail.
 clearUsedAttributes :- retract(usedAttr(_, _)), fail.
 
 clearIsStarQuery :- retract(isStarQuery), fail.
-clearIsCountQuery :- retract(isCountQuery), fail.
 
 /*
 
@@ -3175,7 +3185,6 @@ Translate and store a single relation definition.
   queryRel/2,
   queryAttr/1,
   isStarQuery/0,
-  isCountQuery/0,
   usedAttr/2.
 
 
@@ -3252,7 +3261,6 @@ lookupAttr(Attr, Attr2) :-
 
 lookupAttr(*, *) :- assert(isStarQuery), !.
 
-lookupAttr(count(*), count(*)) :- assert(isCountQuery), !.
 
 lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
   lookupAttr(Expr, Expr2),
@@ -3611,6 +3619,18 @@ translate(Select from Rels where Preds, Stream, Select, Cost) :-
   bestPlan(Stream, Cost),
   !.
 
+/*
+Below we will handle the case of queries without where-clause. This results
+in simple cartesian products of the relations in the from-clause. We think
+this case is very unimportant and we don't want to make the code complicated by
+applying projections for removing unnecessary attributes which might be a performance
+benefit if a groupby- or orderby- clause is present. The product will be computed
+by the symmjoin operator with a constant filter function which returns always true.
+This operator work well and has symmetric costs, whereas product has antisymmetric
+costs. 
+
+*/
+
 
 translate(Select from Rel, Stream, Select, 0) :-
   not(is_list(Rel)),
@@ -3619,30 +3639,16 @@ translate(Select from Rel, Stream, Select, 0) :-
 translate(Select from [Rel], Stream, Select, 0) :-
   makeStream(Rel, Stream).
 
-translate(Select from [Rel | Rels], product(S1, S2), Select, 0) :-
+translate(Select from [Rel | Rels], 
+            symmjoin(S1, S2, fun([param(t1, tuple), param(t2, tuple2)], true)), 
+            Select, 0) :-
   makeStream(Rel, S1),
   translate(Select from Rels, S2, Select, _).
 
+makeStream(Rel, feed(Rel)) :- Rel = rel(_, *, _), !.
 
-/*
-Create a stream for a given relation. Use projections if possible 
-and rename attributes if necessary. 
+makeStream(Rel, rename(feed(Rel), Var)) :- Rel = rel(_, Var, _).
 
-*/
-
-makeStream(Rel, Stream) :-
-  isStarQuery,
-  renameIfNecessary(feed(Rel), Rel, Stream), !.
-
-makeStream(Rel, Stream) :-
-  usedAttrList(Rel, AttrNames),
-  renameIfNecessary(project(feed(Rel), AttrNames), Rel, Stream), !. 
-
-makeStream(Rel, Stream) :-
-  renameIfNecessary(feed(Rel), Rel, Stream), !.
-
-renameIfNecessary(Stream, rel(_, *, _), Stream).
-renameIfNecessary(Stream, rel(_, Var, _), rename(Stream, Var)).
 
 
 /*
@@ -3776,12 +3782,32 @@ names have been looked up already.
 */
 
 queryToPlan(Query, count(Stream), Cost) :-
-  isCountQuery,
+  countQuery(Query),
   queryToStream(Query, Stream, Cost),
   !.
 
 queryToPlan(Query, consume(Stream), Cost) :-
   queryToStream(Query, Stream, Cost).
+
+
+/*
+Check whether ~Query~ is a counting query.
+
+*/
+
+
+countQuery(select count(*) from _) :- !.
+countQuery(select count(*) from _ first _) :- !.
+
+countQuery(Query groupby _) :-
+  countQuery(Query).
+
+countQuery(Query orderby _) :-
+  countQuery(Query).
+
+countQuery(Query first _) :-
+  countQuery(Query).
+
 
 
 /*
