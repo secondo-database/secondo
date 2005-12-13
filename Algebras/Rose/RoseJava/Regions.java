@@ -8,38 +8,56 @@ import java.lang.reflect.*;
 import java.io.*;
 import java.util.*;
 
-public class Regions implements Serializable{
-    //this class implements the Regions value of the ROSE algebra
 
-    //members
-    public TriMultiSet triset = null; //the triangle set representing the Regions value
-    public double perimeter = 0; //the Regions' perimeter
-    public double area = 0; //the Regions' area 
-    private boolean cyclesDefined = false; //true, if the cycle list was already computed
+/**
+ * This class implements the Regions type. A Regions instance consists of a set of polygons which may have holes. A Region can be constructed
+ * from a set of triangles (which usually is a triangulation of a set of polygons) or a set of segments (which form the polygons' borders).
+ * Regions instances are one of the three geometic types, which are used as parameter types in the ROSE algebra. The other two are Points and Lines.
+ */
+public class Regions implements Serializable{
+    /*
+     * fields
+     */
+    /**
+     * Stores the set of triangles of the region.
+     */
+    public TriMultiSet triset = null;
+
+
+    /**
+     * A flag which indicates, whether the <tt>cycles</tt> of the polygon are defined or not.
+     */
+    private boolean cyclesDefined = false;
+
+
+    /**
+     * Stores the cycle list, which is a list represenation of the Regions' border.
+     */
     private CycleListListPoints cycles = null; //the list of cycles
 
-    //static counter variables
-    private static int noOfTris = 0;
-    private static int noOfRegions = 0;
-    private static int readFromCalls = 0;
 
-    //constructors
+    /*
+     * constructors
+     */
+    /**
+     * Constructs an 'empty' Regions value.
+     */
     public Regions() {
-	//System.out.println("--> constructed an empty REGIONS object");
 	triset = new TriMultiSet(new TriangleComparator());
-	perimeter = 0;
-	area = 0;
 	cyclesDefined = false;
 	cycles = null;
     }
 
+
+    /**
+     * Constructs a new Regions value from a set of triangles.
+     * <tt>cyclesDefined</tt> is set to <tt>false</tt>.
+     *
+     * @param tl the set of triangles
+     */
     public Regions(TriMultiSet tl) {
-	//System.out.println("R.const: entered constructor");
-	//System.out.print("--> constructing a REGIONS object from triangle list("+tl.size()+")...");
 	if (tl == null || tl.isEmpty()) {
 	    triset = tl;
-	    perimeter = 0;
-	    area = 0;
 	    cyclesDefined = false;
 	    cycles = null;
 	}//if
@@ -48,85 +66,83 @@ public class Regions implements Serializable{
 	    System.exit(0);
 	}//if
 	else {
-	    //System.out.println("R.const: entered else...");
-	    triset = TriMultiSet.convert(tl.copy());
-	    //System.out.println("R.const: converted trilset");
-	    //perimeter = computePerimeter();
-	    //System.out.println("R.const: computed perimeter");
-	    //area = computeArea();
-	    //System.out.println("R.const: computed area");
+	    triset = TriMultiSet.convert(tl);
 	    cyclesDefined = false;
 	    cycles = null;
 	}//else
-	//System.out.println("done"); 
     }
 
+
+    /**
+     * Constructs a new Regions value from a set of segments. 
+     * <tt>cyclesDefined</tt> is set to <tt>true</tt>.
+     *
+     * @param sl the set of segments
+     */
     public Regions(SegMultiSet sl) {
-	//System.out.print("--> constructing a REGIONS object from segment list (size: "+sl.size()+")...");
-	//System.out.println("\nsegList: "); sl.print();
 	if (sl == null || sl.isEmpty()) {
 	    triset = new TriMultiSet(new TriangleComparator());
-	    perimeter = 0;
-	    area = 0;
 	    cyclesDefined = false;
 	    cycles = null;
 	}//if
 	else {
-	    noOfRegions++;
-	    //System.out.println("\n########################### computation of triangle set for Region");
-	    System.out.println("\n---> REGION_NO."+noOfRegions+": compute Triangles... ");
 	    triset = computeTriSet(sl);
-	    noOfTris += triset.size();
-	    System.out.println(triset.size()+" triangle(s). Sum of triangles: "+noOfTris);
-	    //System.out.println("\n########################### computation of cycles for Region");
-	    System.out.println("--->compute cycles... ");
 	    cycles = cyclesPoints();
 	    cyclesDefined = true;
-	    System.out.println(cycles.size()+" cycle(s) found.");
 	}//else
     }
 
+
+    /**
+     * Constructs a new Regions value from a Lines value.
+     * <tt>cyclesDefined</tt> is set to <tt>false</tt>.
+     *
+     * @param l the Lines value
+     */
     public Regions(Lines l) {
-	//System.out.print("--> constructing a REGIONS object from LINES object...");
 	if (l.segset.isEmpty()) {
 	    triset = new TriMultiSet(new TriangleComparator());
-	    perimeter = 0;
-	    area = 0;
 	}//if
 	else {
 	    triset = computeTriSet(l.segset);
-	    //perimeter = computePerimeter();
-	    //area = computeArea();
-	    //System.out.println("done");
 	}//else
     }
 
-    //methods
+
+    /**
+     * Constructs a new Regions value from an existing Regions value.
+     * The triangle set is not copied.
+     *
+     * @param r the Regions value     
+     */
+    public Regions (Regions r) {
+	this.triset = r.triset;
+	this.cyclesDefined = r.cyclesDefined;
+	this.cycles = r.cycles;
+    }
+
+
+    /*
+     * methods
+     */
+    /**
+     * Computes the triangle set for a given set of segments.
+     * The passed set of segment must form a proper border for a Regions value.
+     *
+     * @param sms the set of segments
+     */
     private TriMultiSet computeTriSet(SegMultiSet sms) {
 	//sl must be a regular border of a Regions value
 	//returns the triangulation of the Region
-	return Polygons.computeMesh(sms,true);  
+	return Polygons.computeMesh(sms,false);  
     }//end method computeTriSet
 	
-    /*
-    private double computePerimeter() {
-	//computes the Regions' perimeter
-	return ROSEAlgebra.r_perimeter(this);
-    }//end method computePerimeter
-    */
-    
-    /*
-    private double computeArea() {
-	//computes the Regions' area
-	return ROSEAlgebra.r_area(this);
-    }//end method computeArea
-    */
-    
+    /**
+     * Returns <tt>true</tt> if the passed set of triangles has no overlapping triangles.
+     */    
     private boolean isRegularTriSet(TriMultiSet tl) {
 	//returns true if tl doesn't have intersecting triangles
 	//untested!!!
-
-	//System.out.println("entering R.isRegularTriSet...");
 
 	return true;
 
@@ -157,10 +173,15 @@ public class Regions implements Serializable{
     }//end method isRegularTriSet
 
     
+    /**
+     * Returns a structure of nested lists that stores points.
+     * The resulting <tt>CycleListListPoints</tt> stores the vertices of the Regions' cycles. It has a list of points (vertices)
+     * for every face, the Regions value has. Then, every face consists of an outer cycle (again, it is represented by its border
+     * points) and its holes. 'Islands' inside of holes are not supported.
+     *
+     * @return the nested list that describes the Regions value
+     */
     public CycleListListPoints cyclesPoints() {
-	//returns the cycles of this as an CycleListListPoints
-	//which has points as elements
-	
 	if (this.cyclesDefined) {
 	    return this.cycles;
 	}//if
@@ -172,30 +193,37 @@ public class Regions implements Serializable{
 	}//else
     }//end method cyclesPoints
 
-    
-    public static Regions readFrom(byte[] buffer){
-	readFromCalls++;
-	System.out.print("readFromCalls: "+readFromCalls+": ");
 
+    /**
+     * Constructs a Regions value from a byte array.
+     * Given a byte array (probably from a disk access), a Regions value is constructed from it.
+     * If the value cannot be restored properly, <tt>null</tt> is returned.
+     *
+     * @param buffer the byte array
+     * @return the restored Regions value
+     */    
+    public static Regions readFrom(byte[] buffer){
 	try{
 	    ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(buffer));
 	    Regions res = (Regions) ois.readObject();
 	    ois.close();
 	    if (res.triset != null && res.cycles != null) 
-		System.out.println(res.triset.size()+" triangles, "+res.cycles.size()+" cycle(s).");
-
 	    return res;
-	} catch(Exception e){
-	    System.out.println("Error in Regions.readFrom().");
+	} catch(Exception e) {
+	    System.out.println("Error in Regions.readFrom(). Cannot restore Regions value properly.");
 	    e.printStackTrace();
-	    return null;
-	}
+	}//catch
+	return null;
     }//end method readFrom
 
 
-    /** this method serializes an object */
-    public  byte[] writeToByteArray(){
-	
+    /**
+     * Constructs a serialized Regions value.
+     * From the Regions value, a byte array is constructed. Then, this array can be written to disk.
+     *
+     * @return the byte array
+     */
+    public byte[] writeToByteArray(){
 	try{
 	    ByteArrayOutputStream byteout = new ByteArrayOutputStream();
 	    ObjectOutputStream objectout = new ObjectOutputStream(byteout);
@@ -208,50 +236,15 @@ public class Regions implements Serializable{
 	    System.out.println("Error in Regions.writeToByteArray: "+e);
 	    e.printStackTrace();
 	    return null; }
-	
     }//end method writeToByteArray
 
-    /*
-    public int compare (Regions rIn) {
-	//returns 0 if this == pin
-	//as long as elements in sorted lists from the beginning to the
-	//end are equal, traverse through the lists.
-	//When the first elements are found which are not equal, then
-	//return -1 if this has the smaller element
-	//return +1 if rIn has the smaller element
-	//if one list has less elements than the other and the first elements
-	//are equal, then
-	//return -1 if this is shorter than rIn
-	//return +1 if rIn is shorter than this
 
-	//first sort both trisets
-	TriList thiscop = (TriList)this.trilist.clone();
-	TriList rincop = (TriList)this.trilist.clone();
-	
-	SetOps.quicksortX(thiscop);
-	SetOps.quicksortX(rincop);
-
-	ListIterator lit1 = thiscop.listIterator(0);
-	ListIterator lit2 = rincop.listIterator(0);
-	
-	Triangle actT1;
-	Triangle actT2;
-	byte res;
-	while (lit1.hasNext() && lit2.hasNext()) {
-	    actT1 = (Triangle)lit1.next();
-	    actT2 = (Triangle)lit2.next();
-	    res = actT2.compare(actT2);
-	    if (!(res == 0)) return (int)res;
-	}//while
-	if (!lit1.hasNext() && !lit2.hasNext()) return 0;
-	if (!lit1.hasNext()) return -1;
-	else return 1;
-    }//end method compare
-    */
-
-    
+    /**
+     * Returs a copy of <tt>this</tt>.
+     *
+     * @return the copy
+     */
     public Regions copy () {
-	//return new Regions(this.trilist);
 	Regions nr = new Regions();
 	nr.triset = TriMultiSet.convert(this.triset.copy());
 	nr.cyclesDefined = true;
@@ -259,8 +252,11 @@ public class Regions implements Serializable{
 	return nr; 
     }//end method copy
 
+
+    /**
+     * Prints the triangle set to standard output.
+     */
     public void print() {
 	this.triset.print();
-    }
-
+    }//end method print
 }//end class Regions

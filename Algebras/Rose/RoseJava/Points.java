@@ -6,51 +6,117 @@ import java.lang.reflect.*;
 import java.io.*;
 import java.util.*;
 
-public class Points implements Serializable{
-    //this class implements the Points value of the ROSE algebra
 
-    //members
-    public PointMultiSet pointset; //the set of points
+/**
+ * This class implements the Points type. A Points instance consists of a set of points. Points are one of the three geometric types, that are
+ * used as parameter types in the ROSE algebra. The other two types are Regions and Lines.
+ */
+public class Points implements Serializable{
+    /*
+     * fields
+     */
+    /**
+     * The set of points.
+     */
+    public PointMultiSet pointset;
     
-    //constructors
+    /*
+     * constructors
+     */
+    /**
+     * Constructs an emtpy Points value.
+     */
     public Points() {
-	//System.out.println("--> constructed an empty POINTS object");
 	pointset = new PointMultiSet(new PointComparator());
     }
 
+
+    /**
+     * Constructs a new Points value from a set of points.
+     * Note that no copy is made of the set of points.
+     *
+     * @param pl the set of points
+     */
     public Points(PointMultiSet pl) {
-	//System.out.println("--> constructed a POINTS object from a pointset");
-	//pointset = PointMultiSet.convert(pl.copy());
 	pointset = pl;
     }
 
-    //methods
+
+    /**
+     * Constructs a new Points value from an already existing Points value.
+     * Note that no copy is made of the set of points.
+     *
+     * @param p the Points value
+     */
+    public Points(Points p) {
+	this.pointset = p.pointset;
+    }
+
+    
+    /*
+     * methods
+     */
+    /**
+     * Returns the size of the pointset.
+     *
+     * @return the size as int
+     */
     public int size() {
 	return this.pointset.size();
     }//end method size
 
 
+    /**
+     * Adds the given point <tt>p</tt> to the pointset.
+     *
+     * @param p the point
+     */
     public void add(Point p) {
-	//adds p to this
 	this.pointset.add(p);
     }//end method add
 
+
+    /**
+     * Constructs a new point from the given Rational coordinates and adds that point to the pointset.
+     *
+     * @param x the x coordinate for the new point
+     * @param y the y coordinate for the new point
+     */
     public void add(Rational x, Rational y) {
-	//constructs a new Point object and adds it to this
 	this.pointset.add(new Point(x,y));
     }//end method add
 
+
+    /**
+     * Constructs a new point from the given int coordinates and adds that point to the pointset.
+     *
+     * @param x the x coordinate for the new point
+     * @param y the y coodrinate for the new point
+     */
     public void add(int x, int y) {
-	//constructs a new Point object and adds it to this
 	this.pointset.add(new Point(x,y));
     }//end method add
 
+
+    /**
+     * Constructs a new point from the given double coordinates and adds that point to the pointset.
+     *
+     * @param x the x coordinate for the new point
+     * @param y the y coordinate for the new point
+     */
     public void add(double x, double y) {
-	//constructs a new Point object and adds it to this
 	this.pointset.add(new Point(x,y));
     }//end method add
 
 
+    /**
+     * Constructs a Points value from a byte array.
+     * Given a byte array (probably from a disk access), a Points value is constructed from it.
+     * If the value cannot be restored properly, <tt>null</tt> is returned.
+     *
+     * @param buffer the byte array
+     * @return the restored Points value
+     */
     public static Points readFrom(byte[] buffer){
 	try{
 	    ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(buffer));
@@ -63,9 +129,13 @@ public class Points implements Serializable{
     }//end method readFrom
 
 
-    /** this method serializes an object */
+    /**
+     * Constructs a serialized Points value.
+     * From the Points value, a byte array is constructed. Then, this array can be written to disk.
+     *
+     * @return the byte array
+     */
     public  byte[] writeToByteArray(){
-	
 	try{
 	    ByteArrayOutputStream byteout = new ByteArrayOutputStream();
 	    ObjectOutputStream objectout = new ObjectOutputStream(byteout);
@@ -81,53 +151,20 @@ public class Points implements Serializable{
 	}
     }//end method writeToByteArray
 
-    /* DEACTIVATED W.R.T. MULTISETS
-    public int compare (Points pIn) {
-	//returns 0 if this == pin
-	//as long as elements in sorted lists from the beginning to the
-	//end are equal, traverse through the lists.
-	//when the first elements are found which are not equal, then
-	//return -1 if this has the smaller element
-	//return +1 if pin has the smaller element
-	//if one list has less elements than the other and the first elements
-	//are equal, then 
-	//return -1 if this is shorter than pIn
-	//return +1 if pIn is shorter than this
 
-	//first, sort both pointsets
-	PointList thiscop = (PointList)this.pointlist.clone();
-	PointList pincop = (PointList)pIn.pointlist.clone();
-	
-	SetOps.quicksortX(thiscop);
-	SetOps.quicksortX(pincop);
-
-	ListIterator lit1 = thiscop.listIterator(0);
-	ListIterator lit2 = pincop.listIterator(0);
-
-	Point actP1;
-	Point actP2;
-	byte res;
-	while (lit1.hasNext() && lit2.hasNext()) {
-	    actP1 = (Point)lit1.next();
-	    actP2 = (Point)lit2.next();
-	    res = actP1.compare(actP2);
-	    if (!(res == 0)) return (int)res;
-	}//while
-	if (!lit1.hasNext() && !lit2.hasNext()) return 0;
-	if (!lit1.hasNext()) return -1;
-	else return 1;
-    }//end method compare
-    */
-
+    /**
+     * Returns a <i>deep</i> copy of <tt>this</tt>.
+     */
     public Points copy () {
 	return new Points(PointMultiSet.convert(this.pointset.copy()));
     }//end method copy
 
     
+    /**
+     * Prints the set of points to the standard output.
+     */
     public void print() {
 	this.pointset.print();
-    }
-
-
+    }//end method print
 }//end class Points
     
