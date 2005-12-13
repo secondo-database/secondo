@@ -2129,7 +2129,7 @@ public:
   FLOB *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
-    cout << "++++++++++++++++++++ called Finalize of CcRegions +++++++++++++++++++++++++" << endl;
+    //cout << "++++++++++++++++++++ called Finalize of CcRegions +++++++++++++++++++++++++" << endl;
     env->DeleteLocalRef(obj);
     obj = 0;
   }
@@ -2160,7 +2160,7 @@ public:
   /* Destructor of CcRegions. This destructor destroys also the 
      object inside the JVM. */
   ~CcRegions() {
-    cout << "++++++++++++++++++++ called destructor of CcRegions +++++++++++++++++++++++++" << endl;
+    //cout << "++++++++++++++++++++ called destructor of CcRegions +++++++++++++++++++++++++" << endl;
     env->DeleteLocalRef(obj);
     obj = 0;
   }
