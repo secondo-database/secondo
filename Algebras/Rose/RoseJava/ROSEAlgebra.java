@@ -78,6 +78,7 @@ public class ROSEAlgebra {
     final static ElemComparator ELEMENT_COMPARATOR = new ElemComparator();
     final static ElemPairComparator ELEMPAIR_COMPARATOR = new ElemPairComparator();
     
+    final static MeshGenerator MESHGENERATOR = new MeshGenerator();
 
     /*
      * constructors
@@ -1703,5 +1704,33 @@ public class ROSEAlgebra {
 		
 	return 0;
     }//end method r_perimeter
+
+
+    /**
+     * Using this method, the triangulator may be switched to another one.
+     * The default triangulator ist "Mehlhorn" which has number 0. Two other triangulators are available.
+     * They are "Triangle" (which has number 1) and "NetGen" (with number 2). No other numbers are 
+     * accepted by this method.<p>
+     * Note, that "Triangle" and "NetGen" construct not only triangle sets, but meshes.
+     *
+     * @param int the number for the triangulator; 0..2 are accepted
+     */
+    public static void chooseTriangulator (int i) {
+	switch (i) {
+	case 0 : {
+	    MESHGENERATOR.GENERATOR = "Mehlhorn";
+	    return;
+	}//case 0
+	case 1 : {
+	    MESHGENERATOR.GENERATOR = "Triangle";
+	    return;
+	}//case 1
+	case 2 : {
+	    MESHGENERATOR.GENERATOR = "NetGen";
+	    return;
+	}//case 2
+	}//switch
+	
+    }//end method chooseTriangulator
 
 }//end class ROSEAlgebras
