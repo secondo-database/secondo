@@ -1733,4 +1733,11 @@ public class ROSEAlgebra {
 	
     }//end method chooseTriangulator
 
+
+    /**
+     *
+     */
+    public static void setDerivationValue (double d) {
+	RationalFactory.setDerivDouble(d);
+    }//end method setDerivationValue
 }//end class ROSEAlgebras
