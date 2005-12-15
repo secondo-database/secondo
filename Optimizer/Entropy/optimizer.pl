@@ -246,6 +246,8 @@ Example call:
 
 */
 
+usingVersion(entropy).
+
 pog(Rels, Preds, Nodes, Edges) :-
 
   length(Rels, N), reverse(Rels, Rels2), deleteArguments,
