@@ -205,7 +205,197 @@ there is a sample relation already available and the last two ones create
 new relations by sending a Secondo ~let~-command.
 
 */
-createSampleRelation(Rel, ObjList) :-  % Rel in lc
+
+sampleSizeJoin(500).
+
+sampleSizeSelection(2000).
+
+thresholdMainMemorySizeSampleJ(2048).
+
+thresholdMainMemorySizeSampleS(2048).
+
+hasSampleS(Rel) :-
+  getSecondoList(ObjList),
+  getSpelledRel(Rel, SpelledRel),
+  concat_atom([SpelledRel, '_sample_s'], '', ORel),
+  member(['OBJECT', ORel, _ , [[rel | _]]], ObjList).
+
+hasSampleJ(Rel) :-
+  getSecondoList(ObjList),
+  getSpelledRel(Rel, SpelledRel),
+  concat_atom([SpelledRel, '_sample_j'], '', ORel),
+  member(['OBJECT', ORel, _ , [[rel | _]]], ObjList).
+
+getSizeSampleJ(Rel, Size) :-
+  getSpelledRel(Rel, SpelledRel),
+  card(SpelledRel, Card),
+  sampleSizeJoin(JoinSize),
+  SampleCard is truncate(min(Card, max(JoinSize, Card*0.00001))),
+  tuplesize(SpelledRel, TupleSize),
+  Size is (SampleCard*TupleSize) / 1024.
+
+getSizeSampleS(Rel, Size) :-
+  getSpelledRel(Rel, SpelledRel),
+  card(SpelledRel, Card),
+  sampleSizeSelection(SelectionSize),
+  SampleCard is truncate(min(Card, max(SelectionSize, Card*0.00001))),
+  tuplesize(SpelledRel, TupleSize),
+  Size is (SampleCard*TupleSize) / 1024.
+
+createSampleJ(Rel) :- %Rel in lc
+  spelling(Rel, Rel2),
+  Rel2 = lc(Rel3),
+  sampleNameJ(Rel3, Sample),
+  sampleSizeJoin(JoinSize),
+  concat_atom(['let ', Sample, ' = ', Rel3, 
+    ' sample[', JoinSize, ', 0.00001] consume'], '', QueryAtom),    
+  tryCreate(QueryAtom),
+  card(Rel3, Card),
+  SampleCard is truncate(min(Card, max(JoinSize, Card*0.00001))),
+  assert(storedCard(Sample, SampleCard)),
+  downcase_atom(Sample, DCSample),  
+  assert(storedSpell(DCSample, lc(Sample))).
+
+createSampleJ(Rel) :- %Rel in uc
+  spelling(Rel, Rel2),
+  upper(Rel2, URel),
+  sampleNameJ(URel, Sample),
+  sampleSizeJoin(JoinSize),
+  concat_atom(['let ', Sample, ' = ', URel, 
+    ' sample[', JoinSize, ', 0.00001] consume'], '', QueryAtom),    
+  tryCreate(QueryAtom),
+  card(Rel2, Card),
+  SampleCard is truncate(min(Card, max(2000, Card*0.00001))),
+  lowerfl(Sample, LSample),
+  assert(storedCard(LSample, SampleCard)),
+  downcase_atom(Sample, DCSample),
+  assert(storedSpell(DCSample, LSample)).
+
+createSampleS(Rel) :- %Rel in lc
+  spelling(Rel, Rel2),
+  Rel2 = lc(Rel3),
+  sampleNameS(Rel3, Sample),
+  sampleSizeSelection(SelectionSize),
+  concat_atom(['let ', Sample, ' = ', Rel3, 
+    ' sample[', SelectionSize, ', 0.00001] consume'], '', QueryAtom),    
+  tryCreate(QueryAtom),
+  card(Rel3, Card),
+  SampleCard is truncate(min(Card, max(SelectionSize, Card*0.00001))),
+  assert(storedCard(Sample, SampleCard)),
+  downcase_atom(Sample, DCSample),  
+  assert(storedSpell(DCSample, lc(Sample))).
+
+createSampleS(Rel) :- %Rel in uc
+  spelling(Rel, Rel2),
+  upper(Rel2, URel),
+  sampleNameS(URel, Sample),
+  sampleSizeSelection(SelectionSize),
+  concat_atom(['let ', Sample, ' = ', URel, 
+    ' sample[', SelectionSize, ', 0.00001] consume'], '', QueryAtom),    
+  tryCreate(QueryAtom),
+  card(Rel2, Card),
+  SampleCard is truncate(min(Card, max(2000, Card*0.00001))),
+  lowerfl(Sample, LSample),
+  assert(storedCard(LSample, SampleCard)),
+  downcase_atom(Sample, DCSample),
+  assert(storedSpell(DCSample, LSample)).
+
+writeErrorSampleFileJ(Rel, MemorySize) :-
+  nl,
+  write('ERROR: Couldn\'t create join sample file for relation \''),
+  write(Rel), write('\'!'),nl,
+  write('Sample file needs more than '), write(MemorySize),
+  write(' KB in main memory.'),nl,
+  write('Please create the file manually, e.g.: '),
+  write('let \'cities_sample_j = cities sample[300, 0.00001] consume\'.'),nl,nl.
+
+writeErrorSampleFileS(Rel, MemorySize) :-
+  nl,
+  write('ERROR: Couldn\'t create selection sample file for relation \''),
+  write(Rel), write('\'!'),nl,
+  write('Sample file needs more than '), write(MemorySize),
+  write(' KB in main memory.'),nl,
+  write('Please create the file manually, e.g.: '),
+  write('let \'cities_sample_s = cities sample[1500, 0.00001] consume\'.'),nl,nl.
+
+createSampleRelation4(Rel, Size, MemorySize) :-
+  not(hasSampleJ(Rel)),
+  getSizeSampleJ(Rel, Size),
+  thresholdMainMemorySizeSampleJ(MemorySize).
+
+createSampleRelation3(Rel, Size, MemorySize) :-
+  not(hasSampleS(Rel)),
+  getSizeSampleS(Rel, Size),
+  thresholdMainMemorySizeSampleS(MemorySize),
+  Size =< MemorySize,
+  createSampleS(Rel).
+
+createSampleRelation2(Rel, Size, MemorySize) :-
+  hasSampleS(Rel),
+  not(hasSampleJ(Rel)),
+  getSizeSampleJ(Rel, Size),
+  thresholdMainMemorySizeSampleJ(MemorySize).
+
+% Case 1  
+createSampleRelation(Rel) :-
+  hasSampleS(Rel),
+  hasSampleJ(Rel),!.
+% Case 2
+createSampleRelation(Rel) :-
+  createSampleRelation2(Rel, Size, MemorySize),
+  Size =< MemorySize,
+  createSampleJ(Rel),!.
+% Case 3
+createSampleRelation(Rel) :-
+  createSampleRelation2(Rel, Size, MemorySize),
+  Size > MemorySize, 
+  writeErrorSampleFileJ(Rel, MemorySize),!,fail.
+% Case 4
+createSampleRelation(Rel) :-
+  hasSampleJ(Rel),
+  createSampleRelation3(Rel, _, _),!.
+% Case 6
+createSampleRelation(Rel) :-
+  createSampleRelation4(Rel, Size, MemorySize),
+  Size =< MemorySize,
+  createSampleRelation3(Rel, _, _),
+  createSampleJ(Rel),!.
+% Case 7
+createSampleRelation(Rel) :-
+  createSampleRelation3(Rel, _, _),
+  createSampleRelation4(Rel, Size, MemorySize),
+  Size > MemorySize,
+  writeErrorSampleFileJ(Rel, MemorySize),!,fail.  
+% Case 8
+createSampleRelation(Rel) :-
+  not(hasSampleS(Rel)),
+  getSizeSampleS(Rel, Size),
+  thresholdMainMemorySizeSampleS(MemorySize),
+  Size > MemorySize,
+  createSampleRelation4(Rel, Size2, MemorySize2),
+  Size2 =< MemorySize2,
+  createSampleJ(Rel),
+  writeErrorSampleFileS(Rel, MemorySize),!,fail.
+% Case 9
+createSampleRelation(Rel) :-
+  not(hasSampleS(Rel)),
+  getSizeSampleS(Rel, Size),
+  thresholdMainMemorySizeSampleS(MemorySize),
+  Size > MemorySize,
+  createSampleRelation4(Rel, Size, MemorySize),
+  Size > MemorySize,
+  writeErrorSampleFileS(Rel, MemorySize),
+  writeErrorSampleFileJ(Rel, MemorySize),!,fail.
+% Case 5
+createSampleRelation(Rel) :-
+  not(hasSampleS(Rel)),
+  getSizeSampleS(Rel, Size),
+  thresholdMainMemorySizeSampleS(MemorySize),
+  Size > MemorySize,
+  writeErrorSampleFileS(Rel, MemorySize),
+  hasSampleJ(Rel),fail.
+
+/*createSampleRelation(Rel, ObjList) :-   Rel in lc
   spelling(Rel, Rel2),
   Rel2 = lc(Rel3),
   sampleNameS(Rel3, Sample1),
@@ -214,7 +404,7 @@ createSampleRelation(Rel, ObjList) :-  % Rel in lc
   member(['OBJECT', Sample2, _ , [[_ | _]]], ObjList),
   !.
 
-createSampleRelation(Rel, ObjList) :-  % Rel in uc
+createSampleRelation(Rel, ObjList) :-   Rel in uc
   spelling(Rel, Rel2),
   not(Rel2 = lc(_)),
   upper(Rel2, URel),
@@ -224,7 +414,7 @@ createSampleRelation(Rel, ObjList) :-  % Rel in uc
   member(['OBJECT', Sample2, _ , [[_ | _]]], ObjList),
   !.
 
-createSampleRelation(Rel, _)  :-  % Rel in lc
+createSampleRelation(Rel, _)  :-   Rel in lc
   spelling(Rel, Rel2),
   Rel2 = lc(Rel3),
   sampleNameS(Rel3, Sample1),
@@ -246,7 +436,7 @@ createSampleRelation(Rel, _)  :-  % Rel in lc
   assert(storedSpell(DCSample2, lc(Sample2))),
   !.
 
-createSampleRelation(Rel, _) :-  % Rel in uc
+createSampleRelation(Rel, _) :-   Rel in uc
   spelling(Rel, Rel2),
   upper(Rel2, URel),
   sampleNameS(URel, Sample1),
@@ -268,7 +458,7 @@ createSampleRelation(Rel, _) :-  % Rel in uc
   assert(storedSpell(DCSample1, LSample1)),
   downcase_atom(Sample2, DCSample2),
   assert(storedSpell(DCSample2, LSample2)),
-  !.
+  !.*/
 /*
 Checks, if an index exists for ~Rel~ and ~Attr~ and stores the 
 respective values to the dynamic predicates ~storedIndex/4~ or 
@@ -308,11 +498,18 @@ are executed furthermore by this rule.
 
 */
 
-checkForIndex(_, []).
+%checkForIndex(_, []).
 
-checkForIndex(Rel, [First|Rest]) :-
-  updateIndex(Rel, First),
-  checkForIndex(Rel, Rest).
+%checkForIndex(Rel, [First|Rest]) :-
+%updateIndex(Rel, First),
+%checkForIndex(Rel, Rest).
+
+trycreateSmallRelation(Rel, ObjList) :- 
+  usingVersion(entropy),
+  createSmallRelation(Rel, ObjList),!.
+
+trycreateSmallRelation(_, _) :- 
+  usingVersion(standard).
 
 relation(Rel, AttrList) :-
   storedRel(Rel, AttrList),
@@ -326,13 +523,14 @@ relation(Rel, AttrList) :-
   DCRel = Rel,
   extractList(AttrList2, AttrList3),
   downcase_list(AttrList3, AttrList),
-  assert(storedRel(Rel, AttrList)),
   spelling(Rel, _),
-  createSmallRelation(Rel, ObjList),
-  createAttrSpelledAndIndexLookUp(Rel, AttrList3),
   card(Rel, _),
   tuplesize(Rel, _),
-  createSampleRelation(Rel, ObjList).
+  createSampleRelation(Rel),
+  trycreateSmallRelation(Rel, ObjList),
+  assert(storedRel(Rel, AttrList)),
+  createAttrSpelledAndIndexLookUp(Rel, AttrList3).
+
   %retract(storedSecondoList(ObjList)).
 
 /*
@@ -538,7 +736,8 @@ cardinality. This cardinality is then stored in local memory.
 
 */
 card(Rel, Size) :-
-  storedCard(Rel, Size),
+  spelled(Rel, Rel2, _),
+  storedCard(Rel2, Size),
   !.
 /*
 First letter of ~Rel~ is written in lower case.
@@ -626,21 +825,26 @@ The first rule simply reduces an attribute of the form e.g. p:ort just
 to its attribute name e.g. ort.
 
 */
+
 hasIndex(rel(Rel, _, _), attr(_:A, _, _), IndexName, _) :-
   hasIndex(rel(Rel, _, _), attr(A, _, _), IndexName, _).
 /*
+
 Gets the index name ~Index~ for relation ~Rel~ and attribute ~Attr~
 via dynamic predicate ~storedIndex/4~.
 
 */
+
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, Type) :-
   storedIndex(Rel, Attr, Type, Index),
   !.
+
 /*
 If there is information stored in local memory, that there is no index
 for relation ~Rel~ and attribute ~Attr~ then this rule fails.
 
 */
+
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
   storedNoIndex(Rel, Attr),
   !,
@@ -689,7 +893,7 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-     %attr in lc
   !, fail.
 
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :- %attr in uc
-                                               	                %rel in lc
+                                            	                %rel in lc
   not(Attr = _:_),                                              %succeeds
   spelled(Rel:Attr, attr(Attr2, 0, u)),             
   spelled(Rel, _, l),
@@ -720,7 +924,8 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :- %attr in uc
   %write(QueryAtom),nl,
   !.
 
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-     %attr in uc
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
+                                                 	%attr in uc
   not(Attr = _:_),                                      %fails
   spelled(Rel:Attr, attr(_, 0, u)),
   verifyIndexAndStoreNoIndex(Rel, Attr),
@@ -777,7 +982,18 @@ is updated, if an index has been added or an index has been deleted. Note,
 that all letters of ~Rel~ and ~Attr~ must be written in lower case.
 
 */
-updateIndex(Rel, Attr) :- % add index on small relation
+updateIndex :-
+  retract(storeupdateIndex(0)),
+  assert(storeupdateIndex(1)),
+  secondo('list objects',[_, [_, [_ | ObjList]]]),
+  retract(storedSecondoList(_)),
+  assert(storedSecondoList(ObjList)),
+  checkForAddedIndices(ObjList),
+  checkForRemovedIndices(ObjList),
+  retract(storeupdateIndex(1)),
+  assert(storeupdateIndex(0)).
+
+/*updateIndex(Rel, Attr) :- % add index on small relation
   spelled(Rel, SRel, _),  
   spelled(Rel:Attr, attr(Attr2, _, _)),
   storedNoIndex(SRel, Attr2),
@@ -792,7 +1008,7 @@ updateIndex(Rel, Attr) :- % delete index on small relation
   retract(storedIndex(SRel, Attr2, _, Index)), 
   assert(storedNoIndex(SRel, Attr2)),
   concat_atom(['delete ', Index, '_small'], '', QueryAtom),
-  secondo(QueryAtom).
+  secondo(QueryAtom).*/
 
 /*
 1.5.2 Update Relations
@@ -856,7 +1072,85 @@ retractPETs(Rel) :-
 
 retractPETs(_).
 
-updateRel(Rel) :- % rel in lc
+getSpelledRel(Rel, SpelledRel) :-
+  spelling(Rel, Spelled),
+  Spelled = lc(SpelledRel),!.
+
+getSpelledRel(Rel, SpelledRel) :-
+  spelling(Rel, Spelled),
+  upper(Spelled, SpelledRel),!.
+
+getSpelledRel(_, _) :-
+  write('ERROR: Relation Name Not Known!'),!,fail.
+
+tryDeleteFile(Name, ObjList) :-
+  member(['OBJECT', Name, _ , [[rel | _]]], ObjList),
+  concat_atom(['delete ', Name], '', QueryAtom),
+  secondo(QueryAtom).
+
+tryDeleteFile(Name, ObjList) :- 
+  not(member(['OBJECT', Name, _ , [[rel | _]]], ObjList)).
+
+deleteSampleAndSmallFiles(SpelledRel, ObjList) :-
+  sampleNameS(SpelledRel, SampleS),
+  tryDeleteFile(SampleS, ObjList),
+  sampleNameJ(SpelledRel, SampleJ),
+  tryDeleteFile(SampleJ, ObjList),
+  sampleNameSmall(SpelledRel, Small),
+  tryDeleteFile(Small, ObjList).
+
+
+retractStoredInformation(SpelledRel) :-
+  sampleNameS(SpelledRel, SampleS),
+  sampleNameJ(SpelledRel, SampleJ),
+  lowerfl(SpelledRel,LFSpelledRel),
+  downcase_atom(SpelledRel, DCSpelledRel),  
+  lowerfl(SampleS, LFSampleS),
+  downcase_atom(SampleS, DCSampleS),
+  lowerfl(SampleJ, LFSampleJ),
+  downcase_atom(SampleJ, DCSampleJ),
+  concat_atom([LFSpelledRel,'_small'], '', Small),
+  downcase_atom(Small, DCSmall),
+  retractall(storedCard(LFSpelledRel, _)),
+  retractall(storedCard(LFSampleS, _)),
+  retractall(storedCard(LFSampleJ, _)),
+  retractall(storedCard(Small, _)),
+  retractall(storedTupleSize(LFSpelledRel, _)),
+  retractall(storedSpell(DCSpelledRel, _)),
+  retractall(storedSpell(DCSpelledRel:_, _)),
+  retractall(storedSpell(DCSampleS, _)),
+  retractall(storedSpell(DCSampleJ, _)),  
+  retractall(storedSpell(DCSmall, _)),
+  retractSels(Rel),
+  retractPETs(Rel),
+  retractall(storedRel(DCSpelledRel, _)),
+  retractall(storedIndex(LFSpelledRel, _, _, _)),
+  retractall(storedNoIndex(LFSpelledRel, _)).
+  
+updateRel2(_, SpelledRel, ObjList) :-
+  member(['OBJECT', SpelledRel, _ , [[rel | _]]], ObjList),!.
+
+updateRel2(_, SpelledRel, ObjList) :-
+  not(member(['OBJECT', SpelledRel, _ , [[rel | _]]], ObjList)),
+  deleteSampleAndSmallFiles(SpelledRel, ObjList),
+  retractStoredInformation(SpelledRel).
+    	
+updateRel(Rel) :-
+  retract(storeupdateRel(0)),
+  assert(storeupdateRel(1)),
+  secondo('list objects',[_, [_, [_ | ObjList]]]),
+  retract(storedSecondoList(_)),
+  assert(storedSecondoList(ObjList)),
+  getSpelledRel(Rel, SpelledRel),
+  updateRel2(Rel,SpelledRel, ObjList),
+  retract(storeupdateRel(1)),
+  assert(storeupdateRel(0)).  
+  
+
+
+  
+
+/*updateRel(Rel) :- % rel in lc
   spelling(Rel, Spelled),
   Spelled = lc(Rel),
   sampleNameS(Rel, Sample1),
@@ -889,9 +1183,9 @@ updateRel(Rel) :- % rel in lc
   retractPETs(Rel),
   retractall(storedRel(Rel, _)),
   retractall(storedIndex(Rel, _, _, _)),
-  retractall(storedNoIndex(Rel, _)),!.
+  retractall(storedNoIndex(Rel, _)),!.*/
 
-updateRel(Rel) :- % rel in uc
+/*updateRel(Rel) :- % rel in uc
   spelled(Rel, Rel2, u),
   upper(Rel2, URel),
   sampleNameS(URel, Sample1),
@@ -924,7 +1218,7 @@ updateRel(Rel) :- % rel in uc
   retractPETs(Rel2),
   retractall(storedRel(Rel, _)),
   retractall(storedIndex(Rel2, _, _, _)),
-  retractall(storedNoIndex(Rel2, _)).
+  retractall(storedNoIndex(Rel2, _)).*/
 /*
 1.6 Average Size Of A Tuple
 
@@ -943,7 +1237,8 @@ relations.
 
 */
 tuplesize(Rel, Size) :-
-  storedTupleSize(Rel, Size),
+  spelled(Rel, Rel2, _),
+  storedTupleSize(Rel2, Size),
   !.
 /*
 First letter of ~Rel~ is written in lower case.

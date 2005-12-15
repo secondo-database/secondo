@@ -269,13 +269,80 @@ executed and the result pretty-printed. If the query fails, the error code
 and error message are printed.
 
 */
+indexType(btree).
+indexType(rtree).
+
+checkIfIndexIsStored(Rel, Attr, IndexType, IndexName) :-
+  storedIndex(Rel, Attr, IndexType, IndexName),!.
+
+checkIfIndexIsStored(Rel, Attr, IndexType, IndexName) :-
+  storedNoIndex(Rel, Attr),
+  retract(storedNoIndex(Rel, Attr)),
+  assert(storedIndex(Rel, Attr, IndexType, IndexName)),!.
+
+checkIfIndexIsStored(Rel, Attr, IndexType, IndexName) :-
+  assert(storedIndex(Rel, Attr, IndexType, IndexName)).
+
+checkForAddedIndex(ObjList) :-
+  member(['OBJECT', IndexName, _ , [[IndexType | _]]], ObjList),
+  concat_atom(L, '_', IndexName),
+  L = [Rel, Attr],
+  not(Attr = small),
+  not(Attr = sample),
+  indexType(IndexType),
+  lowerfl(Rel, LFRel),
+  lowerfl(Attr, LFAttr),
+  checkIfIndexIsStored(LFRel, LFAttr, IndexType, IndexName).
+
+checkForAddedIndices(ObjList) :-
+  findall(_, checkForAddedIndex(ObjList), _).
+
+checkForRemovedIndex(ObjList) :-
+  storedIndex(Rel, Attr, IndexType, IndexName),
+  not(member(['OBJECT', IndexName, _ , [[IndexType | _]]], ObjList)),
+  retract(storedIndex(Rel, Attr, IndexType, IndexName)),
+  assert(storedNoIndex(Rel, Attr)),
+  concat_atom([IndexName, 'small'], '_', IndexNameSmall),
+  member(['OBJECT', IndexNameSmall, _ , [[IndexType | _]]], ObjList),
+  concat_atom(['delete ',IndexNameSmall], '', QueryAtom),
+  secondo(QueryAtom).
+
+checkForRemovedIndices(ObjList) :-
+  findall(_, checkForRemovedIndex(ObjList), _).
+
+checkIfIndex(X, ObjList) :-
+  sub_atom(X, _, _, _, IndexName),
+  member(['OBJECT', IndexName, _ , [[IndexType | _]]], ObjList),
+  indexType(IndexType),
+  checkForAddedIndices(ObjList),!.
+
+checkIfIndex(_, _) :-
+  true.	
+
+checkIsInList(X, ObjList, Type) :-
+  sub_atom(X, _, _, _, Name),
+  member(['OBJECT', Name, _ , [[Type | _]]], ObjList),!.
+
+checkIsInList(_, _, _) :-
+  fail.
+
+:- dynamic storeupdateRel/1.
+
+:- dynamic storeupdateIndex/1.
+
+storeupdateRel(0).
+
+storeupdateIndex(0).
+  
 secondo(X) :-
   sub_atom(X,0,4,_,S),
   atom_prefix(S,'open'),	
   secondo(X, Y),
   retract(storedDatabaseOpen(_)),
   assert(storedDatabaseOpen(1)),
-  getSecondoList(_),
+  getSecondoList(ObjList),
+  checkForAddedIndices(ObjList),
+  checkForRemovedIndices(ObjList),
   write('Command succeeded, result:'),
   nl, nl,
   show(Y),!.
@@ -377,7 +444,8 @@ secondo(X) :-
   isDatabaseOpen, 
   secondo(X, Y),
   retract(storedSecondoList(_)),
-  getSecondoList(_),
+  getSecondoList(ObjList),
+  checkIfIndex(X, ObjList),
   write('Command succeeded, result:'),
   nl, nl,
   show(Y),!.
@@ -408,24 +476,84 @@ secondo(X) :-
   getSecondoList(_),
   write('Command succeeded, result:'),
   nl, nl,
-  show(Y),!.
+  show(Y),
+  !.
 
 secondo(X) :-
-  sub_atom(X,0,6,_,S),
-  atom_prefix(S,'delete'),
-  sub_atom(X,0,15,_,S),
-  not(atom_prefix(S,'delete database')),
-  isDatabaseOpen,  
+  concat_atom([Command, _],' ',X),
+  Command = 'delete',
+  isDatabaseOpen,
+  getSecondoList(ObjList),
+  checkIsInList(X, ObjList, rel),
+  storeupdateRel(1),  
+  secondo(X, _),
+  !.
+  	
+secondo(X) :-
+  concat_atom([Command, Name],' ',X),
+  Command = 'delete',
+  isDatabaseOpen,
+  getSecondoList(ObjList),
+  checkIsInList(X, ObjList, rel),
+  storeupdateRel(0),
+  storedRel(Name, _),  
   secondo(X, Y),
+  downcase_atom(Name, DCName),
+  updateRel(DCName),  
   retract(storedSecondoList(_)),
   getSecondoList(_),
   write('Command succeeded, result:'),
   nl, nl,
-  show(Y),!.
+  show(Y),
+  !.
+
+secondo(X) :-
+  concat_atom([Command, _],' ',X),
+  Command = 'delete',
+  isDatabaseOpen,
+  getSecondoList(ObjList),
+  indexType(Type),
+  checkIsInList(X, ObjList, Type),
+  storeupdateIndex(1), 
+  secondo(X, _),
+  retract(storedSecondoList(_)),
+  getSecondoList(_),
+  !.
+
+secondo(X) :-
+  concat_atom([Command, Name],' ',X),
+  Command = 'delete',
+  isDatabaseOpen,
+  getSecondoList(ObjList),
+  indexType(Type),
+  checkIsInList(X, ObjList, Type),
+  storeupdateIndex(0),
+  storedIndex(_, _, Type, Name),  
+  secondo(X, Y),
+  updateIndex,  
+  %retract(storedSecondoList(_)),
+  %getSecondoList(_),
+  write('Command succeeded, result:'),
+  nl, nl,
+  show(Y),
+  !.
+
+secondo(X) :-
+  concat_atom([Command, Name],' ',X),
+  Command = 'list',
+  Name = 'objects',
+  isDatabaseOpen,
+  secondo(X, Y),
+  write('Command succeeded Index, result:'),
+  nl, nl,
+  show(Y),
+  !.
   
 secondo(X) :-
   (
     secondo(X, Y),
+    retract(storedSecondoList(_)),
+    getSecondoList(_),
     write('Command succeeded, result:'),
     nl, nl,
     show(Y)
@@ -532,9 +660,9 @@ delete(Query) :-
   isDatabaseOpen,
   atom(Query),
   atom_concat('delete ', Query, QueryText),
-  secondo(QueryText),
-  retract(storedSecondoList(_)),
-  getSecondoList(_).
+  secondo(QueryText).
+  %retract(storedSecondoList(_)),
+  %getSecondoList(_).
 
 open(Query) :-
   atom(Query),
