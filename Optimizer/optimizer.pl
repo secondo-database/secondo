@@ -248,6 +248,8 @@ Example call:
 
 */
 
+usingVersion(standard).
+
 pog(Rels, Preds, Nodes, Edges) :-
   length(Rels, N), reverse(Rels, Rels2), deleteArguments,
   partition(Rels2, N, Partition0),
@@ -2660,6 +2662,7 @@ Translate and store a single relation definition.
 
 lookupRel(Rel as Var, rel(Rel2, Var, Case)) :-
   relation(Rel, _), !,
+  write('hier1'),
   spelled(Rel, Rel2, Case),
   not(defined(Var)),
   assert(variable(Var, rel(Rel2, Var, Case))).
@@ -3734,6 +3737,7 @@ bestPlanConsume :-
   atom_concat(S, ' consume', Q),
   nl, write(Q), nl,
   query(Q).
+
   
 
 
