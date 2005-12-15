@@ -1,5 +1,5 @@
 /*
------
+-----           
 This file is part of SECONDO.
 
 Copyright (C) 2004, University in Hagen, Department of Computer Science,
@@ -69,8 +69,7 @@ extern QueryProcessor* qp;
 /*
 3 Class Segment
 
-This class is used to save the values of each segment of both
-arguments.
+This class is used to save the values of each segment of both arguments.
 
 */
 
@@ -93,8 +92,9 @@ private:
    bool in1;
    CHalfSegment chs;
 };
+
 /*
-konstruktor to biuld up a new segment-object
+constructor to build up a new segment-object
 
 */
 Segment::Segment(bool in, const CHalfSegment& inchs)
@@ -144,11 +144,8 @@ ostream& operator<<(ostream &os, Segment& segm)
 /*
 2. Template
 
-This template is implementing a binary tree (red-blach-tree).
-It is used for the classes ~PQueue~, ~Statusline~ and ~Sline~.
-These classes implement the priority queue
-(Sweep-Event-Structure) and the Sweepline-Status-Structure
-of the Plane-Sweep-Algorithm.
+This template is implementing a binary tree (red-blach-tree). It is used for the classes ~PQueue~, ~Statusline~ and ~Sline~.
+These classes implement the priority queue (Sweep-Event-Structure) and the Sweepline-Status-Structure of the Plane-Sweep-Algorithm.
 
 */
 
@@ -261,7 +258,7 @@ private:
 };
 
 /*
-build up a empty tree, initialise the atrributes
+build up an empty tree, initialise the atrributes
 
 */
 
@@ -364,7 +361,7 @@ template<class E> E BinTree<E>::GetFirstAndDelete () {
       BinTreeNode<E> * next = node->GetNext();
       // remove all dups
       while (next != NIL) {
-         if ( en.EventEqual(next->GetEntry()) ) {
+         if ( en.Equal(next->GetEntry()) ) {
             BinTreeNode<E>* del = next;
 	    next = next->GetNext() ;
 	    assert (del);
@@ -416,7 +413,7 @@ template<class E>  BinTreeNode<E>* BinTree<E>::Find (const E &entry,
       else if (c<0)  node = node->Left;
       else node = node->Right;
    }
-   return 0;  // entry not found
+   return 0;  // should not reached, entry not found
 }
 
 template<class E>  BinTreeNode<E>* BinTree<E>::Find (const E &entry,
@@ -430,7 +427,7 @@ template<class E>  BinTreeNode<E>* BinTree<E>::Find (const E &entry,
       else if (c<0)  node = node->Left;
       else node = node->Right;
    }
-   return 0;  // entry not found
+   return 0;  // should not reached, entry not found
 }
 
 template<class E>  BinTreeNode<E>* BinTree<E>::Find (const E &entry,
@@ -444,7 +441,7 @@ template<class E>  BinTreeNode<E>* BinTree<E>::Find (const E &entry,
       else if (c<0)  node = node->Left;
       else node = node->Right;
    }
-   return 0;  // entry not found
+   return 0;  // should not reached, entry not found
 }
 
 /*
@@ -938,7 +935,8 @@ events, that can occur in the realmisation
 
 */
 
-enum EventKind {bottomSeg, rightSeg, split, intersection, leftSeg};
+enum EventKind
+  {verticalSegment, rightSegment, split, intersection, leftSegment};
 
 class XEvent
 {
@@ -960,7 +958,7 @@ public:
    double GetSlope() const;
    double GetA() const;
    int Less (const XEvent ev2, const Coord x) const;
-   bool EventEqual (const XEvent ev2) const;
+   bool Equal (const XEvent ev2) const;
 
 private:
    Coord x;
@@ -971,7 +969,7 @@ private:
    int seg1;
    int seg2;
 
-   XEvent& operator= (const XEvent& ev);
+   //XEvent& operator= (const XEvent& ev);
 
 };
 
@@ -1016,13 +1014,14 @@ XEvent::XEvent(Coord& inx, Coord& iny, int inseg,
 }
 
 /*
-construktors for event-kind rightSeg, leftSeg and vrtical Segment
+construktors for event-kind rightSegment, leftSegment and vrtical Segment
 
 */
 XEvent:: XEvent(Coord& inx, Coord& iny, int inseg, double k1,
    double a1, EventKind event)
 {
-   if (event==rightSeg || event==bottomSeg || event==leftSeg)  {
+   if (event==rightSegment || event==verticalSegment ||
+      event==leftSegment)  {
       kind=event;
       x = inx;
       y = iny;
@@ -1082,9 +1081,9 @@ double XEvent::GetA() const		{return a;}
 
 */
 
-XEvent& XEvent::operator= (const XEvent& ev)  { return *this;}
+//XEvent& XEvent::operator= (const XEvent& ev)  { return *this;}
 
-bool XEvent::EventEqual (const XEvent ev2) const
+bool XEvent::Equal (const XEvent ev2) const
 {
    if (GetKind() == ev2.GetKind() && GetFirst()== ev2.GetFirst() &&
        GetSecond() == ev2.GetSecond() )    return true;
@@ -1102,7 +1101,7 @@ template BinTree to insert the XEvents in the right node.
 
 int XEvent::Less (const XEvent ev2, const Coord x) const
 {
-   if ( EventEqual (ev2) )  return 0;
+   if ( Equal (ev2) )  return 0;
    // ordered by x-value
    else if (GetX() < ev2.GetX())  { return -1; }
    else if (GetX() > ev2.GetX()) { return 1; }
@@ -1110,12 +1109,12 @@ int XEvent::Less (const XEvent ev2, const Coord x) const
    else if (GetKind() < ev2.GetKind())  	{ return -1;}
    else if (GetKind() > ev2.GetKind())  	{ return 1;}
    else  {// groups ordered by different categories
-      if (GetKind() == leftSeg || GetKind() == bottomSeg) {
+      if (GetKind() == leftSegment || GetKind() == verticalSegment) {
           // add at the end of a group
          if (GetFirst() < ev2.GetFirst())	{ return -1;}
 	 else					{ return 1;}
       }
-      else if (GetKind() == rightSeg) {
+      else if (GetKind() == rightSegment) {
          // then ordered by y-value, then slope of the segment
          if (GetY() < ev2.GetY())		{ return -1;}
 	 else if (GetY() > ev2.GetY())		{return 1;}
@@ -1253,8 +1252,6 @@ private:
    int chs;
    double k;
    double a;
-
-   SSSEntry& operator= (const SSSEntry& se);
 };
 
 /*
@@ -1268,10 +1265,12 @@ SSSEntry:: SSSEntry(int inseg, double ink, double ina)
    a = ina;
 }
 
+
 /*
 creates a new entry-object from a given CHalfsegments and calculates slope and a
 
 */
+
 SSSEntry:: SSSEntry (int inseg, Segment segs[])
 {
    chs = inseg;
@@ -1294,7 +1293,6 @@ SSSEntry:: SSSEntry (int inseg, Segment segs[])
 
 }
 
-SSSEntry& SSSEntry::operator= (const SSSEntry& se){return *this;}
 
 /*
 3.4.2 Functions for readig and setting values of a SSSEntry-Object
@@ -1359,9 +1357,10 @@ const double SSSEntry::GetY(Coord x, Segment segs[]) const  {
 int SSSEntry:: Less (const SSSEntry in2, const Coord x,
    Segment segs[]) const
 {
+   Coord xtest = x * 100000000;
    if (Equal(in2)) return 0;
-   else if (GetY(x, segs) < in2.GetY(x, segs)) return -1;
-   if (GetY(x, segs) > in2.GetY(x, segs)) return 1;
+   else if (GetY(xtest, segs) < in2.GetY(xtest, segs)) return -1;
+   if (GetY(xtest, segs) > in2.GetY(xtest, segs)) return 1;
    // same y-value -> compare slope
       if (Getk() < in2.Getk()) return -1;
       else if (Getk() > in2.Getk() ) return 1;
@@ -1404,6 +1403,7 @@ public:
 
 private:
    BinTree<SSSEntry> ssl;
+
 
    bool IsEmpty();
    int Size();
@@ -1681,18 +1681,18 @@ void StatusLine::Exchange (BinTreeNode<SSSEntry>* e1,
 }
 
 /*
-3.6 class VStructure
+3.6 class VPoints
 
 This class is  activated, if a vertical segment occurs (SetDefined = true). It is used to store the y-values of end-point of segments at the sweepline, at wich the vertical segment must be split.
 In this class a <list> from the C++-Standards is used.
 
 */
 
-class VStructure {
+class VPoints {
 public:
    friend class VList;
-   VStructure();
-   ~VStructure()   {};
+   VPoints();
+   ~VPoints()   {};
    void Insert (Coord y);
    void SetDefined(bool def)   	{ defined = def;}
    bool IsDefined () 		{ return defined; }
@@ -1707,9 +1707,9 @@ private:
    void Output();
 };
 
-void VStructure::Output()
+void VPoints::Output()
 {
-   cout << " in output Vstructure " << endl;
+   cout << " in output VPoints " << endl;
    list<Coord>::iterator p = vstruct.begin();
    while (p != vstruct.end())
    {
@@ -1721,13 +1721,13 @@ void VStructure::Output()
       << "   max" << max << endl;
 }
 
-VStructure::VStructure()
+VPoints::VPoints()
 {
    list<Coord> vstruct;
    defined = false;
 }
 
-void VStructure::Clear()
+void VPoints::Clear()
 {
    vstruct.clear();
    SetDefined(false);
@@ -1737,7 +1737,7 @@ void VStructure::Clear()
 a new value of an y-coordinate is inserted
 
 */
-void VStructure::Insert (Coord y)
+void VPoints::Insert (Coord y)
 {
    if (IsEmpty()) {
       vstruct.insert(vstruct.begin(), y);
@@ -1768,7 +1768,7 @@ public:
    VList();
    ~VList() {};
    void Insert (Segment& seg);
-   list<Segment> makeClear(Coord& sweepline, VStructure& vs,
+   list<Segment> processAll(Coord& sweepline, VPoints& vs,
       StatusLine& sl, Segment segs[]);
     void Clear();
     bool IsEmpty();
@@ -1779,9 +1779,9 @@ private:
    void DeleteFirst();
    Segment First();
    int Size();
-   list<Segment> eraseOverlaps(Coord sline, VStructure vs);
+   list<Segment> eraseOverlaps(Coord sline, VPoints vs);
    void testStatusLine(StatusLine& sl, Segment segs[]);
-   void testOverlaps(Coord& sweepline, VStructure& vs,
+   void testOverlaps(Coord& sweepline, VPoints& vs,
       StatusLine& sl, Segment segs[]);
    void output();
 };
@@ -1823,7 +1823,7 @@ void VList::output()
 This function is called if the sweep line moves to a new position. The vertical segments are worked off. This means tests are made to find intersection with other segments.
 
 */
-list<Segment> VList::makeClear(Coord& sweep, VStructure& vstruct,
+list<Segment> VList::processAll(Coord& sweep, VPoints& vstruct,
    StatusLine& ssl, Segment segments[])
 {
    if ( ! IsEmpty() )  {
@@ -1838,7 +1838,7 @@ test for overlaps all  vertical segments at the same x-coordinate
 
 */
 
-void VList::testOverlaps(Coord& sweepline, VStructure& vs,
+void VList::testOverlaps(Coord& sweepline, VPoints& vs,
    StatusLine& sl, Segment segs[])
 {
    list<Segment> newlist;
@@ -2281,7 +2281,7 @@ void MakeRealm::PrepareCHS ( bool No1, CHalfSegment& chs,
    if ( xl==xr)
    {
       // insert bottom of vertical chs
-      XEvent ev1(xl, yl ,counter, 0.0, 0.0, bottomSeg);
+      XEvent ev1(xl, yl ,counter, 0.0, 0.0, verticalSegment);
       pqu.insert(ev1);
    }
    // insert a non-vertical chs
@@ -2299,10 +2299,10 @@ void MakeRealm::PrepareCHS ( bool No1, CHalfSegment& chs,
       double a = yl - k*xl;
 #endif
       // insert left end of chs
-      XEvent ev2(xl, yl, counter, k, a, leftSeg);
+      XEvent ev2(xl, yl, counter, k, a, leftSegment);
       pqu.insert(ev2);
        // insert right end of chs
-      XEvent ev3(xr, yr, counter, k, a, rightSeg);
+      XEvent ev3(xr, yr, counter, k, a, rightSegment);
       pqu.insert(ev3);
    }
 }
@@ -2319,7 +2319,7 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
    set<int> mi;
    Point oldP;
    VList vlist;
-   VStructure vs;
+   VPoints vs;
    StatusLine sl;
    if ( pq.isEmpty())  return;
    Coord sweepline, oldsweep;
@@ -2331,7 +2331,7 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
          oldsweep = sweepline;
       	 // handle all vertical CHalfSegments at old sweepline
          if ( !vlist.IsEmpty() ) {
-	    list<Segment> newlist = vlist.makeClear(sweepline,vs,
+	    list<Segment> newlist = vlist.processAll(sweepline,vs,
 	       sl,segs);
 	    list<Segment>::iterator iter = newlist.begin();
             while (iter != newlist.end()) {
@@ -2346,12 +2346,12 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
       Segment seg = segs[event.GetFirst()]; // get segment - entry
       // XEvent for left end of CHalfSegment
       SSSEntry entry (event.GetFirst(),event.GetSlope(), event.GetA());
-      if (event.GetKind() == leftSeg)   {
+      if (event.GetKind() == leftSegment)   {
          sl.Insert(event.GetX(),entry, segs, pq);
          if ( vs.IsDefined())   vs.Insert(event.GetY());
       }
       // XEvent for right end of CHalfSegment
-      else if (event.GetKind() == rightSeg) {
+      else if (event.GetKind() == rightSegment) {
          sl.Delete(event.GetX(), oldsweep, entry, segs, pq);
 	 if ( vs.IsDefined())   vs.Insert(event.GetY());
 	 segs[event.GetFirst()].CHSInsert(list1,list2);
@@ -2424,8 +2424,8 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
 	 }
       }
       // XEvent - bottom of a vertical Segment
-      else if (event.GetKind() == bottomSeg)  {
-        vs.SetDefined(true);      // build up VStructure
+      else if (event.GetKind() == verticalSegment)  {
+        vs.SetDefined(true);      // build up VPoints
 	vlist.Insert(segs[event.GetFirst()]);
       }
       else  {   cout << " wrong eventkind !!!!!!!!!!!!!!!!!!!!"; }
@@ -2461,12 +2461,14 @@ public:
    CHalfSegment GetCHS() const;
    void SetU(int newU);
    void SetO(int newO);
-   int Less (const SEntry ev2, const Coord x, const SEntry oldev,
-       BinTreeNode<SEntry>* oldnode ) const;
+   int Less (const SEntry ev2, const Coord x) const;
+   //int Less (const SEntry ev2, const Coord x, const SEntry oldev,
+   //    BinTreeNode<SEntry>* oldnode ) const;
    bool Equal (const SEntry in2) const;
-   SEntry& operator= (const SEntry& in);
+   //SEntry& operator= (const SEntry& in);
 
-public:
+private:
+
    double GetSlope() const;
    double GetA() const;
 
@@ -2527,7 +2529,7 @@ SEntry::SEntry(CHalfSegment& inch)
    o=0;
 }
 
-SEntry& SEntry::operator= (const SEntry& in)  { return *this;}
+//SEntry& SEntry::operator= (const SEntry& in)  { return *this;}
 
 /*
 4.2.2 Functions for setting property values
@@ -2597,90 +2599,26 @@ bool SEntry::Equal (const SEntry in2) const
 Function used from template ~BinTree~.
 
 */
-int SEntry::Less (const SEntry in2, const Coord x, const
-   SEntry oldev, BinTreeNode<SEntry>* oldnode) const
+int SEntry::Less (const SEntry in2, const Coord x) const
 {
    if ( Equal(in2) )     return 0;
-   if (GetCHS().GetLP().GetX() == x &&
-      in2.GetCHS().GetLP().GetX() == x) {
-      double y1 = GetCHS().GetLP().GetY();
-      double y2 = in2.GetCHS().GetLP().GetY();
-      // left point of both segments start at same x-value
-      if ( y1 == y2 ) { // they start at same point
-         if (GetSlope() < in2.GetSlope())        return -1;
-         else if (GetSlope() > in2.GetSlope() )  return 1;
-         else    return 1;
-      }
-      else { // they start at different point
-         if ( (y1-y2) > 0.000001 || (y1-y2) < -0.000001) {
-            if ((y1-y2) < 0)           return -1;
-            else if ( (y1-y2) > 0 )    return 1;
-         }
-	 else {  //the point are very close
-	    if (GetCHS().attr.faceno==oldev.GetCHS().attr.faceno &&
-	    GetCHS().attr.cycleno==oldev.GetCHS().attr.cycleno &&
-	    ((GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==1 ||
-	    (GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==-1))
-	    {
-	       if  (oldnode!=0 &&  oldnode->GetEntry().GetCHS()==
-	          in2.GetCHS())    return -1;
-	       else if (oldnode!=0 && oldnode->GetPred()!=0 &&
-	       oldnode->GetPred()->GetEntry().GetCHS()==in2.GetCHS())
-	          return 1;
-	    }
-	    if (GetSlope() < in2.GetSlope())    return -1;
-	    else  return 1;
-         } // else test < 0.00001
-       } // else kommt vor
-   } // if starts same koordinate
-   else if (GetCHS().GetLP().GetX() == x) {
-      double test = GetCHS().GetLP().GetY() - in2.GetY(x);
-      if ( test > 0.000001 || test < -0.000001) {
-         if (test < 0) 	   	 return -1;
-         else if ( test > 0 )	 return 1;
-      }
-      else {  //  |test| < 0.000001
-	 if (GetCHS().attr.faceno == oldev.GetCHS().attr.faceno &&
-	 GetCHS().attr.cycleno == oldev.GetCHS().attr.cycleno &&
-	 ((GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==1 ||
-	 (GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==-1)) {
-	    if  (oldnode!=0 &&  oldnode->GetEntry().GetCHS()
-	       ==in2.GetCHS())   return -1;
-	    else if (oldnode != 0 && oldnode->GetPred() != 0 &&
-	       oldnode->GetPred()->GetEntry().GetCHS() == in2.GetCHS())
-	       return 1;
-	    else if (oldnode == 0)  return 1;
-	 }
-	 if (GetSlope() < in2.GetSlope())  return -1;
-	 else  return 1;
-      } // |test|  < 0.0001
-   }  // else
-   else if ( GetCHS().GetRP().GetX()==x &&
-      in2.GetCHS().GetRP().GetX() ==x ){
-      if (GetY(x) < in2.GetY(x))      return -1;
-      else if (GetY(x) > in2.GetY(x))  return 1;
-      else  {
-         double y1, y2;
-         y1 =     GetY(x - 0.1);
-         y2 = in2.GetY(x - 0.1);
-         if ( y1 < y2)       return -1;
-         else if (y1 > y2)  return 1;
-      }
+   if ( GetCHS().GetLP() == in2.GetCHS().GetLP())  {
+      if (GetSlope() < in2.GetSlope())       return -1;
+      else if (GetSlope() > in2.GetSlope() ) return 1;
    }
-   else if (GetY(x) < in2.GetY(x))    return -1;
-   else if (GetY(x) > in2.GetY(x))    return 1;
-   else  if (GetY(x) == in2.GetY(x) ) {
-      double y1 =     GetY(x + 1.0);
-      double y2 = in2.GetY(x + 1.0);
-      if (y1 < y2)      return -1;
-      else if (y1 > y2)  return 1;
-      else {
-         if (GetSlope() < in2.GetSlope() )   return -1;
-         else if (GetSlope() > in2.GetSlope() )   return 1;
-	 else      return 1;
-      }
+    if ( GetCHS().GetRP() == in2.GetCHS().GetRP())  {
+
+      if (GetSlope() > in2.GetSlope())  return -1;
+      else if (GetSlope() < in2.GetSlope() ) return 1;
    }
-   return 0;
+   if (GetY(x) < in2.GetY(x))    return -1;
+   if (GetY(x) > in2.GetY(x))    return 1;
+   if (GetSlope() < in2.GetSlope())   {  cout << " same y , slope < " << endl;
+       return -1;  }
+   else if (GetSlope() > in2.GetSlope() ) { cout << " same y, slope > " << endl;
+      return 1;  }
+    { cout << " alles gleich" << endl;
+   return 0; }
 }
 
 /*
@@ -2694,24 +2632,23 @@ class SLine
 public:
    SLine();
    ~SLine() { qu.Clear(); }
-   BinTreeNode<SEntry>* Insert (SEntry& in, const Coord x,
-      SEntry& oldEntry, BinTreeNode<SEntry>* &oldnode);
+   //  BinTreeNode<SEntry>* Insert (SEntry& in, const Coord x,
+   //   SEntry& oldEntry, BinTreeNode<SEntry>* &oldnode);
+   BinTreeNode<SEntry>* Insert (SEntry& in, const Coord x);
    bool IsEmpty();
-   Coord GetX();
-   void SetX(const Coord newx);
    void Delete(SEntry& in, const Coord sx);
    void Delete (BinTreeNode<SEntry>* node);
-   SEntry FindAndDelete(SEntry& en, const Coord& x, const Coord&
-      oldx, SEntry& oldEntry, BinTreeNode<SEntry>* &oldnode);
+   //SEntry FindAndDelete(SEntry& en, const Coord& x, const Coord&
+   //   oldx, SEntry& oldEntry, BinTreeNode<SEntry>* &oldnode);
+   SEntry FindAndDelete(SEntry& en, const Coord& x, const Coord oldx);
    void SLineOutput(const Coord x);
    int GetSize();
 
 private:
    BinTree<SEntry> qu;
-   Coord x;
    SEntry First();
    int cmp (const SEntry* in1, const SEntry* in2) const;
-   bool EventEqual  (const SEntry* ev1, const SEntry* in2) const;
+   bool Equal  (const SEntry* ev1, const SEntry* in2) const;
 
 };
 
@@ -2721,15 +2658,10 @@ private:
 */
 SLine::SLine()  			{BinTree<SEntry> qu;}
 bool SLine::IsEmpty()			{ return (qu.IsEmpty() ); }
-Coord SLine::GetX()			{ return x; }
 int SLine::GetSize()			{return qu.GetCount(); }
-void SLine::SetX(const Coord newx)	{ x = newx; }
 
-BinTreeNode<SEntry>* SLine::Insert (SEntry& in, const Coord x,
-   SEntry& oldEntry, BinTreeNode<SEntry>* &oldnode)   {
-   BinTreeNode<SEntry>* node = qu.Insert(in, x, oldEntry, oldnode);
-   oldEntry.Set(in);
-   oldnode = node ->GetNext();
+BinTreeNode<SEntry>* SLine::Insert (SEntry& in, const Coord x)   {
+   BinTreeNode<SEntry>* node = qu.Insert(in, x);
    return node;
 }
 
@@ -2741,25 +2673,21 @@ void SLine::Delete (BinTreeNode<SEntry>* node)   {
    qu.DeleteNode (node);
 }
 
-SEntry SLine::FindAndDelete(SEntry& en, const Coord& x, const
-   Coord& oldx, SEntry& oldEntry, BinTreeNode<SEntry>* &oldnode) {
-   BinTreeNode<SEntry>* node = qu.Find(en,x, oldEntry, oldnode);
+SEntry SLine::FindAndDelete(SEntry& en, const Coord& x, const Coord oldx) {
+   BinTreeNode<SEntry>* node = qu.Find(en,x);
    if ( node == 0) {
-       BinTreeNode<SEntry>* node2 = qu.Find(en, oldx, oldEntry,
-          oldnode );
-       node = node2;
-       if (node == 0) {
-          node2 = qu.GetFirst();
-	  while (node2 != 0 && node2->GetEntry().GetCHS()
-	     != en.GetCHS()  )
-	     node2 = node2->GetNext() ;
-	  node = node2;
-       }
+      BinTreeNode<SEntry>* node2 = qu.Find(en, oldx);
+      node = node2;
+      if (node == 0) {
+         node2 = qu.GetFirst();
+         while (node2 != 0 &&
+	    node2->GetEntry().GetCHS()!= en.GetCHS())
+            node2 = node2->GetNext() ;
+	 node = node2;
+      }
    }
    if (node != 0) {
       SEntry entry = node->GetEntry();
-      oldEntry.Set( entry);
-      oldnode = node ->GetNext();
       qu.DeleteNode(node);
       return entry;
    }
@@ -2836,16 +2764,12 @@ CRegion* MakeOp::Intersection(CRegion* reg1, CRegion* reg2)
    // initialisations
    SLine sweepline;
    int i = 0;   int j = 0;    int counter = 0;
-   SEntry oldEntry1, oldEntry2;
-   BinTreeNode<SEntry>* oldnode1;
-   BinTreeNode<SEntry>* oldnode2;
    CHalfSegment chs1, chs2, chsAkt;
    CRegion* result = new CRegion(0);
    result ->Clear();
    result->StartBulkLoad();
    State status;
-   Coord aktSweep;
-   Coord oldSweep;
+   Coord aktSweep, oldsweep;
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size() ) {
      // select the first segment
@@ -2860,18 +2784,7 @@ CRegion* MakeOp::Intersection(CRegion* reg1, CRegion* reg2)
       if (chsAkt.GetLDP() == false) {  // right end of segment
          chsAkt.SetLDP(true);
          SEntry ent (chsAkt);
-	 SEntry en;
-	 // delete segment from sweep line
-	 if (status == FIRST)  {
-	    SEntry in = sweepline.FindAndDelete(ent,aktSweep,
-	    oldSweep, oldEntry1, oldnode1);
-	    en.Set(in);
-	 }
-	 else {
-	    SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
-	    oldEntry2, oldnode2);
-	    en.Set(in);
-	 }
+	 SEntry en = sweepline.FindAndDelete(ent,aktSweep,oldsweep);
 	 if (en.GetO() == 2 || en.GetU() == 2) {
 	    // add segment to result?
 	    chsAkt.attr.partnerno = counter;
@@ -2884,11 +2797,7 @@ CRegion* MakeOp::Intersection(CRegion* reg1, CRegion* reg2)
          SEntry ent (chsAkt);
 	 BinTreeNode<SEntry>* node;
 	 // add segment into sweepline-Status-Structure
-	 if (status == FIRST)
-	  node = sweepline.Insert(ent,aktSweep,oldEntry1,oldnode1);
-	 else
-	  node = sweepline.Insert(ent,aktSweep,oldEntry2,oldnode2);
-	 // get predecessor of inserted entry
+	 node = sweepline.Insert(ent,aktSweep);
 	 BinTreeNode<SEntry>* pred = node->GetPred() ;
 	 int np = 0;
 	 int ms, ns;
@@ -2907,7 +2816,7 @@ CRegion* MakeOp::Intersection(CRegion* reg1, CRegion* reg2)
 	 ent.SetO(ns);
 	 node->SetEntry(ent);
       } //  end else
-      oldSweep = aktSweep ;
+      oldsweep = aktSweep;
    } // end while
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
@@ -2933,10 +2842,7 @@ CRegion* MakeOp::Intersection(CRegion* reg1, CRegion* reg2)
    result ->Clear();
    result->StartBulkLoad();
    State status;
-   Coord aktSweep;
-   Coord oldSweep;
-   SEntry oldEntry1;
-   BinTreeNode<SEntry>* oldnode1;
+   Coord aktSweep, oldSweep;
    // execute until one argument is empty
    while ( i < resline->Size() && j < resregion->Size() ) {
       // select the first segment
@@ -2952,15 +2858,13 @@ CRegion* MakeOp::Intersection(CRegion* reg1, CRegion* reg2)
             chsAkt.SetLDP(true);
             SEntry ent (chsAkt);
 	    // delete segment from sweep line
-	    SEntry en = sweepline.FindAndDelete(ent,aktSweep,
-	       oldSweep, oldEntry1, oldnode1);
+	    SEntry en = sweepline.FindAndDelete(ent,aktSweep,oldSweep);
 	 }
       }
       else { // left end of segment
          SEntry ent (chsAkt);
 	 // add segment into sweepline-Status-Structure
-	 BinTreeNode<SEntry>* node = sweepline.Insert(ent,
-	    aktSweep, oldEntry1, oldnode1);
+	 BinTreeNode<SEntry>* node = sweepline.Insert(ent,aktSweep);
 	 BinTreeNode<SEntry>* pred = node->GetPred() ;
 	 int np = 0;
 	 int ms, ns;
@@ -2982,7 +2886,6 @@ CRegion* MakeOp::Intersection(CRegion* reg1, CRegion* reg2)
 	    if (status == FIRST) sweepline.Delete(node);
 	 }
       } //  end else
-      oldSweep = aktSweep ;
    } // end while
    resline->Destroy(); delete resline;
    resregion->Destroy(); delete resregion;
@@ -3023,6 +2926,7 @@ CLine* MakeOp::Intersection(CLine* line1, CLine* line2)
    return result;
 }
 
+
 bool MakeOp::P_Intersects(CRegion* reg1, CRegion* reg2)
 {
   // first Realmisation of both regions
@@ -3036,11 +2940,7 @@ bool MakeOp::P_Intersects(CRegion* reg1, CRegion* reg2)
    int j = 0;
    CHalfSegment chs1, chs2, chsAkt;
    State status;
-   Coord aktSweep;
-   Coord oldSweep;
-   SEntry oldEntry1, oldEntry2;
-   BinTreeNode<SEntry>* oldnode1;
-   BinTreeNode<SEntry>* oldnode2;
+   Coord aktSweep, oldSweep;
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size() ) {
      // select_ first
@@ -3055,20 +2955,13 @@ bool MakeOp::P_Intersects(CRegion* reg1, CRegion* reg2)
          chsAkt.SetLDP(true);
          SEntry ent (chsAkt);
 	 // delete segment from sweep line
-	 if (status == FIRST)
-	    SEntry en = sweepline.FindAndDelete(ent,aktSweep,oldSweep,
-	       oldEntry1, oldnode1);
-	  else SEntry en = sweepline.FindAndDelete(ent,aktSweep,
-	     oldSweep, oldEntry2, oldnode2);
+	 SEntry en = sweepline.FindAndDelete(ent,aktSweep,oldSweep);
       }
       else { // left end of segment
          SEntry ent (chsAkt);
 	 BinTreeNode<SEntry>* node;
 	 // add segment into sweepline-Status-Structure
-	 if (status == FIRST)
-	    node=sweepline.Insert(ent,aktSweep,oldEntry1,oldnode1);
-	 else
-	    node=sweepline.Insert(ent,aktSweep,oldEntry2,oldnode2);
+	 node=sweepline.Insert(ent,aktSweep);
 	 BinTreeNode<SEntry>* pred = node->GetPred() ;
 	 int np = 0;
 	 int ms, ns;
@@ -3111,10 +3004,7 @@ bool MakeOp::P_Intersects(CRegion* reg, CLine* line)
    int j = 0;
    CHalfSegment chs1, chs2, chsAkt;
    State status;
-   Coord aktSweep;
-   Coord oldSweep;
-   SEntry oldEntry1;
-   BinTreeNode<SEntry>* oldnode1;
+   Coord aktSweep, oldSweep;
    // execute until one argument is empty
    while ( i < resline->Size() && j < resregion->Size() ) {
      // select_ first
@@ -3131,15 +3021,13 @@ bool MakeOp::P_Intersects(CRegion* reg, CLine* line)
             chsAkt.SetLDP(true);
             SEntry ent (chsAkt);
 	    // delete segment from sweep line
-	    SEntry en = sweepline.FindAndDelete(ent,aktSweep,
-	       oldSweep, oldEntry1, oldnode1);
+	    SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep);
 	 }
       }
       else { // left end of segment
          SEntry ent (chsAkt);
 	 // add segment into sweepline-Status-Structure
-	 BinTreeNode<SEntry>* node = sweepline.Insert(ent,aktSweep,
-	    oldEntry1, oldnode1);
+	 BinTreeNode<SEntry>* node = sweepline.Insert(ent,aktSweep);
 	 BinTreeNode<SEntry>* pred = node->GetPred() ;
 	 int np = 0;
 	 int ms, ns;
@@ -3209,11 +3097,7 @@ bool MakeOp::Intersects(CRegion* reg1, CRegion* reg2)
    int j = 0;
    CHalfSegment chs1, chs2, chsAkt;
    State status;
-   Coord aktSweep;
-   Coord oldSweep;
-   SEntry oldEntry1, oldEntry2;
-   BinTreeNode<SEntry>* oldnode1;
-   BinTreeNode<SEntry>* oldnode2;
+   Coord aktSweep , oldSweep;
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size() ) {
      // select_ first
@@ -3229,20 +3113,13 @@ bool MakeOp::Intersects(CRegion* reg1, CRegion* reg2)
          chsAkt.SetLDP(true);
          SEntry ent (chsAkt);
 	 // delete segment from sweep line
-	 if (status == FIRST)
-	    SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
-	       oldEntry1, oldnode1);
-	 else SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
-	       oldEntry2, oldnode2);
+	 SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep);
       }
       else { // left end of segment
          SEntry ent (chsAkt);
 	 BinTreeNode<SEntry>* node;
 	 // add segment into sweepline-Status-Structure
-	 if (status == FIRST)
-	    node = sweepline.Insert(ent,aktSweep, oldEntry1, oldnode1);
-	 else
-	    node = sweepline.Insert(ent,aktSweep, oldEntry2, oldnode2);
+	 node = sweepline.Insert(ent,aktSweep);
 	 BinTreeNode<SEntry>* pred = node->GetPred() ;
 	 int np = 0;
 	 int ms, ns;
@@ -3277,10 +3154,7 @@ bool MakeOp::Intersects (CRegion* reg, CLine* line) {
    int j = 0;
    CHalfSegment chs1, chs2, chsAkt;
    State status;
-   Coord aktSweep;
-   Coord oldSweep;
-   SEntry oldEntry1;
-   BinTreeNode<SEntry>* oldnode1;
+   Coord aktSweep, oldSweep;
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size() ) {
      // select_ first
@@ -3297,15 +3171,13 @@ bool MakeOp::Intersects (CRegion* reg, CLine* line) {
             chsAkt.SetLDP(true);
             SEntry ent (chsAkt);
 	    // delete segment from sweep line
-	    SEntry en = sweepline.FindAndDelete(ent,aktSweep,
-	       oldSweep, oldEntry1, oldnode1);
+	    SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep);
 	 }
       }
       else { // left end of segment
          SEntry ent (chsAkt);
 	 // add segment into sweepline-Status-Structure
-	 BinTreeNode<SEntry>* node = sweepline.Insert(ent,
-	    aktSweep, oldEntry1, oldnode1);
+	 BinTreeNode<SEntry>* node = sweepline.Insert(ent, aktSweep);
 	 BinTreeNode<SEntry>* pred = node->GetPred() ;
 	 if (status == FIRST ) {
 	    // insert CHalfSegment from region into sweepline
@@ -3378,9 +3250,6 @@ CRegion* MakeOp::Union(CRegion* reg1, CRegion* reg2)
    result->StartBulkLoad();
    State status;
    Coord aktSweep, oldSweep ;
-   SEntry oldEntry1, oldEntry2;
-   BinTreeNode<SEntry>* oldnode1;
-   BinTreeNode<SEntry>* oldnode2;
    // while there are segments in the realm-based arguments
    while ( i < res1->Size() || j < res2->Size()) {
       // select_first
@@ -3400,33 +3269,17 @@ CRegion* MakeOp::Union(CRegion* reg1, CRegion* reg2)
       if (chsAkt.GetLDP() == false) { // right sement choosen
          chsAkt.SetLDP(true);
          SEntry ent (chsAkt);
-	 SEntry en;
-	 // delete segment from sweep line
-	 if (status == FIRST) {
-	    SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
-	    oldEntry1, oldnode1);
-	    en.Set(in);
-	 }
-	 else {
-	    SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
-	    oldEntry2, oldnode2);
-	    en.Set(in);
-	 }
+	 SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep);
 	 if (en.GetO() == 0 || en.GetU() == 0) {  // CHalfSegment in result
 	       chsAkt.attr.partnerno = counter;
                chsAkt.SetLDP(false);	(*result) += chsAkt;
 	       chsAkt.SetLDP(true);	(*result) += chsAkt;
 	       counter++;
 	 }
-	 if (status == BOTH) {oldEntry1=oldEntry2; oldnode1=oldnode2;}
       }
       else { // left end of segment
          SEntry ent (chsAkt);
-	 BinTreeNode<SEntry>* node;
-	 // add segment into sweepline-Status-Structure
-	 if (status == FIRST)  node = sweepline.Insert(ent,aktSweep,
-	    oldEntry1, oldnode1);
-	 else   node = sweepline.Insert(ent,aktSweep, oldEntry2, oldnode2);
+	 BinTreeNode<SEntry>* node = sweepline.Insert(ent,aktSweep);
 	 BinTreeNode<SEntry>* pred = node->GetPred() ;
 	 int np = 0;
 	 int ms, ns;
@@ -3517,9 +3370,6 @@ CRegion* MakeOp::Minus(CRegion* reg1, CRegion* reg2)
    result->StartBulkLoad();
    State status;
    Coord aktSweep, oldSweep ;
-   SEntry oldEntry1, oldEntry2;
-   BinTreeNode<SEntry>* oldnode1;
-   BinTreeNode<SEntry>* oldnode2;
    // while there are segments in the first arguments
    while ( i < res1->Size() ) {
      // select_ first
@@ -3540,20 +3390,7 @@ CRegion* MakeOp::Minus(CRegion* reg1, CRegion* reg2)
       if (chsAkt.GetLDP() == false) {  // right end of segment
          chsAkt.SetLDP(true);
          SEntry ent (chsAkt);
-	 SEntry en;
-	 // delete segment from sweep line
-	 if (status == FIRST) {
-	    SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
-	       oldEntry1, oldnode1);
-	    en.Set(in);
-	 }
-	 else {
-	    SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
-	       oldEntry2, oldnode2);
-	    en.Set(in);
-	 }
-	 if (status == BOTH)
-	    {oldEntry1 = oldEntry2, oldnode1 = oldnode2;}
+	 SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep);
          if ( (status == FIRST && en.GetU() == 0 && en.GetO() == 1) ||
 	    (status == FIRST && en.GetU() == 1 && en.GetO() == 0) ||
 	    (status == BOTH && en.GetU() == 1 && en.GetO() == 1)) {
@@ -3576,11 +3413,7 @@ CRegion* MakeOp::Minus(CRegion* reg1, CRegion* reg2)
          SEntry ent (chsAkt);
 	 BinTreeNode<SEntry>* node;
 	 // add segment into sweepline-Status-Structure
-	 if (status == FIRST)
-	    node = sweepline.Insert(ent,aktSweep, oldEntry1, oldnode1);
-	 else
-	    node = sweepline.Insert(ent,aktSweep, oldEntry2, oldnode2);
-	 if (status == BOTH) {oldEntry1 = oldEntry2, oldnode1 = oldnode2;}
+	 node = sweepline.Insert(ent,aktSweep);
 	 BinTreeNode<SEntry>* pred = node->GetPred() ;
 	 int np = 0;
 	 int ms, ns;
@@ -3626,8 +3459,6 @@ CLine* MakeOp::Minus(CLine* line, CRegion* reg)
    result->StartBulkLoad();
    State status;
    Coord aktSweep, oldSweep ;
-   SEntry oldEntry1;
-   BinTreeNode<SEntry>* oldnode1;
     // while there are segments in the first arguments
    while ( i < resLine -> Size() ) {
      // select_ first
@@ -3647,14 +3478,12 @@ CLine* MakeOp::Minus(CLine* line, CRegion* reg)
             chsAkt.SetLDP(true);
             SEntry ent (chsAkt);
 	    // delete segment from sweep line
-	    SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
-	       oldEntry1, oldnode1);
+	    SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep);
 	 }
       }
       else { // chsAkt.GetLDP() == true
          SEntry ent (chsAkt);
-	 BinTreeNode<SEntry>* en = sweepline.Insert(ent,aktSweep,
-	    oldEntry1, oldnode1);
+	 BinTreeNode<SEntry>* en = sweepline.Insert(ent,aktSweep);
 	 BinTreeNode<SEntry>* pred = en->GetPred() ;
 	 if (status == FIRST ) {
 	    if (pred == 0 || (pred!=0 && pred->GetEntry().GetO()==0) )
@@ -3812,7 +3641,7 @@ static int realm_lr( Word* args, Word& result, int message,
       CRegion* test2 = new CRegion(0);
       MakeRealm mr;
       mr.REALM( l1, r2, test1 , test2 );
-      result = SetWord(test1);
+      ((CLine *)result.addr) = test1;
       return(0);
    }
    else  {
@@ -3838,7 +3667,7 @@ static int realm_rl( Word* args, Word& result, int message,
       CRegion* test2 = new CRegion(0);
       MakeRealm mr;
       mr.REALM( l1, r2, test1 , test2 );
-      result = SetWord(test2);
+      ((CRegion *)result.addr) = test2;
       return(0);
    }
    else  {
@@ -3863,7 +3692,7 @@ static int realm_ll( Word* args, Word& result, int message,
       CLine* test2 = new CLine(0);
       MakeRealm mr;
       mr.REALM( l1, l2, test1 , test2 );
-      result = SetWord(test1);
+      ((CLine *)result.addr) = test1;
       return(0);
    }
    else
@@ -3889,7 +3718,7 @@ static int realm_rr( Word* args, Word& result, int message,
       CRegion* test2 = new CRegion(0);
       MakeRealm mr;
       mr.REALM( r1, r2, test1 , test2 );
-      result = SetWord(test1);
+      ((CRegion *)result.addr) = test1;
       return(0);
    }
    else
@@ -3972,7 +3801,7 @@ static int Inter_ll( Word* args, Word& result, int message,
 	    if ( res->IsEmpty() )
 	       ((CLine *)result.addr)->SetDefined( false );
             else
-	       result = SetWord(res);
+	       ((CLine *)result.addr) = res;
             return(0);
          }
          else   {
@@ -3987,7 +3816,7 @@ static int Inter_ll( Word* args, Word& result, int message,
 	 if ( res->IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    result = SetWord(res);
+	    ((CLine *)result.addr) = res;
          return(0);
       }
    }
@@ -4021,7 +3850,7 @@ static int Inter_lr( Word* args, Word& result, int message,
 	    if (res->IsEmpty() )
 	      ((CLine *)result.addr)->SetDefined( false );
             else
-	      result = SetWord(res);
+	      ((CLine *)result.addr) = res ;
             return(0);
          }
          else   {
@@ -4036,7 +3865,7 @@ static int Inter_lr( Word* args, Word& result, int message,
 	 if (res->IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    result = SetWord(res);
+	    ((CLine *)result.addr) = res;
          return(0);
       }
    }
@@ -4070,7 +3899,7 @@ static int Inter_rl ( Word* args, Word& result, int message,
 	    if (res->IsEmpty() )
 	       ((CLine *)result.addr)->SetDefined( false );
             else
-	       result = SetWord(res);
+	       ((CLine *)result.addr) = res;
             return(0);
          }
          else   {
@@ -4085,7 +3914,7 @@ static int Inter_rl ( Word* args, Word& result, int message,
 	 if (res->IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    result = SetWord(res);
+	    ((CLine *)result.addr) = res;
          return(0);
       }
    }
@@ -4119,7 +3948,7 @@ static int Inter_rr( Word* args, Word& result, int message,
 	    if ( res->IsEmpty() )
 	       ((CRegion *)result.addr)->SetDefined( false );
             else
-	       result = SetWord(res);
+	       ((CRegion *)result.addr) = res;
             return(0);
          }
          else   { // no intersection possible
@@ -4134,7 +3963,7 @@ static int Inter_rr( Word* args, Word& result, int message,
 	 if ( res->IsEmpty() )
 	    ((CRegion *)result.addr)->SetDefined( false );
          else
-            result = SetWord(res);
+            ((CRegion *)result.addr) = res;
          return(0);
       }
    }
@@ -4146,7 +3975,10 @@ static int Inter_rr( Word* args, Word& result, int message,
 
 const string InterSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "( <text>(line region)x(line region)->(line region)</text--->"
+    "( <text>(line x line->line) or "
+    "(line x region->line) or "
+    "(region x line->line) or "
+    "(region x region->region)</text--->"
     "<text>intersection_new(_,_)</text--->"
     "<text>Returns the intersecion of 2 regions.</text--->"
     "<text>query intersection_new( region1,region2 )</text--->"
@@ -4177,6 +4009,7 @@ Operator Intersectionrr
 5.3 Operator intersects
 
 */
+
 static ListExpr IntersectsMap( ListExpr args )
 {
    ListExpr arg1, arg2;
@@ -4204,6 +4037,7 @@ static ListExpr IntersectsMap( ListExpr args )
 operator intersects for objects line -line
 
 */
+
 static int Intersects_ll( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
@@ -4240,6 +4074,7 @@ static int Intersects_ll( Word* args, Word& result, int message,
        return (0);
    }
 }
+
 
 /*
 operator intersects for objects line -region
@@ -4327,6 +4162,7 @@ static int Intersects_rl( Word* args, Word& result, int message,
 operator intersects for objects region - region
 
 */
+
 static int Intersects_rr( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
@@ -4367,7 +4203,7 @@ static int Intersects_rr( Word* args, Word& result, int message,
 
 const string IntersectsSpec  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   "( <text>(line region)x(line region)->(line region)</text--->"
+   "( <text>(line region) x (line region)-> bool</text--->"
    "<text>intersects_new(_,_)</text--->"
    "<text>tests if two lines/regions intersects.</text--->"
    "<text>query intersects_new ( region1,region2 )</text--->"
@@ -4428,6 +4264,7 @@ static ListExpr unionMap( ListExpr args )
 operator union for objects region - region
 
 */
+
 static int Union_rr( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4440,18 +4277,18 @@ Word& local, Supplier s )
          return (0);
       }
       else if (r1->IsEmpty() ) {
-         result = SetWord(r2);
+         ((CRegion *)result.addr) = r2;
          return(0);
       }
       else if (r2->IsEmpty() ) {
-         result = SetWord(r1);
+         ((CRegion *)result.addr) = r1;
          return(0);
       }
       else {
          CRegion* res = new CRegion(0);
          MakeOp mo;
          res = mo.Union( r1, r2 );
-         result = SetWord(res);
+         ((CRegion *)result.addr) = res;
          return(0);
       }
    }
@@ -4465,6 +4302,7 @@ Word& local, Supplier s )
 operator union for objects line -region
 
 */
+
 static int Union_lr( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
@@ -4473,7 +4311,7 @@ static int Union_lr( Word* args, Word& result, int message,
    CLine *line = ((CLine*)args[0].addr);
    CRegion *reg = ((CRegion*)args[1].addr);
    if ( !reg->IsEmpty()&&line->IsDefined()&&reg->IsDefined()) {
-      result = SetWord(reg);
+      ((CRegion *)result.addr) = reg;
       return(0);
    }
    else  {
@@ -4486,6 +4324,7 @@ static int Union_lr( Word* args, Word& result, int message,
 operator union for objects region -line
 
 */
+
 static int Union_rl( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4494,7 +4333,7 @@ Word& local, Supplier s )
    CRegion *reg = ((CRegion*)args[0].addr);
    if ( ! reg -> IsEmpty() && line->IsDefined() &&
    reg->IsDefined() )    {
-      result = SetWord(reg);
+      ((CRegion *)result.addr) = reg;
       return(0);
    }
    else  {
@@ -4507,6 +4346,7 @@ Word& local, Supplier s )
 operator union for objects line -line
 
 */
+
 static int Union_ll( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4519,14 +4359,14 @@ Word& local, Supplier s )
          return(0);
       }
       else if (line2->IsEmpty() ) {
-         result = SetWord(line1);
+         ((CLine *)result.addr) = line1;
          return(0);
       }
       else {
          CLine* res = new CLine(0);
          MakeOp mo;
          res = mo.Union( line1, line2 );
-         result = SetWord(res);
+         ((CLine *)result.addr) = res;
          return(0);
       }
    }
@@ -4538,8 +4378,11 @@ Word& local, Supplier s )
 
 const string UnionSpec  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   "( <text>(line region)x(line region)->(line region)</text--->"
-   "<text>union_new(_)</text--->"
+   "(<text>(line x line->line) or "
+   "(line x region->region) or "
+   "(region x line->region) or "
+   "(region x region->region)</text--->"
+   "<text>union_new(_,_)</text--->"
    "<text>Returns the union of 2 lines/regions .</text--->"
    "<text>query union_new ( region1,region2 )</text--->"
    ") )";
@@ -4598,6 +4441,7 @@ static ListExpr minusMap( ListExpr args )
 operator minus for objects region - region
 
 */
+
 static int Minus_rr( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
@@ -4610,7 +4454,7 @@ static int Minus_rr( Word* args, Word& result, int message,
          return(0);
       }
       else if ( r2->IsEmpty() ) {
-         result = SetWord(r1);
+         ((CRegion *)result.addr) = r1;
          return(0);
       }
       else if (r1->BoundingBox().IsDefined() &&
@@ -4622,11 +4466,11 @@ static int Minus_rr( Word* args, Word& result, int message,
 	    if (res->IsEmpty() )
 	       ((CRegion *)result.addr)->SetDefined( false );
             else
-	       result = SetWord(res);
+	       ((CRegion *)result.addr) = res;
             return(0);
          }
          else   {
-            result = SetWord(r1);
+            ((CRegion *)result.addr) = r1;
             return (0);
          }
       }
@@ -4637,7 +4481,7 @@ static int Minus_rr( Word* args, Word& result, int message,
 	 if (res->IsEmpty() )
 	    ((CRegion *)result.addr)->SetDefined( false );
          else
-	    result = SetWord(res);
+	    ((CRegion *)result.addr) = res;
          return(0);
       }
    }
@@ -4651,6 +4495,7 @@ static int Minus_rr( Word* args, Word& result, int message,
 operator minus for objects line -region
 
 */
+
 static int Minus_lr( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4671,11 +4516,11 @@ Word& local, Supplier s )
 	    if ( res -> IsEmpty() )
 	       ((CLine *)result.addr)->SetDefined( false );
             else
-	       result = SetWord(res);
+	       ((CLine *)result.addr) = res;
             return(0);
          }
          else   {
-            result = SetWord(line);
+            ((CLine *)result.addr) = line;
             return (0);
          }
       }
@@ -4686,7 +4531,7 @@ Word& local, Supplier s )
          if ( res -> IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    result = SetWord(res);
+	    ((CLine *)result.addr) = res;
          return(0);
       }
    } // if IsDefined()
@@ -4700,6 +4545,7 @@ Word& local, Supplier s )
 operator minus for objects region -line
 
 */
+
 static int Minus_rl( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4708,7 +4554,7 @@ Word& local, Supplier s )
    CRegion *reg = ((CRegion*)args[0].addr);
    if ( ! line->IsEmpty() && line->IsDefined() &&
    reg->IsDefined() )    {
-      result = SetWord(reg);
+      ((CRegion *)result.addr) = reg;
       return(0);
    }
    else  {
@@ -4721,6 +4567,7 @@ Word& local, Supplier s )
 operator minus for objects line -line
 
 */
+
 static int Minus_ll( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4733,7 +4580,7 @@ Word& local, Supplier s )
 	 return (0);
       }
       else if (line2->IsEmpty() ) {
-         result = SetWord(line1);
+         ((CLine *)result.addr) = line1;
          return (0);
       }
       else if (line1->BoundingBox().IsDefined() &&
@@ -4746,7 +4593,7 @@ Word& local, Supplier s )
 	    if (res->IsEmpty() )
 	       ((CLine *)result.addr)->SetDefined( false );
             else
-	       result = SetWord(res);
+	       ((CLine *)result.addr) = res;
             return(0);
 	 }
 	 else {
@@ -4761,7 +4608,7 @@ Word& local, Supplier s )
 	 if (res ->IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    result = SetWord(res);
+	    ((CLine *)result.addr) = res;
          return(0);
       }
    }
@@ -4773,7 +4620,10 @@ Word& local, Supplier s )
 
 const string MinusSpec  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   "( <text> (line region) x (line region) -> (line region) </text--->"
+   "( <text>(line x line->line) or "
+   "(line x region->line) or "
+   "(region x line->line) or "
+   "(region x region->region)</text--->"
    "<text>minus_new(_,_)</text--->"
    "<text>Returns the differenz of 2 lines/regions.</text--->"
    "<text>query minus_new ( region1,region2 )</text--->"
@@ -4809,6 +4659,7 @@ Operator Minusrr
 operator p-inter for objects line -line
 
 */
+
 static int p_inter_ll( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4851,6 +4702,7 @@ Word& local, Supplier s )
 operator p-inter for objects line -region
 
 */
+
 static int p_inter_lr( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4892,6 +4744,7 @@ Word& local, Supplier s )
 operator p-inter for objects region -line
 
 */
+
 static int p_inter_rl( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4933,6 +4786,7 @@ Word& local, Supplier s )
 operator p-inter for objects region - region
 
 */
+
 static int p_inter_rr( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
