@@ -36,8 +36,11 @@ MeshGenerator.def:
 
 #ThirdPartyCode.def is written by hand and is found on disk
 ThirdPartyCode.dll: MeshGeneratorNetGen.o
-	cd netGen;make
-	gcc -shared -Wl,-soname,ThirdPartyCode.dll -o ThirdPartyCode.dll NetGen/NGlibs/*.o -lm -lstdc++ ThirdPartyCode.def
+	if [ ! -e ThirdPartyCode.dll ]; then \
+	echo "Building DLL"; \
+	cd NetGen; make; cd ..; \
+	gcc -shared -Wl,-soname,ThirdPartyCode.dll -o ThirdPartyCode.dll NetGen/NGlibs/*.o -lm -lstdc++ ThirdPartyCode.def; \
+	fi
 
 
 #MGNetGen.def is written by hand and is found on disk
