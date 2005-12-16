@@ -1099,7 +1099,6 @@ deleteSampleAndSmallFiles(SpelledRel, ObjList) :-
   sampleNameSmall(SpelledRel, Small),
   tryDeleteFile(Small, ObjList).
 
-
 retractStoredInformation(SpelledRel) :-
   sampleNameS(SpelledRel, SampleS),
   sampleNameJ(SpelledRel, SampleJ),
@@ -1123,9 +1122,9 @@ retractStoredInformation(SpelledRel) :-
   retractall(storedSpell(DCSmall, _)),
   retractSels(Rel),
   retractPETs(Rel),
-  retractall(storedRel(DCSpelledRel, _)),
-  retractall(storedIndex(LFSpelledRel, _, _, _)),
-  retractall(storedNoIndex(LFSpelledRel, _)).
+  retractall(storedRel(DCSpelledRel, _)).
+  %retractall(storedIndex(LFSpelledRel, _, _, _)),
+  %retractall(storedNoIndex(LFSpelledRel, _)).
   
 updateRel2(_, SpelledRel, ObjList) :-
   member(['OBJECT', SpelledRel, _ , [[rel | _]]], ObjList),!.

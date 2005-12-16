@@ -193,11 +193,6 @@ display(string, N) :-
   !,
   term_to_atom(String, N), 
   displayString(String).
-
-display(date, N) :-
-  !,
-  term_to_atom(String, N), 
-  displayString(String).
   
 display(instant, N) :-
   !,
@@ -272,16 +267,72 @@ and error message are printed.
 indexType(btree).
 indexType(rtree).
 
-checkIfIndexIsStored(Rel, Attr, IndexType, IndexName) :-
+createIndexSmall(_, _, _, _) :- 
+  usingVersion(standard),!.
+  
+createIndexSmall(Rel, ObjList, IndexName, _) :- 
+  usingVersion(entropy),
+  concat_atom([Rel, 'small'], '_', RelSmallName),
+  member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList),
+  concat_atom([IndexName, 'small'], '_', IndexSmallName),
+  indexType(Type),
+  member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList),!.
+  
+createIndexSmall(Rel, ObjList, IndexName, Attr) :- 
+  usingVersion(entropy),
+  concat_atom([Rel, 'small'], '_', RelSmallName),
+  member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList),
+  concat_atom([IndexName, 'small'], '_', IndexSmallName),
+  indexType(Type),
+  not(member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList)),
+  concat_atom(['let ', IndexName, '_small', ' = ', Rel, 
+    '_small create', Type, ' [', Attr, ']'], '', QueryAtom),
+  tryCreate(QueryAtom),!.  
+
+createIndexSmall(Rel, ObjList, IndexName, Attr) :- 
+  usingVersion(entropy),
+  concat_atom([Rel, 'small'], '_', RelSmallName),
+  not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
+  member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
+  trycreateSmallRelation(Rel, ObjList),
+  concat_atom([IndexName, 'small'], '_', IndexSmallName),
+  indexType(Type),
+  not(member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList)),
+  concat_atom(['let ', IndexName, '_small', ' = ', Rel, 
+    '_small create', Type, ' [', Attr, ']'], '', QueryAtom),
+  tryCreate(QueryAtom),!.
+
+createIndexSmall(Rel, ObjList, IndexName, _) :- 
+  usingVersion(entropy),
+  concat_atom([Rel, 'small'], '_', RelSmallName),
+  not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
+  member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
+  trycreateSmallRelation(Rel, ObjList),
+  concat_atom([IndexName, 'small'], '_', IndexSmallName),
+  indexType(Type),
+  member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList),!.
+
+createIndexSmall(Rel, ObjList, _, _) :- 
+  usingVersion(entropy),
+  concat_atom([Rel, 'small'], '_', RelSmallName),
+  not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
+  not(member(['OBJECT', Rel, _ , [[rel | _]]], ObjList)),
+  write('ERROR: missing relation '),
+  write(Rel),
+  write(' cannot create small relation and an index on small relation!'),!,fail.
+
+checkIfIndexIsStored(Rel, Attr, IndexType, IndexName, _) :-
   storedIndex(Rel, Attr, IndexType, IndexName),!.
 
-checkIfIndexIsStored(Rel, Attr, IndexType, IndexName) :-
+checkIfIndexIsStored(Rel, Attr, IndexType, IndexName, ObjList) :-
   storedNoIndex(Rel, Attr),
   retract(storedNoIndex(Rel, Attr)),
-  assert(storedIndex(Rel, Attr, IndexType, IndexName)),!.
+  assert(storedIndex(Rel, Attr, IndexType, IndexName)),
+  createIndexSmall(Rel, ObjList, IndexName, Attr),!.
 
-checkIfIndexIsStored(Rel, Attr, IndexType, IndexName) :-
-  assert(storedIndex(Rel, Attr, IndexType, IndexName)).
+checkIfIndexIsStored(Rel, Attr, IndexType, IndexName, ObjList) :-
+  assert(storedIndex(Rel, Attr, IndexType, IndexName)),
+  createIndexSmall(Rel, ObjList, IndexName, Attr).
 
 checkForAddedIndex(ObjList) :-
   member(['OBJECT', IndexName, _ , [[IndexType | _]]], ObjList),
@@ -292,7 +343,7 @@ checkForAddedIndex(ObjList) :-
   indexType(IndexType),
   lowerfl(Rel, LFRel),
   lowerfl(Attr, LFAttr),
-  checkIfIndexIsStored(LFRel, LFAttr, IndexType, IndexName).
+  checkIfIndexIsStored(LFRel, LFAttr, IndexType, IndexName, ObjList).
 
 checkForAddedIndices(ObjList) :-
   findall(_, checkForAddedIndex(ObjList), _).
