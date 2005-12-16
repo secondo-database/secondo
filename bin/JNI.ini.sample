@@ -50,7 +50,7 @@
 # set the lib path
 # If the path starts with '.' or '/' it is used as is
 # otherwise the value $J2SDK_ROOT will be prefixed.
-%L jre/bin/client
+%L .;C:\msys\1.0\home\ich\secondoNEW\Algebras\Rose\RoseJava\twodsack\util\meshgenerator
 
 # set the version number 
 %V 1.4
