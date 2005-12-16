@@ -3,7 +3,7 @@
 
 //[_] [\_]
 //[TOC] [\tableofcontents]
-//[Title] [ \title{DateTime Algebra} \author{Thomas Behr} \maketitle]
+//[Title] [ \title{ROSEAlgebra} \author{Mirco Guenster, Dirk Ansorge} \maketitle]
 //[times] [\ensuremath{\times}]
 //[->] [\ensuremath{\rightarrow}]
 
@@ -1278,7 +1278,7 @@ void CcPoints::RestoreJavaObjectFromFLOB(){
     return;
   }
   int size = objectData.Size();
-  cout << "going to read " << size << " bytes" << endl;
+  //cout << "going to read " << size << " bytes" << endl;
   char *bytes = new char[size];
   objectData.Get(0,size,bytes);
   // copy the data into a java-array
@@ -2443,7 +2443,7 @@ void CcRegions::RestoreJavaObjectFromFLOB(){
     return;
   }
   int size = objectData.Size();
-  cout << "going to read " << size << " bytes" << endl;
+  //cout << "going to read " << size << " bytes" << endl;
   char *bytes = new char[size];
   objectData.Get(0,size,bytes);
   // copy the data into a java-array
@@ -3011,6 +3011,36 @@ type mapping function: cclines -> real
 static ListExpr cclinesDouble(ListExpr args) {
   debug(__LINE__);
   return typeMappingRose(args, "line", "real");
+}
+
+/*
+type mapping function: int -> bool
+
+*/
+static ListExpr intBool (ListExpr args) {
+  debug(__LINE__);
+  ListExpr arg1;
+  if (nl->ListLength(args) == 1) {
+    arg1 = nl->First(args);
+    if (nl->IsEqual(arg1, "int"))
+      return nl->SymbolAtom("bool");
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+type mapping function: double -> bool
+
+*/
+static ListExpr doubleBool (ListExpr args) {
+  debug(__LINE__);
+  ListExpr arg1;
+  if (nl->ListLength(args) == 1) {
+    arg1 = nl->First(args);
+    if (nl->IsEqual(arg1, "real"))
+      return nl->SymbolAtom("bool");
+  }
+  return nl->SymbolAtom("typeerror");
 }
 
 /*
@@ -3667,6 +3697,39 @@ static double callJMethod_RD(char *name, CcRegions *ccr) {
   debug(__LINE__);
   return
     callDoubleJMethod<CcRegions>(name, ccr, "(LRegions;)D");
+}
+
+
+/*
+ Call the setDerivationValue Java function.
+
+*/
+static int callSetDerivationValue(CcReal *ccr) {
+  debug(__LINE__);
+
+  //set derivation value to ccr
+  jmethodID midSetDeriv = env->GetStaticMethodID(clsROSEAlgebra, "setDerivationValue", "(D)V");
+  if (midSetDeriv == 0) error(__FILE__,__LINE__);
+  double v = ccr->GetRealval();
+  env->CallStaticVoidMethod(clsROSEAlgebra, midSetDeriv, v);
+
+  return 0;
+}
+
+/*
+  Call the chooseTriangulator Java function
+
+*/
+
+static int callChooseTriangulator(CcInt *cci) {
+  debug(__LINE__);
+  
+  //set the triangulator
+  jmethodID midChooseTri = env->GetStaticMethodID(clsROSEAlgebra, "chooseTriangulator", "(I)V");
+  if (midChooseTri == 0) error(__FILE__,__LINE__);
+  env->CallStaticVoidMethod(clsROSEAlgebra, midChooseTri, cci->GetIntval());
+
+  return 0;
 }
 
 /*
@@ -5584,6 +5647,38 @@ static int r_perimeterFun(Word *args, Word &result, int message,
   return 0;
 }
 
+
+/*
+The setDerivationValue operation is used to set the derivation value for the ROSE algebra.
+
+*/
+static int setDerivationValueFun(Word *args, Word &result, int message,
+				 Word &local, Supplier s) {
+
+  CcReal *realval = ((CcReal *)args[0].addr);
+  result = qp->ResultStorage(s);
+  
+  callSetDerivationValue(realval);
+  ((CcBool *)result.addr)->Set(true, true);
+
+  return 0;
+}
+  
+/*
+chooseTriangulator can be used to choose between different triangulators.
+
+*/
+static int chooseTriangulatorFun(Word *args, Word &result, int message,
+			      Word &local, Supplier s) {
+  CcInt *intval = ((CcInt *)args[0].addr);
+  result = qp->ResultStorage(s);
+  
+  callChooseTriangulator(intval);
+  ((CcBool *)result.addr)->Set(true, true);
+
+  return 0;
+}
+
 /*
 
 5.4 Definition of Operators
@@ -6338,6 +6433,23 @@ const string r_perimeterSpec =
 "<text>r_perimeter(r)</text--->"
 ") )";
 
+const string setDerivationValueSpec = 
+"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+"\"Example\" )"
+"( <text>double -> bool</text--->"
+"<text>setDerivationValue(d), d is a double value</text--->"
+"<text>Sets the derivation value for the ROSE-Algebra.</text--->"
+"<text>query setDerivationValue(0.000001)</text--->"
+") )";
+
+const string chooseTriangulatorSpec = 
+"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+"\"Example\" )"
+"( <text>int -> bool</text--->"
+"<text>chooseTriangulator(i), i is an integer value</text--->"
+"<text>Chooses the triangulator of the ROSE algebra. 0 = Mehlhorn (default), 1 = Triangle, 2 = Mehlhorn.</text--->"
+"<text>query chooseTriangulator(1)</text--->"
+") )";
 
 /*
 Used to explain the signature and the meaning of the implemented operators.
@@ -7024,6 +7136,25 @@ Operator r_perimeter
  ccregionsDouble          	//type mapping 
  );
 
+Operator setDerivationValue
+(
+ "setDerivationValue", 		//name
+ setDerivationValueSpec,	//specification ....
+ setDerivationValueFun,		//value mapping
+ Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
+ simpleSelect,			//trivial selection function 
+ doubleBool             	//type mapping 
+ );
+
+Operator chooseTriangulator
+(
+ "chooseTriangulator", 		//name
+ chooseTriangulatorSpec,	//specification ....
+ chooseTriangulatorFun,		//value mapping
+ Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
+ simpleSelect,			//trivial selection function 
+ intBool                 	//type mapping 
+ );
 
 /*
   6 Creating the Algebra
@@ -7111,6 +7242,8 @@ public:
     AddOperator(&l_length);
     AddOperator(&r_area);
     AddOperator(&r_perimeter);
+    AddOperator(&setDerivationValue);
+    AddOperator(&chooseTriangulator);
   }
   ~RoseAlgebra() {};
 };

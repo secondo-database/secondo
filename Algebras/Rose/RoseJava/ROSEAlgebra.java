@@ -1735,7 +1735,9 @@ public class ROSEAlgebra {
 
 
     /**
+     * Chooses a derivation value for the Rational numbers.
      *
+     * @param d the derivation value
      */
     public static void setDerivationValue (double d) {
 	RationalFactory.setDerivDouble(d);

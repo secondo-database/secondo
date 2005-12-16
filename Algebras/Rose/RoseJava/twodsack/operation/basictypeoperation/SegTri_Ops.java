@@ -341,18 +341,18 @@ public class SegTri_Ops {
 	//case 3: one intersection point
 	if (intPoints.size() == 1) {
 	    if (PointTri_Ops.inside(sStart,t)) {
-		System.out.println("case 3.1");
+		//System.out.println("case 3.1");
 		return(new Segment(sStart,(Point)intPoints.firstElement()));
 	    } else
 		if (PointTri_Ops.liesOnBorder(sStart,t)) {
-		    System.out.println("case 3.2");
+		    //System.out.println("case 3.2");
 		    return(new Segment(sStart,(Point)intPoints.firstElement()));
 		} else
 		    if (PointTri_Ops.liesOnBorder(sEnd,t)) {
-			System.out.println("case 3.3");
+			//System.out.println("case 3.3");
 			return(new Segment(sEnd,(Point)intPoints.firstElement()));
 		    } else {
-			System.out.println("case 3.4");
+			//System.out.println("case 3.4");
 			return(new Segment(sEnd,(Point)intPoints.firstElement()));
 		    }//else
 	}//if
