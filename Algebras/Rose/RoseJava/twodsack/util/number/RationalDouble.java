@@ -13,13 +13,13 @@ import java.io.*;
 /**
  * This class extends the abstract class {@link Rational}.
  * It implements the Rational type on the base of <tt>double</tt> values. In fact, a Rational is
- * represented by a double. Of cause, it is well-known that computation with doubles is not precise. Hence, a derivation value is used to 
- * define a certain derivation which is allowed. So, for two Rational values <tt>P</tt> and <tt>Q</tt>, <tt>P</tt> == <tt>Q</tt> if
- * <tt>P</tt> > <tt>Q</tt>-<tt>deriv AND P</tt> < <tt>Q</tt> + <tt>deriv</tt>.<p>
- * By default, the value for deriv is set to 0.0000000001. However, the derivation value can be set t0 0.<p>
+ * represented by a double. Of cause, it is well-known that computation with doubles is not precise. Hence, a deviation value is used to 
+ * define a certain deviation which is allowed. So, for two Rational values <tt>P</tt> and <tt>Q</tt>, <tt>P</tt> == <tt>Q</tt> if
+ * <tt>P</tt> > <tt>Q</tt>-<tt>deviation AND P</tt> < <tt>Q</tt> + <tt>deviation</tt>.<p>
+ * By default, the value for deviation is set to 0.0000000001. However, the deviation value can be set t0 0.<p>
  * Computations are executed as described above, if the <tt>PRECISE</tt> flag is set to <tt>true</tt> (default = <tt>false</tt>).
- * If <tt>PRECISE = false</tt>, two values stored in other fields, namely <tt>DERIV_DOUBLE</tt> and <tt>DERIV_DOUBLE_MINUS</tt> are used.
- * These are double values which are used the same way as the <tt>deriv</tt> value above, but the computation is much faster. All critical computations
+ * If <tt>PRECISE = false</tt>, two values stored in other fields, namely <tt>DEVIATION_DOUBLE</tt> and <tt>DEVIATION_DOUBLE_MINUS</tt> are used.
+ * These are double values which are used the same way as the <tt>deviation</tt> value above, but the computation is much faster. All critical computations
  * are executed as computations on doubles, then.<p>
  * There is only one double (numerator) field inside of this class which stores the Rational. The denominator is supposed to be 1 always.
  */
@@ -28,9 +28,9 @@ public class RationalDouble extends Rational implements Serializable{
     /*
      * members
      */
-    static RationalDouble deriv = new RationalDouble(0.0000000001); //allowed derivation for comparisons to be equal; nine 0s
-    static double DERIV_DOUBLE = 0.000001; //seven 0s
-    static double DERIV_DOUBLE_NEG = -0.000001; //seven 0s
+    static RationalDouble deviation = new RationalDouble(0.0000000001); //allowed deviation for comparisons to be equal; nine 0s
+    static double DEVIATION_DOUBLE = 0.000001; //seven 0s
+    static double DEVIATION_DOUBLE_NEG = -0.000001; //seven 0s
     static boolean PRECISE = false;
     private double d;	//numerator
     
@@ -270,8 +270,8 @@ public class RationalDouble extends Rational implements Serializable{
 	    else return (this.d < ((RationalDouble)r).d);
 	}//if
 	else {
-	    if ((this.d - ((RationalDouble)r).d < DERIV_DOUBLE) &&
-		(this.d - ((RationalDouble)r).d > DERIV_DOUBLE_NEG))
+	    if ((this.d - ((RationalDouble)r).d < DEVIATION_DOUBLE) &&
+		(this.d - ((RationalDouble)r).d > DEVIATION_DOUBLE_NEG))
 		return false;
 	    else return (this.d < ((RationalDouble)r).d);
 	}//else
@@ -291,8 +291,8 @@ public class RationalDouble extends Rational implements Serializable{
 	    return (this.d < i);
 	}//if
 	else {
-	    if ((this.d - i < DERIV_DOUBLE) &&
-		(this.d - i > DERIV_DOUBLE_NEG))
+	    if ((this.d - i < DEVIATION_DOUBLE) &&
+		(this.d - i > DEVIATION_DOUBLE_NEG))
 		return false;
 	    else return (this.d < i);
 	}//else
@@ -308,12 +308,12 @@ public class RationalDouble extends Rational implements Serializable{
     public boolean equal (Rational r) {
 	if (PRECISE) {
 	    double erg = Math.abs(this.d - ((RationalDouble)r).d);
-	    if (erg < deriv.d) return true;
+	    if (erg < deviation.d) return true;
 	    else return false;
 	}//if
 	else {
-	    if ((this.d - ((RationalDouble)r).d < DERIV_DOUBLE) &&
-		(this.d - ((RationalDouble)r).d > DERIV_DOUBLE_NEG))
+	    if ((this.d - ((RationalDouble)r).d < DEVIATION_DOUBLE) &&
+		(this.d - ((RationalDouble)r).d > DEVIATION_DOUBLE_NEG))
 		return true;
 	    else return false;
 	}//else
@@ -329,12 +329,12 @@ public class RationalDouble extends Rational implements Serializable{
     public boolean equal (int i) {
 	if (PRECISE) {
 	    double erg = Math.abs(this.d - i);
-	    if (erg < deriv.d) return true;
+	    if (erg < deviation.d) return true;
 	    else return false;
 	}//if
 	else {
-	    if ((this.d - i < DERIV_DOUBLE) &&
-		(this.d - i > DERIV_DOUBLE_NEG))
+	    if ((this.d - i < DEVIATION_DOUBLE) &&
+		(this.d - i > DEVIATION_DOUBLE_NEG))
 		return true;
 	    else return false;
 	}//else
@@ -353,8 +353,8 @@ public class RationalDouble extends Rational implements Serializable{
 	    else return (this.d > ((RationalDouble)r).d);
 	}//if
 	else {
-	    if ((this.d - ((RationalDouble)r).d < DERIV_DOUBLE) &&
-		(this.d - ((RationalDouble)r).d > DERIV_DOUBLE_NEG))
+	    if ((this.d - ((RationalDouble)r).d < DEVIATION_DOUBLE) &&
+		(this.d - ((RationalDouble)r).d > DEVIATION_DOUBLE_NEG))
 		return false;
 	    else return (this.d > ((RationalDouble)r).d);
 	}//else
@@ -373,8 +373,8 @@ public class RationalDouble extends Rational implements Serializable{
 	    return (this.d > i);
 	}//if
 	else {
-	    if ((this.d - i < DERIV_DOUBLE) &&
-		(this.d - i > DERIV_DOUBLE_NEG))
+	    if ((this.d - i < DEVIATION_DOUBLE) &&
+		(this.d - i > DEVIATION_DOUBLE_NEG))
 		return false;
 	    else return (this.d > i);
 	}//else
@@ -406,7 +406,7 @@ public class RationalDouble extends Rational implements Serializable{
     public boolean lessOrEqual (Rational r) {
 	if (PRECISE)
 	    return (this.equal(r) || this.less(r));
-	else if (this.d - ((RationalDouble)r).d < DERIV_DOUBLE)
+	else if (this.d - ((RationalDouble)r).d < DEVIATION_DOUBLE)
 	    return true;
 	return false;
     }//end method lessOrEqual
@@ -421,7 +421,7 @@ public class RationalDouble extends Rational implements Serializable{
     public boolean greaterOrEqual (Rational r) {
 	if (PRECISE)
 	    return (this.equal(r) || this.greater(r));
-	else if (this.d - ((RationalDouble)r).d >= DERIV_DOUBLE_NEG)
+	else if (this.d - ((RationalDouble)r).d >= DEVIATION_DOUBLE_NEG)
 	    return true;
 	return false;
     }//end method greaterOrEqual
@@ -488,7 +488,7 @@ public class RationalDouble extends Rational implements Serializable{
     /**
      * Sets an field of the class to <i>b</i>.
      * The implementor can decide, whether the class should have a 'precise' and a 'less precise' implementation. By using this method
-     * a flag can be set to use the more or less precise version. <tt>PRECISE == true</tt> means, that the derivation value is automatically set to 0.
+     * a flag can be set to use the more or less precise version. <tt>PRECISE == true</tt> means, that the deviation value is automatically set to 0.
      *
      * @param precise <tt>PRECISE</tt> is set to this value
      */
@@ -498,56 +498,56 @@ public class RationalDouble extends Rational implements Serializable{
 
 
     /**
-     * Returns the derivation value for computations with <tt>deriv = true</tt>.
+     * Returns the deviation value for computations with <tt>deviation = true</tt>.
      *
-     * @return the derivation value
+     * @return the deviation value
      */
-    public Rational getDeriv() {
-	return this.deriv;
-    }//end method getDeriv
+    public Rational getDeviation() {
+	return this.deviation;
+    }//end method getDeviation
 
 
     /**
-     * Sets the derivation value <tt>deriv</tt>.
+     * Sets the deviation value <tt>deviation</tt>.
      * This number is used for equality checks when <tt>PRECISE = true</tt>.
      *
-     * @param r the new derivation value
+     * @param r the new deviation value
      */
-    public void setDeriv(Rational r) {
-	this.deriv = (RationalDouble)r;
-    }//end method setDeriv
+    public void setDeviation(Rational r) {
+	this.deviation = (RationalDouble)r;
+    }//end method setDeviation
 
 
      /**
-     * Sets the derivation values <tt>DERIV_DOUBLE</tt> and <tt>DERIV_DOUBLE_NEG</tt>.
+     * Sets the deviation values <tt>DEVIATION_DOUBLE</tt> and <tt>DEVIATION_DOUBLE_NEG</tt>.
      * This value is used for <tt>PRECISE = false</tt>.
-     * <tt>DERIV_DOUBLE</tt> is set to <tt>d</tt> and <tt>DERIV_DOUBLE_NEG</tt> is set to <tt>-d</tt>.
+     * <tt>DEVIATION_DOUBLE</tt> is set to <tt>d</tt> and <tt>DEVIATION_DOUBLE_NEG</tt> is set to <tt>-d</tt>.
      *
-     * @param d the new derivation value
+     * @param d the new deviation value
      */
-    public void setDerivDouble(Double d) {
-	this.DERIV_DOUBLE = d.doubleValue();
-	this.DERIV_DOUBLE_NEG = -1*d.doubleValue();
-    }//end method setDerivDouble
+    public void setDeviationDouble(Double d) {
+	this.DEVIATION_DOUBLE = d.doubleValue();
+	this.DEVIATION_DOUBLE_NEG = -1*d.doubleValue();
+    }//end method setDeviationDouble
 
 
     /**
-     * Returns the <tt>DERIV_DOUBLE</tt> value.
+     * Returns the <tt>DEVIATION_DOUBLE</tt> value.
      *
-     * @return the derivation value
+     * @return the deviation value
      */
-    public double getDerivDouble() {
-	return this.DERIV_DOUBLE;
-    }//end method getDerivDouble
+    public double getDeviationDouble() {
+	return this.DEVIATION_DOUBLE;
+    }//end method getDeviationDouble
 
 
      /**
-     * Returns the <tt>DERIV_DOUBLE_NEG</tt> value.
+     * Returns the <tt>DEVIATION_DOUBLE_NEG</tt> value.
      *
-     * @return the derivation value.
+     * @return the deviation value.
      */
-    public double getDerivDoubleNeg() {
-	return this.DERIV_DOUBLE_NEG;
-    }//end method getDerivDoubleNeg
+    public double getDeviationDoubleNeg() {
+	return this.DEVIATION_DOUBLE_NEG;
+    }//end method getDeviationDoubleNeg
     
 }//end class RationalDouble

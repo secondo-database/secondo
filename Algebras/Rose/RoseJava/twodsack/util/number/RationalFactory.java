@@ -25,10 +25,10 @@ import java.lang.reflect.*;
  * </ul>
  * Another method of this class can be used to set the <tt>PRECISE</tt> field. It defines wether a more or less precise computation is used.
  * The default value for <tt>PRECISE</tt> is <tt>true</tt>. If <tt>true</tt>,
- * for equality checks between Rationals a number <tt>deriv</tt> is used. Two Rationals <tt>r,s</tt> are supposed to be equal, if
- * <tt>-deriv < r - s < deriv</tt>. <tt>deriv</tt> must be a field of the Rational class.<p>
+ * for equality checks between Rationals a number <tt>deviation</tt> is used. Two Rationals <tt>r,s</tt> are supposed to be equal, if
+ * <tt>-deviation < r - s < deviation</tt>. <tt>deviation</tt> must be a field of the Rational class.<p>
  * If <tt>PRESICE = false</tt> the same mechanism is used, but the computation is done by using doubles, which is faster but less precise.
- * The two fields <tt>DERIV_DOUBLE</tt> and <tt>DERIV_DOUBLE_NEG</tt> are implemented in the Rational class, too. All three derivation values are
+ * The two fields <tt>DEVIATION_DOUBLE</tt> and <tt>DEVIATIION_DOUBLE_NEG</tt> are implemented in the Rational class, too. All three deviation values are
  * read from the actual Rational implemention and can be read from this class, then.
  */
 public class RationalFactory {
@@ -45,20 +45,20 @@ public class RationalFactory {
     static private Object[] PARAM_VALUE_LIST_2 = new Object[2];
     
     /**
-     * A derivation value used for precise computations.
+     * A deviation value used for precise computations.
      */
-    static public Rational deriv;
+    static public Rational deviation;
 
 
     /**
-     * A derivation value used for non-precise computations.
+     * A deviation value used for non-precise computations.
      */
-    static public double DERIV_DOUBLE;
+    static public double DEVIATION_DOUBLE;
 
     /**
-     * A derivation value used for non-precise computations. Should be set to <tt>-1*DERIV_DOUBLE</tt>.
+     * A deviation value used for non-precise computations. Should be set to <tt>-1*DEVIATION_DOUBLE</tt>.
      */
-    static public double DERIV_DOUBLE_NEG;
+    static public double DEVIATION_DOUBLE_NEG;
 
 
     /*
@@ -130,13 +130,13 @@ public class RationalFactory {
 
 
     /**
-     * Returns the actual <tt>deriv</tt> value.<p>
-     * Note: If <tt>PRECISE == true</tt>, the derivation value is returned, otherwise <tt>NULL</tt> is returned.
+     * Returns the actual <tt>deviation</tt> value.<p>
+     * Note: If <tt>PRECISE == true</tt>, the deviation value is returned, otherwise <tt>NULL</tt> is returned.
      *
-     * @return the <tt>deriv</tt> value as Rational
-     * @throws NoDerivationValueFoundException if the derivation value was not implemented in the Rational class extension
+     * @return the <tt>deviation</tt> value as Rational
+     * @throws NoDeviationValueFoundException if the deviation value was not implemented in the Rational class extension
      */
-    static public Rational readDeriv() throws NoDerivationValueFoundException {
+    static public Rational readDeviation() throws NoDeviationValueFoundException {
 	if (PRECISE == null) {
 	    System.out.println("WARNING: PRECISE should be set using RationalFactory.setPrecision()!\n...automatic definition to prevent program termination: PRECISE = TRUE");
 	    PRECISE = new Boolean(true);
@@ -145,62 +145,62 @@ public class RationalFactory {
 	    Object res;
 	    Rational obj = constRational(0);
 	    try {
-		Field fi = RATIONAL_CLASS.getDeclaredField("deriv");
+		Field fi = RATIONAL_CLASS.getDeclaredField("deviation");
 		res = fi.get(obj);
 		return (Rational)res;
 	    }//try
-	    catch (Exception e) { throw new NoDerivationValueFoundException("Error in RationalFactory: No derivation value was found. It must be implemented in chosen Rational class.");
+	    catch (Exception e) { throw new NoDeviationValueFoundException("Error in RationalFactory: No deviation value was found. It must be implemented in chosen Rational class.");
 	    }//catch
 	}//if
 	else { return null; }
-    }//end method readDeriv
+    }//end method readDeviation
 
 
     /**
-     * Returns the <tt>DERIV_DOUBLE</tt> value.<p>
-     * Additionally to the <tt>deriv</tt> value, <tt>DERIV_DOUBLE</tt> is defined which is a <tt>double</tt> value. Computations using this value 
+     * Returns the <tt>DEVIATION_DOUBLE</tt> value.<p>
+     * Additionally to the <tt>deviation</tt> value, <tt>DEVIATION_DOUBLE</tt> is defined which is a <tt>double</tt> value. Computations using this value 
      * instead of
-     * <tt>deriv</tt> are faster. Note, that this method needs a field <tt>DERIV_DOUBLE</tt> implemented in the Rational class extension.
+     * <tt>deviation</tt> are faster. Note, that this method needs a field <tt>DEVIATION_DOUBLE</tt> implemented in the Rational class extension.
      *
-     * @return <tt>DERIV_DOUBLE</tt> as <tt>double</tt>
+     * @return <tt>DEVIATION_DOUBLE</tt> as <tt>double</tt>
      * @throws RationalClassUndefinedException if the Rational class extension was not defined
-     * @throws NoDerivationValueFoundException if <tt>DERIV_DOUBLE</tt> was not implemented
+     * @throws NoDeviationValueFoundException if <tt>DEVIATION_DOUBLE</tt> was not implemented
      */
-    static public double readDerivDouble() throws RationalClassUndefinedException, NoDerivationValueFoundException {
+    static public double readDeviationDouble() throws RationalClassUndefinedException, NoDeviationValueFoundException {
 	if (RATIONAL_CLASS == null) {
 	    throw new RationalClassUndefinedException("Error in RationalFactory: RATIONAL_CLASS must be set using setClass().");
 	}//if
 	try {
-	    Field fi = RATIONAL_CLASS.getDeclaredField("DERIV_DOUBLE");
+	    Field fi = RATIONAL_CLASS.getDeclaredField("DEVIATION_DOUBLE");
 	    Double obj = null;
-	    DERIV_DOUBLE = ((Double)fi.get(obj)).doubleValue();
-	} catch (Exception e) { throw new NoDerivationValueFoundException("Error in RationalFactory: No DERIV_DOUBLE value was found in RATIONAL_CLASS ("+RATIONAL_CLASS+")."); }
-	return DERIV_DOUBLE;
-    }//end method readDerivDouble
+	    DEVIATION_DOUBLE = ((Double)fi.get(obj)).doubleValue();
+	} catch (Exception e) { throw new NoDeviationValueFoundException("Error in RationalFactory: No DEVIATION_DOUBLE value was found in RATIONAL_CLASS ("+RATIONAL_CLASS+")."); }
+	return DEVIATION_DOUBLE;
+    }//end method readDeviationDouble
 
 
     /**
-     * Returns the <tt>DERIV_DOULBE_NEG</tt> value.<p>
-     * Additionally to the <tt>deriv</tt> value, <tt>DERIV_DOUBLE_NEG</tt> is defined which is a negative <tt>double</tt> value.
+     * Returns the <tt>DEVIATION_DOUBLE_NEG</tt> value.<p>
+     * Additionally to the <tt>deviation</tt> value, <tt>DEVIATION_DOUBLE_NEG</tt> is defined which is a negative <tt>double</tt> value.
      * Computations using a <tt>double</tt>
-     * value instead of a Rational value are faster. Note, that this method needs a field <tt>DERIV_DOUBLE_NEG</tt> implemented in the
+     * value instead of a Rational value are faster. Note, that this method needs a field <tt>DEVIATION_DOUBLE_NEG</tt> implemented in the
      * Rational class extension.
      *
-     * @return <tt>DERIV_DOUBLE_NEG</tt> as <tt>double</tt>
+     * @return <tt>DEVIATION_DOUBLE_NEG</tt> as <tt>double</tt>
      * @throws RationalClassUndefinedException if the Rational class extension was not defined
-     * @throws NoDerivationValuefoundException if <tt>DERIV_DOUBLE_NEG</tt> was not implemented
+     * @throws NoDeviationValuefoundException if <tt>DEVIATION_DOUBLE_NEG</tt> was not implemented
      */
-    static public double readDerivDoubleNeg() {
+    static public double readDeviationDoubleNeg() {
 	if (RATIONAL_CLASS == null) {
 	    throw new RationalClassUndefinedException("Error in RationalFactory: RATIONAL_CLASS must be seut using setClass().");
 	}//if
 	try {
-	    Field fi = RATIONAL_CLASS.getDeclaredField("DERIV_DOUBLE_NEG");
+	    Field fi = RATIONAL_CLASS.getDeclaredField("DEVIATION_DOUBLE_NEG");
 	    Double obj = null;
-	    DERIV_DOUBLE_NEG = ((Double)fi.get(obj)).doubleValue();
-	} catch (Exception e) { throw new NoDerivationValueFoundException("Error in RationalFactory: No DERIV_DOUBLE_NEG value was found in RATIONAL_CLASS ("+RATIONAL_CLASS+")."); }
-	return DERIV_DOUBLE_NEG;
-    }//end method readDerivDoubleNeg
+	    DEVIATION_DOUBLE_NEG = ((Double)fi.get(obj)).doubleValue();
+	} catch (Exception e) { throw new NoDeviationValueFoundException("Error in RationalFactory: No DEVIATION_DOUBLE_NEG value was found in RATIONAL_CLASS ("+RATIONAL_CLASS+")."); }
+	return DEVIATION_DOUBLE_NEG;
+    }//end method readDeviationDoubleNeg
 
 
     /**
@@ -382,42 +382,42 @@ public class RationalFactory {
 
 
     /**
-     * Sets the <tt>deriv</tt> field of the actual Rational class.
+     * Sets the <tt>deviation</tt> field of the actual Rational class.
      *
-     * @param r the new derivation value
+     * @param r the new deviation value
      */
-    public static void setDeriv(Rational r) {
+    public static void setDeviation(Rational r) {
 	Class[] classParam = { RATIONAL_CLASS };
 	Object[] methParam = { r };
 	try {
-	    Method m = RATIONAL_CLASS.getMethod("setDeriv", classParam);
+	    Method m = RATIONAL_CLASS.getMethod("setDeviation", classParam);
 	    m.invoke(r,methParam);
 	} catch (Exception e) {
-	    System.out.println("RationalFactory.setDeriv: Problems with method setDeriv.");
+	    System.out.println("RationalFactory.setDeviation: Problems with method setDeviation.");
 	    e.printStackTrace();
 	    System.exit(0);
 	}//catch
-    }//end method setDeriv
+    }//end method setDeviation
 
 
     /**
-     * Sets the <tt>DERIV_DOUBLE</tt> and <tt>DERIV_DOUBLE_NEG</tt> fields of the actual Rational class.
+     * Sets the <tt>DEVIATION_DOUBLE</tt> and <tt>DEVIATION_DOUBLE_NEG</tt> fields of the actual Rational class.
      *
-     * @param d the new derivation value
+     * @param d the new deviation value
      */
-    public static void setDerivDouble(double d){
+    public static void setDeviationDouble(double d){
 	Double dd = new Double(d);
 	Class[] classParam = { dd.getClass() };
 	Object[] methParam = { dd };
 	Rational r = constRational(0);
 	try { 
-	    Method m = RATIONAL_CLASS.getMethod("setDerivDouble", classParam);
+	    Method m = RATIONAL_CLASS.getMethod("setDeviationDouble", classParam);
 	    m.invoke(r,methParam);
 	} catch (Exception e) {
-	    System.out.println("RationalFactory.setDerivDouble: Problems with method setDerivDouble.");
+	    System.out.println("RationalFactory.setDeviationDouble: Problems with method setDeviationDouble.");
 	    e.printStackTrace();
 		System.exit(0);
 	}
-    }//end method setDerivDouble
+    }//end method setDeviationDouble
 
 }//end class RationalFactory

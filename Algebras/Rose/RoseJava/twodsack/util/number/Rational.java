@@ -14,7 +14,7 @@ package twodsack.util.number;
  * of integers, as double or whatever. However, some of the methods are especially for Rational types (such as {@link #getDenominator()}) and
  * they must be implemented.<p>
  * For equality checks, there are two mechanisms in the 2DSACK package. For a class implementing the Rational type, a boolean field named <tt>PRECISE</tt>
- * tells whether a number of type Rational (named <tt>deriv</tt>) or two numbers of type double (named <tt>DERIV_DOUBLE</tt> and <tt>DERIV_DOUBLE_NEG</tt>)
+ * tells whether a number of type Rational (named <tt>deviation</tt>) or two numbers of type double (named <tt>DEVIATION_DOUBLE</tt> and <tt>DEVIATION_DOUBLE_NEG</tt>)
  * are used. Make sure, that those fields are implemented.
  *
  * Furthermore, there must be constructors for the following types:<p>
@@ -324,7 +324,7 @@ abstract public class Rational {
     /**
      * Sets an field of the class to <i>b</i>.
      * The implementor can decide, whether the class should have a 'precise' and a 'less precise' implementation. By using this method
-     * a flag can be set to use the more or less precise version. <tt>PRECISE=true</tt> means, that the derivation value is automatically set to 0.
+     * a flag can be set to use the more or less precise version. <tt>PRECISE=true</tt> means, that the deviation value is automatically set to 0.
      *
      * @param b <tt>PRECISE</tt> is set to this value
      */
@@ -332,46 +332,46 @@ abstract public class Rational {
 
     
     /**
-     * Returns the derivation value for computations with <tt>deriv = true</tt>.
+     * Returns the deviation value for computations with <tt>deviation = true</tt>.
      *
-     * @return the derivation value
+     * @return the deviation value
      */
-    abstract public Rational getDeriv();
+    abstract public Rational getDeviation();
 
 
     /**
-     * Sets the derivation value <tt>deriv</tt>.
+     * Sets the deviation value <tt>deviation</tt>.
      * This number is used for equality checks when <tt>PRECISE = true</tt>.
      *
-     * @param r the new derivation value
+     * @param r the new deviation value
      */
-    abstract public void setDeriv(Rational r);
+    abstract public void setDeviation(Rational r);
 
     
 
     /**
-     * Sets the derivation values <tt>DERIV_DOUBLE</tt> and <tt>DERIV_DOUBLE_NEG</tt>.
+     * Sets the deviation values <tt>DEVIATION_DOUBLE</tt> and <tt>DEVIATION_DOUBLE_NEG</tt>.
      * This value is used for <tt>PRECISE = false</tt>.
-     * <tt>DERIV_DOUBLE</tt> is set to <tt>d</tt> and <tt>DERIV_DOUBLE_NEG</tt> is set to <tt>-d</tt>.
+     * <tt>DEVIATION_DOUBLE</tt> is set to <tt>d</tt> and <tt>DEVIATION_DOUBLE_NEG</tt> is set to <tt>-d</tt>.
      *
-     * @param d the new derivation value
+     * @param d the new deviation value
      */
-    abstract public void setDerivDouble(Double d);
+    abstract public void setDeviationDouble(Double d);
 
 
     /**
-     * Returns the <tt>DERIV_DOUBLE</tt> value.
+     * Returns the <tt>DEVIATION_DOUBLE</tt> value.
      *
-     * @return the derivation value
+     * @return the deviation value
      */
-    abstract public double getDerivDouble();
+    abstract public double getDeviationDouble();
 
 
     /**
-     * Returns the <tt>DERIV_DOUBLE_NEG</tt> value.
+     * Returns the <tt>DEVIATION_DOUBLE_NEG</tt> value.
      *
-     * @return the derivation value.
+     * @return the deviation value.
      */
-    abstract public double getDerivDoubleNeg();
+    abstract public double getDeviationDoubleNeg();
 
 }//end class Rational
