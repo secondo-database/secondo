@@ -178,7 +178,7 @@ public class DisplayGraph extends DsplGeneric
     if (LabelText == null || LabelText.trim().equals(""))
       return;
     Graphics2D g2 = (Graphics2D)g;
-    Rectangle2D.Double r = (Rectangle2D.Double)ro.getBounds2D();
+    Rectangle2D r = ro.getBounds2D();
     AffineTransform af2 = RefLayer.getProjection();
     Point2D.Double p = new Point2D.Double(r.getX() + r.getWidth()/2, r.getY()
         + r.getHeight()/2);
