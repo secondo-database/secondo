@@ -62,32 +62,37 @@ constants below are quite accurate e.g. for examples 14 to
 
 
 /*
-  General cost factors, given in milliseconds [ms] per operation on the reference system
+  General cost factors, given in milliseconds [ms] per operation. The constants have been derived
+  from query times on a reference system and are multiplied by the actual machine's relative speed
+  as inquired by ~machineSpeedFactor(CPU, FS)~.
  
-  A standard schema is used to enhance the readybility of the cost functions:
+  A standard schema is used to enhance the readybility of the cost functions.
 
-----
-   RTM:  ReadTupleMem, 
-   WTM:  WriteTupleMem, 
-   RTD:  ReadTupleDisk, 
-   WTD:  WriteTupleDisk, 
-   RPD:  ReadPageDisk, 
-   WPD:  WritePageDisk, 
-   FND:  FileNewDisk, 
-   FDD:  FileDeleteDisk, 
-   FOD:  FileOpenDisk, 
-   FCD:  FileClose, 
+*/
 
-MaxMem:  maximal memory size per operator
-----
+cost_factors(   RTM,   WTM,   RTD,   WTD,   RPD,   WPD,   FND,   FDD,   FOD,   FCD,  MaxMem) :-
+  machineSpeedFactor(CPU, FS),
+  RTM is CPU * 0.001, % RTM:  ReadTupleMem, 
+  WTM is CPU * 0.001, % WTM:  WriteTupleMem, 
+  RTD is FS  * 0.001, % RTD:  ReadTupleDisk, 
+  WTD is FS  * 0.002, % WTD:  WriteTupleDisk, 
+  RPD is FS  * 1.000, % RPD:  ReadPageDisk, 
+  WPD is FS  * 1.500, % WPD:  WritePageDisk, 
+  FND is FS  * 3.000, % FND:  FileNewDisk,
+  FDD is FS  * 3.000, % FDD:  FileDeleteDisk, 
+  FOD is FS  * 0.500, % FOD:  FileOpenDisk, 
+  FCD is FS  * 0.500, % FCD:  FileClose, 
+  MaxMem is 4194304,  % maximal memory size per operator
+  !.
+ 
+%                RTM,   WTM,   RTD,   WTD,   RPD,   WPD,   FND,   FDD,   FOD,   FCD,  MaxMem  
+ cost_factors( 0.001, 0.001, 0.001, 0.002, 1.000, 1.500, 3.000, 3.000, 0.500, 0.500, 4194304).
 
+/*
   Additional cost factors, that are special to certain operators should be defined as tuple constants
   ~operatorTC(...)~.
 
 */
-
-%cost_factors(   RTM,   WTM,   RTD,   WTD,   RPD,   WPD,   FND,   FDD,   FOD,   FCD,  MaxMem).
- cost_factors( 0.001, 0.001, 0.001, 0.002, 1.000, 1.500, 3.000, 3.000, 0.500, 0.500, 4194304).
 
 loopjoinTC(0.100).      % overhead for opening stream Y,
 sortTC(0.003).      % evaluating ordering predicate

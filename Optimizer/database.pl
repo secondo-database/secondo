@@ -1158,7 +1158,14 @@ on disk for later use.
 ~FS~ with its FS speed with regard to some reference system. The predicate can be used 
 to read the machine's relative speed and scale costs within the optimizer's cost functions.
 
+Calling predicate ~toggleSpeed~ will toggle between the actual (stored) cost factors and 
+uniform cost factors of 1.0 (e.g. for testing of cost functions).
+
 */
+
+machineSpeedFactor(1,1) :- 
+  uniformMachineSpeedFactor,
+  !.
 
 machineSpeedFactor(CPU, FS) :-
   storedMachineSpeedFactor(CPU, FS),
@@ -1176,6 +1183,20 @@ machineSpeedFactor(CPU, FS) :-
 */
 
 referenceSpeed(2489.74, 39696.67).        % (CPUtime, FStime) determine the times needed by the reference system
+
+toggleSpeed :-
+ uniformMachineSpeedFactor,
+ retract(uniformMachineSpeedFactor),
+ write('\nNow using actual machineSpeedFactor:'),
+ machineSpeedFactor,
+ !.
+
+toggleSpeed :-
+ not(uniformMachineSpeedFactor),
+ assert(uniformMachineSpeedFactor),
+ write('\nNow using uniform machineSpeedFactor:'),
+ machineSpeedFactor,
+ !.
  
 /*
 ~queryTime(Query, TimeMS)~ unifies ~TimeMS~ with the time in ms that it takes SECONDO to run ~Query~
@@ -1278,9 +1299,12 @@ updateMachineSpeedFactor :-
 
 machineSpeedFactor :-
   machineSpeedFactor(CPU, FS),
-  nl, write('Stored machine speed factor:'),
-  write(' CPU='), write(CPU),
-  write(' FS='), write(FS), nl,
+  storedMachineSpeedFactor(CPU2, FS2),
+  nl, write('Machine speed factors:'),
+  nl, write(' Factor\tStored \tUsed \n'),
+  write(' CPU=\t'), write(CPU2), write('\t'), write(CPU), nl,
+  write(' FS=\t'), write(FS2), write('\t'), write(FS), nl,
+  write('(Type \'toggleSpeed\' to change between actual and uniform machineSpeedFactors.)'), nl,
   !.
 
 
@@ -1305,6 +1329,7 @@ writeMachineSpeedFactor :-
   write(FD, '.\n'),
   close(FD).
 
+:-  dynamic(uniformMachineSpeedFactor/0).
 :-  dynamic(storedMachineSpeedFactor/2).
 :-  at_halt(writeMachineSpeedFactor).
 :-  readMachineSpeedFactor.
