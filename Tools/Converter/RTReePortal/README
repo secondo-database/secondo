@@ -1,0 +1,27 @@
+
+
+This converter creates relations containing moving points together with 
+an id. The source data come from:
+
+http://www.rtreeportal.org/datasets.html
+
+The data are gives as pure ascii text where each line is build as follow:
+
+id,time,x,y,z
+
+where all values are given as integer types. The meaning of the z-value is
+undocumented, so this value is ignored by this converter. 
+ 
+Unfortunately, the format of the time is not clear. In the converter is assumed
+that one unit corresponds to 1 second. If it figures out, that this is not true, 
+just change the constant value TimeUnit withing the RTreePortal2MPoint.java file.
+You can also move the times by changing the DeltaTime constant within this file.
+
+The tool is compiled by calling make within a bash. 
+The converter itself is invoked by
+java RTreePortal2MPoint <source> <ObjectName> [><target>]
+Normaly, the converter write its output the the std-output. So it is easy it to write
+into a file. 
+
+
+ 
