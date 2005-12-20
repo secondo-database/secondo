@@ -1855,7 +1855,7 @@ void CcLines::RestoreJavaObjectFromFLOB(){
   }
   int size = objectData.Size();
   
-  cout << "size of CcLines = " << size << endl;
+  //cout << "size of CcLines = " << size << endl;
 
   char *bytes = new char[size];
   objectData.Get(0,size,bytes);
@@ -2230,15 +2230,15 @@ Inherited method of StandardAttribute
 
 */
 void CcRegions::CopyFrom(StandardAttribute* right) { 
-  cout << "CcRegions::CopyFrom." << endl;
+  //cout << "CcRegions::CopyFrom." << endl;
   CcRegions *R = (CcRegions *)right;
   objectData.Resize(R->objectData.Size());
-  cout << "objectData.Size: " << R->objectData.Size() << endl;
+  //cout << "objectData.Size: " << R->objectData.Size() << endl;
   char *data = new char[R->objectData.Size()];
   R->objectData.Get(0,R->objectData.Size(),data);
   objectData.Put(0,R->objectData.Size(),data);
   delete [] data;
-  cout << "objectData.Size" << objectData.Size() << endl;
+  //cout << "objectData.Size" << objectData.Size() << endl;
   //RestoreJavaObjectFromFLOB();
   //if(obj)
   //  env->DeleteLocalRef(obj);
@@ -3701,17 +3701,17 @@ static double callJMethod_RD(char *name, CcRegions *ccr) {
 
 
 /*
- Call the setDerivationValue Java function.
+ Call the setDeviationValue Java function.
 
 */
-static int callSetDerivationValue(CcReal *ccr) {
+static int callSetDeviationValue(CcReal *ccr) {
   debug(__LINE__);
 
-  //set derivation value to ccr
-  jmethodID midSetDeriv = env->GetStaticMethodID(clsROSEAlgebra, "setDerivationValue", "(D)V");
-  if (midSetDeriv == 0) error(__FILE__,__LINE__);
+  //set deviation value to ccr
+  jmethodID midSetDeviation = env->GetStaticMethodID(clsROSEAlgebra, "setDeviationValue", "(D)V");
+  if (midSetDeviation == 0) error(__FILE__,__LINE__);
   double v = ccr->GetRealval();
-  env->CallStaticVoidMethod(clsROSEAlgebra, midSetDeriv, v);
+  env->CallStaticVoidMethod(clsROSEAlgebra, midSetDeviation, v);
 
   return 0;
 }
@@ -5649,16 +5649,16 @@ static int r_perimeterFun(Word *args, Word &result, int message,
 
 
 /*
-The setDerivationValue operation is used to set the derivation value for the ROSE algebra.
+The setDeviationValue operation is used to set the deviation value for the ROSE algebra.
 
 */
-static int setDerivationValueFun(Word *args, Word &result, int message,
+static int setDeviationValueFun(Word *args, Word &result, int message,
 				 Word &local, Supplier s) {
 
   CcReal *realval = ((CcReal *)args[0].addr);
   result = qp->ResultStorage(s);
   
-  callSetDerivationValue(realval);
+  callSetDeviationValue(realval);
   ((CcBool *)result.addr)->Set(true, true);
 
   return 0;
@@ -6433,13 +6433,13 @@ const string r_perimeterSpec =
 "<text>r_perimeter(r)</text--->"
 ") )";
 
-const string setDerivationValueSpec = 
+const string setDeviationValueSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
 "( <text>double -> bool</text--->"
-"<text>setDerivationValue(d), d is a double value</text--->"
-"<text>Sets the derivation value for the ROSE-Algebra.</text--->"
-"<text>query setDerivationValue(0.000001)</text--->"
+"<text>setDeviationValue(d), d is a double value</text--->"
+"<text>Sets the deviation value for the ROSE-Algebra.</text--->"
+"<text>query setDeviationValue(0.000001)</text--->"
 ") )";
 
 const string chooseTriangulatorSpec = 
@@ -7136,11 +7136,11 @@ Operator r_perimeter
  ccregionsDouble          	//type mapping 
  );
 
-Operator setDerivationValue
+Operator setDeviationValue
 (
- "setDerivationValue", 		//name
- setDerivationValueSpec,	//specification ....
- setDerivationValueFun,		//value mapping
+ "setDeviationValue", 		//name
+ setDeviationValueSpec, 	//specification ....
+ setDeviationValueFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
  simpleSelect,			//trivial selection function 
  doubleBool             	//type mapping 
@@ -7242,7 +7242,7 @@ public:
     AddOperator(&l_length);
     AddOperator(&r_area);
     AddOperator(&r_perimeter);
-    AddOperator(&setDerivationValue);
+    AddOperator(&setDeviationValue);
     AddOperator(&chooseTriangulator);
   }
   ~RoseAlgebra() {};
@@ -7294,22 +7294,22 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 
   env->CallStaticVoidMethod(clsRationalFactory, midPrecision, false);
 
-  jmethodID midSetDeriv = env->GetStaticMethodID(clsRationalFactory, "setDerivDouble", "(D)V");
-  if (midSetDeriv == 0) error(__FILE__,__LINE__);
+  jmethodID midSetDeviation = env->GetStaticMethodID(clsRationalFactory, "setDeviationDouble", "(D)V");
+  if (midSetDeviation == 0) error(__FILE__,__LINE__);
 
-  //set derivation value for 2DSACK package
-  env->CallStaticVoidMethod(clsRationalFactory, midSetDeriv, 0.00000000001);
+  //set deviation value for 2DSACK package
+  env->CallStaticVoidMethod(clsRationalFactory, midSetDeviation, 0.00000000001);
 
-  jmethodID midReadDeriv = env->GetStaticMethodID(clsRationalFactory, "readDerivDouble", "()D");
-  if (midReadDeriv == 0) error(__FILE__,__LINE__);
+  jmethodID midReadDeviation = env->GetStaticMethodID(clsRationalFactory, "readDeviationDouble", "()D");
+  if (midReadDeviation == 0) error(__FILE__,__LINE__);
 
-  jmethodID midReadDerivN = env->GetStaticMethodID(clsRationalFactory, "readDerivDoubleNeg", "()D");
-  if (midReadDerivN == 0) error(__FILE__,__LINE__);
+  jmethodID midReadDeviationN = env->GetStaticMethodID(clsRationalFactory, "readDeviationDoubleNeg", "()D");
+  if (midReadDeviationN == 0) error(__FILE__,__LINE__);
   
-  jdouble resD = env->CallStaticDoubleMethod(clsRationalFactory, midReadDeriv);
-  jdouble resDN = env->CallStaticDoubleMethod(clsRationalFactory, midReadDerivN);
+  jdouble resD = env->CallStaticDoubleMethod(clsRationalFactory, midReadDeviation);
+  jdouble resDN = env->CallStaticDoubleMethod(clsRationalFactory, midReadDeviationN);
 
-  cout << "2DSACK algebra: derivation values set to " << resD << "/" << resDN << endl;
+  cout << "2DSACK algebra: deviation values set to " << resD << "/" << resDN << endl;
   
   //read all the other classes that are needed in here
   clsPoints = env->FindClass("Points");
