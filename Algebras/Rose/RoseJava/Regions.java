@@ -1,5 +1,6 @@
 import twodsack.set.*;
 import twodsack.setelement.datatype.*;
+import twodsack.setelement.datatype.basicdatatype.*;
 import twodsack.setelement.datatype.compositetype.*;
 import twodsack.util.collection.*;
 import twodsack.util.comparator.*;
@@ -23,6 +24,20 @@ public class Regions implements Serializable{
      */
     public TriMultiSet triset = null;
 
+    /**
+     * The bounding box of the Regions object.
+     */
+    private Rect bbox = null;
+
+    /**
+     * If true, a bbox was already computed and is valid.
+     */
+    private boolean bboxDefined = false;
+
+    /**
+     * The area of the Regions object.
+     */
+    public double area = 0.0;
 
     /**
      * A flag which indicates, whether the <tt>cycles</tt> of the polygon are defined or not.
@@ -46,6 +61,9 @@ public class Regions implements Serializable{
 	triset = new TriMultiSet(new TriangleComparator());
 	cyclesDefined = false;
 	cycles = null;
+	bbox = null;
+	area = 0.0;
+	bboxDefined = false;
     }
 
 
@@ -60,6 +78,9 @@ public class Regions implements Serializable{
 	    triset = tl;
 	    cyclesDefined = false;
 	    cycles = null;
+	    bbox = null;
+	    area = 0.0;
+	    bboxDefined = false;
 	}//if
 	else if(!isRegularTriSet(tl)) {
 	    System.out.println("Error in Regions: tried to construct bad Region.");
@@ -69,6 +90,9 @@ public class Regions implements Serializable{
 	    triset = TriMultiSet.convert(tl);
 	    cyclesDefined = false;
 	    cycles = null;
+	    bbox = triset.rect();
+	    area = ROSEAlgebra.r_area(this);
+	    bboxDefined = true;
 	}//else
     }
 
@@ -84,11 +108,17 @@ public class Regions implements Serializable{
 	    triset = new TriMultiSet(new TriangleComparator());
 	    cyclesDefined = false;
 	    cycles = null;
+	    bbox = null;
+	    area = 0.0;
+	    bboxDefined = false;
 	}//if
 	else {
 	    triset = computeTriSet(sl);
 	    cycles = cyclesPoints();
 	    cyclesDefined = true;
+	    bbox = triset.rect();
+	    area = ROSEAlgebra.r_area(this);
+	    bboxDefined = true;
 	}//else
     }
 
@@ -102,9 +132,19 @@ public class Regions implements Serializable{
     public Regions(Lines l) {
 	if (l.segset.isEmpty()) {
 	    triset = new TriMultiSet(new TriangleComparator());
+	    cyclesDefined = false;
+	    cycles = null;
+	    bbox = null;
+	    area = 0.0;
+	    bboxDefined = false;
 	}//if
 	else {
 	    triset = computeTriSet(l.segset);
+	    cyclesDefined = false;
+	    cycles = null;
+	    bbox = triset.rect();
+	    area = ROSEAlgebra.r_area(this);
+	    bboxDefined = true;
 	}//else
     }
 
@@ -119,12 +159,29 @@ public class Regions implements Serializable{
 	this.triset = r.triset;
 	this.cyclesDefined = r.cyclesDefined;
 	this.cycles = r.cycles;
+	this.area = r.area;
+	this.bbox = r.bbox;
+	this.bboxDefined = true;
     }
 
 
     /*
      * methods
      */
+    /**
+     * Returns the bounding box of the Regions object.
+     */
+    public Rect rect() {
+	if (bboxDefined)
+	    return bbox;
+	else {
+	    bbox = triset.rect();
+	    bboxDefined = true;
+	    return bbox;
+	}//else
+    }//end method rect
+
+
     /**
      * Computes the triangle set for a given set of segments.
      * The passed set of segment must form a proper border for a Regions value.

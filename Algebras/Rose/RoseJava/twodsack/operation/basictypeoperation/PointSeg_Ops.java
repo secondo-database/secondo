@@ -26,9 +26,9 @@ public class PointSeg_Ops {
     /*
      * fields
      */
-    static final double DERIV_DOUBLE = RationalFactory.readDerivDouble();
-    static final double DERIV_DOUBLE_NEG = RationalFactory.readDerivDoubleNeg();
-    static final double DERIV_DOUBLE_PLUS1 = DERIV_DOUBLE+1;
+    static final double DEVIATION_DOUBLE = RationalFactory.readDeviationDouble();
+    static final double DEVIATION_DOUBLE_NEG = RationalFactory.readDeviationDoubleNeg();
+    static final double DEVIATION_DOUBLE_PLUS1 = DEVIATION_DOUBLE+1;
     private static boolean PRECISE;
     private static boolean preciseDefined;
     
@@ -61,13 +61,13 @@ public class PointSeg_Ops {
 	}//if
 	
 	if (PRECISE) {
-	    //PRECISE == true, use Deriv
+	    //PRECISE == true, use Deviation
 
 	    //
 	    //CHANGE THIS AS SEEN BELOW!!!
 	    //
 
-	    Rational DERIV = RationalFactory.readDeriv();
+	    Rational DEVIATION = RationalFactory.readDeviation();
 	    if (isEndpoint(p,s)) { return true; }
 	    Point s1p = Mathset.diff(p,s.getStartpoint());
 	    Point s1s2 = Mathset.diff(s.getEndpoint(),s.getStartpoint());
@@ -82,20 +82,20 @@ public class PointSeg_Ops {
 	    if (!s1pY0) t2 = s1s2.y.dividedby(s1p.y);
 
 	    Rational t1MINt2 = t1.minus(t2);
-	    boolean t1t2equal = t1MINt2.less(DERIV) && t1MINt2.greater(DERIV.times(-1));
+	    boolean t1t2equal = t1MINt2.less(DEVIATION) && t1MINt2.greater(DEVIATION.times(-1));
 	    
 	    if (!(s1pX0 || s1pY0) && !t1t2equal) {
 		return false; }
 
 	    Rational s1s2compXVal = (s1p.x.times(t1)).minus(s1s2.x);
-	    boolean s1s2compX = (DERIV.equal(s1s2compXVal)) || 
-		(s1s2compXVal.less(DERIV) && s1s2compXVal.greater(DERIV.times(-1)));
+	    boolean s1s2compX = (DEVIATION.equal(s1s2compXVal)) || 
+		(s1s2compXVal.less(DEVIATION) && s1s2compXVal.greater(DEVIATION.times(-1)));
 	    Rational s1s2compYVal = (s1p.y.times(t2)).minus(s1s2.y);
-	    boolean s1s2compY = (DERIV.equal(s1s2compYVal)) ||
-		(s1s2compYVal.less(DERIV) && s1s2compYVal.greater(DERIV.times(-1)));
+	    boolean s1s2compY = (DEVIATION.equal(s1s2compYVal)) ||
+		(s1s2compYVal.less(DEVIATION) && s1s2compYVal.greater(DEVIATION.times(-1)));
 
-	    boolean t1valid = t1.equal(0) || !(t1.less(DERIV.plus(1)));
-	    boolean t2valid = t2.equal(0) || !(t2.less(DERIV.plus(1)));
+	    boolean t1valid = t1.equal(0) || !(t1.less(DEVIATION.plus(1)));
+	    boolean t2valid = t2.equal(0) || !(t2.less(DEVIATION.plus(1)));
 
 	    if (s1s2compX && s1s2compY &&
 		t1valid && t2valid) return true;
@@ -112,8 +112,8 @@ public class PointSeg_Ops {
 	    double res3 = ((p.y.getDouble() + q.y.getDouble()) / 2) * (p.x.getDouble() - q.x.getDouble());
 	    double result = res1+res2+res3;
 	    
-	    if (result > DERIV_DOUBLE ||
-		result < DERIV_DOUBLE_NEG) return false;
+	    if (result > DEVIATION_DOUBLE ||
+		result < DEVIATION_DOUBLE_NEG) return false;
 	    
 	    //does p lie between q and r?
 	    Point min = Point.min(q,r);

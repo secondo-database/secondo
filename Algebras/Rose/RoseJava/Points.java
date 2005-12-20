@@ -19,7 +19,17 @@ public class Points implements Serializable{
      * The set of points.
      */
     public PointMultiSet pointset;
-    
+
+    /**
+     * The bounding box of the Points object.
+     */
+    private Rect bbox;
+
+    /**
+     * If true, a bbox was already computed and is valid
+     */
+    private boolean bboxDefined = false;
+
     /*
      * constructors
      */
@@ -28,6 +38,8 @@ public class Points implements Serializable{
      */
     public Points() {
 	pointset = new PointMultiSet(new PointComparator());
+	bbox = null;
+	bboxDefined = false;
     }
 
 
@@ -39,6 +51,8 @@ public class Points implements Serializable{
      */
     public Points(PointMultiSet pl) {
 	pointset = pl;
+	bbox = pl.rect();
+	bboxDefined = true;
     }
 
 
@@ -50,12 +64,28 @@ public class Points implements Serializable{
      */
     public Points(Points p) {
 	this.pointset = p.pointset;
+	this.bbox = p.bbox;
+	this.bboxDefined = p.bboxDefined;
     }
 
     
     /*
      * methods
      */
+    /**
+     * Returns the bounding box of the Points object.
+     */
+    public Rect rect() {
+	if (bboxDefined)
+	    return bbox;
+	else {
+	    this.bbox = pointset.rect();
+	    this.bboxDefined = true;
+	    return bbox;
+	}//if
+    }//end method rect
+
+
     /**
      * Returns the size of the pointset.
      *
@@ -73,6 +103,7 @@ public class Points implements Serializable{
      */
     public void add(Point p) {
 	this.pointset.add(p);
+	this.bboxDefined = false;
     }//end method add
 
 
@@ -84,6 +115,7 @@ public class Points implements Serializable{
      */
     public void add(Rational x, Rational y) {
 	this.pointset.add(new Point(x,y));
+	this.bboxDefined = false;
     }//end method add
 
 
@@ -95,6 +127,7 @@ public class Points implements Serializable{
      */
     public void add(int x, int y) {
 	this.pointset.add(new Point(x,y));
+	this.bboxDefined = false;
     }//end method add
 
 
@@ -106,6 +139,7 @@ public class Points implements Serializable{
      */
     public void add(double x, double y) {
 	this.pointset.add(new Point(x,y));
+	this.bboxDefined = false;
     }//end method add
 
 

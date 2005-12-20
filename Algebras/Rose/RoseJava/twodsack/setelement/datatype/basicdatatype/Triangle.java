@@ -41,8 +41,8 @@ import java.io.*;
  * execution of the program is not terminated. The critical values can be configured by setting <tt>CRITICAL_SIDE_LENGTH</tt> and 
  * <tt>CRITICAL_ANGLE</tt>. Initially, <tt>CRITICAL_SIDE_LENGTH</tt> is set to 0.0005, and <tt>CRITICAL_ANGLE</tt> is set to 0.25.<p>
  * When calling a triangle's constructor, the triangles vertices can be tested, whether they lie on a line or not. This is done, if the field
- * <tt>TRIANGLE_TEST</tt> is set to <tt>true</tt> (default value is <tt>false</tt>. During this test, the values for <tt>DERIV_DOUBLE</tt> and
- * <tt>DERIV_DOUBLE_NEG</tt> implemented in the {@link Rational} class extension are used.
+ * <tt>TRIANGLE_TEST</tt> is set to <tt>true</tt> (default value is <tt>false</tt>. During this test, the values for <tt>DEVIATION_DOUBLE</tt> and
+ * <tt>DEVIATION_DOUBLE_NEG</tt> implemented in the {@link Rational} class extension are used.
  */
 public class Triangle extends Element implements Serializable {
 
@@ -89,8 +89,8 @@ public class Triangle extends Element implements Serializable {
     static Class[] paramListSS = { segClass, segClass };
     static Class[] paramListE = new Class[1];
 
-    static final double DERIV_DOUBLE = RationalFactory.readDerivDouble();
-    static final double DERIV_DOUBLE_NEG = RationalFactory.readDerivDoubleNeg();
+    static final double DEVIATION_DOUBLE = RationalFactory.readDeviationDouble();
+    static final double DEVIATION_DOUBLE_NEG = RationalFactory.readDeviationDoubleNeg();
     static final Rational FAC = RationalFactory.constRational(0.5);
     static boolean PRECISE;
     static boolean preciseDefined;
@@ -302,12 +302,12 @@ public class Triangle extends Element implements Serializable {
 	    double res3 = ((p.y.getDouble() + q.y.getDouble()) / 2) * (p.x.getDouble() - q.x.getDouble());
 	    double result = res1+res2+res3;
 	    
-	    if (result < DERIV_DOUBLE &&
-		result > DERIV_DOUBLE_NEG) {
+	    if (result < DEVIATION_DOUBLE &&
+		result > DEVIATION_DOUBLE_NEG) {
 		result = 0;
 	    }//if
-	    if (result > DERIV_DOUBLE ||
-		result < DERIV_DOUBLE_NEG) 
+	    if (result > DEVIATION_DOUBLE ||
+		result < DEVIATION_DOUBLE_NEG) 
 		return true;
 	    else 
 		return false;

@@ -28,8 +28,8 @@ public class Point extends Element implements Serializable {
     /*
      * fields
      */
-    static final double DERIV_DOUBLE = RationalFactory.readDerivDouble();
-    static final double DERIV_DOUBLE_NEG = RationalFactory.readDerivDoubleNeg();
+    static final double DEVIATION_DOUBLE = RationalFactory.readDeviationDouble();
+    static final double DEVIATION_DOUBLE_NEG = RationalFactory.readDeviationDoubleNeg();
     static boolean PRECISE;
     static boolean preciseDefined;
 
@@ -196,14 +196,14 @@ public class Point extends Element implements Serializable {
 		double diffx = tx - px;
 		double diffy = ty - py;
 		
-		if ((diffx < DERIV_DOUBLE && diffx > DERIV_DOUBLE_NEG) &&
-		    (diffy < DERIV_DOUBLE && diffy > DERIV_DOUBLE_NEG))
+		if ((diffx < DEVIATION_DOUBLE && diffx > DEVIATION_DOUBLE_NEG) &&
+		    (diffy < DEVIATION_DOUBLE && diffy > DEVIATION_DOUBLE_NEG))
 		    return true;
 		else return false;
 		*/
 		double diffx = Math.abs(tx-px);
 		double diffy = Math.abs(ty-py);
-		if (diffx < DERIV_DOUBLE && diffy < DERIV_DOUBLE)
+		if (diffx < DEVIATION_DOUBLE && diffy < DEVIATION_DOUBLE)
 		    return true;
 		else 
 		    return false;

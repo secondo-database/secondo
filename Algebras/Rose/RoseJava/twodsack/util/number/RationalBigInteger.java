@@ -22,15 +22,15 @@ public class RationalBigInteger extends Rational implements Serializable{
     /*
      * If you want to change the number of digits for the Rational converter, change the value
      * <tt>NUM_DIGITS</tt> in the members section.
-     * The derivation value for an allowed derivation can be set by setting a value for 'deriv'.
+     * The deviation value for an allowed deviation can be set by setting a value for 'deviation'.
      */
     /*
      * fields
      */
     static final int NUM_DIGITS = 7; //number of digits used right of the decimal point
-    static RationalBigInteger deriv = new RationalBigInteger(0,1);
-    static double DERIV_DOUBLE = 0;
-    static double DERIV_DOUBLE_NEG = 0;
+    static RationalBigInteger deviation = new RationalBigInteger(0,1);
+    static double DEVIATION_DOUBLE = 0;
+    static double DEVIATION_DOUBLE_NEG = 0;
     
     /**
      * A flag for 'precise' or 'not so precise' computation. If <tt>true</tt>, everything is computed using RationalBigIntegers. Otherwise,
@@ -544,7 +544,7 @@ public class RationalBigInteger extends Rational implements Serializable{
     /**
      * Sets an field of the class to <tt>b</tt>.
      * The implementor can decide, whether the class should have a 'precise' and a 'less precise' implementation. By using this method
-     * a flag can be set to use the more or less precise version. <tt>PRECISE == true</tt> means, that the derivation value is automatically set to 0.
+     * a flag can be set to use the more or less precise version. <tt>PRECISE == true</tt> means, that the deviation value is automatically set to 0.
      *
      * @param precise <tt>PRECISE</tt> is set to this value
      */
@@ -554,57 +554,57 @@ public class RationalBigInteger extends Rational implements Serializable{
     
 
     /**
-     * Returns the derivation value for computations with <tt>deriv = true</tt>.
+     * Returns the deviation value for computations with <tt>deviation = true</tt>.
      *
-     * @return the derivation value
+     * @return the deviation value
      */
-    public Rational getDeriv() {
-	return this.deriv;
-    }//end method getDeriv
+    public Rational getDeviation() {
+	return this.deviation;
+    }//end method getDeviation
 
 
     /**
-     * Sets the derivation value <tt>deriv</tt>.
+     * Sets the deviation value <tt>deviation</tt>.
      * This number is used for equality checks when <tt>PRECISE = true</tt>.
      *
-     * @param r the new derivation value
+     * @param r the new deviation value
      */
-    public void setDeriv(Rational r) {
-	this.deriv = (RationalBigInteger)r;
-    }//end method setDeriv
+    public void setDeviation(Rational r) {
+	this.deviation = (RationalBigInteger)r;
+    }//end method setDeviation
 
     
     /**
-     * Sets the derivation values <tt>DERIV_DOUBLE</tt> and <tt>DERIV_DOUBLE_NEG</tt>.
+     * Sets the deviation values <tt>DEVIATION_DOUBLE</tt> and <tt>DEVIATION_DOUBLE_NEG</tt>.
      * This value is used for <tt>PRECISE = false</tt>.
-     * <tt>DERIV_DOUBLE</tt> is set to <tt>d</tt> and <tt>DERIV_DOUBLE_NEG</tt> is set to <tt>-d</tt>.
+     * <tt>DEVIATION_DOUBLE</tt> is set to <tt>d</tt> and <tt>DEVIATIION_DOUBLE_NEG</tt> is set to <tt>-d</tt>.
      *
-     * @param d the new derivation value
+     * @param d the new deviation value
      */
-    public void setDerivDouble(Double d) {
-	this.DERIV_DOUBLE = d.doubleValue();
-	this.DERIV_DOUBLE_NEG = -1*d.doubleValue();
-    }//end method setDerivDouble
+    public void setDeviationDouble(Double d) {
+	this.DEVIATION_DOUBLE = d.doubleValue();
+	this.DEVIATION_DOUBLE_NEG = -1*d.doubleValue();
+    }//end method setDeviationDouble
 
 
     /**
-     * Returns the <tt>DERIV_DOUBLE</tt> value.
+     * Returns the <tt>DEVIATION_DOUBLE</tt> value.
      *
-     * @return the derivation value
+     * @return the deviation value
      */
-    public double getDerivDouble() {
-	return this.DERIV_DOUBLE;
-    }//end method getDerivDouble
+    public double getDeviationDouble() {
+	return this.DEVIATION_DOUBLE;
+    }//end method getDeviationDouble
 
 
     /**
-     * Returns the <tt>DERIV_DOUBLE_NEG</tt> value.
+     * Returns the <tt>DEVIATION_DOUBLE_NEG</tt> value.
      *
-     * @return the derivation value.
+     * @return the deviation value.
      */
-    public double getDerivDoubleNeg() {
-	return this.DERIV_DOUBLE_NEG;
-    }//end method getDerivDoubleNeg
+    public double getDeviationDoubleNeg() {
+	return this.DEVIATION_DOUBLE_NEG;
+    }//end method getDeviationDoubleNeg
 
 
 }//end class RationalBigInteger

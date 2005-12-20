@@ -136,6 +136,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt> if both values are equal
      */    
     public static boolean pp_equal (Points p1, Points p2) {
+	if (!p1.rect().hasCommonPoints(p2.rect())) return false;
 	try {
 	    return SetOps.equal(p1.pointset,p2.pointset);
 	} catch (Exception e) {
@@ -154,6 +155,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt> if both values are equal
      */
     public static boolean ll_equal (Lines l1, Lines l2) {
+	if (!l1.rect().hasCommonPoints(l2.rect())) return false;
 	try {
 	    return SetOps.equal(SupportOps.minimal(l1.segset,true,false,false),SupportOps.minimal(l2.segset,true,false,false));
 	} catch (Exception e) {
@@ -171,7 +173,8 @@ public class ROSEAlgebra {
      * @param r2 the second Regions value
      * @return <tt>true</tt> if both values are equal
      */
-    public static boolean rr_equal (Regions r1, Regions r2) {	
+    public static boolean rr_equal (Regions r1, Regions r2) {
+	if (!r1.rect().hasCommonPoints(r2.rect())) return false;
 	try {
 	    return ll_equal(new Lines(SupportOps.contour(r1.triset,true,false)),new Lines(SupportOps.contour(r2.triset,true,false)));
 	} catch (Exception e) {
@@ -190,6 +193,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt> if the values are not equal
      */
     public static boolean pp_unequal (Points p1, Points p2) {
+	if (!p1.rect().hasCommonPoints(p2.rect())) return true;
 	try {
 	    return !pp_equal(p1,p2); 
 	} catch (Exception e) {
@@ -208,6 +212,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt> if the values are not equal
      */
     public static boolean ll_unequal (Lines l1, Lines l2) {
+	if (!l1.rect().hasCommonPoints(l2.rect())) return true;
 	try {
 	    return !ll_equal(new Lines(l1.segset),new Lines(l2.segset));
 	} catch (Exception e) {
@@ -226,6 +231,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt> if the Regions are not equal
      */
     public static boolean rr_unequal (Regions r1, Regions r2) {
+	if (!r1.rect().hasCommonPoints(r2.rect())) return true;
 	try {
 	    return !rr_equal(r1,r2); 
 	} catch (Exception e) {
@@ -244,6 +250,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt> if the intersection of both Points values is empty
      */
     public static boolean pp_disjoint (Points p1, Points p2) {
+	if (!p1.rect().hasCommonPoints(p2.rect())) return true;
 	try {
 	    return SetOps.disjoint(p1.pointset,p2.pointset);
 	} catch (Exception e) {
@@ -263,6 +270,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if two intersecting segments exist
      */
     public static boolean ll_disjoint (Lines l1, Lines l2) {
+	if (!l1.rect().hasCommonPoint(l2.rect())) return true;
 	try {
 	    return SetOps.disjoint(l1.segset,l2.segset);
 	} catch (Exception e) {
@@ -282,6 +290,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if the Regions values have at least one common point
      */
     public static boolean rr_disjoint (Regions r1, Regions r2) {
+	if (!r1.rect().hasCommonPoints(r2.rect())) return true;
 	try {
 	    return SetOps.disjoint(r1.triset,r2.triset);
 	} catch (Exception e) {
@@ -301,6 +310,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>p</tt> properly lies inside of <tt>r</tt>
      */
     public static boolean pr_inside (Points p, Regions r) {
+	if (!p.rect().hasCommonPoints(r.rect())) return false;
 	try {
 	    PointMultiSet retSet = null;
 	    PairMultiSet pms = null;
@@ -332,6 +342,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>l</tt> lies inside of <tt>r</tt>
      */
     public static boolean lr_inside (Lines l, Regions r) {
+	if (!l.rect().hasCommonPoints(r.rect())) return false;
 	try {
 	    SegMultiSet retSet = null;
 	    try {
@@ -361,6 +372,7 @@ public class ROSEAlgebra {
      * @param <tt>true</tt>, if <tt>r2</tt> is covered by <tt>r1</tt>
      */
     public static boolean rr_inside (Regions r1, Regions r2) {
+	if (!r1.rect().hasCommonPoints(r2.rect())) return false;
 	try {
 	    return rr_minus(r2,r1).triset.isEmpty();
 	} catch (Exception e) {
@@ -379,6 +391,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if no common area exists
      */
     public static boolean rr_area_disjoint (Regions r1, Regions r2) {
+	if (!r1.rect().hasCommonPoints(r2.rect())) return true;
 	try {
 	    PairMultiSet pms = null;
 	    
@@ -405,6 +418,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if no common border exists
      */
     public static boolean rr_edge_disjoint (Regions r1, Regions r2) {
+	if (!r1.rect().hasCommonPoints(r2.rect())) return true;
 	try {
 	    return (rr_area_disjoint(r1,r2) && !rr_border_in_common(r1,r2));
 	} catch (Exception e) {
@@ -425,6 +439,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <rr>r1</tt> is edge_inside of <tt>r2</tt>
      */
     public static boolean rr_edge_inside (Regions r1, Regions r2) {
+	if (!r1.rect().hasCommonPoints(r2.rect())) return false;
 	try {
 	    SegMultiSet r1contour = SupportOps.contour(r1.triset,true,false);
 	    SegMultiSet r2contour = SupportOps.contour(r2.triset,true,false);
@@ -448,6 +463,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>r2</tt> is vertex_inside of <tt>r1</tt>
      */
     public static boolean rr_vertex_inside (Regions r1, Regions r2) {
+	if (!r1.rect().hasCommonPoints(r2.rect())) return false;
 	try {
 	    PointMultiSet pmsR2 = r_vertices(r2).pointset;
 	    PairMultiSet pairs = null;
@@ -495,6 +511,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt> if <tt>l1,l2</tt> intersect
      */
     public static boolean ll_intersects (Lines l1, Lines l2) {
+	if (!l1.rect().hasCommonPoints(l2.rect())) return false;
 	try {
 	    return intersects(l1.segset,l2.segset);
 	} catch (Exception e) {
@@ -514,6 +531,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if the intersection of <tt>l,r</tt> is a Lines value
      */
     public static boolean lr_intersects (Lines l, Regions r) {
+	if (!l.rect().hasCommonPoints(r.rect())) return false;
 	try {
 	    PairMultiSet retSet = null;
 	    
@@ -541,6 +559,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if the intersection of <tt>l,r</tt> is a Lines value
      */
     public static boolean rl_intersects (Regions r, Lines l) {
+	if (!r.rect().hasCommonPoints(l.rect())) return false;
 	try {
 	    return lr_intersects(l,r); 
 	} catch (Exception e) {
@@ -560,6 +579,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt> if <tt>r1,r2</tt> intersect
      */
     public static boolean rr_intersects (Regions r1, Regions r2) {
+	if (!r1.rect().hasCommonPoints(r2.rect())) return false;
 	try {
 	    return intersects(r1.triset,r2.triset); 
 	} catch (Exception e) {
@@ -583,6 +603,7 @@ public class ROSEAlgebra {
 	//Compute a set with all intersecting lines. Then, check whether there are pairs of lines
 	//that overlap or pintersect. If any, return false. If there are pairs left, they must be
 	//lines that meet. Return true in that case.
+	if (!l1.rect().hasCommonPoints(l2.rect())) return false;
 	try {
 	    PairMultiSet retSet = null;
 	    
@@ -615,6 +636,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>l,r</tt> meet
      */
     public static boolean lr_meets (Lines l, Regions r) {
+	if (l.rect().hasCommonPoints(r.rect())) return false;
 	try {
 	    return !lr_intersects(l,r) && ll_meets(l,r_contour(r));
 	} catch (Exception e) {
@@ -634,6 +656,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>l,r</tt> meet
      */
     public static boolean rl_meets (Regions r, Lines l) {
+	if (r.rect().hasCommonPoints(l.rect())) return false;
 	try {
 	    return lr_meets(l,r);
 	} catch (Exception e) {
@@ -653,6 +676,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>r1,r2</tt> meet
      */
     public static boolean rr_meets (Regions r1, Regions r2) {
+	if (!r1.rect().hasCommonPoints(r2.rect())) return false;
 	try {
 	    PairMultiSet retSet = null;
 	
@@ -678,6 +702,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>l1,l2</tt> have a common border
      */
     public static boolean ll_border_in_common (Lines l1, Lines l2) {
+	if (!l1.rect().hasCommonPoints(l2.rect())) return false;
 	try {
 	    PairMultiSet retSet = null;
 	    
@@ -705,6 +730,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>l,r</tt> have a common border
      */
     public static boolean lr_border_in_common (Lines l, Regions r) {
+	if (!l.rect().hasCommonPoints(r.rect())) return false;
 	try {
 	    PairMultiSet retSet = null;
 	    
@@ -732,6 +758,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>l,r</tt> have a common border
      */
     public static boolean rl_border_in_common (Regions r, Lines l) {
+	if (r.rect().hasCommonPoints(l.rect())) return false;
 	try {
 	    return lr_border_in_common(l,r);
 	} catch (Exception e) {
@@ -751,6 +778,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>r1,r2</tt> have a common border
      */
     public static boolean rr_border_in_common (Regions r1, Regions r2) {
+	if (!r1.rect().hasCommonPoints(r2.rect())) return false;
 	try {
 	    return ll_border_in_common(new Lines(SupportOps.contour(r1.triset,true,false)),new Lines(SupportOps.contour(r2.triset,true,false)));
 	} catch (Exception e) {
@@ -769,6 +797,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>r1,r2</tt> are adjacent
      */
     public static boolean rr_adjacent (Regions r1, Regions r2) {
+	if (!r1.rect().hasCommonPoints(r2.rect())) return false;
 	try {
 	    PairMultiSet pms = null;
 	    
@@ -804,6 +833,7 @@ public class ROSEAlgebra {
 	// - compute a mesh for HC
 	// - compute RES = minus(r2,HC)
 	// - if RES is empty, return true, otherwise return false
+	if (!r1.rect().hasCommonPoints(r2.rect())) return false;
 	try {
 	    Polygons r1POL = new Polygons(r1.triset);
 	    CycleListList r1cycles = r1POL.cyclesSegments();
@@ -855,6 +885,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>p</tt> lies on <tt>l</tt>
      */
     public static boolean pl_on_border_of (Points p, Lines l) {
+	if (!p.rect().hasCommonPoints(l.rect())) return false;
 	try {
 	    PointMultiSet retSet = null;
 	    
@@ -882,6 +913,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>p</tt> lies on the border of <tt>r</tt>
      */
     public static boolean pr_on_border_of (Points p, Regions r) {
+	if (!p.rect().hasCommonPoints(r.rect())) return false;
 	try {
 	    PointMultiSet retSet = null;
 	    
@@ -910,6 +942,7 @@ public class ROSEAlgebra {
      * @return the intersection of <tt>p1,p2</tt>
      */
     public static Points pp_intersection (Points p1, Points p2) {
+	if (!p1.rect().hasCommonPoints(p2.rect())) return new Points();
 	try {
 	    PointMultiSet retSet = null;
 	    
@@ -932,6 +965,7 @@ public class ROSEAlgebra {
      * @return the set of intersection points
      */
     public static Points ll_intersection (Lines l1, Lines l2) {
+	if (!l1.rect().hasCommonPoints(l2.rect())) return new Points();
 	try {
 	    ElemMultiSet retSet = null;
 	    
@@ -957,6 +991,7 @@ public class ROSEAlgebra {
      * @return the area representing the intersection of both regions
      */
     public static Regions rr_intersection (Regions r1, Regions r2) {
+	if (!r1.rect().hasCommonPoints(r2.rect())) return new Regions();
 	try {
 	    Regions res = new Regions(SupportOps.intersection(r1.triset,r2.triset,true));
 	    return res;
@@ -976,6 +1011,7 @@ public class ROSEAlgebra {
      * @return the covered part of <tt>l</tt>
      */
     public static Lines rl_intersection (Regions r, Lines l) {
+	if (!r.rect().hasCommonPoints(l.rect())) return Lines();
 	try {
 	    SegMultiSet retSet = null;
 	    
@@ -1001,6 +1037,7 @@ public class ROSEAlgebra {
      * @return the union of <tt>p1,p2</tt>
      */
     public static Points pp_plus (Points p1, Points p2) {
+	if (!p1.rect().hasCommonPoints(p2.rect())) return new Points();
 	try {
 	    PointMultiSet retSet = null;
 	    
@@ -1032,6 +1069,7 @@ public class ROSEAlgebra {
 	// - for every such group, call Segment.plus using the group's first element as 
 	//   base element and the rest as parameter
 	// - return the union of the results of Segment.plus
+	if (!l1.rect().hasCommonPoints(l2.rect())) return new Lines();
 	try {
 	    SegMultiSet retSet = new SegMultiSet(SEGMENT_COMPARATOR);
 	    
@@ -1073,6 +1111,7 @@ public class ROSEAlgebra {
      * @return the union of <tt>r1,r2</tt>
      */
     public static Regions rr_plus (Regions r1, Regions r2) {
+...
 	try {
 	    Regions res;
 	    
@@ -1735,11 +1774,12 @@ public class ROSEAlgebra {
 
 
     /**
-     * Chooses a derivation value for the Rational numbers.
+     * Chooses a deviance value for the Rational numbers.
      *
-     * @param d the derivation value
+     * @param d the deviation value
      */
-    public static void setDerivationValue (double d) {
-	RationalFactory.setDerivDouble(d);
-    }//end method setDerivationValue
+    public static void setDeviationValue (double d) {
+	RationalFactory.setDeviationDouble(d);
+    }//end method setDevianceValue
+
 }//end class ROSEAlgebras

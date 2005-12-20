@@ -22,8 +22,8 @@ public class PointTri_Ops {
     /*
      * fields
      */
-    static final double DERIV_DOUBLE = RationalFactory.readDerivDouble();
-    static final double DERIV_DOUBLE_NEG = RationalFactory.readDerivDoubleNeg();
+    static final double DEVIATION_DOUBLE = RationalFactory.readDeviationDouble();
+    static final double DEVIATION_DOUBLE_NEG = RationalFactory.readDeviationDoubleNeg();
     
     /*
      * constructors
@@ -161,8 +161,8 @@ public class PointTri_Ops {
 	
 	double result = res1+res2+res3;
 
-	if (result < DERIV_DOUBLE &&
-	    result > DERIV_DOUBLE_NEG) {
+	if (result < DEVIATION_DOUBLE &&
+	    result > DEVIATION_DOUBLE_NEG) {
 	    result = 0;
 	}//if
 

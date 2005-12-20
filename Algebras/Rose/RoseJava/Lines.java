@@ -19,6 +19,25 @@ public class Lines implements Serializable{
      */
     public SegMultiSet segset;
     
+    /**
+     * The bounding box of the Lines object.
+     */
+    private Rect bbox;
+
+    /**
+     * If true, a bbox was already computed and is valid.
+     */
+    private boolean bboxDefined = false;
+
+    /**
+     * The length of the Lines object.
+     */
+    private double length;
+
+    /**
+     * If true, the length was already computed and is valid.
+     */
+    private boolean lengthDefined = false;
     
     /*
      * constructors
@@ -28,6 +47,9 @@ public class Lines implements Serializable{
      */
     public Lines() {
 	segset = new SegMultiSet(new SegmentComparator());
+	bbox = null;
+	length = 0.0;
+	lengthDefined = false;
     }
 
 
@@ -39,6 +61,9 @@ public class Lines implements Serializable{
      */
     public Lines(SegMultiSet sl) {
 	segset = sl;
+	length = ROSEAlgebra.l_length(this);
+	bbox = sl.rect();
+	lengthDefined = true;
     }
 
 
@@ -50,12 +75,29 @@ public class Lines implements Serializable{
      */
     public Lines(Lines l) {
 	this.segset = l.segset;
+	this.length = l.length;
+	this.bbox = l.bbox;
+	this.lengthDefined = true;
     }
 
 
     /*
      * methods
      */
+    /**
+     * Returns the bounding box for the Lines object.
+     */
+    public Rect rect() {
+	if (bboxDefined)
+	    return bbox;
+	else {
+	    bbox = segset.rect();
+	    bboxDefined = true;
+	    return bbox;
+	}//else
+    }//end method rect
+
+
     /**
      * Constructs a new line segment from the given double coordinates and adds it to the segment set.
      *
@@ -66,6 +108,8 @@ public class Lines implements Serializable{
      */
     public void add(double x1, double y1, double x2, double y2) {
 	this.segset.add(new Segment(x1,y1,x2,y2));
+	this.bboxDefined = false;
+	this.lengthDefined = false;
     }//end method add
 
 
@@ -79,6 +123,8 @@ public class Lines implements Serializable{
      */
     public void add(Rational x1, Rational y1, Rational x2, Rational y2) {
 	this.segset.add(new Segment(x1,y1,x2,y2));
+	this.bboxDefined = false;
+	this.lengthDefined = false;
     }//end method add
 
 
@@ -92,6 +138,8 @@ public class Lines implements Serializable{
      */
     public void add(int x1, int y1, int x2, int y2) {
 	this.segset.add(new Segment(x1,y1,x2,y2));
+	this.bboxDefined = false;
+	this.lengthDefined = false;
     }//end method add
 
 
@@ -102,6 +150,8 @@ public class Lines implements Serializable{
      */
     public void add(Segment s) {
 	this.segset.add(s);
+	this.bboxDefined = false;
+	this.lengthDefined = false;
     }//end method add
 	
 

@@ -32,8 +32,8 @@ public class Mathset {
     /*
      * fields
      */    
-    static final double DERIV_DOUBLE = RationalFactory.readDerivDouble();
-    static final double DERIV_DOUBLE_NEG = RationalFactory.readDerivDoubleNeg();
+    static final double DEVIATION_DOUBLE = RationalFactory.readDeviationDouble();
+    static final double DEVIATION_DOUBLE_NEG = RationalFactory.readDeviationDoubleNeg();
     static boolean PRECISE;
     static boolean preciseDefined;
 
@@ -206,7 +206,7 @@ public class Mathset {
 	}//if
 
 	if (PRECISE) {
-	    //PRECISE == true, use Deriv
+	    //PRECISE == true, use Deviation
 	    
 	    Point sv1 = new Point(s1.getEndpoint().x.minus(s1.getStartpoint().x),
 				  s1.getEndpoint().y.minus(s1.getStartpoint().y));
@@ -227,14 +227,14 @@ public class Mathset {
 	    if (t1.minus(t2).equal(0)) t1t2equal = true;
 	    else {
 		Rational zwires = (t1.minus(t2)).abs();
-		if (zwires.less(RationalFactory.readDeriv())) t1t2equal = true;
+		if (zwires.less(RationalFactory.readDeviation())) t1t2equal = true;
 		else t1t2equal = false;
 	    }//else
 
 	    if (t1t2equal && !(t1.equal(0) && t2.equal(0))) return true;
 
-	    boolean compsv1x = (sv2.x.times(t1).minus(sv1.x)).abs().lessOrEqual(RationalFactory.readDeriv());
-	    boolean compsv1y = (sv2.y.times(t2).minus(sv1.y)).abs().lessOrEqual(RationalFactory.readDeriv());
+	    boolean compsv1x = (sv2.x.times(t1).minus(sv1.x)).abs().lessOrEqual(RationalFactory.readDeviation());
+	    boolean compsv1y = (sv2.y.times(t2).minus(sv1.y)).abs().lessOrEqual(RationalFactory.readDeviation());
 
 	    if (compsv1x && compsv1y) return true;
 
@@ -243,8 +243,8 @@ public class Mathset {
 
 	else {
 	    
-	    //PRECISE == false, use double constants as derivation value
-	    //DERIV_DOUBLE and DERIV_DOUBLE_NEG
+	    //PRECISE == false, use double constants as deviation value
+	    //DEVIATION_DOUBLE and DEVIATION_DOUBLE_NEG
 	    
 	    double px = 0;
 	    double py = 0;
@@ -260,16 +260,16 @@ public class Mathset {
 	    double res2 = ((qy + ry) / 2) * (qx - rx);
 	    double res3 = ((py + qy) / 2) * (px - qx);
 	    double result1 = res1+res2+res3;
-	    if (result1 > DERIV_DOUBLE ||
-		result1 < DERIV_DOUBLE_NEG) return false;
+	    if (result1 > DEVIATION_DOUBLE ||
+		result1 < DEVIATION_DOUBLE_NEG) return false;
 	    
 	    double res4 = ((sy + py) / 2) * (sx - px);
 	    double res5 = ((qy + sy) / 2) * (qx - sx);
 	    double res6 = ((py + qy) / 2) * (px - qx);
 	    double result2 = res4+res5+res6;
 
-	    if (result2 > DERIV_DOUBLE ||
-		result2 < DERIV_DOUBLE_NEG) return false;
+	    if (result2 > DEVIATION_DOUBLE ||
+		result2 < DEVIATION_DOUBLE_NEG) return false;
 
 	    return true;
 	}//else
@@ -358,8 +358,8 @@ public class Mathset {
 
 	double t0 = s1x * s2y - s1y * s2x;
 
-	if (t0 < DERIV_DOUBLE_NEG) return 1;
-	else if (t0 > DERIV_DOUBLE) return -1;
+	if (t0 < DEVIATION_DOUBLE_NEG) return 1;
+	else if (t0 > DEVIATION_DOUBLE) return -1;
 	else return 0;
     }//end method pointPosition
     

@@ -752,7 +752,7 @@ public class Graph {
 	    while (lit.hasNext())
 		((Element)((Vertex)lit.next()).value).print();
 	}//else
-	throw new NoSuchElementException(vert+" cannot be found in vertex list. Typically, this error is a precision error. Change the value for DerivDouble in Algebra Initialization.");
+	throw new NoSuchElementException(vert+" cannot be found in vertex list. Typically, this error is a precision error. Change the value for DeviationDouble in Algebra Initialization.");
     }//end getPosOfVertex
 
 
