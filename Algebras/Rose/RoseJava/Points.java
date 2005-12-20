@@ -1,5 +1,6 @@
 import twodsack.set.*;
 import twodsack.setelement.datatype.basicdatatype.*;
+import twodsack.util.collectiontype.*;
 import twodsack.util.comparator.*;
 import twodsack.util.number.*;
 import java.lang.reflect.*;
@@ -200,5 +201,38 @@ public class Points implements Serializable{
     public void print() {
 	this.pointset.print();
     }//end method print
+
+
+    /**
+     * Compares two Points objects.
+     * Returns 0, if both objects are equal.<br>
+     * Returns 1, if <tt>this</tt> is greater than <tt>p</tt>.<br>
+     * Returns -1 otherwise.<p>
+     * The points of the Points object are sorted and then compared in parallel. The Points object with the first point that is 
+     * greater than the appropriate point of the other object is greater etc.
+     *
+     * @param p the Points object to compare with
+     */
+    public int compare (Points p) {
+	Iterator it1 = this.pointset.iterator();
+	Iterator it2 = p.pointset.iterator();
+	Point actPoint1,actPoint2;    
+	int res;
+	while (it1.hasNext() && it2.hasNext()) {
+	    actPoint1 = (Point)((MultiSetEntry)it1.next()).value;
+	    actPoint2 = (Point)((MultiSetEntry)it2.next()).value;
+	    res = actPoint1.compare(actPoint2);
+	    if (res != 0) return res;
+	}//while
+	
+	//both sets are equal
+	if (!it1.hasNext() && !it2.hasNext()) return 0;
+	
+	//p still has elements
+	if (!it1.hasNext()) return -1;
+
+	return 1;
+    }//end method compare
+
 }//end class Points
     

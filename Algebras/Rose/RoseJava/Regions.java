@@ -1,3 +1,4 @@
+import twodsack.operation.setoperation.*;
 import twodsack.set.*;
 import twodsack.setelement.datatype.*;
 import twodsack.setelement.datatype.basicdatatype.*;
@@ -51,6 +52,17 @@ public class Regions implements Serializable{
     private CycleListListPoints cycles = null; //the list of cycles
 
 
+    /**
+     * The Lines object representing the Regions' border.
+     */
+    private Lines border = null;
+
+
+    /**
+     * True, if the border is computed and valid.
+     */
+    private boolean borderDefined = false;
+
     /*
      * constructors
      */
@@ -64,6 +76,8 @@ public class Regions implements Serializable{
 	bbox = null;
 	area = 0.0;
 	bboxDefined = false;
+	border = null;
+	borderDefined = false;
     }
 
 
@@ -81,6 +95,8 @@ public class Regions implements Serializable{
 	    bbox = null;
 	    area = 0.0;
 	    bboxDefined = false;
+	    border = null;
+	    borderDefined = false;
 	}//if
 	else if(!isRegularTriSet(tl)) {
 	    System.out.println("Error in Regions: tried to construct bad Region.");
@@ -93,6 +109,8 @@ public class Regions implements Serializable{
 	    bbox = triset.rect();
 	    area = ROSEAlgebra.r_area(this);
 	    bboxDefined = true;
+	    border = new Lines(SupportOps.contour(triset,true,true));
+	    borderDefined = true;
 	}//else
     }
 
@@ -111,6 +129,8 @@ public class Regions implements Serializable{
 	    bbox = null;
 	    area = 0.0;
 	    bboxDefined = false;
+	    border = null;
+	    borderDefined = false;
 	}//if
 	else {
 	    triset = computeTriSet(sl);
@@ -119,6 +139,8 @@ public class Regions implements Serializable{
 	    bbox = triset.rect();
 	    area = ROSEAlgebra.r_area(this);
 	    bboxDefined = true;
+	    border = new Lines(SupportOps.contour(triset,true,true));
+	    borderDefined = true;
 	}//else
     }
 
@@ -137,6 +159,8 @@ public class Regions implements Serializable{
 	    bbox = null;
 	    area = 0.0;
 	    bboxDefined = false;
+	    border = null;
+	    borderDefined = false;
 	}//if
 	else {
 	    triset = computeTriSet(l.segset);
@@ -145,6 +169,8 @@ public class Regions implements Serializable{
 	    bbox = triset.rect();
 	    area = ROSEAlgebra.r_area(this);
 	    bboxDefined = true;
+	    border = l;
+	    borderDefined = true;
 	}//else
     }
 
@@ -162,6 +188,8 @@ public class Regions implements Serializable{
 	this.area = r.area;
 	this.bbox = r.bbox;
 	this.bboxDefined = true;
+	this.border = r.border();
+	this.borderDefined = r.borderDefined;
     }
 
 
@@ -264,7 +292,6 @@ public class Regions implements Serializable{
 	    ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(buffer));
 	    Regions res = (Regions) ois.readObject();
 	    ois.close();
-	    if (res.triset != null && res.cycles != null) 
 	    return res;
 	} catch(Exception e) {
 	    System.out.println("Error in Regions.readFrom(). Cannot restore Regions value properly.");
@@ -306,6 +333,8 @@ public class Regions implements Serializable{
 	nr.triset = TriMultiSet.convert(this.triset.copy());
 	nr.cyclesDefined = true;
 	nr.cycles = this.cycles.copy();
+	nr.border = this.border;
+	nr.borderDefined = true;
 	return nr; 
     }//end method copy
 
@@ -316,4 +345,35 @@ public class Regions implements Serializable{
     public void print() {
 	this.triset.print();
     }//end method print
+
+    
+    /**
+     * Compares two Regions objects.
+     * Returns 0, if both objects are equal.<br>
+     * Returns 1, if <tt>this</tt> is greater than <tt>p</tt>.<br>
+     * Returns -1 otherwise.<p>
+     * Not the Regions objects themselves, but their borders are compared. Thus, the borders are computed and then, 
+     * the Lines objects representing these borders are compared.
+     *
+     * @param r the Regions object to compare with
+     */
+    public int compare (Regions r) {
+	return this.border.compare(r.border());
+    }//end method compare
+
+    
+    /**
+     * Returns the Regions' border as a Lines object.
+     *
+     * @return the border
+     */
+    public Lines border () {
+	if (!borderDefined) {
+	    border = new Lines(SupportOps.contour(triset,true,true));
+	    borderDefined = true;
+	}//if
+	return border;
+    }//end method border
+
+
 }//end class Regions

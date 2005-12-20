@@ -84,6 +84,20 @@ public class Point extends Element implements Serializable {
     
 
     /**
+     * Constructs a new Point instance from two int values.
+     * The int values are used to construct instances of {@link Rational}.
+     *
+     * @param x the x coordinate
+     * @param y the y coordinate
+     */
+    public Point(int x, int y) {
+	this.x = RationalFactory.constRational(x);
+	this.y = RationalFactory.constRational(y);
+	this.bboxDefined = false;
+    }
+
+
+    /**
      * Constructs a new Point instance from two Rational objects.
      *
      * @param x the x coordinate

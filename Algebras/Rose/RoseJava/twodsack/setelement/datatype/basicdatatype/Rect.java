@@ -184,4 +184,44 @@ public class Rect implements Serializable {
 	return new Rect(ulxN,ulyN,lrxN,lryN);
     }//end method intersection
 
+
+    /**
+     * Returns the x coordinate of the top left point.
+     *
+     * @return the coordinate as double
+     */
+    public double getTopLeftX() {
+	return ulx.getDouble();
+    }
+
+     
+    /**
+     * Returns the y coordinate of the top left point.
+     *
+     * @return the coordinate as double
+     */
+    public double getTopLeftY() {
+	return uly.getDouble();
+    }
+    
+
+    /**
+     * Returns the x coordinate of the bottom right point.
+     *
+     * @return the coordinate as double
+     */
+    public double getBottomRightX() {
+	return lrx.getDouble();
+    }
+
+
+    /**
+     * Returns the y coordinate of the top left point.
+     *
+     * @return the coordinate as double
+     */
+    public double getBottomRightY() {
+	return lry.getDouble();
+    }
+
 }//end class Rect

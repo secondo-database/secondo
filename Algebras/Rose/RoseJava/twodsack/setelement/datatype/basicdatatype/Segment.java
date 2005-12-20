@@ -91,6 +91,26 @@ public class Segment extends Element implements Serializable {
 
 
     /**
+     * Constructs a new segment with the int coordinates for the <tt>startpoint</tt>/<tt>endpoint</tt>.
+     *
+     * @param x1 x coordinate of the startpoint
+     * @param y1 y coordinate of the startpoint
+     * @param x2 x coordinate of the endpoint
+     * @param y2 y coordinate of the endpoint
+     * @throws NotAValidSegmentException
+     */
+    public Segment(int x1, int y1, int x2, int y2) throws NotAValidSegmentException {
+	this.startpoint = new Point(x1,y1);
+	this.endpoint = new Point(x2,y2);
+	if (!isSegment()) {
+	    throw new NotAValidSegmentException("Error in Segment.constructor: Tried to build bad Segment: ("+x1+", "+y1+") - ("+x2+", "+y2+")");
+	}//if
+	this.bboxDefined = false;
+	this.lengthDefined = false;
+    }
+
+
+    /**
      * A new segment is constructed using the passed points as <tt>startpoint</tt>/<tt>endpoint</tt>.
      *
      * @param p1 the startpoint

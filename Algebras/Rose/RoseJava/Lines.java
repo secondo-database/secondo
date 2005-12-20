@@ -1,5 +1,6 @@
 import twodsack.set.*;
 import twodsack.setelement.datatype.basicdatatype.*;
+import twodsack.util.collectiontype.*;
 import twodsack.util.comparator.*;
 import twodsack.util.number.*;
 import java.io.*;
@@ -214,5 +215,37 @@ public class Lines implements Serializable{
 	this.segset.print();
     }//end method print
 	
+
+    /**
+     * Compares two Lines objects.
+     * Returns 0, if both objects are equal.<br>
+     * Returns 1, if <tt>this</tt> is greater than <tt>p</tt>.<br>
+     * Returns -1 otherwise.<p>
+     * The segments of the Lines object are sorted and then compared in parallel. The Lines object with the first segment that is 
+     * greater than the appropriate segment of the other object is greater etc.
+     *
+     * @param l the Lines object to compare with
+     */
+    public int compare (Lines l) {
+	Iterator it1 = this.segset.iterator();
+	Iterator it2 = l.segset.iterator();
+	Segment actSeg1,actSeg2;    
+	int res;
+	while (it1.hasNext() && it2.hasNext()) {
+	    actSeg1 = (Segment)((MultiSetEntry)it1.next()).value;
+	    actSeg2 = (Segment)((MultiSetEntry)it2.next()).value;
+	    res = actSeg1.compare(actSeg2);
+	    if (res != 0) return res;
+	}//while
+	
+	//both sets are equal
+	if (!it1.hasNext() && !it2.hasNext()) return 0;
+	
+	//p still has elements
+	if (!it1.hasNext()) return -1;
+
+	return 1;
+    }//end method compare
+
 }//end class Lines
     
