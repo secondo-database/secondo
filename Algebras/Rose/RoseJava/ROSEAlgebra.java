@@ -270,7 +270,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if two intersecting segments exist
      */
     public static boolean ll_disjoint (Lines l1, Lines l2) {
-	if (!l1.rect().hasCommonPoint(l2.rect())) return true;
+	if (!l1.rect().hasCommonPoints(l2.rect())) return true;
 	try {
 	    return SetOps.disjoint(l1.segset,l2.segset);
 	} catch (Exception e) {
@@ -1011,7 +1011,7 @@ public class ROSEAlgebra {
      * @return the covered part of <tt>l</tt>
      */
     public static Lines rl_intersection (Regions r, Lines l) {
-	if (!r.rect().hasCommonPoints(l.rect())) return Lines();
+	if (!r.rect().hasCommonPoints(l.rect())) return new Lines();
 	try {
 	    SegMultiSet retSet = null;
 	    
@@ -1037,7 +1037,6 @@ public class ROSEAlgebra {
      * @return the union of <tt>p1,p2</tt>
      */
     public static Points pp_plus (Points p1, Points p2) {
-	if (!p1.rect().hasCommonPoints(p2.rect())) return new Points();
 	try {
 	    PointMultiSet retSet = null;
 	    
@@ -1069,7 +1068,6 @@ public class ROSEAlgebra {
 	// - for every such group, call Segment.plus using the group's first element as 
 	//   base element and the rest as parameter
 	// - return the union of the results of Segment.plus
-	if (!l1.rect().hasCommonPoints(l2.rect())) return new Lines();
 	try {
 	    SegMultiSet retSet = new SegMultiSet(SEGMENT_COMPARATOR);
 	    
@@ -1111,7 +1109,6 @@ public class ROSEAlgebra {
      * @return the union of <tt>r1,r2</tt>
      */
     public static Regions rr_plus (Regions r1, Regions r2) {
-...
 	try {
 	    Regions res;
 	    
@@ -1202,6 +1199,7 @@ public class ROSEAlgebra {
      * @return the intersection of <tt>l1,l2</tt>
      */
     public static Lines ll_common_border (Lines l1, Lines l2) {
+	if (!l1.rect().hasCommonPoints(l2.rect())) return new Lines();
 	try {
 	    PairMultiSet joinSet = null;
 	    SegMultiSet retSet = null;
@@ -1231,6 +1229,7 @@ public class ROSEAlgebra {
      * @return that part of <tt>l</tt> that overlaps the border of <tt>r</tt>
      */
     public static Lines lr_common_border (Lines l, Regions r) {
+	if (!l.rect().hasCommonPoints(r.rect())) return new Lines();
 	try {
 	    return ll_common_border(l,new Lines(SupportOps.contour(r.triset,true,false)));
 	} catch (Exception e) {
@@ -1249,6 +1248,7 @@ public class ROSEAlgebra {
      * @return that part of <tt>l</tt> that overlaps the border of <tt>r</tt>
      */
     public static Lines rl_common_border (Regions r, Lines l) {
+	if (!r.rect().hasCommonPoints(l.rect())) return new Lines();
 	try {
 	    return lr_common_border(l,r);
 	} catch (Exception e) {
@@ -1267,6 +1267,7 @@ public class ROSEAlgebra {
      * @return the common border of <tt>r1,r2</tt>
      */
     public static Lines rr_common_border (Regions r1, Regions r2) {
+	if (!r1.rect().hasCommonPoints(r2.rect())) return new Lines();
 	try {
 	    return ll_common_border(new Lines(SupportOps.contour(r1.triset,true,false)),new Lines(SupportOps.contour(r2.triset,true,false)));
 	} catch (Exception e) {
