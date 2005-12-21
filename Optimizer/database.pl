@@ -1127,7 +1127,8 @@ retractStoredInformation(SpelledRel) :-
   %retractall(storedNoIndex(LFSpelledRel, _)).
   
 updateRel2(_, SpelledRel, ObjList) :-
-  member(['OBJECT', SpelledRel, _ , [[rel | _]]], ObjList),!.
+  member(['OBJECT', SpelledRel, _ , [[rel | _]]], ObjList),
+  retractStoredInformation(SpelledRel),!.
 
 updateRel2(_, SpelledRel, ObjList) :-
   not(member(['OBJECT', SpelledRel, _ , [[rel | _]]], ObjList)),
