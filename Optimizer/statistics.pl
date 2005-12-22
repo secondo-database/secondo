@@ -343,12 +343,14 @@ sels(Pred, Sel) :-
 */
 
 sels(Pred, Sel) :-
-  storedSel(Pred, Sel),
+  databaseName(DB),
+  storedSel(DB, Pred, Sel),
   !.
 
 sels(Pred, Sel) :-
   commute(Pred, Pred2),
-  storedSel(Pred2, Sel),
+  databaseName(DB),
+  storedSel(DB, Pred2, Sel),
   !.
 
 /*
@@ -414,8 +416,9 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
 %  write('  Divisor='), write(Divisor), nl,
   write('Predicate Cost: '), write(PredCost),write(' ms'), nl,
   write('Selectivity : '), write(Sel), nl,
-  assert(storedPET(PSimple, PredCost, T0, T100, Tq, Ttg, ResCard, TotalCard)),
-  assert(storedSel(PSimple, Sel)),
+  databaseName(DB),
+  assert(storedPET(DB, PSimple, PredCost, T0, T100, Tq, Ttg, ResCard, TotalCard)),
+  assert(storedSel(DB, PSimple, Sel)),
   !.
 
 selectivity(pr(Pred, Rel), Sel) :-
@@ -448,8 +451,9 @@ selectivity(pr(Pred, Rel), Sel) :-
 %  write('  Divisor='), write(Divisor), nl,
   write('Predicate Cost: '), write(PredCost), write(' ms'), nl,
   write('Selectivity : '), write(Sel), nl,
-  assert(storedPET(PSimple, PredCost, T0, *, Tq, *, ResCard, SampleCard)),
-  assert(storedSel(PSimple, Sel)),
+  databaseName(DB),
+  assert(storedPET(DB, PSimple, PredCost, T0, *, Tq, *, ResCard, SampleCard)),
+  assert(storedSel(DB, PSimple, Sel)),
   !.
 
 
@@ -486,8 +490,9 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
-  assert(storedPET(PSimple, PredCost, _, _, _, _, _, _)),
-  assert(storedSel(PSimple, Sel)),
+  databaseName(DB),
+  assert(storedPET(DB, PSimple, PredCost, _, _, _, _, _, _)),
+  assert(storedSel(DB, PSimple, Sel)),
   nl, write('WARNING: selectivity(pr(Pred, Rel1, Rel2), Sel): deprecated clause1 used!'), nl,
   !.
 
@@ -514,8 +519,9 @@ selectivity(pr(Pred, Rel), Sel) :-
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel), PSimple),
-  assert(storedPET(PSimple, PredCost, _, _, _, _, _, _)),
-  assert(storedSel(PSimple, Sel)),
+  databaseName(DB),
+  assert(storedPET(DB, PSimple, PredCost, _, _, _, _, _, _)),
+  assert(storedSel(DB, PSimple, Sel)),
   nl, write('WARNING: selectivity(pr(Pred, Rel1, Rel2), Sel): deprecated clause2 used!'), nl,
   !.
 ----
@@ -534,7 +540,7 @@ The selectivities retrieved via Secondo queries can be loaded
 */
 
 readStoredSels :-
-  retractall(storedSel(_, _)),
+  retractall(storedSel(_, _, _)),
   [storedSels].
 
 /*
@@ -585,14 +591,14 @@ writeStoredSels :-
   close(FD).
 
 writeStoredSel(Stream) :-
-  storedSel(X, Y),
+  storedSel(DB, X, Y),
   replaceCharList(X, XReplaced),
-  write(Stream, storedSel(XReplaced, Y)),
+  write(Stream, storedSel(DB, XReplaced, Y)),
   write(Stream, '.\n').
 
 showStoredSel :- 
-  storedSel(X, Y),
-  write(X), write(':\t'),
+  storedSel(DB, X, Y),
+  write(DB), write('.'), write(X), write(':\t'),
   write(Y), nl.
 
 showStoredSels :-
@@ -600,12 +606,12 @@ showStoredSels :-
   findall(_, showStoredSel, _).
  
 :-
-  dynamic(storedSel/2),
+  dynamic(storedSel/3),
   at_halt(writeStoredSels),
   readStoredSels.
 
 readStoredPETs :-
-  retractall(storedPET(_, _, _, _, _, _, _, _)),
+  retractall(storedPET(_, _, _, _, _, _, _, _, _)),
   [storedPETs].  
 
 writeStoredPETs :-
@@ -615,22 +621,24 @@ writeStoredPETs :-
   close(FD).
 
 writeStoredPET(Stream) :-  
-  storedPET(P, CostP, T0, T100, Tq, Ttg, ResCard, ProdCard),
+  storedPET(DB, P, CostP, T0, T100, Tq, Ttg, ResCard, ProdCard),
   replaceCharList(P, PReplaced),
-  write(Stream, storedPET(PReplaced, CostP, T0, T100, Tq, Ttg, ResCard, ProdCard)),
+  write(Stream, storedPET(DB, PReplaced, CostP, T0, T100, Tq, Ttg, ResCard, ProdCard)),
   write(Stream, '.\n').
 
 :-
-  dynamic(storedPET/8),
+  dynamic(storedPET/9),
   at_halt(writeStoredPETs),
   readStoredPETs.
 
 writePETs :-
+  write('\nStored predicate costs:\n'),
   findall(_, writePET, _).
 
 writePET :-
-  storedPET(P, PC, T0, T100, Tq, Ttg, ResCard, TotalCard),
+  storedPET(DB, P, PC, T0, T100, Tq, Ttg, ResCard, TotalCard),
   replaceCharList(P, PReplaced),
+  write(DB), write('.'),
   write(PReplaced), write(', \tCost: '), write(PC), nl,
   write('\tT0='), write(T0),
   write(', T100='), write(T100),
@@ -641,19 +649,21 @@ writePET :-
   nl.
 
 writePETsShort :-
-	write('Cost [ms] \t\t Predicate\n'),
+  write('\nSttored predicate costs:\n'),
+  write('Cost [ms] \t\t Predicate\n'),
   findall(_, writePETshort, _).
 
 writePETshort :-
-  storedPET(P, PC, _, _, _, _, _, _),
+  storedPET(DB, P, PC, _, _, _, _, _, _),
   replaceCharList(P, PReplaced),
-  write(PC), write('\t\t'), write(PReplaced), nl.
+  write(DB), write('.'), write(PC), write('\t\t'), write(PReplaced), nl.
 
 
 /*
-----    storedSampleRuntimes(R1, R2, T0, T100, Ttg, Mode)
+----    storedSampleRuntimes(DB, R1, R2, T0, T100, Ttg, Mode)
 ----
-This dynamic predicate is used to store reference times for joins on relations ~R1~ and ~R2~.
+This dynamic predicate is used to store reference times for joins on relations ~R1~ and ~R2~
+in database ~DB~.
 ~T0~ is the time used by ~query R1 feed R1 feed symmjoin[FALSE] count~ resp. ~R1 feed 
 filter[FALSE] count~, while ~Ttg~ is the time used to construct a single result tuple for a 
 join between ~R1~ and ~R2~. ~T100~ is the time used for ~query R1 feed R2 feed 
@@ -665,7 +675,7 @@ There are predicates to write/read reference times to/from disk and to show it t
 */
 
 readStoredSampleRuntimes :-
-  retractall(storedSampleRuntimes( _, _, _, _, _, _)),
+  retractall(storedSampleRuntimes(_, _, _, _, _, _, _)),
   [storedSampleRuntimes].  
 
 writeStoredSampleRuntimes :-
@@ -675,20 +685,22 @@ writeStoredSampleRuntimes :-
   close(FD).
 
 writeStoredSampleRuntimes(Stream) :-  
-  storedSampleRuntimes(R1, R2, T0, T100, Ttg, Mode),
-  write(Stream, storedSampleRuntimes(R1, R2, T0, T100, Ttg, Mode)),
+  storedSampleRuntimes(DB, R1, R2, T0, T100, Ttg, Mode),
+  write(Stream, storedSampleRuntimes(DB, R1, R2, T0, T100, Ttg, Mode)),
   write(Stream, '.\n').
 
 showStoredSampleRuntimes :-
+  write('\nStored SampleRuntimes:\n'),
   findall(_, showStoredSampleRuntime, _).
 
 showStoredSampleRuntime :-
-  storedSampleRuntimes(R1, _, T0, _, _, s),
-  write('('), write(R1),
+  storedSampleRuntimes(DB, R1, _, T0, _, _, s),
+  write(DB), write('.'), write('('), write(R1),
   write('):  \tTO='), write(T0), write('ms\n').
 
 showStoredSampleRuntime :-
-  storedSampleRuntimes(R1, R2, T0, T100, Ttg, j),
+  storedSampleRuntimes(DB, R1, R2, T0, T100, Ttg, j),
+  write(DB), write('.'),
   write('('), write(R1),
   write('  x  '), write(R2),
   write('):  \tTO='), write(T0), write('ms'),
@@ -696,7 +708,7 @@ showStoredSampleRuntime :-
   write(', Ttg='), write(Ttg), write('ms\n').
 
 :-
-  dynamic(storedSampleRuntimes/6),
+  dynamic(storedSampleRuntimes/7),
   at_halt(writeStoredSampleRuntimes),
   readStoredSampleRuntimes.
 
@@ -722,7 +734,8 @@ sampleRuntimesJ(R1, R2, T0, T100, Ttg) :-
   sampleNameJ(BaseName1, SampleName1),
   R2 = rel(BaseName2, _, _),
   sampleNameJ(BaseName2, SampleName2),
-  storedSampleRuntimes(SampleName1, SampleName2, T0, T100, Ttg, j),
+  databaseName(DB),
+  storedSampleRuntimes(DB, SampleName1, SampleName2, T0, T100, Ttg, j),
   !.
 
 sampleRuntimesJ(R1, R2, T0, T100, Ttg) :-
@@ -730,7 +743,8 @@ sampleRuntimesJ(R1, R2, T0, T100, Ttg) :-
   sampleNameJ(BaseName1, SampleName1),
   R2 = rel(BaseName2, _, _),
   sampleNameJ(BaseName2, SampleName2),
-  storedSampleRuntimes(SampleName2, SampleName1, T0, T100, Ttg, j),
+  databaseName(DB),
+  storedSampleRuntimes(DB, SampleName2, SampleName1, T0, T100, Ttg, j),
   !.
 
 sampleRuntimesJ(R1, R2, T0, T100, Ttg) :-
@@ -765,7 +779,8 @@ sampleRuntimesJ(R1, R2, T0, T100, Ttg) :-
   sampleNameJ(BaseName1, SampleName1),
   R2 = rel(BaseName2, _, _),
   sampleNameJ(BaseName2, SampleName2),
-  assert(storedSampleRuntimes(SampleName1, SampleName2, T0, T100, Ttg, j)),
+  databaseName(DB),
+  assert(storedSampleRuntimes(DB, SampleName1, SampleName2, T0, T100, Ttg, j)),
   !.
 
 sampleRuntimesJ(R1, R2, _, _, _, _) :-
@@ -784,7 +799,8 @@ on Relation ~Rel~.
 sampleRuntimesS(Rel, T0) :-
   Rel = rel(BaseName, _, _),
   sampleNameS(BaseName, SampleName),
-  storedSampleRuntimes(SampleName, _, T0, _, _, s),
+  databaseName(DB),
+  storedSampleRuntimes(DB, SampleName, _, T0, _, _, s),
   !.
 
 sampleRuntimesS(R1, T0) :-
@@ -803,7 +819,8 @@ sampleRuntimesS(R1, T0) :-
   T0 is MinuteA *60000 + SecA*1000 + MilliSecA,
   R1 = rel(BaseName1, _, _),
   sampleNameS(BaseName1, SampleName1),
-  assert(storedSampleRuntimes(SampleName1, *, T0, *, *, s)),
+  databaseName(DB),
+  assert(storedSampleRuntimes(DB, SampleName1, *, T0, *, *, s)),
   !.
 
 sampleRuntimesS(R, _) :-
@@ -816,7 +833,7 @@ sampleRuntimesS(R, _) :-
 unifies ~PredCost~ with the cost for evaluating the  predicate ~Pred~ once. 
 Predicate cost data is generated once per predicate, and will be stored on 
 disk between sessions in a table  
- ~storedPET(Pred, PredCost, T0, T100, Tq, ResCard, TotalCard)~ 
+ ~storedPET(DB, Pred, PredCost, T0, T100, Tq, ResCard, TotalCard)~ 
 Additional information is stored to trace the calculation
 of ~RedCost~: ~T0~ is the time used by an empty query, ~T100~ is the times consumend
 to generate 100 tuples without evaluating ~Pred~, ~Tq~ is a time consumed by evaluating
@@ -827,16 +844,18 @@ and ~TotalCard~ is the total number of evaluations of ~Pred~ within the sample q
 
 predicateCost(Pred, PredCost) :-
   simplePred(Pred, SPred),
-  storedPET(SPred, PredCost, _, _, _, _, _, _),
+  databaseName(DB),
+  storedPET(DB, SPred, PredCost, _, _, _, _, _, _),
   !.
 
 predicateCost(Pred, PredCost) :-
   simplePred(Pred, SPred),
   commute(SPred, CPred),
-  storedPET(CPred, PredCost, _, _, _, _, _, _),
+  databaseName(DB),
+  storedPET(DB, CPred, PredCost, _, _, _, _, _, _),
   !.
 
-predicateCost( Pred, _) :-
+predicateCost(Pred, _) :-
   nl, write('ERROR in optimizer: predicateCost('), 
   write(Pred), write(') failed.'), nl,
   fail.
@@ -868,3 +887,36 @@ example23 :- optimize(
     th:no * 100 < 50000,
     (th:no mod 7) = no]
   ).
+
+/*
+ ~showDatabase~
+ This predicate will inquire statistical data from the opened Secondo database
+ and print it on the screen.
+
+*/
+
+showSingleRelation :-
+  card(Rel, Card),
+  tuplesize(Rel, Size),
+  write('\tRelation: '), write(Rel), nl,
+  findall(_, showAllAttributes(Rel), _),
+  write('\t\tCardinality:   '), write(Card), nl,
+  write('\t\tAvg TupleSize: '), write(Size), nl.
+
+showSingleAttribute(Rel,Attr) :-
+  databaseName(DB),
+  storedAttrSize(DB, Rel, Attr, Type, CoreTupleSize, InFlobSize),
+  write('\t\t'), write(Attr), write('\t'), 
+  write(Type), write('\t'),
+  write(CoreTupleSize), write('\t'),
+  write(InFlobSize), nl. 
+
+showAllAttributes(Rel) :-
+  write('\t\tAttr\t Type\t CoreSz\t IFlobSz\t TupleSz\n'),
+  findall(_, showSingleAttribute(Rel, _), _).
+
+showDatabase :-
+  write('Database schema:\n'),
+  findall(_, showSingleRelation, _).
+
+  

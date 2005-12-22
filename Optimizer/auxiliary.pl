@@ -14,8 +14,7 @@ the Free Software Foundation; either version 2 of the License, or
 SECONDO is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
+GNU General Public License for more details. 
 You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -269,12 +268,20 @@ executed and the result pretty-printed. If the query fails, the error code
 and error message are printed.
 
 */
+
+atom_postfix(Atom, PrefixLength, Post) :- % succeeds iff Post is a postfix of Atom starting after PrefixLength
+  atom_length(Atom, Length),
+  PostLength is Length - PrefixLength,
+  sub_atom(Atom, PrefixLength, PostLength, 0, Post).
+
 secondo(X) :-
   sub_atom(X,0,4,_,S),
-  atom_prefix(S,'open'),	
+  atom_prefix(S,'open'),	  
+  atom_postfix(X, 14, DName),
   secondo(X, Y),
   retract(storedDatabaseOpen(_)),
   assert(storedDatabaseOpen(1)),
+  assert(databaseName(DName)),
   getSecondoList(_),
   write('Command succeeded, result:'),
   nl, nl,
@@ -300,6 +307,7 @@ secondo(X) :-
   secondo(X, Y),
   retract(storedDatabaseOpen(_)),
   assert(storedDatabaseOpen(0)),
+  retract(databaseName(_)),
   retract(storedSecondoList(_)),
   write('Command succeeded, result:'),
   nl, nl,

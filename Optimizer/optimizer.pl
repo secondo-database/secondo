@@ -4339,10 +4339,12 @@ atomicAttrName([attr(Name, _, _) | Rest], [Result | MoreResults]) :-
 
 */
 calculateProjectedTupleSizeA(RelName, [AttrName], CoreTupleSize, InFlobSize) :-
-  storedAttrSize(RelName, AttrName, _, CoreTupleSize, InFlobSize).
+  databaseName(DB),
+  storedAttrSize(DB, RelName, AttrName, _, CoreTupleSize, InFlobSize).
 
 calculateProjectedTupleSizeA(RelName, [AttrName | Rest], CoreTupleSize, InFlobSize) :-
-  storedAttrSize(RelName, AttrName, _, C1, A1),
+  databaseName(DB),
+  storedAttrSize(DB, RelName, AttrName, _, C1, A1),
   calculateProjectedTupleSizeA(RelName, Rest, C2, A2),
   CoreTupleSize is C1+C2,
   InFlobSize is A1+A2.
