@@ -890,33 +890,39 @@ example23 :- optimize(
 
 /*
  ~showDatabase~
- This predicate will inquire statistical data from the opened Secondo database
- and print it on the screen.
+ This predicate will inquire all collected statistical data on the 
+ opened Secondo database and print it on the screen.
 
 */
 
 showSingleRelation :-
-  card(Rel, Card),
-  tuplesize(Rel, Size),
-  write('\tRelation: '), write(Rel), nl,
+  databaseName(DB),
+  storedRel(DB, Rel, _),
+  storedCard(DB, Rel, Card),
+  storedTupleSize(DB, Rel, Size),
+  write('\nRelation '), write(Rel), nl,
   findall(_, showAllAttributes(Rel), _),
-  write('\t\tCardinality:   '), write(Card), nl,
-  write('\t\tAvg TupleSize: '), write(Size), nl.
+  write('\n\tCardinality:   '), write(Card), nl,
+  write('\tAvg.TupleSize: '), write(Size), nl.
 
 showSingleAttribute(Rel,Attr) :-
   databaseName(DB),
   storedAttrSize(DB, Rel, Attr, Type, CoreTupleSize, InFlobSize),
-  write('\t\t'), write(Attr), write('\t'), 
+  write('\t'), write(Attr), write('\t\t'), 
   write(Type), write('\t'),
   write(CoreTupleSize), write('\t'),
   write(InFlobSize), nl. 
 
 showAllAttributes(Rel) :-
-  write('\t\tAttr\t Type\t CoreSz\t IFlobSz\t TupleSz\n'),
+  write('\tAttr\t\tType\tCoreSz\tIFlobSz\n'),
   findall(_, showSingleAttribute(Rel, _), _).
 
 showDatabase :-
-  write('Database schema:\n'),
-  findall(_, showSingleRelation, _).
+  databaseName(DB),
+  write('\nCollected information for database \''), write(DB), write('\':\n'),
+  findall(_, showSingleRelation, _),
+  write('\n(Type \'showDatabaseSchema.\' to view the complete database schema.)\n').
 
-  
+showDatabase :-
+  write('\nNo database open. Use open \'database <name>\' to open an existing database.\n'),
+  fail. 

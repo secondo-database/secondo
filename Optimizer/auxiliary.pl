@@ -285,7 +285,8 @@ secondo(X) :-
   getSecondoList(_),
   write('Command succeeded, result:'),
   nl, nl,
-  show(Y),!.
+  show(Y),
+  !.
 
 secondo(X) :-
   sub_atom(X,0,4,_,S),
@@ -452,7 +453,7 @@ secondo(X) :-
 
 /*
 
-1.3 Operators ~query~, ~update~, ~let~, ~create~, ~open~, and ~delete~
+1.3 Operators ~query~, ~update~, ~let~, ~create~, ~open~,  ~close~ and ~delete~
 
 The purpose of these operators is to make using the PROLOG interface
 similar to using SecondoTTY. A SecondoTTY query
@@ -466,7 +467,7 @@ can be issued as
 ----
 
 in the PROLOG interface via the ~query~ operator. The operators
-~delete~, ~let~, ~create~, ~open~, and ~update~ work the same way.
+~delete~, ~let~, ~create~, ~open~, ~close~ and ~update~ work the same way.
 
 */
 isDatabaseOpen :-
@@ -552,6 +553,8 @@ open(Query) :-
   assert(storedDatabaseOpen(1)),
   getSecondoList(_).
 
+
+
 :-
   op(800, fx, query),
   op(800, fx, delete),
@@ -561,5 +564,6 @@ open(Query) :-
   op(800, fx, derive),
   op(800, fx, update).
   
-:- dynamic(storedDatabaseOpen/1).
+:- dynamic(storedDatabaseOpen/1),
+   dynamic(databaseName/1).
 storedDatabaseOpen(0).

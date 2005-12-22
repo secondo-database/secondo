@@ -56,7 +56,6 @@ extractList([[First, _]], [First]).
 extractList([[First, _] | Rest], [First | Rest2]) :-
   extractList(Rest, Rest2).
 
-
 /*
 Rule ~extractAttrSizes(Rel, AttrList)~ builds a table of facts 
 ~storedAttrSize(Database, Rel, Attribute, Type, CoreTupleSize, InFlobSize)~ describing the 
@@ -427,6 +426,49 @@ showStoredRels :-
   dynamic(storedRel/3),
   at_halt(writeStoredRels),
   readStoredRels.
+
+/*
+1.1.4 Printing the complete Database Schema
+
+By now, only stored meta information is handled by the optimizer and printed
+when using the show\~ or write\~ predicates.
+
+In contrast, ~showDatabaseSchema/0~ will print the schemas of all, not only
+the actually used relations.
+
+*/
+
+showRelationAttrs([]).
+showRelationAttrs([[Attr, Type] | Rest]) :- % prints a list of [attributes,datatype]-pairs
+  downcase_atom(Attr, AttrD),
+  write(' '), write(AttrD), write(':'), write(Type), write(' '),
+  showRelationAttrs(Rest), !.
+
+showRelationSchemas([]).         % filters all relation opbjects from the database schema
+
+showRelationSchemas([Obj | ObjList]) :-
+  Obj = ['OBJECT',ORel,_ | [[[_ | [[_ | [AttrList2]]]]]]],
+  downcase_atom(ORel, Rel),
+  write('  '), write(Rel), write('  ['),
+  showRelationAttrs(AttrList2),
+  write(']\n'),
+  showRelationSchemas(ObjList),
+  !.
+
+showRelationSchemas([_ | ObjList]) :-
+  showRelationSchemas(ObjList),
+  !.
+
+showDatabaseSchema :-
+  databaseName(DB),
+  getSecondoList(ObjList),
+  write('\nComplete schema of database \''), write(DB), write('\':\n'),
+  showRelationSchemas(ObjList),
+  nl,
+  write('(Type \'showDatabase.\' to see meta data collected by the optimizer.)\n'),
+  !. 
+
+
 /*
 1.2 Spelling of Relation and Attribute Names
 
@@ -621,12 +663,12 @@ First letter of ~Rel~ is written in lower case.
 
 */
 card(Rel, Size) :-
-  databaseName(DBName),
   spelled(Rel, Rel2, l),
   Query = (count(rel(Rel2, _, l))),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   secondo(QueryAtom, [int, Size]),
+  databaseName(DBName),
   assert(storedCard(DBName, Rel2, Size)),
   !.
 /*
