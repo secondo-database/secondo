@@ -2492,6 +2492,7 @@ We introduce ~select~, ~from~, ~where~, and ~as~ as PROLOG operators:
 :- op(990, fx, sql).
 :- op(985, xfx, >>).
 :- op(950, fx, select).
+:- op(940, fx, distinct).
 :- op(960, xfx, from).
 :- op(950, xfx, where).
 :- op(930, xfx, as).
@@ -2500,6 +2501,7 @@ We introduce ~select~, ~from~, ~where~, and ~as~ as PROLOG operators:
 :- op(986, xfx, first).
 :- op(930, xf, asc).
 :- op(930, xf, desc).
+
 
 /*
 This ensures that the select-from-where statement is viewed as a term with the
@@ -2704,6 +2706,9 @@ duplicateAttrs(Rel) :-
 
 */
 
+lookupAttrs(distinct X, distinct Y) :-
+  lookupAttrs(X, Y).
+
 lookupAttrs([], []).
 
 lookupAttrs([A | As], [A2 | A2s]) :-
@@ -2733,6 +2738,8 @@ lookupAttr(Attr, Attr2) :-
   assert(usedAttr(Rel2, Attr2)).
 
 lookupAttr(*, *) :- assert(isStarQuery), !.
+
+lookupAttr(count(*), count(*)) :- !.
 
 
 lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
@@ -3093,13 +3100,13 @@ translate(Select from Rels where Preds, Stream, Select, Cost) :-
   !.
 
 /*
-Below we will handle the case of queries without where-clause. This results
-in simple cartesian products of the relations in the from-clause. We think
-this case is very unimportant and we don't want to make the code complicated by
+Below we handle the case of queries without where-clause. This results
+in simple Cartesian products of the relations in the from-clause. 
+This case is not very important and we don't want to make the code complicated by
 applying projections for removing unnecessary attributes which might be a performance
 benefit if a groupby- or orderby- clause is present. The product will be computed
-by the symmjoin operator with a constant filter function which returns always true.
-This operator work well and has symmetric costs, whereas product has antisymmetric
+by the symmjoin operator with a constant filter function which always returns true.
+This operator works well and has symmetric costs, whereas product has antisymmetric
 costs. 
 
 */
@@ -3270,7 +3277,8 @@ Check whether ~Query~ is a counting query.
 
 
 countQuery(select count(*) from _) :- !.
-countQuery(select count(*) from _ first _) :- !.
+
+countQuery(select distinct count(*) from _) :- !.
 
 countQuery(Query groupby _) :-
   countQuery(Query).
@@ -3320,35 +3328,75 @@ queryToStream(Query, Stream2, Cost) :-
 ----
 
 Given a ~Stream~, a ~Select~ clause, and a set of attributes for sorting,
-apply the final tranformations (extend, sort, project) to obtain ~Stream2~.
+apply the final tranformations (extend, project, duplicate removal, sorting) to obtain ~Stream2~.
 
 */
 
 finish(Stream, Select, Sort, Stream2) :-
-  selectClause(Select, Extend, Project),
-  finish2(Stream, Extend, Sort, Project, Stream2).
+  selectClause(Select, Extend, Project, Rdup),
+  finish2(Stream, Extend, Project, Rdup, Sort, Stream2).
+
+/*
+----	selectClause(Select, Extend, Project, Rdup) :-
+----
+
+The ~Select~ clause contains attribute lists ~Extend~ for extension, ~Project~ for projection, and possibly a ~distinct~ keyword indicating duplicate removal returned in ~Rdup~.
+
+*/
 
 
-selectClause(select *, [], *).
+selectClause(select *, [], *, duplicates).
 
-selectClause(select count(*), [], count(*)).
+selectClause(select count(*), [], count(*), duplicates).
 
-selectClause(select Attrs, Extend, Project) :-
+selectClause(select Attrs, Extend, Project, duplicates) :-
   makeList(Attrs, Attrs2),
   extendProject(Attrs2, Extend, Project).
 
+selectClause(select distinct *, [], *, distinct).
+
+selectClause(select distinct count(*), [], count(*), distinct).
+
+selectClause(select distinct Attrs, Extend, Project, distinct) :-
+  makeList(Attrs, Attrs2),
+  extendProject(Attrs2, Extend, Project).
+
+/*
+----	finish2(Stream, Extend, Project, Rdup, Sort, Stream5) :-
+----
+
+Apply extension, projection, duplicate removal and sorting as specified to ~Stream~ to obtain ~Stream5~.
+
+*/
 
 
-finish2(Stream, Extend, Sort, Project, Stream4) :-
+finish2(Stream, Extend, Project, Rdup, Sort, Stream5) :-
   fExtend(Stream, Extend, Stream2),
-  fSort(Stream2, Sort, Stream3),
-  fProject(Stream3, Project, Stream4).
+  fProject(Stream2, Project, Stream3),
+  fRdup(Stream3, Rdup, Stream4),
+  fSort(Stream4, Sort, Stream5).
 
 
 
 fExtend(Stream, [], Stream) :- !.
 
 fExtend(Stream, Extend, extend(Stream, Extend)).
+
+
+
+fProject(Stream, *, Stream) :- !.
+
+fProject(Stream, count(*), Stream) :- !.
+
+fProject(Stream, Project, project(Stream, AttrNames)) :-
+  attrnames(Project, AttrNames).
+
+
+
+
+fRdup(Stream, duplicates, Stream) :- !.
+
+fRdup(Stream, distinct, rdup(sort(Stream))).
 
 
 
@@ -3360,15 +3408,12 @@ fSort(Stream, SortAttrs, sortby(Stream, AttrNames)) :-
 
 
 /*
-don't modify the stream if the projection is [star] 
-or count([star]).
+----	extendProject(Attrs, ExtendAttrs, ProjectAttrs) :-
+----
+
+Construct the extension and projection attribute lists from ~Attrs~.
 
 */
-fProject(Stream, *, Stream) :- !.
-fProject(Stream, count(*), Stream) :- !.
-
-fProject(Stream, Project, project(Stream, AttrNames)) :-
-  attrnames(Project, AttrNames).
 
 
 extendProject([], [], []).

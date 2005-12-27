@@ -104,6 +104,8 @@ secondoOp(avg, postfixbrackets, 2).
 secondoOp(tuplesize, postfix, 1).
 secondoOp(head, postfixbrackets, 2).
 secondoOp(windowintersects, postfixbrackets, 3).
+secondoOp(sort, postfix, 1).
+secondoOp(rdup, postfix, 1).
 
 
 
