@@ -3189,6 +3189,12 @@ translateFields([Attr | Select], GroupAttrs, Fields, [Attr | Select2]) :-
   translateFields(Select, GroupAttrs, Fields, Select2).
 
 
+translateFields([Attr as Name | Select], GroupAttrs, Fields, [Attr as Name | Select2]) :-
+  member(Attr, GroupAttrs),
+  !,
+  translateFields(Select, GroupAttrs, Fields, Select2).
+
+
 /*
 Generic rule for aggregate functions, similar to sum.
 
