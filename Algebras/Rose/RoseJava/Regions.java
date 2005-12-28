@@ -187,7 +187,7 @@ public class Regions implements Serializable{
 	this.cycles = r.cycles;
 	this.area = r.area;
 	this.bbox = r.bbox;
-	this.bboxDefined = true;
+	this.bboxDefined = r.bboxDefined;
 	this.border = r.border();
 	this.borderDefined = r.borderDefined;
     }
@@ -331,10 +331,12 @@ public class Regions implements Serializable{
     public Regions copy () {
 	Regions nr = new Regions();
 	nr.triset = TriMultiSet.convert(this.triset.copy());
-	nr.cyclesDefined = true;
+	nr.cyclesDefined = this.cyclesDefined;
 	nr.cycles = this.cycles.copy();
 	nr.border = this.border;
-	nr.borderDefined = true;
+	nr.borderDefined = this.borderDefined;
+	nr.bboxDefined = this.bboxDefined;
+	nr.bbox = this.bbox;
 	return nr; 
     }//end method copy
 

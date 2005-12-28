@@ -112,10 +112,12 @@ static jmethodID midPointsCompare;
 static jmethodID midPointsWriteToByteArray;
 static jmethodID midPointsReadFrom;
 static jmethodID midPointsPrint;
+static jmethodID midPointsRect;
 static jmethodID midLinesCompare;
 static jmethodID midLinesWriteToByteArray;
 static jmethodID midLinesReadFrom;
 static jmethodID midLinesPrint;
+static jmethodID midLinesRect;
 static jmethodID midRegionsCompare;
 static jmethodID midRegionsWriteToByteArray;
 static jmethodID midRegionsReadFrom;
@@ -124,7 +126,15 @@ static jmethodID midRationalGetNumerator;
 static jmethodID midRationalGetDenominator;
 static jmethodID midROSESetDeviationValue;
 static jmethodID midROSEChooseTriangulator;
+static jmethodID midRegionsRect;
+static jmethodID midRectGetTopLeftX;
+static jmethodID midRectGetTopLeftY;
+static jmethodID midRectGetBottomRightX;
+static jmethodID midRectGetBottomRightY;
 
+static jmethodID midROSEpp_equal;
+static jmethodID midROSEll_equal;
+static jmethodID midROSErr_equal;
 static jmethodID midROSErr_minus;
 
 static jfieldID fidRationalX;
@@ -1006,8 +1016,15 @@ private:
   bool canDelete;
   bool Defined;
   void RestoreFLOBFromJavaObject();
+  void SyncBboxData();
   
 public:
+  /* Bounding Box data */
+  double BboxTopLeftX;
+  double BboxTopLeftY;
+  double BboxBottomRightX;
+  double BboxBottomRightY;
+
   /* Inherited methods of Attribute */
   int Compare(Attribute *attr);
   Attribute *Clone();
@@ -1024,16 +1041,13 @@ public:
   FLOB *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
-    //cout << "++++++++++++++++++++ called Finalize of CcPoints +++++++++++++++++++++++++" << endl;
     env->DeleteLocalRef(obj);
     obj = 0;
   }
   void RestoreJavaObjectFromFLOB();
   size_t HashValue();
   
-  /* This contructor takes just one serial string 
-     of the underlying java object and its length. */
-  //CcPoints(char *serial, int len);
+ 
   /* This constructor takes the nested list representation
      of CcPoints and recovers the underlying java object with
      help of this data. */
@@ -1047,16 +1061,15 @@ public:
   /* retrieves the nested list representation of the underlying
      java object. */
 
-    void SetObject(jobject obj) {
+  void SetObject(jobject obj) {
     this->obj = obj;
   }
-
+  
   bool GetNL(ListExpr &le);
   /* Destructor of CcPoints. This destructor destroys also the 
      object inside the JVM. */
-
+  
   ~CcPoints() {
-    //cout << "++++++++++++++++++++ called destructor of CcPoints +++++++++++++++++++++++++" << endl;    
     env->DeleteLocalRef(obj);
     obj = 0;
   }
@@ -1071,9 +1084,6 @@ Inherited method of StandardAttribute
 
 */
 int CcPoints::Compare(Attribute *attr) {
-  //jmethodID mid = env->GetMethodID(clsPoints,"compare","(LPoints;)I");
-  //if (mid == 0) error(__FILE__,__LINE__);
-
   CcPoints *P = (CcPoints *) attr;
   return env->CallByteMethod(obj,midPointsCompare,P->obj);
 }
@@ -1133,9 +1143,10 @@ void CcPoints::CopyFrom(StandardAttribute* right) {
   P->objectData.Get(0,P->objectData.Size(),data);
   objectData.Put(0,P->objectData.Size(),data);
   delete [] data;
-  //RestoreJavaObjectFromFLOB();
-  //if (obj)
-  // env->DeleteLocalRef(obj);
+  BboxTopLeftX = P->BboxTopLeftX;
+  BboxTopLeftY = P->BboxTopLeftY;
+  BboxBottomRightX = P->BboxBottomRightX;
+  BboxBottomRightY = P->BboxBottomRightY;
   obj=0;
 }
 
@@ -1161,53 +1172,19 @@ FLOB *CcPoints::GetFLOB(const int i){
 }
 
 void CcPoints::Initialize() {
-  //RestoreJavaObjectFromFLOB();
   obj = 0;
+  Defined = true;
 }
 
 
-
-/* 
-This contructor takes just one serial string 
-   of the underlying java object and its length. 
+/*
+Constructors
 
 */
- /*
-CcPoints::CcPoints(char *serial, int len) {
-  debug(__LINE__);
-  jbyteArray jbarr = 0;
-  jmethodID mid_Rose;
-  jclass cls_Rose;
-
-  // Get the Class 
-  cls = env->FindClass("Points");
-  if (cls == 0) error(__FILE__, __LINE__);
-
-  // Allocate a new byte array inside the VM.
-  jbarr = env->NewByteArray(len);
-  if (jbarr == 0) error(__FILE__, __LINE__);
-
-  // Store the data into this array. 
-  env->SetByteArrayRegion(jbarr, 0, len, (jbyte *)serial);
-
-  // Get the Class RoseImExport
-  cls_Rose = env->FindClass("RoseImExport");
-  if (cls_Rose == 0) error(__FILE__, __LINE__);
-
-  // Get the method ID of imprt_arr 
-  mid_Rose = env->GetStaticMethodID(cls_Rose, "imprt_arr", 
-				    "([B)Ljava/lang/Object;");
-  if (mid_Rose == 0) error(__FILE__, __LINE__);
-  
-  // Call the static imprt_arr method
-  obj = env->CallStaticObjectMethod(cls_Rose, mid_Rose, jbarr);
-  if (obj == 0) error(__FILE__, __LINE__);  
-
-}
- */
-
 CcPoints::CcPoints(size_t size):objectData(size),canDelete(false) {
   SetDefined(true);
+  obj = env->NewObject(clsPoints,midPointsConst);
+  if (obj == 0) error(__FILE__,__LINE__);
 }
 
 /* 
@@ -1221,6 +1198,7 @@ CcPoints::CcPoints(const ListExpr &le):objectData(1) {
   canDelete = false;
   RestoreFLOBFromJavaObject();
   SetDefined(true);
+  SyncBboxData();
 }
 
 /* 
@@ -1229,28 +1207,18 @@ This constructor takes a pointer to a java object which is
 
 */
 CcPoints::CcPoints(const jobject jobj):objectData(1) {
-  /* Get the Class Points */
   canDelete = false;
   obj = jobj;
   RestoreFLOBFromJavaObject();
   SetDefined(true);
+  SyncBboxData();
 }
 
 /* 
 This constructor creates an empty CcPoints object. 
 
 */	
-CcPoints::CcPoints() {
-  //jmethodID mid;
-
-  /* Get the method ID of the constructor which takes no parameters. */
-  //mid = env->GetMethodID(clsPoints, "<init>", "()V");
-  //if (mid == 0) error(__FILE__,__LINE__);
-  
-  /* Create a Java-object Point. */
-  obj = env->NewObject(clsPoints, midPointsConst);
-  if (obj == 0) error(__FILE__,__LINE__);
-}
+CcPoints::CcPoints() {}
 
 
 /* 
@@ -1259,6 +1227,10 @@ retrieves the nested list representation of the underlying
 
 */
 bool CcPoints::GetNL(ListExpr& le) {
+  if (!Defined) {
+    le = nl->TheEmptyList();
+    return true;
+  }
   if (!obj) RestoreJavaObjectFromFLOB();
   assert(obj != 0);
   le = Convert_JavaToC_Points(obj);
@@ -1287,7 +1259,6 @@ Destructor of CcPoints. This destructor destroys also the
 
 */
 void CcPoints::Destroy(){
-  //cout << "++++++++++++++++++++ called destroy of CcPoints +++++++++++++++++++++++++" << endl;
   canDelete=true;
 }
 
@@ -1306,9 +1277,6 @@ restores the java object from FLOB
 
 */
 void CcPoints::RestoreFLOBFromJavaObject(){
-  //jmethodID mid = env->GetMethodID(clsPoints,"writeToByteArray","()[B");
-  //if(mid == 0) error(__FILE__,__LINE__);
-  
   jbyteArray jbytes = (jbyteArray) env->CallObjectMethod(obj,midPointsWriteToByteArray);
   if(jbytes == 0) error(__FILE__,__LINE__);
   
@@ -1332,20 +1300,17 @@ void CcPoints::RestoreJavaObjectFromFLOB(){
     return;
   }
   int size = objectData.Size();
-  //cout << "going to read " << size << " bytes" << endl;
   char *bytes = new char[size];
   objectData.Get(0,size,bytes);
   // copy the data into a java-array
   jbyteArray jbytes = env->NewByteArray(size);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
-  //jmethodID mid = env->GetStaticMethodID(clsPoints,"readFrom","([B)LPoints;");
-  //if(mid == 0) error(__FILE__,__LINE__);
   
-  jobject jres = env->CallStaticObjectMethod(clsPoints,midPointsReadFrom,jbytes);
-  if(jres == 0){
+  obj = env->CallStaticObjectMethod(clsPoints,midPointsReadFrom,jbytes);
+  if(obj == 0){
     error(__FILE__,__LINE__);
   }
-  obj = jres;
+  //obj = jres;
   jbyte* elems = env->GetByteArrayElements(jbytes,0);
   env->ReleaseByteArrayElements(jbytes,elems,JNI_ABORT);
   delete [] bytes;
@@ -1358,6 +1323,21 @@ void CcPoints::Print() {
   //jmethodID mid = env->GetMethodID(clsPoints,"print","()V");
   env->CallVoidMethod(obj,midPointsPrint);
 }
+
+
+void CcPoints::SyncBboxData() {
+  //restore object if not present
+  if (!obj) RestoreJavaObjectFromFLOB();
+  //get bounding box of the Java Points object
+  jobject bbox = env->CallObjectMethod(obj,midPointsRect);
+  if (bbox == 0) error(__FILE__,__LINE__);
+
+  //get the coordinates of the bounding box
+  BboxTopLeftX = (double)env->CallDoubleMethod(bbox,midRectGetTopLeftX);
+  BboxTopLeftY = (double)env->CallDoubleMethod(bbox,midRectGetTopLeftY);
+  BboxBottomRightX = (double)env->CallDoubleMethod(bbox,midRectGetBottomRightX);
+  BboxBottomRightY = (double)env->CallDoubleMethod(bbox,midRectGetBottomRightY);
+}  
 
 
 /*
@@ -1584,8 +1564,15 @@ private:
   bool canDelete;
   bool Defined;
   void RestoreFLOBFromJavaObject();
+  void SyncBboxData();
 
 public:
+ /* Bounding Box data */
+  double BboxTopLeftX;
+  double BboxTopLeftY;
+  double BboxBottomRightX;
+  double BboxBottomRightY;
+
   /* Inherited methods of Attribute */
   int Compare(Attribute *attr);
   Attribute *Clone();
@@ -1602,16 +1589,13 @@ public:
   FLOB *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
-    //cout << "++++++++++++++++++++ called Finalize of CcLines +++++++++++++++++++++++++" << endl;
     env->DeleteLocalRef(obj);
     obj = 0;
   }
   void RestoreJavaObjectFromFLOB();
   size_t HashValue();
 
-  /* This contructor takes just one serial string 
-     of the underlying java object and its length. */
-  //CcLines(char *serial, int len);
+
   /* This constructor takes the nested list representation
      of CcLines and recovers the underlying java object with
      help of this data. */
@@ -1633,7 +1617,6 @@ public:
   /* Destructor of CcLines. This destructor destroys also the 
      object inside the JVM. */
   ~CcLines() {
-    //cout << "++++++++++++++++++++ called destructor of CcLines +++++++++++++++++++++++++" << endl;
     env->DeleteLocalRef(obj);
     obj = 0;
   }
@@ -1648,9 +1631,6 @@ Inherited method of StandardAttribute
 
 */
 int CcLines::Compare(Attribute *attr) {
-  //jmethodID mid = env->GetMethodID(clsLines,"compare","(LLines;)I");
-  //if (mid == 0) error(__FILE__,__LINE__);
-  
   CcLines *L = (CcLines *) attr;
   return env->CallByteMethod(obj,midLinesCompare,L->obj);
 }
@@ -1710,9 +1690,10 @@ void CcLines::CopyFrom(StandardAttribute* right) {
   L->objectData.Get(0,L->objectData.Size(),data);
   objectData.Put(0,L->objectData.Size(),data);
   delete [] data;
-  //RestoreJavaObjectFromFLOB();
-  //if (obj)
-  //  env->DeleteLocalRef(obj);
+  BboxTopLeftX = L->BboxTopLeftX;
+  BboxTopLeftY = L->BboxTopLeftY;
+  BboxBottomRightX = L->BboxBottomRightX;
+  BboxBottomRightY = L->BboxBottomRightY;
   obj=0;
 }
 
@@ -1738,52 +1719,19 @@ FLOB *CcLines::GetFLOB(const int i) {
 }
 
 void CcLines::Initialize() {
-  //RestoreJavaObjectFromFLOB();
   obj = 0;
+  Defined = true;
 }
 
 /*
-
- This contructor takes just one serial string 
-   of the underlying java object and its length. 
+Constructors
 
 */
 
- /*
-CcLines::CcLines(char *serial, int len) {
-  debug(__LINE__);
-  jbyteArray jbarr = 0;
-  jmethodID mid_Rose;
-  jclass cls_Rose;
-
-  // Get the Class
-  cls = env->FindClass("Lines");
-  if (cls == 0) error(__FILE__, __LINE__);
-
-  // Allocate a new byte array inside the VM.
-  jbarr = env->NewByteArray(len);
-  if (jbarr == 0) error(__FILE__, __LINE__);
-
-  // Store the data into this array. 
-  env->SetByteArrayRegion(jbarr, 0, len, (jbyte *)serial);
-
-  // Get the Class RoseImExport
-  cls_Rose = env->FindClass("RoseImExport");
-  if (cls_Rose == 0) error(__FILE__, __LINE__);
-
-  // Get the method ID of imprt_arr 
-  mid_Rose = env->GetStaticMethodID(cls_Rose, "imprt_arr", 
-				    "([B)Ljava/lang/Object;");
-  if (mid_Rose == 0) error(__FILE__, __LINE__);
-
-  // Call the static imprt_arr method
-  obj = env->CallStaticObjectMethod(cls_Rose, mid_Rose, jbarr);
-  if (obj == 0) error(__FILE__, __LINE__);
-}
-  */
-
 CcLines::CcLines(size_t size):objectData(size),canDelete(false) {
   SetDefined(true);
+  obj = env->NewObject(clsLines,midLinesConst);
+  if (obj == 0) error(__FILE__,__LINE__);
 }
 
 /*
@@ -1798,6 +1746,7 @@ CcLines::CcLines(const ListExpr &le):objectData(1) {
   canDelete = false;
   RestoreFLOBFromJavaObject();
   SetDefined(true);
+  SyncBboxData();
 }
 
 /* 
@@ -1806,28 +1755,18 @@ This constructor takes a pointer to a java object which is
 
 */
 CcLines::CcLines(const jobject jobj) : objectData(1) {
-  /* Get the Class Lines */
   canDelete = false;
   obj = jobj;
   RestoreFLOBFromJavaObject();
   SetDefined(true);
+  SyncBboxData();
 }
 
 /* 
 This constructor creates an empty CcPoints object. 
 
 */	
-CcLines::CcLines() {
-  //jmethodID mid;
-
-  /* Get the method ID of the constructor which takes no parameters. */
-  //mid = env->GetMethodID(clsLines, "<init>", "()V");
-  //if (mid == 0) error(__FILE__,__LINE__);
-  
-  /* Create a Java-object Point. */
-  obj = env->NewObject(clsLines, midLinesConst);
-  if (obj == 0) error(__FILE__,__LINE__);
-}
+CcLines::CcLines() {}
 
 /* 
 retrieves the nested list representation of the underlying
@@ -1835,7 +1774,10 @@ retrieves the nested list representation of the underlying
 
 */
 bool CcLines::GetNL(ListExpr& le) {
-  //SetObject(0);
+  if (!Defined) {
+    le = nl->TheEmptyList();
+    return true;
+  }
   if (!obj) RestoreJavaObjectFromFLOB();
   le = Convert_JavaToC_Lines(obj);
   return true;
@@ -1862,7 +1804,6 @@ Destructor of CcLines. This destructor destroys also the
 
 */
 void CcLines::Destroy(){
-  //cout << "++++++++++++++++++++ called destroy of CcLines +++++++++++++++++++++++++" << endl;
   canDelete=true;
 }
 
@@ -1881,9 +1822,6 @@ restores the java object from FLOB
 
 */
 void CcLines::RestoreFLOBFromJavaObject(){
-  //jmethodID mid = env->GetMethodID(clsLines,"writeToByteArray","()[B");
-  //if(mid == 0) error(__FILE__,__LINE__);
-  
   jbyteArray jbytes = (jbyteArray) env->CallObjectMethod(obj,midLinesWriteToByteArray);
   if(jbytes == 0) error(__FILE__,__LINE__);
   
@@ -1907,16 +1845,11 @@ void CcLines::RestoreJavaObjectFromFLOB(){
     return;
   }
   int size = objectData.Size();
-  
-  //cout << "size of CcLines = " << size << endl;
-
   char *bytes = new char[size];
   objectData.Get(0,size,bytes);
   // copy the data into a java-array
   jbyteArray jbytes = env->NewByteArray(size);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
-  //jmethodID mid = env->GetStaticMethodID(clsLines,"readFrom","([B)LLines;");
-  //if(mid == 0) error(__FILE__,__LINE__);
 
   obj = env->CallStaticObjectMethod(clsLines,midLinesReadFrom,jbytes);
   if(obj == 0) error(__FILE__,__LINE__);
@@ -1934,6 +1867,20 @@ void CcLines::Print() {
   //jmethodID mid = env->GetMethodID(clsLines,"print","()V");
   env->CallVoidMethod(obj,midLinesPrint);
 }
+
+void CcLines::SyncBboxData() {
+  //restore object if not present
+  if (!obj) RestoreJavaObjectFromFLOB();
+  //get bounding box of the Java Lines object
+  jobject bbox = env->CallObjectMethod(obj,midLinesRect);
+  if (bbox == 0) error(__FILE__,__LINE__);
+
+  //get the coordinates of the bounding box
+  BboxTopLeftX = (double)env->CallDoubleMethod(bbox,midRectGetTopLeftX);
+  BboxTopLeftY = (double)env->CallDoubleMethod(bbox,midRectGetTopLeftY);
+  BboxBottomRightX = (double)env->CallDoubleMethod(bbox,midRectGetBottomRightX);
+  BboxBottomRightY = (double)env->CallDoubleMethod(bbox,midRectGetBottomRightY);
+}  
 
 
 /*
@@ -1991,7 +1938,7 @@ Creation of a CcLines object.
 
 */
 static Word CreateCcLines(const ListExpr typeInfo) {
-  cout << "CreateCcLines" << endl;
+  //cout << "CreateCcLines" << endl;
 
   CcLines* res = new CcLines((size_t)1);
   res->SetObject(0);
@@ -2193,9 +2140,7 @@ public:
   void RestoreJavaObjectFromFLOB();
   size_t HashValue();
 
-  /* This contructor takes just one serial string 
-     of the underlying java object and its length. */
-  //CcRegions(char *serial, int len);
+
   /* This constructor takes the nested list representation
      of CcRegions and recovers the underlying java object with
      help of this data. */
@@ -2206,7 +2151,7 @@ public:
   /* This constructor creates an empty CcRegions object. */	
   CcRegions();
   CcRegions(size_t size);
- /* retrieves the nested list representation of the underlying
+  /* retrieves the nested list representation of the underlying
      java object. */
   bool GetNL(ListExpr &le);
   
@@ -2231,9 +2176,6 @@ Inherited method of StandardAttribute
 
 */
 int CcRegions::Compare(Attribute *attr) {
-  //jmethodID mid = env->GetMethodID(clsRegions,"compare","(LRegions;)I");
-  //if (mid == 0) error (__FILE__,__LINE__);
-  
   CcRegions *R = (CcRegions *) attr;
   return env->CallByteMethod(obj,midRegionsCompare,R->obj);
 }
@@ -2287,18 +2229,16 @@ Inherited method of StandardAttribute
 
 */
 void CcRegions::CopyFrom(StandardAttribute* right) { 
-  //cout << "CcRegions::CopyFrom." << endl;
   CcRegions *R = (CcRegions *)right;
   objectData.Resize(R->objectData.Size());
-  //cout << "objectData.Size: " << R->objectData.Size() << endl;
   char *data = new char[R->objectData.Size()];
   R->objectData.Get(0,R->objectData.Size(),data);
   objectData.Put(0,R->objectData.Size(),data);
   delete [] data;
-  //cout << "objectData.Size" << objectData.Size() << endl;
-  //RestoreJavaObjectFromFLOB();
-  //if(obj)
-  //  env->DeleteLocalRef(obj);
+  BboxTopLeftX = R->BboxTopLeftX;
+  BboxTopLeftY = R->BboxTopLeftY;
+  BboxBottomRightX = R->BboxBottomRightX;
+  BboxBottomRightY = R->BboxBottomRightY;
   obj=0;
 }
 
@@ -2324,52 +2264,18 @@ FLOB *CcRegions::GetFLOB(const int i){
 }
 
 void CcRegions::Initialize() {
-  //RestoreJavaObjectFromFLOB();
   obj = 0;
   Defined=true;
 }
 
-
-/* 
-This contructor takes just one serial string 
-   of the underlying java object and its length. 
+/*
+Constructors
 
 */
- /*
-CcRegions::CcRegions(char *serial, int len) {
-  debug(__LINE__);
-  jbyteArray jbarr = 0;
-  jmethodID mid_Rose;
-  jclass cls_Rose;
-
-  // Get the Class
-  cls = env->FindClass("Regions");
-  if (cls == 0) error(__FILE__, __LINE__);
-
-  // Allocate a new byte array inside the VM.
-  jbarr = env->NewByteArray(len);
-  if (jbarr == 0) error(__FILE__, __LINE__);
-
-  // Store the data into this array.
-  env->SetByteArrayRegion(jbarr, 0, len, (jbyte *)serial);
-
-  // Get the Class RoseImExport
-  cls_Rose = env->FindClass("RoseImExport");
-  if (cls_Rose == 0) error(__FILE__, __LINE__);
-
-  // Get the method ID of imprt_arr
-  mid_Rose = env->GetStaticMethodID(cls_Rose, "imprt_arr", 
-				    "([B)Ljava/lang/Object;");
-  if (mid_Rose == 0) error(__FILE__, __LINE__);
-
-  // Call the static imprt_arr method
-  obj = env->CallStaticObjectMethod(cls_Rose, mid_Rose, jbarr);
-  if (obj == 0) error(__FILE__, __LINE__);  
-}
- */
-
 CcRegions::CcRegions(size_t size):objectData(size),canDelete(false) {
   SetDefined(true);
+  obj = env->NewObject(clsRegions, midRegionsConstVoid);
+  if (obj == 0) error(__FILE__,__LINE__);
 }
 
 /* 
@@ -2393,9 +2299,6 @@ This constructor takes a pointer to a java object which is
 
 */
 CcRegions::CcRegions(const jobject jobj):objectData(1) {
-  /* Get the Class RoseImExport */
-  //cout << "CcRegions::constructor(jobject) called" << endl;
-  //Application::PrintStacktrace();
   canDelete = false;
   obj = jobj;
   RestoreFLOBFromJavaObject();
@@ -2407,17 +2310,7 @@ CcRegions::CcRegions(const jobject jobj):objectData(1) {
 This constructor creates an empty CcRegions object.
 
 */	
-CcRegions::CcRegions() {
-  //jmethodID mid;
-
-  /* Get the method ID of the constructor which takes no parameters. */
-  //mid = env->GetMethodID(clsRegions, "<init>", "()V");
-  //if (mid == 0) error(__FILE__,__LINE__);
-  
-  /* Create a Java-object Point. */
-  obj = env->NewObject(clsRegions, midRegionsConstVoid);
-  if (obj == 0) error(__FILE__,__LINE__);
-}
+CcRegions::CcRegions() {}
 
 /* 
 retrieves the nested list representation of the underlying
@@ -2457,7 +2350,6 @@ Destructor of CcRegions. This destructor destroys also the
 
 */
 void CcRegions::Destroy(){
-  //cout << "++++++++++++++++++++ called destroy of CcRegions +++++++++++++++++++++++++" << endl;
   canDelete=true;
 }
 
@@ -2475,10 +2367,6 @@ restores the java object from FLOB
 
 */
 void CcRegions::RestoreFLOBFromJavaObject(){
-  //cout << "RestoreFLOBFromJavaObject called" << endl;
-  //jmethodID mid = env->GetMethodID(clsRegions,"writeToByteArray","()[B");
-  //if(mid == 0) error(__FILE__,__LINE__);
-  
   jbyteArray jbytes = (jbyteArray) env->CallObjectMethod(obj,midRegionsWriteToByteArray);
   if(jbytes == 0) error(__FILE__,__LINE__);
   
@@ -2502,14 +2390,11 @@ void CcRegions::RestoreJavaObjectFromFLOB(){
     return;
   }
   int size = objectData.Size();
-  //cout << "going to read " << size << " bytes" << endl;
   char *bytes = new char[size];
   objectData.Get(0,size,bytes);
   // copy the data into a java-array
   jbyteArray jbytes = env->NewByteArray(size);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
-  //jmethodID mid = env->GetStaticMethodID(clsRegions,"readFrom","([B)LRegions;");
-  //if(mid == 0) error(__FILE__,__LINE__);
 
   obj = env->CallStaticObjectMethod(clsRegions,midRegionsReadFrom,jbytes);
   if(obj == 0){
@@ -2529,7 +2414,21 @@ void CcRegions::Print() {
 }
 
 void CcRegions::SyncBboxData() {
-  
+  //restore object if not present
+  if (!obj) RestoreJavaObjectFromFLOB();
+  //get bounding box of the Java Regions object
+  jobject bbox = env->CallObjectMethod(obj,midRegionsRect);
+  if (bbox == 0) error(__FILE__,__LINE__);
+
+  //jmethodID mid = env->GetMethodID(clsRect,"print","()V");
+  //if (mid == 0) error (__FILE__,__LINE__);
+  //env->CallVoidMethod(bbox,mid);
+
+  //get the coordinates of the bounding box
+  BboxTopLeftX = (double)env->CallDoubleMethod(bbox,midRectGetTopLeftX);
+  BboxTopLeftY = (double)env->CallDoubleMethod(bbox,midRectGetTopLeftY);
+  BboxBottomRightX = (double)env->CallDoubleMethod(bbox,midRectGetBottomRightX);
+  BboxBottomRightY = (double)env->CallDoubleMethod(bbox,midRectGetBottomRightY);
 }
 
 /*
@@ -2632,22 +2531,16 @@ static void* CastCcRegions( void* addr ){
   return new (addr) CcRegions;
 }
 
-bool OpenCcRegions(SmiRecord& valueRecord,
-                   size_t& offset,
-		   const ListExpr typeInfo,
-		   Word& value){
+bool OpenCcRegions(SmiRecord& valueRecord,size_t& offset,const ListExpr typeInfo,Word& value){
   CcRegions* R = (CcRegions*) TupleElement::Open(valueRecord,offset, typeInfo);
   R->SetObject(0);
   value = SetWord(R);
   return true;
 }
 
-bool SaveCcRegions( SmiRecord& valueRecord,
-                    size_t& offset,
-		    const ListExpr typeInfo,
-		    Word& value) {
+bool SaveCcRegions(SmiRecord& valueRecord,size_t& offset,const ListExpr typeInfo,Word& value) {
   CcRegions* R = (CcRegions*) value.addr;
-  TupleElement::Save(valueRecord,offset,typeInfo,R);
+  TupleElement::Save(valueRecord,offset,typeInfo,R); 
   return true;
 }
 
@@ -2754,6 +2647,341 @@ returns a list expression for the result type, otherwise the symbol
 
 */
 
+static ListExpr equalTypeMap (ListExpr args) {
+  ListExpr arg1,arg2;
+  if (nl->ListLength(args) == 2) {
+    arg1 = nl->First(args);
+    arg2 = nl->Second(args);
+    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("bool");
+    if ((nl->AtomType(arg1) == SymbolType) && (nl->AtomType(arg2) == SymbolType)) 
+      ErrorReporter::ReportError("Type mapping function got parameters of type "+nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong types as parameters.");
+  } 
+  ErrorReporter::ReportError("Type mapping function got a parameter of lengh != 2.");
+  return nl->SymbolAtom("typeerror");
+}
+
+static ListExpr unequalTypeMap (ListExpr args) {
+  ListExpr arg1,arg2;
+  if (nl->ListLength(args) == 2) {
+    arg1 = nl->First(args);
+    arg2 = nl->Second(args);
+    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("bool");
+    if ((nl->AtomType(arg1) == SymbolType) && (nl->AtomType(arg2) == SymbolType)) 
+      ErrorReporter::ReportError("Type mapping function got parameters of type "+nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong types as parameters.");
+  } 
+  ErrorReporter::ReportError("Type mapping function got a parameter of lengh != 2.");
+  return nl->SymbolAtom("typeerror");
+}
+
+static ListExpr disjointTypeMap (ListExpr args) {
+  ListExpr arg1,arg2;
+  if (nl->ListLength(args) == 2) {
+    arg1 = nl->First(args);
+    arg2 = nl->Second(args);
+    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("bool");
+    if ((nl->AtomType(arg1) == SymbolType) && (nl->AtomType(arg2) == SymbolType)) 
+      ErrorReporter::ReportError("Type mapping function got parameters of type "+nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong types as parameters.");
+  } 
+  ErrorReporter::ReportError("Type mapping function got a parameter of lengh != 2.");
+  return nl->SymbolAtom("typeerror");
+}
+
+static ListExpr insideTypeMap (ListExpr args) {
+  ListExpr arg1,arg2;
+  if (nl->ListLength(args) == 2) {
+    arg1 = nl->First(args);
+    arg2 = nl->Second(args);
+    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("bool");
+    if ((nl->AtomType(arg1) == SymbolType) && (nl->AtomType(arg2) == SymbolType)) 
+      ErrorReporter::ReportError("Type mapping function got parameters of type "+nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong types as parameters.");
+  } 
+  ErrorReporter::ReportError("Type mapping function got a parameter of lengh != 2.");
+  return nl->SymbolAtom("typeerror");
+}
+
+static ListExpr intersectsTypeMap (ListExpr args) {
+  ListExpr arg1,arg2;
+  if (nl->ListLength(args) == 2) {
+    arg1 = nl->First(args);
+    arg2 = nl->Second(args);
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("bool");
+    if ((nl->AtomType(arg1) == SymbolType) && (nl->AtomType(arg2) == SymbolType)) 
+      ErrorReporter::ReportError("Type mapping function got parameters of type "+nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong types as parameters.");
+  } 
+  ErrorReporter::ReportError("Type mapping function got a parameter of lengh != 2.");
+  return nl->SymbolAtom("typeerror");
+}
+
+static ListExpr meetsTypeMap (ListExpr args) {
+  ListExpr arg1,arg2;
+  if (nl->ListLength(args) == 2) {
+    arg1 = nl->First(args);
+    arg2 = nl->Second(args);
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("bool");
+    if ((nl->AtomType(arg1) == SymbolType) && (nl->AtomType(arg2) == SymbolType)) 
+      ErrorReporter::ReportError("Type mapping function got parameters of type "+nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong types as parameters.");
+  } 
+  ErrorReporter::ReportError("Type mapping function got a parameter of lengh != 2.");
+  return nl->SymbolAtom("typeerror");
+}
+
+static ListExpr borderInCommonTypeMap (ListExpr args) {
+  ListExpr arg1,arg2;
+  if (nl->ListLength(args) == 2) {
+    arg1 = nl->First(args);
+    arg2 = nl->Second(args);
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("bool");
+    if ((nl->AtomType(arg1) == SymbolType) && (nl->AtomType(arg2) == SymbolType)) 
+      ErrorReporter::ReportError("Type mapping function got parameters of type "+nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong types as parameters.");
+  } 
+  ErrorReporter::ReportError("Type mapping function got a parameter of lengh != 2.");
+  return nl->SymbolAtom("typeerror");
+}
+
+static ListExpr onBorderOfTypeMap (ListExpr args) {
+  ListExpr arg1,arg2;
+  if (nl->ListLength(args) == 2) {
+    arg1 = nl->First(args);
+    arg2 = nl->Second(args);
+    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("bool");
+    if ((nl->AtomType(arg1) == SymbolType) && (nl->AtomType(arg2) == SymbolType)) 
+      ErrorReporter::ReportError("Type mapping function got parameters of type "+nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong types as parameters.");
+  } 
+  ErrorReporter::ReportError("Type mapping function got a parameter of lengh != 2.");
+  return nl->SymbolAtom("typeerror");
+}
+
+static ListExpr intersectionTypeMap (ListExpr args) {
+  ListExpr arg1,arg2;
+  if (nl->ListLength(args) == 2) {
+    arg1 = nl->First(args);
+    arg2 = nl->Second(args);
+    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+      return nl->SymbolAtom("points");
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("points");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("region");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("line");
+    if ((nl->AtomType(arg1) == SymbolType) && (nl->AtomType(arg2) == SymbolType)) 
+      ErrorReporter::ReportError("Type mapping function got parameters of type "+nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong types as parameters.");
+  } 
+  ErrorReporter::ReportError("Type mapping function got a parameter of lengh != 2.");
+  return nl->SymbolAtom("typeerror");
+}
+
+static ListExpr plusTypeMap (ListExpr args) {
+  ListExpr arg1,arg2;
+  if (nl->ListLength(args) == 2) {
+    arg1 = nl->First(args);
+    arg2 = nl->Second(args);
+    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+      return nl->SymbolAtom("points");
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("line");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("region");
+    if ((nl->AtomType(arg1) == SymbolType) && (nl->AtomType(arg2) == SymbolType)) 
+      ErrorReporter::ReportError("Type mapping function got parameters of type "+nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong types as parameters.");
+  } 
+  ErrorReporter::ReportError("Type mapping function got a parameter of lengh != 2.");
+  return nl->SymbolAtom("typeerror");
+}
+
+static ListExpr minusTypeMap (ListExpr args) {
+  ListExpr arg1,arg2;
+  if (nl->ListLength(args) == 2) {
+    arg1 = nl->First(args);
+    arg2 = nl->Second(args);
+    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+      return nl->SymbolAtom("points");
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("line");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("region");
+    if ((nl->AtomType(arg1) == SymbolType) && (nl->AtomType(arg2) == SymbolType)) 
+      ErrorReporter::ReportError("Type mapping function got parameters of type "+nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong types as parameters.");
+  } 
+  ErrorReporter::ReportError("Type mapping function got a parameter of lengh != 2.");
+  return nl->SymbolAtom("typeerror");
+}
+
+static ListExpr commonBorderTypeMap (ListExpr args) {
+  ListExpr arg1,arg2;
+  if (nl->ListLength(args) == 2) {
+    arg1 = nl->First(args);
+    arg2 = nl->Second(args);
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("line");
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("line");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("line");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("line");
+    if ((nl->AtomType(arg1) == SymbolType) && (nl->AtomType(arg2) == SymbolType)) 
+      ErrorReporter::ReportError("Type mapping function got parameters of type "+nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong types as parameters.");
+  } 
+  ErrorReporter::ReportError("Type mapping function got a parameter of lengh != 2.");
+  return nl->SymbolAtom("typeerror");
+}
+
+static ListExpr verticesTypeMap (ListExpr args) {
+  ListExpr arg1,arg2;
+  if (nl->ListLength(args) == 1) {
+    arg1 = nl->First(args);
+    if (nl->IsEqual(arg1,"line"))
+      return nl->SymbolAtom("points");
+    if (nl->IsEqual(arg1,"region"))
+      return nl->SymbolAtom("points");
+    if ((nl->AtomType(arg1) == SymbolType) && (nl->AtomType(arg2) == SymbolType)) 
+      ErrorReporter::ReportError("Type mapping function got parameter of type "+nl->SymbolValue(arg1));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong type as parameter.");
+  } 
+  ErrorReporter::ReportError("Type mapping function got a parameter of lengh != 1.");
+  return nl->SymbolAtom("typeerror");
+}
+
+static ListExpr noOfComponentsTypeMap (ListExpr args) {
+  ListExpr arg1,arg2;
+  if (nl->ListLength(args) == 1) {
+    arg1 = nl->First(args);
+    if (nl->IsEqual(arg1,"points"))
+      return nl->SymbolAtom("int");
+    if (nl->IsEqual(arg1,"line"))
+      return nl->SymbolAtom("int");
+    if (nl->IsEqual(arg1,"region"))
+      return nl->SymbolAtom("int");
+    if ((nl->AtomType(arg1) == SymbolType) && (nl->AtomType(arg2) == SymbolType)) 
+      ErrorReporter::ReportError("Type mapping function got parameter of type "+nl->SymbolValue(arg1));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong type as parameter.");
+  } 
+  ErrorReporter::ReportError("Type mapping function got a parameter of lengh != 1.");
+  return nl->SymbolAtom("typeerror");
+}
+
+static ListExpr distTypeMap (ListExpr args) {
+  ListExpr arg1,arg2;
+  if (nl->ListLength(args) == 2) {
+    arg1 = nl->First(args);
+    arg2 = nl->Second(args);
+    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+      return nl->SymbolAtom("real");
+    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("real");
+    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("real");
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"points"))
+      return nl->SymbolAtom("real");
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("real");
+    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("real");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"points"))
+      return nl->SymbolAtom("real");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+      return nl->SymbolAtom("real");
+    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+      return nl->SymbolAtom("real");
+    if ((nl->AtomType(arg1) == SymbolType) && (nl->AtomType(arg2) == SymbolType)) 
+      ErrorReporter::ReportError("Type mapping function got parameters of type "+nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong types as parameters.");
+  } 
+  ErrorReporter::ReportError("Type mapping function got a parameter of lengh != 2.");
+  return nl->SymbolAtom("typeerror");
+}
+
+static ListExpr diameterTypeMap (ListExpr args) {
+  ListExpr arg1,arg2;
+  if (nl->ListLength(args) == 1) {
+    arg1 = nl->First(args);
+    if (nl->IsEqual(arg1,"points"))
+      return nl->SymbolAtom("real");
+    if (nl->IsEqual(arg1,"line"))
+      return nl->SymbolAtom("real");
+    if (nl->IsEqual(arg1,"region"))
+      return nl->SymbolAtom("real");
+    if ((nl->AtomType(arg1) == SymbolType) && (nl->AtomType(arg2) == SymbolType)) 
+      ErrorReporter::ReportError("Type mapping function got parameter of type "+nl->SymbolValue(arg1));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong type as parameter.");
+  } 
+  ErrorReporter::ReportError("Type mapping function got a parameter of lengh != 1.");
+  return nl->SymbolAtom("typeerror");
+}
+
 /* 
 This is a general type mapping function for all Rose methods
    which take two parameters. 
@@ -2790,21 +3018,6 @@ static ListExpr typeMappingRose
   return nl->SymbolAtom("typeerror");
 }
 
-/* 
-type mapping function: ccpoints x ccpoints -> bool 
-
-*/
-static ListExpr ccpointsccpointsBool(ListExpr args) {
-  return typeMappingRose(args, "points", "points", "bool");
-}
-
-/* 
-type mapping function: cclines x cclines -> bool 
-
-*/
-static ListExpr cclinescclinesBool(ListExpr args) {
-  return typeMappingRose(args, "line", "line", "bool");
-}
 
 /* 
 type mapping function: ccregions x ccregions -> bool 
@@ -2814,101 +3027,6 @@ static ListExpr ccregionsccregionsBool(ListExpr args) {
   return typeMappingRose(args, "region", "region", "bool");
 }
 
-/* 
-type mapping function: ccpoints x ccregions -> bool 
-
-*/
-static ListExpr ccpointsccregionsBool(ListExpr args) {
-  return typeMappingRose(args, "points", "region", "bool");
-}
-
-/* 
-type mapping function: cclines x ccregions -> bool 
-
-*/
-static ListExpr cclinesccregionsBool(ListExpr args) {
-  return typeMappingRose(args, "line", "region", "bool");
-}
-
-/* 
-type mapping function: ccregions x cclines -> bool 
-
-*/
-static ListExpr ccregionscclinesBool(ListExpr args) {
-  return typeMappingRose(args, "region", "line", "bool");
-}
-
-/* 
-type mapping function: ccregions x ccregions -> ccregions 
-
-*/
-static ListExpr ccregionsccregionsccregions(ListExpr args) {
-  return typeMappingRose(args, "region", "region", "region");
-}
-
-/* 
-type mapping function: cclines x cclines -> cclines 
-
-*/
-static ListExpr ccregionscclinescclines(ListExpr args) {
-  return typeMappingRose(args, "region", "line", "line");
-}
-
-/* 
-type mapping function: ccregions x ccregions -> cclines 
-
-*/
-static ListExpr ccregionsccregionscclines(ListExpr args) {
-  return typeMappingRose(args, "region", "region", "line");
-}
-
-/* 
-type mapping function: cclines x cclines -> cclines 
-
-*/
-static ListExpr cclinescclinescclines(ListExpr args) {
-  return typeMappingRose(args, "line", "line", "line");
-}
-
-/* 
-type mapping function: cclines x ccregions -> cclines 
-
-*/
-static ListExpr cclinesccregionscclines(ListExpr args) {
-  return typeMappingRose(args, "line", "region", "line");
-}
-
-/* 
-type mapping function: cclines x cclines -> ccpoints 
-
-*/
-static ListExpr cclinescclinesccpoints(ListExpr args) {
-  return typeMappingRose(args, "line", "line", "points");
-}
-
-/* 
-type mapping function: ccpoints x cclines -> bool 
-
-*/
-static ListExpr ccpointscclinesBool(ListExpr args) {
-  return typeMappingRose(args, "points", "line", "bool");
-}
-
-/* 
-type mapping function: ccpoints x ccpoints -> ccpoints 
-
-*/
-static ListExpr ccpointsccpointsccpoints(ListExpr args) {
-  return typeMappingRose(args, "points", "points", "points");
-}
-
-/* 
-type mapping function: cclines -> ccpoints 
-
-*/
-static ListExpr cclinesccpoints(ListExpr args) {
-  return typeMappingRose(args, "line", "points");
-}
 
 /* 
 type mapping function: cclines -> ccregions 
@@ -2918,13 +3036,6 @@ static ListExpr cclinesccregions(ListExpr args) {
   return typeMappingRose(args, "line", "region");
 }
 
-/* 
-type mapping function: ccregions -> ccpoints 
-
-*/
-static ListExpr ccregionsccpoints(ListExpr args) {
-  return typeMappingRose(args, "region", "points");
-}
 
 /* 
 type mapping function: ccregions -> cclines 
@@ -2934,128 +3045,6 @@ static ListExpr ccregionscclines(ListExpr args) {
   return typeMappingRose(args, "region", "line");
 }
 
-/* 
-type mapping function: ccpoints -> int 
-
-*/
-static ListExpr ccpointsInt(ListExpr args) {
-  return typeMappingRose(args, "points", "int");
-}
-
-/* 
-type mapping function: cclines -> int 
-
-*/
-static ListExpr cclinesInt(ListExpr args) { 
-  return typeMappingRose(args, "line", "int");
-}
-
-/* 
-type mapping function: ccregions -> int 
-
-*/
-static ListExpr ccregionsInt(ListExpr args) { 
-  return typeMappingRose(args, "region", "int");
-}
-
-/* 
-type mapping function: ccpoints x ccpoints -> real 
-
-*/
-static ListExpr ccpointsccpointsReal(ListExpr args) { 
-  return typeMappingRose(args, "points", "points", "real");
-}
-
-/* 
-type mapping function: ccpoints x cclines -> real 
-
-*/
-static ListExpr ccpointscclinesReal(ListExpr args) { 
-  return typeMappingRose(args, "points", "line", "real");
-}
-
-/* 
-type mapping function: ccpoints x ccregions -> real 
-
-*/
-static ListExpr ccpointsccregionsReal(ListExpr args) { 
-  return typeMappingRose(args, "points", "region", "real");
-}
-
-/* 
-type mapping function: cclines x ccpoints -> real 
-
-*/
-static ListExpr cclinesccpointsReal(ListExpr args) { 
-  return typeMappingRose(args, "line", "points", "real");
-} 
-/* 
-type mapping function: cclines x cclines -> real 
-
-*/
-static ListExpr cclinescclinesReal(ListExpr args) { 
-  return typeMappingRose(args, "line", "line", "real");
-}
-
-/* 
-type mapping function: cclines x ccregions -> real 
-
-*/
-static ListExpr cclinesccregionsReal(ListExpr args) { 
-  return typeMappingRose(args, "line", "region", "real");
-}
-
-/* 
-type mapping function: ccregions x ccpoints -> real 
-
-*/
-static ListExpr ccregionsccpointsReal(ListExpr args) { 
-  return typeMappingRose(args, "region", "points", "real");
-}
-
-/* 
-type mapping function: ccregions x cclines -> real 
-
-*/
-static ListExpr ccregionscclinesReal(ListExpr args) { 
-  return typeMappingRose(args, "region", "line", "real");
-}
-
-/* 
-type mapping function: ccregions x ccregions -> real 
-
-*/
-static ListExpr ccregionsccregionsReal(ListExpr args) { 
-  debug(__LINE__);
-  return typeMappingRose(args, "region", "region", "real");
-}
-
-/* 
-type mapping function: ccpoints -> real 
-
-*/
-static ListExpr ccpointsReal(ListExpr args) {
-  debug(__LINE__);
-  return typeMappingRose(args, "points", "real");
-}
-
-/* 
-type mapping function: cclines -> real 
-
-*/
-static ListExpr cclinesReal(ListExpr args) {
-  debug(__LINE__);
-  return typeMappingRose(args, "line", "real");
-}
-
-/* 
-type mapping function: ccregions -> real 
-
-*/
-static ListExpr ccregionsReal(ListExpr args) {
-  debug(__LINE__);
-  return typeMappingRose(args, "region", "real");
-}
 
 /* 
 type mapping function: ccregions -> real 
@@ -3116,6 +3105,213 @@ operator, we just have to return 0.
 
 static int simpleSelect (ListExpr args ){
   return 0; 
+}
+
+static int equalSelect (ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+    return 0;
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    return 1;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    return 2;
+  return -1;
+}
+
+static int unequalSelect (ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+    return 0;
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    return 1;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    return 2;
+  return -1;
+}
+
+static int disjointSelect (ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+    return 0;
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    return 1;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    return 2;
+  return -1;
+}
+
+static int insideSelect (ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"region"))
+    return 0;
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+    return 1;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    return 2;
+  return -1;
+}
+
+static int intersectsSelect (ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    return 0;
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+    return 1;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+    return 2;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    return 3;
+  return -1;
+}
+
+static int meetsSelect (ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    return 0;
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+    return 1;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+    return 2;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    return 3;
+  return -1;
+}
+
+static int borderInCommonSelect (ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    return 0;
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+    return 1;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+    return 2;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    return 3;
+  return -1;
+}
+
+static int onBorderOfSelect (ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"line"))
+    return 0;
+  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"region"))
+    return 1;
+  return -1;
+}
+
+static int intersectionSelect (ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+    return 0;
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    return 1;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    return 2;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+    return 3;
+  return -1;
+}
+
+static int plusSelect (ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+    return 0;
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    return 1;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    return 2;
+  return -1;
+}
+
+static int minusSelect (ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+    return 0;
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    return 1;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    return 2;
+  return -1;
+}
+
+static int commonBorderSelect (ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    return 0;
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+    return 1;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+    return 2;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    return 3;
+  return -1;
+}
+
+static int verticesSelect (ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  if (nl->IsEqual(arg1,"line"))
+    return 0;
+  if (nl->IsEqual(arg1,"region"))
+    return 1;
+  return -1;
+}
+
+static int noOfComponentsSelect (ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  if (nl->IsEqual(arg1,"points"))
+    return 0;
+  if (nl->IsEqual(arg1,"line"))
+    return 1;
+  if (nl->IsEqual(arg1,"region"))
+    return 2;
+  return -1;
+}
+
+static int distSelect (ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+    return 0;
+  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"line"))
+    return 1;
+  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"region"))
+    return 2;
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"points"))
+    return 3;
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    return 4;
+  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+    return 5;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"points"))
+    return 6;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+    return 7;
+  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    return 8;
+  return -1;
+}
+
+static int diameterSelect (ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  if (nl->IsEqual(arg1,"points"))
+    return 0;
+  if (nl->IsEqual(arg1,"line"))
+    return 1;
+  if (nl->IsEqual(arg1,"region"))
+    return 2;
+  return -1;
 }
 
 /*
@@ -3799,6 +3995,42 @@ static int callChooseTriangulator(CcInt *cci) {
 
 */
 
+/*
+Function to compute bounding box intersection. It returns true, if the bounding boxes intersect.
+
+*/
+static bool bboxesIntersect(double o1tlx, double o1tly, double o1brx, double o1bry,
+			    double o2tlx, double o2tly, double o2brx, double o2bry) {
+  //cout << "bboxesIntersect" << endl;
+  bool xcomm = false;
+  bool ycomm = false;
+  if (o1tlx == o2tlx || o1brx == o2brx || o1tlx == o2brx || o1brx == o2tlx ||
+      (o1tlx < o2tlx && o1brx > o2tlx) || (o1tlx < o2brx && o1brx > o2brx) ||
+      (o2tlx < o1tlx && o2brx > o1tlx) || (o2tlx < o1brx && o2brx > o1brx))
+    xcomm = true;
+  if (o1tly == o2tly || o1bry == o2bry || o1tly == o2bry || o1bry == o1tly ||
+      (o1tly > o2tly && o1bry < o2tly) || (o1tly > o2bry && o1bry < o2bry) ||
+      (o2tly > o1tly && o2bry < o1tly) || (o2tly > o1bry && o2bry < o1bry))
+    ycomm = true;
+  
+  if (xcomm && ycomm) 
+    return true;
+  else
+    return false;
+}
+
+/*
+Function to compute bounding box equality. It returns true, if the bounding boxes are equal.
+
+*/
+static bool bboxesEqual(double o1tlx, double o1tly, double o1brx, double o1bry,
+			double o2tlx, double o2tly, double o2brx, double o2bry) {
+  if (o1tlx == o2tlx && o1tly == o2tly && o1brx == o2brx && o1bry == o2bry)
+    return true;
+  else 
+    return false;
+}
+
 /* 
 Equals predicate for two ccpoints. 
 
@@ -3809,6 +4041,14 @@ static int pp_equalFun(Word* args, Word& result, int message,
   CcPoints* ccp1 = ((CcPoints *)args[0].addr);
   CcPoints* ccp2 = ((CcPoints *)args[1].addr);
   
+  //if bboxes don't intersect, return false
+  if (!bboxesEqual(ccp1->BboxTopLeftX,ccp1->BboxTopLeftY,ccp1->BboxBottomRightX,ccp1->BboxBottomRightY,
+		   ccp2->BboxTopLeftX,ccp2->BboxTopLeftY,ccp2->BboxBottomRightX,ccp2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }//if
+
   if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
   
@@ -3816,9 +4056,7 @@ static int pp_equalFun(Word* args, Word& result, int message,
   //query processor has provided
   //a CcBool instance to take the result
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_PPB
-     ("pp_equal", ccp1, ccp2));
+  ((CcBool *)result.addr)->Set(true, callJMethod_PPB("pp_equal", ccp1, ccp2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3837,6 +4075,14 @@ static int ll_equalFun(Word* args, Word& result, int message,
   CcLines* ls1 = ((CcLines *)args[0].addr);
   CcLines* ls2 = ((CcLines *)args[1].addr);
 
+  //if bboxes don't intersect, return false
+  if (!bboxesEqual(ls1->BboxTopLeftX,ls1->BboxTopLeftY,ls1->BboxBottomRightX,ls1->BboxBottomRightY,
+		   ls2->BboxTopLeftX,ls2->BboxTopLeftY,ls2->BboxBottomRightX,ls2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }//if
+
   if (!ls1->GetObject()) ls1->RestoreJavaObjectFromFLOB();
   if (!ls2->GetObject()) ls2->RestoreJavaObjectFromFLOB();
 	
@@ -3844,9 +4090,7 @@ static int ll_equalFun(Word* args, Word& result, int message,
   //query processor has provided
   //a CcBool instance to take the result
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_LLB
-     ("ll_equal", ls1, ls2));
+  ((CcBool *)result.addr)->Set(true, callJMethod_LLB("ll_equal", ls1, ls2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3865,6 +4109,15 @@ static int rr_equalFun(Word* args, Word& result, int message,
   CcRegions* rs1 = ((CcRegions *)args[0].addr);
   CcRegions* rs2 = ((CcRegions *)args[1].addr);
 
+  //if bboxes don't intersect, return false
+  if (!bboxesEqual(rs1->BboxTopLeftX,rs1->BboxTopLeftY,rs1->BboxBottomRightX,rs1->BboxBottomRightY,
+		       rs2->BboxTopLeftX,rs2->BboxTopLeftY,rs2->BboxBottomRightX,rs2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }//if
+
+  //bboxes intersect, so prepare to invoke the Java method
   if (!rs1->GetObject()) rs1->RestoreJavaObjectFromFLOB();
   if (!rs2->GetObject()) rs2->RestoreJavaObjectFromFLOB();  
 	
@@ -3872,9 +4125,7 @@ static int rr_equalFun(Word* args, Word& result, int message,
   //query processor has provided
   //a CcBool instance to take the result
 
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_RRB
-     ("rr_equal", rs1, rs2));
+  ((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_equal", rs1, rs2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -4885,7 +5136,7 @@ rl[_]intersection predicate for CcRegions and CcLines
 static int rl_intersectionFun(Word* args, Word& result, int message, 
 			      Word& local, Supplier s)
 {
-  cout << "rl_intersection" << endl;
+  //cout << "rl_intersection" << endl;
   
   CcLines *ccresult;
 
@@ -4899,7 +5150,7 @@ static int rl_intersectionFun(Word* args, Word& result, int message,
   //query processor has provided
   //a CcBool instance to take the result
   
-  cout << "rl_intersection2" << endl;
+  //cout << "rl_intersection2" << endl;
 
   ccresult = callJMethod_RLL("rl_intersection", ccr, ccl);
   result.addr = ccresult;
@@ -4908,7 +5159,7 @@ static int rl_intersectionFun(Word* args, Word& result, int message,
   //value is defined, the second is the
   //real boolean value)
 
-  cout << "rl_intersection3" << endl;
+  //cout << "rl_intersection3" << endl;
 
   return 0;
 }
@@ -5746,753 +5997,272 @@ static int chooseTriangulatorFun(Word *args, Word &result, int message,
 5.4 Definition of Operators
 
 */
+//predicates
+ValueMapping equalMap[] = { pp_equalFun, ll_equalFun, rr_equalFun };
+ValueMapping unequalMap[] = { pp_unequalFun, ll_unequalFun, rr_unequalFun };
+ValueMapping disjointMap[] = { pp_disjointFun, ll_disjointFun, rr_disjointFun };
+ValueMapping insideMap[] = { pr_insideFun, lr_insideFun, rr_insideFun };
+ValueMapping intersectsMap[] = { ll_intersectsFun, lr_intersectsFun, rl_intersectsFun, rr_intersectsFun };
+ValueMapping meetsMap[] = { ll_meetsFun, lr_meetsFun, rl_meetsFun, rr_meetsFun };
+ValueMapping borderInCommonMap[] = { ll_border_in_commonFun, lr_border_in_commonFun, rl_border_in_commonFun, rr_border_in_commonFun };
+ValueMapping onBorderOfMap[] = { pl_on_border_ofFun, pr_on_border_ofFun };
 
-const string pp_equalSpec =
+//operations
+ValueMapping intersectionMap[] = { pp_intersectionFun, ll_intersectionFun, rr_intersectionFun, rl_intersectionFun };
+ValueMapping plusMap[] = { pp_plusFun, ll_plusFun, rr_plusFun };
+ValueMapping minusMap[] = { pp_minusFun, ll_minusFun, rr_minusFun };
+ValueMapping commonBorderMap[] = { ll_common_borderFun, lr_common_borderFun, rl_common_borderFun, rr_common_borderFun };
+ValueMapping verticesMap[] = { l_verticesFun, r_verticesFun };
+ValueMapping noOfComponentsMap[] = { p_no_of_componentsFun, l_no_of_componentsFun, r_no_of_componentsFun };
+ValueMapping distMap[] = { pp_distFun, pl_distFun, pr_distFun, lp_distFun, ll_distFun, lr_distFun, rp_distFun, rl_distFun, rr_distFun };
+ValueMapping diameterMap[] = { p_diameterFun, l_diameterFun, r_diameterFun };
+
+ModelMapping ROSEDummyModel_7[] =
+     {Operator::DummyModel,Operator::DummyModel,Operator::DummyModel,
+      Operator::DummyModel,Operator::DummyModel,Operator::DummyModel,
+      Operator::DummyModel};
+
+const string equalSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>(ccpoints ccpoints) -> bool</text--->"
-"<text>pp_equal(p1 , p2) where"
-" p1, p2 are of type ccpoints"
-"</text--->"
-"<text>pp_equal predicate.</text--->"
-"<text>pp_equal(p1,p2)</text--->"
+"( <text>({points,line,region} x {points,line,region} -> bool</text--->"
+"<text>o1 equal o2, where o1,o2 are objects of type {points,line,region}</text--->"
+"<text>The equal predicate returns true, if both objects are equal.</text--->"
+"<text>query Rhein equal Weser</text--->"
 ") )";
 
-const string ll_equalSpec =
+const string unequalSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>(cclines cclines) -> bool</text--->"
-"<text>ll_equal(l1 , l2) where"
-" l1, l2 are of type cclines"
-"</text--->"
-"<text>ll_equal predicate.</text--->"
-"<text>ll_equal(l1,l2)</text--->"
+"( <text>({points,line,region} x {points,line,region} -> bool</text--->"
+"<text>o1 unequal o2, where o1,o2 are objects of type {points,line,region}</text--->"
+"<text>The unequal predicate returns true, if both objects are not equal.</text--->"
+"<text>query Rhein unequal Weser</text--->"
 ") )";
 
-const string rr_equalSpec =
+const string disjointSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>(ccregions ccregions) -> bool</text--->"
-"<text>rr_equal(r1 , r2) where"
-" r1, r2 are of type ccregions"
-"</text--->"
-"<text>rr_equal predicate.</text--->"
-"<text>rr_equal(p1,p2)</text--->"
+"( <text>({points,line,region} x {points,line,region} -> bool</text--->"
+"<text>o1 disjoint o2, where o1,o2 are objects of type {points,line,region}</text--->"
+"<text>The disjoint predicate returns true, if both objects have no common points.</text--->"
+"<text>query Rhein disjoint Weser</text--->"
 ") )";
 
-const string pp_unequalSpec =
+const string insideSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>(ccpoints ccpoints) -> bool</text--->"
-"<text>pp_unequal(p1 , p2) where"
-" p1, p2 are of type ccpoints"
-"</text--->"
-"<text>pp_unequal predicate.</text--->"
-"<text>pp_unequal(p1,p2)</text--->"
+"( <text>({points,line,region} x region -> bool</text--->"
+"<text>o inside r, where o is an object of type {points,line,region} and r is a region.</text--->"
+"<text>The inside predicate returns true, if o lies inside of r</text--->"
+"<text>query Rhein inside LKMagdeburg</text--->"
 ") )";
 
-const string ll_unequalSpec =
+const string areaDisjointSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>(cclines cclines) -> bool</text--->"
-"<text>ll_unequal(l1 , l2) where"
-" l1, l2 are of type cclines"
-"</text--->"
-"<text>ll_unequal predicate.</text--->"
-"<text>ll_unequal(l1,l2)</text--->"
+"( <text>region x egion -> bool</text--->"
+"<text>r1 area_disjoint r2, where r1,r2 are of type region</text--->"
+"<text>The area_disjoint predicate returns true, if r1,r2 have no common area.</text--->"
+"<text>query LKMagdeburg area_disjoint SKKiel</text--->"
 ") )";
 
-const string rr_unequalSpec =
+const string edgeDisjointSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>(ccregions ccregions) -> bool</text--->"
-"<text>rr_unequal(r1 , r2) where"
-" r1, r2 are of type ccregions"
-"</text--->"
-"<text>pp_unequal predicate.</text--->"
-"<text>pp_unequal(p1,p2)</text--->"
+"( <text>egion x region -> bool</text--->"
+"<text>r1 edge_disjoint r2, where r1,r2 are of type region</text--->"
+"<text>The edge_disjoint predicate returns true, if r1,r2 have no common edges.</text--->"
+"<text>query LKMagdeburg edge_disjoint SKKiel</text--->"
 ") )";
 
-const string pp_disjointSpec =
+const string edgeInsideSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>(ccpoints ccpoints) -> bool</text--->"
-"<text>pp_disjoint(p1 , p2) where"
-" p1, p2 are of type ccpoints"
-"</text--->"
-"<text>pp_disjoint predicate.</text--->"
-"<text>pp_disjoint(p1,p2)</text--->"
+"( <text>region x region -> bool</text--->"
+"<text>r1 edge_inside r2, where r1,r2 are of type region</text--->"
+"<text>The edge_inside predicate returns true, if no edges of r1 are inside of r2.</text--->"
+"<text>query LKMagdeburg edge_inside SKKiel</text--->"
 ") )";
 
-const string ll_disjointSpec =
+const string vertexInsideSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>(cclines cclines) -> bool</text--->"
-"<text>ll_disjoint(l1 , l2) where"
-" l1, l2 are of type cclines"
-"</text--->"
-"<text>ll_disjoint predicate.</text--->"
-"<text>ll_disjoint(l1,l2)</text--->"
+"( <text>region x region -> bool</text--->"
+"<text>r1 vertex_inside r2, where r1,r2 are of type region</text--->"
+"<text>The vertex_inside predicate returns true, if no vertex of r1 is inside of r2.</text--->"
+"<text>query LKMagdeburg vertex_inside SKKiel</text--->"
 ") )";
 
-const string rr_disjointSpec =
+const string intersectsSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>(ccregions ccregions) -> bool</text--->"
-"<text>rr_disjoint(r1 , r2) where"
-" r1, r2 are of type ccregions"
-"</text--->"
-"<text>rr_disjoint predicate.</text--->"
-"<text>rr_disjoint(p1,p2)</text--->"
+"( <text>{line,region} x {line,region} -> bool</text--->"
+"<text>o1 intersects o2, where o1,o2 are of type {line,region}</text--->"
+"<text>The intersects predicate returns true, if o1,o2 intersect</text--->"
+"<text>query Rhein intersects Main</text--->"
 ") )";
 
-const string pr_insideSpec =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" "
-"\"Example\" )"
-"( <text>(ccpoints ccregions) -> bool</text--->"
-"<text>pr_inside(p, r) where"
-" p is of type ccpoints and r is of type ccregions."
-"</text--->"
-"<text>pr_inside predicate.</text--->"
-"<text>pr_inside(p,r)</text--->"
-") )";
-
-const string lr_insideSpec =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" "
-"\"Example\" )"
-"( <text>(cclines ccregions) -> bool</text--->"
-"<text>lr_inside(l , r) where"
-" l is of type cclines and r is of type ccregions"
-"</text--->"
-"<text>lr_inside predicate.</text--->"
-"<text>lr_inside(l,r)</text--->"
-") )";
-
-const string rr_insideSpec =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" "
-"\"Example\" )"
-"( <text>(ccregions ccregions) -> bool</text--->"
-"<text>rr_inside(r1 , r2) where"
-" r1, r2 are of type ccregions"
-"</text--->"
-"<text>rr_inside predicate.</text--->"
-"<text>rr_inside(r1,r2)</text--->"
-") )";
-
-const string rr_area_disjointSpec =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" "
-"\"Example\" )"
-"( <text>(ccregions ccregions) -> bool</text--->"
-"<text>rr_area_disjoint(r1, r2) where"
-" r1, r2 are of type ccregions"
-"</text--->"
-"<text>rr_area_disjoint predicate.</text--->"
-"<text>rr_area_disjoint(r1,r2)</text--->"
-") )";
-
-const string rr_edge_disjointSpec =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" "
-"\"Example\" )"
-"( <text>(ccregions ccregions) -> bool</text--->"
-"<text>rr_edge_disjoint(r1, r2) where"
-" r1, r2 are of type ccregions"
-"</text--->"
-"<text>rr_edge_disjoint predicate.</text--->"
-"<text>rr_edge_disjoint(r1,r2)</text--->"
-") )";
-
-const string rr_edge_insideSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" "
-"\"Example\" )"
-"( <text>(ccregions ccregions) -> bool</text--->"
-"<text>rr_edge_inside(r1, r2) where"
-" r1, r2 are of type ccregions"
-"</text--->"
-"<text>rr_edge_inside predicate.</text--->"
-"<text>rr_edge_inside(r1,r2)</text--->"
-") )";
-
-const string rr_vertex_insideSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" "
-"\"Example\" )"
-"( <text>(ccregions ccregions) -> bool</text--->"
-"<text>rr_vertex_inside(r1, r2) where"
-" r1, r2 are of type ccregions"
-"</text--->"
-"<text>rr_vertex_inside predicate.</text--->"
-"<text>rr_vertex_inside(r1,r2)</text--->"
-") )";
-
-const string rr_intersectsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" "
-"\"Example\" )"
-"( <text>(ccregions ccregions) -> bool</text--->"
-"<text>rr_intersects(r1, r2) where"
-" r1, r2 are of type ccregions"
-"</text--->"
-"<text>rr_intersects predicate.</text--->"
-"<text>rr_intersects(r1,r2)</text--->"
-") )";
-
-const string rr_meetsSpec = 
+const string meetsSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(ccregions ccregions) -> bool</text--->"
-"<text>rr_meets(r1, r2) where"
-" r1, r2 are of type ccregions"
-"</text--->"
-"<text>rr_meets predicate.</text--->"
-"<text>rr_meets(r1,r2)</text--->"
+"( <text>{line,region} x {line,region} -> bool</text--->"
+"<text>o1 meets o2, where o1,o2 are of type {line,region}</text--->"
+"<text>The meets predicate returns true, if o1,o2 meet in one point</text--->"
+"<text>query Rhein meets Weser</text--->"
 ") )";
 
-const string rr_border_in_commonSpec = 
+const string borderInCommonSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(ccregions ccregions) -> bool</text--->"
-"<text>rr_border_in_common(r1, r2) where"
-" r1, r2 are of type ccregions"
-"</text--->"
-"<text>rr_border_in_common predicate.</text--->"
-"<text>rr_border_in_common(r1,r2)</text--->"
+"( <text>{line,region} x {line,region} -> bool</text--->"
+"<text>o1 border_in_common o2, where o1,o2 are of type {line,region}</text--->"
+"<text>The border_in_common predicate returns true, if o1,o2 have a common border.</text--->"
+"<text>query LKSteinfurt border_in_common LKMagdeburg</text--->"
 ") )";
 
-const string rr_adjacentSpec = 
+const string adjacentSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(ccregions ccregions) -> bool</text--->"
-"<text>rr_adjacent(r1, r2) where"
-" r1, r2 are of type ccregions"
-"</text--->"
-"<text>rr_adjacent predicate.</text--->"
-"<text>rr_adjacent(r1,r2)</text--->"
+"( <text>region x region -> bool</text--->"
+"<text>r1 adjacent r2, where r1,r2 are of type region</text--->"
+"<text>The adjacent predicate returns true, if r1,r2 have a common border, but don't have a common area</text--->"
+"<text>query LKSteinfurt adjacent LKMagdeburg</text--->"
 ") )";
 
-const string rr_enclosesSpec = 
+const string enclosesSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(ccregions ccregions) -> bool</text--->"
-"<text>rr_encloses(r1, r2) where"
-" r1, r2 are of type ccregions"
-"</text--->"
-"<text>rr_encloses predicate.</text--->"
-"<text>rr_encloses(r1,r2)</text--->"
+"( <text>region x region -> bool</text--->"
+"<text>r1 encloses r2, where r1,r2 are of type region</text--->"
+"<text>The encloses predicate returns true, if r2 completely lies in holes of r1</text--->"
+"<text>query LKOsnabrueck encloses SKOsnabrueck</text--->"
 ") )";
 
-const string rr_intersectionSpec = 
+const string intersectionSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(ccregions ccregions) -> ccregions</text--->"
-"<text>rr_intersection(r1, r2) where"
-" r1, r2 are of type ccregions"
-"</text--->"
-"<text>rr_intersection predicate.</text--->"
-"<text>rr_intersection(r1,r2)</text--->"
+"( <text>{points,line,region} x {points,line,region} -> {points,line,region}</text--->"
+"<text>intersection(o1,o2), where both objects have to be of the same type. The result type of points x points is points, the result type of line x line is points and the result type of region x region is region.</text--->"
+"<text>The intersection operation returns the geometric intersection of two objects.</text--->"
+"<text>query intersection(Rhein,Weser)(</text--->"
 ") )";
 
-const string rr_plusSpec = 
+const string plusSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(ccregions ccregions) -> ccregions</text--->"
-"<text>rr_plus(r1, r2) where"
-" r1, r2 are of type ccregions"
-"</text--->"
-"<text>rr_plus predicate.</text--->"
-"<text>rr_plus(r1,r2)</text--->"
+"( <text>{points,line,region} x {points,line,region} -> {points,line,region}</text--->"
+"<text>o1 plus o2, where o1,o2 and the result are of the same type {points,line,region}</text--->"
+"<text>The plus operation returns the geometric sum of two objects</text--->"
+"<text>query LKOsnabrueck plus SKOsnabrueck</text--->"
 ") )";
 
-const string rr_minusSpec = 
+const string minusSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(ccregions ccregions) -> ccregions</text--->"
-"<text>rr_minus(r1, r2) where"
-" r1, r2 are of type ccregions"
-"</text--->"
-"<text>rr_minus predicate.</text--->"
-"<text>rr_minus(r1,r2)</text--->"
+"( <text>{points,line,region} x {points,line,region} -> {points,line,regin}</text--->"
+"<text>o1 minus o2, where o1,o2 and the result are of the same type {points,line,region}</text--->"
+"<text>The minus operation returns the geometric difference of two objects</text--->"
+"<text>query LKSteinfurt minus LKOsnabrueck</text--->"
 ") )";
 
-const string rr_common_borderSpec = 
+const string commonBorderSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(ccregions ccregions) -> cclines</text--->"
-"<text>rr_common_border(r1, r2) where"
-" r1, r2 are of type ccregions"
-"</text--->"
-"<text>rr_common_border predicate.</text--->"
-"<text>rr_common_border(r1,r2)</text--->"
+"( <text>{line,region} x {line,region} -> line</text--->"
+"<text>common_border(o1,o2), where o1,o2 are of type {line,region}</text--->"
+"<text>The common_border operation returns the common part of the borders or line objects, resp.</text--->"
+"<text>query common_border(LKSteinfurt,SKOsnabrueck)</text--->"
 ") )";
 
-const string ll_intersectsSpec = 
+const string onBorderOfSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(cclines cclines) -> bool</text--->"
-"<text>ll_intersects(l1, l2) where"
-" l1, l2 are of type cclines"
-"</text--->"
-"<text>ll_intersects predicate.</text--->"
-"<text>ll_intersects(r1,r2)</text--->"
+"( <text>points x {line,region} -> bool</text--->"
+"<text>p on_border_of o, where p is a points value and o is of type {line,region}</text--->"
+"<text>The on_border_of predicate returns true, if p completely lies on o</text--->"
+"<text>query Koeln on_border_of autobahn3</text--->"
 ") )";
 
-const string ll_meetsSpec = 
+const string verticesSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(cclines cclines) -> bool</text--->"
-"<text>ll_meets(l1, l2) where"
-" l1, l2 are of type cclines"
-"</text--->"
-"<text>ll_meets predicate.</text--->"
-"<text>ll_meets(l1,l2)</text--->"
+"( <text>{line,region} -> points</text--->"
+"<text>vertices (o), where o is of type {line,region}</text--->"
+"<text>The vertices operation return the vertices of the o value</text--->"
+"<text>query vertices (magdeburg)</text--->"
 ") )";
 
-const string ll_border_in_commonSpec = 
+const string interiorSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(cclines cclines) -> bool</text--->"
-"<text>ll_border_in_common(l1, l2) where"
-" l1, l2 are of type cclines"
-"</text--->"
-"<text>ll_border_in_common predicate.</text--->"
-"<text>ll_border_in_common(l1,l2)</text--->"
+"( <text>line -> region</text--->"
+"<text>interior(l), where l has type line</text--->"
+"<text>The interior operation returns the region that is enclosed by l.</text--->"
+"<text>qeury interior(borderOfLKMagdeburg)</text--->"
 ") )";
 
-const string ll_intersectionSpec = 
+const string contourSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(cclines cclines) -> ccpoints</text--->"
-"<text>ll_intersection(l1, l2) where"
-" l1, l2 are of type cclines"
-"</text--->"
-"<text>ll_intersection predicate.</text--->"
-"<text>ll_intersection(l1,l2)</text--->"
+"( <text>region -> line</text--->"
+"<text>contour (r), where r has type region</text--->"
+"<text>The contour operation returns the border or r without holes.</text--->"
+"<text>query contour (magdeburg)</text--->"
 ") )";
 
-const string ll_plusSpec = 
+const string noOfComponentsSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(cclines cclines) -> cclines</text--->"
-"<text>ll_plus(l1, l2) where"
-" l1, l2 are of type cclines"
-"</text--->"
-"<text>ll_plus predicate.</text--->"
-"<text>ll_plus(l1,l2)</text--->"
+"( <text>{points,line,region} -> int</text--->"
+"<text>no_of_components (o), where o is of type {points,line,region}</text--->"
+"<text>The no_of_components operation counts the number of connected components and returns that number.</text--->"
+"<text>query no_of_components (Rhein)</text--->"
 ") )";
 
-const string ll_minusSpec = 
+const string distSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(cclines cclines) -> cclines</text--->"
-"<text>ll_minus(l1, l2) where"
-" l1, l2 are of type cclines"
-"</text--->"
-"<text>ll_minus predicate.</text--->"
-"<text>ll_minus(l1,l2)</text--->"
+"( <text>{points,line,region} -> real</text--->"
+"<text>dist(o1,o2), where o1,o2 are of type {points,line,region}</text--->"
+"<text>The dist operation returns the Eucledian distance between o1,o2.</text--->"
+"<text>query dist(LKSteinfurt,Rhein)</text--->"
 ") )";
 
-const string ll_common_borderSpec = 
+const string diameterSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(cclines cclines) -> cclines</text--->"
-"<text>ll_common_border(l1, l2) where"
-" l1, l2 are of type cclines"
-"</text--->"
-"<text>ll_common_border predicate.</text--->"
-"<text>ll_common_border(l1,l2)</text--->"
+"( <text>{points,line,region} -> real</text--->"
+"<text>diameter (o), where o is of type {points,line,region}</text--->"
+"<text>The diameter operation returns the diameter of o.</text--->"
+"<text>query diameter (Rhein)</text--->"
 ") )";
 
-const string lr_intersectsSpec = 
+const string lengthSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(cclines ccregions) -> bool</text--->"
-"<text>lr_intersects(l, r) where"
-" l is of type cclines and r is of type ccregions"
-"</text--->"
-"<text>lr_intersects predicate.</text--->"
-"<text>lr_intersects(l,r)</text--->"
+"( <text>line -> real</text--->"
+"<text>length (l), where l is of type line</text--->"
+"<text>The length operation return the lenght of a line object.</text--->"
+"<text>query length (Rhein)</text--->"
 ") )";
 
-const string lr_meetsSpec = 
+const string areaSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(cclines ccregions) -> bool</text--->"
-"<text>lr_meets(l, r) where"
-" l is of type cclines and r is of type ccregions"
-"</text--->"
-"<text>lr_meets predicate.</text--->"
-"<text>lr_meets(l,r)</text--->"
+"( <text>region -> real</text--->"
+"<text>area (r), where r is of type region</text--->"
+"<text>The area operation returns a real value for the area of r.</text--->"
+"<text>query area (magdeburg)</text--->"
 ") )";
 
-const string lr_border_in_commonSpec = 
+const string perimeterSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>(cclines ccregions) -> bool</text--->"
-"<text>lr_border_in_common(l, r) where"
-" l is of type cclines and r is of type cclines"
-"</text--->"
-"<text>lr_border_in_common predicate.</text--->"
-"<text>lr_border_in_common(l, r)</text--->"
-") )";
-
-const string lr_common_borderSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(cclines ccregions) -> cclines</text--->"
-"<text>lr_common_border(l, r) where"
-" l is of type cclines and r is of type ccregions."
-"</text--->"
-"<text>lr_common_border predicate.</text--->"
-"<text>ll_common_border(l,r)</text--->"
-") )";
-
-const string rl_intersectsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccregions cclines) -> bool</text--->"
-"<text>rl_intersects(r, l) where"
-" l is of type cclines and r is of type ccregions"
-"</text--->"
-"<text>rl_intersects predicate.</text--->"
-"<text>rl_intersects(r, l)</text--->"
-") )";
-
-const string rl_meetsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccregions cclines) -> bool</text--->"
-"<text>rl_meets(r, l) where"
-" r is of type ccregions and l is of type cclines"
-"</text--->"
-"<text>rl_meets predicate.</text--->"
-"<text>rl_meets(r,l)</text--->"
-") )";
-
-const string rl_border_in_commonSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccregions cclines) -> bool</text--->"
-"<text>rl_border_in_common(r, l) where"
-" r is of type ccregions and l is of type cclines"
-"</text--->"
-"<text>rl_border_in_common predicate.</text--->"
-"<text>rl_border_in_common(r, l)</text--->"
-") )";
-
-const string rl_intersectionSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccregions cclines) -> cclines</text--->"
-"<text>rl_intersection(r, l) where"
-" r is of type ccregions and l is of type cclines"
-"</text--->"
-"<text>rl_intersection predicate.</text--->"
-"<text>rl_intersection(r, l)</text--->"
-") )";
-
-const string rl_common_borderSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccregions cclines) -> cclines</text--->"
-"<text>rl_common_border(r, l) where"
-" r is of type ccregions and l is of type cclines"
-"</text--->"
-"<text>rl_common_border predicate.</text--->"
-"<text>rl_common_border(r, l)</text--->"
-") )";
-
-const string pl_on_border_ofSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccpoints cclines) -> bool</text--->"
-"<text>pl_on_border_ofSpec(p, l) where"
-" p is of type ccpoints and l is of type cclines"
-"</text--->"
-"<text>pl_on_border_of predicate.</text--->"
-"<text>pl_on_border_of(p, l)</text--->"
-") )";
-
-const string pr_on_border_ofSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccpoints ccregions) -> bool</text--->"
-"<text>pr_on_border_ofSpec(p, r) where"
-" p is of type ccpoints and r is of type ccregions"
-"</text--->"
-"<text>pr_on_border_of predicate.</text--->"
-"<text>pr_on_border_of(p, r)</text--->"
-") )";
-
-const string pp_intersectionSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccpoints ccpoints) -> bool</text--->"
-"<text>pp_intersection(p1, p2) where"
-" p1 and p2 are of type ccpoints"
-"</text--->"
-"<text>pp_intersection predicate.</text--->"
-"<text>pp_intersection(p1, p2)</text--->"
-") )";
-
-const string pp_plusSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccpoints ccpoints) -> ccpoints</text--->"
-"<text>pp_plus(p1, p2) where"
-" p1 and p2 are of type ccpoints"
-"</text--->"
-"<text>pp_plus predicate.</text--->"
-"<text>pp_plus(p1, p2)</text--->"
-") )";
-
-const string pp_minusSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccpoints ccpoints) -> ccpoints</text--->"
-"<text>pp_minus(p1, p2) where"
-" p1 and p2 are of type ccpoints"
-"</text--->"
-"<text>pp_minus predicate.</text--->"
-"<text>pp_minus(p1, p2)</text--->"
-") )";
-
-const string l_verticesSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(cclines) -> ccpoints</text--->"
-"<text>l_vertices(l) where"
-" l is of type cclines"
-"</text--->"
-"<text>l_vertices predicate.</text--->"
-"<text>l_vertices(l)</text--->"
-") )";
-
-const string r_verticesSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccregions) -> ccpoints</text--->"
-"<text>r_vertices(r) where"
-" r is of type ccregions"
-"</text--->"
-"<text>r_vertices predicate.</text--->"
-"<text>r_vertices(r)</text--->"
-") )";
-
-const string l_interiorSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(cclines) -> ccregions</text--->"
-"<text>l_interior(l) where"
-" l is of type cclines"
-"</text--->"
-"<text>l_interior predicate.</text--->"
-"<text>l_interior(l)</text--->"
-") )";
-
-const string r_contourSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccregions) -> cclines</text--->"
-"<text>r_contour(r) where"
-" r is of type ccregions"
-"</text--->"
-"<text>r_contour predicate.</text--->"
-"<text>r_contour(r)</text--->"
-") )";
-
-const string p_no_of_componentsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccpoints) -> int</text--->"
-"<text>p_no_of_components(p) where"
-" p is of type ccpoints"
-"</text--->"
-"<text>p_no_of_components predicate.</text--->"
-"<text>p_no_of_components(p)</text--->"
-") )";
-
-const string l_no_of_componentsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(cclines) -> int</text--->"
-"<text>l_no_of_components(l) where"
-" l is of type cclines"
-"</text--->"
-"<text>l_no_of_components predicate.</text--->"
-"<text>l_no_of_components(l)</text--->"
-") )";
-
-const string r_no_of_componentsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccregions) -> int</text--->"
-"<text>r_no_of_components(r) where"
-" r is of type ccregions"
-"</text--->"
-"<text>r_no_of_components predicate.</text--->"
-"<text>r_no_of_components(r)</text--->"
-") )";
-
-const string pp_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccpoints ccpoints) -> real</text--->"
-"<text>pp_dist(p1, p2) where"
-" p1 and p2 are of type ccpoints"
-"</text--->"
-"<text>pp_dist predicate.</text--->"
-"<text>pp_dist(p1, p2)</text--->"
-") )";
-
-const string pl_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccpoints cclines) -> real</text--->"
-"<text>pl_dist(p, l) where"
-" p is of type ccpoints and l is of type cclines"
-"</text--->"
-"<text>pl_dist predicate.</text--->"
-"<text>pl_dist(p, l)</text--->"
-") )";
-
-const string pr_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccpoints ccregions) -> real</text--->"
-"<text>pr_dist(p, r) where"
-" p is of type ccpoints and r is of type ccregions"
-"</text--->"
-"<text>pr_dist predicate.</text--->"
-"<text>pr_dist(p, r)</text--->"
-") )";
-
-const string lp_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(cclines ccpoints) -> real</text--->"
-"<text>pp_intersection(l, p) where"
-" p is of type ccpoints and l is of type cclines"
-"</text--->"
-"<text>lp_dist predicate.</text--->"
-"<text>lp_dist(l, p)</text--->"
-") )";
-
-const string ll_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(cclines cclines) -> real</text--->"
-"<text>ll_dist(l1, l2) where"
-" l1 and l2 are of type cclines"
-"</text--->"
-"<text>ll_dist predicate.</text--->"
-"<text>ll_dist(l1, l2)</text--->"
-") )";
-
-const string lr_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(cclines ccregions) -> real</text--->"
-"<text>lr_intersection(l, r) where"
-" l is of type cclines and r is of type ccregions"
-"</text--->"
-"<text>lr_dist predicate.</text--->"
-"<text>lr_dist(l, r)</text--->"
-") )";
-
-const string rp_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccregions ccpoints) -> real</text--->"
-"<text>rp_dist(r, p) where"
-" r is of type ccregions and p is of type ccpoints"
-"</text--->"
-"<text>rp_dist predicate.</text--->"
-"<text>rp_dist(r, p)</text--->"
-") )";
-
-const string rl_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccregions cclines) -> real</text--->"
-"<text>rl_dist(r, l) where"
-" r is of type ccregions and l is of type cclines"
-"</text--->"
-"<text>rl_dist predicate.</text--->"
-"<text>rl_dist(r, l)</text--->"
-") )";
-
-const string rr_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccregions ccregions) -> real</text--->"
-"<text>rr_dist(r1, r2) where"
-" r1 and r2 are of type ccregions"
-"</text--->"
-"<text>rr_dist predicate.</text--->"
-"<text>rr_dist(r1, r2)</text--->"
-") )";
-
-const string p_diameterSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccpoints) -> real</text--->"
-"<text>p_diameter(p) where"
-" p is of type ccpoints"
-"</text--->"
-"<text>p_diameter predicate.</text--->"
-"<text>p_diameter(p)</text--->"
-") )";
-
-const string l_diameterSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(cclines) -> real</text--->"
-"<text>l_diameter(l) where"
-" l is of type cclines"
-"</text--->"
-"<text>l_diameter predicate.</text--->"
-"<text>l_diameter(l)</text--->"
-") )";
-
-const string l_lengthSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(cclines) -> real</text--->"
-"<text>l_length(l) where"
-" l is of type cclines"
-"</text--->"
-"<text>l_length predicate.</text--->"
-"<text>l_length(l)</text--->"
-") )";
-
-const string r_diameterSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccregions) -> real</text--->"
-"<text>r_diameter(r) where"
-" r is of type ccregions"
-"</text--->"
-"<text>r_diameter predicate.</text--->"
-"<text>r_diameter(r)</text--->"
-") )";
-
-const string r_areaSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccregions) -> real</text--->"
-"<text>r_area(r) where"
-" r is of type ccregions"
-"</text--->"
-"<text>r_area predicate.</text--->"
-"<text>r_area(r)</text--->"
-") )";
-
-const string r_perimeterSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
-"\"Example\" )"
-"( <text>(ccregions) -> real</text--->"
-"<text>r_perimeter(r) where"
-" r is of type ccregions"
-"</text--->"
-"<text>r_perimeter predicate.</text--->"
-"<text>r_perimeter(r)</text--->"
+"( <text>region -> real</text--->"
+"<text>perimeter (r), where r is of type region</text--->"
+"<text>The perimeter operation returns a real value for the perimeter of r.</text--->"
+"<text>query perimeter (magdeburg)</text--->"
 ") )";
 
 const string setDeviationValueSpec = 
@@ -6518,705 +6288,263 @@ Used to explain the signature and the meaning of the implemented operators.
 
 */
 
-Operator pp_equal 
-(
- "pp_equal", 			//name
- pp_equalSpec,  		//specification ....
- pp_equalFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccpointsBool		//type mapping 
- );
-
-Operator ll_equal 
-(
- "ll_equal", 			//name
- ll_equalSpec,  		//specification ....
- ll_equalFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinesBool		//type mapping 
- );
-
-Operator rr_equal 
-(
- "rr_equal", 			//name
- rr_equalSpec,  		//specification ....
- rr_equalFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool		//type mapping 
- );
-
-Operator pp_unequal 
-(
- "pp_unequal", 			//name
- pp_unequalSpec,  		//specification ....
- pp_unequalFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccpointsBool		//type mapping 
- );
-
-Operator ll_unequal 
-(
- "ll_unequal", 			//name
- ll_unequalSpec,       		//specification ....
- ll_unequalFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinesBool		//type mapping 
- );
-
-Operator rr_unequal 
-(
- "rr_unequal", 			//name
- rr_unequalSpec,       		//specification ....
- rr_unequalFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool		//type mapping 
- );
-
-Operator pp_disjoint 
-(
- "pp_disjoint", 		//name
- pp_disjointSpec,  		//specification ....
- pp_disjointFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccpointsBool		//type mapping 
- );
-
-Operator ll_disjoint 
-(
- "ll_disjoint", 		//name
- ll_disjointSpec,  		//specification ....
- ll_disjointFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinesBool		//type mapping 
- );
-
-Operator rr_disjoint 
-(
- "rr_disjoint", 		//name
- rr_disjointSpec,  		//specification ....
- rr_disjointFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool		//type mapping 
- );
-
-Operator pr_inside 
-(
- "pr_inside", 			//name
- pr_insideSpec,  		//specification ....
- pr_insideFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccregionsBool		//type mapping 
- );
-
-Operator lr_inside 
-(
- "lr_inside", 			//name
- lr_insideSpec,		  	//specification ....
- lr_insideFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccregionsBool   	//type mapping 
- );
-
-Operator rr_inside 
-(
- "rr_inside", 			//name
- rr_insideSpec,  		//specification ....
- rr_insideFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool 	//type mapping 
- );
-
-Operator rr_area_disjoint 
-(
- "rr_area_disjoint", 		//name
- rr_area_disjointSpec,  	//specification ....
- rr_area_disjointFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool 	//type mapping 
- );
-
-Operator rr_edge_disjoint 
-(
- "rr_edge_disjoint", 		//name
- rr_edge_disjointSpec,  	//specification ....
- rr_edge_disjointFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool 	//type mapping 
- );
-
-Operator rr_edge_inside 
-(
- "rr_edge_inside", 		//name
- rr_edge_insideSpec,  		//specification ....
- rr_edge_insideFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool 	//type mapping 
- );
-
-Operator rr_vertex_inside 
-(
- "rr_vertex_inside", 		//name
- rr_vertex_insideSpec,  	//specification ....
- rr_vertex_insideFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool	 	//type mapping 
- );
-
-Operator rr_intersects 
-(
- "rr_intersects", 		//name
- rr_intersectsSpec,   	      	//specification ....
- rr_intersectsFun,	      	//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,		      	//trivial selection function 
- ccregionsccregionsBool       	//type mapping 
- );
-
-Operator rr_meets 
-(
- "rr_meets", 			//name
- rr_meetsSpec,  	      	//specification ....
- rr_meetsFun,		      	//value mapping
- Operator::DummyModel,	      	//dummy model mapping, defined in Algebra.h
- simpleSelect,		      	//trivial selection function 
- ccregionsccregionsBool       	//type mapping 
- );
-
-Operator rr_border_in_common 
-(
- "rr_border_in_common",       	//name
- rr_border_in_commonSpec,     	//specification ....
- rr_border_in_commonFun,      	//value mapping
- Operator::DummyModel,	      	//dummy model mapping, defined in Algebra.h
- simpleSelect,		      	//trivial selection function 
- ccregionsccregionsBool       	//type mapping 
- );
-
-Operator rr_adjacent 
-(
- "rr_adjacent", 		//name
- rr_adjacentSpec,  		//specification ....
- rr_adjacentFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool 	//type mapping 
- );
-
-Operator rr_encloses 
-(
- "rr_encloses", 		//name
- rr_enclosesSpec,  		//specification ....
- rr_enclosesFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool 	//type mapping 
- );
-
-Operator rr_intersection 
-(
- "rr_intersection", 		//name
- rr_intersectionSpec,  		//specification ....
- rr_intersectionFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsccregions 	//type mapping 
- );
-
-Operator rr_plus 
-(
- "rr_plus", 			//name
- rr_plusSpec,  			//specification ....
- rr_plusFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsccregions 	//type mapping 
- );
-
-Operator rr_minus 
-(
- "rr_minus", 			//name
- rr_minusSpec,  		//specification ....
- rr_minusFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsccregions 	//type mapping 
- );
-
-Operator rr_common_border 
-(
- "rr_common_border", 		//name
- rr_common_borderSpec,  	//specification ....
- rr_common_borderFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionscclines 	//type mapping 
- );		   
-
-Operator ll_intersects 
-(
- "ll_intersects", 		//name
- ll_intersectsSpec,  		//specification ....
- ll_intersectsFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinesBool 		//type mapping 
-);
-
-Operator pl_on_border_of 
-(
- "pl_on_border_of", 		//name
- pl_on_border_ofSpec,  		//specification ....
- pl_on_border_ofFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointscclinesBool 		//type mapping 
-);
-
-Operator pr_on_border_of 
-(
- "pr_on_border_of", 		//name
- pr_on_border_ofSpec,  		//specification ....
- pr_on_border_ofFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccregionsBool 		//type mapping 
-);
-
-Operator pp_intersection 
-(
- "pp_intersection", 		//name
- pp_intersectionSpec,  		//specification ....
- pp_intersectionFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccpointsccpoints 	//type mapping 
-);
-
-Operator pp_plus 
-(
- "pp_plus", 			//name
- pp_plusSpec,  			//specification ....
- pp_plusFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccpointsccpoints 	//type mapping 
-);
-
-Operator pp_minus 
-(
- "pp_minus", 			//name
- pp_minusSpec,  		//specification ....
- pp_minusFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccpointsccpoints 	//type mapping 
-);
-
-Operator l_vertices 
-(
- "l_vertices", 			//name
- l_verticesSpec,  		//specification ....
- l_verticesFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccpoints 		//type mapping 
-);
-
-Operator r_vertices 
-(
- "r_vertices", 			//name
- r_verticesSpec,  		//specification ....
- r_verticesFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccpoints 		//type mapping 
-);
-
-Operator rl_border_in_common 
-(
- "rl_border_in_common", 	//name
- rl_border_in_commonSpec,  	//specification ....
- rl_border_in_commonFun,	//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionscclinesBool 		//type mapping 
-);
-
-Operator l_interior 
-(
- "l_interior", 			//name
- l_interiorSpec,  		//specification ....
- l_interiorFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccregions 		//type mapping 
-);
-
-Operator r_contour 
-(
- "r_contour", 			//name
- r_contourSpec,  		//specification ....
- r_contourFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionscclines 		//type mapping 
-);
-
-Operator rl_intersects 
-(
- "rl_intersects", 		//name
- rl_intersectsSpec,  		//specification ....
- rl_intersectsFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionscclinesBool 		//type mapping 
-);
-
-Operator rl_meets 
-(
- "rl_meets", 			//name
- rl_meetsSpec,  		//specification ....
- rl_meetsFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionscclinesBool 		//type mapping 
-);
-
-Operator rl_intersection 
-(
- "rl_intersection", 		//name
- rl_intersectionSpec,  		//specification ....
- rl_intersectionFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionscclinescclines 	//type mapping 
-);
-
-Operator rl_common_border 
-(
- "rl_common_border", 		//name
- rl_common_borderSpec,  	//specification ....
- rl_common_borderFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionscclinescclines 	//type mapping 
-);
-
-Operator lr_intersects 
-(
- "lr_intersects", 		//name
- lr_intersectsSpec,  		//specification ....
- lr_intersectsFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccregionsBool 		//type mapping 
-);
-
-Operator lr_meets 
-(
- "lr_meets", 			//name
- lr_meetsSpec,  		//specification ....
- lr_meetsFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccregionsBool 		//type mapping 
-);
-
-Operator lr_border_in_common 
-(
- "lr_border_in_common", 	//name
- lr_border_in_commonSpec,  	//specification ....
- lr_border_in_commonFun,	//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccregionsBool 		//type mapping 
-);
-
-Operator lr_common_border 
-(
- "lr_common_border", 		//name
- lr_common_borderSpec,  	//specification ....
- lr_common_borderFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccregionscclines 	//type mapping 
-);
-
-Operator ll_meets 
-(
- "ll_meets", 			//name
- ll_meetsSpec,  		//specification ....
- ll_meetsFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinesBool 		//type mapping 
-);
-
-Operator ll_border_in_common 
-(
- "ll_border_in_common", 	//name
- ll_border_in_commonSpec,  	//specification ....
- ll_border_in_commonFun,	//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinesBool 		//type mapping 
-);
-
-Operator ll_intersection 
-(
- "ll_intersection", 		//name
- ll_intersectionSpec,  		//specification ....
- ll_intersectionFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinesccpoints 	//type mapping 
-);
-
-Operator ll_plus 
-(
- "ll_plus", 			//name
- ll_plusSpec,  			//specification ....
- ll_plusFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinescclines 		//type mapping 
-);
-
-Operator ll_minus 
-(
- "ll_minus", 			//name
- ll_minusSpec,  		//specification ....
- ll_minusFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinescclines 		//type mapping 
-);
-
-Operator ll_common_border 
-(
- "ll_common_border", 		//name
- ll_common_borderSpec,  	//specification ....
- ll_common_borderFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinescclines 		//type mapping 
-);
-
-Operator p_no_of_components
-(
- "p_no_of_components", 		//name
- p_no_of_componentsSpec,  	//specification ....
- p_no_of_componentsFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsInt 	        	//type mapping 
- );
-
-Operator l_no_of_components
-(
- "l_no_of_components", 		//name
- l_no_of_componentsSpec,  	//specification ....
- l_no_of_componentsFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesInt 	        	//type mapping 
- );
-
-Operator r_no_of_components
-(
- "r_no_of_components", 		//name
- r_no_of_componentsSpec,  	//specification ....
- r_no_of_componentsFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsInt 	        	//type mapping 
- );
-
-Operator pp_dist
-(
- "pp_dist", 			//name
- pp_distSpec,  		        //specification ....
- pp_distFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccpointsReal   	//type mapping 
- );
-
-Operator pl_dist
-(
- "pl_dist", 			//name
- pl_distSpec,  		        //specification ....
- pl_distFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointscclinesReal   		//type mapping 
- );
-
-Operator pr_dist
-(
- "pr_dist", 			//name
- pr_distSpec,  	        	//specification ....
- pr_distFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccregionsReal   	//type mapping 
- );
-
-Operator lp_dist
-(
- "lp_dist", 			//name
- lp_distSpec,  		        //specification ....
- lp_distFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccpointsReal   		//type mapping 
- );
-
-Operator ll_dist
-(
- "ll_dist", 			//name
- ll_distSpec,  	        	//specification ....
- ll_distFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinesReal   		//type mapping 
- );
-
-Operator lr_dist
-(
- "lr_dist", 			//name
- lr_distSpec,  	        	//specification ....
- lr_distFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccregionsReal   	//type mapping 
- );
-
-Operator rp_dist
-(
- "rp_dist", 			//name
- rp_distSpec, 	 	        //specification ....
- rp_distFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccpointsReal  	//type mapping 
- );
-
-Operator rl_dist
-(
- "rl_dist",	 		//name
- rl_distSpec,  		        //specification ....
- rl_distFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionscclinesReal   	//type mapping 
- );
-
-Operator rr_dist
-(
- "rr_dist", 			//name
- rr_distSpec,  		        //specification ....
- rr_distFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsReal   	//type mapping 
- );
-
-Operator p_diameter
-(
- "p_diameter", 			//name
- p_diameterSpec,  		//specification ....
- p_diameterFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsReal           	//type mapping 
- );
-
-Operator l_diameter
-(
- "l_diameter", 			//name
- l_diameterSpec,  		//specification ....
- l_diameterFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesReal           		//type mapping 
- );
-
-Operator r_diameter
-(
- "r_diameter", 			//name
- r_diameterSpec,  		//specification ....
- r_diameterFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsReal           	//type mapping 
- );
-
-Operator l_length
-(
- "l_length",	 		//name
- l_lengthSpec,  		//specification ....
- l_lengthFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesDouble          	//type mapping 
- );
-
-Operator r_area
-(
- "r_area", 			//name
- r_areaSpec,  			//specification ....
- r_areaFun,			//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsDouble          	//type mapping 
- );
-
-Operator r_perimeter
-(
- "r_perimeter", 		//name
- r_perimeterSpec,  		//specification ....
- r_perimeterFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsDouble          	//type mapping 
- );
-
-Operator setDeviationValue
-(
- "setDeviationValue", 		//name
- setDeviationValueSpec, 	//specification ....
- setDeviationValueFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- doubleBool             	//type mapping 
- );
-
-Operator chooseTriangulator
-(
- "chooseTriangulator", 		//name
- chooseTriangulatorSpec,	//specification ....
- chooseTriangulatorFun,		//value mapping
- Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- intBool                 	//type mapping 
- );
+Operator ROSEequal (
+		    "=",                  //name
+		    equalSpec,            //specification
+		    3,                    //number of functions
+		    equalMap,             //value mapping 
+		    ROSEDummyModel_7,     //model
+		    equalSelect,          //selection function
+		    equalTypeMap);        //type mapping function
+		    
+Operator ROSEunequal (
+		      "#",                //name
+		      unequalSpec,        //specification
+		      3,                  //number of functions
+		      unequalMap,         //value mapping
+		      ROSEDummyModel_7,   //model
+		      unequalSelect,       //selection function
+		      unequalTypeMap);    //type mapping function
+
+Operator ROSEdisjoint (
+		       "disjoint",           //name
+		       disjointSpec,         //specification
+		       3,                    //number of functions
+		       disjointMap,          //value mapping 
+		       ROSEDummyModel_7,     //model
+		       disjointSelect,       //selection function
+		       disjointTypeMap);     //type mapping function
+
+Operator ROSEinside (
+		       "inside",             //name
+		       insideSpec,           //specification
+		       3,                    //number of functions
+		       insideMap,            //value mapping 
+		       ROSEDummyModel_7,     //model
+		       insideSelect,         //selection function
+		       insideTypeMap);       //type mapping function
+
+Operator ROSEarea_disjoint (
+		       "area_disjoint",          //name
+		       areaDisjointSpec,        //specification
+		       rr_area_disjointFun,      //value mapping
+		       Operator::DummyModel,     //model
+		       simpleSelect,             //selection function
+		       ccregionsccregionsBool);  //type mapping function
+
+Operator ROSEedge_disjoint (
+		       "edge_disjoint",          //name
+		       edgeDisjointSpec,        //specification
+		       rr_edge_disjointFun,      //value mapping
+		       Operator::DummyModel,     //model
+		       simpleSelect,             //selection function
+		       ccregionsccregionsBool);  //type mapping function
+
+Operator ROSEedge_inside (
+		       "edge_inside",            //name
+		       edgeInsideSpec,          //specification
+		       rr_edge_insideFun,        //value mapping
+		       Operator::DummyModel,     //model
+		       simpleSelect,             //selection function
+		       ccregionsccregionsBool);  //type mapping function
+
+Operator ROSEvertex_inside (
+		       "vertex_inside",          //name
+		       vertexInsideSpec,        //specification
+		       rr_vertex_insideFun,      //value mapping
+		       Operator::DummyModel,     //model
+		       simpleSelect,             //selection function
+		       ccregionsccregionsBool);  //type mapping function
+
+Operator ROSEintersects (
+			 "intersects",         //name
+			 intersectsSpec,       //specification
+			 4,                    //number of functions
+			 intersectsMap,        //value mapping 
+			 ROSEDummyModel_7,     //model
+			 intersectsSelect,     //selection function
+			 intersectsTypeMap);   //type mapping function
+
+Operator ROSEmeets (
+		    "meets",         //name
+		    meetsSpec,       //specification
+		    4,               //number of functions
+		    meetsMap,        //value mapping 
+		    ROSEDummyModel_7,//model
+		    meetsSelect,     //selection function
+		    meetsTypeMap);   //type mapping function
+
+Operator ROSEborderInCommon (
+			     "border_in_common",        //name
+			     borderInCommonSpec,        //specification
+			     4,                         //number of functions
+			     borderInCommonMap,         //value mapping 
+			     ROSEDummyModel_7,          //model
+			     borderInCommonSelect,      //selection function
+			     borderInCommonTypeMap);    //type mapping function
+
+Operator ROSEonBorderOf (
+			 "on_border_of",        //name
+			 onBorderOfSpec,        //specification
+			 2,                     //number of functions
+			 onBorderOfMap,         //value mapping 
+			 ROSEDummyModel_7,      //model
+			 onBorderOfSelect,      //selection function
+			 onBorderOfTypeMap);    //type mapping function
+
+Operator ROSEintersection (
+			   "intersection",        //name
+			   intersectionSpec,      //specification
+			   4,                     //number of functions
+			   intersectionMap,       //value mapping 
+			   ROSEDummyModel_7,      //model
+			   intersectionSelect,    //selection function
+			   intersectionTypeMap);  //type mapping function
+
+Operator ROSEplus (
+		   "plus",           //name
+		   plusSpec,         //specification
+		   3,                //number of functions
+		   plusMap,          //value mapping 
+		   ROSEDummyModel_7, //model
+		   plusSelect,       //selection function
+		   plusTypeMap);     //type mapping function
+
+Operator ROSEminus (
+		   "minus",           //name
+		   minusSpec,         //specification
+		   3,                 //number of functions
+		   minusMap,          //value mapping 
+		   ROSEDummyModel_7,  //model
+		   minusSelect,       //selection function
+		   minusTypeMap);     //type mapping function
+
+Operator ROSEcommonBorder (
+		   "common_border",     //name
+		   commonBorderSpec,    //specification
+		   4,                   //number of functions
+		   commonBorderMap,     //value mapping 
+		   ROSEDummyModel_7,    //model
+		   commonBorderSelect,  //selection function
+		   commonBorderTypeMap);//type mapping function
+
+Operator ROSEvertices (
+		       "vertices",        //name
+		       verticesSpec,      //specification
+		       2,                 //number of functions
+		       verticesMap,       //value mapping 
+		       ROSEDummyModel_7,  //model
+		       verticesSelect,    //selection function
+		       verticesTypeMap);  //type mapping function
+
+Operator ROSEnoOfComponents (
+			     "no_of_components",     //name
+			     noOfComponentsSpec,     //specification
+			     3,                      //number of functions
+			     noOfComponentsMap,      //value mapping 
+			     ROSEDummyModel_7,       //model
+			     noOfComponentsSelect,   //selection function
+			     noOfComponentsTypeMap); //type mapping function
+
+Operator ROSEdist (
+		   "dist",           //name
+		   distSpec,         //specification
+		   9,                //number of functions
+		   distMap,          //value mapping 
+		   ROSEDummyModel_7, //model
+		   distSelect,       //selection function
+		   distTypeMap);     //type mapping function
+
+Operator ROSEadjacent (
+		       "adjacent",               //name
+		       adjacentSpec,             //specification
+		       rr_adjacentFun,           //value mapping
+		       Operator::DummyModel,     //model
+		       simpleSelect,             //selection function
+		       ccregionsccregionsBool);  //type mapping function
+
+Operator ROSEencloses (
+		       "encloses", 		//name
+		       enclosesSpec,  		//specification ....
+		       rr_enclosesFun,		//value mapping
+		       Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
+		       simpleSelect,		//trivial selection function 
+		       ccregionsccregionsBool 	//type mapping 
+		       );
+
+
+
+Operator ROSEinterior (
+		       "interior", 			//name
+		       interiorSpec,  		        //specification ....
+		       l_interiorFun,			//value mapping
+		       Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
+		       simpleSelect,			//trivial selection function 
+		       cclinesccregions 		//type mapping 
+		       );
+
+Operator ROSEcontour (
+		      "contour", 		//name
+		      contourSpec,  		//specification ....
+		      r_contourFun,		//value mapping
+		      Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
+		      simpleSelect,		//trivial selection function 
+		      ccregionscclines 		//type mapping 
+		      );
+
+Operator ROSElength (
+		     "length",	 		//name
+		     lengthSpec,  		//specification ....
+		     l_lengthFun,		//value mapping
+		     Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
+		     simpleSelect,		//trivial selection function 
+		     cclinesDouble          	//type mapping 
+		     );
+
+Operator ROSEarea (
+		 "area", 			//name
+		 areaSpec,  			//specification ....
+		 r_areaFun,			//value mapping
+		 Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
+		 simpleSelect,			//trivial selection function 
+		 ccregionsDouble          	//type mapping 
+		 );
+
+Operator ROSEperimeter (
+			"perimeter", 		//name
+			perimeterSpec,  	//specification ....
+			r_perimeterFun,		//value mapping
+			Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
+			simpleSelect,		//trivial selection function 
+			ccregionsDouble         //type mapping 
+			);
+
+Operator ROSEdiameter (
+		       "diameter",              //name
+		       diameterSpec,            //specification ...
+		       3,                       //number of functions
+		       diameterMap,             //value mapping
+		       ROSEDummyModel_7,        //model
+		       diameterSelect,          //selection function
+		       diameterTypeMap);        //type mapping function
+
+Operator setDeviationValue (
+			    "setDeviationValue", 	//name
+			    setDeviationValueSpec, 	//specification ....
+			    setDeviationValueFun,	//value mapping
+			    Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
+			    simpleSelect,		//trivial selection function 
+			    doubleBool             	//type mapping 
+			    );
+
+Operator chooseTriangulator (
+			     "chooseTriangulator", 	//name
+			     chooseTriangulatorSpec,	//specification ....
+			     chooseTriangulatorFun,	//value mapping
+			     Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
+			     simpleSelect,		//trivial selection function 
+			     intBool                 	//type mapping 
+			     );
 
 /*
   6 Creating the Algebra
@@ -7235,75 +6563,34 @@ public:
     /* this means that ccpoints, cclines, ccregions 
        can be used in places where types of DATA are expected, 
        e. g. in tuples. */
-    AddOperator(&pp_equal);
-    AddOperator(&ll_equal);
-    AddOperator(&rr_equal);
-    AddOperator(&pp_unequal);
-    AddOperator(&ll_unequal);
-    AddOperator(&rr_unequal);
-    AddOperator(&pp_disjoint);
-    AddOperator(&ll_disjoint);
-    AddOperator(&rr_disjoint);
-    AddOperator(&pr_inside);
-    AddOperator(&lr_inside);
-    AddOperator(&rr_inside);
-    AddOperator(&rr_area_disjoint);
-    AddOperator(&rr_edge_disjoint);
-    AddOperator(&rr_edge_inside);
-    AddOperator(&rr_vertex_inside);
-    AddOperator(&rr_intersects);
-    AddOperator(&rr_intersection);
-    AddOperator(&rr_meets);
-    AddOperator(&rr_border_in_common);
-    AddOperator(&rr_adjacent);
-    AddOperator(&rr_encloses);
-    AddOperator(&rr_intersection);
-    AddOperator(&rr_plus);
-    AddOperator(&rr_minus);
-    AddOperator(&rr_common_border);
-    AddOperator(&ll_intersects);
-    AddOperator(&pl_on_border_of);
-    AddOperator(&pr_on_border_of);
-    AddOperator(&pp_intersection);
-    AddOperator(&pp_plus);
-    AddOperator(&pp_minus);
-    AddOperator(&l_vertices);
-    AddOperator(&r_vertices);
-    AddOperator(&l_interior);
-    AddOperator(&r_contour);
-    AddOperator(&rl_intersects);
-    AddOperator(&rl_meets);
-    AddOperator(&rl_border_in_common);
-    AddOperator(&rl_intersection);
-    AddOperator(&rl_common_border);
-    AddOperator(&lr_intersects);
-    AddOperator(&lr_meets);
-    AddOperator(&lr_border_in_common);
-    AddOperator(&lr_common_border);
-    AddOperator(&ll_meets);
-    AddOperator(&ll_border_in_common);
-    AddOperator(&ll_intersection);
-    AddOperator(&ll_plus);
-    AddOperator(&ll_minus);
-    AddOperator(&ll_common_border);
-    AddOperator(&p_no_of_components);
-    AddOperator(&l_no_of_components);
-    AddOperator(&r_no_of_components);
-    AddOperator(&pp_dist);
-    AddOperator(&pl_dist);
-    AddOperator(&pr_dist);
-    AddOperator(&lp_dist);
-    AddOperator(&ll_dist);
-    AddOperator(&lr_dist);
-    AddOperator(&rp_dist);
-    AddOperator(&rl_dist);
-    AddOperator(&rr_dist);
-    AddOperator(&p_diameter);
-    AddOperator(&l_diameter);
-    AddOperator(&r_diameter);
-    AddOperator(&l_length);
-    AddOperator(&r_area);
-    AddOperator(&r_perimeter);
+    AddOperator(&ROSEequal);
+    AddOperator(&ROSEunequal);
+    AddOperator(&ROSEdisjoint);
+    AddOperator(&ROSEinside);
+    AddOperator(&ROSEarea_disjoint);
+    AddOperator(&ROSEedge_disjoint);
+    AddOperator(&ROSEedge_inside);
+    AddOperator(&ROSEvertex_inside);
+    AddOperator(&ROSEintersects);
+    AddOperator(&ROSEmeets);
+    AddOperator(&ROSEborderInCommon);
+    AddOperator(&ROSEonBorderOf);
+    AddOperator(&ROSEintersection);
+    AddOperator(&ROSEplus);
+    AddOperator(&ROSEminus);
+    AddOperator(&ROSEcommonBorder);
+    AddOperator(&ROSEvertices);
+    AddOperator(&ROSEnoOfComponents);
+    AddOperator(&ROSEdist);
+    AddOperator(&ROSEadjacent);
+    AddOperator(&ROSEencloses);
+    AddOperator(&ROSEinterior);
+    AddOperator(&ROSEcontour);
+    AddOperator(&ROSElength);
+    AddOperator(&ROSEarea);
+    AddOperator(&ROSEperimeter);
+    AddOperator(&ROSEdiameter);
+
     AddOperator(&setDeviationValue);
     AddOperator(&chooseTriangulator);
   }
@@ -7477,6 +6764,10 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   if(midPointsReadFrom == 0) error(__FILE__,__LINE__);
   midPointsPrint = env->GetMethodID(clsPoints,"print","()V");
   if(midPointsPrint == 0) error(__FILE__,__LINE__);
+  midLinesRect = env->GetMethodID(clsLines,"rect","()Ltwodsack/setelement/datatype/basicdatatype/Rect;");
+  if(midLinesRect == 0) error(__FILE__,__LINE__);
+  midPointsRect = env->GetMethodID(clsPoints,"rect","()Ltwodsack/setelement/datatype/basicdatatype/Rect;");
+  if(midPointsRect == 0) error(__FILE__,__LINE__);
   midLinesCompare = env->GetMethodID(clsLines,"compare","(LLines;)I");
   if (midLinesCompare == 0) error(__FILE__,__LINE__);
   midLinesWriteToByteArray = env->GetMethodID(clsLines,"writeToByteArray","()[B");
@@ -7501,8 +6792,24 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   if (midROSESetDeviationValue == 0) error(__FILE__,__LINE__);
   midROSEChooseTriangulator = env->GetStaticMethodID(clsROSEAlgebra, "chooseTriangulator", "(I)V");
   if (midROSEChooseTriangulator == 0) error(__FILE__,__LINE__);
+  midRegionsRect = env->GetMethodID(clsRegions,"rect","()Ltwodsack/setelement/datatype/basicdatatype/Rect;");
+  if (midRegionsRect == 0) error(__FILE__,__LINE__);
+  midRectGetTopLeftX = env->GetMethodID(clsRect,"getTopLeftX","()D");
+  if (midRectGetTopLeftX == 0) error (__FILE__, __LINE__);
+  midRectGetTopLeftY = env->GetMethodID(clsRect,"getTopLeftY","()D");
+  if (midRectGetTopLeftY == 0) error (__FILE__, __LINE__);
+  midRectGetBottomRightX = env->GetMethodID(clsRect,"getBottomRightX","()D");
+  if (midRectGetBottomRightX == 0) error (__FILE__, __LINE__);
+  midRectGetBottomRightY = env->GetMethodID(clsRect,"getBottomRightY","()D");
+  if (midRectGetBottomRightY == 0) error (__FILE__, __LINE__);
 
   //define ROSE function mid
+  midROSEpp_equal = env->GetStaticMethodID(clsROSEAlgebra,"pp_equal","(LPoints;LPoints;)Z");
+  if (midROSEpp_equal == 0) error(__FILE__,__LINE__);
+  midROSEll_equal = env->GetStaticMethodID(clsROSEAlgebra,"ll_equal","(LLines;LLines;)Z");
+  if (midROSEll_equal == 0) error(__FILE__,__LINE__);
+  midROSErr_equal = env->GetStaticMethodID(clsROSEAlgebra,"rr_equal","(LRegions;LRegions;)Z");
+  if (midROSErr_equal == 0) error(__FILE__,__LINE__);
   midROSErr_minus = env->GetStaticMethodID(clsROSEAlgebra,"rr_minus","(LRegions;LRegions;)LRegions;");
   if (midROSErr_minus == 0) error(__FILE__, __LINE__);
   

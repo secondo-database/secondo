@@ -49,6 +49,7 @@ public class Lines implements Serializable{
     public Lines() {
 	segset = new SegMultiSet(new SegmentComparator());
 	bbox = null;
+	bboxDefined = false;
 	length = 0.0;
 	lengthDefined = false;
     }
@@ -63,8 +64,9 @@ public class Lines implements Serializable{
     public Lines(SegMultiSet sl) {
 	segset = sl;
 	length = ROSEAlgebra.l_length(this);
-	bbox = sl.rect();
 	lengthDefined = true;
+	bbox = sl.rect();
+	bboxDefined = true;
     }
 
 
@@ -77,8 +79,9 @@ public class Lines implements Serializable{
     public Lines(Lines l) {
 	this.segset = l.segset;
 	this.length = l.length;
+	this.lengthDefined = l.lengthDefined;
 	this.bbox = l.bbox;
-	this.lengthDefined = true;
+	this.bboxDefined = l.bboxDefined;
     }
 
 
@@ -204,7 +207,14 @@ public class Lines implements Serializable{
      * @return the copy
      */    
     public Lines copy () {
-	return new Lines(SegMultiSet.convert(this.segset.copy()));
+	Lines nl = new Lines();
+	nl.segset = SegMultiSet.convert(this.segset.copy());
+	nl.bbox = this.bbox;
+	nl.bboxDefined = this.bboxDefined;
+	nl.length = this.length;
+	nl.lengthDefined = this.lengthDefined;
+	
+	return nl;
     }//end method copy
     
 

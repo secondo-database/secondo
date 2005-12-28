@@ -310,6 +310,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>p</tt> properly lies inside of <tt>r</tt>
      */
     public static boolean pr_inside (Points p, Regions r) {
+	System.out.println("RA.pr_inside.");
 	if (!p.rect().hasCommonPoints(r.rect())) return false;
 	try {
 	    PointMultiSet retSet = null;

@@ -27,42 +27,42 @@ public class Rect implements Serializable {
     /**
      * x coordinate of the upper left point.
      */
-    public Rational ulx;
+    public Rational ulx = RationalFactory.constRational(-1);
 
     /**
      * y coordinate of the upper left point.
      */
-    public Rational uly;
+    public Rational uly = RationalFactory.constRational(-1);
 
     /**
      * x coordinate of the upper right point.
      */
-    public Rational urx;
+    public Rational urx = RationalFactory.constRational(-1);
 
     /**
      * y coordinate of the upper right point.
      */
-    public Rational ury;
+    public Rational ury = RationalFactory.constRational(-1);
 
     /**
      * x coordinate of the lower left point.
      */
-    public Rational llx;
+    public Rational llx = RationalFactory.constRational(-1);
 
     /**
      * y coordinate of the lower left point.
      */
-    public Rational lly;
+    public Rational lly = RationalFactory.constRational(-1);
 
     /**
      * x coordinate of the lower right point.
      */
-    public Rational lrx;
+    public Rational lrx = RationalFactory.constRational(-1);
 
     /**
      * y coordinate of the lower right point.
      */
-    public Rational lry;
+    public Rational lry = RationalFactory.constRational(-1);
    
     /*
      * constructors

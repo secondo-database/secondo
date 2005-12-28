@@ -104,6 +104,7 @@ public class Points implements Serializable{
      */
     public void add(Point p) {
 	this.pointset.add(p);
+	this.bbox = null;
 	this.bboxDefined = false;
     }//end method add
 
@@ -116,6 +117,7 @@ public class Points implements Serializable{
      */
     public void add(Rational x, Rational y) {
 	this.pointset.add(new Point(x,y));
+	this.bbox = null;
 	this.bboxDefined = false;
     }//end method add
 
@@ -128,6 +130,7 @@ public class Points implements Serializable{
      */
     public void add(int x, int y) {
 	this.pointset.add(new Point(x,y));
+	this.bbox = null;
 	this.bboxDefined = false;
     }//end method add
 
@@ -140,6 +143,7 @@ public class Points implements Serializable{
      */
     public void add(double x, double y) {
 	this.pointset.add(new Point(x,y));
+	this.bbox = null;
 	this.bboxDefined = false;
     }//end method add
 
@@ -191,7 +195,12 @@ public class Points implements Serializable{
      * Returns a <i>deep</i> copy of <tt>this</tt>.
      */
     public Points copy () {
-	return new Points(PointMultiSet.convert(this.pointset.copy()));
+	Points np = new Points();
+	np.pointset = PointMultiSet.convert(this.pointset.copy());
+	np.bbox = this.bbox;
+	np.bboxDefined = this.bboxDefined;
+	
+	return np;
     }//end method copy
 
     
