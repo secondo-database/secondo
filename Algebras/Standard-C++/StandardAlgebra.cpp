@@ -4120,28 +4120,24 @@ const string CCSpecUpper  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 			       ") )";
 
 const string CCSpecSetIntersection  = "( ( \"Signature\" \"Meaning\" )"
-                             "( <text> (int int) -> int, (real real) -> real, "
-			     "(bool bool) -> bool, (string string) -> "
-			     "string</text--->"
-			     "<text> Set intersection. </text--->"
-			     ") )";
+"( <text> (int int) -> int, (real real) -> real, (bool bool) -> bool, (string string) -> string</text--->"
+"<text> Set intersection. </text--->"
+") )";
 
 const string CCSpecSetMinus  = "( ( \"Signature\" \"Meaning\" )"
-                             "( <text> (int int) -> int, (real real) -> real, "
-			     "(bool bool) -> bool, (string string) -> "
-			     "string</text--->"
-			     "<text> Set minus. </text--->"
-			       			      ") )";
+"( <text> (int int) -> int, (real real) -> real, (bool bool) -> bool, (string string) -> string</text--->"
+"<text> Set minus. </text--->"
+") )";
                         
 const string CCSpecRelcount  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" )"
-                             "( <text>string -> int</text--->"
-             "<text>_ relcount</text--->"
-             "<text>Counts the number of tuples of a relation, "
-             "which is specified by its objectname"
-             " of type string.</text--->"
-             "<text>query \"Staedte\" relcount</text--->"
-             ") )";
+"\"Example\" )"
+"( <text>string -> int</text--->"
+"<text>_ relcount</text--->"
+"<text>Counts the number of tuples of a relation, "
+"which is specified by its objectname"
+" of type string.</text--->"
+"<text>query \"Staedte\" relcount</text--->"
+") )";
 
 const string CCSpecRelcount2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"

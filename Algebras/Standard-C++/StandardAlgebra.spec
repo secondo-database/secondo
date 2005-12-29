@@ -45,7 +45,7 @@ operator substr alias SUBSTR pattern op ( _, _ , _ )
 
 operator isempty alias ISEMPTY pattern op ( _ )
 
-operator intersection alias INTERSECTION pattern _ infixop _
+operator intersection alias INTERSECTION pattern op (_, _)
 operator minus alias SET_MINUS pattern _ infixop _
 
 operator relcount alias RELCOUNT pattern _ op
