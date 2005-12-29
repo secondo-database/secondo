@@ -310,7 +310,6 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>p</tt> properly lies inside of <tt>r</tt>
      */
     public static boolean pr_inside (Points p, Regions r) {
-	System.out.println("RA.pr_inside.");
 	if (!p.rect().hasCommonPoints(r.rect())) return false;
 	try {
 	    PointMultiSet retSet = null;
@@ -731,7 +730,9 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>l,r</tt> have a common border
      */
     public static boolean lr_border_in_common (Lines l, Regions r) {
+	System.out.println("RA.lr_bic");
 	if (!l.rect().hasCommonPoints(r.rect())) return false;
+	System.out.println("passed bbox test.");
 	try {
 	    PairMultiSet retSet = null;
 	    

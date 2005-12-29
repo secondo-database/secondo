@@ -14,6 +14,8 @@ import twodsack.setelement.datatype.basicdatatype.*;
 import twodsack.util.*;
 import twodsack.util.comparator.*;
 
+import java.io.*;
+
 /**
  * The SegSeg_Ops class holds methods with parameter types <code>Segment x Segment</code>. The methods
  * in this class are all static. They are commonly used as parameter functions for set operations of 
@@ -171,6 +173,27 @@ public class SegSeg_Ops {
      * @return <tt>true</tt>, if <tt>s1,s2</tt> overlap
      */
     public static boolean overlap(Segment s1, Segment s2){
+	System.out.println("ovlap.");
+	s1.print(); s2.print();
+	System.out.println("equal: "+s1.equal(s2));
+	/*
+	BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
+	DisplayGFX gfx = new DisplayGFX();
+	SegMultiSet sms1 = new SegMultiSet(new SegmentComparator());
+	SegMultiSet sms2 = new SegMultiSet(new SegmentComparator());
+	sms1.add(s1);
+	sms2.add(s2);
+	gfx.initWindow();
+	gfx.addSet(sms1);
+	gfx.addSet(sms2);
+	gfx.showIt(false);
+ 	try {
+	    String data = inBR.readLine();
+ 	} catch (Exception e) {
+	    System.exit(0);
+	}//catch
+	gfx.kill();
+	*/
 	if (s1.equal(s2))
 	    { return true; }
 	else {

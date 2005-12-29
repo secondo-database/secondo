@@ -4041,7 +4041,7 @@ static int pp_equalFun(Word* args, Word& result, int message,
   CcPoints* ccp1 = ((CcPoints *)args[0].addr);
   CcPoints* ccp2 = ((CcPoints *)args[1].addr);
   
-  //if bboxes don't intersect, return false
+  //if bboxes aren't equal, return false
   if (!bboxesEqual(ccp1->BboxTopLeftX,ccp1->BboxTopLeftY,ccp1->BboxBottomRightX,ccp1->BboxBottomRightY,
 		   ccp2->BboxTopLeftX,ccp2->BboxTopLeftY,ccp2->BboxBottomRightX,ccp2->BboxBottomRightY)) {
     result = qp->ResultStorage(s);
@@ -4075,7 +4075,7 @@ static int ll_equalFun(Word* args, Word& result, int message,
   CcLines* ls1 = ((CcLines *)args[0].addr);
   CcLines* ls2 = ((CcLines *)args[1].addr);
 
-  //if bboxes don't intersect, return false
+  //if bboxes aren't equal, return false
   if (!bboxesEqual(ls1->BboxTopLeftX,ls1->BboxTopLeftY,ls1->BboxBottomRightX,ls1->BboxBottomRightY,
 		   ls2->BboxTopLeftX,ls2->BboxTopLeftY,ls2->BboxBottomRightX,ls2->BboxBottomRightY)) {
     result = qp->ResultStorage(s);
@@ -4109,7 +4109,7 @@ static int rr_equalFun(Word* args, Word& result, int message,
   CcRegions* rs1 = ((CcRegions *)args[0].addr);
   CcRegions* rs2 = ((CcRegions *)args[1].addr);
 
-  //if bboxes don't intersect, return false
+  //if bboxes aren't equal, return false
   if (!bboxesEqual(rs1->BboxTopLeftX,rs1->BboxTopLeftY,rs1->BboxBottomRightX,rs1->BboxBottomRightY,
 		       rs2->BboxTopLeftX,rs2->BboxTopLeftY,rs2->BboxBottomRightX,rs2->BboxBottomRightY)) {
     result = qp->ResultStorage(s);
@@ -4119,17 +4119,10 @@ static int rr_equalFun(Word* args, Word& result, int message,
 
   //bboxes intersect, so prepare to invoke the Java method
   if (!rs1->GetObject()) rs1->RestoreJavaObjectFromFLOB();
-  if (!rs2->GetObject()) rs2->RestoreJavaObjectFromFLOB();  
+  if (!rs2->GetObject()) rs2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-
   ((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_equal", rs1, rs2));
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
 
   return 0;
 }
@@ -4143,21 +4136,21 @@ static int pp_unequalFun(Word* args, Word& result, int message,
 
   CcPoints* ccps1 = ((CcPoints *)args[0].addr);
   CcPoints* ccps2 = ((CcPoints *)args[1].addr);
-  
+
+  //if bboxes aren't equal, return true
+  if (!bboxesEqual(ccps1->BboxTopLeftX,ccps1->BboxTopLeftY,ccps1->BboxBottomRightX,ccps1->BboxBottomRightY,
+		   ccps2->BboxTopLeftX,ccps2->BboxTopLeftY,ccps2->BboxBottomRightX,ccps2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,true);
+    return 0;
+  }
+  //bboxes are equal, so prepare to invoke Java method
   if (!ccps1->GetObject()) ccps1->RestoreJavaObjectFromFLOB();
   if (!ccps2->GetObject()) ccps2->RestoreJavaObjectFromFLOB();
-
-  result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_PPB
-     ("pp_unequal", ccps1, ccps2));
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
-
+  result = qp->ResultStorage(s);	
+  ((CcBool *)result.addr)->Set(true, callJMethod_PPB("pp_unequal", ccps1, ccps2));
+  
   return 0;
 }
 
@@ -4171,20 +4164,21 @@ static int ll_unequalFun(Word* args, Word& result, int message,
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
   
+  //if bboxes aren't equal, return true
+  if (!bboxesEqual(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
+		   ccl2->BboxTopLeftX,ccl2->BboxTopLeftY,ccl2->BboxBottomRightX,ccl2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,true);
+    return 0;
+  }
+
+  //bboxes are equal, prepare to invoke the Java method
   if (!ccl1 ->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
   if (!ccl2 ->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
-
-  result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_LLB
-     ("ll_unequal", ccl1, ccl2));
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
-
+  result = qp->ResultStorage(s);	
+  ((CcBool *)result.addr)->Set(true, callJMethod_LLB("ll_unequal", ccl1, ccl2));
+  
   return 0;
 }
 
@@ -4199,21 +4193,21 @@ static int rr_unequalFun(Word* args, Word& result, int message,
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 	
+  //if bboxes aren't equal, return true
+  if (!bboxesEqual(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
+		   ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,true);
+    return 0;
+  }
+  
+  //bboxes are equal, so prepare to invoke the Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
-
-  result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_RRB
-     ("rr_unequal", ccr1, ccr2)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
-
+  result = qp->ResultStorage(s);	 
+  ((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_unequal", ccr1, ccr2));
+  
   return 0;
 }
 
@@ -4227,20 +4221,20 @@ static int pp_disjointFun(Word* args, Word& result, int message,
   CcPoints* ccp1 = ((CcPoints *)args[0].addr);
   CcPoints* ccp2 = ((CcPoints *)args[1].addr);
 	
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccp1->BboxTopLeftX,ccp1->BboxTopLeftY,ccp1->BboxBottomRightX,ccp1->BboxBottomRightY,
+		       ccp2->BboxTopLeftX,ccp2->BboxTopLeftY,ccp2->BboxBottomRightX,ccp2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,true);
+    return 0;
+  }
+
+  //bboxes are equal, prepare to invoke the Java method
   if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
-
-  result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_PPB
-     ("pp_disjoint", ccp1, ccp2)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  result = qp->ResultStorage(s);	
+  ((CcBool *)result.addr)->Set(true, callJMethod_PPB("pp_disjoint", ccp1, ccp2)); 
 
   return 0;
 }
@@ -4255,20 +4249,20 @@ static int ll_disjointFun(Word* args, Word& result, int message,
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
 
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
+		       ccl2->BboxTopLeftX,ccl2->BboxTopLeftY,ccl2->BboxBottomRightX,ccl2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,true);
+    return 0;
+  }
+  
+  //bboxes intersect, so prepare to invoke the Java method
   if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_LLB
-     ("ll_disjoint", ccl1, ccl2)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  ((CcBool *)result.addr)->Set(true, callJMethod_LLB("ll_disjoint", ccl1, ccl2)); 
 
   return 0;
 }
@@ -4282,22 +4276,21 @@ static int rr_disjointFun(Word* args, Word& result, int message,
 
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
-	
+
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
+		   ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,true);
+    return 0;
+  }
+  //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
+  ((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_disjoint", ccr1, ccr2)); 
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_RRB
-     ("rr_disjoint", ccr1, ccr2)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
-
   return 0;
 }
 
@@ -4310,22 +4303,21 @@ static int pr_insideFun(Word* args, Word& result, int message,
 
   CcPoints* ccp = ((CcPoints *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
-	
+  
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccp->BboxTopLeftX,ccp->BboxTopLeftY,ccp->BboxBottomRightX,ccp->BboxBottomRightY,
+		       ccr->BboxTopLeftX,ccr->BboxTopLeftY,ccr->BboxBottomRightX,ccr->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, prepare to invoke Java method
   if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
+  ((CcBool *)result.addr)->Set(true, callJMethod_PRB("pr_inside",ccp, ccr)); 
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_PRB
-     ("pr_inside",ccp, ccr)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
-
   return 0;
 }
 
@@ -4339,20 +4331,20 @@ static int lr_insideFun(Word* args, Word& result, int message,
   CcLines* ccl = ((CcLines *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
 	
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccl->BboxTopLeftX,ccl->BboxTopLeftY,ccl->BboxBottomRightX,ccl->BboxBottomRightY,
+		       ccr->BboxTopLeftX,ccr->BboxTopLeftY,ccr->BboxBottomRightX,ccr->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, prepare to invoke Java method
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
+  ((CcBool *)result.addr)->Set(true, callJMethod_LRB("lr_inside", ccl, ccr)); 
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_LRB
-     ("lr_inside", ccl, ccr)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
   return 0;
 }
 
@@ -4365,21 +4357,20 @@ static int rr_insideFun(Word* args, Word& result, int message,
 {
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
-	
+  
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
+		       ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
-
-  result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_RRB
-     ("rr_inside",ccr1, ccr2)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  result = qp->ResultStorage(s);	
+  ((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_inside",ccr1, ccr2)); 
 
   return 0;
 }
@@ -4394,21 +4385,20 @@ static int rr_area_disjointFun(Word* args, Word& result, int message,
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 
+  //if bboxes don't intersect, return true
+  if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
+		       ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,true);
+    return 0;
+  }
+  //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
+  ((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_area_disjoint", ccr1, ccr2)); 
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_RRB
-     ("rr_area_disjoint", ccr1, ccr2)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
-
   return 0;
 }
 
@@ -4421,21 +4411,20 @@ static int rr_edge_disjointFun(Word* args, Word& result, int message,
 {
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
-	
+
+  //if bboxes don't intersect, return true
+  if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
+		       ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,true);
+    return 0;
+  }
+  //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_RRB
-     ("rr_edge_disjoint", ccr1, ccr2)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  ((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_edge_disjoint", ccr1, ccr2)); 
 
   return 0;
 }
@@ -4450,20 +4439,19 @@ static int rr_edge_insideFun(Word* args, Word& result, int message,
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
+		       ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_RRB
-     ("rr_edge_inside", ccr1, ccr2)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  ((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_edge_inside", ccr1, ccr2)); 
 
   return 0;
 }
@@ -4478,20 +4466,20 @@ static int rr_vertex_insideFun(Word* args, Word& result, int message,
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
+		       ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_RRB
-     ("rr_vertex_inside", ccr1, ccr2)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  ((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_vertex_inside", ccr1, ccr2)); 
 
   return 0;
 }
@@ -4506,20 +4494,19 @@ static int rr_intersectsFun(Word* args, Word& result, int message,
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
+		       ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_RRB
-     ("rr_intersects", ccr1, ccr2)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  ((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_intersects", ccr1, ccr2)); 
 
   return 0;
 }
@@ -4529,26 +4516,24 @@ rr[_]meets predicate for two CcRegions
 
 */
 static int rr_meetsFun(Word* args, Word& result, int message, 
-			  Word& local, Supplier s)
-{
-
+			  Word& local, Supplier s) {
+  
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
-
+  
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
+		       ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_RRB
-     ("rr_meets", ccr1, ccr2)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  ((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_meets", ccr1, ccr2)); 
 
   return 0;
 }
@@ -4563,20 +4548,19 @@ static int rr_border_in_commonFun(Word* args, Word& result, int message,
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
   
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
+		       ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_RRB
-     ("rr_border_in_common", ccr1, ccr2)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  ((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_border_in_common", ccr1, ccr2)); 
 
   return 0;
 }
@@ -4590,21 +4574,20 @@ static int rr_adjacentFun(Word* args, Word& result, int message,
 {
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
-
+  
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
+		       ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_RRB
-     ("rr_adjacent", ccr1, ccr2)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  ((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_adjacent", ccr1, ccr2)); 
 
   return 0;
 }
@@ -4619,21 +4602,20 @@ static int rr_enclosesFun(Word* args, Word& result, int message,
 
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
-	
+
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
+		       ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_RRB
-     ("rr_encloses", ccr1, ccr2)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  ((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_encloses", ccr1, ccr2)); 
 
   return 0;
 }
@@ -4645,26 +4627,27 @@ rr[_]intersection predicate for two CcRegions
 static int rr_intersectionFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
-  CcRegions *ccresult;
+  CcRegions* ccresult;
 
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
-
+  
+  //if bboxes don't intersect, return empty object
+  if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
+		       ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
+    ((CcRegions*)result.addr) = new CcRegions(env->NewObject(clsRegions,midRegionsConstVoid));
+    return 0;
+  }
+  
+  //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
-
-  result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
   
+  result = qp->ResultStorage(s);
   ccresult = callJMethod_RRR("rr_intersection", ccr1, ccr2);
   if(env->ExceptionOccurred())
     env->ExceptionDescribe();
   result.addr = ccresult;
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
 
   return 0;
 }
@@ -4684,15 +4667,8 @@ static int rr_plusFun(Word* args, Word& result, int message,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
   ccresult = callJMethod_RRR("rr_plus", ccr1, ccr2);
   result.addr = ccresult;
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
 
   return 0;
 }
@@ -4708,29 +4684,25 @@ static int rr_minusFun(Word* args, Word& result, int message,
 
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
-	
+  
+  //if bboxes don't intersect, return first object
+  if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
+		       ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcRegions*)result.addr) = ccr1;
+    return 0;
+  }
+  //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
-  //jmethodID mid = env->GetStaticMethodID(clsROSEAlgebra,"rr_minus","(LRegions;LRegions;)LRegions;");
-  //if (mid == 0) error(__FILE__, __LINE__);
-
   jobject res = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_minus,ccr1->GetObj(),ccr2->GetObj());
   if (res == 0) error(__FILE__, __LINE__);
 
   ccresult = new CcRegions(res);
 
   result.addr = ccresult;
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
-  //cout << "HERE" << endl;
-  //exit(1);
 
   return 0;
 }
@@ -4745,21 +4717,23 @@ static int rr_common_borderFun(Word *args, Word& result,
 
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
+  
+  //if bboxes don't intersect, return empty object
+  if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
+		       ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcRegions*)result.addr) = new CcRegions(env->NewObject(clsRegions,midRegionsConstVoid));
+    return 0;
+  }
 
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
-  //query processor has provided
-  //a CcBool instance to take the result
   
   ccresult = callJMethod_RRL("rr_common_border", ccr1, ccr2);
   result.addr = ccresult;
 
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value
-  
   return 0;
 }
 
@@ -4772,22 +4746,22 @@ static int ll_intersectsFun(Word* args, Word& result, int message,
 
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
-
+  
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
+		       ccl2->BboxTopLeftX,ccl2->BboxTopLeftY,ccl2->BboxBottomRightX,ccl2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, so prepare to call Java method
   if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
   
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_LLB
-     ("ll_intersects", ccl1, ccl2));
+  ((CcBool *)result.addr)->Set(true, callJMethod_LLB("ll_intersects", ccl1, ccl2));
   
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
-
   return 0;
 }
 
@@ -4801,21 +4775,20 @@ static int lr_intersectsFun(Word* args, Word& result, int message,
   CcLines* ccl = ((CcLines *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
 
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccl->BboxTopLeftX,ccl->BboxTopLeftY,ccl->BboxBottomRightX,ccl->BboxBottomRightY,
+		       ccr->BboxTopLeftX,ccr->BboxTopLeftY,ccr->BboxBottomRightX,ccr->BboxBottomRightY)) {  
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, prepare to invoke Java method
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
+  ((CcBool *)result.addr)->Set(true, callJMethod_LRB("lr_intersects", ccl, ccr));
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_LRB
-     ("lr_intersects", ccl, ccr));
-  
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
-
   return 0;
 }
 
@@ -4829,21 +4802,20 @@ static int rl_intersectsFun(Word* args, Word& result, int message,
   CcRegions* ccr = ((CcRegions *)args[0].addr);
   CcLines* ccl = ((CcLines *)args[1].addr);
   
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccr->BboxTopLeftX,ccr->BboxTopLeftY,ccr->BboxBottomRightX,ccr->BboxBottomRightY,
+		       ccl->BboxTopLeftX,ccl->BboxTopLeftY,ccl->BboxBottomRightX,ccl->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, so prepare to invoke Java method
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
+  ((CcBool *)result.addr)->Set(true, callJMethod_RLB("rl_intersects", ccr, ccl));
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_RLB
-     ("rl_intersects", ccr, ccl));
-  
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
-
   return 0;
 }
 
@@ -4856,21 +4828,22 @@ static int ll_meetsFun(Word* args, Word& result, int message,
 {
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
-	
+  
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
+		       ccl2->BboxTopLeftX,ccl2->BboxTopLeftY,ccl2->BboxBottomRightX,ccl2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, so prepare to invoke Java method
   if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_LLB
-     ("ll_meets", ccl1, ccl2));
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
-  
+  ((CcBool *)result.addr)->Set(true, callJMethod_LLB("ll_meets", ccl1, ccl2));
+
   return 0;
 }
 
@@ -4884,19 +4857,20 @@ static int lr_meetsFun(Word* args, Word& result, int message,
   CcLines* ccl = ((CcLines *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
 	
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccl->BboxTopLeftX,ccl->BboxTopLeftY,ccl->BboxBottomRightX,ccl->BboxBottomRightY,
+		       ccr->BboxTopLeftX,ccr->BboxTopLeftY,ccr->BboxBottomRightX,ccr->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, so prepare to invoke Java method
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_LRB
-     ("lr_meets", ccl, ccr));
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  ((CcBool *)result.addr)->Set(true, callJMethod_LRB("lr_meets", ccl, ccr));
   
   return 0;
 }
@@ -4910,20 +4884,21 @@ static int rl_meetsFun(Word* args, Word& result, int message,
 {
   CcRegions* ccr = ((CcRegions *)args[0].addr);
   CcLines* ccl = ((CcLines *)args[1].addr);
-	
+
+  //if bboxes don't intersect, return empty object
+  if (!bboxesIntersect(ccr->BboxTopLeftX,ccr->BboxTopLeftY,ccr->BboxBottomRightX,ccr->BboxBottomRightY,
+		       ccl->BboxTopLeftX,ccl->BboxTopLeftY,ccl->BboxBottomRightX,ccl->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, prepare to invoke Java method
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_RLB
-     ("rl_meets", ccr, ccl));
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  ((CcBool *)result.addr)->Set(true, callJMethod_RLB("rl_meets", ccr, ccl));
   
   return 0;
 }
@@ -4939,20 +4914,19 @@ static int ll_border_in_commonFun(Word* args, Word& result, int message,
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
   
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
+		       ccl2->BboxTopLeftX,ccl2->BboxTopLeftY,ccl2->BboxBottomRightX,ccl2->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersects, so prepare to invoke Java method
   if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_LLB
-     ("ll_border_in_common", ccl1, ccl2)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  ((CcBool *)result.addr)->Set(true, callJMethod_LLB("ll_border_in_common", ccl1, ccl2)); 
 
   return 0;
 }
@@ -4967,20 +4941,20 @@ static int lr_border_in_commonFun(Word* args, Word& result, int message,
   CcLines* ccl = ((CcLines *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
   
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccl->BboxTopLeftX,ccl->BboxTopLeftY,ccl->BboxBottomRightX,ccl->BboxBottomRightY,
+		       ccr->BboxTopLeftX,ccr->BboxTopLeftY,ccr->BboxBottomRightX,ccr->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, so prepare to invoke Java method
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_LRB
-     ("lr_border_in_common", ccl, ccr)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  ((CcBool *)result.addr)->Set(true, callJMethod_LRB("lr_border_in_common", ccl, ccr)); 
 
   return 0;
 }
@@ -4995,20 +4969,19 @@ static int rl_border_in_commonFun(Word* args, Word& result, int message,
   CcRegions* ccr = ((CcRegions *)args[0].addr);
   CcLines* ccl = ((CcLines *)args[1].addr);
   
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccr->BboxTopLeftX,ccr->BboxTopLeftY,ccr->BboxBottomRightX,ccr->BboxBottomRightY,
+		       ccl->BboxTopLeftX,ccl->BboxTopLeftY,ccl->BboxBottomRightX,ccl->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, so prepare to invoke Java method
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_RLB
-     ("rl_border_in_common", ccr, ccl)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  ((CcBool *)result.addr)->Set(true, callJMethod_RLB("rl_border_in_common", ccr, ccl)); 
 
   return 0;
 }
@@ -5025,20 +4998,19 @@ static int pl_on_border_ofFun(Word* args, Word& result, int message,
   CcPoints* ccp = ((CcPoints *)args[0].addr);
   CcLines* ccl = ((CcLines *)args[1].addr);
   
+  //if bboxes don't intersect, return empty object
+  if (!bboxesIntersect(ccp->BboxTopLeftX,ccp->BboxTopLeftY,ccp->BboxBottomRightX,ccp->BboxBottomRightY,
+		       ccl->BboxTopLeftX,ccl->BboxTopLeftY,ccl->BboxBottomRightX,ccl->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, so prepare to invoke Java method
   if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_PLB
-     ("pl_on_border_of", ccp, ccl)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  ((CcBool *)result.addr)->Set(true, callJMethod_PLB("pl_on_border_of", ccp, ccl)); 
 
   return 0;
 }
@@ -5053,20 +5025,20 @@ static int pr_on_border_ofFun(Word* args, Word& result, int message,
   CcPoints* ccp = ((CcPoints *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
   
+  //if bboxes don't intersect, return false
+  if (!bboxesIntersect(ccp->BboxTopLeftX,ccp->BboxTopLeftY,ccp->BboxBottomRightX,ccp->BboxBottomRightY,
+		       ccr->BboxTopLeftX,ccr->BboxTopLeftY,ccr->BboxBottomRightX,ccr->BboxBottomRightY)) {
+    result = qp->ResultStorage(s);
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  //bboxes intersect, so prepare to invoke Java method
   if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
   
-  ((CcBool *)result.addr)->Set
-    (true, callJMethod_PRB
-     ("pr_on_border_of", ccp, ccr)); 
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
+  ((CcBool *)result.addr)->Set(true, callJMethod_PRB("pr_on_border_of", ccp, ccr)); 
 
   return 0;
 }
@@ -5082,20 +5054,21 @@ static int pp_intersectionFun(Word* args, Word& result, int message,
 
   CcPoints* ccp1 = ((CcPoints *)args[0].addr);
   CcPoints* ccp2 = ((CcPoints *)args[1].addr);
-  
+
+  //if bboxes don't intersect, return empty object
+  if (!bboxesIntersect(ccp1->BboxTopLeftX,ccp1->BboxTopLeftY,ccp1->BboxBottomRightX,ccp1->BboxBottomRightY,
+		       ccp2->BboxTopLeftX,ccp2->BboxTopLeftY,ccp2->BboxBottomRightX,ccp2->BboxBottomRightY)) {
+    ((CcPoints*)result.addr) = new CcPoints(env->NewObject(clsPoints,midPointsConst));
+    return 0;
+  }
+  //bboxes intersect, prepare to invoke Java method
   if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
  
   ccresult = callJMethod_PPP("pp_intersection", ccp1, ccp2);
   result.addr = ccresult;
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
 
   return 0;
 }
@@ -5111,20 +5084,21 @@ static int ll_intersectionFun(Word* args, Word& result, int message,
 
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
-
+  
+  //if bboxes don't intersect, return empty object
+  if (!bboxesIntersect(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
+		       ccl2->BboxTopLeftX,ccl2->BboxTopLeftY,ccl2->BboxBottomRightX,ccl2->BboxBottomRightY)) {
+    ((CcPoints*)result.addr) = new CcPoints(env->NewObject(clsPoints,midRegionsConstVoid));
+    return 0;
+  }
+  //bboxes intersect, so prepare to invoke Java method
   if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_LLP("ll_intersection", ccl1, ccl2);
   result.addr = ccresult;
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
 
   return 0;
 }
@@ -5136,30 +5110,25 @@ rl[_]intersection predicate for CcRegions and CcLines
 static int rl_intersectionFun(Word* args, Word& result, int message, 
 			      Word& local, Supplier s)
 {
-  //cout << "rl_intersection" << endl;
-  
   CcLines *ccresult;
 
   CcRegions* ccr = ((CcRegions *)args[0].addr);
   CcLines* ccl = ((CcLines *)args[1].addr);
 
+  //if bboxes don't intersect, return empty object
+  if (!bboxesIntersect(ccr->BboxTopLeftX,ccr->BboxTopLeftY,ccr->BboxBottomRightX,ccr->BboxBottomRightY,
+		       ccl->BboxTopLeftX,ccl->BboxTopLeftY,ccl->BboxBottomRightX,ccl->BboxBottomRightY)) {
+    ((CcLines*)result.addr) = new CcLines(env->NewObject(clsLines,midLinesConst));
+    return 0;
+  }
+  //bboxes intersect, so prepare to invoke Java method
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
-  //cout << "rl_intersection2" << endl;
 
   ccresult = callJMethod_RLL("rl_intersection", ccr, ccl);
   result.addr = ccresult;
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
-
-  //cout << "rl_intersection3" << endl;
 
   return 0;
 }
@@ -5180,21 +5149,15 @@ static int pp_plusFun(Word* args, Word& result, int message,
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
   
   ccresult = callJMethod_PPP("pp_plus", ccp1, ccp2);
   result.addr = ccresult;
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
 
   return 0;
 }
 
 /* 
-ll[_]plus predicate for two CcPoints. 
+ll[_]plus predicate for two CcLines. 
 
 */
 static int ll_plusFun(Word* args, Word& result, int message, 
@@ -5209,15 +5172,8 @@ static int ll_plusFun(Word* args, Word& result, int message,
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
   ccresult = callJMethod_LLL("ll_plus", ccl1, ccl2);
   result.addr = ccresult;
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
 
   return 0;
 }
@@ -5235,20 +5191,21 @@ static int pp_minusFun(Word* args, Word& result, int message,
 
   ccp1 = ((CcPoints *)args[0].addr);
   ccp2 = ((CcPoints *)args[1].addr);
-
+  
+  //if bboxes don't intersect, return first object
+  if (!bboxesIntersect(ccp1->BboxTopLeftX,ccp1->BboxTopLeftY,ccp1->BboxBottomRightX,ccp1->BboxBottomRightY,
+		       ccp2->BboxTopLeftX,ccp2->BboxTopLeftY,ccp2->BboxBottomRightX,ccp2->BboxBottomRightY)) {
+    ((CcPoints*)result.addr) = ccp1;
+    return 0;
+  }
+  //bboxes intersect, so prepare to invoke Java method
   if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_PPP("pp_minus", ccp1, ccp2);
   result.addr = ccresult;
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
 
   return 0;
 }
@@ -5264,20 +5221,20 @@ static int ll_minusFun(Word* args, Word& result, int message,
 
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
-
+  
+  //if bboxes don't intersect, return first object
+  if (!bboxesIntersect(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
+		       ccl2->BboxTopLeftX,ccl2->BboxTopLeftY,ccl2->BboxBottomRightX,ccl2->BboxBottomRightY)) {
+    ((CcLines*)result.addr) = ccl1;
+    return 0;
+  }
+  //bboxes intersect, so prepare to invoke Java method
   if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //query processor has provided
-  //a CcBool instance to take the result
-  
   ccresult = callJMethod_LLL("ll_minus", ccl1, ccl2);
   result.addr = ccresult;
-
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value)
 
   return 0;
 }
@@ -5292,21 +5249,21 @@ static int ll_common_borderFun(Word *args, Word& result,
 
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
-
+  
+  //if bboxes don't intersect, return empty object
+  if (!bboxesIntersect(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
+		       ccl2->BboxTopLeftX,ccl2->BboxTopLeftY,ccl2->BboxBottomRightX,ccl2->BboxBottomRightY)) {
+    ((CcLines*)result.addr) = new CcLines(env->NewObject(clsLines,midLinesConst));
+    return 0;
+  }
+  //bboxes intersect, so prepare to invoke Java method
   if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
-  //query processor has provided
-  //a CcBool instance to take the result
-  
   ccresult = callJMethod_LLL("ll_common_border", ccl1, ccl2);
   result.addr = ccresult;
 
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value
-  
   return 0;
 }
 
@@ -5321,20 +5278,21 @@ static int lr_common_borderFun(Word *args, Word& result,
   CcLines* ccl = ((CcLines *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
 
+  //if bboxes don't intersect, return empty object
+  if (!bboxesIntersect(ccl->BboxTopLeftX,ccl->BboxTopLeftY,ccl->BboxBottomRightX,ccl->BboxBottomRightY,
+		       ccr->BboxTopLeftX,ccr->BboxTopLeftY,ccr->BboxBottomRightX,ccr->BboxBottomRightY)) {  
+    ((CcLines*)result.addr) = new CcLines(env->NewObject(clsLines,midLinesConst));
+    return 0;
+  }
+  //bboxes intersect, so prepare to invoke Java method
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
-  //query processor has provided
-  //a CcBool instance to take the result
   
   ccresult = callJMethod_LRL("lr_common_border", ccl, ccr);
   result.addr = ccresult;
 
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value
-  
   return 0;
 }
 
@@ -5349,19 +5307,20 @@ static int rl_common_borderFun(Word *args, Word& result,
   CcRegions* ccr = ((CcRegions *)args[0].addr);
   CcLines* ccl = ((CcLines *)args[1].addr);
 
+  //if bboxes don't intersect, return empty object
+  if (!bboxesIntersect(ccr->BboxTopLeftX,ccr->BboxTopLeftY,ccr->BboxBottomRightX,ccr->BboxBottomRightY,
+		       ccl->BboxTopLeftX,ccl->BboxTopLeftY,ccl->BboxBottomRightX,ccl->BboxBottomRightY)) {
+    ((CcLines*)result.addr) = new CcLines(env->NewObject(clsLines,midLinesConst));
+    return 0;
+  }
+  //bboxes intersect, so prepare to invoke Java method
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
-  //query processor has provided
-  //a CcBool instance to take the result
-  
   ccresult = callJMethod_RLL("rl_common_border", ccr, ccl);
   result.addr = ccresult;
 
-  //the first argument says the boolean
-  //value is defined, the second is the
-  //real boolean value
   
   return 0;
 }
