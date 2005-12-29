@@ -1696,7 +1696,7 @@ const string union_spec=
 const string intersection_spec=
             "( (\"Signature\" \"Syntax\" \"Example\")"
             "  ( \" jbox x jbox -> jbox \" "
-	    "    \" _ intersection _ \" "
+	    "    \" intersection (_, _) \" "
 	    "    \" B1 intersection B2\"))";
 
 const string intersects_spec=
