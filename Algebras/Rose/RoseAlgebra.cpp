@@ -63,9 +63,10 @@ static QueryProcessor* qp;
 */
 static JVMInitializer *jvminit = 0;
 
-/* Pointer to the JVM Environment and JVM. */
+/* Pointers to the JVM Environment and JVM. */
 static JNIEnv *env;
 static JavaVM *jvm;
+/* Pointers to some 2DSACK classes. */
 static jclass clsPoints;
 static jclass clsLines;
 static jclass clsRegions;
@@ -82,6 +83,7 @@ static jclass clsSegmentComparator;
 static jclass clsROSEAlgebra;
 static jclass clsRect;
 
+/* Pointers to some 2DSACK methods. */
 static jmethodID midRationalGetDouble;
 static jmethodID midPMSToArray;
 static jmethodID midSegmentGetStartpoint;
@@ -132,15 +134,92 @@ static jmethodID midRectGetTopLeftY;
 static jmethodID midRectGetBottomRightX;
 static jmethodID midRectGetBottomRightY;
 
-static jmethodID midROSEpp_equal;
-static jmethodID midROSEll_equal;
-static jmethodID midROSErr_equal;
-static jmethodID midROSErr_minus;
-
+/* Pointers to field IDs of 2DSACK. */
 static jfieldID fidRationalX;
 static jfieldID fidRationalY;
 static jfieldID fidPointsPointSet;
 static jfieldID fidLinesSegmentSet;
+
+/* Pointers to ROSE operations. */
+static jmethodID midROSEp_diameter;
+static jmethodID midROSEp_no_of_components;
+
+static jmethodID midROSEl_diameter;
+static jmethodID midROSEl_interior;
+static jmethodID midROSEl_length;
+static jmethodID midROSEl_no_of_components;
+static jmethodID midROSEl_vertices;
+
+static jmethodID midROSEr_area;
+static jmethodID midROSEr_contour;
+static jmethodID midROSEr_diameter;
+static jmethodID midROSEr_no_of_components;
+static jmethodID midROSEr_perimeter;
+static jmethodID midROSEr_vertices;
+
+static jmethodID midROSEpp_disjoint;
+static jmethodID midROSEpp_dist;
+static jmethodID midROSEpp_equal;
+static jmethodID midROSEpp_plus;
+static jmethodID midROSEpp_minus;
+static jmethodID midROSEpp_unequal;
+static jmethodID midROSEpp_intersection;
+
+static jmethodID midROSEll_border_in_common;
+static jmethodID midROSEll_common_border;
+static jmethodID midROSEll_disjoint;
+static jmethodID midROSEll_dist;
+static jmethodID midROSEll_equal;
+static jmethodID midROSEll_intersection;
+static jmethodID midROSEll_meets;
+static jmethodID midROSEll_minus;
+static jmethodID midROSEll_plus;
+static jmethodID midROSEll_unequal;
+
+static jmethodID midROSErr_adjacent;
+static jmethodID midROSErr_area_disjoint;
+static jmethodID midROSErr_border_in_common;
+static jmethodID midROSErr_common_border;
+static jmethodID midROSErr_disjoint;
+static jmethodID midROSErr_dist;
+static jmethodID midROSErr_edge_disjoint;
+static jmethodID midROSErr_edge_inside;
+static jmethodID midROSErr_encloses;
+static jmethodID midROSErr_equal;
+static jmethodID midROSErr_inside;
+static jmethodID midROSErr_intersection;
+static jmethodID midROSErr_intersects;
+static jmethodID midROSErr_meets;
+static jmethodID midROSErr_minus;
+static jmethodID midROSErr_plus;
+static jmethodID midROSErr_unequal;
+static jmethodID midROSErr_vertex_inside;
+
+static jmethodID midROSEpl_dist;
+static jmethodID midROSEpl_on_border_of;
+
+static jmethodID midROSEpr_dist;
+static jmethodID midROSEpr_inside;
+static jmethodID midROSEpr_on_border_of;
+
+static jmethodID midROSElp_dist;
+
+static jmethodID midROSErp_dist;
+
+static jmethodID midROSElr_border_in_common;
+static jmethodID midROSElr_common_border;
+static jmethodID midROSElr_dist;
+static jmethodID midROSElr_inside;
+static jmethodID midROSElr_intersects;
+static jmethodID midROSElr_meets;
+
+static jmethodID midROSErl_border_in_common;
+static jmethodID midROSErl_common_border;
+static jmethodID midROSErl_dist;
+static jmethodID midROSErl_intersection;
+static jmethodID midROSErl_intersects;
+static jmethodID midROSErl_meets;
+
 
 /*
 1.2 Error functions.
@@ -1403,6 +1482,7 @@ Deletion of a CcPoints object.
 */
 static void DeleteCcPoints(Word &w) {
   //cout << "++++++++++++++++++++ called Delete of CcPointss +++++++++++++++++++++++++" << endl; 
+  ((CcPoints*)w.addr)->Finalize();
   delete ((CcPoints *)w.addr);
   w.addr = 0;
 }
@@ -1951,6 +2031,7 @@ Deletion of a CcLines object.
 */
 static void DeleteCcLines(Word &w) {
   //cout << "++++++++++++++++++++ called Delete of CcLines +++++++++++++++++++++++++" << endl;
+  ((CcLines*)w.addr)->Finalize();
   delete ((CcLines *)w.addr);
   w.addr = 0;
 }
@@ -2504,6 +2585,7 @@ Deletion of a CcRegions object.
 */
 static void DeleteCcRegions(Word &w) {
   //cout << "++++++++++++++++++++ called Delete of CcRegions +++++++++++++++++++++++++" << endl; 
+  ((CcRegions*)w.addr)->Finalize();
   delete ((CcRegions *)w.addr);
   w.addr = 0;
 }
@@ -5058,7 +5140,9 @@ static int pp_intersectionFun(Word* args, Word& result, int message,
   //if bboxes don't intersect, return empty object
   if (!bboxesIntersect(ccp1->BboxTopLeftX,ccp1->BboxTopLeftY,ccp1->BboxBottomRightX,ccp1->BboxBottomRightY,
 		       ccp2->BboxTopLeftX,ccp2->BboxTopLeftY,ccp2->BboxBottomRightX,ccp2->BboxBottomRightY)) {
-    ((CcPoints*)result.addr) = new CcPoints(env->NewObject(clsPoints,midPointsConst));
+    result = qp->ResultStorage(s);
+    delete (CcPoints*)result.addr;
+    qp->ResultStorage(s,SetWord(new CcPoints(env->NewObject(clsPoints,midPointsConst))));
     return 0;
   }
   //bboxes intersect, prepare to invoke Java method
@@ -5066,9 +5150,10 @@ static int pp_intersectionFun(Word* args, Word& result, int message,
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
- 
-  ccresult = callJMethod_PPP("pp_intersection", ccp1, ccp2);
-  result.addr = ccresult;
+  delete (CcPoints*)result.addr;
+
+  ccresult = new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_intersection,ccp1->GetObj(),ccp2->GetObj()));
+  qp->ResultStorage(s, SetWord(ccresult));
 
   return 0;
 }
@@ -6763,15 +6848,153 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   if (midRectGetBottomRightY == 0) error (__FILE__, __LINE__);
 
   //define ROSE function mid
+
+  midROSEp_diameter = env->GetStaticMethodID(clsROSEAlgebra,"p_diameter","(LPoints;)Ltwodsack/util/number/Rational;");
+  if (midROSEp_diameter == 0) error(__FILE__,__LINE__);
+  midROSEp_no_of_components = env->GetStaticMethodID(clsROSEAlgebra,"p_no_of_components","(LPoints;)I");
+  if (midROSEp_no_of_components == 0) error(__FILE__,__LINE__);
+
+  midROSEl_diameter = env->GetStaticMethodID(clsROSEAlgebra,"l_diameter","(LLines;)Ltwodsack/util/number/Rational;");
+  if (midROSEl_diameter == 0) error(__FILE__,__LINE__);
+  midROSEl_interior = env->GetStaticMethodID(clsROSEAlgebra,"l_interior","(LLines;)LRegions;");
+  if (midROSEl_interior == 0) error(__FILE__,__LINE__);
+  midROSEl_length = env->GetStaticMethodID(clsROSEAlgebra,"l_length","(LLines;)D");
+  if (midROSEl_length == 0) error(__FILE__,__LINE__);
+  midROSEl_no_of_components = env->GetStaticMethodID(clsROSEAlgebra,"l_no_of_components","(LLines;)I");
+  if (midROSEl_no_of_components == 0) error(__FILE__,__LINE__);
+  midROSEl_vertices = env->GetStaticMethodID(clsROSEAlgebra,"l_vertices","(LLines;)LPoints;");
+  if (midROSEl_vertices == 0) error(__FILE__,__LINE__);
+
+  midROSEr_area = env->GetStaticMethodID(clsROSEAlgebra,"r_area","(LRegions;)D");
+  if (midROSEr_area == 0) error(__FILE__,__LINE__);
+  midROSEr_contour = env->GetStaticMethodID(clsROSEAlgebra,"r_contour","(LRegions;)LLines;");
+  if (midROSEr_contour == 0) error(__FILE__,__LINE__);
+  midROSEr_diameter = env->GetStaticMethodID(clsROSEAlgebra,"r_diameter","(LRegions;)Ltwodsack/util/number/Rational;");
+  if (midROSEr_diameter == 0) error(__FILE__,__LINE__);
+  midROSEr_no_of_components = env->GetStaticMethodID(clsROSEAlgebra,"r_no_of_components","(LRegions;)I");
+  if (midROSEr_no_of_components == 0) error(__FILE__,__LINE__);
+  midROSEr_perimeter = env->GetStaticMethodID(clsROSEAlgebra,"r_perimeter","(LRegions;)D");
+  if (midROSEr_perimeter == 0) error(__FILE__,__LINE__);
+  midROSEr_vertices = env->GetStaticMethodID(clsROSEAlgebra,"r_vertices","(LRegions;)LPoints;");
+  if (midROSEr_vertices == 0) error(__FILE__,__LINE__);
+
+  midROSEpp_disjoint = env->GetStaticMethodID(clsROSEAlgebra,"pp_disjoint","(LPoints;LPoints;)Z");
+  if (midROSEpp_disjoint == 0) error(__FILE__,__LINE__);
+  midROSEpp_dist = env->GetStaticMethodID(clsROSEAlgebra,"pp_dist","(LPoints;LPoints;)Ltwodsack/util/number/Rational;");
+  if (midROSEpp_dist == 0) error(__FILE__,__LINE__);
   midROSEpp_equal = env->GetStaticMethodID(clsROSEAlgebra,"pp_equal","(LPoints;LPoints;)Z");
   if (midROSEpp_equal == 0) error(__FILE__,__LINE__);
+  midROSEpp_plus = env->GetStaticMethodID(clsROSEAlgebra,"pp_plus","(LPoints;LPoints;)LPoints;");
+  if (midROSEpp_plus == 0) error(__FILE__,__LINE__);
+  midROSEpp_minus = env->GetStaticMethodID(clsROSEAlgebra,"pp_minus","(LPoints;LPoints;)LPoints;");
+  if (midROSEpp_minus == 0) error(__FILE__,__LINE__);
+  midROSEpp_unequal = env->GetStaticMethodID(clsROSEAlgebra,"pp_unequal","(LPoints;LPoints;)Z");
+  if (midROSEpp_unequal == 0) error(__FILE__,__LINE__);
+  midROSEpp_intersection = env->GetStaticMethodID(clsROSEAlgebra,"pp_intersection","(LPoints;LPoints;)LPoints;");
+  if (midROSEpp_intersection == 0) error(__FILE__,__LINE__);
+
+  midROSEll_border_in_common = env->GetStaticMethodID(clsROSEAlgebra,"ll_border_in_common","(LLines;LLines;)Z");
+  if (midROSEll_border_in_common == 0) error(__FILE__,__LINE__);
+  midROSEll_common_border = env->GetStaticMethodID(clsROSEAlgebra,"ll_common_border","(LLines;LLines;)LLines;");
+  if (midROSEll_common_border == 0) error(__FILE__,__LINE__);
+  midROSEll_disjoint = env->GetStaticMethodID(clsROSEAlgebra,"ll_disjoint","(LLines;LLines;)Z");
+  if (midROSEll_disjoint == 0) error(__FILE__,__LINE__);
+  midROSEll_dist = env->GetStaticMethodID(clsROSEAlgebra,"ll_dist","(LLines;LLines;)Ltwodsack/util/number/Rational;");
+  if (midROSEll_dist == 0) error(__FILE__,__LINE__);
   midROSEll_equal = env->GetStaticMethodID(clsROSEAlgebra,"ll_equal","(LLines;LLines;)Z");
   if (midROSEll_equal == 0) error(__FILE__,__LINE__);
+  midROSEll_intersection = env->GetStaticMethodID(clsROSEAlgebra,"ll_intersection","(LLines;LLines;)LPoints;");
+  if (midROSEll_intersection == 0) error(__FILE__,__LINE__);
+  midROSEll_meets = env->GetStaticMethodID(clsROSEAlgebra,"ll_meets","(LLines;LLines;)Z");
+  if (midROSEll_meets == 0) error(__FILE__,__LINE__);
+  midROSEll_minus = env->GetStaticMethodID(clsROSEAlgebra,"ll_minus","(LLines;LLines;)LLines;");
+  if (midROSEll_minus == 0) error(__FILE__,__LINE__);
+  midROSEll_plus = env->GetStaticMethodID(clsROSEAlgebra,"ll_plus","(LLines;LLines;)LLines;");
+  if (midROSEll_plus == 0) error(__FILE__,__LINE__);
+  midROSEll_unequal = env->GetStaticMethodID(clsROSEAlgebra,"ll_unequal","(LLines;LLines;)Z");
+  if (midROSEll_unequal == 0) error(__FILE__,__LINE__);
+
+  midROSErr_adjacent = env->GetStaticMethodID(clsROSEAlgebra,"rr_adjacent","(LRegions;LRegions;)Z");
+  if (midROSErr_adjacent == 0) error(__FILE__,__LINE__);
+  midROSErr_area_disjoint = env->GetStaticMethodID(clsROSEAlgebra,"rr_area_disjoint","(LRegions;LRegions;)Z");
+  if (midROSErr_area_disjoint == 0) error(__FILE__,__LINE__);
+  midROSErr_border_in_common = env->GetStaticMethodID(clsROSEAlgebra,"rr_border_in_common","(LRegions;LRegions;)Z");
+  if (midROSErr_border_in_common == 0) error(__FILE__,__LINE__);
+  midROSErr_common_border = env->GetStaticMethodID(clsROSEAlgebra,"rr_common_border","(LRegions;LRegions;)LLines;");
+  if (midROSErr_common_border == 0) error(__FILE__,__LINE__);
+  midROSErr_disjoint = env->GetStaticMethodID(clsROSEAlgebra,"rr_disjoint","(LRegions;LRegions;)Z");
+  if (midROSErr_disjoint == 0) error(__FILE__,__LINE__);
+  midROSErr_dist = env->GetStaticMethodID(clsROSEAlgebra,"rr_dist","(LRegions;LRegions;)Ltwodsack/util/number/Rational;");
+  if (midROSErr_dist == 0) error(__FILE__,__LINE__);
+  midROSErr_edge_disjoint = env->GetStaticMethodID(clsROSEAlgebra,"rr_edge_disjoint","(LRegions;LRegions;)Z");
+  if (midROSErr_edge_disjoint == 0) error(__FILE__,__LINE__);
+  midROSErr_edge_inside = env->GetStaticMethodID(clsROSEAlgebra,"rr_edge_inside","(LRegions;LRegions;)Z");
+  if (midROSErr_edge_inside == 0) error(__FILE__,__LINE__);
+  midROSErr_encloses = env->GetStaticMethodID(clsROSEAlgebra,"rr_encloses","(LRegions;LRegions;)Z");
+  if (midROSErr_encloses == 0) error(__FILE__,__LINE__);
   midROSErr_equal = env->GetStaticMethodID(clsROSEAlgebra,"rr_equal","(LRegions;LRegions;)Z");
   if (midROSErr_equal == 0) error(__FILE__,__LINE__);
+  midROSErr_inside = env->GetStaticMethodID(clsROSEAlgebra,"rr_inside","(LRegions;LRegions;)Z");
+  if (midROSErr_inside == 0) error(__FILE__,__LINE__);
+  midROSErr_intersection = env->GetStaticMethodID(clsROSEAlgebra,"rr_intersection","(LRegions;LRegions;)LRegions;");
+  if (midROSErr_intersection == 0) error(__FILE__,__LINE__);
+  midROSErr_intersects = env->GetStaticMethodID(clsROSEAlgebra,"rr_intersects","(LRegions;LRegions;)Z");
+  if (midROSErr_intersects == 0) error(__FILE__,__LINE__);
+  midROSErr_meets = env->GetStaticMethodID(clsROSEAlgebra,"rr_meets","(LRegions;LRegions;)Z");
+  if (midROSErr_meets == 0) error(__FILE__,__LINE__);
   midROSErr_minus = env->GetStaticMethodID(clsROSEAlgebra,"rr_minus","(LRegions;LRegions;)LRegions;");
   if (midROSErr_minus == 0) error(__FILE__, __LINE__);
+  midROSErr_plus = env->GetStaticMethodID(clsROSEAlgebra,"rr_plus","(LRegions;LRegions;)LRegions;");
+  if (midROSErr_plus == 0) error(__FILE__,__LINE__);
+  midROSErr_unequal = env->GetStaticMethodID(clsROSEAlgebra,"rr_unequal","(LRegions;LRegions;)Z");
+  if (midROSErr_unequal == 0) error(__FILE__,__LINE__);
+  midROSErr_vertex_inside = env->GetStaticMethodID(clsROSEAlgebra,"rr_vertex_inside","(LRegions;LRegions;)Z");
+  if (midROSErr_vertex_inside == 0) error(__FILE__,__LINE__);
+
+  midROSEpl_dist = env->GetStaticMethodID(clsROSEAlgebra,"pl_dist","(LPoints;LLines;)Ltwodsack/util/number/Rational;");
+  if (midROSEpl_dist == 0) error(__FILE__,__LINE__);
+  midROSEpl_on_border_of = env->GetStaticMethodID(clsROSEAlgebra,"pl_on_border_of","(LPoints;LLines;)Z");
+  if (midROSEpl_on_border_of == 0) error(__FILE__,__LINE__);
+
+  midROSEpr_dist = env->GetStaticMethodID(clsROSEAlgebra,"pr_dist","(LPoints;LRegions;)Ltwodsack/util/number/Rational;");
+  if (midROSEpr_dist == 0) error(__FILE__,__LINE__);
+  midROSEpr_inside = env->GetStaticMethodID(clsROSEAlgebra,"pr_inside","(LPoints;LRegions;)Z");
+  if (midROSEpr_inside == 0) error(__FILE__,__LINE__);
+  midROSEpr_on_border_of = env->GetStaticMethodID(clsROSEAlgebra,"pr_on_border_of","(LPoints;LRegions;)Z");
+  if (midROSEpr_on_border_of == 0) error(__FILE__,__LINE__);
   
+  midROSElp_dist = env->GetStaticMethodID(clsROSEAlgebra,"lp_dist","(LLines;LPoints;)Ltwodsack/util/number/Rational;");
+  if (midROSElp_dist == 0) error(__FILE__,__LINE__);
+
+  midROSErp_dist = env->GetStaticMethodID(clsROSEAlgebra,"rp_dist","(LRegions;LPoints;)Ltwodsack/util/number/Rational;");
+  if (midROSErp_dist == 0) error(__FILE__,__LINE__);
+
+  midROSElr_border_in_common = env->GetStaticMethodID(clsROSEAlgebra,"lr_border_in_common","(LLines;LRegions;)Z");
+  if (midROSElr_border_in_common == 0) error(__FILE__,__LINE__);
+  midROSElr_common_border = env->GetStaticMethodID(clsROSEAlgebra,"lr_common_border","(LLines;LRegions;)LLines;");
+  if (midROSElr_common_border == 0) error(__FILE__,__LINE__);
+  midROSElr_dist = env->GetStaticMethodID(clsROSEAlgebra,"lr_dist","(LLines;LRegions;)Ltwodsack/util/number/Rational;");
+  if (midROSElr_dist == 0) error(__FILE__,__LINE__);
+  midROSElr_inside = env->GetStaticMethodID(clsROSEAlgebra,"lr_inside","(LLines;LRegions;)Z");
+  if (midROSElr_inside == 0) error(__FILE__,__LINE__);
+  midROSElr_intersects = env->GetStaticMethodID(clsROSEAlgebra,"lr_intersects","(LLines;LRegions;)Z");
+  if (midROSElr_intersects == 0) error(__FILE__,__LINE__);
+  midROSElr_meets = env->GetStaticMethodID(clsROSEAlgebra,"lr_meets","(LLines;LRegions;)Z");
+  if (midROSElr_meets == 0) error(__FILE__,__LINE__);
+
+  midROSErl_border_in_common = env->GetStaticMethodID(clsROSEAlgebra,"rl_border_in_common","(LRegions;LLines;)Z");
+  if (midROSErl_border_in_common == 0) error(__FILE__,__LINE__);
+  midROSErl_common_border = env->GetStaticMethodID(clsROSEAlgebra,"rl_common_border","(LRegions;LLines;)LLines;");
+  if (midROSErl_common_border == 0) error(__FILE__,__LINE__);
+  midROSErl_dist = env->GetStaticMethodID(clsROSEAlgebra,"rl_dist","(LRegions;LLines;)Ltwodsack/util/number/Rational;");
+  if (midROSErl_dist == 0) error(__FILE__,__LINE__);
+  midROSErl_intersection = env->GetStaticMethodID(clsROSEAlgebra,"rl_intersection","(LRegions;LLines;)LLines;");
+  if (midROSErl_intersection == 0) error(__FILE__,__LINE__);
+  midROSErl_intersects = env->GetStaticMethodID(clsROSEAlgebra,"rl_intersects","(LRegions;LLines;)Z");
+  if (midROSErl_intersects == 0) error(__FILE__,__LINE__);
+  midROSErl_meets = env->GetStaticMethodID(clsROSEAlgebra,"rl_meets","(LRegions;LLines;)Z");
+  if (midROSErl_meets == 0) error(__FILE__,__LINE__);
+
   //define java fields, that are needed
   fidRationalX = env->GetFieldID(clsPoint, "x", "Ltwodsack/util/number/Rational;");
   if (fidRationalX == 0) error(__FILE__,__LINE__);
