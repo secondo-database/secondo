@@ -185,8 +185,8 @@ class SortByLocalInfo
         // mergeTuples( PairTupleCompareBy( tupleCmpBy )). It does only work if
         // mergeTuples is a local variable which does not help us in this case.
         // Hence a new class TupleAndRelPos was defined to define a '<' operator. 
-        priority_queue<TupleAndRelPos>* currentRun = &queue[0];
-        priority_queue<TupleAndRelPos>* nextRun = &queue[1];
+        TupleQueue* currentRun = &queue[0];
+        TupleQueue* nextRun = &queue[1];
        
         Word wTuple = SetWord(Address(0));
         size_t  c = 0, i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
@@ -215,9 +215,10 @@ class SortByLocalInfo
         while(qp->Received(stream.addr)) // consume the stream completely
         {
           c++; // tuple counter;
-          Tuple *t = static_cast<Tuple*>( wTuple.addr )->CloneIfNecessary();
-          if( t != wTuple.addr ) {
-            static_cast<Tuple*>( wTuple.addr )->DeleteIfAllowed();
+          Tuple *s = static_cast<Tuple*>( wTuple.addr );
+          Tuple *t = s->CloneIfNecessary();
+          if( t != s ) {
+            s->DeleteIfAllowed();
           }
           
           TupleAndRelPos nextTuple(t, tupleCmpBy); 
@@ -282,7 +283,7 @@ class SortByLocalInfo
                   newRelation = true;
                   
                   // swap queues
-                  priority_queue<TupleAndRelPos> *helpRun = currentRun;
+                  TupleQueue *helpRun = currentRun;
                   currentRun = nextRun;
                   nextRun = helpRun;
                   ShowPartitionInfo(c,a,n,m,r);
@@ -346,20 +347,34 @@ class SortByLocalInfo
         TRACE( relations.size() << " partitions created!")
       }
 
+/*
+It may happen, that the localinfo object will be destroyed
+before all internal buffered tuples are delivered stream
+upwards, e.g. queries which use a ~head~ operator.
+In this case we need to delete also all tuples stored in memory.
+
+*/
+
     ~SortByLocalInfo()
     {
-      if ( !mergeTuples.empty() ) {
-        cmsg.warning() << "Warning SortByLocalInfo contains " 
-                       << mergeTuples.size() <<" tuples!" << endl;
-        cmsg.send();
+      delete tupleType;
+
+      // delete tuples left in memory
+      TupleQueue* q[3] = { &mergeTuples, &(queue[0]), &(queue[1]) };
+
+      for ( int i = 0; i < 3; i++ ) {
+        while ( !q[i]->empty() ) {
+          delete q[i]->top().tuple;
+          q[i]->pop();
+        }
       }
 
+      // delete information about sorted runs
       for( size_t i = 0; i < relations.size(); i++ )
       {
         delete relations[i].second;
         delete relations[i].first;
       }
-      delete tupleType;
     }
 
     Tuple *NextResultTuple()
@@ -432,10 +447,13 @@ class SortByLocalInfo
 
     // sorted runs created by in memory heap filtering 
     size_t MAX_TUPLES_IN_MEMORY;
+
     typedef pair<TupleBuffer*, TupleBufferIterator*> SortedRun;
     vector< SortedRun > relations;
-    priority_queue<TupleAndRelPos> queue[2];
-    priority_queue<TupleAndRelPos> mergeTuples;
+
+    typedef priority_queue<TupleAndRelPos> TupleQueue;
+    TupleQueue queue[2];
+    TupleQueue mergeTuples;
 };
 
 /*
