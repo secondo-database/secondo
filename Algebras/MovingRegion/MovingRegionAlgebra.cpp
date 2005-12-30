@@ -3356,8 +3356,9 @@ static ListExpr IRegionProperty() {
     
     ListExpr example = nl->TextAtom();
     nl->AppendText(example,
-		   "(\"2003-01-10\" (((3 0)(10 1)(3 1))((3.1 0.1)"
-		   "(3.1 0.9)(6 0.8))))");
+		   "(\"2003-01-10\" ((((1.0 3.5)(2.0 5.5)(3.0 6.5)(4.0 6.5)"
+		   "(4.0 5.5)(5.0 4.5)(5.0 2.5)(4.0 1.5)(3.0 1.5))"
+		   "((2.0 3.0)(2.0 4.0)(3.0 4.0)(3.0 3.0)))))");
     return 
 	nl->TwoElemList(
             nl->FourElemList(
@@ -5772,9 +5773,20 @@ static ListExpr URegionProperty() {
 		   "start X, start Y, end X and end Y values.");
     ListExpr example = nl->TextAtom();
     nl->AppendText(example,
-		   "((0.0 10.0 TRUE FALSE) "
-		   "(((3 0)(10 1)(3 1))((3.1 0.1)"
-		   "(3.1 0.9)(6 0.8))))");
+		   "((0.0 10.0 TRUE TRUE)"
+		   "((((1.0 3.5 1.5 1.5)"
+		   "(2.0 5.5 3.0 4.5)"
+		   "(3.0 6.5 3.5 5.0)"
+		   "(4.0 6.5 5.5 5.0)"
+		   "(4.0 5.5 5.5 4.5)"
+		   "(5.0 4.5 7.5 2.5)"
+		   "(5.0 2.5 7.5 1.0)"
+		   "(4.0 1.5 7.0 0.5)"
+		   "(3.0 1.5 2.5 0.5))"
+		   "((2.0 3.0 3.0 2.0)"
+		   "(2.0 4.0 3.0 3.0)"
+		   "(3.0 4.0 4.0 3.0)"
+		   "(3.0 3.0 4.0 2.0)))))");
     ListExpr remarks = nl->TextAtom();
     nl->AppendText(remarks,
 		   "All <holecycle> must be completely within "
@@ -7129,14 +7141,20 @@ static ListExpr MRegionProperty() {
 		   "<uregion> is uregion list representation.");
     ListExpr example = nl->TextAtom();
     nl->AppendText(example,
-		   "(((0.0 10.0 TRUE FALSE) "
-		   "(((3 0)(10 1)(3 1))((3.1 0.1)"
-		   "(3.1 0.9)(6 0.8))))((10.0 20.0 TRUE FALSE) "
-		   "(((0.0 0.0 -1.0 -1.0) (1.0 0.0 2.0 -1.0) "
-		   "(1.0 1.0 2.0 2.0) (0.0 1.0 -1.0 2.0)))) "
-		   "((20.0 30.0 TRUE FALSE) (((4.0 4.0 3.0 3.0) "
-		   "(5.0 4.0 6.0 3.0) (5.0 5.0 6.0 6.0) "
-		   "(4.0 5.0 3.0 6.0)))))");
+		   "(((0.0 10.0 TRUE TRUE)"
+		   "((((1.0 3.5 1.5 1.5)"
+		   "(2.0 5.5 3.0 4.5)"
+		   "(3.0 6.5 3.5 5.0)"
+		   "(4.0 6.5 5.5 5.0)"
+		   "(4.0 5.5 5.5 4.5)"
+		   "(5.0 4.5 7.5 2.5)"
+		   "(5.0 2.5 7.5 1.0)"
+		   "(4.0 1.5 7.0 0.5)"
+		   "(3.0 1.5 2.5 0.5))"
+		   "((2.0 3.0 3.0 2.0)"
+		   "(2.0 4.0 3.0 3.0)"
+		   "(3.0 4.0 4.0 3.0)"
+		   "(3.0 3.0 4.0 2.0))))))");
 
     return 
 	nl->TwoElemList(
@@ -8092,14 +8110,14 @@ static const string presentspec =
 static const string intersectionspec = 
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>(mpoint mregion) -> mpoint</text--->"
-    "    <text>_ intersection _</text--->"
+    "    <text>intersection( _ , _)</text--->"
     "    <text>Intersection between mpoint and mregion.</text--->"
-    "    <text>mpoint1 intersection mregion1</text---> ) )";
+    "    <text>intersection(mpoint1, mregion1)</text---> ) )";
 
 static const string insidespec = 
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>(mpoint mregion) -> mbool</text--->"
-    "    <text>_ intersection _</text--->"
+    "    <text>_ inside _</text--->"
     "    <text>Calculates if and when mpoint is inside "
     "mregion.</text--->"
     "    <text>mpoint1 inside mregion1</text---> ) )";
