@@ -46,6 +46,10 @@ Fernuniversit[ae]t Hagen.
 
   * Bug: Awkward memory leak at the end of URegion::TemporalFunction().
 
+  * Bug: ~intimeregion~ object creation via ~const intimeregion value ...~ 
+    results in a failed assertion. This probably relates to an issue in the
+    TemporalAlgebra: Waiting for feedback from Victor Almeida.
+
   * Not confirmed: MRegion objects cannot be imported into SECONDO according 
     to Thomas Behr. 
 
