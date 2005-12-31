@@ -1539,7 +1539,7 @@ public class ROSEAlgebra {
     public static Rational ll_dist (Lines l1, Lines l2) {
 	Rational retVal = RationalFactory.constRational(0);
 	try {
-	    if (ll_disjoint(l1,l2)) return retVal;
+	    if (!ll_disjoint(l1,l2)) return retVal;
 	    
 	    Method methodDIST = SEG_CLASS.getMethod("dist",PARAMLIST_E);
 	    ElemPair retPair = SetOps.min(l1.segset,l2.segset,methodDIST);
@@ -1625,7 +1625,7 @@ public class ROSEAlgebra {
     public static Rational rr_dist (Regions r1, Regions r2) {
 	Rational retVal = RationalFactory.constRational(0);
 	try {
-	    if (rr_disjoint(r1,r2)) return retVal;
+	    if (!rr_disjoint(r1,r2)) return retVal;
 	    
 	    Method methodDIST = TRI_CLASS.getMethod("dist",PARAMLIST_E);
 	    ElemPair retPair = SetOps.min(r1.triset,r2.triset,methodDIST);

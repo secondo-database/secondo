@@ -1,3 +1,4 @@
+import twodsack.io.*;
 import twodsack.operation.setoperation.*;
 import twodsack.set.*;
 import twodsack.setelement.datatype.*;
@@ -122,6 +123,20 @@ public class Regions implements Serializable{
      * @param sl the set of segments
      */
     public Regions(SegMultiSet sl) {
+
+	BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
+	DisplayGFX gfx = new DisplayGFX();
+	
+	gfx.initWindow();
+	gfx.addSet(sl);
+	gfx.showIt(false);
+ 	try {
+	    String data = inBR.readLine();
+ 	} catch (Exception e) {
+	    System.exit(0);
+	}//catch
+	gfx.kill();
+
 	if (sl == null || sl.isEmpty()) {
 	    triset = new TriMultiSet(new TriangleComparator());
 	    cyclesDefined = false;

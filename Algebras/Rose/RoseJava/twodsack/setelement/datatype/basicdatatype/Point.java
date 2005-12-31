@@ -205,19 +205,8 @@ public class Point extends Element implements Serializable {
 		double ty = this.y.getDouble();
 		double px = p.x.getDouble();
 		double py = p.y.getDouble();
-		
-		/*
-		double diffx = tx - px;
-		double diffy = ty - py;
-		
-		if ((diffx < DEVIATION_DOUBLE && diffx > DEVIATION_DOUBLE_NEG) &&
-		    (diffy < DEVIATION_DOUBLE && diffy > DEVIATION_DOUBLE_NEG))
-		    return true;
-		else return false;
-		*/
 		double diffx = Math.abs(tx-px);
 		double diffy = Math.abs(ty-py);
-		System.out.println("diffx: "+diffx+", diffy: "+diffy);
 		if (diffx < DEVIATION_DOUBLE && diffy < DEVIATION_DOUBLE)
 		    return true;
 		else 

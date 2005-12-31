@@ -391,8 +391,10 @@ public class RationalDouble extends Rational implements Serializable{
      * @return one of {0, 1, -1} as <tt>byte</tt>
      */
     public byte comp (Rational r) {
+	//System.out.println("RD.comp: dev: "+DEVIATION_DOUBLE+", this.d: "+this.d+", r.d: "+((RationalDouble)r).d);
 	if (this.equal(r)) return 0;
-	if (this.d < ((RationalDouble)r).d) return -1;
+	//if (this.d < ((RationalDouble)r).d) return -1;
+	if (this.less(r)) return -1;
 	else return 1;
     }//end method comp
     
