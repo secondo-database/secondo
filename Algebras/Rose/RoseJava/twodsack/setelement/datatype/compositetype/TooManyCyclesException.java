@@ -8,7 +8,7 @@
 package twodsack.setelement.datatype.compositetype;
 
 /**
- * This exception is thrown, when the number of cycles passed to a method is greater than allowed.
+ * This exception is thrown, if the number of cycles passed to a method is greater than allowed.
  * Certain methods only allow a limited number of cycles, i.e. mostly only one cycle.
  * If the number of cycles is greater, this exception is thrown.
  */
