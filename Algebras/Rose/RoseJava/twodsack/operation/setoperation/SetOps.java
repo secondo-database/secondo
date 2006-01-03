@@ -2206,18 +2206,19 @@ public class SetOps {
 	Iterator it2 = ems2.iterator();
 	boolean getNextE1 = true;
 	boolean getNextE2 = true;
-	MultiSetEntry mse1 = new MultiSetEntry();
-	MultiSetEntry mse2 = new MultiSetEntry();
+	MultiSetEntry mse1 = null;
+	MultiSetEntry mse2 = null;
+	Element e1,e2;
 
-	while (it1.hasNext() && it2.hasNext()) {
+	while (true) {
 	    if (getNextE1) { mse1 = (MultiSetEntry)it1.next(); }
 	    if (getNextE2) { mse2 = (MultiSetEntry)it2.next(); }
-	    Element e1 = (Element)mse1.value;
-	    Element e2 = (Element)mse2.value;
+	    e1 = (Element)mse1.value;
+	    e2 = (Element)mse2.value;
 	    
 	    int cmp = e1.compare(e2);
 	    if (cmp == 0) {
-		eRet.add(e1.copy());
+		eRet.add(e1);
 		getNextE1 = true;
 		getNextE2 = true;
 	    }//if
@@ -2229,6 +2230,9 @@ public class SetOps {
 		getNextE1 = false;
 		getNextE2 = true;
 	    }//else
+	    if ((getNextE1 && !it1.hasNext()) ||
+		(getNextE2 && !it2.hasNext()))
+		break;
 	}//while
 
 	return eRet;
