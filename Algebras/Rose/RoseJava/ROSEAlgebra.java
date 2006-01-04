@@ -94,7 +94,7 @@ public class ROSEAlgebra {
      */
     /**
      * This is a supportive method for ll_intersects and rr_intersects.
-     * It returns <tt>true</tt> if elements of both sets intersect. The <tt>intersects</tt> method of the elements is used for this
+     * It returns <tt>true</tt> if elements of both sets intersect. The <tt>pintersects</tt> method of the elements is used for this
      * predicate.
      *
      * @param ems1 the first set of elements
@@ -110,11 +110,10 @@ public class ROSEAlgebra {
 	
 	try {
 	    paramList[0] = Class.forName("twodsack.setelement.Element");
-	    Method methodINTERSECTS = c.getMethod("intersects",paramList);
+	    Method methodINTERSECTS = c.getMethod("pintersects",paramList);
 	    pms = SetOps.overlapJoin(ems1,ems2,methodINTERSECTS,true,true,false,0);
 	} catch (Exception e) {
-	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
 	
 	if (pms.isEmpty())
@@ -142,8 +141,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.pp_equal. Return false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method pp_equal
     
     
@@ -161,8 +160,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.ll_equal. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method ll_equal
     
 
@@ -180,8 +179,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_equal. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method rr_equal
 
    
@@ -199,8 +198,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.pp_unequal. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method pp_unequal
 
     
@@ -218,8 +217,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.ll_unequal. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method ll_unequal
     
 
@@ -237,8 +236,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_unequal. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method rr_unequal
     
     
@@ -256,8 +255,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.pp_disjoint. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method pp_disjoint 
     
 
@@ -276,8 +275,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.ll_disjoint. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method ll_disjoint
 
 
@@ -296,8 +295,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_disjoint. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method rr_disjoint
 
     
@@ -329,8 +328,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.pr_inside. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method pr_inside
    
     
@@ -358,8 +357,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.lr_inside. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method lr_inside
     
 
@@ -374,12 +373,12 @@ public class ROSEAlgebra {
     public static boolean rr_inside (Regions r1, Regions r2) {
 	if (!r1.rect().hasCommonPoints(r2.rect())) return false;
 	try {
-	    return rr_minus(r2,r1).triset.isEmpty();
+	    return rr_minus(r1,r2).triset.isEmpty();
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_inside. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method rr_inside 
     
     
@@ -405,8 +404,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_area_disjoint. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method rr_area_disjoint
     
     
@@ -424,8 +423,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_edge_disjoint. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method rr_edge_disjoint
    
     
@@ -448,8 +447,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_edge_inside. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method rr_edge_inside
     
     
@@ -497,14 +496,14 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_vertex_inside. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method rr_vertex_inside
     
     
     /**
-     * Returns <tt>true</tt>, if at least one pair of segments of <tt>l1,l2</tt> has a common point.
-     * A proper intersection point is not needed for this predicate to hold.
+     * Returns <tt>true</tt>, if at least one pair of segments of <tt>l1,l2</tt> has a proper intersection point.
+     * A simple overlap of two segments doesn't suffice for this predicate to hold.
      *
      * @param l1 the first Lines value
      * @param l2 the second Lines value
@@ -517,8 +516,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.ll_intersects. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method ll_intersects
   
 
@@ -545,8 +544,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.lr_intersects. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method lr_intersects
     
 
@@ -565,14 +564,13 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rl_intersects. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method rl_intersects 
 
     
     /**
-     * Returns <tt>true</tt>, if <tt>r1,r2</tt> have common points.
-     * A common area is not needed for this predicate to hold.
+     * Returns <tt>true</tt>, if <tt>r1,r2</tt> have a common area.
      *
      * @param r1 the first Regions value
      * @param r2 the second Regions value
@@ -585,15 +583,15 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_intersects. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method rr_intersects 
 
 
     /**
      * Returns <tt>true</tt>, if <tt>l1,l2</tt> meet.
-     * There must be at least one pair of line segments that meets, i.e. they have one common point. But there must be
-     * no pair of line segments that properly intersects.
+     * There must be at least one pair of line segments that meets, i.e. they have one common point. But there must not be
+     * a pair of line segments that properly intersects.
      *
      * @param l1 the first Lines value
      * @param l2 the second Lines value
@@ -622,8 +620,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.ll_meets. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method ll_meets
   
 
@@ -642,8 +640,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.lr_meets. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method lr_meets
    
 
@@ -662,8 +660,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rl_meets. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method rl_meets
 
  
@@ -687,8 +685,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_meets. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method rr_meets
 
 
@@ -716,8 +714,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.ll_border_in_common. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method ll_border_in_common
     
 
@@ -730,9 +728,7 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>l,r</tt> have a common border
      */
     public static boolean lr_border_in_common (Lines l, Regions r) {
-	System.out.println("RA.lr_bic");
 	if (!l.rect().hasCommonPoints(r.rect())) return false;
-	System.out.println("passed bbox test.");
 	try {
 	    PairMultiSet retSet = null;
 	    
@@ -746,8 +742,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.lr_border_in_common. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method lr_border_in_common
 
 
@@ -760,14 +756,14 @@ public class ROSEAlgebra {
      * @return <tt>true</tt>, if <tt>l,r</tt> have a common border
      */
     public static boolean rl_border_in_common (Regions r, Lines l) {
-	if (r.rect().hasCommonPoints(l.rect())) return false;
+	if (!r.rect().hasCommonPoints(l.rect())) return false;
 	try {
 	    return lr_border_in_common(l,r);
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rl_border_in_common. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method rl_border_in_common
 
     
@@ -786,8 +782,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_border_in_common. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method rr_border_in_common
     
 
@@ -812,8 +808,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_adjacent. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method rr_adjacent
     
 	
@@ -873,8 +869,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_encloses. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method rr_encloses 
     
     
@@ -902,8 +898,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.pl_on_border_of. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method pl_on_border_of
 
    
@@ -930,8 +926,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.pr_on_border_of. Returning false by default.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return false;
     }//end method pr_on_border_of
     
 
@@ -944,17 +940,19 @@ public class ROSEAlgebra {
      * @return the intersection of <tt>p1,p2</tt>
      */
     public static Points pp_intersection (Points p1, Points p2) {
+	System.out.println("java: p1("+p1.pointset.size()+", "+p2.pointset.size()+")");
 	if (!p1.rect().hasCommonPoints(p2.rect())) return new Points();
 	try {
 	    PointMultiSet retSet = null;
 	    
 	    retSet = PointMultiSet.convert(SetOps.intersection(p1.pointset,p2.pointset));
+	    System.out.println("retsize: "+retSet.size());
 	    return new Points(retSet);
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.pp_intersection. Returning empty Points value.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return new Points();
     }//end method pp_intersection
 
     
@@ -979,8 +977,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.ll_intersection. Returning empty Points value.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return new Points();
     }//end method ll_intersection
 
     
@@ -1000,8 +998,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_intersection. Returning empty Regions value.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return new Regions();
     }//end method rr_intersection
     
     
@@ -1026,8 +1024,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rl_intersection. Returning empty Lines value.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return new Lines();
     }//return rl_intersection
     
     
@@ -1047,8 +1045,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.pp_plusturning empty Points value.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return new Points();
     }//end method pp_plus
     
     
@@ -1098,8 +1096,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.ll_plus. Returning empty Lines value.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return new Lines();
     }//end method ll_plus
     
 
@@ -1119,8 +1117,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_plus. Returning empty Regions value.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return new Regions();
     }//end method rr_plus
     
  
@@ -1141,8 +1139,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.pp_minus. Returning empty Points value.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return new Points();
     }//end method pp_minus
 
     
@@ -1168,8 +1166,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.ll_minus. Returning empty Lines value.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return new Lines();
     }//end method ll_minus
 
 
@@ -1188,8 +1186,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_minus. Returning empty Regions value.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return new Regions();
     }//end method rr_minus
     
     
@@ -1218,8 +1216,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.ll_common_border. Returning empty Lines value.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return new Lines();
     }//end method ll_common_border
     
 
@@ -1237,8 +1235,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.lr_common_border. Returning empty Lines value.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return new Lines();
     }//end method lr_common_border
 
 
@@ -1256,8 +1254,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rl_common_border. Returning empty Lines value.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return new Lines();
     }//end method rl_common_border
     
 
@@ -1275,8 +1273,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_common_border. Returning empty Lines value.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return new Lines();
     }//end method rr_common_border
     
 
@@ -1297,8 +1295,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.l_vertices. Returning empty Points value.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return new Points();
     }//end method l_vertices
 
    
@@ -1315,8 +1313,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.r_vertices. Returning empty Points value.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return new Points();
     }//end method r_vertices
     
 
@@ -1330,10 +1328,8 @@ public class ROSEAlgebra {
 	try {
 	    return new Regions(Polygons.computeMesh(l.segset,true));
 	} catch (Exception e) {
-	    e.printStackTrace();
-	    System.out.println("There was an error when trying to execute ROSEAlgebra.l_interior. Returning empty Regions value.");
+	    throw new RoseAlgebraError("The line object doesn't form proper cycles. Returning empty region value.");
 	}//catch
-	return new Regions();
     }//end method l_interior
 
 
@@ -1363,8 +1359,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.r_contour. Returning empty Lines value.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return new Lines();
     }//end method r_contour
 
     
@@ -1381,8 +1377,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.p_no_of_components. Returning 0.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return 0;
     }//end method p_no_of_components
    
 
@@ -1404,8 +1400,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.l_no_of_components. Returning 0.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return 0;
     }//end method l_no_of_components
 
     
@@ -1427,8 +1423,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.r_no_of_components. Returning 0.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	return 0;
     }//end method r_no_of_components
 
 
@@ -1453,8 +1449,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.pp_dist. Returning 0.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-		
 	return retVal;
     }//end method pp_dist
     
@@ -1480,10 +1476,10 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.pl_dist. Returning 0.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-		
-	return retVal; 
-    }//end mehtod pl_dist
+	return retVal;
+    }//end method pl_dist
 
 
     /**
@@ -1507,9 +1503,9 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.pr_dist. Returning 0.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-		
-	return retVal; 
+	return retVal;
     }//end method pr_dist 
 
    
@@ -1550,8 +1546,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.ll_dist. Returning 0.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-		
 	return retVal;
     }//end method ll_dist
    
@@ -1579,9 +1575,9 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.lr_dist. Returning 0.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-		
-	return retVal; 
+	return retVal;
     }//end method lr_dist 
 
     
@@ -1636,8 +1632,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_dist. Returning 0.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-		
 	return retVal;
     }//end method rr_dist
 
@@ -1657,9 +1653,9 @@ public class ROSEAlgebra {
 	 } catch (Exception e) {
 	     e.printStackTrace();
 	     System.out.println("There was an error when trying to execute ROSEAlgebra.p_diameter. Returning 0.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	 }//catch
-	 
-	 return retVal;
+	return retVal;
      }//end method p_diameter
     
     
@@ -1701,9 +1697,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.l_length. Returning 0.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	
-	return 0;
     }//end method l_length
 
    
@@ -1723,9 +1718,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.r_area. Returning 0.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-	
-	return 0;
     }//end method r_area
 
 
@@ -1742,9 +1736,8 @@ public class ROSEAlgebra {
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.r_perimeter. Returning 0.");
+	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-		
-	return 0;
     }//end method r_perimeter
 
 
