@@ -7,10 +7,13 @@
 
 package twodsack.operation.basictypeoperation;
 
+import twodsack.io.*;
+import twodsack.operation.setoperation.*;
 import twodsack.set.*;
 import twodsack.setelement.datatype.basicdatatype.*;
 import twodsack.util.comparator.*;
 import twodsack.util.number.*;
+import java.io.*;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Vector;
@@ -274,7 +277,7 @@ public class SegTri_Ops {
      * @return the part of <code>s</code> that is covered by <code>t</code>
      */
     public static Segment intersection (Segment s, Triangle t) {
-	/* This case does not really have to be checked. Now it is formulated as prerequisite of this method.
+	/* This case does not really have to be checked. Now it is formulated as prerequisite of this method. 
 	//case 1: no intersection
 	if (!(intersects(s,t))) { 
 	    System.out.println("SegTri_OPs.intersection: ERROR! No intersection.");
@@ -283,6 +286,14 @@ public class SegTri_Ops {
 	}//if
 	*/
 
+	/*
+	  case 1b:
+	  This is a changed version of case a: It tests, wether the segment
+	  is covered by the triangle.
+	*/
+	if (!isCovered(s,t))
+	    return new Segment();
+	
 	//case 2a: s lies fully inside of t
 	if (inside(s,t)) {
 	    return s;
@@ -371,7 +382,27 @@ public class SegTri_Ops {
 	System.out.println("intPoints: ");
 	for (int ii = 0; ii < intPoints.size(); ii++)
 	    System.out.println(ii+": "+intPoints.get(ii)+" - equal sStart: "+sStart.equal((Point)intPoints.get(ii))+", equal sEnd: "+sEnd.equal((Point)intPoints.get(ii)));
-	
+
+	BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
+	DisplayGFX gfx = new DisplayGFX();
+	TriMultiSet tms = new TriMultiSet(new TriangleComparator());
+	tms.add(t);
+	SegMultiSet sms = new SegMultiSet(new SegmentComparator());
+	sms.add(s);
+	gfx.initWindow();
+	gfx.addSet(SupportOps.contour(tms,true,false));
+	gfx.addSet(sms);
+	//gfx.addSet(sms2);
+	gfx.showIt(false);
+ 	try {
+	    String data = inBR.readLine();
+ 	} catch (Exception e) {
+	    System.exit(0);
+	}//catch
+	gfx.kill();
+
+
+	System.exit(0);
 	return null;
     }//end method intersection
 	
@@ -463,7 +494,7 @@ public class SegTri_Ops {
     public static boolean overlapsBorder (Segment s, Triangle t) {
 	Segment[] tArr = t.segmentArray(); 
 	for (int i = 0; i < tArr.length; i++) {
-	    if (SegSeg_Ops.overlap(s,tArr[i])) { 
+	    if (SegSeg_Ops.overlap(s,tArr[i])) {
 		return true;
 	    }//if
 	}//for i
@@ -483,7 +514,8 @@ public class SegTri_Ops {
      * @see #pintersects(Segment,Triangle)
      */
     public static boolean isCovered (Segment s, Triangle t) {
-	if (overlapsBorder(s,t)) return true;
+	if (overlapsBorder(s,t))
+	    return true;
 	return pintersects(s,t);
     }//end method isCovered
         
