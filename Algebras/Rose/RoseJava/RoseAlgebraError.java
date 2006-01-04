@@ -10,10 +10,19 @@
  * Use the string to pass detailed information about the error.
  */
 public class RoseAlgebraError extends RuntimeException {
+
+    /**
+     * This member stores the error message.
+     */
+    public String errorMessage;
+
     /**
      * Constructs a new instance of RoseAlgebraError using the argument supplied.
      *
      * @param s the string with description about this exception.
      */
-    public RoseAlgebraError(String s) { super(s); }
+    public RoseAlgebraError(String s) {
+	super(s);
+	this.errorMessage = s;
+    }
 }//end class RoseAlgebraError
