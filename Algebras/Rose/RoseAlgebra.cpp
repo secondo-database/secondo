@@ -41,6 +41,7 @@ using namespace std;
 
 #include "Algebra.h"
 #include "Application.h"
+#include "LogMsg.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"	//needed because we return a CcBool in an op.
@@ -144,6 +145,9 @@ static jfieldID fidRationalY;
 static jfieldID fidPointsPointSet;
 static jfieldID fidLinesSegmentSet;
 
+static jclass clsRoseError;
+static jfieldID fidROSEError;
+
  //Pointers to ROSE operations.
 static jmethodID midROSEp_diameter;
 static jmethodID midROSEp_no_of_components;
@@ -225,6 +229,8 @@ static jmethodID midROSErl_intersection;
 static jmethodID midROSErl_intersects;
 static jmethodID midROSErl_meets;
 
+static const bool DEBUG = false;
+static const bool DEBUG_CONVERT = false;
 
 /*
  1.2 Error functions.
@@ -249,11 +255,21 @@ c) Used JAR archives must also have an entry in that file.
 */
 
 static void error(char *name, int line) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   cerr << "Error in " << name << " in line: " << line << "." << endl;
   if(env->ExceptionOccurred())
     env->ExceptionDescribe();
   exit(1);
 }
+
+static void RoseError() {
+  jthrowable exec = env->ExceptionOccurred();
+  env->ExceptionClear();
+  const char* errMsgC = env->GetStringUTFChars((jstring)env->GetObjectField(exec,fidROSEError),0);
+  cmsg.error() << errMsgC << endl;
+  cmsg.send();
+}
+
 
 /* 
  this function prints an error message including the line
@@ -279,10 +295,11 @@ vice versa.
 */
 
 static ListExpr Convert_JavaToC_Rational(jobject jRational) {
+  if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   jdouble value = env->CallDoubleMethod(jRational, midRationalGetDouble);
 
   env->DeleteLocalRef(jRational);
-
+  jRational = 0;
   return nl->RealAtom(value);
 }
 
@@ -293,6 +310,7 @@ static ListExpr Convert_JavaToC_Rational(jobject jRational) {
 */
 
 static ListExpr Convert_JavaToC_Point(jobject jPoint) {
+  if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   jobject X = env->GetObjectField(jPoint, fidRationalX);
   if (X == 0) error(__FILE__,__LINE__);
 
@@ -318,6 +336,7 @@ static ListExpr Convert_JavaToC_Point(jobject jPoint) {
 */
 
 static ListExpr Convert_JavaToC_Points(jobject jPoints) {
+  if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   jobject jpointlist = env->GetObjectField(jPoints, fidPointsPointSet);
   if (jpointlist == 0) error(__FILE__,__LINE__);
 
@@ -340,11 +359,15 @@ static ListExpr Convert_JavaToC_Points(jobject jPoints) {
     jobject tmp = jstack.top();
     jstack.pop();
     env->DeleteLocalRef(tmp);
+    tmp = 0;
   } 
 
   env->DeleteLocalRef(jpointlist);
+  jpointlist = 0;
   env->DeleteLocalRef(oarr);
+  oarr = 0;
   env->DeleteLocalRef(jPoints); 
+  jPoints = 0;
 
   return result;
 }
@@ -356,6 +379,7 @@ static ListExpr Convert_JavaToC_Points(jobject jPoints) {
 */
 
 static ListExpr Convert_JavaToC_Segment(jobject jSegment) {
+  if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   // Get the start Point itself 
   jobject startP = env->CallObjectMethod(jSegment, midSegmentGetStartpoint);
   if (startP == 0) error(__FILE__,__LINE__);
@@ -385,7 +409,9 @@ static ListExpr Convert_JavaToC_Segment(jobject jSegment) {
   if (X1 == 0) error(__FILE__,__LINE__);
 
   env->DeleteLocalRef(startP);
+  startP = 0;
   env->DeleteLocalRef(endP);
+  endP = 0;
 
   return 
     nl->Cons
@@ -416,6 +442,7 @@ static ListExpr Convert_JavaToC_Segment(jobject jSegment) {
 */
 
 static ListExpr Convert_JavaToC_Lines(jobject jLines) {
+  if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   // Get the field itself
   jobject jseglist = env->GetObjectField(jLines, fidLinesSegmentSet);
   if (jseglist == 0) error(__FILE__,__LINE__);
@@ -440,10 +467,13 @@ static ListExpr Convert_JavaToC_Lines(jobject jLines) {
     jobject tmp = jstack.top();
     jstack.pop();
     env->DeleteLocalRef(tmp);
+    tmp = 0;
   } 
 
   env->DeleteLocalRef(oarr);
+  oarr = 0;
   env->DeleteLocalRef(jseglist);
+  jseglist = 0;
 
   return result;
 }
@@ -455,6 +485,7 @@ static ListExpr Convert_JavaToC_Lines(jobject jLines) {
 */
 
 static ListExpr Convert_JavaToC_ElemList(jobject jpointList) {
+  if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   // Call the method itself  
   jobjectArray oarr = (jobjectArray)env->CallObjectMethod(jpointList, midLLToArray);
   if (oarr == 0) error(__FILE__,__LINE__);
@@ -475,9 +506,11 @@ static ListExpr Convert_JavaToC_ElemList(jobject jpointList) {
     jobject tmp = jstack.top();
     jstack.pop();
     env->DeleteLocalRef(tmp);
+    tmp = 0;
   } 
 
   env->DeleteLocalRef(oarr);
+  oarr = 0;
 
   return result;
 }
@@ -489,6 +522,7 @@ static ListExpr Convert_JavaToC_ElemList(jobject jpointList) {
 */
 
 static ListExpr Convert_JavaToC_ElemListList(jobject jCycleList) {
+  if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   // Call the method itself  
   jobjectArray oarr = (jobjectArray)env->CallObjectMethod(jCycleList, midCLToArray);
   if (oarr == 0) error(__FILE__,__LINE__);
@@ -509,9 +543,11 @@ static ListExpr Convert_JavaToC_ElemListList(jobject jCycleList) {
     jobject tmp = jstack.top();
     jstack.pop();
     env->DeleteLocalRef(tmp);
+    tmp = 0;
   } 
 
   env->DeleteLocalRef(oarr);
+  oarr = 0;
 
   return result;
 }
@@ -525,6 +561,7 @@ static ListExpr Convert_JavaToC_ElemListList(jobject jCycleList) {
 */
 
 static ListExpr Convert_JavaToC_ElemListListList(jobject jCycleListListPoints) {
+  if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   // Call the method itself  
   jobjectArray oarr = (jobjectArray)env->CallObjectMethod(jCycleListListPoints, midCLLPToArray);
   if (oarr == 0) error(__FILE__,__LINE__);
@@ -545,9 +582,11 @@ static ListExpr Convert_JavaToC_ElemListListList(jobject jCycleListListPoints) {
     jobject tmp = jstack.top();
     jstack.pop();
     env->DeleteLocalRef(tmp);
+    tmp = 0;
   } 
 
   env->DeleteLocalRef(oarr);
+  oarr = 0;
   
   return result;
 }
@@ -559,7 +598,7 @@ static ListExpr Convert_JavaToC_ElemListListList(jobject jCycleListListPoints) {
 */
 
 static ListExpr Convert_JavaToC_Regions(jobject jRegions) {
-
+  if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   if (!jRegions) cerr << "jRegions is NULL!" << endl;
   
   // Call the method itself  
@@ -568,6 +607,7 @@ static ListExpr Convert_JavaToC_Regions(jobject jRegions) {
 
   ListExpr res = Convert_JavaToC_ElemListListList(cycles);
   env->DeleteLocalRef(cycles);
+  cycles = 0;
   return res;
 }
 
@@ -579,6 +619,7 @@ static ListExpr Convert_JavaToC_Regions(jobject jRegions) {
 */
  
 static jobject Convert_CToJava_Rational(const ListExpr &le) {
+  if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   // Check whether six elements are in le. 
   if (nl->ListLength(le) != 6) error(__FILE__,__LINE__);
 
@@ -612,6 +653,7 @@ static jobject Convert_CToJava_Rational(const ListExpr &le) {
 
 */
 static jobject Convert_CToJava_Point(const ListExpr &le) {
+  if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   // Check whether two elements are in le. 
   if (nl->ListLength(le) != 2) error(__FILE__,__LINE__);
 
@@ -622,8 +664,8 @@ static jobject Convert_CToJava_Point(const ListExpr &le) {
   if (
       (nl->IsAtom(e1)) && 
       (nl->IsAtom(e2)) && 
-      (nl->AtomType(e1) == IntType) 
-      && (nl->AtomType(e2) == IntType)) {
+      (nl->AtomType(e1) == IntType) &&
+      (nl->AtomType(e2) == IntType)) {
     // Both coordinates are integers 
     int intValue1 = nl->IntValue(e1);
     int intValue2 = nl->IntValue(e2);
@@ -639,24 +681,28 @@ static jobject Convert_CToJava_Point(const ListExpr &le) {
      (nl->IsAtom(e2)) && 
      (nl->AtomType(e1) == RealType) && 
      (nl->AtomType(e2) == RealType)) {
-
     // Both coordinates are reals 
-    jfloat realValue1 = nl->RealValue(e1);
-    jfloat realValue2 = nl->RealValue(e2);
+    //jfloat realValue1 = nl->RealValue(e1);
+    jdouble realValue1 = nl->RealValue(e1);
+    //jfloat realValue2 = nl->RealValue(e2);
+    jdouble realValue2 = nl->RealValue(e2);
         
     jobject result = env->NewObject(clsPoint, midPointConstDD, (jfloat)realValue1, (jfloat)realValue2);
+    //jobject result = env->NewObject(clsPoint, midPointConstDD, realValue1, realValue2);
     if (result == 0) error(__FILE__,__LINE__);
 
     return result;
   } else {
     // Both coordinates are Rationals 
-
+    //cout << "rationals" << endl;
     jobject num1 = Convert_CToJava_Rational(e1);
     jobject num2 = Convert_CToJava_Rational(e2);
 
     jobject result = env->NewObject(clsPoint, midPointConstRR,num1,num2);
     env->DeleteLocalRef(num1);
+    num1 = 0;
     env->DeleteLocalRef(num2);
+    num2 = 0;
 
     return result;
   }
@@ -669,11 +715,17 @@ static jobject Convert_CToJava_Point(const ListExpr &le) {
 
 */
 static jobject Convert_CToJava_Points(const ListExpr &le) {
+  if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   jobject points = env->NewObject(clsPoints, midPointsConst);
   if (points == 0) error(__FILE__,__LINE__);
 
   // Now we detect the length of le. 
   int ll = nl->ListLength(le);
+
+  if (ll == 0) {
+    //return empty points value
+    return points;
+  }
   
   bool isPoints = true;
 
@@ -694,6 +746,7 @@ static jobject Convert_CToJava_Points(const ListExpr &le) {
       if (jfirst == 0) error(__FILE__,__LINE__);
       env->CallVoidMethod(points, midPointsAddPoint, jfirst);
       env->DeleteLocalRef(jfirst);
+      jfirst = 0;
     }
   }
   else {
@@ -701,6 +754,7 @@ static jobject Convert_CToJava_Points(const ListExpr &le) {
     if (jfirst == 0) error(__FILE__,__LINE__);
     env->CallVoidMethod(points, midPointsAddPoint, jfirst);
     env->DeleteLocalRef(jfirst);
+    jfirst = 0;
   }
   return points;
 }
@@ -712,6 +766,7 @@ static jobject Convert_CToJava_Points(const ListExpr &le) {
 */
 
 static jobject Convert_CToJava_Segment(const ListExpr &le) {
+  if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   // Check whether four elements are in le. 
   if (nl->ListLength(le) != 4) error(__FILE__,__LINE__);
 
@@ -757,14 +812,13 @@ static jobject Convert_CToJava_Segment(const ListExpr &le) {
      (nl->AtomType(e4) == RealType)) {
 
     // All coordinates are reals 
-    double realValue1 = nl->RealValue(e1);
-    double realValue2 = nl->RealValue(e2);
-    double realValue3 = nl->RealValue(e3);
-    double realValue4 = nl->RealValue(e4);
+    jdouble realValue1 = nl->RealValue(e1);
+    jdouble realValue2 = nl->RealValue(e2);
+    jdouble realValue3 = nl->RealValue(e3);
+    jdouble realValue4 = nl->RealValue(e4);
 
-    jobject result = env->NewObject(clsSegment, midSegmentConstDDDD, 
-				     realValue1,  realValue2,
-				     realValue3,  realValue4);
+    jobject result = env->NewObject(clsSegment, midSegmentConstDDDD, (jfloat)realValue1, (jfloat)realValue2, (jfloat)realValue3,  (jfloat)realValue4);
+    //jobject result = env->NewObject(clsSegment, midSegmentConstDDDD, realValue1, realValue2, realValue3,  realValue4);
     if (result == 0) error(__FILE__,__LINE__);
 
     return result;
@@ -776,9 +830,13 @@ static jobject Convert_CToJava_Segment(const ListExpr &le) {
 
     jobject result = env->NewObject(clsSegment, midSegmentConstRRRR, num1,num2,num3,num4);
     env->DeleteLocalRef(num1);
+    num1 = 0;
     env->DeleteLocalRef(num2);
+    num2 = 0;
     env->DeleteLocalRef(num3);
+    num3 = 0;
     env->DeleteLocalRef(num4);
+    num4 = 0;
 
     return result;
   }
@@ -791,6 +849,7 @@ static jobject Convert_CToJava_Segment(const ListExpr &le) {
 */
 
 static jobject Convert_CToJava_Lines(const ListExpr &le) {
+  if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   jobject lines = env->NewObject(clsLines, midLinesConst);
   if (lines == 0) error(__FILE__,__LINE__);
 
@@ -807,6 +866,7 @@ static jobject Convert_CToJava_Lines(const ListExpr &le) {
     if (jfirst == 0) error(__FILE__,__LINE__);
     env->CallVoidMethod(lines, midLinesAddSegment, jfirst);
     env->DeleteLocalRef(jfirst);
+    jfirst = 0;
   }
 
   return lines;
@@ -818,6 +878,7 @@ static jobject Convert_CToJava_Lines(const ListExpr &le) {
 
 */
 static jobject Convert_CToJava_Regions(const ListExpr &le) {
+  if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   // We have to collect all segments into a segment list first 
 
   // Create a new SegmentComparator 
@@ -866,8 +927,10 @@ static jobject Convert_CToJava_Regions(const ListExpr &le) {
       if (segment[nllvertex-1] == 0) error(__FILE__,__LINE__);
 
       //clear memory used for vertices
-      for (int k = 0; k < nllvertex; k++)
+      for (int k = 0; k < nllvertex; k++) {
 	env->DeleteLocalRef(vertex[k]);
+	vertex[k] = 0;
+      }
 
       // Now add all segments to the SegMultiSet 
       for (int k = 0; k < nllvertex; k++) {
@@ -875,8 +938,10 @@ static jobject Convert_CToJava_Regions(const ListExpr &le) {
       }
       
       //clear memory used for segments
-      for (int k = 0; k < nllvertex-1; k++)
+      for (int k = 0; k < nllvertex-1; k++) {
 	env->DeleteLocalRef(segment[k]);
+	segment[k] = 0;
+      }
     }
   }
   
@@ -885,7 +950,9 @@ static jobject Convert_CToJava_Regions(const ListExpr &le) {
 
   //free memory used by Java objects
   env->DeleteLocalRef(jSC);
+  jSC = 0;
   env->DeleteLocalRef(segMS);
+  segMS = 0;
   
   return result;
 }
@@ -931,12 +998,14 @@ public:
   void CopyFrom(StandardAttribute* right);
   void Destroy();
   jobject GetObject() {
+    if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     return obj; }
   bool Adjacent(Attribute *arg);
   int NumOfFLOBs();
   FLOB *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
+    if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     env->DeleteLocalRef(obj);
     obj = 0;
   }
@@ -958,6 +1027,7 @@ public:
      java object. */
 
   void SetObject(jobject obj) {
+    if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     this->obj = obj;
   }
   
@@ -966,6 +1036,7 @@ public:
      object inside the JVM. */
   
   ~CcPoints() {
+    if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     env->DeleteLocalRef(obj);
     obj = 0;
   }
@@ -981,6 +1052,7 @@ public:
 */
 
 int CcPoints::Compare(Attribute *attr) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *P = (CcPoints *) attr;
   return env->CallByteMethod(obj,midPointsCompare,P->obj);
 }
@@ -991,6 +1063,7 @@ int CcPoints::Compare(Attribute *attr) {
 */
 
 Attribute *CcPoints::Clone() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* res = new CcPoints((size_t)objectData.Size());
   res->CopyFrom(this);
   return res;
@@ -1002,6 +1075,7 @@ Attribute *CcPoints::Clone() {
 */
 
 bool CcPoints::IsDefined() const {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return true;
 }
 
@@ -1011,6 +1085,7 @@ Inherited method of StandardAttribute
 */
 
 int CcPoints::Sizeof() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return sizeof(CcPoints);
 }
 
@@ -1025,6 +1100,7 @@ Inherited method of StandardAttribute
 */
 
 void CcPoints::SetDefined(bool Defined) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   this->Defined = Defined;
 }
 
@@ -1034,12 +1110,14 @@ void CcPoints::SetDefined(bool Defined) {
 */
 
 void CcPoints::CopyFrom(StandardAttribute* right) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *P = (CcPoints *)right;
   objectData.Resize(P->objectData.Size());
   char *data = new char[P->objectData.Size()];
   P->objectData.Get(0,P->objectData.Size(),data);
   objectData.Put(0,P->objectData.Size(),data);
   delete [] data;
+  data = 0;
   BboxTopLeftX = P->BboxTopLeftX;
   BboxTopLeftY = P->BboxTopLeftY;
   BboxBottomRightX = P->BboxBottomRightX;
@@ -1053,23 +1131,28 @@ void CcPoints::CopyFrom(StandardAttribute* right) {
 */
 
 size_t CcPoints::HashValue() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return 0;
 }
 
 bool CcPoints::Adjacent(Attribute * arg) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return false;
 }
 
 int CcPoints::NumOfFLOBs(){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return 1;
 }
 
 FLOB *CcPoints::GetFLOB(const int i){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
    assert(i==0);
    return &objectData;
 }
 
 void CcPoints::Initialize() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = 0;
   Defined = true;
 }
@@ -1081,6 +1164,7 @@ void CcPoints::Initialize() {
 */
 
 CcPoints::CcPoints(size_t size):objectData(size),canDelete(false) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   SetDefined(true);
   obj = env->NewObject(clsPoints,midPointsConst);
   if (obj == 0) error(__FILE__,__LINE__);
@@ -1094,11 +1178,12 @@ CcPoints::CcPoints(size_t size):objectData(size),canDelete(false) {
 */
  
 CcPoints::CcPoints(const ListExpr &le):objectData(1) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = Convert_CToJava_Points(le);
   canDelete = false;
+  SyncBboxData();
   RestoreFLOBFromJavaObject();
   SetDefined(true);
-  SyncBboxData();
 }
 
 /* 
@@ -1108,11 +1193,12 @@ CcPoints::CcPoints(const ListExpr &le):objectData(1) {
 */
 
 CcPoints::CcPoints(const jobject jobj):objectData(1) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   canDelete = false;
   obj = jobj;
+  SyncBboxData();
   RestoreFLOBFromJavaObject();
   SetDefined(true);
-  SyncBboxData();
 }
 
 /* 
@@ -1120,7 +1206,9 @@ CcPoints::CcPoints(const jobject jobj):objectData(1) {
 
 */	
 
-CcPoints::CcPoints() {}
+CcPoints::CcPoints() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
+}
 
 
 /* 
@@ -1130,6 +1218,7 @@ CcPoints::CcPoints() {}
 */
 
 bool CcPoints::GetNL(ListExpr& le) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   if (!Defined) {
     le = nl->TheEmptyList();
     return true;
@@ -1154,6 +1243,7 @@ bool CcPoints::GetNL(ListExpr& le) {
 */
 
 void CcPoints::Destroy(){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   canDelete=true;
 }
 
@@ -1163,6 +1253,7 @@ void CcPoints::Destroy(){
 */
 
 jobject CcPoints::GetObj() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return obj;
 }
 
@@ -1174,6 +1265,7 @@ jobject CcPoints::GetObj() {
 */
 
 void CcPoints::RestoreFLOBFromJavaObject(){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   jbyteArray jbytes = (jbyteArray) env->CallObjectMethod(obj,midPointsWriteToByteArray);
   if(jbytes == 0) error(__FILE__,__LINE__);
   
@@ -1183,6 +1275,7 @@ void CcPoints::RestoreFLOBFromJavaObject(){
   objectData.Put(0,size,bytes);
   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,JNI_ABORT);
   env->DeleteLocalRef(jbytes);
+  jbytes = 0;
  }
 
 
@@ -1192,6 +1285,7 @@ void CcPoints::RestoreFLOBFromJavaObject(){
 */
 
 void CcPoints::RestoreJavaObjectFromFLOB(){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   if (obj) return;
   // read the data from flob
   if(&objectData == 0){
@@ -1218,12 +1312,14 @@ void CcPoints::RestoreJavaObjectFromFLOB(){
 
 
 void CcPoints::Print() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //jmethodID mid = env->GetMethodID(clsPoints,"print","()V");
   env->CallVoidMethod(obj,midPointsPrint);
 }
 
 
 void CcPoints::SyncBboxData() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //restore object if not present
   if (!obj) RestoreJavaObjectFromFLOB();
   //get bounding box of the Java Points object
@@ -1264,6 +1360,7 @@ whereas the (internal) list representation of a coordinate is
 */
 
 static ListExpr OutCcPoints( ListExpr typeInfo, Word value ) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* ccpoints = (CcPoints*)(value.addr);
   ListExpr le;
 
@@ -1277,6 +1374,7 @@ static Word InCcPoints(const ListExpr typeInfo,
 		       const int errorPos, 
 		       ListExpr& errorInfo, 
 		       bool& correct ) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* newpoints;
 
   correct = true;
@@ -1290,6 +1388,7 @@ static Word InCcPoints(const ListExpr typeInfo,
 
 */
 static Word CreateCcPoints(const ListExpr typeInfo) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* res = new CcPoints((size_t)1);
   res->SetObject(0);
   return SetWord(res);
@@ -1301,6 +1400,7 @@ static Word CreateCcPoints(const ListExpr typeInfo) {
 */
 
 static void DeleteCcPoints(Word &w) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //cout << "++++++++++++++++++++ called Delete of CcPointss +++++++++++++++++++++++++" << endl; 
   //((CcPoints*)w.addr)->Finalize();
   delete ((CcPoints *)w.addr);
@@ -1313,6 +1413,7 @@ static void DeleteCcPoints(Word &w) {
 */
 
 static void CloseCcPoints(Word & w) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //cout << "++++++++++++++++++++ called Close of CcPoints +++++++++++++++++++++++++" << endl; 
   delete (CcPoints *)w.addr;
   w.addr = 0;
@@ -1324,11 +1425,12 @@ static void CloseCcPoints(Word & w) {
 */
 
 static Word CloneCcPoints(const Word &w) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return SetWord(((CcPoints *)w.addr)->Clone());
 }
 
 static void* CastCcPoints( void* addr ) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return new (addr) CcPoints;
 }
 
@@ -1336,6 +1438,7 @@ bool OpenCcPoints(SmiRecord& valueRecord,
                   size_t& offset,
 		  const ListExpr typeInfo,
 		  Word& value){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* P = (CcPoints*)TupleElement::Open(valueRecord,offset, typeInfo);
   //P->RestoreJavaObjectFromFLOB();
   P->SetObject(0);
@@ -1346,8 +1449,9 @@ bool OpenCcPoints(SmiRecord& valueRecord,
 bool SaveCcPoints( SmiRecord& valueRecord,
                    size_t& offset,
 		   const ListExpr typeInfo,
-		   Word& value)
-{ CcPoints* P = (CcPoints*) value.addr;
+		   Word& value) { 
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
+  CcPoints* P = (CcPoints*) value.addr;
   TupleElement::Save(valueRecord,offset,typeInfo,P);
   return true;
 }
@@ -1385,6 +1489,7 @@ type constructor ~ccpoints~ does not have arguments, this is trivial.
 */
 
 static bool CheckCcPoints( ListExpr type, ListExpr& errorInfo ) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   bool res = (nl->IsEqual(type, "points"));
   return res;
 }
@@ -1393,6 +1498,7 @@ static bool CheckCcPoints( ListExpr type, ListExpr& errorInfo ) {
 int
 SizeOfCcPoints()
 {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return sizeof(CcPoints);
 }
 
@@ -1485,12 +1591,14 @@ public:
   void CopyFrom(StandardAttribute* right);
   void Destroy();
   jobject GetObject() {
+    if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     return obj; }
   bool Adjacent(Attribute *arg);
   int NumOfFLOBs();
   FLOB *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
+    if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     env->DeleteLocalRef(obj);
     obj = 0;
   }
@@ -1513,12 +1621,14 @@ public:
   bool GetNL(ListExpr &le);
   
   void SetObject(jobject obj) {
+    if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     this->obj = obj;
   }
 
   /* Destructor of CcLines. This destructor destroys also the 
      object inside the JVM. */
   ~CcLines() {
+    if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     env->DeleteLocalRef(obj);
     obj = 0;
   }
@@ -1534,6 +1644,7 @@ public:
 */
 
 int CcLines::Compare(Attribute *attr) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *L = (CcLines *) attr;
   return env->CallByteMethod(obj,midLinesCompare,L->obj);
 }
@@ -1544,6 +1655,7 @@ int CcLines::Compare(Attribute *attr) {
 */
 
 Attribute *CcLines::Clone() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* res = new CcLines((size_t)objectData.Size());
   res->CopyFrom(this);
   return res;
@@ -1555,6 +1667,7 @@ Attribute *CcLines::Clone() {
 */
 
 bool CcLines::IsDefined() const {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return true;
 }
 
@@ -1564,6 +1677,7 @@ bool CcLines::IsDefined() const {
 */
 
 int CcLines::Sizeof() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return sizeof(CcLines);
 }
 
@@ -1578,6 +1692,7 @@ int CcLines::Sizeof() {
 */
 
 void CcLines::SetDefined(bool Defined) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   this->Defined = Defined;
 }
 
@@ -1587,12 +1702,14 @@ void CcLines::SetDefined(bool Defined) {
 */
 
 void CcLines::CopyFrom(StandardAttribute* right) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *L = (CcLines *)right;
   objectData.Resize(L->objectData.Size());
   char *data = new char[L->objectData.Size()];
   L->objectData.Get(0,L->objectData.Size(),data);
   objectData.Put(0,L->objectData.Size(),data);
   delete [] data;
+  data = 0;
   BboxTopLeftX = L->BboxTopLeftX;
   BboxTopLeftY = L->BboxTopLeftY;
   BboxBottomRightX = L->BboxBottomRightX;
@@ -1606,23 +1723,28 @@ void CcLines::CopyFrom(StandardAttribute* right) {
 */
 
 size_t CcLines::HashValue() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return 0;
 }
 
 bool CcLines::Adjacent(Attribute * arg) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return false;
 }
 
 int CcLines::NumOfFLOBs(){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return 1;
 }
 
 FLOB *CcLines::GetFLOB(const int i) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   assert(i==0);
   return &objectData;
 }
 
 void CcLines::Initialize() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = 0;
   Defined = true;
 }
@@ -1633,6 +1755,7 @@ void CcLines::Initialize() {
 */
 
 CcLines::CcLines(size_t size):objectData(size),canDelete(false) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   SetDefined(true);
   obj = env->NewObject(clsLines,midLinesConst);
   if (obj == 0) error(__FILE__,__LINE__);
@@ -1646,11 +1769,12 @@ CcLines::CcLines(size_t size):objectData(size),canDelete(false) {
 */
 
 CcLines::CcLines(const ListExpr &le):objectData(1) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = Convert_CToJava_Lines(le);
   canDelete = false;
+  SyncBboxData();
   RestoreFLOBFromJavaObject();
   SetDefined(true);
-  SyncBboxData();
 }
 
 /* 
@@ -1660,11 +1784,12 @@ CcLines::CcLines(const ListExpr &le):objectData(1) {
 */
  
 CcLines::CcLines(const jobject jobj) : objectData(1) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   canDelete = false;
   obj = jobj;
+  SyncBboxData();
   RestoreFLOBFromJavaObject();
   SetDefined(true);
-  SyncBboxData();
 }
 
 /* 
@@ -1672,7 +1797,9 @@ CcLines::CcLines(const jobject jobj) : objectData(1) {
 
 */	
 
-CcLines::CcLines() {}
+CcLines::CcLines() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
+}
 
 /* 
  retrieves the nested list representation of the underlying
@@ -1681,6 +1808,7 @@ CcLines::CcLines() {}
 */
 
 bool CcLines::GetNL(ListExpr& le) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   if (!Defined) {
     le = nl->TheEmptyList();
     return true;
@@ -1704,6 +1832,7 @@ bool CcLines::GetNL(ListExpr& le) {
 */
 
 void CcLines::Destroy(){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   canDelete=true;
 }
 
@@ -1713,6 +1842,7 @@ void CcLines::Destroy(){
 */
 
 jobject CcLines::GetObj() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return obj;
 }
 
@@ -1723,6 +1853,7 @@ jobject CcLines::GetObj() {
 */
 
 void CcLines::RestoreFLOBFromJavaObject(){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   jbyteArray jbytes = (jbyteArray) env->CallObjectMethod(obj,midLinesWriteToByteArray);
   if(jbytes == 0) error(__FILE__,__LINE__);
   
@@ -1733,6 +1864,7 @@ void CcLines::RestoreFLOBFromJavaObject(){
   objectData.Put(0,size,bytes);
   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,JNI_ABORT);
   env->DeleteLocalRef(jbytes);
+  jbytes = 0;
  }
 
 /* 
@@ -1741,12 +1873,14 @@ void CcLines::RestoreFLOBFromJavaObject(){
 */
 
 void CcLines::RestoreJavaObjectFromFLOB(){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   if (obj) return;
   
   if(&objectData == 0){
     return;
   }
   int size = objectData.Size();
+
   char *bytes = new char[size];
   objectData.Get(0,size,bytes);
   // copy the data into a java-array
@@ -1762,15 +1896,18 @@ void CcLines::RestoreJavaObjectFromFLOB(){
   delete [] bytes;
   bytes = NULL;
   env->DeleteLocalRef(jbytes);
+  jbytes = 0;
 }
 
 
 void CcLines::Print() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //jmethodID mid = env->GetMethodID(clsLines,"print","()V");
   env->CallVoidMethod(obj,midLinesPrint);
 }
 
 void CcLines::SyncBboxData() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //restore object if not present
   if (!obj) RestoreJavaObjectFromFLOB();
   //get bounding box of the Java Lines object
@@ -1815,6 +1952,7 @@ whereas the (internal) list representation of a rational number is
 */
 
 static ListExpr OutCcLines( ListExpr typeInfo, Word value ) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* cclines = (CcLines*)(value.addr);
   ListExpr le;
 
@@ -1827,6 +1965,7 @@ static Word InCcLines(const ListExpr typeInfo,
 		      const int errorPos, 
 		      ListExpr& errorInfo, 
 		      bool& correct ) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* newlines;
 
   correct = true;
@@ -1841,6 +1980,7 @@ static Word InCcLines(const ListExpr typeInfo,
 */
 
 static Word CreateCcLines(const ListExpr typeInfo) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //cout << "CreateCcLines" << endl;
 
   CcLines* res = new CcLines((size_t)1);
@@ -1853,6 +1993,7 @@ static Word CreateCcLines(const ListExpr typeInfo) {
 
 */
  static void DeleteCcLines(Word &w) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //cout << "++++++++++++++++++++ called Delete of CcLines +++++++++++++++++++++++++" << endl;
   //((CcLines*)w.addr)->Finalize();
   delete ((CcLines *)w.addr);
@@ -1864,6 +2005,7 @@ static Word CreateCcLines(const ListExpr typeInfo) {
 
 */
 static void CloseCcLines(Word & w) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //cout << "++++++++++++++++++++ called Close of CcLines +++++++++++++++++++++++++" << endl;
   delete (CcLines *)w.addr;
   w.addr = 0;
@@ -1875,18 +2017,20 @@ static void CloseCcLines(Word & w) {
 */
 
 static Word CloneCcLines(const Word &w) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return SetWord(((CcLines *)w.addr)->Clone());
 }
 
 static void* CastCcLines( void* addr ) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return new (addr) CcLines;
 }
 
 bool OpenCcLines(SmiRecord& valueRecord,
                  size_t& offset,
 		 const ListExpr typeInfo,
-		 Word& value){
+		 Word& value) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* L = (CcLines*) TupleElement::Open(valueRecord,offset, typeInfo);
   //L->RestoreJavaObjectFromFLOB();
   L->SetObject(0);
@@ -1898,6 +2042,7 @@ bool SaveCcLines( SmiRecord& valueRecord ,
                   size_t& offset,
 		  const ListExpr typeInfo,
 		  Word& value){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* L = (CcLines*) value.addr;
   TupleElement::Save(valueRecord,offset,typeInfo,L);
   return true;
@@ -1936,12 +2081,14 @@ type constructor ~cclines~ does not have arguments, this is trivial.
 */
 
 static bool CheckCcLines(ListExpr type, ListExpr& errorInfo ) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return (nl->IsEqual(type, "line"));
 }
 
 int
 SizeOfCcLines()
 {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return sizeof(CcLines);
 }
 
@@ -2033,12 +2180,14 @@ public:
   void CopyFrom(StandardAttribute* right);
   void Destroy();
   jobject GetObject() {
+    if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     return obj; }
   bool Adjacent(Attribute *arg);
   int NumOfFLOBs();
   FLOB *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
+    if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     env->DeleteLocalRef(obj);
     obj = 0;
   }
@@ -2061,12 +2210,14 @@ public:
   bool GetNL(ListExpr &le);
   
   void SetObject(jobject obj) {
+    if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     this->obj = obj;
   }
 
   /* Destructor of CcRegions. This destructor destroys also the 
      object inside the JVM. */
   ~CcRegions() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     //cout << "++++++++++++++++++++ called destructor of CcRegions +++++++++++++++++++++++++" << endl;
     env->DeleteLocalRef(obj);
     obj = 0;
@@ -2082,6 +2233,7 @@ public:
 */
 
 int CcRegions::Compare(Attribute *attr) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions *R = (CcRegions *) attr;
   return env->CallByteMethod(obj,midRegionsCompare,R->obj);
 }
@@ -2092,6 +2244,7 @@ int CcRegions::Compare(Attribute *attr) {
 */
 
 Attribute *CcRegions::Clone() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* res = new CcRegions((size_t)objectData.Size());
   res->CopyFrom(this);
   return res;
@@ -2103,6 +2256,7 @@ Attribute *CcRegions::Clone() {
 */
 
 bool CcRegions::IsDefined() const {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return true;
 }
 
@@ -2112,6 +2266,7 @@ bool CcRegions::IsDefined() const {
 */
 
 int CcRegions::Sizeof() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return sizeof(CcRegions);
 }
 
@@ -2126,6 +2281,7 @@ int CcRegions::Sizeof() {
 */
 
 void CcRegions::SetDefined(bool Defined) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   this->Defined = Defined;
 }
 
@@ -2135,12 +2291,14 @@ void CcRegions::SetDefined(bool Defined) {
 */
 
 void CcRegions::CopyFrom(StandardAttribute* right) { 
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions *R = (CcRegions *)right;
   objectData.Resize(R->objectData.Size());
   char *data = new char[R->objectData.Size()];
   R->objectData.Get(0,R->objectData.Size(),data);
   objectData.Put(0,R->objectData.Size(),data);
   delete [] data;
+  data = 0;
   BboxTopLeftX = R->BboxTopLeftX;
   BboxTopLeftY = R->BboxTopLeftY;
   BboxBottomRightX = R->BboxBottomRightX;
@@ -2154,23 +2312,28 @@ void CcRegions::CopyFrom(StandardAttribute* right) {
 */
 
 size_t CcRegions::HashValue() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return 0;
 }
 
 bool CcRegions::Adjacent(Attribute * arg) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return false;
 }
 
 int CcRegions::NumOfFLOBs(){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return 1;
 }
 
 FLOB *CcRegions::GetFLOB(const int i){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   assert(i==0);
   return &objectData;
 }
 
 void CcRegions::Initialize() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = 0;
   Defined=true;
 }
@@ -2181,6 +2344,7 @@ void CcRegions::Initialize() {
 */
 
 CcRegions::CcRegions(size_t size):objectData(size),canDelete(false) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   SetDefined(true);
   obj = env->NewObject(clsRegions, midRegionsConstVoid);
   if (obj == 0) error(__FILE__,__LINE__);
@@ -2194,11 +2358,12 @@ CcRegions::CcRegions(size_t size):objectData(size),canDelete(false) {
 */
 
 CcRegions::CcRegions(const ListExpr &le):objectData(1) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = Convert_CToJava_Regions(le);
   canDelete = false;
+  SyncBboxData();
   RestoreFLOBFromJavaObject();
   SetDefined(true);
-  SyncBboxData();
 }
 
 /* 
@@ -2208,11 +2373,12 @@ CcRegions::CcRegions(const ListExpr &le):objectData(1) {
 */
 
 CcRegions::CcRegions(const jobject jobj):objectData(1) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   canDelete = false;
   obj = jobj;
+  SyncBboxData();
   RestoreFLOBFromJavaObject();
   SetDefined(true);
-  SyncBboxData();
 }
 
 /* 
@@ -2220,7 +2386,9 @@ CcRegions::CcRegions(const jobject jobj):objectData(1) {
 
 */	
 
-CcRegions::CcRegions() {}
+CcRegions::CcRegions() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
+}
 
 /* 
  retrieves the nested list representation of the underlying
@@ -2229,6 +2397,7 @@ CcRegions::CcRegions() {}
 */
 
 bool CcRegions::GetNL(ListExpr& le) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   if (!Defined) {
     le = nl->TheEmptyList();
     return true;
@@ -2252,6 +2421,7 @@ bool CcRegions::GetNL(ListExpr& le) {
 */
 
 void CcRegions::Destroy(){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   canDelete=true;
 }
 
@@ -2261,6 +2431,7 @@ void CcRegions::Destroy(){
 */
 
 jobject CcRegions::GetObj() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return obj;
 }
 
@@ -2271,6 +2442,7 @@ jobject CcRegions::GetObj() {
 */
 
 void CcRegions::RestoreFLOBFromJavaObject(){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   jbyteArray jbytes = (jbyteArray) env->CallObjectMethod(obj,midRegionsWriteToByteArray);
   if(jbytes == 0) error(__FILE__,__LINE__);
   
@@ -2280,6 +2452,7 @@ void CcRegions::RestoreFLOBFromJavaObject(){
   objectData.Put(0,size,bytes);
   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,JNI_ABORT);
   env->DeleteLocalRef(jbytes);
+  jbytes = 0;
 }
 
 /* 
@@ -2288,6 +2461,7 @@ void CcRegions::RestoreFLOBFromJavaObject(){
 */
 
 void CcRegions::RestoreJavaObjectFromFLOB(){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   if (obj) return;
   // read the data from flob
 
@@ -2311,14 +2485,17 @@ void CcRegions::RestoreJavaObjectFromFLOB(){
   delete [] bytes;
   bytes = NULL;
   env->DeleteLocalRef(jbytes);
+  jbytes = 0;
   }
 
 void CcRegions::Print() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //jmethodID mid = env->GetMethodID(clsRegions,"print","()V");
   env->CallVoidMethod(obj,midRegionsPrint);
 }
 
 void CcRegions::SyncBboxData() {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //restore object if not present
   if (!obj) RestoreJavaObjectFromFLOB();
   //get bounding box of the Java Regions object
@@ -2372,6 +2549,7 @@ whereas the (internal) list representation of a coordinate is
 */
 
 static ListExpr OutCcRegions( ListExpr typeInfo, Word value ) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccregions = (CcRegions*)(value.addr);
   ListExpr le;
 
@@ -2386,6 +2564,7 @@ static Word InCcRegions(const ListExpr typeInfo,
 			const int errorPos, 
 			ListExpr& errorInfo, 
 			bool& correct ) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* newregions;
   correct = true;
   newregions = new CcRegions(instance);
@@ -2399,6 +2578,7 @@ static Word InCcRegions(const ListExpr typeInfo,
 */
 
 static Word CreateCcRegions(const ListExpr typeInfo) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* res = new CcRegions((size_t)1);
   res->SetObject(0);
   return SetWord(res);
@@ -2410,6 +2590,7 @@ static Word CreateCcRegions(const ListExpr typeInfo) {
 */
 
 static void DeleteCcRegions(Word &w) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //cout << "++++++++++++++++++++ called Delete of CcRegions +++++++++++++++++++++++++" << endl; 
   //((CcRegions*)w.addr)->Finalize();
   delete ((CcRegions *)w.addr);
@@ -2422,6 +2603,7 @@ static void DeleteCcRegions(Word &w) {
 */
 
 static void CloseCcRegions(Word & w) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //cout << "++++++++++++++++++++ called Close of CcRegions +++++++++++++++++++++++++" << endl;
   delete (CcRegions *)w.addr;
   w.addr = 0;
@@ -2433,15 +2615,17 @@ static void CloseCcRegions(Word & w) {
 */
 
 static Word CloneCcRegions(const Word &w) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return SetWord(((CcRegions *)w.addr)->Clone());
 }
 
 static void* CastCcRegions( void* addr ){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return new (addr) CcRegions;
 }
 
 bool OpenCcRegions(SmiRecord& valueRecord,size_t& offset,const ListExpr typeInfo,Word& value){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* R = (CcRegions*) TupleElement::Open(valueRecord,offset, typeInfo);
   R->SetObject(0);
   value = SetWord(R);
@@ -2449,6 +2633,7 @@ bool OpenCcRegions(SmiRecord& valueRecord,size_t& offset,const ListExpr typeInfo
 }
 
 bool SaveCcRegions(SmiRecord& valueRecord,size_t& offset,const ListExpr typeInfo,Word& value) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* R = (CcRegions*) value.addr;
   TupleElement::Save(valueRecord,offset,typeInfo,R); 
   return true;
@@ -2489,12 +2674,14 @@ type constructor ~cclines~ does not have arguments, this is trivial.
 */
 
 static bool CheckCcRegions(ListExpr type, ListExpr& errorInfo ) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return (nl->IsEqual(type, "region"));
 }
 
 int
 SizeOfCcRegions()
 {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return sizeof(CcRegions);
 }
 
@@ -2557,6 +2744,7 @@ returns a list expression for the result type, otherwise the symbol
 */
 
 static ListExpr equalTypeMap (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
@@ -2577,6 +2765,7 @@ static ListExpr equalTypeMap (ListExpr args) {
 }
 
 static ListExpr unequalTypeMap (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
@@ -2597,6 +2786,7 @@ static ListExpr unequalTypeMap (ListExpr args) {
 }
 
 static ListExpr disjointTypeMap (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
@@ -2617,6 +2807,7 @@ static ListExpr disjointTypeMap (ListExpr args) {
 }
 
 static ListExpr insideTypeMap (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
@@ -2637,6 +2828,7 @@ static ListExpr insideTypeMap (ListExpr args) {
 }
 
 static ListExpr intersectsTypeMap (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
@@ -2659,6 +2851,7 @@ static ListExpr intersectsTypeMap (ListExpr args) {
 }
 
 static ListExpr meetsTypeMap (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
@@ -2681,6 +2874,7 @@ static ListExpr meetsTypeMap (ListExpr args) {
 }
 
 static ListExpr borderInCommonTypeMap (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
@@ -2703,6 +2897,7 @@ static ListExpr borderInCommonTypeMap (ListExpr args) {
 }
 
 static ListExpr onBorderOfTypeMap (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
@@ -2721,6 +2916,7 @@ static ListExpr onBorderOfTypeMap (ListExpr args) {
 }
 
 static ListExpr intersectionTypeMap (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
@@ -2743,6 +2939,7 @@ static ListExpr intersectionTypeMap (ListExpr args) {
 }
 
 static ListExpr plusTypeMap (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
@@ -2763,6 +2960,7 @@ static ListExpr plusTypeMap (ListExpr args) {
 }
 
 static ListExpr minusTypeMap (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
@@ -2783,6 +2981,7 @@ static ListExpr minusTypeMap (ListExpr args) {
 }
 
 static ListExpr commonBorderTypeMap (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
@@ -2805,6 +3004,7 @@ static ListExpr commonBorderTypeMap (ListExpr args) {
 }
 
 static ListExpr verticesTypeMap (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 1) {
     arg1 = nl->First(args);
@@ -2822,6 +3022,7 @@ static ListExpr verticesTypeMap (ListExpr args) {
 }
 
 static ListExpr noOfComponentsTypeMap (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 1) {
     arg1 = nl->First(args);
@@ -2841,6 +3042,7 @@ static ListExpr noOfComponentsTypeMap (ListExpr args) {
 }
 
 static ListExpr distTypeMap (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
@@ -2873,6 +3075,7 @@ static ListExpr distTypeMap (ListExpr args) {
 }
 
 static ListExpr diameterTypeMap (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 1) {
     arg1 = nl->First(args);
@@ -2896,8 +3099,8 @@ This is a general type mapping function for all Rose methods
    which take two parameters. 
 
 */
-static ListExpr typeMappingRose
-(ListExpr args, char *type1, char *type2, char *resulttype) {
+static ListExpr typeMappingRose (ListExpr args, char *type1, char *type2, char *resulttype) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1, arg2;
 
   if (nl->ListLength(args) == 2) {
@@ -2916,8 +3119,8 @@ static ListExpr typeMappingRose
 
 */
 
-static ListExpr typeMappingRose
-(ListExpr args, char *type1, char *resulttype) {
+static ListExpr typeMappingRose (ListExpr args, char *type1, char *resulttype) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1;
 
   if (nl->ListLength(args) == 1) {
@@ -2935,6 +3138,7 @@ static ListExpr typeMappingRose
 */
 
 static ListExpr ccregionsccregionsBool(ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return typeMappingRose(args, "region", "region", "bool");
 }
 
@@ -2945,6 +3149,7 @@ static ListExpr ccregionsccregionsBool(ListExpr args) {
 */
 
 static ListExpr cclinesccregions(ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return typeMappingRose(args, "line", "region");
 }
 
@@ -2955,6 +3160,7 @@ static ListExpr cclinesccregions(ListExpr args) {
 */
 
 static ListExpr ccregionscclines(ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return typeMappingRose(args, "region", "line");
 }
 
@@ -2965,7 +3171,7 @@ static ListExpr ccregionscclines(ListExpr args) {
 */
 
 static ListExpr ccregionsDouble(ListExpr args) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return typeMappingRose(args, "region", "real");
 }
 
@@ -2975,7 +3181,7 @@ static ListExpr ccregionsDouble(ListExpr args) {
 */
 
 static ListExpr cclinesDouble(ListExpr args) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return typeMappingRose(args, "line", "real");
 }
 
@@ -2985,7 +3191,7 @@ static ListExpr cclinesDouble(ListExpr args) {
 */
 
 static ListExpr intBool (ListExpr args) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1;
   if (nl->ListLength(args) == 1) {
     arg1 = nl->First(args);
@@ -3001,7 +3207,7 @@ static ListExpr intBool (ListExpr args) {
 */
 
 static ListExpr doubleBool (ListExpr args) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1;
   if (nl->ListLength(args) == 1) {
     arg1 = nl->First(args);
@@ -3021,10 +3227,12 @@ operator, we just have to return 0.
 */
 
 static int simpleSelect (ListExpr args ){
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return 0; 
 }
 
 static int equalSelect (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
@@ -3037,6 +3245,7 @@ static int equalSelect (ListExpr args) {
 }
 
 static int unequalSelect (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
@@ -3049,6 +3258,7 @@ static int unequalSelect (ListExpr args) {
 }
 
 static int disjointSelect (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
@@ -3061,6 +3271,7 @@ static int disjointSelect (ListExpr args) {
 }
 
 static int insideSelect (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"region"))
@@ -3073,6 +3284,7 @@ static int insideSelect (ListExpr args) {
 }
 
 static int intersectsSelect (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
@@ -3087,6 +3299,7 @@ static int intersectsSelect (ListExpr args) {
 }
 
 static int meetsSelect (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
@@ -3101,6 +3314,7 @@ static int meetsSelect (ListExpr args) {
 }
 
 static int borderInCommonSelect (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
@@ -3115,6 +3329,7 @@ static int borderInCommonSelect (ListExpr args) {
 }
 
 static int onBorderOfSelect (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"line"))
@@ -3125,6 +3340,7 @@ static int onBorderOfSelect (ListExpr args) {
 }
 
 static int intersectionSelect (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
@@ -3139,6 +3355,7 @@ static int intersectionSelect (ListExpr args) {
 }
 
 static int plusSelect (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
@@ -3151,6 +3368,7 @@ static int plusSelect (ListExpr args) {
 }
 
 static int minusSelect (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
@@ -3163,6 +3381,7 @@ static int minusSelect (ListExpr args) {
 }
 
 static int commonBorderSelect (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
@@ -3177,6 +3396,7 @@ static int commonBorderSelect (ListExpr args) {
 }
 
 static int verticesSelect (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   if (nl->IsEqual(arg1,"line"))
     return 0;
@@ -3186,6 +3406,7 @@ static int verticesSelect (ListExpr args) {
 }
 
 static int noOfComponentsSelect (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   if (nl->IsEqual(arg1,"points"))
     return 0;
@@ -3197,6 +3418,7 @@ static int noOfComponentsSelect (ListExpr args) {
 }
 
 static int distSelect (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
@@ -3221,6 +3443,7 @@ static int distSelect (ListExpr args) {
 }
 
 static int diameterSelect (ListExpr args) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   if (nl->IsEqual(arg1,"points"))
     return 0;
@@ -3238,6 +3461,7 @@ static int diameterSelect (ListExpr args) {
 */
 
 static double convertRational(jobject jrat) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   int numerator = env->CallIntMethod(jrat,midRationalGetNumerator);
   int denominator = env->CallIntMethod(jrat,midRationalGetDenominator);
 
@@ -3251,6 +3475,7 @@ static double convertRational(jobject jrat) {
 */
 
 static int callSetDeviationValue(CcReal *ccr) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //set deviation value to ccr
   //jmethodID midSetDeviation = env->GetStaticMethodID(clsROSEAlgebra, "setDeviationValue", "(D)V");
   //if (midSetDeviation == 0) error(__FILE__,__LINE__);
@@ -3267,7 +3492,7 @@ static int callSetDeviationValue(CcReal *ccr) {
 */
 
 static int callChooseTriangulator(CcInt *cci) {
-  
+    if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //set the triangulator
   //jmethodID midChooseTri = env->GetStaticMethodID(clsROSEAlgebra, "chooseTriangulator", "(I)V");
   //if (midChooseTri == 0) error(__FILE__,__LINE__);
@@ -3289,6 +3514,7 @@ static int callChooseTriangulator(CcInt *cci) {
 
 static bool bboxesIntersect(double o1tlx, double o1tly, double o1brx, double o1bry,
 			    double o2tlx, double o2tly, double o2brx, double o2bry) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //cout << "bboxesIntersect" << endl;
   bool xcomm = false;
   bool ycomm = false;
@@ -3335,6 +3561,7 @@ static bool bboxesIntersect(double o1tlx, double o1tly, double o1brx, double o1b
 
 static bool bboxesEqual(double o1tlx, double o1tly, double o1brx, double o1bry,
 			double o2tlx, double o2tly, double o2brx, double o2bry) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //if (o1tlx == o2tlx && o1tly == o2tly && o1brx == o2brx && o1bry == o2bry)
   if (abs(o1tlx - o2tlx) < DEVIATION_VALUE &&
       abs(o1tly - o2tly) < DEVIATION_VALUE &&
@@ -3352,7 +3579,7 @@ static bool bboxesEqual(double o1tlx, double o1tly, double o1brx, double o1bry,
 
 static int pp_equalFun(Word* args, Word& result, int message, 
 			       Word& local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* ccp1 = ((CcPoints *)args[0].addr);
   CcPoints* ccp2 = ((CcPoints *)args[1].addr);
   
@@ -3369,7 +3596,13 @@ static int pp_equalFun(Word* args, Word& result, int message,
   
   result = qp->ResultStorage(s);
   //((CcBool *)result.addr)->Set(true, callJMethod_PPB("pp_equal", ccp1, ccp2));
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_equal,ccp1->GetObj(),ccp2->GetObj()));
+  jboolean obj = env->CallStaticBooleanMethod(clsROSEAlgebra,midROSEpp_equal,ccp1->GetObj(),ccp2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_equal,ccp1->GetObj(),ccp2->GetObj()));
   
   return 0;
 }
@@ -3381,7 +3614,7 @@ static int pp_equalFun(Word* args, Word& result, int message,
 
 static int ll_equalFun(Word* args, Word& result, int message, 
 				       Word& local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ls1 = ((CcLines *)args[0].addr);
   CcLines* ls2 = ((CcLines *)args[1].addr);
 
@@ -3398,7 +3631,13 @@ static int ll_equalFun(Word* args, Word& result, int message,
 	
   result = qp->ResultStorage(s);	
   //((CcBool *)result.addr)->Set(true, callJMethod_LLB("ll_equal", ls1, ls2));
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_equal,ls1->GetObj(),ls2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_equal,ls1->GetObj(),ls2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_equal,ls1->GetObj(),ls2->GetObj()));
 
   return 0;
 }
@@ -3410,7 +3649,7 @@ static int ll_equalFun(Word* args, Word& result, int message,
 
 static int rr_equalFun(Word* args, Word& result, int message, 
 		       Word& local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* rs1 = ((CcRegions *)args[0].addr);
   CcRegions* rs2 = ((CcRegions *)args[1].addr);
 
@@ -3428,7 +3667,14 @@ static int rr_equalFun(Word* args, Word& result, int message,
 	
   result = qp->ResultStorage(s);	
   //((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_equal", rs1, rs2));
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_equal,rs1->GetObj(),rs2->GetObj()));
+
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_equal,rs1->GetObj(),rs2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_equal,rs1->GetObj(),rs2->GetObj()));
 
   return 0;
 }
@@ -3440,7 +3686,7 @@ static int rr_equalFun(Word* args, Word& result, int message,
 
 static int pp_unequalFun(Word* args, Word& result, int message, 
 			 Word& local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* ccps1 = ((CcPoints *)args[0].addr);
   CcPoints* ccps2 = ((CcPoints *)args[1].addr);
 
@@ -3456,8 +3702,13 @@ static int pp_unequalFun(Word* args, Word& result, int message,
   if (!ccps2->GetObject()) ccps2->RestoreJavaObjectFromFLOB();
   
   result = qp->ResultStorage(s);
-  //((CcBool *)result.addr)->Set(true, callJMethod_PPB("pp_unequal", ccps1, ccps2));
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_unequal,ccps1->GetObj(),ccps2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_unequal,ccps1->GetObj(),ccps2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_unequal,ccps1->GetObj(),ccps2->GetObj()));
   
   return 0;
 }
@@ -3469,7 +3720,7 @@ static int pp_unequalFun(Word* args, Word& result, int message,
 
 static int ll_unequalFun(Word* args, Word& result, int message, 
 			 Word& local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
   
@@ -3486,8 +3737,13 @@ static int ll_unequalFun(Word* args, Word& result, int message,
   if (!ccl2 ->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
   
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_LLB("ll_unequal", ccl1, ccl2));
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_unequal,ccl1->GetObj(),ccl2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_unequal,ccl1->GetObj(),ccl2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_unequal,ccl1->GetObj(),ccl2->GetObj()));
   
   return 0;
 }
@@ -3500,7 +3756,7 @@ static int ll_unequalFun(Word* args, Word& result, int message,
 
 static int rr_unequalFun(Word* args, Word& result, int message, 
 				       Word& local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 	
@@ -3517,8 +3773,13 @@ static int rr_unequalFun(Word* args, Word& result, int message,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
   
   result = qp->ResultStorage(s);	 
-  //((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_unequal", ccr1, ccr2));
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_unequal,ccr1->GetObj(),ccr2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_unequal,ccr1->GetObj(),ccr2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_unequal,ccr1->GetObj(),ccr2->GetObj()));
   
   return 0;
 }
@@ -3530,7 +3791,7 @@ static int rr_unequalFun(Word* args, Word& result, int message,
 
 static int pp_disjointFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* ccp1 = ((CcPoints *)args[0].addr);
   CcPoints* ccp2 = ((CcPoints *)args[1].addr);
 	
@@ -3547,8 +3808,13 @@ static int pp_disjointFun(Word* args, Word& result, int message,
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
   
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_PPB("pp_disjoint", ccp1, ccp2)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_disjoint,ccp1->GetObj(),ccp2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_disjoint,ccp1->GetObj(),ccp2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_disjoint,ccp1->GetObj(),ccp2->GetObj()));
 
   return 0;
 }
@@ -3560,7 +3826,7 @@ static int pp_disjointFun(Word* args, Word& result, int message,
 
 static int ll_disjointFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
 
@@ -3577,8 +3843,13 @@ static int ll_disjointFun(Word* args, Word& result, int message,
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_LLB("ll_disjoint", ccl1, ccl2)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_disjoint,ccl1->GetObj(),ccl2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_disjoint,ccl1->GetObj(),ccl2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_disjoint,ccl1->GetObj(),ccl2->GetObj()));
   return 0;
 }
 
@@ -3589,7 +3860,7 @@ static int ll_disjointFun(Word* args, Word& result, int message,
 
 static int rr_disjointFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 
@@ -3605,8 +3876,13 @@ static int rr_disjointFun(Word* args, Word& result, int message,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_disjoint", ccr1, ccr2)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_disjoint,ccr1->GetObj(),ccr2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_disjoint,ccr1->GetObj(),ccr2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_disjoint,ccr1->GetObj(),ccr2->GetObj()));
   
   return 0;
 }
@@ -3618,7 +3894,7 @@ static int rr_disjointFun(Word* args, Word& result, int message,
 
 static int pr_insideFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* ccp = ((CcPoints *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
   
@@ -3634,8 +3910,13 @@ static int pr_insideFun(Word* args, Word& result, int message,
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_PRB("pr_inside",ccp, ccr)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpr_inside,ccp->GetObj(),ccr->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpr_inside,ccp->GetObj(),ccr->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpr_inside,ccp->GetObj(),ccr->GetObj()));
   
   return 0;
 }
@@ -3647,7 +3928,7 @@ static int pr_insideFun(Word* args, Word& result, int message,
 
 static int lr_insideFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ccl = ((CcLines *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
 	
@@ -3663,8 +3944,13 @@ static int lr_insideFun(Word* args, Word& result, int message,
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_LRB("lr_inside", ccl, ccr)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_inside,ccl->GetObj(),ccr->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_inside,ccl->GetObj(),ccr->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_inside,ccl->GetObj(),ccr->GetObj()));
   
   return 0;
 }
@@ -3675,8 +3961,8 @@ static int lr_insideFun(Word* args, Word& result, int message,
 */
 
 static int rr_insideFun(Word* args, Word& result, int message, 
-			  Word& local, Supplier s)
-{
+			  Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
   
@@ -3692,8 +3978,13 @@ static int rr_insideFun(Word* args, Word& result, int message,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
   
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_inside",ccr1, ccr2)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_inside,ccr1->GetObj(),ccr2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_inside,ccr1->GetObj(),ccr2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_inside,ccr1->GetObj(),ccr2->GetObj()));
 
   return 0;
 }
@@ -3704,8 +3995,8 @@ static int rr_insideFun(Word* args, Word& result, int message,
 */
 
 static int rr_area_disjointFun(Word* args, Word& result, int message, 
-			  Word& local, Supplier s)
-{
+			  Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 
@@ -3721,8 +4012,13 @@ static int rr_area_disjointFun(Word* args, Word& result, int message,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_area_disjoint", ccr1, ccr2)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_area_disjoint,ccr1->GetObj(),ccr2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_area_disjoint,ccr1->GetObj(),ccr2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_area_disjoint,ccr1->GetObj(),ccr2->GetObj()));
   
   return 0;
 }
@@ -3733,8 +4029,8 @@ static int rr_area_disjointFun(Word* args, Word& result, int message,
 */
 
 static int rr_edge_disjointFun(Word* args, Word& result, int message, 
-			  Word& local, Supplier s)
-{
+			  Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 
@@ -3750,8 +4046,13 @@ static int rr_edge_disjointFun(Word* args, Word& result, int message,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_edge_disjoint", ccr1, ccr2)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_edge_disjoint,ccr1->GetObj(),ccr2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_edge_disjoint,ccr1->GetObj(),ccr2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_edge_disjoint,ccr1->GetObj(),ccr2->GetObj()));
 
   return 0;
 }
@@ -3762,8 +4063,8 @@ static int rr_edge_disjointFun(Word* args, Word& result, int message,
 */
 
 static int rr_edge_insideFun(Word* args, Word& result, int message, 
-			  Word& local, Supplier s)
-{
+			  Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 
@@ -3779,8 +4080,13 @@ static int rr_edge_insideFun(Word* args, Word& result, int message,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_edge_inside", ccr1, ccr2)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_edge_inside,ccr1->GetObj(),ccr2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_edge_inside,ccr1->GetObj(),ccr2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_edge_inside,ccr1->GetObj(),ccr2->GetObj()));
 
   return 0;
 }
@@ -3791,8 +4097,8 @@ static int rr_edge_insideFun(Word* args, Word& result, int message,
 */
 
 static int rr_vertex_insideFun(Word* args, Word& result, int message, 
-			  Word& local, Supplier s)
-{
+			  Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 
@@ -3808,8 +4114,13 @@ static int rr_vertex_insideFun(Word* args, Word& result, int message,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_vertex_inside", ccr1, ccr2)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_vertex_inside,ccr1->GetObj(),ccr2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_vertex_inside,ccr1->GetObj(),ccr2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_vertex_inside,ccr1->GetObj(),ccr2->GetObj()));
 
   return 0;
 }
@@ -3820,8 +4131,8 @@ static int rr_vertex_insideFun(Word* args, Word& result, int message,
 */
 
 static int rr_intersectsFun(Word* args, Word& result, int message, 
-			  Word& local, Supplier s)
-{
+			  Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 
@@ -3837,8 +4148,13 @@ static int rr_intersectsFun(Word* args, Word& result, int message,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_intersects", ccr1, ccr2)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_intersects,ccr1->GetObj(),ccr2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_intersects,ccr1->GetObj(),ccr2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_intersects,ccr1->GetObj(),ccr2->GetObj()));
 
   return 0;
 }
@@ -3850,7 +4166,7 @@ static int rr_intersectsFun(Word* args, Word& result, int message,
 
 static int rr_meetsFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s) {
-  
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
   
@@ -3866,8 +4182,13 @@ static int rr_meetsFun(Word* args, Word& result, int message,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_meets", ccr1, ccr2)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_meets,ccr1->GetObj(),ccr2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_meets,ccr1->GetObj(),ccr2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_meets,ccr1->GetObj(),ccr2->GetObj()));
 
   return 0;
 }
@@ -3878,8 +4199,8 @@ static int rr_meetsFun(Word* args, Word& result, int message,
 */
 
 static int rr_border_in_commonFun(Word* args, Word& result, int message, 
-			  Word& local, Supplier s)
-{
+			  Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
   
@@ -3895,8 +4216,13 @@ static int rr_border_in_commonFun(Word* args, Word& result, int message,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_border_in_common", ccr1, ccr2)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_border_in_common,ccr1->GetObj(),ccr2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_border_in_common,ccr1->GetObj(),ccr2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_border_in_common,ccr1->GetObj(),ccr2->GetObj()));
 
   return 0;
 }
@@ -3907,8 +4233,8 @@ static int rr_border_in_commonFun(Word* args, Word& result, int message,
 */
 
 static int rr_adjacentFun(Word* args, Word& result, int message, 
-			  Word& local, Supplier s)
-{
+			  Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
   
@@ -3924,8 +4250,13 @@ static int rr_adjacentFun(Word* args, Word& result, int message,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 	
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_adjacent", ccr1, ccr2)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_adjacent,ccr1->GetObj(),ccr2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_adjacent,ccr1->GetObj(),ccr2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_adjacent,ccr1->GetObj(),ccr2->GetObj()));
 
   return 0;
 }
@@ -3936,9 +4267,8 @@ static int rr_adjacentFun(Word* args, Word& result, int message,
 */
 
 static int rr_enclosesFun(Word* args, Word& result, int message, 
-			  Word& local, Supplier s)
-{
-
+			  Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
 
@@ -3954,8 +4284,13 @@ static int rr_enclosesFun(Word* args, Word& result, int message,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_encloses", ccr1, ccr2)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_encloses,ccr1->GetObj(),ccr2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_encloses,ccr1->GetObj(),ccr2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_encloses,ccr1->GetObj(),ccr2->GetObj()));
 
   return 0;
 }
@@ -3966,8 +4301,8 @@ static int rr_enclosesFun(Word* args, Word& result, int message,
 */
 
 static int rr_intersectionFun(Word* args, Word& result, int message, 
-			  Word& local, Supplier s)
-{
+			  Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccresult;
 
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
@@ -3978,8 +4313,12 @@ static int rr_intersectionFun(Word* args, Word& result, int message,
 		       ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
     //((CcRegions*)result.addr) = new CcRegions(env->NewObject(clsRegions,midRegionsConstVoid));
     result = qp->ResultStorage(s);
-    delete (CcRegions*)result.addr;
-    qp->ResultStorage(s,SetWord(new CcRegions(env->NewObject(clsRegions,midRegionsConstVoid))));
+    //delete (CcRegions*)result.addr;
+    //qp->ResultStorage(s,SetWord(new CcRegions(env->NewObject(clsRegions,midRegionsConstVoid))));
+    ccresult = new CcRegions(env->NewObject(clsRegions,midRegionsConstVoid));
+    ((CcRegions*)result.addr)->CopyFrom(ccresult);
+    delete ccresult;
+    ccresult = 0;
     return 0;
   }
   
@@ -3988,9 +4327,18 @@ static int rr_intersectionFun(Word* args, Word& result, int message,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
   
   result = qp->ResultStorage(s);
-  delete (CcRegions*)result.addr;
-  ccresult = new CcRegions(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_intersection,ccr1->GetObj(),ccr2->GetObj()));
-  qp->ResultStorage(s,SetWord(ccresult));
+  //delete (CcRegions*)result.addr;
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_intersection,ccr1->GetObj(),ccr2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsRegions,midRegionsConstVoid);
+  }
+  ccresult = new CcRegions(obj);
+  //ccresult = new CcRegions(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_intersection,ccr1->GetObj(),ccr2->GetObj()));
+  ((CcRegions*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
+  //qp->ResultStorage(s,SetWord(ccresult));
   //ccresult = callJMethod_RRR("rr_intersection", ccr1, ccr2);
   //if(env->ExceptionOccurred())
   //  env->ExceptionDescribe();
@@ -4006,6 +4354,7 @@ static int rr_intersectionFun(Word* args, Word& result, int message,
 
 static int rr_plusFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions *ccresult;
 
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
@@ -4015,9 +4364,18 @@ static int rr_plusFun(Word* args, Word& result, int message,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  delete (CcRegions*)result.addr;
-  ccresult = new CcRegions(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_plus,ccr1->GetObj(),ccr2->GetObj()));
-  qp->ResultStorage(s,SetWord(ccresult));  
+  //delete (CcRegions*)result.addr;
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_plus,ccr1->GetObj(),ccr2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsRegions,midRegionsConstVoid);
+  }
+  ccresult = new CcRegions(obj);
+  //ccresult = new CcRegions(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_plus,ccr1->GetObj(),ccr2->GetObj()));
+  ((CcRegions*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
+  //qp->ResultStorage(s,SetWord(ccresult));  
   //ccresult = callJMethod_RRR("rr_plus", ccr1, ccr2);
   //result.addr = ccresult;
 
@@ -4030,8 +4388,8 @@ static int rr_plusFun(Word* args, Word& result, int message,
 */
 
 static int rr_minusFun(Word* args, Word& result, int message, 
-			  Word& local, Supplier s)
-{
+			  Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions *ccresult;
 
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
@@ -4041,9 +4399,10 @@ static int rr_minusFun(Word* args, Word& result, int message,
   if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
 		       ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
     result = qp->ResultStorage(s);
-    delete (CcRegions*)result.addr;
+    //delete (CcRegions*)result.addr;
     //((CcRegions*)result.addr) = ccr1;
-    qp->ResultStorage(s,SetWord(ccr1));
+    //qp->ResultStorage(s,SetWord(ccr1));
+    ((CcRegions*)result.addr)->CopyFrom(ccr1);
     return 0;
   }
   //bboxes intersect, prepare to invoke Java method
@@ -4051,9 +4410,18 @@ static int rr_minusFun(Word* args, Word& result, int message,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  delete (CcRegions*)result.addr;
-  ccresult = new CcRegions(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_minus,ccr1->GetObj(),ccr2->GetObj()));
-  qp->ResultStorage(s,SetWord(ccresult));
+  //delete (CcRegions*)result.addr;
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_minus,ccr1->GetObj(),ccr2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsRegions,midRegionsConstVoid);
+  }
+  ccresult = new CcRegions(obj);
+  //ccresult = new CcRegions(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_minus,ccr1->GetObj(),ccr2->GetObj()));
+  ((CcRegions*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
+  //qp->ResultStorage(s,SetWord(ccresult));
   //jobject res = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_minus,ccr1->GetObj(),ccr2->GetObj());
   //if (res == 0) error(__FILE__, __LINE__);
   //ccresult = new CcRegions(res);
@@ -4069,6 +4437,7 @@ static int rr_minusFun(Word* args, Word& result, int message,
 
 static int rr_common_borderFun(Word *args, Word& result, 
 			       int message, Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccresult;
 
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
@@ -4078,8 +4447,12 @@ static int rr_common_borderFun(Word *args, Word& result,
   if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
 		       ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
     result = qp->ResultStorage(s);
-    delete (CcLines*)result.addr;
-    qp->ResultStorage(s,SetWord(new CcLines(env->NewObject(clsLines,midLinesConst))));
+    ccresult = new CcLines(env->NewObject(clsLines,midLinesConst));
+    ((CcLines*)result.addr)->CopyFrom(ccresult);
+    delete ccresult;
+    ccresult = 0;
+    //delete (CcLines*)result.addr;
+    //qp->ResultStorage(s,SetWord(new CcLines(env->NewObject(clsLines,midLinesConst))));
     //((CcRegions*)result.addr) = new CcRegions(env->NewObject(clsRegions,midRegionsConstVoid));
     return 0;
   }
@@ -4088,8 +4461,17 @@ static int rr_common_borderFun(Word *args, Word& result,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
-  delete (CcLines*)result.addr;
-  ccresult = new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_common_border,ccr1->GetObj(),ccr2->GetObj()));
+  //delete (CcLines*)result.addr;
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_common_border,ccr1->GetObj(),ccr2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsLines,midLinesConst);
+  }
+  ccresult = new CcLines(obj);
+  //ccresult = new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_common_border,ccr1->GetObj(),ccr2->GetObj()));
+  ((CcLines*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
   //ccresult = callJMethod_RRL("rr_common_border", ccr1, ccr2);
   //result.addr = ccresult;
 
@@ -4103,7 +4485,7 @@ static int rr_common_borderFun(Word *args, Word& result,
 
 static int ll_intersectsFun(Word* args, Word& result, int message,
 			    Word& local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
   
@@ -4119,8 +4501,13 @@ static int ll_intersectsFun(Word* args, Word& result, int message,
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
   
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_LLB("ll_intersects", ccl1, ccl2));
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_intersects,ccl1->GetObj(),ccl2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_intersects,ccl1->GetObj(),ccl2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_intersects,ccl1->GetObj(),ccl2->GetObj()));
   
   return 0;
 }
@@ -4132,7 +4519,7 @@ static int ll_intersectsFun(Word* args, Word& result, int message,
 
 static int lr_intersectsFun(Word* args, Word& result, int message,
 			    Word& local, Supplier s) {
-  
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ccl = ((CcLines *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
 
@@ -4148,8 +4535,13 @@ static int lr_intersectsFun(Word* args, Word& result, int message,
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_LRB("lr_intersects", ccl, ccr));
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_intersects,ccl->GetObj(),ccr->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_intersects,ccl->GetObj(),ccr->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_intersects,ccl->GetObj(),ccr->GetObj()));
   
   return 0;
 }
@@ -4161,7 +4553,7 @@ static int lr_intersectsFun(Word* args, Word& result, int message,
 
 static int rl_intersectsFun(Word* args, Word& result, int message,
 			    Word& local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr = ((CcRegions *)args[0].addr);
   CcLines* ccl = ((CcLines *)args[1].addr);
   
@@ -4177,8 +4569,13 @@ static int rl_intersectsFun(Word* args, Word& result, int message,
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_RLB("rl_intersects", ccr, ccl));
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_intersects,ccr->GetObj(),ccl->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_intersects,ccr->GetObj(),ccl->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_intersects,ccr->GetObj(),ccl->GetObj()));
   
   return 0;
 }
@@ -4189,8 +4586,8 @@ static int rl_intersectsFun(Word* args, Word& result, int message,
 */
 
 static int ll_meetsFun(Word* args, Word& result, int message, 
-		       Word& local, Supplier s)
-{
+		       Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
   
@@ -4206,8 +4603,13 @@ static int ll_meetsFun(Word* args, Word& result, int message,
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_LLB("ll_meets", ccl1, ccl2));
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_meets,ccl1->GetObj(),ccl2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_meets,ccl1->GetObj(),ccl2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_meets,ccl1->GetObj(),ccl2->GetObj()));
 
   return 0;
 }
@@ -4218,8 +4620,8 @@ static int ll_meetsFun(Word* args, Word& result, int message,
 */
 
 static int lr_meetsFun(Word* args, Word& result, int message, 
-		       Word& local, Supplier s)
-{
+		       Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ccl = ((CcLines *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
 	
@@ -4235,8 +4637,13 @@ static int lr_meetsFun(Word* args, Word& result, int message,
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_LRB("lr_meets", ccl, ccr));
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_meets,ccl->GetObj(),ccr->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_meets,ccl->GetObj(),ccr->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_meets,ccl->GetObj(),ccr->GetObj()));
   
   return 0;
 }
@@ -4247,8 +4654,8 @@ static int lr_meetsFun(Word* args, Word& result, int message,
 */
 
 static int rl_meetsFun(Word* args, Word& result, int message, 
-		       Word& local, Supplier s)
-{
+		       Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr = ((CcRegions *)args[0].addr);
   CcLines* ccl = ((CcLines *)args[1].addr);
 
@@ -4264,8 +4671,13 @@ static int rl_meetsFun(Word* args, Word& result, int message,
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_RLB("rl_meets", ccr, ccl));
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_meets,ccr->GetObj(),ccl->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_meets,ccr->GetObj(),ccl->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_meets,ccr->GetObj(),ccl->GetObj()));
   
   return 0;
 }
@@ -4276,9 +4688,8 @@ static int rl_meetsFun(Word* args, Word& result, int message,
 */
 
 static int ll_border_in_commonFun(Word* args, Word& result, int message, 
-				  Word& local, Supplier s)
-{
-  
+				  Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
   
@@ -4294,8 +4705,13 @@ static int ll_border_in_commonFun(Word* args, Word& result, int message,
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_LLB("ll_border_in_common", ccl1, ccl2)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_border_in_common,ccl1->GetObj(),ccl2->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_border_in_common,ccl1->GetObj(),ccl2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_border_in_common,ccl1->GetObj(),ccl2->GetObj()));
 
   return 0;
 }
@@ -4306,8 +4722,8 @@ static int ll_border_in_commonFun(Word* args, Word& result, int message,
 */
 
 static int lr_border_in_commonFun(Word* args, Word& result, int message, 
-				  Word& local, Supplier s)
-{
+				  Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ccl = ((CcLines *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
   
@@ -4323,8 +4739,13 @@ static int lr_border_in_commonFun(Word* args, Word& result, int message,
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_LRB("lr_border_in_common", ccl, ccr)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_border_in_common,ccl->GetObj(),ccr->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_border_in_common,ccl->GetObj(),ccr->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_border_in_common,ccl->GetObj(),ccr->GetObj()));
 
   return 0;
 }
@@ -4335,8 +4756,8 @@ static int lr_border_in_commonFun(Word* args, Word& result, int message,
 */
 
 static int rl_border_in_commonFun(Word* args, Word& result, int message, 
-				  Word& local, Supplier s)
-{
+				  Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr = ((CcRegions *)args[0].addr);
   CcLines* ccl = ((CcLines *)args[1].addr);
   
@@ -4352,8 +4773,13 @@ static int rl_border_in_commonFun(Word* args, Word& result, int message,
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_RLB("rl_border_in_common", ccr, ccl)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_border_in_common,ccr->GetObj(),ccl->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_border_in_common,ccr->GetObj(),ccl->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_border_in_common,ccr->GetObj(),ccl->GetObj()));
 
   return 0;
 }
@@ -4365,9 +4791,8 @@ static int rl_border_in_commonFun(Word* args, Word& result, int message,
 */
 
 static int pl_on_border_ofFun(Word* args, Word& result, int message, 
-			      Word& local, Supplier s)
-{
-
+			      Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* ccp = ((CcPoints *)args[0].addr);
   CcLines* ccl = ((CcLines *)args[1].addr);
   
@@ -4383,8 +4808,13 @@ static int pl_on_border_ofFun(Word* args, Word& result, int message,
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_PLB("pl_on_border_of", ccp, ccl)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpl_on_border_of,ccp->GetObj(),ccl->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpl_on_border_of,ccp->GetObj(),ccl->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpl_on_border_of,ccp->GetObj(),ccl->GetObj()));
 
   return 0;
 }
@@ -4395,8 +4825,8 @@ static int pl_on_border_ofFun(Word* args, Word& result, int message,
 */
 
 static int pr_on_border_ofFun(Word* args, Word& result, int message, 
-			      Word& local, Supplier s)
-{
+			      Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* ccp = ((CcPoints *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
   
@@ -4412,8 +4842,13 @@ static int pr_on_border_ofFun(Word* args, Word& result, int message,
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcBool *)result.addr)->Set(true, callJMethod_PRB("pr_on_border_of", ccp, ccr)); 
-  ((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpr_on_border_of,ccp->GetObj(),ccr->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpr_on_border_of,ccp->GetObj(),ccr->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = false;
+  }
+  ((CcBool*)result.addr)->Set(true,obj);
+  //((CcBool*)result.addr)->Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpr_on_border_of,ccp->GetObj(),ccr->GetObj()));
 
   return 0;
 }
@@ -4424,8 +4859,8 @@ static int pr_on_border_ofFun(Word* args, Word& result, int message,
 */
 
 static int pp_intersectionFun(Word* args, Word& result, int message, 
-			      Word& local, Supplier s)
-{
+			      Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *ccresult;
 
   CcPoints* ccp1 = ((CcPoints *)args[0].addr);
@@ -4434,20 +4869,34 @@ static int pp_intersectionFun(Word* args, Word& result, int message,
   //if bboxes don't intersect, return empty object
   if (!bboxesIntersect(ccp1->BboxTopLeftX,ccp1->BboxTopLeftY,ccp1->BboxBottomRightX,ccp1->BboxBottomRightY,
 		       ccp2->BboxTopLeftX,ccp2->BboxTopLeftY,ccp2->BboxBottomRightX,ccp2->BboxBottomRightY)) {
+    cout << "intersction: don't intersect" << endl;
     result = qp->ResultStorage(s);
-    delete (CcPoints*)result.addr;
-    qp->ResultStorage(s,SetWord(new CcPoints(env->NewObject(clsPoints,midPointsConst))));
+    ccresult = new CcPoints(env->NewObject(clsPoints,midPointsConst));
+    ((CcPoints*)result.addr)->CopyFrom(ccresult);
+    delete ccresult;
+    ccresult = 0;
+    //delete (CcPoints*)result.addr;
+    //qp->ResultStorage(s,SetWord(new CcPoints(env->NewObject(clsPoints,midPointsConst))));
     return 0;
   }
+  cout << "intersection: intersect" << endl;
   //bboxes intersect, prepare to invoke Java method
   if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  delete (CcPoints*)result.addr;
-
-  ccresult = new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_intersection,ccp1->GetObj(),ccp2->GetObj()));
-  qp->ResultStorage(s, SetWord(ccresult));
+  //delete (CcPoints*)result.addr;
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_intersection,ccp1->GetObj(),ccp2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsPoints,midPointsConst);
+  }
+  ccresult = new CcPoints(obj);
+  //ccresult = new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_intersection,ccp1->GetObj(),ccp2->GetObj()));
+  //qp->ResultStorage(s, SetWord(ccresult));
+  ((CcPoints*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
 
   return 0;
 }
@@ -4458,8 +4907,8 @@ static int pp_intersectionFun(Word* args, Word& result, int message,
 */
 
 static int ll_intersectionFun(Word* args, Word& result, int message, 
-			      Word& local, Supplier s)
-{
+			      Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *ccresult;
 
   CcLines* ccl1 = ((CcLines *)args[0].addr);
@@ -4469,8 +4918,12 @@ static int ll_intersectionFun(Word* args, Word& result, int message,
   if (!bboxesIntersect(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
 		       ccl2->BboxTopLeftX,ccl2->BboxTopLeftY,ccl2->BboxBottomRightX,ccl2->BboxBottomRightY)) {
     result = qp->ResultStorage(s);
-    delete (CcPoints*)result.addr;
-    qp->ResultStorage(s,SetWord(new CcPoints(env->NewObject(clsPoints,midPointsConst))));
+    //delete (CcPoints*)result.addr;
+    ccresult = new CcPoints(env->NewObject(clsPoints,midPointsConst));
+    ((CcPoints*)result.addr)->CopyFrom(ccresult);
+    delete ccresult;
+    ccresult = 0;
+    //qp->ResultStorage(s,SetWord(new CcPoints(env->NewObject(clsPoints,midPointsConst))));
     //((CcPoints*)result.addr) = new CcPoints(env->NewObject(clsPoints,midRegionsConstVoid));
     return 0;
   }
@@ -4479,9 +4932,18 @@ static int ll_intersectionFun(Word* args, Word& result, int message,
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  delete (CcPoints*)result.addr;
-  ccresult = new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_intersection,ccl1->GetObj(),ccl2->GetObj()));
-  qp->ResultStorage(s,SetWord(ccresult));
+  //delete (CcPoints*)result.addr;
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_intersection,ccl1->GetObj(),ccl2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsPoints,midPointsConst);
+  }
+  ccresult = new CcPoints(obj);
+  //ccresult = new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_intersection,ccl1->GetObj(),ccl2->GetObj()));
+  //qp->ResultStorage(s,SetWord(ccresult));
+  ((CcPoints*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
   //ccresult = callJMethod_LLP("ll_intersection", ccl1, ccl2);
   //result.addr = ccresult;
 
@@ -4494,8 +4956,8 @@ static int ll_intersectionFun(Word* args, Word& result, int message,
 */
 
 static int rl_intersectionFun(Word* args, Word& result, int message, 
-			      Word& local, Supplier s)
-{
+			      Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccresult;
 
   CcRegions* ccr = ((CcRegions *)args[0].addr);
@@ -4506,8 +4968,12 @@ static int rl_intersectionFun(Word* args, Word& result, int message,
 		       ccl->BboxTopLeftX,ccl->BboxTopLeftY,ccl->BboxBottomRightX,ccl->BboxBottomRightY)) {
     //((CcLines*)result.addr) = new CcLines(env->NewObject(clsLines,midLinesConst));
     result = qp->ResultStorage(s);
-    delete (CcLines*)result.addr;
-    qp->ResultStorage(s,SetWord(new CcLines(env->NewObject(clsLines,midLinesConst))));
+    //delete (CcLines*)result.addr;
+    //qp->ResultStorage(s,SetWord(new CcLines(env->NewObject(clsLines,midLinesConst))));
+    ccresult = new CcLines(env->NewObject(clsLines,midLinesConst));
+    ((CcLines*)result.addr)->CopyFrom(ccresult);
+    delete ccresult;
+    ccresult = 0;
     return 0;
   }
   //bboxes intersect, so prepare to invoke Java method
@@ -4515,9 +4981,18 @@ static int rl_intersectionFun(Word* args, Word& result, int message,
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  delete (CcLines*)result.addr;
-  ccresult = new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_intersection,ccr->GetObj(),ccl->GetObj()));
-  qp->ResultStorage(s,SetWord(ccresult));
+  //delete (CcLines*)result.addr;
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_intersection,ccr->GetObj(),ccl->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsLines,midLinesConst);
+  }
+  ccresult = new CcLines(obj);
+  //result = new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_intersection,ccr->GetObj(),ccl->GetObj()));
+  ((CcLines*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
+  //qp->ResultStorage(s,SetWord(ccresult));
   //ccresult = callJMethod_RLL("rl_intersection", ccr, ccl);
   //result.addr = ccresult;
 
@@ -4530,8 +5005,8 @@ static int rl_intersectionFun(Word* args, Word& result, int message,
 */
 
 static int pp_plusFun(Word* args, Word& result, int message, 
-			      Word& local, Supplier s)
-{
+			      Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *ccresult;
 
   CcPoints* ccp1 = ((CcPoints *)args[0].addr);
@@ -4541,9 +5016,19 @@ static int pp_plusFun(Word* args, Word& result, int message,
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  delete (CcPoints*)result.addr;
-  ccresult = new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_plus,ccp1->GetObj(),ccp2->GetObj()));
-  qp->ResultStorage(s,SetWord(ccresult));
+  //delete (CcPoints*)result.addr;
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_plus,ccp1->GetObj(),ccp2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsPoints,midPointsConst);
+  }
+  ccresult = new CcPoints(obj);
+  //ccresult = new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_plus,ccp1->GetObj(),ccp2->GetObj()));
+  ((CcPoints*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
+  //qp->ResultStorage(s,SetWord(ccresult));
+  
   //ccresult = callJMethod_PPP("pp_plus", ccp1, ccp2);
   //result.addr = ccresult;
 
@@ -4556,8 +5041,8 @@ static int pp_plusFun(Word* args, Word& result, int message,
 */
 
 static int ll_plusFun(Word* args, Word& result, int message, 
-		      Word& local, Supplier s)
-{
+		      Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccresult;
   
   CcLines* ccl1 = ((CcLines *)args[0].addr);
@@ -4567,11 +5052,22 @@ static int ll_plusFun(Word* args, Word& result, int message,
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  delete (CcLines*)result.addr;
-  ccresult = new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_plus,ccl1->GetObj(),ccl2->GetObj()));
-  qp->ResultStorage(s,SetWord(ccresult));
-  //ccresult = callJMethod_LLL("ll_plus", ccl1, ccl2);
+  //delete (CcLines*)result.addr;
+
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_plus,ccl1->GetObj(),ccl2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsLines,midLinesConst);
+  }
+  ccresult = new CcLines(obj);
+  //ccresult = new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_plus,ccl1->GetObj(),ccl2->GetObj()));
+  
+  ((CcLines*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
+  
   //result.addr = ccresult;
+  //qp->ResultStorage(s,SetWord(ccresult));
 
   return 0;
 }
@@ -4582,8 +5078,8 @@ static int ll_plusFun(Word* args, Word& result, int message,
 */
 
 static int pp_minusFun(Word* args, Word& result, int message, 
-		       Word& local, Supplier s)
-{
+		       Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *ccp1;
   CcPoints *ccp2;
   CcPoints *ccresult;
@@ -4595,9 +5091,10 @@ static int pp_minusFun(Word* args, Word& result, int message,
   if (!bboxesIntersect(ccp1->BboxTopLeftX,ccp1->BboxTopLeftY,ccp1->BboxBottomRightX,ccp1->BboxBottomRightY,
 		       ccp2->BboxTopLeftX,ccp2->BboxTopLeftY,ccp2->BboxBottomRightX,ccp2->BboxBottomRightY)) {
     result = qp->ResultStorage(s);
-    delete (CcPoints*)result.addr;
+    ((CcPoints*)result.addr)->CopyFrom(ccp1);
+    //delete (CcPoints*)result.addr;
     //((CcPoints*)result.addr) = ccp1;
-    qp->ResultStorage(s,SetWord(ccp1));
+    //qp->ResultStorage(s,SetWord(ccp1));
     return 0;
   }
   //bboxes intersect, so prepare to invoke Java method
@@ -4605,9 +5102,18 @@ static int pp_minusFun(Word* args, Word& result, int message,
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  delete (CcPoints*)result.addr;
-  ccresult = new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_minus,ccp1->GetObj(),ccp2->GetObj()));
-  qp->ResultStorage(s,SetWord(ccresult));
+  //delete (CcPoints*)result.addr;
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_minus,ccp1->GetObj(),ccp2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsPoints,midPointsConst);
+  }
+  ccresult = new CcPoints(obj);
+  //ccresult = new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_minus,ccp1->GetObj(),ccp2->GetObj()));
+  ((CcPoints*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
+  //qp->ResultStorage(s,SetWord(ccresult));
   //ccresult = callJMethod_PPP("pp_minus", ccp1, ccp2);
   //result.addr = ccresult;
 
@@ -4620,8 +5126,8 @@ static int pp_minusFun(Word* args, Word& result, int message,
 */
 
 static int ll_minusFun(Word* args, Word& result, int message, 
-		       Word& local, Supplier s)
-{
+		       Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccresult;
 
   CcLines* ccl1 = ((CcLines *)args[0].addr);
@@ -4631,9 +5137,10 @@ static int ll_minusFun(Word* args, Word& result, int message,
   if (!bboxesIntersect(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
 		       ccl2->BboxTopLeftX,ccl2->BboxTopLeftY,ccl2->BboxBottomRightX,ccl2->BboxBottomRightY)) {
     result = qp->ResultStorage(s);
-    delete (CcLines*)result.addr;
+    //delete (CcLines*)result.addr;
     //((CcLines*)result.addr) = ccl1;
-    qp->ResultStorage(s,SetWord(ccl1));
+    //qp->ResultStorage(s,SetWord(ccl1));
+    ((CcPoints*)result.addr)->CopyFrom(ccl1);
     return 0;
   }
   //bboxes intersect, so prepare to invoke Java method
@@ -4641,9 +5148,18 @@ static int ll_minusFun(Word* args, Word& result, int message,
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  delete (CcLines*)result.addr;
-  ccresult = new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_minus,ccl1->GetObj(),ccl2->GetObj()));
-  qp->ResultStorage(s,SetWord(ccresult));
+  //delete (CcLines*)result.addr;
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_minus,ccl1->GetObj(),ccl2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsLines,midLinesConst);
+  }
+  ccresult = new CcLines(obj);
+  //ccresult = new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_minus,ccl1->GetObj(),ccl2->GetObj()));
+  //qp->ResultStorage(s,SetWord(ccresult));
+  ((CcLines*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
   //ccresult = callJMethod_LLL("ll_minus", ccl1, ccl2);
   //result.addr = ccresult;
 
@@ -4657,6 +5173,7 @@ static int ll_minusFun(Word* args, Word& result, int message,
 
 static int ll_common_borderFun(Word *args, Word& result, 
 			       int message, Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccresult;
 
   CcLines* ccl1 = ((CcLines *)args[0].addr);
@@ -4666,8 +5183,12 @@ static int ll_common_borderFun(Word *args, Word& result,
   if (!bboxesIntersect(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
 		       ccl2->BboxTopLeftX,ccl2->BboxTopLeftY,ccl2->BboxBottomRightX,ccl2->BboxBottomRightY)) {
     result = qp->ResultStorage(s);
-    delete (CcLines*)result.addr;
-    qp->ResultStorage(s,SetWord(new CcLines(env->NewObject(clsLines,midLinesConst))));
+    //delete (CcLines*)result.addr;
+    //qp->ResultStorage(s,SetWord(new CcLines(env->NewObject(clsLines,midLinesConst))));
+    ccresult = new CcLines(env->NewObject(clsLines,midLinesConst));
+    ((CcLines*)result.addr)->CopyFrom(ccresult);
+    delete ccresult;
+    ccresult = 0;
     //((CcLines*)result.addr) = new CcLines(env->NewObject(clsLines,midLinesConst));
     return 0;
   }
@@ -4676,9 +5197,18 @@ static int ll_common_borderFun(Word *args, Word& result,
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
-  delete (CcLines*)result.addr;
-  ccresult = new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_common_border,ccl1->GetObj(),ccl2->GetObj()));
-  qp->ResultStorage(s,SetWord(ccresult));
+  //delete (CcLines*)result.addr;
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_common_border,ccl1->GetObj(),ccl2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsLines,midLinesConst);
+  }
+  ccresult = new CcLines(obj);
+  //ccresult = new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_common_border,ccl1->GetObj(),ccl2->GetObj()));
+  //qp->ResultStorage(s,SetWord(ccresult));
+  ((CcLines*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
   //ccresult = callJMethod_LLL("ll_common_border", ccl1, ccl2);
   //result.addr = ccresult;
 
@@ -4692,6 +5222,7 @@ static int ll_common_borderFun(Word *args, Word& result,
 
 static int lr_common_borderFun(Word *args, Word& result, 
 			       int message, Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccresult;
 
   CcLines* ccl = ((CcLines *)args[0].addr);
@@ -4701,8 +5232,12 @@ static int lr_common_borderFun(Word *args, Word& result,
   if (!bboxesIntersect(ccl->BboxTopLeftX,ccl->BboxTopLeftY,ccl->BboxBottomRightX,ccl->BboxBottomRightY,
 		       ccr->BboxTopLeftX,ccr->BboxTopLeftY,ccr->BboxBottomRightX,ccr->BboxBottomRightY)) {  
     result = qp->ResultStorage(s);
-    delete (CcLines*)result.addr;
-    qp->ResultStorage(s,SetWord(new CcLines(env->NewObject(clsLines,midLinesConst))));
+    //delete (CcLines*)result.addr;
+    //qp->ResultStorage(s,SetWord(new CcLines(env->NewObject(clsLines,midLinesConst))));
+    ccresult = new CcLines(env->NewObject(clsLines,midLinesConst));
+    ((CcLines*)result.addr)->CopyFrom(ccresult);
+    delete ccresult;
+    ccresult = 0;
     //((CcLines*)result.addr) = new CcLines(env->NewObject(clsLines,midLinesConst));
     return 0;
   }
@@ -4711,9 +5246,18 @@ static int lr_common_borderFun(Word *args, Word& result,
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
-  delete (CcLines*)result.addr;
-  ccresult = new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_common_border,ccl->GetObj(),ccr->GetObj()));
-  qp->ResultStorage(s,SetWord(ccresult));
+  //delete (CcLines*)result.addr;
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_common_border,ccl->GetObj(),ccr->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsLines,midLinesConst);
+  }
+  ccresult = new CcLines(obj);
+  //ccresult = new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_common_border,ccl->GetObj(),ccr->GetObj()));
+  //qp->ResultStorage(s,SetWord(ccresult));
+  ((CcLines*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
   //ccresult = callJMethod_LRL("lr_common_border", ccl, ccr);
   //result.addr = ccresult;
 
@@ -4727,6 +5271,7 @@ static int lr_common_borderFun(Word *args, Word& result,
 
 static int rl_common_borderFun(Word *args, Word& result, 
 			       int message, Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccresult;
 
   CcRegions* ccr = ((CcRegions *)args[0].addr);
@@ -4736,8 +5281,12 @@ static int rl_common_borderFun(Word *args, Word& result,
   if (!bboxesIntersect(ccr->BboxTopLeftX,ccr->BboxTopLeftY,ccr->BboxBottomRightX,ccr->BboxBottomRightY,
 		       ccl->BboxTopLeftX,ccl->BboxTopLeftY,ccl->BboxBottomRightX,ccl->BboxBottomRightY)) {
     result = qp->ResultStorage(s);
-    delete (CcLines*)result.addr;
-    qp->ResultStorage(s,SetWord(new CcLines(env->NewObject(clsLines,midLinesConst))));
+    //delete (CcLines*)result.addr;
+    //qp->ResultStorage(s,SetWord(new CcLines(env->NewObject(clsLines,midLinesConst))));
+    ccresult = new CcLines(env->NewObject(clsLines,midLinesConst));
+    ((CcLines*)result.addr)->CopyFrom(ccresult);
+    delete ccresult;
+    ccresult = 0;
     //((CcLines*)result.addr) = new CcLines(env->NewObject(clsLines,midLinesConst));
     return 0;
   }
@@ -4746,9 +5295,18 @@ static int rl_common_borderFun(Word *args, Word& result,
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
-  delete (CcLines*)result.addr;
-  ccresult = new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_common_border,ccr->GetObj(),ccl->GetObj()));
-  qp->ResultStorage(s,SetWord(ccresult));
+  //delete (CcLines*)result.addr;
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_common_border,ccr->GetObj(),ccl->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsLines,midLinesConst);
+  }
+  ccresult = new CcLines(obj);
+  //ccresult = new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_common_border,ccr->GetObj(),ccl->GetObj()));
+  //qp->ResultStorage(s,SetWord(ccresult));
+  ((CcLines*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
   //ccresult = callJMethod_RLL("rl_common_border", ccr, ccl);
   //result.addr = ccresult;
 
@@ -4763,6 +5321,7 @@ static int rl_common_borderFun(Word *args, Word& result,
 
 static int l_verticesFun(Word *args, Word& result, 
 			 int message, Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *ccresult;
 
   CcLines* ccl = ((CcLines *)args[0].addr);
@@ -4770,9 +5329,18 @@ static int l_verticesFun(Word *args, Word& result,
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
-  delete (CcPoints*)result.addr;
-  ccresult = new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEl_vertices,ccl->GetObj()));
-  qp->ResultStorage(s,SetWord(ccresult));
+  //delete (CcPoints*)result.addr;
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEl_vertices,ccl->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsPoints,midPointsConst);
+  }
+  ccresult = new CcPoints(obj);
+  //ccresult = new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEl_vertices,ccl->GetObj()));
+  //qp->ResultStorage(s,SetWord(ccresult));
+  ((CcLines*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
   //ccresult = callJMethod_LP("l_vertices", ccl);
   //result.addr = ccresult;
 
@@ -4786,6 +5354,7 @@ static int l_verticesFun(Word *args, Word& result,
 
 static int r_verticesFun(Word *args, Word& result, 
 			 int message, Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *ccresult;
 
   CcRegions* ccr = ((CcRegions *)args[0].addr);
@@ -4793,9 +5362,18 @@ static int r_verticesFun(Word *args, Word& result,
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
-  delete (CcPoints*)result.addr;
-  ccresult = new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEr_vertices,ccr->GetObj()));
-  qp->ResultStorage(s,SetWord(ccresult));
+  //delete (CcPoints*)result.addr;
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEr_vertices,ccr->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsPoints,midPointsConst);
+  }
+  ccresult = new CcPoints(obj);
+  //ccresult = new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEr_vertices,ccr->GetObj()));
+  ((CcPoints*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
+  //qp->ResultStorage(s,SetWord(ccresult));
   //ccresult = callJMethod_RP("r_vertices", ccr);
   //result.addr = ccresult;
   
@@ -4809,6 +5387,7 @@ static int r_verticesFun(Word *args, Word& result,
 
 static int l_interiorFun(Word *args, Word& result, 
 			 int message, Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions *ccresult;
 
   CcLines* ccl = ((CcLines *)args[0].addr);
@@ -4816,12 +5395,16 @@ static int l_interiorFun(Word *args, Word& result,
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);
-  delete (CcRegions*)result.addr;
-  ccresult = new CcRegions(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEl_interior,ccl->GetObj()));
-  qp->ResultStorage(s,SetWord(ccresult));
-  //ccresult = callJMethod_LR("l_interior", ccl);
-  //result.addr = ccresult;
-
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEl_interior,ccl->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsRegions,midRegionsConstVoid);
+  }
+  ccresult = new CcRegions(obj);
+  ((CcRegions*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
+  
   return 0;
 }
 
@@ -4832,6 +5415,7 @@ static int l_interiorFun(Word *args, Word& result,
 
 static int r_contourFun(Word *args, Word& result, 
 			int message, Word& local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccresult;
 
   CcRegions* ccr = ((CcRegions *)args[0].addr);
@@ -4840,11 +5424,20 @@ static int r_contourFun(Word *args, Word& result,
 
   result = qp->ResultStorage(s);
   //delete (CcLines*)result.addr;
-  ccresult = new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEr_contour,ccr->GetObj()));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEr_contour,ccr->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsLines,midLinesConst);
+  }
+  ccresult = new CcLines(obj);
+  //ccresult = new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEr_contour,ccr->GetObj()));
+  ((CcRegions*)result.addr)->CopyFrom(ccresult);
+  delete ccresult;
+  ccresult = 0;
   //qp->ResultStorage(s,SetWord(ccresult));
 
   //ccresult = callJMethod_RL("r_contour", ccr);
-  result.addr = ccresult;
+  //result.addr = ccresult;
 
   return 0;
 }
@@ -4857,6 +5450,7 @@ static int r_contourFun(Word *args, Word& result,
 static int p_no_of_componentsFun(Word *args, Word &result,
 				 int message, Word &local,
 				 Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *ccp = ((CcPoints *)args[0].addr);
 
   if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
@@ -4864,7 +5458,13 @@ static int p_no_of_componentsFun(Word *args, Word &result,
   result = qp->ResultStorage(s);	
   
   //((CcInt *)result.addr)->Set(true, callJMethod_PI("p_no_of_components", ccp)); 
-  ((CcInt*)result.addr)->Set(true,env->CallStaticIntMethod(clsROSEAlgebra,midROSEp_no_of_components,ccp->GetObj()));
+  jint obj = env->CallStaticIntMethod(clsROSEAlgebra,midROSEp_no_of_components,ccp->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = -1;
+  }
+  ((CcInt*)result.addr)->Set(true,obj);
+  //((CcInt*)result.addr)->Set(true,env->CallStaticIntMethod(clsROSEAlgebra,midROSEp_no_of_components,ccp->GetObj()));
 
 
   return 0;
@@ -4878,13 +5478,19 @@ static int p_no_of_componentsFun(Word *args, Word &result,
 static int l_no_of_componentsFun(Word *args, Word &result,
 				 int message, Word &local,
 				 Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccl = ((CcLines *)args[0].addr);
 
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcInt *)result.addr)->Set(true, callJMethod_LI("l_no_of_components", ccl)); 
-  ((CcInt*)result.addr)->Set(true,env->CallStaticIntMethod(clsROSEAlgebra,midROSEl_no_of_components,ccl->GetObj()));
+  jint obj = env->CallStaticIntMethod(clsROSEAlgebra,midROSEl_no_of_components,ccl->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = -1;
+  }
+  ((CcInt*)result.addr)->Set(true,obj);
+  //((CcInt*)result.addr)->Set(true,env->CallStaticIntMethod(clsROSEAlgebra,midROSEl_no_of_components,ccl->GetObj()));
 
   return 0;
 }
@@ -4897,13 +5503,19 @@ static int l_no_of_componentsFun(Word *args, Word &result,
 static int r_no_of_componentsFun(Word *args, Word &result,
 				 int message, Word &local,
 				 Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions *ccr = ((CcRegions *)args[0].addr);
 
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  //((CcInt *)result.addr)->Set(true, callJMethod_RI("r_no_of_components", ccr)); 
-  ((CcInt*)result.addr)->Set(true,env->CallStaticIntMethod(clsROSEAlgebra,midROSEr_no_of_components,ccr->GetObj()));
+  jint obj = env->CallStaticIntMethod(clsROSEAlgebra,midROSEr_no_of_components,ccr->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = -1;
+  }
+  ((CcInt*)result.addr)->Set(true,obj);
+  //((CcInt*)result.addr)->Set(true,env->CallStaticIntMethod(clsROSEAlgebra,midROSEr_no_of_components,ccr->GetObj()));
 
   return 0;
 }
@@ -4915,7 +5527,7 @@ static int r_no_of_componentsFun(Word *args, Word &result,
 
 static int pp_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *ccp1 = ((CcPoints *)args[0].addr);
   CcPoints *ccp2 = ((CcPoints *)args[1].addr);
 
@@ -4923,8 +5535,12 @@ static int pp_distFun(Word *args, Word &result, int message,
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  
-  //((CcReal *)result.addr)->Set(true, (float)callJMethod_PPd ("pp_dist", ccp1, ccp2)); 
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_dist,ccp1->GetObj(),ccp2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsRationalFactory,midRFConstRational,-1);
+  }
+  ((CcReal*)result.addr)->Set(true,convertRational(obj));
   ((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_dist,ccp1->GetObj(),ccp2->GetObj())));
 
   return 0;
@@ -4937,7 +5553,7 @@ static int pp_distFun(Word *args, Word &result, int message,
 
 static int pl_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *ccp = ((CcPoints *)args[0].addr);
   CcLines *ccl = ((CcLines *)args[1].addr);
 
@@ -4945,9 +5561,13 @@ static int pl_distFun(Word *args, Word &result, int message,
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  
-  //((CcReal *)result.addr)->Set(true, (float)callJMethod_PLd("pl_dist", ccp, ccl)); 
-  ((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpl_dist,ccp->GetObj(),ccl->GetObj())));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpl_dist,ccp->GetObj(),ccl->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsRationalFactory,midRFConstRational,-1);
+  }
+  ((CcReal*)result.addr)->Set(true,convertRational(obj));
+  //((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpl_dist,ccp->GetObj(),ccl->GetObj())));
 
   return 0;
 }
@@ -4959,7 +5579,7 @@ static int pl_distFun(Word *args, Word &result, int message,
 
 static int pr_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *ccp = ((CcPoints *)args[0].addr);
   CcRegions *ccr = ((CcRegions *)args[1].addr);
 
@@ -4967,9 +5587,13 @@ static int pr_distFun(Word *args, Word &result, int message,
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  
-  //((CcReal *)result.addr)->Set(true, (float)callJMethod_PRd("pr_dist", ccp, ccr)); 
-  ((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpr_dist,ccp->GetObj(),ccr->GetObj())));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpr_dist,ccp->GetObj(),ccr->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsRationalFactory,midRFConstRational,-1);
+  }
+  ((CcReal*)result.addr)->Set(true,convertRational(obj));
+  //((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpr_dist,ccp->GetObj(),ccr->GetObj())));
 
   return 0;
 }
@@ -4981,7 +5605,7 @@ static int pr_distFun(Word *args, Word &result, int message,
 
 static int lp_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccl = ((CcLines *)args[0].addr);
   CcPoints *ccp = ((CcPoints *)args[1].addr);
 
@@ -4989,9 +5613,13 @@ static int lp_distFun(Word *args, Word &result, int message,
   if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
   
   result = qp->ResultStorage(s);	
-  
-  //((CcReal *)result.addr)->Set(true, (float)callJMethod_LPd("lp_dist", ccl, ccp)); 
-  ((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSElp_dist,ccl->GetObj(),ccp->GetObj())));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSElp_dist,ccl->GetObj(),ccp->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsRationalFactory,midRFConstRational,-1);
+  }
+  ((CcReal*)result.addr)->Set(true,convertRational(obj));
+  //((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSElp_dist,ccl->GetObj(),ccp->GetObj())));
 
   return 0;
 }
@@ -5003,7 +5631,7 @@ static int lp_distFun(Word *args, Word &result, int message,
 
 static int ll_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccl1 = ((CcLines *)args[0].addr);
   CcLines *ccl2 = ((CcLines *)args[1].addr);
 
@@ -5011,9 +5639,13 @@ static int ll_distFun(Word *args, Word &result, int message,
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  
-  //((CcReal *)result.addr)->Set(true, (float)callJMethod_LLd("ll_dist", ccl1, ccl2)); 
-  ((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_dist,ccl1->GetObj(),ccl2->GetObj())));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_dist,ccl1->GetObj(),ccl2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsRationalFactory,midRFConstRational,-1);
+  }
+  ((CcReal*)result.addr)->Set(true,convertRational(obj));
+  //((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_dist,ccl1->GetObj(),ccl2->GetObj())));
 
   return 0;
 }
@@ -5025,7 +5657,7 @@ static int ll_distFun(Word *args, Word &result, int message,
 
 static int lr_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccl = ((CcLines *)args[0].addr);
   CcRegions *ccr = ((CcRegions *)args[1].addr);
 
@@ -5033,9 +5665,13 @@ static int lr_distFun(Word *args, Word &result, int message,
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  
-  //((CcReal *)result.addr)->Set(true, (float)callJMethod_LRd("lr_dist", ccl, ccr)); 
-  ((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_dist,ccl->GetObj(),ccr->GetObj())));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_dist,ccl->GetObj(),ccr->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsRationalFactory,midRFConstRational,-1);
+  }
+  ((CcReal*)result.addr)->Set(true,convertRational(obj));
+  //((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_dist,ccl->GetObj(),ccr->GetObj())));
 
   return 0;
 }
@@ -5047,7 +5683,7 @@ static int lr_distFun(Word *args, Word &result, int message,
 
 static int rp_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions *ccr = ((CcRegions *)args[0].addr);
   CcPoints *ccp = ((CcPoints *)args[1].addr);
 
@@ -5055,9 +5691,13 @@ static int rp_distFun(Word *args, Word &result, int message,
   if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  
-  //((CcReal *)result.addr)->Set(true, (float)callJMethod_RPd("rp_dist", ccr, ccp)); 
-  ((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErp_dist,ccr->GetObj(),ccp->GetObj())));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErp_dist,ccr->GetObj(),ccp->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsRationalFactory,midRFConstRational,-1);
+  }
+  ((CcReal*)result.addr)->Set(true,convertRational(obj));
+  //((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErp_dist,ccr->GetObj(),ccp->GetObj())));
 
   return 0;
 }
@@ -5069,7 +5709,7 @@ static int rp_distFun(Word *args, Word &result, int message,
 
 static int rl_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions *ccr = ((CcRegions *)args[0].addr);
   CcLines *ccl = ((CcLines *)args[1].addr);
 
@@ -5077,9 +5717,13 @@ static int rl_distFun(Word *args, Word &result, int message,
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  
-  //((CcReal *)result.addr)->Set(true, (float)callJMethod_RLd("rl_dist", ccr, ccl)); 
-  ((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_dist,ccr->GetObj(),ccl->GetObj())));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_dist,ccr->GetObj(),ccl->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsRationalFactory,midRFConstRational,-1);
+  }
+  ((CcReal*)result.addr)->Set(true,convertRational(obj));
+  //((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_dist,ccr->GetObj(),ccl->GetObj())));
 
   return 0;
 }
@@ -5091,7 +5735,7 @@ static int rl_distFun(Word *args, Word &result, int message,
 
 static int rr_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions *ccr1 = ((CcRegions *)args[0].addr);
   CcRegions *ccr2 = ((CcRegions *)args[1].addr);
 
@@ -5099,9 +5743,13 @@ static int rr_distFun(Word *args, Word &result, int message,
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
   result = qp->ResultStorage(s);	
-  
-  //((CcReal *)result.addr)->Set(true, (float)callJMethod_RRd("rr_dist", ccr1, ccr2)); 
-  ((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_dist,ccr1->GetObj(),ccr2->GetObj())));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_dist,ccr1->GetObj(),ccr2->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsRationalFactory,midRFConstRational,-1);
+  }
+  ((CcReal*)result.addr)->Set(true,convertRational(obj));
+  //((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_dist,ccr1->GetObj(),ccr2->GetObj())));
 
   return 0;
 }
@@ -5113,16 +5761,19 @@ static int rr_distFun(Word *args, Word &result, int message,
 
 static int p_diameterFun(Word *args, Word &result, int message,
 			 Word &local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *ccp = ((CcPoints *)args[0].addr);
 
   if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
 
-  //debug(__LINE__);
   result = qp->ResultStorage(s);	
-  
-  //((CcReal *)result.addr)->Set(true, (float)callJMethod_Pd("p_diameter", ccp)); 
-  ((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEp_diameter,ccp->GetObj())));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEp_diameter,ccp->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsRationalFactory,midRFConstRational,-1);
+  }
+  ((CcReal*)result.addr)->Set(true,convertRational(obj));
+  //((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEp_diameter,ccp->GetObj())));
 
   return 0;
 }
@@ -5134,16 +5785,20 @@ static int p_diameterFun(Word *args, Word &result, int message,
 
 static int l_diameterFun(Word *args, Word &result, int message,
 			 Word &local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccl = ((CcLines *)args[0].addr);
 
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   //debug(__LINE__);
   result = qp->ResultStorage(s);	
-  
-  //((CcReal *)result.addr)->Set(true, (float)callJMethod_Ld("l_diameter", ccl)); 
-  ((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEl_diameter,ccl->GetObj())));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEl_diameter,ccl->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsRationalFactory,midRFConstRational,-1);
+  }
+  ((CcReal*)result.addr)->Set(true,convertRational(obj));
+  //((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEl_diameter,ccl->GetObj())));
   
   return 0;
 }
@@ -5155,16 +5810,20 @@ static int l_diameterFun(Word *args, Word &result, int message,
 
 static int r_diameterFun(Word *args, Word &result, int message,
 			 Word &local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions *ccr = ((CcRegions *)args[0].addr);
   
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   //debug(__LINE__);
   result = qp->ResultStorage(s);	
-  
-  //((CcReal *)result.addr)->Set(true, (float)callJMethod_Rd("r_diameter", ccr)); 
-  ((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEr_diameter,ccr->GetObj())));
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEr_diameter,ccr->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = env->NewObject(clsRationalFactory,midRFConstRational,-1);
+  }
+  ((CcReal*)result.addr)->Set(true,convertRational(obj));
+  //((CcReal*)result.addr)->Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEr_diameter,ccr->GetObj())));
   
   return 0;
 }
@@ -5176,16 +5835,20 @@ static int r_diameterFun(Word *args, Word &result, int message,
 
 static int l_lengthFun(Word *args, Word &result, int message,
 		       Word &local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccl = ((CcLines *)args[0].addr);
 
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   //debug(__LINE__);
   result = qp->ResultStorage(s);	
-  
-  //((CcReal *)result.addr)->Set(true, (float)callJMethod_LD("l_length", ccl)); 
-  ((CcReal*)result.addr)->Set(true,env->CallStaticDoubleMethod(clsROSEAlgebra,midROSEl_length,ccl->GetObj()));
+  jdouble obj = env->CallStaticDoubleMethod(clsROSEAlgebra,midROSEl_length,ccl->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = -1;
+  }
+  ((CcReal*)result.addr)->Set(true,obj);
+  //((CcReal*)result.addr)->Set(true,env->CallStaticDoubleMethod(clsROSEAlgebra,midROSEl_length,ccl->GetObj()));
   
   return 0;
 }
@@ -5197,16 +5860,19 @@ static int l_lengthFun(Word *args, Word &result, int message,
 
 static int r_areaFun(Word *args, Word &result, int message,
 		     Word &local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions *ccr = ((CcRegions *)args[0].addr);
 
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
-  //debug(__LINE__);
   result = qp->ResultStorage(s);	
-  
-  //((CcReal *)result.addr)->Set(true, (float)callJMethod_RD("r_area", ccr)); 
-  ((CcReal*)result.addr)->Set(true,env->CallStaticDoubleMethod(clsROSEAlgebra,midROSEr_area,ccr->GetObj()));
+  jdouble obj = env->CallStaticDoubleMethod(clsROSEAlgebra,midROSEr_area,ccr->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = -1;
+  }
+  ((CcReal*)result.addr)->Set(true,obj);
+  //((CcReal*)result.addr)->Set(true,env->CallStaticDoubleMethod(clsROSEAlgebra,midROSEr_area,ccr->GetObj()));
   
   return 0;
 }
@@ -5218,16 +5884,19 @@ static int r_areaFun(Word *args, Word &result, int message,
 
 static int r_perimeterFun(Word *args, Word &result, int message,
 			  Word &local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions *ccr = ((CcRegions *)args[0].addr);
 
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
-  //debug(__LINE__);
   result = qp->ResultStorage(s);	
-  
-  //((CcReal *)result.addr)->Set(true, (float)callJMethod_RD("r_perimeter", ccr)); 
-  ((CcReal*)result.addr)->Set(true,env->CallStaticDoubleMethod(clsROSEAlgebra,midROSEr_perimeter,ccr->GetObj()));
+  jdouble obj = env->CallStaticDoubleMethod(clsROSEAlgebra,midROSEr_perimeter,ccr->GetObj());
+  if (env->ExceptionOccurred()) {
+    RoseError();
+    obj = -1;
+  }
+  ((CcReal*)result.addr)->Set(true,obj);
+  //((CcReal*)result.addr)->Set(true,env->CallStaticDoubleMethod(clsROSEAlgebra,midROSEr_perimeter,ccr->GetObj()));
   
   return 0;
 }
@@ -5240,7 +5909,7 @@ static int r_perimeterFun(Word *args, Word &result, int message,
 
 static int setDeviationValueFun(Word *args, Word &result, int message,
 				 Word &local, Supplier s) {
-
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcReal *realval = ((CcReal *)args[0].addr);
   result = qp->ResultStorage(s);
   
@@ -5257,6 +5926,7 @@ static int setDeviationValueFun(Word *args, Word &result, int message,
 
 static int chooseTriangulatorFun(Word *args, Word &result, int message,
 			      Word &local, Supplier s) {
+  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcInt *intval = ((CcInt *)args[0].addr);
   result = qp->ResultStorage(s);
   
@@ -5553,7 +6223,7 @@ const string chooseTriangulatorSpec =
 "\"Example\" )"
 "( <text>int -> bool</text--->"
 "<text>chooseTriangulator(i), i is an integer value</text--->"
-"<text>Chooses the triangulator of the ROSE algebra. 0 = Mehlhorn (default), 1 = Triangle, 2 = Mehlhorn.</text--->"
+"<text>Chooses the triangulator of the ROSE algebra. 0 = Mehlhorn (default), 1 = Triangle, 2 = NetGen.</text--->"
 "<text>query chooseTriangulator(1)</text--->"
 ") )";
 
@@ -5920,7 +6590,7 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   if (midSetDeviation == 0) error(__FILE__,__LINE__);
 
   //set deviation value for 2DSACK package
-  DEVIATION_VALUE = 0.000001;
+  DEVIATION_VALUE = 0.0000000001;
   env->CallStaticVoidMethod(clsRationalFactory, midSetDeviation, DEVIATION_VALUE);
 
   jmethodID midReadDeviation = env->GetStaticMethodID(clsRationalFactory, "readDeviationDouble", "()D");
@@ -6237,6 +6907,10 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   fidLinesSegmentSet = env->GetFieldID(clsLines, "segset", "Ltwodsack/set/SegMultiSet;");
   if (fidLinesSegmentSet == 0) error(__FILE__,__LINE__);
   
+  clsRoseError = env->FindClass("RoseAlgebraError");
+  if (clsRoseError == 0) error(__FILE__,__LINE__);
+  fidROSEError = env->GetFieldID(clsRoseError, "errorMessage", "Ljava/lang/String;");
+  if (fidROSEError == 0) error(__FILE__,__LINE__);
 
 
   nl = nlRef;
