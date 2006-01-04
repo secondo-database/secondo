@@ -23,7 +23,7 @@
 # adapted to ROSEAlgebra: 2005-04-21
 
 include ../makefile.inc
-CLASSFILES = ROSEAlgebra.class Lines.class Points.class Regions.class
+CLASSFILES = ROSEAlgebra.class Lines.class Points.class Regions.class RoseAlgebraError.class
 
 .PHONY:all
 all: $(CLASSFILES)
