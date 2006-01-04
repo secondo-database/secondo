@@ -174,6 +174,7 @@ public class Lines implements Serializable{
 	    ois.close();
 	    return res;
 	} catch(Exception e){
+	    e.printStackTrace();
 	    return null;
 	}
     }//end method readFrom
@@ -196,6 +197,7 @@ public class Lines implements Serializable{
 	    objectout.close();
 	    return  res;
 	} catch(Exception e){
+	    e.printStackTrace();
 	    return null;
 	}
     }//end method writeToByteArray

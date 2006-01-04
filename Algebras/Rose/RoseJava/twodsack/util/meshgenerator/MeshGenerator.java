@@ -634,7 +634,7 @@ public class MeshGenerator {
 	numberofregions = 0;
 	regionlist = null;
 
-	System.out.println("numberofholes: "+numberofholes);
+	//System.out.println("numberofholes: "+numberofholes);
 
 	//call C-code
 	double[] triResultList = new MeshGenerator().triangulate(arguments,

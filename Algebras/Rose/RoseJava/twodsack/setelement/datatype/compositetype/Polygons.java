@@ -300,8 +300,9 @@ public class Polygons extends Element implements Serializable {
      *
      * @param border the border of a single connected component as {@link SegMultiSet}
      * @return a triangulation as {@link TriMultiSet}
+     * @throws NoProperCyclesException if the passed segment set doen't form proper cycles
      */
-    private static TriMultiSet computeTrianglesSUB(SegMultiSet border){
+    private static TriMultiSet computeTrianglesSUB(SegMultiSet border) throws NoProperCyclesException {
 	//System.out.println("Triangulator: Mehlhorn.");
 	/*
 	  DisplayGFX gfx = new DisplayGFX();	      
@@ -378,7 +379,9 @@ public class Polygons extends Element implements Serializable {
 	    //check attribute of current Point
 	    x = (Point)xit.next();
 	    xVertex = polGraph.getVertex(x);
-	    attribute = attribute(x,xVertex,polGraph);
+	    try {
+		attribute = attribute(x,xVertex,polGraph);
+	    } catch (NoProperCyclesException e) { throw e; }
 	    
 	    if (attribute == "start") {
 		
@@ -1546,8 +1549,9 @@ public class Polygons extends Element implements Serializable {
      * @param xVertex the vertex for <tt>x</tt> in <tt>graph</tt>
      * @param graph the graph representing the region
      * @return the proper result, which is "start", "end" or "bend"
+     * @throws NoProperCyclesException if the segments don't form proper cycles
      */
-    private static String attribute(Point x, Vertex xVertex, Graph graph) {
+    private static String attribute(Point x, Vertex xVertex, Graph graph) throws NoProperCyclesException {
 	//get the vertex from graph
 	//Vertex xVertex = graph.getVertex(x);
 	
@@ -1556,13 +1560,15 @@ public class Polygons extends Element implements Serializable {
 	
 	//if neighbours has more or less than two elements, exit
 	if (neighbours.length != 2) {
-	    System.out.println("Polygons.attribute: Border doesn't form proper cycles. Exit.");
-	    System.out.println("x: "+x);
-	    System.out.println("neighbour's array:");
-	    for (int i = 0; i < neighbours.length; i++) {
-		System.out.println("["+i+"] "+neighbours[i].value);
-	    }//for i
-	    System.exit(0);
+	    /* DON'T DELETE THIS: IT CAN BE USED FOR DEBUGGING
+	      System.out.println("Polygons.attribute: Border doesn't form proper cycles. Exit.");
+	      System.out.println("x: "+x);
+	      System.out.println("neighbour's array:");
+	      for (int i = 0; i < neighbours.length; i++) {
+	      System.out.println("["+i+"] "+neighbours[i].value);
+	      }//for i
+	    */
+	    throw new NoProperCyclesException("The passed set of segments doesn't form proper cycles.");
 	}//if
 
 	//extract both vertices from array
