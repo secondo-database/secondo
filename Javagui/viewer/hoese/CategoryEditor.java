@@ -43,7 +43,7 @@ public class CategoryEditor extends javax.swing.JDialog {
   /** If true then in mode: change the category for a graph. object */
   private boolean LeaveByApply;
   /** The internal File-object for the icon */
-  private File Iconfile;
+  private String IconFileName;
 
  /** a FileChooser to load textures */
   private static  JFileChooser Texture_FileChooser=new JFileChooser();
@@ -256,8 +256,22 @@ public class CategoryEditor extends javax.swing.JDialog {
     gridBagConstraints3.gridy = 1;
     gridBagConstraints3.anchor = java.awt.GridBagConstraints.WEST;
     FillStyleP.add(TextureRB, gridBagConstraints3);
-    Iconfile = new File("res/duke.gif");
-    TextureIconB.setIcon(new ImageIcon(ClassLoader.getSystemResource(Iconfile.getPath())));
+    String filesep = "/";
+    try{
+       String tmpfilesep = System.getProperty("file.separator");
+       if(tmpfilesep!=null)
+           filesep = tmpfilesep;
+    }catch(Exception e){} // ignore this exception
+
+    // set the standardicon
+    IconFileName = "res/duke.gif";
+    
+    try{
+       TextureIconB.setIcon(new ImageIcon(ClassLoader.getSystemResource(IconFileName)));
+    }catch(Exception e){
+        System.err.println("Cannot find the resource " + IconFileName);
+    }
+
     TextureIconB.setPreferredSize(new java.awt.Dimension(40, 40));
     TextureIconB.setMaximumSize(new java.awt.Dimension(50, 75));
     //   TextureIconB.setBackground (java.awt.Color.blue);
@@ -512,8 +526,8 @@ public class CategoryEditor extends javax.swing.JDialog {
   private void TextureIconBActionPerformed (java.awt.event.ActionEvent evt) {                   //GEN-FIRST:event_TextureIconBActionPerformed
     int returnVal = Texture_FileChooser.showOpenDialog(this);
     if (returnVal == JFileChooser.APPROVE_OPTION) {
-      Iconfile = Texture_FileChooser.getSelectedFile();
-      TextureIconB.setIcon(new ImageIcon(Iconfile.getPath()));
+      IconFileName = Texture_FileChooser.getSelectedFile().getPath();
+      TextureIconB.setIcon(new ImageIcon(IconFileName));
     }
   }             //GEN-LAST:event_TextureIconBActionPerformed
 
@@ -575,7 +589,7 @@ public class CategoryEditor extends javax.swing.JDialog {
     if (cat.getFillStyle() == null)
       NoFillRB.setSelected(true); 
     else if (cat.getFillStyle() instanceof TexturePaint) {
-      Iconfile=new File(cat.getIconPath());
+      IconFileName=(new File(cat.getIconPath())).getName();
       TextureRB.setSelected(true);
       TextureIconB.setIcon(new ImageIcon(((TexturePaint)cat.getFillStyle()).getImage()));
     } 
@@ -643,7 +657,7 @@ public class CategoryEditor extends javax.swing.JDialog {
       cat.setFillStyle(new GradientPaint(0.0f, 0.0f, SolidColorB.getBackground(),
           20.0f, 20.0f, GradientColorB.getBackground(), true));
     else if (TextureRB.isSelected()) {
-      cat.setIconName(Iconfile.getName());
+      cat.setIconName(IconFileName);
       ImageIcon ii = (ImageIcon)TextureIconB.getIcon();
       BufferedImage bi = new BufferedImage(ii.getIconWidth(), ii.getIconHeight(),
           BufferedImage.TYPE_INT_ARGB);
