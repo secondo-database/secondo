@@ -261,7 +261,8 @@ variables is described in the introduction of procedure ~annotate~.
 QueryProcessor::QueryProcessor( NestedList* newNestedList,
 	AlgebraManager* newAlgebraManager )
   : nl( newNestedList ), algebraManager( newAlgebraManager ),
-    testMode( false ), debugMode( false ), traceMode( false ), traceNodes( false )
+    testMode( false ), debugMode( false ), traceMode( false ), 
+    traceNodes( false )
 {
   values.resize( MAXVALUES );
   models.resize( MAXVALUES );
@@ -269,7 +270,8 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
   
   // It would be nice if the query processor could manage the
   // memory allocated during processing a query. Operators which
-  // have state (e.g. a hashjoin) can ask for memory and the QP answers how many
+  // have state (e.g. a hashjoin) can ask for memory and the QP 
+  // answers how much
   // they can use. However, currently we are defining a maximum
   // per operator
   maxMemPerOperator = 4 * 1024 * 1024;
@@ -571,7 +573,8 @@ ostream& operator<<(ostream& os, const OpNode& node) {
 
    static NestedList* nl = SecondoSystem::GetNestedList();
  
-   os << "Node " << node.id << " - [Adress = " << (void*)(&node) << "]" << endl;
+   os << "Node " << node.id << " - [Adress = " << (void*)(&node) << "]" 
+	<< endl;
    os << "  Evaluable = " << node.evaluable;
    os << "  isRoot = " << node.isRoot << endl;
    os << "  TypeExpr = " << nl->ToString(node.typeExpr) << endl;
@@ -672,7 +675,8 @@ ostream& operator<<(ostream& os, const OpNode& node) {
         << t1 << "deleteFun = " << (void*)node.u.op.deleteFun << endl;
 
         os 
-        << tab(f) << "subtreeModel = " << (void*)node.u.op.subtreeModel.addr
+        << tab(f) << "subtreeModel = " 
+	<< (void*)node.u.op.subtreeModel.addr
         << t1 << "counterNo = " << node.u.op.counterNo << endl;
         break;	
       }
@@ -875,7 +879,8 @@ Additonally more detailed information is printed int ~os~
           last = list;
           for ( i = 1; i < tree->u.op.noSons; i++ )
           {
-            last = nl->Append( last, ListOfTree( tree->u.op.sons[i], os ) );
+            last = nl->Append( last, 
+		ListOfTree( tree->u.op.sons[i], os ) );
           }
         }
         else
@@ -972,7 +977,8 @@ expression have defined values.
 
   valueno = 0;
   functionno = 0;
-  list = Annotate( level, expr, varnames, vartable, defined, nl->TheEmptyList() );
+  list = Annotate( level, expr, varnames, vartable, defined, 
+	nl->TheEmptyList() );
 
   if ( debugMode )
   {
@@ -1040,8 +1046,9 @@ the construction of the operator list inside the ~Annotate~ function need to
 have more than one entry to the tuple (algebraId, operatorId). In this way, its
 representation internally in the function is done with a sublist of this tuples.
 
-        <op>	->	((<op> operator ((<alId1> <opId1>) ... (<alIdN>
+----    <op>	->	((<op> operator ((<alId1> <opId1>) ... (<alIdN>
 				<opIdN>)) ) typeerror)
+----
 
 	After the decision of which operator is suitable for the argument types,
 using the ~TranformType~ function, it comes back to the representation with only
@@ -1068,11 +1075,12 @@ a function~, which means the type of the object does not start ``(map
 the form ``(map ...)''. The corresponding function definition
 (abstraction) is retrieved from the database and annotated recursively. 
 
-----	double		->	((double function annotate((fun (x int) (
-					add x x)))) 	
+----	double		->	((double function 
+					annotate((fun (x int) (add x x)))) 	
 				(map int int))
 
-        <function name>	-> 	(<function name> function annotate(<abstraction>))
+        <function name>	-> 	(<function name> function 
+					annotate(<abstraction>))
                                 	<type>)
 ----
 
@@ -1082,8 +1090,8 @@ means it can be found in the table ~variableNames~.
 
 ----	x		->	((x variable 3 5) real)
 
-        <var name>	->	((<var name> variable <position> <functionno>)
-				<type>) 
+        <var name>	->	((<var name> variable <position> 
+				<functionno>) <type>) 
 ----
 
         Here ~position~ is the relative position of the variable in the
@@ -1091,19 +1099,22 @@ list of arguments of the defining function, and ~functionno~ is a number
 identifying that function (see below the strategy for maintaining
 function numbers). 
 
-  * ~s~ is a symbol atom: none of the forms before, but equal to ``counter''.
+  * ~s~ is a symbol atom: neither operator nor object nor variable
 
-----	counter		->	((counter counter) typeerror)
+----	pop		->	((pop identifier) pop)
 
-	pop		->        ((pop identifier) pop)
-
-	<ident>		->        ((<ident> identifier) <ident>)
+	<ident>		->	((<ident> identifier) <ident>)
 ----
 
         This is some unidentified name which must be interpreted by a
 type checking function, something like an attribute name. For this
 reason, ~not the type, but the actual value~ of the identifier is
 returned as a second component. 
+
+  * ~s~ is a symbol atom: none of the forms before, but equal to ``counter''.
+
+----	counter		->	((counter counter) typeerror)
+----
 
   * ~s~ is a nonempty list: first element is the symbol ~fun~.
 
@@ -1140,7 +1151,8 @@ Hence the annotation is as for constants:
 
 ----	(ccint 7) 		-> (((ccint 7) constant 1) ccint)
 
-        (ccint (ptr 72638362))	-> (((ccint (ptr 72638362)) constant 1) ccint)
+        (ccint (ptr 72638362))	-> (((ccint (ptr 72638362)) constant 1) 
+					ccint)
 
         <value>			-> ((<value> constant <index>) <type>)
 ----
@@ -1203,7 +1215,8 @@ as the real result type of the operator application. Hence in this case
 the result of annotation is 
 
 ----        (  (none applyop 
-               (ann(op) ann(arg1) ... ann(argn) ann(newarg1) ... ann(newargn))) 
+               (ann(op) ann(arg1) ... ann(argn) ann(newarg1) ... 
+		ann(newargn))) 
            <resulttype> 
            <opFunId>)
 ----
@@ -1233,7 +1246,8 @@ argument types of the function object are checked against the types of
 the actual arguments and the result type of the function is returned.
 The result is 
 
-----	((none applyfun (ann(function) ann(arg1) ... ann(argn))) <resulttype>)
+----	((none applyfun (ann(function) ann(arg1) ... ann(argn))) 
+		<resulttype>)
 ----
 
 
@@ -1241,7 +1255,8 @@ Case (3). This is an application of an abstraction. Like the previous
 case, argument types are checked and the result type of the abstraction
 is returned. 
 
-----	((none applyabs (ann(abstraction) ann(arg1) ... ann(argn)))<resulttype>)
+----	((none applyabs (ann(abstraction) ann(arg1) ... ann(argn)))
+	<resulttype>)
 ----
 
 Case (4). This is a definition of a counter associated with the subexpressions.
@@ -1310,8 +1325,8 @@ function index.
 
   int alId, opId, position, funindex, opFunId, errorPos; 
   ListExpr first, rest, list, lastElem, typeExpr, typeList, resultType, 
-           last, errorInfo, pair, lastType, signature, firstSig, firstType, 
-           result, functionList; 
+    last, errorInfo, pair, lastType, signature, firstSig, firstType, 
+    result, functionList; 
   string name, typeName; 
   bool definedValue, hasNamedType, correct, newOperator;
   Word value, model;
@@ -1352,7 +1367,8 @@ function index.
           models[valueno] = GetCatalog( level )->ValueListToObjectModel(
           nl->SymbolAtom( "int" ), expr, errorPos, errorInfo, correct );
           /* special treatment of integers at descriptive level; these can
-             be attribute numbers and must be treated as values in that case. */
+             be attribute numbers and must be treated as values in 
+	     that case. */
           values[valueno].isConstant = true;
           values[valueno].isList = true;
           values[valueno].value.list = nl->IntValue( expr );
@@ -1360,9 +1376,10 @@ function index.
         else
         {
           int algId, typeId;
-          GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "int" ), typeName, algId, typeId );
-          value = GetCatalog( level )->InObject( nl->SymbolAtom( "int" ), expr,
-                                                 errorPos, errorInfo, correct );
+          GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "int" ), 
+		typeName, algId, typeId );
+          value = GetCatalog( level )->InObject( nl->SymbolAtom( "int" ), 
+		expr, errorPos, errorInfo, correct );
           values[valueno].isConstant = true;
           values[valueno].isList = false;
           values[valueno].algId = algId;
@@ -1390,9 +1407,10 @@ function index.
         else
         {
           int algId, typeId;
-          GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "real" ), typeName, algId, typeId );
-          value = GetCatalog( level )->InObject( nl->SymbolAtom( "real" ), expr,
-                                                 errorPos, errorInfo, correct );
+          GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "real" ), 
+		typeName, algId, typeId );
+          value = GetCatalog( level )->InObject( nl->SymbolAtom( "real" ), 
+		expr, errorPos, errorInfo, correct );
           values[valueno].isConstant = true;
           values[valueno].isList = false;
           values[valueno].algId = algId;
@@ -1420,9 +1438,10 @@ function index.
         else
         {
           int algId, typeId;
-          GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "bool" ), typeName, algId, typeId );
-          value = GetCatalog( level )->InObject( nl->SymbolAtom( "bool" ), expr,
-                                                 errorPos, errorInfo, correct );
+          GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "bool" ), 
+		typeName, algId, typeId );
+          value = GetCatalog( level )->InObject( nl->SymbolAtom( "bool" ), 
+		expr, errorPos, errorInfo, correct );
           values[valueno].isConstant = true;
           values[valueno].isList = false;
           values[valueno].algId = algId;
@@ -1450,9 +1469,10 @@ function index.
         else
         {
           int algId, typeId;
-          GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "string" ), typeName, algId, typeId );
-          value = GetCatalog( level )->InObject( nl->SymbolAtom( "string" ), expr,
-                                                 errorPos, errorInfo, correct );
+          GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "string" ), 
+		typeName, algId, typeId );
+          value = GetCatalog( level )->InObject( nl->SymbolAtom( "string" ), 
+		expr, errorPos, errorInfo, correct );
           values[valueno].isConstant = true;
           values[valueno].isList = false;
           values[valueno].algId = algId;
@@ -1481,9 +1501,10 @@ function index.
         {
           int algId, typeId;
 
-          GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "text" ), typeName, algId, typeId ); //???
-          value = GetCatalog( level )->InObject( nl->SymbolAtom( "text" ), expr, //???
-                                                 errorPos, errorInfo, correct );
+          GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "text" ), 
+		typeName, algId, typeId ); //???
+          value = GetCatalog( level )->InObject( nl->SymbolAtom( "text" ), 
+		expr, errorPos, errorInfo, correct );
           values[valueno].isConstant = true;
           values[valueno].isList = false;
           values[valueno].algId = algId;
@@ -1507,9 +1528,11 @@ function index.
         if ( GetCatalog( level )->IsObjectName( name ) )
         {
           int algId, typeId;
-          GetCatalog( level )->GetObjectExpr( name, typeName, typeExpr, values[valueno].value, 
-                             definedValue, models[valueno], hasNamedType );
-          GetCatalog( level )->LookUpTypeExpr( typeExpr, typeName, algId, typeId );
+          GetCatalog( level )->GetObjectExpr( name, typeName, typeExpr, 
+		values[valueno].value, definedValue, models[valueno], 
+		hasNamedType );
+          GetCatalog( level )->LookUpTypeExpr( typeExpr, typeName, 
+		algId, typeId );
           values[valueno].isConstant = false;
           values[valueno].isList = false;
           values[valueno].algId = algId;
@@ -1530,8 +1553,8 @@ function index.
               functionList = values[valueno-1].value.list;
               values[valueno-1].isList = true;
 
-              list = Annotate( level, functionList, newvarnames, newvartable,
-                               defined, nl->TheEmptyList() );
+              list = Annotate( level, functionList, newvarnames, 
+		newvartable, defined, nl->TheEmptyList() );
               return (nl->TwoElemList(
                         nl->ThreeElemList(
                           expr,
@@ -1577,7 +1600,8 @@ function index.
         }
         else if ( IsVariable( name, varnames ) )
         {
-          GetVariable( name, varnames, vartable, position, funindex, typeExpr );
+          GetVariable( name, varnames, vartable, position, funindex, 
+		typeExpr );
           return (nl->TwoElemList(
                     nl->FourElemList(
                       expr,
@@ -1620,7 +1644,8 @@ function index.
     { /* treatment of user-defined constant */
       if ( level == DescriptiveLevel )
       {
-        model = GetCatalog( level )->ValueListToObjectModel( nl->First( expr ),
+        model = GetCatalog( level )->ValueListToObjectModel( 
+		nl->First( expr ),
         nl->Second( expr ), errorPos, errorInfo, correct );
         if ( correct )
         { 
@@ -1654,17 +1679,19 @@ function index.
             nl->IsAtom( nl->Second( nl->Second( expr ) ) ) &&
             nl->AtomType( nl->Second( nl->Second( expr ) ) ) == IntType )
         {
-          value = SetWord( (void*)nl->IntValue( nl->Second( nl->Second( expr ) ) ) );
+          value = SetWord( (void*)nl->IntValue( 
+		nl->Second( nl->Second( expr ) ) ) );
           isPointer = true;
         }
         else
-          value = GetCatalog( level )->InObject( nl->First( expr ), nl->Second( expr ),
-                                                 errorPos, errorInfo, correct );
+          value = GetCatalog( level )->InObject( nl->First( expr ), 
+		nl->Second( expr ), errorPos, errorInfo, correct );
         if ( correct )
         {
           AllocateValuesAndModels( valueno );
           int algId, typeId;
-          GetCatalog( level )->LookUpTypeExpr( nl->First( expr ), typeName, algId, typeId );
+          GetCatalog( level )->LookUpTypeExpr( nl->First( expr ), 
+		typeName, algId, typeId );
           values[valueno].isConstant = false;
           values[valueno].isList = false;
           values[valueno].algId = algId;
@@ -1705,7 +1732,8 @@ function index.
       first = nl->First( expr );
       rest = nl->Rest( expr );
 
-      pair = Annotate( level, first, varnames, vartable, defined, fatherargtypes );
+      pair = Annotate( level, first, varnames, vartable, defined, 
+	fatherargtypes );
 
       /* Check whether the first element is a new operator. In that case
          the current partial list of argument types to that operator has
@@ -1713,7 +1741,8 @@ function index.
 
       newOperator = ((nl->ListLength( pair ) == 2) &&
                      (nl->ListLength( nl->First( pair )) == 3) &&
-                     (TypeOfSymbol( nl->Second( nl->First( pair ) ) ) == QP_OPERATOR));
+                     (TypeOfSymbol( nl->Second( nl->First( pair ) ) ) == 
+			QP_OPERATOR));
       list = nl->OneElemList( pair );
       lastElem = list;
       typeList = nl->OneElemList( nl->Second( pair ) );
@@ -1723,7 +1752,8 @@ function index.
       {
         if ( newOperator )
         { /* current list of arg types to be used */
-          pair = Annotate( level, nl->First( rest ), varnames, vartable, defined, typeList );
+          pair = Annotate( level, nl->First( rest ), varnames, vartable, 
+		defined, typeList );
         }
         else
         { /* just pass down the inherited list of args */
@@ -1752,10 +1782,15 @@ At this point, we may have a list ~list~ such as
 for a given ~expr~ (+ 3 10).
 
 */
-      first = nl->First( list );                /* first = ((+ operator ((1 6) (7 0))) ()) */
+      first = nl->First( list );
+            	
+			/* first = ((+ operator ((1 6) (7 0))) ()) */
+
       if ( nl->ListLength( first ) > 0 )
       {
-        first = nl->First( first );             /* first = (+ operator ((1 6) (7 0))) */
+        first = nl->First( first );  
+
+			/* first = (+ operator ((1 6) (7 0))) */
 
         if ( nl->ListLength( first ) >= 2 )
         {
@@ -1770,8 +1805,8 @@ for a given ~expr~ (+ 3 10).
               rest = nl->Rest( list );
               typeList = nl->Rest( typeList );
 							
-              resultType = TestOverloadedOperators( operatorStr, opList, typeList, 
-                                                    alId, opId, opFunId, true, traceMode ); 
+              resultType = TestOverloadedOperators( operatorStr, opList, 
+		typeList, alId, opId, opFunId, true, traceMode ); 
 		
               /* check whether the type mapping has requested to append
                  further arguments: */
@@ -1786,20 +1821,20 @@ for a given ~expr~ (+ 3 10).
                 {
                   lastElem = 
                     nl->Append( lastElem, 
-                                Annotate( level, nl->First( rest ), varnames,
-                                          vartable, defined, fatherargtypes ) ); 
+			Annotate( level, nl->First( rest ), varnames,
+      			vartable, defined, fatherargtypes ) ); 
                   rest = nl->Rest( rest );
                 }
                 resultType = nl->Third( resultType );
               }              
 
               ListExpr newList = nl->Cons( nl->TwoElemList(
-                                             nl->FourElemList( nl->First( first ),
-                                               nl->Second( first ),
-                                               nl->IntAtom( alId ),
-                                               nl->IntAtom( opId ) ),
-                                             nl->Second( nl->First( list ) ) ),
-                                           nl->Rest( list ) );          
+		nl->FourElemList( nl->First( first ),
+			nl->Second( first ),
+			nl->IntAtom( alId ),
+			nl->IntAtom( opId ) ),
+			nl->Second( nl->First( list ) ) ),
+		nl->Rest( list ) );          
 
               ListExpr applyopList = nl->ThreeElemList(
                                        nl->ThreeElemList(
@@ -1827,7 +1862,8 @@ for a given ~expr~ (+ 3 10).
                 nl->WriteListExpr( typeList, cout );
                 cout << endl;
               }
-              if ( nl->ListLength( signature ) == (nl->ListLength( typeList ) +1) )
+              if ( nl->ListLength( signature ) == 
+		(nl->ListLength( typeList ) +1) )
               {
                 while (!nl->IsEmpty( typeList ))
                 {
@@ -1882,7 +1918,8 @@ for a given ~expr~ (+ 3 10).
                 nl->WriteListExpr( typeList, cout );
                 cout << endl;
               }
-              if ( nl->ListLength( signature ) == (nl->ListLength( typeList ) +1) )
+              if ( nl->ListLength( signature ) == 
+		(nl->ListLength( typeList ) +1) )
               {
                 while (!nl->IsEmpty( typeList ))
                 {
@@ -1996,7 +2033,8 @@ QueryProcessor::TestOverloadedOperators( const string& operatorSymbolStr,
   ListExpr resultType = nl->TheEmptyList();
 
   if ( traceMode ) 
-    cout << "Type mapping for operator " << operatorSymbolStr << ":" << endl;
+    cout << "Type mapping for operator " << operatorSymbolStr << ":" 
+	<< endl;
 
   string typeErrorMsg = "Possible type mapping errors for operator " 
                         + operatorSymbolStr + ":\n";
@@ -2025,7 +2063,8 @@ QueryProcessor::TestOverloadedOperators( const string& operatorSymbolStr,
     if ( !ErrorReporter::TypeMapError ) 
     {
       string msg = "";
-      ErrorReporter::GetErrorMessage(msg); // remove errors produced by testing operators
+      ErrorReporter::GetErrorMessage(msg); 	// remove errors produced by 
+						// testing operators
       if ( msg == "" ) 
         msg = "<No error message specified>";
       typeErrorMsg += "\n-- " + algName + ": " + msg + "\n";
@@ -2098,12 +2137,12 @@ QueryProcessor::AnnotateFunction( const AlgebraLevel level,
 /*
 Annotate an abstraction ~expr~ which has the form:
 
-----        (fun (x1 t1) ... (xn tn) e)
+----	(fun (x1 t1) ... (xn tn) e)
 ----
 
 and return the annotated version:
 
----- 		->        ((none abstraction annotate(expr) <functionno>) <type>)
+----	-> ((none abstraction annotate(expr) <functionno>) <type>)
 ----
 
 where ~type~ is a functional type of the form (map ...). ~Functionno~ is
@@ -2154,13 +2193,13 @@ arguments preceding this function argument in an operator application.
     { 
       functionno++;
       list = nl->OneElemList( nl->SymbolAtom( "map" ) );
-      return (AnnotateFunction( level, nl->Rest( expr ), varnames, vartable,
-                                defined, 1, list, list, fatherargtypes ));
+      return (AnnotateFunction( level, nl->Rest( expr ), varnames, 
+	vartable, defined, 1, list, list, fatherargtypes ));
     }
     else
     {
-      annexpr = Annotate( level, nl->First( expr ), varnames, vartable, defined, 
-                          fatherargtypes );
+      annexpr = Annotate( level, nl->First( expr ), varnames, vartable, 
+	defined, fatherargtypes );
       /* "e" reached */
     }
   }
@@ -2180,13 +2219,13 @@ arguments preceding this function argument in an operator application.
         else if ( GetCatalog( level )->IsOperatorName( name2 ) )
         { /* name2 is a type operator */
           ListExpr opList = GetCatalog( level )->GetOperatorIds( name2 );
-					ListExpr typeList = nl->Rest( fatherargtypes );
+		ListExpr typeList = nl->Rest( fatherargtypes );
 					
           int alId = 0;
           int opId = 0;
           int opFunId = 0;
           paramtype = TestOverloadedOperators( name2, opList, typeList, 
-                                               alId, opId, opFunId, false, traceMode ); 
+		alId, opId, opFunId, false, traceMode ); 
         }
         else
         { 
@@ -2206,8 +2245,8 @@ arguments preceding this function argument in an operator application.
         EnterVariable( name, varnames, vartable, paramno, localfunctionno,
                        paramtype );
         list = nl->Append( lastElem, paramtype );
-        return (AnnotateFunction( level, nl->Rest( expr ), varnames, vartable, defined,
-                                  paramno+1, typeList, list, fatherargtypes ));
+        return (AnnotateFunction( level, nl->Rest( expr ), varnames, 
+	  vartable, defined, paramno+1, typeList, list, fatherargtypes ));
       }
       else
       {
@@ -2219,7 +2258,8 @@ arguments preceding this function argument in an operator application.
     }
     else
     {
-      cerr << "Error in AnnotateFunction: branch should never be reached." << endl;
+      cerr << "Error in AnnotateFunction: branch should never be reached." 
+	<< endl;
       return (nl->TwoElemList(
                 nl->SymbolAtom( "functionerror" ),
                 nl->SymbolAtom( "typeerror" ) ));
@@ -2227,7 +2267,8 @@ arguments preceding this function argument in an operator application.
   }
   else
   {
-    cerr << "Error in AnnotateFunction: branch should never be reached." << endl;
+    cerr << "Error in AnnotateFunction: branch should never be reached." 
+	<< endl;
     return (nl->TwoElemList(
               nl->SymbolAtom( "functionerror" ),
               nl->SymbolAtom( "typeerror" ) ));
@@ -2266,9 +2307,11 @@ QueryProcessor::DestroyValuesArray( const AlgebraLevel level )
     if( !values[i].isList )
     {
       if( values[i].isConstant )
-        (algebraManager->DeleteObj( values[i].algId, values[i].typeId ))( values[i].value );
+        (algebraManager->DeleteObj( values[i].algId, values[i].typeId ))
+		( values[i].value );
       else    
-        (algebraManager->CloseObj( values[i].algId, values[i].typeId ))( values[i].value );
+        (algebraManager->CloseObj( values[i].algId, values[i].typeId ))
+		( values[i].value );
     }
   }
 }
@@ -2335,7 +2378,8 @@ QueryProcessor::Subtree( const AlgebraLevel level,
 
   if ( !(cls))     
   {
-    cerr << "subtree: error in annotated expression \"" << nl->ToString(expr) << "\"" << endl;
+    cerr << "subtree: error in annotated expression \"" 
+	<< nl->ToString(expr) << "\"" << endl;
     cerr << "subtree: list structure incorrect!" << endl;
     exit(1);
   }
@@ -2369,7 +2413,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->isRoot = oldfirst;
       node->u.dobj.isConstant = true;
       node->u.dobj.isModified = false;
-      node->u.dobj.valNo = nl->IntValue( nl->Third( nl->First( expr ) ) );
+      node->u.dobj.valNo = nl->IntValue( nl->Third( nl->First( expr )));
       node->u.dobj.value = values[node->u.dobj.valNo].value;
       node->u.dobj.model = models[node->u.dobj.valNo];
       if (traceNodes) {
@@ -2388,7 +2432,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->isRoot = oldfirst;  
       node->u.dobj.isConstant = true;
       node->u.dobj.isModified = false;
-      node->u.dobj.valNo = nl->IntValue( nl->Third( nl->First( expr ) ) );
+      node->u.dobj.valNo = nl->IntValue( nl->Third( nl->First( expr )));
       node->u.dobj.value = values[node->u.dobj.valNo].value;
       node->u.dobj.model = models[node->u.dobj.valNo];
       if (traceNodes) {
@@ -2408,7 +2452,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->u.dobj.symbol = symbolForOperatorOrObject;
       node->u.dobj.isConstant = false;
       node->u.dobj.isModified = false;
-      node->u.dobj.valNo = nl->IntValue( nl->Third( nl->First( expr ) ) );
+      node->u.dobj.valNo = nl->IntValue( nl->Third( nl->First( expr )));
       node->u.dobj.value = values[node->u.dobj.valNo].value;
       node->u.dobj.model = models[node->u.dobj.valNo];
       if (traceNodes) {
@@ -2426,8 +2470,8 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->nodetype = Operator;
       node->isRoot = oldfirst;  
       node->u.op.symbol = symbolForOperatorOrObject;
-      node->u.op.algebraId = nl->IntValue( nl->Third( nl->First( expr ) ) );
-      node->u.op.opFunId = nl->IntValue( nl->Fourth( nl->First( expr ) ) );
+      node->u.op.algebraId = nl->IntValue( nl->Third( nl->First( expr )));
+      node->u.op.opFunId = nl->IntValue( nl->Fourth( nl->First( expr )));
         /* next fields may be overwritten later */
       node->u.op.noSons = 0;
       node->u.op.isFun = false;
@@ -2449,9 +2493,10 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->nodeLevel = level;
       node->nodetype = IndirectObject;
       node->isRoot = oldfirst;  
-      node->u.iobj.funNumber = nl->IntValue( nl->Fourth( nl->First( expr ) ) );
-      node->u.iobj.vector = argVectors[node->u.iobj.funNumber-1]; // *** -1 added
-      node->u.iobj.argIndex = nl->IntValue( nl->Third( nl->First( expr ) ) );
+      node->u.iobj.funNumber = nl->IntValue( nl->Fourth( nl->First( expr )));
+      node->u.iobj.vector = argVectors[node->u.iobj.funNumber-1]; 
+	// *** -1 added
+      node->u.iobj.argIndex = nl->IntValue( nl->Third( nl->First( expr )));
       if (traceNodes) {
         cout << "QP_VARIABLE:" << endl;
         cout << *node << endl;
@@ -2461,7 +2506,8 @@ QueryProcessor::Subtree( const AlgebraLevel level,
     case QP_APPLYOP:
     {
       first = false;
-      node = Subtree( level, nl->First( nl->Third( nl->First( expr ) ) ), first, node );
+      node = Subtree( level, nl->First( nl->Third( nl->First( expr ))), 
+	first, node );
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
       node->isRoot = oldfirst;  
@@ -2470,7 +2516,8 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       list = nl->Rest( nl->Third( nl->First( expr ) ) );
       while ( !nl->IsEmpty( list ) )
       {
-        node->u.op.sons[node->u.op.noSons] = Subtree( level, nl->First( list ), first, node );
+        node->u.op.sons[node->u.op.noSons] = Subtree( level, 
+		nl->First( list ), first, node );
         node->u.op.noSons++;
         list = nl->Rest( list );
       }
@@ -2504,7 +2551,8 @@ QueryProcessor::Subtree( const AlgebraLevel level,
         }
         node->u.op.resultWord =
           (algebraManager->CreateObj( node->u.op.resultAlgId,
-                                      node->u.op.resultTypeId ))( GetCatalog( level )->NumericType( node->typeExpr ) );
+		node->u.op.resultTypeId ))( GetCatalog( level )->
+		NumericType( node->typeExpr ) );
       }
       if (traceNodes) {
         cout << "QP_APPLYOP:" << endl;
@@ -2552,13 +2600,14 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->nodeLevel = level;
       node->nodetype = Operator;
       node->isRoot = oldfirst;  
-      node->u.op.algebraId = 0;                /* special operator [0, 1] means arglist */
+      node->u.op.algebraId = 0; /* special operator [0, 1] means arglist */
       node->u.op.opFunId = 1;
       node->u.op.noSons = 0;
       list = nl->Third( nl->First( expr ) );
       while (!nl->IsEmpty( list ))
       {
-        node->u.op.sons[node->u.op.noSons] = Subtree( level, nl->First( list ), first, node );
+        node->u.op.sons[node->u.op.noSons] = Subtree( level, 
+		nl->First( list ), first, node );
         node->u.op.noSons++;
         list = nl->Rest( list );
       }
@@ -2574,7 +2623,8 @@ QueryProcessor::Subtree( const AlgebraLevel level,
     }
     case QP_FUNCTION:
     {
-      OpTree subNode = Subtree( level, nl->Third( nl->First( expr ) ), first, node); 
+      OpTree subNode = Subtree( level, nl->Third( nl->First( expr ) ), 
+	first, node); 
       if (traceNodes) {
         cout << "QP_FUNCTION:" << endl;
         cout << *subNode << endl;
@@ -2590,16 +2640,17 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->nodeLevel = level;
       node->nodetype = Operator;
       node->isRoot = oldfirst;  
-      node->u.op.algebraId = 0;   /* special operator [0, 0] means application
-                                of an abstraction */
+      node->u.op.algebraId = 0;   /* special operator [0, 0] means 
+					application of an abstraction */
       node->u.op.opFunId = 0;
       node->u.op.noSons = 1;
-      node->u.op.sons[0] = Subtree( level, nl->First( nl->Third( nl->First( expr ) ) ), first, node );
-				/* the abstraction */							
+      node->u.op.sons[0] = Subtree( level, nl->First( nl->Third( 
+	nl->First( expr ) ) ), first, node ); 	/* the abstraction */							
       list = nl->Rest( nl->Third( nl->First( expr ) ) );
       while ( !nl->IsEmpty( list ) )
       { /* the arguments */
-        node->u.op.sons[node->u.op.noSons] = Subtree( level, nl->First( list ), first, node );
+        node->u.op.sons[node->u.op.noSons] = Subtree( level, 
+		nl->First( list ), first, node );
         node->u.op.noSons++;
         list = nl->Rest( list );
       }
@@ -2697,7 +2748,8 @@ the function in a database object.
     else 
     {
       // Make a consistency check of the annotated list structure.
-      // There should be no typeerror symbol in the list. This may be helpful
+      // There should be no typeerror symbol in the list. This may be 
+      // helpful
       // to detect bugs in the annotate function.
     
       vector<ListExpr> allAtoms;
@@ -2707,12 +2759,15 @@ the function in a database object.
             it != allAtoms.end();
 	          it++ )
       {
-        if ( nl->AtomType(*it) == SymbolType && TypeOfSymbol(*it) == QP_TYPEERROR ) 
+        if ( nl->AtomType(*it) == SymbolType && 
+		TypeOfSymbol(*it) == QP_TYPEERROR ) 
         {
           listOk = false;
-          cerr << endl << "Annotated list contains a \"typeerror\" symbol, hence the "
-	             << "result type should be \"typeerror\" Maybe there is a bug in some operators "
-	             << "type map function or in the annotate function of the query processor." << endl;
+          cerr << endl 
+	  << "Annotated list contains a \"typeerror\" symbol, hence the "
+	  << "result type should be \"typeerror\" Maybe there is a bug in "
+	  << "some operators type map function or in the "
+	  << "annotate function of the query processor." << endl;
           break;
         }
       }
@@ -2790,7 +2845,7 @@ Deletes an operator tree object.
         }
         if ( (tree->u.op.resultAlgId != 0) &&
              ( (tree->u.op.isFun && destroyRootValue) ||
-               (!tree->u.op.isFun && (!tree->isRoot || destroyRootValue) ) ) )
+               (!tree->u.op.isFun && (!tree->isRoot || destroyRootValue))))
         {
           /* space was allocated for result */
           DeleteResultStorage(tree);
@@ -2801,25 +2856,30 @@ Deletes an operator tree object.
       {
         if( !tree->isRoot || destroyRootValue )
           // will delete the object if it is not the root of the tree or
-          // if it is the root of the tree and the flag ~destroyRootValue~ is true
+          // if it is the root of the tree and the flag ~destroyRootValue~ 
+	  // is true
         {
           string typeName;
           int algebraId, typeId;
           if( tree->u.dobj.value.addr != 0 && 
-              GetCatalog( tree->nodeLevel )->LookUpTypeExpr( tree->typeExpr, typeName, algebraId, typeId ) )
+              GetCatalog( tree->nodeLevel )->LookUpTypeExpr( 
+		tree->typeExpr, typeName, algebraId, typeId ) )
           {
             if( tree->u.dobj.isConstant )
-              (algebraManager->DeleteObj( algebraId, typeId )) ( tree->u.dobj.value );
+              (algebraManager->DeleteObj( algebraId, typeId )) 
+		( tree->u.dobj.value );
             else
             {
               if( tree->u.dobj.isModified ) 
               {
                 string objName = nl->SymbolValue(tree->u.dobj.symbol);
-                GetCatalog( tree->nodeLevel )->ModifyObject( objName, tree->u.dobj.value );
+                GetCatalog( tree->nodeLevel )->ModifyObject( 
+			objName, tree->u.dobj.value );
               }
               else 
               { 
-                (algebraManager->CloseObj( algebraId, typeId )) ( tree->u.dobj.value );
+                (algebraManager->CloseObj( algebraId, typeId )) 
+			( tree->u.dobj.value );
               }
             }
           }
@@ -2886,7 +2946,8 @@ the moment.
       }
       case IndirectObject:
       {
-        result = (*tree->u.iobj.vector)[tree->u.iobj.argIndex-1]; // *** -1 added
+        result = (*tree->u.iobj.vector)[tree->u.iobj.argIndex-1]; 
+							// *** -1 added
         if (traceNodes) { 
           cerr << fn << "IndirectObject return [" 
                << (void*)result.addr << "]" << endl;
@@ -2905,7 +2966,8 @@ the moment.
           if ( tree->u.op.sons[i]->evaluable && ( ! tree->u.op.isStream ) )
           {
             if ( traceNodes ) {
-                cerr << fn << "Eval(son[" << i << "], arg[" << i << "])" << endl;
+                cerr << fn << "Eval(son[" << i << "], arg[" << i << "])" 
+		<< endl;
             }
             Eval( tree->u.op.sons[i], arg[i], message );
           }
@@ -2933,7 +2995,8 @@ the moment.
             (*absArgs)[i-1] = arg[i];
             if ( traceNodes )
             {
-              cout << fn << "argument " << i-1 << " is" << int(arg[i].addr) << endl;
+              cout << fn << "argument " << i-1 << " is" << int(arg[i].addr) 
+		<< endl;
             }
           }
           /*
@@ -2949,15 +3012,17 @@ the moment.
             it = argsPrinted.find(tree->id);
             if ( (it == argsPrinted.end())) {
               for ( i = 0; i < tree->u.op.noSons; i++ ) {
-                cerr << fn << "Eval arg[" << i << "].addr = " << arg[i].addr << endl;
+                cerr << fn << "Eval arg[" << i << "].addr = " 
+		<< arg[i].addr << endl;
               }
               argsPrinted[tree->id] = true;
             }
             cerr << fn << "*** End" << endl;
           }
           status =
-            algebraManager->Execute( tree->u.op.algebraId, tree->u.op.opFunId,
-                                     arg, result, message, tree->u.op.local, tree );
+            algebraManager->Execute( tree->u.op.algebraId, 
+		tree->u.op.opFunId, arg, result, message, tree->u.op.local, 
+		tree );
 
           if ( tree->u.op.isStream )
           {
@@ -2970,7 +3035,8 @@ the moment.
           }
         }
         return;
-        if (traceNodes) { cerr << fn << "Operator return status =" << status << endl;}
+        if (traceNodes) { cerr << fn << "Operator return status =" 
+		<< status << endl;}
       }
     }
   }
@@ -3011,7 +3077,8 @@ handle stream evaluation.
       }
       case IndirectObject:
       {
-        result = (*tree->u.iobj.vector)[tree->u.iobj.argIndex-1]; // *** -1 added
+        result = (*tree->u.iobj.vector)[tree->u.iobj.argIndex-1]; 
+		// *** -1 added
         return;
       }
       case Operator:
@@ -3029,8 +3096,8 @@ normal evaluation.
         {
           arg[i].addr = tree->u.op.sons[i];
         }
-        result = algebraManager->TransformModel( tree->u.op.algebraId, tree->u.op.opFunId,
-		                                             arg, tree );
+        result = algebraManager->TransformModel( 
+		tree->u.op.algebraId, tree->u.op.opFunId, arg, tree );
         tree->u.op.subtreeModel = result;
         return;
       }
@@ -3190,7 +3257,8 @@ set the new one passed in ~w~.
 
 
 void
-QueryProcessor::SetDeleteFunction( const Supplier s, const ObjectDeletion f )
+QueryProcessor::SetDeleteFunction( const Supplier s, 
+	const ObjectDeletion f )
 {
   OpTree tree = (OpTree) s;
   tree->u.op.deleteFun = f;
@@ -3220,7 +3288,8 @@ QueryProcessor::ReInitResultStorage( const Supplier s )
   OpTree tree = (OpTree) s;
   tree->u.op.resultWord =
     (algebraManager->CreateObj( tree->u.op.resultAlgId,
-                                tree->u.op.resultTypeId ))( GetCatalog( tree->nodeLevel )->NumericType( tree->typeExpr ) );
+	tree->u.op.resultTypeId ))( 
+	GetCatalog( tree->nodeLevel )->NumericType( tree->typeExpr ) );
 }
 
 int
@@ -3253,13 +3322,17 @@ Returns the type expression of the node ~s~ of the operator tree.
   OpTree tree = (OpTree) s;
   if ( (tree->nodetype == Operator) && tree->u.op.isFun ) 
   {
-    // the list structure will be (map ... R) but in case of a function application only the result type
+    // the list structure will be (map ... R) but in case of a 
+    // function application only the result type
     // R is needed. Example:  
     //
-    //    plz  staedte loopz[f1: . feed .. feed hashjoin, f2 . feed .. feed sortmergejoin] count
+    //    plz  staedte loopz[f1: . feed .. feed hashjoin, 
+    //    	f2: . feed .. feed sortmergejoin] count
     //
-    // Since the join implementations define the result tuple type by calling this method and
-    // the join is the root of the function's operator tree the list (map ... R) will be returned
+    // Since the join implementations define the result tuple type by 
+    // calling this method and
+    // the join is the root of the function's operator tree the 
+    // list (map ... R) will be returned
     // but in this case returning R is correct. 
     int n = nl->ListLength(tree->typeExpr);
     return nl->Nth(n, tree->typeExpr);
@@ -3346,7 +3419,8 @@ QueryProcessor::SetDebugLevel( const int level )
 }
 
 bool
-QueryProcessor::ExecuteQuery( const string& queryListStr, Word& queryResult )
+QueryProcessor::ExecuteQuery( const string& queryListStr, 
+	Word& queryResult )
 {
   OpTree tree = 0;
   
@@ -3361,7 +3435,8 @@ QueryProcessor::ExecuteQuery( const string& queryListStr, Word& queryResult )
 
   nli->ReadFromString( queryListStr, queryList );
 
-  QueryProcessor* qpp = new QueryProcessor( nli, SecondoSystem::GetAlgebraManager() );
+  QueryProcessor* qpp = new QueryProcessor( nli, 
+	SecondoSystem::GetAlgebraManager() );
     
   AlgebraLevel level = SecondoSystem::GetAlgebraLevel();
   qpp->Construct( level, queryList, correct, 
