@@ -1,36 +1,9 @@
 /*
------           
-This file is part of SECONDO.
-
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
-Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
-
-//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
-//[ue] [\"{u}]
-//[TOC] [\tableofcontents]
 
 [1] PlaneSweepAlgebra
 
 September 2005 Annette Seberich-D[ue]ll
 
-
-
-[TOC]
 
 1 Overview
 
@@ -69,7 +42,8 @@ extern QueryProcessor* qp;
 /*
 3 Class Segment
 
-This class is used to save the values of each segment of both arguments.
+This class is used to save the values of each segment of both
+arguments.
 
 */
 
@@ -92,9 +66,8 @@ private:
    bool in1;
    CHalfSegment chs;
 };
-
 /*
-constructor to build up a new segment-object
+konstruktor to biuld up a new segment-object
 
 */
 Segment::Segment(bool in, const CHalfSegment& inchs)
@@ -144,8 +117,11 @@ ostream& operator<<(ostream &os, Segment& segm)
 /*
 2. Template
 
-This template is implementing a binary tree (red-blach-tree). It is used for the classes ~PQueue~, ~Statusline~ and ~Sline~.
-These classes implement the priority queue (Sweep-Event-Structure) and the Sweepline-Status-Structure of the Plane-Sweep-Algorithm.
+This template is implementing a binary tree (red-blach-tree).
+It is used for the classes ~PQueue~, ~Statusline~ and ~Sline~.
+These classes implement the priority queue
+(Sweep-Event-Structure) and the Sweepline-Status-Structure
+of the Plane-Sweep-Algorithm.
 
 */
 
@@ -165,7 +141,7 @@ template<class E> class BinTreeNode
 {
 public:
 
-   BinTreeNode() {};
+   BinTreeNode<E>() {};
    E GetEntry()				{ return entry;}
    void SetEntry(const E& newentry)	{ entry.Set(newentry); }
    BinTreeNode<E>* GetNext()		{ return Next; }
@@ -193,8 +169,8 @@ This tree is a binary tree (a red-black-tree) with a doubled linked list, which 
 template<class E> class BinTree
 {
 public:
-   BinTree();
-   ~BinTree();
+   BinTree<E>();
+   ~BinTree<E>();
    // different function to insert entries in the tree
    BinTreeNode<E>* Insert(const E &entry, const Coord x);
    BinTreeNode<E>* Insert(const E &entry,const Coord x,Segment sgs[]);
@@ -204,7 +180,7 @@ public:
    void Delete (const E &entry, const Coord x);
    void DeleteNode (BinTreeNode<E>* node) ;
    // to use the tree as a priority queue
-   E GetFirstAndDelete();
+   E BinTree<E>::GetFirstAndDelete () ;
    void Clear();
    BinTreeNode<E>* GetFirst();
    BinTreeNode<E>* GetLast();
@@ -217,7 +193,7 @@ public:
    BinTreeNode<E>* Find (const E &entry, const Coord x,
       const E &old, BinTreeNode<E>* oldnode);
 
-   void Output();
+   void BinTree<E>::Output() ;
 
 protected:
    // compare - functions to searxh thr right node
@@ -258,7 +234,7 @@ private:
 };
 
 /*
-build up an empty tree, initialise the atrributes
+build up a empty tree, initialise the atrributes
 
 */
 
@@ -413,7 +389,7 @@ template<class E>  BinTreeNode<E>* BinTree<E>::Find (const E &entry,
       else if (c<0)  node = node->Left;
       else node = node->Right;
    }
-   return 0;  // should not reached, entry not found
+   return 0;  // entry not found
 }
 
 template<class E>  BinTreeNode<E>* BinTree<E>::Find (const E &entry,
@@ -427,7 +403,7 @@ template<class E>  BinTreeNode<E>* BinTree<E>::Find (const E &entry,
       else if (c<0)  node = node->Left;
       else node = node->Right;
    }
-   return 0;  // should not reached, entry not found
+   return 0;  // entry not found
 }
 
 template<class E>  BinTreeNode<E>* BinTree<E>::Find (const E &entry,
@@ -441,7 +417,7 @@ template<class E>  BinTreeNode<E>* BinTree<E>::Find (const E &entry,
       else if (c<0)  node = node->Left;
       else node = node->Right;
    }
-   return 0;  // should not reached, entry not found
+   return 0;  // entry not found
 }
 
 /*
@@ -1265,12 +1241,10 @@ SSSEntry:: SSSEntry(int inseg, double ink, double ina)
    a = ina;
 }
 
-
 /*
 creates a new entry-object from a given CHalfsegments and calculates slope and a
 
 */
-
 SSSEntry:: SSSEntry (int inseg, Segment segs[])
 {
    chs = inseg;
@@ -1357,10 +1331,9 @@ const double SSSEntry::GetY(Coord x, Segment segs[]) const  {
 int SSSEntry:: Less (const SSSEntry in2, const Coord x,
    Segment segs[]) const
 {
-   Coord xtest = x * 100000000;
    if (Equal(in2)) return 0;
-   else if (GetY(xtest, segs) < in2.GetY(xtest, segs)) return -1;
-   if (GetY(xtest, segs) > in2.GetY(xtest, segs)) return 1;
+   else if (GetY(x, segs) < in2.GetY(x, segs)) return -1;
+   if (GetY(x, segs) > in2.GetY(x, segs)) return 1;
    // same y-value -> compare slope
       if (Getk() < in2.Getk()) return -1;
       else if (Getk() > in2.Getk() ) return 1;
@@ -1404,7 +1377,6 @@ public:
 private:
    BinTree<SSSEntry> ssl;
 
-
    bool IsEmpty();
    int Size();
    bool InsertIntersection(const CHalfSegment& chs1,
@@ -1414,7 +1386,9 @@ private:
      Segment segs[]);
    BinTreeNode<SSSEntry>* GetNext(BinTreeNode<SSSEntry>* ent);
    BinTreeNode<SSSEntry>* GetPred(BinTreeNode<SSSEntry>* ent);
-
+   bool innerInter( const CHalfSegment& chs1, const CHalfSegment&
+      chs2,  Point& resp, CHalfSegment& rchs, bool& first,
+      bool& second ) const;
 };
 
 void StatusLine::output(double x, Segment segs[])
@@ -1481,7 +1455,7 @@ BinTreeNode<SSSEntry>* StatusLine::Find(const Coord x,
 }
 
 /*
-function to insert an entry in the sweepline, after inserting at the right position (sweeep line is ordered by y-values) tests for intersection are made with predecessor and successor.
+function to insert an entry in the sweepline, after inserting at the right position (sweep line is ordered by y-values) tests for intersection are made with predecessor and successor.
 Additionally tests are made with more neighbors, if two segments are parallel.
 
 */
@@ -1564,9 +1538,193 @@ void StatusLine::Delete(Coord x, Coord oldx, SSSEntry& entry,
    }
 }
 
+const double DIST = 1* exp(-20.0);
+
+/*
+This new Functions is needed for testing, if two CHalfsegments
+intersects with inner points and if this is true,
+as result the single point of intersection or the Segments which overlap are given as result in resp or rchs
+If the intersetion points are very close to the endpoint (Distance is
+less than DIST), it is assumed, that the intersection is only a problem of rounding double values
+
+*/
+
+bool StatusLine::innerInter( const CHalfSegment& chs1,
+   const CHalfSegment& chs2, Point& resp, CHalfSegment& rchs,
+   bool& first, bool& second ) const
+{
+   resp.SetDefined(false);   	rchs.SetDefined(false);
+   first = false;		second = false;
+   Coord xl,yl,xr,yr ,  Xl,Yl,Xr,Yr;
+   double k, a, K, A;
+   xl=chs1.GetLP().GetX();  yl=chs1.GetLP().GetY();
+   xr=chs1.GetRP().GetX();  yr=chs1.GetRP().GetY();
+   if (xl!=xr)  // chs1 not vertical
+   {     //k=(yr-yl) / (xr-xl);  a=yl - k*yl;
+    #ifdef RATIONAL_COORDINATES
+      k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
+         (yl.IsInteger()? yl.IntValue():yl.Value())) /
+        ((xr.IsInteger()? xr.IntValue():xr.Value()) -
+         (xl.IsInteger()? xl.IntValue():xl.Value()));
+      a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
+         k*(xl.IsInteger()? xl.IntValue():xl.Value());
+    #else
+      k=(yr - yl) / (xr - xl);
+      a=yl - k*xl;
+    #endif
+   }
+   Xl=chs2.GetLP().GetX();  Yl=chs2.GetLP().GetY();
+   Xr=chs2.GetRP().GetX();  Yr=chs2.GetRP().GetY();
+   if (Xl!=Xr)  // chs2 not vertical
+   {     //K=(Yr-Yl) / (Xr-Xl);  A=Yl - K*Xl;
+    #ifdef RATIONAL_COORDINATES
+      K=  ((Yr.IsInteger()? Yr.IntValue():Yr.Value()) -
+          (Yl.IsInteger()? Yl.IntValue():Yl.Value())) /
+         ((Xr.IsInteger()? Xr.IntValue():Xr.Value()) -
+          (Xl.IsInteger()? Xl.IntValue():Xl.Value()));
+      A = (Yl.IsInteger()? Yl.IntValue():Yl.Value()) -
+         K*(Xl.IsInteger()? Xl.IntValue():Xl.Value());
+    #else
+      K=  (Yr - Yl) / (Xr - Xl);
+      A = Yl - K*Xl;
+    #endif
+   }
+   if ((xl==xr) && (Xl==Xr))  {
+      //both chs1 and chs2 are vertical lines
+      if (xl!=Xl) return false;
+      else  {
+         Coord ylow, yup, Ylow, Yup;
+         if (yl<yr)   { ylow=yl;  yup=yr;  }
+         else         { ylow=yr;  yup=yl;  }
+         if (Yl<Yr)   { Ylow=Yl;  Yup=Yr;  }
+         else	  { Ylow=Yr;  Yup=Yl;  }
+         if  (((ylow>Ylow) && (ylow<Yup))||
+	      ((yup>Ylow) && (yup<Yup)) ||
+              ((Ylow>ylow) && (Ylow<yup))||
+	      ((Yup>ylow) && (Yup<yup))) {
+            Point p1, p2;
+            if (ylow>Ylow)	p1.Set(xl, ylow);
+            else 		p1.Set(xl, Ylow);
+            if (yup<Yup) 	p2.Set(xl, yup);
+            else 		p2.Set(xl, Yup);
+            rchs.Set(true, p1, p2);
+	    first = true; 	second = true;
+            return true;
+         }
+         else return false;
+      }
+   } // (xl==xr) && (Xl==Xr)
+   else if (Xl==Xr) {    //only L is vertical
+      if ( xl==Xl && yl>Yl && yl<Yr )
+         {resp.Set(xl,yl); second = true; return true;}
+      if ( xr==Xl && yr>Yl && yr<Yr )
+         {resp.Set(xr,yr); second = true; return true;}
+      else  {
+        #ifdef RATIONAL_COORDINATES
+         double y0=k*(Xl.IsInteger()? Xl.IntValue():Xl.Value())+a;
+         Coord yy(y0);
+       #else
+         double y0=k*Xl+a;
+         Coord yy=y0;
+      #endif
+         //(Xl, y0) is the intersection of l and L
+         if ((Xl>xl) &&( Xl<xr))  {
+	    if ( (yy>=Yl) && (yy <= Yr) ) {
+	       resp.Set (Xl,yy);
+	       // test if rounding problem, then no intersection
+	       if ( (abs(xl-Xl) < DIST && abs(yl-yy) < DIST) ||
+	            (abs(xr-Xl) < DIST && abs(yr-yy) < DIST) ||
+		     abs(Yl-yy) < DIST || abs(Yr-yy) < DIST)
+	          return false;
+	       first = true;
+               if ( (yy>Yl) && (yy<Yr) ) second = true;
+	       return true;
+	    }
+	    else return false;
+         }
+      }
+   }  // else if (Xl==Xr)
+   else if (xl==xr) {    //only l is vertical
+// hier einfügen
+      if ( Xl==xl && Yl>yl && Yl<yr )
+         {resp.Set(Xl,Yl); first = true; return true;}
+      if ( Xr==xl && Yr>yl && Yr<yr )
+         {resp.Set(Xr,Yr); first = true; return true;}
+      else  {
+        #ifdef RATIONAL_COORDINATES
+         double y0=K*(xl.IsInteger()? xl.IntValue():xl.Value())+A;
+         Coord yy(y0);
+       #else
+         double y0=K*xl+A;
+         Coord yy=y0;
+      #endif
+         //(Xl, y0) is the intersection of l and L
+         if ((xl>Xl) && (xl<Xr))  {
+	    if ( (yy>=yl) && (yy <= yr) ) {
+	       resp.Set (xl,yy);
+	       // test if rounding problem, then no intersection
+	       if ( (abs(Xl-xl) < DIST && abs(Yl-yy) < DIST) ||
+	            (abs(Xr-xl) < DIST && abs(Yr-yy) < DIST) ||
+		     abs(yl-yy) < DIST || abs(yr-yy) < DIST)
+	          return false;
+	       second = true;
+               if ( (yy>yl) && (yy<yr) ) first = true;
+	       return true;
+	    }
+	    else return false;
+         }
+      }
+   }
+   //otherwise: both *this and *arg are non-vertical lines
+   if (k==K)   { // both lines are parallel or the same
+      if (a != A) return false;  // parallel lines
+      if  (((xl>Xl) && (xl<Xr)) || ((xr>Xl) && (xr<Xr)) ||
+           ((Xl>xl) && (Xl<xr)) || ((Xr>xl) && (Xr<xr)))  {
+         Point p1, p2;
+         if (xl>Xl) 	p1.Set(xl, yl);
+         else  		p1.Set(Xl, Yl);
+         if (xr<Xr)	p2.Set(xr, yr);
+         else  		p2.Set(Xr, Yr);
+         rchs.Set(true, p1, p2);
+	 first = true; second = true;
+         return true;
+      }
+     else return false;
+   } // else (k==K)
+   else  {
+      double x0 = (A-a) / (k-K);  // y0=x0*k+a;
+      double y0 = x0*k+a;
+     #ifdef RATIONAL_COORDINATES
+        Coord xx(x0);   Coord yy(y0);
+     #else
+        Coord xx = x0; Coord yy=y0;
+     #endif
+     if (chs1.GetLP() == chs2.GetLP() ||
+         chs1.GetRP() == chs2.GetRP() ) return false;
+     // test if rounding problem, then no intersection
+     resp.Set(xx,yy);
+     if ( (abs(Xl-xx) < DIST && abs(Yl-yy) < DIST) ||
+	  (abs(Xr-xx) < DIST && abs(Yr-yy) < DIST) ||
+	  (abs(xl-xx) < DIST && abs(yl-yy) < DIST) ||
+	  (abs(xr-xx) < DIST && abs(yr-yy) < DIST) )
+        return false;
+     if ((xx == xl || xx == xr) && xx > Xl && xx < Xr )
+        {second = true; return true; }
+     if ( (xx == Xl || xx == Xr) && xx > xl && xx < xr )
+        {first = true; return true; }
+     if ((xx>xl) && (xx<xr) && (xx>Xl) && (xx <Xr))
+        {first = true; second= true; return true; }
+     else  return false;
+   }
+}
+
+
 /*
 With this function the tests if two segment intersects are made.
-First step was the test, if two segments intersects. If they intersect in one point, a XEvent intersection or split are made. If they overlap, XEvent split are insertet in the ~PQueue~
+First: test, if two segments intersects (innerInter in SpatialAlgebra).
+Second:
+- they intersect in one point, a XEvent intersection or split is created.
+- they overlap, XEvent split is inserted in the ~PQueue~
 
 */
 bool StatusLine::InsertIntersection(const CHalfSegment& chs1,const
@@ -1580,7 +1738,7 @@ bool StatusLine::InsertIntersection(const CHalfSegment& chs1,const
    // test if two CHalfSegments intersects
    // if intersection in one point -> point isDefined
    // if they overlap -> CHalfSegment res is the result-segment
-   bool innerinter = chs1.innerInter(chs2, point, res, one, two);
+   bool innerinter = innerInter(chs1, chs2, point, res, one, two);
    if (innerinter)  {
       result = true;
       if (point.IsDefined() ) { // intersection in one point
@@ -1681,18 +1839,18 @@ void StatusLine::Exchange (BinTreeNode<SSSEntry>* e1,
 }
 
 /*
-3.6 class VPoints
+3.6 class VStructure
 
 This class is  activated, if a vertical segment occurs (SetDefined = true). It is used to store the y-values of end-point of segments at the sweepline, at wich the vertical segment must be split.
 In this class a <list> from the C++-Standards is used.
 
 */
 
-class VPoints {
+class VStructure {
 public:
    friend class VList;
-   VPoints();
-   ~VPoints()   {};
+   VStructure();
+   ~VStructure()   {};
    void Insert (Coord y);
    void SetDefined(bool def)   	{ defined = def;}
    bool IsDefined () 		{ return defined; }
@@ -1707,9 +1865,9 @@ private:
    void Output();
 };
 
-void VPoints::Output()
+void VStructure::Output()
 {
-   cout << " in output VPoints " << endl;
+   cout << " in output Vstructure " << endl;
    list<Coord>::iterator p = vstruct.begin();
    while (p != vstruct.end())
    {
@@ -1721,13 +1879,13 @@ void VPoints::Output()
       << "   max" << max << endl;
 }
 
-VPoints::VPoints()
+VStructure::VStructure()
 {
    list<Coord> vstruct;
    defined = false;
 }
 
-void VPoints::Clear()
+void VStructure::Clear()
 {
    vstruct.clear();
    SetDefined(false);
@@ -1737,7 +1895,7 @@ void VPoints::Clear()
 a new value of an y-coordinate is inserted
 
 */
-void VPoints::Insert (Coord y)
+void VStructure::Insert (Coord y)
 {
    if (IsEmpty()) {
       vstruct.insert(vstruct.begin(), y);
@@ -1768,7 +1926,7 @@ public:
    VList();
    ~VList() {};
    void Insert (Segment& seg);
-   list<Segment> processAll(Coord& sweepline, VPoints& vs,
+   list<Segment> processAll(Coord& sweepline, VStructure& vs,
       StatusLine& sl, Segment segs[]);
     void Clear();
     bool IsEmpty();
@@ -1779,9 +1937,9 @@ private:
    void DeleteFirst();
    Segment First();
    int Size();
-   list<Segment> eraseOverlaps(Coord sline, VPoints vs);
+   list<Segment> eraseOverlaps(Coord sline, VStructure vs);
    void testStatusLine(StatusLine& sl, Segment segs[]);
-   void testOverlaps(Coord& sweepline, VPoints& vs,
+   void testOverlaps(Coord& sweepline, VStructure& vs,
       StatusLine& sl, Segment segs[]);
    void output();
 };
@@ -1823,7 +1981,7 @@ void VList::output()
 This function is called if the sweep line moves to a new position. The vertical segments are worked off. This means tests are made to find intersection with other segments.
 
 */
-list<Segment> VList::processAll(Coord& sweep, VPoints& vstruct,
+list<Segment> VList::processAll(Coord& sweep, VStructure& vstruct,
    StatusLine& ssl, Segment segments[])
 {
    if ( ! IsEmpty() )  {
@@ -1838,7 +1996,7 @@ test for overlaps all  vertical segments at the same x-coordinate
 
 */
 
-void VList::testOverlaps(Coord& sweepline, VPoints& vs,
+void VList::testOverlaps(Coord& sweepline, VStructure& vs,
    StatusLine& sl, Segment segs[])
 {
    list<Segment> newlist;
@@ -2087,7 +2245,6 @@ void MakeRealm::REALM(CRegion* reg1, CRegion* reg2, CRegion* result1,
    result2->Clear();
    result2->StartBulkLoad();
    counter = 0;
-   // cout << " region 2 neu berechnet" << endl;
    while (! res2.empty() )    {
       CHalfSegment chs = res2.front();
       chs.attr.partnerno = counter;
@@ -2319,7 +2476,7 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
    set<int> mi;
    Point oldP;
    VList vlist;
-   VPoints vs;
+   VStructure vs;
    StatusLine sl;
    if ( pq.isEmpty())  return;
    Coord sweepline, oldsweep;
@@ -2425,14 +2582,13 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
       }
       // XEvent - bottom of a vertical Segment
       else if (event.GetKind() == verticalSegment)  {
-        vs.SetDefined(true);      // build up VPoints
+        vs.SetDefined(true);      // build up VStructure
 	vlist.Insert(segs[event.GetFirst()]);
       }
       else  {   cout << " wrong eventkind !!!!!!!!!!!!!!!!!!!!"; }
    }
    sl.Clear();
 }
-
 /*
 4 Plane-Sweep-Algorithmen for Operators
 
@@ -2447,7 +2603,6 @@ Results for different typs of arguments for each operator was created as describ
 class for representing entries in the Sweepline-Status-Struktur. Each entry store the CHalfsegment and the segment classsifikation for this segment.
 
 */
-
 class SEntry {
 public:
    SEntry() {};
@@ -2461,14 +2616,12 @@ public:
    CHalfSegment GetCHS() const;
    void SetU(int newU);
    void SetO(int newO);
-   int Less (const SEntry ev2, const Coord x) const;
-   //int Less (const SEntry ev2, const Coord x, const SEntry oldev,
-   //    BinTreeNode<SEntry>* oldnode ) const;
+   int Less (const SEntry ev2, const Coord x, const SEntry oldev,
+       BinTreeNode<SEntry>* oldnode ) const;
    bool Equal (const SEntry in2) const;
    //SEntry& operator= (const SEntry& in);
 
-private:
-
+public:  // eigentlich private
    double GetSlope() const;
    double GetA() const;
 
@@ -2597,28 +2750,114 @@ bool SEntry::Equal (const SEntry in2) const
 
 /*
 Function used from template ~BinTree~.
+Input: SEntry, which is to be inserted od to be deleted
+result: -1 means that the new SEntry < SEntry in tree
+         0 means that both SEntry are the same
+	+1 means that the new SEntry > SEntry in tree
 
 */
-int SEntry::Less (const SEntry in2, const Coord x) const
+int SEntry::Less (const SEntry in2, const Coord x, const
+   SEntry oldev, BinTreeNode<SEntry>* oldnode) const
 {
+ //  cout << " test Sentry in Less   1. CHS:" << GetCHS() << "     2.CHS: " << in2.GetCHS() << endl; ;
    if ( Equal(in2) )     return 0;
-   if ( GetCHS().GetLP() == in2.GetCHS().GetLP())  {
-      if (GetSlope() < in2.GetSlope())       return -1;
-      else if (GetSlope() > in2.GetSlope() ) return 1;
+   if (GetCHS().GetLP().GetX() == x &&
+      in2.GetCHS().GetLP().GetX() == x) {
+   //   cout << " beide starten am gleichen punkt " << endl;
+      double y1 = GetCHS().GetLP().GetY();
+      double y2 = in2.GetCHS().GetLP().GetY();
+      // left point of both segments start at same x-value
+      if ( y1 == y2 ) { // they start at same point
+         if (GetSlope() < in2.GetSlope())        return -1;
+         else if (GetSlope() > in2.GetSlope() )  return 1;
+         else    return 1;
+      }
+      else { // they start at different point
+         if ( (y1-y2) > 0.000001 || (y1-y2) < -0.000001) {
+            if ((y1-y2) < 0)           return -1;
+            else if ( (y1-y2) > 0 )    return 1;
+         }
+	 else {  //the point are very close
+	    // tests if new CHS is in same cycle as CHS
+	    // from same object inserted before
+	    if (GetCHS().attr.faceno==oldev.GetCHS().attr.faceno &&
+	    GetCHS().attr.cycleno==oldev.GetCHS().attr.cycleno &&
+	    ((GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==1 ||
+	    (GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==-1))
+	    {
+	       if  (oldnode!=0 &&  oldnode->GetEntry().GetCHS()==
+	          in2.GetCHS())    return 1;
+	       else if (oldnode!=0 && oldnode->GetPred()!=0 &&
+	       oldnode->GetPred()->GetEntry().GetCHS()==in2.GetCHS())
+	          return 1;
+	    }
+	    if (GetSlope() < in2.GetSlope())    return -1;
+	    else  return 1;
+         } // else test < 0.00001
+       } // else kommt vor
+   } // if starts same koordinate
+   else if (GetCHS().GetLP().GetX() == x) {
+ //     cout << " einzufuegendes startet an x-Koordinate " ;
+      double test = GetCHS().GetLP().GetY() - in2.GetY(x);
+      if ( test > 0.000001 || test < -0.000001) {
+   //      cout << " testet y-Vergleich" << endl;
+         if (test < 0) 	   	 return -1;
+         else if ( test > 0 )	 return 1;
+      }
+      else {  //  |test| < 0.000001 very close
+ //        cout << " very close" ;
+	 if (GetCHS().attr.faceno == oldev.GetCHS().attr.faceno &&
+	 GetCHS().attr.cycleno == oldev.GetCHS().attr.cycleno &&
+	 ((GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==1 ||
+	 (GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==-1)) {
+//	    cout << " an alten segmenten anhaengen " << endl;
+//	    if (oldnode !=0 && oldnode->GetEntry().GetCHS() !=0)
+//	       cout <<" alter Knoten "<< oldnode->GetEntry().GetCHS() ;
+//	    if (oldnode != 0 && oldnode->GetPred() != 0 )
+//	       cout << "  vorgänger von oldnode " <<
+//	       oldnode->GetPred()->GetEntry().GetCHS();
+//	    cout << endl;
+	    if  (oldnode!=0 &&  oldnode->GetEntry().GetCHS()
+	        ==in2.GetCHS())   return 1;
+	    else if (oldnode != 0 && oldnode->GetPred() != 0 &&
+	       oldnode->GetPred()->GetEntry().GetCHS() == in2.GetCHS())
+	       return 1;
+	    else if (oldnode == 0)  return 1;
+	 }
+//	 cout << " keine alten vorhanden" << endl;
+	 if (GetSlope() < in2.GetSlope())  {//cout << " slope < " <<     endl;
+	 return -1;}
+	 else  return 1;
+      } // |test|  < 0.0001
+   }  // else
+   else if ( GetCHS().GetRP().GetX()==x &&
+      in2.GetCHS().GetRP().GetX() ==x ){
+//      cout << " beide enden an x-koordinate " << endl;
+      if (GetY(x) < in2.GetY(x))      return -1;
+      else if (GetY(x) > in2.GetY(x))  return 1;
+      else  {
+         double y1, y2;
+         y1 =     GetY(x - 0.1);
+         y2 = in2.GetY(x - 0.1);
+         if ( y1 < y2)       return -1;
+         else if (y1 > y2)  return 1;
+      }
    }
-    if ( GetCHS().GetRP() == in2.GetCHS().GetRP())  {
-
-      if (GetSlope() > in2.GetSlope())  return -1;
-      else if (GetSlope() < in2.GetSlope() ) return 1;
+   else if (GetY(x) < in2.GetY(x))    return -1;
+   else if (GetY(x) > in2.GetY(x))    return 1;
+   else  if (GetY(x) == in2.GetY(x) ) {
+//      cout << " beide y-werte gleich " << endl;
+      double y1 =     GetY(x + 1.0);
+      double y2 = in2.GetY(x + 1.0);
+      if (y1 < y2)      return -1;
+      else if (y1 > y2)  return 1;
+      else {
+         if (GetSlope() < in2.GetSlope() )   return -1;
+         else if (GetSlope() > in2.GetSlope() )   return 1;
+	 else      return 1;
+      }
    }
-   if (GetY(x) < in2.GetY(x))    return -1;
-   if (GetY(x) > in2.GetY(x))    return 1;
-   if (GetSlope() < in2.GetSlope())   {  cout << " same y , slope < " << endl;
-       return -1;  }
-   else if (GetSlope() > in2.GetSlope() ) { cout << " same y, slope > " << endl;
-      return 1;  }
-    { cout << " alles gleich" << endl;
-   return 0; }
+   return 0;
 }
 
 /*
@@ -2632,20 +2871,21 @@ class SLine
 public:
    SLine();
    ~SLine() { qu.Clear(); }
-   //  BinTreeNode<SEntry>* Insert (SEntry& in, const Coord x,
-   //   SEntry& oldEntry, BinTreeNode<SEntry>* &oldnode);
-   BinTreeNode<SEntry>* Insert (SEntry& in, const Coord x);
+   BinTreeNode<SEntry>* Insert (SEntry& in, const Coord x,
+      SEntry& oldEntry, BinTreeNode<SEntry>* &oldnode);
    bool IsEmpty();
+   Coord GetX();
+   void SetX(const Coord newx);
    void Delete(SEntry& in, const Coord sx);
    void Delete (BinTreeNode<SEntry>* node);
-   //SEntry FindAndDelete(SEntry& en, const Coord& x, const Coord&
-   //   oldx, SEntry& oldEntry, BinTreeNode<SEntry>* &oldnode);
-   SEntry FindAndDelete(SEntry& en, const Coord& x, const Coord oldx);
+   SEntry FindAndDelete(SEntry& en, const Coord& x, const Coord&
+      oldx, SEntry& oldEntry, BinTreeNode<SEntry>* &oldnode);
    void SLineOutput(const Coord x);
    int GetSize();
 
 private:
    BinTree<SEntry> qu;
+   Coord x;
    SEntry First();
    int cmp (const SEntry* in1, const SEntry* in2) const;
    bool Equal  (const SEntry* ev1, const SEntry* in2) const;
@@ -2658,10 +2898,15 @@ private:
 */
 SLine::SLine()  			{BinTree<SEntry> qu;}
 bool SLine::IsEmpty()			{ return (qu.IsEmpty() ); }
+Coord SLine::GetX()			{ return x; }
 int SLine::GetSize()			{return qu.GetCount(); }
+void SLine::SetX(const Coord newx)	{ x = newx; }
 
-BinTreeNode<SEntry>* SLine::Insert (SEntry& in, const Coord x)   {
-   BinTreeNode<SEntry>* node = qu.Insert(in, x);
+BinTreeNode<SEntry>* SLine::Insert (SEntry& in, const Coord x,
+   SEntry& oldEntry, BinTreeNode<SEntry>* &oldnode)   {
+   BinTreeNode<SEntry>* node = qu.Insert(in, x, oldEntry, oldnode);
+   oldEntry.Set(in);
+   oldnode = node;
    return node;
 }
 
@@ -2673,21 +2918,25 @@ void SLine::Delete (BinTreeNode<SEntry>* node)   {
    qu.DeleteNode (node);
 }
 
-SEntry SLine::FindAndDelete(SEntry& en, const Coord& x, const Coord oldx) {
-   BinTreeNode<SEntry>* node = qu.Find(en,x);
+SEntry SLine::FindAndDelete(SEntry& en, const Coord& x, const
+   Coord& oldx, SEntry& oldEntry, BinTreeNode<SEntry>* &oldnode) {
+   BinTreeNode<SEntry>* node = qu.Find(en,x, oldEntry, oldnode);
    if ( node == 0) {
-      BinTreeNode<SEntry>* node2 = qu.Find(en, oldx);
-      node = node2;
-      if (node == 0) {
-         node2 = qu.GetFirst();
-         while (node2 != 0 &&
-	    node2->GetEntry().GetCHS()!= en.GetCHS())
-            node2 = node2->GetNext() ;
-	 node = node2;
-      }
+       BinTreeNode<SEntry>* node2 = qu.Find(en, oldx, oldEntry,
+          oldnode );
+       node = node2;
+       if (node == 0) { // nothing found because of rounding
+          node2 = qu.GetFirst();
+	  while (node2 != 0 && node2->GetEntry().GetCHS()
+	     != en.GetCHS()  )
+	     node2 = node2->GetNext() ;
+	  node = node2;
+       }
    }
    if (node != 0) {
       SEntry entry = node->GetEntry();
+      oldEntry.Set(entry);
+      oldnode = 0;
       qu.DeleteNode(node);
       return entry;
    }
@@ -2701,15 +2950,22 @@ void SLine::SLineOutput(const Coord x)
    if ( !qu.IsEmpty() ) {
       while (node != 0 )  {
          SEntry ev = node->GetEntry();
-         cout <<" y:" << ev.GetY(x) << "  SEntry: " << ev.GetCHS()
+	 CHalfSegment chs = ev.GetCHS();
+	 double abstand = ((chs.GetLP().GetX() - chs.GetRP().GetX())*
+             (chs.GetLP().GetX() - chs.GetRP().GetX()) ) +
+	     ((chs.GetLP().GetY() - chs.GetRP().GetY()) *
+	     (chs.GetLP().GetY() - chs.GetRP().GetY())) ;
+         cout <<" y:" << ev.GetY(x)
+	 << "  SEntry: " << ev.GetCHS()
 	      << "  U:" << ev.GetU() << "   o:" << ev.GetO()
-	      << "  slope:" << endl;
+	      << "  slope:" << ev.GetSlope()
+	      << " Abstand LP-RP: " << abstand
+	      << endl;
          node = node->GetNext();
       }
    }
    cout << " in output fertig " << endl;
 }
-
 
 /*
 4.3 class MakeOp
@@ -2720,7 +2976,6 @@ The algorithmen computes segment classifikations like described in ROSE-Algebra.
 For both arguments the first segment was selected. If this segment is a left segment, it was inserted in sweep line. The segment classification was computed. If the segment belongs to a line, the segment was deleted at once. If the selected segment was a right segment of a region, it is deleted from the sweep line. If the segment classification has the searched vlaues it is added into result.
 
 */
-
 enum State {FIRST, SECOND, BOTH};
 
 class MakeOp
@@ -2764,12 +3019,16 @@ CRegion* MakeOp::Intersection(CRegion* reg1, CRegion* reg2)
    // initialisations
    SLine sweepline;
    int i = 0;   int j = 0;    int counter = 0;
+   SEntry oldEntry1, oldEntry2;
+   BinTreeNode<SEntry>* oldnode1;
+   BinTreeNode<SEntry>* oldnode2;
    CHalfSegment chs1, chs2, chsAkt;
    CRegion* result = new CRegion(0);
    result ->Clear();
    result->StartBulkLoad();
    State status;
-   Coord aktSweep, oldsweep;
+   Coord aktSweep;
+   Coord oldSweep;
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size() ) {
      // select the first segment
@@ -2780,13 +3039,28 @@ CRegion* MakeOp::Intersection(CRegion* reg1, CRegion* reg2)
       }
       else if ( chs1 < chs2) {i ++; chsAkt = chs1; status = FIRST;}
       else if (chs1 > chs2) {j ++; chsAkt = chs2; status = SECOND;}
+ if (chsAkt.GetDPoint().GetX() != aktSweep)
+// cout << " ======== neue Sweep ====== " << endl;
+// cout << " status = " << status << endl;
       aktSweep = chsAkt.GetDPoint().GetX();
       if (chsAkt.GetLDP() == false) {  // right end of segment
          chsAkt.SetLDP(true);
          SEntry ent (chsAkt);
-	 SEntry en = sweepline.FindAndDelete(ent,aktSweep,oldsweep);
+	 SEntry en;
+	 // delete segment from sweep line
+	 if (status == FIRST)  {
+	    SEntry in = sweepline.FindAndDelete(ent,aktSweep,
+	    oldSweep, oldEntry1, oldnode1);
+	    en.Set(in);
+	 }
+	 else {
+	    SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
+	    oldEntry2, oldnode2);
+	    en.Set(in);
+	 }
 	 if (en.GetO() == 2 || en.GetU() == 2) {
 	    // add segment to result?
+//  cout << " Ausgabe nr. " << counter << " chs " << chsAkt;
 	    chsAkt.attr.partnerno = counter;
             chsAkt.SetLDP(false);	(*result) += chsAkt;
 	    chsAkt.SetLDP(true);	(*result) += chsAkt;
@@ -2797,7 +3071,11 @@ CRegion* MakeOp::Intersection(CRegion* reg1, CRegion* reg2)
          SEntry ent (chsAkt);
 	 BinTreeNode<SEntry>* node;
 	 // add segment into sweepline-Status-Structure
-	 node = sweepline.Insert(ent,aktSweep);
+	 if (status == FIRST)
+	  node = sweepline.Insert(ent,aktSweep,oldEntry1,oldnode1);
+	 else
+	  node = sweepline.Insert(ent,aktSweep,oldEntry2,oldnode2);
+	 // get predecessor of inserted entry
 	 BinTreeNode<SEntry>* pred = node->GetPred() ;
 	 int np = 0;
 	 int ms, ns;
@@ -2816,7 +3094,8 @@ CRegion* MakeOp::Intersection(CRegion* reg1, CRegion* reg2)
 	 ent.SetO(ns);
 	 node->SetEntry(ent);
       } //  end else
-      oldsweep = aktSweep;
+      oldSweep = aktSweep ;
+// sweepline.SLineOutput(aktSweep);
    } // end while
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
@@ -2842,7 +3121,10 @@ CRegion* MakeOp::Intersection(CRegion* reg1, CRegion* reg2)
    result ->Clear();
    result->StartBulkLoad();
    State status;
-   Coord aktSweep, oldSweep;
+   Coord aktSweep;
+   Coord oldSweep;
+   SEntry oldEntry1;
+   BinTreeNode<SEntry>* oldnode1;
    // execute until one argument is empty
    while ( i < resline->Size() && j < resregion->Size() ) {
       // select the first segment
@@ -2858,13 +3140,15 @@ CRegion* MakeOp::Intersection(CRegion* reg1, CRegion* reg2)
             chsAkt.SetLDP(true);
             SEntry ent (chsAkt);
 	    // delete segment from sweep line
-	    SEntry en = sweepline.FindAndDelete(ent,aktSweep,oldSweep);
+	    SEntry en = sweepline.FindAndDelete(ent,aktSweep,
+	       oldSweep, oldEntry1, oldnode1);
 	 }
       }
       else { // left end of segment
          SEntry ent (chsAkt);
 	 // add segment into sweepline-Status-Structure
-	 BinTreeNode<SEntry>* node = sweepline.Insert(ent,aktSweep);
+	 BinTreeNode<SEntry>* node = sweepline.Insert(ent,
+	    aktSweep, oldEntry1, oldnode1);
 	 BinTreeNode<SEntry>* pred = node->GetPred() ;
 	 int np = 0;
 	 int ms, ns;
@@ -2886,10 +3170,12 @@ CRegion* MakeOp::Intersection(CRegion* reg1, CRegion* reg2)
 	    if (status == FIRST) sweepline.Delete(node);
 	 }
       } //  end else
+      oldSweep = aktSweep ;
    } // end while
    resline->Destroy(); delete resline;
    resregion->Destroy(); delete resregion;
    result->EndBulkLoad();
+  // cout << " ===========================result fertig ========" << endl;
    return result;
 }
 
@@ -2926,7 +3212,6 @@ CLine* MakeOp::Intersection(CLine* line1, CLine* line2)
    return result;
 }
 
-
 bool MakeOp::P_Intersects(CRegion* reg1, CRegion* reg2)
 {
   // first Realmisation of both regions
@@ -2940,7 +3225,11 @@ bool MakeOp::P_Intersects(CRegion* reg1, CRegion* reg2)
    int j = 0;
    CHalfSegment chs1, chs2, chsAkt;
    State status;
-   Coord aktSweep, oldSweep;
+   Coord aktSweep;
+   Coord oldSweep;
+   SEntry oldEntry1, oldEntry2;
+   BinTreeNode<SEntry>* oldnode1;
+   BinTreeNode<SEntry>* oldnode2;
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size() ) {
      // select_ first
@@ -2955,13 +3244,20 @@ bool MakeOp::P_Intersects(CRegion* reg1, CRegion* reg2)
          chsAkt.SetLDP(true);
          SEntry ent (chsAkt);
 	 // delete segment from sweep line
-	 SEntry en = sweepline.FindAndDelete(ent,aktSweep,oldSweep);
+	 if (status == FIRST)
+	    SEntry en = sweepline.FindAndDelete(ent,aktSweep,oldSweep,
+	       oldEntry1, oldnode1);
+	  else SEntry en = sweepline.FindAndDelete(ent,aktSweep,
+	     oldSweep, oldEntry2, oldnode2);
       }
       else { // left end of segment
          SEntry ent (chsAkt);
 	 BinTreeNode<SEntry>* node;
 	 // add segment into sweepline-Status-Structure
-	 node=sweepline.Insert(ent,aktSweep);
+	 if (status == FIRST)
+	    node=sweepline.Insert(ent,aktSweep,oldEntry1,oldnode1);
+	 else
+	    node=sweepline.Insert(ent,aktSweep,oldEntry2,oldnode2);
 	 BinTreeNode<SEntry>* pred = node->GetPred() ;
 	 int np = 0;
 	 int ms, ns;
@@ -3004,7 +3300,10 @@ bool MakeOp::P_Intersects(CRegion* reg, CLine* line)
    int j = 0;
    CHalfSegment chs1, chs2, chsAkt;
    State status;
-   Coord aktSweep, oldSweep;
+   Coord aktSweep;
+   Coord oldSweep;
+   SEntry oldEntry1;
+   BinTreeNode<SEntry>* oldnode1;
    // execute until one argument is empty
    while ( i < resline->Size() && j < resregion->Size() ) {
      // select_ first
@@ -3021,13 +3320,15 @@ bool MakeOp::P_Intersects(CRegion* reg, CLine* line)
             chsAkt.SetLDP(true);
             SEntry ent (chsAkt);
 	    // delete segment from sweep line
-	    SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep);
+	    SEntry en = sweepline.FindAndDelete(ent,aktSweep,
+	       oldSweep, oldEntry1, oldnode1);
 	 }
       }
       else { // left end of segment
          SEntry ent (chsAkt);
 	 // add segment into sweepline-Status-Structure
-	 BinTreeNode<SEntry>* node = sweepline.Insert(ent,aktSweep);
+	 BinTreeNode<SEntry>* node = sweepline.Insert(ent,aktSweep,
+	    oldEntry1, oldnode1);
 	 BinTreeNode<SEntry>* pred = node->GetPred() ;
 	 int np = 0;
 	 int ms, ns;
@@ -3072,7 +3373,7 @@ bool MakeOp::P_Intersects(CLine* line1, CLine* line2)
      // select_ first
       res1->Get(i,chs1);
       res2->Get(j,chs2);
-      // if two segments touches or the same -> return true
+      // if two segments are the same -> return true
       if (chs1.GetLP()== chs2.GetLP() && chs1.GetRP()== chs2.GetRP() )
          { return true; }
       else if ( chs1 < chs2)  i ++;
@@ -3097,7 +3398,11 @@ bool MakeOp::Intersects(CRegion* reg1, CRegion* reg2)
    int j = 0;
    CHalfSegment chs1, chs2, chsAkt;
    State status;
-   Coord aktSweep , oldSweep;
+   Coord aktSweep;
+   Coord oldSweep;
+   SEntry oldEntry1, oldEntry2;
+   BinTreeNode<SEntry>* oldnode1;
+   BinTreeNode<SEntry>* oldnode2;
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size() ) {
      // select_ first
@@ -3113,13 +3418,20 @@ bool MakeOp::Intersects(CRegion* reg1, CRegion* reg2)
          chsAkt.SetLDP(true);
          SEntry ent (chsAkt);
 	 // delete segment from sweep line
-	 SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep);
+	 if (status == FIRST)
+	    SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
+	       oldEntry1, oldnode1);
+	 else SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
+	       oldEntry2, oldnode2);
       }
       else { // left end of segment
          SEntry ent (chsAkt);
 	 BinTreeNode<SEntry>* node;
 	 // add segment into sweepline-Status-Structure
-	 node = sweepline.Insert(ent,aktSweep);
+	 if (status == FIRST)
+	    node = sweepline.Insert(ent,aktSweep, oldEntry1, oldnode1);
+	 else
+	    node = sweepline.Insert(ent,aktSweep, oldEntry2, oldnode2);
 	 BinTreeNode<SEntry>* pred = node->GetPred() ;
 	 int np = 0;
 	 int ms, ns;
@@ -3154,7 +3466,10 @@ bool MakeOp::Intersects (CRegion* reg, CLine* line) {
    int j = 0;
    CHalfSegment chs1, chs2, chsAkt;
    State status;
-   Coord aktSweep, oldSweep;
+   Coord aktSweep;
+   Coord oldSweep;
+   SEntry oldEntry1;
+   BinTreeNode<SEntry>* oldnode1;
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size() ) {
      // select_ first
@@ -3171,13 +3486,15 @@ bool MakeOp::Intersects (CRegion* reg, CLine* line) {
             chsAkt.SetLDP(true);
             SEntry ent (chsAkt);
 	    // delete segment from sweep line
-	    SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep);
+	    SEntry en = sweepline.FindAndDelete(ent,aktSweep,
+	       oldSweep, oldEntry1, oldnode1);
 	 }
       }
       else { // left end of segment
          SEntry ent (chsAkt);
 	 // add segment into sweepline-Status-Structure
-	 BinTreeNode<SEntry>* node = sweepline.Insert(ent, aktSweep);
+	 BinTreeNode<SEntry>* node = sweepline.Insert(ent,
+	    aktSweep, oldEntry1, oldnode1);
 	 BinTreeNode<SEntry>* pred = node->GetPred() ;
 	 if (status == FIRST ) {
 	    // insert CHalfSegment from region into sweepline
@@ -3250,6 +3567,9 @@ CRegion* MakeOp::Union(CRegion* reg1, CRegion* reg2)
    result->StartBulkLoad();
    State status;
    Coord aktSweep, oldSweep ;
+   SEntry oldEntry1, oldEntry2;
+   BinTreeNode<SEntry>* oldnode1;
+   BinTreeNode<SEntry>* oldnode2;
    // while there are segments in the realm-based arguments
    while ( i < res1->Size() || j < res2->Size()) {
       // select_first
@@ -3269,17 +3589,33 @@ CRegion* MakeOp::Union(CRegion* reg1, CRegion* reg2)
       if (chsAkt.GetLDP() == false) { // right sement choosen
          chsAkt.SetLDP(true);
          SEntry ent (chsAkt);
-	 SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep);
+	 SEntry en;
+	 // delete segment from sweep line
+	 if (status == FIRST) {
+	    SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
+	    oldEntry1, oldnode1);
+	    en.Set(in);
+	 }
+	 else {
+	    SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
+	    oldEntry2, oldnode2);
+	    en.Set(in);
+	 }
 	 if (en.GetO() == 0 || en.GetU() == 0) {  // CHalfSegment in result
 	       chsAkt.attr.partnerno = counter;
                chsAkt.SetLDP(false);	(*result) += chsAkt;
 	       chsAkt.SetLDP(true);	(*result) += chsAkt;
 	       counter++;
 	 }
+	 if (status == BOTH) {oldEntry1=oldEntry2; oldnode1=oldnode2;}
       }
       else { // left end of segment
          SEntry ent (chsAkt);
-	 BinTreeNode<SEntry>* node = sweepline.Insert(ent,aktSweep);
+	 BinTreeNode<SEntry>* node;
+	 // add segment into sweepline-Status-Structure
+	 if (status == FIRST)  node = sweepline.Insert(ent,aktSweep,
+	    oldEntry1, oldnode1);
+	 else   node = sweepline.Insert(ent,aktSweep, oldEntry2, oldnode2);
 	 BinTreeNode<SEntry>* pred = node->GetPred() ;
 	 int np = 0;
 	 int ms, ns;
@@ -3370,6 +3706,9 @@ CRegion* MakeOp::Minus(CRegion* reg1, CRegion* reg2)
    result->StartBulkLoad();
    State status;
    Coord aktSweep, oldSweep ;
+   SEntry oldEntry1, oldEntry2;
+   BinTreeNode<SEntry>* oldnode1;
+   BinTreeNode<SEntry>* oldnode2;
    // while there are segments in the first arguments
    while ( i < res1->Size() ) {
      // select_ first
@@ -3390,7 +3729,20 @@ CRegion* MakeOp::Minus(CRegion* reg1, CRegion* reg2)
       if (chsAkt.GetLDP() == false) {  // right end of segment
          chsAkt.SetLDP(true);
          SEntry ent (chsAkt);
-	 SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep);
+	 SEntry en;
+	 // delete segment from sweep line
+	 if (status == FIRST) {
+	    SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
+	       oldEntry1, oldnode1);
+	    en.Set(in);
+	 }
+	 else {
+	    SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
+	       oldEntry2, oldnode2);
+	    en.Set(in);
+	 }
+	 if (status == BOTH)
+	    {oldEntry1 = oldEntry2, oldnode1 = oldnode2;}
          if ( (status == FIRST && en.GetU() == 0 && en.GetO() == 1) ||
 	    (status == FIRST && en.GetU() == 1 && en.GetO() == 0) ||
 	    (status == BOTH && en.GetU() == 1 && en.GetO() == 1)) {
@@ -3413,7 +3765,11 @@ CRegion* MakeOp::Minus(CRegion* reg1, CRegion* reg2)
          SEntry ent (chsAkt);
 	 BinTreeNode<SEntry>* node;
 	 // add segment into sweepline-Status-Structure
-	 node = sweepline.Insert(ent,aktSweep);
+	 if (status == FIRST)
+	    node = sweepline.Insert(ent,aktSweep, oldEntry1, oldnode1);
+	 else
+	    node = sweepline.Insert(ent,aktSweep, oldEntry2, oldnode2);
+	 if (status == BOTH) {oldEntry1 = oldEntry2, oldnode1 = oldnode2;}
 	 BinTreeNode<SEntry>* pred = node->GetPred() ;
 	 int np = 0;
 	 int ms, ns;
@@ -3459,6 +3815,8 @@ CLine* MakeOp::Minus(CLine* line, CRegion* reg)
    result->StartBulkLoad();
    State status;
    Coord aktSweep, oldSweep ;
+   SEntry oldEntry1;
+   BinTreeNode<SEntry>* oldnode1;
     // while there are segments in the first arguments
    while ( i < resLine -> Size() ) {
      // select_ first
@@ -3478,12 +3836,14 @@ CLine* MakeOp::Minus(CLine* line, CRegion* reg)
             chsAkt.SetLDP(true);
             SEntry ent (chsAkt);
 	    // delete segment from sweep line
-	    SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep);
+	    SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
+	       oldEntry1, oldnode1);
 	 }
       }
       else { // chsAkt.GetLDP() == true
          SEntry ent (chsAkt);
-	 BinTreeNode<SEntry>* en = sweepline.Insert(ent,aktSweep);
+	 BinTreeNode<SEntry>* en = sweepline.Insert(ent,aktSweep,
+	    oldEntry1, oldnode1);
 	 BinTreeNode<SEntry>* pred = en->GetPred() ;
 	 if (status == FIRST ) {
 	    if (pred == 0 || (pred!=0 && pred->GetEntry().GetO()==0) )
@@ -3974,15 +4334,16 @@ static int Inter_rr( Word* args, Word& result, int message,
 }
 
 const string InterSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "( <text>(line x line->line) or "
-    "(line x region->line) or "
-    "(region x line->line) or "
-    "(region x region->region)</text--->"
-    "<text>intersection_new(_,_)</text--->"
-    "<text>Returns the intersecion of 2 regions.</text--->"
-    "<text>query intersection_new( region1,region2 )</text--->"
-    ") )";
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   "(<text>(line x line->line) or "
+   "(line x region->line) or "
+   "(region x line->line) or "
+   "(region x region->region)</text--->"
+   "<text>intersection_new(_,_)</text--->"
+   "<text>Returns the intersection of 2 lines/regions .</text--->"
+   "<text>query intersection_new ( region1,region2 )</text--->"
+   ") )";
+
 
 ValueMapping InterValueMap[]={Inter_ll,Inter_lr,Inter_rl,Inter_rr };
 
@@ -4009,7 +4370,6 @@ Operator Intersectionrr
 5.3 Operator intersects
 
 */
-
 static ListExpr IntersectsMap( ListExpr args )
 {
    ListExpr arg1, arg2;
@@ -4037,7 +4397,6 @@ static ListExpr IntersectsMap( ListExpr args )
 operator intersects for objects line -line
 
 */
-
 static int Intersects_ll( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
@@ -4074,7 +4433,6 @@ static int Intersects_ll( Word* args, Word& result, int message,
        return (0);
    }
 }
-
 
 /*
 operator intersects for objects line -region
@@ -4162,7 +4520,6 @@ static int Intersects_rl( Word* args, Word& result, int message,
 operator intersects for objects region - region
 
 */
-
 static int Intersects_rr( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
@@ -4203,7 +4560,7 @@ static int Intersects_rr( Word* args, Word& result, int message,
 
 const string IntersectsSpec  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   "( <text>(line region) x (line region)-> bool</text--->"
+   "( <text>(line region)x(line region)->(line region)</text--->"
    "<text>intersects_new(_,_)</text--->"
    "<text>tests if two lines/regions intersects.</text--->"
    "<text>query intersects_new ( region1,region2 )</text--->"
@@ -4264,7 +4621,6 @@ static ListExpr unionMap( ListExpr args )
 operator union for objects region - region
 
 */
-
 static int Union_rr( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4302,7 +4658,6 @@ Word& local, Supplier s )
 operator union for objects line -region
 
 */
-
 static int Union_lr( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
@@ -4324,7 +4679,6 @@ static int Union_lr( Word* args, Word& result, int message,
 operator union for objects region -line
 
 */
-
 static int Union_rl( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4346,7 +4700,6 @@ Word& local, Supplier s )
 operator union for objects line -line
 
 */
-
 static int Union_ll( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4389,7 +4742,6 @@ const string UnionSpec  =
 
 ValueMapping UnionValueMap[] =
    { Union_ll, Union_lr, Union_rl, Union_rr };
-
 
 int unionSelectCompute ( ListExpr args) {
    ListExpr arg1 = nl->First(args);
@@ -4441,7 +4793,6 @@ static ListExpr minusMap( ListExpr args )
 operator minus for objects region - region
 
 */
-
 static int Minus_rr( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
@@ -4495,7 +4846,6 @@ static int Minus_rr( Word* args, Word& result, int message,
 operator minus for objects line -region
 
 */
-
 static int Minus_lr( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4545,7 +4895,6 @@ Word& local, Supplier s )
 operator minus for objects region -line
 
 */
-
 static int Minus_rl( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4554,7 +4903,7 @@ Word& local, Supplier s )
    CRegion *reg = ((CRegion*)args[0].addr);
    if ( ! line->IsEmpty() && line->IsDefined() &&
    reg->IsDefined() )    {
-      ((CRegion *)result.addr) = reg;
+      ((CRegion *)result.addr) = reg ;
       return(0);
    }
    else  {
@@ -4567,7 +4916,6 @@ Word& local, Supplier s )
 operator minus for objects line -line
 
 */
-
 static int Minus_ll( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4597,7 +4945,7 @@ Word& local, Supplier s )
             return(0);
 	 }
 	 else {
-	    result = SetWord(line1);
+	    ((CLine *) result.addr) = line1;
 	    return(0);
 	 }
       }
@@ -4618,6 +4966,7 @@ Word& local, Supplier s )
    }
 }
 
+
 const string MinusSpec  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    "( <text>(line x line->line) or "
@@ -4628,6 +4977,7 @@ const string MinusSpec  =
    "<text>Returns the differenz of 2 lines/regions.</text--->"
    "<text>query minus_new ( region1,region2 )</text--->"
    ") )";
+
 
 ValueMapping MinusValueMap[] = { Minus_ll, Minus_lr, Minus_rl, Minus_rr };
 
@@ -4659,7 +5009,6 @@ Operator Minusrr
 operator p-inter for objects line -line
 
 */
-
 static int p_inter_ll( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4702,7 +5051,6 @@ Word& local, Supplier s )
 operator p-inter for objects line -region
 
 */
-
 static int p_inter_lr( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4744,7 +5092,6 @@ Word& local, Supplier s )
 operator p-inter for objects region -line
 
 */
-
 static int p_inter_rl( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
@@ -4786,7 +5133,6 @@ Word& local, Supplier s )
 operator p-inter for objects region - region
 
 */
-
 static int p_inter_rr( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
