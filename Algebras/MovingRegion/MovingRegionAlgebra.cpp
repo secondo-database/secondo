@@ -103,7 +103,9 @@ behaviour of operator ~at~ for the value $0.00001$. Thomas Behr reported that
 correct moving regions have been rejected for value $0.00000001$.
 
 */
-const double eps = 0.0001;
+//const double eps = 0.0001;
+//const double eps = 0.00000001;
+double eps = 0.00001;
 
 /*
 1 Helper functions
@@ -2306,7 +2308,8 @@ Both segments are not vertical.
 	    double fd = (fey-fsy)/(fex-fsx);
 
 	    if (MRA_DEBUG) 
-		cerr << "MSegmentData::MSegmentData() id=" 
+		cerr << setprecision(10)
+		     << "MSegmentData::MSegmentData() id=" 
 		     << id << " fd=" << fd 
 		     << endl;
 
@@ -7725,6 +7728,22 @@ static ListExpr AtTypeMap(ListExpr args) {
 }
 
 /*
+Used by ~mraprec~:
+
+*/
+
+static ListExpr MraprecTypeMap(ListExpr args) {
+    if (MRA_DEBUG) 
+	cerr << "MraprecTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 1 
+	&& nl->IsEqual(nl->First(args), "real"))
+	return nl->SymbolAtom("bool");
+    else
+	return nl->SymbolAtom("typeerror");
+}
+
+/*
 1.1.1 For unit testing operators
 
 */
@@ -7950,6 +7969,21 @@ static int AtValueMap_MRegion(Word* args,
     return 0;
 }
 
+static int MraprecValueMap(Word* args, 
+			   Word& result, 
+			   int message, 
+			   Word& local, 
+			   Supplier s) {
+    if (MRA_DEBUG) cerr << "MraprecValueMap() called" << endl;
+
+    eps = ((CcReal*) args[0].addr)->GetRealval();
+
+    result = qp->ResultStorage(s);
+    ((CcBool*) result.addr)->Set(true, true);
+
+    return 0;
+}
+
 /*
 1.1.1 For unit testing operators
 
@@ -8135,6 +8169,13 @@ static const string atspec =
     "to point.</text--->"
     "    <text>mpoint1 at region1</text---> ) )";
 
+static const string mraprecspec = 
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>(real) -> bool</text--->"
+    "    <text>mraprec ( _ )</text--->"
+    "    <text>Set precision of comparisions. Always returns true.</text--->"
+    "    <text>mraprec(0.0001)</text---> ) )";
+
 /*
 Used for unit testing only.
 
@@ -8232,6 +8273,13 @@ static Operator at("at",
 		   AtSelect,
 		   AtTypeMap);
 
+static Operator mraprec("mraprec",
+			mraprecspec,
+			MraprecValueMap,
+			Operator::DummyModel,
+			simpleSelect,
+			MraprecTypeMap);
+
 /*
 Used for unit testing only.
 
@@ -8281,6 +8329,7 @@ public:
 	AddOperator(&intersection);
 	AddOperator(&inside);
 	AddOperator(&at);
+	AddOperator(&mraprec);
 
 /*
 Used for unit testing only.
