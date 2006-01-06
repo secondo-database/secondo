@@ -239,6 +239,8 @@ function	: ZZFUN '(' args ')' valueexpr
 				{$$ =   NestedText::Concat(
 					  NestedText::AtomC("(fun "),
   					  NestedText::Concat($4, NestedText::AtomC(")")) );}
+		| ZZFUN  ZZIDENTIFIER
+				{$$ =  $2;}
 		;
 
 arg		: ZZIDENTIFIER ':' typeexpr
