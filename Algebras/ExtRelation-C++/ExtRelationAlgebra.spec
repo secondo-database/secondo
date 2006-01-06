@@ -51,8 +51,8 @@ operator extract alias EXTRACT pattern _ op [ _ ]
 
 operator sample alias SAMPLEFEED pattern _ op [_, _]
 
-operator aggregate alias AGGREGATE pattern _ op [ _; fun; _ ] implicit parameter tuple type TUPLE
-operator aggregate_new alias AGGREGATE_NEW pattern _ op [ _; fun; _ ] implicit parameter tuple type TUPLE
+operator aggregate alias AGGREGATE pattern _ op [ _; _; _ ] 
+operator aggregate_new alias AGGREGATE_NEW pattern _ op [ _; _; _ ] 
 
 operator symmjoin alias SYMMJOIN pattern _ _ op [ fun ] implicit parameters lefttuple, righttuple types TUPLE, TUPLE2
 
@@ -78,17 +78,17 @@ operator deletesearchsave alias DELETESEARCHSAVE pattern _ _ _ op
 
 operator deletedirectsave alias DELETEDIRECTSAVE pattern _ _ _ op
 
-operator updatesearch alias UPDATESEARCH pattern _ _ op [funlist]implicit parameter tuple type TUPLE
+operator updatesearch alias UPDATESEARCH pattern _ _ op [funlist] implicit parameter tuple type TUPLE
 
-operator updatedirect alias UPDATEDIRECT pattern _ _ op [funlist]implicit parameter tuple type TUPLE
+operator updatedirect alias UPDATEDIRECT pattern _ _ op [funlist] implicit parameter tuple type TUPLE
 
-operator updatesearchsave alias UPDATESEARCHSAVE pattern _ _ _ op [funlist]implicit parameter tuple type TUPLE
+operator updatesearchsave alias UPDATESEARCHSAVE pattern _ _ _ op [funlist] implicit parameter tuple type TUPLE
 
-operator updatedirectsave alias UPDATEDIRECTSAVE pattern _ _ _ op [funlist]implicit parameter tuple type TUPLE
+operator updatedirectsave alias UPDATEDIRECTSAVE pattern _ _ _ op [funlist] implicit parameter tuple type TUPLE
 
 operator appendidentifier alias APPENDIDENTIFIER pattern _ op
 
 operator deletebyid alias DELETEBYID pattern _ op [ _ ]
 
-operator updatebyid alias UPDATEBYID pattern _ op [ _; funlist]implicit parameter tuple type TUPLE
+operator updatebyid alias UPDATEBYID pattern _ op [ _; funlist] implicit parameter tuple type TUPLE
 
