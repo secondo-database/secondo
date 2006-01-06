@@ -687,8 +687,8 @@ static jobject Convert_CToJava_Point(const ListExpr &le) {
     //jfloat realValue2 = nl->RealValue(e2);
     jdouble realValue2 = nl->RealValue(e2);
         
-    jobject result = env->NewObject(clsPoint, midPointConstDD, (jfloat)realValue1, (jfloat)realValue2);
-    //jobject result = env->NewObject(clsPoint, midPointConstDD, realValue1, realValue2);
+    //jobject result = env->NewObject(clsPoint, midPointConstDD, (jfloat)realValue1, (jfloat)realValue2);
+    jobject result = env->NewObject(clsPoint, midPointConstDD, realValue1, realValue2);
     if (result == 0) error(__FILE__,__LINE__);
 
     return result;
@@ -817,8 +817,8 @@ static jobject Convert_CToJava_Segment(const ListExpr &le) {
     jdouble realValue3 = nl->RealValue(e3);
     jdouble realValue4 = nl->RealValue(e4);
 
-    jobject result = env->NewObject(clsSegment, midSegmentConstDDDD, (jfloat)realValue1, (jfloat)realValue2, (jfloat)realValue3,  (jfloat)realValue4);
-    //jobject result = env->NewObject(clsSegment, midSegmentConstDDDD, realValue1, realValue2, realValue3,  realValue4);
+    //jobject result = env->NewObject(clsSegment, midSegmentConstDDDD, (jfloat)realValue1, (jfloat)realValue2, (jfloat)realValue3,  (jfloat)realValue4);
+    jobject result = env->NewObject(clsSegment, midSegmentConstDDDD, realValue1, realValue2, realValue3,  realValue4);
     if (result == 0) error(__FILE__,__LINE__);
 
     return result;
