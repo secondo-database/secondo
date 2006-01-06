@@ -12,11 +12,13 @@ import twodsack.set.*;
 import twodsack.setelement.*;
 import twodsack.setelement.datatype.basicdatatype.*;
 import twodsack.setelement.datatype.compositetype.*;
+import twodsack.util.*;
 import twodsack.util.collection.*;
 import twodsack.util.collectiontype.*;
 import twodsack.util.comparator.*;
 import twodsack.util.graph.*;
 import twodsack.util.number.*;
+
 import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -36,6 +38,7 @@ public class SupportOps {
      * fields
      */
     private static BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
+    final private static int INITIAL_CAPACITY = 499;
 
     static final Class pointClass = (new Point()).getClass();
     static final Class segClass = (new Segment()).getClass();
@@ -995,4 +998,181 @@ public class SupportOps {
 	return retSet;
     }//end method overlappingPairs
 	   
+    /**
+     *
+     */
+    static public Boolean[] evaluateIntersectionAndMeets (PairMultiSet pms) {
+	Method methodFormALine,methodSecondHasPointOnFirst;
+	try {
+	    methodFormALine = ssOpsClass.getMethod("formALine",paramListSS);
+	    methodSecondHasPointOnFirst = ssOpsClass.getMethod("secondHasPointOnFirst",paramListSS);
+	    	    
+	    ElemMultiSet set1 = new ElemMultiSet(ELEM_COMPARATOR);
+	    ElemMultiSet set2 = new ElemMultiSet(ELEM_COMPARATOR);
+	    SetOps.separateSets(pms,set1,set2);
+
+	    LeftJoinPairMultiSet ljp1,ljp2;
+	    
+	    ljp1 = SetOps.overlapLeftOuterJoin(set1,set2,methodFormALine,true,false,false,-1);
+	    ljp2 = SetOps.overlapLeftOuterJoin(set2,set1,methodFormALine,true,false,false,-1);
+	    
+	    Boolean[] retArr = SupportOps.checkForIntersectionAndMeetsSameEndpoints(ljp1,ljp2);
+	    if (retArr[0].booleanValue()) return retArr;
+	    
+	    //Now we can still have a special case, where one (or more) segment(s) of S1 has(have) an endpoint somewhere on a
+	    //segment of S2, but _not_ on its endpoint. To extract those cases, collect all elements from the pair set and
+	    //construct two LeftJoinPairSets from them using an "endpoint_on_segment" predicate; one for each 'direction'. Then,
+	    //if a segment has only one element in ist elemSet, meets=true and intersects=false. If there are more than one
+	    //elements in elemSet, test for the sides on which their endpoints lie. If they are on different sides of the
+	    //key element in a LeftJoinPair, then intersects=true and meets=false. If they are on the same side,
+	    //intersects=false and meets=true.	
+	    ljp1 = SetOps.overlapLeftOuterJoin(set1,set2,methodSecondHasPointOnFirst,true,false,false,-1);
+	    ljp2 = SetOps.overlapLeftOuterJoin(set2,set1,methodSecondHasPointOnFirst,true,false,false,-1);
+	    
+	    retArr = SupportOps.checkForIntersectionAndMeets(ljp1,ljp2);
+	    return retArr;
+	} catch (Exception e) {
+	    e.printStackTrace();
+	    throw new RuntimeException("An error occurred in SupportOps.evaluateIntersectionAndMeets.");
+	}//catch
+    }//end method evaluateIntersectionAndMeets
+    
+
+    /**
+     *
+     */
+    private static Boolean[] checkForIntersectionAndMeetsSameEndpoints(LeftJoinPairMultiSet ljp1, LeftJoinPairMultiSet ljp2) {
+	Boolean[] retArr = { Boolean.FALSE, Boolean.FALSE };
+	return retArr;
+    }//end method checkForIntersectionAndMeetsSameEndpoints
+
+
+    /**
+     *
+     */
+    private static Boolean[] checkForIntersectionAndMeets(LeftJoinPairMultiSet ljp1, LeftJoinPairMultiSet ljp2) {
+	//for both sets (ljp1,ljp2) do the following:
+	//traverse set and look at elemSet of every setelement (S,ES):
+	//if ES is empty: do nothing
+	//if ES has 1 element: set meets = true
+	//if ES has more elements:
+	//   - for every element E do:
+	//        * find the point P that lies on the S
+	//        * store P in a hashtable (use P as key for E), if key doesn't exist already in the hashtable
+	//        * if segments with P are already there, check all other linked segments (Es), on which side of the S they lie,
+	//          if any segment lies on the other side, set intersects=true, set meets=false and BREAK;
+	//          if all other segments lie on the same side, set intersects=false, set meets= true and CONTINUE; store P in the hashtable
+	//
+	//          NOTE: We check only the first found element and not ALL elements, because, every time a segment is added to the 
+	//          hashtable, it is checked for the correct side.
+	//
+	//after both sets were traversed:
+	//   - intersects must be false, otherwise this point would never have been reached;
+	//     if meets=true, return meets=true,intersects=false;
+	//     if meets=false, return meets=false,inersects=false
+	Boolean[] retArr = { Boolean.FALSE, Boolean.FALSE };
+	Iterator it = ljp1.iterator();
+	LeftJoinPair actLjp;
+	ProHashtable ht = new ProHashtable(INITIAL_CAPACITY);
+	Iterator sit;
+	Segment actSeg,htSeg,actLjpSeg;
+	ljp1.print();
+	while (it.hasNext()) {
+	    actLjp = (LeftJoinPair)((MultiSetEntry)it.next()).value;
+	    
+	    actLjpSeg = (Segment)actLjp.element;
+
+	    if (actLjp.elemSet == null || actLjp.elemSet.isEmpty()) {
+		//do nothing
+	    }//if
+	    else {
+		if (actLjp.elemSet.size() == 1) {
+		    retArr[1] = Boolean.TRUE;
+		}//if
+		else {
+		    //ES has more elements
+		    ht.clear();
+		    sit = actLjp.elemSet.iterator();
+		    while (sit.hasNext()) {
+			actSeg = (Segment)((MultiSetEntry)sit.next()).value;
+			Point commPoint = actLjpSeg.intersection(actSeg);
+			//store segment in hashtable
+			if (ht.containsKey(commPoint)) {
+			    //get first segment from hashtable with the same key
+			    htSeg = (Segment)ht.getFirst(commPoint);
+			    //check, whether the other segment lies 'on the other side'
+			    //NOTE: it's not necessary to check _all_ elements, since every time, a new element is
+			    //added to the hashtable, it's checked for the correct side. Therefore, we check only
+			    //the first found segment.
+			    if (Mathset.pointPosition(actLjpSeg.getStartpoint(),actLjpSeg.getEndpoint(),actSeg.theOtherOne(commPoint)) !=
+				Mathset.pointPosition(actLjpSeg.getStartpoint(),actLjpSeg.getEndpoint(),htSeg.theOtherOne(commPoint))) {
+				retArr[0] = Boolean.TRUE;
+				retArr[1] = Boolean.FALSE;
+				return retArr;
+			    }//if
+			    
+			    //store segment in the hashtable, otherwise
+			    ht.put(commPoint,actSeg);
+			} else {		    
+			    //simply store segment
+			    ht.put(commPoint,actSeg);
+			    retArr[1] = Boolean.TRUE;
+			}//else
+		    }//while sit
+		}//else
+	    }//else
+	}//while it
+	
+	//now do the same for the other LeftJoinPairMultiSet
+	it = ljp2.iterator();
+
+	while (it.hasNext()) {
+	    actLjp = (LeftJoinPair)((MultiSetEntry)it.next()).value;
+	    
+	    actLjpSeg = (Segment)actLjp.element;
+
+	    if (actLjp.elemSet == null || actLjp.elemSet.isEmpty()) {
+		//do nothing
+	    }//if
+	    else {
+		if (actLjp.elemSet.size() == 1) {
+		    retArr[1] = Boolean.TRUE;
+		}//if
+		else {
+		    //ES has more elements
+		    ht.clear();
+		    sit = actLjp.elemSet.iterator();
+		    while (sit.hasNext()) {
+			actSeg = (Segment)((MultiSetEntry)sit.next()).value;
+			Point commPoint = actLjpSeg.intersection(actSeg);
+			//store segment in hashtable
+			if (ht.containsKey(commPoint)) {
+			    //get first segment from hashtable with the same key
+			    htSeg = (Segment)ht.getFirst(commPoint);
+			    //check, whether the other segment lies 'on the other side'
+			    //NOTE: it's not necessary to check _all_ elements, since every time, a new element is
+			    //added to the hashtable, it's checked for the correct side. Therefore, we check only
+			    //the first found segment.
+			    if (Mathset.pointPosition(actLjpSeg.getStartpoint(),actLjpSeg.getEndpoint(),actSeg.theOtherOne(commPoint)) !=
+				Mathset.pointPosition(actLjpSeg.getStartpoint(),actLjpSeg.getEndpoint(),htSeg.theOtherOne(commPoint))) {
+				retArr[0] = Boolean.TRUE;
+				retArr[1] = Boolean.FALSE;
+				return retArr;
+			    }//if
+			    
+			    //store segment in the hashtable, otherwise
+			    ht.put(commPoint,actSeg);
+			} else {		    
+			    //simply store segment
+			    ht.put(commPoint,actSeg);
+			    retArr[1] = Boolean.TRUE;
+			}//else
+		    }//while sit
+		}//else
+	    }//else
+	}//while it
+
+	return retArr;
+    }//end method checkForIntersectionAndMeets
+    
 }//end class SupportOps

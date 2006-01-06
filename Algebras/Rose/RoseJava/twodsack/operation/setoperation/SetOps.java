@@ -76,6 +76,33 @@ public class SetOps {
      */
     
     /**
+     * Separates the passed PairMultiSet and returns the elements in the two passed ElemMultiSet(s).
+     * Both passed sets <tt>ems1,ems2<tt> are cleared before adding new elements.
+     *
+     * @param pms the set that is separated
+     * @param ems1 all first elements are stored in this set
+     * @param ems2 all second elements are stored in this set
+     */
+    static public void separateSets (PairMultiSet pms, ElemMultiSet ems1, ElemMultiSet ems2) {
+	if (ems1 == null) ems1 = new ElemMultiSet(ELEM_COMPARATOR);
+	if (ems2 == null) ems2 = new ElemMultiSet(ELEM_COMPARATOR);
+	ems1.clear();
+	ems2.clear();
+	System.out.println("constructed.");
+	ems1.print(); ems2.print();
+	Iterator it = pms.iterator();
+	ElemPair actPair;
+	while (it.hasNext()) {
+	    actPair = (ElemPair)((MultiSetEntry)it.next()).value;
+	    ems1.add(actPair.first);
+	    ems2.add(actPair.second);
+	}//while it
+	System.out.println("ems1("+ems1.size()+", ems2("+ems2.size()+")");
+    }//end method separateSets
+
+
+
+    /**
      * Returns a set of elements which is 'reduced' using the passed <tt>predicate</tt> and <tt>method</tt>.<p>
      * This is another variant of the normal {@link #reduce(ElemMultiSet,Method,Method)} operation. For the functionality of <tt>reduce</tt> itself,
      * have a look at that method. <p>
