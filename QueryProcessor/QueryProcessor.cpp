@@ -1066,7 +1066,7 @@ a function~, which means the type of the object does not start ``(map
 ----	cities		->	((cities object 7)
                                 (rel (tuple ((name string) (pop int)))) )
 
-        <object name>	->	(<object name> object <index>) <type>)
+        <object name>	->	((<object name> object <index>) <type>)
 ----
 
         Here ~index~ again refers to the array ~values~.
@@ -1075,13 +1075,11 @@ a function~, which means the type of the object does not start ``(map
 the form ``(map ...)''. The corresponding function definition
 (abstraction) is retrieved from the database and annotated recursively. 
 
-----	double		->	((double function 
-					annotate((fun (x int) (add x x)))) 	
-				(map int int))
+----	double		->	annotate((fun (x int) (add x x)))	
+				
 
-        <function name>	-> 	(<function name> function 
-					annotate(<abstraction>))
-                                	<type>)
+        <function name>	-> 	annotate(<abstraction>)
+                                	
 ----
 
   * ~s~ is a symbol atom: neither operator nor object, but a variable
@@ -1553,14 +1551,9 @@ function index.
               functionList = values[valueno-1].value.list;
               values[valueno-1].isList = true;
 
-              list = Annotate( level, functionList, newvarnames, 
+              return Annotate( level, functionList, newvarnames, 
 		newvartable, defined, nl->TheEmptyList() );
-              return (nl->TwoElemList(
-                        nl->ThreeElemList(
-                          expr,
-                          nl->SymbolAtom( "function" ),
-                          list ),
-                        typeExpr ));
+
             }
             else
             { /* not a function object */
