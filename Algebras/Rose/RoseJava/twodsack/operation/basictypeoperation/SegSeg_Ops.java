@@ -128,7 +128,7 @@ public class SegSeg_Ops {
     
 
     /**
-     * Returns <tt>true</tt>, if both segments form a single segments.
+     * Returns <tt>true</tt>, if both segments form a single segment.
      * Two segments form a segment, if one of their endpoints is equal, if they don't overlap
      * and if they are are collinear.<p>
      * Same as {@link #adjacent(Segment,Segment)}.
@@ -680,7 +680,7 @@ public class SegSeg_Ops {
 
 			
     /**
-     * Returns <tt>true</tt>, if an enpoint of one segment lies on the other segment.
+     * Returns <tt>true</tt>, if an endpoint of one segment lies on the other segment.
      * If both segments only have one endpoint in common, this method returns <tt>false</tt>.
      *
      * @param s1 the first segment
@@ -698,5 +698,24 @@ public class SegSeg_Ops {
 	    !(PointSeg_Ops.isEndpoint(s2.getEndpoint(),s1))) return true;
 	return false;
     }//end method pointOnTheOtherOne
+
+    
+    /**
+     * Returns <tt>true</tt> if an endpoint of the second segment lies on the first segment.
+     * If the endpoint of the second segment lies on an endpoint of the first segment, this method returns <tt>false</tt>.
+     *
+     * @param s1 the first segment
+     * @param s2 the second segment
+     * @return <tt>true</tt>, if an endpoint of s2 lies on s2
+     */
+    public static boolean secondHasPointOnFirst (Segment s1, Segment s2) {
+	if (PointSeg_Ops.liesOn(s2.getStartpoint(),s1) &&
+	    !(PointSeg_Ops.isEndpoint(s2.getStartpoint(),s1)))
+	    return true;
+	if (PointSeg_Ops.liesOn(s2.getEndpoint(),s1) &&
+	    !(PointSeg_Ops.isEndpoint(s2.getEndpoint(),s1)))
+	    return true;
+	return false;
+    }//end method secondHasPointOnFirst
 
 } //end class SegSeg_Ops

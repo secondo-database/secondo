@@ -829,6 +829,27 @@ public class Segment extends Element implements Serializable {
 
 
     /**
+     * Returns the common point of two segments.
+     * For two equal segments, this method returns the startpoint of <tt>this</tt>.
+     *
+     * @param inseg the other segment
+     * @return the common point
+     * @throws NoCommonPointException if there is no common point
+     */
+    public Point commonPoint(Segment inseg) {
+	if (this.startpoint.equal(inseg.startpoint))
+	    return this.startpoint;
+	if (this.startpoint.equal(inseg.endpoint))
+	    return this.startpoint;
+	if (this.endpoint.equal(inseg.startpoint))
+	    return this.endpoint;
+	if (this.endpoint.equal(inseg.endpoint))
+	    return this.endpoint;
+	throw new NoCommonPointException("No common point exists for these two segments: "+this+", "+inseg);
+    }//end method commonPoint
+
+
+    /**
      * Returns the hashcode for <i>this</i>.
      * All of the point coordinates are added up.
      *
