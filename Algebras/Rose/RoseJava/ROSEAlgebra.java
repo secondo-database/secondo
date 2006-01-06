@@ -599,8 +599,10 @@ public class ROSEAlgebra {
      */
     public static boolean ll_meets (Lines l1, Lines l2) {
 	//Compute a set with all intersecting lines. Then, check whether there are pairs of lines
-	//that overlap or pintersect. If any, return false. If there are pairs left, they must be
-	//lines that meet. Return true in that case.
+	//that overlap or pintersect. If any, return false. If there are pairs left, they may be
+	//lines that meet (but still can be lines that 'intersect' at endpoints; note, that
+	//the _segment_ may meet in endpoints, but the _lines_ may intersects at exactly that point).
+	//Construct a graph from this set and call checkVerticesForIntersectionAndMeets. 
 	if (!l1.rect().hasCommonPoints(l2.rect())) return false;
 	try {
 	    PairMultiSet retSet = null;
@@ -611,10 +613,16 @@ public class ROSEAlgebra {
 	    if (rsSize == 0) return false;
 	    Method methodPINTERSECTS = SEG_CLASS.getMethod("pintersects",PARAMLIST_E);
 	    retSet = SetOps.filter(retSet,methodPINTERSECTS,false);
+	    //If the number of elements decreases, some segments pintersect. This is not allowed
+	    //for two lines that meet. Return false.
 	    if (retSet.size() < rsSize) return false;
 	    Method methodOVERLAP = SS_OPS_CLASS.getMethod("overlap",PARAMLIST_SS);
 	    retSet = SetOps.filter(retSet,methodOVERLAP,false);
-	    if (retSet.size() < rsSize) return false;					
+	    //Same reason as above: Return false if number decreases.
+	    if (retSet.size() < rsSize) return false;			
+	    
+	    Boolean[] retArr = SupportOps.evaluateIntersectionAndMeets(retSet);
+	    if (retArr[0].booleanValue() || !retArr[1].booleanValue()) return false;
 	    
 	    return true;
 	} catch (Exception e) {
