@@ -2718,7 +2718,7 @@ public class SetOps {
     /**
      * Sorts the input list using mergesort.
      * First, elements are sorted using their <tt>compareX()</tt> method, then using their <tt>compareY()</tt> method.<p>
-     * This method may <i>only</i> used for <tt>Element</tt> lists.
+     * This method can <i>only</i> be used for <tt>Element</tt> lists.
      * 
      * @param el the unsorted list
      * @return the sorted list
