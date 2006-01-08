@@ -90,7 +90,7 @@ public class ProLinkedList implements Cloneable {
      * The passed comparator is used for the construction of the new list.
      *
      * @param c the new comparator
-     * @param ms the mMultiSet
+     * @param ems the MultiSet
      */
     public ProLinkedList(MultiSet ems, Comparator c) {
 	comparator = c;

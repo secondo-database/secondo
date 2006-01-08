@@ -1042,7 +1042,7 @@ public class Graph {
      * For a given Point instance, this method returns the Vertex of the graph.
      * Note: Works only, if the vertices of <tt>this</tt> store Element types.
      *
-     * @param the element
+     * @param queryElement the element
      * @return the vertex for the element
      * @throws WrongTypeException if vertices don't store Element types
      */
@@ -1208,5 +1208,30 @@ public class Graph {
 
 	return resArr;
     }//end method getNeighbours
+
+
+    /**
+     * Returns the vertex array.
+     * Note: Don't change any entries in this array, since it is NO copy but the original vertex array.
+     *
+     * @return the verrex array
+     */
+    public Vertex[] getVertexArray() {
+	return vArr;
+    }//end method getVertexArray
+
+
+    /**
+     * Returns a sorted version of the vertex array.
+     *
+     * @return the verrex array
+     */
+    public Vertex[] getSortedVertexArray() {
+	if (!sortedVerticesValid) {
+	    sortVertices();
+	    this.sortedVerticesValid = true;
+	}//if
+	return sortedVertices;
+    }//end method getVertexArray
 
 }//end class Graph
