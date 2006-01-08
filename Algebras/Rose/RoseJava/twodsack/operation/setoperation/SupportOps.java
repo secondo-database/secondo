@@ -20,6 +20,7 @@ import twodsack.util.graph.*;
 import twodsack.util.number.*;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
@@ -229,7 +230,7 @@ public class SupportOps {
      * @param handleCycles this parameter is passed to {@link #minimal(SegMultiSet,boolean,boolean,boolean)}
      * @return the contour as <code>SegMultiSet</code>
      * @see #minimal(SegMultiSet,boolean,boolean,boolean)
-     * @see #unique(SegMultiSet,boolean,boolean)
+     * @see #unique(SegMultiSet,boolean,boolean,boolean)
      */
     public static SegMultiSet contourGeneral (TriMultiSet tl,boolean minOverlap,boolean uniOverlap,boolean uniSweep,boolean bboxFilter, boolean computeMinimalSet, boolean handleCycles) {
 	Class c = triClass;
@@ -265,7 +266,7 @@ public class SupportOps {
      * @param minimal if <tt>true</tt>, <tt>minimal</tt> is invoked on the resulting segment set.
      * @param handleCycles this parameter is passed to {@link #minimal(SegMultiSet,boolean,boolean,boolean)}
      * @return the contour as <code>SegMultiSet</code>
-     * @see #contourGeneral(TriMultiSet,boolean,boolean,boolean,boolean,boolean)
+     * @see #contourGeneral(TriMultiSet,boolean,boolean,boolean,boolean,boolean,boolean)
      */
     public static SegMultiSet contour (TriMultiSet ts, boolean minimal, boolean handleCycles) {
 	SegMultiSet retSet = new SegMultiSet(SEGMENT_COMPARATOR);
@@ -572,7 +573,7 @@ public class SupportOps {
      * overlap, but meet, the result is re-triangulated or not. The number um triangles is reduced in most cases,
      * when the result is re-triangulated.<p>
      * Note: When setting <tt>recomputeTriangleSet = false</tt>, the resulting triangle set cannot be used with
-     * {@link #contour(TriMultiSet,boolean,boolean)} no more. The more expensive {@link #contourGeneral(TriMultiSet,boolean,boolean,boolean,boolean,boolean)} has to be used to compute the contour
+     * {@link #contour(TriMultiSet,boolean,boolean)} no more. The more expensive {@link #contourGeneral(TriMultiSet,boolean,boolean,boolean,boolean,boolean,boolean)} has to be used to compute the contour
      * of such a triangle set.
      *
      * @param ts1 the first set of triangles
@@ -999,25 +1000,32 @@ public class SupportOps {
     }//end method overlappingPairs
 	   
     /**
+     * This method evaluates the intersects and meets predicate for special cases.
+     * A special case occurs, if an endpoint of a segment S of SET1 lies on an endpoint of T of SET2. Another special
+     * case is an endpoint of S which lies on T, but not on its endpoint. Both of these cases are treated here.
      *
+     * @param pms the set of pairs of segments that have common points
+     * @return a boolean array with two elements; the first value stands for the result of the intersects predicate and
+     *         the second value represents the meets predicate
      */
     static public Boolean[] evaluateIntersectionAndMeets (PairMultiSet pms) {
 	Method methodFormALine,methodSecondHasPointOnFirst;
 	try {
-	    methodFormALine = ssOpsClass.getMethod("formALine",paramListSS);
+	    //methodFormALine = ssOpsClass.getMethod("formALine",paramListSS);
 	    methodSecondHasPointOnFirst = ssOpsClass.getMethod("secondHasPointOnFirst",paramListSS);
 	    	    
 	    ElemMultiSet set1 = new ElemMultiSet(ELEM_COMPARATOR);
 	    ElemMultiSet set2 = new ElemMultiSet(ELEM_COMPARATOR);
 	    SetOps.separateSets(pms,set1,set2);
 
-	    LeftJoinPairMultiSet ljp1,ljp2;
+	    //ljp1 = SetOps.overlapLeftOuterJoin(set1,set2,methodFormALine,true,false,false,-1);
+	    //ljp2 = SetOps.overlapLeftOuterJoin(set2,set1,methodFormALine,true,false,false,-1);
 	    
-	    ljp1 = SetOps.overlapLeftOuterJoin(set1,set2,methodFormALine,true,false,false,-1);
-	    ljp2 = SetOps.overlapLeftOuterJoin(set2,set1,methodFormALine,true,false,false,-1);
-	    
-	    Boolean[] retArr = SupportOps.checkForIntersectionAndMeetsSameEndpoints(ljp1,ljp2);
-	    if (retArr[0].booleanValue()) return retArr;
+	    Boolean[] retArr = SupportOps.checkForIntersectionAndMeetsSameEndpoints(SegMultiSet.convert(set1),
+										    SegMultiSet.convert(set2));
+	    System.out.println("\n######################### First check done.");
+	    System.out.println("result: "+retArr[0].booleanValue()+" - "+retArr[1].booleanValue());
+	    if (retArr[0].booleanValue() == true) return retArr;
 	    
 	    //Now we can still have a special case, where one (or more) segment(s) of S1 has(have) an endpoint somewhere on a
 	    //segment of S2, but _not_ on its endpoint. To extract those cases, collect all elements from the pair set and
@@ -1026,10 +1034,18 @@ public class SupportOps {
 	    //elements in elemSet, test for the sides on which their endpoints lie. If they are on different sides of the
 	    //key element in a LeftJoinPair, then intersects=true and meets=false. If they are on the same side,
 	    //intersects=false and meets=true.	
+	    LeftJoinPairMultiSet ljp1,ljp2;
 	    ljp1 = SetOps.overlapLeftOuterJoin(set1,set2,methodSecondHasPointOnFirst,true,false,false,-1);
 	    ljp2 = SetOps.overlapLeftOuterJoin(set2,set1,methodSecondHasPointOnFirst,true,false,false,-1);
 	    
-	    retArr = SupportOps.checkForIntersectionAndMeets(ljp1,ljp2);
+	    Boolean[] retArr2 = SupportOps.checkForIntersectionAndMeets(ljp1,ljp2);
+	    System.out.println("\n######################### Second check done.");
+	    System.out.println("result(retArr1): "+retArr[0].booleanValue()+" - "+retArr[1].booleanValue());
+	    System.out.println("result(retArr2): "+retArr2[0].booleanValue()+" - "+retArr2[1].booleanValue());
+
+	    if (retArr[0].booleanValue() || retArr2[0].booleanValue()) retArr[0] = Boolean.TRUE;
+	    if (retArr[1].booleanValue() || retArr2[1].booleanValue()) retArr[1] = Boolean.TRUE;
+	    
 	    return retArr;
 	} catch (Exception e) {
 	    e.printStackTrace();
@@ -1039,16 +1055,224 @@ public class SupportOps {
     
 
     /**
-     *
+     * This methods checks two sets of segments for the intersects and meets predicate.
+     * It treats a special case, where pairs of segments have the same endpoints. This method works as follows:
+     * First, it constructs a graph for every segment set and gets a sorted version of the graphs' vertices.
+     * Then, these vertex arrays are traversed in parallel. For every pair of equal vertices, we have to 
+     * examine, whether any of the both predicates holds. Consider the vertex we are currently examining as the
+     * middle point M. Then, all outgoing edges end up in other points V1 and V2, depending on the graph they
+     * belong to. We start now at any point and define the degree D at this point as 0°. All other points Vx
+     * are sorted. Then, these vertices are traversed in ascending D-order. We count the number of changes
+     * from vertices of V1 to V2 and vice versa. If the number gets higher than 2, the intersects predicate holds.
+     * in all other cases, the meets predicate holds.<p>
+     * If there are no equal vertices in both of the vertex arrays, none of the predicates holds.
      */
-    private static Boolean[] checkForIntersectionAndMeetsSameEndpoints(LeftJoinPairMultiSet ljp1, LeftJoinPairMultiSet ljp2) {
+    private static Boolean[] checkForIntersectionAndMeetsSameEndpoints(SegMultiSet sms1, SegMultiSet sms2) {
 	Boolean[] retArr = { Boolean.FALSE, Boolean.FALSE };
+
+	//construct graphs from segsets
+	Graph graph1 = new Graph(sms1);
+	Graph graph2 = new Graph(sms2);
+	
+	Vertex[] g1vArr = graph1.getSortedVertexArray();
+	Vertex[] g2vArr = graph2.getSortedVertexArray();
+	
+	//traverse both arrays in parallel
+	int arrIdx1 = 0;
+	int arrIdx2 = 0;
+	boolean getNext1 = true;
+	boolean getNext2 = true;
+	Vertex actV1 = null;
+	Vertex actV2 = null;
+	Vertex[] neighbours1 = null;
+	Vertex[] neighbours2 = null;
+
+	while ((arrIdx1 < g1vArr.length || !getNext1) && 
+	       (arrIdx2 < g2vArr.length || !getNext2)) {
+	    System.out.println("arrIdx1: "+arrIdx1+", arrIdx2: "+arrIdx2+" getNext1: "+getNext1+", getNext2: "+getNext2);
+
+	    if (getNext1) {
+		//arrIdx1++;
+		actV1 = g1vArr[arrIdx1];
+		getNext1 = false;
+	    }//if
+	    if (getNext2) {
+		//arrIdx2++;
+		actV2 = g2vArr[arrIdx2];
+		getNext2 = false;
+	    }//if
+	    
+	    //if vertices are equal, get neighbours
+	    if (actV1.equal(actV2)) {
+		System.out.println("vertices are equal! "+(Point)actV1.value);
+		neighbours1 = graph1.getNeighbours(actV1);
+		neighbours2 = graph2.getNeighbours(actV2);
+		
+		System.out.println("neighbours1:");
+		for (int i = 0; i < neighbours1.length; i++)
+		    System.out.println(i+": "+(Point)neighbours1[i].value);
+
+		System.out.println("neighbours2:");
+		for (int i = 0; i < neighbours2.length; i++)
+		    System.out.println(i+": "+(Point)neighbours2[i].value);
+
+		//test lengthes of neighbour arrays
+		if ((neighbours1.length == 1 && neighbours2.length == 1) ||
+		    (neighbours1.length > 1 && neighbours2.length == 1) ||
+		    (neighbours1.length == 1 && neighbours2.length > 1)) {
+		    System.out.println("simple case: meets = true.");
+		    retArr[1] = Boolean.TRUE;
+		} else {
+		    System.out.println("traversing arrays...");
+		    //traverse both arrays in parallel using the angularly sorting
+		    //Let there be a center point which is the actual vertex.
+		    //Choose...
+		    //...
+		    double[] angle1 = new double[neighbours1.length];
+		    double[] angle2 = new double[neighbours2.length];
+		    //compute the angles of the other vertices compared to the 0° which is a 
+		    //horizontally drawn segment from the center point to the right.
+		    Point midP = (Point)actV1.value;
+		    Point startP = new Point(midP.x.plus(RationalFactory.constRational(10)),midP.y);
+
+		    System.out.println("midP: "+midP);
+		    System.out.println("\nstartP: "+startP);
+
+		    for (int i = 0; i < angle1.length; i++)
+			if (Mathset.pointPosition(midP,startP,(Point)neighbours1[i].value) <= 0)
+			    angle1[i] = Mathset.angleD(Mathset.diff(midP,startP),
+						       Mathset.diff(midP,(Point)neighbours1[i].value));
+			else 
+			    angle1[i] = 360 - Mathset.angleD(Mathset.diff(midP,startP),
+							     Mathset.diff(midP,(Point)neighbours1[i].value));
+		    for (int i = 0; i < angle2.length; i++)
+			if (Mathset.pointPosition(midP,startP,(Point)neighbours2[i].value) <= 0)
+			    angle2[i] = Mathset.angleD(Mathset.diff(midP,startP),
+						       Mathset.diff(midP,(Point)neighbours2[i].value));
+			else
+			    angle2[i] = 360 - Mathset.angleD(Mathset.diff(midP,startP),
+							     Mathset.diff(midP,(Point)neighbours2[i].value));
+
+		    //sort arrays
+		    Arrays.sort(angle1);
+		    Arrays.sort(angle2);
+		    
+		    System.out.println("angle array1:");
+		    for (int i = 0; i < angle1.length; i++) 
+			System.out.println(i+": "+angle1[i]);
+		    System.out.println("angle array2:");
+		    for (int i = 0; i < angle2.length; i++) 
+			System.out.println(i+": "+angle2[i]);
+
+		    
+		    //traverse arrays in parallel and count the number of 'array changes'
+		    int changes = 0;
+		    boolean next1 = true;
+		    boolean next2 = true;
+		    int aIdx1 = 0;
+		    int aIdx2 = 0;
+		    //define start value
+		    double actD = 0.0;
+		    boolean lastTakenFrom = false; //false = angle1, true = angle2,
+		    if (angle1[0] < angle2[0]) {
+			actD = angle1[0];
+			aIdx1++;
+			next1 = false;
+			lastTakenFrom = false;
+		    } else {
+			actD = angle2[0];
+			aIdx2++;
+			next2 = false;
+			lastTakenFrom = true;
+		    }//else
+		    
+
+		    //start traversal
+		    while (((aIdx1 < angle1.length || !next1)) && ((aIdx2 < angle2.length) || !next2)) {
+			System.out.println("aIdx1: "+aIdx1+", next1: "+next1+", aIdx2: "+aIdx2+", next2: "+next2+", lastTakenFrom: "+lastTakenFrom+", changes: "+changes);
+			if (next1) {
+			    //aIdx1++;
+			    next1 = false;
+			}//if
+			if (next2) {
+			    //aIdx2++;
+			    next2 = false;
+			}//if
+			
+			//compare values and set variable changes
+			if (angle1[aIdx1] < angle2[aIdx2]) {
+			    System.out.println("case 1");
+			    next1 = true;
+			    aIdx1++;
+			    if (lastTakenFrom) changes++;
+			    lastTakenFrom = false;
+			} else {
+			    System.out.println("case 2");
+			    next2 = true;
+			    aIdx2++;
+			    if (!lastTakenFrom) changes++;
+			    lastTakenFrom = true;
+			}//else
+		    }//while
+		    
+		    //check, whether there are still unvisited fields and modify the changes variable
+		    System.out.println("changes(pre): "+changes+", aIdx1: "+aIdx1+", aIdx2: "+aIdx2);
+		    if ((aIdx1 < angle1.length+1) || (aIdx2 < angle2.length+1)) changes++;
+		    System.out.println("changes(post): "+changes+", aIdx1: "+aIdx1+", aIdx2: "+aIdx2);
+
+		    //check variable changes and set boolean array
+		    if (changes > 2) {
+			retArr[0] = Boolean.TRUE;
+			retArr[1] = Boolean.FALSE;
+			System.out.println("--> changes > 2, return");
+			return retArr;
+		    } else {
+			retArr[0] = Boolean.FALSE;
+			retArr[1] = Boolean.TRUE;
+			System.out.println("--> changes < 2, meets = true");
+		    }//if
+		}//else lengthes were > 1
+	    		    
+		//now go one step forward in both arrays
+		getNext1 = true;
+		arrIdx1++;
+		getNext2 = true;
+		arrIdx2++;
+		
+	    } else {
+		//neighbours are not equal, proceed in one of the arrays
+		int res = actV1.compare(actV2);
+		System.out.println("res: "+res);
+		
+		if (res == -1) {
+		    arrIdx1++;
+		    getNext1 = true;
+		} else {
+		    arrIdx2++;
+		    getNext2 = true;
+		}//else
+	    }//else
+	}//while
+      
 	return retArr;
-    }//end method checkForIntersectionAndMeetsSameEndpoints
+    }//end method checkForIntersectionAndMeetSameEndpoints
 
 
     /**
+     * This method computes the intersects and meets predicate for a special case.
+     * That special case is, when a segment S1 (of SET1) has and endpoint on S2 (of SET2), but not on an endpoint of S2. Then,
+     * we have meets==true, if there are no other segments of SET2 which also have endpoints on S1. In the latter case
+     * it must be examined, whether those other segments end up in the same point or whether they lie on different sides
+     * of S1. All this is done here.<p>
+     * As a result, an array is returned which holds two boolean values. The first value represents the intersects predicate,
+     * whereas the second one stands for the meets predicate. Obviously, not both can be true at the same time.
+     * Valid configurations are [false,false], [true,false] and [false,true].
      *
+     * @param ljp1 a set with LeftJoinPairs, where for every element of such a pair the elemSet holds only segments, which
+     *             have an endpoint on that segment
+     * @param ljp2 same as ljp1, but now the elements of each pair are of SET2 (in ljp1 of SET1) and the segments in elemSet
+     *             are of SET1 (in ljp1 of SET2);
+     * @return the array that holds the result
      */
     private static Boolean[] checkForIntersectionAndMeets(LeftJoinPairMultiSet ljp1, LeftJoinPairMultiSet ljp2) {
 	//for both sets (ljp1,ljp2) do the following:
