@@ -512,12 +512,40 @@ public class ROSEAlgebra {
     public static boolean ll_intersects (Lines l1, Lines l2) {
 	if (!l1.rect().hasCommonPoints(l2.rect())) return false;
 	try {
-	    return intersects(l1.segset,l2.segset);
+	    PairMultiSet retSet = null;
+
+	    if (ll_border_in_common(l1,l2)) return false;
+
+	    Method methodINTERSECTS = SEG_CLASS.getMethod("intersects",PARAMLIST_E);
+	    retSet = SetOps.overlapJoin(l1.segset,l2.segset,methodINTERSECTS,true,true,false,0);
+	    int rsSize = retSet.size();
+	    if (rsSize == 0) return false;
+
+	    Method methodPINTERSECTS = SEG_CLASS.getMethod("pintersects",PARAMLIST_E);
+	    retSet = SetOps.filter(retSet,methodPINTERSECTS,false);
+	    //If the number of elements decreasees, some segments pintersect. We can return true in that case.
+	    if (retSet.size() < rsSize) return true;
+
+	    Method methodOVERLAP = SS_OPS_CLASS.getMethod("overlap",PARAMLIST_SS);
+	    retSet = SetOps.filter(retSet,methodOVERLAP,false);
+
+	    Boolean[] retArr = SupportOps.evaluateIntersectionAndMeets(retSet);
+	    return retArr[0].booleanValue();
 	} catch (Exception e) {
 	    e.printStackTrace();
-	    System.out.println("There was an error when trying to execute ROSEAlgebra.ll_intersects. Returning false by default.");
 	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
+
+	/* OLD IMPLEMENTATION
+	   if (!l1.rect().hasCommonPoints(l2.rect())) return false;
+	   try {
+	   return intersects(l1.segset,l2.segset);
+	   } catch (Exception e) {
+	   e.printStackTrace();
+	   System.out.println("There was an error when trying to execute ROSEAlgebra.ll_intersects. Returning false by default.");
+	   throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
+	   }//catch
+	*/
     }//end method ll_intersects
   
 
@@ -534,11 +562,25 @@ public class ROSEAlgebra {
 	try {
 	    PairMultiSet retSet = null;
 	    
-	    Method mPINTERSECTS = ST_OPS_CLASS.getMethod("pintersects",PARAMLIST_ST);
-	    retSet = SetOps.overlapJoin(l.segset,r.triset,mPINTERSECTS,false,true,false,0);
-	
+	    //A problem is, that the lines object may lie on the triangles's border segments.
+	    //In that case, the result would be FALSE, even if the lines object overlaps the inner
+	    //borders and the correct answer would we TRUE. Therefore, first all segments which
+	    //overlap the border are removed from the set. Afterwards, all segments, that
+	    //are covered by triangles are truely intersecting.
+	    /* OLD IMPLEMENTATION
+	       Method mPINTERSECTS = ST_OPS_CLASS.getMethod("pintersects",PARAMLIST_ST);
+	       retSet = SetOps.overlapJoin(l.segset,r.triset,mPINTERSECTS,false,true,false,0);
+	       if (retSet.isEmpty())
+	       return false; 
+	       else
+	       return true;
+	    */
+
+	    Lines opLines = ll_minus(l,new Lines(SupportOps.contour(r.triset,false,false)));
+	    Method mISCOVERED = ST_OPS_CLASS.getMethod("isCovered",PARAMLIST_ST);
+	    retSet = SetOps.overlapJoin(opLines.segset,r.triset,mISCOVERED,false,true,false,0);
 	    if (retSet.isEmpty())
-		return false; 
+		return false;
 	    else
 		return true;
 	} catch (Exception e) {
@@ -606,6 +648,8 @@ public class ROSEAlgebra {
 	if (!l1.rect().hasCommonPoints(l2.rect())) return false;
 	try {
 	    PairMultiSet retSet = null;
+
+	    if (ll_border_in_common(l1,l2)) return false;
 	    
 	    Method methodINTERSECTS = SEG_CLASS.getMethod("intersects",PARAMLIST_E);
 	    retSet = SetOps.overlapJoin(l1.segset,l2.segset,methodINTERSECTS,true,true,false,0);
@@ -644,7 +688,7 @@ public class ROSEAlgebra {
     public static boolean lr_meets (Lines l, Regions r) {
 	if (l.rect().hasCommonPoints(r.rect())) return false;
 	try {
-	    return !lr_intersects(l,r) && ll_meets(l,r_contour(r));
+	    return !lr_intersects(l,r) && ll_meets(l,new Lines(SupportOps.contour(r.triset,false,false)));
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.lr_meets. Returning false by default.");
@@ -689,7 +733,9 @@ public class ROSEAlgebra {
 	    Method methodPINTERSECTS = TRI_CLASS.getMethod("pintersects",PARAMLIST_T);
 	    retSet = SetOps.overlapJoin(r1.triset,r2.triset,methodPINTERSECTS,false,true,false,0);
 	    
-	    return (retSet.size()) == 0 && ll_meets(r_contour(r1),r_contour(r2));
+	    return (retSet.size()) == 0 && ll_meets(new Lines(SupportOps.contour(r1.triset,false,false)),
+						    new Lines(SupportOps.contour(r2.triset,false,false)));
+	    //return (retSet.size()) == 0 && ll_meets(r_contour(r1),r_contour(r2));
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_meets. Returning false by default.");
@@ -977,7 +1023,7 @@ public class ROSEAlgebra {
 	try {
 	    ElemMultiSet retSet = null;
 	    
-	    Method m1 = SEG_CLASS.getMethod("pintersects",PARAMLIST_E);
+	    Method m1 = SEG_CLASS.getMethod("intersects",PARAMLIST_E);
 	    Method m2 = SEG_CLASS.getMethod("intersection",PARAMLIST_S);
 	    retSet = SetOps.rdup(SetOps.map(SetOps.overlapJoin(l1.segset,l2.segset,m1,true,true,false,0),m2));
 	
