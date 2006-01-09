@@ -1110,7 +1110,27 @@ DateTime DateTime::operator+(const DateTime T2)const{
 }
 
 
+/*
+~Operator +=~
 
+This operator has the same functionality like the ~Add~ function.
+
+*/
+DateTime DateTime::operator+=(const DateTime& T2){
+   Add(&T2);
+   return *this;
+}
+
+/*
+~Operator -=~
+
+This operator has the same functionality like the ~Minus~ function.
+
+*/
+DateTime DateTime::operator-=(const DateTime& T2){
+   Minus(&T2);
+   return *this;
+}
 /*
 ~minus~
 
@@ -1372,6 +1392,20 @@ void DateTime::Equalize(const DateTime* P2){
    defined = P2->defined;
    type = P2->type;
 }
+
+/*
+~SetToZero~
+
+A call of this function will set the value of this datetime to be zero,
+this means to have length zero or be the NULLDATE respectively.
+
+*/
+    void DateTime::SetToZero(){
+        day=0; 
+        milliseconds = 0;
+    }
+
+
 
 /*
 ~IsZero~

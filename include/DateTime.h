@@ -363,6 +363,24 @@ same like in the ~Add~ function.
 */
     DateTime operator+(const DateTime T2)const;
 
+/*
+~Operator +=~
+
+This operator adds a value to this DateTime.
+
+*/
+ DateTime operator+=(const DateTime& T2);    
+
+
+/*
+~Operator -=~
+
+This operator subtracts a value from this DateTime.
+
+*/
+ DateTime operator-=(const DateTime& T2);    
+
+
 
 /*
 ~Operator -~
@@ -413,6 +431,18 @@ The next two function are defined for any DateTime type.
 */
      bool IsZero()const;
      bool LessThanZero()const;
+
+
+/*
+~SetToZero~
+
+This function changes the value of this DateTime to have 
+length zero and be the NULLDATE respectively.
+
+*/
+
+     void SetToZero();
+
 
 /*
 ~Equalize~
