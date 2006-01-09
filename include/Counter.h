@@ -76,49 +76,65 @@ be introduced and called at a suitable position.
 
 using namespace std;
 
-class Counter {
+class Counter 
+{
 
 public:
 
   Counter(){};
   ~Counter(){};
+/*
+Simple constructor and destructor.
 
-  static long& getRef( const string& identifier, const bool val = true ) { 
-    
+*/
+
+  static long& getRef( const string& identifier, const bool reportVal = true ) 
+  { 
     if ( (it=CounterMap.find( identifier )) != CounterMap.end() ) 
     { 
-      it->second.second = val;
+      it->second.second = reportVal;
       return it->second.first; 
     } 
     else 
     { 
       // initialize new Counter;
       long& CounterRef = CounterMap[identifier].first;
-      CounterMap[identifier].second = val;
+      CounterMap[identifier].second = reportVal;
       CounterRef = 0;
       return CounterRef;
     }
   };
-	
-	
-  static void resetAll() {
-	 
-    for ( it = CounterMap.begin(); it != CounterMap.end(); it++ ) 
-    {
-     it->second.first = 0;
-    }
-  }
+/*
+Returns a reference for the counter given its identifier. If a counter is not
+found, then it is created. The flag ~displayVal~ is used to tell whether this
+counter will be reported (function ~reportValues~).
 
-  static void reportValue( const string& identifier, const bool val) 
+*/
+	
+  static void resetAll() 
+  {
+    for ( it = CounterMap.begin(); it != CounterMap.end(); it++ ) 
+      it->second.first = 0;
+  }
+/*
+Resets all values to 0.
+
+*/
+
+  static void reportValue( const string& identifier, const bool reportVal) 
   {
     if ( (it=CounterMap.find( identifier )) != CounterMap.end() ) 
     {
-      it->second.second = val;
+      it->second.second = reportVal;
     }
   }
+/*
+Sets the report flag with the value of ~reportVal~.
 
-  static void reportValues() {
+*/
 
+  static void reportValues() 
+  {
     static int nr = 0;
     static size_t mapsize = 0;
     int colSepWidth = 2; 
@@ -183,6 +199,11 @@ public:
     cmsg.send();
 
   };
+/*
+Reports the values of all counters diplaying on the screen and also to a 
+~csv~ file.
+
+*/
 
   typedef pair<long,bool> CounterInfo;
 
@@ -190,7 +211,10 @@ private:
 
   static map<string, CounterInfo> CounterMap;
   static map<string, CounterInfo>::iterator it;
+/*
+The map (and iterator) structure that holds the counters.
 
+*/
 };
 
 #endif
