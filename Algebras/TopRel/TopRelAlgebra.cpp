@@ -34,6 +34,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1. Includes and Definitions
 
+1.1 Includes 
+
 */
 
 #include "TopRel.h"
@@ -48,12 +50,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StandardAttribute.h"
 #include "StandardTypes.h"
 #include "DBArray.h"
+#include "LogMsg.h"
 
 #include "FTextAlgebra.h"
 
 extern "C"{
 #include "Tree.h"
 }
+
+/*
+1.2 Definition of frequently used Constants
+
+*/
 
 // define powers of two
 static const unsigned short P0 = 1;
@@ -67,6 +75,7 @@ static const unsigned short P7 = 128;
 static const unsigned short P8 = 256;
 static const unsigned short P9 = 512;
 
+// The name of the unspecified cluster
 static const STRING UNSPECIFIED = "unspecified";
 
 extern NestedList *nl;
@@ -653,6 +662,79 @@ Cluster* Cluster::Clone(){
    return res; 
 }
 
+
+/*
+2.2.12 Restrict
+
+
+This function restricts the matrices contained within this cluster to such ones 
+fulfilling the given condition.
+
+*/
+
+bool Cluster::Restrict(string condition){
+
+   const char* cond_c = condition.c_str();
+   struct tree* T=0;
+   if(!parseString(cond_c,&T)){
+      char* tmp = GetLastMessage();
+      if(tmp){
+         cmsg.warning() << "Error in parsing condition during performing of Restrict" << endl << tmp << endl;
+         cmsg.send();
+         free(tmp);
+         tmp=0;
+      } else{
+         cmsg.warning() << "Unknown error while parsing argument of restrict" << endl;
+         cmsg.send();
+      }
+      return false; // don't change this cluster
+   }
+   for(int i=0;i<512;i++){
+      if(!evalTree(T,i)){
+         SetValueAt(i,false);
+      }
+   }
+   destroyTree(T);
+   return true;
+}
+
+
+/*
+2.2.12 Relax
+
+
+This function adds all matrices fulfilling the given condition to
+
+*/
+
+bool Cluster::Relax(string condition){
+
+   const char* cond_c = condition.c_str();
+   struct tree* T=0;
+   if(!parseString(cond_c,&T)){
+      char* tmp = GetLastMessage();
+      if(tmp){
+         cmsg.warning() << "Error in parsing condition during performing of Relax" << endl << tmp << endl;
+         cmsg.send();
+         free(tmp);
+         tmp=0;
+      } else{
+         cmsg.warning() << "Unknown error while parsing argument of Relax" << endl;
+         cmsg.send();
+      }
+      return false; // don't change this cluster
+   }
+   for(int i=0;i<512;i++){
+      if(evalTree(T,i)){
+         SetValueAt(i,true);
+      }
+   }
+   destroyTree(T);
+   return true; 
+}
+
+
+
 /*
 2.3.12 Operators for comparisons between Clusters
 
@@ -676,7 +758,7 @@ static int ClusterCompare(const void *a, const void *b){
 }
 
 /*
-2.3 Implementation of PredicateCluster
+2.3 Implementation of PredicateGroup
 
 2.3.1 Constructor taking the number of clusters 
 
@@ -686,7 +768,7 @@ a single cluster 'unspecified' containing all possible
 matrices is added. 
 
 */
-PredicateCluster::PredicateCluster( const int size ) :
+PredicateGroup::PredicateGroup( const int size ) :
      theClusters( size ),
      canDelete( false ),
      sorted(true),
@@ -702,49 +784,49 @@ PredicateCluster::PredicateCluster( const int size ) :
 /*
 2.3.2 The Equalize function 
 
-When calling this function, the value of this predicate cluster
+When calling this function, the value of this predicate group
 is taken from the argument of this function.
 
 */
-void PredicateCluster::Equalize(PredicateCluster* PC){
+void PredicateGroup::Equalize(PredicateGroup* PG){
     Cluster tmp(0);
-    defined  = PC->defined;
-    sorted = PC->sorted;
-    canDelete = PC->canDelete; 
-    int size = PC->theClusters.Size();
+    defined  = PG->defined;
+    sorted = PG->sorted;
+    canDelete = PG->canDelete; 
+    int size = PG->theClusters.Size();
     theClusters.Resize(size);
     for(int i=0;i<size;i++){
-        PC->theClusters.Get(i,tmp);
+        PG->theClusters.Get(i,tmp);
         theClusters.Put(i,tmp);
     }
-    unSpecified.Equalize(PC->unSpecified);
+    unSpecified.Equalize(PG->unSpecified);
 }
 
 /*
 2.3.3 The Compare function
 
-This function compares two predicateclusters. If needed, the 
-clusters contained in this predicatecluster or in the argument
+This function compares two predicategroups. If needed, the 
+clusters contained in this predicategroup or in the argument
 are sorted. 
 
 */
-int PredicateCluster::Compare(Attribute* right){
+int PredicateGroup::Compare(Attribute* right){
    int cmp;
-   PredicateCluster* PC = (PredicateCluster*) right;
-   if(!defined && !PC->defined)
+   PredicateGroup* PG = (PredicateGroup*) right;
+   if(!defined && !PG->defined)
       return 0;
-   if(!defined && PC->defined)
+   if(!defined && PG->defined)
       return -1;
-   if(defined && !PC->defined)
+   if(defined && !PG->defined)
       return 1;
-   // both predicatecluster are defined
+   // both predicategroups are defined
    
-   if( (cmp = unSpecified.CompareTo(&(PC->unSpecified)))!=0)
+   if( (cmp = unSpecified.CompareTo(&(PG->unSpecified)))!=0)
        return cmp;
 
    int size1, size2;
    size1 = theClusters.Size();
-   size2 = PC->theClusters.Size();
+   size2 = PG->theClusters.Size();
    if(size1<size2)
       return -1;
    if(size2<size1)
@@ -756,14 +838,14 @@ int PredicateCluster::Compare(Attribute* right){
        theClusters.Sort(toprel::ClusterCompare);
        sorted=true;
    }
-   if(!PC->sorted){
-       PC->theClusters.Sort(toprel::ClusterCompare);
-       PC->sorted=true;
+   if(!PG->sorted){
+       PG->theClusters.Sort(toprel::ClusterCompare);
+       PG->sorted=true;
    }
 
    for(int i=0;i<size1;i++){
        theClusters.Get(i,tmp1);
-       PC->theClusters.Get(i,tmp2);
+       PG->theClusters.Get(i,tmp2);
        cmp = tmp1.Compare(&tmp2);
        if(cmp != 0)
           return cmp;
@@ -775,11 +857,11 @@ int PredicateCluster::Compare(Attribute* right){
 2.3.4 ToListExpr
 
 This function computes the external representation  of this
-PredicateCluster in nested list format.
+PredicateGroup in nested list format.
 
 */
-ListExpr PredicateCluster::ToListExpr(){
-  // we have at least one element in the this predicatecluster
+ListExpr PredicateGroup::ToListExpr(){
+  // we have at least one element in the this predicategroup
   if(!defined)
       return nl->SymbolAtom("undefined");
   Cluster C;
@@ -799,13 +881,13 @@ ListExpr PredicateCluster::ToListExpr(){
 /*
 2.3.5 ReadFrom
 
-This function reads the value of this predicateCluster from
+This function reads the value of this predicategroup from
 instance. If the argument is not a valid representation of a 
 predicate-cluster, this predicate cluster is not changed and
 the result will be false.
 
 */
-bool PredicateCluster::ReadFrom(const ListExpr instance){
+bool PredicateGroup::ReadFrom(const ListExpr instance){
    int length = nl->ListLength(instance);
    /*
     The maximum count of non-overlapping, non-empty clusters is 512. 
@@ -853,15 +935,15 @@ bool PredicateCluster::ReadFrom(const ListExpr instance){
 2.3.6 The ~Add~ Function
 
 When this function is called, the argument is added as a new cluster to this predicate
-cluster. If this is not possible, e.g. because of overlaps with existing clusters 
-or name conflicts, the result will be false and this predicate cluster remains 
+group. If this is not possible, e.g. because of overlaps with existing clusters 
+or name conflicts, the result will be false and this predicate group remains 
 unchanged. Empty clusters can't be added.
 
 ~Note~ : The Cluster is added without correcting the order of clusters in the 
 DBArray. Remember to reorder the clusters after calling this function.
 
 */
-bool PredicateCluster::Add(Cluster* C){
+bool PredicateGroup::Add(Cluster* C){
    if(C->IsEmpty())
      return false;
    STRING* name = C->GetName();
@@ -890,10 +972,10 @@ bool PredicateCluster::Add(Cluster* C){
 2.3.6 The ~AddWithPriority~ Function
 
 When this function is called, the argument is added as a new cluster to the predicate
-cluster. If the new cluster overlaps with clusters already contained in the
-predicate cluster, the common matrices are removed from the new cluster before 
+group. If the new cluster overlaps with clusters already contained in the
+predicate group, the common matrices are removed from the new cluster before 
 inserting. In case of name conflicts, the result will be false, otherwise the 
-result is true and the predicate cluster will contain the new (shortened) cluster.
+result is true and the predicate group will contain the new (shortened) cluster.
 If the cluster is already empty, or if the cluster is empty after removing existing
 matrices, this function will detect an error.
 
@@ -901,7 +983,7 @@ matrices, this function will detect an error.
 DBArray. Remember to reorder the clusters after calling this function.
 
 */
-bool PredicateCluster::AddWithPriority(Cluster *C){
+bool PredicateGroup::AddWithPriority(Cluster *C){
    if(C->IsEmpty())
        return false;
    STRING* name = C->GetName();
@@ -941,8 +1023,8 @@ ListExpr OutCluster(ListExpr TypeInfo, Word value){
    return ((Cluster*)value.addr)->ToListExpr();
 } 
 
-ListExpr OutPredicateCluster(ListExpr TypeInfo, Word value){
-   return ((PredicateCluster*)value.addr)->ToListExpr();
+ListExpr OutPredicateGroup(ListExpr TypeInfo, Word value){
+   return ((PredicateGroup*)value.addr)->ToListExpr();
 } 
 
 /*
@@ -976,9 +1058,9 @@ InCluster(const ListExpr typeInfo, const ListExpr instance,
 }
 
 Word
-InPredicateCluster(const ListExpr typeInfo, const ListExpr instance,
+InPredicateGroup(const ListExpr typeInfo, const ListExpr instance,
           const int errorPos, ListExpr& errorInfo, bool& correct){
-   PredicateCluster* res = new PredicateCluster(1);
+   PredicateGroup* res = new PredicateGroup(1);
    if(res->ReadFrom(instance)){
       correct = true;
       return SetWord(res);
@@ -1004,8 +1086,8 @@ CreateCluster( const ListExpr typeInfo){
 }
 
 Word 
-CreatePredicateCluster( const ListExpr typeInfo){
-   return (SetWord(new PredicateCluster(0)));
+CreatePredicateGroup( const ListExpr typeInfo){
+   return (SetWord(new PredicateGroup(0)));
 }
 
 /*
@@ -1026,8 +1108,8 @@ DeleteCluster(Word& w){
 }
 
 void 
-DeletePredicateCluster(Word& w){
-   delete (PredicateCluster*) w.addr;
+DeletePredicateGroup(Word& w){
+   delete (PredicateGroup*) w.addr;
    w.addr = 0;
 }
 
@@ -1048,8 +1130,8 @@ void CloseCluster(Word& w){
 }
 
 void 
-ClosePredicateCluster(Word& w){
-   delete (PredicateCluster*) w.addr;
+ClosePredicateGroup(Word& w){
+   delete (PredicateGroup*) w.addr;
    w.addr = 0;
 }
 
@@ -1067,8 +1149,8 @@ Word CloneCluster(const Word& w){
     return SetWord(((Cluster*)w.addr)->Clone());
 }
 
-Word ClonePredicateCluster(const Word& w){
-    return SetWord(((PredicateCluster*)w.addr)->Clone());
+Word ClonePredicateGroup(const Word& w){
+    return SetWord(((PredicateGroup*)w.addr)->Clone());
 }
 
 /*
@@ -1085,8 +1167,8 @@ int SizeOfCluster(){
    return sizeof(Cluster);
 }
 
-int SizeOfPredicateCluster(){
-   return sizeof(PredicateCluster);
+int SizeOfPredicateGroup(){
+   return sizeof(PredicateGroup);
 }
 
 /*
@@ -1102,8 +1184,8 @@ void* CastCluster(void* addr){
    return (new (addr) Cluster);
 }
 
-void* CastPredicateCluster(void* addr){
-   return (new (addr) PredicateCluster);
+void* CastPredicateGroup(void* addr){
+   return (new (addr) PredicateGroup);
 }
 
 /*
@@ -1140,7 +1222,7 @@ ClusterProperty()
 }
 
 ListExpr
-PredicateClusterProperty()
+PredicateGroupProperty()
 {
   return nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
@@ -1148,7 +1230,7 @@ PredicateClusterProperty()
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("predicatecluster"),
+                             nl->StringAtom("predicategroup"),
                              nl->StringAtom("<cluster_1>..<cluster_n> "), 
                              nl->StringAtom("c1 c2 c3")));
 }
@@ -1169,9 +1251,9 @@ CheckCluster( ListExpr type, ListExpr& errorInfo )
 }
 
 bool
-CheckPredicateCluster( ListExpr type, ListExpr& errorInfo )
+CheckPredicateGroup( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual(type, "predicatecluster" ));
+  return (nl->IsEqual(type, "predicategroup" ));
 }
 
 /*
@@ -1202,15 +1284,15 @@ OpenCluster( SmiRecord& valueRecord,
 }
 
 bool
-OpenPredicateCluster( SmiRecord& valueRecord,
+OpenPredicateGroup( SmiRecord& valueRecord,
            size_t& offset,
            const ListExpr typeInfo,
            Word& value )
 {
-  PredicateCluster *pcluster;
-  pcluster = (PredicateCluster*)TupleElement::Open( valueRecord, 
+  PredicateGroup *pgroup;
+  pgroup = (PredicateGroup*)TupleElement::Open( valueRecord, 
                                                 offset, typeInfo );
-  value = SetWord( pcluster );
+  value = SetWord( pgroup );
   return true;
 }
 
@@ -1241,13 +1323,13 @@ SaveCluster( SmiRecord& valueRecord,
 }
 
 bool
-SavePredicateCluster( SmiRecord& valueRecord,
+SavePredicateGroup( SmiRecord& valueRecord,
              size_t& offset,
              const ListExpr typeInfo,
              Word& value )
 {
-  PredicateCluster *pcluster = (PredicateCluster *)value.addr;
-  TupleElement::Save( valueRecord, offset, typeInfo, pcluster );
+  PredicateGroup *pgroup = (PredicateGroup *)value.addr;
+  TupleElement::Save( valueRecord, offset, typeInfo, pgroup );
   return true;
 }
 
@@ -1287,18 +1369,18 @@ TypeConstructor cluster(
         TypeConstructor::DummyValueToModel,
         TypeConstructor::DummyValueListToModel );
 
-TypeConstructor predicatecluster(
-        "predicatecluster",                     
-        PredicateClusterProperty,                
+TypeConstructor predicategroup(
+        "predicategroup",                     
+        PredicateGroupProperty,                
                                                  
-        OutPredicateCluster,  InPredicateCluster,
+        OutPredicateGroup,  InPredicateGroup,
         0,        0,                 
-        CreatePredicateCluster, DeletePredicateCluster,
-        OpenPredicateCluster, SavePredicateCluster,     
-        ClosePredicateCluster, ClonePredicateCluster,  
-        CastPredicateCluster,                    
-        SizeOfPredicateCluster,                  
-        CheckPredicateCluster,                   
+        CreatePredicateGroup, DeletePredicateGroup,
+        OpenPredicateGroup, SavePredicateGroup,     
+        ClosePredicateGroup, ClonePredicateGroup,  
+        CastPredicateGroup,                    
+        SizeOfPredicateGroup,                  
+        CheckPredicateGroup,                   
         0,                           
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
@@ -1441,17 +1523,17 @@ ListExpr InvertTM(ListExpr args){
    return nl->SymbolAtom("typeerror"); 
 }
 
-ListExpr CreatePClusterTM(ListExpr args){
+ListExpr CreatePGroupTM(ListExpr args){
    while(!nl->IsEmpty(args)){
       ListExpr current = nl->First(args);
       if(!nl->IsEqual(current,"cluster"))
          return nl->SymbolAtom("typeerror");
       args = nl->Rest(args);
    }
-   return nl->SymbolAtom("predicatecluster"); 
+   return nl->SymbolAtom("predicategroup"); 
 }
 
-ListExpr CreateValidPClusterTM(ListExpr args){
+ListExpr CreateValidPGroupTM(ListExpr args){
   if(nl->ListLength(args)<1){
        ErrorReporter::ReportError("At Least one element required");
        return nl->SymbolAtom("typeerror");
@@ -1466,12 +1548,12 @@ ListExpr CreateValidPClusterTM(ListExpr args){
       }
       args = nl->Rest(args);
    }
-   return nl->SymbolAtom("predicatecluster"); 
+   return nl->SymbolAtom("predicategroup"); 
 }
 
 ListExpr ClusterName_OfTM(ListExpr args){
     if(nl->ListLength(args)==2){
-        if(nl->IsEqual(nl->First(args),"predicatecluster") &&
+        if(nl->IsEqual(nl->First(args),"predicategroup") &&
            nl->IsEqual(nl->Second(args),"int9m"))
             return nl->SymbolAtom("string");
     }
@@ -1480,7 +1562,7 @@ ListExpr ClusterName_OfTM(ListExpr args){
 
 ListExpr ClusterOfTM(ListExpr args){
     if(nl->ListLength(args)==2){
-        if(nl->IsEqual(nl->First(args),"predicatecluster") &&
+        if(nl->IsEqual(nl->First(args),"predicategroup") &&
            nl->IsEqual(nl->Second(args),"int9m"))
             return nl->SymbolAtom("cluster");
     }
@@ -1490,11 +1572,11 @@ ListExpr ClusterOfTM(ListExpr args){
 ListExpr SizeOfTM(ListExpr args){
    if(nl->ListLength(args)==1){
       if(nl->IsEqual(nl->First(args),"cluster") |
-         nl->IsEqual(nl->First(args),"predicatecluster"))
+         nl->IsEqual(nl->First(args),"predicategroup"))
          return nl->SymbolAtom("int");
       else {
         ErrorReporter::ReportError("TopRel:  SizeOf expects a cluster "
-                                   "or a predicatecluster\n");  
+                                   "or a predicategroup\n");  
         return nl->SymbolAtom("typeerror");
       }  
    }
@@ -1522,22 +1604,22 @@ ListExpr IsCompleteTM(ListExpr args){
      ErrorReporter::ReportError("IsComplete has one element\n");
      return nl->SymbolAtom("typeerror");
   }
-  if(nl->IsEqual(nl->First(args),"predicatecluster"))
+  if(nl->IsEqual(nl->First(args),"predicategroup"))
      return nl->SymbolAtom("bool");
   ErrorReporter::ReportError("IsComplete"
-                             " needs a predicatecluster as argument\n");
+                             " needs a predicategroup as argument\n");
   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr UnSpecifiedTM(ListExpr args){
   if(nl->ListLength(args)!=1){
-     ErrorReporter::ReportError("unpsicified needs one element\n");
+     ErrorReporter::ReportError("unspecified needs one element\n");
      return nl->SymbolAtom("typeerror");
   }
-  if(nl->IsEqual(nl->First(args),"predicatecluster"))
+  if(nl->IsEqual(nl->First(args),"predicategroup"))
      return nl->SymbolAtom("cluster");
   ErrorReporter::ReportError("unspecified"
-                             " needs a predicatecluster as argument\n");
+                             " needs a predicategroup as argument\n");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -1585,6 +1667,29 @@ ListExpr PWDisjointTM(ListExpr args){
   return nl->SymbolAtom("bool");
   ErrorReporter::ReportError("cluster required");
   return nl->SymbolAtom("typeerror");
+}
+
+
+ListExpr RestrictRelaxTM(ListExpr args){
+  if(nl->ListLength(args)!=2){
+      ErrorReporter::ReportError("Restrict and Relax require two arguments\n");
+      return nl->SymbolAtom("typeerror");
+  }
+  if(!nl->IsEqual(nl->First(args),"cluster")){
+      ErrorReporter::ReportError("Restrict and Relax require cluster as first argument \n");
+      string type;
+      nl->WriteToString(type,nl->First(args));
+      ErrorReporter::ReportError("but get "+type+ "\n");
+      return nl->SymbolAtom("typeerror");
+  }
+  if(!nl->IsEqual(nl->Second(args),"string") &&
+     !nl->IsEqual(nl->Second(args),"text")){
+      string type;
+      nl->WriteToString(type,nl->Second(args));
+      ErrorReporter::ReportError("Restrict and Relax require string or text as second argument but receive "+type+" \n");
+      return nl->SymbolAtom("typeerror");
+  }
+  return nl->SymbolAtom("cluster");
 }
 
 
@@ -1801,10 +1906,59 @@ int Invert_Cluster_Fun(Word* args, Word& result, int message,
   return 0;
 }
 
-int CreatePCluster_Fun(Word* args, Word& result, int message,
+int Restrict_Cluster_String_Fun(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    Cluster* cluster = (Cluster*) args[0].addr;
+    CcString* cond = (CcString*) args[1].addr;
+    const STRING* cond_c = cond->GetStringval();
+    string cond_s(*cond_c);
+    Cluster* res = (Cluster*) result.addr;
+    res->Equalize(cluster);
+    res->Restrict(cond_s);
+    return 0;
+}
+
+int Restrict_Cluster_Text_Fun(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    Cluster* cluster = (Cluster*) args[0].addr;
+    FText* cond = (FText*) args[1].addr;
+    string cond_s( (cond->Get()));
+    Cluster* res = (Cluster*) result.addr;
+    res->Equalize(cluster);
+    res->Restrict(cond_s);
+    return 0;
+}
+
+int Relax_Cluster_String_Fun(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    Cluster* cluster = (Cluster*) args[0].addr;
+    CcString* cond = (CcString*) args[1].addr;
+    string cond_s(*(cond->GetStringval()));
+    Cluster* res = (Cluster*) result.addr;
+    res->Equalize(cluster);
+    res->Relax(cond_s);
+    return 0;
+}
+
+int Relax_Cluster_Text_Fun(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    Cluster* cluster = (Cluster*) args[0].addr;
+    FText* cond = (FText*) args[1].addr;
+    string cond_s(cond->Get());
+    Cluster* res = (Cluster*) result.addr;
+    res->Equalize(cluster);
+    res->Relax(cond_s);
+    return 0;
+}
+
+int CreatePGroup_Fun(Word* args, Word& result, int message,
                  Word& local, Supplier s){
   result = qp->ResultStorage(s);
-  PredicateCluster* res = (PredicateCluster*) result.addr;
+  PredicateGroup* res = (PredicateGroup*) result.addr;
  //get the number of arguments
  int arg_count = qp->GetNoSons(s);
  res->MakeEmpty();
@@ -1822,10 +1976,10 @@ int CreatePCluster_Fun(Word* args, Word& result, int message,
  return 0;
 }
 
-int CreatePriorityPCluster_Fun(Word* args, Word& result, int message,
+int CreatePriorityPGroup_Fun(Word* args, Word& result, int message,
                  Word& local, Supplier s){
   result = qp->ResultStorage(s);
-  PredicateCluster* res = (PredicateCluster*) result.addr;
+  PredicateGroup* res = (PredicateGroup*) result.addr;
  //get the number of arguments
  int arg_count = qp->GetNoSons(s);
  res->MakeEmpty();
@@ -1843,10 +1997,10 @@ int CreatePriorityPCluster_Fun(Word* args, Word& result, int message,
  return 0;
 }
 
-int CreateValidPCluster_Fun(Word* args, Word& result, int message,
+int CreateValidPGroup_Fun(Word* args, Word& result, int message,
                  Word& local, Supplier s){
   result = qp->ResultStorage(s);
-  PredicateCluster* res = (PredicateCluster*) result.addr;
+  PredicateGroup* res = (PredicateGroup*) result.addr;
   Cluster* Valid = (Cluster*)args[0].addr;
  //get the number of arguments
  int arg_count = qp->GetNoSons(s);
@@ -1871,20 +2025,20 @@ int CreateValidPCluster_Fun(Word* args, Word& result, int message,
 int ClusterNameOf_Fun(Word* args, Word& result, int message,
                 Word& local, Supplier s){
     result = qp->ResultStorage(s);
-    PredicateCluster* PC = (PredicateCluster*) args[0].addr;
+    PredicateGroup* PG = (PredicateGroup*) args[0].addr;
     Int9M* IM = (Int9M*) args[1].addr;
     CcString* res = (CcString*) result.addr;
-    res->Set(true,PC->GetNameOf(IM));
+    res->Set(true,PG->GetNameOf(IM));
     return 0;
 }
 
 int ClusterOf_Fun(Word* args, Word& result, int message,
                 Word& local, Supplier s){
     result = qp->ResultStorage(s);
-    PredicateCluster* PC = (PredicateCluster*) args[0].addr;
+    PredicateGroup* PG = (PredicateGroup*) args[0].addr;
     Int9M* IM = (Int9M*) args[1].addr;
     Cluster* res = (Cluster*) result.addr;
-    Cluster* tmp = PC->GetClusterOf(*IM); 
+    Cluster* tmp = PG->GetClusterOf(*IM); 
     res->Equalize(tmp);
     delete tmp;
     return 0;
@@ -1898,10 +2052,10 @@ int SizeOfCluster_Fun(Word* args, Word& result, int message,
     return 0;
 }
 
-int SizeOfPredicateCluster_Fun(Word* args, Word& result, int message,
+int SizeOfPredicateGroup_Fun(Word* args, Word& result, int message,
                 Word& local, Supplier s){
     result = qp->ResultStorage(s);
-    PredicateCluster* arg = (PredicateCluster*) args[0].addr;
+    PredicateGroup* arg = (PredicateGroup*) args[0].addr;
     ((CcInt*)result.addr)->Set(true,arg->Size());
     return 0;
 }
@@ -1962,7 +2116,7 @@ int CreateCluster_text_Fun(Word* args, Word& result, int message,
 int IsComplete_Fun(Word* args, Word& result, int message,
                 Word& local, Supplier s){
    result = qp->ResultStorage(s);
-   PredicateCluster* arg = (PredicateCluster*) args[0].addr;
+   PredicateGroup* arg = (PredicateGroup*) args[0].addr;
    ((CcBool*)result.addr)->Set(true,arg->IsComplete());
    return 0; 
 }
@@ -1971,8 +2125,8 @@ int IsComplete_Fun(Word* args, Word& result, int message,
 int UnSpecified_Fun(Word* args, Word& result, int message,
                 Word& local, Supplier s){
    result = qp->ResultStorage(s);
-   PredicateCluster* PC = (PredicateCluster*) args[0].addr;
-   ((Cluster*)result.addr)->Equalize(PC->GetUnspecified());
+   PredicateGroup* PG = (PredicateGroup*) args[0].addr;
+   ((Cluster*)result.addr)->Equalize(PG->GetUnspecified());
    return 0;
 }
 
@@ -2077,51 +2231,51 @@ const string DisjointSpec =
       "  \"checks whether the clusters are disjoint\" "
       "  \" query c1 disjoint c2 \" ))";
 
-const string CreatePClusterSpec =
+const string CreatePGroupSpec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      " ( \"cluster x cluster x ... -> predicatecluster\""
-      " \" createpcluster( _, _, ... ) \" "
-      "  \"creates a predicate cluster from existing clusters\" "
-      "  \" let pc1 = createpcluster(c1, c2, c3) \" ))";
+      " ( \"cluster x cluster x ... -> predicategroup\""
+      " \" createpgroup( _, _, ... ) \" "
+      "  \"creates a predicate group from existing clusters\" "
+      "  \" let pc1 = createpgroup(c1, c2, c3) \" ))";
 
-const string CreatePriorityPClusterSpec =
+const string CreatePriorityPGroupSpec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      " ( \"cluster x cluster x ... -> predicatecluster\""
-      " \" createpriorpcluster( _, _, ... ) \" "
-      "  <text>creates a predicate cluster from existing clusters "
+      " ( \"cluster x cluster x ... -> predicategroup\""
+      " \" createprioritypgroup( _, _, ... ) \" "
+      "  <text>creates a predicate group from existing clusters "
       " If Clusters are overlapping, the common matrixes are "
       " assigned to the  attribute located prior in the "
       "arglist </text--->" 
-      "  \" let pc1 = createpcluster(c1, c2, c3) \" ))";
+      "  \" let pc1 = createprioritypgroup(c1, c2, c3) \" ))";
 
-const string CreateValidPClusterSpec =
+const string CreateValidPGroupSpec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      " ( \"cluster x cluster x ... -> predicatecluster\""
-      " \" createpcluster( _ _ ... ) \" "
-      " <text>creates a predicate cluster from existing clusters  "
+      " ( \"cluster x cluster x ... -> predicategroup\""
+      " \" createvalidpgroup( _ _ ... ) \" "
+      " <text>creates a predicate group from existing clusters  "
       " The first cluster defines all valid matrices </text--->"
-      "  \" let pc1 = createvalidcluster(valid, c1, c2, c3) \" ))";
+      "  \" let pc1 = createvalidpgroup(valid, c1, c2, c3) \" ))";
 
 const string ClusterNameOf_pc_m_Spec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      " ( \"predicatecluster x int9m -> string\""
+      " ( \"predicategroup x int9m -> string\""
       " \"  clustername_of(_ , _) \" "
       "  \"returns the name of the matrix in the given "
-      " predicatecluster\" "
-      "  <text>query clustername_of(StdCluster,m1)="
+      " predicategroup\" "
+      "  <text>query clustername_of(StdPG,m1)="
       "\"inside\" </text---> ))";
 
 const string ClusterOf_pc_m_Spec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      " ( \"predicatecluster x int9m -> cluster\""
+      " ( \"predicategroup x int9m -> cluster\""
       " \"  clusterof(_ , _) \" "
-      "  \"returns the cluster containing the matrix\" "
-      "  <text>query clusterof(StdCluster,m1) </text---> ))";
+      "  \"returns the predicate group containing the matrix\" "
+      "  <text>query clusterof(StdPG,m1) </text---> ))";
 
 const string SizeOf_Spec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      " ( \" {cluster, predicatecluster} -> int \""
-      " \"  size(_)\" "
+      " ( \" {cluster, predicategroup} -> int \""
+      " \"  sizeof(_)\" "
       "  \"returns the number of elements in the argument\" "
       "  <text>query sizeof(p) </text---> ))";
 
@@ -2134,19 +2288,19 @@ const string CreateCluster_Spec =
 
 const string IsComplete_Spec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      " ( \" predicatecluster -> bool  \""
+      " ( \" predicategroup -> bool  \""
       " \"  isComplete(_) \" "
       " <text>checks whether the clusters contained in the argument   "
       " cover all 512 possible matrices </text--->"
-      " \" query isComplete(std_pcluster) \"))";
+      " \" query isComplete(stdpg) \"))";
 
 const string UnSpecified_Spec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      " ( \" predicatecluster -> cluster  \""
+      " ( \" predicategroup -> cluster  \""
       " \"  unspecified(_) \" "
       " <text>returns the cluster containing all"
       "  non-used matrices  </text---> "
-      " \" query unspecified(std_pcluster) \"))";
+      " \" query unspecified(stdpg) \"))";
 
 
 const string PWDisjoint_Spec =
@@ -2156,6 +2310,25 @@ const string PWDisjoint_Spec =
       " <text>checks whether the arguments are pairwise"
       " disjoint  </text---> "
       " \" query pwdisjoint(c1,c2,c3) \"))";
+
+
+const string Restrict_Spec = 
+      "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      " ( \" cluster x {string, text} -> cluster  \""
+      " \" restrict(_, _)  \" "
+      " <text>restricts the arguments cluster to such matrices fulfilling"
+      " the condition of the second argument  </text---> "
+      " <text> query restrict(c1, \"ee & ii\" )</text--->))";
+
+
+const string Relax_Spec = 
+      "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      " ( \" cluster x {string, text} -> cluster  \""
+      " \" relax(_, _)  \" "
+      " <text>add all matrices fulfilling "
+      " the condition of the second argument to the cluster </text---> "
+      " <text> query relax(c1,\" ee & ii\") </text--->))";
+
 
 /*
 
@@ -2185,12 +2358,16 @@ ValueMapping IntersectionMap[] = { Intersection_Int9M_Fun,
                                    Intersection_Cluster_Fun };
 
 ValueMapping SizeOfMap[] = { SizeOfCluster_Fun, 
-                             SizeOfPredicateCluster_Fun};
+                             SizeOfPredicateGroup_Fun};
 
 ValueMapping CreateClusterMap[] = { CreateCluster_string_Fun, 
                                     CreateCluster_text_Fun};
 
+ValueMapping RestrictMap[] = { Restrict_Cluster_String_Fun, 
+                               Restrict_Cluster_Text_Fun};
 
+ValueMapping RelaxMap[] = { Relax_Cluster_String_Fun, 
+                            Relax_Cluster_Text_Fun};
 /*
 7.5 Model Mappings
 
@@ -2232,12 +2409,26 @@ static int InvertSelect(ListExpr args){
 static int SizeOfSelect(ListExpr args){
    if(nl->IsEqual(nl->First(args),"cluster"))
       return 0;
-   if(nl->IsEqual(nl->First(args),"predicatecluster"))
+   if(nl->IsEqual(nl->First(args),"predicategroup"))
       return 1;
    return -1; // should never be reached
 }
 
 static int CreateClusterSelect(ListExpr args){
+   if(nl->IsEqual(nl->Second(args),"string"))
+      return 0;
+   else
+      return 1;
+}
+
+static int RestrictSelect(ListExpr args){
+   if(nl->IsEqual(nl->Second(args),"string"))
+      return 0;
+   else
+      return 1;
+}
+
+static int RelaxSelect(ListExpr args){
    if(nl->IsEqual(nl->Second(args),"string"))
       return 0;
    else
@@ -2301,6 +2492,24 @@ Operator sizeof_op(
          DummyModel_7,
          SizeOfSelect,
          SizeOfTM);
+
+Operator restrict_op(
+         "restrict",     // name
+         Restrict_Spec,   // specification
+         2,               // number of functions 
+         RestrictMap,    // array of value mappings
+         DummyModel_7,
+         RestrictSelect,
+         RestrictRelaxTM);
+
+Operator relax_op(
+         "relax",     // name
+         Relax_Spec,   // specification
+         2,               // number of functions 
+         RelaxMap,    // array of value mappings
+         DummyModel_7,
+         RelaxSelect,
+         RestrictRelaxTM);
 
 Operator createcluster(
          "createcluster",     // name
@@ -2399,29 +2608,29 @@ Operator disjoint(
          Operator::SimpleSelect,
          Cluster_Cluster_Bool);
 
-Operator createpcluster(
-         "createpcluster", // name
-         CreatePClusterSpec, // specification
-         CreatePCluster_Fun,
+Operator createpgroup(
+         "createpgroup", // name
+         CreatePGroupSpec, // specification
+         CreatePGroup_Fun,
          Operator::DummyModel,
          Operator::SimpleSelect,
-         CreatePClusterTM);
+         CreatePGroupTM);
 
-Operator createprioritypcluster(
-         "createprioritypcluster", // name
-         CreatePriorityPClusterSpec, // specification
-         CreatePriorityPCluster_Fun,
+Operator createprioritypgroup(
+         "createprioritypgroup", // name
+         CreatePriorityPGroupSpec, // specification
+         CreatePriorityPGroup_Fun,
          Operator::DummyModel,
          Operator::SimpleSelect,
-         CreatePClusterTM);
+         CreatePGroupTM);
 
-Operator createvalidpcluster(
-         "createvalidpcluster", // name
-         CreateValidPClusterSpec, // specification
-         CreateValidPCluster_Fun,
+Operator createvalidpgroup(
+         "createvalidpgroup", // name
+         CreateValidPGroupSpec, // specification
+         CreateValidPGroup_Fun,
          Operator::DummyModel,
          Operator::SimpleSelect,
-         CreateValidPClusterTM);
+         CreateValidPGroupTM);
 
 Operator clustername_of(
          "clustername_of", // name
@@ -2452,11 +2661,11 @@ class TopRelAlgebra : public Algebra
   {
     AddTypeConstructor( &toprel::int9m );
     AddTypeConstructor( &toprel::cluster);
-    AddTypeConstructor( &toprel::predicatecluster);
+    AddTypeConstructor( &toprel::predicategroup);
 
     toprel::int9m.AssociateKind("DATA");
     toprel::cluster.AssociateKind("DATA");
-    toprel::predicatecluster.AssociateKind("DATA");
+    toprel::predicategroup.AssociateKind("DATA");
   
     AddOperator(&toprel::invert);
     AddOperator(&toprel::union_op);
@@ -2470,9 +2679,9 @@ class TopRelAlgebra : public Algebra
     AddOperator(&toprel::contains);
     AddOperator(&toprel::disjoint);
     AddOperator(&toprel::minus);
-    AddOperator(&toprel::createpcluster);
-    AddOperator(&toprel::createvalidpcluster);
-    AddOperator(&toprel::createprioritypcluster);
+    AddOperator(&toprel::createpgroup);
+    AddOperator(&toprel::createvalidpgroup);
+    AddOperator(&toprel::createprioritypgroup);
     AddOperator(&toprel::clustername_of);
     AddOperator(&toprel::clusterof);
     AddOperator(&toprel::transpose);
@@ -2481,6 +2690,8 @@ class TopRelAlgebra : public Algebra
     AddOperator(&toprel::iscomplete);
     AddOperator(&toprel::unspecified);
     AddOperator(&toprel::pwdisjoint);
+    AddOperator(&toprel::restrict_op);
+    AddOperator(&toprel::relax_op);
   }
   ~TopRelAlgebra() {};
 } toprelAlgebra;

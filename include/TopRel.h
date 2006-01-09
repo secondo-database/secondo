@@ -40,7 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 [abstract]
 
 
-This algebra provides three data types, namely int9m, cluster, and predicatecluster.
+This algebra provides three data types, namely int9m, cluster, and predicategroup.
 The int9m type represents the 9 intersection matrix of  Egenhofer's 9 intersection model.
 This means an instance of type int9m is a 3 [x] 3 matrix containing only 
 boolean values. To learn more about this model, read the original paper 
@@ -806,6 +806,31 @@ This function returns the name of this cluster.
 
 
 /*
+2.2.21 Restrict
+
+This functions changes a cluster in this way that it will contain only such
+matrices which are part of the original cluster and fulfill the condition 
+given as the argument. If the given string does not represent a valid formula,
+the result will be false and the cluster is not changed.
+
+*/
+
+    bool Restrict(string condition);
+
+
+/*
+2.2.22 Relax
+
+This function extends the cluster to all matrices which are already part of the 
+cluster or fulfill the given condition. The return value represents the correctness
+of the formula describing the condition.
+
+*/
+
+   bool Relax(string condition);
+
+
+/*
 2.2.21 Operators
 
 The following operators can be used for easy comparisons between 
@@ -829,43 +854,43 @@ clusters.
 
 
 /*
-2.3 The Type PredicateCluster 
+2.3 The Type PredicateGroup 
 
-A PredicateCluster is a set of disjoint clusters.
+A PredicateGroup is a set of disjoint clusters.
 Aided by this type we can decide, what the cluster for a
-given 9Int-Matrix is. A predicate-cluster contains an additional
+given 9Int-Matrix is. A predicategroup contains an additional
 cluster with the name 'unspecified' containing all matrices not
 included in the other clusters. For this reason, no cluster with the name
 'unspecified' can be included manually.
 
 */
 
-class PredicateCluster: public StandardAttribute{
+class PredicateGroup: public StandardAttribute{
 public:
 
 /*
 2.3.1 The Standardconstructor
 
 */
-    PredicateCluster(){}
+    PredicateGroup(){}
 
 /*
 2.3.2 Constructor
 
-This constructor creates an empty predicate cluster with the 
+This constructor creates an empty predicate group with the 
 given capacity for clusters. In this context,
-'empty' means, that this cluster predicate contains a single 
+'empty' means, that this predicate group contains a single 
 cluster named ''unspecified'' containing all 512 9-intersection matrices.
 
 */
-    PredicateCluster(int size);
+    PredicateGroup(int size);
 /*
 2.3.3. Destructor
 
 This destructor destroys the contained FLOB.
 
 */
-    ~PredicateCluster(){
+    ~PredicateGroup(){
           theClusters.Destroy();
     }
 
@@ -877,9 +902,9 @@ predicate cluster will be the same like this one of the argument.
 
 */
 
-    void Equalize(PredicateCluster* PC);
+    void Equalize(PredicateGroup* PC);
 
-    void Equalize(PredicateCluster PC){
+    void Equalize(PredicateGroup PC){
         Equalize(&PC);
     }
 
@@ -901,7 +926,7 @@ predicate cluster will be the same like this one of the argument.
     }
 
     void CopyFrom(StandardAttribute* right){
-       Equalize((PredicateCluster*) right);
+       Equalize((PredicateGroup*) right);
     }
 
     int Compare(Attribute * arg);
@@ -910,8 +935,8 @@ predicate cluster will be the same like this one of the argument.
         return false;
     }
 
-    PredicateCluster* Clone(){
-       PredicateCluster* res = new PredicateCluster(1);
+    PredicateGroup* Clone(){
+       PredicateGroup* res = new PredicateGroup(1);
        res->Equalize(this);
        return res;
     }
@@ -952,7 +977,7 @@ in named clusters.
 /*
 2.3.6 The ~IsEmpty~ function
 
-This function returns true if no cluster is contained in this predicatecluster.
+This function returns true if no cluster is contained in this predicategroup.
 
 */
    bool IsEmpty(){
@@ -981,11 +1006,11 @@ This function computes the nested list representaton of this predicate cluster.
 /*
 2.3.7 ReadFrom
 
-This function reads the value of this predicate cluster from it's 
+This function reads the value of this predicate group from it's 
 nested list representation. If the list don't represent a valid value,
 false is returned. Otherwise, this value is changed and the result
 is true. 
-A predicate cluster representation is just a set of clusters.
+A predicate group representation is just a set of clusters.
 All contained clusters must be 
 disjoint. This means all cluster names must be different and the matrix sets 
 can't have any common matrices.
@@ -1038,7 +1063,10 @@ This function searchs for the cluster containing the given matrix
 and returns its name. The search is realized by scanning the whole
 FLOB. For this reason, this function  has linear runtime.
 This is acceptable because at most 512 non-overlapping clusters
-can exist within a single predicatecluster. 
+can exist within a single predicategroup. 
+
+Note that this function creates a new STRING object. The caller of this
+function has to destroy this object to avoid memory holes.
 
 */
    STRING* GetNameOf(Int9M* Matrix){
@@ -1062,7 +1090,10 @@ This function searchs for the cluster containing the given matrix
 and returns it. The search is realized by scanning the whole
 FLOB. For this reason, this function  has linear runtime.
 This is acceptable because at most 512 non-overlapping clusters
-can exist within a single predicatecluster. 
+can exist within a single predicategroup. 
+
+The caller of this function has to destroy the object produced
+by this function.  
 
 */
    Cluster* GetClusterOf(Int9M Matrix){
