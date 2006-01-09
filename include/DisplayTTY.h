@@ -178,18 +178,22 @@ Are display functions for tuples.
   static void DisplayInt( ListExpr type,
                           ListExpr numType,
                           ListExpr value );
+
   static void DisplayReal( ListExpr type,
                            ListExpr numType,
                            ListExpr value );
+
   static void DisplayBoolean( ListExpr list,
                               ListExpr numType,
                               ListExpr value );
+
   static void DisplayString( ListExpr type,
                              ListExpr numType,
                              ListExpr value );
+
   static void DisplayText( ListExpr type,
-                             ListExpr numType,
-                             ListExpr value );
+                           ListExpr numType,
+                           ListExpr value );
 
   static void DisplayXPoint( ListExpr type,
                              ListExpr numType,
@@ -212,36 +216,40 @@ Are display functions for tuples.
                             ListExpr value );
 
   static void DisplayBinfile( ListExpr type,
+                              ListExpr numType,
+                              ListExpr value );
+ 
+  static void DisplayArray( ListExpr type,
+                            ListExpr numType,
+                            ListExpr value );
+
+  static void DisplayMP3( ListExpr type,
+                          ListExpr numType,
+                          ListExpr value );
+
+  static void DisplayID3( ListExpr type,
+                          ListExpr numType,
+                          ListExpr value );
+
+  static void DisplayLyrics( ListExpr type,
                              ListExpr numType,
                              ListExpr value );
 
- static void DisplayArray( ListExpr type,
-                             ListExpr numType,
-                             ListExpr value );
+  static void DisplayMidi( ListExpr type,
+                           ListExpr numType,
+                           ListExpr value );
 
- static void DisplayMP3( ListExpr type,
-                             ListExpr numType,
-                             ListExpr value );
+  static void DisplayInstant( ListExpr type,
+                              ListExpr numType,
+                              ListExpr value );
 
- static void DisplayID3( ListExpr type,
-                             ListExpr numType,
-                             ListExpr value );
- static void DisplayLyrics( ListExpr type,
-                             ListExpr numType,
-                             ListExpr value );
+  static void DisplayDuration( ListExpr type,
+                               ListExpr numType,
+                               ListExpr value );
 
- static void DisplayMidi( ListExpr type,
-        ListExpr numType,
-        ListExpr value );
-
- static void DisplayInstant( ListExpr type,
-        ListExpr numType,
-        ListExpr value );
-
- static void DisplayDuration( ListExpr type,
-        ListExpr numType,
-        ListExpr value );
-
+  static void DisplayTid( ListExpr type,
+                          ListExpr numType,
+                          ListExpr value );
 
 /* Returns the numeric value of a ListExpr containing a IntAtom, a RealAtom
    or a list representing a rational number */
