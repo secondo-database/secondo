@@ -32,6 +32,9 @@ August 2005, M. Spiekermann, new class ~color~ and new function ~isSpaceStr~ add
 #include <cstdlib>
 #include <vector>
 #include <string>
+#include <iostream>
+
+using namespace std;
 
 /*
 
