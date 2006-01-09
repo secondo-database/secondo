@@ -45,11 +45,8 @@ symbol.
 
 */
 
-extern NestedList* nl;
-
-
-class NListErr {
-
+class NListErr 
+{
   public:
   NListErr(const string& Msg) : msg(Msg) {}
   
@@ -61,6 +58,7 @@ class NListErr {
 
 class NList {
 
+  NestedList *nl;
   ListExpr l;
   Cardinal len;
   inline bool isNodeType(const int n, const NodeType t) const
@@ -73,9 +71,9 @@ class NList {
   }
 
  public:
-  NList(const ListExpr list) : l(list), len(0) { /*cout << "Nlist: nl = " << (void*)nl << endl;*/ }
-  NList() : l(nl->TheEmptyList()), len(0) { /*cout << "Nlist: nl = " << (void*)nl << endl;*/ }
-  NList(const NList& rhs) : l(rhs.l), len(rhs.len) { /*cout << "Nlist(const NList& rhs)  << endl;*/ }
+  NList(NestedList *nl, const ListExpr list) : nl( nl ), l(list), len(0) { /*cout << "Nlist: nl = " << (void*)nl << endl;*/ }
+  NList(NestedList *nl) : nl(nl), l(nl->TheEmptyList()), len(0) { /*cout << "Nlist: nl = " << (void*)nl << endl;*/ }
+  NList(const NList& rhs) : nl(rhs.nl), l(rhs.l), len(rhs.len) { /*cout << "Nlist(const NList& rhs)  << endl;*/ }
   ~NList() {}
   inline bool isEmpty() const { return nl->IsEmpty(l); }
 
@@ -109,14 +107,14 @@ class NList {
         << "list has length " << len << ".";
       throw NListErr(s.str());
     } 
-    return NList(nl->Nth(n,l)); 
+    return NList(nl, nl->Nth(n,l)); 
   }
-  
-  inline static ListExpr typeError(const string& msg)
-  { 
-    ErrorReporter::ReportError(msg); 
-    return nl->TypeError(); 
-  }
+
+//  inline static ListExpr typeError(const string& msg)
+//  { 
+//    ErrorReporter::ReportError(msg); 
+//    return nl->TypeError(); 
+//  }
 
   // for interchange with the old NestedList interface
   inline ListExpr listExpr() const { return l; }
