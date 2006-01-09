@@ -20,6 +20,9 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+December 2005, Victor Almeida deleted the deprecated algebra levels (~executable~,
+~descriptive~, and ~hibrid~). Only the executable level remains.
+
 \def\CC{C\raise.22ex\hbox{{\footnotesize +}}\raise.22ex\hbox{\footnotesize +}\xs
 pace}
 \centerline{\LARGE \bf  DisplayTTY}
@@ -115,7 +118,7 @@ DisplayTTY::InsertDisplayFunction( const string& name,
                                    DisplayFunction df )
 {
   int algebraId, typeId;
-  si->GetTypeId( ExecutableLevel, name, algebraId, typeId );
+  si->GetTypeId( name, algebraId, typeId );
   ostringstream osId;
   osId << "[" << algebraId << "|" << typeId << "]";
   displayFunctions[osId.str()] = df;
@@ -815,6 +818,20 @@ DisplayTTY::DisplayDuration( ListExpr type, ListExpr numType, ListExpr value )
   }
 }
 
+void
+DisplayTTY::DisplayTid( ListExpr type, ListExpr numType, ListExpr value )
+{
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
+  {
+    cout << "UNDEFINED";
+  }
+  else
+  {
+    cout << nl->IntValue( value );
+  }
+}
+
 
 
 void
@@ -822,8 +839,8 @@ DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
 {
   int algebraId, typeId;
   string  name;
-  si->LookUpTypeExpr( ExecutableLevel, type, name, algebraId, typeId );
-  ListExpr numType = si->NumericTypeExpr( ExecutableLevel, type );
+  si->LookUpTypeExpr( type, name, algebraId, typeId );
+  ListExpr numType = si->NumericTypeExpr( type );
   if ( !nl->IsAtom( type ) )
   {
     CallDisplayFunction( nl->First( numType ), type, numType, value );
@@ -1134,5 +1151,6 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   InsertDisplayFunction( "midi",    &DisplayMidi);
   InsertDisplayFunction( "instant", &DisplayInstant);
   InsertDisplayFunction( "duration",&DisplayDuration);
+  InsertDisplayFunction( "tid",     &DisplayTid);
 }
 
