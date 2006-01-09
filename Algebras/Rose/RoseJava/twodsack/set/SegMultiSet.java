@@ -122,7 +122,7 @@ public class SegMultiSet extends ElemMultiSet {
 	catch (Exception e) {
 	    System.out.println("Error in SegList.getAllPoints: Can't apply Segment.endpoints()");
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//catch
 
 	//remove duplicates
@@ -148,7 +148,7 @@ public class SegMultiSet extends ElemMultiSet {
 	catch (Exception e) {
 	    System.out.println("Error in SegList.getAllPointsWithDuplicates: Can't apply Segment.endpoints()");
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//catch
 	
 	return allPoints;

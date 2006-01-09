@@ -88,8 +88,7 @@ public class SetOps {
 	if (ems2 == null) ems2 = new ElemMultiSet(ELEM_COMPARATOR);
 	ems1.clear();
 	ems2.clear();
-	System.out.println("constructed.");
-	ems1.print(); ems2.print();
+
 	Iterator it = pms.iterator();
 	ElemPair actPair;
 	while (it.hasNext()) {
@@ -97,7 +96,7 @@ public class SetOps {
 	    ems1.add(actPair.first);
 	    ems2.add(actPair.second);
 	}//while it
-	System.out.println("ems1("+ems1.size()+", ems2("+ems2.size()+")");
+
     }//end method separateSets
 
 
@@ -230,7 +229,7 @@ public class SetOps {
 			    System.out.println("elemStore[sssIvl.number]: "+(Element)elemStore[sssIvl.number]);
 			    System.out.println("elemStore[actIvl.number]: "+(Element)elemStore[actIvl.number]);
 			    e.printStackTrace();
-			    System.exit(0);
+			    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 			}//catch
 
 			//invoke method on the elements linked to the intervals, if the predicate yields true
@@ -250,7 +249,7 @@ public class SetOps {
 				System.out.println("elemStore[sssIvl.number]: "+(Element)elemStore[sssIvl.number]);
 				System.out.println("elemStore[actIvl.number]: "+(Element)elemStore[actIvl.number]);
 				e.printStackTrace();
-				System.exit(0);
+				throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 			    }//catch
 			    
 			    if (resultElement == null) resultIsEmpty = true;
@@ -433,7 +432,7 @@ public class SetOps {
 			    System.out.println("elemStore.get(sssIvl.number): "+(Element)elemStore.get(sssIvl.number));
 			    System.out.println("elemStore.get(actIvl.number): "+(Element)elemStore.get(actIvl.number));
 			    e.printStackTrace();
-			    System.exit(0);
+			    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 			}//catch
 			
 			//invoke method on the elements linked to the intervals, if the predicate yields true
@@ -454,7 +453,7 @@ public class SetOps {
 				System.out.println("elemStore.get(sssIvl.number): "+(Element)elemStore.get(sssIvl.number));
 				System.out.println("elemStore.get(actIvl.number): "+(Element)elemStore.get(actIvl.number));
 				e.printStackTrace();
-				System.exit(0);
+				throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 			    }//catch
 
 			    if ((resultEMS == null) || resultEMS.isEmpty()) resultIsEmpty = true;
@@ -506,7 +505,7 @@ public class SetOps {
 			    System.out.print("["+i+"] ");((Interval)sesList.get(i)).print();
 			}
 			System.out.println("********************************");
-			System.exit(0);
+			throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 		    }
 
 		    sweepPointer--;
@@ -769,7 +768,7 @@ public class SetOps {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 	    System.out.println("Error in SetOps.subtractSets: can't examine method.");
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//catch
 
 	//traverse element sets
@@ -796,13 +795,14 @@ public class SetOps {
 			    subList.addAll((ElemMultiSet)(method.invoke(actElem1,paramList))); }
 			else {
 			    System.out.println("Error in SetOps.subtractSets: can't invoke method");
-			    System.exit(0); }
+			    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
+			}
 		    }//try
 		    catch (Exception e) {
 			System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 			System.out.println("Error in SetOps.subtractSets: Problem with using method.");
 			e.printStackTrace();
-			System.exit(0);
+			throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 		    }//catch
 		}//while
 		//substitute original elemSet with subList
@@ -942,7 +942,7 @@ public class SetOps {
 		actElem.first.print();
 		actElem.second.print();
 		e.printStackTrace();
-		System.exit(0);
+		throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	    }//catch
 	    if ((predHolds && !keep) ||
 		(!predHolds && keep)) { it.remove(); }	    
@@ -988,7 +988,7 @@ public class SetOps {
 	} catch (Exception e) {
 	    System.out.println("Unexpected error in SetOps.overlapGroup during execution of overlappingPairs.");
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//catch
 
 	double tt02 = System.currentTimeMillis();
@@ -1224,7 +1224,7 @@ public class SetOps {
 		    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 		    System.out.println("Error in SetOps.map(ljpl,m,m,m). Can't invoke method "+mainMethod);
 		    e.printStackTrace();
-		    System.exit(0);
+		    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 		}//catch
 	    }//if
 	    else { retList.add(actLjp.element); }
@@ -1294,7 +1294,7 @@ public class SetOps {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 	    System.out.println("Error in SetOps.disjoint. Can't get Method intersects.");
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//catch
 	if (rms.isEmpty()) { return true; }
 	else { return false; }
@@ -1456,7 +1456,7 @@ public class SetOps {
 		} catch (Exception e) {
 		    System.out.println("\nException in SetOps.map(ljpMS,pred,met) when computing boolean value.");
 		    e.printStackTrace();
-		    System.exit(0);
+		    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 		}//catch
 		
 	    }//if
@@ -1480,7 +1480,7 @@ public class SetOps {
 		    System.out.println("\nactElem: "+actElem);
 		    System.out.println("\nparamListM[0]: "+paramListM[0]);
 		    e.printStackTrace();
-		    System.exit(0);
+		    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 		}//catch
 		
 		//set result
@@ -1554,7 +1554,7 @@ public class SetOps {
 			System.out.println("Cause for Exception: "+e.getCause());
 			System.out.println("Exception String: "+e.toString());
 			e.printStackTrace();
-			System.exit(0);
+			throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 		    }//catch
 		    if (isTrue) {
 			//if method has one argument
@@ -1575,7 +1575,7 @@ public class SetOps {
 			    System.out.println("Cause for Exception: "+e.getCause());
 			    System.out.println("Exception String: "+e.toString());
 			    e.printStackTrace();
-			    System.exit(0);
+		       	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 			}//catch
 
 			if (isTrue) {
@@ -1647,7 +1647,7 @@ public class SetOps {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 	    System.out.println("Error in SetOps.max. Can't invoke method "+method);
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//catch
 
 	Iterator it1 = ems1.iterator();
@@ -1675,7 +1675,7 @@ public class SetOps {
 		    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 		    System.out.println("Error in SetOps.max. Can't invoke method "+method);
 		    e.printStackTrace();
-		    System.exit(0);
+		    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 		}//catch
 
 		if (value.greater(maximum)) {
@@ -1729,7 +1729,7 @@ public class SetOps {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 	    System.out.println("Error in SetOps.min. Can't invoke method "+method);
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//catch
 	
 	Iterator it1 = el1.iterator();
@@ -1758,7 +1758,7 @@ public class SetOps {
 		    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 		    System.out.println("Error in SetOps.min. Can't invoke method "+method);
 		    e.printStackTrace();
-		    System.exit(0);
+		    throw new RuntimeException("An error occurred in the ROSEAlgebra.");		 
 		}//catch
 		
 		if (value.equal(0)) return new ElemPair(actElem1,actElem2);
@@ -1819,7 +1819,7 @@ public class SetOps {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 	    System.out.println("Error in SetOps.reduce: can't examine method.");
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//catch
 	
 	//NEW CODE WITH ITERATORS AND MULTISETS
@@ -1854,7 +1854,7 @@ public class SetOps {
 		    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 		    System.out.println("Error in SetOps.reduce: Problem with using predicate.");
 		    e.printStackTrace();
-		    System.exit(0);
+		    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 		}//catch
 		
 		if (isTrue) {
@@ -1869,14 +1869,14 @@ public class SetOps {
 				retSet.addAll((ElemMultiSet)(method.invoke(null,paramListMet)));
 			    else {
 				System.out.println("ERROR in SO.reduce(): can't invoke method");
-				System.exit(0);
+				throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 			    }//else
 			}//else
 		    } catch (Exception e) {
 			System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 			System.out.println("Error in SetOps.reduce: Problem with using method.");
 			e.printStackTrace();
-			System.exit(0);
+			throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 		    }//catch
 		    
 		    //remove element from set
@@ -1927,7 +1927,7 @@ public class SetOps {
 			System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 			System.out.println("Error in SetOps.reduce: Problem with using predicate.");
 			e.printStackTrace();
-			System.exit(0);
+			throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 		    }//catch
 		    
 		    if (isTrue) {
@@ -1942,7 +1942,7 @@ public class SetOps {
 				    retSet.addAll((ElemMultiSet)(method.invoke(null,paramListMet)));
 				else {
 				    System.out.println("ERROR in SO.reduce(): can't invoke method");
-				    System.exit(0);
+				    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 				}//else
 			    }//else
 			}//try
@@ -1950,7 +1950,7 @@ public class SetOps {
 			    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 			    System.out.println("Error in SetOps.reduce: Problem with using method.");
 			    e.printStackTrace();
-			    System.exit(0);
+			    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 			}//catch
 			
 			//now remove elements from retSet
@@ -2056,7 +2056,7 @@ public class SetOps {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 	    System.out.println("Error in SetOps.reduce: can't examine method.");
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//catch
 	
 	MultiSetEntry mse;
@@ -2095,7 +2095,7 @@ public class SetOps {
 			}//if
 			else {
 			    System.out.println("Error in SetOps.map: can't invoke method");
-			    System.exit(0);
+			    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 			}//else
 		    }//else
 
@@ -2104,7 +2104,7 @@ public class SetOps {
 		    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 		    System.out.println("Error in SetOps.map(pl,m). Can't invoke method "+method);
 		    e.printStackTrace();
-		    System.exit(0);
+		    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 		}//catch
 	    }//for
 	}//while 
@@ -2143,7 +2143,7 @@ public class SetOps {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 	    System.out.println("Error in SetOps.subtractSets: can't examine method.");
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//catch
 	
 	Iterator lit = el.iterator();
@@ -2173,7 +2173,7 @@ public class SetOps {
 			    }//if
 			    else {
 				System.out.println("ERROR (SetOps.map): can't invoke method");
-				System.exit(0);
+				throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 			    }//else
 			}//else
 		    }//else
@@ -2183,7 +2183,7 @@ public class SetOps {
 		    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 		    System.out.println("Error in SetOps.map. Can't invoke method "+m);
 		    e.printStackTrace();
-		    System.exit(0);
+		    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 		}//catch
 	    }//for nom
 	}//while
@@ -2414,7 +2414,7 @@ public class SetOps {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 	    System.out.println("Error in SetOps.sum. Can't invoke method "+m);
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//catch
 	return retSum;
     }//end method sum

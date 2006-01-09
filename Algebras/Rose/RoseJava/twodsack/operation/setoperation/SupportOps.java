@@ -113,7 +113,7 @@ public class SupportOps {
 			} catch (Exception e) {
 			    System.out.println("SupportOps.minimal: Caucht unexpected exception: "+e);
 			    e.printStackTrace();
-			    System.exit(0);
+			    throw new RuntimeException("An error occurred in the 2DSACK package.");
 			}//catch
 		    }//else
 	    }//if handleCycles
@@ -131,7 +131,7 @@ public class SupportOps {
 		    } catch (Exception e) {
 			System.out.println("SupportOps.minimal: Caught unexpected exception: "+e);
 			e.printStackTrace();
-			System.exit(0);
+			throw new RuntimeException("An error occurred in the 2DSACK package.");
 		    }//catch 
 		}//else
 	    }//else
@@ -140,7 +140,7 @@ public class SupportOps {
 		System.out.println("Exception was thrown in SupportOps.minimal(SegMultiSet,boolean):");
 		System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 		e.printStackTrace();
-		System.exit(0);
+		throw new RuntimeException("An error occurred in the 2DSACK package.");
 	    }//catch
 
 	return retList;
@@ -189,7 +189,7 @@ public class SupportOps {
 		} catch (Exception e) {
 		    System.out.println("SupportOps.unique: Caught unexpected exception: "+e);
 		    e.printStackTrace();
-		    System.exit(0);
+		    throw new RuntimeException("An error occurred in the 2DSACK package.");
 		}//catch
 	    }//else
 	    
@@ -201,7 +201,7 @@ public class SupportOps {
 	    System.out.println("Exception string: "+e.toString());
 	    System.out.println("stack trace: ");
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the 2DSACK package.");
 	}//catch
 	return SegMultiSet.convert(SetOps.rdup2(retList));
     }//end method unique
@@ -248,7 +248,7 @@ public class SupportOps {
 	    System.out.println("Exception cause: "+e.getCause());
 	    System.out.println("Exception string: "+e.toString());
 	    System.out.println("stack trace:"); e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the 2DSACK package.");
 	}//catch
 	return retList;
     }//end method contourGeneral
@@ -341,7 +341,7 @@ public class SupportOps {
 	    System.out.println("Exception was thrown in SupportOps.minus(SegMultiSet,TriMultiSet):");
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the 2DSACK package.");
 	}//catch
 	
 	//align all segments
@@ -419,7 +419,7 @@ public class SupportOps {
 	    System.out.println("Exception was thrown in SupportOps.pr_inside(PointMultiSet,TriMultiSet):");
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the 2DSACK package.");
 	}//catch
 	if (ps.size() == retList.size()) return true;
 	else return false;
@@ -509,7 +509,7 @@ public class SupportOps {
 	    System.out.println("Exception was thrown in ROSEAlgebra.minus(TriMultiSet,TriMultiSet):");
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the 2DSACK package.");
 	}//catch
 
 	return retSet;
@@ -554,7 +554,7 @@ public class SupportOps {
 	} catch (Exception e) {
 	    System.out.println("SupportOps.intersection: Caught an unexpected exception: "+e);
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the 2DSACK package.");
 	}//catch
 	
 	return retSet;
@@ -758,7 +758,7 @@ public class SupportOps {
 	} catch (Exception e) {
 	    System.out.println("Caught an unexpected exception in SupportOps.overlappingPairs.");
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the 2DSACK package.");
 	}//catch
 	
 
@@ -900,7 +900,7 @@ public class SupportOps {
 	} catch (Exception e) {
 	    System.out.println("Caught an unexpected exception in SupportOps.overlappingPairs.");
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the 2DSACK package.");
 	}//catch
 	
 	double tt06 = System.currentTimeMillis();
@@ -1011,20 +1011,15 @@ public class SupportOps {
     static public Boolean[] evaluateIntersectionAndMeets (PairMultiSet pms) {
 	Method methodFormALine,methodSecondHasPointOnFirst;
 	try {
-	    //methodFormALine = ssOpsClass.getMethod("formALine",paramListSS);
 	    methodSecondHasPointOnFirst = ssOpsClass.getMethod("secondHasPointOnFirst",paramListSS);
 	    	    
 	    ElemMultiSet set1 = new ElemMultiSet(ELEM_COMPARATOR);
 	    ElemMultiSet set2 = new ElemMultiSet(ELEM_COMPARATOR);
 	    SetOps.separateSets(pms,set1,set2);
 
-	    //ljp1 = SetOps.overlapLeftOuterJoin(set1,set2,methodFormALine,true,false,false,-1);
-	    //ljp2 = SetOps.overlapLeftOuterJoin(set2,set1,methodFormALine,true,false,false,-1);
-	    
 	    Boolean[] retArr = SupportOps.checkForIntersectionAndMeetsSameEndpoints(SegMultiSet.convert(set1),
 										    SegMultiSet.convert(set2));
-	    System.out.println("\n######################### First check done.");
-	    System.out.println("result: "+retArr[0].booleanValue()+" - "+retArr[1].booleanValue());
+
 	    if (retArr[0].booleanValue() == true) return retArr;
 	    
 	    //Now we can still have a special case, where one (or more) segment(s) of S1 has(have) an endpoint somewhere on a
@@ -1039,9 +1034,6 @@ public class SupportOps {
 	    ljp2 = SetOps.overlapLeftOuterJoin(set2,set1,methodSecondHasPointOnFirst,true,false,false,-1);
 	    
 	    Boolean[] retArr2 = SupportOps.checkForIntersectionAndMeets(ljp1,ljp2);
-	    System.out.println("\n######################### Second check done.");
-	    System.out.println("result(retArr1): "+retArr[0].booleanValue()+" - "+retArr[1].booleanValue());
-	    System.out.println("result(retArr2): "+retArr2[0].booleanValue()+" - "+retArr2[1].booleanValue());
 
 	    if (retArr[0].booleanValue() || retArr2[0].booleanValue()) retArr[0] = Boolean.TRUE;
 	    if (retArr[1].booleanValue() || retArr2[1].booleanValue()) retArr[1] = Boolean.TRUE;
@@ -1089,7 +1081,6 @@ public class SupportOps {
 
 	while ((arrIdx1 < g1vArr.length || !getNext1) && 
 	       (arrIdx2 < g2vArr.length || !getNext2)) {
-	    System.out.println("arrIdx1: "+arrIdx1+", arrIdx2: "+arrIdx2+" getNext1: "+getNext1+", getNext2: "+getNext2);
 
 	    if (getNext1) {
 		//arrIdx1++;
@@ -1104,39 +1095,22 @@ public class SupportOps {
 	    
 	    //if vertices are equal, get neighbours
 	    if (actV1.equal(actV2)) {
-		System.out.println("vertices are equal! "+(Point)actV1.value);
 		neighbours1 = graph1.getNeighbours(actV1);
 		neighbours2 = graph2.getNeighbours(actV2);
 		
-		System.out.println("neighbours1:");
-		for (int i = 0; i < neighbours1.length; i++)
-		    System.out.println(i+": "+(Point)neighbours1[i].value);
-
-		System.out.println("neighbours2:");
-		for (int i = 0; i < neighbours2.length; i++)
-		    System.out.println(i+": "+(Point)neighbours2[i].value);
-
 		//test lengthes of neighbour arrays
 		if ((neighbours1.length == 1 && neighbours2.length == 1) ||
 		    (neighbours1.length > 1 && neighbours2.length == 1) ||
 		    (neighbours1.length == 1 && neighbours2.length > 1)) {
-		    System.out.println("simple case: meets = true.");
 		    retArr[1] = Boolean.TRUE;
 		} else {
-		    System.out.println("traversing arrays...");
 		    //traverse both arrays in parallel using the angularly sorting
-		    //Let there be a center point which is the actual vertex.
-		    //Choose...
-		    //...
 		    double[] angle1 = new double[neighbours1.length];
 		    double[] angle2 = new double[neighbours2.length];
 		    //compute the angles of the other vertices compared to the 0° which is a 
 		    //horizontally drawn segment from the center point to the right.
 		    Point midP = (Point)actV1.value;
 		    Point startP = new Point(midP.x.plus(RationalFactory.constRational(10)),midP.y);
-
-		    System.out.println("midP: "+midP);
-		    System.out.println("\nstartP: "+startP);
 
 		    for (int i = 0; i < angle1.length; i++)
 			if (Mathset.pointPosition(midP,startP,(Point)neighbours1[i].value) <= 0)
@@ -1156,14 +1130,6 @@ public class SupportOps {
 		    //sort arrays
 		    Arrays.sort(angle1);
 		    Arrays.sort(angle2);
-		    
-		    System.out.println("angle array1:");
-		    for (int i = 0; i < angle1.length; i++) 
-			System.out.println(i+": "+angle1[i]);
-		    System.out.println("angle array2:");
-		    for (int i = 0; i < angle2.length; i++) 
-			System.out.println(i+": "+angle2[i]);
-
 		    
 		    //traverse arrays in parallel and count the number of 'array changes'
 		    int changes = 0;
@@ -1189,7 +1155,6 @@ public class SupportOps {
 
 		    //start traversal
 		    while (((aIdx1 < angle1.length || !next1)) && ((aIdx2 < angle2.length) || !next2)) {
-			System.out.println("aIdx1: "+aIdx1+", next1: "+next1+", aIdx2: "+aIdx2+", next2: "+next2+", lastTakenFrom: "+lastTakenFrom+", changes: "+changes);
 			if (next1) {
 			    //aIdx1++;
 			    next1 = false;
@@ -1201,13 +1166,11 @@ public class SupportOps {
 			
 			//compare values and set variable changes
 			if (angle1[aIdx1] < angle2[aIdx2]) {
-			    System.out.println("case 1");
 			    next1 = true;
 			    aIdx1++;
 			    if (lastTakenFrom) changes++;
 			    lastTakenFrom = false;
 			} else {
-			    System.out.println("case 2");
 			    next2 = true;
 			    aIdx2++;
 			    if (!lastTakenFrom) changes++;
@@ -1216,20 +1179,16 @@ public class SupportOps {
 		    }//while
 		    
 		    //check, whether there are still unvisited fields and modify the changes variable
-		    System.out.println("changes(pre): "+changes+", aIdx1: "+aIdx1+", aIdx2: "+aIdx2);
 		    if ((aIdx1 < angle1.length+1) || (aIdx2 < angle2.length+1)) changes++;
-		    System.out.println("changes(post): "+changes+", aIdx1: "+aIdx1+", aIdx2: "+aIdx2);
 
 		    //check variable changes and set boolean array
 		    if (changes > 2) {
 			retArr[0] = Boolean.TRUE;
 			retArr[1] = Boolean.FALSE;
-			System.out.println("--> changes > 2, return");
 			return retArr;
 		    } else {
 			retArr[0] = Boolean.FALSE;
 			retArr[1] = Boolean.TRUE;
-			System.out.println("--> changes < 2, meets = true");
 		    }//if
 		}//else lengthes were > 1
 	    		    
@@ -1242,7 +1201,6 @@ public class SupportOps {
 	    } else {
 		//neighbours are not equal, proceed in one of the arrays
 		int res = actV1.compare(actV2);
-		System.out.println("res: "+res);
 		
 		if (res == -1) {
 		    arrIdx1++;
@@ -1300,7 +1258,7 @@ public class SupportOps {
 	ProHashtable ht = new ProHashtable(INITIAL_CAPACITY);
 	Iterator sit;
 	Segment actSeg,htSeg,actLjpSeg;
-	ljp1.print();
+
 	while (it.hasNext()) {
 	    actLjp = (LeftJoinPair)((MultiSetEntry)it.next()).value;
 	    

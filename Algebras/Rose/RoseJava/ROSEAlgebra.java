@@ -66,7 +66,7 @@ public class ROSEAlgebra {
 	    ELEM_CLASS = Class.forName("twodsack.setelement.Element");
 	} catch (Exception e) {
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RoseAlgebraError("An error occurred while searching for the twodsack.setelement.Element class in the ROSEAlgebra.");
 	}//catch
     }//static
 

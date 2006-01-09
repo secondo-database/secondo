@@ -180,8 +180,7 @@ public class Edge implements ComparableMSE {
     private boolean rot (Edge inEdge) {
 	if (!(inEdge.first.value instanceof Point)) {
 	    System.out.println("Error in Edge.rot: this method only works with Point(s) --> found "+inEdge.first.value.getClass()+".");
-	    System.out.println("execution terminated.");
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//if
 	
 	double x1,x2,y1,y2;

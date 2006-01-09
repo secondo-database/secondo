@@ -120,7 +120,7 @@ public class IvlMultiSet extends MultiSet {
 		System.out.println("IvlMultiSet.minus: uncaught case!");
 		ivl1.print();
 		ivl2.print();
-		System.exit(0);
+		throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	    }//else
 	}//while
 

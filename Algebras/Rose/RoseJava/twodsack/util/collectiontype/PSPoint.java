@@ -101,8 +101,7 @@ public class PSPoint implements ComparableMSE {
 	    System.out.println("uncaught Case in PSPoint.compare.");
 	    this.print();
 	    p.print();
-	    System.exit(0);
-	    return 0;
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");	    
 	}
 	else { throw new WrongTypeException("Expected: "+this.getClass()+" - Found: "+e.getClass()); }
     }//end method compare

@@ -238,7 +238,7 @@ public class RationalFactory {
 	    catch (Exception e) {
 		System.out.println("Error in RationalFactory.constRational(integer): Couldn't create a new instance for integer["+i+"].");
 		e.printStackTrace();
-		System.exit(0);
+		throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	    }//catch
 	    return rat;
 	}//else if
@@ -279,7 +279,7 @@ public class RationalFactory {
 	    catch (Exception e) {
 		System.out.println("Error in RationalFactory.constRational(double): Couldn't create a new instance for double["+d+"].");
 		e.printStackTrace();
-		System.exit(0);
+		throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	    }//catch
 	    return rat;
 	}//else if
@@ -319,7 +319,7 @@ public class RationalFactory {
 	    catch (Exception e) {
 		System.out.println("Error in RationalFactory.constRational(Rational): Couldn't create a new instance for Rational["+r+"].");
 		e.printStackTrace();
-		System.exit(0);
+		throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	    }//catch
 	    return rat;
 	}//else if
@@ -362,7 +362,7 @@ public class RationalFactory {
 	    catch (Exception e) {
 		System.out.println("Error in RationalFactory.constRational(int,int): Couldn't create a new instance for int x int ["+num+", "+den+"].");
 		e.printStackTrace();
-		System.exit(0);
+		throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	    }//catch 
 	    return rat;
 	}//else if
@@ -395,7 +395,7 @@ public class RationalFactory {
 	} catch (Exception e) {
 	    System.out.println("RationalFactory.setDeviation: Problems with method setDeviation.");
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//catch
     }//end method setDeviation
 
@@ -416,7 +416,7 @@ public class RationalFactory {
 	} catch (Exception e) {
 	    System.out.println("RationalFactory.setDeviationDouble: Problems with method setDeviationDouble.");
 	    e.printStackTrace();
-		System.exit(0);
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}
     }//end method setDeviationDouble
 

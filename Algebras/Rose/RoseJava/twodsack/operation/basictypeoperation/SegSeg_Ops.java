@@ -544,8 +544,8 @@ public class SegSeg_Ops {
 		return retList;
 	    }//try
 	    catch (Exception e) {
-	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
-	    System.exit(0);
+		e.printStackTrace();
+		throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	    }//catch
 	}//if
 

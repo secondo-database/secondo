@@ -768,8 +768,7 @@ public class Graph {
 
 	if (inCycle.size() < 3) {
 	    System.out.println("ERROR: found bad cycle in Graph.computeSMSFromCycle.");
-	    System.out.println("execution terminated.");
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//if
 
 	for (int i = 0; i < inCycle.size()-1; i++) {
@@ -794,8 +793,7 @@ public class Graph {
 
 	if (inCycle.size() < 3) {
 	    System.out.println("ERROR: found bad cycle in Graph.computeSegListFromCycle.");
-	    System.out.println("execution terminated.");
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//if
 
 	for (int i = 0; i < inCycle.size()-1; i++) {
@@ -1064,8 +1062,8 @@ public class Graph {
 	    System.out.println("Vertex wasn't found in vertex array.");
 	    for (int i = 0; i < vArr.length; i++) 
 		System.out.println("["+i+"] "+((Element)vArr[i].value));
-	    System.exit(0);
-	    return null;
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
+	    //return null;
 	}//else
     }//end  method getVertex
 
@@ -1178,7 +1176,7 @@ public class Graph {
     public Vertex getNextVertex(Vertex queryVertex, Vertex prevVertex) {
 	if (succLists[queryVertex.number].size() != 2) {
 	    System.out.println("Graph.getNextVertex: Too many neighbour vertices. May have only two neighbours.");
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//if
 	//get both neighbour vertices from succLists
 	Vertex v0 = (Vertex)succLists[queryVertex.number].get(0);

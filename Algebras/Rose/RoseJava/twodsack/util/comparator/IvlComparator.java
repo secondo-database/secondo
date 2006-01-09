@@ -116,7 +116,8 @@ public class IvlComparator implements Comparator {
 			    else return 1;//-1;
 		    }//else
 		}//else
-		System.out.println("IvlComparator: Uncaught case."); i1.print(); i2.print(); System.exit(0);
+		System.out.println("IvlComparator: Uncaught case."); i1.print(); i2.print();
+		throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	    }//if meet
 
 	    else {
@@ -147,12 +148,13 @@ public class IvlComparator implements Comparator {
 			    else return 1;
 		    }//else
 		}//else
-		System.out.println("IvlComparator: Uncaught case."); i1.print(); i2.print(); System.exit(0);
+		System.out.println("IvlComparator: Uncaught case."); i1.print(); i2.print();
+		throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	    }//else if meet
 	}//if
 	else
 	    throw new WrongTypeException("Exception in IvlComparator: Expected type Interval - found: "+((MultiSetEntry)ino1).value.getClass()+"/"+((MultiSetEntry)ino2).value.getClass());
-	return 0;
+	
     }//end method compare
 
 }//end class IvlComparator

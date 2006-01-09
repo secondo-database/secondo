@@ -408,9 +408,7 @@ public class Polygons extends Element implements Serializable {
 		else if (compare == 0) {
 		    
 		    System.out.println("Error in Polygons.computeTriangles: a vertex was identified as 'start' but actually is not a start vertex!");
-		    System.exit(0);
-		    
-		    
+		    throw new RuntimeException("An error occurred in the 2DSACK package.");
 		}//else	   
 		
 		//build three new sweepStructElements and
@@ -470,7 +468,7 @@ public class Polygons extends Element implements Serializable {
 			
 			if (indexLP == -1) {
 			    System.out.println(" FATAL ERROR! No rimoEl in pointChain.");
-			    System.exit(0);
+			    throw new RuntimeException("An error occurred in the 2DSACK package.");
 			}//if
 			//set pCUp,pCDown in case the loops aren't entered
 			pCDown = indexLP;
@@ -585,7 +583,7 @@ public class Polygons extends Element implements Serializable {
 			}//if
 			else {
 			    System.out.println("NO(2)");
-			    System.exit(0);
+			    throw new RuntimeException("An error occurred in the 2DSACK package.");
 			}//else
 		    }//if
 		    
@@ -630,7 +628,7 @@ public class Polygons extends Element implements Serializable {
 			System.out.println();
 			System.out.println("x:");
 			x.print();
-			System.exit(0);
+			throw new RuntimeException("An error occurred in the 2DSACK package.");
 		    }
 		    
 		    //add xFoll to pointChain
@@ -1085,7 +1083,7 @@ public class Polygons extends Element implements Serializable {
 					    
 					    else {
 						System.out.println("Error in P.computeTriangles: Didn't find point (to remove) in pointChain.");
-						System.exit(0);
+						throw new RuntimeException("An error occurred in the 2DSACK package.");
 					    }//else
 					}//for k
 				    }//if
@@ -1118,7 +1116,7 @@ public class Polygons extends Element implements Serializable {
 					if (found) delList.remove(k);
 					else {
 					    System.out.println("Error in P.computeTriangles: Didn't find point (to remove) in pointChain.");
-					    System.exit(0);
+					    throw new RuntimeException("An error occurred in the 2DSACK package.");
 					}//else
 				    }//for k
 				    
@@ -1278,7 +1276,7 @@ public class Polygons extends Element implements Serializable {
 		    //if not, there is a serious error
 		    System.out.println("P.interval: 1+1=3? While searching for the proper interval to insert a new SweepStElem, two intervals were found, but they are too far away from eachother!");
 		    System.out.println("marker:"+marker+", marker2:"+marker2);
-		    System.exit(0);
+		    throw new RuntimeException("An error occurred in the 2DSACK package.");
 		}//if
 		return marker+1;
 	    }//if
@@ -1793,7 +1791,7 @@ public class Polygons extends Element implements Serializable {
 	    System.out.println("Exception Cause: "+e.getCause());
 	    System.out.println("Exception String: "+e.toString());
 	    e.printStackTrace();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the 2DSACK package.");
 	}//catch
 
 	return pl;
@@ -1839,7 +1837,7 @@ public class Polygons extends Element implements Serializable {
 		System.out.println("Exception cause: "+e.getCause());
 		System.out.println("Exception String: "+e.toString());
 		e.printStackTrace();
-		System.exit(0);
+		throw new RuntimeException("An error occurred in the 2DSACK package.");
 	    }//catch
 	    return retVal;
 	}//if
@@ -1886,7 +1884,7 @@ public class Polygons extends Element implements Serializable {
 		System.out.println("Exceptoin cause: "+e.getCause());
 		System.out.println("Exception string: "+e.toString());
 		e.printStackTrace();
-		System.exit(0);
+		throw new RuntimeException("An error occurred in the 2DSACK package.");
 	    }//catch
 	    if (retList.isEmpty()) { return false; }
 	    else { return true; }
@@ -2146,7 +2144,7 @@ public class Polygons extends Element implements Serializable {
 	
 	if (xpos == -1) {
 	    System.out.println("Error in Polygons.sortBorder: Didn't find x in border structure.");
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the 2DSACK package.");
 	}//if
 
 	//resort found cycle
@@ -2234,7 +2232,7 @@ public class Polygons extends Element implements Serializable {
 		    tmsFirst = computeTrianglesSUB(CycleList.convert(firstList));
 		} else {
 		    System.out.println("You chose a non-existing triangulator/mesher.");
-		    System.exit(0);
+		    throw new RuntimeException("An error occurred in the 2DSACK package.");
 		}//else
 		
 		triSetList.add(tmsFirst);
@@ -2309,7 +2307,7 @@ public class Polygons extends Element implements Serializable {
 			newTMS = computeTrianglesSUB(CycleList.convert(newFace));
 		    } else {
 			System.out.println("You chose a non-existing triangulator/mesher.");
-			System.exit(0);
+			throw new RuntimeException("An error occurred in the 2DSACK package.");
 		    }//else
 		    
 		    triSetList.add(newTMS);
@@ -2546,7 +2544,7 @@ public class Polygons extends Element implements Serializable {
 		resultSet.addAll(computeTrianglesSUB(CycleList.convert(actCycleList)));
 	    } else {
 		System.out.println("You chose a non-existing triangulator/mesher.");
-		System.exit(0);
+		throw new RuntimeException("An error occurred in the 2DSACK package.");
 	    }//else
 
 	}//while
@@ -2661,9 +2659,12 @@ public class Polygons extends Element implements Serializable {
 	    gfx1.addSet(plSet);
 	    gfx1.showIt(false);
 	    try { int data = System.in.read(); }
-	    catch (Exception e) { System.exit(0); }
+	    catch (Exception e) {
+		e.printStackTrace();
+		throw new RuntimeException("An error occurred in the 2DSACK package.");
+	    }
 	    gfx1.kill();
-	    System.exit(0);
+	    throw new RuntimeException("An error occurred in the 2DSACK package.");
 	}//if
 	
 	if ((noTrueIntersections % 2) == 1) return true;

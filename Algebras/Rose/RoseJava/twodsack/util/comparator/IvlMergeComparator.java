@@ -75,7 +75,7 @@ public class IvlMergeComparator implements Comparator {
 
 	    if (meet) {
 		System.out.println("IvlComparator: not yet implemented.");
-		System.exit(0);
+		throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	    }//if meet
 
 	    else {

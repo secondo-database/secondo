@@ -374,6 +374,8 @@ public class SegTri_Ops {
 	}//if
 	
 	//This case should never be reached.
+	throw new RuntimeException("An error occurred in the ROSEAlgebra.");
+	/*
 	System.out.println("\nSegTri_Ops.intersection: Error in computation of intersection segment.");
 	System.out.println("actTri: "+t);
 	System.out.println("actSeg: "+sStart+"/"+sEnd);
@@ -397,13 +399,15 @@ public class SegTri_Ops {
  	try {
 	    String data = inBR.readLine();
  	} catch (Exception e) {
-	    System.exit(0);
+	    e.printStackTrace();
+	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//catch
 	gfx.kill();
 
 
-	System.exit(0);
+	throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	return null;
+	*/
     }//end method intersection
 	
 

@@ -100,8 +100,7 @@ public class Regions implements Serializable{
 	    borderDefined = false;
 	}//if
 	else if(!isRegularTriSet(tl)) {
-	    System.out.println("Error in Regions: tried to construct bad Region.");
-	    System.exit(0);
+	    //throw new RoseAlgebraError("Error in Regions: tried to construct bad Region.");
 	}//if
 	else {
 	    triset = TriMultiSet.convert(tl);
@@ -123,21 +122,6 @@ public class Regions implements Serializable{
      * @param sl the set of segments
      */
     public Regions(SegMultiSet sl) {
-	/*
-	  BufferedReader inBR = new BufferedReader(new InputStreamReader(System.in));
-	  DisplayGFX gfx = new DisplayGFX();
-	  
-	  gfx.initWindow();
-	  gfx.addSet(sl);
-	  gfx.showIt(false);
-	  try {
-	  String data = inBR.readLine();
-	  } catch (Exception e) {
-	  System.exit(0);
-	  }//catch
-	  gfx.kill();
-	*/
-
 	if (sl == null || sl.isEmpty()) {
 	    triset = new TriMultiSet(new TriangleComparator());
 	    cyclesDefined = false;

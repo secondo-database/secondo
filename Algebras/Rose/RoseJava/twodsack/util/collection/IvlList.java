@@ -159,7 +159,7 @@ public class IvlList extends ProLinkedList {
 			System.out.println("IvlList.merge: uncaught case...");
 			ivl1.print();
 			ivl2.print();
-			System.exit(0);
+			throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 		    }//else
 		}//if
 	    }//while
@@ -249,7 +249,7 @@ public class IvlList extends ProLinkedList {
 			System.out.println("IvlList.merge: uncaught case...");
 			ivl1.print();
 			ivl2.print();
-			System.exit(0);
+			throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 		    }//else
 		}//if
 	    }//while
@@ -328,7 +328,7 @@ public class IvlList extends ProLinkedList {
 		System.out.println("IvlList.minus: uncaught case!");
 		ivl1.print();
 		ivl2.print();
-		System.exit(0);
+		throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	    }//else
 	    
 	}//while
@@ -407,7 +407,7 @@ public class IvlList extends ProLinkedList {
 		System.out.println("IvlList.intersect: uncaught case!");
 		ivl1.print();
 		ivl2.print();
-		System.exit(0);
+		throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	    }//else
 	}//while
 	
@@ -736,7 +736,7 @@ public class IvlList extends ProLinkedList {
 		this.print();
 		System.out.println("\nactIvl: ");actIvl.print();
 		System.out.println("nextIvl: ");nextIvl.print();
-		System.exit(0);
+		throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	    }//if
 	    actIvl = nextIvl;
 	}//while it
