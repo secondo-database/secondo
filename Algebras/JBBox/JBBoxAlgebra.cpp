@@ -27,6 +27,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 2004-04-22 Thomas Behr
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 \abstract{
 This algebra is an example to demonstrate how algebras written in
 Java can be used in {\textsc{Secondo}}. This algebra supports also
@@ -1388,12 +1392,7 @@ TypeConstructor jpoint
  CloneJPoint,      // object clone
  CastJPoint,       // cast function
  SizeOfJPoint,     // Size of a point
- CheckJPoint,       // kind checking function
- 0,                // predef. pers. function for model
- TypeConstructor::DummyInModel,
- TypeConstructor::DummyOutModel,
- TypeConstructor::DummyValueToModel,
- TypeConstructor::DummyValueListToModel
+ CheckJPoint       // kind checking function
 );
 
 
@@ -1412,12 +1411,7 @@ TypeConstructor jbox
  CloneJBox,      // object clone
  CastJBox,       // cast function
  SizeOfJBox,     // Size of a point
- CheckJBox,       // kind checking function
- 0,                // predef. pers. function for model
- TypeConstructor::DummyInModel,
- TypeConstructor::DummyOutModel,
- TypeConstructor::DummyValueToModel,
- TypeConstructor::DummyValueListToModel
+ CheckJBox       // kind checking function
 );
 
 
@@ -1630,10 +1624,6 @@ static int IsEmpty_B(Word* args, Word& result, int message,
 4.3 Selection Functions
 
 */
-static int simpleSelect(ListExpr args){
-   return 0;
-}
-
 static int EqualsSelect(ListExpr args){
   if(nl->ListLength(args)!=2) return -1; // error
   if(nl->IsEqual(nl->First(args),"jpoint")) return 0;
@@ -1718,25 +1708,6 @@ const string isempty_spec=
 	    "    \" jb isempty\" "
 	    "    \"query  B isempty\"))";
 
-
-
-/*
-
-4.6 Dummy Model Mappings
-
-*/
-static Word
-CcNoModelMapping( ArgVector arg, Supplier opTreeNode )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-ModelMapping JBoxModel_2[] = {CcNoModelMapping,
-                              CcNoModelMapping};
-ModelMapping JBoxModel_3[] = {CcNoModelMapping,
-                              CcNoModelMapping,
-			      CcNoModelMapping};
-
 /*
 
 4.7 Definition of Operators
@@ -1749,7 +1720,6 @@ Operator op_equals
  equals_spec,  		//specification ....
  2,                     // number of functions
  EqualsMap,			//value mapping
- JBoxModel_2,	      	//dummy model mapping
  EqualsSelect,		//selection function
  OiOiBool		//type mapping
 );
@@ -1759,8 +1729,7 @@ Operator op_contains
  "contains", 			//name
  contains_spec,  		//specification ....
  Contains_BP,			//value mapping
- Operator::DummyModel,		//dummy model mapping,
- simpleSelect,			//trivial selection function
+ Operator::SimpleSelect,			//trivial selection function
  BoxPointBool			//type mapping
 );
 
@@ -1769,8 +1738,7 @@ Operator op_inside
  "inside", 			//name
  inside_spec,  		//specification ....
  Inside_PB,			//value mapping
- Operator::DummyModel,		//dummy model mapping,
- simpleSelect,			//trivial selection function
+ Operator::SimpleSelect,			//trivial selection function
  PointBoxBool			//type mapping
 );
 
@@ -1779,8 +1747,7 @@ Operator op_intersects
  "intersects", 			//name
  intersects_spec,  		//specification ....
  Intersects_BB,			//value mapping
- Operator::DummyModel,		//dummy model mapping,
- simpleSelect,			//trivial selection function
+ Operator::SimpleSelect,			//trivial selection function
  BoxBoxBool			//type mapping
 );
 
@@ -1791,7 +1758,6 @@ Operator op_junion
  union_spec,  		//specification ....
  3,                     // number of functions
  JUnionMap,		//value mapping
- JBoxModel_3,	      	//dummy model mapping
  UnionSelect,		//selection function
  UnionTypeMap		//type mapping
 );
@@ -1803,8 +1769,7 @@ Operator op_jintersection
  "intersection",		//name
  intersection_spec,  		//specification ....
  Intersection_BB,		//value mapping
- Operator::DummyModel,		//dummy model mapping
- simpleSelect,			//trivial selection function
+ Operator::SimpleSelect,			//trivial selection function
  BoxBoxBox			//type mapping
 );
 
@@ -1813,8 +1778,7 @@ Operator op_size
  "size", 			//name
  size_spec,  			//specification
  Size_B,			//value mapping
- Operator::DummyModel,		//dummy model mapping
- simpleSelect,			//trivial selection function
+ Operator::SimpleSelect,			//trivial selection function
  BoxReal			//type mapping
 );
 
@@ -1823,8 +1787,7 @@ Operator op_isempty
  "isempty", 			//name
  isempty_spec,  		//specification ....
  IsEmpty_B,			//value mapping
- Operator::DummyModel,		//dummy model mapping
- simpleSelect,			//trivial selection function
+ Operator::SimpleSelect,			//trivial selection function
  BoxBool			//type mapping
 );
 

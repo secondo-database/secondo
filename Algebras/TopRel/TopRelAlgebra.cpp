@@ -29,8 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 [title]
 [toc]
 
-\noindent
-
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
 
 1. Includes and Definitions
 
@@ -1346,12 +1347,7 @@ TypeConstructor int9m(
         OpenInt9M, SaveInt9M, CloseInt9M, CloneInt9M,  
         CastInt9M,                    
         SizeOfInt9M,                  
-        CheckInt9M,                   
-        0,                           
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckInt9M );
 
 TypeConstructor cluster(
         "cluster",                      
@@ -1362,12 +1358,7 @@ TypeConstructor cluster(
         OpenCluster, SaveCluster, CloseCluster, CloneCluster,  
         CastCluster,                    
         SizeOfCluster,                  
-        CheckCluster,                   
-        0,                           
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckCluster );                  
 
 TypeConstructor predicategroup(
         "predicategroup",                     
@@ -1380,12 +1371,8 @@ TypeConstructor predicategroup(
         ClosePredicateGroup, ClonePredicateGroup,  
         CastPredicateGroup,                    
         SizeOfPredicateGroup,                  
-        CheckPredicateGroup,                   
-        0,                           
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckPredicateGroup );
+
 /*
 7 Definition of Algebra operators
 
@@ -2369,15 +2356,6 @@ ValueMapping RestrictMap[] = { Restrict_Cluster_String_Fun,
 ValueMapping RelaxMap[] = { Relax_Cluster_String_Fun, 
                             Relax_Cluster_Text_Fun};
 /*
-7.5 Model Mappings
-
-*/
-ModelMapping DummyModel_7[] =
-        {Operator::DummyModel,Operator::DummyModel,Operator::DummyModel,
-         Operator::DummyModel,Operator::DummyModel,Operator::DummyModel,
-         Operator::DummyModel};
-
-/*
 7.6 Selection Functions
 
 */
@@ -2444,7 +2422,6 @@ Operator transpose(
          TransposeSpec,   // specification
          2,               // number of functions 
          TransposeMap,    // array of value mappings
-         DummyModel_7,
          TransposeSelect,
          TransposeTM);
 
@@ -2453,7 +2430,6 @@ Operator union_op(
          UnionSpec,   // specification
          2,               // number of functions 
          UnionMap,    // array of value mappings
-         DummyModel_7,
          SetOpsSelect,
          SetOpsTM);
 
@@ -2462,7 +2438,6 @@ Operator multiintersection(
          MultiIntersectionSpec,   // specification
          2,               // number of functions 
          MultiIntersectionMap,    // array of value mappings
-         DummyModel_7,
          SetOpsSelect,
          MultiSetOpsTM);
 
@@ -2471,7 +2446,6 @@ Operator intersection(
          IntersectionSpec,   // specification
          2,               // number of functions 
          IntersectionMap,    // array of value mappings
-         DummyModel_7,
          SetOpsSelect,
          SetOpsTM);
 
@@ -2480,7 +2454,6 @@ Operator invert(
         InvertSpec,   // specification
          2,               // number of functions 
          InvertMap,    // array of value mappings
-         DummyModel_7,
          InvertSelect,
          InvertTM);
 
@@ -2489,7 +2462,6 @@ Operator sizeof_op(
          SizeOf_Spec,   // specification
          2,               // number of functions 
          SizeOfMap,    // array of value mappings
-         DummyModel_7,
          SizeOfSelect,
          SizeOfTM);
 
@@ -2498,7 +2470,6 @@ Operator restrict_op(
          Restrict_Spec,   // specification
          2,               // number of functions 
          RestrictMap,    // array of value mappings
-         DummyModel_7,
          RestrictSelect,
          RestrictRelaxTM);
 
@@ -2507,7 +2478,6 @@ Operator relax_op(
          Relax_Spec,   // specification
          2,               // number of functions 
          RelaxMap,    // array of value mappings
-         DummyModel_7,
          RelaxSelect,
          RestrictRelaxTM);
 
@@ -2516,7 +2486,6 @@ Operator createcluster(
          CreateCluster_Spec,   // specification
          2,               // number of functions 
          CreateClusterMap,    // array of value mappings
-         DummyModel_7,
          CreateClusterSelect,
          CreateClusterTM);
 
@@ -2524,7 +2493,6 @@ Operator add(
          "+", // name
          AddSpec, // specification
          Add_Fun,
-         Operator::DummyModel,
          Operator::SimpleSelect,
          Cluster_Int9M_Cluster);
 
@@ -2532,7 +2500,6 @@ Operator pwdisjoint(
          "pwdisjoint", // name
          PWDisjoint_Spec, // specification
          PWDisjoint_Cluster_Fun,
-         Operator::DummyModel,
          Operator::SimpleSelect,
          PWDisjointTM);
 
@@ -2540,7 +2507,6 @@ Operator unspecified(
          "unspecified", // name
          UnSpecified_Spec, // specification
          UnSpecified_Fun,
-         Operator::DummyModel,
          Operator::SimpleSelect,
          UnSpecifiedTM);
 
@@ -2548,7 +2514,6 @@ Operator iscomplete(
          "isComplete", // name
          IsComplete_Spec, // specification
          IsComplete_Fun,
-         Operator::DummyModel,
          Operator::SimpleSelect,
          IsCompleteTM);
 
@@ -2556,7 +2521,6 @@ Operator minus(
          "-", // name
          MinusSpec, // specification
          Minus_Cluster_Cluster_Fun,
-         Operator::DummyModel,
          Operator::SimpleSelect,
          Cluster_Cluster_Cluster);
 
@@ -2564,7 +2528,6 @@ Operator remove(
          "-", // name
          RemoveSpec, // specification
          Remove_Fun,
-         Operator::DummyModel,
          Operator::SimpleSelect,
          Cluster_Int9M_Cluster);
 
@@ -2572,7 +2535,6 @@ Operator number_of(
          "number_of", // name
          NumberOfSpec, // specification
          NumberOf_Fun,
-         Operator::DummyModel,
          Operator::SimpleSelect,
          Int9M_Int);
 
@@ -2580,7 +2542,6 @@ Operator name_of(
          "name_of", // name
          NameOfSpec, // specification
          NameOf_Fun,
-         Operator::DummyModel,
          Operator::SimpleSelect,
          Cluster_String);
 
@@ -2588,7 +2549,6 @@ Operator rename(
          "renamecluster", // name
          RenameSpec, // specification
          Rename_Fun,
-         Operator::DummyModel,
          Operator::SimpleSelect,
          Cluster_String_Cluster);
 
@@ -2596,7 +2556,6 @@ Operator contains(
          "contains", // name
          ContainsSpec, // specification
          Contains_Fun,
-         Operator::DummyModel,
          Operator::SimpleSelect,
          Cluster_Int9M_Bool);
 
@@ -2604,7 +2563,6 @@ Operator disjoint(
          "disjoint", // name
          DisjointSpec, // specification
          Disjoint_Cluster_Cluster_Fun,
-         Operator::DummyModel,
          Operator::SimpleSelect,
          Cluster_Cluster_Bool);
 
@@ -2612,7 +2570,6 @@ Operator createpgroup(
          "createpgroup", // name
          CreatePGroupSpec, // specification
          CreatePGroup_Fun,
-         Operator::DummyModel,
          Operator::SimpleSelect,
          CreatePGroupTM);
 
@@ -2620,7 +2577,6 @@ Operator createprioritypgroup(
          "createprioritypgroup", // name
          CreatePriorityPGroupSpec, // specification
          CreatePriorityPGroup_Fun,
-         Operator::DummyModel,
          Operator::SimpleSelect,
          CreatePGroupTM);
 
@@ -2628,7 +2584,6 @@ Operator createvalidpgroup(
          "createvalidpgroup", // name
          CreateValidPGroupSpec, // specification
          CreateValidPGroup_Fun,
-         Operator::DummyModel,
          Operator::SimpleSelect,
          CreateValidPGroupTM);
 
@@ -2636,7 +2591,6 @@ Operator clustername_of(
          "clustername_of", // name
          ClusterNameOf_pc_m_Spec, // specification
          ClusterNameOf_Fun,
-         Operator::DummyModel,
          Operator::SimpleSelect,
          ClusterName_OfTM);
 
@@ -2644,7 +2598,6 @@ Operator clusterof(
          "clusterof", // name
          ClusterOf_pc_m_Spec, // specification
          ClusterOf_Fun,
-         Operator::DummyModel,
          Operator::SimpleSelect,
          ClusterOfTM); 
 

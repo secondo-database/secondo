@@ -29,6 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 July 2002 RHG
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 This little algebra demonstrates the use of streams and parameter functions
 in algebra operators. It does not introduce any type constructors, but has
 several operators to manipulate streams.
@@ -423,7 +427,6 @@ Operator intstream (
 	"intstream", 		//name
 	intstreamSpec,         //specification
 	intstreamFun,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 	simpleSelect,		//trivial selection function
 	intstreamType		//type mapping
 );
@@ -432,7 +435,6 @@ Operator cppcount (
 	"count", 		//name
 	countSpec,         	//specification
 	countFun,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 	simpleSelect,		//trivial selection function
 	countType		//type mapping
 );
@@ -441,7 +443,6 @@ Operator printintstream (
 	"printintstream", 	//name
 	printintstreamSpec,	//specification
 	printintstreamFun,	//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 	simpleSelect,		//trivial selection function
 	printintstreamType	//type mapping
 );
@@ -450,7 +451,6 @@ Operator sfilter (
 	"filter", 		//name
 	filterSpec,		//specification
 	filterFun,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 	simpleSelect,		//trivial selection function
 	filterType		//type mapping
 );

@@ -24,6 +24,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable 
+level remains. Models are also removed from type constructors.
+
 [1] Implementation of BTree Algebra
 
 [TOC]
@@ -782,12 +786,7 @@ TypeConstructor cppbtree( "btree",				BTreeProp,
 						              OpenBTree,			SaveBTree,
             						  CloseBTree,			CloneBTree,
 						              CastBTree,   			SizeOfBTree,
-                          CheckBTree,
-                          0,
-                          TypeConstructor::DummyInModel,
-                          TypeConstructor::DummyOutModel,
-                          TypeConstructor::DummyValueToModel,
-                          TypeConstructor::DummyValueListToModel );
+                          CheckBTree );
 
 /*
 
@@ -1024,15 +1023,12 @@ const string CreateBTreeSpec  = "( ( \"1st Signature\" \"2nd Signature\" "
 */
 ValueMapping createbtreemap[] = { CreateBTreeValueMapping_Rel, 
                                   CreateBTreeValueMapping_Stream };
-ModelMapping btreenomodelmap[] = { Operator::DummyModel, 
-                                   Operator::DummyModel };
 
 Operator createbtree (
           "createbtree",             // name
           CreateBTreeSpec,           // specification
           2,	                       // number of overloaded functions
           createbtreemap,            // value mapping
-          btreenomodelmap,           // dummy model mapping, defines in Algebra.h
           CreateBTreeSelect,         // trivial selection function
           CreateBTreeTypeMap         // type mapping
 );
@@ -1296,7 +1292,6 @@ Operator exactmatch (
          "exactmatch",            // name
 	 ExactMatchSpec,          // specification
 	 IndexQuery<EXACTMATCH>,              // value mapping
-	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
 	 Operator::SimpleSelect,         // trivial selection function
 	 IndexQueryTypeMap<EXACTMATCH>        // type mapping
 );
@@ -1329,7 +1324,6 @@ Operator cpprange (
          "range",            // name
 	 RangeSpec,          // specification
 	 IndexQuery<RANGE>,              // value mapping
-	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
 	 Operator::SimpleSelect,         // trivial selection function
 	 IndexQueryTypeMap<RANGE>        // type mapping
 );
@@ -1365,7 +1359,6 @@ Operator leftrange (
          "leftrange",            // name
 	 LeftRangeSpec,          // specification
 	 IndexQuery<LEFTRANGE>,              // value mapping
-	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
 	 Operator::SimpleSelect,         // trivial selection function
 	 IndexQueryTypeMap<LEFTRANGE>        // type mapping
 );
@@ -1404,7 +1397,6 @@ Operator rightrange (
          "rightrange",            // name
 	 RightRangeSpec,          // specification
 	 IndexQuery<RIGHTRANGE>,              // value mapping
-	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
 	 Operator::SimpleSelect,         // trivial selection function
 	 IndexQueryTypeMap<RIGHTRANGE>        // type mapping
 );
@@ -1667,7 +1659,6 @@ Operator insertbtree (
          "insertbtree",              // name
          insertBTreeSpec,            // specification
          insertBTreeValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          insertBTreeTypeMap          // type mapping
 );
@@ -1769,7 +1760,6 @@ Operator deletebtree (
          "deletebtree",              // name
          deleteBTreeSpec,            // specification
          deleteBTreeValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          deleteBTreeTypeMap          // type mapping
 );
@@ -1878,7 +1868,6 @@ Operator updatebtree (
          "updatebtree",              // name
          updateBTreeSpec,            // specification
          updateBTreeValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          updateBTreeTypeMap          // type mapping
 );

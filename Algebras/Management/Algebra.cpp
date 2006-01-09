@@ -23,6 +23,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 July 2004, M. Spiekermann. Counters for type constructors and operators were
 introduced to assert correct vector indexes and avoid segmentation faults.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 */
 
 using namespace std;
@@ -36,19 +40,6 @@ NestedList *nl;
 QueryProcessor *qp;
 
 /* Member functions of class Operator: */
-
-Word
-Operator::DummyModel( ArgVector, Supplier )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-ListExpr
-Operator::DummyCost( ListExpr )
-{
-  return (0);
-}
-
 int
 Operator::SimpleSelect( ListExpr )
 {
@@ -59,54 +50,40 @@ Operator::Operator( const string& nm,
                     const string& spec,
                     const int noF,
                     ValueMapping vms[],
-                    ModelMapping mms[],
                     SelectFunction sf,
-                    TypeMapping tm,
-                    CostMapping cm /* = Operator::DummyCost */ )
+                    TypeMapping tm )
 {
   name           = nm;
   specString     = spec;
   numOfFunctions = noF;
   selectFunc     = sf;
   valueMap       = new ValueMapping[numOfFunctions];
-  modelMap       = new ModelMapping[numOfFunctions];
   typeMap        = tm;
-  costMap        = cm;
 
   for ( int i = 0; i < numOfFunctions; i++ )
-  {
     AddValueMapping( i, vms[i] );
-    AddModelMapping( i, mms[i] );
-  }
 }
 
 Operator::Operator( const string& nm,
                     const string& spec,
                     ValueMapping vm,
-                    ModelMapping mm,
                     SelectFunction sf,
-                    TypeMapping tm,
-                    CostMapping cm /* = Operator::DummyCost */ )
+                    TypeMapping tm )
 {
   name           = nm;
   specString     = spec;
   numOfFunctions = 1;
   selectFunc     = sf;
   valueMap       = new ValueMapping[1];
-  modelMap       = new ModelMapping[1];
   typeMap        = tm;
-  costMap        = cm;
 
   AddValueMapping( 0, vm );
-  AddModelMapping( 0, mm );
 }
 
 Operator::~Operator()
 {
   delete[] valueMap;
-  delete[] modelMap;
 }
-
 
 bool
 Operator::AddValueMapping( const int index, ValueMapping f )
@@ -114,20 +91,6 @@ Operator::AddValueMapping( const int index, ValueMapping f )
   if ( index < numOfFunctions && index >= 0 )
   {
     valueMap[index] = f;
-    return (true);
-  }
-  else
-  {
-    return (false);
-  }
-}
-
-bool
-Operator::AddModelMapping( const int index, ModelMapping f )
-{
-  if ( index < numOfFunctions && index >= 0 )
-  {
-    modelMap[index] = f;
     return (true);
   }
   else
@@ -148,20 +111,7 @@ Operator::CallTypeMapping( ListExpr argList )
   return ((*typeMap)( argList ));
 }
 
-Word
-Operator::CallModelMapping( int index, ArgVector argv, Supplier sup )
-{
-  return ((*modelMap[index])( argv, sup ));
-}
-
-ListExpr
-Operator::CallCostMapping( ListExpr argList )
-{
-  return ((*costMap)( argList ));
-}
-
 /* Member functions of Class TypeConstructor */
-
 bool
 TypeConstructor::DefaultOpen( SmiRecord& valueRecord,
                               size_t& offset,
@@ -214,84 +164,6 @@ TypeConstructor::DefaultSave( SmiRecord& valueRecord,
   return (true);
 }
 
-bool
-TypeConstructor::DefaultPersistModel( const PersistDirection dir,
-                                      SmiRecord& modelRecord,
-                                      const ListExpr typeExpr,
-                                      Word& model )
-{
-  ListExpr modelList = 0;
-  string modelString;
-  int modelLength;
-  switch ( dir )
-  {
-    case ReadFrom:
-    {
-      modelRecord.Read( &modelLength, sizeof( modelLength ), 0 );
-      char* buffer = new char[modelLength];
-      modelRecord.Read( buffer, modelLength, sizeof( modelLength ) );
-      modelString.assign( buffer, modelLength );
-      delete []buffer;
-      nl->ReadFromString( modelString, modelList );
-      model = InModel( typeExpr, modelList, 1 );
-    }
-    break;
-    case WriteTo:
-    {
-      modelList = OutModel( typeExpr, model );
-      nl->WriteToString( modelString, modelList );
-      modelLength = modelString.length();
-      modelRecord.Write( &modelLength, sizeof( modelLength ), 0 );
-      modelRecord.Write( modelString.data(), modelString.length(), sizeof( modelLength ) );
-    }
-    break;
-    case DeleteFrom:
-    {
-      // Nothing needs to be done in this case
-    }
-    break;
-  }
-  nl->Destroy( modelList );
-  return (true);
-}
-
-bool
-TypeConstructor::DummyPersistModel( const PersistDirection dir,
-                                    SmiRecord& modelRecord,
-                                    const ListExpr typeExpr,
-                                    Word& model )
-{
-  return (true);
-}
-
-Word
-TypeConstructor::DummyInModel( ListExpr typeExpr, ListExpr list, int objNo )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-ListExpr
-TypeConstructor::DummyOutModel( ListExpr typeExpr, Word model )
-{
-  return (0);
-}
-
-Word
-TypeConstructor::DummyValueToModel( ListExpr typeExpr, Word value )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-Word
-TypeConstructor::DummyValueListToModel( const ListExpr typeExpr,
-                                        const ListExpr valueList,
-                                        const int errorPos,
-                                        ListExpr& errorInfo,
-                                        bool& correct )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
 Word
 TypeConstructor::DummyCreate( const ListExpr typeInfo )
 {
@@ -334,12 +206,7 @@ TypeConstructor::TypeConstructor( const string& nm,
                                   ObjectClone clone,
                                   ObjectCast ca,
                                   ObjectSizeof sizeOf,
-                                  TypeCheckFunction tcf,
-                                  PersistFunction pmf,
-                                  InModelFunction inm,
-                                  OutModelFunction outm,
-                                  ValueToModelFunction vtm,
-                                  ValueListToModelFunction vltm )
+                                  TypeCheckFunction tcf )
 {
   name                 = nm;
   propFunc             = prop;
@@ -356,11 +223,6 @@ TypeConstructor::TypeConstructor( const string& nm,
   castFunc             = ca;
   sizeofFunc           = sizeOf;
   typeCheckFunc        = tcf;
-  persistModelFunc     = pmf;
-  inModelFunc          = inm;
-  outModelFunc         = outm;
-  valueToModelFunc     = vtm;
-  valueListToModelFunc = vltm;
 }
 
 TypeConstructor::~TypeConstructor()
@@ -477,43 +339,7 @@ TypeConstructor::SizeOf()
   return (*sizeofFunc)();
 }
 
-bool
-TypeConstructor::PersistModel( PersistDirection dir,
-                               SmiRecord& modelRecord,
-                               const ListExpr typeExpr,
-                               Word& model )
-{
-  if ( persistModelFunc != 0 )
-  {
-    return ((*persistModelFunc)( dir, modelRecord, typeExpr, model ));
-  }
-  else
-  {
-    return (DefaultPersistModel( dir, modelRecord, typeExpr, model ));
-  }
-}
-
-Word
-TypeConstructor::InModel( ListExpr type, ListExpr list, int objNo )
-{
-  return ((*inModelFunc)( type, list, objNo ));
-}
-
-ListExpr
-TypeConstructor::OutModel( ListExpr type, Word model )
-{
-  return ((*outModelFunc)( type, model ));
-}
-
-Word
-TypeConstructor::ValueToModel( ListExpr type, Word value )
-{
-  return ((*valueToModelFunc)( type, value ));
-}
-
-
 /* Member functions of Class Algebra: */
-
 Algebra::Algebra() : tcsNum(0), opsNum(0)
 {
 }

@@ -77,6 +77,10 @@ Sept 2004, M. Spiekermann. A bug in the error handling of restore databases has 
 
 Dec 2004, M. Spiekermann. The new command ~set~ was implemented to support interactive changes of runtime parameters. 
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 \tableofcontents
 
 */
@@ -282,13 +286,20 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   // set the maximum memory which may be allocated by operators
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
 
-  long keyVal = SmiProfile::GetParameter("QueryProcessor", "MaxMemPerOperator", 0, parmFile);
-  if (  !keyVal ) {
-    keyVal = 16 * 1024;
-  }
+  long keyVal = 
+    SmiProfile::GetParameter("QueryProcessor", "MaxMemPerOperator", 
+                             16 * 1024, parmFile);
   qp.SetMaxMemPerOperator(keyVal*1024);
+  cmsg.info() << "Memory usage per operator limited by " 
+              << keyVal << "kb" << endl;
+
+  keyVal = 
+    SmiProfile::GetParameter("System", "FLOBCacheSize", 
+                             16*1024, parmFile) * 1024;
+  qp.InitializeFLOBCache( keyVal*1024 );
   
-  cmsg.info() << "Memory usage per operator limited by " << keyVal << "kb" << endl;
+  cmsg.info() << "FLOB Cache size " 
+              << keyVal << "kb" << endl;
   cmsg.send();
 
   initialized = ok;
@@ -411,8 +422,6 @@ which should be named Command\_<name>.
   ListExpr first = emp, 
            list = emp, 
            typeExpr = emp, 
-           resultType = emp, 
-           modelList = emp, 
            typeExpr2 = emp, 
            errorList = emp,  
            errorInfo = emp; 
@@ -420,16 +429,10 @@ which should be named Command\_<name>.
   string filename = "", dbName = "", objName = "", typeName = "";
 
   Word result = SetWord( Address(0) );
-  OpTree tree = 0;
   
   int length = 0;
-  bool correct      = false;
-  bool evaluable    = false;
-  bool defined      = false;
-  bool isFunction   = false;
   int message = 0;                 /* error code from called procedures */
   string listCommand = "";         /* buffer for command in list form */
-  AlgebraLevel level = ExecutableLevel;
 
   StopWatch cmdTime;  // measure the time used for executing the command.
 
@@ -458,7 +461,6 @@ which should be named Command\_<name>.
   {
     case 0:  // executable, list form
     {
-      level = ExecutableLevel;
       if ( commandAsText )
       {
         if ( !nl->ReadFromString( commandText, list ) )
@@ -474,36 +476,6 @@ which should be named Command\_<name>.
     }
     case 1:  // executable, text form
     {
-      level = ExecutableLevel;
-      if ( sp.Text2List( commandText, listCommand ) != 0 )
-      {
-        errorCode = ERR_SYNTAX_ERROR;  // syntax error in command/expression
-      }
-      else if ( !nl->ReadFromString( listCommand, list ) )
-      {
-        errorCode = ERR_SYNTAX_ERROR;  // syntax error in command/expression
-      }
-      break;
-    }
-    case 2:
-    {
-      level = DescriptiveLevel;
-      if ( commandAsText )
-      {
-        if ( !nl->ReadFromString( commandText, list ) )
-        {
-          errorCode = ERR_SYNTAX_ERROR;  // syntax error in command/expression
-        }
-      }
-      else
-      {
-        list = commandLE2;
-      }
-      break;
-    }
-    case 3:
-    {
-      level = DescriptiveLevel;
       if ( sp.Text2List( commandText, listCommand ) != 0 )
       {
         errorCode = ERR_SYNTAX_ERROR;  // syntax error in command/expression
@@ -540,13 +512,11 @@ which should be named Command\_<name>.
 
   // RUN COMMAND !!!
 
-  NList nlist(list);
-
-  SecondoSystem::SetAlgebraLevel( level );
+  NList nlist(nl, list);
 
   // local references of important objects
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
-  SecondoCatalog& ctlg = *SecondoSystem::GetCatalog(level);
+  SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
   SecondoSystem& sys = *SecondoSystem::GetInstance();
   AlgebraManager& am = *SecondoSystem::GetAlgebraManager();
 
@@ -559,7 +529,7 @@ which should be named Command\_<name>.
   if ( length > 1 )
   {
     first = nl->First( list );
-    NList nfirst(first);
+    NList nfirst(nl, first);
 
     // --- Transaction handling
 
@@ -1109,7 +1079,7 @@ which should be named Command\_<name>.
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), ":" ) )
     {
-      errorCode = Command_Create( level, list, resultList, errorList );   
+      errorCode = Command_Create( list, resultList, errorList );   
     }
 
     // --- Update object command
@@ -1119,7 +1089,7 @@ which should be named Command\_<name>.
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), ":=" ) )
     {
-      errorCode = Command_Update( level, list );    
+      errorCode = Command_Update( list );    
     }
 
     // --- Let command
@@ -1129,7 +1099,7 @@ which should be named Command\_<name>.
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), "=" ) )
     {
-      errorCode = Command_Let( level, list );       
+      errorCode = Command_Let( list );       
     }
 
     // --- derive command
@@ -1139,14 +1109,14 @@ which should be named Command\_<name>.
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), "=" ) )
     {     
-      errorCode = Command_Derive( level, list );         
+      errorCode = Command_Derive( list );         
     }
  
     // --- Query command
 
     else if ( nl->IsEqual( first, "query" ) && (length == 2) )
     {
-      errorCode = Command_Query( level, list, resultList, errorMessage );   
+      errorCode = Command_Query( list, resultList, errorMessage );   
     }
 
     // --- Set command
@@ -1156,49 +1126,10 @@ which should be named Command\_<name>.
               nl->IsEqual( nl->Third( list ), "=" ) &&
               nl->AtomType( nl->Fourth(list) ) == BoolType )
     {
-      errorCode = Command_Set( level, list );   
+      errorCode = Command_Set( list );   
     }
 
 
-    // --- Model command
-
-    else if ( nl->IsEqual( first, "model" ) && (length == 2) )
-    {
-      if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
-      {
-        StartCommand();
-        qp.Construct( level, nl->Second( list ), correct, evaluable, defined,
-                      isFunction, tree, resultType );
-          
-        if ( !defined )
-        {
-          errorCode = ERR_UNDEF_OBJ_VALUE;         // Undefined object value
-        }
-        else if ( correct )
-        {
-          if ( evaluable )
-          {
-            qp.EvalModel( tree, result );
-            modelList = ctlg.OutObjectModel( resultType, result );
-            resultList = nl->TwoElemList( resultType, modelList );
-            qp.Destroy( tree, true );
-          }
-          else
-          {
-            errorCode = ERR_EXPR_NOT_EVALUABLE;   // Query not evaluable
-          }
-        }
-        else
-        {
-          errorCode = ERR_IN_QUERY_EXPR;     // Error in query
-        }
-        FinishCommand( errorCode );
-      }
-      else
-      {
-        errorCode = ERR_NO_DATABASE_OPEN;       // no database open
-      }
-    }
     else
     {
       errorCode = ERR_CMD_NOT_RECOGNIZED;         // Command not recognized
@@ -1208,15 +1139,12 @@ which should be named Command\_<name>.
   {
     nl->WriteToFile( resultFileName, resultList );
   }
-  SecondoSystem::SetAlgebraLevel( UndefinedLevel );
 
-
-  if (RTFlag::isActive("SI:PrintCounters")) 
+  if (RTFlag::isActive("SI:PrintCounters"))
   {
     Counter::reportValues();
     Counter::resetAll();
   }
-
 
   LOGMSG( "SI:ResultList",
     cmsg.info() << endl << "### Result List before copying: " 
@@ -1292,13 +1220,12 @@ which should be named Command\_<name>.
 */
 
 SI_Error 
-SecondoInterface::Command_Query( const AlgebraLevel level,
-                                 const ListExpr list, 
+SecondoInterface::Command_Query( const ListExpr list, 
                                  ListExpr& resultList,
                                  string& errorMessage )
 {
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
-  SecondoCatalog& ctlg = *SecondoSystem::GetCatalog(level);
+  SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
   SecondoSystem& sys = *SecondoSystem::GetInstance();
   NestedList& nl = *SecondoSystem::GetNestedList();
   
@@ -1318,18 +1245,13 @@ SecondoInterface::Command_Query( const AlgebraLevel level,
      return ERR_NO_DATABASE_OPEN;  
   }
   
-  if ( level == DescriptiveLevel ) // Command not yet implemented at this level
-  {
-     return ERR_CMD_NOT_IMPL_AT_THIS_LEVEL;  
-  } 
-              
   StartCommand();
 
   StopWatch queryTime;
   cmsg.info() << "Analyze query ..." << endl;
   cmsg.send();
 
-  qp.Construct( level, nl.Second( list ), correct, evaluable, defined,
+  qp.Construct( nl.Second( list ), correct, evaluable, defined,
                 isFunction, tree, resultType );
 
 
@@ -1416,9 +1338,9 @@ SecondoInterface::Command_Query( const AlgebraLevel level,
 
 
 SI_Error 
-SecondoInterface::Command_Derive( const AlgebraLevel level, const ListExpr list )
+SecondoInterface::Command_Derive( const ListExpr list )
 {
-  SecondoCatalog& ctlg = *SecondoSystem::GetCatalog(level);
+  SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
   SecondoSystem& sys = *SecondoSystem::GetInstance();
   NestedList& nl = *SecondoSystem::GetNestedList();
   
@@ -1429,11 +1351,6 @@ SecondoInterface::Command_Derive( const AlgebraLevel level, const ListExpr list 
     return ERR_NO_DATABASE_OPEN;        
   }
 
-  if ( !errorCode && (level == DescriptiveLevel) )  // Command not yet implemented at this level
-  {
-    return ERR_CMD_NOT_IMPL_AT_THIS_LEVEL; 
-  }
-  
   if ( !errorCode ) { // if no errors ocurred continue
 
      StartCommand();
@@ -1471,11 +1388,10 @@ SecondoInterface::Command_Derive( const AlgebraLevel level, const ListExpr list 
 
 
 SI_Error 
-SecondoInterface::Command_Let( const AlgebraLevel level,
-                               const ListExpr list  )
+SecondoInterface::Command_Let( const ListExpr list  )
 {
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
-  SecondoCatalog& ctlg = *SecondoSystem::GetCatalog(level);
+  SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
   SecondoSystem& sys = *SecondoSystem::GetInstance();
   NestedList& nl = *SecondoSystem::GetNestedList();
   
@@ -1493,11 +1409,6 @@ SecondoInterface::Command_Let( const AlgebraLevel level,
 
   if ( sys.IsDatabaseOpen() )
   {
-    if ( level == DescriptiveLevel ) // Command not yet implemented at this level
-    {
-      errorCode = ERR_CMD_NOT_IMPL_AT_THIS_LEVEL;  
-    }
-    else
     {
       StartCommand();
       string objName = nl.SymbolValue( nl.Second( list ) );
@@ -1513,7 +1424,7 @@ SecondoInterface::Command_Let( const AlgebraLevel level,
       }
       else
       {
-        qp.Construct( level, valueExpr, correct, evaluable, defined,
+        qp.Construct( valueExpr, correct, evaluable, defined,
                       isFunction, tree, resultType );
                       
         if ( !defined ) // Undefined object value in expression
@@ -1583,11 +1494,10 @@ SecondoInterface::Command_Let( const AlgebraLevel level,
 */
 
 SI_Error 
-SecondoInterface::Command_Update( const AlgebraLevel level,
-                                  const ListExpr list       )
+SecondoInterface::Command_Update( const ListExpr list )
 {
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
-  SecondoCatalog& ctlg = *SecondoSystem::GetCatalog(level);
+  SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
   SecondoSystem& sys = *SecondoSystem::GetInstance();
   NestedList& nl = *SecondoSystem::GetNestedList();
   
@@ -1605,17 +1515,12 @@ SecondoInterface::Command_Update( const AlgebraLevel level,
 
   if ( sys.IsDatabaseOpen() )
   {
-    if ( level == DescriptiveLevel ) // Command not implemented at this level
-    {
-      errorCode = ERR_CMD_NOT_IMPL_AT_THIS_LEVEL;  
-    }
-    else
     {
       StartCommand();
       string objName = nl.SymbolValue( nl.Second( list ) );
       ListExpr valueExpr = nl.Fourth( list );
-      qp.Construct( level, valueExpr, correct, evaluable, defined,
-                     isFunction, tree, resultType );
+      qp.Construct( valueExpr, correct, evaluable, defined,
+                    isFunction, tree, resultType );
                      
       if ( !defined ) // Undefined object value in expression
       {
@@ -1700,12 +1605,11 @@ SecondoInterface::Command_Update( const AlgebraLevel level,
 */
 
 SI_Error 
-SecondoInterface::Command_Create( const AlgebraLevel level,
-                                  const ListExpr list, 
+SecondoInterface::Command_Create( const ListExpr list, 
                                   ListExpr& resultList,
                                   ListExpr& errorList   )
 {
-  SecondoCatalog& ctlg = *SecondoSystem::GetCatalog(level);
+  SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
   SecondoSystem& sys = *SecondoSystem::GetInstance();
   NestedList& nl = *SecondoSystem::GetNestedList();
   
@@ -1762,8 +1666,7 @@ SecondoInterface::Command_Create( const AlgebraLevel level,
 */
 
 SI_Error 
-SecondoInterface::Command_Set( const AlgebraLevel level,
-                               const ListExpr list )
+SecondoInterface::Command_Set( const ListExpr list )
 {
   NestedList& nl = *SecondoSystem::GetNestedList();
   
@@ -1783,39 +1686,32 @@ SecondoInterface::Command_Set( const AlgebraLevel level,
 
 */
 ListExpr
-SecondoInterface::NumericTypeExpr( const AlgebraLevel level, const ListExpr type )
+SecondoInterface::NumericTypeExpr( const ListExpr type )
 {
-  SecondoSystem::SetAlgebraLevel( level );
   ListExpr list = nl->TheEmptyList();
   if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
   {
     // use application specific list memory
-    list = SecondoSystem::GetCatalog( level )->NumericType( al->CopyList(type,nl) );
+    list = SecondoSystem::GetCatalog()->NumericType( al->CopyList(type,nl) );
     list = nl->CopyList(list, al);
   }
-  SecondoSystem::SetAlgebraLevel( UndefinedLevel );
   return (list);
 }
 
 bool
-SecondoInterface::GetTypeId( const AlgebraLevel level,
-                             const string& name,
+SecondoInterface::GetTypeId( const string& name,
                              int& algebraId, int& typeId )
 {
-  SecondoSystem::SetAlgebraLevel( level );
-  bool ok = SecondoSystem::GetCatalog( level )->
+  bool ok = SecondoSystem::GetCatalog()->
               GetTypeId( name, algebraId, typeId );
-  SecondoSystem::SetAlgebraLevel( UndefinedLevel );
   return (ok);
 }
 
 bool
-SecondoInterface::LookUpTypeExpr( const AlgebraLevel level,
-                                  ListExpr type, string& name,
+SecondoInterface::LookUpTypeExpr( ListExpr type, string& name,
                                   int& algebraId, int& typeId )
 {
   bool ok = false;
-  SecondoSystem::SetAlgebraLevel( level );
   name = "";
   algebraId = 0;
   typeId = 0;
@@ -1824,10 +1720,9 @@ SecondoInterface::LookUpTypeExpr( const AlgebraLevel level,
   if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
   {
     // use application specific list memory
-    ok = SecondoSystem::GetCatalog( level )->
+    ok = SecondoSystem::GetCatalog()->
            LookUpTypeExpr( al->CopyList(type,nl), name, algebraId, typeId );
   }
-  SecondoSystem::SetAlgebraLevel( UndefinedLevel );
   return (ok);
 }
 

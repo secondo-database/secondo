@@ -41,7 +41,6 @@ operator mergeunion alias MERGEUNION pattern _ _ op
 operator sortby alias SORTBY pattern _ op [list]
 operator mergejoin alias MERGEJOIN pattern _ _ op [_, _]
 operator sortmergejoin alias SORTMERGEJOIN pattern _ _ op [_, _]
-operator oldhashjoin alias OLDHASHJOIN pattern _ _ op [_, _, _]
 operator hashjoin alias HASHJOIN pattern _ _ op [_, _, _]
 
 operator loopjoin alias LOOPJOIN pattern _ op [ fun ] implicit parameter tuple type TUPLE
@@ -52,7 +51,7 @@ operator extract alias EXTRACT pattern _ op [ _ ]
 operator sample alias SAMPLEFEED pattern _ op [_, _]
 
 operator aggregate alias AGGREGATE pattern _ op [ _; _; _ ] 
-operator aggregate_new alias AGGREGATE_NEW pattern _ op [ _; _; _ ] 
+operator aggregateB alias AGGREGATEB pattern _ op [ _; _; _ ] 
 
 operator symmjoin alias SYMMJOIN pattern _ _ op [ fun ] implicit parameters lefttuple, righttuple types TUPLE, TUPLE2
 

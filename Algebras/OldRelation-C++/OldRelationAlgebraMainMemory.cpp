@@ -40,6 +40,10 @@ November 30, 2002 RHG Introduced a function ~RelPersistValue~ instead of
 ~DefaultPersistValue~ which keeps relations that have been built in memory in a
 small cache, so that they need not be rebuilt from then on.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 [TOC]
 
 1 Includes, Constants, Globals, Enumerations
@@ -718,32 +722,7 @@ Word CreateCcTuple(const ListExpr typeInfo)
   tup = new CcTuple();
   return (SetWord(tup));
 }
-/*
 
-3.2.5 ~Model~-functions of type constructor ~mtuple~
-
-*/
-Word CcTupleInModel( ListExpr typeExpr, ListExpr list, int objNo )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-ListExpr CcTupleOutModel( ListExpr typeExpr, Word model )
-{
-  return (0);
-}
-
-Word CcTupleValueToModel( ListExpr typeExpr, Word value )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-Word CcTupleValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
-                              const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  correct = true;
-  return (SetWord( Address( 0 ) ));
-}
 /*
 
 1.4 TypeConstructor ~mrel~
@@ -1270,30 +1249,4 @@ SaveCcRel( SmiRecord& valueRecord,
   return (true);
 }
 
-/*
-
-3.2.5 ~Model~-functions of type constructor ~mrel~
-
-*/
-Word CcRelInModel( ListExpr typeExpr, ListExpr list, int objNo )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-ListExpr CcRelOutModel( ListExpr typeExpr, Word model )
-{
-  return (0);
-}
-
-Word CcRelValueToModel( ListExpr typeExpr, Word value )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-Word CcRelValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
-                            const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  correct = true;
-  return (SetWord( Address( 0 ) ));
-}
 

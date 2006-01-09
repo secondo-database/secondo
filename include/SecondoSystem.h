@@ -55,20 +55,19 @@ May 2004, M. Spiekermann. Function ~SaveDatabase~ was modified to left out deriv
 Sept 15 2004, M. Spiekermann. Restore database returns now a value of type SI\_Error 
 instead of an integer.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 1.1 Overview
 
-This module implements those parts of the "Secondo"[3] catalog which
-are independent of the algebra level (descriptive or executable).
-
-It manages a set of databases. A database consists of a set of named
-types, a set of objects with given type name or type expressions and
-a set of models for objects. Objects can be persistent or not.
-Persistent objects are implemented by the ~Storage Management Interface~.
-When a database is opened, for each algebra level a catalog with
-informations about types, type constructors, operators, objects and
-models of the database is loaded. Furthermore the catalog of each
-algebra is loaded into memory by calling the procedures of the module
-~Algebra Manager~.
+This module manages a set of databases. A database consists of a set of 
+named types and a set of objects with given type name or type expressions. 
+Objects can be persistent or not. Persistent objects are implemented 
+by the ~Storage Management Interface~. When a database is opened, 
+a catalog with informations about types, type constructors, operators, 
+and objects of the database is loaded. Furthermore the catalog is loaded 
+into memory by calling the procedures of the module ~Algebra Manager~.
 
 1.2 Interface methods
 
@@ -81,8 +80,9 @@ The class ~SecondoSystem~ provides the following methods:
         ShutDown          & OpenDatabase        & GetDatabaseName \\
         GetAlgebraManager & CloseDatabase       &  \\
         GetQueryProcessor & SaveDatabase        &  \\
-        GetCatalog        & RestoreDatabase     & SetAlgebraLevel \\
-        GetNestedList     &                     & GetAlgebraLevel \\
+        GetCatalog        & RestoreDatabase     &  \\
+        GetNestedList     &                     &  \\
+                          &                     &  \\
 
 1.4 Imports
 
@@ -109,9 +109,6 @@ class DerivedObj;
 /*
 1.3 Class "SecondoSystem"[1]
 
-This class implements all algebra level independent functionality of the
-"Secondo"[3] catalog management.
-
 */
 class SecondoSystem
 {
@@ -129,9 +126,8 @@ Simply returns the names of existing databases in a list:
   bool CreateDatabase( const string& dbname );
 /*
 Creates a new database named ~dbname~ and loads the algebraic operators
-and type constructors for each algebra level into the "Secondo"[3]
-programming interface. Returns "false"[4] if a database under
-this name already exists.
+and type constructors into the "Secondo"[3] programming interface. 
+Returns "false"[4] if a database under this name already exists.
 
 *Precondition*: No database is open.
 
@@ -176,7 +172,7 @@ bool SaveObject ( const string& objectName,
 Writes the currently open database called ~dbname~ to a file with name
 ~filename~ in nested list format. The format is the following:
 
----- (OBJECT <object name> (<type name>) <type expression> <value> <model>)*
+---- (OBJECT <object name> (<type name>) <type expression> <value>)*
 
 ----
 
@@ -197,7 +193,7 @@ Writes the currently open database called ~dbname~ to a file with name
          )
          (OBJECTS
            (OBJECT <object name> (<type name>) <type expression>
-                                               <value> <model>)*
+                                               <value>)*
          )
        (EXECUTABLE ALGEBRA)
          (TYPES
@@ -205,7 +201,7 @@ Writes the currently open database called ~dbname~ to a file with name
          )
          (OBJECTS
            (OBJECT <object name> (<type name>) <type expression>
-                                               <value> <model>)*
+                                               <value>)*
          )
      )
 ----
@@ -286,20 +282,9 @@ Returns a reference to the associated algebra manager.
 Returns a reference to the associated query processor.
 
 */
-  static void SetAlgebraLevel( const AlgebraLevel level );
+  static SecondoCatalog* GetCatalog();
 /*
-Sets the current algebra ~level~.
-
-*/
-  static AlgebraLevel GetAlgebraLevel();
-/*
-Returns the current algebra level.
-
-*/
-  static SecondoCatalog* GetCatalog( const AlgebraLevel level );
-/*
-Returns a reference to the "Secondo"[3] catalog of the specified
-algebra ~level~.
+Returns a reference to the "Secondo"[3] catalog.
 
 */
   static NestedList* GetNestedList();
@@ -335,13 +320,10 @@ Returns the file for FLOB objects.
   SecondoSystem( const SecondoSystem& );
   SecondoSystem& operator=( const SecondoSystem& );
  private:
-  bool RestoreCatalog( SecondoCatalog* sc,
-                       ListExpr types, ListExpr objects,
+  bool RestoreCatalog( ListExpr types, ListExpr objects,
                        ListExpr& errorInfo );
-  bool RestoreTypes( SecondoCatalog* sc,
-                     ListExpr types, ListExpr& errorInfo );
-  bool RestoreObjects( SecondoCatalog* sc,
-                       ListExpr objects, ListExpr& errorInfo );
+  bool RestoreTypes( ListExpr types, ListExpr& errorInfo );
+  bool RestoreObjects( ListExpr objects, ListExpr& errorInfo );
 /*
 Are internal methods for restoring a database.
 
@@ -352,10 +334,7 @@ Are internal methods for restoring a database.
   NestedList*     al;
   AlgebraManager* algebraManager;
   QueryProcessor* queryProcessor;
-  SecondoCatalog* scDescriptive;
-  SecondoCatalog* scExecutable;
-  AlgebraLevel    currentLevel;
-  SmiRecordFile*  flobFile;
+  SecondoCatalog* catalog;
 
   bool            testMode;
   bool            initialized;

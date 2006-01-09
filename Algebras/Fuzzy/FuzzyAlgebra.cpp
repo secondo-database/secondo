@@ -30,6 +30,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
    {\small last change 2004-5-11}
 \end{center}
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
 
 \begin{abstract}
 
@@ -2311,12 +2314,7 @@ TypeConstructor ccfpoint
  CloneFPoint,      // object clone
  CastFPoint,       // cast function
  SizeOfFPoint,     // Size of a point
- CheckPoint,       // kind checking function
- 0,                // predef. pers. function for model
- TypeConstructor::DummyInModel,
- TypeConstructor::DummyOutModel,
- TypeConstructor::DummyValueToModel,
- TypeConstructor::DummyValueListToModel
+ CheckPoint        // kind checking function
 );
 
 TypeConstructor ccfregion
@@ -2334,12 +2332,7 @@ TypeConstructor ccfregion
    CloneFRegion,
    CastFRegion,
    SizeOfFRegion,     // Size of a point
-   CheckFRegion,
-   0,
-   TypeConstructor::DummyInModel,
-   TypeConstructor::DummyOutModel,
-   TypeConstructor::DummyValueToModel,
-   TypeConstructor::DummyValueListToModel
+   CheckFRegion
 );
 
 
@@ -2349,11 +2342,7 @@ TypeConstructor ccfline
   CreateFLine,DeleteFLine,
   OpenFLine,SaveFLine,
   CloseFLine,
-  CloneFLine,CastFLine,SizeOfFLine,CheckFLine,0,
-  TypeConstructor::DummyInModel,
-  TypeConstructor::DummyOutModel,
-  TypeConstructor::DummyValueToModel,
-  TypeConstructor::DummyValueListToModel
+  CloneFLine,CastFLine,SizeOfFLine,CheckFLine
 );
 
 
@@ -3284,14 +3273,6 @@ static int Similar_RR (Word* args, Word& result, int message,
 /*
 5.3 Selection Functions
 
-5.3.1 Selection Function for Non-Overloaded Operators
-
-*/
-static int simpleSelect (ListExpr args ){
-  return 0;
-}
-
-/*
 5.3.2 Selection Function for any Fuzzy Objects
 
 All used operators are unique determined by the first
@@ -3745,22 +3726,6 @@ const string similar_spec=
 
 
 /*
-5.6 The Dummy Model Mapping
-
-*/
-
-static Word
-CcNoModelMapping( ArgVector arg, Supplier opTreeNode )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-ModelMapping Model_2[] = {CcNoModelMapping,CcNoModelMapping};
-ModelMapping Model_3[] =
-        {CcNoModelMapping,CcNoModelMapping,CcNoModelMapping};
-
-
-/*
 5.7 Definition of the Operators
 
 */
@@ -3770,7 +3735,6 @@ Operator op_add
  add_spec,                  //specification ....
  3,                     // number of functions
  AddMap,                //value mapping
- Model_3,                      //dummy model mapping
  fuzzySelect,                //selection function
  FOiFOiFOi                //type mapping
 );
@@ -3781,7 +3745,6 @@ Operator op_setsf
   setsf_spec,
   3,
   setSFMap,
-  Model_3,
   fuzzySelect,
   FOiRealFOi
 );
@@ -3792,7 +3755,6 @@ Operator op_alphacut
  alphacut_spec,        //specification ....
  3,
  AlphaCutMap,        //value mapping
- Model_3,          //dummy model mapping, defined in Algebra.h
  fuzzySelect,        //trivial selection function
  FOiRealBoolFOi        //type mapping
 );
@@ -3802,8 +3764,7 @@ Operator op_basiccard
  "basiccard",                 //name
  basiccard_spec,          //specification ....
  BasicCard_P,                //value mapping
- Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
- simpleSelect,                //trivial selection function
+ Operator::SimpleSelect,                //trivial selection function
  FPointReal                //type mapping
 );
 
@@ -3812,8 +3773,7 @@ Operator op_cardinality
  "cardinality",         //name
  cardinality_spec,          //specification ....
  Cardinality_P,                //value mapping
- Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
- simpleSelect,                //trivial selection function
+ Operator::SimpleSelect,                //trivial selection function
  FPointReal                //type mapping
 );
 
@@ -3822,8 +3782,7 @@ Operator op_length3d
  "length3d",                 //name
  length3d_spec,          //specification ....
  Length3D_L,                //value mapping
- Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
- simpleSelect,                //trivial selection function
+ Operator::SimpleSelect,                //trivial selection function
  FLineReal                //type mapping
 );
 
@@ -3832,8 +3791,7 @@ Operator op_length
  "length",                 //name
  length_spec,                  //specification ....
  Length_L,                //value mapping
- Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
- simpleSelect,                //trivial selection function
+ Operator::SimpleSelect,                //trivial selection function
  FLineReal                //type mapping
 );
 
@@ -3842,8 +3800,7 @@ Operator op_basiclength
  "basiclength",         //name
  basiclength_spec,          //specification ....
  BasicLength_L,                //value mapping
- Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
- simpleSelect,                //trivial selection function
+ Operator::SimpleSelect,                //trivial selection function
  FLineReal                //type mapping
 );
 
@@ -3852,8 +3809,7 @@ Operator op_area
  "area",                 //name
  area_spec,                  //specification ....
  Area_R,                //value mapping
- Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
- simpleSelect,                //trivial selection function
+ Operator::SimpleSelect,                //trivial selection function
  FRegionReal                //type mapping
 );
 
@@ -3862,8 +3818,7 @@ Operator op_area3d
  "area3d",                 //name
  area3d_spec,                  //specification ....
  Area3D_R,                //value mapping
- Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
- simpleSelect,                //trivial selection function
+ Operator::SimpleSelect,                //trivial selection function
  FRegionReal                //type mapping
 );
 
@@ -3872,8 +3827,7 @@ Operator op_basicarea
  "basicarea",                 //name
  basicarea_spec,          //specification ....
  BasicArea_R,                //value mapping
- Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
- simpleSelect,                //trivial selection function
+ Operator::SimpleSelect,                //trivial selection function
  FRegionReal                //type mapping
 );
 
@@ -3883,7 +3837,6 @@ Operator op_basicsimilar
  basicsimilar_spec,          //specification ....
  3,                        // number of fucntions
  BasicSimilarMap,        //value mapping
- Model_3,                //dummy model mapping, defined in Algebra.h
  fuzzySelect,                //trivial selection function
  FOiFOiReal                //type mapping
 );
@@ -3894,7 +3847,6 @@ Operator op_boundary
  boundary_spec,          //specification ....
  2,
  BoundaryMap,                //value mapping
- Model_2,                       //dummy model mapping, defined in Algebra.h
  RLSelect,                //trivial selection function
  BoundaryTypeMap        //type mapping
 );
@@ -3904,8 +3856,7 @@ Operator op_contour
  "contour",                 //name
  contour_spec,          //specification ....
  Contour_R,                //value mapping
- Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
- simpleSelect,                //trivial selection function
+ Operator::SimpleSelect,                //trivial selection function
  FRegionFLine                //type mapping
 );
 
@@ -3914,8 +3865,7 @@ Operator op_commonlines
  "commonlines",         //name
  commonlines_spec,          //specification ....
  CommonLines_RR,        //value mapping
- Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
- simpleSelect,                //trivial selection function
+ Operator::SimpleSelect,                //trivial selection function
  FRegionFRegionFLine        //type mapping
 );
 
@@ -3925,7 +3875,6 @@ Operator op_commonpoints
  commonpoints_spec,          //specification ....
  2,
  CommonPointsMap,        //value mapping
- Model_2,                //dummy model mapping, defined in Algebra.h
  RLSelect,                //trivial selection function
  CommonPointsTypeMap        //type mapping
 );
@@ -3936,7 +3885,6 @@ Operator op_difference
  difference_spec,          //specification ....
  3,
  DifferenceMap,                //value mapping
- Model_3,                //dummy model mapping, defined in Algebra.h
  fuzzySelect,                //trivial selection function
  FOiFOiFOi                //type mapping
 );
@@ -3947,7 +3895,6 @@ Operator op_scalefactor
  getscalefactor_spec,          //specification ....
  3,
  ScaleFactorMap,        //value mapping
- Model_3,                //dummy model mapping, defined in Algebra.h
  fuzzySelect,                //trivial selection function
  FOReal                        //type mapping
 );
@@ -3957,8 +3904,7 @@ Operator op_holes
  "holes",                 //name
  holes_spec,                  //specification ....
  Holes_R,                //value mapping
- Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
- simpleSelect,                //trivial selection function
+ Operator::SimpleSelect,                //trivial selection function
  FRegionFRegion                //type mapping
 );
 
@@ -3968,7 +3914,6 @@ Operator op_intersection
  intersection_spec,          //specification ....
   3,
  IntersectionMap,        //value mapping
- Model_3,                //dummy model mapping, defined in Algebra.h
  fuzzySelect,                //trivial selection function
  FOiFOiFOi                //type mapping
 );
@@ -3979,7 +3924,6 @@ Operator op_isempty
  isempty_spec,          //specification ....
  3,
  IsEmptyMap,                //value mapping
- Model_3,                //dummy model mapping, defined in Algebra.h
  fuzzySelect,                //trivial selection function
  FOBool                        //type mapping
 );
@@ -3990,7 +3934,6 @@ Operator op_maxv
  maxz_spec,                  //specification ....
  3,
  MaxValueMap,                //value mapping
- Model_3,                //dummy model mapping, defined in Algebra.h
  fuzzySelect,                //trivial selection function
  FOReal                        //type mapping
 );
@@ -4001,7 +3944,6 @@ Operator op_minv
  minz_spec,                  //specification ....
  3,
  MinValueMap,                //value mapping
- Model_3,                //dummy model mapping, defined in Algebra.h
  fuzzySelect,                //trivial selection function
  FOReal                        //type mapping
 );
@@ -4012,7 +3954,6 @@ Operator op_max_value_at
  maxzfkt_spec,          //specification ....
  3,
  MaxValueAtMap,                //value mapping
- Model_3,                //dummy model mapping, defined in Algebra.h
  fuzzySelect,                //trivial selection function
  FORealRealReal                //type mapping
 );
@@ -4023,7 +3964,6 @@ Operator op_mid_value_at
  midzfkt_spec,          //specification ....
  3,
  MidValueAtMap,                //value mapping
- Model_3,                //dummy model mapping, defined in Algebra.h
  fuzzySelect,                //trivial selection function
  FORealRealReal                //type mapping
 );
@@ -4034,7 +3974,6 @@ Operator op_min_value_at
  minzfkt_spec,          //specification ....
  3,
  MinValueAtMap,                //value mapping
- Model_3,                //dummy model mapping, defined in Algebra.h
  fuzzySelect,                //trivial selection function
  FORealRealReal                //type mapping
 );
@@ -4045,7 +3984,6 @@ Operator op_scaled_add
  scaledadd_spec,          //specification ....
  3,
  ScaledAddMap,                //value mapping
- Model_3,                //dummy model mapping, defined in Algebra.h
  fuzzySelect,                //trivial selection function
  FOiFOiFOi                //type mapping
 );
@@ -4056,7 +3994,6 @@ Operator op_scaled_difference
  scaleddifference_spec, //specification ....
  3,
  ScaledDifferenceMap,        //value mapping
- Model_3,                //dummy model mapping, defined in Algebra.h
  fuzzySelect,                //trivial selection function
  FOiFOiFOi                //type mapping
 );
@@ -4067,7 +4004,6 @@ Operator op_scaled_intersection
  scaledintersection_spec,        //specification ....
  3,
  ScaledIntersectionMap,                //value mapping
- Model_3,                        //dummy model mapping
  fuzzySelect,                        //trivial selection function
  FOiFOiFOi                        //type mapping
 );
@@ -4078,7 +4014,6 @@ Operator op_scaled_union
  scaledunion_spec,                  //specification ....
  3,
  ScaledUnionMap,                        //value mapping
- Model_3,                //dummy model mapping, defined in Algebra.h
  fuzzySelect,                        //trivial selection function
  FOiFOiFOi                //type mapping
 );
@@ -4089,7 +4024,6 @@ Operator op_union
  union_spec,                  //specification ....
  3,
  UnionMap,                        //value mapping
- Model_3,                //dummy model mapping, defined in Algebra.h
  fuzzySelect,                        //trivial selection function
  FOiFOiFOi                //type mapping
 );
@@ -4100,7 +4034,6 @@ Operator op_sharp
  sharp_spec,                  //specification ....
  3,
  SharpMap,                        //value mapping
- Model_3,                //dummy model mapping, defined in Algebra.h
  fuzzySelect,                        //trivial selection function
  FOiFOi                //type mapping
 );
@@ -4111,7 +4044,6 @@ Operator op_similar
  similar_spec,                  //specification ....
  3,
  SimilarMap,                        //value mapping
- Model_3,                //dummy model mapping, defined in Algebra.h
  fuzzySelect,                        //trivial selection function
  FOiFOiReal                //type mapping
 );

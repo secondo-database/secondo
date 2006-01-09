@@ -55,12 +55,16 @@ The new private member ~sysObjNames~ and the methods ~IsSystemObj~ and ~AddSyste
 introduced. To avoid saving derived objects (for further Information see DerivedObj.h) the
 method ~ListObjectsFull~ was modified.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 1.1 Overview
 
 This module defines the module ~SecondoCatalog~. It manages a set of
 named types, a set of objects with given type name or type expressions
-and a set of models for objects for a database at a specific algebra
-level. Persistency is implemented by the ~Storage Management Interface~.
+for a database. Persistency is implemented by the ~Storage Management 
+Interface~.
 
 Modifications to the catalog by the methods of this module are registered
 in temporary data structures in memory and written to disk on completion
@@ -70,7 +74,7 @@ of the enclosing transaction.
     
 The class ~SecondoCatalog~ provides the following methods:
   
-[23]    Catalog and Types     & Object Values and Models & Type Constructors / Operators \\
+[23]    Catalog and Types     & Object Values            & Type Constructors / Operators \\
         [--------]
         SecondoCatalog        & ListObjects              & ListTypeConstructors \\
         [tilde]SecondoCatalog & ListObjectsFull          & IsTypeName           \\
@@ -89,11 +93,11 @@ The class ~SecondoCatalog~ provides the following methods:
         DeleteType            & GetObjectExpr            & GetOperatorId        \\
         MemberType            & GetObjectType            & GetOperatorName      \\
         LookUpTypeExpr        & GetObjectTypeExpr        &   \\
-        GetTypeExpr           & InObjectModel            &   \\
-        NumericType           & OutObjectModel           &   \\
-        ExpandedType          & CloseObject              &   \\
-        KindCorrect           & ValueToObjectMode        &   \\
-                              & ValueListToObjectModel   &   \\
+        GetTypeExpr           & CloseObject              &   \\
+        NumericType           &                          &   \\
+        ExpandedType          &                          &   \\
+        KindCorrect           &                          &   \\
+                              &                          &   \\
 
 1.4 Imports
 
@@ -113,11 +117,11 @@ The class ~SecondoCatalog~ provides the following methods:
 // forward declaration
 class DerivedObj;
 
-/**************************************************************************
+/*
 1.3 Class "SecondoCatalog"[1]
 
 This class implements all functionality of the
-"Secondo"[3] catalog management dependent of a specific algebra level.
+"Secondo"[3] catalog management.
 
 All operations on types and objects are valid only, when the associated
 database is open. Type constructors and operators may be accessed when
@@ -128,10 +132,9 @@ no database is open.
 class SecondoCatalog
 {
  public:
-  SecondoCatalog( const string& name,
-                  const AlgebraLevel level );
+  SecondoCatalog();
 /*
-Creates a new catalog with the given ~name~ for the specified algebra ~level~.
+Creates a new catalog.
 
 */
   virtual ~SecondoCatalog();
@@ -159,7 +162,7 @@ is aborted.
 
 */
 
-/**********************************************************
+/*
 3.2.2 Database Types   
 
 */
@@ -241,8 +244,6 @@ containing type names, or just a single type name) into the
 corresponding type expression where all names have been replaced by
 their defining expressions. 
 
-*/
-/****************************************************************************
 3.1.1 Kind Checking
 
 */
@@ -263,8 +264,8 @@ error codes are type-constructor specific.
 
 */
 
-/************************************************************************
-3.2.3 Database Objects and Models
+/*
+3.2.3 Database Objects 
 
 */                                
   ListExpr ListObjects();
@@ -276,8 +277,8 @@ Returns a list of ~objects~ of the whole database in the same format that is use
       )
 ----
 
-For each object the *value* and *model* component is missing, otherwise
-the whole database would be returned.
+For each object the *value* component is missing, otherwise the whole database 
+would be returned.
 
 */
   ListExpr ListObjectsFull(const DerivedObj& derivedObjs);
@@ -286,7 +287,7 @@ Returns a list of ~objects~ of the whole database in the following format:
 
 ---- (OBJECTS 
        (OBJECT <object name>(<type name>) <type expression>
-                                          <value> <model>)*
+                                          <value>)*
      )
 ----
 Derived objects (see class DerivedObj) are not contained in this list.
@@ -307,16 +308,14 @@ is defined already.
                      const string& typeName,
                      const ListExpr typeExpr,
                      const Word valueWord,
-                     const bool defined,
-                     const Word modelWord );
+                     const bool defined );
 /*
 Inserts a new object with identifier ~objectName~ and value ~valueWord~
 defined by type name ~typeName~ or by a list ~typeExpr~ of already
 existing types (which always exists) into the database catalog.
 Parameter ~defined~ tells, whether ~valueWord~ actually contains a defined
-value. Further, ~modelWord~ contains a model for this value, possibly 0,
-the undefined model. If the object name already exists, the procedure
-has no effect. Returns "false"[4] if the ~objectName~ is already in use.
+value. If the object name already exists, the procedure has no effect. 
+Returns "false"[4] if the ~objectName~ is already in use.
 
 When the given object has no type name, it is mandatory, that ~typeName~
 is an empty string.
@@ -350,8 +349,6 @@ errors found are returned together with the given ~errorPos~ in the list
 ~errorInfo~. ~correct~ is set to "true"[4] if a value was created (which
 means that the input was at least partially correct). 
 
-*NOTE*: Works only at the executable level.
-
 */
   ListExpr GetObjectValue( const string& objectName );
 /*
@@ -359,16 +356,12 @@ Returns the value of a locally stored database object with identifier
 ~objectName~ as list expression to show the value to the database
 user. If the value is undefined, an empty list is returned. 
 
-*NOTE*: Works only at the executable level.
-
 */
   ListExpr OutObject( const ListExpr type,
                       const Word object );
 /*
 Returns for a given ~object~ of type ~type~ its value in nested list
 representation. 
-
-*NOTE*: Works only at the executable level.
 
 */
   void CloseObject( const ListExpr type,
@@ -388,8 +381,6 @@ Checks whether ~objectName~ is a valid object name.
 Returns the value ~word~ of an object with identifier ~objectName~.
 ~defined~ tells whether the word contains a meaningful value. 
 
-*NOTE*: Works only at the executable level.
-
 *Precondition*: "IsObjectName( objectName ) == true"[4].
 
 */
@@ -398,11 +389,10 @@ Returns the value ~word~ of an object with identifier ~objectName~.
                       ListExpr& typeExpr,
                       Word& value,
                       bool& defined,
-                      Word& model,
                       bool& hasTypeName );
 /*
-Returns the value ~value~, the type name ~typeName~, the type expression
-~typeExpr~, and the ~model~ of an object with identifier ~objectName~.
+Returns the value ~value~, the type name ~typeName~, and the type 
+expression ~typeExpr~ of an object with identifier ~objectName~.
 ~defined~ tells whether ~value~ contains a defined value. If object has
 no type name the variable ~hasTypeName~ is set to "false"[4] and the
 procedure returns an empty string as ~typeName~.
@@ -433,16 +423,12 @@ Returns the type expression of an object with identifier
 Overwrites the value of the object with identifier ~objectName~ with a
 new value ~word~. Returns "false"[4] if object does not exist. 
 
-*NOTE*: Works only at the executable level.
-
 */
   bool CloneObject( const string& objectName,
                     const Word word );
 /*
 Overwrites the value of the object with identifier ~objectName~ with a
 new value cloned from ~word~. Returns "false"[4] if object does not exist. 
-
-*NOTE*: Works only at the executable level.
 
 */
   bool ModifyObject( const string& objectName, const Word word );
@@ -453,47 +439,6 @@ The difference between this function and ~UpdateObject~ is that the
 second opens the old object for deletion. This one assumes that the
 object is only modified, so that no deletion function is necessary.
 
-*NOTE*: Works only at the executable level.
-
-*/
-  Word InObjectModel( const ListExpr typeExpr,
-                      const ListExpr modelList,
-                      const int objNo );
-/*
-Converts a model of the type given by ~typeExpr~ and the value given as
-a nested list into a "Word"[4] representation which is returned. 
-
-*/
-  ListExpr OutObjectModel( const ListExpr typeExpr,
-                           const Word model );
-/*
-Returns for a given ~model~ of type ~typeExpr~ its description in nested
-list representation. 
-
-*/
-  Word ValueToObjectModel( const ListExpr typeExpr,
-                           const Word value );
-/*
-Returns for a given ~value~ of type ~typeExpr~ its model.
-
-*NOTE*: Works only at the executable level.
-
-*/
-  Word ValueListToObjectModel( const ListExpr typeExpr,
-                               const ListExpr valueList,
-                               int& errorPos, 
-                               ListExpr& errorInfo, 
-                               bool& correct );
-/*
-Returns for a given ~valueList~ of type ~typeExpr~ its model. Any errors
-found are returned together with the given ~errorPos~ in the list
-~errorInfo~. ~correct~ is set to "true"[4] if a model was created . 
-
-*NOTE*: Works only at the descriptive level.
-
-*/
-
-/************************************************************************
 3.2.4 Algebra Type Constructors
 
 */
@@ -548,9 +493,6 @@ identifier ~algebraId~ and the type identifier ~opId~.
 Looks up the properties of a type constructor defined by the
 algebra identifier ~algebraId~ and the type identifier ~opId~. 
 
-*/
-
-/************************************************************************
 3.2.5 Algebra Operators
 
 */
@@ -637,9 +579,6 @@ The function below test if a name is reserved for system use.
  protected:
   bool TypeUsedByObject( const string& typeName );
  private:
-  string           catalogName;
-  AlgebraLevel     catalogLevel;
-  string           ctlgLevelStr;
   NestedList*      nl;
   AlgebraManager*  am;
 
@@ -676,15 +615,12 @@ The function below test if a name is reserved for system use.
     Word        value;
     bool        valueDefined;
     SmiRecordId valueRecordId;
-    Word        model;
-    SmiRecordId modelRecordId;
     EntryState  state;
   };
   typedef map<string,ObjectsCatalogEntry> ObjectsCatalog;
   ObjectsCatalog objects;
   SmiKeyedFile   objCatalogFile;
   SmiRecordFile  objValueFile;
-  SmiRecordFile  objModelFile;
 
   bool testMode;
 /*

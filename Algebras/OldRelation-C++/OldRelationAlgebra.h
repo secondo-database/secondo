@@ -28,6 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 March 2003 Victor Almeida created the new Relational Algebra organization
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 1 Defines, includes, and constants
 
 */
@@ -129,15 +133,6 @@ void* CastCcTuple(void*);
 
 Word CreateCcTuple(const ListExpr);
 
-Word CcTupleInModel( ListExpr, ListExpr, int);
-
-ListExpr CcTupleOutModel( ListExpr, Word);
-
-Word CcTupleValueToModel( ListExpr, Word);
-
-Word CcTupleValueListToModel( const ListExpr, const ListExpr,
-                       const int, ListExpr&, bool& );
-
 ListExpr CcRelProp ();
 
 /*
@@ -220,13 +215,4 @@ bool OpenCcRel( SmiRecord&, size_t&,
 bool SaveCcRel( SmiRecord&, size_t&,
                 const ListExpr, Word& );
     
-Word CcRelInModel( ListExpr, ListExpr, int );
-
-ListExpr CcRelOutModel( ListExpr, Word );
-
-Word CcRelValueToModel( ListExpr, Word );
-
-Word CcRelValueListToModel( const ListExpr, const ListExpr,
-                       const int, ListExpr&, bool& );
-
 #endif /* OLD_RELATION_ALGEBRA_H */

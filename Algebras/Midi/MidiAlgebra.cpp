@@ -41,11 +41,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[->] [$\rightarrow $]
 //[TOC] [\tableofcontents]
 
-\pagebreak
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
 
 [TOC]
 
-\pagebreak
 
 1 Implementation of the Midi Algebra
 
@@ -1882,12 +1883,7 @@ TypeConstructor midi(
         CloseMidi,  CloneMidi,  //object close and clone
         CastMidi,               //cast function
         SizeOfMidi,             //sizeof function
-        CheckMidi,              //kind checking function
-        0,                      //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckMidi );            //kind checking function
 
 /*
 2 Implementation of class ~Track~
@@ -2700,7 +2696,6 @@ Operator extract_track (
         "extract_track",        //name
         extractTrackSpec,       //specification
         extractTrackFun,        //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         genericTrackTypeMap     //type mapping
 );
@@ -2803,7 +2798,6 @@ Operator delete_track (
         "delete_track",         //name
         deleteTrackSpec,        //specification
         deleteTrackFun,         //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         genericTrackTypeMap     //type mapping
 );
@@ -3089,7 +3083,6 @@ Operator expand_track (
         "expand_track",         //name
         expandTrackSpec,        //specification
         expandTrackFun,         //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         genericTrackTypeMap     //type mapping
 );
@@ -3494,7 +3487,6 @@ Operator merge_tracks (
         "merge_tracks",         //name
         mergeTracksSpec,        //specification
         mergeTracksFun,         //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         mergeTracksTypeMap      //type mapping
 );
@@ -3624,7 +3616,6 @@ Operator transpose_track (
         "transpose_track",      //name
         transposeTrackSpec,     //specification
         transposeTrackFun,      //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         transposeTrackTypeMap   //type mapping
 );
@@ -3720,7 +3711,6 @@ Operator transpose_midi (
         "transpose_midi",       //name
         transposeMidiSpec,      //specification
         transposeMidiFun,       //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         genericTrackTypeMap     //type mapping
 );
@@ -3836,7 +3826,6 @@ Operator extract_lyrics (
         "extract_lyrics",       //name
         extractLyricsSpec,      //specification
         extractLyricsFun,       //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         extractLyricsTypeMap    //type mapping
 );
@@ -3934,7 +3923,6 @@ Operator contains_words (
         "contains_words",       //name
         containsWordsSpec,      //specification
         containsWordsFun,       //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         containsWordsTypeMap    //type mapping
 );
@@ -4210,7 +4198,6 @@ Operator contains_sequence (
         "contains_sequence",      //name
         containsSequenceSpec,     //specification
         containsSequenceFun,      //value mapping
-        Operator::DummyModel,     //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect,   //trivial selection function
         containsSequenceTypeMap   //type mapping
  );
@@ -4312,7 +4299,6 @@ Operator savetoMidi (
         "saveto",               //name
         SavetoMidiSpec,         //specification
         SavetoMidiFun,          //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         SavetoMidiTypeMap       //type mapping
  );
@@ -4449,7 +4435,6 @@ Operator tempo_bpm (
         "tempo_bpm",            //name
         tempoBpmSpec,           //specification
         tempoFun<true>,         //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         genericMidiTypeMap      //type mapping
  );
@@ -4502,7 +4487,6 @@ Operator tempo_ms (
         "tempo_ms",             //name
         tempoMsSpec,            //specification
         tempoFun<false>,        //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         genericMidiTypeMap      //type mapping
  );
@@ -4584,7 +4568,6 @@ Operator format (
         "format",               //name
         formatSpec,             //specification
         formatFun,              //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         genericMidiTypeMap      //type mapping
  );
@@ -4657,7 +4640,6 @@ Operator count_tracks (
         "count_tracks",         //name
         countTracksSpec,        //specification
         countTracksFun,         //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         genericMidiTypeMap      //type mapping
  );
@@ -4802,7 +4784,6 @@ Operator count_channels (
         "count_channels",       //name
         countChannelsSpec,      //specification
         countChannelsFun,       //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         countChannelsTypeMap    //type mapping
  );
@@ -4895,7 +4876,6 @@ Operator track_name (
         "track_name",           //name
         trackNameSpec,          //specification
         trackNameFun,           //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         trackStringTypeMap      //type mapping
  );
@@ -5073,7 +5053,6 @@ Operator time_signature (
         "time_signature",         //name
         timeSignatureSpec,        //specification
         timeSignatureFun<false>,  //value mapping
-        Operator::DummyModel,     //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect,   //trivial selection function
         stringTypeMap             //type mapping
  );
@@ -5125,7 +5104,6 @@ Operator beat (
         "beat",                 //name
         beatSpec,               //specification
         timeSignatureFun<true>, //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         stringTypeMap           //type mapping
  );
@@ -5208,7 +5186,6 @@ Operator instrument_name (
         "instrument_name",      //name
         instrumentNameSpec,     //specification
         instrumentNameFun,      //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         trackStringTypeMap      //type mapping
  );
@@ -5276,7 +5253,6 @@ Operator get_name_midi (
         "get_name",             //name
         getNameMidiSpec,        //specification
         getNameMidiFun,         //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         stringTypeMap           //type mapping
  );

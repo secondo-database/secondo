@@ -11,6 +11,10 @@ Dezember 2004 Christian Bohnbuck, Uwe Hartmann, Marion Langen and Holger
 M[ue]nx during Prof. G[ue]ting's practical course 
 'Extensible Database Systems' at Fernuniversit[ae]t Hagen.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 [TOC]
 
 1 Introduction
@@ -400,17 +404,6 @@ static int SimpleSelect(ListExpr args) {
 
 /*
 
-As we do not use a model mapping, we are providing a dummy model mapping.
-Please note that this array needs to be extended if an operator is overloaded
-with more than two functions. Yes, this is prone to errors!
-
-*/
-
-ModelMapping dummymodelmap[] = 
-    { Operator::DummyModel, Operator::DummyModel };
-
-/*
-
 The creation of the actual operators follows. Operator ~like~
 is overloaded.
 
@@ -420,7 +413,6 @@ static Operator height(
     "height",                              //name
     pictureHeightSpec,                     //specification
     PictureHeightValueMap,                 //value mapping
-    Operator::DummyModel,                  //dummy model mapping
     SimpleSelect,                          //mapping selection function
     Picture2ScalarTypeMap<P2STM_INT>       //type mapping
 );
@@ -429,7 +421,6 @@ static Operator width(
     "width",                               //name
     pictureWidthSpec,                      //specification
     PictureWidthValueMap,                  //value mapping
-    Operator::DummyModel,                  //dummy model mapping
     SimpleSelect,                          //mapping selection function
     Picture2ScalarTypeMap<P2STM_INT>       //type mapping
 );
@@ -438,7 +429,6 @@ static Operator isgrayscale(
     "isgrayscale",                         //name
     pictureIsGrayscaleSpec,                //specification
     PictureIsGrayscaleValueMap,            //value mapping
-    Operator::DummyModel,                  //dummy model mapping
     SimpleSelect,                          //mapping selection function
     Picture2ScalarTypeMap<P2STM_BOOL>      //type mapping
 );
@@ -447,7 +437,6 @@ static Operator filename(
     "filename",                            //name
     pictureFilenameSpec,                   //specification
     PictureFilenameValueMap,               //value mapping
-    Operator::DummyModel,                  //dummy model mapping
     SimpleSelect,                          //mapping selection function
     Picture2ScalarTypeMap<P2STM_STRING>    //type mapping
 );
@@ -456,7 +445,6 @@ static Operator category(
     "category",                            //name
     pictureCategorySpec,                   //specification
     PictureCategoryValueMap,               //value mapping
-    Operator::DummyModel,                  //dummy model mapping
     SimpleSelect,                          //mapping selection function
     Picture2ScalarTypeMap<P2STM_STRING>    //type mapping
 );
@@ -465,7 +453,6 @@ static Operator date(
     "picturedate",                         //name
     pictureDateSpec,                       //specification
     PictureDateValueMap,                   //value mapping
-    Operator::DummyModel,                  //dummy model mapping
     SimpleSelect,                          //mapping selection function
     PictureDateTypeMap                     //type mapping
 );
@@ -474,7 +461,6 @@ static Operator isportrait(
     "isportrait" ,                         //name
     pictureIsPortraitSpec,                 //specification
     PictureIsPortraitValueMap,             //value mapping
-    Operator::DummyModel,                  //dummy model mapping
     SimpleSelect,                          //mapping selection function
     Picture2ScalarTypeMap<P2STM_BOOL>      //type mapping
 );
@@ -483,7 +469,6 @@ static Operator colordist(
     "colordist",                           //name
     pictureColordistSpec,                  //specification
     PictureColordistValueMap,              //value mapping
-    Operator::DummyModel,                  //dummy model mapping
     SimpleSelect,                          //mapping selection function
     PictureColordistTypeMap                //type mapping
 );
@@ -492,7 +477,6 @@ static Operator simpleequals(
     "simpleequals",                        //name
     pictureSimpleEqualsSpec,               //specification
     PictureSimpleEqualsValueMap,           //value mapping
-    Operator::DummyModel,                  //dummy model mapping
     SimpleSelect,                          //mapping selection function
     PictureSimpleEqualsTypeMap             //type mapping
 );
@@ -501,7 +485,6 @@ static Operator equals(
     "equals",                              //name
     pictureEqualsSpec,                     //specification
     PictureEqualsValueMap,                 //value mapping
-    Operator::DummyModel,                  //dummy model mapping
     SimpleSelect,                          //mapping selection function
     PictureEqualsTypeMap                   //type mapping
 );
@@ -511,7 +494,6 @@ static Operator like(
     pictureLikeSpec,                       //specification
     2,                                     //number of overloaded functions
     pictureLikeValueMap,                   //value mapping
-    dummymodelmap,                         //array with dummy model mapping
     PictureLikeSelect,                     //value mapping selection function
     PictureLikeTypeMap                     //type mapping
 );
@@ -520,7 +502,6 @@ static Operator scale(
     "scale",                               //name
     pictureScaleSpec,                      //specification
     PictureScaleValueMap,                  //value mapping
-    Operator::DummyModel,                  //dummy model mapping
     SimpleSelect,                          //mapping selection function
     PictureScaleTypeMap                    //type mapping
 );
@@ -529,7 +510,6 @@ static Operator cut(
     "cut",                                 //name
     pictureCutSpec,                        //specification
     PictureCutValueMap,                    //value mapping
-    Operator::DummyModel,                  //dummy model mapping
     SimpleSelect,                          //mapping selection function
     PictureCutTypeMap                      //type mapping
 );
@@ -538,7 +518,6 @@ static Operator flipleft(
     "flipleft",                            //name
     pictureFlipleftSpec,                   //specification
     PictureFlipleftValueMap,               //value mapping
-    Operator::DummyModel,                  //dummy model mapping
     SimpleSelect,                          //mapping selection function
     PictureFlipleftTypeMap                 //type mapping
 );
@@ -547,7 +526,6 @@ static Operator mirror(
     "mirror",                              //name
     pictureMirrorSpec,                   //specification
     PictureMirrorValueMap,               //value mapping
-    Operator::DummyModel,                  //dummy model mapping
     SimpleSelect,                          //mapping selection function
     PictureMirrorTypeMap                 //type mapping
 );
@@ -556,7 +534,6 @@ static Operator display(
     "display",                             //name
     pictureDisplaySpec,                    //specification
     PictureDisplayValueMap,                //value mapping
-    Operator::DummyModel,                  //dummy model mapping
     SimpleSelect,                          //mapping selection function
     Picture2ScalarTypeMap<P2STM_BOOL>      //type mapping
 );
@@ -565,7 +542,6 @@ static Operator exportop(
     "export",                              //name
     pictureExportSpec,                     //specification
     PictureExportValueMap,                 //value mapping
-    Operator::DummyModel,                  //dummy model mapping
     SimpleSelect,                          //mapping selection function
     PictureExportTypeMap                   //type mapping
 );

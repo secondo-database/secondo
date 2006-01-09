@@ -34,6 +34,10 @@ of a little query. Moreover, some changes in the Algebra interface made it neces
 call ~QP::DestroyValuesArray~, since ~QP::AnnotateX~ open objects. Now the derive command
 works again. 
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains.
+
 This class creates and maintains the system table 
 
 SEC\_DERIVED\_OBJ(name: string, value: text, usedObj: text)
@@ -78,7 +82,7 @@ public:
      derivedObjRelName("SEC_DERIVED_OBJ"),
      derivedObjTypeStr("(rel(tuple((name string)(value text)(usedObjs text))))"),
      nl( *SecondoSystem::GetNestedList() ),
-     ctlg( *SecondoSystem::GetCatalog( ExecutableLevel ) ),
+     ctlg( *SecondoSystem::GetCatalog() ),
      qp( *SecondoSystem::GetQueryProcessor() )
    {
      // check if the system tables are already present 
@@ -144,10 +148,10 @@ command and extracts the object dependencies from the annotated query.
       
       // extract dependent objects
       bool defined = false;	  
-      ListExpr annotatedList = qp.AnnotateX( ExecutableLevel, valueExpr, defined);
+      ListExpr annotatedList = qp.AnnotateX( valueExpr, defined);
 
       // delete and close objects which were opened during annotate
-      qp.DestroyValuesArray(ExecutableLevel);
+      qp.DestroyValuesArray();
 
       //nl.WriteListExpr(annotatedList);
       vector<ListExpr> atoms;
@@ -282,7 +286,7 @@ command and extracts the object dependencies from the annotated query.
           }
           else
           {
-            qp.Construct( ExecutableLevel, valueExpr, correct, evaluable, defined,
+            qp.Construct( valueExpr, correct, evaluable, defined,
                           isFunction, tree, resultType );
             if ( !defined )
             {

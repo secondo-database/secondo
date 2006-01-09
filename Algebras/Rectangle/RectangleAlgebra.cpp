@@ -26,6 +26,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 October, 2003. Victor Teixeira de Almeida
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 1 Overview
 
 This implementation file essentially contains the implementation of the
@@ -105,7 +109,7 @@ CheckRectangle2( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor rect(
-        "rect",                                 //name
+        "rect",                                  //name
         Rectangle2Property,                      //property function describing signature
         OutRectangle<2>,     InRectangle<2>,     //Out and In functions
         0,                   0,                  //SaveToList and RestoreFromList functions
@@ -113,13 +117,8 @@ TypeConstructor rect(
         0,               0,                      //open and save functions
         CloseRectangle<2>,   CloneRectangle<2>,  //object close, and clone
         CastRectangle<2>,                        //cast function
-        SizeOfRectangle<2>,      //sizeof function
-        CheckRectangle2,                         //kind checking function
-        0,                                       //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        SizeOfRectangle<2>,                      //sizeof function
+        CheckRectangle2 );                       //kind checking function
 
 /*
 3 Type Constructor ~rect3~
@@ -187,12 +186,7 @@ TypeConstructor rect3(
         CloseRectangle<3>,   CloneRectangle<3>,  //object close, and clone
         CastRectangle<3>,                        //cast function
         SizeOfRectangle<3>,                      //sizeof function
-        CheckRectangle3,                         //kind checking function
-        0,                                       //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckRectangle3 );                       //kind checking function
 
 /*
 3 Type Constructor ~rect4~
@@ -260,12 +254,7 @@ TypeConstructor rect4(
         CloseRectangle<4>,   CloneRectangle<4>,  //object close, and clone
         CastRectangle<4>,                        //cast function
         SizeOfRectangle<4>,                      //sizeof function
-        CheckRectangle4,                         //kind checking function
-        0,                                       //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckRectangle4 );                       //kind checking function
 
 /*
 4 Operators
@@ -385,16 +374,6 @@ ListExpr TranslateTypeMap( ListExpr args )
       return nl->SymbolAtom( "rect4" );
   }
   return nl->SymbolAtom( "typeerror" );
-}
-
-/*
-4.1.1 The dummy model mapping
-
-*/
-static Word
-RectangleNoModelMapping( ArgVector arg, Supplier opTreeNode )
-{
-  return (SetWord( Address( 0 ) ));
 }
 
 /*
@@ -671,10 +650,6 @@ ValueMapping rectangleintersectionmap[] = { RectangleIntersection<2>,
                                             RectangleIntersection<3>,
                                             RectangleIntersection<4> };
 
-ModelMapping rectanglenomodelmap[] = { RectangleNoModelMapping,
-                                       RectangleNoModelMapping,
-                                       RectangleNoModelMapping };
-
 /*
 4.5.2 Definition of specification strings
 
@@ -752,7 +727,6 @@ Operator rectangleisempty( "isempty",
                            RectangleSpecIsEmpty,
                            3,
                            rectangleisemptymap,
-                           rectanglenomodelmap,
                            RectangleUnarySelect,
                            RectangleTypeMapBool1 );
 
@@ -760,7 +734,6 @@ Operator rectangleequal( "=",
                          RectangleSpecEqual,
                          3,
                          rectangleequalmap,
-                         rectanglenomodelmap,
                          RectangleBinarySelect,
                          RectangleTypeMapBool );
 
@@ -768,7 +741,6 @@ Operator rectanglenotequal( "#",
                             RectangleSpecNotEqual,
                             3,
                             rectanglenotequalmap,
-                            rectanglenomodelmap,
                             RectangleBinarySelect,
                             RectangleTypeMapBool );
 
@@ -776,7 +748,6 @@ Operator rectangleintersects( "intersects",
                               RectangleSpecIntersects,
                               3,
                               rectangleintersectsmap,
-                              rectanglenomodelmap,
                               RectangleBinarySelect,
                               RectangleTypeMapBool );
 
@@ -784,7 +755,6 @@ Operator rectangleinside( "inside",
                           RectangleSpecInside,
                           3,
                           rectangleinsidemap,
-                          rectanglenomodelmap,
                           RectangleBinarySelect,
                           RectangleTypeMapBool );
 
@@ -792,7 +762,6 @@ Operator rectangleunion( "union",
                           RectangleSpecUnion,
                           3,
                           rectangleunionmap,
-                          rectanglenomodelmap,
                           RectangleBinarySelect,
                           RectRectTypeMapRect );
 
@@ -800,7 +769,6 @@ Operator rectangleintersection( "intersection",
                                 RectangleSpecIntersection,
                                 3,
                                 rectangleintersectionmap,
-                                rectanglenomodelmap,
                                 RectangleBinarySelect,
                                 RectRectTypeMapRect );
 
@@ -808,7 +776,6 @@ Operator rectangletranslate( "translate",
                              RectangleSpecTranslate,
                              3,
                              rectangletranslatemap,
-                             rectanglenomodelmap,
                              RectangleUnarySelect,
                              TranslateTypeMap );
 

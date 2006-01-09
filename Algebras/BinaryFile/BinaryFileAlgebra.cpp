@@ -27,8 +27,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 December 2003 VTA
 
-This is a little example of the usage of the Base 64 converting tool and
-also FLOBs. The algebra intends to store the contents of a binary file.
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
+This is a little example of the usage of the Base 64 converting 
+tool and also FLOBs. The algebra intends to store the contents of 
+a binary file.
+
 An operator to save the contents into a file is provided.
 
 1 Defines and includes
@@ -196,7 +202,7 @@ bool BinaryFile::SaveToFile( char *fileName )
   char *bytes = (char *)malloc( binData.Size() );
   binData.Get( 0, binData.Size(), bytes );
 
-  if( (int)fwrite( bytes, 1, binData.Size(), f ) != binData.Size() )
+  if( fwrite( bytes, 1, binData.Size(), f ) != binData.Size() )
     return false;
 
   fclose( f );
@@ -316,7 +322,8 @@ OpenBinaryFile( SmiRecord& valueRecord,
 {
   // This Open function is implemented in the TupleElement class
   // and uses the same method of the Tuple manager to open objects
-  BinaryFile *bf = (BinaryFile*)TupleElement::Open( valueRecord, offset, typeInfo );
+  BinaryFile *bf = 
+    (BinaryFile*)TupleElement::Open( valueRecord, offset, typeInfo );
   value = SetWord( bf );
   return true;
 }
@@ -382,8 +389,8 @@ void* CastBinaryFile( void* addr )
 /*
 2.14 Kind Checking Function
 
-This function checks whether the type constructor is applied correctly. Since
-type constructor ~binfile~ does not have arguments, this is trivial.
+This function checks whether the type constructor is applied 
+correctly. Since type constructor ~binfile~ does not have arguments, this is trivial.
 
 */
 bool
@@ -397,21 +404,16 @@ CheckBinaryFile( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor binfile(
-	"binfile",				//name
-	BinaryFileProperty, 	                //property function describing signature
-        OutBinaryFile,     InBinaryFile,	//Out and In functions
-        0,                 0,	        	//SaveToList and RestoreFromList functions
-	CreateBinaryFile,  DeleteBinaryFile,	//object creation and deletion
-        OpenBinaryFile,    SaveBinaryFile, 	//object open and save
-        CloseBinaryFile,   CloneBinaryFile,    	//object close and clone
-	CastBinaryFile,				//cast function
-        SizeOfBinaryFile, 			//sizeof function
-	CheckBinaryFile,	                //kind checking function
-	0, 					//predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+	"binfile",				      //name
+  BinaryFileProperty,     //property function describing signature
+  OutBinaryFile,     InBinaryFile,	   //Out and In functions
+  0,                 0,	  //SaveToList and RestoreFromList functions
+  CreateBinaryFile,  DeleteBinaryFile, //object creation and deletion
+  OpenBinaryFile,    SaveBinaryFile, 	 //object open and save
+  CloseBinaryFile,   CloneBinaryFile,  //object close and clone
+  CastBinaryFile,				               //cast function
+  SizeOfBinaryFile, 			             //sizeof function
+	CheckBinaryFile );	                 //kind checking function
 
 /*
 4 Operators
@@ -422,8 +424,9 @@ Saves the bynary contents of into a file.
 
 5.6.1 Type mapping function of operator ~saveto~
 
-Operator ~saveto~ accepts a binary file object and a string representing
-the name of the file, and returns a boolean meaning success or not.
+Operator ~saveto~ accepts a binary file object and a string 
+representing the name of the file, and returns a boolean meaning 
+success or not.
 
 ----    (binfile string)               -> bool
 ----
@@ -437,7 +440,8 @@ SaveToTypeMap( ListExpr args )
   {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, "binfile") && nl->IsEqual(arg2, "string") )
+    if ( nl->IsEqual(arg1, "binfile") && 
+         nl->IsEqual(arg2, "string") )
     return nl->SymbolAtom("bool");
   }
   return nl->SymbolAtom("typeerror");
@@ -449,7 +453,8 @@ SaveToTypeMap( ListExpr args )
 
 */
 int
-SaveToFun(Word* args, Word& result, int message, Word& local, Supplier s)
+SaveToFun(Word* args, Word& result, int message, 
+          Word& local, Supplier s)
 {
   result = qp->ResultStorage( s );
   BinaryFile *binFile = (BinaryFile*)args[0].addr;
@@ -468,15 +473,16 @@ SaveToFun(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~saveto~
 
 */
-const string SaveToSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>(binfile string) -> bool"
-                           "</text--->"
-                           "<text>_ saveto _</text--->"
-                           "<text>Saves the contents of the object into a "
-                           "file.</text--->"
-                           "<text>query bin saveto \"filename.dat\"</text--->"
-                              ") )";
+const string SaveToSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(binfile string) -> bool"
+  "</text--->"
+  "<text>_ saveto _</text--->"
+  "<text>Saves the contents of the object into a "
+  "file.</text--->"
+  "<text>query bin saveto \"filename.dat\"</text--->"
+  ") )";
 
 /*
 
@@ -484,12 +490,11 @@ const string SaveToSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
 */
 Operator saveto (
-        "saveto",           //name
-        SaveToSpec,         //specification
-        SaveToFun,          //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
-        Operator::SimpleSelect,         //trivial selection function
-        SaveToTypeMap            //type mapping
+        "saveto",               //name
+        SaveToSpec,             //specification
+        SaveToFun,              //value mapping
+        Operator::SimpleSelect, //trivial selection function
+        SaveToTypeMap           //type mapping
 );
 
 
@@ -497,7 +502,6 @@ Operator saveto (
 5 Creating the Algebra
 
 */
-
 class BinaryFileAlgebra : public Algebra
 {
  public:
@@ -519,20 +523,20 @@ BinaryFileAlgebra binFileAlgebra;
 /*
 6 Initialization
 
-Each algebra module needs an initialization function. The algebra manager
-has a reference to this function if this algebra is included in the list
-of required algebras, thus forcing the linker to include this module.
+Each algebra module needs an initialization function. The algebra 
+manager has a reference to this function if this algebra is 
+included in the list of required algebras, thus forcing the linker 
+to include this module.
 
-The algebra manager invokes this function to get a reference to the instance
-of the algebra class and to provide references to the global nested list
-container (used to store constructor, type, operator and object information)
-and to the query processor.
+The algebra manager invokes this function to get a reference to the 
+instance of the algebra class and to provide references to the 
+global nested list container (used to store constructor, type, 
+operator and object information) and to the query processor.
 
-The function has a C interface to make it possible to load the algebra
-dynamically at runtime.
+The function has a C interface to make it possible to load the 
+algebra dynamically at runtime.
 
 */
-
 extern "C"
 Algebra*
 InitializeBinaryFileAlgebra( NestedList* nlRef, QueryProcessor* qpRef )

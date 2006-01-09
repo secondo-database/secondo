@@ -27,14 +27,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Header File of Module FLOB
 
-Victor Almeida, 24/04/03. Adapting the class to accept standalone objects
-and objects inside tuples transparently.
-
-Mirco G[ue]nster, 31/09/02 End of porting to the new SecondoSMI.
+Stefan Dieker, 03/05/98
 
 Markus Spiekermann, 14/05/02. Begin of porting to the new SecondoSMI.
 
-Stefan Dieker, 03/05/98
+Mirco G[ue]nster, 31/09/02 End of porting to the new SecondoSMI.
+
+Victor Almeida, 24/04/03. Adapting the class to accept standalone 
+objects and objects inside tuples transparently.
+
+January 2006 Victor Almeida created the FLOB cache. Some assertions
+were removed, since the code is stable.
 
 1 Defines
 
@@ -50,24 +53,23 @@ Stefan Dieker, 03/05/98
 */
 #include "SecondoSMI.h"
 
-enum FLOB_Type {Destroyed, InMemory, InDiskSmall, InDiskLarge};
+enum FLOB_Type {Destroyed, InMemory, InMemoryCached, 
+                InDiskSmall, InDiskLarge};
 
 /*
 3 class FLOB
 
-This class implements a FLOB which define a new
-large object abstraction that offers most access
-methods of the original one.
-It defines a threshold size namely SWITCH\_THRESHOLD
-as a static attribute. This value defines a limit
-between "small" and "large" values referring its
-size.
-A small FLOB is stored in a main memory structure
-whereas a large FLOB is stored into a seperate
-SmiRecord in an SmiFile.
+This class implements a FLOB which define a new large object 
+abstraction that offers most access methods of the original one.
+
+It defines a threshold size namely SWITCH\_THRESHOLD as a static 
+attribute. This value defines a limit between "small" and "large" 
+values referring its size.
+
+A small FLOB is stored in a main memory structure whereas a large 
+FLOB is stored into a seperate SmiRecord in an SmiFile.
 
 */
-
 class FLOB
 {
 
@@ -75,8 +77,9 @@ class FLOB
 
     static const size_t SWITCH_THRESHOLD;
 /*
-This is the tresholdsize for a FLOB.  Whenever the size of this FLOB exceeds
-the thresholdsize the data will stored in a separate file for lobs.
+This is the treshold size for a FLOB. Whenever the size of this 
+FLOB exceeds the threshold size the data will stored in a separate 
+file for LOBs.
 
 */
 
@@ -150,6 +153,14 @@ Clears the FLOB.
 */
     void Clear();
 
+/*
+3.8 Clean
+
+Cleans the FLOB, removing it from memory. If it is cached, then a
+reference in the cache is removed.
+
+*/
+    void Clean();
 
 /*
 3.8 Destroy
@@ -162,11 +173,11 @@ Destroys the physical representation of the FLOB.
 /*
 3.10 SaveToLob
 
-Saves the FLOB to the LOB file. The FLOB must be a LOB. The type is set
-to ~InDiskLarge~.
+Saves the FLOB to the LOB file. The FLOB must be a LOB. The type is 
+set to ~InDiskLarge~.
 
 */
-    size_t SaveToLob( SmiRecordFile& lobFile, SmiRecordId lobId = 0 );
+    void SaveToLob( SmiRecordId& lobFileId, SmiRecordId lobId = 0 );
 
 /*
 3.10 SetLobFile
@@ -174,12 +185,13 @@ to ~InDiskLarge~.
 Sets the LOB file. The FLOB must be a LOB.
 
 */
-    void SetLobFile( SmiRecordFile* lobFile );
+    void SetLobFileId( SmiFileId lobFileId );
 
 /*
 3.11 SaveToExtensionTuple
 
-Saves the FLOB to a buffer of an extension tuple and sets its type to ~InDiskSmall~.
+Saves the FLOB to a buffer of an extension tuple and sets its type 
+to ~InDiskSmall~.
 
 */
     void SaveToExtensionTuple( void *extensionTuple );
@@ -187,13 +199,17 @@ Saves the FLOB to a buffer of an extension tuple and sets its type to ~InDiskSma
 /*
 3.12 ReadFromExtensionTuple
 
-Reads the FLOB value from an extension tuple. There are two ways of reading, one uses
-a Prefetching Iterator and the other reads directly from the SMI Record.
+Reads the FLOB value from an extension tuple. There are two ways of 
+reading, one uses a Prefetching Iterator and the other reads 
+directly from the SMI Record.
+
 The FLOB must be small.
 
 */
-    size_t ReadFromExtensionTuple( PrefetchingIterator& iter, size_t offset );
-    size_t ReadFromExtensionTuple( SmiRecord& record, size_t offset );
+    size_t ReadFromExtensionTuple( PrefetchingIterator& iter, 
+                                   size_t offset );
+    size_t ReadFromExtensionTuple( SmiRecord& record, 
+                                   size_t offset );
 
 /*
 3.10 IsLob
@@ -212,6 +228,10 @@ Returns true, if value stored in underlying LOB, otherwise false.
 
   protected:
 
+/*
+3.12 Attributes
+
+*/
     FLOB_Type type;
     size_t size;
 
@@ -222,9 +242,16 @@ Returns true, if value stored in underlying LOB, otherwise false.
         char *buffer;
       } inMemory;
 
+      struct InMemoryCached
+      {
+        char *buffer;
+        SmiFileId lobFileId;
+        SmiRecordId lobId;
+      } inMemoryCached;
+
       struct InDiskLarge
       {
-        SmiRecordFile *lobFile;
+        SmiFileId lobFileId;
         SmiRecordId lobId;
       } inDiskLarge;
 

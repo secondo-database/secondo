@@ -85,6 +85,10 @@ December 2004, M. Spiekermann. A new function implementing the ~set~ command was
 
 August 2005, M. Spiekermann. New private member ~isCSImpl~ supplemented.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 1.1 Overview
 
 This module defines the procedure ~Secondo~ as defined in ``The Secondo
@@ -185,7 +189,7 @@ the "Secondo"[3] system and the ~SmiEnvironment~ are shut down.
 */
   void Secondo( const string& commandText,
                 const ListExpr commandLE,
-                const int commandLevel,
+                const int commandType,
                 const bool commandAsText,
                 const bool resultAsText,
                 ListExpr& resultList,
@@ -730,13 +734,11 @@ algebra number and type constructor number).
 
 */
 
-  ListExpr NumericTypeExpr( const AlgebraLevel level,
-                            const ListExpr type );
+  ListExpr NumericTypeExpr( const ListExpr type );
 /*
 Transforms a given type expression into a list structure where each type
 constructor has been replaced by the corresponding pair (algebraId,
-typeId). The catalog corresponding to the current ~level~ (descriptive or
-executable) is used to resolve type names in the type expression.
+typeId). The catalog is used to resolve type names in the type expression.
 For example, 
 
 ----  int    ->    (1 1)
@@ -755,22 +757,18 @@ The resulting form of the type expression is useful for calling the type
 specific ~In~ and ~Out~ procedures. 
 
 */
-  bool GetTypeId( const AlgebraLevel level,
-                  const string& name,
+  bool GetTypeId( const string& name,
                   int& algebraId, int& typeId );
 /*
 Finds the ~algebraId~ and ~typeId~ of a named type.
-The catalog corresponding to the current ~level~ (descriptive or
-executable) is used to resolve the type name.
+The catalog is used to resolve the type name.
 
 */
-  bool LookUpTypeExpr( const AlgebraLevel level,
-                       ListExpr type, string& name,
+  bool LookUpTypeExpr( ListExpr type, string& name,
                        int& algebraId, int& typeId );
 /*
 Finds the ~name~, ~algebraId~ and ~typeId~ of a type given by the type expression
-~type~. The catalog corresponding to the current ~level~ (descriptive or
-executable) is used to resolve the type name.
+~type~. The catalog is used to resolve the type name.
 
 */
   NestedList* GetNestedList();
@@ -1026,19 +1024,19 @@ Sets the debug level of the query processor.
   void FinishCommand( SI_Error& errorCode );
 	
   // implementation of SECONDO commands
-  SI_Error Command_Query( const AlgebraLevel level, const ListExpr list, 
+  SI_Error Command_Query( const ListExpr list, 
                           ListExpr& result, string& errorMessage );
 
-  SI_Error Command_Create( const AlgebraLevel level, const ListExpr list,
+  SI_Error Command_Create( const ListExpr list,
                            ListExpr& result, ListExpr& error );
 
-  SI_Error Command_Let( const AlgebraLevel level, const ListExpr list );
+  SI_Error Command_Let( const ListExpr list );
   
-  SI_Error Command_Set( const AlgebraLevel level, const ListExpr list );
+  SI_Error Command_Set( const ListExpr list );
 									 	 
-  SI_Error Command_Derive( const AlgebraLevel level, const ListExpr list );
+  SI_Error Command_Derive( const ListExpr list );
 	
-  SI_Error Command_Update( const AlgebraLevel level, const ListExpr list );
+  SI_Error Command_Update( const ListExpr list );
 
 
   bool        initialized;       // state of interface

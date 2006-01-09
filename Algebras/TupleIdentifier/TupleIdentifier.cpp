@@ -27,6 +27,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 March 2005 Matthias Zielke
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 The only purpose of this algebra is to provide a typeconstructor 'tid' so that the tupleidentifiers
 of tuples from relations can be stored as attribute-values in different tuples. This feature is needed
 for the implementation of operators to update relations.
@@ -98,23 +102,18 @@ ListExpr
 OutTupleIdentifier( ListExpr typeInfo, Word value )
 {
   TupleIdentifier* tupleI = (TupleIdentifier*)(value.addr);
-  return nl->OneElemList(nl->IntAtom(tupleI->GetTid()));
+  return nl->IntAtom(tupleI->GetTid());
 }
 
 Word
 InTupleIdentifier( const ListExpr typeInfo, const ListExpr instance,
           const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  if ( nl->ListLength( instance ) == 1 )
+  if ( nl->IsAtom(instance) && nl->AtomType(instance) == IntType)
   {
-    ListExpr First = nl->First(instance);
-
-    if ( nl->IsAtom(First) && nl->AtomType(First) == IntType)
-    {
-      correct = true;
-      TupleIdentifier* newTid = new TupleIdentifier(true, nl->IntValue(First));
-      return SetWord(newTid);
-    }
+    correct = true;
+    TupleIdentifier* newTid = new TupleIdentifier(true, nl->IntValue(instance));
+    return SetWord(newTid);
   }
   correct = false;
   return SetWord(Address(0));
@@ -207,12 +206,7 @@ TypeConstructor tupleIdentifier(
     0, 0, CloseTupleIdentifier, CloneTupleIdentifier, //object open, save, close, and clone
 	CastTupleIdentifier,			//cast function
     SizeOfTupleIdentifier, 			//sizeof function
-	CheckTupleIdentifier,	                //kind checking function
-	0, 				//predef. pers. function for model
-    TypeConstructor::DummyInModel,
-    TypeConstructor::DummyOutModel,
-    TypeConstructor::DummyValueToModel,
-    TypeConstructor::DummyValueListToModel );
+	CheckTupleIdentifier );                //kind checking function
 
 /*
 3 Operators
@@ -284,7 +278,6 @@ Operator tidtupleid (
          "tupleid",             // name
          TupleIdSpec,           // specification
          TIDTupleId,            // value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,         // trivial selection function
          TupleIdTypeMap         // type mapping
 );
@@ -385,7 +378,7 @@ TIDAddTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
       if (qp->Received(args[0].addr))
       {
         Tuple *tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( *resultTupleType, true );
+        Tuple *newTuple = new Tuple( *resultTupleType );
         assert( newTuple->GetNoAttributes() == tup->GetNoAttributes() + 1 );
         for( int i = 0; i < tup->GetNoAttributes(); i++ )
           newTuple->PutAttribute( i, tup->GetAttribute( i )->Clone() );
@@ -428,7 +421,6 @@ Operator tidaddtupleid (
          "addtupleid",             // name
          AddTupleIdSpec,           // specification
          TIDAddTupleId,            // value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,         // trivial selection function
          AddTupleIdTypeMap         // type mapping
 );

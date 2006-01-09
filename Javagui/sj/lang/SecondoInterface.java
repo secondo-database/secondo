@@ -27,6 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 April 2002 Ulrich Telle Client/Server version of the SecondoInterface for version 2 of Secondo
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. 
 
 \tableofcontents
 
@@ -316,7 +319,6 @@ If value 0 is returned, the command was executed without error.
       switch (commandLevel)
       {
         case 0:  // executable, list form
-        case 2:  // descriptive, list form
         {
           if ( commandAsText ) {
             cmdText = commandText;
@@ -331,7 +333,6 @@ If value 0 is returned, the command was executed without error.
           break;
         }
         case 1:  // executable, text form
-        case 3:  // descriptive, text form
         {
           cmdText = commandText;
           break;
@@ -607,7 +608,7 @@ If value 0 is returned, the command was executed without error.
 1.3 Procedure ~NumericTypeExpr~
 
 */
-  public ListExpr numericTypeExpr( int level, ListExpr type )
+  public ListExpr numericTypeExpr( ListExpr type )
   {
     ListExpr list = new ListExpr();
     ListExpr internalType = ListExpr.oneElemList( type );
@@ -617,7 +618,7 @@ If value 0 is returned, the command was executed without error.
       if ( internalType.writeToString( listBuffer ) == 0 ) {
         try {
           outSocketStream.write( "<NumericType>\n" +
-                                 "(" + level + " " + listBuffer.toString() + ")\n" +
+                                 listBuffer.toString() + "\n" +
                                  "</NumericType>\n" );
           outSocketStream.flush();
           line = inSocketStream.readLine();
@@ -641,8 +642,7 @@ If value 0 is returned, the command was executed without error.
     return (list);
   }
 
-  public boolean getTypeId( int level,
-                            String name,
+  public boolean getTypeId( String name,
                             IntByReference algebraId, IntByReference typeId )
   {
     boolean ok = false;
@@ -652,7 +652,7 @@ If value 0 is returned, the command was executed without error.
       String line;
       try {
         outSocketStream.write( "<GetTypeId>\n" +
-                               level + " " + name + "\n" +
+                               name + "\n" +
                                "</GetTypeId>\n" );
         outSocketStream.flush();
         line = inSocketStream.readLine();
@@ -682,8 +682,7 @@ If value 0 is returned, the command was executed without error.
     return (ok);
   }
 
-  boolean lookUpTypeExpr( int level,
-                          ListExpr type, StringBuffer name,
+  boolean lookUpTypeExpr( ListExpr type, StringBuffer name,
                           IntByReference algebraId, IntByReference typeId )
   {
     boolean ok = false;
@@ -693,7 +692,7 @@ If value 0 is returned, the command was executed without error.
       if ( type.writeToString( listBuffer ) == 0 ) {
         try {
           outSocketStream.write( "<LookUpType>\n" +
-                                 "(" + level + " " + listBuffer.toString() + ")\n" +
+                                 listBuffer.toString() + "\n" +
                                  "</LookUpType>\n" );
           outSocketStream.flush();
           line = inSocketStream.readLine();

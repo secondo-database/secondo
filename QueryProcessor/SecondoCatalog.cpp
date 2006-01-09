@@ -57,6 +57,10 @@ October 2002 Ulrich Telle, testMode flag initialization added
 September 2003 Frank Hoffmann, added (overloaded) ~ListTypeConstructors~
 and ~ListOperators~
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 This module implements the module *SecondoCatalog*. It consists of six
 parts: First it contains an interface to *Databases and Transactions*
 for loading the actual catalog of database types and objects and for
@@ -99,9 +103,7 @@ const SmiSize CE_TYPES_EXPR_START = sizeof( int ) + CE_TYPES_EXPR_SIZE;
 const SmiSize CE_OBJS_VALUE          = 0;
 const SmiSize CE_OBJS_VALUE_DEF      = sizeof( Word ) + CE_OBJS_VALUE;
 const SmiSize CE_OBJS_VALUE_RECID    = sizeof( bool ) + CE_OBJS_VALUE_DEF;
-const SmiSize CE_OBJS_MODEL          = sizeof( SmiRecordId ) + CE_OBJS_VALUE_RECID;
-const SmiSize CE_OBJS_MODEL_RECID    = sizeof( Word ) + CE_OBJS_MODEL;
-const SmiSize CE_OBJS_ALGEBRA_ID     = sizeof( SmiRecordId ) + CE_OBJS_MODEL_RECID;
+const SmiSize CE_OBJS_ALGEBRA_ID     = sizeof( SmiRecordId ) + CE_OBJS_VALUE_RECID;
 const SmiSize CE_OBJS_TYPE_ID        = sizeof( int ) + CE_OBJS_ALGEBRA_ID;
 const SmiSize CE_OBJS_TYPENAME_SIZE  = sizeof( int ) + CE_OBJS_TYPE_ID;
 const SmiSize CE_OBJS_TYPEEXPR_SIZE  = sizeof( int ) + CE_OBJS_TYPENAME_SIZE;
@@ -126,8 +128,7 @@ the *SECONDO Project*.
 for the type name of the stored object, ~props~ contains the type name
 and type expression in nested list format and ~value~ delivers the
 object value as a word. Field ~valueDefined~ tells whether a value has
-been assigned to the object. Field ~model~ contains the model data
-structure for this object.
+been assigned to the object. 
 
   * database types: For every database type, the fields ~algebraId,
 typeId~ contain the type numbers and algebra numbers of the type name,
@@ -800,7 +801,7 @@ SecondoCatalog::ListObjectsFull(const DerivedObj& derivedObjs)
 Returns a list of ~objects~ of the whole database in the following format:
 
 ---- (OBJECTS
-       (OBJECT <object name>(<type name>) <type expression> <value> <model>)*
+       (OBJECT <object name>(<type name>) <type expression> <value>)*
      )
 ----
 
@@ -809,8 +810,8 @@ For each object the *value* component is missing, otherwise the whole database w
 Precondition: dbState = dbOpen.
 
 */
-  ListExpr objectsList, typeExpr, valueList, modelList, lastElem = 0;
-  Word value, model;
+  ListExpr objectsList, typeExpr, valueList, lastElem = 0;
+  Word value;
   bool defined, hasTypeName;
   string objectName, typeName, typeExprString;
   SmiKeyedFileIterator oIterator;
@@ -823,7 +824,7 @@ Precondition: dbState = dbOpen.
     cerr << " ListObjects: database is closed!" << endl;
     exit( 0 );
   }
-  cout << endl << "Saving objects of the " << ctlgLevelStr << " catalog ..." << endl;
+  cout << endl << "Saving objects ..." << endl;
   const string msgOmitted = "omitted (derived object).";
   const string msgSaved = "saved.";
   
@@ -850,7 +851,7 @@ Precondition: dbState = dbOpen.
       
 
       GetObjectExpr( objectName, typeName, typeExpr,
-                     value, defined, model, hasTypeName );
+                     value, defined, hasTypeName );
       if ( defined )
       {
         valueList = OutObject( typeExpr, value );
@@ -859,36 +860,26 @@ Precondition: dbState = dbOpen.
       {
         valueList = nl->TheEmptyList();
       }
-      if ( model.addr != 0 )
-      {
-        modelList = OutObjectModel( typeExpr, model );
-      }
-      else
-      {
-        modelList = nl->TheEmptyList();
-      }
       if ( objectsList == nl->TheEmptyList() )
       {
-        objectsList = nl->Cons( nl->SixElemList(
+        objectsList = nl->Cons( nl->FiveElemList(
                                   nl->SymbolAtom( "OBJECT" ),
                                   nl->SymbolAtom( objectName ),
                                   nl->OneElemList( nl->SymbolAtom( typeName ) ),
                                   typeExpr,
-                                  valueList,
-                                  modelList ),
+                                  valueList ),
                                 nl->TheEmptyList() );
         lastElem = objectsList;
       }
       else
       {
         lastElem = nl->Append( lastElem,
-                     nl->SixElemList(
+                     nl->FiveElemList(
                        nl->SymbolAtom( "OBJECT" ),
                        nl->SymbolAtom( objectName ),
                        nl->OneElemList( nl->SymbolAtom( typeName ) ),
                        typeExpr,
-                       valueList,
-                       modelList ) );
+                       valueList ) );
       }
       cout << msgSaved << endl;
     }
@@ -918,36 +909,26 @@ Precondition: dbState = dbOpen.
       {
         valueList = nl->TheEmptyList();
       }
-      if ( oPos->second.model.addr != 0 )
-      {
-        modelList = OutObjectModel( typeExpr, oPos->second.model );
-      }
-      else
-      {
-        modelList = nl->TheEmptyList();
-      }
       if ( objectsList == nl->TheEmptyList() )
       {
-        objectsList = nl->Cons( nl->SixElemList(
+        objectsList = nl->Cons( nl->FiveElemList(
                                   nl->SymbolAtom( "OBJECT" ),
                                   nl->SymbolAtom( oPos->first ),
                                   nl->OneElemList( nl->SymbolAtom( oPos->second.typeName ) ),
                                   typeExpr,
-                                  valueList,
-                                  modelList ),
+                                  valueList ),
                                 nl->TheEmptyList() );
         lastElem = objectsList;
       }
       else
       {
         lastElem = nl->Append( lastElem,
-                     nl->SixElemList(
+                     nl->FiveElemList(
                        nl->SymbolAtom( "OBJECT" ),
                        nl->SymbolAtom( oPos->first ),
                        nl->OneElemList( nl->SymbolAtom( oPos->second.typeName ) ),
                        typeExpr,
-                       valueList,
-                       modelList ) );
+                       valueList ) );
       }
     cout << msgSaved << endl;
     }
@@ -961,7 +942,9 @@ SecondoCatalog::CreateObject( const string& objectName, const string& typeName,
                               const ListExpr typeExpr, const int sizeOfComponents )
 {
 /*
-Creates a new object with identifier ~objectName~ defined with type name ~typeName~ (can be empty) and type ~typeExpr~. The value is not yet defined, and no memory is allocated. The model is also undefined. Returns error 1, if the object name is defined already.
+Creates a new object with identifier ~objectName~ defined with type name ~typeName~ 
+(can be empty) and type ~typeExpr~. The value is not yet defined, and no memory is 
+allocated. Returns error 1, if the object name is already defined.
 
 Precondition: dbState = dbOpen.
 
@@ -969,7 +952,6 @@ Precondition: dbState = dbOpen.
   int alId = 7, typeId = 7;
   Word value;
   string typecon;
-  Word model;
 
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
   {
@@ -991,18 +973,20 @@ Precondition: dbState = dbOpen.
   {
     LookUpTypeExpr( typeExpr, typecon, alId, typeId );
   }
-  model = InObjectModel( typeExpr, nl->TheEmptyList(), 1 );
-            /* generates the undefined model for this type */
-  return (InsertObject( objectName, typeName, typeExpr, value, false, model ));
+  return (InsertObject( objectName, typeName, typeExpr, value, false ));
 }
 
 bool
 SecondoCatalog::InsertObject( const string& objectName, const string& typeName,
                               const ListExpr typeExpr, const Word valueWord,
-                              const bool defined, const Word modelWord )
+                              const bool defined )
 {
 /*
-Inserts a new object with identifier ~objectName~ and value ~valueWord~ defined by type name ~typeName~ or by a list ~typeExpr~ of already existing types (which always exists) into the database catalog. Parameter ~defined~ tells, whether ~wordvalueWord~ actually contains a defined value. Further, ~modelWord~ contains a model for this value, possibly 0, the undefined model. If the object name already exists, the procedure has no effect. Returns error 1 if the ~objectName~ is used already.
+Inserts a new object with identifier ~objectName~ and value ~valueWord~ defined by 
+type name ~typeName~ or by a list ~typeExpr~ of already existing types (which always 
+exists) into the database catalog. Parameter ~defined~ tells, whether ~wordvalueWord~ 
+actually contains a defined value. If the object name already exists, the procedure 
+has no effect. Returns error 1 if the ~objectName~ is used already.
 
 When the given object has no type name, it is mandatory, that ~typeName~
 is an empty string.
@@ -1028,8 +1012,6 @@ Precondition: dbState = dbOpen.
       oPos->second.value = valueWord;
       oPos->second.valueDefined = defined;
       oPos->second.valueRecordId = 0;
-      oPos->second.model = modelWord;
-      oPos->second.modelRecordId = 0;
       oPos->second.typeName = typeName;
       LookUpTypeExpr( typeExpr, name,
                       oPos->second.algebraId, oPos->second.typeId );
@@ -1044,8 +1026,6 @@ Precondition: dbState = dbOpen.
     objEntry.value = valueWord;
     objEntry.valueDefined = defined;
     objEntry.valueRecordId = 0;
-    objEntry.model = modelWord;
-    objEntry.modelRecordId = 0;
     objEntry.typeName = typeName;
     LookUpTypeExpr( typeExpr, name, objEntry.algebraId, objEntry.typeId );
     nl->WriteToString( objEntry.typeExpr, nl->OneElemList( typeExpr ) );
@@ -1059,14 +1039,15 @@ bool
 SecondoCatalog::DeleteObject( const string& objectName )
 {
 /*
-Deletes an object with identifier ~objectName~ in the database calatog and deallocates the used memory. Returns error 1 if the object does not exist.
+Deletes an object with identifier ~objectName~ in the database calatog and deallocates the 
+used memory. Returns error 1 if the object does not exist.
 
 Precondition: dbState = dbOpen.
 
 */
   bool ok = false;
   string typeName, typecon;
-  Word value, model;
+  Word value;
   bool defined, hasNamedType;
   ListExpr typeExpr;
 
@@ -1091,13 +1072,12 @@ Precondition: dbState = dbOpen.
     }
   }
   else if ( GetObjectExpr( objectName, typeName, typeExpr,
-                           value, defined, model, hasNamedType ) )
+                           value, defined, hasNamedType ) )
   {
     ObjectsCatalogEntry oEntry;
     oEntry.state        = EntryDelete;
     oEntry.value        = value;
     oEntry.valueDefined = defined;
-    oEntry.model        = model;
     oEntry.typeName     = typeName;
     nl->WriteToString( oEntry.typeExpr, typeExpr );
     LookUpTypeExpr( typeExpr, typecon, oEntry.algebraId, oEntry.typeId );
@@ -1137,22 +1117,17 @@ Precondition: dbState = dbOpen.
   }
   else if( IsObjectName( objectName ) )
   {
-    SmiRecordId valueRecId, modelRecId;
+    SmiRecordId valueRecId;
     {
       SmiRecord oRec;
       if( ok = objCatalogFile.SelectRecord( SmiKey( objectName ), oRec ) )
       {
         oRec.Read( &valueRecId, sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
-        oRec.Read( &modelRecId, sizeof( int ), CE_OBJS_MODEL_RECID );
       }
     }
  
     if( ok && (ok = objCatalogFile.DeleteRecord( SmiKey( objectName ) )) )
     {
-      if( ok && modelRecId != 0 )
-      {
-        ok = objModelFile.DeleteRecord( modelRecId );
-      }
       if( ok && valueRecId != 0 )
       {
         ok = objValueFile.DeleteRecord( valueRecId );
@@ -1214,7 +1189,7 @@ Precondition: dbState = dbOpen.
 */
   ListExpr list, typeExpr;
   string typeName;
-  Word value, model;
+  Word value;
   bool hasNamedType;
   bool defined;
 
@@ -1223,7 +1198,7 @@ Precondition: dbState = dbOpen.
     cerr << " GetObjectValue: database is closed!" << endl;
     exit( 0 );
   }
-  GetObjectExpr( objectName, typeName, typeExpr, value, defined, model,
+  GetObjectExpr( objectName, typeName, typeExpr, value, defined,
                  hasNamedType );
   if ( defined )
   {
@@ -1295,133 +1270,6 @@ Closes a given ~object~ of type ~type~.
     alId = nl->IntValue( nl->First( pair ) );
     typeId = nl->IntValue( nl->Second( pair ) );
     ( am->CloseObj( alId, typeId ))( object );
-  }
-}
-
-Word
-SecondoCatalog::InObjectModel( const ListExpr typeExpr,
-                               const ListExpr modelList,
-                               const int objNo )
-{
-/*
-Converts a model of the type given by ~typeExpr~ and the value given as a nested list into a WORD representation which is returned.
-
-Precondition: dbState = dbOpen.
-
-*/
-  ListExpr pair, numtype;
-  int algebraId, typeId;
-
-  numtype = NumericType( typeExpr );
-
-  if ( nl->IsAtom( nl->First( numtype ) ) )
-  {
-    pair = numtype;
-  }
-  else
-  {
-    pair = nl->First( numtype );
-  }
-  algebraId = nl->IntValue( nl->First( pair ) );
-  typeId = nl->IntValue( nl->Second( pair ) );
-  return ((am->InModel( algebraId, typeId ))( typeExpr, modelList, objNo ));
-}
-
-ListExpr
-SecondoCatalog::OutObjectModel( const ListExpr typeExpr, const Word model )
-{
-/*
-Returns for a given ~model~ of type ~typeExpr~ its description in nested list representation.
-
-*/
-  ListExpr pair, numtype;
-  int alId, typeId;
-
-  numtype = NumericType( typeExpr );
-  if ( nl->IsEmpty( numtype ) )
-  { /* do nothing */
-    return (nl->TheEmptyList());
-  }
-  else
-  {
-    if ( nl->IsAtom( nl->First( numtype ) ) )
-    {
-      pair = numtype;
-    }
-    else
-    {
-      pair = nl->First( numtype );
-    }
-    alId = nl->IntValue( nl->First( pair ) );
-    typeId = nl->IntValue( nl->Second( pair ) );
-    return ((am->OutModel( alId, typeId ))( typeExpr, model ));
-  }
-}
-
-Word
-SecondoCatalog::ValueToObjectModel( const ListExpr typeExpr, const Word value )
-{
-/*
-Returns for a given ~value~ of type ~typeExpr~ its model.
-
-*/
-  ListExpr pair, numtype;
-  int alId, typeId;
-
-  numtype = NumericType( typeExpr );
-  if ( nl->IsEmpty( numtype ) )
-  { /* do nothing */
-    return (SetWord( Address( 0 ) ));
-  }
-  else
-  {
-    if ( nl->IsAtom( nl->First( numtype ) ) )
-    {
-      pair = numtype;
-    }
-    else
-    {
-      pair = nl->First( numtype );
-    }
-    alId = nl->IntValue( nl->First( pair ) );
-    typeId = nl->IntValue( nl->Second( pair ) );
-    return ((am->ValueToModel( alId, typeId ))( typeExpr, value ));
-  }
-}
-
-Word
-SecondoCatalog::ValueListToObjectModel( const ListExpr typeExpr,
-                                        const ListExpr valueList,
-                                        int& errorPos,
-                                        ListExpr& errorInfo,
-                                        bool& correct )
-{
-/*
-Returns for a given ~value~ of type ~typeExpr~ its model.
-
-*/
-  ListExpr pair, numtype;
-  int alId, typeId;
-
-  numtype = NumericType( typeExpr );
-  if ( nl->IsEmpty( numtype ) )
-  { /* do nothing */
-    return (SetWord( Address( 0 ) ));
-  }
-  else
-  {
-    if ( nl->IsAtom( nl->First( numtype ) ) )
-    {
-      pair = numtype;
-    }
-    else
-    {
-      pair = nl->First( numtype );
-    }
-    alId = nl->IntValue( nl->First( pair ) );
-    typeId = nl->IntValue( nl->Second( pair ) );
-    return ((am->ValueListToModel( alId, typeId ))
-            (  typeExpr, valueList, errorPos, errorInfo, correct ));
   }
 }
 
@@ -1536,11 +1384,13 @@ SecondoCatalog::GetObjectExpr( const string& objectName,
                                ListExpr& typeExpr,
                                Word& value,
                                bool& defined,
-                               Word& model,
                                bool& hasTypeName )
 {
 /*
-Returns the value ~value~, the type name ~typeName~, the type expression ~typeExpr~, and the ~model~ of an object with identifier ~objectName~. ~defined~ tells whether ~value~ contains a defined value. If object has no type name the variable  ~hasTypeName~ is set to FALSE and the procedure returns an empty string as ~typeName~.
+Returns the value ~value~, the type name ~typeName~, and the type expression ~typeExpr~, 
+of an object with identifier ~objectName~. ~defined~ tells whether ~value~ contains a 
+defined value. If object has no type name the variable  ~hasTypeName~ is set to FALSE 
+and the procedure returns an empty string as ~typeName~.
 
 Precondition: ~IsObjectName(objectName)~ delivers TRUE.
 
@@ -1561,7 +1411,6 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
       typeExpr = nl->First( typeExpr );
       value       = oPos->second.value;
       defined     = oPos->second.valueDefined;
-      model       = oPos->second.model;
       hasTypeName = (typeName != "");
       ok = true;
     }
@@ -1571,7 +1420,6 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
       typeExpr    = nl->TheEmptyList();
       value.addr  = 0;
       defined     = false;
-      model.addr  = 0;
       hasTypeName = false;
     }
   }
@@ -1580,12 +1428,10 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
     SmiRecord oRec;
     if ( objCatalogFile.SelectRecord( SmiKey( objectName ), oRec ) )
     {
-      SmiRecordId valueRecId, modelRecId;
+      SmiRecordId valueRecId;
       oRec.Read( &value, sizeof( Word ), CE_OBJS_VALUE );
       oRec.Read( &defined, sizeof( bool ), CE_OBJS_VALUE_DEF );
       oRec.Read( &valueRecId, sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
-      oRec.Read( &model, sizeof( Word ), CE_OBJS_MODEL );
-      oRec.Read( &modelRecId, sizeof( int ), CE_OBJS_MODEL_RECID );
       int algebraId, typeId;
       oRec.Read( &algebraId, sizeof( int ), CE_OBJS_ALGEBRA_ID );
       oRec.Read( &typeId, sizeof( int ), CE_OBJS_TYPE_ID );
@@ -1619,15 +1465,6 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
       {
         value.addr = 0;
       }
-      if ( model.addr != 0 )
-      {
-        SmiRecord mRec;
-        if ( objModelFile.SelectRecord( modelRecId, mRec ) )
-        {
-          am->PersistModel( algebraId, typeId, ReadFrom, mRec, typeExpr, model );
-          nl->Destroy( typeExpr );
-        }
-      }
       ok = true;
     }
     else
@@ -1636,7 +1473,6 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
       typeExpr    = nl->TheEmptyList();
       value.addr  = 0;
       defined     = false;
-      model.addr  = 0;
       hasTypeName = false;
     }
   }
@@ -1647,7 +1483,8 @@ bool
 SecondoCatalog::GetObjectType( const string& objectName, string& typeName )
 {
 /*
-Returns the type name ~typeName~ of an object with identifier ~objectName~, if the type name exists and an empty string otherwise.
+Returns the type name ~typeName~ of an object with identifier ~objectName~, if the type 
+name exists and an empty string otherwise.
 
 Precondition: ~IsObjectName(objectName)~ delivers TRUE.
 
@@ -1781,8 +1618,6 @@ new value ~value~. Returns error 1 if object does not exist.
     {
       oRec.Read( &oEntry.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
       oRec.Read( &oEntry.valueRecordId, sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
-      oRec.Read( &oEntry.model, sizeof( Word ), CE_OBJS_MODEL );
-      oRec.Read( &oEntry.modelRecordId, sizeof( int ), CE_OBJS_MODEL_RECID );
       oRec.Read( &oEntry.algebraId, sizeof( int ), CE_OBJS_ALGEBRA_ID );
       oRec.Read( &oEntry.typeId, sizeof( int ), CE_OBJS_TYPE_ID );
       int nameSize, exprSize, bufSize;
@@ -1857,8 +1692,6 @@ object is only modified, so that no deletion function is necessary.
     {
       oRec.Read( &oEntry.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
       oRec.Read( &oEntry.valueRecordId, sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
-      oRec.Read( &oEntry.model, sizeof( Word ), CE_OBJS_MODEL );
-      oRec.Read( &oEntry.modelRecordId, sizeof( int ), CE_OBJS_MODEL_RECID );
       oRec.Read( &oEntry.algebraId, sizeof( int ), CE_OBJS_ALGEBRA_ID );
       oRec.Read( &oEntry.typeId, sizeof( int ), CE_OBJS_TYPE_ID );
       int nameSize, exprSize, bufSize;
@@ -1914,8 +1747,6 @@ new value cloned from ~value~. Returns error 1 if object does not exist.
     {
       oRec.Read( &oEntry.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
       oRec.Read( &oEntry.valueRecordId, sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
-      oRec.Read( &oEntry.model, sizeof( Word ), CE_OBJS_MODEL );
-      oRec.Read( &oEntry.modelRecordId, sizeof( int ), CE_OBJS_MODEL_RECID );
       oRec.Read( &oEntry.algebraId, sizeof( int ), CE_OBJS_ALGEBRA_ID );
       oRec.Read( &oEntry.typeId, sizeof( int ), CE_OBJS_TYPE_ID );
       int nameSize, exprSize, bufSize;
@@ -2102,7 +1933,7 @@ Looks up the ~typeName~ of a type constructor defined by the algebra identifier 
 
   if ( testMode )
   {
-    if ( am->IsAlgebraLoaded( algebraId, catalogLevel ) ||
+    if ( am->IsAlgebraLoaded( algebraId ) ||
         (typeId >= am->ConstrNumber( algebraId )) )
     {
       cerr << "  GetTypeName: No valid type name exists!" << endl;
@@ -2184,7 +2015,7 @@ and the operator identifier ~opId~.
 */
   if ( testMode )
   {
-    if ( am->IsAlgebraLoaded( algebraId, catalogLevel ) ||
+    if ( am->IsAlgebraLoaded( algebraId ) ||
         (opId >= am->OperatorNumber( algebraId )) )
     {
       cerr << "   GetOperatorName: No valid operator name exists!" << endl;
@@ -2214,7 +2045,7 @@ Returns the operator specification ~specs~ of an operator defined by the algebra
 */
   if ( testMode )
   {
-    if ( am->IsAlgebraLoaded( algebraId, catalogLevel ) ||
+    if ( am->IsAlgebraLoaded( algebraId ) ||
         (opId >= am->OperatorNumber( algebraId )) )
     {
       cerr << " GetOperatorSpec : No valid operator name exists!" << endl;
@@ -2307,28 +2138,20 @@ SecondoCatalog::ListOperators( int algebraId )
 
 */
 
-SecondoCatalog::SecondoCatalog( const string& name,
-                                const AlgebraLevel level )
+SecondoCatalog::SecondoCatalog()
   : typeCatalogFile( SmiKey::String ), objCatalogFile( SmiKey::String ),
-    objValueFile( false ), objModelFile( false ), testMode( false )
+    objValueFile( false ), testMode( false )
 {
-  catalogName  = name;
-  catalogLevel = level;
   nl = SecondoSystem::GetNestedList();
   am = SecondoSystem::GetAlgebraManager();
 
-  if ( level == ExecutableLevel ) {
-    ctlgLevelStr = "executable";
-    AddSystemObjName("DERIVED_OBJ"); // enter object identifiers used by the system
-    AddSystemObjName("OBJ_DEP");
-  } else {
-    ctlgLevelStr = "descriptive";
-  }  
+  AddSystemObjName("DERIVED_OBJ"); // enter object identifiers used by the system
+  AddSystemObjName("OBJ_DEP");
 
   CatalogEntry newEntry;
   int algebraId = 0;
 
-  while ( am->NextAlgebraId( level, algebraId ) )
+  while ( am->NextAlgebraId( algebraId ) )
   {
     newEntry.algebraId = algebraId;
 /*
@@ -2369,7 +2192,13 @@ Defines a dictionary for algebra operators.
 SecondoCatalog::~SecondoCatalog()
 {
   constructors.clear();
+
+  for( LocalOperatorCatalog::iterator i = operators.begin();
+       i != operators.end();
+       i++ )
+    delete i->second;
   operators.clear();
+
   types.clear();
   objects.clear();
   sysObjNames.clear();
@@ -2379,10 +2208,9 @@ bool
 SecondoCatalog::Open()
 {
   bool ok = true;
-  ok = ok && typeCatalogFile.Open( catalogName + "Types", "SecondoCatalog" );
-  ok = ok && objCatalogFile.Open( catalogName + "Objects", "SecondoCatalog" );
-  ok = ok && objValueFile.Open( catalogName + "ObjValues", "SecondoCatalog" );
-  ok = ok && objModelFile.Open( catalogName + "ObjModels", "SecondoCatalog" );
+  ok = ok && typeCatalogFile.Open( "Types", "SecondoCatalog" );
+  ok = ok && objCatalogFile.Open( "Objects", "SecondoCatalog" );
+  ok = ok && objValueFile.Open( "ObjValues", "SecondoCatalog" );
   
   if ( !ok )
   {
@@ -2406,10 +2234,6 @@ SecondoCatalog::Close()
   if ( objValueFile.IsOpen() )
   {
     ok = ok && objValueFile.Close();
-  }
-  if ( objModelFile.IsOpen() )
-  {
-    ok = ok && objModelFile.Close();
   }
   types.clear();
   objects.clear();
@@ -2490,23 +2314,6 @@ In this first iteration:
             bool f = false;
             oRec.Write( &oPos->second.value, sizeof( Word ), CE_OBJS_VALUE );
             oRec.Write( &f, sizeof( bool ), CE_OBJS_VALUE_DEF );
-            oRec.Write( &oPos->second.model, sizeof( Word ), CE_OBJS_MODEL );
-            if ( oPos->second.model.addr != 0 )
-            {
-              SmiRecord mRec;
-              ok = objModelFile.AppendRecord( oPos->second.modelRecordId, mRec );
-              if ( ok )
-              {
-                ListExpr typeExpr;
-                nl->ReadFromString( oPos->second.typeExpr, typeExpr );
-                typeExpr = nl->First( typeExpr );
-                am->PersistModel( oPos->second.algebraId, oPos->second.typeId,
-                                  WriteTo, mRec,
-                                  typeExpr, oPos->second.model );
-                nl->Destroy( typeExpr );
-              }
-            }
-            oRec.Write( &oPos->second.modelRecordId, sizeof( SmiRecordId ), CE_OBJS_MODEL_RECID );
             oRec.Write( &oPos->second.algebraId, sizeof( int ), CE_OBJS_ALGEBRA_ID );
             oRec.Write( &oPos->second.typeId, sizeof( int ), CE_OBJS_TYPE_ID );
             int nameSize = oPos->second.typeName.length();
@@ -2532,33 +2339,8 @@ In this first iteration:
           if ( objCatalogFile.SelectRecord( SmiKey( oPos->first ), oRec, SmiFile::Update ) )
           {
             bool f = false;
-            bool ok2;
             oRec.Write( &oPos->second.value, sizeof( int ), CE_OBJS_VALUE );
             oRec.Write( &f, sizeof( bool ), CE_OBJS_VALUE_DEF );
-            oRec.Write( &oPos->second.model, sizeof( int ), CE_OBJS_MODEL );
-            if ( oPos->second.model.addr != 0 )
-            {
-              SmiRecord mRec;
-              if ( oPos->second.modelRecordId == 0 )
-              {
-                ok2 = objModelFile.AppendRecord( oPos->second.modelRecordId, mRec );
-              }
-              else
-              {
-                ok2 = objModelFile.SelectRecord( oPos->second.modelRecordId, mRec, SmiFile::Update );
-              }
-              if ( ok2 )
-              {
-                ListExpr typeExpr;
-                nl->ReadFromString( oPos->second.typeExpr, typeExpr );
-                typeExpr = nl->First( typeExpr );
-                am->PersistModel( oPos->second.algebraId, oPos->second.typeId,
-                                  WriteTo, mRec,
-                                  typeExpr, oPos->second.model );
-                nl->Destroy( typeExpr );
-              }
-            }
-            oRec.Write( &oPos->second.modelRecordId, sizeof( int ), CE_OBJS_MODEL_RECID );
             oRec.Write( &oPos->second.algebraId, sizeof( int ), CE_OBJS_ALGEBRA_ID );
             oRec.Write( &oPos->second.typeId, sizeof( int ), CE_OBJS_TYPE_ID );
             int nameSize = oPos->second.typeName.length();
@@ -2582,25 +2364,6 @@ In this first iteration:
         {
           if ( objCatalogFile.DeleteRecord( SmiKey( oPos->first ) ) )
           {
-            if ( oPos->second.modelRecordId != 0 )
-            {
-              SmiRecord mRec;
-              ok = objModelFile.SelectRecord( oPos->second.modelRecordId, mRec );
-              if ( ok )
-              {
-                ListExpr typeExpr;
-                nl->ReadFromString( oPos->second.typeExpr, typeExpr );
-                typeExpr = nl->First( typeExpr );
-                am->PersistModel( oPos->second.algebraId, oPos->second.typeId,
-                                  DeleteFrom, mRec,
-                                  typeExpr, oPos->second.model );
-                nl->Destroy( typeExpr );
-              }
-            }
-            if ( oPos->second.modelRecordId != 0 )
-            {
-              objModelFile.DeleteRecord( oPos->second.modelRecordId );
-            }
             if ( oPos->second.valueRecordId != 0 )
             {
               objValueFile.DeleteRecord( oPos->second.valueRecordId );

@@ -32,6 +32,10 @@ October 2004, Herbert Schoenhammer, tested and divided in Header-File
 and Implementation-File. Also R-Trees with three and four dimensions
 are created.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 [TOC]
 
 0 Overview
@@ -153,12 +157,7 @@ TypeConstructor rtree( "rtree",              RTree2Prop,
                         OpenRTree<2>,          SaveRTree<2>,
                         CloseRTree<2>,         CloneRTree<2>,
                         CastRTree<2>,          SizeOfRTree<2>,
-                        CheckRTree2,
-                        0,
-                        TypeConstructor::DummyInModel,
-                        TypeConstructor::DummyOutModel,
-                        TypeConstructor::DummyValueToModel,
-                        TypeConstructor::DummyValueListToModel );
+                        CheckRTree2 );
 
 /*
 2 Type constructor ~rtree3~
@@ -218,12 +217,7 @@ TypeConstructor rtree3( "rtree3",             RTree3Prop,
                         OpenRTree<3>,         SaveRTree<3>,
                         CloseRTree<3>,        CloneRTree<3>,
                         CastRTree<3>,         SizeOfRTree<3>,
-                        CheckRTree3,
-                        0,
-                        TypeConstructor::DummyInModel,
-                        TypeConstructor::DummyOutModel,
-                        TypeConstructor::DummyValueToModel,
-                        TypeConstructor::DummyValueListToModel );
+                        CheckRTree3 );
 
 /*
 3 Type constructor ~rtree4~
@@ -282,12 +276,7 @@ TypeConstructor rtree4( "rtree4",             RTree4Prop,
                         OpenRTree<4>,         SaveRTree<4>,
                         CloseRTree<4>,        CloneRTree<4>,
                         CastRTree<4>,         SizeOfRTree<4>,
-                        CheckRTree4,
-                        0,
-                        TypeConstructor::DummyInModel,
-                        TypeConstructor::DummyOutModel,
-                        TypeConstructor::DummyValueToModel,
-                        TypeConstructor::DummyValueListToModel );
+                        CheckRTree4 );
 
 
 /*
@@ -511,16 +500,6 @@ int CreateRTreeValueMapping_rect(Word* args, Word& result, int message, Word& lo
 }
 
 /*
-4.1.4 The dummy model mapping
-
-*/
-Word
-RTreeNoModelMapping( ArgVector arg, Supplier opTreeNode )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-/*
 4.1.5 Definition of value mapping vectors
 
 */
@@ -530,10 +509,6 @@ ValueMapping rtreecreatertreemap [] = { CreateRTreeValueMapping_spatial<2>,
                                         CreateRTreeValueMapping_rect<2>,
                                         CreateRTreeValueMapping_rect<3>,
                                         CreateRTreeValueMapping_rect<4> };
-
-ModelMapping rtreenomodelmap[] = { RTreeNoModelMapping,
-                                   RTreeNoModelMapping,
-                                   RTreeNoModelMapping };
 
 /*
 4.1.6 Specification of operator ~creatertree~
@@ -561,7 +536,6 @@ Operator creatertree (
           CreateRTreeSpec,                 // specification
           6,                               //Number of overloaded functions
           rtreecreatertreemap,             // value mapping
-          rtreenomodelmap,                 // dummy model mapping, defines in Algebra.h
           CreateRTreeSelect,               // trivial selection function
           CreateRTreeTypeMap               // type mapping
 );
@@ -859,7 +833,6 @@ Operator windowintersects (
          windowintersectsSpec,      // specification
          3,                         //number of overloaded functions
          rtreewindowintersectsmap,  // value mapping
-         rtreenomodelmap,           // dummy model mapping
          WindowIntersectsSelection, // trivial selection function
          WindowIntersectsTypeMap    // type mapping
 );
@@ -1204,7 +1177,6 @@ Operator insertrtree (
          "insertrtree",              // name
          insertRTreeSpec,            // specification
          insertRTreeValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          insertRTreeTypeMap          // type mapping
 );
@@ -1355,7 +1327,6 @@ Operator deletertree (
          "deletertree",              // name
          deleteRTreeSpec,            // specification
          deleteRTreeValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          deleteRTreeTypeMap          // type mapping
 );
@@ -1521,7 +1492,6 @@ Operator updatertree (
          "updatertree",              // name
          updateRTreeSpec,            // specification
          updateRTreeValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          updateRTreeTypeMap          // type mapping
 );

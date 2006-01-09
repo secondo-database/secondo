@@ -42,6 +42,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 May 2002 Ulrich Telle
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 1.1 Overview
 
 This module defines several types which are important not only to algebra
@@ -102,15 +106,6 @@ static inline Word SetWord( float    newrval )
                      { Word w; w.rval = newrval; return w; };
 /*
 Are several inline initialization functions for ~Word~ instances.
-
-*/
-
-enum AlgebraLevel { UndefinedLevel   = 0,
-                    DescriptiveLevel = 1,
-                    ExecutableLevel  = 2,
-                    HybridLevel      = 3 };
-/*
-Is an enumeration of the algebra levels.
 
 */
 

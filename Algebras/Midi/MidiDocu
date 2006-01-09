@@ -45,6 +45,27 @@ The also available MidiViewer is a java-based Viewer using a graphical interface
 
 */
 /*
+---- 
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
 \pagebreak
 
 [1] Introduction
@@ -72,6 +93,27 @@ At the moment the MidiAlgebra supports only Midi files with format 1, because on
 */
 
 /*
+---- 
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
 //paragraph    [1]     Title:         [{\Large \bf \begin {center}]        [\end {center}}]
 //paragraph    [21]    table1column:  [\begin{quote}\begin{tabular}{l}]    [\end{tabular}\end{quote}]
 //paragraph    [22]    table2columns: [\begin{quote}\begin{tabular}{ll}]   [\end{tabular}\end{quote}]
@@ -1906,38 +1948,6 @@ void* CastMidi( void* addr )
   return new (addr) Midi;
 }
 
-/*
-2.12 ~Open~-function
-
-*/
-bool OpenMidi(SmiRecord& valueRecord, const ListExpr typeInfo, Word& value)
-/*
-This Open function is implemented in the TupleElement class and uses the same
-method of the Tuple manager to open objects.
-
-*/
-{
-  Midi* midi = new Midi(true, 0, 0);
-  midi->Open(valueRecord, typeInfo);
-  value = SetWord(midi);
-  return true;
-}
-
-/*
-2.13 ~Save~-function
-
-*/
-bool SaveMidi(SmiRecord& valueRecord, const ListExpr typeInfo, Word& value)
-/*
-This Save function is implemented in the TupleElement class and uses the same
-method of the Tuple manager to save objects.
-
-*/
-{
-  Midi* midi = (Midi*) value.addr;
-  midi->Save(valueRecord, typeInfo);
-  return true;
-}
 
 /*
 2.14 Kind Checking Function
@@ -1961,16 +1971,11 @@ TypeConstructor midi(
         OutMidi,    InMidi,     //Out and In functions
         0,          0,          //list functions
         CreateMidi, DeleteMidi, //object creation and deletion
-        OpenMidi,   SaveMidi,   //object open and save
+        0,   0,                 //object open and save
         CloseMidi,  CloneMidi,  //object close and clone
         CastMidi,               //cast function
         SizeOfMidi,             //sizeof function
-        CheckMidi,              //kind checking function
-        0,                      //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckMidi );            //kind checking function
 
 /*
 2 Implementation of class ~Track~
@@ -2783,7 +2788,6 @@ Operator extract_track (
         "extract_track",        //name
         extractTrackSpec,       //specification
         extractTrackFun,        //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         genericTrackTypeMap     //type mapping
 );
@@ -2886,7 +2890,6 @@ Operator delete_track (
         "delete_track",         //name
         deleteTrackSpec,        //specification
         deleteTrackFun,         //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         genericTrackTypeMap     //type mapping
 );
@@ -3172,7 +3175,6 @@ Operator expand_track (
         "expand_track",         //name
         expandTrackSpec,        //specification
         expandTrackFun,         //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         genericTrackTypeMap     //type mapping
 );
@@ -3577,7 +3579,6 @@ Operator merge_tracks (
         "merge_tracks",         //name
         mergeTracksSpec,        //specification
         mergeTracksFun,         //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         mergeTracksTypeMap      //type mapping
 );
@@ -3707,7 +3708,6 @@ Operator transpose_track (
         "transpose_track",      //name
         transposeTrackSpec,     //specification
         transposeTrackFun,      //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         transposeTrackTypeMap   //type mapping
 );
@@ -3803,7 +3803,6 @@ Operator transpose_midi (
         "transpose_midi",       //name
         transposeMidiSpec,      //specification
         transposeMidiFun,       //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         genericTrackTypeMap     //type mapping
 );
@@ -3919,7 +3918,6 @@ Operator extract_lyrics (
         "extract_lyrics",       //name
         extractLyricsSpec,      //specification
         extractLyricsFun,       //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         extractLyricsTypeMap    //type mapping
 );
@@ -4017,7 +4015,6 @@ Operator contains_words (
         "contains_words",       //name
         containsWordsSpec,      //specification
         containsWordsFun,       //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         containsWordsTypeMap    //type mapping
 );
@@ -4293,7 +4290,6 @@ Operator contains_sequence (
         "contains_sequence",      //name
         containsSequenceSpec,     //specification
         containsSequenceFun,      //value mapping
-        Operator::DummyModel,     //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect,   //trivial selection function
         containsSequenceTypeMap   //type mapping
  );
@@ -4395,7 +4391,6 @@ Operator savetoMidi (
         "saveto",               //name
         SavetoMidiSpec,         //specification
         SavetoMidiFun,          //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         SavetoMidiTypeMap       //type mapping
  );
@@ -4532,7 +4527,6 @@ Operator tempo_bpm (
         "tempo_bpm",            //name
         tempoBpmSpec,           //specification
         tempoFun<true>,         //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         genericMidiTypeMap      //type mapping
  );
@@ -4585,7 +4579,6 @@ Operator tempo_ms (
         "tempo_ms",             //name
         tempoMsSpec,            //specification
         tempoFun<false>,        //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         genericMidiTypeMap      //type mapping
  );
@@ -4667,7 +4660,6 @@ Operator format (
         "format",               //name
         formatSpec,             //specification
         formatFun,              //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         genericMidiTypeMap      //type mapping
  );
@@ -4740,7 +4732,6 @@ Operator count_tracks (
         "count_tracks",         //name
         countTracksSpec,        //specification
         countTracksFun,         //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         genericMidiTypeMap      //type mapping
  );
@@ -4885,7 +4876,6 @@ Operator count_channels (
         "count_channels",       //name
         countChannelsSpec,      //specification
         countChannelsFun,       //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         countChannelsTypeMap    //type mapping
  );
@@ -4978,7 +4968,6 @@ Operator track_name (
         "track_name",           //name
         trackNameSpec,          //specification
         trackNameFun,           //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         trackStringTypeMap      //type mapping
  );
@@ -5156,7 +5145,6 @@ Operator time_signature (
         "time_signature",         //name
         timeSignatureSpec,        //specification
         timeSignatureFun<false>,  //value mapping
-        Operator::DummyModel,     //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect,   //trivial selection function
         stringTypeMap             //type mapping
  );
@@ -5208,7 +5196,6 @@ Operator beat (
         "beat",                 //name
         beatSpec,               //specification
         timeSignatureFun<true>, //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         stringTypeMap           //type mapping
  );
@@ -5291,7 +5278,6 @@ Operator instrument_name (
         "instrument_name",      //name
         instrumentNameSpec,     //specification
         instrumentNameFun,      //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         trackStringTypeMap      //type mapping
  );
@@ -5359,7 +5345,6 @@ Operator get_name_midi (
         "get_name",             //name
         getNameMidiSpec,        //specification
         getNameMidiFun,         //value mapping
-        Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect, //trivial selection function
         stringTypeMap           //type mapping
  );
@@ -5431,6 +5416,27 @@ InitializeMidiAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   return (&midiAlgebra);
 }
 /*
+---- 
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //paragraph    [21]    table1column:    [\begin{quote}\begin{tabular}{l}]     [\end{tabular}\end{quote}]
 //paragraph    [22]    table2columns:   [\begin{quote}\begin{tabular}{ll}]    [\end{tabular}\end{quote}]
@@ -6177,6 +6183,25 @@ the result vector is undefined.
 In the following you can see the overall list of all implemented operations. Operators already defined in other algebras but also implemented in the MidiAlgebra are cleared out.
 
 */
+#This file is part of SECONDO.
+
+#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Database Systems for New Applications.
+
+#SECONDO is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2 of the License, or
+#(at your option) any later version.
+
+#SECONDO is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with SECONDO; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
 operator extract_track     alias EXTRACT_TRACK     pattern _ op [_]
 operator merge_tracks      alias MERGE_TRACKS      pattern _ op [_, _, _]
 operator transpose_track   alias TRANSPOSE_TRACK   pattern _ op [_, _]
@@ -6198,9 +6223,30 @@ operator count_channels    alias COUNT_CHANNELS    pattern _ op [_]
 operator get_name          alias GET_NAME          pattern _ op
 
 # Operator saveto is also defined in the BinaryFileAlgebra
-# operator saveto          alias SAVETO            pattern _ infixop _
+operator saveto          alias SAVETO            pattern _ infixop _
 
 /*
+---- 
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
 //paragraph    [1]     Title:         [{\Large \bf \begin {center}]        [\end {center}}]
 //paragraph    [21]    table1column:  [\begin{quote}\begin{tabular}{l}]    [\end{tabular}\end{quote}]
 //paragraph    [22]    table2columns: [\begin{quote}\begin{tabular}{ll}]   [\end{tabular}\end{quote}]
@@ -7633,17 +7679,17 @@ Returns the current Position expressed as a ~String~ (MM:SS)
   {
     try
     {
-      String time;
+      String mtime;
       long ticklength = sequencer.getMicrosecondPosition();
       ticklength      = ticklength / 1000000;
       long minutes    = ticklength / 60;
       ticklength      = ticklength - minutes*60;
       // length -> remaining seconds
-      time  = Long.toString(minutes);
-      time  += ":";
-      if (ticklength < 10) {time += "0";}
-      time  += Long.toString(ticklength);
-      return time;
+      mtime  = Long.toString(minutes);
+      mtime  += ":";
+      if (ticklength < 10) {mtime += "0";}
+      mtime  += Long.toString(ticklength);
+      return mtime;
     }
     catch (NullPointerException e)
     {
@@ -8017,6 +8063,27 @@ Returns the ComboBox index of selected relation
   }
 }
 /*
+---- 
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
 //paragraph    [1]     Title:         [{\Large \bf \begin {center}]        [\end {center}}]
 //paragraph    [21]    table1column:  [\begin{quote}\begin{tabular}{l}]    [\end{tabular}\end{quote}]
 //paragraph    [22]    table2columns: [\begin{quote}\begin{tabular}{ll}]   [\end{tabular}\end{quote}]
@@ -8335,6 +8402,27 @@ public String toString()
 
 }
 /*
+---- 
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
 //paragraph    [1]     Title:         [{\Large \bf \begin {center}]        [\end {center}}]
 //paragraph    [21]    table1column:  [\begin{quote}\begin{tabular}{l}]    [\end{tabular}\end{quote}]
 //paragraph    [22]    table2columns: [\begin{quote}\begin{tabular}{ll}]   [\end{tabular}\end{quote}]

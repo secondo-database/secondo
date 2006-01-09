@@ -39,6 +39,10 @@ symbol, otherwise the parser can't calculate a position in terms of lines and co
 
 July 2005, M. Spiekermann. Help message improved.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains.
+
 \begin{center}
 \footnotesize
 \tableofcontents
@@ -118,7 +122,6 @@ class SecondoTTY : public Application
   bool              isStdInput;
   bool              quit;
   NestedList*       nl;
-  AlgebraLevel      currentLevel;
   bool              isQuery;
   SecondoInterface* si;
 };
@@ -137,7 +140,6 @@ SecondoTTY::SecondoTTY( const int argc, const char** argv )
   isStdInput    = true;
   quit          = false;
   nl            = 0;
-  currentLevel  = DescriptiveLevel;
   si            = 0;
 }
 
@@ -154,15 +156,6 @@ SecondoTTY::Usage()
        << "  ?, HELP         - display this message" << endl
        << "  @{FILE}         - read commands from file 'FILE'"
        << " (may be nested)" << endl
-       << "  D, DESCRIPTIVE  - set 'DESCRIPTIVE' level" << endl
-       << "  E, EXECUTABLE   - set 'EXECUTABLE' level" << endl
-       << "  H, HYBRID       - set 'HYBRID' level,"
-       << " i.e. commands are executed" << endl
-       << "                    first at 'DESCRIPTIVE' and then at"
-       << " 'EXECUTABLE' level" << endl
-       << "  SHOW {OPTION}   - show system status information" << endl
-       << "                    OPTION = { LEVEL }" << endl
-       << "                      LEVEL      - current level" << endl
        << "  DEBUG {0|1|2}   - set debug level:" << endl
        << "                      0   - debug and trace turned off" << endl
        << "                      1   - debug mode (show annotated query and operator tree)" << endl
@@ -216,57 +209,6 @@ SecondoTTY::ProcessCommand()
   {
     Usage();
   }
-  else if ( cmdWord == "D" || cmdWord == "DESCRIPTIVE" )
-  {
-    currentLevel = DescriptiveLevel;
-    cout << "*** Level set to 'DESCRIPTIVE'." << endl;
-  }
-  else if ( cmdWord == "E" || cmdWord == "EXECUTABLE" )
-  {
-    currentLevel = ExecutableLevel;
-    cout << "*** Level set to 'EXECUTABLE'." << endl;
-  }
-  else if ( cmdWord == "H" || cmdWord == "HYBRID" )
-  {
-    currentLevel = HybridLevel;
-    cout << "*** Level set to 'HYBRID'." << endl;
-  }
-  else if ( cmdWord == "SHOW" )
-  {
-    is >> cmdWord;
-    transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(),
-               ToUpperProperFunction );
-    if ( cmdWord == "LEVEL" )
-    {
-      switch (currentLevel)
-      {
-        case DescriptiveLevel:
-        {
-          cout << "*** Current level is 'DESCRIPTIVE'." << endl;
-          break;
-        }
-        case ExecutableLevel:
-        {
-          cout << "*** Current level is 'EXECUTABLE'." << endl;
-          break;
-        }
-        case HybridLevel:
-        {
-          cout << "*** Current level is 'HYBRID'." << endl;
-          break;
-        }
-        default:
-        {
-          cout << "*** Current level is invalid." << endl;
-          break;
-        }
-      }
-    }
-    else
-    {
-      cout << "*** Invalid SHOW option '" << cmdWord << "'." << endl;
-    }
-  }
   else if ( cmdWord == "DEBUG" )
   {
     int debugLevel;
@@ -285,29 +227,8 @@ SecondoTTY::ProcessCommand()
   }
   else
   {
-    isQuery = (cmdWord == "QUERY" || cmdWord == "(QUERY" ||
-               cmdWord == "( QUERY");
-    if ( currentLevel == HybridLevel )
-    {
-      if ( cmdWord == "QUERY"  || cmdWord == "(QUERY"  ||
-           cmdWord == "( QUERY" || cmdWord == "UPDATE" ||
-           cmdWord == "(UPDATE" || cmdWord == "( UPDATE" )
-      {
-        cout << "*** Hey, don't do that in 'HYBRID' mode!" << endl;
-      }
-      else
-      {
-        currentLevel = DescriptiveLevel;
-        CallSecondo2();
-        currentLevel = ExecutableLevel;
-        CallSecondo2();
-        currentLevel = HybridLevel;
-      }
-    }
-    else
-    {
-      CallSecondo2();
-    }
+    isQuery = (cmdWord == "QUERY" || cmdWord == "(QUERY" || cmdWord == "( QUERY");
+    CallSecondo2();
   }
 }
 
@@ -316,17 +237,9 @@ SecondoTTY::ShowPrompt( const bool first )
 {
   if ( isStdInput ) // Display input prompt
   {
-    string level;
-    switch (currentLevel)
-    {
-      case DescriptiveLevel: level = "(D)"; break;
-      case ExecutableLevel:  level = "(E)"; break;
-      case HybridLevel:      level = "(H)"; break;
-      default:               level = "(?)"; break;
-    }
     if ( first )
     {
-      prompt = level+" Secondo => ";
+      prompt = "Secondo => ";
       #ifdef READLINE
          rl_set_prompt(prompt.c_str());
       #else
@@ -335,7 +248,7 @@ SecondoTTY::ShowPrompt( const bool first )
     }
     else
     {
-      prompt = level + " Secondo -> ";
+      prompt = "Secondo -> ";
       #ifdef READLINE
          rl_set_prompt(prompt.c_str());
       #else
@@ -556,31 +469,17 @@ This function gives a query to secondo and receives the result from secondo.
 ListExpr
 SecondoTTY::CallSecondo()
 {
-  int errorCode = 0, errorPos = 0, levelOffset = 0;
+  int errorCode = 0, errorPos = 0;
   ListExpr cmdList = nl->TheEmptyList();
   ListExpr outList = nl->TheEmptyList();
   string errorMessage = "";
   string errorText = "";
 
-  if ( currentLevel == ExecutableLevel )
-  {
-    levelOffset = 0;
-  }
-  else if ( currentLevel == DescriptiveLevel )
-  {
-    levelOffset = 2;
-  }
-  else
-  {
-    cerr << endl << "*** Level problem in SecondoTTY::CallSecondo" << endl;
-    return (nl->TheEmptyList());
-  }
-
   if ( cmd[cmd.find_first_not_of(" \n\r\t\v\b\a\f")] == '(' )
   {
     if ( nl->ReadFromString( cmd, cmdList ) )
     {
-      si->Secondo( cmd, cmdList, levelOffset, false, false,
+      si->Secondo( cmd, cmdList, 0, false, false,
                    outList, errorCode, errorPos, errorMessage );
     }
     else
@@ -591,7 +490,7 @@ SecondoTTY::CallSecondo()
   }
   else
   {
-    si->Secondo( cmd, cmdList, levelOffset+1, false, false,
+    si->Secondo( cmd, cmdList, 1, false, false,
                  outList, errorCode, errorPos, errorMessage );
   }
   if ( errorCode != 0 )
@@ -887,18 +786,6 @@ SecondoTTY::Execute()
     si = new SecondoInterface();
     if ( si->Initialize( user, pswd, host, port, parmFile ) )
     {
-      //set AlgebraLevel and LogMsg prefixes
-      string algLevelStr = SmiProfile::GetParameter( "Environment",
-                              "AlgebraLevel", "Descriptive", parmFile );
-
-      char chLevel = toupper( (algLevelStr.data())[0] );
-      switch (chLevel) {
-       case 'E': currentLevel = ExecutableLevel; break;
-       case 'D': currentLevel = DescriptiveLevel; break;
-       case 'H': currentLevel = HybridLevel; break;
-       default:  currentLevel = DescriptiveLevel;
-      }
-
       if ( iFileName.length() > 0 )
       {
         fileInput.open( iFileName.c_str() );

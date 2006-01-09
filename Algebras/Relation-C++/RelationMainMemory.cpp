@@ -34,6 +34,14 @@ necessary to implement some little functions as inline functions. Moreover, the
 Constructor of the TupleBuffer has been modified since it was changed in
 RelationAlgebra.h to set the maximum amount of memory for the buffer.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
+January 2006 Victor Almeida replaced the ~free~ tuples concept to
+reference counters. There are reference counters on tuples and also
+on attributes. Some assertions were removed, since the code is
+stable.
 
 1 Overview
 
@@ -65,7 +73,6 @@ using namespace std;
 #include <vector>
 
 #include "RelationAlgebra.h"
-#include "CTable.h"
 #include "SecondoSystem.h"
 #include "RelationMainMemory.h"
 
@@ -88,31 +95,6 @@ This class implements the memory representation of the type constructor ~tuple~.
 an array of attributes, as it can be seen in the definition of the ~PrivateTuple~ class.
 
 */
-Tuple::Tuple( const TupleType& tupleType, const bool isFree ):
-  privateTuple( new PrivateTuple( tupleType, isFree ) )
-  {
-    tuplesCreated++;
-    tuplesInMemory++;
-    if( tuplesInMemory > maximumTuples )
-      maximumTuples = tuplesInMemory;
-  }
-
-Tuple::Tuple( const ListExpr typeInfo, const bool isFree ):
-  privateTuple( new PrivateTuple( typeInfo, isFree ) )
-  {
-    tuplesCreated++;
-    tuplesInMemory++;
-    if( tuplesInMemory > maximumTuples )
-      maximumTuples = tuplesInMemory;
-  }
-
-Tuple::~Tuple()
-{
-  tuplesDeleted++;
-  tuplesInMemory--;
-  delete privateTuple;
-}
-
 Tuple *Tuple::RestoreFromList( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct )
 {
   int  attrno, algebraId, typeId, noOfAttrs;
@@ -144,11 +126,9 @@ Tuple *Tuple::RestoreFromList( ListExpr typeInfo, ListExpr value, int errorPos, 
     attr = (algM->RestoreFromListObj(algebraId, typeId))(nl->Rest(first),
             firstvalue, attrno, errorInfo, valueCorrect);
 
-    assert(valueCorrect);
     tupleaddr->PutAttribute(attrno - 1, (Attribute *)attr.addr);
     noOfAttrs++;
   }
-  assert( tupleaddr->GetNoAttributes() == noOfAttrs );
   correct = true;
   return tupleaddr;
 }
@@ -195,8 +175,12 @@ void Tuple::SetTupleId( const TupleId& tupleId )
 
 void Tuple::PutAttribute( const int index, Attribute* attr )
 {
-  assert( index >= 0 && index < privateTuple->tupleType->GetNoAttributes() );
-  privateTuple->attrArray[ index ] = attr;
+  if( privateTuple->attributes[index] != 0 )
+    privateTuple->attributes[index]->DeleteIfAllowed();
+  privateTuple->attributes[index] = attr;
+
+  recomputeMemSize = true;
+  recomputeTotalSize = true;
 }
 
 void Tuple::UpdateAttributes(const vector<int>& changedIndices, const vector<Attribute*>& newAttrs){
@@ -204,37 +188,6 @@ void Tuple::UpdateAttributes(const vector<int>& changedIndices, const vector<Att
 	assert(false);
 
 }
-
-const int Tuple::GetMemorySize() const
-{
-  int extensionSize = 0;
-
-  for( int i = 0; i < privateTuple->tupleType->GetNoAttributes(); i++)
-  {
-    for( int j = 0; j < privateTuple->attrArray[i]->NumOfFLOBs(); j++)
-    {
-      FLOB *tmpFLOB = privateTuple->attrArray[i]->GetFLOB(j);
-      if( !tmpFLOB->IsLob() )
-        extensionSize += tmpFLOB->Size();
-    }
-  }
-  return privateTuple->tupleType->GetTotalSize() + extensionSize;
-}
-
-const int Tuple::GetTotalSize() const
-{
-  int totalSize = privateTuple->tupleType->GetTotalSize();
-
-  for( int i = 0; i < privateTuple->tupleType->GetNoAttributes(); i++)
-  {
-    for( int j = 0; j < privateTuple->attrArray[i]->NumOfFLOBs(); j++)
-    {
-      totalSize += privateTuple->attrArray[i]->GetFLOB(j)->Size();
-    }
-  }
-  return totalSize;
-}
-
 
 /*
 3.9 Class ~TupleBuffer~
@@ -252,7 +205,27 @@ struct PrivateTupleBuffer
     totalSize( 0 )
     {
     }
+/*
+The constructor.
 
+*/
+  ~PrivateTupleBuffer()
+  {
+    Tuple *t;
+    for( vector<Tuple*>::iterator i = buffer.begin();
+         i != buffer.end();
+         i++ )
+    {
+      t = *i;
+      t->DecReference();
+      t->DeleteIfAllowed();
+    }
+    buffer.clear();
+  }
+/*
+The destructor.
+
+*/
   vector<Tuple*> buffer;
 /*
 The buffer which is a ~vector~ from STL.
@@ -264,7 +237,6 @@ The buffer which is a ~vector~ from STL.
 The total size of the buffer in bytes.
 
 */
-
 };
 
 /*
@@ -299,20 +271,23 @@ const bool TupleBuffer::IsEmpty() const
 void TupleBuffer::Clear()
 {
   for( size_t i = 0; i < privateTupleBuffer->buffer.size(); i++ )
-    delete privateTupleBuffer->buffer[i];
+  {
+    privateTupleBuffer->buffer[i]->DecReference();
+    privateTupleBuffer->buffer[i]->DeleteIfAllowed();
+  }
   privateTupleBuffer->buffer.clear();
   privateTupleBuffer->totalSize = 0;
 }
 
 void TupleBuffer::AppendTuple( Tuple *t )
 {
+  t->IncReference();
   privateTupleBuffer->buffer.push_back( t );
   privateTupleBuffer->totalSize += t->GetTotalSize();
 }
 
 Tuple* TupleBuffer::GetTuple( const TupleId& tupleId ) const
 {
-  assert( tupleId >= 0 && tupleId < (TupleId)privateTupleBuffer->buffer.size() );
   return privateTupleBuffer->buffer[tupleId];
 }
 
@@ -374,7 +349,6 @@ Tuple *TupleBufferIterator::GetNextTuple()
 
 TupleId TupleBufferIterator::GetTupleId() const
 {
-  assert( privateTupleBufferIterator->currentTuple > 0 );
   return privateTupleBufferIterator->currentTuple - 1;
 }
 
@@ -392,7 +366,6 @@ struct PrivateRelation
     noTuples( 0 ),
     totalSize( 0 ),
     tupleType( nl->Second( typeInfo ) ),
-    tupleArray( new CTable<Tuple*>( 100 ) ),
     currentId( 1 )
     {
     }
@@ -404,7 +377,6 @@ The first constructor. Creates an empty relation from a ~typeInfo~.
     noTuples( 0 ),
     totalSize( 0 ),
     tupleType( tupleType ),
-    tupleArray( new CTable<Tuple*>( 100 ) ),
     currentId( 1 )
     {
     }
@@ -414,7 +386,14 @@ The second constructor. Creates an empty relation from a ~tupleType~.
 */
   ~PrivateRelation()
   {
-    delete tupleArray;
+    Tuple *t;
+    for( int i = 0; i < noTuples; i++ )
+    { 
+      t = tuples[i];
+      t->DecReference();
+      t->DeleteIfAllowed();
+    }
+    tuples.clear();
   }
 
   int noTuples;
@@ -432,7 +411,7 @@ Contains the total size of the relation.
 Contains the tuple type.
 
 */
-  CTable<Tuple*>* tupleArray;
+  vector<Tuple*> tuples;
 /*
 The array of tuples.
 
@@ -510,11 +489,6 @@ Relation::~Relation()
   }
 
   // then delete the relation itself.
-  RelationIterator *iter = MakeScan();
-  Tuple *t;
-  while( (t = iter->GetNextTuple()) != 0 )
-    delete t;
-  delete iter;
   delete privateRelation;
 }
 
@@ -549,13 +523,11 @@ Relation *Relation::RestoreFromList( ListExpr typeInfo, ListExpr value, int erro
     tupleno++;
     tupleaddr = Tuple::RestoreFromList(TupleTypeInfo, first, tupleno, errorInfo, tupleCorrect);
 
-    assert(tupleCorrect);
     rel->AppendTuple(tupleaddr);
     tupleaddr->DeleteIfAllowed();
 
     count++;
   }
-  assert( rel->GetNoTuples() == count );
   correct = true;
   return rel;
 }
@@ -596,7 +568,6 @@ Relation *Relation::Open( SmiRecord& valueRecord, size_t& offset,
   SmiKey mykey;
   SmiRecordId recId;
   mykey = valueRecord.GetKey();
-  assert( mykey.GetKey(recId) );
 
   // initialize
   if ( firsttime ) 
@@ -684,9 +655,9 @@ Relation *Relation::Clone()
 
 void Relation::AppendTuple( Tuple *tuple )
 {
-  tuple->SetFree( false );
+  tuple->IncReference();
   tuple->SetTupleId( privateRelation->currentId++ );
-  privateRelation->tupleArray->Add( tuple );
+  privateRelation->tuples.push_back( tuple );
   privateRelation->noTuples += 1;
   privateRelation->totalSize += tuple->GetTotalSize();
 }
@@ -706,26 +677,24 @@ void Relation::UpdateTuple( Tuple *tuple, const vector<int>& changedIndices,cons
 
 Tuple* Relation::GetTuple( const TupleId& tupleId ) const
 {
-  return (*privateRelation->tupleArray)[ tupleId ];
+  return privateRelation->tuples[tupleId];
 }
 
 void Relation::Clear()
 {
-  CTable<Tuple*>::Iterator iter = privateRelation->tupleArray->Begin();
+  vector<Tuple*>::iterator iter = privateRelation->tuples.begin();
 
-  while( iter != privateRelation->tupleArray->End() )
+  while( iter != privateRelation->tuples.end() )
   {
     Tuple *t = *iter;
+    t->DecReference();
     t->DeleteIfAllowed();
-    ++iter;
+    iter++;
   }
-
-  delete privateRelation->tupleArray;
+  privateRelation->tuples.clear();
   privateRelation->currentId = 1;
   privateRelation->noTuples = 0;
   privateRelation->totalSize = 0;
-  privateRelation->tupleArray = new CTable<Tuple*>( 100 );
-
 }
 
 const int Relation::GetNoTuples() const
@@ -757,16 +726,16 @@ This struct contains the private attributes of the class ~RelationIterator~.
 struct PrivateRelationIterator
 {
   PrivateRelationIterator( const Relation& rel ):
-    iterator( rel.privateRelation->tupleArray->Begin() ),
     relation( rel ),
     currentTupleId( -1 )
     {
+      iterator = rel.privateRelation->tuples.begin();
     }
 /*
 The constructor.
 
 */
-  CTable<Tuple*>::Iterator iterator;
+  vector<Tuple*>::iterator iterator;
 /*
 The iterator.
 
@@ -811,13 +780,13 @@ Tuple* RelationIterator::GetNextTuple()
 
 TupleId RelationIterator::GetTupleId() const
 {
-  assert( privateRelationIterator->currentTupleId != -1 );
   return privateRelationIterator->currentTupleId;
 }
 
 const bool RelationIterator::EndOfScan()
 {
-  return privateRelationIterator->iterator.EndOfScan();
+  return privateRelationIterator->iterator == 
+         privateRelationIterator->relation.privateRelation->tuples.end();
 }
 
 /*
@@ -837,8 +806,6 @@ void Concat( Tuple *r, Tuple *s, Tuple *t )
   rnoattrs = r->GetNoAttributes();
   snoattrs = s->GetNoAttributes();
   tnoattrs = rnoattrs + snoattrs;
-
-  assert( t->GetNoAttributes() == tnoattrs );
 
   for( int i = 0; i < rnoattrs; i++)
   {

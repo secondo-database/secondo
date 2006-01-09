@@ -23,6 +23,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 August 2004, M. Spiekermann. This comment was inserted to make it a PD-File. Moreover, 
 implementation of ~GetAlgebraName~ was done.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 */
 
 #include <string>
@@ -39,8 +43,6 @@ using namespace std;
 
 AlgebraManager::AlgebraManager( NestedList& nlRef, GetAlgebraEntryFunction getAlgebraEntryFunc )
 {
-
-
   int j = 0;
   nl = &nlRef;
   getAlgebraEntry = getAlgebraEntryFunc;
@@ -57,12 +59,8 @@ AlgebraManager::AlgebraManager( NestedList& nlRef, GetAlgebraEntryFunction getAl
     }
   }
   algebra.resize( maxAlgebraId+1 );
-  algType.resize( maxAlgebraId+1 );
   for ( j = 0; j <= maxAlgebraId; j++ )
-  {
     algebra[j] = 0;
-    algType[j] = UndefinedLevel;
-  }
   InitOpPtrField();
 
 }
@@ -112,7 +110,7 @@ AlgebraManager::GetAlgebraId(const string& algName)
       if ( (*getAlgebraEntry)( j ).algebraInit != 0 )
       {
         if ( !(algName.compare( (*getAlgebraEntry)( j ).algebraName )) )
-	  return (*getAlgebraEntry)( j ).algebraId;
+	        return (*getAlgebraEntry)( j ).algebraId;
       }
     }
   }
@@ -185,7 +183,6 @@ AlgebraManager::LoadAlgebras()
           continue;
         }
       }
-      algType[(*getAlgebraEntry)( j ).algebraId] = (*getAlgebraEntry)( j ).level;
       for ( k = 0; k < algebra[(*getAlgebraEntry)( j ).algebraId]->GetNumTCs(); k++ )
       {
         tc = algebra[(*getAlgebraEntry)( j ).algebraId]->GetTypeConstructor( k );
@@ -221,24 +218,7 @@ AlgebraManager::UnloadAlgebras()
 bool
 AlgebraManager::IsAlgebraLoaded( const int algebraId )
 {
-  bool loaded = false;
-  if ( algebraId >= 1 && algebraId <= maxAlgebraId )
-  {
-    loaded = (algType[algebraId] != UndefinedLevel);
-  }
-  return (loaded);
-}
-
-bool
-AlgebraManager::IsAlgebraLoaded( const int algebraId,
-                                 const AlgebraLevel level )
-{
-  bool loaded = false;
-  if ( algebraId >= 1 && algebraId <= maxAlgebraId )
-  {
-    loaded = (algType[algebraId] == level);
-  }
-  return (loaded);
+  return algebraNames.find( algebraId ) != algebraNames.end();
 }
 
 int
@@ -247,33 +227,14 @@ AlgebraManager::CountAlgebra()
   int count = 0;
   for ( int j = 1; j <= maxAlgebraId; j++ )
   {
-    if ( algType[j] != UndefinedLevel )
-    {
+    if( IsAlgebraLoaded( j ) )
       count++;
-    }
-  }
-  return (count);
-}
-
-int
-AlgebraManager::CountAlgebra( const AlgebraLevel level )
-{
-  int count = 0;
-  if ( level != UndefinedLevel )
-  {
-    for ( int j = 1; j <= maxAlgebraId; j++ )
-    {
-      if ( algType[j] == level || algType[j] == HybridLevel )
-      {
-        count++;
-      }
-    }
   }
   return (count);
 }
 
 bool
-AlgebraManager::NextAlgebraId( int& algebraId, AlgebraLevel& level )
+AlgebraManager::NextAlgebraId( int& algebraId )
 {
   bool found = false;
   algebraId++;
@@ -281,36 +242,7 @@ AlgebraManager::NextAlgebraId( int& algebraId, AlgebraLevel& level )
   {
     while ( !found && algebraId <= maxAlgebraId )
     {
-      if ( algType[algebraId] != UndefinedLevel )
-      {
-        found = true;
-        level = algType[algebraId];
-      }
-      else
-      {
-        algebraId++;
-      }
-    }
-  }
-  else
-  {
-    algebraId = 0;
-    level = UndefinedLevel;
-  }
-  return (found);
-}
-
-bool
-AlgebraManager::NextAlgebraId( const AlgebraLevel level, int& algebraId )
-{
-  bool found = false;
-  algebraId++;
-  if ( algebraId > 0 && algebraId <= maxAlgebraId )
-  {
-    while ( !found && algebraId <= maxAlgebraId )
-    {
-      if ( algType[algebraId] == level ||
-           algType[algebraId] == HybridLevel )
+      if( IsAlgebraLoaded( algebraId ) )
       {
         found = true;
       }
@@ -321,9 +253,7 @@ AlgebraManager::NextAlgebraId( const AlgebraLevel level, int& algebraId )
     }
   }
   else
-  {
     algebraId = 0;
-  }
   return (found);
 }
 
@@ -359,19 +289,6 @@ AlgebraManager::InitOpPtrField() {
         opPtrField[alg][op] = 0;
       }}
 }
-
-
-// Currently not used!
-//
-//TypeMapping
-//AlgebraManager::ExecuteCost( int algebraId, int operatorId )
-//{
-//  return (algebra[algebraId]->GetOperator( operatorId )->costMap);
-//}
-
-/*
-
-*/
 
 int
 AlgebraManager::ConstrNumber( int algebraId )
@@ -473,40 +390,6 @@ ObjectSizeof
 AlgebraManager::SizeOfObj( int algebraId, int typeId )
 {
   return (algebra[algebraId]->GetTypeConstructor( typeId )->sizeofFunc);
-}
-
-bool
-AlgebraManager::PersistModel( const int algebraId, const int typeId,
-                              const PersistDirection dir,
-                              SmiRecord& modelRecord,
-                              const ListExpr typeExpr, Word& model )
-{
-  return (algebra[algebraId]->GetTypeConstructor( typeId )->
-    PersistModel( dir, modelRecord, typeExpr, model ));
-}
-
-InModelFunction
-AlgebraManager::InModel( int algebraId, int typeId )
-{
-  return (algebra[algebraId]->GetTypeConstructor( typeId )->inModelFunc);
-}
-
-OutModelFunction
-AlgebraManager::OutModel( int algebraId, int typeId )
-{
-  return (algebra[algebraId]->GetTypeConstructor( typeId )->outModelFunc);
-}
-
-ValueToModelFunction
-AlgebraManager::ValueToModel( int algebraId, int typeId )
-{
-  return (algebra[algebraId]->GetTypeConstructor( typeId )->valueToModelFunc);
-}
-
-ValueListToModelFunction
-AlgebraManager::ValueListToModel( int algebraId, int typeId )
-{
-  return (algebra[algebraId]->GetTypeConstructor( typeId )->valueListToModelFunc);
 }
 
 TypeCheckFunction

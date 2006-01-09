@@ -7,7 +7,11 @@
 
 [1] Header-File of R-Tree Algebra
 
-July 2003,  Victor Almeida
+1996, Original code from Claudio Esperanca
+
+October 1997, Geraldo Zimbrao made some adaptions.
+
+July 2003, Victor Almeida.
 
 October 2003, Victor Almeida changed the R-Tree class to be a template
 on the number of dimensions.
@@ -15,6 +19,10 @@ on the number of dimensions.
 October 2004, Herbert Schoenhammer, tested and divided in Header-File and
 Implementation File. Some few corrections in SplitAlgorithms LinearSplit and
 AxisSplit were done. 
+
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
 
 [TOC]
 

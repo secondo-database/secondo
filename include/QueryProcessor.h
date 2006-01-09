@@ -80,6 +80,12 @@ this value based on a global memory limit per query.
 
 June 2005, M. Spiekermann SetDeletFunction added.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
+January 2006 Victor Almeida created the FLOB cache.
+
 1.1 Overview
 
 This module describes the interface of module ~QueryProcessor~.
@@ -131,12 +137,12 @@ The class ~QueryProcessor~ provides the following methods:
         [--------]
         QueryProcessor          & Construct & Argument \\
         [tilde]QueryProcessor   & Eval      & Request \\
-                                & EvalModel & Received \\
-                                & Destroy   & Open \\
+                                & Destroy   & Received \\
+                                &           & Open \\
                                 &           & Close \\
-                                &           & RequestModel \\
-        AnnotateX               &           & GetSupplier \\
-        SubtreeX                &           & ResultStorage \\
+                                &           & GetSupplier \\
+        AnnotateX               &           & ResultStorage \\
+        SubtreeX                &           & DeleteResultStorage \\
         ListOfTree              &           & GetNoSons \\
         SetDebugLevel           &           & GetType \\
 
@@ -157,6 +163,7 @@ such as "ArgVectorPointer"[4], "Supplier"[4], "Word"[4], "Address"[4], etc.
 #include "SecondoSystem.h"
 #include "MemCTable.h"
 #include "LogMsg.h"
+#include "FLOBCache.h"
 
 struct OpNode;
 typedef OpNode* OpTree;
@@ -197,8 +204,7 @@ Destroys a query processor instance.
 3.2.1 Construction and Execution of an Operator Tree
 
 */
-  void Construct( const AlgebraLevel level,
-                  const ListExpr expr, bool& correct,
+  void Construct( const ListExpr expr, bool& correct,
                   bool& evaluable, bool& defined,
                   bool& isFunction,
                   OpTree& tree, ListExpr& resultType );
@@ -207,10 +213,9 @@ Builds an operator tree ~tree~ from a given list expression ~expr~ by
 calling the procedures ~annotateX~ and ~subtreeX~. The tree is only
 constructed if ~annotateX~ does not find a type error. If there is no
 error, then ~correct~ is TRUE, the tree is returned in ~tree~ and the
-result type of the expression in ~resultType~. In addition, for a
-descriptive query (~level = descriptive~), models are evaluated and
-stored in the tree. If there is a type error, ~correct~ is set to "false"[4]
-and ~resultType~ contains a symbol ~typeerror~. 
+result type of the expression in ~resultType~. If there is a type error, 
+~correct~ is set to "false"[4] and ~resultType~ contains a symbol 
+~typeerror~. 
 
 If there is an  object with undefined value mentioned in the query, then
 ~defined~ is "false"[4].
@@ -233,14 +238,6 @@ the function in a database object.
 Traverses the operator tree ~tree~ calling operator implementations for
 each node, and returns the result in ~result~. The ~message~ is "OPEN"[4],
 "REQUEST"[4], or "CLOSE"[4] and is used only if the root node produces a stream.
-
-*/
-  void EvalModel( const OpTree tree, Word& result );
-/*
-Traverses the operator tree ~tree~ calling operator model mapping
-functions for each node, and returns the result in ~result~and stores it
-in ~subtreeModel~. This is similar to ~eval~, but we do not need to
-handle stream evaluation. 
 
 */
   void Destroy( OpTree& tree, const bool destroyRootValue );  
@@ -290,13 +287,6 @@ Changes state of the supplier stream to ~open~.
 /*
 Changes state of the supplier stream to ~closed~. No effect, if the stream
 is closed already.
-
-*/
-  void RequestModel( const Supplier s, Word& result );
-/*
-Calls the parameter function of a model mapping function (to which the
-arguments must have been supplied before). The result is returned in
-~result~. This one is used for model evaluation.
 
 */
   Supplier GetSupplier( const Supplier s, const int no );
@@ -388,17 +378,14 @@ the form (counterno, value).
 3.2.3 Procedures Exported for Testing Only
 
 */
-  ListExpr AnnotateX( const AlgebraLevel level,
-                      const ListExpr expr, bool& defined );
+  ListExpr AnnotateX( const ListExpr expr, bool& defined );
 /*
-Annotate query expression of algebra at level ~level~. Create tables for
-variables, reset ~valueno~ and ~functionno~, then call ~annotate~.
-Parameter ~defined~ tells, whether all objects mentioned in the
-expression have defined values. 
+Annotate query expression of ~expr~. Create tables for variables, reset ~valueno~ 
+and ~functionno~, then call ~annotate~. Parameter ~defined~ tells, whether all 
+objects mentioned in the expression have defined values. 
 
 */
-  OpTree SubtreeX( const AlgebraLevel level,
-                   const ListExpr expr );
+  OpTree SubtreeX( const ListExpr expr );
 /*
 Construct an operator tree from ~expr~. Allocate argument vectors for all
 functions and then call ~subtree~ to do the job.
@@ -422,9 +409,41 @@ Sets the debug level for the query processor. The following levels are defined:
 
 */
 
-  void SetMaxMemPerOperator(long value) { maxMemPerOperator = value; }
-  long MemoryAvailableForOperator() { return maxMemPerOperator; }
+  void SetMaxMemPerOperator(size_t value) 
+  { 
+    maxMemPerOperator = value; 
+  }
+/*
+Sets the maximum memory available per operator.
 
+*/
+
+  size_t MemoryAvailableForOperator() 
+  { 
+    return maxMemPerOperator; 
+  }
+/*
+Returns the maximum memory available per operator.
+
+*/
+
+  void InitializeFLOBCache( long size )
+  {
+    flobCache = new FLOBCache( size );
+  }
+/*
+Initializes the flob cache.
+
+*/
+
+  FLOBCache *GetFLOBCache()
+  {
+    return flobCache;
+  }
+/*
+Returns the FLOB cache.
+
+*/
 
   static bool ExecuteQuery( const string& queryListStr,
                             Word& queryResult);
@@ -435,7 +454,7 @@ within an operator implementation of an algebra.
 
 */
 
-  void DestroyValuesArray( const AlgebraLevel level );
+  void DestroyValuesArray();
 /*
 Destroys the ~values~ array. This function is used when there is a failure
 in the Annotate process and the query tree is not built. When the query 
@@ -476,8 +495,7 @@ and ~typeexpr~ for the variable ~name~ into tables ~varnames~ and ~vartable~.
 Check whether ~name~ is the name of a variable, that is, occurs in ~varnames~.
 
 */
-  bool IsIdentifier( const AlgebraLevel level,
-                     const ListExpr expr,
+  bool IsIdentifier( const ListExpr expr,
                      NameIndex& varnames );
 /*
 ~Expr~ may be any list expression. Check whether it is an identifier, that is,
@@ -504,16 +522,14 @@ Transforms a list expression ~symbol~ into one of the values of type
 one of these symbols, then the value ~error~ is returned.
 
 */
-  ListExpr Annotate( const AlgebraLevel level,
-                     const ListExpr expr,
+  ListExpr Annotate( const ListExpr expr,
                      NameIndex& varnames,
                      VarEntryTable& vartable,
                      bool& defined,
                      const ListExpr fatherargtypes );
 /*
-Annotates a query expression ~expr~ of either the executable or the
-descriptive ~level~. Use tables ~varnames~ and ~vartable~ to store
-variables occurring in abstractions (function definitions) and to
+Annotates a query expression ~expr~. Use tables ~varnames~ and ~vartable~ 
+to store variables occurring in abstractions (function definitions) and to
 retrieve them in the function's expression. Return the annotated
 expression. 
 
@@ -524,8 +540,7 @@ is analyzed by ~annotate-function~, then this list contains the argument
 types of the operator to which this function is a parameter. 
 
 */
-  ListExpr AnnotateFunction( const AlgebraLevel level,
-                             const ListExpr expr,
+  ListExpr AnnotateFunction( const ListExpr expr,
                              NameIndex& varnames,
                              VarEntryTable& vartable,
                              bool& defined,
@@ -567,11 +582,9 @@ first successfully applied type mapping will be returned.
 */ 
 
 
-  bool IsCorrectTypeExpr( const AlgebraLevel level,
-                          const ListExpr expr );
+  bool IsCorrectTypeExpr( const ListExpr expr );
 
-  OpTree Subtree( const AlgebraLevel level,
-                  const ListExpr expr,
+  OpTree Subtree( const ListExpr expr,
                   bool& first,
                   const OpNode* fatherNode = 0 );
 /*
@@ -579,11 +592,11 @@ Construct operator tree recursively for a given annotated ~expr~. See
 ~Annotate~ and ~AnnotateFunction~ for the possible structures to be processed.
 
 */
-  void AllocateValuesAndModels( int idx );
+  void AllocateValues( int idx );
   void AllocateArgVectors( int idx );
-  SecondoCatalog* GetCatalog( const AlgebraLevel level )
+  SecondoCatalog* GetCatalog()
   {
-    return (SecondoSystem::GetCatalog( level ));
+    return (SecondoSystem::GetCatalog());
   };
 
   NestedList*     nl;
@@ -619,14 +632,23 @@ of the type constructor associated with the ~value~.
 
 */ 
   vector<ValueInfo> values; // MAXVALUE = 200
-  vector<Word> models;
   vector<ArgVectorPointer> argVectors; // MAXFUNCTIONS = 30
 
   static const int NO_COUNTERS = 16;
 
   int counter[NO_COUNTERS];	
 
-  long maxMemPerOperator;
+  size_t maxMemPerOperator;
+/*
+The maximum memory available per operator.
+
+*/
+
+  FLOBCache *flobCache;
+/*
+A cache for FLOBs. It is initialized for every query.
+
+*/
 };
 
 ostream& operator<<(ostream& os, const OpNode& node);

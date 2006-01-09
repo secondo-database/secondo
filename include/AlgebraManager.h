@@ -84,6 +84,10 @@ with the function ~GetAlgebraName~
 July 2005, M. Spiekermann. Ugly idention corrected. Missing return statement in
 function ExecuteCost corrected.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 
 1.1 Overview
 
@@ -160,28 +164,10 @@ may be a pointer to some structure. For persistent objects (that are
 currently not in memory) it can be an index into a catalog which tells
 where the object is on disk.
 
-If a type (constructor) has a model, then the algebra module offers
-four further operations:
+Two default implementations (~DefaultOpen~ and ~DefaultSave~) 
+are supplied which store values in their nested list representation.
 
-  * ~InModel~. Create a model data structure from a nested list.
-
-  * ~OutModel~. Create a nested list representation from the model data
-structure
-
-  * ~ValueToModel~. Create a model data structure from a value.
-
-  * ~ValueListToModel~.
-
-For support of persistent storage of object models one more
-operation:
-
-  * ~PersistModel~. Saving and restoring an object model.
-
-Three default implementations (~DefaultOpen~, ~DefaultSave~ and
-~DefaultPersistModel~) are supplied which store values and models in
-their nested list representation.
-
-The algebra module offers five (sets of) functions for every operator,
+The algebra module offers three (sets of) functions for every operator,
 namely
 
   * ~Set of Evaluation Functions~. Associated with each operator is at
@@ -202,12 +188,6 @@ of an evaluation function. This is used to determine for an overloaded
 operator the appropriate evaluation function. Usually the same function
 can be used for all operators of an algebra; if operators are not
 overloaded, identity (on the numbers) is sufficient.
-
-  * ~Model Mapping~. Computes a result model from the argument models.
-
-  * ~Cost Mapping~. Estimates from the models of the arguments the costs
-for evaluating the operation (number of CPUs, number of swapped pages).
-If there are no models, it returns some constant cost.
 
 1.2 Defines, Includes, Constants
 
@@ -279,49 +259,9 @@ Is the type of a type mapping procedure.
 
 */
 
-typedef TypeMapping CostMapping;
-/*
-Is the type of a cost mapping procedure.
-
-*/
-
 typedef int (*SelectFunction)( ListExpr typeList );
 /*
 Is the type of a selection function.
-
-*/
-
-typedef bool (*PersistFunction)( PersistDirection dir,
-                                 SmiRecord& valueRecord,
-                                 const ListExpr typeExpr,
-                                 Word& value );
-/*
-Is the type of a function for object value and model persistence.
-
-*/
-
-typedef Word (*ModelMapping)( ArgVector args, Supplier tree );
-
-typedef Word (*InModelFunction)( ListExpr typeExpression,
-                                 ListExpr modelList,
-                                 int objectNumber );
-
-typedef ListExpr (*OutModelFunction)( ListExpr typeExpression,
-                                      Word model );
-
-typedef Word (*ValueToModelFunction)( ListExpr typeExpression,
-                                      Word value );
-
-typedef Word (*ValueListToModelFunction)(
-                 const ListExpr typeExpr,
-                 const ListExpr valueList,
-                 const int errorPos,
-                 ListExpr& errorInfo,
-                 bool& correct );
-
-/*
-Are the types of model mapping functions and of ~in~ and ~out~ functions for
-models.
 
 */
 
@@ -415,33 +355,23 @@ struct AlgebraListEntry
 {
   AlgebraListEntry()
     : algebraId( 0 ), algebraName( "" ),
-      level( UndefinedLevel ),
       algebraInit( 0 ), dynlib( 0 ), useAlgebra( false ) {}
   AlgebraListEntry( const int algId, const string& algName,
-                    const AlgebraLevel algLevel,
                     const AlgebraInitFunction algInit,
                     DynamicLibrary* const dynlibInit,
                     const bool algUse )
-    : algebraId( algId ),   algebraName( algName ),
-      level( algLevel ),    algebraInit( algInit ),
-      dynlib( dynlibInit ), useAlgebra( algUse ) {}
+    : algebraId( algId ), algebraName( algName ),
+      algebraInit( algInit ), dynlib( dynlibInit ), 
+      useAlgebra( algUse ) {}
   int                  algebraId;
   string               algebraName;
-  AlgebraLevel         level;
   AlgebraInitFunction  algebraInit;
   DynamicLibrary*      dynlib;
   bool                 useAlgebra;
 };
 /*
 Is the type for entries in the list of algebras. Each algebra has a
-unique identification number ~algebraId~, a name ~algebraName~ and one
-of the following levels
-
-  * ~Descriptive~
-
-  * ~Executable~
-
-  * ~Hybrid~ -- the algebra is ~descriptive~ *and* ~executable~.
+unique identification number ~algebraId~ and a name ~algebraName~.
 
 Additionally the address of the initialization function of the algebra is
 registered. For algebras to be used this forces the linker to include the
@@ -464,29 +394,28 @@ typedef AlgebraListEntry& (*GetAlgebraEntryFunction)( const int j );
 static AlgebraListEntry algebraList[] = {
 
 #define ALGEBRA_LIST_END \
-  AlgebraListEntry( -1, "", UndefinedLevel, 0, 0, false ) };
+  AlgebraListEntry( -1, "", 0, 0, false ) };
 
-#define ALGEBRA_LIST_INCLUDE(ALGNO,ALGNAME,ALGTYPE) \
+#define ALGEBRA_LIST_INCLUDE(ALGNO,ALGNAME) \
  AlgebraListEntry( ALGNO, #ALGNAME,\
-                   ALGTYPE##Level,\
                    &Initialize##ALGNAME, 0, true ),
 
-#define ALGEBRA_LIST_EXCLUDE(ALGNO,ALGNAME,ALGTYPE) \
+#define ALGEBRA_LIST_EXCLUDE(ALGNO,ALGNAME) \
  AlgebraListEntry( ALGNO, #ALGNAME,\
-                   ALGTYPE##Level, 0, 0, false ),
+                   0, 0, false ),
 
-#define ALGEBRA_LIST_DYNAMIC(ALGNO,ALGNAME,ALGTYPE) \
+#define ALGEBRA_LIST_DYNAMIC(ALGNO,ALGNAME) \
  AlgebraListEntry( ALGNO, #ALGNAME,\
-                   ALGTYPE##Level, 0, 0, true ),
+                   0, 0, true ),
 
-#define ALGEBRA_PROTO_INCLUDE(ALGNO,ALGNAME,ALGTYPE) \
+#define ALGEBRA_PROTO_INCLUDE(ALGNO,ALGNAME) \
 extern "C" Algebra* \
 Initialize##ALGNAME( NestedList* nlRef,\
                      QueryProcessor* qpRef );
 
-#define ALGEBRA_PROTO_EXCLUDE(ALGNO,ALGNAME,ALGTYPE)
+#define ALGEBRA_PROTO_EXCLUDE(ALGNO,ALGNAME)
 
-#define ALGEBRA_PROTO_DYNAMIC(ALGNO,ALGNAME,ALGTYPE)
+#define ALGEBRA_PROTO_DYNAMIC(ALGNO,ALGNAME)
 
 /*
 These preprocessor macros allow to easily define all available algebras.
@@ -504,7 +433,7 @@ In the algebra list definition file "AlgebraList.i"[4] the developer uses
 special versions of these macros, namely "ALGEBRA\_INCLUDE"[4],
 \ "ALGEBRA\_EXCLUDE"[4] and "ALGEBRA\_\-DYNAMIC"[4]. They are expanded to the
 appropriate prototype and list entry macros as required. These macros have
-three parameters:
+two parameters:
 
   1 ~the unique identification number~ which must be a positive integer,
 it is recommended but not absolutely necessary to order the entries of the
@@ -514,30 +443,25 @@ in the list.
   2 ~the algebra name~ which is used to build the name of the initialization
 function: the algebra name is appended to the string "Initialize".
 
-  3 ~the level of the algebra~ which may be one of the following: ~Descriptive~,
-~Executable~ or ~Hybrid~.
-
 As mentioned above the list of algebras is specified in the source file
 "AlgebraList.i"[4] which is included by the algebra manager source file.
 
 Example:
 
-----  ALGEBRA_INCLUDE(1,StandardAlgebra,Hybrid)
-      ALGEBRA_DYNAMIC(2,FunctionAlgebra,Executable)
-      ALGEBRA_EXCLUDE(3,RelationAlgebra,Hybrid)
+----  ALGEBRA_INCLUDE(1,StandardAlgebra)
+      ALGEBRA_DYNAMIC(2,FunctionAlgebra)
+      ALGEBRA_EXCLUDE(3,RelationAlgebra)
 ----
 
 This means:
 
   * the ~StandardAlgebra~ will be *included* and must be available
-at link time. It has the id number "1"[2] and is defined on descriptive *and*
-executable level.
+at link time. It has the id number "1"[2].
 
   * the ~FunctionAlgebra~ will be *included*, but will be loaded dynamically
-at runtime. It has the id number "2"[2] and is defined on executable level only.
+at runtime. It has the id number "2"[2].
 
-  * the ~RelationAlgebra~ will be *excluded*. It has the id number "3"[2] and is defined on descriptive *and*
-executable level.
+  * the ~RelationAlgebra~ will be *excluded*. It has the id number "3"[2].
 
 */
 
@@ -598,31 +522,15 @@ Returns "true"[4], if the algebra module ~algebraId~ is loaded.
 Otherwise "false"[4] is returned.
 
 */
-  bool IsAlgebraLoaded( const int algebraId,
-                        const AlgebraLevel level );
-/*
-Returns "true"[4], if the algebra module ~algebraId~ is loaded and
-has the specified ~level~. Otherwise "false"[4] is returned.
-
-*/
   int CountAlgebra();
-  int CountAlgebra( const AlgebraLevel level );
 /*
-Returns the number of loaded algebras, all or only of the specified ~level~.
+Returns the number of loaded algebras.
 
 */
-  bool NextAlgebraId( int& algebraId, AlgebraLevel& level );
+  bool NextAlgebraId( int& algebraId );
 /*
-Returns the identification number ~algebraId~ and the ~level~ of the next
+Returns the identification number ~algebraId~ of the next
 loaded algebra. On the first call ~algebraId~ must be initialized
-to zero.
-
-*/
-  bool NextAlgebraId( const AlgebraLevel level,
-                      int& algebraId );
-/*
-Returns the identification number ~algebraId~ of the next loaded algebra
-of the specified ~level~. On the first call ~algebraId~ must be initialized
 to zero.
 
 */
@@ -670,20 +578,6 @@ overloaded - operator ~opFunId~ of algebra ~algebraId~.
 
 */
 
-  inline Word TransformModel( const int algebraId, const int opFunId, 
-                              ArgVector args, Supplier tree )
-  {
-    int opId  = opFunId % 65536;
-    int funId = opFunId / 65536;
-    return getOperator(algebraId, opId)->CallModelMapping(funId, args, tree);
-  }
-
-/*
-Returns the address of the model mapping function of the - possibly
-overloaded - operator ~opFunId~ of algebra ~algebraId~.
-
-*/
-
   inline ListExpr TransformType( const int algebraId, const int operatorId, 
 	                         const ListExpr typeList ) 
   {
@@ -696,17 +590,6 @@ Returns the address of the type mapping function of operator
 
 */
   
-  inline ListExpr ExecuteCost( const int algebraId, const int operatorId ) 
-  {
-    assert(false);
-    return 0;
-  }
-
-/*
-Returns the address of the cost estimating function of operator
-~operatorId~ of algebra ~algebraId~. Currently, this function is never called!
-
-*/
   int ConstrNumber( const int algebraId );
 /*
 Returns the number of constructors of algebra ~algebraId~.
@@ -806,44 +689,6 @@ Returns the address of the object sizeof function of type constructor
 ~typeId~ of algebra ~algebraId~.
 
 */
-  bool PersistModel( const int algebraId, const int typeId,
-                     const PersistDirection dir,
-                     SmiRecord& modelRecord,
-                     const ListExpr typeExpr, Word& model );
-/*
-Save or restore object model for objects of type as
-constructed by type constructor ~typeId~ of algebra ~algebraId~.
-Return "true"[4], if the operation was successful.
-
-*/
-  InModelFunction
-    InModel( const int algebraId, const int typeId );
-/*
-Returns the address of the model input function of type constructor
-~typeId~ of algebra ~algebraId~.
-
-*/
-  OutModelFunction
-    OutModel( const int algebraId, const int typeId );
-/*
-Returns the address of the model output function of type constructor
-~typeId~ of algebra ~algebraId~.
-
-*/
-  ValueToModelFunction
-    ValueToModel( const int algebraId, const int typeId );
-/*
-Returns the address of the value to model mapping function of type
-constructor ~typeId~ of algebra ~algebraId~.
-
-*/
-  ValueListToModelFunction
-    ValueListToModel( const int algebraId, const int typeId );
-/*
-Returns the address of the value list to model mapping function of type
-constructor ~typeId~ of algebra ~algebraId~.
-
-*/
   TypeCheckFunction TypeCheck( const int algebraId,
                                const int typeId );
 /*
@@ -892,12 +737,6 @@ Is the highest algebra id occuring in the list of algebras.
   map<int, string>         algebraNames;
 /*
 Is an array for references to all loaded algebra modules.
-
-*/
-  vector<AlgebraLevel>     algType;
-/*
-Is an accompanying array of level specifications for all loaded
-algebra modules.
 
 */
   multimap<string,TypeCheckFunction> kindTable;

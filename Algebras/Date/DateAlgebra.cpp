@@ -31,6 +31,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 December 11-26, 2002 Zhiming Ding
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
 
 [TOC]
 
@@ -587,14 +590,7 @@ TypeConstructor date(
         0, 0, CloseDate, CloneDate,  //object open, save, close, and clone
         CastDate,                    //cast function
         SizeOfDate,                  //sizeof function
-        CheckDate,                   //kind checking function
-        0,                           //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
-
-
+        CheckDate );                 //kind checking function
 
 /*
 
@@ -894,7 +890,6 @@ Operator day (
         "day_of",                     //name
         DaySpec,                      //specification
         dayFun,                      //value mapping
-        Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect,      //trivial selection function
         DateInt                      //type mapping
 );
@@ -903,7 +898,6 @@ Operator month (
         "month_of",                 //name
         MonthSpec,                  //specification
         monthFun,                   //value mapping
-        Operator::DummyModel,       //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect,     //trivial selection function
         DateInt                     //type mapping
 );
@@ -912,7 +906,6 @@ Operator year (
         "year_of",                  //name
         YearSpec,                   //specification
         yearFun,                    //value mapping
-        Operator::DummyModel,       //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect,     //trivial selection function
         DateInt                     //type mapping
 );
@@ -921,7 +914,6 @@ Operator earlier (
         "<",                        //name
         EarlierSpec,                //specification
         earlierFun,                 //value mapping
-        Operator::DummyModel,       //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect,     //trivial selection function
         DateDateBool                //type mapping
 );
@@ -930,7 +922,6 @@ Operator opequal (
         "=",                        //name
         EqualSpec,                  //specification
         equalFun,                   //value mapping
-        Operator::DummyModel,       //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect,     //trivial selection function
         DateDateBool                //type mapping
 );
@@ -939,7 +930,6 @@ Operator later (
         ">",                        //name
         LaterSpec,                  //specification
         laterFun,                   //value mapping
-        Operator::DummyModel,       //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect,     //trivial selection function
         DateDateBool                //type mapping
 );
@@ -948,7 +938,6 @@ Operator thedate (
         "thedate",                 //name
         DateSpec,                  //specification
         dateFun,                   //value mapping
-        Operator::DummyModel,      //dummy model mapping, defined in Algebra.h
         Operator::SimpleSelect,    //trivial selection function
         IntIntIntDate              //type mapping
 );

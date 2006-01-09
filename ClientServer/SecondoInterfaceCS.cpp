@@ -22,12 +22,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 The Implementation-Module SecondoInterface
 
-April 2002 Ulrich Telle Client/Server version of the SecondoInterface
+April 2002 Ulrich Telle Client/Server version of the 
+~SecondoInterface~.
 
-April 29 2003 Hoffmann Client/Server adaption for single objects save and 
-restore commands.
+April 29 2003 Hoffmann Client/Server adaption for single objects 
+save and restore commands.
 
-\tableofcontents
+December 2005, Victor Almeida deleted the deprecated algebra 
+levels (~executable~, ~descriptive~, and ~hibrid~). Only the 
+executable level remains.
+
+[TOC]
 
 */
 
@@ -185,7 +190,7 @@ SecondoInterface::Terminate()
 void
 SecondoInterface::Secondo( const string& commandText,
                            const ListExpr commandLE,
-                           const int commandLevel,
+                           const int commandType,
                            const bool commandAsText,
                            const bool resultAsText,
                            ListExpr& resultList,
@@ -222,10 +227,9 @@ If value 0 is returned, the command was executed without error.
   }
   else
   {
-    switch (commandLevel)
+    switch (commandType)
     {
-      case 0:  // executable, list form
-      case 2:  // descriptive, list form
+      case 0:  // list form
       {
         if ( commandAsText )
         {
@@ -240,18 +244,18 @@ If value 0 is returned, the command was executed without error.
         }
         break;
       }
-      case 1:  // executable, text form
-      case 3:  // descriptive, text form
+      case 1:  // text form
       {
         cmdText = commandText;
         break;
       }
       default:
       {
-        errorCode = ERR_CMD_LEVEL_NOT_YET_IMPL;  // Command level not implemented
+        errorCode = ERR_CMD_LEVEL_NOT_YET_IMPL;  // Command type not implemented
       }
     } // switch
   }
+
   string line;
   iostream& iosock = server->GetSocketStream();
   if ( iosock.fail() )
@@ -274,7 +278,7 @@ If value 0 is returned, the command was executed without error.
        posTo       != string::npos &&
        posSave < posDatabase && posDatabase < posTo )
   {
-    if ( commandLevel == 1 || commandLevel == 3 )
+    if ( commandType == 1 )
     {
       cmdText = string( "(" ) + commandText + ")";
     }
@@ -339,7 +343,7 @@ If value 0 is returned, the command was executed without error.
 	    posDatabase == string::npos &&                        
 	    posSave < posTo )
   {
-    if ( commandLevel == 1 || commandLevel == 3 )
+    if ( commandType == 1 )
     {
       cmdText = string( "(" ) + commandText + ")";
     }
@@ -408,7 +412,7 @@ If value 0 is returned, the command was executed without error.
             posFrom     != string::npos &&
             posRestore < posFrom )
   {
-    if ( commandLevel == 1 || commandLevel == 3 )
+    if ( commandType == 1 )
     {
       cmdText = string( "(" ) + commandText + ")";
     }
@@ -470,7 +474,7 @@ If value 0 is returned, the command was executed without error.
             posFrom     != string::npos &&
             posRestore < posDatabase && posDatabase < posFrom )
   {
-    if ( commandLevel == 1 || commandLevel == 3 )
+    if ( commandType == 1 )
     {
       cmdText = string( "(" ) + commandText + ")";
     }
@@ -537,7 +541,7 @@ If value 0 is returned, the command was executed without error.
   {
     // Send Secondo command
     iosock << "<Secondo>" << endl
-           << commandLevel << endl
+           << commandType << endl
            << cmdText << endl
            << "</Secondo>" << endl;
     // Receive result
@@ -608,7 +612,7 @@ If value 0 is returned, the command was executed without error.
 
 */
 ListExpr
-SecondoInterface::NumericTypeExpr( const AlgebraLevel level, const ListExpr type )
+SecondoInterface::NumericTypeExpr( const ListExpr type )
 {
   ListExpr list = nl->TheEmptyList();
   if ( server != 0 )
@@ -618,7 +622,7 @@ SecondoInterface::NumericTypeExpr( const AlgebraLevel level, const ListExpr type
     {
       iostream& iosock = server->GetSocketStream();
       iosock << "<NumericType>" << endl
-             << "(" << level << " " << line << ")" << endl
+             << line << endl
              << "</NumericType>" << endl;
       getline( iosock, line );
       if ( line == "<NumericTypeResponse>" )
@@ -642,8 +646,7 @@ SecondoInterface::NumericTypeExpr( const AlgebraLevel level, const ListExpr type
 }
 
 bool
-SecondoInterface::GetTypeId( const AlgebraLevel level,
-                             const string& name,
+SecondoInterface::GetTypeId( const string& name,
                              int& algebraId, int& typeId )
 {
   bool ok = false;
@@ -652,7 +655,7 @@ SecondoInterface::GetTypeId( const AlgebraLevel level,
     string line;
     iostream& iosock = server->GetSocketStream();
     iosock << "<GetTypeId>" << endl
-           << level << " " << name << endl
+           << name << endl
            << "</GetTypeId>" << endl;
     getline( iosock, line );
     if ( line == "<GetTypeIdResponse>" )
@@ -676,8 +679,7 @@ SecondoInterface::GetTypeId( const AlgebraLevel level,
 }
 
 bool
-SecondoInterface::LookUpTypeExpr( const AlgebraLevel level,
-                                  ListExpr type, string& name,
+SecondoInterface::LookUpTypeExpr( ListExpr type, string& name,
                                   int& algebraId, int& typeId )
 {
   bool ok = false;
@@ -688,7 +690,7 @@ SecondoInterface::LookUpTypeExpr( const AlgebraLevel level,
     {
       iostream& iosock = server->GetSocketStream();
       iosock << "<LookUpType>" << endl
-             << "(" << level << " " << line << ")" << endl
+             << line << endl
              << "</LookUpType>" << endl;
       getline( iosock, line );
       if ( line == "<LookUpTypeResponse>" )

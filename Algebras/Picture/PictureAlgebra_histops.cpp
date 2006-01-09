@@ -11,6 +11,10 @@ Dezember 2004 Christian Bohnbuck, Uwe Hartmann, Marion Langen and Holger
 M[ue]nx during Prof. G[ue]ting's practical course
 'Extensible Database Systems' at Fernuniversit[ae]t Hagen.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 [TOC]
 
 1 Introduction
@@ -447,9 +451,9 @@ int PictureEqualsValueMap(Word* args,
 
     if ( pic1->IsDefined() && pic2->IsDefined() )
     {
-        bool valid = false;
-        double diff = 0;
-	bool rc = pic1->Equals( pic2, numberValue->GetIntval(), 
+      bool valid = false;
+      double diff = 0;
+	    pic1->Equals( pic2, numberValue->GetIntval(), 
 			averageValue->GetIntval(), valid, diff );
         
     	((CcReal*)result.addr)->Set( valid, diff ); 

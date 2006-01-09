@@ -4,6 +4,9 @@
 
 September 2005 Annette Seberich-D[ue]ll
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
 
 1 Overview
 
@@ -180,7 +183,7 @@ public:
    void Delete (const E &entry, const Coord x);
    void DeleteNode (BinTreeNode<E>* node) ;
    // to use the tree as a priority queue
-   E BinTree<E>::GetFirstAndDelete () ;
+   E GetFirstAndDelete () ;
    void Clear();
    BinTreeNode<E>* GetFirst();
    BinTreeNode<E>* GetLast();
@@ -192,8 +195,7 @@ public:
       Segment sgs[]);
    BinTreeNode<E>* Find (const E &entry, const Coord x,
       const E &old, BinTreeNode<E>* oldnode);
-
-   void BinTree<E>::Output() ;
+   void Output() ;
 
 protected:
    // compare - functions to searxh thr right node
@@ -3930,23 +3932,6 @@ NewSpatialTypeOfSymbol( ListExpr symbol )
   return (sterror);
 }
 
-Word NewSpatialNoModelMapping( ArgVector arg, Supplier opTreeNode )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-ModelMapping newSpatialnomodelmap[] = {
-     NewSpatialNoModelMapping,
-     NewSpatialNoModelMapping,
-     NewSpatialNoModelMapping,
-     NewSpatialNoModelMapping,
-     NewSpatialNoModelMapping,
-     NewSpatialNoModelMapping,
-     NewSpatialNoModelMapping };
-
-
-int NewSimpleSelect( ListExpr args )  {  return (0); }
-
 /*
 5.1 Realm-Test-Operator
 
@@ -4001,7 +3986,7 @@ static int realm_lr( Word* args, Word& result, int message,
       CRegion* test2 = new CRegion(0);
       MakeRealm mr;
       mr.REALM( l1, r2, test1 , test2 );
-      ((CLine *)result.addr) = test1;
+      result.addr = test1;
       return(0);
    }
    else  {
@@ -4027,7 +4012,7 @@ static int realm_rl( Word* args, Word& result, int message,
       CRegion* test2 = new CRegion(0);
       MakeRealm mr;
       mr.REALM( l1, r2, test1 , test2 );
-      ((CRegion *)result.addr) = test2;
+      result.addr = test2;
       return(0);
    }
    else  {
@@ -4052,7 +4037,7 @@ static int realm_ll( Word* args, Word& result, int message,
       CLine* test2 = new CLine(0);
       MakeRealm mr;
       mr.REALM( l1, l2, test1 , test2 );
-      ((CLine *)result.addr) = test1;
+      result.addr = test1;
       return(0);
    }
    else
@@ -4078,7 +4063,7 @@ static int realm_rr( Word* args, Word& result, int message,
       CRegion* test2 = new CRegion(0);
       MakeRealm mr;
       mr.REALM( r1, r2, test1 , test2 );
-      ((CRegion *)result.addr) = test1;
+      result.addr = test1;
       return(0);
    }
    else
@@ -4106,7 +4091,7 @@ int realmSelectCompute ( ListExpr args) {
 }
 
 Operator realm
-        ( "realm", RealmSpec, 4, RealmMap, newSpatialnomodelmap,
+        ( "realm", RealmSpec, 4, RealmMap, 
           realmSelectCompute, realmMap);
 
 /*
@@ -4161,7 +4146,7 @@ static int Inter_ll( Word* args, Word& result, int message,
 	    if ( res->IsEmpty() )
 	       ((CLine *)result.addr)->SetDefined( false );
             else
-	       ((CLine *)result.addr) = res;
+	       result.addr = res;
             return(0);
          }
          else   {
@@ -4176,7 +4161,7 @@ static int Inter_ll( Word* args, Word& result, int message,
 	 if ( res->IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    ((CLine *)result.addr) = res;
+	    result.addr = res;
          return(0);
       }
    }
@@ -4210,7 +4195,7 @@ static int Inter_lr( Word* args, Word& result, int message,
 	    if (res->IsEmpty() )
 	      ((CLine *)result.addr)->SetDefined( false );
             else
-	      ((CLine *)result.addr) = res ;
+	      result.addr = res ;
             return(0);
          }
          else   {
@@ -4225,7 +4210,7 @@ static int Inter_lr( Word* args, Word& result, int message,
 	 if (res->IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    ((CLine *)result.addr) = res;
+	    result.addr = res;
          return(0);
       }
    }
@@ -4259,7 +4244,7 @@ static int Inter_rl ( Word* args, Word& result, int message,
 	    if (res->IsEmpty() )
 	       ((CLine *)result.addr)->SetDefined( false );
             else
-	       ((CLine *)result.addr) = res;
+	       result.addr = res;
             return(0);
          }
          else   {
@@ -4274,7 +4259,7 @@ static int Inter_rl ( Word* args, Word& result, int message,
 	 if (res->IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    ((CLine *)result.addr) = res;
+	    result.addr = res;
          return(0);
       }
    }
@@ -4308,7 +4293,7 @@ static int Inter_rr( Word* args, Word& result, int message,
 	    if ( res->IsEmpty() )
 	       ((CRegion *)result.addr)->SetDefined( false );
             else
-	       ((CRegion *)result.addr) = res;
+	       result.addr = res;
             return(0);
          }
          else   { // no intersection possible
@@ -4323,7 +4308,7 @@ static int Inter_rr( Word* args, Word& result, int message,
 	 if ( res->IsEmpty() )
 	    ((CRegion *)result.addr)->SetDefined( false );
          else
-            ((CRegion *)result.addr) = res;
+            result.addr = res;
          return(0);
       }
    }
@@ -4364,7 +4349,7 @@ int InterSelectCompute ( ListExpr args) {
 
 Operator Intersectionrr
    ( "intersection_new", InterSpec, 4, InterValueMap,
-    newSpatialnomodelmap, InterSelectCompute, InterMap );
+     InterSelectCompute, InterMap );
 
 /*
 5.3 Operator intersects
@@ -4587,7 +4572,7 @@ int IntersectsSelectCompute ( ListExpr args) {
 
 Operator Intersectsrr
    ( "intersects_new", IntersectsSpec, 4, IntersectsValueMap,
-   newSpatialnomodelmap, IntersectsSelectCompute, IntersectsMap );
+     IntersectsSelectCompute, IntersectsMap );
 
 /*
 5.4 Operator union
@@ -4633,18 +4618,18 @@ Word& local, Supplier s )
          return (0);
       }
       else if (r1->IsEmpty() ) {
-         ((CRegion *)result.addr) = r2;
+         result.addr = r2;
          return(0);
       }
       else if (r2->IsEmpty() ) {
-         ((CRegion *)result.addr) = r1;
+         result.addr = r1;
          return(0);
       }
       else {
          CRegion* res = new CRegion(0);
          MakeOp mo;
          res = mo.Union( r1, r2 );
-         ((CRegion *)result.addr) = res;
+         result.addr = res;
          return(0);
       }
    }
@@ -4666,7 +4651,7 @@ static int Union_lr( Word* args, Word& result, int message,
    CLine *line = ((CLine*)args[0].addr);
    CRegion *reg = ((CRegion*)args[1].addr);
    if ( !reg->IsEmpty()&&line->IsDefined()&&reg->IsDefined()) {
-      ((CRegion *)result.addr) = reg;
+      result.addr = reg;
       return(0);
    }
    else  {
@@ -4687,7 +4672,7 @@ Word& local, Supplier s )
    CRegion *reg = ((CRegion*)args[0].addr);
    if ( ! reg -> IsEmpty() && line->IsDefined() &&
    reg->IsDefined() )    {
-      ((CRegion *)result.addr) = reg;
+      result.addr = reg;
       return(0);
    }
    else  {
@@ -4712,14 +4697,14 @@ Word& local, Supplier s )
          return(0);
       }
       else if (line2->IsEmpty() ) {
-         ((CLine *)result.addr) = line1;
+         result.addr = line1;
          return(0);
       }
       else {
          CLine* res = new CLine(0);
          MakeOp mo;
          res = mo.Union( line1, line2 );
-         ((CLine *)result.addr) = res;
+         result.addr = res;
          return(0);
       }
    }
@@ -4758,7 +4743,7 @@ int unionSelectCompute ( ListExpr args) {
 }
 
 Operator Unionrr
-   ( "union_new", UnionSpec, 4, UnionValueMap, newSpatialnomodelmap,
+   ( "union_new", UnionSpec, 4, UnionValueMap,
    unionSelectCompute, unionMap );
 
 
@@ -4805,7 +4790,7 @@ static int Minus_rr( Word* args, Word& result, int message,
          return(0);
       }
       else if ( r2->IsEmpty() ) {
-         ((CRegion *)result.addr) = r1;
+         result.addr = r1;
          return(0);
       }
       else if (r1->BoundingBox().IsDefined() &&
@@ -4817,11 +4802,11 @@ static int Minus_rr( Word* args, Word& result, int message,
 	    if (res->IsEmpty() )
 	       ((CRegion *)result.addr)->SetDefined( false );
             else
-	       ((CRegion *)result.addr) = res;
+	       result.addr = res;
             return(0);
          }
          else   {
-            ((CRegion *)result.addr) = r1;
+            result.addr = r1;
             return (0);
          }
       }
@@ -4832,7 +4817,7 @@ static int Minus_rr( Word* args, Word& result, int message,
 	 if (res->IsEmpty() )
 	    ((CRegion *)result.addr)->SetDefined( false );
          else
-	    ((CRegion *)result.addr) = res;
+	    result.addr = res;
          return(0);
       }
    }
@@ -4866,11 +4851,11 @@ Word& local, Supplier s )
 	    if ( res -> IsEmpty() )
 	       ((CLine *)result.addr)->SetDefined( false );
             else
-	       ((CLine *)result.addr) = res;
+	       result.addr = res;
             return(0);
          }
          else   {
-            ((CLine *)result.addr) = line;
+            result.addr = line;
             return (0);
          }
       }
@@ -4881,7 +4866,7 @@ Word& local, Supplier s )
          if ( res -> IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    ((CLine *)result.addr) = res;
+	    result.addr = res;
          return(0);
       }
    } // if IsDefined()
@@ -4903,7 +4888,7 @@ Word& local, Supplier s )
    CRegion *reg = ((CRegion*)args[0].addr);
    if ( ! line->IsEmpty() && line->IsDefined() &&
    reg->IsDefined() )    {
-      ((CRegion *)result.addr) = reg ;
+      result.addr = reg ;
       return(0);
    }
    else  {
@@ -4928,7 +4913,7 @@ Word& local, Supplier s )
 	 return (0);
       }
       else if (line2->IsEmpty() ) {
-         ((CLine *)result.addr) = line1;
+         result.addr = line1;
          return (0);
       }
       else if (line1->BoundingBox().IsDefined() &&
@@ -4941,11 +4926,11 @@ Word& local, Supplier s )
 	    if (res->IsEmpty() )
 	       ((CLine *)result.addr)->SetDefined( false );
             else
-	       ((CLine *)result.addr) = res;
+	       result.addr = res;
             return(0);
 	 }
 	 else {
-	    ((CLine *) result.addr) = line1;
+	    result.addr = line1;
 	    return(0);
 	 }
       }
@@ -4956,7 +4941,7 @@ Word& local, Supplier s )
 	 if (res ->IsEmpty() )
 	    ((CLine *)result.addr)->SetDefined( false );
          else
-	    ((CLine *)result.addr) = res;
+	    result.addr = res;
          return(0);
       }
    }
@@ -4997,7 +4982,7 @@ int minusSelectCompute ( ListExpr args) {
 }
 
 Operator Minusrr
-   ( "minus_new", MinusSpec, 4, MinusValueMap, newSpatialnomodelmap,
+   ( "minus_new", MinusSpec, 4, MinusValueMap, 
    minusSelectCompute, minusMap );
 
 
@@ -5183,7 +5168,7 @@ ValueMapping p_IntersectsValueMap[] =
 
 Operator pIntersects
    ( "p_inter", p_IntersectsSpec, 4, p_IntersectsValueMap,
-   newSpatialnomodelmap, IntersectsSelectCompute, IntersectsMap);
+     IntersectsSelectCompute, IntersectsMap);
 
 
 class PlaneSweepAlgebra : public Algebra

@@ -28,6 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 December 2003 R. Bozic, D. Riewenherm, M. Guenster
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 This algebra provides operators which deals with MP3, ID3 and Lyrics data.
 Although an MP3 file contains ID3 and Lyrics this algebra provides three 
 type constructors to be able to handle these informations seperated from
@@ -893,7 +897,7 @@ bool MP3::SaveMP3ToFile( char *fileName ) {
     char *bytes = (char *)malloc( mp3Data.Size() );
     mp3Data.Get( 0, mp3Data.Size(), bytes );
     
-    if( (int)fwrite( bytes, 1, mp3Data.Size(), f ) != mp3Data.Size() )
+    if( fwrite( bytes, 1, mp3Data.Size(), f ) != mp3Data.Size() )
 	return false;
     
     fclose( f );
@@ -1273,13 +1277,7 @@ TypeConstructor mp3(
     // sizeof function
     SizeOfMP3, 
     // kind checking function
-    CheckMP3,
-    // predef. pers. function for model
-    0,
-    TypeConstructor::DummyInModel,
-    TypeConstructor::DummyOutModel,
-    TypeConstructor::DummyValueToModel,
-    TypeConstructor::DummyValueListToModel );
+    CheckMP3 );
 
 /* 
 3 Type Constructor ~ID3~
@@ -2028,13 +2026,7 @@ TypeConstructor id3(
     // sizeof function
     SizeOfID3,
     // kind checking function
-    CheckID3,
-    // predef. pers. function for model
-    0,
-    TypeConstructor::DummyInModel,
-    TypeConstructor::DummyOutModel,
-    TypeConstructor::DummyValueToModel,
-    TypeConstructor::DummyValueListToModel );
+    CheckID3 );
 
 
 /*
@@ -2515,13 +2507,7 @@ TypeConstructor lyrics(
     // sizeof function
     SizeOfLyrics,
     // kind checking function
-    CheckLyrics,
-    // predef. pers. function for model
-    0, 					
-    TypeConstructor::DummyInModel,
-    TypeConstructor::DummyOutModel,
-    TypeConstructor::DummyValueToModel,
-    TypeConstructor::DummyValueListToModel );
+    CheckLyrics );
 
 
 
@@ -2601,8 +2587,6 @@ Operator savemp3to (
     SaveMP3ToSpec,
     // value mapping
     SaveMP3ToFun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -2675,8 +2659,6 @@ Operator removelyrics (
     RemoveLyricsSpec,
     // value mapping
     RemoveLyricsFun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -2751,8 +2733,6 @@ Operator removeid3 (
     RemoveID3Spec,
     // value mapping
     RemoveID3Fun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -2837,8 +2817,6 @@ Operator submp3 (
     SubMP3Spec,
     // value mapping
     SubMP3Fun,
-    // dummy model mapping,defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -2917,8 +2895,6 @@ Operator concatmp3 (
     ConcatMP3Spec,
     // value mapping
     ConcatMP3Fun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -2990,8 +2966,6 @@ Operator bitrate (
     BitrateSpec,
     // value mapping
     BitrateFun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -3064,8 +3038,6 @@ Operator version (
     VersionSpec,
     // value mapping
     VersionFun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -3138,8 +3110,6 @@ Operator frequency (
     FrequencySpec,
     // value mapping
     FrequencyFun,
-    // dummy model mapping, defined in Algbra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -3213,8 +3183,6 @@ Operator framecount (
     FrameCountSpec,
     // value mapping
     FrameCountFun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -3287,8 +3255,6 @@ Operator lengthsong (
     LengthSpec,
     // value mapping
     LengthFun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -3425,8 +3391,6 @@ Operator getid3 (
     GetID3Spec,         //specification
     // value mapping
     GetID3Fun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -3510,8 +3474,6 @@ Operator putid3 (
     PutID3Spec,
     // value mapping
     PutID3Fun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -3591,8 +3553,6 @@ Operator author (
     AuthorSpec,
     // value mapping
     AuthorFun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -3673,8 +3633,6 @@ Operator cctitle (
     TitleSpec,
     // value mapping
     TitleFun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -3755,8 +3713,6 @@ Operator album (
     AlbumSpec,
     // value mapping
     AlbumFun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -3839,8 +3795,6 @@ Operator comment (
     CommentSpec,
     // value mapping
     CommentFun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -3921,8 +3875,6 @@ Operator genre (
     GenreSpec,
     // value mapping
     GenreFun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -3997,8 +3949,6 @@ Operator track (
     TrackSpec,
     // value mapping
     TrackFun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -4072,8 +4022,6 @@ Operator songyear (
     YearSpec,
     // value mapping
     YearFun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -4192,8 +4140,6 @@ Operator words (
     WordsSpec,
     // value mapping
     WordsFun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -4357,8 +4303,6 @@ Operator getlyrics (
     GetLyricsSpec,
     // value mapping
     GetLyricsFun,
-    // dummy model mapping, defined in Algebra.h
-    Operator::DummyModel,   
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping
@@ -4518,8 +4462,6 @@ Operator putlyrics (
     PutLyricsSpec,
     // value mapping
     PutLyricsFun,
-    // dummy model mapping, defined in Algebra.h 
-    Operator::DummyModel,
     // trivial selection function
     Operator::SimpleSelect,
     // type mapping

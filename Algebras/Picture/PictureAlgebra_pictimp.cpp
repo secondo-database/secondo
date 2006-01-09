@@ -14,6 +14,10 @@ M[ue]nx during Prof. G[ue]ting's practical course
 March 2005, M. Spiekermann. Function strtupr renamed to xstrtupr
 since a name conflict with /mingw/include/string.h must be resolved.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 [TOC]
 
 1 Introduction
@@ -984,9 +988,7 @@ TypeConstructor picture(
     ClosePicture, ClonePicture,               //object close and clone
     CastPicture,                              //cast function
     SizeOfPicture,                            //sizeof function
-    CheckPicture,                             //kind checking function
-    0                                        //predef. pers. function for 
-                                              //  model
+    CheckPicture                              //kind checking function
 );
 /*
 

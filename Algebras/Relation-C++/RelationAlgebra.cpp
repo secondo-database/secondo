@@ -32,26 +32,38 @@ May 2002 Frank Hoffmann port to C++
 
 November 7, 2002 RHG Corrected the type mapping of ~count~.
 
-November 30, 2002 RHG Introduced a function ~RelPersistValue~ instead of
-~DefaultPersistValue~ which keeps relations that have been built in memory in a
-small cache, so that they need not be rebuilt from then on.
+November 30, 2002 RHG Introduced a function ~RelPersistValue~ 
+instead of ~DefaultPersistValue~ which keeps relations that have
+been built in memory in a small cache, so that they need not be 
+rebuilt from then on.
 
-March 2003 Victor Almeida created the new Relational Algebra organization.
+March 2003 Victor Almeida created the new Relational Algebra 
+organization.
+
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
+January 2006 Victor Almeida replaced the ~free~ tuples concept to
+reference counters. There are reference counters on tuples and also
+on attributes. Some assertions were removed, since the code is
+stable.
 
 [TOC]
 
 1 Overview
 
-The Relational Algebra basically implements two type constructors, namely ~tuple~ and ~rel~.
-More information about the Relational Algebra can be found in the RelationAlgebra.h header
-file.
+The Relational Algebra basically implements two type constructors, 
+namely ~tuple~ and ~rel~.
+
+More information about the Relational Algebra can be found in the 
+RelationAlgebra.h header file.
 
 2 Defines, includes, and constants
 
 */
 #include "RelationAlgebra.h"
 #include "OldRelationAlgebra.h"
-#include "CPUTimeMeasurer.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
@@ -79,19 +91,18 @@ Typeinfo is:
 For example, for
 
 ----    (tuple
-                (
-                        (name string)
-                        (age int)))
+          (
+            (name string)
+            (age int)))
 ----
 
 the typeinfo is
 
 ----    (
-                (2 2)
-                        (
-                                (name (1 4))
-                                (age (1 1)))
-                2)
+          (2 2)
+          (
+            (name (1 4))
+            (age (1 1))))
 ----
 
 The typeinfo list consists of three lists. The first list is a
@@ -111,24 +122,25 @@ ListExpr TupleProp ()
   nl->AppendText(examplelist,"(\"Myers\" 53)");
 
   return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-	                     nl->StringAtom("Example Type List"),
-			     nl->StringAtom("List Rep"),
-			     nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("(ident x DATA)+ -> TUPLE"),
-	                     nl->StringAtom("(tuple((name string)(age int)))"),
-			     nl->StringAtom("(<attr1> ... <attrn>)"),
-			     examplelist)));
+            nl->FourElemList(
+              nl->StringAtom("Signature"),
+	            nl->StringAtom("Example Type List"),
+			        nl->StringAtom("List Rep"),
+			        nl->StringAtom("Example List")),
+            nl->FourElemList(
+              nl->StringAtom("(ident x DATA)+ -> TUPLE"),
+              nl->StringAtom("(tuple((name string)(age int)))"),
+              nl->StringAtom("(<attr1> ... <attrn>)"),
+              examplelist)));
 }
 
 /*
 3.2 ~Out~-function of type constructor ~tuple~
 
-The ~out~-function of type constructor ~tuple~ takes as inputs a type
-description (~typeInfo~) of the tuples attribute structure in nested list
-format and a pointer to a tuple value, stored in main memory.
-The function returns the tuple value from main memory storage
-in nested list format.
+The ~out~-function of type constructor ~tuple~ takes as inputs a 
+type description (~typeInfo~) of the tuple's attribute structure in 
+nested list format and a pointer to a tuple value, stored in main 
+memory. The function returns the tuple value in nested list format.
 
 */
 ListExpr
@@ -155,25 +167,27 @@ SaveToListTuple (ListExpr typeInfo, Word  value)
 /*
 3.3 ~In~-function of type constructor ~tuple~
 
-The ~In~-function of type constructor ~tuple~ takes as inputs a type
-description (~typeInfo~) of the tuples attribute structure in nested
-list format and the tuple value in nested list format. The function
-returns a pointer to a tuple value, stored in main memory in accordance to
-the tuple value in nested list format.
+The ~In~-function of type constructor ~tuple~ takes as inputs a 
+type description (~typeInfo~) of the tuples attribute structure in 
+nested list format and the tuple value in nested list format. The 
+function returns a pointer to a tuple value, stored in main memory
+in accordance to the tuple value in nested list format.
 
-Error handling in ~InTuple~: ~correct~ is only true if there is the right
-number of attribute values and all values have correct list representations.
+Error handling in ~InTuple~: ~correct~ is only true if there is the 
+right number of attribute values and all values have correct list 
+representations.
+
 Otherwise the following error messages are added to ~errorInfo~:
 
-----    (71 tuple 1 <errorPos>)                 atom instead of value list
-        (71 tuple 2 <errorPos>)                 not enough values
-        (71 tuple 3 <errorPos> <attrno>)        wrong attribute value in
-                                                attribute <attrno>
-        (71 tuple 4 <errorPos>)                 too many values
+----    (71 tuple 1 <errorPos>)          atom instead of value list
+        (71 tuple 2 <errorPos>)          not enough values
+        (71 tuple 3 <errorPos> <attrno>) wrong attribute value in
+                                         attribute <attrno>
+        (71 tuple 4 <errorPos>)          too many values
 ----
 
-is added to ~errorInfo~. Here ~errorPos~ is the number of the tuple in the
-relation list (passed by ~InRelation~).
+is added to ~errorInfo~. Here ~errorPos~ is the number of the tuple 
+in the relation list (passed by ~InRelation~).
 
 
 */
@@ -181,7 +195,8 @@ Word
 InTuple(ListExpr typeInfo, ListExpr value,
         int errorPos, ListExpr& errorInfo, bool& correct)
 {
-  return SetWord( Tuple::In( typeInfo, value, errorPos, errorInfo, correct ) );
+  return SetWord( Tuple::In( typeInfo, value, errorPos, 
+                             errorInfo, correct ) );
 }
 
 /*
@@ -195,17 +210,20 @@ the database.
 */
 Word
 RestoreFromListTuple(ListExpr typeInfo, ListExpr value,
-                     int errorPos, ListExpr& errorInfo, bool& correct)
+                     int errorPos, ListExpr& errorInfo, 
+                     bool& correct)
 {
-  return SetWord( Tuple::RestoreFromList( typeInfo, value, errorPos, errorInfo, correct ) );
+  return 
+    SetWord( Tuple::RestoreFromList( typeInfo, value, errorPos, 
+                                     errorInfo, correct ) );
 }
 
 /*
 3.4 ~Delete~-function of type constructor ~tuple~
 
-A type constructor's ~delete~-function is used by the query processor in order
-to deallocate memory occupied by instances of Secondo objects. They may have
-been created in two ways:
+A type constructor's ~delete~-function is used by the query 
+processor in order to deallocate memory occupied by instances 
+of Secondo objects. They may have been created in two ways:
 
   * as return values of operator calls
 
@@ -226,8 +244,8 @@ Checks the specification:
 ----    (ident x DATA)+         -> TUPLE        tuple
 ----
 
-with the additional constraint that all identifiers used (attribute names)
-must be distinct. Hence a tuple type has the form:
+with the additional constraint that all identifiers used (attribute
+names) must be distinct. Hence a tuple type has the form:
 
 ----    (tuple
             (
@@ -235,15 +253,15 @@ must be distinct. Hence a tuple type has the form:
                 (name y)))
 ----
 
-and ~x~ and ~y~ must be types of kind DATA. Kind TUPLE introduces the
-following error codes:
+and ~x~ and ~y~ must be types of kind DATA. Kind TUPLE introduces 
+the following error codes:
 
-----    (... 1)         Empty tuple type
-        (... 2 x)       x is not an attribute list, but an atom
-        (... 3 x)       Doubly defined attribute name x
-        (... 4 x)       Invalid attribute name x
-        (... 5 x)       Invalid attribute definition x (x is not a pair)
-        (... 6 x)       Attribute type does not belong to kind DATA
+----    (... 1)      Empty tuple type
+        (... 2 x)    x is not an attribute list, but an atom
+        (... 3 x)    Doubly defined attribute name x
+        (... 4 x)    Invalid attribute name x
+        (... 5 x)    Invalid attribute definition x (x is not a pair)
+        (... 6 x)    Attribute type does not belong to kind DATA
 ----
 
 */
@@ -257,23 +275,27 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
   int unique;
   AlgebraManager* algMgr;
 
-  if ((nl->ListLength(type) == 2) && (nl->IsEqual(nl->First(type), "tuple",
-       true)))
+  if( nl->ListLength(type) == 2 && 
+      nl->IsEqual(nl->First(type), "tuple", true))
   {
     attrlist = nl->Second(type);
     if (nl->IsEmpty(attrlist))
     {
       errorInfo = nl->Append(errorInfo,
-        nl->ThreeElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+        nl->ThreeElemList(
+          nl->IntAtom(61), 
+          nl->SymbolAtom("TUPLE"),
           nl->IntAtom(1)));
       return false;
     }
     if (nl->IsAtom(attrlist))
     {
       errorInfo = nl->Append(errorInfo,
-        nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+        nl->FourElemList(
+          nl->IntAtom(61), 
+          nl->SymbolAtom("TUPLE"),
           nl->IntAtom(2),
-        attrlist));
+          attrlist));
       return false;
     }
     algMgr = SecondoSystem::GetAlgebraManager();
@@ -290,38 +312,52 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
           (nl->AtomType(nl->First(pair)) == SymbolType))
         {
           attrname = nl->SymbolValue(nl->First(pair));
-          unique = std::count(attrnamelist.begin(), attrnamelist.end(),
-                         attrname);
+          unique = std::count(attrnamelist.begin(), 
+                              attrnamelist.end(),
+                              attrname);
           if (unique > 0)
           {
             errorInfo = nl->Append(errorInfo,
-             nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
-               nl->IntAtom(3), nl->First(pair)));
+             nl->FourElemList(
+               nl->IntAtom(61), 
+               nl->SymbolAtom("TUPLE"),
+               nl->IntAtom(3), 
+               nl->First(pair)));
             correct = false;
           }
           attrnamelist.push_back(attrname);
-          ckd =  algMgr->CheckKind("DATA", nl->Second(pair), errorInfo);
+          ckd = algMgr->CheckKind("DATA", nl->Second(pair), 
+                                  errorInfo);
           if (!ckd)
           {
             errorInfo = nl->Append(errorInfo,
-              nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
-                nl->IntAtom(6),nl->Second(pair)));
+              nl->FourElemList(
+                nl->IntAtom(61), 
+                nl->SymbolAtom("TUPLE"),
+                nl->IntAtom(6),
+                nl->Second(pair)));
           }
           correct = correct && ckd;
         }
         else
         {
           errorInfo = nl->Append(errorInfo,
-          nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
-          nl->IntAtom(4),nl->First(pair)));
+          nl->FourElemList(
+            nl->IntAtom(61), 
+            nl->SymbolAtom("TUPLE"),
+            nl->IntAtom(4),
+            nl->First(pair)));
           correct = false;
         }
       }
       else
       {
         errorInfo = nl->Append(errorInfo,
-          nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
-          nl->IntAtom(5),pair ));
+          nl->FourElemList(
+            nl->IntAtom(61), 
+            nl->SymbolAtom("TUPLE"),
+            nl->IntAtom(5),
+            pair));
         correct = false;
       }
     }
@@ -330,7 +366,10 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
   else
   {
     errorInfo = nl->Append(errorInfo,
-      nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("TUPLE"), type));
+      nl->ThreeElemList(
+        nl->IntAtom(60), 
+        nl->SymbolAtom("TUPLE"), 
+        type));
     return false;
   }
 }
@@ -338,9 +377,10 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
 /*
 3.6 ~Cast~-function of type constructor ~tuple~
 
-Casts a tuple from a stream representation of it. This function is used to read
-objects from the disk by the ~TupleManager~. Since tuples are not part of relations
-the implementation of this function is not necessary.
+Casts a tuple from a stream representation of it. This function is 
+used to read objects from the disk by the ~TupleManager~. Since 
+tuples are not part of tuples the implementation of this function
+is not necessary.
 
 */
 void*
@@ -352,8 +392,8 @@ CastTuple(void* addr)
 /*
 3.7 ~Create~-function of type constructor ~tuple~
 
-This function is used to allocate memory sufficient for keeping one instance
-of ~tuple~.
+This function is used to allocate memory sufficient for keeping one 
+instance of ~tuple~.
 
 */
 Word
@@ -361,7 +401,6 @@ CreateTuple(const ListExpr typeInfo)
 {
   Tuple *tup = new Tuple( nl->Second( typeInfo ) );
   return (SetWord(tup));
-//  return (SetWord(Address(0)));
 }
 
 /*
@@ -390,9 +429,9 @@ CloneTuple(const Word& w)
 /*
 3.10 ~Sizeof~-function of type constructor ~tuple~
 
-Returns the size of a tuple's root record to be stored on the disk as a stream.
-Since tuples are not part of a relation, the implementation of this function
-is not necessary.
+Returns the size of a tuple's root record to be stored on the disk 
+as a stream. Since tuples are not part of tuples, the implementation
+of this function is not necessary.
 
 */
 int
@@ -402,53 +441,21 @@ SizeOfTuple()
 }
 
 /*
-3.11 ~Model~-functions of type constructor ~tuple~
-
-*/
-Word
-TupleInModel( ListExpr typeExpr, ListExpr list, int objNo )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-ListExpr
-TupleOutModel( ListExpr typeExpr, Word model )
-{
-  return (0);
-}
-
-Word
-TupleValueToModel( ListExpr typeExpr, Word value )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-Word
-TupleValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
-                       const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  correct = true;
-  return (SetWord( Address( 0 ) ));
-}
-
-/*
 3.12 Definition of type constructor ~tuple~
 
 Eventually a type constructor is created by defining an instance of
-class ~TypeConstructor~. Constructor's arguments are the type constructor's
-name and the eleven functions previously defined.
+class ~TypeConstructor~. Constructor's arguments are the type 
+constructor's name and the eleven functions previously defined.
 
 */
-TypeConstructor cpptuple( "tuple",           	TupleProp,
-                          OutTuple,          	InTuple,
-                          SaveToListTuple,      RestoreFromListTuple,
-                          CreateTuple,		DeleteTuple,
-			  0, 			0,
-                          CloseTuple, 		CloneTuple,
-                          CastTuple,   		SizeOfTuple,
-                          CheckTuple,           0,
-			  TupleInModel,      	TupleOutModel,
-			  TupleValueToModel, 	TupleValueListToModel );
+TypeConstructor cpptuple( "tuple",         TupleProp,
+                          OutTuple,        InTuple,
+                          SaveToListTuple, RestoreFromListTuple,
+                          CreateTuple,		 DeleteTuple,
+                          0,               0,
+                          CloseTuple, 		 CloneTuple,
+                          CastTuple,   		 SizeOfTuple,
+                          CheckTuple );
 /*
 4 TypeConstructor ~rel~
 
@@ -483,15 +490,17 @@ ListExpr RelProp ()
   "(<attr1> ... <attrn>)");
   nl->AppendText(examplelist,"((\"Myers\" 53)(\"Smith\" 21))");
 
-  return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-	                     nl->StringAtom("Example Type List"),
-			     nl->StringAtom("List Rep"),
-			     nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("TUPLE -> REL"),
-	               nl->StringAtom("(rel(tuple((name string)(age int))))"),
-		       listreplist,
-		       examplelist)));
+  return nl->TwoElemList(
+           nl->FourElemList(
+             nl->StringAtom("Signature"),
+             nl->StringAtom("Example Type List"),
+             nl->StringAtom("List Rep"),
+             nl->StringAtom("Example List")),
+           nl->FourElemList(
+             nl->StringAtom("TUPLE -> REL"),
+             nl->StringAtom("(rel(tuple((name string)(age int))))"),
+             listreplist,
+             examplelist));
 }
 
 /*
@@ -503,6 +512,7 @@ OutRel(ListExpr typeInfo, Word  value)
 {
   return ((Relation *)value.addr)->Out( typeInfo );
 }
+
 /*
 4.3 ~SaveToList~-function of type constructor ~rel~
 
@@ -521,8 +531,8 @@ SaveToListRel(ListExpr typeInfo, Word  value)
 /*
 4.3 ~Create~-function of type constructor ~rel~
 
-The function is used to allocate memory sufficient for keeping one instance
-of ~rel~.
+The function is used to allocate memory sufficient for keeping one 
+instance of ~rel~.
 
 */
 Word
@@ -535,29 +545,32 @@ CreateRel(const ListExpr typeInfo)
 /*
 4.4 ~In~-function of type constructor ~rel~
 
-~value~ is the list representation of the relation. The structure of
-~typeInfol~ and ~value~ are described above. Error handling in ~InRel~:
+~value~ is the list representation of the relation. The structure 
+of ~typeInfo~ and ~value~ are described above. Error handling in 
+~InRel~:
 
 The result relation will contain all tuples that have been converted
-correctly (have correct list expressions). For all other tuples, an error
-message containing the position of the tuple within this relation (list) is
-added to ~errorInfo~. (This is done by procedure ~InTuple~ called by ~InRel~).
-If any tuple representation is wrong, then ~InRel~ will return ~correct~ as
-FALSE and will itself add an error message of the form
+correctly (have correct list expressions). For all other tuples, an 
+error message containing the position of the tuple within this 
+relation (list) is added to ~errorInfo~. (This is done by 
+procedure ~InTuple~ called by ~InRel~). If any tuple representation 
+is wrong, then ~InRel~ will return ~correct~ as FALSE and will 
+itself add an error message of the form
 
 ----    (InRel <errorPos>)
 ----
 
-to ~errorInfo~. The value in ~errorPos~ has to be passed from the environment;
-probably it is the position of the relation object in the list of
-database objects.
+to ~errorInfo~. The value in ~errorPos~ has to be passed from the 
+environment; probably it is the position of the relation object in 
+the list of database objects.
 
 */
 Word
 InRel(ListExpr typeInfo, ListExpr value,
       int errorPos, ListExpr& errorInfo, bool& correct)
 {
-  return SetWord( Relation::In( typeInfo, value, errorPos, errorInfo, correct ) );
+  return SetWord( Relation::In( typeInfo, value, errorPos, 
+                                errorInfo, correct ) );
 }
 
 /*
@@ -573,7 +586,9 @@ Word
 RestoreFromListRel(ListExpr typeInfo, ListExpr value,
                    int errorPos, ListExpr& errorInfo, bool& correct)
 {
-  return SetWord( Relation::RestoreFromList( typeInfo, value, errorPos, errorInfo, correct ) );
+  return 
+    SetWord( Relation::RestoreFromList( typeInfo, value, errorPos, 
+                                        errorInfo, correct ) );
 }
 
 /*
@@ -606,7 +621,8 @@ CheckRel(ListExpr type, ListExpr& errorInfo)
 {
   AlgebraManager* algMgr;
 
-  if ((nl->ListLength(type) == 2) && nl->IsEqual(nl->First(type), "rel"))
+  if ((nl->ListLength(type) == 2) && 
+      nl->IsEqual(nl->First(type), "rel"))
   {
     algMgr = SecondoSystem::GetAlgebraManager();
     return (algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo));
@@ -614,7 +630,10 @@ CheckRel(ListExpr type, ListExpr& errorInfo)
   else
   {
     errorInfo = nl->Append(errorInfo,
-      nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("REL"), type));
+      nl->ThreeElemList(
+        nl->IntAtom(60), 
+        nl->SymbolAtom("REL"), 
+        type));
     return false;
   }
 }
@@ -634,8 +653,8 @@ CastRel(void* addr)
 
 There is a cache of relations in order to increase performance.
 The cache is responsible for closing the relations.
-In this case we will implement one function that does nothing, called
-~CloseRel~ and another which the cache will execute, called
+In this case we will implement one function that does nothing, 
+called ~CloseRel~ and another which the cache will execute, called
 ~CacheCloseRel~.
 
 */
@@ -647,14 +666,15 @@ void CloseRel(Word& w)
 /*
 4.9 ~Open~-function of type constructor ~rel~
 
-This is a slightly modified version of the function ~DefaultOpen~ (from
-~Algebra~) which creates the relation from the SmiRecord only if it does not
-yet exist.
+This is a slightly modified version of the function ~DefaultOpen~ 
+(from ~Algebra~) which creates the relation from the SmiRecord only 
+if it does not yet exist.
 
-The idea is to maintain a cache containing the relation representations that
-have been built in memory. The cache basically stores pairs (~recordId~,
-~relation\_value~). If the ~recordId~ passed to this function is found,
-the cached relation value is returned instead of building a new one.
+The idea is to maintain a cache containing the relation 
+representations that have been built in memory. The cache basically 
+stores pairs (~recordId~, ~relation\_value~). If the ~recordId~ 
+passed to this function is found, the cached relation value is 
+returned instead of building a new one.
 
 */
 bool
@@ -677,7 +697,8 @@ SaveRel( SmiRecord& valueRecord,
          const ListExpr typeInfo,
          Word& value )
 {
-  return ((Relation *)value.addr)->Save( valueRecord, offset, typeInfo );
+  return 
+    ((Relation *)value.addr)->Save( valueRecord, offset, typeInfo );
 }
 
 /*
@@ -701,51 +722,22 @@ CloneRel(const Word& w)
 }
 
 /*
-4.13 ~Model~-functions of type constructor ~rel~
-
-*/
-Word RelInModel( ListExpr typeExpr, ListExpr list, int objNo )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-ListExpr RelOutModel( ListExpr typeExpr, Word model )
-{
-  return (0);
-}
-
-Word RelValueToModel( ListExpr typeExpr, Word value )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-Word RelValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
-                       const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  correct = true;
-  return (SetWord( Address( 0 ) ));
-}
-
-/*
 
 4.14 Definition of type constructor ~rel~
 
 Eventually a type constructor is created by defining an instance of
-class ~TypeConstructor~. Constructor's arguments are the type constructor's
-name and the eleven functions previously defined.
+class ~TypeConstructor~. Constructor's arguments are the type 
+constructor's name and the eleven functions previously defined.
 
 */
-
 TypeConstructor cpprel( "rel",           RelProp,
                         OutRel,          InRel,
-	                SaveToListRel,   RestoreFromListRel,
-                        CreateRel, 	 DeleteRel,
-			OpenRel, 	 SaveRel,
+                        SaveToListRel,   RestoreFromListRel,
+                        CreateRel, 	     DeleteRel,
+                        OpenRel,         SaveRel,
                         CloseRel,        CloneRel,
                         CastRel,         SizeOfRel,
-                        CheckRel,        0,
-			RelInModel,      RelOutModel,
-			RelValueToModel, RelValueListToModel );
+                        CheckRel );
 
 /*
 
@@ -764,12 +756,14 @@ int TypeOperatorSelect(ListExpr args)
 /*
 5.3 Type Operator ~TUPLE~
 
-Type operators are used only for inferring argument types of parameter
-functions. They have a type mapping but no evaluation function.
+Type operators are used only for inferring argument types of 
+parameter functions. They have a type mapping but no evaluation 
+function.
 
 5.3.1 Type mapping function of operator ~TUPLE~
 
-Extract tuple type from a stream or relation type given as the first argument.
+Extract tuple type from a stream or relation type given as the 
+first argument.
 
 ----    ((stream x) ...)                -> x
         ((rel x)    ...)                -> x
@@ -786,14 +780,16 @@ ListExpr TUPLETypeMap(ListExpr args)
     
   first = nl->First(args);
   nl->WriteToString(argstr, first);
-  CHECK_COND( nl->ListLength(first) == 2 &&
-              (TypeOfRelAlgSymbol(nl->First(first)) == rel ||
-	       TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-	       nl->ListLength(nl->Second(first)) == 2 &&
-	       TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple, 
-  "Type operator TUPLE expects as argument a list with structure, "
-  "(rel(tuple((a1 t1)...(an tn)))) or (stream(tuple((a1 t1)...(an tn)))).\n"
-  "Type operator TUPLE gets an argument '" + argstr + "'." );
+  CHECK_COND( 
+    nl->ListLength(first) == 2 &&
+    (TypeOfRelAlgSymbol(nl->First(first)) == rel ||
+	   TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+	  nl->ListLength(nl->Second(first)) == 2 &&
+	  TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple, 
+    "Type operator TUPLE expects as argument a list with "
+    "structure, (rel(tuple((a1 t1)...(an tn)))) or "
+    "(stream(tuple((a1 t1)...(an tn)))).\n"
+    "Type operator TUPLE gets an argument '" + argstr + "'." );
 
   return nl->Second(first);
 }
@@ -822,7 +818,6 @@ Operator relalgTUPLE (
          "TUPLE",              // name
          TUPLESpec,            // specification
          0,                    // no value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          TypeOperatorSelect,   // trivial selection function
          TUPLETypeMap          // type mapping
 );
@@ -832,7 +827,8 @@ Operator relalgTUPLE (
 
 5.4.1 Type mapping function of operator ~TUPLE2~
 
-Extract tuple type from a stream or relation type given as the second argument.
+Extract tuple type from a stream or relation type given as the 
+second argument.
 
 ----    ((stream x) (stream y) ...)          -> y
         ((rel x) (rel y) ...)                -> y
@@ -859,16 +855,17 @@ ListExpr TUPLE2TypeMap(ListExpr args)
 5.4.2 Specification of operator ~TUPLE2~
 
 */
-const string TUPLE2Spec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Remarks\" ) "
-                           "( <text><text>((stream x) (stream y) ...) -> y, "
-                           "((rel x) (rel y) ...) -> y</text--->"
-                           "<text>type operator</text--->"
-                           "<text>Extract tuple type from a stream or "
-                           "relation"
-                           " type given as the second argument.</text--->"
-                           "<text>not for use with sos-syntax</text--->"
-                           ") )";
+const string TUPLE2Spec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Remarks\" ) "
+  "( <text><text>((stream x) (stream y) ...) -> y, "
+  "((rel x) (rel y) ...) -> y</text--->"
+  "<text>type operator</text--->"
+  "<text>Extract tuple type from a stream or "
+  "relation"
+  " type given as the second argument.</text--->"
+  "<text>not for use with sos-syntax</text--->"
+  ") )";
 
 /*
 
@@ -879,7 +876,6 @@ Operator relalgTUPLE2 (
          "TUPLE2",             // name
          TUPLE2Spec,           // specification
          0,                    // no value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          TypeOperatorSelect,   // trivial selection function
          TUPLE2TypeMap         // type mapping
 );
@@ -888,13 +884,14 @@ Operator relalgTUPLE2 (
 
 5.5 Operator ~feed~
 
-Produces a stream from a relation by scanning the relation tuple by tuple.
+Produces a stream from a relation by scanning the relation tuple by
+tuple.
 
 5.5.1 Type mapping function of operator ~feed~
 
-A type mapping function takes a nested list as argument. Its contents are
-type descriptions of an operator's input parameters. A nested list describing
-the output type of the operator is returned.
+A type mapping function takes a nested list as argument. Its 
+contents are type descriptions of an operator's input parameters. 
+A nested list describing the output type of the operator is returned.
 
 Result type of feed operation.
 
@@ -912,11 +909,12 @@ ListExpr FeedTypeMap(ListExpr args)
     
   first = nl->First(args);
   nl->WriteToString(argstr, first);
-  CHECK_COND( nl->ListLength(first) == 2 &&
-              TypeOfRelAlgSymbol(nl->First(first)) == rel &&
-              (!(nl->IsAtom(nl->Second(first)) ||
-                 nl->IsEmpty(nl->Second(first))) &&	     
-              (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),	 
+  CHECK_COND( 
+    nl->ListLength(first) == 2 &&
+    TypeOfRelAlgSymbol(nl->First(first)) == rel &&
+    (!(nl->IsAtom(nl->Second(first)) ||
+    nl->IsEmpty(nl->Second(first))) &&	     
+    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),	 
   "Operator feed expects an argument of type relation, "
   "(rel(tuple((a1 t1)...(an tn)))).\n"
   "Operator feed gets an argument of type '" + argstr + "'."
@@ -935,7 +933,6 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
   GenericRelation* r;
   GenericRelationIterator* rit;
   Word argRelation;
-
 
   switch (message)
   {
@@ -972,30 +969,31 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 5.5.3 Specification of operator ~feed~
 
 */
-const string FeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                         "\"Example\" ) "
-                         "( <text>(rel x) -> (stream x)</text--->"
-                         "<text>_ feed</text--->"
-                         "<text>Produces a stream from a relation by "
-                         "scanning the relation tuple by tuple.</text--->"
-                         "<text>query cities feed consume</text--->"
-                         ") )";
+const string FeedSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(rel x) -> (stream x)</text--->"
+  "<text>_ feed</text--->"
+  "<text>Produces a stream from a relation by "
+  "scanning the relation tuple by tuple.</text--->"
+  "<text>query cities feed consume</text--->"
+  ") )";
 
 /*
 
 5.5.4 Definition of operator ~feed~
 
-Non-overloaded operators are defined by constructing a new instance of
-class ~Operator~, passing all operator functions as constructor arguments.
+Non-overloaded operators are defined by constructing a new instance 
+of class ~Operator~, passing all operator functions as constructor
+arguments.
 
 */
 Operator relalgfeed (
-          "feed",                // name
-          FeedSpec,              // specification
-          Feed,                  // value mapping
-          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-          Operator::SimpleSelect,         // trivial selection function
-          FeedTypeMap           // type mapping
+          "feed",                 // name
+          FeedSpec,               // specification
+          Feed,                   // value mapping
+          Operator::SimpleSelect, // trivial selection function
+          FeedTypeMap             // type mapping
 );
 
 /*
@@ -1022,24 +1020,26 @@ ListExpr ConsumeTypeMap(ListExpr args)
   
   first = nl->First(args);
   nl->WriteToString(argstr, first);
-  CHECK_COND(((nl->ListLength(first) == 2) &&
-             (TypeOfRelAlgSymbol(nl->First(first)) == stream)) &&
-             (!(nl->IsAtom(nl->Second(first)) ||
-                 nl->IsEmpty(nl->Second(first))) &&	     
-             (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),	     	     
+  CHECK_COND(
+    ((nl->ListLength(first) == 2) &&
+    (TypeOfRelAlgSymbol(nl->First(first)) == stream)) &&
+    (!(nl->IsAtom(nl->Second(first)) ||
+       nl->IsEmpty(nl->Second(first))) &&	     
+    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),
   "Operator consume expects an argument of type (stream(tuple"
   "((a1 t1)...(an tn)))).\n"
   "Operator consume gets an argument of type '" + argstr + "'.");
   
   return nl->Cons(nl->SymbolAtom("rel"), nl->Rest(first));
 }
-/*
 
+/*
 5.6.2 Value mapping function of operator ~consume~
 
 */
 int
-Consume(Word* args, Word& result, int message, Word& local, Supplier s)
+Consume(Word* args, Word& result, int message, 
+        Word& local, Supplier s)
 {
   Word actual;
 
@@ -1053,34 +1053,29 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
   qp->Request(args[0].addr, actual);
   while (qp->Received(args[0].addr))
   {
-    Tuple* tuple = ((Tuple*)actual.addr)->CloneIfNecessary();
-    if( tuple != actual.addr )
-      ((Tuple*)actual.addr)->DeleteIfAllowed();
+    Tuple* tuple = (Tuple*)actual.addr;
     rel->AppendTuple(tuple);
     tuple->DeleteIfAllowed();
-
     qp->Request(args[0].addr, actual);
   }
-
-  result = SetWord((void*) rel);
-
+  result = SetWord(rel);
   qp->Close(args[0].addr);
-
   return 0;
 }
-/*
 
+/*
 5.6.3 Specification of operator ~consume~
 
 */
-const string ConsumeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>(stream x) -> (rel x)</text--->"
-                            "<text>_ consume</text--->"
-                            "<text>Collects objects from a stream."
-                            "</text--->"
-                            "<text>query cities feed consume</text--->"
-                            ") )";
+const string ConsumeSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(stream x) -> (rel x)</text--->"
+  "<text>_ consume</text--->"
+  "<text>Collects objects from a stream."
+  "</text--->"
+  "<text>query cities feed consume</text--->"
+  ") )";
 
 /*
 
@@ -1088,15 +1083,14 @@ const string ConsumeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
 */
 Operator relalgconsume (
-         "consume",            // name
-	 ConsumeSpec,          // specification
-	 Consume,              // value mapping
-	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-	 Operator::SimpleSelect,         // trivial selection function
-	 ConsumeTypeMap        // type mapping
+   "consume",              // name
+	 ConsumeSpec,            // specification
+	 Consume,                // value mapping
+	 Operator::SimpleSelect, // trivial selection function
+	 ConsumeTypeMap          // type mapping
 );
-/*
 
+/*
 5.7 Operator ~attr~
 
 5.7.1 Type mapping function of operator ~attr~
@@ -1107,11 +1101,13 @@ Result type attr operation.
     ((tuple ((x1 t1)...(xn tn))) xi)    -> ti
                             APPEND (i) ti)
 ----
-This type mapping uses a special feature of the query processor, in that if
-requests to append a further argument to the given list of arguments, namely,
-the index of the attribute within the tuple. This indes is computed within
-the type mapping  function. The request is given through the result expression
-of the type mapping which has the form, for example,
+
+This type mapping uses a special feature of the query processor, 
+in that if requests to append a further argument to the given list 
+of arguments, namely, the index of the attribute within the tuple. 
+This index is computed within the type mapping function. The 
+request is given through the result expression of the type mapping 
+which has the form, for example,
 
 ----
 
@@ -1119,15 +1115,16 @@ of the type mapping which has the form, for example,
 
 ----
 
-The keyword ~APPEND~ occuring as a first element of a returned type expression
-tells the query processor to add the elements of the following list - the
-second element of the type expression - as further arguments to the operator
-(as if they had been written in the query). The third element  of the query
-is then used as the real result type. In this case 1 is the index of the
-attribute determined in this procedure. The query processor, more precisely
-the procedure ~anotate~ there, will produce the annotation for the constant 1,
-append it to the list of annotated arguments, and then use "string" as the
-result type of the ~attr~ operation.
+The keyword ~APPEND~ occuring as a first element of a returned type 
+expression tells the query processor to add the elements of the 
+following list - the second element of the type expression - as 
+further arguments to the operator (as if they had been written in 
+the query). The third element  of the query is then used as the 
+real result type. In this case 1 is the index of the attribute 
+determined in this procedure. The query processor, more precisely
+the procedure ~anotate~ there, will produce the annotation for the 
+constant 1, append it to the list of annotated arguments, and then 
+use "string" as the result type of the ~attr~ operation.
 
 */
 ListExpr AttrTypeMap(ListExpr args)
@@ -1143,15 +1140,17 @@ ListExpr AttrTypeMap(ListExpr args)
   first = nl->First(args);  
   nl->WriteToString(argstr, first);  
   CHECK_COND( (nl->ListLength(first) == 2) &&
-              (TypeOfRelAlgSymbol(nl->First(first)) == tuple) ,
+              (TypeOfRelAlgSymbol(nl->First(first)) == tuple),
   "Operator attr expects as first argument a list with structure " 
   "(tuple ((a1 t1)...(an tn)))\n"
   "Operator attr gets a list with structure '" + argstr + "'.");
   
   second  = nl->Second(args); 
   nl->WriteToString(argstr, second);   
-  CHECK_COND( nl->IsAtom(second) && nl->AtomType(second) == SymbolType,
-  "Operator attr expects as second argument a symbol atom (attributename).\n" 
+  CHECK_COND( nl->IsAtom(second) && 
+              nl->AtomType(second) == SymbolType,
+  "Operator attr expects as second argument a symbol atom "
+  "(attributename).\n" 
   "Operator attr gets '" + argstr + "'.");
 
   attrname = nl->SymbolValue(second);
@@ -1159,23 +1158,25 @@ ListExpr AttrTypeMap(ListExpr args)
   if (j)
     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
            nl->OneElemList(nl->IntAtom(j)), attrtype);
-  else {
+  else 
+  {
     nl->WriteToString( argstr, nl->Second(first) ); 
-    ErrorReporter::ReportError("Attribute name '" + attrname + "' is not known in the tuple.\n"
+    ErrorReporter::ReportError(
+    "Attribute name '" + attrname + "' is not known in the tuple.\n"
     "Known Attribute(s): " + argstr);
+    
     return nl->SymbolAtom("typeerror");
   }   
 }
 /*
-
 5.7.2 Value mapping function of operator ~attr~
 
-The argument vector ~arg~ contains in the first slot ~args[0]~ the tuple
-and in ~args[2]~ the position of the attribute as a number. Returns as
-~result~ the value of an attribute at the given position ~args[2]~ in a
-tuple object. The attribute name is argument 2 in the query and is used
-in the function ~AttributeTypeMap~ to determine the attribute
-number ~args[2]~ .
+The argument vector ~arg~ contains in the first slot ~args[0]~ the 
+tuple and in ~args[2]~ the position of the attribute as a number. 
+Returns as ~result~ the value of an attribute at the given 
+position ~args[2]~ in a tuple object. The attribute name is 
+argument 2 in the query and is used in the function 
+~AttributeTypeMap~ to determine the attribute number ~args[2]~ .
 
 */
 int
@@ -1190,45 +1191,46 @@ Attr(Word* args, Word& result, int message, Word& local, Supplier s)
   result = SetWord(tupleptr->GetAttribute(index - 1));
   return 0;
 }
-/*
 
+/*
 5.7.3 Specification of operator ~attr~
 
 */
-const string AttrSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                         "\"Remarks\" ) "
-                         "( <text>((tuple ((x1 t1)...(xn tn))) xi)  -> "
-                         "ti)</text--->"
-                         "<text>attr ( _ , _ )</text--->"
-                         "<text>Returns the value of an attribute at a "
-                         "given position.</text--->"
-                         "<text>not for use with sos-syntax</text--->"
-                         ") )";
+const string AttrSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Remarks\" ) "
+  "( <text>((tuple ((x1 t1)...(xn tn))) xi)  -> "
+  "ti)</text--->"
+  "<text>attr ( _ , _ )</text--->"
+  "<text>Returns the value of an attribute at a "
+  "given position.</text--->"
+  "<text>not for use with sos-syntax</text--->"
+  ") )";
 
 /*
-
 5.7.4 Definition of operator ~attr~
 
 */
 Operator relalgattr (
-     "attr",           // name
-     AttrSpec,        // specification
-     Attr,            // value mapping
-     Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-     Operator::SimpleSelect,         // trivial selection function
-     AttrTypeMap      // type mapping
+     "attr",                 // name
+     AttrSpec,               // specification
+     Attr,                   // value mapping
+     Operator::SimpleSelect, // trivial selection function
+     AttrTypeMap             // type mapping
 );
-/*
 
+/*
 5.8 Operator ~filter~
 
-Only tuples, fulfilling a certain condition are passed on to the output stream.
+Only tuples, fulfilling a certain condition are passed on to the 
+output stream.
 
 5.8.1 Type mapping function of operator ~filter~
 
 Result type of filter operation.
 
-----    ((stream (tuple x)) (map (tuple x) bool))       -> (stream (tuple x))
+----    ((stream (tuple x)) (map (tuple x) bool))
+               -> (stream (tuple x))
 ----
 
 */
@@ -1244,12 +1246,13 @@ ListExpr FilterTypeMap(ListExpr args)
   second  = nl->Second(args);
     
   nl->WriteToString(argstr, first);    
-  CHECK_COND(nl->ListLength(first) == 2 &&
-             TypeOfRelAlgSymbol(nl->First(first)) == stream &&
-	     nl->ListLength(nl->Second(first)) == 2 &&
-             TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
-    "Operator filter expects as first argument a list with structure " 
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
+  CHECK_COND(
+    nl->ListLength(first) == 2 &&
+    TypeOfRelAlgSymbol(nl->First(first)) == stream &&
+	  nl->ListLength(nl->Second(first)) == 2 &&
+    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
+    "Operator filter expects as first argument a list with "
+    "structure (stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator filter gets a list with structure '" + argstr + "'.");
 
   nl->WriteToString(argstr, second);    
@@ -1261,18 +1264,19 @@ ListExpr FilterTypeMap(ListExpr args)
     "Operator filter gets a list with structure '" + argstr + "'.");
     
   CHECK_COND(nl->Equal(nl->Second(first),nl->Second(second)),
-    "Tuple type in stream is not equal to tuple type in the function.");
+    "Tuple type in stream is not equal to tuple type "
+    "in the function.");
 
   return first;
 }
 
 /*
-
 5.8.2 Value mapping function of operator ~filter~
 
 */
 int
-Filter(Word* args, Word& result, int message, Word& local, Supplier s)
+Filter(Word* args, Word& result, int message, 
+       Word& local, Supplier s)
 {
   bool found = false;
   Word elem, funresult;
@@ -1322,22 +1326,23 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   return 0;
 }
-/*
 
+/*
 5.8.3 Specification of operator ~filter~
 
 */
-const string FilterSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>((stream x) (map x bool)) -> "
-                           "(stream x)</text--->"
-                           "<text>_ filter [ fun ]</text--->"
-                           "<text>Only tuples, fulfilling a certain "
-                           "condition are passed on to the output "
-                           "stream.</text--->"
-                           "<text>query cities feed filter "
-                           "[.population > 500000] consume</text--->"
-                              ") )";
+const string FilterSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream x) (map x bool)) -> "
+  "(stream x)</text--->"
+  "<text>_ filter [ fun ]</text--->"
+  "<text>Only tuples, fulfilling a certain "
+  "condition are passed on to the output "
+  "stream.</text--->"
+  "<text>query cities feed filter "
+  "[.population > 500000] consume</text--->"
+  ") )";
 
 /*
 
@@ -1345,15 +1350,14 @@ const string FilterSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
 */
 Operator relalgfilter (
-         "filter",            // name
-         FilterSpec,           // specification
-         Filter,               // value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         Operator::SimpleSelect,         // trivial selection function
-         FilterTypeMap         // type mapping
+         "filter",               // name
+         FilterSpec,             // specification
+         Filter,                 // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         FilterTypeMap           // type mapping
 );
-/*
 
+/*
 5.9 Operator ~project~
 
 5.9.1 Type mapping function of operator ~filter~
@@ -1368,9 +1372,9 @@ Result type of project operation.
 		)
 ----
 
-The type mapping computes the number of attributes and the list of attribute
-numbers for the given projection attributes and asks the query processor to
-append it to the given arguments.
+The type mapping computes the number of attributes and the list of 
+attribute numbers for the given projection attributes and asks the 
+query processor to append it to the given arguments.
 
 */
 ListExpr ProjectTypeMap(ListExpr args)
@@ -1380,10 +1384,11 @@ ListExpr ProjectTypeMap(ListExpr args)
   
   // initialize local ListExpr variables
   ListExpr first=nl->TheEmptyList();
-  ListExpr second=first, first2=first, attrtype=first, newAttrList=first;
-  ListExpr lastNewAttrList=first, lastNumberList=first, numberList=first, outlist=first;
+  ListExpr second=first, first2=first, 
+           attrtype=first, newAttrList=first;
+  ListExpr lastNewAttrList=first, lastNumberList=first, 
+           numberList=first, outlist=first;
   string attrname="", argstr="";
-  
   
   CHECK_COND(nl->ListLength(args) == 2,
     "Operator project expects a list of length two.");
@@ -1392,17 +1397,19 @@ ListExpr ProjectTypeMap(ListExpr args)
   second = nl->Second(args);
     
   nl->WriteToString(argstr, first);  
-  CHECK_COND(nl->ListLength(first) == 2 &&
-             TypeOfRelAlgSymbol(nl->First(first)) == stream &&
-	     nl->ListLength(nl->Second(first)) == 2 &&
-             TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
+  CHECK_COND(
+    nl->ListLength(first) == 2 &&
+    TypeOfRelAlgSymbol(nl->First(first)) == stream &&
+	  nl->ListLength(nl->Second(first)) == 2 &&
+    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
     "Operator project expects a list with structure " 
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator project gets a list with structure '" + argstr + "'.");
     
   nl->WriteToString(argstr, second);    
-  CHECK_COND(nl->ListLength(second) > 0 &&
-             !nl->IsAtom(second),
+  CHECK_COND(
+    nl->ListLength(second) > 0 &&
+    !nl->IsAtom(second),
     "Operator project expects a list with attributenames " 
     "(ai...aj)\n"
     "Operator project gets a list '" + argstr + "'.");
@@ -1418,16 +1425,19 @@ ListExpr ProjectTypeMap(ListExpr args)
     }
     else
     {
-      ErrorReporter::ReportError("Attributename in the list is not of symbol type.");
+      ErrorReporter::ReportError(
+        "Attributename in the list is not of symbol type.");
       return nl->SymbolAtom("typeerror");
     }
-    j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
+    j = FindAttribute(nl->Second(nl->Second(first)), 
+                      attrname, attrtype);
     if (j)
     {
       if (firstcall)
       {
         firstcall = false;
-        newAttrList = nl->OneElemList(nl->TwoElemList(first2, attrtype));
+        newAttrList = 
+          nl->OneElemList(nl->TwoElemList(first2, attrtype));
         lastNewAttrList = newAttrList;
 	      numberList = nl->OneElemList(nl->IntAtom(j));
         lastNumberList = numberList;
@@ -1435,7 +1445,8 @@ ListExpr ProjectTypeMap(ListExpr args)
       else
       {
         lastNewAttrList =
-          nl->Append(lastNewAttrList, nl->TwoElemList(first2, attrtype));
+          nl->Append(lastNewAttrList, 
+                     nl->TwoElemList(first2, attrtype));
         lastNumberList =
           nl->Append(lastNumberList, nl->IntAtom(j));
       }
@@ -1450,28 +1461,34 @@ ListExpr ProjectTypeMap(ListExpr args)
   }
   // Check whether all new attribute names are distinct
   // - not yet implemented
-  outlist = nl->ThreeElemList(
-                 nl->SymbolAtom("APPEND"),
-		 nl->TwoElemList(nl->IntAtom(noAttrs), numberList),
-		 nl->TwoElemList(nl->SymbolAtom("stream"),
-		               nl->TwoElemList(nl->SymbolAtom("tuple"),
-			                     newAttrList)));
+  outlist = 
+    nl->ThreeElemList(
+      nl->SymbolAtom("APPEND"),
+      nl->TwoElemList(
+        nl->IntAtom(noAttrs), 
+        numberList),
+      nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"), 
+          newAttrList)));
   return outlist;
 }
-/*
 
+/*
 5.9.2 Value mapping function of operator ~project~
 
 */
 int
-Project(Word* args, Word& result, int message, Word& local, Supplier s)
+Project(Word* args, Word& result, int message, 
+        Word& local, Supplier s)
 {
   switch (message)
   {
     case OPEN :
     {
       ListExpr resultType = GetTupleResultType( s );
-      TupleType *tupleType = new TupleType( nl->Second( resultType ) );
+      TupleType *tupleType = new TupleType(nl->Second(resultType));
       local.addr = tupleType;
 
       qp->Open(args[0].addr);
@@ -1482,14 +1499,12 @@ Project(Word* args, Word& result, int message, Word& local, Supplier s)
       Word elem1, elem2, arg2;
       int noOfAttrs, index;
       Supplier son;
-      Attribute* attr;
 
       qp->Request(args[0].addr, elem1);
       if (qp->Received(args[0].addr))
       {
         TupleType *tupleType = (TupleType *)local.addr;
-        Tuple *t = new Tuple( *tupleType, true );
-        assert( t->IsFree() );
+        Tuple *t = new Tuple( *tupleType );
 
         qp->Request(args[2].addr, arg2);
         noOfAttrs = ((CcInt*)arg2.addr)->GetIntval();
@@ -1500,8 +1515,7 @@ Project(Word* args, Word& result, int message, Word& local, Supplier s)
           son = qp->GetSupplier(args[3].addr, i);
           qp->Request(son, elem2);
           index = ((CcInt*)elem2.addr)->GetIntval();
-          attr = ((Tuple*)elem1.addr)->GetAttribute(index-1);
-          t->PutAttribute(i, ((StandardAttribute*)attr->Clone()));
+          t->CopyAttribute(index-1, (Tuple*)elem1.addr, i);
         }
         ((Tuple*)elem1.addr)->DeleteIfAllowed();
         result = SetWord(t);
@@ -1518,39 +1532,37 @@ Project(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   return 0;
 }
-/*
 
+/*
 5.9.3 Specification of operator ~project~
 
 */
-const string ProjectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>((stream (tuple ((x1 T1) ... "
-                            "(xn Tn)))) (ai1 ... aik)) -> (stream (tuple"
-                            " ((ai1 Ti1) ... (aik Tik))))</text--->"
-                            "<text>_ project [ list ]</text--->"
-                            "<text>Produces a projection tuple for each "
-                            "tuple of its input stream.</text--->"
-                            "<text>query cities feed project[cityname, "
-                            "population] consume</text--->"
-                              ") )";
+const string ProjectSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (tuple ((x1 T1) ... "
+  "(xn Tn)))) (ai1 ... aik)) -> (stream (tuple"
+  " ((ai1 Ti1) ... (aik Tik))))</text--->"
+  "<text>_ project [ list ]</text--->"
+  "<text>Produces a projection tuple for each "
+  "tuple of its input stream.</text--->"
+  "<text>query cities feed project[cityname, "
+  "population] consume</text--->"
+  ") )";
 
 /*
-
 5.9.4 Definition of operator ~project~
 
 */
 Operator relalgproject (
-         "project",            // name
-         ProjectSpec,          // specification
-         Project,              // value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         Operator::SimpleSelect,         // trivial selection function
-         ProjectTypeMap        // type mapping
+         "project",              // name
+         ProjectSpec,            // specification
+         Project,                // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         ProjectTypeMap          // type mapping
 );
 
 /*
-
 5.10 Operator ~product~
 
 5.10.1 Type mapping function of operator ~product~
@@ -1559,7 +1571,7 @@ Result type of product operation.
 
 ----	((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym))))
 
-	-> (stream (tuple (x1 ... xn y1 ... ym)))
+				-> (stream (tuple (x1 ... xn y1 ... ym)))
 ----
 
 */
@@ -1575,23 +1587,25 @@ ListExpr ProductTypeMap(ListExpr args)
 
   nl->WriteToString(argstr, first);  
   CHECK_COND(nl->ListLength(first) == 2 &&
-             TypeOfRelAlgSymbol(nl->First(first)) == stream &&
-	     nl->ListLength(nl->Second(first)) == 2 &&
-             TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
+    TypeOfRelAlgSymbol(nl->First(first)) == stream &&
+	  nl->ListLength(nl->Second(first)) == 2 &&
+    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
     "Operator product expects a first list with structure " 
     "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator product gets a first list with structure '" + argstr + "'.");
+    "Operator product gets a first list with structure '" + 
+    argstr + "'.");
     
   list1 = nl->Second(nl->Second(first));
 
   nl->WriteToString(argstr, second);  
   CHECK_COND(nl->ListLength(second) == 2 &&
-             TypeOfRelAlgSymbol(nl->First(second)) == stream &&
-	     nl->ListLength(nl->Second(second)) == 2 &&
-             TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple,
+    TypeOfRelAlgSymbol(nl->First(second)) == stream &&
+	  nl->ListLength(nl->Second(second)) == 2 &&
+    TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple,
     "Operator product expects a second list with structure " 
     "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator product gets a second list with structure '" + argstr + "'.");
+    "Operator product gets a second list with structure '" + 
+    argstr + "'.");
 
   list2 = nl->Second(nl->Second(second));
   list = ConcatLists(list1, list2);
@@ -1610,14 +1624,11 @@ ListExpr ProductTypeMap(ListExpr args)
     return nl->SymbolAtom("typeerror");
   }
 }
-/*
 
+/*
 5.10.2 Value mapping function of operator ~product~
 
 */
-
-CPUTimeMeasurer productMeasurer;
-
 class NoOrder;
 
 struct ProductLocalInfo
@@ -1629,7 +1640,8 @@ struct ProductLocalInfo
 };
 
 int
-Product(Word* args, Word& result, int message, Word& local, Supplier s)
+Product(Word* args, Word& result, int message, 
+        Word& local, Supplier s)
 {
   Word r, u;
   ProductLocalInfo* pli;
@@ -1648,7 +1660,8 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Open(args[0].addr);
       qp->Request(args[0].addr, r);
       pli = new ProductLocalInfo;
-      pli->currentTuple = qp->Received(args[0].addr) ? (Tuple*)r.addr : 0;
+      pli->currentTuple = 
+        qp->Received(args[0].addr) ? (Tuple*)r.addr : 0;
 
       /* materialize right stream */
       qp->Open(args[1].addr);
@@ -1665,9 +1678,7 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
 
       while(qp->Received(args[1].addr))
       {
-        Tuple *t = ((Tuple*)u.addr)->CloneIfNecessary();
-        if( t != u.addr )
-          ((Tuple*)u.addr)->DeleteIfAllowed();
+        Tuple *t = (Tuple*)u.addr;
         pli->rightRel->AppendTuple( t );
         t->DeleteIfAllowed();
         qp->Request(args[1].addr, u);
@@ -1683,7 +1694,7 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
       ListExpr resultType = GetTupleResultType( s );
-      pli->resultTupleType = new TupleType( nl->Second( resultType ) );
+      pli->resultTupleType = new TupleType(nl->Second(resultType));
 
       local = SetWord(pli);
       return 0;
@@ -1693,29 +1704,22 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       Tuple *resultTuple, *rightTuple;
       pli = (ProductLocalInfo*)local.addr;
 
-      productMeasurer.Enter();
-
       if (pli->currentTuple == 0)
       {
-        productMeasurer.Exit();
         return CANCEL;
       }
       else
       {
         if( pli->rightRel == 0 ) // second stream is empty
         {
-          productMeasurer.Exit();
           return CANCEL;
         }
         else if( (rightTuple = pli->iter->GetNextTuple()) != 0 )
         {
-          resultTuple = new Tuple( *(pli->resultTupleType), true );
-          assert( resultTuple->IsFree() );
-
+          resultTuple = new Tuple( *(pli->resultTupleType) );
           Concat(pli->currentTuple, rightTuple, resultTuple);
           rightTuple->DeleteIfAllowed();
           result = SetWord(resultTuple);
-          productMeasurer.Exit();
           return YIELD;
         }
         else
@@ -1732,19 +1736,14 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
             pli->currentTuple = (Tuple*)r.addr;
             pli->iter = pli->rightRel->MakeScan();
             assert( (rightTuple = pli->iter->GetNextTuple()) != 0 );
-
-            resultTuple = new Tuple( *(pli->resultTupleType), true );
-            assert( resultTuple->IsFree() );
-
+            resultTuple = new Tuple( *(pli->resultTupleType) );
             Concat(pli->currentTuple, rightTuple, resultTuple);
             rightTuple->DeleteIfAllowed();
             result = SetWord(resultTuple);
-            productMeasurer.Exit();
             return YIELD;
           }
           else
           {
-            productMeasurer.Exit();
             return CANCEL; // left stream exhausted
           }
         }
@@ -1768,51 +1767,46 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
 
-      productMeasurer.PrintCPUTimeAndReset("Product CPU Time : ");
       return 0;
     }
   }
   return 0;
 }
-/*
 
+/*
 5.10.3 Specification of operator ~product~
 
 */
-const string ProductSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>((stream (tuple (x1 ... xn))) (stream "
-                            "(tuple (y1 ... ym)))) -> (stream (tuple (x1 "
-                            "... xn y1 ... ym)))</text--->"
-                            "<text>_ _ product</text--->"
-                            "<text>Computes a Cartesian product stream from "
-                            "its two argument streams.</text--->"
-                            "<text>query ten feed twenty feed product count"
-                            "</text--->"
-                             " ) )";
+const string ProductSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (tuple (x1 ... xn))) (stream "
+  "(tuple (y1 ... ym)))) -> (stream (tuple (x1 "
+  "... xn y1 ... ym)))</text--->"
+  "<text>_ _ product</text--->"
+  "<text>Computes a Cartesian product stream from "
+  "its two argument streams.</text--->"
+  "<text>query ten feed twenty feed product count"
+  "</text--->"
+  " ) )";
 
 /*
-
 5.10.4 Definition of operator ~product~
 
 */
 Operator relalgproduct (
-         "product",            // name
-         ProductSpec,          // specification
-         Product,              // value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         Operator::SimpleSelect,         // trivial selection function
-         ProductTypeMap,        // type mapping
-         Operator::DummyCost   // cost function
-//         true                   // needs large amounts of memory
+         "product",              // name
+         ProductSpec,            // specification
+         Product,                // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         ProductTypeMap          // type mapping
+//         true                  // needs large amounts of memory
 );
 
 /*
-
 5.11 Operator ~count~
 
 Count the number of tuples within a stream of tuples.
-
 
 5.11.1 Type mapping function of operator ~count~
 
@@ -1834,26 +1828,27 @@ TCountTypeMap(ListExpr args)
   first = nl->First(args);
   
   nl->WriteToString(argstr, first);    
-  CHECK_COND(  nl->ListLength(first) == 2 && 
-               nl->ListLength(nl->Second(first)) == 2 &&
-	       (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
-	       TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
-               TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
-  "Operator count expects a list with structure " 
-  "(stream (tuple ((a1 t1)...(an tn)))) or (rel (tuple ((a1 t1)...(an tn))))\n"
-  "Operator count gets a list with structure '" + argstr + "'.");
+  CHECK_COND( nl->ListLength(first) == 2 && 
+    nl->ListLength(nl->Second(first)) == 2 &&
+	  (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
+	  TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
+    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
+    "Operator count expects a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn)))) or "
+    "(rel (tuple ((a1 t1)...(an tn))))\n"
+    "Operator count gets a list with structure '" + argstr + "'.");
   
   return nl->SymbolAtom("int");
 }
 
 
 /*
-
 5.11.2 Value mapping functions of operator ~count~
 
 */
 int
-TCountStream(Word* args, Word& result, int message, Word& local, Supplier s)
+TCountStream(Word* args, Word& result, int message, 
+             Word& local, Supplier s)
 {
   Word elem;
   int count = 0;
@@ -1873,7 +1868,8 @@ TCountStream(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 int
-TCountRel(Word* args, Word& result, int message, Word& local, Supplier s)
+TCountRel(Word* args, Word& result, int message, 
+          Word& local, Supplier s)
 {
   Relation* rel = (Relation*)args[0].addr;
   result = qp->ResultStorage(s);
@@ -1883,27 +1879,25 @@ TCountRel(Word* args, Word& result, int message, Word& local, Supplier s)
 
 
 /*
-
 5.11.3 Specification of operator ~count~
 
 */
-const string TCountSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>((stream/rel (tuple x))) -> int"
-                           "</text--->"
-                           "<text>_ count</text--->"
-                           "<text>Count number of tuples within a stream "
-                           "or a relation of tuples.</text--->"
-                           "<text>query cities count or query cities "
-                           "feed count</text--->"
-                              ") )";
+const string TCountSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream/rel (tuple x))) -> int"
+  "</text--->"
+  "<text>_ count</text--->"
+  "<text>Count number of tuples within a stream "
+  "or a relation of tuples.</text--->"
+  "<text>query cities count or query cities "
+  "feed count</text--->"
+  ") )";
 
 /*
-
 5.11.4 Selection function of operator ~count~
 
 */
-
 int
 TCountSelect( ListExpr args )
 {
@@ -1935,35 +1929,27 @@ TCountSelect( ListExpr args )
 5.11.5 Definition of operator ~count~
 
 */
-Word
-RelNoModelMapping( ArgVector arg, Supplier opTreeNode )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
 ValueMapping countmap[] = {TCountStream, TCountRel };
-ModelMapping nomodelmap[] = {RelNoModelMapping, RelNoModelMapping};
 
 Operator relalgcount (
          "count",           // name
-         TCountSpec,         // specification
-         2,                  // number of value mapping functions
+         TCountSpec,        // specification
+         2,                 // number of value mapping functions
          countmap,          // value mapping functions
-         nomodelmap,         // dummy model mapping functions
-         TCountSelect,       // trivial selection function
-         TCountTypeMap       // type mapping
+         TCountSelect,      // selection function
+         TCountTypeMap      // type mapping
 );
 
 /*
-
 5.11 Operator ~tuplesize~
 
-Reports the average size of the tuples in a relation. This operator is
-useful for the optimizer, but it is usable as an operator itself.
+Reports the average size of the tuples in a relation. This operator 
+is useful for the optimizer, but it is usable as an operator itself.
 
 5.11.1 Type mapping function of operator ~tuplesize~
 
-Operator ~tuplesize~ accepts a stream of tuples and returns an integer.
+Operator ~tuplesize~ accepts a stream of tuples and returns an 
+integer.
 
 ----    (stream  (tuple x))                 -> real
 ----
@@ -1981,14 +1967,16 @@ TupleSizeTypeMap(ListExpr args)
   first = nl->First(args);
   
   nl->WriteToString(argstr, first);    
-  CHECK_COND(  nl->ListLength(first) == 2 && 
-               nl->ListLength(nl->Second(first)) == 2 &&
-	       (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
-	       TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
-               TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
-  "Operator tuplesize expects a list with structure " 
-  "(stream (tuple ((a1 t1)...(an tn)))) or (rel (tuple ((a1 t1)...(an tn))))\n"
-  "Operator tuplesize gets a list with structure '" + argstr + "'.");
+  CHECK_COND( nl->ListLength(first) == 2 && 
+    nl->ListLength(nl->Second(first)) == 2 &&
+	  (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
+	  TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
+    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
+    "Operator tuplesize expects a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn)))) or "
+    "(rel (tuple ((a1 t1)...(an tn))))\n"
+    "Operator tuplesize gets a list with structure '" + 
+    argstr + "'.");
   
   return nl->SymbolAtom("real");
 }
@@ -1999,7 +1987,8 @@ TupleSizeTypeMap(ListExpr args)
 
 */
 int
-TupleSizeStream(Word* args, Word& result, int message, Word& local, Supplier s)
+TupleSizeStream(Word* args, Word& result, int message, 
+                Word& local, Supplier s)
 {
   Word elem;
   int count = 0;
@@ -2022,11 +2011,13 @@ TupleSizeStream(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 int
-TupleSizeRel(Word* args, Word& result, int message, Word& local, Supplier s)
+TupleSizeRel(Word* args, Word& result, int message, 
+             Word& local, Supplier s)
 {
   Relation* rel = (Relation*)args[0].addr;
   result = qp->ResultStorage(s);
-  ((CcReal*) result.addr)->Set(true, (float)rel->GetTotalSize()/rel->GetNoTuples());
+  ((CcReal*) result.addr)->
+    Set(true, (float)rel->GetTotalSize()/rel->GetNoTuples());
   return 0;
 }
 
@@ -2036,19 +2027,19 @@ TupleSizeRel(Word* args, Word& result, int message, Word& local, Supplier s)
 5.11.3 Specification of operator ~tuplesize~
 
 */
-const string TupleSizeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                              "\"Example\" ) "
-                              "( <text>((stream/rel (tuple x))) -> real"
-                              "</text--->"
-                              "<text>_ tuplesize</text--->"
-                              "<text>Return the average size of the tuples within a stream "
-                              "or a relation.</text--->"
-                              "<text>query cities tuplesize or query cities "
-                              "feed tuplesize</text--->"
-                              ") )";
+const string TupleSizeSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream/rel (tuple x))) -> real"
+  "</text--->"
+  "<text>_ tuplesize</text--->"
+  "<text>Return the average size of the tuples within a stream "
+  "or a relation.</text--->"
+  "<text>query cities tuplesize or query cities "
+  "feed tuplesize</text--->"
+  ") )";
 
 /*
-
 5.11.4 Selection function of operator ~tuplesize~
 
 This function is the same as for the ~count~ operator.
@@ -2061,18 +2052,17 @@ ValueMapping tuplesizemap[] = {TupleSizeStream, TupleSizeRel };
 Operator relalgtuplesize (
          "tuplesize",           // name
          TupleSizeSpec,         // specification
-         2,                  // number of value mapping functions
+         2,                     // number of value mapping functions
          tuplesizemap,          // value mapping functions
-         nomodelmap,         // dummy model mapping functions
-         TCountSelect,       // trivial selection function
+         TCountSelect,          // selection function
          TupleSizeTypeMap       // type mapping
 );
 
 /*
-
 5.12 Operator ~rename~
 
-Renames all attribute names by adding them with the postfix passed as parameter.
+Renames all attribute names by adding them with the postfix passed
+as parameter.
 
 5.12.1 Type mapping function of operator ~rename~
 
@@ -2087,7 +2077,8 @@ ListExpr
 RenameTypeMap( ListExpr args )
 {
   ListExpr first=nl->TheEmptyList();
-  ListExpr first2=first, second=first, rest=first, listn=first, lastlistn=first;
+  ListExpr first2=first, second=first, rest=first, 
+           listn=first, lastlistn=first;
   string  attrname="", argstr="";
   string  attrnamen="";
   bool firstcall = true;
@@ -2100,16 +2091,18 @@ RenameTypeMap( ListExpr args )
   
   nl->WriteToString(argstr, first);  
   CHECK_COND( nl->ListLength(first) == 2   &&
-              TypeOfRelAlgSymbol(nl->First(first) == stream) &&
-	      TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
-  "Operator rename expects as first argument a list with structure " 
-  "(stream (tuple ((a1 t1)...(an tn))))\n"
-  "Operator rename gets a list with structure '" + argstr + "'.");
+    TypeOfRelAlgSymbol(nl->First(first) == stream) &&
+	  TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
+    "Operator rename expects as first argument a list with "
+    "structure (stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator rename gets a list with structure '" + argstr + "'.");
   
   nl->WriteToString(argstr, second);   
-  CHECK_COND( nl->IsAtom(second) && nl->AtomType(second) == SymbolType,
-  "Operator rename expects as second argument a symbol atom (attribute suffix) " 
-  "Operator rename gets '" + argstr + "'.");
+  CHECK_COND( nl->IsAtom(second) && 
+    nl->AtomType(second) == SymbolType,
+    "Operator rename expects as second argument a symbol "
+    "atom (attribute suffix) " 
+    "Operator rename gets '" + argstr + "'.");
 
   rest = nl->Second(nl->Second(first));
   while (!(nl->IsEmpty(rest)))
@@ -2130,7 +2123,8 @@ RenameTypeMap( ListExpr args )
     else
     {
       firstcall = false;
-      listn = nl->OneElemList(nl->TwoElemList(nl->SymbolAtom(attrname),
+      listn = 
+        nl->OneElemList(nl->TwoElemList(nl->SymbolAtom(attrname),
       nl->Second(first2)));
       lastlistn = listn;
     }
@@ -2145,7 +2139,8 @@ RenameTypeMap( ListExpr args )
 
 */
 int
-Rename(Word* args, Word& result, int message, Word& local, Supplier s)
+Rename(Word* args, Word& result, int message, 
+       Word& local, Supplier s)
 {
   Word t;
   Tuple* tuple;
@@ -2180,21 +2175,22 @@ Rename(Word* args, Word& result, int message, Word& local, Supplier s)
 5.12.3 Specification of operator ~rename~
 
 */
-const string RenameSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>((stream (tuple([a1:d1, ... ,"
-                           "an:dn)))ar) -> (stream (tuple([a1ar:d1, "
-                           "... ,anar:dn)))</text--->"
-                           "<text>_ rename [ _ ] or just _ { _ }"
-                           "</text--->"
-                           "<text>Renames all attribute names by adding"
-                           " them with the postfix passed as parameter. "
-                           "NOTE: parameter must be of symbol type."
-                           "</text--->"
-                           "<text>query ten feed rename [ r1 ] consume "
-                           "or query ten feed {r1} consume, the result "
-                           "has format e.g. n_r1</text--->"
-                              ") )";
+const string RenameSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (tuple([a1:d1, ... ,"
+  "an:dn)))ar) -> (stream (tuple([a1ar:d1, "
+  "... ,anar:dn)))</text--->"
+  "<text>_ rename [ _ ] or just _ { _ }"
+  "</text--->"
+  "<text>Renames all attribute names by adding"
+  " them with the postfix passed as parameter. "
+  "NOTE: parameter must be of symbol type."
+  "</text--->"
+  "<text>query ten feed rename [ r1 ] consume "
+  "or query ten feed {r1} consume, the result "
+  "has format e.g. n_r1</text--->"
+  ") )";
 
 /*
 
@@ -2202,12 +2198,11 @@ const string RenameSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
 */
 Operator relalgrename (
-         "rename",             // name
-         RenameSpec,           // specification
-         Rename,               // value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         Operator::SimpleSelect,         // trivial selection function
-         RenameTypeMap         // type mapping
+         "rename",               // name
+         RenameSpec,             // specification
+         Rename,                 // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         RenameTypeMap           // type mapping
 );
 
 
@@ -2241,17 +2236,19 @@ ListExpr MConsumeTypeMap(ListExpr args)
   first = nl->First(args);
   
   nl->WriteToString(argstr, first);  
-  CHECK_COND( nl->ListLength(first) == 2   &&
-              TypeOfRelAlgSymbol(nl->First(first) == stream) &&
-	      nl->ListLength(nl->Second(first)) == 2 &&
-	      TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
+  CHECK_COND( nl->ListLength(first) == 2 &&
+    TypeOfRelAlgSymbol(nl->First(first) == stream) &&
+	  nl->ListLength(nl->Second(first)) == 2 &&
+	  TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
   "Operator mconsume expects as argument a list with structure " 
   "(stream (tuple ((a1 t1)...(an tn))))\n"
   "Operator mconsume gets a list with structure '" + argstr + "'.");
 
-  return nl->TwoElemList(nl->SymbolAtom("mrel"),
-         nl->TwoElemList(nl->SymbolAtom("mtuple"),
-         nl->Second(nl->Second(first))));
+  return nl->TwoElemList(
+           nl->SymbolAtom("mrel"),
+           nl->TwoElemList(
+             nl->SymbolAtom("mtuple"),
+             nl->Second(nl->Second(first))));
 }
 /*
 
@@ -2259,7 +2256,8 @@ ListExpr MConsumeTypeMap(ListExpr args)
 
 */
 int
-MConsume(Word* args, Word& result, int message, Word& local, Supplier s)
+MConsume(Word* args, Word& result, int message, 
+         Word& local, Supplier s)
 {
   Word actual;
   CcRel* rel;
@@ -2274,7 +2272,7 @@ MConsume(Word* args, Word& result, int message, Word& local, Supplier s)
   qp->Request(args[0].addr, actual);
   while (qp->Received(args[0].addr))
   {
-    CcTuple* tuple = ((Tuple*)actual.addr)->CloneToMemoryTuple( false );
+    CcTuple* tuple = ((Tuple*)actual.addr)->CloneToMemoryTuple();
     rel->AppendTuple(tuple);
     ((Tuple*)actual.addr)->DeleteIfAllowed();
 
@@ -2292,38 +2290,39 @@ MConsume(Word* args, Word& result, int message, Word& local, Supplier s)
 5.6.3 Specification of operator ~mconsume~
 
 */
-const string MConsumeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                             "\"Example\" ) "
-                             "( <text>(stream tuple(x)) -> (mrel mtuple(x))</text--->"
-                             "<text>_ mconsume</text--->"
-                             "<text>Collects objects from a stream into an mrel."
-                             "</text--->"
-                             "<text>query cities feed mconsume</text--->"
-                             ") )";
+const string MConsumeSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(stream tuple(x)) -> (mrel mtuple(x))</text--->"
+  "<text>_ mconsume</text--->"
+  "<text>Collects objects from a stream into an mrel."
+  "</text--->"
+  "<text>query cities feed mconsume</text--->"
+  ") )";
 
 /*
-
 5.6.4 Definition of operator ~mconsume~
 
 */
 Operator relalgmconsume (
-         "mconsume",            // name
-	 MConsumeSpec,          // specification
-	 MConsume,              // value mapping
-	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-	 Operator::SimpleSelect,         // trivial selection function
-	 MConsumeTypeMap        // type mapping
+   "mconsume",             // name
+	 MConsumeSpec,           // specification
+	 MConsume,               // value mapping
+	 Operator::SimpleSelect, // trivial selection function
+	 MConsumeTypeMap         // type mapping
 );
 
 /*
 
 6 Class ~RelationAlgebra~
 
-A new subclass ~RelationAlgebra~ of class ~Algebra~ is declared. The only
-specialization with respect to class ~Algebra~ takes place within the
-constructor: all type constructors and operators are registered at the actual algebra.
+A new subclass ~RelationAlgebra~ of class ~Algebra~ is declared. 
+The only specialization with respect to class ~Algebra~ takes place 
+within the constructor: all type constructors and operators are 
+registered at the actual algebra.
 
-After declaring the new class, its only instance ~RelationAlgebra~ is defined.
+After declaring the new class, its only instance ~RelationAlgebra~ 
+is defined.
 
 */
 
@@ -2360,17 +2359,18 @@ RelationAlgebra relationalgebra;
 
 7 Initialization
 
-Each algebra module needs an initialization function. The algebra manager
-has a reference to this function if this algebra is included in the list
-of required algebras, thus forcing the linker to include this module.
+Each algebra module needs an initialization function. The algebra 
+manager has a reference to this function if this algebra is 
+included in the list of required algebras, thus forcing the linker 
+to include this module.
 
-The algebra manager invokes this function to get a reference to the instance
-of the algebra class and to provide references to the global nested list
-container (used to store constructor, type, operator and object information)
-and to the query processor.
+The algebra manager invokes this function to get a reference to the 
+instance of the algebra class and to provide references to the 
+global nested list container (used to store constructor, type, 
+operator and object information) and to the query processor.
 
-The function has a C interface to make it possible to load the algebra
-dynamically at runtime.
+The function has a C interface to make it possible to load the 
+algebra dynamically at runtime.
 
 */
 
@@ -2382,3 +2382,4 @@ InitializeRelationAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   qp = qpRef;
   return (&relationalgebra);
 }
+

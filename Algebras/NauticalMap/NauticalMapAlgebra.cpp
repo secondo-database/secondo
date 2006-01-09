@@ -28,6 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 Feburary 2004 Anja Lopper
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 This algebra provides a type constructor ~nauticalMap~, which defines a nautical map. The elements of the nautical map must have an internal list representation.
 
 Funktionenbeschreibung folgt ...
@@ -76,22 +80,10 @@ TypeOfSymbol( ListExpr symbol )
   return (sterror);
 }
 
-/*
-1.2 Dummy Functions
-
-These functions are needed for the definition of a type constructor (function ~DummyCast~) or for the definition of a non-overloaded operator (function ~simpleSelect~).
-
-*/
 static void*
 DummyCast( void* addr )
 {
   return (0);
-}
-
-static int
-simpleSelect( ListExpr args )
-{
-  return 0;
 }
 
 /*
@@ -668,12 +660,7 @@ TypeConstructor nauticalobject(
       0, 0,
       CloseNauticalObject, CloneNauticalObject,
       CastNauticalObject,
-      SizeOfNauticalObject, CheckNauticalObject,
-      0,
-      TypeConstructor::DummyInModel,
-      TypeConstructor::DummyOutModel,
-      TypeConstructor::DummyValueToModel,
-      TypeConstructor::DummyValueListToModel );
+      SizeOfNauticalObject, CheckNauticalObject );
 
 /*
 3 Type Constructor ~nauticalobjects~
@@ -1455,14 +1442,7 @@ TypeConstructor nauticalobjects(
         CloseNauticalObjects,    CloneNauticalObjects,    //object close and clone
         CastNauticalObjects,         //cast function
         SizeOfNauticalObjects,       //sizeof function
-        CheckPoints,                 //kind checking function
-        0,                           //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
-
-
+        CheckPoints );                //kind checking function
 
 /*
 4 Class ~NauticalMap~
@@ -2138,12 +2118,7 @@ TypeConstructor nauticalmap (
       CloseNauticalMap, CloneNauticalMap,
       DummyCast,
       SizeOfNauticalMap,
-      CheckNauticalMap,
-      0,
-      TypeConstructor::DummyInModel, 	
-      TypeConstructor::DummyOutModel,
-      TypeConstructor::DummyValueToModel,
-      TypeConstructor::DummyValueListToModel );
+      CheckNauticalMap );
 
 /*
 10 Operators
@@ -2533,8 +2508,7 @@ Operator getNauticalObjects (
       "getnauticalobjects",
        getNauticalObjectsSpec,
        getNauticalObjectsFun,
-       Operator::DummyModel,
-       simpleSelect,
+       Operator::SimpleSelect,
        NauticalMapTypeMapObjectsRel );
 
 
@@ -2584,8 +2558,7 @@ Operator getNauticalLines (
       "getnauticallines",
        getNauticalLinesSpec,
        getNauticalLinesFun,
-       Operator::DummyModel,
-       simpleSelect,
+       Operator::SimpleSelect,
        NauticalMapTypeMapLinesRel );
 
 
@@ -2635,8 +2608,7 @@ Operator getNauticalRegions (
       "getnauticalregions",
        getNauticalRegionsSpec,
        getNauticalRegionsFun,
-       Operator::DummyModel,
-       simpleSelect,
+       Operator::SimpleSelect,
        NauticalMapTypeMapRegionsRel );
 
 

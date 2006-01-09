@@ -56,21 +56,32 @@ class CcInt : public StandardAttribute
 {
  public:
   
-  CcInt()
-  { 
+  inline CcInt()
+  {
     intsCreated++; 
   }
-  
-  CcInt( bool d, int v )
+ 
+  inline CcInt( bool d, int v )
   { 
-    defined = d; intval = v; intsCreated++; 
+    defined = d; intval = v;  
+    intsCreated++; 
   }
-  
-  ~CcInt()
-  { 
-    intsDeleted++; 
+ 
+  inline ~CcInt()
+  {
+    intsDeleted++;
   }
-  
+
+  inline void Initialize() 
+  {
+  }
+
+  inline void Finalize() 
+  {
+    intsDeleted++;
+  }
+
+   
   inline bool IsDefined() const 
   { 
     return (defined); 
@@ -182,6 +193,8 @@ class CcReal : public StandardAttribute
   CcReal();
   CcReal( bool d, float v );
   ~CcReal();
+  void     Initialize();
+  void     Finalize();
   bool     IsDefined() const;
   void     SetDefined(bool defined);
   float    GetRealval();
@@ -213,6 +226,8 @@ class CcBool : public StandardAttribute
   CcBool();
   CcBool( bool d, int v );
   ~CcBool();
+  void     Initialize();
+  void     Finalize();
   bool     IsDefined() const;
   void     SetDefined(bool defined);
   bool     GetBoolval();
@@ -248,6 +263,8 @@ class CcString : public StandardAttribute
   CcString();
   CcString( bool d, const STRING* v );
   ~CcString();
+  void      Initialize();
+  void      Finalize();
   bool      IsDefined() const;
   void      SetDefined(bool defined);
   STRING*   GetStringval();

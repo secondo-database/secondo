@@ -126,9 +126,10 @@ Application::Application( int argc, const char** argv, const bool showLicense /*
 	
 #ifndef SECONDO_WIN32
   ownpid = getpid();
-  char* pgmName = strdup( programName.c_str() );
-  appName = strdup( basename( pgmName ) );
-  appPath = strdup( dirname( pgmName ) );
+  char* pgmName = strdup(programName.c_str());
+  appName = basename( pgmName );
+  appPath = dirname( pgmName );
+  free(pgmName);
 #else
   rshSocket = 0;
   ownpid = ::GetCurrentProcessId();

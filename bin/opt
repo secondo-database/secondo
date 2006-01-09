@@ -1,9 +1,5 @@
 
 (DATABASE OPT 
-    (DESCRIPTIVE ALGEBRA) 
-    (TYPES) 
-    (OBJECTS) 
-    (EXECUTABLE ALGEBRA) 
     (TYPES 
         (TYPE StaedteRel 
             (rel 
@@ -542,8 +538,7 @@
                 ("ZR" "Zeulenroda" "036628" 15) 
                 ("ZI" "Zittau" "03583" 32) 
                 ("ZW" "Zweibruecken" "06332" 36) 
-                ("Z" "Zwickau" "0375" 105)) 
-            ()) 
+                ("Z" "Zwickau" "0375" 105))) 
         (OBJECT Orte_sample 
             () 
             (mrel 
@@ -653,8 +648,7 @@
                 ("WR" "Wernigerode" "03943" 35) 
                 ("WUN" "Wunsiedel" "09232" 11) 
                 ("W" "Wuppertal" "0202" 388) 
-                ("ZW" "Zweibruecken" "06332" 36)) 
-            ()) 
+                ("ZW" "Zweibruecken" "06332" 36))) 
         (OBJECT SEC_DERIVED_OBJ 
             () 
             (rel 
@@ -673,8 +667,7 @@
                     (
                         <text>(createbtree plz PLZ)</text--->) 
                     (
-                        <text>( plz )</text--->))) 
-            ()) 
+                        <text>( plz )</text--->)))) 
         (OBJECT Staedte 
             (StaedteRel) 
             (rel 
@@ -743,8 +736,7 @@
                 ("Wiesbaden" 267000 6200 "06121" "WI") 
                 ("Wolfsburg" 122000 3180 "05361" "WOB") 
                 ("Wuerzburg" 128000 8700 "0931" "WUE") 
-                ("Wuppertal" 377000 5600 "0202" "W")) 
-            ()) 
+                ("Wuppertal" 377000 5600 "0202" "W"))) 
         (OBJECT Staedte_sample 
             () 
             (mrel 
@@ -813,8 +805,7 @@
                 ("Wiesbaden" 267000 6200 "06121" "WI") 
                 ("Wolfsburg" 122000 3180 "05361" "WOB") 
                 ("Wuerzburg" 128000 8700 "0931" "WUE") 
-                ("Wuppertal" 377000 5600 "0202" "W")) 
-            ()) 
+                ("Wuppertal" 377000 5600 "0202" "W"))) 
         (OBJECT plz 
             (plzrel) 
             (rel 
@@ -42089,8 +42080,7 @@
                 (99996 "Urbach") 
                 (99998 "Bollstedt") 
                 (99998 "Grabe") 
-                (99998 "Koerner")) 
-            ()) 
+                (99998 "Koerner"))) 
         (OBJECT plz_sample 
             () 
             (mrel 
@@ -42526,8 +42516,7 @@
                 (99768 "Ilfeld") 
                 (99869 "Guenthersleben") 
                 (99954 "Bad Tennstedt") 
-                (99974 "Dachrieden")) 
-            ()) 
+                (99974 "Dachrieden"))) 
         (OBJECT ten 
             () 
             (rel 
@@ -42544,8 +42533,7 @@
                 (7) 
                 (8) 
                 (9) 
-                (10)) 
-            ()) 
+                (10))) 
         (OBJECT ten_sample 
             () 
             (mrel 
@@ -42562,8 +42550,7 @@
                 (7) 
                 (8) 
                 (9) 
-                (10)) 
-            ()) 
+                (10))) 
         (OBJECT thousand 
             () 
             (rel 
@@ -43570,8 +43557,7 @@
                 (997) 
                 (998) 
                 (999) 
-                (1000)) 
-            ()) 
+                (1000))) 
         (OBJECT thousand_sample 
             () 
             (mrel 
@@ -43667,5 +43653,4 @@
                 (963) 
                 (973) 
                 (979) 
-                (986)) 
-            ())))
+                (986)))))

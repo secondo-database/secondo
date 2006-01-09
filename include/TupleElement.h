@@ -53,6 +53,10 @@ avoid warnings when compiler flag -O2 is used.
 July 2005 M. Spiekermann. Missing return statements in ~Print()~ and ~GetFlob()~ 
 added.
 
+January 2006 Victor Almeida replaced the ~free~ tuples concept to
+reference counters. There are reference counters on tuples and also
+on attributes. 
+
 1.1 Overview
 
 The ~Tuple Manager~ is an important support component for the relational
@@ -82,42 +86,101 @@ typedef void* Address;
 #include <iostream>
 
 /*
-Are type definitions for a generic address pointer and for a ~fake large object~.
+3.5 Struct ~AttrDelete~
+
+This structure defines the way attributes are deleted. First, ~refs~ 
+maintain a reference counter of that attribute. Many tuples can
+point to the same attribute to avoid unnecessary copying. Every
+tuple that points to an attribute increases this value and every
+time it tries to delete the attribute, it decreses this value.
+The attribute will only be delete when ~refs~ = 0. 
+
+~type~ indicates which function must be called to delete the 
+attribute. If it is ~FreeAttr~, then the attribute was created 
+with ~malloc~ and must be deleted with ~free~. Otherwise, if it 
+is ~DeleteAttr~, the attribute was created with ~new~ and must 
+be deleted with ~delete~. The default is ~DeleteAttr~.
 
 */
+enum AttrDeleteType { FreeAttr, DeleteAttr };
+
+struct AttrDelete
+{
+  AttrDelete():
+  refs( 1 ), type( DeleteAttr )
+  {}
+
+  int refs;
+  AttrDeleteType type;
+};
 
 /*
 1.1 Class "TupleElement"[1]
 
-This class defines several virtual methods which are essential for the
-~Tuple Manager~.
+This class defines several virtual methods which are essential for 
+attributes insite tuples.
 
 */
-class TupleElement // renamed, previous name: TupleElem
+class TupleElement 
 {
   public:
-    virtual ~TupleElement()
+
+    inline TupleElement()
     {}
+/*
+The simple constructor.
 
-    virtual int NumOfFLOBs()
-    { return 0; }
+*/
+    inline virtual ~TupleElement()
+    {}
+/*
+The virtual destructor.
 
-    virtual FLOB* GetFLOB( const int )
+*/
+    inline virtual int NumOfFLOBs()
+    { 
+      return 0; 
+    }
+/*
+Returns the number of FLOBs the attribute contains. The default
+value of this funcion is 0, which means that if an attribute
+does not contain FLOBs, it is not necessary to implement this
+function.
+
+*/
+    inline virtual FLOB* GetFLOB( const int i )
     { 
       assert( false );
       return 0; 
     }
+/*
+Returns a reference to a FLOB given an index ~i~. If the attribute
+does not contain any FLOBs (the default), this function should not
+be called.
 
-    virtual void Initialize() {}
-    virtual void Finalize()   {}
+*/
 
-    virtual ostream& Print( ostream& os )
+    inline virtual void Initialize() {}
+    inline virtual void Finalize()   {}
+/*
+These two functions are used to initialize and finalize values of
+attributes. In some cases, the constructor and destructor are
+not called, e.g. when deleting an attribute with delete type 
+~FreeAttr~. In these cases, these two functions are called
+anyway. An example of their usage is in the JNI algebras, where
+some Java initialization and destructions are done in these 
+functions. 
+
+*/
+    inline virtual ostream& Print( ostream& os )
     { 
-      assert( false );
       return os; 
     }
+/*
+Prints the attribute. Used for debugging purposes.
 
-    static void Save( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo, TupleElement *elem )
+*/
+    inline static void Save( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo, TupleElement *elem )
     {
       NestedList *nl = SecondoSystem::GetNestedList();
       AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
@@ -158,8 +221,12 @@ class TupleElement // renamed, previous name: TupleElem
         free( extensionElement );
       }
     }
+/*
+Default save function.
 
-    static TupleElement *Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo )
+*/
+
+    inline static TupleElement *Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo )
     {
       NestedList *nl = SecondoSystem::GetNestedList();
       AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
@@ -183,7 +250,61 @@ class TupleElement // renamed, previous name: TupleElem
 
       return elem;
     }
+/*
+Default open function.
 
+*/
+
+    inline void DeleteIfAllowed()
+    {
+      del.refs--;
+      if( del.refs == 0 )
+      {
+        Finalize();
+        if( del.type == DeleteAttr )
+          delete this;
+        else // del.type == FreeAttr
+        {
+          for( int j = 0; j < NumOfFLOBs(); j++)
+          {
+            FLOB *flob = GetFLOB(j);
+            if( flob->GetType() != Destroyed )
+              flob->Clean();
+          }
+          free( this );
+        }
+      }
+    }
+/*
+Deletes an attribute if allowed, i.e. if ~refs~ = 0. 
+
+*/
+
+    inline void IncReference()
+    {
+      del.refs++;
+    }
+/*
+Increments the reference counter.
+
+*/
+
+    inline void SetDeleteType( AttrDeleteType type )
+    {
+      del.type = type;
+    }
+/*
+Sets the delete type.
+
+*/
+
+  private:
+
+    AttrDelete del;
+/*
+Stores the way this attribute is deleted.
+
+*/
 };
 
 ostream& operator<< (ostream &os, TupleElement &attrib);

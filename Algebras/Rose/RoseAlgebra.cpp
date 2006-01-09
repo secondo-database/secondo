@@ -16,6 +16,10 @@
   
 January 3rd, 2003 Mirco G[ue]nster and Ismail Zerrad
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 This algebra implements an interface between the Rose Algebra which was
 implemented in the Java programming language and Secondo.
 This means that this module is an algebra in terms of Secondo but the 
@@ -48,6 +52,7 @@ using namespace std;
 #include "StandardAttribute.h"
 #include <stack>
 #include <time.h>
+#include <cmath>
 
 extern NestedList* nl;
 static QueryProcessor* qp;
@@ -1535,18 +1540,8 @@ TypeConstructor ccpoints
  // cast function
  SizeOfCcPoints,
  //sizeof function
- CheckCcPoints,
+ CheckCcPoints
  // kind checking function
- 0,
- // predefined persistence function for model.
- TypeConstructor::DummyInModel,
- //TypeConstructor::DummyInModel, 	
- TypeConstructor::DummyOutModel,
- //TypeConstructor::DummyOutModel,
- TypeConstructor::DummyValueToModel,
- //TypeConstructor::DummyValueToModel,
- TypeConstructor::DummyValueListToModel
- //TypeConstructor::DummyValueListToModel 
  );
 
 
@@ -2125,18 +2120,8 @@ TypeConstructor cclines (
  // cast function
  SizeOfCcLines,
  //sizeof function
- CheckCcLines,
+ CheckCcLines
  // kind checking function
- 0,
- // predefined persistence function for model.
- TypeConstructor::DummyInModel,
- //TypeConstructor::DummyInModel, 	
- TypeConstructor::DummyOutModel,
- //TypeConstructor::DummyOutModel,
- TypeConstructor::DummyValueToModel,
- //TypeConstructor::DummyValueToModel,
- TypeConstructor::DummyValueListToModel
- //TypeConstructor::DummyValueListToModel
  );
 
 /* 
@@ -2718,18 +2703,8 @@ TypeConstructor ccregions (
  // cast function
  SizeOfCcRegions,
  //sizeof function
- CheckCcRegions,
+ CheckCcRegions
  // kind checking function
- 0,
- // predefined persistence function for model.
- TypeConstructor::DummyInModel,
- //TypeConstructor::DummyInModel, 	
- TypeConstructor::DummyOutModel,
- //TypeConstructor::DummyOutModel,
- TypeConstructor::DummyValueToModel,
- //TypeConstructor::DummyValueToModel,
- TypeConstructor::DummyValueListToModel
- //TypeConstructor::DummyValueListToModel
  );
  
 /*
@@ -3525,10 +3500,10 @@ static bool bboxesIntersect(double o1tlx, double o1tly, double o1brx, double o1b
   //    xcomm = true;
       
   
-  if (abs(o1tlx - o2tlx) < DEVIATION_VALUE ||
-      abs(o1brx - o2brx) < DEVIATION_VALUE ||
-      abs(o1tlx - o2brx) < DEVIATION_VALUE ||
-      abs(o1brx - o2tlx) < DEVIATION_VALUE ||
+  if (fabs(o1tlx - o2tlx) < DEVIATION_VALUE ||
+      fabs(o1brx - o2brx) < DEVIATION_VALUE ||
+      fabs(o1tlx - o2brx) < DEVIATION_VALUE ||
+      fabs(o1brx - o2tlx) < DEVIATION_VALUE ||
       (o1tlx < o2tlx && o1brx > o2tlx) || (o1tlx < o2brx && o1brx > o2brx) ||
       (o2tlx < o1tlx && o2brx > o1tlx) || (o2tlx < o1brx && o2brx > o1brx))
     xcomm = true;
@@ -5961,11 +5936,6 @@ ValueMapping noOfComponentsMap[] = { p_no_of_componentsFun, l_no_of_componentsFu
 ValueMapping distMap[] = { pp_distFun, pl_distFun, pr_distFun, lp_distFun, ll_distFun, lr_distFun, rp_distFun, rl_distFun, rr_distFun };
 ValueMapping diameterMap[] = { p_diameterFun, l_diameterFun, r_diameterFun };
 
-ModelMapping ROSEDummyModel_7[] =
-     {Operator::DummyModel,Operator::DummyModel,Operator::DummyModel,
-      Operator::DummyModel,Operator::DummyModel,Operator::DummyModel,
-      Operator::DummyModel};
-
 const string equalSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
@@ -6237,7 +6207,6 @@ Operator ROSEequal (
 		    equalSpec,            //specification
 		    3,                    //number of functions
 		    equalMap,             //value mapping 
-		    ROSEDummyModel_7,     //model
 		    equalSelect,          //selection function
 		    equalTypeMap);        //type mapping function
 		    
@@ -6246,7 +6215,6 @@ Operator ROSEunequal (
 		      unequalSpec,        //specification
 		      3,                  //number of functions
 		      unequalMap,         //value mapping
-		      ROSEDummyModel_7,   //model
 		      unequalSelect,       //selection function
 		      unequalTypeMap);    //type mapping function
 
@@ -6255,7 +6223,6 @@ Operator ROSEdisjoint (
 		       disjointSpec,         //specification
 		       3,                    //number of functions
 		       disjointMap,          //value mapping 
-		       ROSEDummyModel_7,     //model
 		       disjointSelect,       //selection function
 		       disjointTypeMap);     //type mapping function
 
@@ -6264,7 +6231,6 @@ Operator ROSEinside (
 		       insideSpec,           //specification
 		       3,                    //number of functions
 		       insideMap,            //value mapping 
-		       ROSEDummyModel_7,     //model
 		       insideSelect,         //selection function
 		       insideTypeMap);       //type mapping function
 
@@ -6272,7 +6238,6 @@ Operator ROSEarea_disjoint (
 		       "area_disjoint",          //name
 		       areaDisjointSpec,        //specification
 		       rr_area_disjointFun,      //value mapping
-		       Operator::DummyModel,     //model
 		       simpleSelect,             //selection function
 		       ccregionsccregionsBool);  //type mapping function
 
@@ -6280,7 +6245,6 @@ Operator ROSEedge_disjoint (
 		       "edge_disjoint",          //name
 		       edgeDisjointSpec,        //specification
 		       rr_edge_disjointFun,      //value mapping
-		       Operator::DummyModel,     //model
 		       simpleSelect,             //selection function
 		       ccregionsccregionsBool);  //type mapping function
 
@@ -6288,7 +6252,6 @@ Operator ROSEedge_inside (
 		       "edge_inside",            //name
 		       edgeInsideSpec,          //specification
 		       rr_edge_insideFun,        //value mapping
-		       Operator::DummyModel,     //model
 		       simpleSelect,             //selection function
 		       ccregionsccregionsBool);  //type mapping function
 
@@ -6296,7 +6259,6 @@ Operator ROSEvertex_inside (
 		       "vertex_inside",          //name
 		       vertexInsideSpec,        //specification
 		       rr_vertex_insideFun,      //value mapping
-		       Operator::DummyModel,     //model
 		       simpleSelect,             //selection function
 		       ccregionsccregionsBool);  //type mapping function
 
@@ -6305,7 +6267,6 @@ Operator ROSEintersects (
 			 intersectsSpec,       //specification
 			 4,                    //number of functions
 			 intersectsMap,        //value mapping 
-			 ROSEDummyModel_7,     //model
 			 intersectsSelect,     //selection function
 			 intersectsTypeMap);   //type mapping function
 
@@ -6314,7 +6275,6 @@ Operator ROSEmeets (
 		    meetsSpec,       //specification
 		    4,               //number of functions
 		    meetsMap,        //value mapping 
-		    ROSEDummyModel_7,//model
 		    meetsSelect,     //selection function
 		    meetsTypeMap);   //type mapping function
 
@@ -6323,7 +6283,6 @@ Operator ROSEborderInCommon (
 			     borderInCommonSpec,        //specification
 			     4,                         //number of functions
 			     borderInCommonMap,         //value mapping 
-			     ROSEDummyModel_7,          //model
 			     borderInCommonSelect,      //selection function
 			     borderInCommonTypeMap);    //type mapping function
 
@@ -6332,7 +6291,6 @@ Operator ROSEonBorderOf (
 			 onBorderOfSpec,        //specification
 			 2,                     //number of functions
 			 onBorderOfMap,         //value mapping 
-			 ROSEDummyModel_7,      //model
 			 onBorderOfSelect,      //selection function
 			 onBorderOfTypeMap);    //type mapping function
 
@@ -6341,7 +6299,6 @@ Operator ROSEintersection (
 			   intersectionSpec,      //specification
 			   4,                     //number of functions
 			   intersectionMap,       //value mapping 
-			   ROSEDummyModel_7,      //model
 			   intersectionSelect,    //selection function
 			   intersectionTypeMap);  //type mapping function
 
@@ -6350,7 +6307,6 @@ Operator ROSEplus (
 		   plusSpec,         //specification
 		   3,                //number of functions
 		   plusMap,          //value mapping 
-		   ROSEDummyModel_7, //model
 		   plusSelect,       //selection function
 		   plusTypeMap);     //type mapping function
 
@@ -6359,7 +6315,6 @@ Operator ROSEminus (
 		   minusSpec,         //specification
 		   3,                 //number of functions
 		   minusMap,          //value mapping 
-		   ROSEDummyModel_7,  //model
 		   minusSelect,       //selection function
 		   minusTypeMap);     //type mapping function
 
@@ -6368,7 +6323,6 @@ Operator ROSEcommonBorder (
 		   commonBorderSpec,    //specification
 		   4,                   //number of functions
 		   commonBorderMap,     //value mapping 
-		   ROSEDummyModel_7,    //model
 		   commonBorderSelect,  //selection function
 		   commonBorderTypeMap);//type mapping function
 
@@ -6377,7 +6331,6 @@ Operator ROSEvertices (
 		       verticesSpec,      //specification
 		       2,                 //number of functions
 		       verticesMap,       //value mapping 
-		       ROSEDummyModel_7,  //model
 		       verticesSelect,    //selection function
 		       verticesTypeMap);  //type mapping function
 
@@ -6386,7 +6339,6 @@ Operator ROSEnoOfComponents (
 			     noOfComponentsSpec,     //specification
 			     3,                      //number of functions
 			     noOfComponentsMap,      //value mapping 
-			     ROSEDummyModel_7,       //model
 			     noOfComponentsSelect,   //selection function
 			     noOfComponentsTypeMap); //type mapping function
 
@@ -6395,7 +6347,6 @@ Operator ROSEdist (
 		   distSpec,         //specification
 		   9,                //number of functions
 		   distMap,          //value mapping 
-		   ROSEDummyModel_7, //model
 		   distSelect,       //selection function
 		   distTypeMap);     //type mapping function
 
@@ -6403,7 +6354,6 @@ Operator ROSEadjacent (
 		       "adjacent",               //name
 		       adjacentSpec,             //specification
 		       rr_adjacentFun,           //value mapping
-		       Operator::DummyModel,     //model
 		       simpleSelect,             //selection function
 		       ccregionsccregionsBool);  //type mapping function
 
@@ -6411,7 +6361,6 @@ Operator ROSEencloses (
 		       "encloses", 		//name
 		       enclosesSpec,  		//specification ....
 		       rr_enclosesFun,		//value mapping
-		       Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 		       simpleSelect,		//trivial selection function 
 		       ccregionsccregionsBool 	//type mapping 
 		       );
@@ -6422,7 +6371,6 @@ Operator ROSEinterior (
 		       "interior", 			//name
 		       interiorSpec,  		        //specification ....
 		       l_interiorFun,			//value mapping
-		       Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
 		       simpleSelect,			//trivial selection function 
 		       cclinesccregions 		//type mapping 
 		       );
@@ -6431,7 +6379,6 @@ Operator ROSEcontour (
 		      "contour", 		//name
 		      contourSpec,  		//specification ....
 		      r_contourFun,		//value mapping
-		      Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 		      simpleSelect,		//trivial selection function 
 		      ccregionscclines 		//type mapping 
 		      );
@@ -6440,7 +6387,6 @@ Operator ROSElength (
 		     "length",	 		//name
 		     lengthSpec,  		//specification ....
 		     l_lengthFun,		//value mapping
-		     Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 		     simpleSelect,		//trivial selection function 
 		     cclinesDouble          	//type mapping 
 		     );
@@ -6449,7 +6395,6 @@ Operator ROSEarea (
 		 "area", 			//name
 		 areaSpec,  			//specification ....
 		 r_areaFun,			//value mapping
-		 Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
 		 simpleSelect,			//trivial selection function 
 		 ccregionsDouble          	//type mapping 
 		 );
@@ -6458,7 +6403,6 @@ Operator ROSEperimeter (
 			"perimeter", 		//name
 			perimeterSpec,  	//specification ....
 			r_perimeterFun,		//value mapping
-			Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 			simpleSelect,		//trivial selection function 
 			ccregionsDouble         //type mapping 
 			);
@@ -6468,7 +6412,6 @@ Operator ROSEdiameter (
 		       diameterSpec,            //specification ...
 		       3,                       //number of functions
 		       diameterMap,             //value mapping
-		       ROSEDummyModel_7,        //model
 		       diameterSelect,          //selection function
 		       diameterTypeMap);        //type mapping function
 
@@ -6476,7 +6419,6 @@ Operator setDeviationValue (
 			    "setDeviationValue", 	//name
 			    setDeviationValueSpec, 	//specification ....
 			    setDeviationValueFun,	//value mapping
-			    Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 			    simpleSelect,		//trivial selection function 
 			    doubleBool             	//type mapping 
 			    );
@@ -6485,7 +6427,6 @@ Operator chooseTriangulator (
 			     "chooseTriangulator", 	//name
 			     chooseTriangulatorSpec,	//specification ....
 			     chooseTriangulatorFun,	//value mapping
-			     Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 			     simpleSelect,		//trivial selection function 
 			     intBool                 	//type mapping 
 			     );

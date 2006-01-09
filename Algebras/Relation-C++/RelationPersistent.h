@@ -22,9 +22,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 November 2004. M. Spiekermann
 
-June 2005 M. Spiekermann. The attributes array will now be a private member of
-the class ~Tuple~. Moreover it will be a member variable and calls for new and 
-delete are saved. 
+June 2005 M. Spiekermann. The attributes array will now be a 
+private member of the class ~Tuple~. Moreover it will be a member 
+variable and calls for new and delete are saved. 
+
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
+January 2006 Victor Almeida replaced the ~free~ tuples concept to
+reference counters. There are reference counters on tuples and also
+on attributes. Some assertions were removed, since the code is
+stable.
 
 */
 
@@ -33,9 +42,10 @@ delete are saved.
 
 #ifdef RELALG_PERSISTENT
 /*
-This ~RELALG\_PERSISTENT~ defines which kind of relational algebra is to be compiled.
-If it is set, the persistent version of the relational algebra will be compiled, and
-otherwise, the main memory version will be compiled.
+This ~RELALG\_PERSISTENT~ defines which kind of relational algebra
+is to be compiled. If it is set, the persistent version of the 
+relational algebra will be compiled, and otherwise, the main memory 
+version will be compiled.
 
 */
 
@@ -55,32 +65,25 @@ enum TupleState {Fresh, Solid};
 
 struct PrivateTuple
 {
-  PrivateTuple( const TupleType& tupleType, const bool isFree ):
+  PrivateTuple( const TupleType& tupleType ):
     tupleId( 0 ),
     tupleType( tupleType ),
     attributes( 0 ),
-    tupleRecord( 0 ),
-    lobFile( 0 ),
+    lobFileId( 0 ),
     tupleFile( 0 ),
-    state( Fresh ),
-    isFree( true ),
-    deleteAllowed( true ),
-    memoryTuple( 0 )
+    state( Fresh )
     {}
 /*
 The first constructor. It creates a fresh tuple from a ~tupleType~.
 
 */
-  PrivateTuple( const ListExpr typeInfo, const bool isFree ):
+  PrivateTuple( const ListExpr typeInfo ):
     tupleId( 0 ),
     tupleType( typeInfo ),
     attributes( 0 ),
-    tupleRecord( 0 ),
-    lobFile( 0 ),
+    lobFileId( 0 ),
     tupleFile( 0 ),
-    state( Fresh ),
-    isFree( true ),
-    memoryTuple( 0 )
+    state( Fresh )
     {}
 /*
 The second constructor. It creates a fresh tuple from a ~typeInfo~.
@@ -88,68 +91,57 @@ The second constructor. It creates a fresh tuple from a ~typeInfo~.
 */
   ~PrivateTuple()
   {
-    if( state == Fresh || 
-        state == Solid && memoryTuple == 0 )
-      // This was a fresh tuple saved. In this way, the attributes were
-      // created outside the tuple and inserted in the tuple using the
-      // ~PutAttribute~ method. In this way, they must be deleted.
-    {
-      for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
-      {
-        if( attributes[i] != 0 )
-        {
-          attributes[i]->Finalize();
-          delete attributes[i];
-        }
-      }
-    }
-    else // state == Solid && memoryTuple != 0
-    {
-      for( int i = 0; i < tupleType.GetNoAttributes(); i++)
-      {
-        attributes[i]->Finalize();
-        for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
-          attributes[i]->GetFLOB(j)->Clear();
-      }
-      assert( memoryTuple != 0 );
-      free( memoryTuple );
-    }
-    delete tupleRecord;
+    for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+      if( attributes[i] != 0 )
+        attributes[i]->DeleteIfAllowed();
   }
 /*
 The destructor.
 
 */
-  const int Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile );
+    inline void CopyAttribute( int sourceIndex, 
+                               PrivateTuple *source, 
+                               int destIndex )
+    {
+      attributes[destIndex] = source->attributes[sourceIndex];
+      attributes[destIndex]->IncReference();
+    }
 /*
-Saves a fresh tuple into ~tuplefile~ and ~lobfile~. Returns the total size of
-the tuple saved.
+This function is used to copy attributes from tuples to tuples 
+without cloning attributes.
 
 */
-
-  const int UpdateSave(const vector<int>& changedIndices );
+  int Save( SmiRecordFile *tuplefile, SmiFileId& lobFileId );
 /*
-Saves a solid tuple with updated attributes and reuses the old record. Returns the total size of
-the tuple saved.
+Saves a fresh tuple into ~tuplefile~ and ~lobfile~. Returns the 
+total size of the tuple saved.
 
 */
-  const bool Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
-                   SmiRecordId rid );
+  int UpdateSave( const vector<int>& changedIndices );
+/*
+Saves a solid tuple with updated attributes and reuses the old 
+record. Returns the total size of the tuple saved. This function
+is implemented in the Update Relation Algebra.
+
+*/
+  bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
+             SmiRecordId rid );
 /*
 Opens a solid tuple from ~tuplefile~(~rid~) and ~lobfile~.
 
 */
-  const bool Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
-                          PrefetchingIterator *iter );
+  bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
+             PrefetchingIterator *iter );
 /*
-Opens a solid tuple from ~tuplefile~ and ~lobfile~ reading the current record of ~iter~.
+Opens a solid tuple from ~tuplefile~ and ~lobfile~ reading the 
+current record of ~iter~.
 
 */
-  const bool Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
-                   SmiRecord *record );                
-                   
+  bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
+             SmiRecord *record );                
 /*
-Opens a solid tuple from ~tuplefile~ and ~lobfile~ reading from ~record~.
+Opens a solid tuple from ~tuplefile~ and ~lobfile~ reading from 
+~record~.
 
 */
 
@@ -165,15 +157,11 @@ Stores the tuple type.
 */
   TupleElement **attributes;
 /*
-The attributes pointer array. The tuple information is kept in memory.
+The attributes pointer array. The tuple information is kept in 
+memory.
 
 */
-  SmiRecord *tupleRecord;
-/*
-The record that persistently holds the tuple value.
-
-*/
-  SmiRecordFile* lobFile;
+  SmiFileId lobFileId;
 /*
 Reference to an ~SmiRecordFile~ which contains LOBs.
 
@@ -188,18 +176,221 @@ Reference to an ~SmiRecordFile~ which contains the tuple.
 State of the tuple (Fresh, Solid).
 
 */
-  bool isFree;
-  bool deleteAllowed;
+};
+
 /*
-Two flags that tells if a tuple is free for deletion. If a tuple is free, then a stream receiving
-the tuple can delete or reuse it. By default deleteAllowed is true, but in some situations this
-is not useful. e.g. if you want to use a TupleBuffer as input for a function several times, hence
-we can switch off the ~normal~ deletion procedure.
+4.2 Struct ~RelationDescriptor~
+
+This struct contains necessary information for opening a relation.
 
 */
-  char *memoryTuple;
+struct RelationDescriptor
+{
+  RelationDescriptor( int noTuples, double totalSize,
+                      const SmiFileId tId, const SmiFileId lId ):
+    noTuples( noTuples ),
+    totalSize( totalSize ),
+    tupleFileId( tId ),
+    lobFileId( lId )
+    {}
 /*
-Stores the attributes array in memory.
+The first constructor.
+
+*/
+  RelationDescriptor( const RelationDescriptor& desc ):
+    noTuples( desc.noTuples ),
+    totalSize( desc.totalSize ),
+    tupleFileId( desc.tupleFileId ),
+    lobFileId( desc.lobFileId )
+    {}
+/*
+The copy constructor.
+
+*/
+  inline RelationDescriptor& operator=( const RelationDescriptor& d )
+  {
+    noTuples = d.noTuples;
+    totalSize = d.totalSize;
+    tupleFileId = d.tupleFileId;
+    lobFileId = d.lobFileId;
+    return *this;
+  }
+/*
+Redefinition of the assignement operator.
+
+*/
+
+  int noTuples;
+/*
+The quantity of tuples inside the relation.
+
+*/
+  double totalSize;
+/*
+The total size occupied by the tuples in the relation.
+
+*/
+  SmiFileId tupleFileId;
+/*
+The tuple's file identification.
+
+*/
+  SmiFileId lobFileId;
+/*
+The LOB's file identification.
+
+*/
+};
+
+/*
+4.2 Class ~RelationDescriptorCompare~
+
+*/
+class RelationDescriptorCompare
+{
+  public:
+    inline bool operator()( const RelationDescriptor& d1, 
+                            const RelationDescriptor d2 )
+    {
+      if( d1.tupleFileId < d2.tupleFileId )
+        return true;
+      else if( d1.tupleFileId == d2.tupleFileId &&
+               d1.lobFileId == d2.lobFileId )
+        return true;
+      else
+        return false;
+    }
+};
+
+/*
+4.1 Struct ~PrivateRelation~
+
+This struct contains the private attributes of the class ~Relation~.
+
+*/
+struct PrivateRelation
+{
+  PrivateRelation( const ListExpr typeInfo, bool isTemp ):
+    noTuples( 0 ),
+    totalSize( 0 ),
+    tupleType( nl->Second( typeInfo ) ),
+    tupleFile( false, 0, isTemp ),
+    lobFileId( 0 ),
+    isTemp( isTemp )
+    {
+      if( !tupleFile.Create() )
+      {
+        string error;
+        SmiEnvironment::GetLastErrorCode( error );
+        cout << error << endl;
+        assert( false );
+      }
+    }
+/*
+The first constructor. Creates an empty relation from a ~typeInfo~.
+
+*/
+  PrivateRelation( const TupleType& tupleType, bool isTemp ):
+    noTuples( 0 ),
+    totalSize( 0 ),
+    tupleType( tupleType ),
+    tupleFile( false, 0, isTemp ),
+    lobFileId( 0 ),
+    isTemp( isTemp )
+    {
+      if( !tupleFile.Create() )
+      {
+        string error;
+        SmiEnvironment::GetLastErrorCode( error );
+        cout << error << endl;
+        assert( false );
+      }
+    }
+/*
+The second constructor. Creates an empty relation from a ~tupleType~.
+
+*/
+  PrivateRelation( const TupleType& tupleType, 
+                   const RelationDescriptor& relDesc, 
+                   bool isTemp ):
+    noTuples( relDesc.noTuples ),
+    totalSize( relDesc.totalSize ),
+    tupleType( tupleType ),
+    tupleFile( false, 0, isTemp ),
+    lobFileId( relDesc.lobFileId ),
+    isTemp( isTemp )
+    {
+      if( !tupleFile.Open( relDesc.tupleFileId ) )
+      {
+        string error;
+        SmiEnvironment::GetLastErrorCode( error );
+        cout << error << endl;
+        assert( false );
+      }
+    }
+/*
+The third constructor. Opens a previously created relation.
+
+*/
+  PrivateRelation( const ListExpr typeInfo, 
+                   const RelationDescriptor& relDesc, 
+                   bool isTemp ):
+    noTuples( relDesc.noTuples ),
+    totalSize( relDesc.totalSize ),
+    tupleType( nl->Second( typeInfo ) ),
+    tupleFile( false, 0, isTemp ),
+    lobFileId( relDesc.lobFileId ),
+    isTemp( isTemp )
+    {
+      if( !tupleFile.Open( relDesc.tupleFileId ) )
+      {
+        string error;
+        SmiEnvironment::GetLastErrorCode( error );
+        cout << error << endl;
+        assert( false );
+      }
+    }
+/*
+The fourth constructor. It opens a previously created relation 
+using the ~typeInfo~ instead of the ~tupleType~.
+
+*/
+  ~PrivateRelation()
+  {
+    tupleFile.Close();
+  }
+/*
+The destuctor.
+
+*/
+  int noTuples;
+/*
+Contains the number of tuples in the relation.
+
+*/
+  double totalSize;
+/*
+Stores the total size occupied by the tuples in the relation.
+
+*/
+  TupleType tupleType;
+/*
+Stores the tuple type for every tuple of this relation.
+
+*/
+  SmiRecordFile tupleFile;
+/*
+The file to store tuples.
+
+*/
+  SmiFileId lobFileId;
+/*
+The file id to store FLOBs
+
+*/
+  bool isTemp;
+/*
+A flag telling whether the relation is temporary.
 
 */
 };

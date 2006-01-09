@@ -57,6 +57,9 @@ Oct 2004 M. Spiekermann removed the friend relationship between class
 AlgebraManager and class Operator. Additonally some functions are declared
 as inline functions.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
 
 1.1 Overview
 
@@ -129,8 +132,6 @@ An operator instance consists of
   * a selection function calculating the index of a value mapping function
     with respect to input parameter types
 
-  * model and cost mapping functions (reserved for future use)
-
 All properties of operators are set in the constructor. Only the value mapping
 functions have to be registered later on since their number is arbitrary. This
 number is set in the constructor (~noF~).
@@ -144,10 +145,8 @@ class Operator
             const string& spec,
             const int noF,
             ValueMapping vms[],
-	    ModelMapping mms[],
             SelectFunction sf,
-      	    TypeMapping tm,
-            CostMapping cm = Operator::DummyCost );
+      	    TypeMapping tm );
 /*
 Constructs an operator with ~noF~ overloaded evaluation functions.
 
@@ -155,10 +154,8 @@ Constructs an operator with ~noF~ overloaded evaluation functions.
   Operator( const string& nm,
             const string& spec,
             ValueMapping vm,
-	    ModelMapping mm,
             SelectFunction sf,
-	    TypeMapping tm,
-            CostMapping cm = Operator::DummyCost );
+            TypeMapping tm );
 /*
 Constructs an operator with *one* evaluation functions.
 
@@ -183,11 +180,11 @@ the argument types ~argtypes~.
 
 */
   inline int CallValueMapping( const int index,
-                        ArgVector args,
-                        Word& result,
-                        int message,
-                        Word& local,
-                        Supplier s )
+                               ArgVector args,
+                               Word& result,
+                               int message,
+                               Word& local,
+                               Supplier s )
 	{	
 	  assert((0 <= index) && (index < numOfFunctions));
 	  return (*valueMap[index])( args, result, message, local, s );
@@ -197,63 +194,42 @@ the argument types ~argtypes~.
 Calls the value mapping function of the operator.
 
 */
-  Word CallModelMapping( const int index,
-                         ArgVector argv,
-                         Supplier s );
-/*
-Calls the model mapping function of the operator.
-
-*/
   ListExpr CallTypeMapping( ListExpr argList );
 /*
 Calls the type mapping function of the operator.
 
 */
-  ListExpr CallCostMapping( ListExpr argList );
-/*
-Calls the cost mapping function of the operator.
-
-*/
-  static Word     DummyModel( ArgVector, Supplier );
-/*
-Defines a dummy model mapping function for operators.
-
-*/
-  static ListExpr DummyCost( ListExpr );
-/*
-Defines a dummy cost mapping function for operators.
-
-*/
   static int SimpleSelect( ListExpr );
 /*
-Defines a dummy cost mapping function for operators.
-
+Defines a simple selection function for operators.
 
 */
-  const string& GetName() { return name;}
-  const string& GetSpecString() {return specString; }
- 
+  inline const string& GetName() const
+    { return name; }
+/*
+Returns the name of the operator.
+
+*/
+  inline const string& GetSpecString() const 
+    { return specString; }
+/*
+Returns the specification string of the operator.
+
+*/
 	
 	private:
-  bool AddValueMapping( const int index, ValueMapping f );
+
+    bool AddValueMapping( const int index, ValueMapping f );
 /*
 Adds a value mapping function to the list of overloaded operator functions.
 
 */
-  bool AddModelMapping( const int index, ModelMapping f );
-/*
-Adds a model mapping function to the list of overloaded operator functions.
-
-*/
-  string         name;           // Name of operator
-  string         specString;     // Specification
-  int            numOfFunctions; // No. overloaded functions
-  SelectFunction selectFunc;
-  ValueMapping*  valueMap; // Array of size numOfFunctions
-  ModelMapping*  modelMap; // Array of size numOfFunctions
-  TypeMapping    typeMap;
-  CostMapping    costMap;
-
+    string         name;           // Name of operator
+    string         specString;     // Specification
+    int            numOfFunctions; // No. overloaded functions
+    SelectFunction selectFunc;
+    ValueMapping*  valueMap; // Array of size numOfFunctions
+    TypeMapping    typeMap;
 };
 
 /*
@@ -305,16 +281,7 @@ class TypeConstructor
                    ObjectClone clone,
                    ObjectCast ca,
                    ObjectSizeof sizeOf,
-                   TypeCheckFunction tcf,
-                   PersistFunction pmf = 0,
-                   InModelFunction inm =
-                     TypeConstructor::DummyInModel,
-                   OutModelFunction outm =
-                     TypeConstructor::DummyOutModel,
-                   ValueToModelFunction vtm =
-                     TypeConstructor::DummyValueToModel,
-                   ValueListToModelFunction vltm =
-                     TypeConstructor::DummyValueListToModel );
+                   TypeCheckFunction tcf );
 /*
 Constructs a type constructor.
 
@@ -361,27 +328,10 @@ Returns the properties of the type constructor as a nested list.
   int      SizeOf();
   string&  Name() { return name; }
 
-  Word     InModel( ListExpr, ListExpr, int );
-  ListExpr OutModel( ListExpr, Word );
-  Word     ValueToModel( ListExpr, Word );
-  Word     ValueListToModel( const ListExpr typeExpr,
-                             const ListExpr valueList,
-                             const int errorPos,
-                             ListExpr& errorInfo,
-                             bool& correct );
 /*
-Are methods to manipulate objects and models according to the type
-constructor.
+Are methods to manipulate objects according to the type constructor.
 
 */
-  bool     PersistModel( const PersistDirection dir,
-                         SmiRecord& modelRecord,
-                         const ListExpr typeExpr,
-                         Word& model );
-  bool     DefaultPersistModel( const PersistDirection dir,
-                                SmiRecord& modelRecord,
-                                const ListExpr typeExpr,
-                                Word& model );
   bool     DefaultOpen( SmiRecord& valueRecord,
                         size_t& offset,
                         const ListExpr typeInfo,
@@ -391,40 +341,11 @@ constructor.
                         const ListExpr typeInfo,
                         Word& value );
 /*
-Are methods to support persistence for objects and models according to the type
-constructor. The same methods are used for saving or restoring an object or model
-to or from its persistent representation. The direction is given by the parameter
-~dir~; possible values are "ReadFrom"[4] and "WriteTo"[4].
-
-An algebra implementor may choose to use a default implementation for these
-methods. The default methods use nested lists to represent the persistent
-object an model values. If a type does not need more than one "Word"[4] of
-storage for representing an object value, a dummy method could be specified
-by the implementor.
-
-For types like tuples or relations the default methods are not appropriate and
-should be overwritten. For tuples and relations meta information about the
-structure is needed and should be stored in the "Secondo"[3] catalog through
-this mechanism. The tuples and relations itself should be stored into ~SmiFiles~
-by the algebra module.
+Default methods for ~Open~ and ~Save~ functions if these are not provided.
+These methods use the ~RestoreFromList~ and ~SaveToList~ if provided, and
+~In~ and ~Out~ otherwise. 
 
 */
-  static bool DummyPersistModel( const PersistDirection dir,
-                                 SmiRecord& modelRecord,
-                                 const ListExpr typeExpr,
-                                 Word& model );
-  static Word DummyInModel( ListExpr typeExpr,
-                            ListExpr list,
-                            int objNo );
-  static ListExpr DummyOutModel( ListExpr typeExpr,
-                                 Word model );
-  static Word DummyValueToModel( ListExpr typeExpr,
-                                 Word value );
-  static Word DummyValueListToModel( const ListExpr typeExpr,
-                                     const ListExpr valueList,
-                                     const int errorPos,
-                                     ListExpr& errorInfo,
-                                     bool& correct );
   static Word DummyCreate( const ListExpr typeInfo );
   static void DummyDelete( Word& w );
   static void DummyClose( Word& w );
@@ -432,8 +353,7 @@ by the algebra module.
   static int  DummySizeOf();
 
 /*
-Are dummy methods used as placeholders for model manipulating type
-constructor functions.
+Dummy methods used as placeholders for type constructor functions.
 
 */
  private:
@@ -451,11 +371,6 @@ constructor functions.
   ObjectClone              cloneFunc;
   ObjectCast               castFunc;
   ObjectSizeof             sizeofFunc;
-  PersistFunction          persistModelFunc;
-  InModelFunction          inModelFunc;
-  OutModelFunction         outModelFunc;
-  ValueToModelFunction     valueToModelFunc;
-  ValueListToModelFunction valueListToModelFunc;
   TypeCheckFunction        typeCheckFunc;
   vector<string>           kinds;  // Kinds of type constr.
 

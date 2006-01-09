@@ -10,6 +10,13 @@
 
 October 2004, Herbert Schoenhammer
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
+January 2006 Victor Almeida replaced the ~free~ tuples concept to
+reference counters. There are reference counters on tuples and also
+on attributes.
 
 [TOC]
 
@@ -1048,8 +1055,7 @@ Building S.Part of outerRelation.
                                 hdr.outerRelPart, hdr.outerRelInfo);
 
           Tuple* innerTuple = ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer);
-          Tuple* resultTuple = new Tuple( *resultTupleType, true );
-          assert( resultTuple->IsFree() );
+          Tuple* resultTuple = new Tuple( *resultTupleType );
           Concat(outerTuple, innerTuple, resultTuple);
 
           outerTuple->DeleteIfAllowed();
@@ -1102,8 +1108,7 @@ Building S.Part of outerRelation.
                                 hdr.outerRelPart, hdr.outerRelInfo);
 
           Tuple* innerTuple = ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer);
-          Tuple* resultTuple = new Tuple( *resultTupleType, true );
-          assert( resultTuple->IsFree() );
+          Tuple* resultTuple = new Tuple( *resultTupleType );
 
           outerTuple = ((TupleBuffer*)hdr.outerRelation)->GetTuple(hdr.outerActualTupleId);
           Concat(outerTuple, innerTuple, resultTuple);
@@ -1819,9 +1824,7 @@ TupleBuffer* SpatialJoinLocalInfo<dim>::StreamBuffer (const Word stream)
 
   while (qp->Received (stream.addr) )
   {
-    Tuple *t = ((Tuple*)streamTupleWord.addr)->CloneIfNecessary();
-    if ( t != streamTupleWord.addr )
-      ((Tuple*)streamTupleWord.addr)->DeleteIfAllowed();
+    Tuple *t = (Tuple*)streamTupleWord.addr;
     streamBuffer->AppendTuple ( t );
     t->DeleteIfAllowed();
     qp->Request ( stream.addr, streamTupleWord);
@@ -1845,7 +1848,7 @@ Tuple*  SpatialJoinLocalInfo<dim>::newResultTupleFromEntries (
 {
   Tuple* innerTuple = ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer);
   Tuple* outerTuple = ((TupleBuffer*)hdr.outerRelation)->GetTuple(outerEntry.pointer);
-  Tuple* resultTuple = new Tuple (*resultTupleType, true);
+  Tuple* resultTuple = new Tuple (*resultTupleType);
   Concat (outerTuple, innerTuple, resultTuple);
 
   innerTuple->DeleteIfAllowed();
@@ -2044,27 +2047,12 @@ spatialjoin4ValueMapping(Word* args, Word& result, int message, Word& local, Sup
 };
 
 /*
-3.6 The dummy model mapping
-
-*/
-Word
-spatialjoinNoModelMapping( ArgVector arg, Supplier opTreeNode )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-/*
 3.7 Definition of value mapping vectors
 
 */
 ValueMapping spatialjoinMap [] = {spatialjoin2ValueMapping,
                                   spatialjoin3ValueMapping,
                                   spatialjoin4ValueMapping };
-
-
-ModelMapping spatialjoinNoModelMap[] = { spatialjoinNoModelMapping,
-                                         spatialjoinNoModelMapping,
-                                         spatialjoinNoModelMapping };
 
 /*
 3.8 Specification of operator ~spatialjoin~
@@ -2096,7 +2084,6 @@ Operator spatialjoin (
          spatialjoinSpec,           // specification
          3,                         // number of overloaded functions
          spatialjoinMap,            // value mapping
-         spatialjoinNoModelMap,     // dummy model mapping, defined in Algebra.h
          spatialjoinSelection,      // trivial selection function
          spatialjoinTypeMap         // type mapping
 );

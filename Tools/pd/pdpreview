@@ -4,11 +4,10 @@
 #
 # May 2004, M. Spiekermann
 
-file="$1.$2"
+file="$PD_TMP/$1.$2"
 progname="$3"
-texFile="$1.tex"
-auxFile="$1.aux"
-logFile="$1.log"
+texFile="$PD_TMP/$1.tex"
+auxFile="$PD_TMP/$1.aux"
+logFile="$PD_TMP/$1.log"
 
 $progname $file 
-rm -f $logFile $texFile $auxFile $file

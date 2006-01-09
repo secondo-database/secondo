@@ -26,6 +26,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[times] [\ensuremath{\times}]
 //[->] [\ensuremath{\rightarrow}]
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 [Title]
 [TOC]
 
@@ -1670,12 +1674,7 @@ TypeConstructor instant(
         CloseDateTime,  CloneDateTime,//object close and clone
         CastDateTime,                 //cast function
         SizeOfDateTime,               //sizeof function
-        CheckInstant,                 //kind checking function
-        0,                            //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckInstant );               //kind checking function
 
 TypeConstructor duration(
         "duration",                //name
@@ -1688,12 +1687,7 @@ TypeConstructor duration(
         CloseDateTime,  CloneDateTime,    //object close and clone
         CastDateTime,                     //cast function
         SizeOfDateTime,                   //sizeof function
-        CheckDuration,                    //kind checking function
-        0,                                //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckDuration );                  //kind checking function
 
 
 /*
@@ -2213,15 +2207,6 @@ ValueMapping TheInstantValueMap[] = {
         TheInstantFun_Int7 };
 
 /*
-4.4 Model Mappings
-
-*/
-ModelMapping DummyModel_7[] =
-     {Operator::DummyModel,Operator::DummyModel,Operator::DummyModel,
-      Operator::DummyModel,Operator::DummyModel,Operator::DummyModel,
-      Operator::DummyModel};
-
-/*
 4.4 SelectionFunctions
 
 */
@@ -2239,7 +2224,6 @@ Operator dt_leapyear(
        "leapyear", // name
        LeapYearSpec, // specification
        LeapYearFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        IntBool);
 
@@ -2247,7 +2231,6 @@ Operator dt_now(
        "now", // name
        NowSpec, // specification
        NowFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        VoidInstant);
 
@@ -2255,7 +2238,6 @@ Operator dt_today(
        "today", // name
        TodaySpec, // specification
        TodayFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        VoidInstant);
 
@@ -2263,7 +2245,6 @@ Operator dt_day(
        "day_of", // name
        DaySpec, // specification
        DayFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        InstantInt);
 
@@ -2271,7 +2252,6 @@ Operator dt_month(
        "month_of", // name
        MonthSpec, // specification
        MonthFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        InstantInt);
 
@@ -2279,7 +2259,6 @@ Operator dt_year(
        "year_of", // name
        YearSpec, // specification
        YearFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        InstantInt);
 
@@ -2287,7 +2266,6 @@ Operator dt_hour(
        "hour_of", // name
        HourSpec, // specification
        HourFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        InstantInt);
 
@@ -2295,7 +2273,6 @@ Operator dt_minute(
        "minute_of", // name
        MinuteSpec, // specification
        MinuteFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        InstantInt);
 
@@ -2303,7 +2280,6 @@ Operator dt_second(
        "second_of", // name
        SecondSpec, // specification
        SecondFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        InstantInt);
 
@@ -2311,7 +2287,6 @@ Operator dt_millisecond(
        "millisecond_of", // name
        MillisecondSpec, // specification
        MillisecondFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        InstantInt);
 
@@ -2319,7 +2294,6 @@ Operator dt_add(
        "+", // name
        AddSpec, // specification
        AddFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        PlusCheck);
 
@@ -2327,7 +2301,6 @@ Operator dt_minus(
        "-", // name
        MinusSpec, // specification
        MinusFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        MinusCheck);
 
@@ -2335,7 +2308,6 @@ Operator dt_div(
        "/", // name
        DivSpec, // specification
        DivFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        DivTM);
 
@@ -2343,7 +2315,6 @@ Operator dt_less(
        "<", // name
        LessSpec, // specification
        BeforeFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        CheckComparisons);
 
@@ -2351,7 +2322,6 @@ Operator dt_greater(
        ">", // name
        GreaterSpec, // specification
        AfterFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        CheckComparisons);
 
@@ -2359,7 +2329,6 @@ Operator dt_equals(
        "=", // name
        EqualsSpec, // specification
        EqualsFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        CheckComparisons);
 
@@ -2368,7 +2337,6 @@ Operator dt_mul(
        "*", // name
        MulSpec, // specification
        MulFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        DurationIntDuration);
 
@@ -2376,7 +2344,6 @@ Operator dt_weekday(
        "weekday_of", // name
        WeekdaySpec, // specification
        WeekdayFun,
-       Operator::DummyModel,
        Operator::SimpleSelect,
        InstantString);
 
@@ -2385,7 +2352,6 @@ Operator dt_theInstant(
        TheInstantSpec,                 // specification
        7,                          // number of functions
        TheInstantValueMap,
-       DummyModel_7,
        TheInstantSelect,
        TheInstantTM);
 

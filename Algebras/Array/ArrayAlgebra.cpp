@@ -82,6 +82,10 @@ systems capability of open files per process. Currently it is possible to create
 
 August 24, 2004. M. Spiekermann removed a memory leak in the function ~distributeFun~
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 1 Preliminaries
 
 1.1 Includes
@@ -580,7 +584,7 @@ DeleteArray( Word& w )
 
 void CloseArray( Word& w )
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
   Array* array = (Array*)w.addr;
@@ -702,7 +706,7 @@ CheckArray( ListExpr type, ListExpr& errorInfo )
 
       // Check whether Second is a valid type constructor
 
-      SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+      SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
       if (sc->KindCorrect(Second, errorInfo)) {
         return true;
@@ -732,12 +736,7 @@ TypeConstructor array (
       CloseArray, CloneArray,
       DummyCast,
       SizeOfArray,
-      CheckArray,
-      0,
-      TypeConstructor::DummyInModel,
-      TypeConstructor::DummyOutModel,
-      TypeConstructor::DummyValueToModel,
-      TypeConstructor::DummyValueListToModel );
+      CheckArray );
 
 /*
 3 Handling of Functions, Implementation of the Switch- and the Select Algorithm
@@ -1157,7 +1156,6 @@ Operator size (
       "size",
       sizeSpec,
       sizeFun,
-      Operator::DummyModel,
       simpleSelect,
       sizeTypeMap );
 
@@ -1221,7 +1219,7 @@ getFun ( Word* args, Word& result, int message, Word& local, Supplier s )
 
   // should always be true
 
-    SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
     Word element = array->getElement(i);
 
@@ -1273,7 +1271,6 @@ Operator get (
       "get",
       getSpec,
       getFun,
-      Operator::DummyModel,
       simpleSelect,
       getTypeMap );
 
@@ -1332,7 +1329,7 @@ putFun ( Word* args, Word& result, int message, Word& local, Supplier s )
 
   // should always be true
 
-    SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
     int n = array->getSize();
     int algebraId = array->getElemAlgId();
@@ -1386,7 +1383,6 @@ Operator put (
       "put",
       putSpec,
       putFun,
-      Operator::DummyModel,
       simpleSelect,
       putTypeMap );
 
@@ -1429,7 +1425,7 @@ makearrayTypeMap( ListExpr args )
 static int
 makearrayFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
   ListExpr type = qp->GetType(s);
   ListExpr typeOfElement = sc->NumericType(nl->Second(type));
@@ -1466,7 +1462,6 @@ Operator makearray(
       "makearray",
       makearraySpec,
       makearrayFun,
-      Operator::DummyModel,
       simpleSelect,
       makearrayTypeMap );
 
@@ -1528,7 +1523,7 @@ sortarrayTypeMap( ListExpr args )
 static int
 sortarrayFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
   Array* array = ((Array*)args[0].addr);
 
@@ -1590,7 +1585,6 @@ Operator sortarray(
       "sortarray",
       sortarraySpec,
       sortarrayFun,
-      Operator::DummyModel,
       simpleSelect,
       sortarrayTypeMap );
 
@@ -1640,7 +1634,7 @@ tieTypeMap( ListExpr args )
 static int
 tieFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
   Array* array = ((Array*)args[0].addr);
@@ -1697,7 +1691,6 @@ Operator tie(
       "tie",
       tieSpec,
       tieFun,
-      Operator::DummyModel,
       simpleSelect,
       tieTypeMap );
 
@@ -1748,7 +1741,7 @@ cumulateTypeMap( ListExpr args )
 static int
 cumulateFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
   Array* array = ((Array*)args[0].addr);
@@ -1807,7 +1800,6 @@ Operator cumulate (
       "cumulate",
       cumulateSpec,
       cumulateFun,
-      Operator::DummyModel,
       simpleSelect,
       cumulateTypeMap );
 
@@ -1927,7 +1919,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   const int MAX_OPEN_RELATIONS = 400; // not the absolute possible maximum
 
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
   CcInt* indexAttrCcInt = (CcInt*)args[2].addr;
   int pkgAttr = (indexAttrCcInt->GetIntval()) - 1;
@@ -1961,10 +1953,8 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 		// Copy all attributes except the package number from tuple to tuple2.
     int j = 0;
     for (int i=0; i<tuple->GetNoAttributes(); i++) {
-      if (i!=pkgAttr) {
-        Attribute* attribute=(tuple->GetAttribute(i))->Clone();
-        tuple2->PutAttribute(j++, attribute);
-      }
+      if (i!=pkgAttr) 
+        tuple2->CopyAttribute(i, tuple, j++);
     }
 
     // Determine package and distribute tuple2 into that package.
@@ -2040,7 +2030,6 @@ Operator distribute (
       "distribute",
       distributeSpec,
       distributeFun,
-      Operator::DummyModel,
       simpleSelect,
       distributeTypeMap );
 
@@ -2160,7 +2149,6 @@ Operator summarize (
       "summarize",
       summarizeSpec,
       summarizeFun,
-      Operator::DummyModel,
       simpleSelect,
       summarizeTypeMap );
 
@@ -2204,7 +2192,7 @@ loopTypeMap( ListExpr args )
 static int
 loopFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
   Array* array = ((Array*)args[0].addr);
 
@@ -2250,7 +2238,6 @@ Operator loop (
       "loop",
       loopSpec,
       loopFun,
-      Operator::DummyModel,
       simpleSelect,
       loopTypeMap );
 
@@ -2301,7 +2288,7 @@ loopaTypeMap( ListExpr args )
 static int
 loopaFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
   Array* firstArray = ((Array*)args[0].addr);
   Array* secondArray = ((Array*)args[1].addr);
@@ -2350,7 +2337,6 @@ Operator loopa (
       "loopa",
       loopaSpec,
       loopaFun,
-      Operator::DummyModel,
       simpleSelect,
       loopaTypeMap );
 
@@ -2371,7 +2357,7 @@ Therefore the type mapping function of the operator ~loopa~ can also be used for
 static int
 loopbFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
   Array* firstArray = ((Array*)args[0].addr);
   Array* secondArray = ((Array*)args[1].addr);
@@ -2423,7 +2409,6 @@ Operator loopb (
       "loopb",
       loopbSpec,
       loopbFun,
-      Operator::DummyModel,
       simpleSelect,
       loopaTypeMap );
 
@@ -2520,7 +2505,7 @@ loopswitchTypeMap( ListExpr args )
 static int
 loopswitchFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
   Array* array = (Array*)args[0].addr;
 
@@ -2574,7 +2559,6 @@ Operator loopswitch (
       "loopswitch",
       loopswitchSpec,
       loopswitchFun,
-      Operator::DummyModel,
       simpleSelect,
       loopswitchTypeMap );
 
@@ -2679,7 +2663,7 @@ static int
 loopswitchaFun( Word* args, Word& result, int message, Word& local,
                 Supplier s )
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
   Array* firstArray = (Array*)args[0].addr;
   Array* secondArray = (Array*)args[1].addr;
@@ -2733,7 +2717,6 @@ Operator loopswitcha (
       "loopswitcha",
       loopswitchaSpec,
       loopswitchaFun,
-      Operator::DummyModel,
       simpleSelect,
       loopswitchaTypeMap );
 
@@ -2755,7 +2738,7 @@ static int
 loopswitchbFun( Word* args, Word& result, int message, Word& local,
                 Supplier s )
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
   Array* firstArray = (Array*)args[0].addr;
   Array* secondArray = (Array*)args[1].addr;
@@ -2813,7 +2796,6 @@ Operator loopswitchb (
       "loopswitchb",
       loopswitchbSpec,
       loopswitchbFun,
-      Operator::DummyModel,
       simpleSelect,
       loopswitchaTypeMap );
 
@@ -2854,7 +2836,7 @@ loopselectTypeMap( ListExpr args )
 static int
 loopselectFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
   Array* array = ((Array*)args[0].addr);
 
@@ -2922,7 +2904,6 @@ Operator loopselect (
       "loopselect",
       loopselectSpec,
       loopselectFun,
-      Operator::DummyModel,
       simpleSelect,
       loopselectTypeMap );
 
@@ -2962,7 +2943,7 @@ static int
 loopselectaFun( Word* args, Word& result, int message, Word& local,
                 Supplier s )
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
   Array* firstArray = (Array*)args[0].addr;
   Array* secondArray = (Array*)args[1].addr;
@@ -3030,7 +3011,6 @@ Operator loopselecta (
       "loopselecta",
       loopselectaSpec,
       loopselectaFun,
-      Operator::DummyModel,
       simpleSelect,
       loopselectaTypeMap );
 
@@ -3052,7 +3032,7 @@ static int
 loopselectbFun( Word* args, Word& result, int message, Word& local,
                 Supplier s )
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
   Array* firstArray = (Array*)args[0].addr;
   Array* secondArray = (Array*)args[1].addr;
@@ -3124,7 +3104,6 @@ Operator loopselectb (
       "loopselectb",
       loopselectbSpec,
       loopselectbFun,
-      Operator::DummyModel,
       simpleSelect,
       loopselectaTypeMap );
 
@@ -3156,17 +3135,16 @@ appendToRel( Word& relation, Word append )
   GenericRelationIterator* rit = part->MakeScan();
   Tuple* tuple;
 
-  while ((tuple = rit->GetNextTuple()) != 0) {
-    tuple = tuple->CloneIfNecessary();
-    tuple->SetFree(false);
-
-    if (rel == 0) {
+  while ((tuple = rit->GetNextTuple()) != 0) 
+  {
+    if (rel == 0) 
+    {
       rel = new Relation(tuple->GetTupleType());
       rel->Clear();
       relation = SetWord(rel);
     }
-
     rel->AppendTuple(tuple);
+    tuple->DeleteIfAllowed();
   }
 }
 
@@ -3226,7 +3204,7 @@ partjoinFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
   // INITIALIZATION
 
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
   Array* firstArray = ((Array*)args[0].addr);
   Array* secondArray = ((Array*)args[1].addr);
@@ -3344,7 +3322,6 @@ Operator partjoin (
       "partjoin",
       partjoinSpec,
       partjoinFun,
-      Operator::DummyModel,
       simpleSelect,
       partjoinTypeMap );
 
@@ -3480,7 +3457,7 @@ partjoinswitchFun( Word* args, Word& result, int message, Word& local,
   // See value mapping function of operator partjoin for remarks with regard to
   // the partjoin algorithm.
 
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
   Array* firstArray = ((Array*)args[0].addr);
   Array* secondArray = ((Array*)args[1].addr);
@@ -3590,7 +3567,6 @@ Operator partjoinswitch (
       "partjoinswitch",
       partjoinswitchSpec,
       partjoinswitchFun,
-      Operator::DummyModel,
       simpleSelect,
       partjoinswitchTypeMap );
 
@@ -3636,7 +3612,7 @@ partjoinselectFun( Word* args, Word& result, int message, Word& local,
   // See value mapping function of operator partjoin for remarks with regard to
   // the partjoin algorithm.
 
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
   Array* firstArray = ((Array*)args[0].addr);
   Array* secondArray = ((Array*)args[1].addr);
@@ -3762,7 +3738,6 @@ Operator partjoinselect (
       "partjoinselect",
       partjoinselectSpec,
       partjoinselectFun,
-      Operator::DummyModel,
       simpleSelect,
       partjoinselectTypeMap );
 
@@ -3805,7 +3780,6 @@ Operator ELEMENT (
       "ELEMENT",
       ELEMENTSpec,
       0,
-      Operator::DummyModel,
       simpleSelect,
       ELEMENTTypeMap );
 
@@ -3849,7 +3823,6 @@ Operator ELEMENT2 (
       "ELEMENT2",
       ELEMENT2Spec,
       0,
-      Operator::DummyModel,
       simpleSelect,
       ELEMENT2TypeMap );
 

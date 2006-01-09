@@ -31,6 +31,10 @@ March-July, 2003 Zhiming DING
 
 January, 2005 Leonardo Guerreiro Azevedo
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 [TOC]
 
 1 Overview
@@ -1367,6 +1371,7 @@ This constructor should not be used.
     CRegion(CRegion& cr, bool onlyLeft = false);
     void Destroy();
     ~CRegion();
+    bool Valid();
 
     const Rectangle<2> BoundingBox() const;
 

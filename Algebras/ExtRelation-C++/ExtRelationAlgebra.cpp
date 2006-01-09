@@ -41,6 +41,15 @@ small cache, so that they need not be rebuilt from then on.
 April 2002 Victor Almeida Separated the relational algebra into two algebras
 called Relational Algebra and Extended Relational Algebra.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
+January 2006 Victor Almeida replaced the ~free~ tuples concept to
+reference counters. There are reference counters on tuples and also
+on attributes. Some assertions were removed, since the code is
+stable.
+
 [TOC]
 
 1 Includes and defines
@@ -141,7 +150,6 @@ Operator extrelgroup (
          "GROUP",              // name
          GroupSpec,            // specification
          0,                    // no value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          exttypeOperatorSelect,   // trivial selection function
          GroupTypeMap          // type mapping
 );
@@ -174,10 +182,6 @@ than half of ~subSet~, we simple draw a subset of size
 void
 MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
 {
-  assert(subsetSize >= 1);
-  assert(setSize >= 2);
-  assert(setSize > subsetSize);
-
   set<int> drawnNumbers;
   set<int>::iterator iter;
   int drawSize;
@@ -447,7 +451,6 @@ Operator extrelsample (
           "sample",                // name
           SampleSpec,              // specification
           Sample,                  // value mapping
-          Operator::DummyModel,    // dummy model mapping, defines in Algebra.h
           Operator::SimpleSelect,  // trivial selection function
           SampleTypeMap            // type mapping
 );
@@ -616,25 +619,21 @@ int Remove(Word* args, Word& result, int message, Word& local, Supplier s)
       Word elem1, elem2, arg2;
       int noOfAttrs, index;
       Supplier son;
-      Attribute* attr;
 
       qp->Request(args[0].addr, elem1);
       if (qp->Received(args[0].addr))
       {
         TupleType *tupleType = (TupleType *)local.addr;
-        Tuple *t = new Tuple( *tupleType, true );
-        assert( t->IsFree() );
+        Tuple *t = new Tuple( *tupleType );
 
         qp->Request(args[2].addr, arg2);
         noOfAttrs = ((CcInt*)arg2.addr)->GetIntval();
-        assert( t->GetNoAttributes() == noOfAttrs );
         for (int i=1; i <= noOfAttrs; i++)
         {
           son = qp->GetSupplier(args[3].addr, i-1);
           qp->Request(son, elem2);
           index = ((CcInt*)elem2.addr)->GetIntval();
-          attr = ((Tuple*)elem1.addr)->GetAttribute(index-1);
-          t->PutAttribute(i-1, ((StandardAttribute*)attr->Clone()));
+          t->CopyAttribute(index-1, (Tuple*)elem1.addr, i-1);
         }
         ((Tuple*)elem1.addr)->DeleteIfAllowed();
         result = SetWord(t);
@@ -676,7 +675,6 @@ Operator extrelremoval (
          "remove",                // name
          RemoveSpec,              // specification
          Remove,                  // value mapping
-         Operator::DummyModel,    // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,  // trivial selection function
          RemoveTypeMap            // type mapping
 );
@@ -805,7 +803,6 @@ Operator extrelcancel (
          "cancel",               // name
          CancelSpec,             // specification
          Cancel,                 // value mapping
-         Operator::DummyModel,   // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect, // trivial selection function
          CancelTypeMap           // type mapping
 );
@@ -894,7 +891,6 @@ int Extract(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     tupleptr = (Tuple*)t.addr;
     index = ((CcInt*)args[2].addr)->GetIntval();
-    assert((1 <= index) && (index <= tupleptr->GetNoAttributes()));
     res->CopyFrom((StandardAttribute*)tupleptr->GetAttribute(index - 1));
     tupleptr->DeleteIfAllowed();
   }
@@ -930,7 +926,6 @@ Operator extrelextract (
          "extract",              // name
          ExtractSpec,            // specification
          Extract,                // value mapping
-         Operator::DummyModel,   // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect, // trivial selection function
          ExtractTypeMap          // type mapping
 );
@@ -1061,7 +1056,6 @@ Operator extrelhead (
          "head",                 // name
          HeadSpec,               // specification
          Head,                   // value mapping
-         Operator::DummyModel,   // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect, // trivial selection function
          HeadTypeMap             // type mapping
 );
@@ -1164,7 +1158,6 @@ MaxMinValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
   extremum->SetDefined(false);
   result = SetWord(extremum);
 
-  assert(args[2].addr != 0);
   int attributeIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
 
   qp->Open(args[0].addr);
@@ -1230,7 +1223,6 @@ Operator extrelmax (
          "max",             // name
          MaxOpSpec,           // specification
          MaxMinValueMapping<true>,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          MaxMinTypeMap<true>         // type mapping
 );
@@ -1258,7 +1250,6 @@ Operator extrelmin (
          "min",             // name
          MinOpSpec,           // specification
          MaxMinValueMapping<false>,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          MaxMinTypeMap<false>         // type mapping
 );
@@ -1366,9 +1357,6 @@ AvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
   Word currentTupleWord;
   Attribute* accumulated = 0;
   int nProcessedItems = 0;
-
-  assert(args[2].addr != 0);
-  assert(args[3].addr != 0);
 
   int attributeIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
   STRING *attributeType = ((CcString*)args[3].addr)->GetStringval();
@@ -1482,7 +1470,6 @@ Operator extrelavg (
          "avg",             // name
          AvgOpSpec,           // specification
          AvgSumValueMapping<true>,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          AvgSumTypeMap<true>         // type mapping
 );
@@ -1510,7 +1497,6 @@ Operator extrelsum (
          "sum",             // name
          SumOpSpec,           // specification
          AvgSumValueMapping<false>,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          AvgSumTypeMap<false>         // type mapping
 );
@@ -1650,7 +1636,6 @@ Operator extrelsortby (
          "sortby",              // name
          SortBySpec,            // specification
          SortBy<false, true>,   // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          SortByTypeMap          // type mapping
 );
@@ -1727,7 +1712,6 @@ Operator extrelsort (
          "sort",             // name
          SortSpec,           // specification
          SortBy<true, true>,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          IdenticalTypeMap<true>         // type mapping
 );
@@ -1766,8 +1750,10 @@ int RdupValueMapping(Word* args, Word& result, int message, Word& local, Supplie
             if(cmp(currentTuple, lastOutputTuple)
               || cmp(lastOutputTuple, currentTuple))
             {
+              lastOutputTuple->DecReference();
               lastOutputTuple->DeleteIfAllowed();
-              local = SetWord(currentTuple->Clone());
+              local = SetWord(currentTuple);
+              currentTuple->IncReference();
               result = SetWord(currentTuple);
               return YIELD;
             }
@@ -1779,7 +1765,8 @@ int RdupValueMapping(Word* args, Word& result, int message, Word& local, Supplie
           else
           {
             currentTuple = (Tuple*)tuple.addr;
-            local = SetWord(currentTuple->Clone());
+            local = SetWord(currentTuple);
+            currentTuple->IncReference();
             result = SetWord(currentTuple);
             return YIELD;
           }
@@ -1789,12 +1776,20 @@ int RdupValueMapping(Word* args, Word& result, int message, Word& local, Supplie
           lastOutputTuple = (Tuple*)local.addr;
           if(lastOutputTuple != 0)
           {
-           lastOutputTuple->DeleteIfAllowed();
-         }
-         return CANCEL;
+            lastOutputTuple->DecReference();
+            lastOutputTuple->DeleteIfAllowed();
+            local = SetWord(0);
+          }
+          return CANCEL;
         }
       }
     case CLOSE:
+      if( local.addr != 0 )
+      {
+        lastOutputTuple = (Tuple*)local.addr;
+        lastOutputTuple->DecReference();
+        lastOutputTuple->DeleteIfAllowed();
+      }  
       qp->Close(args[0].addr);
       return 0;
   }
@@ -1825,7 +1820,6 @@ Operator extrelrdup (
          "rdup",             // name
          RdupSpec,           // specification
          RdupValueMapping,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          IdenticalTypeMap<false>         // type mapping
 );
@@ -2089,7 +2083,6 @@ public:
           else
           {
             /* found match */
-            assert(TuplesEqual(currentATuple, currentBTuple));
             Tuple* match = currentATuple;
             if(outputMatches)
             {
@@ -2174,7 +2167,6 @@ Operator extrelmergesec(
          "mergesec",        // name
          MergeSecSpec,     // specification
          SetOpValueMapping<false, false, true>,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          SetOpTypeMap<0>   // type mapping
 );
@@ -2204,7 +2196,6 @@ Operator extrelmergediff(
          "mergediff",        // name
          MergeDiffSpec,     // specification
          SetOpValueMapping<true, false, false>,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          SetOpTypeMap<1>   // type mapping
 );
@@ -2233,7 +2224,6 @@ Operator extrelmergeunion(
          "mergeunion",        // name
          MergeUnionSpec,     // specification
          SetOpValueMapping<true, true, true>,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          SetOpTypeMap<2>   // type mapping
 );
@@ -2432,7 +2422,6 @@ Operator extrelmergejoin(
          "mergejoin",        // name
          MergeJoinSpec,     // specification
          MergeJoin<true>,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          JoinTypeMap<false, 0>   // type mapping
 );
@@ -2468,26 +2457,15 @@ Operator extrelsortmergejoin(
          "sortmergejoin",        // name
          SortMergeJoinSpec,     // specification
          MergeJoin<false>,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          JoinTypeMap<false, 1>   // type mapping
 );
 
 /*
-2.17 Operator ~oldhashjoin~
+2.17 Operator ~hashjoin~
 
 This operator computes the equijoin two streams via a hash join.
 The user can specify the number of hash buckets.
-
-2.17.1 Value Mapping Function of Operator ~oldhashjoin~
-
-*/
-int OldHashJoin(Word* args, Word& result, int message, Word& local, Supplier s);
-/*
-This function will be implemented differently for the persistent and for
-the main memory relational algebra. Its implementation can be found in
-the files ExtRelAlgPersistent.cpp and ExtRelAlgMainMemory.cpp,
-respectively.
 
 2.17.2 Specification of Operator ~hashjoin~
 
@@ -2511,24 +2489,6 @@ const string HashJoinSpec  = "( ( \"Signature\" \"Syntax\" "
                               ") )";
 
 /*
-2.17.3 Definition of Operator ~hashjoin~
-
-*/
-Operator extreloldhashjoin(
-         "oldhashjoin",        // name
-         HashJoinSpec,     // specification
-         OldHashJoin,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         Operator::SimpleSelect,          // trivial selection function
-         JoinTypeMap<true, 2>   // type mapping
-);
-
-/*
-2.17 Operator ~hashjoin~
-
-This operator computes the equijoin two streams via a hash join.
-The user can specify the number of hash buckets.
-
 2.17.1 Value Mapping Function of Operator ~hashjoin~
 
 */
@@ -2539,14 +2499,13 @@ the main memory relational algebra. Its implementation can be found in
 the files ExtRelAlgPersistent.cpp and ExtRelAlgMainMemory.cpp,
 respectively.
 
-2.17.3 Definition of Operator ~newhashjoin~
+2.17.3 Definition of Operator ~hashjoin~
 
 */
 Operator extrelhashjoin(
          "hashjoin",        // name
          HashJoinSpec,     // specification
          HashJoin,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          JoinTypeMap<true, 2>   // type mapping
 );
@@ -2687,13 +2646,11 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( *resultTupleType, true );
-        assert( newTuple->GetNoAttributes() > tup->GetNoAttributes() );
+        Tuple *newTuple = new Tuple( *resultTupleType );
         for( int i = 0; i < tup->GetNoAttributes(); i++ )
-          newTuple->PutAttribute( i, tup->GetAttribute( i )->Clone() );
+          newTuple->CopyAttribute( i, tup, i );
         supplier = args[1].addr;
         nooffun = qp->GetNoSons(supplier);
-        assert( newTuple->GetNoAttributes() == tup->GetNoAttributes() + nooffun );
         for (int i=0; i < nooffun;i++)
         {
           supplier2 = qp->GetSupplier(supplier, i);
@@ -2702,7 +2659,8 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           funargs = qp->Argument(supplier3);
           (*funargs)[0] = SetWord(tup);
           qp->Request(supplier3,value);
-          newTuple->PutAttribute( tup->GetNoAttributes()+i, ((StandardAttribute*)value.addr)->Clone() );
+          newTuple->PutAttribute( tup->GetNoAttributes()+i, (StandardAttribute*)value.addr );
+          qp->ReInitResultStorage( supplier3 );
         }
         tup->DeleteIfAllowed();
         result = SetWord(newTuple);
@@ -2748,7 +2706,6 @@ Operator extrelextend (
          "extend",              // name
          ExtendSpec,            // specification
          Extend,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          ExtendTypeMap          // type mapping
 );
@@ -2831,48 +2788,6 @@ ListExpr LoopjoinTypeMap(ListExpr args)
   nl->TwoElemList(nl->SymbolAtom("tuple"), list));
   return outlist;
 }
-
-
-
-  /*if(nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
-
-    if( (nl->ListLength(first) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-        (nl->ListLength(nl->Second(first)) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-
-        (nl->ListLength(second) == 3) &&
-        (TypeOfRelAlgSymbol(nl->First(second)) == ccmap) &&
-
-        (nl->Equal(nl->Second(first), nl->Second(second))) &&
-
-        (nl->ListLength(nl->Third(second)) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(nl->Third(second))) == stream) &&
-        (nl->ListLength(nl->Second(nl->Third(second))) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) == tuple) )
-    {
-      list1 = nl->Second(nl->Second(first));
-      list2 = nl->Second(nl->Second(nl->Third(second)));
-      if(!AttributesAreDisjoint(list1, list2))
-      {
-        goto typeerror;
-      }
-      list = ConcatLists(list1, list2);
-      outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-      nl->TwoElemList(nl->SymbolAtom("tuple"), list));
-      return outlist;
-    }
-    else goto typeerror;
-  }
-  else goto typeerror;
-
-typeerror:
-  ErrorReporter::ReportError("Incorrect input for operator loopjoin.");
-  return nl->SymbolAtom("typeerror");
-}*/
 
 /*
 2.19.2 Value mapping function of operator ~loopjoin~
@@ -2966,8 +2881,7 @@ int Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
           ctupley=(Tuple*)tupley.addr;
         }
       }
-      ctuplexy = new Tuple( *localinfo->resultTupleType, true );
-      assert( ctuplexy->IsFree() == true );
+      ctuplexy = new Tuple( *localinfo->resultTupleType );
       tuplexy = SetWord(ctuplexy);
       Concat(ctuplex, ctupley, ctuplexy);
       ctupley->DeleteIfAllowed();
@@ -3021,7 +2935,6 @@ Operator extrelloopjoin (
          "loopjoin",                // name
          LoopjoinSpec,              // specification
          Loopjoin,                  // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,            // trivial selection function
          LoopjoinTypeMap            // type mapping
 );
@@ -3096,40 +3009,6 @@ LoopselectTypeMap(ListExpr args)
   nl->TwoElemList(nl->SymbolAtom("tuple"), list));
   return outlist;
 }
-
-
-  /*if(nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
-
-    if( (nl->ListLength(first) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-        (nl->ListLength(nl->Second(first)) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-
-        (nl->ListLength(second) == 3) &&
-        (TypeOfRelAlgSymbol(nl->First(second)) == ccmap) &&
-        (nl->Equal(nl->Second(first), nl->Second(second))) &&
-        (nl->ListLength(nl->Third(second)) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(nl->Third(second))) == stream) &&
-        (nl->ListLength(nl->Second(nl->Third(second))) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) == tuple) )
-    {
-      list1 = nl->Second(nl->Second(first));
-      list2 = nl->Second(nl->Second(nl->Third(second)));
-      outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-      nl->TwoElemList(nl->SymbolAtom("tuple"), list2));
-      return outlist;
-    }
-    else goto typeerror;
-  }
-  else goto typeerror;
-
-typeerror:
-  ErrorReporter::ReportError("Incorrect input for operator loopselect.");
-  return nl->SymbolAtom("typeerror");
-}*/
 
 /*
 
@@ -3274,7 +3153,6 @@ Operator extrelloopsel (
          "loopsel",                             // name
          LoopselectSpec,                      // specification
          Loopselect,                          // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,                        // trivial selection function
          LoopselectTypeMap                    // type mapping
 );
@@ -3478,18 +3356,12 @@ int ExtendStream(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
       //3. compute tupleXY from tupleX and wValueY
-      tupleXY = new Tuple( *localinfo->resultTupleType, true );
-      assert( tupleXY->IsFree() == true );
+      tupleXY = new Tuple( *localinfo->resultTupleType );
 
       for( int i = 0; i < localinfo->tupleX->GetNoAttributes(); i++ )
-        tupleXY->PutAttribute( i, localinfo->tupleX->GetAttribute( i )->Clone() );
+        tupleXY->CopyAttribute( i, localinfo->tupleX, i );
 
-      tupleXY->PutAttribute( localinfo->tupleX->GetNoAttributes(), ((StandardAttribute*)wValueY.addr)->Clone() );
-
-      // deleting wValueY
-      const AttributeType& yAttributeType =
-        localinfo->resultTupleType->GetAttributeType( localinfo->resultTupleType->GetNoAttributes() - 1 );
-      (SecondoSystem::GetAlgebraManager()->DeleteObj( yAttributeType.algId, yAttributeType.typeId ))( wValueY );
+      tupleXY->PutAttribute( localinfo->tupleX->GetNoAttributes(), (StandardAttribute*)wValueY.addr );
 
       // setting the result
       result = SetWord( tupleXY );
@@ -3530,8 +3402,8 @@ const string ExtendStreamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                              "<text>This operator do the loopjoin between"
                              "a stream of tuples and a stream of objects of a certain type."
                              " the result is a stream of tuples.</text--->"
-               "<text>query UBahn feed extendstream"
-               "[ newattr:  units(.Trajectory)] consume</text--->"
+                             "<text>query UBahn feed extendstream"
+                             "[ newattr:  units(.Trajectory)] consume</text--->"
                              ") )";
 
 /*
@@ -3542,7 +3414,6 @@ Operator extrelextendstream (
          "extendstream",                // name
          ExtendStreamSpec,              // specification
          ExtendStream,                  // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,            // trivial selection function
          ExtendStreamTypeMap            // type mapping
 );
@@ -3823,20 +3694,13 @@ int ProjectExtendStream(Word* args, Word& result, int message, Word& local, Supp
       }
 
       //3. compute tupleXY from tupleX and wValueY
-      tupleXY = new Tuple( *localinfo->resultTupleType, true );
-      assert( tupleXY->IsFree() == true );
+      tupleXY = new Tuple( *localinfo->resultTupleType );
 
       size_t i;
       for( i = 0; i < localinfo->attrs.size(); i++ )
-        tupleXY->PutAttribute( i, localinfo->tupleX->GetAttribute( localinfo->attrs[i] )->Clone() );
+        tupleXY->CopyAttribute( localinfo->attrs[i], localinfo->tupleX, i );
 
-      assert( i == (size_t)tupleXY->GetNoAttributes()-1 );
-      tupleXY->PutAttribute( i, ((StandardAttribute*)wValueY.addr)->Clone() );
-
-      // deleting wValueY
-      const AttributeType& yAttributeType =
-        localinfo->resultTupleType->GetAttributeType( localinfo->resultTupleType->GetNoAttributes() - 1 );
-      (SecondoSystem::GetAlgebraManager()->DeleteObj( yAttributeType.algId, yAttributeType.typeId ))( wValueY );
+      tupleXY->PutAttribute( i, (StandardAttribute*)wValueY.addr );
 
       // setting the result
       result = SetWord( tupleXY );
@@ -3889,7 +3753,6 @@ Operator extrelprojectextendstream (
          "projectextendstream",                // name
          ProjectExtendStreamSpec,              // specification
          ProjectExtendStream,                  // value mapping
-         Operator::DummyModel,                 // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,               // trivial selection function
          ProjectExtendStreamTypeMap            // type mapping
 );
@@ -4051,7 +3914,6 @@ Operator extrelconcat (
          "concat",               // name
          ConcatSpec,             // specification
          Concat,                 // value mapping
-         Operator::DummyModel,   // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect, // trivial selection function
          ConcatTypeMap           // type mapping
 );
@@ -4213,13 +4075,11 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
       ListExpr typeConstructor = nl->TheEmptyList();
       if ( nl->IsAtom(mapOut) ) // function returns a simple type
       {
-        assert( nl->AtomType(mapOut) == SymbolType );
         typeConstructor = mapOut;
 
       } else { // function returns a complex type
 
         typeConstructor = nl->First(mapOut);
-        assert( nl->AtomType(typeConstructor) == SymbolType );
       }
 
       // check if the Type Constructor belongs to KIND DATA
@@ -4287,7 +4147,6 @@ struct GroupByLocalInfo
 int GroupByValueMapping
 (Word* args, Word& result, int message, Word& local, Supplier supplier)
 {
-  Tuple *t = 0;
   Tuple *s = 0;
   Word sWord =SetWord(Address(0));
   TupleBuffer* tp = 0;
@@ -4347,7 +4206,7 @@ int GroupByValueMapping
 
     case REQUEST:
       Counter::getRef("GroupBy:Request")++;
-      if(local.addr == 0) // should not happen
+      if(local.addr == 0) 
         return CANCEL;
       else
       {
@@ -4355,25 +4214,17 @@ int GroupByValueMapping
         if( gbli->t == 0 ) // Stream ends
           return CANCEL;
 
-        //cout << *(gbli->t) << endl;
-        t = gbli->t->Clone( true );
-        Tuple* copyt = t->Clone( true );
-        gbli->t->DeleteIfAllowed();
-        gbli->t = 0;
         tp = new TupleBuffer(gbli->MAX_MEMORY);
-        tp->AppendTuple(copyt);
-        copyt->DeleteIfAllowed();
+        tp->AppendTuple(gbli->t);
       }
+
       // get number of attributes
       qp->Request(args[indexOfCountArgument].addr, nAttributesWord);
       numberatt = ((CcInt*)nAttributesWord.addr)->GetIntval();
 
       ifequal = true;
-
       // Get next tuple
       qp->Request(args[0].addr, sWord);
-      //Tuple cmpTup = (Tuple*)sWord.addr;
-      //cmpTup->SetFree(false);
       while ((qp->Received(args[0].addr)) && ifequal)
       {
         s = (Tuple*)sWord.addr;
@@ -4383,14 +4234,15 @@ int GroupByValueMapping
           qp->Request(args[startIndexOfExtraArguments+k].addr, attribIdxWord);
           attribIdx = ((CcInt*)attribIdxWord.addr)->GetIntval();
           j = attribIdx - 1;
-          if (((Attribute*)t->GetAttribute(j))->Compare((Attribute *)s->GetAttribute(j)))
+          if (((Attribute*)gbli->t->GetAttribute(j))->Compare((Attribute *)s->GetAttribute(j)))
+          {
             ifequal = false;
+            break;
+          }
         }
+
         if (ifequal) // store in tuple buffer
         {
-          Tuple *auxS = s;
-          s = auxS->Clone(true);
-          auxS->DeleteIfAllowed();
           tp->AppendTuple( s );
           qp->Request(args[0].addr, sWord); // get next tuple
         }
@@ -4403,8 +4255,7 @@ int GroupByValueMapping
       }
 
       // create result tuple
-      t = new Tuple( *gbli->resultTupleType, true );
-      assert( t->IsFree() == true );
+      Tuple *t = new Tuple( *gbli->resultTupleType );
       relIter = tp->MakeScan();
       s = relIter->GetNextTuple();
 
@@ -4413,11 +4264,10 @@ int GroupByValueMapping
       {
         qp->Request(args[startIndexOfExtraArguments+i].addr, attribIdxWord);
         attribIdx = ((CcInt*)attribIdxWord.addr)->GetIntval();
-        t->PutAttribute(i, ((Attribute*)s->GetAttribute(attribIdx - 1))->Clone());
+        t->CopyAttribute(attribIdx - 1, s, i);
       }
       value2 = (Supplier)args[2].addr; // list of functions
       noOffun  =  qp->GetNoSons(value2);
-      assert( t->GetNoAttributes() == numberatt + noOffun );
       delete relIter;
 
       for(i = 0; i < noOffun; i++)
@@ -4432,10 +4282,10 @@ int GroupByValueMapping
 
         // compute value of function i and put it into the result tuple
         qp->Request(supplier2, value);
-        t->PutAttribute(numberatt + i, ((Attribute*)value.addr)->Clone()) ;
+        t->PutAttribute(numberatt + i, (Attribute*)value.addr);
+        qp->ReInitResultStorage(supplier2);
       }
       result = SetWord(t);
-      // tp->Clear();
       delete tp;
       return YIELD;
 
@@ -4481,7 +4331,6 @@ Operator extrelgroupby (
          "groupby",             // name
          GroupBySpec,           // specification
          GroupByValueMapping,   // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          GroupByTypeMap         // type mapping
 );
@@ -4604,39 +4453,28 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
   // args[3] = zero value
   // args[4] = attribute index added by APPEND
 
-  Word t1 = SetWord( Address(0) ), 
-       t2 = SetWord( Address(0) );
+  Word t = SetWord( Address(0) ); 
   ArgVectorPointer vector;
 
   qp->Open(args[0].addr);
   result = qp->ResultStorage(s);
   int index = ((CcInt*)args[4].addr)->GetIntval();
 
-  qp->Request( args[0].addr, t1 );
-  if( !qp->Received( args[0].addr ) )
-  {
-    ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)args[3].addr );
-  }
-  else
-  {
-    Word iterWord = SetWord( ((Tuple*)t1.addr)->GetAttribute( index-1 ) );
-   
-    qp->Request( args[0].addr, t2 );
-    while( qp->Received( args[0].addr ) )
-    {
-      vector = qp->Argument(args[2].addr);
-      (*vector)[0] = iterWord;
-      (*vector)[1] = SetWord( ((Tuple*)t2.addr)->GetAttribute( index-1 ) );
-      qp->Request(args[2].addr, iterWord);
+  Word iterWord = args[3];
 
-      ((Tuple*)t1.addr)->DeleteIfAllowed();
-      t1 = t2;
+  qp->Request( args[0].addr, t );
+  while( qp->Received( args[0].addr ) )
+  {
+    vector = qp->Argument(args[2].addr);
+    (*vector)[0] = iterWord;
+    (*vector)[1] = SetWord( ((Tuple*)t.addr)->GetAttribute( index-1 ) );
+    qp->Request(args[2].addr, iterWord);
 
-      qp->Request(args[0].addr, t2);
-    }
-    ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)iterWord.addr );  
-    ((Tuple*)t1.addr)->DeleteIfAllowed();
+    ((Tuple*)t.addr)->DeleteIfAllowed();
+    qp->Request( args[0].addr, t );
   }
+
+  ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)iterWord.addr );  
   qp->Close(args[0].addr);
 
   return 0;
@@ -4665,7 +4503,7 @@ struct AggrStruct
     // it contains a previous result of the aggregate operator
 };
 
-int AggregateNew(Word* args, Word& result, int message, Word& local, Supplier s)
+int AggregateB(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   // The argument vector contains the following values:
   // args[0] = stream of tuples
@@ -4674,7 +4512,7 @@ int AggregateNew(Word* args, Word& result, int message, Word& local, Supplier s)
   // args[3] = zero value
   // args[4] = attribute index added by APPEND
 
-  Word t1, t2, iterWord;
+  Word t, iterWord;
   ArgVectorPointer vector = qp->Argument(args[2].addr);
 
   qp->Open(args[0].addr);
@@ -4682,98 +4520,88 @@ int AggregateNew(Word* args, Word& result, int message, Word& local, Supplier s)
   int index = ((CcInt*)args[4].addr)->GetIntval();
 
   // read the first tuple
-  qp->Request( args[0].addr, t1 );
+  qp->Request( args[0].addr, t );
   if( !qp->Received( args[0].addr ) )
     ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)args[3].addr );
   else
   {
     stack<AggrStruct> aggrStack;
 
-    // read the second tuple
-    qp->Request( args[0].addr, t2 );
-    if( !qp->Received( args[0].addr ) )
-      ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)((Tuple*)t1.addr)->GetAttribute( index-1 ) );
-    else
+    // match the first tuple with the initial value into the stack
+    (*vector)[0] = SetWord( ((Tuple*)t.addr)->GetAttribute( index-1 ) );
+    (*vector)[1] = args[3];
+    qp->Request( args[2].addr, iterWord );
+    aggrStack.push( AggrStruct( 1, iterWord ) ); // level 1 because we matched a level 0 tuple
+    qp->ReInitResultStorage( args[2].addr );
+    ((Tuple*)t.addr)->DeleteIfAllowed();
+
+    // process the rest of the tuples
+    qp->Request( args[0].addr, t );
+    while( qp->Received( args[0].addr ) )
     {
-      // match both tuples and put the result into the stack
-      (*vector)[0] = SetWord( ((Tuple*)t1.addr)->GetAttribute( index-1 ) );
-      (*vector)[1] = SetWord( ((Tuple*)t2.addr)->GetAttribute( index-1 ) );
-      qp->Request( args[2].addr, iterWord );
-      aggrStack.push( AggrStruct( 1, iterWord ) ); // level 1 because we matched two level 0 tuples
-      qp->ReInitResultStorage( args[2].addr );
-      ((Tuple*)t1.addr)->DeleteIfAllowed();
-      ((Tuple*)t2.addr)->DeleteIfAllowed();
-
-      // process the rest of the tuples
-      qp->Request( args[0].addr, t1 );
-      while( qp->Received( args[0].addr ) )
+      long level = 0;
+      iterWord = SetWord( ((Tuple*)t.addr)->GetAttribute( index-1 ) );
+      while( !aggrStack.empty() && aggrStack.top().level == level )
       {
-        long level = 0;
-        iterWord = SetWord( ((Tuple*)t1.addr)->GetAttribute( index-1 ) );
-        while( !aggrStack.empty() && aggrStack.top().level == level )
-        {
-          (*vector)[0] = aggrStack.top().level == 0 ? SetWord( ((Tuple*)aggrStack.top().value.addr)->GetAttribute( index-1 ) )
-                                                    : aggrStack.top().value;
-          (*vector)[1] = iterWord;
-          qp->Request(args[2].addr, iterWord);
-          if( aggrStack.top().level == 0 )
-            ((Tuple*)aggrStack.top().value.addr)->DeleteIfAllowed();
-          else
-            delete (StandardAttribute*)aggrStack.top().value.addr;
-          aggrStack.pop();
-          level++;
-        }
-        if( level == 0 )
-          aggrStack.push( AggrStruct( level, t1 ) );
+        (*vector)[0] = aggrStack.top().level == 0 ? SetWord( ((Tuple*)aggrStack.top().value.addr)->GetAttribute( index-1 ) )
+                                                  : aggrStack.top().value;
+        (*vector)[1] = iterWord;
+        qp->Request(args[2].addr, iterWord);
+        if( aggrStack.top().level == 0 )
+          ((Tuple*)aggrStack.top().value.addr)->DeleteIfAllowed();
         else
-        {
-          aggrStack.push( AggrStruct( level, iterWord ) );
-          qp->ReInitResultStorage( args[2].addr );
-          ((Tuple*)t1.addr)->DeleteIfAllowed();
-        }
-        qp->Request( args[0].addr, t1 );
-      }
-
-      // if the stack contains only one entry, then we are done
-      if( aggrStack.size() == 1 )
-      {
-        assert( aggrStack.top().level > 0 );
-        delete (StandardAttribute*)aggrStack.top().value.addr;
-        ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)aggrStack.top().value.addr );
-      }
-      else
-        // the stack must contain more elements and we call the aggregate function for them
-      {
-        iterWord = aggrStack.top().value;
-        int level = aggrStack.top().level;
-        aggrStack.pop();
-
-        while( !aggrStack.empty() )
-        {
-          Word resultWord;
-          (*vector)[0] = level == 0 ? SetWord( ((Tuple*)iterWord.addr)->GetAttribute( index-1 ) )
-                                    : iterWord;
-          assert( aggrStack.top().level > 0 );
-          (*vector)[1] = aggrStack.top().value;
-          qp->Request( args[2].addr, resultWord );
-
-          if( level == 0 )
-            ((Tuple*)iterWord.addr)->DeleteIfAllowed();
-          else
-            delete (StandardAttribute*)iterWord.addr;
-
           delete (StandardAttribute*)aggrStack.top().value.addr;
-
-          iterWord = resultWord;
-          level++;
-          qp->ReInitResultStorage( args[2].addr );
-
-          aggrStack.pop();
-        }
-
-        ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)iterWord.addr );
-        delete (StandardAttribute*)iterWord.addr;
+        aggrStack.pop();
+        level++;
       }
+      if( level == 0 )
+        aggrStack.push( AggrStruct( level, t ) );
+      else
+      {
+        aggrStack.push( AggrStruct( level, iterWord ) );
+        qp->ReInitResultStorage( args[2].addr );
+        ((Tuple*)t.addr)->DeleteIfAllowed();
+      }
+      qp->Request( args[0].addr, t );
+    }
+
+    // if the stack contains only one entry, then we are done
+    if( aggrStack.size() == 1 )
+    {
+      delete (StandardAttribute*)aggrStack.top().value.addr;
+      ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)aggrStack.top().value.addr );
+    }
+    else
+      // the stack must contain more elements and we call the aggregate function for them
+    {
+      iterWord = aggrStack.top().value;
+      int level = aggrStack.top().level;
+      aggrStack.pop();
+
+      while( !aggrStack.empty() )
+      {
+        Word resultWord;
+        (*vector)[0] = level == 0 ? SetWord( ((Tuple*)iterWord.addr)->GetAttribute( index-1 ) )
+                                  : iterWord;
+        (*vector)[1] = aggrStack.top().value;
+        qp->Request( args[2].addr, resultWord );
+
+        if( level == 0 )
+          ((Tuple*)iterWord.addr)->DeleteIfAllowed();
+        else
+          delete (StandardAttribute*)iterWord.addr;
+
+        delete (StandardAttribute*)aggrStack.top().value.addr;
+
+        iterWord = resultWord;
+        level++;
+        qp->ReInitResultStorage( args[2].addr );
+
+        aggrStack.pop();
+      }
+
+      ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)iterWord.addr );
+      delete (StandardAttribute*)iterWord.addr;
     }
   }
   qp->Close(args[0].addr);
@@ -4791,25 +4619,25 @@ const string AggregateSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               "((ti ti) -> t) t -> t</text--->"
                               "<text>_ aggregate [_; fun; _]</text--->"
                               "<text>Aggregates the values from the attribute"
-                              "in the tuple given the function and the empty"
+                              "in the tuple given the function and the initial"
                               " value.</text--->"
                               "<text>query ten feed aggregate[no; "
                               "fun(i1: int, i2: int) i1+i2; 0]</text--->"
                               ") )";
 
 /*
-2.18.3 Specification of operator ~aggregate\_new~
+2.18.3 Specification of operator ~aggregateB~
 
 */
-const string AggregateNewSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string AggregateBSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                  "\"Example\" ) "
                                  "( <text>(stream(tuple((a1 t1) ... (an tn))) ai"
                                  "((ti ti) -> t) t -> t</text--->"
-                                 "<text>_ aggregate_new [_; fun; _]</text--->"
+                                 "<text>_ aggregateB [_; fun; _]</text--->"
                                  "<text>Aggregates the values from the attribute"
-                                 "in the tuple given the function and the empty"
-                                 " value.</text--->"
-                                 "<text>query ten feed aggregate_new[no; "
+                                 "in the tuple given the function and the initial"
+                                 " value in a balanced fashion.</text--->"
+                                 "<text>query ten feed aggregateB[no; "
                                  "fun(i1: int, i2: int) i1+i2; 0]</text--->"
                                  ") )";
 
@@ -4821,7 +4649,6 @@ Operator extrelaggregate (
          "aggregate",              // name
          AggregateSpec,            // specification
          Aggregate,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          AggregateTypeMap          // type mapping
 );
@@ -4830,11 +4657,10 @@ Operator extrelaggregate (
 2.18.4 Definition of operator ~aggregate\_new~
 
 */
-Operator extrelaggregatenew (
-         "aggregate_new",              // name
-         AggregateNewSpec,            // specification
-         AggregateNew,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+Operator extrelaggregateB (
+         "aggregateB",              // name
+         AggregateBSpec,            // specification
+         AggregateB,                // value mapping
          Operator::SimpleSelect,          // trivial selection function
          AggregateTypeMap          // type mapping
 );
@@ -4851,7 +4677,7 @@ existing indices later on.
 
 
 
-Type mapping ~createinsertrel~, ~createdeleterel~ 
+Type mapping ~createinsertrel~, ~createdeleterel~, and ~createupdaterel~ 
 
 ----     (rel X)
 
@@ -4925,7 +4751,6 @@ ListExpr createAuxiliaryRelTypeMap( const ListExpr& args, const string opName )
   }
   //Append last attribute for the tupleidentifier
   lastlistn= nl->Append(lastlistn, nl->TwoElemList(nl->SymbolAtom("TID"), nl->SymbolAtom("tid")));
-  nl->WriteListExpr(listn);
   outList = nl->TwoElemList(nl->SymbolAtom("rel"),
             nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
   return outList;
@@ -4951,7 +4776,7 @@ int createUpdateRelValueMap(Word* args, Word& result, int message, Word& local, 
 {
   	Relation* resultRelation;  
   	TupleType *resultTupleType;
-    ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
+    ListExpr resultType = SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
     ListExpr tupleType = nl->Second(resultType); 
     resultTupleType = new TupleType( tupleType );
     resultRelation = new Relation(*resultTupleType);  
@@ -4983,7 +4808,6 @@ Operator extrelcreateinsertrel (
          "createinsertrel",              // name
          createinsertrelSpec,            // specification
          createUpdateRelValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          createInsertRelTypeMap         // type mapping
 );
@@ -5013,7 +4837,6 @@ Operator extrelcreatedeleterel (
          "createdeleterel",              // name
          createdeleterelSpec,            // specification
          createUpdateRelValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          createDeleteRelTypeMap         // type mapping
 );
@@ -5043,7 +4866,6 @@ Operator extrelcreateupdaterel (
          "createupdaterel",              // name
          createupdaterelSpec,            // specification
          createUpdateRelValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          createUpdateRelTypeMap         // type mapping
 );
@@ -5162,19 +4984,17 @@ int insertRelValueMap(Word* args, Word& result, int message, Word& local, Suppli
       resultTupleType = (TupleType*) local.addr;
       qp->Request(args[1].addr, argRelation);
       relation = (Relation*)(argRelation.addr);    
-      assert(relation != 0);
       qp->Request(args[0].addr,t);      
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( *resultTupleType, true );
-        for( int i = 0; i < tup->GetNoAttributes(); i++ ){
-          newTuple->PutAttribute( i, (tup->GetAttribute(i))->Clone() );
-        }
+        Tuple *newTuple = new Tuple( *resultTupleType );
+        for( int i = 0; i < tup->GetNoAttributes(); i++ )
+          newTuple->CopyAttribute( i, tup, i );
         relation->AppendTuple(tup);
         const TupleId& tid = tup->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);      
-        newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr);
+        newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr );
         result = SetWord(newTuple);
         tup->DeleteIfAllowed();
         return YIELD;
@@ -5187,7 +5007,7 @@ int insertRelValueMap(Word* args, Word& result, int message, Word& local, Suppli
     	delete resultTupleType;
     	qp->Close(args[0].addr);
     	qp->SetModified(args[1].addr);
-        return 0;
+      return 0;
   }
   return 0;
 }
@@ -5217,7 +5037,6 @@ Operator extrelinsert (
          "insert",              // name
          insertSpec,            // specification
          insertRelValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          insertRelTypeMap         // type mapping
 );
@@ -5352,24 +5171,20 @@ int insertSaveRelValueMap(Word* args, Word& result, int message, Word& local, Su
       resultTupleType = (TupleType*) local.addr;
       qp->Request(args[1].addr, argRelation);
       relation = (Relation*)(argRelation.addr);    
-      assert(relation != 0);
       qp->Request(args[2].addr, argAuxRelation);
       auxRelation = (Relation*)(argAuxRelation.addr);    
-      assert(auxRelation != 0);
       qp->Request(args[0].addr,t);      
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( *resultTupleType, true );
-        for( int i = 0; i < tup->GetNoAttributes(); i++ ){
-          newTuple->PutAttribute( i, (tup->GetAttribute(i))->Clone() );
-        }	
         relation->AppendTuple(tup);	
+        Tuple *newTuple = new Tuple( *resultTupleType );
+        for( int i = 0; i < tup->GetNoAttributes(); i++ )
+          newTuple->CopyAttribute( i, tup, i );
         const TupleId& tid = tup->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);      
-        newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr);
-        Tuple* auxTuple = newTuple->Clone();
-        auxRelation->AppendTuple(auxTuple);
+        newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr );
+        auxRelation->AppendTuple(newTuple);
         result = SetWord(newTuple);
         tup->DeleteIfAllowed();
         return YIELD;
@@ -5383,12 +5198,10 @@ int insertSaveRelValueMap(Word* args, Word& result, int message, Word& local, Su
     	qp->Close(args[0].addr);
     	qp->SetModified(args[1].addr);
     	qp->SetModified(args[2].addr);
-        return 0;
+      return 0;
   }
   return 0;
 }
-
-
 
 /*
 2.23.3 Specification of operator ~insertsave~
@@ -5415,13 +5228,9 @@ Operator extrelinsertsave (
          "insertsave",              // name
          insertSaveSpec,            // specification
          insertSaveRelValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          insertSaveRelTypeMap         // type mapping
 );
-
-
-
 
 /*
 2.24 Operator ~deletesearch~
@@ -5458,16 +5267,50 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message, Word& local, 
   Tuple* newTuple;
   Relation* relation;
   RelationIterator* iter;
-  TupleType *resultTupleType;
   ListExpr resultType;
-  vector<Tuple*>* deletedTuples;
-  vector<vector<Tuple*>*>* hashTable;
   vector<Tuple*>* nextBucket;
-  struct LocalTransport { 
+  struct LocalTransport 
+  { 
+    LocalTransport():
+    deletedTuples( new vector<Tuple*>() ),
+    hashTable( new vector<vector<Tuple*>*>(256) ),
+    resultTupleType( 0 )
+    {
+      for (int i = 0; i < 256; i++)
+        (*hashTable)[i] = new vector<Tuple*>();
+    }
+
+    ~LocalTransport()
+    {
+      for( vector<Tuple*>::iterator i = deletedTuples->begin(); 
+           i != deletedTuples->end();
+           i++ )
+      {
+        (*i)->DecReference();
+        (*i)->DeleteIfAllowed();
+      }
+      delete deletedTuples;
+
+      for (int i = 0; i < 256; i++)
+      {
+        for( vector<Tuple*>::iterator j = (*hashTable)[i]->begin();
+             j != (*hashTable)[i]->end();
+             j++ )
+        {
+          (*j)->DecReference();
+          (*j)->DeleteIfAllowed();
+        }
+        delete (*hashTable)[i];
+      }
+      delete hashTable;
+
+      delete resultTupleType;
+    }
+
   	vector<Tuple*>* deletedTuples;
   	vector<vector<Tuple*>*>* hashTable;
   	TupleType* resultTupleType;
-  } * localTransport;
+  } *localTransport;
   size_t hashValue ; 
   bool tupleFound;
   
@@ -5477,92 +5320,85 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message, Word& local, 
     case OPEN :
       qp->Open(args[0].addr);
       localTransport = new LocalTransport();
-      deletedTuples = new vector<Tuple*>();
-      hashTable = new vector<vector<Tuple*>*>(256);
-      localTransport->deletedTuples = deletedTuples;
-      localTransport->hashTable = hashTable;
-      for (int i = 0; i < 256; i++){
-      	nextBucket = new vector<Tuple*>();
-      	hashTable->operator[](i) = nextBucket;	
-      }
       qp->Request(args[1].addr, argRelation);
       relation = (Relation*)(argRelation.addr); 
-      assert(relation != 0);
       iter = new RelationIterator(*relation); 
       nextTup = iter->GetNextTuple(); 
       // fill hashtable   
-      while (!iter->EndOfScan()){
+      while (!iter->EndOfScan())
+      {
       	hashValue = 0;
-      	for( int i = 0; i < nextTup->GetNoAttributes(); i++ ){
+      	for( int i = 0; i < nextTup->GetNoAttributes(); i++ )
            hashValue += ((StandardAttribute*)(nextTup->GetAttribute(i)))->HashValue();		
-        }
-        nextBucket = hashTable->operator[](hashValue % 256);
+        nextBucket = localTransport->hashTable->operator[](hashValue % 256);
+        nextTup->IncReference();
       	nextBucket->push_back(nextTup);
       	nextTup = iter->GetNextTuple(); 
       }
       delete iter;
       resultType = GetTupleResultType( s );
-      resultTupleType = new TupleType( nl->Second( resultType ) );
-      localTransport->resultTupleType = resultTupleType;
+      localTransport->resultTupleType = new TupleType( nl->Second( resultType ) );
       local = SetWord( localTransport );
       return 0;
 
     case REQUEST :
       localTransport =  (LocalTransport*) local.addr; 
-      deletedTuples = localTransport->deletedTuples;
-      resultTupleType = localTransport->resultTupleType;
-      hashTable = localTransport->hashTable;
       // deletedTuples can contain duplicates that have not been given to the resultstream yet
-      if (!deletedTuples->empty()){
-      	newTuple = deletedTuples->back();
-      	deletedTuples->pop_back();
+      if (!localTransport->deletedTuples->empty())
+      {
+      	newTuple = localTransport->deletedTuples->back();
+        newTuple->DecReference();
+      	localTransport->deletedTuples->pop_back();
         result = SetWord(newTuple);
         return YIELD;
       }
       // no duplicate has to be send to the resultstream
-      else{
+      else
+      {
       	qp->Request(args[1].addr, argRelation);
       	relation = (Relation*)(argRelation.addr);    
-      	assert(relation != 0);
       	tupleFound = false;
       	// tupleFound will stay false until a matching tuple to a inputtuple was found
-      	while (! tupleFound){
+      	while (! tupleFound) 
+        {
       		qp->Request(args[0].addr,t);      
       		if (qp->Received(args[0].addr))
       		{
         		tup = (Tuple*)t.addr;
         		hashValue = 0;
-      			for( int i = 0; i < tup->GetNoAttributes(); i++ ){
+      			for( int i = 0; i < tup->GetNoAttributes(); i++ )
            			hashValue += ((StandardAttribute*)(tup->GetAttribute(i)))->HashValue();		
-        		}
         		SortOrderSpecification full;
-        		for( int i = 0; i < tup->GetNoAttributes(); i++ ){
+        		for( int i = 0; i < tup->GetNoAttributes(); i++ )
            			full.push_back(pair<int,bool> (i+1,false));
-        		}
         		TupleCompareBy compare(full);
         		// get correct bucket from hashtable
-        		nextBucket = hashTable->operator[](hashValue % 256);
+        		nextBucket = localTransport->hashTable->operator[](hashValue % 256);
         		// look for all matching tuples in the bucket
-        		for (size_t j = 0; j < nextBucket->size(); j++){
+        		for (size_t j = 0; j < nextBucket->size(); j++)
+            {
         			nextTup = nextBucket->operator[](j);
-        			if (nextTup != 0){
-        				if(!compare(nextTup,tup) && !compare(tup,nextTup)){
-        					newTuple = new Tuple( *resultTupleType, true );
-        					assert( newTuple->GetNoAttributes() == nextTup->GetNoAttributes() +1 );
-        					for( int i = 0; i < nextTup->GetNoAttributes(); i++ ){
-          						newTuple->PutAttribute( i, (nextTup->GetAttribute(i))->Clone() );
-        					}
+        			if (nextTup != 0)
+              {
+        				if(!compare(nextTup,tup) && !compare(tup,nextTup))
+                {
+        					newTuple = new Tuple( *localTransport->resultTupleType );
+        					for( int i = 0; i < nextTup->GetNoAttributes(); i++ )
+          	        newTuple->PutAttribute( i, (nextTup->GetAttribute(i))->Clone() );
         					const TupleId& tid = nextTup->GetTupleId();
         					StandardAttribute* tidAttr = new TupleIdentifier(true,tid);      
-        					newTuple->PutAttribute( nextTup->GetNoAttributes(), tidAttr);
+        					newTuple->PutAttribute( nextTup->GetNoAttributes(), tidAttr );
         					relation->DeleteTuple(nextTup);
-        					deletedTuples->push_back(newTuple);
+                  newTuple->IncReference();
+        					localTransport->deletedTuples->push_back(newTuple);
         				}
         			}
         		}
-        		if (!deletedTuples->empty()){
-        			newTuple = deletedTuples->back();
-        			deletedTuples->pop_back();
+        		if (!localTransport->deletedTuples->empty())
+            {
+        			newTuple = localTransport->deletedTuples->back();
+              newTuple->DecReference();
+        			localTransport->deletedTuples->pop_back();
         			result = SetWord(newTuple);
         			tupleFound = true;
         		}
@@ -5610,7 +5446,6 @@ Operator extreldeletesearch (
          "deletesearch",              // name
          deleteSearchSpec,            // specification
          deleteSearchRelValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          deleteSearchRelTypeMap         // type mapping
 );
@@ -5657,21 +5492,19 @@ int deleteDirectRelValueMap(Word* args, Word& result, int message, Word& local, 
       resultTupleType = (TupleType*) local.addr;
       qp->Request(args[1].addr, argRelation);
       relation = (Relation*)(argRelation.addr);    
-      assert(relation != 0);
       qp->Request(args[0].addr,t);      
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
-      	Tuple *newTuple = new Tuple( *resultTupleType, true );
-        for( int i = 0; i < tup->GetNoAttributes(); i++ ){
-          	newTuple->PutAttribute( i, (tup->GetAttribute(i))->Clone() );
-        }
+      	Tuple *newTuple = new Tuple( *resultTupleType );
+        for( int i = 0; i < tup->GetNoAttributes(); i++ )
+        	newTuple->PutAttribute( i, (tup->GetAttribute(i))->Clone() );
         const TupleId& tid = tup->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);      
-        newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr);
+        newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr );
         relation->DeleteTuple(tup);
+        tup->DeleteIfAllowed();
         result = SetWord(newTuple);
-        //tup->DeleteIfAllowed();
         return YIELD;
       }
       else
@@ -5713,7 +5546,6 @@ Operator extreldeletedirect (
          "deletedirect",              // name
          deleteDirectSpec,            // specification
          deleteDirectRelValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          deleteDirectRelTypeMap         // type mapping
 );
@@ -5849,16 +5681,50 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message, Word& loc
   Relation* relation;
   Relation* auxRelation;
   RelationIterator* iter;
-  TupleType *resultTupleType;
   ListExpr resultType;
-  vector<Tuple*>* deletedTuples;
-  vector<vector<Tuple*>*>* hashTable;
   vector<Tuple*>* nextBucket;
-  struct LocalTransport { 
-  	vector<Tuple*>* deletedTuples;
-  	vector<vector<Tuple*>*>* hashTable;
-  	TupleType* resultTupleType;
-  } * localTransport;
+  struct LocalTransport
+  {
+    LocalTransport():
+    deletedTuples( new vector<Tuple*>() ),
+    hashTable( new vector<vector<Tuple*>*>(256) ),
+    resultTupleType( 0 )
+    {
+      for (int i = 0; i < 256; i++)
+        (*hashTable)[i] = new vector<Tuple*>();
+    }
+
+    ~LocalTransport()
+    {
+      for( vector<Tuple*>::iterator i = deletedTuples->begin();
+           i != deletedTuples->end();
+           i++ )
+      {
+        (*i)->DecReference();
+        (*i)->DeleteIfAllowed();
+      }
+      delete deletedTuples;
+
+      for (int i = 0; i < 256; i++)
+      {
+        for( vector<Tuple*>::iterator j = (*hashTable)[i]->begin();
+             j != (*hashTable)[i]->end();
+             j++ )
+        {
+          (*j)->DecReference();
+          (*j)->DeleteIfAllowed();
+        }
+        delete (*hashTable)[i];
+      }
+      delete hashTable;
+
+      delete resultTupleType;
+    }
+
+    vector<Tuple*>* deletedTuples;
+    vector<vector<Tuple*>*>* hashTable;
+    TupleType* resultTupleType;
+  } *localTransport;
   size_t hashValue ;
   bool tupleFound; 
 
@@ -5866,45 +5732,33 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message, Word& loc
   {
     case OPEN :
       qp->Open(args[0].addr);
-     localTransport = new LocalTransport();
-      deletedTuples = new vector<Tuple*>();
-      hashTable = new vector<vector<Tuple*>*>(256);
-      localTransport->deletedTuples = deletedTuples;
-      localTransport->hashTable = hashTable;
-      for (int i = 0; i < 256; i++){
-      	nextBucket = new vector<Tuple*>();
-      	hashTable->operator[](i) = nextBucket;	
-      }
+      localTransport = new LocalTransport();
       qp->Request(args[1].addr, argRelation);
       relation = (Relation*)(argRelation.addr); 
-      assert(relation != 0);
       iter = new RelationIterator(*relation); 
       nextTup = iter->GetNextTuple();    
-      while (!iter->EndOfScan()){
+      while (!iter->EndOfScan())
+      {
       	hashValue = 0;
-      	for( int i = 0; i < nextTup->GetNoAttributes(); i++ ){
+      	for( int i = 0; i < nextTup->GetNoAttributes(); i++ )
            hashValue += ((StandardAttribute*)(nextTup->GetAttribute(i)))->HashValue();		
-        }
-        nextBucket = hashTable->operator[](hashValue % 256);
+        nextBucket = localTransport->hashTable->operator[](hashValue % 256);
+        nextTup->IncReference();
       	nextBucket->push_back(nextTup);
       	nextTup = iter->GetNextTuple(); 
       }
       delete iter;
       resultType = GetTupleResultType( s );
-      resultTupleType = new TupleType( nl->Second( resultType ) );
-      localTransport->resultTupleType = resultTupleType;  
+      localTransport->resultTupleType = new TupleType( nl->Second( resultType ) );
       local = SetWord( localTransport );
       return 0;
 
     case REQUEST :
-      localTransport =  (LocalTransport*) local.addr; 
-      deletedTuples = localTransport->deletedTuples;
-      hashTable = localTransport->hashTable;
-      resultTupleType = localTransport->resultTupleType; 
       // Check if already deleted duplicates have to be given to the outputstream 
-      if (!deletedTuples->empty()){
-      	newTuple = deletedTuples->back();
-      	deletedTuples->pop_back();
+      if (!localTransport->deletedTuples->empty())
+      {
+      	newTuple = localTransport->deletedTuples->back();
+      	localTransport->deletedTuples->pop_back();
         result = SetWord(newTuple);
         return YIELD;
       }
@@ -5912,10 +5766,8 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message, Word& loc
       else{
       	qp->Request(args[1].addr, argRelation);
       	relation = (Relation*)(argRelation.addr);    
-      	assert(relation != 0);
       	qp->Request(args[2].addr, argAuxRelation);
       	auxRelation = (Relation*)(argAuxRelation.addr);    
-      	assert(auxRelation != 0);
       	tupleFound = false;
       	// tupleFound will stay false until a tuple with the same values as one of the inputtuples 
       	// is found
@@ -5925,40 +5777,41 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message, Word& loc
       		{
         		tup = (Tuple*)t.addr;
         		hashValue = 0;
-      			for( int i = 0; i < tup->GetNoAttributes(); i++ ){
+      			for( int i = 0; i < tup->GetNoAttributes(); i++ )
            			hashValue += ((StandardAttribute*)(tup->GetAttribute(i)))->HashValue();		
-        		}
         		SortOrderSpecification full;
-        		for( int i = 0; i < tup->GetNoAttributes(); i++ ){
+        		for( int i = 0; i < tup->GetNoAttributes(); i++ )
            			full.push_back(pair<int,bool> (i+1,false));
-        		}
         		TupleCompareBy compare(full);
         		// Get the right hash-bucket
-        		nextBucket = hashTable->operator[](hashValue % 256);
+        		nextBucket = localTransport->hashTable->operator[](hashValue % 256);
         		// Check all tuples in the bucket
-        		for (size_t j = 0; j < nextBucket->size(); j++){
+        		for (size_t j = 0; j < nextBucket->size(); j++)
+            {
         			nextTup = nextBucket->operator[](j);
-        			if (nextTup != 0){
-        				if(!compare(nextTup,tup) && !compare(tup,nextTup)){
-        					newTuple = new Tuple( *resultTupleType, true );
-        					assert( newTuple->GetNoAttributes() == nextTup->GetNoAttributes() +1 );
-        					for( int i = 0; i < nextTup->GetNoAttributes(); i++ ){
+        			if (nextTup != 0)
+              {
+        				if(!compare(nextTup,tup) && !compare(tup,nextTup))
+                {
+        					newTuple = new Tuple( *localTransport->resultTupleType );
+        					for( int i = 0; i < nextTup->GetNoAttributes(); i++ )
           						newTuple->PutAttribute( i, (nextTup->GetAttribute(i))->Clone() );
-        					}
         					const TupleId& tid = nextTup->GetTupleId();
         					StandardAttribute* tidAttr = new TupleIdentifier(true,tid);      
         					newTuple->PutAttribute( nextTup->GetNoAttributes(), tidAttr);
         					relation->DeleteTuple(nextTup);
-        					Tuple* auxTuple = newTuple->Clone();	
-        					auxRelation->AppendTuple(auxTuple);
-        					deletedTuples->push_back(newTuple);
+        					auxRelation->AppendTuple(newTuple);
+                  newTuple->IncReference();
+        					localTransport->deletedTuples->push_back(newTuple);
         				}
         			}
         		}
         		// Set result if at least one tuple was deleted
-        		if (!deletedTuples->empty()){
-        			newTuple = deletedTuples->back();
-        			deletedTuples->pop_back();
+        		if (!localTransport->deletedTuples->empty())
+            {
+        			newTuple = localTransport->deletedTuples->back();
+              newTuple->DecReference();
+        			localTransport->deletedTuples->pop_back();
         			result = SetWord(newTuple);
         			tupleFound = true;
         		}
@@ -5976,7 +5829,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message, Word& loc
     	qp->Close(args[0].addr);
     	qp->SetModified(args[1].addr);
     	qp->SetModified(args[2].addr);
-        return 0;
+      return 0;
   }
   return 0;
 }
@@ -6007,7 +5860,6 @@ Operator extreldeletesearchsave (
          "deletesearchsave",              // name
          deleteSearchSaveSpec,            // specification
          deleteSearchSaveRelValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          deleteSearchSaveRelTypeMap         // type mapping
 );
@@ -6059,27 +5911,22 @@ int deleteDirectSaveRelValueMap(Word* args, Word& result, int message, Word& loc
       resultTupleType = (TupleType*) local.addr;
       qp->Request(args[1].addr, argRelation);
       relation = (Relation*)(argRelation.addr);    
-      assert(relation != 0);
       qp->Request(args[2].addr, argAuxRelation);
       auxRelation = (Relation*)(argAuxRelation.addr);    
-      assert(auxRelation != 0);
       qp->Request(args[0].addr,t);      
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( *resultTupleType, true );
-        assert( newTuple->GetNoAttributes() == tup->GetNoAttributes() +1 );
-        for( int i = 0; i < tup->GetNoAttributes(); i++ ){
-          	newTuple->PutAttribute( i, (tup->GetAttribute(i))->Clone() );
-        }
+        Tuple *newTuple = new Tuple( *resultTupleType );
+        for( int i = 0; i < tup->GetNoAttributes(); i++ )
+          newTuple->PutAttribute( i, (tup->GetAttribute(i))->Clone() );
         const TupleId& tid = tup->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);      
         newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr);
-		relation->DeleteTuple(tup);
-        Tuple* auxTuple = newTuple->Clone();
-        auxRelation->AppendTuple(auxTuple);
+	      relation->DeleteTuple(tup);
+        auxRelation->AppendTuple(newTuple);
         result = SetWord(newTuple);
-        //tup->DeleteIfAllowed();
+        tup->DeleteIfAllowed();
         return YIELD;
       }
       else
@@ -6091,7 +5938,7 @@ int deleteDirectSaveRelValueMap(Word* args, Word& result, int message, Word& loc
     	qp->Close(args[0].addr);
     	qp->SetModified(args[1].addr);
     	qp->SetModified(args[2].addr);
-        return 0;
+      return 0;
   }
   return 0;
 }
@@ -6123,7 +5970,6 @@ Operator extreldeletedirectsave (
          "deletedirectsave",              // name
          deleteDirectSaveSpec,            // specification
          deleteDirectSaveRelValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          deleteDirectSaveRelTypeMap         // type mapping
 );
@@ -6149,8 +5995,6 @@ Type mapping ~inserttuple~ on a relation
 ----
 
 */
-
-
 ListExpr insertTupleTypeMap(ListExpr args)
 {
   
@@ -6242,7 +6086,7 @@ int insertTupleRelValueMap(Word* args, Word& result, int message, Word& local, S
       return 0;
 
     case REQUEST :
-	  firstcall = (bool*) local.addr;   
+  	  firstcall = (bool*) local.addr;   
       if (*firstcall)
       {
       	*firstcall = false;
@@ -6250,16 +6094,16 @@ int insertTupleRelValueMap(Word* args, Word& result, int message, Word& local, S
       	resultTupleType = new TupleType( nl->Second( resultType ) );
       	qp->Request(args[0].addr, argRelation);
       	relation = (Relation*)(argRelation.addr);    
-      	assert(relation != 0);  
-        resultTuple = new Tuple( *resultTupleType, true );
+        resultTuple = new Tuple( *resultTupleType );
         insertTuple = new Tuple( relation->GetTupleType());
         supplier = args[1].addr;
-        for( int i = 0; i < (resultTuple->GetNoAttributes() -1); i++ ){
+        for( int i = 0; i < (resultTuple->GetNoAttributes() -1); i++ )
+        {
           supplier1 = qp->GetSupplier(supplier, i);
           qp->Request(supplier1,attrValue);
           attr = (Attribute*) attrValue.addr;
           resultTuple->PutAttribute(i,attr->Clone());
-          insertTuple->PutAttribute(i,attr->Clone());
+          insertTuple->CopyAttribute(i,resultTuple,i);
         }
         relation->AppendTuple(insertTuple);
         const TupleId& tid = insertTuple->GetTupleId();
@@ -6277,7 +6121,7 @@ int insertTupleRelValueMap(Word* args, Word& result, int message, Word& local, S
     	firstcall = (bool*) local.addr;
     	delete firstcall;
     	qp->SetModified(args[0].addr);
-        return 0;
+      return 0;
   }
   return 0;
 }
@@ -6307,7 +6151,6 @@ Operator extrelinserttuple (
          "inserttuple",              // name
          insertTupleSpec,            // specification
          insertTupleRelValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          insertTupleTypeMap          // type mapping
 );
@@ -6453,26 +6296,24 @@ int insertTupleSaveRelValueMap(Word* args, Word& result, int message, Word& loca
       	resultTupleType = new TupleType( nl->Second( resultType ) );
       	qp->Request(args[0].addr, argRelation);
       	relation = (Relation*)(argRelation.addr);    
-      	assert(relation != 0); 
       	qp->Request(args[1].addr, argAuxRelation);
       	auxRelation = (Relation*)(argAuxRelation.addr);    
-      	assert(auxRelation != 0); 
-        resultTuple = new Tuple( *resultTupleType, true );
+        resultTuple = new Tuple( *resultTupleType );
         insertTuple = new Tuple( relation->GetTupleType());
         supplier = args[2].addr;
-        for( int i = 0; i < (resultTuple->GetNoAttributes() -1); i++ ){
+        for( int i = 0; i < (resultTuple->GetNoAttributes() -1); i++ )
+        {
           supplier1 = qp->GetSupplier(supplier, i);
           qp->Request(supplier1,attrValue);
           attr = (Attribute*) attrValue.addr;
           resultTuple->PutAttribute(i,attr->Clone());
-          insertTuple->PutAttribute(i,attr->Clone());
+          insertTuple->CopyAttribute(i,resultTuple,i);
         }
         relation->AppendTuple(insertTuple);
         const TupleId& tid = insertTuple->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);      
         resultTuple->PutAttribute( resultTuple->GetNoAttributes() -1, tidAttr);
-        Tuple* auxTuple = resultTuple->Clone();
-        auxRelation->AppendTuple(auxTuple);
+        auxRelation->AppendTuple(resultTuple);
         result = SetWord(resultTuple);
         insertTuple->DeleteIfAllowed();
         delete resultTupleType;
@@ -6486,7 +6327,7 @@ int insertTupleSaveRelValueMap(Word* args, Word& result, int message, Word& loca
     	delete firstcall;
     	qp->SetModified(args[0].addr);
     	qp->SetModified(args[1].addr);
-        return 0;
+      return 0;
   }
   return 0;
 }
@@ -6516,7 +6357,6 @@ Operator extrelinserttuplesave (
          "inserttuplesave",              // name
          insertTupleSaveSpec,            // specification
          insertTupleSaveRelValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          insertTupleSaveTypeMap          // type mapping
 );
@@ -6720,11 +6560,10 @@ int UpdateDirect(Word* args, Word& result, int message, Word& local, Supplier s)
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( *resultTupleType, true );
-        assert( newTuple->GetNoAttributes() == 2 * tup->GetNoAttributes() + 1);
-        for (int i = 0; i < tup->GetNoAttributes(); i++){
-        	newTuple->PutAttribute( tup->GetNoAttributes() +i, tup->GetAttribute(i)->Clone());	
-        }
+        Tuple *newTuple = new Tuple( *resultTupleType );
+        // Copy the attributes from the old tuple
+        for (int i = 0; i < tup->GetNoAttributes(); i++)
+        	newTuple->PutAttribute( tup->GetNoAttributes()+i, tup->GetAttribute(i)->Clone() );	
         qp->Request(args[3].addr, noWord);
         // Number of attributes to be replaced
         noOfAttrs = ((CcInt*)noWord.addr)->GetIntval();
@@ -6748,17 +6587,16 @@ int UpdateDirect(Word* args, Word& result, int message, Word& local, Supplier s)
           qp->Request(supplier3,value);
           newAttribute = ((StandardAttribute*)value.addr)->Clone();
           (*newAttrs)[i-1] = newAttribute;
-           
         }
         relation->UpdateTuple(tup,*changedIndices,*newAttrs); 
-        for (int i = 0; i < tup->GetNoAttributes(); i++){
-        	newTuple->PutAttribute( i, tup->GetAttribute(i)->Clone());	
-        }
+        for (int i = 0; i < tup->GetNoAttributes(); i++)
+        	newTuple->CopyAttribute( i, tup, i );
         const TupleId& tid = tup->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);      
-        newTuple->PutAttribute( newTuple->GetNoAttributes() - 1, tidAttr);
+        newTuple->PutAttribute( newTuple->GetNoAttributes() - 1, tidAttr );
         delete changedIndices;
         delete newAttrs;
+        tup->DeleteIfAllowed();
         result = SetWord(newTuple);
         return YIELD;
       }
@@ -6804,7 +6642,6 @@ Operator extrelupdatedirect (
          "updatedirect",              // name
          UpdateDirectSpec,            // specification
          UpdateDirect,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          updateDirectRelTypeMap          // type mapping
 );
@@ -6839,19 +6676,53 @@ int UpdateSearch(Word* args, Word& result, int message, Word& local, Supplier s)
   Supplier supplier, supplier2, supplier3, son;
   int noOfAttrs, index;
   ArgVectorPointer funargs;
-  TupleType *resultTupleType;
   ListExpr resultType;
   Relation* relation;
   RelationIterator* iter;
   Attribute* newAttribute;
-  vector<Tuple*>* updatedTuples;
-  vector<vector<Tuple*>*>* hashTable;
   vector<Tuple*>* nextBucket;
-  struct LocalTransport { 
-  	vector<Tuple*>* updatedTuples;
-  	vector<vector<Tuple*>*>* hashTable;
-  	TupleType* resultTupleType;
-  } * localTransport;
+  struct LocalTransport
+  {
+    LocalTransport():
+    updatedTuples( new vector<Tuple*>() ),
+    hashTable( new vector<vector<Tuple*>*>(256) ),
+    resultTupleType( 0 )
+    {
+      for (int i = 0; i < 256; i++)
+        (*hashTable)[i] = new vector<Tuple*>();
+    }
+
+    ~LocalTransport()
+    {
+      for( vector<Tuple*>::iterator i = updatedTuples->begin();
+           i != updatedTuples->end();
+           i++ )
+      {
+        (*i)->DecReference();
+        (*i)->DeleteIfAllowed();
+      }
+      delete updatedTuples;
+
+      for (int i = 0; i < 256; i++)
+      {
+        for( vector<Tuple*>::iterator j = (*hashTable)[i]->begin();
+             j != (*hashTable)[i]->end();
+             j++ )
+        {
+          (*j)->DecReference();
+          (*j)->DeleteIfAllowed();
+        }
+        delete (*hashTable)[i];
+      }
+      delete hashTable;
+
+      delete resultTupleType;
+    }
+
+    vector<Tuple*>* updatedTuples;
+    vector<vector<Tuple*>*>* hashTable;
+    TupleType* resultTupleType;
+  } *localTransport;
   size_t hashValue ; 
   bool tupleFound;
 
@@ -6861,121 +6732,114 @@ int UpdateSearch(Word* args, Word& result, int message, Word& local, Supplier s)
 
       qp->Open(args[0].addr);
       localTransport = new LocalTransport();
-      updatedTuples = new vector<Tuple*>();
-      hashTable = new vector<vector<Tuple*>*>(256);
-      localTransport->updatedTuples = updatedTuples;
-      localTransport->hashTable = hashTable;
-      // Prepare hashtable
-      for (int i = 0; i < 256; i++){
-      	nextBucket = new vector<Tuple*>();
-      	hashTable->operator[](i) = nextBucket;	
-      }
       qp->Request(args[1].addr, relWord);
       relation = (Relation*)(relWord.addr); 
-      assert(relation != 0);
       iter = new RelationIterator(*relation); 
       nextTup = iter->GetNextTuple();
       // Fill hashtable    
-      while (!iter->EndOfScan()){
+      while (!iter->EndOfScan())
+      {
       	hashValue = 0;
-      	for( int i = 0; i < nextTup->GetNoAttributes(); i++ ){
+      	for( int i = 0; i < nextTup->GetNoAttributes(); i++ )
            hashValue += ((StandardAttribute*)(nextTup->GetAttribute(i)))->HashValue();		
-        }
-        nextBucket = hashTable->operator[](hashValue % 256);
+        nextBucket = localTransport->hashTable->operator[](hashValue % 256);
+        nextTup->IncReference();
       	nextBucket->push_back(nextTup);
       	nextTup = iter->GetNextTuple(); 
       }
       delete iter;
       resultType = GetTupleResultType( s );
-      resultTupleType = new TupleType( nl->Second( resultType ) );
-      localTransport->resultTupleType = resultTupleType;  
+      localTransport->resultTupleType = new TupleType( nl->Second( resultType ) );
       local = SetWord( localTransport );
       return 0;
 
     case REQUEST :
 
       localTransport =  (LocalTransport*) local.addr; 
-      updatedTuples = localTransport->updatedTuples;
-      hashTable = localTransport->hashTable;
-      resultTupleType = localTransport->resultTupleType;
       // Check if an already updated duplicate of the last inputtuple has to be given to the
       //resultstream first
-      if (!updatedTuples->empty()){
-      	newTuple = updatedTuples->back();
-      	updatedTuples->pop_back();
+      if (!localTransport->updatedTuples->empty())
+      {
+      	newTuple = localTransport->updatedTuples->back();
+        newTuple->DecReference();
+      	localTransport->updatedTuples->pop_back();
         result = SetWord(newTuple);
         return YIELD;
       }
+      else
       // No more duplicates to send to the resultstream
-      else{     	 
+      {     	 
       	qp->Request(args[1].addr,relWord);
       	relation = (Relation*) relWord.addr;
       	tupleFound = false;
       	// tupleFound will stay false until a tuple with the same values as the inputtuple was found and updated
-      	while (! tupleFound){
+      	while (! tupleFound)
+        {
       		qp->Request(args[0].addr,t);
       		if (qp->Received(args[0].addr))
       		{
         		tup = (Tuple*)t.addr;
         		hashValue = 0;
-      			for( int i = 0; i < tup->GetNoAttributes(); i++ ){
+      			for( int i = 0; i < tup->GetNoAttributes(); i++ )
            			hashValue += ((StandardAttribute*)(tup->GetAttribute(i)))->HashValue();		
-        		}
         		SortOrderSpecification full;
-        		for( int i = 0; i < tup->GetNoAttributes(); i++ ){
+        		for( int i = 0; i < tup->GetNoAttributes(); i++ )
            			full.push_back(pair<int,bool> (i+1,false));
-        		}
         		TupleCompareBy compare(full);
         		// Get the right bucket from the hashtable
-        		nextBucket = hashTable->operator[](hashValue % 256);
+        		nextBucket = localTransport->hashTable->operator[](hashValue % 256);
         		// Get all tuples from the bucket that have the same attributevalues as the inputtuple
-        		for (size_t j = 0; j < nextBucket->size(); j++){
+        		for (size_t j = 0; j < nextBucket->size(); j++)
+            {
         			nextTup = nextBucket->operator[](j);
-        			if (nextTup != 0){
-        				if(!compare(nextTup,tup) && !compare(tup,nextTup)){
-        					newTuple = new Tuple( *resultTupleType, true );
-        					assert( newTuple->GetNoAttributes() == 2 * nextTup->GetNoAttributes() + 1);
-        					for (int i = 0; i < nextTup->GetNoAttributes(); i++){
-        						newTuple->PutAttribute( nextTup->GetNoAttributes() +i, nextTup->GetAttribute(i)->Clone());	
-        					}
+        			if (nextTup != 0)
+              {
+        				if(!compare(nextTup,tup) && !compare(tup,nextTup))
+                {
+        					newTuple = new Tuple( *localTransport->resultTupleType );
+        					for (int i = 0; i < nextTup->GetNoAttributes(); i++)
+        						newTuple->PutAttribute( nextTup->GetNoAttributes()+i, nextTup->GetAttribute(i)->Clone());	
         					qp->Request(args[3].addr, noWord);
         					noOfAttrs = ((CcInt*)noWord.addr)->GetIntval();
         					// Supplier for the functions
         					supplier = args[2].addr;
         					vector<int>* changedIndices = new vector<int>(noOfAttrs);
         					vector<Attribute*>* newAttrs = new vector<Attribute*>(noOfAttrs);
-        					for (int i=1; i <= noOfAttrs; i++){
+        					for (int i=1; i <= noOfAttrs; i++)
+                  {
         						// Supplier for the next index
-          						son = qp->GetSupplier(args[4].addr, i-1);
-          						qp->Request(son, elem);
-          						index = ((CcInt*)elem.addr)->GetIntval() -1;
-          						(*changedIndices)[i-1] = index;
-          						// Suppliers for the next function
-          						supplier2 = qp->GetSupplier(supplier, i-1);
-          						supplier3 = qp->GetSupplier(supplier2, 1);
-          						funargs = qp->Argument(supplier3);
-          						(*funargs)[0] = SetWord(nextTup);
-          						qp->Request(supplier3,value);
-          						newAttribute = ((StandardAttribute*)value.addr)->Clone();
-          						(*newAttrs)[i-1] = newAttribute;       
+          				  son = qp->GetSupplier(args[4].addr, i-1);
+          					qp->Request(son, elem);
+          					index = ((CcInt*)elem.addr)->GetIntval() -1;
+          					(*changedIndices)[i-1] = index;
+          					// Suppliers for the next function
+          					supplier2 = qp->GetSupplier(supplier, i-1);
+          					supplier3 = qp->GetSupplier(supplier2, 1);
+          					funargs = qp->Argument(supplier3);
+          					(*funargs)[0] = SetWord(nextTup);
+          					qp->Request(supplier3,value);
+          					newAttribute = ((StandardAttribute*)value.addr)->Clone();
+          					(*newAttrs)[i-1] = newAttribute;       
         					}	
         					relation->UpdateTuple(nextTup,*changedIndices,*newAttrs); 
-        					for (int i = 0; i < nextTup->GetNoAttributes(); i++){
-        						newTuple->PutAttribute( i, nextTup->GetAttribute(i)->Clone());	
-        					}
+        					for (int i = 0; i < nextTup->GetNoAttributes(); i++)
+        						newTuple->CopyAttribute( i, nextTup, i );
         					const TupleId& tid = nextTup->GetTupleId();
         					StandardAttribute* tidAttr = new TupleIdentifier(true,tid);      
-        					newTuple->PutAttribute( newTuple->GetNoAttributes() - 1, tidAttr);
+        					newTuple->PutAttribute( newTuple->GetNoAttributes() - 1, tidAttr );
         					delete changedIndices;
         					delete newAttrs;
-        					updatedTuples->push_back(newTuple);
+                  newTuple->IncReference();
+        					localTransport->updatedTuples->push_back(newTuple);
         				}
         			}
         		}
         		// Check if at least one tuple was updated      	
-        		if (!updatedTuples->empty()){
-        			newTuple = updatedTuples->back();
-        			updatedTuples->pop_back();
+        		if (!localTransport->updatedTuples->empty())
+            {
+        			newTuple = localTransport->updatedTuples->back();
+              newTuple->DecReference();
+        			localTransport->updatedTuples->pop_back();
         			result = SetWord(newTuple);
         			tupleFound = true;
         		}
@@ -7025,7 +6889,6 @@ Operator extrelupdatesearch (
          "updatesearch",              // name
          UpdateSearchSpec,            // specification
          UpdateSearch,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          updateSearchRelTypeMap          // type mapping
 );
@@ -7201,15 +7064,16 @@ ListExpr updateSaveTypeMap( ListExpr& args, string opName )
   	}
   	lastlistn= nl->Append(lastlistn, nl->TwoElemList(nl->SymbolAtom("TID"), nl->SymbolAtom("tid")));
   
-   	// Compare tupletype of the resultstream with the one of the auxiliary relation
-  	nl->WriteToString(argstr, listn);
-  	nl->WriteToString(argstr2, nl->Second(nl->Second(third)));
-    CHECK_COND( (nl->Equal(listn,nl->Second(nl->Second(third)))),
-      			"Operator " + opName + ": Tuple type of the resultstream '" + argstr +
-      			"' is different from the tuple type '" + argstr2 +
-      			"' in the auxiliary-relation" );
-  	outlist = nl->ThreeElemList(nl->SymbolAtom("APPEND"),nl->TwoElemList(nl->IntAtom(noAttrs),numberList),nl->TwoElemList(nl->SymbolAtom("stream"),
-            					nl->TwoElemList(nl->SymbolAtom("tuple"),listn)));
+  	outlist = nl->ThreeElemList(
+                nl->SymbolAtom("APPEND"),
+                nl->TwoElemList(
+                  nl->IntAtom(noAttrs),
+                  numberList),
+                nl->TwoElemList(
+                  nl->SymbolAtom("stream"),
+            			nl->TwoElemList(
+                    nl->SymbolAtom("tuple"),
+                    listn)));
   	return outlist;
 }
 
@@ -7258,16 +7122,13 @@ int UpdateDirectSave(Word* args, Word& result, int message, Word& local, Supplie
       relation = (Relation*) relWord.addr;
       qp->Request(args[2].addr, argAuxRelation);
       auxRelation = (Relation*)(argAuxRelation.addr);    
-      assert(auxRelation != 0); 
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( *resultTupleType, true );
-        assert( newTuple->GetNoAttributes() == 2 * tup->GetNoAttributes() + 1);
-        for (int i = 0; i < tup->GetNoAttributes(); i++){
-        	newTuple->PutAttribute( tup->GetNoAttributes() +i, tup->GetAttribute(i)->Clone());	
-        }
+        Tuple *newTuple = new Tuple( *resultTupleType );
+        for (int i = 0; i < tup->GetNoAttributes(); i++)
+        	newTuple->PutAttribute( tup->GetNoAttributes()+i, tup->GetAttribute(i)->Clone() );	
         qp->Request(args[4].addr, noWord);
         noOfAttrs = ((CcInt*)noWord.addr)->GetIntval();
         // Get the supplier for the updatefunctions
@@ -7288,19 +7149,15 @@ int UpdateDirectSave(Word* args, Word& result, int message, Word& local, Supplie
           qp->Request(supplier3,value);
           newAttribute = ((StandardAttribute*)value.addr)->Clone();
           (*newAttrs)[i-1] = newAttribute;
-           
         }
         relation->UpdateTuple(tup,*changedIndices,*newAttrs);
-       
-        for (int i = 0; i < tup->GetNoAttributes(); i++){
-     		newTuple->PutAttribute( i, tup->GetAttribute(i)->Clone());	
-        }
+        for (int i = 0; i < tup->GetNoAttributes(); i++)
+      		newTuple->CopyAttribute( i, tup, i );
         const TupleId& tid = tup->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);      
         newTuple->PutAttribute( newTuple->GetNoAttributes() - 1, tidAttr);
-        Tuple* auxTuple = newTuple->Clone();
-        auxRelation->AppendTuple(auxTuple);
-        //tup->DeleteIfAllowed();
+        auxRelation->AppendTuple(newTuple);
+        tup->DeleteIfAllowed();
         delete changedIndices;
         delete newAttrs;
         result = SetWord(newTuple);
@@ -7349,7 +7206,6 @@ Operator extrelupdatedirectsave (
          "updatedirectsave",              // name
          UpdateDirectSaveSpec,            // specification
          UpdateDirectSave,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          updateDirectSaveRelTypeMap          // type mapping
 );
@@ -7388,20 +7244,54 @@ int UpdateSearchSave(Word* args, Word& result, int message, Word& local, Supplie
   Supplier supplier, supplier2, supplier3, son;
   int noOfAttrs, index;
   ArgVectorPointer funargs;
-  TupleType *resultTupleType;
   ListExpr resultType;
   Relation* relation;
   Relation* auxRelation;
   RelationIterator* iter;
   Attribute* newAttribute;
-  vector<Tuple*>* updatedTuples;
-  vector<vector<Tuple*>*>* hashTable;
   vector<Tuple*>* nextBucket;
-  struct LocalTransport { 
-  	vector<Tuple*>* updatedTuples;
-  	vector<vector<Tuple*>*>* hashTable;
-  	TupleType* resultTupleType;
-  } * localTransport;
+  struct LocalTransport
+  {
+    LocalTransport():
+    updatedTuples( new vector<Tuple*>() ),
+    hashTable( new vector<vector<Tuple*>*>(256) ),
+    resultTupleType( 0 )
+    {
+      for (int i = 0; i < 256; i++)
+        (*hashTable)[i] = new vector<Tuple*>();
+    }
+
+    ~LocalTransport()
+    {
+      for( vector<Tuple*>::iterator i = updatedTuples->begin();
+           i != updatedTuples->end();
+           i++ )
+      {
+        (*i)->DecReference();
+        (*i)->DeleteIfAllowed();
+      }
+      delete updatedTuples;
+
+      for (int i = 0; i < 256; i++)
+      {
+        for( vector<Tuple*>::iterator j = (*hashTable)[i]->begin();
+             j != (*hashTable)[i]->end();
+             j++ )
+        {
+          (*j)->DecReference();
+          (*j)->DeleteIfAllowed();
+        }
+        delete (*hashTable)[i];
+      }
+      delete hashTable;
+
+      delete resultTupleType;
+    }
+
+    vector<Tuple*>* updatedTuples;
+    vector<vector<Tuple*>*>* hashTable;
+    TupleType* resultTupleType;
+  } *localTransport;
   size_t hashValue ; 
   bool tupleFound;
 
@@ -7411,127 +7301,118 @@ int UpdateSearchSave(Word* args, Word& result, int message, Word& local, Supplie
 
       qp->Open(args[0].addr);
       localTransport = new LocalTransport();
-      updatedTuples = new vector<Tuple*>();
-      hashTable = new vector<vector<Tuple*>*>(256);
-      localTransport->updatedTuples = updatedTuples;
-      localTransport->hashTable = hashTable;
-      // Prepare hashtable
-      for (int i = 0; i < 256; i++){
-      	nextBucket = new vector<Tuple*>();
-      	hashTable->operator[](i) = nextBucket;	
-      }
       qp->Request(args[1].addr, relWord);
       relation = (Relation*)(relWord.addr); 
-      assert(relation != 0);
       iter = new RelationIterator(*relation); 
       nextTup = iter->GetNextTuple();
       // fill hashtable    
-      while (!iter->EndOfScan()){
-      	hashValue = 0;
-      	for( int i = 0; i < nextTup->GetNoAttributes(); i++ ){
-           hashValue += ((StandardAttribute*)(nextTup->GetAttribute(i)))->HashValue();		
-        }
-        nextBucket = hashTable->operator[](hashValue % 256);
-      	nextBucket->push_back(nextTup);
-      	nextTup = iter->GetNextTuple(); 
+      while (!iter->EndOfScan())
+      {
+        hashValue = 0;
+        for( int i = 0; i < nextTup->GetNoAttributes(); i++ )
+           hashValue += ((StandardAttribute*)(nextTup->GetAttribute(i)))->HashValue();
+        nextBucket = localTransport->hashTable->operator[](hashValue % 256);
+        nextTup->IncReference();
+        nextBucket->push_back(nextTup);
+        nextTup = iter->GetNextTuple();
       }
       delete iter;
       resultType = GetTupleResultType( s );
-      resultTupleType = new TupleType( nl->Second( resultType ) );  
-      localTransport->resultTupleType = resultTupleType;
+      localTransport->resultTupleType = new TupleType( nl->Second( resultType ) );
       local = SetWord( localTransport );
       return 0;
 
     case REQUEST :
-    
-      localTransport =  (LocalTransport*) local.addr; 
-      updatedTuples = localTransport->updatedTuples;
-      hashTable = localTransport->hashTable;
-      resultTupleType = localTransport->resultTupleType;
+
+      localTransport =  (LocalTransport*) local.addr;
       // Check if an already updated duplicate of the last inputtuples has to be send to
       // the outputstream first
-      if (!updatedTuples->empty()){
-      	newTuple = updatedTuples->back();
-      	updatedTuples->pop_back();
+      if (!localTransport->updatedTuples->empty())
+      {
+        newTuple = localTransport->updatedTuples->back();
+        newTuple->IncReference();
+        localTransport->updatedTuples->pop_back();
         result = SetWord(newTuple);
         return YIELD;
       }
+      else
       // No more duplicates to be send to the outputstream
-      else{
+      {
       	qp->Request(args[1].addr,relWord);
       	relation = (Relation*) relWord.addr;
       	qp->Request(args[2].addr, argAuxRelation);
       	auxRelation = (Relation*)(argAuxRelation.addr);    
-      	assert(auxRelation != 0);
       	tupleFound = false;
       	// tupleFound will stay false until a tuple with the same values as one of the 
       	//inputtuples was found
-      	while (! tupleFound){ 
+      	while (! tupleFound)
+        { 
       		qp->Request(args[0].addr,t);
       		if (qp->Received(args[0].addr))
       		{
         		tup = (Tuple*)t.addr;
         		hashValue = 0;
-      			for( int i = 0; i < tup->GetNoAttributes(); i++ ){
+      			for( int i = 0; i < tup->GetNoAttributes(); i++ )
            			hashValue += ((StandardAttribute*)(tup->GetAttribute(i)))->HashValue();		
-        		}
         		SortOrderSpecification full;
-        		for( int i = 0; i < tup->GetNoAttributes(); i++ ){
+        		for( int i = 0; i < tup->GetNoAttributes(); i++ )
            			full.push_back(pair<int,bool> (i+1,false));
-        		}
         		TupleCompareBy compare(full);
         		// Get the right bucket
-        		nextBucket = hashTable->operator[](hashValue % 256);
+        		nextBucket = localTransport->hashTable->operator[](hashValue % 256);
         		// Look for all tuples in the bucket if they have the same attributevalues
-        		for (size_t j = 0; j < nextBucket->size(); j++){
+        		for (size_t j = 0; j < nextBucket->size(); j++)
+            {
         			nextTup = nextBucket->operator[](j);
-        			if (nextTup != 0){
-        				if(!compare(nextTup,tup) && !compare(tup,nextTup)){
-        					newTuple = new Tuple( *resultTupleType, true );
-        					assert( newTuple->GetNoAttributes() == 2 * nextTup->GetNoAttributes() + 1);
-        					for (int i = 0; i < nextTup->GetNoAttributes(); i++){
+        			if (nextTup != 0)
+              {
+        				if(!compare(nextTup,tup) && !compare(tup,nextTup))
+                {
+        					newTuple = new Tuple( *localTransport->resultTupleType );
+        					for (int i = 0; i < nextTup->GetNoAttributes(); i++)
         						newTuple->PutAttribute( nextTup->GetNoAttributes() +i, nextTup->GetAttribute(i)->Clone());	
-        					}
         					qp->Request(args[4].addr, noWord);
         					noOfAttrs = ((CcInt*)noWord.addr)->GetIntval();
         					// Supplier for the updatefunctions
         					supplier = args[3].addr;
         					vector<int>* changedIndices = new vector<int>(noOfAttrs);
         					vector<Attribute*>* newAttrs = new vector<Attribute*>(noOfAttrs);
-        					for (int i=1; i <= noOfAttrs; i++){
+        					for (int i=1; i <= noOfAttrs; i++)
+                  {
         						// Supplier for the next attributeindex
-          						son = qp->GetSupplier(args[5].addr, i-1);
-          						qp->Request(son, elem);
-          						index = ((CcInt*)elem.addr)->GetIntval() -1;
-          						(*changedIndices)[i-1] = index;
-          						// Suppliers for the next updatefunctions
-          						supplier2 = qp->GetSupplier(supplier, i-1);
-          						supplier3 = qp->GetSupplier(supplier2, 1);
-          						funargs = qp->Argument(supplier3);
-          						(*funargs)[0] = SetWord(nextTup);
-          						qp->Request(supplier3,value);
-          						newAttribute = ((StandardAttribute*)value.addr)->Clone();
-          						(*newAttrs)[i-1] = newAttribute;       
+          					son = qp->GetSupplier(args[5].addr, i-1);
+          					qp->Request(son, elem);
+          					index = ((CcInt*)elem.addr)->GetIntval() -1;
+          					(*changedIndices)[i-1] = index;
+          					// Suppliers for the next updatefunctions
+          					supplier2 = qp->GetSupplier(supplier, i-1);
+          					supplier3 = qp->GetSupplier(supplier2, 1);
+          					funargs = qp->Argument(supplier3);
+          					(*funargs)[0] = SetWord(nextTup);
+          					qp->Request(supplier3,value);
+          					newAttribute = ((StandardAttribute*)value.addr)->Clone();
+          					(*newAttrs)[i-1] = newAttribute;       
         					}	
         					relation->UpdateTuple(nextTup,*changedIndices,*newAttrs); 
-        					for (int i = 0; i < nextTup->GetNoAttributes(); i++){
-        						newTuple->PutAttribute( i, nextTup->GetAttribute(i)->Clone());	
-        					}
+        					for (int i = 0; i < nextTup->GetNoAttributes(); i++)
+        						newTuple->CopyAttribute( i, nextTup, i );
         					const TupleId& tid = nextTup->GetTupleId();
         					StandardAttribute* tidAttr = new TupleIdentifier(true,tid);      
         					newTuple->PutAttribute( newTuple->GetNoAttributes() - 1, tidAttr);
-        					Tuple* auxTuple = newTuple->Clone();
-        					auxRelation->AppendTuple(auxTuple);	
+        					auxRelation->AppendTuple(newTuple);	
         					delete changedIndices;
         					delete newAttrs;
-        					updatedTuples->push_back(newTuple);
+                  newTuple->IncReference();
+        					localTransport->updatedTuples->push_back(newTuple);
         				}
         			}
         		}  
         		// Check if at least one updated tuple has to be send to the outputstream    	
-        		if (!updatedTuples->empty()){
-        			newTuple = updatedTuples->back();
-        			updatedTuples->pop_back();
+        		if (!localTransport->updatedTuples->empty())
+            {
+        			newTuple = localTransport->updatedTuples->back();
+              newTuple->DecReference();
+        			localTransport->updatedTuples->pop_back();
         			result = SetWord(newTuple);
         			tupleFound = true;
         		}
@@ -7582,7 +7463,6 @@ Operator extrelupdatesearchsave (
          "updatesearchsave",              // name
          UpdateSearchSaveSpec,            // specification
          UpdateSearchSave,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          updateSearchSaveRelTypeMap          // type mapping
 );
@@ -7664,10 +7544,9 @@ int appendIdentifierValueMap(Word* args, Word& result, int message, Word& local,
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( *resultTupleType, true );
-        for( int i = 0; i < tup->GetNoAttributes(); i++ ){
-          newTuple->PutAttribute( i, (tup->GetAttribute(i))->Clone() );
-        }
+        Tuple *newTuple = new Tuple( *resultTupleType );
+        for( int i = 0; i < tup->GetNoAttributes(); i++ )
+          newTuple->CopyAttribute( i, tup, i );
         const TupleId& tid = tup->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);      
         newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr);
@@ -7682,7 +7561,7 @@ int appendIdentifierValueMap(Word* args, Word& result, int message, Word& local,
     	resultTupleType = (TupleType*) local.addr;
     	delete resultTupleType;
     	qp->Close(args[0].addr);
-        return 0;
+      return 0;
   }
   return 0;
 } 
@@ -7713,7 +7592,6 @@ Operator extrelappendidentifier (
          "appendidentifier",              // name
          appendIdentifierSpec,            // specification
          appendIdentifierValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          appendIdentifierTypeMap         // type mapping
 );
@@ -7780,7 +7658,8 @@ ListExpr deleteByIdTypeMap(ListExpr args)
 2.33.2 Value mapping function of operator ~deletebyid~
 
 */
-int deleteByIdValueMap(Word* args, Word& result, int message, Word& local, Supplier s){
+int deleteByIdValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
+{
   Word argRelation, argTid;
   Tuple* resultTuple;
   Tuple* deleteTuple;
@@ -7799,7 +7678,7 @@ int deleteByIdValueMap(Word* args, Word& result, int message, Word& local, Suppl
       return 0;
 
     case REQUEST :
-	  firstcall = (bool*) local.addr;   
+  	  firstcall = (bool*) local.addr;   
       if (*firstcall)
       {
       	*firstcall = false;
@@ -7807,23 +7686,23 @@ int deleteByIdValueMap(Word* args, Word& result, int message, Word& local, Suppl
       	resultTupleType = new TupleType( nl->Second( resultType ) );
       	qp->Request(args[0].addr, argRelation);
       	relation = (Relation*)(argRelation.addr);    
-      	assert(relation != 0);  
       	qp->Request(args[1].addr, argTid);
       	tid = (TupleIdentifier*)(argTid.addr);      
-        resultTuple = new Tuple( *resultTupleType, true );
+        resultTuple = new Tuple( *resultTupleType );
         deleteTuple = relation->GetTuple(tid->GetTid());
-        if (deleteTuple->GetTupleId() == 0){
+        if (deleteTuple == 0)
+        {
         	 delete resultTupleType;
         	 delete resultTuple;
         	 return CANCEL;
         }
-        for (int i = 0; i < deleteTuple->GetNoAttributes(); i++){
+        for (int i = 0; i < deleteTuple->GetNoAttributes(); i++)
         	resultTuple->PutAttribute(i, deleteTuple->GetAttribute(i)->Clone());	
-        }
         relation->DeleteTuple(deleteTuple);
         resultTuple->PutAttribute( resultTuple->GetNoAttributes() -1, tid->Clone());
         result = SetWord(resultTuple);
         delete resultTupleType;
+        deleteTuple->DeleteIfAllowed();
         return YIELD;
       }
       else
@@ -7833,7 +7712,7 @@ int deleteByIdValueMap(Word* args, Word& result, int message, Word& local, Suppl
     	firstcall = (bool*) local.addr;
     	delete firstcall;
     	qp->SetModified(args[0].addr);
-        return 0;
+      return 0;
   }
   return 0;
 }
@@ -7864,7 +7743,6 @@ Operator extreldeletebyid (
          "deletebyid",              // name
          deleteByIdSpec,            // specification
          deleteByIdValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          deleteByIdTypeMap         // type mapping
 );
@@ -8040,19 +7918,18 @@ int updateByIdValueMap(Word* args, Word& result, int message, Word& local, Suppl
       	resultTupleType = new TupleType( nl->Second( resultType ) );
       	qp->Request(args[0].addr, argRelation);
       	relation = (Relation*)(argRelation.addr);    
-      	assert(relation != 0);  
       	qp->Request(args[1].addr, argTid);
       	tid = (TupleIdentifier*)(argTid.addr);      
-        resultTuple = new Tuple( *resultTupleType, true );
+        resultTuple = new Tuple( *resultTupleType );
         updateTuple = relation->GetTuple(tid->GetTid());
-        if (updateTuple->GetTupleId() == 0){
+        if (updateTuple == 0)
+        {
         	 delete resultTupleType;
         	 delete resultTuple;
         	 return CANCEL;
         }
-        for (int i = 0; i < updateTuple->GetNoAttributes(); i++){
+        for (int i = 0; i < updateTuple->GetNoAttributes(); i++)
         	resultTuple->PutAttribute( updateTuple->GetNoAttributes() +i, updateTuple->GetAttribute(i)->Clone());	
-        }
         qp->Request(args[3].addr, noWord);
         // Number of attributes to be replaced
         noOfAttrs = ((CcInt*)noWord.addr)->GetIntval();
@@ -8076,17 +7953,16 @@ int updateByIdValueMap(Word* args, Word& result, int message, Word& local, Suppl
           qp->Request(supplier3,value);
           newAttribute = ((StandardAttribute*)value.addr)->Clone();
           (*newAttrs)[i-1] = newAttribute;
-           
         }
         relation->UpdateTuple(updateTuple,*changedIndices,*newAttrs); 
-        for (int i = 0; i < updateTuple->GetNoAttributes(); i++){
-        	resultTuple->PutAttribute( i, updateTuple->GetAttribute(i)->Clone());	
-        }
+        for (int i = 0; i < updateTuple->GetNoAttributes(); i++)
+        	resultTuple->CopyAttribute( i, updateTuple, i );
         resultTuple->PutAttribute( resultTuple->GetNoAttributes() -1, tid->Clone());
         result = SetWord(resultTuple);
         delete changedIndices;
         delete newAttrs;
         delete resultTupleType;
+        updateTuple->DeleteIfAllowed();
         return YIELD;
       }
       else
@@ -8130,7 +8006,6 @@ Operator extrelupdatebyid (
          "updatebyid",              // name
          updateByIdSpec,            // specification
          updateByIdValueMap,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          updateByIdTypeMap         // type mapping
 );
@@ -8277,7 +8152,6 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             if( qp->Received( args[0].addr ) )
             {
               pli->currTuple = (Tuple*)r.addr;
-              assert( pli->leftRel != 0 && pli->leftIter == 0 );
               pli->leftIter = pli->leftRel->MakeScan();
             }
             else
@@ -8295,7 +8169,6 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
           // Now we have a tuple from the right stream in currTuple and an open
           // iterator on the left stored buffer.
-          assert( pli->currTuple != 0 && pli->leftIter != 0 );
           Tuple *leftTuple = pli->leftIter->GetNextTuple();
 
           if( leftTuple == 0 )
@@ -8331,9 +8204,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             if( boolFunResult->IsDefined() &&
                 boolFunResult->GetBoolval() )
             {
-              Tuple *resultTuple = new Tuple( *(pli->resultTupleType), true );
-              assert( resultTuple->IsFree() );
-
+              Tuple *resultTuple = new Tuple( *(pli->resultTupleType) );
               Concat( pli->currTuple, leftTuple, resultTuple );
               leftTuple->DeleteIfAllowed();
               leftTuple = 0;
@@ -8358,7 +8229,6 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             if( qp->Received( args[1].addr ) )
             {
               pli->currTuple = (Tuple*)l.addr;
-              assert( pli->rightRel != 0 && pli->rightIter == 0 );
               pli->rightIter = pli->rightRel->MakeScan();
             }
             else
@@ -8376,7 +8246,6 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
           // Now we have a tuple from the left stream in currTuple and an open
           // iterator on the right stored buffer.
-          assert( pli->currTuple != 0 && pli->rightIter != 0 );
           Tuple *rightTuple = pli->rightIter->GetNextTuple();
 
           if( rightTuple == 0 )
@@ -8412,9 +8281,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             if( boolFunResult->IsDefined() &&
                 boolFunResult->GetBoolval() )
             {
-              Tuple *resultTuple = new Tuple( *(pli->resultTupleType), true );
-              assert( resultTuple->IsFree() );
-
+              Tuple *resultTuple = new Tuple( *(pli->resultTupleType) );
               Concat( rightTuple, pli->currTuple, resultTuple );
               rightTuple->DeleteIfAllowed();
               rightTuple = 0;
@@ -8493,10 +8360,8 @@ Operator extrelsymmjoin (
          "symmjoin",            // name
          SymmJoinSpec,          // specification
          SymmJoin,              // value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,         // trivial selection function
-         SymmJoinTypeMap,        // type mapping
-         Operator::DummyCost   // cost function
+         SymmJoinTypeMap        // type mapping
 //         true                   // needs large amounts of memory
 );
 
@@ -8537,7 +8402,6 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelmergeunion);
     AddOperator(&extrelmergejoin);
     AddOperator(&extrelsortmergejoin);
-    AddOperator(&extreloldhashjoin);
     AddOperator(&extrelhashjoin);
     AddOperator(&extrelloopjoin);
     AddOperator(&extrelextendstream);
@@ -8545,7 +8409,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelloopsel);
     AddOperator(&extrelgroupby);
     AddOperator(&extrelaggregate);
-    AddOperator(&extrelaggregatenew);
+    AddOperator(&extrelaggregateB);
     AddOperator(&extrelcreateinsertrel);
     AddOperator(&extrelcreatedeleterel);
     AddOperator(&extrelcreateupdaterel);

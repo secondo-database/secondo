@@ -27,6 +27,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 July 2005 Hoffmann
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 This algebra provides a type constructor ~pointsequence~.
 
 1 Preliminaries
@@ -501,10 +505,10 @@ void* CastPointSequence(void* addr)
 
 */
 TypeConstructor pointsequence(
-  "pointsequence",			     //name
-  PointSequenceProperty,		     //property function describing 
+  "pointsequence",			                     //name
+  PointSequenceProperty,		                 //property function describing 
                                              //signature
-  OutPointSequence,InPointSequence,	     //Out and In functions
+  OutPointSequence,InPointSequence,	         //Out and In functions
   0, 0,                                      //SaveToList and RestoreFromList
                                              //functions
   CreatePointSequence,  DeletePointSequence, //object creation and deletion
@@ -512,13 +516,7 @@ TypeConstructor pointsequence(
   ClosePointSequence,   ClonePointSequence,  //object close and clone
   CastPointSequence,                   	     //cast function
   SizeOfPointSequence,                       //sizeof function
-  CheckPointSequence,			     //kind checking function
-  0,                                         //predefined persistence function
-                                             //for model
-  TypeConstructor::DummyInModel,
-  TypeConstructor::DummyOutModel,
-  TypeConstructor::DummyValueToModel,
-  TypeConstructor::DummyValueListToModel );
+  CheckPointSequence );	            		     //kind checking function
 	
 /*
 4 Creating Operators
@@ -844,7 +842,6 @@ Operator c2point (
 	"c2point", 		//name
 	C2PointSpec,            //specification
 	C2PointFun,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 	Operator::SimpleSelect,	//trivial selection function
 	C2PointTypeMap		//type mapping
 );
@@ -853,7 +850,6 @@ Operator c2points (
 	"c2points", 		//name
 	C2PointsSpec,           //specification
 	C2PointsFun,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 	Operator::SimpleSelect,	//trivial selection function
 	C2PointsTypeMap		//type mapping
 );
@@ -862,7 +858,6 @@ Operator c2line (
 	"c2line", 		//name
 	C2LineSpec,             //specification
 	C2LineFun,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 	Operator::SimpleSelect,	//trivial selection function
 	C2LineTypeMap		//type mapping
 );
@@ -871,7 +866,6 @@ Operator c2region (
 	"c2reg", 		//name
 	C2RegionSpec,           //specification
 	C2RegionFun,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 	Operator::SimpleSelect,	//trivial selection function
 	C2RegionTypeMap		//type mapping
 );
@@ -880,7 +874,6 @@ Operator c2rect (
 	"c2rect", 		//name
 	C2RectSpec,             //specification
 	C2RectFun,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 	Operator::SimpleSelect,	//trivial selection function
 	C2RectTypeMap		//type mapping
 );
@@ -889,7 +882,6 @@ Operator rect2ps (
 	"rect2ps", 		//name
 	Rect2PSSpec,            //specification
 	Rect2PSFun,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 	Operator::SimpleSelect,	//trivial selection function
 	Rect2PSTypeMap		//type mapping
 );

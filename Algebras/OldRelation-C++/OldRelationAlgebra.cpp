@@ -38,6 +38,10 @@ November 30, 2002 RHG Introduced a function ~RelPersistValue~ instead of
 ~DefaultPersistValue~ which keeps relations that have been built in memory in a
 small cache, so that they need not be rebuilt from then on.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 [TOC]
 
 2 Auxilary Functions
@@ -317,7 +321,6 @@ Operator ccrelTUPLE (
          "TUPLE",              // name
          CcTUPLESpec,            // specification
          0,                    // no value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          CcTypeOperatorSelect,   // trivial selection function
          CcTUPLETypeMap          // type mapping
 );
@@ -373,7 +376,6 @@ Operator ccrelTUPLE2 (
          "TUPLE2",             // name
          CcTUPLE2Spec,           // specification
          0,                    // no value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          CcTypeOperatorSelect,   // trivial selection function
          CcTUPLE2TypeMap         // type mapping
 );
@@ -436,7 +438,6 @@ Operator ccrelgroup (
          "GROUP",              // name
          CcGroupSpec,            // specification
          0,                    // no value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          CcTypeOperatorSelect,   // trivial selection function
          CcGroupTypeMap          // type mapping
 );
@@ -540,7 +541,6 @@ Operator ccrelfeed (
           "feed",                // name
           CcFeedSpec,              // specification
           CcFeed,                  // value mapping
-          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
           Operator::SimpleSelect,         // trivial selection function
           CcFeedTypeMap           // type mapping
 );
@@ -840,7 +840,6 @@ Operator ccrelsample (
           "sample",                // name
           CcSampleSpec,              // specification
           CcSample,                  // value mapping
-          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
           Operator::SimpleSelect,         // trivial selection function
           CcSampleTypeMap           // type mapping
 );
@@ -929,7 +928,6 @@ Operator ccrelconsume (
          "consume",            // name
 	 CcConsumeSpec,          // specification
 	 CcConsume,              // value mapping
-	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
 	 Operator::SimpleSelect,         // trivial selection function
 	 CcConsumeTypeMap        // type mapping
 );
@@ -1040,7 +1038,6 @@ Operator ccrelattr (
      "attr",           // name
      CcAttrSpec,        // specification
      CcAttr,            // value mapping
-     Operator::DummyModel, // dummy model mapping, defines in Algebra.h
      Operator::SimpleSelect,         // trivial selection function
      CcAttrTypeMap      // type mapping
 );
@@ -1176,7 +1173,6 @@ Operator ccrelfilter (
          "filter",            // name
          CcFilterSpec,           // specification
          CcFilter,               // value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,         // trivial selection function
          CcFilterTypeMap<true>         // type mapping
 );
@@ -1371,7 +1367,6 @@ Operator ccrelproject (
          "project",            // name
          CcProjectSpec,          // specification
          CcProject,              // value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,         // trivial selection function
          CcProjectTypeMap        // type mapping
 );
@@ -1587,7 +1582,6 @@ Operator ccrelremove (
          "remove",                             // name
          CcRemoveSpec,                        // specification
          CcRemove,                               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,                       // trivial selection function
          CcRemoveTypeMap               // type mapping
 );
@@ -1884,7 +1878,6 @@ Operator ccrelproduct (
          "product",            // name
          CcProductSpec,          // specification
          CcProduct,              // value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,         // trivial selection function
          CcProductTypeMap        // type mapping
 );
@@ -1979,7 +1972,6 @@ Operator ccrelcancel (
          "cancel",             // name
          CcCancelSpec,           // specification
          CcCancel,               // value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,         // trivial selection function
          CcFilterTypeMap<false>         // type mapping
 );
@@ -2106,21 +2098,13 @@ CcCountSelect( ListExpr args )
 4.1.3 Definition of operator ~count~
 
 */
-static Word
-CcRelNoModelMapping( ArgVector arg, Supplier opTreeNode )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
 ValueMapping ccrelcountmap[] = {CcCountStream, CcCountRel };
-ModelMapping ccrelnomodelmap[] = {CcRelNoModelMapping, CcRelNoModelMapping};
 
 Operator ccrelcount (
          "count",           // name
          CcCountSpec,         // specification
          2,                  // number of value mapping functions
          ccrelcountmap,          // value mapping functions
-         ccrelnomodelmap,         // dummy model mapping functions
          CcCountSelect,       // trivial selection function
          CcCountTypeMap       // type mapping
 );
@@ -2265,7 +2249,6 @@ Operator ccrelrename (
          "rename",             // name
          CcRenameSpec,           // specification
          CcRename,               // value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,         // trivial selection function
          CcRenameTypeMap         // type mapping
 );
@@ -2380,7 +2363,6 @@ Operator ccrelextract (
          "extract",             // name
          CcExtractSpec,           // specification
          CcExtract,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcExtractTypeMap         // type mapping
 );
@@ -2506,7 +2488,6 @@ Operator ccrelhead (
          "head",             // name
          CcHeadSpec,           // specification
          CcHead,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcHeadTypeMap         // type mapping
 );
@@ -2648,7 +2629,6 @@ Operator ccrelmax (
          "max",             // name
          CcMaxOpSpec,           // specification
          CcMaxMinValueMapping<true>,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcMaxMinTypeMap<true>         // type mapping
 );
@@ -2677,7 +2657,6 @@ Operator ccrelmin (
          "min",             // name
          CcMinOpSpec,           // specification
          CcMaxMinValueMapping<false>,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcMaxMinTypeMap<false>         // type mapping
 );
@@ -2876,7 +2855,6 @@ Operator ccrelavg (
          "avg",             // name
          CcAvgOpSpec,           // specification
          CcAvgSumValueMapping<true>,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcAvgSumTypeMap<true>         // type mapping
 );
@@ -2906,7 +2884,6 @@ Operator ccrelsum (
          "sum",             // name
          CcSumOpSpec,           // specification
          CcAvgSumValueMapping<false>,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcAvgSumTypeMap<false>         // type mapping
 );
@@ -3196,7 +3173,6 @@ Operator ccrelsortby (
          "sortby",              // name
          CcSortBySpec,            // specification
          CcSortBy<false, true>,   // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcSortByTypeMap          // type mapping
 );
@@ -3267,7 +3243,6 @@ Operator ccrelsort (
          "sort",             // name
          CcSortSpec,           // specification
          CcSortBy<true, true>,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcIdenticalTypeMap<true>         // type mapping
 );
@@ -3368,7 +3343,6 @@ Operator ccrelrdup (
          "rdup",             // name
          CcRdupSpec,           // specification
          CcRdupValueMapping,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcIdenticalTypeMap<false>         // type mapping
 );
@@ -3683,7 +3657,6 @@ Operator ccrelmergesec(
          "mergesec",        // name
          CcMergeSecSpec,     // specification
          CcSetOpValueMapping<false, false, true>,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcSetOpTypeMap<0>   // type mapping
 );
@@ -3714,7 +3687,6 @@ Operator ccrelmergediff(
          "mergediff",        // name
          CcMergeDiffSpec,     // specification
          CcSetOpValueMapping<true, false, false>,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcSetOpTypeMap<1>   // type mapping
 );
@@ -3744,7 +3716,6 @@ Operator ccrelmergeunion(
          "mergeunion",        // name
          CcMergeUnionSpec,     // specification
          CcSetOpValueMapping<true, true, true>,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcSetOpTypeMap<2>   // type mapping
 );
@@ -4225,7 +4196,6 @@ Operator ccrelmergejoin (
          "mergejoin",        // name
          CcMergeJoinSpec,     // specification
          CcMergeJoin<true>,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcJoinTypeMap<false, 0>   // type mapping
 );
@@ -4263,7 +4233,6 @@ Operator ccrelsortmergejoin (
          "sortmergejoin",        // name
          CcSortMergeJoinSpec,     // specification
          CcMergeJoin<false>,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcJoinTypeMap<false, 1>   // type mapping
 );
@@ -4520,7 +4489,6 @@ Operator ccrelhashjoin (
          "hashjoin",        // name
          CcHashJoinSpec,     // specification
          CcHashJoin,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcJoinTypeMap<true, 2>   // type mapping
 );
@@ -4701,7 +4669,6 @@ Operator ccrelextend (
          "extend",              // name
          CcExtendSpec,            // specification
          CcExtend,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcExtendTypeMap          // type mapping
 );
@@ -4901,7 +4868,6 @@ Operator ccrelloopjoin (
          "loopjoin",	           		// name
          CcLoopjoinSpec,          		// specification
          CcLoopjoin,               		// value mapping
-         Operator::DummyModel, 	// dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,         		// trivial selection function
          CcLoopjoinTypeMap	         	// type mapping
 );
@@ -5102,7 +5068,6 @@ Operator ccrelloopselect (
          "loopsel",	           		// name
          CcLoopselectSpec,         		// specification
          CcLoopselect,               		// value mapping
-         Operator::DummyModel, 	// dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,         		// trivial selection function
          CcLoopselectTypeMap	         	// type mapping
 );
@@ -5318,7 +5283,6 @@ Operator ccrelloopjoinrel (
          "loopjoinrel",	           		// name
          CcLoopjoinrelSpec,        		// specification
          CcLoopjoinrel,               		// value mapping
-         Operator::DummyModel, 	// dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,         		// trivial selection function
          CcLoopjoinrelTypeMap	         	// type mapping
 );
@@ -5467,7 +5431,6 @@ Operator ccrelconcat (
          "concat",              // name
          CcConcatSpec,            // specification
          CcConcat,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcConcatTypeMap          // type mapping
 );
@@ -5650,7 +5613,6 @@ Operator ccrelgroupby (
          "groupby",             // name
          CcGroupBySpec,           // specification
          CcGroupByValueMapping,   // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          CcGroupByTypeMap         // type mapping
 );
@@ -5676,10 +5638,7 @@ TypeConstructor ccreltuple( "mtuple",             CcTupleProp,
                           0,                   0,
                           DummyClose,          DummyClone,
                           CastCcTuple,         DummySizeOf,
-                          CheckCcTuple,
-			  0,
-			  CcTupleInModel,      CcTupleOutModel,
-			  CcTupleValueToModel, CcTupleValueListToModel );
+                          CheckCcTuple );
 /*
 
 5 Definition of type constructor ~mrel~
@@ -5696,10 +5655,7 @@ TypeConstructor ccrelrel( "mrel",            CcRelProp,
 		       OpenCcRel, 	   SaveCcRel,
                        DummyClose,        DummyClone,
                        CastCcRel,         DummySizeOf,
-                       CheckCcRel,
-		       0,
-		       CcRelInModel,      CcRelOutModel,
-		       CcRelValueToModel, CcRelValueListToModel );
+                       CheckCcRel );
 
 /*
 

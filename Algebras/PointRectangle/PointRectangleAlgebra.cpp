@@ -27,6 +27,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 July 2002 RHG
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 The little example algebra provides two type constructors ~xpoint~ and
 ~xrectangle~ and two operators: (i) ~inside~, which checks whether a point is
 within a rectangle, and (ii) ~intersects~ which checks two rectangles for
@@ -232,12 +236,8 @@ TypeConstructor xpoint(
         0, 0, CloseXPoint, CloneXPoint, //object open, save, close, and clone
 	DummyCast,			//cast function
         SizeOfXPoint, 			//sizeof function
-	CheckXPoint,	                //kind checking function
-	0, 				//predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+	CheckXPoint	);                //kind checking function
+
 /*
 3 Class ~XRectangle~
 
@@ -408,8 +408,7 @@ TypeConstructor xrectangle( 	"xrectangle",
         		   	0, 0,
                            	CloseXRectangle, CloneXRectangle,
                            	DummyCast, SizeOfXRectangle,
-                           	CheckXRectangle,
-                           	0 );
+                           	CheckXRectangle );
 /*
 4 Creating Operators
 
@@ -524,7 +523,6 @@ Operator intersects (
 	"intersects", 		//name
 	intersectsSpec,         //specification
 	intersectsFun,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 	Operator::SimpleSelect,	//trivial selection function
 	RectRectBool		//type mapping
 );
@@ -533,7 +531,6 @@ Operator inside (
 	"inside", 		//name
 	insideSpec,		//specification
 	insideFun,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 	Operator::SimpleSelect,	//trivial selection function
 	XPointRectBool		//type mapping
 );

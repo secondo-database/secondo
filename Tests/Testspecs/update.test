@@ -1,0 +1,249 @@
+#This file is part of SECONDO.
+#
+#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Database Systems for New Applications.
+#
+#SECONDO is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2 of the License, or
+#(at your option) any later version.
+#
+#SECONDO is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with SECONDO; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+# a test for the relational algebra
+# run with : Runner -c MyConfig.config <relalgtest
+# (Runner can be found in directory UserInterfaces)
+
+#setup
+open database germany;
+
+let Kreis2 = Kreis feed head[0] consume;
+let Kreis3 = Kreis feed head[0] consume;
+let Kreis3I = Kreis createinsertrel;
+let hagen = Kreis feed filter[.KName contains "Hagen"] extract[Gebiet];
+let berlin = Kreis feed filter[.KName contains "Berlin"] extract[Gebiet];
+
+#testcase createinsertrel1
+#yields ((rel (tuple ((KName string) (Flaeche real) (Bev real) (Bev_maennlich real) (Gebiet region) (TID tid)))) ())
+query Kreis createinsertrel;
+
+#testcase createinsertrel2
+#yields (int 0)
+query Kreis createinsertrel count;
+
+#testcase createdeleterel1
+#yields ((rel (tuple ((KName string) (Flaeche real) (Bev real) (Bev_maennlich real) (Gebiet region) (TID tid)))) ())
+query Kreis createdeleterel;
+
+#testcase createdeleterel2
+#yields (int 0)
+query Kreis createdeleterel count;
+
+#testcase createupdaterel1
+#yields ((rel (tuple ((KName string) (Flaeche real) (Bev real) (Bev_maennlich real) (Gebiet region) (KName_old string) (Flaeche_old real) (Bev_old real) (Bev_maennlich_old real) (Gebiet_old region) (TID tid)))) ())
+query Kreis createupdaterel;
+
+#testcase createupdaterel2
+#yields (int 0)
+query Kreis createupdaterel count;
+
+#testcase insert1
+#yields (int 439)
+query Kreis feed Kreis2 insert count;
+
+#testcase insert2
+#yields (int 439)
+query Kreis2 count;
+
+#testcase insert3
+#yields (int 5)
+query Kreis2 feed {a} filter[.Gebiet_a touches magdeburg] Kreis feed {b} symmjoin[.KName_a = ..KName_b] count;
+
+#testcase insertsave1
+#yields (int 439)
+query Kreis feed Kreis3 Kreis3I insertsave count;
+
+#testcase insertsave2
+#yields (int 5)
+query Kreis3 feed {a} filter[.Gebiet_a touches magdeburg] Kreis feed {b} symmjoin[.KName_a = ..KName_b] count;
+
+#testcase insertsave3
+#yields ((rel (tuple ((TID_b tid)))) ((407) (409) (411) (412) (415)))
+query Kreis3 feed {a} filter[.Gebiet_a touches magdeburg] Kreis3I feed {b} symmjoin[.KName_a = ..KName_b] project[TID_b] consume;
+
+#testcase deletesearch1
+#yields (int 5)
+query Kreis feed filter[.Gebiet touches magdeburg] Kreis2 deletesearch count;
+
+#testcase deletesearch2
+#yields (int 434)
+query Kreis2 count;
+
+#testcase deletesearch3
+#yields (int 0)
+query Kreis2 feed filter[.Gebiet touches magdeburg] count;
+
+#testcase deletedirect1
+#yields (int 5)
+query Kreis2 feed filter[.Gebiet intersects hagen] Kreis2 deletedirect count;
+
+#testcase deletedirect2
+#yields (int 429)
+query Kreis2 count;
+
+#testcase deletedirect3
+#yields (int 0)
+query Kreis2 feed filter[.Gebiet intersects hagen] count;
+
+#testcase deletesearchsave1
+#yields (int 5)
+query Kreis feed filter[.Gebiet touches magdeburg] Kreis3 Kreis3I deletesearchsave count;
+
+#testcase deletesearchsave2
+#yields (int 434)
+query Kreis3 count;
+
+#testcase deletesearchsave3
+#yields (int 0)
+query Kreis3 feed filter[.Gebiet touches magdeburg] count;
+
+#testcase deletesearchsave4
+#yields (int 444)
+query Kreis3I count;
+
+#testcase deletesearchsave5
+#yields (int 10)
+query Kreis3I feed filter[.Gebiet touches magdeburg] count;
+
+#testcase deletedirectsave1
+#yields (int 5)
+query Kreis3 feed filter[.Gebiet intersects hagen] Kreis3 Kreis3I deletedirectsave count;
+
+#testcase deletedirectsave2
+#yields (int 429)
+query Kreis3 count;
+
+#testcase deletedirectsave3
+#yields (int 0)
+query Kreis3 feed filter[.Gebiet intersects hagen] count;
+
+#testcase deletedirectsave4
+#yields (int 449)
+query Kreis3I count;
+
+#testcase deletedirectsave5
+#yields (int 10)
+query Kreis3I feed filter[.Gebiet intersects hagen] count;
+
+#testcase inserttuple1
+#yields (int 1)
+query Kreis2 inserttuple["Magdeburg", 0.0, 0.0, 0.0, magdeburg] count;
+
+#testcase inserttuple2
+#yields (int 1)
+query Kreis feed {a} filter[.Gebiet_a touches magdeburg] Kreis2 feed {b} filter[.Gebiet_b touches magdeburg] 
+  symmjoin[.Gebiet_a = ..Gebiet_b] filter[.KName_b contains "Magdeburg"] count;
+
+#testcase inserttuplesave1
+#yields (int 1)
+query Kreis3 Kreis3I inserttuplesave["Magdeburg", 0.0, 0.0, 0.0, magdeburg] count;
+
+#testcase inserttuplesave2
+#yields (int 1)
+query Kreis feed {a} filter[.Gebiet_a touches magdeburg] Kreis3 feed {b} filter[.Gebiet_b touches magdeburg] 
+  symmjoin[.Gebiet_a = ..Gebiet_b] filter[.KName_b contains "Magdeburg"] count;
+
+#testcase inserttuplesave3
+#yields (int 3)
+query Kreis feed {a} filter[.Gebiet_a touches magdeburg] Kreis3I feed {b} filter[.Gebiet_b touches magdeburg] 
+  symmjoin[.Gebiet_a = ..Gebiet_b] filter[.KName_b contains "Magdeburg"] count;
+
+#testcase updatedirect1
+#yields (int 1)
+query Kreis2 feed filter[.Gebiet touches magdeburg] Kreis2 updatedirect[Gebiet: .Gebiet translate[1000000.0, 1000000.0]] count; 
+
+#testcase updatedirect2
+#yields (int 1)
+query Kreis feed {a} filter[.Gebiet_a touches magdeburg] Kreis2 feed {b} 
+  symmjoin[.Gebiet_a translate[1000000.0, 1000000.0] = ..Gebiet_b] count;
+
+#testcase updatesearch1
+#yields (int 1)
+query Kreis2 feed filter[.KName contains "Magdeburg"] Kreis2 
+  updatesearch[KName: "NewMagdeburg", Gebiet: .Gebiet translate[-1000000.0, -1000000.0]] count;
+
+#testcase updatesearch2
+#yields (int 1)
+query Kreis2 feed filter[(.KName = "NewMagdeburg") and (.Gebiet touches magdeburg)] count; 
+
+#testcase updatedirectsave1
+#yields (int 1)
+query Kreis3 feed filter[.Gebiet touches magdeburg] Kreis3 Kreis3I
+  updatedirectsave[Gebiet: .Gebiet translate[1000000.0, 1000000.0]] count;
+
+#testcase updatedirectsave2
+#yields (int 1)
+query Kreis feed {a} filter[.Gebiet_a touches magdeburg] Kreis3 feed {b}
+  symmjoin[.Gebiet_a translate[1000000.0, 1000000.0] = ..Gebiet_b] count;
+
+#testcase updatedirectsave2
+#yields (int 1)
+query Kreis feed {a} filter[.Gebiet_a touches magdeburg] Kreis3I feed {b}
+  symmjoin[.Gebiet_a translate[1000000.0, 1000000.0] = ..Gebiet_b] count;
+
+#testcase updatesearchsave1
+#yields (int 1)
+query Kreis3 feed filter[.KName contains "Magdeburg"] Kreis3 Kreis3I
+  updatesearchsave[KName: "NewMagdeburg", Gebiet: .Gebiet translate[-1000000.0, -1000000.0]] count;
+
+#testcase updatesearchsave2
+#yields (int 1)
+query Kreis3 feed filter[(.KName = "NewMagdeburg") and (.Gebiet touches magdeburg)] count;
+
+#testcase updatesearchsave3
+#yields (int 1)
+query Kreis3I feed filter[(.KName = "NewMagdeburg") and (.Gebiet touches magdeburg)] count;
+
+#testcase appendidentifier1
+#yields ((rel (tuple ((TID tid)))) ((328) (332) (333) (334) (336) (337) (338) (340) (342) (345)))
+query Kreis feed filter[.Gebiet intersects berlin] appendidentifier project[TID] consume;
+
+#testcase deletebyid1
+#yields (int 1)
+query Kreis2 deletebyid[[const tid value 333]] count;
+
+#testcase deletebyid2
+#yields (int 9)
+query Kreis2 feed filter[.Gebiet intersects berlin] count;
+
+#testcase deletebyid1
+#yields (int 0)
+query Kreis2 deletebyid[[const tid value 333]] count;
+
+#testcase updatebyid1
+#yields (int 1)
+query Kreis2 updatebyid[[const tid value 328]; KName: "NewBerlin", Gebiet: .Gebiet translate[1000000.0, 1000000.0]] count;
+
+#testcase updatebyid2
+#yields (int 8)
+query Kreis2 feed filter[.Gebiet intersects berlin] count;
+
+#testcase updatebyid3
+#yields (int 1)
+query Kreis2 feed filter[.Gebiet intersects berlin translate[1000000.0, 1000000.0]] count;
+
+#teardown
+delete Kreis2;
+delete Kreis3;
+delete Kreis3I;
+delete hagen;
+delete berlin;
+close database;
+

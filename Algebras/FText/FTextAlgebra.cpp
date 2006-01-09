@@ -26,6 +26,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 March - April 2003 Lothar Sowada
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 The algebra ~FText~ provides the type constructor ~text~ and two operators:
 
 (i) ~contains~, which search text or string in a text.
@@ -332,7 +336,7 @@ The following Functions must be defined if we want to use ~text~ as an attribute
 
 */
 
-static Word
+Word
 CreateFText( const ListExpr typeInfo )
 {
   if(traces)
@@ -340,7 +344,7 @@ CreateFText( const ListExpr typeInfo )
   return (SetWord(new FText( false )));
 }
 
-static void
+void
 DeleteFText( Word& w )
 {
   if(traces)
@@ -352,7 +356,7 @@ DeleteFText( Word& w )
   w.addr = 0;
 }
 
-static void
+void
 CloseFText( Word& w )
 {
   if(traces)
@@ -361,7 +365,7 @@ CloseFText( Word& w )
   w.addr = 0;
 }
 
-static Word
+Word
 CloneFText( const Word& w )
 {
   if(traces)
@@ -369,13 +373,13 @@ CloneFText( const Word& w )
   return SetWord( ((FText *)w.addr)->Clone() );
 }
 
-static int
+int
 SizeOfFText()
 {
   return sizeof( FText );
 }
 
-static void*
+void*
 CastFText( void* addr )
 {
   if(traces)
@@ -390,7 +394,7 @@ CastFText( void* addr )
 
 */
 
-static ListExpr
+ListExpr
 OutFText( ListExpr typeInfo, Word value )
 {
   if(traces)
@@ -409,7 +413,7 @@ OutFText( ListExpr typeInfo, Word value )
 }
 
 
-static Word
+Word
 InFText( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -447,7 +451,7 @@ InFText( const ListExpr typeInfo, const ListExpr instance,
 
 */
 
-static ListExpr
+ListExpr
 FTextProperty()
 {
   return
@@ -480,7 +484,7 @@ This function checks whether the type constructor is applied correctly.
 
 */
 
-static bool
+bool
 CheckFText( ListExpr type, ListExpr& errorInfo )
 {
   if(traces)
@@ -511,13 +515,8 @@ TypeConstructor ftext(
   CreateFText, DeleteFText,     //object creation and deletion
   0, 0, CloseFText, CloneFText, //object open, save, close, and clone
   CastFText,                    //cast function
-  SizeOfFText,					//sizeof function
-  CheckFText,                   //kind checking function
-  0,                            //predef. pers. function for model
-  TypeConstructor::DummyInModel,
-  TypeConstructor::DummyOutModel,
-  TypeConstructor::DummyValueToModel,
-  TypeConstructor::DummyValueListToModel );
+  SizeOfFText,        					//sizeof function
+  CheckFText );                 //kind checking function
 
 
 /*
@@ -531,7 +530,7 @@ returns a list expression for the result type, otherwise the symbol ~typeerror~.
 
 */
 
-static ListExpr
+ListExpr
 TypeMapTextTextBool( ListExpr args )
 {
   if(traces)
@@ -556,7 +555,7 @@ TypeMapTextTextBool( ListExpr args )
 }
 
 
-static ListExpr
+ListExpr
 TypeMapTextStringBool( ListExpr args )
 {
   if(traces)
@@ -581,7 +580,7 @@ TypeMapTextStringBool( ListExpr args )
 }
 
 
-static ListExpr
+ListExpr
 TypeMapTextInt( ListExpr args )
 {
   if(traces)
@@ -629,30 +628,12 @@ TypeMapsentences( ListExpr args ){
   return nl->SymbolAtom("typeerror");
 }
 
-
-/*
-
-3.2 Selection Function
-
-Is used to select one of several evaluation functions for an overloaded
-operator, based on the types of the arguments. In case of a non-overloaded
-operator, we just have to return 0.
-
-*/
-
-static int
-simpleSelect (ListExpr args )
-{
-  return 0;
-}
-
-
 /*
 3.3 Value Mapping Functions
 
 */
 
-static int
+int
 ValMapTextStringBool (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 Value Mapping for the ~contains~ operator with the operands text and string.
@@ -678,7 +659,7 @@ Value Mapping for the ~contains~ operator with the operands text and string.
 }
 
 
-static int
+int
 ValMapTextTextBool (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 Value Mapping for the ~contains~ operator with two text operands.
@@ -704,7 +685,7 @@ Value Mapping for the ~contains~ operator with two text operands.
 }
 
 
-static int
+int
 ValMapTextInt (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 Value Mapping for the ~length~ operator with a text and a string operator .
@@ -1090,8 +1071,7 @@ Operator containsString
   "contains",           //name
   containsStringSpec,   //specification
   ValMapTextStringBool, //value mapping
-  Operator::DummyModel, //dummy model mapping, defined in Algebra.h
-  simpleSelect,         //trivial selection function
+  Operator::SimpleSelect,         //trivial selection function
   TypeMapTextStringBool //type mapping
 );
 
@@ -1101,8 +1081,7 @@ Operator containsText
   "contains",           //name
   containsTextSpec,     //specification
   ValMapTextTextBool,   //value mapping
-  Operator::DummyModel, //dummy model mapping, defined in Algebra.h
-  simpleSelect,         //trivial selection function
+  Operator::SimpleSelect,         //trivial selection function
   TypeMapTextTextBool   //type mapping
 );
 
@@ -1111,8 +1090,7 @@ Operator length
   "length",             //name
   lengthSpec,           //specification
   ValMapTextInt,        //value mapping
-  Operator::DummyModel, //dummy model mapping, defined in Algebra.h
-  simpleSelect,         //trivial selection function
+  Operator::SimpleSelect,         //trivial selection function
   TypeMapTextInt        //type mapping
 );
 
@@ -1121,8 +1099,7 @@ Operator getkeywords
   "keywords",            //name
   keywordsSpec,          //specification
   ValMapkeywords,        //value mapping
-  Operator::DummyModel,  //dummy model mapping, defined in Algebra.h
-  simpleSelect,          //trivial selection function
+  Operator::SimpleSelect,          //trivial selection function
   TypeMapkeywords        //type mapping
 );
 
@@ -1131,8 +1108,7 @@ Operator getsentences
   "sentences",            //name
   sentencesSpec,          //specification
   ValMapsentences,        //value mapping
-  Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
-  simpleSelect,           //trivial selection function
+  Operator::SimpleSelect,           //trivial selection function
   TypeMapsentences        //type mapping
 );
 

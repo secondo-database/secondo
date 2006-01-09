@@ -29,6 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 August 2005 GZS
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 1 RemoteStream Algebra
 
 This algebra allows distributed query processing by connecting streams 
@@ -199,7 +203,7 @@ TSendStream(Word* args, Word& result, int message, Word& local, Supplier s)
 
   nl->ReadFromString(tupleTypeStr, argList);
 
-  tupleType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( nl->TwoElemList(argList,
+  tupleType = SecondoSystem::GetCatalog()->NumericType( nl->TwoElemList(argList,
                 nl->IntAtom(nl->ListLength(nl->Second(argList)))) );
 
   qp->Open(args[0].addr);
@@ -259,7 +263,7 @@ TReceiveStream(Word* args, Word& result, int message, Word& local, Supplier s)
 
       nl->ReadFromString(tupleTypeStr, tupleTypeList);
 
-      tupleType = SecondoSystem::GetCatalog( ExecutableLevel )->
+      tupleType = SecondoSystem::GetCatalog()->
                     NumericType( nl->TwoElemList(tupleTypeList,
                       nl->IntAtom(nl->ListLength(nl->Second(tupleTypeList)))) );
 
@@ -345,7 +349,6 @@ Operator TSend (
   "send",    //name
   sendSpec,         //specification
   TSendStream,   //value mapping
-  Operator::DummyModel, //dummy model mapping, defined in Algebra.h
   Operator::SimpleSelect,   //trivial selection function
   TSendTypeMap   //type mapping
 );
@@ -354,7 +357,6 @@ Operator TReceive (
   "receive",    //name
   receiveSpec,         //specification
   TReceiveStream,   //value mapping
-  Operator::DummyModel, //dummy model mapping, defined in Algebra.h
   Operator::SimpleSelect,   //trivial selection function
   TReceiveTypeMap   //type mapping
 );

@@ -27,6 +27,9 @@ the end of a command. Moreover, reporting of the error and success messages has
 been changed and was implemented in special functions.  Finally, unused
 functions and variables were removed!.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. 
 
 1 Overview
 
@@ -108,7 +111,6 @@ class TestRunner : public Application
   bool              quit;
   bool              verbose;
   NestedList*       nl;
-  AlgebraLevel      currentLevel;
   bool              isQuery;
   SecondoInterface* si;
 
@@ -149,7 +151,6 @@ TestRunner::TestRunner( const int argc, const char** argv )
   isStdInput    = true;
   quit          = false;
   nl            = 0;
-  currentLevel  = ExecutableLevel;
   si            = 0;
 
   state = START;
@@ -302,19 +303,7 @@ TestRunner::ProcessCommand()
   transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(), 
              ToUpperProperFunction );
 
-  if ( cmdWord == "D" || cmdWord == "DESCRIPTIVE" )
-  {
-    currentLevel = DescriptiveLevel;
-  }
-  else if ( cmdWord == "E" || cmdWord == "EXECUTABLE" )
-  {
-    currentLevel = ExecutableLevel;
-  }
-  else if ( cmdWord == "H" || cmdWord == "HYBRID" )
-  {
-    currentLevel = HybridLevel;
-  }
-  else if ( cmdWord == "Q" || cmdWord == "QUIT" )
+  if ( cmdWord == "Q" || cmdWord == "QUIT" )
   {
     cout << "*** Thank you for using SECONDO!" << endl;
     quit = true;
@@ -329,26 +318,7 @@ TestRunner::ProcessCommand()
   else
   {
     isQuery = (cmdWord == "QUERY" || cmdWord == "(QUERY" || cmdWord == "( QUERY");
-    if ( currentLevel == HybridLevel )
-    {
-      if ( cmdWord == "QUERY"  || cmdWord == "(QUERY"  || cmdWord == "( QUERY" ||
-           cmdWord == "UPDATE" || cmdWord == "(UPDATE" || cmdWord == "( UPDATE" )
-      {
-        cout << "*** Hey, don't do that in 'HYBRID' mode!" << endl;
-      }
-      else
-      {
-        currentLevel = DescriptiveLevel;
-        CallSecondo2();
-        currentLevel = ExecutableLevel;
-        CallSecondo2();
-        currentLevel = HybridLevel;
-      }
-    }
-    else
-    {
-      CallSecondo2();
-    }
+    CallSecondo2();
   }
 }
 
@@ -584,26 +554,12 @@ This function gives a query to secondo and receives the result from secondo.
 ListExpr
 TestRunner::CallSecondo()
 {
-  int errorCode = 0, errorPos, levelOffset;
+  int errorCode = 0, errorPos;
   ListExpr cmdList = nl->TheEmptyList();
   ListExpr outList = nl->TheEmptyList();
   string errorMessage;
   string errorText;
   ListExpr expectedResult;
-
-  if ( currentLevel == ExecutableLevel )
-  {
-    levelOffset = 0;
-  }
-  else if ( currentLevel == DescriptiveLevel )
-  {
-    levelOffset = 2;
-  }
-  else
-  {
-    cout << endl << "*** Level problem in TestRunner::CallSecondo" << endl;;
-    return (nl->TheEmptyList());
-  }
 
   if(!skipToTearDown)
   {
@@ -618,7 +574,7 @@ TestRunner::CallSecondo()
     {
       if ( nl->ReadFromString( cmd, cmdList ) )
       {
-        si->Secondo( cmd, cmdList, levelOffset, false, false,
+        si->Secondo( cmd, cmdList, 0, false, false,
                     outList, errorCode, errorPos, errorMessage );
       }
       else
@@ -628,7 +584,7 @@ TestRunner::CallSecondo()
     }
     else
     {
-      si->Secondo( cmd, cmdList, levelOffset+1, false, false,
+      si->Secondo( cmd, cmdList, 1, false, false,
                   outList, errorCode, errorPos, errorMessage );
     }
   }

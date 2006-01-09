@@ -28,6 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 March 2004 Victor Almeida
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 [TOC]
 
 1 Overview
@@ -143,8 +147,8 @@ Relation *Network::GetRoutesInternal()
 
 void Network::FillJunctions( const Relation *junctions )
 {
-  ListExpr junctionsNumInt = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetJunctionsInternalTypeInfo() ),
-           junctionsNumApp = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetJunctionsAppendTypeInfo() );
+  ListExpr junctionsNumInt = SecondoSystem::GetCatalog()->NumericType( GetJunctionsInternalTypeInfo() ),
+           junctionsNumApp = SecondoSystem::GetCatalog()->NumericType( GetJunctionsAppendTypeInfo() );
 
   Relation *unJunctions = new Relation( junctionsNumInt, false );
 
@@ -232,7 +236,7 @@ void Network::FillSections()
                    *junctionsIter = junctions->MakeScan();
   Tuple *rTuple, *jTuple = junctionsIter->GetNextTuple();
 
-  ListExpr sectionsNumInt = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetSectionsInternalTypeInfo() );
+  ListExpr sectionsNumInt = SecondoSystem::GetCatalog()->NumericType( GetSectionsInternalTypeInfo() );
   this->sections = new Relation( sectionsNumInt );
 
   while( (rTuple = routesIter->GetNextTuple()) != 0 )
@@ -490,19 +494,19 @@ ListExpr Network::Save( SmiRecord& valueRecord,
                         const ListExpr typeInfo )
 {
   if( !routes->Save( valueRecord, offset, 
-                     SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetRoutesTypeInfo() ) ) )
+                     SecondoSystem::GetCatalog()->NumericType( GetRoutesTypeInfo() ) ) )
     return false;
 
   if( !junctions->Save( valueRecord, offset, 
-                        SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetJunctionsInternalTypeInfo() ) ) )
+                        SecondoSystem::GetCatalog()->NumericType( GetJunctionsInternalTypeInfo() ) ) )
     return false;
  
   if( !sections->Save( valueRecord, offset, 
-                       SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetSectionsInternalTypeInfo() ) ) )
+                       SecondoSystem::GetCatalog()->NumericType( GetSectionsInternalTypeInfo() ) ) )
     return false;
 
   if( !routesBTree->Save( valueRecord, offset,
-                          SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetRoutesBTreeTypeInfo() ) ) )
+                          SecondoSystem::GetCatalog()->NumericType( GetRoutesBTreeTypeInfo() ) ) )
     return false;
 
   return true; 
@@ -527,18 +531,18 @@ Network *Network::Open( SmiRecord& valueRecord, size_t& offset, const ListExpr t
   BTree *routesBTree;
 
   if( !( routes = Relation::Open( valueRecord, offset, 
-                                  SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetRoutesTypeInfo() ) ) ) ) 
+                                  SecondoSystem::GetCatalog()->NumericType( GetRoutesTypeInfo() ) ) ) ) 
     return 0;
 
   if( !( junctions = Relation::Open( valueRecord, offset, 
-                                     SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetJunctionsInternalTypeInfo() ) ) ) ) 
+                                     SecondoSystem::GetCatalog()->NumericType( GetJunctionsInternalTypeInfo() ) ) ) ) 
   {  
     routes->Delete(); 
     return 0;
   }
 
   if( !( sections = Relation::Open( valueRecord, offset, 
-                                    SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetSectionsInternalTypeInfo() ) ) ) ) 
+                                    SecondoSystem::GetCatalog()->NumericType( GetSectionsInternalTypeInfo() ) ) ) ) 
   {
     routes->Delete(); 
     junctions->Delete(); 
@@ -546,7 +550,7 @@ Network *Network::Open( SmiRecord& valueRecord, size_t& offset, const ListExpr t
   }
 
   if( !( routesBTree = BTree::Open( valueRecord, offset, 
-                                    SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetRoutesBTreeTypeInfo() ) ) ) ) 
+                                    SecondoSystem::GetCatalog()->NumericType( GetRoutesBTreeTypeInfo() ) ) ) ) 
   {
     routes->Delete(); 
     junctions->Delete(); 
@@ -583,12 +587,7 @@ TypeConstructor network( "network",            NetworkProp,
                          OpenNetwork,          SaveNetwork,
                          CloseNetwork,         CloneNetwork,
                          CastNetwork,          SizeOfNetwork,
-                         CheckNetwork,
-                         0,
-                         TypeConstructor::DummyInModel,
-                         TypeConstructor::DummyOutModel,
-                         TypeConstructor::DummyValueToModel,
-                         TypeConstructor::DummyValueListToModel );
+                         CheckNetwork );
 
 /*
 4 Operators
@@ -662,7 +661,6 @@ Operator networkthenetwork (
           "thenetwork",                // name
           NetworkTheNetworkSpec,              // specification
           NetworkTheNetworkValueMapping,      // value mapping
-          Operator::DummyModel,         // dummy model mapping, defines in Algebra.h
           Operator::SimpleSelect,               // trivial selection function
           NetworkTheNetworkTypeMap            // type mapping
 );
@@ -724,7 +722,6 @@ Operator networkroutes (
           "routes",                // name
           NetworkRoutesSpec,              // specification
           NetworkRoutesValueMapping,      // value mapping
-          Operator::DummyModel,         // dummy model mapping, defines in Algebra.h
           Operator::SimpleSelect,               // trivial selection function
           NetworkRoutesTypeMap            // type mapping
 );
@@ -786,7 +783,6 @@ Operator networkjunctions (
           "junctions",                // name
           NetworkJunctionsSpec,              // specification
           NetworkJunctionsValueMapping,      // value mapping
-          Operator::DummyModel,         // dummy model mapping, defines in Algebra.h
           Operator::SimpleSelect,               // trivial selection function
           NetworkJunctionsTypeMap            // type mapping
 );
@@ -848,7 +844,6 @@ Operator networksections (
           "sections",                // name
           NetworkSectionsSpec,              // specification
           NetworkSectionsValueMapping,      // value mapping
-          Operator::DummyModel,         // dummy model mapping, defines in Algebra.h
           Operator::SimpleSelect,               // trivial selection function
           NetworkSectionsTypeMap            // type mapping
 );

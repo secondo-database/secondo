@@ -8,6 +8,10 @@
 
 [1] The ~MovingRegionAlgebra~
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 [TOC]
 
 1 Introduction
@@ -2471,886 +2475,6 @@ Compares intersections by their time.
 };
 
 /*
-1.1 Class template ~RefinementPartition~ 
-
-This class calculates a list of time intervals from two ~Mapping~ instances
-~m1~ and ~m2~. For each of these intervals, one of the following three 
-conditions holds:
-
-  1 The interval is a sub-interval of a unit's interval for both ~m1~ 
-    and ~m2~.
-
-  2 The interval is a sub-interval of a unit's interval for ~m1~ but
-    the intersection with each interval of a units in ~m2~ is empty.
-
-  3 The interval is a sub-interval of a unit's interval for ~m2~ but
-    the intersection with each interval of a units in ~m1~ is empty.
-
-(An interval $i_1$ is a sub-interval of interval $i_2$ if and only if
-$i_1 \subseteq i_2$.)
-
-This list is called \underline{refinement partition}.
-
-The classes used for ~Mapping1~ and ~Mapping2~ must inherit from class
-~Mapping~ from the ~TemporalAlgebra~. The classes user for ~Unit1~ and
-~Unit2~ must inherit from class ~Unit~ in ~TemporalAlgebra~.
-
-1.1.1 Class template definition
-
-*/
-
-template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-class RefinementPartition {
-private:
-/*
-Private attributes:
-
-  * ~iv~: Array (vector) of sub-intervals, which has been calculated from the
-    unit intervals of the ~Mapping~ instances.
-
-  * ~vur~: Maps intervals in ~iv~ to indices of original units in first 
-    ~Mapping~ instance. A $-1$ values indicates that interval in ~iv~ is no 
-    sub-interval of any unit interval in first ~Mapping~ instance.
-
-  * ~vup~: Same as ~vur~ for second mapping instance.
-
-*/
-    vector< Interval<Instant>* > iv;
-    vector<int> vur;
-    vector<int> vup;
-
-/*
-~AddUnit()~ is a small helper method to create a new interval from
-~start~ and ~end~ instant and ~lc~ and ~rc~ flags and to add these to the
-~iv~, ~vur~ and ~vup~ vectors.
-
-*/
-    void AddUnits(int urPos, 
-		  int upPos, 
-		  Instant& start,
-		  Instant& end,
-		  bool lc,
-		  bool rc);
-
-public:
-/*
-The constructor creates the refinement partition from the two ~Mapping~
-instances ~mr~ and ~mp~.
-
-Runtime is $O(\max(n, m))$ with $n$ and $m$ the numbers of units in 
-~mr~ and ~mp~.
-
-*/
-    RefinementPartition(Mapping1& mr, Mapping2& mp);
-
-/*
-Since the elements of ~iv~ point to dynamically allocated objects, we need
-a destructor.
-
-*/
-    ~RefinementPartition();
-
-/*
-Return the number of intervals in the refinement partition.
-
-*/
-    unsigned int Size(void ) { 
-	if (MRA_DEBUG)
-	    cerr << "RP::Size() called" << endl;
-	    
-	return iv.size(); 
-    }
-
-/*
-Return the interval and indices in original units of position $pos$ in
-the refinement partition in the referenced variables ~civ~, ~ur~ and
-~up~. Remember that ~ur~ or ~up~ may be $-1$ if interval is no sub-interval
-of unit intervals in the respective ~Mapping~ instance.
-
-Runtime is $O(1)$.
-
-*/
-    void Get(unsigned int pos, 
-	     Interval<Instant>*& civ, 
-	     int& ur, 
-	     int& up) {
-	if (MRA_DEBUG)
-	    cerr << "RP::Get() called" << endl;
-	    
-	assert(pos < iv.size());
-
-	civ = iv[pos];
-        ur = vur[pos];
-	up = vup[pos];
-    }
-};
-
-/*
-1.1.1 Constructor template
-
-*/
-
-template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
-::RefinementPartition(
-    Mapping1& mr,
-    Mapping2& mp) {
-    if (MRA_DEBUG) 
-	cerr << "RP::RP() called" << endl;
-
-/*
-To construct the refinement partition, we will move ~mrUnit~ and
-~mpUnit~ through the units of ~mr~ and ~mp~. ~mrUnit~ and ~mpUnit~ will
-be increased when the unit's interval has been added to the refinement
-partition.
-
-*/
-    int mrUnit = 0;
-    int mpUnit = 0;
-
-/*
-~ur~ and ~up~ will hold the units with the indeces ~mrUnit~ and ~mpUnit~.
-
-*/
-    URegion ur;
-    UPoint up;
-
-    mr.Get(0, ur);
-    mp.Get(0, up);
-
-/*
-~t~ will hold the right border of the last interval added to the refinement
-position and ~c~ will indicate if this interval was open or closed. To avoid
-special treatment of the first interval, ~t~ is initialised with the values
-below.
-
-*/
-    Instant t;
-    bool c;
-
-    if (ur.timeInterval.start < up.timeInterval.start) {
-	t = ur.timeInterval.start;
-        c = !ur.timeInterval.lc;
-    } else {
-	t = up.timeInterval.start;
-        c = !up.timeInterval.lc;
-    }
-
-/*
-As long as we did not reach the end of units in ~mr~ or ~mp~...
-
-*/
-    while (mrUnit < mr.GetNoComponents() 
-	   && mpUnit < mp.GetNoComponents()) {
-	if (MRA_DEBUG) {
-	    cerr << "RP::RP() mrUnit=" 
-		 << mrUnit 
-		 << " mpUnit=" 
-		 << mpUnit 
-		 << " t="
-		 << t.ToDouble()
-		 << endl;
-	    cerr << "RP::RP() mrUnit interval=["
-		 << ur.timeInterval.start.ToDouble()
-		 << " "
-		 << ur.timeInterval.end.ToDouble()
-		 << " "
-		 << ur.timeInterval.lc
-		 << " "
-		 << ur.timeInterval.rc
-		 << "]"
-		 << endl;
-	    cerr << "RP::RP() mpUnit interval=["
-		 << up.timeInterval.start.ToDouble()
-		 << " "
-		 << up.timeInterval.end.ToDouble()
-		 << " "
-		 << up.timeInterval.lc
-		 << " "
-		 << up.timeInterval.rc
-		 << "]"
-		 << endl;
-	}
-
-/*
-We now have to analyse the relative positions of the two intervals in the
-current units of ~mr~ and ~mp~. This is done by considering a number of 
-different cases.
-
-*/
-
-	// graphical representation of intervals in debug output
-        // [---[  interval closed on left side, open on right side
-	// ]---|  interval open on left side, open or closed status
-	//        of right side not relevant
-
-	if (ur.timeInterval.start.Compare(
-		&up.timeInterval.start) == 0
-	    && ur.timeInterval.end.Compare(
-		   &up.timeInterval.end) == 0) {
-/*
-\textbf{Case 1:} Both intervals have the same start and end time.
-
-*/
-	    if (MRA_DEBUG) {
-		cerr << "RP::RP()   ur: |-----|" << endl;
-		cerr << "RP::RP()   up: |-----|" << endl;
-	    }
-
-/*
-If one of the intervals is open and one is closed on the left side,
-we have to add a point interval to the refinement partition.
-
-*/
-	    if (!(ur.timeInterval.lc && up.timeInterval.lc)) {
-		if (ur.timeInterval.lc)
-		    AddUnits(
-			mrUnit,
-			-1,
-			ur.timeInterval.start,
-			ur.timeInterval.start,
-			true,
-			true);
-		else if (up.timeInterval.lc)
-		    AddUnits(
-			-1,
-			mpUnit,
-			ur.timeInterval.start,
-			ur.timeInterval.start,
-			true,
-			true);
-	    }
-
-/*
-Add interval. It is closed on the left (right) side if both unit
-intervals are closed on the left (right) side.
-
-*/
-	    AddUnits(
-		mrUnit,
-		mpUnit,
-		ur.timeInterval.start,
-		ur.timeInterval.end,
-		ur.timeInterval.lc && up.timeInterval.lc,
-		ur.timeInterval.rc && up.timeInterval.rc);
-
-/*
-If one of the intervals is open and one is closed on the right side,
-we have to add a point interval to the refinement partition. This determines
-the value of ~c~ too, which we use to remember the open/closed flag of the
-last interval added to the refinement partition.
-
-*/
-	    if (!(ur.timeInterval.rc && up.timeInterval.rc)) {
-		if (ur.timeInterval.rc) {
-		    AddUnits(
-			mrUnit,
-			-1,
-			ur.timeInterval.end,
-			ur.timeInterval.end,
-			true,
-			true);
-		    c = true;
-		} else if (up.timeInterval.rc) {
-		    AddUnits(
-			-1,
-			mpUnit,
-			ur.timeInterval.end,
-			ur.timeInterval.end,
-			true,
-			true);
-		    c = true;
-		} else 
-		    c = false;
-	    } else
-		c = false;
-
-/*
-Remember right border of the added interval.
-
-*/
-	    t = ur.timeInterval.end;
-
-/*
-Since we added an interval for both unit interval, increase both unit 
-pointers.
-
-*/
-	    if (++mrUnit < mr.GetNoComponents()) 
-		mr.Get(mrUnit, ur);
-	    if (++mpUnit < mp.GetNoComponents()) 
-		mp.Get(mpUnit, up);
-	} else if (ur.timeInterval.Inside(up.timeInterval)) {
-/*
-\textbf{Case 2:} Interval from ~mr~ is embedded into interval from ~mp~.
-
-*/
-
-	    if (MRA_DEBUG) {
-		cerr << "RP::RP()   ur:  |---|" << endl;
-		cerr << "RP::RP()   up: |-----|" << endl;
-	    }
-
-/*
-Check if we have to add the left side of the interval from ~mp~ to the
-refinement partition first.
-
-*/
-	    if (t < ur.timeInterval.start)
-		AddUnits(
-		    -1,
-		    mpUnit, 
-		    t > up.timeInterval.start 
-		    ? t 
-		    : up.timeInterval.start,
-		    ur.timeInterval.start,
-		    !c,
-		    !ur.timeInterval.lc);
-
-/*
-Now add interval from ~mr~. Since it is entirely embedded into the interval
-from ~mp~, we directly use its border open/close flags.
-
-*/
-	    AddUnits(
-		mrUnit,
-		mpUnit,
-		ur.timeInterval.start,
-		ur.timeInterval.end,
-		ur.timeInterval.lc,
-		ur.timeInterval.rc);
-
-/*
-Remember right border, right border flag and increase unit pointer ~mrUnit~.
-
-*/
-	    t = ur.timeInterval.end;
-	    c = ur.timeInterval.rc;
-
-	    if (++mrUnit < mr.GetNoComponents()) 
-		mr.Get(mrUnit, ur);
-	} else if (up.timeInterval.Inside(ur.timeInterval)) {
-/*
-\textbf{Case 3:} Interval from ~mp~ is embedded into interval from ~mr~.
-This is similar to case 2 and no further details need to be explained.
-
-*/
-
-	    if (MRA_DEBUG) {
-		cerr << "RP::RP()   ur: |-----|" << endl;
-		cerr << "RP::RP()   up:  |---|" << endl;
-	    }
-
-	    if (t < up.timeInterval.start)
-		AddUnits(
-		    mrUnit,
-		    -1,
-		    t > ur.timeInterval.start 
-		      ? t
-		      : ur.timeInterval.start,
-		    up.timeInterval.start,
-		    !c,
-		    !up.timeInterval.lc);
-
-	    AddUnits(
-		mrUnit,
-		mpUnit,
-		up.timeInterval.start,
-		up.timeInterval.end,
-		up.timeInterval.lc,
-		up.timeInterval.rc);
-
-	    t = up.timeInterval.end;
-	    c = up.timeInterval.rc;
-
-	    if (++mpUnit < mp.GetNoComponents()) 
-		mp.Get(mpUnit, up);
-	} else if (ur.timeInterval.Intersects(up.timeInterval)) {
-/*
-\textbf{Case 4:} The intervals intersect. Further analysis is required,
-which will be handled by sub-cases of case 4.
-
-*/
-	    if (MRA_DEBUG) 
-		cerr << "RP::RP()   intersect" << endl;
-
-	    if (ur.timeInterval.start.Compare(
-		    &up.timeInterval.end) == 0 
-		&& ur.timeInterval.lc 
-		&& up.timeInterval.rc) {
-/*
-\textbf{Case 4.1:} Left border of interval from ~mr~ and right border of
-interval from ~mp~ are identical and both intervals are closed in this
-point.
-
-*/
-
-		if (MRA_DEBUG) {
-		    cerr << "RP::RP()   ur:     [---|" << endl;
-		    cerr << "RP::RP()   up: |---]" << endl;
-		}
-
-/*
-Check if we have to add the interval from ~mp~ minus its right border to the
-refinement partition first.
-
-*/
-		if (t < up.timeInterval.end)
-		    AddUnits(
-			-1,
-			mpUnit,
-			t > up.timeInterval.start 
-			  ? t
-			  : up.timeInterval.start,
-			up.timeInterval.end,
-			!c,
-			false);
-
-/*
-Add point interval for the common border.
-
-*/
-		AddUnits(
-		    mrUnit,
-		    mpUnit,
-		    ur.timeInterval.start,
-		    ur.timeInterval.start,
-		    true,
-		    true);
-
-/*
-Remember point interval border and increase unit pointer ~mpUnit~.
-
-*/
-		t = up.timeInterval.start;
-		c = true;
-
-		if (++mpUnit < mp.GetNoComponents()) 
-		    mp.Get(mpUnit, up);
-	    } else if (ur.timeInterval.end.Compare(
-			   &up.timeInterval.start) == 0
-		       && ur.timeInterval.rc
-		       && up.timeInterval.lc) {
-/*
-\textbf{Case 4.2:} Right border of interval from ~mr~ and left border of
-interval from ~mp~ are identical and both intervals are closed in this
-point. Similar to case 4.1, no further details explained.
-
-*/
-		if (MRA_DEBUG) {
-		    cerr << "RP::RP()   ur: |---]" << endl;
-		    cerr << "RP::RP()   up:     [---|" << endl;
-		}
-
-		if (t < ur.timeInterval.end)
-		    AddUnits(
-			mrUnit,
-			-1,
-			t > ur.timeInterval.start
-			  ? t
-			  : ur.timeInterval.start,
-			ur.timeInterval.end,
-			!c,
-			false);
-
-		AddUnits(
-		    mrUnit,
-		    mpUnit,
-		    up.timeInterval.start,
-		    up.timeInterval.start,
-		    true,
-		    true);
-
-		t = ur.timeInterval.end;
-		c = true;
-
-		if (++mrUnit < mr.GetNoComponents()) 
-		    mr.Get(mrUnit, ur);
-	    } else if (ur.timeInterval.start.Compare(
-			   &up.timeInterval.start) < 0) {
-/*
-\textbf{Case 4.3:} Both intervals overlap, interval from ~mr~ starts right
-of interval from ~mp~.
-
-*/
-
-		if (MRA_DEBUG) {
-		    cerr << "RP::RP()   ur: |----|" << endl;
-		    cerr << "RP::RP()   up:    |----|" << endl;
-		}
-
-/*
-Check if we have to add the left part of the interval from ~mr~ to the
-refinement partition first.
-
-*/
-		if (t < up.timeInterval.start)
-		    AddUnits(
-			mrUnit,
-			-1,
-			t > ur.timeInterval.start 
-			  ? t
-			  : ur.timeInterval.start,
-			up.timeInterval.start,
-			!c,
-			!up.timeInterval.lc);
-
-/*
-Add the intersection of the two intervals by using the respective left or
-right borders and their open/close flags.
-
-*/ 
-		AddUnits(
-		    mrUnit,
-		    mpUnit,
-		    up.timeInterval.start,
-		    ur.timeInterval.end,
-		    up.timeInterval.lc,
-		    ur.timeInterval.rc);
-
-/*
-Remember interval border and increase unit pointer ~mrUnit~.
-
-*/
-		t = ur.timeInterval.end;
-		c = ur.timeInterval.rc;
-
-		if (++mrUnit < mr.GetNoComponents()) 
-		    mr.Get(mrUnit, ur);
-	    } else if (ur.timeInterval.start.Compare(
-			   &up.timeInterval.start) == 0) {
-/*
-\textbf{Case 4.4:} Both intervals have the same start point.
-
-The following assertion holds or we would have cases 2 or 3, which have been
-already checked.
-
-*/
-		assert(!ur.timeInterval.lc || !up.timeInterval.lc);
-
-/*
-Case 4.4 is broken into two sub-cases again.
-
-*/
-		if (ur.timeInterval.end.Compare(
-			&up.timeInterval.end) < 0) {
-/*
-\textbf{Case 4.4.1:} The right border of the interval from ~mr~ is lower
-than the right border of the interval from ~mp~.
-
-*/
-		    if (MRA_DEBUG) {
-			cerr << "RP::RP()   ur: [---|" 
-			     << endl;
-			cerr << "RP::RP()   up: ]------|" 
-			     << endl;
-		    }
-
-/*
-Add left point of interval from ~mp~ to refinement partition.
-
-*/
-		    AddUnits(
-			mrUnit,
-			-1,
-			ur.timeInterval.start,
-			ur.timeInterval.start,
-			true,
-			true);
-
-/*
-Add intersection to refinement partition. 
-
-*/
-
-		    AddUnits(
-			mrUnit,
-			mpUnit,
-			ur.timeInterval.start,
-			ur.timeInterval.end,
-			false,
-			ur.timeInterval.rc);
-
-/*
-Remember interval border and increase unit pointer ~mrUnit~.
-
-*/
-		    t = ur.timeInterval.end;
-		    c = ur.timeInterval.rc;
-
-		    if (++mrUnit < mr.GetNoComponents()) 
-			mr.Get(mrUnit, ur);
-		} else {
-/*
-\textbf{Case 4.4.2:} The right border of the interval from ~mr~ is greater
-than the right border of the interval from ~mp~.
-
-The following assertion holds or we would have cases 2 or 3, which have been
-already checked.
-
-*/
-		    assert(ur.timeInterval.end.Compare(
-			       &up.timeInterval.end) != 0);
-
-		    if (MRA_DEBUG) {
-			cerr << "RP::RP()   ur: ]------|" 
-			     << endl;
-			cerr << "RP::RP()   up: [---|" 
-			     << endl;
-		    }
-
-/*
-Add left point of interval from ~mr~ to refinement partition.
-
-*/
-		    AddUnits(
-			-1,
-			mpUnit,
-			up.timeInterval.start,
-			up.timeInterval.start,
-			true,
-			true);
-
-/*
-Add intersection to refinement partition. 
-
-*/
-		    AddUnits(
-			mrUnit,
-			mpUnit,
-			ur.timeInterval.start,
-			up.timeInterval.end,
-			false,
-			up.timeInterval.rc);
-
-		    t = up.timeInterval.end;
-		    c = up.timeInterval.rc;
-
-/*
-Remember interval border and increase unit pointer ~mpUnit~.
-
-*/
-		    if (++mpUnit < mp.GetNoComponents()) 
-			mp.Get(mpUnit, up);
-		}
-	    } else {
-/*
-\textbf{Case 4.5:} Both intervals overlap, interval from ~mr~ starts right
-of interval from ~mp~. Similar to case 4.3, no further details explained.
-
-*/
-
-		if (MRA_DEBUG) {
-		    cerr << "RP::RP()   ur:    |----|" << endl;
-		    cerr << "RP::RP()   up: |----|" << endl;
-		}
-
-		if (t < ur.timeInterval.start)
-		    AddUnits(
-			-1,
-			mpUnit,
-			t > up.timeInterval.start
-			  ? t 
-			  : up.timeInterval.start,
-			ur.timeInterval.start,
-			!c,
-			!ur.timeInterval.lc);
-
-		AddUnits(
-		    mrUnit,
-		    mpUnit,
-		    ur.timeInterval.start,
-		    up.timeInterval.end,
-		    ur.timeInterval.lc,
-		    up.timeInterval.rc);
-
-		t = up.timeInterval.end;
-		c = up.timeInterval.rc;
-
-		if (++mpUnit < mp.GetNoComponents()) 
-		    mp.Get(mpUnit, up);
-	    }
-	} else if (ur.timeInterval.end.Compare(
-		       &up.timeInterval.start) <= 0) {
-/*
-\textbf{Case 5:} Both intervals are disjunct, the interval from ~mr~ is
-left of the interval from ~mp~.
-
-*/
-	    if (MRA_DEBUG) {
-		cerr << "RP::RP()   ur: |--|" << endl;
-		cerr << "RP::RP()   up:      |--|" << endl;
-	    }
-
-	    AddUnits(
-		mrUnit, 
-		-1,
-		t,
-		ur.timeInterval.end,
-		!c,
-		ur.timeInterval.lc);
-	    
-	    t = up.timeInterval.start;
-	    c = !up.timeInterval.lc;
-	    
-	    if (++mrUnit < mr.GetNoComponents()) 
-		mr.Get(mrUnit, ur);
-	} else {
-/*
-\textbf{Case 6:} Both intervals are disjunct, the interval from ~mr~ is
-right of the interval from ~mp~.
-
-*/
-
-	    if (MRA_DEBUG) {
-		cerr << "RP::RP()   ur:      |--|" << endl;
-		cerr << "RP::RP()   up: |--|" << endl;
-	    }
-
-	    AddUnits(
-		-1,
-		mpUnit,
-		t,
-		up.timeInterval.end,
-		!c,
-		up.timeInterval.lc);
-
-	    t = ur.timeInterval.start;
-	    c = !ur.timeInterval.lc;
-
-	    if (++mpUnit < mp.GetNoComponents()) 
-		mp.Get(mpUnit, up);
-	}
-    }
-
-/*
-When we reach this point, either all units in ~mr~ or all units in ~mp~ 
-have been examined in the ~while~ loop.
-
-*/
-
-    if (mrUnit < mr.GetNoComponents()) {
-/*
-There are still units to be processed in ~mr~.
-
-First check whether processing already reached the end of the current unit's
-interval. If not, add its right part to the refinement partition.
-
-*/
-	if (t < ur.timeInterval.end)
-	    AddUnits(
-		mrUnit, 
-		-1,
-		t,
-		ur.timeInterval.end,
-		!c,
-		ur.timeInterval.rc);
-	mrUnit++;
-
-/*
-Now just add the remaining unit intervals to the refinement partition.
-
-*/
-	while (mrUnit < mr.GetNoComponents()) {
-	    mr.Get(mrUnit, ur);
-
-	    AddUnits(
-		mrUnit, 
-		-1,
-		ur.timeInterval.start,
-		ur.timeInterval.end,
-		ur.timeInterval.lc,
-		ur.timeInterval.rc);
-
-	    mrUnit++;
-	}
-    }
-
-/*
-There are still units to be processed in ~mp~. See the previous case for
-~mr~ for details.
-
-*/
-    if (mpUnit < mp.GetNoComponents()) {
-	if (t < up.timeInterval.end)
-	    AddUnits(
-		-1,
-		mpUnit,
-		t,
-		up.timeInterval.end,
-		!c,
-		up.timeInterval.rc);
-	mpUnit++;
-
-	while (mpUnit < mp.GetNoComponents()) {
-	    mp.Get(mpUnit, up);
-
-	    AddUnits(
-		-1,
-		mpUnit, 
-		up.timeInterval.start,
-		up.timeInterval.end,
-		up.timeInterval.lc,
-		up.timeInterval.rc);
-
-	    mpUnit++;
-	}
-    }
-}
-
-/*
-1.1.1 Destructor template
-
-*/
-template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
-::~RefinementPartition() {
-    if (MRA_DEBUG) 
-	cerr << "RP::~RP() called" << endl;
-
-    for (unsigned int i = 0; i < iv.size(); i++) delete iv[i];
-}
-
-/*
-1.1.1 Method template ~AddUnits()~
-
-*/
-template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-void RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
-::AddUnits(
-    int urPos,
-    int upPos,
-    Instant& start,
-    Instant& end,
-    bool lc,
-    bool rc) {
-    if (MRA_DEBUG) {
-	cerr << "RP::AddUnits() called" << endl;
-	cerr << "RP::AddUnits() start="
-	     << start.ToDouble()
-	     << " end="
-	     << end.ToDouble()
-	     << " lc="
-	     << lc
-	     << " rc="
-	     << rc
-	     << " urPos="
-	     << urPos
-	     << " upPos="
-	     << upPos
-	     << endl;
-    }
-
-    Interval<Instant>* civ = 
-	new Interval<Instant>(start, end, lc, rc);
-
-    iv.push_back(civ);
-    vur.push_back(urPos);
-    vup.push_back(upPos);
-}
-
-
-/*
 1 Data type ~intimeregion~
 
 The code for this data type is fairly simple because it can rely on the
@@ -3399,12 +2523,7 @@ static TypeConstructor iregion(
     CloneIntime<CRegion>,
     CastIntime<CRegion>,
     SizeOfIntime<CRegion>,
-    CheckIRegion,
-    0, // predef. pers. function for model
-    TypeConstructor::DummyInModel,
-    TypeConstructor::DummyOutModel,
-    TypeConstructor::DummyValueToModel,
-    TypeConstructor::DummyValueListToModel );
+    CheckIRegion );
 
 /*
 1 Data type ~uregion~
@@ -6541,12 +5660,888 @@ static TypeConstructor uregion(
     CloneURegion,
     CastURegion,
     SizeOfURegion,
-    CheckURegion,
-    0, // predef. pers. function for model
-    TypeConstructor::DummyInModel,
-    TypeConstructor::DummyOutModel,
-    TypeConstructor::DummyValueToModel,
-    TypeConstructor::DummyValueListToModel );
+    CheckURegion );
+
+
+/*
+1.1 Class template ~RefinementPartition~ 
+
+This class calculates a list of time intervals from two ~Mapping~ instances
+~m1~ and ~m2~. For each of these intervals, one of the following three 
+conditions holds:
+
+  1 The interval is a sub-interval of a unit's interval for both ~m1~ 
+    and ~m2~.
+
+  2 The interval is a sub-interval of a unit's interval for ~m1~ but
+    the intersection with each interval of a units in ~m2~ is empty.
+
+  3 The interval is a sub-interval of a unit's interval for ~m2~ but
+    the intersection with each interval of a units in ~m1~ is empty.
+
+(An interval $i_1$ is a sub-interval of interval $i_2$ if and only if
+$i_1 \subseteq i_2$.)
+
+This list is called \underline{refinement partition}.
+
+The classes used for ~Mapping1~ and ~Mapping2~ must inherit from class
+~Mapping~ from the ~TemporalAlgebra~. The classes user for ~Unit1~ and
+~Unit2~ must inherit from class ~Unit~ in ~TemporalAlgebra~.
+
+1.1.1 Class template definition
+
+*/
+
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+class RefinementPartition {
+private:
+/*
+Private attributes:
+
+  * ~iv~: Array (vector) of sub-intervals, which has been calculated from the
+    unit intervals of the ~Mapping~ instances.
+
+  * ~vur~: Maps intervals in ~iv~ to indices of original units in first 
+    ~Mapping~ instance. A $-1$ values indicates that interval in ~iv~ is no 
+    sub-interval of any unit interval in first ~Mapping~ instance.
+
+  * ~vup~: Same as ~vur~ for second mapping instance.
+
+*/
+    vector< Interval<Instant>* > iv;
+    vector<int> vur;
+    vector<int> vup;
+
+/*
+~AddUnit()~ is a small helper method to create a new interval from
+~start~ and ~end~ instant and ~lc~ and ~rc~ flags and to add these to the
+~iv~, ~vur~ and ~vup~ vectors.
+
+*/
+    void AddUnits(int urPos, 
+		  int upPos, 
+		  Instant& start,
+		  Instant& end,
+		  bool lc,
+		  bool rc);
+
+public:
+/*
+The constructor creates the refinement partition from the two ~Mapping~
+instances ~mr~ and ~mp~.
+
+Runtime is $O(\max(n, m))$ with $n$ and $m$ the numbers of units in 
+~mr~ and ~mp~.
+
+*/
+    RefinementPartition(Mapping1& mr, Mapping2& mp);
+
+/*
+Since the elements of ~iv~ point to dynamically allocated objects, we need
+a destructor.
+
+*/
+    ~RefinementPartition();
+
+/*
+Return the number of intervals in the refinement partition.
+
+*/
+    unsigned int Size(void ) { 
+	if (MRA_DEBUG)
+	    cerr << "RP::Size() called" << endl;
+	    
+	return iv.size(); 
+    }
+
+/*
+Return the interval and indices in original units of position $pos$ in
+the refinement partition in the referenced variables ~civ~, ~ur~ and
+~up~. Remember that ~ur~ or ~up~ may be $-1$ if interval is no sub-interval
+of unit intervals in the respective ~Mapping~ instance.
+
+Runtime is $O(1)$.
+
+*/
+    void Get(unsigned int pos, 
+	     Interval<Instant>*& civ, 
+	     int& ur, 
+	     int& up) {
+	if (MRA_DEBUG)
+	    cerr << "RP::Get() called" << endl;
+	    
+	assert(pos < iv.size());
+
+	civ = iv[pos];
+        ur = vur[pos];
+	up = vup[pos];
+    }
+};
+
+/*
+1.1.1 Constructor template
+
+*/
+
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
+::RefinementPartition(
+    Mapping1& mr,
+    Mapping2& mp) {
+    if (MRA_DEBUG) 
+	cerr << "RP::RP() called" << endl;
+
+/*
+To construct the refinement partition, we will move ~mrUnit~ and
+~mpUnit~ through the units of ~mr~ and ~mp~. ~mrUnit~ and ~mpUnit~ will
+be increased when the unit's interval has been added to the refinement
+partition.
+
+*/
+    int mrUnit = 0;
+    int mpUnit = 0;
+
+/*
+~ur~ and ~up~ will hold the units with the indeces ~mrUnit~ and ~mpUnit~.
+
+*/
+    URegion ur;
+    UPoint up;
+
+    mr.Get(0, ur);
+    mp.Get(0, up);
+
+/*
+~t~ will hold the right border of the last interval added to the refinement
+position and ~c~ will indicate if this interval was open or closed. To avoid
+special treatment of the first interval, ~t~ is initialised with the values
+below.
+
+*/
+    Instant t;
+    bool c;
+
+    if (ur.timeInterval.start < up.timeInterval.start) {
+	t = ur.timeInterval.start;
+        c = !ur.timeInterval.lc;
+    } else {
+	t = up.timeInterval.start;
+        c = !up.timeInterval.lc;
+    }
+
+/*
+As long as we did not reach the end of units in ~mr~ or ~mp~...
+
+*/
+    while (mrUnit < mr.GetNoComponents() 
+	   && mpUnit < mp.GetNoComponents()) {
+	if (MRA_DEBUG) {
+	    cerr << "RP::RP() mrUnit=" 
+		 << mrUnit 
+		 << " mpUnit=" 
+		 << mpUnit 
+		 << " t="
+		 << t.ToDouble()
+		 << endl;
+	    cerr << "RP::RP() mrUnit interval=["
+		 << ur.timeInterval.start.ToDouble()
+		 << " "
+		 << ur.timeInterval.end.ToDouble()
+		 << " "
+		 << ur.timeInterval.lc
+		 << " "
+		 << ur.timeInterval.rc
+		 << "]"
+		 << endl;
+	    cerr << "RP::RP() mpUnit interval=["
+		 << up.timeInterval.start.ToDouble()
+		 << " "
+		 << up.timeInterval.end.ToDouble()
+		 << " "
+		 << up.timeInterval.lc
+		 << " "
+		 << up.timeInterval.rc
+		 << "]"
+		 << endl;
+	}
+
+/*
+We now have to analyse the relative positions of the two intervals in the
+current units of ~mr~ and ~mp~. This is done by considering a number of 
+different cases.
+
+*/
+
+	// graphical representation of intervals in debug output
+        // [---[  interval closed on left side, open on right side
+	// ]---|  interval open on left side, open or closed status
+	//        of right side not relevant
+
+	if (ur.timeInterval.start.Compare(
+		&up.timeInterval.start) == 0
+	    && ur.timeInterval.end.Compare(
+		   &up.timeInterval.end) == 0) {
+/*
+\textbf{Case 1:} Both intervals have the same start and end time.
+
+*/
+	    if (MRA_DEBUG) {
+		cerr << "RP::RP()   ur: |-----|" << endl;
+		cerr << "RP::RP()   up: |-----|" << endl;
+	    }
+
+/*
+If one of the intervals is open and one is closed on the left side,
+we have to add a point interval to the refinement partition.
+
+*/
+	    if (!(ur.timeInterval.lc && up.timeInterval.lc)) {
+		if (ur.timeInterval.lc)
+		    AddUnits(
+			mrUnit,
+			-1,
+			ur.timeInterval.start,
+			ur.timeInterval.start,
+			true,
+			true);
+		else if (up.timeInterval.lc)
+		    AddUnits(
+			-1,
+			mpUnit,
+			ur.timeInterval.start,
+			ur.timeInterval.start,
+			true,
+			true);
+	    }
+
+/*
+Add interval. It is closed on the left (right) side if both unit
+intervals are closed on the left (right) side.
+
+*/
+	    AddUnits(
+		mrUnit,
+		mpUnit,
+		ur.timeInterval.start,
+		ur.timeInterval.end,
+		ur.timeInterval.lc && up.timeInterval.lc,
+		ur.timeInterval.rc && up.timeInterval.rc);
+
+/*
+If one of the intervals is open and one is closed on the right side,
+we have to add a point interval to the refinement partition. This determines
+the value of ~c~ too, which we use to remember the open/closed flag of the
+last interval added to the refinement partition.
+
+*/
+	    if (!(ur.timeInterval.rc && up.timeInterval.rc)) {
+		if (ur.timeInterval.rc) {
+		    AddUnits(
+			mrUnit,
+			-1,
+			ur.timeInterval.end,
+			ur.timeInterval.end,
+			true,
+			true);
+		    c = true;
+		} else if (up.timeInterval.rc) {
+		    AddUnits(
+			-1,
+			mpUnit,
+			ur.timeInterval.end,
+			ur.timeInterval.end,
+			true,
+			true);
+		    c = true;
+		} else 
+		    c = false;
+	    } else
+		c = false;
+
+/*
+Remember right border of the added interval.
+
+*/
+	    t = ur.timeInterval.end;
+
+/*
+Since we added an interval for both unit interval, increase both unit 
+pointers.
+
+*/
+	    if (++mrUnit < mr.GetNoComponents()) 
+		mr.Get(mrUnit, ur);
+	    if (++mpUnit < mp.GetNoComponents()) 
+		mp.Get(mpUnit, up);
+	} else if (ur.timeInterval.Inside(up.timeInterval)) {
+/*
+\textbf{Case 2:} Interval from ~mr~ is embedded into interval from ~mp~.
+
+*/
+
+	    if (MRA_DEBUG) {
+		cerr << "RP::RP()   ur:  |---|" << endl;
+		cerr << "RP::RP()   up: |-----|" << endl;
+	    }
+
+/*
+Check if we have to add the left side of the interval from ~mp~ to the
+refinement partition first.
+
+*/
+	    if (t < ur.timeInterval.start)
+		AddUnits(
+		    -1,
+		    mpUnit, 
+		    t > up.timeInterval.start 
+		    ? t 
+		    : up.timeInterval.start,
+		    ur.timeInterval.start,
+		    !c,
+		    !ur.timeInterval.lc);
+
+/*
+Now add interval from ~mr~. Since it is entirely embedded into the interval
+from ~mp~, we directly use its border open/close flags.
+
+*/
+	    AddUnits(
+		mrUnit,
+		mpUnit,
+		ur.timeInterval.start,
+		ur.timeInterval.end,
+		ur.timeInterval.lc,
+		ur.timeInterval.rc);
+
+/*
+Remember right border, right border flag and increase unit pointer ~mrUnit~.
+
+*/
+	    t = ur.timeInterval.end;
+	    c = ur.timeInterval.rc;
+
+	    if (++mrUnit < mr.GetNoComponents()) 
+		mr.Get(mrUnit, ur);
+	} else if (up.timeInterval.Inside(ur.timeInterval)) {
+/*
+\textbf{Case 3:} Interval from ~mp~ is embedded into interval from ~mr~.
+This is similar to case 2 and no further details need to be explained.
+
+*/
+
+	    if (MRA_DEBUG) {
+		cerr << "RP::RP()   ur: |-----|" << endl;
+		cerr << "RP::RP()   up:  |---|" << endl;
+	    }
+
+	    if (t < up.timeInterval.start)
+		AddUnits(
+		    mrUnit,
+		    -1,
+		    t > ur.timeInterval.start 
+		      ? t
+		      : ur.timeInterval.start,
+		    up.timeInterval.start,
+		    !c,
+		    !up.timeInterval.lc);
+
+	    AddUnits(
+		mrUnit,
+		mpUnit,
+		up.timeInterval.start,
+		up.timeInterval.end,
+		up.timeInterval.lc,
+		up.timeInterval.rc);
+
+	    t = up.timeInterval.end;
+	    c = up.timeInterval.rc;
+
+	    if (++mpUnit < mp.GetNoComponents()) 
+		mp.Get(mpUnit, up);
+	} else if (ur.timeInterval.Intersects(up.timeInterval)) {
+/*
+\textbf{Case 4:} The intervals intersect. Further analysis is required,
+which will be handled by sub-cases of case 4.
+
+*/
+	    if (MRA_DEBUG) 
+		cerr << "RP::RP()   intersect" << endl;
+
+	    if (ur.timeInterval.start.Compare(
+		    &up.timeInterval.end) == 0 
+		&& ur.timeInterval.lc 
+		&& up.timeInterval.rc) {
+/*
+\textbf{Case 4.1:} Left border of interval from ~mr~ and right border of
+interval from ~mp~ are identical and both intervals are closed in this
+point.
+
+*/
+
+		if (MRA_DEBUG) {
+		    cerr << "RP::RP()   ur:     [---|" << endl;
+		    cerr << "RP::RP()   up: |---]" << endl;
+		}
+
+/*
+Check if we have to add the interval from ~mp~ minus its right border to the
+refinement partition first.
+
+*/
+		if (t < up.timeInterval.end)
+		    AddUnits(
+			-1,
+			mpUnit,
+			t > up.timeInterval.start 
+			  ? t
+			  : up.timeInterval.start,
+			up.timeInterval.end,
+			!c,
+			false);
+
+/*
+Add point interval for the common border.
+
+*/
+		AddUnits(
+		    mrUnit,
+		    mpUnit,
+		    ur.timeInterval.start,
+		    ur.timeInterval.start,
+		    true,
+		    true);
+
+/*
+Remember point interval border and increase unit pointer ~mpUnit~.
+
+*/
+		t = up.timeInterval.start;
+		c = true;
+
+		if (++mpUnit < mp.GetNoComponents()) 
+		    mp.Get(mpUnit, up);
+	    } else if (ur.timeInterval.end.Compare(
+			   &up.timeInterval.start) == 0
+		       && ur.timeInterval.rc
+		       && up.timeInterval.lc) {
+/*
+\textbf{Case 4.2:} Right border of interval from ~mr~ and left border of
+interval from ~mp~ are identical and both intervals are closed in this
+point. Similar to case 4.1, no further details explained.
+
+*/
+		if (MRA_DEBUG) {
+		    cerr << "RP::RP()   ur: |---]" << endl;
+		    cerr << "RP::RP()   up:     [---|" << endl;
+		}
+
+		if (t < ur.timeInterval.end)
+		    AddUnits(
+			mrUnit,
+			-1,
+			t > ur.timeInterval.start
+			  ? t
+			  : ur.timeInterval.start,
+			ur.timeInterval.end,
+			!c,
+			false);
+
+		AddUnits(
+		    mrUnit,
+		    mpUnit,
+		    up.timeInterval.start,
+		    up.timeInterval.start,
+		    true,
+		    true);
+
+		t = ur.timeInterval.end;
+		c = true;
+
+		if (++mrUnit < mr.GetNoComponents()) 
+		    mr.Get(mrUnit, ur);
+	    } else if (ur.timeInterval.start.Compare(
+			   &up.timeInterval.start) < 0) {
+/*
+\textbf{Case 4.3:} Both intervals overlap, interval from ~mr~ starts right
+of interval from ~mp~.
+
+*/
+
+		if (MRA_DEBUG) {
+		    cerr << "RP::RP()   ur: |----|" << endl;
+		    cerr << "RP::RP()   up:    |----|" << endl;
+		}
+
+/*
+Check if we have to add the left part of the interval from ~mr~ to the
+refinement partition first.
+
+*/
+		if (t < up.timeInterval.start)
+		    AddUnits(
+			mrUnit,
+			-1,
+			t > ur.timeInterval.start 
+			  ? t
+			  : ur.timeInterval.start,
+			up.timeInterval.start,
+			!c,
+			!up.timeInterval.lc);
+
+/*
+Add the intersection of the two intervals by using the respective left or
+right borders and their open/close flags.
+
+*/ 
+		AddUnits(
+		    mrUnit,
+		    mpUnit,
+		    up.timeInterval.start,
+		    ur.timeInterval.end,
+		    up.timeInterval.lc,
+		    ur.timeInterval.rc);
+
+/*
+Remember interval border and increase unit pointer ~mrUnit~.
+
+*/
+		t = ur.timeInterval.end;
+		c = ur.timeInterval.rc;
+
+		if (++mrUnit < mr.GetNoComponents()) 
+		    mr.Get(mrUnit, ur);
+	    } else if (ur.timeInterval.start.Compare(
+			   &up.timeInterval.start) == 0) {
+/*
+\textbf{Case 4.4:} Both intervals have the same start point.
+
+The following assertion holds or we would have cases 2 or 3, which have been
+already checked.
+
+*/
+		assert(!ur.timeInterval.lc || !up.timeInterval.lc);
+
+/*
+Case 4.4 is broken into two sub-cases again.
+
+*/
+		if (ur.timeInterval.end.Compare(
+			&up.timeInterval.end) < 0) {
+/*
+\textbf{Case 4.4.1:} The right border of the interval from ~mr~ is lower
+than the right border of the interval from ~mp~.
+
+*/
+		    if (MRA_DEBUG) {
+			cerr << "RP::RP()   ur: [---|" 
+			     << endl;
+			cerr << "RP::RP()   up: ]------|" 
+			     << endl;
+		    }
+
+/*
+Add left point of interval from ~mp~ to refinement partition.
+
+*/
+		    AddUnits(
+			mrUnit,
+			-1,
+			ur.timeInterval.start,
+			ur.timeInterval.start,
+			true,
+			true);
+
+/*
+Add intersection to refinement partition. 
+
+*/
+
+		    AddUnits(
+			mrUnit,
+			mpUnit,
+			ur.timeInterval.start,
+			ur.timeInterval.end,
+			false,
+			ur.timeInterval.rc);
+
+/*
+Remember interval border and increase unit pointer ~mrUnit~.
+
+*/
+		    t = ur.timeInterval.end;
+		    c = ur.timeInterval.rc;
+
+		    if (++mrUnit < mr.GetNoComponents()) 
+			mr.Get(mrUnit, ur);
+		} else {
+/*
+\textbf{Case 4.4.2:} The right border of the interval from ~mr~ is greater
+than the right border of the interval from ~mp~.
+
+The following assertion holds or we would have cases 2 or 3, which have been
+already checked.
+
+*/
+		    assert(ur.timeInterval.end.Compare(
+			       &up.timeInterval.end) != 0);
+
+		    if (MRA_DEBUG) {
+			cerr << "RP::RP()   ur: ]------|" 
+			     << endl;
+			cerr << "RP::RP()   up: [---|" 
+			     << endl;
+		    }
+
+/*
+Add left point of interval from ~mr~ to refinement partition.
+
+*/
+		    AddUnits(
+			-1,
+			mpUnit,
+			up.timeInterval.start,
+			up.timeInterval.start,
+			true,
+			true);
+
+/*
+Add intersection to refinement partition. 
+
+*/
+		    AddUnits(
+			mrUnit,
+			mpUnit,
+			ur.timeInterval.start,
+			up.timeInterval.end,
+			false,
+			up.timeInterval.rc);
+
+		    t = up.timeInterval.end;
+		    c = up.timeInterval.rc;
+
+/*
+Remember interval border and increase unit pointer ~mpUnit~.
+
+*/
+		    if (++mpUnit < mp.GetNoComponents()) 
+			mp.Get(mpUnit, up);
+		}
+	    } else {
+/*
+\textbf{Case 4.5:} Both intervals overlap, interval from ~mr~ starts right
+of interval from ~mp~. Similar to case 4.3, no further details explained.
+
+*/
+
+		if (MRA_DEBUG) {
+		    cerr << "RP::RP()   ur:    |----|" << endl;
+		    cerr << "RP::RP()   up: |----|" << endl;
+		}
+
+		if (t < ur.timeInterval.start)
+		    AddUnits(
+			-1,
+			mpUnit,
+			t > up.timeInterval.start
+			  ? t 
+			  : up.timeInterval.start,
+			ur.timeInterval.start,
+			!c,
+			!ur.timeInterval.lc);
+
+		AddUnits(
+		    mrUnit,
+		    mpUnit,
+		    ur.timeInterval.start,
+		    up.timeInterval.end,
+		    ur.timeInterval.lc,
+		    up.timeInterval.rc);
+
+		t = up.timeInterval.end;
+		c = up.timeInterval.rc;
+
+		if (++mpUnit < mp.GetNoComponents()) 
+		    mp.Get(mpUnit, up);
+	    }
+	} else if (ur.timeInterval.end.Compare(
+		       &up.timeInterval.start) <= 0) {
+/*
+\textbf{Case 5:} Both intervals are disjunct, the interval from ~mr~ is
+left of the interval from ~mp~.
+
+*/
+	    if (MRA_DEBUG) {
+		cerr << "RP::RP()   ur: |--|" << endl;
+		cerr << "RP::RP()   up:      |--|" << endl;
+	    }
+
+	    AddUnits(
+		mrUnit, 
+		-1,
+		t,
+		ur.timeInterval.end,
+		!c,
+		ur.timeInterval.lc);
+	    
+	    t = up.timeInterval.start;
+	    c = !up.timeInterval.lc;
+	    
+	    if (++mrUnit < mr.GetNoComponents()) 
+		mr.Get(mrUnit, ur);
+	} else {
+/*
+\textbf{Case 6:} Both intervals are disjunct, the interval from ~mr~ is
+right of the interval from ~mp~.
+
+*/
+
+	    if (MRA_DEBUG) {
+		cerr << "RP::RP()   ur:      |--|" << endl;
+		cerr << "RP::RP()   up: |--|" << endl;
+	    }
+
+	    AddUnits(
+		-1,
+		mpUnit,
+		t,
+		up.timeInterval.end,
+		!c,
+		up.timeInterval.lc);
+
+	    t = ur.timeInterval.start;
+	    c = !ur.timeInterval.lc;
+
+	    if (++mpUnit < mp.GetNoComponents()) 
+		mp.Get(mpUnit, up);
+	}
+    }
+
+/*
+When we reach this point, either all units in ~mr~ or all units in ~mp~ 
+have been examined in the ~while~ loop.
+
+*/
+
+    if (mrUnit < mr.GetNoComponents()) {
+/*
+There are still units to be processed in ~mr~.
+
+First check whether processing already reached the end of the current unit's
+interval. If not, add its right part to the refinement partition.
+
+*/
+	if (t < ur.timeInterval.end)
+	    AddUnits(
+		mrUnit, 
+		-1,
+		t,
+		ur.timeInterval.end,
+		!c,
+		ur.timeInterval.rc);
+	mrUnit++;
+
+/*
+Now just add the remaining unit intervals to the refinement partition.
+
+*/
+	while (mrUnit < mr.GetNoComponents()) {
+	    mr.Get(mrUnit, ur);
+
+	    AddUnits(
+		mrUnit, 
+		-1,
+		ur.timeInterval.start,
+		ur.timeInterval.end,
+		ur.timeInterval.lc,
+		ur.timeInterval.rc);
+
+	    mrUnit++;
+	}
+    }
+
+/*
+There are still units to be processed in ~mp~. See the previous case for
+~mr~ for details.
+
+*/
+    if (mpUnit < mp.GetNoComponents()) {
+	if (t < up.timeInterval.end)
+	    AddUnits(
+		-1,
+		mpUnit,
+		t,
+		up.timeInterval.end,
+		!c,
+		up.timeInterval.rc);
+	mpUnit++;
+
+	while (mpUnit < mp.GetNoComponents()) {
+	    mp.Get(mpUnit, up);
+
+	    AddUnits(
+		-1,
+		mpUnit, 
+		up.timeInterval.start,
+		up.timeInterval.end,
+		up.timeInterval.lc,
+		up.timeInterval.rc);
+
+	    mpUnit++;
+	}
+    }
+}
+
+/*
+1.1.1 Destructor template
+
+*/
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
+::~RefinementPartition() {
+    if (MRA_DEBUG) 
+	cerr << "RP::~RP() called" << endl;
+
+    for (unsigned int i = 0; i < iv.size(); i++) delete iv[i];
+}
+
+/*
+1.1.1 Method template ~AddUnits()~
+
+*/
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+void RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
+::AddUnits(
+    int urPos,
+    int upPos,
+    Instant& start,
+    Instant& end,
+    bool lc,
+    bool rc) {
+    if (MRA_DEBUG) {
+	cerr << "RP::AddUnits() called" << endl;
+	cerr << "RP::AddUnits() start="
+	     << start.ToDouble()
+	     << " end="
+	     << end.ToDouble()
+	     << " lc="
+	     << lc
+	     << " rc="
+	     << rc
+	     << " urPos="
+	     << urPos
+	     << " upPos="
+	     << upPos
+	     << endl;
+    }
+
+    Interval<Instant>* civ = 
+	new Interval<Instant>(start, end, lc, rc);
+
+    iv.push_back(civ);
+    vur.push_back(urPos);
+    vup.push_back(upPos);
+}
+
 
 /*
 1 Data type ~movingregion~
@@ -7509,12 +7504,7 @@ static TypeConstructor mregion(
     CloseMapping<MRegion>, CloneMapping<MRegion>,
     CastMapping<MRegion>,
     SizeOfMapping<MRegion>,
-    CheckMRegion,
-    0, // predef. pers. function for model
-    TypeConstructor::DummyInModel,
-    TypeConstructor::DummyOutModel,
-    TypeConstructor::DummyValueToModel,
-    TypeConstructor::DummyValueListToModel);
+    CheckMRegion );
 
 /*
 1.1 Helper function(s)
@@ -7555,19 +7545,6 @@ static MPoint CreateMPointFromCPoint(MRegion* mr, CPoint* p) {
 /*
 1 Operator definition
 
-1.1 Dummy model mapping
-
-*/
-
-static Word NoModelMapping(ArgVector arg, Supplier opTreeNode) {
-    if (MRA_DEBUG) cerr << "NoModelMapping() called" << endl;
-
-    return SetWord(Address(0));
-}
-
-static ModelMapping nomodelmap[] = { NoModelMapping };
-
-/*
 1.1 Type mapping functions
 
 1.1.1 Generic 
@@ -8197,7 +8174,6 @@ static Operator atinstant("atinstant",
 			  atinstantspec,
 			  1,
 			  atinstantvaluemap,
-			  nomodelmap,
 			  MRegionInstantSelect,
 			  MRegionInstantToIRegionTypeMap);
 
@@ -8205,7 +8181,6 @@ static Operator initial("initial",
 			initialspec,
 			1,
 			initialvaluemap,
-			nomodelmap,
 			MRegionSelect,
 			MRegionToIRegionTypeMap);
 
@@ -8213,7 +8188,6 @@ static Operator final("final",
 		      finalspec,
 		      1,
 		      finalvaluemap,
-		      nomodelmap,
 		      MRegionSelect,
 		      MRegionToIRegionTypeMap);
 
@@ -8221,7 +8195,6 @@ static Operator inst("inst",
 		     instspec,
 		     1,
 		     instvaluemap,
-		     nomodelmap,
 		     IRegionSelect,
 		     IRegionToInstantTypeMap);
 
@@ -8229,7 +8202,6 @@ static Operator val("val",
 		    valspec,
 		    1,
 		    valvaluemap,
-		    nomodelmap,
 		    IRegionSelect,
 		    IRegionToRegionTypeMap);
 
@@ -8237,7 +8209,6 @@ static Operator deftime("deftime",
 			deftimespec,
 			1,
 			deftimevaluemap,
-			nomodelmap,
 			MRegionSelect,
 			MRegionToPeriodsTypeMap);
 
@@ -8245,7 +8216,6 @@ static Operator present("present",
 			presentspec,
 			2,
 			presentvaluemap,
-			nomodelmap,
 			PresentSelect,
 			PresentTypeMap);
 
@@ -8253,7 +8223,6 @@ static Operator intersection("intersection",
 			     intersectionspec,
 			     1,
 			     intersectionvaluemap,
-			     nomodelmap,
 			     MPointMRegionSelect,
 			     MPointMRegionToMPointTypeMap);
 
@@ -8261,7 +8230,6 @@ static Operator inside("inside",
 		       insidespec,
 		       1,
 		       insidevaluemap,
-		       nomodelmap,
 		       MPointMRegionSelect,
 		       MPointMRegionToMBoolTypeMap);
 
@@ -8269,14 +8237,12 @@ static Operator at("at",
 		   atspec,
 		   2,
 		   atvaluemap,
-		   nomodelmap,
 		   AtSelect,
 		   AtTypeMap);
 
 static Operator mraprec("mraprec",
 			mraprecspec,
 			MraprecValueMap,
-			Operator::DummyModel,
 			simpleSelect,
 			MraprecTypeMap);
 
@@ -8288,13 +8254,11 @@ Used for unit testing only.
 static Operator unittest1("unittest1",
 			  unittestspec,
 			  Unittest1ValueMap,
-			  Operator::DummyModel,
 			  simpleSelect,
 			  Unittest1TypeMap);
 static Operator unittest2("unittest2",
 			  unittestspec,
 			  Unittest2ValueMap,
-			  Operator::DummyModel,
 			  simpleSelect,
 			  Unittest2TypeMap);
 

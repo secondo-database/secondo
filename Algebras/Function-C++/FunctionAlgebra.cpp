@@ -26,6 +26,10 @@ January 26, 2001 RHG
 
 April 2002 Ulrich Telle Port to C++
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 The sole purpose of this little algebra is to provide a type constructor ~map~ 
 which can be used to store the list expressions defining functions 
 (abstractions).
@@ -59,32 +63,6 @@ FunctionProperty()
   return (nl->TwoElemList(
             nl->OneElemList(nl->StringAtom("Remarks")),
             nl->OneElemList(remarkslist)));
-}
-
-Word
-DummyInModel( ListExpr typeExpr, ListExpr list, int objNo )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-ListExpr
-DummyOutModel( ListExpr typeExpr, Word model )
-{
-  return (0);
-}
-
-Word
-DummyValueToModel( ListExpr typeExpr, Word value )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-Word
-DummyValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
-                       const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  correct = true;
-  return (SetWord( Address( 0 ) ));
 }
 
 Word
@@ -158,10 +136,7 @@ TypeConstructor functionMap( "map",             FunctionProperty,
                              NoSpace,           DoNothing,
                              0,                 0,
                              DoNothing,         CloneNothing,
-                             DummyCast,         NullSize, CheckMap,
-                             0,
-                             DummyInModel,      DummyOutModel,
-                             DummyValueToModel, DummyValueListToModel );
+                             DummyCast,         NullSize, CheckMap );
 
 /*
 2.3 Type Operator ~ANY~
@@ -193,7 +168,6 @@ Operator ANY (
       "ANY",
       ANYSpec,
       0,
-      Operator::DummyModel,
       Operator::SimpleSelect,
       ANYTypeMap );
 
@@ -295,7 +269,6 @@ Within_o(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 ValueMapping withinmap[] = { Within_o, Within_s };
-ModelMapping nomodelmap[] = { Operator::DummyModel, Operator::DummyModel };
 
 /*
 
@@ -321,7 +294,6 @@ Operator within (
          WithinSpec,                // specification
          2, 	                   // the number of overloaded functions
          withinmap,                 // value mapping function array
-         nomodelmap,             // dummy model mapping, defines in Algebra.h
          WithinSelect,              // the selection function
          WithinTypeMap              // type mapping
 );

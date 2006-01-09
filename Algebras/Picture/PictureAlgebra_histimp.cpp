@@ -11,6 +11,10 @@ Dezember 2004 Christian Bohnbuck, Uwe Hartmann, Marion Langen and Holger
 M[ue]nx during Prof. G[ue]ting's practical course
 'Extensible Database Systems' at Fernuniversit[ae]t Hagen.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 [TOC]
 
 1 Introduction
@@ -904,11 +908,5 @@ TypeConstructor histogram(
     CloseHistogram, CloneHistogram,           //object close and clone
     CastHistogram,                            //cast function
     SizeOfHistogram,                          //sizeof function
-    CheckHistogram,                           //kind checking function
-    0,                                        //predef. pers. function for 
-                                              //  model
-    TypeConstructor::DummyInModel,
-    TypeConstructor::DummyOutModel,
-    TypeConstructor::DummyValueToModel,
-    TypeConstructor::DummyValueListToModel);
+    CheckHistogram );                         //kind checking function
 

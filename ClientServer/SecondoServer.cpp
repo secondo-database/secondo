@@ -27,6 +27,10 @@ Implementation of the Secondo Server Module
 2003-2004 M. Spiekermann. Minor modifications for messages,
 binary encoded list transfer and error handling of socket streams.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains.
+
 */
 
 #include <cstdlib>
@@ -160,8 +164,9 @@ SecondoServer::CallSecondo()
 {
   string line, cmdText, cmdEnd;
   iostream& iosock = client->GetSocketStream();
-  int level;
-  iosock >> level >> skipline;
+  int type;
+  iosock >> type >> skipline;
+
   bool ready;
   do
   {
@@ -177,7 +182,7 @@ SecondoServer::CallSecondo()
   ListExpr resultList = nl->TheEmptyList();
   int errorCode, errorPos;
   string errorMessage;
-  si->Secondo( cmdText, commandLE, level, true, false, 
+  si->Secondo( cmdText, commandLE, type, true, false, 
                resultList, errorCode, errorPos, errorMessage );
   WriteResponse( errorCode, errorPos, errorMessage, resultList );
 }
@@ -194,8 +199,7 @@ SecondoServer::CallNumericType()
   {
     ListExpr typeList = 0;
     nl->ReadFromString( typeStr, typeList );
-    AlgebraLevel level = (AlgebraLevel) nl->IntValue( nl->First( typeList ) );
-    ListExpr list = si->NumericTypeExpr( level, nl->Second( typeList ) );
+    ListExpr list = si->NumericTypeExpr( typeList );
     nl->WriteToString( typeStr, list );
     iosock << "<NumericTypeResponse>" << endl
            << typeStr << endl
@@ -212,17 +216,15 @@ SecondoServer::CallNumericType()
 void
 SecondoServer::CallGetTypeId()
 {
-  AlgebraLevel level;
   string name, cmdEnd;
-  int intLevel, algebraId, typeId;
+  int algebraId, typeId;
   iostream& iosock = client->GetSocketStream();
   iosock.clear();
-  iosock >> intLevel >> name >> skipline;
-  level = (AlgebraLevel) intLevel;
+  iosock >> name >> skipline;
   getline( iosock, cmdEnd );
   if ( cmdEnd == "</GetTypeId>" )
   {
-    bool ok = si->GetTypeId( level, name, algebraId, typeId );
+    bool ok = si->GetTypeId( name, algebraId, typeId );
     if ( ok )
     {
       iosock << "<GetTypeIdResponse>" << endl
@@ -256,8 +258,9 @@ SecondoServer::CallLookUpType()
   {
     ListExpr typeList;
     nl->ReadFromString( typeStr, typeList );
-    AlgebraLevel level = (AlgebraLevel) nl->IntValue( nl->First( typeList ) );
-    si->LookUpTypeExpr( level, nl->Second( typeList ), name, algebraId, typeId );
+
+    si->LookUpTypeExpr( typeList, name, algebraId, typeId );
+
     iosock << "<LookUpTypeResponse>" << endl
            << "((" << name << ") " << algebraId << " " << typeId << ")" << endl
            << "</LookUpTypeResponse>" << endl;

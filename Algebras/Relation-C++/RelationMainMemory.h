@@ -22,11 +22,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 November 2004. M. Spiekermann
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
+January 2006 Victor Almeida replaced the ~free~ tuples concept to
+reference counters. There are reference counters on tuples and also
+on attributes.
+
 */
 #ifndef INC_RELATION_MAIN_MEMORY_H
 #define INC_RELATION_MAIN_MEMORY_H
-
-//#include "RelationAlgebra.h"
 
 /*
 3.2 Struct ~PrivateTuple~
@@ -36,62 +42,60 @@ This struct contains the private attributes of the class ~Tuple~.
 */
 struct PrivateTuple
 {
-  PrivateTuple( const TupleType& tupleType, const bool isFree ):
+  PrivateTuple( const TupleType& tupleType ):
     tupleId( 0 ),
-    tupleType( new TupleType( tupleType ) ),
-    attrArray( new (Attribute*)[tupleType.GetNoAttributes()] ),
-    isFree( isFree )
+    tupleType( tupleType ),
+    attributes( 0 )
     {
-      for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
-        attrArray[i] = 0;
     }
 /*
-The constructor.
+The first constructor.
 
 */
-  PrivateTuple( const ListExpr typeInfo, const bool isFree ):
+  PrivateTuple( const ListExpr typeInfo ):
     tupleId( 0 ),
-    tupleType( new TupleType( typeInfo ) ),
-    attrArray( new (Attribute*)[tupleType->GetNoAttributes()] ),
-    isFree( isFree )
+    tupleType( typeInfo ),
+    attributes( 0 )
     {
-      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
-        attrArray[i] = 0;
     }
 /*
-The constructor.
+The second constructor.
 
 */
   ~PrivateTuple()
   {
-    for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
-      delete attrArray[i];
-    delete []attrArray;
-    delete tupleType;
+    for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+      if( attributes[i] != 0 )
+        attributes[i]->DeleteIfAllowed();
   }
 /*
 The destructor.
 
 */
+  inline void CopyAttribute( const int sourceIndex, PrivateTuple *source, const int destIndex )
+  {
+    attributes[destIndex] = source->attributes[sourceIndex];
+    attributes[destIndex]->IncReference();
+  }
+/*
+This function is used to copy attributes from tuples to tuples without
+cloning attributes.
+
+*/
+  
   TupleId tupleId;
 /*
 The unique identification of the tuple inside a relation.
 
 */
-  TupleType *tupleType;
+  TupleType tupleType;
 /*
 Stores the tuple type.
 
 */
-  Attribute** attrArray;
+  TupleElement** attributes;
 /*
 The array of attribute pointers.
-
-*/
-  bool isFree;
-/*
-A flag that tells if a tuple is free for deletion. If a tuple is free, then a stream receiving
-the tuple can delete or reuse it
 
 */
 };

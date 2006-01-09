@@ -17,10 +17,10 @@
 # May 2004, M. Spiekermann
 
 pdFile="$1"
-texFile="$1.tex"
-dviFile="$1.dvi"
-logFile="$1.log"
-auxFile="$1.aux"
+texFile="$PD_TMP/$1.tex"
+dviFile="$PD_TMP/$1.dvi"
+logFile="$PD_TMP/$1.log"
+auxFile="$PD_TMP/$1.aux"
 
 if { ! pd2tex $1; }; then
    exit 1
@@ -28,7 +28,7 @@ fi
 
 for dummy in 1 2 3 4
 do
-  if { ! latex --interaction="nonstopmode" $texFile; }; then
+  if { ! latex --interaction="nonstopmode" -output-directory=$PD_TMP $texFile; }; then
 
      printf "\n LaTeX-Error: Could not create $dviFile! "
      printf "\n              Study LaTeX's messages above and correct"

@@ -28,6 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 January 2003 VTA
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 This ~polygon~ example algebra is intended as a documentation of the state diagram of objects inside the Secondo system. This state diagram shown in Figure 1 is needed because objects can have some persistent part handled by its own algebra.
 Every object in the Secondo system must have a memory part and may have a persistent part not handled by the Secondo system, but by the algebra from which the object belongs.
 In this algebra, the vertices of the polygon are persistent using a ~DBArray~ (from Persistent Array) structure.
@@ -663,12 +667,7 @@ TypeConstructor polygon(
         ClosePolygon,   ClonePolygon,	//object close and clone
         CastPolygon,                   	//cast function
         SizeOfPolygon,                          //sizeof function
-        CheckPolygon,					//kind checking function
-        0,								//predefined persistence function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckPolygon );					//kind checking function
 #else
 TypeConstructor polygon(
         "polygon",			            	//name
@@ -680,12 +679,7 @@ TypeConstructor polygon(
         ClosePolygon,   ClonePolygon,		//object close and clone
         CastPolygon,                    	//cast function
         SizeOfPolygon,                          //sizeof function
-        CheckPolygon,	              		//kind checking function
-        0,					                //predefined persistence function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckPolygon );              		//kind checking function
 #endif //RELALG_PERSISTENT
 
 /*

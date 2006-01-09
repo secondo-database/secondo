@@ -47,6 +47,10 @@ file in order to implement them as inline functions.
 November 2004. M. Spiekermann. Implementation of the operator ~substr~. Moreover, the
 add operator was overloaded once more in order to concatenate strings.
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 \begin{center}
 \footnotesize
 \tableofcontents
@@ -381,7 +385,6 @@ SizeOfCcInt()
 void*
 CastInt( void* addr )
 {
-  CcInt::intsCreated--;
   return (new (addr) CcInt);
 }
 
@@ -402,141 +405,12 @@ class ~TypeConstructor~. Constructor arguments are the type constructor's name
 and the four functions previously defined.
 
 */
-
-/****************************************************************************
-1.9 Models
-
-1.9.1 Model for Set of Integers
-
-*/
-
-enum ConstOrSet { Const, Set };
-
-struct IntSetModel
-{
-  ConstOrSet constOrSet;
-  union
-  {
-    int value;
-    struct
-    {
-      int min;
-      int max;
-      int card;
-    } t;
-  };
-};
-
-/*
-The list representation for this is:
-
-----	()			NIL, the undefined model
-
-	(const 3)		a constant 3
-
-	(set 0 1000 40)		min = 0, max = 1000 card = 40
-----
-
-where in the second case the numbers 0, 1000, and 40 give the minimal,
-and maximal value and the cardinality (i.e. the number of distinct values)
-of the set of integers to be described. It is required that ~min~ [<] ~max~;
-otherwise we have a single value which is represented as a constant.
-
-We need conversion functions to be able to store this in list format:
-
-*/
-
-ListExpr
-OutIntSetModel( ListExpr typeExpr, Word inModel )
-{
-  IntSetModel* model = (IntSetModel*) inModel.addr;
-  if ( model == 0 )
-  {
-    return (nl->TheEmptyList());
-  }
-  else
-  {
-    if ( model->constOrSet == Const )
-    {
-      return (nl->TwoElemList(
-                nl->SymbolAtom( "const" ),
-                nl->IntAtom( model->value ) ));
-    }
-    else if ( model->constOrSet == Set )
-    {
-      return (nl->FourElemList(
-                nl->SymbolAtom( "set" ),
-                nl->IntAtom( model->t.min ),
-                nl->IntAtom( model->t.max ),
-    	        nl->IntAtom( model->t.card ) ));
-    }
-    else
-    {
-      return (nl->TheEmptyList());
-    }
-  }
-  return (nl->TheEmptyList());
-}
-
-Word
-InIntSetModel( ListExpr typeExpr, ListExpr list, int objNo )
-{
-  if ( nl->IsEmpty( list ) )
-  {
-    return (SetWord( Address( 0 ) ));
-  }
-  else
-  {
-    IntSetModel* model = new IntSetModel;
-    if ( TypeOfSymbol( nl->First( list ) ) == ccconst )
-    {
-      model->constOrSet = Const;
-      model->value = nl->IntValue( nl->Second( list ) );
-    }
-    else
-    {
-      model->constOrSet = Set;
-      model->t.min = nl->IntValue( nl->Second( list ) );
-      model->t.max = nl->IntValue( nl->Third( list ) );
-      model->t.card = nl->IntValue( nl->Fourth( list ) );
-    }
-    return (SetWord( model ));
-  }
-}
-
-Word
-IntToIntSetModel( ListExpr typeExpr, Word value )
-{
-  IntSetModel* model = new IntSetModel;
-  model->constOrSet = Const;
-  model->value = ((CcInt*)value.addr)->GetIntval();
-  return (SetWord( model ));
-}
-
-Word
-IntListToIntSetModel( const ListExpr typeExpr, const ListExpr valueList,
-                      const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  IntSetModel* model = new IntSetModel;
-  model->constOrSet = Const;
-  model->value = nl->IntValue( valueList );
-  correct = true;
-  return (SetWord( model ));
-}
-
-/*
-
-*/
-
 TypeConstructor ccInt( "int",            CcIntProperty,
                        OutCcInt,         InCcInt,
                        0,                0,
                        CreateCcInt,      DeleteCcInt,
                        0,        0,      CloseCcInt, CloneCcInt,
-                       CastInt,          SizeOfCcInt, CheckInt,
-                       0,
-                       InIntSetModel,    OutIntSetModel,
-                       IntToIntSetModel, IntListToIntSetModel );
+                       CastInt,          SizeOfCcInt, CheckInt );
 
 /*
 3.2 Type constructor *ccreal*
@@ -548,15 +422,17 @@ The following type constructor, ~ccreal~, is defined in the same way as
 long CcReal::realsCreated = 0;
 long CcReal::realsDeleted = 0;
 
-CcReal::CcReal(){ realsCreated++; };
-CcReal::CcReal( bool d, float v ) { defined = d; realval = v; realsCreated++; };
-CcReal::~CcReal() { realsDeleted++; };
-bool    CcReal::IsDefined() const { return (defined); };
-void    CcReal::SetDefined(bool defined) { this->defined = defined; };
-float   CcReal::GetRealval() { return (realval);};
-void    CcReal::Set( float v ) { defined = true, realval = v; };
-void    CcReal::Set( bool d, float v ) { defined = d, realval = v; };
-CcReal* CcReal::Clone() { return (new CcReal(this->defined, this->realval)); };
+CcReal::CcReal(){ realsCreated++; }
+CcReal::CcReal( bool d, float v ) { defined = d; realval = v; realsCreated++; }
+CcReal::~CcReal() { realsDeleted++; }
+void    CcReal::Initialize() {}
+void    CcReal::Finalize() { realsDeleted++; }
+bool    CcReal::IsDefined() const { return (defined); }
+void    CcReal::SetDefined(bool defined) { this->defined = defined; }
+float   CcReal::GetRealval() { return (realval);}
+void    CcReal::Set( float v ) { defined = true, realval = v; }
+void    CcReal::Set( bool d, float v ) { defined = d, realval = v; }
+CcReal* CcReal::Clone() { return (new CcReal(this->defined, this->realval)); }
 
 size_t CcReal::HashValue()
 {
@@ -710,7 +586,6 @@ SizeOfCcReal()
 void*
 CastReal( void* addr )
 {
-  CcReal::realsCreated--;
   return new (addr) CcReal;
 }
 
@@ -751,15 +626,17 @@ to demonstrate how to handle complex  objects.
 long CcBool::boolsCreated = 0;
 long CcBool::boolsDeleted = 0;
 
-CcBool::CcBool(){ boolsCreated++; };
-CcBool::CcBool( bool d, int v ){ defined  = d; boolval = v; boolsCreated++; };
-CcBool::~CcBool() { boolsDeleted++; };
-void    CcBool::Set( bool d, bool v ){ defined = d, boolval = v; };
-bool    CcBool::IsDefined() const { return defined; };
-void    CcBool::SetDefined(bool defined) { this->defined = defined; };
-bool    CcBool::GetBoolval() { return boolval; };
-CcBool* CcBool::Clone() { return new CcBool(this->defined, this->boolval); };
-size_t CcBool::HashValue() { return (defined ? boolval : false); };
+CcBool::CcBool(){ boolsCreated++; }
+CcBool::CcBool( bool d, int v ){ defined  = d; boolval = v; boolsCreated++; }
+CcBool::~CcBool() { boolsDeleted++; }
+void    CcBool::Initialize() {}
+void    CcBool::Finalize() { boolsDeleted++; }
+void    CcBool::Set( bool d, bool v ){ defined = d, boolval = v; }
+bool    CcBool::IsDefined() const { return defined; }
+void    CcBool::SetDefined(bool defined) { this->defined = defined; }
+bool    CcBool::GetBoolval() { return boolval; }
+CcBool* CcBool::Clone() { return new CcBool(this->defined, this->boolval); }
+size_t CcBool::HashValue() { return (defined ? boolval : false); }
 
 void CcBool::CopyFrom(StandardAttribute* right)
 {
@@ -905,7 +782,6 @@ SizeOfCcBool()
 void*
 CastBool( void* addr )
 {
-  CcBool::boolsCreated--;
   return (new (addr) CcBool);
 }
 
@@ -920,82 +796,13 @@ CheckBool( ListExpr type, ListExpr& errorInfo )
   return (nl->IsEqual( type, "bool" ));
 }
 
-/*
-1.9.2 Model for Set of Booleans
-
-*/
-
-typedef float BoolSetModel;
-
-/*
-The list representation for a ~BoolSetModel~ is just the one for a real number.
-Here 0.0 represents the constant FALSE, 1.0 the constant TRUE. Numbers between
-0 and 1 represent the expected fraction of TRUE values in the set. The undefined
-model is represented by a negative number such as -1.0.
-
-*/
-
-ListExpr
-OutBoolSetModel( ListExpr typeExpr, Word model )
-{
-  BoolSetModel modelValue = *((BoolSetModel*)model.addr);
-  if ( modelValue < 0.0 )
-  {
-    return (nl->TheEmptyList());
-  }
-  else
-  {
-    return (nl->RealAtom( modelValue ));
-  }
-}
-
-Word
-InBoolSetModel( ListExpr typeExpr, ListExpr list, int objNo )
-{
-  BoolSetModel* result = new BoolSetModel;
-  if ( nl->IsEmpty( list ) )
-  {
-    *result = -1.0;
-  }
-  else
-  {
-    *result = nl->RealValue( list );
-  }
-  return (SetWord( result ));
-}
-
-Word
-BoolToBoolSetModel( ListExpr typeExpr, Word value )
-{
-  BoolSetModel* result = new BoolSetModel;
-  *result = (((CcBool*)value.addr)->GetBoolval()) ? 1.0 : 0.0;
-  return (SetWord( result ));
-}
-
-Word
-BoolListToBoolSetModel( const ListExpr typeExpr, const ListExpr valueList,
-                        const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  BoolSetModel* result = new BoolSetModel;
-  *result = (nl->BoolValue( valueList )) ? 1.0 : 0.0;
-  correct = true;
-  return (SetWord( result ));
-}
-
-/*
-
-*/
-
 TypeConstructor ccBool( "bool",             CcBoolProperty,
                         OutCcBool,          InCcBool,
                         0,                  0,
                         CreateCcBool,       DeleteCcBool,
                         0,                  0,
                         CloseCcBool,        CloneCcBool,
-                        CastBool,           SizeOfCcBool,  CheckBool,
-                        0,
-                        InBoolSetModel,     OutBoolSetModel,
-                        BoolToBoolSetModel, BoolListToBoolSetModel );
+                        CastBool,           SizeOfCcBool,  CheckBool ); 
 
 /*
 3.5 Type constructor *CcString*
@@ -1004,14 +811,16 @@ TypeConstructor ccBool( "bool",             CcBoolProperty,
 long CcString::stringsCreated = 0;
 long CcString::stringsDeleted = 0;
 
-CcString::CcString() { stringsCreated++; };
-CcString::CcString( bool d, const STRING* v ) { defined = d; strcpy( stringval, *v); stringsCreated++; };
-CcString::~CcString() { stringsDeleted++; };
-bool      CcString::IsDefined() const { return (defined); };
-void      CcString::SetDefined(bool defined) { this->defined = defined; };
-STRING*   CcString::GetStringval() { return (&stringval); };
-CcString* CcString::Clone() { return (new CcString( this->defined, &this->stringval )); };
-void CcString::Set( bool d, const STRING* v ) { defined = d; strcpy( stringval, *v); };
+CcString::CcString() { stringsCreated++; }
+CcString::CcString( bool d, const STRING* v ) { defined = d; strcpy( stringval, *v); stringsCreated++; }
+CcString::~CcString() { stringsDeleted++; }
+void      CcString::Initialize() {}
+void      CcString::Finalize() { stringsDeleted++; }
+bool      CcString::IsDefined() const { return (defined); }
+void      CcString::SetDefined(bool defined) { this->defined = defined; }
+STRING*   CcString::GetStringval() { return (&stringval); }
+CcString* CcString::Clone() { return (new CcString( this->defined, &this->stringval )); }
+void CcString::Set( bool d, const STRING* v ) { defined = d; strcpy( stringval, *v); }
 
 size_t
 CcString::HashValue()
@@ -1201,7 +1010,6 @@ SizeOfCcString()
 void*
 CastString( void* addr )
 {
-  CcString::stringsCreated--;
   return (new (addr) CcString);
 }
 
@@ -3423,7 +3231,6 @@ RelcountFun( Word* args, Word& result, int message, Word& local, Supplier s )
   ListExpr resultType, queryList, resultList, valueList;
   QueryProcessor* qpp = 0;
   OpTree tree;
-  AlgebraLevel level;
   char* relname;
   bool correct      = false;
   bool evaluable    = false;
@@ -3442,9 +3249,8 @@ RelcountFun( Word* args, Word& result, int message, Word& local, Supplier s )
     // construct the operator tree within a new query processor instance
     // NOTE: variable name for this instance must differ from qp 
     qpp = new QueryProcessor( nl, SecondoSystem::GetAlgebraManager() );
-    level = SecondoSystem::GetAlgebraLevel();
-    qpp->Construct( level, queryList, correct, 
-      evaluable, defined, isFunction, tree, resultType );
+    qpp->Construct( queryList, correct, 
+                    evaluable, defined, isFunction, tree, resultType );
     if ( !defined )
     {
       cout << "object value is undefined" << endl;         
@@ -3457,7 +3263,7 @@ RelcountFun( Word* args, Word& result, int message, Word& local, Supplier s )
         qpp->Eval( tree, result, 1 );
 
 	// create the result list ( type, value )
-        valueList = SecondoSystem::GetCatalog( level )->
+        valueList = SecondoSystem::GetCatalog()->
           OutObject( resultType, result );
         resultList = nl->TwoElemList( resultType, valueList );
 
@@ -3764,87 +3570,6 @@ int CcBetween_bbb(Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 /*
-1.10 Operator Model Mappings
-
-*/
-
-Word
-IiGreaterModel( ArgVector arg, Supplier opTreeNode )
-{
-  Word modelWord1, modelWord2;
-  float* result = new float; // Should this be a CcReal ???
-
-  qp->RequestModel( arg[0].addr, modelWord1 );
-  qp->RequestModel( arg[1].addr, modelWord2 );
-
-  IntSetModel* model1 = (IntSetModel*) modelWord1.addr;
-  IntSetModel* model2 = (IntSetModel*) modelWord2.addr;
-
-  if ( model1->constOrSet == Const )
-  {
-    if ( model2->constOrSet == Const )
-    {
-      /* both models have constants */
-      *result = (model1->value > model2->value ) ? 1.0 : 0.0;
-    }
-    else
-    {
-      /* model2 has a set, model1 a constant */
-      if ( model1->value <= model2->t.min )
-      {
-        *result = 0.0;
-      }
-      else if ( model1->value > model2->t.max )
-      {
-        *result = 1.0;
-      }
-      else
-      {
-        *result = (float)((model1->value - 1) - (model2->t.min - 1)) /
-                  (float)(model2->t.max - (model2->t.min - 1));
-      }
-    }
-  }
-  else
-  {
-    if ( model2->constOrSet == Const )
-    {
-      /* model1 has a set, model2 a constant */
-      if ( model1->t.min > model2->value )
-      {
-        *result = 1.0;
-      }
-      else if ( model1->t.max <= model2->value )
-      {
-        *result = 0.0;
-      }
-      else
-      {
-        *result = (float)(model1->t.max - model2->value) /
-                  (float)(model1->t.max - (model1->t.min - 1));
-      }
-    }
-    else
-    {
-      /* both models describe sets: more tricky, to be solved later */
-      *result = 0.5;
-    }
-  }
-  return (SetWord( result ));
-}
-
-/*
-The dummy model mapping:
-
-*/
-
-Word
-CcNoModelMapping( ArgVector arg, Supplier opTreeNode )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-/*
 5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -3891,12 +3616,6 @@ ValueMapping ccoprelcountmap2[] = { RelcountFun2 };
 ValueMapping cckeywordsmap[] = { keywordsFun };
 ValueMapping ccifthenelsemap[] = { ifthenelseFun };
 ValueMapping ccbetweenmap[] = { CcBetween_iii, CcBetween_rrr, CcBetween_sss, CcBetween_bbb };
-
-ModelMapping ccnomodelmap[] = { CcNoModelMapping, CcNoModelMapping, CcNoModelMapping,
-                                CcNoModelMapping, CcNoModelMapping, CcNoModelMapping };
-ModelMapping ccgtmodelmap[] = { IiGreaterModel, CcNoModelMapping, CcNoModelMapping,
-                                CcNoModelMapping, CcNoModelMapping, CcNoModelMapping };
-
 
 const string CCSpecAdd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
@@ -4197,103 +3916,101 @@ CCSpecSubStr = "(" + specListHeader + "("
                    + ST + "query substr(\"test\",2,3)" + ET + "))";
 
    
-Operator ccplus( "+", CCSpecAdd, 5, ccplusmap, ccnomodelmap, 
-                                    CcMathSelectCompute, CcMathTypeMap );
+Operator ccplus( "+", CCSpecAdd, 5, ccplusmap,  
+                 CcMathSelectCompute, CcMathTypeMap );
 
-Operator ccminus( "-", CCSpecSub, 4, ccminusmap, ccnomodelmap, 
-                                     CcMathSelectCompute, CcMathTypeMap );
+Operator ccminus( "-", CCSpecSub, 4, ccminusmap,  
+                  CcMathSelectCompute, CcMathTypeMap );
 
-Operator ccproduct( "*", CCSpecMul, 4, ccproductmap, ccnomodelmap, 
-                                       CcMathSelectCompute, CcMathTypeMap );
+Operator ccproduct( "*", CCSpecMul, 4, ccproductmap,  
+                    CcMathSelectCompute, CcMathTypeMap );
 
-Operator ccdivision( "/", CCSpecDiv, 4, ccdivisionmap, ccnomodelmap, 
-                                        CcMathSelectCompute, CcMathTypeMapdiv );
+Operator ccdivision( "/", CCSpecDiv, 4, ccdivisionmap,  
+                     CcMathSelectCompute, CcMathTypeMapdiv );
 
-Operator ccmod( "mod", CCSpecMod, 1, ccmodmap, ccnomodelmap, 
-                                     Operator::SimpleSelect, CcMathTypeMap1 );
+Operator ccmod( "mod", CCSpecMod, 1, ccmodmap,  
+                Operator::SimpleSelect, CcMathTypeMap1 );
 
-Operator ccdiv( "div", CCSpecDiv2, 1, ccdivmap, ccnomodelmap, 
-                                      Operator::SimpleSelect, CcMathTypeMap1 );
+Operator ccdiv( "div", CCSpecDiv2, 1, ccdivmap,  
+                Operator::SimpleSelect, CcMathTypeMap1 );
 
-Operator ccrandint( "randint", CCSpecRandInt, RandInt, Operator::DummyModel, 
-                                              Operator::SimpleSelect, IntInt );
+Operator ccrandint( "randint", CCSpecRandInt, RandInt,  
+                    Operator::SimpleSelect, IntInt );
 
-Operator ccrandmax( "randmax", CCSpecMaxRand, MaxRand, Operator::DummyModel, 
-                                              Operator::SimpleSelect, EmptyInt );
+Operator ccrandmax( "randmax", CCSpecMaxRand, MaxRand,  
+                    Operator::SimpleSelect, EmptyInt );
 
-Operator ccseqinit( "seqinit", CCSpecInitSeq, InitSeq, Operator::DummyModel, 
-                                              Operator::SimpleSelect, IntBool );
+Operator ccseqinit( "seqinit", CCSpecInitSeq, InitSeq, 
+                    Operator::SimpleSelect, IntBool );
 
-Operator ccseqnext( "seqnext", CCSpecNextSeq, NextSeq, Operator::DummyModel, 
-                                              Operator::SimpleSelect, EmptyInt );
+Operator ccseqnext( "seqnext", CCSpecNextSeq, NextSeq,  
+                    Operator::SimpleSelect, EmptyInt );
 
-Operator cclog( "log", CCSpecLog, LogFun, Operator::DummyModel, 
-                                          Operator::SimpleSelect, IntInt );
+Operator cclog( "log", CCSpecLog, LogFun, 
+                Operator::SimpleSelect, IntInt );
 
-Operator ccless( "<", CCSpecLT, 6, cclessmap, ccnomodelmap, 
-                                   CcMathSelectCompare, CcMathTypeMapBool );
+Operator ccless( "<", CCSpecLT, 6, cclessmap, 
+                 CcMathSelectCompare, CcMathTypeMapBool );
 
-Operator cclessequal( "<=", CCSpecLE, 6, cclessequalmap, ccnomodelmap, 
-                                         CcMathSelectCompare, CcMathTypeMapBool );
+Operator cclessequal( "<=", CCSpecLE, 6, cclessequalmap, 
+                      CcMathSelectCompare, CcMathTypeMapBool );
 
+Operator ccgreater( ">", CCSpecGT, 6, ccgreatermap, 
+                    CcMathSelectCompare, CcMathTypeMapBool );
 
-Operator ccgreater( ">", CCSpecGT, 6, ccgreatermap, ccnomodelmap, 
-                                      CcMathSelectCompare, CcMathTypeMapBool );
+Operator ccgreaterequal( ">=", CCSpecGE, 6, ccgreaterequalmap,  
+                         CcMathSelectCompare, CcMathTypeMapBool );
 
-Operator ccgreaterequal( ">=", CCSpecGE, 6, ccgreaterequalmap, ccnomodelmap, 
-                                            CcMathSelectCompare, CcMathTypeMapBool );
+Operator ccequal( "=", CCSpecEQ, 6, ccequalmap, 
+                  CcMathSelectCompare, CcMathTypeMapBool );
 
-Operator ccequal( "=", CCSpecEQ, 6, ccequalmap, ccnomodelmap, 
-                                    CcMathSelectCompare, CcMathTypeMapBool );
+Operator ccdiff( "#", CCSpecNE, 6, ccdiffmap,  
+                 CcMathSelectCompare, CcMathTypeMapBool );
 
-Operator ccdiff( "#", CCSpecNE, 6, ccdiffmap, ccnomodelmap, 
-                                   CcMathSelectCompare, CcMathTypeMapBool );
+Operator ccstarts( "starts", CCSpecBeg, 1, ccstartsmap, 
+                   Operator::SimpleSelect, CcMathTypeMapBool3 );
 
-Operator ccstarts( "starts", CCSpecBeg, 1, ccstartsmap, ccnomodelmap, 
-                                           Operator::SimpleSelect, CcMathTypeMapBool3 );
+Operator cccontains( "contains", CCSpecCon, 1, cccontainsmap, 
+                     Operator::SimpleSelect, CcMathTypeMapBool3 );
 
-Operator cccontains( "contains", CCSpecCon, 1, cccontainsmap, ccnomodelmap, 
-                                               Operator::SimpleSelect, CcMathTypeMapBool3 );
+Operator ccsubstr( "substr", CCSpecSubStr, SubStrFun, 
+                   Operator::SimpleSelect, SubStrTypeMap );
 
-Operator ccsubstr( "substr", CCSpecSubStr, SubStrFun, Operator::DummyModel,  
-                                              Operator::SimpleSelect, SubStrTypeMap );
+Operator ccnot( "not", CCSpecNot, 1, ccnotmap, 
+                Operator::SimpleSelect, CcMathTypeMapBool1 );
 
-Operator ccnot( "not", CCSpecNot, 1, ccnotmap, ccnomodelmap, 
-                                     Operator::SimpleSelect, CcMathTypeMapBool1 );
+Operator ccand( "and", CCSpecAnd, 1, ccandmap, 
+                Operator::SimpleSelect, CcMathTypeMapBool2 );
 
-Operator ccand( "and", CCSpecAnd, 1, ccandmap, ccnomodelmap, 
-                                     Operator::SimpleSelect, CcMathTypeMapBool2 );
+Operator ccor( "or", CCSpecOr, 1, ccormap, 
+               Operator::SimpleSelect, CcMathTypeMapBool2 );
 
-Operator ccor( "or", CCSpecOr, 1, ccormap, ccnomodelmap, 
-                                  Operator::SimpleSelect, CcMathTypeMapBool2 );
+Operator ccisempty( "isempty", CCSpecIsEmpty, 4, ccisemptymap, 
+                    CcMathSelectIsEmpty, CcMathTypeMapBool4 );
 
-Operator ccisempty( "isempty", CCSpecIsEmpty, 4, ccisemptymap, ccnomodelmap, 
-                                                 CcMathSelectIsEmpty, CcMathTypeMapBool4 );
-
-Operator ccuper( "upper", CCSpecUpper, UpperFun, Operator::DummyModel, 
-                                       Operator::SimpleSelect, CcStringMapCcString );
+Operator ccuper( "upper", CCSpecUpper, UpperFun, 
+                 Operator::SimpleSelect, CcStringMapCcString );
 
 Operator ccsetintersection( "intersection", CCSpecSetIntersection, 4, 
-                            ccsetintersectionmap, ccnomodelmap, CcMathSelectSet, CcMathTypeMap2 );
+                            ccsetintersectionmap, CcMathSelectSet, CcMathTypeMap2 );
 
-Operator ccsetminus( "minus", CCSpecSetMinus, 4, ccsetminusmap, ccnomodelmap, 
-                                                 CcMathSelectSet, CcMathTypeMap2 );
+Operator ccsetminus( "minus", CCSpecSetMinus, 4, ccsetminusmap, 
+                     CcMathSelectSet, CcMathTypeMap2 );
 
 Operator ccoprelcount( "relcount", CCSpecRelcount, 1, ccoprelcountmap, 
-                       ccnomodelmap, Operator::SimpleSelect, CcStringMapCcInt );
+                       Operator::SimpleSelect, CcStringMapCcInt );
 
 Operator ccoprelcount2( "relcount2", CCSpecRelcount2, 1, ccoprelcountmap2, 
-                        ccnomodelmap, Operator::SimpleSelect, CcStringMapCcInt );
+                        Operator::SimpleSelect, CcStringMapCcInt );
 
 Operator ccopkeywords( "keywords", CCSpecKeywords, 1, cckeywordsmap, 
-                       ccnomodelmap, Operator::SimpleSelect, keywordsType );
+                       Operator::SimpleSelect, keywordsType );
 
 Operator ccopifthenelse( "ifthenelse", CCSpecIfthenelse, 1, ccifthenelsemap, 
-                         ccnomodelmap, Operator::SimpleSelect, ifthenelseType );
+                         Operator::SimpleSelect, ifthenelseType );
 			 
 Operator ccbetween( "between", CCSpecBetween, 4, ccbetweenmap, 
-                         ccnomodelmap, CcBetweenSelect, CcBetweenTypeMap );
-
+                    CcBetweenSelect, CcBetweenTypeMap );
 
 /*
 6 Class ~CcAlgebra~

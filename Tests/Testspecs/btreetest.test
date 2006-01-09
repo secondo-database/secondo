@@ -33,7 +33,6 @@ delete database btreetest;
 #setup
 create database btreetest;
 open database btreetest;
-e
 
 (create tenTest : (rel(tuple((no int)))));
 (update tenTest := ((rel(tuple((no int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10))));

@@ -30,6 +30,10 @@ January 2004 Victor Almeida
 
 March - April 2004 Zhiming Ding
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 [TOC]
 
 1 Overview
@@ -418,12 +422,7 @@ TypeConstructor rangeint(
         CloseRange<CcInt>, CloneRange<CcInt>,    //object close and clone
         CastRange<CcInt>,                        //cast function
         SizeOfRange<CcInt>,                      //sizeof function
-        CheckRangeInt,                           //kind checking function
-        0,                                    	 //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckRangeInt );                         //kind checking function
 
 
 /*
@@ -491,12 +490,7 @@ TypeConstructor rangereal(
         CloseRange<CcReal>,CloneRange<CcReal>,	  //object close and clone
         CastRange<CcReal>,			  //cast function
         SizeOfRange<CcReal>,                  	  //sizeof function
-        CheckRangeReal,      		          //kind checking function
-        0,                    			  //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckRangeReal );     		          //kind checking function
 
 /*
 4.3 Type Constructor ~periods~
@@ -564,12 +558,7 @@ TypeConstructor periods(
         CloseRange<Instant>,  CloneRange<Instant>,      //object close and clone
         CastRange<Instant>,                          	//cast function
         SizeOfRange<Instant>,                         	//sizeof function
-        CheckPeriods,                                  	//kind checking function
-        0,                                             	//predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckPeriods );                                 	//kind checking function
 
 /*
 4.4 Type Constructor ~ibool~
@@ -634,12 +623,7 @@ TypeConstructor intimebool(
         CloneIntime<CcBool>,            //object close and clone
         CastIntime<CcBool>,             //cast function
         SizeOfIntime<CcBool>,           //sizeof function
-        CheckIntimeBool,                //kind checking function
-        0,                              //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckIntimeBool );              //kind checking function
 
 /*
 4.4 Type Constructor ~iint~
@@ -704,12 +688,7 @@ TypeConstructor intimeint(
         CloneIntime<CcInt>,            //object close and clone
         CastIntime<CcInt>,             //cast function
         SizeOfIntime<CcInt>,           //sizeof function
-        CheckIntimeInt,                //kind checking function
-        0,                             //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckIntimeInt );              //kind checking function
 
 /*
 4.5 Type Constructor ~ireal~
@@ -776,12 +755,7 @@ TypeConstructor intimereal(
         CloneIntime<CcReal>,               //object close and clone
         CastIntime<CcReal>,                //cast function
         SizeOfIntime<CcReal>,              //sizeof function
-        CheckIntimeReal,                   //kind checking function
-        0,                                 //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckIntimeReal );                 //kind checking function
 
 /*
 4.6 Type Constructor ~ipoint~
@@ -846,12 +820,7 @@ TypeConstructor intimepoint(
         CloneIntime<Point>,               //object close and clone
         CastIntime<Point>,                //cast function
         SizeOfIntime<Point>,              //sizeof function
-        CheckIntimePoint,                 //kind checking function
-        0,                                //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckIntimePoint );               //kind checking function
 
 /*
 4.7 Type Constructor ~ubool~
@@ -914,12 +883,7 @@ TypeConstructor unitbool(
         CloneConstTemporalUnit<CcBool>,           //object close and clone
         CastConstTemporalUnit<CcBool>,            //cast function
         SizeOfConstTemporalUnit<CcBool>,          //sizeof function
-        CheckUBool,                               //kind checking function
-        0,                                        //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckUBool );                             //kind checking function
 
 /*
 4.7 Type Constructor ~uint~
@@ -982,12 +946,7 @@ TypeConstructor unitint(
         CloneConstTemporalUnit<CcInt>,   	//object close and clone
         CastConstTemporalUnit<CcInt>,       	//cast function
         SizeOfConstTemporalUnit<CcInt>, 	//sizeof function
-        CheckUInt,                        	//kind checking function
-        0,                                      //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckUInt );                     	//kind checking function
 
 /*
 4.8 Type Constructor ~ureal~
@@ -1206,12 +1165,7 @@ TypeConstructor unitreal(
         CloseUReal,   CloneUReal,	 //object close and clone
         CastUReal,			 //cast function
         SizeOfUReal,			 //sizeof function
-        CheckUReal,                      //kind checking function
-        0,                               //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckUReal );                     //kind checking function
 
 /*
 4.9 Type Constructor ~upoint~
@@ -1428,12 +1382,7 @@ TypeConstructor unitpoint(
         CloseUPoint,   CloneUPoint,	 //object close and clone
         CastUPoint,			 //cast function
         SizeOfUPoint,			 //sizeof function
-        CheckUPoint,                     //kind checking function
-        0,                               //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckUPoint );                    //kind checking function
 
 /*
 4.10 Type Constructor ~mbool~
@@ -1505,12 +1454,7 @@ TypeConstructor movingbool(
         CloneMapping<MBool>,                                                //object close and clone
         CastMapping<MBool>,                                                 //cast function
         SizeOfMapping<MBool>,                                               //sizeof function
-        CheckMBool,                                                         //kind checking function
-        0,                                                                  //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckMBool );                                                       //kind checking function
 
 /*
 4.10 Type Constructor ~mint~
@@ -1582,12 +1526,7 @@ TypeConstructor movingint(
         CloneMapping<MInt>,	   	                                 //object close and clone
         CastMapping<MInt>,			       	                 //cast function
         SizeOfMapping<MInt>,			 	                 //sizeof function
-        CheckMInt,                        	  	                 //kind checking function
-        0,                                           	      	         //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckMInt );                       	  	                 //kind checking function
 
 /*
 4.11 Type Constructor ~mreal~
@@ -1657,12 +1596,7 @@ TypeConstructor movingreal(
         CloneMapping<MReal>,	   	    //object close and clone
         CastMapping<MReal>,		    //cast function
         SizeOfMapping<MReal>,		    //sizeof function
-        CheckMReal,                         //kind checking function
-        0,                                  //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckMReal );                        //kind checking function
 
 /*
 4.12 Type Constructor ~mpoint~
@@ -1732,12 +1666,7 @@ TypeConstructor movingpoint(
         CloneMapping<MPoint>,                               //object close and clone
         CastMapping<MPoint>,                                //cast function
         SizeOfMapping<MPoint>,                              //sizeof function
-        CheckMPoint,                                        //kind checking function
-        0,                                                         //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckMPoint );                                       //kind checking function
 
 /*
 16 Operators
@@ -3568,24 +3497,6 @@ ValueMapping temporalunitsmap[] = { MappingUnits<MBool, UBool>,
                                     MappingUnits<MReal, UReal>,
                                     MappingUnits<MPoint, UPoint> };
 
-Word TemporalNoModelMapping( ArgVector arg, Supplier opTreeNode )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-ModelMapping temporalnomodelmap[] = { TemporalNoModelMapping,
-				      TemporalNoModelMapping,
-				      TemporalNoModelMapping,
-				      TemporalNoModelMapping,
-				      TemporalNoModelMapping,
-				      TemporalNoModelMapping,
-				      TemporalNoModelMapping,
-				      TemporalNoModelMapping,
-				      TemporalNoModelMapping,
-				      TemporalNoModelMapping,
-				      TemporalNoModelMapping,
-				      TemporalNoModelMapping };
-
 /*
 16.4.2 Specification strings
 
@@ -3908,7 +3819,6 @@ Operator temporalisempty( "isempty",
                           TemporalSpecIsEmpty,
                           12,
                           temporalisemptymap,
-                          temporalnomodelmap,
                           TemporalSimpleSelect,
                           TemporalTypeMapBool );
 
@@ -3916,7 +3826,6 @@ Operator temporalequal( "=",
                         TemporalSpecEQ,
                         8,
                         temporalequalmap,
-                        temporalnomodelmap,
                         TemporalDualSelect,
                         TemporalTemporalTypeMapBool );
 
@@ -3924,35 +3833,30 @@ Operator temporalnotequal( "#",
                            TemporalSpecNE,
                            8,
                            temporalnotequalmap,
-                           temporalnomodelmap,
                            TemporalDualSelect,
                            TemporalTemporalTypeMapBool );
 
 Operator temporalless( "<",
                        TemporalSpecLT,
                        InstantLess,
-                       Operator::DummyModel,
                        Operator::SimpleSelect,
                        InstantInstantTypeMapBool );
 
 Operator temporallessequal( "<=",
                             TemporalSpecLE,
                             InstantLessEqual,
-                            Operator::DummyModel,
                             Operator::SimpleSelect,
                             InstantInstantTypeMapBool );
 
 Operator temporalgreater( ">",
                           TemporalSpecLT,
                           InstantGreater,
-                          Operator::DummyModel,
                           Operator::SimpleSelect,
                           InstantInstantTypeMapBool );
 
 Operator temporalgreaterequal( ">=",
                                TemporalSpecLE,
                                InstantGreaterEqual,
-                               Operator::DummyModel,
                                Operator::SimpleSelect,
                                InstantInstantTypeMapBool );
 
@@ -3960,7 +3864,6 @@ Operator temporalintersects( "intersects",
                              TemporalSpecIntersects,
                              3,
                              temporalintersectsmap,
-                             temporalnomodelmap,
                              RangeDualSelect,
                              RangeRangeTypeMapBool );
 
@@ -3968,7 +3871,6 @@ Operator temporalinside( "inside",
                          TemporalSpecInside,
                          6,
                          temporalinsidemap,
-                         temporalnomodelmap,
                          RangeDualSelect,
                          RangeBaseTypeMapBool1 );
 
@@ -3976,7 +3878,6 @@ Operator temporalbefore( "before",
                          TemporalSpecBefore,
                          9,
                          temporalbeforemap,
-                         temporalnomodelmap,
                          RangeDualSelect,
                          RangeBaseTypeMapBool2 );
 
@@ -3984,7 +3885,6 @@ Operator temporalintersection( "intersection",
                                TemporalSpecIntersection,
                                3,
                                temporalintersectionmap,
-                               temporalnomodelmap,
                                RangeDualSelect,
                                RangeRangeTypeMapRange );
 
@@ -3992,7 +3892,6 @@ Operator temporalunion( "union",
                         TemporalSpecUnion,
                         3,
                         temporalunionmap,
-                        temporalnomodelmap,
                         RangeDualSelect,
                         RangeRangeTypeMapRange );
 
@@ -4000,7 +3899,6 @@ Operator temporalminus( "minus",
                         TemporalSpecMinus,
                         3,
                         temporalminusmap,
-                        temporalnomodelmap,
                         RangeDualSelect,
                         RangeRangeTypeMapRange );
 
@@ -4008,7 +3906,6 @@ Operator temporalmin( "minimum",
                       TemporalSpecMinimum,
                       3,
                       temporalminmap,
-                      temporalnomodelmap,
                       RangeSimpleSelect,
                       RangeTypeMapBase );
 
@@ -4016,7 +3913,6 @@ Operator temporalmax( "maximum",
                       TemporalSpecMaximum,
                       3,
                       temporalmaxmap,
-                      temporalnomodelmap,
                       RangeSimpleSelect,
                       RangeTypeMapBase );
 
@@ -4024,7 +3920,6 @@ Operator temporalnocomponents( "no_components",
                                TemporalSpecNoComponents,
                                7,
                                temporalnocomponentsmap,
-                               temporalnomodelmap,
                                TemporalSetValueSelect,
                                TemporalSetValueTypeMapInt );
 
@@ -4032,7 +3927,6 @@ Operator temporalinst( "inst",
                        TemporalSpecInst,
                        4,
                        temporalinstmap,
-                       temporalnomodelmap,
                        IntimeSimpleSelect,
                        IntimeTypeMapInstant );
 
@@ -4040,7 +3934,6 @@ Operator temporalval( "val",
                       TemporalSpecVal,
                       4,
                       temporalvalmap,
-                      temporalnomodelmap,
                       IntimeSimpleSelect,
                       IntimeTypeMapBase );
 
@@ -4048,7 +3941,6 @@ Operator temporalatinstant( "atinstant",
                             TemporalSpecAtInstant,
                             4,
                             temporalatinstantmap,
-                            temporalnomodelmap,
                             MovingSimpleSelect,
                             MovingInstantTypeMapIntime );
 
@@ -4056,7 +3948,6 @@ Operator temporalatperiods( "atperiods",
                             TemporalSpecAtPeriods,
                             4,
                             temporalatperiodsmap,
-                            temporalnomodelmap,
                             MovingSimpleSelect,
                             MovingPeriodsTypeMapMoving );
 
@@ -4064,14 +3955,12 @@ Operator temporaldeftime( "deftime",
                           TemporalSpecDefTime,
                           4,
                           temporaldeftimemap,
-                          temporalnomodelmap,
                           MovingSimpleSelect,
                           MovingTypeMapPeriods );
 
 Operator temporaltrajectory( "trajectory",
                              TemporalSpecTrajectory,
                              MPointTrajectory,
-                             Operator::DummyModel,
                              Operator::SimpleSelect,
                              MovingTypeMapSpatial);
 
@@ -4079,7 +3968,6 @@ Operator temporalpresent( "present",
                           TemporalSpecPresent,
                           8,
                           temporalpresentmap,
-                          temporalnomodelmap,
                           MovingInstantPeriodsSelect,
                           MovingInstantPeriodsTypeMapBool);
 
@@ -4087,7 +3975,6 @@ Operator temporalpasses( "passes",
                          TemporalSpecPasses,
                          4,
                          temporalpassesmap,
-                         temporalnomodelmap,
                          MovingBaseSelect,
                          MovingBaseTypeMapBool);
 
@@ -4095,7 +3982,6 @@ Operator temporalinitial( "initial",
                           TemporalSpecInitial,
                           4,
                           temporalinitialmap,
-                          temporalnomodelmap,
                           MovingSimpleSelect,
                           MovingTypeMapIntime );
 
@@ -4103,7 +3989,6 @@ Operator temporalfinal( "final",
                         TemporalSpecFinal,
                         4,
                         temporalfinalmap,
-                        temporalnomodelmap,
                         MovingSimpleSelect,
                         MovingTypeMapIntime );
 
@@ -4111,14 +3996,12 @@ Operator temporalat( "at",
                      TemporalSpecAt,
                      4,
                      temporalatmap,
-                     temporalnomodelmap,
                      MovingBaseSelect,
                      MovingBaseTypeMapMoving );
 
 Operator temporaldistance( "distance",
                            TemporalSpecDistance,
                            MPointDistance,
-                           Operator::DummyModel,
                            Operator::SimpleSelect,
                            MovingBaseTypeMapMReal );
 
@@ -4126,70 +4009,60 @@ Operator temporalunits( "units",
                         TemporalSpecUnits,
                         4,
                         temporalunitsmap,
-                        temporalnomodelmap,
                         MovingSimpleSelect,
                         MovingTypeMapUnits );
 
 Operator temporalbbox( "bbox",
                        TemporalSpecBBox,
                        UPointBBox,
-                       Operator::DummyModel,
                        Operator::SimpleSelect,
                        UPointTypeMapRect3 );
 
 Operator temporaltranslate( "translate",
                        MPointSpecTranslate,
                        MPointTranslate,
-                       Operator::DummyModel,
                        Operator::SimpleSelect,
                        MPointTypeMapTranslate );
 
 Operator temporaltheyear( "theyear",
                           TemporalSpecTheYear,
                           TheYear,
-                          Operator::DummyModel,
                           Operator::SimpleSelect,
                           IntSetTypeMapPeriods );
 
 Operator temporalthemonth( "themonth",
                            TemporalSpecTheMonth,
                            TheMonth,
-                           Operator::DummyModel,
                            Operator::SimpleSelect,
                            IntSetTypeMapPeriods );
 
 Operator temporaltheday( "theday",
                          TemporalSpecTheDay,
                          TheDay,
-                         Operator::DummyModel,
                          Operator::SimpleSelect,
                          IntSetTypeMapPeriods );
 
 Operator temporalthehour( "thehour",
                           TemporalSpecTheHour,
                           TheHour,
-                          Operator::DummyModel,
                           Operator::SimpleSelect,
                           IntSetTypeMapPeriods );
 
 Operator temporaltheminute( "theminute",
                             TemporalSpecTheMinute,
                             TheMinute,
-                            Operator::DummyModel,
                             Operator::SimpleSelect,
                             IntSetTypeMapPeriods );
 
 Operator temporalthesecond( "thesecond",
                             TemporalSpecTheSecond,
                             TheSecond,
-                            Operator::DummyModel,
                             Operator::SimpleSelect,
                             IntSetTypeMapPeriods );
 
 Operator temporaltheperiod( "theperiod",
                             TemporalSpecThePeriod,
                             ThePeriod,
-                            Operator::DummyModel,
                             Operator::SimpleSelect,
                             PeriodsPeriodsTypeMapPeriods );
 

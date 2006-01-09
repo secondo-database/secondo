@@ -27,22 +27,30 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Implementation File of Module FLOB
 
-Victor Almeida, 24/04/03. Adapting the class to accept standalone objects
-and objects inside tuples transparently.
+Stefan Dieker, 03/05/98
+
+Markus Spiekermann, 14/05/02. Begin of porting to the new 
+SecondoSMI.
 
 Mirco G[ue]nster, 31/09/02 End of porting to the new SecondoSMI.
 
-Markus Spiekermann, 14/05/02. Begin of porting to the new SecondoSMI.
+Victor Almeida, 24/04/03. Adapting the class to accept standalone 
+objects and objects inside tuples transparently.
 
-Stefan Dieker, 03/05/98
+January 2006 Victor Almeida created the FLOB cache. Some assertions 
+were removed, since the code is stable.
 
 1 Includes
 
 */
 #include "FLOB.h"
+#include "FLOBCache.h"
+#include "QueryProcessor.h"
 #include <iostream>
 #include <stdlib.h>
 #include <cassert>
+
+extern QueryProcessor *qp;
 
 /*
 
@@ -66,15 +74,9 @@ type( InMemory )
 {
   size = sz;
   if( sz > 0 )
-  {
     fd.inMemory.buffer = (char*)malloc( sz );
-  }
   else
-  {
     fd.inMemory.buffer = 0;
-  }
-  assert( (size > 0  && fd.inMemory.buffer != 0 ) ||
-          (size == 0 && fd.inMemory.buffer == 0 ) );
 }
 
 /*
@@ -85,11 +87,12 @@ Destroy LOB instance.
 */
 FLOB::~FLOB()
 {
-  if( type == InMemory )
-  {
-    if( fd.inMemory.buffer != 0 )
-      free( fd.inMemory.buffer );
-  }
+  assert( type != InMemoryCached );
+  // The cached FLOBs are never deleted because they are created
+  // with malloc and destroyed with free 
+
+  if( type == InMemory && fd.inMemory.buffer != 0 )
+    free( fd.inMemory.buffer );
 }
 
 /*
@@ -101,20 +104,22 @@ state to a ~InMemory~ state.
 */
 char *FLOB::BringToMemory()
 {
-  if( type != InMemory )
+  if( type == InDiskLarge )
   {
-    assert( type == InDiskLarge );
-    char *buffer = (char*) malloc( size );
-    SmiRecord lobRecord;
-    assert( fd.inDiskLarge.lobFile->SelectRecord( fd.inDiskLarge.lobId, lobRecord ) );
-    lobRecord.Read( buffer, size, 0 );
+    char *buffer = 
+      qp->GetFLOBCache()->GetFLOB( fd.inDiskLarge.lobFileId, 
+                                   fd.inDiskLarge.lobId, 
+                                   size, false );
 
-    type = InMemory;
-    fd.inMemory.buffer = buffer;
+    SmiFileId fileId = fd.inDiskLarge.lobFileId;
+    SmiRecordId lobId = fd.inDiskLarge.lobId;
+
+    type = InMemoryCached;
+    fd.inMemoryCached.buffer = buffer;
+    fd.inMemoryCached.lobFileId = fileId;
+    fd.inMemoryCached.lobId = lobId;
   }
-
-  assert( type == InMemory );
-  return fd.inMemory.buffer;
+  return fd.inMemoryCached.buffer;
 }
 
 /*
@@ -125,23 +130,12 @@ Read by copying
 */
 void FLOB::Get( size_t offset, size_t length, void *target )
 {
-  assert( type != Destroyed );
-  assert( size > 0 );
-
   if( type == InMemory )
-  {
-    assert( fd.inMemory.buffer != 0 && offset + length <= size );
     memcpy( target, fd.inMemory.buffer + offset, length );
-
-    assert( (size > 0  && fd.inMemory.buffer != 0 ) ||
-            (size == 0 && fd.inMemory.buffer == 0 ) );
-
-  }
+  else if( type == InMemoryCached )
+    memcpy( target, fd.inMemoryCached.buffer + offset, length );
   else if( type == InDiskLarge )
   {
-    assert( fd.inDiskLarge.lobFile != 0 &&
-            fd.inDiskLarge.lobId != 0 );
-
     BringToMemory();
     Get( offset, length, target );
   }
@@ -157,25 +151,8 @@ Write Flob data into source.
 */
 void FLOB::Put( size_t offset, size_t length, const void *source)
 {
-  assert( type != Destroyed );
-  assert( size > 0 );
-
   if( type == InMemory )
-  {
-    assert( fd.inMemory.buffer != 0 && offset + length <= size );
     memcpy( fd.inMemory.buffer + offset, source, length );
-
-    assert( (size > 0  && fd.inMemory.buffer != 0 ) ||
-            (size == 0 && fd.inMemory.buffer == 0 ) );
-  }
-  else if( type == InDiskLarge )
-  {
-    assert( fd.inDiskLarge.lobFile != 0 &&
-            fd.inDiskLarge.lobId != 0 );
-
-    BringToMemory();
-    Put( offset, length, source );
-  }
   else
     assert( false );
 }
@@ -205,17 +182,19 @@ void FLOB::Destroy()
   {
     if( size > 0 )
     {
-      assert( fd.inMemory.buffer != 0 );
       free( fd.inMemory.buffer );
       fd.inMemory.buffer = 0;
     }
   }
+  else if( type == InMemoryCached )
+  {
+    qp->GetFLOBCache()->Destroy( fd.inMemoryCached.lobFileId, 
+                                 fd.inMemoryCached.lobId );
+  }
   else if( type == InDiskLarge )
   {
-    assert( size > SWITCH_THRESHOLD );
-    assert( fd.inDiskLarge.lobFile != 0 && fd.inDiskLarge.lobId != 0 );
-
-    assert( fd.inDiskLarge.lobFile->DeleteRecord( fd.inDiskLarge.lobId ) );
+    qp->GetFLOBCache()->Destroy( fd.inDiskLarge.lobFileId, 
+                                 fd.inDiskLarge.lobId );
   }
   size = 0;
   type = Destroyed;
@@ -230,17 +209,33 @@ Clears the FLOB.
 void FLOB::Clear()
 {
   assert( type != Destroyed );
+  if( type == InMemory && size > 0 )
+    free( fd.inMemory.buffer );
 
-  if( type == InMemory )
-  {
-    if( size > 0 )
-    {
-      assert( fd.inMemory.buffer != 0 );
-      free( fd.inMemory.buffer );
-      fd.inMemory.buffer = 0;
-      size = 0;
-    }
-  }
+  type = InMemory;
+  fd.inMemory.buffer = 0;
+  size = 0;
+}
+
+/*
+2.10 Clean
+
+Cleans the FLOB, removing it from memory. If it is cached, then a 
+reference in the cache is removed.
+
+*/
+void FLOB::Clean()
+{
+  assert( type != Destroyed );
+  if( type == InMemory && size > 0 )
+    free( fd.inMemory.buffer );
+  else if( type == InMemoryCached )
+    qp->GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,  
+                                 fd.inMemoryCached.lobId ); 
+
+  type = InMemory;
+  fd.inMemory.buffer = 0;
+  size = 0;
 }
 
 /*
@@ -259,12 +254,8 @@ void FLOB::Resize( size_t newSize )
     if( size == 0 )
       fd.inMemory.buffer = (char *) malloc( newSize );
     else
-    {
-      assert( fd.inMemory.buffer != 0 );
-      fd.inMemory.buffer = (char *)realloc( fd.inMemory.buffer, newSize );
-    }
-    assert( (newSize > 0  && fd.inMemory.buffer != 0 ) ||
-            (newSize == 0 && fd.inMemory.buffer == 0 ) );
+      fd.inMemory.buffer = 
+        (char *)realloc( fd.inMemory.buffer, newSize );
   }
   else
     // This code cannot be reached because the other
@@ -272,78 +263,71 @@ void FLOB::Resize( size_t newSize )
     assert( false );
 
   size = newSize;
-
-  assert( ( type == InMemory && ((size > 0  && fd.inMemory.buffer != 0 ) ||
-                                 (size == 0 && fd.inMemory.buffer == 0 )) ) ||
-          ( type != InMemory ) );
 }
 
 /*
-2.10 SetLobFile
+2.10 SetLobFileId
 
 */
-void FLOB::SetLobFile( SmiRecordFile* lobFile )
+void FLOB::SetLobFileId( SmiFileId lobFileId )
 {
-  assert( type == InDiskLarge && fd.inDiskLarge.lobFile == 0 && fd.inDiskLarge.lobId != 0 );
-  fd.inDiskLarge.lobFile = lobFile;
+  assert( type == InDiskLarge );
+  fd.inDiskLarge.lobFileId = lobFileId;
 }
 
 /*
 2.10 SaveToLob
 
 */
-size_t FLOB::SaveToLob( SmiRecordFile& lobFile, SmiRecordId lobId )
+void FLOB::SaveToLob( SmiFileId& lobFileId, SmiRecordId lobId )
 {
-  assert( type == InMemory && size > SWITCH_THRESHOLD );
-  assert( fd.inMemory.buffer != 0 );
+  assert( (type == InMemory || type == InMemoryCached) && 
+          size > SWITCH_THRESHOLD );
 
-  size_t result = 0;
-  SmiRecord lob;
-  if( lobId == 0 )
-    assert( lobFile.AppendRecord( lobId, lob ) );
-  else
-    assert( lobFile.SelectRecord( lobId, lob ) );
+  if( type == InMemory ) 
+  {
+    qp->GetFLOBCache()->PutFLOB( lobFileId, lobId, size, false, 
+                                 fd.inMemory.buffer );
+    free( fd.inMemory.buffer );
+    fd.inMemory.buffer = 0;
 
-  result = lob.Write( fd.inMemory.buffer, size, 0 );
+    type = InDiskLarge;
+    fd.inDiskLarge.lobFileId = lobFileId;
+    fd.inDiskLarge.lobId = lobId;
+  }
+  else // type == InMemoryCached
+  {
+    qp->GetFLOBCache()->Release( fd.inMemoryCached.lobFileId, 
+                                 fd.inMemoryCached.lobId ); 
+    qp->GetFLOBCache()->PutFLOB( lobFileId, lobId, size, false, 
+                                 fd.inMemoryCached.buffer );
+    fd.inMemoryCached.buffer = 0;
 
-  free( fd.inMemory.buffer );
-  fd.inMemory.buffer = 0;
-
-  type = InDiskLarge;
-  fd.inDiskLarge.lobFile = 0;
-  fd.inDiskLarge.lobId = lobId;
-
-  return result;
+    type = InDiskLarge;
+    fd.inDiskLarge.lobFileId = lobFileId;
+    fd.inDiskLarge.lobId = lobId;
+  }
 }
 
 
 /*
 3.11 SaveToExtensionTuple
 
-Saves the FLOB to a buffer of an extension tuple and sets its type to ~InDiskSmall~.
+Saves the FLOB to a buffer of an extension tuple and sets its type 
+to ~InDiskSmall~.
 
 */
 void FLOB::SaveToExtensionTuple( void *extensionTuple )
 {
   assert( type == InMemory );
 
-// VTA
-// I would like to have here the restriction:
-// assert( size <= SWITCH_THRESHOLD );
-// But the standalone objects call this function also for LOBs.
-
   if( size > 0 )
   {
-    assert( fd.inMemory.buffer != 0 );
     if( extensionTuple != 0 )
       Get( 0, size, extensionTuple );
 
     free( fd.inMemory.buffer );
     fd.inMemory.buffer = 0;
-  }
-  else
-  {
-    assert( fd.inMemory.buffer == 0 );
   }
 
   type = InDiskSmall;
@@ -353,19 +337,15 @@ void FLOB::SaveToExtensionTuple( void *extensionTuple )
 /*
 3.12 ReadFromExtensionTuple
 
-Reads the FLOB value from an extension tuple. There are two ways of reading, one uses
-a Prefetching Iterator and the other reads directly from the SMI Record.
-The FLOB must be small.
+Reads the FLOB value from an extension tuple. There are two ways of 
+reading, one uses a Prefetching Iterator and the other reads 
+directly from the SMI Record. The FLOB must be small.
 
 */
-size_t FLOB::ReadFromExtensionTuple( PrefetchingIterator& iter, const size_t offset )
+size_t FLOB::ReadFromExtensionTuple( PrefetchingIterator& iter, 
+                                     const size_t offset )
 {
   assert( type == InDiskSmall );
-
-// VTA
-// I would like to have here the restriction:
-// assert( size <= SWITCH_THRESHOLD );
-// But the standalone objects call this function also for LOBs.
 
   size_t result = 0;
 
@@ -374,7 +354,8 @@ size_t FLOB::ReadFromExtensionTuple( PrefetchingIterator& iter, const size_t off
   if( size > 0 )
   {
     fd.inMemory.buffer = (char*)malloc( size );
-    result = iter.ReadCurrentData( fd.inMemory.buffer, size, offset );
+    result = 
+      iter.ReadCurrentData( fd.inMemory.buffer, size, offset );
   }
   else
     fd.inMemory.buffer = 0;
@@ -382,14 +363,10 @@ size_t FLOB::ReadFromExtensionTuple( PrefetchingIterator& iter, const size_t off
   return result;
 }
 
-size_t FLOB::ReadFromExtensionTuple( SmiRecord& record, const size_t offset )
+size_t FLOB::ReadFromExtensionTuple( SmiRecord& record, 
+                                     const size_t offset )
 {
   assert( type == InDiskSmall );
-
-// VTA
-// I would like to have here the restriction:
-// assert( size <= SWITCH_THRESHOLD );
-// But the standalone objects call this function also for LOBs.
 
   size_t result = 0;
 
@@ -416,11 +393,8 @@ bool FLOB::IsLob() const
 {
   assert( type != Destroyed );
 
-  if( type == InDiskLarge )
-  {
-    assert( size > SWITCH_THRESHOLD );
+  if( type == InDiskLarge || type == InMemoryCached )
     return true;
-  }
   else if( type == InMemory && size > SWITCH_THRESHOLD )
     return true;
   return false;

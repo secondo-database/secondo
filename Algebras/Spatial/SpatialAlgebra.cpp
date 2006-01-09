@@ -32,6 +32,10 @@ March-July, 2003. Zhiming Ding
 
 January, 2005 Leonardo Guerreiro Azevedo
 
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+level remains. Models are also removed from type constructors.
+
 [TOC]
 
 1 Overview
@@ -692,13 +696,7 @@ TypeConstructor point(
   ClosePoint, ClonePoint,     //object close, and clone
   CastPoint,      //cast function
   SizeOfPoint,      //sizeof function
-  CheckPoint,                 //kind checking function
-  0,        //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
-
+  CheckPoint );               //kind checking function
 
 /*
 5 Type Constructor ~points~
@@ -1489,12 +1487,7 @@ TypeConstructor points(
         ClosePoints,    ClonePoints,    //object close and clone
         CastPoints,                     //cast function
         SizeOfPoints,                   //sizeof function
-        CheckPoints,                    //kind checking function
-        0,                              //predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckPoints );                  //kind checking function
 
 /*
 6 Type Constructor ~halfsegment~
@@ -3611,12 +3604,7 @@ TypeConstructor halfsegment(
   0, 0, CloseHalfSegment, CloneHalfSegment, //open, save, close, clone
   CastHalfSegment,      //cast function
   SizeOfHalfSegment,      //sizeof function
-  CheckHalfSegment,     //kind checking function
-  0,              //function for model
-  TypeConstructor::DummyInModel,
-  TypeConstructor::DummyOutModel,
-  TypeConstructor::DummyValueToModel,
-  TypeConstructor::DummyValueListToModel );
+  CheckHalfSegment );     //kind checking function
 
 /*
 7 Type Constructor ~line~
@@ -4490,12 +4478,7 @@ TypeConstructor line(
         CloseLine,      CloneLine,      //object close and clone
         CastLine,                       //cast function
         SizeOfLine,     //sizeof function
-        CheckLine,                      //kind checking function
-        0,                              //function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        CheckLine );                      //kind checking function
 
 /*
 8 Type Constructor ~region~
@@ -4554,6 +4537,18 @@ void CRegion::Destroy()
 
 CRegion::~CRegion()
 {
+}
+
+bool CRegion::Valid()
+{
+  CHalfSegment s;
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, s );
+    if( !s.IsDefined() )
+      return false;
+  }
+  return true;
 }
 
 const Rectangle<2> CRegion::BoundingBox() const
@@ -7609,21 +7604,10 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
       }
     }
 
-    CHalfSegment * chs=new CHalfSegment ( false );
-    if (!( cr->insertOK(*chs) ))
-    {
-      correct=false;
-      return SetWord( Address(0) );
-    }
-
     cr->EndBulkLoad();
-
-
-
-
-
     cr->SetPartnerNo();
 
+    assert( cr->Valid() );
 
     correct = true;
     return SetWord( cr );
@@ -7762,13 +7746,8 @@ TypeConstructor region(
         0,        0,              // object open and save
         CloseRegion,    CloneRegion,        //object close and clone
         CastRegion,                         //cast function
-  SizeOfRegion,         //sizeof function
-        CheckRegion,                        //kind checking function
-        0,                                  //function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
+        SizeOfRegion,         //sizeof function
+        CheckRegion );                        //kind checking function
 
 /*
 9 Object Traversal functions
@@ -8957,16 +8936,6 @@ clipMap( ListExpr args )
     }
 
     return (nl->SymbolAtom( "typeerror" ));
-}
-
-/*
-10.2 The dummy model mapping:
-
-*/
-Word
-SpatialNoModelMapping( ArgVector arg, Supplier opTreeNode )
-{
-  return (SetWord( Address( 0 ) ));
 }
 
 /*
@@ -14045,22 +14014,6 @@ ValueMapping windowclippingoutmap[] = {
 ValueMapping spatialclipmap[] = { clip_l };
 
 
-ModelMapping spatialnomodelmap[] = { SpatialNoModelMapping,
-               SpatialNoModelMapping,
-               SpatialNoModelMapping,
-               SpatialNoModelMapping,
-               SpatialNoModelMapping,
-               SpatialNoModelMapping,
-               SpatialNoModelMapping,
-               SpatialNoModelMapping,
-               SpatialNoModelMapping,
-               SpatialNoModelMapping,
-               SpatialNoModelMapping,
-               SpatialNoModelMapping,
-               SpatialNoModelMapping,
-               SpatialNoModelMapping,
-               SpatialNoModelMapping,
-               SpatialNoModelMapping };
 /*
 10.5.2 Definition of specification strings
 
@@ -14357,144 +14310,144 @@ const string SpatialSpecClip  =
 */
 Operator spatialisempty
   ( "isempty", SpatialSpecIsEmpty, 4, spatialisemptymap,
-    spatialnomodelmap, SpatialSelectIsEmpty, SpatialTypeMapBool1 );
+    SpatialSelectIsEmpty, SpatialTypeMapBool1 );
 
 Operator spatialequal
   ( "=", SpatialSpecEqual, 4, spatialequalmap,
-    spatialnomodelmap, SpatialSelectCompare, SpatialTypeMapBool );
+    SpatialSelectCompare, SpatialTypeMapBool );
 
 Operator spatialnotequal
   ( "#", SpatialSpecNotEqual, 4, spatialnotequalmap,
-    spatialnomodelmap,  SpatialSelectCompare, SpatialTypeMapBool );
+    SpatialSelectCompare, SpatialTypeMapBool );
 
 Operator spatialless
-  ( "<", SpatialSpecLess, 1, spatiallessmap, spatialnomodelmap,
+  ( "<", SpatialSpecLess, 1, spatiallessmap, 
     SimpleSelect, SpatialTypeMapBool );
 
 Operator spatiallessequal
   ( "<=", SpatialSpecLessEqual, 1, spatiallessequalmap,
-    spatialnomodelmap, SimpleSelect, SpatialTypeMapBool );
+    SimpleSelect, SpatialTypeMapBool );
 
 Operator spatialgreater
   ( ">", SpatialSpecGreater, 1, spatialgreatermap,
-    spatialnomodelmap, SimpleSelect, SpatialTypeMapBool );
+    SimpleSelect, SpatialTypeMapBool );
 
 Operator spatialgreaterequal
   ( ">=", SpatialSpecGreaterEqual, 1, spatialgreaterequalmap,
-    spatialnomodelmap, SimpleSelect, SpatialTypeMapBool );
+    SimpleSelect, SpatialTypeMapBool );
 
 Operator spatialintersects
   ( "intersects", SpatialSpecIntersects, 9, spatialintersectsmap,
-    spatialnomodelmap, intersectSelect, GeoGeoMapBool);
+    intersectSelect, GeoGeoMapBool);
 
 Operator spatialinside
-  ( "inside", SpatialSpecInside, 9, spatialinsidemap, spatialnomodelmap,
+  ( "inside", SpatialSpecInside, 9, spatialinsidemap, 
     insideSelect, GeoGeoMapBool );
 
 Operator spatialinsideold
-  ( "insideold", SpatialSpecInsideold, 1, spatialinsideoldmap, spatialnomodelmap,
+  ( "insideold", SpatialSpecInsideold, 1, spatialinsideoldmap, 
     SimpleSelect, GeoGeoMapBool );
 
 Operator spatialtouches
-  ( "touches", SpatialSpecTouches, 9, spatialtouchesmap, spatialnomodelmap,
+  ( "touches", SpatialSpecTouches, 9, spatialtouchesmap, 
     touches_attached_overlapsSelect, GeoGeoMapBool );
 
 Operator spatialattached
-  ( "attached", SpatialSpecAttached, 9, spatialattachedmap, spatialnomodelmap,
+  ( "attached", SpatialSpecAttached, 9, spatialattachedmap, 
     touches_attached_overlapsSelect, GeoGeoMapBool );
 
 Operator spatialoverlaps
-  ( "overlaps", SpatialSpecOverlaps, 9, spatialoverlapsmap, spatialnomodelmap,
+  ( "overlaps", SpatialSpecOverlaps, 9, spatialoverlapsmap, 
     touches_attached_overlapsSelect, GeoGeoMapBool );
 
 Operator spatialonborder
-  ( "onborder", SpatialSpecOnBorder, 2, onbordermap, spatialnomodelmap,
+  ( "onborder", SpatialSpecOnBorder, 2, onbordermap, 
     onBorder_inInteriorSelect, GeoGeoMapBool );
 
 Operator spatialininterior
-  ( "ininterior", SpatialSpecOnBorder, 2, ininteriormap, spatialnomodelmap,
+  ( "ininterior", SpatialSpecOnBorder, 2, ininteriormap, 
     onBorder_inInteriorSelect, GeoGeoMapBool );
 
 Operator spatialintersection
-  ( "intersection", SpatialSpecIntersection, 13, intersectionmap, spatialnomodelmap,
+  ( "intersection", SpatialSpecIntersection, 13, intersectionmap, 
     intersectionSelect, intersectionMap );
 
 Operator spatialminus
-  ( "minus", SpatialSpecMinus, 7, minusmap, spatialnomodelmap,
+  ( "minus", SpatialSpecMinus, 7, minusmap, 
     minusSelect, minusMap );
 
 Operator spatialunion
-  ( "union", SpatialSpecUnion, 4, unionmap, spatialnomodelmap,
+  ( "union", SpatialSpecUnion, 4, unionmap, 
     unionSelect, unionMap );
 
 Operator spatialcrossings
-  ( "crossings", SpatialSpecCrossings, 1, crossingsmap, spatialnomodelmap,
+  ( "crossings", SpatialSpecCrossings, 1, crossingsmap, 
     crossingsSelect, crossingsMap );
 
 Operator spatialsingle
-  ( "single", SpatialSpecSingle, 1, singlemap, spatialnomodelmap,
+  ( "single", SpatialSpecSingle, 1, singlemap, 
     singleSelect, singleMap );
 
 Operator spatialdistance
-  ( "distance", SpatialSpecDistance, 13, distancemap, spatialnomodelmap,
+  ( "distance", SpatialSpecDistance, 13, distancemap, 
     distanceSelect, distanceMap );
 
 Operator spatialdirection
-  ( "direction", SpatialSpecDirection, 1, directionmap, spatialnomodelmap,
+  ( "direction", SpatialSpecDirection, 1, directionmap, 
     directionSelect, directionMap );
 
 Operator spatialnocomponents
-  ( "no_components", SpatialSpecNocomponents, 3, nocomponentsmap, spatialnomodelmap,
+  ( "no_components", SpatialSpecNocomponents, 3, nocomponentsmap, 
     nocomponentsSelect, nocomponentsMap );
 
 Operator spatialnosegments
-  ( "no_segments", SpatialSpecNoSegments, 2, nosegmentsmap, spatialnomodelmap,
+  ( "no_segments", SpatialSpecNoSegments, 2, nosegmentsmap, 
     nosegmentsSelect,  nosegmentsMap);
 
 Operator spatialinsidepathlength
-  ( "insidepathlength", SpatialSpecInsidepathlength, 1, insidepathlengthmap, spatialnomodelmap,
+  ( "insidepathlength", SpatialSpecInsidepathlength, 1, insidepathlengthmap, 
     SimpleSelect,  insidepsMap);
 
 Operator spatialinsidescanned
-  ( "insidescanned", SpatialSpecinsidescanned, 1, insidescannedmap, spatialnomodelmap,
+  ( "insidescanned", SpatialSpecinsidescanned, 1, insidescannedmap, 
     SimpleSelect,  insidepsMap);
 
 Operator spatialbbox
-  ( "bbox", SpatialSpecBbox, 4, bboxmap, spatialnomodelmap,
+  ( "bbox", SpatialSpecBbox, 4, bboxmap, 
     bboxSelect, bboxMap);
 
 Operator spatialsize
-  ( "size", SpatialSpecSize, 1, sizemap, spatialnomodelmap,
+  ( "size", SpatialSpecSize, 1, sizemap, 
     sizeSelect, sizeMap );
 
 Operator spatialtouchpoints
-  ( "touchpoints", SpatialSpecTouchpoints, 3, touchpointsmap, spatialnomodelmap,
+  ( "touchpoints", SpatialSpecTouchpoints, 3, touchpointsmap, 
     touchpointsSelect, touchpointsMap );
 
 Operator spatialcommonborder
-  ( "commonborder", SpatialSpecCommonborder, 1, commonbordermap, spatialnomodelmap,
+  ( "commonborder", SpatialSpecCommonborder, 1, commonbordermap, 
     commonborderSelect, commonborderMap );
 
 Operator spatialcommonborderscan
-  ( "commonborderscan", SpatialSpecCommonborderscan, 1, commonborderscanmap, spatialnomodelmap,
+  ( "commonborderscan", SpatialSpecCommonborderscan, 1, commonborderscanmap, 
     commonborderSelect, commonborderMap );
 
 Operator spatialtranslate
-  ( "translate", SpatialSpecTranslate, 4, translatemap, spatialnomodelmap,
+  ( "translate", SpatialSpecTranslate, 4, translatemap, 
     TranslateSelect, TranslateMap );
 
 
 Operator spatialwindowclippingin
-  ( "windowclippingin", SpatialSpecWindowClippingIn, 4, windowclippinginmap, spatialnomodelmap,
+  ( "windowclippingin", SpatialSpecWindowClippingIn, 4, windowclippinginmap, 
     windowclippingSelect, windowclippingMap );
 
 
 Operator spatialwindowclippingout
-  ( "windowclippingout", SpatialSpecWindowClippingOut, 4, windowclippingoutmap, spatialnomodelmap,
+  ( "windowclippingout", SpatialSpecWindowClippingOut, 4, windowclippingoutmap, 
     windowclippingSelect, windowclippingMap );
 
 Operator spatialclip
-        ( "clip", SpatialSpecClip, 1, spatialclipmap, spatialnomodelmap,
+        ( "clip", SpatialSpecClip, 1, spatialclipmap, 
           SimpleSelect, clipMap );
 
 

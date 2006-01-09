@@ -24,6 +24,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
+January 2006 Victor Almeida replaced the ~free~ tuples concept to
+reference counters. There are reference counters on tuples and also
+on attributes. Some assertions were removed, since the code is
+stable.
+
 [1] Implementation of the Module Extended Relation Algebra for Main Memory
 
 [TOC]
@@ -97,6 +102,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       while(qp->Received(args[0].addr))
       {
         t =(Tuple*)tuple.addr;
+        t->IncReference();
         tuples->push_back(t);
         qp->Request(args[0].addr,tuple);
       }
@@ -110,7 +116,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       }
       else
       {
-	    if(requestArgs)
+        if(requestArgs)
         {
           qp->Request(args[2].addr, intWord);
         }
@@ -121,7 +127,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
         nSortAttrs = ((CcInt*)intWord.addr)->GetIntval();
         for(i = 1; i <= nSortAttrs; i++)
         {
-	      if(requestArgs)
+	  if(requestArgs)
           {
             qp->Request(args[2 * i + 1].addr, intWord);
           }
@@ -176,6 +182,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       for(j = localInfo->currentIndex;
         j + 1 <= localInfo->tuples->size(); j++)
       {
+        (*(localInfo->tuples))[j]->DecReference();
         (*(localInfo->tuples))[j]->DeleteIfAllowed();
       }
 
@@ -353,7 +360,7 @@ private:
     {
       for(iterB = bucketB.begin(); iterB != bucketB.end(); iterB++)
       {
-        Tuple* resultTuple = new Tuple( *resultTupleType, true );
+        Tuple* resultTuple = new Tuple( *resultTupleType );
         Concat(*iterA, *iterB, resultTuple);
         resultBucket.push_back(resultTuple);
       }
@@ -441,7 +448,7 @@ public:
       SortBy<false, false>(bArgs, bResult, OPEN, streamBLocalInfo, 0);
     }
 
-    ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
+    ListExpr resultType = SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
     resultTupleType = new TupleType( nl->Second( resultType ) );
 
     nextATuple();
@@ -623,7 +630,7 @@ public:
     this->streamA = streamA;
     this->streamB = streamB;
 
-    ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
+    ListExpr resultType = SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
     resultTupleType = new TupleType( nl->Second( resultType ) );
 
     attrIndexA = ((CcInt*)attrIndexAWord.addr)->GetIntval() - 1;
@@ -676,7 +683,7 @@ public:
       {
         if( CompareTuples( (Tuple *)tupleA.addr, *iterTuplesBucketB ) == 0 )
         {
-          result = new Tuple( *resultTupleType, true );
+          result = new Tuple( *resultTupleType );
           Concat( (Tuple *)tupleA.addr, *iterTuplesBucketB, result );
           iterTuplesBucketB++;
           return result;
