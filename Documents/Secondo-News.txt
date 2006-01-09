@@ -7,6 +7,40 @@
  Just add new messages directly below the ruler and not at the end.
 
 ===============================================================================
+2006-01-09 A big change on the kernel of the system has been made
+
+- The algebra levels were removed. Since the descriptive level is
+implemented in the optimizer, it is not needed anymore. The kernel of
+the Secondo system now works only in the executable level. The concepts
+of Models and Costs were also removed from the kernel of the system
+for the same reasons.
+
+- In the relational algebra, a LRU cache for FLOBs is implemented.
+The main idea behind this cache is to better use the memory inside
+operators. Before this modification, the FLOB size was taken into
+cosideration to calculate the size of a tuple in memory. Now, only
+the attribute and the small FLOBs are considered, which increases
+the number of tuples that fit in memory considerably. The cache is
+also important because a pointer to the FLOB memory is returned
+instead of copy, which can reduce the CPU time. The memory
+utilization is corrected for some operators.
+
+- The concept of free tuples is changed. Now, instead of a boolean
+value telling whether a tuple is free or non-free, we have an
+integer number where zero means that the tuple is free for deletion.
+Whenever it is loaded into memory and we do not want to delete
+it, this number is increased. When it is unloaded, the number is
+decreased. With this change we could avoid all calls to the
+function CloneIfNecessary that is now removed. In fact, we do
+not clone tuples anymore.
+
+- In a lower granularity, we avoid, as much as possible, cloning
+attributes too. A reference counter is added to the TupleElement
+class. Every time a tuple needs an attribute from another tuple,
+it just copies the attribute's pointer and increases the counter.
+When it wants to delete the attribute, it decreases the counter,
+which is only deleted when the counter is zero.
+
 
 2005-11-22 Problems with Javagui using Java Version 1.5
 ===============================================================================
