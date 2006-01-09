@@ -8173,7 +8173,7 @@ static const string mraprecspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>(real) -> bool</text--->"
     "    <text>mraprec ( _ )</text--->"
-    "    <text>Set precision of comparisions. Always returns true.</text--->"
+    "    <text>Sets precision of comparisions. Always returns true.</text--->"
     "    <text>mraprec(0.0001)</text---> ) )";
 
 /*
