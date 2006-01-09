@@ -215,7 +215,7 @@ select(arg(0), pr(p, a) or join(res(4), res(1), pr(q, a, b))
 ~Result~ is the number of the node into which the result of this predicate
 application should be written. Normally it is the same as Target,
 but for an edge leading to a node combining several independent results,
-it the number of the ``real'' node to obtain this result. An example of this can
+it is the number of the ``real'' node to obtain this result. An example of this can
 be found in [Figure pog2] where the join edge leading from node 3 to node 7 does
 not use the result of node 3 (there is none) but rather the two independent
 results from nodes 1 and 2 (this pair is conceptually the result available in
@@ -1439,6 +1439,8 @@ join(Arg1, Arg2, pr(Pred, _, _)) => symmjoin(Arg1S, Arg2S, Pred) :-
 product-filter join - for testing only!
 
 */
+
+/*
 join(Arg1, Arg2, pr(Pred, A1, A2)) => filter(product(Arg1S, Arg2S), pr(Pred, A1, A2)) :-
   Arg1 => Arg1S,
   Arg2 => Arg2S.
@@ -1446,6 +1448,8 @@ join(Arg1, Arg2, pr(Pred, A1, A2)) => filter(product(Arg1S, Arg2S), pr(Pred, A1,
 join(Arg1, Arg2, pr(Pred, A1, A2)) => filter(product(Arg2S, Arg1S), pr(Pred, A1, A2)) :-
   Arg1 => Arg1S,
   Arg2 => Arg2S.
+
+*/
 
 /*
 
@@ -1558,7 +1562,6 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => sortmergejoin(Arg1S, Arg2S,
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
-
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
         attrname(Attr1), attrname(Attr2), 997)   :-
   isOfFirst(Attr1, X, Y),
@@ -1568,7 +1571,6 @@ join00(Arg1S, Arg2S, pr(Y = X, _, _)) => hashjoin(Arg2S, Arg1S,
         attrname(Attr2), attrname(Attr1), 997)   :-
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
-
 
 /*
 
@@ -1678,8 +1680,8 @@ assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   resTupleSize(Arg1, TSize1),
   resTupleSize(Arg2, TSize2),
   selectivity(Pred, Sel),
+  addTupleSizes(TSize1,TSize2,TSize),
   Size is Card1 * Card2 * Sel,
-  TSize is TSize1 + TSize2,
   setNodeSize(Result, Size),
   setNodeTupleSize(Result, TSize),
   predicateCost(Pred, PredCost),
@@ -1732,11 +1734,10 @@ Argument ~Arg~ has tuple size ~Size~.
 
 */
 
-resTupleSize(arg(N), TupleSize) :- 
+resTupleSize(arg(N), tupleSizeData(CoreTupleSize,InFlobSize,ExtFlobSize)) :- 
   argument(N, Rel), 
   Rel = rel(_, _, _),
-  calculateQueryTupleSize(Rel, CoreTupleSize, InFlobSize),
-  TupleSize is CoreTupleSize + InFlobSize,
+  calculateQueryTupleSize(Rel, CoreTupleSize, InFlobSize, ExtFlobSize), 
   !.
 resTupleSize(arg(N), _) :- write('Error in optimizer: cannot find tuple size for '),
   argument(N, Rel), wp(Rel), nl, fail.
@@ -1753,10 +1754,12 @@ Write sizes, selectivities and predicate costs.
 
 writeSize :-
   resultSize(Node, Size),
-  resultTupleSize(Node, TSize),
+  resultTupleSize(Node, tupleSizeData(Core,Inl,Ext)),
   write('Node:       '), write(Node), nl,
   write('Size:       '), write(Size), nl, 
-  write('Tuple Size: '), write(TSize), nl, nl,
+  TotalTupleSize is Core+Inl+Ext,
+  write('Tuple Size: '), write(TotalTupleSize), write(' = ('), 
+  write(Core), write('+'), write(Inl), write('+'), write(Ext), write(')\n\n'),
   fail.
 writeSize :-
   edgeSelectivity(Source, Target, Sel, PredCost, TupleGenerationCost),
@@ -1787,10 +1790,10 @@ deleteSizes :- not(deleteSize).
 
 8.1 The Costs of Terms
 
-----    cost(Term, Sel, Size, TupleSize, PredCost, TC, Cost)
+----    cost(Term+, Pred+, Sel+, Size-, TupleSize-, PredCost+, TC+, Cost-)
 ----
 
-The cost of an executable ~Term~ representing a predicate with selectivity ~Sel~, 
+The cost of an executable ~Term~ representing predicate ~Pred~ with selectivity ~Sel~, 
 predicate cost ~PredCost~, tuple generation cost ~TC~ is ~Cost~ and the size of 
 the result is ~Size~, while its tuplesize is ~TupleSize~.
 
@@ -1821,8 +1824,11 @@ A standard naming scheme for cost factors is used to enhance the readability of 
        Sel:  Selectivity
         CX:  Cardinality of first argument
         CX:  Cardinality of second argument
-        Tx:  TupleSize of first argument
-        Ty:  TupleSize of second argument
+        Tx:  (necessary) TupleSize of first argument
+        Ty:  (necessary) TupleSize of second argument
+       TSC:  TupleSizeCoretuple (always handled)
+       TSI:  TupleSizeInlineFlob (always handled)
+       TSE:  TupleSizeExternalFlob (only handled when used in predicate)
 ----
 
 8.1.0 Auxiliary Predicates to cost
@@ -1844,18 +1850,111 @@ gsf(M, N, S) :-
 log(Base, Value, Result) :-
   Result is log(Value) / log(Base).
 
+% add two tupleSizeData(A,B,C) terms component wise:
+addTupleSizes(tupleSizeData(Core1, InlFlob1, ExtFlob1), 
+              tupleSizeData(Core2, InlFlob2, ExtFlob2), 
+              tupleSizeData(Core, InlFlob, ExtFlob)) :- 
+  Core    is Core1    + Core2,
+  InlFlob is InlFlob1 + InlFlob2,
+  ExtFlob is ExtFlob1 + ExtFlob2.
+
+
 /*
 8.1.1 Arguments
 
 */
 
-cost(rel(Rel, X, Y), _, Size, TupleSize, _, _, 0) :-
+
+/* 
+
+Some rulesfacts testing the cost functions:
+
+*/
+
+tc(Term) :- 
+  cost(Term, *, 0.001, Size, TupleSize, 0.001, 0.0035, Cost),
+  write('\nSize:      '), write(Size), 
+  write('\nTupleSize: '), write(TupleSize), 
+  write('\nCost:      '), write(Cost), nl.
+
+% cost(Term+, Pred+, Sel+, Size-, TupleSize-, PredCost+, TC+, Cost-)
+cost(t0,     _,_,      0,tupleSizeData(    100, 0, 0), _, _, 0).
+cost(t1,     _,_,      1,tupleSizeData(    100, 0, 0), _, _, 0).
+cost(t100,   _,_,    100,tupleSizeData(    100, 0, 0), _, _, 0).
+cost(t1000,  _,_,   1000,tupleSizeData(    100, 0, 0), _, _, 0).
+cost(t10000, _,_,  10000,tupleSizeData(    100, 0, 0), _, _, 0).
+cost(tbig,   _,_, 100000,tupleSizeData(    100, 0, 0), _, _, 0).
+cost(tbigt,  _,_,    100,tupleSizeData( 100000, 0, 0), _, _, 0).
+cost(t4M,    _,_,   4096,tupleSizeData(   1024, 0, 0), _, _, 0).
+cost(t4Mb,   _,_,   4096,tupleSizeData(   1023, 0, 0), _, _, 0).
+cost(t4Mbb,  _,_,   4096,tupleSizeData(   1012, 0, 0), _, _, 0).
+cost(t8M,    _,_,   8192,tupleSizeData(   1024, 0, 0), _, _, 0).
+cost(t8Mb,   _,_,   8192,tupleSizeData(   1023, 0, 0), _, _, 0).
+cost(t8Mbb,  _,_,   8192,tupleSizeData(   1012, 0, 0), _, _, 0).
+cost(t12M,   _,_,  12288,tupleSizeData(   1024, 0, 0), _, _, 0).
+cost(t12Mb,  _,_,  12288,tupleSizeData(   1023, 0, 0), _, _, 0).
+cost(t12Mbb, _,_,  12288,tupleSizeData(   1012, 0, 0), _, _, 0).
+cost(t16M,   _,_,  16384,tupleSizeData(   1024, 0, 0), _, _, 0).
+cost(t16Mb,  _,_,  16384,tupleSizeData(   1023, 0, 0), _, _, 0).
+cost(t16Mbb, _,_,  16384,tupleSizeData(   1012, 0, 0), _, _, 0).
+cost(t32M,   _,_,  16384,tupleSizeData(   2048, 0, 0), _, _, 0).
+
+cost(tsj1x,  _,_,   8192,tupleSizeData(   1012, 0, 0), _, _, 0). % (CX * (Tx+12)) =< (0.5 * MaxMem),
+cost(tsj1y,  _,_,   8192,tupleSizeData(   1012, 0, 0), _, _, 0). % (CY * (Ty+12)) =<  (0.5 * MaxMem),
+
+cost(tsj21x, _,_,   8192,tupleSizeData(   1012, 0, 0), _, _, 0). % (CX * (Tx+12)) =< (0.5 * MaxMem), 
+cost(tsj21y, _,_,   8192,tupleSizeData(   1013, 0, 0), _, _, 0). % (CY * (Ty+12)) > (0.5 * MaxMem), 
+                                                                 %  CX =< CY, OY=3.99 =< CX,
+
+cost(tsj22x, _,_,     30,tupleSizeData( 279607, 0, 0), _, _, 0). % (CX * (Tx+12)) =< (0.5 * MaxMem), 
+cost(tsj22y, _,_,  80000,tupleSizeData(    100, 0, 0), _, _, 0). % (CY * (Ty+12)) > (0.5 * MaxMem), 
+                                                                 %  CX =< CY, OY > CX,
+
+cost(tsj23x, _,_,   8192,tupleSizeData(   1012, 0, 0), _, _, 0). % (CX * (Tx+12)) =< (0.5 * MaxMem),
+cost(tsj23y, _,_,   4096,tupleSizeData(   2048, 0, 0), _, _, 0). % (CY * (Ty+12)) > (0.5 * MaxMem), 
+                                                                 %  CX > CY,
+
+cost(tsj31x, _,_,   8192,tupleSizeData(   1024, 0, 0), _, _, 0). % (CY * (Ty+12)) =< (0.5 * MaxMem),
+cost(tsj31y, _,_,   8192,tupleSizeData(   1012, 0, 0), _, _, 0). % (CX * (Tx+12)) > (0.5 * MaxMem),
+                                                                 %  CY =< CX, OX =< CY,
+
+cost(tsj32x, _,_,  81920,tupleSizeData(    103, 0, 0), _, _, 0). % (CY * (Ty+12)) =< (0.5 * MaxMem),
+cost(tsj32y, _,_,    500,tupleSizeData(   1012, 0, 0), _, _, 0). % (CX * (Tx+12)) > (0.5 * MaxMem),
+                                                                 %  CY =< CX, OX > CY,
+
+cost(tsj33x, _,_,   4096,tupleSizeData(   2048, 0, 0), _, _, 0). % (CY * (Ty+12)) =< (0.5 * MaxMem),
+cost(tsj33y, _,_,   8192,tupleSizeData(   1012, 0, 0), _, _, 0). % (CX * (Tx+12)) > (0.5 * MaxMem),
+                                                                 %  CY > CX,
+
+cost(tsj41x, _,_,   1024,tupleSizeData(   8192, 0, 0), _, _, 0). % (CX * (Tx+12)) > (0.5 * MaxMem),
+cost(tsj41y, _,_,   1024,tupleSizeData(   8192, 0, 0), _, _, 0). % (CY * (Ty+12)) > (0.5 * MaxMem),
+                                                                 %  CX =< CY, OX =< OY,
+
+cost(tsj42x, _,_,   1024,tupleSizeData(   8192, 0, 0), _, _, 0). % (CX * (Tx+12)) > (0.5 * MaxMem),
+cost(tsj42y, _,_,   1024,tupleSizeData(   8200, 0, 0), _, _, 0). % (CY * (Ty+12)) > (0.5 * MaxMem),
+                                                                 %  CX =< CY, OX > OY,
+
+cost(tsj43x, _,_,   1024,tupleSizeData(   8192, 0, 0), _, _, 0). % (CX * (Tx+12)) > (0.5 * MaxMem),
+cost(tsj43y, _,_,   1023,tupleSizeData(   8200, 0, 0), _, _, 0). % (CY * (Ty+12)) > (0.5 * MaxMem),
+                                                                 % CY =< CX, OY =< OX,
+
+cost(tsj44x, _,_,   1024,tupleSizeData(   8300, 0, 0), _, _, 0). % (CX * (Tx+12)) > (0.5 * MaxMem),
+cost(tsj44y, _,_,   1023,tupleSizeData(   8200, 0, 0), _, _, 0). % (CY * (Ty+12)) > (0.5 * MaxMem),
+                                                                 %  CY =< CX, OY > OX,
+
+/*
+
+End test facts
+
+*/
+
+cost(rel(Rel, X, Y), _, _, Size, TupleSize, _, _, 0) :-
 %  getRelationTupleSize(Rel, TupleSize),
-  calculateQueryTupleSize(rel(Rel, X, Y), CoreTupleSize, InFlobSize),
-  TupleSize is  CoreTupleSize +  InFlobSize,
+  calculateQueryTupleSize(rel(Rel, X, Y), CoreTupleSize, InFlobSize, ExtFlobSize), 
+  TupleSize = tupleSizeData(CoreTupleSize,InFlobSize,ExtFlobSize),
   card(Rel, Size).
 
-cost(res(N), _, Size, TupleSize, _, _, 0) :-
+cost(res(N), _, _, Size, TupleSize, _, _, 0) :-
 %  getResultTupleSize(N, TupleSize),
   resultTupleSize(N, TupleSize), % to be exchanged for actual tuple size
   resultSize(N, Size).
@@ -1865,10 +1964,16 @@ cost(res(N), _, Size, TupleSize, _, _, 0) :-
 
 */
 
-cost(feed(X), Sel, S, TupleSize, PredCost, TC, C) :-
-  cost(X, Sel, S, TupleSize, PredCost, TC, C1),
+cost(feed(X), P, Sel, S, TupleSize, PredCost, TC, C) :-
+  cost(X, P, Sel, S, TupleSize, PredCost, TC, C1),
+  cost_factors(_, _, _, _, RPD, _, _, _, FOD, _, _, BDBPS, FCMR),
   feedTC(A),
-  C is C1 + A * S.
+  TupleSize = tupleSizeData(TSC, TSI, _),
+  NumPages is ceiling((S * (TSC+TSI))/BDBPS),
+  C is C1                        % create Relation, 
+     + FOD                       % open relation
+     + RPD * NumPages            % read tuples pagewise
+     + A * S.                    % consider overhead tuplewise
 
 /*
 Here ~feedTC~ means ``feed tuple cost'', i.e., the cost per tuple, a constant to
@@ -1876,55 +1981,63 @@ be determined in experiments. These constants are kept in file ``Operators.pl''.
 
 */
 
-cost(consume(X), Sel, S, TupleSize, PredCost, TC, C) :-
-  cost(X, Sel, S, TupleSize, PredCost, TC, C1),
-  consumeTC(A),
-  C is C1 + A * S.
+cost(consume(X), P, Sel, S, TupleSize, PredCost, TC, C) :-
+  cost(X, P, Sel, S, TupleSize, PredCost, TC, C1),
+  consumeTC(A,B),
+  TupleSize = tupleSizeData(TSC, TSI, TSE),
+  C is C1                            % create input stream
+     + max(A*S, B*S*(TSC+TSI+TSE)).  % consider overhead tuplewise
 
-cost(filter(X, _), Sel, S, TupleSize, PredCost, TC, C) :-
-  cost(X, 1, SizeX, TupleSize, PredCost, TC, CostX),
+cost(filter(X, Pred), P, Sel, S, TupleSize, PredCost, TC, C) :-
+  cost_factors(_, _, _, _, RPD, _, _, _, FOD, FCD, _, BDBPS, FCMR),
   filterTC(A),
+  cost(X, P, Sel, SizeX, TupleSize, PredCost, TC, CostX),
+%  TupleSize = tupleSizeData(TSC, TSI, TSE),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
+%  write('\n\nFILTER:'), write('filter('), write(X), write(', '), write(Pred), write(')\n'),
+%  write('\tExtFlobSizes: '), write(ExtFlobSize1), write('\t'), write(ExtFlobSize2), nl,
   S is SizeX * Sel,
-  C is CostX + ( A + PredCost) * SizeX.
+  C is CostX                     % create input stream
+     + SizeX * (ExtFlobSize1 + ExtFlobSize2)/BDBPS * FCMR * RPD % read flobs from disk
+     + (A + PredCost) * SizeX.   % consider predicate evaluation and overhead tuplewise
 
-cost(product(X, Y), _, ResultCard, ResultTupleSize, B, TC, Cost) :-
+cost(product(X, Y), P, _, ResultCard, ResultTupleSize, B, TC, Cost) :-
   % the product operator is not symmetric. Y is buffered and X will get consumed.
-  cost(X, 1, CX, Tx, B, TC, CostX),
-  cost(Y, 1, CY, Ty, B, TC, CostY),
-  cost_factors(RTM, WTM, _, _, _, _, _, _, _, _, MaxMem),
+  cost(X, P, 1, CX, TX, B, TC, CostX),
+  cost(Y, P, 1, CY, TY, B, TC, CostY),
+  TY = tupleSizeData(TSCy, TSIy, _),
+  Ty is TSCy + TSIy,
+  cost_factors(RTM, WTM, _, _, _, _, _, _, _, _, MaxMem, BDBPS, FCMR),
   OY is (MaxMem / Ty),
-  % case1: Y fits into memory
   CY =< OY,
+%  write('\nProduct: Case 1\n'),
   ResultCard is CX * CY,
-  ResultTupleSize is Tx + Ty,
-  Cost is CostX + CostY       % produce input streams
-        + WTM * CY            % write Y-tuples to in-memory buffer
-        + RTM * CX * CY       % read Y-tuples from in-memory buffer
-        + TC * ResultCard.    % generate result tuples
+  addTupleSizes(TX,TY, ResultTupleSize),
+  Cost is CostX + CostY          % produce input streams
+        + WTM * CY               % write Y-tuples to in-memory buffer
+        + RTM * CX * CY          % read Y-tuples from in-memory buffer
+        + TC * ResultCard.       % generate result tuples
 
-cost(product(X, Y), _, ResultCard, ResultTupleSize, B, TC, Cost) :-
-  cost(X, 1, CX, Tx, B, TC, CostX),
-  cost(Y, 1, CY, Ty, B, TC, CostY),
-  cost_factors( _, WTM, RTD, WTD, _, _, FND, FDD, _, _, MaxMem),
+cost(product(X, Y), P, _, ResultCard, ResultTupleSize, B, TC, Cost) :-
+  cost(X, P, 1, CX, TX, B, TC, CostX),
+  cost(Y, P, 1, CY, TY, B, TC, CostY),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
+  Ty is TSCy + TSIy,
+  cost_factors( _, WTM, RTD, WTD, _, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
   OY is (MaxMem / Ty),
-  % case2: Y does not fit into memory
   CY > OY,
+%  write('\nProduct: Case 2\n'),
   ResultCard is CX * CY,
-  ResultTupleSize is Tx + Ty,
-  Cost is CostX + CostY        % produce input streams
-        + FND + FDD            % create and remove temp file
-        + WTM * OY             % write Y-tuples to in-memory buffer
-        + WTD * CY             % write Y-tuples to disk
-        + RTD * CX * CY        % read Y-tuples from disk
-        + TC * ResultCard.     % generate result tuple
+  addTupleSizes(TX,TY, ResultTupleSize),
+  Cost is CostX + CostY          % produce input streams
+        + FND + FDD              % create and remove temp file
+        + WTM * OY               % write Y-tuples to in-memory buffer
+        + WTD * CY               % write Y-tuples to disk
+        + RTD * CX * CY          % read Y-tuples from disk
+        + TC * ResultCard.       % generate result tuple
 
 /*
 
-  A: cost to open/close a BTree \\
-  B: cost for evaluation of the selection predicate \\
-  C: cost to open/close BTree \\
-  D: cost to read a diskpage \\
-  
   Uses a btree-index to select tuples from a relation.
   The index must be opened. The predicate is always ${X}\geq v$
   for ~rightrange~, ${}\leq v$ for ~leftrange~, and ${}= v$ for 
@@ -1933,28 +2046,32 @@ cost(product(X, Y), _, ResultCard, ResultTupleSize, B, TC, Cost) :-
   To estimate the number of disk accesses, we query the 
   hight and the keys-per-leafe size $K$ of the BTree.
   then we expect to access $\mbox{hight}+{\mbox{Sel} \cdot \mbox{RelSize}}\over K$ disk pages 
-  and evalute ${\mbox{Hight}+K}\over 2$ times the comparisons.
+  and evalute ${\mbox{Height}+K}\over 2$ times the comparisons.
   
 */
 
-cost(leftrange(_, Rel, _), Sel, Size, TupleSize, B, TC, Cost) :-
-  cost(Rel, 1, RelSize, TupleSize, B, TC, CostR),
-  cost_factors(_, _, _, _, RPD, _, _, _, FOD, FCD, _),
+cost(leftrange(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
+  cost(Rel, P, 1, RelSize, TupleSize, B, TC, CostR),
+  cost_factors(_, _, _, _, RPD, _, _, _, FOD, FCD, _, BDBPS, FCMR),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   Size is Sel * RelSize,
   Cost is CostR                           % produce input stream
+        + Size*(ExtFlobSize1 + ExtFlobSize2)/BDBPS * FCMR * RPD % read flobs from disk
         + FOD + FCD                       % open/close btree file        
-        + B * log(2,RelSize)              % later: RPD * (Hight + K/2)
-        + RPD * log(2,RelSize)            % later: RPD * (Hight + Sel*RelSize/K)
+        + B * log(2,RelSize)              % later: RPD * (Height + K/2)
+        + RPD * log(2,RelSize)            % later: RPD * (Height + Sel*RelSize/K)
         + TC * Sel * RelSize.             % produce tuple stream
 
-cost(rightrange(_, Rel, _), Sel, Size, TupleSize, B, TC, Cost) :-
-  cost(Rel, 1, RelSize, TupleSize, B, TC, CostR),
-  cost_factors(_, _, _, _, RPD, _, _, _, FOD, FCD, _),
+cost(rightrange(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
+  cost(Rel, P, 1, RelSize, TupleSize, B, TC, CostR),
+  cost_factors(_, _, _, _, RPD, _, _, _, FOD, FCD, _, BDBPS, FCMR),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   Size is Sel * RelSize,
   Cost is CostR                           % produce input stream
+        + Size*(ExtFlobSize1 + ExtFlobSize2)/BDBPS * FCMR * RPD % read flobs from disk
         + FOD + FCD                       % open/close btree file        
-        + B * log(2,RelSize)              % find all matches,           later: B * (Hight + K/2)
-        + RPD * log(2,RelSize)            % read index pages from disk, later: D * (Hight + Sel*RelSize/K)
+        + B * log(2,RelSize)              % find all matches,           later: B * (Height + K/2)
+        + RPD * log(2,RelSize)            % read index pages from disk, later: D * (Height + Sel*RelSize/K)
         + TC * Sel * RelSize.             % produce tuple stream
 
 /*
@@ -1973,135 +2090,171 @@ See: ~cost(leftrange(...),...)~ for key on tuple constants.
 
 */
 
-cost(exactmatchfun(_, Rel, _), Sel, Size, TupleSize, B, TC, Cost) :-
-  cost(Rel, 1, RelSize, TupleSize, B, TC, CostR),
-  cost_factors(_, _, _, _, RPD, _, _, _, FOD, FCD, _),
+cost(exactmatchfun(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
+  cost(Rel, P, 1, RelSize, TupleSize, B, TC, CostR),
+  cost_factors(_, _, _, _, RPD, _, _, _, FOD, FCD, _, BDBPS, FCMR),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   Size is Sel * RelSize,
   Cost is CostR                           % produce input stream
+        + Size*(ExtFlobSize1 + ExtFlobSize2)/BDBPS * FCMR * RPD % read flobs from disk
         + FOD + FCD                       % open/close btree file        
-        + B * (log(2,RelSize)+Size)       % find all matches,           later: B * (Hight + K/2)
-        + RPD * log(2,RelSize)            % read index pages from disk, later: D * (Hight + Sel*RelSize/K)
+        + B * (log(2,RelSize)+Size)       % find all matches,           later: B * (Height + K/2)
+        + RPD * log(2,RelSize)            % read index pages from disk, later: D * (Height + Sel*RelSize/K)
         + TC * Sel * RelSize.             % produce tuple stream
 
-cost(exactmatch(_, Rel, _), Sel, Size, TupleSize, B, TC, Cost) :-
-  cost(Rel, 1, RelSize, TupleSize, B, TC, CostR),
-  cost_factors(_, _, _, _, RPD, _, _, _, FOD, FCD, _),
+cost(exactmatch(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
+  cost(Rel, P, 1, RelSize, TupleSize, B, TC, CostR),
+  cost_factors(_, _, _, _, RPD, _, _, _, FOD, FCD, _, BDBPS, FCMR),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   Size is Sel * RelSize,
   Cost is CostR                           % produce input stream
+        + Size*(ExtFlobSize1 + ExtFlobSize2)/BDBPS * FCMR * RPD % read flobs from disk
         + FOD + FCD                       % open/close btree file        
-        + B * (log(2,RelSize)+Size)       % find all matches,           later: B * (Hight + K/2)
-        + RPD * log(2,RelSize)            % read index pages from disk, later: D * (Hight + Sel*RelSize/K)
+        + B * (log(2,RelSize)+Size)       % find all matches,           later: B * (Height + K/2)
+        + RPD * log(2,RelSize)            % read index pages from disk, later: D * (Height + Sel*RelSize/K)
         + TC * Sel * RelSize.             % produce tuple stream
 
 
 /*
-  Algorithm: see ~ExtRelationAlgebra.cpp~.
+  Algorithm loopjoin: see ~ExtRelationAlgebra.cpp~.
 
 */
 
-cost(loopjoin(X, Y), Sel, ResCard, TupleSize, PredCost, TC, Cost) :-
-  cost(X, 1, CX, Tx, PredCost, TC, CostX),
-  cost(Y, Sel, CY, Ty, PredCost, TC, CostY),
-  TupleSize is Tx + Ty,
+cost(loopjoin(X, Y), P, Sel, ResCard, TupleSize, PredCost, TC, Cost) :-
+  cost(X, P, 1, CX, TX, PredCost, TC, CostX),
+  cost(Y, P, Sel, CY, TY, PredCost, TC, CostY),
+  addTupleSizes(TX, TX, TupleSize),
   ResCard is CX * CY,
-%  cost_factors(_, _, _, _, _, _, _, _, _, _, _),
+  cost_factors(_, _, _, _, RPD, _, _, _, _, _, _, BDBPS, FCMR),
   loopjoinTC(A),
-  Cost is CostX + CX * CostY        % produce input streams, stream Y is pruduced once per X-tuple
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
+  Cost is CostX + CX * CostY        % produce input streams, stream Y is produced once per X-tuple
+        + RPD * CX*(ExtFlobSize1)/BDBPS % read flobs from disk
+        + RPD * CY*(ExtFlobSize2)/BDBPS % read flobs from disk
         + A * CX                    % overhead for opening stream Y
         + TC * ResCard.             % create result tuples
 
-cost(fun(_, X), Sel, Size, TupleSize, PredCost, TC, Cost) :-
-  cost(X, Sel, Size, TupleSize, PredCost, TC, Cost).
+cost(fun(_, X), P, Sel, Size, TupleSize, PredCost, TC, Cost) :-
+  cost(X, P, Sel, Size, TupleSize, PredCost, TC, Cost).
 
 
 /*
 New cost function for ~hashjoin~:
 
   NBuckets: Number of buckets in hash table
-  MemSizeX = 0.25[*]MaxMem; this one is used to hold X-tuples hashed against the hash table
+  MemSizeX = 0.25[*]MaxMem; this one is used to hold X-tuples hashedgainst the hash table
   MemSizeY = 0.75[*]MaxMem; this one is used for the hash table of Y-tuples
 
 */
 
-cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, 1, CX, Tx, B, TC, CostArgX),
-  cost(Y, 1, CY, Ty, B, TC, CostArgY),
-  cost_factors(_, WTM, _, _, _, _, _, _, _, _, MaxMem),
+cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
+  cost(X, P, 1, CX, TX, B, TC, CostArgX),
+  cost(Y, P, 1, CY, TY, B, TC, CostArgY),
+  cost_factors(RTM, WTM, _, _, RPD, _, _, _, _, _, MaxMem, BDBPS, FCMR),
   MemSizeX is 0.25*MaxMem,
   MemSizeY is 0.75*MaxMem,
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
+  Tx is TSCx + TSIx,
+  Ty is TSCy + TSIy,
   % test for case1: Both argument relations X,Y fit into memory  
   (CX * (Tx+12)) =< MemSizeX, 
-  (CY * (Ty+12)) =< MemSizeY,      
-  Cost is CostArgX + CostArgY             % create input streams
-       + WTM * CX                         % inserting pointers to Y into hash table
-       + B * CX * max((CY/NBuckets),1)    % collide each X-tuple with Y-tuples from hashed bucket
-       + TC * Sel * CX * CY,              % create result tuples
+  (CY * (Ty+12)) =< MemSizeY, 
+%  write('\nCase1\n'),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
+  Cost is CostArgX + CostArgY                  % create input streams
+       + RPD * (CX * ExtFlobSize1)/BDBPS       % read flobs from disk
+       + RPD * (CX * max((CY/NBuckets),1) * ExtFlobSize2)/BDBPS/(1-FCMR) % read flobs from disk
+       + WTM * CY                              % inserting pointers to Y into hash table
+       + (RTM + B) * CX * max((CY/NBuckets),1) % collide each X-tuple with Y-tuples from hashed bucket
+       + TC * Sel * CX * CY,                   % create result tuples
   ResSize is CX * CY * Sel,
-  TupleSize is Tx + Ty.
+  addTupleSizes(TX,TY,TupleSize).
 
-cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, 1, CX, Tx, B, TC, CostArgX),
-  cost(Y, 1, CY, Ty, B, TC, CostArgY),
-  cost_factors(_, WTM, RTD, WTD, _, _, FND, FDD, _, _, MaxMem),
+cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
+  cost(X, P, 1, CX, TX, B, TC, CostArgX),
+  cost(Y, P, 1, CY, TY, B, TC, CostArgY),
+  cost_factors(RTM, WTM, RTD, WTD, RPD, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
   MemSizeX is 0.25*MaxMem,
   MemSizeY is 0.75*MaxMem,
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
+  Tx is TSCx + TSIx,
+  Ty is TSCy + TSIy,
   % test for case4: neither X, nor Y fit in memory                                       
   (CX * (Tx+12)) > MemSizeX,
   (CY * (Ty+12)) > MemSizeY,
+%  write('\nCase4\n'),
   MemSizeTY is max(1,(MemSizeY / Ty)),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   Cost is CostArgX + CostArgY          % create input streams
        + WTM * CY                      % insert pointers to Y in hash tables
-       + B * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
-                                       % compare X- and Y-tuples
+       + RPD * (CY/MemSizeTY) * (CX * ExtFlobSize1)/BDBPS % read flobs from disk
+       + RPD * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) * ExtFlobSize2/BDBPS/(1-FCMR) % read flobs from disk
+       + (B + RTM)  * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) % compare X- and Y-tuples
        + 2 * (FND + FDD)               % create and delete temp files
        + WTD * CX                      % write X-tuples to disk
        + RTD * CX * CY/MemSizeTY       % X-tuples to be read from disk
                                        % once per hash table
        + TC * Sel * CX * CY,           % create result tuples
   ResSize is CX * CY * Sel,
-  TupleSize is Tx + Ty.
+  addTupleSizes(TX,TY,TupleSize).
 
-cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, 1, CX, Tx, B, TC, CostArgX),
-  cost(Y, 1, CY, Ty, B, TC, CostArgY),
-  cost_factors(RTM, WTM, _, _, _, _, _, _, _, _, MaxMem),
+cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
+  cost(X, P, 1, CX, TX, B, TC, CostArgX),
+  cost(Y, P, 1, CY, TY, B, TC, CostArgY),
+  cost_factors(RTM, WTM, _, _, RPD, _, _, _, _, _, MaxMem, BDBPS, FCMR),
   MemSizeX is 0.25*MaxMem,
   MemSizeY is 0.75*MaxMem,
-  % test for case2 and case3, which have identical cost functions:
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
+  Tx is TSCx + TSIx,
+  Ty is TSCy + TSIy,
   % case2: X fits in memory, but Y does not 
   (CX * (Tx+12)) =< MemSizeX, 
   (CY * (Ty+12)) >  MemSizeY,            
+%  write('\nCase2\n'),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   MemSizeTY is max(1,(MemSizeY / Ty)), % amount of Y-tuples fitting into MemY
   Cost is CostArgX + CostArgY          % create input streams
        + WTM * CY                      % insert Y-tuples into hash table
-       + B * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
+       + RPD * (CY/MemSizeTY) * (CX*ExtFlobSize1)/BDBPS % read flobs from disk
+       + RPD * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) * ExtFlobSize2/BDBPS/(1-FCMR) % read flobs from disk
+       + (B + RTM) * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
                                        % compare each X-tuple with
                                        % the hashed Y-tuples from several hashtables
        + RTM * CX * (CY/MemSizeTY)     % read X-tuples from memory once per hashtable
        + TC * Sel * CX * CY,           % create result tuples
   ResSize is CX * CY * Sel,
-  TupleSize is Tx + Ty.
+  addTupleSizes(TX,TY,TupleSize).
 
-cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, 1, CX, Tx, B, TC, CostArgX),
-  cost(Y, 1, CY, Ty, B, TC, CostArgY),
-  cost_factors(RTM, WTM, _, _, _, _, _, _, _, _, MaxMem),
+cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
+  cost(X, P, 1, CX, TX, B, TC, CostArgX),
+  cost(Y, P, 1, CY, TY, B, TC, CostArgY),
+  cost_factors(RTM, WTM, _, _, RPD, _, _, _, _, _, MaxMem, BDBPS, FCMR),
   MemSizeX is 0.25*MaxMem,
   MemSizeY is 0.75*MaxMem,
-  % test for case2 and case3, which have identical cost functions:
-  % case3: X does not fit in memory, but Y does  (Same cost function as in case2!)
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
+  Tx is TSCx + TSIx,
+  Ty is TSCy + TSIy,
+  % case3: X does not fit in memory, but Y does  (Nearly the same cost function as in case2!)
   (CX * (Tx+12)) >  MemSizeX, 
-  (CY * (Ty+12)) =< MemSizeY,                                 
+  (CY * (Ty+12)) =< MemSizeY,  
+%  write('\nCase3\n'),                               
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   MemSizeTY is max(1,(MemSizeY / Ty)), % amount of Y-tuples fitting into MemY
   Cost is CostArgX + CostArgY          % create input streams
        + WTM * CY                      % insert Y-tuplesinto hash table
-       + B * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
+       + RPD * (CX * ExtFlobSize1)/BDBPS % read flobs from disk
+       + RPD * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) * ExtFlobSize2/BDBPS/(1-FCMR) % read flobs from disk
+       + (B + RTM) * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
                                        % compare each X-tuple with
                                        % the hashed Y-tuples from several hashtables
        + RTM * CX * (CY/MemSizeTY)     % read X-tuples from memory once per hashtable
        + TC * Sel * CX * CY,           % create result tuples
   ResSize is CX * CY * Sel,
-  TupleSize is Tx + Ty.
+  addTupleSizes(TX,TY,TupleSize).
 
 
 /*
@@ -2113,34 +2266,40 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, ResSize, TupleSize, B, TC, Cost) :-
 
 */
 
-cost(sort(X,_), Sel, Card, Tx, PredCost, TC, Cost) :-
-  cost(X, Sel, Card, Tx, PredCost, TC, CostX),
-  cost_factors(RTM, WTM, _, _, _, _, _, _, _, _, MaxMem),
+cost(sort(X,_), P, Sel, Card, TX, PredCost, TC, Cost) :- % XRIS: flob loading not yet considered here!
+  cost(X, P, Sel, Card, TX, PredCost, TC, CostX),
+  cost_factors(RTM, WTM, _, _, _, _, _, _, _, _, MaxMem, BDBPS, FCMR),
   sortTC(B),
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  Tx is TSCx + TSIx,
   HeapSize is MaxMem / (Tx + 12),      % determine heapsize in tuples
   % case1: complete relation fits into memory - no merging needed
   Card =< HeapSize,
+%  write('\nCase1\n'),
+  MCard is max(1,Card),                % ensure MCard >0
   Cost is CostX                        % produce argument stream
-        + WTM * Card *0.5 *log(2,Card) % inserts into heap 
+        + WTM * Card *0.5 *log(2,MCard)% inserts into heap 
         + RTM * Card                   % reads from heap 
-        + B * Card * log(2,Card).      % compare a pair of tuples (building the heap)
+        + B * Card * log(2,MCard).     % compare a pair of tuples (building the heap)
 
-cost(sort(X,_), Sel, Card, Tx, PredCost, TC, Cost) :-
-  cost(X, Sel, Card, Tx, PredCost, TC, CostX),
-  cost_factors(RTM, WTM, RTD, WTD, _, _, FND, FDD, FOD, FCD, MaxMem),
+cost(sort(X,_), P, Sel, Card, TX, PredCost, TC, Cost) :- % XRIS: flob loading not yet considered here!
+  cost(X, P, Sel, Card, TX, PredCost, TC, CostX),
+  cost_factors(RTM, WTM, RTD, WTD, _, _, FND, FDD, FOD, FCD, MaxMem, BDBPS, FCMR),
   sortTC(B),
-  HeapSize is MaxMem / (Tx + 12),      % determine heapsize in tuples
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  Tx is TSCx + TSIx,
+  HeapSize is max(1,MaxMem / (Tx + 12)),      % determine heapsize in tuples
   % case2: relation does not fit into memory
   Card > HeapSize,
+%  write('\nCase2\n'),
   PartCard is 2 * HeapSize,                        % calculate average cardinality of partion files generated
   PartNum is max(0,((Card-HeapSize) / PartCard)),  % calculate average number of partion files, 
   Cost is CostX                                    % produce argument stream
-        + (FND + FDD + FOD + FCD) * PartCard       % create and close, open and delete partition files
         + WTM * max(0,(Card-HeapSize))*0.5*log(2,HeapSize)  % inserts into heap =(Card-HeapSize)*0.5 * O(log HeapSize)
         + RTM * Card                               % reads from heap =Card * O(1)
         + WTD * max(0,(Card-HeapSize))             % write tuple to partition file (=Card-HeapSize)
         + RTD * max(0,(Card-HeapSize))             % read tuple from partition file (=Card-HeapSize)
-        + (FND + FDD) * PartNum                    % create and remove a partition file (=PartNum)
+        + (FND + FCD + FOD + FDD) * PartNum        % create, close, open and remove a partition file (=PartNum)
         + B * Card * log(2,HeapSize)               % compare a pair of tuples (partition step)
         + B * Card * log(2,PartNum+2).             % compare a pair of tuples (merge step)
                                                    % (Individual cost of ordering still not applied!)
@@ -2161,14 +2320,19 @@ cost(sort(X,_), Sel, Card, Tx, PredCost, TC, Cost) :-
 
 */
 
-cost(sortmergejoin(X, Y, _, _), Sel, ResultCard, ResultTupleSize, B, TC, Cost) :-
-  cost(sort(X, 0), 1, CX, Tx, PredCost, TC, CostX),
-  cost(sort(Y, 0), 1, CY, Ty, PredCost, TC, CostY),
-  cost_factors(RTM, WTM, _, _, _, _, _, _, _, _, _),
-  ResultTupleSize is Tx + Ty,
+cost(sortmergejoin(X, Y, _, _), P, Sel, ResultCard, ResultTupleSize, B, TC, Cost) :-
+  cost(sort(X, 0), P, 1, CX, TX, PredCost, TC, CostX),
+  cost(sort(Y, 0), P, 1, CY, TY, PredCost, TC, CostY),
+  cost_factors(RTM, WTM, _, _, RPD, _, _, _, _, _, _, BDBPS, FCMR),
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
+  addTupleSizes(TX,TY,ResultTupleSize),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   ResultCard is CX * CY * Sel,
   Cost is CostX + CostY                % producing and sorting the arguments
                                        % (Individual cost of ordering still not applied!)
+        + (CX * ExtFlobSize1)/BDBPS * RPD/FCMR % load flobs
+        + (CY * ExtFlobSize2)/BDBPS * RPD/FCMR % load flobs
         + WTM * (CX+CY) * sqrt(Sel)    % write tuples to buffer/memory; A BAD ESTIMATION !!!
         + B * CX * CY                  % compare tuples (B could also be fixed, e.g. 0.001)
         + RTM * (CX+CY) * sqrt(Sel)    % read tuples from buffer/memory; A BAD ESTIMATION !!!
@@ -2180,8 +2344,8 @@ cost(sortmergejoin(X, Y, _, _), Sel, ResultCard, ResultTupleSize, B, TC, Cost) :
  and changing the first two literals to
 
 */
-%  cost(X, 1, CX, Tx, PredCost, TC, CostX),
-%  cost(Y, 1, CY, Ty, PredCost, TC, CostY),
+%  cost(X, 1, CX, TX, PredCost, TC, CostX),
+%  cost(Y, 1, CY, TY, PredCost, TC, CostY),
 
 
 /*
@@ -2189,30 +2353,47 @@ cost(sortmergejoin(X, Y, _, _), Sel, ResultCard, ResultTupleSize, B, TC, Cost) :
 
 */
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, 1, CX, Tx, B, TC, CostX),
-  cost(Y, 1, CY, Ty, B, TC, CostY),
-  cost_factors(RTM, WTM, _, _, _, _, _, _, _, _, MaxMem),
+cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
+  cost(X, P, 1, CX, TX, B, TC, CostX),
+  cost(Y, P, 1, CY, TY, B, TC, CostY),
+  cost_factors(RTM, WTM, _, _, RPD, _, _, _, _, _, MaxMem, BDBPS, FCMR),
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
+  Tx is TSCx + TSIx,
+  Ty is TSCy + TSIy,
   % case1: X and Y fit into memory; OK
   (CX * (Tx+12)) =< (0.5 * MaxMem), (CY * (Ty+12)) =<  (0.5 * MaxMem),
-  TupleSize is Tx + Ty,
-  Cost is CostX + CostY              % produce arguments
-       + WTM * 2 * min(CX,CY)        % write X/Y-tuples to buffer in memory.
-       + B * CX * CY                 % check join condition
-       + TC * CX * CY * Sel          % create result tuples  
-       + RTM * (  min(CX,CY) * max(CX,CY)
-                + min(CX,CY) * (max(CX,CY)-min(CX,CY))), % read X/Y-tuples from memory
+%  write('\nSymmjoin Case1\n'),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
+  (CX =< CY -> (Min is CX, Max is CY, MinFlob is ExtFlobSize1/BDBPS, MaxFlob is ExtFlobSize2/BDBPS)
+             ; (Min is CY, Max is CX, MinFlob is ExtFlobSize2/BDBPS, MaxFlob is ExtFlobSize1/BDBPS)),
+  addTupleSizes(TX,TY,TupleSize),
+  Cost is CostX + CostY                    % produce arguments
+       + RPD * FCMR * (Min * (Min+1)/2 +       (Max-Min)) * MaxFlob % load flobs
+       + RPD * FCMR * (Min * (Min+1)/2 + Min * (Max-Min)) * MinFlob % load flobs
+       + WTM * 2 * Min                     % write X/Y-tuples to buffer in memory.
+       + B   * Min * Max                   % check join condition
+       + TC  * Min * Max * Sel             % create result tuples  
+       + RTM * (Min*Min + Min*(Max-Min)),  % read X/Y-tuples from memory
   ResSize is CX * CY * Sel.
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, 1, CX, Tx, B, TC, CostX),
-  cost(Y, 1, CY, Ty, B, TC, CostY),
-  cost_factors(RTM, WTM, RTD, WTD, _, _, FND, FDD, _, _, MaxMem),
+cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
+  cost(X, P, 1, CX, TX, B, TC, CostX),
+  cost(Y, P, 1, CY, TY, B, TC, CostY),
+  cost_factors(RTM, WTM, RTD, WTD, RPD, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
+  Tx is TSCx + TSIx,
+  Ty is TSCy + TSIy,
   OY is min(CY,MaxMem/(2 * Ty)), % from this tuple+1 on, Y will be entirely buffered on disk
   % case 2.1: X fits in memory, but Y does not; CX =< CY; OY =< CX
   (CX * (Tx+12)) =< (0.5 * MaxMem), (CY * (Ty+12)) > (0.5 * MaxMem), CX =< CY, OY =< CX,
-  TupleSize is Tx + Ty, 
+%  write('\nSymmjoin Case2.1\n'),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
+  addTupleSizes(TX,TY,TupleSize), 
   Cost is CostX + CostY              % produce arguments
+       + RPD * FCMR * (CX * (CX+1)/2 +      (CY-CX)) * ExtFlobSize2/BDBPS % load flobs
+       + RPD * FCMR * (CX * (CX+1)/2 + CX * (CY-CX)) * ExtFlobSize1/BDBPS % load flobs
        + WTM * (CX + OY)             % write elements to buffer in memory
        + B * CX * CY                 % check join condition
        + TC * CX * CY * Sel          % create result tuples  
@@ -2224,16 +2405,24 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
        + RTD * gsf(OY,CX),           % read Y-tuples from disk
   ResSize is CX * CY * Sel.
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, 1, CX, Tx, B, TC, CostX),
-  cost(Y, 1, CY, Ty, B, TC, CostY),
-  cost_factors(RTM, WTM, _, _, _, _, _, _, _, _, MaxMem),
+cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
+  cost(X, P, 1, CX, TX, B, TC, CostX),
+  cost(Y, P, 1, CY, TY, B, TC, CostY),
+  cost_factors(RTM, WTM, _, _, RPD, _, _, _, _, _, MaxMem, BDBPS, FCMR),
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
+  Tx is TSCx + TSIx,
+  Ty is TSCy + TSIy,
   OY is min(CY,MaxMem/(2 * Ty)),    % from this tuple+1 on, Y will be entirely buffered on disk
   % case 2.2: X fits in memory, but Y does not; CX =< CY; OY > CX
   % this case has the same cost function as case1!
   (CX * (Tx+12)) =< (0.5 * MaxMem), (CY * (Ty+12)) > (0.5 * MaxMem), CX =< CY, OY > CX,
-  TupleSize is Tx + Ty,
+%  write('\nSymmjoin Case2.2\n'),
+  addTupleSizes(TX,TY,TupleSize),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   Cost is CostX + CostY              % produce arguments
+       + RPD * FCMR * (CX * (CX+1)/2 +      (CY-CX)) * ExtFlobSize2/BDBPS % load flobs
+       + RPD * FCMR * (CX * (CX+1)/2 + CX * (CY-CX)) * ExtFlobSize1/BDBPS % load flobs
        + WTM * (CX + CX)             % write X/Y-tuples to buffer in memory
        + B * CX * CY                 % check join condition
        + TC * CX * CY * Sel          % create result tuples  
@@ -2241,15 +2430,23 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
                +(CY-CX)*CX),         % read X/Y-tuples from memory
   ResSize is CX * CY * Sel.
  
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, 1, CX, Tx, B, TC, CostX),
-  cost(Y, 1, CY, Ty, B, TC, CostY),
-  cost_factors(RTM, WTM, RTD, WTD, _, _, FND, FDD, _, _, MaxMem),
+cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
+  cost(X, P, 1, CX, TX, B, TC, CostX),
+  cost(Y, P, 1, CY, TY, B, TC, CostY),
+  cost_factors(RTM, WTM, RTD, WTD, _, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
+  Tx is TSCx + TSIx,
+  Ty is TSCy + TSIy,
   OY is min(CY,MaxMem/(2 * Ty)),    % from this tuple+1 on, Y will be entirely buffered on disk
   % case 2.3: X fits in memory, but Y does not; CX > CY
   (CX * (Tx+12)) =< (0.5 * MaxMem), (CY * (Ty+12)) > (0.5 * MaxMem), CX > CY,
-  TupleSize is Tx + Ty,
+%  write('\nSymmjoin Case2.3\n'),
+  addTupleSizes(TX,TY,TupleSize),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   Cost is CostX + CostY              % produce arguments
+       + RPD * FCMR * (CY * (CY+1)/2 +      (CX-CY)) * ExtFlobSize1/BDBPS % load flobs
+       + RPD * FCMR * (CY * (CY+1)/2 + CY * (CX-CY)) * ExtFlobSize2/BDBPS % load flobs
        + WTM * (CY + OY)             % write X/Y-tuples to buffer in memory
        + B * CX * CY                 % check join condition
        + TC * CX * CY * Sel          % create result tuples  
@@ -2261,15 +2458,23 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
               +(CX-CY)*CY),          % read Y-tuples from disk
   ResSize is CX * CY * Sel.
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, 1, CX, Tx, B, TC, CostX),
-  cost(Y, 1, CY, Ty, B, TC, CostY),
-  cost_factors(RTM, WTM, RTD, WTD, _, _, FND, FDD, _, _, MaxMem),
+cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
+  cost(X, P, 1, CX, TX, B, TC, CostX),
+  cost(Y, P, 1, CY, TY, B, TC, CostY),
+  cost_factors(RTM, WTM, RTD, WTD, RPD, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
+  Tx is TSCx + TSIx,
+  Ty is TSCy + TSIy,
   OX is min(CX,MaxMem/(2 * Tx)), % from this tuple+1 on, X will be entirely buffered on disk
   % case 3.1: Y fits in memory, but X does not; CY =< CX; OX =< CY
   (CY * (Ty+12)) =< (0.5 * MaxMem), (CX * (Tx+12)) > (0.5 * MaxMem), CY =< CX, OX =< CY, 
-  TupleSize is Tx + Ty,
+%  write('\nSymmjoin Case3.1\n'),
+  addTupleSizes(TX,TY,TupleSize),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   Cost is CostX + CostY              % produce arguments
+       + RPD * FCMR * (CY * (CY+1)/2 +      (CX-CY)) * ExtFlobSize1/BDBPS % load flobs
+       + RPD * FCMR * (CY * (CY+1)/2 + CY * (CX-CY)) * ExtFlobSize2/BDBPS % load flobs
        + WTM * (CY + OX)             % write elements to buffer in memory
        + B * CY * CX                 % check join condition
        + TC * CY * CX * Sel          % create result tuples  
@@ -2281,16 +2486,24 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
        + RTD * gsf(OX,CY),           % read X-tuples from disk
   ResSize is CY * CX * Sel.
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, 1, CX, Tx, B, TC, CostX),
-  cost(Y, 1, CY, Ty, B, TC, CostY),
-  cost_factors(RTM, WTM, _, _, _, _, _, _, _, _, MaxMem),
+cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
+  cost(X, P, 1, CX, TX, B, TC, CostX),
+  cost(Y, P, 1, CY, TY, B, TC, CostY),
+  cost_factors(RTM, WTM, _, _, RPD, _, _, _, _, _, MaxMem, BDBPS, FCMR),
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
+  Tx is TSCx + TSIx,
+  Ty is TSCy + TSIy,
   OX is min(CX,MaxMem/(2 * Tx)),    % from this tuple+1 on, X will be entirely buffered on disk
   % case 3.2: Y fits in memory, but X does not; CY =< CX; OX > CY
   % this case has the same cost function as case1!
   (CY * (Ty+12)) =< (0.5 * MaxMem), (CX * (Tx+12)) > (0.5 * MaxMem), CY =< CX, OX > CY,
-  TupleSize is Tx + Ty,
+%  write('\nSymmjoin Case3.2\n'),
+  addTupleSizes(TX,TY,TupleSize),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   Cost is CostX + CostY              % produce arguments
+       + RPD * FCMR * (CY * (CY+1)/2 +      (CX-CY)) * ExtFlobSize1/BDBPS % load flobs
+       + RPD * FCMR * (CY * (CY+1)/2 + CY * (CX-CY)) * ExtFlobSize2/BDBPS % load flobs
        + WTM * (CY + CY)             % write X/Y-tuples to buffer in memory
        + B * CY * CX                 % check join condition
        + TC * CY * CX * Sel          % create result tuples  
@@ -2298,15 +2511,23 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
               +(CX-CY)*CY),          % read X/Y-tuples from memory
   ResSize is CY * CX * Sel.
  
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, 1, CX, Tx, B, TC, CostX),
-  cost(Y, 1, CY, Ty, B, TC, CostY),
-  cost_factors(RTM, WTM, RTD, WTD, _, _, FND, FDD, _, _, MaxMem),
+cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
+  cost(X, P, 1, CX, TX, B, TC, CostX),
+  cost(Y, P, 1, CY, TY, B, TC, CostY),
+  cost_factors(RTM, WTM, RTD, WTD, RPD, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
+  Tx is TSCx + TSIx,
+  Ty is TSCy + TSIy,
   OX is min(CX,MaxMem/(2 * Tx)),    % from this tuple+1 on, X will be entirely buffered on disk
   % case 3.3: Y fits in memory, but X does not; CY > CX
   (CY * (Ty+12)) =< (0.5 * MaxMem), (CX * (Tx+12)) > (0.5 * MaxMem), CY > CX,
-  TupleSize is Tx + Ty,
+%  write('\nSymmjoin Case3.3\n'),
+  addTupleSizes(TX,TY,TupleSize),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   Cost is CostX + CostY              % produce arguments
+       + RPD * FCMR * (CX * (CX+1)/2 +      (CY-CX)) * ExtFlobSize2/BDBPS % load flobs
+       + RPD * FCMR * (CX * (CX+1)/2 + CX * (CY-CX)) * ExtFlobSize1/BDBPS % load flobs
        + WTM * (CX + OX)             % write X/Y-tuples to buffer in memory
        + B * CY * CX                 % check join condition
        + TC * CY * CX * Sel          % create result tuples  
@@ -2318,16 +2539,24 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
                 +(CY-CX)*CX),        % read X/Y-tuples from disk
   ResSize is CY * CX * Sel.
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, 1, CX, Tx, B, TC, CostX),
-  cost(Y, 1, CY, Ty, B, TC, CostY),
-  cost_factors(RTM, WTM, RTD, WTD, _, _, FND, FDD, _, _, MaxMem),
+cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
+  cost(X, P, 1, CX, TX, B, TC, CostX),
+  cost(Y, P, 1, CY, TY, B, TC, CostY),
+  cost_factors(RTM, WTM, RTD, WTD, RPD, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
+  Tx is TSCx + TSIx,
+  Ty is TSCy + TSIy,
   OX is min(CX,MaxMem/(2 * Tx)), % from this tuple+1 on, X will be entirely buffered on disk
   OY is min(CY,MaxMem/(2 * Ty)), % from this tuple+1 on, Y will be entirely buffered on disk
   % case 4.1: neither X nor Y fit into memory; CX =< CY, OX =< OY
   (CX * (Tx+12)) > (0.5 * MaxMem), (CY * (Ty+12)) > (0.5 * MaxMem), CX =< CY, OX =< OY,
-  TupleSize is Tx + Ty,
+%  write('\nSymmjoin Case4.1\n'),
+  addTupleSizes(TX,TY,TupleSize),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   Cost is CostX + CostY
+       + RPD * FCMR * (CX * (CX+1)/2 +      (CY-CX)) * ExtFlobSize2/BDBPS % load flobs
+       + RPD * FCMR * (CX * (CX+1)/2 + CX * (CY-CX)) * ExtFlobSize1/BDBPS % load flobs
        + WTM * (OX + OY)             % write elements to buffer in memory
        + B * CX * CY                 % check join condition
        + TC * CX * CY * Sel          % create result tuples  
@@ -2341,16 +2570,24 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
               +(CY-CX)*CX),          % read X/Y-tuples from disk
   ResSize is CX * CY * Sel.
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, 1, CX, Tx, B, TC, CostX),
-  cost(Y, 1, CY, Ty, B, TC, CostY),
-  cost_factors(RTM, WTM, RTD, WTD, _, _, FND, FDD, _, _, MaxMem),
+cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
+  cost(X, P, 1, CX, TX, B, TC, CostX),
+  cost(Y, P, 1, CY, TY, B, TC, CostY),
+  cost_factors(RTM, WTM, RTD, WTD, RPD, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
+  Tx is TSCx + TSIx,
+  Ty is TSCy + TSIy,
   OX is min(CX,MaxMem/(2 * Tx)), % from this tuple+1 on, X will be entirely buffered on disk
   OY is min(CY,MaxMem/(2 * Ty)), % from this tuple+1 on, Y will be entirely buffered on disk
   % case 4.2: neither X nor Y fit into memory; CX =< CY, OX > OY
-  (CX * (Tx+12)) > (0.5 * MaxMem), (CY * (Ty+12)) > (0.5 * MaxMem), CX =< CY, OX =< OY,
-  TupleSize is Tx + Ty,
+  (CX * (Tx+12)) > (0.5 * MaxMem), (CY * (Ty+12)) > (0.5 * MaxMem), CX =< CY, OX > OY,
+%  write('\nSymmjoin Case4.2\n'),
+  addTupleSizes(TX,TY,TupleSize),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   Cost is CostX + CostY
+       + RPD * FCMR * (CX * (CX+1)/2 +      (CY-CX)) * ExtFlobSize2/BDBPS % load flobs
+       + RPD * FCMR * (CX * (CX+1)/2 + CX * (CY-CX)) * ExtFlobSize1/BDBPS % load flobs
        + WTM * (OX + OY)             % write elements to buffer in memory.
        + B * CX * CY                 % check join condition
        + TC * CX * CY * Sel          % create result tuples  
@@ -2364,16 +2601,24 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
                 +(CY-CX)*CX),        % read X/Y-tuples from disk
   ResSize is CX * CY * Sel.
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, 1, CX, Tx, B, TC, CostX),
-  cost(Y, 1, CY, Ty, B, TC, CostY),
-  cost_factors(RTM, WTM, RTD, WTD, _, _, FND, FDD, _, _, MaxMem),
+cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
+  cost(X, P, 1, CX, TX, B, TC, CostX),
+  cost(Y, P, 1, CY, TY, B, TC, CostY),
+  cost_factors(RTM, WTM, RTD, WTD, RPD, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
+  Tx is TSCx + TSIx,
+  Ty is TSCy + TSIy,
   OX is min(CX,MaxMem/(2 * Tx)), % from this tuple+1 on, X will be entirely buffered on disk
   OY is min(CY,MaxMem/(2 * Ty)), % from this tuple+1 on, Y will be entirely buffered on disk
   % case 4.3: neither X nor Y fit into memory; CY =< CX, OY =< OX
   (CX * (Tx+12)) > (0.5 * MaxMem), (CY * (Ty+12)) > (0.5 * MaxMem), CY =< CX, OY =< OX,
-  TupleSize is Tx + Ty,
+%  write('\nSymmjoin Case4.3\n'),
+  addTupleSizes(TX,TY,TupleSize),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   Cost is CostX + CostY
+       + RPD * FCMR * (CY * (CY+1)/2 +      (CX-CY)) * ExtFlobSize1/BDBPS % load flobs
+       + RPD * FCMR * (CY * (CY+1)/2 + CY * (CX-CY)) * ExtFlobSize2/BDBPS % load flobs
        + WTM * (OY + OX)             % write elements to buffer in memory.
        + B * CY * CX                 % check join condition
        + TC * CY * CX * Sel          % create result tuples  
@@ -2387,16 +2632,24 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
                 +(CX-CY)*CY),        % read X/Y-tuples from disk
   ResSize is CY * CX * Sel.
 
-cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, 1, CX, Tx, B, TC, CostX),
-  cost(Y, 1, CY, Ty, B, TC, CostY),
-  cost_factors(RTM, WTM, RTD, WTD, _, _, FND, FDD, _, _, MaxMem),
+cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
+  cost(X, P, 1, CX, TX, B, TC, CostX),
+  cost(Y, P, 1, CY, TY, B, TC, CostY),
+  cost_factors(RTM, WTM, RTD, WTD, RPD, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
+  Tx is TSCx + TSIx,
+  Ty is TSCy + TSIy,
   OX is min(CX,MaxMem/(2 * Tx)), % from this tuple+1 on, X will be entirely buffered on disk
   OY is min(CY,MaxMem/(2 * Ty)), % from this tuple+1 on, Y will be entirely buffered on disk
   % case 4.4: neither X nor Y fit into memory; CY =< CX, OY > OX
-  (CX * (Tx+12)) > (0.5 * MaxMem), (CY * (Ty+12)) > (0.5 * MaxMem), CY =< CX, OY =< OX,
-  TupleSize is Tx + Ty,
+  (CX * (Tx+12)) > (0.5 * MaxMem), (CY * (Ty+12)) > (0.5 * MaxMem), CY =< CX, OY > OX,
+%  write('\nSymmjoin Case4.4\n'),
+  addTupleSizes(TX,TY,TupleSize),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   Cost is CostX + CostY
+       + RPD * FCMR * (CY * (CY+1)/2 +      (CX-CY)) * ExtFlobSize1/BDBPS % load flobs
+       + RPD * FCMR * (CY * (CY+1)/2 + CY * (CX-CY)) * ExtFlobSize2/BDBPS % load flobs
        + WTM * (OY + OX)             % write elements to buffer in memory.
        + B * CY * CX                 % check join condition
        + TC * CY * CX * Sel          % create result tuples  
@@ -2410,38 +2663,39 @@ cost(symmjoin(X, Y, _), Sel, ResSize, TupleSize, B, TC, Cost) :-
                 +(CX-CY)*CY),        % read X/Y-tuples from disk
   ResSize is CX * CY * Sel.
 
-cost(extend(X, _), Sel, S, TupleSize, PredCost, TC, C) :-
-  cost(X, Sel, S, TupleSize1, PredCost, TC, C1),
-  TupleSize is TupleSize1 + 12,      % TupleSize should be increased by the real extension size
+cost(extend(X, _), P, Sel, S, TupleSize, PredCost, TC, C) :-
+  cost(X, P, Sel, S, TupleSize1, PredCost, TC, C1),
+  addTupleSizes(TupleSize1, tupleSizeData(12,0,0), TupleSize), % TupleSize should be increased by the real extension size
   extendTC(A),
-  C is C1 + A * S.                   % costs for evaluation of map to generate value 
+  C is C1 + A * S.                   % costs for evaluation of mapping to generate value 
                                      % for new attributes not yet considered!
 
 cost(remove(X, _), Sel, S, TupleSize, PredCost, TC, C) :-
   cost(X, Sel, S, TupleSize1, PredCost, TC, C1),
-  TupleSize is TupleSize1 - 12,      % TupleSize should be decreased by the real removal size
+  addTupleSizes(TupleSize1,tupleSizeData(-12,0,0), TupleSize), % TupleSize should be decreased by the real removal size
   removeTC(A),
   C is C1 + A * S.
 
-cost(project(X, _), Sel, S, TupleSize, PredCost, TC, C) :-
-  cost(X, Sel, S, TupleSize, PredCost, TC, C1), % TupleSize should be reduced according to the projection!
-  projectTC(A),
-  C is C1 + A * S.
+cost(project(X, _), P, Sel, S, TupleSize, PredCost, TC, C) :-
+  cost(X, P, Sel, S, TupleSize, PredCost, TC, C1), % TupleSize should be reduced according to the projection!
+  projectTC(A,B),
+  TupleSize = tupleSizeData(TSC, TSI, _),
+  C is C1 + max(A*S, B*S*(TSC+TSI)).
 
-cost(rename(X, _), Sel, S, TupleSize, PredCost, TC, C) :-
-  cost(X, Sel, S, TupleSize, PredCost, TC, C1),
+cost(rename(X, _), P, Sel, S, TupleSize, PredCost, TC, C) :-
+  cost(X, P, Sel, S, TupleSize, PredCost, TC, C1),
   renameTC(A),
   C is C1 + A * S.
 
 %fapra1590
-% See cost(leftrang(...),...) for comments on future refinements.
-cost(windowintersects(_, Rel, _), Sel, Size, TupleSize, B, TC, Cost) :-
-  cost(Rel, 1, RelSize, TupleSize, TC, B, _),
-  cost_factors(_,_,_,_,RPD,_,_,_,FOD,FCD,_),
+% See cost(leftrange(...),...) for comments on future refinements.
+cost(windowintersects(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
+  cost(Rel, P, 1, RelSize, TupleSize, TC, B, _),
+  cost_factors(_,_,_,_,RPD,_,_,_,FOD,FCD,_, BDBPS, FCMR),
   Size is Sel * RelSize,
   Cost is FOD + FCD                       % open/close RTree file        
-        + B * (log(2,RelSize)+Size)       % find all matches,           later: B * (Hight + K/2)
-        + RPD * log(2,RelSize)            % read index pages from disk, later: D * (Hight + Sel*RelSize/K)
+        + B * (log(2,RelSize)+Size)       % find all matches,           later: B * (Height + K/2)
+        + RPD * log(2,RelSize)            % read index pages from disk, later: D * (Height + Sel*RelSize/K)
         + TC * Sel * RelSize.             % produce tuple stream
 
 
@@ -2454,8 +2708,10 @@ These are plan edges extended by a cost measure.
 
 createCostEdge :-
   planEdge(Source, Target, Term, Result),
+  edge(Source, Target, ETerm, _, _, _),
+  (ETerm = join(_,_,Predicate); ETerm = select(_,Predicate)),
   edgeSelectivity(Source, Target, Sel, PredCost, TupleGenerationCost),
-  cost(Term, Sel, Size, TupleSize, PredCost, TupleGenerationCost, Cost),
+  cost(Term, Predicate, Sel, Size, TupleSize, PredCost, TupleGenerationCost, Cost),
   assert(costEdge(Source, Target, Term, Result, Size, TupleSize, Cost)),
   fail.
 
@@ -2474,7 +2730,7 @@ costEdgeInfo(Source, Target, Plan, Result, Size, TupleSize, Cost) :-
   nl, write('Source:    '), write(Source),
   nl, write('Target:    '), write(Target),
   nl, write('Plan:      '), wp(Plan),
-%  nl, write('           '), write(Plan),  % for testing
+  nl, write('           '), write(Plan),  % for testing
   nl, write('Result:    '), write(Result), 
   nl, write('Size:      '), write(Size),
   nl, write('TupleSize: '), write(TupleSize),
@@ -2986,7 +3242,7 @@ Furthermore, it will be possible to add a groupby- and an orderby-clause:
 
 Example:
 
-----    select [ort, min(plz) as minplz, max(plz) as maxplz,  count(*) as cntplz]
+----    select [ort, min(plz) as minplz, max(plz) as maxplz, count(*) as cntplz]
         from plz
         where plz > 40000
         groupby ort
@@ -3106,6 +3362,7 @@ newQuery :-
   not(clearQueryAttributes), 
   not(clearUsedAttributes), 
   not(clearIsStarQuery).
+
 
 clearVariables :- retract(variable(_, _)), fail.
 
@@ -4329,31 +4586,32 @@ atomicAttrName([attr(Name, _, _) | Rest], [Result | MoreResults]) :-
   !.
 
 /* 
-  ~calculateProjectedTupleSizeA(RelName, AttrNameList, CoreTupleSize, AvgInFlobSize)~ calculates
-  ~CoreTupleSize~ and ~AvgInFlobSize~ for the projection of relation ~RelName~ on 
-  a subset ~AttrNameList~ of its attributes. The attribute names and relation name must
+  ~calculateProjectedTupleSizeA(RelName, AttrNameList, CoreTupleSize, AvgInFlobSize, AvgExtFlobSize)~ 
+  calculates ~CoreTupleSize~, ~AvgInFlobSize~ and ~AvgExtFlobSize~ for the projection of relation 
+  ~RelName~ on a subset ~AttrNameList~ of its attributes. The attribute names and relation name must
   be atomic terms.
 
-  ~calculateProjectedProjectedTupleSize(Rel, AttrList, CoreTupleSize, InFlobSize)~ does the same for 
-  relation ~Rel~ and the attribute list  ~AttrList~ given as complex terms.
+  ~calculateProjectedProjectedTupleSize(Rel, AttrList, CoreTupleSize, InFlobSize, ExtFlobSize)~ does 
+  the same for relation ~Rel~ and the attribute list  ~AttrList~ given as complex terms.
 
 */
-calculateProjectedTupleSizeA(RelName, [AttrName], CoreTupleSize, InFlobSize) :-
+calculateProjectedTupleSizeA(RelName, [AttrName], CoreTupleSize, InFlobSize, ExtFlobSize) :-
   databaseName(DB),
-  storedAttrSize(DB, RelName, AttrName, _, CoreTupleSize, InFlobSize).
+  storedAttrSize(DB, RelName, AttrName, _, CoreTupleSize, InFlobSize, ExtFlobSize).
 
-calculateProjectedTupleSizeA(RelName, [AttrName | Rest], CoreTupleSize, InFlobSize) :-
+calculateProjectedTupleSizeA(RelName, [AttrName | Rest], CoreTupleSize, InFlobSize, ExtFlobSize) :-
   databaseName(DB),
-  storedAttrSize(DB, RelName, AttrName, _, C1, A1),
-  calculateProjectedTupleSizeA(RelName, Rest, C2, A2),
-  CoreTupleSize is C1+C2,
-  InFlobSize is A1+A2.
+  storedAttrSize(DB, RelName, AttrName, _, Core1, Inl1, Ext1),
+  calculateProjectedTupleSizeA(RelName, Rest, Core2, Inl2, Ext2),
+  CoreTupleSize is Core1+Core2,
+  InFlobSize is Inl1+Inl2,
+  ExtFlobSize is Ext1+Ext2.
   
-calculateProjectedTupleSize(Rel, AttrList, CoreTupleSize, InFlobSize) :-
+calculateProjectedTupleSize(Rel, AttrList, CoreTupleSize, InFlobSize, ExtFlobSize) :-
   Rel = rel(R, _, _),
   downcase_atom(R, RelName),
   atomicAttrName(AttrList, AttrNameList),
-  calculateProjectedTupleSizeA(RelName, AttrNameList, CoreTupleSize, InFlobSize).
+  calculateProjectedTupleSizeA(RelName, AttrNameList, CoreTupleSize, InFlobSize, ExtFlobSize).
 
 /*
   ~calculateQueryTupleSize(Rel, CoreTupleSize, InFlobSize)~ unifies ~CoreTupleSize~ and ~InFlobSize~
@@ -4363,10 +4621,9 @@ calculateProjectedTupleSize(Rel, AttrList, CoreTupleSize, InFlobSize) :-
   The result is used to annotate the actual tuple sizes to each node of the pog.
 
 */
-calculateQueryTupleSize(Rel, CoreTupleSize, InFlobSize) :-
+calculateQueryTupleSize(Rel, CoreTupleSize, InFlobSize, ExtFlobSize) :-
   usedAttrListAtom(Rel, UsedAttr),
   Rel = rel(R, _, _),
   downcase_atom(R, RelName),
-  calculateProjectedTupleSizeA(RelName, UsedAttr, CoreTupleSize, InFlobSize).
-
-
+  calculateProjectedTupleSizeA(RelName, UsedAttr, CoreTupleSize, InFlobSize, ExtFlobSize).  
+  

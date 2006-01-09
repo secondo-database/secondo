@@ -36,77 +36,81 @@ The experiments considered only a rather small set of queries. Although the
 constants below are quite accurate e.g. for examples 14 to
 21 in the optimizer, they may be inappropriate for other queries.
 
-*/
+1.1 General Constants for Cost Estimation
 
-/*
-
- Old tuple constants
-
-*/
-
-%feedTC(0.4).
-%consumeTC(1.0).
-%filterTC(1.68).
-%productTC(1.26, 0.4).
-%leftrangeTC(10).
-%loopjoinTC(1.0).
-%exactmatchTC(10.0).
-%hashjoinTC(1.5, 0.65).
-%sortmergejoinTC(0.3, 0.73).
-%symmjoinTC(1.4, 0.7).
-%extendTC(1.5).
-%removeTC(0.6).
-%projectTC(0.71).
-%renameTC(0.1).
-%windowintersectsTC(0.1).
-
-
-/*
-  General cost factors, given in milliseconds [ms] per operation. The constants have been derived
-  from query times on a reference system and are multiplied by the actual machine's relative speed
-  as inquired by ~machineSpeedFactor(CPU, FS)~.
+General cost factors, given in milliseconds [ms] per operation. The constants have been derived
+from query times on a reference system and are multiplied by the actual machine´s relative speed
+as inquired by ~machineSpeedFactor(CPU, FS)~.
  
-  A standard schema is used to enhance the readybility of the cost functions.
+A standard schema is used to enhance the readybility of the cost functions.
+The actual maximum mememory size is defined in ~secondo.rc~.
+
+The value ~MaxMem~ is usually set to 16M, but could differ due to changes in file ~.secondorc~.
+
+Berkeley DB will choose its disk page size according to the size used by the OS/filesystem -
+usually 4Kb on a Linux, and 8Kb on a Windows system. Set BDBPS to the according value.
+
+The flob-cache miss rate defines the chache miss rate for reading a flob, this is the probability, that
+a flob must be loaded from the disk rather than is found in memory.
 
 */
 
-cost_factors(   RTM,   WTM,   RTD,   WTD,   RPD,   WPD,   FND,   FDD,   FOD,   FCD,  MaxMem) :-
+cost_factors(   RTM,   WTM,   RTD,   WTD,   RPD,   WPD,   FND,   FDD,   FOD,   FCD,  MaxMem, BDBPS, FCMR) :-
   machineSpeedFactor(CPU, FS),
-  RTM is CPU * 0.001, % RTM:  ReadTupleMem, 
-  WTM is CPU * 0.001, % WTM:  WriteTupleMem, 
-  RTD is FS  * 0.001, % RTD:  ReadTupleDisk, 
-  WTD is FS  * 0.002, % WTD:  WriteTupleDisk, 
-  RPD is FS  * 1.000, % RPD:  ReadPageDisk, 
-  WPD is FS  * 1.500, % WPD:  WritePageDisk, 
-  FND is FS  * 3.000, % FND:  FileNewDisk,
-  FDD is FS  * 3.000, % FDD:  FileDeleteDisk, 
-  FOD is FS  * 0.500, % FOD:  FileOpenDisk, 
-  FCD is FS  * 0.500, % FCD:  FileClose, 
-  MaxMem is 4194304,  % maximal memory size per operator
+  RTM is CPU * 0.0007, % RTM:  ReadTupleMem,          ??
+  WTM is CPU * 0.0008, % WTM:  WriteTupleMem,         ??
+  RTD is FS  * 0.0150, % RTD:  ReadTupleDisk,         OK  
+  WTD is FS  * 0.0250, % WTD:  WriteTupleDisk,        OK  
+  RPD is FS  * 0.5170, % RPD:  ReadPageDisk,          OK?
+  WPD is FS  * 0.7760, % WPD:  WritePageDisk,         OK?
+  FND is FS  *15.0000, % FND:  FileNewDisk,           OK
+  FDD is FS  *16.0000, % FDD:  FileDeleteDisk,        OK, More exactly: +0.025 ms per tuple/ +0.0016 ms per byte
+  FOD is FS  * 5.0000, % FOD:  FileOpenDisk,          ??
+  FCD is FS  *16.0000, % FCD:  FileClose,             ??
+  MaxMem is  16777216, % MaxMem: maximal memory size per operator (usually 16Mb)
+  BDBPS  is      8192, % BDBPS:  Berkeley-DB pagesize, usually 8192 byte for Windows, 4098 byte for Linux
+  FCMR   is      0.25, % FCMR:   flob-cache miss rate
   !.
  
 %                RTM,   WTM,   RTD,   WTD,   RPD,   WPD,   FND,   FDD,   FOD,   FCD,  MaxMem  
- cost_factors( 0.001, 0.001, 0.001, 0.002, 1.000, 1.500, 3.000, 3.000, 0.500, 0.500, 4194304).
+ cost_factors( 0.001, 0.001, 0.001, 0.002, 1.000, 1.500, 3.000, 3.000, 0.500, 0.500, 16777216, 8192, 0.25).
+
 
 /*
+----    ~minTgt(X)~
+----
+  Minimal tuple creation cost in milliseconds [ms].
+  Default is ~minTgt(0.0035).~
+
+*/
+
+% minTgt(0.0035). % default setting
+minTgt(0.0001).
+
+
+/*
+1.2 Costants for Certain Operators
+
   Additional cost factors, that are special to certain operators should be defined as tuple constants
   ~operatorTC(...)~.
 
 */
 
-loopjoinTC(0.100).      % overhead for opening stream Y,
-sortTC(0.003).      % evaluating ordering predicate
-filterTC(0.007).
-feedTC(0.4).
-consumeTC(1.0).
-extendTC(0.014).
-removeTC(0.009).
-renameTC(0.007).
-projectTC(0.014).
+loopjoinTC(X) :- machineSpeedFactor(CPU,_), X is CPU * 0.050,   !. % ??  overhead for opening stream Y,
+sortTC(X)     :- machineSpeedFactor(CPU,_), X is CPU * 0.003,   !. % ??  evaluating ordering predicate
+filterTC(X)   :- machineSpeedFactor(CPU,_), X is CPU * 0.001,   !. % OK
+feedTC(X)     :- machineSpeedFactor(CPU,_), X is CPU * 0.0039,  !. % OK
+consumeTC(X,Y):- machineSpeedFactor(CPU,_), X is CPU * 0.2086,     % OK Average cost
+                 Y is CPU * 0.00002357, !.                         % OK more exact: 0.0013 ms per byte
+extendTC(X)   :- machineSpeedFactor(CPU,_), X is CPU * 0.00367, !. % OK more exact: 0.00002357 ms per byte
+removeTC(X)   :- machineSpeedFactor(CPU,_), X is CPU * 0.00364, !. % OK
+renameTC(X)   :- machineSpeedFactor(CPU,_), X is CPU * 0.00017, !. % OK
+projectTC(X,Y):- machineSpeedFactor(CPU,_), X is CPU * 0.00385,    % OK Average cost
+                 Y is CPU * 0.00002479, !.                         % OK more exact: 0.00002479 ms per byte
 
 
 /*
-2 Properties For Certain Operators
+2 Properties Of Certain Operators
 
 Several operators, like geometric predicates who use bounding boxes, have properties, that
 require them to be handled differently in some ways.
@@ -134,7 +138,7 @@ isBBoxOperator(commonborderscan).
 
 
 /*
-3 Properties For Certain OperatorsDatatypes
+3 Properties Of Certain OperatorsDatatypes
 
 ~noFlobType(Type)~ indicates that Secondo datatype ~type~ does not have any
 flobs. For attributes of these datatypes, the average inline flob size is not queried

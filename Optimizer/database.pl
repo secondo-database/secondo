@@ -57,50 +57,81 @@ extractList([[First, _] | Rest], [First | Rest2]) :-
   extractList(Rest, Rest2).
 
 /*
-Rule ~extractAttrSizes(Rel, AttrList)~ builds a table of facts 
-~storedAttrSize(Database, Rel, Attribute, Type, CoreTupleSize, InFlobSize)~ describing the 
+Rule ~extractAttrTypes(Rel, AttrList)~ builds a table of facts 
+~storedAttrSize(Database, Rel, Attribute, Type, CoreTupleSize, InFlobSize, ExtFlobSize)~ describing the 
 ~Type~ and tuple sizes of all ~Attribute~s found in ~AttrList~. To determine ~InFlobSize~,
-a query is send to Secondo.
+a query should be send to Secondo, but that operator is still not implemented.
 
 */
-extractAttrTypes(Rel, [[Attr, Type]]) :-
-  noFlobType(Type), % Type is noFlobType: No Secondo query needed
-  downcase_atom(Attr, AttrD),
-  % determine CoreTupleSize
-  secDatatype(Type, CoreTupleSize),
-  databaseName(DBName),
-  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, 0)), !.
 
-extractAttrTypes(Rel, [[Attr, Type]]) :-
-  downcase_atom(Attr, AttrD),
-  % determine CoreTupleSize
-  secDatatype(Type, CoreTupleSize),
-  % query Secondo for average InFlobSize of Rel:Attr
-  InFlobSize is 100,
-  databaseName(DBName),
-  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, InFlobSize)), !.
-
-extractAttrTypes(Rel, [[Attr, Type] | Rest]) :-
-  noFlobType(Type), % Type is noFlobType: No Secondo query needed
-  downcase_atom(Attr, AttrD),
-  % determine CoreTupleSize
-  secDatatype(Type, CoreTupleSize),
-  databaseName(DBName),
-  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, 0)),
-  extractAttrTypes(Rel, Rest), !.
-
-extractAttrTypes(Rel, [[Attr, Type] | Rest]) :-
-  downcase_atom(Attr, AttrD),
-  % determine CoreTupleSize
-  secDatatype(Type, CoreTupleSize),
-  % query Secondo for average InFlobSize of Rel:Attr
-  InFlobSize is 100,
-  databaseName(DBName),
-  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, InFlobSize)),
-  extractAttrTypes(Rel, Rest), !.
+extractAttrTypes(Rel, AttrList) :-
+  tuplesize(Rel, TotalTupleSize),
+  extractAttrTypes(Rel, TotalTupleSize, 0, 0, 0, _, _, _, AttrList).
 
 extractAttrTypes(Rel, List) :- 
   write('ERROR in optimizer: extractAttrTypes('), write(Rel), 
+  write(', '), write(List), write(') failed.\nl'), 
+  fail.
+
+extractAttrTypes(Rel, _, CFlobAttrs, CCoreSize, CInFlobSize, CFlobAttrs, TCoreSize, CInFlobSize, [[Attr, Type]]) :-
+  noFlobType(Type), % Type is noFlobType: No Secondo query needed
+  downcase_atom(Attr, AttrD),
+  % determine CoreTupleSize
+  secDatatype(Type, CoreTupleSize),
+  TCoreSize   is CCoreSize + CoreTupleSize,
+  databaseName(DBName),
+  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, 0, 0)), 
+  !.
+
+extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, TFlobAttrs, TCoreSize, TInFlobSize, [[Attr, Type]]) :-
+  downcase_atom(Attr, AttrD),
+  % determine CoreTupleSize
+  secDatatype(Type, CoreTupleSize),
+  InFlobSize  is 100, % Later: query Secondo for average InFlobSize of Rel:Attr
+  TFlobAttrs  is CFlobAttrs + 1,
+  TCoreSize   is CCoreSize + CoreTupleSize,
+  TInFlobSize is CInFlobSize + InFlobSize,
+  % Distribute total external fobsize among all flob attributes:
+  ExtFlobSize is max(0,ceiling((TotalTupleSize - (TCoreSize + TInFlobSize))/TFlobAttrs)), % might be changed later! 
+  databaseName(DBName),
+  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, InFlobSize, ExtFlobSize)), 
+  !.
+
+extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, TFlobAttrs, TCoreSize, TInFlobSize, [[Attr, Type] | Rest]) :-
+  noFlobType(Type), % Type is noFlobType: No Secondo query needed
+  downcase_atom(Attr, AttrD),
+  % determine CoreTupleSize
+  secDatatype(Type, CoreTupleSize),
+  databaseName(DBName),
+  NCCoreSize is CCoreSize + CoreTupleSize,
+  extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, NCCoreSize, CInFlobSize, TFlobAttrs, TCoreSize, TInFlobSize, Rest), 
+  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, 0, 0)),
+  !.
+
+extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, TFlobAttrs, TCoreSize, TInFlobSize, [[Attr, Type] | Rest]) :-
+  downcase_atom(Attr, AttrD),
+  % determine CoreTupleSize
+  secDatatype(Type, CoreTupleSize),
+  InFlobSize   is 100, % Later: query Secondo for average InFlobSize of Rel:Attr
+  NCFlobAttrs  is CFlobAttrs + 1,
+  NCCoreSize   is CCoreSize + CoreTupleSize,
+  NCInFlobSize is CInFlobSize + InFlobSize, 
+  % Distribute total external fobsize among all flob attributes:
+  extractAttrTypes(Rel, TotalTupleSize, NCFlobAttrs, NCCoreSize, NCInFlobSize, TFlobAttrs, TCoreSize, TInFlobSize, Rest), 
+  ExtFlobSize  is max(0,ceiling((TotalTupleSize - (TCoreSize + TInFlobSize))/TFlobAttrs)),% might be changed later!
+  databaseName(DBName),
+  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, InFlobSize, ExtFlobSize)),
+  !.
+
+extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, TFlobAttrs, TCoreSize, TInFlobSize, List) :- 
+  write('ERROR in optimizer: extractAttrTypes('), write(Rel), 
+  write(', '), write(TotalTupleSize), 
+  write(', '), write(CFlobAttrs), 
+  write(', '), write(CCoreSize), 
+  write(', '), write(CInFlobSize), 
+  write(', '), write(TFlobAttrs), 
+  write(', '), write(TCoreSize), 
+  write(', '), write(TInFlobSize), 
   write(', '), write(List), write(') failed.\nl'), 
   fail.
 
@@ -439,22 +470,18 @@ the actually used relations.
 */
 
 showRelationAttrs([]).
-showRelationAttrs([[Attr, Type] | Rest]) :- % prints a list of [attributes,datatype]-pairs
-  downcase_atom(Attr, AttrD),
+showRelationAttrs([[AttrD, Type] | Rest]) :- % prints a list of [attributes,datatype]-pairs
   write(' '), write(AttrD), write(':'), write(Type), write(' '),
   showRelationAttrs(Rest), !.
 
 showRelationSchemas([]).         % filters all relation opbjects from the database schema
-
 showRelationSchemas([Obj | ObjList]) :-
-  Obj = ['OBJECT',ORel,_ | [[[_ | [[_ | [AttrList2]]]]]]],
-  downcase_atom(ORel, Rel),
+  Obj = ['OBJECT',Rel,_ | [[[_ | [[_ | [AttrList2]]]]]]],
   write('  '), write(Rel), write('  ['),
   showRelationAttrs(AttrList2),
   write(']\n'),
   showRelationSchemas(ObjList),
   !.
-
 showRelationSchemas([_ | ObjList]) :-
   showRelationSchemas(ObjList),
   !.
@@ -613,6 +640,7 @@ spelling(Rel, Spelled) :-
   databaseName(DBName),
   assert(storedSpell(DBName, Rel, Spelled)),
   !.
+
 /*
 1.2.4 Storing And Loading Of Spelling
 
@@ -704,6 +732,15 @@ writeStoredCard(Stream) :-
   storedCard(N, X, Y),
   write(Stream, storedCard(N, X, Y)),
   write(Stream, '.\n').
+
+showCard :-
+  storedCard(N, X, Y),
+  write(Y), write('\t'), write(N), write('.'), write(X), nl.
+
+showCards :-
+  write('Stored cardinalities:\n'),
+  write('Card\t\tDB.Rel\n'),
+  findall(_, showCard, _).
 
 :-
   dynamic(storedCard/3),
@@ -1023,7 +1060,7 @@ updateRel(Rel) :- % rel in lc
   retractall(storedRel(DB, Rel, _)),
   retractall(storedIndex(DB, Rel, _, _, _)),
   retractall(storedNoIndex(DB, Rel, _)),
-  retractall(storedAttrSize(DB, Rel, _, _, _, _)),!.
+  retractall(storedAttrSize(DB, Rel, _, _, _, _, _)),!.
 
 updateRel(Rel) :- % rel in uc
   databaseName(DB),
@@ -1062,7 +1099,7 @@ updateRel(Rel) :- % rel in uc
   retractall(storedRel(DB, Rel, _)),
   retractall(storedIndex(DB, Rel2, _, _, _)),
   retractall(storedNoIndex(DB, Rel2, _)),
-  retractall(storedAttrSize(DB, Rel, _, _, _, _)),!.
+  retractall(storedAttrSize(DB, Rel, _, _, _, _, _)),!.
 
 /*
 1.6 Tuple and Attribute Sizes
@@ -1078,7 +1115,6 @@ Secondo is queried for the average size of inline-flobs of any
 attribute encountered in the relation schemas.
 
 ---- tuplesize(Rel, Size) :-
-
 ----
 
 The average size of a tuple in Bytes of relation ~Rel~ 
@@ -1124,7 +1160,7 @@ tuplesize(Rel, Size) :-
 
 tuplesize(_, _) :- fail.
 /*
-1.6.2 Storing And Loading Average Overall  Tuple Sizes
+1.6.2 Storing And Loading Average Overall Tuple Sizes
 
 */
 readStoredTupleSizes :-
@@ -1188,7 +1224,7 @@ showStoredTypeSizes :-
 */
 
 readStoredAttrSizes :-
-  retractall(storedAttrSize(_, _, _, _, _, _)),
+  retractall(storedAttrSize(_, _, _, _, _, _, _)),
   [storedAttrSizes].  
 
 writeStoredAttrSizes :-
@@ -1198,21 +1234,21 @@ writeStoredAttrSizes :-
   close(FD).
 
 writeStoredAttrSize(Stream) :-
-  storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize),
-  write(Stream, storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize)),
+  storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize, ExtFlobSize),
+  write(Stream, storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize, ExtFlobSize)),
   write(Stream, '.\n').
 
 showStoredAttrSize :-
-  storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize),
+  storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize, ExtFlobSize),
   write(Database), write('.'), write(Rel), write('.'), write(Attr), write(': \t'), write(Type), 
-  write(' ('), write(CoreSize),write('/'), write(InFlobSize), write(')\n').
+  write(' ('), write(CoreSize), write('/'), write(InFlobSize), write('/'), write(ExtFlobSize), write(')\n').
 
 showStoredAttrSizes :-
-  write('Stored attribute sizes\nRel.Attr: Type (CoreTupleSize/Avg.InlineFlobSize) [byte]:\n'),
+  write('Stored attribute sizes\nRel.Attr: Type (CoreTupleSize/Avg.InlineFlobSize/Avg.ExtFlobSize) [byte]:\n'),
   findall(_, showStoredAttrSize, _).
 
 :-
-  dynamic(storedAttrSize/6),
+  dynamic(storedAttrSize/7),
   at_halt(writeStoredAttrSizes),
   readStoredAttrSizes.
 
@@ -1262,7 +1298,7 @@ machineSpeedFactor(CPU, FS) :-
 
 */
 
-referenceSpeed(2489.74, 39696.67).        % (CPUtime, FStime) determine the times needed by the reference system
+referenceSpeed(2155.33, 30218.02).        % (CPUtime, FStime) determine the times needed by the reference system
 
 toggleSpeed :-
  uniformMachineSpeedFactor,
@@ -1414,50 +1450,3 @@ writeMachineSpeedFactor :-
 :-  at_halt(writeMachineSpeedFactor).
 :-  readMachineSpeedFactor.
 :-  setMachineSpeedFactor.
-
-
-/*
-Some preticates for testing
-
-*/
-
-
-wqt(Query) :- % write QueryTime for testing
-  atom_concat('query ', Query, SecQuery),
-  get_time(Time1),
-  secondo(SecQuery, _),   
-  get_time(Time2),
-  Time is (Time2 - Time1),
-  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
-  TimeMS is (Minute * 60000) + (Sec*1000) + MilliSec,
-  nl, write(TimeMS), write(' ms'), nl,
-  !.
-
-mqt2(Query, 1, Result) :-         % auxiliary predicate to mqt/2
-  atom_concat('query ', Query, SecQuery),
-  get_time(Time1),
-  secondo(SecQuery, _),   
-  get_time(Time2),
-  Time is (Time2 - Time1),
-  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
-  Result is (Minute * 60000) + (Sec*1000) + MilliSec,
-  !.
-
-mqt2(Query, N, Result) :- % auxiliary predicate to mqt/2
-  N2 is N - 1,
-  mqt2(Query, N2, Result2),
-  atom_concat('query ', Query, SecQuery),
-  get_time(Time1),
-  secondo(SecQuery, _),   
-  get_time(Time2),
-  Time is (Time2 - Time1),
-  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
-  Result3 is (Minute * 60000) + (Sec*1000) + MilliSec,
-  Result is min(Result2, Result3),
-  !.
-
-mqt(Query, N) :-      % write minimal execution time of N executions of Query (for testing)
-  mqt2(Query, N, Result),
-  nl, write(Result), write(' ms'), nl,
-  !.
-

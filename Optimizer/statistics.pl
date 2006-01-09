@@ -596,14 +596,13 @@ writeStoredSel(Stream) :-
   write(Stream, storedSel(DB, XReplaced, Y)),
   write(Stream, '.\n').
 
-showStoredSel :- 
+showSel :- 
   storedSel(DB, X, Y),
-  write(DB), write('.'), write(X), write(':\t'),
-  write(Y), nl.
+  write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
 
-showStoredSels :-
+showSels :-
   write('Stored selectivities:\n'),
-  findall(_, showStoredSel, _).
+  findall(_, showSel, _).
  
 :-
   dynamic(storedSel/3),
@@ -648,15 +647,15 @@ writePET :-
   write(', TotalCard='), write(TotalCard),
   nl.
 
-writePETsShort :-
+showPETs :-
   write('\nSttored predicate costs:\n'),
   write('Cost [ms] \t\t Predicate\n'),
-  findall(_, writePETshort, _).
+  findall(_, showPET, _).
 
-writePETshort :-
+showPET :-
   storedPET(DB, P, PC, _, _, _, _, _, _),
   replaceCharList(P, PReplaced),
-  write(DB), write('.'), write(PC), write('\t\t'), write(PReplaced), nl.
+  write('.'), write(PC), write('\t\t'), write(DB), write('.'), write(PReplaced), nl.
 
 
 /*
@@ -695,17 +694,19 @@ showStoredSampleRuntimes :-
 
 showStoredSampleRuntime :-
   storedSampleRuntimes(DB, R1, _, T0, _, _, s),
+  write('TO='), write(T0), write('ms\t\t'),
   write(DB), write('.'), write('('), write(R1),
-  write('):  \tTO='), write(T0), write('ms\n').
+  write(')\n').
 
 showStoredSampleRuntime :-
   storedSampleRuntimes(DB, R1, R2, T0, T100, Ttg, j),
+  write('TO='), write(T0), write('ms'),
+  write(', T100='), write(T100), write('ms'),
+  write(', Ttg='), write(Ttg), write('ms\t\t'),
   write(DB), write('.'),
   write('('), write(R1),
   write('  x  '), write(R2),
-  write('):  \tTO='), write(T0), write('ms'),
-  write(', T100='), write(T100), write('ms'),
-  write(', Ttg='), write(Ttg), write('ms\n').
+  write(')\n').
 
 :-
   dynamic(storedSampleRuntimes/7),
@@ -725,7 +726,8 @@ time ~Ttg~ on Relations ~R1~ and ~R2~.
 
 returnTtg(T0, T100, Ttg) :-
 %  T100 > T0,
-  Ttg is max((T100 - T0) / 100,0.0035),
+  minTgt(MinTGT),
+  Ttg is max((T100 - T0) / 100, MinTGT),
   !.
 %returnTtg( _, _, 0.0035) :- !. % return base cost for tuple generation
 
@@ -895,27 +897,53 @@ example23 :- optimize(
 
 */
 
+showSingleRelationCard(DB, Rel) :-
+  storedCard(DB, Rel, Card),
+  write('\n\n\tCardinality:   '), write(Card), nl, !.
+
+showSingleRelationCard(_, _) :-
+  write('\n\n\tCardinality:   *'), nl, !.
+
+showSingleRelationTuplesize(DB, Rel) :-  
+  storedTupleSize(DB, Rel, Size),
+  write('\tAvg.TupleSize: '), write(Size), nl, !.
+
+showSingleRelationTuplesize(_, _) :-
+  write('\tAvg.TupleSize: *'), nl, !.
+
+showSingleIndex(Rel) :-
+  databaseName(DB),
+  storedIndex(DB, Rel, Attr, IndexType, _),
+  secAttr(Rel, Attr, AttrS),
+  write('\t('), write(AttrS), write(':'), write(IndexType), write(')').
+
 showSingleRelation :-
   databaseName(DB),
   storedRel(DB, Rel, _),
-  storedCard(DB, Rel, Card),
-  storedTupleSize(DB, Rel, Size),
-  write('\nRelation '), write(Rel), nl,
+  secRelation(Rel, RelS),
+  write('\nRelation '), write(RelS), nl,
   findall(_, showAllAttributes(Rel), _),
-  write('\n\tCardinality:   '), write(Card), nl,
-  write('\tAvg.TupleSize: '), write(Size), nl.
+  findall(_, showAllIndices(Rel), _),
+  showSingleRelationCard(DB, Rel),
+  showSingleRelationTuplesize(DB, Rel).
 
 showSingleAttribute(Rel,Attr) :-
   databaseName(DB),
-  storedAttrSize(DB, Rel, Attr, Type, CoreTupleSize, InFlobSize),
-  write('\t'), write(Attr), write('\t\t'), 
+  storedAttrSize(DB, Rel, Attr, Type, CoreTupleSize, InFlobSize, ExtFlobSize),
+  secAttr(Rel, Attr, AttrS),
+  write('\t'), write(AttrS), write('\t\t'), 
   write(Type), write('\t'),
   write(CoreTupleSize), write('\t'),
-  write(InFlobSize), nl. 
+  write(InFlobSize),  write('\t'),
+  write(ExtFlobSize), nl. 
 
 showAllAttributes(Rel) :-
-  write('\tAttr\t\tType\tCoreSz\tIFlobSz\n'),
+  write('\tAttr\t\tType\tCoreSz\tIFlobSz\tExtFlobSz\n'),
   findall(_, showSingleAttribute(Rel, _), _).
+
+showAllIndices(Rel) :-
+  write('\n\tIndices: \n'),
+  findall(_, showSingleIndex(Rel), _).
 
 showDatabase :-
   databaseName(DB),
@@ -926,3 +954,105 @@ showDatabase :-
 showDatabase :-
   write('\nNo database open. Use open \'database <name>\' to open an existing database.\n'),
   fail. 
+
+
+/*
+
+1.6 Auxiliary Predicates
+
+Convert internal name representations to valid identifiers in Secondo
+
+*/
+
+secRelation(Internal, External) :- 
+  databaseName(DB),
+  storedSpell(DB, Internal, lc(External)),!.
+
+secRelation(Internal, ExternalU) :-
+  databaseName(DB),
+  storedSpell(DB, Internal, External),
+  upper(External, ExternalU),!.
+
+secRelation(Internal, Internal) :- !.
+  
+secAttr(Rel, Internal, External) :- 
+  databaseName(DB),
+  storedSpell(DB, Rel:Internal, lc(External)),!.
+
+secAttr(Rel, Internal, ExternalU) :-
+  databaseName(DB),
+  storedSpell(DB, Rel:Internal, External),
+  upper(External, ExternalU),!.
+
+secAttr(_, Internal, Internal) :- !.
+  
+/*
+Calculate FLOB size for Join/Selection Attribute
+
+External flobs are not loaded until result tuples are written by the consume operator 
+or a attribute with a flob occurs within a join or selection predicate. 
+For the latter case, it is useful to know the size of the flobs which must be 
+loaded to evaluate the predicate.
+
+---- getNeededExtFlobSize(Predicate, ExtFlobSize1, ExtFlobSize2)
+----
+Unifies ~ExtFlobSize1~, ~ExtFloabSize2~ with the average size of external flobs 
+associated with attributes from argument0/1 resp. argument2 of the current query that
+occur in ~Predicate~. By now, it is assumed, that evaluating a predicate on a 
+flob attribute requires the external flob to be loaded. This might be misguiding, as
+certain functions and predicates may not need to access the external flob, e.g. 
+when a bounding box (stored in the tuple´s internal flob) check suffices to evaluate 
+most instances of a predicate.
+
+By now, it is assumed that only one flob attribute occurs in each tuple, thus
+the total(!) external flob size is mapped to each(!) flob attribute of a relation.
+*/
+
+
+extFlobSize(Rel, Attr, ExtFlobSize) :-
+  databaseName(DB),
+  storedAttrSize(DB, Rel, Attr, _, _, _, ExtFlobSize),
+  !.
+
+getFlobFromPred(attr(Var:Attr, 0, _), rel(Rel, Var, _), _, Flob1, 0) :- 
+  extFlobSize(Rel, Attr, Flob1),!.
+getFlobFromPred(attr(Attr, 0, _), rel(Rel, *, _), _, Flob1, 0) :- 
+  extFlobSize(Rel, Attr, Flob1),!.
+
+getFlobFromPred(attr(Var:Attr, 1, _), rel(Rel, Var, _), _, Flob1, 0) :- 
+  extFlobSize(Rel, Attr, Flob1),!.
+getFlobFromPred(attr(Attr, 1, _), rel(Rel, *, _), _, Flob1, 0) :- 
+  extFlobSize(Rel, Attr, Flob1),!.
+
+getFlobFromPred(attr(Var:Attr, 2, _), _, rel(Rel, Var, _),  0, Flob2) :- 
+  extFlobSize(Rel, Attr, Flob2),!.
+getFlobFromPred(attr(Attr, 2, _), _, rel(Rel, *, _), 0, Flob2) :- 
+  extFlobSize(Rel, Attr, Flob2),!.
+
+getFlobFromPred(Term, Rel1, Rel2, Flob1, Flob2) :-
+  compound(Term),
+  functor(Term, _, 1), !,
+  arg(1, Term, Arg1),
+  getFlobFromPred(Arg1, Rel1, Rel2, Flob1, Flob2),
+  !.
+
+getFlobFromPred(Term, Rel1, Rel2, Flob1, Flob2) :-
+  compound(Term),
+  functor(Term, _, 2), !,
+  arg(1, Term, Arg1),
+  arg(2, Term, Arg2),
+  getFlobFromPred(Arg1, Rel1, Rel2, Flob11, Flob21),
+  getFlobFromPred(Arg2, Rel1, Rel2, Flob12, Flob22),
+  Flob1 is Flob11 + Flob12,
+  Flob2 is Flob21 + Flob22,
+  !.
+
+getFlobFromPred(_, _, _, 0, 0).
+
+getNeededExtFlobSize(pr(P, A, B), Flob1, Flob2) :- getFlobFromPred(P, A, B, Flob1, Flob2), !.
+getNeededExtFlobSize(pr(P, A), Flob1, Flob2) :- getFlobFromPred(P, A, A, Flob1, Flob2), !.
+getNeededExtFlobSize(X, _, _) :- 
+  write('\nERROR in getNeededExtFlobSize('), write(X), write(',_,_).\n'),
+  throw(X).
+
+
