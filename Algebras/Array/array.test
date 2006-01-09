@@ -1,0 +1,227 @@
+#This file is part of SECONDO.
+#
+#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Database Systems for New Applications.
+#
+#SECONDO is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2 of the License, or
+#(at your option) any later version.
+#
+#SECONDO is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with SECONDO; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+
+
+# A fresh restored opt database needs to be present for
+# this test
+
+#setup arraytest
+
+open database opt;
+
+# the conventions for commands are the same as in SecondoTTYBDB
+# make sure that commands are always terminated 
+# (either by a semicolon or by a newline)
+
+# a TESTCASE consists of a TESTCASE declarative followed
+# by a YIELDS declarative followed by a command.
+# multiple or no commands after a YIELD directive
+# will confuse the TestRunner
+
+# the expected output specified by the YIELD declarative
+# is converted to a ListExpr and the TestRunner compares
+# it to Secondo's actual output by calling  
+# NestedList->Equal 
+
+# 1 - Construction of Arrays
+
+#testcase distribute1 
+#yields success 
+let Plz_a20 = plz feed extend[pkg: seqnext() mod 20] distribute[pkg];
+
+#testcase distribute2 
+#yields success 
+let Staedte_a20 = Staedte feed extend[pkg: seqnext() mod 20] distribute[pkg];
+
+#testcase distribute3 
+#yields success 
+let Orte_a5 = Orte feed extend[pkg: seqnext() mod 5] distribute[pkg];
+
+#testcase array1
+let Intset_a10 = [const array(int) value (0 1 2 3 4 5 6 7 8 9 10)];
+
+#testcase array2
+let Stringset_a4 = [const array(string) value ("This" "is" "an" "array")];
+
+#testcase makearray		   
+#let Intset_a4 = makearray (0,1,2,3);
+
+# 2 - Simple Operations
+
+
+#testcase size
+#yields (bool TRUE)
+query size(Orte_a5) = 5;
+
+#testcase get1 
+#yields (bool TRUE)
+#query get(Intset_a10, 3) = 2;
+
+#             Name: put
+#        Signature: ((array t) t int) -> (array t)
+#           Syntax: put ( _, _, _ )
+#          Meaning: Replaces an element at a given index.
+#          Example: query put(ai,9,3)
+
+
+#             Name: sortarray
+#        Signature: ((array t) (map t int)) -> (array t)
+#           Syntax: _ sortarray [ fun ]
+#          Meaning: Sorts an array in order of the function values of the
+#                   elements.
+#          Example: query ai sortarray[fun(i:int)i]
+
+#             Name: tie
+#        Signature: ((array t) (map t t t)) -> t
+#           Syntax: _ tie [ fun ]
+#          Meaning: Calculates the "value" of an array evaluating the elements
+#                   of the array with a given function from left to right.
+#          Example: query ai tie[fun(i:int,l:int)(i+l)]
+
+#             Name: cumulate
+#        Signature: ((array t) (map t t t)) -> (array t)
+#           Syntax: _ cumulate [ fun ]
+#          Meaning: Cumulates the values of an array under a given function.
+#          Example: query ai cumulate[fun(i:int,l:int)(i+l)]
+
+#testcase summarize
+#yields (bool TRUE)
+query Plz_a20 summarize count = plz count;
+
+#testcase loop1
+#yields (bool TRUE)
+query Plz_a20 loop[. count] tie [. + ..] = plz count;
+
+
+
+#testcase loopa1
+#yields (bool TRUE)
+query Plz_a20 Staedte_a20 loopa[. count + .. count] tie[. + ..] = (plz count) + (Staedte count);
+
+#testcase loopb1
+#yields success
+query Plz_a20 Staedte_a20 loopb[. count * .. count] tie[. + ..] = (plz count) * (Staedte count);
+
+
+#testcase loopswitch
+#yields success
+query Plz_a20 loopswitch[ f1: . feed plz feed {x1} hashjoin[PLZ, PLZ_x1, 997] count, 
+                          f2: . feed plz feed {x1} sortmergejoin[PLZ, PLZ_x1] count ] 
+	      tie[. + ..];
+
+#testcase loopselect
+#yields success
+query Plz_a20 loopselect[ f1: . feed plz feed {x1} hashjoin[PLZ, PLZ_x1, 997] count, 
+                          f2: . feed plz feed {x1} sortmergejoin[PLZ, PLZ_x1] count, 
+			  5, 0.2 ] 
+	      tie[. + ..];
+
+
+#        Signature: ((array t) ((name1 (map t r)) ... (namen (map t r))) int
+#                   real) -> (array r)
+#           Syntax: _ loopselect [ funlist; _, _ ]
+#          Meaning: Evaluates the first "n" elements of the array with each of
+#                   the given functions and cumulates the used calculation
+#                   times. The remaining elements are processed with the (so
+#                   far) "fastest" function.
+#          Example: query ai loopselect[f:fun(i:int)(i*2), g:fun(l:int)(l+l);
+#                   10, 0.1]
+
+#             Name: loopswitcha
+#        Signature: ((array t) (array u) ((name1 (map t u r)) ... (namen (map t
+#                   u r)))) -> (array r)
+#           Syntax: _ loopswitcha [ funlist ]
+#          Meaning: Works like operator loopa extended by the switch algorithm
+#                   of operator loopswitch.
+#          Example: query ai al loopswitcha[f:fun(i1:int,l1:int)(i1 mod l1),
+#                   g:fun(i2:int,l2:int)(i2-(i2 div l2)*l2)]
+#
+#             Name: loopswitchb
+#        Signature: ((array t) (array u) ((name1 (map t u r)) ... (namen (map t
+#                   u r)))) -> (array r)
+#           Syntax: _ loopswitchb [ funlist ]
+#          Meaning: Works like operator loopb extended by the switch algorithm
+#                   of operator loopswitch.
+#          Example: query ai al loopswitchb[f:fun(i1:int,l1:int)(i1 mod l1),
+#                   g:fun(i2:int,l2:int)(i2-(i2 div l2)*l2)]
+#
+#
+#             Name: loopselecta
+#        Signature: ((array t) (array u) ((name1 (map t u r)) ... (namen (map t
+#                   u r))) int real) -> (array r)
+#           Syntax: _ _ loopselecta [ funlist; _, _ ]
+#          Meaning: Works like operator loopa extended by the select algorithm
+#                   of operator loopselect.
+#          Example: query ai al loopselecta[f:fun(i1:int,l1:int)(i1 mod l1),
+#                   g:fun(i2:int,l2:int)(i2-(i2 div l2)*l2); 10, 0.1]
+#
+#             Name: loopselectb
+#        Signature: ((array t) (array u) ((name1 (map t u r)) ... (namen (map t
+#                   u r))) int real) -> (array r)
+#           Syntax: _ _ loopselecta [ funlist; _, _ ]
+#          Meaning: Works like operator loopb extended by the select algorithm
+#                   of operator loopselect.
+#          Example: query ai al loopselectb[f:fun(i1:int,l1:int)(i1 mod l1),
+#                   g:fun(i2:int,l2:int)(i2-(i2 div l2)*l2); 10, 0.1]
+#
+#             Name: partjoin
+#        Signature: ((array (rel t)) (array (rel u)) (map (rel t) (rel u) r)) ->
+#                   (array r)
+#           Syntax: _ _ partjoin [ fun ]
+#          Meaning: Allows to calculate joins between two arrays of relations in
+#                   an efficient way.
+#          Example: query ar ar partjoin[fun(r1:reltype,r2:reltype)r1 feed r2
+#                   feed rename[A] product count]
+#
+#             Name: partjoinswitch
+#        Signature: ((array (rel t)) (array (rel u)) ((name1 (map (rel t) (rel
+#                   u) r)) ... (namen (map (rel t) (rel u) r)))) -> (array r)
+#           Syntax: _ _ partjoinswitch [ funlist ]
+#          Meaning: Works like operator partjoin extended by the switch
+#                   algorithm of operator loopswitch.
+#          Example: query ar ar partjoinswitch[f:fun(r11:reltype,r12:reltype)r11
+#                   feed r12 feed rename[A] sortmergejoin[no,no_A] count,
+#                   g:fun(r21:reltype,r22:reltype)r21 feed r22 feed rename[A]
+#                   product filter[.no=.no_A] count]
+#
+#             Name: partjoinselect
+#        Signature: ((array (rel t)) (array (rel u)) ((name1 (map (rel t) (rel
+#                   u) r)) ... (namen (map (rel t) (rel u) r))) int real) ->
+#                   (array r)
+#           Syntax: _ _ partjoinselect [ funlist ]
+#          Meaning: Works like operator partjoin extended by the select
+#                   algorithm of operator loopselect.
+#          Example: query ar ar partjoinselect[f:fun(r11:reltype,r12:reltype)r11
+#                   feed r12 feed rename[A] sortmergejoin[no,no_A] count,
+#                   g:fun(r21:reltype,r22:reltype)r21 feed r22 feed rename[A]
+#                   product filter[.no=.no_A] count; 10, 0.1]
+#
+
+#teardown
+
+#delete Plz_a20;
+#delete Orte_a5;
+#delete Staedte_a20;
+#delete Intset_a4;
+#delete Intset_a10;
+#delete Stringset_a4;
+
+close database;
+
