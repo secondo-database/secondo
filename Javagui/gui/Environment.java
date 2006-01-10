@@ -31,6 +31,8 @@ public static boolean DEBUG_MODE = true;
 public static boolean MEASURE_TIME = true;
 public static boolean MEASURE_MEMORY = false;
 public static boolean FORMATTED_TEXT = false;
+public static boolean OLD_OBJECT_STYLE = false;
+
 
 public static long usedMemory(){
   return rt.totalMemory()-rt.freeMemory();

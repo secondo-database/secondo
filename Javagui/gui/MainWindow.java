@@ -291,6 +291,12 @@ public MainWindow(String Title){
         }
      }
      UseFormattedText=null;
+
+     String OldObjectStyle = Config.getProperty("OLD_OBJECT_STYLE");
+     Environment.OLD_OBJECT_STYLE=OldObjectStyle!=null && 
+                                  OldObjectStyle.toLowerCase().trim().equals("true");
+     OldObjectStyle=null;
+
  }
  createMenuBar();
  if(config_file_ok){

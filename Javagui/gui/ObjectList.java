@@ -515,16 +515,24 @@ public boolean saveSelectedObject(){
 	      name = name.replace(' ','_');
 	      if(name.length()>48)
 	         name = name.substring(0,48);
-	      LE = ListExpr.sixElemList( ListExpr.symbolAtom("OBJECT"),
-	                                 ListExpr.symbolAtom(name),
-	                                 ListExpr.theEmptyList(),
-					 LE.first(),
-					 LE.second(),
-           				 ListExpr.theEmptyList());
+        if(gui.Environment.OLD_OBJECT_STYLE){
+  	         LE = ListExpr.sixElemList( ListExpr.symbolAtom("OBJECT"),
+	                                      ListExpr.symbolAtom(name),
+	                                      ListExpr.theEmptyList(),
+                                        LE.first(),
+                                        LE.second(),
+                                        ListExpr.theEmptyList());
+        } else { // new Style without models 
+  	         LE = ListExpr.fiveElemList( ListExpr.symbolAtom("OBJECT"),
+	                                      ListExpr.symbolAtom(name),
+	                                      ListExpr.theEmptyList(),
+                                        LE.first(),
+                                        LE.second());
+        }
 	  }
-        if(FullFileName.endsWith(".bnl")){
-	   BufferedOutputStream FOS =null;
-           try{
+     if(FullFileName.endsWith(".bnl")){
+	      BufferedOutputStream FOS =null;
+        try{
               FOS = new BufferedOutputStream(new FileOutputStream(FullFileName));
               saved = LE.writeBinaryTo(FOS);
 	      }
