@@ -4177,7 +4177,7 @@ int GroupByValueMapping
   switch(message)
   {
     case OPEN:
-      
+    {  
       // Get the first tuple pointer and store it in the
       // GroupBylocalInfo structure
       qp->Open (args[0].addr);
@@ -4203,8 +4203,9 @@ int GroupByValueMapping
         local = SetWord(0);
       }
       return 0;
-
+    }
     case REQUEST:
+    {
       Counter::getRef("GroupBy:Request")++;
       if(local.addr == 0) 
         return CANCEL;
@@ -4288,8 +4289,9 @@ int GroupByValueMapping
       result = SetWord(t);
       delete tp;
       return YIELD;
-
+    }
     case CLOSE:
+    {
       if( local.addr != 0 )
       {
         gbli = (GroupByLocalInfo *)local.addr;
@@ -4298,6 +4300,7 @@ int GroupByValueMapping
       }
       qp->Close(args[0].addr);
       return 0;
+    }
   }
   return 0;
 }
