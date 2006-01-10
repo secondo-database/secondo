@@ -252,12 +252,14 @@ public TFWCreator(){
               }else{
                 int length = LE.listLength();
                 ListExpr value=null;
-                if(length==6  && LE.first().atomType()==ListExpr.SYMBOL_ATOM && 
-                   LE.first().symbolValue().equals("OBJECT") &&
-                   LE.third().atomType()==ListExpr.SYMBOL_ATOM &&
-                   LE.third().symbolValue().equals("point")){
+                /* OBJECT representation with or without the model */
+                if((length==6 | length==5)
+                    && LE.first().atomType()==ListExpr.SYMBOL_ATOM && 
+                    LE.first().symbolValue().equals("OBJECT") &&
+                    LE.third().atomType()==ListExpr.SYMBOL_ATOM &&
+                    LE.third().symbolValue().equals("point")){
                    value = LE.fourth();
-                }else if(length==2 && LE.first().atomType()==ListExpr.SYMBOL_ATOM &&
+                } else if(length==2 && LE.first().atomType()==ListExpr.SYMBOL_ATOM &&
                          LE.first().symbolValue().equals("point")){
                    value = LE.second();
                 }else if(length==2){
