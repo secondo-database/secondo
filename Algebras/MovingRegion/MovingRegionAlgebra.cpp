@@ -54,6 +54,9 @@ Fernuniversit[ae]t Hagen.
     results in a failed assertion. This probably relates to an issue in the
     TemporalAlgebra: Waiting for feedback from Victor Almeida.
 
+  * References to ~URegion~ and ~UPoint~ instead of ~Unit1~ and ~Unit2~ in
+    ~RefinementPartition()~. Victor Almeida found this one!
+
   * Not confirmed: MRegion objects cannot be imported into SECONDO according 
     to Thomas Behr. 
 
