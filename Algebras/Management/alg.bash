@@ -24,11 +24,11 @@
 # the configuration parameters are extracted from the file AlgebraList.i.cfg
 # and prefixed with an "ALGEBRA_INCLUDE("
 
-regexp="(,$1,"
+regexp="(,$1"
 shift
 while [ $# -ne 0 ];
 do
-   regexp=$regexp"|,$1,"	
+   regexp=$regexp"|,$1"	
    shift
 done
 

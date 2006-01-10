@@ -55,39 +55,3 @@ operator aggregateB alias AGGREGATEB pattern _ op [ _; _; _ ]
 
 operator symmjoin alias SYMMJOIN pattern _ _ op [ fun ] implicit parameters lefttuple, righttuple types TUPLE, TUPLE2
 
-operator createinsertrel alias CREATEINSERTREL pattern _ op
-
-operator createdeleterel alias CREATEDELETEREL pattern _ op
-
-operator createupdaterel alias CREATEUPDATEREL pattern _ op
-
-operator insert alias INSERT pattern _ _ op
-
-operator insertsave alias INSERTSAVE pattern _ _ _ op
-
-operator inserttuple alias INSERTTUPLE pattern _ op [list]
-
-operator inserttuplesave alias INSERTTUPLESAVE pattern _ _ op [list]
-
-operator deletedirect alias DELETEDIRECT pattern _ _ op
-
-operator deletesearch alias DELETESEARCH pattern _ _ op
-
-operator deletesearchsave alias DELETESEARCHSAVE pattern _ _ _ op
-
-operator deletedirectsave alias DELETEDIRECTSAVE pattern _ _ _ op
-
-operator updatesearch alias UPDATESEARCH pattern _ _ op [funlist] implicit parameter tuple type TUPLE
-
-operator updatedirect alias UPDATEDIRECT pattern _ _ op [funlist] implicit parameter tuple type TUPLE
-
-operator updatesearchsave alias UPDATESEARCHSAVE pattern _ _ _ op [funlist] implicit parameter tuple type TUPLE
-
-operator updatedirectsave alias UPDATEDIRECTSAVE pattern _ _ _ op [funlist] implicit parameter tuple type TUPLE
-
-operator appendidentifier alias APPENDIDENTIFIER pattern _ op
-
-operator deletebyid alias DELETEBYID pattern _ op [ _ ]
-
-operator updatebyid alias UPDATEBYID pattern _ op [ _; funlist] implicit parameter tuple type TUPLE
-
