@@ -108,13 +108,25 @@ public ListExpr importFile(String FileName){
 private ListExpr extractFromObject(ListExpr LE){
    if(LE==null)
       return null;
-   if(LE.listLength()==6 && LE.first().atomType()==ListExpr.SYMBOL_ATOM &&
+   int length = LE.listLength();
+   if(length==6 && LE.first().atomType()==ListExpr.SYMBOL_ATOM &&
       LE.first().symbolValue().equals("OBJECT")){
       ListExpr res =ListExpr.twoElemList(LE.fourth(),LE.fifth());
       LE.first().destroy();
       LE.second().destroy();
       LE.third().destroy();
       LE.sixth().destroy();
+      if(!gui.Environment.OLD_OBJECT_STYLE){
+        tools.TextFormat.printWarning("Old styled ListExpr found");
+      }
+      return res;
+   }
+   if(length==5 && LE.first().atomType()==ListExpr.SYMBOL_ATOM &&
+      LE.first().symbolValue().equals("OBJECT")){
+      ListExpr res =ListExpr.twoElemList(LE.fourth(),LE.fifth());
+      LE.first().destroy();
+      LE.second().destroy();
+      LE.third().destroy();
       return res;
    }
    return LE;
