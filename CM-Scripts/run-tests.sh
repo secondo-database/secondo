@@ -14,6 +14,14 @@ if ! source ./libutil.sh; then exit 1; fi
 
 printf "\n%s\n" "Running tests in ${buildDir}."
 
+runnerCmd="TestRunner"
+type -t $runnerCmd >& /dev/null 
+
+if [ $? -ne 0 ]; then
+  printf "\n%s\n" "Sorry, command $runnerCmd not present."
+  exit 1;
+fi
+
 failedTests=""
 
 # runTest $1 $2 $3 [$4]

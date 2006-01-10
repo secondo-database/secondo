@@ -49,13 +49,15 @@ cd $cbuildDir
 CM-Scripts/catvar.sh > $msgFile 2>&1
 checkCmd "make" >> $msgFile 2>&1
 
+local rc=$?
 # proceed if last command was successful
-if [ $? -ne 0 ]; then
+if [ $rc -ne 0 ]; then
 
   printf "%s\n" "Problems during build, sending a mail."
 
   sendMail "$subject" "$mailRecipients" "$mailBody1" "$msgFile"
 
+  return $rc 
 fi
 
 }
