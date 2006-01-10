@@ -80,12 +80,18 @@ if [ -z "$CONTENTSTART" ]; then
 fi
 
 
-USAGE="createTextRelation ObjectName [<file_1>..<file_n>] \n"
+USAGE="createTextRelation [--oldstyle] ObjectName [<file_1>..<file_n>] \n"
+
+
+if [ $1 = "--oldstyle" ]; then
+   END=")())"
+   shift
+else
+   END="))"
+fi
+
 
 HEADER="(OBJECT $1 ()  (rel (tuple ( (Filename text)($CONTENTNAME $CONTENTTYPE ) ))) ("
-END=")())"
-
-
 
 if [ "$#" = "0" ]; then
     echo "$USAGE" >&2

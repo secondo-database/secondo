@@ -24,10 +24,17 @@
 
 
 
-USAGE="createPdfRelation ObjectName \n"
+USAGE="createPdfRelation [--oldstyle] ObjectName \n"
+
+if [ $1 = "--oldstyle" ]; then
+   END=")())"
+   shift
+else
+   END="))"
+fi
+
 
 HEADER="(OBJECT $1 ()  (rel (tuple ( (Filename text)(Pdf text)(TheText text) ))) ("
-END=")())"
 
 
 
