@@ -471,6 +471,8 @@ int argc;
 char** argv;
 {
     FILE* ifile;
+    int start=0;
+    int oldstyle=0;
 
     if ((ret = db_create(&dbp, NULL, 0)) != 0) {
         fprintf(stderr, "db_create: %s\n", db_strerror(ret));
@@ -488,13 +490,17 @@ char** argv;
     docsfile = fopen("document", "w");
     tmpkwfile = fopen("keyword_tmp","w");
     
+    if(argc > 1 && (argv[1]=="--oldstyle")){
+       oldstyle=1;
+       start++;
+    }
 
-    if(argc > 1){
-       ifile = fopen(argv[1], "r");
+    if(argc > start+1){
+       ifile = fopen(argv[start+1], "r");
        if (ifile == NULL)
        {
          fprintf(stderr,"ERROR: cannot open file ");
-         fprintf(stderr,argv[1]);
+         fprintf(stderr,argv[start+1]);
          fprintf(stderr,"\n");
          return -1;
        }
@@ -530,8 +536,15 @@ char** argv;
     fprintf(authorsfile,"%s","\t\t\t(authorid int))))\n(\n");
 
     yyparse();
-    fprintf(docsfile,"%s",")\n\t\t())\n");
-    fprintf(authordocfile,"%s",")\n\t\t())\n");
-    fprintf(authorsfile,"%s",")\n\t\t())\n");
+    if(oldstyle){
+       fprintf(docsfile,"%s",")\n\t\t())\n");
+       fprintf(authordocfile,"%s",")\n\t\t())\n");
+       fprintf(authorsfile,"%s",")\n\t\t())\n");
+    }else{
+       fprintf(docsfile,"%s",")\n\t\t)\n");
+       fprintf(authordocfile,"%s",")\n\t\t)\n");
+       fprintf(authorsfile,"%s",")\n\t\t)\n");
+
+    }
     return 0;
 }

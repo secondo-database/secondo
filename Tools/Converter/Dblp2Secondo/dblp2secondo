@@ -25,6 +25,13 @@
 # F.Hoffmann , Th. Behr 2004-6
 
 
+OLDSTYLE=""
+if [ "$1" = "--oldstyle" ]; then
+  OLDSTYLE="$1"
+  shift
+fi
+
+
 if [ "$1" = "clean" ]; then
   echo "you have chosen to delete all created files"
   echo "continue (y/n)"
@@ -137,7 +144,7 @@ if [ "$ANSWER" != "use" ]; then
    # create also a temporary keyword file keyword_tmp
    echo "create the SECONDO-relations"
    rm -f access.db
-   Parser "$DBLP_TMP"
+   Parser "$OLDSTYLE" "$DBLP_TMP"
    if [ $? -ne 0 ]; then
        echo "Creating of relations failed"
        rm -f "access.db"
