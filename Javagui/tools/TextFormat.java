@@ -48,4 +48,14 @@ public  class TextFormat{
  public static final String BG_VIOLET ="\033[44m";
  public static final String BG_CYAN   ="\033[45m";
  public static final String BELL      ="\007";
+
+
+ public static void printWarning(String message){
+    if(gui.Environment.FORMATTED_TEXT)
+        System.err.println(RED+"Warning: "+CYAN+message+NORMAL);
+    else
+        System.err.println("Warning: "+message);
+    
+ }
+
 }
