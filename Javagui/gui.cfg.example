@@ -104,3 +104,8 @@ MEASURE_MEMORY false
 #if Javagui should be run on a MS-DOS environment, ensure to have set this 
 # value to false
 FORMATTED_TEXT true
+
+#set to true if list for objects should contain a list describing
+#the model
+OLD_OBJECT_STYLE true
+
