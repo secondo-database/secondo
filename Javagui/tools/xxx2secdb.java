@@ -27,6 +27,7 @@ import java.io.*;
 public class xxx2secdb{
 
 private static ImportManager IM;
+private static boolean oldStyle=false;
 
 
 private static void AppendObject(PrintStream out,String FileName,TreeSet ONames) throws IOException{
@@ -38,8 +39,9 @@ private static void AppendObject(PrintStream out,String FileName,TreeSet ONames)
      System.err.println("error in converting File: "+FileName);
      return;
   }
-  if(LE.listLength()!=2){
-    if(LE.listLength()!=6){
+  int length = LE.listLength();
+  if(length!=2){
+    if(length!=6 && length!=5){ // accept old an new styled object lists
        System.err.println("Result is not an object");
        return;
     }
@@ -80,13 +82,22 @@ private static void AppendObject(PrintStream out,String FileName,TreeSet ONames)
   ListExpr outList;
   if(LE.listLength()!=2)
      outList = LE;
-  else
-     outList = ListExpr.sixElemList(ListExpr.symbolAtom("OBJECT"),
-                                     ListExpr.symbolAtom(ObjectName),
-	 			     ListExpr.theEmptyList(),
-				     LE.first(),
-				     LE.second(),
-				     ListExpr.theEmptyList());
+  else{
+     if(oldStyle){
+          outList = ListExpr.sixElemList(ListExpr.symbolAtom("OBJECT"),
+                                         ListExpr.symbolAtom(ObjectName),
+	 			         ListExpr.theEmptyList(),
+    				     LE.first(),
+		    		     LE.second(),
+				         ListExpr.theEmptyList());
+      } else {
+          outList = ListExpr.fiveElemList(ListExpr.symbolAtom("OBJECT"),
+                                         ListExpr.symbolAtom(ObjectName),
+	 			         ListExpr.theEmptyList(),
+    				     LE.first(),
+		    		     LE.second());
+      }
+   }
   
  //  out.print(outList.writeListExprToString());
     outList.writeTo(out,false);
@@ -101,25 +112,33 @@ private static void error(String Message){
 
 private static void showUsage(String Message){
     System.err.println(Message);
-    System.err.println("java DBName SourceFiles");
+    System.err.println("java [--oldstyle] DBName SourceFiles");
     System.err.println("xxx2secdb creates a Secondo Database with the ");
-    System.err.println("Name of the first argument.");
+    System.err.println("given name");
     System.err.println("The Database is written into a file with the same Name.");
     System.err.println("like the Database.");
+    System.err.println("With the option --oldstyle, also the model mapping is part of an object");
     System.exit(-1);
 }
 
 public static void main(String[] args){
    ListExpr.initialize(500000);
    IM = new ImportManager();
-   if(args.length<2){
+   int start=0;
+   if(args.length>0 && args[0].equals("--oldstyle")){
+      oldStyle=true;
+      start=1;
+   }
+
+
+   if(args.length<2+start){
        showUsage("Missing Parameter");
    }
 
   try{
-     File F = new File(args[0]);
+     File F = new File(args[start]);
      if(F.exists()){
-        System.out.println("File "+args[0]+ " exists. Overwrite it ? (y/n)");
+        System.out.println("File "+args[start]+ " exists. Overwrite it ? (y/n)");
         int i = System.in.read();
         if(i<0){
             error("no input");
@@ -134,16 +153,16 @@ public static void main(String[] args){
 
   TreeSet ONames = new TreeSet();
   try{
-    PrintStream out = new PrintStream(new FileOutputStream(args[0]));
+    PrintStream out = new PrintStream(new FileOutputStream(args[start]));
     // first print the header of a Database
-    out.println("(DATABASE "+args[0]);
+    out.println("(DATABASE "+args[start]);
     out.println("   (DESCRIPTIVE ALGEBRA)");
     out.println("      (TYPES)");
     out.println("      (OBJECTS)");
     out.println("   (EXECUTABLE ALGEBRA)");
     out.println("      (TYPES)");
     out.println("      (OBJECTS ");
-    for(int i=1;i<args.length;i++){
+    for(int i=start+1;i<args.length;i++){
        AppendObject(out,args[i],ONames);
     }
     out.println("))"); // close OBJECTS, DATABASE

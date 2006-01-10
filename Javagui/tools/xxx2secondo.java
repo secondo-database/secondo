@@ -24,9 +24,6 @@ import sj.lang.ListExpr;
 
 public class xxx2secondo{
 
-private static ImportManager IM;
-
-
 private static void convertFile(String FileName){
 
   ListExpr LE;
@@ -55,12 +52,21 @@ private static void convertFile(String FileName){
   if(LE.listLength()!=2)
       outList=LE;
   else
-      outList = ListExpr.sixElemList(ListExpr.symbolAtom("OBJECT"),
-                                     ListExpr.symbolAtom(ObjectName),
-	 			     ListExpr.theEmptyList(),
-				     LE.first(),
-				     LE.second(),
-				     ListExpr.theEmptyList());
+      if(OldStyle){
+           outList = ListExpr.sixElemList(ListExpr.symbolAtom("OBJECT"),
+                                          ListExpr.symbolAtom(ObjectName),
+                         ListExpr.theEmptyList(),
+                         LE.first(),
+                         LE.second(),
+                         ListExpr.theEmptyList());
+       } else{ // new style
+           outList = ListExpr.fiveElemList(ListExpr.symbolAtom("OBJECT"),
+                                          ListExpr.symbolAtom(ObjectName),
+                         ListExpr.theEmptyList(),
+                         LE.first(),
+                         LE.second()
+                         );
+       }
 
   String outFileName = FileName+".obj";
   if(outList.writeToFile(outFileName)!=0)
@@ -72,8 +78,17 @@ private static void convertFile(String FileName){
 public static void main(String[] args){
   ListExpr.initialize(500000);
   IM = new ImportManager();
-  for(int i=0;i<args.length;i++)
+  int START=0;
+  if(args.length>0 && args[0].equals("-oldstyle")){
+      OldStyle=true;
+      START++;
+  }
+     
+  for(int i=START;i<args.length;i++)
       convertFile(args[i]);
 }
+
+private static boolean OldStyle = false;
+private static ImportManager IM;
 
 }
