@@ -23,6 +23,13 @@
 # 1) change to the directory above source
 # 2) find * -name "*.jpg" | artpics2rel.sh > objectfile
 
+if [ $1 = "--oldstyle" ]
+   objectend=")())"
+   shift
+else
+   objectend="))";
+fi
+
 
 declare -i id=0
 declare -i wrn=0
@@ -100,8 +107,8 @@ do
   read inputFile
 done
 
-# close list of tuples
-printf "%s\n" ") () )"
+# close list of tuples and object
+printf "%s\n" "${objectend}"
 logFile=artpics2rel.log
 
 printf "%s\n" "# $wrn titles greater than 48 chars." > $logFile
