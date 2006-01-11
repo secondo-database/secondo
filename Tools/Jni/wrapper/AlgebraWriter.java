@@ -1209,12 +1209,14 @@ private static void printTypeConstructor(PrintStream out,Class cls){
    out.println("  Clone"+Name+",     ");
    out.println("  Cast"+Name+",      ");
    out.println("  SizeOf"+Name+",    ");
-   out.println("  Check"+Name+",     ");
-   out.println("  0,               // model");
-   out.println("  TypeConstructor::DummyInModel,");
-   out.println("  TypeConstructor::DummyOutModel,");
-   out.println("  TypeConstructor::DummyValueToModel,");
-   out.println("  TypeConstructor::DummyValueListToModel");
+   out.println("  Check"+Name+"     ");
+   if(oldStyle){
+        out.println("  ,0,               // model");
+        out.println("  TypeConstructor::DummyInModel,");
+        out.println("  TypeConstructor::DummyOutModel,");
+        out.println("  TypeConstructor::DummyValueToModel,");
+        out.println("  TypeConstructor::DummyValueListToModel");
+   }
    out.println(");");                                
 
 }
@@ -1380,16 +1382,18 @@ private static void printOperators(PrintStream out, ClassMethod[] Methods,
          maxOverloads=count[pos];
   }
 
-  if(maxOverloads>1){  // they are overloaded operators-> create an array of dummymodels
-     out.println("/*\n");
-     out.println("4.0 Array of DummyModels for overloaded operators \n");
-     out.println("*/");
-     out.println("ModelMapping DummyModelArray[] = { ");
-     for(int i=0;i<maxOverloads;i++){
-          if(i>0) out.println(",");
-          out.print("     Operator::DummyModel"); 
-     }
-     out.println("\n };"); 
+  if(oldStyle){
+     if(maxOverloads>1){  // they are overloaded operators-> create an array of dummymodels
+        out.println("/*\n");
+        out.println("4.0 Array of DummyModels for overloaded operators \n");
+        out.println("*/");
+        out.println("ModelMapping DummyModelArray[] = { ");
+        for(int i=0;i<maxOverloads;i++){
+             if(i>0) out.println(",");
+             out.print("     Operator::DummyModel"); 
+        }
+    }
+    out.println("\n };"); 
 
   } 
  
@@ -1843,7 +1847,9 @@ private static void printOperatorInstance(int no, PrintStream out, String Name,V
        out.println("   "+Name+"_spec,   // specification");
        out.println("   "+Methods.size()+",   // number of function ");
        out.println("    "+Name+"map,   // Value mapping array ");
-       out.println("   DummyModelArray,  // model mapping");
+       if(oldStyle){
+          out.println("   DummyModelArray,  // model mapping");
+       }
        out.println("   "+Name+"Select, // selection function ");
        out.println("   "+Name+"_TypeMap // type mapping fucntion");
        out.println(");");
@@ -1853,7 +1859,9 @@ private static void printOperatorInstance(int no, PrintStream out, String Name,V
        out.println("   \""+Name+"\",     // Name ");
        out.println("   "+Name+"_spec,   // specification");
        out.println("    "+getValueMappingName((ClassMethod)Methods.get(0))+",   // Value mapping function ");
-       out.println("   Operator::DummyModel,  // model mapping");
+       if(oldStyle){
+          out.println("   Operator::DummyModel,  // model mapping");
+       }
        out.println("   "+Name+"Select, // selection function ");
        out.println("   "+Name+"_TypeMap // type mapping fucntion");
        out.println(");");
@@ -1865,6 +1873,7 @@ private static void printOperatorInstance(int no, PrintStream out, String Name,V
 
 static final String CPP = "_cpp"; 
 static Class AlgebraTypeClass = null;
+static final boolean oldStyle=false; // if set to true, dummy models are included in the created algebra
 
 private static class MethodWithIDNumber{
 
