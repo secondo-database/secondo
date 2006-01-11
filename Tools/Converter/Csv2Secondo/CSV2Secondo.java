@@ -269,7 +269,10 @@ public void convert(String CfgFile,String SourceFile){
         if((LNo%5000)==0)
            System.err.print(".");    
       }
-      System.out.println(") () )"); // close valueList and object
+      if(oldStyle)
+          System.out.println(") () )"); // close valueList and object
+      else
+          System.out.println(") )");
       CSVin.close();
   }catch(Exception e){
     e.printStackTrace();
@@ -278,19 +281,24 @@ public void convert(String CfgFile,String SourceFile){
 
 
 public static void main(String[] args){
-  
-  if(args.length<2){
-     error("missing parameter\nusage: java CVS2Secondo ConfigFile SourceFile [>TargetFile]");
+  int start=0;
+  CSV2Secondo C = new CSV2Secondo();
+  if(args.length>0 && args[0].equals("--oldstyle")){
+      C.oldStyle=true;
+      start++;     
   }
-  File CfgFile = new File(args[0]);
+ 
+  if(args.length<2+start){
+     error("missing parameter\nusage: java CVS2Secondo [--oldstyle] ConfigFile SourceFile [>TargetFile]");
+  }
+  File CfgFile = new File(args[start]);
   if(!CfgFile.exists()){
      error("Config file not found");
   }
-  File SourceFile = new File(args[1]);
+  File SourceFile = new File(args[1+start]);
   if(!SourceFile.exists())
       error("Source file not found ");
-  CSV2Secondo C = new CSV2Secondo();
-  C.convert(args[0],args[1]);      
+  C.convert(args[start],args[start+1]);      
 }
 
 private static final int INTEGER=0;
@@ -308,6 +316,7 @@ private boolean checknumeric;
 private Vector Values;
 private boolean allowMoreValues;
 private int neededValues;
+private boolean oldStyle=false;
 
 private static class MyStringTokenizer{
 
