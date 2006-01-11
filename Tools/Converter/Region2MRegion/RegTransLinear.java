@@ -236,43 +236,62 @@ private static void processRelation(ListExpr Type, ListExpr Value,ListExpr Trans
 
 public static void main(String[] args){
 
+  int start=0;
+  if(args.length>0 && args[0].equals("--oldstyle")){
+     oldStyle=true;
+     start++;
+  }
+
   java.text.DecimalFormatSymbols dfs = new java.text.DecimalFormatSymbols();
   dfs.setDecimalSeparator('.');
   Format = new java.text.DecimalFormat(FormatString,dfs);
 
-  if(args.length<3){
+  if(args.length<start+3){
      System.err.println ("missing argument");
-     System.err.println("usage:java RegTransformer {RegionFile|RelationFile} TransformFile outFile [init]");
+     System.err.println("usage:java RegTransformer [--oldstyle] {RegionFile|RelationFile} TransformFile outFile [init]");
      System.exit(64); // command line usage error
   }
   ListExpr RegList = new ListExpr();
-  if(RegList.readFromFile(args[0])!=0){
+  if(RegList.readFromFile(args[start])!=0){
     System.err.println(" error in reading RegionFile");
     System.exit(65);
   }
   ListExpr TransformList = new ListExpr();
-  if(TransformList.readFromFile(args[1])!=0){
+  if(TransformList.readFromFile(args[start+1])!=0){
      System.err.println("error in reading transformation file");
      System.exit(65);
   }
 
   try{
-    out = new PrintStream(new FileOutputStream(args[2]));
+    out = new PrintStream(new FileOutputStream(args[start+2]));
   }catch(Exception e){
     System.err.println("error in opening output file"); 
     System.exit(73); // can't create user output file
   }
   init = false;
-  if(args.length>3 && args[3].equals("init"))
+  if(args.length>start+3 && args[start+3].equals("init"))
     init = true;
   
   double startTime = 0.0;
   double moveTime = 0.25; // this means 6 hours
   boolean isObject = false;
   ListExpr Sixth=null;
+  int listlength=RegList.listLength();
   if(RegList.listLength()==6 && RegList.first().atomType()==ListExpr.SYMBOL_ATOM &&
      RegList.first().symbolValue().equals("OBJECT")){
      Sixth=RegList.sixth();
+     isObject=true;
+     out.print(" ( OBJECT ");
+     RegList.second().writeTo(out,false);
+     out.print(" ");
+     RegList.third().writeTo(out,false);
+     out.println(" ");
+     RegList=ListExpr.twoElemList(RegList.fourth(),RegList.fifth());
+  }
+  
+  if(RegList.listLength()==5 && RegList.first().atomType()==ListExpr.SYMBOL_ATOM &&
+     RegList.first().symbolValue().equals("OBJECT")){
+     Sixth=new ListExpr();;
      isObject=true;
      out.print(" ( OBJECT ");
      RegList.second().writeTo(out,false);
@@ -303,7 +322,8 @@ public static void main(String[] args){
   }
   if(isObject){
      out.print(" ");
-     Sixth.writeTo(out,false);
+     if(oldStyle)
+        Sixth.writeTo(out,false);
      out.println(" )");
 
   }
@@ -322,4 +342,5 @@ public static void main(String[] args){
   static boolean firstUnit;
   static java.text.DecimalFormat Format;
   static String FormatString = "#.#####";
+  static boolean oldStyle=false;
 }
