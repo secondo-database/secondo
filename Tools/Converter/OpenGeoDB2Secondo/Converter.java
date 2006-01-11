@@ -38,10 +38,12 @@ public class Converter{
 */
 private static void printDBProlog(){
 	System.out.println("(DATABASE OPENGEODB");
-	System.out.println("    (DESCRIPTIVE ALGEBRA)");
-	System.out.println("    (TYPES)");
-	System.out.println("    (OBJECTS)");
-	System.out.println("    (EXECUTABLE ALGEBRA)");
+  if(oldStyle){
+     System.out.println("    (DESCRIPTIVE ALGEBRA)");
+     System.out.println("    (TYPES)");
+     System.out.println("    (OBJECTS)");
+	   System.out.println("    (EXECUTABLE ALGEBRA)");
+  }
 	System.out.println("    (TYPES)");
 	System.out.println("    (OBJECTS");
         System.out.println("       (OBJECT License () text ");
@@ -55,7 +57,9 @@ private static void printDBProlog(){
         System.out.println("as published by the Free Software Foundation; ");
         System.out.println("either version 2 of the License.\n");
         System.out.println("    2004-04-24 ");     
-        System.out.println("\n </text---> ())\n");
+        System.out.println("\n </text---> ");
+        if(oldStyle) System.out.print("()");
+        System.out.println(" )\n");
 }
 
 /*
@@ -277,7 +281,10 @@ private static void printPLZ(){
            System.out.println("  ( "+T.Ident+" "+T.Plzs.get(j)+" ) ");
      }
   }
-  System.out.println("        ) () )");
+  if(oldStyle)
+      System.out.println("        ) () )");
+  else
+      System.out.println("        )  )");
 
 }
 
@@ -301,7 +308,11 @@ private static int processLine(String Line, int Mode){
       if(Mode==LAND){
          Mode=land(Line);
          if(Mode!=LAND){
-             System.out.println("       ) () )");
+             if(oldStyle)
+                System.out.println("       ) () )");
+             else
+                System.out.println("       )  )");
+
          }
    }
    if(Mode==SEARCHKFZ){
@@ -320,7 +331,10 @@ private static int processLine(String Line, int Mode){
    if(Mode==KFZ){
       Mode=kfz(Line);
       if(Mode!=KFZ){
-         System.out.println("      ) () )");
+         if(oldStyle) 
+             System.out.println("      ) () )");
+         else
+             System.out.println("      )  )");
       }
    }
    if(Mode==SEARCHORT){
@@ -337,9 +351,14 @@ private static int processLine(String Line, int Mode){
   main function for converting the opengeodb to a secondo database
 */
 public static void main(String[] args){
-  if(args.length<1)
+  int start=0;
+  if(args.length>0 && args[0].equals("--oldstyle")){
+     oldStyle=true;
+     start++;
+  }
+  if(args.length<start+1)
      error("missing filename");
-  File F = new File(args[0]);
+  File F = new File(args[start]);
   if(!F.exists())
      error("File not found");
   try{
@@ -352,7 +371,11 @@ public static void main(String[] args){
        Mode = processLine(Line,Mode);
      }
      if(Mode!=STOP);
-       System.out.println("     ) () )"); // close value and object for cities
+       if(oldStyle){
+          System.out.println("     ) () )"); // close value and object for cities
+       } else{
+          System.out.println("     )  )");
+       }
      if(Mode!=STOP)
         printPLZ();
      in.close();
@@ -392,6 +415,7 @@ private static final int ORT=5;
 private static final int STOP=6;
 private static Vector tmpS = new Vector(20); // Vector containing the attribute of a single line
 private static TreeSet PLZRel=new TreeSet();
+private static boolean oldStyle=false;
 
 private static final int MAXLENGTH = 48;
 
