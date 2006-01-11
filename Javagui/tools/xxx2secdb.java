@@ -156,10 +156,12 @@ public static void main(String[] args){
     PrintStream out = new PrintStream(new FileOutputStream(args[start]));
     // first print the header of a Database
     out.println("(DATABASE "+args[start]);
-    out.println("   (DESCRIPTIVE ALGEBRA)");
-    out.println("      (TYPES)");
-    out.println("      (OBJECTS)");
-    out.println("   (EXECUTABLE ALGEBRA)");
+    if(oldStyle){
+       out.println("   (DESCRIPTIVE ALGEBRA)");
+       out.println("      (TYPES)");
+       out.println("      (OBJECTS)");
+       out.println("   (EXECUTABLE ALGEBRA)");
+    }
     out.println("      (TYPES)");
     out.println("      (OBJECTS ");
     for(int i=start+1;i<args.length;i++){
