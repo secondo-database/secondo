@@ -43,9 +43,12 @@ tigerconv is a script for comfortable converting of multiple tiger files. Theore
 possible to convert all the files by a single call of this tool. But this is not a good idea.
 The reason is the filesize which corresponds to the unzipped size of all data of the tiger files.
 This will be ten or more GB.  
+The first argument of this script may be '--oldstyle'. If this option is used, the produced 
+database format  will contain the "DESCRIPTIVE ALGEBRA" part which is not longer allowed within
+the current Secondo implementation.
 
-The script has only one option "-single". All other arguments has to be directories containing
-tiger data or the names of the zip files itself. If the -singe option is used, all files in a
+The second option is "-single". All other arguments has to be directories containing
+tiger data or the names of the zip files itself. If the -single option is used, all files in a
 directory are summarized. Otherwise for each file a coresponding relation will be created.
 
 To convert all the tiger data to a very big database use:

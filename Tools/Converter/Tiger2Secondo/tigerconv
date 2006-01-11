@@ -10,6 +10,15 @@ DBNAME=tiger
 
 EXTENSIONS="RT1 RT2 RT3 RT4 RT5 RT6 RT7 RT8 RT9 RTA RTC RTH RTI RTP RTR RTS RTZ"
 
+if [ "$1" = "--oldstyle" ]; then
+  OLDSTYLE="true"
+  OLDSTYLEOPTION="--oldstyle"
+  shift
+else
+  OLDSTYLE="false"
+  OLDSTYLEOPTION=""
+fi
+
 
 function checktool(){
   ARG="--help";
@@ -67,10 +76,12 @@ fi
 
 # write the database header
 echo "(DATABASE $DBNAME " >"$FILE"
-echo "   (DESCRIPTIVE ALGEBRA)" >>"$FILE"
-echo "      (TYPES)" >>"$FILE"
-echo "      (OBJECTS) " >>"$FILE"
-echo "   (EXECUTABLE ALGEBRA)" >>"$FILE"
+if [ "$OLDSTYLE" = "true" ]; then
+  echo "   (DESCRIPTIVE ALGEBRA)" >>"$FILE"
+  echo "      (TYPES)" >>"$FILE"
+  echo "      (OBJECTS) " >>"$FILE"
+  echo "   (EXECUTABLE ALGEBRA)" >>"$FILE"
+fi
 echo "     (TYPES) " >>"$FILE"
 echo "     (OBJECTS " >>"$FILE"
 
@@ -108,7 +119,8 @@ while [ -n "$1" ]; do
      done 
    fi
    ls "$TMPDIR" | sed -e "s#\....##g" | sort | uniq >"$TMPDIR"/.files 
-   tgr2sec -objects <"$TMPDIR"/.files >>"$FILE"
+   echo "oldstyleoption = $OLDSTYLEOPTION"
+   tgr2sec $OLDSTYLEOPTION -objects <"$TMPDIR"/.files >>"$FILE"
    if [ "$?" -ne "0" ]; then
       echo "Error while converting data " >&2
       exit 3

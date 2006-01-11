@@ -42,6 +42,7 @@ using namespace std;
 
 static string srcdir="tmp";
 static string dbname="tiger";
+static bool oldStyle=false;
 
 
 /*
@@ -1399,10 +1400,12 @@ Functions for writing a database from the tiger files
 */
 void writeDBHeader(ostream& out){
    out << "(DATABASE " << dbname << endl;
-   out << "   (DESCRIPTIVE ALGEBRA)" << endl;
-   out << "      (TYPES)" << endl;
-   out << "      (OBJECTS) " << endl;
-   out << "   (EXECUTABLE ALGEBRA)" << endl;
+   if(oldStyle){
+      out << "   (DESCRIPTIVE ALGEBRA)" << endl;
+      out << "      (TYPES)" << endl;
+      out << "      (OBJECTS) " << endl;
+      out << "   (EXECUTABLE ALGEBRA)" << endl;
+   }
    out << "     (TYPES) " << endl;
    out << "     (OBJECTS " << endl;
 }
@@ -1566,7 +1569,10 @@ bool writeRT1_2Relation(string filename, ostream& out){
         lines++;
       }
    }
-   out << ") () )" << endl;  // close value and object
+   if(oldStyle)
+      out << ") () )" << endl;  // close value and object
+   else
+      out << ")   )" << endl; // the same thing without model
    fin.close();
    return true;
 }
@@ -1576,7 +1582,7 @@ void writeSimpleRelation(string filename,ostream& out){
    string fn = filename +"." + RT::Extension();
    ifstream in((srcdir+fn).c_str());
    if(!in){
-      cerr << "Waring: can't not open file " << fn << endl;
+      cerr << "Warning: can't not open file " << fn << endl;
       return;
    } else{
       out << "(OBJECT " << filename << "_" << RT::Extension() << " () " << endl;
@@ -1598,7 +1604,10 @@ void writeSimpleRelation(string filename,ostream& out){
       }
       in.close();
    }
-   out << " )  () ) " << endl;
+   if(oldStyle)
+       out << " )  () ) " << endl;
+   else
+       out << " )  )" << endl;
 }
 
 
@@ -1659,8 +1668,10 @@ void writeRT7Relation(string filename,ostream& out, const bool points){
       }
    }
    in.close();
-  
-  out << ") () )" << endl;
+  if(oldStyle)
+      out << ") () )" << endl;
+  else
+      out << " )  )" << endl;
 }
 
 
@@ -1668,6 +1679,8 @@ void writeRT7Relation(string filename,ostream& out, const bool points){
 void showUsage(){
    cerr << "tgr2sec [options] [files] " << endl;
    cerr << "where options are: " << endl;
+   cerr << " --oldstyle : use old styled database and ";
+   cerr << "object representations" << endl;
    cerr << " -o <filename>  : write to <filename>";
    cerr << " instead of cout " << endl;
    cerr << " -src <directoryname> : read the files from";
@@ -1754,6 +1767,12 @@ bool processArgument(int argc, char** argv, int& argpos){
   string arg=argv[argpos];
   if(arg[0]!='-'){ // no option, assuming here starts the file section
      return false;
+  }
+
+  if(arg=="-oldstyle" || arg=="--oldstyle"){
+     oldStyle=true;
+     argpos++;
+     return true;
   }
 
   if(arg=="-help" || arg=="-?" || arg=="-h"){
