@@ -8,6 +8,13 @@ TRACE=false
 HEIGHT=false
 SPEED=false
 
+if [ "$1" = "--oldstyle" ]; then
+  END=")())"
+  shift
+else
+  END="))";
+
+
 function showUsage() {
   echo "usage: Traces2SecDB [options] <relation name> <file_1> ... <file_n>" >&2
   echo "allowed options: " >&2
@@ -154,4 +161,4 @@ do
 done                         
 
 # print end
-echo ' ) () )'; 
+echo "$END" 
