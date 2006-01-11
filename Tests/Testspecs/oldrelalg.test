@@ -29,7 +29,6 @@ delete database mrelalgtest;
 #setup
 create database mrelalgtest;
 open database mrelalgtest;
-e
 
 (create empty : (mrel(mtuple((no int)))));
 (update empty := ((mrel(mtuple((no int))))()));

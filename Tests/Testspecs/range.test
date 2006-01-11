@@ -27,7 +27,6 @@ delete database rangetest;
 #setup
 create database rangetest;
 open database rangetest;
-e
 
 (create rangerel : (rel(tuple((no int)(r rint)))));
 (update rangerel := ((rel(tuple((no int)(r rint))))

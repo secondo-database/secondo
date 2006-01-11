@@ -27,7 +27,6 @@ delete database polytest;
 #setup
 create database polytest;
 open database polytest;
-e
 
 create polysmall: polygon;
 update polysmall := [const polygon value ((0 0)(1 1)(2 2)(3 3))];

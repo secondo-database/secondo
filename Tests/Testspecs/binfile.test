@@ -27,7 +27,6 @@ delete database binfiletest;
 #setup
 create database binfiletest;
 open database binfiletest;
-e
 
 (create a : binfile);
 (update a := (binfile <file>binfile.test</file--->));

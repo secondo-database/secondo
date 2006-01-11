@@ -29,7 +29,6 @@ delete database networktest;
 #setup
 create database networktest;
 open database networktest;
-e
 
 (create r : (rel(tuple((id int)(length real)(curve line)(kind bool)(start bool)))));
 (update r := ((rel(tuple((id int)(length real)(curve line)(kind bool)(start bool))))(
