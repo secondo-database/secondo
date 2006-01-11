@@ -19,9 +19,10 @@ You can also move the times by changing the DeltaTime constant within this file.
 
 The tool is compiled by calling make within a bash. 
 The converter itself is invoked by
-java RTreePortal2MPoint <source> <ObjectName> [><target>]
+java RTreePortal2MPoint [--oldstyle] <source> <ObjectName> [><target>]
 Normaly, the converter write its output the the std-output. So it is easy it to write
 into a file. 
+Using the --oldstyle option, an empty list for the model will be part of the produced list.
 
 
  

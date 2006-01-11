@@ -113,13 +113,18 @@ private static Entry[] readDataSetFromFile(File F){
 
 
 public static void main(String[] args){
-
-   File F = new File(args[0]);
+   int start=0;
+   boolean oldStyle=false;
+   if(args.length>0 && args[0].equals("--oldstyle")){
+      oldStyle=true;
+      start++;
+   }
+   File F = new File(args[start]);
    Entry[] data = readDataSetFromFile(F);
    long lastid = -1; // 
 
    /* write the type */
-   out.println(" ( OBJECT " + args[1] + "()");
+   out.println(" ( OBJECT " + args[start+1] + "()");
    out.println("    ( rel ( tuple ( ");
    out.println("                    (id int)");
    out.println("                    (trip mpoint)");
@@ -145,8 +150,10 @@ public static void main(String[] args){
       uw.appendPoint(E.x,E.y,TimeUnit*E.time+DeltaTime);
    }
    out.println(" ) ) "); // close clast mpoint and the last tuple
-
-   out.println(" ) () ) "); // close valuelist and object
+   if(oldStyle)
+       out.println(" ) () ) "); // close valuelist and object
+   else
+       out.println(" ) ) ");  // do the same thinmg without model
 
 
 }
