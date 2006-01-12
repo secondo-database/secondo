@@ -5167,7 +5167,7 @@ ValueMapping p_IntersectsValueMap[] =
    {p_inter_ll, p_inter_lr, p_inter_rl, p_inter_rr };
 
 Operator pIntersects
-   ( "p_inter", p_IntersectsSpec, 4, p_IntersectsValueMap,
+   ( "p_intersects", p_IntersectsSpec, 4, p_IntersectsValueMap,
      IntersectsSelectCompute, IntersectsMap);
 
 
