@@ -27,6 +27,7 @@ import sj.lang.ListExpr;
 import java.util.*;
 import gui.SecondoObject;
 import gui.Environment;
+import java.io.*;
 
 
 
@@ -328,6 +329,55 @@ class Node{
           }
         }
    }
+
+   /** Save this tree to F in LaTex format.
+     * The output goes wrong when label contain any latex 
+     * commands
+     **/
+    boolean saveAsLatex(File F){
+      if(F.exists())
+         return false;
+      try{
+          PrintWriter out = new PrintWriter(new FileWriter(F));
+          // print latex header
+          out.println("\\documentclass{article}");
+          out.println("\\usepackage{pst-tree,pst-eps}");
+          out.println("\\pagestyle{empty}");
+          out.println("\\begin{document}");
+          out.println("\\thispagestyle{empty}");
+          out.println("\\TeXtoEPS%");
+          printRecTo(out);
+          out.println("\\endTeXtoEPS");
+          out.println("\\end{document}");
+          out.close();
+      }catch(Exception e){
+        if(gui.Environment.DEBUG_MODE){
+          e.printStackTrace();
+        }
+        return false;
+      }
+      return true;
+   }
+
+   /** Supports saveAsLatex **/
+   private void printRecTo(PrintWriter out) {
+     // this is a tree
+     if(sons!=null)
+         out.println("{\\pstree[levelsep=1cm,treesep=0.5cm,edge=\\ncline{->}]%");
+     // save label as root
+     out.println("{ \\Tr{\\psframebox[framearc=0.5]{"+Label+"}}}%");
+     // perform all sons
+     if(sons!=null){
+        out.println("{%");
+        for(int i=0;i<sons.length;i++){
+            if(sons[i]!=null){
+               sons[i].printRecTo(out);
+            }
+        }
+        out.println("}}%"); // close sons and this tree
+     }
+   } 
+
    String Label;
    Node[] sons;
    double sonswidth =0;
@@ -557,6 +607,7 @@ public TreeViewer(){
   add(ChoiceBox,BorderLayout.NORTH);
   add(TPP,BorderLayout.CENTER);
   JPanel ControlPanel = new JPanel();
+  ControlPanel.add(SaveBtn);
   ControlPanel.add(FitBtn);
   ControlPanel.add(ZoomInBtn);
   ControlPanel.add(ZoomOutBtn);
@@ -588,6 +639,26 @@ public TreeViewer(){
            }
     }
   };
+  SaveBtn.addActionListener(new ActionListener(){
+      public void actionPerformed(ActionEvent evt){
+        if(TPP.Tree==null){
+           JOptionPane.showMessageDialog(null,"no tree present");
+        }
+        JFileChooser FC = new JFileChooser();
+        if(FC.showSaveDialog(null)==JFileChooser.APPROVE_OPTION){
+           File F = FC.getSelectedFile();
+           if(F.exists()){
+              JOptionPane.showMessageDialog(null,"File "+ F.getName()+" alreday exists");
+              return;
+           }
+           if(!TPP.Tree.saveAsLatex(F)){
+              JOptionPane.showMessageDialog(null,"error occured");
+           } else{
+              JOptionPane.showMessageDialog(null,"tree stored");
+           }
+        }
+      }
+  });
   UpBtn.addActionListener(AL);
   DownBtn.addActionListener(AL);
   LeftBtn.addActionListener(AL);
@@ -723,6 +794,7 @@ public double getDisplayQuality(SecondoObject o){
 
 
 private JComboBox ChoiceBox = new JComboBox();
+private JButton SaveBtn= new JButton("LaTeX");
 private JButton UpBtn=new JButton("^");
 private JButton DownBtn = new JButton("v");
 private JButton LeftBtn = new JButton("<");;
