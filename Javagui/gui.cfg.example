@@ -107,5 +107,5 @@ FORMATTED_TEXT true
 
 #set to true if list for objects should contain a list describing
 #the model
-OLD_OBJECT_STYLE true
+OLD_OBJECT_STYLE  false
 
