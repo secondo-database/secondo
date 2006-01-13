@@ -898,14 +898,18 @@ example23 :- optimize(
 */
 
 showSingleRelationCard(DB, Rel) :-
-  storedCard(DB, Rel, Card),
+  secRelation(Rel, RelExternal),
+  lowerfl(RelExternal, RelExternalL),
+  storedCard(DB, RelExternalL, Card),
   write('\n\n\tCardinality:   '), write(Card), nl, !.
 
 showSingleRelationCard(_, _) :-
   write('\n\n\tCardinality:   *'), nl, !.
 
 showSingleRelationTuplesize(DB, Rel) :-  
-  storedTupleSize(DB, Rel, Size),
+  secRelation(Rel, RelExternal),
+  lowerfl(RelExternal, RelExternalL),
+  storedTupleSize(DB, RelExternalL, Size),
   write('\tAvg.TupleSize: '), write(Size), nl, !.
 
 showSingleRelationTuplesize(_, _) :-
@@ -913,7 +917,9 @@ showSingleRelationTuplesize(_, _) :-
 
 showSingleIndex(Rel) :-
   databaseName(DB),
-  storedIndex(DB, Rel, Attr, IndexType, _),
+  secRelation(Rel, RelExternal),
+  lowerfl(RelExternal, RelExternalL),
+  storedIndex(DB, RelExternalL, Attr, IndexType, _),
   secAttr(Rel, Attr, AttrS),
   write('\t('), write(AttrS), write(':'), write(IndexType), write(')').
 

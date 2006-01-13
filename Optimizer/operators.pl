@@ -107,6 +107,7 @@ removeTC(X)   :- machineSpeedFactor(CPU,_), X is CPU * 0.00364, !. % OK
 renameTC(X)   :- machineSpeedFactor(CPU,_), X is CPU * 0.00017, !. % OK
 projectTC(X,Y):- machineSpeedFactor(CPU,_), X is CPU * 0.00385,    % OK Average cost
                  Y is CPU * 0.00002479, !.                         % OK more exact: 0.00002479 ms per byte
+aggregateTC(X):- machineSpeedFactor(CPU,_), X is CPU * 0.00017, !. % Not tested!
 
 
 /*
@@ -138,7 +139,42 @@ isBBoxOperator(commonborderscan).
 
 
 /*
-3 Properties Of Certain OperatorsDatatypes
+Aggregation operators use a common cost function. They can be recognized by predicate
+~isAggregationOP(OP)~.
+
+*/
+isAggregationOP(count).
+isAggregationOP(min).
+isAggregationOP(max).
+isAggregationOP(sum).
+isAggregationOP(avg).
+
+/*
+Blocking operators are recognized by predicate ~isBlockingOP(OP)~. Non-blocking
+operators can be aborted early, e.g. by the operator ``head''.
+
+*/
+
+isBlockingOP(X) :- isAggregationOP(X), !.
+isBlockingOP(sort).
+isBlockingOP(sortby).
+isBlockingOP(hashjoin).
+isBlockingOP(loopjoin).
+isBlockingOP(sortmergejoin).
+isBlockingOP(product).
+
+
+/*
+Some operators expect sorted input:
+
+*/
+
+expectsSortedInput(mergejoin).  % ordered on join attributes
+expectsSortedInput(rdup).       % totally ordered
+expectsSortedInput(groupby).    % ordered on group attributes
+
+/*
+3 Properties Of Certain Datatypes
 
 ~noFlobType(Type)~ indicates that Secondo datatype ~type~ does not have any
 flobs. For attributes of these datatypes, the average inline flob size is not queried
@@ -173,5 +209,51 @@ noFlobType(instant).
 noFlobType(duration).
 noFlobType(tid).
 
+/*
+4 Properties of the optimizer
+
+Some features may be switched on or off:
+
+ * use uniform machine speed factor (1.0) / use determined system speed (var.)
+ * apply costs to pre- and post optimization operations 
+ * debugging messages
+
+*/
+
+:- dynamic(optConjunctiveCosts/0),
+   dynamic(optDebug/0),
+   % assert(optUniformSpeed),     % Uncomment to use uniform uniform machine speed factor (1.0)
+   % assert(optConjunctiveCosts), % Uncomment to apply costs only to operators considered by dijkstra
+   % assert(optDebug).            % Uncomment to see debugging output
+
+
+ppCostFactor(0) :-
+  optConjunctiveCosts, !.
+
+ppCostFactor(1) :- !.
+ 
+optionTotalCosts :-
+  retractall(optConjunctiveCosts), 
+  write('\nNow, all costs will be applied! - type \'optionConjunctiveCosts\' to calculate cost of the conjunctive query only.\n\n'),
+  !.
+
+optionConjunctiveCosts :-
+  retractall(optConjunctiveCosts),
+  assert(optConjunctiveCosts), 
+  write('\nNow, only costs from the conjubctive query are applied! - type \'optionTotalCosts\' to calculate all costs.\n\n'),
+  !.
+
+toggleDebug :-
+ optDebug,
+ retract(optDebug),
+ write('\nNow surpressing debugging output.'),
+ !.
+
+toggleDebug :-
+ not(optDebug),
+ assert(optDebug),
+ write('\nNow displaying debugging output.'),
+ !.
+ 
 
 
