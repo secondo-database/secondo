@@ -1404,7 +1404,7 @@ static Word CreateCcPoints(const ListExpr typeInfo) {
 
 */
 
-static void DeleteCcPoints(Word &w) {
+static void DeleteCcPoints(const ListExpr typeInfo, Word &w) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //cout << "++++++++++++++++++++ called Delete of CcPointss +++++++++++++++++++++++++" << endl; 
   //((CcPoints*)w.addr)->Finalize();
@@ -1417,7 +1417,7 @@ static void DeleteCcPoints(Word &w) {
 
 */
 
-static void CloseCcPoints(Word & w) {
+static void CloseCcPoints(const ListExpr typeInfo, Word & w) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //cout << "++++++++++++++++++++ called Close of CcPoints +++++++++++++++++++++++++" << endl; 
   delete (CcPoints *)w.addr;
@@ -1429,7 +1429,7 @@ static void CloseCcPoints(Word & w) {
 
 */
 
-static Word CloneCcPoints(const Word &w) {
+static Word CloneCcPoints(const ListExpr typeInfo, const Word &w) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return SetWord(((CcPoints *)w.addr)->Clone());
 }
@@ -1987,7 +1987,7 @@ static Word CreateCcLines(const ListExpr typeInfo) {
  Deletion of a CcLines object. 
 
 */
- static void DeleteCcLines(Word &w) {
+ static void DeleteCcLines(const ListExpr typeInfo, Word &w) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //cout << "++++++++++++++++++++ called Delete of CcLines +++++++++++++++++++++++++" << endl;
   //((CcLines*)w.addr)->Finalize();
@@ -1999,7 +1999,7 @@ static Word CreateCcLines(const ListExpr typeInfo) {
  Close a CcLines object. 
 
 */
-static void CloseCcLines(Word & w) {
+static void CloseCcLines(const ListExpr typeInfo, Word & w) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //cout << "++++++++++++++++++++ called Close of CcLines +++++++++++++++++++++++++" << endl;
   delete (CcLines *)w.addr;
@@ -2011,7 +2011,7 @@ static void CloseCcLines(Word & w) {
 
 */
 
-static Word CloneCcLines(const Word &w) {
+static Word CloneCcLines(const ListExpr typeInfo, const Word &w) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return SetWord(((CcLines *)w.addr)->Clone());
 }
@@ -2574,7 +2574,7 @@ static Word CreateCcRegions(const ListExpr typeInfo) {
 
 */
 
-static void DeleteCcRegions(Word &w) {
+static void DeleteCcRegions(const ListExpr typeInfo, Word &w) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //cout << "++++++++++++++++++++ called Delete of CcRegions +++++++++++++++++++++++++" << endl; 
   //((CcRegions*)w.addr)->Finalize();
@@ -2587,7 +2587,7 @@ static void DeleteCcRegions(Word &w) {
 
 */
 
-static void CloseCcRegions(Word & w) {
+static void CloseCcRegions(const ListExpr typeInfo, Word & w) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //cout << "++++++++++++++++++++ called Close of CcRegions +++++++++++++++++++++++++" << endl;
   delete (CcRegions *)w.addr;
@@ -2599,7 +2599,7 @@ static void CloseCcRegions(Word & w) {
 
 */
 
-static Word CloneCcRegions(const Word &w) {
+static Word CloneCcRegions(const ListExpr typeInfo, const Word &w) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return SetWord(((CcRegions *)w.addr)->Clone());
 }

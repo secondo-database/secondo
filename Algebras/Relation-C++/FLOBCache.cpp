@@ -39,6 +39,8 @@ Victor Almeida, 08/12/2005.
 
 using namespace std;
 
+#define __NEW_FLOB__
+
 /*
 2 Implementation of class LRUTable 
 
@@ -208,17 +210,35 @@ char *FLOBCache::GetFLOB( SmiFileId fileId, SmiRecordId lobId,
       files.find( key.fileId );
 
     SmiRecordFile *file;
-    SmiRecord record;
     if( iter == files.end() )
     {
+#ifndef __NEW_FLOB__
       file = new SmiRecordFile( false, 0, isTempFile );
+#else
+      file = new SmiRecordFile( true, 4050, isTempFile );
+#endif
       file->Open( key.fileId );
       files.insert( make_pair( key.fileId, file ) );
     }
     else
       file = iter->second;
+
+    SmiRecord record;
     file->SelectRecord( key.recordId, record );
+
+#ifndef __NEW_FLOB__
     record.Read( flob, key.size, 0 );
+#else
+    int i, j;
+    for( i = 0, j = 1; i+4050 < key.size; i += 4050, j++ )
+    {
+      record.Read( flob+i, 4050, 0 );
+      record.Finish();
+      file->SelectRecord( key.recordId+j, record );
+    }
+    record.Read( flob+i, key.size - i, 0 );
+#endif
+
     Insert( key, flob );
     Counter::getRef("RA:FLOBCacheMisses")++;
   }
@@ -236,7 +256,11 @@ void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
   if( fileId == 0 )
   {
     assert( lobId == 0 );
+#ifndef __NEW_FLOB__
     file = new SmiRecordFile( false, 0, isTempFile );
+#else
+    file = new SmiRecordFile( true, 4050, isTempFile );
+#endif
     if( !file->Create() )
     {
       string error;
@@ -254,7 +278,11 @@ void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
 
     if( iter == files.end() )
     {
+#ifndef __NEW_FLOB__
       file = new SmiRecordFile( false, 0, isTempFile );
+#else
+      file = new SmiRecordFile( true, 4050, isTempFile );
+#endif
       file->Open( fileId );
       files.insert( make_pair( fileId, file ) );
     }
@@ -262,13 +290,32 @@ void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
       file = iter->second;
   }
 
-  SmiRecord lob;
-  if( lobId == 0 )
-    assert( file->AppendRecord( lobId, lob ) );
+  SmiRecord record;
+  bool append = lobId == 0;
+  if( append )
+    assert( file->AppendRecord( lobId, record ) );
   else
-    assert( file->SelectRecord( lobId, lob ) );
+    assert( file->SelectRecord( lobId, record ) );
 
-  lob.Write( flob, size, 0 );
+#ifndef __NEW_FLOB__
+  record.Write( flob, size, 0 );
+#else
+  SmiRecordId newLobId;
+  int i, j;
+  for( i = 0, j = 0; i+4050 < size; i += 4050, j++ )
+  {
+    record.Write( flob+i, 4050, 0 );
+    record.Finish();
+    if( append )
+      assert( file->AppendRecord( newLobId, record ) );
+    else
+    {
+      newLobId = lobId + j;
+      assert( file->SelectRecord( lobId, record ) );
+    }
+  }
+  record.Write( flob+i, size - i, 0 );
+#endif
 }
 
 void FLOBCache::Clear()
@@ -321,7 +368,11 @@ void FLOBCache::Truncate( SmiFileId fileId, bool isTemp )
 
     if( iter == files.end() )
     {
+#ifndef __NEW_FLOB__
       file = new SmiRecordFile( false, 0, isTemp );
+#else
+      file = new SmiRecordFile( true, 4050, isTemp );
+#endif
       file->Open( fileId );
     }
     else
@@ -340,7 +391,11 @@ void FLOBCache::Drop( SmiFileId fileId, bool isTemp )
 
     if( iter == files.end() )
     {
+#ifndef __NEW_FLOB__
       file = new SmiRecordFile( false, 0, isTemp );
+#else
+      file = new SmiRecordFile( true, 4050, isTemp );
+#endif
       assert( file->Open( fileId ) );
     }
     else

@@ -1061,7 +1061,13 @@ Precondition: dbState = dbOpen.
       {
         if ( oPos->second.valueDefined )
         {
-          (am->DeleteObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
+          ListExpr typeInfo, typeExpr;
+          nl->ReadFromString( oPos->second.typeExpr, typeExpr );
+          typeInfo = NumericType( nl->First( typeExpr ) ); 
+          (am->DeleteObj( oPos->second.algebraId, oPos->second.typeId ))
+            ( typeInfo, oPos->second.value );
+          nl->Destroy( typeExpr );
+          nl->Destroy( typeInfo );
         }
         objects.erase( oPos );
       }
@@ -1079,7 +1085,7 @@ Precondition: dbState = dbOpen.
     oEntry.value        = value;
     oEntry.valueDefined = defined;
     oEntry.typeName     = typeName;
-    nl->WriteToString( oEntry.typeExpr, typeExpr );
+    nl->WriteToString( oEntry.typeExpr, nl->OneElemList( typeExpr ) );
     LookUpTypeExpr( typeExpr, typecon, oEntry.algebraId, oEntry.typeId );
     objects.insert( make_pair( objectName, oEntry ) );
     ok = true;
@@ -1269,7 +1275,7 @@ Closes a given ~object~ of type ~type~.
     }
     alId = nl->IntValue( nl->First( pair ) );
     typeId = nl->IntValue( nl->Second( pair ) );
-    ( am->CloseObj( alId, typeId ))( object );
+    ( am->CloseObj( alId, typeId ))( numtype, object );
   }
 }
 
@@ -1602,7 +1608,12 @@ new value ~value~. Returns error 1 if object does not exist.
       if( oPos->second.valueDefined )
       {
         ObjectDeletion del = am->DeleteObj( oPos->second.algebraId, oPos->second.typeId );
-        del( oPos->second.value );
+        ListExpr typeExpr, typeInfo;
+        nl->ReadFromString( oPos->second.typeExpr, typeExpr );
+        typeInfo = NumericType( nl->First( typeExpr ) );
+        del( typeInfo, oPos->second.value );
+        nl->Destroy( typeInfo );
+        nl->Destroy( typeExpr );
       }
       oPos->second.value = value;
       oPos->second.valueDefined = true;
@@ -1645,7 +1656,7 @@ new value ~value~. Returns error 1 if object does not exist.
           typeInfo = NumericType( nl->First( typeExpr ) );
 
           if( am->OpenObj( oEntry.algebraId, oEntry.typeId, vRec, offset, typeInfo, oldvalue ) )
-            del( oldvalue );
+            del( typeInfo, oldvalue );
 
           nl->Destroy( typeInfo );
           nl->Destroy( typeExpr );
@@ -1677,8 +1688,15 @@ object is only modified, so that no deletion function is necessary.
     assert( oPos->second.state != EntryDelete );
 
     if( oPos->second.value.addr != value.addr )
-      (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
-
+    {
+      ListExpr typeExpr, typeInfo;
+      nl->ReadFromString( oPos->second.typeExpr, typeExpr );
+      typeInfo = NumericType( nl->First( typeExpr ) );
+      (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))
+        ( typeInfo, oPos->second.value );
+      nl->Destroy( typeInfo );
+      nl->Destroy( typeExpr );
+    }
     oPos->second.value = value;
     oPos->second.valueDefined = true;
     found = true;
@@ -1728,14 +1746,20 @@ new value cloned from ~value~. Returns error 1 if object does not exist.
   {
     if ( oPos->second.state != EntryDelete )
     {
+      ListExpr typeExpr, typeInfo;
+      nl->ReadFromString( oPos->second.typeExpr, typeExpr );
+      typeInfo = NumericType( nl->First( typeExpr ) );
       if( oPos->second.valueDefined )
       {
         ObjectDeletion del = am->DeleteObj( oPos->second.algebraId, oPos->second.typeId );
-        del( oPos->second.value );
+        del( typeInfo, oPos->second.value );
       }
-      oPos->second.value = (am->CloneObj( oPos->second.algebraId, oPos->second.typeId ))( value );
+      oPos->second.value = (am->CloneObj( oPos->second.algebraId, oPos->second.typeId ))
+        ( typeInfo, value );
       oPos->second.valueDefined = true;
       found = true;
+      nl->Destroy( typeInfo );
+      nl->Destroy( typeExpr );
     }
   }
   else
@@ -1760,6 +1784,11 @@ new value cloned from ~value~. Returns error 1 if object does not exist.
       oEntry.typeExpr.assign( buffer, exprSize );
       delete []buffer;
       oEntry.state = EntryUpdate;
+
+      ListExpr typeExpr, typeInfo;
+      nl->ReadFromString( oEntry.typeExpr, typeExpr );
+      typeInfo = NumericType( nl->First( typeExpr ) );
+
       if( oEntry.valueDefined )
       {
         SmiRecord vRec;
@@ -1767,23 +1796,18 @@ new value cloned from ~value~. Returns error 1 if object does not exist.
         if ( objValueFile.SelectRecord( oEntry.valueRecordId, vRec ) )
         {
           Word oldvalue;
-          ListExpr typeExpr, typeInfo;
           ObjectDeletion del = am->DeleteObj( oEntry.algebraId, oEntry.typeId );
 
-          nl->ReadFromString( oEntry.typeExpr, typeExpr );
-          typeInfo = NumericType( nl->First( typeExpr ) );
-
           if( am->OpenObj( oEntry.algebraId, oEntry.typeId, vRec, offset, typeInfo, oldvalue ) )
-            del( oldvalue );
-
-          nl->Destroy( typeInfo );
-          nl->Destroy( typeExpr );
+            del( typeInfo, oldvalue );
         }
       }
       ObjectClone clone = am->CloneObj( oEntry.algebraId, oEntry.typeId );
-      oEntry.value = clone( value );
+      oEntry.value = clone( typeInfo, value );
       oEntry.valueDefined = true;
       objects.insert( make_pair( objectName, oEntry ) );
+      nl->Destroy( typeInfo );
+      nl->Destroy( typeExpr );
     }
   }
   return (found);
@@ -2418,7 +2442,8 @@ preserved and the objects are created with undefined values.
                 typeInfo = NumericType( nl->First( typeExpr ) );
                 am->SaveObj( oPos->second.algebraId, oPos->second.typeId,
                              vRec, offset, typeInfo, oPos->second.value );
-                (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
+                (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))
+                  ( typeInfo, oPos->second.value );
                 nl->Destroy( typeInfo );
                 nl->Destroy( typeExpr );
               }
@@ -2461,7 +2486,8 @@ preserved and the objects are created with undefined values.
                 typeInfo = NumericType( nl->First( typeExpr ) );
                 am->SaveObj( oPos->second.algebraId, oPos->second.typeId,
                              vRec, offset, typeInfo, oPos->second.value );
-                (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
+                (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))
+                  ( typeInfo, oPos->second.value );
                 nl->Destroy( typeInfo );
                 nl->Destroy( typeExpr );
               }
@@ -2481,7 +2507,13 @@ preserved and the objects are created with undefined values.
         {
           if ( oPos->second.valueDefined )
           {
-            (am->DeleteObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
+            ListExpr typeExpr, typeInfo;
+            nl->ReadFromString( oPos->second.typeExpr, typeExpr );
+            typeInfo = NumericType( nl->First( typeExpr ) );
+            (am->DeleteObj( oPos->second.algebraId, oPos->second.typeId ))
+              ( typeInfo, oPos->second.value );
+            nl->Destroy( typeInfo );
+            nl->Destroy( typeExpr );
           }
         }
         break;

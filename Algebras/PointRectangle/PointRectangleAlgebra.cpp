@@ -164,21 +164,21 @@ CreateXPoint( const ListExpr typeInfo )
 }
 
 void
-DeleteXPoint( Word& w )
+DeleteXPoint( const ListExpr typeInfo, Word& w )
 {
   delete (XPoint *)w.addr;
   w.addr = 0;
 }
 
 void
-CloseXPoint( Word& w )
+CloseXPoint( const ListExpr typeInfo, Word& w )
 {
   delete (XPoint *)w.addr;
   w.addr = 0;
 }
 
 Word
-CloneXPoint( const Word& w )
+CloneXPoint( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( ((XPoint *)w.addr)->Clone() );
 }
@@ -355,21 +355,21 @@ CreateXRectangle( const ListExpr typeInfo )
 }
 
 void
-DeleteXRectangle( Word& w )
+DeleteXRectangle( const ListExpr typeInfo, Word& w )
 {
   delete (XRectangle *)w.addr;
   w.addr = 0;
 }
 
 void
-CloseXRectangle( Word& w )
+CloseXRectangle( const ListExpr typeInfo, Word& w )
 {
   delete (XRectangle *)w.addr;
   w.addr = 0;
 }
 
 Word
-CloneXRectangle( const Word& w )
+CloneXRectangle( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( ((XRectangle *)w.addr)->Clone() );
 }

@@ -175,7 +175,7 @@ genericClone( int algebraId, int typeId, ListExpr typeInfo, Word object )
 
   // Try cloning with the clone function of the appropriate type
 
-  clone = (am->CloneObj(algebraId, typeId))(object);
+  clone = (am->CloneObj(algebraId, typeId))(typeInfo, object);
 
   if (clone.addr == 0) {
 
@@ -577,12 +577,12 @@ CreateArray( const ListExpr typeInfo )
 }
 
 void
-DeleteArray( Word& w )
+DeleteArray( const ListExpr typeInfo, Word& w )
 {
   w.addr = 0;
 }
 
-void CloseArray( Word& w )
+void CloseArray( const ListExpr typeInfo, Word& w )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
@@ -597,7 +597,7 @@ void CloseArray( Word& w )
     for (int i=0; i<array->getSize(); i++) {
       Word element = array->getElement(i);
       (am->CloseObj(array->getElemAlgId(),
-                    array->getElemTypeId()))(element);
+                    array->getElemTypeId()))(nl->TheEmptyList(), element);
     }
   }
 
@@ -607,7 +607,7 @@ void CloseArray( Word& w )
 }
 
 Word
-CloneArray( const Word& w )
+CloneArray( const ListExpr typeInfo, const Word& w )
 {
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
@@ -623,7 +623,7 @@ CloneArray( const Word& w )
   Word a[array->getSize()];
 
   for (int i=0; i < n; i++) {
-    a[i] = (am->CloneObj(algebraId, typeId))(array->getElement(i));
+    a[i] = (am->CloneObj(algebraId, typeId))(nl->TheEmptyList(), array->getElement(i));
 
     // Check whether cloning was successful
 
@@ -1664,7 +1664,7 @@ tieFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
     if (funresult.addr != partResult.addr) {
       if (i>1) {
-        (am->DeleteObj(algebraId, typeId))(partResult);
+        (am->DeleteObj(algebraId, typeId))(typeOfElement, partResult);
       }
       partResult = genericClone(algebraId, typeId, typeOfElement, funresult);
     }
@@ -1773,7 +1773,7 @@ cumulateFun( Word* args, Word& result, int message, Word& local, Supplier s )
       qp->Request(args[1].addr, funresult);
 
       if (funresult.addr != cumResult.addr) {
-        (am->DeleteObj(algebraId, typeId))(cumResult);
+        (am->DeleteObj(algebraId, typeId))(typeOfElement, cumResult);
         cumResult = genericClone(algebraId, typeId, typeOfElement, funresult);
       }
     }

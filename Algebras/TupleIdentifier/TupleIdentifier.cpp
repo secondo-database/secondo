@@ -147,21 +147,21 @@ CreateTupleIdentifier( const ListExpr typeInfo )
 }
 
 void
-DeleteTupleIdentifier( Word& w )
+DeleteTupleIdentifier( const ListExpr typeInfo, Word& w )
 {
   delete (TupleIdentifier *)w.addr;
   w.addr = 0;
 }
 
 void
-CloseTupleIdentifier( Word& w )
+CloseTupleIdentifier( const ListExpr typeInfo, Word& w )
 {
   delete (TupleIdentifier *)w.addr;
   w.addr = 0;
 }
 
 Word
-CloneTupleIdentifier( const Word& w )
+CloneTupleIdentifier( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( ((TupleIdentifier *)w.addr)->Clone() );
 }

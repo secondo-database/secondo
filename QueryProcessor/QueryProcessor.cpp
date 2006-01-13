@@ -1350,6 +1350,7 @@ function index.
         values[valueno].isList = false;
         values[valueno].algId = algId;
         values[valueno].typeId = typeId;
+        values[valueno].typeInfo = nl->SymbolAtom( "int" );
         values[valueno].value = value;
         valueno++;
         return (nl->TwoElemList(
@@ -1372,6 +1373,7 @@ function index.
         values[valueno].isList = false;
         values[valueno].algId = algId;
         values[valueno].typeId = typeId;
+        values[valueno].typeInfo = nl->SymbolAtom( "real" );
         values[valueno].value = value;
         valueno++;
         return (nl->TwoElemList(
@@ -1394,6 +1396,7 @@ function index.
         values[valueno].isList = false;
         values[valueno].algId = algId;
         values[valueno].typeId = typeId;
+        values[valueno].typeInfo = nl->SymbolAtom( "bool" );
         values[valueno].value = value;
         valueno++;
         return (nl->TwoElemList(
@@ -1416,6 +1419,7 @@ function index.
         values[valueno].isList = false;
         values[valueno].algId = algId;
         values[valueno].typeId = typeId;
+        values[valueno].typeInfo = nl->SymbolAtom( "string" );
         values[valueno].value = value;
         valueno++;
         return (nl->TwoElemList(
@@ -1438,6 +1442,7 @@ function index.
         values[valueno].isList = false;
         values[valueno].algId = algId;
         values[valueno].typeId = typeId;
+        values[valueno].typeInfo = nl->SymbolAtom( "text" );
         values[valueno].value = value;
         valueno++;
         return (nl->TwoElemList(
@@ -1462,6 +1467,7 @@ function index.
           values[valueno].isConstant = false;
           values[valueno].isList = false;
           values[valueno].algId = algId;
+          values[valueno].typeInfo = typeExpr;
           values[valueno].typeId = typeId;
 
           if ( !definedValue )
@@ -2204,10 +2210,12 @@ QueryProcessor::DestroyValuesArray()
     {
       if( values[i].isConstant )
         (algebraManager->DeleteObj
-          ( values[i].algId, values[i].typeId ))( values[i].value );
+          ( values[i].algId, values[i].typeId ))( values[i].typeInfo,
+                                                  values[i].value );
       else    
         (algebraManager->CloseObj
-          ( values[i].algId, values[i].typeId ))( values[i].value );
+          ( values[i].algId, values[i].typeId ))( values[i].typeInfo,
+                                                  values[i].value );
     }
   }
 }
@@ -2754,7 +2762,8 @@ Deletes an operator tree object.
           {
             if( tree->u.dobj.isConstant )
               (algebraManager->DeleteObj( algebraId, typeId )) 
-                ( tree->u.dobj.value );
+                ( GetCatalog()->NumericType( tree->typeExpr ),
+                  tree->u.dobj.value );
             else
             {
               if( tree->u.dobj.isModified ) 
@@ -2767,7 +2776,8 @@ Deletes an operator tree object.
               else 
               { 
                 (algebraManager->CloseObj( algebraId, typeId )) 
-                  ( tree->u.dobj.value );
+                  ( GetCatalog()->NumericType( tree->typeExpr ),
+                    tree->u.dobj.value );
               }
             }
           }
@@ -3097,11 +3107,14 @@ QueryProcessor::DeleteResultStorage( const Supplier s )
     if (!tree->u.op.deleteFun) 
     {
       algebraManager->DeleteObj( algId, typeId)
-        ( tree->u.op.resultWord );
+        ( GetCatalog()->NumericType( tree->typeExpr ),
+          tree->u.op.resultWord );
     }
     else
     {
-      tree->u.op.deleteFun( tree->u.op.resultWord );
+      tree->u.op.deleteFun( 
+        GetCatalog()->NumericType( tree->typeExpr ),
+        tree->u.op.resultWord );
     }
   }
 }

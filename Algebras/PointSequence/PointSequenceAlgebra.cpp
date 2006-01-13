@@ -424,7 +424,7 @@ Word CreatePointSequence(const ListExpr typeInfo)
 3.6 ~Delete~-function
 
 */
-void DeletePointSequence(Word& w)
+void DeletePointSequence(const ListExpr typeInfo, Word& w)
 {
   PointSequence* ps = (PointSequence*)w.addr;
   delete ps;
@@ -467,7 +467,7 @@ SavePointSequence( SmiRecord& valueRecord,
 3.8 ~Close~-function
 
 */
-void ClosePointSequence(Word& w)
+void ClosePointSequence(const ListExpr typeInfo, Word& w)
 {
   PointSequence* ps = (PointSequence*)w.addr;
   delete ps;
@@ -477,7 +477,7 @@ void ClosePointSequence(Word& w)
 3.9 ~Clone~-function
 
 */
-Word ClonePointSequence(const Word& w)
+Word ClonePointSequence(const ListExpr typeInfo, const Word& w)
 {
   return SetWord( ((PointSequence*)w.addr)->Clone() );
 }

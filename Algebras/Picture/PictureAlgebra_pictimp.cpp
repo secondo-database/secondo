@@ -746,7 +746,7 @@ static Word CreatePicture(const ListExpr typeInfo) {
     return SetWord(p);
 }
 
-static void DeletePicture(Word& w) {
+static void DeletePicture(const ListExpr typeInfo, Word& w) {
     if (PA_DEBUG) 
 	cerr << "DeletePicture() called for " 
 	     << (int) w.addr 
@@ -758,7 +758,7 @@ static void DeletePicture(Word& w) {
     if (PA_DEBUG) cerr << "DeletePicture() done" << endl;
 }
 
-static void ClosePicture(Word& w) {
+static void ClosePicture(const ListExpr typeInfo, Word& w) {
     if (PA_DEBUG) 
 	cerr << "ClosePicture() called for " 
 	     << (int) w.addr 
@@ -770,7 +770,7 @@ static void ClosePicture(Word& w) {
     if (PA_DEBUG) cerr << "ClosePicture() done" << endl;
 }
 
-static Word ClonePicture(const Word& w) {
+static Word ClonePicture(const ListExpr typeInfo, const Word& w) {
     if (PA_DEBUG) cerr << "ClonePicture() called" << endl;
 
     return SetWord(((Picture*) w.addr)->Clone());

@@ -840,21 +840,21 @@ static Word CreateHistogram(const ListExpr typeInfo) {
     return(SetWord( h ));
 }
 
-static void DeleteHistogram(Word& w) {
+static void DeleteHistogram(const ListExpr typeInfo, Word& w) {
     if (PA_DEBUG) cerr << "DeleteHistogram() called" << endl;
 
     delete (Histogram*) w.addr;
     w.addr = 0;
 }
 
-static void CloseHistogram(Word& w) {
+static void CloseHistogram(const ListExpr typeInfo, Word& w) {
     if (PA_DEBUG) cerr << "CloseHistogram() called" << endl;
 
     delete (Histogram *) w.addr;
     w.addr = 0;
 }
 
-static Word CloneHistogram(const Word& w) {
+static Word CloneHistogram(const ListExpr typeInfo, const Word& w) {
     if (PA_DEBUG) cerr << "CloneHistogram() called" << endl;
 
     return SetWord(((Histogram*) w.addr)->Clone());

@@ -505,21 +505,21 @@ CreateDate( const ListExpr typeInfo )
 }
 
 void
-DeleteDate( Word& w )
+DeleteDate( const ListExpr typeInfo, Word& w )
 {
   delete (Date*) w.addr;
   w.addr = 0;
 }
 
 void
-CloseDate( Word& w )
+CloseDate( const ListExpr typeInfo, Word& w )
 {
   delete (Date*) w.addr;
   w.addr = 0;
 }
 
 Word
-CloneDate( const Word& w )
+CloneDate( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( ((Date *)w.addr)->Clone() );
 }

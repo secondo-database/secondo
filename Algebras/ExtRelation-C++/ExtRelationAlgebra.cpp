@@ -2659,8 +2659,8 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           funargs = qp->Argument(supplier3);
           (*funargs)[0] = SetWord(tup);
           qp->Request(supplier3,value);
-          newTuple->PutAttribute( tup->GetNoAttributes()+i, (StandardAttribute*)value.addr );
-          qp->ReInitResultStorage( supplier3 );
+          newTuple->PutAttribute( tup->GetNoAttributes()+i, ((StandardAttribute*)value.addr)->Clone() );
+//          qp->ReInitResultStorage( supplier3 );
         }
         tup->DeleteIfAllowed();
         result = SetWord(newTuple);

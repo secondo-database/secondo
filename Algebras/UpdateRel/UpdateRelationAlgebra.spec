@@ -35,3 +35,8 @@ operator updatedirectsave alias UPDATEDIRECTSAVE pattern _ _ _ op [funlist]impli
 operator appendidentifier alias APPENDIDENTIFIER pattern _ op
 operator deletebyid alias DELETEBYID pattern _ op [ _ ]
 operator updatebyid alias UPDATEBYID pattern _ op [ _; funlist]implicit parameter tuple type TUPLE
+
+operator insertrtree alias INSERTRTREE pattern _ _ op [ _ ]
+operator deletertree alias DELETERTREE pattern _ _ op [ _ ]
+operator updatertree alias UPDATERTREE pattern _ _ op [ _ ]
+

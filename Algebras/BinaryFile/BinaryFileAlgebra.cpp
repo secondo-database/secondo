@@ -302,7 +302,7 @@ CreateBinaryFile( const ListExpr typeInfo )
 
 */
 void
-DeleteBinaryFile( Word& w )
+DeleteBinaryFile( const ListExpr typeInfo, Word& w )
 {
   BinaryFile *binFile = (BinaryFile *)w.addr;
   binFile->Destroy();
@@ -351,7 +351,7 @@ SaveBinaryFile( SmiRecord& valueRecord,
 
 */
 void
-CloseBinaryFile( Word& w )
+CloseBinaryFile( const ListExpr typeInfo, Word& w )
 {
   delete (BinaryFile *)w.addr;
   w.addr = 0;
@@ -362,7 +362,7 @@ CloseBinaryFile( Word& w )
 
 */
 Word
-CloneBinaryFile( const Word& w )
+CloneBinaryFile( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( ((BinaryFile *)w.addr)->Clone() );
 }

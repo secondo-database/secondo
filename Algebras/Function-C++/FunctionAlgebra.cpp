@@ -72,13 +72,13 @@ NoSpace( const ListExpr typeInfo )
 }
 
 void
-DoNothing( Word& w )
+DoNothing( const ListExpr typeInfo, Word& w )
 {
   w.addr = 0;
 }
 
 Word
-CloneNothing( const Word& w )
+CloneNothing( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( Address(0) );
 }

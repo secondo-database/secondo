@@ -345,7 +345,7 @@ CreateFText( const ListExpr typeInfo )
 }
 
 void
-DeleteFText( Word& w )
+DeleteFText( const ListExpr typeInfo, Word& w )
 {
   if(traces)
     cout << '\n' << "Start DeleteFText" << '\n';
@@ -357,7 +357,7 @@ DeleteFText( Word& w )
 }
 
 void
-CloseFText( Word& w )
+CloseFText( const ListExpr typeInfo, Word& w )
 {
   if(traces)
     cout << '\n' << "Start CloseFText" << '\n';
@@ -366,7 +366,7 @@ CloseFText( Word& w )
 }
 
 Word
-CloneFText( const Word& w )
+CloneFText( const ListExpr typeInfo, const Word& w )
 {
   if(traces)
     cout << '\n' << "Start CloneFText" << '\n';

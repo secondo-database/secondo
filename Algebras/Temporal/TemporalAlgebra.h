@@ -4171,7 +4171,7 @@ Word CreateRange( const ListExpr typeInfo )
 
 */
 template <class Alpha>
-void DeleteRange( Word& w )
+void DeleteRange( const ListExpr typeInfo, Word& w )
 {
   ((Range<Alpha> *)w.addr)->Destroy();
   delete (Range<Alpha> *)w.addr;
@@ -4183,7 +4183,7 @@ void DeleteRange( Word& w )
 
 */
 template <class Alpha>
-void CloseRange( Word& w )
+void CloseRange( const ListExpr typeInfo, Word& w )
 {
   delete (Range<Alpha> *)w.addr;
   w.addr = 0;
@@ -4194,7 +4194,7 @@ void CloseRange( Word& w )
 
 */
 template <class Alpha>
-Word CloneRange( const Word& w )
+Word CloneRange( const ListExpr typeInfo, const Word& w )
 {
   Range<Alpha> *r = (Range<Alpha> *)w.addr;
   return SetWord( r->Clone() );
@@ -4294,7 +4294,7 @@ Word CreateIntime( const ListExpr typeInfo )
 
 */
 template <class Alpha>
-void DeleteIntime( Word& w )
+void DeleteIntime( const ListExpr typeInfo, Word& w )
 {
   delete (Intime<Alpha> *)w.addr;
   w.addr = 0;
@@ -4305,7 +4305,7 @@ void DeleteIntime( Word& w )
 
 */
 template <class Alpha>
-void CloseIntime( Word& w )
+void CloseIntime( const ListExpr typeInfo, Word& w )
 {
   delete (Intime<Alpha> *)w.addr;
   w.addr = 0;
@@ -4316,7 +4316,7 @@ void CloseIntime( Word& w )
 
 */
 template <class Alpha>
-Word CloneIntime( const Word& w )
+Word CloneIntime( const ListExpr typeInfo, const Word& w )
 {
   Intime<Alpha> *intime = (Intime<Alpha> *)w.addr;
   return SetWord( new Intime<Alpha>( *intime ) );
@@ -4451,7 +4451,7 @@ Word CreateConstTemporalUnit( const ListExpr typeInfo )
 
 */
 template <class Alpha>
-void DeleteConstTemporalUnit( Word& w )
+void DeleteConstTemporalUnit( const ListExpr typeInfo, Word& w )
 {
   delete (ConstTemporalUnit<Alpha> *)w.addr;
   w.addr = 0;
@@ -4462,7 +4462,7 @@ void DeleteConstTemporalUnit( Word& w )
 
 */
 template <class Alpha>
-void CloseConstTemporalUnit( Word& w )
+void CloseConstTemporalUnit( const ListExpr typeInfo, Word& w )
 {
   delete (ConstTemporalUnit<Alpha> *)w.addr;
   w.addr = 0;
@@ -4473,7 +4473,7 @@ void CloseConstTemporalUnit( Word& w )
 
 */
 template <class Alpha>
-Word CloneConstTemporalUnit( const Word& w )
+Word CloneConstTemporalUnit( const ListExpr typeInfo, const Word& w )
 {
   ConstTemporalUnit<Alpha> *constunit = (ConstTemporalUnit<Alpha> *)w.addr;
   return SetWord( new ConstTemporalUnit<Alpha>( *constunit ) );
@@ -4624,7 +4624,7 @@ Word CreateMapping( const ListExpr typeInfo )
 
 */
 template <class Mapping>
-void DeleteMapping( Word& w )
+void DeleteMapping( const ListExpr typeInfo, Word& w )
 {
   ((Mapping *)w.addr)->Destroy();
   delete (Mapping *)w.addr;
@@ -4636,7 +4636,7 @@ void DeleteMapping( Word& w )
 
 */
 template <class Mapping>
-void CloseMapping( Word& w )
+void CloseMapping( const ListExpr typeInfo, Word& w )
 {
   delete (Mapping *)w.addr;
   w.addr = 0;
@@ -4647,7 +4647,7 @@ void CloseMapping( Word& w )
 
 */
 template <class Mapping>
-Word CloneMapping( const Word& w )
+Word CloneMapping( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( ((Mapping *)w.addr)->Clone() );
 }

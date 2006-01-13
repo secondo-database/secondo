@@ -27,7 +27,7 @@ include ../../makefile.env
 
 MODNAME = UpdateRelationAlgebra
 
-CCFLAGS = $(DEFAULTCCFLAGS) -I../Relation-C++ -I../TupleIdentifier
+CCFLAGS = $(DEFAULTCCFLAGS) -I../Relation-C++ -I../TupleIdentifier -I../RTree -I../Spatial -I../Rectangle
 
 # define the compiler flag -DRELALG_PERSISTENT in the file 
 # makefile.env to compile the Persistent Relational Algebra.

@@ -352,21 +352,21 @@ CreateCcInt( const ListExpr typeInfo )
 }
 
 void
-DeleteCcInt( Word& w )
+DeleteCcInt( const ListExpr typeInfo, Word& w )
 {
   delete (CcInt*) w.addr;
   w.addr = 0;
 }
 
 void
-CloseCcInt( Word& w )
+CloseCcInt( const ListExpr typeInfo, Word& w )
 {
   delete (CcInt*) w.addr;
   w.addr = 0;
 }
 
 Word
-CloneCcInt( const Word& w )
+CloneCcInt( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( ((CcInt*)w.addr)->Clone() );
 }
@@ -553,21 +553,21 @@ CreateCcReal( const ListExpr typeInfo )
 }
 
 void
-DeleteCcReal( Word& w )
+DeleteCcReal( const ListExpr typeInfo, Word& w )
 {
   delete (CcReal*)w.addr;
   w.addr = 0;
 }
 
 void
-CloseCcReal( Word& w )
+CloseCcReal( const ListExpr typeInfo, Word& w )
 {
   delete (CcReal*)w.addr;
   w.addr = 0;
 }
 
 Word
-CloneCcReal( const Word& w )
+CloneCcReal( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( ((CcReal*)w.addr)->Clone() );
 }
@@ -749,21 +749,21 @@ CreateCcBool( const ListExpr typeInfo )
 }
 
 void
-DeleteCcBool( Word& w )
+DeleteCcBool( const ListExpr typeInfo, Word& w )
 {
   delete (CcBool*)w.addr;
   w.addr = 0;
 }
 
 void
-CloseCcBool( Word& w )
+CloseCcBool( const ListExpr typeInfo, Word& w )
 {
   delete (CcBool*)w.addr;
   w.addr = 0;
 }
 
 Word
-CloneCcBool( const Word& w )
+CloneCcBool( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( ((CcBool*)w.addr)->Clone() );
 }
@@ -977,21 +977,21 @@ CreateCcString( const ListExpr typeInfo )
 }
 
 void
-DeleteCcString( Word& w )
+DeleteCcString( const ListExpr typeInfo, Word& w )
 {
   delete (CcString*)w.addr;
   w.addr = 0;
 }
 
 void
-CloseCcString( Word& w )
+CloseCcString( const ListExpr typeInfo, Word& w )
 {
   delete (CcString*)w.addr;
   w.addr = 0;
 }
 
 Word
-CloneCcString( const Word& w )
+CloneCcString( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( ((CcString*)w.addr)->Clone() );
 }

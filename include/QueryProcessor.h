@@ -616,6 +616,7 @@ Construct operator tree recursively for a given annotated ~expr~. See
     bool isList;
     int  algId;
     int  typeId;
+    ListExpr typeInfo;
     Word value;
   };
 /*

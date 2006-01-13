@@ -637,7 +637,7 @@ Word CreateRectangle( const ListExpr typeInfo )
 
 */
 template <unsigned dim>
-void DeleteRectangle( Word& w )
+void DeleteRectangle( const ListExpr typeInfo, Word& w )
 {
   delete (Rectangle<dim> *)w.addr;
   w.addr = 0;
@@ -648,7 +648,7 @@ void DeleteRectangle( Word& w )
 
 */
 template <unsigned dim>
-void CloseRectangle( Word& w )
+void CloseRectangle( const ListExpr typeInfo, Word& w )
 {
   delete (Rectangle<dim> *)w.addr;
   w.addr = 0;
@@ -659,7 +659,7 @@ void CloseRectangle( Word& w )
 
 */
 template <unsigned dim>
-Word CloneRectangle( const Word& w )
+Word CloneRectangle( const ListExpr typeInfo, const Word& w )
 {
   Rectangle<dim> *r = new Rectangle<dim>( *((Rectangle<dim> *)w.addr) );
   return SetWord( r );

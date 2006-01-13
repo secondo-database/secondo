@@ -1572,7 +1572,7 @@ Word CreateDuration(const ListExpr typeInfo){
 2.4 ~Delete~ function
 
 */
-void DeleteDateTime(Word &w){
+void DeleteDateTime(const ListExpr typeInfo, Word &w){
   DateTime* T = (DateTime*) w.addr;
   T->Destroy();
   delete T;
@@ -1612,7 +1612,7 @@ bool SaveDateTime( SmiRecord& valueRecord,
 2.7 ~Close~ function
 
 */
-void CloseDateTime( Word& w ){
+void CloseDateTime( const ListExpr typeInfo, Word& w ){
   delete (DateTime *)w.addr;
   w.addr = 0;
 }
@@ -1621,7 +1621,7 @@ void CloseDateTime( Word& w ){
 2.8 ~Clone~ function
 
 */
-Word CloneDateTime( const Word& w )
+Word CloneDateTime( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( ((DateTime *)w.addr)->Clone() );
 }

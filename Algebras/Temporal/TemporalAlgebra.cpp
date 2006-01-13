@@ -1106,7 +1106,7 @@ Word CreateUReal( const ListExpr typeInfo )
 4.8.7 ~Delete~-function
 
 */
-void DeleteUReal( Word& w )
+void DeleteUReal( const ListExpr typeInfo, Word& w )
 {
   delete (UReal *)w.addr;
   w.addr = 0;
@@ -1116,7 +1116,7 @@ void DeleteUReal( Word& w )
 4.8.8 ~Close~-function
 
 */
-void CloseUReal( Word& w )
+void CloseUReal( const ListExpr typeInfo, Word& w )
 {
   delete (UReal *)w.addr;
   w.addr = 0;
@@ -1126,7 +1126,7 @@ void CloseUReal( Word& w )
 4.8.9 ~Clone~-function
 
 */
-Word CloneUReal( const Word& w )
+Word CloneUReal( const ListExpr typeInfo, const Word& w )
 {
   UReal *ureal = (UReal *)w.addr;
   return SetWord( new UReal( *ureal ) );
@@ -1323,7 +1323,7 @@ Word CreateUPoint( const ListExpr typeInfo )
 4.9.7 ~Delete~-function
 
 */
-void DeleteUPoint( Word& w )
+void DeleteUPoint( const ListExpr typeInfo, Word& w )
 {
   delete (UPoint *)w.addr;
   w.addr = 0;
@@ -1333,7 +1333,7 @@ void DeleteUPoint( Word& w )
 4.9.8 ~Close~-function
 
 */
-void CloseUPoint( Word& w )
+void CloseUPoint( const ListExpr typeInfo, Word& w )
 {
   delete (UPoint *)w.addr;
   w.addr = 0;
@@ -1343,7 +1343,7 @@ void CloseUPoint( Word& w )
 4.9.9 ~Clone~-function
 
 */
-Word CloneUPoint( const Word& w )
+Word CloneUPoint( const ListExpr typeInfo, const Word& w )
 {
   UPoint *upoint = (UPoint *)w.addr;
   return SetWord( new UPoint( *upoint ) );

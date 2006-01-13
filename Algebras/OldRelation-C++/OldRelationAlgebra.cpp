@@ -5626,9 +5626,9 @@ class ~TypeConstructor~. Constructor's arguments are the type constructor's
 name and the eleven functions previously defined.
 
 */
-void DummyDelete(Word& w) {};
-void DummyClose(Word& w) {};
-Word DummyClone(const Word& w) { return SetWord( Address(0) ); };
+void DummyDelete(const ListExpr, Word& w) {};
+void DummyClose(const ListExpr, Word& w) {};
+Word DummyClone(const ListExpr, const Word& w) { return SetWord( Address(0) ); };
 int DummySizeOf() { return 0; }
 
 TypeConstructor ccreltuple( "mtuple",             CcTupleProp,

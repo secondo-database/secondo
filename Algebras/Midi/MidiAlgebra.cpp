@@ -1811,7 +1811,7 @@ Word CreateMidi( const ListExpr typeInfo )
 2.7 ~Delete~-function
 
 */
-void DeleteMidi( Word& w )
+void DeleteMidi( const ListExpr typeInfo, Word& w )
 {
   Midi *midi = (Midi *)w.addr;
   midi->Destroy();
@@ -1823,7 +1823,7 @@ void DeleteMidi( Word& w )
 2.8 ~Close~-function
 
 */
-void CloseMidi( Word& w )
+void CloseMidi( const ListExpr typeInfo, Word& w )
 {
   delete (Midi *)w.addr;
   w.addr = 0;
@@ -1833,7 +1833,7 @@ void CloseMidi( Word& w )
 2.9 ~Clone~-function
 
 */
-Word CloneMidi( const Word& w )
+Word CloneMidi( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( ((Midi *)w.addr)->Clone() );
 }
@@ -1851,7 +1851,7 @@ int SizeOfMidi()
 2.11 ~Cast~-function
 
 */
-void* CastMidi( void* addr )
+void* CastMidi( const ListExpr typeInfo, void* addr )
 {
   return new (addr) Midi;
 }

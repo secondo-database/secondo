@@ -440,7 +440,7 @@ Word CreateNetwork(const ListExpr typeInfo)
 3.6 ~Close~-function of type constructor ~network~
 
 */
-void CloseNetwork(Word& w)
+void CloseNetwork(const ListExpr typeInfo, Word& w)
 {
   delete (Network*)w.addr;
 }
@@ -451,7 +451,7 @@ void CloseNetwork(Word& w)
 Not implemented yet.
 
 */
-Word CloneNetwork(const Word& w)
+Word CloneNetwork(const ListExpr typeInfo, const Word& w)
 {
   return SetWord( Address(0) );
 }
@@ -460,7 +460,7 @@ Word CloneNetwork(const Word& w)
 3.8 ~Delete~-function of type constructor ~network~
 
 */
-void DeleteNetwork(Word& w)
+void DeleteNetwork(const ListExpr typeInfo, Word& w)
 {
   Network* n = (Network*)w.addr;
   n->Destroy();

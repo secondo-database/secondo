@@ -140,8 +140,6 @@ If set, Krigel et al's axis split algorithm is performed.
 
 3 Struct ~R\_TreeEntry~
 
-This struct will store an entry inside a node of the R\_Tree.
-
 */
 template<unsigned dim>
 struct R_TreeEntry
@@ -153,27 +151,192 @@ object. If it is an internal entry, the bounding box contains all bounding
 boxes of the entries of its child node.
 
 */
+
+  virtual ~R_TreeEntry() 
+  {}
+/*
+The virtual destructor.
+
+*/
+  virtual void Read( char *buffer, int& offset ) = 0;
+/*
+Reads an entry from the buffer. Offset is increased.
+
+*/
+  virtual void Write( char *buffer, int& offset ) = 0;
+/*
+Writes an entry to the buffer. Offset is increased.
+
+*/
+};
+
+/*
+3 Struct ~R\_TreeInternalEntry~
+
+This struct will store an entry inside an internal node of the R\_Tree.
+
+*/
+template<unsigned dim>
+struct R_TreeInternalEntry : public R_TreeEntry<dim>
+{
   SmiRecordId pointer;
 /*
-Points to an ~SmiRecord~ in a file. If it is a leaf entry, this is the record
-where the spatial object is stored, otherwise this is the pointer to its
-child node.
+Points to the child node.
 
 */
 
-  R_TreeEntry() {}
+  inline R_TreeInternalEntry() {}
 /*
 The simple constructor.
 
 */
 
-  R_TreeEntry( const BBox<dim>& box, long pointer = 0 ) :
-     box( box ), pointer( pointer )
-    {}
+  inline R_TreeInternalEntry( const BBox<dim>& box, SmiRecordId pointer = 0 ) :
+  pointer( pointer )
+  { 
+    this->box = box; 
+  }
 /*
 The second constructor passing a bounding box and a page.
 
 */
+  inline R_TreeInternalEntry( const R_TreeInternalEntry<dim>& e ):
+  pointer( e.pointer )
+  {
+    this->box = e.box;
+  }
+/*
+The copy constructor.
+
+*/
+  inline R_TreeInternalEntry<dim>& operator=( const R_TreeInternalEntry<dim>& entry )
+  {
+    this->box = entry.box;
+    this->pointer = entry.pointer;
+    return *this;
+  }
+/*
+Redefinition of the assignement operator.
+
+*/
+
+  static int Size()
+  {
+    return sizeof( BBox<dim> ) + sizeof( SmiRecordId );
+  }
+/*
+Returns the size of the entry in disk.
+
+*/
+ 
+  void Read( char *buffer, int& offset )
+  {
+    memcpy( &this->box, buffer+offset, sizeof(BBox<dim>) );
+    offset += sizeof(BBox<dim>);
+    memcpy( &pointer, buffer+offset, sizeof(SmiRecordId) );
+    offset += sizeof(SmiRecordId);
+  }
+/*
+Reads an entry from the buffer. Offset is increased.
+
+*/
+
+  void Write( char *buffer, int& offset )
+  {
+    memcpy( buffer+offset, &this->box, sizeof(BBox<dim>) );
+    offset += sizeof(BBox<dim>);
+    memcpy( buffer+offset, &pointer, sizeof(SmiRecordId) );
+    offset += sizeof(SmiRecordId);
+  }
+/*
+Writes an entry to the buffer. Offset is increased.
+
+*/
+};
+
+/*
+4 Struct ~R\_TreeLeafEntry~
+
+This struct will store an entry inside a leaf node of the R\_Tree.
+
+*/
+template<unsigned dim, class Info>
+struct R_TreeLeafEntry : public R_TreeEntry<dim>
+{
+  Info info;
+/*
+Stores the leaf entry information.
+
+*/
+
+  inline R_TreeLeafEntry() {}
+/*
+The simple constructor.
+
+*/
+
+  inline R_TreeLeafEntry( const BBox<dim>& box, const Info& info ) :
+  info( info )
+  {
+    this->box = box;
+  }
+/*
+The second constructor passing a bounding box and the info.
+
+*/
+  inline R_TreeLeafEntry( const R_TreeLeafEntry<dim, Info>& e ):
+  info( e.info )
+  {
+    this->box = e.box;
+  }
+/*
+The copy constructor.
+
+*/
+  inline R_TreeLeafEntry<dim, Info>& operator=( const R_TreeLeafEntry<dim, Info>& entry )
+  {
+    this->box = entry.box;
+    this->info = entry.info;
+    return *this;
+  }
+/*
+Redefinition of the assignement operator.
+
+*/
+
+  static int Size()
+  {
+    return sizeof( BBox<dim> ) + sizeof( Info );
+  }
+/*
+Returns the size of the entry in disk.
+
+*/
+
+  void Read( char *buffer, int& offset )
+  {
+    memcpy( &this->box, buffer+offset, sizeof(BBox<dim>) );
+    offset += sizeof(BBox<dim>);
+    memcpy( &info, buffer+offset, sizeof(Info) );
+    offset += sizeof(Info);
+  }
+/*
+Reads an entry from the buffer. Offset is increased.
+
+*/
+
+  void Write( char *buffer, int& offset )
+  {
+    memcpy( buffer+offset, &this->box, sizeof(BBox<dim>) );
+    offset += sizeof(BBox<dim>);
+    memcpy( buffer+offset, &info, sizeof(Info) );
+    offset += sizeof(Info);
+  }
+/*
+Writes an entry to the buffer. Offset is increased.
+
+*/
+
 };
 
 /*
@@ -182,7 +345,7 @@ The second constructor passing a bounding box and a page.
 This is a node in the R-Tree.
 
 */
-template<unsigned dim>
+template<unsigned dim, class LeafInfo>
 class R_TreeNode
 {
   public:
@@ -192,7 +355,7 @@ The constructor.
 
 */
 
-    R_TreeNode( const R_TreeNode<dim>& n );
+    R_TreeNode( const R_TreeNode<dim, LeafInfo>& n );
 /*
 The copy constructor.
 
@@ -247,7 +410,7 @@ Tells whether this node is a leaf node.
 */
 
     R_TreeEntry<dim>& operator[] ( int index ) const
-      { assert( index >= 0 && index <= maxEntries ); return entry[ index ]; }
+      { assert( index >= 0 && index <= maxEntries ); return *entries[ index ]; }
 /*
 Returns entry given by index.
 
@@ -260,13 +423,21 @@ Returns the bounding box of this node.
 */
 
     void Clear()
-      { leaf = false; count = 0; modified = true; }
+    {
+      for( int i = 0; i < maxEntries; i++ )
+      {
+        delete entries[ i ];
+        entries[ i ] = 0;
+      }
+      count = 0; 
+      modified = true; 
+    }
 /*
 Clears all entries.
 
 */
 
-    R_TreeNode<dim>& operator = ( const R_TreeNode<dim>& );
+    R_TreeNode<dim, LeafInfo>& operator = ( const R_TreeNode<dim, LeafInfo>& );
 /*
 Assignment operator between nodes.
 
@@ -288,7 +459,7 @@ but the node should be split by whoever called the insert method.
 
 */
 
-    void Split( R_TreeNode<dim>& n1, R_TreeNode<dim>& n2 );
+    void Split( R_TreeNode<dim, LeafInfo>& n1, R_TreeNode<dim, LeafInfo>& n2 );
 /*
 Splits this node in two: ~n1~ and ~n2~, which should be empty nodes.
 
@@ -311,6 +482,18 @@ Reads this node from an ~SmiRecordFile~ at position ~id~.
     void Write( SmiRecord& record );
 /*
 Writes this node to an ~SmiRecordFile~ at position ~id~
+
+*/
+    void SetInternal( int minEntries, int maxEntries )
+    { 
+      assert( count == 0 ); 
+      leaf = false; 
+      this->minEntries = minEntries;
+      this->maxEntries = maxEntries;
+      modified = true; 
+    }
+/*
+Converts a leaf node to an internal one. The node must be empty.
 
 */
 
@@ -339,7 +522,7 @@ Number of entries in this node.
 
 */
 
-    R_TreeEntry<dim>* const entry;
+    R_TreeEntry<dim>** entries;
 /*
 Array of entries.
 
@@ -384,65 +567,85 @@ two groups with bounding boxes ~b1~ and ~b2~, respectively.
 4.1 The constructors
 
 */
-template<unsigned dim>
-R_TreeNode<dim>::R_TreeNode( const bool leaf, const int min, const int max ) :
+template<unsigned dim, class LeafInfo>
+R_TreeNode<dim, LeafInfo>::R_TreeNode( const bool leaf, const int min, const int max ) :
 leaf( leaf ),
 minEntries( min ),
 maxEntries( max ),
 count( 0 ),
-entry( new R_TreeEntry<dim>[ max + 1 ] ),
+entries( new R_TreeEntry<dim>*[ max + 1 ] ),
 modified( true )
 {
+  for( int i = 0; i <= maxEntries; i++ )
+    entries[ i ] = 0;
 }
 
-template<unsigned dim>
-R_TreeNode<dim>::R_TreeNode( const R_TreeNode<dim>& node ) :
+template<unsigned dim, class LeafInfo>
+R_TreeNode<dim, LeafInfo>::R_TreeNode( const R_TreeNode<dim, LeafInfo>& node ) :
 leaf( node.leaf ),
 minEntries( node.minEntries ),
 maxEntries( node.maxEntries ),
 count( node.count ),
-entry( new R_TreeEntry<dim>[ node.maxEntries + 1 ] ),
+entries( new R_TreeEntry<dim>*[ node.maxEntries + 1 ] ),
 modified( true )
 {
-  for( int i = 0; i < node.count; i++ )
-    entry[ i ] = node.entry[ i ];
+  int i;
+  for( i = 0; i < node.entryCount(); i++ )
+  {
+    if( leaf )
+      entries[ i ] = new R_TreeLeafEntry<dim, LeafInfo>( (R_TreeLeafEntry<dim, LeafInfo>&)*node.entries[ i ] );
+    else
+      entries[ i ] = new R_TreeInternalEntry<dim>( (R_TreeInternalEntry<dim>&)*node.entries[ i ] );
+  }
+  for( ; i <= node.maxEntries; i++ )
+    entries[ i ] = NULL;
 }
 
 /*
 4.2 The destructor
 
 */
-template<unsigned dim>
-R_TreeNode<dim>::~R_TreeNode()
+template<unsigned dim, class LeafInfo>
+R_TreeNode<dim, LeafInfo>::~R_TreeNode()
 {
-  delete []entry;
+  for( int i = 0; i <= count; i++ )
+    delete entries[ i ];
+  delete []entries;
 }
 
-template<unsigned dim>
-int R_TreeNode<dim>::SizeOfEmptyNode()
+template<unsigned dim, class LeafInfo>
+int R_TreeNode<dim, LeafInfo>::SizeOfEmptyNode()
 {
   return sizeof( bool ) + // leaf
          sizeof( int );  // count
 }
 
-template<unsigned dim>
-int R_TreeNode<dim>::Size() const
+template<unsigned dim, class LeafInfo>
+int R_TreeNode<dim, LeafInfo>::Size() const
 {
-  int size = sizeof( leaf ) + sizeof( count );
+  int size = SizeOfEmptyNode();
 
-  size += sizeof( R_TreeEntry<dim> ) * MaxEntries();
+  if( leaf )
+    size += R_TreeLeafEntry<dim, LeafInfo>::Size() * maxEntries;
+  else
+    size += R_TreeInternalEntry<dim>::Size() * maxEntries;
 
   return size;
 }
 
-template<unsigned dim>
-R_TreeNode<dim>& R_TreeNode<dim>::operator = ( const R_TreeNode<dim>& node )
+template<unsigned dim, class LeafInfo>
+R_TreeNode<dim, LeafInfo>& R_TreeNode<dim, LeafInfo>::operator = ( const R_TreeNode<dim, LeafInfo>& node )
 {
   assert( minEntries == node.minEntries && maxEntries == node.maxEntries );
   assert( count >= 0 && count <= maxEntries + 1 );
 
   for( int i = 0; i < node.count; i++ )
-    entry[ i ] = node.entry[ i ];
+  {
+    if( leaf )
+      entries[ i ] = new R_TreeLeafEntry<dim, LeafInfo>( (R_TreeLeafEntry<dim, LeafInfo>&)*node.entries[ i ] );
+    else
+      entries[ i ] = new R_TreeInternalEntry<dim>( (R_TreeInternalEntry<dim>&)*node.entries[ i ] );
+  }
 
   leaf = node.leaf;
   count = node.count;
@@ -451,12 +654,14 @@ R_TreeNode<dim>& R_TreeNode<dim>::operator = ( const R_TreeNode<dim>& node )
   return *this;
 }
 
-template<unsigned dim>
-bool R_TreeNode<dim>::Remove( int index )
+template<unsigned dim, class LeafInfo>
+bool R_TreeNode<dim, LeafInfo>::Remove( int index )
 {
   assert( index >= 0 && index < count );
 
-  entry[ index ] = entry[ count - 1 ];
+  delete entries[ index ];
+  entries[ index ] = entries[ count - 1 ];
+  entries[ count - 1 ] = 0;
   count -= 1;
 
   modified = true;
@@ -467,11 +672,14 @@ bool R_TreeNode<dim>::Remove( int index )
 4.3 Method Insert
 
 */
-template<unsigned dim>
-bool R_TreeNode<dim>::Insert( const R_TreeEntry<dim>& ent )
+template<unsigned dim, class LeafInfo>
+bool R_TreeNode<dim, LeafInfo>::Insert( const R_TreeEntry<dim>& ent )
 {
   assert( count <= maxEntries );
-  entry[ count++ ] = ent;
+  if( leaf )
+    entries[ count++ ] = new R_TreeLeafEntry<dim, LeafInfo>( (R_TreeLeafEntry<dim, LeafInfo>&)ent );
+  else
+    entries[ count++ ] = new R_TreeInternalEntry<dim>( (R_TreeInternalEntry<dim>&)ent );
   modified = true;
   return count <= maxEntries;
 }
@@ -480,8 +688,8 @@ bool R_TreeNode<dim>::Insert( const R_TreeEntry<dim>& ent )
 4.3 Method LinearPickSeeds
 
 */
-template<unsigned dim>
-void R_TreeNode<dim>::LinearPickSeeds( int& seed1, int& seed2 ) const
+template<unsigned dim, class LeafInfo>
+void R_TreeNode<dim, LeafInfo>::LinearPickSeeds( int& seed1, int& seed2 ) const
 {
   assert( EntryCount() == MaxEntries() + 1 );
     // This should be called only if the node has an overflow
@@ -510,23 +718,23 @@ void R_TreeNode<dim>::LinearPickSeeds( int& seed1, int& seed2 ) const
   {
     for( unsigned d = 0; d < dim; d++ )
     {
-      if( entry[ i ].box.MinD( d ) > maxMinVal[ d ] )
+      if( entries[ i ]->box.MinD( d ) > maxMinVal[ d ] )
       {
-        maxMinVal[ d ] = entry[ i ].box.MinD( d );
+        maxMinVal[ d ] = entries[ i ]->box.MinD( d );
         maxMinNode[ d ] = i;
       }
 
-      if( entry[ i ].box.MinD( d ) < minVal[ d ] )
-      minVal[ d ] = entry[ i ].box.MinD( d );
+      if( entries[ i ]->box.MinD( d ) < minVal[ d ] )
+      minVal[ d ] = entries[ i ]->box.MinD( d );
 
-      if( entry[ i ].box.MaxD( d ) < minMaxVal[ d ] )
+      if( entries[ i ]->box.MaxD( d ) < minMaxVal[ d ] )
       {
-        minMaxVal[ d ] = entry[ i ].box.MaxD( d );
+        minMaxVal[ d ] = entries[ i ]->box.MaxD( d );
         minMaxNode[ d ] = i;
       }
 
-      if( entry[ i ].box.MaxD( d ) > maxVal[ d ] )
-        maxVal[ d ] = entry[ i ].box.MaxD( d );
+      if( entries[ i ]->box.MaxD( d ) > maxVal[ d ] )
+        maxVal[ d ] = entries[ i ]->box.MaxD( d );
     }
   }
 
@@ -559,8 +767,8 @@ void R_TreeNode<dim>::LinearPickSeeds( int& seed1, int& seed2 ) const
 4.4 Method QuadraticPickSeeds
 
 */
-template<unsigned dim>
-void R_TreeNode<dim>::QuadraticPickSeeds( int& seed1, int& seed2 ) const
+template<unsigned dim, class LeafInfo>
+void R_TreeNode<dim, LeafInfo>::QuadraticPickSeeds( int& seed1, int& seed2 ) const
 {
   assert( EntryCount() == MaxEntries() + 1 );
     // This should be called only if the node has an overflow
@@ -573,11 +781,11 @@ void R_TreeNode<dim>::QuadraticPickSeeds( int& seed1, int& seed2 ) const
   {
     int j;
 
-    area[ i ] = entry[ i ].box.Area();
+    area[ i ] = entries[ i ]->box.Area();
 
     for( j = 0; j < i; ++j )
     {
-      double totalArea = entry[ i ].box.Union( entry[ j ].box ).Area();
+      double totalArea = entries[ i ]->box.Union( entries[ j ]->box ).Area();
       double waste = totalArea - area[ i ] - area[ j ];
 
       if( waste > bestWaste )
@@ -596,8 +804,8 @@ void R_TreeNode<dim>::QuadraticPickSeeds( int& seed1, int& seed2 ) const
 4.5 Method QuadraticPickNext
 
 */
-template<unsigned dim>
-int R_TreeNode<dim>::QuadraticPickNext( BBox<dim>& b1, BBox<dim>& b2 ) const
+template<unsigned dim, class LeafInfo>
+int R_TreeNode<dim, LeafInfo>::QuadraticPickNext( BBox<dim>& b1, BBox<dim>& b2 ) const
 {
   double area1 = b1.Area();
   double area2 = b2.Area();
@@ -606,8 +814,8 @@ int R_TreeNode<dim>::QuadraticPickNext( BBox<dim>& b1, BBox<dim>& b2 ) const
 
   for( int i = 0; i < count; i++ )
   {
-    double d1 = b1.Union( entry[ i ].box ).Area() - area1;
-    double d2 = b2.Union( entry[ i ].box ).Area() - area2;
+    double d1 = b1.Union( entries[ i ]->box ).Area() - area1;
+    double d2 = b2.Union( entries[ i ]->box ).Area() - area2;
     double diff = fabs( d1 - d2 );
 
     assert( d1 >= 0 && d2 >= 0 );
@@ -689,8 +897,8 @@ inline void SortedArray::push( int index, double pri )
 4.6 Method Split
 
 */
-template<unsigned dim>
-void R_TreeNode<dim>::Split( R_TreeNode<dim>& n1, R_TreeNode<dim>& n2 )
+template<unsigned dim, class LeafInfo>
+void R_TreeNode<dim, LeafInfo>::Split( R_TreeNode<dim, LeafInfo>& n1, R_TreeNode<dim, LeafInfo>& n2 )
 // Splits this node in two: n1 and n2, which should be empty nodes.
 {
   assert( EntryCount() == MaxEntries() + 1 );
@@ -715,23 +923,23 @@ void R_TreeNode<dim>::Split( R_TreeNode<dim>& n1, R_TreeNode<dim>& n2 )
     int minMarginAxis = -1;
 
     for( unsigned d = 0; d < dim; d++ )
-    { // Compute sorted lists. Sort entry numbers by minimum value of axis 'd'.
+    { // Compute sorted lists. Sort entries numbers by minimum value of axis 'd'.
       int* psort = sortedEntry[ 2*d ] = new int[ MaxEntries() + 1 ];
       SortedArray sort( MaxEntries() + 1 );
       int i;
 
       for( i = 0; i <= MaxEntries(); i++ )
-        sort.push( i, entry[ i ].box.MinD( d ) );
+        sort.push( i, entries[ i ]->box.MinD( d ) );
 
       for( i = 0; i <= MaxEntries(); i++ )
         *psort++ = sort.pop();
 
       assert( sort.empty() );
 
-      // Sort entry numbers by maximum value of axis 'd'
+      // Sort entries numbers by maximum value of axis 'd'
       psort = sortedEntry[ 2*d + 1 ] = new int[ MaxEntries() + 1 ];
       for( i = 0; i <= MaxEntries(); i++ )
-        sort.push( i, entry[ i ].box.MaxD( d ) );
+        sort.push( i, entries[ i ]->box.MaxD( d ) );
 
       for( i = 0; i <= MaxEntries(); i++ )
         *psort++ = sort.pop();
@@ -753,13 +961,13 @@ void R_TreeNode<dim>::Split( R_TreeNode<dim>& n1, R_TreeNode<dim>& n2 )
         BBox<dim> *b2 = new BBox<dim>[ MaxEntries() + 1 ];
         int i, splitPoint;
 
-        b1[ 0 ] = entry[ psort[ 0 ] ].box;
-        b2[ 0 ] = entry[ psort[ MaxEntries() ] ].box;
+        b1[ 0 ] = entries[ psort[ 0 ] ]->box;
+        b2[ 0 ] = entries[ psort[ MaxEntries() ] ]->box;
 
         for( i = 1; i <= MaxEntries(); i++ )
         {
-          b1[ i ] = b1[ i - 1 ].Union( entry[ psort[ i ] ].box );
-          b2[ i ] = b2[ i - 1 ].Union( entry[ psort[ MaxEntries() - i ] ].box );
+          b1[ i ] = b1[ i - 1 ].Union( entries[ psort[ i ] ]->box );
+          b2[ i ] = b2[ i - 1 ].Union( entries[ psort[ MaxEntries() - i ] ]->box );
         }
 
         // Now compute the statistics for the
@@ -828,10 +1036,10 @@ void R_TreeNode<dim>::Split( R_TreeNode<dim>& n1, R_TreeNode<dim>& n2 )
       // Picked distribution; now put the corresponding entries in the
       // two split blocks
       for( int i = 0; i <= minSplitPoint; i++ )
-        n1.Insert( entry[ sort[ i ] ] );
+        n1.Insert( *entries[ sort[ i ] ] );
 
       for( int i = minSplitPoint + 1; i <= MaxEntries(); i++ )
-        n2.Insert( entry[ sort[ i ] ] );
+        n2.Insert( *entries[ sort[ i ] ] );
 
       assert( n1.BoundingBox().Intersection( n2.BoundingBox() ).Area() == minOverlap );
 
@@ -856,10 +1064,10 @@ void R_TreeNode<dim>::Split( R_TreeNode<dim>& n1, R_TreeNode<dim>& n2 )
     }
 
     // Put the two seeds in n1 and n2 and mark them
-    BBox<dim> box1 = entry[ seed1 ].box;
-    BBox<dim> box2 = entry[ seed2 ].box;
-    n1.Insert( entry[ seed1 ] );
-    n2.Insert( entry[ seed2 ] );
+    BBox<dim> box1 = entries[ seed1 ]->box;
+    BBox<dim> box2 = entries[ seed2 ]->box;
+    n1.Insert( *entries[ seed1 ] );
+    n2.Insert( *entries[ seed2 ] );
 
     // Make sure that we delete entries from end of the array first
     if( seed1 > seed2 )
@@ -883,7 +1091,7 @@ void R_TreeNode<dim>::Split( R_TreeNode<dim>& n1, R_TreeNode<dim>& n2 )
         if( n1.EntryCount() + notAssigned == n1.MinEntries() )
         { // Insert all remaining entries in n1
           for( i = 0; i < EntryCount() ; i++, notAssigned-- )
-            n1.Insert( entry[ i ] );
+            n1.Insert( *entries[ i ] );
 
           count = 0;
           assert( notAssigned == 0 );
@@ -891,7 +1099,7 @@ void R_TreeNode<dim>::Split( R_TreeNode<dim>& n1, R_TreeNode<dim>& n2 )
         else if( n2.EntryCount() + notAssigned == n2.MinEntries() )
         { // Insert all remaining entries in n2
           for( i = 0; i < EntryCount(); ++i, notAssigned-- )
-            n2.Insert( entry[ i ] );
+            n2.Insert( *entries[ i ] );
 
           count = 0;
           assert( notAssigned == 0 );
@@ -907,17 +1115,17 @@ void R_TreeNode<dim>::Split( R_TreeNode<dim>& n1, R_TreeNode<dim>& n2 )
             i = 0;
           }
 
-          union1 = box1.Union( entry[ i ].box );
-          union2 = box2.Union( entry[ i ].box );
+          union1 = box1.Union( entries[ i ]->box );
+          union2 = box2.Union( entries[ i ]->box );
 
           if( union1.Area() - box1.Area() < union2.Area() - box2.Area() )
           {
-            n1.Insert( entry[ i ] );
+            n1.Insert( *entries[ i ] );
             box1 = union1;
           }
           else
           {
-            n2.Insert( entry[ i ] );
+            n2.Insert( *entries[ i ] );
             box2 = union2;
           }
 
@@ -941,18 +1149,18 @@ void R_TreeNode<dim>::Split( R_TreeNode<dim>& n1, R_TreeNode<dim>& n2 )
 4.7 Method BoundingBox
 
 */
-template<unsigned dim>
-BBox<dim> R_TreeNode<dim>::BoundingBox() const
+template<unsigned dim, class LeafInfo>
+BBox<dim> R_TreeNode<dim, LeafInfo>::BoundingBox() const
 {
   if( count == 0 )
     return BBox<dim>( false );
   else
   {
-    BBox<dim> result = entry[ 0 ].box;
+    BBox<dim> result = entries[ 0 ]->box;
     int i;
 
     for( i = 1; i < count; i++ )
-      result = result.Union( entry[ i ].box );
+      result = result.Union( entries[ i ]->box );
 
     return result;
   }
@@ -962,15 +1170,16 @@ BBox<dim> R_TreeNode<dim>::BoundingBox() const
 4.8 Method UpdateBox
 
 */
-template<unsigned dim>
-void R_TreeNode<dim>::UpdateBox( BBox<dim>& b, SmiRecordId pointer )
+template<unsigned dim, class LeafInfo>
+void R_TreeNode<dim, LeafInfo>::UpdateBox( BBox<dim>& b, SmiRecordId pointer )
 {
+  assert( !leaf );
   modified = true;
 
   for( int i = 0; i < count; i++ )
-    if( entry[ i ].pointer == pointer )
+    if( ((R_TreeInternalEntry<dim>*)entries[ i ])->pointer == pointer )
     {
-      entry[ i ].box = b;
+      entries[ i ]->box = b;
 
       return;
     }
@@ -979,16 +1188,16 @@ void R_TreeNode<dim>::UpdateBox( BBox<dim>& b, SmiRecordId pointer )
   assert( 0 );
 }
 
-template<unsigned dim>
-void R_TreeNode<dim>::Read( SmiRecordFile& file, const SmiRecordId pointer )
+template<unsigned dim, class LeafInfo>
+void R_TreeNode<dim, LeafInfo>::Read( SmiRecordFile& file, const SmiRecordId pointer )
 {
   SmiRecord record;
   assert( file.SelectRecord( pointer, record, SmiFile::ReadOnly ) );
   Read( record );
 }
 
-template<unsigned dim>
-void R_TreeNode<dim>::Read( SmiRecord& record )
+template<unsigned dim, class LeafInfo>
+void R_TreeNode<dim, LeafInfo>::Read( SmiRecord& record )
 {
   int offset = 0;
   char buffer[Size() + 1];
@@ -1007,16 +1216,18 @@ void R_TreeNode<dim>::Read( SmiRecord& record )
   // Now read the entry array.
   for( int i = 0; i < count; i++ )
   {
-    R_TreeEntry<dim> *e = new ((void *)(buffer + offset)) R_TreeEntry<dim>;
-    entry[i] = *e;
-    offset += sizeof( R_TreeEntry<dim> );
-  }
+    if( leaf )
+      entries[ i ] = new R_TreeLeafEntry<dim, LeafInfo>();
+    else
+      entries[ i ] = new R_TreeInternalEntry<dim>();
 
+    entries[ i ]->Read( buffer, offset );
+  }
   modified = false;
 }
 
-template<unsigned dim>
-void R_TreeNode<dim>::Write( SmiRecordFile& file, const SmiRecordId pointer )
+template<unsigned dim, class LeafInfo>
+void R_TreeNode<dim, LeafInfo>::Write( SmiRecordFile& file, const SmiRecordId pointer )
 {
   if( modified )
   {
@@ -1026,8 +1237,8 @@ void R_TreeNode<dim>::Write( SmiRecordFile& file, const SmiRecordId pointer )
   }
 }
 
-template<unsigned dim>
-void R_TreeNode<dim>::Write( SmiRecord& record )
+template<unsigned dim, class LeafInfo>
+void R_TreeNode<dim, LeafInfo>::Write( SmiRecord& record )
 {
   if( modified )
   {
@@ -1043,8 +1254,9 @@ void R_TreeNode<dim>::Write( SmiRecord& record )
 
     assert( count <= maxEntries );
 
-    // Now read the entry array.
-    memcpy( buffer + offset, entry, count * sizeof( R_TreeEntry<dim> ) );
+    // Now write the entry array.
+    for( int i = 0; i < count; i++ )
+      entries[i]->Write( buffer, offset );
 
     assert( record.Write( buffer, Size(), 0 ) );
     modified = false;
@@ -1057,7 +1269,7 @@ void R_TreeNode<dim>::Write( SmiRecord& record )
 This class implements the R-Tree.
 
 */
-template <unsigned dim>
+template <unsigned dim, class LeafInfo>
 class R_Tree
 {
   public:
@@ -1080,57 +1292,74 @@ The destructor.
 
 */
 
-    void DeleteFile()
-      { file.Close(); file.Drop(); }
+    inline void DeleteFile()
+    { 
+      file.Close(); 
+      file.Drop(); 
+    }
 /*
 Deletes the file of the R-Tree.
 
 */
 
-    SmiFileId FileId()
-      { return file.GetFileId(); }
+    inline SmiFileId FileId()
+    { 
+      return file.GetFileId(); 
+    }
 /*
 Returns the ~SmiFileId~ of the R-Tree database file.
 
 */
 
-    SmiRecordId RootRecordId() const
-      { return header.rootRecordId; }
+    inline SmiRecordId RootRecordId() const
+    { 
+      return header.rootRecordId; 
+    }
 /*
 Returns the ~SmiRecordId~ of the root node.
 
 */
 
-    int MinEntries() const
-      { return header.minEntries; }
+    inline int MinEntries( int level ) const
+    { 
+      return level == Height() ? header.minLeafEntries : header.minInternalEntries;
+    }
 /*
 Returns the minimum number of entries per node.
 
 */
 
-    int MaxEntries() const
-      { return header.maxEntries; }
+    inline int MaxEntries( int level ) const
+    { 
+      return level == Height() ? header.maxLeafEntries : header.maxInternalEntries;
+    }
 /*
 Returns the maximum number of entries per node.
 
 */
 
-    int EntryCount() const
-      { return header.entryCount; }
+    inline int EntryCount() const
+    { 
+      return header.entryCount; 
+    }
 /*
 Return the total number of (leaf) entries in this tree.
 
 */
 
-    int NodeCount() const
-      { return header.nodeCount; }
+    inline int NodeCount() const
+    { 
+      return header.nodeCount; 
+    }
 /*
 Returns the total number of nodes in this tree.
 
 */
 
-    int Height() const
-      { return header.height; }
+    inline int Height() const
+    { 
+      return header.height; 
+    }
 /*
 Returns the height of this tree.
 
@@ -1142,21 +1371,21 @@ Returns the bounding box of this rtree.
 
 */
 
-    void Insert( const R_TreeEntry<dim>& );
+    void Insert( const R_TreeLeafEntry<dim, LeafInfo>& );
 /*
 Inserts the given entry somewhere in the tree.
 
 */
 
-    bool Remove( const R_TreeEntry<dim>& );
+    bool Remove( const R_TreeLeafEntry<dim, LeafInfo>& );
 /*
 Deletes the given entry from the tree. Returns ~true~ if entry found
 and successfully deleted, and ~false~ otherwise.
 
 */
 
-    bool First( const BBox<dim>& bx, R_TreeEntry<dim>& result, int replevel = -1 );
-    bool Next( R_TreeEntry<dim>& result );
+    bool First( const BBox<dim>& bx, R_TreeLeafEntry<dim, LeafInfo>& result, int replevel = -1 );
+    bool Next( R_TreeLeafEntry<dim, LeafInfo>& result );
 /*
 Sets ~result~ to the (leaf) entry corresponding to the first/next
 object whose bounding box overlaps ~bx~.
@@ -1167,7 +1396,7 @@ are at leaf nodes or not.
 
 */
 
-    R_TreeNode<dim>& Root();
+    R_TreeNode<dim, LeafInfo>& Root();
 /*
 Loads ~nodePtr~ with the root node and returns it.
 
@@ -1183,19 +1412,25 @@ The record file of the R-Tree.
     struct Header
     {
       SmiRecordId rootRecordId;	// Root node address (Path[ 0 ]).
-      int minEntries;      	// min # of entries per node.
-      int maxEntries;      	// max # of entries per node.
-      int nodeCount;       	// number of nodes in this tree.
-      int entryCount;      	// number of entries in this tree.
-      int height;          	// height of the tree.
+      int minLeafEntries;      	// min # of entries per leaf node.
+      int maxLeafEntries;      	// max # of entries per leaf node.
+      int minInternalEntries;  	// min # of entries per internal node.
+      int maxInternalEntries;  	// max # of entries per internal node.
+      int nodeCount;          	// number of nodes in this tree.
+      int entryCount;      	    // number of entries in this tree.
+      int height;          	    // height of the tree.
 
       Header() :
-        rootRecordId( 0 ), minEntries( 0 ), maxEntries( 0 ),
+        rootRecordId( 0 ), minLeafEntries( 0 ), maxLeafEntries( 0 ),
+        minInternalEntries( 0 ), maxInternalEntries( 0 ),
         nodeCount( 0 ), entryCount( 0 ), height( 0 )
         {}
-      Header( long rootRecordId, int minEntries, int maxEntries, int nodeCount,
-              int entryCount, int nodeSize, int height ) :
-        rootRecordId( rootRecordId ), minEntries( minEntries ), maxEntries( maxEntries ),
+      Header( long rootRecordId, int minEntries, int maxEntries, 
+              int minInternalEntries, int maxInternalEntries, 
+              int nodeCount, int entryCount, int nodeSize, int height ) :
+        rootRecordId( rootRecordId ), 
+        minLeafEntries( minLeafEntries ), maxLeafEntries( maxLeafEntries ),
+        minInternalEntries( minInternalEntries ), maxInternalEntries( maxInternalEntries ),
         nodeCount( nodeCount ), entryCount( entryCount ), height( height )
         {}
     } header;
@@ -1223,7 +1458,7 @@ Flags used in Insert which control the forced reinsertion process.
 
 */
 
-    R_TreeNode<dim> *nodePtr;
+    R_TreeNode<dim, LeafInfo> *nodePtr;
 /*
 The current node of the R-tree.
 
@@ -1260,16 +1495,18 @@ scan of the tree.
 
 */
 
-    void PutNode( const SmiRecordId address, R_TreeNode<dim> **node );
-    void PutNode( SmiRecord& record, R_TreeNode<dim> **node );
+    void PutNode( const SmiRecordId address, R_TreeNode<dim, LeafInfo> **node );
+    void PutNode( SmiRecord& record, R_TreeNode<dim, LeafInfo> **node );
 /*
 Writes the node ~node~ at file position ~address~.
 Also deletes the node.
 
 */
 
-    R_TreeNode<dim> *GetNode( const SmiRecordId address, const bool leaf, const int min, const int max );
-    R_TreeNode<dim> *GetNode( SmiRecord& record, const bool leaf, const int min, const int max );
+    R_TreeNode<dim, LeafInfo> *GetNode( const SmiRecordId address, const bool leaf, 
+                                        const int min, const int max );
+    R_TreeNode<dim, LeafInfo> *GetNode( SmiRecord& record, const bool leaf, 
+                                        const int min, const int max );
 /*
 Reads a node at file position ~address~. This function creates a new
 node that must be deleted somewhere.
@@ -1300,7 +1537,7 @@ Locates the "best" node of level ~level~ to insert ~ent~.
 
 */
 
-    bool FindEntry( const R_TreeEntry<dim>& ent );
+    bool FindEntry( const R_TreeLeafEntry<dim, LeafInfo>& ent );
 /*
 Finds the given entry ~ent~ in the tree. If successful, ~true~ is
 returned and ~currEntry~ and ~nodePtr~ are set to point to the
@@ -1338,8 +1575,8 @@ Loads the father node.
 5.1 The constructors
 
 */
-template <unsigned dim>
-R_Tree<dim>::R_Tree( const int pageSize ) :
+template <unsigned dim, class LeafInfo>
+R_Tree<dim, LeafInfo>::R_Tree( const int pageSize ) :
 file( true, pageSize ),
 header(),
 nodePtr( NULL ),
@@ -1352,21 +1589,27 @@ scanFlag( false )
   file.Create();
 
   // Calculating maxEntries e minEntries
-  int nodeEmptySize = R_TreeNode<dim>::SizeOfEmptyNode();
-  int entrySize = sizeof( R_TreeEntry<dim> );
-  int max = ( pageSize - nodeEmptySize ) / entrySize;
+  int nodeEmptySize = R_TreeNode<dim, LeafInfo>::SizeOfEmptyNode();
+  int leafEntrySize = sizeof( R_TreeLeafEntry<dim, LeafInfo> ),
+      internalEntrySize = sizeof( R_TreeInternalEntry<dim> );
 
-  header.maxEntries = max;
-  header.minEntries = (int)(max * 0.4);
+  int maxLeaf = ( pageSize - nodeEmptySize ) / leafEntrySize,
+      maxInternal = ( pageSize - nodeEmptySize ) / internalEntrySize;
 
-  assert( MaxEntries() >= 2*MinEntries() && MinEntries() > 0 );
+  header.maxLeafEntries = maxLeaf;
+  header.minLeafEntries = (int)(maxLeaf * 0.4);
 
+  header.maxInternalEntries = maxInternal;
+  header.minInternalEntries = (int)(maxInternal * 0.4);
+
+  assert( header.maxLeafEntries >= 2*header.minLeafEntries && header.minLeafEntries > 0 );
+  assert( header.maxInternalEntries >= 2*header.minInternalEntries && header.minInternalEntries > 0 );
 
   // initialize overflowflag array
   for( int i = 0; i < MAX_PATH_SIZE; i++ )
     overflowFlag[ i ] = 0;
 
-  nodePtr = new R_TreeNode<dim>( true, MinEntries(), MaxEntries() );
+  nodePtr = new R_TreeNode<dim, LeafInfo>( true, MinEntries( 0 ), MaxEntries( 0 ) );
 
   // Creating a new page for the R-Tree header.
   SmiRecordId headerRecno;
@@ -1385,8 +1628,8 @@ scanFlag( false )
   currLevel = 0;
 }
 
-template <unsigned dim>
-R_Tree<dim>::R_Tree( const SmiFileId fileid ) :
+template <unsigned dim, class LeafInfo>
+R_Tree<dim, LeafInfo>::R_Tree( const SmiFileId fileid ) :
 file( true ),
 header(),
 nodePtr( NULL ),
@@ -1403,11 +1646,13 @@ scanFlag( false )
     overflowFlag[ i ] = 0;
 
   ReadHeader();
-  assert( MaxEntries() >= 2*MinEntries() && MinEntries() > 0 );
+
+  assert( header.maxLeafEntries >= 2*header.minLeafEntries && header.minLeafEntries > 0 );
+  assert( header.maxInternalEntries >= 2*header.minInternalEntries && header.minInternalEntries > 0 );
 
   currLevel = 0;
 
-  nodePtr = GetNode( RootRecordId(), currLevel == Height(), MinEntries(), MaxEntries() );
+  nodePtr = GetNode( RootRecordId(), currLevel == Height(), MinEntries( currLevel ), MaxEntries( currLevel ) );
   path[ 0 ] = header.rootRecordId;
 }
 
@@ -1415,8 +1660,8 @@ scanFlag( false )
 5.2 The destructor
 
 */
-template <unsigned dim>
-R_Tree<dim>::~R_Tree()
+template <unsigned dim, class LeafInfo>
+R_Tree<dim, LeafInfo>::~R_Tree()
 {
   if( file.IsOpen() )
   {
@@ -1432,16 +1677,16 @@ R_Tree<dim>::~R_Tree()
 5.3 Reading and writing the header
 
 */
-template <unsigned dim>
-void R_Tree<dim>::ReadHeader()
+template <unsigned dim, class LeafInfo>
+void R_Tree<dim, LeafInfo>::ReadHeader()
 {
   SmiRecord record;
   assert( file.SelectRecord( (SmiRecordId)1, record, SmiFile::ReadOnly ) );
   assert( record.Read( &header, sizeof( Header ), 0 ) == sizeof( Header ) );
 }
 
-template <unsigned dim>
-void R_Tree<dim>::WriteHeader()
+template <unsigned dim, class LeafInfo>
+void R_Tree<dim, LeafInfo>::WriteHeader()
 {
   SmiRecord record;
   assert( file.SelectRecord( (SmiRecordId)1, record, SmiFile::Update ) );
@@ -1452,8 +1697,8 @@ void R_Tree<dim>::WriteHeader()
 5.4 Method PutNode: Putting node to disk
 
 */
-template <unsigned dim>
-void R_Tree<dim>::PutNode( const SmiRecordId recno, R_TreeNode<dim> **node )
+template <unsigned dim, class LeafInfo>
+void R_Tree<dim, LeafInfo>::PutNode( const SmiRecordId recno, R_TreeNode<dim, LeafInfo> **node )
 {
   assert( file.IsOpen() );
   (*node)->Write( file, recno );
@@ -1461,8 +1706,8 @@ void R_Tree<dim>::PutNode( const SmiRecordId recno, R_TreeNode<dim> **node )
   *node = NULL;
 }
 
-template <unsigned dim>
-void R_Tree<dim>::PutNode( SmiRecord& record, R_TreeNode<dim> **node )
+template <unsigned dim, class LeafInfo>
+void R_Tree<dim, LeafInfo>::PutNode( SmiRecord& record, R_TreeNode<dim, LeafInfo> **node )
 {
   (*node)->Write( record );
   delete *node;
@@ -1473,19 +1718,21 @@ void R_Tree<dim>::PutNode( SmiRecord& record, R_TreeNode<dim> **node )
 5.5 Method GetNode: Getting node from disk
 
 */
-template <unsigned dim>
-R_TreeNode<dim> *R_Tree<dim>::GetNode( const SmiRecordId recno, const bool leaf, const int min, const int max )
+template <unsigned dim, class LeafInfo>
+R_TreeNode<dim, LeafInfo> *R_Tree<dim, LeafInfo>::GetNode( const SmiRecordId recno, const bool leaf, 
+                                                           const int min, const int max )
 {
   assert( file.IsOpen() );
-  R_TreeNode<dim> *node = new R_TreeNode<dim>( leaf, min, max );
+  R_TreeNode<dim, LeafInfo> *node = new R_TreeNode<dim, LeafInfo>( leaf, min, max );
   node->Read( file, recno );
   return node;
 }
 
-template <unsigned dim>
-R_TreeNode<dim> *R_Tree<dim>::GetNode( SmiRecord& record, const bool leaf, const int min, const int max )
+template <unsigned dim, class LeafInfo>
+R_TreeNode<dim, LeafInfo> *R_Tree<dim, LeafInfo>::GetNode( SmiRecord& record, const bool leaf, 
+                                                           const int min, const int max )
 {
-  R_TreeNode<dim> *node = new R_TreeNode<dim>( leaf, min, max );
+  R_TreeNode<dim, LeafInfo> *node = new R_TreeNode<dim, LeafInfo>( leaf, min, max );
   node->Read( record );
   return node;
 }
@@ -1494,15 +1741,15 @@ R_TreeNode<dim> *R_Tree<dim>::GetNode( SmiRecord& record, const bool leaf, const
 5.6 Method BoundingBox
 
 */
-template <unsigned dim>
-BBox<dim> R_Tree<dim>::BoundingBox()
+template <unsigned dim, class LeafInfo>
+BBox<dim> R_Tree<dim, LeafInfo>::BoundingBox()
   // Returns the bounding box of this R_Tree
 {
   if( currLevel == 0 )
     return nodePtr->BoundingBox();
   else
   {
-    R_TreeNode<dim> *tmp = GetNode( RootRecordId(), 0, MinEntries(), MaxEntries() );
+    R_TreeNode<dim, LeafInfo> *tmp = GetNode( RootRecordId(), 0, MinEntries(currLevel), MaxEntries(currLevel) );
     BBox<dim> result = tmp->BoundingBox();
     delete tmp;
 
@@ -1514,8 +1761,8 @@ BBox<dim> R_Tree<dim>::BoundingBox()
 5.7 Method Insert
 
 */
-template <unsigned dim>
-void R_Tree<dim>::Insert( const R_TreeEntry<dim>& entry )
+template <unsigned dim, class LeafInfo>
+void R_Tree<dim, LeafInfo>::Insert( const R_TreeLeafEntry<dim, LeafInfo>& entry )
 {
   scanFlag = false;
 
@@ -1528,8 +1775,8 @@ void R_Tree<dim>::Insert( const R_TreeEntry<dim>& entry )
 5.8 Method LocateBestNode
 
 */
-template <unsigned dim>
-void R_Tree<dim>::LocateBestNode( const R_TreeEntry<dim>& entry, int level )
+template <unsigned dim, class LeafInfo>
+void R_Tree<dim, LeafInfo>::LocateBestNode( const R_TreeEntry<dim>& entry, int level )
 {
   GotoLevel( 0 );
 
@@ -1542,7 +1789,7 @@ void R_Tree<dim>::LocateBestNode( const R_TreeEntry<dim>& entry, int level )
       // we should only take into consideration the k nodes that
       // result in least enlargement, where k is given by
       // leafnode_subset_max.
-      SortedArray enlargeList( MaxEntries() + 1 );
+      SortedArray enlargeList( MaxEntries(currLevel) + 1 );
       int i, j, k;
 
       for( i = 0; i < nodePtr->EntryCount(); i++ )
@@ -1618,13 +1865,13 @@ void R_Tree<dim>::LocateBestNode( const R_TreeEntry<dim>& entry, int level )
 5.9 Method GotoLevel
 
 */
-template <unsigned dim>
-void R_Tree<dim>::GotoLevel( int level )
+template <unsigned dim, class LeafInfo>
+void R_Tree<dim, LeafInfo>::GotoLevel( int level )
 {
   if( currLevel == level )
   {
     if( nodePtr == NULL )
-      nodePtr = GetNode( path[ currLevel ], Height() == level, MinEntries(), MaxEntries() );
+      nodePtr = GetNode( path[ currLevel ], Height() == level, MinEntries(currLevel), MaxEntries(currLevel) );
   }
   else
   {
@@ -1634,7 +1881,7 @@ void R_Tree<dim>::GotoLevel( int level )
       PutNode( path[ currLevel ], &nodePtr );
 
     currLevel = level;
-    nodePtr = GetNode( path[ currLevel ], Height() == level, MinEntries(), MaxEntries() );
+    nodePtr = GetNode( path[ currLevel ], Height() == level, MinEntries(currLevel), MaxEntries(currLevel) );
   }
 }
 
@@ -1642,26 +1889,26 @@ void R_Tree<dim>::GotoLevel( int level )
 5.10 Method DownLevel
 
 */
-template <unsigned dim>
-void R_Tree<dim>::DownLevel( int entryNo )
+template <unsigned dim, class LeafInfo>
+void R_Tree<dim, LeafInfo>::DownLevel( int entryNo )
 {
   assert( currLevel != Height() );
   assert( nodePtr != 0 );
   assert( entryNo >= 0 && entryNo < nodePtr->EntryCount() );
 
   pathEntry[ currLevel ] = entryNo;
-  path[ currLevel+1 ] = (*nodePtr)[ entryNo ].pointer;
+  path[ currLevel+1 ] = ((R_TreeInternalEntry<dim>&)(*nodePtr)[ entryNo ]).pointer;
   PutNode( path[ currLevel ], &nodePtr );
   currLevel += 1;
-  nodePtr = GetNode( path[ currLevel ], Height() == currLevel, MinEntries(), MaxEntries() );
+  nodePtr = GetNode( path[ currLevel ], Height() == currLevel, MinEntries(currLevel), MaxEntries(currLevel) );
 }
 
 /*
 5.11 Method InsertEntry
 
 */
-template <unsigned dim>
-void R_Tree<dim>::InsertEntry( const R_TreeEntry<dim>& entry )
+template <unsigned dim, class LeafInfo>
+void R_Tree<dim, LeafInfo>::InsertEntry( const R_TreeEntry<dim>& entry )
 {
   assert( file.IsOpen() );
 
@@ -1671,23 +1918,25 @@ void R_Tree<dim>::InsertEntry( const R_TreeEntry<dim>& entry )
     if( !do_forced_reinsertion || currLevel == 0 ||
         overflowFlag[ Height() - currLevel ] )
     { // Node splitting is necessary
-      R_TreeNode<dim> *n1 = new R_TreeNode<dim>( nodePtr->IsLeaf(), MinEntries(), MaxEntries() );
-      R_TreeNode<dim> *n2 = new R_TreeNode<dim>( nodePtr->IsLeaf(), MinEntries(), MaxEntries() );
+      R_TreeNode<dim, LeafInfo> *n1 = 
+        new R_TreeNode<dim, LeafInfo>( nodePtr->IsLeaf(), MinEntries(currLevel), MaxEntries(currLevel) );
+      R_TreeNode<dim, LeafInfo> *n2 = 
+        new R_TreeNode<dim, LeafInfo>( nodePtr->IsLeaf(), MinEntries(currLevel), MaxEntries(currLevel) );
 
       nodePtr->Split( *n1, *n2 );
 
       // Write split nodes and update parent
       if( currLevel == 0)
       { // splitting root node
-
         nodePtr->Clear();
+        nodePtr->SetInternal( header.minInternalEntries, header.maxInternalEntries ); 
 
         BBox<dim> n1Box( n1->BoundingBox() );
         SmiRecordId node1recno;
         SmiRecord *node1record = new SmiRecord();
         assert( file.AppendRecord( node1recno, *node1record ) );
         PutNode( *node1record, &n1 );
-        assert( nodePtr->Insert( R_TreeEntry<dim>( n1Box, node1recno ) ) );
+        assert( nodePtr->Insert( R_TreeInternalEntry<dim>( n1Box, node1recno ) ) );
         delete node1record;
 
         BBox<dim> n2Box( n2->BoundingBox() );
@@ -1695,7 +1944,7 @@ void R_Tree<dim>::InsertEntry( const R_TreeEntry<dim>& entry )
         SmiRecord *node2record = new SmiRecord();
         assert( file.AppendRecord( node2recno, *node2record ) );
         PutNode( *node2record, &n2 );
-        assert( nodePtr->Insert( R_TreeEntry<dim>( n2Box, node2recno ) ) );
+        assert( nodePtr->Insert( R_TreeInternalEntry<dim>( n2Box, node2recno ) ) );
         delete node2record;
 
         header.height += 1;
@@ -1706,13 +1955,14 @@ void R_Tree<dim>::InsertEntry( const R_TreeEntry<dim>& entry )
         SmiRecordId newNoderecno;
         SmiRecord *newNoderecord = new SmiRecord();
         assert( file.AppendRecord( newNoderecno, *newNoderecord ) );
-        R_TreeEntry<dim> newEntry( n2->BoundingBox(), newNoderecno );
+        R_TreeInternalEntry<dim> newEntry( n2->BoundingBox(), newNoderecno );
         PutNode( *newNoderecord, &n2 );
         delete newNoderecord;
 
         header.nodeCount++;
 
         // Copy all entries from n1 to nodePtr
+        nodePtr->Clear();
         *nodePtr = *n1;
         delete n1;
 
@@ -1739,7 +1989,7 @@ void R_Tree<dim>::InsertEntry( const R_TreeEntry<dim>& entry )
       // entry bounding box to the center of the bounding box
       // of all entries.
       // NOTE: We use CHESSBOARD metric for the distance
-      SortedArray distSort( MaxEntries() + 1 );
+      SortedArray distSort( MaxEntries(currLevel) + 1 );
 
       for( int i = 0; i < nodePtr->EntryCount(); i++ )
       {
@@ -1759,24 +2009,34 @@ void R_Tree<dim>::InsertEntry( const R_TreeEntry<dim>& entry )
       }
 
       { // Write node with the entries that will stay
-        R_TreeEntry<dim> *tmp = new R_TreeEntry<dim>[ MaxEntries() + 1 ];
-        int *keepFlag = new int[ MaxEntries() + 1 ];
+        int maxEntries = MaxEntries(currLevel),
+            minEntries = MinEntries(currLevel);
+
+        R_TreeEntry<dim> **tmp = new R_TreeEntry<dim>*[ maxEntries + 1 ];
+        int *keepFlag = new int[ maxEntries + 1 ];
+        bool leaf = nodePtr->IsLeaf();
         int deleteCount, n = 0;
 
-        for( int i = 0; i <= MaxEntries(); i++ )
+        for( int i = 0; i <= maxEntries; i++ )
+        {
           keepFlag[ i ] = 0;
+          tmp[i] = 0;
+        }
 
-        deleteCount = (forced_reinsertion_percent * MaxEntries()) / 100;
+        deleteCount = (forced_reinsertion_percent * maxEntries) / 100;
 
-        assert( MaxEntries() - deleteCount >= MinEntries() );
+        assert( maxEntries - deleteCount >= minEntries );
 
-        for( int i = MaxEntries()-deleteCount; i >= 0; i-- )
+        for( int i = maxEntries-deleteCount; i >= 0; i-- )
           keepFlag[ distSort.pop() ] = 1;
 
-        for( int i = MaxEntries(); i >= 0; i-- )
+        for( int i = maxEntries; i >= 0; i-- )
           if( !keepFlag[ i ] )
           {
-            tmp[ i ] = (*nodePtr)[ i ];
+            if( leaf )
+              tmp[ i ] = new R_TreeLeafEntry<dim, LeafInfo>( (R_TreeLeafEntry<dim, LeafInfo>&)(*nodePtr)[ i ] );
+            else
+              tmp[ i ] = new R_TreeInternalEntry<dim>( (R_TreeInternalEntry<dim>&)(*nodePtr)[ i ] );
             n++;
             nodePtr->Remove( i );
           }
@@ -1789,18 +2049,20 @@ void R_Tree<dim>::InsertEntry( const R_TreeEntry<dim>& entry )
         while( !distSort.empty() )
         {
           int entryNo = distSort.pop();
-          R_TreeEntry<dim> reinsertEntry = tmp[ entryNo ];
+          R_TreeEntry<dim> *reinsertEntry = tmp[ entryNo ];
 
           assert( !keepFlag[ entryNo ] );
 
-          LocateBestNode( reinsertEntry, Height() - reinsertLevel );
-          InsertEntry( reinsertEntry );
+          LocateBestNode( *reinsertEntry, Height() - reinsertLevel );
+          InsertEntry( *reinsertEntry );
         }
 
         // Reset flag so that other insertion operations may cause the
         // forced reinsertion process to take place
         overflowFlag[ reinsertLevel ] = 0;
 
+        for( int i = 0; i <= maxEntries; i++ )
+          delete tmp[i];
         delete [] tmp;
         delete [] keepFlag;
       }
@@ -1811,8 +2073,8 @@ void R_Tree<dim>::InsertEntry( const R_TreeEntry<dim>& entry )
 5.12 Method UpLevel
 
 */
-template <unsigned dim>
-void R_Tree<dim>::UpLevel()
+template <unsigned dim, class LeafInfo>
+void R_Tree<dim, LeafInfo>::UpLevel()
 {
   assert( currLevel > 0 );
 
@@ -1820,15 +2082,15 @@ void R_Tree<dim>::UpLevel()
     PutNode( path[ currLevel ], &nodePtr );
 
   currLevel -= 1;
-  nodePtr = GetNode( path[ currLevel ], Height() == currLevel, MinEntries(), MaxEntries() );
+  nodePtr = GetNode( path[ currLevel ], Height() == currLevel, MinEntries(currLevel), MaxEntries(currLevel) );
 }
 
 /*
 5.13 Method UpdateBox
 
 */
-template <unsigned dim>
-void R_Tree<dim>::UpdateBox()
+template <unsigned dim, class LeafInfo>
+void R_Tree<dim, LeafInfo>::UpdateBox()
 {
   // Save where we were before
   int formerlevel = currLevel;
@@ -1851,8 +2113,8 @@ void R_Tree<dim>::UpdateBox()
 5.14 Method FindEntry
 
 */
-template <unsigned dim>
-bool R_Tree<dim>::FindEntry( const R_TreeEntry<dim>& entry )
+template <unsigned dim, class LeafInfo>
+bool R_Tree<dim, LeafInfo>::FindEntry( const R_TreeLeafEntry<dim, LeafInfo>& entry )
 {
   // First see if the current entry is the one that is being sought,
   // as is the case with many searches followed by Delete
@@ -1912,8 +2174,8 @@ bool R_Tree<dim>::FindEntry( const R_TreeEntry<dim>& entry )
 5.15 Method First
 
 */
-template <unsigned dim>
-bool R_Tree<dim>::First( const BBox<dim>& box, R_TreeEntry<dim>& result, int replevel )
+template <unsigned dim, class LeafInfo>
+bool R_Tree<dim, LeafInfo>::First( const BBox<dim>& box, R_TreeLeafEntry<dim, LeafInfo>& result, int replevel )
 {
   // Remember that we have started a scan of the R_Tree
   scanFlag = true;
@@ -1934,8 +2196,8 @@ bool R_Tree<dim>::First( const BBox<dim>& box, R_TreeEntry<dim>& result, int rep
 5.16 Method Next
 
 */
-template <unsigned dim>
-bool R_Tree<dim>::Next( R_TreeEntry<dim>& result )
+template <unsigned dim, class LeafInfo>
+bool R_Tree<dim, LeafInfo>::Next( R_TreeLeafEntry<dim, LeafInfo>& result )
 {
   // Next can be called only after a 'First' or a 'Next' operation
   assert( scanFlag );
@@ -1958,7 +2220,7 @@ bool R_Tree<dim>::Next( R_TreeEntry<dim>& result )
         if( (*nodePtr)[ currEntry ].box.Intersects( searchBox ) )
           if( nodePtr->IsLeaf() || currLevel == reportLevel)
           { // Found an appropriate entry
-            result = (*nodePtr)[ currEntry ];
+            result = (R_TreeLeafEntry<dim, LeafInfo>&)(*nodePtr)[ currEntry ];
             retcode = true;
             break;
           }
@@ -1976,8 +2238,8 @@ bool R_Tree<dim>::Next( R_TreeEntry<dim>& result )
 5.17 Method Remove
 
 */
-template <unsigned dim>
-bool R_Tree<dim>::Remove( const R_TreeEntry<dim>& entry )
+template <unsigned dim, class LeafInfo>
+bool R_Tree<dim, LeafInfo>::Remove( const R_TreeLeafEntry<dim, LeafInfo>& entry )
 {
   assert( file.IsOpen() );
 
@@ -1989,7 +2251,7 @@ bool R_Tree<dim>::Remove( const R_TreeEntry<dim>& entry )
   else
   { // Create a list of nodes whose entries must be reinserted
     stack<int> reinsertLevelList;
-    stack<R_TreeNode<dim>*> reinsertNodeList;
+    stack<R_TreeNode<dim, LeafInfo>*> reinsertNodeList;
     BBox<dim> sonBox( false );
 
     // remove leaf node entry
@@ -2002,7 +2264,7 @@ bool R_Tree<dim>::Remove( const R_TreeEntry<dim>& entry )
 
       if( underflow )
       { // Current node has underflow. Save it for later reinsertion
-        R_TreeNode<dim>* nodePtrcopy = new R_TreeNode<dim>( *nodePtr );
+        R_TreeNode<dim, LeafInfo>* nodePtrcopy = new R_TreeNode<dim, LeafInfo>( *nodePtr );
 
         reinsertNodeList.push( nodePtrcopy );
         reinsertLevelList.push( currLevel );
@@ -2028,7 +2290,7 @@ bool R_Tree<dim>::Remove( const R_TreeEntry<dim>& entry )
     // Reinsert entries in every node of reinsertNodeList
     while( !reinsertNodeList.empty() )
     {
-      R_TreeNode<dim>* tmp = reinsertNodeList.top();
+      R_TreeNode<dim, LeafInfo>* tmp = reinsertNodeList.top();
       int level = reinsertLevelList.top(), i;
       reinsertNodeList.pop();
       reinsertLevelList.pop();
@@ -2076,14 +2338,27 @@ bool R_Tree<dim>::Remove( const R_TreeEntry<dim>& entry )
 5.18 Method Root
 
 */
-template <unsigned dim>
-R_TreeNode<dim>& R_Tree<dim>::Root()
+template <unsigned dim, class LeafInfo>
+R_TreeNode<dim, LeafInfo>& R_Tree<dim, LeafInfo>::Root()
 // Loads nodeptr with the root node
 {
   GotoLevel( 0 );
 
   return *nodePtr;
 }
+
+struct TwoLayerLeafInfo
+{
+  TupleId tupleId;
+  int low;
+  int high;
+
+  TwoLayerLeafInfo() {}
+
+  TwoLayerLeafInfo( TupleId tupleId, int low, int high ):
+  tupleId( tupleId ), low( low ), high( high )
+  {}
+};
 
 /*
 6 Template functions for the type constructors
@@ -2099,35 +2374,65 @@ outputs will show only some statistics about the tree.
 template <unsigned dim>
 ListExpr OutRTree(ListExpr typeInfo, Word value)
 {
-  ListExpr bboxList, appendList;
-  R_Tree<dim> *rtree = (R_Tree<dim> *)value.addr;
-
-  bboxList = nl->OneElemList(
-                    nl->RealAtom( rtree->BoundingBox().MinD( 0 ) ));
-  appendList = bboxList;
-  appendList = nl->Append(appendList,
-                          nl->RealAtom( rtree->BoundingBox().MaxD( 0 ) ));
-
-  for( unsigned i = 1; i < dim; i++)
+  if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
   {
-    appendList = nl->Append(appendList,
-                            nl->RealAtom( rtree->BoundingBox().MinD( i ) ));
-    appendList = nl->Append(appendList,
-                            nl->RealAtom( rtree->BoundingBox().MaxD( i ) ));
-  }
+    ListExpr bboxList, appendList;
+    R_Tree<dim, TwoLayerLeafInfo> *rtree = (R_Tree<dim, TwoLayerLeafInfo> *)value.addr;
 
-  return nl->SixElemList(
-           nl->StringAtom( "R-Tree statistics" ),
-           nl->ThreeElemList( nl->StringAtom( "Entries (min/max)" ),
-                              nl->IntAtom( rtree->MinEntries() ),
-                              nl->IntAtom( rtree->MaxEntries() ) ),
-           nl->TwoElemList( nl->StringAtom( "Height" ),
-                            nl->IntAtom( rtree->Height() ) ),
-           nl->TwoElemList( nl->StringAtom( "# of (leaf) entries" ),
-                            nl->IntAtom( rtree->EntryCount() ) ),
-           nl->TwoElemList( nl->StringAtom( "# of nodes" ),
-                            nl->IntAtom( rtree->NodeCount() ) ),
-           nl->TwoElemList( nl->StringAtom( "Bounding Box" ), bboxList ) );
+    bboxList = nl->OneElemList(
+                 nl->RealAtom( rtree->BoundingBox().MinD( 0 ) ));
+    appendList = bboxList;
+    appendList = nl->Append(appendList,
+                            nl->RealAtom( rtree->BoundingBox().MaxD( 0 ) ));
+
+    for( unsigned i = 1; i < dim; i++)
+    {
+      appendList = nl->Append(appendList,
+                              nl->RealAtom( rtree->BoundingBox().MinD( i ) ));
+      appendList = nl->Append(appendList,
+                              nl->RealAtom( rtree->BoundingBox().MaxD( i ) ));
+    }
+ 
+    return nl->FiveElemList(
+             nl->StringAtom( "R-Tree statistics" ),
+             nl->TwoElemList( nl->StringAtom( "Height" ),
+                              nl->IntAtom( rtree->Height() ) ),
+             nl->TwoElemList( nl->StringAtom( "# of (leaf) entries" ),
+                              nl->IntAtom( rtree->EntryCount() ) ),
+             nl->TwoElemList( nl->StringAtom( "# of nodes" ),
+                              nl->IntAtom( rtree->NodeCount() ) ),
+             nl->TwoElemList( nl->StringAtom( "Bounding Box" ), bboxList ) );
+  }
+  else
+  {
+    ListExpr bboxList, appendList;
+    R_Tree<dim, TupleId> *rtree = (R_Tree<dim, TupleId> *)value.addr;
+
+    bboxList = nl->OneElemList(
+                 nl->RealAtom( rtree->BoundingBox().MinD( 0 ) ));
+    appendList = bboxList;
+    appendList = nl->Append(appendList,
+                            nl->RealAtom( rtree->BoundingBox().MaxD( 0 ) ));
+
+    for( unsigned i = 1; i < dim; i++)
+    {
+      appendList = nl->Append(appendList,
+                              nl->RealAtom( rtree->BoundingBox().MinD( i ) ));
+      appendList = nl->Append(appendList,
+                              nl->RealAtom( rtree->BoundingBox().MaxD( i ) ));
+    }
+
+    return nl->FiveElemList(
+             nl->StringAtom( "R-Tree statistics" ),
+             nl->TwoElemList( nl->StringAtom( "Height" ),
+                              nl->IntAtom( rtree->Height() ) ),
+             nl->TwoElemList( nl->StringAtom( "# of (leaf) entries" ),
+                              nl->IntAtom( rtree->EntryCount() ) ),
+             nl->TwoElemList( nl->StringAtom( "# of nodes" ),
+                              nl->IntAtom( rtree->NodeCount() ) ),
+             nl->TwoElemList( nl->StringAtom( "Bounding Box" ), bboxList ) );
+  }
+  
 }
 
 /*
@@ -2153,8 +2458,10 @@ Word InRTree( ListExpr typeInfo, ListExpr value,
 template <unsigned dim>
 Word CreateRTree( const ListExpr typeInfo )
 {
-//  cout << "Create RTree" << endl;
-  return SetWord( new R_Tree<dim>( 4000 ) );
+  if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
+    return SetWord( new R_Tree<dim, TwoLayerLeafInfo>( 4000 ) );
+  else
+    return SetWord( new R_Tree<dim, TupleId>( 4000 ) );
 }
 
 /*
@@ -2162,11 +2469,18 @@ Word CreateRTree( const ListExpr typeInfo )
 
 */
 template <unsigned dim>
-void CloseRTree( Word& w )
+void CloseRTree( const ListExpr typeInfo, Word& w )
 {
-//  cout << "Close RTree" << endl;
-  R_Tree<dim>* rtree = (R_Tree<dim>*)w.addr;
-  delete rtree;
+  if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
+  {
+    R_Tree<dim, TwoLayerLeafInfo>* rtree = (R_Tree<dim, TwoLayerLeafInfo>*)w.addr;
+    delete rtree;
+  }
+  else
+  {
+    R_Tree<dim, TupleId>* rtree = (R_Tree<dim, TupleId>*)w.addr;
+    delete rtree;
+  }
 }
 
 /*
@@ -2176,7 +2490,7 @@ Not implemented yet.
 
 */
 template <unsigned dim>
-Word CloneRTree( const Word& w )
+Word CloneRTree( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( Address(0) );
 }
@@ -2186,12 +2500,20 @@ Word CloneRTree( const Word& w )
 
 */
 template <unsigned dim>
-void DeleteRTree( Word& w )
+void DeleteRTree( const ListExpr typeInfo, Word& w )
 {
-//  cout << "Delete RTree" << endl;
-  R_Tree<dim>* rtree = (R_Tree<dim>*)w.addr;
-  rtree->DeleteFile();
-  delete rtree;
+  if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
+  {
+    R_Tree<dim, TwoLayerLeafInfo>* rtree = (R_Tree<dim, TwoLayerLeafInfo>*)w.addr;
+    rtree->DeleteFile();
+    delete rtree;
+  }
+  else
+  {
+    R_Tree<dim, TupleId>* rtree = (R_Tree<dim, TupleId>*)w.addr;
+    rtree->DeleteFile();
+    delete rtree;
+  }
 }
 
 /*
@@ -2199,7 +2521,7 @@ void DeleteRTree( Word& w )
 
 */
 template <unsigned dim>
-void* CastRTree(void* addr)
+void* CastRTree( void* addr)
 {
   return ( 0 );
 }
@@ -2210,15 +2532,24 @@ void* CastRTree(void* addr)
 */
 template <unsigned dim>
 bool OpenRTree( SmiRecord& valueRecord,
-                 size_t& offset,
-                 const ListExpr typeInfo,
-                 Word& value )
+                size_t& offset,
+                const ListExpr typeInfo,
+                Word& value )
 {
   SmiFileId fileid;
   valueRecord.Read( &fileid, sizeof( SmiFileId ), offset );
   offset += sizeof( SmiFileId );
-  R_Tree<dim> *rtree = new R_Tree<dim>( fileid );
-  value = SetWord( rtree );
+
+  if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
+  {
+    R_Tree<dim, TwoLayerLeafInfo> *rtree = new R_Tree<dim, TwoLayerLeafInfo>( fileid );
+    value = SetWord( rtree );
+  }
+  else
+  {
+    R_Tree<dim, TupleId> *rtree = new R_Tree<dim, TupleId>( fileid );
+    value = SetWord( rtree );
+  }
   return true;
 }
 
@@ -2228,13 +2559,23 @@ bool OpenRTree( SmiRecord& valueRecord,
 */
 template <unsigned dim>
 bool SaveRTree( SmiRecord& valueRecord,
-                 size_t& offset,
-                 const ListExpr typeInfo,
-                 Word& value )
+                size_t& offset,
+                const ListExpr typeInfo,
+                Word& value )
 {
-  R_Tree<dim> *rtree = (R_Tree<dim> *)value.addr;
-  SmiFileId fileid = rtree->FileId();
-  valueRecord.Write( &fileid, sizeof( SmiFileId ), offset );
+  SmiFileId fileId;
+
+  if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
+  {
+    R_Tree<dim, TwoLayerLeafInfo> *rtree = (R_Tree<dim, TwoLayerLeafInfo> *)value.addr;
+    fileId = rtree->FileId();
+  }
+  else
+  {
+    R_Tree<dim, TupleId> *rtree = (R_Tree<dim, TupleId> *)value.addr;
+    fileId = rtree->FileId();
+  }
+  valueRecord.Write( &fileId, sizeof( SmiFileId ), offset );
   offset += sizeof( SmiFileId );
   return true;
 }

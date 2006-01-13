@@ -1189,7 +1189,7 @@ Word CreateMP3( const ListExpr typeInfo ) {
 2.7 ~Delete~-function
 
 */
-void DeleteMP3( Word& w ) {
+void DeleteMP3( const ListExpr typeInfo, Word& w ) {
     MP3 *mp3 = (MP3 *)w.addr;
     mp3->Destroy();
     delete mp3;
@@ -1200,7 +1200,7 @@ void DeleteMP3( Word& w ) {
 2.8 ~Close~-function
 
 */
-void CloseMP3( Word& w ) {
+void CloseMP3( const ListExpr typeInfo, Word& w ) {
     delete (MP3 *)w.addr;
     w.addr = 0;
 }
@@ -1209,7 +1209,7 @@ void CloseMP3( Word& w ) {
 2.9 ~Clone~-function
 
 */
-Word CloneMP3( const Word& w ) {
+Word CloneMP3( const ListExpr typeInfo, const Word& w ) {
     return SetWord( ((MP3 *)w.addr)->Clone() );
 }
 
@@ -1940,7 +1940,7 @@ Word CreateID3( const ListExpr typeInfo ) {
 3.7 ~Delete~-function
 
 */
-void DeleteID3( Word& w ) {
+void DeleteID3( const ListExpr typeInfo, Word& w ) {
     ID3 *id3 = (ID3 *)w.addr;
     id3->Destroy();
     delete id3;
@@ -1951,7 +1951,7 @@ void DeleteID3( Word& w ) {
 3.8 ~Close~-function
 
 */
-void CloseID3( Word& w ) {
+void CloseID3( const ListExpr typeInfo, Word& w ) {
     delete (ID3 *)w.addr;
     w.addr = 0;
 }
@@ -1960,7 +1960,7 @@ void CloseID3( Word& w ) {
 3.9 ~Clone~-function
 
 */
-Word CloneID3( const Word& w ) {
+Word CloneID3( const ListExpr typeInfo, const Word& w ) {
     return SetWord( ((ID3 *)w.addr)->Clone() );
 }
 
@@ -2423,7 +2423,7 @@ Word CreateLyrics( const ListExpr typeInfo ) {
 4.8 ~Delete~-function
 
 */
-void DeleteLyrics( Word& w ) {
+void DeleteLyrics( const ListExpr typeInfo, Word& w ) {
     Lyrics *lyrics = (Lyrics *)w.addr;
     lyrics->Destroy();
     delete lyrics;
@@ -2434,7 +2434,7 @@ void DeleteLyrics( Word& w ) {
 4.9 ~Close~-function
 
 */
-void CloseLyrics( Word& w ) {
+void CloseLyrics( const ListExpr typeInfo, Word& w ) {
     delete (Lyrics *)w.addr;
     w.addr = 0;
 }
@@ -2443,7 +2443,7 @@ void CloseLyrics( Word& w ) {
 4.10 ~Clone~-function
 
 */
-Word CloneLyrics( const Word& w ) {
+Word CloneLyrics( const ListExpr typeInfo, const Word& w ) {
     return SetWord( ((Lyrics *)w.addr)->Clone() );
 }
 

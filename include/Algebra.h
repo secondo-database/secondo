@@ -314,7 +314,8 @@ Returns the properties of the type constructor as a nested list.
                             ListExpr& errorInfo,
                             bool& correct );
   Word     Create( const ListExpr typeInfo );
-  void     Delete( Word& w );
+  void     Delete( const ListExpr typeInfo,
+                   Word& w );
   bool     Open( SmiRecord& valueRecord,
                  size_t& offset,
                  const ListExpr typeInfo,
@@ -323,8 +324,10 @@ Returns the properties of the type constructor as a nested list.
                  size_t& offset, 
                  const ListExpr typeInfo,
                  Word& value );
-  void     Close( Word& w );
-  Word     Clone( const Word& w );
+  void     Close( const ListExpr typeInfo,
+                  Word& w );
+  Word     Clone( const ListExpr typeInfo,
+                  const Word& w );
   int      SizeOf();
   string&  Name() { return name; }
 
@@ -347,9 +350,12 @@ These methods use the ~RestoreFromList~ and ~SaveToList~ if provided, and
 
 */
   static Word DummyCreate( const ListExpr typeInfo );
-  static void DummyDelete( Word& w );
-  static void DummyClose( Word& w );
-  static Word DummyClone( const Word& w );
+  static void DummyDelete( const ListExpr typeInfo,
+                           Word& w );
+  static void DummyClose( const ListExpr typeInfo,
+                          Word& w );
+  static Word DummyClone( const ListExpr typeInfo,
+                          const Word& w );
   static int  DummySizeOf();
 
 /*

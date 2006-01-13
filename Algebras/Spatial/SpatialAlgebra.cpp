@@ -603,7 +603,7 @@ CreatePoint( const ListExpr typeInfo )
 
 */
 void
-DeletePoint( Word& w )
+DeletePoint( const ListExpr typeInfo, Word& w )
 {
   delete (Point *)w.addr;
   w.addr = 0;
@@ -614,7 +614,7 @@ DeletePoint( Word& w )
 
 */
 void
-ClosePoint( Word& w )
+ClosePoint( const ListExpr typeInfo, Word& w )
 {
   delete (Point *)w.addr;
   w.addr = 0;
@@ -625,7 +625,7 @@ ClosePoint( Word& w )
 
 */
 Word
-ClonePoint( const Word& w )
+ClonePoint( const ListExpr typeInfo, const Word& w )
 {
   // cout<<"typeclone ////////////////////"<<endl;
   Point *p = new Point( *((Point *)w.addr) );
@@ -1392,7 +1392,7 @@ CreatePoints( const ListExpr typeInfo )
 
 */
 void
-DeletePoints( Word& w )
+DeletePoints( const ListExpr typeInfo, Word& w )
 {
 
   Points *ps = (Points *)w.addr;
@@ -1406,7 +1406,7 @@ DeletePoints( Word& w )
 
 */
 void
-ClosePoints( Word& w )
+ClosePoints( const ListExpr typeInfo, Word& w )
 {
   delete (Points *)w.addr;
   w.addr = 0;
@@ -1417,7 +1417,7 @@ ClosePoints( Word& w )
 
 */
 Word
-ClonePoints( const Word& w )
+ClonePoints( const ListExpr typeInfo, const Word& w )
 {
   Points *p = new Points( *((Points *)w.addr) );
   return SetWord( p );
@@ -3515,7 +3515,7 @@ CreateHalfSegment( const ListExpr typeInfo )
 */
 
 void
-DeleteHalfSegment( Word& w )
+DeleteHalfSegment( const ListExpr typeInfo, Word& w )
 {
   delete (CHalfSegment*) w.addr;
   w.addr = 0;
@@ -3527,7 +3527,7 @@ DeleteHalfSegment( Word& w )
 */
 
 void
-CloseHalfSegment( Word& w )
+CloseHalfSegment( const ListExpr typeInfo, Word& w )
 {
   delete (CHalfSegment*) w.addr;
   w.addr = 0;
@@ -3539,7 +3539,7 @@ CloseHalfSegment( Word& w )
 */
 
 Word
-CloneHalfSegment( const Word& w )
+CloneHalfSegment( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( ((CHalfSegment*)w.addr)->Clone());
 }
@@ -4380,7 +4380,7 @@ CreateLine( const ListExpr typeInfo )
 
 */
 void
-DeleteLine( Word& w )
+DeleteLine( const ListExpr typeInfo, Word& w )
 {
   CLine *cl = (CLine *)w.addr;
   cl->Destroy();
@@ -4393,7 +4393,7 @@ DeleteLine( Word& w )
 
 */
 void
-CloseLine( Word& w )
+CloseLine( const ListExpr typeInfo, Word& w )
 {
   //  cout << "CloseLine" << endl;
   delete (CLine *)w.addr;
@@ -4405,7 +4405,7 @@ CloseLine( Word& w )
 
 */
 Word
-CloneLine( const Word& w )
+CloneLine( const ListExpr typeInfo, const Word& w )
 {
   //  cout << "CloneLine" << endl;
   CLine *cl = new CLine(*((CLine *)w.addr) );
@@ -7636,7 +7636,7 @@ CreateRegion( const ListExpr typeInfo )
 
 */
 void
-DeleteRegion( Word& w )
+DeleteRegion( const ListExpr typeInfo, Word& w )
 {
   //cout << "DeleteRegion" << endl;
 
@@ -7651,7 +7651,7 @@ DeleteRegion( Word& w )
 
 */
 void
-CloseRegion( Word& w )
+CloseRegion( const ListExpr typeInfo, Word& w )
 {
   //cout << "CloseRegion" << endl;
 
@@ -7664,7 +7664,7 @@ CloseRegion( Word& w )
 
 */
 Word
-CloneRegion( const Word& w )
+CloneRegion( const ListExpr typeInfo, const Word& w )
 {
   //cout << "CloneRegion" << endl;
 

@@ -650,7 +650,7 @@ Word RestoreFromListBTree( ListExpr typeInfo, ListExpr value,
 5.4 Function ~CloseBTree~
 
 */
-void CloseBTree(Word& w)
+void CloseBTree(const ListExpr typeInfo, Word& w)
 {
   BTree* btree = (BTree*)w.addr;
   delete btree;
@@ -660,7 +660,7 @@ void CloseBTree(Word& w)
 5.5 Function ~CloneBTree~
 
 */
-Word CloneBTree(const Word& w)
+Word CloneBTree(const ListExpr typeInfo, const Word& w)
 {
   BTree *btree = (BTree *)w.addr,
         *clone = new BTree( btree->GetKeyType() );
@@ -684,7 +684,7 @@ Word CloneBTree(const Word& w)
 5.6 Function ~DeleteBTree~
 
 */
-void DeleteBTree(Word& w)
+void DeleteBTree(const ListExpr typeInfo, Word& w)
 {
   BTree* btree = (BTree*)w.addr;
   btree->DeleteFile();

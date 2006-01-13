@@ -566,7 +566,7 @@ Word CreatePolygon(const ListExpr typeInfo)
 3.6 ~Delete~-function
 
 */
-void DeletePolygon(Word& w)
+void DeletePolygon(const ListExpr typeInfo, Word& w)
 {
   Polygon* polygon = (Polygon*)w.addr;
 
@@ -608,7 +608,7 @@ SavePolygon( SmiRecord& valueRecord,
 3.8 ~Close~-function
 
 */
-void ClosePolygon(Word& w)
+void ClosePolygon(const ListExpr typeInfo, Word& w)
 {
   Polygon* polygon = (Polygon*)w.addr;
   delete polygon;
@@ -618,7 +618,7 @@ void ClosePolygon(Word& w)
 3.9 ~Clone~-function
 
 */
-Word ClonePolygon(const Word& w)
+Word ClonePolygon(const ListExpr typeInfo, const Word& w)
 {
   return SetWord( ((Polygon*)w.addr)->Clone() );
 }

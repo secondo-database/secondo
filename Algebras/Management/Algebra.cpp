@@ -171,17 +171,17 @@ TypeConstructor::DummyCreate( const ListExpr typeInfo )
 }
 
 void
-TypeConstructor::DummyDelete( Word& w )
+TypeConstructor::DummyDelete( const ListExpr typeInfo, Word& w )
 {
 }
 
 void
-TypeConstructor::DummyClose( Word& w )
+TypeConstructor::DummyClose( const ListExpr typeInfo, Word& w )
 {
 }
 
 Word
-TypeConstructor::DummyClone( const Word& w )
+TypeConstructor::DummyClone( const ListExpr typeInfo, const Word& w )
 {
   return (SetWord( Address( 0 ) ));
 }
@@ -284,9 +284,9 @@ TypeConstructor::Create( const ListExpr typeInfo )
 }
 
 void
-TypeConstructor::Delete( Word& w )
+TypeConstructor::Delete( const ListExpr typeInfo, Word& w )
 {
-  (*deleteFunc)( w );
+  (*deleteFunc)( typeInfo, w );
 }
 
 bool
@@ -322,15 +322,15 @@ TypeConstructor::Save( SmiRecord& valueRecord,
 }
 
 void
-TypeConstructor::Close( Word& w )
+TypeConstructor::Close( const ListExpr typeInfo, Word& w )
 {
-  (*closeFunc)( w );
+  (*closeFunc)( typeInfo, w );
 }
 
 Word
-TypeConstructor::Clone( const Word& w )
+TypeConstructor::Clone( const ListExpr typeInfo, const Word& w )
 {
-  return (*cloneFunc)( w );
+  return (*cloneFunc)( typeInfo, w );
 }
 
 int

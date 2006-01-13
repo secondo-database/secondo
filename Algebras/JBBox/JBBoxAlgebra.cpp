@@ -1216,12 +1216,12 @@ static Word CreateJBox(const ListExpr typeInfo){
 
 */
 
-static void DeleteJPoint(Word &w) {
+static void DeleteJPoint(const ListExpr typeInfo, Word &w) {
   delete (JPoint *)w.addr;
   w.addr = 0;
 }
 
-static void DeleteJBox(Word &w) {
+static void DeleteJBox(const ListExpr typeInfo, Word &w) {
   delete (JBox *)w.addr;
   w.addr = 0;
 }
@@ -1231,12 +1231,12 @@ static void DeleteJBox(Word &w) {
 ~Close~ Functions
 
 */
-static void CloseJPoint(Word &w) {
+static void CloseJPoint(const ListExpr typeInfo, Word &w) {
   delete (JPoint *)w.addr;
   w.addr = 0;
 }
 
-static void CloseJBox(Word &w) {
+static void CloseJBox(const ListExpr typeInfo, Word &w) {
   delete (JBox *)w.addr;
   w.addr = 0;
 }
@@ -1246,11 +1246,11 @@ static void CloseJBox(Word &w) {
 ~Clone~ Functions
 
 */
-static Word CloneJPoint(const Word &w) {
+static Word CloneJPoint(const ListExpr typeInfo, const Word &w) {
   return SetWord(((JPoint *)w.addr)->Clone());
 }
 
-static Word CloneJBox(const Word &w) {
+static Word CloneJBox(const ListExpr typeInfo, const Word &w) {
   return SetWord(((JBox *)w.addr)->Clone());
 }
 

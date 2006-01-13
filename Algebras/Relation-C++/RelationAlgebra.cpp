@@ -230,7 +230,7 @@ of Secondo objects. They may have been created in two ways:
   * by calling a type constructor's ~create~-function.
 
 */
-void DeleteTuple(Word& w)
+void DeleteTuple(const ListExpr typeInfo, Word& w)
 {
   delete (Tuple *)w.addr;
 }
@@ -409,7 +409,7 @@ CreateTuple(const ListExpr typeInfo)
 This function is used to destroy the memory allocated by a ~tuple~.
 
 */
-void CloseTuple(Word& w)
+void CloseTuple(const ListExpr typeInfo, Word& w)
 {
   delete (Tuple *)w.addr;
 }
@@ -421,7 +421,7 @@ This function creates a cloned tuple.
 
 */
 Word
-CloneTuple(const Word& w)
+CloneTuple(const ListExpr typeInfo, const Word& w)
 {
   return SetWord( ((Tuple *)w.addr)->Clone() );
 }
@@ -595,7 +595,7 @@ RestoreFromListRel(ListExpr typeInfo, ListExpr value,
 4.5 ~Delete~-function of type constructor ~rel~
 
 */
-void DeleteRel(Word& w)
+void DeleteRel(const ListExpr typeInfo, Word& w)
 {
   ((Relation *)w.addr)->Delete();
 }
@@ -658,7 +658,7 @@ called ~CloseRel~ and another which the cache will execute, called
 ~CacheCloseRel~.
 
 */
-void CloseRel(Word& w)
+void CloseRel(const ListExpr typeInfo, Word& w)
 {
   return ((Relation *)w.addr)->Close();
 }
@@ -716,7 +716,7 @@ SizeOfRel()
 
 */
 Word
-CloneRel(const Word& w)
+CloneRel(const ListExpr typeInfo, const Word& w)
 {
   return SetWord( ((Relation*)w.addr)->Clone() );
 }

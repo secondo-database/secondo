@@ -2068,17 +2068,17 @@ static Word CreateFRegion(const ListExpr typeInfo){
 4.4 Delete Functions
 
 */
-static void DeleteFPoint(Word &w) {
+static void DeleteFPoint(const ListExpr typeInfo, Word &w) {
   delete (CcFPoint *)w.addr;
   w.addr = 0;
 }
 
-static void DeleteFLine(Word &w){
+static void DeleteFLine(const ListExpr typeInfo, Word &w){
    delete (CcFLine *)w.addr;
    w.addr = 0;
 }
 
-static void DeleteFRegion(Word &w){
+static void DeleteFRegion(const ListExpr typeInfo, Word &w){
   delete (CcFRegion *)w.addr;
   w.addr=0;
 }
@@ -2087,17 +2087,17 @@ static void DeleteFRegion(Word &w){
 4.5 Close Functions
 
 */
-static void CloseFPoint(Word &w) {
+static void CloseFPoint(const ListExpr typeInfo, Word &w) {
   delete (CcFPoint *)w.addr;
   w.addr = 0;
 }
 
-static void CloseFLine(Word &w){
+static void CloseFLine(const ListExpr typeInfo, Word &w){
    delete (CcFLine *)w.addr;
    w.addr = 0;
 }
 
-static void CloseFRegion(Word &w){
+static void CloseFRegion(const ListExpr typeInfo, Word &w){
   delete (CcFRegion *)w.addr;
   w.addr = 0;
 }
@@ -2106,15 +2106,15 @@ static void CloseFRegion(Word &w){
 4.6 Clone Functions
 
 */
-static Word CloneFPoint(const Word &w) {
+static Word CloneFPoint(const ListExpr typeInfo, const Word &w) {
   return SetWord(((CcFPoint *)w.addr)->Clone());
 }
 
-static Word CloneFLine(const Word &w){
+static Word CloneFLine(const ListExpr typeInfo, const Word &w){
   return SetWord(((CcFLine *)w.addr)->Clone());
 }
 
-static Word CloneFRegion(const Word &w){
+static Word CloneFRegion(const ListExpr typeInfo, const Word &w){
   return SetWord(((CcFRegion *)w.addr)->Clone());
 }
 

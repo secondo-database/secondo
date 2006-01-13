@@ -276,7 +276,8 @@ typedef ListExpr (*OutObject)( const ListExpr numType,
 
 typedef Word (*ObjectCreation)( const ListExpr typeInfo );
 
-typedef void (*ObjectDeletion)( Word& object );
+typedef void (*ObjectDeletion)( const ListExpr typeInfo,
+                                Word& object );
 
 typedef bool (*ObjectOpen)( SmiRecord& valueRecord,
                             size_t& offset,
@@ -288,9 +289,11 @@ typedef bool (*ObjectSave)( SmiRecord& valueRecord,
                             const ListExpr typeExpr,
                             Word& value );
 
-typedef void (*ObjectClose)( Word& object );
+typedef void (*ObjectClose)( const ListExpr typeInfo,
+                             Word& object );
 
-typedef Word (*ObjectClone)( const Word& object );
+typedef Word (*ObjectClone)( const ListExpr typeInfo,
+                             const Word& object );
 
 typedef void* (*ObjectCast)( void* );
 
