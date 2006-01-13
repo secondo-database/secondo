@@ -64,6 +64,8 @@ May 19, 2003 RHG Added missing syntax '..' to refer to the second implicit argum
 
 October 14, 2004 RHG Added text atoms and file atoms for nested lists.
 
+January 10, 2005 Victor Almeida removed the ~model~ token.
+
 */
 
 %%
@@ -107,11 +109,6 @@ basic		:	ZZTYPE ZZIDENTIFIER ZZINFIXOP typeexpr
 				{PRINTF("(query "); PRINT($3); 
 				PRINTF(")\n");}
 
-                |               {paramno=0; emptystack();}
-                        ZZMODEL valueexpr
-                                {PRINTF("(model "); PRINT($3);
-                                PRINTF(")\n");}
- 
 		|		{paramno=0; emptystack();}
 			ZZLET ZZIDENTIFIER ZZINFIXOP  valueexpr
 				{PRINTF("(let "); PRINT($3);

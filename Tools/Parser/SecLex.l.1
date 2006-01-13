@@ -36,6 +36,8 @@ January 29, 2004 RHG. Increased numbers [%]n to 2000 and [%]e to 4000.
 
 October 14, 2004 RHG Added text and file tokens.
 
+January 10, 2006 Victor Almeida removed the ~model~ token.
+
 */
 			
 %p 8000
@@ -93,7 +95,6 @@ update		{yylval = NestedText::Atom( yytext, yyleng ); return ZZUPDATE;}
 kill		{yylval = NestedText::Atom( yytext, yyleng ); return ZZKILL;}
 ":="		{yylval = NestedText::Atom( yytext, yyleng ); return ZZASSIGN;}
 query		{yylval = NestedText::Atom( yytext, yyleng ); return ZZQUERY;}
-model           {yylval = NestedText::Atom( yytext, yyleng ); return ZZMODEL;}
 let		{yylval = NestedText::Atom( yytext, yyleng ); return ZZLET;}
 derive		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDERIVE;}
 persistent	{yylval = NestedText::Atom( yytext, yyleng ); return ZZPERSISTENT;}

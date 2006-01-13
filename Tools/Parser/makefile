@@ -83,6 +83,7 @@ clean:
 	$(MAKE) -C SpecParser clean
 	$(RM) *.o
 	$(RM) *.lo
+	$(RM) *.output
 	$(RM) $(OBJECTS) SecLex.cpp SecParser.tab.cpp SecParser.tab.hpp
 	$(RM) lexrules tokens yaccrules1 yaccrules2 SecLex.l SecParser.y
 
