@@ -221,10 +221,10 @@ Some features may be switched on or off:
 */
 
 :- dynamic(optConjunctiveCosts/0),
-   dynamic(optDebug/0),
+   dynamic(optDebug/0).
    % assert(optUniformSpeed),     % Uncomment to use uniform uniform machine speed factor (1.0)
    % assert(optConjunctiveCosts), % Uncomment to apply costs only to operators considered by dijkstra
-   % assert(optDebug).            % Uncomment to see debugging output
+   % assert(optDebug),            % Uncomment to see debugging output
 
 
 ppCostFactor(0) :-
