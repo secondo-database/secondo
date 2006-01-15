@@ -6702,6 +6702,12 @@ accordingly.
     void Inside(MPoint& mp, MBool& res);
 
 /*
+Calculate region traversed by ~MRegion~ instant in ~res~.
+
+*/
+    void Traversed(CRegion& res);
+
+/*
 Friend access for InMRegion() makes live easier.
 
 */
@@ -7147,6 +7153,17 @@ match to the original units in ~mp~.
     }
 
     res.SetDefined(!res.IsEmpty());
+}
+
+/*
+1.1.1 Method ~Traversed()~
+
+*/
+
+void MRegion::Traversed(CRegion& res) {
+    if (MRA_DEBUG) cerr << "MRegion::Traversed() called" << endl;
+
+    assert(false);
 }
 
 /*
@@ -7689,6 +7706,21 @@ static ListExpr IRegionToRegionTypeMap(ListExpr args) {
 }
 
 /*
+Used by ~traversed~:
+
+*/
+static ListExpr MRegionToRegionTypeMap(ListExpr args) {
+    if (MRA_DEBUG) 
+        cerr << "MRegionToRegionTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 1 
+        && nl->IsEqual(nl->First(args), "movingregion"))
+        return nl->SymbolAtom("region");
+    else
+        return nl->SymbolAtom("typeerror");
+}
+
+/*
 
 1.1.1 Operator specific
 
@@ -7971,6 +8003,20 @@ static int AtValueMap_MRegion(Word* args,
     return 0;
 }
 
+static int TraversedValueMap(Word* args, 
+                             Word& result, 
+                             int message, 
+                             Word& local, 
+                             Supplier s) {
+    if (MRA_DEBUG) cerr << "TraversedValueMap() called" << endl;
+
+    result = qp->ResultStorage(s);
+
+    ((MRegion*) args[0].addr)->Traversed(* (CRegion*) result.addr);
+
+    return 0;
+}
+
 static int MraprecValueMap(Word* args, 
                            Word& result, 
                            int message, 
@@ -8086,6 +8132,9 @@ static ValueMapping atvaluemap[] =
     { AtValueMap_MPoint,
       AtValueMap_MRegion };
 
+static ValueMapping traversedvaluemap[] = 
+    { TraversedValueMap };
+
 /*
 1.1 Operator specifications
 
@@ -8170,6 +8219,14 @@ static const string atspec =
     "    <text>Restrict moving point to region or restrict moving region "
     "to point.</text--->"
     "    <text>mpoint1 at region1</text---> ) )";
+
+static const string traversedspec = 
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>mregion -> region</text--->"
+    "    <text>traversed( _ )</text--->"
+    "    <text>Projection of a moving region into "
+    "the plane.</text--->"
+    "    <text>traversed(mregion1)</text---> ) )";
 
 static const string mraprecspec = 
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -8265,6 +8322,13 @@ static Operator at("at",
                    AtSelect,
                    AtTypeMap);
 
+static Operator traversed("traversed",
+                          traversedspec,
+                          1,
+                          traversedvaluemap,
+                          MRegionSelect,
+                          MRegionToRegionTypeMap);
+
 static Operator mraprec("mraprec",
                         mraprecspec,
                         MraprecValueMap,
@@ -8317,6 +8381,7 @@ public:
         AddOperator(&present);
         AddOperator(&intersection);
         AddOperator(&inside);
+        AddOperator(&traversed);
         AddOperator(&at);
         AddOperator(&mraprec);
 
