@@ -18,7 +18,7 @@ on the number of dimensions.
 
 October 2004, Herbert Schoenhammer, tested and divided in Header-File and
 Implementation File. Some few corrections in SplitAlgorithms LinearSplit and
-AxisSplit were done. 
+AxisSplit were done.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
@@ -152,7 +152,7 @@ boxes of the entries of its child node.
 
 */
 
-  virtual ~R_TreeEntry() 
+  virtual ~R_TreeEntry()
   {}
 /*
 The virtual destructor.
@@ -193,8 +193,8 @@ The simple constructor.
 
   inline R_TreeInternalEntry( const BBox<dim>& box, SmiRecordId pointer = 0 ) :
   pointer( pointer )
-  { 
-    this->box = box; 
+  {
+    this->box = box;
   }
 /*
 The second constructor passing a bounding box and a page.
@@ -228,7 +228,7 @@ Redefinition of the assignement operator.
 Returns the size of the entry in disk.
 
 */
- 
+
   void Read( char *buffer, int& offset )
   {
     memcpy( &this->box, buffer+offset, sizeof(BBox<dim>) );
@@ -429,8 +429,8 @@ Returns the bounding box of this node.
         delete entries[ i ];
         entries[ i ] = 0;
       }
-      count = 0; 
-      modified = true; 
+      count = 0;
+      modified = true;
     }
 /*
 Clears all entries.
@@ -485,12 +485,12 @@ Writes this node to an ~SmiRecordFile~ at position ~id~
 
 */
     void SetInternal( int minEntries, int maxEntries )
-    { 
-      assert( count == 0 ); 
-      leaf = false; 
+    {
+      assert( count == 0 );
+      leaf = false;
       this->minEntries = minEntries;
       this->maxEntries = maxEntries;
-      modified = true; 
+      modified = true;
     }
 /*
 Converts a leaf node to an internal one. The node must be empty.
@@ -590,7 +590,7 @@ entries( new R_TreeEntry<dim>*[ node.maxEntries + 1 ] ),
 modified( true )
 {
   int i;
-  for( i = 0; i < node.entryCount(); i++ )
+  for( i = 0; i < node.EntryCount(); i++ )
   {
     if( leaf )
       entries[ i ] = new R_TreeLeafEntry<dim, LeafInfo>( (R_TreeLeafEntry<dim, LeafInfo>&)*node.entries[ i ] );
@@ -756,9 +756,9 @@ void R_TreeNode<dim, LeafInfo>::LinearPickSeeds( int& seed1, int& seed2 ) const
 
   if( seed1 == seed2 )
   {
-    if( seed2 == 0 ) 
+    if( seed2 == 0 )
       seed2++;
-    else 
+    else
       seed2--;
   }
 }
@@ -1293,9 +1293,9 @@ The destructor.
 */
 
     inline void DeleteFile()
-    { 
-      file.Close(); 
-      file.Drop(); 
+    {
+      file.Close();
+      file.Drop();
     }
 /*
 Deletes the file of the R-Tree.
@@ -1303,8 +1303,8 @@ Deletes the file of the R-Tree.
 */
 
     inline SmiFileId FileId()
-    { 
-      return file.GetFileId(); 
+    {
+      return file.GetFileId();
     }
 /*
 Returns the ~SmiFileId~ of the R-Tree database file.
@@ -1312,8 +1312,8 @@ Returns the ~SmiFileId~ of the R-Tree database file.
 */
 
     inline SmiRecordId RootRecordId() const
-    { 
-      return header.rootRecordId; 
+    {
+      return header.rootRecordId;
     }
 /*
 Returns the ~SmiRecordId~ of the root node.
@@ -1321,7 +1321,7 @@ Returns the ~SmiRecordId~ of the root node.
 */
 
     inline int MinEntries( int level ) const
-    { 
+    {
       return level == Height() ? header.minLeafEntries : header.minInternalEntries;
     }
 /*
@@ -1330,7 +1330,7 @@ Returns the minimum number of entries per node.
 */
 
     inline int MaxEntries( int level ) const
-    { 
+    {
       return level == Height() ? header.maxLeafEntries : header.maxInternalEntries;
     }
 /*
@@ -1339,8 +1339,8 @@ Returns the maximum number of entries per node.
 */
 
     inline int EntryCount() const
-    { 
-      return header.entryCount; 
+    {
+      return header.entryCount;
     }
 /*
 Return the total number of (leaf) entries in this tree.
@@ -1348,8 +1348,8 @@ Return the total number of (leaf) entries in this tree.
 */
 
     inline int NodeCount() const
-    { 
-      return header.nodeCount; 
+    {
+      return header.nodeCount;
     }
 /*
 Returns the total number of nodes in this tree.
@@ -1357,8 +1357,8 @@ Returns the total number of nodes in this tree.
 */
 
     inline int Height() const
-    { 
-      return header.height; 
+    {
+      return header.height;
     }
 /*
 Returns the height of this tree.
@@ -1425,10 +1425,10 @@ The record file of the R-Tree.
         minInternalEntries( 0 ), maxInternalEntries( 0 ),
         nodeCount( 0 ), entryCount( 0 ), height( 0 )
         {}
-      Header( long rootRecordId, int minEntries, int maxEntries, 
-              int minInternalEntries, int maxInternalEntries, 
+      Header( long rootRecordId, int minEntries, int maxEntries,
+              int minInternalEntries, int maxInternalEntries,
               int nodeCount, int entryCount, int nodeSize, int height ) :
-        rootRecordId( rootRecordId ), 
+        rootRecordId( rootRecordId ),
         minLeafEntries( minLeafEntries ), maxLeafEntries( maxLeafEntries ),
         minInternalEntries( minInternalEntries ), maxInternalEntries( maxInternalEntries ),
         nodeCount( nodeCount ), entryCount( entryCount ), height( height )
@@ -1503,9 +1503,9 @@ Also deletes the node.
 
 */
 
-    R_TreeNode<dim, LeafInfo> *GetNode( const SmiRecordId address, const bool leaf, 
+    R_TreeNode<dim, LeafInfo> *GetNode( const SmiRecordId address, const bool leaf,
                                         const int min, const int max );
-    R_TreeNode<dim, LeafInfo> *GetNode( SmiRecord& record, const bool leaf, 
+    R_TreeNode<dim, LeafInfo> *GetNode( SmiRecord& record, const bool leaf,
                                         const int min, const int max );
 /*
 Reads a node at file position ~address~. This function creates a new
@@ -1719,7 +1719,7 @@ void R_Tree<dim, LeafInfo>::PutNode( SmiRecord& record, R_TreeNode<dim, LeafInfo
 
 */
 template <unsigned dim, class LeafInfo>
-R_TreeNode<dim, LeafInfo> *R_Tree<dim, LeafInfo>::GetNode( const SmiRecordId recno, const bool leaf, 
+R_TreeNode<dim, LeafInfo> *R_Tree<dim, LeafInfo>::GetNode( const SmiRecordId recno, const bool leaf,
                                                            const int min, const int max )
 {
   assert( file.IsOpen() );
@@ -1729,7 +1729,7 @@ R_TreeNode<dim, LeafInfo> *R_Tree<dim, LeafInfo>::GetNode( const SmiRecordId rec
 }
 
 template <unsigned dim, class LeafInfo>
-R_TreeNode<dim, LeafInfo> *R_Tree<dim, LeafInfo>::GetNode( SmiRecord& record, const bool leaf, 
+R_TreeNode<dim, LeafInfo> *R_Tree<dim, LeafInfo>::GetNode( SmiRecord& record, const bool leaf,
                                                            const int min, const int max )
 {
   R_TreeNode<dim, LeafInfo> *node = new R_TreeNode<dim, LeafInfo>( leaf, min, max );
@@ -1918,9 +1918,9 @@ void R_Tree<dim, LeafInfo>::InsertEntry( const R_TreeEntry<dim>& entry )
     if( !do_forced_reinsertion || currLevel == 0 ||
         overflowFlag[ Height() - currLevel ] )
     { // Node splitting is necessary
-      R_TreeNode<dim, LeafInfo> *n1 = 
+      R_TreeNode<dim, LeafInfo> *n1 =
         new R_TreeNode<dim, LeafInfo>( nodePtr->IsLeaf(), MinEntries(currLevel), MaxEntries(currLevel) );
-      R_TreeNode<dim, LeafInfo> *n2 = 
+      R_TreeNode<dim, LeafInfo> *n2 =
         new R_TreeNode<dim, LeafInfo>( nodePtr->IsLeaf(), MinEntries(currLevel), MaxEntries(currLevel) );
 
       nodePtr->Split( *n1, *n2 );
@@ -1929,7 +1929,7 @@ void R_Tree<dim, LeafInfo>::InsertEntry( const R_TreeEntry<dim>& entry )
       if( currLevel == 0)
       { // splitting root node
         nodePtr->Clear();
-        nodePtr->SetInternal( header.minInternalEntries, header.maxInternalEntries ); 
+        nodePtr->SetInternal( header.minInternalEntries, header.maxInternalEntries );
 
         BBox<dim> n1Box( n1->BoundingBox() );
         SmiRecordId node1recno;
@@ -2119,10 +2119,10 @@ bool R_Tree<dim, LeafInfo>::FindEntry( const R_TreeLeafEntry<dim, LeafInfo>& ent
   // First see if the current entry is the one that is being sought,
   // as is the case with many searches followed by Delete
   if( currLevel == Height() &&
-      currEntry >= 0 && currEntry < MaxEntries() &&
+      currEntry >= 0 && currEntry < nodePtr->EntryCount() &&
       nodePtr != 0 &&
       (*nodePtr)[ currEntry ].box == entry.box &&
-      (*nodePtr)[ currEntry ].pointer == entry.pointer )
+      ((R_TreeLeafEntry<dim, LeafInfo>&)(*nodePtr)[ currEntry ]).info == entry.info )
     return true;
 
   // Load root node
@@ -2147,7 +2147,7 @@ bool R_Tree<dim, LeafInfo>::FindEntry( const R_TreeLeafEntry<dim, LeafInfo>& ent
         while( currEntry < nodePtr->EntryCount() )
         {
           if( (*nodePtr)[ currEntry ].box == entry.box &&
-          (*nodePtr)[ currEntry ].pointer == entry.pointer )
+              ((R_TreeLeafEntry<dim, LeafInfo>&)(*nodePtr)[ currEntry ]).info == entry.info )
             return true; // Found it
 
           currEntry++;
@@ -2260,7 +2260,7 @@ bool R_Tree<dim, LeafInfo>::Remove( const R_TreeLeafEntry<dim, LeafInfo>& entry 
 
     while( currLevel > 0 )
     {
-      int underflow = nodePtr->EntryCount() < MinEntries();
+      int underflow = nodePtr->EntryCount() < MinEntries( currEntry );
 
       if( underflow )
       { // Current node has underflow. Save it for later reinsertion
@@ -2317,7 +2317,7 @@ bool R_Tree<dim, LeafInfo>::Remove( const R_TreeLeafEntry<dim, LeafInfo>& entry 
 
     if( nodePtr->EntryCount() == 1 )
     { // root node has only one son
-      long newRoot = (*nodePtr)[ 0 ].pointer;
+      long newRoot = ((R_TreeInternalEntry<dim>&)(*nodePtr)[ 0 ]).pointer;
 
       // Remove former root node from the tree
       file.DeleteRecord( RootRecordId() );
@@ -2363,9 +2363,9 @@ struct TwoLayerLeafInfo
 /*
 6 Template functions for the type constructors
 
-6.1 ~Out~-function 
+6.1 ~Out~-function
 
-It does not make sense to have an R-Tree as an independent value 
+It does not make sense to have an R-Tree as an independent value
 since the record ids stored in it become obsolete as soon as
 the underlying relation is deleted. Therefore this function
 outputs will show only some statistics about the tree.
@@ -2392,7 +2392,7 @@ ListExpr OutRTree(ListExpr typeInfo, Word value)
       appendList = nl->Append(appendList,
                               nl->RealAtom( rtree->BoundingBox().MaxD( i ) ));
     }
- 
+
     return nl->FiveElemList(
              nl->StringAtom( "R-Tree statistics" ),
              nl->TwoElemList( nl->StringAtom( "Height" ),
@@ -2432,7 +2432,7 @@ ListExpr OutRTree(ListExpr typeInfo, Word value)
                               nl->IntAtom( rtree->NodeCount() ) ),
              nl->TwoElemList( nl->StringAtom( "Bounding Box" ), bboxList ) );
   }
-  
+
 }
 
 /*
@@ -2452,7 +2452,7 @@ Word InRTree( ListExpr typeInfo, ListExpr value,
 }
 
 /*
-6.3 ~Create~-function 
+6.3 ~Create~-function
 
 */
 template <unsigned dim>
@@ -2465,7 +2465,7 @@ Word CreateRTree( const ListExpr typeInfo )
 }
 
 /*
-6.4 ~Close~-function 
+6.4 ~Close~-function
 
 */
 template <unsigned dim>

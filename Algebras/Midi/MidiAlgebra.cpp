@@ -1,9 +1,9 @@
 
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -1851,7 +1851,7 @@ int SizeOfMidi()
 2.11 ~Cast~-function
 
 */
-void* CastMidi( const ListExpr typeInfo, void* addr )
+void* CastMidi( void* addr )
 {
   return new (addr) Midi;
 }
@@ -3667,13 +3667,13 @@ int transposeMidiFun(Word* args, Word& result, int message, Word& local,
       transposedMidi->Append(currentTrack);
       k++;
     } while(!errorinfo && k< currentMidi->GetNumberOfTracks());
-  
+
     if(errorinfo)
     {
       cout << "crossing limits of playable values";
       cout << endl << "in track " << k-1 << " !! ";
       *(Midi *)result.addr = *currentMidi;
-      return 0; 
+      return 0;
     }
   }
   else
@@ -3862,7 +3862,7 @@ if ( nl->ListLength(args) == 5 )
          nl->IsEqual( arg2, "string" )   &&
          nl->IsEqual( arg3, "bool"   )   &&
          nl->IsEqual( arg4, "bool"   )   &&
-         nl->IsEqual( arg5, "bool"   ))  
+         nl->IsEqual( arg5, "bool"   ))
 
     {
       return nl->SymbolAtom("bool");
@@ -3905,7 +3905,7 @@ const string containsWordsSpec =
     "<text>Examines the selected Midi object if it "
     "includes the searched word(string)."
     "with 3 flags you can decide which kind"
-    " of text events are included in search: " 
+    " of text events are included in search: "
     "1.Flag TRUE: all kind of text(FF01..FF0F) is incl, "
     "2.Flag TRUE: all Lyric events(FF05), "
     "3.Flag TRUE: any_Text_events (FF01) "

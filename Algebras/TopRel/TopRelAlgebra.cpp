@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -35,7 +35,7 @@ level remains. Models are also removed from type constructors.
 
 1. Includes and Definitions
 
-1.1 Includes 
+1.1 Includes
 
 */
 
@@ -91,11 +91,11 @@ namespace toprel{
 
 /*
 
-2.1 The Operations for the Int9M class 
+2.1 The Operations for the Int9M class
 
 2.1.1 A Constructor
 
-This constructor create a new 9 intersection matrix 
+This constructor create a new 9 intersection matrix
 with predefined content.
 
 */
@@ -104,12 +104,12 @@ Int9M::Int9M(const bool II, const bool IB, const bool IE,
              const bool EI, const bool EB, const bool EE){
     Set(II,IB,IE,BI,BB,BE,EI,EB,EE);
 }
-       
+
 
 /*
 2.1.2 The Set function
 
-This function sets all entries in the matrix to the given values. 
+This function sets all entries in the matrix to the given values.
 
 */
 void Int9M::Set( const bool II, const bool IB, const bool IE,
@@ -131,7 +131,7 @@ void Int9M::Set( const bool II, const bool IB, const bool IE,
 /*
 2.1.3 ToListExpr
 
-This function returns the NestedList representation of a 
+This function returns the NestedList representation of a
 9 intersection matrix.
 
 */
@@ -148,7 +148,7 @@ ListExpr Int9M::ToListExpr() const {
   Last = nl->Append(Last,nl->BoolAtom(EI&value));
   Last = nl->Append(Last,nl->BoolAtom(EB&value));
   Last = nl->Append(Last,nl->BoolAtom(EE&value));
-  return res;     
+  return res;
 }
 
 /*
@@ -156,14 +156,14 @@ ListExpr Int9M::ToListExpr() const {
 
 If this function is called, this matrix gets its value from the
 given nested list. If the nested list don't represent a valid
-9-intersection matrix, the matrix remains unchanged and the 
+9-intersection matrix, the matrix remains unchanged and the
 result of this function will be ~false~.
-Allowed representations are a single int atom in range [0, 511], 
+Allowed representations are a single int atom in range [0, 511],
 or a list containing nine boolean (or int) atoms representing the matrix entries.
-  
+
 */
 bool Int9M::ReadFrom(const ListExpr LE){
-   // case uf undefined 
+   // case uf undefined
    if(nl->IsEqual(LE,"undefined")){
        defined = false;
        return true;
@@ -206,7 +206,7 @@ bool Int9M::ReadFrom(const ListExpr LE){
 /*
 2.1.5 Equalize functions
 
-By calling the Equalize function, the matrix gets its value from 
+By calling the Equalize function, the matrix gets its value from
 the argument.
 
 */
@@ -218,12 +218,12 @@ void Int9M::Equalize(const Int9M* v){
     this->value = v->value;
     this->defined = v->defined;
 }
-   
+
 /*
 2.1.6 Compare function
 
 This functions compares this matrix with arg. arg must be of type
-Int9M. 
+Int9M.
 
 */
 int Int9M::Compare(Attribute* arg){
@@ -241,7 +241,7 @@ int Int9M::Compare(Attribute* arg){
        if(!value&pos && v->value&pos)
           return -1;
        pos = pos*2;
-    }      
+    }
     return 0;
 }
 
@@ -255,7 +255,7 @@ int Int9M::Sizeof(){
 }
 
 /*
-2.1.9 IsDefined 
+2.1.9 IsDefined
 
 */
 bool Int9M::IsDefined() const{ return defined; }
@@ -274,14 +274,14 @@ void Int9M::SetDefined( bool defined ){
 
 */
 size_t Int9M::HashValue(){
-   if(!defined) 
+   if(!defined)
       return (size_t) 512;
    else
       return (size_t) value;
 }
 
 /*
-2.1.12 CopyFrom 
+2.1.12 CopyFrom
 
 */
 void Int9M::CopyFrom(StandardAttribute* arg){
@@ -297,16 +297,16 @@ Int9M* Int9M::Clone()
    unsigned short number  = 0;
    Int9M* res = new Int9M(number);
    res->Equalize(this);
-   return res; 
+   return res;
 }
 
 /*
 2.1.14 Print
 
 */
- ostream& Int9M::Print( ostream& os ) { 
-     os    << value; 
-     return os; 
+ ostream& Int9M::Print( ostream& os ) {
+     os    << value;
+     return os;
  }
 
 /*
@@ -323,7 +323,7 @@ bool Int9M::operator==(const Int9M I2){
 
 2.2.1 The ValueAt function
 
-This functions checks whether the matrix with number pos is a 
+This functions checks whether the matrix with number pos is a
 member of this cluster.
 
 */
@@ -342,16 +342,16 @@ bool Cluster::ValueAt(const int pos) const{
        case 6 : return P6 & theByte;
        case 7 : return P7 & theByte;
        default : assert(false);
-   }  
+   }
 }
 
 /*
-2.2.2 The Contains function 
+2.2.2 The Contains function
 
-This functions checks whether the given Int9M matrix is part of this cluster 
+This functions checks whether the given Int9M matrix is part of this cluster
 
 */
-  
+
 bool Cluster::Contains(const Int9M M) const{
    int number = M.GetNumber();
    return ValueAt(number);
@@ -360,7 +360,7 @@ bool Cluster::Contains(const Int9M M) const{
 /*
 2.2.1 The SetValueAt function
 
-This function sets the containedness of the matrix number pos to the 
+This function sets the containedness of the matrix number pos to the
 given value.
 
 */
@@ -392,7 +392,7 @@ void Cluster::SetValueAt(const int pos,const bool value,
            case 6 : bitvector[bytenum] |= P6;break;
            case 7 : bitvector[bytenum] |= P7;break;
            default : assert(false);
-      } 
+      }
     }
 }
 
@@ -404,10 +404,10 @@ void Cluster::SetValueAt(const int pos, const bool value){
 /*
 2.2.2 The Transpose function
 
-The transpose function modifies this cluster, so that after calling 
+The transpose function modifies this cluster, so that after calling
 this function, the cluster contains the transposed matrices. This can be used
-to define new cluster from existining ones e.g. a ~contains~ cluster from a 
-~covered-by~ one. 
+to define new cluster from existining ones e.g. a ~contains~ cluster from a
+~covered-by~ one.
 
 */
 void Cluster::Transpose(){
@@ -432,7 +432,7 @@ void Cluster::Transpose(){
 2.2.2 The ToListExpr Function
 
 This function converts the Cluster into a representation in nested list format.
-The ListRepresentation is a list containing the name as string atom at the first 
+The ListRepresentation is a list containing the name as string atom at the first
 position followed by all matrix numbers of the
 contained 9 intersection matrices.
 
@@ -449,21 +449,21 @@ ListExpr Cluster::ToListExpr()const{
           last = nl->Append(last,nl->IntAtom(i));
       }
     return res;
-} 
+}
 
 /*
 2.2.3 The ReadFrom Function
 
 This function reads the value of this cluster from its nested list
 representation.  A cluster can be represented in different ways.
-In each case, the first element of the list is a string-atom 
-representing the name of this cluster. It is follows from a 
+In each case, the first element of the list is a string-atom
+representing the name of this cluster. It is follows from a
 list of representations of 9 intersection matrices or a textual
 representation (string, or text) of the conditions which must hold for this cluster.
 
 */
 bool Cluster::ReadFrom(const ListExpr LE){
-   
+
    // first, we handle the case of definition by condition
    // using the tree parser
    if(nl->ListLength(LE)==2 &&
@@ -480,7 +480,7 @@ bool Cluster::ReadFrom(const ListExpr LE){
          nl->Text2String(nl->Second(LE),text);
       }
       const char* buffer=text.c_str();
-           
+
       if(!parseString(buffer,&T)){
          char* tmp = GetLastMessage();
          if(tmp){
@@ -489,7 +489,7 @@ bool Cluster::ReadFrom(const ListExpr LE){
             free(tmp);
          }else{
            ErrorReporter::ReportError("Unknown error while "
-                                      "parsing condition\n");  
+                                      "parsing condition\n");
          }
          return false;
       }
@@ -498,7 +498,7 @@ bool Cluster::ReadFrom(const ListExpr LE){
             SetValueAt(i,true);
           else
             SetValueAt(i,false);
-      } 
+      }
       strcpy(name,nl->StringValue(nl->First(LE)).c_str());
       destroyTree(T);
       return true;
@@ -510,7 +510,7 @@ bool Cluster::ReadFrom(const ListExpr LE){
    unsigned char TMP[64];
    STRING TMPname;
    // initialize the temporary bitvector
-   //for(int i=0;i<64;i++) 
+   //for(int i=0;i<64;i++)
    //   TMP[i]=0;
    memcpy(TMP,emptyBlock,64);
 
@@ -518,8 +518,8 @@ bool Cluster::ReadFrom(const ListExpr LE){
    ListExpr scan = LE;
    ListExpr elem;
    // first, get the name of this cluster
-   if(nl->ListLength(scan)<1) 
-       return false; 
+   if(nl->ListLength(scan)<1)
+       return false;
    elem = nl->First(scan);
    if(nl->AtomType(elem)!=StringType){
       ErrorReporter::ReportError("The first elem in the"
@@ -527,12 +527,12 @@ bool Cluster::ReadFrom(const ListExpr LE){
       return false;
    }
    strcpy(TMPname, nl->StringValue(elem).c_str());
-   scan = nl->Rest(scan);   
+   scan = nl->Rest(scan);
    Int9M current;
    while(!nl->IsEmpty(scan) && correct){
        elem = nl->First(scan);
        scan = nl->Rest(scan);
-       if(!current.ReadFrom(elem))  
+       if(!current.ReadFrom(elem))
           correct = false;
        else{
           unsigned short v = current.GetNumber();
@@ -556,7 +556,7 @@ value of another existing cluster.
 
 */
 void Cluster::Equalize(const Cluster value){
-   
+
      Equalize(&value);
 }
 
@@ -565,13 +565,13 @@ void Cluster::Equalize(const Cluster* value){
      memcpy(BitVector,value->BitVector,64);
      defined = value->defined;
 }
-  
+
 /*
 2.2.5 Compare function
- 
+
 The Compare function compares two clusters. Needed for to be an attribute of a tuple.
 
-*/ 
+*/
 int Cluster::CompareTo(const Cluster* C)const{
    if(!defined && !C->defined)
      return 0;
@@ -591,13 +591,13 @@ int Cluster::CompareTo(const Cluster* C)const{
       return 1;
    return 0;
 }
-   
+
 /*
 2.2.6 The Adjacent function
 
 We don't want to build ranges over cluster.
 For this reason we just return false here.
-   
+
 */
 bool Cluster::Adjacent(Attribute*){
    return false;
@@ -616,7 +616,7 @@ int Cluster::Sizeof(){
 /*
 2.2.8 Functions manipulation the defined state
 
-With this functions we can query and set the value of the 
+With this functions we can query and set the value of the
 defined flag of this cluster.
 
 */
@@ -625,7 +625,7 @@ bool Cluster::IsDefined() const{
 }
 
 void Cluster::SetDefined( bool defined ){
-   this->defined = defined;   
+   this->defined = defined;
 }
 
 /*
@@ -640,7 +640,7 @@ size_t Cluster::HashValue(){
        result += BitVector[i];
    return result;
 }
- 
+
 /*
 2.2.10 CopyFrom
 
@@ -660,7 +660,7 @@ Returns a proper copy of this.
 Cluster* Cluster::Clone(){
    Cluster* res = new Cluster(0);
    res->Equalize(this);
-   return res; 
+   return res;
 }
 
 
@@ -668,7 +668,7 @@ Cluster* Cluster::Clone(){
 2.2.12 Restrict
 
 
-This function restricts the matrices contained within this cluster to such ones 
+This function restricts the matrices contained within this cluster to such ones
 fulfilling the given condition.
 
 */
@@ -731,7 +731,7 @@ bool Cluster::Relax(string condition){
       }
    }
    destroyTree(T);
-   return true; 
+   return true;
 }
 
 
@@ -761,12 +761,12 @@ static int ClusterCompare(const void *a, const void *b){
 /*
 2.3 Implementation of PredicateGroup
 
-2.3.1 Constructor taking the number of clusters 
+2.3.1 Constructor taking the number of clusters
 
 This constructor sets the size of the internal managed
 DBArray to the size specified in size. Additionally,
 a single cluster 'unspecified' containing all possible
-matrices is added. 
+matrices is added.
 
 */
 PredicateGroup::PredicateGroup( const int size ) :
@@ -774,16 +774,16 @@ PredicateGroup::PredicateGroup( const int size ) :
      canDelete( false ),
      sorted(true),
      unSpecified(0)
-     { 
-   // at this point, we defined a single 
-   // clusters 'unspecified containing all 
+     {
+   // at this point, we defined a single
+   // clusters 'unspecified containing all
    // possible 9 intersection matrices
    unSpecified.Invert();
    unSpecified.SetName(&UNSPECIFIED);
 }
 
 /*
-2.3.2 The Equalize function 
+2.3.2 The Equalize function
 
 When calling this function, the value of this predicate group
 is taken from the argument of this function.
@@ -793,7 +793,7 @@ void PredicateGroup::Equalize(PredicateGroup* PG){
     Cluster tmp(0);
     defined  = PG->defined;
     sorted = PG->sorted;
-    canDelete = PG->canDelete; 
+    canDelete = PG->canDelete;
     int size = PG->theClusters.Size();
     theClusters.Resize(size);
     for(int i=0;i<size;i++){
@@ -806,9 +806,9 @@ void PredicateGroup::Equalize(PredicateGroup* PG){
 /*
 2.3.3 The Compare function
 
-This function compares two predicategroups. If needed, the 
+This function compares two predicategroups. If needed, the
 clusters contained in this predicategroup or in the argument
-are sorted. 
+are sorted.
 
 */
 int PredicateGroup::Compare(Attribute* right){
@@ -821,7 +821,7 @@ int PredicateGroup::Compare(Attribute* right){
    if(defined && !PG->defined)
       return 1;
    // both predicategroups are defined
-   
+
    if( (cmp = unSpecified.CompareTo(&(PG->unSpecified)))!=0)
        return cmp;
 
@@ -834,7 +834,7 @@ int PredicateGroup::Compare(Attribute* right){
       return 1;
    // size1 == size2
    Cluster tmp1,tmp2;
- 
+
    if(!sorted){
        theClusters.Sort(toprel::ClusterCompare);
        sorted=true;
@@ -874,8 +874,8 @@ ListExpr PredicateGroup::ToListExpr(){
   ListExpr Last = res;
   for(int i=1;i<theClusters.Size();i++){
        theClusters.Get(i,C);
-       Last = nl->Append(Last,C.ToListExpr()); 
-  } 
+       Last = nl->Append(Last,C.ToListExpr());
+  }
   return res;
 }
 
@@ -883,7 +883,7 @@ ListExpr PredicateGroup::ToListExpr(){
 2.3.5 ReadFrom
 
 This function reads the value of this predicategroup from
-instance. If the argument is not a valid representation of a 
+instance. If the argument is not a valid representation of a
 predicate-cluster, this predicate cluster is not changed and
 the result will be false.
 
@@ -891,7 +891,7 @@ the result will be false.
 bool PredicateGroup::ReadFrom(const ListExpr instance){
    int length = nl->ListLength(instance);
    /*
-    The maximum count of non-overlapping, non-empty clusters is 512. 
+    The maximum count of non-overlapping, non-empty clusters is 512.
    */
    if(length>512){
       return false;
@@ -903,21 +903,21 @@ bool PredicateGroup::ReadFrom(const ListExpr instance){
    int pos =0;
    while(!nl->IsEmpty(instance)){
       // error in cluster representation
-      if(!CurrentCluster.ReadFrom(instance)) 
+      if(!CurrentCluster.ReadFrom(instance))
          return false;
       // empty clusters are not allowed
       if(CurrentCluster.IsEmpty())
-         return false; 
+         return false;
       //  overlapping cluster found
-      if(! unSpecified.Contains(&CurrentCluster)) 
+      if(! unSpecified.Contains(&CurrentCluster))
          return  false;
       // check whether name already used
       STRING* name = CurrentCluster.GetName();
       for(int i=0;i<pos;i++)
          if(strcmp(*(AllClusters[i].GetName()),*name)==0)
               return false;
-      if(strcmp(*name,UNSPECIFIED)==0) // forbidden name 
-              return false; 
+      if(strcmp(*name,UNSPECIFIED)==0) // forbidden name
+              return false;
       unSpecified.Minus(&CurrentCluster);
       AllClusters[pos].Equalize(CurrentCluster);
       pos++;
@@ -926,7 +926,7 @@ bool PredicateGroup::ReadFrom(const ListExpr instance){
    defined = true;
    theClusters.Resize(length);
    for(int i=0;i<length;i++)
-       theClusters.Put(i,(AllClusters[i]));   
+       theClusters.Put(i,(AllClusters[i]));
    theClusters.Sort(toprel::ClusterCompare);
    sorted=true;
    return true;
@@ -936,11 +936,11 @@ bool PredicateGroup::ReadFrom(const ListExpr instance){
 2.3.6 The ~Add~ Function
 
 When this function is called, the argument is added as a new cluster to this predicate
-group. If this is not possible, e.g. because of overlaps with existing clusters 
-or name conflicts, the result will be false and this predicate group remains 
+group. If this is not possible, e.g. because of overlaps with existing clusters
+or name conflicts, the result will be false and this predicate group remains
 unchanged. Empty clusters can't be added.
 
-~Note~ : The Cluster is added without correcting the order of clusters in the 
+~Note~ : The Cluster is added without correcting the order of clusters in the
 DBArray. Remember to reorder the clusters after calling this function.
 
 */
@@ -974,13 +974,13 @@ bool PredicateGroup::Add(Cluster* C){
 
 When this function is called, the argument is added as a new cluster to the predicate
 group. If the new cluster overlaps with clusters already contained in the
-predicate group, the common matrices are removed from the new cluster before 
-inserting. In case of name conflicts, the result will be false, otherwise the 
+predicate group, the common matrices are removed from the new cluster before
+inserting. In case of name conflicts, the result will be false, otherwise the
 result is true and the predicate group will contain the new (shortened) cluster.
 If the cluster is already empty, or if the cluster is empty after removing existing
 matrices, this function will detect an error.
 
-~Note~ : The Cluster is added without correcting the order of clusters in the 
+~Note~ : The Cluster is added without correcting the order of clusters in the
 DBArray. Remember to reorder the clusters after calling this function.
 
 */
@@ -1013,7 +1013,7 @@ bool PredicateGroup::AddWithPriority(Cluster *C){
 /*
 4 Functions for the type constructors
 
-4.1 Out Functions 
+4.1 Out Functions
 
 */
 ListExpr OutInt9M(ListExpr TypeInfo, Word value){
@@ -1022,11 +1022,11 @@ ListExpr OutInt9M(ListExpr TypeInfo, Word value){
 
 ListExpr OutCluster(ListExpr TypeInfo, Word value){
    return ((Cluster*)value.addr)->ToListExpr();
-} 
+}
 
 ListExpr OutPredicateGroup(ListExpr TypeInfo, Word value){
    return ((PredicateGroup*)value.addr)->ToListExpr();
-} 
+}
 
 /*
 4.2 In functions
@@ -1071,7 +1071,7 @@ InPredicateGroup(const ListExpr typeInfo, const ListExpr instance,
 }
 
 /*
-4.2 Functions for the creation of objects 
+4.2 Functions for the creation of objects
 
 */
 Word
@@ -1081,12 +1081,12 @@ CreateInt9M( const ListExpr typeInfo )
   return (SetWord( new Int9M(number)));
 }
 
-Word 
+Word
 CreateCluster( const ListExpr typeInfo){
    return (SetWord(new Cluster(0)));
 }
 
-Word 
+Word
 CreatePredicateGroup( const ListExpr typeInfo){
    return (SetWord(new PredicateGroup(0)));
 }
@@ -1096,61 +1096,61 @@ CreatePredicateGroup( const ListExpr typeInfo){
 
 */
 void
-DeleteInt9M( Word& w )
+DeleteInt9M( const ListExpr typeInfo, Word& w )
 {
   delete (Int9M*) w.addr;
   w.addr = 0;
 }
 
-void 
-DeleteCluster(Word& w){
+void
+DeleteCluster(const ListExpr typeInfo, Word& w){
    delete (Cluster*) w.addr;
    w.addr = 0;
 }
 
-void 
-DeletePredicateGroup(Word& w){
+void
+DeletePredicateGroup(const ListExpr typeInfo, Word& w){
    delete (PredicateGroup*) w.addr;
    w.addr = 0;
 }
 
 /*
-4.4 Closing objects 
+4.4 Closing objects
 
 */
 void
-CloseInt9M( Word& w )
+CloseInt9M( const ListExpr typeInfo, Word& w )
 {
   delete (Int9M*) w.addr;
   w.addr = 0;
 }
 
-void CloseCluster(Word& w){
+void CloseCluster(const ListExpr typeInfo, Word& w){
    delete (Cluster*) w.addr;
    w.addr = 0;
 }
 
-void 
-ClosePredicateGroup(Word& w){
+void
+ClosePredicateGroup(const ListExpr typeInfo, Word& w){
    delete (PredicateGroup*) w.addr;
    w.addr = 0;
 }
 
 /*
-4.5 Copying of objects 
+4.5 Copying of objects
 
 */
 Word
-CloneInt9M( const Word& w )
+CloneInt9M( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( ((Int9M *)w.addr)->Clone() );
 }
 
-Word CloneCluster(const Word& w){
+Word CloneCluster(const ListExpr typeInfo, const Word& w){
     return SetWord(((Cluster*)w.addr)->Clone());
 }
 
-Word ClonePredicateGroup(const Word& w){
+Word ClonePredicateGroup(const ListExpr typeInfo, const Word& w){
     return SetWord(((PredicateGroup*)w.addr)->Clone());
 }
 
@@ -1173,7 +1173,7 @@ int SizeOfPredicateGroup(){
 }
 
 /*
-4.7 Cast functions 
+4.7 Cast functions
 
 */
 void* CastInt9M( void* addr )
@@ -1190,7 +1190,7 @@ void* CastPredicateGroup(void* addr){
 }
 
 /*
-4.8 Property Functions 
+4.8 Property Functions
 
 */
 ListExpr
@@ -1204,7 +1204,7 @@ Int9MProperty()
             nl->FourElemList(nl->StringAtom("-> DATA"),
                              nl->StringAtom("int9m"),
                              nl->StringAtom("(II IB IE BI BB"
-                                            " BE EI EB EE)"), 
+                                            " BE EI EB EE)"),
                              nl->StringAtom("TRUE FALSE TRUE ... FALSE")));
 }
 
@@ -1218,7 +1218,7 @@ ClusterProperty()
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
                              nl->StringAtom("cluster"),
-                             nl->StringAtom("string int int ... int "), 
+                             nl->StringAtom("string int int ... int "),
                              nl->StringAtom("'equals' 5 64 511")));
 }
 
@@ -1232,11 +1232,11 @@ PredicateGroupProperty()
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
                              nl->StringAtom("predicategroup"),
-                             nl->StringAtom("<cluster_1>..<cluster_n> "), 
+                             nl->StringAtom("<cluster_1>..<cluster_n> "),
                              nl->StringAtom("c1 c2 c3")));
 }
 /*
-4.9 Kind Checking 
+4.9 Kind Checking
 
 */
 bool
@@ -1258,7 +1258,7 @@ CheckPredicateGroup( ListExpr type, ListExpr& errorInfo )
 }
 
 /*
-4.10 Open Functions 
+4.10 Open Functions
 
 */
 bool
@@ -1291,14 +1291,14 @@ OpenPredicateGroup( SmiRecord& valueRecord,
            Word& value )
 {
   PredicateGroup *pgroup;
-  pgroup = (PredicateGroup*)TupleElement::Open( valueRecord, 
+  pgroup = (PredicateGroup*)TupleElement::Open( valueRecord,
                                                 offset, typeInfo );
   value = SetWord( pgroup );
   return true;
 }
 
 /*
-4.11 Save Functions 
+4.11 Save Functions
 
 */
 bool
@@ -1339,38 +1339,38 @@ SavePredicateGroup( SmiRecord& valueRecord,
 
 */
 TypeConstructor int9m(
-        "int9m",                      
-        Int9MProperty,                
-        OutInt9M,  InInt9M,            
-        0,        0,                 
-        CreateInt9M, DeleteInt9M,      
-        OpenInt9M, SaveInt9M, CloseInt9M, CloneInt9M,  
-        CastInt9M,                    
-        SizeOfInt9M,                  
+        "int9m",
+        Int9MProperty,
+        OutInt9M,  InInt9M,
+        0,        0,
+        CreateInt9M, DeleteInt9M,
+        OpenInt9M, SaveInt9M, CloseInt9M, CloneInt9M,
+        CastInt9M,
+        SizeOfInt9M,
         CheckInt9M );
 
 TypeConstructor cluster(
-        "cluster",                      
-        ClusterProperty,                
-        OutCluster,  InCluster,            
-        0,        0,                 
-        CreateCluster, DeleteCluster,      
-        OpenCluster, SaveCluster, CloseCluster, CloneCluster,  
-        CastCluster,                    
-        SizeOfCluster,                  
-        CheckCluster );                  
+        "cluster",
+        ClusterProperty,
+        OutCluster,  InCluster,
+        0,        0,
+        CreateCluster, DeleteCluster,
+        OpenCluster, SaveCluster, CloseCluster, CloneCluster,
+        CastCluster,
+        SizeOfCluster,
+        CheckCluster );
 
 TypeConstructor predicategroup(
-        "predicategroup",                     
-        PredicateGroupProperty,                
-                                                 
+        "predicategroup",
+        PredicateGroupProperty,
+
         OutPredicateGroup,  InPredicateGroup,
-        0,        0,                 
+        0,        0,
         CreatePredicateGroup, DeletePredicateGroup,
-        OpenPredicateGroup, SavePredicateGroup,     
-        ClosePredicateGroup, ClonePredicateGroup,  
-        CastPredicateGroup,                    
-        SizeOfPredicateGroup,                  
+        OpenPredicateGroup, SavePredicateGroup,
+        ClosePredicateGroup, ClonePredicateGroup,
+        CastPredicateGroup,
+        SizeOfPredicateGroup,
         CheckPredicateGroup );
 
 /*
@@ -1387,7 +1387,7 @@ ListExpr Int9M_Int9M(ListExpr args){
       return nl->SymbolAtom("typeerror");
    if(nl->IsEqual(arg,"int9m"))
       return nl->SymbolAtom("int9m");
-   return nl->SymbolAtom("typeerror"); 
+   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr Int9M_Int9M_Int9M(ListExpr args){
@@ -1395,8 +1395,8 @@ ListExpr Int9M_Int9M_Int9M(ListExpr args){
       return nl->SymbolAtom("typeerror");
    if(nl->IsEqual(nl->First(args),"int9m") &&
       nl->IsEqual(nl->Second(args),"int9m"))
-      return nl->SymbolAtom("int9m"); 
-   return nl->SymbolAtom("typeerror"); 
+      return nl->SymbolAtom("int9m");
+   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr Int9M_Int(ListExpr args){
@@ -1429,7 +1429,7 @@ ListExpr Cluster_Int9M_Cluster(ListExpr args){
    if(nl->IsEqual(nl->First(args),"cluster") &&
       nl->IsEqual(nl->Second(args),"int9m"))
       return nl->SymbolAtom("cluster");
-   return nl->SymbolAtom("typeerror"); 
+   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr Cluster_Int9M_Bool(ListExpr args){
@@ -1438,7 +1438,7 @@ ListExpr Cluster_Int9M_Bool(ListExpr args){
    if(nl->IsEqual(nl->First(args),"cluster") &&
       nl->IsEqual(nl->Second(args),"int9m"))
       return nl->SymbolAtom("bool");
-   return nl->SymbolAtom("typeerror"); 
+   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr Cluster_Cluster_Bool(ListExpr args){
@@ -1447,19 +1447,19 @@ ListExpr Cluster_Cluster_Bool(ListExpr args){
    if(nl->IsEqual(nl->First(args),"cluster") &&
       nl->IsEqual(nl->Second(args),"cluster"))
       return nl->SymbolAtom("bool");
-   return nl->SymbolAtom("typeerror"); 
+   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr TransposeTM(ListExpr args){
    if(nl->ListLength(args)==1){
       if(nl->IsEqual(nl->First(args),"int9m"))
          return nl->SymbolAtom("int9m");
-   } 
+   }
    else if(nl->ListLength(args)==2){
       if(nl->IsEqual(nl->First(args),"cluster") &&
          nl->IsEqual(nl->Second(args),"string"))
          return nl->SymbolAtom("cluster");
-   } 
+   }
    return nl->SymbolAtom("typeerror");
 }
 
@@ -1485,7 +1485,7 @@ ListExpr Cluster_Cluster_Cluster(ListExpr args){
    if(nl->IsEqual(nl->First(args),"cluster") &&
       nl->IsEqual(nl->Second(args),"cluster"))
       return nl->SymbolAtom("cluster");
-   return nl->SymbolAtom("typeerror"); 
+   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr SetOpsTM(ListExpr args){
@@ -1497,7 +1497,7 @@ ListExpr SetOpsTM(ListExpr args){
    if(nl->IsEqual(nl->First(args),"int9m") &&
       nl->IsEqual(nl->Second(args),"int9m"))
       return nl->SymbolAtom("int9m");
-   return nl->SymbolAtom("typeerror"); 
+   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr InvertTM(ListExpr args){
@@ -1507,7 +1507,7 @@ ListExpr InvertTM(ListExpr args){
       return nl->SymbolAtom("cluster");
    if(nl->IsEqual(nl->First(args),"int9m") )
       return nl->SymbolAtom("int9m");
-   return nl->SymbolAtom("typeerror"); 
+   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr CreatePGroupTM(ListExpr args){
@@ -1517,7 +1517,7 @@ ListExpr CreatePGroupTM(ListExpr args){
          return nl->SymbolAtom("typeerror");
       args = nl->Rest(args);
    }
-   return nl->SymbolAtom("predicategroup"); 
+   return nl->SymbolAtom("predicategroup");
 }
 
 ListExpr CreateValidPGroupTM(ListExpr args){
@@ -1535,7 +1535,7 @@ ListExpr CreateValidPGroupTM(ListExpr args){
       }
       args = nl->Rest(args);
    }
-   return nl->SymbolAtom("predicategroup"); 
+   return nl->SymbolAtom("predicategroup");
 }
 
 ListExpr ClusterName_OfTM(ListExpr args){
@@ -1563,9 +1563,9 @@ ListExpr SizeOfTM(ListExpr args){
          return nl->SymbolAtom("int");
       else {
         ErrorReporter::ReportError("TopRel:  SizeOf expects a cluster "
-                                   "or a predicategroup\n");  
+                                   "or a predicategroup\n");
         return nl->SymbolAtom("typeerror");
-      }  
+      }
    }
    ErrorReporter::ReportError("TopRel: Wrong number of"
                               " arguments for sizeof\n");
@@ -1583,7 +1583,7 @@ ListExpr CreateClusterTM(ListExpr args){
         return nl->SymbolAtom("cluster");
    ErrorReporter::ReportError("CreateCluster requires"
                               " string x {string,text} as arguments\n");
-   return nl->SymbolAtom("typeerror");    
+   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr IsCompleteTM(ListExpr args){
@@ -1621,7 +1621,7 @@ ListExpr MultiSetOpsTM(ListExpr args){
           if(!nl->IsEqual(nl->First(rest),"int9m")){
               ErrorReporter::ReportError("elements must be from"
                                          " the same type");
-              return  nl->SymbolAtom("typerror");  
+              return  nl->SymbolAtom("typerror");
           }
           rest = nl->Rest(rest);
       }
@@ -1632,7 +1632,7 @@ ListExpr MultiSetOpsTM(ListExpr args){
           if(!nl->IsEqual(nl->First(rest),"cluster")){
               ErrorReporter::ReportError("elements must be from the"
                                          " same type");
-              return  nl->SymbolAtom("typerror");  
+              return  nl->SymbolAtom("typerror");
           }
           rest = nl->Rest(rest);
       }
@@ -1647,7 +1647,7 @@ ListExpr PWDisjointTM(ListExpr args){
   while(!nl->IsEmpty(rest)){
     if(!nl->IsEqual(nl->First(rest),"cluster")){
        ErrorReporter::ReportError("elements must be from the same type");
-       return  nl->SymbolAtom("typeerror");  
+       return  nl->SymbolAtom("typeerror");
     }
     rest = nl->Rest(rest);
   }
@@ -1681,7 +1681,7 @@ ListExpr RestrictRelaxTM(ListExpr args){
 
 
 /*
-7.2 Value Mappings 
+7.2 Value Mappings
 
 */
 int Transpose_Int9M_Fun(Word* args, Word& result, int message,
@@ -1720,7 +1720,7 @@ int Union_Int9M_Int9M_Fun(Word* args, Word& result, int message,
                  Word& local, Supplier s){
   result = qp->ResultStorage(s);
   Int9M* a = (Int9M*) args[0].addr;
-  Int9M* b = (Int9M*) args[1].addr; 
+  Int9M* b = (Int9M*) args[1].addr;
   Int9M* res = (Int9M*) result.addr;
   res->Equalize(a);
   res->Union(b);
@@ -1735,7 +1735,7 @@ int MultiIntersection_Int9M_Fun(Word* args, Word& result, int message,
   res->Equalize(a);
   int sons = qp->GetNoSons(s);
   for(int i=1;i<sons;i++)
-      res->Intersection((Int9M*)args[i].addr); 
+      res->Intersection((Int9M*)args[i].addr);
   return 0;
 }
 
@@ -1745,7 +1745,7 @@ int Intersection_Int9M_Fun(Word* args, Word& result, int message,
   Int9M* a = (Int9M*) args[0].addr;
   Int9M* res = (Int9M*) result.addr;
   res->Equalize(a);
-  res->Intersection((Int9M*)args[1].addr); 
+  res->Intersection((Int9M*)args[1].addr);
   return 0;
 }
 
@@ -1753,7 +1753,7 @@ int Disjoint_Cluster_Cluster_Fun(Word* args, Word& result, int message,
                  Word& local, Supplier s){
   result = qp->ResultStorage(s);
   Cluster* a = (Cluster*) args[0].addr;
-  Cluster* b = (Cluster*) args[1].addr; 
+  Cluster* b = (Cluster*) args[1].addr;
   CcBool* res = (CcBool*) result.addr;
   res->Set(true,a->Disjoint(b));
   return 0;
@@ -1769,7 +1769,7 @@ int PWDisjoint_Cluster_Fun(Word* args, Word& result, int message,
    for(int i=0;i<sons && res ;i++){
       if(All.Intersects((Cluster*)args[i].addr))
          res=false;
-      All.Union((Cluster*)args[i].addr); 
+      All.Union((Cluster*)args[i].addr);
    }
    ((CcBool*)result.addr)->Set(true,res);
    return 0;
@@ -1780,9 +1780,9 @@ int Add_Fun(Word* args, Word& result, int message,
             Word& local, Supplier s){
   result = qp->ResultStorage(s);
   Cluster* a = (Cluster*) args[0].addr;
-  Int9M* b = (Int9M*) args[1].addr; 
+  Int9M* b = (Int9M*) args[1].addr;
   Cluster* res = (Cluster*) result.addr;
-  unsigned short number = b->GetNumber(); 
+  unsigned short number = b->GetNumber();
   res->Equalize(a);
   res->SetValueAt(number,true);
   return 0;
@@ -1792,9 +1792,9 @@ int Remove_Fun(Word* args, Word& result, int message,
             Word& local, Supplier s){
   result = qp->ResultStorage(s);
   Cluster* a = (Cluster*) args[0].addr;
-  Int9M* b = (Int9M*) args[1].addr; 
+  Int9M* b = (Int9M*) args[1].addr;
   Cluster* res = (Cluster*) result.addr;
-  unsigned short number = b->GetNumber(); 
+  unsigned short number = b->GetNumber();
   res->Equalize(a);
   res->SetValueAt(number,false);
   return 0;
@@ -1858,7 +1858,7 @@ int MultiIntersection_Cluster_Fun(Word* args, Word& result, int message,
   res->Equalize(a);
   int sons = qp->GetNoSons(s);
   for(int i=1;i<sons;i++)
-      res->Intersection((Cluster*)args[i].addr);  
+      res->Intersection((Cluster*)args[i].addr);
   return 0;
 }
 
@@ -1868,7 +1868,7 @@ int Intersection_Cluster_Fun(Word* args, Word& result, int message,
   Cluster* a = (Cluster*) args[0].addr;
   Cluster* res = (Cluster*) result.addr;
   res->Equalize(a);
-  res->Intersection((Cluster*)args[1].addr);  
+  res->Intersection((Cluster*)args[1].addr);
   return 0;
 }
 
@@ -1956,7 +1956,7 @@ int CreatePGroup_Fun(Word* args, Word& result, int message,
  if(error){
    res->SetDefined(false);
    ErrorReporter::ReportError("The given clusters overlaps ");
-   return 0; 
+   return 0;
  }
  else
    res->SetDefined(true);
@@ -1977,7 +1977,7 @@ int CreatePriorityPGroup_Fun(Word* args, Word& result, int message,
  if(error){
    res->SetDefined(false);
    ErrorReporter::ReportError("The given clusters overlaps ");
-   return 0; 
+   return 0;
  }
  else
    res->SetDefined(true);
@@ -2002,7 +2002,7 @@ int CreateValidPGroup_Fun(Word* args, Word& result, int message,
  if(error){
    res->SetDefined(false);
    ErrorReporter::ReportError("The given clusters overlaps ");
-   return 0; 
+   return 0;
  }
  else
    res->SetDefined(true);
@@ -2025,7 +2025,7 @@ int ClusterOf_Fun(Word* args, Word& result, int message,
     PredicateGroup* PG = (PredicateGroup*) args[0].addr;
     Int9M* IM = (Int9M*) args[1].addr;
     Cluster* res = (Cluster*) result.addr;
-    Cluster* tmp = PG->GetClusterOf(*IM); 
+    Cluster* tmp = PG->GetClusterOf(*IM);
     res->Equalize(tmp);
     delete tmp;
     return 0;
@@ -2059,7 +2059,7 @@ int CreateCluster_string_Fun(Word* args, Word& result, int message,
    if(!parseString((char*)cond,&t)){
       ErrorReporter::ReportError("Error in parsing condition\n");
       char* Emsg = GetLastMessage();
-      ErrorReporter::ReportError(string(Emsg)+"\n");  
+      ErrorReporter::ReportError(string(Emsg)+"\n");
       free(Emsg);
       res->SetDefined(false);
       return 0;
@@ -2084,7 +2084,7 @@ int CreateCluster_text_Fun(Word* args, Word& result, int message,
    if(!parseString(cond,&t)){
       ErrorReporter::ReportError("Error in parsing condition\n");
       char* Emsg = GetLastMessage();
-      ErrorReporter::ReportError(string(Emsg)+"\n");  
+      ErrorReporter::ReportError(string(Emsg)+"\n");
       free(Emsg);
       ((Cluster*)result.addr)->SetDefined(false);
       return 0;
@@ -2105,7 +2105,7 @@ int IsComplete_Fun(Word* args, Word& result, int message,
    result = qp->ResultStorage(s);
    PredicateGroup* arg = (PredicateGroup*) args[0].addr;
    ((CcBool*)result.addr)->Set(true,arg->IsComplete());
-   return 0; 
+   return 0;
 }
 
 
@@ -2232,7 +2232,7 @@ const string CreatePriorityPGroupSpec =
       "  <text>creates a predicate group from existing clusters "
       " If Clusters are overlapping, the common matrixes are "
       " assigned to the  attribute located prior in the "
-      "arglist </text--->" 
+      "arglist </text--->"
       "  \" let pc1 = createprioritypgroup(c1, c2, c3) \" ))";
 
 const string CreateValidPGroupSpec =
@@ -2299,7 +2299,7 @@ const string PWDisjoint_Spec =
       " \" query pwdisjoint(c1,c2,c3) \"))";
 
 
-const string Restrict_Spec = 
+const string Restrict_Spec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       " ( \" cluster x {string, text} -> cluster  \""
       " \" restrict(_, _)  \" "
@@ -2308,7 +2308,7 @@ const string Restrict_Spec =
       " <text> query restrict(c1, \"ee & ii\" )</text--->))";
 
 
-const string Relax_Spec = 
+const string Relax_Spec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       " ( \" cluster x {string, text} -> cluster  \""
       " \" relax(_, _)  \" "
@@ -2338,22 +2338,22 @@ ValueMapping TransposeMap[] = { Transpose_Int9M_Fun,
 ValueMapping UnionMap[] = { Union_Int9M_Int9M_Fun,
                             Union_Cluster_Cluster_Fun };
 ValueMapping InvertMap[] = { Invert_Int9M_Fun, Invert_Cluster_Fun };
-ValueMapping MultiIntersectionMap[] = { MultiIntersection_Int9M_Fun, 
+ValueMapping MultiIntersectionMap[] = { MultiIntersection_Int9M_Fun,
                                    MultiIntersection_Cluster_Fun };
 
-ValueMapping IntersectionMap[] = { Intersection_Int9M_Fun, 
+ValueMapping IntersectionMap[] = { Intersection_Int9M_Fun,
                                    Intersection_Cluster_Fun };
 
-ValueMapping SizeOfMap[] = { SizeOfCluster_Fun, 
+ValueMapping SizeOfMap[] = { SizeOfCluster_Fun,
                              SizeOfPredicateGroup_Fun};
 
-ValueMapping CreateClusterMap[] = { CreateCluster_string_Fun, 
+ValueMapping CreateClusterMap[] = { CreateCluster_string_Fun,
                                     CreateCluster_text_Fun};
 
-ValueMapping RestrictMap[] = { Restrict_Cluster_String_Fun, 
+ValueMapping RestrictMap[] = { Restrict_Cluster_String_Fun,
                                Restrict_Cluster_Text_Fun};
 
-ValueMapping RelaxMap[] = { Relax_Cluster_String_Fun, 
+ValueMapping RelaxMap[] = { Relax_Cluster_String_Fun,
                             Relax_Cluster_Text_Fun};
 /*
 7.6 Selection Functions
@@ -2414,13 +2414,13 @@ static int RelaxSelect(ListExpr args){
 }
 
 /*
-7.7 Definition of operators 
+7.7 Definition of operators
 
 */
 Operator transpose(
          "transpose",     // name
          TransposeSpec,   // specification
-         2,               // number of functions 
+         2,               // number of functions
          TransposeMap,    // array of value mappings
          TransposeSelect,
          TransposeTM);
@@ -2428,7 +2428,7 @@ Operator transpose(
 Operator union_op(
          "union",     // name
          UnionSpec,   // specification
-         2,               // number of functions 
+         2,               // number of functions
          UnionMap,    // array of value mappings
          SetOpsSelect,
          SetOpsTM);
@@ -2436,7 +2436,7 @@ Operator union_op(
 Operator multiintersection(
          "multiintersection",     // name
          MultiIntersectionSpec,   // specification
-         2,               // number of functions 
+         2,               // number of functions
          MultiIntersectionMap,    // array of value mappings
          SetOpsSelect,
          MultiSetOpsTM);
@@ -2444,7 +2444,7 @@ Operator multiintersection(
 Operator intersection(
          "intersection",     // name
          IntersectionSpec,   // specification
-         2,               // number of functions 
+         2,               // number of functions
          IntersectionMap,    // array of value mappings
          SetOpsSelect,
          SetOpsTM);
@@ -2452,7 +2452,7 @@ Operator intersection(
 Operator invert(
          "invert",     // name
         InvertSpec,   // specification
-         2,               // number of functions 
+         2,               // number of functions
          InvertMap,    // array of value mappings
          InvertSelect,
          InvertTM);
@@ -2460,7 +2460,7 @@ Operator invert(
 Operator sizeof_op(
          "sizeof",     // name
          SizeOf_Spec,   // specification
-         2,               // number of functions 
+         2,               // number of functions
          SizeOfMap,    // array of value mappings
          SizeOfSelect,
          SizeOfTM);
@@ -2468,7 +2468,7 @@ Operator sizeof_op(
 Operator restrict_op(
          "restrict",     // name
          Restrict_Spec,   // specification
-         2,               // number of functions 
+         2,               // number of functions
          RestrictMap,    // array of value mappings
          RestrictSelect,
          RestrictRelaxTM);
@@ -2476,7 +2476,7 @@ Operator restrict_op(
 Operator relax_op(
          "relax",     // name
          Relax_Spec,   // specification
-         2,               // number of functions 
+         2,               // number of functions
          RelaxMap,    // array of value mappings
          RelaxSelect,
          RestrictRelaxTM);
@@ -2484,7 +2484,7 @@ Operator relax_op(
 Operator createcluster(
          "createcluster",     // name
          CreateCluster_Spec,   // specification
-         2,               // number of functions 
+         2,               // number of functions
          CreateClusterMap,    // array of value mappings
          CreateClusterSelect,
          CreateClusterTM);
@@ -2599,7 +2599,7 @@ Operator clusterof(
          ClusterOf_pc_m_Spec, // specification
          ClusterOf_Fun,
          Operator::SimpleSelect,
-         ClusterOfTM); 
+         ClusterOfTM);
 
 } // namespace toprel
 
@@ -2619,7 +2619,7 @@ class TopRelAlgebra : public Algebra
     toprel::int9m.AssociateKind("DATA");
     toprel::cluster.AssociateKind("DATA");
     toprel::predicategroup.AssociateKind("DATA");
-  
+
     AddOperator(&toprel::invert);
     AddOperator(&toprel::union_op);
     AddOperator(&toprel::intersection);
