@@ -24,8 +24,6 @@
 # clean up what may be left over from e.g. a segfault
 delete database binfiletest;
 
-#stop
-
 #setup
 create database binfiletest;
 open database binfiletest;
