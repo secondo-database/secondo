@@ -2901,7 +2901,7 @@ SubStrFun( Word* args, Word& result, int message, Word& local, Supplier s )
        && wpos2->IsDefined() 
        && (p2 >= p1) && (p1 >= 1) )
   {
-    int n = min( static_cast<long unsigned int>(p2-p1), str1.length()-p1 );
+    int n = min( static_cast<long unsigned int>(p2-p1), static_cast<long unsigned int>(str1.length()-p1) );
     wres->Set( true, (STRING*)(str1.substr(p1-1, n+1).c_str()) );
   }
   else
