@@ -352,7 +352,7 @@ createSampleRelation(Rel, _) :-  % Rel in uc
   SampleCard2 is truncate(min(Card, max(500, Card*0.00001))),
   lowerfl(Sample2, LSample2),
   assert(storedCard(DBName, LSample2, SampleCard2)),
-  downcase_atom(DBName, Sample1, DCSample1),
+  downcase_atom(Sample1, DCSample1),
   assert(storedSpell(DBName, DCSample1, LSample1)),
   downcase_atom(Sample2, DCSample2),
   assert(storedSpell(DBName, DCSample2, LSample2)),

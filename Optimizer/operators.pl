@@ -234,26 +234,36 @@ ppCostFactor(1) :- !.
  
 optionTotalCosts :-
   retractall(optConjunctiveCosts), 
-  write('\nNow, all costs will be applied! - type \'optionConjunctiveCosts\' to calculate cost of the conjunctive query only.\n\n'),
+  write('\nNow, all costs will be applied! - type \'optionConjunctiveCosts.\' to calculate cost of the conjunctive query only.\n\n'),
   !.
 
 optionConjunctiveCosts :-
   retractall(optConjunctiveCosts),
   assert(optConjunctiveCosts), 
-  write('\nNow, only costs from the conjubctive query are applied! - type \'optionTotalCosts\' to calculate all costs.\n\n'),
+  write('\nNow, only costs from the conjubctive query are applied! - type \'optionTotalCosts.\' to calculate all costs.\n\n'),
   !.
 
 toggleDebug :-
- optDebug,
- retract(optDebug),
- write('\nNow surpressing debugging output.'),
- !.
+  optDebug,
+  retract(optDebug),
+  write('\nNow surpressing debugging output.'),
+  !.
 
 toggleDebug :-
- not(optDebug),
- assert(optDebug),
- write('\nNow displaying debugging output.'),
- !.
+  not(optDebug),
+  assert(optDebug),
+  write('\nNow displaying debugging output.'),
+  !.
+
+toggleCosts :-
+  optConjunctiveCosts,
+  retract(optConjunctiveCosts),
+  write('\nNow, all costs will be applied! - Type \'optionConjunctiveCosts.\' or \'toggleCosts.\' to calculate cost of the conjunctive query only.\n\n'),
+  !.
+
+toggleCosts :-
+  not(optConjunctiveCosts),
+  assert(optConjunctiveCosts),
+  write('\nNow, only costs from the conjubctive query are applied! - Type \'optionTotalCosts.\' or \'toggleCosts.\' to calculate all costs instead.\n\n'),
+  !.
  
-
-
