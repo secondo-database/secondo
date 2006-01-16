@@ -59,7 +59,7 @@ open database binfiletest;
     )
   )
   (
-    (1 <file>../../lib/libsmibdb.a</file---> "libsdb")
+    (1 <file>test-rgb.jpg</file---> "rgb.jpg")
   )
 ) );
 
