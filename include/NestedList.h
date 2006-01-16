@@ -965,8 +965,8 @@ Copies a nested list from ~this~ instance to the target instance.
   bool  WriteBinaryRec( ListExpr list, ostream& os );
   bool  ReadBinaryRec( ListExpr& result, istream& in );
   bool  ReadBinarySubLists( ListExpr& LE, istream& in, unsigned long length );
-  short ReadShort( istream& in );  
-  long  ReadInt( istream& in );
+  long  ReadShort( istream& in );  
+  long  ReadInt( istream& in, const int len = 4 );
   void  ReadString( istream& in, string& outStr, unsigned long length );
   
   byte  GetBinaryType(ListExpr list);

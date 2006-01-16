@@ -146,15 +146,10 @@ you comment out the line below.
 NestedList::NestedList( SmiRecordFile* ptr2RecFile, Cardinal NodeEntries, Cardinal ConstEntries,
 		        Cardinal StringEntries, Cardinal TextEntries )
 {
-   // the methods for converting integer and real
-   // values assume the sizes below. These sizes are
-   // widley used on 32bit INTEL/AMD architectures.
-   // Currently, no time will be invested to make the code
-   // more machine independent. 
-   assert( sizeof(float) == 4 );
-   assert( sizeof(long) == 4  );
-   assert( sizeof(short) == 2 ); 
-   
+  assert( sizeof(float) == 4); 
+  // How can we convert a N byte floating point representation 
+  // to a M byte representation? 
+  
    stringTable = 0;
    nodeTable = 0;
    textTable = 0;
@@ -1274,9 +1269,10 @@ NestedList::ReadBinaryFrom(istream& in, ListExpr& list) {
 char*
 NestedList::hton(long value) {
 
-   static char buffer[4] = {0,0,0,0};
-   for (int i=0; i<4; i++) {
-     buffer[3-i] = (byte) (value & 255);
+   static const int n = sizeof(long);	 
+   static char buffer[n];
+   for (int i=0; i<n; i++) {
+     buffer[n-1-i] = (byte) (value & 255);
      value = value >> 8;
    }
    return (char*) buffer;
@@ -1364,21 +1360,21 @@ NestedList::GetBinaryType(ListExpr list) {
 
 
 long
-NestedList::ReadInt(istream& in) {
+NestedList::ReadInt(istream& in, const int len /*= 4*/) {
 
   static char buffer[4] = { 0, 0, 0, 0 };
   long result = 0;
   
-  in.read(buffer,4);
+  in.read(buffer,len);
 
   if( RTFlag::isActive("NL:BinaryListDebug") ) {
     cerr << "Hex-Value: ";
-    for (int i=0; i<4; i++) {
+    for (int i=0; i<len; i++) {
       cerr << setiosflags(ios::showbase | ios::hex) << (unsigned char) buffer[i] << " ";
     }
   }  
   
-  for (int i=0; i<4; i++) {
+  for (int i=0; i<len; i++) {
     result = result << 8;
     result += (unsigned char) 255 & buffer[i];	  
   }
@@ -1398,50 +1394,29 @@ NestedList::ReadInt(istream& in) {
 */
 
 
-short
+long
 NestedList::ReadShort(istream& in) {
 
-  static char buffer[2] = { 0, 0 };
-  short result = 0;
-  
-  in.read(buffer,2);
+  return ReadInt(in, 2);
+}  
 
-  if( RTFlag::isActive("NL:BinaryListDebug") ) {
-    cerr << "Hex-Value: ";
-    for (int i=0; i<2; i++) {
-      cerr << setiosflags(ios::showbase | ios::hex) << (unsigned char) buffer[i] << " ";
-    }
-  }  
-  
-  for (int i=0; i<2; i++) {
-    result = result << 8;
-    result += (unsigned char) 255 & buffer[i];	  
-  }
-  
-  if( RTFlag::isActive("NL:BinaryListDebug") ) {
-    cerr << "   =>  Int-Value: " << setiosflags(ios::dec) << result << endl;
-  }
-    
-  return result;
-}
 
 /*
-6.4 swap: Convert a 4 byte buffer into reverse order. This is needed to
+6.4 swap: Convert a ~N~ byte buffer into reverse order. This is needed to
     convert float values between little endian an big endian representation. 
    
 */
 
 void
-NestedList::swap(char* buffer) {
-
-  char c = buffer[3];
-  
-  buffer[3] = buffer[0];
-  buffer[0] = c;
-  
-  c = buffer[2];
-  buffer[2] = buffer[1];
-  buffer[1] = c;
+NestedList::swap(char* buffer) 
+{
+  static const int n = sizeof(float);	
+  for (int i = 0; i < n/2; i++)
+  {
+    char c = buffer[n-1-i];
+    buffer[n-1-i] = buffer[i];
+    buffer[i] = c;
+  }	  
 }
 
 
@@ -1665,6 +1640,10 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
 bool
 NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
 
+  static const int floatLen=sizeof(float);
+  static const int longLen=sizeof(long);
+  
+  
   unsigned long strlen = 0;
   unsigned int len = 0;
   char* pv = 0;
@@ -1694,18 +1673,18 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
                            } else {
                              len = (typeId == BIN_SHORTINT) ? 2 : 4;
                            }
-                           os.write(pv+4-len,len);
+                           os.write(pv+longLen-len,len);
 			   return true;
 	  }
 	  case BIN_REAL:   {
 	                   float value = RealValue(list);
-                           char val[4] = {0,0,0,0};
-                           memcpy( (void*) val, (void*) &value, 4 );
+                           char val[floatLen];
+                           memcpy( (void*) val, (void*) &value, floatLen );
 
 			   if ( WinUnix::isLittleEndian() ) {
 			     swap(val);
 			   }
-                           os.write(val,4);
+                           os.write(val,floatLen);
 			   return true;
 	  }
           case BIN_SHORTSTRING:
