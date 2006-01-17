@@ -39,7 +39,7 @@ Victor Almeida, 08/12/2005.
 
 using namespace std;
 
-#define __NEW_FLOB__
+// #define __NEW_FLOB__
 
 /*
 2 Implementation of class LRUTable 
