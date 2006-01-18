@@ -1032,7 +1032,7 @@ private static void printStandardFunctions(PrintStream out,Class cls){
    out.println("/*\n");
    out.println(" The ~Delete~ Function for "+Name+"\n");
    out.println("*/");
-   out.println("static void Delete"+Name+"(Word &w){");
+   out.println("static void Delete"+Name+"(const ListExpr typeInfo, Word &w){");
    out.println("  __TRACE__");
    out.println("  delete ("+Name+" *)w.addr; ");
    out.println("  w.addr = 0; ");
@@ -1042,7 +1042,7 @@ private static void printStandardFunctions(PrintStream out,Class cls){
    out.println("/*\n");
    out.println(" The ~Close~ Function for "+Name+"\n");
    out.println("*/");
-   out.println("static void Close"+Name+"(Word &w){");
+   out.println("static void Close"+Name+"(const ListExpr typeInfo, Word &w){");
    out.println("  __TRACE__");
    out.println("  delete ("+Name+" *)w.addr; ");
    out.println("  w.addr = 0; ");
@@ -1052,7 +1052,7 @@ private static void printStandardFunctions(PrintStream out,Class cls){
    out.println("/*\n");
    out.println(" The ~Clone~ Function for "+Name+"\n");
    out.println("*/");
-   out.println("static Word Clone"+Name+"(const Word &w){");
+   out.println("static Word Clone"+Name+"(const ListExpr typeInfo, const Word &w){");
    out.println("   __TRACE__");
    out.println("   return SetWord(( ("+Name+"*)w.addr)->Clone());");
    out.println("}\n\n");
