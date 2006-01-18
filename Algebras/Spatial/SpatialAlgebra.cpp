@@ -1238,33 +1238,40 @@ void  Points::CopyFrom(StandardAttribute* right)
 
 int   Points::Compare(Attribute * arg)
 {
-    int res=0;
-    Points* ps = (Points* )(arg);
-    if ( !ps ) return (-2);
+  int res=0;
+  Points* ps = (Points* )(arg);
+  if ( !ps ) return (-2);
 
-    if (IsEmpty() && (ps->IsEmpty()))  res=0;
-    else if (IsEmpty())  res=-1;
-    else  if ((ps->IsEmpty())) res=1;
-    else
-    {
-  if (Size() > ps->Size()) res=1;
-  else if (Size() < ps->Size()) res=-1;
-  else  //their sizes are equal
+  if (IsEmpty() && (ps->IsEmpty()))  res=0;
+  else if (IsEmpty())  res=-1;
+  else  if ((ps->IsEmpty())) res=1;
+  else
   {
-      bool decided;
-      for( int i = 0; ((i < Size())&&(!decided)); i++ )
+    if (Size() > ps->Size()) res=1;
+    else if (Size() < ps->Size()) res=-1;
+    else  //their sizes are equal
+    {
+      bool bboxCmp = bbox.Compare( &ps->bbox );
+      if( bboxCmp == 0 )
       {
-    Point p1, p2;
-    Get( i, p1);
-    ps->Get( i, p2 );
+        bool decided = false;
 
-    if (p1 > p2) {res=1;decided=true;}
-    else if (p1 < p2) {res=-1;decided=true;}
+        for( int i = 0; ((i < Size())&&(!decided)); i++ )
+        {
+          Point p1, p2;
+          Get( i, p1);
+          ps->Get( i, p2 );
+
+          if (p1 > p2) {res=1;decided=true;}
+          else if (p1 < p2) {res=-1;decided=true;}
+        }
+        if (!decided) res=0;
       }
-      if (!decided) res=0;
-  }
+      else
+        res = bboxCmp;
     }
-    return (res);
+  }
+  return (res);
 }
 
 bool   Points::Adjacent(Attribute * arg)
@@ -4183,33 +4190,39 @@ void  CLine::CopyFrom(StandardAttribute* right)
 
 int   CLine::Compare(Attribute * arg)
 {
-    int res=0;
-    CLine* cl = (CLine* )(arg);
-    if ( !cl ) return (-2);
+  int res=0;
+  CLine* cl = (CLine* )(arg);
+  if ( !cl ) return (-2);
 
-    if (IsEmpty() && (cl->IsEmpty()))  res=0;
-    else if (IsEmpty())  res=-1;
-    else  if ((cl->IsEmpty())) res=1;
-    else
-    {
-  if (Size() > cl->Size()) res=1;
-  else if (Size() < cl->Size()) res=-1;
-  else  //their sizes are equal
+  if (IsEmpty() && (cl->IsEmpty()))  res=0;
+  else if (IsEmpty())  res=-1;
+  else  if ((cl->IsEmpty())) res=1;
+  else
   {
-      bool decided;
-      for( int i = 0; ((i < Size())&&(!decided)); i++ )
+    if (Size() > cl->Size()) res=1;
+    else if (Size() < cl->Size()) res=-1;
+    else  //their sizes are equal
+    {
+      bool bboxCmp = bbox.Compare( &cl->bbox );
+      if( bboxCmp == 0 )
       {
-    CHalfSegment chs1, chs2;
-    Get( i, chs1);
-    cl->Get( i, chs2 );
+        bool decided = false;
+        for( int i = 0; ((i < Size())&&(!decided)); i++ )
+        {
+          CHalfSegment chs1, chs2;
+          Get( i, chs1);
+          cl->Get( i, chs2 );
 
-    if (chs1 >chs2) {res=1;decided=true;}
-    else if (chs1 < chs2) {res=-1;decided=true;}
+          if (chs1 >chs2) {res=1;decided=true;}
+          else if (chs1 < chs2) {res=-1;decided=true;}
+        }
+        if (!decided) res=0;
       }
-      if (!decided) res=0;
-  }
+      else
+        res = bboxCmp;
     }
-    return (res);
+  }
+  return (res);
 }
 
 bool   CLine::Adjacent(Attribute * arg)
@@ -6704,34 +6717,55 @@ void  CRegion::CopyFrom(StandardAttribute* right)
 
 int   CRegion::Compare(Attribute * arg)
 {
-    //cout<<"cregion compare1*******"<<endl;
-    int res=0;
-    CRegion* cr = (CRegion* )(arg);
-    if ( !cr ) return (-2);
+  //cout<<"cregion compare1*******"<<endl;
+  int res=0;
+  CRegion* cr = (CRegion* )(arg);
+  if ( !cr ) 
+    return -2;
 
-    if (IsEmpty() && (cr->IsEmpty()))  res=0;
-    else if (IsEmpty())  res=-1;
-    else  if ((cr->IsEmpty())) res=1;
-    else
-    {
-  if (Size() > cr->Size()) res=1;
-  else if (Size() < cr->Size()) res=-1;
-  else  //their sizes are equal
+  if (IsEmpty() && (cr->IsEmpty()))  
+    res=0;
+  else if (IsEmpty())  
+    res=-1;
+  else  if ((cr->IsEmpty())) 
+    res=1;
+  else
   {
-      bool decided;
-      for( int i = 0; ((i < Size())&&(!decided)); i++ )
+    if (Size() > cr->Size()) 
+      res=1;
+    else if (Size() < cr->Size()) 
+      res=-1;
+    else  //their sizes are equal
+    {
+      bool bboxCmp = bbox.Compare( &cr->bbox );
+      if( bboxCmp == 0 )
       {
-    CHalfSegment chs1, chs2;
-    Get( i, chs1);
-    cr->Get( i, chs2 );
+        bool decided = false;
+        for( int i = 0; ((i < Size())&&(!decided)); i++ )
+        {
+          CHalfSegment chs1, chs2;
+          Get( i, chs1);
+          cr->Get( i, chs2 );
 
-    if (chs1 >chs2) {res=1;decided=true;}
-    else if (chs1 < chs2) {res=-1;decided=true;}
+          if (chs1 >chs2) 
+          {
+            res=1;
+            decided=true;
+          }
+          else if (chs1 < chs2) 
+          {
+            res=-1;
+            decided=true;
+          }
+        }
+        if (!decided) 
+          res=0;
       }
-      if (!decided) res=0;
-  }
+      else
+        res = bboxCmp;
     }
-    return (res);
+  }
+  return res;
 }
 
 bool   CRegion::Adjacent(Attribute * arg)
