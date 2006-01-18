@@ -106,20 +106,35 @@ char *FLOB::BringToMemory()
 {
   if( type == InDiskLarge )
   {
-    char *buffer = 
+    char *buffer;
+    bool cached =  
       qp->GetFLOBCache()->GetFLOB( fd.inDiskLarge.lobFileId, 
                                    fd.inDiskLarge.lobId, 
-                                   size, false );
+                                   size, false, buffer );
 
     SmiFileId fileId = fd.inDiskLarge.lobFileId;
     SmiRecordId lobId = fd.inDiskLarge.lobId;
 
-    type = InMemoryCached;
-    fd.inMemoryCached.buffer = buffer;
-    fd.inMemoryCached.lobFileId = fileId;
-    fd.inMemoryCached.lobId = lobId;
+    if( cached )
+    {
+      type = InMemoryCached;
+      fd.inMemoryCached.buffer = buffer;
+      fd.inMemoryCached.lobFileId = fileId;
+      fd.inMemoryCached.lobId = lobId;
+    }
+    else
+    {
+      type = InMemory;
+      fd.inMemory.buffer = buffer;
+    }
+    return buffer;
   }
-  return fd.inMemoryCached.buffer;
+  else if( type == InMemory )
+    return fd.inMemory.buffer;
+  else if( type == InMemoryCached )
+    return fd.inMemoryCached.buffer;
+
+  return 0;
 }
 
 /*

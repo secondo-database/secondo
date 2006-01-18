@@ -141,7 +141,7 @@ char *FLOBCache::Lookup( const FLOBKey key, bool inc )
   return e->flob;
 }
 
-void FLOBCache::Insert( const FLOBKey key, char *flob )
+bool FLOBCache::Insert( const FLOBKey key, char *flob )
 {
   assert( mapTable.find( key ) == mapTable.end() );
 
@@ -158,9 +158,11 @@ void FLOBCache::Insert( const FLOBKey key, char *flob )
     sizeLeft -= key.size;
     mapTable[key] = e;
     lruTable.Insert( e );
+    return true;
   }
-  else
-    Counter::getRef("RA:FLOBCacheFull")++;
+
+  Counter::getRef("RA:FLOBCacheFull")++;
+  return false;
 }
 
 void FLOBCache::Remove( const FLOBKey key )
@@ -193,12 +195,10 @@ bool FLOBCache::RemoveLast( FLOBKey& key )
   return false; 
 }
 
-char *FLOBCache::GetFLOB( SmiFileId fileId, SmiRecordId lobId, 
-                          int size, bool isTempFile )
+bool FLOBCache::GetFLOB( SmiFileId fileId, SmiRecordId lobId, 
+                         int size, bool isTempFile, char *&flob )
 {
   assert( fileId != 0 && lobId != 0 );
-
-  char *flob;
 
   FLOBKey key( fileId, lobId, size, isTempFile );
   if( (flob = Lookup( key, true )) == NULL )
@@ -239,13 +239,15 @@ char *FLOBCache::GetFLOB( SmiFileId fileId, SmiRecordId lobId,
     record.Read( flob+i, key.size - i, 0 );
 #endif
 
-    Insert( key, flob );
+    if( !Insert( key, flob ) )
+      return false;
+
     Counter::getRef("RA:FLOBCacheMisses")++;
   }
   else
     Counter::getRef("RA:FLOBCacheHits")++;
 
-  return flob;
+  return true;
 }
 
 void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId, 

@@ -133,7 +133,7 @@ class FLOBCache
 
     ~FLOBCache();
 
-    char *GetFLOB( SmiFileId fileId, SmiRecordId lobId, int size, bool isTempFile );
+    bool GetFLOB( SmiFileId fileId, SmiRecordId lobId, int size, bool isTempFile, char *&flob );
     void PutFLOB( SmiFileId& fileId, SmiRecordId& lobId, int size, bool isTempFile, const char *flob );
     void Clear();
     void Release( SmiFileId fileId, SmiRecordId lobId );
@@ -143,7 +143,7 @@ class FLOBCache
 
   private:
     char *Lookup( const FLOBKey key, bool inc = false );
-    void Insert( const FLOBKey key, char *flob );
+    bool Insert( const FLOBKey key, char *flob );
     void Remove( const FLOBKey key );
     bool RemoveLast( FLOBKey& key );
     void DecReference( const FLOBKey key );
