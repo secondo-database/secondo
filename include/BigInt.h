@@ -67,6 +67,9 @@ template<unsigned int size> std::ostream&
                operator<<(std::ostream &o,const BigInt<size>& i);
 
 
+const unsigned int numberOfBits = (sizeof(unsigned long))*8;
+const unsigned int numberOfBitsM1 = numberOfBits-1;
+
 /*
 2 Declaration and Definition of the class
 
@@ -127,7 +130,7 @@ static void Add( const unsigned long* s1,
  unsigned long pos;
  // first, we initialize sum with 0
  for(unsigned int i=0; i<size ; i++){
-    for(int j=0;j<32;j++){
+    for(int j=0;j<numberOfBits;j++){
       pos = 1L << j;
       c1 = ((s1[i] & pos) !=0)?1:0;
       c2 = ((s2[i] & pos) !=0)?1:0;
@@ -183,12 +186,12 @@ This function checks whether the bit at position p is set to 1.
 
 */
 bool IsOne(unsigned int p){
-   unsigned int p1 = p/32;
+   unsigned int p1 = p/numberOfBits;
    if(p1>=size){ // outside the valid range
        return false;
    }
    unsigned long v = value[p1];
-   int pos = p%32;
+   int pos = p%numberOfBits;
    unsigned long bitmask = 1L << pos;
    return (v&bitmask)!=0;
 }
@@ -202,14 +205,14 @@ also the result will be zero.
 
 */
 unsigned int SigPos()const{
-  unsigned int result = 32u*size;
+  unsigned int result = numberOfBits*size;
   bool done = false;
   unsigned long pos;
   for(int i=size-1; i>=0 && !done ;i--){
      if(value[i]==0){
-        result -= 32; 
+        result -= numberOfBits; 
      }else{
-       for(int j=31;j>=0;j--){
+       for(int j=(numberOfBitsM1);j>=0;j--){
           pos = 1uL << j;
           if ( (pos & value[i])==0){
              result --;
@@ -435,17 +438,17 @@ If not, the result will conatain an undefined value.
     }
     // If the highest bit of the first part is used, a long
     // value is also too small for representing this value.
-    if( ((1L << 31) & value[0]) !=0){
+    if( ((1L << (numberOfBitsM1)) & value[0]) !=0){
         correct = false;
     }
     // copy the value of the lowest part into a result
     unsigned long v = value[0];
     long r;
-    unsigned long pos = 1L << 31;
-    for(int i=0;i<32;i++){
+    unsigned long pos = 1L << (numberOfBitsM1);
+    for(int i=0;i<numberOfBits;i++){
        if( (v&pos)>0)
           r++;
-       if(i<31)r=r<<1;
+       if(i<(numberOfBitsM1))r=r<<1;
        pos = pos >> 1;
     }
     if(!signum)
@@ -688,7 +691,7 @@ int CompareTo(const BigInt<size> arg)const{
   int sig = signum?1:-1;
   unsigned long pos;
   for(int i=size-1;i>=0;i--){
-    for(int j=31;j>=0;j--){
+    for(int j=(numberOfBitsM1);j>=0;j--){
        pos = 1ul<<j;
        if( ((value[i]&pos) !=0) && ((arg.value[i]&pos)==0)){
            return sig;
@@ -721,7 +724,7 @@ Compares the values of this integers regardless to the signum.
 int CompareAbsTo(const BigInt<size> arg)const{
   unsigned long v1,v2;
   for(int i=size-1;i>=0;i++){
-     for(int j=31;j>=0;j--){
+     for(int j=(numberOfBitsM1);j>=0;j--){
         v1 = (1L << j) | value[i];
         v2 = (1L << j) | arg.value[i];
         if(v1>v2) 
@@ -747,12 +750,12 @@ to provide this version separately.
 */
 bool ShiftLeft1(){
     unsigned long tmp=0;
-    bool of = ((1uL << 31) & value[size-1]) !=0;
+    bool of = ((1uL << (numberOfBitsM1)) & value[size-1]) !=0;
     for(int i=size-1; i>=0; i--){
        value[i] = value[i] << 1;
        if(i>0){
           tmp = value[i-1];
-          tmp = tmp >> 31;
+          tmp = tmp >> (numberOfBitsM1);
 				  value[i] = value[i] | tmp;
        }     
     }
@@ -769,8 +772,8 @@ The signum is not affected by using this function.
 void ShiftLeft(const unsigned int pos){
   if(pos==0)
     return;
-  int jump  = pos / 32;
-  int shift = pos % 32;
+  int jump  = pos / numberOfBits;
+  int shift = pos % numberOfBits;
   unsigned long tmp;
   for(int i=size-1;i>=0;i--){
      if(i-jump<0){ // fill with zeros
@@ -782,7 +785,7 @@ void ShiftLeft(const unsigned int pos){
         } else{
            tmp = value[i-jump-1];
         }
-        tmp = tmp >> (32-shift);
+        tmp = tmp >> (numberOfBits-shift);
         value[i] = value[i] | tmp;
     }  
   }
@@ -799,7 +802,7 @@ void ShiftRight1(){
    for(unsigned int i=0;i<size;i++){
       value[i] = value[i] >> 1;
       if(i<size-1){
-        value[i] = value[i] |  (( value[i+1] & 1L) << 31);
+        value[i] = value[i] |  (( value[i+1] & 1L) << (numberOfBitsM1));
       }
    }
 }
@@ -814,8 +817,8 @@ This is the general version of the shiftright operator.
 void ShiftRight(const int positions){
   if(positions==0)
      return;
-  int jump  = positions / 32;
-  int shift = positions % 32;
+  int jump  = positions / numberOfBits;
+  int shift = positions % numberOfBits;
   unsigned long tmp;
   for(unsigned int i=0;i<size;i++){
     if( (i+jump)>=size){
@@ -824,7 +827,7 @@ void ShiftRight(const int positions){
        if(i+jump+1<=size){
           tmp=0L;
        }else{
-          tmp = value[i+jump+1] << (32-shift);
+          tmp = value[i+jump+1] << (numberOfBits-shift);
        }
        value[i] = (value[i+jump] >> shift) | tmp;
     }
@@ -962,7 +965,7 @@ static BigInt<size> GetMax(){
    unsigned long pos = 1;
    unsigned long v = 0;
    
-   for(int i=0;i<32;i++){
+   for(int i=0;i<numberOfBits;i++){
       v = v | pos;
       pos = pos << 1;
    }  
@@ -1000,7 +1003,7 @@ void WriteTo(std::ostream& o)const{
   unsigned long pos;
   unsigned long test;
   for(int i=size-1;i>=0;i--){
-    for(int j=31;j>-1;j--){
+    for(int j=(numberOfBitsM1);j>-1;j--){
       pos = 1L << j;
       test=value[i]&pos;
       if(test!=0){
@@ -1028,7 +1031,7 @@ void WriteComplete(std::ostream& o)const{
   unsigned long pos;
   unsigned long test;
   for(int i=size-1;i>=0;i--){
-    for(int j=31;j>-1;j--){
+    for(int j=(numberOfBitsM1);j>-1;j--){
       pos = 1L << j;
       test=value[i]&pos;
       if(test!=0){
@@ -1059,7 +1062,7 @@ void WriteTo10(std::ostream& o)const{
   bool one = false;
   unsigned  long v;
   for(int i=(size-1);i>=0;i--){
-     for(int j=31;j>-1;j--){
+     for(int j=(numberOfBitsM1);j>-1;j--){
         pos = 1L << j;
         v = value[i]&pos;
         one = v!=0;
