@@ -83,9 +83,17 @@ cost_factors(   RTM,   WTM,   RTD,   WTD,   RPD,   WPD,   FND,   FDD,   FOD,   F
   Default is ~minTgt(0.0035).~
 
 */
-
-% minTgt(0.0035). % default setting
 minTgt(0.0001).
+
+/*
+----    ~minPET(X)~
+----
+  Minimal predicate evaluation cost in milliseconds [ms].
+  Default is ~minTgt(0.001).~
+  This value is used for 'cheap predicates' and the 'cheap' cases of otherwise expensive predicates.
+
+*/
+minPET(0.001).
 
 
 /*
@@ -240,7 +248,7 @@ optionTotalCosts :-
 optionConjunctiveCosts :-
   retractall(optConjunctiveCosts),
   assert(optConjunctiveCosts), 
-  write('\nNow, only costs from the conjubctive query are applied! - type \'optionTotalCosts.\' to calculate all costs.\n\n'),
+  write('\nNow, only costs from the conjunctive query are applied! - type \'optionTotalCosts.\' to calculate all costs.\n\n'),
   !.
 
 toggleDebug :-
@@ -264,6 +272,6 @@ toggleCosts :-
 toggleCosts :-
   not(optConjunctiveCosts),
   assert(optConjunctiveCosts),
-  write('\nNow, only costs from the conjubctive query are applied! - Type \'optionTotalCosts.\' or \'toggleCosts.\' to calculate all costs instead.\n\n'),
+  write('\nNow, only costs from the conjunctive query are applied! - Type \'optionTotalCosts.\' or \'toggleCosts.\' to calculate all costs instead.\n\n'),
   !.
  

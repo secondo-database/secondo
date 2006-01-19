@@ -2223,11 +2223,23 @@ cost(fun(_, X), P, Sel, Size, TupleSize, PredCost, TC, Cost) :- % no overhead co
 
 
 /*
-New cost function for ~hashjoin~:
+Cost function for ~hashjoin~:
 
-  NBuckets: Number of buckets in hash table
-  MemSizeX = 0.25[*]MaxMem; this one is used to hold X-tuples hashed against the hash table
-  MemSizeY = 0.75[*]MaxMem; this one is used for the hash table of Y-tuples
+  * NBuckets: Number of buckets in hash table
+
+  * MemSizeX = 0.25[*]MaxMem; this one is used to hold X-tuples hashed against the hash table
+
+  * MemSizeY = 0.75[*]MaxMem; this one is used for the hash table of Y-tuples
+
+  For the evaluation of the join predicate, we know, that only 'is equal' is allowed, as
+  hashjoin is an equijoin. For all 'is equal' predicates, it is assumed, that only in the
+  case of $A=B$, the evaluation is really expensive, for in the contrary case, some cheap 
+  test will usually discover, that $A\neqB$.
+
+  Hence, we can estimate the number of expensive predicate evaluations by $\mbox{Sel} \cdot CX \cdot CY$.
+  All other predicate evaluations are expected to be 'cheap' (with cost ~MinPET~).
+
+  For the calculation of a hash value, a cost of ~MinPET~ is assigned.
 
 */
 
@@ -2244,14 +2256,21 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
   % test for case1: Both argument relations X,Y fit into memory  
   (CX * (Tx+12)) =< MemSizeX, 
   (CY * (Ty+12)) =< MemSizeY, 
-  dm('\nHashjoin Case1\n'),
   getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
+  minPET(MinPET),
+  ResSize is CX * CY * Sel,
+  addTupleSizes(TX,TY,TupleSize),
   Cost is CostArgX + CostArgY                  % create input streams
        + RPD * (CX * ExtFlobSize1)/BDBPS       % read flobs from disk
        + RPD * (CX * max((CY/NBuckets),1) * ExtFlobSize2)/BDBPS/(1-FCMR) % read flobs from disk
+       + MinPET * (CX + CY)                    % calculate hash value (use MinPET as an approximation to cost)
        + WTM * CY                              % inserting Y-tuples into hash table
-       + (RTM + B) * CX * max((CY/NBuckets),1) % collide each X-tuple with Y-tuples from hashed bucket
-       + TC * Sel * CX * CY,                   % create result tuples
+                                               % collide each X-tuple with Y-tuples from hashed bucket
+       % +(RTM + B) * CX * max((CY/NBuckets),1)%  (this is the original line)
+       + (RTM + B) * ResSize                   %  - expensive cases
+       + (RTM + MinPET)                        %  - cheap cases
+               * (CX * max((CY/NBuckets),1) - ResSize) 
+       + TC * ResSize,                         % create result tuples
   (optDebug *-> (
     RTMn is CX * max((CY/NBuckets),1),
     WTMn is CY,
@@ -2263,8 +2282,12 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
     FDDn is 0,
     FODn is 0,
     FCDn is 0,
-    Bn   is CX * max((CY/NBuckets),1),
-    TCn  is Sel * CX * CY,
+    Bn   is ResSize,
+    MinPETn is CX * max((CY/NBuckets),1) - ResSize + (CX + CY),
+    TCn  is ResSize,
+    write('\n\n\nhashjoin('), write(X), write(','), write(Y), write(', _, _, '), write(NBuckets), write('), '),
+    write(P), write(','), write(Sel), write(','), write(ResSize), write(','), write(TupleSize), write(','), 
+    write(B), write(','), write(TC), write(','), write(Cost), write(') Case1'),
     write('\n\tRTM: '), write(RTMn),
     write('\n\tWTM: '), write(WTMn),
     write('\n\tRTD: '), write(RTDn),
@@ -2276,14 +2299,9 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
     write('\n\tFOD:  '), write(FODn),
     write('\n\tFCD:  '), write(FCDn),
     write('\n\tB  :  '), write(Bn),
-    write('\n\tTC :  '), write(TCn)
-  ); true),
-  ResSize is CX * CY * Sel,
-  addTupleSizes(TX,TY,TupleSize),
-  (optDebug *-> (
-    write('\nhashjoin('), write(X), write(','), write(Y), write(', _, _, '), write(NBuckets), write('), '),
-    write(P), write(','), write(Sel), write(','), write(ResSize), write(','), write(TupleSize), write(','), 
-    write(B), write(','), write(TC), write(','), write(Cost), write(')\n')
+    write('\n\tTC :  '), write(TCn),
+    write('\n\tMinPET:  '), write(MinPETn), 
+    write('\n\tNeeded FlobSizes: '), write(ExtFlobSize1), write('/'), write(ExtFlobSize2), nl
   ); true).
 
 cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
@@ -2299,19 +2317,26 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
   % test for case4: neither X, nor Y fit in memory                                       
   (CX * (Tx+12)) > MemSizeX,
   (CY * (Ty+12)) > MemSizeY,
-  dm('\nHashjoin Case4\n'),
   MemSizeTY is max(1,(MemSizeY / Ty)),
   getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
+  minPET(MinPET),
+  ResSize is CX * CY * Sel,
+  addTupleSizes(TX,TY,TupleSize),
   Cost is CostArgX + CostArgY          % create input streams
        + WTM * CY                      % insert pointers to Y in hash tables
        + RPD * (CY/MemSizeTY) * (CX * ExtFlobSize1)/BDBPS % read flobs from disk
        + RPD * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) * ExtFlobSize2/BDBPS/(1-FCMR) % read flobs from disk
-       + (B + RTM)  * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) % compare X- and Y-tuples
+                                       % compare X- and Y-tuples
+       % +(B + RTM)  * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) % (original line)
+       + (B + RTM)  * ResSize          %  - cheap comparisons
+       + (MinPET + RTM) 
+           * (  CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
+              - ResSize )              %  - expensive comparisons
        + 2 * (FND + FDD)               % create and delete temp files
        + WTD * CX                      % write X-tuples to disk
-       + RTD * CX * CY/MemSizeTY       % X-tuples to be read from disk
-                                       % once per hash table
-       + TC * Sel * CX * CY,           % create result tuples
+       + RTD * CX * CY/MemSizeTY       % X-tuples to be read from disk once per hash table
+       + MinPET * (CY + CX * max(1,CY/MemSizeTY))  % calculate hash value (use MinPET as an approximation to cost)
+       + TC * ResSize,                 % create result tuples
   (optDebug *-> (
     RTMn is CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY),
     WTMn is CY,
@@ -2323,8 +2348,12 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
     FDDn is 2,
     FODn is 0,
     FCDn is 0,
-    Bn   is CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY),
+    Bn   is ResSize,
+    MinPETn is CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) - ResSize + (CY + CX * max(1,CY/MemSizeTY)),
     TCn  is Sel * CX * CY,
+    write('\n\nhashjoin('), write(X), write(','), write(Y), write(', _, _, '), write(NBuckets), write('), '),
+    write(P), write(','), write(Sel), write(','), write(ResSize), write(','), write(TupleSize), write(','), 
+    write(B), write(','), write(TC), write(','), write(Cost), write(') Case4'),
     write('\n\tRTM: '), write(RTMn),
     write('\n\tWTM: '), write(WTMn),
     write('\n\tRTD: '), write(RTDn),
@@ -2336,14 +2365,9 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
     write('\n\tFOD:  '), write(FODn),
     write('\n\tFCD:  '), write(FCDn),
     write('\n\tB  :  '), write(Bn),
-    write('\n\tTC :  '), write(TCn)
-  ); true),
-  ResSize is CX * CY * Sel,
-  addTupleSizes(TX,TY,TupleSize),
-  (optDebug *-> (
-    write('\nhashjoin('), write(X), write(','), write(Y), write(', _, _, '), write(NBuckets), write('), '),
-    write(P), write(','), write(Sel), write(','), write(ResSize), write(','), write(TupleSize), write(','), 
-    write(B), write(','), write(TC), write(','), write(Cost), write(')\n')
+    write('\n\tTC :  '), write(TCn), 
+    write('\n\tMinPET:  '), write(MinPETn), 
+    write('\n\tNeeded FlobSizes: '), write(ExtFlobSize1), write('/'), write(ExtFlobSize2), nl
   ); true).
 
 cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
@@ -2359,18 +2383,25 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
   % case2: X fits in memory, but Y does not 
   (CX * (Tx+12)) =< MemSizeX, 
   (CY * (Ty+12)) >  MemSizeY,            
-  dm('\nHashjoin Case2\n'),
   getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
+  gerMinPET(MinPET),
+  ResSize is CX * CY * Sel,
+  addTupleSizes(TX,TY,TupleSize),
   MemSizeTY is max(1,(MemSizeY / Ty)), % amount of Y-tuples fitting into MemY
   Cost is CostArgX + CostArgY          % create input streams
        + WTM * CY                      % insert Y-tuples into hash table
        + RPD * (CY/MemSizeTY) * (CX*ExtFlobSize1)/BDBPS % read flobs from disk
        + RPD * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) * ExtFlobSize2/BDBPS/(1-FCMR) % read flobs from disk
-       + (B + RTM) * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
                                        % compare each X-tuple with
                                        % the hashed Y-tuples from several hashtables
+       %+ (B + RTM) * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) % (original line)
+       + (B + RTM) * ResSize           %  - expensive comparisons
+       + (MinPET+RTM)*(  CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
+                       - ResSize)      %  - cheap comparisons
+
        + RTM * CX * (CY/MemSizeTY)     % read X-tuples from memory once per hashtable
-       + TC * Sel * CX * CY,           % create result tuples
+       + MinPET * (CY + CX * max(1,CY/MemSizeTY)) % calculate hash values (use MinPET as an approximation to cost)
+       + TC * ResSize,                 % create result tuples
   (optDebug *-> (
     RTMn is CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) + CX * (CY/MemSizeTY),
     WTMn is CY,
@@ -2382,8 +2413,12 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
     FDDn is 0,
     FODn is 0,
     FCDn is 0,
-    Bn   is CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY),
+    Bn   is ResSize,
+    MinPETn is CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) - ResSize + (CY + CX * max(1,CY/MemSizeTY)),
     TCn  is Sel * CX * CY,
+    write('\n\nhashjoin('), write(X), write(','), write(Y), write(', _, _, '), write(NBuckets), write('), '),
+    write(P), write(','), write(Sel), write(','), write(ResSize), write(','), write(TupleSize), write(','), 
+    write(B), write(','), write(TC), write(','), write(Cost), write(') Case2'),
     write('\n\tRTM: '), write(RTMn),
     write('\n\tWTM: '), write(WTMn),
     write('\n\tRTD: '), write(RTDn),
@@ -2395,14 +2430,9 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
     write('\n\tFOD:  '), write(FODn),
     write('\n\tFCD:  '), write(FCDn),
     write('\n\tB  :  '), write(Bn),
-    write('\n\tTC :  '), write(TCn)
-  ); true),
-  ResSize is CX * CY * Sel,
-  addTupleSizes(TX,TY,TupleSize),
-  (optDebug *-> (
-    write('\nhashjoin('), write(X), write(','), write(Y), write(', _, _, '), write(NBuckets), write('), '),
-    write(P), write(','), write(Sel), write(','), write(ResSize), write(','), write(TupleSize), write(','), 
-    write(B), write(','), write(TC), write(','), write(Cost), write(')\n')
+    write('\n\tTC :  '), write(TCn),
+    write('\n\tMinPET:  '), write(MinPETn), 
+    write('\n\tNeeded FlobSizes: '), write(ExtFlobSize1), write('/'), write(ExtFlobSize2), nl
   ); true).
 
 cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
@@ -2418,18 +2448,24 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
   % case3: X does not fit in memory, but Y does  (Nearly the same cost function as in case2!)
   (CX * (Tx+12)) >  MemSizeX, 
   (CY * (Ty+12)) =< MemSizeY,  
-  dm('\nHashjoin Case3\n'),                               
   getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
+  minPET(MinPET),
+  ResSize is CX * CY * Sel,
+  addTupleSizes(TX,TY,TupleSize),
   MemSizeTY is max(1,(MemSizeY / Ty)), % amount of Y-tuples fitting into MemY
   Cost is CostArgX + CostArgY          % create input streams
        + WTM * CY                      % insert Y-tuplesinto hash table
        + RPD * (CX * ExtFlobSize1)/BDBPS % read flobs from disk
        + RPD * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) * ExtFlobSize2/BDBPS/(1-FCMR) % read flobs from disk
-       + (B + RTM) * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
                                        % compare each X-tuple with
                                        % the hashed Y-tuples from several hashtables
+       %+ (B + RTM) * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) % (original line)
+       + (B + RTM) * ResSize           %  - expensive comparisons
+       + (MinPET+RTM)*(  CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
+                       - ResSize)      %  - cheap comparisons
        + RTM * CX * (CY/MemSizeTY)     % read X-tuples from memory once per hashtable
-       + TC * Sel * CX * CY,           % create result tuples
+       + MinPET * (CX + CY)            % calculate hash values (use MinPET as an approximation to cost)
+       + TC * ResSize,                 % create result tuples
   (optDebug *-> (
     RTMn is CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) + CX * (CY/MemSizeTY),
     WTMn is CY,
@@ -2441,8 +2477,12 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
     FDDn is 0,
     FODn is 0,
     FCDn is 0,
-    Bn   is CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY),
-    TCn  is Sel * CX * CY,
+    Bn   is ResSize,
+    MinPETn is CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) - ResSize + (CX + CY),
+    TCn  is ResSize,
+    write('\n\nhashjoin('), write(X), write(','), write(Y), write(', _, _, '), write(NBuckets), write('), '),
+    write(P), write(','), write(Sel), write(','), write(ResSize), write(','), write(TupleSize), write(','), 
+    write(B), write(','), write(TC), write(','), write(Cost), write(') Case3'),
     write('\n\tRTM: '), write(RTMn),
     write('\n\tWTM: '), write(WTMn),
     write('\n\tRTD: '), write(RTDn),
@@ -2454,14 +2494,9 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
     write('\n\tFOD:  '), write(FODn),
     write('\n\tFCD:  '), write(FCDn),
     write('\n\tB  :  '), write(Bn),
-    write('\n\tTC :  '), write(TCn)
-  );true),
-  ResSize is CX * CY * Sel,
-  addTupleSizes(TX,TY,TupleSize),
-  (optDebug *-> (
-    write('\nhashjoin('), write(X), write(','), write(Y), write(', _, _, '), write(NBuckets), write('), '),
-    write(P), write(','), write(Sel), write(','), write(ResSize), write(','), write(TupleSize), write(','), 
-    write(B), write(','), write(TC), write(','), write(Cost), write(')\n')
+    write('\n\tTC :  '), write(TCn), 
+    write('\n\tMinPET:  '), write(MinPETn), 
+    write('\n\tNeeded FlobSizes: '), write(ExtFlobSize1), write('/'), write(ExtFlobSize2), nl
   );true).
 
 
@@ -2474,12 +2509,15 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
 
   Operator ~sort~ applies ~sortby~ using lexicographical ordering on all attributes.
 
+  Argument ~Order~ is either a float/integer representing the cost to evaluate the ordering predicate once,
+  or a list of (Attrname SortOrder) elements.
+
 */
 
-cost(sortby(X,_), P, Sel, Card, TX, PredCost, TC, Cost) :- % XRIS: flob loading not yet considered here!
+cost(sortby(X,Order), P, Sel, Card, TX, PredCost, TC, Cost) :- % XRIS: flob loading not yet considered here!
   cost(X, P, Sel, Card, TX, PredCost, TC, CostX),
   cost_factors(RTM, WTM, _, _, _, _, _, _, _, _, MaxMem, _, _),
-  sortTC(B),
+  ((float(Order); integer(Order)) *-> B is Order; sortTC(B)),  % get cost for ordering predicate
   TX = tupleSizeData(TSCx, TSIx, _),
   Tx is TSCx + TSIx,
   HeapSize is MaxMem / (Tx + 12),      % determine heapsize in tuples
@@ -2490,19 +2528,46 @@ cost(sortby(X,_), P, Sel, Card, TX, PredCost, TC, Cost) :- % XRIS: flob loading 
   Cost is CostX                        % produce argument stream
         + WTM * Card *0.5 *log(2,MCard)% inserts into heap 
         + RTM * Card                   % reads from heap 
-        + B * Card * log(2,MCard).     % compare a pair of tuples (building the heap)
+        + B * Card * log(2,MCard),     % compare a pair of tuples (building the heap)
+  (optDebug *-> (
+    RTMn is Card,
+    WTMn is Card *0.5 *log(2,MCard),
+    RTDn is 0,
+    WTDn is 0,
+    RPDn is 0,
+    WPDn is 0,
+    FNDn is 0,
+    FDDn is 0,
+    FODn is 0,
+    FCDn is 0,
+    Bn   is Card * log(2,MCard),
+    TCn  is 0,
+    write('\n\nsortby('), write(X), write(','), write(Order), write(') Case1'),
+    write('\n\tCostX: '), write(CostX),
+    write('\n\tRTM: '), write(RTMn),
+    write('\n\tWTM: '), write(WTMn),
+    write('\n\tRTD: '), write(RTDn),
+    write('\n\tWTD: '), write(WTDn),
+    write('\n\tRPD: '), write(RPDn),
+    write('\n\tWPD: '), write(WPDn),
+    write('\n\tFND: '), write(FNDn),
+    write('\n\tFDD:  '), write(FDDn),
+    write('\n\tFOD:  '), write(FODn),
+    write('\n\tFCD:  '), write(FCDn),
+    write('\n\tB  :  '), write(Bn),
+    write('\n\tTC :  '), write(TCn), nl
+  ); true).
 
 
-cost(sort(X,_), P, Sel, Card, TX, PredCost, TC, Cost) :- % XRIS: flob loading not yet considered here!
-  cost(X, P, Sel, Card, TX, PredCost, TC, CostX),        % XRIS: should consider ordering predicate!
+cost(sortby(X,Order), P, Sel, Card, TX, PredCost, TC, Cost) :-  % XRIS: flob loading not yet considered here!
+  cost(X, P, Sel, Card, TX, PredCost, TC, CostX),             
   cost_factors(RTM, WTM, RTD, WTD, _, _, FND, FDD, FOD, FCD, MaxMem, _, _),
-  sortTC(B),
+  ((float(Order); integer(Order)) *-> B is Order; sortTC(B)),   % get cost for ordering predicate
   TX = tupleSizeData(TSCx, TSIx, _),
   Tx is TSCx + TSIx,
   HeapSize is max(1,MaxMem / (Tx + 12)),           % determine heapsize in tuples
   % case2: relation does not fit into memory
   Card > HeapSize,
-  % write('\nCase2\n'),
   PartCard is 2 * HeapSize,                        % calculate average cardinality of partion files generated
   PartNum is max(0,((Card-HeapSize) / PartCard)),  % calculate average number of partion files, 
   Cost is CostX                                    % produce argument stream
@@ -2512,8 +2577,35 @@ cost(sort(X,_), P, Sel, Card, TX, PredCost, TC, Cost) :- % XRIS: flob loading no
         + RTD * max(0,(Card-HeapSize))             % read tuple from partition file (=Card-HeapSize)
         + (FND + FCD + FOD + FDD) * PartNum        % create, close, open and remove a partition file (=PartNum)
         + B * Card * log(2,HeapSize)               % compare a pair of tuples (partition step)
-        + B * Card * log(2,PartNum+2).             % compare a pair of tuples (merge step)
-                                                   % (Individual cost of ordering still not applied!)
+        + B * Card * log(2,PartNum+2),             % compare a pair of tuples (merge step)
+  (optDebug *-> (
+    RTMn is Card,
+    WTMn is max(0,(Card-HeapSize))*0.5*log(2,HeapSize),
+    RTDn is max(0,(Card-HeapSize)),
+    WTDn is max(0,(Card-HeapSize)),
+    RPDn is 0,
+    WPDn is 0,
+    FNDn is PartNum,
+    FDDn is PartNum,
+    FODn is PartNum,
+    FCDn is PartNum,
+    Bn   is Card * log(2,HeapSize) + Card * log(2,PartNum+2),
+    TCn  is 0,
+    write('\n\nsortby('), write(X), write(','), write(Order), write(') Case2'),
+    write('\n\tCostX: '), write(CostX),
+    write('\n\tRTM: '), write(RTMn),
+    write('\n\tWTM: '), write(WTMn),
+    write('\n\tRTD: '), write(RTDn),
+    write('\n\tWTD: '), write(WTDn),
+    write('\n\tRPD: '), write(RPDn),
+    write('\n\tWPD: '), write(WPDn),
+    write('\n\tFND: '), write(FNDn),
+    write('\n\tFDD:  '), write(FDDn),
+    write('\n\tFOD:  '), write(FODn),
+    write('\n\tFCD:  '), write(FCDn),
+    write('\n\tB  :  '), write(Bn),
+    write('\n\tTC :  '), write(TCn), nl
+  ); true).
 
 cost(sort(X), P, Sel, CardX, TX, PredCost, TC, Cost) :- % 
   cost(sortby(X,lexall), P, Sel, CardX, TX, PredCost, TC, Cost).
@@ -2567,20 +2659,50 @@ cost(rdup(X), P, Sel, Card, TS, PredCost, TC, Cost) :-
 */
 
 cost(sortmergejoin(X, Y, _, _), P, Sel, ResultCard, ResultTupleSize, B, TC, Cost) :-
-  cost(sortby(X, 0), P, 1, CX, TX, PredCost, TC, CostX),
-  cost(sortby(Y, 0), P, 1, CY, TY, PredCost, TC, CostY),
+  cost(sortby(X, B), P, 1, CX, TX, PredCost, TC, CostX),
+  cost(sortby(Y, B), P, 1, CY, TY, PredCost, TC, CostY),
   cost_factors(RTM, WTM, _, _, RPD, _, _, _, _, _, _, BDBPS, FCMR),
   addTupleSizes(TX,TY,ResultTupleSize),
   getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
   ResultCard is CX * CY * Sel,
   Cost is CostX + CostY                % producing and sorting the arguments
-                                       % XRIS: Individual cost of ordering still not applied!
         + (CX * ExtFlobSize1)/BDBPS * RPD/FCMR % load flobs
         + (CY * ExtFlobSize2)/BDBPS * RPD/FCMR % load flobs
         + WTM * (CX+CY) * sqrt(Sel)    % write tuples to buffer/memory; A BAD ESTIMATION!
-        + B * CX * CY                  % compare tuples (B could also be fixed, e.g. 0.001)
+        + B   * (CX+CY)                % compare tuples 
         + RTM * (CX+CY) * sqrt(Sel)    % read tuples from buffer/memory; A BAD ESTIMATION!
-        + TC * ResultCard.             % create result tuple
+        + TC  * ResultCard,            % create result tuple
+  (optDebug *-> (
+    RTMn is (CX+CY) * sqrt(Sel),
+    WTMn is (CX+CY) * sqrt(Sel),
+    RTDn is 0,
+    WTDn is 0,
+    RPDn is (CX * ExtFlobSize1)/BDBPS/FCMR + (CY * ExtFlobSize2)/BDBPS/FCMR,
+    WPDn is 0,
+    FNDn is 0,
+    FDDn is 0,
+    FODn is 0,
+    FCDn is 0,
+    Bn   is 0,
+    TCn  is Sel * CX * CY,
+    write('\n\nSortmergejoin('), write(X), write(','), write(Y), write(',_,_)'),
+    write('\n\tCostX: '), write(CostX),
+    write('\n\tCostY: '), write(CostY),
+    write('\n\tRTM: '), write(RTMn),
+    write('\n\tWTM: '), write(WTMn),
+    write('\n\tRTD: '), write(RTDn),
+    write('\n\tWTD: '), write(WTDn),
+    write('\n\tRPD: '), write(RPDn),
+    write('\n\tWPD: '), write(WPDn),
+    write('\n\tFND: '), write(FNDn),
+    write('\n\tFDD:  '), write(FDDn),
+    write('\n\tFOD:  '), write(FODn),
+    write('\n\tFCD:  '), write(FCDn),
+    write('\n\tB  :  '), write(Bn),
+    write('\n\tTC :  '), write(TCn),
+    write('\nNeeded FlobSizes: '), write(ExtFlobSize1), write(ExtFlobSize2), nl
+  ); true).
+
 
 
 /*
@@ -2602,9 +2724,9 @@ cost(mergejoin(X, Y, _, _), P, Sel, ResultCard, ResultTupleSize, B, TC, Cost) :-
         + (CX * ExtFlobSize1)/BDBPS * RPD/FCMR % load flobs
         + (CY * ExtFlobSize2)/BDBPS * RPD/FCMR % load flobs
         + WTM * (CX+CY) * sqrt(Sel)    % write tuples to buffer/memory; A BAD ESTIMATION!
-        + B * CX * CY                  % compare tuples (B could also be fixed, e.g. 0.001)
+        + B   * (CX+CY)                % compare tuples (B could also be fixed, e.g. 0.001)
         + RTM * (CX+CY) * sqrt(Sel)    % read tuples from buffer/memory; A BAD ESTIMATION!
-        + TC * ResultCard.             % create result tuple
+        + TC  * ResultCard.            % create result tuple
 
 /*
    Quick & dirty cost function for Operator ~mergeunion~
@@ -4090,7 +4212,6 @@ lookupPred1(Term, Term, N, Rels, N, Rels).
 */
  
 spelled(Rel:Attr, attr(Attr2, 0, l)) :-
-  dm(['\nspelled (1): (',Rel,':',Attr, ',', attr(Attr2, 0, l),')']),
   downcase_atom(Rel, DCRel),
   downcase_atom(Attr, DCAttr),
   spelling(DCRel:DCAttr, Attr3),
@@ -4098,27 +4219,24 @@ spelled(Rel:Attr, attr(Attr2, 0, l)) :-
   !.
  
 spelled(Rel:Attr, attr(Attr2, 0, u)) :-
-  dm(['\nspelled (2): (',Rel:Attr, ',', attr(Attr2, 0, u), ')']),
   downcase_atom(Rel, DCRel),
   downcase_atom(Attr, DCAttr),
   spelling(DCRel:DCAttr, Attr2),
   !.
  
-spelled(_:_, attr(_, 0, _)) :- !, dm('\nspelled (3)'), fail. % no attr entry in spelling table
+spelled(_:_, attr(_, 0, _)) :- !, fail. % no attr entry in spelling table
  
 spelled(Rel, Rel2, l) :-
-  dm(['\nspelled (4): (', Rel, ',', Rel2, ',', l, ')']),
   downcase_atom(Rel, DCRel),
   spelling(DCRel, Rel3),
   Rel3 = lc(Rel2),
   !.
  
 spelled(Rel, Rel2, u) :-
-  dm(['\nspelled (5): (', Rel, ',', Rel2, ',', u, ')']),
   downcase_atom(Rel, DCRel),
   spelling(DCRel, Rel2), !.
  
-spelled(_, _, _) :- !,   dm('\nspelled (6)'), fail.  % no rel entry in spelling table.
+spelled(_, _, _) :- !, fail.  % no rel entry in spelling table.
 
 
 
@@ -4455,7 +4573,7 @@ queryToStream(Select from Rels where Preds, Stream2, Cost) :- % OK
   !.
 
 queryToStream(Select from Rels groupby Attrs, Stream2, Cost) :- % OK
-  translate(Select from Rels groupby Attrs, Stream, Select1, Cost1), % costs for groupba(sort(...),...) already considered
+  translate(Select from Rels groupby Attrs, Stream, Select1, Cost1), % costs for groupby(sort(...),...) already considered
   finish(Stream, Select1, [], Stream2),
   getCurrentResultSizes(Arg),
   term_to_atom(Arg, ArgA),
@@ -5059,4 +5177,3 @@ calculateQueryTupleSize(Rel, CoreTupleSize, InFlobSize, ExtFlobSize) :-
   downcase_atom(R, RelName),
   calculateProjectedTupleSizeA(RelName, UsedAttr, CoreTupleSize, InFlobSize, ExtFlobSize).  
   
-
