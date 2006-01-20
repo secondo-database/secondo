@@ -3823,11 +3823,6 @@ bestPlanConsume :-
   nl, write(Q), nl,
   query(Q).
 
-example99 :- pog(
- [rel(regs1, r1, l), rel(regs2, r2, l)],
- [pr( attr(r1:gebiet, 1, u) touches attr(r2:gebiet, 2, u), rel(regs1, r1, l),
-      rel(regs2, r2, l) )], _, _).
-
   
 
 
