@@ -1,4 +1,0 @@
-If you want to change the NetGen code for some reason, the ThirdPartyCode.dll has to be rebuilt. First, you have to delete the ThirdPartyCode.dll from the Rose/RoseJave/twodsack/util/meshgenerator. Then, rename the file meshgenerator/NetGen/libsrc/include/wl.zar to wl.zip and extract that file. It constructs a new directory named winlibsVC and unpacks some files there.
-Now, type a 'make clean' in the meshgenerator directory and a 'make' afterwards. The ThirdPartyCode.dll should be rebuilt now.
-
-If something goes wrong, check the appropriate makefile and makefile.windows for hints. 
