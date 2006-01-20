@@ -152,14 +152,23 @@ possiblyRename(Rel, Renamed) :-
   Rel = rel(_, Name, _),
   Renamed = rename(feed(Rel), Name).
 
-dynamicPossiblyRename(Rel, Renamed) :-
+dynamicPossiblyRenameJ(Rel, Renamed) :-
   Rel = rel(_, *, _),
   !,
   Renamed = sample(Rel, 500, 0.00001).
 
-dynamicPossiblyRename(Rel, Renamed) :-
+dynamicPossiblyRenameJ(Rel, Renamed) :-
   Rel = rel(_, Name, _),
   Renamed = rename(sample(Rel, 500, 0.00001), Name).
+
+dynamicPossiblyRenameS(Rel, Renamed) :-
+  Rel = rel(_, *, _),
+  !,
+  Renamed = sample(Rel, 2000, 0.00001).
+
+dynamicPossiblyRenameS(Rel, Renamed) :-
+  Rel = rel(_, Name, _),
+  Renamed = rename(sample(Rel, 2000, 0.00001), Name).
 
 cardQuery(Pred, Rel, Query) :-
   sampleS(Rel, RelS),
@@ -214,13 +223,15 @@ transformPred(Pred, _, _, Pred).
 %  Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
 
 dynamicCardQuery(Pred, Rel, Query) :-
-  dynamicPossiblyRename(Rel, RelQuery),
+  dynamicPossiblyRenameS(Rel, RelQuery),
   Query = count(filter(RelQuery, Pred)).
 
 dynamicCardQuery(Pred, Rel1, Rel2, Query) :-
-  dynamicPossiblyRename(Rel1, Rel1Query),
-  dynamicPossiblyRename(Rel2, Rel2Query),
-  Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
+  dynamicPossiblyRenameJ(Rel1, Rel1Query),
+  dynamicPossiblyRenameJ(Rel2, Rel2Query),
+  %Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
+  transformPred(Pred, t, 1, Pred2),
+  Query = count(loopsel(Rel1Query, fun([param(t, tuple)], filter(Rel2Query, Pred2)))).
 
 sels(Pred, Sel) :-
   sel(Pred, Sel),
@@ -232,7 +243,7 @@ sels(Pred, Sel) :-
   !.
 
 sels(Pred, Sel) :-
-  storedSel(Pred, Sel),,
+  storedSel(Pred, Sel),
   !.
 
 sels(Pred, Sel) :-
@@ -266,6 +277,7 @@ selectivity(P, Sel) :-
   !.
 
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
+  set_dynamic_sample(off),
   Rel1 = rel(BaseName1, _, _),
   sampleNameJ(BaseName1, SampleName1),
   card(SampleName1, SampleCard1),
@@ -285,8 +297,8 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   MSs is Minute *60000 + Sec*1000 + MilliSec,
   write('Elapsed Time: '),
   write(MSs),
-  write(' ms'),nl,
-  MSsRes is MSs / (SampleCard1 * SampleCard2),
+  write(' ms'),nl, 
+  MSsRes is MSs / (SampleCard1 * SampleCard2), 
   Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
   write('Predicate Cost: '),
   write(MSsRes),
@@ -300,6 +312,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   !.
 
 selectivity(pr(Pred, Rel), Sel) :-
+  set_dynamic_sample(off),
   Rel = rel(BaseName, _, _),
   sampleNameS(BaseName, SampleName),
   card(SampleName, SampleCard),
@@ -331,19 +344,33 @@ selectivity(pr(Pred, Rel), Sel) :-
   !.
 
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
+  set_dynamic_sample(on),
   Rel1 = rel(BaseName1, _, _),
   card(BaseName1, Card1),
-  SampleCard1 is min(Card1, max(500, Card1 * 0.00001)),
+  sampleSizeJoin(JoinSize),
+  SampleCard1 is min(Card1, max(JoinSize, Card1 * 0.00001)),
   Rel2 = rel(BaseName2, _, _),
   card(BaseName2, Card2),
-  SampleCard2 is min(Card2, max(500, Card2 * 0.00001)),
+  SampleCard2 is min(Card2, max(JoinSize, Card2 * 0.00001)),
   dynamicCardQuery(Pred, Rel1, Rel2, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   %write('selectivity query : '),
   %write(QueryAtom),
+  get_time(Time1),
   secondo(QueryAtom, [int, ResCard]),
+  get_time(Time2),
+  Time is Time2 - Time1,
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  MSs is Minute *60000 + Sec*1000 + MilliSec,
+  write('Elapsed Time: '),
+  write(MSs),
+  write(' ms'),nl,
+  MSsRes is MSs / (SampleCard1 * SampleCard2),
   Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
+  write('Predicate Cost: '),
+  write(MSsRes),
+  write(' ms'),nl,
   write('Selectivity : '),
   write(Sel),
   nl,
@@ -352,16 +379,30 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   !.
 
 selectivity(pr(Pred, Rel), Sel) :-
+  set_dynamic_sample(on),
   Rel = rel(BaseName, _, _),
   card(BaseName, Card),
-  SampleCard is min(Card, max(2000, Card * 0.00001)),
+  sampleSizeSelection(SelectionSize),
+  SampleCard is min(Card, max(SelectionSize, Card * 0.00001)),
   dynamicCardQuery(Pred, Rel, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   %write('selectivity query : '),
   %write(QueryAtom),
+  get_time(Time1),
   secondo(QueryAtom, [int, ResCard]),
+  get_time(Time2),
+  Time is Time2 - Time1,
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  MSs is Minute *60000 + Sec*1000 + MilliSec,
+  write('Elapsed Time: '),
+  write(MSs),
+  write(' ms'),nl,
+  MSsRes is MSs / SampleCard,
   Sel is (ResCard + 1)/ SampleCard,		% must not be 0
+  write('Predicate Cost: '),
+  write(MSsRes),
+  write(' ms'),nl,
   write('Selectivity : '),
   write(Sel),
   nl,
@@ -473,7 +514,7 @@ writePET :-
 Example 22:
 
 */
-example22 :- optimize(
+example24 :- optimize(
   select *
   from [staedte as s, ten]
   where [

@@ -34,6 +34,7 @@ if [ "$SECONDO_JAVA" != "" ]; then
     CLASSPATH=$SECONDO_JAVART
 else
     JAVA=java
+    unset CLASSPATH
 fi
 
 cmd="$JAVA -classpath ../Jpl/lib/classes/:.:$CLASSPATH OptimizerServer $PORT"

@@ -155,20 +155,24 @@ possiblyRename(Rel, Renamed) :-
 dynamicPossiblyRenameJ(Rel, Renamed) :-
   Rel = rel(_, *, _),
   !,
-  Renamed = sample(Rel, 500, 0.00001).
+  sampleSizeJoin(JoinSize),
+  Renamed = sample(Rel, JoinSize, 0.00001).
 
 dynamicPossiblyRenameJ(Rel, Renamed) :-
   Rel = rel(_, Name, _),
-  Renamed = rename(sample(Rel, 500, 0.00001), Name).
+  sampleSizeJoin(JoinSize),
+  Renamed = rename(sample(Rel, JoinSize, 0.00001), Name).
 
 dynamicPossiblyRenameS(Rel, Renamed) :-
   Rel = rel(_, *, _),
   !,
-  Renamed = sample(Rel, 2000, 0.00001).
+  sampleSizeSelection(SelectionSize),
+  Renamed = sample(Rel, SelectionSize, 0.00001).
 
 dynamicPossiblyRenameS(Rel, Renamed) :-
   Rel = rel(_, Name, _),
-  Renamed = rename(sample(Rel, 2000, 0.00001), Name).
+  sampleSizeSelection(SelectionSize),
+  Renamed = rename(sample(Rel, SelectionSize, 0.00001), Name).
 
 cardQuery(Pred, Rel, Query) :-
   sampleS(Rel, RelS),
