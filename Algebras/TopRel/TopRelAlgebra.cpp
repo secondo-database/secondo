@@ -82,6 +82,7 @@ static const STRING UNSPECIFIED = "unspecified";
 extern NestedList *nl;
 extern QueryProcessor* qp;
 
+
 /*
 2 Realization of the classes
 
@@ -658,7 +659,7 @@ Returns a proper copy of this.
 
 */
 Cluster* Cluster::Clone(){
-   Cluster* res = new Cluster(0);
+   Cluster* res = new Cluster(false);
    res->Equalize(this);
    return res;
 }
@@ -680,12 +681,15 @@ bool Cluster::Restrict(string condition){
    if(!parseString(cond_c,&T)){
       char* tmp = GetLastMessage();
       if(tmp){
-         cmsg.warning() << "Error in parsing condition during performing of Restrict" << endl << tmp << endl;
+         cmsg.warning() << "Error in parsing condition"
+                        <<" during performing of Restrict" << endl 
+                        << tmp << endl;
          cmsg.send();
          free(tmp);
          tmp=0;
       } else{
-         cmsg.warning() << "Unknown error while parsing argument of restrict" << endl;
+         cmsg.warning() << "Unknown error while parsing argument of"
+                        << " restrict" << endl;
          cmsg.send();
       }
       return false; // don't change this cluster
@@ -698,6 +702,23 @@ bool Cluster::Restrict(string condition){
    destroyTree(T);
    return true;
 }
+
+/*
+2.2.13 Restrict
+
+This version of ~Restrict~ removes all matrices having a different as the given
+value at the specified position. The pos must be from the set [{]II,...,EE[}].
+Otherwise the result will not be as expected. 
+
+
+*/
+ void Cluster::Restrict(const int pos, const bool value){
+    for(int i=0;i<512;i++){
+       if( ((i&pos) !=0) != value){
+          SetValueAt(i,false);
+       }  
+    }
+ }
 
 
 /*
@@ -715,12 +736,14 @@ bool Cluster::Relax(string condition){
    if(!parseString(cond_c,&T)){
       char* tmp = GetLastMessage();
       if(tmp){
-         cmsg.warning() << "Error in parsing condition during performing of Relax" << endl << tmp << endl;
+         cmsg.warning() << "Error in parsing condition during performing"
+                        << " of Relax" << endl << tmp << endl;
          cmsg.send();
          free(tmp);
          tmp=0;
       } else{
-         cmsg.warning() << "Unknown error while parsing argument of Relax" << endl;
+         cmsg.warning() << "Unknown error while parsing argument of Relax"
+                        << endl;
          cmsg.send();
       }
       return false; // don't change this cluster
@@ -898,7 +921,7 @@ bool PredicateGroup::ReadFrom(const ListExpr instance){
    }
    unSpecified.MakeEmpty();
    unSpecified.Invert();
-   Cluster CurrentCluster(0);
+   Cluster CurrentCluster(false);
    Cluster AllClusters[length];
    int pos =0;
    while(!nl->IsEmpty(instance)){
@@ -1048,7 +1071,7 @@ InInt9M( const ListExpr typeInfo, const ListExpr instance,
 Word
 InCluster(const ListExpr typeInfo, const ListExpr instance,
           const int errorPos, ListExpr& errorInfo, bool& correct){
-   Cluster* res = new Cluster(0);
+   Cluster* res = new Cluster(false);
    nl->WriteListExpr(instance);
    if(res->ReadFrom(instance)){
       correct = true;
@@ -1083,7 +1106,7 @@ CreateInt9M( const ListExpr typeInfo )
 
 Word
 CreateCluster( const ListExpr typeInfo){
-   return (SetWord(new Cluster(0)));
+   return (SetWord(new Cluster(false)));
 }
 
 Word
@@ -1663,7 +1686,8 @@ ListExpr RestrictRelaxTM(ListExpr args){
       return nl->SymbolAtom("typeerror");
   }
   if(!nl->IsEqual(nl->First(args),"cluster")){
-      ErrorReporter::ReportError("Restrict and Relax require cluster as first argument \n");
+      ErrorReporter::ReportError("Restrict and Relax require"
+                                 " cluster as first argument \n");
       string type;
       nl->WriteToString(type,nl->First(args));
       ErrorReporter::ReportError("but get "+type+ "\n");
@@ -1673,7 +1697,8 @@ ListExpr RestrictRelaxTM(ListExpr args){
      !nl->IsEqual(nl->Second(args),"text")){
       string type;
       nl->WriteToString(type,nl->Second(args));
-      ErrorReporter::ReportError("Restrict and Relax require string or text as second argument but receive "+type+" \n");
+      ErrorReporter::ReportError("Restrict and Relax require string or text"
+                             " as second argument but receive "+type+"\n");
       return nl->SymbolAtom("typeerror");
   }
   return nl->SymbolAtom("cluster");

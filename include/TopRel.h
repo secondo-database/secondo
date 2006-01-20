@@ -486,12 +486,17 @@ making this constructor different to the standard constructor and is
 ignored.
 
 */
-      Cluster(const int dummy){
+      Cluster(const bool all){
           //for(int i=0;i<64;i++)
           //    BitVector[i]=0;
-          memcpy(BitVector,emptyBlock,64);
+          if(all){
+              memcpy(BitVector,fullBlock,64);
+              strcpy(name,"empty");
+          } else {
+             memcpy(BitVector,emptyBlock,64);
+              strcpy(name,"complete");
+          }
           defined = true;
-          strcpy(name,"empty");
       }
 
 /*
@@ -828,6 +833,18 @@ of the formula describing the condition.
 */
 
    bool Relax(string condition);
+
+/*
+2.2.23 Restrict
+
+This version of restrict, removes all matrixes from the cluster where at the
+position given by the first parameter is a different value to the second parameter.
+This result of this function is the same as an intersection with a cluster containing all 
+matrices with the pecified value at the given position - but this version is faster.
+
+*/
+   void Restrict(const int pos, const bool value);
+
 
 
 /*
