@@ -1028,6 +1028,15 @@ plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
     AAtom, ', ', BAtom, '] '], '', Result),
   !.
 
+plan_to_atom(spatialjoin(X, Y, A, B), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(A, AAtom),
+  plan_to_atom(B, BAtom),
+  concat_atom([XAtom, YAtom, 'spatialjoin[',
+    AAtom, ', ', BAtom, '] '], '', Result),
+  !.
+
 plan_to_atom(groupby(Stream, GroupAttrs, Fields), Result) :-
   plan_to_atom(Stream, SAtom),
   plan_to_atom(GroupAttrs, GAtom),
@@ -1445,6 +1454,24 @@ join(Arg1, Arg2, pr(Pred, _, _)) => symmjoin(Arg1S, Arg2S, Pred) :-
   Arg2 => Arg2S.
 
 /*
+A join with predicate X touches Y
+
+*/
+
+join(Arg1, Arg2, pr(X touches Y, R1, R2)) => JoinPlan :-
+  X = attr(_, _, _),
+  Y = attr(_, _, _), !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  join00(Arg1S, Arg2S, pr(X touches Y, R1, R2)) => JoinPlan.
+
+
+join00(Arg1S, Arg2S, pr(X touches Y, _, _)) => filter(spatialjoin(Arg1S, 
+  Arg2S, attrname(Attr1), attrname(Attr2)), Attr1 intersects Attr2) :-
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+/*
 
 Index joins:
 
@@ -1560,6 +1587,7 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
         attrname(Attr1), attrname(Attr2), 997)   :-
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
+
 
 /*
 
@@ -1882,6 +1910,13 @@ cost(symmjoin(X, Y, _), Sel, S, C) :-
   C is CostX + CostY +                  % cost to produce the arguments
     A * (SizeX * SizeY) +               % cost to handle buffers and collision
     B * S.                              % cost to produce result tuples
+
+cost(spatialjoin(X, Y, _, _), Sel, S, C) :-
+  cost(X, 1, SizeX, CostX),
+  cost(Y, 1, SizeY, CostY),
+  %S is SizeX * SizeY * Sel,
+  S is 1,  
+  C is CostX + CostY.     
 
 cost(extend(X, _), Sel, S, C) :-
   cost(X, Sel, S, C1),
@@ -2664,7 +2699,6 @@ Translate and store a single relation definition.
 
 lookupRel(Rel as Var, rel(Rel2, Var, Case)) :-
   relation(Rel, _), !,
-  write('hier1'),
   spelled(Rel, Rel2, Case),
   not(defined(Var)),
   assert(variable(Var, rel(Rel2, Var, Case))).
@@ -3788,6 +3822,11 @@ bestPlanConsume :-
   atom_concat(S, ' consume', Q),
   nl, write(Q), nl,
   query(Q).
+
+example99 :- pog(
+ [rel(regs1, r1, l), rel(regs2, r2, l)],
+ [pr( attr(r1:gebiet, 1, u) touches attr(r2:gebiet, 2, u), rel(regs1, r1, l),
+      rel(regs2, r2, l) )], _, _).
 
   
 
