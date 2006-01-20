@@ -1471,6 +1471,12 @@ join00(Arg1S, Arg2S, pr(X touches Y, _, _)) => filter(spatialjoin(Arg1S,
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
+join00(Arg1S, Arg2S, pr(Y touches X, _, _)) => filter(spatialjoin(Arg2S, 
+  Arg1S, attrname(Attr2), attrname(Attr1)), Attr1 intersects Attr2) :-
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+
 /*
 
 Index joins:
