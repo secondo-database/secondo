@@ -54,11 +54,8 @@ getprompt :-
 % Uncomment the next line to activate the entropy approach
 % ['./Entropy/optimizer'],
 
-% Comment next line to activate the entropy approach!
-  [optimizer], 
-
 % Load files for standard optimizer
-
+  [optimizer], 
   [statistics],
   [database],
   [operators],
@@ -66,4 +63,4 @@ getprompt :-
   [searchtree],
   nl, write('Note: Version 5.4.7 shows in the MSYS console no prompt!'), nl,
   write('A workaround is to type in the predicate "getprompt."'), nl, nl.
-
+  
