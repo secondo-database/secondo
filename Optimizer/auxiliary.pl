@@ -544,6 +544,26 @@ secondo(X) :-
   storeupdateRel(1),  
   secondo(X, _),
   !.
+
+/*secondo(X) :-
+  concat_atom([Command, Name],' ',X),
+  Command = 'delete',
+  isDatabaseOpen,
+  getSecondoList(ObjList),
+  checkIsInList(Name, ObjList, rel),
+  storeupdateRel(0),
+  not(storedRel(Name, _)),
+  downcase_atom(Name, DCName),
+  getSpelledRel(DCName, SpelledRel), 
+  secondo(X, Y),
+  deleteSampleAndSmallFiles(SpelledRel, ObjList),
+  retractStoredInformation(SpelledRel), 
+  retract(storedSecondoList(_)),
+  getSecondoList(_),
+  write('Command succeeded, result:'),
+  nl, nl,
+  show(Y),
+  !.*/
   	
 secondo(X) :-
   concat_atom([Command, Name],' ',X),
@@ -552,7 +572,7 @@ secondo(X) :-
   getSecondoList(ObjList),
   checkIsInList(X, ObjList, rel),
   storeupdateRel(0),
-  storedRel(Name, _),  
+  storedRel(Name, _), 
   secondo(X, Y),
   downcase_atom(Name, DCName),
   updateRel(DCName),  
