@@ -13,6 +13,7 @@ if [ "$1" = "--oldstyle" ]; then
   shift
 else
   END="))";
+fi
 
 
 function showUsage() {
