@@ -174,16 +174,17 @@ well.
 				updateCommand.append("(" + attrNames[changedAttributes[i]].trim());
 				updateCommand.append("( fun ( tuple" + (i+1) + " TUPLE )");
 				nextType = attrTypes[changedAttributes[i]].trim();
-				if (nextType.equals("string") || nextType.equals("int") || nextType.equals("real") || nextType.equals("bool") ||
-            nextType.equals("date") ){
-					if (nextType.equals("string") || nextType.equals("date")){
+				if (nextType.equals("string") || nextType.equals("int") || nextType.equals("real") ||
+            nextType.equals("bool") ){
+					if (nextType.equals("string") ){
 						newValue = "\"" + nextUpdateTuple[changedAttributes[i]] + "\"";
 					}
 					else{
 						newValue = nextUpdateTuple[changedAttributes[i]];
 					}
-				}
-				else{
+				} else if(nextType.equals("date")){
+           newValue = "(" + nextType +" \""+nextUpdateTuple[changedAttributes[i]]+"\")";
+        } else{
 					if (nextUpdateTuple[changedAttributes[i]].trim().startsWith("(") && nextUpdateTuple[changedAttributes[i]].trim().endsWith(")")){
 						newValue = "(" + nextType +  nextUpdateTuple[changedAttributes[i]] + ")";
 					}
