@@ -161,7 +161,11 @@ well.
 			}
 			nextTid = viewer.getTupleId(updateTuples[j]);
 			updateCommand.append("(updatebyid " );
-			updateCommand.append("(feed " + relName + " ) " + relName + " (tid " + nextTid + " ) ");
+      
+//			updateCommand.append("(feed " + relName + " ) " + relName + " (tid " + nextTid + " ) ");
+    // new version without the stream in update
+			updateCommand.append(relName + " (tid " + nextTid + " ) ");
+
 			nextUpdateTuple = viewer.getUpdateTuple(updateTuples[j]);
 			nextOriginalTuple = viewer.getOriginalTuple(updateTuples[j]);
 			changedAttributes = viewer.getChangedAttributes(updateTuples[j]);
@@ -170,8 +174,9 @@ well.
 				updateCommand.append("(" + attrNames[changedAttributes[i]].trim());
 				updateCommand.append("( fun ( tuple" + (i+1) + " TUPLE )");
 				nextType = attrTypes[changedAttributes[i]].trim();
-				if (nextType.equals("string") || nextType.equals("int") || nextType.equals("real") || nextType.equals("bool") ){
-					if (nextType.equals("string")){
+				if (nextType.equals("string") || nextType.equals("int") || nextType.equals("real") || nextType.equals("bool") ||
+            nextType.equals("date") ){
+					if (nextType.equals("string") || nextType.equals("date")){
 						newValue = "\"" + nextUpdateTuple[changedAttributes[i]] + "\"";
 					}
 					else{
