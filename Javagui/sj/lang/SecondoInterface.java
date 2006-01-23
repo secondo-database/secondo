@@ -107,6 +107,7 @@ not accessible by the user code.
   // Connection's output writer (to secondoServerSocket).
   private BufferedWriter outSocketStream;
 
+
   public SecondoInterface()
   {
     initialized = false;
@@ -120,6 +121,7 @@ not accessible by the user code.
       terminate();
     }
   }
+
 
   /* switch for using binary or textual list format */
   public void useBinaryLists(boolean ubl){
@@ -295,6 +297,14 @@ Error Codes: see definition module.
 If value 0 is returned, the command was executed without error.
 
 */
+
+   if(gui.Environment.SHOW_COMMAND){
+     if(commandAsText){
+        System.out.println(commandText);
+     } else {
+        commandLE.writeTo(System.out,false);
+     }
+   } 
 
     String cmdText = "";
     StringBuffer cmdTextBuffer = new StringBuffer();

@@ -32,6 +32,7 @@ public static boolean MEASURE_TIME = true;
 public static boolean MEASURE_MEMORY = false;
 public static boolean FORMATTED_TEXT = false;
 public static boolean OLD_OBJECT_STYLE = false;
+public static boolean SHOW_COMMAND = false;
 
 
 public static long usedMemory(){

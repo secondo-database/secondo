@@ -109,3 +109,7 @@ FORMATTED_TEXT true
 #the model
 OLD_OBJECT_STYLE  false
 
+
+# if this varibale is set to true, each command is print out before
+# is is send to the Secondo server
+SHOW_COMMAND false

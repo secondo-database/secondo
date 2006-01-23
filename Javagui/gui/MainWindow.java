@@ -440,6 +440,13 @@ public MainWindow(String Title){
    }
    Environment.DEBUG_MODE = DEBUG_MODE;
 
+   String ShowCommand = Config.getProperty("SHOW_COMMAND");
+   if(ShowCommand!=null && ShowCommand.toLowerCase().equals("true")){
+       Environment.SHOW_COMMAND = true;
+   }
+   System.out.println(OkFormat+"ShowCommand " + Environment.SHOW_COMMAND+EndFormat); 
+
+
    String Measure_Time = Config.getProperty("MEASURE_TIME");
    Environment.MEASURE_TIME=Measure_Time!=null &&
                             Measure_Time.toLowerCase().trim().equals("true");
