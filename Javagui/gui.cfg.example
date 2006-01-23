@@ -110,6 +110,6 @@ FORMATTED_TEXT true
 OLD_OBJECT_STYLE  false
 
 
-# if this varibale is set to true, each command is print out before
-# is is send to the Secondo server
+# if this variable is set to true, each command is printed out before
+# is is sent to the Secondo server
 SHOW_COMMAND false
