@@ -475,6 +475,7 @@ are initialized. The IDs of the tuples of the relation are stored in a seperate 
 				}
 				TupleTypeValue = TupleTypeValue.rest();
 			}
+
 			if (result) {
 				// analyse the values
 				ListExpr TupleValue;
@@ -491,7 +492,7 @@ are initialized. The IDs of the tuples of the relation are stored in a seperate 
 						Elem = TupleValue.first();
 						if (Elem.isAtom()
 								&& Elem.atomType() == ListExpr.STRING_ATOM) {
-							row[pos] = Elem.textValue();
+							row[pos] = Elem.stringValue();
 						} else if ((Elem.isAtom() && Elem.atomType() == ListExpr.TEXT_ATOM)
 								|| (!Elem.isAtom() && Elem.listLength() == 1
 										&& Elem.first().isAtom() && Elem
@@ -527,6 +528,7 @@ are initialized. The IDs of the tuples of the relation are stored in a seperate 
 				changedCells = new boolean[V.size()][head.length];
 				changedRows = new Vector();
 				updatesOrdered = new Vector();
+
 				for (int i = 0; i < V.size(); i++) {
 					relData[i] = (String[]) V.get(i);
 					for (int j = 0; j < head.length; j++) {
