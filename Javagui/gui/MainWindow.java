@@ -638,6 +638,7 @@ public MainWindow(String Title){
 
   OList.setMaxStringLength(maxStringLength);
   ListExpr.setMaxStringLength(maxStringLength);
+  Environment.MAX_STRING_LENGTH = maxStringLength;
 
   if(StartScript!=null){
       StartScript = StartScript.trim();
