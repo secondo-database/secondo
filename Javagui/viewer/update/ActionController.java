@@ -135,11 +135,17 @@ state.
 				}
 			}
 			if(state == UPDATE){
-				if (! viewer.resetLastUpdate()){
+         viewer.resetUpdates();
+         state = LOADED;
+         viewer.setSelectionMode(LOADED);
+      /* undo functionality */
+			/*	if (! viewer.resetLastUpdate()){
 					state = LOADED;
 					viewer.showOriginalRelation();
 					viewer.setSelectionMode(LOADED);
 				}
+       */
+       
 			}
 			if(state == DELETE){
 				if (! viewer.resetDeleteSelections()){
@@ -221,13 +227,21 @@ is aborted.
 	private boolean executeInsert(){
 		viewer.takeOverLastEditing(false);
 		String errorMessage;
+    String[] insertCommands=null;
+    try{
+    		insertCommands = commandGenerator.generateInsert(relName,btreeNames, btreeAttrNames,
+				rtreeNames, rtreeAttrNames);
+    } catch(InvalidFormatException e){
+        String message = e.getMessage()+"\n at position ("+e.row+", "+e.column+")";
+        viewer.showErrorDialog(message);
+        viewer.insertGoTo(e.row-1,e.column-1);
+        return false;
+    }
 		if(! beginTransaction()){
 			errorMessage = commandExecuter.getErrorMessage().toString();
 			viewer.showErrorDialog(errorMessage);
 			return false;
 		}
-		String[] insertCommands = commandGenerator.generateInsert(relName,btreeNames, btreeAttrNames,
-				rtreeNames, rtreeAttrNames);
 		for (int i = 0; i < insertCommands.length; i++){
 			if(! commandExecuter.executeCommand(insertCommands[i], SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX)){
 				errorMessage = commandExecuter.getErrorMessage().toString();
@@ -257,6 +271,8 @@ is aborted.
 */
 	private boolean executeDelete(){
 		String errorMessage;
+		String[] deleteCommands = commandGenerator.generateDelete(relName,btreeNames, btreeAttrNames,
+				rtreeNames, rtreeAttrNames);;
 		if(! beginTransaction()){
 			errorMessage = commandExecuter.getErrorMessage().toString();
 			viewer.showErrorDialog(errorMessage);
@@ -264,8 +280,6 @@ is aborted.
 		}
 		int failures = 0;
 		ListExpr result;
-		String[] deleteCommands = commandGenerator.generateDelete(relName,btreeNames, btreeAttrNames,
-				rtreeNames, rtreeAttrNames);;
 		for (int i = 0; i < deleteCommands.length; i++){
 			if(! commandExecuter.executeCommand(deleteCommands[i], SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX)){
 				errorMessage = commandExecuter.getErrorMessage().toString();
@@ -305,6 +319,16 @@ is aborted.
 	private boolean executeUpdate(){
 		viewer.takeOverLastEditing(true); 
 		String errorMessage;
+    String[] updateCommands;
+		try{
+        updateCommands = commandGenerator.generateUpdate(relName,btreeNames, btreeAttrNames,
+				rtreeNames, rtreeAttrNames);;
+    } catch(InvalidFormatException e){
+        String message = e.getMessage()+"\n at position ("+e.row+", "+e.column+")";
+        viewer.showErrorDialog(message);
+        viewer.relGoTo(e.row-1,e.column-1);
+        return false;
+    }
 		if(! beginTransaction()){
 			errorMessage = commandExecuter.getErrorMessage().toString();
 			viewer.showErrorDialog(errorMessage);
@@ -312,8 +336,6 @@ is aborted.
 		}
 		int failures = 0;
 		ListExpr result;
-		String[] updateCommands = commandGenerator.generateUpdate(relName,btreeNames, btreeAttrNames,
-				rtreeNames, rtreeAttrNames);;
 		for (int i = 0; i < updateCommands.length; i++){
 			if(! commandExecuter.executeCommand(updateCommands[i], SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX)){
 				errorMessage = commandExecuter.getErrorMessage().toString();
@@ -396,7 +418,6 @@ the index is built
 	private void retrieveIndices(){
 		commandExecuter.executeCommand("(list objects)", SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX);
 		ListExpr inquiry = commandExecuter.getResultList();
-		System.out.println(inquiry.writeListExprToString());
 		ListExpr objectList = inquiry.second().second();
 		objectList.first();
 		ListExpr rest = objectList.rest();

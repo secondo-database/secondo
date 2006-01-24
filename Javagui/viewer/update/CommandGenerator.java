@@ -28,6 +28,7 @@ package viewer.update;
 
 import viewer.*;
 import java.util.*;
+import sj.lang.ListExpr;
 
 /*
 This class generates commands for updating relations in 'Nested-List-Syntax'. The source
@@ -48,7 +49,7 @@ well.
 
 */
 	public String[] generateInsert(String relName, Vector btreeNames, Vector btreeAttrNames,
-									Vector rtreeNames, Vector rtreeAttrNames){
+									Vector rtreeNames, Vector rtreeAttrNames) throws InvalidFormatException{
 		String nextValue;
 		String nextType;
 		String[][] insertTuples = viewer.getInsertTuples();
@@ -65,23 +66,13 @@ well.
 			insertCommand.append("(inserttuple " + relName + " (");
 			for (int i = 0; i < attrTypes.length; i++){
 				nextType = attrTypes[i].trim();
-				if (nextType.equals("string") || nextType.equals("int") || nextType.equals("real") || nextType.equals("bool") ){
-					if (nextType.equals("string")){
-						nextValue = "\"" + insertTuples[j][i] + "\"";
-					}
-					else{
-						nextValue = insertTuples[j][i];
-					}
-				}
-				else{
-					if (insertTuples[j][i].trim().startsWith("(") && insertTuples[j][i].trim().endsWith(")")){
-						nextValue = "(" + nextType +  insertTuples[j][i] + ")";
-					}
-					else {
-						nextValue = "(" + nextType + "(" +  insertTuples[j][i] + "))";
-					}
-				}
-				insertCommand.append(nextValue + " ");		
+        LEFormatter LEF = AttributeFormatter.getFormatter(nextType);
+        ListExpr LE = LEF.StringToListExpr(insertTuples[j][i]);
+        if(LE==null)
+          throw new InvalidFormatException("Invalid Format for "+nextType,j+1,i+1);
+          
+        nextValue = LE.writeListExprToString();				
+				insertCommand.append("( "+nextType+" "+nextValue + ") ");		
 			}
 			insertCommand.append("))");
 			for (int k = 0; k < rtreeNames.size(); k ++){
@@ -138,7 +129,7 @@ well.
 
 */
 	public String[] generateUpdate(String relName, Vector btreeNames, Vector btreeAttrNames,
-									Vector rtreeNames, Vector rtreeAttrNames){
+									Vector rtreeNames, Vector rtreeAttrNames) throws InvalidFormatException{
 		String nextValue;
 		String newValue;
 		String nextType;
@@ -174,25 +165,15 @@ well.
 				updateCommand.append("(" + attrNames[changedAttributes[i]].trim());
 				updateCommand.append("( fun ( tuple" + (i+1) + " TUPLE )");
 				nextType = attrTypes[changedAttributes[i]].trim();
-				if (nextType.equals("string") || nextType.equals("int") || nextType.equals("real") ||
-            nextType.equals("bool") ){
-					if (nextType.equals("string") ){
-						newValue = "\"" + nextUpdateTuple[changedAttributes[i]] + "\"";
-					}
-					else{
-						newValue = nextUpdateTuple[changedAttributes[i]];
-					}
-				} else if(nextType.equals("date")){
-           newValue = "(" + nextType +" \""+nextUpdateTuple[changedAttributes[i]]+"\")";
-        } else{
-					if (nextUpdateTuple[changedAttributes[i]].trim().startsWith("(") && nextUpdateTuple[changedAttributes[i]].trim().endsWith(")")){
-						newValue = "(" + nextType +  nextUpdateTuple[changedAttributes[i]] + ")";
-					}
-					else {
-						newValue = "(" + nextType + "(" +  nextUpdateTuple[changedAttributes[i]] + "))";
-					}
-				}
-				updateCommand.append(newValue + "))");
+
+        LEFormatter LEF = AttributeFormatter.getFormatter(nextType);
+        ListExpr LE = LEF.StringToListExpr(nextUpdateTuple[changedAttributes[i]]);
+        if(LE==null)
+          throw new InvalidFormatException("Invalid Format for "+nextType,updateTuples[j]+1,changedAttributes[i]+1);
+          
+        newValue = LE.writeListExprToString();				
+				updateCommand.append("( "+nextType+" "+newValue + ") ");		
+			  updateCommand.append("))");
 			}
 			updateCommand.append("))");
 			for (int k = 0; k < rtreeNames.size(); k ++){

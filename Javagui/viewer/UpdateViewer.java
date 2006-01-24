@@ -461,6 +461,7 @@ are initialized. The IDs of the tuples of the relation are stored in a seperate 
 			ListExpr TupleTypeValue = tupletype.second();
 			// the table head
 			// Don't count the last attribute which is the tupleidentifier of each tuple
+
 			int tupleLength = TupleTypeValue.listLength() - 1;
 			head = new String[tupleLength];
 			attrTypes = new String[tupleLength];
@@ -476,33 +477,21 @@ are initialized. The IDs of the tuples of the relation are stored in a seperate 
 				TupleTypeValue = TupleTypeValue.rest();
 			}
 
+
 			if (result) {
 				// analyse the values
 				ListExpr TupleValue;
 				Vector V = new Vector();
 				tupleIds = new Vector();
 				String[] row;
-				int pos;
 				ListExpr Elem;
 				while (!value.isEmpty()) {
 					TupleValue = value.first();
 					row = new String[head.length];
-					pos = 0;
-					while (pos < head.length ) {
+          for(int pos=0;pos<head.length; pos++){
 						Elem = TupleValue.first();
-						if (Elem.isAtom()
-								&& Elem.atomType() == ListExpr.STRING_ATOM) {
-							row[pos] = Elem.stringValue();
-						} else if ((Elem.isAtom() && Elem.atomType() == ListExpr.TEXT_ATOM)
-								|| (!Elem.isAtom() && Elem.listLength() == 1
-										&& Elem.first().isAtom() && Elem
-										.first().atomType() == ListExpr.TEXT_ATOM)) {
-							if (!Elem.isAtom())
-								Elem = Elem.first();
-							row[pos] = Elem.textValue();
-						} else
-							row[pos] = TupleValue.first().writeListExprToString();
-						pos++;
+            LEFormatter LEF = AttributeFormatter.getFormatter(attrTypes[pos]);
+            row[pos] = LEF.ListExprToString(Elem);
 						TupleValue = TupleValue.rest();
 					}
 					V.add(row);
@@ -802,8 +791,57 @@ Resets the last editited cell in updatemode to its original value.
 		else{
 			return false;
 		}
-			
 	}
+
+/* Resets all updates */
+public boolean resetUpdates(){
+   if(relTable==null)
+      return false;
+   // reset the curretly editing cell if any
+   if(relTable.isEditing()){
+      int x = relTable.getEditingRow();
+      int y = relTable.getEditingColumn();
+      relTable.editingStopped(new ChangeEvent(this));
+      relTable.setValueAt(originalData[x][y],x,y);
+   } 
+   for(int i=0;i<updatesOrdered.size();i++){
+      int[] changed = (int[]) updatesOrdered.get(i);
+      changedCells[changed[0]][changed[1]] = false;
+      relData[changed[0]][changed[1]] = originalData[changed[0]][changed[1]];
+   }
+   updatesOrdered.clear();
+   changedRows.clear();
+   relTable.revalidate();
+   relTable.repaint();
+   return true;
+
+}
+  
+
+/** Start edititing the cell at the given position. 
+  *  All errors (wrong arguments, cell is not editable and so on) are
+  *  ignored. 
+  **/
+
+  public void relGoTo(int x, int y){
+    try{
+      relTable.editCellAt(x,y,null); 
+    } catch(Exception e){
+      if(gui.Environment.DEBUG_MODE)
+        e.printStackTrace();
+    }
+  }
+
+  /** Starts the edititing of the specified cell within the insert table **/
+  public void insertGoTo(int x, int y){
+     try{
+       insertTable.editCellAt(x,y,null);
+     }catch(Exception e){
+       if(gui.Environment.DEBUG_MODE)
+          e.printStackTrace();
+     }
+  }
+
 
 /*
 Returns the names of the attributes of the tuples of the currently loaded relation.	 
