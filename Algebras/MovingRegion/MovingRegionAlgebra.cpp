@@ -7180,9 +7180,8 @@ static ListExpr MRegionProperty() {
 
     ListExpr listrep = nl->TextAtom();
     nl->AppendText(listrep,
-                   "(<interval> <uregion>*), where <interval> is "
-                   "(<real> <real> <bool> <bool>) and where "
-                   "<uregion> is uregion list representation.");
+                   "(u1 ... un) with ui uregion list representations "
+                   "and n >= 1.");
     ListExpr example = nl->TextAtom();
     nl->AppendText(example,
                    "(((0.0 10.0 TRUE TRUE)"
@@ -7241,12 +7240,12 @@ static ListExpr OutMRegion(ListExpr typeInfo, Word value) {
 
     ListExpr l = nl->TheEmptyList();
     ListExpr lastElem;
-    ListExpr unitList;
 
     for(int i = 0; i < mr->GetNoComponents(); i++) {
         URegion ur;
         mr->Get(i, ur);
-        unitList = OutURegion(nl->TheEmptyList(), SetWord(&ur));
+        ListExpr unitList = OutURegion(nl->TheEmptyList(), SetWord(&ur));
+
         if (l == nl->TheEmptyList()) {
             l = nl->Cons(unitList, nl->TheEmptyList());
             lastElem = l;
