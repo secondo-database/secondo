@@ -48,6 +48,13 @@ Open:
     double precision only and not with the datatypes own calculation
     operations.
 
+  * Bug: ~URegion::AddSegment()~ checks for moving segment intersections
+    outside current region unit, which is incorrect.
+
+  * Bug: List representation checks incorrect for
+    ~(update v := (movingregion)(( 0.0 1.0 true true )( 0.0 0.0 1.0 1.0)));~.
+    Aleksej Struk found this issue.
+
   * Not confirmed: J[oe]rg Schmidt thinks there is an issue in the
     generation of the refinement partition if two intervals start or
     end at the same instant.
@@ -81,7 +88,7 @@ Closed:
     Resolved: Implemented operator ~mraprec~ which allows to set precision
     without re-compiling the algreba.
 
-  * Not confirmed: MRegion objects cannot be imported into SECONDO according
+  * Bug: MRegion objects cannot be imported into SECONDO according
     to Thomas Behr.
 
     Resolved: Implemented operator ~mraprec~ which allows to set precision
