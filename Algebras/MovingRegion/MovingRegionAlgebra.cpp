@@ -52,7 +52,7 @@ Open:
     outside current region unit, which is incorrect.
 
   * Bug: List representation checks incorrect for
-    ~(update v := (movingregion)(( 0.0 1.0 true true )( 0.0 0.0 1.0 1.0)));~.
+    ~(update mv := ((movingregion)((0.0 0.0 true true)(0.0 0.0 1.0 1.0))));~.
     Aleksej Struk found this issue.
 
   * Not confirmed: J[oe]rg Schmidt thinks there is an issue in the
@@ -124,7 +124,7 @@ very verbose and has significant negative input on the algebra's performance.
 Only enable debug output if you know what you are doing!
 
 */
-const bool MRA_DEBUG = false;
+const bool MRA_DEBUG = true;
 
 /*
 Two floating point numbers are considered equal if their difference is
