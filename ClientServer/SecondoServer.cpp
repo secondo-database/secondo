@@ -198,12 +198,14 @@ SecondoServer::CallNumericType()
   if ( cmdEnd == "</NumericType>" )
   {
     ListExpr typeList = 0;
-    nl->ReadFromString( typeStr, typeList );
-    ListExpr list = si->NumericTypeExpr( typeList );
+    nl->ReadFromString( "("+typeStr+")", typeList );
+    ListExpr list = si->NumericTypeExpr( nl->First(typeList) );
     nl->WriteToString( typeStr, list );
     iosock << "<NumericTypeResponse>" << endl
            << typeStr << endl
            << "</NumericTypeResponse>" << endl;
+    nl->Destroy(list);
+    nl->Destroy(typeList);
   }
   else
   {
@@ -257,13 +259,13 @@ SecondoServer::CallLookUpType()
   if ( cmdEnd == "</LookUpType>" )
   {
     ListExpr typeList;
-    nl->ReadFromString( typeStr, typeList );
-
-    si->LookUpTypeExpr( typeList, name, algebraId, typeId );
+    nl->ReadFromString( "(" + typeStr + ")", typeList );
+    si->LookUpTypeExpr( nl->First(typeList), name, algebraId, typeId );
 
     iosock << "<LookUpTypeResponse>" << endl
            << "((" << name << ") " << algebraId << " " << typeId << ")" << endl
            << "</LookUpTypeResponse>" << endl;
+    nl->Destroy(typeList);
   }
   else
   {
