@@ -8,6 +8,8 @@
 
 [1] The ~MovingRegionAlgebra~
 
+December 2005, initial version created by Holger M[ue]nx.
+
 December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
@@ -35,8 +37,13 @@ Fernuniversit[ae]t Hagen.
 
 Open:
 
-  * Bug: Objects created in the server version of SECONDO are not
-    compatible with the stand-alone version of SECONDO (and vice versa).
+  * Bug: List representation checks incorrect for
+    ~(update mv := ((movingregion)((0.0 0.0 true true)(0.0 0.0 1.0 1.0))));~.
+    Aleksej Struk found this issue.
+
+    Update: Debug output at the beginning on ~InMRegion()~ indicated that
+    this problem actually occurs before ~InMRegion()~ is called. It is very
+    likely that this problem is not caused by this algebra.
 
   * Bug: ~initial~ and ~final~ resulting in failed ~assert()~ when unit's
     interval is open in the respective instant.
@@ -48,13 +55,6 @@ Open:
     double precision only and not with the datatypes own calculation
     operations.
 
-  * Bug: ~URegion::AddSegment()~ checks for moving segment intersections
-    outside current region unit, which is incorrect.
-
-  * Bug: List representation checks incorrect for
-    ~(update mv := ((movingregion)((0.0 0.0 true true)(0.0 0.0 1.0 1.0))));~.
-    Aleksej Struk found this issue.
-
   * Not confirmed: J[oe]rg Schmidt thinks there is an issue in the
     generation of the refinement partition if two intervals start or
     end at the same instant.
@@ -65,7 +65,20 @@ Open:
 
 Closed:
 
-  * Bug: Awkward memory leak at the end of URegion::TemporalFunction().
+  * Bug: Objects created in the server version of SECONDO are not
+    compatible with the stand-alone version of SECONDO (and vice versa).
+
+    Resolved: Replaced weird implementation of ~OpenMRegion()~ and
+    ~SaveMRegion()~ with code based on functions ~Open()~ and ~Save()~ 
+    from ~TupleElement~. Thomas Behr contributed this valuable hint!
+
+  * Bug: ~URegion::AddSegment()~ checks for moving segment intersections
+    outside current region unit, which is incorrect.
+
+    Resolved: Offset ~segmentsStartPos~ in ~URegion::AddSegment()~ was
+    missing.
+
+  * Bug: Awkward memory leak at the end of ~URegion::TemporalFunction()~.
 
     Resolved: Freeing memory now. Resulting code may not be compatible
     with other compilers than gcc.
@@ -88,7 +101,7 @@ Closed:
     Resolved: Implemented operator ~mraprec~ which allows to set precision
     without re-compiling the algreba.
 
-  * Bug: MRegion objects cannot be imported into SECONDO according
+  * Bug: ~MRegion~ objects cannot be imported into SECONDO according
     to Thomas Behr.
 
     Resolved: Implemented operator ~mraprec~ which allows to set precision
@@ -124,7 +137,7 @@ very verbose and has significant negative input on the algebra's performance.
 Only enable debug output if you know what you are doing!
 
 */
-const bool MRA_DEBUG = true;
+const bool MRA_DEBUG = false;
 
 /*
 Two floating point numbers are considered equal if their difference is
@@ -5501,7 +5514,7 @@ For each of the already existing segments:
 
             MSegmentData existingDms;
 
-            segments->Get(i, existingDms);
+            segments->Get(segmentsStartPos+i, existingDms);
 
 /*
 Check whether the current segment degenerates with this segment in the
@@ -5547,7 +5560,7 @@ using the ~degeneratedInitialNext~ attribute.
                 dms.degeneratedInitialNext = 0;
                 existingDms.degeneratedInitialNext = segmentsNum+1;
 
-                segments->Put(i, existingDms);
+                segments->Put(segmentsStartPos+i, existingDms);
             }
 
 /*
@@ -5589,7 +5602,7 @@ Same for the final instant.
                 dms.degeneratedFinalNext = 0;
                 existingDms.degeneratedFinalNext = segmentsNum+1;
 
-                segments->Put(i, existingDms);
+                segments->Put(segmentsStartPos+i, existingDms);
             }
 
 /*
@@ -7323,119 +7336,6 @@ static bool OpenMRegion(SmiRecord& rec,
     w = SetWord(mr);
 
     return true;
-
-#ifdef SCHMUH
-/*
-Just serialise data structure and write them out using SMI.
-
-*/
-    MRegion* mr = new MRegion(0);
-    w.addr = mr;
-
-    if (MRA_DEBUG) cerr << "OpenMRegion() #1a" << endl;
-    DBArray<URegion>* ura = (DBArray<URegion>*) (mr->GetFLOB(0));
-    if (MRA_DEBUG) cerr << "OpenMRegion() #1b" << endl;
-    DBArray<MSegmentData>* dmsa =
-        (DBArray<MSegmentData>*) (mr->GetFLOB(1));
-    if (MRA_DEBUG) cerr << "OpenMRegion() #1c" << endl;
-
-    //from Attribute
-    //bool defined;
-    //
-    //from Mapping
-    //bool canDestroy;
-    //bool ordered;
-
-    unsigned int savelen = (char*) ura-(char*) mr;
-
-    if (MRA_DEBUG)
-        cerr << "OpenMRegion() savelen=" << savelen << endl;
-
-    if (rec.Read(mr, savelen, 0) != savelen) {
-        cerr << "OpenMRegion() could not read class data" << endl;
-        delete mr;
-        return false;
-    }
-
-    unsigned int numUnits;
-    unsigned int numSegments;
-
-    unsigned int pos = savelen;
-
-    if (MRA_DEBUG) cerr << "OpenMRegion() #3" << endl;
-
-    if (rec.Read(&numUnits, sizeof(unsigned int), pos)
-            != sizeof(unsigned int)) {
-        cerr << "OpenMRegion() could not read number of units"
-             << endl;
-        delete mr;
-        return false;
-    }
-
-    pos += sizeof(unsigned int);
-
-    if (MRA_DEBUG)
-        cerr << "OpenMRegion() numUnits=" << numUnits << endl;
-
-    if (rec.Read(&numSegments, sizeof(unsigned int), pos)
-            != sizeof(unsigned int)) {
-        cerr << "OpenMRegion() could not read number of segments"
-             << endl;
-        delete mr;
-        return false;
-    }
-
-    pos += sizeof(unsigned int);
-
-    if (MRA_DEBUG)
-        cerr << "OpenMRegion() numSegments=" << numSegments << endl;
-
-    ura->Resize(numUnits);
-    dmsa->Resize(numSegments);
-
-    for (unsigned int i = 0; i < numUnits; i++) {
-        if (MRA_DEBUG)
-            cerr << "OpenMRegion() reading unit #" << i << endl;
-
-        URegion ur;
-
-        if (rec.Read(&ur, sizeof(URegion), pos) != sizeof(URegion)) {
-            cerr << "OpenMRegion() could not read region unit #"
-                 << i
-                 << endl;
-            delete mr;
-            return false;
-        }
-
-        ur.SetMSegmentData(dmsa);
-
-        ura->Put(i, ur);
-
-        pos += sizeof(URegion);
-    }
-
-    for (unsigned int i = 0; i < numSegments; i++) {
-         if (MRA_DEBUG)
-            cerr << "OpenMRegion() reading segment #" << i << endl;
-
-        MSegmentData dms;
-
-        if (rec.Read(&dms, sizeof(MSegmentData), pos)
-            != sizeof(MSegmentData)) {
-            cerr << "OpenMRegion() could not read moving segment #"
-                 << i
-                 << endl;
-            delete mr;
-            return false;
-        }
-
-        dmsa->Put(i, dms);
-
-        pos += sizeof(MSegmentData);
-    }
-
-    return true;
-#endif
 }
 
 /*
@@ -7452,103 +7352,10 @@ static bool SaveMRegion(SmiRecord& rec,
     TupleElement::Save(rec, offset, typeInfo, mr);
     
     return true;
-  
-#ifdef SCHMUH
-/*
-Read serialised data structure and rebuild class instances. Straightforward,
-since no renumbering of indices is required.
+}
 
-*/
-
-    MRegion* mr = (MRegion*) w.addr;
-
-    unsigned int savelen = (char*)mr->GetFLOB(0)-(char*)mr;
-
-    if (MRA_DEBUG) {
-            cerr << "SaveMRegion() sizeof(StandardAttribute)="
-             << sizeof(StandardAttribute)
-             << endl;
-            cerr << "SaveMRegion() sizeof(Mapping<URegion, CRegion>)="
-             << sizeof(Mapping<URegion, CRegion>)
-             << endl;
-            cerr << "SaveMRegion() sizeof(MRegion)="
-             << sizeof(MRegion)
-             << endl;
-            cerr << "SaveMRegion() savelen="
-             << savelen
-             << endl;
-    }
-
-    if (rec.Write(mr, savelen, 0) != savelen) {
-        cerr << "SaveMRegion() could not write class data" << endl;
-        return false;
-    }
-
-    DBArray<URegion>* ura = (DBArray<URegion>*) mr->GetFLOB(0);
-    DBArray<MSegmentData>* dmsa =
-        (DBArray<MSegmentData>*) mr->GetFLOB(1);
-
-    unsigned int numUnits = ura->Size();
-    unsigned int numSegments = dmsa->Size();
-
-    unsigned int pos = savelen;
-
-    if (rec.Write(&numUnits, sizeof(unsigned int), pos)
-            != sizeof(unsigned int)) {
-        cerr << "SaveMRegion() could not write number of units"
-             << endl;
-        return false;
-    }
-
-    pos += sizeof(unsigned int);
-
-    if (rec.Write(&numSegments, sizeof(unsigned int), pos)
-            != sizeof(unsigned int)) {
-        cerr << "SaveMRegion() could not write number of segments"
-             << endl;
-        return false;
-    }
-
-    pos += sizeof(unsigned int);
-
-    for (unsigned int i = 0; i < numUnits; i++) {
-        if (MRA_DEBUG)
-            cerr << "SaveMRegion() saving unit #" << i << endl;
-
-        URegion ur;
-        ura->Get(i, ur);
-
-        if (rec.Write(&ur, sizeof(URegion), pos) !=
-                sizeof(URegion)) {
-            cerr << "SaveMRegion() could not write region unit #"
-                 << i
-                 << endl;
-            return false;
-        }
-
-        pos += sizeof(URegion);
-    }
-
-    for (unsigned int i = 0; i < numSegments; i++) {
-         if (MRA_DEBUG)
-            cerr << "SaveMRegion() saving segment #" << i << endl;
-
-        MSegmentData dms;
-        dmsa->Get(i, dms);
-
-        if (rec.Write(&dms, sizeof(MSegmentData), pos)
-                != sizeof(MSegmentData)) {
-            cerr << "SaveMRegion() could not write moving segment #"
-                 << i
-                 << endl;
-            return false;
-        }
-
-        pos += sizeof(MSegmentData);
-    }
-
-    return true;
-#endif
+void* CastMRegion(void* addr) {
+  return new (addr) MRegion;
 }
 
 /*
