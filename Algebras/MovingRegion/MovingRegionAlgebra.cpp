@@ -7312,6 +7312,12 @@ static bool OpenMRegion(SmiRecord& rec,
                         Word& w) {
     if (MRA_DEBUG) cerr << "OpenMRegion() called" << endl;
 
+    MRegion* mr = (MRegion*) TupleElement::Open(rec, offset, typeInfo);
+    w = SetWord(mr);
+
+    return true;
+
+#ifdef SCHMUH
 /*
 Just serialise data structure and write them out using SMI.
 
@@ -7422,6 +7428,7 @@ Just serialise data structure and write them out using SMI.
     }
 
     return true;
+#endif
 }
 
 /*
@@ -7432,13 +7439,19 @@ static bool SaveMRegion(SmiRecord& rec,
                         size_t& offset,
                         const ListExpr typeInfo,
                         Word& w) {
+    if (MRA_DEBUG) cerr << "SaveMRegion() called" << endl;
+
+    MRegion* mr = (MRegion*) w.addr;
+    TupleElement::Save(rec, offset, typeInfo, mr);
+    
+    return true;
+  
+#ifdef SCHMUH
 /*
 Read serialised data structure and rebuild class instances. Straightforward,
 since no renumbering of indices is required.
 
 */
-
-    if (MRA_DEBUG) cerr << "SaveMRegion() called" << endl;
 
     MRegion* mr = (MRegion*) w.addr;
 
@@ -7528,6 +7541,7 @@ since no renumbering of indices is required.
     }
 
     return true;
+#endif
 }
 
 /*
