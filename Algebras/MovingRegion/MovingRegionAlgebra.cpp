@@ -5242,6 +5242,9 @@ are not border of any region, and create region.
             if (MRA_DEBUG)
                 cerr << "URegion::TemporalFunction() segment #"
                      << i
+                     << " ("
+                     << segmentsStartPos
+                     << ")"
                      << endl;
 
             MSegmentData dms;
@@ -6728,7 +6731,20 @@ Calculate region traversed by ~MRegion~ instant in ~res~.
     void Traversed(CRegion& res);
 
 /*
-Friend access for InMRegion() makes live easier.
+Get ~CRegion~ value ~result~ at instant ~t~.
+
+*/
+    void AtInstant(Instant& t, Intime<CRegion>& result);
+
+/*
+Get ~CRegion~ value ~result~ at initial and final instants.
+
+*/
+    void Initial(Intime<CRegion>& result);
+    void Final(Intime<CRegion>& result);
+
+/*
+Friend access for ~InMRegion()~ and ~OpenMRegion()~ makes live easier.
 
 */
     friend Word InMRegion(const ListExpr typeInfo,
@@ -7176,6 +7192,83 @@ match to the original units in ~mp~.
 }
 
 /*
+1.1.1 Method ~AtInstant()~
+
+Method ~Mapping<Unit, Alpha>::AtInstant()~ is not sufficient since it
+does not deal with setting the unit's segment data DBArray.
+
+*/
+
+void MRegion::AtInstant(Instant& t, Intime<CRegion>& result) {
+    if (MRA_DEBUG) cerr << "MRegion::AtInstant() called" << endl;
+
+    assert(IsOrdered() && t.IsDefined());
+
+    int pos = Position(t );
+
+    if( pos == -1 )
+        result.SetDefined(false);
+    else {
+        URegion posUnit;
+        Get(pos, posUnit);
+
+        result.SetDefined(true);
+        posUnit.TemporalFunction(t, result.value);
+        result.instant.CopyFrom(&t);
+  }
+}
+
+/*
+1.1.1 Method ~Initial()~
+
+Method ~Mapping<Unit, Alpha>::Initial()~ is not sufficient since it
+does not deal with setting the unit's segment data DBArray.
+
+*/
+
+void MRegion::Initial(Intime<CRegion>& result) {
+    if (MRA_DEBUG) cerr << "MRegion::Initial() called" << endl;
+
+    assert(IsOrdered());
+
+    if( IsEmpty() )
+        result.SetDefined( false );
+    else {
+        URegion unit;
+        Get(0, unit);
+
+        result.SetDefined(true);
+        unit.TemporalFunction(unit.timeInterval.start, result.value);
+        result.instant.CopyFrom(&unit.timeInterval.start);
+    }
+}
+
+/*
+1.1.1 Method ~Final()~
+
+Method ~Mapping<Unit, Alpha>::Final()~ is not sufficient since it
+does not deal with setting the unit's segment data DBArray.
+
+*/
+
+void MRegion::Final(Intime<CRegion>& result) {
+    if (MRA_DEBUG) cerr << "MRegion::Final() called" << endl;
+
+    assert( IsOrdered() );
+
+    if( IsEmpty() )
+        result.SetDefined( false );
+    else {
+        URegion unit;
+        Get(GetNoComponents()-1, unit);
+        
+        result.SetDefined(true);
+        unit.TemporalFunction(unit.timeInterval.end, result.value);
+        result.instant.CopyFrom(&unit.timeInterval.end);
+    }
+}
+
+/*
 1.1.1 Method ~Traversed()~
 
 */
@@ -7326,10 +7419,10 @@ Word InMRegion(const ListExpr typeInfo,
 1.1.1 Function ~OpenMRegion()~
 
 */
-static bool OpenMRegion(SmiRecord& rec,
-                        size_t& offset,
-                        const ListExpr typeInfo,
-                        Word& w) {
+bool OpenMRegion(SmiRecord& rec,
+                 size_t& offset,
+                 const ListExpr typeInfo,
+                 Word& w) {
     if (MRA_DEBUG) cerr << "OpenMRegion() called" << endl;
 
     MRegion* mr = (MRegion*) TupleElement::Open(rec, offset, typeInfo);
@@ -7352,10 +7445,6 @@ static bool SaveMRegion(SmiRecord& rec,
     TupleElement::Save(rec, offset, typeInfo, mr);
     
     return true;
-}
-
-void* CastMRegion(void* addr) {
-  return new (addr) MRegion;
 }
 
 /*
@@ -7843,6 +7932,7 @@ static int TraversedValueMap(Word* args,
 
     return 0;
 }
+
 
 static int MraprecValueMap(Word* args,
                            Word& result,
