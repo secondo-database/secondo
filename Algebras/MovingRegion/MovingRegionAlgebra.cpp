@@ -45,9 +45,6 @@ Open:
     this problem actually occurs before ~InMRegion()~ is called. It is very
     likely that this problem is not caused by this algebra.
 
-  * Bug: ~initial~ and ~final~ resulting in failed ~assert()~ when unit's
-    interval is open in the respective instant.
-
   * Bug: Sorting units at the beginning of RefinementPartition() is missing.
     Constructor only works if units appear in ~mr~ and ~mp~ in proper order!
 
@@ -64,6 +61,11 @@ Open:
     to have different debug levels.
 
 Closed:
+
+  * Bug: ~initial~ and ~final~ resulting in failed ~assert()~ when unit's
+    interval is open in the respective instant.
+
+    Resolved: Added the required checks.
 
   * Bug: Objects created in the server version of SECONDO are not
     compatible with the stand-alone version of SECONDO (and vice versa).
@@ -7231,16 +7233,22 @@ void MRegion::Initial(Intime<CRegion>& result) {
 
     assert(IsOrdered());
 
-    if( IsEmpty() )
-        result.SetDefined( false );
-    else {
-        URegion unit;
-        Get(0, unit);
-
-        result.SetDefined(true);
-        unit.TemporalFunction(unit.timeInterval.start, result.value);
-        result.instant.CopyFrom(&unit.timeInterval.start);
+    if (IsEmpty()) {
+        result.SetDefined(false);
+        return;
     }
+
+    URegion unit;
+    Get(0, unit);
+
+    if (!unit.timeInterval.lc) {
+        result.SetDefined(false);
+        return;
+    }
+        
+    result.SetDefined(true);
+    unit.TemporalFunction(unit.timeInterval.start, result.value);
+    result.instant.CopyFrom(&unit.timeInterval.start);
 }
 
 /*
@@ -7254,18 +7262,24 @@ does not deal with setting the unit's segment data DBArray.
 void MRegion::Final(Intime<CRegion>& result) {
     if (MRA_DEBUG) cerr << "MRegion::Final() called" << endl;
 
-    assert( IsOrdered() );
+    assert(IsOrdered());
 
-    if( IsEmpty() )
-        result.SetDefined( false );
-    else {
-        URegion unit;
-        Get(GetNoComponents()-1, unit);
-        
-        result.SetDefined(true);
-        unit.TemporalFunction(unit.timeInterval.end, result.value);
-        result.instant.CopyFrom(&unit.timeInterval.end);
+    if (IsEmpty()) {
+        result.SetDefined(false);
+        return;
     }
+
+    URegion unit;
+    Get(GetNoComponents()-1, unit);
+        
+    if (!unit.timeInterval.rc) {
+        result.SetDefined(false);
+        return;
+    }
+        
+    result.SetDefined(true);
+    unit.TemporalFunction(unit.timeInterval.end, result.value);
+    result.instant.CopyFrom(&unit.timeInterval.end);
 }
 
 /*
