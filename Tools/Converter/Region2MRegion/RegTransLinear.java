@@ -299,6 +299,8 @@ public static void main(String[] args){
      RegList.third().writeTo(out,false);
      out.println(" ");
      RegList=ListExpr.twoElemList(RegList.fourth(),RegList.fifth());
+  } else{
+     out.println("("); // open object 
   }
 
   if(RegList.first().atomType()==RegList.SYMBOL_ATOM && RegList.first().symbolValue().equals("region")){
@@ -324,9 +326,8 @@ public static void main(String[] args){
      out.print(" ");
      if(oldStyle)
         Sixth.writeTo(out,false);
-     out.println(" )");
-
   }
+  out.println(" )"); // close object
 
 
     try{
