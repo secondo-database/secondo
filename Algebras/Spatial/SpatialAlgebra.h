@@ -185,6 +185,13 @@ Sets the value of the point object.
 Translates a point position by adding values ~x~ and ~y~.
 
 */
+    inline void Scale(const Coord& factor);
+/*
+Scales a point position by multipliing with ~factor~
+
+*/
+
+
     inline Point& operator=(const Point& p);
 /*
 Assignement operator redefinition.
@@ -700,10 +707,13 @@ struct AttrType
   int faceno;
   int cycleno;
   int edgeno;
-  int coverageno;  //this number is used for the fast spacial scan of the inside_pr algorithm
+  int coverageno;  //this number is used for the fast spacial 
+                   //scan of the inside_pr algorithm
   int attr;
-  bool insideAbove; //indicates if the region's area is above or left of its segment
-  int partnerno; //store the position of the partner half segment in half segment ordered array
+  bool insideAbove; //indicates if the region's area 
+                    //is above or left of its segment
+  int partnerno; //store the position of the partner half 
+                 //segment in half segment ordered array
 };
 
 /*
@@ -739,7 +749,9 @@ dominating point. The Boolean Flag ~Defined~ allows us to use an ~undifined~ val
 This constructor should not be used.
 
 */
-    CHalfSegment( bool Defined, bool LDP = false, const Point& LP = Point( false ), const Point& RP = Point( false ) );
+    CHalfSegment( bool Defined, bool LDP = false, 
+                  const Point& LP = Point( false ), 
+                  const Point& RP = Point( false ) );
     CHalfSegment( const CHalfSegment& chs );
     ~CHalfSegment();
 
@@ -806,6 +818,8 @@ function will compare the parameter points and put the smaller one to LP and lar
 
 */
     void Translate( const Coord& x, const Coord& y );
+   
+    void Scale(const Coord& factor);
 
     void     SetDefined(bool Defined);
 /*
@@ -905,7 +919,8 @@ This function (single point intersects) compute whether two half segments inters
  with a single point, if yes, the intersection point is returned.
 
 */
-    bool overlapintersect( const CHalfSegment& chs, CHalfSegment& reschs ) const;
+    bool overlapintersect( const CHalfSegment& chs, 
+                           CHalfSegment& reschs ) const;
 /*
 This function compute whether two half segments intersect each other with a segment, if yes,
 the intersection segment is returned.
@@ -970,8 +985,10 @@ part of the segment is a point instead of a segment.
                             double &x0, double &y0, double &x1, double &y1,
                             bool &accept);
 
-   void WindowClippingIn(const Rectangle<2> &window, CHalfSegment &chsInside, bool &inside,
-                         bool &isIntersectionPoint,Point &intersectionPoint);
+   void WindowClippingIn(const Rectangle<2> &window, 
+                         CHalfSegment &chsInside, bool &inside,
+                         bool &isIntersectionPoint,
+                         Point &intersectionPoint);
 
 
 /*
@@ -1646,7 +1663,8 @@ leftmost point of the cycle.
 
 */
 
-  static bool GetCycleDirection(const Point &pA, const Point &pP, const Point &pB);
+  static bool GetCycleDirection(const Point &pA, 
+                                const Point &pP, const Point &pB);
 
   bool GetCycleDirection();
 
@@ -1690,7 +1708,8 @@ to the edges of the window. These half segments are only created if the window's
 edge is completly inside the window.
 
 */
-  void GetClippedHS(const Rectangle<2> &window,CRegion &clippedRegion,bool inside);
+  void GetClippedHS(const Rectangle<2> &window,
+                    CRegion &clippedRegion,bool inside);
 
 /*
 7.15.4 Get clipped half segment IN function
@@ -1721,7 +1740,8 @@ This function is just used in order to add clipped half segments to the clipped
 region.
 
 */
-   void AddClippedHS(const Point &pl,const Point &pr, AttrType &attr,int &partnerno);
+   void AddClippedHS(const Point &pl,const Point &pr, 
+                     AttrType &attr,int &partnerno);
 
 /*
 7.15.7 Clipped half segment on edge function
@@ -1732,8 +1752,10 @@ list of the ~points on edge~. The ~points on edge~ list are used to create the
 new half segments that lies on edge.
 
 */
-   static bool ClippedHSOnEdge(const Rectangle<2> &window,const CHalfSegment &chs,
-                             bool clippingIn,vector<EdgePoint> pointsOnEdge[4]);
+   static bool ClippedHSOnEdge(const Rectangle<2> &window,
+                               const CHalfSegment &chs,
+                               bool clippingIn,
+                               vector<EdgePoint> pointsOnEdge[4]);
 
 /*
 7.15.8 Create new segments function
@@ -1884,18 +1906,21 @@ Whether the half segments in the region value are sorted.
 */
 ostream& operator<<( ostream& o, CRegion& cr );
 
-Word InPoint( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct );
+Word InPoint( const ListExpr typeInfo, const ListExpr instance, 
+              const int errorPos, ListExpr& errorInfo, bool& correct );
 ListExpr OutPoint( ListExpr typeInfo, Word value );
 ListExpr
 OutPoint( ListExpr typeInfo, Word value );
 
 Word
-InLine( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct ) ;
+InLine( const ListExpr typeInfo, const ListExpr instance, 
+        const int errorPos, ListExpr& errorInfo, bool& correct ) ;
 ListExpr
 OutLine( ListExpr typeInfo, Word value );
 
 Word
-InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct );
+InRegion( const ListExpr typeInfo, const ListExpr instance, 
+          const int errorPos, ListExpr& errorInfo, bool& correct );
 ListExpr
 OutRegion( ListExpr typeInfo, Word value );
 
@@ -1933,6 +1958,12 @@ inline void Point::Translate( const Coord& x, const Coord& y )
   assert( defined );
   this->x += x;
   this->y += y;
+}
+
+inline void Point::Scale(const Coord& factor){
+  assert(defined);
+  this->x *= factor;
+  this->y *= factor;
 }
 
 inline Point& Point::operator=( const Point& p )
@@ -2070,7 +2101,8 @@ class EdgePoint : public Point
       return *this;
     }
 
-    static EdgePoint* GetEdgePoint(const Point &p,const Point &p2,bool insideAbove,
+    static EdgePoint* GetEdgePoint(const Point &p,const Point &p2,
+                                   bool insideAbove,
                                    const Point &v,const bool reject);
 
     bool operator==(const EdgePoint& p)
@@ -2099,9 +2131,12 @@ class EdgePoint : public Point
           return 1;
         else
           if( this->x == p.x && this->y == p.y )
-          { //If both points has the same coordinates, if they have diferent directions
-            //the less one will be that has the attribute direction true (left and down),
-            //otherwise, both have direction true, and the less one will be that was rejected.
+          { //If both points has the same coordinates, if they have diferent
+            // directions
+            // the less one will be that has the attribute direction true i
+            // (left and down),
+            // otherwise, both have direction true, and the less one will 
+            // be that was rejected.
             //The rejected points come before accepted points
             if (this->direction == p.direction)
             {

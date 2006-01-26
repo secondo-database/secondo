@@ -1604,6 +1604,12 @@ void CHalfSegment::Translate( const Coord& x, const Coord& y )
   rp.Translate( x, y );
 }
 
+void CHalfSegment::Scale(const Coord& factor){
+  assert(defined);
+  lp.Scale(factor);
+  rp.Scale(factor);
+}
+
 const Rectangle<2> CHalfSegment::BoundingBox() const
 {
   return Rectangle<2>( true,
@@ -3698,8 +3704,11 @@ CLine& CLine::operator=(CLine& cl)
   assert( cl.IsOrdered() );
 
   line.Clear();
-  line.Resize( cl.Size() );
-  for( int i = 0; i < cl.Size(); i++ )
+  int size = cl.Size();
+  if(size>0){
+      line.Resize( cl.Size() );
+  }
+  for( int i = 0; i < size; i++ )
   {
     CHalfSegment chs;
     cl.Get( i, chs );
@@ -5161,8 +5170,11 @@ CRegion& CRegion::operator=(CRegion& cr)
   assert( cr.IsOrdered() );
 
   region.Clear();
-  region.Resize( cr.Size() );
-  for( int i = 0; i < cr.Size(); i++ )
+  int size = cr.Size();
+  if(size>0){
+      region.Resize( size );
+  }
+  for( int i = 0; i < size; i++ )
   {
     CHalfSegment chs;
     cr.Get( i, chs );
@@ -8922,6 +8934,42 @@ TranslateMap( ListExpr args )
 }
 
 /*
+10.1.18 Type mapping function for operator ~scale~
+
+This type mapping function is used for the ~scale~ operator. This operator
+scales a spatial object by a given factor.
+
+*/
+static ListExpr ScaleMap(ListExpr args) {
+   if(nl->ListLength(args)!=2){
+      ErrorReporter::ReportError("operator scale requires two arguments");
+      return nl->SymbolAtom( "typeerror" );
+   }
+   ListExpr arg1 = nl->First(args);
+   ListExpr arg2 = nl->Second(args);
+   if(!(nl->IsEqual(arg2 , "real"))){
+      ErrorReporter::ReportError("the second" 
+                                 "arguments has to be of type real");
+      return nl->SymbolAtom("typeerror");
+   }
+   if(nl->IsEqual(arg1,"region"))
+     return nl->SymbolAtom("region");
+   if(nl->IsEqual(arg1,"line"))
+     return nl->SymbolAtom("line");
+   if(nl->IsEqual(arg1,"point"))
+     return nl->SymbolAtom("point");
+   if(nl->IsEqual(arg1,"points"))
+     return nl->SymbolAtom("points");
+   ErrorReporter::ReportError("First argument has to be in "
+                              "{region, line, points, points}");
+
+   return nl->SymbolAtom( "typeerror" );
+}
+
+
+
+
+/*
 10.1.17 Type mapping function for operator ~windowclipping~
 
 This type mapping function is used for the ~windowclipping~ operators. There are
@@ -9656,6 +9704,20 @@ TranslateSelect( ListExpr args )
 }
 
 /*
+10.3.19 Selection function ~ScaleSelect~
+
+This select function is used for the ~scale~ operator.
+
+*/
+
+static int
+ScaleSelect( ListExpr args )
+{
+  // use the same mapping as for translate
+  return TranslateSelect(args);
+}
+
+/*
 10.3.19 Selection function ~windowclippingSelect~
 
 This select function is used for the ~windowclipping(in)(out)~ operator.
@@ -9910,7 +9972,8 @@ SpatialGreater_pp( Word* args, Word& result, int message, Word& local, Supplier 
 
 */
 int
-SpatialGreaterEqual_pp( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialGreaterEqual_pp( Word* args, Word& result, int message, 
+                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((Point*)args[0].addr)->IsDefined() &&
@@ -9931,18 +9994,21 @@ SpatialGreaterEqual_pp( Word* args, Word& result, int message, Word& local, Supp
 
 */
 int
-SpatialIntersects_psps( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialIntersects_psps( Word* args, Word& result, int message, 
+                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
   ((CcBool *)result.addr)->
-    Set( true, ((Points*)args[0].addr)->Intersects( *((Points*)args[1].addr) ) );
+    Set( true, 
+         ((Points*)args[0].addr)->Intersects( *((Points*)args[1].addr) ) );
 
   return (0);
 }
 
 int
-SpatialIntersects_psl( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialIntersects_psl( Word* args, Word& result, int message, 
+                       Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -9979,7 +10045,8 @@ SpatialIntersects_psl( Word* args, Word& result, int message, Word& local, Suppl
 }
 
 int
-SpatialIntersects_lps( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialIntersects_lps( Word* args, Word& result, int message, 
+                       Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -10016,7 +10083,8 @@ SpatialIntersects_lps( Word* args, Word& result, int message, Word& local, Suppl
 }
 
 int
-SpatialIntersects_psr( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialIntersects_psr( Word* args, Word& result, int message, 
+                       Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -10050,7 +10118,8 @@ SpatialIntersects_psr( Word* args, Word& result, int message, Word& local, Suppl
 }
 
 int
-SpatialIntersects_rps( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialIntersects_rps( Word* args, Word& result, int message, 
+                       Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -10084,7 +10153,8 @@ SpatialIntersects_rps( Word* args, Word& result, int message, Word& local, Suppl
 }
 
 int
-SpatialIntersects_ll( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialIntersects_ll( Word* args, Word& result, int message, 
+                      Word& local, Supplier s )
 {   //to judge whether two lines intersect each other.
     result = qp->ResultStorage( s );
     CLine *cl1, *cl2;
@@ -10123,7 +10193,8 @@ SpatialIntersects_ll( Word* args, Word& result, int message, Word& local, Suppli
 }
 
 int
-SpatialIntersects_lr( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialIntersects_lr( Word* args, Word& result, int message, 
+                      Word& local, Supplier s )
 {
     //to judge whether line intersects with region.
     result = qp->ResultStorage( s );
@@ -10170,7 +10241,8 @@ SpatialIntersects_lr( Word* args, Word& result, int message, Word& local, Suppli
 }
 
 int
-SpatialIntersects_rl( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialIntersects_rl( Word* args, Word& result, int message, 
+                      Word& local, Supplier s )
 {
     //to judge whether line intersects with region.
     result = qp->ResultStorage( s );
@@ -10217,7 +10289,8 @@ SpatialIntersects_rl( Word* args, Word& result, int message, Word& local, Suppli
 }
 
 int
-SpatialIntersects_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialIntersects_rr( Word* args, Word& result, int message, 
+                      Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
     CRegion *cr1, *cr2;
@@ -10305,7 +10378,8 @@ SpatialIntersects_rr( Word* args, Word& result, int message, Word& local, Suppli
 */
 
 int
-SpatialInside_pps( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialInside_pps( Word* args, Word& result, int message, 
+                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((Point*)args[0].addr)->IsDefined() )
@@ -10321,7 +10395,8 @@ SpatialInside_pps( Word* args, Word& result, int message, Word& local, Supplier 
 }
 
 int
-SpatialInside_pl( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialInside_pl( Word* args, Word& result, int message, 
+                  Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -10351,7 +10426,8 @@ SpatialInside_pl( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 int
-SpatialInside_pr( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialInside_pr( Word* args, Word& result, int message, 
+                  Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -10379,7 +10455,8 @@ SpatialInside_pr( Word* args, Word& result, int message, Word& local, Supplier s
  }
 
 int
-SpatialInside_pr_old( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialInside_pr_old( Word* args, Word& result, int message, 
+                      Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -10407,7 +10484,8 @@ SpatialInside_pr_old( Word* args, Word& result, int message, Word& local, Suppli
  }
 
 int
-SpatialInside_pathlength_pr( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialInside_pathlength_pr( Word* args, Word& result, int message, 
+                             Word& local, Supplier s )
 {
     //point + region --> int
     int pathlength=0;
@@ -10434,7 +10512,8 @@ SpatialInside_pathlength_pr( Word* args, Word& result, int message, Word& local,
 }
 
 int
-SpatialInside_scanned_pr( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialInside_scanned_pr( Word* args, Word& result, int message, 
+                          Word& local, Supplier s )
 {
     //point + region --> int
     int pathlength=0;
@@ -10461,17 +10540,20 @@ SpatialInside_scanned_pr( Word* args, Word& result, int message, Word& local, Su
 }
 
 int
-SpatialInside_psps( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialInside_psps( Word* args, Word& result, int message, 
+                    Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   ((CcBool *)result.addr)->
-    Set( true, ((Points*)args[0].addr)->Inside( *((Points*)args[1].addr) ) );
+    Set( true,
+        ((Points*)args[0].addr)->Inside( *((Points*)args[1].addr) ) );
   return (0);
 }
 
 
 int
-SpatialInside_psl( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialInside_psl( Word* args, Word& result, int message, 
+                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -10512,7 +10594,8 @@ SpatialInside_psl( Word* args, Word& result, int message, Word& local, Supplier 
 }
 
 int
-SpatialInside_psr( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialInside_psr( Word* args, Word& result, int message, 
+                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -10543,7 +10626,8 @@ SpatialInside_psr( Word* args, Word& result, int message, Word& local, Supplier 
 }
 
 int
-SpatialInside_ll( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialInside_ll( Word* args, Word& result, int message, 
+                  Word& local, Supplier s )
 {
     //to decide whether one line value is inside another
     result = qp->ResultStorage( s );
@@ -10588,7 +10672,8 @@ SpatialInside_ll( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 int
-SpatialInside_lr( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialInside_lr( Word* args, Word& result, int message, 
+                  Word& local, Supplier s )
 {
     //to decide whether one line value is inside another
     result = qp->ResultStorage( s );
@@ -10622,9 +10707,11 @@ SpatialInside_lr( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 int
-SpatialInside_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialInside_rr( Word* args, Word& result, int message, 
+                  Word& local, Supplier s )
 {
-    //for this algorithm, I need to reimplement it by using Realizator/Derealmizator.
+    //for this algorithm, I need to reimplement
+    // it by using Realizator/Derealmizator.
     result = qp->ResultStorage( s );
     CRegion *cr1, *cr2;
     CHalfSegment chs1, chs2;
@@ -10695,7 +10782,8 @@ touches_psps( Word* args, Word& result, int message, Word& local, Supplier s )
     result = qp->ResultStorage( s );
 
     ((CcBool *)result.addr)->
-    Set( true, ((Points*)args[0].addr)->Intersects( *((Points*)args[1].addr) ) );
+    Set( true, 
+        ((Points*)args[0].addr)->Intersects( *((Points*)args[1].addr) ) );
 
     return (0);
 }
@@ -11294,7 +11382,7 @@ attached_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 
 int
-overlaps_psps( Word* args, Word& result, int message, Word& local, Supplier s )
+overlaps_psps( Word* args, Word& result, int message, Word& local, Supplier s)
 {
     result = qp->ResultStorage( s );
 
@@ -11587,7 +11675,8 @@ overlaps_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 
 int
-SpatialOnBorder_pl( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialOnBorder_pl( Word* args, Word& result, int message, 
+                    Word& local, Supplier s )
 {
     //point is endpoint of line
     result = qp->ResultStorage( s );
@@ -11628,7 +11717,8 @@ SpatialOnBorder_pl( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 int
-SpatialOnBorder_pr( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialOnBorder_pr( Word* args, Word& result, int message,
+                    Word& local, Supplier s )
 {
     //point is on the edge of region
      result = qp->ResultStorage( s );
@@ -11671,7 +11761,8 @@ SpatialOnBorder_pr( Word* args, Word& result, int message, Word& local, Supplier
 */
 
 int
-SpatialInInterior_pl( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialInInterior_pl( Word* args, Word& result, int message, 
+                      Word& local, Supplier s )
 {
     //inside but not onborder
     result = qp->ResultStorage( s );
@@ -11715,7 +11806,8 @@ SpatialInInterior_pl( Word* args, Word& result, int message, Word& local, Suppli
 }
 
 int
-SpatialInInterior_pr( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialInInterior_pr( Word* args, Word& result, int message, 
+                      Word& local, Supplier s )
 {
     //inside but not onborder
     result = qp->ResultStorage( s );
@@ -11766,7 +11858,8 @@ SpatialInInterior_pr( Word* args, Word& result, int message, Word& local, Suppli
 */
 
 int
-intersection_pp( Word* args, Word& result, int message, Word& local, Supplier s )
+intersection_pp( Word* args, Word& result, int message, 
+                 Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -11794,7 +11887,8 @@ intersection_pp( Word* args, Word& result, int message, Word& local, Supplier s 
 }
 
 int
-intersection_pps( Word* args, Word& result, int message, Word& local, Supplier s )
+intersection_pps( Word* args, Word& result, int message, 
+                  Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -11822,7 +11916,8 @@ intersection_pps( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 int
-intersection_psp( Word* args, Word& result, int message, Word& local, Supplier s )
+intersection_psp( Word* args, Word& result, int message, 
+                  Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -11850,7 +11945,8 @@ intersection_psp( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 int
-intersection_pl( Word* args, Word& result, int message, Word& local, Supplier s )
+intersection_pl( Word* args, Word& result, int message, 
+                 Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -11881,7 +11977,8 @@ intersection_pl( Word* args, Word& result, int message, Word& local, Supplier s 
 }
 
 int
-intersection_lp( Word* args, Word& result, int message, Word& local, Supplier s )
+intersection_lp( Word* args, Word& result, int message, 
+                 Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -11912,7 +12009,8 @@ intersection_lp( Word* args, Word& result, int message, Word& local, Supplier s 
 }
 
 int
-intersection_pr( Word* args, Word& result, int message, Word& local, Supplier s )
+intersection_pr( Word* args, Word& result, int message, 
+                 Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -11940,7 +12038,8 @@ intersection_pr( Word* args, Word& result, int message, Word& local, Supplier s 
 }
 
 int
-intersection_rp( Word* args, Word& result, int message, Word& local, Supplier s )
+intersection_rp( Word* args, Word& result, int message, 
+                 Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -11968,7 +12067,8 @@ intersection_rp( Word* args, Word& result, int message, Word& local, Supplier s 
 }
 
 int
-intersection_psps( Word* args, Word& result, int message, Word& local, Supplier s )
+intersection_psps( Word* args, Word& result, int message, 
+                   Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12016,7 +12116,8 @@ intersection_psps( Word* args, Word& result, int message, Word& local, Supplier 
 }
 
 int
-intersection_psl( Word* args, Word& result, int message, Word& local, Supplier s )
+intersection_psl( Word* args, Word& result, int message, 
+                  Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12053,7 +12154,8 @@ intersection_psl( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 int
-intersection_lps( Word* args, Word& result, int message, Word& local, Supplier s )
+intersection_lps( Word* args, Word& result, int message, 
+                  Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12090,7 +12192,8 @@ intersection_lps( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 int
-intersection_psr( Word* args, Word& result, int message, Word& local, Supplier s )
+intersection_psr( Word* args, Word& result, int message, 
+                  Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12120,7 +12223,8 @@ intersection_psr( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 int
-intersection_rps( Word* args, Word& result, int message, Word& local, Supplier s )
+intersection_rps( Word* args, Word& result, int message, 
+                  Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12151,9 +12255,12 @@ intersection_rps( Word* args, Word& result, int message, Word& local, Supplier s
 
 
 int
-intersection_ll( Word* args, Word& result, int message, Word& local, Supplier s )
-{   //this function computes the intersection of two lines. However, since line's intersecion can
-    //contain both points and lines, I will simply ignore the points and just keep line segments
+intersection_ll( Word* args, Word& result, int message, 
+                 Word& local, Supplier s )
+{   //this function computes the intersection of two lines. 
+    // However, since line's intersecion can
+    //contain both points and lines, I will simply ignore 
+    // the points and just keep line segments
 
     result = qp->ResultStorage( s );
 
@@ -12352,7 +12459,8 @@ minus_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-minus_lps( Word* args, Word& result, int message, Word& local, Supplier s )
+minus_lps( Word* args, Word& result, int message, 
+           Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12379,7 +12487,8 @@ minus_lps( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-minus_rps( Word* args, Word& result, int message, Word& local, Supplier s )
+minus_rps( Word* args, Word& result, int message, 
+           Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12411,7 +12520,8 @@ minus_rps( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 
 int
-union_pps( Word* args, Word& result, int message, Word& local, Supplier s )
+union_pps( Word* args, Word& result, int message, 
+           Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12441,7 +12551,8 @@ union_pps( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-union_psp( Word* args, Word& result, int message, Word& local, Supplier s )
+union_psp( Word* args, Word& result, int message, 
+           Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
     Point *p=((Point*)args[1].addr);
@@ -12470,7 +12581,8 @@ union_psp( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-union_psps( Word* args, Word& result, int message, Word& local, Supplier s )
+union_psps( Word* args, Word& result, int message, 
+            Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12502,7 +12614,8 @@ union_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-union_ll( Word* args, Word& result, int message, Word& local, Supplier s )
+union_ll( Word* args, Word& result, int message, 
+          Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12556,7 +12669,8 @@ union_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 
 int
-crossings_ll( Word* args, Word& result, int message, Word& local, Supplier s )
+crossings_ll( Word* args, Word& result, int message, 
+              Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12595,7 +12709,8 @@ crossings_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 
 int
-single_ps( Word* args, Word& result, int message, Word& local, Supplier s )
+single_ps( Word* args, Word& result, int message, 
+           Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12621,7 +12736,8 @@ single_ps( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 
 int
-distance_pp( Word* args, Word& result, int message, Word& local, Supplier s )
+distance_pp( Word* args, Word& result, int message, 
+             Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12641,7 +12757,8 @@ distance_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-distance_pps( Word* args, Word& result, int message, Word& local, Supplier s )
+distance_pps( Word* args, Word& result, int message, 
+              Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12675,7 +12792,8 @@ distance_pps( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-distance_psp( Word* args, Word& result, int message, Word& local, Supplier s )
+distance_psp( Word* args, Word& result, int message, 
+              Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12709,7 +12827,8 @@ distance_psp( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-distance_pl( Word* args, Word& result, int message, Word& local, Supplier s )
+distance_pl( Word* args, Word& result, int message, 
+             Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12747,7 +12866,8 @@ distance_pl( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-distance_lp( Word* args, Word& result, int message, Word& local, Supplier s )
+distance_lp( Word* args, Word& result, int message, 
+             Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12785,7 +12905,8 @@ distance_lp( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-distance_pr( Word* args, Word& result, int message, Word& local, Supplier s )
+distance_pr( Word* args, Word& result, int message, 
+             Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12829,7 +12950,8 @@ distance_pr( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-distance_rp( Word* args, Word& result, int message, Word& local, Supplier s )
+distance_rp( Word* args, Word& result, int message, 
+             Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12873,7 +12995,8 @@ distance_rp( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-distance_psps( Word* args, Word& result, int message, Word& local, Supplier s )
+distance_psps( Word* args, Word& result, int message, 
+               Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12913,7 +13036,8 @@ distance_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-distance_psl( Word* args, Word& result, int message, Word& local, Supplier s )
+distance_psl( Word* args, Word& result, int message, 
+              Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12957,7 +13081,8 @@ distance_psl( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-distance_lps( Word* args, Word& result, int message, Word& local, Supplier s )
+distance_lps( Word* args, Word& result, int message, 
+              Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -13001,7 +13126,8 @@ distance_lps( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-distance_psr( Word* args, Word& result, int message, Word& local, Supplier s )
+distance_psr( Word* args, Word& result, int message, 
+              Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -13051,7 +13177,8 @@ distance_psr( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-distance_rps( Word* args, Word& result, int message, Word& local, Supplier s )
+distance_rps( Word* args, Word& result, int message, 
+              Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -13101,7 +13228,8 @@ distance_rps( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-distance_ll( Word* args, Word& result, int message, Word& local, Supplier s )
+distance_ll( Word* args, Word& result, int message, 
+             Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -13168,7 +13296,8 @@ distance_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 
 int
-direction_pp( Word* args, Word& result, int message, Word& local, Supplier s )
+direction_pp( Word* args, Word& result, int message,  
+              Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -13259,7 +13388,8 @@ direction_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 
 int
-nocomponents_ps( Word* args, Word& result, int message, Word& local, Supplier s )
+nocomponents_ps( Word* args, Word& result, int message, 
+                 Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -13270,7 +13400,8 @@ nocomponents_ps( Word* args, Word& result, int message, Word& local, Supplier s 
 }
 
 static int
-nocomponents_r( Word* args, Word& result, int message, Word& local, Supplier s )
+nocomponents_r( Word* args, Word& result, int message, 
+                Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -13389,7 +13520,8 @@ size_l( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 
 int
-touchpoints_lr( Word* args, Word& result, int message, Word& local, Supplier s )
+touchpoints_lr( Word* args, Word& result, int message, 
+                Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
     CLine *cl;
@@ -13429,7 +13561,8 @@ touchpoints_lr( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-touchpoints_rl( Word* args, Word& result, int message, Word& local, Supplier s )
+touchpoints_rl( Word* args, Word& result, int message, 
+                Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
     CLine *cl;
@@ -13469,8 +13602,10 @@ touchpoints_rl( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 int
-touchpoints_rr( Word* args, Word& result, int message, Word& local, Supplier s )
-{   //need to improve this func- endpoints of edges should be considered specially.
+touchpoints_rr( Word* args, Word& result, int message, 
+                Word& local, Supplier s )
+{   //need to improve this func- endpoints of edges 
+    //should be considered specially.
     result = qp->ResultStorage( s );
 
     CRegion *cr1, *cr2;
@@ -13509,7 +13644,8 @@ touchpoints_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 
 int
-commonborder_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+commonborder_rr( Word* args, Word& result, int message, 
+                 Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
     int eee=0;
@@ -13560,7 +13696,8 @@ Implementation with Spatial Scan
 */
 
 static int
-CommonBorderScan_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+CommonBorderScan_rr( Word* args, Word& result, int message, 
+                     Word& local, Supplier s )
 {
   //void rrSelectFirst(CRegion& R1, CRegion& R2, object& obj, status& stat)
   int i = 0;
@@ -13753,8 +13890,109 @@ Translate_r( Word* args, Word& result, int message, Word& local, Supplier s )
   return 0;
 }
 
+/*
+10.4.27 Value Mapping functions of the Operator Scale 
+
+*/
+static int Scale_p( Word* args, Word& result, int message, 
+                         Word& local, Supplier s ){
+  result = qp->ResultStorage(s);
+  CPoint* p = (CPoint*) args[0].addr;
+  CcReal*  factor = (CcReal*) args[1].addr;
+  CPoint* res = (CPoint*) result.addr;
+  res->Set(p->GetX(),p->GetY());
+  double f = factor->GetRealval();
+  res->Scale(f);
+  return 0;
+}
+
+static int Scale_ps( Word* args, Word& result, int message, 
+                         Word& local, Supplier s ){
+  result = qp->ResultStorage(s);
+  CPoints* p = (CPoints*) args[0].addr;
+  CcReal*  factor = (CcReal*) args[1].addr;
+  CPoints* res = (CPoints*) result.addr;
+  double f = factor->GetRealval();
+  // make res empty if it is not already
+  if(!res->IsEmpty()){
+     Points P(0);
+     (*res) =  P;
+  }  
+  if(!p->IsEmpty()){
+     res->StartBulkLoad();
+     int size = p->Size();
+     CPoint PTemp;
+     for(int i=0;i<size;i++){
+         p->Get(i,PTemp);
+         PTemp.Scale(f);
+         (*res) += PTemp;
+      }
+      res->EndBulkLoad();
+  }
+  return 0;
+}
+
+
+static int Scale_l( Word* args, Word& result, int message, 
+                         Word& local, Supplier s ){
+  result = qp->ResultStorage(s);
+  CLine* L = (CLine*) args[0].addr;
+  CcReal* factor = (CcReal*) args[1].addr;
+  double f = factor->GetRealval();
+  CLine* res = (CLine*) result.addr;
+  // delete result if not empty
+  if(!res->IsEmpty()){
+     CLine Lempty(0);
+     (*res) = Lempty;
+  }  
+  if(!L->IsEmpty()){
+     res->StartBulkLoad();
+     int size = L->Size();
+     CHalfSegment hs;
+     for(int i=0;i<size;i++){
+       L->Get(i,hs);
+       hs.Scale(f);
+       (*res) += hs;
+     }
+     res->EndBulkLoad();
+  }
+  return 0;
+}
+
+static int Scale_r( Word* args, Word& result, int message, 
+                         Word& local, Supplier s ){
+  result = qp->ResultStorage(s);
+  CRegion* R = (CRegion*) args[0].addr;
+  CcReal* factor = (CcReal*) args[1].addr;
+  double f = factor->GetRealval();
+  CRegion* res = (CRegion*) result.addr;
+  // delete result if not empty
+  if(!res->IsEmpty()){
+     CRegion Rempty(0);
+     (*res) = Rempty;
+  }  
+  if(!R->IsEmpty()){
+     res->StartBulkLoad();
+     int size = R->Size();
+     CHalfSegment hs;
+     for(int i=0;i<size;i++){
+       R->Get(i,hs);
+       hs.Scale(f);
+       (*res) += hs;
+     }
+     res->EndBulkLoad();
+  }
+  return 0;
+}
+
+/*
+10.4.28 Value Mappings for ~windowclipping~
+
+*/
+
 int
-windowclippingin_l( Word* args, Word& result, int message, Word& local, Supplier s )
+windowclippingin_l( Word* args, Word& result, int message, 
+                    Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -13770,7 +14008,8 @@ windowclippingin_l( Word* args, Word& result, int message, Word& local, Supplier
 
 }
 int
-windowclippingin_r( Word* args, Word& result, int message, Word& local, Supplier s )
+windowclippingin_r( Word* args, Word& result, int message, 
+                    Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -13787,7 +14026,8 @@ windowclippingin_r( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 int
-windowclippingout_l( Word* args, Word& result, int message, Word& local, Supplier s )
+windowclippingout_l( Word* args, Word& result, int message, 
+                     Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -13805,7 +14045,8 @@ windowclippingout_l( Word* args, Word& result, int message, Word& local, Supplie
 }
 
 int
-windowclippingout_r( Word* args, Word& result, int message, Word& local, Supplier s )
+windowclippingout_r( Word* args, Word& result, int message,
+                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -14033,6 +14274,12 @@ ValueMapping translatemap[] = { Translate_p,
                 Translate_r
               };
 
+ValueMapping scalemap[] = { Scale_p,
+                Scale_ps,
+                Scale_l,
+                Scale_r
+              };
+
 
 ValueMapping windowclippinginmap[] = {
                   windowclippingin_l,
@@ -14112,7 +14359,8 @@ const string SpatialSpecGreaterEqual  =
 
 const string SpatialSpecIntersects  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  "( <text>(point||points||line||region x point||points||line||region) -> bool </text--->"
+  "( <text>(point||points||line||region "
+  "x point||points||line||region) -> bool </text--->"
   "<text>_ intersects _</text--->"
   "<text>Intersects.</text--->"
   "<text>query region1 intersects region2</text--->"
@@ -14120,7 +14368,8 @@ const string SpatialSpecIntersects  =
 
 const string SpatialSpecInside  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  "( <text>(point||points||line||region x points||line||region) -> bool</text--->"
+  "( <text>(point||points||line||region "
+  "x points||line||region) -> bool</text--->"
   "<text>_ inside _</text--->"
   "<text>Inside.</text--->"
   "<text>query point1 inside line1</text--->"
@@ -14194,7 +14443,8 @@ const string SpatialSpecMinus  =
 
 const string SpatialSpecUnion  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point||points||line x point||points||line) -> points||line</text--->"
+  "( <text>(point||points||line x point||points||line)i"
+  " -> points||line</text--->"
   "<text>_union_</text--->"
   "<text>union of two sets.</text--->"
   "<text>query points union point</text--->"
@@ -14228,7 +14478,8 @@ const string SpatialSpecDirection  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(point x point) -> real</text--->"
   "<text>direction(_, _)</text--->"
-  "<text>compute the direction (0 - 360 degree) from one point to another point.</text--->"
+  "<text>compute the direction (0 - 360 degree)"
+  " from one point to another point.</text--->"
   "<text>query direction(p1, p2)</text--->"
   ") )";
 
@@ -14284,7 +14535,8 @@ const string SpatialSpecTouchpoints  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(line||region x region) -> points</text--->"
   "<text> touchpoints(_, _) </text--->"
-  "<text> return the touch points of a region and another region or line.</text--->"
+  "<text> return the touch points of a regioni"
+  " and another region or line.</text--->"
   "<text> query touchpoints(line, region)</text--->"
   ") )";
 
@@ -14300,15 +14552,26 @@ const string SpatialSpecCommonborderscan  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(region x region) -> line</text--->"
   "<text> commonborderscan(_, _ )</text--->"
-  "<text> return the common border of two regions through spatial scan.</text--->"
+  "<text> return the common border of two"
+  " regions through spatial scan.</text--->"
   "<text> query commonborderscan(region1, region2)</text--->"
   ") )";
 
 const string SpatialSpecTranslate  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point||points||line||region x real x real) -> point||points||line||region</text--->"
+  "( <text>(point||points||line||region x real x real)"
+  " -> point||points||line||region</text--->"
   "<text> _ translate[list]</text--->"
   "<text> move the object parallely for some distance.</text--->"
+  "<text> query region1 translate[3.5, 15.1]</text--->"
+  ") )";
+
+const string SpatialSpecScale  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(point||points||line||region x real)"
+         " -> point||points||line||region</text--->"
+  "<text> _ scale _ </text--->"
+  "<text> scales an object by the given factor.</text--->"
   "<text> query region1 translate[3.5, 15.1]</text--->"
   ") )";
 
@@ -14470,6 +14733,10 @@ Operator spatialtranslate
   ( "translate", SpatialSpecTranslate, 4, translatemap, 
     TranslateSelect, TranslateMap );
 
+Operator spatialscale
+  ( "scale", SpatialSpecScale, 4, scalemap, 
+    ScaleSelect, ScaleMap );
+
 
 Operator spatialwindowclippingin
   ( "windowclippingin", SpatialSpecWindowClippingIn, 4, windowclippinginmap, 
@@ -14507,10 +14774,10 @@ class SpatialAlgebra : public Algebra
     line.AssociateKind("DATA");       //of kind DATA are expected, e.g. in
     region.AssociateKind("DATA"); //tuples.
 
-    point.AssociateKind("SPATIAL2D");     //this means that point and rectangle
-    points.AssociateKind("SPATIAL2D");    //can be used in places where types
-    line.AssociateKind("SPATIAL2D");        //of kind SPATIAL2D are expected, e.g. in
-    region.AssociateKind("SPATIAL2D");  //tuples.
+    point.AssociateKind("SPATIAL2D"); //this means that point and rectangle
+    points.AssociateKind("SPATIAL2D");//can be used in places where types
+    line.AssociateKind("SPATIAL2D");  //of kind SPATIAL2D are expected, e.g. 
+    region.AssociateKind("SPATIAL2D");//in tuples.
 
     AddOperator( &spatialisempty );
     AddOperator( &spatialequal );
@@ -14544,6 +14811,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialinsidepathlength );
     AddOperator( &spatialinsidescanned );
     AddOperator( &spatialtranslate );
+    AddOperator( &spatialscale );
     AddOperator( &spatialwindowclippingin );
     AddOperator( &spatialwindowclippingout );
     AddOperator( &spatialclip );
