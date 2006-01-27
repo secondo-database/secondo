@@ -2720,9 +2720,6 @@ Deletes an operator tree object.
 
   if ( tree != 0 )
   {
-    if( tree->isRoot )
-      flobCache->Clear();
-   
     switch (tree->nodetype)
     {
       case Operator:
@@ -2788,6 +2785,11 @@ Deletes an operator tree object.
       default:
         break;
     } /* case */ 
+
+    // Clears the FLOB cache
+    if( tree->isRoot )
+      flobCache->Clear();
+   
     delete tree;
     tree = 0;
   }
