@@ -251,13 +251,6 @@ to demonstrate how to handle complex  objects.
 long CcInt::intsCreated = 0;
 long CcInt::intsDeleted = 0;
 
-void CcInt::CopyFrom(StandardAttribute* right)
-{
-  CcInt* r = (CcInt*)right;
-  defined = r->defined;
-  intval = r->intval;
-}
-
 /*
 
 The next function defines the type property of type constructor ~CcInt~.
@@ -275,14 +268,6 @@ CcIntProperty()
 	                     nl->StringAtom("int"),
 			     nl->StringAtom("(<intvalue>)"),
 			     nl->StringAtom("12 or -32 or 0"))));
-}
-
-bool CcInt::Adjacent( Attribute* arg )
-{
-  int a = GetIntval(),
-      b = ((CcInt *)arg)->GetIntval();
-
-  return( a == b || a == b + 1 || b == a + 1 );
 }
 
 /*
@@ -423,63 +408,6 @@ The following type constructor, ~ccreal~, is defined in the same way as
 long CcReal::realsCreated = 0;
 long CcReal::realsDeleted = 0;
 
-CcReal::CcReal(){ realsCreated++; }
-CcReal::CcReal( bool d, float v ) { defined = d; realval = v; realsCreated++; }
-CcReal::~CcReal() { realsDeleted++; }
-void    CcReal::Initialize() {}
-void    CcReal::Finalize() { realsDeleted++; }
-bool    CcReal::IsDefined() const { return (defined); }
-void    CcReal::SetDefined(bool defined) { this->defined = defined; }
-float   CcReal::GetRealval() { return (realval);}
-void    CcReal::Set( float v ) { defined = true, realval = v; }
-void    CcReal::Set( bool d, float v ) { defined = d, realval = v; }
-CcReal* CcReal::Clone() { return (new CcReal(this->defined, this->realval)); }
-
-size_t CcReal::HashValue()
-{
-  if(!defined)
-  {
-    return 0;
-  }
-
-  unsigned long h = 0;
-  char* s = (char*)&realval;
-  for(unsigned int i = 1; i <= sizeof(float) / sizeof(char); i++)
-  {
-    h = 5 * h + *s;
-    s++;
-  }
-  return size_t(h);
-}
-
-void CcReal::CopyFrom(StandardAttribute* right)
-{
-  CcReal* r = (CcReal*)right;
-  defined = r->defined;
-  realval = r->realval;
-}
-
-int     CcReal::Compare( Attribute * arg )
-{
-  if(!IsDefined() && !arg->IsDefined())
-  {
-    return 0;
-  }
-  if(!IsDefined())
-  {
-    return -1;
-  }
-  if(!arg->IsDefined())
-  {
-    return 1;
-  }
-
-  CcReal* p = (CcReal* )(arg);
-  if ( !p )                    return (-2);
-  if ( realval < p-> realval ) return (-1);
-  if ( realval > p-> realval ) return (1);
-  return (0);
-};
 /*
 
 The next function defines the type property of type constructor ~CcReal~.
@@ -498,11 +426,6 @@ CcRealProperty()
 			     nl->StringAtom("(<realvalue>)"),
 			     nl->StringAtom("12.0 or -1.342 or 14e-3 "
 			     "or .23"))));
-}
-
-bool CcReal::Adjacent( Attribute *arg )
-{
-  return( GetRealval() == ((CcReal *)arg)->GetRealval() );
 }
 
 ListExpr
@@ -627,46 +550,6 @@ to demonstrate how to handle complex  objects.
 long CcBool::boolsCreated = 0;
 long CcBool::boolsDeleted = 0;
 
-CcBool::CcBool(){ boolsCreated++; }
-CcBool::CcBool( bool d, int v ){ defined  = d; boolval = v; boolsCreated++; }
-CcBool::~CcBool() { boolsDeleted++; }
-void    CcBool::Initialize() {}
-void    CcBool::Finalize() { boolsDeleted++; }
-void    CcBool::Set( bool d, bool v ){ defined = d, boolval = v; }
-bool    CcBool::IsDefined() const { return defined; }
-void    CcBool::SetDefined(bool defined) { this->defined = defined; }
-bool    CcBool::GetBoolval() { return boolval; }
-CcBool* CcBool::Clone() { return new CcBool(this->defined, this->boolval); }
-size_t CcBool::HashValue() { return (defined ? boolval : false); }
-
-void CcBool::CopyFrom(StandardAttribute* right)
-{
-  CcBool* r = (CcBool*)right;
-  defined = r->defined;
-  boolval = r->boolval;
-}
-
-int     CcBool::Compare( Attribute* arg )
-{
-  if(!IsDefined() && !arg->IsDefined())
-  {
-    return 0;
-  }
-  if(!IsDefined())
-  {
-    return -1;
-  }
-  if(!arg->IsDefined())
-  {
-    return 1;
-  }
-
-  CcBool* p = (CcBool*)(arg);
-  if ( !p )                    return (-2);
-  if ( boolval < p-> boolval ) return (-1);
-  if ( boolval > p-> boolval ) return (1);
-  return (0);
-};
 /*
 
 The next function defines the type property of type constructor ~CcBool~.
@@ -684,11 +567,6 @@ CcBoolProperty()
 	                     nl->StringAtom("bool"),
 			     nl->StringAtom("(<boolvalue>)"),
 			     nl->StringAtom("TRUE or FALSE"))));
-}
-
-bool CcBool::Adjacent( Attribute* arg )
-{
-  return 1;
 }
 
 /*
@@ -812,90 +690,10 @@ TypeConstructor ccBool( "bool",             CcBoolProperty,
 long CcString::stringsCreated = 0;
 long CcString::stringsDeleted = 0;
 
-CcString::CcString() { stringsCreated++; }
-CcString::CcString( bool d, const STRING* v ) { defined = d; strcpy( stringval, *v); stringsCreated++; }
-CcString::~CcString() { stringsDeleted++; }
-void      CcString::Initialize() {}
-void      CcString::Finalize() { stringsDeleted++; }
-bool      CcString::IsDefined() const { return (defined); }
-void      CcString::SetDefined(bool defined) { this->defined = defined; }
-STRING*   CcString::GetStringval() { return (&stringval); }
-CcString* CcString::Clone() { return (new CcString( this->defined, &this->stringval )); }
-void CcString::Set( bool d, const STRING* v ) { defined = d; strcpy( stringval, *v); }
-
-size_t
-CcString::HashValue()
+bool CcString::Adjacent( const Attribute* arg ) const
 {
-  if(!defined)
-  {
-    return 0;
-  }
-
-  unsigned long h = 0;
-  char* s = stringval;
-  while(*s != 0)
-  {
-    h = 5 * h + *s;
-    s++;
-  }
-  return size_t(h);
-}
-
-void CcString::CopyFrom(StandardAttribute* right)
-{
-  CcString* r = (CcString*)right;
-  defined = r->defined;
-  strcpy(stringval, r->stringval);
-}
-
-int       CcString::Compare( Attribute* arg )
-{
-  if(!IsDefined() && !arg->IsDefined())
-  {
-    return 0;
-  }
-  if(!IsDefined())
-  {
-    return -1;
-  }
-  if(!arg->IsDefined())
-  {
-    return 1;
-  }
-
-  CcString* p = (CcString*)(arg);
-  if ( !p ) return (-2);
-  if ( strcmp(stringval , p->stringval) < 0) return (-1);
-  if ( !strcmp(stringval , p->stringval)) return (0);
-  return (1);
-  // return (stringval.compare( p->stringval ));
-};
-/*
-
-The next function defines the type property of type constructor ~CcString~.
-
-*/
-ListExpr
-CcStringProperty()
-{
-  ListExpr examplelist = nl->TextAtom();
-  nl->AppendText(examplelist, "\"A piece of text up to 48 "
-		 "characters\"");
-  return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-	                     nl->StringAtom("Example Type List"),
-			     nl->StringAtom("List Rep"),
-			     nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> DATA"),
-	                     nl->StringAtom("string"),
-			     nl->StringAtom("(<stringvalue>)"),
-			     examplelist)));
-}
-
-bool CcString::Adjacent( Attribute* arg )
-{
-  STRING *a = GetStringval(),
-         *b = ((CcString *)arg)->GetStringval();
+  const STRING *a = GetStringval(),
+               *b = ((CcString *)arg)->GetStringval();
 
   if( strcmp( *a, *b ) == 0 )
     return 1;
@@ -921,6 +719,28 @@ bool CcString::Adjacent( Attribute* arg )
   }
 
   return 0;
+}
+
+/*
+
+The next function defines the type property of type constructor ~CcString~.
+
+*/
+ListExpr
+CcStringProperty()
+{
+  ListExpr examplelist = nl->TextAtom();
+  nl->AppendText(examplelist, "\"A piece of text up to 48 "
+		 "characters\"");
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+	                     nl->StringAtom("Example Type List"),
+			     nl->StringAtom("List Rep"),
+			     nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+	                     nl->StringAtom("string"),
+			     nl->StringAtom("(<stringvalue>)"),
+			     examplelist)));
 }
 
 /*
@@ -1720,8 +1540,8 @@ CcPlus_ss( Word* args, Word& result, int message, Word& local, Supplier s )
   CcString* wstr1 = reinterpret_cast<CcString*>( args[0].addr );
   CcString* wstr2 = reinterpret_cast<CcString*>( args[1].addr );
   
-  string str1 = reinterpret_cast<char*>( wstr1->GetStringval() );
-  string str2 = reinterpret_cast<char*>( wstr2->GetStringval() );
+  string str1 = reinterpret_cast<const char*>( wstr1->GetStringval() );
+  string str2 = reinterpret_cast<const char*>( wstr2->GetStringval() );
 
   CcString* wres = reinterpret_cast<CcString*>( result.addr );
 
@@ -2889,7 +2709,7 @@ SubStrFun( Word* args, Word& result, int message, Word& local, Supplier s )
   CcInt* wpos1 = reinterpret_cast<CcInt*>( args[1].addr );
   CcInt* wpos2 = reinterpret_cast<CcInt*>( args[2].addr );
   
-  string str1 = reinterpret_cast<char*>( wstr->GetStringval() );
+  string str1 = reinterpret_cast<const char*>( wstr->GetStringval() );
   int p1 = wpos1->GetIntval();
   int p2 = wpos2->GetIntval();
 

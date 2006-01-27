@@ -46,6 +46,7 @@ using namespace std;
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
+#include "AlgebraManager.h"
 #include "StandardTypes.h"
 #include "StandardAttribute.h"
 #include "FLOB.h"
@@ -53,6 +54,7 @@ using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
+extern AlgebraManager *am;
 
 /*
 2 Type Constructor ~binfile~
@@ -64,29 +66,29 @@ class BinaryFile : public StandardAttribute
 {
   public:
 
-    BinaryFile() {};
+    inline BinaryFile() {};
 /*
 This constructor should not be used.
 
 */
-    BinaryFile( const int size );
-    ~BinaryFile();
-    void Destroy();
+    inline BinaryFile( const int size );
+    inline ~BinaryFile();
+    inline void Destroy();
 
-    bool IsDefined() const;
-    void SetDefined( bool Defined);
-    size_t HashValue();
-    void CopyFrom(StandardAttribute* right);
-    int Compare(Attribute * arg);
-    bool Adjacent(Attribute * arg);
-    BinaryFile* Clone();
-    ostream& Print( ostream &os );
-    int NumOfFLOBs();
-    FLOB *GetFLOB(const int i);
+    inline bool IsDefined() const;
+    inline void SetDefined( bool Defined);
+    inline size_t HashValue() const;
+    void CopyFrom(const StandardAttribute* right);
+    inline int Compare(const Attribute * arg) const;
+    inline bool Adjacent(const Attribute * arg) const;
+    BinaryFile* Clone() const;
+    ostream& Print( ostream &os ) const;
+    inline int NumOfFLOBs() const;
+    inline FLOB *GetFLOB(const int i);
 
-    void Encode( string& textBytes );
-    void Decode( string& textBytes );
-    bool SaveToFile( char *fileName );
+    void Encode( string& textBytes ) const;
+    void Decode( const string& textBytes );
+    bool SaveToFile( const char *fileName ) const;
 
   private:
 
@@ -94,90 +96,87 @@ This constructor should not be used.
     bool canDelete;
 };
 
-BinaryFile::BinaryFile( const int size ) :
+inline BinaryFile::BinaryFile( const int size ) :
 binData( size ),
 canDelete( false )
 {
 }
 
-BinaryFile::~BinaryFile()
+inline BinaryFile::~BinaryFile()
 {
   if( canDelete )
     binData.Destroy();
 }
 
-void BinaryFile::Destroy()
+inline void BinaryFile::Destroy()
 {
   canDelete = true;
 }
 
-bool BinaryFile::IsDefined() const
+inline bool BinaryFile::IsDefined() const
 {
   return true;
 }
 
-void BinaryFile::SetDefined( bool Defined)
+inline void BinaryFile::SetDefined( bool Defined)
 {
 }
 
-size_t BinaryFile::HashValue()
+inline size_t BinaryFile::HashValue() const
 {
   return 0;
 }
 
-void BinaryFile::CopyFrom(StandardAttribute* right)
+void BinaryFile::CopyFrom(const StandardAttribute* right) 
 {
-  BinaryFile *r = (BinaryFile *)right;
+  const BinaryFile *r = (const BinaryFile *)right;
   binData.Resize( r->binData.Size() );
-  char *bin = (char *)malloc( r->binData.Size() );
-  r->binData.Get( 0, r->binData.Size(), bin );
+  const char *bin;
+  r->binData.Get( 0, &bin );
   binData.Put( 0, r->binData.Size(), bin );
-  free( bin );
 }
 
-int BinaryFile::Compare(Attribute * arg)
+inline int BinaryFile::Compare(const Attribute * arg) const
 {
   return 0;
 }
 
-bool BinaryFile::Adjacent(Attribute * arg)
+inline bool BinaryFile::Adjacent(const Attribute * arg) const
 {
   return false;
 }
 
-BinaryFile* BinaryFile::Clone()
+BinaryFile* BinaryFile::Clone() const
 {
   BinaryFile *newBinaryFile = new BinaryFile( 0 );
   newBinaryFile->CopyFrom( this );
   return newBinaryFile;
 }
 
-ostream& BinaryFile::Print( ostream &os )
+ostream& BinaryFile::Print( ostream &os ) const
 {
   return os << "BinaryFile Algebra" << endl;
 }
 
-int BinaryFile::NumOfFLOBs()
+inline int BinaryFile::NumOfFLOBs() const
 {
   return 1;
 }
 
-FLOB *BinaryFile::GetFLOB(const int i)
+inline FLOB *BinaryFile::GetFLOB(const int i)
 {
-  assert( i >= 0 && i < NumOfFLOBs() );
   return &binData;
 }
 
-void BinaryFile::Encode( string& textBytes )
+void BinaryFile::Encode( string& textBytes ) const
 {
   Base64 b;
-  char *bytes = (char *)malloc( binData.Size() );
-  binData.Get( 0, binData.Size(), bytes );
+  const char *bytes;
+  binData.Get( 0, &bytes );
   b.encode( bytes, binData.Size(), textBytes );
-  free( bytes );
 }
 
-void BinaryFile::Decode( string& textBytes )
+void BinaryFile::Decode( const string& textBytes )
 {
   Base64 b;
   int sizeDecoded = b.sizeDecoded( textBytes.size() );
@@ -192,15 +191,15 @@ void BinaryFile::Decode( string& textBytes )
   free( bytes );
 }
 
-bool BinaryFile::SaveToFile( char *fileName )
+bool BinaryFile::SaveToFile( const char *fileName ) const
 {
   FILE *f = fopen( fileName, "wb" );
 
   if( f == NULL )
     return false;
 
-  char *bytes = (char *)malloc( binData.Size() );
-  binData.Get( 0, binData.Size(), bytes );
+  const char *bytes;
+  binData.Get( 0, &bytes );
 
   if( fwrite( bytes, 1, binData.Size(), f ) != binData.Size() )
     return false;
@@ -539,10 +538,13 @@ algebra dynamically at runtime.
 */
 extern "C"
 Algebra*
-InitializeBinaryFileAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
+InitializeBinaryFileAlgebra( NestedList* nlRef, 
+                             QueryProcessor* qpRef,
+                             AlgebraManager* amRef )
 {
   nl = nlRef;
   qp = qpRef;
+  am = amRef;
   return (&binFileAlgebra);
 }
 

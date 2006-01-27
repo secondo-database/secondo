@@ -78,6 +78,7 @@ using namespace std;
 
 
 extern NestedList *nl;
+extern AlgebraManager* am;
 
 bool firsttime = true;
 const int cachesize = 20;
@@ -111,7 +112,6 @@ Tuple *Tuple::RestoreFromList( ListExpr typeInfo, ListExpr value, int errorPos, 
   valuelist = value;
   correct = true;
 
-  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
   while (!nl->IsEmpty(attrlist))
   {
     first = nl->First(attrlist);
@@ -138,7 +138,6 @@ ListExpr Tuple::SaveToList( ListExpr typeInfo )
   int attrno, algebraId, typeId;
   ListExpr l, lastElem, attrlist, first, valuelist;
 
-  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
   attrlist = nl->Second(nl->First(typeInfo));
   attrno = 0;
   l = nl->TheEmptyList();

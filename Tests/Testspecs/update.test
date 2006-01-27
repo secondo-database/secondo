@@ -21,7 +21,7 @@
 # run with : Runner -c MyConfig.config <relalgtest
 # (Runner can be found in directory UserInterfaces)
 
-#stop 
+#stop
 
 #setup
 open database germany;
@@ -213,9 +213,9 @@ query Kreis3 feed filter[(.KName = "NewMagdeburg") and (.Gebiet touches magdebur
 #yields (int 1)
 query Kreis3I feed filter[(.KName = "NewMagdeburg") and (.Gebiet touches magdeburg)] count;
 
-#testcase appendidentifier1
+#testcase addid1
 #yields ((rel (tuple ((TID tid)))) ((328) (332) (333) (334) (336) (337) (338) (340) (342) (345)))
-query Kreis feed filter[.Gebiet intersects berlin] appendidentifier project[TID] consume;
+query Kreis feed filter[.Gebiet intersects berlin] addid project[TID] consume;
 
 #testcase deletebyid1
 #yields (int 1)

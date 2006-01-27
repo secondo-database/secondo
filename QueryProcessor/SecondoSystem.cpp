@@ -399,26 +399,31 @@ Precondition: dbState = dbOpen.
     cerr << " RestoreObjectFromFile: database is not open!" << endl;
     exit( 0 );
   }
-  else if ( !nl->ReadFromFile( filename, list ) )
+  else 
   {
-    rc = 2; // Error reading file
-  }
-  else if ( !nl->IsEqual( nl->Second( list ), objectname, false ) )
-  {
-    rc = 1; // Object name in file different
-  }
-  else if ( nl->IsEmpty( list) )
-  {
-    rc = 3; // List structure invalid
-  }
-  else if ( RestoreObjects( nl->TwoElemList( nl-> SymbolAtom("OBJECTS"), list ), 
-                            errorInfo ) )
-  {
-    rc = 0; // object successfully restored
-  }
-  else
-  {
-    rc = 4; // Error in reading object
+    cout << "Reading file ..." << endl;
+    if ( !nl->ReadFromFile( filename, list ) )
+    {
+      rc = 2; // Error reading file
+    }
+    else if ( !nl->IsEqual( nl->Second( list ), objectname, false ) )
+    {
+      rc = 1; // Object name in file different
+    }
+    else if ( nl->IsEmpty( list) )
+    {
+      rc = 3; // List structure invalid
+    }
+    else if ( RestoreObjects( nl->TwoElemList( nl-> SymbolAtom("OBJECTS"), list ), 
+                              errorInfo ) )
+    {
+      rc = 0; // object successfully restored
+    }
+    else
+    {
+      rc = 4; // Error in reading object
+    }
+    nl->Destroy( list );
   }
   return ( rc );
 }
@@ -463,95 +468,88 @@ Precondition: dbState = dbClosed.
   {
     rc = ERR_IDENT_UNKNOWN_DB_NAME; // Database unknown
   }
-  else if ( !nl->ReadFromFile( filename, list ) )
+  else 
   {
-    rc = ERR_PROBLEM_IN_READING_FILE; // Error reading file
-  }
-  else
-  {
-    listFile = list;
+    cout << "Reading file ..." << endl;
+    if ( !nl->ReadFromFile( filename, list ) )
+    {
+      rc = ERR_PROBLEM_IN_READING_FILE; // Error reading file
+    }
+    else
+    {
+      listFile = list;
 /*
 Tests the syntax of the database file named ~filename~.
 
 */
-    if ( nl->ExprLength( list ) >= 4 )
-    {
-      if ( !nl->IsEqual( nl->Second( list ), dbname, false ) )
+      if ( nl->ExprLength( list ) == 4 || 
+           nl->ExprLength( list ) == 8 /* Keep compatibility with old files */)
       {
-        rc = ERR_DB_NAME_NEQ_IDENT; // Database name in file different
-      }
-      else if ( nl->IsEqual( nl->First( list ), "DATABASE" ) )
-      {
-        list = nl->Rest( nl->Rest( list ) ); // reduce to remaining 6 elements
-
-        types   = nl->First( list );
-        objects = nl->Second( list );
-
-        if ( nl->IsEmpty( types ) ||
-             nl->IsEmpty( objects ) )
+        if ( !nl->IsEqual( nl->Second( list ), dbname, false ) )
         {
-          rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid
+          rc = ERR_DB_NAME_NEQ_IDENT; // Database name in file different
         }
-        else if ( nl->IsEqual( nl->First( types ), "TYPES" ) &&
-                  nl->IsEqual( nl->First( objects ), "OBJECTS" ) )
+        else if ( nl->IsEqual( nl->First( list ), "DATABASE" ) )
         {
+          list = nl->Rest( nl->Rest( list ) ); 
+  
+          if( nl->ExprLength( list ) == 2 )
+          {
+            types   = nl->First( list );
+            objects = nl->Second( list );
+          }
+          else
+          {
+            types   = nl->Fifth( list );
+            objects = nl->Sixth( list );
+          }
+  
+          if ( nl->IsEmpty( types ) ||
+               nl->IsEmpty( objects ) )
+          {
+            rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid
+          }
+          else if ( nl->IsEqual( nl->First( types ), "TYPES" ) &&
+                    nl->IsEqual( nl->First( objects ), "OBJECTS" ) )
+          {
 /*
 Before restoring the database we need to get a completely empty database.
 This is done by closing, destroying and recreating the database.
 
 */
-          CloseDatabase();
-          DestroyDatabase ( dbname );
-          CreateDatabase( dbname );
+            CloseDatabase();
+            DestroyDatabase ( dbname );
+            CreateDatabase( dbname );
 
 /*
 Load database types and objects from file named ~filename~.
 
 */
-//          SecondoSystem::BeginTransaction();
-          if ( RestoreCatalog( types, objects, errorInfo ) )
-          {
-            rc = ERR_NO_ERROR; // Database successfully restored
-
-            /*
-            if ( !SecondoSystem::CommitTransaction() )
+            if ( RestoreCatalog( types, objects, errorInfo ) )
             {
-              rc = 23;
+              rc = ERR_NO_ERROR; // Database successfully restored
             }
-						*/
-
+            else
+            {
+              rc = ERR_IN_DEFINITIONS_FILE; // Error in types or objects
+            }
           }
           else
           {
-            rc = ERR_IN_DEFINITIONS_FILE; // Error in types or objects
-            
-						/*
-            if ( !SecondoSystem::AbortTransaction() )
-            {
-              rc = 23;
-            }
-            */
+            rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid (Types or objects missing)
           }
         }
         else
         {
-          rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid (Types or objects missing)
+          rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid (Database info missing)
         }
       }
       else
       {
-        rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid (Database info missing)
+        rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid (List too short)
       }
+      nl->Destroy( listFile );
     }
-    else
-    {
-      rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid (List too short)
-    }
-    nl->Destroy( listFile );
-    //if ( rc != 0 )
-    //{
-    //  CloseDatabase();
-    //}
   }
   return (rc);
 }

@@ -65,10 +65,9 @@ class TupleIdentifier: public StandardAttribute
 	*/
   TupleIdentifier( bool DEFINED, TupleId TID );
   ~TupleIdentifier();
-  TupleId      GetTid();
-  void     SetTid( TupleId tid);
-  TupleIdentifier*   Clone();
-  int NumOfFLOBs();
+  TupleId      GetTid() const;
+  void     SetTid( const TupleId tid);
+  TupleIdentifier*   Clone() const;
   inline bool IsDefined() const 
   { 
     return (defined); 
@@ -79,38 +78,31 @@ class TupleIdentifier: public StandardAttribute
     this->defined = DEFINED;
   }
     
-  inline size_t HashValue()
+  inline size_t HashValue() const
   { 
     return (defined ? tid : 0); 
   }
   
-  void CopyFrom(StandardAttribute* right);
+  void CopyFrom(const StandardAttribute* right);
   
-  inline int Compare(Attribute *arg)
+  inline int Compare(const Attribute *arg) const
   {
-    assert(arg);
-    TupleIdentifier* tupleI = (TupleIdentifier*)(arg);
+    const TupleIdentifier* tupleI = (const TupleIdentifier*)(arg);
     bool argDefined = tupleI->IsDefined();
-    if(!defined && !argDefined) {
+    if(!defined && !argDefined) 
       return 0;
-    }
-    if(!defined) {
+    if(!defined) 
       return -1;
-    }
-    if(!argDefined) {
+    if(!argDefined) 
       return 1;
-    }
-
-    if ( tid < tupleI->GetTid() ) {
+    if ( tid < tupleI->GetTid() ) 
       return (-1);
-    }  
-    if ( tid > tupleI->GetTid()) {
+    if ( tid > tupleI->GetTid()) 
       return (1);
-    }  
     return (0);
   }
 
-  bool Adjacent(Attribute *arg);
+  bool Adjacent(const Attribute *arg) const;
   
  private:
   long tid;

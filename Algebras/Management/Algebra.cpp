@@ -38,6 +38,7 @@ using namespace std;
 
 NestedList *nl;
 QueryProcessor *qp;
+AlgebraManager *am;
 
 /* Member functions of class Operator: */
 int

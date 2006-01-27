@@ -67,7 +67,7 @@ using namespace std;
 #include <JVMInit.h>
 
 extern NestedList* nl;
-static QueryProcessor* qp;
+extern QueryProcessor* qp;
 static JVMInitializer *jvminit=0;
 static JNIEnv *env;
 static JavaVM *jvm;
@@ -108,17 +108,17 @@ public:
    CcFPoint(const int size);
    ~CcFPoint();
    void Destroy();
-   CcFPoint* Clone();
+   CcFPoint* Clone() const;
    bool IsDefined() const;
    void SetDefined(bool d);
-   size_t HashValue();
-   void CopyFrom(StandardAttribute* right);
-   int Compare(Attribute *arg);
-   bool Adjacent(Attribute * arg);
-   int NumOfFLOBs();
+   size_t HashValue() const;
+   void CopyFrom(const StandardAttribute* right);
+   int Compare(const Attribute *arg) const;
+   bool Adjacent(const Attribute * arg) const;
+   int NumOfFLOBs() const;
    FLOB *GetFLOB(const int i);
    void Initialize();
-   jobject GetObject();
+   jobject GetObject() const;
     // the methods for operators
    CcFPoint* Add(CcFPoint* P);
    CcFPoint* Setsf(const double sf);
@@ -164,18 +164,18 @@ class CcFLine : public StandardAttribute{
      CcFLine(const jobject jobj);
      ~CcFLine();
      void Destroy();
-     CcFLine* Clone();
+     CcFLine* Clone() const;
      bool IsDefined() const;
      void SetDefined(bool d);
-     size_t HashValue();
-     void CopyFrom(StandardAttribute* right);
-     int Compare(Attribute *arg);
-     bool Adjacent(Attribute * arg);
-     int NumOfFLOBs();
+     size_t HashValue() const;
+     void CopyFrom(const StandardAttribute* right);
+     int Compare(const Attribute *arg) const;
+     bool Adjacent(const Attribute * arg) const;
+     int NumOfFLOBs() const;
      FLOB *GetFLOB(const int i);
      void Initialize();
-     jobject GetObject();
-     ListExpr toListExpr();
+     jobject GetObject() const;
+     ListExpr toListExpr() const;
      // functions for operators
      CcFLine* Add(CcFLine* L);
      CcFLine* Setsf(const double sf);
@@ -223,18 +223,18 @@ public:
    CcFRegion(const jobject jobj);
    ~CcFRegion();
    void Destroy();
-   CcFRegion* Clone();
+   CcFRegion* Clone() const;
    bool IsDefined() const;
    void SetDefined(bool d);
-   size_t HashValue();
-   void CopyFrom(StandardAttribute* right);
-   int Compare(Attribute *arg);
-   bool Adjacent(Attribute* arg);
-   int NumOfFLOBs();
+   size_t HashValue() const;
+   void CopyFrom(const StandardAttribute* right);
+   int Compare(const Attribute *arg) const;
+   bool Adjacent(const Attribute* arg) const;
+   int NumOfFLOBs() const;
    FLOB *GetFLOB(const int i);
    void Initialize();
-   jobject GetObject();
-   ListExpr toListExpr();
+   jobject GetObject() const;
+   ListExpr toListExpr() const;
 
    // the methods for algebra operators
    CcFRegion* Add(const CcFRegion* R);
@@ -344,8 +344,8 @@ void CcFPoint::RestoreJavaObjectFromFLOB(){
        return;
    }
    int size = objectData.Size();
-   char *bytes = new char[size];
-   objectData.Get(0,size,bytes);
+   const char *bytes;
+   objectData.Get(0,&bytes);
    // copy the data into a java-array
   jbyteArray jbytes = env->NewByteArray(size);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
@@ -363,7 +363,6 @@ void CcFPoint::RestoreJavaObjectFromFLOB(){
   defined = true;
   jbyte* elems = env->GetByteArrayElements(jbytes,0);
   env->ReleaseByteArrayElements(jbytes,elems,0);
-  delete [] bytes;
  }
 
 
@@ -408,7 +407,7 @@ CcFPoint::~CcFPoint(){
 The ~GetObject~ function returns the managed Java objects.
 
 */
-jobject CcFPoint::GetObject(){
+jobject CcFPoint::GetObject() const {
   return obj;
 }
 
@@ -429,7 +428,7 @@ void CcFPoint::Destroy(){
 Computes a HashValue for a CCFPoint.
 
 */
-size_t CcFPoint::HashValue(){
+size_t CcFPoint::HashValue() const{
   jmethodID mid = env->GetMethodID(cls,"getHashValue","()I");
   if(mid == 0){
      error(__LINE__);
@@ -444,15 +443,14 @@ The calling instance takes its value from the argument if
 ~CopyFrom~ is called.
 
 */
-void CcFPoint::CopyFrom(StandardAttribute* right){
-    CcFPoint *P = (CcFPoint *)right;
+void CcFPoint::CopyFrom(const StandardAttribute* right){
+    const CcFPoint *P = (const CcFPoint *)right;
    cls = env->FindClass("fuzzyobjects/composite/FPoint");
    defined = P->defined;
    objectData.Resize(P->objectData.Size());
-   char *data = new char[P->objectData.Size()];
-   P->objectData.Get(0,P->objectData.Size(),data);
+   const char *data;
+   P->objectData.Get(0,&data);
    objectData.Put(0,P->objectData.Size(),data);
-   delete [] data;
    RestoreJavaObjectFromFLOB();
 }
 
@@ -460,13 +458,13 @@ void CcFPoint::CopyFrom(StandardAttribute* right){
 ~Compare~
 
 */
-int CcFPoint::Compare(Attribute * arg){
+int CcFPoint::Compare(const Attribute * arg) const{
   jmethodID mid = env->GetMethodID(cls,"compareTo",
                                    "(Lfuzzyobjects/composite/FPoint;)I");
   if(mid == 0){
       error(__LINE__);
   }
-  CcFPoint *P = (CcFPoint *) arg;
+  const CcFPoint *P = (const CcFPoint *) arg;
   return env->CallIntMethod(obj,mid,P->obj);
 }
 
@@ -474,7 +472,7 @@ int CcFPoint::Compare(Attribute * arg){
 ~Adjacent~
 
 */
-bool CcFPoint::Adjacent(Attribute * arg){
+bool CcFPoint::Adjacent(const Attribute * arg) const{
    return false;
 }
 
@@ -482,7 +480,7 @@ bool CcFPoint::Adjacent(Attribute * arg){
 ~NumOfFLOBs~
 
 */
-int CcFPoint::NumOfFLOBs(){
+int CcFPoint::NumOfFLOBs() const {
   return 1;
 }
 
@@ -523,7 +521,7 @@ void CcFPoint::SetDefined(bool d){
 ~Clone~
 
 */
-CcFPoint* CcFPoint::Clone(){
+CcFPoint* CcFPoint::Clone() const {
   jmethodID mid;
   jobject jobj;
   mid=env->GetMethodID(cls,"copy",
@@ -789,8 +787,8 @@ void CcFLine::RestoreJavaObjectFromFLOB(){
    if(cls == 0) error(__LINE__);
    if(&objectData == 0) error(__LINE__);
    int size = objectData.Size();
-   char* bytes = new char[size];
-   objectData.Get(0,size,bytes);
+   const char* bytes;
+   objectData.Get(0,&bytes);
    jbyteArray jbytes = env->NewByteArray(size);
    env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
    jmethodID mid;
@@ -803,7 +801,6 @@ void CcFLine::RestoreJavaObjectFromFLOB(){
    defined = true;
    env->ReleaseByteArrayElements(jbytes,
                             env->GetByteArrayElements(jbytes,0),0);
-   delete [] bytes;
 }
 
 
@@ -837,26 +834,25 @@ void CcFLine::Destroy(){
    canDelete=true;
 }
 
-size_t CcFLine::HashValue(){
+size_t CcFLine::HashValue() const{
    jmethodID mid = env->GetMethodID(cls,"getHashValue","()I");
    if(mid==0) error(__LINE__);
    return (size_t) env->CallIntMethod(obj,mid);
 }
 
-void CcFLine::CopyFrom(StandardAttribute* right){
-  CcFLine *L = (CcFLine *) right;
+void CcFLine::CopyFrom(const StandardAttribute* right){
+  const CcFLine *L = (const CcFLine *) right;
   cls =  env->FindClass("fuzzyobjects/composite/FLine");
   defined = L->defined;
   int size = L->objectData.Size();
   objectData.Resize(size);
-  char* data = new char[size];
-  L->objectData.Get(0,size,data);
+  const char* data;
+  L->objectData.Get(0,&data);
   objectData.Put(0,size,data);
-  delete [] data;
   RestoreJavaObjectFromFLOB();
 }
 
-int CcFLine::Compare(Attribute* arg){
+int CcFLine::Compare(const Attribute* arg) const{
   jmethodID mid;
   mid = env->GetMethodID(cls,"compareTo",
                          "(Lfuzzyobjects/composite/FLine;)I");
@@ -865,11 +861,11 @@ int CcFLine::Compare(Attribute* arg){
   return env->CallIntMethod(obj,mid,L->obj);
 }
 
-bool CcFLine::Adjacent(Attribute* arg){
+bool CcFLine::Adjacent(const Attribute* arg) const{
   return false;
 }
 
-int CcFLine::NumOfFLOBs(){
+int CcFLine::NumOfFLOBs() const{
    return 1;
 }
 
@@ -1051,7 +1047,7 @@ This function translates  this CcFLine instance to its representation
 as ListExpr.
 
 */
-ListExpr CcFLine::toListExpr(){
+ListExpr CcFLine::toListExpr() const{
    jmethodID mid;
    mid = env->GetMethodID(cls,"getSF","()D");
    if(mid==0) error(__LINE__);
@@ -1085,7 +1081,7 @@ ListExpr CcFLine::toListExpr(){
   }
 
 
-jobject CcFLine::GetObject(){
+jobject CcFLine::GetObject() const{
    return obj;
 }
 
@@ -1097,7 +1093,7 @@ void CcFLine::SetDefined(bool d){
    defined=d;
 }
 
-CcFLine* CcFLine::Clone(){
+CcFLine* CcFLine::Clone() const {
    jmethodID mid;
    jobject jobj;
 
@@ -1368,8 +1364,8 @@ void CcFRegion::RestoreFLOBFromJavaObject(){
          return;
      }
      int size=objectData.Size();
-     char* bytes = new char[size];
-     objectData.Get(0,size,bytes);
+     const char* bytes;
+     objectData.Get(0,&bytes);
      jbyteArray jbytes = env->NewByteArray(size);
      env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
      jmethodID mid;
@@ -1382,7 +1378,6 @@ void CcFRegion::RestoreFLOBFromJavaObject(){
      defined=true;
      env->ReleaseByteArrayElements(jbytes,
                           env->GetByteArrayElements(jbytes,0),0);
-     delete [] bytes;
  }
 
 /*
@@ -1413,41 +1408,40 @@ void CcFRegion::Destroy(){
    canDelete=true;
 }
 
-size_t CcFRegion::HashValue(){
+size_t CcFRegion::HashValue() const{
   jmethodID mid = env->GetMethodID(cls,"getHashValue","()I");
   if(mid==0) error(__LINE__);
   return (size_t) env->CallIntMethod(obj,mid);
 }
 
 
-void CcFRegion::CopyFrom(StandardAttribute* right){
-   CcFRegion* R = (CcFRegion*) right;
+void CcFRegion::CopyFrom(const StandardAttribute* right){
+   const CcFRegion* R = (const CcFRegion*) right;
    cls = env->FindClass("fuzzyobjects/composite/FRegion");
    if(cls==0) error(__LINE__);
    defined = R->defined;
    int size = R->objectData.Size();
    objectData.Resize(size);
-   char* data = new char[size];
-   R->objectData.Get(0,size,data);
+   const char* data;
+   R->objectData.Get(0,&data);
    objectData.Put(0,size,data);
-   delete [] data;
    RestoreJavaObjectFromFLOB();
 }
 
-int CcFRegion::Compare(Attribute* arg){
+int CcFRegion::Compare(const Attribute* arg) const{
   jmethodID mid;
   mid = env->GetMethodID(cls,"compareTo",
                           "(Lfuzzyobjects/composite/FRegion;)I");
   if(mid==0) error(__LINE__);
-  CcFRegion* R = (CcFRegion*) arg;
+  const CcFRegion* R = (const CcFRegion*) arg;
   return env->CallIntMethod(obj,mid,R->obj);
 }
 
-bool CcFRegion::Adjacent(Attribute* arg){
+bool CcFRegion::Adjacent(const Attribute* arg) const{
    return false;
 }
 
-int CcFRegion::NumOfFLOBs(){
+int CcFRegion::NumOfFLOBs() const {
    return 1;
 }
 
@@ -1467,7 +1461,7 @@ This functions computes the nested list representation for a
 fuzzy region.
 
 */
-ListExpr CcFRegion::toListExpr(){
+ListExpr CcFRegion::toListExpr() const{
    jmethodID mid;
    mid = env->GetMethodID(cls,"getSF","()D");
    if(mid==0) error(__LINE__);
@@ -1502,7 +1496,7 @@ ListExpr CcFRegion::toListExpr(){
 }
 
 
-jobject CcFRegion::GetObject(){
+jobject CcFRegion::GetObject() const{
   return obj;
 }
 
@@ -1514,7 +1508,7 @@ void CcFRegion::SetDefined(bool d){
   defined=d;
 }
 
-CcFRegion* CcFRegion::Clone(){
+CcFRegion* CcFRegion::Clone() const{
   jmethodID mid;
   jobject jobj;
   mid = env->GetMethodID(cls,"copy",

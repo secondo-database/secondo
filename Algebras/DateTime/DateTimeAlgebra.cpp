@@ -99,6 +99,7 @@ today               & [->] instant
 #include "NestedList.h"
 #include "Algebra.h"
 #include "QueryProcessor.h"
+#include "AlgebraManager.h"
 #include "SecondoSystem.h"
 #include "Attribute.h"
 #include "StandardAttribute.h"
@@ -110,6 +111,7 @@ today               & [->] instant
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
+extern AlgebraManager *am;
 
 using namespace std;
 
@@ -886,7 +888,7 @@ bool DateTime::operator>(const DateTime T2)const{
 This funtion returns a copy of this instance.
 
 */
-DateTime* DateTime::Clone(){
+DateTime* DateTime::Clone() const {
    DateTime* res = new DateTime(type);
    res->Equalize(this);
    return res;
@@ -983,8 +985,8 @@ bool DateTime::Split(const double delta, DateTime& Rest){
 This function compare this DateTime with the given Attribute.
 
 */
-int DateTime::Compare(Attribute* arg){
-  return CompareTo( (DateTime*) arg);
+int DateTime::Compare(const Attribute* arg) const{
+  return CompareTo( (const DateTime*) arg);
 }
 
 /*
@@ -994,8 +996,8 @@ This function returns true if this is directly neighbooring with arg.
 Because we use a fixed time resolution, we can implement this function.
 
 */
-bool DateTime::Adjacent(Attribute* arg){
-  DateTime* T2 = (DateTime*) arg;
+bool DateTime::Adjacent(const Attribute* arg) const{
+  const DateTime* T2 = (const DateTime*) arg;
   if(day==T2->day && abs(milliseconds-T2->milliseconds)==1)
     return true;
   if((day-1==T2->day) && (milliseconds==MILLISECONDS-1)
@@ -1005,16 +1007,6 @@ bool DateTime::Adjacent(Attribute* arg){
        && (T2->milliseconds==MILLISECONDS-1))
      return true;
   return false;
-}
-
-/*
-~Sizeof~
-
-This functions returns the size of the class DateTime;
-
-*/
-int DateTime::Sizeof(){
-  return sizeof(DateTime);
 }
 
 /*
@@ -1045,7 +1037,7 @@ void DateTime::SetDefined( bool defined ){
 This function return the HashValue for this DateTime instance.
 
 */
-size_t DateTime::HashValue(){
+size_t DateTime::HashValue() const{
   return (size_t) (int)(day*MILLISECONDS+milliseconds);
 }
 
@@ -1056,8 +1048,8 @@ This Time instance take its value from arg if this function is
 called.
 
 */
-void DateTime::CopyFrom(StandardAttribute* arg){
-   Equalize(((DateTime*) arg));
+void DateTime::CopyFrom(const StandardAttribute* arg){
+   Equalize(((const DateTime*) arg));
 }
 
 /*
@@ -2418,10 +2410,13 @@ dynamically at runtime.
 
 extern "C"
 Algebra*
-InitializeDateTimeAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
+InitializeDateTimeAlgebra( NestedList* nlRef, 
+                           QueryProcessor* qpRef,
+                           AlgebraManager* amRef )
 {
   nl = nlRef;
   qp = qpRef;
+  am = amRef;
   return (&dateTimeAlgebra);
 }
 

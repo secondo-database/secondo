@@ -417,5 +417,5 @@ query Staedte sample[0, 1.0] count
 
 #teardown
 close database;
-#delete database relalgtest;
+delete database relalgtest;
 

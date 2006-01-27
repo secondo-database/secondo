@@ -29,10 +29,10 @@ create database binfiletest;
 open database binfiletest;
 
 (create a : binfile);
-(update a := (binfile <file>binfile.test</file--->));
+(update a := (binfile <file>JNI.ini</file--->));
 
 (create b : binfile);
-(update b := (binfile <file>relalg.test</file--->));
+(update b := (binfile <file>TestRunner</file--->));
 
 (create relFile :
   (rel
@@ -59,7 +59,8 @@ open database binfiletest;
     )
   )
   (
-    (1 <file>test-rgb.jpg</file---> "rgb.jpg")
+    (1 <file>JNI.ini</file---> "JNI.ini.test")
+    (2 <file>TestRunner</file---> "TestRunner.test")
   )
 ) );
 
@@ -67,8 +68,12 @@ open database binfiletest;
 #yields (bool TRUE)
 query a saveto "a.tmp";
 
+#testcase binfile1
+#yields (bool TRUE)
+query b saveto "b.tmp";
+
 #testcase binfile2
-#yields (int 1)
+#yields (int 2)
 query relFile feed filter[.file saveto .name] count;
 
 #teardown

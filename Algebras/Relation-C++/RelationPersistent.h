@@ -53,6 +53,8 @@ using namespace std;
 
 #include "SecondoSMI.h"
 
+extern AlgebraManager* am;
+
 /*
 3 Type constructor ~tuple~
 
@@ -65,24 +67,30 @@ enum TupleState {Fresh, Solid};
 
 struct PrivateTuple
 {
-  PrivateTuple( const TupleType& tupleType ):
+  PrivateTuple( TupleType *tupleType ):
     tupleId( 0 ),
     tupleType( tupleType ),
     attributes( 0 ),
     lobFileId( 0 ),
     tupleFile( 0 ),
+    memoryTuple( 0 ),
+    extensionTuple( 0 ),
     state( Fresh )
-    {}
+    {
+      tupleType->IncReference();
+    }
 /*
 The first constructor. It creates a fresh tuple from a ~tupleType~.
 
 */
   PrivateTuple( const ListExpr typeInfo ):
     tupleId( 0 ),
-    tupleType( typeInfo ),
+    tupleType( new TupleType( typeInfo ) ),
     attributes( 0 ),
     lobFileId( 0 ),
     tupleFile( 0 ),
+    memoryTuple( 0 ),
+    extensionTuple( 0 ),
     state( Fresh )
     {}
 /*
@@ -91,20 +99,56 @@ The second constructor. It creates a fresh tuple from a ~typeInfo~.
 */
   ~PrivateTuple()
   {
-    for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
-      if( attributes[i] != 0 )
-        attributes[i]->DeleteIfAllowed();
+    if( state == Solid )
+    {
+      assert( memoryTuple != 0 );
+      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+      {
+        attributes[i]->Finalize();
+        for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
+        {
+          FLOB *flob = attributes[i]->GetFLOB(j);
+          if( flob->GetType() != Destroyed )
+            flob->Clean();
+        }
+      }
+      free( memoryTuple );
+      if( extensionTuple != 0 )
+        free( extensionTuple );
+    }
+    else
+    {
+      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+        if( attributes[i] != 0 )
+          attributes[i]->DeleteIfAllowed();
+    }
+    tupleType->DeleteIfAllowed();
   }
 /*
 The destructor.
 
 */
     inline void CopyAttribute( int sourceIndex, 
-                               PrivateTuple *source, 
+                               const PrivateTuple *source, 
                                int destIndex )
     {
-      attributes[destIndex] = source->attributes[sourceIndex];
-      attributes[destIndex]->IncReference();
+      assert( state == Fresh );
+      if( source->state == Fresh )
+      {
+        attributes[destIndex] = source->attributes[sourceIndex];
+        attributes[destIndex]->IncReference();
+      }
+      else
+      {
+        if( attributes[destIndex] != 0 )
+          attributes[destIndex]->DeleteIfAllowed();
+        void *aux = malloc( tupleType->GetAttributeType(destIndex).size );
+        memcpy(aux, source->attributes[sourceIndex], tupleType->GetAttributeType(destIndex).size);
+        attributes[destIndex] = (TupleElement*)
+          (*(am->Cast(tupleType->GetAttributeType(destIndex).algId, 
+                        tupleType->GetAttributeType(destIndex).typeId)))(aux);
+        attributes[destIndex]->SetDeleteType( FreeAttr ); 
+      }
     }
 /*
 This function is used to copy attributes from tuples to tuples 
@@ -150,7 +194,7 @@ Opens a solid tuple from ~tuplefile~ and ~lobfile~ reading from
 The unique identification of the tuple inside a relation.
 
 */
-  TupleType tupleType;
+  mutable TupleType *tupleType;
 /*
 Stores the tuple type.
 
@@ -169,6 +213,16 @@ Reference to an ~SmiRecordFile~ which contains LOBs.
   SmiRecordFile* tupleFile;
 /*
 Reference to an ~SmiRecordFile~ which contains the tuple.
+
+*/
+  char *memoryTuple;
+/*
+The representation of the attributes in the solid tuple.
+
+*/
+  char *extensionTuple;
+/*
+The representation of the small flobs in the solid tuple.
 
 */
   TupleState state;
@@ -273,7 +327,7 @@ struct PrivateRelation
   PrivateRelation( const ListExpr typeInfo, bool isTemp ):
     noTuples( 0 ),
     totalSize( 0 ),
-    tupleType( nl->Second( typeInfo ) ),
+    tupleType( new TupleType( nl->Second( typeInfo ) ) ),
     tupleFile( false, 0, isTemp ),
     lobFileId( 0 ),
     isTemp( isTemp )
@@ -290,7 +344,7 @@ struct PrivateRelation
 The first constructor. Creates an empty relation from a ~typeInfo~.
 
 */
-  PrivateRelation( const TupleType& tupleType, bool isTemp ):
+  PrivateRelation( TupleType *tupleType, bool isTemp ):
     noTuples( 0 ),
     totalSize( 0 ),
     tupleType( tupleType ),
@@ -298,6 +352,7 @@ The first constructor. Creates an empty relation from a ~typeInfo~.
     lobFileId( 0 ),
     isTemp( isTemp )
     {
+      tupleType->IncReference();
       if( !tupleFile.Create() )
       {
         string error;
@@ -310,7 +365,7 @@ The first constructor. Creates an empty relation from a ~typeInfo~.
 The second constructor. Creates an empty relation from a ~tupleType~.
 
 */
-  PrivateRelation( const TupleType& tupleType, 
+  PrivateRelation( TupleType *tupleType, 
                    const RelationDescriptor& relDesc, 
                    bool isTemp ):
     noTuples( relDesc.noTuples ),
@@ -320,6 +375,7 @@ The second constructor. Creates an empty relation from a ~tupleType~.
     lobFileId( relDesc.lobFileId ),
     isTemp( isTemp )
     {
+      tupleType->IncReference();
       if( !tupleFile.Open( relDesc.tupleFileId ) )
       {
         string error;
@@ -337,7 +393,7 @@ The third constructor. Opens a previously created relation.
                    bool isTemp ):
     noTuples( relDesc.noTuples ),
     totalSize( relDesc.totalSize ),
-    tupleType( nl->Second( typeInfo ) ),
+    tupleType( new TupleType( nl->Second( typeInfo ) ) ),
     tupleFile( false, 0, isTemp ),
     lobFileId( relDesc.lobFileId ),
     isTemp( isTemp )
@@ -358,6 +414,7 @@ using the ~typeInfo~ instead of the ~tupleType~.
   ~PrivateRelation()
   {
     tupleFile.Close();
+    tupleType->DeleteIfAllowed();
   }
 /*
 The destuctor.
@@ -373,7 +430,7 @@ Contains the number of tuples in the relation.
 Stores the total size occupied by the tuples in the relation.
 
 */
-  TupleType tupleType;
+  mutable TupleType *tupleType;
 /*
 Stores the tuple type for every tuple of this relation.
 

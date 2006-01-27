@@ -38,11 +38,11 @@ level remains. Models are also removed from type constructors.
 using namespace std;
 
 #include "Algebra.h"
-#include "AlgebraManager.h"
 #include "SecondoSystem.h"
 #include "SecondoCatalog.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
+#include "AlgebraManager.h"
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
 #include "BTreeAlgebra.h"
@@ -62,6 +62,7 @@ using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
+extern AlgebraManager *am;
 
 /*
 2 Auxiliary Functions
@@ -180,12 +181,10 @@ Extracts the key data type from the type info.
 SmiKey::KeyDataType
 ExtractKeyTypeFromTypeInfo( ListExpr typeInfo )
 {
-  AlgebraManager* alg = SecondoSystem::GetAlgebraManager();
-
   int algId = nl->IntValue( nl->First( nl->Third( typeInfo ) ) ),
       typeId = nl->IntValue( nl->Second( nl->Third( typeInfo ) ) );
 
-  string keyTypeString = alg->Constrs( algId, typeId );
+  string keyTypeString = am->Constrs( algId, typeId );
   if( keyTypeString == "int" )
   {
     return SmiKey::Integer;
@@ -702,10 +701,9 @@ bool CheckBTree(ListExpr type, ListExpr& errorInfo)
     && (nl->ListLength(type) == 3)
     && nl->Equal(nl->First(type), nl->SymbolAtom("btree")))
   {
-    AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
     return
-      algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo)
-      && algMgr->CheckKind("DATA", nl->Third(type), errorInfo);
+      am->CheckKind("TUPLE", nl->Second(type), errorInfo)
+      && am->CheckKind("DATA", nl->Third(type), errorInfo);
   }
   else
   {
@@ -831,12 +829,11 @@ ListExpr CreateBTreeTypeMap(ListExpr args)
              "Known Attribute(s): " + argstr);
 
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-  AlgebraManager* alg = SecondoSystem::GetAlgebraManager();
   nl->WriteToString(argstr, attrType);
   CHECK_COND(nl->SymbolValue(attrType) == "string" ||
              nl->SymbolValue(attrType) == "int" ||
              nl->SymbolValue(attrType) == "real" ||
-             alg->CheckKind("INDEXABLE", attrType, errorInfo), 
+             am->CheckKind("INDEXABLE", attrType, errorInfo), 
              "Operator createbtree expects as a second argument an attribute of types\n"
              "int, real, string, or any attribute that implements the kind INDEXABLE\n"
              "but gets '" + argstr + "'.");
@@ -1902,9 +1899,12 @@ BTreeAlgebra btreealgebra;
 
 extern "C"
 Algebra*
-InitializeBTreeAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
+InitializeBTreeAlgebra( NestedList* nlRef, 
+                        QueryProcessor* qpRef,
+                        AlgebraManager* amRef )
 {
   nl = nlRef;
   qp = qpRef;
+  am = amRef;
   return (&btreealgebra);
 }

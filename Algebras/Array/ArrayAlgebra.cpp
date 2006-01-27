@@ -97,14 +97,16 @@ using namespace std;
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
+#include "AlgebraManager.h"
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
 #include "time.h"
 
-namespace {
+extern NestedList* nl;
+extern QueryProcessor* qp;
+extern AlgebraManager* am;
 
-NestedList* nl;
-QueryProcessor* qp;
+namespace {
 
 /*
 1.2 Dummy Functions
@@ -169,8 +171,6 @@ may be used for cloning.
 static Word
 genericClone( int algebraId, int typeId, ListExpr typeInfo, Word object )
 {
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
-
   Word clone;
 
   // Try cloning with the clone function of the appropriate type
@@ -347,8 +347,6 @@ static Word
 InArray( const ListExpr typeInfo, const ListExpr instance,
          const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
-
   Array* newarray;
 
   Word a[nl->ListLength(instance)];
@@ -391,8 +389,6 @@ InArray( const ListExpr typeInfo, const ListExpr instance,
 static ListExpr
 OutArray( ListExpr typeInfo, Word value )
 {
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
-
   Array* array = (Array*)(value.addr);
   int algebraId = array->getElemAlgId();
   int typeId = array->getElemTypeId();
@@ -429,8 +425,6 @@ static Word
 RestoreFromListArray( const ListExpr typeInfo, const ListExpr instance,
                       const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
-
   Array* newarray;
 
   Word a[nl->ListLength(instance)];
@@ -473,8 +467,6 @@ RestoreFromListArray( const ListExpr typeInfo, const ListExpr instance,
 static ListExpr
 SaveToListArray( ListExpr typeInfo, Word value )
 {
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
-
   Array* array = (Array*)(value.addr);
   int algebraId = array->getElemAlgId();
   int typeId = array->getElemTypeId();
@@ -585,8 +577,6 @@ DeleteArray( const ListExpr typeInfo, Word& w )
 void CloseArray( const ListExpr typeInfo, Word& w )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
-
   Array* array = (Array*)w.addr;
 
   if (array->isDefined()) {
@@ -609,8 +599,6 @@ void CloseArray( const ListExpr typeInfo, Word& w )
 Word
 CloneArray( const ListExpr typeInfo, const Word& w )
 {
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
-
   Array* array = (Array*)w.addr;
   Array* newarray;
 
@@ -892,7 +880,7 @@ FunVector::load( Word suppl, Word* funNames )
   int noOfFuns = qp->GetNoSons(funSupplier);
 
   for (int i=0; i<noOfFuns; i++) {
-    STRING* name = ((CcString*)funNames[i].addr)->GetStringval();
+    const STRING* name = ((CcString*)funNames[i].addr)->GetStringval();
 
     supplier1 = qp->GetSupplier(funSupplier, i);
     supplier2 = qp->GetSupplier(supplier1, 1);
@@ -1635,8 +1623,6 @@ static int
 tieFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
-
   Array* array = ((Array*)args[0].addr);
 
   ArgVectorPointer funargs = qp->Argument(args[1].addr);
@@ -1742,8 +1728,6 @@ static int
 cumulateFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
-
   Array* array = ((Array*)args[0].addr);
 
   ArgVectorPointer funargs = qp->Argument(args[1].addr);
@@ -3887,10 +3871,13 @@ The function has a C interface to make it possible to load the algebra dynamical
 */
 extern "C"
 Algebra*
-InitializeArrayAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
+InitializeArrayAlgebra( NestedList* nlRef, 
+                        QueryProcessor* qpRef, 
+                        AlgebraManager* amRef )
 {
   nl = nlRef;
   qp = qpRef;
+  am = amRef;
   return (&arrayAlgebra);
 }
 

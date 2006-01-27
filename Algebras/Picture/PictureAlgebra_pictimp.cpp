@@ -305,13 +305,11 @@ string Picture::GetJPEGBase64Data(void) {
     Base64 b64;
 
     unsigned long size;
-    char* imgdata = GetJPEGData(size);
+    const char* imgdata = GetJPEGData(size);
 
     string res;
 
     b64.encode(imgdata, size, res);
-
-    delete[] imgdata;
 
     if (PA_DEBUG) 
 	cerr << "Picture::GetJPEGBase64Data() res.length()=" 
@@ -321,13 +319,12 @@ string Picture::GetJPEGBase64Data(void) {
     return res;
 }
 
-char* Picture::GetJPEGData(unsigned long& size) {
+const char* Picture::GetJPEGData(unsigned long& size) const {
     if (PA_DEBUG) cerr << "Picture::GetJPEGData() called" << endl;
 
     size = jpegData.Size();
-    char* buf = new char[size];
-    jpegData.Get(0, size, buf);
-
+    const char* buf;
+    jpegData.Get(0, &buf);
     return buf;
 }
 
@@ -367,7 +364,7 @@ void Picture::Set(char* imgdata,
 
 */
 
-size_t Picture::HashValue(void) {
+size_t Picture::HashValue(void) const {
     if (PA_DEBUG) cerr << "Picture::HashValue() called" << endl;
 
     if (!isDefined) return 0;
@@ -386,16 +383,16 @@ size_t Picture::HashValue(void) {
     h = 5*h+(isPortrait ? 1 : 0);
 
     unsigned long size;
-    char* buf = GetJPEGData(size);
+    const char* buf = GetJPEGData(size);
     for (unsigned int i = 0; i < size; i++) h = 5*h+buf[i];
 
     return h;
 }
 
-void Picture::CopyFrom(StandardAttribute* attr) {
+void Picture::CopyFrom(const StandardAttribute* attr) {
     if (PA_DEBUG) cerr << "Picture::CopyFrom() called" << endl;
 
-    Picture* p = (Picture*) attr;
+    const Picture* p = (const Picture*) attr;
 
     // copy simple attributes
 
@@ -412,21 +409,19 @@ void Picture::CopyFrom(StandardAttribute* attr) {
 	    cerr << "Picture::CopyFrom() filename" << p->filename << endl;
     
 	unsigned long size;
-	char* buf = p->GetJPEGData(size);
+	const char* buf = p->GetJPEGData(size);
     
 	jpegData.Resize(size);
 	jpegData.Put(0, size, buf);
-
-	delete[] buf;
 
 	memcpy(histogram, p->histogram, sizeof(histogram));
     }
 }
 
-int Picture::Compare(Attribute* a) {
+int Picture::Compare(const Attribute* a) const  {
     if (PA_DEBUG) cerr << "Picture::Compare() called" << endl;
 
-    Picture* p = (Picture*) a;
+    const Picture* p = (const Picture*) a;
 
     if (PA_DEBUG) {
 	cerr << "Picture::Compare() filename=" << filename << endl;
@@ -456,14 +451,14 @@ int Picture::Compare(Attribute* a) {
     return SimpleCompare(a);
 }
 
-Picture* Picture::Clone(void) {
+Picture* Picture::Clone(void) const {
     if (PA_DEBUG) cerr << "Picture::Clone() called" << endl;
 
     Picture* p = new Picture;
 
     if (PA_DEBUG) cerr << "Picture::Clone() address is " << (int) p << endl;
 
-    p->CopyFrom((StandardAttribute*) this);
+    p->CopyFrom((const StandardAttribute*) this);
 
     return p;
 }
@@ -478,19 +473,16 @@ bool Picture::Export(string filename) {
     if (PA_DEBUG) cerr << "Picture::Export() called" << endl;
 
     unsigned long size;
-    char* buf = GetJPEGData(size);
+    const char* buf = GetJPEGData(size);
 
     ofstream ofs(filename.c_str(), ios::out|ios::trunc|ios::binary);
     if (!ofs) {
 	cerr << "could not create file '" << filename << "'" << endl;
-	delete[] buf;
 	return false;
     }
 
     ofs.write(buf, size);
     ofs.close();
-
-    delete[] buf;
 
     return true;
 }
@@ -502,7 +494,7 @@ bool Picture::Display(void) {
 
     static unsigned int fileCtr = 0;
     unsigned long size;
-    char* buf = GetJPEGData(size);
+    const char* buf = GetJPEGData(size);
 
     stringstream fileStr;
     fileStr << "/tmp/SECONDO.PictureAlgebra.";
@@ -516,7 +508,6 @@ bool Picture::Display(void) {
 	     << "': "
 	     << endl;
 	perror("mkstemp");
-	delete[] buf;
 	return false;
     }
 
@@ -529,7 +520,6 @@ bool Picture::Display(void) {
 	     << "': ";
 	perror("write");
 	unlink(filename);
-	delete[] buf;
 	return false;
     } else if (len != size) {
 	cerr << "Picture::Display() could only partially write to temp file '"
@@ -537,13 +527,10 @@ bool Picture::Display(void) {
 	     << "'"
 	     << endl;
 	unlink(filename);
-	delete[] buf;
 	return false;
     }
     
     close(fd);
-
-    delete[] buf;
 
     string cmd = PROG_DISPLAY;
     cmd += " ";
@@ -575,23 +562,20 @@ bool Picture::Display(void) {
 
 */
 
-int Picture::SimpleCompare(Attribute* a) {
+int Picture::SimpleCompare(const Attribute* a) const {
     if (PA_DEBUG) cerr << "Picture::SimpleCompare() called" << endl;
 
-    Picture* p = (Picture*) a;
+    const Picture* p = (const Picture*) a;
 
     unsigned long size1;
-    char* buf1 = GetJPEGData(size1);
+    const char* buf1 = GetJPEGData(size1);
 
     unsigned long size2;
-    char* buf2 = p->GetJPEGData(size2);
+    const char* buf2 = p->GetJPEGData(size2);
 
     int size = size1 < size2 ? size1 : size2;
 
     int res = memcmp(buf1, buf2, size);
-
-    delete[] buf1;
-    delete[] buf2;
 
     if (res != 0)   
 	return res;
@@ -919,7 +903,7 @@ static bool SavePicture(SmiRecord& rec, size_t& offset,
     pos += sizeof(bool);
 
     unsigned long jpegSize;
-    char* jpegData = p->GetJPEGData(jpegSize);
+    const char* jpegData = p->GetJPEGData(jpegSize);
 
     if (rec.Write(&jpegSize, sizeof(unsigned int), pos) 
 	!= sizeof(unsigned int)) {
@@ -936,8 +920,6 @@ static bool SavePicture(SmiRecord& rec, size_t& offset,
 	     << endl;
 	return false;
     }
-
-    delete[] jpegData;
 
     return true;
 }

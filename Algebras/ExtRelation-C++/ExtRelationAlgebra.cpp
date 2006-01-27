@@ -63,6 +63,7 @@ stable.
 
 #include "RelationAlgebra.h"
 #include "QueryProcessor.h"
+#include "AlgebraManager.h"
 #include "CPUTimeMeasurer.h"
 #include "StandardTypes.h"
 #include "Counter.h"
@@ -71,6 +72,7 @@ stable.
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
+extern AlgebraManager* am;
 
 /*
 2 Operators
@@ -624,7 +626,7 @@ int Remove(Word* args, Word& result, int message, Word& local, Supplier s)
       if (qp->Received(args[0].addr))
       {
         TupleType *tupleType = (TupleType *)local.addr;
-        Tuple *t = new Tuple( *tupleType );
+        Tuple *t = new Tuple( tupleType );
 
         qp->Request(args[2].addr, arg2);
         noOfAttrs = ((CcInt*)arg2.addr)->GetIntval();
@@ -643,6 +645,7 @@ int Remove(Word* args, Word& result, int message, Word& local, Supplier s)
     }
     case CLOSE :
     {
+      ((TupleType*)local.addr)->DeleteIfAllowed();
       qp->Close(args[0].addr);
       return 0;
     }
@@ -891,7 +894,7 @@ int Extract(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     tupleptr = (Tuple*)t.addr;
     index = ((CcInt*)args[2].addr)->GetIntval();
-    res->CopyFrom((StandardAttribute*)tupleptr->GetAttribute(index - 1));
+    res->CopyFrom((const StandardAttribute*)tupleptr->GetAttribute(index - 1));
     tupleptr->DeleteIfAllowed();
   }
   else
@@ -1165,8 +1168,8 @@ MaxMinValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
   while(qp->Received(args[0].addr))
   {
     Tuple* currentTuple = (Tuple*)currentTupleWord.addr;
-    StandardAttribute* currentAttr =
-      (StandardAttribute*)currentTuple->GetAttribute(attributeIndex);
+    const StandardAttribute* currentAttr =
+      (const StandardAttribute*)currentTuple->GetAttribute(attributeIndex);
     if(currentAttr->IsDefined())
     {
       if(definedValueFound)
@@ -1359,7 +1362,7 @@ AvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
   int nProcessedItems = 0;
 
   int attributeIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
-  STRING *attributeType = ((CcString*)args[3].addr)->GetStringval();
+  const STRING *attributeType = ((CcString*)args[3].addr)->GetStringval();
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, currentTupleWord);
@@ -2533,9 +2536,6 @@ ListExpr ExtendTypeMap( ListExpr args )
   ListExpr first, second, rest, listn, errorInfo,
            lastlistn, first2, second2, firstr, outlist;
   //bool loopok;
-  AlgebraManager* algMgr;
-
-  algMgr = SecondoSystem::GetAlgebraManager();
   errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
   string argstr, argstr2;
 
@@ -2586,7 +2586,7 @@ ListExpr ExtendTypeMap( ListExpr args )
     nl->WriteToString(argstr, second2);
     CHECK_COND( (nl->ListLength(second2) == 3) &&
                 (TypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
-          (algMgr->CheckKind("DATA", nl->Third(second2), errorInfo)),
+                (am->CheckKind("DATA", nl->Third(second2), errorInfo)),
       "Operator extend expects a mapping function with list structure"
       " (<attrname> (map (tuple ( (a1 t1)...(an tn) )) ti) )\n. Operator"
       " extend gets a list '" + argstr + "'.\n" );
@@ -2646,7 +2646,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( *resultTupleType );
+        Tuple *newTuple = new Tuple( resultTupleType );
         for( int i = 0; i < tup->GetNoAttributes(); i++ )
           newTuple->CopyAttribute( i, tup, i );
         supplier = args[1].addr;
@@ -2671,8 +2671,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE :
 
-      resultTupleType = (TupleType *)local.addr;
-      delete resultTupleType;
+      ((TupleType *)local.addr)->DeleteIfAllowed();
       qp->Close(args[0].addr);
       return 0;
   }
@@ -2881,7 +2880,7 @@ int Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
           ctupley=(Tuple*)tupley.addr;
         }
       }
-      ctuplexy = new Tuple( *localinfo->resultTupleType );
+      ctuplexy = new Tuple( localinfo->resultTupleType );
       tuplexy = SetWord(ctuplexy);
       Concat(ctuplex, ctupley, ctuplexy);
       ctupley->DeleteIfAllowed();
@@ -2898,7 +2897,8 @@ int Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
         if( localinfo->tuplex.addr != 0 )
           ((Tuple*)localinfo->tuplex.addr)->DeleteIfAllowed();
 
-        delete localinfo->resultTupleType;
+        if( localinfo->resultTupleType != 0 )
+          localinfo->resultTupleType->DeleteIfAllowed();
         delete localinfo;
       }
       qp->Close(args[0].addr);
@@ -3187,8 +3187,6 @@ ListExpr ExtendStreamTypeMap(ListExpr args)
 {
   ListExpr first, second;
   ListExpr listX, listY, list, outlist, errorInfo;
-  AlgebraManager* algMgr;
-  algMgr = SecondoSystem::GetAlgebraManager();
   errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
   string argstr, argstr2;
 
@@ -3228,7 +3226,7 @@ ListExpr ExtendStreamTypeMap(ListExpr args)
   nl->WriteToString(argstr,
                    nl->Second(nl->Third(nl->Second(second))));
   CHECK_COND((nl->IsAtom(nl->Second(nl->Third(nl->Second(second)))))  &&
-             (algMgr->CheckKind("DATA",
+             (am->CheckKind("DATA",
          nl->Second(nl->Third(nl->Second(second))), errorInfo)),
     "Operator extendstream: Objects in the second "
     "stream must be of kind DATA.\n"
@@ -3356,7 +3354,7 @@ int ExtendStream(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
       //3. compute tupleXY from tupleX and wValueY
-      tupleXY = new Tuple( *localinfo->resultTupleType );
+      tupleXY = new Tuple( localinfo->resultTupleType );
 
       for( int i = 0; i < localinfo->tupleX->GetNoAttributes(); i++ )
         tupleXY->CopyAttribute( i, localinfo->tupleX, i );
@@ -3379,7 +3377,8 @@ int ExtendStream(Word* args, Word& result, int message, Word& local, Supplier s)
         if( localinfo->tupleX != 0 )
           localinfo->tupleX->DeleteIfAllowed();
 
-        delete localinfo->resultTupleType;
+        if( localinfo->resultTupleType != 0 )
+          localinfo->resultTupleType->DeleteIfAllowed();
         delete localinfo;
       }
       qp->Close( args[0].addr );
@@ -3446,8 +3445,6 @@ For instance,
 ListExpr ProjectExtendStreamTypeMap(ListExpr args)
 {
   ListExpr errorInfo;
-  AlgebraManager* algMgr;
-  algMgr = SecondoSystem::GetAlgebraManager();
   errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
   string argstr, argstr2;
 
@@ -3547,7 +3544,7 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
   nl->WriteToString(argstr,
                     nl->Second(nl->Third(nl->Second(third))));
   CHECK_COND((nl->IsAtom(nl->Second(nl->Third(nl->Second(third)))))  &&
-             (algMgr->CheckKind("DATA",
+             (am->CheckKind("DATA",
                nl->Second(nl->Third(nl->Second(third))), errorInfo)),
     "Operator projectextendstream: the return stream value in the third argument\n"
     "must implement the kind DATA.\n"
@@ -3694,7 +3691,7 @@ int ProjectExtendStream(Word* args, Word& result, int message, Word& local, Supp
       }
 
       //3. compute tupleXY from tupleX and wValueY
-      tupleXY = new Tuple( *localinfo->resultTupleType );
+      tupleXY = new Tuple( localinfo->resultTupleType );
 
       size_t i;
       for( i = 0; i < localinfo->attrs.size(); i++ )
@@ -3718,7 +3715,8 @@ int ProjectExtendStream(Word* args, Word& result, int message, Word& local, Supp
         if( localinfo->tupleX != 0 )
           localinfo->tupleX->DeleteIfAllowed();
 
-        delete localinfo->resultTupleType;
+        if( localinfo->resultTupleType != 0 )
+          localinfo->resultTupleType->DeleteIfAllowed();
         delete localinfo;
       }
       qp->Close( args[0].addr );
@@ -4085,9 +4083,7 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
       // check if the Type Constructor belongs to KIND DATA
       // If the functions result type is typeerror this check will also fail
       ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
-      AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-
-      if ( !algMgr->CheckKind("DATA", typeConstructor, errorInfo) ) {
+      if ( !am->CheckKind("DATA", typeConstructor, errorInfo) ) {
 
         stringstream errMsg;
         errMsg << "groupby: The aggregate function for attribute \""
@@ -4256,7 +4252,7 @@ int GroupByValueMapping
       }
 
       // create result tuple
-      Tuple *t = new Tuple( *gbli->resultTupleType );
+      Tuple *t = new Tuple( gbli->resultTupleType );
       relIter = tp->MakeScan();
       s = relIter->GetNextTuple();
 
@@ -4295,7 +4291,7 @@ int GroupByValueMapping
       if( local.addr != 0 )
       {
         gbli = (GroupByLocalInfo *)local.addr;
-        delete gbli->resultTupleType;
+        gbli->resultTupleType->DeleteIfAllowed();
         delete gbli;
       }
       qp->Close(args[0].addr);
@@ -4477,7 +4473,7 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
     qp->Request( args[0].addr, t );
   }
 
-  ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)iterWord.addr );  
+  ((StandardAttribute*)result.addr)->CopyFrom( (const StandardAttribute*)iterWord.addr );  
   qp->Close(args[0].addr);
 
   return 0;
@@ -4525,7 +4521,7 @@ int AggregateB(Word* args, Word& result, int message, Word& local, Supplier s)
   // read the first tuple
   qp->Request( args[0].addr, t );
   if( !qp->Received( args[0].addr ) )
-    ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)args[3].addr );
+    ((StandardAttribute*)result.addr)->CopyFrom( (const StandardAttribute*)args[3].addr );
   else
   {
     stack<AggrStruct> aggrStack;
@@ -4572,7 +4568,7 @@ int AggregateB(Word* args, Word& result, int message, Word& local, Supplier s)
     if( aggrStack.size() == 1 )
     {
       delete (StandardAttribute*)aggrStack.top().value.addr;
-      ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)aggrStack.top().value.addr );
+      ((StandardAttribute*)result.addr)->CopyFrom( (const StandardAttribute*)aggrStack.top().value.addr );
     }
     else
       // the stack must contain more elements and we call the aggregate function for them
@@ -4603,7 +4599,7 @@ int AggregateB(Word* args, Word& result, int message, Word& local, Supplier s)
         aggrStack.pop();
       }
 
-      ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)iterWord.addr );
+      ((StandardAttribute*)result.addr)->CopyFrom( (const StandardAttribute*)iterWord.addr );
       delete (StandardAttribute*)iterWord.addr;
     }
   }
@@ -4860,7 +4856,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             if( boolFunResult->IsDefined() &&
                 boolFunResult->GetBoolval() )
             {
-              Tuple *resultTuple = new Tuple( *(pli->resultTupleType) );
+              Tuple *resultTuple = new Tuple( pli->resultTupleType );
               Concat( pli->currTuple, leftTuple, resultTuple );
               leftTuple->DeleteIfAllowed();
               leftTuple = 0;
@@ -4937,7 +4933,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             if( boolFunResult->IsDefined() &&
                 boolFunResult->GetBoolval() )
             {
-              Tuple *resultTuple = new Tuple( *(pli->resultTupleType) );
+              Tuple *resultTuple = new Tuple( pli->resultTupleType );
               Concat( rightTuple, pli->currTuple, resultTuple );
               rightTuple->DeleteIfAllowed();
               rightTuple = 0;
@@ -4963,7 +4959,8 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
       delete pli->leftIter;
       delete pli->rightIter;
-      delete pli->resultTupleType;
+      if( pli->resultTupleType != 0 )
+        pli->resultTupleType->DeleteIfAllowed();
 
       if( pli->rightRel != 0 )
       {
@@ -5093,10 +5090,13 @@ dynamically at runtime.
 
 extern "C"
 Algebra*
-InitializeExtRelationAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
+InitializeExtRelationAlgebra( NestedList* nlRef, 
+                              QueryProcessor* qpRef,
+                              AlgebraManager* amRef )
 {
   nl = nlRef;
   qp = qpRef;
+  am = amRef;
   return (&extRelationalgebra);
 }
 

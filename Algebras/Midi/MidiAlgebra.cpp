@@ -141,43 +141,37 @@ This one receives a ~Midi~ object ~p~ as argument and creates a ~Midi~ that is
 a copy of ~p~.
 
 */
-Midi::Midi(const Midi& midiIn)
+Midi::Midi(const Midi& midi):
+listOfTracks ( 0 ),
+listOfEvents ( 0 ),
+eventData    ( 0 )
 {
-  Midi* midi     = const_cast<Midi*>(&midiIn);
-  defined        = midi->defined;
-  divisionMSB    = midi->divisionMSB;
-  divisionLSB    = midi->divisionLSB;
-  lengthOfHeader = midi->lengthOfHeader;
-  format         = midi->format;
-  isDeletable    = midi->isDeletable;
-  listOfTracks   = DBArray<TrackEntry>(0);
+  defined        = midi.defined;
+  divisionMSB    = midi.divisionMSB;
+  divisionLSB    = midi.divisionLSB;
+  lengthOfHeader = midi.lengthOfHeader;
+  format         = midi.format;
+  isDeletable    = midi.isDeletable;
 
-  for (int i = 0; i < midi->listOfTracks.Size(); i++)
+  for (int i = 0; i < midi.listOfTracks.Size(); i++)
   {
-    TrackEntry trackEntry;
-    midi->listOfTracks.Get(i, trackEntry);
-    TrackEntry* newTrackEntry = new TrackEntry;
-    *newTrackEntry = trackEntry;
-    listOfTracks.Append(*newTrackEntry);
+    const TrackEntry *trackEntry;
+    midi.listOfTracks.Get(i, trackEntry);
+    listOfTracks.Append(*trackEntry);
   }
 
-  listOfEvents = DBArray<EventEntry>(0);
-  for (int i = 0; i < midi->listOfEvents.Size(); i++)
+  for (int i = 0; i < midi.listOfEvents.Size(); i++)
   {
-    EventEntry eventEntry;
-    midi->listOfEvents.Get(i, eventEntry);
-    EventEntry* newEventEntry = new EventEntry;
-    *newEventEntry = eventEntry;
-    listOfEvents.Append(*newEventEntry);
+    const EventEntry *eventEntry;
+    midi.listOfEvents.Get(i, eventEntry);
+    listOfEvents.Append(*eventEntry);
   }
 
-  eventData = DBArray<unsigned char>(0);
-  for (int i = 0; i < midi->eventData.Size(); i++)
+  for (int i = 0; i < midi.eventData.Size(); i++)
   {
-    unsigned char data;
-    midi->eventData.Get(i, data);
-    unsigned char* newData = new unsigned char(data);
-    eventData.Append(*newData);
+    const unsigned char *data;
+    midi.eventData.Get(i, data);
+    eventData.Append(*data);
   }
 }
 
@@ -201,73 +195,68 @@ Midi::~Midi()
 Overloading the assignment operator.
 
 */
-Midi& Midi::operator=(const Midi& midiIn)
+Midi& Midi::operator=(const Midi& midi)
 {
-  if (this == &midiIn)
+  if (this == &midi)
   {
     return *this;
   }
 
-  Midi* midi     = const_cast<Midi*>(&midiIn);
-  defined        = midi->defined;
-  divisionMSB    = midi->divisionMSB;
-  divisionLSB    = midi->divisionLSB;
-  lengthOfHeader = midi->lengthOfHeader;
-  format         = midi->format;
-  isDeletable    = midi->isDeletable;
+  defined        = midi.defined;
+  divisionMSB    = midi.divisionMSB;
+  divisionLSB    = midi.divisionLSB;
+  lengthOfHeader = midi.lengthOfHeader;
+  format         = midi.format;
+  isDeletable    = midi.isDeletable;
 
-  if (midi->listOfTracks.Size() == 0)
+  if (midi.listOfTracks.Size() == 0)
   {
     listOfTracks.Clear();
   }
   else
   {
-    listOfTracks.Resize(midi->listOfTracks.Size());
+    listOfTracks.Resize(midi.listOfTracks.Size());
   }
 
-  for (int i = 0; i < midi->listOfTracks.Size(); i++)
+  for (int i = 0; i < midi.listOfTracks.Size(); i++)
   {
-    TrackEntry trackEntry;
-    midi->listOfTracks.Get(i, trackEntry);
-    TrackEntry* newTrackEntry = new TrackEntry;
-    *newTrackEntry = trackEntry;
-    listOfTracks.Append(*newTrackEntry);
+    const TrackEntry *trackEntry;
+    midi.listOfTracks.Get(i, trackEntry);
+    listOfTracks.Append(*trackEntry);
   }
 
-  if (midi->listOfEvents.Size() == 0)
+  if (midi.listOfEvents.Size() == 0)
   {
     listOfEvents.Clear();
   }
   else
   {
-    listOfEvents.Resize(midi->listOfEvents.Size());
+    listOfEvents.Resize(midi.listOfEvents.Size());
   }
 
-  for (int i = 0; i < midi->listOfEvents.Size(); i++)
+  for (int i = 0; i < midi.listOfEvents.Size(); i++)
   {
-    EventEntry eventEntry;
-    midi->listOfEvents.Get(i, eventEntry);
-    EventEntry* newEventEntry = new EventEntry;
-    *newEventEntry = eventEntry;
-    listOfEvents.Append(*newEventEntry);
+    const EventEntry *eventEntry;
+    midi.listOfEvents.Get(i, eventEntry);
+    listOfEvents.Append(*eventEntry);
   }
 
-  if (midi->eventData.Size() == 0)
+  if (midi.eventData.Size() == 0)
   {
     eventData.Clear();
   }
   else
   {
-    eventData.Resize(midi->eventData.Size());
+    eventData.Resize(midi.eventData.Size());
   }
 
-  for (int i = 0; i < midi->eventData.Size(); i++)
+  for (int i = 0; i < midi.eventData.Size(); i++)
   {
-    unsigned char data;
-    midi->eventData.Get(i, data);
-    unsigned char* newData = new unsigned char(data);
-    eventData.Append(*newData);
+    const unsigned char *data;
+    midi.eventData.Get(i, data);
+    eventData.Append(*data);
   }
+
   return *this;
 }
 
@@ -277,28 +266,29 @@ Midi& Midi::operator=(const Midi& midiIn)
 Returns the by index selected track of this ~Midi~ object.
 
 */
-Track* Midi::GetTrack(int index)
+Track* Midi::GetTrack(int index) const
 {
   assert( listOfTracks.Size() && index < MAX_TRACKS_MIDI );
   Track* track = new Track();
-  TrackEntry trackEntry;
+  const TrackEntry *trackEntry;
   listOfTracks.Get(index, trackEntry);
-  int eventPtr = trackEntry.eventPtr;
+  int eventPtr = trackEntry->eventPtr;
 
-  for (int i = 0; i < trackEntry.noOfEvents; i++)
+  for (int i = 0; i < trackEntry->noOfEvents; i++)
   {
-    EventEntry eventEntry;
-    listOfEvents.Get(eventPtr++, eventEntry);
+    const EventEntry *auxEventEntry;
+    listOfEvents.Get(eventPtr++, auxEventEntry);
+    EventEntry eventEntry( *auxEventEntry );
     int dataPtr = eventEntry.dataPtr;
     vector<unsigned char> deltaTimeBytes;
-    unsigned char currentByte;
+    const unsigned char *currentByte;
 
     do
     {
       eventData.Get(dataPtr++, currentByte);
-      deltaTimeBytes.push_back(currentByte);
+      deltaTimeBytes.push_back(*currentByte);
       eventEntry.size--;
-    } while ((currentByte & 0x80));
+    } while ((*currentByte & 0x80));
 
     unsigned int deltaTime = Event::ComputeBytesToInt(&deltaTimeBytes);
 
@@ -310,9 +300,9 @@ Track* Midi::GetTrack(int index)
       if (eventEntry.type == shortmessageEntry)
       {
         event->SetShortMessageRunningStatus(false);
-        unsigned char c;
+        const unsigned char *c;
         eventData.Get(dataPtr++, c);
-        event->SetShortMessageType(c);
+        event->SetShortMessageType(*c);
         eventEntry.size--;
       }
       else
@@ -323,9 +313,9 @@ Track* Midi::GetTrack(int index)
       event->SetShortMessageDataLength(eventEntry.size);
       for (int j = 0; j < eventEntry.size; j++)
       {
-        unsigned char c;
+        const unsigned char *c;
         eventData.Get(dataPtr++, c);
-        event->SetShortMessageData(j,(unsigned char) c);
+        event->SetShortMessageData(j, *c);
       }
       track->Append(event);
     }
@@ -345,9 +335,9 @@ Track* Midi::GetTrack(int index)
       vector<unsigned char> messageData;
       for (int j = 0; j < eventEntry.size; j++)
       {
-        unsigned char c;
+        const unsigned char *c;
         eventData.Get(dataPtr++, c);
-        messageData.push_back(c);
+        messageData.push_back(*c);
       }
 
       event->SetMetaData(&messageData);
@@ -364,7 +354,7 @@ Appends the by index selected track of this ~Midi~ object. The caller of this
 method is responsible for destroying the passed Track object after using.
 
 */
-void Midi::Append(Track *inTrack)
+void Midi::Append(const Track *inTrack)
 {
   TrackEntry trackEntry;
   trackEntry.noOfEvents = inTrack->GetNumberOfEvents();
@@ -376,7 +366,7 @@ void Midi::Append(Track *inTrack)
     EventEntry eventEntry;
     eventEntry.size    = 0;
     eventEntry.dataPtr = eventData.Size();
-    Event* event       = inTrack->GetEvent(i);
+    const Event* event = inTrack->GetEvent(i);
 
     unsigned int deltaTime = event->GetDeltaTime();
     vector<unsigned char> deltaTimeBytes;
@@ -475,7 +465,7 @@ void Midi::AppendEmptyTrack()
 Extract lyrics for operators and concatenats it into a single string
 
 */
-void Midi::GetLyrics(string& result ,bool all, bool lyr,  bool any)
+void Midi::GetLyrics(string& result ,bool all, bool lyr,  bool any) const
 {
   int nrTrcks = GetNumberOfTracks();
   string eventdata;
@@ -489,7 +479,7 @@ void Midi::GetLyrics(string& result ,bool all, bool lyr,  bool any)
 
     for ( int k = 0; k < nrEvts; k++)
     {
-      Event* currentEvent = currentTrack-> GetEvent(k);
+      const Event* currentEvent = currentTrack-> GetEvent(k);
 
       if (currentEvent->GetEventType() == metamessage)
       {
@@ -521,7 +511,7 @@ void Midi::GetLyrics(string& result ,bool all, bool lyr,  bool any)
 Returns a hashvalue for a Midi reducing the complexity to a simple value
 
 */
-size_t Midi::HashValue()
+size_t Midi::HashValue() const
 {
   if(!defined)
   {
@@ -531,12 +521,12 @@ size_t Midi::HashValue()
   {
     double long h;
     int val = eventData.Size() / 10;
-    unsigned char ch;
+    const unsigned char *ch;
 
     for (int k = 1; k < 10; k++)
     {
       eventData.Get((val* k),ch);
-      double z = ch *pow((double)2,(double) k-1);
+      double z = *ch *pow((double)2,(double) k-1);
       h += z;
     }
     return size_t(h);
@@ -549,68 +539,10 @@ size_t Midi::HashValue()
 Takes any object of kind StandardAttribute and copies all information from it
 
 */
-void Midi::CopyFrom(StandardAttribute* right)
+void Midi::CopyFrom(const StandardAttribute* right)
 {
-  Midi* midi            = (Midi*) right;
-  this->defined         = midi->defined;
-  this->format          = midi->format;
-  this->isDeletable     = midi->isDeletable;
-  this->lengthOfHeader  = midi->lengthOfHeader;
-  this->divisionMSB     = midi->divisionMSB;
-  this->divisionLSB     = midi->divisionLSB;
-
-  if (midi->listOfTracks.Size() == 0)
-  {
-    listOfTracks.Clear();
-  }
-  else
-  {
-    listOfTracks.Resize(midi->listOfTracks.Size());
-  }
-
-  for (int i = 0; i < midi->listOfTracks.Size(); i++)
-  {
-    TrackEntry trackEntry;
-    midi->listOfTracks.Get(i, trackEntry);
-    TrackEntry* newTrackEntry = new TrackEntry;
-    *newTrackEntry = trackEntry;
-    listOfTracks.Append(*newTrackEntry);
-  }
-
-  if (midi->listOfEvents.Size() == 0)
-  {
-    listOfEvents.Clear();
-  }
-  else
-  {
-    listOfEvents.Resize(midi->listOfEvents.Size());
-  }
-
-  for (int i = 0; i < midi->listOfEvents.Size(); i++)
-  {
-    EventEntry eventEntry;
-    midi->listOfEvents.Get(i, eventEntry);
-    EventEntry* newEventEntry = new EventEntry;
-    *newEventEntry = eventEntry;
-    listOfEvents.Append(*newEventEntry);
-  }
-
-  if (midi->eventData.Size() == 0)
-  {
-    eventData.Clear();
-  }
-  else
-  {
-    eventData.Resize(midi->eventData.Size());
-  }
-
-  for (int i = 0; i < midi->eventData.Size(); i++)
-  {
-    unsigned char data;
-    midi->eventData.Get(i, data);
-    unsigned char* newData = new unsigned char(data);
-    eventData.Append(*newData);
-  }
+  const Midi* midi = (const Midi*) right;
+  *this = *midi;
 }
 
 /*
@@ -619,7 +551,7 @@ void Midi::CopyFrom(StandardAttribute* right)
 Returns always 0 because two Midis are not comparable concerning $''>'' or ''<''$
 
 */
-int Midi::Compare(Attribute * arg)
+int Midi::Compare(const Attribute * arg) const
 {
   return 0;
 }
@@ -630,7 +562,7 @@ int Midi::Compare(Attribute * arg)
 Returns always false because two Midis cannot be put into an order
 
 */
-bool Midi::Adjacent(Attribute * arg)
+bool Midi::Adjacent(const Attribute * arg) const
 {
   return false;
 }
@@ -641,7 +573,7 @@ bool Midi::Adjacent(Attribute * arg)
 Returns a copy of a Midi
 
 */
-Midi* Midi::Clone()
+Midi* Midi::Clone() const
 {
   return new Midi(*this);
 }
@@ -653,7 +585,7 @@ Returns a copy of a Midi without tracks if ~copyTracks~ = false, works like
 Clone if ~copyTracks~ = true
 
 */
-Midi* Midi::Clone(const bool copyTracks)
+Midi* Midi::Clone(const bool copyTracks) const
 {
   if (copyTracks)
   {
@@ -678,7 +610,7 @@ Midi* Midi::Clone(const bool copyTracks)
 Returns a string including the description ''midi Algebra''
 
 */
-ostream& Midi::Print( ostream &os )
+ostream& Midi::Print( ostream &os ) const
 {
   return os << MIDI_STRING << " Algebra" << endl;
 }
@@ -689,7 +621,7 @@ ostream& Midi::Print( ostream &os )
 Returns the number of used DBArrays for Midi
 
 */
-int Midi::NumOfFLOBs()
+int Midi::NumOfFLOBs() const
 {
   return 3;
 }
@@ -762,22 +694,22 @@ const string Midi::GetHeader () const
   return MIDI_HEADER;
 }
 
-const int Midi::GetFileSize()
+const int Midi::GetFileSize() const
 {
   return 14 + listOfTracks.Size() * 8 + eventData.Size();
 }
 
-unsigned char Midi::GetDivisionMSB()
+unsigned char Midi::GetDivisionMSB() const
 {
   return divisionMSB;
 }
 
-unsigned char Midi::GetDivisionLSB()
+unsigned char Midi::GetDivisionLSB() const
 {
   return divisionLSB;
 }
 
-bool Midi::IsDivisionInFramesFormat()
+bool Midi::IsDivisionInFramesFormat() const
 {
   return divisionMSB & 0x80;
 }
@@ -925,7 +857,7 @@ sets track header
     for (int j = 0; j < track->GetNumberOfEvents(); j++)
     {
       // write delta time of event
-      Event* event = track->GetEvent(j);
+      const Event* event = track->GetEvent(j);
       vector<unsigned char> deltaTimeBytes;
       Event::ComputeIntToBytes(event->GetDeltaTime(), &deltaTimeBytes);
 
@@ -1912,7 +1844,7 @@ Track::~Track()
 Returns the by index selected event of this track.
 
 */
-Event* Track::GetEvent(int index)
+const Event* Track::GetEvent(int index) const
 {
   return listOfEvents[index];
 }
@@ -1923,7 +1855,7 @@ Event* Track::GetEvent(int index)
 Appends the by index selected track of this Midi object
 
 */
-void Track::Append( Event* inEvent)
+void Track::Append(Event* inEvent)
 {
   listOfEvents.push_back(inEvent);
 }
@@ -1967,7 +1899,8 @@ void Track::Transpose( bool inPerc, int hfTnSt, int& errorval )
 
   for ( int k = 0; k < nrEvts; k++)
   {
-    Event* currentEvent = GetEvent(k);
+    const Event* auxCurrentEvent = GetEvent(k);
+    Event *currentEvent = const_cast<Event*>( auxCurrentEvent );
     if (currentEvent->GetEventType() == shortmessage)
     {
       runmode = currentEvent->GetShortMessageRunningStatus();
@@ -2061,7 +1994,7 @@ Event::~Event()
 Returns the text content from a meta event which contains text data of variable size. Some of the meta events between 0x01 and 0x58 are storing text in this way.
 
 */
-void Event::GetTextFromMetaEvent(string& result)
+void Event::GetTextFromMetaEvent(string& result) const
 {
   assert(eventType == metamessage);
   int metaEvent = GetMetaMessageType();
@@ -2099,7 +2032,7 @@ They return the content of an attribute or calculate the selected value on the f
 Returns the data of a SysexMessage.
 
 */
-vector<unsigned char>* Event::GetSysexData(vector<unsigned char>*result)
+vector<unsigned char>* Event::GetSysexData(vector<unsigned char>*result) const
 {
   assert(eventType == sysexmessage || eventType == metamessage);
   for (unsigned int i = 0; i < dataList.size(); i++)
@@ -2113,7 +2046,7 @@ vector<unsigned char>* Event::GetSysexData(vector<unsigned char>*result)
 Returns the length of a SysexMessage.
 
 */
-int Event::GetSysexDataLength()
+int Event::GetSysexDataLength() const
 {
   assert(eventType == sysexmessage || eventType == metamessage);
   return dataList.size();
@@ -2123,7 +2056,7 @@ int Event::GetSysexDataLength()
 Returns the data of MetaEvents.
 
 */
-vector<unsigned char>* Event::GetMetaData(vector<unsigned char>* result)
+vector<unsigned char>* Event::GetMetaData(vector<unsigned char>* result) const
 {
   assert(eventType == metamessage || eventType == sysexmessage);
   for (unsigned int i = 0; i < dataList.size(); i++)
@@ -2137,7 +2070,7 @@ vector<unsigned char>* Event::GetMetaData(vector<unsigned char>* result)
 Returns the length of a MetaEvent. The returned value is the length of the entire Metamessage. Example: The Metamessage 0xFF 0x01 0x01 0x4D returns the value 4.
 
 */
-int Event::GetMetaDataLength()
+int Event::GetMetaDataLength() const
 {
   assert(eventType == metamessage || eventType == sysexmessage);
   return dataList.size();
@@ -2147,7 +2080,7 @@ int Event::GetMetaDataLength()
 Returns the kind of event.
 
 */
-unsigned char Event::GetMetaMessageType()
+unsigned char Event::GetMetaMessageType() const
 {
   assert(eventType == metamessage && dataList.size() > 2);
   return dataList[1];
@@ -2157,7 +2090,7 @@ unsigned char Event::GetMetaMessageType()
 Returns the length of a MidiEvent.
 
 */
-int Event::GetShortMessageDataLength()
+int Event::GetShortMessageDataLength() const
 {
   assert(eventType == shortmessage);
   return shortMessageDataLength;
@@ -2167,7 +2100,7 @@ int Event::GetShortMessageDataLength()
 Return the data of a MidiEvent.
 
 */
-unsigned char Event::GetShortMessageData(int index)
+unsigned char Event::GetShortMessageData(int index) const
 {
   assert(eventType == shortmessage && index >= 0 && index < 2);
   return shortMessageData[index];
@@ -2177,7 +2110,7 @@ unsigned char Event::GetShortMessageData(int index)
 Returns the command of a MidiEvent. The returned value will be undefined if GetShortMessageRunningStauts() returns true.
 
 */
-unsigned char Event::GetShortMessageType()
+unsigned char Event::GetShortMessageType() const
 {
   assert(shortMessageRunningStatus == false);
   assert(eventType == shortmessage);
@@ -2188,7 +2121,7 @@ unsigned char Event::GetShortMessageType()
 Returns the kind of event.
 
 */
-EventType Event::GetEventType()
+EventType Event::GetEventType() const
 {
   return eventType;
 }
@@ -2197,7 +2130,7 @@ EventType Event::GetEventType()
 Returns the length of this event.
 
 */
-unsigned int Event::GetDeltaTime()
+unsigned int Event::GetDeltaTime() const
 {
   return deltaTime;
 }
@@ -2220,7 +2153,7 @@ Returns the ''running status'' of this Midi (channel) event. If the status is se
 ShortMessageType like the preceding event. In this case the return value of GetShortMessageType will be undefined.
 
 */
-bool Event::GetShortMessageRunningStatus()
+bool Event::GetShortMessageRunningStatus() const
 {
   return shortMessageRunningStatus;
 }
@@ -2391,7 +2324,7 @@ the track ends.
 */
 CcString* FindMetaEvent(Midi* inMidi, unsigned char searchedValue, int number)
 {
-  Event* currentEvent;
+  const Event* currentEvent;
   string temp;
 
   temp.clear();
@@ -2834,7 +2767,8 @@ object.
 int expandTrackFun(Word* args, Word& result, int message, Word& local,
                    Supplier s)
 {
-  Event* currentEvent;
+  Event *currentEvent;
+  const Event* auxCurrentEvent;
   int currentChannel;
 // number of current channel
 
@@ -2888,7 +2822,8 @@ know how many tracks needs to be created at first.
 */
       for ( int eventIndex = 0; eventIndex < numberEvents; eventIndex++ )
       {
-        currentEvent = oldTrack->GetEvent(eventIndex);
+        auxCurrentEvent = oldTrack->GetEvent(eventIndex);
+        currentEvent = const_cast<Event*>( auxCurrentEvent );
 
         if ( currentEvent->GetEventType() == metamessage )
         {
@@ -3153,7 +3088,9 @@ Computes the absolute time position of each event in a track.
   for (int i = 0; i < track->GetNumberOfEvents(); i++)
   {
     EventWithAbsTime* eventStruct = new EventWithAbsTime;
-    Event* event = track->GetEvent(i);
+    Event *event;
+    const Event* auxEvent = track->GetEvent(i);
+    event = const_cast<Event*>( auxEvent );
 
     if (event->GetEventType() == shortmessage &&
        !event->GetShortMessageRunningStatus())
@@ -3351,11 +3288,11 @@ first ~program change~ in the destination track.
 
 */
 {
-  Event* firstPCOfDestTrack = 0;
+  const Event* firstPCOfDestTrack = 0;
 
   for (int i = 0; i < destTrack->GetNumberOfEvents(); i++)
   {
-    Event* currentEvent = destTrack->GetEvent(i);
+    const Event* currentEvent = destTrack->GetEvent(i);
 
     if (currentEvent->GetEventType() == shortmessage &&
        !currentEvent->GetShortMessageRunningStatus() &&
@@ -3384,7 +3321,8 @@ program change's value
 */
   for (int i = 0; i < srcTrack->GetNumberOfEvents(); i++)
   {
-    Event* currentEvent = srcTrack->GetEvent(i);
+    const Event* auxCurrentEvent = srcTrack->GetEvent(i);
+    Event *currentEvent = const_cast<Event*>( auxCurrentEvent );
 
     if (currentEvent->GetEventType() == shortmessage &&
        !currentEvent->GetShortMessageRunningStatus() &&
@@ -4006,7 +3944,8 @@ velocity and filters all other events of the given track.
 
   for (int i = 0; i < track->GetNumberOfEvents(); i++)
   {
-    Event* event = track->GetEvent(i);
+    const Event* auxEvent = track->GetEvent(i);
+    Event *event = const_cast<Event*>( auxEvent );
 
     if (event->GetEventType() == shortmessage &&
        !event->GetShortMessageRunningStatus())
@@ -4686,7 +4625,7 @@ counts the number of channels of a Midi object
 
 */
 {
-  Event* currentEvent;
+  const Event* currentEvent;
   int foundChannel    = 0;
   int countedChannels = 0;
   bool channels[MAX_CHANNELS_MIDI];

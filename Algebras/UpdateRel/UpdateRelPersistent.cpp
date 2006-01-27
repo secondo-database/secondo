@@ -70,8 +70,17 @@ void Tuple::UpdateAttributes(const vector<int>& changedIndices, const vector<Att
       FLOB *tmpFLOB = privateTuple->attributes[index]->GetFLOB(j);
       tmpFLOB->Destroy();
     }
-    privateTuple->attributes[index]->DeleteIfAllowed();
-    privateTuple->attributes[index] = newAttrs[i];
+    if( privateTuple->state == Fresh )
+    {
+      privateTuple->attributes[index]->DeleteIfAllowed();
+      privateTuple->attributes[index] = newAttrs[i];
+    }
+    else
+    { 
+      newAttrs[i]->SetDeleteType( None );
+      memcpy( privateTuple->attributes[index], newAttrs[i], 
+              privateTuple->tupleType->GetAttributeType(index).size );
+    }
   }
   privateTuple->UpdateSave(changedIndices);
 }
@@ -85,15 +94,17 @@ The memorytuple and extensiontuple are again computed and saved to the correspon
 */
 int PrivateTuple::UpdateSave(const vector<int>& changedIndices)
 {
-  int tupleSize = tupleType.GetTotalSize(), extensionSize = 0;
-  assert( state == Solid && lobFileId != 0 && tupleFile != 0 );
+  int tupleSize = tupleType->GetTotalSize(), extensionSize = 0;
+  bool hasFLOBs = false;
+  assert( state == Solid && tupleFile != 0 );
 
   /*Calculate the size of the small FLOB data which will be saved together
   with the tuple attributes and save the LOBs of the new attribute in the lobFile.*/
-  for( int i = 0; i < tupleType.GetNoAttributes(); i++)
+  for( int i = 0; i < tupleType->GetNoAttributes(); i++)
   {
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
     {
+      hasFLOBs = true;
       FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
       tupleSize += tmpFLOB->Size();
       if( !tmpFLOB->IsLob() )
@@ -104,6 +115,7 @@ int PrivateTuple::UpdateSave(const vector<int>& changedIndices)
         {
           if (i == changedIndices[k])
           {
+            tmpFLOB->BringToMemory();
             tmpFLOB->SaveToLob( lobFileId );
             break;
           }
@@ -113,37 +125,45 @@ int PrivateTuple::UpdateSave(const vector<int>& changedIndices)
   }
 
   char* newExtensionTuple;
-
-  // Move FLOB data to extension tuple.
-  if( extensionSize > 0 )
+  if( hasFLOBs )
   {
-    newExtensionTuple = (char *)malloc(extensionSize);
-    char *extensionPtr = newExtensionTuple;
-    for( int i = 0; i < tupleType.GetNoAttributes(); i++)
+    // Move FLOB data to extension tuple.
+    if( extensionSize > 0 )
     {
-      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
+      newExtensionTuple = (char *)malloc(extensionSize);
+      char *extensionPtr = newExtensionTuple;
+      for( int i = 0; i < tupleType->GetNoAttributes(); i++)
       {
-        FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-        if( !tmpFLOB->IsLob() )
+        for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
         {
-          tmpFLOB->SaveToExtensionTuple( extensionPtr );
-          // Set FLOBs to old state
-          //tmpFLOB->Restore( extensionPtr );
-          extensionPtr += tmpFLOB->Size();
+          FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
+          if( !tmpFLOB->IsLob() )
+          {
+            tmpFLOB->SaveToExtensionTuple( extensionPtr );
+            extensionPtr += tmpFLOB->Size();
+          }
         }
       }
     }
   }
-  char* newMemoryTuple ;
 
-  // Move external attributes to memory tuple
-  newMemoryTuple = (char *)malloc( tupleType.GetTotalSize() );
-  int offset = 0;
-  for( int i = 0; i < tupleType.GetNoAttributes(); i++)
+  if( state == Fresh )
   {
-    memcpy( &newMemoryTuple[offset], attributes[i], tupleType.GetAttributeType(i).size );
-    offset += tupleType.GetAttributeType(i).size;
+    // Move external attributes to memory tuple
+    memoryTuple = (char *)malloc( tupleType->GetTotalSize() );
+    int offset = 0;
+    for( int i = 0; i < tupleType->GetNoAttributes(); i++)
+    {
+      memcpy( &memoryTuple[offset], attributes[i],
+              tupleType->GetAttributeType(i).size );
+      attributes[i]->DeleteIfAllowed();
+      attributes[i] =
+        (TupleElement*)(*(am->Cast(tupleType->GetAttributeType(i).algId,
+                                   tupleType->GetAttributeType(i).typeId)))(&memoryTuple[offset]);
+      offset += tupleType->GetAttributeType(i).size;
+    }
   }
+
   SmiRecord *tupleRecord = new SmiRecord();
   bool ok = tupleFile->SelectRecord( tupleId, *tupleRecord,
                                      SmiFile::Update );
@@ -153,39 +173,34 @@ int PrivateTuple::UpdateSave(const vector<int>& changedIndices)
     assert (false);
   }
   int oldRecordSize = tupleRecord->Size();
-  int newRecordSize = sizeof(int) + tupleType.GetTotalSize() + extensionSize;
+  int newRecordSize = sizeof(int) + tupleType->GetTotalSize() + extensionSize;
   bool rc = true;
-    //rc = tupleRecord->Write( &extensionSize, sizeof(int), 0) && rc;
 
-  // Now only write new attributes
-  offset = 0;
-  for( int j = 0; j < tupleType.GetNoAttributes(); j++)
-  {
-    // Only overwrite new attributes
-    for (size_t i = 0; i < changedIndices.size(); i++)
-    {
-      if ( j == changedIndices[i])
-      {
-        rc = tupleRecord->Write( &newMemoryTuple[offset],tupleType.GetAttributeType(j).size, offset) && rc;
-        break;
-      }
-    }
-    offset += tupleType.GetAttributeType(j).size;
-  }
-   // The whole extensiontuple must be rewritten in case the size of a small FLOB has changed
+  // Now write the attributes
+  rc =
+    tupleRecord->Write(memoryTuple, tupleType->GetTotalSize(), 0) &&
+    rc;
+
+  // The whole extension tuple must be rewritten.
   if( extensionSize > 0 )
-    rc = tupleRecord->Write( newExtensionTuple, extensionSize, tupleType.GetTotalSize() ) && rc;
-  if(newRecordSize < oldRecordSize)
-    tupleRecord->Truncate(newRecordSize);
+    rc = 
+      tupleRecord->Write( newExtensionTuple, extensionSize, tupleType->GetTotalSize() ) && 
+      rc;
+
+  // The record must be truncated in case the size of a small FLOB has decreased.
+  if( newRecordSize < oldRecordSize )
+    tupleRecord->Truncate( newRecordSize );
+
   if( extensionSize > 0 )
   {
     free( newExtensionTuple );
   }
-  free( newMemoryTuple );
+
   tupleRecord->Finish();
   delete tupleRecord;
 
-  // Reset lobFile for all saved LOBs
+  // Reset lobFile for all saved LOBs. 
+  // VTA - Do we really need this?
   for (size_t k = 0; k < changedIndices.size(); k++)
   {
     for( int j = 0; j < attributes[changedIndices[k]]->NumOfFLOBs(); j++)
@@ -194,13 +209,13 @@ int PrivateTuple::UpdateSave(const vector<int>& changedIndices)
       if( tmpFLOB->IsLob() )
       {
         tmpFLOB->SetLobFileId( lobFileId );
-        //tmpFLOB->BringToMemory();
       }
     }
   }
+
+  state = Solid;
   if( !rc )
     return 0;
-
   return tupleSize;
 }
 

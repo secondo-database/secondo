@@ -405,27 +405,26 @@ The following functions are needed for using this type as
 an attribute type within secondo relations.
 
 */
-       int Compare(Attribute* arg);
-       bool Adjacent(Attribute*){return false;}
-       int Sizeof();
+       int Compare(const Attribute* arg) const;
+       bool Adjacent(const Attribute*) const {return false;}
        bool IsDefined() const;
        void SetDefined( bool defined );
-       size_t HashValue();
-       void CopyFrom(StandardAttribute* arg);
-       Int9M* Clone();
+       size_t HashValue() const;
+       void CopyFrom(const StandardAttribute* arg);
+       Int9M* Clone() const;
 
 /*
 2.1.20 Print function
 
 */
 
-       virtual ostream& Int9M::Print( ostream& os );
+       virtual ostream& Int9M::Print( ostream& os ) const;
 
 /*
 2.1.21 CompareTo function
 
 */
-       bool CompareTo(const Int9M M2){
+       bool CompareTo(const Int9M M2) const{
           if(!defined && !M2.defined)
             return true;
           if(!defined) return -1;
@@ -439,13 +438,13 @@ an attribute type within secondo relations.
 2.1.22 Equal operator
 
 */
-       bool operator==(const Int9M I2);  
+       bool operator==(const Int9M I2) const;  
 
 /*
 2.1.23 Unequal operator
 
 */
-       bool operator!=(const Int9M I2){
+       bool operator!=(const Int9M I2) const{
           return CompareTo(I2)!=0;
        }
  
@@ -653,7 +652,7 @@ This function checks whether this cluster is empty.
 
 */
 
-	bool IsEmpty(){
+	bool IsEmpty() const{
            return (memcmp(BitVector,emptyBlock,64)==0);
         }
 
@@ -764,23 +763,21 @@ The following functions are required to make it possible that a
 cluster acts as an attribute type within relations.
 
 */
-      int Compare(Attribute* arg){
+      int Compare(const Attribute* arg) const{
          return CompareTo((Cluster*) arg);
       }
       /* returns false in each case */
-      bool Adjacent(Attribute*);
-      /* returns the size of this class */
-      int Sizeof();
+      bool Adjacent(const Attribute*) const;
       /* returns the defined state of this cluster */
       bool IsDefined() const;
       /* sets the defined state of this cluster */
       void SetDefined( bool defined );
       /* computes a hashvalue for this cluster */
-      size_t HashValue();
+      size_t HashValue() const;
       /* reads the value of this cluster from arg */
-      void CopyFrom(StandardAttribute* arg);
+      void CopyFrom(const StandardAttribute* arg);
       /* returns a copy of this cluster */
-      Cluster* Clone();
+      Cluster* Clone() const;
      
 
 /*
@@ -807,7 +804,7 @@ the given value.
 This function returns the name of this cluster.
 
 */
-      STRING* GetName(){ return &name; }
+      const STRING* GetName() const { return &name; } 
 
 
 /*
@@ -919,9 +916,9 @@ predicate cluster will be the same like this one of the argument.
 
 */
 
-    void Equalize(PredicateGroup* PC);
+    void Equalize(const PredicateGroup* PC);
 
-    void Equalize(PredicateGroup PC){
+    void Equalize(const PredicateGroup PC){
         Equalize(&PC);
     }
 
@@ -938,27 +935,27 @@ predicate cluster will be the same like this one of the argument.
         this->defined = Defined;
     }
 
-    size_t HashValue(){
+    size_t HashValue() const{
        return unSpecified.HashValue();
     }
 
-    void CopyFrom(StandardAttribute* right){
+    void CopyFrom(const StandardAttribute* right){
        Equalize((PredicateGroup*) right);
     }
 
-    int Compare(Attribute * arg);
+    int Compare(const Attribute * arg) const;
 
-    bool Adjacent(Attribute * arg){
+    bool Adjacent(const Attribute * arg) const{
         return false;
     }
 
-    PredicateGroup* Clone(){
+    PredicateGroup* Clone() const{
        PredicateGroup* res = new PredicateGroup(1);
        res->Equalize(this);
        return res;
     }
 
-    int NumOfFLOBs(){
+    int NumOfFLOBs() const{
        return 1;
     }
 
@@ -1071,7 +1068,7 @@ will have a higher priority as the new cluster C. This means, that all
 matrices contained in present clusters are removed from C before inserting it. 
 
 */
-    bool AddWithPriority(Cluster * C);
+    bool AddWithPriority(const Cluster * C);
 
 /*
 2.3.10 GetNameOf
@@ -1086,16 +1083,16 @@ Note that this function creates a new STRING object. The caller of this
 function has to destroy this object to avoid memory holes.
 
 */
-   STRING* GetNameOf(Int9M* Matrix){
+   const STRING* GetNameOf(Int9M* Matrix) {
        if(unSpecified.Contains(*Matrix)){
           return unSpecified.GetName();
        }
        int s = theClusters.Size();
-       Cluster C;
+       const Cluster *C;
        for(int i=0;i<s;i++){
            theClusters.Get(i,C);
-           if(C.Contains(*Matrix))
-               return C.GetName();
+           if(C->Contains(*Matrix))
+               return C->GetName();
        }
        assert(false); // should never be reached
     }
@@ -1117,20 +1114,20 @@ by this function.
        if(unSpecified.Contains(Matrix))
           return &unSpecified;
        int s = theClusters.Size();
-       Cluster C;
+       const Cluster *C;
        for(int i=0;i<s;i++){
            theClusters.Get(i,C);
-           if(C.Contains(Matrix)){
-               return new Cluster(C);
+           if(C->Contains(Matrix)){
+               return new Cluster(*C);
            }
        }
        assert(false); // should never be reached
     }
 private:
-   DBArray<Cluster> theClusters;
+   mutable DBArray<Cluster> theClusters;
    bool defined;
    bool canDelete;
-   bool sorted;
+   mutable bool sorted;
    Cluster unSpecified; // Cluster containing all non-used matrices
 };
 

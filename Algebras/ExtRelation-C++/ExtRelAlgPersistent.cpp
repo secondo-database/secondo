@@ -183,8 +183,7 @@ class SortByLocalInfo
       currentIndex( 0 ),
       lexiTupleCmp( lexicographic ? (LexicographicalTupleCompare*)tupleCmp : 0 ),
       tupleCmpBy( lexicographic ? 0 : (TupleCompareBy*)tupleCmp ),
-      lexicographic( lexicographic ),
-      tupleType( 0 )
+      lexicographic( lexicographic )
       {
         // Note: Is is not possible to define a Cmp object using the constructor 
         // mergeTuples( PairTupleCompareBy( tupleCmpBy )). It does only work if
@@ -197,22 +196,17 @@ class SortByLocalInfo
         size_t  c = 0, i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
         bool newRelation = true;
 
-        qp->Open(stream.addr);
-        qp->Request(stream.addr, wTuple);
 
-        if(qp->Received(stream.addr))
-        {
-          Tuple* t = static_cast<Tuple*>( wTuple.addr );
-          tupleType = new TupleType( t->GetTupleType() );
-
-          MAX_MEMORY = qp->MemoryAvailableForOperator();
-          cmsg.info("ERA:ShowMemInfo")
-            << "Sortby.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << endl;
-          cmsg.send();
-        }
+        MAX_MEMORY = qp->MemoryAvailableForOperator();
+        cmsg.info("ERA:ShowMemInfo")
+          << "Sortby.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << endl;
+        cmsg.send();
 
         TupleBuffer *rel=0;
         TupleAndRelPos lastTuple(0, tupleCmpBy);
+
+        qp->Open(stream.addr);
+        qp->Request(stream.addr, wTuple);
         TupleAndRelPos minTuple(0, tupleCmpBy);
         while(qp->Received(stream.addr)) // consume the stream completely
         {
@@ -382,7 +376,6 @@ In this case we need to delete also all tuples stored in memory.
 
       delete lexiTupleCmp;
       delete tupleCmpBy;
-      delete tupleType;
     }
 
     Tuple *NextResultTuple()
@@ -446,7 +439,6 @@ In this case we need to delete also all tuples stored in memory.
     LexicographicalTupleCompare *lexiTupleCmp;
     TupleCompareBy *tupleCmpBy;
     bool lexicographic;
-    TupleType *tupleType;
 
     // sorted runs created by in memory heap filtering 
     size_t MAX_MEMORY;
@@ -771,7 +763,7 @@ public:
       SortBy<false, false>(aArgs, aResult, CLOSE, streamALocalInfo, 0);
       SortBy<false, false>(bArgs, bResult, CLOSE, streamBLocalInfo, 0);
     }
-    delete resultTupleType;
+    resultTupleType->DeleteIfAllowed();
   }
 
   Tuple *NextResultTuple()
@@ -859,7 +851,7 @@ public:
       }
       else
       {
-        resultTuple = new Tuple( *resultTupleType );
+        resultTuple = new Tuple( resultTupleType );
         Concat( bucketA[indexA], bucketB[indexB++], resultTuple );
       }
     }
@@ -982,7 +974,7 @@ public:
         if( bucketA.size() == 1 && bucketB.size() == 1 )
         // Only one equal tuple.
         {
-          resultTuple = new Tuple( *resultTupleType );
+          resultTuple = new Tuple( resultTupleType );
           Concat( bucketA[0], bucketB[0], resultTuple );
           ClearBucket( bucketA );
           ClearBucket( bucketB );
@@ -1272,7 +1264,7 @@ bucket that the tuple coming from A hashes is also initialized.
     if ( !streamBClosed )
       qp->Close(streamB.addr);
 
-    delete resultTupleType;
+    resultTupleType->DeleteIfAllowed();
   }
 
   bool NextTupleA()
@@ -1333,7 +1325,7 @@ bucket that the tuple coming from A hashes is also initialized.
 
         if( CompareTuples( tupleA, tupleB ) == 0 )
         {
-          Tuple *result = new Tuple( *resultTupleType );
+          Tuple *result = new Tuple( resultTupleType );
           Concat( tupleA, tupleB, result );
           return result;
         }

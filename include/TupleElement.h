@@ -102,7 +102,7 @@ is ~DeleteAttr~, the attribute was created with ~new~ and must
 be deleted with ~delete~. The default is ~DeleteAttr~.
 
 */
-enum AttrDeleteType { FreeAttr, DeleteAttr };
+enum AttrDeleteType { None, FreeAttr, DeleteAttr };
 
 struct AttrDelete
 {
@@ -137,7 +137,7 @@ The simple constructor.
 The virtual destructor.
 
 */
-    inline virtual int NumOfFLOBs()
+    inline virtual int NumOfFLOBs() const
     { 
       return 0; 
     }
@@ -148,7 +148,7 @@ does not contain FLOBs, it is not necessary to implement this
 function.
 
 */
-    inline virtual FLOB* GetFLOB( const int i )
+    inline virtual FLOB* GetFLOB( const int i ) 
     { 
       assert( false );
       return 0; 
@@ -172,7 +172,7 @@ some Java initialization and destructions are done in these
 functions. 
 
 */
-    inline virtual ostream& Print( ostream& os )
+    inline virtual ostream& Print( ostream& os ) const
     { 
       return os; 
     }
@@ -240,11 +240,13 @@ Default save function.
       elem = (TupleElement*)(algMgr->Cast(algId, typeId))( elem );
       offset += size;
 
-      // Save the FLOBs
+      // Open the FLOBs
       for( int i = 0; i < elem->NumOfFLOBs(); i++ )
       {
         FLOB *tmpFLOB = elem->GetFLOB(i);
-        tmpFLOB->ReadFromExtensionTuple( valueRecord, offset );
+        char *flob = (char*)malloc( tmpFLOB->Size() );
+        valueRecord.Read( flob, size, offset );
+        tmpFLOB->ReadFromExtensionTuple( flob );
         offset += tmpFLOB->Size();
       }
 
@@ -261,18 +263,11 @@ Default open function.
       if( del.refs == 0 )
       {
         Finalize();
-        if( del.type == DeleteAttr )
-          delete this;
-        else // del.type == FreeAttr
-        {
-          for( int j = 0; j < NumOfFLOBs(); j++)
-          {
-            FLOB *flob = GetFLOB(j);
-            if( flob->GetType() != Destroyed )
-              flob->Clean();
-          }
+        assert( del.type != None );
+        if( del.type == FreeAttr )
           free( this );
-        }
+        else // del.type == DeleteAttr 
+          delete this;
       }
     }
 /*

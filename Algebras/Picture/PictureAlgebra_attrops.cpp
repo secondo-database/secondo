@@ -52,13 +52,9 @@ int Picture::GetWidth(void) {
     if (PA_DEBUG) cerr << "Picture::Width() called" << endl;
 
     unsigned long size;
-    char *buffer = GetJPEGData(size);
-
+    const char *buffer = GetJPEGData(size);
     int width = JPEGPicture::GetWidth((unsigned char*)buffer, size);
-
-	delete buffer;
-
-	return width;
+	  return width;
 }
 
 int Picture::GetHeight(void) {
@@ -66,13 +62,9 @@ int Picture::GetHeight(void) {
 
 
     unsigned long size;
-    char *buffer = GetJPEGData(size);
-
+    const char *buffer = GetJPEGData(size);
     int height = JPEGPicture::GetHeight((unsigned char*)buffer, size);
-
-	delete buffer;
-
-	return height;
+	  return height;
 }
 
 bool Picture::IsGrayScale(void) {
@@ -80,13 +72,9 @@ bool Picture::IsGrayScale(void) {
 
 
     unsigned long size;
-    char *buffer = GetJPEGData(size);
-
+    const char *buffer = GetJPEGData(size);
     bool grayscale = JPEGPicture::IsGrayScale((unsigned char*)buffer, size);
-
-	delete buffer;
-
-	return grayscale;
+	  return grayscale;
 }
 
 /*

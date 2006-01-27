@@ -56,22 +56,16 @@ extern QueryProcessor *qp;
 
 */
 
-void TupleIdentifier::CopyFrom(StandardAttribute* attr)
+void TupleIdentifier::CopyFrom(const StandardAttribute* attr)
 {
-  TupleIdentifier* tupleI = (TupleIdentifier*) attr;
+  const TupleIdentifier* tupleI = (const TupleIdentifier*) attr;
   defined = tupleI->IsDefined();
   tid = tupleI->GetTid();
 }
 
-int TupleIdentifier::NumOfFLOBs()
+bool TupleIdentifier::Adjacent( const Attribute* arg ) const
 {
-  return 0;
-}
-
-
-bool TupleIdentifier::Adjacent( Attribute* arg )
-{
-  TupleId argTid = ((TupleIdentifier *)arg)->GetTid();
+  TupleId argTid = ((const TupleIdentifier *)arg)->GetTid();
 
   return( tid == argTid -1 || tid == argTid + 1 );
 }
@@ -80,11 +74,11 @@ TupleIdentifier::TupleIdentifier(bool DEFINED, TupleId TID) {defined = DEFINED, 
 
 TupleIdentifier::~TupleIdentifier() {}
 
-TupleId TupleIdentifier::GetTid() {return tid;}
+TupleId TupleIdentifier::GetTid() const {return tid;}
 
 void TupleIdentifier::SetTid(TupleId TID) {tid = TID; defined = true;}
 
-TupleIdentifier* TupleIdentifier::Clone() { return new TupleIdentifier( *this ); }
+TupleIdentifier* TupleIdentifier::Clone() const { return new TupleIdentifier( *this ); }
 
 /*
 2.2 List Representation
@@ -378,7 +372,7 @@ TIDAddTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
       if (qp->Received(args[0].addr))
       {
         Tuple *tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( *resultTupleType );
+        Tuple *newTuple = new Tuple( resultTupleType );
         assert( newTuple->GetNoAttributes() == tup->GetNoAttributes() + 1 );
         for( int i = 0; i < tup->GetNoAttributes(); i++ )
           newTuple->PutAttribute( i, tup->GetAttribute( i )->Clone() );
@@ -393,8 +387,7 @@ TIDAddTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE :
 
-      resultTupleType = (TupleType *)local.addr;
-      delete resultTupleType;
+      ((TupleType *)local.addr)->DeleteIfAllowed();
       qp->Close(args[0].addr);
       return 0;
   }

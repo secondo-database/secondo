@@ -58,7 +58,7 @@ void Picture::Scale(Picture *pic, int w, int h) {
     }
 
     unsigned long size	= 0;
-    char *buffer	= GetJPEGData(size);
+    const char *buffer = GetJPEGData(size);
     // create picture
     JPEGPicture *jpg	= new JPEGPicture((unsigned char*)buffer, (unsigned long)size);
 
@@ -69,12 +69,12 @@ void Picture::Scale(Picture *pic, int w, int h) {
     delete jpg;
 
     // generate scaled jpg
-    buffer = (char*)scale->GetJpegData(size);
+    char *buf = (char *)scale->GetJpegData(size);
 
     // delete scale
     delete scale;
 
-    pic->Set(buffer, 
+    pic->Set(buf, 
 	     size, 
 	     filename, 
 	     category, 
@@ -89,14 +89,13 @@ void Picture::Cut(Picture *pic, int x, int y, int w, int h) {
     if (x < 0 || y < 0 || w <= 0 || h <= 0) {
 	if (PA_DEBUG) cerr << "Picture::Cut() error #1" << endl;
 
-	//pic->CopyFrom((StandardAttribute*) this);
 	pic->jpegData = 0;
 	pic->isDefined = false;
 	return;
     }
 
     unsigned long size	= 0;
-    char *buffer	= GetJPEGData(size);
+    const char *buffer	= GetJPEGData(size);
     // create picture
     JPEGPicture *jpg	= new JPEGPicture((unsigned char*)buffer, (unsigned long)size);
 
@@ -116,12 +115,12 @@ void Picture::Cut(Picture *pic, int x, int y, int w, int h) {
     }
 
     // generate cutted jpg
-    buffer = (char*)cut->GetJpegData(size);
+    char *buf = (char*)cut->GetJpegData(size);
 
     // delete image
     delete cut;
 
-    pic->Set(buffer, 
+    pic->Set(buf, 
 	     size, 
 	     filename, 
 	     category, 
@@ -140,7 +139,7 @@ void Picture::FlipLeft(Picture *pic, int n) {
     }
 
     unsigned long size	= 0;
-    char *buffer	= GetJPEGData(size);
+    const char *buffer	= GetJPEGData(size);
     // create picture
      JPEGPicture *jpg	= new JPEGPicture((unsigned char*)buffer, (unsigned long)size);
 
@@ -151,12 +150,12 @@ void Picture::FlipLeft(Picture *pic, int n) {
     delete jpg;
 
     // generate flipped jpg
-    buffer = (char*)flip->GetJpegData(size);
+    char *buf = (char*)flip->GetJpegData(size);
 
     // delete flip
     delete flip;
 
-    pic->Set(buffer, 
+    pic->Set(buf, 
 	     size, 
 	     filename, 
 	     category, 
@@ -168,7 +167,7 @@ void Picture::Mirror(Picture *pic, bool dir) {
     if (PA_DEBUG) cerr << "Picture::Mirror() called" << endl;
 
     unsigned long size	= 0;
-    char *buffer	= GetJPEGData(size);
+    const char *buffer	= GetJPEGData(size);
     // create picture
     JPEGPicture *jpg	= new JPEGPicture((unsigned char*)buffer, (unsigned long)size);
 
@@ -179,12 +178,12 @@ void Picture::Mirror(Picture *pic, bool dir) {
     delete jpg;
 
     // generate mirrored jpg
-    buffer = (char*)mirror->GetJpegData(size);
+    char *buf = (char*)mirror->GetJpegData(size);
 
     // delete mirror
     delete mirror;
 
-    pic->Set(buffer, size, filename, category, isPortrait, date);
+    pic->Set(buf, size, filename, category, isPortrait, date);
 }
 
 /*

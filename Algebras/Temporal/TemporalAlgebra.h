@@ -107,14 +107,14 @@ The simple constructor. This constructor should not be used.
 
 */
 
-  Interval( Interval<Alpha>& interval );
+  Interval( const Interval<Alpha>& interval );
 /*
 The copy constructor.
 
 */
 
-  Interval( Alpha& start,
-            Alpha& end,
+  Interval( const Alpha& start,
+            const Alpha& end,
             const bool lc,
             const bool rc );
 /*
@@ -124,9 +124,9 @@ The creation of the interval setting all attributes.
 
 */
 
-  void CopyFrom( Interval<Alpha>& interval );
+  void CopyFrom( const Interval<Alpha>& interval );
 
-  bool IsValid();
+  bool IsValid() const;
 /*
 Checks if the interval is valid or not. This function should be used for debugging purposes
 only.  An interval is valid if the following conditions are true:
@@ -139,55 +139,55 @@ only.  An interval is valid if the following conditions are true:
 
 */
 
-  Interval<Alpha>& operator=( Interval<Alpha>& i );
+  Interval<Alpha>& operator=( const Interval<Alpha>& i );
 /*
 Redefinition of the copy operator ~=~.
 
 */
 
-  bool operator==( Interval<Alpha>& i );
+  bool operator==( const Interval<Alpha>& i ) const;
 /*
 Returns ~true~ if this interval is equal to the interval ~i~ and ~false~ if they are different.
 
 */
 
-  bool operator!=( Interval<Alpha>& i );
+  bool operator!=( const Interval<Alpha>& i ) const;
 /*
 Returns ~true~ if this interval is different to the interval ~i~ and ~false~ if they are equal.
 
 */
 
-  bool R_Disjoint( Interval<Alpha>& i );
+  bool R_Disjoint( const Interval<Alpha>& i ) const;
 /*
 Returns ~true~ if this interval is r-disjoint with the interval ~i~ and ~false~ otherwise.
 
 */
 
-  bool Disjoint( Interval<Alpha>& i );
+  bool Disjoint( const Interval<Alpha>& i ) const;
 /*
 Returns ~true~ if this interval is disjoint with the interval ~i~ and ~false~ otherwise.
 
 */
 
-  bool R_Adjacent( Interval<Alpha>& i );
+  bool R_Adjacent( const Interval<Alpha>& i ) const;
 /*
 Returns ~true~ if this interval is r-adjacent with the interval ~i~ and ~false~ otherwise.
 
 */
 
-  bool Adjacent( Interval<Alpha>& i );
+  bool Adjacent( const Interval<Alpha>& i ) const;
 /*
 Returns ~true~ if this interval is adjacent with the interval ~i~ and ~false~ otherwise.
 
 */
 
-  bool Inside( Interval<Alpha>& i );
+  bool Inside( const Interval<Alpha>& i ) const;
 /*
 Returns ~true~ if this interval is inside the interval ~i~ and ~false~ otherwise.
 
 */
 
-  bool Contains( Alpha& a );
+  bool Contains( const Alpha& a ) const;
 /*
 Returns ~true~ if this interval contains the value ~a~ and ~false~ otherwise.
 
@@ -195,26 +195,26 @@ Returns ~true~ if this interval contains the value ~a~ and ~false~ otherwise.
 
 */
 
-  bool Intersects( Interval<Alpha>& i );
+  bool Intersects( const Interval<Alpha>& i ) const;
 /*
 Returns ~true~ if this interval intersects with the interval ~i~ and ~false~ otherwise.
 
 */
 
-  bool Before( Interval<Alpha>& i );
+  bool Before( const Interval<Alpha>& i ) const;
 /*
 Returns ~true~ if this interval is before the interval ~i~ and ~false~ otherwise.
 
 */
 
-  bool Before( Alpha& a );
-  bool After( Alpha& a );
+  bool Before( const Alpha& a ) const;
+  bool After( const Alpha& a ) const;
 /*
 Returns ~true~ if this interval is before/after the value ~a~ and ~false~ otherwise.
 
 */
 
-  void Intersection( Interval<Alpha>& i, Interval<Alpha>& result );
+  void Intersection( const Interval<Alpha>& i, Interval<Alpha>& result ) const;
 /*
 Return the intersection of this interval and ~i~ into ~result~.
 
@@ -325,13 +325,13 @@ Returns if the range is empty of intervals or not.
 
 */
 
-    void Get( const int i, Interval<Alpha>& ai );
+    void Get( const int i, const Interval<Alpha>*& ai ) const;
 /*
 Returns the interval ~ai~ at the position ~i~ in the range.
 
 */
 
-    void Add( Interval<Alpha>& i );
+    void Add( const Interval<Alpha>& i );
 /*
 Adds an interval ~i~ to the range. We will assume that the only way of adding intervals
 is in bulk loads, i.e., in a non-ordered array.
@@ -340,7 +340,7 @@ is in bulk loads, i.e., in a non-ordered array.
 
 */
 
-    void Merge( Range<Alpha>& result );
+    void Merge( Range<Alpha>& result ) const;
 /*
 Merges a range into ~result~ concatenating adjacent intervals.
 
@@ -355,14 +355,14 @@ Remove all intervals in the range.
 */
     bool IsDefined() const;
     void SetDefined( bool Defined );
-    int Compare( Attribute* arg );
-    bool Adjacent( Attribute* arg );
-    Range<Alpha>* Clone();
-    ostream& Print( ostream &os );
-    size_t HashValue();
-    void CopyFrom( StandardAttribute* right );
+    int Compare( const Attribute* arg ) const;
+    bool Adjacent( const Attribute* arg ) const;
+    Range<Alpha>* Clone() const;
+    ostream& Print( ostream &os ) const;
+    size_t HashValue() const;
+    void CopyFrom( const StandardAttribute* right );
 
-    int NumOfFLOBs();
+    int NumOfFLOBs() const;
     FLOB *GetFLOB(const int i);
 
 /*
@@ -377,7 +377,7 @@ Remove all intervals in the range.
 *Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
 
 */
-    bool operator==( Range<Alpha>& r );
+    bool operator==( const Range<Alpha>& r ) const;
 
 /*
 3.3.5.2 Operation $\neq$ (~not equal~)
@@ -389,7 +389,7 @@ Remove all intervals in the range.
 *Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
 
 */
-    bool operator!=( Range<Alpha>& r );
+    bool operator!=( const Range<Alpha>& r ) const;
 
 /*
 3.3.5.3 Operation ~intersects~
@@ -401,7 +401,7 @@ Remove all intervals in the range.
 *Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
 
 */
-    bool Intersects( Range<Alpha>& r );
+    bool Intersects( const Range<Alpha>& r ) const;
 
 /*
 3.3.5.4 Operation ~inside~
@@ -413,7 +413,7 @@ Remove all intervals in the range.
 *Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
 
 */
-    bool Inside( Range<Alpha>& r );
+    bool Inside( const Range<Alpha>& r ) const;
 
 /*
 3.3.5.5 Operation ~contains~
@@ -425,7 +425,7 @@ Remove all intervals in the range.
 *Complexity:* $O(log(n))$, where ~n~ is the size of this range ~X~.
 
 */
-    bool Contains( Alpha& a );
+    bool Contains( const Alpha& a ) const;
 
 /*
 3.3.5.6 Operation ~before~ (with ~range~)
@@ -437,7 +437,7 @@ Remove all intervals in the range.
 *Complexity:* $O(1)$.
 
 */
-    bool Before( Range<Alpha>& r );
+    bool Before( const Range<Alpha>& r ) const;
 
 /*
 3.3.5.7 Operation ~before~ (with ~BASE~ type)
@@ -449,7 +449,7 @@ Remove all intervals in the range.
 *Complexity:* $O(1)$.
 
 */
-    bool Before( Alpha& a );
+    bool Before( const Alpha& a ) const;
 
 /*
 3.3.5.8 Operation ~after~
@@ -464,7 +464,7 @@ before on a contrary order, i.e., ~x before Y~.
 *Complexity:* $O(1)$.
 
 */
-    bool After( Alpha& a );
+    bool After( const Alpha& a ) const;
 
 /*
 3.3.5.9 Operation ~intersection~
@@ -476,7 +476,7 @@ before on a contrary order, i.e., ~x before Y~.
 *Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
 
 */
-    void Intersection( Range<Alpha>& r, Range<Alpha>& result );
+    void Intersection( const Range<Alpha>& r, Range<Alpha>& result ) const;
 
 /*
 3.3.5.10 Operation ~union~
@@ -488,7 +488,7 @@ before on a contrary order, i.e., ~x before Y~.
 *Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
 
 */
-    void Union( Range<Alpha>& r, Range<Alpha>& result );
+    void Union( const Range<Alpha>& r, Range<Alpha>& result ) const;
 
 /*
 3.3.5.11 Operation ~minus~
@@ -500,7 +500,7 @@ before on a contrary order, i.e., ~x before Y~.
 *Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
 
 */
-    void Minus( Range<Alpha>& r, Range<Alpha>& result );
+    void Minus( const Range<Alpha>& r, Range<Alpha>& result ) const;
 
 /*
 3.3.5.12 Operation ~max~
@@ -512,7 +512,7 @@ before on a contrary order, i.e., ~x before Y~.
 *Complexity:* $O(1)$
 
 */
-    void Maximum( Alpha& result );
+    void Maximum( Alpha& result ) const;
 
 /*
 3.3.5.13 Operation ~min~
@@ -524,7 +524,7 @@ before on a contrary order, i.e., ~x before Y~.
 *Complexity:* $O(1)$
 
 */
-    void Minimum( Alpha& result );
+    void Minimum( Alpha& result ) const;
 
 /*
 3.3.5.14 Operation ~no\_components~
@@ -543,7 +543,7 @@ before on a contrary order, i.e., ~x before Y~.
 3.3.6 Private member functions
 
 */
-    bool IsValid();
+    bool IsValid() const;
 /*
 This functions tests if a ~range~ is in a valid format. It is used for debugging
 purposes only. The ~range~ is valid, if the following conditions are true:
@@ -599,7 +599,7 @@ The simple constructor.
 
 */
 
-  Intime( Instant& instant, Alpha& alpha ):
+  Intime( const Instant& instant, const Alpha& alpha ):
     instant( instant ),
     value(),
     defined( true )
@@ -611,7 +611,7 @@ The first constructor.
 
 */
 
-  Intime( Intime<Alpha>& intime ):
+  Intime( const Intime<Alpha>& intime ):
     instant( intime.instant ),
     value(),
     defined( intime.defined )
@@ -635,34 +635,34 @@ The second constructor.
     this->defined = defined;
   }
 
-  int Compare( Attribute* arg )
+  int Compare( const Attribute* arg ) const
   {
     return 0;
   }
 
-  bool Adjacent( Attribute* arg )
+  bool Adjacent( const Attribute* arg ) const
   {
     return false;
   }
 
-  Intime<Alpha>* Clone()
+  Intime<Alpha>* Clone() const
   {
     return (new Intime<Alpha>( *this));
   }
 
-  ostream& Print( ostream &os )
+  ostream& Print( ostream &os ) const
   {
     return os << "Temporal Algebra---Intime" << endl;
   }
 
-  size_t HashValue()
+  size_t HashValue() const
   {
     return 0;
   }
 
-  void CopyFrom( StandardAttribute* right )
+  void CopyFrom( const StandardAttribute* right )
   {
-    Intime<Alpha>* i = (Intime<Alpha>*)right;
+    const Intime<Alpha>* i = (const Intime<Alpha>*)right;
 
     defined = i->defined;
     if( defined )
@@ -716,7 +716,7 @@ The simple constructor. This constructor should not be used.
 
 */
 
-  TemporalUnit( Interval<Instant>& interval ):
+  TemporalUnit( const Interval<Instant>& interval ):
     timeInterval( interval )
     {}
 /*
@@ -732,62 +732,63 @@ The destructor.
 
 */
 
-  bool IsValid();
+  bool IsValid() const;
 /*
 Checks if the Temporal Unit is valid or not. This function should be used for debugging purposes
 only.  A TemoralUnit is valid if its timeInterval is valid.
 
 */
 
-  virtual TemporalUnit<Alpha>& operator=( TemporalUnit<Alpha>& i );
+  virtual TemporalUnit<Alpha>& operator=( const TemporalUnit<Alpha>& i );
 /*
 Redefinition of the copy operator ~=~.
 
 */
 
-  virtual bool operator==( TemporalUnit<Alpha>& i );
+  virtual bool operator==( const TemporalUnit<Alpha>& i ) const;
 /*
 Returns ~true~ if this temporal unit is equal to the temporal unit ~i~ and ~false~ if they are different.
 
 */
 
-  virtual bool operator!=( TemporalUnit<Alpha>& i );
+  virtual bool operator!=( const TemporalUnit<Alpha>& i ) const;
 /*
 Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~false~ if they are equal.
 
 */
 
-  bool R_Disjoint( TemporalUnit<Alpha>& i );
+  bool R_Disjoint( const TemporalUnit<Alpha>& i ) const;
 /*
 Returns ~true~ if this temporal unit is r-disjoint with the temporal unit ~i~ and ~false~ otherwise.
 
 */
 
-  bool Disjoint( TemporalUnit<Alpha>& i );
+  bool Disjoint( const TemporalUnit<Alpha>& i ) const;
 /*
 Returns ~true~ if this temporal unit is disjoint with the temporal unit ~i~ and ~false~ otherwise.
 
 */
 
-  bool R_Adjacent( TemporalUnit<Alpha>& i );
+  bool R_Adjacent( const TemporalUnit<Alpha>& i ) const;
 /*
 Returns ~true~ if this temporal unit is r-adjacent with the temporal unit ~i~ and ~false~ otherwise.
 
 */
 
-   bool TU_Adjacent( TemporalUnit<Alpha>& i ); // VTA - It should be Adjacent but it does not compile.
+  bool TU_Adjacent( const TemporalUnit<Alpha>& i ) const; 
+    // VTA - It should be Adjacent but it does not compile.
 /*
 Returns ~true~ if this temporal unit is adjacent with the temporal unit ~i~ and ~false~ otherwise.
 
 */
 
-  bool Inside( TemporalUnit<Alpha>& i );
+  bool Inside( const TemporalUnit<Alpha>& i ) const;
 /*
 Returns ~true~ if this temporal unit is inside the temporal unit ~i~ and ~false~ otherwise.
 
 */
 
-  bool Contains( Instant& a );
+  bool Contains( const Instant& a ) const;
 /*
 Returns ~true~ if this temporal unit contains the value ~a~ and ~false~ otherwise.
 
@@ -795,26 +796,26 @@ Returns ~true~ if this temporal unit contains the value ~a~ and ~false~ otherwis
 
 */
 
-  bool Intersects( TemporalUnit<Alpha>& i );
+  bool Intersects( const TemporalUnit<Alpha>& i ) const;
 /*
 Returns ~true~ if this temporal unit intersects with the temporal unit ~i~ and ~false~ otherwise.
 
 */
 
-  bool Before( TemporalUnit<Alpha>& i );
+  bool Before( const TemporalUnit<Alpha>& i ) const;
 /*
 Returns ~true~ if this temporal unit is before the temporal unit ~i~ and ~false~ otherwise.
 
 */
 
-  bool Before( Instant& a );
-  bool After( Instant& a );
+  bool Before( const Instant& a ) const;
+  bool After( const Instant& a ) const;
 /*
 Returns ~true~ if this temporal unit is before/after the value ~a~ and ~false~ otherwise.
 
 */
 
-  virtual void TemporalFunction( Instant& t, Alpha& result ) = 0;
+  virtual void TemporalFunction( const Instant& t, Alpha& result ) const = 0;
 /*
 The temporal function that receives a time instant ~t~ and returns the value
 associated with time ~t~ in the output argument ~result~.
@@ -823,20 +824,20 @@ associated with time ~t~ in the output argument ~result~.
 
 */
 
-  virtual bool Passes( Alpha& val ) = 0;
+  virtual bool Passes( const Alpha& val ) const = 0;
 /*
 Checks if inside the unit the function passes by the value ~val~.
 
 */
 
-  virtual bool At( Alpha& val, TemporalUnit<Alpha>& result ) = 0;
+  virtual bool At( const Alpha& val, TemporalUnit<Alpha>& result ) const = 0;
 /*
 Returns a unit restricted to the parts where the temporal function is equal
 to ~val~.
 
 */
 
-  virtual void AtInterval( Interval<Instant>& i, TemporalUnit<Alpha>& result )
+  virtual void AtInterval( const Interval<Instant>& i, TemporalUnit<Alpha>& result ) const
   {
     timeInterval.Intersection( i, result.timeInterval );
   }
@@ -876,7 +877,7 @@ The simple constructor. This constructor should not be used.
 
 */
 
-    StandardTemporalUnit( Interval<Instant>& interval ):
+    StandardTemporalUnit( const Interval<Instant>& interval ):
       TemporalUnit<Alpha>( interval )
       {}
 /*
@@ -902,28 +903,28 @@ The destructor.
     {
     }
 
-    virtual int Compare( Attribute* arg )
+    virtual int Compare( const Attribute* arg ) const
     {
       return 0;
     }
 
-    virtual bool Adjacent( Attribute* arg )
+    virtual bool Adjacent( const Attribute* arg ) const
     {
       return false;
     }
 
-    virtual ostream& Print( ostream &os )
+    virtual ostream& Print( ostream &os ) const
     {
       return os << "Temporal Algebra---TemporalUnit" << endl;
     }
 
-    virtual size_t HashValue()
+    virtual size_t HashValue() const
     {
       return 0;
     }
 
-    virtual StandardTemporalUnit<Alpha>* Clone() = 0;
-    virtual void CopyFrom( StandardAttribute* right ) = 0;
+    virtual StandardTemporalUnit<Alpha>* Clone() const = 0;
+    virtual void CopyFrom( const StandardAttribute* right ) = 0;
 
 };
 
@@ -947,7 +948,7 @@ The simple constructor. This constructor should not be used.
 
 */
 
-    SpatialTemporalUnit( Interval<Instant>& interval ):
+    SpatialTemporalUnit( const Interval<Instant>& interval ):
       TemporalUnit<Alpha>( interval )
       {}
 /*
@@ -973,28 +974,28 @@ The destructor.
     {
     }
 
-    virtual int Compare( Attribute* arg )
+    virtual int Compare( const Attribute* arg ) const
     {
       return 0;
     }
 
-    virtual bool Adjacent( Attribute* arg )
+    virtual bool Adjacent( const Attribute* arg ) const
     {
       return false;
     }
 
-    virtual ostream& Print( ostream &os )
+    virtual ostream& Print( ostream &os ) const
     {
       return os << "Temporal Algebra---SpatialTemporalUnit" << endl;
     }
 
-    virtual size_t HashValue()
+    virtual size_t HashValue() const
     {
       return 0;
     }
 
-    virtual SpatialTemporalUnit<Alpha, dim>* Clone() = 0;
-    virtual void CopyFrom( StandardAttribute* right ) = 0;
+    virtual SpatialTemporalUnit<Alpha, dim>* Clone() const = 0;
+    virtual void CopyFrom( const StandardAttribute* right ) = 0;
     virtual const Rectangle<dim> BoundingBox() const = 0;
 };
 
@@ -1037,10 +1038,16 @@ struct ConstTemporalUnit : public StandardTemporalUnit<Alpha>
 */
   ConstTemporalUnit() {}
 
-  ConstTemporalUnit( Interval<Instant>& interval, Alpha& a ):
+  ConstTemporalUnit( const Interval<Instant>& interval, const Alpha& a ):
     StandardTemporalUnit<Alpha>( interval )
   {
     constValue.CopyFrom( &a );
+  }
+
+  ConstTemporalUnit( const ConstTemporalUnit<Alpha>& u ):
+    StandardTemporalUnit<Alpha>( u.timeInterval )
+  {
+    constValue.CopyFrom( &u.constValue );
   }
 
 /*
@@ -1048,7 +1055,7 @@ struct ConstTemporalUnit : public StandardTemporalUnit<Alpha>
 
 */
 
-  virtual ConstTemporalUnit<Alpha>& operator=( ConstTemporalUnit<Alpha>& i )
+  virtual ConstTemporalUnit<Alpha>& operator=( const ConstTemporalUnit<Alpha>& i ) 
   {
     *((TemporalUnit<Alpha>*)this) = *((TemporalUnit<Alpha>*)&i);
     constValue.CopyFrom( &i.constValue );
@@ -1060,7 +1067,7 @@ Redefinition of the copy operator ~=~.
 
 */
 
-  virtual bool operator==( ConstTemporalUnit<Alpha>& i )
+  virtual bool operator==( const ConstTemporalUnit<Alpha>& i ) const
   {
     return *((TemporalUnit<Alpha>*)this) == *((TemporalUnit<Alpha>*)&i) &&
            constValue.Compare( &i.constValue ) == 0;
@@ -1070,7 +1077,7 @@ Returns ~true~ if this temporal unit is equal to the temporal unit ~i~ and ~fals
 
 */
 
-  virtual bool operator!=( ConstTemporalUnit<Alpha>& i )
+  virtual bool operator!=( const ConstTemporalUnit<Alpha>& i ) const
   {
     return !( *this == i );
   }
@@ -1083,20 +1090,20 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 3.6.2 The Temporal Functions
 
 */
-  virtual void TemporalFunction( Instant& t, Alpha& result )
+  virtual void TemporalFunction( const Instant& t, Alpha& result ) const
   {
     assert( t.IsDefined() && this->timeInterval.Contains( t ) );
     result.CopyFrom( &constValue );
   }
 
-  virtual bool Passes( Alpha& val )
+  virtual bool Passes( const Alpha& val ) const
   {
     if( constValue.Compare( &val ) == 0 )
       return true;
     return false;
   }
 
-  virtual bool At( Alpha& val, TemporalUnit<Alpha>& result )
+  virtual bool At( const Alpha& val, TemporalUnit<Alpha>& result ) const
   {
     if( constValue.Compare( &val ) == 0 )
     {
@@ -1106,7 +1113,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
     return false;
   }
 
-  virtual void AtInterval( Interval<Instant>& i, TemporalUnit<Alpha>& result )
+  virtual void AtInterval( const Interval<Instant>& i, TemporalUnit<Alpha>& result ) const
   {
     TemporalUnit<Alpha>::AtInterval( i, result );
     ((ConstTemporalUnit<Alpha>*)&result)->constValue.CopyFrom( &constValue );
@@ -1125,34 +1132,34 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   {
   }
 
-  virtual int Compare( Attribute* arg )
+  virtual int Compare( const Attribute* arg ) const
   {
     return 0;
   }
 
-  virtual bool Adjacent( Attribute* arg )
+  virtual bool Adjacent( const Attribute* arg ) const
   {
     return false;
   }
 
-  virtual ostream& Print( ostream &os )
+  virtual ostream& Print( ostream &os ) const
   {
     return os << "Temporal Algebra---constunit" << endl;
   }
 
-  virtual size_t HashValue()
+  virtual size_t HashValue() const
   {
     return 0;
   }
 
-  virtual ConstTemporalUnit<Alpha>* Clone()
+  virtual ConstTemporalUnit<Alpha>* Clone() const
   {
     return (new ConstTemporalUnit<Alpha>( this->timeInterval, constValue) );
   }
 
-  virtual void CopyFrom( StandardAttribute* right )
+  virtual void CopyFrom( const StandardAttribute* right )
   {
-    ConstTemporalUnit<Alpha>* i = (ConstTemporalUnit<Alpha>*)right;
+    const ConstTemporalUnit<Alpha>* i = (const ConstTemporalUnit<Alpha>*)right;
 
     this->timeInterval.CopyFrom( i->timeInterval );
     constValue.CopyFrom( &i->constValue );
@@ -1197,7 +1204,7 @@ struct UReal : public StandardTemporalUnit<CcReal>
 */
   UReal() {};
 
-  UReal( Interval<Instant>& interval,
+  UReal( const Interval<Instant>& interval,
          const double a,
          const double b,
          const double c,
@@ -1212,7 +1219,7 @@ struct UReal : public StandardTemporalUnit<CcReal>
 
 */
 
-  virtual UReal& operator=( UReal& i )
+  virtual UReal& operator=( const UReal& i )
   {
     *((TemporalUnit<CcReal>*)this) = *((TemporalUnit<CcReal>*)&i);
     a = i.a;
@@ -1227,7 +1234,7 @@ Redefinition of the copy operator ~=~.
 
 */
 
-  virtual bool operator==( UReal& i )
+  virtual bool operator==( const UReal& i ) const
   {
     return *((TemporalUnit<CcReal>*)this) == *((TemporalUnit<CcReal>*)&i) &&
            AlmostEqual( a, i.a ) &&
@@ -1240,7 +1247,7 @@ Returns ~true~ if this temporal unit is equal to the temporal unit ~i~ and ~fals
 
 */
 
-  virtual bool operator!=( UReal& i )
+  virtual bool operator!=( const UReal& i ) const
   {
     return !( *this == i );
   }
@@ -1253,10 +1260,10 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 3.7.2 The Temporal Functions
 
 */
-  virtual void TemporalFunction( Instant& t, CcReal& result );
-  virtual bool Passes( CcReal& val );
-  virtual bool At( CcReal& val, TemporalUnit<CcReal>& result );
-  virtual void AtInterval( Interval<Instant>& i, TemporalUnit<CcReal>& result );
+  virtual void TemporalFunction( const Instant& t, CcReal& result ) const;
+  virtual bool Passes( const CcReal& val ) const;
+  virtual bool At( const CcReal& val, TemporalUnit<CcReal>& result ) const;
+  virtual void AtInterval( const Interval<Instant>& i, TemporalUnit<CcReal>& result ) const;
 
 /*
 3.7.3 Functions to be part of relations
@@ -1271,34 +1278,34 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   {
   }
 
-  virtual int Compare( Attribute* arg )
+  virtual int Compare( const Attribute* arg ) const
   {
     return 0;
   }
 
-  virtual bool Adjacent( Attribute* arg )
+  virtual bool Adjacent( const Attribute* arg ) const
   {
     return false;
   }
 
-  virtual ostream& Print( ostream &os )
+  virtual ostream& Print( ostream &os ) const
   {
     return os << "Temporal Algebra---ureal" << endl;
   }
 
-  virtual size_t HashValue()
+  virtual size_t HashValue() const
   {
     return 0;
   }
 
-  virtual UReal* Clone()
+  virtual UReal* Clone() const
   {
     return (new UReal( timeInterval, a, b, c, r) );
   }
 
-  virtual void CopyFrom( StandardAttribute* right )
+  virtual void CopyFrom( const StandardAttribute* right )
   {
-    UReal* i = (UReal*)right;
+    const UReal* i = (const UReal*)right;
 
     timeInterval.CopyFrom(i->timeInterval);
 
@@ -1331,7 +1338,7 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
 */
   UPoint() {};
 
-  UPoint( Interval<Instant>& interval,
+  UPoint( const Interval<Instant>& interval,
           const double x0, const double y0,
           const double x1, const double y1 ):
     SpatialTemporalUnit<Point, 3>( interval ),
@@ -1339,7 +1346,7 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
     p1( true, x1, y1 )
     {}
 
-  UPoint( Interval<Instant>& interval,
+  UPoint( const Interval<Instant>& interval,
           const Point& p0, const Point& p1 ):
     SpatialTemporalUnit<Point, 3>( interval ),
     p0( p0 ),
@@ -1351,7 +1358,7 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
 
 */
 
-  virtual UPoint& operator=( UPoint& i )
+  virtual UPoint& operator=( const UPoint& i )
   {
     *((TemporalUnit<Point>*)this) = *((TemporalUnit<Point>*)&i);
     p0 = i.p0;
@@ -1364,7 +1371,7 @@ Redefinition of the copy operator ~=~.
 
 */
 
-  virtual bool operator==( UPoint& i )
+  virtual bool operator==( const UPoint& i ) const
   {
     return *((TemporalUnit<Point>*)this) == *((TemporalUnit<Point>*)&i) &&
            AlmostEqual( p0, i.p0 ) &&
@@ -1375,7 +1382,7 @@ Returns ~true~ if this temporal unit is equal to the temporal unit ~i~ and ~fals
 
 */
 
-  virtual bool operator!=( UPoint& i )
+  virtual bool operator!=( const UPoint& i ) const
   {
     return !( *this == i );
   }
@@ -1388,11 +1395,11 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 3.8.2 The Temporal Functions
 
 */
-  virtual void TemporalFunction( Instant& t, Point& result );
-  virtual bool Passes( Point& val );
-  virtual bool At( Point& val, TemporalUnit<Point>& result );
-  virtual void AtInterval( Interval<Instant>& i, TemporalUnit<Point>& result );
-  void Distance( Point& p, UReal& result );
+  virtual void TemporalFunction( const Instant& t, Point& result ) const;
+  virtual bool Passes( const Point& val ) const;
+  virtual bool At( const Point& val, TemporalUnit<Point>& result ) const;
+  virtual void AtInterval( const Interval<Instant>& i, TemporalUnit<Point>& result ) const;
+  void Distance( const Point& p, UReal& result ) const;
 
 /*
 3.8.3 Functions to be part of relations
@@ -1407,34 +1414,34 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   {
   }
 
-  inline virtual int Compare( Attribute* arg )
+  inline virtual int Compare( const Attribute* arg ) const
   {
     return 0;
   }
 
-  inline virtual bool Adjacent( Attribute* arg )
+  inline virtual bool Adjacent( const Attribute* arg ) const
   {
     return false;
   }
 
-  inline virtual ostream& Print( ostream &os )
+  inline virtual ostream& Print( ostream &os ) const
   {
     return os << "Temporal Algebra --- UPoint"<< endl;
   }
 
-  inline virtual size_t HashValue()
+  inline virtual size_t HashValue() const
   {
     return 0;
   }
 
-  inline virtual UPoint* Clone()
+  inline virtual UPoint* Clone() const
   {
     return (new UPoint( timeInterval, p0, p1 ) );
   }
 
-  inline virtual void CopyFrom( StandardAttribute* right )
+  inline virtual void CopyFrom( const StandardAttribute* right )
   {
-    UPoint* i = (UPoint*)right;
+    const UPoint* i = (const UPoint*)right;
 
     timeInterval.CopyFrom( i->timeInterval );
     p0 = i->p0;
@@ -1538,13 +1545,13 @@ Returns if the mapping is empty of units or not.
 
 */
 
-    void Get( const int i, Unit& upi );
+    void Get( const int i, const Unit*& upi ) const;
 /*
 Returns the unit ~upi~ at the position ~i~ in the mapping.
 
 */
 
-    void Add( Unit& upi );
+    void Add( const Unit& upi );
 /*
 Adds an unit ~upi~ to the mapping. We will assume that the only way of adding units
 is in bulk loads, i.e., in a non-ordered array.
@@ -1559,7 +1566,7 @@ Remove all units in the mapping.
 
 */
 
-    bool IsValid();
+    bool IsValid() const;
 /*
 This functions tests if a ~mapping~ is in a valid format. It is used for debugging
 purposes only. The ~mapping~ is valid, if the following conditions are true:
@@ -1577,14 +1584,14 @@ purposes only. The ~mapping~ is valid, if the following conditions are true:
 */
     bool IsDefined() const;
     void SetDefined( bool Defined );
-    int Compare( Attribute* arg );
-    bool Adjacent( Attribute* arg );
-    Mapping<Unit, Alpha>* Clone();
-    ostream& Print( ostream &os );
-    size_t HashValue();
-    void CopyFrom( StandardAttribute* right );
+    int Compare( const Attribute* arg ) const;
+    bool Adjacent( const Attribute* arg ) const;
+    Mapping<Unit, Alpha>* Clone() const;
+    ostream& Print( ostream &os ) const;
+    size_t HashValue() const;
+    void CopyFrom( const StandardAttribute* right );
 
-    int NumOfFLOBs();
+    int NumOfFLOBs() const;
     FLOB *GetFLOB(const int i);
 
 /*
@@ -1600,7 +1607,7 @@ purposes only. The ~mapping~ is valid, if the following conditions are true:
 number of units of the mapping ~Y~.
 
 */
-    bool operator==( Mapping<Unit, Alpha>& mp );
+    bool operator==( const Mapping<Unit, Alpha>& mp ) const; 
 
 /*
 3.10.5.2 Operation $\neq$ (~not equal~)
@@ -1613,7 +1620,7 @@ number of units of the mapping ~Y~.
 number of units of the mapping ~Y~.
 
 */
-    bool operator!=( Mapping<Unit, Alpha>& mp );
+    bool operator!=( const Mapping<Unit, Alpha>& mp ) const;
 
 /*
 3.10.5.3 Operation ~no\_components~
@@ -1637,7 +1644,7 @@ number of units of the mapping ~Y~.
 *Complexity:* $O( \log n )$, where ~n~ is the number of units of this mapping ~X~
 
 */
-    int Position( const Instant& t );
+    int Position( const Instant& t ) const;
 
 /*
 3.10.5.3 Operation ~atinstant~
@@ -1649,7 +1656,7 @@ number of units of the mapping ~Y~.
 *Complexity:* $O( \log n )$, where ~n~ is the number of units of this mapping ~X~
 
 */
-    void AtInstant( Instant& t, Intime<Alpha>& result );
+    void AtInstant( const Instant& t, Intime<Alpha>& result ) const;
 
 /*
 3.10.5.3 Operation ~atperiods~
@@ -1662,7 +1669,7 @@ number of units of the mapping ~Y~.
 and ~m~ is the number of intervals of the periods ~Y~
 
 */
-    void AtPeriods( Periods& periods, Mapping<Unit, Alpha>& result );
+    void AtPeriods( const Periods& periods, Mapping<Unit, Alpha>& result ) const;
 
 /*
 3.10.5.3 Operation ~present~
@@ -1674,8 +1681,8 @@ and ~m~ is the number of intervals of the periods ~Y~
 *Complexity:* $O( \log n )$, where ~n~ is the number of units of this mapping ~X~
 
 */
-    bool Present( Instant& t );
-    bool Present( Periods& periods );
+    bool Present( const Instant& t ) const;
+    bool Present( const Periods& periods ) const;
 
 /*
 3.10.5.3 Operation ~passes~
@@ -1687,7 +1694,7 @@ and ~m~ is the number of intervals of the periods ~Y~
 *Complexity:* $O( n )$, where ~n~ is the number of units of this mapping ~X~
 
 */
-    bool Passes( Alpha& val );
+    bool Passes( const Alpha& val ) const;
 
 /*
 3.10.5.3 Operation ~deftime~
@@ -1699,7 +1706,7 @@ and ~m~ is the number of intervals of the periods ~Y~
 *Complexity:* $O( n )$, where ~n~ is the number of units of this mapping ~X~
 
 */
-    void DefTime( Periods& result );
+    void DefTime( Periods& result ) const;
 
 /*
 3.10.5.3 Operation ~at~
@@ -1711,7 +1718,7 @@ and ~m~ is the number of intervals of the periods ~Y~
 *Complexity:* $O( n )$, where ~n~ is the number of units of this mapping ~X~
 
 */
-    void At( Alpha& val, Mapping<Unit, Alpha>& result );
+    void At( const Alpha& val, Mapping<Unit, Alpha>& result ) const;
 
 /*
 3.10.5.3 Operation ~initial~
@@ -1723,7 +1730,7 @@ and ~m~ is the number of intervals of the periods ~Y~
 *Complexity:* $O( 1 )$
 
 */
-    void Initial( Intime<Alpha>& result );
+    void Initial( Intime<Alpha>& result ) const;
 
 /*
 3.10.5.3 Operation ~final~
@@ -1735,7 +1742,7 @@ and ~m~ is the number of intervals of the periods ~Y~
 *Complexity:* $O( 1 )$
 
 */
-    void Final( Intime<Alpha>& result );
+    void Final( Intime<Alpha>& result ) const;
 
 /*
 3.10.7 Attributes
@@ -1818,7 +1825,7 @@ The constructor. Initializes space for ~n~ elements.
 *Complexity:* $O( n )$, where ~n~ is the number of units of this ~MPoint~
 
 */
-  void Trajectory( CLine& line );
+  void Trajectory( CLine& line ) const;
 
 /*
 3.10.5.3 Operation ~distance~
@@ -1830,7 +1837,7 @@ The constructor. Initializes space for ~n~ elements.
 *Complexity:* $O( n )$, where ~n~ is the number of units of this ~MPoint~
 
 */
-  void Distance( Point& p, MReal& result );
+  void Distance( const Point& p, MReal& result ) const;
 
 };
 
@@ -1843,7 +1850,7 @@ The constructor. Initializes space for ~n~ elements.
 
 */
 template <class Alpha>
-Interval<Alpha>::Interval( Interval<Alpha>& interval ):
+Interval<Alpha>::Interval( const Interval<Alpha>& interval ):
 start(),
 end(),
 lc( interval.lc ),
@@ -1854,7 +1861,7 @@ rc( interval.rc )
 }
 
 template <class Alpha>
-Interval<Alpha>::Interval( Alpha& start, Alpha& end,
+Interval<Alpha>::Interval( const Alpha& start, const Alpha& end,
                            const bool lc, const bool rc ):
 start(),
 end(),
@@ -1866,16 +1873,16 @@ rc( rc )
 }
 
 template <class Alpha>
-void Interval<Alpha>::CopyFrom( Interval<Alpha>& interval )
+void Interval<Alpha>::CopyFrom( const Interval<Alpha>& i )
 {
-  this->start.CopyFrom( &interval.start );
-  this->end.CopyFrom( &interval.end );
-  this->lc= interval.lc ;
-  this->rc= interval.rc ;
+  start.CopyFrom( &i.start );
+  end.CopyFrom( &i.end );
+  lc = i.lc;
+  rc = i.rc;
 }
 
 template <class Alpha>
-bool Interval<Alpha>::IsValid()
+bool Interval<Alpha>::IsValid() const
 {
   if( !start.IsDefined() || !end.IsDefined() )
     return false;
@@ -1897,7 +1904,7 @@ bool Interval<Alpha>::IsValid()
 
 */
 template <class Alpha>
-Interval<Alpha>& Interval<Alpha>::operator=( Interval<Alpha>& i )
+Interval<Alpha>& Interval<Alpha>::operator=( const Interval<Alpha>& i )
 {
   assert( i.IsValid() );
 
@@ -1910,7 +1917,7 @@ Interval<Alpha>& Interval<Alpha>::operator=( Interval<Alpha>& i )
 }
 
 template <class Alpha>
-bool Interval<Alpha>::operator==( Interval<Alpha>& i )
+bool Interval<Alpha>::operator==( const Interval<Alpha>& i ) const
 {
   assert( IsValid() && i.IsValid() );
 
@@ -1925,20 +1932,20 @@ bool Interval<Alpha>::operator==( Interval<Alpha>& i )
 }
 
 template <class Alpha>
-bool Interval<Alpha>::operator!=( Interval<Alpha>& i )
+bool Interval<Alpha>::operator!=( const Interval<Alpha>& i ) const
 {
   return !( *this == i );
 }
 
 template <class Alpha>
-bool Interval<Alpha>::R_Disjoint( Interval<Alpha>& i )
+bool Interval<Alpha>::R_Disjoint( const Interval<Alpha>& i ) const
 {
     bool res= ((end.Compare( &i.start ) < 0) || ( end.Compare( &i.start ) == 0 && !( rc && i.lc ) ));
     return( res );
 }
 
 template <class Alpha>
-bool Interval<Alpha>::Disjoint( Interval<Alpha>& i )
+bool Interval<Alpha>::Disjoint( const Interval<Alpha>& i ) const
 {
   assert( IsValid() && i.IsValid() );
   bool res=( R_Disjoint( i ) || i.R_Disjoint( *this ) );
@@ -1946,7 +1953,7 @@ bool Interval<Alpha>::Disjoint( Interval<Alpha>& i )
 }
 
 template <class Alpha>
-bool Interval<Alpha>::R_Adjacent( Interval<Alpha>& i )
+bool Interval<Alpha>::R_Adjacent( const Interval<Alpha>& i ) const
 {
     bool res=( Disjoint( i ) &&
 	       ( end.Compare( &i.start ) == 0 && (rc || i.lc) ) ||
@@ -1955,7 +1962,7 @@ bool Interval<Alpha>::R_Adjacent( Interval<Alpha>& i )
 }
 
 template <class Alpha>
-bool Interval<Alpha>::Adjacent( Interval<Alpha>& i )
+bool Interval<Alpha>::Adjacent( const Interval<Alpha>& i ) const
 {
   assert( IsValid() && i.IsValid() );
   bool res= ( R_Adjacent( i ) || i.R_Adjacent( *this ) );
@@ -1963,7 +1970,7 @@ bool Interval<Alpha>::Adjacent( Interval<Alpha>& i )
 }
 
 template <class Alpha>
-bool Interval<Alpha>::Inside( Interval<Alpha>& i )
+bool Interval<Alpha>::Inside( const Interval<Alpha>& i ) const
 {
   assert( IsValid() && i.IsValid() );
 
@@ -1974,7 +1981,7 @@ bool Interval<Alpha>::Inside( Interval<Alpha>& i )
 }
 
 template <class Alpha>
-bool Interval<Alpha>::Contains( Alpha& a )
+bool Interval<Alpha>::Contains( const Alpha& a ) const
 {
   assert( IsValid() && a.IsDefined() );
 
@@ -1985,7 +1992,7 @@ bool Interval<Alpha>::Contains( Alpha& a )
 }
 
 template <class Alpha>
-bool Interval<Alpha>::Intersects( Interval<Alpha>& i )
+bool Interval<Alpha>::Intersects( const Interval<Alpha>& i ) const
 {
   assert( IsValid() && i.IsValid() );
 
@@ -2002,7 +2009,7 @@ bool Interval<Alpha>::Intersects( Interval<Alpha>& i )
 }
 
 template <class Alpha>
-bool Interval<Alpha>::Before( Interval<Alpha>& i )
+bool Interval<Alpha>::Before( const Interval<Alpha>& i ) const
 {
   assert( IsValid() && i.IsValid() );
 
@@ -2013,7 +2020,7 @@ bool Interval<Alpha>::Before( Interval<Alpha>& i )
 }
 
 template <class Alpha>
-bool Interval<Alpha>::Before( Alpha& a )
+bool Interval<Alpha>::Before( const Alpha& a ) const
 {
   assert( IsValid() && a.IsDefined() );
 
@@ -2022,7 +2029,7 @@ bool Interval<Alpha>::Before( Alpha& a )
 }
 
 template <class Alpha>
-bool Interval<Alpha>::After( Alpha& a )
+bool Interval<Alpha>::After( const Alpha& a ) const
 {
   assert( IsValid() && a.IsDefined() );
 
@@ -2031,7 +2038,7 @@ bool Interval<Alpha>::After( Alpha& a )
 }
 
 template <class Alpha>
-void Interval<Alpha>::Intersection( Interval<Alpha>& i, Interval<Alpha>& result )
+void Interval<Alpha>::Intersection( const Interval<Alpha>& i, Interval<Alpha>& result ) const
 {
   assert( IsValid() && i.IsValid() );
   assert( Intersects( i ) );
@@ -2163,14 +2170,14 @@ bool Range<Alpha>::IsEmpty() const
 }
 
 template <class Alpha>
-void Range<Alpha>::Get( const int i, Interval<Alpha>& interval )
+void Range<Alpha>::Get( const int i, const Interval<Alpha>*& interval ) const
 {
   intervals.Get( i, interval );
-  assert( interval.IsValid() );
+  assert( interval->IsValid() );
 }
 
 template <class Alpha>
-void Range<Alpha>::Add( Interval<Alpha>& interval )
+void Range<Alpha>::Add( const Interval<Alpha>& interval )
 {
   assert( interval.IsValid() );
   intervals.Append( interval );
@@ -2199,30 +2206,30 @@ void Range<Alpha>::SetDefined( bool Defined )
 }
 
 template <class Alpha>
-int Range<Alpha>::Compare( Attribute* arg )
+int Range<Alpha>::Compare( const Attribute* arg ) const
 {
   return 0;
 }
 
 template <class Alpha>
-bool Range<Alpha>::Adjacent( Attribute* arg )
+bool Range<Alpha>::Adjacent( const Attribute* arg ) const
 {
   return false;
 }
 
 template <class Alpha>
-Range<Alpha>* Range<Alpha>::Clone()
+Range<Alpha>* Range<Alpha>::Clone() const
 {
   assert( IsOrdered() );
 
   Range *result = new Range( GetNoComponents() );
 
   result->StartBulkLoad();
-  Interval<Alpha> interval;
+  const Interval<Alpha> *interval;
   for( int i = 0; i < GetNoComponents(); i++ )
   {
     Get( i, interval );
-    result->Add( interval );
+    result->Add( *interval );
   }
   result->EndBulkLoad( false );
 
@@ -2230,37 +2237,37 @@ Range<Alpha>* Range<Alpha>::Clone()
 }
 
 template <class Alpha>
-ostream& Range<Alpha>::Print( ostream &os )
+ostream& Range<Alpha>::Print( ostream &os ) const
 {
   return os << "Range Algebra" << endl;
 }
 
 template <class Alpha>
-size_t Range<Alpha>::HashValue()
+size_t Range<Alpha>::HashValue() const
 {
   return 0;
 }
 
 template <class Alpha>
-void Range<Alpha>::CopyFrom( StandardAttribute* right )
+void Range<Alpha>::CopyFrom( const StandardAttribute* right )
 {
-  Range<Alpha> *r = (Range<Alpha>*)right;
+  const Range<Alpha> *r = (const Range<Alpha>*)right;
   assert( r->IsOrdered() );
 
   Clear();
 
   StartBulkLoad();
-  Interval<Alpha> interval;
+  const Interval<Alpha> *interval;
   for( int i = 0; i < r->GetNoComponents(); i++ )
   {
     r->Get( i, interval );
-    Add( interval );
+    Add( *interval );
   }
   EndBulkLoad( false );
 }
 
 template <class Alpha>
-int Range<Alpha>::NumOfFLOBs()
+int Range<Alpha>::NumOfFLOBs() const
 {
   return 1;
 }
@@ -2277,7 +2284,7 @@ FLOB *Range<Alpha>::GetFLOB(const int i)
 
 */
 template <class Alpha>
-bool Range<Alpha>::operator==( Range<Alpha>& r )
+bool Range<Alpha>::operator==( const Range<Alpha>& r ) const
 {
   assert( IsValid() && r.IsValid() );
 
@@ -2285,14 +2292,14 @@ bool Range<Alpha>::operator==( Range<Alpha>& r )
     return false;
 
   bool result = true;
-  Interval<Alpha> thisInterval, interval;
+  const Interval<Alpha> *thisInterval, *interval;
 
   for( int i = 0; i < GetNoComponents(); i++ )
   {
     Get( i, thisInterval );
     r.Get( i, interval );
 
-    if( thisInterval != interval )
+    if( *thisInterval != *interval )
     {
       result = false;
       break;
@@ -2303,13 +2310,13 @@ bool Range<Alpha>::operator==( Range<Alpha>& r )
 }
 
 template <class Alpha>
-bool Range<Alpha>::operator!=( Range<Alpha>& r )
+bool Range<Alpha>::operator!=( const Range<Alpha>& r ) const
 {
   return !( *this == r );
 }
 
 template <class Alpha>
-bool Range<Alpha>::Intersects( Range<Alpha>& r )
+bool Range<Alpha>::Intersects( const Range<Alpha>& r ) const
 {
   assert( IsValid() && r.IsValid() );
 
@@ -2317,7 +2324,7 @@ bool Range<Alpha>::Intersects( Range<Alpha>& r )
     return false;
 
   bool result = false;
-  Interval<Alpha> thisInterval, interval;
+  const Interval<Alpha> *thisInterval, *interval;
 
   int i = 0, j = 0;
   Get( i, thisInterval );
@@ -2325,13 +2332,13 @@ bool Range<Alpha>::Intersects( Range<Alpha>& r )
 
   while( 1 )
   {
-    if( thisInterval.Intersects( interval ) )
+    if( thisInterval->Intersects( *interval ) )
     {
       result = true;
       break;
     }
 
-    if( thisInterval.Before( interval ) )
+    if( thisInterval->Before( *interval ) )
     {
       if( ++i == GetNoComponents() )
       {
@@ -2341,7 +2348,7 @@ bool Range<Alpha>::Intersects( Range<Alpha>& r )
       Get( i, thisInterval );
     }
 
-    if( interval.Before( thisInterval ) )
+    if( interval->Before( *thisInterval ) )
     {
       if( ++j == r.GetNoComponents() )
       {
@@ -2356,7 +2363,7 @@ bool Range<Alpha>::Intersects( Range<Alpha>& r )
 }
 
 template <class Alpha>
-bool Range<Alpha>::Inside( Range<Alpha>& r )
+bool Range<Alpha>::Inside( const Range<Alpha>& r ) const
 {
   assert( IsValid() && r.IsValid() );
 
@@ -2364,7 +2371,7 @@ bool Range<Alpha>::Inside( Range<Alpha>& r )
   if( r.IsEmpty() ) return false;
 
   bool result = true;
-  Interval<Alpha> thisInterval, interval;
+  const Interval<Alpha> *thisInterval, *interval;
 
   int i = 0, j = 0;
   Get( i, thisInterval );
@@ -2372,7 +2379,7 @@ bool Range<Alpha>::Inside( Range<Alpha>& r )
 
   while( 1 )
   {
-    if( interval.Before( thisInterval ) )
+    if( interval->Before( *thisInterval ) )
     {
       if( ++j == r.GetNoComponents() )
       {
@@ -2381,7 +2388,7 @@ bool Range<Alpha>::Inside( Range<Alpha>& r )
       }
       r.Get( j, interval );
     }
-    else if( thisInterval.Inside( interval ) )
+    else if( thisInterval->Inside( *interval ) )
     {
       if( ++i == GetNoComponents() )
       {
@@ -2389,7 +2396,7 @@ bool Range<Alpha>::Inside( Range<Alpha>& r )
       }
       Get( i, thisInterval );
     }
-    else if( thisInterval.Before( interval ) )
+    else if( thisInterval->Before( *interval ) )
     {
       result = false;
       break;
@@ -2406,7 +2413,7 @@ bool Range<Alpha>::Inside( Range<Alpha>& r )
 }
 
 template <class Alpha>
-bool Range<Alpha>::Contains( Alpha& a )
+bool Range<Alpha>::Contains( const Alpha& a ) const
 {
   assert( IsValid() && a.IsDefined() );
 
@@ -2414,7 +2421,7 @@ bool Range<Alpha>::Contains( Alpha& a )
     return false;
 
   bool result = false;
-  Interval<Alpha> midInterval;
+  const Interval<Alpha> *midInterval;
 
   int first = 0, last = GetNoComponents() - 1;
 
@@ -2422,14 +2429,14 @@ bool Range<Alpha>::Contains( Alpha& a )
   {
     int mid = ( first + last ) / 2;
     Get( mid, midInterval );
-    if( midInterval.Contains( a ) )
+    if( midInterval->Contains( a ) )
     {
       result = true;
       break;
     }
-    else if( midInterval.Before( a ) )
+    else if( midInterval->Before( a ) )
       first = mid + 1;
-    else if( midInterval.After( a ) )
+    else if( midInterval->After( a ) )
       last = mid - 1;
     else
     {
@@ -2442,45 +2449,45 @@ bool Range<Alpha>::Contains( Alpha& a )
 }
 
 template <class Alpha>
-bool Range<Alpha>::Before( Range<Alpha>& r )
+bool Range<Alpha>::Before( const Range<Alpha>& r ) const
 {
   assert( IsValid() && r.IsValid() );
   assert( !IsEmpty() && !r.IsEmpty() );
 
-  Interval<Alpha> thisInterval, interval;
+  const Interval<Alpha> *thisInterval, *interval;
   Get( GetNoComponents() - 1, thisInterval );
   r.Get( 0, interval );
 
-  return thisInterval.Before( interval );
+  return thisInterval->Before( *interval );
 }
 
 template <class Alpha>
-bool Range<Alpha>::Before( Alpha& a )
+bool Range<Alpha>::Before( const Alpha& a ) const
 {
   assert( IsValid() && !IsEmpty() && a.IsDefined() );
 
-  Interval<Alpha> thisInterval;
+  const Interval<Alpha> *thisInterval;
   Get( GetNoComponents() - 1, thisInterval );
-  return thisInterval.Before( a );
+  return thisInterval->Before( a );
 }
 
 template <class Alpha>
-bool Range<Alpha>::After( Alpha& a )
+bool Range<Alpha>::After( const Alpha& a ) const
 {
   assert( IsValid() && !IsEmpty() && a.IsDefined() );
 
-  Interval<Alpha> thisInterval;
+  const Interval<Alpha> *thisInterval;
   Get( 0, thisInterval );
 
-  return thisInterval.After( a );
+  return thisInterval->After( a );
 }
 
 template <class Alpha>
-void Range<Alpha>::Intersection( Range<Alpha>& r, Range<Alpha>& result )
+void Range<Alpha>::Intersection( const Range<Alpha>& r, Range<Alpha>& result ) const
 {
   assert( IsValid() && r.IsValid() && result.IsEmpty() );
 
-  Interval<Alpha> thisInterval, interval;
+  const Interval<Alpha> *thisInterval, *interval;
 
   int i = 0, j = 0;
   Get( i, thisInterval );
@@ -2489,12 +2496,12 @@ void Range<Alpha>::Intersection( Range<Alpha>& r, Range<Alpha>& result )
   result.StartBulkLoad();
   while( i < GetNoComponents() && j < r.GetNoComponents() )
   {
-    if( thisInterval.start.Compare( &interval.start ) == 0 &&
-        thisInterval.end.Compare( &interval.end ) == 0 )
+    if( thisInterval->start.Compare( &interval->start ) == 0 &&
+        thisInterval->end.Compare( &interval->end ) == 0 )
     {
-      Interval<Alpha> newInterval( thisInterval.start, thisInterval.end,
-                            thisInterval.lc && interval.lc,
-                            thisInterval.rc && interval.rc );
+      Interval<Alpha> newInterval( thisInterval->start, thisInterval->end,
+                            thisInterval->lc && interval->lc,
+                            thisInterval->rc && interval->rc );
       if( newInterval.IsValid() )
         result.Add( newInterval );
       if( ++i < GetNoComponents() )
@@ -2502,52 +2509,54 @@ void Range<Alpha>::Intersection( Range<Alpha>& r, Range<Alpha>& result )
       if( ++j < r.GetNoComponents() )
         r.Get( j, interval );
     }
-    else if( thisInterval.Inside( interval ) )
+    else if( thisInterval->Inside( *interval ) )
     {
-      Interval<Alpha> newInterval( thisInterval );
+      Interval<Alpha> newInterval( *thisInterval );
       if( newInterval.IsValid() )
         result.Add( newInterval );
       if( ++i < GetNoComponents() )
         Get( i, thisInterval );
     }
-    else if( interval.Inside( thisInterval ) )
+    else if( interval->Inside( *thisInterval ) )
     {
-      Interval<Alpha> newInterval( interval );
+      Interval<Alpha> newInterval( *interval );
       if( newInterval.IsValid() )
         result.Add( newInterval );
       if( ++j < r.GetNoComponents() )
         r.Get( j, interval );
     }
-    else if( thisInterval.Intersects( interval ) )
+    else if( thisInterval->Intersects( *interval ) )
     {
-      if( thisInterval.start.Compare( &interval.end ) == 0 && ( thisInterval.lc && interval.rc ) )
+      if( thisInterval->start.Compare( &interval->end ) == 0 && 
+          thisInterval->lc && interval->rc )
       {
-        Interval<Alpha> newInterval( interval.end, interval.end, true, true );
+        Interval<Alpha> newInterval( interval->end, interval->end, true, true );
         result.Add( newInterval );
         if( ++j < r.GetNoComponents() )
           r.Get( j, interval );
       }
-      else if( thisInterval.end.Compare( &interval.start ) == 0 && ( thisInterval.rc && interval.lc ) )
+      else if( thisInterval->end.Compare( &interval->start ) == 0 && 
+               thisInterval->rc && interval->lc )
       {
-        Interval<Alpha> newInterval( interval.start, interval.start, true, true );
+        Interval<Alpha> newInterval( interval->start, interval->start, true, true );
         result.Add( newInterval );
         if( ++i < GetNoComponents() )
           Get( i, thisInterval );
       }
-      else if( thisInterval.start.Compare( &interval.start ) < 0 )
+      else if( thisInterval->start.Compare( &interval->start ) < 0 )
       {
-        Interval<Alpha> newInterval( interval.start, thisInterval.end, interval.lc, thisInterval.rc );
+        Interval<Alpha> newInterval( interval->start, thisInterval->end, interval->lc, thisInterval->rc );
         if( newInterval.IsValid() )
           result.Add( newInterval );
         if( ++i < GetNoComponents() )
           Get( i, thisInterval );
       }
-      else if( thisInterval.start.Compare( &interval.start ) == 0 )
+      else if( thisInterval->start.Compare( &interval->start ) == 0 )
       {
-        assert( !thisInterval.lc || !interval.lc );
-        if( thisInterval.end.Compare( &interval.end ) > 0 )
+        assert( !thisInterval->lc || !interval->lc );
+        if( thisInterval->end.Compare( &interval->end ) > 0 )
         {
-          Interval<Alpha> newInterval( interval.start, interval.end, interval.lc && thisInterval.lc, interval.rc );
+          Interval<Alpha> newInterval( interval->start, interval->end, interval->lc && thisInterval->lc, interval->rc );
           if( newInterval.IsValid() )
             result.Add( newInterval );
           if( ++j < r.GetNoComponents() )
@@ -2555,8 +2564,8 @@ void Range<Alpha>::Intersection( Range<Alpha>& r, Range<Alpha>& result )
         }
         else
         {
-          assert( thisInterval.end.Compare( &interval.end ) < 0 );
-          Interval<Alpha> newInterval( thisInterval.start, thisInterval.end, interval.lc && thisInterval.lc, thisInterval.rc );
+          assert( thisInterval->end.Compare( &interval->end ) < 0 );
+          Interval<Alpha> newInterval( thisInterval->start, thisInterval->end, interval->lc && thisInterval->lc, thisInterval->rc );
           if( newInterval.IsValid() )
             result.Add( newInterval );
           if( ++i < GetNoComponents() )
@@ -2565,14 +2574,14 @@ void Range<Alpha>::Intersection( Range<Alpha>& r, Range<Alpha>& result )
       }
       else
       {
-        Interval<Alpha> newInterval( thisInterval.start, interval.end, thisInterval.lc, interval.rc );
+        Interval<Alpha> newInterval( thisInterval->start, interval->end, thisInterval->lc, interval->rc );
         if( newInterval.IsValid() )
         result.Add( newInterval );
         if( ++j < r.GetNoComponents() )
           r.Get( j, interval );
       }
     }
-    else if( thisInterval.start.Compare( &interval.start ) <= 0 )
+    else if( thisInterval->start.Compare( &interval->start ) <= 0 )
     {
       if( ++i < GetNoComponents() )
         Get( i, thisInterval );
@@ -2587,11 +2596,11 @@ void Range<Alpha>::Intersection( Range<Alpha>& r, Range<Alpha>& result )
 }
 
 template <class Alpha>
-void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
+void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
 {
   assert( IsValid() && r.IsValid() && result.IsEmpty() );
 
-  Interval<Alpha> thisInterval, interval;
+  const Interval<Alpha> *thisInterval, *interval;
 
   result.StartBulkLoad();
   int i = 0, j = 0;
@@ -2608,12 +2617,12 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
 
     while( i < GetNoComponents() && j < r.GetNoComponents() )
     {
-      if( thisInterval.start.Compare( &interval.start ) == 0 &&
-          thisInterval.end.Compare( &interval.end ) == 0 )
+      if( thisInterval->start.Compare( &interval->start ) == 0 &&
+          thisInterval->end.Compare( &interval->end ) == 0 )
       {
-        Interval<Alpha> newInterval( thisInterval.start, thisInterval.end,
-                              thisInterval.lc || interval.lc,
-                              thisInterval.rc || interval.rc );
+        Interval<Alpha> newInterval( thisInterval->start, thisInterval->end,
+                                     thisInterval->lc || interval->lc,
+                                     thisInterval->rc || interval->rc );
         result.Add( newInterval );
 
         if( ++i < GetNoComponents() )
@@ -2622,21 +2631,21 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
         if( ++j < r.GetNoComponents() )
           r.Get( j, interval );
       }
-      else if( interval.Inside( thisInterval ) )
+      else if( interval->Inside( *thisInterval ) )
       {
         if( ++j < r.GetNoComponents() )
           r.Get( j, interval );
       }
-      else if( thisInterval.Inside( interval ) )
+      else if( thisInterval->Inside( *interval ) )
       {
         if( ++i < GetNoComponents() )
           Get( i, thisInterval );
       }
-      else if( !thisInterval.Intersects( interval ) )
+      else if( !thisInterval->Intersects( *interval ) )
       {
-        if( thisInterval.end.Compare( &interval.start ) < 0 )
+        if( thisInterval->end.Compare( &interval->start ) < 0 )
         {
-          if( thisInterval.Adjacent( interval ) )
+          if( thisInterval->Adjacent( *interval ) )
           {
             if( start != NULL && end != NULL )
             {
@@ -2644,11 +2653,11 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
             }
             else
             {
-              start = thisInterval.start.Clone();
-              lc = thisInterval.lc;
+              start = thisInterval->start.Clone();
+              lc = thisInterval->lc;
             }
-            end = interval.end.Clone();
-            rc = interval.rc;
+            end = interval->end.Clone();
+            rc = interval->rc;
           }
           else
           {
@@ -2662,7 +2671,7 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
             }
             else
             {
-              Interval<Alpha> newInterval( thisInterval );
+              Interval<Alpha> newInterval( *thisInterval );
               result.Add( newInterval );
             }
           }
@@ -2670,9 +2679,9 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
           if( ++i < GetNoComponents() )
             Get( i, thisInterval );
         }
-        else if( thisInterval.start.Compare( &interval.end ) > 0 )
+        else if( thisInterval->start.Compare( &interval->end ) > 0 )
         {
-          if( thisInterval.Adjacent( interval ) )
+          if( thisInterval->Adjacent( *interval ) )
           {
             if( start != NULL && end != NULL )
             {
@@ -2680,11 +2689,11 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
             }
             else
             {
-              start = interval.start.Clone();
-              lc = interval.lc;
+              start = interval->start.Clone();
+              lc = interval->lc;
             }
-            end = thisInterval.end.Clone();
-            rc = thisInterval.rc;
+            end = thisInterval->end.Clone();
+            rc = thisInterval->rc;
           }
           else
           {
@@ -2698,7 +2707,7 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
             }
             else
             {
-              Interval<Alpha> newInterval( interval );
+              Interval<Alpha> newInterval( *interval );
               result.Add( newInterval );
             }
           }
@@ -2706,9 +2715,9 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
           if( ++j < r.GetNoComponents() )
             r.Get( j, interval );
         }
-        else if( thisInterval.start.Compare( &interval.end ) == 0 )
+        else if( thisInterval->start.Compare( &interval->end ) == 0 )
         {
-          if( !thisInterval.lc && !interval.rc )
+          if( !thisInterval->lc && !interval->rc )
           {
             if( start != NULL && end != NULL )
             {
@@ -2720,7 +2729,7 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
             }
             else
             {
-              Interval<Alpha> newInterval( interval );
+              Interval<Alpha> newInterval( *interval );
               result.Add( newInterval );
             }
           }
@@ -2728,32 +2737,32 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
           {
             if( start != NULL && end != NULL )
             {
-              if( end->Compare( &thisInterval.end ) < 0 )
+              if( end->Compare( &thisInterval->end ) < 0 )
               {
                 delete end;
-                end = thisInterval.end.Clone();
-                rc = thisInterval.rc;
+                end = thisInterval->end.Clone();
+                rc = thisInterval->rc;
               }
-              else if( end->Compare( &thisInterval.end ) == 0 )
+              else if( end->Compare( &thisInterval->end ) == 0 )
               {
-                rc = rc || thisInterval.rc;
+                rc = rc || thisInterval->rc;
               }
             }
             else
             {
-              start = interval.start.Clone();
-              lc = interval.lc;
-              end = thisInterval.end.Clone();
-              rc = thisInterval.rc;
+              start = interval->start.Clone();
+              lc = interval->lc;
+              end = thisInterval->end.Clone();
+              rc = thisInterval->rc;
             }
           }
 
           if( ++j < r.GetNoComponents() )
             r.Get( j, interval );
         }
-        else if( interval.start.Compare( &thisInterval.end ) == 0 )
+        else if( interval->start.Compare( &thisInterval->end ) == 0 )
         {
-          if( !interval.lc && !thisInterval.rc )
+          if( !interval->lc && !thisInterval->rc )
           {
             if( start != NULL && end != NULL )
             {
@@ -2765,7 +2774,7 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
             }
             else
             {
-              Interval<Alpha> newInterval( thisInterval );
+              Interval<Alpha> newInterval( *thisInterval );
               result.Add( newInterval );
             }
           }
@@ -2773,23 +2782,23 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
           {
             if( start != NULL && end != NULL )
             {
-              if( end->Compare( &interval.end ) < 0 )
+              if( end->Compare( &interval->end ) < 0 )
               {
                 delete end;
-                end = interval.end.Clone();
-                rc = interval.rc;
+                end = interval->end.Clone();
+                rc = interval->rc;
               }
-              else if( end->Compare( &interval.end ) == 0 )
+              else if( end->Compare( &interval->end ) == 0 )
               {
-                rc = rc || interval.rc;
+                rc = rc || interval->rc;
               }
             }
             else
             {
-              start = thisInterval.start.Clone();
-              lc = thisInterval.lc;
-              end = interval.end.Clone();
-              rc = interval.rc;
+              start = thisInterval->start.Clone();
+              lc = thisInterval->lc;
+              end = interval->end.Clone();
+              rc = interval->rc;
             }
           }
 
@@ -2797,82 +2806,82 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
             Get( i, thisInterval );
         }
       }
-      else if( thisInterval.start.Compare( &interval.start ) < 0 )
+      else if( thisInterval->start.Compare( &interval->start ) < 0 )
       {
         if( start == NULL && end == NULL )
         {
-          start = thisInterval.start.Clone();
-          lc = thisInterval.lc;
-          end = interval.end.Clone();
-          rc = interval.rc;
+          start = thisInterval->start.Clone();
+          lc = thisInterval->lc;
+          end = interval->end.Clone();
+          rc = interval->rc;
         }
         else
         {
-          if( end->Compare( &interval.end ) < 0 )
+          if( end->Compare( &interval->end ) < 0 )
           {
-            end = interval.end.Clone();
-            rc = interval.rc;
+            end = interval->end.Clone();
+            rc = interval->rc;
           }
-          if( end->Compare( &interval.end ) == 0 )
+          if( end->Compare( &interval->end ) == 0 )
           {
-            rc = rc || interval.rc;
+            rc = rc || interval->rc;
           }
         }
 
         if( ++i < GetNoComponents() )
           Get( i, thisInterval );
       }
-      else if( interval.start.Compare( &thisInterval.start ) < 0 )
+      else if( interval->start.Compare( &thisInterval->start ) < 0 )
       {
         if( start == NULL && end == NULL )
         {
-          start = interval.start.Clone();
-          lc = interval.lc;
-          end = thisInterval.end.Clone();
-          rc = thisInterval.rc;
+          start = interval->start.Clone();
+          lc = interval->lc;
+          end = thisInterval->end.Clone();
+          rc = thisInterval->rc;
         }
         else
         {
-          if( end->Compare( &thisInterval.end ) < 0 )
+          if( end->Compare( &thisInterval->end ) < 0 )
           {
-            end = thisInterval.end.Clone();
-            rc = thisInterval.rc;
+            end = thisInterval->end.Clone();
+            rc = thisInterval->rc;
           }
-          if( end->Compare( &thisInterval.end ) == 0 )
+          if( end->Compare( &thisInterval->end ) == 0 )
           {
-            rc = rc || thisInterval.rc;
+            rc = rc || thisInterval->rc;
           }
         }
 
         if( ++j < r.GetNoComponents() )
           r.Get( j, interval );
       }
-      else if( thisInterval.start.Compare( &interval.start ) == 0 )
+      else if( thisInterval->start.Compare( &interval->start ) == 0 )
       {
         assert( start == NULL && end == NULL );
-        start = thisInterval.start.Clone();
-        lc = thisInterval.lc || interval.lc;
-        if( thisInterval.end.Compare( &interval.end ) < 0 )
+        start = thisInterval->start.Clone();
+        lc = thisInterval->lc || interval->lc;
+        if( thisInterval->end.Compare( &interval->end ) < 0 )
         {
-          end = interval.end.Clone();
-          rc = interval.rc;
+          end = interval->end.Clone();
+          rc = interval->rc;
 
           if( ++i < GetNoComponents() )
             Get( i, thisInterval );
         }
         else
         {
-          end = thisInterval.end.Clone();
-          rc = thisInterval.rc;
+          end = thisInterval->end.Clone();
+          rc = thisInterval->rc;
 
           if( ++j < r.GetNoComponents() )
             r.Get( j, interval );
         }
       }
-      else if( thisInterval.end.Compare( &interval.end ) == 0 )
+      else if( thisInterval->end.Compare( &interval->end ) == 0 )
       {
         assert( start != NULL && end != NULL );
-        rc = thisInterval.rc || interval.rc;
+        rc = thisInterval->rc || interval->rc;
 
         Interval<Alpha> newInterval( *start, *end, lc, rc );
         result.Add( newInterval );
@@ -2911,7 +2920,7 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
 
   while( i < GetNoComponents() )
   {
-    Interval<Alpha> newInterval( thisInterval );
+    Interval<Alpha> newInterval( *thisInterval );
     result.Add( newInterval );
 
     if( ++i < GetNoComponents() )
@@ -2920,7 +2929,7 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
 
   while( j < r.GetNoComponents() )
   {
-    Interval<Alpha> newInterval( interval );
+    Interval<Alpha> newInterval( *interval );
     result.Add( newInterval );
 
     if( ++j < r.GetNoComponents() )
@@ -2930,7 +2939,7 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
 }
 
 template <class Alpha>
-void Range<Alpha>::Minus( Range<Alpha>& r, Range<Alpha>& result )
+void Range<Alpha>::Minus( const Range<Alpha>& r, Range<Alpha>& result ) const
 {
   assert( IsValid() && r.IsValid() && result.IsEmpty() );
 
@@ -2938,7 +2947,7 @@ void Range<Alpha>::Minus( Range<Alpha>& r, Range<Alpha>& result )
     return;
   result.StartBulkLoad();
 
-  Interval<Alpha> thisInterval, interval;
+  const Interval<Alpha> *thisInterval, *interval;
 
   int i = 0, j = 0;
   Get( i, thisInterval );
@@ -2952,17 +2961,17 @@ void Range<Alpha>::Minus( Range<Alpha>& r, Range<Alpha>& result )
 
     while( i < GetNoComponents() && j < r.GetNoComponents() )
     {
-      if( thisInterval.start.Compare( &interval.start ) == 0 &&
-          thisInterval.end.Compare( &interval.end ) == 0 )
+      if( thisInterval->start.Compare( &interval->start ) == 0 &&
+          thisInterval->end.Compare( &interval->end ) == 0 )
       {
-        if( thisInterval.lc && !interval.lc )
+        if( thisInterval->lc && !interval->lc )
         {
-          Interval<Alpha> newInterval( thisInterval.start, thisInterval.start, true, true );
+          Interval<Alpha> newInterval( thisInterval->start, thisInterval->start, true, true );
           result.Add( newInterval );
         }
-        if( thisInterval.rc && !interval.rc )
+        if( thisInterval->rc && !interval->rc )
         {
-          Interval<Alpha> newInterval( thisInterval.end, thisInterval.end, true, true );
+          Interval<Alpha> newInterval( thisInterval->end, thisInterval->end, true, true );
           result.Add( newInterval );
         }
 
@@ -2972,7 +2981,7 @@ void Range<Alpha>::Minus( Range<Alpha>& r, Range<Alpha>& result )
         if( ++j < r.GetNoComponents() )
           r.Get( j, interval );
       }
-      else if( !thisInterval.Intersects( interval ) )
+      else if( !thisInterval->Intersects( *interval ) )
       {
         if( start != NULL && end != NULL )
         {
@@ -2983,13 +2992,13 @@ void Range<Alpha>::Minus( Range<Alpha>& r, Range<Alpha>& result )
           delete end; end = NULL;
           lc = rc = false;
         }
-        else if( thisInterval.start.Compare( &interval.start ) <= 0 )
+        else if( thisInterval->start.Compare( &interval->start ) <= 0 )
         {
-          Interval<Alpha> newInterval( thisInterval );
+          Interval<Alpha> newInterval( *thisInterval );
           result.Add( newInterval );
         }
 
-        if( thisInterval.start.Compare( &interval.start ) <= 0 )
+        if( thisInterval->start.Compare( &interval->start ) <= 0 )
         {
           if( ++i < GetNoComponents() )
             Get( i, thisInterval );
@@ -3000,40 +3009,40 @@ void Range<Alpha>::Minus( Range<Alpha>& r, Range<Alpha>& result )
             r.Get( j, interval );
         }
       }
-      else if( thisInterval.Inside( interval ) )
+      else if( thisInterval->Inside( *interval ) )
       {
         if( ++i < GetNoComponents() )
           Get( i, thisInterval );
       }
-      else if( interval.Inside( thisInterval ) )
+      else if( interval->Inside( *thisInterval ) )
       {
-        if( interval.start.Compare( &thisInterval.start ) == 0 )
+        if( interval->start.Compare( &thisInterval->start ) == 0 )
         {
           assert( start == NULL && end == NULL );
-          if( thisInterval.lc && !interval.lc )
+          if( thisInterval->lc && !interval->lc )
           {
-            Interval<Alpha> newInterval( thisInterval.start, thisInterval.start, true, true );
+            Interval<Alpha> newInterval( thisInterval->start, thisInterval->start, true, true );
             result.Add( newInterval );
           }
-          start = interval.end.Clone();
-          lc = !interval.rc;
-          end = thisInterval.end.Clone();
-          rc = thisInterval.rc;
+          start = interval->end.Clone();
+          lc = !interval->rc;
+          end = thisInterval->end.Clone();
+          rc = thisInterval->rc;
 
           if( ++j < r.GetNoComponents() )
             r.Get( j, interval );
         }
-        else if( interval.end.Compare( &thisInterval.end ) == 0 )
+        else if( interval->end.Compare( &thisInterval->end ) == 0 )
         {
           if( start == NULL && end == NULL )
           {
-            Interval<Alpha> newInterval( thisInterval.start, interval.start, thisInterval.lc, !interval.lc );
+            Interval<Alpha> newInterval( thisInterval->start, interval->start, thisInterval->lc, !interval->lc );
             if( newInterval.IsValid() )
               result.Add( newInterval );
           }
           else
           {
-            Interval<Alpha> newInterval( *start, interval.start, lc, !interval.lc );
+            Interval<Alpha> newInterval( *start, interval->start, lc, !interval->lc );
             if( newInterval.IsValid() )
               result.Add( newInterval );
             delete start; start = NULL;
@@ -3041,9 +3050,9 @@ void Range<Alpha>::Minus( Range<Alpha>& r, Range<Alpha>& result )
             lc = false; rc = false;
           }
 
-          if( thisInterval.rc && !interval.rc )
+          if( thisInterval->rc && !interval->rc )
           {
-            Interval<Alpha> newInterval( thisInterval.end, thisInterval.end, true, true );
+            Interval<Alpha> newInterval( thisInterval->end, thisInterval->end, true, true );
             result.Add( newInterval );
           }
 
@@ -3055,19 +3064,19 @@ void Range<Alpha>::Minus( Range<Alpha>& r, Range<Alpha>& result )
         }
         else
         {
-          assert( thisInterval.start.Compare( &interval.start ) < 0 &&
-                  thisInterval.end.Compare( &interval.end ) > 0 );
+          assert( thisInterval->start.Compare( &interval->start ) < 0 &&
+                  thisInterval->end.Compare( &interval->end ) > 0 );
           if( start == NULL && end == NULL )
           {
-            Interval<Alpha> newInterval( thisInterval.start, interval.start, thisInterval.lc, !interval.lc );
+            Interval<Alpha> newInterval( thisInterval->start, interval->start, thisInterval->lc, !interval->lc );
             if( newInterval.IsValid() )
               result.Add( newInterval );
           }
           else
           {
-            assert( end->Compare( &thisInterval.end ) == 0 && rc == thisInterval.rc );
+            assert( end->Compare( &thisInterval->end ) == 0 && rc == thisInterval->rc );
 
-            Interval<Alpha> newInterval( *start, interval.start, lc, !interval.lc );
+            Interval<Alpha> newInterval( *start, interval->start, lc, !interval->lc );
             if( newInterval.IsValid() )
               result.Add( newInterval );
             delete start; start = NULL;
@@ -3075,10 +3084,10 @@ void Range<Alpha>::Minus( Range<Alpha>& r, Range<Alpha>& result )
             lc = rc = false;
           }
 
-          start = interval.end.Clone();
-          lc = !interval.rc;
-          end = thisInterval.end.Clone();
-          rc = thisInterval.rc;
+          start = interval->end.Clone();
+          lc = !interval->rc;
+          end = thisInterval->end.Clone();
+          rc = thisInterval->rc;
 
           if( ++j < r.GetNoComponents() )
             r.Get( j, interval );
@@ -3086,17 +3095,17 @@ void Range<Alpha>::Minus( Range<Alpha>& r, Range<Alpha>& result )
       }
       else
       {
-        assert( thisInterval.Intersects( interval ) );
+        assert( thisInterval->Intersects( *interval ) );
 
-        if( interval.start.Compare( &thisInterval.start ) < 0 )
+        if( interval->start.Compare( &thisInterval->start ) < 0 )
         {
           assert( start == NULL && end == NULL );
 
-          if( interval.end.Compare( &thisInterval.end ) == 0 )
+          if( interval->end.Compare( &thisInterval->end ) == 0 )
           {
-            if( thisInterval.rc && !interval.rc )
+            if( thisInterval->rc && !interval->rc )
             {
-              Interval<Alpha> newInterval( thisInterval.end, thisInterval.end, true, true );
+              Interval<Alpha> newInterval( thisInterval->end, thisInterval->end, true, true );
               result.Add( newInterval );
             }
 
@@ -3108,52 +3117,52 @@ void Range<Alpha>::Minus( Range<Alpha>& r, Range<Alpha>& result )
           }
           else
           {
-            start = interval.end.Clone();
-            if( interval.end.Compare( &thisInterval.start ) == 0 )
+            start = interval->end.Clone();
+            if( interval->end.Compare( &thisInterval->start ) == 0 )
             {
-              lc = thisInterval.lc && !interval.rc;
+              lc = thisInterval->lc && !interval->rc;
             }
             else
             {
-              lc = !interval.rc;
+              lc = !interval->rc;
             }
-            end = thisInterval.end.Clone();
-            rc = thisInterval.rc;
+            end = thisInterval->end.Clone();
+            rc = thisInterval->rc;
 
             if( ++j < r.GetNoComponents() )
               r.Get( j, interval );
           }
         }
-        else if( interval.start.Compare( &thisInterval.start ) == 0 )
+        else if( interval->start.Compare( &thisInterval->start ) == 0 )
         {
           assert( start == NULL & end == NULL );
 
-          if( thisInterval.lc && !interval.lc )
+          if( thisInterval->lc && !interval->lc )
           {
-            Interval<Alpha> newInterval( thisInterval.start, thisInterval.start, true, true );
+            Interval<Alpha> newInterval( thisInterval->start, thisInterval->start, true, true );
             result.Add( newInterval );
           }
 
-          if( thisInterval.end.Compare( &interval.end ) > 0 )
+          if( thisInterval->end.Compare( &interval->end ) > 0 )
           {
-            start = interval.end.Clone();
-            lc = !interval.rc;
-            end = thisInterval.end.Clone();
-            rc = thisInterval.rc;
+            start = interval->end.Clone();
+            lc = !interval->rc;
+            end = thisInterval->end.Clone();
+            rc = thisInterval->rc;
 
             if( ++j < r.GetNoComponents() )
               r.Get( j, interval );
           }
           else
           {
-            assert( thisInterval.end.Compare( &interval.end ) < 0 );
+            assert( thisInterval->end.Compare( &interval->end ) < 0 );
             if( ++i < GetNoComponents() )
               Get( i, thisInterval );
           }
         }
-        else if( interval.end.Compare( &thisInterval.end ) > 0 )
+        else if( interval->end.Compare( &thisInterval->end ) > 0 )
         {
-          if( thisInterval.start.Compare( &interval.start ) == 0 )
+          if( thisInterval->start.Compare( &interval->start ) == 0 )
           {
             assert( start == NULL && end == NULL );
             cerr << "I think that there is an error here!!!" << endl;
@@ -3162,15 +3171,15 @@ void Range<Alpha>::Minus( Range<Alpha>& r, Range<Alpha>& result )
           {
             if( start != NULL && end != NULL )
             {
-              if( interval.start.Compare( start ) > 0 ||
-                  ( interval.start.Compare( start ) == 0 && interval.lc && !lc ) )
+              if( interval->start.Compare( start ) > 0 ||
+                  ( interval->start.Compare( start ) == 0 && interval->lc && !lc ) )
               {
                 delete end;
-                end = interval.start.Clone();
-                if( interval.start.Compare( &thisInterval.end ) == 0 )
-                  rc = thisInterval.rc && !interval.lc;
+                end = interval->start.Clone();
+                if( interval->start.Compare( &thisInterval->end ) == 0 )
+                  rc = thisInterval->rc && !interval->lc;
                 else
-                  rc = !interval.lc;
+                  rc = !interval->lc;
 
                 Interval<Alpha> newInterval( *start, *end, lc, rc );
                 if( newInterval.IsValid() )
@@ -3182,7 +3191,7 @@ void Range<Alpha>::Minus( Range<Alpha>& r, Range<Alpha>& result )
             }
             else
             {
-              Interval<Alpha> newInterval( thisInterval.start, interval.start, thisInterval.lc, !interval.lc );
+              Interval<Alpha> newInterval( thisInterval->start, interval->start, thisInterval->lc, !interval->lc );
               if( newInterval.IsValid() )
                 result.Add( newInterval );
             }
@@ -3192,26 +3201,26 @@ void Range<Alpha>::Minus( Range<Alpha>& r, Range<Alpha>& result )
         }
         else
         {
-          assert( interval.end.Compare( &thisInterval.end ) == 0 );
+          assert( interval->end.Compare( &thisInterval->end ) == 0 );
 
-          if( interval.start.Compare( &thisInterval.start ) < 0 )
+          if( interval->start.Compare( &thisInterval->start ) < 0 )
           {
             assert( start == NULL && end == NULL );
-            if( thisInterval.rc && !interval.rc )
+            if( thisInterval->rc && !interval->rc )
             {
-              Interval<Alpha> newInterval( interval.end, interval.end, true, true );
+              Interval<Alpha> newInterval( interval->end, interval->end, true, true );
               result.Add( newInterval );
             }
           }
           else
           {
-            assert( interval.start.Compare( &thisInterval.start ) > 0 );
+            assert( interval->start.Compare( &thisInterval->start ) > 0 );
 
             if( start != NULL && end != NULL )
             {
               delete end;
-              end = interval.start.Clone();
-              rc = !interval.lc;
+              end = interval->start.Clone();
+              rc = !interval->lc;
 
               Interval<Alpha> newInterval( *start, *end, lc, rc );
               if( newInterval.IsValid() )
@@ -3222,7 +3231,7 @@ void Range<Alpha>::Minus( Range<Alpha>& r, Range<Alpha>& result )
             }
             else
             {
-              Interval<Alpha> newInterval( thisInterval.start, interval.start, thisInterval.lc, !interval.lc );
+              Interval<Alpha> newInterval( thisInterval->start, interval->start, thisInterval->lc, !interval->lc );
               if( newInterval.IsValid() )
                 result.Add( newInterval );
             }
@@ -3261,7 +3270,7 @@ void Range<Alpha>::Minus( Range<Alpha>& r, Range<Alpha>& result )
 
   while( i < GetNoComponents() )
   {
-    Interval<Alpha> newInterval( thisInterval );
+    Interval<Alpha> newInterval( *thisInterval );
     result.Add( newInterval );
 
     if( ++i < GetNoComponents() )
@@ -3271,7 +3280,7 @@ void Range<Alpha>::Minus( Range<Alpha>& r, Range<Alpha>& result )
 }
 
 template <class Alpha>
-void Range<Alpha>::Maximum( Alpha& result )
+void Range<Alpha>::Maximum( Alpha& result ) const
 {
   assert( IsValid() );
 
@@ -3279,14 +3288,14 @@ void Range<Alpha>::Maximum( Alpha& result )
     result.SetDefined( false );
   else
   {
-    Interval<Alpha> interval;
+    const Interval<Alpha> *interval;
     Get( GetNoComponents()-1, interval );
-    result.CopyFrom( &interval.end );
+    result.CopyFrom( &interval->end );
   }
 }
 
 template <class Alpha>
-void Range<Alpha>::Minimum( Alpha& result )
+void Range<Alpha>::Minimum( Alpha& result ) const
 {
   assert( IsValid() );
 
@@ -3294,9 +3303,9 @@ void Range<Alpha>::Minimum( Alpha& result )
     result.SetDefined( false );
   else
   {
-    Interval<Alpha> interval;
+    const Interval<Alpha> *interval;
     Get( 0, interval );
-    result.CopyFrom( &interval.start );
+    result.CopyFrom( &interval->start );
   }
 }
 
@@ -3307,7 +3316,7 @@ int Range<Alpha>::GetNoComponents() const
 }
 
 template <class Alpha>
-bool Range<Alpha>::IsValid()
+bool Range<Alpha>::IsValid() const
 {
   if( canDestroy )
     return false;
@@ -3319,29 +3328,30 @@ bool Range<Alpha>::IsValid()
     return true;
 
   bool result = true;
-  Interval<Alpha> lastInterval, interval;
+  const Interval<Alpha> *lastInterval, *interval;
 
   if( GetNoComponents() == 1 )
   {
     Get( 0, interval );
-    return( interval.IsValid() );
+    return( interval->IsValid() );
   }
 
   for( int i = 1; i < GetNoComponents(); i++ )
   {
     Get( i-1, lastInterval );
-    if( !lastInterval.IsValid() )
+    if( !lastInterval->IsValid() )
     {
       result = false;
       break;
     }
     Get( i, interval );
-    if( !interval.IsValid() )
+    if( !interval->IsValid() )
     {
       result = false;
       break;
     }
-    if( (!lastInterval.Disjoint( interval )) && (!lastInterval.Adjacent( interval )) )
+    if( (!lastInterval->Disjoint( *interval )) && 
+        (!lastInterval->Adjacent( *interval )) )
     {
       result = false;
       break;
@@ -3352,14 +3362,14 @@ bool Range<Alpha>::IsValid()
 }
 
 template <class Alpha>
-void Range<Alpha>::Merge( Range<Alpha>& result )
+void Range<Alpha>::Merge( Range<Alpha>& result ) const
 {
   assert( IsOrdered() );
 
   result.Clear();
   result.StartBulkLoad();
 
-  Interval<Alpha> ii, ji;
+  const Interval<Alpha> *ii, *ji;
   int i = 0, j;
   bool jcont = true;
 
@@ -3369,20 +3379,22 @@ void Range<Alpha>::Merge( Range<Alpha>& result )
 
     j = i + 1;
     jcont = true;
+   
+    Interval<Alpha> copyii( *ii );
     while( j < GetNoComponents() && jcont )
     {
       Get( j, ji );
-      if( ii.Adjacent( ji ) )
+      if( copyii.Adjacent( *ji ) )
       {
-        ii.end = ji.end;
-	ii.rc = ji.rc;
-	j++;
+        copyii.end = ji->end;
+        copyii.rc = ji->rc;
+        j++;
       }
       else
         jcont=false;
     }
 
-    result.Add( ii );
+    result.Add( copyii );
     i = j;
   }
 
@@ -3396,13 +3408,13 @@ void Range<Alpha>::Merge( Range<Alpha>& result )
 
 */
 template <class Alpha>
-bool TemporalUnit<Alpha>::IsValid()
+bool TemporalUnit<Alpha>::IsValid() const
 {
   return timeInterval.IsValid();
 }
 
 template <class Alpha>
-TemporalUnit<Alpha>& TemporalUnit<Alpha>::operator=( TemporalUnit<Alpha>& i )
+TemporalUnit<Alpha>& TemporalUnit<Alpha>::operator=( const TemporalUnit<Alpha>& i )
 {
   assert( i.timeInterval.IsValid() );
 
@@ -3412,7 +3424,7 @@ TemporalUnit<Alpha>& TemporalUnit<Alpha>::operator=( TemporalUnit<Alpha>& i )
 }
 
 template <class Alpha>
-bool TemporalUnit<Alpha>::operator==( TemporalUnit<Alpha>& i )
+bool TemporalUnit<Alpha>::operator==( const TemporalUnit<Alpha>& i ) const
 {
   assert( timeInterval.IsValid() && i.timeInterval.IsValid() );
 
@@ -3420,19 +3432,19 @@ bool TemporalUnit<Alpha>::operator==( TemporalUnit<Alpha>& i )
 }
 
 template <class Alpha>
-bool TemporalUnit<Alpha>::operator!=( TemporalUnit<Alpha>& i )
+bool TemporalUnit<Alpha>::operator!=( const TemporalUnit<Alpha>& i ) const
 {
   return !( *this == i );
 }
 
 template <class Alpha>
-bool TemporalUnit<Alpha>::R_Disjoint( TemporalUnit<Alpha>& i )
+bool TemporalUnit<Alpha>::R_Disjoint( const TemporalUnit<Alpha>& i ) const
 {
   return( timeInterval.R_Disjoint( i.timeInterval ) );
 }
 
 template <class Alpha>
-bool TemporalUnit<Alpha>::Disjoint( TemporalUnit<Alpha>& i )
+bool TemporalUnit<Alpha>::Disjoint( const TemporalUnit<Alpha>& i ) const
 {
   assert( IsValid() && i.IsValid() );
 
@@ -3440,13 +3452,13 @@ bool TemporalUnit<Alpha>::Disjoint( TemporalUnit<Alpha>& i )
 }
 
 template <class Alpha>
-bool TemporalUnit<Alpha>::R_Adjacent( TemporalUnit<Alpha>& i )
+bool TemporalUnit<Alpha>::R_Adjacent( const TemporalUnit<Alpha>& i ) const
 {
   return( timeInterval.R_Adjacent(i.timeInterval));
 }
 
 template <class Alpha>
-bool TemporalUnit<Alpha>::TU_Adjacent( TemporalUnit<Alpha>& i )
+bool TemporalUnit<Alpha>::TU_Adjacent( const TemporalUnit<Alpha>& i ) const
 {
   assert( IsValid() && i.IsValid() );
 
@@ -3454,7 +3466,7 @@ bool TemporalUnit<Alpha>::TU_Adjacent( TemporalUnit<Alpha>& i )
 }
 
 template <class Alpha>
-bool TemporalUnit<Alpha>::Inside( TemporalUnit<Alpha>& i )
+bool TemporalUnit<Alpha>::Inside( const TemporalUnit<Alpha>& i ) const 
 {
   assert( IsValid() && i.IsValid() );
 
@@ -3462,7 +3474,7 @@ bool TemporalUnit<Alpha>::Inside( TemporalUnit<Alpha>& i )
 }
 
 template <class Alpha>
-bool TemporalUnit<Alpha>::Contains( Instant& a )
+bool TemporalUnit<Alpha>::Contains( const Instant& a ) const
 {
   assert( IsValid() && a.IsDefined() );
 
@@ -3470,7 +3482,7 @@ bool TemporalUnit<Alpha>::Contains( Instant& a )
 }
 
 template <class Alpha>
-bool TemporalUnit<Alpha>::Intersects( TemporalUnit<Alpha>& i )
+bool TemporalUnit<Alpha>::Intersects( const TemporalUnit<Alpha>& i ) const
 {
   assert( IsValid() && i.IsValid() );
 
@@ -3478,7 +3490,7 @@ bool TemporalUnit<Alpha>::Intersects( TemporalUnit<Alpha>& i )
 }
 
 template <class Alpha>
-bool TemporalUnit<Alpha>::Before( TemporalUnit<Alpha>& i )
+bool TemporalUnit<Alpha>::Before( const TemporalUnit<Alpha>& i ) const
 {
   assert( IsValid() && i.IsValid() );
 
@@ -3486,7 +3498,7 @@ bool TemporalUnit<Alpha>::Before( TemporalUnit<Alpha>& i )
 }
 
 template <class Alpha>
-bool TemporalUnit<Alpha>::Before( Instant& a )
+bool TemporalUnit<Alpha>::Before( const Instant& a ) const
 {
   assert( IsValid() && a.IsDefined() );
 
@@ -3494,7 +3506,7 @@ bool TemporalUnit<Alpha>::Before( Instant& a )
 }
 
 template <class Alpha>
-bool TemporalUnit<Alpha>::After( Instant& a )
+bool TemporalUnit<Alpha>::After( const Instant& a ) const
 {
   assert( IsValid() && a.IsDefined() );
 
@@ -3575,14 +3587,14 @@ bool Mapping<Unit, Alpha>::IsEmpty() const
 }
 
 template <class Unit, class Alpha>
-void Mapping<Unit, Alpha>::Get( const int i, Unit& unit )
+void Mapping<Unit, Alpha>::Get( const int i, const Unit*& unit ) const
 {
   units.Get( i, unit );
-  assert( unit.IsValid() );
+  assert( unit->IsValid() );
 }
 
 template <class Unit, class Alpha>
-void Mapping<Unit, Alpha>::Add( Unit& unit )
+void Mapping<Unit, Alpha>::Add( const Unit& unit )
 {
   assert( unit.IsValid() );
   units.Append( unit );
@@ -3611,67 +3623,67 @@ void Mapping<Unit, Alpha>::SetDefined( bool Defined )
 }
 
 template <class Unit, class Alpha>
-int Mapping<Unit, Alpha>::Compare( Attribute *arg )
+int Mapping<Unit, Alpha>::Compare( const Attribute *arg ) const
 {
   return 0;
 }
 
 template <class Unit, class Alpha>
-bool Mapping<Unit, Alpha>::Adjacent( Attribute *arg )
+bool Mapping<Unit, Alpha>::Adjacent( const Attribute *arg ) const
 {
   return false;
 }
 
 template <class Unit, class Alpha>
-Mapping<Unit, Alpha>* Mapping<Unit, Alpha>::Clone()
+Mapping<Unit, Alpha>* Mapping<Unit, Alpha>::Clone() const
 {
   assert( IsOrdered() );
 
   Mapping<Unit, Alpha> *result = new Mapping<Unit, Alpha>( GetNoComponents() );
 
   result->StartBulkLoad();
-  Unit unit;
+  const Unit *unit;
   for( int i = 0; i < GetNoComponents(); i++ )
   {
     Get( i, unit );
-    result->Add( unit );
+    result->Add( *unit );
   }
   result->EndBulkLoad( false );
   return result;
 }
 
 template <class Unit, class Alpha>
-ostream& Mapping<Unit, Alpha>::Print( ostream &os )
+ostream& Mapping<Unit, Alpha>::Print( ostream &os ) const
 {
   return os << "Temporal Algebra---Mapping" << endl;
 }
 
 template <class Unit, class Alpha>
-size_t Mapping<Unit, Alpha>::HashValue()
+size_t Mapping<Unit, Alpha>::HashValue() const
 {
   return 0;
 }
 
 template <class Unit, class Alpha>
-void Mapping<Unit, Alpha>::CopyFrom( StandardAttribute* right )
+void Mapping<Unit, Alpha>::CopyFrom( const StandardAttribute* right )
 {
-  Mapping<Unit, Alpha> *r = (Mapping<Unit, Alpha>*)right;
+  const Mapping<Unit, Alpha> *r = (const Mapping<Unit, Alpha>*)right;
   assert( r->IsOrdered() );
 
   Clear();
 
   StartBulkLoad();
-  Unit unit;
+  const Unit *unit;
   for( int i = 0; i < r->GetNoComponents(); i++ )
   {
     r->Get( i, unit );
-    Add( unit );
+    Add( *unit );
   }
   EndBulkLoad( false );
 }
 
 template <class Unit, class Alpha>
-int Mapping<Unit, Alpha>::NumOfFLOBs()
+int Mapping<Unit, Alpha>::NumOfFLOBs() const
 {
   return 1;
 }
@@ -3688,7 +3700,7 @@ FLOB *Mapping<Unit, Alpha>::GetFLOB(const int i)
 
 */
 template <class Unit, class Alpha>
-bool Mapping<Unit, Alpha>::operator==( Mapping<Unit, Alpha>& r )
+bool Mapping<Unit, Alpha>::operator==( const Mapping<Unit, Alpha>& r ) const
 {
   assert( IsOrdered() && r.IsOrdered() );
 
@@ -3696,14 +3708,14 @@ bool Mapping<Unit, Alpha>::operator==( Mapping<Unit, Alpha>& r )
     return false;
 
   bool result = true;
-  Unit thisunit, unit;
+  const Unit *thisunit, *unit;
 
   for( int i = 0; i < GetNoComponents(); i++ )
   {
     Get( i, thisunit );
     r.Get( i, unit );
 
-    if( thisunit != unit )
+    if( *thisunit != *unit )
     {
       result = false;
       break;
@@ -3714,7 +3726,7 @@ bool Mapping<Unit, Alpha>::operator==( Mapping<Unit, Alpha>& r )
 }
 
 template <class Unit, class Alpha>
-bool Mapping<Unit, Alpha>::operator!=( Mapping<Unit, Alpha>& r )
+bool Mapping<Unit, Alpha>::operator!=( const Mapping<Unit, Alpha>& r ) const
 {
   return !( *this == r );
 }
@@ -3726,7 +3738,7 @@ int Mapping<Unit, Alpha>::GetNoComponents() const
 }
 
 template <class Unit, class Alpha>
-bool Mapping<Unit, Alpha>::IsValid()
+bool Mapping<Unit, Alpha>::IsValid() const
 {
   if( canDestroy )
     return false;
@@ -3738,29 +3750,29 @@ bool Mapping<Unit, Alpha>::IsValid()
     return true;
 
   bool result = true;
-  Unit lastunit, unit;
+  const Unit *lastunit, *unit;
 
   if( GetNoComponents() == 1 )
   {
     Get( 0, unit );
-    return( unit.IsValid() );
+    return( unit->IsValid() );
   }
 
   for( int i = 1; i < GetNoComponents(); i++ )
   {
     Get( i-1, lastunit );
-    if( !lastunit.IsValid() )
+    if( !lastunit->IsValid() )
     {
       result = false;
       break;
     }
     Get( i, unit );
-    if( !unit.IsValid() )
+    if( !unit->IsValid() )
     {
       result = false;
       break;
     }
-    if( (!lastunit.Disjoint( unit )) && (!lastunit.TU_Adjacent( unit )) )
+    if( (!lastunit->Disjoint( *unit )) && (!lastunit->TU_Adjacent( *unit )) )
     {
       result = false;
       break;
@@ -3771,7 +3783,7 @@ bool Mapping<Unit, Alpha>::IsValid()
 }
 
 template <class Unit, class Alpha>
-int Mapping<Unit, Alpha>::Position( const Instant& t )
+int Mapping<Unit, Alpha>::Position( const Instant& t ) const
 {
   assert( IsOrdered() && t.IsDefined() );
 
@@ -3785,15 +3797,17 @@ int Mapping<Unit, Alpha>::Position( const Instant& t )
     if( (mid < 0) || (mid >= units.Size()) )
       return -1;
 
-    Unit midUnit;
+    const Unit *midUnit;
     units.Get( mid, midUnit );
 
-    if( midUnit.timeInterval.Contains(t1) )
+    if( midUnit->timeInterval.Contains(t1) )
       return mid;
     else  //not contained
-      if( ( t1 > midUnit.timeInterval.end ) || ( t1 == midUnit.timeInterval.end ) )
+      if( ( t1 > midUnit->timeInterval.end ) || 
+          ( t1 == midUnit->timeInterval.end ) )
         first = mid + 1;
-      else if( ( t1 < midUnit.timeInterval.start ) || ( t1 == midUnit.timeInterval.start ) )
+      else if( ( t1 < midUnit->timeInterval.start ) || 
+               ( t1 == midUnit->timeInterval.start ) )
         last = mid - 1;
       else
         return -1; //should never be reached.
@@ -3802,7 +3816,7 @@ int Mapping<Unit, Alpha>::Position( const Instant& t )
 }
 
 template <class Unit, class Alpha>
-void Mapping<Unit, Alpha>::AtInstant( Instant& t, Intime<Alpha>& result )
+void Mapping<Unit, Alpha>::AtInstant( const Instant& t, Intime<Alpha>& result ) const
 {
   assert( IsOrdered() && t.IsDefined() );
 
@@ -3812,17 +3826,17 @@ void Mapping<Unit, Alpha>::AtInstant( Instant& t, Intime<Alpha>& result )
     result.SetDefined( false );
   else
   {
-    Unit posUnit;
+    const Unit *posUnit;
     units.Get( pos, posUnit );
 
     result.SetDefined( true );
-    posUnit.TemporalFunction( t, result.value );
+    posUnit->TemporalFunction( t, result.value );
     result.instant.CopyFrom( &t );
   }
 }
 
 template <class Unit, class Alpha>
-void Mapping<Unit, Alpha>::AtPeriods( Periods& periods, Mapping<Unit, Alpha>& result )
+void Mapping<Unit, Alpha>::AtPeriods( const Periods& periods, Mapping<Unit, Alpha>& result ) const
 {
   assert( IsOrdered() && periods.IsOrdered() );
   result.Clear();
@@ -3832,21 +3846,21 @@ void Mapping<Unit, Alpha>::AtPeriods( Periods& periods, Mapping<Unit, Alpha>& re
 
   result.StartBulkLoad();
 
-  Unit unit;
-  Interval<Instant> interval;
+  const Unit *unit;
+  const Interval<Instant> *interval;
   int i = 0, j = 0;
   Get( i, unit );
   periods.Get( j, interval );
 
   while( 1 )
   {
-    if( unit.timeInterval.Before( interval ) )
+    if( unit->timeInterval.Before( *interval ) )
     {
       if( ++i == GetNoComponents() )
         break;
       Get( i, unit );
     }
-    else if( interval.Before( unit.timeInterval ) )
+    else if( interval->Before( unit->timeInterval ) )
     {
       if( ++j == periods.GetNoComponents() )
         break;
@@ -3855,12 +3869,12 @@ void Mapping<Unit, Alpha>::AtPeriods( Periods& periods, Mapping<Unit, Alpha>& re
     else
     {
       Unit r;
-      unit.AtInterval( interval, r );
+      unit->AtInterval( *interval, r );
       result.Add( r );
 
-      if( interval.end == unit.timeInterval.end )
+      if( interval->end == unit->timeInterval.end )
       {
-        if( interval.rc == unit.timeInterval.rc )
+        if( interval->rc == unit->timeInterval.rc )
         {
           if( ++i == GetNoComponents() )
             break;
@@ -3869,7 +3883,7 @@ void Mapping<Unit, Alpha>::AtPeriods( Periods& periods, Mapping<Unit, Alpha>& re
             break;
           periods.Get( j, interval );
         }
-        else if( interval.rc == true )
+        else if( interval->rc == true )
         {
           if( ++i == GetNoComponents() )
             break;
@@ -3877,13 +3891,13 @@ void Mapping<Unit, Alpha>::AtPeriods( Periods& periods, Mapping<Unit, Alpha>& re
         }
         else
         {
-          assert( unit.timeInterval.rc == true );
+          assert( unit->timeInterval.rc == true );
           if( ++j == periods.GetNoComponents() )
             break;
           periods.Get( j, interval );
         }
       }
-      else if( interval.end > unit.timeInterval.end )
+      else if( interval->end > unit->timeInterval.end )
       {
         if( ++i == GetNoComponents() )
           break;
@@ -3891,7 +3905,7 @@ void Mapping<Unit, Alpha>::AtPeriods( Periods& periods, Mapping<Unit, Alpha>& re
       }
       else
       {
-        assert( interval.end < unit.timeInterval.end );
+        assert( interval->end < unit->timeInterval.end );
         if( ++j == periods.GetNoComponents() )
           break;
         periods.Get( j, interval );
@@ -3905,7 +3919,7 @@ void Mapping<Unit, Alpha>::AtPeriods( Periods& periods, Mapping<Unit, Alpha>& re
 }
 
 template <class Unit, class Alpha>
-bool Mapping<Unit, Alpha>::Present( Instant& t )
+bool Mapping<Unit, Alpha>::Present( const Instant& t ) const
 {
   assert( t.IsDefined() && IsOrdered() );
 
@@ -3917,7 +3931,7 @@ bool Mapping<Unit, Alpha>::Present( Instant& t )
 }
 
 template <class Unit, class Alpha>
-bool Mapping<Unit, Alpha>::Present( Periods& t )
+bool Mapping<Unit, Alpha>::Present( const Periods& t ) const
 {
   assert( t.IsOrdered() && IsOrdered() );
 
@@ -3928,40 +3942,40 @@ bool Mapping<Unit, Alpha>::Present( Periods& t )
 }
 
 template <class Unit, class Alpha>
-void Mapping<Unit, Alpha>::DefTime( Periods& r )
+void Mapping<Unit, Alpha>::DefTime( Periods& r ) const
 {
   assert( IsOrdered() );
 
   Periods result( GetNoComponents() );
 
-  Unit unit;
+  const Unit *unit;
   result.StartBulkLoad();
   for( int i = 0; i < GetNoComponents(); i++ )
   {
     Get( i, unit );
-    result.Add( unit.timeInterval );
+    result.Add( unit->timeInterval );
   }
   result.EndBulkLoad( false );
   result.Merge( r );
 }
 
 template <class Unit, class Alpha>
-bool Mapping<Unit, Alpha>::Passes( Alpha& val )
+bool Mapping<Unit, Alpha>::Passes( const Alpha& val ) const
 {
   assert( IsOrdered() && val.IsDefined() );
 
-  Unit unit;
+  const Unit *unit;
   for( int i = 0; i < GetNoComponents(); i++ )
   {
     Get( i, unit );
-    if( unit.Passes( val ) )
+    if( unit->Passes( val ) )
       return true;
   }
   return false;
 }
 
 template <class Unit, class Alpha>
-void Mapping<Unit, Alpha>::At( Alpha& val, Mapping<Unit, Alpha>& result )
+void Mapping<Unit, Alpha>::At( const Alpha& val, Mapping<Unit, Alpha>& result ) const
 {
   assert( IsOrdered() && val.IsDefined() );
 
@@ -3969,12 +3983,12 @@ void Mapping<Unit, Alpha>::At( Alpha& val, Mapping<Unit, Alpha>& result )
 
   result.StartBulkLoad();
 
-  Unit unit;
+  const Unit *unit;
   for( int i = 0; i < GetNoComponents(); i++ )
   {
     Get( i, unit );
     Unit resUnit;
-    if( unit.At( val, resUnit ) )
+    if( unit->At( val, resUnit ) )
       result.Add( resUnit );
   }
 
@@ -3984,7 +3998,7 @@ void Mapping<Unit, Alpha>::At( Alpha& val, Mapping<Unit, Alpha>& result )
 }
 
 template <class Unit, class Alpha>
-void Mapping<Unit, Alpha>::Initial( Intime<Alpha>& result )
+void Mapping<Unit, Alpha>::Initial( Intime<Alpha>& result ) const
 {
   assert( IsOrdered() );
 
@@ -3992,17 +4006,17 @@ void Mapping<Unit, Alpha>::Initial( Intime<Alpha>& result )
     result.SetDefined( false );
   else
   {
-    Unit unit;
+    const Unit *unit;
     units.Get( 0, unit );
 
     result.SetDefined( true );
-    unit.TemporalFunction( unit.timeInterval.start, result.value );
-    result.instant.CopyFrom( &unit.timeInterval.start );
+    unit->TemporalFunction( unit->timeInterval.start, result.value );
+    result.instant.CopyFrom( &unit->timeInterval.start );
   }
 }
 
 template <class Unit, class Alpha>
-void Mapping<Unit, Alpha>::Final( Intime<Alpha>& result )
+void Mapping<Unit, Alpha>::Final( Intime<Alpha>& result ) const
 {
   assert( IsOrdered() );
 
@@ -4010,12 +4024,12 @@ void Mapping<Unit, Alpha>::Final( Intime<Alpha>& result )
     result.SetDefined( false );
   else
   {
-    Unit unit;
+    const Unit *unit;
     units.Get( GetNoComponents()-1, unit );
 
     result.SetDefined( true );
-    unit.TemporalFunction( unit.timeInterval.end, result.value );
-    result.instant.CopyFrom( &unit.timeInterval.end );
+    unit->TemporalFunction( unit->timeInterval.end, result.value );
+    result.instant.CopyFrom( &unit->timeInterval.end );
   }
 }
 
@@ -4043,13 +4057,15 @@ ListExpr OutRange( ListExpr typeInfo, Word value )
 
     for( int i = 0; i < range->GetNoComponents(); i++ )
     {
-      Interval<Alpha> interval;
+      const Interval<Alpha> *interval;
       range->Get( i, interval );
+      Alpha *start = (Alpha*)&interval->start,
+            *end = (Alpha*)&interval->end;
       intervalList = nl->FourElemList(
-	      OutFun( nl->TheEmptyList(), SetWord(&interval.start) ),
-	      OutFun( nl->TheEmptyList(), SetWord(&interval.end) ),
-	      nl->BoolAtom( interval.lc ),
-	      nl->BoolAtom( interval.rc));
+	      OutFun( nl->TheEmptyList(), SetWord(start) ),
+	      OutFun( nl->TheEmptyList(), SetWord(end) ),
+	      nl->BoolAtom( interval->lc ),
+	      nl->BoolAtom( interval->rc));
       if (l == nl->TheEmptyList())
       {
         l = nl->Cons( intervalList, nl->TheEmptyList());
@@ -4521,9 +4537,10 @@ ListExpr OutMapping( ListExpr typeInfo, Word value )
 
     for( int i = 0; i < m->GetNoComponents(); i++ )
     {
-      Unit unit;
+      const Unit *unit;
       m->Get( i, unit );
-      unitList = OutUnit( nl->TheEmptyList(), SetWord(&unit) );
+      Unit *aux = (Unit*)unit;
+      unitList = OutUnit( nl->TheEmptyList(), SetWord(aux) );
       if( l == nl->TheEmptyList() )
       {
         l = nl->Cons( unitList, nl->TheEmptyList() );
@@ -4936,7 +4953,7 @@ template <class Mapping, class Unit>
 int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Mapping* m;
-  Unit* unit;
+  const Unit* unit;
   UnitsLocalInfo *localinfo;
 
   switch( message )
@@ -4957,10 +4974,9 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
       m = (Mapping*)localinfo->mWord.addr;
       if( (0 <= localinfo->unitIndex) && (localinfo->unitIndex < m->GetNoComponents()) )
       {
-        unit = new Unit;
-        m->Get( localinfo->unitIndex++, *unit );
-
-        result = SetWord( unit );
+        m->Get( localinfo->unitIndex++, unit );
+        Unit *aux = new Unit( *unit );
+        result = SetWord( aux );
         return YIELD;
       }
       return CANCEL;

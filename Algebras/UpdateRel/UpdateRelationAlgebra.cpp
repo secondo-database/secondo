@@ -160,14 +160,8 @@ ListExpr createUpdateRelTypeMap( ListExpr args){
 */
 int createUpdateRelValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  	Relation* resultRelation;
-  	TupleType *resultTupleType;
-    ListExpr resultType = SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
-    ListExpr tupleType = nl->Second(resultType);
-    resultTupleType = new TupleType( tupleType );
-    resultRelation = new Relation(*resultTupleType);
-    result = SetWord(resultRelation);
-    return 0;
+  result = qp->ResultStorage( s );
+  return 0;
 }
 
 /*
@@ -375,7 +369,7 @@ int insertRelValueMap(Word* args, Word& result, int message, Word& local, Suppli
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( *resultTupleType );
+        Tuple *newTuple = new Tuple( resultTupleType );
         for( int i = 0; i < tup->GetNoAttributes(); i++ )
           newTuple->CopyAttribute( i, tup, i );
         relation->AppendTuple(tup);
@@ -391,7 +385,7 @@ int insertRelValueMap(Word* args, Word& result, int message, Word& local, Suppli
 
     case CLOSE :
     	resultTupleType = (TupleType*) local.addr;
-    	delete resultTupleType;
+    	resultTupleType->DeleteIfAllowed();
     	qp->Close(args[0].addr);
     	qp->SetModified(args[1].addr);
       return 0;
@@ -567,7 +561,7 @@ int insertSaveRelValueMap(Word* args, Word& result, int message, Word& local, Su
       {
         tup = (Tuple*)t.addr;
         relation->AppendTuple(tup);
-        Tuple *newTuple = new Tuple( *resultTupleType );
+        Tuple *newTuple = new Tuple( resultTupleType );
         for( int i = 0; i < tup->GetNoAttributes(); i++ )
           newTuple->CopyAttribute( i, tup, i );
         const TupleId& tid = tup->GetTupleId();
@@ -583,7 +577,7 @@ int insertSaveRelValueMap(Word* args, Word& result, int message, Word& local, Su
 
     case CLOSE :
     	resultTupleType = (TupleType*) local.addr;
-    	delete resultTupleType;
+    	resultTupleType->DeleteIfAllowed();
     	qp->Close(args[0].addr);
     	qp->SetModified(args[1].addr);
     	qp->SetModified(args[2].addr);
@@ -693,7 +687,7 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message, Word& local, 
       }
       delete hashTable;
 
-      delete resultTupleType;
+      resultTupleType->DeleteIfAllowed();
     }
 
   	vector<Tuple*>* deletedTuples;
@@ -773,7 +767,7 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message, Word& local, 
               {
         				if(!compare(nextTup,tup) && !compare(tup,nextTup))
                 {
-        					newTuple = new Tuple( *localTransport->resultTupleType );
+        					newTuple = new Tuple( localTransport->resultTupleType );
         					assert( newTuple->GetNoAttributes() == nextTup->GetNoAttributes() + 1 );
         					for( int i = 0; i < nextTup->GetNoAttributes(); i++ )
           	        newTuple->PutAttribute( i, (nextTup->GetAttribute(i))->Clone() );
@@ -889,7 +883,7 @@ int deleteDirectRelValueMap(Word* args, Word& result, int message, Word& local, 
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
-      	Tuple *newTuple = new Tuple( *resultTupleType );
+      	Tuple *newTuple = new Tuple( resultTupleType );
         for( int i = 0; i < tup->GetNoAttributes(); i++ )
         	newTuple->PutAttribute( i, (tup->GetAttribute(i))->Clone() );
         const TupleId& tid = tup->GetTupleId();
@@ -905,7 +899,7 @@ int deleteDirectRelValueMap(Word* args, Word& result, int message, Word& local, 
 
     case CLOSE :
     	resultTupleType = (TupleType*) local.addr;
-    	delete resultTupleType;
+    	resultTupleType->DeleteIfAllowed();
     	qp->Close(args[0].addr);
       qp->SetModified(args[1].addr);
       return 0;
@@ -1111,7 +1105,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message, Word& loc
       }
       delete hashTable;
 
-      delete resultTupleType;
+      resultTupleType->DeleteIfAllowed();
     }
 
     vector<Tuple*>* deletedTuples;
@@ -1148,6 +1142,8 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message, Word& loc
       return 0;
 
     case REQUEST :
+      localTransport = (LocalTransport*) local.addr;
+
       // Check if already deleted duplicates have to be given to the outputstream
       if (!localTransport->deletedTuples->empty())
       {
@@ -1189,7 +1185,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message, Word& loc
               {
         				if(!compare(nextTup,tup) && !compare(tup,nextTup))
                 {
-        					newTuple = new Tuple( *localTransport->resultTupleType );
+        					newTuple = new Tuple( localTransport->resultTupleType );
         					assert( newTuple->GetNoAttributes() == nextTup->GetNoAttributes() +1 );
         					for( int i = 0; i < nextTup->GetNoAttributes(); i++ )
           						newTuple->PutAttribute( i, (nextTup->GetAttribute(i))->Clone() );
@@ -1316,7 +1312,7 @@ int deleteDirectSaveRelValueMap(Word* args, Word& result, int message, Word& loc
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( *resultTupleType );
+        Tuple *newTuple = new Tuple( resultTupleType );
         assert( newTuple->GetNoAttributes() == tup->GetNoAttributes() +1 );
         for( int i = 0; i < tup->GetNoAttributes(); i++ )
           newTuple->PutAttribute( i, (tup->GetAttribute(i))->Clone() );
@@ -1334,7 +1330,7 @@ int deleteDirectSaveRelValueMap(Word* args, Word& result, int message, Word& loc
 
     case CLOSE :
     	resultTupleType = (TupleType*) local.addr;
-    	delete resultTupleType;
+    	resultTupleType->DeleteIfAllowed();
     	qp->Close(args[0].addr);
     	qp->SetModified(args[1].addr);
     	qp->SetModified(args[2].addr);
@@ -1495,7 +1491,7 @@ int insertTupleRelValueMap(Word* args, Word& result, int message, Word& local, S
       	qp->Request(args[0].addr, argRelation);
       	relation = (Relation*)(argRelation.addr);
       	assert(relation != 0);
-        resultTuple = new Tuple( *resultTupleType );
+        resultTuple = new Tuple( resultTupleType );
         insertTuple = new Tuple( relation->GetTupleType());
         supplier = args[1].addr;
         for( int i = 0; i < (resultTuple->GetNoAttributes() -1); i++ )
@@ -1512,7 +1508,7 @@ int insertTupleRelValueMap(Word* args, Word& result, int message, Word& local, S
         resultTuple->PutAttribute( resultTuple->GetNoAttributes() -1, tidAttr);
         result = SetWord(resultTuple);
         insertTuple->DeleteIfAllowed();
-        delete resultTupleType;
+        resultTupleType->DeleteIfAllowed();
         return YIELD;
       }
       else
@@ -1701,7 +1697,7 @@ int insertTupleSaveRelValueMap(Word* args, Word& result, int message, Word& loca
       	qp->Request(args[1].addr, argAuxRelation);
       	auxRelation = (Relation*)(argAuxRelation.addr);
       	assert(auxRelation != 0);
-        resultTuple = new Tuple( *resultTupleType );
+        resultTuple = new Tuple( resultTupleType );
         insertTuple = new Tuple( relation->GetTupleType());
         supplier = args[2].addr;
         for( int i = 0; i < (resultTuple->GetNoAttributes() -1); i++ )
@@ -1719,7 +1715,7 @@ int insertTupleSaveRelValueMap(Word* args, Word& result, int message, Word& loca
         auxRelation->AppendTuple(resultTuple);
         result = SetWord(resultTuple);
         insertTuple->DeleteIfAllowed();
-        delete resultTupleType;
+        resultTupleType->DeleteIfAllowed();
         return YIELD;
       }
       else
@@ -1963,7 +1959,7 @@ int UpdateDirect(Word* args, Word& result, int message, Word& local, Supplier s)
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( *resultTupleType );
+        Tuple *newTuple = new Tuple( resultTupleType );
         // Copy the attributes from the old tuple
         assert( newTuple->GetNoAttributes() == 2 * tup->GetNoAttributes() + 1);
         for (int i = 0; i < tup->GetNoAttributes(); i++)
@@ -2010,7 +2006,7 @@ int UpdateDirect(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSE :
 
       resultTupleType = (TupleType *)local.addr;
-      delete resultTupleType;
+      resultTupleType->DeleteIfAllowed();
       qp->Close(args[0].addr);
       qp->SetModified(args[1].addr);
       return 0;
@@ -2120,7 +2116,7 @@ int UpdateSearch(Word* args, Word& result, int message, Word& local, Supplier s)
       }
       delete hashTable;
 
-      delete resultTupleType;
+      resultTupleType->DeleteIfAllowed();
     }
 
     vector<Tuple*>* updatedTuples;
@@ -2201,7 +2197,7 @@ int UpdateSearch(Word* args, Word& result, int message, Word& local, Supplier s)
               {
         				if(!compare(nextTup,tup) && !compare(tup,nextTup))
                 {
-        					newTuple = new Tuple( *localTransport->resultTupleType );
+        					newTuple = new Tuple( localTransport->resultTupleType );
         					assert( newTuple->GetNoAttributes() == 2 * nextTup->GetNoAttributes() + 1);
         					for (int i = 0; i < nextTup->GetNoAttributes(); i++)
         						newTuple->PutAttribute( nextTup->GetNoAttributes()+i, nextTup->GetAttribute(i)->Clone());
@@ -2533,7 +2529,7 @@ int UpdateDirectSave(Word* args, Word& result, int message, Word& local, Supplie
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( *resultTupleType );
+        Tuple *newTuple = new Tuple( resultTupleType );
         assert( newTuple->GetNoAttributes() == 2 * tup->GetNoAttributes() + 1);
         for (int i = 0; i < tup->GetNoAttributes(); i++)
         	newTuple->PutAttribute( tup->GetNoAttributes()+i, tup->GetAttribute(i)->Clone() );
@@ -2577,7 +2573,7 @@ int UpdateDirectSave(Word* args, Word& result, int message, Word& local, Supplie
     case CLOSE :
 
       resultTupleType = (TupleType *)local.addr;
-      delete resultTupleType;
+      resultTupleType->DeleteIfAllowed();
       qp->Close(args[0].addr);
       qp->SetModified(args[1].addr);
       qp->SetModified(args[2].addr);
@@ -2693,7 +2689,7 @@ int UpdateSearchSave(Word* args, Word& result, int message, Word& local, Supplie
       }
       delete hashTable;
 
-      delete resultTupleType;
+      resultTupleType->DeleteIfAllowed();
     }
 
     vector<Tuple*>* updatedTuples;
@@ -2778,7 +2774,7 @@ int UpdateSearchSave(Word* args, Word& result, int message, Word& local, Supplie
               {
         				if(!compare(nextTup,tup) && !compare(tup,nextTup))
                 {
-        					newTuple = new Tuple( *localTransport->resultTupleType );
+        					newTuple = new Tuple( localTransport->resultTupleType );
         					assert( newTuple->GetNoAttributes() == 2 * nextTup->GetNoAttributes() + 1);
         					for (int i = 0; i < nextTup->GetNoAttributes(); i++)
         						newTuple->PutAttribute( nextTup->GetNoAttributes() +i, nextTup->GetAttribute(i)->Clone());
@@ -2879,9 +2875,9 @@ Operator extrelupdatesearchsave (
 );
 
 /*
-2.32 Operator ~appendidentifier~
+2.32 Operator ~addid~
 
-2.32.1 Type mapping function of operator ~appendidentifier~
+2.32.1 Type mapping function of operator ~addid~
 
 ----    ((stream (tuple (x1 ... xn))))
 
@@ -2895,7 +2891,7 @@ ListExpr appendIdentifierTypeMap (ListExpr args){
   	string argstr;
 
    	CHECK_COND(nl->ListLength(args) == 1,
-    	"Operator 'appendidentifier' expects a list of length one.");
+    	"Operator 'addid' expects a list of length one.");
 
 
   	first = nl->First(args);
@@ -2907,9 +2903,9 @@ ListExpr appendIdentifierTypeMap (ListExpr args){
              	(TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
        			(nl->ListLength(nl->Second(first)) == 2) &&
        			(IsTupleDescription(nl->Second(nl->Second(first)))),
-    			"Operator 'appendidentifier' expects as first argument a list with structure "
+    			"Operator 'addid' expects as first argument a list with structure "
     			"(stream (tuple ((a1 t1)...(an tn))))\n"
-    			"Operator 'appendidentifier' gets as first argument '" + argstr + "'." );
+    			"Operator 'addid' gets as first argument '" + argstr + "'." );
 
 
     // build resutllist
@@ -2930,7 +2926,7 @@ ListExpr appendIdentifierTypeMap (ListExpr args){
 
 
 /*
-2.32.2 Value mapping function of operator ~appendidentifier~
+2.32.2 Value mapping function of operator ~addid~
 
 */
 int appendIdentifierValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
@@ -2955,7 +2951,7 @@ int appendIdentifierValueMap(Word* args, Word& result, int message, Word& local,
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( *resultTupleType );
+        Tuple *newTuple = new Tuple( resultTupleType );
         for( int i = 0; i < tup->GetNoAttributes(); i++ )
           newTuple->CopyAttribute( i, tup, i );
         const TupleId& tid = tup->GetTupleId();
@@ -2970,7 +2966,7 @@ int appendIdentifierValueMap(Word* args, Word& result, int message, Word& local,
 
     case CLOSE :
     	resultTupleType = (TupleType*) local.addr;
-    	delete resultTupleType;
+    	resultTupleType->DeleteIfAllowed();
     	qp->Close(args[0].addr);
       return 0;
   }
@@ -2980,7 +2976,7 @@ int appendIdentifierValueMap(Word* args, Word& result, int message, Word& local,
 
 
 /*
-2.32.3 Specification of operator ~appendidentifier~
+2.32.3 Specification of operator ~addid~
 
 */
 const string appendIdentifierSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -2988,19 +2984,19 @@ const string appendIdentifierSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                            "( <text>stream(tuple(x)) "
                            " -> stream(tuple(x@[TID:tid]))] "
                            "</text--->"
-                           "<text>_ appendidentifier</text--->"
+                           "<text>_ addid</text--->"
                            "<text>Appends an attribute which is the"
                            " tuple-id of the tuple to each tuple.</text--->"
-                           "<text>query staedte feed appendidentifier consume"
+                           "<text>query staedte feed addid consume"
                            "</text--->"
                            ") )";
 
 /*
-2.32.4 Definition of operator ~appendidentifier~
+2.32.4 Definition of operator ~addid~
 
 */
-Operator extrelappendidentifier (
-         "appendidentifier",              // name
+Operator extreladdid (
+         "addid",              // name
          appendIdentifierSpec,            // specification
          appendIdentifierValueMap,                // value mapping
          Operator::SimpleSelect,          // trivial selection function
@@ -3100,12 +3096,12 @@ int deleteByIdValueMap(Word* args, Word& result, int message, Word& local, Suppl
       	assert(relation != 0);
       	qp->Request(args[1].addr, argTid);
       	tid = (TupleIdentifier*)(argTid.addr);
-        resultTuple = new Tuple( *resultTupleType );
+        resultTuple = new Tuple( resultTupleType );
         deleteTuple = relation->GetTuple(tid->GetTid());
         if (deleteTuple == 0)
         {
-        	 delete resultTupleType;
-        	 delete resultTuple;
+        	 resultTupleType->DeleteIfAllowed();
+        	 resultTuple->DeleteIfAllowed();
         	 return CANCEL;
         }
         for (int i = 0; i < deleteTuple->GetNoAttributes(); i++)
@@ -3113,7 +3109,7 @@ int deleteByIdValueMap(Word* args, Word& result, int message, Word& local, Suppl
         relation->DeleteTuple(deleteTuple);
         resultTuple->PutAttribute( resultTuple->GetNoAttributes() -1, tid->Clone());
         result = SetWord(resultTuple);
-        delete resultTupleType;
+        resultTupleType->DeleteIfAllowed();
         deleteTuple->DeleteIfAllowed();
         return YIELD;
       }
@@ -3333,12 +3329,12 @@ int updateByIdValueMap(Word* args, Word& result, int message, Word& local, Suppl
       	assert(relation != 0);
       	qp->Request(args[1].addr, argTid);
       	tid = (TupleIdentifier*)(argTid.addr);
-        resultTuple = new Tuple( *resultTupleType );
+        resultTuple = new Tuple( resultTupleType );
         updateTuple = relation->GetTuple(tid->GetTid());
         if (updateTuple == 0)
         {
-        	 delete resultTupleType;
-        	 delete resultTuple;
+        	 resultTupleType->DeleteIfAllowed();
+        	 resultTuple->DeleteIfAllowed();
         	 return CANCEL;
         }
         for (int i = 0; i < updateTuple->GetNoAttributes(); i++)
@@ -3374,7 +3370,7 @@ int updateByIdValueMap(Word* args, Word& result, int message, Word& local, Suppl
         result = SetWord(resultTuple);
         delete changedIndices;
         delete newAttrs;
-        delete resultTupleType;
+        resultTupleType->DeleteIfAllowed();
         updateTuple->DeleteIfAllowed();
         return YIELD;
       }
@@ -4119,7 +4115,7 @@ class UpdateRelationAlgebra : public Algebra
     AddOperator(&extrelupdatedirect);
     AddOperator(&extrelupdatesearchsave);
     AddOperator(&extrelupdatedirectsave);
-    AddOperator(&extrelappendidentifier);
+    AddOperator(&extreladdid);
     AddOperator(&extreldeletebyid);
     AddOperator(&extrelupdatebyid);
 

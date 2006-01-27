@@ -1055,7 +1055,7 @@ Building S.Part of outerRelation.
                                 hdr.outerRelPart, hdr.outerRelInfo);
 
           Tuple* innerTuple = ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer);
-          Tuple* resultTuple = new Tuple( *resultTupleType );
+          Tuple* resultTuple = new Tuple( resultTupleType );
           Concat(outerTuple, innerTuple, resultTuple);
 
           outerTuple->DeleteIfAllowed();
@@ -1108,7 +1108,7 @@ Building S.Part of outerRelation.
                                 hdr.outerRelPart, hdr.outerRelInfo);
 
           Tuple* innerTuple = ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer);
-          Tuple* resultTuple = new Tuple( *resultTupleType );
+          Tuple* resultTuple = new Tuple( resultTupleType );
 
           outerTuple = ((TupleBuffer*)hdr.outerRelation)->GetTuple(hdr.outerActualTupleId);
           Concat(outerTuple, innerTuple, resultTuple);
@@ -1848,7 +1848,7 @@ Tuple*  SpatialJoinLocalInfo<dim>::newResultTupleFromEntries (
 {
   Tuple* innerTuple = ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer);
   Tuple* outerTuple = ((TupleBuffer*)hdr.outerRelation)->GetTuple(outerEntry.pointer);
-  Tuple* resultTuple = new Tuple (*resultTupleType);
+  Tuple* resultTuple = new Tuple (resultTupleType);
   Concat (outerTuple, innerTuple, resultTuple);
 
   innerTuple->DeleteIfAllowed();
@@ -1922,7 +1922,7 @@ spatialjoin2ValueMapping(Word* args, Word& result, int message, Word& local, Sup
     {
       localInfo = (SpatialJoinLocalInfo<2>*)local.addr;
       //the TupleBuffers are deleted in the destructor of localInfo
-      delete localInfo->resultTupleType;
+      localInfo->resultTupleType->DeleteIfAllowed();
       delete localInfo;
 
       return 0;
@@ -1978,7 +1978,7 @@ spatialjoin3ValueMapping(Word* args, Word& result, int message, Word& local, Sup
       localInfo = (SpatialJoinLocalInfo<3>*)local.addr;
 
       //the TupleBuffers are deleted in the destructor of localInfo
-      delete localInfo->resultTupleType;
+      localInfo->resultTupleType->DeleteIfAllowed();
       delete localInfo;
 
       return 0;
@@ -2034,7 +2034,7 @@ spatialjoin4ValueMapping(Word* args, Word& result, int message, Word& local, Sup
       localInfo = (SpatialJoinLocalInfo<4>*)local.addr;
 
       //the TupleBuffers are deleted in the destructor of localInfo
-      delete localInfo->resultTupleType;
+      localInfo->resultTupleType->DeleteIfAllowed();
       delete localInfo;
 
       return 0;

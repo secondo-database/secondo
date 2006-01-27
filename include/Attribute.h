@@ -77,7 +77,7 @@ extern NestedList *nl;
 class Attribute : public TupleElement
 {
 public:
-  virtual Attribute* Clone()     = 0;
+  virtual Attribute* Clone() const = 0;
 /*
 Warning: The simple implementation 
 
@@ -93,15 +93,15 @@ returning just the this pointer, hence no new object will be created.
 */
   virtual bool IsDefined() const = 0;
   virtual void SetDefined(bool defined) = 0;
-  virtual int Compare( Attribute *attrib ) = 0;
+  virtual int Compare( const Attribute *attrib ) const = 0;
+
 /*
 This function should define an order on the attribute values. 
 Return values are 0: for equal, -1: this < attrib, and 1: this > attrib. 
 The implementaion must also consider that values may be undefined. 
 
 */
-  virtual bool Adjacent( Attribute *attrib ) = 0;
-
+  virtual bool Adjacent( const Attribute *attrib ) const = 0;
 /*
 
 However, TupleElement is the base class for the hierachy
@@ -121,17 +121,6 @@ Below theres a proposal for a simple redesign concerning the defined status of
 an attribute:
 
 */
-#ifdef COMPILE_NEW_ATTRIBUTE_INTERFACE
-
-  inline const bool& IsDefined() const { return &defined };
-  inline void SetDefined(){ defined = true; };
-  inline void SetUndefined(){ defined = false; };
-
-private:
-  bool defined;  
-
-#endif
-
 };
 
 /* 

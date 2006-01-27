@@ -211,15 +211,33 @@ The first constructor. Creates a tuple type from a ~typeInfo~ list
 expression. It sets all member variables, including the total size.
 
 */
-    TupleType( const TupleType& tupleType );
-/*
-The second constructor. Creates a tuple type which is a copy of 
-~tupleType~.
 
-*/
-    ~TupleType();
+    ~TupleType()
+    {
+      delete []attrTypeArray;
+    }
 /*
 The destructor.
+
+*/
+    inline void DeleteIfAllowed() 
+    {
+      assert( refs > 0 );
+      refs--;
+      if( refs == 0 )
+        delete this;
+    }
+/*
+Deletes the tuple type if allowed, i.e. there are no more 
+references to it.
+
+*/
+    inline void IncReference()
+    { 
+      refs++;
+    }
+/*
+Increment the reference count of this tuple type.
 
 */
     inline int GetNoAttributes() const 
@@ -257,12 +275,6 @@ Puts the attribute type ~attrType~ in the position ~index~.
 */
   private:
 
-    TupleType( int noAttr, AttributeType *attrs );
-/*
-A private constructor that receives directly the array of tuple attributes. It
-needs to set the ~totalSize~ attribute.
-
-*/
     int noAttributes;
 /*
 Number of attributes.
@@ -278,7 +290,11 @@ Array of attribute type descriptions.
 Sum of all attribute sizes.
 
 */
+    int refs;
+/*
+A reference counter.
 
+*/
 };
 
 /*
@@ -306,20 +322,20 @@ class Tuple
 {
   public:
 
-    inline Tuple( const TupleType& tupleType ):
+    inline Tuple( TupleType* tupleType ):
     privateTuple( new PrivateTuple( tupleType ) )
     {
-      Init( tupleType.GetNoAttributes(), privateTuple );
+      Init( tupleType->GetNoAttributes(), privateTuple );
     }
 /*
 The constructor. It contructs a tuple with the metadata passed in 
 the ~tupleType~ as argument.
 
 */
-    Tuple( const ListExpr typeInfo ):
+    inline Tuple( const ListExpr typeInfo ):
     privateTuple( new PrivateTuple( typeInfo ) )
     {
-      Init( privateTuple->tupleType.GetNoAttributes(), privateTuple);
+      Init( privateTuple->tupleType->GetNoAttributes(), privateTuple);
     }
 /*
 A similar constructor as the above, but taking a list 
@@ -338,7 +354,7 @@ expression ~typeInfo~ as argument.
 The destructor.
 
 */
-    static Tuple *In( ListExpr typeInfo, ListExpr value, 
+    static Tuple *In( const ListExpr typeInfo, ListExpr value, 
                       int errorPos, ListExpr& errorInfo, 
                       bool& correct );
 /*
@@ -346,7 +362,7 @@ Creates a tuple from the ~typeInfo~ and ~value~ information.
 Corresponds to the ~In~-function of type constructor ~tuple~.
 
 */
-    static Tuple *RestoreFromList( ListExpr typeInfo, ListExpr value,
+    static Tuple *RestoreFromList( const ListExpr typeInfo, ListExpr value,
                                    int errorPos, ListExpr& errorInfo,
                                    bool& correct );
 /*
@@ -412,7 +428,7 @@ Update Relation Algebra.
 
       int extensionSize = 0;
       for( int i = 0; 
-           i < privateTuple->tupleType.GetNoAttributes(); i++)
+           i < privateTuple->tupleType->GetNoAttributes(); i++)
       {
         for( int j = 0; 
              j < privateTuple->attributes[i]->NumOfFLOBs(); j++)
@@ -423,7 +439,7 @@ Update Relation Algebra.
         }
       }
       tupleMemSize = 
-        privateTuple->tupleType.GetTotalSize() + extensionSize;
+        privateTuple->tupleType->GetTotalSize() + extensionSize;
       recomputeMemSize = false;
       return tupleMemSize; 
     }
@@ -436,9 +452,9 @@ Returns the size of the memory (in bytes) used by the tuple.
       if ( !recomputeTotalSize ) 
         return tupleTotalSize;
 
-      int totalSize = privateTuple->tupleType.GetTotalSize();
+      int totalSize = privateTuple->tupleType->GetTotalSize();
       for( int i = 0; 
-           i < privateTuple->tupleType.GetNoAttributes(); i++)
+           i < privateTuple->tupleType->GetNoAttributes(); i++)
       {
         for( int j = 0; 
              j < privateTuple->attributes[i]->NumOfFLOBs(); j++)
@@ -455,7 +471,7 @@ tuple and the FLOBs.
 
 */
     inline void CopyAttribute( int sourceIndex, 
-                               Tuple *source, 
+                               const Tuple *source, 
                                int destIndex )
     {
       privateTuple->CopyAttribute( sourceIndex, 
@@ -475,21 +491,12 @@ without cloning attributes.
 Returns the number of attributes of the tuple.
 
 */
-    inline const TupleType& GetTupleType() const 
+    inline TupleType* GetTupleType() const 
     {
       return privateTuple->tupleType;
     }
 /*
 Returns the tuple type.
-
-*/
-    inline void SetTupleType( const TupleType& type )
-    {
-      privateTuple->tupleType = type;
-      noAttributes = type.GetNoAttributes();
-    }
-/*
-Sets the tuple type.
 
 */
     Tuple *Clone() const;
@@ -633,7 +640,7 @@ entries, the it is statically constructed and ~attributes~ point
 to ~defAttributes~, otherwise it is dinamically constructed.
 
 */
-    PrivateTuple *privateTuple;
+    mutable PrivateTuple *privateTuple;
 /*
 The private implementation dependent attributes of the class 
 ~Tuple~.
@@ -1039,14 +1046,14 @@ The first constructor. It creates an empty relation from a
 relations.
 
 */
-    Relation( const TupleType& tupleType, bool isTemp = false );
+    Relation( TupleType *tupleType, bool isTemp = false );
 /*
 The second constructor. It creates an empty relation from a 
 ~tupleType~. The flag ~isTemp~ can be used to create temporary 
 relations.
 
 */
-    Relation( const TupleType& tupleType, 
+    Relation( TupleType *tupleType, 
               const RelationDescriptor& relDesc, 
               bool isTemp = false );
 /*
@@ -1168,7 +1175,7 @@ Relational Algebra.
 Returns the tuple identified by ~tupleId~.
 
 */
-    const TupleType& GetTupleType() const;
+    TupleType *GetTupleType() const;
 /*
 Returns the tuple type of the tuples of the relation.
 

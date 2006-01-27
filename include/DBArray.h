@@ -87,12 +87,12 @@ class DBArray : public FLOB
 {
   public:
 
-    DBArray() {}
+    inline DBArray() {}
 /*
 This constructor should not be used.
 
 */
-    DBArray( int n ):
+    inline DBArray( int n ):
       FLOB( n * sizeof( DBArrayElement ) ),
       nElements( 0 ),
       maxElements( n )
@@ -102,7 +102,7 @@ The constructor of the array passing the number of elements to initialize it.
 
 */
 
-    ~DBArray()
+    inline ~DBArray()
       {}
 
 /*
@@ -121,21 +121,21 @@ The destructor.
       FLOB::Resize( newSize * sizeof( DBArrayElement ) );
     }
 
-    void Clear()
+    inline void Clear()
     {
       nElements = 0;
       maxElements = 0;
       FLOB::Clear();
     }
 
-    void Destroy()
+    inline void Destroy()
     {
       nElements = 0;
       maxElements = 0;
       FLOB::Destroy();
     }
 
-    void Append( const DBArrayElement& elem )
+    inline void Append( const DBArrayElement& elem )
     {
       Put( nElements, elem );
     }
@@ -156,7 +156,7 @@ The destructor.
         nElements = index + 1;
         if( nElements > maxElements )
         {
-          maxElements = nElements;
+          maxElements = nElements + 16;
           FLOB::Resize( maxElements * sizeof( DBArrayElement ) );
         }
 
@@ -172,17 +172,12 @@ Copies element ~elem~ into the persistent array at index ~index~.
 *Precondition:* 0 [<=] ~index~.
 
 */
-
-    void Get( int index, DBArrayElement& elem )
+    inline void Get( int index, DBArrayElement const*& elem ) const
     {
-      assert( index >= 0 && index < nElements );
-      char *buf = (char*)malloc( sizeof( DBArrayElement ) );
+      const char *buf;
       FLOB::Get( index * sizeof( DBArrayElement ),
-                 sizeof( DBArrayElement ),
-                 buf );
-      DBArrayElement *auxElem = (new ((void*)buf) DBArrayElement);
-      memcpy( &elem, auxElem, sizeof(DBArrayElement) );
-      free( buf );
+                 &buf );
+      elem = (new ((void*)buf) DBArrayElement);
     }
 
 /*
@@ -192,7 +187,7 @@ Returns the element ~index~ of the array.
 
 */
 
-    int Size() const
+    inline int Size() const
     {
       return nElements;
     }
@@ -206,9 +201,7 @@ Returns the number of components of this array.
     {
       if( nElements <= 1 )
         return;
-
       char *buf = FLOB::BringToMemory();
-
       qsort( buf, nElements, sizeof( DBArrayElement ), cmp );
     }
 /*

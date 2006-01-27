@@ -60,13 +60,13 @@ April 2002 Ulrich Telle Adjustments for the new Secondo version
 class StandardAttribute : public Attribute
 {
  public:
-  virtual size_t HashValue() = 0;
+  virtual size_t HashValue() const = 0;
 /*
 The hash function.
 
 */
 
-  virtual void CopyFrom(StandardAttribute* right) = 0;
+  virtual void CopyFrom(const StandardAttribute* right) = 0;
 /*
 Copies the contents of ~right~ into ~this~. Assumes that ~this~ and
 ~right~ are of the same type. This can be ensured by the type checking functions
@@ -90,6 +90,7 @@ For an example, see the ~DateTime~ algebra.
 class IndexableStandardAttribute : public StandardAttribute
 {
   public:
+
     virtual void WriteTo( char *dest ) const = 0;
 /*
 This function writes the object value to a string ~dest~.

@@ -46,17 +46,17 @@ class FText: public StandardAttribute
 {
 public:
 
-  FText();
-  FText(bool newDefined, const char *newText = NULL);
-  FText(FText&);
-  ~FText();
-  void Destroy();
+  inline FText();
+  inline FText(bool newDefined, const char *newText = NULL);
+  inline FText(const FText&);
+  inline ~FText();
+  inline void Destroy();
 
-  bool  SearchString( const char* subString );
-  void  Set( const char *newString );
-  void  Set( bool newDefined, const char *newString );
-  int TextLength() const;
-  const char *Get();
+  inline bool  SearchString( const char* subString );
+  inline void  Set( const char *newString );
+  inline void  Set( bool newDefined, const char *newString );
+  inline int TextLength() const;
+  inline const char *Get() const;
 
 /*************************************************************************
 
@@ -66,23 +66,130 @@ public:
 
 *************************************************************************/
 
-  bool     IsDefined() const;
-  void     SetDefined(bool newDefined);
-  size_t   HashValue();
-  void     CopyFrom(StandardAttribute* right);
-  int      Compare(Attribute * arg);
-  int      Sizeof() const;
-  FText*   Clone();
-  ostream& Print(ostream &os);
-  bool     Adjacent(Attribute * arg);
+  inline bool IsDefined() const;
+  inline void SetDefined(bool newDefined);
+  size_t HashValue() const;
+  void CopyFrom(const StandardAttribute* right);
+  int Compare(const Attribute * arg) const;
+  inline FText* Clone() const;
+  ostream& Print(ostream &os) const;
+  bool Adjacent(const Attribute * arg) const;
 
-  int NumOfFLOBs();
-  FLOB* GetFLOB( const int );
+  inline int NumOfFLOBs() const;
+  inline FLOB* GetFLOB( const int );
 
 private:
   FLOB theText;
   bool defined;
 };
+
+/*
+2 Inline Functions
+
+*/
+const string typeName="text";
+const bool traces=false;
+
+inline FText::FText()
+{
+  LOGMSG( "FText:Trace", cout << '\n' <<"Start FText()"<<'\n'; )
+  LOGMSG( "FText:Trace",  cout <<"End FText()"<<'\n'; )
+}
+
+inline FText::FText( bool newDefined, const char *newText ) :
+theText( 0 )
+{
+  LOGMSG( "FText:Trace", cout << '\n' <<"Start FText(bool newDefined, textType newText)"<<'\n'; )
+  Set( newDefined, newText );
+  LOGMSG( "FText:Trace",  cout <<"End FText(bool newDefined, textType newText)"<<'\n'; )
+}
+
+inline FText::FText( const FText& f ) :
+theText( 0 )
+{
+  LOGMSG( "FText:Trace", cout << '\n' <<"Start FText(FText& f)"<<'\n'; )
+  Set( f.defined, f.theText.BringToMemory() );
+  LOGMSG( "FText:Trace",  cout <<"End FText(FText& f)"<<'\n'; )
+}
+
+inline FText::~FText()
+{
+  LOGMSG( "FText:Trace",  cout << '\n' <<"Start ~FText()"<<'\n'; )
+  LOGMSG( "FText:Trace",  cout <<"End ~FText()"<<'\n'; )
+}
+
+inline void FText::Destroy()
+{
+  theText.Destroy();
+  defined = false;
+}
+
+inline bool FText::SearchString( const char* subString )
+{
+  const char *text = theText.BringToMemory();
+  return strstr( text, subString ) != NULL;
+}
+
+inline void FText::Set( const char *newString )
+{
+  LOGMSG( "FText:Trace", cout << '\n' << "Start Set with *newString='"<< newString << endl; )
+
+  Set( true, newString );
+
+  LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
+}
+
+inline void FText::Set( bool newDefined, const char *newString )
+{
+  LOGMSG( "FText:Trace", cout << '\n' << "Start Set with *newString='"<< newString << endl; )
+
+  if( newString != NULL )
+  {
+    theText.Resize( strlen( newString ) + 1 );
+    theText.Put( 0, strlen( newString ) + 1, newString );
+  }
+  defined = newDefined;
+
+  LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
+}
+
+inline int FText::TextLength() const
+{
+  return theText.Size() - 1;
+}
+
+inline const char *FText::Get() const
+{
+  return theText.BringToMemory();
+}
+
+inline bool FText::IsDefined() const
+{
+  return defined;
+}
+
+inline void FText::SetDefined( bool newDefined )
+{
+  if(traces)
+    cout << '\n' << "Start SetDefined" << '\n';
+  defined = newDefined;
+}
+
+inline FText* FText::Clone() const
+{
+  return new FText( *this );
+}
+
+inline int FText::NumOfFLOBs() const
+{
+  return 1;
+}
+
+inline FLOB* FText::GetFLOB( const int i )
+{
+  assert( i == 0 );
+  return &theText;
+}
 
 #endif 
 

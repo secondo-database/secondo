@@ -227,7 +227,7 @@ This functions compares this matrix with arg. arg must be of type
 Int9M.
 
 */
-int Int9M::Compare(Attribute* arg){
+int Int9M::Compare(const Attribute* arg) const{
     Int9M* v = (Int9M*) arg;
     if(!defined && !v->defined)
         return 0;
@@ -246,15 +246,6 @@ int Int9M::Compare(Attribute* arg){
     return 0;
 }
 
-
-/*
-2.1.8 SizeOf
-
-*/
-int Int9M::Sizeof(){
-   return sizeof(Int9M);
-}
-
 /*
 2.1.9 IsDefined
 
@@ -263,7 +254,7 @@ bool Int9M::IsDefined() const{ return defined; }
 
 
 /*
-2.1.10 IsDefined
+2.1.10 SetDefined
 
 */
 void Int9M::SetDefined( bool defined ){
@@ -274,7 +265,7 @@ void Int9M::SetDefined( bool defined ){
 2.1.11 HashValue
 
 */
-size_t Int9M::HashValue(){
+size_t Int9M::HashValue() const{
    if(!defined)
       return (size_t) 512;
    else
@@ -285,7 +276,7 @@ size_t Int9M::HashValue(){
 2.1.12 CopyFrom
 
 */
-void Int9M::CopyFrom(StandardAttribute* arg){
+void Int9M::CopyFrom(const StandardAttribute* arg){
     Equalize((Int9M*) arg);
 }
 
@@ -293,7 +284,7 @@ void Int9M::CopyFrom(StandardAttribute* arg){
 2.1.13 Clone
 
 */
-Int9M* Int9M::Clone()
+Int9M* Int9M::Clone() const
 {
    unsigned short number  = 0;
    Int9M* res = new Int9M(number);
@@ -305,7 +296,7 @@ Int9M* Int9M::Clone()
 2.1.14 Print
 
 */
- ostream& Int9M::Print( ostream& os ) {
+ ostream& Int9M::Print( ostream& os ) const{
      os    << value;
      return os;
  }
@@ -314,7 +305,7 @@ Int9M* Int9M::Clone()
 2.1.15 Equal Operator
 
 */
-bool Int9M::operator==(const Int9M I2){
+bool Int9M::operator==(const Int9M I2) const{
    return CompareTo(I2)==0;
 }
 
@@ -600,18 +591,8 @@ We don't want to build ranges over cluster.
 For this reason we just return false here.
 
 */
-bool Cluster::Adjacent(Attribute*){
+bool Cluster::Adjacent(const Attribute*) const{
    return false;
-}
-
-/*
-2.2.7 The SizeOf function
-
-This function is needed by the relational algebra.
-
-*/
-int Cluster::Sizeof(){
-    return sizeof(Cluster);
 }
 
 /*
@@ -635,7 +616,7 @@ void Cluster::SetDefined( bool defined ){
 This function computes a hash value of this cluster.
 
 */
-size_t Cluster::HashValue(){
+size_t Cluster::HashValue() const{
    size_t result = 0;
    for(int i=0;i<64;i++)
        result += BitVector[i];
@@ -648,7 +629,7 @@ size_t Cluster::HashValue(){
 Reads the value of this cluster from arg.
 
 */
-void Cluster::CopyFrom(StandardAttribute* arg){
+void Cluster::CopyFrom(const StandardAttribute* arg){
     Equalize( (Cluster*) arg);
 }
 
@@ -658,7 +639,7 @@ void Cluster::CopyFrom(StandardAttribute* arg){
 Returns a proper copy of this.
 
 */
-Cluster* Cluster::Clone(){
+Cluster* Cluster::Clone() const{
    Cluster* res = new Cluster(false);
    res->Equalize(this);
    return res;
@@ -812,8 +793,8 @@ When calling this function, the value of this predicate group
 is taken from the argument of this function.
 
 */
-void PredicateGroup::Equalize(PredicateGroup* PG){
-    Cluster tmp(0);
+void PredicateGroup::Equalize(const PredicateGroup* PG){
+    const Cluster *tmp;
     defined  = PG->defined;
     sorted = PG->sorted;
     canDelete = PG->canDelete;
@@ -821,7 +802,7 @@ void PredicateGroup::Equalize(PredicateGroup* PG){
     theClusters.Resize(size);
     for(int i=0;i<size;i++){
         PG->theClusters.Get(i,tmp);
-        theClusters.Put(i,tmp);
+        theClusters.Put(i,*tmp);
     }
     unSpecified.Equalize(PG->unSpecified);
 }
@@ -834,7 +815,7 @@ clusters contained in this predicategroup or in the argument
 are sorted.
 
 */
-int PredicateGroup::Compare(Attribute* right){
+int PredicateGroup::Compare(const Attribute* right) const{
    int cmp;
    PredicateGroup* PG = (PredicateGroup*) right;
    if(!defined && !PG->defined)
@@ -856,7 +837,7 @@ int PredicateGroup::Compare(Attribute* right){
    if(size2<size1)
       return 1;
    // size1 == size2
-   Cluster tmp1,tmp2;
+   const Cluster *tmp1, *tmp2;
 
    if(!sorted){
        theClusters.Sort(toprel::ClusterCompare);
@@ -870,7 +851,7 @@ int PredicateGroup::Compare(Attribute* right){
    for(int i=0;i<size1;i++){
        theClusters.Get(i,tmp1);
        PG->theClusters.Get(i,tmp2);
-       cmp = tmp1.Compare(&tmp2);
+       cmp = tmp1->Compare(tmp2);
        if(cmp != 0)
           return cmp;
    }
@@ -888,16 +869,16 @@ ListExpr PredicateGroup::ToListExpr(){
   // we have at least one element in the this predicategroup
   if(!defined)
       return nl->SymbolAtom("undefined");
-  Cluster C;
+  const Cluster *C;
   if(theClusters.Size()==0)
      return nl->TheEmptyList();
 
   theClusters.Get(0,C);
-  ListExpr res = nl->OneElemList(C.ToListExpr());
+  ListExpr res = nl->OneElemList(C->ToListExpr());
   ListExpr Last = res;
   for(int i=1;i<theClusters.Size();i++){
        theClusters.Get(i,C);
-       Last = nl->Append(Last,C.ToListExpr());
+       Last = nl->Append(Last,C->ToListExpr());
   }
   return res;
 }
@@ -935,7 +916,7 @@ bool PredicateGroup::ReadFrom(const ListExpr instance){
       if(! unSpecified.Contains(&CurrentCluster))
          return  false;
       // check whether name already used
-      STRING* name = CurrentCluster.GetName();
+      const STRING* name = CurrentCluster.GetName();
       for(int i=0;i<pos;i++)
          if(strcmp(*(AllClusters[i].GetName()),*name)==0)
               return false;
@@ -970,7 +951,8 @@ DBArray. Remember to reorder the clusters after calling this function.
 bool PredicateGroup::Add(Cluster* C){
    if(C->IsEmpty())
      return false;
-   STRING* name = C->GetName();
+   const STRING* name = C->GetName();
+
    if(strcmp(*name,UNSPECIFIED)==0){
       return false;
    }
@@ -978,10 +960,10 @@ bool PredicateGroup::Add(Cluster* C){
       return false;
    }
    // check for name conflicts with existing clusters
-   Cluster tmp(0);
+   const Cluster *tmp;
    for(int i=0;i<theClusters.Size();i++){
         theClusters.Get(i,tmp);
-        if(strcmp(*(tmp.GetName()),*name)==0){
+        if(strcmp(*(tmp->GetName()),*name)==0){
             return false;
         }
    }
@@ -1007,28 +989,29 @@ matrices, this function will detect an error.
 DBArray. Remember to reorder the clusters after calling this function.
 
 */
-bool PredicateGroup::AddWithPriority(Cluster *C){
+bool PredicateGroup::AddWithPriority(const Cluster *C){
    if(C->IsEmpty())
        return false;
-   STRING* name = C->GetName();
+   const STRING* name = C->GetName();
    if(strcmp(*name,UNSPECIFIED)==0){ // name conflict
       return false;
    }
    // check for name conflicts with existing clusters
-   Cluster tmp(0);
+   const Cluster *tmp;
    for(int i=0;i<theClusters.Size();i++){
         theClusters.Get(i,tmp);
-        if(strcmp(*(tmp.GetName()),*name)==0){
+        if(strcmp(*(tmp->GetName()),*name)==0){
             return false;
         }
    }
-   tmp.Equalize(C);
-   tmp.Intersection(&unSpecified); // remove overlapping clusters
-   if(tmp.IsEmpty())
+   Cluster aux( *tmp );
+   aux.Equalize(C);
+   aux.Intersection(&unSpecified); // remove overlapping clusters
+   if(aux.IsEmpty())
      return false;
    // all ok, add the cluster
-   unSpecified.Minus(&tmp);
-   theClusters.Append(tmp);
+   unSpecified.Minus(&aux);
+   theClusters.Append(aux);
    sorted=false;
    return true;
 }

@@ -72,6 +72,7 @@ to this implementation file.
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
+extern AlgebraManager *am;
 
 long& 
 Tuple::tuplesCreated = Counter::getRef("RA:CreatedTuples", false); 
@@ -95,9 +96,9 @@ metadata of a tuple attributes.
 TupleType::TupleType( const ListExpr typeInfo ):
   noAttributes( nl->ListLength( nl->Second( typeInfo ) ) ),
   attrTypeArray( new AttributeType[noAttributes] ),
-  totalSize( 0 )
+  totalSize( 0 ),
+  refs( 1 )
 {
-  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
   ListExpr rest = nl->Second( typeInfo );
   int i = 0;
 
@@ -111,46 +112,18 @@ TupleType::TupleType( const ListExpr typeInfo ):
     {
       algId = nl->IntValue( nl->First( nl->Second( first ) ) ),
       typeId = nl->IntValue( nl->Second( nl->Second( first ) ) ),
-      size = (algM->SizeOfObj(algId, typeId))();
+      size = (am->SizeOfObj(algId, typeId))();
     }
     else
     {
       algId = nl->IntValue(nl->First(nl->First(nl->Second(first))));
       typeId = 
         nl->IntValue(nl->Second(nl->First(nl->Second(first))));
-      size = (algM->SizeOfObj(algId, typeId))();
+      size = (am->SizeOfObj(algId, typeId))();
     }
     totalSize += size;
     attrTypeArray[i++] = AttributeType( algId, typeId, size );
   }
-}
-
-TupleType::TupleType( const TupleType& tupleType ):
-  noAttributes( tupleType.GetNoAttributes() ),
-  attrTypeArray( new AttributeType[tupleType.GetNoAttributes()] ),
-  totalSize( 0 )
-{
-  for( int i = 0; i < noAttributes; i++ )
-  {
-    attrTypeArray[i] = tupleType.GetAttributeType( i );
-    totalSize += attrTypeArray[i].size;
-  }
-}
-
-TupleType::TupleType( const int noAttrs, AttributeType* attrs ):
-  noAttributes( noAttrs ),
-  attrTypeArray( attrs ),
-  totalSize( 0 )
-{
-  for( int i = 0; i < noAttrs; i++ )
-  {
-    totalSize += attrs[i].size;
-  }
-}
-
-TupleType::~TupleType()
-{
-  delete []attrTypeArray;
 }
 
 /*
@@ -245,16 +218,15 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos,
   }
   else
   {
-    AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
     while (!nl->IsEmpty(attrlist))
     {
       first = nl->First(attrlist);
       attrlist = nl->Rest(attrlist);
 
       algebraId = 
-        t->GetTupleType().GetAttributeType( attrno ).algId;
+        t->GetTupleType()->GetAttributeType( attrno ).algId;
       typeId = 
-        t->GetTupleType().GetAttributeType( attrno ).typeId;
+        t->GetTupleType()->GetAttributeType( attrno ).typeId;
       attrno++;
       if (nl->IsEmpty(valuelist))
       {
@@ -280,7 +252,7 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos,
         firstvalue = nl->First(valuelist);
         valuelist = nl->Rest(valuelist);
 
-        attr = (algM->InObj(algebraId, typeId))
+        attr = (am->InObj(algebraId, typeId))
           (nl->First(nl->Rest(first)), firstvalue, 
            attrno, errorInfo, valueCorrect);
         if (valueCorrect)
@@ -344,7 +316,6 @@ ListExpr Tuple::Out( ListExpr typeInfo )
   ListExpr l = nl->TheEmptyList();
   ListExpr lastElem=l, attrlist=l, first=l, valuelist=l;
 
-  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
   attrlist = nl->Second(nl->First(typeInfo));
   attrno = 0;
   l = nl->TheEmptyList();
@@ -353,10 +324,10 @@ ListExpr Tuple::Out( ListExpr typeInfo )
     first = nl->First(attrlist);
     attrlist = nl->Rest(attrlist);
 
-    algebraId = GetTupleType().GetAttributeType( attrno ).algId;
-    typeId = GetTupleType().GetAttributeType( attrno ).typeId;
+    algebraId = GetTupleType()->GetAttributeType( attrno ).algId;
+    typeId = GetTupleType()->GetAttributeType( attrno ).typeId;
     Attribute *attr = GetAttribute( attrno );
-    valuelist = (algM->OutObj(algebraId, typeId))
+    valuelist = (am->OutObj(algebraId, typeId))
       (nl->First(nl->Rest(first)), SetWord(attr));
     attrno++;
 

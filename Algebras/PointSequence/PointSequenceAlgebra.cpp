@@ -90,22 +90,21 @@ This constructor should not be used.
    PointSequence( const int n, const double *X = 0, const double *Y = 0 );
    ~PointSequence();
 
-   int NumOfFLOBs();
+   int NumOfFLOBs() const;
    FLOB *GetFLOB(const int i);
-   int Compare(Attribute*);
-   bool Adjacent(Attribute*);
-   int Sizeof();
+   int Compare(const Attribute*) const;
+   bool Adjacent(const Attribute*) const;
    bool IsDefined() const;
    void SetDefined( bool defined );
-   ostream& Print( ostream& os );
+   ostream& Print( ostream& os ) const;
     
-   int GetNoPSPoints();
-   PSPoint& GetPSPoint( int i );
-   const bool IsEmpty();
-   void Append( PSPoint& p);
-   PointSequence *Clone();
+   int GetNoPSPoints() const;
+   const PSPoint& GetPSPoint( int i ) const;
+   const bool IsEmpty() const;
+   void Append( const PSPoint& p);
+   PointSequence *Clone() const;
 
-   friend ostream& operator <<( ostream& os, PointSequence& ps );
+   friend ostream& operator <<( ostream& os, const PointSequence& ps );
  
  private:
  
@@ -116,13 +115,13 @@ This constructor should not be used.
 2.3.18 Print functions
 
 */
-ostream& operator<<(ostream& os, PSPoint& p)
+ostream& operator<<(ostream& os, const PSPoint& p)
 {
   os << "(" << p.x << "," << p.y << ")";
   return os;
 }
 
-ostream& operator<<(ostream& os, PointSequence& ps)
+ostream& operator<<(ostream& os, const PointSequence& ps)
 {
   os << "<";
   for(int i = 0; i < ps.GetNoPSPoints(); i++)
@@ -165,7 +164,7 @@ PointSequence::~PointSequence()
 Not yet implemented. Needed to be a tuple attribute.
 
 */
-int PointSequence::NumOfFLOBs()
+int PointSequence::NumOfFLOBs() const
 {
   return 1;
 }
@@ -188,7 +187,7 @@ FLOB *PointSequence::GetFLOB(const int i)
 Not yet implemented. Needed to be a tuple attribute.
 
 */
-int PointSequence::Compare(Attribute*)
+int PointSequence::Compare(const Attribute*) const
 {
   return 0;
 }
@@ -199,7 +198,7 @@ int PointSequence::Compare(Attribute*)
 Not yet implemented. Needed to be a tuple attribute.
 
 */
-bool PointSequence::Adjacent(Attribute*)
+bool PointSequence::Adjacent(const Attribute*) const
 {
   return 0;
 }
@@ -225,7 +224,7 @@ void PointSequence::SetDefined( bool defined )
 2.3.8 Print
 
 */
-ostream& PointSequence::Print( ostream& os )
+ostream& PointSequence::Print( ostream& os ) const
 {
   return (os << *this);
 }
@@ -236,9 +235,8 @@ ostream& PointSequence::Print( ostream& os )
 Returns the number of points of the point sequence.
 
 */
-int PointSequence::GetNoPSPoints()
+int PointSequence::GetNoPSPoints() const
 {
-  cout << "Size : " << pspoints.Size() << endl;
   return pspoints.Size();
 }
 
@@ -250,14 +248,12 @@ Returns a PSPoint indexed by ~i~.
 *Precondition* ~0 [<]= i [<] noPSPoints~.
 
 */
-PSPoint& PointSequence::GetPSPoint( int i )
+const PSPoint& PointSequence::GetPSPoint( int i ) const
 {
   assert( 0 <= i && i < GetNoPSPoints() );
-
-  static PSPoint p;
+  const PSPoint *p;
   pspoints.Get( i, p );
-
-  return p;
+  return *p;
 }
 
 /*
@@ -266,7 +262,7 @@ PSPoint& PointSequence::GetPSPoint( int i )
 Returns if the point sequence list is empty or not.
 
 */
-const bool PointSequence::IsEmpty()
+const bool PointSequence::IsEmpty() const
 {
   return GetNoPSPoints() == 0;
 }
@@ -277,7 +273,7 @@ const bool PointSequence::IsEmpty()
 Appends a pspoint ~p~ at the end of the point sequence list.
 
 */
-void PointSequence::Append( PSPoint& p )
+void PointSequence::Append( const PSPoint& p )
 {
   pspoints.Append( p );
 }
@@ -289,7 +285,7 @@ Returns a new created point sequence list (clone) which is a
 copy of ~this~.
 
 */
-PointSequence *PointSequence::Clone()
+PointSequence *PointSequence::Clone() const
 {
   PointSequence *ps = new PointSequence( 0 );
   for( int i = 0; i < GetNoPSPoints(); i++ )

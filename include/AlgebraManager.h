@@ -336,6 +336,7 @@ Is the type of property functions, one for each type constructor.
 */
 
 class QueryProcessor;
+class AlgebraManager;
 /*
 Are ~forward declarations~ of used data structures and classes.
 
@@ -343,7 +344,8 @@ Are ~forward declarations~ of used data structures and classes.
 
 typedef Algebra*
           (*AlgebraInitFunction)( NestedList* nlRef,
-                                  QueryProcessor* qpRef );
+                                  QueryProcessor* qpRef,
+                                  AlgebraManager* am );
 /*
 Is the prototype of the algebra initialization functions. For each
 algebra the algebra manager calls an initialization  function to get
@@ -414,7 +416,8 @@ static AlgebraListEntry algebraList[] = {
 #define ALGEBRA_PROTO_INCLUDE(ALGNO,ALGNAME) \
 extern "C" Algebra* \
 Initialize##ALGNAME( NestedList* nlRef,\
-                     QueryProcessor* qpRef );
+                     QueryProcessor* qpRef, \
+                     AlgebraManager* amRef );
 
 #define ALGEBRA_PROTO_EXCLUDE(ALGNO,ALGNAME)
 

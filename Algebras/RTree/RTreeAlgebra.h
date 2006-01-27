@@ -1045,7 +1045,7 @@ void R_TreeNode<dim, LeafInfo>::Split( R_TreeNode<dim, LeafInfo>& n1, R_TreeNode
 
       // Deallocate the sortedEntry arrays
       for( unsigned i = 0; i < 2*dim; i++)
-        delete sortedEntry[ i ];
+        delete [] sortedEntry[ i ];
 
       delete [] stat;
     }

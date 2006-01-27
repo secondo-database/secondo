@@ -165,7 +165,7 @@ Base64::decodeStream(istream& in, ostream& out) {
 
 
 void
-Base64::encode2(char* buffer, string& text, int length) {
+Base64::encode2(const char* buffer, string& text, int length) {
 
   assert (length <= 54 );
   // 54 bytes of binary data are expanded to 54 * 4/3 = 72 letters of the base64 alphabet.
@@ -236,7 +236,7 @@ Base64::encodeStream(istream& in, ostream& out) {
 }
 
 void
-Base64::encode(char* bytes, int size, string& base64) {
+Base64::encode(const char* bytes, int size, string& base64) {
 
   stringstream byteStream;
   stringstream base64Stream;
@@ -244,12 +244,11 @@ Base64::encode(char* bytes, int size, string& base64) {
   byteStream.write(bytes, size);
   encodeStream(byteStream, base64Stream);
   base64=base64Stream.str();
-
 }
 
 
 int
-Base64::decode(string& text, char* bytes) {
+Base64::decode(const string& text, char* bytes) {
 
   stringstream base64Stream;
   stringstream byteStream;

@@ -68,7 +68,7 @@ Histogram* Picture::Colordist(HistogramChannel channel) {
     }
     else
     {
-    	h->CopyFrom( (StandardAttribute *) &this->histogram[ channel ] );
+    	h->CopyFrom( (const StandardAttribute *) &this->histogram[ channel ] );
     }
 
     return h;
@@ -415,7 +415,7 @@ int PictureColordistValueMap(Word* args,
     if ( pic->IsDefined() ) 
     {
     	res->CopyFrom( 
-	     (StandardAttribute *) pic->Colordist(
+	     (const StandardAttribute *) pic->Colordist(
 				HistogramChannel(channel->GetIntval())));
     }
     else
@@ -425,7 +425,6 @@ int PictureColordistValueMap(Word* args,
              << endl << endl;
 
 	res->SetDefined( false );
-    	//res->CopyFrom( (StandardAttribute *) (new Histogram()) );
     }
     return( 0 );
 }

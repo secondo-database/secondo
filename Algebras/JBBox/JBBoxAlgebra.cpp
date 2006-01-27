@@ -186,19 +186,19 @@ class JPoint: public StandardAttribute{
       JPoint(const int size);
       ~JPoint();
       void Destroy();
-      JPoint* Clone();
+      JPoint* Clone() const;
       bool IsDefined() const;
       void SetDefined(bool b);
-      size_t HashValue();
-      void CopyFrom(StandardAttribute* right);
-      int Compare(Attribute *arg);
-      bool Adjacent(Attribute *arg);
-      int NumOfFLOBs();
+      size_t HashValue() const;
+      void CopyFrom(const StandardAttribute* right);
+      int Compare(const Attribute *arg) const;
+      bool Adjacent(const Attribute *arg) const;
+      int NumOfFLOBs() const;
       FLOB *GetFLOB(const int i);
       // will be invoked if the Java object must
       // be reconstructed from a FLOB
       void Initialize();
-      jobject GetObject();
+      jobject GetObject() const;
       // the function for the algebra operator
       bool Equals(JPoint* P);
       // restores the Java Object from its
@@ -227,29 +227,29 @@ class JBox: public StandardAttribute{
       JBox(const int size);
       ~JBox();
       void Destroy();
-      JBox* Clone();
-      void Write();
+      JBox* Clone() const;
+      void Write() const;
       bool IsDefined() const;
       void SetDefined(bool b);
-      size_t HashValue();
-      void CopyFrom(StandardAttribute* right);
-      int Compare(Attribute *arg);
-      bool Adjacent(Attribute *arg);
-      int NumOfFLOBs();
+      size_t HashValue() const;
+      void CopyFrom(const StandardAttribute* right);
+      int Compare(const Attribute *arg) const;
+      bool Adjacent(const Attribute *arg) const;
+      int NumOfFLOBs() const;
       FLOB *GetFLOB(const int i);
       // will be invoked if the Java object must be
       // reconstructed from a FLOB
       void Initialize();
-      jobject GetObject();
+      jobject GetObject() const;
       // the functions for the algebra operators
-      bool Equals(JBox* P);
-      bool Contains(JPoint* P);
-      JBox* Union(JBox* BB);
-      JBox* Union(JPoint* P);
-      JBox* Intersection(JBox* BB);
-      bool  Intersects(JBox* BB);
-      float Size();
-      bool IsEmpty();
+      bool Equals(const JBox* P) const;
+      bool Contains(const JPoint* P) const;
+      JBox* Union(const JBox* BB) const;
+      JBox* Union(const JPoint* P) const;
+      JBox* Intersection(const JBox* BB) const;
+      bool  Intersects(const JBox* BB) const;
+      float Size() const;
+      bool IsEmpty() const;
       // restores the Java Object from its byte representation
       void RestoreJavaObjectFromFLOB();
   private:
@@ -350,8 +350,8 @@ void JPoint::RestoreJavaObjectFromFLOB(){
    }
 
    int size = objectData.Size();
-   char *bytes = new char[size];
-   objectData.Get(0,size,bytes);
+   const char *bytes;
+   objectData.Get(0,&bytes);
    // copy the data into a Java-array
   jbyteArray jbytes = env->NewByteArray(size);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
@@ -368,7 +368,6 @@ void JPoint::RestoreJavaObjectFromFLOB(){
   obj = jres;
   jbyte* elems = env->GetByteArrayElements(jbytes,0);
   env->ReleaseByteArrayElements(jbytes,elems,0);
-  delete [] bytes;
  }
 
 /*
@@ -428,7 +427,7 @@ void JPoint::Destroy(){
  corresponding Java method.
 
 */
-size_t JPoint::HashValue(){
+size_t JPoint::HashValue() const{
   jmethodID mid = env->GetMethodID(cls,"getHashValue","()I");
   if(mid == 0){
      error(__LINE__);
@@ -444,14 +443,13 @@ This function creates a copy of this JPoint. To realize it,
 the FLOB is copied and the Javaobject is reconstructed from it.
 
 */
-void JPoint::CopyFrom(StandardAttribute* right){
-   JPoint *P = (JPoint *)right;
+void JPoint::CopyFrom(const StandardAttribute* right){
+   const JPoint *P = (const JPoint *)right;
    cls = env->FindClass("bbox/Point");
    objectData.Resize(P->objectData.Size());
-   char *data = new char[P->objectData.Size()];
-   P->objectData.Get(0,P->objectData.Size(),data);
+   const char *data;
+   P->objectData.Get(0,&data);
    objectData.Put(0,P->objectData.Size(),data);
-   delete [] data;
    RestoreJavaObjectFromFLOB();
 }
 
@@ -462,13 +460,13 @@ void JPoint::CopyFrom(StandardAttribute* right){
 This function compares two JPoints using JNI
 
 */
-int JPoint::Compare(Attribute * arg){
+int JPoint::Compare(const Attribute * arg) const{
   jmethodID mid;
   mid = env->GetMethodID(cls,"compareTo","(Lbbox/Point;)I");
   if(mid == 0){
       error(__LINE__);
   }
-  JPoint *P = (JPoint *) arg;
+  const JPoint *P = (const JPoint *) arg;
   return env->CallIntMethod(obj,mid,P->obj);
 }
 
@@ -480,7 +478,7 @@ Because two points of the $I\hspace{-0.3em}R^2$ can't be
 adjacent we return just false.
 
 */
- bool JPoint::Adjacent(Attribute* arg){
+ bool JPoint::Adjacent(const Attribute* arg) const {
     return false;
  }
 
@@ -492,7 +490,7 @@ Each JNI algebra manages one Java objects which is additionally
 stored in a single FLOB. For this reason we return 1.
 
 */
- int JPoint::NumOfFLOBs(){
+ int JPoint::NumOfFLOBs() const{
     return 1;
  }
 
@@ -529,7 +527,7 @@ void JPoint::Initialize(){
 This function just returns the managed Java object.
 
 */
- jobject JPoint::GetObject(){
+ jobject JPoint::GetObject() const {
     return obj;
  }
 
@@ -565,7 +563,7 @@ Here the corresponding Java function is called. Alternatively
 we can clone the FLOB and reconstruct the Java object from it.
 
 */
-JPoint* JPoint::Clone(){
+JPoint* JPoint::Clone() const {
   jmethodID mid;
   jobject jobj;
   mid=env->GetMethodID(cls,"copy","()Lbbox/Point;");
@@ -675,8 +673,8 @@ void JBox::RestoreJavaObjectFromFLOB(){
    }
 
    int size = objectData.Size();
-   char *bytes = new char[size];
-   objectData.Get(0,size,bytes);
+   const char *bytes;
+   objectData.Get(0,&bytes);
    // copy the data into a Java-array
   jbyteArray jbytes = env->NewByteArray(size);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
@@ -693,7 +691,6 @@ void JBox::RestoreJavaObjectFromFLOB(){
   obj = jres;
   jbyte* elems = env->GetByteArrayElements(jbytes,0);
   env->ReleaseByteArrayElements(jbytes,elems,0);
-  delete [] bytes;
  }
 
 /*
@@ -752,7 +749,7 @@ This function returns the HashValue of a JBox using the
 corresponding Java method.
 
 */
-size_t JBox::HashValue(){
+size_t JBox::HashValue() const{
   jmethodID mid = env->GetMethodID(cls,"getHashValue","()I");
   if(mid == 0){
      error(__LINE__);
@@ -768,14 +765,13 @@ This function creates a copy of this JBox. To realize it,
 the FLOB is copied and the Javaobject is reconstructed from it.
 
 */
-void JBox::CopyFrom(StandardAttribute* right){
-   JBox *P = (JBox *)right;
+void JBox::CopyFrom(const StandardAttribute* right){
+   const JBox *P = (const JBox *)right;
    cls = env->FindClass("bbox/BBox");
    objectData.Resize(P->objectData.Size());
-   char *data = new char[P->objectData.Size()];
-   P->objectData.Get(0,P->objectData.Size(),data);
+   const char *data;
+   P->objectData.Get(0,&data);
    objectData.Put(0,P->objectData.Size(),data);
-   delete [] data;
    RestoreJavaObjectFromFLOB();
 }
 
@@ -786,13 +782,13 @@ void JBox::CopyFrom(StandardAttribute* right){
 This function compares two JPoints using JNI
 
 */
-int JBox::Compare(Attribute * arg){
+int JBox::Compare(const Attribute * arg) const{
   jmethodID mid;
   mid = env->GetMethodID(cls,"compareTo","(Lbbox/BBox;)I");
   if(mid == 0){
       error(__LINE__);
   }
-  JBox *P = (JBox *) arg;
+  const JBox *P = (const JBox *) arg;
   return env->CallIntMethod(obj,mid,P->obj);
 }
 
@@ -803,7 +799,7 @@ int JBox::Compare(Attribute * arg){
 Returns just false.
 
 */
- bool JBox::Adjacent(Attribute* arg){
+ bool JBox::Adjacent(const Attribute* arg) const{
     return false;
  }
 
@@ -815,7 +811,7 @@ Each JNI algebra manages one Java objects which is additionally
 stored in a single FLOB. For this reason we return 1.
 
 */
- int JBox::NumOfFLOBs(){
+ int JBox::NumOfFLOBs() const{
     return 1;
  }
 
@@ -852,7 +848,7 @@ void JBox::Initialize(){
 This function just returns the managed Java object.
 
 */
- jobject JBox::GetObject(){
+ jobject JBox::GetObject() const{
     return obj;
  }
 
@@ -888,7 +884,7 @@ Here the corresponding Java function is called. Alternatively
 we can clone the FLOB and reconstruct the Java object from it.
 
 */
-JBox* JBox::Clone(){
+JBox* JBox::Clone() const{
   jmethodID mid;
   jobject jobj;
   mid=env->GetMethodID(cls,"copy","()Lbbox/BBox;");
@@ -905,7 +901,7 @@ JBox* JBox::Clone(){
 The ~Write~ function is for debugging purposes only.
 
 */
-void JBox::Write(){
+void JBox::Write() const{
    jmethodID mid = env->GetMethodID(cls,"write","()V");
    if(mid==0)
      error(__LINE__);
@@ -920,7 +916,7 @@ void JBox::Write(){
 This is the a operator function for JBox.
 
 */
-bool JBox::Equals(JBox* P){
+bool JBox::Equals(const JBox* P) const {
   jmethodID mid;
   mid = env->GetMethodID(cls,"equals","(Ljava/lang/Object;)Z");
   if(mid==0) error(__LINE__);
@@ -936,7 +932,7 @@ This function checks whether P is contained in this jbox.
 
 */
 
-bool JBox::Contains(JPoint* P){
+bool JBox::Contains(const JPoint* P) const{
   jmethodID mid;
   mid = env->GetMethodID(cls,"contains","(Lbbox/Point;)Z");
   if(mid==0) error(__LINE__);
@@ -952,7 +948,7 @@ This function extends this JBox to contain the given Point.
 
 */
 
-JBox* JBox::Union(JPoint* P){
+JBox* JBox::Union(const JPoint* P) const{
   jmethodID mid;
   mid = env->GetMethodID(cls,"union",
                          "(Lbbox/Point;)Lbbox/BBox;");
@@ -970,7 +966,7 @@ JBox and in B.
 
 */
 
-JBox* JBox::Union(JBox* B){
+JBox* JBox::Union(const JBox* B) const{
   jmethodID mid;
   mid = env->GetMethodID(cls,"union",
                          "(Lbbox/BBox;)Lbbox/BBox;");
@@ -988,7 +984,7 @@ which are contained in both in this JBox and in B.
 
 */
 
-JBox* JBox::Intersection(JBox* B){
+JBox* JBox::Intersection(const JBox* B) const{
   jmethodID mid;
   mid = env->GetMethodID(cls,"intersection",
                          "(Lbbox/BBox;)Lbbox/BBox;");
@@ -1005,7 +1001,7 @@ This function checks wether this JBx and B have a common point.
 
 */
 
-bool JBox::Intersects(JBox* B){
+bool JBox::Intersects(const JBox* B) const{
   jmethodID mid;
   mid = env->GetMethodID(cls,"intersects","(Lbbox/BBox;)Z");
   if(mid==0) error(__LINE__);
@@ -1022,7 +1018,7 @@ This function  computes the size of the area covered by this JBox.
 
 */
 
-float JBox::Size(){
+float JBox::Size() const{
   jmethodID mid = env->GetMethodID(cls,"size","()D");
   if(mid==0) error(__LINE__);
   float res = (float) env->CallDoubleMethod(obj,mid);
@@ -1037,7 +1033,7 @@ The ~IsEmpty~ function checks whether this JBox is empty.
 
 */
 
-bool JBox::IsEmpty(){
+bool JBox::IsEmpty() const{
   jmethodID mid = env->GetMethodID(cls,"isEmpty","()Z");
   if(mid==0) error(__LINE__);
   bool res = env->CallBooleanMethod(obj,mid);

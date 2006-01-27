@@ -380,7 +380,7 @@ the filtered relation will be shown in the viewer.
 			if (!filters[i].trim().equals(""))
 			command.append(" filter [ " + filters[i] + " ] ");
 		}
-		command.append(" appendidentifier consume ");
+		command.append(" addid consume ");
 		if (commandExecuter.executeCommand(command.toString(),SecondoInterface.EXEC_COMMAND_SOS_SYNTAX)){
 			ListExpr relation = commandExecuter.getResultList();
 			if (viewer.showNewRelation(relation)){

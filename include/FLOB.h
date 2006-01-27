@@ -52,9 +52,12 @@ were removed, since the code is stable.
 
 */
 #include "SecondoSMI.h"
+#include "QueryProcessor.h"
 
 enum FLOB_Type {Destroyed, InMemory, InMemoryCached, 
                 InDiskSmall, InDiskLarge};
+
+extern QueryProcessor *qp;
 
 /*
 3 class FLOB
@@ -83,7 +86,7 @@ file for LOBs.
 
 */
 
-    FLOB() {}
+    inline FLOB() {}
 /*
 This constructor should not be used.
 
@@ -92,7 +95,16 @@ This constructor should not be used.
 Create a new FLOB from scratch.
 
 */
-    FLOB( size_t sz );
+    inline FLOB( size_t sz ):
+    type( InMemory )
+    {
+      size = sz;
+      if( sz > 0 )
+        fd.inMemory.buffer = (char*)malloc( sz );
+      else
+        fd.inMemory.buffer = 0;
+      fd.inMemory.canDelete = true;
+    }
 
 /*
 3.3 Destructor
@@ -100,8 +112,14 @@ Create a new FLOB from scratch.
 Deletes the FLOB instance.
 
 */
-    ~FLOB();
-
+    inline ~FLOB()
+    {
+      assert( type != InMemoryCached );
+      // The cached FLOBs are never deleted because they are created
+      // with malloc and destroyed with free
+      if( type == InMemory && fd.inMemory.canDelete && fd.inMemory.buffer != 0 )
+        free( fd.inMemory.buffer );
+    }
 
 /*
 3.4 BringToMemory
@@ -110,15 +128,28 @@ Brings a disk lob to memory, i.e., converts a flob in ~InDiskLarge~
 state to a ~InMemory~ state.
 
 */
-    char *BringToMemory();
+    char *BringToMemory() const;
 
 /*
 3.5 Get
 
-Read by copying
+Read 
 
 */
-    void Get( size_t offset, size_t length, void *target );
+    inline void Get( size_t offset, const char **target ) const
+    {
+      if( type == InMemory )
+        *target = fd.inMemory.buffer + offset;
+      else if( type == InMemoryCached )
+        *target = fd.inMemoryCached.buffer + offset;
+      else if( type == InDiskLarge )
+      {
+        BringToMemory();
+        Get( offset, target );
+      }
+      else 
+        assert( false );
+    }
 
 /*
 3.6 Put
@@ -126,7 +157,13 @@ Read by copying
 Write Flob data into source.
 
 */
-    void Put( size_t offset, size_t length, const void *source );
+    inline void Put( size_t offset, size_t length, const void *source )
+    {
+      if( type == InMemory )
+        memcpy( fd.inMemory.buffer + offset, source, length );
+      else
+        assert( false );
+    }
 
 /*
 3.7 Size
@@ -134,8 +171,10 @@ Write Flob data into source.
 Returns the size of a FLOB.
 
 */
-    size_t Size() const;
-
+    inline size_t Size() const
+    {
+      return size;
+    }
 
 /*
 3.8 Resize
@@ -151,7 +190,17 @@ Resizes the FLOB.
 Clears the FLOB.
 
 */
-    void Clear();
+    inline void Clear()
+    {
+      assert( type != Destroyed );
+      if( type == InMemory && fd.inMemory.canDelete && size > 0 )
+        free( fd.inMemory.buffer );
+
+      type = InMemory;
+      fd.inMemory.buffer = 0;
+      fd.inMemory.canDelete = true;
+      size = 0;
+    }
 
 /*
 3.8 Clean
@@ -160,7 +209,20 @@ Cleans the FLOB, removing it from memory. If it is cached, then a
 reference in the cache is removed.
 
 */
-    void Clean();
+    inline void Clean()
+    {
+      assert( type != Destroyed );
+      if( type == InMemory && fd.inMemory.canDelete && size > 0 )
+        free( fd.inMemory.buffer );
+      else if( type == InMemoryCached )
+        qp->GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,
+                                     fd.inMemoryCached.lobId );
+
+      type = InMemory;
+      fd.inMemory.buffer = 0;
+      fd.inMemory.canDelete = true;
+      size = 0;
+    }
 
 /*
 3.8 Destroy
@@ -177,7 +239,7 @@ Saves the FLOB to the LOB file. The FLOB must be a LOB. The type is
 set to ~InDiskLarge~.
 
 */
-    void SaveToLob( SmiRecordId& lobFileId, SmiRecordId lobId = 0 );
+    void SaveToLob( SmiRecordId& lobFileId, SmiRecordId lobId = 0 ) const;
 
 /*
 3.10 SetLobFile
@@ -185,7 +247,12 @@ set to ~InDiskLarge~.
 Sets the LOB file. The FLOB must be a LOB.
 
 */
-    void SetLobFileId( SmiFileId lobFileId );
+    inline void SetLobFileId( SmiFileId lobFileId )
+    {
+      assert( type == InDiskLarge );
+      fd.inDiskLarge.lobFileId = lobFileId;
+    }
+
 
 /*
 3.11 SaveToExtensionTuple
@@ -194,7 +261,20 @@ Saves the FLOB to a buffer of an extension tuple and sets its type
 to ~InDiskSmall~.
 
 */
-    void SaveToExtensionTuple( void *extensionTuple );
+    inline void SaveToExtensionTuple( void *extensionTuple ) const
+    {
+      assert( type == InMemory );
+      if( size > 0 )
+      {
+        if( extensionTuple != 0 )
+          memcpy( extensionTuple, fd.inMemory.buffer, size );
+        if( fd.inMemory.canDelete && size > 0 )
+          free( fd.inMemory.buffer );
+        fd.inMemory.buffer = 0;
+        fd.inMemory.canDelete = true;
+      }
+      type = InDiskSmall;
+    }
 
 /*
 3.12 ReadFromExtensionTuple
@@ -206,10 +286,21 @@ directly from the SMI Record.
 The FLOB must be small.
 
 */
-    size_t ReadFromExtensionTuple( PrefetchingIterator& iter, 
-                                   size_t offset );
-    size_t ReadFromExtensionTuple( SmiRecord& record, 
-                                   size_t offset );
+    inline void ReadFromExtensionTuple( char *extensionPtr )
+    {
+      assert( type == InDiskSmall );
+      type = InMemory;
+      if( size > 0 )
+      {
+        fd.inMemory.buffer = extensionPtr;
+        fd.inMemory.canDelete = false;
+      }
+      else
+      {
+        fd.inMemory.buffer = 0;
+        fd.inMemory.canDelete = true;
+      }
+    }
 
 /*
 3.10 IsLob
@@ -217,13 +308,25 @@ The FLOB must be small.
 Returns true, if value stored in underlying LOB, otherwise false.
 
 */
-    bool IsLob() const;
+    inline bool IsLob() const
+    {
+      assert( type != Destroyed );
+      if( type == InDiskLarge || type == InMemoryCached )
+        return true;
+      else if( type == InMemory && size > SWITCH_THRESHOLD )
+        return true;
+      return false;
+    }
+
 
 /*
 3.11 GetType
 
 */
-    FLOB_Type GetType() const;
+    inline FLOB_Type GetType() const
+    {
+      return type;
+    }
 
 
   protected:
@@ -232,14 +335,16 @@ Returns true, if value stored in underlying LOB, otherwise false.
 3.12 Attributes
 
 */
-    FLOB_Type type;
+    mutable FLOB_Type type;
     size_t size;
 
+    mutable 
     union FLOB_Descriptor
     {
       struct InMemory
       {
         char *buffer;
+        bool canDelete;
       } inMemory;
 
       struct InMemoryCached

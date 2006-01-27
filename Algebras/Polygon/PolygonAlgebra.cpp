@@ -102,7 +102,7 @@ Do not use this constructor.
 class Edge
 {
   public:
-    Edge( Vertex& s, Vertex& e ) :
+    Edge( const Vertex& s, const Vertex& e ) :
       start( s ), end( e )
       {}
 
@@ -136,28 +136,27 @@ This constructor should not be used.
     Polygon( const int n, const int *X = 0, const int *Y = 0 );
     ~Polygon();
 
-    int NumOfFLOBs();
+    int NumOfFLOBs() const;
     FLOB *GetFLOB(const int i);
-    int Compare(Attribute*);
-    bool Adjacent(Attribute*);
-    Polygon *Clone();
-    int Sizeof();
+    int Compare(const Attribute*) const;
+    bool Adjacent(const Attribute*) const;
+    Polygon *Clone() const;
     bool IsDefined() const;
     void SetDefined( bool defined );
-    ostream& Print( ostream& os );
+    ostream& Print( ostream& os ) const;
 
-    void Append( Vertex& v );
+    void Append( const Vertex &v );
     void Complete();
     bool Correct();
     void Destroy();
-    int GetNoEdges() { return GetNoVertices(); }
-    int GetNoVertices();
-    Edge& GetEdge( int i );
-    Vertex& GetVertex( int i );
-    string GetState();
-    const bool IsEmpty();
+    int GetNoEdges() const { return GetNoVertices(); }
+    int GetNoVertices() const;
+    Edge& GetEdge( int i ) const;
+    const Vertex *GetVertex( int i ) const;
+    string GetState() const;
+    const bool IsEmpty() const;
 
-    friend ostream& operator <<( ostream& os, Polygon& p );
+    friend ostream& operator <<( ostream& os, const Polygon& p );
 
   private:
     DBArray<Vertex> vertices;
@@ -168,14 +167,14 @@ This constructor should not be used.
 2.3.18 Print functions
 
 */
-ostream& operator<<(ostream& os, Vertex& v)
+ostream& operator<<(ostream& os, const Vertex& v)
 {
   os << "(" << v.x << "," << v.y << ")";
   return os;
 }
 
 
-ostream& operator<<(ostream& os, Polygon& p)
+ostream& operator<<(ostream& os, const Polygon& p)
 {
   os << " State: " << p.GetState()
      << "<";
@@ -224,7 +223,7 @@ Polygon::~Polygon()
 Not yet implemented. Needed to be a tuple attribute.
 
 */
-int Polygon::NumOfFLOBs()
+int Polygon::NumOfFLOBs() const
 {
   return 1;
 }
@@ -247,7 +246,7 @@ FLOB *Polygon::GetFLOB(const int i)
 Not yet implemented. Needed to be a tuple attribute.
 
 */
-int Polygon::Compare(Attribute*)
+int Polygon::Compare(const Attribute*) const
 {
   return 0;
 }
@@ -258,7 +257,7 @@ int Polygon::Compare(Attribute*)
 Not yet implemented. Needed to be a tuple attribute.
 
 */
-bool Polygon::Adjacent(Attribute*)
+bool Polygon::Adjacent(const Attribute*) const
 {
   return 0;
 }
@@ -270,12 +269,12 @@ Returns a new created polygon (clone) which is a
 copy of ~this~.
 
 */
-Polygon *Polygon::Clone()
+Polygon *Polygon::Clone() const
 {
   assert( state == complete );
   Polygon *p = new Polygon( 0 );
   for( int i = 0; i < GetNoVertices(); i++ )
-    p->Append( this->GetVertex( i ) );
+    p->Append( *this->GetVertex( i ) );
   p->Complete();
   return p;
 }
@@ -301,7 +300,7 @@ void Polygon::SetDefined( bool defined )
 2.3.8 Print
 
 */
-ostream& Polygon::Print( ostream& os )
+ostream& Polygon::Print( ostream& os ) const
 {
   return (os << *this);
 }
@@ -314,7 +313,7 @@ Appends a vertex ~v~ at the end of the polygon.
 *Precondition* ~state == partial~.
 
 */
-void Polygon::Append( Vertex& v )
+void Polygon::Append( const Vertex& v )
 {
   assert( state == partial );
   vertices.Append( v );
@@ -367,7 +366,7 @@ Returns the number of edges of the polygon.
 *Precondition* ~state == complete~.
 
 */
-int Polygon::GetNoVertices()
+int Polygon::GetNoVertices() const
 {
   return vertices.Size();
 }
@@ -380,14 +379,13 @@ Returns a vertex indexed by ~i~.
 *Precondition* ~state == complete \&\& 0 <= i < noVertices~.
 
 */
-Vertex& Polygon::GetVertex( int i )
+const Vertex *Polygon::GetVertex( int i ) const
 {
   assert( state == complete );
   assert( 0 <= i && i < GetNoVertices() );
 
-  static Vertex v;
+  const Vertex *v;
   vertices.Get( i, v );
-
   return v;
 }
 
@@ -399,16 +397,16 @@ Returns an edge indexed by ~i~.
 *Precondition* ~state == complete \&\& 0 <= i < noVertices~.
 
 */
-Edge& Polygon::GetEdge( int i )
+Edge& Polygon::GetEdge( int i ) const
 {
   assert( state == complete );
   assert( 0 <= i && i < GetNoVertices() );
 
-  Vertex v, w;
+  const Vertex *v, *w;
   vertices.Get( i, v );
   vertices.Get( i+1, w );
 
-  static Edge e( v, w );
+  static Edge e( *v, *w );
 
   return e;
 }
@@ -419,7 +417,7 @@ Edge& Polygon::GetEdge( int i )
 Returns the state of the polygon in string format.
 
 */
-string Polygon::GetState()
+string Polygon::GetState() const
 {
   switch( state )
   {
@@ -438,7 +436,7 @@ string Polygon::GetState()
 Returns if the polygon is empty or not.
 
 */
-const bool Polygon::IsEmpty()
+const bool Polygon::IsEmpty() const
 {
   assert( state == complete );
   return GetNoVertices() == 0;
@@ -469,13 +467,19 @@ OutPolygon( ListExpr typeInfo, Word value )
   }
   else
   {
-    ListExpr result = nl->OneElemList( nl->TwoElemList( nl->IntAtom( polygon->GetVertex(0).x ), nl->IntAtom( polygon->GetVertex(0).y ) ) );
+    ListExpr result = 
+      nl->OneElemList( 
+        nl->TwoElemList( 
+          nl->IntAtom( polygon->GetVertex(0)->x ), 
+          nl->IntAtom( polygon->GetVertex(0)->y ) ) );
     ListExpr last = result;
 
     for( int i = 1; i < polygon->GetNoVertices(); i++ )
     {
       last = nl->Append( last,
-                         nl->TwoElemList( nl->IntAtom( polygon->GetVertex(i).x ), nl->IntAtom( polygon->GetVertex(i).y ) ) );
+                         nl->TwoElemList( 
+                           nl->IntAtom( polygon->GetVertex(i)->x ), 
+                           nl->IntAtom( polygon->GetVertex(i)->y ) ) );
     }
     return result;
   }

@@ -113,6 +113,8 @@ void LRUTable::Clear()
   {
     FLOBCacheElement *aux = e;
     e = e->next;
+// VTA - I will come back here
+//    assert( aux->refs == 0 );
     free( aux->flob );
     delete aux;
   }
@@ -145,16 +147,14 @@ bool FLOBCache::Insert( const FLOBKey key, char *flob )
 {
   assert( mapTable.find( key ) == mapTable.end() );
 
-  FLOBCacheElement *e = new FLOBCacheElement( key, flob );
-
   FLOBKey key2;
-
   while( sizeLeft < key.size && mapTable.size() > 0 && 
          RemoveLast( key2 ) )
     sizeLeft += key2.size;
 
   if( sizeLeft >= key.size )
   {
+    FLOBCacheElement *e = new FLOBCacheElement( key, flob );
     sizeLeft -= key.size;
     mapTable[key] = e;
     lruTable.Insert( e );
@@ -187,9 +187,9 @@ bool FLOBCache::RemoveLast( FLOBKey& key )
     map< FLOBKey, FLOBCacheElement* >::iterator iter = 
       mapTable.find( key );
 
-    char *flob = iter->second->flob;
+    free( iter->second->flob );
+    delete iter->second;
     mapTable.erase( iter );
-    free( flob );
     return true;
   }
   return false; 
@@ -401,9 +401,14 @@ void FLOBCache::Drop( SmiFileId fileId, bool isTemp )
       assert( file->Open( fileId ) );
     }
     else
+    {
       file = iter->second;
+      files.erase( iter );
+    }
+
     file->Close();
     file->Drop();
+    delete file;
   }
 }
 

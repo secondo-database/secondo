@@ -200,12 +200,12 @@ Overloading the assignment operator.
 3.2 Member functions
 
 */
-    Track* GetTrack(int index);
+    Track* GetTrack(int index) const;
 /*
 Returns the by index selected track of this ~Midi~ object.
 
 */
-    void Append( Track *inTrack);
+    void Append( const Track *inTrack );
 /*
 Appends the by index selected track of this ~Midi~ object. The caller of this method is responsible for destroying the passed Track object after using.
 
@@ -246,12 +246,12 @@ Returns the ~Midi~ object`s header length.
 Returns the ~Midi~ object`s header. At the moment it is the constant string ''MThd''.
 
 */
-    const int GetFileSize();
+    const int GetFileSize() const;
 /*
 Returns the size in bytes of the input ~Midi~ file.
 
 */
-    Midi* Clone(const bool copyTracks);
+    Midi* Clone(const bool copyTracks) const;
 /*
 Overloads the Clone method. If copyTracks is set false, it returns a new Midi object with copied attributes, but without any event and track data. Otherwise it works like Clone().
 
@@ -266,17 +266,17 @@ Appends an empty track to this ~Midi~ object.
 If this method is called, the destructor will destroy the physical representation of all DBArrays.
 
 */
-    bool IsDivisionInFramesFormat();
+    bool IsDivisionInFramesFormat() const;
 /*
 Returns true if the division of this Midi object is stored in frames format.
 
 */
-    unsigned char GetDivisionMSB();
+    unsigned char GetDivisionMSB() const;
 /*
 Returns the division's most significant byte.
 
 */
-    unsigned char GetDivisionLSB();
+    unsigned char GetDivisionLSB() const;
 /*
 Returns the division's least significant byte.
 
@@ -291,7 +291,7 @@ Sets  the division's most significant byte.
 Returns the division's least significant byte.
 
 */
-    void GetLyrics(string& result, bool all, bool lyr, bool any);
+    void GetLyrics(string& result, bool all, bool lyr, bool any) const;
 /*
 Utility for operators extract\_lyrics and contains\_words
 
@@ -314,13 +314,13 @@ There are totally 10 functions which are defined as virtual functions. They need
 */
     bool     IsDefined() const;
     void     SetDefined(bool Defined);
-    size_t   HashValue();
-    void     CopyFrom(StandardAttribute* right);
-    int      Compare(Attribute * arg);
-    bool     Adjacent(Attribute * arg);
-    Midi*    Clone();
-    ostream& Print( ostream &os );
-    int      NumOfFLOBs();
+    size_t   HashValue() const;
+    void     CopyFrom(const StandardAttribute* right);
+    int      Compare(const Attribute * arg) const;
+    bool     Adjacent(const Attribute * arg) const;
+    Midi*    Clone() const;
+    ostream& Print( ostream &os ) const;
+    int      NumOfFLOBs() const;
     FLOB*    GetFLOB(const int);
 
   private:
@@ -409,12 +409,12 @@ The destructor.
 4.2 Member functions
 
 */
-    Event* GetEvent(int index);
+    const Event* GetEvent(int index) const;
 /*
 Returns the by index selected event of this track.
 
 */
-    void Append( Event* inEvent);
+    void Append( Event* inEvent );
 /*
 Appends the by index selected track of this Midi object
 
@@ -491,7 +491,7 @@ The destructor.
 5.2 Member functions
 
 */
-    EventType GetEventType();
+    EventType GetEventType() const;
 /*
 Returns the kind of event.
 
@@ -501,7 +501,7 @@ Returns the kind of event.
 Sets the length of this event.
 
 */
-    unsigned int GetDeltaTime();
+    unsigned int GetDeltaTime() const;
 /*
 Returns the length of this event.
 
@@ -511,7 +511,7 @@ Returns the length of this event.
 Stores MidiEvents.
 
 */
-    unsigned char GetShortMessageType();
+    unsigned char GetShortMessageType() const;
 /*
 Returns the command of a MidiEvent. The returned value will be undefined if GetShortMessageRunningStauts() returns true.
 
@@ -521,7 +521,7 @@ Returns the command of a MidiEvent. The returned value will be undefined if GetS
 Sets the ''running status'' of this Midi (channel) event. Default is false.
 
 */
-    bool GetShortMessageRunningStatus();
+    bool GetShortMessageRunningStatus() const;
 /*
 Returns the ''running status'' of this Midi (channel) event. If the status is set to true, this Midi (channel) event has the same
 ShortMessageType like the preceding event. In this case the return value of GetShortMessageType will be undefined.
@@ -532,7 +532,7 @@ ShortMessageType like the preceding event. In this case the return value of GetS
 Stores the data of a MidiEvent.
 
 */
-    unsigned char GetShortMessageData(int index);
+    unsigned char GetShortMessageData(int index) const;
 /*
 Return the data of a MidiEvent.
 
@@ -542,7 +542,7 @@ Return the data of a MidiEvent.
 Specifies the length of a MidiEvent.
 
 */
-    int GetShortMessageDataLength();
+    int GetShortMessageDataLength() const;
 /*
 Returns the length of a MidiEvent.
 
@@ -552,17 +552,17 @@ Returns the length of a MidiEvent.
 Stores MetaEvents.
 
 */
-    vector<unsigned char>* GetMetaData(vector<unsigned char>* result);
+    vector<unsigned char>* GetMetaData(vector<unsigned char>* result) const;
 /*
 Returns the data of MetaEvents.
 
 */
-    int GetMetaDataLength();
+    int GetMetaDataLength() const;
 /*
 Returns the length of a MetaEvent. The returned value is the length of the entire Metamessage. Example: The Metamessage 0xFF 0x01 0x01 0x4D returns the value 4.
 
 */
-    unsigned char GetMetaMessageType();
+    unsigned char GetMetaMessageType() const;
 /*
 Returns the kind of event.
 
@@ -572,12 +572,12 @@ Returns the kind of event.
 Stores the data of a SysexMessage.
 
 */
-    vector<unsigned char>* GetSysexData(vector<unsigned char>* result);
+    vector<unsigned char>* GetSysexData(vector<unsigned char>* result) const;
 /*
 Returns the data of a SysexMessage.
 
 */
-    int GetSysexDataLength();
+    int GetSysexDataLength() const;
 /*
 Returns the length of a SysexMessage.
 
@@ -592,7 +592,7 @@ Returns the MidiEvent`s command.
 Returns the MidiEvent`s channel. To call this method is prohibited if GetShortMessageRunningStatus() returns true. In this case this method will abort with an assertion.
 
 */
-    void GetTextFromMetaEvent(string& result);
+    void GetTextFromMetaEvent(string& result) const;
 /*
 Returns the text content from a meta event which contains text data of variable size. Some of the meta events between 0x01 and 0x58 are storing text in this way.
 

@@ -67,13 +67,13 @@ number of bytes. This is useful for allocating buffers.
 */
 
 
-   void encode(char* bytes, int size, string& base64);
+   void encode(const char* bytes, int size, string& base64);
 /*  
 Encodes the bytes contained in the buffer ~bytes~ of size ~size~ into base64
 format written into the string ~base64~.  
 
 */ 
-   int decode(string& text, char* bytes);
+   int decode(const string& text, char* bytes);
 /*
 Decodes the base64 data stored in ~text~ and returns the number of bytes written
 into the buffer ~bytes~ which has to be allocated by the caller. The size of the
@@ -98,7 +98,7 @@ private:
    bool isAllowed(char b);
 
    /* these functions implement the encoding logic */
-   void encode2(char* buffer, string& text, int size);
+   void encode2(const char* buffer, string& text, int size);
    bool getNext(char& byte, istream& in);
 
    /* status and position information*/ 

@@ -46,10 +46,12 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 #include <cstring>
 #include <iostream>
 
+#include "FTextAlgebra.h"
 #include "StandardAttribute.h"
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
+#include "AlgebraManager.h"
 #include "StandardTypes.h" //needed because we return a CcBool in an op.
 #include "LogMsg.h"
 
@@ -57,6 +59,7 @@ using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
+extern AlgebraManager* am;
 
 /*
 2 Type Constructor ~text~
@@ -64,149 +67,7 @@ extern QueryProcessor* qp;
 2.1 Data Structure - Class ~FText~
 
 */
-
-const string typeName="text";
-const bool traces=false;
-
-
-class FText: public StandardAttribute
-{
-public:
-
-  FText();
-  FText(bool newDefined, const char *newText = NULL);
-  FText(FText&);
-  ~FText();
-  void Destroy();
-
-  bool  SearchString( const char* subString );
-  void  Set( const char *newString );
-  void  Set( bool newDefined, const char *newString );
-  int TextLength() const;
-  const char *Get();
-
-/*************************************************************************
-
-  The following virtual functions:
-  IsDefined, SetDefined, HashValue, CopyFrom, Compare, Sizeof, Clone, Print, Adjacent
-  need to be defined if we want to use ~text~ as an attribute type in tuple definitions.
-
-*************************************************************************/
-
-  bool     IsDefined() const;
-  void     SetDefined(bool newDefined);
-  size_t   HashValue();
-  void     CopyFrom(StandardAttribute* right);
-  int      Compare(Attribute * arg);
-  int      Sizeof() const;
-  FText*   Clone();
-  ostream& Print(ostream &os);
-  bool     Adjacent(Attribute * arg);
-
-  int NumOfFLOBs();
-  FLOB* GetFLOB( const int );
-
-private:
-  FLOB theText;
-  bool defined;
-};
-
-
-FText::FText()
-{
-  LOGMSG( "FText:Trace", cout << '\n' <<"Start FText()"<<'\n'; )
-  LOGMSG( "FText:Trace",  cout <<"End FText()"<<'\n'; )
-}
-
-FText::FText( bool newDefined, const char *newText ) :
-theText( 0 )
-{
-  LOGMSG( "FText:Trace", cout << '\n' <<"Start FText(bool newDefined, textType newText)"<<'\n'; )
-  Set( newDefined, newText );
-  LOGMSG( "FText:Trace",  cout <<"End FText(bool newDefined, textType newText)"<<'\n'; )
-}
-
-FText::FText( FText& f ) :
-theText( 0 )
-{
-  LOGMSG( "FText:Trace", cout << '\n' <<"Start FText(FText& f)"<<'\n'; )
-  Set( f.defined, f.theText.BringToMemory() );
-  LOGMSG( "FText:Trace",  cout <<"End FText(FText& f)"<<'\n'; )
-}
-
-FText::~FText()
-{
-  LOGMSG( "FText:Trace",  cout << '\n' <<"Start ~FText()"<<'\n'; )
-  LOGMSG( "FText:Trace",  cout <<"End ~FText()"<<'\n'; )
-}
-
-void FText::Destroy()
-{
-  theText.Destroy();
-  defined = false;
-}
-
-bool FText::SearchString( const char* subString )
-{
-  const char *text = theText.BringToMemory();
-  return strstr( text, subString ) != NULL;
-}
-
-void FText::Set( const char *newString )
-{
-  LOGMSG( "FText:Trace", cout << '\n' << "Start Set with *newString='"<< newString << endl; )
-
-  Set( true, newString );
-
-  LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
-}
-
-void FText::Set( bool newDefined, const char *newString )
-{
-  LOGMSG( "FText:Trace", cout << '\n' << "Start Set with *newString='"<< newString << endl; )
-
-  if( newString != NULL )
-  {
-    theText.Resize( strlen( newString ) + 1 );
-    theText.Put( 0, strlen( newString ) + 1, newString );
-  }
-  defined = newDefined;
-
-  LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
-}
-
-int FText::TextLength() const
-{
-  return theText.Size() - 1;
-}
-
-const char *FText::Get()
-{
-  return theText.BringToMemory();
-}
-
-/*
-
-2.2 Class methods for using ~text~ in tuple definitions
-
-In the following, we give the definitions of the virtual functions which are needed
-if we want to use ~text~ as an attribute type in tuple definitions.
-
-*/
-
-bool FText::IsDefined() const
-{
-  return defined;
-}
-
-void FText::SetDefined( bool newDefined )
-{
-  if(traces)
-    cout << '\n' << "Start SetDefined" << '\n';
-  defined = newDefined;
-}
-
-size_t FText::HashValue()
+size_t FText::HashValue() const
 {
   if(traces)
     cout << '\n' << "Start HashValue" << '\n';
@@ -224,17 +85,17 @@ size_t FText::HashValue()
   return size_t(h);
 }
 
-void FText::CopyFrom( StandardAttribute* right )
+void FText::CopyFrom( const StandardAttribute* right ) 
 {
   if(traces)
     cout << '\n' << "Start CopyFrom" << '\n';
 
-  FText* r = (FText*)right;
+  const FText* r = (const FText*)right;
   const char *s = r->theText.BringToMemory();
   Set( r->defined, s );
 }
 
-int FText::Compare( Attribute *arg )
+int FText::Compare( const Attribute *arg ) const
 {
   if(traces)
     cout << '\n' << "Start Compare" << '\n';
@@ -248,7 +109,7 @@ int FText::Compare( Attribute *arg )
   if(!arg->IsDefined())
     return 1;
 
-  FText* f = (FText* )(arg);
+  const FText* f = (const FText* )(arg);
 
   if ( !f )
     return -2;
@@ -259,36 +120,19 @@ int FText::Compare( Attribute *arg )
   return strcmp( s2, s1 );
 }
 
-
-int FText::Sizeof() const
-{
-  if(traces)
-    cout << '\n' << "Start Sizeof" << '\n';
-
-  return this->TextLength();
-}
-
-
-FText* FText::Clone()
-{
-  return new FText( *this );
-}
-
-
-ostream& FText::Print(ostream &os)
+ostream& FText::Print(ostream &os) const
 {
   return (os << theText.BringToMemory());
 }
 
 
-bool FText::Adjacent(Attribute *arg)
+bool FText::Adjacent(const Attribute *arg) const
 {
   if(traces)
     cout << '\n' << "Start Adjacent" << '\n';
 
   const char *a = theText.BringToMemory(),
-             *b = ((FText *)arg)->theText.BringToMemory();
-
+             *b = ((const FText *)arg)->theText.BringToMemory();
 
   if( strcmp( a, b ) == 0 )
     return 1;
@@ -315,18 +159,6 @@ bool FText::Adjacent(Attribute *arg)
 
   return 0;
 }
-
-int FText::NumOfFLOBs()
-{
-  return 1;
-}
-
-FLOB* FText::GetFLOB( const int i )
-{
-  assert( i == 0 );
-  return &theText;
-}
-
 
 /*
 
@@ -1158,12 +990,15 @@ and to the query processor.
 
 extern "C"
 Algebra*
-InitializeFTextAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
+InitializeFTextAlgebra( NestedList* nlRef, 
+                        QueryProcessor* qpRef,
+                        AlgebraManager* amRef )
 {
   if(traces)
     cout << '\n' <<"InitializeFTextAlgebra"<<'\n';
   nl = nlRef;
   qp = qpRef;
+  am = amRef;
   return (&FTextAlgebra);
 }
 

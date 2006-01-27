@@ -73,6 +73,7 @@ RelationAlgebra.h header file.
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
+extern AlgebraManager *am;
 
 /*
 3 Type constructor ~tuple~
@@ -273,7 +274,6 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
   string attrname;
   bool correct, ckd;
   int unique;
-  AlgebraManager* algMgr;
 
   if( nl->ListLength(type) == 2 && 
       nl->IsEqual(nl->First(type), "tuple", true))
@@ -298,7 +298,6 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
           attrlist));
       return false;
     }
-    algMgr = SecondoSystem::GetAlgebraManager();
 
     unique = 0;
     correct = true;
@@ -326,8 +325,8 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
             correct = false;
           }
           attrnamelist.push_back(attrname);
-          ckd = algMgr->CheckKind("DATA", nl->Second(pair), 
-                                  errorInfo);
+          ckd = am->CheckKind("DATA", nl->Second(pair), 
+                              errorInfo);
           if (!ckd)
           {
             errorInfo = nl->Append(errorInfo,
@@ -619,13 +618,10 @@ and ~x~ must be a type of kind TUPLE.
 bool
 CheckRel(ListExpr type, ListExpr& errorInfo)
 {
-  AlgebraManager* algMgr;
-
   if ((nl->ListLength(type) == 2) && 
       nl->IsEqual(nl->First(type), "rel"))
   {
-    algMgr = SecondoSystem::GetAlgebraManager();
-    return (algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo));
+    return am->CheckKind("TUPLE", nl->Second(type), errorInfo);
   }
   else
   {
@@ -1504,7 +1500,7 @@ Project(Word* args, Word& result, int message,
       if (qp->Received(args[0].addr))
       {
         TupleType *tupleType = (TupleType *)local.addr;
-        Tuple *t = new Tuple( *tupleType );
+        Tuple *t = new Tuple( tupleType );
 
         qp->Request(args[2].addr, arg2);
         noOfAttrs = ((CcInt*)arg2.addr)->GetIntval();
@@ -1525,7 +1521,7 @@ Project(Word* args, Word& result, int message,
     }
     case CLOSE :
     {
-      delete (TupleType *)local.addr;
+      ((TupleType *)local.addr)->DeleteIfAllowed();
       qp->Close(args[0].addr);
       return 0;
     }
@@ -1716,7 +1712,7 @@ Product(Word* args, Word& result, int message,
         }
         else if( (rightTuple = pli->iter->GetNextTuple()) != 0 )
         {
-          resultTuple = new Tuple( *(pli->resultTupleType) );
+          resultTuple = new Tuple( pli->resultTupleType );
           Concat(pli->currentTuple, rightTuple, resultTuple);
           rightTuple->DeleteIfAllowed();
           result = SetWord(resultTuple);
@@ -1736,7 +1732,7 @@ Product(Word* args, Word& result, int message,
             pli->currentTuple = (Tuple*)r.addr;
             pli->iter = pli->rightRel->MakeScan();
             assert( (rightTuple = pli->iter->GetNextTuple()) != 0 );
-            resultTuple = new Tuple( *(pli->resultTupleType) );
+            resultTuple = new Tuple( pli->resultTupleType );
             Concat(pli->currentTuple, rightTuple, resultTuple);
             rightTuple->DeleteIfAllowed();
             result = SetWord(resultTuple);
@@ -1756,7 +1752,7 @@ Product(Word* args, Word& result, int message,
         pli->currentTuple->DeleteIfAllowed();
       if( pli->iter != 0 )
         delete pli->iter;
-      delete pli->resultTupleType;
+      pli->resultTupleType->DeleteIfAllowed();
       if( pli->rightRel )
       {
         pli->rightRel->Clear();

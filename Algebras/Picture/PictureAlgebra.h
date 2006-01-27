@@ -233,11 +233,11 @@ Guide for details.
 
 */
     void SetDefined(const bool d) { isDefined = d; };
-    size_t HashValue(void);
-    void CopyFrom(StandardAttribute*);
-    int Compare(Attribute* a);
-    bool Adjacent(Attribute* attr) { return false; }
-    Histogram* Clone(void);
+    size_t HashValue(void) const;
+    void CopyFrom(const StandardAttribute*);
+    int Compare(const Attribute* a) const;
+    bool Adjacent(const Attribute* attr) const { return false; }
+    Histogram* Clone(void) const;
 };
 
 /*
@@ -390,7 +390,7 @@ efficient way to implement this method. ~size~ will be set to the total size
 in bytes of the binary data returned.
 
 */
-    char* GetJPEGData(unsigned long& size);
+    const char* GetJPEGData(unsigned long& size) const;
 
 /*
 
@@ -520,12 +520,12 @@ See the description of ~StandardAttribute~ and the SECONDO Programmer's
 Guide for details.
 
 */
-    size_t HashValue(void);
-    void CopyFrom(StandardAttribute*);
-    int Compare(Attribute* a);
-    bool Adjacent(Attribute* attr) { return false; }
-    Picture* Clone(void);
-    int NumOfFLOBs() { return 1; }
+    size_t HashValue(void) const;
+    void CopyFrom(const StandardAttribute*);
+    int Compare(const Attribute* a) const; 
+    bool Adjacent(const Attribute* attr) const { return false; }
+    Picture* Clone(void) const;
+    int NumOfFLOBs() const { return 1; }
     FLOB *GetFLOB(const int i) { assert( i == 0 ); return &jpegData; }
 
 /*
@@ -538,7 +538,7 @@ this method does not compare any other attributes of the ~Picture~ class.
 
 */
 
-    int SimpleCompare(Attribute* a);
+    int SimpleCompare(const Attribute* a) const;
 };
 
 

@@ -487,14 +487,13 @@ The next functions are needed for the DateTime class to act as
 an attribute of a relation.
 
 */
-     int Compare(Attribute* arg);
-     bool Adjacent(Attribute*);
-     int Sizeof();
+     int Compare(const Attribute* arg) const;
+     bool Adjacent(const Attribute *arg) const;
      bool IsDefined() const;
      void SetDefined( bool defined );
-     size_t HashValue();
-     void CopyFrom(StandardAttribute* arg);
-     DateTime* Clone();
+     size_t HashValue() const;
+     void CopyFrom(const StandardAttribute* arg);
+     DateTime* Clone() const;
      void WriteTo( char *dest ) const;
      void ReadFrom( const char *src );
      SmiSize SizeOfChars() const;

@@ -236,7 +236,7 @@ Histogram::Histogram( double * _histogram,
 
 */
 
-size_t Histogram::HashValue(void) {
+size_t Histogram::HashValue(void) const {
     if (PA_DEBUG) cerr << "Histogram::HashValue() called" << endl;
 
     unsigned long h = 0;
@@ -249,10 +249,10 @@ size_t Histogram::HashValue(void) {
     return h;
 }
 
-void Histogram::CopyFrom(StandardAttribute* attr) {
+void Histogram::CopyFrom(const StandardAttribute* attr) {
     if (PA_DEBUG) cerr << "Histogram::CopyFrom() called" << endl;
 
-    Histogram* h = (Histogram*) attr;
+    const Histogram* h = (const Histogram*) attr;
 
     //
     //	copy all attributes
@@ -269,10 +269,10 @@ void Histogram::CopyFrom(StandardAttribute* attr) {
 	histogram[i] = h->histogram[i];
 }
 
-int Histogram::Compare(Attribute* a) {
+int Histogram::Compare(const Attribute* a) const {
     if (PA_DEBUG) cerr << "Histogram::Compare() called" << endl;
 
-    Histogram * h = (Histogram*) a;
+    const Histogram * h = (const Histogram*) a;
 
     //
     //	At first, check the channel
@@ -304,12 +304,12 @@ int Histogram::Compare(Attribute* a) {
     return 0;
 }
 
-Histogram* Histogram::Clone(void) {
+Histogram* Histogram::Clone(void) const {
     if (PA_DEBUG) cerr << "Histogram::Clone() called" << endl;
 
     Histogram * h = new Histogram();
 
-    h->CopyFrom((StandardAttribute*) this);
+    h->CopyFrom((const StandardAttribute*) this);
 
     return h;
 }

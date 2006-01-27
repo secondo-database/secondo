@@ -55,7 +55,7 @@ using namespace std;
 #include <cmath>
 
 extern NestedList* nl;
-static QueryProcessor* qp;
+extern QueryProcessor* qp;
 
 #include "Attribute.h"
 #include <jni.h>
@@ -994,19 +994,17 @@ public:
   double BboxBottomRightY;
 
   // Inherited methods of Attribute 
-  int Compare(Attribute *attr);
-  Attribute *Clone();
+  int Compare(const Attribute *attr) const;
+  Attribute *Clone() const;
   bool IsDefined() const;
-  int Sizeof();
-
   void SetDefined(bool Defined);
-  void CopyFrom(StandardAttribute* right);
+  void CopyFrom(const StandardAttribute* right);
   void Destroy();
-  jobject GetObject() {
+  jobject GetObject() const {
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     return obj; }
-  bool Adjacent(Attribute *arg);
-  int NumOfFLOBs();
+  bool Adjacent(const Attribute *arg) const;
+  int NumOfFLOBs() const;
   FLOB *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
@@ -1015,9 +1013,8 @@ public:
     obj = 0;
   }
   void RestoreJavaObjectFromFLOB();
-  size_t HashValue();
+  size_t HashValue() const;
   
- 
   /* This constructor takes the nested list representation
      of CcPoints and recovers the underlying java object with
      help of this data. */
@@ -1046,8 +1043,8 @@ public:
     obj = 0;
   }
   /* Returns the pointer to the proper java objet. */
-  jobject GetObj();
-  void Print();
+  jobject GetObj() const;
+  void Print() const;
   
 };
 
@@ -1056,9 +1053,9 @@ public:
 
 */
 
-int CcPoints::Compare(Attribute *attr) {
+int CcPoints::Compare(const Attribute *attr) const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  CcPoints *P = (CcPoints *) attr;
+  const CcPoints *P = (const CcPoints *) attr;
   return env->CallByteMethod(obj,midPointsCompare,P->obj);
 }
 
@@ -1067,7 +1064,7 @@ int CcPoints::Compare(Attribute *attr) {
 
 */
 
-Attribute *CcPoints::Clone() {
+Attribute *CcPoints::Clone() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* res = new CcPoints((size_t)objectData.Size());
   res->CopyFrom(this);
@@ -1085,21 +1082,6 @@ bool CcPoints::IsDefined() const {
 }
 
 /* 
-Inherited method of StandardAttribute 
-
-*/
-
-int CcPoints::Sizeof() {
-  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return sizeof(CcPoints);
-}
-
-/* 
-Inherited method of StandardAttribute 
-
-*/
-
-/* 
  Inherited method of StandardAttribute 
 
 */
@@ -1114,15 +1096,13 @@ void CcPoints::SetDefined(bool Defined) {
 
 */
 
-void CcPoints::CopyFrom(StandardAttribute* right) {
+void CcPoints::CopyFrom(const StandardAttribute* right) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  CcPoints *P = (CcPoints *)right;
+  const CcPoints *P = (const CcPoints *)right;
   objectData.Resize(P->objectData.Size());
-  char *data = new char[P->objectData.Size()];
-  P->objectData.Get(0,P->objectData.Size(),data);
+  const char *data;
+  P->objectData.Get(0,&data);
   objectData.Put(0,P->objectData.Size(),data);
-  delete [] data;
-  data = 0;
   BboxTopLeftX = P->BboxTopLeftX;
   BboxTopLeftY = P->BboxTopLeftY;
   BboxBottomRightX = P->BboxBottomRightX;
@@ -1135,17 +1115,17 @@ void CcPoints::CopyFrom(StandardAttribute* right) {
 
 */
 
-size_t CcPoints::HashValue() {
+size_t CcPoints::HashValue() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return 0;
 }
 
-bool CcPoints::Adjacent(Attribute * arg) {
+bool CcPoints::Adjacent(const Attribute * arg) const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return false;
 }
 
-int CcPoints::NumOfFLOBs(){
+int CcPoints::NumOfFLOBs() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return 1;
 }
@@ -1257,7 +1237,7 @@ void CcPoints::Destroy(){
 
 */
 
-jobject CcPoints::GetObj() {
+jobject CcPoints::GetObj() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return obj;
 }
@@ -1297,8 +1277,8 @@ void CcPoints::RestoreJavaObjectFromFLOB(){
     return;
   }
   int size = objectData.Size();
-  char *bytes = new char[size];
-  objectData.Get(0,size,bytes);
+  const char *bytes;
+  objectData.Get(0,&bytes);
   // copy the data into a java-array
   jbyteArray jbytes = env->NewByteArray(size);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
@@ -1310,13 +1290,12 @@ void CcPoints::RestoreJavaObjectFromFLOB(){
   //obj = jres;
   jbyte* elems = env->GetByteArrayElements(jbytes,0);
   env->ReleaseByteArrayElements(jbytes,elems,JNI_ABORT);
-  delete [] bytes;
   bytes = NULL;
   env->DeleteLocalRef(jbytes);
 }
 
 
-void CcPoints::Print() {
+void CcPoints::Print() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //jmethodID mid = env->GetMethodID(clsPoints,"print","()V");
   env->CallVoidMethod(obj,midPointsPrint);
@@ -1577,19 +1556,17 @@ public:
   double BboxBottomRightY;
 
   // Inherited methods of Attribute 
-  int Compare(Attribute *attr);
-  Attribute *Clone();
+  int Compare(const Attribute *attr) const;
+  Attribute *Clone() const;
   bool IsDefined() const;
-  int Sizeof();
-
   void SetDefined(bool Defined);
-  void CopyFrom(StandardAttribute* right);
+  void CopyFrom(const StandardAttribute* right);
   void Destroy();
-  jobject GetObject() {
+  jobject GetObject() const {
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     return obj; }
-  bool Adjacent(Attribute *arg);
-  int NumOfFLOBs();
+  bool Adjacent(const Attribute *arg) const;
+  int NumOfFLOBs() const;
   FLOB *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
@@ -1598,7 +1575,7 @@ public:
     obj = 0;
   }
   void RestoreJavaObjectFromFLOB();
-  size_t HashValue();
+  size_t HashValue() const;
 
 
   /* This constructor takes the nested list representation
@@ -1628,9 +1605,9 @@ public:
     obj = 0;
   }
   /* Returns the pointer to the proper java objet. */
-  jobject GetObj();
+  jobject GetObj() const;
 
-  void Print();
+  void Print() const;
 };
 
 /* 
@@ -1638,9 +1615,9 @@ public:
 
 */
 
-int CcLines::Compare(Attribute *attr) {
+int CcLines::Compare(const Attribute *attr) const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  CcLines *L = (CcLines *) attr;
+  const CcLines *L = (const CcLines *) attr;
   return env->CallByteMethod(obj,midLinesCompare,L->obj);
 }
 
@@ -1649,7 +1626,7 @@ int CcLines::Compare(Attribute *attr) {
 
 */
 
-Attribute *CcLines::Clone() {
+Attribute *CcLines::Clone() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* res = new CcLines((size_t)objectData.Size());
   res->CopyFrom(this);
@@ -1664,16 +1641,6 @@ Attribute *CcLines::Clone() {
 bool CcLines::IsDefined() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return true;
-}
-
-/* 
- Inherited method of StandardAttribute 
-
-*/
-
-int CcLines::Sizeof() {
-  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return sizeof(CcLines);
 }
 
 /* 
@@ -1696,15 +1663,13 @@ void CcLines::SetDefined(bool Defined) {
 
 */
 
-void CcLines::CopyFrom(StandardAttribute* right) {
+void CcLines::CopyFrom(const StandardAttribute* right) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  CcLines *L = (CcLines *)right;
+  const CcLines *L = (const CcLines *)right;
   objectData.Resize(L->objectData.Size());
-  char *data = new char[L->objectData.Size()];
-  L->objectData.Get(0,L->objectData.Size(),data);
+  const char *data;
+  L->objectData.Get(0,&data);
   objectData.Put(0,L->objectData.Size(),data);
-  delete [] data;
-  data = 0;
   BboxTopLeftX = L->BboxTopLeftX;
   BboxTopLeftY = L->BboxTopLeftY;
   BboxBottomRightX = L->BboxBottomRightX;
@@ -1717,17 +1682,17 @@ void CcLines::CopyFrom(StandardAttribute* right) {
 
 */
 
-size_t CcLines::HashValue() {
+size_t CcLines::HashValue() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return 0;
 }
 
-bool CcLines::Adjacent(Attribute * arg) {
+bool CcLines::Adjacent(const Attribute * arg) const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return false;
 }
 
-int CcLines::NumOfFLOBs(){
+int CcLines::NumOfFLOBs() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return 1;
 }
@@ -1836,7 +1801,7 @@ void CcLines::Destroy(){
 
 */
 
-jobject CcLines::GetObj() {
+jobject CcLines::GetObj() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return obj;
 }
@@ -1876,8 +1841,8 @@ void CcLines::RestoreJavaObjectFromFLOB(){
   }
   int size = objectData.Size();
 
-  char *bytes = new char[size];
-  objectData.Get(0,size,bytes);
+  const char *bytes;
+  objectData.Get(0,&bytes);
   // copy the data into a java-array
   jbyteArray jbytes = env->NewByteArray(size);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
@@ -1888,14 +1853,12 @@ void CcLines::RestoreJavaObjectFromFLOB(){
   //obj = jres;
   jbyte* elems = env->GetByteArrayElements(jbytes,0);
   env->ReleaseByteArrayElements(jbytes,elems,JNI_ABORT);
-  delete [] bytes;
-  bytes = NULL;
   env->DeleteLocalRef(jbytes);
   jbytes = 0;
 }
 
 
-void CcLines::Print() {
+void CcLines::Print() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //jmethodID mid = env->GetMethodID(clsLines,"print","()V");
   env->CallVoidMethod(obj,midLinesPrint);
@@ -2156,19 +2119,17 @@ public:
   double BboxBottomRightY;
 
   // Inherited methods of Attribute 
-  int Compare(Attribute *attr);
-  Attribute *Clone();
+  int Compare(const Attribute *attr) const;
+  Attribute *Clone() const;
   bool IsDefined() const;
-  int Sizeof();
-  //void *GetValue();
   void SetDefined(bool Defined);
-  void CopyFrom(StandardAttribute* right);
+  void CopyFrom(const StandardAttribute* right);
   void Destroy();
-  jobject GetObject() {
+  jobject GetObject() const {
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     return obj; }
-  bool Adjacent(Attribute *arg);
-  int NumOfFLOBs();
+  bool Adjacent(const Attribute *arg) const;
+  int NumOfFLOBs() const;
   FLOB *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
@@ -2177,7 +2138,7 @@ public:
     obj = 0;
   }
   void RestoreJavaObjectFromFLOB();
-  size_t HashValue();
+  size_t HashValue() const;
 
 
   /* This constructor takes the nested list representation
@@ -2208,8 +2169,8 @@ public:
     obj = 0;
   }
   // Returns the pointer to the proper java objet. 
-  jobject GetObj();
-  void Print();
+  jobject GetObj() const;
+  void Print() const;
 };
 
 /* 
@@ -2217,9 +2178,9 @@ public:
 
 */
 
-int CcRegions::Compare(Attribute *attr) {
+int CcRegions::Compare(const Attribute *attr) const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  CcRegions *R = (CcRegions *) attr;
+  const CcRegions *R = (const CcRegions *) attr;
   return env->CallByteMethod(obj,midRegionsCompare,R->obj);
 }
 
@@ -2228,7 +2189,7 @@ int CcRegions::Compare(Attribute *attr) {
 
 */
 
-Attribute *CcRegions::Clone() {
+Attribute *CcRegions::Clone() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* res = new CcRegions((size_t)objectData.Size());
   res->CopyFrom(this);
@@ -2250,21 +2211,6 @@ bool CcRegions::IsDefined() const {
 
 */
 
-int CcRegions::Sizeof() {
-  if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return sizeof(CcRegions);
-}
-
-/* 
- Inherited method of StandardAttribute 
-
-*/
- 
-/* 
- Inherited method of StandardAttribute 
-
-*/
-
 void CcRegions::SetDefined(bool Defined) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   this->Defined = Defined;
@@ -2275,15 +2221,13 @@ void CcRegions::SetDefined(bool Defined) {
 
 */
 
-void CcRegions::CopyFrom(StandardAttribute* right) { 
+void CcRegions::CopyFrom(const StandardAttribute* right) { 
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  CcRegions *R = (CcRegions *)right;
+  const CcRegions *R = (const CcRegions *)right;
   objectData.Resize(R->objectData.Size());
-  char *data = new char[R->objectData.Size()];
-  R->objectData.Get(0,R->objectData.Size(),data);
+  const char *data;
+  R->objectData.Get(0,&data);
   objectData.Put(0,R->objectData.Size(),data);
-  delete [] data;
-  data = 0;
   BboxTopLeftX = R->BboxTopLeftX;
   BboxTopLeftY = R->BboxTopLeftY;
   BboxBottomRightX = R->BboxBottomRightX;
@@ -2296,17 +2240,17 @@ void CcRegions::CopyFrom(StandardAttribute* right) {
 
 */
 
-size_t CcRegions::HashValue() {
+size_t CcRegions::HashValue() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return 0;
 }
 
-bool CcRegions::Adjacent(Attribute * arg) {
+bool CcRegions::Adjacent(const Attribute * arg) const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return false;
 }
 
-int CcRegions::NumOfFLOBs(){
+int CcRegions::NumOfFLOBs() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return 1;
 }
@@ -2415,7 +2359,7 @@ void CcRegions::Destroy(){
 
 */
 
-jobject CcRegions::GetObj() {
+jobject CcRegions::GetObj() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   return obj;
 }
@@ -2454,8 +2398,8 @@ void CcRegions::RestoreJavaObjectFromFLOB(){
     return;
   }
   int size = objectData.Size();
-  char *bytes = new char[size];
-  objectData.Get(0,size,bytes);
+  const char *bytes;
+  objectData.Get(0,&bytes);
   // copy the data into a java-array
   jbyteArray jbytes = env->NewByteArray(size);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
@@ -2467,13 +2411,11 @@ void CcRegions::RestoreJavaObjectFromFLOB(){
   //obj = jres;
   jbyte* elems = env->GetByteArrayElements(jbytes,0);
   env->ReleaseByteArrayElements(jbytes,elems,JNI_ABORT);
-  delete [] bytes;
-  bytes = NULL;
   env->DeleteLocalRef(jbytes);
   jbytes = 0;
   }
 
-void CcRegions::Print() {
+void CcRegions::Print() const {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //jmethodID mid = env->GetMethodID(clsRegions,"print","()V");
   env->CallVoidMethod(obj,midRegionsPrint);

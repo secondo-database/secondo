@@ -2071,8 +2071,8 @@ interval ~iv~.
 
 */
 
-static void restrictUPointToInterval(UPoint& up,
-                                     Interval<Instant> iv,
+static void restrictUPointToInterval(const UPoint& up,
+                                     const Interval<Instant> iv,
                                      UPoint& rUp) {
     if (MRA_DEBUG)
         cerr << "restrictUPointToInterval() called" << endl;
@@ -2374,18 +2374,18 @@ Both segments are not vertical.
 Attribute access methods.
 
 */
-    unsigned int GetFaceNo(void) { return faceno; }
-    unsigned int GetCycleNo(void) { return cycleno; }
-    unsigned int GetSegmentNo(void) { return segmentno; }
-    double GetInitialStartX(void) { return initialStartX; }
-    double GetInitialStartY(void) { return initialStartY; }
-    double GetInitialEndX(void) { return initialEndX; }
-    double GetInitialEndY(void) { return initialEndY; }
-    double GetFinalStartX(void) { return finalStartX; }
-    double GetFinalStartY(void) { return finalStartY; }
-    double GetFinalEndX(void) { return finalEndX; }
-    double GetFinalEndY(void) { return finalEndY; }
-    bool GetInsideAbove(void) { return insideAbove; }
+    unsigned int GetFaceNo(void) const { return faceno; }
+    unsigned int GetCycleNo(void) const { return cycleno; }
+    unsigned int GetSegmentNo(void) const { return segmentno; }
+    double GetInitialStartX(void) const { return initialStartX; }
+    double GetInitialStartY(void) const { return initialStartY; }
+    double GetInitialEndX(void) const { return initialEndX; }
+    double GetInitialEndY(void) const { return initialEndY; }
+    double GetFinalStartX(void) const { return finalStartX; }
+    double GetFinalStartY(void) const { return finalStartY; }
+    double GetFinalEndX(void) const { return finalEndX; }
+    double GetFinalEndY(void) const { return finalEndY; }
+    bool GetInsideAbove(void) const { return insideAbove; }
 
 /*
 Generate new ~MSegmentData~ instant in ~rDms~ from current instant, where the
@@ -2394,7 +2394,7 @@ original interval ~origIv~ has been restricted to ~restrIv~.
 */
     void restrictToInterval(Interval<Instant> origIv,
                             Interval<Instant> restrIv,
-                            MSegmentData& rDms);
+                            MSegmentData& rDms) const;
 
 /*
 Since no other classes are accessing the private attributes of
@@ -2413,7 +2413,7 @@ yet somewhat clumsy than creating attribute access functions.
 */
 void MSegmentData::restrictToInterval(Interval<Instant> origIv,
                                       Interval<Instant> restrIv,
-                                      MSegmentData& rDms) {
+                                      MSegmentData& rDms) const {
     if (MRA_DEBUG)
         cerr << "MSegmentData::restrictToInterval() called" << endl;
 
@@ -2573,12 +2573,12 @@ Private attributes:
 ~iv~, ~vur~ and ~vup~ vectors.
 
 */
-    void AddUnits(int urPos,
-                  int upPos,
-                  Instant& start,
-                  Instant& end,
-                  bool lc,
-                  bool rc);
+    void AddUnits(const int urPos,
+                  const int upPos,
+                  const Instant& start,
+                  const Instant& end,
+                  const bool lc,
+                  const bool rc);
 
 public:
 /*
@@ -2661,7 +2661,7 @@ partition.
 
 */
     Unit1 ur;
-    Unit2 up;
+    const Unit2 *up;
 
     mr.Get(0, ur);
     mp.Get(0, up);
@@ -2676,12 +2676,12 @@ below.
     Instant t;
     bool c;
 
-    if (ur.timeInterval.start < up.timeInterval.start) {
+    if (ur.timeInterval.start < up->timeInterval.start) {
         t = ur.timeInterval.start;
         c = !ur.timeInterval.lc;
     } else {
-        t = up.timeInterval.start;
-        c = !up.timeInterval.lc;
+        t = up->timeInterval.start;
+        c = !up->timeInterval.lc;
     }
 
 /*
@@ -2709,13 +2709,13 @@ As long as we did not reach the end of units in ~mr~ or ~mp~...
                  << "]"
                  << endl;
             cerr << "RP::RP() mpUnit interval=["
-                 << up.timeInterval.start.ToDouble()
+                 << up->timeInterval.start.ToDouble()
                  << " "
-                 << up.timeInterval.end.ToDouble()
+                 << up->timeInterval.end.ToDouble()
                  << " "
-                 << up.timeInterval.lc
+                 << up->timeInterval.lc
                  << " "
-                 << up.timeInterval.rc
+                 << up->timeInterval.rc
                  << "]"
                  << endl;
         }
@@ -2733,9 +2733,9 @@ different cases.
         //        of right side not relevant
 
         if (ur.timeInterval.start.Compare(
-                &up.timeInterval.start) == 0
+                &up->timeInterval.start) == 0
             && ur.timeInterval.end.Compare(
-                   &up.timeInterval.end) == 0) {
+                   &up->timeInterval.end) == 0) {
 /*
 \textbf{Case 1:} Both intervals have the same start and end time.
 
@@ -2750,7 +2750,7 @@ If one of the intervals is open and one is closed on the left side,
 we have to add a point interval to the refinement partition.
 
 */
-            if (!(ur.timeInterval.lc && up.timeInterval.lc)) {
+            if (!(ur.timeInterval.lc && up->timeInterval.lc)) {
                 if (ur.timeInterval.lc)
                     AddUnits(
                         mrUnit,
@@ -2759,7 +2759,7 @@ we have to add a point interval to the refinement partition.
                         ur.timeInterval.start,
                         true,
                         true);
-                else if (up.timeInterval.lc)
+                else if (up->timeInterval.lc)
                     AddUnits(
                         -1,
                         mpUnit,
@@ -2779,8 +2779,8 @@ intervals are closed on the left (right) side.
                 mpUnit,
                 ur.timeInterval.start,
                 ur.timeInterval.end,
-                ur.timeInterval.lc && up.timeInterval.lc,
-                ur.timeInterval.rc && up.timeInterval.rc);
+                ur.timeInterval.lc && up->timeInterval.lc,
+                ur.timeInterval.rc && up->timeInterval.rc);
 
 /*
 If one of the intervals is open and one is closed on the right side,
@@ -2789,7 +2789,7 @@ the value of ~c~ too, which we use to remember the open/closed flag of the
 last interval added to the refinement partition.
 
 */
-            if (!(ur.timeInterval.rc && up.timeInterval.rc)) {
+            if (!(ur.timeInterval.rc && up->timeInterval.rc)) {
                 if (ur.timeInterval.rc) {
                     AddUnits(
                         mrUnit,
@@ -2799,7 +2799,7 @@ last interval added to the refinement partition.
                         true,
                         true);
                     c = true;
-                } else if (up.timeInterval.rc) {
+                } else if (up->timeInterval.rc) {
                     AddUnits(
                         -1,
                         mpUnit,
@@ -2828,7 +2828,7 @@ pointers.
                 mr.Get(mrUnit, ur);
             if (++mpUnit < mp.GetNoComponents())
                 mp.Get(mpUnit, up);
-        } else if (ur.timeInterval.Inside(up.timeInterval)) {
+        } else if (ur.timeInterval.Inside(up->timeInterval)) {
 /*
 \textbf{Case 2:} Interval from ~mr~ is embedded into interval from ~mp~.
 
@@ -2848,9 +2848,9 @@ refinement partition first.
                 AddUnits(
                     -1,
                     mpUnit,
-                    t > up.timeInterval.start
+                    t > up->timeInterval.start
                     ? t
-                    : up.timeInterval.start,
+                    : up->timeInterval.start,
                     ur.timeInterval.start,
                     !c,
                     !ur.timeInterval.lc);
@@ -2877,7 +2877,7 @@ Remember right border, right border flag and increase unit pointer ~mrUnit~.
 
             if (++mrUnit < mr.GetNoComponents())
                 mr.Get(mrUnit, ur);
-        } else if (up.timeInterval.Inside(ur.timeInterval)) {
+        } else if (up->timeInterval.Inside(ur.timeInterval)) {
 /*
 \textbf{Case 3:} Interval from ~mp~ is embedded into interval from ~mr~.
 This is similar to case 2 and no further details need to be explained.
@@ -2889,31 +2889,31 @@ This is similar to case 2 and no further details need to be explained.
                 cerr << "RP::RP()   up:  |---|" << endl;
             }
 
-            if (t < up.timeInterval.start)
+            if (t < up->timeInterval.start)
                 AddUnits(
                     mrUnit,
                     -1,
                     t > ur.timeInterval.start
                       ? t
                       : ur.timeInterval.start,
-                    up.timeInterval.start,
+                    up->timeInterval.start,
                     !c,
-                    !up.timeInterval.lc);
+                    !up->timeInterval.lc);
 
             AddUnits(
                 mrUnit,
                 mpUnit,
-                up.timeInterval.start,
-                up.timeInterval.end,
-                up.timeInterval.lc,
-                up.timeInterval.rc);
+                up->timeInterval.start,
+                up->timeInterval.end,
+                up->timeInterval.lc,
+                up->timeInterval.rc);
 
-            t = up.timeInterval.end;
-            c = up.timeInterval.rc;
+            t = up->timeInterval.end;
+            c = up->timeInterval.rc;
 
             if (++mpUnit < mp.GetNoComponents())
                 mp.Get(mpUnit, up);
-        } else if (ur.timeInterval.Intersects(up.timeInterval)) {
+        } else if (ur.timeInterval.Intersects(up->timeInterval)) {
 /*
 \textbf{Case 4:} The intervals intersect. Further analysis is required,
 which will be handled by sub-cases of case 4.
@@ -2923,9 +2923,9 @@ which will be handled by sub-cases of case 4.
                 cerr << "RP::RP()   intersect" << endl;
 
             if (ur.timeInterval.start.Compare(
-                    &up.timeInterval.end) == 0
+                    &up->timeInterval.end) == 0
                 && ur.timeInterval.lc
-                && up.timeInterval.rc) {
+                && up->timeInterval.rc) {
 /*
 \textbf{Case 4.1:} Left border of interval from ~mr~ and right border of
 interval from ~mp~ are identical and both intervals are closed in this
@@ -2943,14 +2943,14 @@ Check if we have to add the interval from ~mp~ minus its right border to the
 refinement partition first.
 
 */
-                if (t < up.timeInterval.end)
+                if (t < up->timeInterval.end)
                     AddUnits(
                         -1,
                         mpUnit,
-                        t > up.timeInterval.start
+                        t > up->timeInterval.start
                           ? t
-                          : up.timeInterval.start,
-                        up.timeInterval.end,
+                          : up->timeInterval.start,
+                        up->timeInterval.end,
                         !c,
                         false);
 
@@ -2970,15 +2970,15 @@ Add point interval for the common border.
 Remember point interval border and increase unit pointer ~mpUnit~.
 
 */
-                t = up.timeInterval.start;
+                t = up->timeInterval.start;
                 c = true;
 
                 if (++mpUnit < mp.GetNoComponents())
                     mp.Get(mpUnit, up);
             } else if (ur.timeInterval.end.Compare(
-                           &up.timeInterval.start) == 0
+                           &up->timeInterval.start) == 0
                        && ur.timeInterval.rc
-                       && up.timeInterval.lc) {
+                       && up->timeInterval.lc) {
 /*
 \textbf{Case 4.2:} Right border of interval from ~mr~ and left border of
 interval from ~mp~ are identical and both intervals are closed in this
@@ -3004,8 +3004,8 @@ point. Similar to case 4.1, no further details explained.
                 AddUnits(
                     mrUnit,
                     mpUnit,
-                    up.timeInterval.start,
-                    up.timeInterval.start,
+                    up->timeInterval.start,
+                    up->timeInterval.start,
                     true,
                     true);
 
@@ -3015,7 +3015,7 @@ point. Similar to case 4.1, no further details explained.
                 if (++mrUnit < mr.GetNoComponents())
                     mr.Get(mrUnit, ur);
             } else if (ur.timeInterval.start.Compare(
-                           &up.timeInterval.start) < 0) {
+                           &up->timeInterval.start) < 0) {
 /*
 \textbf{Case 4.3:} Both intervals overlap, interval from ~mr~ starts right
 of interval from ~mp~.
@@ -3032,16 +3032,16 @@ Check if we have to add the left part of the interval from ~mr~ to the
 refinement partition first.
 
 */
-                if (t < up.timeInterval.start)
+                if (t < up->timeInterval.start)
                     AddUnits(
                         mrUnit,
                         -1,
                         t > ur.timeInterval.start
                           ? t
                           : ur.timeInterval.start,
-                        up.timeInterval.start,
+                        up->timeInterval.start,
                         !c,
-                        !up.timeInterval.lc);
+                        !up->timeInterval.lc);
 
 /*
 Add the intersection of the two intervals by using the respective left or
@@ -3051,9 +3051,9 @@ right borders and their open/close flags.
                 AddUnits(
                     mrUnit,
                     mpUnit,
-                    up.timeInterval.start,
+                    up->timeInterval.start,
                     ur.timeInterval.end,
-                    up.timeInterval.lc,
+                    up->timeInterval.lc,
                     ur.timeInterval.rc);
 
 /*
@@ -3066,7 +3066,7 @@ Remember interval border and increase unit pointer ~mrUnit~.
                 if (++mrUnit < mr.GetNoComponents())
                     mr.Get(mrUnit, ur);
             } else if (ur.timeInterval.start.Compare(
-                           &up.timeInterval.start) == 0) {
+                           &up->timeInterval.start) == 0) {
 /*
 \textbf{Case 4.4:} Both intervals have the same start point.
 
@@ -3074,14 +3074,14 @@ The following assertion holds or we would have cases 2 or 3, which have been
 already checked.
 
 */
-                assert(!ur.timeInterval.lc || !up.timeInterval.lc);
+                assert(!ur.timeInterval.lc || !up->timeInterval.lc);
 
 /*
 Case 4.4 is broken into two sub-cases again.
 
 */
                 if (ur.timeInterval.end.Compare(
-                        &up.timeInterval.end) < 0) {
+                        &up->timeInterval.end) < 0) {
 /*
 \textbf{Case 4.4.1:} The right border of the interval from ~mr~ is lower
 than the right border of the interval from ~mp~.
@@ -3138,7 +3138,7 @@ already checked.
 
 */
                     assert(ur.timeInterval.end.Compare(
-                               &up.timeInterval.end) != 0);
+                               &up->timeInterval.end) != 0);
 
                     if (MRA_DEBUG) {
                         cerr << "RP::RP()   ur: ]------|"
@@ -3154,8 +3154,8 @@ Add left point of interval from ~mr~ to refinement partition.
                     AddUnits(
                         -1,
                         mpUnit,
-                        up.timeInterval.start,
-                        up.timeInterval.start,
+                        up->timeInterval.start,
+                        up->timeInterval.start,
                         true,
                         true);
 
@@ -3167,12 +3167,12 @@ Add intersection to refinement partition.
                         mrUnit,
                         mpUnit,
                         ur.timeInterval.start,
-                        up.timeInterval.end,
+                        up->timeInterval.end,
                         false,
-                        up.timeInterval.rc);
+                        up->timeInterval.rc);
 
-                    t = up.timeInterval.end;
-                    c = up.timeInterval.rc;
+                    t = up->timeInterval.end;
+                    c = up->timeInterval.rc;
 
 /*
 Remember interval border and increase unit pointer ~mpUnit~.
@@ -3197,9 +3197,9 @@ of interval from ~mp~. Similar to case 4.3, no further details explained.
                     AddUnits(
                         -1,
                         mpUnit,
-                        t > up.timeInterval.start
+                        t > up->timeInterval.start
                           ? t
-                          : up.timeInterval.start,
+                          : up->timeInterval.start,
                         ur.timeInterval.start,
                         !c,
                         !ur.timeInterval.lc);
@@ -3208,18 +3208,18 @@ of interval from ~mp~. Similar to case 4.3, no further details explained.
                     mrUnit,
                     mpUnit,
                     ur.timeInterval.start,
-                    up.timeInterval.end,
+                    up->timeInterval.end,
                     ur.timeInterval.lc,
-                    up.timeInterval.rc);
+                    up->timeInterval.rc);
 
-                t = up.timeInterval.end;
-                c = up.timeInterval.rc;
+                t = up->timeInterval.end;
+                c = up->timeInterval.rc;
 
                 if (++mpUnit < mp.GetNoComponents())
                     mp.Get(mpUnit, up);
             }
         } else if (ur.timeInterval.end.Compare(
-                       &up.timeInterval.start) <= 0) {
+                       &up->timeInterval.start) <= 0) {
 /*
 \textbf{Case 5:} Both intervals are disjunct, the interval from ~mr~ is
 left of the interval from ~mp~.
@@ -3238,8 +3238,8 @@ left of the interval from ~mp~.
                 !c,
                 ur.timeInterval.lc);
 
-            t = up.timeInterval.start;
-            c = !up.timeInterval.lc;
+            t = up->timeInterval.start;
+            c = !up->timeInterval.lc;
 
             if (++mrUnit < mr.GetNoComponents())
                 mr.Get(mrUnit, ur);
@@ -3259,9 +3259,9 @@ right of the interval from ~mp~.
                 -1,
                 mpUnit,
                 t,
-                up.timeInterval.end,
+                up->timeInterval.end,
                 !c,
-                up.timeInterval.lc);
+                up->timeInterval.lc);
 
             t = ur.timeInterval.start;
             c = !ur.timeInterval.lc;
@@ -3320,14 +3320,14 @@ There are still units to be processed in ~mp~. See the previous case for
 
 */
     if (mpUnit < mp.GetNoComponents()) {
-        if (t < up.timeInterval.end)
+        if (t < up->timeInterval.end)
             AddUnits(
                 -1,
                 mpUnit,
                 t,
-                up.timeInterval.end,
+                up->timeInterval.end,
                 !c,
-                up.timeInterval.rc);
+                up->timeInterval.rc);
         mpUnit++;
 
         while (mpUnit < mp.GetNoComponents()) {
@@ -3336,10 +3336,10 @@ There are still units to be processed in ~mp~. See the previous case for
             AddUnits(
                 -1,
                 mpUnit,
-                up.timeInterval.start,
-                up.timeInterval.end,
-                up.timeInterval.lc,
-                up.timeInterval.rc);
+                up->timeInterval.start,
+                up->timeInterval.end,
+                up->timeInterval.lc,
+                up->timeInterval.rc);
 
             mpUnit++;
         }
@@ -3366,12 +3366,12 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
 void RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
 ::AddUnits(
-    int urPos,
-    int upPos,
-    Instant& start,
-    Instant& end,
-    bool lc,
-    bool rc) {
+    const int urPos,
+    const int upPos,
+    const Instant& start,
+    const Instant& end,
+    const bool lc,
+    const bool rc) {
     if (MRA_DEBUG) {
         cerr << "RP::AddUnits() called" << endl;
         cerr << "RP::AddUnits() start="
@@ -3499,7 +3499,7 @@ assured that the point does not intersect with one of the segments
 during the interval.
 
 */
-    unsigned int Plumbline(UPoint& up, Interval<Instant>& iv);
+    unsigned int Plumbline(const UPoint& up, const Interval<Instant>& iv) const;
 
 /*
 Add new ~UPoint~ unit to ~res~ which reflects that during the
@@ -3518,7 +3518,7 @@ instance. ~pending~ is used to merge ~UPoint~ instances, if possible.
                                          double y0,
                                          double x1,
                                          double y1,
-                                         UPoint*& pending);
+                                         UPoint*& pending) const;
 
 /*
 Collect 'normal' intersections between ~UPoint~ unit ~rUp~ and moving segment
@@ -3527,14 +3527,14 @@ $ip1t$. The intersections are written to the vector ~vtsi~.
 
 */
     void RestrictedIntersectionFindNormal(
-        Interval<Instant>& iv,
-        UPoint& rUp,
+        const Interval<Instant>& iv,
+        const UPoint& rUp,
         MSegmentData& rDms,
         bool& ip1present,
         double& ip1x,
         double& ip1y,
         double& ip1t,
-        vector<TrapeziumSegmentIntersection>& vtsi);
+        vector<TrapeziumSegmentIntersection>& vtsi) const;
 
 /*
 Handle intersection line between ~UPoint~ unit ~rUp~ and a moving segment,
@@ -3547,8 +3547,8 @@ the vector ~vtsi~.
 
 */
     void RestrictedIntersectionFindInPlane(
-        Interval<Instant>& iv,
-        UPoint& rUp,
+        const Interval<Instant>& iv,
+        const UPoint& rUp,
         bool& ip1present,
         double& ip1x,
         double& ip1y,
@@ -3557,7 +3557,7 @@ the vector ~vtsi~.
         double& ip2x,
         double& ip2y,
         double& ip2t,
-        vector<TrapeziumSegmentIntersection>& vtsi);
+        vector<TrapeziumSegmentIntersection>& vtsi) const;
 
 /*
 Find all intersections between the ~UPoint~ unit ~up~ and the segments
@@ -3566,9 +3566,9 @@ to vector ~vtsi~.
 
 */
     void RestrictedIntersectionFind(
-        UPoint& up,
-        Interval<Instant>& iv,
-        vector<TrapeziumSegmentIntersection>& vtsi);
+        const UPoint& up,
+        const Interval<Instant>& iv,
+        vector<TrapeziumSegmentIntersection>& vtsi) const;
 
 /*
 For the intersections between ~up~ and this ~URegion~ instance's segments
@@ -3581,18 +3581,18 @@ where it is left. From each pair, construct a ~UPoint~ unit and add it to
 
 */
     bool RestrictedIntersectionProcess(
-        UPoint& up,
-        Interval<Instant>& iv,
+        const UPoint& up,
+        const Interval<Instant>& iv,
         vector<TrapeziumSegmentIntersection>& vtsi,
         MPoint& res,
-        UPoint*& pending);
+        UPoint*& pending) const;
 
 /*
 Handle intersections in ~vtsi~ with degenerated segments.
 
 */
     void RestrictedIntersectionFix(
-        vector<TrapeziumSegmentIntersection>& vtsi);
+        vector<TrapeziumSegmentIntersection>& vtsi) const;
 
 public:
     URegion() {
@@ -3606,7 +3606,7 @@ Constructor, which received pointer to storage for segments from
 ~MRegion~ instance.
 
 */
-    URegion(Interval<Instant>& interval,
+    URegion(const Interval<Instant>& interval,
             DBArray<MSegmentData>* segs,
             unsigned int pos) :
         SpatialTemporalUnit<CRegion, 3>(interval),
@@ -3624,7 +3624,7 @@ Constructor, which received pointer to storage for segments from
 Constructor, which allocates its own storage for segments..
 
 */
-    URegion(Interval<Instant>& interval) :
+    URegion(const Interval<Instant>& interval) :
         SpatialTemporalUnit<CRegion, 3>(interval),
         role(NORMAL),
         segments(new DBArray<MSegmentData>(0)),
@@ -3649,8 +3649,8 @@ instance and creates a constant unit for the specied interval from the
 provided ~CRegion~ instance.
 
 */
-    URegion(Interval<Instant>& interval,
-            CRegion& region,
+    URegion(const Interval<Instant>& interval,
+            const CRegion& region,
             DBArray<MSegmentData>* segs,
             unsigned int pos) :
         SpatialTemporalUnit<CRegion, 3>(interval),
@@ -3663,24 +3663,24 @@ provided ~CRegion~ instance.
             cerr << "URegion::URegion() #4 called" << endl;
 
         for (int i = 0; i < region.Size(); i += 2) {
-            CHalfSegment thisChs;
+            const CHalfSegment *thisChs;
             region.Get(i, thisChs);
 
-            CHalfSegment nextChs;
+            const CHalfSegment *nextChs;
             region.Get(i+1 == region.Size() ? 0 : i+1, nextChs);
 
-            MSegmentData dms(thisChs.GetAttr().faceno,
-                             thisChs.GetAttr().cycleno,
-                             thisChs.GetAttr().edgeno,
-                             thisChs.GetAttr().insideAbove,
-                             thisChs.GetLP().GetX(),
-                             thisChs.GetLP().GetY(),
-                             thisChs.GetRP().GetX(),
-                             thisChs.GetRP().GetY(),
-                             thisChs.GetLP().GetX(),
-                             thisChs.GetLP().GetY(),
-                             thisChs.GetRP().GetX(),
-                             thisChs.GetRP().GetY());
+            MSegmentData dms(thisChs->GetAttr().faceno,
+                             thisChs->GetAttr().cycleno,
+                             thisChs->GetAttr().edgeno,
+                             thisChs->GetAttr().insideAbove,
+                             thisChs->GetLP().GetX(),
+                             thisChs->GetLP().GetY(),
+                             thisChs->GetRP().GetX(),
+                             thisChs->GetRP().GetY(),
+                             thisChs->GetLP().GetX(),
+                             thisChs->GetLP().GetY(),
+                             thisChs->GetRP().GetX(),
+                             thisChs->GetRP().GetY());
 
             dms.degeneratedInitial = DGM_NONE;
             dms.degeneratedFinal = DGM_NONE;
@@ -3752,9 +3752,9 @@ the value ~insideAbove~.
 Get number of segments, get specific segment, write specific segment.
 
 */
-    int GetSegmentsNum(void);
-    void GetSegment(int pos, MSegmentData& dms);
-    void PutSegment(int pos, MSegmentData& dms);
+    int GetSegmentsNum(void) const;
+    void GetSegment(int pos, const MSegmentData*& dms) const;
+    void PutSegment(int pos, const MSegmentData& dms);
 
 /*
 Calculate ~MPoint~ instance ~res~ from the intersection ~up~ and this
@@ -3763,10 +3763,10 @@ instances full intervals. ~pending~ is used to try to merge multiple
 units.
 
 */
-    void RestrictedIntersection(UPoint& up,
-                                Interval<Instant>& iv,
+    void RestrictedIntersection(const UPoint& up,
+                                const Interval<Instant>& iv,
                                 MPoint& res,
-                                UPoint*& pending);
+                                UPoint*& pending) const;
 
 /*
 Destroy the ~URegion~ unit. If it has its own segments memory, free it.
@@ -3785,15 +3785,15 @@ Returns the ~CRegion~ value of this ~URegion~ unit at instant ~t~
 in ~result~.
 
 */
-    virtual void TemporalFunction(Instant& t, CRegion& result);
+    virtual void TemporalFunction(const Instant& t, CRegion& result) const;
 
 /*
 ~At()~, ~Passes()~ and ~BoundingBox()~ are not yet implemented. Stubs
 required for to make this class non-abstract.
 
 */
-    virtual bool At(CRegion& val, TemporalUnit<CRegion>& result);
-    virtual bool Passes(CRegion& val);
+    virtual bool At(const CRegion& val, TemporalUnit<CRegion>& result) const;
+    virtual bool Passes(const CRegion& val) const;
 
     virtual const Rectangle<3> BoundingBox() const;
 
@@ -3801,21 +3801,21 @@ required for to make this class non-abstract.
 Required for Algebra integration. Not implemented either.
 
 */
-    virtual URegion* Clone();
-    virtual void CopyFrom(StandardAttribute* right);
+    virtual URegion* Clone() const;
+    virtual void CopyFrom(const StandardAttribute* right);
 };
 
 /*
 1.1.1 Method stubs
 
 */
-URegion* URegion::Clone(void) {
+URegion* URegion::Clone(void) const {
     if (MRA_DEBUG) cerr << "URegion::Clone() called" << endl;
 
     assert(false);
 }
 
-void URegion::CopyFrom(StandardAttribute* right) {
+void URegion::CopyFrom(const StandardAttribute* right) {
     if (MRA_DEBUG) cerr << "URegion::CopyFrom() called" << endl;
 
     assert(false);
@@ -3831,7 +3831,7 @@ const Rectangle<3> URegion::BoundingBox() const {
 1.1.1 Method ~At()~
 
 */
-bool URegion::At(CRegion& val, TemporalUnit<CRegion>& result) {
+bool URegion::At(const CRegion& val, TemporalUnit<CRegion>& result) const {
     if (MRA_DEBUG) cerr << "URegion::At() called" << endl;
 
     assert(false);
@@ -3841,7 +3841,7 @@ bool URegion::At(CRegion& val, TemporalUnit<CRegion>& result) {
 1.1.1 Method ~Passes()~
 
 */
-bool URegion::Passes(CRegion& val) {
+bool URegion::Passes(const CRegion& val) const {
     if (MRA_DEBUG) cerr << "URegion::At() called" << endl;
 
     assert(false);
@@ -3854,14 +3854,14 @@ bool URegion::Passes(CRegion& val) {
 
 */
 void URegion::RestrictedIntersectionFindNormal(
-    Interval<Instant>& iv,
-    UPoint& rUp,
+    const Interval<Instant>& iv,
+    const UPoint& rUp,
     MSegmentData& rDms,
     bool& ip1present,
     double& ip1x,
     double& ip1y,
     double& ip1t,
-    vector<TrapeziumSegmentIntersection>& vtsi) {
+    vector<TrapeziumSegmentIntersection>& vtsi) const {
 
     if (MRA_DEBUG)
         cerr << "URegion::RIFN() called" << endl;
@@ -4145,8 +4145,8 @@ See handling of previous case.
 
 */
 void URegion::RestrictedIntersectionFindInPlane(
-    Interval<Instant>& iv,
-    UPoint& rUp,
+    const Interval<Instant>& iv,
+    const UPoint& rUp,
     bool& ip1present,
     double& ip1x,
     double& ip1y,
@@ -4155,7 +4155,7 @@ void URegion::RestrictedIntersectionFindInPlane(
     double& ip2x,
     double& ip2y,
     double& ip2t,
-    vector<TrapeziumSegmentIntersection>& vtsi) {
+    vector<TrapeziumSegmentIntersection>& vtsi) const {
 
     if (MRA_DEBUG)
         cerr << "URegion::RIFIP() called" << endl;
@@ -4372,7 +4372,8 @@ of the segments.
 1.1.1 Method ~Plumbline()~
 
 */
-unsigned int URegion::Plumbline(UPoint& up, Interval<Instant>& iv) {
+unsigned int 
+URegion::Plumbline(const UPoint& up, const Interval<Instant>& iv) const{
     if (MRA_DEBUG) cerr << "URegion::Plumbline() called" << endl;
 
 /*
@@ -4451,7 +4452,7 @@ Go through all segments...
         if (MRA_DEBUG)
             cerr << "URegion::Plumbline() segment #" << i << endl;
 
-        MSegmentData dms;
+        const MSegmentData *dms;
         GetSegment(i, dms);
 
 /*
@@ -4459,17 +4460,17 @@ Calculate position of segment at ~t~.
 
 */
         double p1x =
-            dms.initialStartX
-            +(dms.finalStartX-dms.initialStartX)*f;
+            dms->initialStartX
+            +(dms->finalStartX-dms->initialStartX)*f;
         double p1y =
-            dms.initialStartY
-            +(dms.finalStartY-dms.initialStartY)*f;
+            dms->initialStartY
+            +(dms->finalStartY-dms->initialStartY)*f;
         double p2x =
-            dms.initialEndX
-            +(dms.finalEndX-dms.initialEndX)*f;
+            dms->initialEndX
+            +(dms->finalEndX-dms->initialEndX)*f;
         double p2y =
-            dms.initialEndY
-            +(dms.finalEndY-dms.initialEndY)*f;
+            dms->initialEndY
+            +(dms->finalEndY-dms->initialEndY)*f;
 
         if (MRA_DEBUG)
             cerr << "URegion::Plumbline() p1x=" << p1x
@@ -4585,9 +4586,9 @@ is above ~(x, y)~.
 
 */
 void URegion::RestrictedIntersectionFind(
-    UPoint& up,
-    Interval<Instant>& iv,
-    vector<TrapeziumSegmentIntersection>& vtsi) {
+    const UPoint& up,
+    const Interval<Instant>& iv,
+    vector<TrapeziumSegmentIntersection>& vtsi) const {
 
 /*
 Straightforward. Even being slightly cryptic, the debug output provides
@@ -4601,7 +4602,7 @@ sufficient context to understand this method.
     restrictUPointToInterval(up, iv, rUp);
 
     for (unsigned int i = 0; i < segmentsNum; i++) {
-        MSegmentData dms;
+        const MSegmentData *dms;
         GetSegment(i, dms);
 
         if (MRA_DEBUG) {
@@ -4614,15 +4615,15 @@ sufficient context to understand this method.
                  << " "
                  << timeInterval.lc << " " << timeInterval.rc
                  << "] ("
-                 << dms.initialStartX << " " << dms.initialStartY
+                 << dms->initialStartX << " " << dms->initialStartY
                  << " "
-                 << dms.initialEndX << " " << dms.initialEndY
+                 << dms->initialEndX << " " << dms->initialEndY
                  << ")-("
-                 << dms.finalStartX << " " << dms.finalStartY
+                 << dms->finalStartX << " " << dms->finalStartY
                  << " "
-                 << dms.finalEndX << " " << dms.finalEndY
+                 << dms->finalEndX << " " << dms->finalEndY
                  << ") ia="
-                 << dms.insideAbove
+                 << dms->insideAbove
                  << endl;
             cerr << "URegion::RIF() point is ["
                  << up.timeInterval.start.ToDouble()
@@ -4649,7 +4650,7 @@ sufficient context to understand this method.
         }
 
         MSegmentData rDms;
-        dms.restrictToInterval(timeInterval, iv, rDms);
+        dms->restrictToInterval(timeInterval, iv, rDms);
 
         if (MRA_DEBUG) {
             cerr << "URegion::RIF() segment restricted to iv is ("
@@ -4741,7 +4742,7 @@ void URegion::RestrictedIntersectionAddUPoint(MPoint& res,
                                               double y0,
                                               double x1,
                                               double y1,
-                                              UPoint*& pending) {
+                                              UPoint*& pending) const {
     if (MRA_DEBUG) {
         cerr << "URegion::RIAUP() called" << endl;
         cerr << "URegion::RIAUP() starttime=" << starttime
@@ -4908,11 +4909,11 @@ reduce the number of units produced - but is this really a requirement?)
 
 */
 bool URegion::RestrictedIntersectionProcess(
-    UPoint& up,
-    Interval<Instant>& iv,
+    const UPoint& up,
+    const Interval<Instant>& iv,
     vector<TrapeziumSegmentIntersection>& vtsi,
     MPoint& res,
-    UPoint*& pending) {
+    UPoint*& pending) const {
 
 /*
 Check all intersections with the same coordinates. Bring them in
@@ -5061,7 +5062,7 @@ consider the $TSI\_LEAVE$ intersection first.
 
 */
 void URegion::RestrictedIntersectionFix(
-    vector<TrapeziumSegmentIntersection>& vtsi) {
+    vector<TrapeziumSegmentIntersection>& vtsi) const {
 
 /*
 Examines intersections with same coordinate, counts $TSI\_LEAVE$ and
@@ -5165,10 +5166,10 @@ the interval of the two units (this is not checked and must be assured
 before this method is called!).
 
 */
-void URegion::RestrictedIntersection(UPoint& up,
-                                     Interval<Instant>& iv,
+void URegion::RestrictedIntersection(const UPoint& up,
+                                     const Interval<Instant>& iv,
                                      MPoint& res,
-                                     UPoint*& pending) {
+                                     UPoint*& pending) const {
     if (MRA_DEBUG)
         cerr << "URegion::RI() called" << endl;
 
@@ -5210,7 +5211,7 @@ void URegion::RestrictedIntersection(UPoint& up,
 1.1.1 Method ~TemporalFunction()~
 
 */
-void URegion::TemporalFunction(Instant& t, CRegion& res) {
+void URegion::TemporalFunction(const Instant& t, CRegion& res) const {
     if (MRA_DEBUG)
         cerr << "URegion::TemporalFunction() called" << endl;
 
@@ -5249,21 +5250,21 @@ are not border of any region, and create region.
                      << ")"
                      << endl;
 
-            MSegmentData dms;
+            const MSegmentData *dms;
             segments->Get(segmentsStartPos+i, dms);
 
             double xs =
-                dms.initialStartX
-                +(dms.finalStartX-dms.initialStartX)*f;
+                dms->initialStartX
+                +(dms->finalStartX-dms->initialStartX)*f;
             double ys =
-                dms.initialStartY
-                +(dms.finalStartY-dms.initialStartY)*f;
+                dms->initialStartY
+                +(dms->finalStartY-dms->initialStartY)*f;
             double xe =
-                dms.initialEndX
-                +(dms.finalEndX-dms.initialEndX)*f;
+                dms->initialEndX
+                +(dms->finalEndX-dms->initialEndX)*f;
             double ye =
-                dms.initialEndY
-                +(dms.finalEndY-dms.initialEndY)*f;
+                dms->initialEndY
+                +(dms->finalEndY-dms->initialEndY)*f;
 
             if (MRA_DEBUG)
                 cerr << "URegion::TemporalFunction()   value is "
@@ -5278,13 +5279,13 @@ are not border of any region, and create region.
                 continue;
             }
 
-            assert(dms.degeneratedInitial != DGM_UNKNOWN);
-            assert(dms.degeneratedFinal != DGM_UNKNOWN);
+            assert(dms->degeneratedInitial != DGM_UNKNOWN);
+            assert(dms->degeneratedFinal != DGM_UNKNOWN);
 
             if ((initialInstant
-                 && dms.degeneratedInitial == DGM_IGNORE)
+                 && dms->degeneratedInitial == DGM_IGNORE)
                 || (finalInstant
-                    && dms.degeneratedFinal == DGM_IGNORE)) {
+                    && dms->degeneratedFinal == DGM_IGNORE)) {
                 if (MRA_DEBUG)
                     cerr << "URegion::TemporalFunction()   "
                          << "ignored degenerated"
@@ -5299,19 +5300,19 @@ are not border of any region, and create region.
             chs.attr.partnerno = partnerno++;
 
             if (initialInstant
-                 && dms.degeneratedInitial == DGM_INSIDEABOVE)
+                 && dms->degeneratedInitial == DGM_INSIDEABOVE)
                 chs.attr.insideAbove = true;
             else if (initialInstant
-                 && dms.degeneratedInitial == DGM_NOTINSIDEABOVE)
+                 && dms->degeneratedInitial == DGM_NOTINSIDEABOVE)
                 chs.attr.insideAbove = false;
             else if (finalInstant
-                 && dms.degeneratedFinal == DGM_INSIDEABOVE)
+                 && dms->degeneratedFinal == DGM_INSIDEABOVE)
                 chs.attr.insideAbove = true;
             else if (finalInstant
-                 && dms.degeneratedFinal == DGM_NOTINSIDEABOVE)
+                 && dms->degeneratedFinal == DGM_NOTINSIDEABOVE)
                 chs.attr.insideAbove = false;
             else
-                chs.attr.insideAbove = dms.insideAbove;
+                chs.attr.insideAbove = dms->insideAbove;
 
             *cr += chs;
 
@@ -5327,31 +5328,31 @@ are not border of any region, and create region.
 
     if (MRA_DEBUG)
         for (int i = 0; i < cr->Size(); i++) {
-            CHalfSegment chs;
+            const CHalfSegment *chs;
             cr->Get(i, chs);
 
             cerr << "URegion::TemporalFunction() segment #"
                  << i
                  << " lp=("
-                 << chs.GetLP().GetX()
+                 << chs->GetLP().GetX()
                  << ", "
-                 << chs.GetLP().GetY()
+                 << chs->GetLP().GetY()
                  << ") rp=("
-                 << chs.GetRP().GetX()
+                 << chs->GetRP().GetX()
                  << ", "
-                 << chs.GetRP().GetY()
+                 << chs->GetRP().GetY()
                  << ") ldp="
-                 << chs.GetLDP()
+                 << chs->GetLDP()
                  << " attr="
-                 << chs.attr.faceno
+                 << chs->attr.faceno
                  << " "
-                 << chs.attr.cycleno
+                 << chs->attr.cycleno
                  << " "
-                 << chs.attr.edgeno
+                 << chs->attr.edgeno
                  << " "
-                 << chs.attr.partnerno
+                 << chs->attr.partnerno
                  << " "
-                 << chs.attr.insideAbove
+                 << chs->attr.insideAbove
                  << endl;
         }
 
@@ -5359,31 +5360,31 @@ are not border of any region, and create region.
 
     if (MRA_DEBUG)
         for (int i = 0; i < cr->Size(); i++) {
-            CHalfSegment chs;
+            const CHalfSegment *chs;
             cr->Get(i, chs);
 
             cerr << "URegion::TemporalFunction() segment #"
                  << i
                  << " lp=("
-                 << chs.GetLP().GetX()
+                 << chs->GetLP().GetX()
                  << ", "
-                 << chs.GetLP().GetY()
+                 << chs->GetLP().GetY()
                  << ") rp=("
-                 << chs.GetRP().GetX()
+                 << chs->GetRP().GetX()
                  << ", "
-                 << chs.GetRP().GetY()
+                 << chs->GetRP().GetY()
                  << ") ldp="
-                 << chs.GetLDP()
+                 << chs->GetLDP()
                  << " attr="
-                 << chs.attr.faceno
+                 << chs->attr.faceno
                  << " "
-                 << chs.attr.cycleno
+                 << chs->attr.cycleno
                  << " "
-                 << chs.attr.edgeno
+                 << chs->attr.edgeno
                  << " "
-                 << chs.attr.partnerno
+                 << chs->attr.partnerno
                  << " "
-                 << chs.attr.insideAbove
+                 << chs->attr.insideAbove
                  << endl;
         }
 
@@ -5517,9 +5518,10 @@ For each of the already existing segments:
             if (MRA_DEBUG)
                 cerr << "URegion::AddSegment() i=" << i << endl;
 
-            MSegmentData existingDms;
+            const MSegmentData *auxExistingDms;
 
-            segments->Get(segmentsStartPos+i, existingDms);
+            segments->Get(segmentsStartPos+i, auxExistingDms);
+            MSegmentData existingDms( *auxExistingDms );
 
 /*
 Check whether the current segment degenerates with this segment in the
@@ -5759,8 +5761,9 @@ void URegion::SetSegmentInsideAbove(int pos, bool insideAbove) {
     if (MRA_DEBUG)
         cerr << "URegion::GetSegmentLeftOrAbove() called" << endl;
 
-    MSegmentData dms;
-    segments->Get(segmentsStartPos+pos, dms);
+    const MSegmentData *auxDms;
+    segments->Get(segmentsStartPos+pos, auxDms);
+    MSegmentData dms( *auxDms );
     dms.insideAbove = insideAbove;
     segments->Put(segmentsStartPos+pos, dms);
 }
@@ -5769,7 +5772,7 @@ void URegion::SetSegmentInsideAbove(int pos, bool insideAbove) {
 1.1.1.1 Method ~GetSegmentsNum()~
 
 */
-int URegion::GetSegmentsNum(void) {
+int URegion::GetSegmentsNum(void) const {
     if (MRA_DEBUG)
         cerr << "URegion::GetSegmentsNum() called, num="
              << segmentsNum
@@ -5784,7 +5787,7 @@ int URegion::GetSegmentsNum(void) {
 1.1.1.1 Method ~GetSegment()~
 
 */
-void URegion::GetSegment(int pos, MSegmentData& dms) {
+void URegion::GetSegment(int pos, const MSegmentData*& dms) const {
     if (MRA_DEBUG)
         cerr << "URegion::GetSegment() called, pos=" << pos
              << endl;
@@ -5798,7 +5801,7 @@ void URegion::GetSegment(int pos, MSegmentData& dms) {
 1.1.1.1 Method ~PutSegment()~
 
 */
-void URegion::PutSegment(int pos, MSegmentData& dms) {
+void URegion::PutSegment(int pos, const MSegmentData& dms) {
     if (MRA_DEBUG)
         cerr << "URegion::PutSegment() called, pos=" << pos
              << endl;
@@ -5904,31 +5907,31 @@ these changes.
         if (MRA_DEBUG)
             cerr << "OutURegion() segment #" << i << endl;
 
-        MSegmentData dms;
+        const MSegmentData *dms;
         ur->GetSegment(i, dms);
 
         if (MRA_DEBUG)
             cerr << "OutURegion() point is "
-                 << dms.GetFaceNo()
+                 << dms->GetFaceNo()
                  << " "
-                 << dms.GetCycleNo()
+                 << dms->GetCycleNo()
                  << " ("
-                 << dms.GetInitialStartX()
+                 << dms->GetInitialStartX()
                  << ", "
-                 << dms.GetInitialStartY()
+                 << dms->GetInitialStartY()
                  << ", "
-                 << dms.GetFinalStartX()
+                 << dms->GetFinalStartX()
                  << ", "
-                 << dms.GetFinalStartY()
+                 << dms->GetFinalStartY()
                  << ")"
                  << endl;
 
         ListExpr p =
             nl->FourElemList(
-                nl->RealAtom(dms.GetInitialStartX()),
-                nl->RealAtom(dms.GetInitialStartY()),
-                nl->RealAtom(dms.GetFinalStartX()),
-                nl->RealAtom(dms.GetFinalStartY()));
+                nl->RealAtom(dms->GetInitialStartX()),
+                nl->RealAtom(dms->GetInitialStartY()),
+                nl->RealAtom(dms->GetFinalStartX()),
+                nl->RealAtom(dms->GetFinalStartY()));
 
         if (cycle == nl->TheEmptyList()) {
             if (MRA_DEBUG) cerr << "OutURegion() new cycle" << endl;
@@ -5940,12 +5943,12 @@ these changes.
             cycleLastElem = nl->Append(cycleLastElem, p);
         }
 
-        MSegmentData nextDms;
+        const MSegmentData *nextDms;
         if (i < num-1) ur->GetSegment(i+1, nextDms);
 
         if (i == num-1
-            || dms.GetCycleNo() != nextDms.GetCycleNo()
-            || dms.GetFaceNo() != nextDms.GetFaceNo()) {
+            || dms->GetCycleNo() != nextDms->GetCycleNo()
+            || dms->GetFaceNo() != nextDms->GetFaceNo()) {
             if (MRA_DEBUG)
                 cerr << "OutURegion() end of cycle" << endl;
 
@@ -5961,7 +5964,7 @@ these changes.
             }
 
             if (i == num-1
-                || dms.GetFaceNo() != nextDms.GetFaceNo()) {
+                || dms->GetFaceNo() != nextDms->GetFaceNo()) {
                 if (MRA_DEBUG)
                     cerr << "OutURegion() end of face" << endl;
                 if (faces == nl->TheEmptyList()) {
@@ -6205,7 +6208,7 @@ any.
             int h = cr.Size()-(rDir.Size()*2);
             int i = initialSegmentsNum;
             while (h < cr.Size()) {
-                CHalfSegment chsInsideAbove;
+                const CHalfSegment *chsInsideAbove;
                 bool insideAbove;
 
                 cr.Get(h, chsInsideAbove);
@@ -6214,10 +6217,10 @@ any.
                     cerr << "InURegion() i="
                          << i
                          << " insideAbove="
-                         << chsInsideAbove.attr.insideAbove
+                         << chsInsideAbove->attr.insideAbove
                          << endl;
 
-                if (direction == chsInsideAbove.attr.insideAbove)
+                if (direction == chsInsideAbove->attr.insideAbove)
                     insideAbove = false;
                 else
                     insideAbove = true;
@@ -6251,29 +6254,28 @@ any.
 
     if (MRA_DEBUG)
         for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
-            MSegmentData dms;
-
+            const MSegmentData *dms;
             uregion->GetSegment(i, dms);
 
             cerr << "InURegion() segment #"
                  << i
-                 << ": " << dms.faceno
-                 << " " << dms.cycleno
-                 << " " << dms.segmentno
+                 << ": " << dms->faceno
+                 << " " << dms->cycleno
+                 << " " << dms->segmentno
                  << " i=("
-                 << dms.initialStartX << ", " << dms.initialStartY
+                 << dms->initialStartX << ", " << dms->initialStartY
                  << ", "
-                 << dms.initialEndX << ", " << dms.initialEndY
+                 << dms->initialEndX << ", " << dms->initialEndY
                  << ") f=("
-                 << dms.finalStartX << ", " << dms.finalStartY
+                 << dms->finalStartX << ", " << dms->finalStartY
                  << ", "
-                 << dms.finalEndX << ", " << dms.finalEndY
+                 << dms->finalEndX << ", " << dms->finalEndY
                  << ") flags="
-                 << dms.insideAbove
-                 << " " << dms.pointInitial
-                 << " " << dms.pointFinal
-                 << " " << dms.degeneratedInitialNext
-                 << " " << dms.degeneratedFinalNext
+                 << dms->insideAbove
+                 << " " << dms->pointInitial
+                 << " " << dms->pointFinal
+                 << " " << dms->degeneratedInitialNext
+                 << " " << dms->degeneratedFinalNext
                  << endl;
         }
 
@@ -6288,8 +6290,9 @@ and inside below segments, we can ignore the entire list.
 
 */
     for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
-        MSegmentData dms;
-        uregion->GetSegment(i, dms);
+        const MSegmentData *auxDms;
+        uregion->GetSegment(i, auxDms);
+        MSegmentData dms( *auxDms );
 
         if (!dms.pointInitial && dms.degeneratedInitialNext < 0)
             nonTrivialInitial = true;
@@ -6298,13 +6301,15 @@ and inside below segments, we can ignore the entire list.
 
         if (dms.degeneratedInitial == DGM_UNKNOWN) {
             if (dms.degeneratedInitialNext >= 0) {
+                const MSegmentData *auxDegenDms;
                 MSegmentData degenDms;
                 unsigned int numInsideAbove = 0;
                 unsigned int numNotInsideAbove = 0;
                 for (int j = i+1;
                      j != 0;
                      j = degenDms.degeneratedInitialNext) {
-                    uregion->GetSegment(j-1, degenDms);
+                    uregion->GetSegment(j-1, auxDegenDms);
+                    degenDms = *auxDegenDms;
                     if (MRA_DEBUG)
                         cerr << "InURegion() degen-magic-i "
                              << i
@@ -6358,13 +6363,15 @@ and inside below segments, we can ignore the entire list.
 
         if (dms.degeneratedFinal == DGM_UNKNOWN) {
             if (dms.degeneratedFinalNext >= 0) {
+                const MSegmentData *auxDegenDms;
                 MSegmentData degenDms;
                 unsigned int numInsideAbove = 0;
                 unsigned int numNotInsideAbove = 0;
                 for (int j = i+1;
                      j != 0;
                      j = degenDms.degeneratedFinalNext) {
-                    uregion->GetSegment(j-1, degenDms);
+                    uregion->GetSegment(j-1, auxDegenDms);
+                    degenDms = *auxDegenDms;
                     if (MRA_DEBUG)
                         cerr << "InURegion() degen-magic-f "
                              << i
@@ -6441,44 +6448,44 @@ and inside below segments, we can ignore the entire list.
 
    if (MRA_DEBUG)
         for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
-            MSegmentData dms;
+            const MSegmentData *dms;
 
             uregion->GetSegment(i, dms);
 
             cerr << "InURegion() resulting segment #"
                  << i
                  << ": "
-                 << dms.faceno
+                 << dms->faceno
                  << " "
-                 << dms.cycleno
+                 << dms->cycleno
                  << " "
-                 << dms.segmentno
+                 << dms->segmentno
                  << " i=("
-                 << dms.initialStartX
+                 << dms->initialStartX
                  << ", "
-                 << dms.initialStartY
+                 << dms->initialStartY
                  << ", "
-                 << dms.initialEndX
+                 << dms->initialEndX
                  << ", "
-                 << dms.initialEndY
+                 << dms->initialEndY
                  << ") f=("
-                 << dms.finalStartX
+                 << dms->finalStartX
                  << ", "
-                 << dms.finalStartY
+                 << dms->finalStartY
                  << ", "
-                 << dms.finalEndX
+                 << dms->finalEndX
                  << ", "
-                 << dms.finalEndY
+                 << dms->finalEndY
                  << ") flags="
-                 << dms.insideAbove
+                 << dms->insideAbove
                  << " "
-                 << dms.pointInitial
+                 << dms->pointInitial
                  << " "
-                 << dms.pointFinal
+                 << dms->pointFinal
                  << " "
-                 << dms.degeneratedInitialNext
+                 << dms->degeneratedInitialNext
                  << " "
-                 << dms.degeneratedFinalNext
+                 << dms->degeneratedFinalNext
                  << endl;
         }
 
@@ -6674,7 +6681,7 @@ set each unit to the constant value of ~r~.
         r.logicsort();
 
         for (int i = 0; i < mp.GetNoComponents(); i++) {
-            UPoint up;
+            const UPoint *up;
 
             mp.Get(i, up);
 
@@ -6682,22 +6689,22 @@ set each unit to the constant value of ~r~.
                 cerr << "MRegion::MRegion(MPoint, CRegion) i="
                      << i
                      << " interval=["
-                     << up.timeInterval.start.ToString()
+                     << up->timeInterval.start.ToString()
                      << " ("
-                     << up.timeInterval.start.ToDouble()
+                     << up->timeInterval.start.ToDouble()
                      << ") "
-                     << up.timeInterval.end.ToString()
+                     << up->timeInterval.end.ToString()
                      << "("
-                     << up.timeInterval.end.ToDouble()
+                     << up->timeInterval.end.ToDouble()
                      << ") "
-                     << up.timeInterval.lc
+                     << up->timeInterval.lc
                      << " "
-                     << up.timeInterval.rc
+                     << up->timeInterval.rc
                      << "]"
                      << endl;
 
             URegion
-                ur(up.timeInterval,
+                ur(up->timeInterval,
                    r,
                    &msegmentdata,
                    msegmentdata.Size());
@@ -6763,7 +6770,9 @@ Get ~URegion~ unit ~i~ from this ~MRegion~ instance and return it in ~ur~.
         if (MRA_DEBUG)
             cerr << "MRegion::Get() called i=" << i << endl;
 
-        Mapping<URegion, CRegion>::Get(i, ur);
+        const URegion *auxUr;
+        Mapping<URegion, CRegion>::Get(i, auxUr);
+        ur = *auxUr;
         ur.SetMSegmentData(&msegmentdata);
     }
 
@@ -6780,10 +6789,10 @@ For unit testing only.
 
         if (pos < 0 || pos >= msegmentdata.Size()) return -1;
 
-        MSegmentData dms;
+        const MSegmentData *dms;
         msegmentdata.Get(pos, dms);
 
-        return dms.GetInsideAbove() ? 1 : 0;
+        return dms->GetInsideAbove() ? 1 : 0;
     }
 };
 
@@ -6864,7 +6873,7 @@ and point unit, both restricted to this interval, intersect.
         if (urPos == -1 || upPos == -1) continue;
 
         URegion ur;
-        UPoint up;
+        const UPoint *up;
 
         Get(urPos, ur);
         mp.Get(upPos, up);
@@ -6873,7 +6882,7 @@ and point unit, both restricted to this interval, intersect.
             cerr << "MRegion::IntersectionRP() both elements present"
                  << endl;
 
-        ur.RestrictedIntersection(up, *iv, res, pending);
+        ur.RestrictedIntersection(*up, *iv, res, pending);
     }
 
     if (pending) {
@@ -7057,7 +7066,7 @@ match to the original units in ~mp~.
                 cerr << "MRegion::Inside()   mpPos=" << mpPos
                      << endl;
 
-            UPoint up;
+            const UPoint *up;
             resMp.Get(mpPos, up);
 
             if (MRA_DEBUG)
@@ -7070,54 +7079,54 @@ match to the original units in ~mp~.
                      << " "
                      << iv->rc
                      << "] up iv=["
-                     << up.timeInterval.start.ToDouble()
+                     << up->timeInterval.start.ToDouble()
                      << " "
-                     << up.timeInterval.end.ToDouble()
+                     << up->timeInterval.end.ToDouble()
                      << " "
-                     << up.timeInterval.lc
+                     << up->timeInterval.lc
                      << " "
-                     << up.timeInterval.rc
+                     << up->timeInterval.rc
                      << "] prev="
                      << prev
                      << endl;
 
             if ((lower(iv->start.ToDouble(),
-                       up.timeInterval.start.ToDouble())
+                       up->timeInterval.start.ToDouble())
                  || (nearlyEqual(iv->start.ToDouble(),
-                                 up.timeInterval.start.ToDouble())
-                     && (iv->lc || !up.timeInterval.lc)))
-                && (lower(up.timeInterval.end.ToDouble(),
+                                 up->timeInterval.start.ToDouble())
+                     && (iv->lc || !up->timeInterval.lc)))
+                && (lower(up->timeInterval.end.ToDouble(),
                           iv->end.ToDouble())
-                    || (nearlyEqual(up.timeInterval.end.ToDouble(),
+                    || (nearlyEqual(up->timeInterval.end.ToDouble(),
                                     iv->end.ToDouble())
-                        && (!up.timeInterval.rc || iv->rc)))) {
+                        && (!up->timeInterval.rc || iv->rc)))) {
 
                 if (MRA_DEBUG)
                     cerr << "MRegion::Inside()     inside" << endl;
 
-                if (lower(prev, up.timeInterval.start.ToDouble())
+                if (lower(prev, up->timeInterval.start.ToDouble())
                     || (nearlyEqual(prev,
-                                    up.timeInterval.start.ToDouble())
+                                    up->timeInterval.start.ToDouble())
                         && !prev_c
-                        && !up.timeInterval.lc)) {
+                        && !up->timeInterval.lc)) {
                     if (MRA_DEBUG)
                         cerr << "MRegion::Inside()     "
                              << "adding f for interval ["
                              << prev
                              << " "
-                             << up.timeInterval.start.ToDouble()
+                             << up->timeInterval.start.ToDouble()
                              << " "
                              << !prev_c
                              << " "
-                             << !up.timeInterval.lc
+                             << !up->timeInterval.lc
                              << "]"
                              << endl;
 
                     InsideAddUBool(res,
                                    prev,
-                                   up.timeInterval.start.ToDouble(),
+                                   up->timeInterval.start.ToDouble(),
                                    !prev_c,
-                                   !up.timeInterval.lc,
+                                   !up->timeInterval.lc,
                                    false,
                                    prev,
                                    prev_c,
@@ -7127,21 +7136,21 @@ match to the original units in ~mp~.
                 if (MRA_DEBUG)
                     cerr << "MRegion::Inside()     "
                          << "adding t for interval ["
-                         << up.timeInterval.start.ToDouble()
+                         << up->timeInterval.start.ToDouble()
                          << " "
-                         << up.timeInterval.end.ToDouble()
+                         << up->timeInterval.end.ToDouble()
                          << " "
-                         << up.timeInterval.lc
+                         << up->timeInterval.lc
                          << " "
-                         << up.timeInterval.rc
+                         << up->timeInterval.rc
                          << "]"
                          << endl;
 
                 InsideAddUBool(res,
-                               up.timeInterval.start.ToDouble(),
-                               up.timeInterval.end.ToDouble(),
-                               up.timeInterval.lc,
-                               up.timeInterval.rc,
+                               up->timeInterval.start.ToDouble(),
+                               up->timeInterval.end.ToDouble(),
+                               up->timeInterval.lc,
+                               up->timeInterval.rc,
                                true,
                                prev,
                                prev_c,
@@ -7457,7 +7466,6 @@ static bool SaveMRegion(SmiRecord& rec,
 
     MRegion* mr = (MRegion*) w.addr;
     TupleElement::Save(rec, offset, typeInfo, mr);
-    
     return true;
 }
 

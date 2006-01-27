@@ -81,6 +81,7 @@ using namespace std;
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
+#include "AlgebraManager.h"
 #include "StandardTypes.h"
 #include <iostream>
 #include <string>
@@ -88,6 +89,7 @@ using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
+extern AlgebraManager *am;
 
 /*
 
@@ -145,14 +147,14 @@ class Date: public StandardAttribute
   Date(bool Defined, int Day, int Month, int Year);
   Date();
   ~Date();
-  int      GetDay();
-  int      GetMonth();
-  int      GetYear();
+  int      GetDay() const;
+  int      GetMonth() const;
+  int      GetYear() const;
   void     SetDay( int Day);
   void     SetMonth( int Yonth);
   void     SetYear( int Year);
   void     Set(bool Defined,  int Day, int Month, int Year);
-  void     successor(Date *d, Date *s);
+  void     successor(const Date *d, Date *s) const;
 /*************************************************************************
 
   The following 8 virtual functions: IsDefined(), SetDefined(), HashValue(),
@@ -163,12 +165,12 @@ class Date: public StandardAttribute
 
   bool     IsDefined() const;
   void     SetDefined(bool Defined);
-  size_t   HashValue();
-  void           CopyFrom(StandardAttribute* right);
-  int      Compare(Attribute * arg);
-  bool     Adjacent(Attribute * arg);
-  Date*    Clone();
-  ostream& Print( ostream &os );
+  size_t   HashValue() const;
+  void     CopyFrom(const StandardAttribute* right);
+  int      Compare(const Attribute * arg) const;
+  bool     Adjacent(const Attribute * arg) const;
+  Date*    Clone() const;
+  ostream& Print( ostream &os ) const;
 
  private:
   int day;
@@ -190,11 +192,11 @@ Date::Date()  {}
 
 Date::~Date() {}
 
-int Date::GetDay() {return day;}
+int Date::GetDay() const {return day;}
 
-int Date::GetMonth() {return month;}
+int Date::GetMonth() const {return month;}
 
-int Date::GetYear() {return year;}
+int Date::GetYear() const {return year;}
 
 void Date::SetDay(int Day) {day = Day;}
 
@@ -221,7 +223,7 @@ bool Date::IsDefined() const {return (defined); }
 
 void Date::SetDefined(bool Defined) {defined = Defined; }
 
-size_t Date::HashValue()
+size_t Date::HashValue() const
 {
   if(!defined)  return (0);
   unsigned long h;
@@ -229,9 +231,9 @@ size_t Date::HashValue()
   return size_t(h);
 }
 
-void Date::CopyFrom(StandardAttribute* right)
+void Date::CopyFrom(const StandardAttribute* right)
 {
-  Date * d = (Date*)right;
+  const Date * d = (const Date*)right;
   defined = d->defined;
   day = d->day;
   month = d->month;
@@ -244,10 +246,10 @@ The function Compare() defines a total order on the data type ~date~.
 
 */
 
-int Date::Compare(Attribute * arg)
+int Date::Compare(const Attribute * arg) const
 {
  int res=0;
- Date * d = (Date* )(arg);
+ const Date * d = (const Date* )(arg);
  if ( !d ) return (-2);
 
  if (!IsDefined() && !(arg->IsDefined()))  res=0;
@@ -268,7 +270,7 @@ int Date::Compare(Attribute * arg)
   return (res);
 }
 
-void Date::successor(Date *d, Date *s)
+void Date::successor(const Date *d, Date *s) const
 {
     assert(isdate(d->GetDay(), d->GetMonth(), d->GetYear()));
 
@@ -312,9 +314,9 @@ void Date::successor(Date *d, Date *s)
 //    cout<<"NewDate"<<Year<<":"<<Month<<":"<<Day<<endl;
 }
 
-bool Date::Adjacent(Attribute *arg)
+bool Date::Adjacent(const Attribute *arg) const
 {
-  Date *d = (Date *)arg;
+  const Date *d = (const Date *)arg;
   if( this->Compare( d ) == 0 ) return 1;  //both undefined or they are equal
 
   if (!IsDefined() || !(arg->IsDefined())) 
@@ -342,9 +344,12 @@ bool Date::Adjacent(Attribute *arg)
   }
 }
 
-Date*  Date::Clone() {return (new Date( *this));}
+Date* Date::Clone() const 
+{
+  return (new Date( *this));
+}
 
-ostream& Date::Print(ostream &os)
+ostream& Date::Print(ostream &os) const
 {
   return (os << day << "." << month << "." << year);
 }
@@ -989,10 +994,13 @@ dynamically at runtime.
 
 extern "C"
 Algebra*
-InitializeDateAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
+InitializeDateAlgebra( NestedList* nlRef, 
+                       QueryProcessor* qpRef,
+                       AlgebraManager* amRef )
 {
   nl = nlRef;
   qp = qpRef;
+  am = amRef;
   return (&dateAlgebra);
 }
 

@@ -2629,8 +2629,6 @@ abstraction. In this case, it is not evaluable, but we may want to store
 the function in a database object. 
 
 */
-  flobCache->Clear();
-
   ListExpr list = nl->TheEmptyList();
 
   list = AnnotateX( expr, defined );
@@ -2721,7 +2719,10 @@ Deletes an operator tree object.
   argsPrinted.clear();
 
   if ( tree != 0 )
-  { 
+  {
+    if( tree->isRoot )
+      flobCache->Clear();
+   
     switch (tree->nodetype)
     {
       case Operator:

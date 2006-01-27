@@ -41,9 +41,11 @@ using namespace std;
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
+#include "AlgebraManager.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
+extern AlgebraManager *am;
 
 namespace FunctionAlgebra{
 
@@ -335,10 +337,13 @@ dynamically at runtime.
 
 extern "C"
 Algebra*
-InitializeFunctionAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
+InitializeFunctionAlgebra( NestedList* nlRef, 
+                           QueryProcessor* qpRef,
+                           AlgebraManager* amRef )
 {
   nl = nlRef;
   qp = qpRef;
+  am = amRef;
   return (&functionAlgebra);
 }
 

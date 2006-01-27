@@ -2327,7 +2327,7 @@ CcExtract(Word* args, Word& result, int message, Word& local, Supplier s)
     tupleptr = (CcTuple*)t.addr;
     index = ((CcInt*)args[2].addr)->GetIntval();
     assert((1 <= index) && (index <= tupleptr->GetNoAttrs()));
-    res->CopyFrom((StandardAttribute*)tupleptr->Get(index - 1));
+    res->CopyFrom((const StandardAttribute*)tupleptr->Get(index - 1));
     tupleptr->DeleteIfAllowed();
   }
   else
@@ -2571,8 +2571,8 @@ CcMaxMinValueMapping(Word* args, Word& result, int message, Word& local, Supplie
   while(qp->Received(args[0].addr))
   {
     CcTuple* currentTuple = (CcTuple*)currentTupleWord.addr;
-    StandardAttribute* currentAttr =
-      (StandardAttribute*)currentTuple->Get(attributeIndex);
+    const StandardAttribute* currentAttr =
+      (const StandardAttribute*)currentTuple->Get(attributeIndex);
     if(currentAttr->IsDefined())
     {
       if(definedValueFound)
@@ -2743,7 +2743,7 @@ CcAvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplie
   assert(args[3].addr != 0);
 
   int attributeIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
-  STRING *attributeType = ((CcString*)args[3].addr)->GetStringval();
+  const STRING *attributeType = ((CcString*)args[3].addr)->GetStringval();
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, currentTupleWord);

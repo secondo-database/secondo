@@ -70,7 +70,7 @@ using namespace datetime;
 3.1 Class ~UReal~
 
 */
-void UReal::TemporalFunction( Instant& t, CcReal& result )
+void UReal::TemporalFunction( const Instant& t, CcReal& result ) const
 {
   assert( t.IsDefined() );
 
@@ -82,19 +82,19 @@ void UReal::TemporalFunction( Instant& t, CcReal& result )
   result.Set( true, res );
 }
 
-bool UReal::Passes( CcReal& val )
+bool UReal::Passes( const CcReal& val ) const
   // VTA - Not implemented yet
 {
   return false;
 }
 
-bool UReal::At( CcReal& val, TemporalUnit<CcReal>& result )
+bool UReal::At( const CcReal& val, TemporalUnit<CcReal>& result ) const
   // VTA - Not implemented yet
 {
   return false;
 }
 
-void UReal::AtInterval( Interval<Instant>& i, TemporalUnit<CcReal>& result )
+void UReal::AtInterval( const Interval<Instant>& i, TemporalUnit<CcReal>& result ) const
 {
   TemporalUnit<CcReal>::AtInterval( i, result );
 
@@ -109,7 +109,7 @@ void UReal::AtInterval( Interval<Instant>& i, TemporalUnit<CcReal>& result )
 3.1 Class ~UPoint~
 
 */
-void UPoint::TemporalFunction( Instant& t, Point& result )
+void UPoint::TemporalFunction( const Instant& t, Point& result ) const 
 {
   assert( t.IsDefined() );
 
@@ -129,7 +129,7 @@ void UPoint::TemporalFunction( Instant& t, Point& result )
   }
 }
 
-bool UPoint::Passes( Point& p )
+bool UPoint::Passes( const Point& p ) const
 {
 /*
 VTA - I could use the spatial algebra like this
@@ -177,7 +177,7 @@ would then be very hard to return a true for this function.
   return false;
 }
 
-bool UPoint::At( Point& p, TemporalUnit<Point>& result )
+bool UPoint::At( const Point& p, TemporalUnit<Point>& result ) const
 {
 /*
 VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
@@ -267,7 +267,7 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
   return false;
 }
 
-void UPoint::AtInterval( Interval<Instant>& i, TemporalUnit<Point>& result )
+void UPoint::AtInterval( const Interval<Instant>& i, TemporalUnit<Point>& result ) const
 {
   TemporalUnit<Point>::AtInterval( i, result );
 
@@ -292,7 +292,7 @@ void UPoint::AtInterval( Interval<Instant>& i, TemporalUnit<Point>& result )
     TemporalFunction( result.timeInterval.end, pResult->p1 );
 }
 
-void UPoint::Distance( Point& p, UReal& result )
+void UPoint::Distance( const Point& p, UReal& result ) const
 {
   result.timeInterval = timeInterval;
 
@@ -314,21 +314,21 @@ void UPoint::Distance( Point& p, UReal& result )
 3.2 Class ~MPoint~
 
 */
-void MPoint::Trajectory( CLine& line )
+void MPoint::Trajectory( CLine& line ) const
 {
   line.Clear();
   line.StartBulkLoad();
 
   CHalfSegment chs( false );
-  UPoint unit;
+  const UPoint *unit;
 
   for( int i = 0; i < GetNoComponents(); i++ )
   {
     Get( i, unit );
 
-    if( !AlmostEqual( unit.p0, unit.p1 ) )
+    if( !AlmostEqual( unit->p0, unit->p1 ) )
     {
-      chs.Set( true, unit.p0, unit.p1 );
+      chs.Set( true, unit->p0, unit->p1 );
 
       line += chs;
       chs.SetLDP( false );
@@ -339,9 +339,9 @@ void MPoint::Trajectory( CLine& line )
   line.EndBulkLoad();
 }
 
-void MPoint::Distance( Point& p, MReal& result )
+void MPoint::Distance( const Point& p, MReal& result ) const
 {
-  UPoint uPoint;
+  const UPoint *uPoint;
   UReal uReal;
 
   result.Clear();
@@ -349,7 +349,7 @@ void MPoint::Distance( Point& p, MReal& result )
   for( int i = 0; i < GetNoComponents(); i++ )
   {
     Get( i, uPoint );
-    uPoint.Distance( p, uReal );
+    uPoint->Distance( p, uReal );
     result.Add( uReal );
   }
   result.EndBulkLoad( false );
@@ -3065,7 +3065,7 @@ MPointTranslate( Word* args, Word& result, int message, Word& local, Supplier s 
   Word t;
   double dx,dy;
   DateTime* dd;
-  UPoint uPoint;
+  const UPoint *uPoint;
   MPoint* mp, *mpResult;
   
   result = qp->ResultStorage( s );
@@ -3092,11 +3092,12 @@ MPointTranslate( Word* args, Word& result, int message, Word& local, Supplier s 
     for( int i = 0; i < mp->GetNoComponents(); i++ )
     {
       mp->Get( i, uPoint );
-      uPoint.p0.Set( uPoint.p0.GetX() + dx, uPoint.p0.GetY() + dy );
-      uPoint.p1.Set( uPoint.p1.GetX() + dx, uPoint.p1.GetY() + dy );
-      uPoint.timeInterval.start.Add(dd);
-      uPoint.timeInterval.end.Add(dd);
-      mpResult->Add(uPoint);
+      UPoint aux( *uPoint );
+      aux.p0.Set( aux.p0.GetX() + dx, aux.p0.GetY() + dy );
+      aux.p1.Set( aux.p1.GetX() + dx, aux.p1.GetY() + dy );
+      aux.timeInterval.start.Add(dd);
+      aux.timeInterval.end.Add(dd);
+      mpResult->Add(aux);
     }
     mpResult->EndBulkLoad();
     return 0;
@@ -3318,7 +3319,7 @@ int ThePeriod( Word* args, Word& result, int message, Word& local, Supplier s )
 
   if( !range1->IsEmpty() || !range2->IsEmpty() )
   {
-    Interval<Instant> intv1, intv2;
+    const Interval<Instant> *intv1, *intv2;
     if( range1->IsEmpty() )
     {
       range2->Get( 0, intv1 );
@@ -3335,7 +3336,7 @@ int ThePeriod( Word* args, Word& result, int message, Word& local, Supplier s )
       range2->Get( range2->GetNoComponents()-1, intv2 );
     }
 
-    Interval<Instant> timeInterval( intv1.start, intv2.end, intv1.lc, intv2.rc );
+    Interval<Instant> timeInterval( intv1->start, intv2->end, intv1->lc, intv2->rc );
 
     pResult->StartBulkLoad();
     pResult->Add( timeInterval );

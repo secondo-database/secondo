@@ -1,0 +1,243 @@
+#This file is part of SECONDO.
+#
+#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Database Systems for New Applications.
+#
+#SECONDO is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2 of the License, or
+#(at your option) any later version.
+#
+#SECONDO is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with SECONDO; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+# a test for the relational algebra
+# run with : Runner -c MyConfig.config <relalgtest
+# (Runner can be found in directory UserInterfaces)
+
+#stop
+
+#setup
+open database opt;
+
+let Staedte2 = Staedte feed head[0] consume;
+let Staedte3 = Staedte feed head[0] consume;
+let Staedte3I = Staedte createinsertrel;
+
+#testcase createinsertrel1
+#yields ((rel (tuple ((SName string) (Bev int) (PLZ int) (Vorwahl string) (Kennzeichen string) (TID tid)))) ())
+query Staedte createinsertrel;
+
+#testcase createinsertrel2
+#yields (int 0)
+query Staedte createinsertrel count;
+
+#testcase createdeleterel1
+#yields ((rel (tuple ((SName string) (Bev int) (PLZ int) (Vorwahl string) (Kennzeichen string) (TID tid)))) ())
+query Staedte createdeleterel;
+
+#testcase createdeleterel2
+#yields (int 0)
+query Staedte createdeleterel count;
+
+#testcase createupdaterel1
+#yields ((rel (tuple ((SName string) (Bev int) (PLZ int) (Vorwahl string) (Kennzeichen string) (SName_old string) (Bev_old int) (PLZ_old int) (Vorwahl_old string) (Kennzeichen_old string) (TID tid)))) ())
+query Staedte createupdaterel;
+
+#testcase createupdaterel2
+#yields (int 0)
+query Staedte createupdaterel count;
+
+#testcase insert1
+#yields (int 58)
+query Staedte feed Staedte2 insert count;
+
+#testcase insert2
+#yields (int 58)
+query Staedte2 count;
+
+#testcase insert3
+#yields (int 58)
+query Staedte2 feed {a} Staedte feed {b} symmjoin[.SName_a = ..SName_b] count;
+
+#testcase insertsave1
+#yields (int 58)
+query Staedte feed Staedte3 Staedte3I insertsave count;
+
+#testcase insertsave2
+#yields (int 58)
+query Staedte3 feed {a} Staedte feed {b} symmjoin[.SName_a = ..SName_b] count;
+
+#testcase insertsave3
+#yields ((rel (tuple ((TID_b tid)))) ((19)))
+query Staedte3 feed {a} filter[.SName_a contains "Hagen"] Staedte3I feed {b} symmjoin[.SName_a = ..SName_b] project[TID_b] consume;
+
+#testcase deletesearch1
+#yields (int 1)
+query Staedte feed filter[.SName contains "Hagen"] Staedte2 deletesearch count;
+
+#testcase deletesearch2
+#yields (int 57)
+query Staedte2 count;
+
+#testcase deletesearch3
+#yields (int 0)
+query Staedte2 feed filter[.SName contains "Hagen"] count;
+
+#testcase deletedirect1
+#yields (int 1)
+query Staedte2 feed filter[.SName contains "Dortmund"] Staedte2 deletedirect count;
+
+#testcase deletedirect2
+#yields (int 56)
+query Staedte2 count;
+
+#testcase deletedirect3
+#yields (int 0)
+query Staedte2 feed filter[.SName contains "Dortmund"] count;
+
+#testcase deletesearchsave1
+#yields (int 1)
+query Staedte feed filter[.SName contains "Hagen"] Staedte3 Staedte3I deletesearchsave count;
+
+#testcase deletesearchsave2
+#yields (int 57)
+query Staedte3 count;
+
+#testcase deletesearchsave3
+#yields (int 0)
+query Staedte3 feed filter[.SName contains "Hagen"] count;
+
+#testcase deletesearchsave4
+#yields (int 59)
+query Staedte3I count;
+
+#testcase deletesearchsave5
+#yields (int 2)
+query Staedte3I feed filter[.SName contains "Hagen"] count;
+
+#testcase deletedirectsave1
+#yields (int 1)
+query Staedte3 feed filter[.SName contains "Dortmund"] Staedte3 Staedte3I deletedirectsave count;
+
+#testcase deletedirectsave2
+#yields (int 56)
+query Staedte3 count;
+
+#testcase deletedirectsave3
+#yields (int 0)
+query Staedte3 feed filter[.SName contains "Dortmund"] count;
+
+#testcase deletedirectsave4
+#yields (int 60)
+query Staedte3I count;
+
+#testcase deletedirectsave5
+#yields (int 2)
+query Staedte3I feed filter[.SName contains "Dortmund"] count;
+
+#testcase inserttuple1
+#yields (int 1)
+query Staedte2 inserttuple["Hagen", 206000, 5800, "02331", "HA"] count;
+
+#testcase inserttuple2
+#yields (int 1)
+query Staedte feed {a} Staedte2 feed {b} symmjoin[.SName_a = ..SName_b] 
+  filter[.SName_a contains "Hagen"] count;
+
+#testcase inserttuplesave1
+#yields (int 1)
+query Staedte3 Staedte3I inserttuplesave["Hagen", 206000, 5800, "02331", "HA"] count;
+
+#testcase inserttuplesave2
+#yields (int 1)
+query Staedte feed {a} Staedte3 feed {b} symmjoin[.SName_a = ..SName_b] 
+  filter[.SName_a contains "Hagen"] count;
+
+#testcase inserttuplesave3
+#yields (int 3)
+query Staedte feed {a} Staedte3I feed {b} symmjoin[.SName_a = ..SName_b] 
+  filter[.SName_a contains "Hagen"] count;
+
+#testcase updatedirect1
+#yields (int 1)
+query Staedte2 feed filter[.SName contains "Hagen"] Staedte2 updatedirect[Bev: .Bev + 1000000000] count; 
+
+#testcase updatedirect2
+#yields (int 1)
+query Staedte feed {a} Staedte2 feed {b} symmjoin[(.Bev_a + 1000000000) = ..Bev_b] count;
+
+#testcase updatesearch1
+#yields (int 1)
+query Staedte2 feed filter[.SName contains "Hagen"] Staedte2 
+  updatesearch[SName: "NewHagen", Bev: .Bev - 1000000000] count;
+
+#testcase updatesearch2
+#yields (int 1)
+query Staedte feed {a} Staedte2 feed {b} 
+  symmjoin[(.SName_a # ..SName_b) and (..SName_b contains .SName_a) and (.Bev_a = ..Bev_b)] count; 
+
+#testcase updatedirectsave1
+#yields (int 1)
+query Staedte3 feed filter[.SName contains "Hagen"] Staedte3 Staedte3I
+  updatedirectsave[Bev: .Bev + 1000000000] count;
+
+#testcase updatedirectsave2
+#yields (int 1)
+query Staedte feed {a} Staedte3 feed {b} symmjoin[(.Bev_a + 1000000000) = ..Bev_b] count;
+
+#testcase updatedirectsave2
+#yields (int 1)
+query Staedte feed {a} Staedte3I feed {b} symmjoin[(.Bev_a + 1000000000) = ..Bev_b] count;
+
+#testcase updatesearchsave1
+#yields (int 1)
+query Staedte3 feed filter[.SName contains "Hagen"] Staedte3 Staedte3I
+  updatesearchsave[SName: "NewHagen", Bev: .Bev - 1000000000] count;
+
+#testcase updatesearchsave2
+#yields (int 1)
+query Staedte feed {a} Staedte3 feed {b}
+  symmjoin[(.SName_a # ..SName_b) and (..SName_b contains .SName_a) and (.Bev_a = ..Bev_b)] count;
+
+#testcase updatesearchsave3
+#yields (int 1)
+query Staedte feed {a} Staedte3I feed {b}
+  symmjoin[(.SName_a # ..SName_b) and (..SName_b contains .SName_a) and (.Bev_a = ..Bev_b)] count;
+
+#testcase appendidentifier1
+#yields ((rel (tuple ((TID tid)))) ((2)))
+query Staedte feed filter[.SName contains "Berlin"] addid project[TID] consume;
+
+#testcase deletebyid1
+#yields (int 1)
+query Staedte2 deletebyid[[const tid value 2]] count;
+
+#testcase deletebyid2
+#yields (int 0)
+query Staedte2 feed filter[.SName contains "Berlin"] count;
+
+#testcase deletebyid1
+#yields (int 0)
+query Staedte2 deletebyid[[const tid value 2]] count;
+
+#testcase updatebyid1
+#yields (int 1)
+query Staedte2 updatebyid[[const tid value 39]; SName: "NewMuenchen"] count;
+
+#testcase updatebyid2
+#yields (int 1)
+query Staedte2 feed filter[.SName = "NewMuenchen"] count;
+
+#teardown
+delete Staedte2;
+delete Staedte3;
+delete Staedte3I;
+close database;
+

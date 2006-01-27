@@ -1351,7 +1351,7 @@ int WindowIntersectsSStandard( Word* args, Word& result,
         localInfo->first = false;
         if( localInfo->rtree->First( *localInfo->searchBox, e ) )
         {
-          Tuple *tuple = new Tuple( *localInfo->resultTupleType );
+          Tuple *tuple = new Tuple( localInfo->resultTupleType );
           tuple->PutAttribute( 0, new TupleIdentifier( true, e.info ) );
           result = SetWord(tuple);
           return YIELD;
@@ -1363,7 +1363,7 @@ int WindowIntersectsSStandard( Word* args, Word& result,
       {
         if( localInfo->rtree->Next( e ) )
         {
-          Tuple *tuple = new Tuple( *localInfo->resultTupleType );
+          Tuple *tuple = new Tuple( localInfo->resultTupleType );
           tuple->PutAttribute( 0, new TupleIdentifier( true, e.info ) );
           result = SetWord(tuple);
           return YIELD;
@@ -1378,7 +1378,7 @@ int WindowIntersectsSStandard( Word* args, Word& result,
       WindowIntersectsSLocalInfo<dim, TupleId>* localInfo = 
         (WindowIntersectsSLocalInfo<dim, TupleId>*)local.addr;
       delete localInfo->searchBox;
-      delete localInfo->resultTupleType;
+      localInfo->resultTupleType->DeleteIfAllowed();
       delete localInfo;
       return 0;
     }
@@ -1420,7 +1420,7 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
         localInfo->first = false;
         if( localInfo->rtree->First( *localInfo->searchBox, e ) )
         {
-          Tuple *tuple = new Tuple( *localInfo->resultTupleType );
+          Tuple *tuple = new Tuple( localInfo->resultTupleType );
           tuple->PutAttribute( 0, new TupleIdentifier( true, e.info.tupleId ) );
           tuple->PutAttribute( 1, new CcInt( true, e.info.low ) );
           tuple->PutAttribute( 2, new CcInt( true, e.info.high ) );
@@ -1434,7 +1434,7 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
       {
         if( localInfo->rtree->Next( e ) )
         {
-          Tuple *tuple = new Tuple( *localInfo->resultTupleType );
+          Tuple *tuple = new Tuple( localInfo->resultTupleType );
           tuple->PutAttribute( 0, new TupleIdentifier( true, e.info.tupleId ) );
           tuple->PutAttribute( 1, new CcInt( true, e.info.low ) );
           tuple->PutAttribute( 2, new CcInt( true, e.info.high ) );
@@ -1450,7 +1450,7 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
       WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo> *localInfo = 
         (WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo>*)local.addr;
       delete localInfo->searchBox;
-      delete localInfo->resultTupleType;
+      localInfo->resultTupleType->DeleteIfAllowed();
       delete localInfo;
       return 0;
     }
@@ -1666,7 +1666,7 @@ int GetTuples( Word* args, Word& result, int message, Word& local, Supplier s )
       if( qp->Received(args[0].addr) )
       {
         Tuple *sTuple = (Tuple*)wTuple.addr,
-              *resultTuple = new Tuple( *localInfo->resultTupleType ),
+              *resultTuple = new Tuple( localInfo->resultTupleType ),
               *relTuple = localInfo->relation->GetTuple(((TupleIdentifier *)sTuple->GetAttribute(localInfo->tidIndex))->GetTid());
          
         int j = 0;
@@ -1694,7 +1694,7 @@ int GetTuples( Word* args, Word& result, int message, Word& local, Supplier s )
     {
       qp->Close(args[0].addr);
       localInfo = (GetTuplesLocalInfo*)local.addr;
-      delete localInfo->resultTupleType;
+      localInfo->resultTupleType->DeleteIfAllowed();
       delete localInfo;
       return 0;
     }

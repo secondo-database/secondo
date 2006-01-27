@@ -32,7 +32,7 @@ operator updatesearch alias UPDATESEARCH pattern _ _ op [funlist]implicit parame
 operator updatedirect alias UPDATEDIRECT pattern _ _ op [funlist]implicit parameter tuple type TUPLE
 operator updatesearchsave alias UPDATESEARCHSAVE pattern _ _ _ op [funlist]implicit parameter tuple type TUPLE
 operator updatedirectsave alias UPDATEDIRECTSAVE pattern _ _ _ op [funlist]implicit parameter tuple type TUPLE
-operator appendidentifier alias APPENDIDENTIFIER pattern _ op
+operator addid alias ADDID pattern _ op
 operator deletebyid alias DELETEBYID pattern _ op [ _ ]
 operator updatebyid alias UPDATEBYID pattern _ op [ _; funlist]implicit parameter tuple type TUPLE
 

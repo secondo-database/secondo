@@ -153,7 +153,7 @@ AlgebraManager::LoadAlgebras()
       if ( (*getAlgebraEntry)( j ).algebraInit != 0 )
       {
         algebraNames[algId] = algNameStr;
-        algebra[algId] = ((*getAlgebraEntry)( j ).algebraInit)( nl, qp );
+        algebra[algId] = ((*getAlgebraEntry)( j ).algebraInit)( nl, qp, this );
       }
       else
       {
@@ -168,7 +168,7 @@ AlgebraManager::LoadAlgebras()
             (AlgebraInitFunction) (*getAlgebraEntry)( j ).dynlib->GetFunctionAddress( initFuncName );
           if ( initFunc != 0 )
           {
-            algebra[(*getAlgebraEntry)( j ).algebraId] = (initFunc)( nl, qp );
+            algebra[(*getAlgebraEntry)( j ).algebraId] = (initFunc)( nl, qp, this );
             loaded = true;
           }
           else

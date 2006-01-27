@@ -129,72 +129,116 @@ class Point: public StandardSpatialAttribute<2>
 3.1. Constructors and Destructor
 
 */
-    Point() {};
+    inline Point() {};
 /*
 This constructor should not be used.
 
 There are two ways of constructing a point:
 
 */
-    Point( const bool d, const Coord& x = Coord(), const Coord& y = Coord() );
+    inline Point( const bool d, const Coord& x = Coord(), const Coord& y = Coord() ):
+    x( x ),
+    y( y ),
+    defined( d )
+    {}
 /*
 The first one receives a boolean value ~d~ indicating if the point is defined
 and two coordinate ~x~ and ~y~ values.
 
 */
-    Point( const Point& p );
+    inline Point( const Point& p ):
+    defined( p.IsDefined() )
+    {
+      if( defined )
+      {
+        x = p.x;
+        y = p.y;
+      }
+    }
 /*
 The second one receives a point ~p~ as argument and creates a point that is a
 copy of ~p~.
 
 */
-    ~Point();
+    inline ~Point() 
+    {}
 /*
 The destructor.
 
 3.2 Member functions
 
 */
-    inline const Coord& GetX() const;
+    inline const Coord& GetX() const
+    {
+      return x;
+    }
 /*
 Returns the ~x~ coordinate of the point.
 
 *Precondition:* ~IsDefined()~
 
 */
-    inline const Coord& GetY() const;
+    inline const Coord& GetY() const
+    {
+      return y;
+    }
 /*
 Returns the ~y~ coordinate of the point.
 
 *Precondition:* ~IsDefined()~
 
 */
-    inline const Rectangle<2> BoundingBox() const;
+    inline const Rectangle<2> BoundingBox() const
+    {
+      return Rectangle<2>( true, this->x, this->x, this->y, this->y );
+    }
+    
 /*
 Returns the point bounding box which is also a point.
 
 */
-
-    inline void Set( const Coord& x, const Coord& y );
+    inline void Set( const Coord& x, const Coord& y )
+    {
+      defined = true;
+      this->x = x;
+      this->y = y;
+    }
 /*
 Sets the value of the point object.
 
 */
-    inline void Translate( const Coord& x, const Coord& y );
+    inline void Translate( const Coord& x, const Coord& y )
+    {
+      assert( defined );
+      this->x += x;
+      this->y += y;
+    }
 /*
 Translates a point position by adding values ~x~ and ~y~.
 
 */
-    inline void Scale(const Coord& factor);
-/*
-Scales a point position by multipliing with ~factor~
-
-*/
-
-
-    inline Point& operator=(const Point& p);
+    inline Point& operator=(const Point& p)
+    {
+      defined = p.defined;
+      if( defined )
+      {
+        x = p.x;
+        y = p.y;
+      }
+      return *this;
+    }
 /*
 Assignement operator redefinition.
+
+*/
+    inline void Scale(const Coord& factor)
+    {
+      assert( defined );
+      this->x *= factor;
+      this->y *= factor;
+    }
+/*
+Scales a point position by multipliing with ~factor~
 
 3.3 Operations
 
@@ -207,7 +251,10 @@ Assignement operator redefinition.
 *Complexity:* $O(1)$
 
 */
-    inline bool operator==( const Point& p ) const;
+    inline bool operator==( const Point& p ) const
+    {
+      return x == p.x && y == p.y;
+    }
 /*
 3.3.2 Operation $\neq$ (~not equal~)
 
@@ -218,7 +265,10 @@ Assignement operator redefinition.
 *Complexity:* $O(1)$
 
 */
-    inline bool operator!=( const Point& p ) const;
+    inline bool operator!=( const Point& p ) const
+    {
+      return x != p.x || y != p.y;
+    }
 /*
 3.3.3 Operation $\leq$ (~less or equal~)
 
@@ -229,7 +279,14 @@ Assignement operator redefinition.
 *Complexity:* $O(1)$
 
 */
-    inline bool operator<=( const Point& p ) const;
+    inline bool operator<=( const Point& p ) const
+    {
+      if( x < p.x )
+        return 1;
+      else if( x == p.x && y <= p.y )
+        return 1;
+      return 0;
+    }
 /*
 3.3.4 Operation $<$ (~less than~)
 
@@ -240,7 +297,14 @@ Assignement operator redefinition.
 *Complexity:* $O(1)$
 
 */
-    inline bool operator<( const Point& p ) const;
+    inline bool operator<( const Point& p ) const
+    {
+      if( x < p.x )
+        return 1;
+      else if( x == p.x && y < p.y )
+        return 1;
+      return 0;
+    }
 /*
 3.3.5 Operation $\geq$ (~greater or equal~)
 
@@ -251,7 +315,14 @@ Assignement operator redefinition.
 *Complexity:* $O(1)$
 
 */
-    inline bool operator>=( const Point& p ) const;
+    inline bool operator>=( const Point& p ) const
+    {
+      if( x > p.x )
+        return 1;
+      else if( x == p.x && y >= p.y )
+        return 1;
+      return 0;
+    }
 /*
 3.3.6 Operation $>$ (~greater than~)
 
@@ -262,7 +333,14 @@ Assignement operator redefinition.
 *Complexity:* $O(1)$
 
 */
-    inline bool operator>( const Point& p ) const;
+    inline bool operator>( const Point& p ) const
+    {
+      if( x > p.x )
+        return 1;
+      else if( x == p.x && y > p.y )
+        return 1;
+      return 0;
+    }
 /*
 3.3.7 Operation ~inside~ (with ~points~)
 
@@ -273,7 +351,7 @@ Assignement operator redefinition.
 *Complexity:* $O(log(n))$, where ~n~ is the size of the point set ~V~
 
 */
-    bool Inside( Points& ps ) const;
+    bool Inside( const Points& ps ) const;
 /*
 3.3.8 Operation ~inside~ (with ~rectangle~)
 
@@ -284,7 +362,14 @@ Assignement operator redefinition.
 *Complexity:* $O(1)$
 
 */
-    bool Inside( const Rectangle<2>& r ) const;
+    inline bool Inside( const Rectangle<2>& r ) const
+    {
+      if( x < r.MinD(0) || x > r.MaxD(0) )
+        return false;
+      else if( y < r.MinD(1) || y > r.MaxD(1) )
+        return false;
+      return true;
+    }
 /*
 3.3.8 Operation ~intersection~ (with ~point~)
 
@@ -295,7 +380,13 @@ Assignement operator redefinition.
 *Complexity:* $O(1)$
 
 */
-    void Intersection( const Point& p, Point& result ) const;
+    inline void Intersection( const Point& p, Point& result ) const
+    {
+      if( *this == p )
+        result = *this;
+      else
+        result.SetDefined( false );
+    }
 /*
 3.3.9 Operation ~intersection~ (with ~points~)
 
@@ -306,7 +397,7 @@ Assignement operator redefinition.
 *Complexity:* $O(log(n))$, where ~n~ is the size of the point set ~V~
 
 */
-    void Intersection( Points& ps, Point& result ) const;
+    void Intersection( const Points& ps, Point& result ) const;
 
 /*
 3.3.10 Operation ~minus~ (with ~point~)
@@ -318,7 +409,13 @@ Assignement operator redefinition.
 *Complexity:* $O(1)$
 
 */
-    void Minus( const Point& p, Point& result ) const;
+    inline void Minus( const Point& p, Point& result ) const
+    {
+      if( *this == p )
+        result.SetDefined( false );
+      else
+        result = *this;
+    }
 /*
 3.3.9 Operation ~minus~ (with ~points~)
 
@@ -329,7 +426,7 @@ Assignement operator redefinition.
 *Complexity:* $O(log(n))$, where ~n~ is the size of the point set ~V~
 
 */
-    void Minus( Points& ps, Point& result ) const;
+    void Minus( const Points& ps, Point& result ) const;
 /*
 3.3.10 Operation ~distance~
 
@@ -340,7 +437,21 @@ Assignement operator redefinition.
 *Complexity:* $O(1)$
 
 */
-    double Distance( const Point& p ) const;
+    inline double Distance( const Point& p ) const
+    {
+
+#ifdef RATIONAL_COORDINATES
+      double dx = (p.x.IsInteger()? p.x.IntValue():p.x.Value()) -
+                  (x.IsInteger()? x.IntValue():x.Value());
+      double dy = (p.y.IsInteger()? p.y.IntValue():p.y.Value()) -
+                  (y.IsInteger()? y.IntValue():y.Value());
+#else
+      double dx = p.x - x;
+      double dy = p.y - y;
+#endif
+
+      return sqrt( pow( dx, 2 ) + pow( dy, 2 ) );
+    }
 /*
 3.3.11 Functions needed to import the the ~Point~ data type to tuple
 
@@ -349,15 +460,69 @@ to be defined here in order for the Point data type to be used in Tuple definiti
 as an attribute.
 
 */
-    inline bool IsDefined() const;
-    inline void SetDefined(bool Defined);
-    size_t HashValue();
-    void CopyFrom(StandardAttribute* right);
-    int Compare(Attribute * arg);
-    bool Adjacent(Attribute * arg);
-    int Sizeof() const;
-    Point* Clone();
-    ostream& Print( ostream &os );
+    inline bool IsDefined() const
+    {
+      return defined;
+    }
+
+    inline void SetDefined(bool defined)
+    {
+      this->defined = defined;
+    }
+
+    inline size_t HashValue() const
+    {
+      if( !defined )
+        return 0;
+
+      size_t h;
+#ifdef RATIONAL_COORDINATES
+      h=(size_t)
+          (5*(x.IsInteger()? x.IntValue():x.Value())
+            + (y.IsInteger()? y.IntValue():y.Value()));
+#else
+      h=(size_t)(5*x + y);
+#endif
+      return h;
+    }
+
+    inline void CopyFrom(const StandardAttribute* right)
+    {
+      const Point* p = (const Point*)right;
+      defined = p->defined;
+      if( defined )
+        Set( p->x, p->y );
+    }
+    
+    inline int Compare(const Attribute * arg) const
+    {
+      if( !defined )
+        return -1;
+      const Point* p = (const Point*)arg;
+      if( !p )
+        return -2;
+      if( !defined && !p->defined )
+        return 0;
+      if( !p->defined )
+        return 1;
+      if( *this > *p )
+        return 1;
+      if( *this < *p )
+        return -1;
+      return 0;
+    }
+
+    inline bool Adjacent(const Attribute * arg) const
+    {
+      return false;
+    }
+
+    inline Point* Clone() const
+    {
+      return new Point( *this );
+    }
+
+    ostream& Print( ostream &os ) const;
 
 /*
 3.4 Attributes
@@ -405,30 +570,49 @@ class Points: public StandardSpatialAttribute<2>
 There are three ways of constructing a point set:
 
 */
-    Points() {}
+    inline Points() {}
 /*
 This constructor should not be used.
 
 */
-    Points( const int initsize );
+    inline Points( const int initsize ):
+    points( initsize ),
+    bbox( false ),
+    ordered( true )
+    {}
 /*
 The first one constructs an empty point set but open space for ~initsize~ points.
 
 */
-    Points( Points& ps);
+    inline Points( const Points& ps):
+    points( ps.Size() ),
+    bbox( ps.BoundingBox() ),
+    ordered( true )
+    {
+      for( int i = 0; i < ps.Size(); i++ )
+      {
+        const Point *p;
+        ps.Get( i, p );
+        points.Put( i, *p );
+      }
+    }
 /*
 The second one receives another point set ~ps~ as argument and constructs a point
 set which is a copy of ~ps~.
 
 */
-    void Destroy();
+    inline void Destroy()
+    {
+      points.Destroy();
+    }
 /*
 This function should be called before the destructor if one wants to destroy the
 persistent array of points. It marks the persistent array for destroying. The
 destructor will perform the real destroying.
 
 */
-    ~Points();
+    inline ~Points()
+    {}
 /*
 The destructor.
 
@@ -442,9 +626,12 @@ condition only for bulk load of points. All other operations assume that the poi
 ordered.
 
 */
-    bool IsOrdered() const;
+    inline bool IsOrdered() const
+    {
+      return ordered;
+    }
 /*
-Returns if the point se is ordered. There is a flag ~ordered~ (see attributes) in order
+Returns whether the point set is ordered. There is a flag ~ordered~ (see attributes) in order
 to avoid a scan in the point set to answer this question.
 
 */
@@ -461,36 +648,48 @@ Marks the end of a bulk load and sorts the point set.
 4.3 Member functions
 
 */
-    const Rectangle<2> BoundingBox() const;
+    inline const Rectangle<2> BoundingBox() const
+    {
+      return bbox;
+    }
 /*
 Returns the bounding box that spatially contains all points.
 
 */
-    bool IsEmpty() const;
+    inline bool IsEmpty() const
+    {
+      return Size() == 0;
+    }
 /*
 Returns if the set is empty of not.
 
 */
-    int Size() const;
+    inline int Size() const
+    {
+      return points.Size();
+    }
 /*
 Returns the size of the point set. Returns ~0~ if the set is empty.
 
 */
-    void Get( const int i, Point& p );
+    inline void Get( const int i, Point const*& p ) const
+    {
+      return points.Get( i, p );
+    }
 /*
 Retrieves the point ~p~ at position ~i~ in the point set.
 
 *Precondition:* $0 \leq i < Size()$
 
 */
-    Points& operator=(Points& ps);
+    Points& operator=(const Points& ps);
 /*
 Assignement operator redefinition.
 
 *Precondition:* ~ps.IsOrdered()~
 
 */
-    bool Contains(const Point& p);
+    bool Contains(const Point& p) const;
 /*
 Searches (binary search algorithm) for a point in the point set and
 return ~true~ if found and ~false~ if not.
@@ -498,14 +697,14 @@ return ~true~ if found and ~false~ if not.
 *Precondition:* ~this.IsOrdered() $\&\&$ p.IsDefined()~
 
 */
-    bool Contains(Points& ps);
+    bool Contains(const Points& ps) const;
 /*
 3.3.10 Operation GetTopRel
 
 *Precondition:* IsDefined() \& IsOrdered
 
 */
-   Int9M GetTopRel(Points& ps);
+   Int9M GetTopRel(const Points& ps) const;
 
 
 /*
@@ -525,7 +724,7 @@ Returns ~true~ if this point set contains the ~ps~ point set and
 *Complexity:* $O(n+m)$, where ~n~ is the size of this point set and m the size of ~ps~.
 
 */
-    bool operator==(Points&);
+    bool operator==(const Points&) const;
 /*
 4.4.2 Operation $\neq$ (~not equal~)
 
@@ -536,7 +735,7 @@ Returns ~true~ if this point set contains the ~ps~ point set and
 *Complexity:* $O(n+m)$, where ~n~ is the size of this point set and m the size of ~ps~.
 
 */
-    bool operator!=(Points&);
+    bool operator!=(const Points&) const;
 /*
 4.4.3 Operation ~union~ (with ~point~)
 
@@ -560,7 +759,7 @@ of this point set.
 of this point set and ~m~ is the size of ~ps~.
 
 */
-    Points& operator+=(Points& ps);
+    Points& operator+=(const Points& ps);
 /*
 4.4.5 Operation ~minus~ (with ~point~)
 
@@ -582,7 +781,7 @@ of this point set and ~m~ is the size of ~ps~.
 *Complexity:* $O(n+m)$, where ~n~ is the size of this point set and m the size of ~ps~.
 
 */
-    bool Inside(Points& ps);
+    bool Inside(const Points& ps) const;
 /*
 4.4.7 Operation ~intersects~
 
@@ -593,7 +792,7 @@ of this point set and ~m~ is the size of ~ps~.
 *Complexity:* $O(n+m)$, where ~n~ is the size of this point set and m the size of ~ps~.
 
 */
-    bool Intersects(Points& ps);
+    bool Intersects(const Points& ps) const;
 /*
 4.4.8 Object Traversal Functions
 
@@ -605,13 +804,42 @@ using ROSE algebra algorithms (DZM).
 *Complexity:* $O(1)$.
 
 */
-    void SelectFirst();
-    void SelectNext();
-    bool EndOfPt();
-    void GetPt( Point& p );
-    void InsertPt( Point& p );
+    inline void SelectFirst() const
+    {
+      if (IsEmpty()) pos=-1;
+      else pos=0;
+    }
 
-    void Clear();
+    inline void SelectNext() const
+    {
+      if ((pos>=0) && (pos<Size()-1)) pos++;
+      else pos=-1;
+    }
+
+    inline bool EndOfPt() const
+    {
+      return pos == -1;
+    }
+
+    inline bool GetPt( const Point*& p ) const
+    {
+      if( pos>=0 && pos <= Size()-1 )
+      {
+        points.Get( pos, p);
+        return true;
+      }
+      return false;
+    }
+
+    void InsertPt( const Point& p );
+
+    inline void Clear()
+    {
+      points.Clear();
+      pos=-1;
+      ordered=true;
+      bbox.SetDefined(false);
+    }
 /*
 4.6 Functions needed to import the the ~Points~ data type to tuple
 
@@ -620,20 +848,41 @@ to be defined here in order for the Point data type to be used in Tuple definiti
 as an attribute.
 
 */
-    int NumOfFLOBs();
-    FLOB *GetFLOB(const int i);
+    inline int NumOfFLOBs() const
+    {
+      return 1;
+    }
 
-    bool     IsDefined() const;
-    void     SetDefined(bool Defined);
-    size_t   HashValue();
-    void     CopyFrom(StandardAttribute* right);
-    int      Compare(Attribute * arg);
-    bool     Adjacent(Attribute * arg);
-    int      Sizeof() const;
-    Points*    Clone() ;
-    ostream& Print( ostream &os );
+    inline FLOB *GetFLOB(const int i)
+    {
+      return &points;
+    }
 
-    private:
+    inline bool IsDefined() const
+    {
+      return true;
+    }
+
+    inline void SetDefined(bool Defined)
+    {
+    }
+
+    inline bool Adjacent(const Attribute * arg) const
+    {
+      return false;
+    }
+
+    inline Points* Clone() const
+    {
+      return new Points( *this );
+    }
+
+    size_t HashValue() const;
+    void CopyFrom(const StandardAttribute* right);
+    int Compare(const Attribute * arg) const;
+    ostream& Print( ostream &os ) const;
+
+  private:
 /*
 4.5 Private member functions
 
@@ -643,15 +892,11 @@ as an attribute.
 Sorts the persistent array of points.
 
 */
-    int Position(const Point&);
+    int Position(const Point&) const;
 /*
 Searches (binary search algorithm) for a point in the point set and
 returns its position. Returns -1 if the point is not found.
 
-*/
-
-
-/*
 4.6 Atrtibutes
 
 */
@@ -670,7 +915,7 @@ The bounding box that spatially contains all points.
 The flag that indicates whether the persistent array is in ordered state.
 
 */
-    int pos;
+    mutable int pos;
 /*
  Added by DZM. According to ROSE algebra, the carrier set of points should contain a pos pointer
 
@@ -688,7 +933,7 @@ ostream& operator<<( ostream& o, const Point& p );
 Print the point ~p~ in the out stream ~o~.
 
 */
-ostream& operator<<( ostream& o, Points& ps );
+ostream& operator<<( ostream& o, const Points& ps );
 /*
 Print the point set ~ps~ int the out stream ~o~.
 
@@ -744,17 +989,49 @@ A Half Segment is composed of two points which are called ~left point~ LP and ~r
 dominating point. The Boolean Flag ~Defined~ allows us to use an ~undifined~ value.
 
 */
-    CHalfSegment() {}
+    inline CHalfSegment() {}
 /*
 This constructor should not be used.
 
 */
-    CHalfSegment( bool Defined, bool LDP = false, 
-                  const Point& LP = Point( false ), 
-                  const Point& RP = Point( false ) );
-    CHalfSegment( const CHalfSegment& chs );
-    ~CHalfSegment();
+    inline CHalfSegment( bool Defined, bool LDP = false, 
+                         const Point& P1 = Point( false ), 
+                         const Point& P2 = Point( false ) )
+    {
+       defined = Defined;
+       if( defined )
+       {
+         ldp = LDP;
+         if (P1<P2)
+         {
+           lp = P1;
+           rp = P2;
+         }
+         else if (P1>P2)
+         {
+           lp = P2; 
+           rp = P1;
+         }
+         else defined = false;
+       }
+       else
+         ldp = false;
+    }
 
+    inline CHalfSegment( const CHalfSegment& chs )
+    {
+       defined = chs.IsDefined();
+       if( defined )
+       {
+         ldp = chs.GetLDP();
+         lp = chs.GetLP();
+         rp = chs.GetRP();
+         attr=chs.GetAttr();
+       } 
+    }
+
+    inline ~CHalfSegment()
+    {}
 /*
 5.2 Functions Reading Property Values from a CHalfSegment Object
 
@@ -763,43 +1040,77 @@ This constructor should not be used.
 *Complexity:* $O( 1)$
 
 */
-    bool IsDefined() const;
+    inline bool IsDefined() const
+    {
+      return defined;
+    }
 /*
 This function returns a boolean value indicating whether the half segment is defined.
 
 */
-    const Point&  GetLP() const;
+    inline const Point& GetLP() const
+    {
+      assert( defined );
+      return lp;
+    }
 /*
 This function returns the left point of the half segment.
 
 */
-    const Point&  GetRP() const;
+    inline const Point& GetRP() const
+    {
+      assert( defined );
+      return rp;
+    }
 /*
 This function returns the right point of the half segment.
 
 */
-    const Point&  GetDPoint() const;
+    inline const Point& GetDPoint() const
+    {
+      assert( defined );
+      return (ldp ? lp : rp);
+    }
 /*
 This function returns the dominating point of the half segment.
 
 */
-    const Point&  GetSPoint() const;
+    inline const Point& GetSPoint() const
+    {
+      assert( defined );
+      return (ldp ? rp : lp);
+    }
 /*
 This function returns the secondary point of the half segment.
 
 */
-    bool GetLDP() const;
+    inline bool GetLDP() const
+    {
+      assert( defined );
+      return ldp;
+    }
 /*
 This function returns the boolean flag which indicates whether the dominating point is on the
 left side.
 
 */
-    const Rectangle<2> BoundingBox() const;
+    inline const Rectangle<2> BoundingBox() const
+    {
+      assert( defined );
+      return Rectangle<2>( true,
+                           MIN( GetLP().GetX(), GetRP().GetX() ),
+                           MAX( GetLP().GetX(), GetRP().GetX() ),
+                           MIN( GetLP().GetY(), GetRP().GetY() ),
+                           MAX( GetLP().GetY(), GetRP().GetY() ) );
+    }
 /*
 Returns the bounding box of the half segment.
 
 */
-    const AttrType&  GetAttr() const;
+    inline const AttrType& GetAttr() const
+    {
+      return attr;
+    }
 /*
 This function returns the "attribute" value associated with a half segment. The "attribute" argument is
 useful when we process region values.
@@ -811,27 +1122,69 @@ useful when we process region values.
 *Complexity:* $O( 1)$
 
 */
-    void     Set(bool LDP, const Point& LP, const Point& RP);
+    inline void Set(bool LDP, const Point& P1, const Point& P2)
+    {
+      defined = true;
+      ldp = LDP;
+      if (P1<P2)
+      {
+        lp = P1;
+        rp = P2;
+      }
+      else if (P1>P2)
+      {
+        lp = P2;
+        rp = P1;
+      }
+      else defined = false;
+    }
 /*
 This function sets the value of a half segment. The parameter LP and RP can ignore the order, and the
 function will compare the parameter points and put the smaller one to LP and larger one to RP.
 
 */
-    void Translate( const Coord& x, const Coord& y );
-   
-    void Scale(const Coord& factor);
+    inline void Translate( const Coord& x, const Coord& y )
+    {
+      assert( defined );
+      lp.Translate( x, y );
+      rp.Translate( x, y );
+    }
+/*
+Translates the half segment.
 
-    void     SetDefined(bool Defined);
+*/
+   
+    inline void Scale(const Coord& factor)
+    {
+      assert(defined);
+      lp.Scale(factor);
+      rp.Scale(factor);
+    }
+/*
+Scales the half segment given a ~factor~.
+
+*/
+
+    inline void SetDefined(bool Defined)
+    {
+      defined = Defined;
+    }
 /*
 This function sets the value of the "defined" argument of a half segment.
 
 */
-    void     SetAttr(AttrType& ATTR);
+    inline void SetAttr(AttrType& ATTR)
+    {
+      attr = ATTR;
+    }
 /*
 This function sets the value of the "attr" argument of a half segment.
 
 */
-    void     SetLDP(bool LDP);
+    inline void SetLDP(bool LDP)
+    {
+      ldp = LDP;
+    }
 /*
 This function sets the value of the "Left Dominating Point" flag of a half segment.
 
@@ -844,7 +1197,16 @@ This function sets the value of the "Left Dominating Point" flag of a half segme
 *Complexity:* $O( 1)$
 
 */
-    CHalfSegment& operator=(const CHalfSegment& chs);
+    inline CHalfSegment& operator=(const CHalfSegment& chs)
+    {
+      assert( chs.IsDefined() );
+      defined = true;
+      ldp = chs.GetLDP();
+      lp = chs.GetLP();
+      rp = chs.GetRP();
+      attr = chs.GetAttr();
+      return *this;
+    }
 /*
 5.4.2 Auxiliary Function (~compare~)
 
@@ -888,7 +1250,10 @@ dominating points -\verb+>+  LDP flages  -\verb+>+ directions (rotations).
 5.5 Clone Function
 
 */
-    CHalfSegment*  Clone() {return (new CHalfSegment(*this));}
+    inline CHalfSegment*  Clone() 
+    {
+      return new CHalfSegment(*this);
+    }
 
 /*
 5.6 Intersects Function
@@ -932,28 +1297,11 @@ This function decides whether two half segments intersect in the following manne
 the first segment and a innerpoint of the second segment is the same.
 
 */
+    bool innerInter( const CHalfSegment& chs,  Point& resp,
+                     CHalfSegment& rchs, bool& first, bool& second ) const;
+/*
 
-
-
-
-
-
-
-
-bool innerInter( const CHalfSegment& chs,  Point& resp,
-                   CHalfSegment& rchs, bool& first, bool& second ) const;
-
-
-
-
-
-
-
-
-
-
-
-
+*/
     bool cross( const CHalfSegment& chs ) const;
 /*
 This function computes whether two half segments intersect with their mid-points. Be aware
@@ -983,13 +1331,10 @@ part of the segment is a point instead of a segment.
 */
    void CohenSutherlandLineClipping(const Rectangle<2> &window,
                             double &x0, double &y0, double &x1, double &y1,
-                            bool &accept);
+                            bool &accept) const;
 
-   void WindowClippingIn(const Rectangle<2> &window, 
-                         CHalfSegment &chsInside, bool &inside,
-                         bool &isIntersectionPoint,
-                         Point &intersectionPoint);
-
+   void WindowClippingIn(const Rectangle<2> &window, CHalfSegment &chsInside, bool &inside,
+                         bool &isIntersectionPoint,Point &intersectionPoint) const;
 
 /*
 Returns a segment representing the part of the half segment that is inside the window.
@@ -1072,7 +1417,7 @@ This boolean property indicates whether the half segment has its left point as i
 These two properties give the left and right point of the half segment.
 
 */
-    public:
+  public:
     AttrType attr;
 /*
 This ~attribute~ property is useful if we process region values in the way indicated in the ROSE
@@ -1106,17 +1451,43 @@ expressed as a set of segments. However, in the internal (class) representation,
 as a set of sorted halfsegments, which are stored as a PArray.
 
 */
-    CLine() {}
+    inline CLine() {}
 /*
 This constructor should not be used.
 
 */
-    CLine(const int initsize);
-    CLine(CLine& cl );
-    void Destroy();
-    ~CLine();
+    inline CLine(const int initsize) :
+    line( initsize ),
+    bbox( false ),
+    ordered( true )
+    {}
 
-    const Rectangle<2> BoundingBox() const;
+    inline CLine(const CLine& cl ):
+    line( cl.Size() ),
+    bbox( cl.bbox ),
+    ordered( true )
+    {
+      assert( cl.IsOrdered());
+      for( int i = 0; i < cl.Size(); i++ )
+      {
+        const CHalfSegment *chs;
+        cl.Get( i, chs );
+        line.Put( i, *chs );
+      }
+    }
+
+    inline void Destroy()
+    {
+      line.Destroy();
+    }
+
+    inline ~CLine()
+    {}
+
+    inline const Rectangle<2> BoundingBox() const
+    {
+      return bbox;
+    }
 
 /*
 6.2 Functions Reading Property Values from an Object
@@ -1126,23 +1497,35 @@ This constructor should not be used.
 *Complexity:* $O( 1)$
 
 */
-    bool IsOrdered() const;
+    inline bool IsOrdered() const
+    {
+      return ordered;
+    }
 /*
 This function decides whether the half segments in the line value is sorted.
 
 */
 
-    bool IsEmpty() const;
+    inline bool IsEmpty() const
+    {
+      return Size() == 0;
+    }
 /*
 This function decides whether the line value is empty.
 
 */
-    int Size() const;
+    inline int Size() const
+    {
+      return line.Size();
+    }
 /*
 This function returns the number of half segments in the line value.
 
 */
-    void Get( const int i, CHalfSegment& chs );
+    inline void Get( const int i, CHalfSegment const*& chs ) const
+    {
+      line.Get( i, chs );
+    }
 /*
 This function reads the ith half segment from the line value.
 
@@ -1155,7 +1538,6 @@ This function marks the begin of a bulk load of line relaxing the condition that
 must be ordered.
 
 */
-
     void EndBulkLoad( const bool sort = true );
 /*
 This function marks the end of a bulk load and sorts the half segments.
@@ -1169,7 +1551,7 @@ This function marks the end of a bulk load and sorts the half segments.
 *Complexity:* $O( n )$
 
 */
-    CLine& operator=(CLine& cl);
+    CLine& operator=(const CLine& cl);
 /*
 6.4.2 Operation $==$ (~equal~)
 
@@ -1178,7 +1560,7 @@ This function marks the end of a bulk load and sorts the half segments.
 *Complexity:* $O( n )$
 
 */
-    bool operator==(CLine& cl);
+    bool operator==(const CLine& cl) const;
 
 /*
 6.4.2 Operation $!=$ (~equal~)
@@ -1188,7 +1570,7 @@ This function marks the end of a bulk load and sorts the half segments.
 *Complexity:* $O( n )$
 
 */
-    bool operator!=(CLine& cl);
+    bool operator!=(const CLine& cl) const;
 /*
 6.4.3 Operation $+=$ (~Union~)
 
@@ -1216,14 +1598,16 @@ inside the rectangle.
 *Complexity:* $O(n)$.
 
 */
-    void Clip( const Rectangle<2>& r, CLine& result );
+    void Clip( const Rectangle<2>& r, CLine& result ) const;
 /*
 
 6.5 Clone Function
 
 */
-    CLine*    Clone();
-
+    inline CLine* Clone() const
+    {
+      return new CLine( *this );
+    }
 /*
 6.6 Object Traversal Functions
 
@@ -1233,28 +1617,47 @@ if we want to adapt our algorithms to object-traversal-based ones.
 *Complexity:* All these functions have a complexity of $O( 1 )$ .
 
 */
-    void SelectFirst();
+    inline void SelectFirst() const
+    {
+      if (IsEmpty()) pos=-1;
+      else pos=0;
+    }
 /*
 put the pointer ~pos~ to the first half segment in the line value.
 
 */
-    void SelectNext();
+    inline void SelectNext() const
+    {
+      if ((pos>=0) && (pos<Size()-1)) pos++;
+      else pos=-1;
+    }
 /*
 move the pointer ~pos~ to the next half segment in the line value.
 
 */
-    bool EndOfHs();
+    inline bool EndOfHs() const
+    {
+      return pos == -1;
+    }
 /*
 decide whether ~pos~ is -1, which indicates that no more half segments in the line value
  need to be processed.
 
 */
-    void GetHs( CHalfSegment& chs );
+    inline bool GetHs( CHalfSegment const*& chs ) const
+    {
+      if( pos >= 0 && pos <= Size()-1 )
+      {
+        line.Get( pos, chs);
+        return true;
+      }
+      return false;
+    }
 /*
 get the current half segment from the line value according to the ~pos~ pointer.
 
 */
-    void InsertHs( CHalfSegment& chs );
+    void InsertHs( const CHalfSegment& chs );
 
 /*
 6.7 Window clipping functions
@@ -1267,7 +1670,9 @@ part inside the window. If the intersection part is a point, then
 it is not considered in the result.
 
 */
-void WindowClippingIn(Rectangle<2> &window,CLine &clippedLine,bool &inside);
+void WindowClippingIn(const Rectangle<2> &window,
+                      CLine &clippedLine,
+                      bool &inside) const;
 
 /*
 6.7.2 WindowClippingOut
@@ -1279,7 +1684,9 @@ it is not considered in the result.
 
 */
 
-void WindowClippingOut(Rectangle<2> &window,CLine &clippedLine,bool &outside);
+void WindowClippingOut(const Rectangle<2> &window,
+                       CLine &clippedLine,
+                       bool &outside) const;
 
 /*
 insert a half segment into the line value, and put the ~pos~ pointer to this newly inserted
@@ -1292,23 +1699,37 @@ to be defined here in order for the Point data type to be used in Tuple definiti
 as an attribute.
 
 */
-    int NumOfFLOBs();
-    FLOB *GetFLOB(const int i);
+    inline int NumOfFLOBs() const
+    {
+      return 1;
+    }
 
-    bool     IsDefined() const;
-    void     SetDefined(bool Defined);
-    size_t   HashValue();
-    void     CopyFrom(StandardAttribute* right);
-    int      Compare(Attribute * arg);
-    bool     Adjacent(Attribute * arg);
-    int      Sizeof() const;
-    //CLine*    Clone() ;
-    ostream& Print( ostream &os );
-    void     Clear();
+    inline FLOB *GetFLOB(const int i)
+    {
+      return &line;
+    }
 
+    inline bool IsDefined() const
+    {
+      return true;
+    }
+
+    inline void SetDefined(bool Defined)
+    {}
+
+    inline bool Adjacent(const Attribute * arg) const
+    {
+      return false;
+    }
+
+    size_t HashValue() const;
+    void CopyFrom(const StandardAttribute* right);
+    int Compare(const Attribute * arg) const;
+    ostream& Print( ostream &os ) const;
+    void Clear();
 
     void CohenSutherlandLineClipping(const Rectangle<2> &window,
-                            CHalfSegment &chsInside, bool &accept);
+                                     CHalfSegment &chsInside, bool &accept);
   private:
 /*
 6.9 Private member functions
@@ -1319,7 +1740,7 @@ as an attribute.
 Sorts (quick-sort algorithm) the persistent array of half segments in the line value.
 
 */
-    int Position(const CHalfSegment&);
+    int Position(const CHalfSegment&) const;
 /*
 Searches (binary search algorithm) for a half segment in the line value and
 returns its position. Returns -1 if the half segment is not found.
@@ -1337,7 +1758,7 @@ The persisten array of half segments.
 The bounding box that fully encloses all half segments of the line.
 
 */
-    int pos;
+    mutable int pos;
 /*
 The pointer to the current half segments. The pointer is important in object traversal algorithms.
 
@@ -1353,7 +1774,7 @@ Whether the half segments in the line value are sorted.
 6.11 overloaded output operator
 
 */
-ostream& operator<<( ostream& o, CLine& cl );
+ostream& operator<<( ostream& o, const CLine& cl );
 
 /*
 7 Class Region
@@ -1379,18 +1800,62 @@ The system will do the basic check on the validity of the region data (see the e
 insertOK() function).
 
 */
-    CRegion() {}
+    inline CRegion() {}
 /*
 This constructor should not be used.
 
 */
-    CRegion(const int initsize);
-    CRegion(CRegion& cr, bool onlyLeft = false);
-    void Destroy();
-    ~CRegion();
-    bool Valid();
+    inline CRegion(const int initsize):
+    region( initsize ),
+    bbox( false ),
+    ordered( true )
+    {}
 
-    const Rectangle<2> BoundingBox() const;
+    inline CRegion(const CRegion& cr, bool onlyLeft = false):
+    region( cr.Size() ),
+    bbox(cr.BoundingBox()),
+    ordered( true )
+    {
+      if( !onlyLeft )
+      {
+        assert( cr.IsOrdered() );
+        for( int i = 0; i < cr.Size(); i++ )
+        {
+          const CHalfSegment *chs;
+          cr.Get( i, chs );
+          region.Put( i, *chs );
+        }
+      }
+      else
+      {
+        int j=0;
+        for( int i = 0; i < cr.Size(); i++ )
+        {
+          const CHalfSegment *chs;
+          cr.Get( i, chs );
+          if (chs->GetLDP())
+          {
+            region.Put( j, *chs );
+            j++;
+          }
+        }
+      }
+    }
+
+    inline void Destroy()
+    {
+      region.Destroy();
+    }
+
+    inline ~CRegion()
+    {}
+
+    inline bool Valid() const;
+
+    inline const Rectangle<2> BoundingBox() const
+    {
+      return bbox;
+    }
 
 /*
 7.2 Functions Reading Property Values from an Object
@@ -1400,22 +1865,34 @@ This constructor should not be used.
 *Complexity:* $O( 1)$
 
 */
-    bool IsOrdered() const;
+    inline bool IsOrdered() const
+    {
+      return ordered;
+    }
 /*
 This function decides whether the half segments in the region value is sorted.
 
 */
-    bool IsEmpty() const;
+    inline bool IsEmpty() const
+    {
+      return Size() == 0;
+    }
 /*
 This function decides whether the region value is empty.
 
 */
-    int Size() const;
+    inline int Size() const
+    {
+      return region.Size();
+    }
 /*
 This function returns the number of half segments in the region value.
 
 */
-    void Get( const int i, CHalfSegment& chs );
+    inline void Get( const int i, CHalfSegment const*& chs ) const
+    {
+      return region.Get( i, chs );
+    }
 /*
 This function reads the ith half segment from the region value.
 
@@ -1468,7 +1945,7 @@ of different cycles can intersect each other;
 *Complexity:* $O( n )$
 
 */
-    CRegion& operator=(CRegion& cr);
+    CRegion& operator=(const CRegion& cr);
 /*
 7.5.2 Operation $==$ (~equal~)
 
@@ -1477,7 +1954,7 @@ of different cycles can intersect each other;
 *Complexity:* $O( n )$
 
 */
-    bool operator==(CRegion& cr);
+    bool operator==(const CRegion& cr) const;
 /*
 7.5.3 Operation $+=$ (~Union~)
 
@@ -1505,13 +1982,16 @@ of different cycles can intersect each other;
 *Complexity:* $O( n )$
 
 */
-    bool operator!=(CRegion& cr);
+    bool operator!=(const CRegion& cr) const;
 
 /*
 7.6 Clone Function
 
 */
-    CRegion*    Clone();
+    inline CRegion* Clone() const
+    {
+      return new CRegion( *this );
+    }
 
 /*
 7.7 Object Traversal Functions
@@ -1522,51 +2002,102 @@ if we want to adapt our algorithms to object-traversal-based ones.
 *Complexity:* All the following functions have a complexity of $O( 1)$ .
 
 */
-    void SelectFirst();
+    inline void SelectFirst() const
+    {
+      if (IsEmpty()) pos=-1;
+      else pos=0;
+    }
 /*
 Put the pointer ~pos~ to the first half segment in the region value.
 
 */
-    void SelectNext();
+    inline void SelectNext() const
+    {
+      if ((pos>=0) && (pos<Size()-1)) pos++;
+      else pos=-1;
+    }
 /*
 Move the pointer "pos" to the next half segment in the region value.
 
 */
-    bool EndOfHs();
+    inline bool EndOfHs() const
+    {
+      return pos == -1;
+    }
 /*
 decide whether ~pos~ is -1, which indicates that no more half segments in the region value
  need to be processed.
 
 */
-    void GetHs( CHalfSegment& chs );
+    inline bool GetHs( CHalfSegment const*& chs ) const
+    {
+      if( pos >= 0 && pos <= Size()-1 )
+      {
+        region.Get( pos, chs);
+        return true;
+      }
+      return false;
+    }
 /*
 get the current half segment from the region value according to the ~pos~ pointer.
 
 */
-    void InsertHs( CHalfSegment& chs );
+    void InsertHs( const CHalfSegment& chs );
 /*
 Insert a half segment into the region value, and put the ~pos~ pointer to this newly inserted
 half segment.
 
 */
-    const AttrType& GetAttr();
+    inline const AttrType& GetAttr() const
+    {
+      assert(( pos>=0) && (pos<=Size()-1));
+      const CHalfSegment *chs;
+      region.Get( pos, chs);
+      return chs->GetAttr();
+    }
 /*
 read the ~attr~ value of the current half segment from the region value. The current
 half segment is indicated by ~pos~
 
 */
-  const AttrType& GetAttr(int position);
+    inline const AttrType& GetAttr(int position) const
+    {
+      assert(( position>=0) && (position<=Size()-1));
+      const CHalfSegment *chs;
+      region.Get( position, chs);
+      return chs->GetAttr();
+    }
 /*
 read the ~attr~ value of the half segment at the position ~position~ from the region value.
 
 */
-    void UpdateAttr( AttrType& attr );
+    inline void UpdateAttr( AttrType& attr )
+    {
+      if (( pos>=0) && (pos<=Size()-1))
+      {
+        const CHalfSegment *chs;
+        region.Get( pos, chs);
+        CHalfSegment aux( *chs );
+        aux.SetAttr(attr);
+        region.Put( pos, aux);
+      }
+    }
 /*
 update the ~attr~ value of the current half segment from the region value.The current
 half segment is indicated by ~pos~
 
 */
-    void UpdateAttr( int position, AttrType& ATTR );
+    inline void UpdateAttr( int position, AttrType& ATTR )
+    {
+      if (( position>=0) && (position<=Size()-1))
+      {
+        const CHalfSegment *chs;
+        region.Get( position, chs);
+        CHalfSegment aux (*chs);
+        aux.SetAttr(ATTR);
+        region.Put( position, aux);
+      }
+    }
 /*
 update the ~attr~ value of the half segment at position ~position~  from the region value.
 
@@ -1577,9 +2108,9 @@ update the ~attr~ value of the half segment at position ~position~  from the reg
 *Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */
-    bool contain_old( const Point& p );
-    bool contain( const Point& p );
-    bool containpr( const Point& p, int &pathlength, int & scanned );
+    bool contain_old( const Point& p ) const;
+    bool contain( const Point& p ) const;
+    bool containpr( const Point& p, int &pathlength, int & scanned ) const;
 /*
 7.9 innercontain function
 
@@ -1588,7 +2119,7 @@ update the ~attr~ value of the half segment at position ~position~  from the reg
 *Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */
-    bool innercontain( const Point& p );
+    bool innercontain( const Point& p ) const;
 /*
 7.10 contain function (segment)
 
@@ -1597,7 +2128,7 @@ update the ~attr~ value of the half segment at position ~position~  from the reg
 *Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */
-    bool contain( const CHalfSegment& chs );
+    bool contain( const CHalfSegment& chs ) const;
 /*
 7.11 holeedge-contain function
 
@@ -1606,7 +2137,7 @@ update the ~attr~ value of the half segment at position ~position~  from the reg
 *Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */
-    bool holeedgecontain( const CHalfSegment& chs );
+    bool holeedgecontain( const CHalfSegment& chs ) const;
 /*
 The following two functions are used to sort the half segments according to their attributes;
 
@@ -1620,22 +2151,34 @@ to be defined here in order for the Point data type to be used in Tuple definiti
 as an attribute.
 
 */
-    int NumOfFLOBs();
-    FLOB *GetFLOB(const int i);
+    inline int NumOfFLOBs() const
+    {
+      return 1;
+    }
 
-    bool     IsDefined() const;
-    void     SetDefined(bool Defined);
-    size_t   HashValue();
-    void     CopyFrom(StandardAttribute* right);
-    int      Compare(Attribute * arg);
-    bool     Adjacent(Attribute * arg);
-    int      Sizeof() const;
-    //CRegion*    Clone() ;
-    ostream& Print( ostream &os );
-    void     Clear();
+    inline FLOB *GetFLOB(const int i)
+    {
+      return &region;
+    }
 
+    inline bool IsDefined() const
+    {
+      return true;
+    }
 
+    inline void SetDefined(bool Defined)
+    {}
+      
+    inline bool Adjacent(const Attribute * arg) const
+    {
+      return false;
+    }
 
+    size_t HashValue() const;
+    void CopyFrom(const StandardAttribute* right);
+    int Compare(const Attribute * arg) const;
+    ostream& Print( ostream &os ) const;
+    void Clear();
 
 /*
 
@@ -1666,9 +2209,7 @@ leftmost point of the cycle.
   static bool GetCycleDirection(const Point &pA, 
                                 const Point &pP, const Point &pB);
 
-  bool GetCycleDirection();
-
-
+  bool GetCycleDirection() const;
 
 /*
 7.15 window clipping functions
@@ -1683,7 +2224,8 @@ result from the clipping of a region to a clip window.
 
 */
 
-void WindowClippingIn(const Rectangle<2> &window,CRegion &clippedRegion);
+void WindowClippingIn(const Rectangle<2> &window,
+                      CRegion &clippedRegion) const;
 
 /*
 7.15.2 Window clipping OUT function
@@ -1693,7 +2235,8 @@ result from the clipping of a region to a clip window.
 
 */
 
-void WindowClippingOut(const Rectangle<2> &window,CRegion &clippedRegion);
+void WindowClippingOut(const Rectangle<2> &window,
+                       CRegion &clippedRegion) const;
 /*
 7.15.3 Get clipped half segment function
 
@@ -1709,8 +2252,7 @@ edge is completly inside the window.
 
 */
   void GetClippedHS(const Rectangle<2> &window,
-                    CRegion &clippedRegion,bool inside);
-
+                    CRegion &clippedRegion,bool inside) const;
 /*
 7.15.4 Get clipped half segment IN function
 
@@ -1719,8 +2261,10 @@ resulting from the clipping of a region to a clip window.
 
 */
 
-  void GetClippedHSIn(const Rectangle<2> &window,CRegion &clippedRegion,
-                             vector<EdgePoint> pointsOnEdge[4],int &partnerno);
+  void GetClippedHSIn(const Rectangle<2> &window,
+                      CRegion &clippedRegion,
+                      vector<EdgePoint> pointsOnEdge[4],
+                      int &partnerno) const;
 
 /*
 7.15.5 Get clipped half segment OUT function
@@ -1730,8 +2274,10 @@ resulting from the clipping of a region to a clip window.
 
 */
 
- void GetClippedHSOut(const Rectangle<2> &window,CRegion &clippedRegion,
-                             vector<EdgePoint> pointsOnEdge[4],int &partnerno);
+ void GetClippedHSOut(const Rectangle<2> &window,
+                      CRegion &clippedRegion,
+                      vector<EdgePoint> pointsOnEdge[4],
+                      int &partnerno) const;
 
 /*
 7.15.6 Add clipped half segment function
@@ -1765,8 +2311,8 @@ of the points that lies on the window's edges.
 
 */
    static void CreateNewSegments(vector <EdgePoint>pointsOnEdge, CRegion &cr,
-                                const Point &bPoint,const Point &ePoint,
-                                WindowEdge edge,int &partnerno,bool inside);
+                                 const Point &bPoint,const Point &ePoint,
+                                 WindowEdge edge,int &partnerno,bool inside);
 /*
 7.15.9 Create new segments function
 
@@ -1777,7 +2323,7 @@ the window.
 */
    void CreateNewSegmentsWindowVertices(const Rectangle<2> &window,
                                 vector<EdgePoint> pointsOnEdge[4],CRegion &cr,
-                                int &partnerno,bool inside);
+                                int &partnerno,bool inside) const;
 
 
 
@@ -1816,7 +2362,7 @@ Returns if a point (adjacentPoint) is a critical point.
 
 */
 
-bool IsCriticalPoint(const Point &adjacentPoint,const int &chsPosition);
+bool IsCriticalPoint(const Point &adjacentPoint,const int &chsPosition) const;
 
 /*
 
@@ -1830,9 +2376,9 @@ also if this point is a critical one.
 
   bool GetAdjacentHS(const CHalfSegment &chs, const int &chsPosition,
                      int &position, const int &partnerno,
-                     const int &partnernoP, CHalfSegment &adjacentCHS,
+                     const int &partnernoP, CHalfSegment const*& adjacentCHS,
                      const Point &adjacentPoint, Point &newAdjacentPoint,
-                     bool *cycle, int step);
+                     bool *cycle, int step) const;
 /*
 
 7.15.11.3. Search for critical point
@@ -1840,7 +2386,7 @@ also if this point is a critical one.
 This function returns if a half segment has critical point.
 
 */
-   bool SearchForCriticalPoint(Point &p, int chsPosition);
+   bool SearchForCriticalPoint(Point &p, int chsPosition) const;
 /*
 7.15.12 Get new face number function
 
@@ -1856,7 +2402,7 @@ is a hole of an existing face, or if it is a cycle of a new face.
 7.16 Intersect funcion
 
 */
-bool Intersects(CRegion &r);
+bool Intersects(const CRegion &r) const;
 
   private:
 /*
@@ -1868,8 +2414,8 @@ bool Intersects(CRegion &r);
 sorts (quick-sort algorithm) the persistent array of half segments in the region value.
 
 */
-    int Position(const CHalfSegment&);
-    int Position(const Point&);
+    int Position(const CHalfSegment&) const;
+    int Position(const Point&) const;
 /*
 searches (binary search algorithm) for a half segment in the region value and
 returns its position. Returns -1 if the half segment is not found.
@@ -1887,7 +2433,7 @@ returns its position. Returns -1 if the half segment is not found.
 The persisten array of half segments.
 
 */
-    int pos;
+    mutable int pos;
 /*
 The pointer to the current half segments. The pointer is important in object traversal algorithms.
 
@@ -1904,7 +2450,7 @@ Whether the half segments in the region value are sorted.
 8 Function headers
 
 */
-ostream& operator<<( ostream& o, CRegion& cr );
+ostream& operator<<( ostream& o, const CRegion& cr );
 
 Word InPoint( const ListExpr typeInfo, const ListExpr instance, 
               const int errorPos, ListExpr& errorInfo, bool& correct );
@@ -1923,121 +2469,6 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
           const int errorPos, ListExpr& errorInfo, bool& correct );
 ListExpr
 OutRegion( ListExpr typeInfo, Word value );
-
-/*
-9 Inline functions
-
-*/
-inline const Coord& Point::GetX() const
-{
-  assert( defined );
-  return x;
-}
-
-inline const Coord& Point::GetY() const
-{
-  assert( defined );
-  return y;
-}
-
-inline const Rectangle<2> Point::BoundingBox() const
-{
-  assert( defined );
-  return Rectangle<2>( true, this->x, this->x, this->y, this->y );
-}
-
-inline void Point::Set( const Coord& x, const Coord& y )
-{
-  defined = true;
-  this->x = x;
-  this->y = y;
-}
-
-inline void Point::Translate( const Coord& x, const Coord& y )
-{
-  assert( defined );
-  this->x += x;
-  this->y += y;
-}
-
-inline void Point::Scale(const Coord& factor){
-  assert(defined);
-  this->x *= factor;
-  this->y *= factor;
-}
-
-inline Point& Point::operator=( const Point& p )
-{
-  defined = p.defined;
-  if( defined )
-  {
-    x = p.x;
-    y = p.y;
-  }
-  return *this;
-}
-
-inline bool Point::operator==( const Point& p ) const
-{
-  assert( defined && p.defined );
-  return x == p.x && y == p.y;
-}
-
-inline bool Point::operator!=( const Point& p ) const
-{
-  assert( defined && p.defined );
-  return x != p.x || y != p.y;
-}
-
-inline bool Point::operator<=( const Point& p ) const
-{
-  assert( defined && p.defined );
-  if( x < p.x )
-    return 1;
-  else if( x == p.x && y <= p.y )
-    return 1;
-  return 0;
-}
-
-inline bool Point::operator<( const Point& p ) const
-{
-  assert( defined && p.defined );
-  if( x < p.x )
-    return 1;
-  else if( x == p.x && y < p.y )
-    return 1;
-  return 0;
-}
-
-inline bool Point::operator>=( const Point& p ) const
-{
-  assert( defined && p.defined );
-  if( x > p.x )
-    return 1;
-  else if( x == p.x && y >= p.y )
-    return 1;
-  return 0;
-}
-
-inline bool Point::operator>( const Point& p ) const
-{
-  assert( defined && p.defined );
-  if( x > p.x )
-    return 1;
-  else if( x == p.x && y > p.y )
-    return 1;
-  return 0;
-}
-
-inline bool Point::IsDefined() const
-{
-  return defined;
-}
-
-inline void Point::SetDefined( bool defined )
-{
-  this->defined = defined;
-}
 
 /*
 10 Auxiliary classes used by window clipping functions

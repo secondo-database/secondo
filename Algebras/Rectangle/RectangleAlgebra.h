@@ -79,105 +79,105 @@ class Rectangle: public StandardSpatialAttribute<dim>
 {
   public:
 
-    Rectangle() {}
+    inline Rectangle() {}
 /*
 Do not use this constructor.
 
 */
 
-    Rectangle( const bool defined, ... );
+    inline Rectangle( const bool defined, ... );
 /*
 The first constructor. First one can set if the rectangle is defined, and if it is,
 the coordinates can be set.
 
 */
 
-    Rectangle( const bool defined, const double *min, const double *max );
+    inline Rectangle( const bool defined, const double *min, const double *max );
 /*
 The second constructor. First one can set if the rectangle is defined, and if it is,
 the coordinates can be set.
 
 */
 
-    Rectangle( const Rectangle<dim>& r );
+    inline Rectangle( const Rectangle<dim>& r );
 /*
 The copy constructor.
 
 */
 
-    bool IsDefined() const;
+    inline bool IsDefined() const;
 /*
 Checks if the rectangle is defined.
 
 */
-    Rectangle<dim>& operator = ( const Rectangle<dim>& r );
+    inline Rectangle<dim>& operator = ( const Rectangle<dim>& r );
 /*
 Redefinition of operator ~=~.
 
 */
 
-    bool Contains( const Rectangle<dim>& r ) const;
+    inline bool Contains( const Rectangle<dim>& r ) const;
 /*
 Checks if the rectangle contains the rectangle ~r~.
 
 */
 
-    bool Intersects( const Rectangle<dim>& r ) const;
+    inline bool Intersects( const Rectangle<dim>& r ) const;
 /*
 Checks if the rectangle intersects with rectangle ~r~.
 
 */
 
-    bool operator == ( const Rectangle<dim>& r ) const;
+    inline bool operator == ( const Rectangle<dim>& r ) const;
 /*
 Redefinition of operator ~==~.
 
 */
 
-    bool operator != ( const Rectangle<dim>& r ) const;
+    inline bool operator != ( const Rectangle<dim>& r ) const;
 /*
 Redefinition of operator ~!=~.
 
 */
 
-    double Area() const;
+    inline double Area() const;
 /*
 Returns the area of a rectangle.
 
 */
 
-    double Perimeter() const;
+    inline double Perimeter() const;
 /*
 Returns the perimeter of a rectangle.
 
 */
 
-    const double MinD( int d ) const;
+    inline const double MinD( int d ) const;
 
 /*
 Returns the min coord value for the given dimension ~dim~.
 
 */
 
-    const double MaxD( int d ) const;
+    inline const double MaxD( int d ) const;
 /*
 Returns the max coord value for the given dimension ~dim~.
 
 */
 
-    Rectangle<dim> Union( const Rectangle<dim>& r ) const;
+    inline Rectangle<dim> Union( const Rectangle<dim>& r ) const;
 /*
 Returns the bounding box that contains both this and the rectangle ~r~.
 
 */
 
-    Rectangle<dim>& Translate( const double t[dim] );
+    inline Rectangle<dim>& Translate( const double t[dim] );
 /*
 Translates the rectangle given the translate vector ~t~.
 
 */
 
-    Rectangle<dim> Intersection( const Rectangle<dim>& b ) const;
+    inline Rectangle<dim> Intersection( const Rectangle<dim>& b ) const;
 /*
 Returns the intersection between this and the rectangle ~r~.
 
@@ -186,35 +186,63 @@ an attribute in the Relational Algebra.
 
 */
 
-    const Rectangle<dim> BoundingBox() const;
+    inline const Rectangle<dim> BoundingBox() const;
 /*
 Returns the bounding box of the rectangle; this bounding Box is a clone
 of the rectangle.
 
 */
 
-    void SetDefined( bool Defined )
+    inline void SetDefined( bool Defined )
       {}
 
-    size_t HashValue()
-      { return 0; }
+    inline size_t HashValue() const
+    { 
+      size_t h = 0;
+      for( unsigned i = 0; i < dim; i++ )
+        h += size_t(4 * min[dim] + max[dim]);
+      return h;
+    }
 
-    void CopyFrom( StandardAttribute* right )
-      { *this = *((Rectangle<dim>*)right); }
+    inline void CopyFrom( const StandardAttribute* right )
+      { *this = *(const Rectangle<dim>*)right; }
 
-    int Compare( Attribute *arg )
-      { return 0; }
+    inline int Compare( const Attribute *arg ) const
+    {
+      if(!defined)
+        return -1;
+      const Rectangle<dim>* r = (const Rectangle<dim>*)arg;
+      if(!defined && !r->defined)
+        return 0;
+      if(!r->defined)
+        return 1;
+      if( !r )
+        return -2;
+ 
+      for( unsigned i = 0; i < dim; i++ )
+      {
+        if( this->min[dim] < r->min[dim] )
+          return -1;
+        if( this->min[dim] > r->min[dim] )
+          return 1;
+      }
+      for( unsigned i = 0; i < dim; i++ )
+      {
+        if( this->max[dim] < r->max[dim] )
+          return -1;
+        if( this->max[dim] > r->max[dim] )
+          return 1;
+      }
+      return 0;  
+    }
 
-    bool Adjacent( Attribute *arg )
+    inline bool Adjacent( const Attribute *arg ) const
       { return false; }
 
-    int Sizeof() const
-      { return sizeof( Rectangle<dim> ); }
-
-    Rectangle* Clone()
+    inline Rectangle* Clone() const
       { return new Rectangle<dim>( *this ); }
 
-    ostream& Print( ostream &os )
+    inline ostream& Print( ostream &os ) const
       { if( IsDefined() )
         {
           os << "Rectangle: ( ";
@@ -229,7 +257,7 @@ of the rectangle.
 
   private:
 
-    bool Proper() const;
+    inline bool Proper() const;
 /*
 Returns ~true~ if this is a "proper" rectangle.
 
@@ -257,7 +285,7 @@ the coordinates can be set.
 
 */
 template <unsigned dim>
-Rectangle<dim>::Rectangle( const bool defined, ... ):
+inline Rectangle<dim>::Rectangle( const bool defined, ... ):
 defined( defined )
 {
   va_list ap;
@@ -280,7 +308,7 @@ the coordinates can be set.
 
 */
 template <unsigned dim>
-Rectangle<dim>::Rectangle( const bool defined, const double *min, const double *max ):
+inline Rectangle<dim>::Rectangle( const bool defined, const double *min, const double *max ):
 defined( defined )
 {
   for( unsigned i = 0; i < dim; i++ )
@@ -296,7 +324,7 @@ The copy constructor.
 
 */
 template <unsigned dim>
-Rectangle<dim>::Rectangle( const Rectangle<dim>& r ) :
+inline Rectangle<dim>::Rectangle( const Rectangle<dim>& r ) :
 defined( r.defined )
 {
   for( unsigned i = 0; i < dim; i++ )
@@ -312,7 +340,7 @@ Checks if the rectangle is defined.
 
 */
 template <unsigned dim>
-bool Rectangle<dim>::IsDefined() const
+inline bool Rectangle<dim>::IsDefined() const
 {
   return defined;
 }
@@ -322,7 +350,7 @@ Redefinition of operator ~=~.
 
 */
 template <unsigned dim>
-Rectangle<dim>& Rectangle<dim>::operator = ( const Rectangle<dim>& r )
+inline Rectangle<dim>& Rectangle<dim>::operator = ( const Rectangle<dim>& r )
 {
   this->defined = r.defined;
   if( defined )
@@ -342,7 +370,7 @@ Checks if the rectangle contains the rectangle ~r~.
 
 */
 template <unsigned dim>
-bool Rectangle<dim>::Contains( const Rectangle<dim>& r ) const
+inline bool Rectangle<dim>::Contains( const Rectangle<dim>& r ) const
 {
   assert( defined && r.defined );
 
@@ -358,7 +386,7 @@ Checks if the rectangle intersects with rectangle ~r~.
 
 */
 template <unsigned dim>
-bool Rectangle<dim>::Intersects( const Rectangle<dim>& r ) const
+inline bool Rectangle<dim>::Intersects( const Rectangle<dim>& r ) const
 {
   assert( defined && r.defined );
 
@@ -374,7 +402,7 @@ Redefinition of operator ~==~.
 
 */
 template <unsigned dim>
-bool Rectangle<dim>::operator == ( const Rectangle<dim>& r ) const
+inline bool Rectangle<dim>::operator == ( const Rectangle<dim>& r ) const
 {
   assert( IsDefined() && r.IsDefined() );
 
@@ -390,7 +418,7 @@ Redefinition of operator ~!=~.
 
 */
 template <unsigned dim>
-bool Rectangle<dim>::operator != ( const Rectangle<dim>& r ) const
+inline bool Rectangle<dim>::operator != ( const Rectangle<dim>& r ) const
 {
   return !(*this == r);
 }
@@ -400,7 +428,7 @@ Returns the area of a rectangle.
 
 */
 template <unsigned dim>
-double Rectangle<dim>::Area() const
+inline double Rectangle<dim>::Area() const
 {
   if( !IsDefined() )
     return 0.0;
@@ -416,7 +444,7 @@ Returns the perimeter of a rectangle.
 
 */
 template <unsigned dim>
-double Rectangle<dim>::Perimeter () const
+inline double Rectangle<dim>::Perimeter () const
 {
   if( !IsDefined() )
     return 0.0;
@@ -432,7 +460,7 @@ Returns the min coord value for the given dimension ~d~.
 
 */
 template <unsigned dim>
-const double Rectangle<dim>::MinD( int d ) const
+inline const double Rectangle<dim>::MinD( int d ) const
 {
   assert( d >= 0 && (unsigned)d < dim );
   return min[d];
@@ -443,7 +471,7 @@ Returns the max coord value for the given dimension ~d~.
 
 */
 template <unsigned dim>
-const double Rectangle<dim>::MaxD( int d ) const
+inline const double Rectangle<dim>::MaxD( int d ) const
 {
   assert( d >= 0 && (unsigned)d < dim );
   return max[d];
@@ -454,7 +482,7 @@ Returns the bounding box that contains both this and the rectangle ~r~.
 
 */
 template <unsigned dim>
-Rectangle<dim> Rectangle<dim>::Union( const Rectangle<dim>& r ) const
+inline Rectangle<dim> Rectangle<dim>::Union( const Rectangle<dim>& r ) const
 {
   if( !defined || !r.defined )
     return Rectangle<dim>( false );
@@ -473,7 +501,7 @@ Translates the rectangle given the translate vector ~t~.
 
 */
 template <unsigned dim>
-Rectangle<dim>& Rectangle<dim>::Translate( const double t[dim] )
+inline Rectangle<dim>& Rectangle<dim>::Translate( const double t[dim] )
 {
   if( defined )
   {
@@ -492,7 +520,7 @@ of the rectangle.
 
 */
 template <unsigned dim>
-const Rectangle<dim> Rectangle<dim>::BoundingBox() const
+inline const Rectangle<dim> Rectangle<dim>::BoundingBox() const
 {
   if( defined )
     return Rectangle<dim>( *this );
@@ -505,7 +533,7 @@ Returns the intersection between this and the rectangle ~r~.
 
 */
 template <unsigned dim>
-Rectangle<dim> Rectangle<dim>::Intersection( const Rectangle<dim>& r ) const
+inline Rectangle<dim> Rectangle<dim>::Intersection( const Rectangle<dim>& r ) const
 {
   if( !defined || !r.defined || !Intersects( r ) )
     return Rectangle<dim>( false ); 
@@ -525,7 +553,7 @@ represent an empty set.
 
 */
 template <unsigned dim>
-bool Rectangle<dim>::Proper() const
+inline bool Rectangle<dim>::Proper() const
 {
   if( defined )
   {

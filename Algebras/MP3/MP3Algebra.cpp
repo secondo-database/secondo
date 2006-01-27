@@ -130,74 +130,72 @@ class MP3 : public StandardAttribute {
     bool IsDefined() const;
     /* Sets this object as defined or undefined. */
     void SetDefined( bool Defined);
-    /* Returns whether this object is defined or not. */
-    bool GetDefined();
     /* Calcules a hash value for an MP3. */
-    size_t HashValue();
+    size_t HashValue() const;
     /* Copy the data of another MP3 object into this object. */
-    void CopyFrom(StandardAttribute* right);
+    void CopyFrom(const StandardAttribute* right);
     /* Compare this MP3 with another MP3 object. */
-    int Compare(Attribute * arg);
+    int Compare(const Attribute * arg) const;
     /* Adjacent is not useful for MP3 */
-    bool Adjacent(Attribute * arg);
+    bool Adjacent(const Attribute * arg) const;
     /* Clones this MP3 object. */
-    MP3* Clone();
+    MP3* Clone() const;
     /* Prints a textual representation of an MP3 file. */
-    ostream& Print( ostream &os );
+    ostream& Print( ostream &os ) const;
     /* returns the number of FLOBs. Always 1. */
-    int NumOfFLOBs();
+    int NumOfFLOBs() const;
     /* Get the FLOB (DBArray) */
     FLOB *GetFLOB(const int i);
     /* Returns a new MP3 object which contains the frames with indices 
        between begin and begin + size */
-    MP3* SubMP3(int begin, int size);
+    MP3* SubMP3(int begin, int size) const;
     /* Returns the concatination of this MP3 and the other MP3 object. */
-    MP3* Concat (MP3* other);
+    MP3* Concat (const MP3* other) const;
     /* This methods writes the Base64 string of this MP3 Object into
        the string textBytes. This string textBytes must be provided by
        the caller. */
-    void Encode( string& textBytes );
+    void Encode( string& textBytes ) const;
     /* Gets the Base64 string and reconstruct the nessesary
        DBArray for our MP3 song. Afterwards some attributes 
        of the MP3 song will be recalculated. */
-    void Decode( string& textBytes );
+    void Decode( const string& textBytes );
     /* Saves this MP3 song into the file with name filename. */
-    bool SaveMP3ToFile( char *fileName );
+    bool SaveMP3ToFile( const char *fileName ) const;
     /* Returns whether this MP3 has an ID3 tag. */
-    bool ExistsID();
+    bool ExistsID() const;
     /* Removes the ID3 tag from this MP3 if exists. */
-    void RemoveID ();
+    void RemoveID();
     /* Stores a new ID3 tag into this mp3. An older version will be
        replaced. */
     void PutID(char *iddump);
     /* Returns whether this MP3 has lyrics. */
-    bool ExistsLyrics();
+    bool ExistsLyrics() const;
     /* Returns the beginning of the first frame of the MP3
        which is in the buffer. */
-    int FindFirstHeader(char *buffer,int size);
+    int FindFirstHeader(const char *buffer,int size) const;
     /* Returns the beginning of the next frame of the MP3 
        which is in the buffer. The beginning of the previous
        frame has to be provided in prevHeader. */
-    int FindNextHeader(int prevHeader, char *buffer, int size);
+    int FindNextHeader(int prevHeader, const char *buffer, int size) const;
     /* Returns the length of the frame which begins at position
        prevHeader in bytes. */
-    int FrameLength (int prevHeader, char* buffer);
+    int FrameLength (int prevHeader, const char* buffer) const;
     /* Calculates the MP3 version of the song which is in
        the buffer. */
-    int CalcMP3Version(int Header, char *buffer);
+    int CalcMP3Version(int Header, const char *buffer) const;
     /* Calculates the bitrate of the song which is in
        the buffer. */
-    int CalcBitrate(int Header, char *buffer);
+    int CalcBitrate(int Header, const char *buffer) const;
     /* Calculates the frequency of the song which is in
        the buffer. */
-    int CalcFrequency(int Header, char *buffer);
+    int CalcFrequency(int Header, const char *buffer) const;
     /* Stores the ID3 dump (128 bytes) into buffer.
        The buffer has to be provided by the caller. */
-    void GetID3Dump (char *buffer);
-    /* Stores the Lyrics dump into a buffer which will
-       be allocted by this method because the size of 
-       the lyrics is unknown before. */
-    void GetLyricsDump (char* &buffer, int &size);
+    void GetID3Dump (const char **buffer) const;
+    /* Stores the Lyrics dump into a buffer. The size
+       of the lyrics is unknown before and is returned
+       in the output argument ~lyricssize~. */
+    void GetLyricsDump (const char **buffer, int &size) const;
     /* Removes the lyrics from this object if Lyrics exists. */
     void RemoveLyrics();
     /* Stores the given lyrics into this MP3 object. 
@@ -205,15 +203,15 @@ class MP3 : public StandardAttribute {
        overwritten. */
     void PutLyrics(char *lyricsdump, int size);
     /* Returns the MP3 version of this object. (MPEG1 or MPEG2) */
-    int GetMP3Version();
+    int GetMP3Version() const;
     /* Returns the bitrate of this MP3. */
-    int GetBitrate();
+    int GetBitrate() const;
     /* Returns the frequency of this MP3. */
-    int GetFrequency();
+    int GetFrequency() const;
     /* Returns the number of frames of this MP3. */
-    int GetFrameCount();
+    int GetFrameCount() const;
     /* Returns the length of this MP3 in seconds. */
-    int GetLength();
+    int GetLength() const;
 
   private:
     FLOB mp3Data;
@@ -279,22 +277,12 @@ void MP3::SetDefined( bool def) {
 }
 
 /* 
-2.1.6 GetDefined
-
-Returns whether this object is defined or not. 
-
-*/
-bool MP3::GetDefined() {
-    return defined;
-}
-
-/* 
 2.1.7 HashValue
 
 Calcules a hash value for an MP3. 
 
 */
-size_t MP3::HashValue() {
+size_t MP3::HashValue() const {
     if (!defined)
 	return 0;
     else
@@ -307,15 +295,14 @@ size_t MP3::HashValue() {
 Copy the data of another MP3 object into this object. 
 
 */
-void MP3::CopyFrom(StandardAttribute* right) {
-    MP3 *r = (MP3 *)right;
+void MP3::CopyFrom(const StandardAttribute* right) {
+    const MP3 *r = (const MP3 *)right;
 
     if (r->mp3Data.Size() > 0){
 	mp3Data.Resize( r->mp3Data.Size() );
-	char *bin = (char *) malloc( r->mp3Data.Size() );
-	r->mp3Data.Get( 0, r->mp3Data.Size(), bin );
+	const char *bin;
+	r->mp3Data.Get( 0, &bin );
 	mp3Data.Put( 0, r->mp3Data.Size(), bin );
-	free (bin);
     }
 
     version = r->version;
@@ -333,7 +320,7 @@ void MP3::CopyFrom(StandardAttribute* right) {
 Compare this MP3 with another MP3 object. 
 
 */
-int MP3::Compare(Attribute * arg) {
+int MP3::Compare(const Attribute * arg) const {
     return 0;
 }
 
@@ -343,7 +330,7 @@ int MP3::Compare(Attribute * arg) {
 Adjacent is not useful for MP3 
 
 */
-bool MP3::Adjacent(Attribute * arg) {
+bool MP3::Adjacent(const Attribute * arg) const {
     return false;
 }
 
@@ -353,7 +340,7 @@ bool MP3::Adjacent(Attribute * arg) {
 Clones this MP3 object. 
 
 */
-MP3* MP3::Clone() {
+MP3* MP3::Clone() const {
     MP3 *newMP3 = new MP3( 0 );
     newMP3->CopyFrom( this );
     return newMP3;
@@ -365,7 +352,7 @@ MP3* MP3::Clone() {
 prints a textual representation of an MP3 file. 
 
 */
-ostream& MP3::Print( ostream &os ) {
+ostream& MP3::Print( ostream &os ) const {
     return os << "MP3 Algebra" << endl;
 }
 
@@ -375,7 +362,7 @@ ostream& MP3::Print( ostream &os ) {
 returns the number of FLOBs. Always 1. 
 
 */
-int MP3::NumOfFLOBs() {
+int MP3::NumOfFLOBs() const {
     return 1;
 }
 
@@ -397,7 +384,7 @@ Returns a new MP3 object which contains the frames with indices
 between begin and begin + size. 
 
 */
-MP3* MP3::SubMP3(int beginframe, int size) {
+MP3* MP3::SubMP3(int beginframe, int size) const {
     MP3 *newmp3;
 
     if (!this->IsDefined()){
@@ -437,9 +424,9 @@ MP3* MP3::SubMP3(int beginframe, int size) {
     newmp3 = new MP3(0);
     
     int sizeofoldflob = mp3Data.Size();
-    char *bin = (char*) malloc (sizeofoldflob);
+    const char *bin;
     
-    mp3Data.Get(0, sizeofoldflob, bin);
+    mp3Data.Get(0, &bin);
     
     int beginheaderpos = FindFirstHeader (bin,sizeofoldflob);
     int sizeofid3v2 = beginheaderpos;
@@ -496,7 +483,6 @@ MP3* MP3::SubMP3(int beginframe, int size) {
     newmp3->frequency = this->frequency;
     
     newmp3->SetDefined (true);
-    free (bin);
     return newmp3;
 }
 
@@ -506,7 +492,7 @@ MP3* MP3::SubMP3(int beginframe, int size) {
 Returns the concatination of this MP3 and the other MP3 object. 
 
 */
-MP3* MP3::Concat (MP3* other) {
+MP3* MP3::Concat (const MP3* other) const {
     MP3* newmp3 = new MP3 (0);
     
     /* if the other mp3 is undefined we can just clone 
@@ -524,12 +510,11 @@ MP3* MP3::Concat (MP3* other) {
     }
 
     /* First we copy both MP3s into the memory. */
-    int sizeofthisflob = mp3Data.Size();
-    char *thisbin = (char*) malloc (sizeofthisflob);
-    int sizeofotherflob = other->mp3Data.Size();
-    char *otherbin = (char*) malloc (sizeofotherflob);
-    mp3Data.Get( 0, sizeofthisflob , thisbin );
-    other->mp3Data.Get( 0, sizeofotherflob , otherbin );
+    int sizeofthisflob = mp3Data.Size(),
+        sizeofotherflob = other->mp3Data.Size();
+    const char *thisbin, *otherbin;
+    mp3Data.Get( 0, &thisbin );
+    other->mp3Data.Get( 0, &otherbin );
     
     /* We have to check weather the first MP3 has an ID3 tag. This 
        ID3 tag will be the one of the result. */
@@ -567,8 +552,6 @@ MP3* MP3::Concat (MP3* other) {
     newmp3->mp3Data.Put(endofthisflob + FrameLength(endofthisflob, thisbin),
 			sizeofotherflob - beginotherheaderpos,
 			otherbin + beginotherheaderpos);
-    free (thisbin);
-    free (otherbin);
     
     /* recalculate the attributes of our new mp3. */
     newmp3->version = this->version;
@@ -591,14 +574,14 @@ the string textBytes. This string textBytes must be provided by
 the caller. 
 
 */
-void MP3::Encode(string& textBytes) {
+void MP3::Encode(string& textBytes) const {
     Base64 b;
     /* allocate as many bytes as the size of the FLOB has 
        for the data of the DBArray. */
-    char *bytes = (char *)malloc( mp3Data.Size() );
+    const char *bytes;
     /* load the contents of the DBArray mp3Data into above
        byte array. */
-    mp3Data.Get( 0, mp3Data.Size(), bytes );
+    mp3Data.Get( 0, &bytes );
     /* Write the encoded string into textBytes */
     b.encode( bytes, mp3Data.Size(), textBytes );
 }
@@ -611,7 +594,7 @@ DBArray for our MP3 song. Afterwards some attributes
 of the MP3 song will be recalculated. 
 
 */
-void MP3::Decode( string& textBytes ) {
+void MP3::Decode( const string& textBytes ) {
     Base64 b;
     int previousheaderpos;
     int sizeDecoded = b.sizeDecoded( textBytes.size() );
@@ -653,8 +636,8 @@ Stores the ID3 dump (128 bytes) into buffer.
 The buffer has to be provided by the caller. 
 
 */
-void MP3::GetID3Dump (char *buffer) {
-    mp3Data.Get(mp3Data.Size() - 128, 128, buffer);
+void MP3::GetID3Dump (const char **buffer) const {
+    mp3Data.Get(mp3Data.Size() - 128, buffer);
 }
 
 /* 
@@ -663,9 +646,9 @@ void MP3::GetID3Dump (char *buffer) {
 Returns whether this MP3 has an ID3 tag. 
 
 */
-bool MP3::ExistsID() {
-    char idbytes [128];
-    mp3Data.Get (mp3Data.Size()-128,128,idbytes);
+bool MP3::ExistsID() const {
+    const char *idbytes;
+    mp3Data.Get (mp3Data.Size()-128,&idbytes);
     char tag [4] = "TAG";
     if (strncmp (idbytes,tag,3) == 0) {
 	return true;
@@ -678,47 +661,43 @@ bool MP3::ExistsID() {
 /* 
 2.1.21 GetLyricsDump
 
-Stores the Lyrics dump into a buffer which will
-be allocted by this method because the size of 
-the lyrics is unknown before. 
+Stores the Lyrics dump into a buffer. The size 
+of the lyrics is unknown before and is returned
+in the output argument ~lyricssize~. 
 
 */
-void MP3::GetLyricsDump (char* &buffer, int &lyricssize) {
+void MP3::GetLyricsDump (const char **buffer, int &lyricssize) const {
     /* The last 9 bytes of a Lyrics tag have to be 
        "LYRICS200" (= 9 bytes). The preceding six bytes
        before contain the size of the whole lyrics tag
        as a char array of decimals. */
-    char lyricssize_[7]; 
-
+    const char *auxlyricssize_;
     bool idexists=ExistsID();
     /* The position of the lyrics tag depends on the existence 
        of the ID3 tag. */
     if (idexists) {
 	/* length of ID3 = 128 */
 	/* length("LYRICS200") + length(lyricssize_) = 15 */
-	mp3Data.Get (mp3Data.Size() - 128 - 15, 6, lyricssize_);
+	mp3Data.Get (mp3Data.Size() - 128 - 15, &auxlyricssize_);
     }
     else {
-	mp3Data.Get (mp3Data.Size() - 15, 6, lyricssize_);
+	mp3Data.Get (mp3Data.Size() - 15, &auxlyricssize_);
     }
 
+    char lyricssize_[7]; 
+    memcpy( lyricssize_, auxlyricssize_, 6 );
     lyricssize_[6] = 0;
     lyricssize = atoi(lyricssize_);
-
-    /* allocate memory for the lyrics tag. */
-    buffer = (char*) malloc (lyricssize);
 
     /* Now we can copy the content of the lyrics into buffer. 
        Again this operation depends on the existence of an ID3 tag. */
     if (idexists) {
 	/* length of ID3 = 128 */
 	/* length("LYRICS200") + length(lyricssize_) = 15 */
-	mp3Data.Get (mp3Data.Size() - 128 - 15 - lyricssize, 
-		     lyricssize, buffer);
+	mp3Data.Get (mp3Data.Size() - 128 - 15 - lyricssize, buffer);
     }
     else {
-	mp3Data.Get (mp3Data.Size() - 15 - lyricssize,
-		     lyricssize, buffer);
+	mp3Data.Get (mp3Data.Size() - 15 - lyricssize, buffer);
     }
 }
 
@@ -728,18 +707,18 @@ void MP3::GetLyricsDump (char* &buffer, int &lyricssize) {
 Returns whether this MP3 has lyrics. 
 
 */
-bool MP3::ExistsLyrics() {
+bool MP3::ExistsLyrics() const {
     /* The last nine bytes of the lyrics always contain "LYRICS200". */
-    char bytes [10];
+    const char *bytes;
 
     /* The position of the lyrics depends on the existence of an ID3 tag. */
     if (ExistsID() ) {
 	/* length of ID3 = 128 */
-	mp3Data.Get (mp3Data.Size()-128-9,9,bytes);
+	mp3Data.Get (mp3Data.Size()-128-9,&bytes);
     }
     else {
 	/* length of ID3 = 128 */
-	mp3Data.Get (mp3Data.Size()-9,9,bytes); 
+	mp3Data.Get (mp3Data.Size()-9,&bytes); 
     }
 
     if (strncmp (bytes,"LYRICS200",9) == 0 ) {
@@ -762,28 +741,30 @@ void MP3::RemoveLyrics() {
     }
 
     int oldmp3size=mp3Data.Size();
-    char *bytes = (char *)malloc( oldmp3size );
-    mp3Data.Get (0,oldmp3size,bytes);
+    const char *bytes;
+    mp3Data.Get (0,&bytes);
 
     /* The last 9 bytes of a Lyrics tag have to be 
        "LYRICS200" (= 9 bytes). The preceding six bytes
        before contain the size of the whole lyrics tag
        as a char array of decimals. */
-    char lyricssize_[7]; 
 
     bool idexists=ExistsID();
 
     /* The position of the lyrics tag depends on the existence 
        of the ID3 tag. */
+    const char *auxlyricssize_;
     if (idexists) {
 	/* length of ID3 = 128 */
 	/* length("LYRICS200") + length(lyricssize_) = 15 */
-	mp3Data.Get (oldmp3size-128-15,6, lyricssize_);
+	mp3Data.Get (oldmp3size-128-15, &auxlyricssize_);
     }
     else {
-	mp3Data.Get (oldmp3size-15,6, lyricssize_);
+	mp3Data.Get (oldmp3size-15, &auxlyricssize_);
     }
-    lyricssize_[7]=0;
+    char lyricssize_[7];
+    strncpy( lyricssize_, auxlyricssize_, 6 ); 
+    lyricssize_[6]=0;
     int lyricssize = atoi (lyricssize_) + 15;
 
 
@@ -818,9 +799,9 @@ void MP3::PutLyrics(char *lyricsdump, int size) {
 
     int oldmp3size = mp3Data.Size();
     bool existsid = ExistsID();
-    char *bytes = (char*) malloc (oldmp3size);
+    const char *bytes;
 
-    mp3Data.Get(0,oldmp3size,bytes);
+    mp3Data.Get(0,&bytes);
 
     mp3Data.Resize (oldmp3size+size);
     
@@ -855,8 +836,8 @@ void MP3::RemoveID () {
 	return;
     }
     /* copy mp3Data into bytes */
-    char *bytes = (char *)malloc( mp3Data.Size() );
-    mp3Data.Get( 0, mp3Data.Size(), bytes );
+    const char *bytes;
+    mp3Data.Get( 0, &bytes );
 
     /* length of ID3 = 128 */
     int newsize = mp3Data.Size()-128;
@@ -888,14 +869,14 @@ void MP3::PutID (char *iddump) {
 Saves this MP3 song into the file with name filename. 
 
 */
-bool MP3::SaveMP3ToFile( char *fileName ) {
+bool MP3::SaveMP3ToFile( const char *fileName ) const {
     FILE *f = fopen( fileName, "wb" );
     
     if( f == NULL )
 	return false;
     
-    char *bytes = (char *)malloc( mp3Data.Size() );
-    mp3Data.Get( 0, mp3Data.Size(), bytes );
+    const char *bytes;
+    mp3Data.Get( 0, &bytes );
     
     if( fwrite( bytes, 1, mp3Data.Size(), f ) != mp3Data.Size() )
 	return false;
@@ -912,7 +893,7 @@ Returns the beginning of the first frame of the MP3
 which is in the buffer. 
 
 */
-int MP3::FindFirstHeader(char *buffer, int size) {
+int MP3::FindFirstHeader(const char *buffer, int size) const {
     /*  search for the beginning of the header... */
 
     /* First we have to search for 0xFF, the synchronization
@@ -943,7 +924,7 @@ Returns the length of the frame which begins at position
 prevHeader in bytes. 
 
 */
-int MP3::FrameLength (int prevHeader, char *buffer) {
+int MP3::FrameLength (int prevHeader, const char *buffer) const {
     int bitrate = CalcBitrate (prevHeader, buffer)*1000;
     int frequ = CalcFrequency (prevHeader, buffer);
     int padding = (buffer[prevHeader + 2] & 0x02) >> 1;  
@@ -958,7 +939,7 @@ which is in the buffer. The beginning of the previous
 frame has to be provided in prevHeader. 
 
 */
-int MP3::FindNextHeader(int prevHeader, char *buffer, int size) {
+int MP3::FindNextHeader(int prevHeader, const char *buffer, int size) const {
     int length = FrameLength (prevHeader, buffer);
 
     /* The maximum frame length is 1440. */
@@ -978,7 +959,7 @@ Calculates the MP3 version of the song which is in
 the buffer. 
 
 */
-int MP3::CalcMP3Version(int Header, char *buffer) {
+int MP3::CalcMP3Version(int Header, const char *buffer) const {
     byte versionCode = buffer[Header + 1] & 0X08;
     return (versionCode == 8) ? 1 : 2;
 }
@@ -990,7 +971,7 @@ Calculates the bitrate of the song which is in
 the buffer. 
 
 */
-int MP3::CalcBitrate(int Header, char *buffer) {
+int MP3::CalcBitrate(int Header, const char *buffer) const {
     byte bitrateCode = (buffer[Header + 2] & 0xF0) >> 4;
 
     switch(bitrateCode) {
@@ -1021,7 +1002,7 @@ Calculates the frequency of the song which is in
 the buffer. 
 
 */
-int MP3::CalcFrequency(int Header, char *buffer) {
+int MP3::CalcFrequency(int Header, const char *buffer) const {
     int frequencyCode = buffer[Header + 2] & 0x0C; 
 
     switch(frequencyCode) {
@@ -1039,7 +1020,7 @@ int MP3::CalcFrequency(int Header, char *buffer) {
 Returns the bitrate of this MP3. 
 
 */
-int MP3::GetBitrate() {
+int MP3::GetBitrate() const {
     return bitrate;
 }
 
@@ -1049,7 +1030,7 @@ int MP3::GetBitrate() {
 Returns the MP3 version of this object. (MPEG1 or MPEG2) 
 
 */
-int MP3::GetMP3Version() {
+int MP3::GetMP3Version() const {
     return version;
 }
 
@@ -1059,7 +1040,7 @@ int MP3::GetMP3Version() {
 Returns the frequency of this MP3. 
 
 */
-int MP3::GetFrequency() {
+int MP3::GetFrequency() const {
     return frequency;
 }
 
@@ -1069,7 +1050,7 @@ int MP3::GetFrequency() {
 Returns the number of frames of this MP3. 
 
 */
-int MP3::GetFrameCount(){
+int MP3::GetFrameCount() const{
     return framecount;
 }
 
@@ -1079,7 +1060,7 @@ int MP3::GetFrameCount(){
 Returns the length of this MP3 in seconds. 
 
 */
-int MP3::GetLength(){
+int MP3::GetLength() const {
     return length;
 }
 
@@ -1300,17 +1281,17 @@ public:
     /* Sets this object as defined or undefined. */
     void SetDefined( bool Defined);
     /* Calcules a hash value for an ID3. */
-    size_t HashValue();
+    size_t HashValue() const;
     /* Copy the data of another ID3 object into this object. */
-    void CopyFrom(StandardAttribute* right);
+    void CopyFrom(const StandardAttribute* right);
     /* Compare this ID3 with another ID3 object. */
-    int Compare(Attribute * arg);
+    int Compare(const Attribute * arg) const;
     /* Adjacent is not useful for ID3 */
-    bool Adjacent(Attribute * arg);
+    bool Adjacent(const Attribute * arg) const;
     /* Clones this ID3 object. */
-    ID3* Clone();
+    ID3* Clone() const;
     /* Prints a textual representation of an ID3 tag. */
-    ostream& Print( ostream &os );
+    ostream& Print( ostream &os ) const;
     /* Creates an ID3 dump (128 bytes) from this object
        and stores it into iddump. The memory has to be 
        provided by the caller. */
@@ -1405,7 +1386,7 @@ void ID3::SetDefined (bool Defined) {
 Calcules a hash value for an ID3.
 
 */
-size_t ID3::HashValue () { 
+size_t ID3::HashValue () const { 
     if (!defined)
 	return 0;
     else {
@@ -1425,8 +1406,8 @@ size_t ID3::HashValue () {
 Copy the data of another ID3 object into this object. 
 
 */
-void ID3::CopyFrom(StandardAttribute* right) {
-    ID3* id = (ID3*) right;
+void ID3::CopyFrom(const StandardAttribute* right) {
+    const ID3* id = (const ID3*) right;
     *this = *id;
 }
 
@@ -1436,7 +1417,7 @@ void ID3::CopyFrom(StandardAttribute* right) {
 Compare this ID3 with another ID3 object. 
 
 */
-int ID3::Compare (Attribute * arg) {
+int ID3::Compare (const Attribute * arg) const {
     return 0;
 }
 
@@ -1446,7 +1427,7 @@ int ID3::Compare (Attribute * arg) {
 Adjacent is not useful for ID3 
 
 */
-bool ID3::Adjacent (Attribute * arg) {
+bool ID3::Adjacent (const Attribute * arg) const {
     return 0;
 }
 
@@ -1456,7 +1437,7 @@ bool ID3::Adjacent (Attribute * arg) {
 Clones this ID3 object. 
 
 */
-ID3* ID3::Clone() {
+ID3* ID3::Clone() const {
     ID3 *newID3 = new ID3();
     newID3->CopyFrom(this);
     return newID3;
@@ -1468,7 +1449,7 @@ ID3* ID3::Clone() {
 Prints a textual representation of an ID3 file. 
 
 */
-ostream& ID3::Print( ostream &os ) {
+ostream& ID3::Print( ostream &os ) const {
 
     return os << "ID3 tag." << endl;
 }
@@ -2045,7 +2026,7 @@ struct Line {
     int seconds;
     char textline[255];
 
-    size_t HashValue() {
+    size_t HashValue() const {
 	size_t result = 0;
 	for (int i = 0; i < 255; i++) result = result + textline[i];
 	return result;
@@ -2072,31 +2053,31 @@ class Lyrics : StandardAttribute {
     /* Destructor */
     ~Lyrics();
     /* Clones this Lyrics object. */
-    Lyrics *Clone();
+    Lyrics *Clone() const;
     /* Returns whether this object is defined or not. */ 
     bool IsDefined() const;
     /* Sets this object as defined or undefined. */
     void SetDefined( bool Defined);
     /* Calcules a hash value for an Lyrics. */
-    size_t HashValue();
+    size_t HashValue() const;
     /* Copy the data of another Lyrics object into this object. */
-    void CopyFrom(StandardAttribute* right);
+    void CopyFrom(const StandardAttribute* right);
     /* Returns the number of FLOBs : 1 */
-    int NumOfFLOBs();
+    int NumOfFLOBs() const;
     /* Returns the line array. */
     FLOB *GetFLOB(const int i);
     /* Compare this Lyrics with another Lyrics object. */
-    int Compare(Attribute * arg);
+    int Compare(const Attribute * arg) const;
     /* Adjacent is not useful for Lyrics */
-    bool Adjacent(Attribute * arg);
+    bool Adjacent(const Attribute * arg) const;
     /* Appends a new line to the lines array. */
     void Append( Line oneline);
     /* This object can be deleted by the secondo system. */
     void Destroy();
     /* Returns the number of lines of the lyrics. */
-    int NoLines();
+    int NoLines() const;
     /* Returns the ith line of the lyrics. */
-    Line GetLine( int i );
+    Line GetLine( int i ) const;
 
   private:
     bool defined;
@@ -2133,7 +2114,7 @@ Lyrics::~Lyrics() {
 Clones this Lyrics object.
 
 */
-Lyrics *Lyrics::Clone() {
+Lyrics *Lyrics::Clone() const {
     Lyrics *lyrics = new Lyrics(0);
     lyrics->CopyFrom(this);
     return lyrics;
@@ -2166,12 +2147,12 @@ void Lyrics::SetDefined (bool Defined) {
 Calcules a hash value for an Lyrics. 
 
 */
-size_t Lyrics::HashValue () {  
+size_t Lyrics::HashValue () const {  
     size_t result = 0;
     for (int i = 0; i < linearray.Size(); i++) {
-	Line aLine;
+	const Line *aLine;
 	linearray.Get(i, aLine);
-	result = result + aLine.HashValue();
+	result = result + aLine->HashValue();
     }
     return 0;
 }
@@ -2182,8 +2163,8 @@ size_t Lyrics::HashValue () {
 Copy the data of another Lyrics object into this object. 
 
 */
-void Lyrics::CopyFrom(StandardAttribute* right) {
-    Lyrics* lyrics = (Lyrics*) right;
+void Lyrics::CopyFrom(const StandardAttribute* right) {
+    const Lyrics* lyrics = (const Lyrics*) right;
     
     for(int i = 0; i < lyrics->NoLines(); i++ ) {
 	Append(lyrics->GetLine(i));
@@ -2198,7 +2179,7 @@ void Lyrics::CopyFrom(StandardAttribute* right) {
 Returns the number of FLOBs : 1
 
 */
-int Lyrics::NumOfFLOBs() {
+int Lyrics::NumOfFLOBs() const {
     return 1;
 }
 
@@ -2219,7 +2200,7 @@ FLOB *Lyrics::GetFLOB(const int i) {
 Compare this Lyrics with another Lyrics object. 
 
 */
-int Lyrics::Compare (Attribute * arg) {
+int Lyrics::Compare (const Attribute * arg) const {
     return 0;
 }
 
@@ -2229,7 +2210,7 @@ int Lyrics::Compare (Attribute * arg) {
 Adjacent is not useful for Lyrics
 
 */
-bool Lyrics::Adjacent (Attribute * arg) {
+bool Lyrics::Adjacent (const Attribute * arg) const {
     return 0;
 }
 
@@ -2260,7 +2241,7 @@ void Lyrics::Destroy() {
 Returns the number of lines of the lyrics.
 
 */
-int Lyrics::NoLines() {
+int Lyrics::NoLines() const {
     return linearray.Size();
 }
 
@@ -2270,11 +2251,10 @@ int Lyrics::NoLines() {
 Returns a Line indexed by ~i~.
 
 */
-Line Lyrics::GetLine( int i ) {
-    Line l;
+Line Lyrics::GetLine( int i ) const {
+    const Line *l;
     linearray.Get( i, l );
-
-    return l;
+    return *l;
 }
 
 
@@ -2934,7 +2914,7 @@ int BitrateFun(Word* args, Word& result, int message,
 	       Word& local, Supplier s) {
     result = qp->ResultStorage( s );
     MP3 *mp3 = (MP3*)args[0].addr;
-    ((CcInt *)result.addr)->Set(mp3->GetDefined(), mp3->GetBitrate());
+    ((CcInt *)result.addr)->Set(mp3->IsDefined(), mp3->GetBitrate());
     return 0;
 }
 
@@ -3005,7 +2985,7 @@ int VersionFun(Word* args, Word& result, int message,
     result = qp->ResultStorage( s );
     MP3 *mp3 = (MP3*)args[0].addr;
     
-    ((CcInt *)result.addr)->Set(mp3->GetDefined(), mp3->GetMP3Version());
+    ((CcInt *)result.addr)->Set(mp3->IsDefined(), mp3->GetMP3Version());
     
     return 0;
 }
@@ -3077,7 +3057,7 @@ int FrequencyFun(Word* args, Word& result, int message,
     result = qp->ResultStorage( s );
     MP3 *mp3 = (MP3*)args[0].addr;
     
-    ((CcInt *)result.addr)->Set(mp3->GetDefined(), mp3->GetFrequency());
+    ((CcInt *)result.addr)->Set(mp3->IsDefined(), mp3->GetFrequency());
 
     return 0;
 }
@@ -3150,7 +3130,7 @@ int FrameCountFun(Word* args, Word& result, int message,
     result = qp->ResultStorage( s );
     MP3 *mp3 = (MP3*)args[0].addr;
     
-    ((CcInt *)result.addr)->Set(mp3->GetDefined(), mp3->GetFrameCount());
+    ((CcInt *)result.addr)->Set(mp3->IsDefined(), mp3->GetFrameCount());
     
     return 0;
 }
@@ -3222,7 +3202,7 @@ int LengthFun(Word* args, Word& result, int message, Word& local, Supplier s) {
     result = qp->ResultStorage( s );
     MP3 *mp3 = (MP3*)args[0].addr;
     
-    ((CcInt *)result.addr)->Set(mp3->GetDefined(), mp3->GetLength());
+    ((CcInt *)result.addr)->Set(mp3->IsDefined(), mp3->GetLength());
     
     return 0;
 }
@@ -3303,9 +3283,9 @@ int GetID3Fun(Word* args, Word& result, int message, Word& local, Supplier s) {
 	return 0;
     }
     
-    char bytes[128];
+    const char *bytes;
     char tag [4] = "TAG";
-    mp3->GetID3Dump (bytes);
+    mp3->GetID3Dump (&bytes);
         
     if (!(strncmp (bytes,tag,3) == 0)) {
 	/* The first three characters were not "TAG". 
@@ -4197,14 +4177,14 @@ int GetLyricsFun(Word* args, Word& result, int message,
     }
 
     /* buffer for the lyrics */
-    char* buffer;
+    const char* buffer;
     /* size of the lyrics dump */
     int size;
     /* iterator for scanning the lyrics text lines. */
     char* iter; 
     
     /* get the lyrics dump from the MP3 object. */
-    mp3->GetLyricsDump (buffer,size);
+    mp3->GetLyricsDump (&buffer,size);
 
     /* The proper lyrics text data begin after the "LYR" tag. 
      So we have to look for the first occurance of "LYR" 
@@ -4268,8 +4248,6 @@ int GetLyricsFun(Word* args, Word& result, int message,
 	    iter = iter + 7;
 	}
     }
-    free (buffer);
-
     newlyrics->SetDefined (true);
     result.addr = newlyrics;
     return 0;

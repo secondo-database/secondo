@@ -92,7 +92,7 @@ class CcInt : public StandardAttribute
     this->defined = defined;
   }
     
-  inline int GetIntval() 
+  inline int GetIntval() const
   { 
     return (intval); 
   }
@@ -107,45 +107,50 @@ class CcInt : public StandardAttribute
     defined = d, intval = v; 
   }
   
-  inline size_t HashValue()
+  inline size_t HashValue() const
   { 
     return (defined ? intval : 0); 
   }
   
-  void CopyFrom(StandardAttribute* right);
-  
-  inline int Compare(Attribute *arg)
+  inline void CopyFrom(const StandardAttribute* right)
   {
-    assert(arg);
-    CcInt* p = (CcInt*)(arg);
-    bool argDefined = p->defined;
-    if(!defined && !argDefined) {
-      return 0;
-    }
-    if(!defined) {
+    const CcInt* r = (const CcInt*)right;
+    defined = r->defined;
+    intval = r->intval;
+  }
+  
+  inline int Compare(const Attribute *arg) const
+  {
+    if(!defined) 
       return -1;
-    }
-    if(!argDefined) {
+    const CcInt* p = (const CcInt*)arg;
+    if(!defined && !p->defined) 
+      return 0;
+    if(!p->defined) 
       return 1;
-    }
-
-    if ( intval < p->intval ) {
-      return (-1);
-    }  
-    if ( intval > p->intval) {
-      return (1);
-    }  
-    return (0);
+    if( !p )
+      return -2;
+    if ( intval < p->intval ) 
+      return -1;
+    if ( intval > p->intval) 
+      return 1;
+    return 0;
   }
 
-  bool Adjacent(Attribute *arg);
+  inline bool Adjacent(const Attribute *arg) const
+  {
+    int a = GetIntval(),
+        b = ((const CcInt *)arg)->GetIntval();
+
+    return( a == b || a == b + 1 || b == a + 1 );
+  }
   
-  inline CcInt* Clone() 
+  inline CcInt* Clone() const
   { 
     return (new CcInt( this->defined, this->intval )); 
   }
   
-  ostream& Print( ostream &os ) { return (os << intval); }
+  inline ostream& Print( ostream &os ) const { return (os << intval); }
 
   ListExpr CopyToList( ListExpr typeInfo )
   {
@@ -190,22 +195,109 @@ class CcInt : public StandardAttribute
 class CcReal : public StandardAttribute
 {
  public:
-  CcReal();
-  CcReal( bool d, float v );
-  ~CcReal();
-  void     Initialize();
-  void     Finalize();
-  bool     IsDefined() const;
-  void     SetDefined(bool defined);
-  float    GetRealval();
-  void     Set( float v );
-  void     Set( bool d, float v );
-  size_t HashValue();
-  void CopyFrom(StandardAttribute* right);
-  int      Compare( Attribute* arg );
-  bool      Adjacent( Attribute* arg );
-  CcReal*  Clone() ;
-  ostream& Print( ostream &os ) { return (os << realval); }
+  inline CcReal()
+  { 
+     realsCreated++; 
+  }
+
+  inline CcReal( bool d, float v ) 
+  { 
+    defined = d; 
+    realval = v; 
+    realsCreated++; 
+  }
+
+  inline ~CcReal() 
+  { 
+    realsDeleted++; 
+  }
+
+  inline void Initialize() 
+  {}
+
+  inline void Finalize() 
+  {
+    realsDeleted++; 
+  }
+
+  inline bool IsDefined() const 
+  { 
+    return defined; 
+  }
+
+  inline void SetDefined(bool defined) 
+  { 
+    this->defined = defined; 
+  }
+
+  inline float GetRealval() const
+  { 
+    return realval;
+  }
+ 
+  inline void CcReal::Set( float v ) 
+  { 
+    defined = true, 
+    realval = v; 
+  }
+
+  inline void Set( bool d, float v ) 
+  { 
+    defined = d;
+    realval = v; 
+  }
+
+  inline CcReal* Clone() const
+  { 
+    return (new CcReal(this->defined, this->realval)); 
+  }
+
+  inline size_t HashValue() const
+  {
+    if(!defined)
+      return 0;
+
+    unsigned long h = 0;
+    char* s = (char*)&realval;
+    for(unsigned int i = 1; i <= sizeof(float) / sizeof(char); i++)
+    {
+      h = 5 * h + *s;
+      s++;
+    }
+    return size_t(h);
+  }
+
+  inline void CopyFrom(const StandardAttribute* right)
+  {
+    const CcReal* r = (const CcReal*)right;
+    defined = r->defined;
+    realval = r->realval;
+  }
+
+  inline int Compare( const Attribute * arg ) const
+  {
+    if(!defined)
+      return -1;
+    const CcReal *p = (const CcReal*)arg;
+    if(!defined && !p->defined)
+      return 0;
+    if(!p->defined)
+      return 1;
+    if ( !p ) 
+      return -2;
+    if ( realval < p->realval ) 
+      return -1;
+    if ( realval > p->realval ) 
+      return 1;
+    return 0;
+  }
+
+  inline bool Adjacent( const Attribute *arg ) const
+  {
+    return( realval == ((const CcReal *)arg)->realval );
+  }
+
+  inline ostream& Print( ostream &os ) const { return (os << realval); }
 
   static long realsCreated;
   static long realsDeleted;
@@ -223,21 +315,94 @@ class CcReal : public StandardAttribute
 class CcBool : public StandardAttribute
 {
  public:
-  CcBool();
-  CcBool( bool d, int v );
-  ~CcBool();
-  void     Initialize();
-  void     Finalize();
-  bool     IsDefined() const;
-  void     SetDefined(bool defined);
-  bool     GetBoolval();
-  void     Set( bool d, bool v );
-  size_t HashValue();
-  void CopyFrom(StandardAttribute* right);
-  int      Compare( Attribute * arg );
-  bool     Adjacent( Attribute * arg );
-  CcBool*  Clone() ;
-  ostream& Print( ostream &os ) {
+  inline CcBool()
+  { 
+    boolsCreated++; 
+  }
+
+  inline CcBool( bool d, int v )
+  { 
+    defined  = d; 
+    boolval = v; 
+    boolsCreated++; 
+  }
+
+  inline ~CcBool() 
+  { 
+    boolsDeleted++; 
+  }
+ 
+  inline void Initialize() 
+  {}
+
+  inline void Finalize() 
+  { 
+    boolsDeleted++; 
+  }
+
+  inline void Set( bool d, bool v )
+  { 
+    defined = d;
+    boolval = v; 
+  }
+
+  inline bool IsDefined() const 
+  { 
+    return defined; 
+  }
+
+  inline void SetDefined(bool defined) 
+  { 
+    this->defined = defined; 
+  }
+
+  inline bool GetBoolval() const
+  { 
+    return boolval; 
+  }
+
+  inline CcBool* Clone() const
+  { 
+    return new CcBool(this->defined, this->boolval); 
+  }
+
+  inline size_t HashValue() const
+  { 
+    return (defined ? boolval : false); 
+  }
+
+  inline void CopyFrom(const StandardAttribute* right)
+  {
+    const CcBool* r = (const CcBool*)right;
+    defined = r->defined;
+    boolval = r->boolval;
+  }
+
+  inline int Compare( const Attribute* arg ) const
+  {
+    if(!defined)
+      return -1;
+    const CcBool *p = (const CcBool*)arg;
+    if(!defined && !p->defined)
+      return 0;
+    if(!p->defined)
+      return 1;
+    if ( !p )
+      return -2;
+    if ( boolval < p->boolval ) 
+      return -1;
+    if ( boolval > p->boolval ) 
+      return 1;
+    return 0;
+  }
+
+  inline bool Adjacent( const Attribute* arg ) const
+  {
+    return 1;
+  }
+
+  inline ostream& Print( ostream &os ) const
+  {
     if (boolval == true) return (os << "TRUE");
     else return (os << "FALSE");
   }
@@ -260,21 +425,100 @@ typedef char STRING[MAX_STRINGSIZE+1];
 class CcString : public StandardAttribute
 {
  public:
-  CcString();
-  CcString( bool d, const STRING* v );
-  ~CcString();
-  void      Initialize();
-  void      Finalize();
-  bool      IsDefined() const;
-  void      SetDefined(bool defined);
-  STRING*   GetStringval();
-  void      Set( bool d, const STRING* v );
-  size_t HashValue();
-  void CopyFrom(StandardAttribute* right);
-  int       Compare( Attribute* arg );
-  bool      Adjacent( Attribute* arg );
-  CcString* Clone() ;
-  ostream&  Print( ostream &os ) { return (os << "\"" << stringval << "\""); }
+  inline CcString() 
+  { 
+    stringsCreated++; 
+  }
+
+  inline CcString( bool d, const STRING* v ) 
+  { 
+    defined = d; 
+    strcpy( stringval, *v); 
+    stringsCreated++; 
+  }
+
+  inline CcString::~CcString() 
+  { 
+    stringsDeleted++; 
+  }
+
+  inline void Initialize() 
+  {} 
+
+  inline void Finalize() 
+  { 
+    stringsDeleted++; 
+  }
+
+  inline bool IsDefined() const 
+  { 
+    return defined; 
+  }
+
+  inline void SetDefined(bool defined) 
+  { 
+    this->defined = defined; 
+  }
+
+  inline const STRING* GetStringval() const
+  { 
+    return &stringval; 
+  }
+
+  inline CcString* Clone() const
+  { 
+    return (new CcString( this->defined, &this->stringval )); 
+  }
+
+  inline void Set( bool d, const STRING* v ) 
+  { 
+    defined = d; 
+    strcpy( stringval, *v); 
+  }
+
+  inline size_t HashValue() const
+  {
+    if(!defined)
+      return 0;
+
+    unsigned long h = 0;
+    const char* s = stringval;
+    while(*s != 0)
+    {
+      h = 5 * h + *s;
+      s++;
+    }
+    return size_t(h);
+  }
+
+  inline void CopyFrom(const StandardAttribute* right)
+  {
+    const CcString* r = (const CcString*)right;
+    defined = r->defined;
+    strcpy(stringval, r->stringval);
+  }
+
+  inline int Compare( const Attribute* arg ) const
+  {
+    if(!defined)
+      return -1;
+    const CcString* p = (const CcString*)(arg);
+    if(!defined && !p->defined)
+      return 0;
+    if(!p->defined)
+      return 1;
+    if ( !p ) 
+      return -2;
+    if ( strcmp(stringval , p->stringval) < 0) 
+      return -1;
+    if ( !strcmp(stringval , p->stringval)) 
+      return 0;
+    return 1;
+  }
+
+  bool Adjacent( const Attribute* arg ) const;
+
+  inline ostream& Print( ostream &os ) const { return (os << "\"" << stringval << "\""); }
 
   static long stringsCreated;
   static long stringsDeleted;
