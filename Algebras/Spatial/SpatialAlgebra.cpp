@@ -8948,8 +8948,8 @@ static ListExpr ScaleMap(ListExpr args) {
    ListExpr arg1 = nl->First(args);
    ListExpr arg2 = nl->Second(args);
    if(!(nl->IsEqual(arg2 , "real"))){
-      ErrorReporter::ReportError("the second" 
-                                 "arguments has to be of type real");
+      ErrorReporter::ReportError("the second " 
+                                 "argument has to be of type real");
       return nl->SymbolAtom("typeerror");
    }
    if(nl->IsEqual(arg1,"region"))
@@ -14559,20 +14559,20 @@ const string SpatialSpecCommonborderscan  =
 
 const string SpatialSpecTranslate  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point||points||line||region x real x real)"
-  " -> point||points||line||region</text--->"
-  "<text> _ translate[list]</text--->"
-  "<text> move the object parallely for some distance.</text--->"
+  "( <text>for T in {point, points, line, region}: "
+  "T x real x real -> T</text--->"
+  "<text> _ translate[ _, _ ]</text--->"
+  "<text> move the object by the indicated offsets in x and y.</text--->"
   "<text> query region1 translate[3.5, 15.1]</text--->"
   ") )";
 
 const string SpatialSpecScale  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point||points||line||region x real)"
-         " -> point||points||line||region</text--->"
-  "<text> _ scale _ </text--->"
+  "( <text>for T in {point, points, line, region}: "
+         "T x real -> T</text--->"
+  "<text> _ scale [ _ ] </text--->"
   "<text> scales an object by the given factor.</text--->"
-  "<text> query region1 translate[3.5, 15.1]</text--->"
+  "<text> query region1 scale[1000.0]</text--->"
   ") )";
 
 const string SpatialSpecWindowClippingIn  =
