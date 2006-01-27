@@ -171,29 +171,29 @@ int PrivateTuple::Save( SmiRecordFile *tuplefile,
     }
   }
 
-  // Move FLOB data to extension tuple.
-  if( hasFLOBs )
-  {
-    if( extensionSize > 0 )
-      extensionTuple = (char *)malloc(extensionSize);
-
-    char *extensionPtr = extensionTuple;
-    for( int i = 0; i < tupleType->GetNoAttributes(); i++)
-    {
-      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
-      {
-        FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-        if( !tmpFLOB->IsLob() )
-        {
-          tmpFLOB->SaveToExtensionTuple( extensionPtr );
-          extensionPtr += tmpFLOB->Size();
-        }
-      }
-    } 
-  }
-
   if( state == Fresh )
   { 
+    // Move FLOB data to extension tuple.
+    if( hasFLOBs )
+    {
+      if( extensionSize > 0 )
+        extensionTuple = (char *)malloc(extensionSize);
+
+      char *extensionPtr = extensionTuple;
+      for( int i = 0; i < tupleType->GetNoAttributes(); i++)
+      {
+        for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
+        {
+          FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
+          if( !tmpFLOB->IsLob() )
+          {
+            tmpFLOB->SaveToExtensionTuple( extensionPtr );
+            extensionPtr += tmpFLOB->Size();
+          }
+        }
+      } 
+    }
+
     // Move external attributes to memory tuple
     assert( memoryTuple == 0 );
     memoryTuple = (char*)malloc( tupleType->GetTotalSize() );
