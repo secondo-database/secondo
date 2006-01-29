@@ -14,6 +14,9 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
+January 2006, various bugfixes and improvements by Holger M[ue]nx,
+with the help of Victor Almeida and Thomas Behr.
+
 [TOC]
 
 1 Introduction
@@ -754,10 +757,22 @@ as intersection.
     }
 
 /*
-This should not happen since both segments must not be on the same line.
+Both segments are located on the same line. We have to check whether they
+are overlapping.
 
 */
-    assert(false);
+
+    if ((between(l1p1x, l2p1x, l1p2x) 
+         && between(l1p1y, l2p1y, l1p2y))
+        || (between(l1p1x, l2p2x, l1p2x)
+            && between(l1p1y, l2p2y, l1p2y))
+        || (between(l2p1x, l1p1x, l2p2x) 
+            && between(l2p1y, l1p1y, l2p2y))
+        || (between(l2p1x, l1p2x, l2p2x)
+            && between(l2p1y, l1p2y, l2p2y))) 
+        return true;
+    else
+        return false;
 }
 
 /*
@@ -792,17 +807,38 @@ static bool specialSegmentIntersects1(double dt,
 /*
 1.1 Intersections between two trapeziums
 
-1.1.1 Function ~specialTrapeziumIntersects()~ (for unit testing)
-\label{stiut}
+1.1.1 Function ~specialTrapeziumIntersects()~ 
+\label{stinu}
 
-See section \ref{stinu} for a full description of the parameters and
-result of this function except the additional parameter ~detailedResult~,
-which will receive a numeric representation of the specific case
-responsible for the return value of the function. ~detailedResult~ is
-only used for unit testing: Since this function is quite complex, we have
-introduced this parameter to facilitate detailed unit testing. Since
-~detailedResult~ is used for unit testing only, it is not described in
-complete detail here.
+Returns ~true~ if and only if the two specified special trapeziums intersect
+in three-dimensional space $(x, y, t)$.
+
+The two trapeziums must meet the following conditions. These conditions are
+not checked in the function. If the conditions are not met, the function will
+deliver incorrect results.
+
+Trapezium 1 is spanned by segments ~(t1p1x, t1p1y, 0)~ to ~(t1p2x, t1p2y, 0)~,
+~(t1p1x, t1p1y, 0)~ to ~(t1p3x, t1p3y, dt)~, ~(t1p3x, t1p3y, dt)~ to
+~(t1p4x, t1p4x, dt)~ and ~(t1p2x, t1p2y, 0)~ to ~(t1p4x, t1p4x, dt)~.
+Allowed are either ~(t1p1x, t1p1y, 0)=(t1p2x, t1p2y, 0)~ or
+~(t1p3x, t1p3y, dt)=(t1p4x, t1p4x, dt)~ but not both. Segments
+~(t1p1x, t1p1y, 0)~ to ~(t1p2x, t1p2y, 0)~ and
+~(t1p3x, t1p3y, dt)~ to ~(t1p4x, t1p4x, dt)~ are collinear.
+
+Trapezium 2 is spanned by segments ~(t2p1x, t2p1y, 0)~ to ~(t2p2x, t2p2y, 0)~,
+~(t2p1x, t2p1y, 0)~ to ~(t2p3x, t2p3y, dt)~, ~(t2p3x, t2p3y, dt)~ to
+~(t2p4x, t2p4x, dt)~ and ~(t2p2x, t2p2y, 0)~ to ~(t2p4x, t2p4x, dt)~.
+Allowed are either ~(t2p1x, t2p1y, 0)=(t2p2x, t2p2y, 0)~ or
+~(t2p3x, t2p3y, dt)=(t2p4x, t2p4x, dt)~ but not both. Segments
+~(t2p1x, t2p1y, 0)~ to ~(t2p2x, t2p2y, 0)~ and
+~(t2p3x, t2p3y, dt)~ to ~(t2p4x, t2p4x, dt)~ are collinear.
+
+$dt$ must be greater than $0$.
+
+~detailedResult~ which will contain a numeric representation of the specific 
+case
+responsible for the return value of the function. (Full description of
+~detailedResult~ should be added here.)
 
 */
 static bool specialTrapeziumIntersects(
@@ -902,9 +938,6 @@ Now, lets see if the trapeziums touch in one segment.
          && nearlyEqual(t1p1y, t2p1y)
          && nearlyEqual(t1p3x, t2p3x)
          && nearlyEqual(t1p3y, t2p3y))
-
-
-
         || (nearlyEqual(t1p1x, t2p2x)
             && nearlyEqual(t1p1y, t2p2y)
             && nearlyEqual(t1p3x, t2p4x)
@@ -1070,6 +1103,17 @@ of the other trapezium.
                 if (MRA_DEBUG)
                     cerr << "specialTrapeziumIntersects() intersects"
                          << endl;
+
+                cerr << ::std::fixed
+                     << ::std::setprecision(6);
+                for (unsigned int i = 0; i < 3; i++) 
+                    cerr <<Ap[i][0]<<" "
+                         <<Ap[i][1]<<" "
+                         <<Ap[i][2]<<" "
+                         <<Ap[i][3] 
+                         <<"|"
+                         <<B[i]
+                         <<endl;
 
                 detailedResult = 3;
                 return true;
@@ -1435,77 +1479,6 @@ separately.
             return false;
         }
     }
-}
-
-/*
-1.1.1 Function ~specialTrapeziumIntersects()~ (for normal use)
-\label{stinu}
-
-Returns ~true~ if and only if the two specified special trapeziums intersect
-in three-dimensional space $(x, y, t)$.
-
-The two trapeziums must meet the following conditions. These conditions are
-not checked in the function. If the conditions are not met, the function will
-deliver incorrect results.
-
-Trapezium 1 is spanned by segments ~(t1p1x, t1p1y, 0)~ to ~(t1p2x, t1p2y, 0)~,
-~(t1p1x, t1p1y, 0)~ to ~(t1p3x, t1p3y, dt)~, ~(t1p3x, t1p3y, dt)~ to
-~(t1p4x, t1p4x, dt)~ and ~(t1p2x, t1p2y, 0)~ to ~(t1p4x, t1p4x, dt)~.
-Allowed are either ~(t1p1x, t1p1y, 0)=(t1p2x, t1p2y, 0)~ or
-~(t1p3x, t1p3y, dt)=(t1p4x, t1p4x, dt)~ but not both. Segments
-~(t1p1x, t1p1y, 0)~ to ~(t1p2x, t1p2y, 0)~ and
-~(t1p3x, t1p3y, dt)~ to ~(t1p4x, t1p4x, dt)~ are collinear.
-
-Trapezium 2 is spanned by segments ~(t2p1x, t2p1y, 0)~ to ~(t2p2x, t2p2y, 0)~,
-~(t2p1x, t2p1y, 0)~ to ~(t2p3x, t2p3y, dt)~, ~(t2p3x, t2p3y, dt)~ to
-~(t2p4x, t2p4x, dt)~ and ~(t2p2x, t2p2y, 0)~ to ~(t2p4x, t2p4x, dt)~.
-Allowed are either ~(t2p1x, t2p1y, 0)=(t2p2x, t2p2y, 0)~ or
-~(t2p3x, t2p3y, dt)=(t2p4x, t2p4x, dt)~ but not both. Segments
-~(t2p1x, t2p1y, 0)~ to ~(t2p2x, t2p2y, 0)~ and
-~(t2p3x, t2p3y, dt)~ to ~(t2p4x, t2p4x, dt)~ are collinear.
-
-$dt$ must be greater than $0$.
-
-*/
-
-static bool specialTrapeziumIntersects(double dt,
-                                       double t1p1x,
-                                       double t1p1y,
-                                       double t1p2x,
-                                       double t1p2y,
-                                       double t1p3x,
-                                       double t1p3y,
-                                       double t1p4x,
-                                       double t1p4y,
-                                       double t2p1x,
-                                       double t2p1y,
-                                       double t2p2x,
-                                       double t2p2y,
-                                       double t2p3x,
-                                       double t2p3y,
-                                       double t2p4x,
-                                       double t2p4y) {
-    if (MRA_DEBUG)
-        cerr << "specialTrapeziumIntersects() called"
-             << endl;
-
-    unsigned int detailedResult;
-
-/*
-This function is just a thin wrapper around the function in section
-\ref{stiut}, throwing away the parameter ~detailedResult~, which is
-only used for unit testing.
-
-*/
-
-    return
-        specialTrapeziumIntersects(
-            dt,
-            t1p1x, t1p1y, t1p2x, t1p2y,
-            t1p3x, t1p3y, t1p4x, t1p4y,
-            t2p1x, t2p1y, t2p2x, t2p2y,
-            t2p3x, t2p3y, t2p4x, t2p4y,
-            detailedResult);
 }
 
 /*
@@ -2352,6 +2325,7 @@ Both segments are not vertical.
                      << "none vertical"
                      << endl;
 
+#ifdef SCHMUH
             double id = (iey-isy)/(iex-isx);
             double fd = (fey-fsy)/(fex-fsx);
 
@@ -2362,6 +2336,26 @@ Both segments are not vertical.
                      << endl;
 
             collinear = nearlyEqual(id, fd);
+#endif
+
+            collinear = nearlyEqual((iey-isy)*(fex-fsx), (fey-fsy)*(iex-isx));
+
+            if (!collinear) {
+                cerr << ::std::fixed << ::std::setprecision(6);
+                cerr << "isx=" << isx
+                     << " isy=" << isy
+                     << " iex=" << iex
+                     << " iey=" << iey
+                     << " fsx=" << fsx
+                     << " fsy=" << fsy
+                     << " fex=" << fex
+                     << " fey=" << fey
+                     << endl;
+                cerr << "(iey-isy)/(iex-isx)=" << (iey-isy)/(iex-isx) << endl;
+                cerr << "(fey-fsy)/(fex-fsx)=" << (fey-fsy)/(fex-fsx) << endl;
+                cerr << "(iey-isy)*(fex-fsx)=" << (iey-isy)*(fex-fsx) << endl;
+                cerr << "(fey-fsy)*(iex-isx)=" << (fey-fsy)*(iex-isx) << endl;
+            }
         }
 
         if (!collinear)
@@ -5635,6 +5629,8 @@ Since both a moving segments and are spanning a trapezium in 3d space
 $(x, y, t)$, this is equivalent to the intersection of two trapeziums.
 
 */
+            unsigned int detailedResult;
+
             if (specialTrapeziumIntersects(intervalLen,
                                            existingDms.initialStartX,
                                            existingDms.initialStartY,
@@ -5651,8 +5647,27 @@ $(x, y, t)$, this is equivalent to the intersection of two trapeziums.
                                            dms.finalStartX,
                                            dms.finalStartY,
                                            dms.finalEndX,
-                                           dms.finalEndY))
-                throw invalid_argument("moving segments intersect");
+                                           dms.finalEndY,
+                                           detailedResult)) {
+                cerr << "existing segment: ("
+                     << existingDms.initialStartX
+                     << " " << existingDms.initialStartY
+                     << " " << existingDms.initialEndX
+                     << " " << existingDms.initialEndY
+                     << ")-("
+                     << existingDms.initialStartX
+                     << " " << existingDms.initialStartY
+                     << " " << existingDms.initialEndX
+                     << " " << existingDms.initialEndY
+                     << ")"
+                     << endl;
+
+                stringstream msg;
+                msg << "moving segments intersect (code "
+                    << detailedResult
+                    << ")";
+                throw invalid_argument(msg.str());
+            }
         }
 
 /*
