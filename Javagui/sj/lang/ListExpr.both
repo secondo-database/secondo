@@ -697,7 +697,7 @@ public boolean writeBinaryTo(OutputStream OS){
      DOS = new MyDataOutputStream(OS);
      DOS.writeString("bnl");
      DOS.writeShort(1);
-     DOS.writeShort(1);
+     DOS.writeShort(2);
      boolean ok = writeBinaryRec(this,DOS);
      DOS.flush();
      return ok;
@@ -746,6 +746,11 @@ private static boolean writeBinaryRec(ListExpr LE, MyDataOutputStream OS){
                                     double value1 = LE.realValue();
                                     OS.writeReal(value1);
                                     return true;
+                                  }
+          case BIN_DOUBLE         : { OS.writeByte(T);
+                                      double value1 = LE.realValue();
+                                      OS.writeDouble(value1);
+                                      return true;
                                   }
           case BIN_SHORTSTRING  : { OS.writeByte(T);
                                     String value1 = LE.stringValue();
@@ -862,7 +867,7 @@ switch(AT){
           return BIN_SHORTINT;
        return BIN_INTEGER;
            }
-  case REAL_ATOM    : return BIN_REAL;
+  case REAL_ATOM    : return BIN_DOUBLE;
   case SYMBOL_ATOM  : { int len = symbolValue().length();
                         if(len<256)
          return BIN_SHORTSYMBOL;
@@ -972,7 +977,7 @@ public static ListExpr readBinaryFrom(InputStream In){
       System.out.println("wrong signatur or version "+Sig );
       return null;
     }
-    if(major!=1 | ( minor!=0 & minor!=1)){
+    if(major!=1 | ( minor!=0 & minor!=1 & minor!=2)){
        System.out.println("wrong version numer "+major+"."+minor);
        return null;
     }
@@ -1666,6 +1671,7 @@ try{
       case BIN_SHORTINT       : { return intAtom(in.readShort());}
       case BIN_INTEGER        : { return intAtom(in.readInt());}
       case BIN_REAL           : { return realAtom(in.readReal());}
+      case BIN_DOUBLE         : { return realAtom(in.readDouble());}
       case BIN_SHORTSTRING    : { int len = getPositiveInt(in.readByte());
                                   return stringAtom(in.readString(len));
                                 }
@@ -2217,6 +2223,7 @@ public final static int BIN_SYMBOL= 16;
 public final static int BIN_SHORTSYMBOL = 17;
 public final static int BIN_TEXT = 18;
 public final static int BIN_SHORTTEXT=19;
+public final static int BIN_DOUBLE=20;
 
 
 /*

@@ -971,7 +971,7 @@ Copies a nested list from ~this~ instance to the target instance.
   
   byte  GetBinaryType(ListExpr list);
   char* hton(long value);
-  void  NestedList::swap(char* buffer);
+  inline void  NestedList::swap(char* buffer,int size);
   ListExpr typeError; 
   
   CTable<NodeRecord>   *nodeTable;   // nodes

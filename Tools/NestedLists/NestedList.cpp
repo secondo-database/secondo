@@ -1222,7 +1222,7 @@ NestedList::WriteBinaryTo(ListExpr list, ostream& os) {
 
   assert( os.good() );
 
-  const byte v[7] = {'b','n','l',0,1,0,0};
+  const byte v[7] = {'b','n','l',0,1,0,2};
   os.write((char*)v,7);
   bool ok = WriteBinaryRec(list, os);
   os.flush();
@@ -1298,6 +1298,7 @@ static const byte BIN_SYMBOL= 16;
 static const byte BIN_SHORTSYMBOL = 17;
 static const byte BIN_TEXT = 18;
 static const byte BIN_SHORTTEXT = 19;
+static const byte BIN_DOUBLE = 20;
 
 
 /*
@@ -1318,7 +1319,7 @@ NestedList::GetBinaryType(ListExpr list) {
 			   return BIN_SHORTINT;
 			return BIN_INTEGER;
 		      }
-  case RealType     : return BIN_REAL;
+  case RealType     : return BIN_DOUBLE;
   case SymbolType   : { int len = SymbolValue(list).length();
                         if(len<256)
 			   return BIN_SHORTSYMBOL;
@@ -1403,14 +1404,13 @@ NestedList::ReadShort(istream& in) {
 
 /*
 6.4 swap: Convert a ~N~ byte buffer into reverse order. This is needed to
-    convert float values between little endian an big endian representation. 
+    convert float/double values between little endian an big endian representation. 
    
 */
 
-void
-NestedList::swap(char* buffer) 
+inline void
+NestedList::swap(char* buffer, const int n) 
 {
-  static const int n = sizeof(float);	
   for (int i = 0; i < n/2; i++)
   {
     char c = buffer[n-1-i];
@@ -1511,9 +1511,20 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
 				 in.read(fp, 4);
                                  pos +=4;
 			         if ( WinUnix::isLittleEndian() ) {
-				    swap(fp);
+				    swap(fp,sizeof(float));
 				 }
 				 result = RealAtom( fval );
+ 				 return true;
+				} 
+      case BIN_DOUBLE           : {
+ 				 double dval = 0;
+         char* dp = (char*) &dval;
+				 in.read(dp, 8);
+         pos +=8;
+			   if ( WinUnix::isLittleEndian() ) {
+				    swap(dp,sizeof(double));
+				 }
+				 result = RealAtom( dval );
  				 return true;
 				} 
 				
@@ -1641,6 +1652,7 @@ bool
 NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
 
   static const int floatLen=sizeof(float);
+  static const int doubleLen=sizeof(double);
   static const int longLen=sizeof(long);
   
   
@@ -1682,9 +1694,20 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
                            memcpy( (void*) val, (void*) &value, floatLen );
 
 			   if ( WinUnix::isLittleEndian() ) {
-			     swap(val);
+			     swap(val,sizeof(float));
 			   }
                            os.write(val,floatLen);
+			   return true;
+	  }
+	  case BIN_DOUBLE:   {
+	        double value = RealValue(list);
+          char val[doubleLen];
+          memcpy( (void*) val, (void*) &value, doubleLen );
+
+			   if ( WinUnix::isLittleEndian() ) {
+			     swap(val,sizeof(double));
+			   }
+           os.write(val,doubleLen);
 			   return true;
 	  }
           case BIN_SHORTSTRING:
