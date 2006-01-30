@@ -8,7 +8,7 @@
 include ./makefile.inc
 
 .PHONY: all #creates the gui and all known viewers
-all: check makedirs sgui.bat
+all: check makedirs 
 	@chmod ugo+x sgui
 
 .PHONY: check
@@ -28,9 +28,6 @@ help:
 	@echo "make demo     -> creates a single jar archive from the class files and the needed resources"
 	@echo "                 you can find it in the Demo directory with additionally configuration files"
 	@echo "                 as well as a script for starting the demo"
-
-sgui.bat: sgui
-	cp sgui sgui.bat
 
 
 .PHONY: doc # creates the documentation  via $(JAVADOC)
