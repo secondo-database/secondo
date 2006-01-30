@@ -92,7 +92,8 @@ the coordinates can be set.
 
 */
 
-    inline Rectangle( const bool defined, const double *min, const double *max );
+    inline Rectangle( const bool defined, 
+                      const double *min, const double *max );
 /*
 The second constructor. First one can set if the rectangle is defined, and if it is,
 the coordinates can be set.
@@ -104,6 +105,8 @@ the coordinates can be set.
 The copy constructor.
 
 */
+
+    inline void Set(const bool defined, const double *min, const double *max);
 
     inline bool IsDefined() const;
 /*
@@ -308,15 +311,11 @@ the coordinates can be set.
 
 */
 template <unsigned dim>
-inline Rectangle<dim>::Rectangle( const bool defined, const double *min, const double *max ):
+inline Rectangle<dim>::Rectangle( const bool defined, const double *min, 
+                                  const double *max ):
 defined( defined )
 {
-  for( unsigned i = 0; i < dim; i++ )
-  {
-    this->min[i] = min[i];
-    this->max[i] = max[i];
-  }
-  assert( Proper() );
+   Set(defined,min,max);
 }
 
 /*
@@ -334,6 +333,26 @@ defined( r.defined )
   }
   assert( Proper() );
 }
+
+/*
+Sets the values of this rectangle.
+
+*/
+template <unsigned dim>
+inline void Rectangle<dim>::Set(const bool defined, const double *min, 
+                           const double *max){
+  this->defined = defined;
+  for( unsigned i = 0; i < dim; i++ )
+  {
+    this->min[i] = min[i];
+    this->max[i] = max[i];
+  }
+  assert( Proper() );
+}
+
+
+
+
 
 /*
 Checks if the rectangle is defined.
@@ -533,7 +552,8 @@ Returns the intersection between this and the rectangle ~r~.
 
 */
 template <unsigned dim>
-inline Rectangle<dim> Rectangle<dim>::Intersection( const Rectangle<dim>& r ) const
+inline Rectangle<dim> 
+      Rectangle<dim>::Intersection( const Rectangle<dim>& r ) const
 {
   if( !defined || !r.defined || !Intersects( r ) )
     return Rectangle<dim>( false ); 
@@ -611,7 +631,8 @@ Word InRectangle( const ListExpr typeInfo, const ListExpr instance,
 
     for( unsigned i = 0; i < dim; i++ )
     {
-      if( nl->IsAtom( nl->First( l ) ) && nl->AtomType( nl->First( l ) ) == RealType )
+      if( nl->IsAtom( nl->First( l ) ) && 
+          nl->AtomType( nl->First( l ) ) == RealType )
       {
         min[i] = nl->RealValue( nl->First( l ) );
         l = nl->Rest( l );
@@ -622,7 +643,8 @@ Word InRectangle( const ListExpr typeInfo, const ListExpr instance,
         break;
       }
 
-      if( nl->IsAtom( nl->First( l ) ) && nl->AtomType( nl->First( l ) ) == RealType )
+      if( nl->IsAtom( nl->First( l ) ) && 
+          nl->AtomType( nl->First( l ) ) == RealType )
       {
         max[i] = nl->RealValue( nl->First( l ) );
         l = nl->Rest( l );
