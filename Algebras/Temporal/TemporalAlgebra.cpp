@@ -52,6 +52,7 @@ file.
 #include "Algebra.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
+#include <limits>
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -61,6 +62,14 @@ extern QueryProcessor* qp;
 using namespace datetime;
 
 #include "TemporalAlgebra.h"
+
+
+/*
+1.1 Definition of some constants
+
+*/
+const double MAXDOUBLE = numeric_limits<double>::max();
+const double MINDOUBLE = numeric_limits<double>::min();
 
 
 
@@ -2363,6 +2372,37 @@ ListExpr MPointTypeMapTranslate( ListExpr args )
 }
 
 /*
+16.1.15 Type mapping function "box3d"
+
+*/
+ListExpr Box3dTypeMap(ListExpr args){
+  int len = nl->ListLength(args);
+  if(len==2){
+    ListExpr arg1 = nl->First(args);
+    ListExpr arg2 = nl->Second(args);
+    if(nl->IsEqual(arg1,"rect")){
+       if(nl->IsEqual(arg2,"instant") || nl->IsEqual(arg2,"periods"))
+         return nl->SymbolAtom("rect3");
+    }
+    ErrorReporter::ReportError(" rect x {instant, periods } expected\n");
+    return nl->SymbolAtom("typeerror");
+  } else if(len==1){
+    ListExpr arg = nl->First(args);
+    if(nl->IsEqual(arg,"rect") || (nl->IsEqual(arg,"instant") || 
+       nl->IsEqual(arg,"periods")))
+        return nl->SymbolAtom("rect3");
+    ErrorReporter::ReportError("rect, instant, or periods required\n");
+    return nl->SymbolAtom("typeerror" );
+  }
+   else{
+    ErrorReporter::ReportError("one or two arguments required");
+    return nl->SymbolAtom("typeerror");
+  }
+
+}
+
+
+/*
 16.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -2680,6 +2720,36 @@ MovingBaseSelect( ListExpr args )
     return 3;
 
   return -1; // This point should never be reached
+}
+
+
+/* 
+Selection function for the box3d operator 
+
+*/
+
+int Box3dSelect(ListExpr args){
+  int len = nl->ListLength(args);
+  if(len==1){
+    ListExpr arg = nl->First(args);
+    if(nl->IsEqual(arg,"rect"))
+        return 0;
+    if(nl->IsEqual(arg,"instant"))
+        return 1;
+    if(nl->IsEqual(arg,"periods"))
+        return 3;
+  }
+  if(len==2){
+     if(nl->IsEqual(nl->First(args),"rect")){
+         ListExpr arg2 = nl->Second(args);
+         if(nl->IsEqual(arg2,"instant"))
+            return 2;
+         if(nl->IsEqual(arg2,"periods"))
+            return 4; 
+     } 
+  }
+  return -1; // when this occurs, the type mapping is not correct
+
 }
 
 /*
@@ -3346,6 +3416,108 @@ int ThePeriod( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+16.3.39 Value Mappings function for box3d
+
+*/
+
+int Box3d_rect( Word* args, Word& result, int message, Word& local, Supplier s ){
+   result = qp->ResultStorage(s);
+   Rectangle<3>* res = (Rectangle<3>*) result.addr;
+   Rectangle<2>* arg = (Rectangle<2>*) args[0].addr;
+   double min[3];
+   double max[3];
+   min[0] = arg->MinD(0);
+   min[1] = arg->MinD(1);
+   min[2] = MINDOUBLE;
+   max[0] = arg->MaxD(0);
+   max[1] = arg->MaxD(1);
+   max[2] = MAXDOUBLE;
+   res->Set(true,min,max);
+   return 0; 
+}
+
+int Box3d_instant( Word* args, Word& result, int message, Word& local, Supplier s ){
+   result = qp->ResultStorage(s);
+   Rectangle<3>* res = (Rectangle<3>*) result.addr;
+   Instant* arg = (Instant*) args[0].addr;
+   double min[3];
+   double max[3];
+   min[0] = MINDOUBLE;
+   min[1] = MINDOUBLE;
+   max[0] = MAXDOUBLE;
+   max[1] = MAXDOUBLE;
+   double v = arg->ToDouble();
+   max[2] = v;
+   min[2] = v;
+   res->Set(true,min,max);
+   return 0; 
+}
+
+
+int Box3d_rect_instant( Word* args, Word& result, int message, Word& local, Supplier s ){
+   result = qp->ResultStorage(s);
+   Rectangle<3>* res = (Rectangle<3>*) result.addr;
+   Rectangle<2>* arg1 = (Rectangle<2>*) args[0].addr;
+   Instant* arg2 = (Instant*) args[1].addr;
+   double v = arg2->ToDouble();
+   double min[3];
+   double max[3];
+   min[0] = arg1->MinD(0);
+   min[1] = arg1->MinD(1);
+   min[2] = v;
+   max[0] = arg1->MaxD(0);
+   max[1] = arg1->MaxD(1);
+   max[2] = v;
+   res->Set(true,min,max);
+   return 0;
+}
+
+
+int Box3d_periods( Word* args, Word& result, int message, Word& local, Supplier s ){
+   result = qp->ResultStorage(s);
+   Rectangle<3>* res = (Rectangle<3>*) result.addr;
+   Periods* arg = (Periods*) args[0].addr;
+   Instant i;
+   arg->Minimum(i);
+   double v1 = i.ToDouble();
+   arg->Maximum(i);
+   double v2 = i.ToDouble();
+   double min[3];
+   double max[3];
+   min[0] = MINDOUBLE;
+   min[1] = MINDOUBLE;
+   min[2] = v1;
+   max[0] = MAXDOUBLE;
+   max[1] = MAXDOUBLE;
+   max[2] = v2;
+   res->Set(true,min,max);
+   return 0; 
+}
+
+int Box3d_rect_periods( Word* args, Word& result, int message, Word& local, Supplier s ){
+   result = qp->ResultStorage(s);
+   Rectangle<3>* res = (Rectangle<3>*) result.addr;
+   Rectangle<2>* arg1 = (Rectangle<2>*) args[0].addr;
+   Periods* arg2 = (Periods*) args[1].addr;
+   Instant i;
+   arg2->Minimum(i);
+   double v1 = i.ToDouble();
+   arg2->Maximum(i);
+   double v2 = i.ToDouble();
+   double min[3];
+   double max[3];
+   min[0] = arg1->MinD(0);
+   min[1] = arg1->MinD(1);
+   min[2] = v1;
+   max[0] = arg1->MaxD(0);
+   max[1] = arg1->MaxD(1);
+   max[2] = v2;
+   res->Set(true,min,max);
+   return 0;
+}
+
+
+/*
 16.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -3497,6 +3669,10 @@ ValueMapping temporalunitsmap[] = { MappingUnits<MBool, UBool>,
                                     MappingUnits<MBool, UBool>,
                                     MappingUnits<MReal, UReal>,
                                     MappingUnits<MPoint, UPoint> };
+
+ValueMapping Box3dMap[] = { Box3d_rect, Box3d_instant,Box3d_rect_instant, 
+                            Box3d_periods, Box3d_rect_periods};
+
 
 /*
 16.4.2 Specification strings
@@ -3812,6 +3988,15 @@ const string TemporalSpecThePeriod  = "( ( \"Signature\" \"Syntax\" \"Meaning\" 
                                 "<text>theperiod(theyear(2002), theyear(2004))</text--->"
                                 ") )";
 
+const string Box3dSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                    "\"Example\" ) "
+		                "( <text>{rect, instant,periods} -> rect3 \n rect x {instant,periods} -> rect3  </text--->"
+                    "<text> box3d(_)</text--->"
+                    "<text>returns a threedimensional box which is unlimitedi"
+                    " in non-specified parts</text--->"
+                    "<text>query box3d(bbox(mehringdamm))</text--->"
+                                ") )";
+
 /*
 16.4.3 Operators
 
@@ -4000,6 +4185,13 @@ Operator temporalat( "at",
                      MovingBaseSelect,
                      MovingBaseTypeMapMoving );
 
+Operator box3d( "box3d",
+                 Box3dSpec,
+                 5,
+                 Box3dMap,
+                 Box3dSelect,
+                 Box3dTypeMap );
+
 Operator temporaldistance( "distance",
                            TemporalSpecDistance,
                            MPointDistance,
@@ -4171,6 +4363,8 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporaltheminute );
     AddOperator( &temporalthesecond );
     AddOperator( &temporaltheperiod );
+
+    AddOperator(&box3d);
   }
   ~TemporalAlgebra() {};
 };
