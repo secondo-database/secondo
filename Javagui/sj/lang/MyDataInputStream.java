@@ -112,6 +112,14 @@ public int readInt() throws IOException{
   return res;
 }
 
+/** read a long from stream */
+public long readLong() throws IOException{
+  readFullBuffer(LongBuffer);
+  long res = 0;
+  for(int i=0;i<8;i++)
+     res = (res<<8)+getUnsigned(LongBuffer[i]);
+  return res;
+}
 
 /** reads a short value from stream */
 public short readShort() throws IOException{
@@ -127,6 +135,13 @@ public short readShort() throws IOException{
 public float readReal() throws IOException{
    int tmp = readInt();
    float res = Float.intBitsToFloat(tmp);
+   return res;
+}
+
+/** reads a float from stream */
+public double readDouble() throws IOException{
+   long tmp = readLong();
+   double res = Double.longBitsToDouble(tmp);
    return res;
 }
 
@@ -189,6 +204,16 @@ public int readInt(OutputStream o) throws IOException{
   return res;
 }
 
+/** read a integer from stream */
+public long readLong(OutputStream o) throws IOException{
+  readFullBuffer(LongBuffer);
+  o.write(IntBuffer);
+  long res = 0;
+  for(int i=0;i<8;i++)
+     res = res*256+getUnsigned(IntBuffer[i]);
+  return res;
+}
+
 
 /** reads a short value from stream */
 public short readShort(OutputStream o) throws IOException{
@@ -244,6 +269,7 @@ private void readFullBuffer(byte[] buffer) throws IOException{
 
 private InputStream In;
 private byte[] IntBuffer = new byte[4];  // avoid creating a buffer frequently
+private byte[] LongBuffer = new byte[8]; 
 private byte[] ShortBuffer = new byte[2]; // avoid creating a buffer frequently
 }
 

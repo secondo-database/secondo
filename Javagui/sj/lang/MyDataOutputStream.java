@@ -44,8 +44,21 @@ public void writeInt(int v) throws IOException{
   OS.write(intbuffer);
 }
 
+public void writeLong(long v) throws IOException{
+  for(int i=0;i<8;i++){
+    longbuffer[7-i]=(byte)(v&255);
+    v = v>>>8;
+  }
+  OS.write(longbuffer);
+}
+
 public void writeReal(double d) throws IOException{
     writeReal((float)d);
+}
+
+public void writeDouble(double d) throws IOException{
+    long i = Double.doubleToLongBits(d);
+    writeLong(i);
 }
 
 
@@ -94,4 +107,5 @@ public void write(int b) throws IOException{
 }
 private OutputStream OS;
 private byte[] intbuffer = new byte[4];
+private byte[] longbuffer = new byte[8];
 }
