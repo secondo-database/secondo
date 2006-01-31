@@ -17,7 +17,7 @@
 # May 2004, M. Spiekermann
 
 pdFile="$1"
-texFile="$PD_TMP/$1.tex"
+texFile="$1.tex"
 
 if { ! pdtabs < $pdFile | maketex > /dev/null; }; then
 
