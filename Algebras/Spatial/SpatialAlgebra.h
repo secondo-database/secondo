@@ -137,9 +137,9 @@ There are two ways of constructing a point:
 
 */
     inline Point( const bool d, const Coord& x = Coord(), const Coord& y = Coord() ):
+    defined( d ),
     x( x ),
-    y( y ),
-    defined( d )
+    y( y )
     {}
 /*
 The first one receives a boolean value ~d~ indicating if the point is defined
@@ -530,6 +530,11 @@ as an attribute.
 */
   protected:
 
+    bool defined;
+/*
+A flag that tells if the point is defined or not.
+
+*/
     Coord x;
 /*
 The ~x~ coordinate.
@@ -538,11 +543,6 @@ The ~x~ coordinate.
     Coord y;
 /*
 The ~y~ coordinate.
-
-*/
-    bool defined;
-/*
-A flag that tells if the point is defined or not.
 
 */
 };
@@ -949,16 +949,26 @@ struct AttrType
 {
   AttrType() {}
 
+  AttrType& operator=( const AttrType& at )
+  {
+    insideAbove = at.insideAbove;
+    faceno = at.faceno;
+    cycleno = at.cycleno;
+    edgeno = at.edgeno;
+    coverageno = at.coverageno;
+    partnerno = at.partnerno;
+    return *this;
+  }
+
   int faceno;
   int cycleno;
   int edgeno;
   int coverageno;  //this number is used for the fast spacial 
                    //scan of the inside_pr algorithm
-  int attr;
-  bool insideAbove; //indicates if the region's area 
-                    //is above or left of its segment
   int partnerno; //store the position of the partner half 
                  //segment in half segment ordered array
+  bool insideAbove; //indicates if the region's area 
+                    //is above or left of its segment
 };
 
 /*
@@ -1401,6 +1411,12 @@ used for the logicsort() function.
 5.13 Properties
 
 */
+    Point lp;
+    Point rp;
+/*
+These two properties give the left and right point of the half segment.
+
+*/
     bool defined;
 /*
 This boolean property indicates whether the half segment is defined.
@@ -1409,12 +1425,6 @@ This boolean property indicates whether the half segment is defined.
     bool ldp;
 /*
 This boolean property indicates whether the half segment has its left point as its dominating point.
-
-*/
-    Point lp;
-    Point rp;
-/*
-These two properties give the left and right point of the half segment.
 
 */
   public:
