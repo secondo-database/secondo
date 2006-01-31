@@ -149,6 +149,50 @@ isSpaceStr(const string& s)
   return s.find_first_not_of(" \t\v\n") == string::npos; 
 }
 
+/*
+The function trim removes all leading and trailing whitespaces.
+As second parameter a string which defines more characters used
+for trimming can be defined.
+
+*/
+
+inline string trim(const string& s, const string& ext="")
+{	
+  static const string ignoreChars=" \n\r\a\b\f\t\v"+ext;
+  size_t start = s.find_first_not_of(ignoreChars);
+  size_t end = s.find_last_not_of(ignoreChars);
+  return s.substr(start,end-start+1);
+}
+
+inline bool expandVarRef(string& s)
+{
+  //cout << "Input: \"" << s << "\"" << endl;
+  size_t pos1 = s.find('$');
+  size_t pos2 = s.find(')', pos1);
+  if ( (s.size() > pos1+1) && (s[pos1+1] == '(') && (pos2 != string::npos) )
+  {
+    // evaluate environment variable
+    string var = s.substr(pos1+2, (pos2-pos1-1)-1);
+    char* val = getenv( var.c_str() );
+    if ( !val )
+      val = "";
+   
+    s.replace(pos1, pos2-pos1+1, val);
+    //cout << "Variable: " << var << endl;
+    //cout << "Value   : " <<  val << endl;
+    //cout << "Result  : " <<  s << endl;
+    return expandVarRef(s);
+  }
+  return true;
+}
+
+inline string expandVar(const string& s)
+{
+  string t = s;
+  expandVarRef(t);
+  return t; 
+}
+
 class SpecialChars {
 
 public:

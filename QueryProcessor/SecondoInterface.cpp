@@ -97,18 +97,20 @@ using namespace std;
 #include "AlgebraManager.h"
 #include "Profiles.h"
 #include "FileSystem.h"
-#include "LogMsg.h"
 
 #include "RelationAlgebra.h"
 #include "StandardTypes.h"
 
 #include "SecondoSMI.h"
 #include "SecParser.h"
+
 #include "StopWatch.h"
 #include "LogMsg.h"
 #include "Counter.h"
 #include "DerivedObj.h"
 #include "NList.h"
+
+#include "CharTransform.h"
 
 extern AlgebraListEntry& GetAlgebraEntry( const int j );
 
@@ -685,7 +687,7 @@ which should be named Command\_<name>.
           StartCommand();
           filename = nlist.elem(4).str();
 
-          if ( !sys.SaveDatabase( filename, *derivedObjPtr ) )
+          if ( !sys.SaveDatabase( expandVar(trim(filename)), *derivedObjPtr ) )
           {
             errorCode = ERR_PROBLEM_IN_WRITING_TO_FILE;  // Problem in writing to file
           }
@@ -706,7 +708,7 @@ which should be named Command\_<name>.
         {
           dbName = nlist.third().str();
           filename = nlist.fifth().str();
-          errorCode = sys.RestoreDatabase( dbName, filename, errorInfo );          
+          errorCode = sys.RestoreDatabase( dbName, expandVar(trim(filename)), errorInfo );          
         }
 
         switch ( errorCode ) // error handling

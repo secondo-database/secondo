@@ -57,6 +57,7 @@ using namespace std;
 #include "NLParser.h"
 #include "NLParser.tab.hpp"
 
+#include "CharTransform.h"
 #include "LogMsg.h"
 
 #define yylval NLParser::yylval
@@ -198,19 +199,21 @@ file		"<file>"[^<]+"</file--->"
                  cols += yyleng;
                  ListExpr newText = nl->TextAtom();
 
-                 const string ignoreChars=" \n\r\a\b\f\t\v";
                  string fileNameStr(yytext);
-                 fileNameStr = fileNameStr.substr(6,yyleng-16);
-                 int start = fileNameStr.find_first_not_of(ignoreChars);
-                 int end = fileNameStr.find_last_not_of(ignoreChars);
-                 fileNameStr = fileNameStr.substr(start,end-start+1);
+                 static const int textStartLen = string("<file>").size();
+                 static const int textEndLen = string("</file--->").size();
+                 int contentLen = yyleng - textStartLen - textEndLen;
+
+                 fileNameStr = trim( fileNameStr.substr(textStartLen,contentLen) );
+                 fileNameStr = expandVar(fileNameStr);
+
                  ifstream inFile;
 		 stringstream textStream;
 
 		 inFile.open(fileNameStr.c_str(), ios::binary);
 		 if ( !inFile.is_open() ) {
 
-		    cmsg.error() << "can not open file '" << fileNameStr << "'" << endl;
+		    cmsg.error() << "Can not open file '" << fileNameStr << "'" << endl;
                     cmsg.send();
                     return (ZZERROR);
 
