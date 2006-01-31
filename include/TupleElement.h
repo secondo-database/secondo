@@ -245,7 +245,7 @@ Default save function.
       {
         FLOB *tmpFLOB = elem->GetFLOB(i);
         char *flob = (char*)malloc( tmpFLOB->Size() );
-        valueRecord.Read( flob, size, offset );
+        valueRecord.Read( flob, tmpFLOB->Size(), offset );
         tmpFLOB->ReadFromExtensionTuple( flob );
         offset += tmpFLOB->Size();
       }
