@@ -107,9 +107,10 @@ minPET(0.001).
 loopjoinTC(X) :- machineSpeedFactor(CPU,_), X is CPU * 0.050,   !. % ??  overhead for opening stream Y,
 sortTC(X)     :- machineSpeedFactor(CPU,_), X is CPU * 0.003,   !. % ??  evaluating ordering predicate
 filterTC(X)   :- machineSpeedFactor(CPU,_), X is CPU * 0.001,   !. % OK
-feedTC(X)     :- machineSpeedFactor(CPU,_), X is CPU * 0.0039,  !. % OK
-consumeTC(X,Y):- machineSpeedFactor(CPU,_), X is CPU * 0.2086,     % OK Average cost
-                 Y is CPU * 0.00002357, !.                         % OK more exact: 0.0013 ms per byte
+feedTC(X,Y)   :- machineSpeedFactor(CPU,_), X is CPU * 0.0039,     % OK
+                 Y is CPU * 0.00185, !.                            % more exact: 0.000185 ms per Byte 
+consumeTC(X,Y):- machineSpeedFactor(CPU,_), X is CPU * 0.032,      % OK cost per tuple
+                 Y is CPU * 0.00069, !.                            % OK cost per byte
 extendTC(X)   :- machineSpeedFactor(CPU,_), X is CPU * 0.00367, !. % OK more exact: 0.00002357 ms per byte
 removeTC(X)   :- machineSpeedFactor(CPU,_), X is CPU * 0.00364, !. % OK
 renameTC(X)   :- machineSpeedFactor(CPU,_), X is CPU * 0.00017, !. % OK
@@ -158,6 +159,15 @@ isAggregationOP(sum).
 isAggregationOP(avg).
 
 /*
+For later extensions (though needing separate cost functions):
+
+*/
+%isAggregationOP(aggregate).  % the cost of the provided function should be applied, works lineary
+%isAggregationOP(aggregateb). % the cost of the provided function should be applied,
+                              %   Additionally, the operator works balanced (in log(CX) steps).
+
+
+/*
 Blocking operators are recognized by predicate ~isBlockingOP(OP)~. Non-blocking
 operators can be aborted early, e.g. by the operator ``head''.
 
@@ -178,7 +188,7 @@ Some operators expect sorted input:
 */
 
 expectsSortedInput(mergejoin).  % ordered on join attributes
-expectsSortedInput(rdup).       % totally ordered
+expectsSortedInput(rdup).       % lexicographically ordered
 expectsSortedInput(groupby).    % ordered on group attributes
 
 /*
@@ -198,13 +208,12 @@ noFlobType(xpoint).
 noFlobType(xrectangle).
 noFlobType(date).
 noFlobType(point).
-% noFlobType(text). ???
 noFlobType(rect).
 noFlobType(rect3).
 noFlobType(rect4).
 noFlobType(rint).
 noFlobType(rreal).
-% noFlobType(periods). ???
+noFlobType(periods). 
 noFlobType(ibool).
 noFlobType(iint).
 noFlobType(ireal).

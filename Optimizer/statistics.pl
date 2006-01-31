@@ -317,12 +317,14 @@ unifies ~PedCost~ with the predicate cost for a predicate.
 */
 
 calculatePredicateCost(Tq, T0, Ttg, ResultCard, Divisor, PredCost) :- 
+  minPET(MinPET),                                  % get minimal allowed PET, see 'operators.pl'
   (Tq - T0 - ResultCard * Ttg) > 100,
-  PredCost is max(((Tq - T0 - ResultCard * Ttg) / Divisor), 0.001),
+  PredCost is max(((Tq - T0 - ResultCard * Ttg) / Divisor), MinPET),
   !.
 
-calculatePredicateCost(_, _, _, _, _, 0.001) :- !. % return base predicate cost
-
+calculatePredicateCost(_, _, _, _, _, MinPET) :- 
+  minPET(MinPET),                                  % return minimal predicate cost, see 'operators.pl'
+  !. 
 
 /*
 ----
@@ -1054,6 +1056,22 @@ getFlobFromPred(Term, Rel1, Rel2, Flob1, Flob2) :-
   !.
 
 getFlobFromPred(_, _, _, 0, 0).
+
+/*
+  XRIS: for testing only!
+
+*/
+
+getNeededExtFlobSize(_,0,0) :- !.
+:- write('\nREMINDER: Remove Testing Code in \'getNeededExtFlobSize(_,0,0) :- !.\' in statistics.pl line 1066f!\n\n').
+
+/* XRIS: 
+
+end testing code
+
+*/
+
+
 
 getNeededExtFlobSize(pr(P, A, B), Flob1, Flob2) :- getFlobFromPred(P, A, B, Flob1, Flob2), !.
 getNeededExtFlobSize(pr(P, A), Flob1, Flob2) :- getFlobFromPred(P, A, A, Flob1, Flob2), !.

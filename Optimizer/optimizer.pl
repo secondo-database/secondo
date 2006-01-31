@@ -1518,7 +1518,7 @@ example, the query
 can be translated to
 
 ----    plz feed {p1} plz feed {p2} extend[newPLZ: PLZ_p2 + 1]
-        hashjoin[PLZ_p1, newPLZ, 997]
+        hashjoin[PLZ_p1, newPLZ, 999997]
         remove[newPLZ]
         consume
 ----
@@ -1575,12 +1575,12 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => sortmergejoin(Arg1S, Arg2S,
   isOfSecond(Attr2, X, Y).
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
-        attrname(Attr1), attrname(Attr2), 997)   :-
+        attrname(Attr1), attrname(Attr2), 999997)   :-
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
 join00(Arg1S, Arg2S, pr(Y = X, _, _)) => hashjoin(Arg2S, Arg1S,
-        attrname(Attr2), attrname(Attr1), 997)   :-
+        attrname(Attr2), attrname(Attr1), 999997)   :-
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
@@ -1925,89 +1925,6 @@ setCurrentResultSizes(ResCard, ResTupleSize) :-
 */
 
 
-/* 
-Some facts and rules for testing the cost functions:
-
-*/
-
-/*
-tc(Term) :- 
-  cost(Term, *, 0.001, Size, TupleSize, 0.001, 0.0035, Cost),
-  write('\nSize:      '), write(Size), 
-  write('\nTupleSize: '), write(TupleSize), 
-  write('\nCost:      '), write(Cost), nl.
-
-% cost(Term+, Pred+, Sel+, Size-, TupleSize-, PredCost+, TC+, Cost-)
-cost(t0,     _,_,      0,tupleSizeData(    100, 0, 0), _, _, 0).
-cost(t1,     _,_,      1,tupleSizeData(    100, 0, 0), _, _, 0).
-cost(t100,   _,_,    100,tupleSizeData(    100, 0, 0), _, _, 0).
-cost(t1000,  _,_,   1000,tupleSizeData(    100, 0, 0), _, _, 0).
-cost(t10000, _,_,  10000,tupleSizeData(    100, 0, 0), _, _, 0).
-cost(tbig,   _,_, 100000,tupleSizeData(    100, 0, 0), _, _, 0).
-cost(tbigt,  _,_,    100,tupleSizeData( 100000, 0, 0), _, _, 0).
-cost(t4M,    _,_,   4096,tupleSizeData(   1024, 0, 0), _, _, 0).
-cost(t4Mb,   _,_,   4096,tupleSizeData(   1023, 0, 0), _, _, 0).
-cost(t4Mbb,  _,_,   4096,tupleSizeData(   1012, 0, 0), _, _, 0).
-cost(t8M,    _,_,   8192,tupleSizeData(   1024, 0, 0), _, _, 0).
-cost(t8Mb,   _,_,   8192,tupleSizeData(   1023, 0, 0), _, _, 0).
-cost(t8Mbb,  _,_,   8192,tupleSizeData(   1012, 0, 0), _, _, 0).
-cost(t12M,   _,_,  12288,tupleSizeData(   1024, 0, 0), _, _, 0).
-cost(t12Mb,  _,_,  12288,tupleSizeData(   1023, 0, 0), _, _, 0).
-cost(t12Mbb, _,_,  12288,tupleSizeData(   1012, 0, 0), _, _, 0).
-cost(t16M,   _,_,  16384,tupleSizeData(   1024, 0, 0), _, _, 0).
-cost(t16Mb,  _,_,  16384,tupleSizeData(   1023, 0, 0), _, _, 0).
-cost(t16Mbb, _,_,  16384,tupleSizeData(   1012, 0, 0), _, _, 0).
-cost(t32M,   _,_,  16384,tupleSizeData(   2048, 0, 0), _, _, 0).
-
-cost(tsj1x,  _,_,   8192,tupleSizeData(   1012, 0, 0), _, _, 0). % (CX * (Tx+12)) =< (0.5 * MaxMem),
-cost(tsj1y,  _,_,   8192,tupleSizeData(   1012, 0, 0), _, _, 0). % (CY * (Ty+12)) =<  (0.5 * MaxMem),
-
-cost(tsj21x, _,_,   8192,tupleSizeData(   1012, 0, 0), _, _, 0). % (CX * (Tx+12)) =< (0.5 * MaxMem), 
-cost(tsj21y, _,_,   8192,tupleSizeData(   1013, 0, 0), _, _, 0). % (CY * (Ty+12)) > (0.5 * MaxMem), 
-                                                                 %  CX =< CY, OY=3.99 =< CX,
-
-cost(tsj22x, _,_,     30,tupleSizeData( 279607, 0, 0), _, _, 0). % (CX * (Tx+12)) =< (0.5 * MaxMem), 
-cost(tsj22y, _,_,  80000,tupleSizeData(    100, 0, 0), _, _, 0). % (CY * (Ty+12)) > (0.5 * MaxMem), 
-                                                                 %  CX =< CY, OY > CX,
-
-cost(tsj23x, _,_,   8192,tupleSizeData(   1012, 0, 0), _, _, 0). % (CX * (Tx+12)) =< (0.5 * MaxMem),
-cost(tsj23y, _,_,   4096,tupleSizeData(   2048, 0, 0), _, _, 0). % (CY * (Ty+12)) > (0.5 * MaxMem), 
-                                                                 %  CX > CY,
-
-cost(tsj31x, _,_,   8192,tupleSizeData(   1024, 0, 0), _, _, 0). % (CY * (Ty+12)) =< (0.5 * MaxMem),
-cost(tsj31y, _,_,   8192,tupleSizeData(   1012, 0, 0), _, _, 0). % (CX * (Tx+12)) > (0.5 * MaxMem),
-                                                                 %  CY =< CX, OX =< CY,
-
-cost(tsj32x, _,_,  81920,tupleSizeData(    103, 0, 0), _, _, 0). % (CY * (Ty+12)) =< (0.5 * MaxMem),
-cost(tsj32y, _,_,    500,tupleSizeData(   1012, 0, 0), _, _, 0). % (CX * (Tx+12)) > (0.5 * MaxMem),
-                                                                 %  CY =< CX, OX > CY,
-
-cost(tsj33x, _,_,   4096,tupleSizeData(   2048, 0, 0), _, _, 0). % (CY * (Ty+12)) =< (0.5 * MaxMem),
-cost(tsj33y, _,_,   8192,tupleSizeData(   1012, 0, 0), _, _, 0). % (CX * (Tx+12)) > (0.5 * MaxMem),
-                                                                 %  CY > CX,
-
-cost(tsj41x, _,_,   1024,tupleSizeData(   8192, 0, 0), _, _, 0). % (CX * (Tx+12)) > (0.5 * MaxMem),
-cost(tsj41y, _,_,   1024,tupleSizeData(   8192, 0, 0), _, _, 0). % (CY * (Ty+12)) > (0.5 * MaxMem),
-                                                                 %  CX =< CY, OX =< OY,
-
-cost(tsj42x, _,_,   1024,tupleSizeData(   8192, 0, 0), _, _, 0). % (CX * (Tx+12)) > (0.5 * MaxMem),
-cost(tsj42y, _,_,   1024,tupleSizeData(   8200, 0, 0), _, _, 0). % (CY * (Ty+12)) > (0.5 * MaxMem),
-                                                                 %  CX =< CY, OX > OY,
-
-cost(tsj43x, _,_,   1024,tupleSizeData(   8192, 0, 0), _, _, 0). % (CX * (Tx+12)) > (0.5 * MaxMem),
-cost(tsj43y, _,_,   1023,tupleSizeData(   8200, 0, 0), _, _, 0). % (CY * (Ty+12)) > (0.5 * MaxMem),
-                                                                 % CY =< CX, OY =< OX,
-
-cost(tsj44x, _,_,   1024,tupleSizeData(   8300, 0, 0), _, _, 0). % (CX * (Tx+12)) > (0.5 * MaxMem),
-cost(tsj44y, _,_,   1023,tupleSizeData(   8200, 0, 0), _, _, 0). % (CY * (Ty+12)) > (0.5 * MaxMem),
-                                                                 %  CY =< CX, OY > OX,
-*/
-
-/*
-End test facts
-
-*/
-
 cost(rel(Rel, X, Y), _, _, Size, TupleSize, _, _, 0) :-
   calculateQueryTupleSize(rel(Rel, X, Y), CoreTupleSize, InFlobSize, ExtFlobSize), 
   TupleSize = tupleSizeData(CoreTupleSize,InFlobSize,ExtFlobSize),
@@ -2035,13 +1952,14 @@ cost(fixed(ResCard, TupleSize), _, _, ResCard, TupleSize, _, _, 0).
 cost(feed(X), P, Sel, S, TupleSize, PredCost, TC, C) :-
   cost(X, P, Sel, S, TupleSize, PredCost, TC, C1),
   cost_factors(_, _, _, _, RPD, _, _, _, FOD, _, _, BDBPS, _),
-  feedTC(A),
+  feedTC(A,B),
   TupleSize = tupleSizeData(TSC, TSI, _),
   NumPages is ceiling((S * (TSC+TSI))/BDBPS),
   C is C1                        % create Relation, 
      + FOD                       % open relation
      + RPD * NumPages            % read tuples pagewise
-     + A * S.                    % consider overhead tuplewise
+     + A * S                     % consider overhead tuplewise
+     + B * S * (TSC+TSI).        % consider overhead bytewise
 
 /*
 Here ~feedTC~ means ``feed tuple cost'', i.e., the cost per tuple, a constant to
@@ -2053,8 +1971,9 @@ cost(consume(X), P, Sel, S, TupleSize, PredCost, TC, C) :-
   cost(X, P, Sel, S, TupleSize, PredCost, TC, C1),
   consumeTC(A,B),
   TupleSize = tupleSizeData(TSC, TSI, TSE),
-  C is C1                            % create input stream
-     + max(A*S, B*S*(TSC+TSI+TSE)).  % consider overhead tuplewise
+  C is C1                          % create input stream
+     + A * S                       % consider overhead tuplewise
+     + B * S * (TSC+TSI+TSE).      % consider overhead bytewise
 
 /*
 Generic cost function for aggregation operators like count, min, max, sum, avg.
@@ -2073,6 +1992,7 @@ cost(Term, P, Sel, S, TupleSize, PredCost, TC, C) :-
   C is C1                            % create input stream
      + A*S.                          % consider overhead tuplewise
 
+     
 cost(filter(X, _), P, Sel, S, TupleSize, PredCost, TC, C) :-
 %cost(filter(X, Pred), P, Sel, S, TupleSize, PredCost, TC, C) :- 
 % A cost function for the ordering predicate built from Pred could be calculated
@@ -2384,7 +2304,7 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
   (CX * (Tx+12)) =< MemSizeX, 
   (CY * (Ty+12)) >  MemSizeY,            
   getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  gerMinPET(MinPET),
+  minPET(MinPET),
   ResSize is CX * CY * Sel,
   addTupleSizes(TX,TY,TupleSize),
   MemSizeTY is max(1,(MemSizeY / Ty)), % amount of Y-tuples fitting into MemY
@@ -2569,7 +2489,7 @@ cost(sortby(X,Order), P, Sel, Card, TX, PredCost, TC, Cost) :-  % XRIS: flob loa
   % case2: relation does not fit into memory
   Card > HeapSize,
   PartCard is 2 * HeapSize,                        % calculate average cardinality of partion files generated
-  PartNum is max(0,((Card-HeapSize) / PartCard)),  % calculate average number of partion files, 
+  PartNum is ceiling(max(0,(Card-HeapSize)) / max(1,PartCard)),  % calculate average number of partion files, 
   Cost is CostX                                    % produce argument stream
         + WTM * max(0,(Card-HeapSize))*0.5*log(2,HeapSize)  % inserts into heap =(Card-HeapSize)*0.5 * O(log HeapSize)
         + RTM * Card                               % reads from heap =Card * O(1)
@@ -2612,14 +2532,14 @@ cost(sort(X), P, Sel, CardX, TX, PredCost, TC, Cost) :- %
 
 
 /*
-  Cost function for operator groupby, as defined in file ``ÈxtRelationAlgebra.cpp''
+  Cost function for operator groupby, as defined in file ``ExtRelationAlgebra.cpp''
 
   Expects argument to be sorted on GroupAttr.
   Returns one extended tuple per group.
 
 */
 cost(groupby(X, _, _), P, Sel, Card, TS, PredCost, TC, Cost) :- % XRIS: cost function missing!
-%cost(groupby(X, GroupAttr, NewAttr), P, Sel, Card, TX, PredCost, TC, Cost) :-
+%cost(groupby(X, GroupAttr, NewAttr-Fun-List), P, Sel, Card, TX, PredCost, TC, Cost) :-
   % for each tuple: check if GroupAttr-values matches predecessor, then store to buffer
   % for each group: for each NewAttr: calculate value by evaluating functions - similar to k-times ``extend''
   cost(X, P, Sel, Card, TS, PredCost, TC, Cost).
@@ -3116,6 +3036,105 @@ cost(windowintersects(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
         + RPD * log(2,RelSize)            % read index pages from disk, later: D * (Height + Sel*RelSize/K)
         + TC * Sel * RelSize.             % produce tuple stream
 
+
+/*
+
+  Cost function for operator spatialjoin as defined in file PlugJoinAlgebra.cpp.
+  The smaller relation should be passed as the inner relation (Y), as it is used
+  to build an index (R[*]Tree), while tuples from the outer relation are queried 
+  against the index. The join performs a test on intersection of BBoxes.
+
+  1 All records of Y fit into memory. getMaxLeaves() returns infinite, number of 
+    leaves remains unlimited. 
+
+  2 Y does not completely fit into memory. X and Y will be partitioned pairwise. 
+    Each pair of partitions corresponds to one leaf of the index, getMaxLeaves() 
+    determines how many pairs of partitions are created.
+    As long as getMaxLeaves() is not reached, tuples from Y are inserted into
+    the Rtree. After the treshold getMaxLeaves() is passed, any overflow in a 
+    leaf does not result in a structural change of the tree, but the tuple is 
+    simply written to into the according Y-partition file. Partition files are 
+    organized in buckets of size MaxMem/#leaves.
+    
+    When all Y-tuples have been processed, each leaf in the RTree is examined. 
+    If its Y-partition is not empty, all tuples from that leaf are flushed to 
+    that Y-partition.
+
+    Now, all tuples from X are processed: Each tuple is queried against the 
+    Rtree and directed to all leaves and Y-partitions that might contain join
+    partners (replication of x may occur). If a leaf is empty, x is spooled to
+    the S-partition of that leaf, otherwise the join results are immeadeatly 
+    reported.
+
+    When all queries are processed, the Rtree is deleted and the operator is 
+    restarted recursively for each partition with non-empty S- and R-part on 
+    disk.
+
+    Splitting an R[star]-tree costs $O(d*M \log_2 M)$, for node capacity $M$, 
+    number of dimensions $d$. 
+
+    $hight(Y) = \log_M (Y)$, $nodes(Y) = M^{height(Y)-1}$ 
+    
+    Creating an R[star]-tree ideally causes $nodes(Y) = M^{height(Y)-1}-1$ 
+    splits.
+
+*/
+
+
+cost(spatialjoin(X,Y,_,_,D), P, Sel, Size, TupleSize, B, TC, Cost) :- % XRIS: Flobs not yet considered
+  % D is the dimension of the joinattributes' bounding boxes
+  cost(X, P, 1, CX, TX, B, TC, CostX),
+  cost(Y, P, 1, CY, TY, B, TC, CostY),
+  cost_factors(RTM, WTM, _, _, RPD, WPD, FND, FDD, FOD, FCD, MaxMem, BDBPS, FCMR),
+  TX = tupleSizeData(TSCx, TSIx, _),
+  TY = tupleSizeData(TSCy, TSIy, _),
+  Tx is TSCx + TSIx,
+  Ty is TSCy + TSIy,
+  addTupleSizes(TX,TY,TupleSize),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2), % Flobs should not be needed...
+  Size is Sel * CX * CY,
+  MaxLeaves  is max(0,(MaxMem/(TY+24))),        % determine number of leaves fitting into in-memory Rtree
+  PartNumber is max(0,ceiling(CY/MaxLeaves)-1), % determine how many partitions will be created
+  ( PartNumber > 1 -> 
+               (
+                  PartSizeY  is (CY-MaxLeaves)/PartNumber, % determine average size of spooled partitions
+                  PartSizeX  is (CX/CY)*PartSizeY, 
+                  % estimate cost for one recursive call:
+                  cost(spatialjoin(fixed(partSizeX,TX),fixed(partSizeY,TY),_,_,D), P, Sel, _, _, B, TC, CostR)
+               )
+	      ;(
+                  CostR is 0
+               )
+  ),
+         
+/*
+  MaxLeavesOfRtree      is 10000, % parameter found in PlugJoinAlgebra.h
+  MinLeaveOfRtree       is    40, % parameter found in PlugJoinAlgebra.h
+  DefaultEntriesPerNode is    15, % parameter found in PlugJoinAlgebra.h
+  ScalingFactor         is    17, % parameter found in PlugJoinAlgebra.h
+  NodesToUse is max(min((ScalingFactor*(CX+CY)/(DefaultEntriesPerNode*MaxLeavesOfRtree)+1.0),
+                         MaxLeavesOfRtree),
+                    MinLeaveOfRtree), % found in PlugAndJoinAlgebra.cpp
+
+*/
+  Height = max(1,log(min(MaxLeaves,CY),15)),% fanout/node capacity set to 15 
+  M = min(MaxLeaves, CY),
+  INSERT_CONST is (RTM + WTM),  
+  QUERY_CONST  is RTM * Height,
+  SPLIT_CONST  is (RTM + WTM) * D * M * Height,
+
+  Cost is CostX + CostY                     % produce arguments
+        + INSERT_CONST * max(0,(CY-M))      % insert Y-tuples into Rtree
+        + SPLIT_CONST * (15 ** (Height-1)), % resolve splits on insertions
+        + QUERY_CONST * CX                  % query X-tuple against Rtree  
+                                            % spool Y-tuples to partition file
+        + (WPD+RPD) * ceiling((CY-M)*(Ty+ExtFlobSize1)/BDBPS)
+                                            % spool X-tuples to partition file 
+        + (WPD+RPD) * ceiling(CX * (1 - M/CY)*(Tx+ExtFlobSize2)/BDBPS)
+        + (FND+FOD+FCD+FDD) * PartNumber    % handle partitions on disk
+        + CostR * PartNumber                % cost for recursive calls
+        + TC * Sel * M * CX * M/CY.         % create result tuples
+  
 
 /*
 8.2 Creating Cost Edges
