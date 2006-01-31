@@ -2325,24 +2325,13 @@ Both segments are not vertical.
                      << "none vertical"
                      << endl;
 
-#ifdef SCHMUH
-            double id = (iey-isy)/(iex-isx);
-            double fd = (fey-fsy)/(fex-fsx);
+            collinear = 
+                   nearlyEqual((iey-isy)/(iex-isx), (fey-fsy)/(fex-fsx))
+                || nearlyEqual((iey-isy)*(fex-fsx), (fey-fsy)*(iex-isx));
 
-            if (MRA_DEBUG)
-                cerr << setprecision(10)
-                     << "MSegmentData::MSegmentData() id="
-                     << id << " fd=" << fd
-                     << endl;
-
-            collinear = nearlyEqual(id, fd);
-#endif
-
-            collinear = nearlyEqual((iey-isy)*(fex-fsx), (fey-fsy)*(iex-isx));
-
-            if (!collinear) {
+            if (MRA_DEBUG) {
                 cerr << ::std::fixed << ::std::setprecision(6);
-                cerr << "isx=" << isx
+                cerr << "MSegmentData::MSegmentData() isx=" << isx
                      << " isy=" << isy
                      << " iex=" << iex
                      << " iey=" << iey
@@ -2351,10 +2340,16 @@ Both segments are not vertical.
                      << " fex=" << fex
                      << " fey=" << fey
                      << endl;
-                cerr << "(iey-isy)/(iex-isx)=" << (iey-isy)/(iex-isx) << endl;
-                cerr << "(fey-fsy)/(fex-fsx)=" << (fey-fsy)/(fex-fsx) << endl;
-                cerr << "(iey-isy)*(fex-fsx)=" << (iey-isy)*(fex-fsx) << endl;
-                cerr << "(fey-fsy)*(iex-isx)=" << (fey-fsy)*(iex-isx) << endl;
+                cerr << "MSegmentData::MSegmentData() (iey-isy)/(iex-isx)=" 
+                     << (iey-isy)/(iex-isx) << endl;
+                cerr << "MSegmentData::MSegmentData() (fey-fsy)/(fex-fsx)=" 
+                     << (fey-fsy)/(fex-fsx) << endl;
+                cerr << "MSegmentData::MSegmentData() (iey-isy)*(fex-fsx)=" 
+                     << (iey-isy)*(fex-fsx) << endl;
+                cerr << "MSegmentData::MSegmentData() (fey-fsy)*(iex-isx)=" 
+                     << (fey-fsy)*(iex-isx) << endl;
+                cerr << "MSegmentData::MSegmentData() collinear=" 
+                     << collinear << endl;
             }
         }
 
