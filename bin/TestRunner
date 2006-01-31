@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# TestRunner Startup Script
+#
+# 31.01.2006, M. Spiekermann
+
+dateStr=$(date +%Y_%m%d_%H%M%S)
+tempDir="/tmp/$USER/TestRunner_$dateStr"
+mkdir -p $tempDir
+export SECONDO_PARAM_SecondoHome="$tempDir"
+
+# check if nice command is present
+ncmd=$(which nice)
+if [ $? -ne 0 ]; then
+  TestRunnerApp $*
+else
+  nice -n 19 TestRunnerApp $*
+fi
+
+rm -rf $tempDir

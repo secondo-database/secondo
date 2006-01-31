@@ -35,7 +35,7 @@ APPLICATIONS := $(BINDIR)/SecondoTTY$(SMIUP) \
 # some optional objects and applications
 ifneq ($(smitype),ora)
 APPLOBJECTS += TestRunner.$(OBJEXT)
-APPLICATIONS += $(BINDIR)/TestRunner
+APPLICATIONS += $(BINDIR)/TestRunnerApp
 endif
 
 ifeq ($(optimizer),"true")
@@ -76,7 +76,7 @@ all: $(CODE_DEPENDENCIES) $(APPLOBJECTS)
 buildapp: $(APPLICATIONS)
 
 .PHONY: TestRunner
-TestRunner: $(BINDIR)/TestRunner$(EXEEXT)
+TestRunner: $(BINDIR)/TestRunnerApp$(EXEEXT)
 
 .PHONY: TTYCS
 TTYCS: $(BINDIR)/SecondoTTYCS$(EXEEXT)
@@ -136,8 +136,8 @@ $(BINDIR)/SecondoTTYCS$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS) $(RL_LD_FLAG)
 
-$(BINDIR)/TestRunner$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES) 
-$(BINDIR)/TestRunner$(EXEEXT): TestRunner.o SecondoInterface.o  $(APP_OBJECTS)
+$(BINDIR)/TestRunnerApp$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES) 
+$(BINDIR)/TestRunnerApp$(EXEEXT): TestRunner.o SecondoInterface.o  $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG)
 
 $(OPTDIR)/SecondoPL$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES)
