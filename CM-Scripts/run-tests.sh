@@ -14,7 +14,7 @@ if ! source ./libutil.sh; then exit 1; fi
 
 printf "\n%s\n" "Running tests in ${buildDir}."
 
-runnerCmd="TestRunner"
+runnerCmd="TestRunnerApp"
 type -t $runnerCmd >& /dev/null 
 
 if [ $? -ne 0 ]; then
@@ -37,13 +37,14 @@ function runTest() {
   local testName=$2
   local runCmd=$3
   local logFile=$runDir/${testName}.log
-  local waitSeconds=240
+  local waitSeconds=1800
 
   if [ "$4" != "" ]; then
     waitSeconds=$4
   fi
 
   echo -e "\n Running $testName in $runDir"
+  echo -e "\n $runCmd "
   cd $runDir
   timeOut $waitSeconds $runCmd > ${logFile} 2>&1
 
@@ -58,9 +59,9 @@ function runTest() {
 
 
 #overule configuration file parameter
-dbDir="${buildDir}/test-databases-${date_TimeStamp}"
+dbDir="/tmp/$USER/test-databases-${date_TimeStamp}"
 export SECONDO_PARAM_SecondoHome="$dbDir"
-export SECONDO_PARAM_RTFlags="SI:NoQueryAnalysis,SI:NoCommandEcho" 
+export SECONDO_PARAM_RTFlags="SI:NoQueryAnalysis,DEBUG:DemangleStackTrace" 
 
 if [ -d $dbDir ]; then
 
@@ -74,20 +75,41 @@ else
 
 fi
 
+
+
 #
 # Tests executed by the TestRunner
 #
 
+# check if nice command is present
+ncmd=$(which nice)
+if [ $? -ne 0 ]; then
+  ncmd="false"
+fi
+  
+# The first test create databases
+dbTest="createdb.test"
+dbFile="$buildDir/bin/$dbTest" 
+
 declare -i error=0
 
-testSuites=$(find $buildDir -path "*Tests*.test")
-for testName in $testSuites
+testSuites=$(find $buildDir -path "*Tests*.test" -o -path "*bin*.test" -a ! -name "*$dbTest")
+
+#echo -e "$testSuites"
+#exit 1
+
+for testName in $dbFile $testSuites
 do 
   runDir=${testName%/*}
   testFile=${testName##*/}
-  runTest $runDir $testFile "time TestRunner -i  ${testFile}"
+  if [ "$ncmd" != "false" ]; then
+    runTest $runDir $testFile "nice -n 19 time $runnerCmd -i  ${testFile}"
+  else  
+    runTest $runDir $testFile "time $runnerCmd -i  ${testFile}"
+  fi  
   wait $! 
 done
+
 
 #
 # Other tests not executed by the TestRunner application

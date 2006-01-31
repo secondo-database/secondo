@@ -644,6 +644,34 @@ function startupXterm {
   return 0
 }
 
+# createSecondoDatabase $1 $2
+#
+# $1 database name
+# $2 database file
+
+function createSecondoDatabase() {
+  
+  local db=$1
+  local file=$2
+
+  cd ${buildDir}/bin
+  local cmd1="create database ${db};"
+  local cmd2="restore database ${db} from '"${file}"';"
+  SecondoTTYBDB <<< "$cmd1
+$cmd2
+q;
+"
+  
+  local rc=$?
+ 
+  if [ $rc -ne 0 ]; then 
+    printf "\n%s\n" "Warning could not restore database ${db}! Some subsequent tests may fail."
+  fi
+  return $rc 
+}
+
+
+
 ###################################################################
 ###
 ###  End of function definitions
@@ -815,4 +843,10 @@ if [ "$1" == "startupXterm" ]; then
   title="$2"
   shift 2
   startupXterm "$title" $*
+fi
+
+if [ "$1" == "createDB" ]; then
+  db="$2"
+  file="$3"
+  createSecondoDatabase "$db" "$file" 
 fi

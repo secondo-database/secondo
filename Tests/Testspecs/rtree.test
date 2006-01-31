@@ -21,7 +21,6 @@
 # run with : Runner -c MyConfig.config <relalgtest
 # (Runner can be found in directory UserInterfaces)
 
-#stop 
 
 #setup
 open database germany;

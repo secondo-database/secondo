@@ -18,8 +18,6 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 # a test for the BinaryFile Algebra
-# run with : Runner -c MyConfig.config < binfiletest
-# (Runner can be found in directory UserInterfaces)
 
 # clean up what may be left over from e.g. a segfault
 delete database binfiletest;
@@ -29,10 +27,10 @@ create database binfiletest;
 open database binfiletest;
 
 (create a : binfile);
-(update a := (binfile <file>JNI.ini</file--->));
+(update a := (binfile <file>$(SECONDO_BUILD_DIR)/bin/JNI.ini</file--->));
 
 (create b : binfile);
-(update b := (binfile <file>TestRunner</file--->));
+(update b := (binfile <file>$(SECONDO_BUILD_DIR)/bin/TestRunnerApp</file--->));
 
 (create relFile :
   (rel
@@ -59,22 +57,22 @@ open database binfiletest;
     )
   )
   (
-    (1 <file>JNI.ini</file---> "JNI.ini.test")
-    (2 <file>TestRunner</file---> "TestRunner.test")
+    (1 <file>$(SECONDO_BUILD_DIR)/bin/JNI.ini</file---> "JNI.ini")
+    (2 <file>$(SECONDO_BUILD_DIR)/bin/TestRunnerApp</file---> "TestRunnerApp")
   )
 ) );
 
 #testcase binfile1
 #yields (bool TRUE)
-query a saveto "a.tmp";
+query a saveto "/tmp/a.tmp";
 
 #testcase binfile1
 #yields (bool TRUE)
-query b saveto "b.tmp";
+query b saveto "/tmp/b.tmp";
 
 #testcase binfile2
 #yields (int 2)
-query relFile feed filter[.file saveto .name] count;
+query relFile feed filter[.file saveto ("/tmp/" + .name)] count;
 
 #teardown
 close database;
