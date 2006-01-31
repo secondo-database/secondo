@@ -53,7 +53,6 @@ delete database mytestdb;
 
 create database mytestdb;
 open database mytestdb;
-e
 
 # the conventions for commands are the same as in SecondoTTYBDB
 
@@ -102,7 +101,7 @@ query Staedte count;
 
 #    testcase sumOfStaedte
 
-#     yields (int 3251000)
+#     yields (int 3490000)
 query staedte feed sum[Bev]
 
 #testcase 
@@ -153,10 +152,10 @@ query staedte feed avg[Bev];
 
 #testcase UnexpectedSuccess
 #yields error
-query staedte feed consume count;
+query staedte feed;
 
 #testcase UnexpectedResult
-#yields (int 10)
+#yields (int 11)
 query staedte feed consume count;
 
 
