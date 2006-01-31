@@ -2,19 +2,19 @@
 #
 # February 2005, M. Spiekermann
 
-libFile="libutil.sh"
+printf "%s\n" "Starting tpcgen ..."
+
 #include libutil.sh if present
 buildDir=${SECONDO_BUILD_DIR}
-scriptDir="."
-if [ -z $buildDir ]; then
-  printf "%s\n" "Error: I can't find file ${libUtil}."
+scriptDir=${buildDir}/CM-Scripts
+libFile="$scriptDir/libutil.sh"
+
+if [ ! -e $libFile ]; then 
+  printf "%s\n" "Error: I can't find file ${libFile}."
   exit 1
-else
-  scriptDir=${buildDir}/CM-Scripts
 fi
 
-source ${scriptDir}/$libFile
-if [ $? -ne 0 ]; then exit 1; fi
+source $libFile
 
 # default options
 dbName="tpc_h"
@@ -63,7 +63,7 @@ fi
 printf "\n%s\n" "Creating database ${dbName} with a scale factor ${scaleFactor}!"
 
 tpcDir=${buildDir}/Tools/Generators/TPC-H
-tempDir=./tmp_tpcgen_${date_ymd}_${date_HMS}
+tempDir=/tmp/$USER/TPC/tmp_tpcgen_${date_ymd}_${date_HMS}
 
 # Generate data
 printSep "Generating TPC-H data"
@@ -76,7 +76,7 @@ checkCmd "dbgen -f -s $scaleFactor"
 if [ $? -ne 0 ]; then
   exit 1
 else
-  assert mkdir $tempDir
+  assert mkdir -p $tempDir
   printf "%s\n" "Moving files into ${tempdir}"
   assert mv *_tbl $tempDir
 fi

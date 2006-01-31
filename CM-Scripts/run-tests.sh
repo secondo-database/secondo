@@ -58,8 +58,10 @@ function runTest() {
 } 
 
 
-#overule configuration file parameter
+# Setup configuration file and overule some parameter
 dbDir="/tmp/$USER/test-databases-${date_TimeStamp}"
+
+export SECONDO_CONFIG="$buildDir/bin/SecondoConfig.ini"
 export SECONDO_PARAM_SecondoHome="$dbDir"
 export SECONDO_PARAM_RTFlags="SI:NoQueryAnalysis,DEBUG:DemangleStackTrace" 
 

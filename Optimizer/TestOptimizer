@@ -35,6 +35,8 @@ tempDir="/tmp/$USER/TestOptimizer/${date_ymd}_${date_HMS}"
 mkdir -p $tempDir
 export SECONDO_PARAM_SecondoHome=$tempDir
 
+export SECONDO_CONFIG=$buildDir/bin/SecondoConfig.ini
+
 
 declare -i error=0
 logFile="${PWD}/TestOptimizer.log"
@@ -43,7 +45,7 @@ TPC_GEN_DIR=${SECONDO_BUILD_DIR}/Tools/Generators/TPC-H
 TPC_SCRIPTS="$TPC_GEN_DIR/secondo"
 #cd $TPC_SCRIPTS
 
-PATH=${PATH}:${TPC_SCRIPTS}
+export PATH=".:${PATH}:${TPC_SCRIPTS}"
 
 printf "%s\n" "Logfile: $logFile"
 
