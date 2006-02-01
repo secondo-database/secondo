@@ -1,0 +1,55 @@
+#This file is part of SECONDO.
+#
+#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Database Systems for New Applications.
+#
+#SECONDO is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2 of the License, or
+#(at your option) any later version.
+#
+#SECONDO is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with SECONDO; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+
+###
+### This file restores databases which are needed for other testcases
+### The script CM-Script/run-tests.sh which calls several other tests
+### will first execute this test. Since this script runs automatically
+### overnight don't check in with modified path information.
+###
+
+#setup createdb 
+
+#testcase opt1
+#yields success
+create database opt;
+
+#test case opt2
+#yields success
+restore database opt from '$(SECONDO_BUILD_DIR)/bin/opt'; 
+
+#test case opt3
+#yields success
+close database;
+
+#testcase germany1
+#yields success
+create database germany;
+
+#testcase germany2
+#yields success
+restore database germany from '$(HOME)/secondo-data/Databases/germany';
+
+#test case germany3 
+#yields success
+close database;
+
+#teardown
+
