@@ -16,7 +16,7 @@ if ! source ./libutil.sh; then exit 1; fi
 printf "\n%s\n" "Running tests in ${buildDir}."
 
 runnerCmd="TestRunnerApp"
-if isCmdPresent $runnerCmd; then
+if ! isCmdPresent $runnerCmd; then
   printf "\n%s\n" "Sorry, command $runnerCmd not present."
   exit 1;
 fi
@@ -89,7 +89,7 @@ if [ -d $dbDir ]; then
 else
 
   printf "%s\n" "Creating new database directory ${dbDir}."
-  mkdir $dbDir
+  mkdir -p $dbDir
 
 fi
 
