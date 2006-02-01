@@ -3,11 +3,15 @@
 # Jan 2005, M. Spiekermann. This is a small library
 # of functions useful for several shell scripts.
 #
-# July 2006, M. Spiekermann. Improvements for killing processes.
+# July 2005, M. Spiekermann. Improvements for killing processes.
 # Since kill does not kill child processes the functions findChilds
 # and killProcess were introduced. Moreover the timeOut function was 
 # revised to work without active waiting. 
 #
+# Jan 2006, M. Spiekermann. functin sendMail revised. Mails and theirs attachment
+# will now be backed up in a configurable directory. Moreover a new function 
+# ~isCmdPresent~ was added. 
+
 
 
 # recognize aliases also in a non interactive shell
@@ -414,16 +418,31 @@ function lastRC {
   return $LU_RC
 }
 
+# isCmdPresent $1
+#
+# $1 command name
+#
+# checks if a given command is known
 
-# sendMail $1 $2 $3 [$4]
+function isCmdPresent()
+{
+  type -t $1 >& /dev/null 
+  return $?
+}
+
+
+# sendMail $1 $2 $3 [$4 $5]
 #
 # $1 subject
 # $2 recipients
 # $3 body
-# $4 attached file
+# $4 backup dir
+# $5 attached file
 #
-# Sends a mail (with a given attachment) to the list of
-# recipients.
+# Sends a mail with a given attachment (only 1 file) to the 
+# list of recipients. A copy of the mail text and its attachments 
+# will be kept in a backup directory. 
+
 function sendMail() {
 
   # check mandatory arguments
@@ -437,25 +456,50 @@ function sendMail() {
     return 1
   fi
  
-  # check optional argument 
+  # check optional arguments 
   if [ "$4" != "" ]; then
-    local attachment="-a $4"
+    local backupDir="$4"
+  fi
+  if [ "$5" != "" ]; then
+    local attachOpt="-a $5"
+    local attachFile="$5"
   fi
 
-  # print mail command 
-  printf "%s\n"   "Sending Mail:"
-  printf "%s\n"   "  mail -s \"$1\" $attachment \"$2\""
-  printf "%s\n"   "Mail body: $3"
-  printf "%s\n\n" "-------------------"
 
   # send mail
   if [ "$LU_SENDMAIL" == "true" ]; then
 
-    mail -s"$1" ${attachment} "$2" <<-EOFM
+    printf "%s\n"   "${FUNCNAME}:  mail -s \"$1\" $attachOpt \"$2\" <body>"
+    mail -s"$1" ${attachOpt} "$2" <<-EOFM
 $3
 EOFM
+ 
+    if [ "$backupDir" != "" ]; then
+
+       # redirect stdout   
+       exec 6>&1
+       exec >> "$backupDir/Mails.txt"
+
+       echo -e "Subject    : $1"
+       echo -e "Recipients : $2"
+       if [ "$attachFile" != "" ]; then
+         echo -e "Attachments: $attachFile"
+         cp $attachFile $backupDir 
+       fi
+       echo -e "$3"
+       echo -e "------------------------------"
+
+       # restore stdout   
+       exec 1>&6 6>&-
+    fi
+
   else
-    printf "%s\n" "Test Mode - mail not send!"
+    printf "%s\n"   "${FUNCNAME}: Test mode!"
+    printf "%s\n"   "----------------------"
+    printf "%s\n"   "  Command   : mail -s \"$1\" $attachOpt \"$2\""
+    printf "%s\n"   "  backup Dir: $4"
+    printf "%s\n"   "  Mail body : $3"
+    printf "%s\n\n" "----------------------"
   fi 
  
   return 0
@@ -776,16 +820,15 @@ fi
 
 if [ "$1" == "sendMail" ]; then  
 
-LU_SENDMAIL="false"
+LU_SENDMAIL="$2"
 XmailBody="This is a generated message!  
 
   Users who comitted to CVS yesterday:
-  $recipients
 
   You will find the output of make in the attached file.
   Please fix the problem as soon as possible."
 
-sendMail "Test Mail!" "spieker root" "$XmailBody" "test.txt"
+sendMail "Test Mail!" "spieker root" "$XmailBody" "$3" "$4"
 
 fi
 
@@ -849,4 +892,12 @@ if [ "$1" == "createDB" ]; then
   db="$2"
   file="$3"
   createSecondoDatabase "$db" "$file" 
+fi
+
+if [ "$1" == "isCmdPresent" ]; then
+
+  for cmd in "nice" "xkjfhd"; do
+    isCmdPresent "$cmd"
+    echo -e "$cmd: $?" 
+  done
 fi

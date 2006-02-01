@@ -2,10 +2,11 @@
 #
 # Jan 2005, M. Spiekermann
 #
-# August 2005, Major changes. A function for calling the
-#  tests was added. And each test command is run with a 
-#  timeOut. The log files of all failed test are stored
-#  in a tar file.
+# August 2005, M. Spiekermann. Major changes. A function for calling the tests
+# was added. And each test command is run with a timeOut. The log files of all
+# failed test are stored in a tar file.
+#
+# Januar 2006, M. Spiekermann. Usage of the ~nice~ command added. 
 
 
 # include function definitions
@@ -15,13 +16,12 @@ if ! source ./libutil.sh; then exit 1; fi
 printf "\n%s\n" "Running tests in ${buildDir}."
 
 runnerCmd="TestRunnerApp"
-type -t $runnerCmd >& /dev/null 
-
-if [ $? -ne 0 ]; then
+if isCmdPresent $runnerCmd; then
   printf "\n%s\n" "Sorry, command $runnerCmd not present."
   exit 1;
 fi
 
+failedFileInfoDir=$1
 failedTests=""
 
 # runTest $1 $2 $3 [$4]
@@ -52,6 +52,22 @@ function runTest() {
     echo -e "\nTest failed with returncode $LU_RC \n"
     failedTests="$failedTests ${logFile#$buildDir/}"
     let error++
+    local testFailed="true"
+
+  fi
+
+  # keep the first date of failure in a file. When the test succeed afterwards
+  # the file will be deleted.
+  if [ "$failedFileInfoDir" != "" ]; then
+    local failedFileInfo=$failedFileInfoDir/"_"$testName"_failed"
+    if [ "$testFailed" == "true" ]; then
+      if [ ! -e $failedFileInfo ]; then
+         echo -e "$testName failed since" >> failedFileInfo
+         date >> $failedFileInfo
+      fi
+    else
+      rm -f $failedFileInfo
+    fi
   fi
 
   return $?
@@ -83,11 +99,6 @@ fi
 # Tests executed by the TestRunner
 #
 
-# check if nice command is present
-ncmd=$(which nice)
-if [ $? -ne 0 ]; then
-  ncmd="false"
-fi
   
 # The first test create databases
 dbTest="createdb.test"
@@ -104,11 +115,10 @@ for testName in $dbFile $testSuites
 do 
   runDir=${testName%/*}
   testFile=${testName##*/}
-  if [ "$ncmd" != "false" ]; then
-    runTest $runDir $testFile "nice -n 19 time $runnerCmd -i  ${testFile}"
-  else  
-    runTest $runDir $testFile "time $runnerCmd -i  ${testFile}"
-  fi  
+  if isCmdPresent "nice"; then
+    niceOpt="nice -n 19"
+  fi
+  runTest $runDir $testFile "$niceOpt time $runnerCmd -i  ${testFile}"
   wait $! 
 done
 
