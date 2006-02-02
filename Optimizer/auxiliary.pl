@@ -628,8 +628,8 @@ secondo(X) :-
 secondo(X) :-
   (
     secondo(X, Y),
-    retract(storedSecondoList(_)),
-    getSecondoList(_),
+    retractall(storedSecondoList(_)),
+    (notIsDatabaseOpen;getSecondoList(_)),
     write('Command succeeded, result:'),
     nl, nl,
     show(Y)
