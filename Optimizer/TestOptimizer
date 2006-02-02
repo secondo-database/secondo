@@ -31,14 +31,19 @@ fi
 
 # define some directories and variables
 
-tempDir="${PWD}/tmp_opt_${date_ymd}_${date_HMS}"
-mkdir $tempDir
+tempDir="/tmp/$USER/TestOptimizer/${date_ymd}_${date_HMS}"
+mkdir -p $tempDir
 export SECONDO_PARAM_SecondoHome=$tempDir
+
+
 declare -i error=0
 logFile="${PWD}/TestOptimizer.log"
 
 TPC_GEN_DIR=${SECONDO_BUILD_DIR}/Tools/Generators/TPC-H
-cd $TPC_GEN_DIR/secondo
+TPC_SCRIPTS="$TPC_GEN_DIR/secondo"
+#cd $TPC_SCRIPTS
+
+PATH=${PATH}:${TPC_SCRIPTS}
 
 printf "%s\n" "Logfile: $logFile"
 

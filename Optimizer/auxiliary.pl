@@ -274,6 +274,131 @@ atom_postfix(Atom, PrefixLength, Post) :- % succeeds iff Post is a postfix of At
   PostLength is Length - PrefixLength,
   sub_atom(Atom, PrefixLength, PostLength, 0, Post).
 
+indexType(btree).
+indexType(rtree).
+
+createIndexSmall(_, _, _, _) :- 
+  usingVersion(standard),!.
+  
+createIndexSmall(Rel, ObjList, IndexName, _) :- 
+  usingVersion(entropy),
+  concat_atom([Rel, 'small'], '_', RelSmallName),
+  member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList),
+  concat_atom([IndexName, 'small'], '_', IndexSmallName),
+  indexType(Type),
+  member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList),!.
+  
+createIndexSmall(Rel, ObjList, IndexName, Attr) :- 
+  usingVersion(entropy),
+  concat_atom([Rel, 'small'], '_', RelSmallName),
+  member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList),
+  concat_atom([IndexName, 'small'], '_', IndexSmallName),
+  indexType(Type),
+  not(member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList)),
+  concat_atom(['let ', IndexName, '_small', ' = ', Rel, 
+    '_small create', Type, ' [', Attr, ']'], '', QueryAtom),
+  tryCreate(QueryAtom),!.  
+
+createIndexSmall(Rel, ObjList, IndexName, Attr) :- 
+  usingVersion(entropy),
+  concat_atom([Rel, 'small'], '_', RelSmallName),
+  not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
+  member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
+  trycreateSmallRelation(Rel, ObjList),
+  concat_atom([IndexName, 'small'], '_', IndexSmallName),
+  indexType(Type),
+  not(member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList)),
+  concat_atom(['let ', IndexName, '_small', ' = ', Rel, 
+    '_small create', Type, ' [', Attr, ']'], '', QueryAtom),
+  tryCreate(QueryAtom),!.
+
+createIndexSmall(Rel, ObjList, IndexName, _) :- 
+  usingVersion(entropy),
+  concat_atom([Rel, 'small'], '_', RelSmallName),
+  not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
+  member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
+  trycreateSmallRelation(Rel, ObjList),
+  concat_atom([IndexName, 'small'], '_', IndexSmallName),
+  indexType(Type),
+  member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList),!.
+
+createIndexSmall(Rel, ObjList, _, _) :- 
+  usingVersion(entropy),
+  concat_atom([Rel, 'small'], '_', RelSmallName),
+  not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
+  not(member(['OBJECT', Rel, _ , [[rel | _]]], ObjList)),
+  write('ERROR: missing relation '),
+  write(Rel),
+  write(' cannot create small relation and an index on small relation!'),!,fail.
+
+checkIfIndexIsStored(Rel, Attr, IndexType, IndexName, _) :-
+  databaseName(DB),
+  storedIndex(DB, Rel, Attr, IndexType, IndexName),!.
+
+checkIfIndexIsStored(Rel, Attr, IndexType, IndexName, ObjList) :-
+  databaseName(DB),
+  storedNoIndex(DB, Rel, Attr),
+  retract(storedNoIndex(DB, Rel, Attr)),
+  assert(storedIndex(DB, Rel, Attr, IndexType, IndexName)),
+  createIndexSmall(Rel, ObjList, IndexName, Attr),!.
+
+checkIfIndexIsStored(Rel, Attr, IndexType, IndexName, ObjList) :-
+  databaseName(DB),
+  assert(storedIndex(DB, Rel, Attr, IndexType, IndexName)),
+  createIndexSmall(Rel, ObjList, IndexName, Attr).
+
+checkForAddedIndex(ObjList) :-
+  member(['OBJECT', IndexName, _ , [[IndexType | _]]], ObjList),
+  concat_atom(L, '_', IndexName),
+  L = [Rel, Attr],
+  not(Attr = small),
+  not(Attr = sample),
+  indexType(IndexType),
+  lowerfl(Rel, LFRel),
+  lowerfl(Attr, LFAttr),
+  checkIfIndexIsStored(LFRel, LFAttr, IndexType, IndexName, ObjList).
+
+checkForAddedIndices(ObjList) :-
+  findall(_, checkForAddedIndex(ObjList), _).
+
+checkForRemovedIndex(ObjList) :-
+  databaseName(DB),
+  storedIndex(DB, Rel, Attr, IndexType, IndexName),
+  not(member(['OBJECT', IndexName, _ , [[IndexType | _]]], ObjList)),
+  retract(storedIndex(DB, Rel, Attr, IndexType, IndexName)),
+  assert(storedNoIndex(DB, Rel, Attr)),
+  concat_atom([IndexName, 'small'], '_', IndexNameSmall),
+  member(['OBJECT', IndexNameSmall, _ , [[IndexType | _]]], ObjList),
+  concat_atom(['delete ',IndexNameSmall], '', QueryAtom),
+  secondo(QueryAtom).
+
+checkForRemovedIndices(ObjList) :-
+  findall(_, checkForRemovedIndex(ObjList), _).
+
+checkIfIndex(X, ObjList) :-
+  sub_atom(X, _, _, _, IndexName),
+  member(['OBJECT', IndexName, _ , [[IndexType | _]]], ObjList),
+  indexType(IndexType),
+  checkForAddedIndices(ObjList),!.
+
+checkIfIndex(_, _) :-
+  true.	
+
+checkIsInList(X, ObjList, Type) :-
+  sub_atom(X, _, _, _, Name),
+  member(['OBJECT', Name, _ , [[Type | _]]], ObjList),!.
+
+checkIsInList(_, _, _) :-
+  fail.
+
+:- dynamic storeupdateRel/1.
+
+:- dynamic storeupdateIndex/1.
+
+storeupdateRel(0).
+
+storeupdateIndex(0).
+  
 secondo(X) :-
   sub_atom(X,0,4,_,S),
   atom_prefix(S,'open'),	  
@@ -283,6 +408,9 @@ secondo(X) :-
   assert(storedDatabaseOpen(1)),
   assert(databaseName(DName)),
   getSecondoList(_),
+  getSecondoList(ObjList),
+  checkForAddedIndices(ObjList),
+  checkForRemovedIndices(ObjList),
   write('Command succeeded, result:'),
   nl, nl,
   show(Y),
@@ -386,7 +514,8 @@ secondo(X) :-
   isDatabaseOpen, 
   secondo(X, Y),
   retract(storedSecondoList(_)),
-  getSecondoList(_),
+  getSecondoList(ObjList),
+  checkIfIndex(X, ObjList),
   write('Command succeeded, result:'),
   nl, nl,
   show(Y),!.
@@ -417,24 +546,109 @@ secondo(X) :-
   getSecondoList(_),
   write('Command succeeded, result:'),
   nl, nl,
-  show(Y),!.
+  show(Y),
+  !.
 
 secondo(X) :-
-  sub_atom(X,0,6,_,S),
-  atom_prefix(S,'delete'),
-  sub_atom(X,0,15,_,S),
-  not(atom_prefix(S,'delete database')),
-  isDatabaseOpen,  
+  concat_atom([Command, _],' ',X),
+  Command = 'delete',
+  isDatabaseOpen,
+  getSecondoList(ObjList),
+  checkIsInList(X, ObjList, rel),
+  storeupdateRel(1),  
+  secondo(X, _),
+  !.
+
+/*secondo(X) :-
+  concat_atom([Command, Name],' ',X),
+  Command = 'delete',
+  isDatabaseOpen,
+  databaseName(DB),
+  getSecondoList(ObjList),
+  checkIsInList(Name, ObjList, rel),
+  storeupdateRel(0),
+  not(storedRel(DB, Name, _)),
+  downcase_atom(Name, DCName),
+  getSpelledRel(DCName, SpelledRel), 
   secondo(X, Y),
+  deleteSampleAndSmallFiles(SpelledRel, ObjList),
+  retractStoredInformation(SpelledRel), 
   retract(storedSecondoList(_)),
   getSecondoList(_),
   write('Command succeeded, result:'),
   nl, nl,
-  show(Y),!.
+  show(Y),
+  !.*/
+  	
+secondo(X) :-
+  concat_atom([Command, Name],' ',X),
+  Command = 'delete',
+  isDatabaseOpen,
+  databaseName(DB),
+  getSecondoList(ObjList),
+  checkIsInList(X, ObjList, rel),
+  storeupdateRel(0),
+  storedRel(DB, Name, _), 
+  secondo(X, Y),
+  downcase_atom(Name, DCName),
+  updateRel(DCName),  
+  retract(storedSecondoList(_)),
+  getSecondoList(_),
+  write('Command succeeded, result:'),
+  nl, nl,
+  show(Y),
+  !.
+
+secondo(X) :-
+  concat_atom([Command, _],' ',X),
+  Command = 'delete',
+  isDatabaseOpen,
+  getSecondoList(ObjList),
+  indexType(Type),
+  checkIsInList(X, ObjList, Type),
+  storeupdateIndex(1), 
+  secondo(X, _),
+  retract(storedSecondoList(_)),
+  getSecondoList(_),
+  !.
+
+secondo(X) :-
+  concat_atom([Command, Name],' ',X),
+  Command = 'delete',
+  isDatabaseOpen,
+  databaseName(DB),
+  getSecondoList(ObjList),
+  indexType(Type),
+  checkIsInList(X, ObjList, Type),
+  storeupdateIndex(0),
+  storedIndex(DB, _, _, Type, Name),  
+  secondo(X, Y),
+  updateIndex,  
+  %retract(storedSecondoList(_)),
+  %getSecondoList(_),
+  write('Command succeeded, result:'),
+  nl, nl,
+  show(Y),
+  !.
+
+secondo(X) :-
+  concat_atom([Command, Name],' ',X),
+  Command = 'list',
+  Name = 'objects',
+  isDatabaseOpen,
+  secondo(X, Y),
+  write('Command succeeded Index, result:'),
+  nl, nl,
+  show(Y),
+  !.
   
 secondo(X) :-
   (
     secondo(X, Y),
+    write('Tach1\n'),
+    retractall(storedSecondoList(_)),
+    write('Tach2\n'),
+    (notIsDatabaseOpen; getSecondoList(_)),
     write('Command succeeded, result:'),
     nl, nl,
     show(Y)
@@ -541,9 +755,9 @@ delete(Query) :-
   isDatabaseOpen,
   atom(Query),
   atom_concat('delete ', Query, QueryText),
-  secondo(QueryText),
-  retract(storedSecondoList(_)),
-  getSecondoList(_).
+  secondo(QueryText).
+  %retract(storedSecondoList(_)),
+  %getSecondoList(_).
 
 open(Query) :-
   atom(Query),

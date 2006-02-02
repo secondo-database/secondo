@@ -248,10 +248,11 @@ Example call:
 
 */
 
-
 :- dynamic(highNode/1),
    dynamic(resultSize/2),
    dynamic(resultTupleSize/2).
+
+usingVersion(standard).
 
 pog(Rels, Preds, Nodes, Edges) :-
   length(Rels, N), reverse(Rels, Rels2), deleteArguments,
@@ -1029,6 +1030,15 @@ plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
     AAtom, ', ', BAtom, '] '], '', Result),
   !.
 
+plan_to_atom(spatialjoin(X, Y, A, B, _), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(A, AAtom),
+  plan_to_atom(B, BAtom),
+  concat_atom([XAtom, YAtom, 'spatialjoin[',
+    AAtom, ', ', BAtom, '] '], '', Result),
+  !.
+
 plan_to_atom(groupby(Stream, GroupAttrs, Fields), Result) :-
   plan_to_atom(Stream, SAtom),
   plan_to_atom(GroupAttrs, GAtom),
@@ -1448,7 +1458,8 @@ join(Arg1, Arg2, pr(Pred, _, _)) => symmjoin(Arg1S, Arg2S, Pred) :-
 
 
 /*
-product-filter join - for testing only!
+product-filter join - for testing only! ~product~ is an asymmetric opertor,
+so the arguments must be ordered in both possible ways!
 
 */
 
@@ -1464,7 +1475,60 @@ join(Arg1, Arg2, pr(Pred, A1, A2)) => filter(product(Arg2S, Arg1S), pr(Pred, A1,
 */
 
 /*
+Spatial Joins:
 
+Joins with geometric predicates using bbox-operators like ~intersects~ or 
+~touches~ can make use of the operator ~spatialjoin~ to filter the argument 
+streams prior to applying the actual predicate using ~filter~. BBox operators 
+are recognizable by using predicate ~isBBoxOperator\1~ as defined in file  
+~operators.pl~.
+
+As ~spatialjoin~ is an asymmetric operator, both possible argument orderings
+have to be considered.
+
+XRIS: For cost functions, the spatialjoin is considered to work on 2D-MBBs 
+only. Rules to detect 3/4D-MBBs and pass the correct dimension-argument to 
+the spatialjoin-term should be added later.
+
+For the cost functions, the selectivity is distributed among the spatialjoin 
+and the filter operators. Otherwise, cost/8 will over-estimate. This feature 
+is implemented by a separate case of the cost function for 
+~cost(filter(spatialjoin(...),...),...)~.
+
+*/
+
+join(Arg1, Arg2, pr(Pred, _, _)) => filter(spatialjoin(Arg1S, 
+  Arg2S, attrname(Attr1), attrname(Attr2), 2), Pred2) :-
+  compound(Pred),
+  functor(Pred, Op, 2),
+  isBBoxOperator(Op),
+  Arg1 => Arg1S, 
+  Arg2 => Arg2S, 
+  arg(1, Pred, X),
+  arg(2, Pred, Y),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  functor(Pred2, Op, 2),       
+  arg(1, Pred2, Attr1),
+  arg(2, Pred2, Attr2).
+
+join(Arg1, Arg2, pr(Pred, _, _)) => filter(spatialjoin(Arg2S, 
+  Arg1S, attrname(Attr2), attrname(Attr1), 2), Pred2) :-
+  compound(Pred),
+  functor(Pred, Op, 2),
+  isBBoxOperator(Op),
+  Arg1 => Arg1S, 
+  Arg2 => Arg2S, 
+  arg(1, Pred, X),
+  arg(2, Pred, Y),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  functor(Pred2, Op, 2),       
+  arg(1, Pred2, Attr1),
+  arg(2, Pred2, Attr2).
+
+
+/*
 Index joins:
 
 */
@@ -1583,6 +1647,7 @@ join00(Arg1S, Arg2S, pr(Y = X, _, _)) => hashjoin(Arg2S, Arg1S,
         attrname(Attr2), attrname(Attr1), 999997)   :-
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
+
 
 /*
 
@@ -1993,9 +2058,17 @@ cost(Term, P, Sel, S, TupleSize, PredCost, TC, C) :-
      + A*S.                          % consider overhead tuplewise
 
      
+/*
+When filter is used on the output of a spatialjoin, the edge-selectivity is distributed
+among both operators. You can change the behaviour by changing ~spatialjoinSDR/1~ in file
+~operators.pl~.
+
+*/
+
 cost(filter(X, _), P, Sel, S, TupleSize, PredCost, TC, C) :-
 %cost(filter(X, Pred), P, Sel, S, TupleSize, PredCost, TC, C) :- 
 % A cost function for the ordering predicate built from Pred could be calculated
+  X \= spatialjoin(_, _, _, _, _), % this is the normal case
   cost_factors(_, _, _, _, RPD, _, _, _, _, _, _, BDBPS, FCMR),
   filterTC(A),
   cost(X, P, Sel, SizeX, TupleSize, PredCost, TC, CostX),
@@ -2004,6 +2077,24 @@ cost(filter(X, _), P, Sel, S, TupleSize, PredCost, TC, C) :-
   C is CostX                     % create input stream
      + SizeX * (ExtFlobSize1 + ExtFlobSize2)/BDBPS * FCMR * RPD % read flobs from disk
      + (A + PredCost) * SizeX.   % consider predicate evaluation and overhead tuplewise
+
+cost(filter(X, _), P, Sel, S, TupleSize, PredCost, TC, C) :-
+%cost(filter(X, Pred), P, Sel, S, TupleSize, PredCost, TC, C) :- 
+% A cost function for the ordering predicate built from Pred could be calculated
+  X = spatialjoin(_, _, _, _, _),  % this is the special case where filter is used 
+                                   % on the output of a spatialjoin.
+  cost_factors(_, _, _, _, RPD, _, _, _, _, _, _, BDBPS, FCMR),
+  filterTC(A),
+  spatialjoinSDR(Z),           % (spatial join selectivity distribution ratio)
+  SelJ is Z + Sel * (1-Z/100), % distribute overall selectivity between
+  SelF is Sel/SelJ,            % the spatialjoin and filter operator
+  cost(X, P, SelJ, SizeX, TupleSize, PredCost, TC, CostX),
+  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
+  S is SizeX * SelF,
+  C is CostX                     % create input stream
+     + SizeX * (ExtFlobSize1 + ExtFlobSize2)/BDBPS * FCMR * RPD % read flobs from disk
+     + (A + PredCost) * SizeX.   % consider predicate evaluation and overhead tuplewise
+
 
 cost(product(X, Y), P, _, ResultCard, ResultTupleSize, B, TC, Cost) :-
   % the product operator is not symmetric. Y is buffered and X will get consumed.
@@ -2041,16 +2132,17 @@ cost(product(X, Y), P, _, ResultCard, ResultTupleSize, B, TC, Cost) :-
         + TC * ResultCard.       % generate result tuple
 
 /*
-
   Uses a btree-index to select tuples from a relation.
   The index must be opened. The predicate is always ${X}\geq v$
   for ~rightrange~, ${}\leq v$ for ~leftrange~, and ${}= v$ for 
   ~exactmatch~.
   
   To estimate the number of disk accesses, we query the 
-  hight and the keys-per-leafe size $K$ of the BTree.
-  then we expect to access $\mbox{hight}+{\mbox{Sel} \cdot \mbox{RelSize}}\over K$ disk pages 
+  height and the keys-per-leafe size $K$ of the BTree.
+  then we expect to access $\mbox{height}+{\mbox{Sel} \cdot \mbox{RelSize}}\over K$ disk pages 
   and evalute ${\mbox{Height}+K}\over 2$ times the comparisons.
+
+  XRIS: By now, the fan-out for Btrees is assumed to be 15.
   
 */
 
@@ -2062,8 +2154,8 @@ cost(leftrange(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
   Cost is CostR                           % produce input stream
         + Size*(ExtFlobSize1 + ExtFlobSize2)/BDBPS * FCMR * RPD % read flobs from disk
         + FOD + FCD                       % open/close btree file        
-        + B * log(2,RelSize)              % later: RPD * (Height + K/2)
-        + RPD * log(2,RelSize)            % later: RPD * (Height + Sel*RelSize/K)
+        + B * log(15,RelSize)             % later: RPD * (Height + K/2)
+        + RPD * log(15,RelSize)           % later: RPD * (Height + Sel*RelSize/K)
         + TC * Sel * RelSize.             % produce tuple stream
 
 cost(rightrange(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
@@ -2074,8 +2166,8 @@ cost(rightrange(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
   Cost is CostR                           % produce input stream
         + Size*(ExtFlobSize1 + ExtFlobSize2)/BDBPS * FCMR * RPD % read flobs from disk
         + FOD + FCD                       % open/close btree file        
-        + B * log(2,RelSize)              % find all matches,           later: B * (Height + K/2)
-        + RPD * log(2,RelSize)            % read index pages from disk, later: D * (Height + Sel*RelSize/K)
+        + B * log(15,RelSize)             % find all matches,           later: B * (Height + K/2)
+        + RPD * log(15,RelSize)           % read index pages from disk, later: D * (Height + Sel*RelSize/K)
         + TC * Sel * RelSize.             % produce tuple stream
 
 /*
@@ -2102,8 +2194,8 @@ cost(exactmatchfun(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
   Cost is CostR                           % produce input stream
         + Size*(ExtFlobSize1 + ExtFlobSize2)/BDBPS * FCMR * RPD % read flobs from disk
         + FOD + FCD                       % open/close btree file        
-        + B * (log(2,RelSize)+Size)       % find all matches,           later: B * (Height + K/2)
-        + RPD * log(2,RelSize)            % read index pages from disk, later: D * (Height + Sel*RelSize/K)
+        + B * (log(15,RelSize)+Size)      % find all matches,           later: B * (Height + K/2)
+        + RPD * log(15,RelSize)           % read index pages from disk, later: D * (Height + Sel*RelSize/K)
         + TC * Sel * RelSize.             % produce tuple stream
 
 cost(exactmatch(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
@@ -2114,8 +2206,8 @@ cost(exactmatch(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
   Cost is CostR                           % produce input stream
         + Size*(ExtFlobSize1 + ExtFlobSize2)/BDBPS * FCMR * RPD % read flobs from disk
         + FOD + FCD                       % open/close btree file        
-        + B * (log(2,RelSize)+Size)       % find all matches,           later: B * (Height + K/2)
-        + RPD * log(2,RelSize)            % read index pages from disk, later: D * (Height + Sel*RelSize/K)
+        + B * (log(15,RelSize)+Size)      % find all matches,           later: B * (Height + K/2)
+        + RPD * log(15,RelSize)           % read index pages from disk, later: D * (Height + Sel*RelSize/K)
         + TC * Sel * RelSize.             % produce tuple stream
 
 
@@ -2435,6 +2527,7 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
 */
 
 cost(sortby(X,Order), P, Sel, Card, TX, PredCost, TC, Cost) :- % XRIS: flob loading not yet considered here!
+% A cost function for the ordering predicate built from Pred could be calculated
   cost(X, P, Sel, Card, TX, PredCost, TC, CostX),
   cost_factors(RTM, WTM, _, _, _, _, _, _, _, _, MaxMem, _, _),
   ((float(Order); integer(Order)) *-> B is Order; sortTC(B)),  % get cost for ordering predicate
@@ -2480,6 +2573,7 @@ cost(sortby(X,Order), P, Sel, Card, TX, PredCost, TC, Cost) :- % XRIS: flob load
 
 
 cost(sortby(X,Order), P, Sel, Card, TX, PredCost, TC, Cost) :-  % XRIS: flob loading not yet considered here!
+% A cost function for the ordering predicate built from Pred could be calculated
   cost(X, P, Sel, Card, TX, PredCost, TC, CostX),             
   cost_factors(RTM, WTM, RTD, WTD, _, _, FND, FDD, FOD, FCD, MaxMem, _, _),
   ((float(Order); integer(Order)) *-> B is Order; sortTC(B)),   % get cost for ordering predicate
@@ -2528,6 +2622,7 @@ cost(sortby(X,Order), P, Sel, Card, TX, PredCost, TC, Cost) :-  % XRIS: flob loa
   ); true).
 
 cost(sort(X), P, Sel, CardX, TX, PredCost, TC, Cost) :- % 
+% A cost function for the ordering predicate built from Pred could be calculated
   cost(sortby(X,lexall), P, Sel, CardX, TX, PredCost, TC, Cost).
 
 
@@ -3032,8 +3127,8 @@ cost(windowintersects(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
   cost_factors(_,_,_,_,RPD,_,_,_,FOD,FCD,_, _, _),
   Size is Sel * RelSize,
   Cost is FOD + FCD                       % open/close RTree file        
-        + B * (log(2,RelSize)+Size)       % find all matches,           later: B * (Height + K/2)
-        + RPD * log(2,RelSize)            % read index pages from disk, later: D * (Height + Sel*RelSize/K)
+        + B * (log(15,RelSize)+Size)      % find all matches,           later: B * (Height + K/2)
+        + RPD * log(15,RelSize)           % read index pages from disk, later: D * (Height + Sel*RelSize/K)
         + TC * Sel * RelSize.             % produce tuple stream
 
 
@@ -3086,21 +3181,21 @@ cost(spatialjoin(X,Y,_,_,D), P, Sel, Size, TupleSize, B, TC, Cost) :- % XRIS: Fl
   cost(X, P, 1, CX, TX, B, TC, CostX),
   cost(Y, P, 1, CY, TY, B, TC, CostY),
   cost_factors(RTM, WTM, _, _, RPD, WPD, FND, FDD, FOD, FCD, MaxMem, BDBPS, FCMR),
-  TX = tupleSizeData(TSCx, TSIx, _),
-  TY = tupleSizeData(TSCy, TSIy, _),
+  TX = tupleSizeData(TSCx, TSIx, TSEx),
+  TY = tupleSizeData(TSCy, TSIy, TSEy),
   Tx is TSCx + TSIx,
   Ty is TSCy + TSIy,
   addTupleSizes(TX,TY,TupleSize),
   getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2), % Flobs should not be needed...
   Size is Sel * CX * CY,
-  MaxLeaves  is max(0,(MaxMem/(TY+24))),        % determine number of leaves fitting into in-memory Rtree
+  MaxLeaves  is max(0,(MaxMem/(Ty+24))),        % determine number of leaves fitting into in-memory Rtree
   PartNumber is max(0,ceiling(CY/MaxLeaves)-1), % determine how many partitions will be created
   ( PartNumber > 1 -> 
                (
                   PartSizeY  is (CY-MaxLeaves)/PartNumber, % determine average size of spooled partitions
                   PartSizeX  is (CX/CY)*PartSizeY, 
                   % estimate cost for one recursive call:
-                  cost(spatialjoin(fixed(partSizeX,TX),fixed(partSizeY,TY),_,_,D), P, Sel, _, _, B, TC, CostR)
+                  cost(spatialjoin(fixed(PartSizeX,TX),fixed(PartSizeY,TY),_,_,D), P, Sel, _, _, B, TC, CostR)
                )
 	      ;(
                   CostR is 0
@@ -3117,7 +3212,7 @@ cost(spatialjoin(X,Y,_,_,D), P, Sel, Size, TupleSize, B, TC, Cost) :- % XRIS: Fl
                     MinLeaveOfRtree), % found in PlugAndJoinAlgebra.cpp
 
 */
-  Height = max(1,log(min(MaxLeaves,CY),15)),% fanout/node capacity set to 15 
+  Height = max(1,log(15,min(MaxLeaves,CY))),% fanout/node capacity set to 15 
   M = min(MaxLeaves, CY),
   INSERT_CONST is (RTM + WTM),  
   QUERY_CONST  is RTM * Height,
@@ -3125,12 +3220,12 @@ cost(spatialjoin(X,Y,_,_,D), P, Sel, Size, TupleSize, B, TC, Cost) :- % XRIS: Fl
 
   Cost is CostX + CostY                     % produce arguments
         + INSERT_CONST * max(0,(CY-M))      % insert Y-tuples into Rtree
-        + SPLIT_CONST * (15 ** (Height-1)), % resolve splits on insertions
+        + SPLIT_CONST * (15 ** (Height-1))  % resolve splits on insertions
         + QUERY_CONST * CX                  % query X-tuple against Rtree  
                                             % spool Y-tuples to partition file
-        + (WPD+RPD) * ceiling((CY-M)*(Ty+ExtFlobSize1)/BDBPS)
+        + (WPD+RPD) * ceiling((CY-M)*(Ty+TSEy)/BDBPS)
                                             % spool X-tuples to partition file 
-        + (WPD+RPD) * ceiling(CX * (1 - M/CY)*(Tx+ExtFlobSize2)/BDBPS)
+        + (WPD+RPD) * ceiling(CX * (1 - M/CY)*(Tx+TSEx)/BDBPS)
         + (FND+FOD+FCD+FDD) * PartNumber    % handle partitions on disk
         + CostR * PartNumber                % cost for recursive calls
         + TC * Sel * M * CX * M/CY.         % create result tuples
@@ -3722,6 +3817,7 @@ We introduce ~select~, ~from~, ~where~, and ~as~ as PROLOG operators:
 :- op(990, fx, sql).
 :- op(985, xfx, >>).
 :- op(950, fx, select).
+:- op(940, fx, distinct).
 :- op(960, xfx, from).
 :- op(950, xfx, where).
 :- op(930, xfx, as).
@@ -3730,6 +3826,7 @@ We introduce ~select~, ~from~, ~where~, and ~as~ as PROLOG operators:
 :- op(986, xfx, first).
 :- op(930, xf, asc).
 :- op(930, xf, desc).
+
 
 /*
 This ensures that the select-from-where statement is viewed as a term with the
@@ -3934,6 +4031,9 @@ duplicateAttrs(Rel) :-
 
 */
 
+lookupAttrs(distinct X, distinct Y) :-
+  lookupAttrs(X, Y).
+
 lookupAttrs([], []).
 
 lookupAttrs([A | As], [A2 | A2s]) :-
@@ -3963,6 +4063,8 @@ lookupAttr(Attr, Attr2) :-
   assert(usedAttr(Rel2, Attr2)).
 
 lookupAttr(*, *) :- assert(isStarQuery), !.
+
+lookupAttr(count(*), count(*)) :- !.
 
 
 lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
@@ -4330,9 +4432,9 @@ translate(Select from Rels where Preds, Stream, Select, Cost) :-
   !.
 
 /*
-Below we will handle the case of queries without where-clause. This results
-in simple cartesian products of the relations in the from-clause. We think
-this case is very unimportant and we don't want to make the code complicated by
+Below we handle the case of queries without where-clause. This results
+in simple Cartesian products of the relations in the from-clause. 
+This case is not very important and we don't want to make the code complicated by
 applying projections for removing unnecessary attributes which might be a performance
 benefit if a groupby- or orderby- clause is present. The product will be computed
 by the symmjoin operator with a constant filter function which returns always true.
@@ -4414,6 +4516,12 @@ translateFields([sum(Expr) as NewAttr | Select], GroupAttrs,
   !.
 
 translateFields([Attr | Select], GroupAttrs, Fields, [Attr | Select2]) :-
+  member(Attr, GroupAttrs),
+  !,
+  translateFields(Select, GroupAttrs, Fields, Select2).
+
+
+translateFields([Attr as Name | Select], GroupAttrs, Fields, [Attr as Name | Select2]) :-
   member(Attr, GroupAttrs),
   !,
   translateFields(Select, GroupAttrs, Fields, Select2).
@@ -4518,7 +4626,8 @@ Check whether ~Query~ is a counting query.
 
 
 countQuery(select count(*) from _) :- !.
-countQuery(select count(*) from _ first _) :- !.
+
+countQuery(select distinct count(*) from _) :- !.
 
 countQuery(Query groupby _) :-
   countQuery(Query).
@@ -4634,35 +4743,75 @@ queryToStream(Query, Stream2, Cost) :-
 ----
 
 Given a ~Stream~, a ~Select~ clause, and a set of attributes for sorting,
-apply the final tranformations (extend, sort, project) to obtain ~Stream2~.
+apply the final tranformations (extend, project, duplicate removal, sorting) to obtain ~Stream2~.
 
 */
 
 finish(Stream, Select, Sort, Stream2) :-
-  selectClause(Select, Extend, Project),
-  finish2(Stream, Extend, Sort, Project, Stream2).
+  selectClause(Select, Extend, Project, Rdup),
+  finish2(Stream, Extend, Project, Rdup, Sort, Stream2).
+
+/*
+----	selectClause(Select, Extend, Project, Rdup) :-
+----
+
+The ~Select~ clause contains attribute lists ~Extend~ for extension, ~Project~ for projection, and possibly a ~distinct~ keyword indicating duplicate removal returned in ~Rdup~.
+
+*/
 
 
-selectClause(select *, [], *).
+selectClause(select *, [], *, duplicates).
 
-selectClause(select count(*), [], count(*)).
+selectClause(select count(*), [], count(*), duplicates).
 
-selectClause(select Attrs, Extend, Project) :-
+selectClause(select Attrs, Extend, Project, duplicates) :-
   makeList(Attrs, Attrs2),
   extendProject(Attrs2, Extend, Project).
 
+selectClause(select distinct *, [], *, distinct).
+
+selectClause(select distinct count(*), [], count(*), distinct).
+
+selectClause(select distinct Attrs, Extend, Project, distinct) :-
+  makeList(Attrs, Attrs2),
+  extendProject(Attrs2, Extend, Project).
+
+/*
+----	finish2(Stream, Extend, Project, Rdup, Sort, Stream5) :-
+----
+
+Apply extension, projection, duplicate removal and sorting as specified to ~Stream~ to obtain ~Stream5~.
+
+*/
 
 
-finish2(Stream, Extend, Sort, Project, Stream4) :-
+finish2(Stream, Extend, Project, Rdup, Sort, Stream5) :-
   fExtend(Stream, Extend, Stream2),
-  fSort(Stream2, Sort, Stream3),
-  fProject(Stream3, Project, Stream4).
+  fProject(Stream2, Project, Stream3),
+  fRdup(Stream3, Rdup, Stream4),
+  fSort(Stream4, Sort, Stream5).
 
 
 
 fExtend(Stream, [], Stream) :- !.
 
 fExtend(Stream, Extend, extend(Stream, Extend)).
+
+
+
+fProject(Stream, *, Stream) :- !.
+
+fProject(Stream, count(*), Stream) :- !.
+
+fProject(Stream, Project, project(Stream, AttrNames)) :-
+  attrnames(Project, AttrNames).
+
+
+
+
+fRdup(Stream, duplicates, Stream) :- !.
+
+fRdup(Stream, distinct, rdup(sort(Stream))).
 
 
 
@@ -4674,15 +4823,12 @@ fSort(Stream, SortAttrs, sortby(Stream, AttrNames)) :-
 
 
 /*
-don't modify the stream if the projection is [star] 
-or count([star]).
+----	extendProject(Attrs, ExtendAttrs, ProjectAttrs) :-
+----
+
+Construct the extension and projection attribute lists from ~Attrs~.
 
 */
-fProject(Stream, *, Stream) :- !.
-fProject(Stream, count(*), Stream) :- !.
-
-fProject(Stream, Project, project(Stream, AttrNames)) :-
-  attrnames(Project, AttrNames).
 
 
 extendProject([], [], []).
@@ -5080,7 +5226,6 @@ bestPlanConsume :-
   nl, write(Q), nl,
   query(Q).
 
-
 /*
 Print debugging information
 
@@ -5102,6 +5247,7 @@ dm(X) :-
   !.
 
 dm(_) :- !.
+
   
 /*
 

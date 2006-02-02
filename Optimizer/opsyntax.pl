@@ -50,6 +50,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 :- op(800, xfx, simpleequals).
 
+:- op(800, xfx, intersects_new).
+:- op(800, xfx, p_intersects).
+
 
 
 
@@ -78,7 +81,6 @@ For all other forms, a plan_to_atom rule has to be programmed explicitly.
 */
 
 secondoOp(distance, prefix, 2).
-secondoOp(intersects_new, prefix, 2).
 secondoOp(intersection_new, prefix, 2).
 secondoOp(union_new, prefix, 2).
 secondoOp(minus_new, prefix, 2).
@@ -104,6 +106,8 @@ secondoOp(avg, postfixbrackets, 2).
 secondoOp(tuplesize, postfix, 1).
 secondoOp(head, postfixbrackets, 2).
 secondoOp(windowintersects, postfixbrackets, 3).
+secondoOp(sort, postfix, 1).
+secondoOp(rdup, postfix, 1).
 
 
 

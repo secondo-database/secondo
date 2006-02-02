@@ -152,14 +152,27 @@ possiblyRename(Rel, Renamed) :-
   Rel = rel(_, Name, _),
   Renamed = rename(feed(Rel), Name).
 
-dynamicPossiblyRename(Rel, Renamed) :-
+dynamicPossiblyRenameJ(Rel, Renamed) :-
   Rel = rel(_, *, _),
   !,
-  Renamed = sample(Rel, 500, 0.00001).
+  sampleSizeJoin(JoinSize),
+  Renamed = sample(Rel, JoinSize, 0.00001).
 
-dynamicPossiblyRename(Rel, Renamed) :-
+dynamicPossiblyRenameJ(Rel, Renamed) :-
   Rel = rel(_, Name, _),
-  Renamed = rename(sample(Rel, 500, 0.00001), Name).
+  sampleSizeJoin(JoinSize),
+  Renamed = rename(sample(Rel, JoinSize, 0.00001), Name).
+
+dynamicPossiblyRenameS(Rel, Renamed) :-
+  Rel = rel(_, *, _),
+  !,
+  sampleSizeSelection(SelectionSize),
+  Renamed = sample(Rel, SelectionSize, 0.00001).
+
+dynamicPossiblyRenameS(Rel, Renamed) :-
+  Rel = rel(_, Name, _),
+  sampleSizeSelection(SelectionSize),
+  Renamed = rename(sample(Rel, SelectionSize, 0.00001), Name).
 
 cardQuery(Pred, Rel, Query) :-
   sampleS(Rel, RelS),
@@ -212,13 +225,15 @@ transformPred(Pred, Param, Arg, Pred2) :-
 transformPred(Pred, _, _, Pred).
 
 dynamicCardQuery(Pred, Rel, Query) :-
-  dynamicPossiblyRename(Rel, RelQuery),
+  dynamicPossiblyRenameS(Rel, RelQuery),
   Query = count(filter(RelQuery, Pred)).
 
 dynamicCardQuery(Pred, Rel1, Rel2, Query) :-
-  dynamicPossiblyRename(Rel1, Rel1Query),
-  dynamicPossiblyRename(Rel2, Rel2Query),
-  Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
+  dynamicPossiblyRenameJ(Rel1, Rel1Query),
+  dynamicPossiblyRenameJ(Rel2, Rel2Query),
+  %Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
+  transformPred(Pred, t, 1, Pred2),
+  Query = count(loopsel(Rel1Query, fun([param(t, tuple)], filter(Rel2Query, Pred2)))).
 
 /*
 
@@ -331,6 +346,7 @@ calculatePredicateCost(_, _, _, _, _, MinPET) :-
   % the first two clauses for sels/2 are needed for using hard coded 
   % selectivities. Since these cause problems with non-existing 
   % predicate cost, they should be omitted.
+
 sels(Pred, Sel) :-
   sel(Pred, Sel),
   !.
@@ -374,8 +390,7 @@ be retrieved only once.
 % Selectivities must not be 0
 
 selectivity(pr(Pred, Rel, Rel), Sel) :-
-  selectivity(pr(Pred, Rel), Sel), 
-  !.
+  selectivity(pr(Pred, Rel), Sel), !.
 
 selectivity(P, Sel) :-
   simplePred(P, PSimple),
@@ -383,6 +398,7 @@ selectivity(P, Sel) :-
   !.
 
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
+  set_dynamic_sample(off),
   Rel1 = rel(BaseName1, A1, S1),
   sampleNameJ(BaseName1, SampleName1),
   cacheRelation(rel(SampleName1, A1, S1)),
@@ -423,7 +439,50 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   assert(storedSel(DB, PSimple, Sel)),
   !.
 
+selectivity(pr(Pred, Rel1, Rel2), Sel) :-
+  set_dynamic_sample(on),
+  Rel1 = rel(BaseName1, _, _),
+  card(BaseName1, Card1),
+  sampleSizeJoin(JoinSize),
+  SampleCard1 is min(Card1, max(JoinSize, Card1 * 0.00001)),
+  Rel2 = rel(BaseName2, _, _),
+  card(BaseName2, Card2),
+  SampleCard2 is min(Card2, max(JoinSize, Card2 * 0.00001)),
+  dynamicCardQuery(Pred, Rel1, Rel2, Query),
+  plan_to_atom(Query, QueryAtom1),
+  atom_concat('query ', QueryAtom1, QueryAtom),
+  %write('selectivity query : '),
+  %write(QueryAtom),
+  get_time(Time1),
+  secondo(QueryAtom, [int, ResCard]),
+  get_time(Time2),
+  Time is Time2 - Time1,
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  Tq is Minute *60000 + Sec*1000 + MilliSec,
+  write('Elapsed Time: '), write(Tq), write(' ms'), nl,
+  sampleRuntimesJ(Rel1, Rel2, T0, T100, Ttg),
+  TotalCard is (SampleCard1 * SampleCard2),
+%  getPredCostDivisor(Pred, ResCard, ProdSize, Divisor),
+  Divisor is TotalCard,                % comment out and uncomment previous line to use BBox-Modification
+  calculatePredicateCost(Tq, T0, Ttg, ResCard, Divisor, PredCost),
+  Sel is max(ResCard,1) / TotalCard,   % must not be 0
+  simplePred(pr(Pred, Rel1, Rel2), PSimple),
+  nl, write('Cost evaluation for join predicate '), write(PSimple), nl,
+%  write('  Tq='), write(Tq), nl,
+%  write('  T0='), write(T0), nl,
+%  write('  Ttg='), write(Ttg), nl,
+%  write('  ResCard='), write(ResCard), nl,
+%  write('  ProdCard='), write(TotalCard), nl,
+%  write('  Divisor='), write(Divisor), nl,
+  write('Predicate Cost: '), write(PredCost),write(' ms'), nl,
+  write('Selectivity : '), write(Sel), nl,
+  databaseName(DB),
+  assert(storedPET(DB, PSimple, PredCost, T0, T100, Tq, Ttg, ResCard, TotalCard)),
+  assert(storedSel(DB, PSimple, Sel)),
+  !.
+
 selectivity(pr(Pred, Rel), Sel) :-
+  set_dynamic_sample(off),
   Rel = rel(BaseName, A, S),
   sampleNameS(BaseName, SampleName),
   cacheRelation(rel(SampleName, A, S)),
@@ -458,50 +517,12 @@ selectivity(pr(Pred, Rel), Sel) :-
   assert(storedSel(DB, PSimple, Sel)),
   !.
 
-
-/*  
-  *Deprecated selectivity clauses using dynamicCardQueries*  
-  New calculation of predicate costs not implemented herein!
-
-----
-
-selectivity(pr(Pred, Rel1, Rel2), Sel) :-
-  Rel1 = rel(BaseName1, _, _),
-  card(BaseName1, Card1),
-  SampleCard1 is min(Card1, max(500, Card1 * 0.00001)),
-  Rel2 = rel(BaseName2, _, _),
-  card(BaseName2, Card2),
-  SampleCard2 is min(Card2, max(500, Card2 * 0.00001)),
-  dynamicCardQuery(Pred, Rel1, Rel2, Query),
-  plan_to_atom(Query, QueryAtom1),
-  atom_concat('query ', QueryAtom1, QueryAtom),
-  %write('selectivity query : '),
-  %write(QueryAtom),
-  get_time(Time1),
-  secondo(QueryAtom, [int, ResCard]),
-  get_time(Time2),
-  Time is Time2 - Time1,
-  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
-  Tq is Minute *60000 + Sec*1000 + MilliSec,
-  write('Elapsed Time: '), write(Tq), write(' ms'), nl, 
-%  getPredCostDivisor(Pred, ResCard, (SampleCard1 * SampleCard2), Divisor),
-  Divisor is (SampleCard1 * SampleCard2),                % comment out and uncomment previous line to use BBox-Modification
-  PredCost is max(Tq,1) / Divisor, 
-  Sel is max(ResCard,1) / (SampleCard1 * SampleCard2),	 % must not be 0
-  write('Selectivity : '),
-  write(Sel),
-  nl,
-  simplePred(pr(Pred, Rel1, Rel2), PSimple),
-  databaseName(DB),
-  assert(storedPET(DB, PSimple, PredCost, _, _, _, _, _, _)),
-  assert(storedSel(DB, PSimple, Sel)),
-  nl, write('WARNING: selectivity(pr(Pred, Rel1, Rel2), Sel): deprecated clause1 used!'), nl,
-  !.
-
 selectivity(pr(Pred, Rel), Sel) :-
+  set_dynamic_sample(on),
   Rel = rel(BaseName, _, _),
   card(BaseName, Card),
-  SampleCard is min(Card, max(2000, Card * 0.00001)),
+  sampleSizeSelection(SelectionSize),
+  SampleCard is min(Card, max(SelectionSize, Card * 0.00001)),
   dynamicCardQuery(Pred, Rel, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
@@ -513,22 +534,23 @@ selectivity(pr(Pred, Rel), Sel) :-
   convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
   Tq is Minute *60000 + Sec*1000 + MilliSec,
   write('Elapsed Time: '), write(Tq),write(' ms'), nl,
+  sampleRuntimesS(Rel, T0),
 %  getPredCostDivisor(Pred, ResCard, SampleCard, Divisor),
-  Divisor is SampleCard,                % comment out and uncomment previous line to use BBox-Modification
-  PredCost is max(Tq,1) / Divisor,
-  Sel is max(ResCard,1)/ SampleCard,		% must not be 0
-  write('Selectivity : '),
-  write(Sel),
-  nl,
+  Divisor is (SampleCard),                % comment out and uncomment previous line to use BBox-Modification
+  calculatePredicateCost(Tq, T0, 0, ResCard, Divisor, PredCost),
+  Sel is max(ResCard,1)/ SampleCard,	  % must not be 0
   simplePred(pr(Pred, Rel), PSimple),
+  nl, write('Cost evaluation for selection predicate '), write(PSimple), nl,
+%  write('  Tq='), write(Tq), nl,
+%  write('  ResCard='), write(ResCard), nl,
+%  write('  SampleCard='), write(SampleCard), nl,
+%  write('  Divisor='), write(Divisor), nl,
+  write('Predicate Cost: '), write(PredCost), write(' ms'), nl,
+  write('Selectivity : '), write(Sel), nl,
   databaseName(DB),
-  assert(storedPET(DB, PSimple, PredCost, _, _, _, _, _, _)),
+  assert(storedPET(DB, PSimple, PredCost, T0, *, Tq, *, ResCard, SampleCard)),
   assert(storedSel(DB, PSimple, Sel)),
-  nl, write('WARNING: selectivity(pr(Pred, Rel1, Rel2), Sel): deprecated clause2 used!'), nl,
   !.
-----
-
-*/
 
 selectivity(P, _) :- write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl, fail.
@@ -870,7 +892,7 @@ predicateCost(Pred, _) :-
 Example 22:
 
 */
-example22 :- optimize(
+example24 :- optimize(
   select *
   from [staedte as s, ten]
   where [
@@ -1062,16 +1084,14 @@ getFlobFromPred(_, _, _, 0, 0).
 
 */
 
-getNeededExtFlobSize(_,0,0) :- !.
-:- write('\nREMINDER: Remove Testing Code in \'getNeededExtFlobSize(_,0,0) :- !.\' in statistics.pl line 1066f!\n\n').
+%getNeededExtFlobSize(_,0,0) :- !.
+:- write('\nREMINDER: Remove Testing Code in \'getNeededExtFlobSize(_,0,0) :- !.\' in statistics.pl line 1087f!\n\n').
 
 /* XRIS: 
 
 end testing code
 
 */
-
-
 
 getNeededExtFlobSize(pr(P, A, B), Flob1, Flob2) :- getFlobFromPred(P, A, B, Flob1, Flob2), !.
 getNeededExtFlobSize(pr(P, A), Flob1, Flob2) :- getFlobFromPred(P, A, A, Flob1, Flob2), !.

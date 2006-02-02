@@ -119,6 +119,13 @@ projectTC(X,Y):- machineSpeedFactor(CPU,_), X is CPU * 0.00385,    % OK Average 
 aggregateTC(X):- machineSpeedFactor(CPU,_), X is CPU * 0.00017, !. % Not tested!
 
 
+
+spatialjoinSDR(2).  % (spatial join Selectivity Distribution Ratio)
+		    % This constant is responsible for the distribution of 
+                    % selectivity on the spatialjoin- and filter operator. It 
+                    % gives the percentage of all eliminated tuples, that  
+                    % are eliminated by the final filter operator.
+
 /*
 2 Properties Of Certain Operators
 
