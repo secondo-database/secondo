@@ -130,7 +130,7 @@ static void Add( const unsigned long* s1,
  unsigned long pos;
  // first, we initialize sum with 0
  for(unsigned int i=0; i<size ; i++){
-    for(int j=0;j<numberOfBits;j++){
+    for(unsigned int j=0;j<numberOfBits;j++){
       pos = 1L << j;
       c1 = ((s1[i] & pos) !=0)?1:0;
       c2 = ((s2[i] & pos) !=0)?1:0;
@@ -191,7 +191,7 @@ bool IsOne(unsigned int p){
        return false;
    }
    unsigned long v = value[p1];
-   int pos = p%numberOfBits;
+   unsigned int pos = p%numberOfBits;
    unsigned long bitmask = 1L << pos;
    return (v&bitmask)!=0;
 }
@@ -445,7 +445,7 @@ If not, the result will conatain an undefined value.
     unsigned long v = value[0];
     long r;
     unsigned long pos = 1L << (numberOfBitsM1);
-    for(int i=0;i<numberOfBits;i++){
+    for(unsigned int i=0;i<numberOfBits;i++){
        if( (v&pos)>0)
           r++;
        if(i<(numberOfBitsM1))r=r<<1;
