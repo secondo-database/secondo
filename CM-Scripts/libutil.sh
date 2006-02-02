@@ -475,7 +475,11 @@ $3
 EOFM
  
     if [ "$backupDir" != "" ]; then
-
+     
+       if [ ! -d $backupDir ]; then
+	 assert mkdir -p $backupDir      
+       fi	       
+	    
        # redirect stdout   
        exec 6>&1
        exec >> "$backupDir/Mails.txt"
