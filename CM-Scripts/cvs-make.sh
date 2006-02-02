@@ -63,7 +63,7 @@ if [ $rc -ne 0 ]; then
 
   printf "%s\n" "Problems during build, sending a mail."
 
-  sendMail "$subject" "$mailRecipients" "$mailBody1" "$msgFile" $cvsHistMailBackupDir
+  sendMail "$subject" "$mailRecipients" "$mailBody1" "$cvsHistMailBackupDir" "$msgFile" 
 
   return $rc 
 fi
@@ -279,7 +279,14 @@ if [ $? == 0 ]; then
     attachment2="$cbuildDir/failedTests.tar.gz"
     subject2="Automatic tests failed!"
 
-    sendMail "$subject2" "$mailRecipients" "$mailBody2" "$attachment2" $cvsHistMailBackupDir
+    failedHist="
+
+List of failed tests:
+---------------------
+$(find $cvsHistRootDir -name "_failed_*" -exec cat {} \;)
+"
+
+    sendMail "$subject2" "$mailRecipients" "$mailBody2 $failedHist" "$cvsHistMailBackupDir" "$attachment2"
     let errors++
 
   fi

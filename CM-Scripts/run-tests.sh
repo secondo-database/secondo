@@ -59,11 +59,10 @@ function runTest() {
   # keep the first date of failure in a file. When the test succeed afterwards
   # the file will be deleted.
   if [ "$failedFileInfoDir" != "" ]; then
-    local failedFileInfo=$failedFileInfoDir/"_"$testName"_failed"
+    local failedFileInfo=$failedFileInfoDir/"_failed_"$testName
     if [ "$testFailed" == "true" ]; then
       if [ ! -e $failedFileInfo ]; then
-         echo -e "$testName failed since" >> failedFileInfo
-         date >> $failedFileInfo
+         date +"$testName failed since %Y-%m-%d %H:%M" >> $failedFileInfo
       fi
     else
       rm -f $failedFileInfo
