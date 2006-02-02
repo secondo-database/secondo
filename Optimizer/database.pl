@@ -321,21 +321,31 @@ createSampleS(Rel) :- %Rel in uc
 
 writeErrorSampleFileJ(Rel, MemorySize) :-
   nl,
+  spelling(Rel, Rel2),
+  (Rel2 = lc(Rel) -> Rel3 = Rel; upper(Rel,Rel3)),
   write('ERROR: Couldn\'t create join sample file for relation \''),
   write(Rel), write('\'!'),nl,
   write('Sample file needs more than '), write(MemorySize),
   write(' KB in main memory.'),nl,
   write('Please create the file manually, e.g.: '),
-  write('let \'cities_sample_j = cities sample[300, 0.00001] consume\'.'),nl,nl.
+  write('let \''), write(Rel3),write('_sample_j = '),
+  sampleSizeJoin(JoinSize), 
+  write(Rel3),write(' sample['),write(JoinSize),
+  write(', 0.00001] consume\'.'),nl,nl.
 
 writeErrorSampleFileS(Rel, MemorySize) :-
   nl,
+  spelling(Rel, Rel2),
+  (Rel2 = lc(Rel) -> Rel3 = Rel; upper(Rel,Rel3)),
   write('ERROR: Couldn\'t create selection sample file for relation \''),
-  write(Rel), write('\'!'),nl,
+  write(Rel3), write('\'!'),nl,
   write('Sample file needs more than '), write(MemorySize),
   write(' KB in main memory.'),nl,
   write('Please create the file manually, e.g.: '),
-  write('let \'cities_sample_s = cities sample[1500, 0.00001] consume\'.'),nl,nl.
+  write('let \''), write(Rel3),write('_sample_s = '),
+  sampleSizeSelection(SelectionSize), 
+  write(Rel3),write(' sample['),write(SelectionSize),
+  write(', 0.00001] consume\'.'),nl,nl.
 
 createSampleRelation4(Rel, Size, MemorySize) :-
   not(hasSampleJ(Rel)),
