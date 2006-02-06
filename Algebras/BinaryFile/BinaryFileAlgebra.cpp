@@ -319,10 +319,10 @@ OpenBinaryFile( SmiRecord& valueRecord,
                 const ListExpr typeInfo,
                 Word& value )
 {
-  // This Open function is implemented in the TupleElement class
+  // This Open function is implemented in the Attribute class
   // and uses the same method of the Tuple manager to open objects
   BinaryFile *bf = 
-    (BinaryFile*)TupleElement::Open( valueRecord, offset, typeInfo );
+    (BinaryFile*)Attribute::Open( valueRecord, offset, typeInfo );
   value = SetWord( bf );
   return true;
 }
@@ -339,9 +339,9 @@ SaveBinaryFile( SmiRecord& valueRecord,
 {
   BinaryFile *bf = (BinaryFile *)value.addr;
 
-  // This Save function is implemented in the TupleElement class
+  // This Save function is implemented in the Attribute class
   // and uses the same method of the Tuple manager to save objects
-  TupleElement::Save( valueRecord, offset, typeInfo, bf );
+  Attribute::Save( valueRecord, offset, typeInfo, bf );
   return true;
 }
 

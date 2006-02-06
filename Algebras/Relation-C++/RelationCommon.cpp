@@ -164,7 +164,7 @@ void Tuple::SetCounterReport(const bool val)
   Counter::reportValue("RA:TuplesInMem", val);
 }
 
-ostream &operator<< (ostream &os, TupleElement &attrib)
+ostream &operator<< (ostream &os, Attribute &attrib)
 {
   return attrib.Print(os);
 }

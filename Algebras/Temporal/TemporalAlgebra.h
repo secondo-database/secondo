@@ -4151,7 +4151,7 @@ bool OpenRange( SmiRecord& valueRecord,
                 const ListExpr typeInfo,
                 Word& value )
 {
-  Range<Alpha> *range = (Range<Alpha>*)TupleElement::Open( valueRecord, offset, typeInfo );
+  Range<Alpha> *range = (Range<Alpha>*)Attribute::Open( valueRecord, offset, typeInfo );
   value = SetWord( range );
   return true;
 }
@@ -4167,7 +4167,7 @@ bool SaveRange( SmiRecord& valueRecord,
                 Word& value )
 {
   Range<Alpha> *range = (Range<Alpha> *)value.addr;
-  TupleElement::Save( valueRecord, offset, typeInfo, range );
+  Attribute::Save( valueRecord, offset, typeInfo, range );
 
   return true;
 }

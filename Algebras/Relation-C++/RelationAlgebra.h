@@ -572,7 +572,7 @@ Initializes the attributes array with zeros.
       noAttributes = NoAttr;
       
       if ( noAttributes > MAX_NUM_OF_ATTR ) 
-        attributes = new TupleElement*[noAttributes];
+        attributes = new Attribute*[noAttributes];
       else 
         attributes = defAttributes;
 
@@ -632,8 +632,8 @@ Store the number of attributes of the tuple.
 
 */
 
-    TupleElement** attributes;
-    TupleElement* defAttributes[MAX_NUM_OF_ATTR];
+    Attribute** attributes;
+    Attribute* defAttributes[MAX_NUM_OF_ATTR];
 /*
 The attribute array. If it contains less than ~MAX\_NUM\_OF\_ATTR~
 entries, the it is statically constructed and ~attributes~ point

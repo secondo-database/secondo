@@ -2218,7 +2218,7 @@ bool OpenFPoint(SmiRecord& valueRecord,
                 size_t & offset,
                 const ListExpr typeInfo,
                 Word& value){
-   CcFPoint* FP = (CcFPoint*) TupleElement::Open(valueRecord,offset,typeInfo);
+   CcFPoint* FP = (CcFPoint*) Attribute::Open(valueRecord,offset,typeInfo);
    FP->RestoreJavaObjectFromFLOB();
    value = SetWord(FP);
    return true;
@@ -2228,7 +2228,7 @@ bool OpenFLine(SmiRecord& valueRecord,
                 size_t& offset,
                 const ListExpr typeInfo,
                 Word& value){
-   CcFLine* FL = (CcFLine*) TupleElement::Open(valueRecord,offset,typeInfo);
+   CcFLine* FL = (CcFLine*) Attribute::Open(valueRecord,offset,typeInfo);
    FL->RestoreJavaObjectFromFLOB();
    value = SetWord(FL);
    return true;
@@ -2238,7 +2238,7 @@ bool OpenFRegion(SmiRecord& valueRecord,
                  size_t& offset,
                  const ListExpr typeInfo,
                  Word& value){
-   CcFRegion* FR = (CcFRegion*) TupleElement::Open(valueRecord,offset,typeInfo);
+   CcFRegion* FR = (CcFRegion*) Attribute::Open(valueRecord,offset,typeInfo);
    FR->RestoreJavaObjectFromFLOB();
    value = SetWord(FR);
    return true;
@@ -2253,7 +2253,7 @@ bool SaveFPoint( SmiRecord& valueRecord,
                  const ListExpr typeInfo,
                  Word& value)
 { CcFPoint* FP = (CcFPoint*) value.addr;
-  TupleElement::Save(valueRecord,offset,typeInfo,FP);
+  Attribute::Save(valueRecord,offset,typeInfo,FP);
   return true;
 }
 
@@ -2263,7 +2263,7 @@ bool SaveFLine( SmiRecord& valueRecord,
                  Word& value)
 {
   CcFLine* FL = (CcFLine*) value.addr;
-  TupleElement::Save(valueRecord,offset,typeInfo,FL);
+  Attribute::Save(valueRecord,offset,typeInfo,FL);
   return true;
 }
 
@@ -2273,7 +2273,7 @@ bool SaveFRegion( SmiRecord& valueRecord,
                   Word& value)
 {
   CcFRegion* FR = (CcFRegion*) value.addr;
-  TupleElement::Save(valueRecord,offset,typeInfo,FR);
+  Attribute::Save(valueRecord,offset,typeInfo,FR);
   return true;
 }
 

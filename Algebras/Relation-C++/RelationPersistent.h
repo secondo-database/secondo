@@ -134,20 +134,19 @@ The destructor.
     {
       assert( state == Fresh );
       if( source->state == Fresh )
-      {
-        attributes[destIndex] = source->attributes[sourceIndex];
-        attributes[destIndex]->IncReference();
-      }
+        attributes[destIndex] = source->attributes[sourceIndex]->Copy();
       else
       {
         if( attributes[destIndex] != 0 )
           attributes[destIndex]->DeleteIfAllowed();
         void *aux = malloc( tupleType->GetAttributeType(destIndex).size );
         memcpy(aux, source->attributes[sourceIndex], tupleType->GetAttributeType(destIndex).size);
-        attributes[destIndex] = (TupleElement*)
+        attributes[destIndex] = (Attribute*)
           (*(am->Cast(tupleType->GetAttributeType(destIndex).algId, 
                         tupleType->GetAttributeType(destIndex).typeId)))(aux);
-        attributes[destIndex]->SetDeleteType( FreeAttr ); 
+        attributes[destIndex]->SetFreeAttr(); 
+        for( int i = 0; i < attributes[destIndex]->NumOfFLOBs(); i++ )
+          attributes[destIndex]->GetFLOB(i)->ReInit();
       }
     }
 /*
@@ -199,7 +198,7 @@ The unique identification of the tuple inside a relation.
 Stores the tuple type.
 
 */
-  TupleElement **attributes;
+  Attribute **attributes;
 /*
 The attributes pointer array. The tuple information is kept in 
 memory.

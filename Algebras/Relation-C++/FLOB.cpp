@@ -65,7 +65,7 @@ Brings a disk lob to memory, i.e., converts a flob in ~InDiskLarge~
 state to a ~InMemory~ state.
 
 */
-char *FLOB::BringToMemory() const
+const char *FLOB::BringToMemory() const
 {
   if( type == InDiskLarge )
   {

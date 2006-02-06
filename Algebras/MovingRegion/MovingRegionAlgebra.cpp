@@ -75,7 +75,7 @@ Closed:
 
     Resolved: Replaced weird implementation of ~OpenMRegion()~ and
     ~SaveMRegion()~ with code based on functions ~Open()~ and ~Save()~ 
-    from ~TupleElement~. Thomas Behr contributed this valuable hint!
+    from ~Attribute~. Thomas Behr contributed this valuable hint!
 
   * Bug: ~URegion::AddSegment()~ checks for moving segment intersections
     outside current region unit, which is incorrect.
@@ -7458,7 +7458,7 @@ bool OpenMRegion(SmiRecord& rec,
                  Word& w) {
     if (MRA_DEBUG) cerr << "OpenMRegion() called" << endl;
 
-    MRegion* mr = (MRegion*) TupleElement::Open(rec, offset, typeInfo);
+    MRegion* mr = (MRegion*) Attribute::Open(rec, offset, typeInfo);
     w = SetWord(mr);
 
     return true;
@@ -7475,7 +7475,7 @@ static bool SaveMRegion(SmiRecord& rec,
     if (MRA_DEBUG) cerr << "SaveMRegion() called" << endl;
 
     MRegion* mr = (MRegion*) w.addr;
-    TupleElement::Save(rec, offset, typeInfo, mr);
+    Attribute::Save(rec, offset, typeInfo, mr);
     return true;
 }
 

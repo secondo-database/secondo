@@ -220,12 +220,12 @@ output. It is only needed for internal tests.
 */
 ostream& operator<<(ostream& os, CcTuple t)
 {
-  TupleElement* attr;
+  Attribute* attr;
 
   os << "(";
   for (int i=0; i < t.GetNoAttrs(); i++)
   {
-    attr = (TupleElement*)t.Get(i);
+    attr = (Attribute*)t.Get(i);
     attr->Print(os);
     if (i < (t.GetNoAttrs() - 1)) os << ",";
   }
@@ -578,7 +578,7 @@ void DeleteCcTuple(Word& w)
   attrno = tupleptr->GetNoAttrs();
   for (int i = 0; i <= (attrno - 1); i++)
   {
-    delete (TupleElement*)tupleptr->Get(i);
+    delete (Attribute*)tupleptr->Get(i);
   }
   delete tupleptr;
 }

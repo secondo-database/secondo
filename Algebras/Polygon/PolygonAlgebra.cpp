@@ -588,7 +588,7 @@ OpenPolygon( SmiRecord& valueRecord,
              const ListExpr typeInfo,
              Word& value )
 {
-  Polygon *p = (Polygon*)TupleElement::Open( valueRecord, offset, typeInfo );
+  Polygon *p = (Polygon*)Attribute::Open( valueRecord, offset, typeInfo );
   value = SetWord( p );
   return true;
 }
@@ -604,7 +604,7 @@ SavePolygon( SmiRecord& valueRecord,
              Word& value )
 {
   Polygon *p = (Polygon *)value.addr;
-  TupleElement::Save( valueRecord, offset, typeInfo, p );
+  Attribute::Save( valueRecord, offset, typeInfo, p );
   return true;
 }
 

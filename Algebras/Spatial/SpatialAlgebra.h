@@ -947,9 +947,9 @@ this attibute is ignored.
 */
 struct AttrType
 {
-  AttrType() {}
+  inline AttrType() {}
 
-  AttrType& operator=( const AttrType& at )
+  inline AttrType& operator=( const AttrType& at )
   {
     insideAbove = at.insideAbove;
     faceno = at.faceno;
@@ -958,6 +958,14 @@ struct AttrType
     coverageno = at.coverageno;
     partnerno = at.partnerno;
     return *this;
+  }
+
+  inline bool Valid() const
+  {
+    return faceno >= 0 &&
+           cycleno >= 0 &&
+           edgeno >= 0 &&
+           partnerno >= 0;
   }
 
   int faceno;
@@ -1056,6 +1064,15 @@ This constructor should not be used.
     }
 /*
 This function returns a boolean value indicating whether the half segment is defined.
+
+*/
+    inline bool Valid() const
+    {
+      return attr.Valid() &&  
+             (!defined || (defined && lp < rp));
+    }
+/*
+Checks whether the segment is valid. Used for debugging purposes.
 
 */
     inline const Point& GetLP() const
@@ -1833,7 +1850,7 @@ This constructor should not be used.
         {
           const CHalfSegment *chs;
           cr.Get( i, chs );
-          region.Put( i, *chs );
+          Put( i, *chs );
         }
       }
       else
@@ -1845,7 +1862,7 @@ This constructor should not be used.
           cr.Get( i, chs );
           if (chs->GetLDP())
           {
-            region.Put( j, *chs );
+            Put( j, *chs );
             j++;
           }
         }
@@ -1905,6 +1922,20 @@ This function returns the number of half segments in the region value.
     }
 /*
 This function reads the ith half segment from the region value.
+
+*/
+  
+    inline void Put( const int i, const CHalfSegment& chs )
+    {
+      if( !chs.Valid() )
+      {
+        cerr << "Trying to write an invalid half segment: " << chs << endl;
+        exit( 1 );
+      }
+      region.Put( i, chs );
+    }
+/*
+Writes a halfsegment ~chs~ into position ~i~.
 
 7.3 Bulkload Functions
 
@@ -2089,7 +2120,7 @@ read the ~attr~ value of the half segment at the position ~position~ from the re
         region.Get( pos, chs);
         CHalfSegment aux( *chs );
         aux.SetAttr(attr);
-        region.Put( pos, aux);
+        Put( pos, aux );
       }
     }
 /*
@@ -2105,7 +2136,7 @@ half segment is indicated by ~pos~
         region.Get( position, chs);
         CHalfSegment aux (*chs);
         aux.SetAttr(ATTR);
-        region.Put( position, aux);
+        Put( position, aux );
       }
     }
 /*
@@ -2413,6 +2444,16 @@ is a hole of an existing face, or if it is a cycle of a new face.
 
 */
 bool Intersects(const CRegion &r) const;
+
+/*
+7.17 Components function
+
+This function returns the faces of this region as a set of regions.
+The pointers inside the array ~components~ are here initialized
+and must be deleted outside.
+
+*/
+    void Components( vector<CRegion*>& components );
 
   private:
 /*

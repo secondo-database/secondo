@@ -1259,7 +1259,7 @@ bool OpenJPoint(SmiRecord& valueRecord,
                 size_t& offset,
                 const ListExpr typeInfo,
 		Word& value){
-   JPoint* P = (JPoint*)TupleElement::Open(valueRecord,offset, typeInfo);
+   JPoint* P = (JPoint*)Attribute::Open(valueRecord,offset, typeInfo);
    P->RestoreJavaObjectFromFLOB();
    value = SetWord(P);
    return true;
@@ -1269,7 +1269,7 @@ bool OpenJBox(SmiRecord& valueRecord,
                 size_t& offset,
                 const ListExpr typeInfo,
 		Word& value){
-   JBox* B = (JBox*) TupleElement::Open(valueRecord,offset, typeInfo);
+   JBox* B = (JBox*) Attribute::Open(valueRecord,offset, typeInfo);
    B->RestoreJavaObjectFromFLOB();
    value = SetWord(B);
    return true;
@@ -1285,7 +1285,7 @@ bool SaveJPoint( SmiRecord& valueRecord,
                  const ListExpr typeInfo,
 		 Word& value)
 { JPoint* P = (JPoint*) value.addr;
-  TupleElement::Save(valueRecord,offset,typeInfo,P);
+  Attribute::Save(valueRecord,offset,typeInfo,P);
   return true;
 }
 
@@ -1294,7 +1294,7 @@ bool SaveJBox( SmiRecord& valueRecord,
                  const ListExpr typeInfo,
 		 Word& value)
 { JBox* B = (JBox*) value.addr;
-  TupleElement::Save(valueRecord,offset,typeInfo,B);
+  Attribute::Save(valueRecord,offset,typeInfo,B);
   return true;
 }
 

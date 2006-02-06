@@ -3929,7 +3929,7 @@ bool CRegion::Valid() const
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, s );
-    if( !s->IsDefined() )
+    if( !s->IsDefined() || !s->Valid() )
       return false;
   }
   return true;
@@ -3945,6 +3945,7 @@ void CRegion::EndBulkLoad( const bool sort )
 {
   //1. Original EndBulkload code
   assert( !IsOrdered());
+
   if( sort )
     Sort();
 
@@ -3963,7 +3964,7 @@ void CRegion::EndBulkLoad( const bool sort )
 
     CHalfSegment aux( *chs );
     aux.attr.coverageno = currCoverageNo;
-    region.Put( i, aux );
+    Put( i, aux );
   }
 
   ordered = true;
@@ -4499,6 +4500,61 @@ bool CRegion::Intersects(const CRegion &r) const
   return false;
 }
 
+void CRegion::Components( vector<CRegion*>& components )
+{
+  CRegion *copy = new CRegion( *this );
+  copy->logicsort();
+
+  map<int,int> edgeno,
+               cycleno,
+               faceno;
+
+  for( int i = 0; i < Size(); i++ )
+  {
+    const CHalfSegment *chs;
+    copy->Get( i, chs );
+    CRegion *r;
+    CHalfSegment aux( *chs );
+    if( faceno.find( chs->attr.faceno ) == faceno.end() )
+    {
+      r = new CRegion( 1 );
+      r->StartBulkLoad();
+      components.push_back( r );
+      aux.attr.faceno = faceno.size();
+      faceno.insert( make_pair( chs->attr.faceno, aux.attr.faceno ) );
+    }
+    else
+    {
+      aux.attr.faceno = faceno[ chs->attr.faceno ];
+      r = components[ aux.attr.faceno ];
+    }
+
+    if( cycleno.find( chs->attr.cycleno ) == cycleno.end() )
+    {
+      aux.attr.cycleno = cycleno.size();
+      cycleno.insert( make_pair( chs->attr.cycleno, aux.attr.cycleno ) );
+    }
+    else
+      aux.attr.cycleno = cycleno[ chs->attr.cycleno ];
+
+    if( edgeno.find( chs->attr.edgeno ) == edgeno.end() )
+    {
+      aux.attr.edgeno = edgeno.size();
+      edgeno.insert( make_pair( chs->attr.edgeno, aux.attr.edgeno ) );
+    }
+    else
+      aux.attr.edgeno = edgeno[ chs->attr.edgeno ];
+
+    *r += aux;
+  }
+
+  for( size_t i = 0; i < components.size(); i++ )
+  {
+    components[i]->EndBulkLoad( true );
+    components[i]->SetPartnerNo();
+  }
+}
+
 CRegion& CRegion::operator=(const CRegion& cr)
 {
   //cout<<"CRegion::operator="<<endl;
@@ -4513,7 +4569,7 @@ CRegion& CRegion::operator=(const CRegion& cr)
   {
     const CHalfSegment *chs;
     cr.Get( i, chs );
-    region.Put( i, *chs );
+    Put( i, *chs );
   }
   bbox = cr.BoundingBox();
   ordered = true;
@@ -4554,7 +4610,7 @@ CRegion& CRegion::operator+=(const CHalfSegment& chs)
 
   if( !IsOrdered() )
   {
-    region.Put( region.Size(), chs);
+    Put( region.Size(), chs);
   }
   else
   {
@@ -4564,10 +4620,10 @@ CRegion& CRegion::operator+=(const CHalfSegment& chs)
       for( int i = region.Size() - 1; i >= pos; i++ )
       {
         const CHalfSegment *auxchs;
-        region.Get( i, auxchs );
-        region.Put( i+1, *auxchs );
+        Get( i, auxchs );
+        Put( i+1, *auxchs );
       }
-      region.Put( pos, chs );
+      Put( pos, chs );
     }
   }
   return *this;
@@ -4583,8 +4639,8 @@ CRegion& CRegion::operator-=(const CHalfSegment& chs)
     for( int i = pos; i < Size(); i++ )
     {
       const CHalfSegment *auxchs;
-      region.Get( i+1, auxchs );
-      region.Put( i, *auxchs );
+      Get( i+1, auxchs );
+      Put( i, *auxchs );
     }
   }
 
@@ -4612,7 +4668,7 @@ void CRegion::InsertHs( const CHalfSegment& chs )
     if( !IsOrdered())
     {
   pos=region.Size();
-  region.Put( region.Size(), chs);
+  Put( region.Size(), chs);
     }
     else
     {
@@ -4622,10 +4678,10 @@ void CRegion::InsertHs( const CHalfSegment& chs )
       for( int i = region.Size() - 1; i >= insertpos; i++ )
       {
     const CHalfSegment *auxchs;
-    region.Get( i, auxchs );
-    region.Put( i+1, *auxchs );
+    Get( i, auxchs );
+    Put( i+1, *auxchs );
       }
-      region.Put( insertpos, chs );
+      Put( insertpos, chs );
       pos=insertpos;
   }
     }
@@ -4731,10 +4787,8 @@ void CRegion::Sort()
 
 void CRegion::logicsort()
 {
-  //cout<<"CRegion::logicsort"<<endl;
   region.Sort( HalfSegmentLogCompare );
-
-  ordered = true;
+  ordered = false;
 }
 
 ostream& operator<<( ostream& os, const CRegion& cr )
@@ -4756,45 +4810,37 @@ void CRegion::SetPartnerNo()
 
   if (this->Size()<=0)
     return;
+
   const CHalfSegment *chs;
   int *pa = new int[Size()/2];
-  SelectFirst();
-  int i=0;
-  while (1)
+
+  for( int i = 0; i < Size(); i++)
   {
-    GetHs( chs );
+    Get( i, chs );
     if (chs->GetLDP())
     {
       //store at position partnerno of the partner array the position of the left half segment
       //in the half segment array
-      pa[chs->attr.partnerno]=i;
+      assert( chs->attr.edgeno >= 0 && 
+              chs->attr.edgeno <= Size()/2 );
+      pa[chs->attr.edgeno]=i;
     }
-    i++;
-    if (i == Size()) break;
-    SelectNext();
-  }
-
-  for( i = 0; i < Size(); i++)
-  {
-    Get(i, chs );
-    pos = i;
-    if (!chs->GetLDP())
+    else
     {
       const CHalfSegment *chsLeft;
       //assign the position of the right dominating half segment as the partner number of the right half segment
-      CHalfSegment aux( chs );
-      aux.attr.partnerno = pa[chs->attr.partnerno];
-      UpdateAttr(aux.attr);
+      CHalfSegment aux( *chs );
+      aux.attr.partnerno = pa[chs->attr.edgeno];
+      UpdateAttr(i, aux.attr);
       Get( chs->attr.partnerno, chsLeft );
       //update the partner number of the left dominating half segment to the position of the right half segment
       //in the half segment array.
-      pos = chs->attr.partnerno;
       aux = *chsLeft;
       aux.attr.partnerno = i;
-      UpdateAttr(aux.attr);
+      UpdateAttr(chs->attr.partnerno, aux.attr);
     }
   }
-
+  delete []pa;
 }
 
 double VectorSize(const Point &p1, const Point &p2)
@@ -5980,7 +6026,7 @@ void CRegion::CopyFrom(const StandardAttribute* right)
     {
   const CHalfSegment *chs;
   cr->Get( i, chs );
-  region.Put( i, *chs );
+  Put( i, *chs );
     }
     bbox=cr->BoundingBox();
     //cout<<*this<<endl<<" .vs. "<<endl<<*cr<<endl;
@@ -6647,7 +6693,6 @@ RestoreFromListRegion( const ListExpr typeInfo,
 Word
 InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  //cout<<"InRegion#############"<<endl;
   CRegion* cr = new CRegion( 0 );
 
   cr->StartBulkLoad();
@@ -6889,7 +6934,6 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 
     cr->EndBulkLoad();
     cr->SetPartnerNo();
-
     assert( cr->Valid() );
 
     correct = true;
@@ -8986,6 +9030,25 @@ windowclippingSelect( ListExpr args )
 
   return (-1); // This point should never be reached
 }
+
+/*
+10.1.17 Type mapping function for operator ~components~
+
+This type mapping function is used for the ~components~ operator.
+
+*/
+static ListExpr
+ComponentsMap( ListExpr args )
+{
+  if( nl->ListLength( args ) == 1 )
+  {
+    if( SpatialTypeOfSymbol( nl->First( args ) ) == stregion )
+      return nl->TwoElemList( nl->SymbolAtom("stream"),
+                              nl->SymbolAtom("region") );
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
 
 
 /*
@@ -13341,6 +13404,51 @@ clip_l( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+10.4.27 Value mapping functions of operator ~components~
+
+*/
+struct ComponentsLocalInfo
+{
+  vector<CRegion*> components;
+  vector<CRegion*>::iterator iter;
+};
+
+static int
+components_r( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  ComponentsLocalInfo *localInfo;
+
+  switch( message )
+  {
+    case OPEN:
+      Word wRegion;
+      qp->Request(args[0].addr, wRegion);
+      localInfo = new ComponentsLocalInfo();
+      ((CRegion*)wRegion.addr)->Components( localInfo->components );
+      localInfo->iter = localInfo->components.begin();
+      local = SetWord( localInfo );
+      return 0;
+
+    case REQUEST:
+
+      localInfo = (ComponentsLocalInfo*)local.addr;
+      if( localInfo->iter == localInfo->components.end() )
+        return CANCEL;
+      result = SetWord( *localInfo->iter++ );
+      return YIELD;
+
+    case CLOSE:
+
+      localInfo = (ComponentsLocalInfo*)local.addr;
+      while( localInfo->iter != localInfo->components.end() )
+        delete *localInfo->iter++;
+      delete localInfo;
+      return 0;
+  }
+  return 0;
+}
+
+/*
 10.5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -13853,6 +13961,14 @@ const string SpatialSpecClip  =
         "<text>query clip ( line1, box1 )</text--->"
         ") )";
 
+const string SpatialSpecComponents  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+        "( <text>region -> stream(region)</text--->"
+        "<text>components(_)</text--->"
+        "<text>Returns the components of a region.</text--->"
+        "<text>query components(r1) count;</text--->"
+        ") )";
+
 
 /*
 10.5.3 Definition of the operators
@@ -14004,6 +14120,9 @@ Operator spatialclip
         ( "clip", SpatialSpecClip, 1, spatialclipmap, 
           SimpleSelect, clipMap );
 
+Operator spatialcomponents
+        ( "components", SpatialSpecComponents,
+          components_r, SimpleSelect, ComponentsMap );
 
 
 
@@ -14068,6 +14187,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialwindowclippingin );
     AddOperator( &spatialwindowclippingout );
     AddOperator( &spatialclip );
+    AddOperator( &spatialcomponents );
   }
   ~SpatialAlgebra() {};
 };

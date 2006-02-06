@@ -171,7 +171,23 @@ int PrivateTuple::Save( SmiRecordFile *tuplefile,
     }
   }
 
-  if( state == Fresh )
+  if( state == Solid && hasFLOBs && extensionSize > 0 )
+  {
+    assert( memoryTuple != 0 );
+    assert( (extensionSize == 0 && extensionTuple == 0 ) || 
+            (extensionSize != 0 && extensionTuple != 0 ) );
+
+    for( int i = 0; i < tupleType->GetNoAttributes(); i++)
+    {
+      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
+      {
+        FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
+        if( !tmpFLOB->IsLob() )
+          tmpFLOB->SaveToExtensionTuple( 0 );
+      }
+    }   
+  }
+  else if( state == Fresh )
   { 
     // Move FLOB data to extension tuple.
     if( hasFLOBs )
@@ -204,7 +220,7 @@ int PrivateTuple::Save( SmiRecordFile *tuplefile,
               tupleType->GetAttributeType(i).size );
       attributes[i]->DeleteIfAllowed();
       attributes[i] =
-        (TupleElement*)(*(am->Cast(tupleType->GetAttributeType(i).algId, 
+        (Attribute*)(*(am->Cast(tupleType->GetAttributeType(i).algId, 
                                    tupleType->GetAttributeType(i).typeId)))(&memoryTuple[offset]);
       offset += tupleType->GetAttributeType(i).size;
     }
@@ -267,8 +283,7 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
     int algId = tupleType->GetAttributeType(i).algId,
         typeId = tupleType->GetAttributeType(i).typeId;
     attributes[i] = 
-      (TupleElement*)(*(am->Cast(algId, typeId)))(valuePtr);
-    attributes[i]->SetDeleteType( None );
+      (Attribute*)(*(am->Cast(algId, typeId)))(valuePtr);
     valuePtr += tupleType->GetAttributeType(i).size;
 
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
@@ -352,8 +367,7 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
     int algId = tupleType->GetAttributeType(i).algId,
         typeId = tupleType->GetAttributeType(i).typeId;
     attributes[i] =
-      (TupleElement*)(*(am->Cast(algId, typeId)))(valuePtr);
-    attributes[i]->SetDeleteType( None );
+      (Attribute*)(*(am->Cast(algId, typeId)))(valuePtr);
     valuePtr += tupleType->GetAttributeType(i).size;
 
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
@@ -441,8 +455,7 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
     int algId = tupleType->GetAttributeType(i).algId,
         typeId = tupleType->GetAttributeType(i).typeId;
     attributes[i] =
-      (TupleElement*)(*(am->Cast(algId, typeId)))(valuePtr);
-    attributes[i]->SetDeleteType( None );
+      (Attribute*)(*(am->Cast(algId, typeId)))(valuePtr);
     valuePtr += tupleType->GetAttributeType(i).size;
 
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )

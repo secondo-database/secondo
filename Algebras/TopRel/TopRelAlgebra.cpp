@@ -1273,7 +1273,7 @@ OpenInt9M( SmiRecord& valueRecord,
            const ListExpr typeInfo,
            Word& value )
 {
-  Int9M *i9m = (Int9M*)TupleElement::Open( valueRecord, offset, typeInfo );
+  Int9M *i9m = (Int9M*)Attribute::Open( valueRecord, offset, typeInfo );
   value = SetWord( i9m );
   return true;
 }
@@ -1285,7 +1285,7 @@ OpenCluster( SmiRecord& valueRecord,
            Word& value )
 {
   Cluster *cluster;
-  cluster = (Cluster*)TupleElement::Open( valueRecord, offset, typeInfo );
+  cluster = (Cluster*)Attribute::Open( valueRecord, offset, typeInfo );
   value = SetWord( cluster );
   return true;
 }
@@ -1297,7 +1297,7 @@ OpenPredicateGroup( SmiRecord& valueRecord,
            Word& value )
 {
   PredicateGroup *pgroup;
-  pgroup = (PredicateGroup*)TupleElement::Open( valueRecord,
+  pgroup = (PredicateGroup*)Attribute::Open( valueRecord,
                                                 offset, typeInfo );
   value = SetWord( pgroup );
   return true;
@@ -1314,7 +1314,7 @@ SaveInt9M( SmiRecord& valueRecord,
              Word& value )
 {
   Int9M *int9m = (Int9M *)value.addr;
-  TupleElement::Save( valueRecord, offset, typeInfo, int9m );
+  Attribute::Save( valueRecord, offset, typeInfo, int9m );
   return true;
 }
 
@@ -1325,7 +1325,7 @@ SaveCluster( SmiRecord& valueRecord,
              Word& value )
 {
   Cluster *cluster = (Cluster *)value.addr;
-  TupleElement::Save( valueRecord, offset, typeInfo, cluster );
+  Attribute::Save( valueRecord, offset, typeInfo, cluster );
   return true;
 }
 
@@ -1336,7 +1336,7 @@ SavePredicateGroup( SmiRecord& valueRecord,
              Word& value )
 {
   PredicateGroup *pgroup = (PredicateGroup *)value.addr;
-  TupleElement::Save( valueRecord, offset, typeInfo, pgroup );
+  Attribute::Save( valueRecord, offset, typeInfo, pgroup );
   return true;
 }
 

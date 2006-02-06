@@ -122,13 +122,31 @@ Deletes the FLOB instance.
     }
 
 /*
+3.4 ReInit
+
+Re-initializes the FLOB.
+
+*/
+    inline void ReInit()
+    {
+      if( type == InMemoryCached )
+      {
+        assert( IsLob() );
+        SmiFileId lobFileId = fd.inMemoryCached.lobFileId;
+        SmiRecordId lobId = fd.inMemoryCached.lobId;    
+        type = InDiskLarge;
+        fd.inDiskLarge.lobFileId = lobFileId;
+        fd.inDiskLarge.lobId = lobId;
+      }
+    }
+/*
 3.4 BringToMemory
 
 Brings a disk lob to memory, i.e., converts a flob in ~InDiskLarge~
 state to a ~InMemory~ state.
 
 */
-    char *BringToMemory() const;
+    const char *BringToMemory() const;
 
 /*
 3.5 Get
@@ -263,8 +281,8 @@ to ~InDiskSmall~.
 */
     inline void SaveToExtensionTuple( void *extensionTuple ) const
     {
-      assert( type == InMemory );
-      if( size > 0 )
+      assert( type == InMemory || type == InDiskSmall );
+      if( type == InMemory && size > 0 )
       {
         if( extensionTuple != 0 )
           memcpy( extensionTuple, fd.inMemory.buffer, size );
@@ -349,7 +367,7 @@ Returns true, if value stored in underlying LOB, otherwise false.
 
       struct InMemoryCached
       {
-        char *buffer;
+        const char *buffer;
         SmiFileId lobFileId;
         SmiRecordId lobId;
       } inMemoryCached;

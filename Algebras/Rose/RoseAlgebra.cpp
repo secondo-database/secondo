@@ -1423,7 +1423,7 @@ bool OpenCcPoints(SmiRecord& valueRecord,
 		  const ListExpr typeInfo,
 		  Word& value){
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  CcPoints* P = (CcPoints*)TupleElement::Open(valueRecord,offset, typeInfo);
+  CcPoints* P = (CcPoints*)Attribute::Open(valueRecord,offset, typeInfo);
   //P->RestoreJavaObjectFromFLOB();
   P->SetObject(0);
   value = SetWord(P);
@@ -1436,7 +1436,7 @@ bool SaveCcPoints( SmiRecord& valueRecord,
 		   Word& value) { 
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* P = (CcPoints*) value.addr;
-  TupleElement::Save(valueRecord,offset,typeInfo,P);
+  Attribute::Save(valueRecord,offset,typeInfo,P);
   return true;
 }
 
@@ -1989,7 +1989,7 @@ bool OpenCcLines(SmiRecord& valueRecord,
 		 const ListExpr typeInfo,
 		 Word& value) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  CcLines* L = (CcLines*) TupleElement::Open(valueRecord,offset, typeInfo);
+  CcLines* L = (CcLines*) Attribute::Open(valueRecord,offset, typeInfo);
   //L->RestoreJavaObjectFromFLOB();
   L->SetObject(0);
   value = SetWord(L);
@@ -2002,7 +2002,7 @@ bool SaveCcLines( SmiRecord& valueRecord ,
 		  Word& value){
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* L = (CcLines*) value.addr;
-  TupleElement::Save(valueRecord,offset,typeInfo,L);
+  Attribute::Save(valueRecord,offset,typeInfo,L);
   return true;
 }
 
@@ -2553,7 +2553,7 @@ static void* CastCcRegions( void* addr ){
 
 bool OpenCcRegions(SmiRecord& valueRecord,size_t& offset,const ListExpr typeInfo,Word& value){
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  CcRegions* R = (CcRegions*) TupleElement::Open(valueRecord,offset, typeInfo);
+  CcRegions* R = (CcRegions*) Attribute::Open(valueRecord,offset, typeInfo);
   R->SetObject(0);
   value = SetWord(R);
   return true;
@@ -2562,7 +2562,7 @@ bool OpenCcRegions(SmiRecord& valueRecord,size_t& offset,const ListExpr typeInfo
 bool SaveCcRegions(SmiRecord& valueRecord,size_t& offset,const ListExpr typeInfo,Word& value) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* R = (CcRegions*) value.addr;
-  TupleElement::Save(valueRecord,offset,typeInfo,R); 
+  Attribute::Save(valueRecord,offset,typeInfo,R); 
   return true;
 }
 

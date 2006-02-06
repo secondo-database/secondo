@@ -199,10 +199,10 @@ Returns the number of components of this array.
 
     void Sort( int (*cmp)( const void *a, const void *b) )
     {
+      assert( type == InMemory );
       if( nElements <= 1 )
         return;
-      char *buf = FLOB::BringToMemory();
-      qsort( buf, nElements, sizeof( DBArrayElement ), cmp );
+      qsort( fd.inMemory.buffer, nElements, sizeof( DBArrayElement ), cmp );
     }
 /*
 Sorts the database array given the ~cmp~ comparison criteria. The

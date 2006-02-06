@@ -436,7 +436,7 @@ OpenPointSequence( SmiRecord& valueRecord,
                    const ListExpr typeInfo,
                    Word& value )
 {
-  PointSequence *ps = (PointSequence*)TupleElement::Open( valueRecord, 
+  PointSequence *ps = (PointSequence*)Attribute::Open( valueRecord, 
                                                           offset, typeInfo );
   value = SetWord( ps );
   return true;
@@ -454,7 +454,7 @@ SavePointSequence( SmiRecord& valueRecord,
 {
   PointSequence *ps = (PointSequence *)value.addr;
   
-  { TupleElement::Save( valueRecord, offset, typeInfo, ps ); }
+  { Attribute::Save( valueRecord, offset, typeInfo, ps ); }
   
   return true;
 }

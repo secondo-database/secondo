@@ -2786,7 +2786,8 @@ Deletes an operator tree object.
         break;
     } /* case */ 
 
-    // Clears the FLOB cache
+    // Close the files in the FLOB cache to avoid
+    // lots of opened files.
     if( tree->isRoot )
       flobCache->Clear();
    
