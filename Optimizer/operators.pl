@@ -68,6 +68,8 @@ renameTC(0.1).
 
 windowintersectsTC(0.1).
 
+spatialjoinTC(10.0, 0.7).
+
 
 
 
