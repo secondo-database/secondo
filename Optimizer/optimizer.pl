@@ -1806,6 +1806,14 @@ cost(consume(X), Sel, S, C) :-
   C is C1 + A * S.
 
 cost(filter(X, _), Sel, S, C) :-
+  term_to_atom(X, XAtom),
+  atom_prefix(XAtom, 'spatialjoin'),
+  cost(X, Sel, SizeX, CostX),
+  filterTC(A),
+  S is SizeX,
+  C is CostX + A * SizeX,!.
+
+cost(filter(X, _), Sel, S, C) :-
   cost(X, 1, SizeX, CostX),
   filterTC(A),
   S is SizeX * Sel,
@@ -1920,9 +1928,14 @@ cost(symmjoin(X, Y, _), Sel, S, C) :-
 cost(spatialjoin(X, Y, _, _), Sel, S, C) :-
   cost(X, 1, SizeX, CostX),
   cost(Y, 1, SizeY, CostY),
-  %S is SizeX * SizeY * Sel,
-  S is 1,  
-  C is CostX + CostY.     
+  spatialjoinTC(A, B),
+  S is SizeX * SizeY * Sel,  
+  C is CostX + CostY +                  % producing the arguments           
+  A * SizeX * log(SizeX + 1) +          % building the R-Tree  
+  %SizeY * log(SizeX + 1) +               look up in the R-Tree for each element of the second stream
+  Sel * SizeX * SizeY * log(SizeX + 1) +
+  B * S.                                % cost to produce result tuples
+  
 
 cost(extend(X, _), Sel, S, C) :-
   cost(X, Sel, S, C1),
