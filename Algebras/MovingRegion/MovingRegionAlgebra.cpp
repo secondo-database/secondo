@@ -6726,7 +6726,7 @@ set each unit to the constant value of ~r~.
 ~DBArray~ access.
 
 */
-    int NumOfFLOBs();
+    int NumOfFLOBs() const;
     FLOB *GetFLOB(const int i);
 
 /*
@@ -6811,7 +6811,7 @@ For unit testing only.
 
 */
 
-int MRegion::NumOfFLOBs() {
+int MRegion::NumOfFLOBs() const {
     if (MRA_DEBUG) cerr << "MRegion::NumOfFLOBs() called" << endl;
 
     return 2;
@@ -7474,8 +7474,9 @@ static bool SaveMRegion(SmiRecord& rec,
                         Word& w) {
     if (MRA_DEBUG) cerr << "SaveMRegion() called" << endl;
 
-    MRegion* mr = (MRegion*) w.addr;
+    MRegion* mr = static_cast<MRegion*> (w.addr);
     Attribute::Save(rec, offset, typeInfo, mr);
+
     return true;
 }
 
