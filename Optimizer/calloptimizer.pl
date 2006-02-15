@@ -37,10 +37,28 @@ The optimizer is started by loading this file.
 % The solution was found in the SWI-Prolog mailing list.
 % http://gollem.science.uva.nl/SWI-Prolog/mailinglist/archive/2005/q3/0349.html
 
-getprompt :- 
-  current_stream(0, read, ConIn), set_stream(ConIn, tty(true)),
-  current_stream(1, write, ConOut), set_stream(ConOut, tty(true)),
-  current_stream(2, write, ConErr), set_stream(ConErr, tty(true)). 
+getprompt :-
+  current_prolog_flag(version,Version),
+  ( Version >= 50600 -> 
+      (  % using ISO stream predicates
+         stream_property(ConIn,  file_no(0)), 
+         stream_property(ConIn,  mode(read)),  
+         set_stream(ConIn,  tty(true)),
+
+         stream_property(ConOut, file_no(1)), 
+         stream_property(ConOut, mode(write)), 
+         set_stream(ConOut, tty(true)),
+
+         stream_property(ConErr, file_no(2)), 
+         stream_property(ConErr, mode(write)), 
+         set_stream(ConErr, tty(true))
+      )
+    ; (  % using deprecated predicates
+         current_stream(0, read, ConIn), set_stream(ConIn, tty(true)),
+         current_stream(1, write, ConOut), set_stream(ConOut, tty(true)), 
+         current_stream(2, write, ConErr), set_stream(ConErr, tty(true))
+      )
+  ).
 
 :- [opsyntax].
 
@@ -65,3 +83,5 @@ getprompt :-
   nl, write('Note: Version 5.4.7 shows in the MSYS console no prompt!'), nl,
   write('A workaround is to type in the predicate "getprompt."'), nl, nl.
   
+:- current_prolog_flag(windows,true), % query getprompt on windows systems
+   getprompt.
