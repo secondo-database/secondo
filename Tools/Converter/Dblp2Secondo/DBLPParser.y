@@ -499,7 +499,7 @@ char** argv;
        ifile = fopen(argv[start+1], "r");
        if (ifile == NULL)
        {
-         fprintf(stderr,"ERROR: cannot open file ");
+         fprintf(stderr,"DBLPParser::ERROR: cannot open file %s\n ",argv[start+1]);
          fprintf(stderr,argv[start+1]);
          fprintf(stderr,"\n");
          return -1;

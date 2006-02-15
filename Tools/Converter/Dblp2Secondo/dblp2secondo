@@ -25,7 +25,7 @@
 # F.Hoffmann , Th. Behr 2004-6
 
 
-OLDSTYLE=""
+
 if [ "$1" = "--oldstyle" ]; then
   OLDSTYLE="$1"
   shift
@@ -144,7 +144,12 @@ if [ "$ANSWER" != "use" ]; then
    # create also a temporary keyword file keyword_tmp
    echo "create the SECONDO-relations"
    rm -f access.db
-   Parser "$OLDSTYLE" "$DBLP_TMP"
+   if [ "$OLDSTYLE" != "" ]; then
+       Parser "$OLDSTYLE" "$DBLP_TMP"
+   else
+       Parser "$DBLP_TMP"
+   fi
+       
    if [ $? -ne 0 ]; then
        echo "Creating of relations failed"
        rm -f "access.db"

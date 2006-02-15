@@ -99,7 +99,7 @@ char** argv;
     ifile = fopen(argv[1], "r");
     if (ifile == NULL)
     {
-      fprintf(stderr,"ERROR: cannot open file ");
+      fprintf(stderr,"FilterHTML::ERROR: cannot open file ");
       fprintf(stderr,argv[1]);
       fprintf(stderr,"\n");
       return -1;

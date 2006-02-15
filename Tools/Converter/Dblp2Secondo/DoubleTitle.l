@@ -59,7 +59,7 @@ char** argv;
   if(argc > 1) {
     ifile = fopen(argv[1], "r");
     if (ifile == NULL) {
-         fprintf(stderr,"ERROR: cannot open file ");
+         fprintf(stderr,"DoubleTitle::ERROR: cannot open file ");
          fprintf(stderr,argv[1]);
          fprintf(stderr,"\n");
          return -1;
