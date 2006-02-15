@@ -22,9 +22,7 @@ dviFile="$1.dvi"
 logFile="$1.log"
 auxFile="$1.aux"
 
-if { ! pd2tex $1; }; then
-   exit 1
-fi
+pd2tex $1; 
 
 for dummy in 1 2 3 4
 do

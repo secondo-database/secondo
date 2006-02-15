@@ -19,11 +19,15 @@
 pdFile="$1"
 texFile="$1.tex"
 
-if { ! pdtabs < $pdFile | maketex > /dev/null; }; then
-
-   printf "\n PD-Error: Could not create $texFile! \n\n"
-   exit 1
-fi
 cat $PD_HEADER > $texFile 
 pdtabs < $pdFile | maketex | linebreaks >> $texFile 
+
+if { ! pdtabs < $pdFile | maketex > /dev/null; }; then
+
+   printf "\n PD-Error: Could not create $texFile completely! Please wait ... \n\n"
+   echo "\end{document}" >> $texFile
+   sleep 5
+
+fi
+
 

@@ -16,8 +16,6 @@
 #
 # May 2004, M. Spiekermann
 
-if { ! pd2dvi $1; }; then
-   exit 1
-fi
+pd2dvi $1; 
 
 pdpreview $1 dvi $PD_DVI_VIEWER &
