@@ -1031,11 +1031,12 @@ associated with attributes from argument0/1 resp. argument2 of the current query
 occur in ~Predicate~. By now, it is assumed, that evaluating a predicate on a 
 flob attribute requires the external flob to be loaded. This might be misguiding, as
 certain functions and predicates may not need to access the external flob, e.g. 
-when a bounding box (stored in the tuple´s internal flob) check suffices to evaluate 
+when a bounding box (stored in the tuple's internal flob) check suffices to evaluate 
 most instances of a predicate.
 
 By now, it is assumed that only one flob attribute occurs in each tuple, thus
 the total(!) external flob size is mapped to each(!) flob attribute of a relation.
+
 */
 
 
@@ -1080,16 +1081,17 @@ getFlobFromPred(Term, Rel1, Rel2, Flob1, Flob2) :-
 getFlobFromPred(_, _, _, 0, 0).
 
 /*
-  XRIS: for testing only!
+  
+XRIS: for testing only!
 
 */
 
-%getNeededExtFlobSize(_,0,0) :- !.
+% getNeededExtFlobSize(_,0,0) :- !.
 :- write('\nREMINDER: Remove Testing Code in \'getNeededExtFlobSize(_,0,0) :- !.\' in statistics.pl line 1087f!\n\n').
 
-/* XRIS: 
+/* 
 
-end testing code
+XRIS: end testing code
 
 */
 

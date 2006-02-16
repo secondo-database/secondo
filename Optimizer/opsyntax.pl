@@ -48,6 +48,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, atperiods).
 :- op(800, xfx, at).
 
+:- op(800, xfx, satisfies).
+:- op(800, xfx, when).
+
 :- op(800, xfx, simpleequals).
 
 :- op(800, xfx, intersects_new).

@@ -39,7 +39,7 @@ constants below are quite accurate e.g. for examples 14 to
 1.1 General Constants for Cost Estimation
 
 General cost factors, given in milliseconds [ms] per operation. The constants have been derived
-from query times on a reference system and are multiplied by the actual machine´s relative speed
+from query times on a reference system and are multiplied by the actual machine's relative speed
 as inquired by ~machineSpeedFactor(CPU, FS)~.
  
 A standard schema is used to enhance the readybility of the cost functions.
@@ -75,7 +75,10 @@ cost_factors(   RTM,   WTM,   RTD,   WTD,   RPD,   WPD,   FND,   FDD,   FOD,   F
 %                RTM,   WTM,   RTD,   WTD,   RPD,   WPD,   FND,   FDD,   FOD,   FCD,  MaxMem  
  cost_factors( 0.001, 0.001, 0.001, 0.002, 1.000, 1.500, 3.000, 3.000, 0.500, 0.500, 16777216, 8192, 0.25).
 
+% cost_factors(   FRP,    FWP,    FAF, FPE,   MaxMem, BDBPS, FCMR),
+  cost_factors(0.5170, 0.7760, 5.0000, 1.0, 16777216,  8192, 0.25). % simple cost estimation
 
+productTC(0.001). % new TC for product
 /*
 ----    ~minTgt(X)~
 ----
@@ -127,6 +130,7 @@ spatialjoinSDR(2).  % (spatial join Selectivity Distribution Ratio)
                     % are eliminated by the final filter operator.
 
 /*
+
 2 Properties Of Certain Operators
 
 Several operators, like geometric predicates who use bounding boxes, have properties, that
@@ -135,6 +139,7 @@ require them to be handled differently in some ways.
 */
 
 isBBoxOperator(intersects).
+isBBoxOperator(intersection).
 isBBoxOperator(inside).
 isBBoxOperator(insideold).
 isBBoxOperator(touches).
@@ -290,4 +295,3 @@ toggleCosts :-
   assert(optConjunctiveCosts),
   write('\nNow, only costs from the conjunctive query are applied! - Type \'optionTotalCosts.\' or \'toggleCosts.\' to calculate all costs instead.\n\n'),
   !.
- 

@@ -58,9 +58,10 @@ extractList([[First, _] | Rest], [First | Rest2]) :-
 
 /*
 Rule ~extractAttrTypes(Rel, AttrList)~ builds a table of facts 
-~storedAttrSize(Database, Rel, Attribute, Type, CoreTupleSize, InFlobSize, ExtFlobSize)~ describing the 
-~Type~ and tuple sizes of all ~Attribute~s found in ~AttrList~. To determine ~InFlobSize~,
-a query should be send to Secondo, but that operator is still not implemented.
+~storedAttrSize(Database, Rel, Attribute, Type, CoreTupleSize, InFlobSize, 
+ExtFlobSize)~ describing the ~Type~ and tuple sizes of all ~Attribute~s 
+found in ~AttrList~. To determine ~InFlobSize~, a query should be send to 
+Secondo, but that operator is still not implemented.
 
 */
 
@@ -73,7 +74,8 @@ extractAttrTypes(Rel, List) :-
   write(', '), write(List), write(') failed.\n'), 
   fail.
 
-extractAttrTypes(Rel, _, CFlobAttrs, CCoreSize, CInFlobSize, CFlobAttrs, TCoreSize, CInFlobSize, [[Attr, Type]]) :-
+extractAttrTypes(Rel, _, CFlobAttrs, CCoreSize, CInFlobSize, 
+                 CFlobAttrs, TCoreSize, CInFlobSize, [[Attr, Type]]) :-
   noFlobType(Type), % Type is noFlobType: No Secondo query needed
   downcase_atom(Attr, AttrD),
   % determine CoreTupleSize
@@ -86,7 +88,8 @@ extractAttrTypes(Rel, _, CFlobAttrs, CCoreSize, CInFlobSize, CFlobAttrs, TCoreSi
   assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, 0, 0)), 
   !.
 
-extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, TFlobAttrs, TCoreSize, TInFlobSize, [[Attr, Type]]) :-
+extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, 
+                 TFlobAttrs, TCoreSize, TInFlobSize, [[Attr, Type]]) :-
   downcase_atom(Attr, AttrD),
   % determine CoreTupleSize
   secDatatype(Type, CoreTupleSize),
@@ -95,29 +98,34 @@ extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, TFlobA
   TCoreSize   is CCoreSize + CoreTupleSize,
   TInFlobSize is CInFlobSize + InFlobSize,
   % Distribute total external fobsize among all flob attributes:
-  ExtFlobSize is max(0,ceiling((TotalTupleSize - (TCoreSize + TInFlobSize))/TFlobAttrs)), % might be changed later! 
+  ExtFlobSize is max(0,ceiling((TotalTupleSize 
+            - (TCoreSize + TInFlobSize))/TFlobAttrs)), % might be changed later! 
   databaseName(DBName),
   % XRIS: Hotfix to avoid multiple entries occuring with deferred samples
 %  retractall(storedAttrSize(DBName, Rel, AttrD, _, _, _, _)), 
   % END Hotfix
-  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, InFlobSize, ExtFlobSize)), 
+  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, 
+                        InFlobSize, ExtFlobSize)), 
   !.
 
-extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, TFlobAttrs, TCoreSize, TInFlobSize, [[Attr, Type] | Rest]) :-
+extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, 
+                 TFlobAttrs, TCoreSize, TInFlobSize, [[Attr, Type] | Rest]) :-
   noFlobType(Type), % Type is noFlobType: No Secondo query needed
   downcase_atom(Attr, AttrD),
   % determine CoreTupleSize
   secDatatype(Type, CoreTupleSize),
   databaseName(DBName),
   NCCoreSize is CCoreSize + CoreTupleSize,
-  extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, NCCoreSize, CInFlobSize, TFlobAttrs, TCoreSize, TInFlobSize, Rest), 
+  extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, NCCoreSize, CInFlobSize, 
+                   TFlobAttrs, TCoreSize, TInFlobSize, Rest), 
   % XRIS: Hotfix to avoid multiple entries occuring with deferred samples
 %  retractall(storedAttrSize(DBName, Rel, AttrD, _, _, _, _)), 
   % END Hotfix
   assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, 0, 0)),
   !.
 
-extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, TFlobAttrs, TCoreSize, TInFlobSize, [[Attr, Type] | Rest]) :-
+extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, 
+                 TFlobAttrs, TCoreSize, TInFlobSize, [[Attr, Type] | Rest]) :-
   downcase_atom(Attr, AttrD),
   % determine CoreTupleSize
   secDatatype(Type, CoreTupleSize),
@@ -126,16 +134,20 @@ extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, TFlobA
   NCCoreSize   is CCoreSize + CoreTupleSize,
   NCInFlobSize is CInFlobSize + InFlobSize, 
   % Distribute total external fobsize among all flob attributes:
-  extractAttrTypes(Rel, TotalTupleSize, NCFlobAttrs, NCCoreSize, NCInFlobSize, TFlobAttrs, TCoreSize, TInFlobSize, Rest), 
-  ExtFlobSize  is max(0,ceiling((TotalTupleSize - (TCoreSize + TInFlobSize))/TFlobAttrs)),% might be changed later!
+  extractAttrTypes(Rel, TotalTupleSize, NCFlobAttrs, NCCoreSize, NCInFlobSize, 
+                   TFlobAttrs, TCoreSize, TInFlobSize, Rest), 
+  ExtFlobSize  is max(0,ceiling((TotalTupleSize - (TCoreSize + TInFlobSize))
+                                /TFlobAttrs)),% might be changed later!
   databaseName(DBName),
   % XRIS: Hotfix to avoid multiple entries occuring with deferred samples
 %  retractall(storedAttrSize(DBName, Rel, AttrD, _, _, _, _)), 
   % END Hotfix
-  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, InFlobSize, ExtFlobSize)),
+  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, 
+                        InFlobSize, ExtFlobSize)),
   !.
 
-extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, TFlobAttrs, TCoreSize, TInFlobSize, List) :- 
+extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, 
+                 TFlobAttrs, TCoreSize, TInFlobSize, List) :- 
   write('ERROR in optimizer: extractAttrTypes('), write(Rel), 
   write(', '), write(TotalTupleSize), 
   write(', '), write(CFlobAttrs), 
@@ -424,12 +436,13 @@ createSampleS(Rel) :- %Rel in uc
 writeErrorSampleFileJ(Rel, MemorySize) :-
   nl,
   write('ERROR: Couldn\'t create join sample file for relation \''),
-  write(Rel), write('\'!'),nl,
+  write(Rel), write('\'!'), nl,
   write('Sample file needs more than '), write(MemorySize),
-  write(' KB in main memory.'),nl,
+  write(' KB in main memory.'), nl,
   write('Please create the file manually, e.g.: '),
   sampleSizeJoin(JoinSampleSize),
-  write('let \''), write(Rel), write('_sample_j = '), write(Rel), 
+  secRelation(Rel, ExtRel),
+  write('let \''), write(ExtRel), write('_sample_j = '), write(ExtRel), 
   write(' sample['), write(JoinSampleSize), 
   write(', 0.00001] consume\'.'),nl,nl.
 
@@ -442,7 +455,8 @@ writeErrorSampleFileS(Rel, MemorySize) :-
   write(' KB in main memory.'),nl,
   write('Please create the file manually, e.g.: '),
   sampleSizeSelection(SelectionSampleSize),
-  write('let \''), write(Rel), write('_sample_s = '), write(Rel), 
+  secRelation(Rel, ExtRel),
+  write('let \''), write(ExtRel), write('_sample_s = '), write(ExtRel), 
   write(' sample['), write(SelectionSampleSize), 
   write(', 0.00001] consume\'.'),nl,nl.
 
@@ -534,74 +548,6 @@ createSampleRelationIfNotDynamic(Rel) :-
 
 createSampleRelationIfNotDynamic(_) :-
   set_dynamic_sample(on).
-
-/*createSampleRelation(Rel, ObjList) :-   Rel in lc
-  spelling(Rel, Rel2),
-  Rel2 = lc(Rel3),
-  sampleNameS(Rel3, Sample1),
-  member(['OBJECT', Sample1, _ , [[_ | _]]], ObjList),
-  sampleNameJ(Rel3, Sample2),
-  member(['OBJECT', Sample2, _ , [[_ | _]]], ObjList),
-  !.
-
-createSampleRelation(Rel, ObjList) :-   Rel in uc
-  spelling(Rel, Rel2),
-  not(Rel2 = lc(_)),
-  upper(Rel2, URel),
-  sampleNameS(URel, Sample1),
-  member(['OBJECT', Sample1, _ , [[_ | _]]], ObjList),
-  sampleNameJ(URel, Sample2),
-  member(['OBJECT', Sample2, _ , [[_ | _]]], ObjList),
-  !.
-
-createSampleRelation(Rel, _)  :-   Rel in lc
-  spelling(Rel, Rel2),
-  Rel2 = lc(Rel3),
-  sampleNameS(Rel3, Sample1),
-  concat_atom(['let ', Sample1, ' = ', Rel3, 
-    ' sample[2000, 0.00001] consume'], '', QueryAtom1),
-  sampleNameJ(Rel3, Sample2),
-  concat_atom(['let ', Sample2, ' = ', Rel3, 
-    ' sample[500, 0.00001] consume'], '', QueryAtom2),    
-  tryCreate(QueryAtom1),
-  tryCreate(QueryAtom2),
-  card(Rel3, Card),
-  databaseName(DBName),
-  SampleCard1 is truncate(min(Card, max(2000, Card*0.00001))),
-  SampleCard2 is truncate(min(Card, max(500, Card*0.00001))),
-  assert(storedCard(DBName, Sample1, SampleCard1)),
-  assert(storedCard(DBName, Sample2, SampleCard2)),
-  downcase_atom(Sample1, DCSample1),
-  downcase_atom(Sample2, DCSample2),  
-  assert(storedSpell(DBName, DCSample1, lc(Sample1))),
-  assert(storedSpell(DBName, DCSample2, lc(Sample2))),
-  !.
-
-createSampleRelation(Rel, _) :-   Rel in uc
-  spelling(Rel, Rel2),
-  upper(Rel2, URel),
-  sampleNameS(URel, Sample1),
-  concat_atom(['let ', Sample1, ' = ', URel, 
-    ' sample[2000, 0.00001] consume'], '', QueryAtom1),
-  sampleNameJ(URel, Sample2),
-  concat_atom(['let ', Sample2, ' = ', URel, 
-    ' sample[500, 0.00001] consume'], '', QueryAtom2),
-  tryCreate(QueryAtom1),
-  tryCreate(QueryAtom2),
-  card(Rel2, Card),
-  databaseName(DBName),
-  SampleCard1 is truncate(min(Card, max(2000, Card*0.00001))),
-  lowerfl(Sample1, LSample1),
-  assert(storedCard(DBName, LSample1, SampleCard1)),
-  SampleCard2 is truncate(min(Card, max(500, Card*0.00001))),
-  lowerfl(Sample2, LSample2),
-  assert(storedCard(DBName, LSample2, SampleCard2)),
-  downcase_atom(Sample1, DCSample1),
-  assert(storedSpell(DBName, DCSample1, LSample1)),
-  downcase_atom(Sample2, DCSample2),
-  assert(storedSpell(DBName, DCSample2, LSample2)),
-  !.
-*/
 
 
 /*
@@ -738,11 +684,13 @@ the actually used relations.
 */
 
 showRelationAttrs([]).
-showRelationAttrs([[AttrD, Type] | Rest]) :- % prints a list of [attributes,datatype]-pairs
+showRelationAttrs([[AttrD, Type] | Rest]) :- 
+  % prints a list of [attributes,datatype]-pairs
   write(' '), write(AttrD), write(':'), write(Type), write(' '),
   showRelationAttrs(Rest), !.
 
-showRelationSchemas([]).         % filters all relation opbjects from the database schema
+showRelationSchemas([]).         
+  % filters all relation opbjects from the database schema
 showRelationSchemas([Obj | ObjList]) :-
   Obj = ['OBJECT',Rel,_ | [[[_ | [[_ | [AttrList2]]]]]]],
   write('  '), write(Rel), write('  ['),
@@ -760,7 +708,8 @@ showDatabaseSchema :-
   write('\nComplete schema of database \''), write(DB), write('\':\n'),
   showRelationSchemas(ObjList),
   nl,
-  write('(Type \'showDatabase.\' to see meta data collected by the optimizer.)\n'),
+  write('(Type \'showDatabase.\' to see meta data 
+         collected by the optimizer.)\n'),
   !. 
 
 
@@ -1224,26 +1173,8 @@ updateIndex :-
   retract(storeupdateIndex(1)),
   assert(storeupdateIndex(0)).
 
-/*updateIndex(Rel, Attr) :- % add index on small relation
-  spelled(Rel, SRel, _),  
-  spelled(Rel:Attr, attr(Attr2, _, _)),
-  databaseName(DBName),
-  storedNoIndex(DBName, SRel, Attr2),
-  retract(storedNoIndex(DBName, SRel, Attr2)),  
-  hasIndex(rel(SRel, _, _),attr(Attr2, _, _), _, _).
-
-updateIndex(Rel, Attr) :- % delete index on small relation
-  spelled(Rel, SRel, _),
-  spelled(Rel:Attr, attr(Attr2, _, _)),
-  databaseName(DBName),
-  storedIndex(DBName, SRel, Attr2, _, Index),
-  %concat_atom([X,Y], '_', Index),
-  retract(storedIndex(DBName, SRel, Attr2, _, Index)), 
-  assert(storedNoIndex(DBName, SRel, Attr2)),
-  concat_atom(['delete ', Index, '_small'], '', QueryAtom),
-  secondo(QueryAtom).*/
-
 /*
+
 1.5.2 Update Relations
 
 ---- updateRel(Rel) :-
@@ -1388,87 +1319,6 @@ updateRel(Rel) :-
   
 
 
-  
-
-/*
-updateRel(Rel) :- % rel in lc
-  spelling(Rel, Spelled),
-  Spelled = lc(Rel),
-  sampleNameS(Rel, Sample1),
-  concat_atom(['delete ', Sample1], '', QueryAtom1),
-  tryDelete(QueryAtom1),
-  sampleNameJ(Rel, Sample2),
-  concat_atom(['delete ', Sample2], '', QueryAtom2),
-  tryDelete(QueryAtom2),
-  sampleNameSmall(Rel, Small),
-  concat_atom(['delete ', Small], '',  QueryAtom3),
-  tryDelete(QueryAtom3),
-  retract(storedSecondoList(_)),
-  getSecondoList(_),
-  lowerfl(Sample1, LSample1),
-  downcase_atom(Sample1, DCSample1),
-  lowerfl(Sample2, LSample2),
-  downcase_atom(Sample2, DCSample2),
-  retractall(storedCard(DB, Rel, _)),
-  concat_atom([Rel,'_small'], '', Small2),
-  retractall(storedCard(DB, Small2, _)),
-  retractall(storedTupleSize(DB, Rel, _)),
-  retractall(storedCard(DB, LSample1, _)),
-  retractall(storedCard(DB, LSample2, _)),
-  retractall(storedSpell(DB, Rel, _)),
-  retractall(storedSpell(DB, Rel:_, _)),
-  retractall(storedSpell(DB, DCSample1, _)),
-  retractall(storedSpell(DB, DCSample2, _)),  
-  retractall(storedSpell(DB, Small2, _)),
-  retractall(storedSampleRuntimes(DB, DCSample2, _, _, _, _)),
-  retractall(storedSampleRuntimes(DB, _, DCSample2, _, _, _)),
-  retractSels(Rel),
-  retractPETs(Rel),
-  retractall(storedRel(DB, Rel, _)),
-  retractall(storedIndex(DB, Rel, _, _, _)),
-  retractall(storedNoIndex(DB, Rel, _)),
-  retractall(storedAttrSize(DB, Rel, _, _, _, _, _)),!.
-
-updateRel(Rel) :- % rel in uc
-  databaseName(DB),
-  spelled(Rel, Rel2, u),
-  upper(Rel2, URel),
-  sampleNameS(URel, Sample1),
-  concat_atom(['delete ', Sample1], '', QueryAtom1),
-  tryDelete(QueryAtom1),
-  sampleNameJ(URel, Sample2),
-  concat_atom(['delete ', Sample2], '', QueryAtom2),
-  tryDelete(QueryAtom2),
-  sampleNameSmall(URel, Small),
-  concat_atom(['delete ', Small], '', QueryAtom3),
-  tryDelete(QueryAtom3),
-  retract(storedSecondoList(_)),
-  getSecondoList(_),
-  lowerfl(Sample1, LSample1),
-  downcase_atom(Sample1, DCSample1),
-  lowerfl(Sample2, LSample2),
-  downcase_atom(Sample2, DCSample2),
-  retractall(storedCard(DB, Rel2, _)),
-  concat_atom([Rel,'_small'], '', Small2),
-  retractall(storedCard(DB, Small2, _)),
-  retractall(storedTupleSize(DB, Rel2, _)),
-  retractall(storedCard(DB, LSample1, _)),
-  retractall(storedCard(DB, LSample2, _)),
-  retractall(storedSpell(DB, Rel, _)),
-  retractall(storedSpell(DB, Rel:_, _)),
-  retractall(storedSpell(DB, DCSample1, _)),
-  retractall(storedSpell(DB, DCSample2, _)),
-  retractall(storedSpell(DB, Small2, _)),
-  retractall(storedSampleRuntimes(DB, DCSample2, _, _, _, _)),
-  retractall(storedSampleRuntimes(DB, _, DCSample2, _, _, _)),
-  retractSels(Rel2),
-  retractPETs(Rel2),
-  retractall(storedRel(DB, Rel, _)),
-  retractall(storedIndex(DB, Rel2, _, _, _)),
-  retractall(storedNoIndex(DB, Rel2, _)),
-  retractall(storedAttrSize(DB, Rel, _, _, _, _, _)),!.
-*/
-
 /*
 1.6 Tuple and Attribute Sizes
 
@@ -1609,16 +1459,20 @@ writeStoredAttrSizes :-
 
 writeStoredAttrSize(Stream) :-
   storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize, ExtFlobSize),
-  write(Stream, storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize, ExtFlobSize)),
+  write(Stream, storedAttrSize(Database, Rel, Attr, Type, CoreSize, 
+                               InFlobSize, ExtFlobSize)),
   write(Stream, '.\n').
 
 showStoredAttrSize :-
   storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize, ExtFlobSize),
-  write(Database), write('.'), write(Rel), write('.'), write(Attr), write(': \t'), write(Type), 
-  write(' ('), write(CoreSize), write('/'), write(InFlobSize), write('/'), write(ExtFlobSize), write(')\n').
+  write(Database), write('.'), write(Rel), write('.'), 
+  write(Attr), write(': \t'), write(Type), 
+  write(' ('), write(CoreSize), write('/'), 
+  write(InFlobSize), write('/'), write(ExtFlobSize), write(')\n').
 
 showStoredAttrSizes :-
-  write('Stored attribute sizes\nRel.Attr: Type (CoreTupleSize/Avg.InlineFlobSize/Avg.ExtFlobSize) [byte]:\n'),
+  write('Stored attribute sizes\nRel.Attr: Type '),
+  write('(CoreTupleSize/Avg.InlineFlobSize/Avg.ExtFlobSize) [byte]:\n'),
   findall(_, showStoredAttrSize, _).
 
 :-
@@ -1638,18 +1492,19 @@ The optimizer needs to know some details on the machine, SECONDO runs on.
 The machine speed has strong impact on the cost of executing database operations.
 All constants used in costs estimation are with regard to a reference system.
 Actual cost are calculated by applying factors for the actuaql system's CPU- and
-FS-speed. These factors are measured once by sending queries to SECONDO and stored
-on disk for later use. 
+FS-speed. These factors are measured once by sending queries to SECONDO and 
+stored on disk for later use. 
 
 */
 
 /*
-~machineSpeedFactor(CPU,FS)~ unifies ~CPU~ with the current machine's CPU speed and 
-~FS~ with its FS speed with regard to some reference system. The predicate can be used 
-to read the machine's relative speed and scale costs within the optimizer's cost functions.
+~machineSpeedFactor(CPU,FS)~ unifies ~CPU~ with the current machine's CPU speed 
+and ~FS~ with its FS speed with regard to some reference system. The predicate 
+can be used to read the machine's relative speed and scale costs within the 
+optimizer's cost functions.
 
-Calling predicate ~toggleSpeed~ will toggle between the actual (stored) cost factors and 
-uniform cost factors of 1.0 (e.g. for testing of cost functions).
+Calling predicate ~toggleSpeed~ will toggle between the actual (stored) cost 
+factors and uniform cost factors of 1.0 (e.g. for testing of cost functions).
 
 */
 
@@ -1672,7 +1527,8 @@ machineSpeedFactor(CPU, FS) :-
 
 */
 
-referenceSpeed(2155.33, 30218.02).        % (CPUtime, FStime) determine the times needed by the reference system
+referenceSpeed(2155.33, 30218.02).        
+% (CPUtime, FStime) determine the times needed by the reference system
 
 toggleSpeed :-
  optUniformSpeed,
@@ -1689,7 +1545,8 @@ toggleSpeed :-
  !.
  
 /*
-~queryTime(Query, TimeMS)~ unifies ~TimeMS~ with the time in ms that it takes SECONDO to run ~Query~
+~queryTime(Query, TimeMS)~ unifies ~TimeMS~ with the time in ms that it takes 
+SECONDO to run ~Query~
 
 */
 
@@ -1706,11 +1563,11 @@ queryTime(Query, TimeMS) :-
  
 /*
 
-The predicate ~fibonacci(N, M)~ recursively calculates the ~N~th Fibonacci number ~M~. This 
-extremely expensive function is used to measure CPU speed.
+The predicate ~fibonacci(N, M)~ recursively calculates the ~N~th Fibonacci number
+ ~M~. This extremely expensive function is used to measure CPU speed.
 
-~determineCostCPU(Time)~ unifies ~Time~ with the average time in ms for evaluating ~fibonacci(31, X)~
-trice.
+~determineCostCPU(Time)~ unifies ~Time~ with the average time in ms for 
+evaluating ~fibonacci(31, X)~ trice.
 
 */
 
@@ -1746,7 +1603,8 @@ ensureDatabaseOptOpen :-
 
 ensureDatabaseOptOpen :- 
   nl, write('ERROR in optimizer: ensureDatabaseOptOpen/0 failed.'), 
-  nl, write('      Optimizer requires database opt to be properly installed.'), nl,
+  nl, write('      Optimizer requires database opt to be properly installed.'), 
+  nl,
   fail.
 
 /*
@@ -1824,4 +1682,3 @@ writeMachineSpeedFactor :-
 :-  at_halt(writeMachineSpeedFactor).
 :-  readMachineSpeedFactor.
 :-  setMachineSpeedFactor.
-

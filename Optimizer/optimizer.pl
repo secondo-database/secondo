@@ -742,6 +742,14 @@ In the target language, we use the following operators:
                                         attrname1 occurs in Tuple1
                                         attrname2 occurs in Tuple2
                                         
+        spatialjoin:    stream(Tupel1) x stream(Tuple2) x attrname1 x attrname2
+                                -> stream(Tuple3)
+
+                                where   Tuple3 = Tuple1 o Tuple2
+                                        attrname<n> occurs in Tuple<n>
+                                        attribute<n> are MBB Types of
+                                           the same dimension
+
         loopjoin:       stream(Tuple1) x (Tuple1 -> stream(Tuple2)
                                 -> stream(Tuple3)
 
@@ -866,89 +874,18 @@ consider_Arg2(Pred, Pred) :-
 
 consider_Arg2(attr(Name, 2, Case), attr2(Name, 2, Case)):- !.                 
 
-consider_Arg2(Pred, Pred2) :- 
-  compound(Pred),               
-  functor(Pred, Op, 1),
-  arg(1, Pred, Arg1),
-  consider_Arg2(Arg1, Res1),  
-  functor(Pred2, Op, 1),      
-  arg(1, Pred2, Res1).          
+consider_Arg2(Term,Term2) :-
+  compound(Term),
+  Term =.. [Op|Args],
+  consider_Arg2_2(Args,Args2),
+  Term2 =.. [Op|Args2].
 
-consider_Arg2(Pred, Pred2) :-            
-  compound(Pred),                       
-  functor(Pred, Op, 2),                  
-  arg(1, Pred, Arg1),
-  arg(2, Pred, Arg2),
-  consider_Arg2(Arg1, Res1),  
-  consider_Arg2(Arg2, Res2),
-  functor(Pred2, Op, 2),       
-  arg(1, Pred2, Res1),
-  arg(2, Pred2, Res2).
 
-consider_Arg2(Pred, Pred2) :- 
-  compound(Pred),
-  functor(Pred, Op, 3),
-  arg(1, Pred, Arg1),
-  arg(2, Pred, Arg2),
-  arg(3, Pred, Arg3),
-  consider_Arg2(Arg1, Res1),
-  consider_Arg2(Arg2, Res2),
-  consider_Arg2(Arg3, Res3),
-  functor(Pred2, Op, 3),
-  arg(1, Pred2, Res1),
-  arg(2, Pred2, Res2),
-  arg(3, Pred2, Res3).
+consider_Arg2_2([],[]).
 
-consider_Arg2(Pred, Pred2) :- 
-  compound(Pred),
-  functor(Pred, Op, 3),
-  arg(1, Pred, Arg1),
-  arg(2, Pred, Arg2),
-  arg(3, Pred, Arg3),
-  consider_Arg2(Arg1, Res1),
-  consider_Arg2(Arg2, Res2),
-  consider_Arg2(Arg3, Res3),
-  functor(Pred2, Op, 3),
-  arg(1, Pred2, Res1),
-  arg(2, Pred2, Res2),
-  arg(3, Pred2, Res3).
-
-consider_Arg2(Pred, Pred2) :- 
-  compound(Pred),
-  functor(Pred, Op, 4),
-  arg(1, Pred, Arg1),
-  arg(2, Pred, Arg2),
-  arg(3, Pred, Arg3),
-  arg(4, Pred, Arg4),
-  consider_Arg2(Arg1, Res1),
-  consider_Arg2(Arg2, Res2),
-  consider_Arg2(Arg3, Res3),
-  consider_Arg2(Arg4, Res4),
-  functor(Pred2, Op, 4),
-  arg(1, Pred2, Res1),
-  arg(2, Pred2, Res2),
-  arg(3, Pred2, Res3),
-  arg(4, Pred2, Res4).
-
-consider_Arg2(Pred, Pred2) :- 
-  compound(Pred),
-  functor(Pred, Op, 5),
-  arg(1, Pred, Arg1),
-  arg(2, Pred, Arg2),
-  arg(3, Pred, Arg3),
-  arg(4, Pred, Arg4),
-  arg(5, Pred, Arg5),
-  consider_Arg2(Arg1, Res1),
-  consider_Arg2(Arg2, Res2),
-  consider_Arg2(Arg3, Res3),
-  consider_Arg2(Arg4, Res4),
-  consider_Arg2(Arg5, Res5),
-  functor(Pred2, Op, 5),
-  arg(1, Pred2, Res1),
-  arg(2, Pred2, Res2),
-  arg(3, Pred2, Res3),
-  arg(4, Pred2, Res4),
-  arg(5, Pred2, Res5).
+consider_Arg2_2([Me|Others],[Me2|Others2]) :-
+  consider_Arg2(Me,Me2),
+  consider_Arg2_2(Others,Others2).
 
 /*
 Arguments:
@@ -3165,12 +3102,12 @@ cost(windowintersects(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
     restarted recursively for each partition with non-empty S- and R-part on 
     disk.
 
-    Splitting an R[star]-tree costs $O(d*M \log_2 M)$, for node capacity $M$, 
-    number of dimensions $d$. 
+    Splitting an R[star]-tree costs $O(d \cdot M \log_2 M)$, for node capacity 
+    $M$, number of dimensions $d$. 
 
-    $hight(Y) = \log_M (Y)$, $nodes(Y) = M^{height(Y)-1}$ 
+    $\mbox{height}(Y) = \log_M (Y)$, $\mbox{nodes}(Y) = M^{\mbox{height}(Y)-1}$ 
     
-    Creating an R[star]-tree ideally causes $nodes(Y) = M^{height(Y)-1}-1$ 
+    Creating an R[star]-tree ideally causes $\mbox{nodes}(Y) = M^{\mbox{height}(Y)-1}-1$ 
     splits.
 
 */
@@ -3814,18 +3751,19 @@ We introduce ~select~, ~from~, ~where~, and ~as~ as PROLOG operators:
 
 */
 
-:- op(990, fx, sql).
-:- op(985, xfx, >>).
-:- op(950, fx, select).
-:- op(940, fx, distinct).
-:- op(960, xfx, from).
-:- op(950, xfx, where).
-:- op(930, xfx, as).
-:- op(970, xfx, groupby).
-:- op(980, xfx, orderby).
+:- op(990,  fx, sql).
 :- op(986, xfx, first).
-:- op(930, xf, asc).
-:- op(930, xf, desc).
+%:- op(985, xfx, >>).         % XRIS: what's that operator for?
+:- op(980, xfx, orderby).
+:- op(970, xfx, groupby).
+:- op(960, xfx, from).
+:- op(950,  fx, select).
+:- op(950, xfx, where).
+:- op(940,  fx, distinct).
+:- op(935,  fx, nonempty). 
+:- op(930, xfx, as).
+:- op(930, xf , asc).
+:- op(930, xf , desc).
 
 
 /*
@@ -4082,83 +4020,20 @@ lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
   nl.
 
 /*
-Currently terms involving operators with up to five arguments are handled. This may need to be extended in the future. Then ~lookupPreds~ should also be extended.
+
+Generic lookup functionality for lookupAttr/2 on functors of arbitrary arity 
+using Univ (=../2) rather than (functor/3 and arg/3) was introduced by 
+C. Duentgen.
+
+When extending operator syntax, only ~lookupPreds~ musst be extended.
 
 */
 
-
-lookupAttr(Term, Term2) :-
+lookupAttr(Term,Term2) :-
   compound(Term),
-  functor(Term, Op, 1),
-  arg(1, Term, Arg1),
-  lookupAttr(Arg1, Res1),
-  functor(Term2, Op, 1),
-  arg(1, Term2, Res1).
-
-lookupAttr(Term, Term2) :-
-  compound(Term),
-  functor(Term, Op, 2),
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  lookupAttr(Arg1, Res1),
-  lookupAttr(Arg2, Res2),
-  functor(Term2, Op, 2),
-  arg(1, Term2, Res1),
-  arg(2, Term2, Res2).
-
-lookupAttr(Term, Term2) :-
-  compound(Term),
-  functor(Term, Op, 3),
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  lookupAttr(Arg1, Res1),
-  lookupAttr(Arg2, Res2),
-  lookupAttr(Arg3, Res3),
-  functor(Term2, Op, 3),
-  arg(1, Term2, Res1),
-  arg(2, Term2, Res2),
-  arg(3, Term2, Res3).
-
-lookupAttr(Term, Term2) :-
-  compound(Term),
-  functor(Term, Op, 4),
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  arg(4, Term, Arg4),
-  lookupAttr(Arg1, Res1),
-  lookupAttr(Arg2, Res2),
-  lookupAttr(Arg3, Res3),
-  lookupAttr(Arg4, Res4),
-  functor(Term2, Op, 4),
-  arg(1, Term2, Res1),
-  arg(2, Term2, Res2),
-  arg(3, Term2, Res3),
-  arg(4, Term2, Res4).
-
-lookupAttr(Term, Term2) :-
-  compound(Term),
-  functor(Term, Op, 5),
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  arg(4, Term, Arg4),
-  arg(5, Term, Arg5),
-  lookupAttr(Arg1, Res1),
-  lookupAttr(Arg2, Res2),
-  lookupAttr(Arg3, Res3),
-  lookupAttr(Arg4, Res4),
-  lookupAttr(Arg5, Res5),
-  functor(Term2, Op, 5),
-  arg(1, Term2, Res1),
-  arg(2, Term2, Res2),
-  arg(3, Term2, Res3),
-  arg(4, Term2, Res4),
-  arg(5, Term2, Res5).
-
-
-% may need to be extended to more than five arguments in a term.
+  Term =.. [Op|Args],
+  lookupAttr1(Args,Args2),
+  Term2 =.. [Op|Args2].
 
 
 lookupAttr(Name, attr(Name, 0, u)) :-
@@ -4172,6 +4047,12 @@ lookupAttr(Term, Term) :-
   write('\' in attribute list not recognized. Supposed to be a Secondo object\n').
 
 lookupAttr(Term, Term).
+
+lookupAttr1([],[]).
+
+lookupAttr1([Me|Others],[Me2|Others2]) :-
+  lookupAttr(Me,Me2),
+  lookupAttr1(Others,Others2).
 
 isAttribute(Name, Rel) :-
   queryRel(Rel, _),
@@ -4212,7 +4093,7 @@ lookupPred(Pred, _) :-
   write('is not allowed.'), nl, fail.
 
 /*
-----    lookupPred1(+Pred, Pred2, +N, +RelsBefore, -M, -RelsAfter) :-
+----    lookupPred1(+Pred, -Pred2, +N, +RelsBefore, -M, -RelsAfter) :-
 ----
 
 ~Pred2~ is the transformed version of ~Pred~; before this is called, ~N~
@@ -4239,82 +4120,17 @@ lookupPred1(Attr, attr(Attr2, N1, Case), N, RelsBefore, N1, RelsAfter) :-
   append(RelsBefore, [Rel2], RelsAfter).
 
 /*
-Currently terms involving operators with up to five arguments are handled. When this is extended, modify also ~lookupAttrs~.
+
+Generic lookup for operators of arbitrary arity using (=../2) implemented
+on Feb/16/2006 by C. Duentgen. See also  ~lookupAttrs~.
 
 */
 
 lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
   compound(Term),
-  functor(Term, F, 1), !,
-  arg(1, Term, Arg1),
-  lookupPred1(Arg1, Arg1Out, N, RelsBefore, M, RelsAfter),
-  functor(Term2, F, 1),
-  arg(1, Term2, Arg1Out).
-
-lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
-  compound(Term),
-  functor(Term, F, 2), !,
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  lookupPred1(Arg1, Arg1Out,  N, RelsBefore, M1, RelsAfter1),
-  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1,  M, RelsAfter),
-  functor(Term2, F, 2),
-  arg(1, Term2, Arg1Out),
-  arg(2, Term2, Arg2Out).
-
-lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
-  compound(Term),
-  functor(Term, F, 3), !,
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  lookupPred1(Arg1, Arg1Out,  N, RelsBefore, M1, RelsAfter1),
-  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1, M2, RelsAfter2),
-  lookupPred1(Arg3, Arg3Out, M2, RelsAfter2,  M, RelsAfter),
-  functor(Term2, F, 3),
-  arg(1, Term2, Arg1Out),
-  arg(2, Term2, Arg2Out),
-  arg(3, Term2, Arg3Out).
-
-lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
-  compound(Term),
-  functor(Term, F, 4), !,
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  arg(4, Term, Arg4),
-  lookupPred1(Arg1, Arg1Out,  N, RelsBefore, M1, RelsAfter1),
-  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1, M2, RelsAfter2),
-  lookupPred1(Arg3, Arg3Out, M2, RelsAfter2, M3, RelsAfter3),
-  lookupPred1(Arg4, Arg4Out, M3, RelsAfter3,  M, RelsAfter),
-  functor(Term2, F, 4),
-  arg(1, Term2, Arg1Out),
-  arg(2, Term2, Arg2Out),
-  arg(3, Term2, Arg3Out),
-  arg(4, Term2, Arg4Out).
-
-lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
-  compound(Term),
-  functor(Term, F, 5), !,
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  arg(4, Term, Arg4),
-  arg(5, Term, Arg5),
-  lookupPred1(Arg1, Arg1Out,  N, RelsBefore, M1, RelsAfter1),
-  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1, M2, RelsAfter2),
-  lookupPred1(Arg3, Arg3Out, M2, RelsAfter2, M3, RelsAfter3),
-  lookupPred1(Arg4, Arg4Out, M3, RelsAfter3, M4, RelsAfter4),
-  lookupPred1(Arg5, Arg5Out, M4, RelsAfter4,  M, RelsAfter),
-  functor(Term2, F, 5),
-  arg(1, Term2, Arg1Out),
-  arg(2, Term2, Arg2Out),
-  arg(3, Term2, Arg3Out),
-  arg(4, Term2, Arg4Out),
-  arg(5, Term2, Arg5Out).
-
-
-% may need to be extended to operators with more than five arguments.
+  Term =.. [Op|Args],
+  lookupPred2(Args, Args2, N, RelsBefore, M, RelsAfter),
+  Term2 =.. [Op|Args2].  
 
 lookupPred1(Term, Term, N, Rels, N, Rels) :-
   atom(Term),
@@ -4324,8 +4140,11 @@ lookupPred1(Term, Term, N, Rels, N, Rels) :-
 
 lookupPred1(Term, Term, N, Rels, N, Rels).
  
+lookupPred2([], [], N, RelsBefore, N, RelsBefore).
 
-
+lookupPred2([Me|Others], [Me2|Others2], N, RelsBefore, M, RelsAfter) :-
+  lookupPred1(Me,     Me2,     N, RelsBefore,  Q, RelsAfterMe),
+  lookupPred2(Others, Others2, Q, RelsAfterMe, M, RelsAfter).
 
 /*
 11.3.6 Check the Spelling of Relation and Attribute Names
@@ -4604,7 +4423,7 @@ queryToPlan(Query, count(Stream), Cost) :-
   queryToStream(Query, Stream, Cost1),
   getCurrentResultSizes(Arg),
   cost(count(Arg), *, 1, _, _, 0, 0, Cost2), % extra costs for count(...)
-  write('External cost for count(...): '), write(Cost2), nl,
+  dm(['External cost for count(...): ', Cost2, '\n']),
   ppCostFactor(PPCF),
   Cost is Cost1 + Cost2 * PPCF,
   !.
@@ -4637,8 +4456,6 @@ countQuery(Query orderby _) :-
 
 countQuery(Query first _) :-
   countQuery(Query).
-
-
 
 /*
 
@@ -4892,7 +4709,8 @@ Optimize ~Query~ and print the best ~Plan~.
 */
 
 optimize(Query) :-
-  callLookup(Query, Query2),
+  rewriteQuery(Query, RQuery),
+  callLookup(RQuery, Query2),
   queryToPlan(Query2, Plan, Cost),
   plan_to_atom(Plan, SecondoQuery),
   write('The plan is: '), nl, nl,
@@ -4902,7 +4720,8 @@ optimize(Query) :-
 
 
 optimize(Query, QueryOut, CostOut) :-
-  callLookup(Query, Query2),
+  rewriteQuery(Query, RQuery),
+  callLookup(RQuery, Query2),
   queryToPlan(Query2, Plan, CostOut),
   plan_to_atom(Plan, QueryOut),
   invalidateRelationCache.
@@ -5139,7 +4958,9 @@ streamOptimize(Term, Query, Cost) :-
         mStreamOptimize(union [Term], Query, Cost) :-
 ----
 
-Means ``multi-optimize''. Optimize a ~Term~ possibly consisting of several subexpressions to be independently optimized, as in union and intersection queries. ~mStreamOptimize~ is a variant returning a stream.
+Means ``multi-optimize''. Optimize a ~Term~ possibly consisting of several 
+subexpressions to be independently optimized, as in union and intersection 
+queries. ~mStreamOptimize~ is a variant returning a stream.
 
 */
 
@@ -5230,6 +5051,7 @@ bestPlanConsume :-
 Print debugging information
 
 Predicate ~dm/1~ can be used as ~write~/1. Output is printed when option
+optDebug is defined (see file operators.pl).
 
 */
 
@@ -5276,7 +5098,8 @@ usedAttrListAtom(Rel, Result) :-
 */
 
 
-% test: calculateProjectedTupleSize(rel(plz, p, l), [attr(plz, 1, u), attr(ort, 1, u)],X,Y).
+% test: calculateProjectedTupleSize(rel(plz, p, l), [attr(plz, 1, u), 
+% attr(ort, 1, u)],X,Y).
 
 atomicAttrName([attr(_:Name, _, _)], [Result]) :-
   downcase_atom(Name, NameD),
@@ -5301,13 +5124,14 @@ atomicAttrName([attr(Name, _, _) | Rest], [Result | MoreResults]) :-
   !.
 
 /* 
-  ~calculateProjectedTupleSizeA(RelName, AttrNameList, CoreTupleSize, AvgInFlobSize, AvgExtFlobSize)~ 
-  calculates ~CoreTupleSize~, ~AvgInFlobSize~ and ~AvgExtFlobSize~ for the projection of relation 
-  ~RelName~ on a subset ~AttrNameList~ of its attributes. The attribute names and relation name must
-  be atomic terms.
+~calculateProjectedTupleSizeA(RelName, AttrNameList, CoreTupleSize, AvgInFlobSize,
+AvgExtFlobSize)~ calculates ~CoreTupleSize~, ~AvgInFlobSize~ and ~AvgExtFlobSize~
+for the projection of relation ~RelName~ on a subset ~AttrNameList~ of its 
+attributes. The attribute names and relation name must be atomic terms.
 
-  ~calculateProjectedProjectedTupleSize(Rel, AttrList, CoreTupleSize, InFlobSize, ExtFlobSize)~ does 
-  the same for relation ~Rel~ and the attribute list  ~AttrList~ given as complex terms.
+~calculateProjectedProjectedTupleSize(Rel, AttrList, CoreTupleSize, InFlobSize, 
+ExtFlobSize)~ does the same for relation ~Rel~ and the attribute list  ~AttrList~ 
+given as complex terms.
 
 */
 calculateProjectedTupleSizeA(RelName, [AttrName], CoreTupleSize, InFlobSize, ExtFlobSize) :-
@@ -5329,9 +5153,9 @@ calculateProjectedTupleSize(Rel, AttrList, CoreTupleSize, InFlobSize, ExtFlobSiz
   calculateProjectedTupleSizeA(RelName, AttrNameList, CoreTupleSize, InFlobSize, ExtFlobSize).
 
 /*
-  ~calculateQueryTupleSize(Rel, CoreTupleSize, InFlobSize)~ unifies ~CoreTupleSize~ and ~InFlobSize~
-  with the tuple sizes relation ~Rel~ will have in this query after it has been projected according
-  to the SQL select clause.
+~calculateQueryTupleSize(Rel, CoreTupleSize, InFlobSize)~ unifies 
+~CoreTupleSize~ and ~InFlobSize~  with the tuple sizes relation ~Rel~ will have 
+in this query after it has been projected according to the SQL select clause.
 
   The result is used to annotate the actual tuple sizes to each node of the pog.
 
@@ -5342,3 +5166,546 @@ calculateQueryTupleSize(Rel, CoreTupleSize, InFlobSize, ExtFlobSize) :-
   downcase_atom(R, RelName),
   calculateProjectedTupleSizeA(RelName, UsedAttr, CoreTupleSize, InFlobSize, ExtFlobSize).  
   
+/*
+
+14 Query Rewriting
+
+Rewriting is used as a preprocessing step during the optimization of a query. 
+In the rewriting phase, a query posed by the user will be analysed and rewritten
+on the level of the query language rather than on the executable language level.
+The optimization on the executable langage level is done in the subsequent steps 
+of the optimization process, and work on the rewritten query.
+
+During the rewriting process, regarding the user`s original conditions, 
+inferred conditions are added, some may be removed and others be modified.
+
+
+---- rewriteQuery(OriginalQuery, -Rewrittenquery)
+----
+
+rewrites the ~OriginalQuery~ performing several steps of rewriting and returns
+the finally ~RewrittenQuery~.
+
+*/
+
+rewriteQuery(Query, RewrittenQuery) :-
+  rewriteQueryForInferenceOfPredicates(Query, RQuery1),
+  rewriteQueryForRedundancy(RQuery1, RQuery2),
+  rewriteQueryForCSE(RQuery2, RewrittenQuery),
+  dm(['\nOriginal Query: ', Query, 
+      '\n\nAfter Rewriting Stage 1: Infer Predicates:\n', RQuery1,
+      '\n\nAfter Rewriting Stage 2: Remove redundancies:\n', RQuery2, 
+      '\n\nAfter Rewriting Stage 3: Handle CSEs:\n', RewrittenQuery, '\n']).
+
+/*
+
+14.1 Inference of Predicates
+
+*/
+
+rewriteQueryForInferenceOfPredicates(Query, RewrittenQuery) :-
+  rewriteQueryForNonempty(Query, RQuery1),
+  rewriteQueryForInferredSubstituions(RQuery1, RewrittenQuery),
+  dm(['\nAfter Step 1: Infer nonempty-predicates:\n', RQuery1,
+      '\nAfter Step 2: Infer substitutions:\n', RewrittenQuery, '\n']).
+
+
+/*
+
+14.1.1 Nonempty-Queries
+
+Spatial data may contain `undefined' data and empty sets. Often, a user wants to
+suppress empty results. To this end, the kewword `nonempty' within the select 
+clause is introduced. A nonempty-query will automatically infer conditions
+from the statements within the select clause, that guarantee, that only 
+nonempty data will be reported, and rewrite the query: The additional 
+predicates are added to the where clause of the query.
+
+Rules to infer predicates. The code should be moved to file operators.pl
+
+*/
+
+rewritingNonemptyRule(val(X atinstant Y), [X present Y]).
+rewritingNonemptyRule(X atperiods Y,      [X present Y]).
+rewritingNonemptyRule(X at Y,             [X passes Y]).
+rewritingNonemptyRule(X when P,           [X satisfies P]).
+rewritingNonemptyRule(intersection(X, Y), [X intersects Y]).
+rewritingNonemptyRule(minus(X, Y),        [Y inside X]).
+rewritingNonemptyRule(X,                  [not(isempty(X))]) :- 
+  X =.. [OP|_],
+  isBBoxOperator(OP).
+
+
+/*
+---- inferNonemptyPredicates(-InferredPreds)
+----
+uses rules defined by ~inferNonemptyPredicate/2~ to detect expressions
+within the term indexed by calling ~markNode/3~  that allow to infer 
+nonempty-predicates. The latter are collected within list ~InferredPred~
+and returned.
+
+~inferSingleNonemptyPredicate(-Pred)~ searches the dynamic predicate
+~storedExpressionLabel/3~ and the table ~inferNonemptyPredicate/2~ for 
+any matches and returns the predictate inferred ~Pred~.
+
+*/
+
+inferNonemptyPredicates(NewPreds) :-
+  findall(Pred, inferSingleNonemptyPredicate(Pred), NewPredsListList),
+  flatten(NewPredsListList,NewPreds).
+
+inferSingleNonemptyPredicate(Pred) :-
+  storedExpressionLabel(Trigger, _, _),  
+  rewritingNonemptyRule(Trigger, Pred).
+   
+/*
+---- rewriteQueryForNonempty(+Query,-RewrittenQuery)
+----
+
+rewrites ~Query~ to contain conditions that force Secondo
+to suppress empty data within the result of the query.
+
+*/
+
+
+% Normal query (without nonempty)
+rewriteQueryForNonempty(Query, Query) :-
+  Query \= from(select(nonempty(_)),_),
+  Query \= from(select(distinct(nonempty(_))),_),
+  retractExpressionLabels,
+  write('1\n'),
+  !.
+
+% Ordinary nonempty-queries with distinct
+rewriteQueryForNonempty(Query, RewrittenQuery) :-
+  Query = from(select(distinct(nonempty(SelectClause))),where(Rels,WhereClause)),
+  retractExpressionLabels,
+  markNode(select(SelectClause),_,0),          % decompose select clause into terms
+  inferNonemptyPredicates(NonEmptyConditions), % analyse SelectClause collection for inferred predicates
+  ( is_list(WhereClause) -> 
+      append_list(WhereClause, NonEmptyConditions, RewrittenWhereClause)
+    ; RewrittenWhereClause = [WhereClause|NonEmptyConditions]
+  ),
+  sort(RewrittenWhereClause,RewrittenWhereClause1),
+  % remove `nonempty' from query & append inferred predicates to where-clauses
+  RewrittenQuery = from(select(distinct(SelectClause)),where(Rels,RewrittenWhereClause1)),
+  write('2\n'),
+  !.
+  
+% Ordinary nonempty-queries w/o distinct
+rewriteQueryForNonempty(Query, RewrittenQuery) :-
+  Query = from(select(nonempty(SelectClause)),where(Rels,WhereClause)),
+  retractExpressionLabels,
+  markNode(select(SelectClause),_,0),           % decompose select clause into terms
+  inferNonemptyPredicates(NonEmptyConditions),  % analyse SelectClause collection for inferred predicates
+  ( is_list(WhereClause) -> 
+      append_list(WhereClause, NonEmptyConditions, RewrittenWhereClause)
+    ; RewrittenWhereClause = [WhereClause|NonEmptyConditions]
+  ),
+  sort(RewrittenWhereClause,RewrittenWhereClause1),
+  % remove `nonempty' from query & append inferred predicates to where-clauses
+  RewrittenQuery = from(select(SelectClause),where(Rels,RewrittenWhereClause1)),
+  write('3\n'),
+  !.
+
+% Special cases: nonempty with empty where clause and distinct
+rewriteQueryForNonempty(Query, RewrittenQuery) :-
+  Query \= from(select(distinct(nonempty(_))),where(_,_)),
+  Query  = from(select(distinct(nonempty(SelectClause))),Rels),
+  retractExpressionLabels,
+  markNode(select(SelectClause),_,0),           % decompose select clause into terms
+  inferNonemptyPredicates(NonEmptyConditions),  % analyse SelectClause collection for inferred predicates
+  sort(NonEmptyConditions,NonEmptyConditions1),
+  ( NonEmptyConditions1 = [] -> 
+      RewrittenQuery = from(select(distinct(SelectClause)),Rels)
+    ; RewrittenQuery = from(select(distinct(SelectClause)),where(Rels,NonEmptyConditions1))
+  ),
+  write('4\n'),
+  !.
+  
+% Special cases: nonempty with empty where clause but w/o distinct
+rewriteQueryForNonempty(Query, RewrittenQuery) :-
+  Query \= from(select(nonempty(_)),where(_,_)),
+  Query  = from(select(nonempty(SelectClause)),Rels),
+  retractExpressionLabels,
+  markNode(select(SelectClause),_,0),           % decompose select clause into terms
+  inferNonemptyPredicates(NonEmptyConditions),  % analyse SelectClause collection for inferred predicates
+  sort(NonEmptyConditions,NonEmptyConditions1),
+  ( NonEmptyConditions1 = [] -> 
+      RewrittenQuery = from(select(SelectClause),Rels)
+    ; RewrittenQuery = from(select(SelectClause),where(Rels,NonEmptyConditions1))
+  ),
+  write('5\n'),
+  !.
+
+% Special cases: ordering and grouping clauses can be ignored for nonempty-rewriting.
+rewriteQueryForNonempty(Query, RewrittenQuery) :-
+  Query = first(Query2, X),
+  rewriteQueryForNonempty(Query2, RewrittenQuery2),
+  RewrittenQuery = first(RewrittenQuery2,X),
+  write('6\n'),
+  !.
+
+rewriteQueryForNonempty(Query, RewrittenQuery) :-
+  Query = orderby(Query2, X),
+  rewriteQueryForNonempty(Query2, RewrittenQuery2),
+  RewrittenQuery = orderby(RewrittenQuery2,X),
+  write('7\n'),
+  !.
+
+rewriteQueryForNonempty(Query, RewrittenQuery) :-
+  Query = groupby(Query2, X),
+  rewriteQueryForNonempty(Query2, RewrittenQuery2),
+  RewrittenQuery = groupby(RewrittenQuery2,X),
+  write('8\n'),
+  !.
+
+% fallback case
+%rewriteQueryForNonempty(Query,Query).
+
+/*
+
+14.1.2 Substitution of Conditions
+
+If the where clause contains certain sets of conditions, these conditions may be
+replaced by equivalent, but cheaper ones.
+
+*/
+
+
+rewriteQueryForInferredSubstituions(Query, Query). % XRIS: Extend this
+
+
+/*
+
+14.2 Redundancy Elimination
+
+Redundant clauses should be removed.
+
+*/
+
+/*
+---- rewriteQueryForRedundancy(+Query,-RewrittenQuery).
+----
+
+rewrites ~Query~ by dropping redundant where clauses and optimizing
+equivalent expressions. At the moment, only doublets within the list of where
+conditions are dropped.
+
+*/
+
+rewriteQueryForRedundancy(Query, RewrittenQuery) :-
+  Query = first(X),
+  rewriteQueryForRedundancy(X, RX),
+  RewrittenQuery = first(RX),
+  !.
+
+rewriteQueryForRedundancy(Query, RewrittenQuery) :-
+  Query = orderby(X,Y),
+  rewriteQueryForRedundancy(X, RX),
+  RewrittenQuery = orderby(RX,Y),
+  !.
+
+rewriteQueryForRedundancy(Query, RewrittenQuery) :-
+  Query = groupby(X,Y),
+  rewriteQueryForRedundancy(X, RX),
+  RewrittenQuery = groupby(RX,Y),
+  !.
+
+rewriteQueryForRedundancy(Query, RewrittenQuery) :-
+  Query = from(select(SelClause), where(Rels,WhereClause)),  
+  list_to_set(WhereClause,RewrittenWhereClause),  % eliminate condition doublets  
+  (RewrittenWhereClause = [] -> 
+     (RewrittenQuery = from(select(SelClause), Rels))
+   ; (RewrittenQuery = from(select(SelClause), where(Rels,RewrittenWhereClause)))
+  ),
+  !.
+
+rewriteQueryForRedundancy(Query,Query).
+  
+/*
+
+14.3 Handle Common SubExpressions (CSEs)
+
+The repeated evaluation of common subexpressions (CSEs) should be avoided, 
+especially if complex funtions are used or big objects are created. Intermediary
+results can be stored by extending the tuples by an addiditonal attribute using
+the CSE as a function to calculate the attribute values. The extend should be 
+called immeadiatly before the CSE occurs for the first time; and it should be 
+removed immeadetely after its last occurence (in sequence of evaluation). 
+If the CSE is named using the keyword ``as'' in the select-clause, no remove 
+is needed and the final rename can be omitted. The same holds for queries, where 
+the remove would be inserted directly in front of a final consume(project[...]).
+
+When replacing occurences of CSEs, one starts at the bottom of the operator tree
+and inserts the extend beneath the first occurence. Then, the path to the root
+is followed upward, replacing all further occurences of the CSE with the 
+extended attribute.
+
+*/
+
+/*
+---- rewriteQueryForCSE(+Query,-RewrittenQuery)
+----
+
+Rewrites ~Query~ such that ~RewrittenQuery~ does not contain ~expensive~ common
+subexpressions (CSEs) anymore. A CSE is expensive, if it contains at least one
+operator labeled by ~rewritingCSEExpensiveOP/1~. The definitions of 
+~rewritingCSEExpensiveOP/1~ should be moved to file operators.pl later.
+
+*/
+
+rewriteQueryForCSE(Query, Query). % XRIS: Extend this
+
+
+/*
+
+14.3.1 Auxiliary Predicates to ~rewriteQueryForCSE/2~
+
+---- isSubTerm(+Term,-SubTerm)
+----
+
+succeeds, iff ~SubTerm~ is a real (not equal) subterm of ~Term~.
+
+*/
+
+isSubTerm(Term,SubTerm) :-
+  term_to_atom(Term, TermA),
+  term_to_atom(SubTerm, SubTermA),
+  sub_atom(TermA, Before, _, After, SubTermA),
+  After + Before > 0.
+
+/*
+---- replace_term(+Term, +SubExpr, +Replacement, -Result)
+----
+
+Replace any occurences of ground term ~SubExpr~ in expression ~Term~ with 
+ground term ~Replacement~ and return the ~Result~.
+
+*/
+
+replace_termL([], _, _, []).
+replace_termL([Me|Others], SubExpr, Repl, [MeRepl|OthersRepl]) :-
+  replace_term(Me, SubExpr, Repl, MeRepl),
+  replace_termL(Others, SubExpr, Repl, OthersRepl).
+
+replace_term(Term, Term, Replacement, Replacement).
+
+replace_term(Term, SubExpr, Replacement, Result) :-
+  compound(Term),
+  Term \= SubExpr,
+  Term =.. [Me|Args],
+  replace_termL(Args, SubExpr, Replacement, ArgsResult),
+  Result =.. [Me|ArgsResult].
+
+replace_term(Term, SubExpr, _, Term) :-
+  atomic(Term),
+  Term \= SubExpr.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+/*
+---- markNode(+Node, -NodeMarked, +Level)
+----
+
+Creates a dynamic table ~storedExpressionLabel(Expr,Label,LevelList)~ by
+parsing the operator tree for term ~node~. Returns the same term in ~NodeMarked~.
+~Level~ gives the level of the operator tree`S ROOT (usually 0).
+
+Each sub-expression ~Expr~ is labeled with an unique identifier ~label~ and a 
+list ~LevelList~ of all levels within the operator tree, where ~Expr~ occurs 
+as a sub-expression.
+
+*/
+
+:- dynamic(storedExpressionLabel/3),
+   reset_gensym. % reset unique identifier generator
+
+retractExpressionLabels :-
+  retractall(storedExpressionLabel(_, _, _)),
+  reset_gensym. % reset unique identifier generator
+
+showExpressionLabel :-
+  storedExpressionLabel(Expr,Label,LevelList),
+  write(' '), write(Label), write('   '), write(LevelList), 
+  write('\t'), write(Expr), nl,
+  fail.
+
+showExpressionLabels :-
+  write('\nLabeled Expressions:\n'),
+  findall(_,showExpressionLabel,_),
+  nl.
+  
+getExpressionLabel(Node, Label, Level) :-
+  storedExpressionLabel(Node, Label, LevelList), % this is a CSE
+  retractall(storedExpressionLabel(Node, _, _)),
+  !,
+  assert(storedExpressionLabel(Node, Label, [Level|LevelList])).
+
+getExpressionLabel(Node, Label, Level) :-
+  not(storedExpressionLabel(Node, _, _)),
+  gensym(cse_, Label),
+  !,
+  assert(storedExpressionLabel(Node, Label, [Level])).
+
+
+markNode1([],[], _).            % nothing to do
+markNode1([Me|Others],[MeMarked|OthersMarked],Level) :-
+    markNode1(Others, OthersMarked,Level),
+    markNode(Me,MeMarked,Level),
+    !.
+
+markNode(Node, Node, _) :-     % Node is a leaf. No label is assigned to leaves.
+  atomic(Node);
+  Node = :(_,_),
+  !.
+
+markNode(NodeList, MarkedNodeList, Level) :-
+  is_list(NodeList),
+  markArgs(NodeList, MarkedNodeList, Level),
+  !.
+
+markNode(Node, NodeMarked, Level) :-
+  compound(Node),             % Node is an inner node.
+  not(is_list(Node)),
+  Node =.. [Me|MyArgs],       % decompose node
+  NextLevel is Level+1,
+  markNode1(MyArgs, MyArgsMarked, NextLevel),
+  getExpressionLabel(Node,MyLabel,Level), % get label and update ExprList
+%  MeMarked =.. [Me|MyArgsMarked],                 % label the node
+%  NodeMarked =.. [xxx, MeMarked, MyLabel, Level], % label the node
+  NodeMarked =.. [Me|MyArgsMarked],                % w/o labeling
+  !.
+
+
+/*
+---- baseAttributes(+Term,-BaseAttributeList).
+----
+
+Collects the set ~BaseAttributeList~ of all attributes used within ~Term~.
+
+*/
+
+baseAttributes1([],[]) :- !.
+  % no more arguments
+
+baseAttributes1([Me|Others],BaseAttributes) :- 
+  % process argument list
+  baseAttributes(Me,MyBAList),
+  baseAttributes(Others,OthersBAList),
+  merge_set(MyBAList,OthersBAList,BaseAttributes),
+  !.
+
+baseAttributes(Label,RecList) :- 
+  % term is a CSE attribute - recurse into CSE
+  atom(Label),
+  sub_atom(Label, 0, _, _, cse_),
+  virtual_attribute(Label, Expr, _),
+  baseAttributes(Expr,RecList),
+  !.
+
+baseAttributes(Term,[Term]) :- 
+    atom(Term)
+  ; Term = :(_,_),
+  !.
+
+baseAttributes(Term,[]) :- 
+  % numbers and strings are boring
+  atomic(Term),
+  !.
+
+baseAttributes(as(Term,_),BaseAttributeList) :- 
+  % we are not interested in aliases here
+  baseAttributes(Term,BaseAttributeList),
+  !.
+
+baseAttributes(Term,BaseAttributeList) :- 
+  % the base case
+  compound(Term),
+  Term =.. [_|Args],
+  baseAttributes1(Args,BaseAttributeList),
+  !.
+
+/*
+
+*/
+
+isCSE(Expr) :-
+  storedExpressionLabel(Expr,_,LevelList),
+  not(length(LevelList,1)), !.
+
+isNoCSE(Expr) :-
+  storedExpressionLabel(Expr,_,LevelList),
+  length(LevelList,1), !.
+
+isNoCSE(Expr) :-
+  \+(storedExpressionLabel(Expr,_,_)), !.
+
+hasNoStoredCSE(Expr) :-         % succeeds, iff Expr does not contain any CSE
+  storedExpressionLabel(Expr,_,_),         % if Expr is a term
+  \+ ((
+       storedExpressionLabel(Expr1,_,_),   % Expr1 is a term
+       isSubTerm(Expr,Expr1),              % Expr1 is a subterm of Expr
+       isCSE(Expr1)                        % Expr1 is a CSE
+     )), !.
+  
+replaceAllCSEs :-
+  storedExpressionLabel(Expr1,Label1,_), % choose a term Expr1
+  isCSE(Expr1),                          % Expr1 is a CSE
+  hasNoStoredCSE(Expr1),                 % Expr1 contains no subterm, that is a CSE
+  baseAttributes(Expr1,BaseAttrs1),      % get base attributes for Expr1
+  assert(virtual_attribute(Label1, Expr1,BaseAttrs1)), % add (Label1,Expr1) to the the table of 'virtual attributes'
+  retractall(storedExpressionLabel(Expr1,_,_)),        % retract Expr1 from term table to reduce search space
+  storedExpressionLabel(Expr2,Label2,LevelList2),      % choose a second term Expr2
+  isSubTerm(Expr2,Expr1),                % Expr2 contains CSE Expr1 as a real subterm
+  % replace Expr1 in all other stored terms Expr2 with Label1:
+  replace_term(Expr2, Expr1, Label1, Expr2Replaced),
+  retractall(storedExpressionLabel(Expr2,_,_)),
+  retractall(storedExpressionLabel(Expr2Replaced,_,_)),
+  assert(storedExpressionLabel(Expr2Replaced,Label2,LevelList2)),
+  fail.
+  
+
+% examples for expensive operators
+rewritingCSEExpensiveOP(intersection).
+rewritingCSEExpensiveOP(minus).
+rewritingCSEExpensiveOP(atinstant).
+rewritingCSEExpensiveOP(atperiod). % ?
+rewritingCSEExpensiveOP(at).       % ?
+rewritingCSEExpensiveOP(crossings).
+rewritingCSEExpensiveOP(center).
+rewritingCSEExpensiveOP(touchpoints).
+rewritingCSEExpensiveOP(commonborder).
+rewritingCSEExpensiveOP(trajectory).
+rewritingCSEExpensiveOP(distance).
+
+
+% succeeds, iff Expr contains an expensive operator
+rewritingCSEisExpensiveExpression(Expr) :-
+  rewritingCSEExpensiveOP(Expr).
+
+rewritingCSEisExpensiveExpression(Expr) :-
+  is_list(Expr),
+  Expr = [],
+  fail.
+
+rewritingCSEisExpensiveExpression(Expr) :-
+  is_list(Expr),
+  Expr = [Me|Others],
+  (   rewritingCSEisExpensiveExpression(Me)
+    ; rewritingCSEisExpensiveExpression(Others)
+  ),
+  !.
+
+rewritingCSEisExpensiveExpression(Expr) :-
+  compound(Expr),
+  Expr =.. [OP|Args],
+  (
+      rewritingCSEExpensiveOP(OP)
+    ; rewritingCSEisExpensiveExpression(Args)
+  ),
+  !.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
