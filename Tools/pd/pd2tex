@@ -18,16 +18,24 @@
 
 pdFile="$1"
 texFile="$1.tex"
+tmpTexFile=".tmp.$texFile"
+errFile=".pd.err"
 
-cat $PD_HEADER > $texFile 
-pdtabs < $pdFile | maketex | linebreaks >> $texFile 
+rm -f $errFile
+pdtabs < $pdFile | maketex >> $tmpTexFile 2>$errFile
+rc_maketex=$?
 
-if { ! pdtabs < $pdFile | maketex > /dev/null; }; then
+cat $PD_HEADER $tmpTexFile > $texFile
 
-   printf "\n PD-Error: Could not create $texFile completely! Please wait ... \n\n"
-   echo "\end{document}" >> $texFile
-   sleep 5
+if [ $rc_maketex -ne 0 ]; then
+
+ printf "\n PD-Error: Could not create $texFile completely!\n\n"
+ echo "\end{document}" >> $texFile
+
+else
+
+  rm -f $errFile
 
 fi
 
-
+rm -f $tmpTexFile 

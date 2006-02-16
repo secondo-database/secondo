@@ -10,5 +10,7 @@ texFile="$1.tex"
 auxFile="$1.aux"
 logFile="$1.log"
 
+
 $progname $file 
+
 rm -f $logFile $texFile $auxFile $file
