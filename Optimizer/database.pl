@@ -589,12 +589,6 @@ are executed furthermore by this rule.
 
 */
 
-%checkForIndex(_, []).
-
-%checkForIndex(Rel, [First|Rest]) :-
-%updateIndex(Rel, First),
-%checkForIndex(Rel, Rest).
-
 trycreateSmallRelation(Rel, ObjList) :- 
   usingVersion(entropy),
   createSmallRelation(Rel, ObjList),!.
@@ -676,7 +670,7 @@ showStoredRels :-
 1.1.4 Printing the complete Database Schema
 
 By now, only stored meta information is handled by the optimizer and printed
-when using the show\~ or write\~ predicates.
+when using the show- or write- predicates.
 
 In contrast, ~showDatabaseSchema/0~ will print the schemas of all, not only
 the actually used relations.
@@ -967,7 +961,7 @@ showCards :-
 /*
 1.4 Looking Up For Existing Indexes
 
----- hasIndex(rel(Rel, _, _),attr(Attr, _, _), IndexName, IndexType) :-
+---- hasIndex(rel(Rel, \_, \_),attr(Attr, \_, \_), IndexName, IndexType) :-
 ----
 
 If it exists, the index name for relation ~Rel~ and attribute ~Attr~
@@ -1337,7 +1331,7 @@ attribute encountered in the relation schemas.
 /*
 1.6 Average Size Of A Tuple
 
----- tuplesize(Rel, Size) :-
+---- tuplesize(+Rel, -Size) :-
 ----
 
 The average size of a tuple in Bytes of relation ~Rel~ 
@@ -1545,7 +1539,7 @@ toggleSpeed :-
  !.
  
 /*
-~queryTime(Query, TimeMS)~ unifies ~TimeMS~ with the time in ms that it takes 
+~queryTime(+Query, -TimeMS)~ unifies ~TimeMS~ with the time in ms that it takes 
 SECONDO to run ~Query~
 
 */
@@ -1563,7 +1557,7 @@ queryTime(Query, TimeMS) :-
  
 /*
 
-The predicate ~fibonacci(N, M)~ recursively calculates the ~N~th Fibonacci number
+The predicate ~fibonacci(+N, -M)~ recursively calculates the ~N~th Fibonacci number
  ~M~. This extremely expensive function is used to measure CPU speed.
 
 ~determineCostCPU(Time)~ unifies ~Time~ with the average time in ms for 
@@ -1677,8 +1671,8 @@ writeMachineSpeedFactor :-
   write(FD, '.\n'),
   close(FD).
 
-:-  dynamic(optUniformSpeed/0).
-:-  dynamic(storedMachineSpeedFactor/2).
-:-  at_halt(writeMachineSpeedFactor).
-:-  readMachineSpeedFactor.
-:-  setMachineSpeedFactor.
+:-  dynamic(optUniformSpeed/0),
+    dynamic(storedMachineSpeedFactor/2),
+    at_halt(writeMachineSpeedFactor),
+    readMachineSpeedFactor,
+    setMachineSpeedFactor.

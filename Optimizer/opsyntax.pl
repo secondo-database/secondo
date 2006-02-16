@@ -40,7 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, intersects).
 :- op(800, xfx, touches).
 :- op(800, xfx, or).
-:- op(800, fx, not).
+:- op(800,  fx, not).
 
 :- op(800, xfx, present).
 :- op(800, xfx, passes).
@@ -61,25 +61,25 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 /*
 
-----	secondoOp(Op, Syntax, NoArgs) :-
+----	secondoOp(?Op, ?Syntax, ?NoArgs) :-
 ----
 
 ~Op~ is a Secondo operator written in ~Syntax~, with ~NoArgs~ arguments.
 Currently implemented:
 
-  * postfix, 1 or 2 arguments: corresponds to _ # and _ _ #
+  * postfix, 1 or 2 arguments: corresponds to \_ \# and \_ \_ \#
 
   * postfixbrackets, 2 or 3 arguments, of which the last one is put into
-the brackets: _ # [ _ ] or _ _ # [ _ ]
+the brackets: \_ \# [ \_ ] or \_ \_ \# [ \_ ]
 
-  * prefix, 2 arguments: # (_, _)
+  * prefix, 2 arguments: \# (\_, \_)
 
   * prefix, either 1 or 3 arguments, does not need a rule here, is
 translated by default.
 
   * infix, 2 arguments: does not need a rule, translated by default.
 
-For all other forms, a plan_to_atom rule has to be programmed explicitly.
+For all other forms, a plan\_to\_atom rule has to be programmed explicitly.
 
 */
 
@@ -87,8 +87,6 @@ secondoOp(distance, prefix, 2).
 secondoOp(intersection_new, prefix, 2).
 secondoOp(union_new, prefix, 2).
 secondoOp(minus_new, prefix, 2).
-
-
 secondoOp(feed, postfix, 1).
 secondoOp(consume, postfix, 1).
 secondoOp(count, postfix, 1).
@@ -111,18 +109,3 @@ secondoOp(head, postfixbrackets, 2).
 secondoOp(windowintersects, postfixbrackets, 3).
 secondoOp(sort, postfix, 1).
 secondoOp(rdup, postfix, 1).
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
