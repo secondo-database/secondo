@@ -19,38 +19,29 @@
 
 ########################################################################
 #
-# SECONDO makefile for Relation Algebra C++
+# generic makefile for an algebra module 
 #
 ########################################################################
 
+# inlcude global definitions
 include ../../makefile.env
 
-MODNAME = UpdateRelationAlgebra
+# expand compile flags if necessary
+CCFLAGS += $(ALG_INC_DIRS) 
 
-CCFLAGS = $(DEFAULTCCFLAGS) -I../Relation-C++ -I../TupleIdentifier -I../RTree -I../Spatial -I../Rectangle
-
-# define the compiler flag -DRELALG_PERSISTENT in the file 
-# makefile.env to compile the Persistent Relational Algebra.
-# It must be defined on a higher level since other algebras have
-# to interoperate with the relational algebra.
-
+# create objects and algebra library. The values for the variables
+# OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
 
+# include pre-computed dependencies
 include $(DEP_FILES)
 
-# --- Relation Algebra C++ library ---
-
+# generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
-ifeq ($(shared),yes)
-# ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBOBJ) $(LDOPT) $(OBJECTS) $(TUPLEMANAGER) -L$(LIBDIR) -lStandardAlgebra $(BDBSMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
-else
-# ... as static library
-	$(AR) -r $(LIBOBJ) $(OBJECTS)
-endif
+	$(create-lib)
 
+# generic rule for cleaning all generated files
 .PHONY: clean
 clean:
-	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBOBJ)
-
+	$(clean-algebra)

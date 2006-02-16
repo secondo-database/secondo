@@ -19,29 +19,29 @@
 
 ########################################################################
 #
-# SECONDO makefile for PointRectangle Algebra C++
+# generic makefile for an algebra module 
 #
 ########################################################################
 
+# inlcude global definitions
 include ../../makefile.env
 
-MODNAME = RectangleAlgebra
-CCFLAGS = $(DEFAULTCCFLAGS) -I../Spatial -I../Relation-C++
+# expand compile flags if necessary
+CCFLAGS += $(ALG_INC_DIRS) 
 
+# create objects and algebra library. The values for the variables
+# OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
 
+# include pre-computed dependencies
 include $(DEP_FILES)
 
+# generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
-ifeq ($(shared),yes)
-# ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBOBJ) $(TUPLEMANAGER) -L$(LIBDIR) -lStandardAlgebra -lRelationAlgebra $(SMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
-else
-# ... as static library
-	$(AR) -r $(LIBOBJ) $(OBJECTS)
-endif
+	$(create-lib)
 
+# generic rule for cleaning all generated files
 .PHONY: clean
 clean:
-	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBOBJ)
+	$(clean-algebra)

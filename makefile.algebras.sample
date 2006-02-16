@@ -41,70 +41,79 @@ ALGEBRA_DEPS += jpeg
 ALGEBRA_DEP_DIRS += $(SECONDO_SDK)/lib
 
 ALGEBRA_DIRS += Function-C++
-ALGEBRAS     +=	FunctionAlgebra
+ALGEBRAS     += FunctionAlgebra
 
 ALGEBRA_DIRS += PointRectangle
 ALGEBRAS     += PointRectangleAlgebra
 
-ALGEBRA_DIRS +=	Array
-ALGEBRAS     +=	ArrayAlgebra
+ALGEBRA_DIRS += Array
+ALGEBRAS     += ArrayAlgebra
 
 ALGEBRA_DIRS += StreamExample
-ALGEBRAS     +=	StreamExampleAlgebra
+ALGEBRAS     += StreamExampleAlgebra
 
 ALGEBRA_DIRS += OldRelation-C++
-ALGEBRAS     +=	OldRelationAlgebra
+ALGEBRAS     += OldRelationAlgebra
 
 ALGEBRA_DIRS += Relation-C++
-ALGEBRAS     +=	RelationAlgebra
+ALGEBRAS     += RelationAlgebra
 
 ALGEBRA_DIRS += ExtRelation-C++
-ALGEBRAS     +=	ExtRelationAlgebra
+ALGEBRAS     += ExtRelationAlgebra
 
-ALGEBRA_DIRS +=	Date
-ALGEBRAS     +=	DateAlgebra
+ALGEBRA_DIRS += Date
+ALGEBRAS     += DateAlgebra
 
 ALGEBRA_DIRS += Polygon
-ALGEBRAS     +=	PolygonAlgebra
+ALGEBRAS     += PolygonAlgebra
 
-ALGEBRA_DIRS +=	BTree
-ALGEBRAS     +=	BTreeAlgebra
+ALGEBRA_DIRS += BTree
+ALGEBRAS     += BTreeAlgebra
 
-ALGEBRA_DIRS +=	RTree
-ALGEBRAS     +=	RTreeAlgebra
+ALGEBRA_DIRS += RTree
+ALGEBRAS     += RTreeAlgebra
 
-ALGEBRA_DIRS +=	Rectangle
-ALGEBRAS     +=	RectangleAlgebra
+ALGEBRA_DIRS += Rectangle
+ALGEBRAS     += RectangleAlgebra
 
-ALGEBRA_DIRS +=	Spatial
-ALGEBRAS     +=	SpatialAlgebra
+ALGEBRA_DIRS += Spatial
+ALGEBRAS     += SpatialAlgebra
 
-ALGEBRA_DIRS +=	FText
-ALGEBRAS     +=	FTextAlgebra
+ALGEBRA_DIRS += FText
+ALGEBRAS     += FTextAlgebra
 
-ALGEBRA_DIRS +=	BinaryFile
-ALGEBRAS     +=	BinaryFileAlgebra
+ALGEBRA_DIRS += BinaryFile
+ALGEBRAS     += BinaryFileAlgebra
 
-ALGEBRA_DIRS +=	Temporal
-ALGEBRAS     +=	TemporalAlgebra
+ALGEBRA_DIRS += Temporal
+ALGEBRAS     += TemporalAlgebra
 
-ALGEBRA_DIRS +=	DateTime
-ALGEBRAS     +=	DateTimeAlgebra
+#ALGEBRA_DIRS += TemporalExt
+#ALGEBRAS     += TemporalExtAlgebra
 
-ALGEBRA_DIRS +=	Network
-ALGEBRAS     +=	NetworkAlgebra
+#ALGEBRA_DIRS += TemporalLifted
+#ALGEBRAS     += TemporalLiftedAlgebra
 
-ALGEBRA_DIRS += PlugJoin	
-ALGEBRAS     +=	PlugJoinAlgebra
+#ALGEBRA_DIRS += TemporalUnit
+#ALGEBRAS     += TemporalUnitAlgebra
 
-ALGEBRA_DIRS += TupleIdentifier	
-ALGEBRAS     +=	TupleIdentifierAlgebra
+ALGEBRA_DIRS += DateTime
+ALGEBRAS     += DateTimeAlgebra
 
-ALGEBRA_DIRS += UpdateRel	
-ALGEBRAS     +=	UpdateRelationAlgebra
+ALGEBRA_DIRS += Network
+ALGEBRAS     += NetworkAlgebra
 
-ALGEBRA_DIRS += PointSequence	
-ALGEBRAS     +=	PointSequenceAlgebra
+ALGEBRA_DIRS += PlugJoin        
+ALGEBRAS     += PlugJoinAlgebra
+
+ALGEBRA_DIRS += TupleIdentifier 
+ALGEBRAS     += TupleIdentifierAlgebra
+
+ALGEBRA_DIRS += UpdateRel       
+ALGEBRAS     += UpdateRelationAlgebra
+
+ALGEBRA_DIRS += PointSequence   
+ALGEBRAS     += PointSequenceAlgebra
 
 #ALGEBRA_DIRS += MP3
 #ALGEBRAS     += MP3Algebra

@@ -17,11 +17,31 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-# Begin NauticalMapAlgebra.spec
+########################################################################
+#
+# generic makefile for an algebra module 
+#
+########################################################################
 
-operator getnauticalobjects alias GETNAUTICALOBJECTS pattern _ op
-operator getnauticallines alias GETNAUTICALLINES pattern _ op
-operator getnauticalregions alias GETNAUTICALREGIONS pattern _ op
+# inlcude global definitions
+include ../../makefile.env
 
-# End NauticalMapAlgebra.spec
+# expand compile flags if necessary
+CCFLAGS += $(ALG_INC_DIRS) 
 
+# create objects and algebra library. The values for the variables
+# OBJECTS and LIBOBJ are computed automatically by makefile.env 
+.PHONY: all
+all: $(OBJECTS) $(LIBOBJ)
+
+# include pre-computed dependencies
+include $(DEP_FILES)
+
+# generic rule for creating a library
+$(LIBOBJ): $(OBJECTS)
+	$(create-lib)
+
+# generic rule for cleaning all generated files
+.PHONY: clean
+clean:
+	$(clean-algebra)

@@ -35,7 +35,7 @@ ALL_ALGEBRA_DIRS := $(ALGEBRA_DIRS)
 ifeq ($(USE_JNI),"true")
 ALL_ALGEBRA_DIRS += $(JNI_ALGEBRA_DIRS)
 endif
- 
+
 
 .PHONY: all
 all: buildlibs
@@ -71,8 +71,10 @@ specs.test: $(SPECFILES) ../makefile.algebras
 buildlibs:
 	@echo -e "\n *** Building algebra libs ***\n";
 	for dir in $(ALL_ALGEBRA_DIRS); do \
+          if [ -e $$dir/makefile ]; then \
           if !($(MAKE) -C $$dir) then \
             exit 1; \
+          fi \
           fi \
         done
 	@echo -e "\n *** Algebra libs successfully created ***\n";

@@ -19,52 +19,29 @@
 
 ########################################################################
 #
-# SECONDO makefile for PointRectangle Algebra C++
+# generic makefile for an algebra module 
 #
 ########################################################################
 
+# inlcude global definitions
 include ../../makefile.env
 
-# --- List of all needed header files (including indirect dependencies)
+# expand compile flags if necessary
+CCFLAGS += $(ALG_INC_DIRS) 
 
-INCFILES=\
-	$(INCLUDEDIR)/Algebra.h \
-	$(INCLUDEDIR)/NestedList.h \
-	$(INCLUDEDIR)/QueryProcessor.h
-
-MODNAME=MP3Algebra
-LIBNAME=lib$(MODNAME)
-
-OBJECTS=\
-	$(MODNAME).$(OBJEXT)
-
+# create objects and algebra library. The values for the variables
+# OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
-all: $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
+all: $(OBJECTS) $(LIBOBJ)
 
-buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
+# include pre-computed dependencies
+include $(DEP_FILES)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
+# generic rule for creating a library
+$(LIBOBJ): $(OBJECTS)
+	$(create-lib)
 
-# --- PointRectangle Algebra C++ library ---
-
-$(LIBDIR)/$(LIBNAME).$(LIBEXT): $(OBJECTS)
-ifeq ($(shared),yes)
-# ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) -L$(LIBDIR) -lStandardAlgebra $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
-else
-# ... as static library
-	$(AR) -r $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
-endif
-
-# --- PointRectangle Algebra C++ library modules ---
-
-$(MODNAME).$(OBJEXT): $(MODNAME).cpp $(INCFILES)
-	$(CC) -c -o $(MODNAME).$(OBJEXT) $(MODNAME).cpp $(CCFLAGS)
-
-
+# generic rule for cleaning all generated files
 .PHONY: clean
 clean:
-	$(RM) $(LIBDIR)/$(LIBNAME).a $(LIBDIR)/$(LIBNAME).so $(LIBDIR)/$(LIBNAME).dll $(LIBDIR)/$(LIBNAME).dll.a
-	$(RM) *.o
-	$(RM) *.lo
-
+	$(clean-algebra)

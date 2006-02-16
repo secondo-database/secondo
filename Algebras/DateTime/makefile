@@ -19,56 +19,29 @@
 
 ########################################################################
 #
-# SECONDO makefile for PointRectangle Algebra C++
+# generic makefile for an algebra module 
 #
 ########################################################################
 
+# inlcude global definitions
 include ../../makefile.env
 
+# expand compile flags if necessary
+CCFLAGS += $(ALG_INC_DIRS) 
 
-MODNAME = DateTimeAlgebra
-CCFLAGS = $(DEFAULTCCFLAGS)
-
+# create objects and algebra library. The values for the variables
+# OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
 
+# include pre-computed dependencies
 include $(DEP_FILES)
 
+# generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
-ifeq ($(shared),yes)
-# ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBOBJ) $(TUPLEMANAGER) -L$(LIBDIR) -lStandardAlgebra -lRelationAlgebra $(SMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
-else
-# ... as static library
-	$(AR) -r $(LIBOBJ) $(OBJECTS)
-endif
+	$(create-lib)
 
-
-.PHONY:pdf
-pdf: DateTimeAlgebra.pdf
-
-DateTimeAlgebra.pdf: DateTimeAlgebra.pd.dvi
-	dvipdfm -p a4 -o DateTimeAlgebra.pdf DateTimeAlgebra.pd.dvi
-
-.PHONY:dvi
-dvi: DateTimeAlgebra.pd.dvi
-
-
-DateTimeAlgebra.pd.dvi: DateTimeAlgebra.pd.tex
-	latex DateTimeAlgebra.pd.tex
-	latex DateTimeAlgebra.pd.tex
-	latex DateTimeAlgebra.pd.tex
-
-DateTimeAlgebra.pd.tex: DateTimeAlgebra.cpp ../../include/DateTime.h
-	cat DateTimeAlgebra.cpp appendix ../../include/DateTime.h >DateTimeAlgebra.pd
-	pd2tex DateTimeAlgebra.pd
-	$(RM) DateTimeAlgebra.pd
-
-
+# generic rule for cleaning all generated files
 .PHONY: clean
-clean: cleanpdf
-	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBOBJ)
-
-.PHONY: cleanpdf
-cleanpdf:
-	$(RM) *.toc *.log *.tex *.dvi *.aux *.pdf
+clean:
+	$(clean-algebra)
