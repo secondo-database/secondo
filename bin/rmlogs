@@ -12,7 +12,10 @@ cd $dbDir >& /dev/null
 if [ $? -ne 0 ]; then
   echo -e "Error: Could not change to $dbDir"
 else
-  echo -e "Deleting log files in $dbDir ..."
+  echo -e "Deleting unused log files in $dbDir ..."
   db_checkpoint -v1
-  db_archive -v | sed "s/.*/rm -f &/g" | sh;
+  for file in $(db_archive); do
+    echo -e "deleting $file"
+    rm -f $file
+  done
 fi
