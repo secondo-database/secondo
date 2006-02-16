@@ -10,7 +10,9 @@ import java.util.Vector;
 
 public class RegTransLinear{
 
-
+/** returns a list consisting of the original point 
+  * and the transformed point.
+  **/
 private static ListExpr processPoint(ListExpr PL, ATransform AT){
    Point P = new Point();
    if(!P.readFrom(PL)){
@@ -19,7 +21,7 @@ private static ListExpr processPoint(ListExpr PL, ATransform AT){
    }
    AT.transformPoint(P);
    if(firstRun) points++;
-   return ListExpr.twoElemList(ListExpr.realAtom((float)P.getX()),ListExpr.realAtom((float)P.getY()));
+   return ListExpr.twoElemList(ListExpr.realAtom(P.getX()),ListExpr.realAtom(P.getY()));
 }
 
 /**
@@ -97,10 +99,8 @@ private static void writePointMap(ListExpr Start, ListExpr End){
    double x2 = X2.doubleValue();
    double y1 = Y1.doubleValue();
    double y2 = Y2.doubleValue();
-
    out.println("("+Format.format(x1)+" "+Format.format(y1)+" "+
                           Format.format(x2)+" "+Format.format(y2)+")");
-
 }
 
 /** write a single cyclemap to the standard output **/
@@ -246,6 +246,7 @@ public static void main(String[] args){
   dfs.setDecimalSeparator('.');
   Format = new java.text.DecimalFormat(FormatString,dfs);
 
+  // process arguments
   if(args.length<start+3){
      System.err.println ("missing argument");
      System.err.println("usage:java RegTransformer [--oldstyle] {RegionFile|RelationFile} TransformFile outFile [init]");
@@ -271,12 +272,15 @@ public static void main(String[] args){
   init = false;
   if(args.length>start+3 && args[start+3].equals("init"))
     init = true;
-  
+ 
+  // initialize  
   double startTime = 0.0;
   double moveTime = 0.25; // this means 6 hours
   boolean isObject = false;
   ListExpr Sixth=null;
   int listlength=RegList.listLength();
+
+  // old styled object format
   if(RegList.listLength()==6 && RegList.first().atomType()==ListExpr.SYMBOL_ATOM &&
      RegList.first().symbolValue().equals("OBJECT")){
      Sixth=RegList.sixth();
@@ -287,9 +291,7 @@ public static void main(String[] args){
      RegList.third().writeTo(out,false);
      out.println(" ");
      RegList=ListExpr.twoElemList(RegList.fourth(),RegList.fifth());
-  }
-  
-  if(RegList.listLength()==5 && RegList.first().atomType()==ListExpr.SYMBOL_ATOM &&
+  } else if(RegList.listLength()==5 && RegList.first().atomType()==ListExpr.SYMBOL_ATOM &&
      RegList.first().symbolValue().equals("OBJECT")){
      Sixth=new ListExpr();;
      isObject=true;
@@ -298,6 +300,7 @@ public static void main(String[] args){
      out.print(" ");
      RegList.third().writeTo(out,false);
      out.println(" ");
+     // change reglist to the desired format
      RegList=ListExpr.twoElemList(RegList.fourth(),RegList.fifth());
   } else{
      out.println("("); // open object 
@@ -308,11 +311,11 @@ public static void main(String[] args){
       ListExpr RValue = RegList.second();
       firstRun=true; // only needed to count the number of
                  // contained points
-      out.println("( movingregion "); // open attribute
+      out.println(" movingregion "); // write type 
 
       writeMRegionValue(RValue,TransformList,startTime,moveTime);
-      out.println(")"); // close object
       System.err.println("processed "+points+" points");
+
   } else{
       ListExpr Type = RegList.first();
       if(Type.atomType()==ListExpr.NO_ATOM && Type.listLength()==2 && Type.first().atomType()==ListExpr.SYMBOL_ATOM &&
@@ -344,4 +347,5 @@ public static void main(String[] args){
   static java.text.DecimalFormat Format;
   static String FormatString = "#.#####";
   static boolean oldStyle=false;
+  
 }
