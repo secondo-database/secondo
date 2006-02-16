@@ -221,7 +221,6 @@ using namespace std;
 
 
 #include <string>
-#include <db_cxx.h>
 
 #include "ErrorCodes.h"
 #include "SecondoConfig.h"
