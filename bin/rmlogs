@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# rmlogs [dbDir] - removes BERKELEY-DB log files
+#
+
+dbDir=~/secondo-databases; 
+if [ "$1" != "" ]; then
+ dbDir="$1" 
+fi
+
+cd $dbDir >& /dev/null
+if [ $? -ne 0 ]; then
+  echo -e "Error: Could not change to $dbDir"
+else
+  echo -e "Deleting log files in $dbDir ..."
+  db_checkpoint -v1
+  db_archive -v | sed "s/.*/rm -f &/g" | sh;
+fi

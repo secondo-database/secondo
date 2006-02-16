@@ -257,6 +257,7 @@ showjni:
 
 .PHONY: config
 config: $(CONFIG_FILES) 
+	@chmod u+x bin/rmlogs
 
 # Alert for new information in Secondo-News
 Documents/.Secondo-News.txt : Documents/Secondo-News.txt
