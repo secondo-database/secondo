@@ -18,6 +18,16 @@
 MAXLINES=80
 IGNORE_INCLUDES="true"
 
+# check the first argument to be '--strong'
+# using this argument, too long lines will be treated as errors
+# instead of warnings
+STRONG=false
+if [ "$1" == "--strong" ]; then
+   STRONG=true
+   shift
+fi
+
+
 ARGS=$*
 if [ -z "$ARGS" ]
 then
@@ -51,7 +61,7 @@ cd "$TEMPDIR"
 PROCESSED=0
 PDFAILED=0
 LATEXFAILED=0
-WARNINGS=0
+LINEFAILED=0
 NOTFOUND=0
 
 for F in $MYFILES
@@ -89,8 +99,12 @@ do
            linecheck "$MAXLINES" $F >/dev/null
            CL="$?"
            if [ "$CL" -ne 0 ]; then
-              echo -e "Warning: $CL lines too long in \"$F\""
-              WARNINGS=$(expr "$WARNINGS" + 1)
+              if [ "$STRONG" == "true" ]; then
+                 echo -e "Error: $CL lines too long in \"$F\""
+              else
+                 echo -e "Warning: $CL lines too long in \"$F\""
+              fi
+              LINEFAILED=$(expr "$LINEFAILED" + 1)
            fi
         fi
         rm -f $TEMPDIR/*.dvi $TEMPDIR/*.log $TEMPDIR/*.aux $TEMPDIR/*.tmp $TEMPDIR/*.toc $TEMPDIR/tmp.tex
@@ -101,7 +115,7 @@ done
 cd "$HERE"
 rm -rf "$TEMPDIR"
 
-SUCCESS=$(expr "$PROCESSED" - "$PDFAILED" - "$WARNINGS" - "$LATEXFAILED" )
+SUCCESS=$(expr "$PROCESSED" - "$PDFAILED" - "$LINEFAILED" - "$LATEXFAILED" )
 if [ "$PROCESSED" -gt 0 ]; then
    echo "checkpd Statistic:"
    if [ "$NOTFOUND" -gt 0 ]; then
@@ -110,7 +124,7 @@ if [ "$PROCESSED" -gt 0 ]; then
    echo "processed files : $PROCESSED"
    echo "pd errors       : $PDFAILED"
    echo "latex errors    : $LATEXFAILED"
-   echo "too long lines  : $WARNINGS"
+   echo "too long lines  : $LINEFAILED"
    echo "files ok        : $SUCCESS"
 else
    if [ "$NOTFOUND" -gt 0 ]; then
@@ -119,6 +133,10 @@ else
    echo "checkpd: no file to check"
 fi
 
-FAILED=$(expr "$PDFAILED" + "$LATEXFAILED")
+if [ "$STRONG" != "true" ]; then
+    FAILED=$(expr "$PDFAILED" + "$LATEXFAILED")
+else
+    FAILED=$(expr "$PDFAILED" + "$LATEXFAILED" +  "$LINEFAILED" )
+fi
 #FAILED="$PDFAILED"
 exit "$FAILED"
