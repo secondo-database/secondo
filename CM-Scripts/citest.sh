@@ -17,6 +17,6 @@ export PD_HEADER="$prefix/pd.header"
 #dirfiles=$(ls -l $PWD)
 #printf "$dirfiles \n"
 
-checkpd
+checkpd --strong
 
 exit $? 
