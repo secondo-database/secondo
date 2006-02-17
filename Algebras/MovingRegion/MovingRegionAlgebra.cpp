@@ -3724,7 +3724,7 @@ description below for details.
                     unsigned int faceno,
                     unsigned int cycleno,
                     unsigned int segmentno,
-                    unsigned int pointno,
+                    unsigned int partnerno,
                     double intervalLen,
                     ListExpr start,
                     ListExpr end);
@@ -5689,6 +5689,7 @@ computation.
         chs.attr.faceno = faceno;
         chs.attr.cycleno = cycleno;
         chs.attr.partnerno = partnerno;
+        chs.attr.edgeno = segmentno;
 
         chs.attr.insideAbove = chs.GetLP() == s;
 
