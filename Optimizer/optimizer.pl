@@ -3162,6 +3162,9 @@ by the symmjoin operator with a constant filter function which always returns tr
 This operator works well and has symmetric costs, whereas product has antisymmetric
 costs. 
 
+C. Duentgen, Feb/17/2006: changed tuple variable names for the sake of uniqueness
+                          (otherwise, a triple-product will crash). 
+
 */
 
 
@@ -3170,17 +3173,22 @@ translate(Select from Rel, Stream, Select, 0) :-
   makeStream(Rel, Stream), !.
 
 translate(Select from [Rel], Stream, Select, 0) :-
-  makeStream(Rel, Stream).
+  makeStream(Rel, Stream),
+  deleteVariables.
 
 translate(Select from [Rel | Rels], 
-            symmjoin(S1, S2, fun([param(t1, tuple), param(t2, tuple2)], true)), 
-            Select, 0) :-
+        symmjoin(S1, S2, fun([param(T1, tuple), param(T2, tuple2)], true)), 
+        Select, 0) :-
   makeStream(Rel, S1),
-  translate(Select from Rels, S2, Select, _).
+  translate(Select from Rels, S2, Select, _),
+  newVariable(T1),
+  newVariable(T2),
+  !.
 
 makeStream(Rel, feed(Rel)) :- Rel = rel(_, *, _), !.
 
 makeStream(Rel, rename(feed(Rel), Var)) :- Rel = rel(_, Var, _).
+
 
 
 
