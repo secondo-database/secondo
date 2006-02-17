@@ -78,8 +78,11 @@ getprompt :-
   [operators],
   [database],
   [boundary],
-  [searchtree],
-  [experiments],
+  [searchtree].
+
+%:- [experiments].
+
+:-
   nl, write('Note: Version 5.4.7 shows in the MSYS console no prompt!'), nl,
   write('A workaround is to type in the predicate "getprompt."'), nl, nl.
   
