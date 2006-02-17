@@ -63,6 +63,7 @@ PDFAILED=0
 LATEXFAILED=0
 LINEFAILED=0
 NOTFOUND=0
+TABCONTAMINATED=0
 
 for F in $MYFILES
 do
@@ -70,6 +71,11 @@ do
       NOTFOUND=$(expr "$NOTFOUND" + 1)
    else
       PROCESSED=$(expr "$PROCESSED" + 1)
+      TABS=$(grep "	" "$F" | wc -l )
+      if [ $TABS -gt 0 ]; then
+        echo -e "Warning: $F contains $TABS tabulators\n"
+        TABCONTAMINATED=$(expr "$TABCONTAMINATED" + 1)
+      fi
       S=$((pdtabs <"$F" | maketex >/dev/null) 2>&1)
       if [ $? -ne 0 ]
       then
@@ -125,6 +131,7 @@ if [ "$PROCESSED" -gt 0 ]; then
    echo "pd errors       : $PDFAILED"
    echo "latex errors    : $LATEXFAILED"
    echo "too long lines  : $LINEFAILED"
+   echo "tabulators      : $TABCONTAMINATED"
    echo "files ok        : $SUCCESS"
 else
    if [ "$NOTFOUND" -gt 0 ]; then
