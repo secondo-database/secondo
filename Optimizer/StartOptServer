@@ -36,6 +36,6 @@ else
     JAVA=java
 fi
 
-cmd="$JAVA -classpath ../Jpl/lib/classes/:.:$CLASSPATH OptimizerServer $PORT"
+cmd="$JAVA -Djava.library.path=. -classpath ../Jpl/lib/classes/:.:$CLASSPATH OptimizerServer $PORT"
 echo $cmd
 $cmd
