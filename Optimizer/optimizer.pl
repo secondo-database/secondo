@@ -4074,15 +4074,15 @@ When extending operator syntax, only ~lookupPreds~ musst be extended.
 
 */
 
-lookupAttr(Term,Term2) :-
-  compound(Term),
-  Term =.. [Op|Args],
-  lookupAttr1(Args,Args2),
-  Term2 =.. [Op|Args2].
-
-
 lookupAttr(Name, attr(Name, 0, u)) :-
   queryAttr(attr(Name, 0, u)),
+  !.
+
+lookupAttr(Term, Term2) :-
+  compound(Term),
+  Term =.. [Op|Args],
+  lookupAttr1(Args, Args2),
+  Term2 =.. [Op|Args2],
   !.
 
 lookupAttr(Term, Term) :-
@@ -4097,7 +4097,8 @@ lookupAttr1([],[]).
 
 lookupAttr1([Me|Others],[Me2|Others2]) :-
   lookupAttr(Me,Me2),
-  lookupAttr1(Others,Others2).
+  lookupAttr1(Others,Others2),
+  !.
 
 isAttribute(Name, Rel) :-
   queryRel(Rel, _),
@@ -4154,7 +4155,8 @@ lookupPred1(Var:Attr, attr(Var:Attr2, N1, Case), N, RelsBefore, N1, RelsAfter)
   spelled(Rel:Attr, attr(Attr2, X, Case)),
   assert(usedAttr(Rel2, attr(Attr2, X, Case))),
   N1 is N + 1,
-  append(RelsBefore, [Rel2], RelsAfter).
+  append(RelsBefore, [Rel2], RelsAfter),
+  !.
 
 lookupPred1(Attr, attr(Attr2, N1, Case), N, RelsBefore, N1, RelsAfter) :-
   isAttribute(Attr, Rel), !,
@@ -4162,7 +4164,8 @@ lookupPred1(Attr, attr(Attr2, N1, Case), N, RelsBefore, N1, RelsAfter) :-
   queryRel(Rel, Rel2),
   assert(usedAttr(Rel2, attr(Attr2, X, Case))),
   N1 is N + 1,
-  append(RelsBefore, [Rel2], RelsAfter).
+  append(RelsBefore, [Rel2], RelsAfter),
+  !.
 
 /*
 
@@ -4175,7 +4178,8 @@ lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
   compound(Term),
   Term =.. [Op|Args],
   lookupPred2(Args, Args2, N, RelsBefore, M, RelsAfter),
-  Term2 =.. [Op|Args2].  
+  Term2 =.. [Op|Args2],
+  !.  
 
 lookupPred1(Term, Term, N, Rels, N, Rels) :-
   atom(Term),
@@ -4189,7 +4193,8 @@ lookupPred2([], [], N, RelsBefore, N, RelsBefore).
 
 lookupPred2([Me|Others], [Me2|Others2], N, RelsBefore, M, RelsAfter) :-
   lookupPred1(Me,     Me2,     N, RelsBefore,  Q, RelsAfterMe),
-  lookupPred2(Others, Others2, Q, RelsAfterMe, M, RelsAfter).
+  lookupPred2(Others, Others2, Q, RelsAfterMe, M, RelsAfter),
+  !.
 
 /*
 11.3.6 Check the Spelling of Relation and Attribute Names
