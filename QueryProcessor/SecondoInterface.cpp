@@ -61,21 +61,24 @@ April 30 2003 Hoffmann Changes syntax for the restore objects command.
 September 2003 Hoffmann Extended section List-Commands for Secondo-Commands
 ~list algebras~ and ~list algebra <algebra name>~.
 
-October 2003 M. Spiekermann made the command echo (printing out the command in NL format) configurable.
-This is useful for server configuration, since the output of big lists consumes more time than processing
-the command.
+October 2003 M. Spiekermann made the command echo (printing out the command in
+NL format) configurable.  This is useful for server configuration, since the
+output of big lists consumes more time than processing the command.
 
-May 2004, M. Spiekermann. Support of derived objects (for further Information see DerivedObj.h) introduced.
-A new command derive similar to let can be used by the user to create objects which are derived from other 
-objects via a more or less complex value expression. The information about dependencies is stored in two 
-system tables (relation objects). The save database command omits to save list expressions for those objects.
-After restoring all saved objects the derived objects are rebuild in the restore database command.
+May 2004, M. Spiekermann. Support of derived objects (for further Information
+see DerivedObj.h) introduced.  A new command derive similar to let can be used
+by the user to create objects which are derived from other objects via a more
+or less complex value expression. The information about dependencies is stored
+in two system tables (relation objects). The save database command omits to
+save list expressions for those objects.  After restoring all saved objects the
+derived objects are rebuild in the restore database command.
 
 August 2004, M. Spiekermann. The complex nesting of function ~Secondo~ has been reduced.
 
 Sept 2004, M. Spiekermann. A bug in the error handling of restore databases has been fixed. 
 
-Dec 2004, M. Spiekermann. The new command ~set~ was implemented to support interactive changes of runtime parameters. 
+Dec 2004, M. Spiekermann. The new command ~set~ was implemented to support
+interactive changes of runtime parameters. 
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
@@ -168,77 +171,14 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
                               string& parmFile, const bool multiUser )
 {
   bool ok = false;
-  bool found = false;
   cout << endl << "Initializing the SECONDO Interface ..." << endl;
-  if ( parmFile.length() > 0 ) // try file specified by cmd switch -c
-  {
-    cout << "  Configuration file '" << parmFile;
-    found = FileSystem::FileOrFolderExists( parmFile );
-    if ( found )
-    {
-      cout << "':" << endl;
-    }
-    else
-    {
-      cout << "' not found!" << endl;
-    }
-  }
-
-  if ( !found ) // try environment variable 
-  {
-    cout << "Searching environment for configuration file ..." << endl;
-    char* home = getenv( "SECONDO_CONFIG" );
-    if ( home != 0 )
-    {
-      parmFile = home;
-      FileSystem::AppendSlash( parmFile );
-      parmFile += "SecondoConfig.ini";
-      cout << "  Configuration file '" << parmFile;
-      found = FileSystem::FileOrFolderExists( parmFile );
-      if ( found )
-      {
-        cout << "':" << endl;
-      }
-      else
-      {
-        cout << "' not found!" << endl;
-      }
-    }
-    else
-    {
-      cout << "  Environment variable SECONDO_CONFIG not defined." << endl;
-    }
-  }
-
-  if ( !found ) // try current directory
-  {
-    cout << "Searching current directory for configuration file ..." << endl;
-    string cwd = FileSystem::GetCurrentFolder();
-    FileSystem::AppendSlash( cwd );
-    parmFile = cwd + "SecondoConfig.ini";
-    cout << "  Configuration file '" << parmFile;
-    found = FileSystem::FileOrFolderExists( parmFile );
-    if ( found )
-    {
-      cout << "':" << endl;
-    }
-    else
-    {
-      cout << "' not found!" << endl;
-    }
-  }
-
-  if ( !found ) // still no config file defined! 
-  {
-    cout << "Error: No configuration file specified." << endl;
-    return (false);
-  }
 
   // initialize runtime flags
   InitRTFlags(parmFile);
 
   string value, foundValue;
-  if ( SmiProfile::GetParameter( "Environment", "SecondoHome", "", parmFile ) == "")
+  if ( SmiProfile::GetParameter( "Environment", 
+                                 "SecondoHome", "", parmFile ) == "" )
   {
     cout << "Error: Secondo home directory not specified." << endl;
   }
@@ -246,8 +186,6 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   {
     ok = true;
   }
-
-
 
   if ( ok )
   {
@@ -260,7 +198,8 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
        
     } else { // Transactions and logging are used
     
-       mode = (multiUser) ? SmiEnvironment::MultiUser : SmiEnvironment::SingleUser;
+       mode = (multiUser) ? SmiEnvironment::MultiUser 
+                          : SmiEnvironment::SingleUser;
     }                   
     
     if ( SmiEnvironment::StartUp( mode, parmFile, cout ) )
@@ -345,7 +284,8 @@ SecondoInterface::Terminate()
     }    
     if ( !SecondoSystem::ShutDown() )
     {
-      cmsg.error() << bullet << "Error: SecondoSytem::Shutdown() failed." << endl;
+      cmsg.error() << bullet << "Error: SecondoSytem::Shutdown() failed." 
+                   << endl;
       cmsg.send();
     }
     if ( ss != 0 )
@@ -358,7 +298,8 @@ SecondoInterface::Terminate()
     {
       string errMsg;
       SmiEnvironment::GetLastErrorCode( errMsg );
-      cmsg.error() << bullet << "Error: SmiEnvironment::ShutDown() failed." << endl;
+      cmsg.error() << bullet << "Error: SmiEnvironment::ShutDown() failed." 
+                   << endl;
       cmsg.error() << bullet << "Error: " << errMsg << endl;
       cmsg.send();
     }
@@ -370,7 +311,8 @@ SecondoInterface::Terminate()
   }
   else
   {
-    cmsg.error() << bullet << "Error: Secondo interface already terminated." << endl;
+    cmsg.error() << bullet << "Error: Secondo interface already terminated." 
+                 << endl;
   }
   cmsg.info() << endl;
   cmsg.send();
@@ -393,7 +335,7 @@ SecondoInterface::Secondo( const string& commandText,
                            int& errorCode,
                            int& errorPos,
                            string& errorMessage,
-                           const string& resultFileName /* = "SecondoResult" */ )
+                           const string& resultFileName /*="SecondoResult"*/ )
 {
 /*
 
@@ -413,9 +355,9 @@ Messages send to ~cerr~ or ~cout~ should be avoided, since they can not be
 transferred to the client. If necessary please use the ~cmsg~ object explained
 in the file "include/LogMsg.h"
 
-Please create new functions for implementation of new commands, since this function
-conatins already many lines of code. Some commands have been moved to separate functions
-which should be named Command\_<name>.
+Please create new functions for implementation of new commands, since this
+function conatins already many lines of code. Some commands have been moved to
+separate functions which should be named Command\_<name>.
  
 
 */
@@ -514,7 +456,7 @@ which should be named Command\_<name>.
 
   // RUN COMMAND !!!
 
-  NList nlist(nl, list);
+  NList nlist(list);
 
   // local references of important objects
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
@@ -531,7 +473,7 @@ which should be named Command\_<name>.
   if ( length > 1 )
   {
     first = nl->First( list );
-    NList nfirst(nl, first);
+    NList nfirst(first);
 
     // --- Transaction handling
 
@@ -629,7 +571,8 @@ which should be named Command\_<name>.
           dbName = nl->SymbolValue( nl->Third( list ) );
           if ( !sys.DestroyDatabase( dbName ) )
           {
-            errorCode = ERR_IDENT_UNKNOWN_DB_NAME;  // identifier not a known database name
+            // identifier not a known database name
+            errorCode = ERR_IDENT_UNKNOWN_DB_NAME; 
           }
         }
       }
@@ -646,11 +589,13 @@ which should be named Command\_<name>.
           dbName = nl->SymbolValue( nl->Third( list ) );
           if ( !sys.OpenDatabase( dbName ) )
           {
-            errorCode = ERR_IDENT_UNKNOWN_DB_NAME;  // identifier not a known database name
+           // identifier not a known database name
+            errorCode = ERR_IDENT_UNKNOWN_DB_NAME; 
           } 
           else if ( !derivedObjPtr )
           {
-            derivedObjPtr = new DerivedObj(); // create new instance if necessary
+            // create new instance if necessary
+            derivedObjPtr = new DerivedObj();
           }
         }
       }
@@ -689,7 +634,8 @@ which should be named Command\_<name>.
 
           if ( !sys.SaveDatabase( expandVar(trim(filename)), *derivedObjPtr ) )
           {
-            errorCode = ERR_PROBLEM_IN_WRITING_TO_FILE;  // Problem in writing to file
+            // Problem in writing to file
+            errorCode = ERR_PROBLEM_IN_WRITING_TO_FILE; 
           }
           FinishCommand( errorCode );
         }
@@ -708,7 +654,9 @@ which should be named Command\_<name>.
         {
           dbName = nlist.third().str();
           filename = nlist.fifth().str();
-          errorCode = sys.RestoreDatabase( dbName, expandVar(trim(filename)), errorInfo );          
+          errorCode = sys.RestoreDatabase( dbName, 
+                                           expandVar(trim(filename)), 
+                                           errorInfo                  );
         }
 
         switch ( errorCode ) // error handling
@@ -779,14 +727,16 @@ which should be named Command\_<name>.
       {
         if ( !sys.IsDatabaseObject( objectname ) )
         {
-          errorCode = ERR_IDENT_UNKNOWN_DB_OBJECT; // object is not known in the database
+          // object is not known in the database
+          errorCode = ERR_IDENT_UNKNOWN_DB_OBJECT;
         }
         else
         {
           StartCommand();
           if ( !sys.SaveObject( objectname, filename ) )
           {
-            errorCode = ERR_PROBLEM_IN_WRITING_TO_FILE;  // Problem in writing to file
+            // Problem in writing to file
+            errorCode = ERR_PROBLEM_IN_WRITING_TO_FILE; 
           }
           FinishCommand( errorCode );
         }
@@ -812,26 +762,32 @@ which should be named Command\_<name>.
 
         if ( sys.IsDatabaseObject( objName ) )
         {
-          errorCode = ERR_IDENT_ALREADY_KNOWN_IN_DB; // object is already known in the database
+          // object is already known in the database
+          errorCode = ERR_IDENT_ALREADY_KNOWN_IN_DB;
         }
         else
         {
           message = sys.RestoreObjectFromFile( objName, filename, errorInfo );
-          switch (message) // the command above should return these values directly!
+          // the command above should return these values directly!
+          switch (message)
           {
             case 0:
               break;
             case 1:
-              errorCode = ERR_OBJ_NAME_IN_FILE_NEQ_IDENT;  // object name in file different from identifier
+              // object name in file different from identifier
+              errorCode = ERR_OBJ_NAME_IN_FILE_NEQ_IDENT; 
               break;
             case 2:
-              errorCode = ERR_PROBLEM_IN_READING_FILE;  // problem in reading the file
+              // problem in reading the file
+              errorCode = ERR_PROBLEM_IN_READING_FILE;
               break;
             case 3:
-              errorCode = ERR_IN_LIST_STRUCTURE_IN_FILE;  // error in list structure in file
+              // error in list structure in file
+              errorCode = ERR_IN_LIST_STRUCTURE_IN_FILE; 
               break;
             case 4:
-              errorCode = ERR_IN_DEFINITIONS_FILE;  // error in object definition in file
+              // error in object definition in file
+              errorCode = ERR_IN_DEFINITIONS_FILE;  
               resultList = errorList;
               break;
             default:
@@ -876,21 +832,25 @@ which should be named Command\_<name>.
                 && (length == 3) 
                 &&  nl->IsEqual( nl->Third( list ), "constructors" ) )
       {
-        resultList = nl->TwoElemList( nl->SymbolAtom("inquiry"),
-                                      nl->TwoElemList( nl->SymbolAtom("constructors"),
-                                                       ctlg.ListTypeConstructors() ));
+        resultList = nl->TwoElemList( 
+                           nl->SymbolAtom("inquiry"),
+                           nl->TwoElemList( nl->SymbolAtom("constructors"),
+                                            ctlg.ListTypeConstructors() ));
       }
       else if ( nl->IsEqual( nl->Second(list), "operators" ) )
       {
-        resultList = nl->TwoElemList( nl->SymbolAtom("inquiry"),
-                                      nl->TwoElemList( nl->SymbolAtom("operators"),
-                                                       ctlg.ListOperators() ));
+        resultList = nl->TwoElemList( 
+                           nl->SymbolAtom("inquiry"),
+                           nl->TwoElemList( nl->SymbolAtom("operators"),
+                                            ctlg.ListOperators() ));
       }
       else if ( nl->IsEqual( nl->Second( list ), "databases" ) )
       {
-        resultList = nl->TwoElemList( nl->SymbolAtom("inquiry"),
-                                      nl->TwoElemList( nl->SymbolAtom("databases"),
-                                      sys.ListDatabaseNames() ));
+        assert(errorCode==0);       
+        resultList = nl->TwoElemList( 
+                           nl->SymbolAtom("inquiry"),
+                           nl->TwoElemList( nl->SymbolAtom("databases"),
+                                            sys.ListDatabaseNames() ));
       }
       else if ( nl->IsEqual( nl->Second( list ), "types") )
       {
@@ -994,7 +954,8 @@ which should be named Command\_<name>.
           }
           else if ( message == 2 )
           {
-            errorCode = ERR_IDENT_UNKNOWN_TYPE;   // identifier not a known type name
+            // identifier not a known type name
+            errorCode = ERR_IDENT_UNKNOWN_TYPE;   
           }
           FinishCommand( errorCode );
         }
@@ -1025,11 +986,13 @@ which should be named Command\_<name>.
         {
            if( !ctlg.DeleteObject( objName ) )
            {
-             errorCode = ERR_IDENT_UNKNOWN_OBJ;   // identifier not a known object name          
+             // identifier not a known object name      
+             errorCode = ERR_IDENT_UNKNOWN_OBJ;
            } 
            else 
            {
-             derivedObjPtr->deleteObj( objName ); // delete from derived objects table if necessary
+             // delete from derived objects table if necessary
+             derivedObjPtr->deleteObj( objName ); 
            }
          }
          FinishCommand( errorCode );
@@ -1064,11 +1027,14 @@ which should be named Command\_<name>.
       {
          if( !ctlg.KillObject( objName ) )
          {
-           errorCode = ERR_IDENT_UNKNOWN_OBJ;   // identifier not a known object name
+
+           // identifier not a known object name
+           errorCode = ERR_IDENT_UNKNOWN_OBJ;   
          }
          else
          {
-           derivedObjPtr->deleteObj( objName ); // delete from derived objects table if necessary
+           // delete from derived objects table if necessary
+           derivedObjPtr->deleteObj( objName ); 
          }
        }
        FinishCommand( errorCode );
@@ -1196,7 +1162,8 @@ which should be named Command\_<name>.
     cmsg.send();
  } 
 
- if ( errorCode != 0) { // translate error code into text
+ if ( errorCode != 0) { 
+   // translate error code into text
    // check if the queryprocessor reports errors
    string repMsg("");
    ErrorReporter::GetErrorMessage(repMsg);
@@ -1459,7 +1426,8 @@ SecondoInterface::Command_Let( const ListExpr list  )
           {
             if ( nl.IsAtom( valueExpr ) )  // function object
             {
-               ListExpr functionList = ctlg.GetObjectValue( nl.SymbolValue( valueExpr ) );
+               ListExpr functionList = ctlg.GetObjectValue( 
+                                              nl.SymbolValue( valueExpr ) );
                ctlg.UpdateObject( objName, SetWord( functionList ) );
             }
             else
@@ -1570,7 +1538,8 @@ SecondoInterface::Command_Update( const ListExpr list )
           {
             if ( nl.IsAtom( valueExpr ) )  // function object
             {
-              ListExpr functionList = ctlg.GetObjectValue( nl.SymbolValue( valueExpr ) );
+              ListExpr functionList = ctlg.GetObjectValue( 
+                                             nl.SymbolValue( valueExpr ) );
               ctlg.UpdateObject( objName, SetWord( functionList ) );
             }
             else
@@ -1751,7 +1720,8 @@ SecondoInterface::FinishCommand( SI_Error& errorCode )
     }
     else
     {
-      cerr << "Error: " << GetErrorMessage(errorCode) << " - aborting transaction!" << endl;
+      cerr << "Error: " << GetErrorMessage(errorCode) 
+           << " - aborting transaction!" << endl;
       cerr.flush();
       if ( !SecondoSystem::AbortTransaction() )
       {
