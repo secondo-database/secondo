@@ -32,12 +32,13 @@ August 2005, M. Spiekermann. Initial version.
 
 #include "NestedList.h"
 #include "LogMsg.h"
+#include "NList.h"
 
 
 /*
 
-The class ~NList~ can be used as replacement for the syntactical noisy interface
-defined in NestedList.h. 
+The class ~NList~ can be used as replacement for the syntactical noisy
+interface defined in NestedList.h. 
 
 Currently, not all methods of the ~old~ interface are supported.  It simplifes
 the check of a list structure, e.g.  n.isSymbol() will return true, if n is a
@@ -45,8 +46,38 @@ symbol.
 
 */
 
-class NListErr 
-{
+extern NestedList* nl;
+
+/*
+Some string constants for symbols reserved as keaywords in the
+queryprocessor or often used types.
+   
+*/   
+
+struct Symbols {
+
+    const string rel;
+    const string map;
+    const string tuple;
+    const string ptuple;
+    const string stream;
+    const string typeerror;
+    const string integer;
+   
+    Symbols() :
+      rel("rel"),
+      map("map"),
+      tuple("tuple"),
+      ptuple("ptuple"),
+      stream("stream"),
+      typeerror("typeerror"),
+      integer("int")
+    {} 
+};  
+
+
+class NListErr {
+
   public:
   NListErr(const string& Msg) : msg(Msg) {}
   
@@ -54,73 +85,118 @@ class NListErr
 };
 
 
-#define CHECK(n) {if (n>0 && length()<n) { throw NListErr("Element "#n" not in list!"); }}
+#define CHECK(n) {if (n>0 && length()<n) { 
+        throw NListErr("Element "#n" not in list!"); } }
 
 class NList {
 
-  NestedList *nl;
   ListExpr l;
   Cardinal len;
   inline bool isNodeType(const int n, const NodeType t) const
   {
     if ( !n ) 
-      return ( nl->IsAtom(l) && (nl->AtomType(l) == t) );
+      return ( /*nl->IsAtom(l) &&*/ (nl->AtomType(l) == t) );
 
     ListExpr list = nl->Nth(n,l);
-    return ( nl->IsAtom(list) && (nl->AtomType(list) == t) ); 
+    return ( /*nl->IsAtom(list) &&*/ (nl->AtomType(list) == t) ); 
   }
 
  public:
-  NList(NestedList *nl, const ListExpr list) : nl( nl ), l(list), len(0) { /*cout << "Nlist: nl = " << (void*)nl << endl;*/ }
-  NList(NestedList *nl) : nl(nl), l(nl->TheEmptyList()), len(0) { /*cout << "Nlist: nl = " << (void*)nl << endl;*/ }
-  NList(const NList& rhs) : nl(rhs.nl), l(rhs.l), len(rhs.len) { /*cout << "Nlist(const NList& rhs)  << endl;*/ }
+  NList(const ListExpr list) : l(list), len(nl->ListLength(list)) { 
+    /*cout << "Nlist: nl = " << (void*)nl << endl;*/ 
+  }
+  NList() : l(nl->TheEmptyList()), len(0) { 
+    /*cout << "Nlist: nl = " << (void*)nl << endl;*/ 
+  }
+  NList(const NList& rhs) : l(rhs.l), len(rhs.len) { 
+    /*cout << "Nlist(const NList& rhs)  << endl;*/ 
+  }
+  NList(const NList& e1, const NList& e2) : 
+    l( nl->TwoElemList(e1.l, e2.l) ), 
+    len(2)
+  {}
+  NList(const string& s) : l(nl->SymbolAtom(s)), len(1)
+  {} 
+  
   ~NList() {}
   inline bool isEmpty() const { return nl->IsEmpty(l); }
 
   inline bool isEqual(const string& s) const { return nl->IsEqual(l, s); }
 
-  inline bool isAtom() const                 { return nl->IsAtom(l); }
-  inline bool isSymbol(const Cardinal n = 0) { CHECK(n) return isNodeType(n, SymbolType); }
-  inline bool isSymbol(const string& s)      { return isNodeType(0, SymbolType) && (s == nl->SymbolValue(l)); }
-  inline bool isString(const Cardinal n = 0) { CHECK(n) return isNodeType(n, StringType); }
-  inline bool isText(const Cardinal n = 0)   { CHECK(n) return isNodeType(n, TextType); }
-  inline bool isNoAtom(const Cardinal n = 0) { CHECK(n) return isNodeType(n, NoAtom); }
-  inline bool isInt(const Cardinal n  = 0)   { CHECK(n) return isNodeType(n, IntType); }
-  inline bool isReal(const Cardinal n = 0)   { CHECK(n) return isNodeType(n, RealType); }
-  inline bool isBool(const Cardinal n = 0)   { CHECK(n) return isNodeType(n, BoolType); }
+  inline bool isAtom()                       const { return nl->IsAtom(l); }
+  inline bool isSymbol(const Cardinal n = 0) const { 
+    CHECK(n) return isNodeType(n, SymbolType); 
+  }
+  inline bool isSymbol(const string& s)      const { 
+    return isNodeType(0, SymbolType) && (s == nl->SymbolValue(l)); 
+  }
+  inline bool isString(const Cardinal n = 0) const { 
+    CHECK(n) return isNodeType(n, StringType); 
+  }
+  inline bool isText(const Cardinal n = 0)   const { 
+    CHECK(n) return isNodeType(n, TextType); 
+  }
+  inline bool isNoAtom(const Cardinal n = 0) const { 
+    CHECK(n) return isNodeType(n, NoAtom); 
+  }
+  inline bool isList(const Cardinal n = 0)   const { 
+    CHECK(n) return isNodeType(n, NoAtom); 
+  }
+  inline bool isInt(const Cardinal n  = 0)   const { 
+    CHECK(n) return isNodeType(n, IntType); 
+  }
+  inline bool isReal(const Cardinal n = 0)   const { 
+    CHECK(n) return isNodeType(n, RealType); 
+  }
+  inline bool isBool(const Cardinal n = 0)   const { 
+    CHECK(n) return isNodeType(n, BoolType); 
+  }
   
-  inline bool hasLength(const Cardinal c)  { return (length() == c);  }
+  inline bool hasLength(const Cardinal c) const { return (length() == c);  }
 
-  inline NList first() { return elem(1); }
-  inline NList second(){ return elem(2); }
-  inline NList third() { return elem(3); }
-  inline NList fourth(){ return elem(4); }
-  inline NList fifth() { return elem(5); }
-  inline NList sixth() { return elem(6); }
+  inline NList first()  const { return elem(1); }
+  inline NList second() const { return elem(2); }
+  inline NList third()  const { return elem(3); }
+  inline NList fourth() const { return elem(4); }
+  inline NList fifth()  const { return elem(5); }
+  inline NList sixth()  const { return elem(6); }
 
-  inline NList elem(Cardinal n)
+  inline NList elem(Cardinal n) const
   {
-    if (length() < n) {
+    if ( (length() < n)   ) {
       stringstream s; 
       s << "Out of range exception in nested list. "
         << "Element " << n << " requested, but "
         << "list has length " << len << ".";
       throw NListErr(s.str());
     } 
-    return NList(nl, nl->Nth(n,l)); 
-  }
+    
+    if ( (n == 1) && isAtom() ) {
+      stringstream s; 
+      s << "Out of range exception in nested list. "
+        << "Element " << n << " requested, but "
+        << "list is an atom.";
+      throw NListErr(s.str());
+    }
 
-//  inline static ListExpr typeError(const string& msg)
-//  { 
-//    ErrorReporter::ReportError(msg); 
-//    return nl->TypeError(); 
-//  }
+    return NList(nl->Nth(n,l)); 
+  }
+  
+  inline static ListExpr typeError(const string& msg)
+  { 
+    ErrorReporter::ReportError(msg); 
+    return nl->TypeError(); 
+  }
 
   // for interchange with the old NestedList interface
   inline ListExpr listExpr() const { return l; }
  
-  inline bool hasStringValue() { return (isString() || isText() || isSymbol()); }
-  inline string str() // retrieve a string value 
+  inline bool hasStringValue() const 
+  { 
+    return (isString() || isText() || isSymbol()); 
+  }
+
+  inline string str() const // retrieve a string value 
   {
     static string result = "";
 
@@ -142,8 +218,8 @@ class NList {
   inline string convertToString() const { return nl->ToString(l); } 
   
   inline bool operator==(const NList& rhs) const { return nl->Equal(l,rhs.l); }
-
-  inline bool operator==(const string& rhs)
+  
+  inline bool operator==(const string& rhs) const
   {
     if( !hasStringValue() ) 
     {
@@ -155,15 +231,9 @@ class NList {
     }
   }
  
-
-  inline Cardinal length()
+  inline Cardinal length() const
   {
-    if ( len ) {
-      return len;
-    } else {
-      len = nl->ListLength(l);
-      return len;
-    } 
+    return len;
   }
 
 }; 

@@ -58,7 +58,7 @@ using namespace std;
 #endif
 
 #ifndef _POSIX_OPEN_MAX
-#define _POSIX_OPEN_MAX	256
+#define _POSIX_OPEN_MAX 256
 #endif
 
 // global instance of a Message object. All messages should be reported
@@ -83,18 +83,15 @@ Class constructors/destructors
 
 */
 
-Application::Application( int argc, const char** argv, const bool showLicense /* =true */ )
+Application::Application( int argc, const char** argv, 
+                          const bool showLicense /* =true */ )
 {
-  if ( showLicense ) {
-    cout << License::getStr() << endl;
-  }
-
   if ( appPointer )
   {
     cerr << "Fatal error: Only one *Application* instance allowed!" << endl;
     exit( -999 );
   }
-	
+
   string programName = argv[0];
   appPointer = this;
   argCount   = argc;
@@ -123,7 +120,7 @@ Application::Application( int argc, const char** argv, const bool showLicense /*
   {
     parent = INVALID_PID;
   }
-	
+
 #ifndef SECONDO_WIN32
   ownpid = getpid();
   char* pgmName = strdup(programName.c_str());
@@ -200,7 +197,8 @@ Application::Application( int argc, const char** argv, const bool showLicense /*
 
   HANDLE rshHandle;
   DWORD  rshId;
-  rshHandle = CreateThread( 0, 0, Application::RemoteSignalThread, (LPVOID) this, 0, &rshId );
+  rshHandle = CreateThread( 0, 0, Application::RemoteSignalThread, 
+                           (LPVOID) this, 0, &rshId                );
   if ( rshHandle != 0 )
   {
     ::CloseHandle( rshHandle );
@@ -251,7 +249,9 @@ Application::PrintStacktrace(void)
 
   
   Application* ap = Application::Instance();
-  string fullAppName = ap->GetApplicationPath() + "/" + ap->GetApplicationName();
+  string fullAppName = ap->GetApplicationPath() 
+                       + "/" + ap->GetApplicationName();
+
   string cmdStr = "addr2line -C auto -fse " + fullAppName + " "; 
   cout << " Result of  " << cmdStr << endl;
   string addressList = "";
@@ -296,7 +296,8 @@ Application::PrintStacktrace(void)
        
          if ( fgets(&line[0],1024,fp) ) { // file name
           string fname(line);
-          cout << " --> [ " << fname.substr(0, fname.length()-1) << " ]" << endl << endl;
+          cout << " --> [ " << fname.substr(0, fname.length()-1) 
+               << " ]" << endl << endl;
          } else {
           break;
          }
@@ -317,14 +318,6 @@ This is the default signal handler for all signals that would
 abort the process if not handled otherwise.
 
 */
-  Counter::reportValues();
-  cout << endl << " ********************************************";
-  cout << endl << " **";
-  cout << endl << " ** Signal #" << signalStr[sig] << " caught! Printing Stack ...";
-  cout << endl << " **";
-  cout << endl << " ********************************************" << endl;
-  PrintStacktrace();
-  cout << endl << " *********** End Stack **********************" << endl;
   if ( Application::appPointer->abortMode )
   {
     if ( Application::appPointer->AbortOnSignal( sig ) )
@@ -335,6 +328,15 @@ abort the process if not handled otherwise.
     }
     else
     {
+      Counter::reportValues();
+      cout << endl << " ********************************************";
+      cout << endl << " **";
+      cout << endl << " ** Signal #" << signalStr[sig] 
+           << " caught! Printing Stack ...";
+      cout << endl << " **";
+      cout << endl << " ********************************************" << endl;
+      PrintStacktrace();
+      cout << endl << " *********** End Stack **********************" << endl;
       Application::appPointer->abortFlag = true;
       Application::appPointer->lastSignal = sig;
       signal( sig, Application::AbortOnSignalHandler );

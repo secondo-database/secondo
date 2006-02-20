@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph    [23]    table3columns:  [\begin{quote}\begin{tabular}{lll}]     [\end{tabular}\end{quote}]
 //paragraph    [24]    table4columns:  [\begin{quote}\begin{tabular}{llll}]    [\end{tabular}\end{quote}]
 //characters    [1]    verbatim:       [\verb@]                                [@]
-//characters	[2]    formula:       [$]                                     [$]
+//characters    [2]    formula:       [$]                                     [$]
 //characters    [3]    capital:    [\textsc{]    [}]
 //characters    [4]    teletype:   [\texttt{]    [}]
 //[--------]    [\hline]
@@ -112,7 +112,7 @@ that the structure of the list is determined only by parentheses and blanks.
 The second, perhaps more implementation-oriented, view of a nested list is
 that it is a binary tree. Atoms are the leaves of this tree. 
 
-		Figure 1: Nested List [SNLFigure4.eps]
+                Figure 1: Nested List [SNLFigure4.eps]
 
 The nested list module described here offers a type ~ListExpr~ to represent
 such structures. A value of this type can be viewed as a pointer which can
@@ -192,11 +192,11 @@ and the following operations:
                                & EndOfText                    \\
                                & Text2String                  \\
 
-[21]	Initialization and Analysis \\
-	[--------]
-	initializeListMemory        \\
-	ReportTableSizes           \\
-			       
+[21]    Initialization and Analysis \\
+        [--------]
+        initializeListMemory        \\
+        ReportTableSizes           \\
+                               
 The operations are defined below. 
 
 1.3 Includes, Constants and Types
@@ -228,6 +228,9 @@ works with both implementaions.
 #define CTABLE_PERSISTENT
 #endif
 #endif
+
+#include <errno.h>
+#include <float.h>
 
 #include "CTable.h"
 #include "SecondoSMI.h"
@@ -376,7 +379,7 @@ struct NodeRecord
     struct                  // StringType, SymbolType
     {
       union {        
-	StringsEntry first;
+        StringsEntry first;
         char field[STRING_INTERNAL_SIZE];
       };
     } s;
@@ -404,6 +407,37 @@ text atom.
 
 */
 
+
+struct Tolerance 
+{
+  double value;
+  bool isRelative;
+  Tolerance(double d = 0.0, bool b = false) : value(d), isRelative(b) {}
+  inline bool approxEqual(const double& d1, const double& d2) const
+  {
+    double err=value;
+    if (isRelative)
+    {
+      errno = 0;
+      err = (value * d1) / 100.0;
+    }
+    if (errno == ERANGE)
+    {
+      err = 2.0 * DBL_MIN;
+    }  
+    cout << "d1: " << d1 << endl;
+    cout << "d2: " << d2 << endl;
+    cout << "err: " << err << endl;
+    return abs(d2-d1) < err; 
+  }  
+};      
+
+/*
+Sometimes float values need not to be equal but approximately equal. The type
+above can be used to specify a tolerance 
+*/
+
+
 /*
 1.4 Class "NestedList"[2]
 
@@ -413,10 +447,10 @@ class NestedList
 {
  public:
   NestedList( SmiRecordFile* ptr2RecFile = 0,
-	      Cardinal NodeEntries = 2*INITIAL_ENTRIES,
-	      Cardinal ConstEntries = INITIAL_ENTRIES, 
-	      Cardinal StringEntries = INITIAL_ENTRIES,
-	      Cardinal TextEntries = INITIAL_ENTRIES / 10 );
+              Cardinal NodeEntries = 2*INITIAL_ENTRIES,
+              Cardinal ConstEntries = INITIAL_ENTRIES, 
+              Cardinal StringEntries = INITIAL_ENTRIES,
+              Cardinal TextEntries = INITIAL_ENTRIES / 10 );
 /*
 Creates an instance of a nested list container. The compact tables which
 store the nodes of nested lists reserve initially memory for holding at
@@ -548,7 +582,17 @@ Reads a list expression ~expr~ and counts the number ~length~ of
 subexpressions.
 
 */
-  bool Equal( const ListExpr list1, const ListExpr list2 );
+  bool Equal( const ListExpr list1, const ListExpr list2 )
+  {
+    static Tolerance t;
+    return EqualTemp<true>(list1, list2, t);
+  }
+  bool Equal( const ListExpr list1, const ListExpr list2, const Tolerance& t )
+  {
+    return EqualTemp<false>(list1, list2, t);
+  }
+
+  
 /*
 Tests for deep equality of two nested lists. Returns "true"[4] if ~list1~ is
 equivalent to ~list2~, otherwise "false"[4].
@@ -644,8 +688,8 @@ A wrapper for ~WriteToString~ which directly returns a string object.
 
 */
 
-  void WriteListExpr( ListExpr list, ostream& ostr );
-  void WriteListExpr( ListExpr list );
+  void WriteListExpr( const ListExpr list, ostream& ostr = cout, const int offset=4 );
+  //void WriteListExpr( ListExpr list );
 
 /*
 Write ~list~ indented by level to standard output.
@@ -868,7 +912,7 @@ Transforms the text atom into C++ string object
        ExtractAtoms( Rest(list), atomVec );
     }
   }
-	
+        
 /*
 
 ~AtomType~ determines the type of list expression ~atom~ according to the enumeration
@@ -907,10 +951,10 @@ returns the memory used for some of the structs defined above.
 */
 
   void initializeListMemory(
-			     Cardinal NodeEntries = 2*INITIAL_ENTRIES,
-		             Cardinal ConstEntries = INITIAL_ENTRIES,
-		             Cardinal StringEntries = INITIAL_ENTRIES,
-			     Cardinal TextEntries = INITIAL_ENTRIES / 10 );
+                             Cardinal NodeEntries = 2*INITIAL_ENTRIES,
+                             Cardinal ConstEntries = INITIAL_ENTRIES,
+                             Cardinal StringEntries = INITIAL_ENTRIES,
+                             Cardinal TextEntries = INITIAL_ENTRIES / 10 );
 
 /*
 Creates new ~CTable~ objects with the given size and deletes the old ones.
@@ -943,8 +987,11 @@ Copies a nested list from ~this~ instance to the target instance.
                        const Cardinal initialN,
                        const ListExpr list );
 
-  bool WriteList( ListExpr list, const int level,
-                  const bool afterList, const bool toScreen );
+  bool WriteList( const ListExpr list, 
+                  const int level,
+                  const bool afterList, 
+                  const bool toScreen, 
+                  const int offset=4    );
 
   void WriteAtom( const ListExpr atom, bool toScreen );
 
@@ -952,6 +999,67 @@ Copies a nested list from ~this~ instance to the target instance.
 
  private:
  
+  template<bool EXACT>
+  bool EqualTemp( const ListExpr list1, const ListExpr list2, const Tolerance& t)
+  {
+   //cout << "EqualTemp: " << EXACT << endl;
+  if ( IsEmpty( list1 ) && IsEmpty( list2 ) )
+  {
+    return true;
+  }
+  else if ( IsEmpty( list1 ) || IsEmpty( list2 ) )
+  {
+    return false;
+  }
+  else if ( IsAtom( list1 ) && IsAtom( list2 ) )
+  {
+    if ( AtomType( list1 ) == AtomType( list2 ) )
+    {
+      switch ( AtomType( list1 ) )
+      {       
+        case IntType: 
+          return (IntValue( list1 ) == IntValue( list2 ));
+        case BoolType:
+          return (BoolValue( list1 ) == BoolValue( list2 ));
+        case RealType: 
+        {
+          if (EXACT) 
+          {             
+            return (RealValue( list1 ) == RealValue( list2 ));
+          }
+          else
+          {
+            return t.approxEqual( RealValue( list1 ), RealValue( list2 ) ); 
+          }               
+        }  
+        case SymbolType:
+          return (SymbolValue( list1 ) == SymbolValue( list2 ));
+        case StringType:
+          return (StringValue( list1 ) == StringValue( list2 ));
+        case TextType:
+          return (ToString( list1 ) == ToString( list2));
+        default:
+          return false;
+      }   
+    }
+    else
+    {
+      return false;
+    }
+  }
+  else if ( !IsAtom( list1 ) && !IsAtom( list2 ) )
+  {
+    return (EqualTemp<EXACT>( First( list1 ), First( list2 ), t ) &&
+            EqualTemp<EXACT>( Rest( list1 ), Rest( list2 ), t ));
+  }
+  else
+  {
+    return false;
+  }
+}
+
+
+  
   unsigned int UsedBytesOfTextFragment(const TextRecord& fragment);
  
   // Common code for symbols and strings

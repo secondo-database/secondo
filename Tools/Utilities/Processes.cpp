@@ -38,7 +38,7 @@ using namespace std;
 #include "Processes.h"
 
 #ifndef _POSIX_OPEN_MAX
-#define _POSIX_OPEN_MAX	256
+#define _POSIX_OPEN_MAX 256
 #endif
 
 #ifndef WAIT_ANY
@@ -47,8 +47,9 @@ using namespace std;
 
 ProcessFactory* ProcessFactory::instance = 0;
 
-ProcessFactory::ProcessFactory( const bool reuseTerminated /* = true */,
-                                const int maxChildProcesses /* = DEFAULT_MAX_PROCESSES */ )
+ProcessFactory::ProcessFactory( 
+  const bool reuseTerminated /* = true */,
+  const int maxChildProcesses /* = DEFAULT_MAX_PROCESSES */ )
   : processList( maxChildProcesses ), maxChilds( maxChildProcesses ),
     reuseTerminatedEntries( reuseTerminated )
 {
@@ -65,8 +66,9 @@ ProcessFactory::~ProcessFactory()
 }
 
 bool
-ProcessFactory::StartUp( const bool reuseTerminated /* = true */,
-                         const int maxChildProcesses /* = DEFAULT_MAX_PROCESSES */ )
+ProcessFactory::StartUp( 
+  const bool reuseTerminated /* = true */,
+  const int maxChildProcesses /*=DEFAULT_MAX_PROCESSES*/ )
 {
   int maxChild = (maxChildProcesses > 0) ? maxChildProcesses : 1;
   if ( ProcessFactory::instance == 0 )
@@ -183,6 +185,10 @@ ProcessFactory::SpawnProcess( const string& programpath,
   {
     processDir = instance->processDirectory.c_str();
   }
+  cout << "Starting Process:" << endl
+       << "Program: " << pathbuf << endl;
+       << "Args: " << argsbuf << endl;
+
   success = CreateProcess( pathbuf.c_str(),
                            argsbuf,
                            NULL,        // default process security attr
@@ -243,6 +249,11 @@ ProcessFactory::SpawnProcess( const string& programpath,
   localArgs.copy( argsbuf, localArgs.length() );
   argsbuf[localArgs.length()] = 0;
 
+
+  cout << "Starting Process:" << endl
+       << "Program: " << pathbuf << endl
+       << "Args: " << argsbuf << endl;
+  
   // --- Compute "argc"
 
   int argc = 1;
@@ -726,7 +737,8 @@ Process::WaitForTermination()
   if ( reserved && !terminated )
   {
 #ifdef SECONDO_WIN32
-    ok = (::WaitForSingleObject( processInfo.hProcess, INFINITE ) == WAIT_OBJECT_0);
+    ok = ( ::WaitForSingleObject( processInfo.hProcess, INFINITE ) 
+           == WAIT_OBJECT_0 );
 //
 //  - exit status besorgen
 //  - process handle schliessen
@@ -756,7 +768,8 @@ Process::SendSignal( const ProcessSignal signo /* = eSIGTERM */ )
 #ifdef SECONDO_WIN32
     ostringstream os;
     os << "SECONDO_RSH_" << processInfo.dwProcessId;
-    Socket* rshClient = Socket::Connect( os.str(), "", Socket::SockLocalDomain );
+    Socket* rshClient = Socket::Connect( os.str(), "", 
+                                         Socket::SockLocalDomain );
     if ( rshClient->IsOk() )
     {
       iostream& ss = rshClient->GetSocketStream();

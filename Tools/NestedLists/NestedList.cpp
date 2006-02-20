@@ -143,8 +143,9 @@ you comment out the line below.
 //#define COMPILE_DESTROY
 
 
-NestedList::NestedList( SmiRecordFile* ptr2RecFile, Cardinal NodeEntries, Cardinal ConstEntries,
-		        Cardinal StringEntries, Cardinal TextEntries )
+NestedList::NestedList( SmiRecordFile* ptr2RecFile, 
+                        Cardinal NodeEntries, Cardinal ConstEntries,
+                        Cardinal StringEntries, Cardinal TextEntries )
 {
   assert( sizeof(float) == 4); 
   // How can we convert a N byte floating point representation 
@@ -169,18 +170,18 @@ NestedList::DeleteListMemory()
    if (stringTable && nodeTable && textTable) {
 
      delete stringTable; 
-		 stringTable = 0;
+                 stringTable = 0;
      delete nodeTable; 
-		 nodeTable = 0;
+                 nodeTable = 0;
      delete textTable; 
-		 textTable = 0;
+                 textTable = 0;
    }
 }
 
 
 void
 NestedList::initializeListMemory( Cardinal NodeEntries, Cardinal ConstEntries,
-		                  Cardinal StringEntries, Cardinal TextEntries )
+                                  Cardinal StringEntries, Cardinal TextEntries )
 {
    //cout << endl << "### NestedList::initializeListMemory" << endl;
    DeleteListMemory();
@@ -229,7 +230,8 @@ NestedList::PrintTableTexts()
   Cardinal i, numEntries;
 
   numEntries = textTable->NoEntries();
-  cout << "/////////////////////////////////////////////////////////////" << endl;
+  cout << "/////////////////////////////////////////////////////////////"
+       << endl;
   for ( i = 1; i <= numEntries; i++ )
   {
     if ( textTable->IsValid( i ) )
@@ -240,7 +242,8 @@ NestedList::PrintTableTexts()
       cout << endl << "Next:  " << entry.next << endl;
     }
   }
-  cout << "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << endl;
+  cout << "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+       << endl;
 }
 
 /*
@@ -314,7 +317,7 @@ ListExpr
 NestedList::Append ( const ListExpr lastElem,
                      const ListExpr newSon )
 {
-	assert( EndOfList(lastElem) );
+        assert( EndOfList(lastElem) );
 
   NodeRecord lastElemNodeRec;
   (*nodeTable).Get(lastElem, lastElemNodeRec);
@@ -381,7 +384,8 @@ NestedList::Destroy ( const ListExpr list )
     if ( doDestroy )
     {
       stack<DestroyStackRecord*> nodeRecordStack;
-      nodeRecordStack.push( new DestroyStackRecord( (*nodeTable)[list], list ) );
+      nodeRecordStack.push( new DestroyStackRecord( 
+                                  (*nodeTable)[list], list ) );
 
       while( !nodeRecordStack.empty() )
       {
@@ -392,8 +396,13 @@ NestedList::Destroy ( const ListExpr list )
         {
           case NoAtom:
           {
-            nodeRecordStack.push( new DestroyStackRecord( (*nodeTable)[sr->nr.n.left], sr->nr.n.left ) );
-            nodeRecordStack.push( new DestroyStackRecord( (*nodeTable)[sr->nr.n.right], sr->nr.n.right ) );
+            nodeRecordStack.push( new DestroyStackRecord( 
+                                       (*nodeTable)[sr->nr.n.left], 
+                                       sr->nr.n.left )              );
+            
+            nodeRecordStack.push( new DestroyStackRecord( 
+                                        (*nodeTable)[sr->nr.n.right], 
+                                        sr->nr.n.right )              );
             nodeTable->Remove( sr->le );
             delete sr;
             break;
@@ -499,65 +508,6 @@ subexpressions.
   return (length);
 }
 
-bool
-NestedList::Equal( const ListExpr list1, const ListExpr list2 )
-{
-/*
-Test for deep equality of two nested lists
-
-*/
-  if ( IsEmpty( list1 ) && IsEmpty( list2 ) )
-  {
-    return (true);
-  }
-  else if ( IsEmpty( list1 ) || IsEmpty( list2 ) )
-  {
-    return (false);
-  }
-  else if ( IsAtom( list1 ) && IsAtom( list2 ) )
-  {
-    if ( AtomType( list1 ) == AtomType( list2 ) )
-    {
-      if ( AtomType( list1 ) == IntType )
-      {
-        return (IntValue( list1 ) == IntValue( list2 ));
-      }
-      else if ( AtomType( list1 ) == BoolType )
-      {
-        return (BoolValue( list1 ) == BoolValue( list2 ));
-      }
-      else if ( AtomType( list1 ) == RealType )
-      {
-        return (RealValue( list1 ) == RealValue( list2 ));
-      }
-      else if ( AtomType( list1 ) == SymbolType )
-      {
-        return (SymbolValue( list1 ) == SymbolValue( list2 ));
-      }
-      else if ( AtomType( list1 ) == StringType )
-      {
-        return (StringValue( list1 ) == StringValue( list2 ));
-      }
-      else
-      {
-        return (false);
-      }
-    }
-    else
-    {
-      return (false);
-    }
-  }
-  else if ( !IsAtom( list1 ) && !IsAtom( list2 ) )
-  {
-    return (Equal( First( list1 ), First( list2 ) ) &&
-            Equal( Rest( list1 ), Rest( list2 ) ));
-  }
-  else
-  {
-    return (false);
-  }
-}
 
 enum NodesStacked { None, Left, Right, Both };
 struct CopyStackRecord
@@ -606,14 +556,14 @@ NestedList::SophisticatedCopy(const ListExpr list, const NestedList* target)
       case BoolType:
       {
         //cout << "CONST ";
-	assert( sr->ns == None );
+        assert( sr->ns == None );
         ListExpr newconst = 0;
 
         // create a new constant and node records in the target list.
         Constant const1;
-	NodeRecord nodeRec3;
+        NodeRecord nodeRec3;
 
-	intTable->Get(sr->nr.a.index, const1);
+        intTable->Get(sr->nr.a.index, const1);
         newconst = target->intTable->Add( const1 );
         newnode = pnT_target->Add( sr->nr );
         pnT_target->Get(newnode, nodeRec3);
@@ -630,34 +580,34 @@ NestedList::SophisticatedCopy(const ListExpr list, const NestedList* target)
       case SymbolType:
       {
         //cout << "STR_SYM ";
-	assert( sr->ns == None );
+        assert( sr->ns == None );
         StringRecord sRec;
         NodeRecord nodeRec4;
 
-        ListExpr sCurrent = sr->nr.s.first;	
-	ListExpr newnode = pnT_target->EmptySlot();
+        ListExpr sCurrent = sr->nr.s.first;     
+        ListExpr newnode = pnT_target->EmptySlot();
         stringTable->Get(sCurrent, sRec);
         ListExpr newfirst = target->stringTable->Add(sRec);
 
         pnT_target->Get(newnode, nodeRec4);
         nodeRec4.s.first = newfirst;
-	nodeRec4.s.strLength = sr->nr.s.strLength;
-	pnT_target->Put(newnode, nodeRec4);
-		
-        Cardinal snext=0;				
+        nodeRec4.s.strLength = sr->nr.s.strLength;
+        pnT_target->Put(newnode, nodeRec4);
+                
+        Cardinal snext=0;                               
         while ( (snext = (*textTable)[sCurrent].next) != 0 )
         {
           StringRecord sRec1, sRec2;
 
           ListExpr newStr = psT_target->EmptySlot();
-	  stringTable->Get(snext, sRec1);
-	  sRec2 = sRec1;
+          stringTable->Get(snext, sRec1);
+          sRec2 = sRec1;
           sRec2.next = newStr;
           psT_target->Put(newStr, sRec2);
-	  
-	  sCurrent = snext;
-        }		
-		
+          
+          sCurrent = snext;
+        }               
+                
         delete sr;
         nodeRecordStack.pop();
         result = newnode;
@@ -687,7 +637,7 @@ NestedList::SophisticatedCopy(const ListExpr list, const NestedList* target)
 
           textTable->Get(tnext, tRec1);
           newtext = target->textTable->Add(tRec1);
-	  target->textTable->Get(newtext, tRec2);
+          target->textTable->Get(newtext, tRec2);
           tRec2.next = 0;
           tlast = nodeRec5.t.last;
           target->textTable->Get(tlast, tRec3);
@@ -713,26 +663,26 @@ NestedList::SophisticatedCopy(const ListExpr list, const NestedList* target)
         if( sr->ns == None )
         {
 
-  	  newnode = pnT_target->Add( sr->nr );
-  	  sr->le = newnode;
+          newnode = pnT_target->Add( sr->nr );
+          sr->le = newnode;
           if( sr->nr.n.left )
-	  {
-	    NodeRecord nodeRec6;
+          {
+            NodeRecord nodeRec6;
             //cout << "none.left ";
-  	    sr->ns = Left;
-	    nodeTable->Get(sr->nr.n.left, nodeRec6);
-   	    sr = new CopyStackRecord( nodeRec6 );
+            sr->ns = Left;
+            nodeTable->Get(sr->nr.n.left, nodeRec6);
+            sr = new CopyStackRecord( nodeRec6 );
             nodeRecordStack.push( sr );
-	  }
-	  else if( sr->nr.n.right )
-	  {
-	    NodeRecord nodeRec6a;
+          }
+          else if( sr->nr.n.right )
+          {
+            NodeRecord nodeRec6a;
             //cout << "none.right ";
-  	    sr->ns = Right;
-	    nodeTable->Get(sr->nr.n.right, nodeRec6a);
-   	    sr = new CopyStackRecord( nodeRec6a );
+            sr->ns = Right;
+            nodeTable->Get(sr->nr.n.right, nodeRec6a);
+            sr = new CopyStackRecord( nodeRec6a );
             nodeRecordStack.push( sr );
-	  }
+          }
           else
           {
             //cout << "none.none ";
@@ -743,18 +693,18 @@ NestedList::SophisticatedCopy(const ListExpr list, const NestedList* target)
         }
         else if( sr->ns == Left )
         {
-	  NodeRecord nodeRec7;
-	  pnT_target->Get(sr->le, nodeRec7);
-	  nodeRec7.n.left = result;
-	  pnT_target->Put(sr->le, nodeRec7);
+          NodeRecord nodeRec7;
+          pnT_target->Get(sr->le, nodeRec7);
+          nodeRec7.n.left = result;
+          pnT_target->Put(sr->le, nodeRec7);
 
           if( sr->nr.n.right )
           {
             //cout << "left.right ";
             NodeRecord nodeRec7a;
-	    sr->ns = Both;
-	    nodeTable->Get(sr->nr.n.right, nodeRec7a);
-	    sr = new CopyStackRecord( nodeRec7a );
+            sr->ns = Both;
+            nodeTable->Get(sr->nr.n.right, nodeRec7a);
+            sr = new CopyStackRecord( nodeRec7a );
             nodeRecordStack.push( sr );
           }
           else
@@ -768,14 +718,14 @@ NestedList::SophisticatedCopy(const ListExpr list, const NestedList* target)
         else if( sr->ns == Right || sr->ns == Both )
         {
           //cout << "left.right-or-both ";
-	  NodeRecord nodeRec8;
-	  pnT_target->Get(sr->le, nodeRec8);
-	  nodeRec8.n.right = result;
-	  pnT_target->Put(sr->le, nodeRec8);
+          NodeRecord nodeRec8;
+          pnT_target->Get(sr->le, nodeRec8);
+          nodeRec8.n.right = result;
+          pnT_target->Put(sr->le, nodeRec8);
 
-	  result = sr->le;
+          result = sr->le;
           delete sr;
- 	  nodeRecordStack.pop();
+          nodeRecordStack.pop();
         }
         break;
       }
@@ -825,8 +775,10 @@ returns TRUE if ~atom~ is a symbol atom and has the same value as ~str~.
     {
       string aStr = SymbolValue( atom );
       string bStr = str;
-      transform( aStr.begin(), aStr.end(), aStr.begin(), ToUpperProperFunction );
-      transform( bStr.begin(), bStr.end(), bStr.begin(), ToUpperProperFunction );
+      transform( aStr.begin(), aStr.end(), 
+                 aStr.begin(), ToUpperProperFunction );
+      transform( bStr.begin(), bStr.end(), 
+                 bStr.begin(), ToUpperProperFunction );
       return (aStr == bStr);
     }
   }
@@ -933,7 +885,8 @@ NestedList::WriteAtom( const ListExpr atom, bool toScreen )
           GetText( textScan, len, textFragment );
           *outStream << textFragment;
           if ( textFragment.length() > len ) {
-            *outStream << " ... (text atom truncated after " << len << " bytes)";          
+            *outStream << " ... (text atom truncated after " 
+                       << len << " bytes)";          
           }
           DestroyTextScan ( textScan );
  
@@ -952,52 +905,45 @@ Internal procedure *WriteList*
 */
 bool
 NestedList::WriteList( ListExpr list, const int level,
-                       const bool afterList, const bool toScreen )
+                       const bool afterList, 
+                       const bool toScreen, const int offset /*=4*/ )
 {
 /*
-Write a list ~List~ indented by 4 blanks for each ~Level~ of nesting. Atoms are written sequentially into a line as long as they do not follow a nonempty list (~AfterList~ = FALSE). Otherwise (~AfterList~ = TRUE) they are also indented to the current level. Text atoms are written indented into a new line like lists. If ~ToScreen~ is true, then text atoms are written without their brackets.
+Write a list ~List~ indented by 4 blanks for each ~Level~ of nesting. Atoms
+are written sequentially into a line as long as they do not follow a
+nonempty list (~AfterList~ = FALSE). Otherwise (~AfterList~ = TRUE) they are
+also indented to the current level. Text atoms are written indented into a
+new line like lists. If ~ToScreen~ is true, then text atoms are written
+without their brackets.
 
 */
-  int i;
-  bool after;
-
+  const int indent = level*offset;
+  bool after = false;
+  
+  
   if ( IsEmpty( list ) )
   {
-    *outStream << endl;
-    for ( i = 1; i <= level; i++ )
-    {
-      *outStream << "    ";
-    }
-    *outStream << "()";
+    *outStream << endl << tab(indent) << "()";
     return (afterList);
   }
   else if ( IsAtom( list ))
   {
     if ( afterList || (AtomType( list) == TextType ) )
     {
-      *outStream << endl;
-      for ( i = 1; i <= level; i++ )
-      {
-        *outStream << "    ";
-      }
+      *outStream << endl << tab(indent);
     }
     WriteAtom( list, toScreen );
     return (afterList);
   }
   else
   {
-    *outStream << endl;
-    for ( i = 1; i <= level; i++ )
-    {
-      *outStream << "    ";
-    }
-    *outStream << "(";
-    after = WriteList( First( list ), level+1, false, toScreen );
+    *outStream << endl << tab(indent) << "(";
+    after = WriteList( First( list ), level+1, false, toScreen, offset );
     while (!IsEmpty( Rest( list ) ))
     {
       list = Rest( list );
       *outStream << " ";
-      after = WriteList( First( list ), level+1, after, toScreen );
+      after = WriteList( First( list ), level+1, after, toScreen, offset );
     }
     *outStream << ")";
     return (true);
@@ -1155,7 +1101,9 @@ within the structure of the list, otherwise, the function result is ~true~.
       case SymbolType:
         nlChars << SymbolValue( list );
         break;
-      case TextType: // ToDo replace tempText with a loop which writes small fragments into nlChars
+      case TextType: 
+          // ToDo replace tempText with a loop which 
+          // writes small fragments into nlChars
         {
           /*
           TextScan textScan = CreateTextScan( list );
@@ -1167,7 +1115,8 @@ within the structure of the list, otherwise, the function result is ~true~.
           */
 
           if ( RTFlag::isActive("NL:TextLength") ) {
-	     cerr << "list, TextLength( list ): " << list << "," << TextLength( list ) << endl;
+             cerr << "list, TextLength( list ): " 
+                  << list << "," << TextLength( list ) << endl;
           }
 
           nlChars << "<text>"; 
@@ -1269,7 +1218,7 @@ NestedList::ReadBinaryFrom(istream& in, ListExpr& list) {
 char*
 NestedList::hton(long value) {
 
-   static const int n = sizeof(long);	 
+   static const int n = sizeof(long);    
    static char buffer[n];
    for (int i=0; i<n; i++) {
      buffer[n-1-i] = (byte) (value & 255);
@@ -1314,42 +1263,42 @@ NestedList::GetBinaryType(ListExpr list) {
   case BoolType     : return  BIN_BOOLEAN;
   case IntType      : { long v = IntValue(list);
                         if(v>=-128 && v<=127)
-			   return BIN_BYTE;
-			if(v>=-32768 && v<=32767)
-			   return BIN_SHORTINT;
-			return BIN_INTEGER;
-		      }
+                           return BIN_BYTE;
+                        if(v>=-32768 && v<=32767)
+                           return BIN_SHORTINT;
+                        return BIN_INTEGER;
+                      }
   case RealType     : return BIN_DOUBLE;
   case SymbolType   : { int len = SymbolValue(list).length();
                         if(len<256)
-			   return BIN_SHORTSYMBOL;
-			if(len<65536)
-			   return BIN_SYMBOL;
-			return BIN_LONGSYMBOL;
+                           return BIN_SHORTSYMBOL;
+                        if(len<65536)
+                           return BIN_SYMBOL;
+                        return BIN_LONGSYMBOL;
                       }
   case StringType   : { int len = StringValue(list).length();
                         if(len<256)
-			   return BIN_SHORTSTRING;
-			if(len<65536)
-			   return BIN_STRING;
-			return BIN_LONGSTRING;
-		      }
+                           return BIN_SHORTSTRING;
+                        if(len<65536)
+                           return BIN_STRING;
+                        return BIN_LONGSTRING;
+                      }
   case TextType     : { int len = TextLength(list);
                         if(len<256)
-			   return BIN_SHORTTEXT;
-			if(len<65536)
-			   return BIN_TEXT;
-			return BIN_LONGTEXT;
+                           return BIN_SHORTTEXT;
+                        if(len<65536)
+                           return BIN_TEXT;
+                        return BIN_LONGTEXT;
                        }
   case NoAtom        : {int len = ListLength(list);
                         if(len<256)
-			  return BIN_SHORTLIST;
-			if(len<65536)
-			   return BIN_LIST;
-			return BIN_LONGLIST;
-		       }
+                          return BIN_SHORTLIST;
+                        if(len<65536)
+                           return BIN_LIST;
+                        return BIN_LONGLIST;
+                       }
   default : return (byte) 255; 
-	  
+          
   }
 }
 
@@ -1371,17 +1320,19 @@ NestedList::ReadInt(istream& in, const int len /*= 4*/) {
   if( RTFlag::isActive("NL:BinaryListDebug") ) {
     cerr << "Hex-Value: ";
     for (int i=0; i<len; i++) {
-      cerr << setiosflags(ios::showbase | ios::hex) << (unsigned char) buffer[i] << " ";
+      cerr << setiosflags(ios::showbase | ios::hex) 
+           << (unsigned char) buffer[i] << " ";
     }
   }  
   
   for (int i=0; i<len; i++) {
     result = result << 8;
-    result += (unsigned char) 255 & buffer[i];	  
+    result += (unsigned char) 255 & buffer[i];    
   }
   
   if( RTFlag::isActive("NL:BinaryListDebug") ) {
-    cerr << "   =>  Int-Value: " << setiosflags(ios::dec) << result << endl;
+    cerr << "   =>  Int-Value: " << setiosflags(ios::dec) 
+         << result << endl;
   }
     
   return result;
@@ -1416,7 +1367,7 @@ NestedList::swap(char* buffer, const int n)
     char c = buffer[n-1-i];
     buffer[n-1-i] = buffer[i];
     buffer[i] = c;
-  }	  
+  }       
 }
 
 
@@ -1440,8 +1391,9 @@ NestedList::ReadString(istream& in, string& outStr, unsigned long length) {
 
 
 bool 
-NestedList::ReadBinarySubLists(ListExpr& LE, istream& in, unsigned long length) {
-
+NestedList::ReadBinarySubLists( ListExpr& LE, istream& in, 
+                                unsigned long length       ) 
+{
   if(length==0) {
      LE = TheEmptyList();
      return true;
@@ -1458,7 +1410,7 @@ NestedList::ReadBinarySubLists(ListExpr& LE, istream& in, unsigned long length) 
   for(unsigned int i=1; i<length; i++){
       bool ok = ReadBinaryRec(Next, in);
       if(!ok) // error in reading sublist
-	  return false;
+          return false;
       Last = Append(Last,Next);
   }
   return true;
@@ -1475,7 +1427,7 @@ bool
 NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
 
   static unsigned long len = 0;
-  static unsigned long pos = 0;	
+  static unsigned long pos = 0; 
   static string str = "";
   
   byte typeId = 255 & in.get();
@@ -1486,156 +1438,158 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
   }
     
   switch( typeId ){
-	  
+          
       case BIN_BOOLEAN        : { result =  BoolAtom( in.get() ? true : false );
                                   pos++;
-				  return true; 
-				}
+                                  return true; 
+                                }
       case BIN_BYTE           : { char c = 0;  
                                   in.read(&c,1);
                                   result = IntAtom( c ); 
                                   pos++;
-				  return true; 
-				}
+                                  return true; 
+                                }
       case BIN_SHORTINT       : { result =  IntAtom( ReadShort(in) );
                                   pos += 2;
-				  return true; 
-				}
+                                  return true; 
+                                }
       case BIN_INTEGER        : { result =  IntAtom( ReadInt(in) );
                                   pos +=4;
-				  return true; 
-				}
+                                  return true; 
+                                }
       case BIN_REAL           : {
- 				 float fval = 0;
-       				 char* fp = (char*) &fval;
-				 in.read(fp, 4);
+                                 float fval = 0;
+                                 char* fp = (char*) &fval;
+                                 in.read(fp, 4);
                                  pos +=4;
-			         if ( WinUnix::isLittleEndian() ) {
-				    swap(fp,sizeof(float));
-				 }
-				 result = RealAtom( fval );
- 				 return true;
-				} 
+                                 if ( WinUnix::isLittleEndian() ) {
+                                    swap(fp,sizeof(float));
+                                 }
+                                 result = RealAtom( fval );
+                                 return true;
+                                } 
       case BIN_DOUBLE           : {
- 				 double dval = 0;
+                                 double dval = 0;
          char* dp = (char*) &dval;
-				 in.read(dp, 8);
+                                 in.read(dp, 8);
          pos +=8;
-			   if ( WinUnix::isLittleEndian() ) {
-				    swap(dp,sizeof(double));
-				 }
-				 result = RealAtom( dval );
- 				 return true;
-				} 
-				
+                           if ( WinUnix::isLittleEndian() ) {
+                                    swap(dp,sizeof(double));
+                                 }
+                                 result = RealAtom( dval );
+                                 return true;
+                                } 
+                                
       case BIN_SHORTSTRING    : { len = 255 & in.get();
-				  ReadString(in, str, len);
+                                  ReadString(in, str, len);
                                   pos = pos + 1 + len;
                                   result = StringAtom( str );
-				  return true;
+                                  return true;
                                 }
       case BIN_STRING         : { len = 65535 & ReadShort(in);
-				  ReadString(in, str, len);
-			          pos = pos + 2 + len;
+                                  ReadString(in, str, len);
+                                  pos = pos + 2 + len;
                                   result = StringAtom( str );
-				  return true;
-				}
+                                  return true;
+                                }
       case BIN_LONGSTRING     : { len = UINT_MAX & ReadInt(in);
-				  ReadString(in, str, len);
-				  pos = pos + 4 + len;
+                                  ReadString(in, str, len);
+                                  pos = pos + 4 + len;
                                   result = StringAtom( str );
-				  return true;
-	                        }
+                                  return true;
+                                }
       case BIN_SHORTSYMBOL    : { len = 255 & in.get();
-				  ReadString(in, str, len);
+                                  ReadString(in, str, len);
                                   pos = pos + 1 + len;
                                   result =  SymbolAtom( str );
-				  return true;
-	                        }
+                                  return true;
+                                }
       case BIN_SYMBOL         : { len = 65535 & ReadShort(in);
-				  ReadString(in, str, len);
+                                  ReadString(in, str, len);
                                   pos = pos + 2 + len;
                                   result =  SymbolAtom( str );
-				  return true;
-	                        }
+                                  return true;
+                                }
       case BIN_LONGSYMBOL     : { len = UINT_MAX & ReadInt(in);
-				  ReadString(in, str, len);
+                                  ReadString(in, str, len);
                                   pos = pos + 4 + len;
                                   result =  SymbolAtom( str );
-				  return true;
-	                        }
+                                  return true;
+                                }
       case BIN_SHORTTEXT      : { len = 255 & in.get();
-				  ReadString(in, str, len);
+                                  ReadString(in, str, len);
                                   pos = pos + 1 + len;
-				  ListExpr text = TextAtom();
+                                  ListExpr text = TextAtom();
                                   AppendText(text, str );
-				  result = text;
-				  return true;
-	                        }
+                                  result = text;
+                                  return true;
+                                }
       case BIN_TEXT           : { len = 65535 & ReadShort(in);
-				  ReadString(in, str, len);
+                                  ReadString(in, str, len);
                                   pos = pos + 2 + len;
-				  ListExpr text = TextAtom();
+                                  ListExpr text = TextAtom();
                                   AppendText(text, str );
-				  result = text;
-				  return true;
-	                        }
+                                  result = text;
+                                  return true;
+                                }
       case BIN_LONGTEXT       : { len = UINT_MAX & ReadInt(in); 
-				  ReadString(in, str, len);
+                                  ReadString(in, str, len);
                                   pos = pos + 4 + len;
-				  ListExpr text = TextAtom();
+                                  ListExpr text = TextAtom();
                                   AppendText(text, str );
-				  result =  text;
-				  return true;
-	                        }
+                                  result =  text;
+                                  return true;
+                                }
 
       case BIN_SHORTLIST      : { len = 255 & in.get();
                                   pos++;
-				  ListExpr LE = 0;
-				  bool ok = ReadBinarySubLists(LE, in, len);
-				  if (!ok) {
-			            result = 0;
-				    return false;
-				  } else {
-				    result = LE;
-				    return true;
-   	                          }
-	                         }
+                                  ListExpr LE = 0;
+                                  bool ok = ReadBinarySubLists(LE, in, len);
+                                  if (!ok) {
+                                    result = 0;
+                                    return false;
+                                  } else {
+                                    result = LE;
+                                    return true;
+                                  }
+                                 }
 
       case BIN_LIST           : { len = 65535 & ReadShort(in);
                                   pos += 2;
-				  ListExpr LE = 0;
-				  bool ok = ReadBinarySubLists(LE, in, len);
-				  if (!ok) {
-				    result = 0;
-				    return false;
-				  } else {
-				    result = LE;
-				    return true;
-   	                          }					
-	                         }
+                                  ListExpr LE = 0;
+                                  bool ok = ReadBinarySubLists(LE, in, len);
+                                  if (!ok) {
+                                    result = 0;
+                                    return false;
+                                  } else {
+                                    result = LE;
+                                    return true;
+                                  }                                     
+                                 }
 
       case BIN_LONGLIST      : {  len = 4294967295u & ReadInt(in); // 2^32-1
                                   pos += 4; 
-				  ListExpr LE = 0;
-				  bool ok = ReadBinarySubLists(LE, in, len);
-				  if (!ok) {
-                                    cout << "Error in ReadBinarySubLists(...)!" << endl;
-				    result = 0;
-				    return false;
-				  } else {
-			            result = LE;		  
-				    return true;
-   	                          }				       
-	                        }
+                                  ListExpr LE = 0;
+                                  bool ok = ReadBinarySubLists(LE, in, len);
+                                  if (!ok) {
+                                    cout << "Error in ReadBinarySubLists(...)!"
+                                         << endl;
+                                    result = 0;
+                                    return false;
+                                  } else {
+                                    result = LE;                  
+                                    return true;
+                                  }                                    
+                                }
 
 
       default      : { 
-	                cerr << "Error: Unknown binary list type ID: " << (unsigned int) typeId 
+                        cerr << "Error: Unknown binary list type ID: " 
+                             << (unsigned int) typeId 
                              << " at position " << pos << endl;
                         //cerr << "Last read string: " << str << endl;
-	                return false;
-		     }
+                        return false;
+                     }
   }
 
 }
@@ -1669,16 +1623,16 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
       switch( typeId ) {
 
           case BIN_BOOLEAN:   {
-	                   bool b = BoolValue(list);
-			   byte value = (byte) (b?1:0);
-			   os << (byte) value;
-			   return true;
-	  }
+                           bool b = BoolValue(list);
+                           byte value = (byte) (b?1:0);
+                           os << (byte) value;
+                           return true;
+          }
           case BIN_BYTE:
           case BIN_SHORTINT:
-	  case BIN_INTEGER: 
+          case BIN_INTEGER: 
           {
-	                   long value = IntValue(list);
+                           long value = IntValue(list);
                            pv = hton(value);
                            if (typeId == BIN_BYTE) {
                              len = 1;
@@ -1686,35 +1640,35 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
                              len = (typeId == BIN_SHORTINT) ? 2 : 4;
                            }
                            os.write(pv+longLen-len,len);
-			   return true;
-	  }
-	  case BIN_REAL:   {
-	                   float value = RealValue(list);
+                           return true;
+          }
+          case BIN_REAL:   {
+                           float value = RealValue(list);
                            char val[floatLen];
                            memcpy( (void*) val, (void*) &value, floatLen );
 
-			   if ( WinUnix::isLittleEndian() ) {
-			     swap(val,sizeof(float));
-			   }
+                           if ( WinUnix::isLittleEndian() ) {
+                             swap(val,sizeof(float));
+                           }
                            os.write(val,floatLen);
-			   return true;
-	  }
-	  case BIN_DOUBLE:   {
-	        double value = RealValue(list);
+                           return true;
+          }
+          case BIN_DOUBLE:   {
+                double value = RealValue(list);
           char val[doubleLen];
           memcpy( (void*) val, (void*) &value, doubleLen );
 
-			   if ( WinUnix::isLittleEndian() ) {
-			     swap(val,sizeof(double));
-			   }
+                           if ( WinUnix::isLittleEndian() ) {
+                             swap(val,sizeof(double));
+                           }
            os.write(val,doubleLen);
-			   return true;
-	  }
+                           return true;
+          }
           case BIN_SHORTSTRING:
           case BIN_STRING:
-	  case BIN_LONGSTRING: {
-	                   string value = StringValue(list);
-			   strlen = value.length();
+          case BIN_LONGSTRING: {
+                           string value = StringValue(list);
+                           strlen = value.length();
                            pv = hton(strlen);
                            if (typeId == BIN_SHORTSTRING) {
                              len = 1;
@@ -1722,14 +1676,14 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
                              len = (typeId == BIN_STRING) ? 2 : 4;
                            }
                            os.write(pv+4-len,len);
-			   os << value;
-			   return true;
+                           os << value;
+                           return true;
           }
           case BIN_SHORTSYMBOL:
           case BIN_SYMBOL:
-	  case BIN_LONGSYMBOL: {
-	                   string value = SymbolValue(list);
-			   strlen = value.length();
+          case BIN_LONGSYMBOL: {
+                           string value = SymbolValue(list);
+                           strlen = value.length();
                            pv = hton(strlen);
                            if (typeId == BIN_SHORTSYMBOL) {
                              len = 1;
@@ -1737,13 +1691,13 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
                              len = (typeId == BIN_SYMBOL) ? 2 : 4;
                            }
                            os.write(pv+4-len,len);
-			   os << value;
-			   return true;
-	  }
+                           os << value;
+                           return true;
+          }
           case BIN_SHORTTEXT:
           case BIN_TEXT:
-	  case BIN_LONGTEXT:   {
-			   strlen = TextLength(list);
+          case BIN_LONGTEXT:   {
+                           strlen = TextLength(list);
                            pv = hton(strlen);
                            if (typeId == BIN_SHORTTEXT) {
                              len = 1;
@@ -1752,15 +1706,15 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
                            }
                            os.write(pv+4-len,len);
                            string value="";
-			   while ( GetNextText(list, value, 1024) ) {
-			      os << value;
-			   }
-			   return true;
+                           while ( GetNextText(list, value, 1024) ) {
+                              os << value;
+                           }
+                           return true;
           }
 
           case BIN_SHORTLIST:
           case BIN_LIST:
-	  case BIN_LONGLIST: {
+          case BIN_LONGLIST: {
                            pv = hton(ListLength(list));
                            if (typeId == BIN_SHORTLIST) {
                              len = 1;
@@ -1771,13 +1725,16 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
                            os.write(pv+4-len,len);
 
                            while( !IsEmpty(list) ){
-                             if( !WriteBinaryRec( First(list), os ) ) // error in writing sublist
-			         return false;
+                            
+                             if( !WriteBinaryRec( First(list), os ) ) { 
+                               // error in writing sublist
+                               return false;
+                             }  
                              list=Rest(list);
-			   }
+                           }
                            return true;
-	  }
-	  default: return false;
+          }
+          default: return false;
       }
 
 }
@@ -1790,26 +1747,16 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
 */
 
 void
-NestedList::WriteListExpr( const ListExpr list, ostream& ostr )
+NestedList::WriteListExpr( const ListExpr list, 
+                           ostream& ostr  /*= cout*/, 
+                           const int offset /*= 4*/   )
 /*
 Write ~list~ indented by level to standard output.
 
 */
 {
   outStream = &ostr;
-  /* bool after = */ WriteList( list, 0, false, true );
-  outStream = 0;
-}
-
-void
-NestedList::WriteListExpr( const ListExpr list )
-/*
-Write ~list~ indented by level to standard output.
-
-*/
-{
-  outStream = &cout;
-  /* bool after = */ WriteList( list, 0, false, true );
+  WriteList( list, 0, false, true, offset );
   outStream = 0;
 }
 
@@ -1969,23 +1916,23 @@ NestedList::StringAtom( const string& value, bool isString /*=true*/ )
   while ( strLen > appendedChars ) {
   
     unsigned char n = strLen - appendedChars;
-		
+                
     if ( n >  StringFragmentSize ) {
       n = StringFragmentSize;
-		}	
+                }       
 
     value.copy( strRec.field, n, appendedChars );
     appendedChars += n;
 
     if ( appendedChars < strLen ) { // another fragment is needed
          
-      Cardinal pred = index;           // save reference
+      Cardinal pred = index;  // save reference
     
       index = stringTable->EmptySlot();
       strRec.next = index;
       stringTable->Put(pred, strRec);     
       stringTable->Get(index, strRec);
-			     
+                             
     } else { // last fragment
     
       strRec.next = 0;
@@ -2060,7 +2007,8 @@ NestedList::AppendShortText( const ListExpr atom,
   emptyFragmentLength = TextFragmentSize - lastFragmentLength;
 
   /*
-  cerr << "(emptyFragmentLength, TextFragmentSize, lastFragmentLength, textBuffer.length() ): "
+  cerr << "(emptyFragmentLength, TextFragmentSize, " 
+       << "lastFragmentLength, textBuffer.length() ): "
        << emptyFragmentLength << ","
        << TextFragmentSize << ","
        << lastFragmentLength << ","
@@ -2088,7 +2036,8 @@ empty or it is filled with up to TextFragmentSize-1 characters.
 
     //char buffer[200];
     //char* bufptr = buffer;
-    //cerr << "enough space -> field value: " << strncat(bufptr, lastTextRec.field, textLength) << endl;
+    //cerr << "enough space -> field value: " 
+    //     << strncat(bufptr, lastTextRec.field, textLength) << endl;
 
     (*textTable).Put(atomContentRec.t.last, lastTextRec);
     (*nodeTable).Put(atom, atomContentRec);
@@ -2121,7 +2070,10 @@ empty or it is filled with up to TextFragmentSize-1 characters.
       lastTextRec.next = newFragmentID;
       (*textTable).Put(atomContentRec.t.last, lastTextRec);
 
-      emptyFragmentLength = (textLength <= TextFragmentSize) ? textLength : TextFragmentSize;
+      emptyFragmentLength = (textLength <= TextFragmentSize) 
+                          ? textLength 
+                          : TextFragmentSize;
+      
       textBuffer.copy( newTextRec.field, TextFragmentSize, textStart );
       (*textTable).Put(newFragmentID, newTextRec);
 
@@ -2151,7 +2103,7 @@ NestedList::AppendText( const ListExpr atom,
      while(pos<length){
          for(i=0;i<49 && pos<length;i++){
             buffer[i]=textBuffer[pos];
-	    pos++;
+            pos++;
          }
          buffer[i]=0;
          AppendShortText(atom,string(buffer));
@@ -2236,11 +2188,12 @@ NestedList::StringSymbolValue( const ListExpr atom )
       appendedChars += n;
       index = (*stringTable)[index].next;  
     }
-    if( strLen != appendedChars ) {
-		  cerr << "strlen: " << (unsigned int) strLen 
-			     << ", appendedChars: " << (unsigned int) appendedChars << endl;
-			assert( false );
-		};
+    if( strLen != appendedChars ) 
+    {
+      cerr << "strlen: " << (unsigned int) strLen 
+           << ", appendedChars: " << (unsigned int) appendedChars << endl;
+      assert( false );
+    };
   }
   
   buffer[strLen]='\0';
@@ -2306,7 +2259,9 @@ NestedList::GetText ( TextScan       textScan,
   while(fragment.next && pos<noChars){
       fragmentRestLength = TextFragmentSize-textScan->currentPosition;
       BytesToCopy = min(noChars-pos,fragmentRestLength);
-      textBuffer.append(&fragment.field[textScan->currentPosition],BytesToCopy);
+      textBuffer.append( &fragment.field[textScan->currentPosition],
+                         BytesToCopy);
+      
       pos += BytesToCopy;
       if(pos<noChars){ // get the next Fragment
          textScan->currentFragment = fragment.next;
@@ -2343,8 +2298,8 @@ NestedList::UsedBytesOfTextFragment(const TextRecord& fragment) {
         usedLength < TextFragmentSize &&
         fragment.field[usedLength];
         usedLength++ );
-	  
-  return usedLength;	  
+          
+  return usedLength;      
 }
 
 
@@ -2363,7 +2318,8 @@ NestedList::TextLength ( const ListExpr textAtom ) {
     textTable->Get(tnext, fragment);
     textLength += TextFragmentSize;     
   }
-  textLength = textLength - TextFragmentSize + UsedBytesOfTextFragment(fragment);
+  textLength = textLength - TextFragmentSize 
+               + UsedBytesOfTextFragment(fragment);
   return (textLength);
 }
 
@@ -2378,7 +2334,8 @@ NestedList::EndOfText( const TextScan textScan )
   if ( textScan->currentFragment == 0 )
   {
     return (true);
-    cerr << "textScan->currentFragment == 0: " << textScan->currentFragment << endl;
+    cerr << "textScan->currentFragment == 0: " 
+         << textScan->currentFragment << endl;
   }
   else
   {
@@ -2390,10 +2347,10 @@ NestedList::EndOfText( const TextScan textScan )
           fragmentLength++ );
 
     cerr << "fragment.next == 0, textScan->currentPosition >= fragmentLength: "
-	 << fragment.next << ","
-	 << textScan->currentPosition << ","
-	 << fragmentLength
-	 << endl;
+         << fragment.next << ","
+         << textScan->currentPosition << ","
+         << fragmentLength
+         << endl;
 
 
     return ((fragment.next == 0) &&
@@ -2410,9 +2367,10 @@ SECONDO code.
 */
 
 bool
-NestedList::GetNextText(const ListExpr textAtom, string& textFragment, const int size) {
-
-
+NestedList::GetNextText( const ListExpr textAtom, 
+                         string& textFragment, 
+                         const int size           ) 
+{
   static bool first = true;
   static bool last = false;
   static int textLength = 0;
@@ -2440,7 +2398,9 @@ NestedList::GetNextText(const ListExpr textAtom, string& textFragment, const int
   assert ( (size == textFragmentLength) && (atom == textAtom) );
 
   textFragment="";
-  /*  Write the text atom to the output stream in chunks of size textFragmentLength */
+  /*  Write the text atom to the output stream in chunks 
+   *  of size textFragmentLength 
+   */
   if (textFragmentLength < textLength)
   {
     GetText( textScan, textFragmentLength, textFragment );
@@ -2527,8 +2487,9 @@ NestedList::AtomType (const ListExpr atom )
 */
 
 const string
-NestedList::ReportTableSizes( const bool onOff, const bool prettyPrint /* = false */) {
-
+NestedList::ReportTableSizes( const bool onOff, 
+                              const bool prettyPrint /*=false*/) 
+{
   string msg = "";
   const int tables=2;
   Cardinal pageChanges[tables], memSize[tables], slotAccess[tables];
@@ -2539,16 +2500,19 @@ NestedList::ReportTableSizes( const bool onOff, const bool prettyPrint /* = fals
   if ( prettyPrint ) {
     ostringstream report;
     report << endl;
-    report << "List Info: slots/used [pageChanges/slotAccesses] - slotsize - used Bytes" << endl;
-    report << "------------------------------------------------------------------------" << endl;
-	 
-    report << "    nodes: " << nodeTable->Size() << "/" << nodeTable->NoEntries()   
+    report << "List Info: slots/used [pageChanges/slotAccesses] "
+           << "- slotsize - used Bytes" << endl;
+    report << "-------------------------------------------------" << endl;
+         
+    report << "    nodes: " << nodeTable->Size() 
+         << "/" << nodeTable->NoEntries()   
          << " [" << pageChanges[0] << "/" << slotAccess[0] << "] - " 
-	 << nodeTable->GetSlotSize() << " - " << memSize[0] << endl;
-	 
-    report << "      str: " << stringTable->Size() << "/" << stringTable->NoEntries() 
-	 << " [" << pageChanges[1] << "/" << slotAccess[1] << "] - "
-	 << stringTable->GetSlotSize() << " - " << memSize[1] << endl;
+         << nodeTable->GetSlotSize() << " - " << memSize[0] << endl;
+         
+    report << "      str: " << stringTable->Size() 
+         << "/" << stringTable->NoEntries() 
+         << " [" << pageChanges[1] << "/" << slotAccess[1] << "] - "
+         << stringTable->GetSlotSize() << " - " << memSize[1] << endl;
 
     msg = report.str();
   }
