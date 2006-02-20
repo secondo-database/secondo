@@ -95,10 +95,15 @@ This module offers the following routines:
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include "SecondoConfig.h"
-#include "SocketIO.h"
 #include <string>
 #include <map>
+#include <sstream>
+#include <iostream>
+
+#include "SecondoConfig.h"
+#include "SocketIO.h"
+#include "LogMsg.h"
+#include "FileSystem.h"
 
 #ifndef SECONDO_PID
 #define SECONDO_PID
@@ -111,6 +116,303 @@ typedef DWORD ProcessId;
 #define INVALID_PID ((DWORD)-1)
 #endif
 #endif
+
+extern CMsg cmsg;
+
+using namespace std;
+
+/*
+1 TTYParameter
+   
+The struct ~TTYParameter~ encapsulates the processing of command options and environment 
+variables.
+   
+*/
+
+struct TTYParameter
+{
+  private: 
+  static const bool needIdent = false;
+ 
+  bool removeFirstArg(const string& expected)
+  {
+    if (numArgs < 2)
+      return false;	    
+    
+    string value(argValues[1]);
+    if ( value == expected ) 
+    { 
+      numArgs--;
+      argValues = &(argValues[1]);
+      return true;
+    }  
+    return false;
+  }
+
+  bool getEnvValue(const string& var, string& value)
+  {	  
+    char* envValue=0;
+    if ( value.empty() )
+    {
+      envValue = getenv( var.c_str() );
+      if ( envValue != 0 )
+      {
+	value = envValue;
+        cout << "Using " << var << " = " << value << endl;
+	return true;
+      }
+    }
+    return false;
+  }
+
+  
+/*
+removes the first argument if present.
+
+*/
+  
+  public:
+  int numArgs;
+  char** argValues;
+  
+  string parmFile;
+  string user;
+  string pswd;
+  string host;
+  string port;
+  string iFileName;
+  string oFileName;
+  
+  typedef enum {Test, Optimizer, Server, TTY} RunMode;
+  RunMode runMode;
+  
+  TTYParameter(const int argc, char** argv)
+  {
+    parmFile      = "";
+    user          = "";
+    pswd          = "";
+    host          = "";
+    port          = "";
+    iFileName     = "";
+    oFileName     = "";
+
+    numArgs = argc;
+    argValues = argv;
+
+    runMode = TTY;
+  } 
+
+  bool isTestRunnerMode() { return removeFirstArg("-test"); } 
+   
+  bool isPLMode() { return removeFirstArg("-pl"); } 
+ 
+  bool isServerMode() { return removeFirstArg("-srv"); } 
+
+  
+/*
+1.1 CheckConfiguration
+
+This function checks the Secondo configuration. First it looks for the name
+of the configuration file on the command line. If no file name was given on
+the command line or a file with the given name does not exist, the environment
+variable SECONDO\_CONFIG is checked. If this variable is defined it should point
+to a directory where the configuration file can be found. If the configuration
+file is not found there, the current directory will be checked. If no configuration
+file can be found the program terminates.
+
+If a valid configuration file was found initialization continues.
+
+*/
+
+bool
+CheckConfiguration()
+{
+  bool ok = true;
+  int i = 1;
+  string argSwitch = "", argValue = "";
+  bool argOk = false;
+
+  static const string availOptions = 
+  "Use option -? or --help to get information about available options."; 
+ 
+  stringstream usageMsg;
+  usageMsg << 
+  "Usage: Secondo{BDB|CS} [options]\n" <<
+  "\n" <<
+  "Operation mode switches (1st parameter):\n" <<
+  "----------------------------------------\n" <<
+  "  -test      : TestRunner mode\n" <<
+  "  -pl        : Optimizer mode\n" <<
+  "  -srv       : Server mode (SecondoBDB only!)\n" <<
+  "\n" <<
+  "Options:                                             (Environment-Var.)\n" <<
+  "-----------------------------------------------------------------------\n" <<
+  "  -c config  : Secondo configuration file            (SECONDO_CONFIG)\n" <<
+  "  -i input   : Name of input file  (default: stdin)\n" <<
+  "  -o output  : Name of output file (default: stdout)\n" <<
+  "  -u user    : User id                               (SECONDO_USER)\n" <<
+  "  -s pswd    : Password                              (SECONDO_PSWD)\n" <<
+  "\n" <<
+  "CS only:\n" <<
+  "-----------------------------------------------------------------------\n" <<
+  "  -h host    : Host address of Secondo server         (SECONDO_HOST)\n" <<
+  "  -p port    : Port of Secondo server                 (SECONDO_PORT)\n" <<
+  "\n" <<
+  "Note: Command line options overrule environment variables.\n";
+
+  // check comamnd options 
+  while (i < numArgs)
+  {
+    argSwitch = argValues[i];
+    if ( i < numArgs-1)
+    {
+      argValue  = argValues[i+1];
+      argOk = (argValue[0] != '-');
+    }
+    else
+    {
+      argValue = "";
+      argOk = false;
+    }
+    if ( argSwitch == "-?" || argSwitch == "--help")  // Help
+    {
+      cout << usageMsg.str() << endl;
+      return false;
+    }
+    else if ( argOk && argSwitch == "-c" )  // Configuration file
+    {
+      parmFile = argValue;
+    }
+    else if ( argOk && argSwitch == "-i" )  // Input file
+    {
+      iFileName = argValue;
+    }
+    else if ( argOk && argSwitch == "-o" )  // Output file
+    {
+      oFileName = argValue;
+    }
+    else if ( argOk && argSwitch == "-u" )  // User id
+    {
+      user = argValue;
+    }
+    else if ( argOk && argSwitch == "-s" )  // Password
+    {
+      pswd = argValue;
+    }
+    else if ( argOk && argSwitch == "-h" )  // Host
+    {
+      host = argValue;
+    }
+    else if ( argOk && argSwitch == "-p" )  // Port
+    {
+      port = argValue;
+    }
+    else if ( argSwitch == "-test" )  // TestRunner mode
+    {
+      runMode = Test;
+    }
+    else if ( argSwitch == "-pl" )  // Optimizer mode
+    {
+      runMode = Optimizer;
+    }
+    else if ( argSwitch == "-srv" )  // Server mode
+    {
+      runMode = Server;
+    }
+    else
+    {
+      cout << "Error: Invalid option: '" << argSwitch << "'." << endl;
+      if ( argOk )
+      {
+        cout << "  having option value: '" << argValue << "'." << endl;
+      }
+      ok = false;
+    }
+    i++;
+    if ( argOk )
+    {
+      i++;
+    }
+  }
+ 
+  if (!ok)
+    return false;
+  
+  // check if parameter values are empty and environment variables are set
+  getEnvValue("SECONDO_CONFIG", parmFile);
+  getEnvValue("SECONDO_USER", user);
+  getEnvValue("SECONDO_PSWD", pswd);
+  getEnvValue("SECONDO_HOST", host);
+  getEnvValue("SECONDO_PORT", port);
+  
+  if ( needIdent ) // Is user identification needed?
+  {
+    int count = 0;
+    while (count <= 3 && user.length() == 0)
+    {
+      count++;
+      cout << "Enter user id: ";
+      getline( cin, user );
+    }
+    ok = user.length() > 0;
+    if ( !ok )
+    {
+      cout << "Error: No user id specified." << endl;
+    }
+    if ( ok && pswd.length() == 0 )
+    {
+      count = 0;
+      while (count <= 3 && user.length() == 0)
+      {
+        count++;
+        cout << "Enter password: ";
+        getline( cin, pswd );
+      }
+      if ( pswd.length() == 0 )
+      {
+        cout << "Error: No password specified." << endl;
+        ok = false;
+      }
+    }
+  }
+  else
+  {
+    user = "SECONDO";
+    pswd = "SECONDO";
+  }
+
+  // check if parmfile is no present try default
+  if ( parmFile.empty() )
+  {
+    string cwd = FileSystem::GetCurrentFolder();
+    FileSystem::AppendSlash( cwd );
+    parmFile = cwd + "SecondoConfig.ini";
+    cmsg.warning() << "Warning: No configuration file specified trying " 
+                   << parmFile << endl;
+  } 
+
+  bool found = FileSystem::FileOrFolderExists( parmFile );
+  if ( !found ) // try environment variable 
+  {
+    cmsg.error() << "Configuration file does not exist" << endl;
+    ok = false;
+  }
+  else
+  {
+    cmsg.info() << "Using configuration file" << parmFile << endl; 
+  } 
+  cmsg.send();
+
+  if ( !ok )
+  {
+    cout << availOptions << endl;
+  }
+  return (ok);
+}
+
+};
+
+
 
 /*
 1.4 Class "Application"[1]

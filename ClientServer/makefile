@@ -30,8 +30,8 @@ LIBDIROBJECTS := $(LIBDIR)/SecondoInterfaceCS.$(OBJEXT)
 APPLICATIONS =\
 	$(BINDIR)/SecondoRegistrar$(EXEEXT) \
 	$(BINDIR)/SecondoListener$(EXEEXT) \
-	$(BINDIR)/SecondoMonitor$(SMIUP)$(EXEEXT) \
-	$(BINDIR)/SecondoServer$(SMIUP)$(EXEEXT)
+	$(BINDIR)/SecondoMonitor$(EXEEXT) \
+	$(BINDIR)/SecondoCheckpoint$(EXEEXT)
 
 ifneq ($(platform),win32)
 DEP_FILES := $(filter-out Win32Socket%, $(DEP_FILES))
@@ -39,9 +39,6 @@ else
 DEP_FILES := $(filter-out UnixSocket%, $(DEP_FILES))
 endif
 
-ifneq ($(smitype),ora)
-APPLICATIONS += $(BINDIR)/SecondoCheckpoint$(EXEEXT)
-endif
 
 CCFLAGS := $(DEFAULTCCFLAGS) $(JNIINCLUDE)
 
@@ -58,8 +55,8 @@ $(LIBDIR)/%.$(OBJEXT): %.$(OBJEXT)
 # --- Link applications
 SERVER_OBJECTS = SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o
 
-$(BINDIR)/SecondoMonitorBDB$(EXEEXT): $(SECLIBFILES)
-$(BINDIR)/SecondoMonitorBDB$(EXEEXT): SecondoMonitor.o
+$(BINDIR)/SecondoMonitor$(EXEEXT): $(SECLIBFILES)
+$(BINDIR)/SecondoMonitor$(EXEEXT): SecondoMonitor.o
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $< $(LD_LINK_LIBS)
 
 $(BINDIR)/SecondoRegistrar$(EXEEXT): $(SECLIBFILES)
@@ -73,21 +70,6 @@ $(BINDIR)/SecondoCheckpoint$(EXEEXT): SecondoCheckpoint.o
 $(BINDIR)/SecondoListener$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoListener$(EXEEXT): SecondoListener.o
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $< $(LD_LINK_LIBS)
-
-$(BINDIR)/SecondoServerBDB$(EXEEXT): $(ALGLIBFILES) $(SECLIBFILES) $(JNILIBFILES) 
-$(BINDIR)/SecondoServerBDB$(EXEEXT): SecondoServer.o $(SERVER_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o,$^) $(LD_LINK_LIBS_ALG)
-
-# Oracle SMI
-$(BINDIR)/SecondoMonitorORA$(EXEEXT): $(SECLIBFILES) 
-$(BINDIR)/SecondoMonitorORA$(EXEEXT): SecondoMonitor.o
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $< $(LD_LINK_LIBS)
-
-
-$(BINDIR)/SecondoServerORA$(EXEEXT): $(ALGLIBFILES) $(SECLIBFILES) 
-$(BINDIR)/SecondoServerORA$(EXEEXT): SecondoServer.o $(SERVER_OBJECTS) 
-	$(LD) $(EXEFLAGS) $(LDLFAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o,$^) $(LD_LINK_LIBS_ALG)
-
 
 include $(DEP_FILES)
 

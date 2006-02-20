@@ -27,23 +27,18 @@ include ../makefile.env
 
 APPLOBJECTS := \
 	SecondoTTY.$(OBJEXT) \
-	DisplayTTY.$(OBJEXT)
+	DisplayTTY.$(OBJEXT) \
+	MainTTY.$(OBJEXT) \
+	MainTTYCS.$(OBJEXT)
 
-APPLICATIONS := $(BINDIR)/SecondoTTY$(SMIUP) \
-		$(BINDIR)/SecondoTTYCS
+APPLICATIONS := $(BINDIR)/Secondo$(SMIUP) \
+		$(BINDIR)/SecondoCS
 
 # some optional objects and applications
 ifneq ($(smitype),ora)
 APPLOBJECTS += TestRunner.$(OBJEXT)
-APPLICATIONS += $(BINDIR)/TestRunnerApp
 endif
 
-ifeq ($(optimizer),"true")
-APPLICATIONS += $(OPTDIR)/SecondoPL
-APPLICATIONS += $(OPTDIR)/SecondoPLCS
-APPLOBJECTS += SecondoPL.$(OBJEXT)
-CCFLAGS += $(PLINCLUDEFLAGS)
-endif
 
 ifeq ($(readline),true)
 RL_COMPILE_FLAG = -DREADLINE
@@ -62,6 +57,13 @@ APPLOBJECTS += callEntropy
 CCFLAGS += -DSECONDO_USE_ENTROPY
 endif
 
+ifeq ($(optimizer),"true")
+APPLOBJECTS += SecondoPL.$(OBJEXT)
+CCFLAGS += $(PLINCLUDEFLAGS)
+PL_OBJECTS := SecondoPL.$(OBJEXT) $(ENTROPY_OBJ)
+endif
+
+
 
 CODE_DEPENDENCIES := $(patsubst %.$(OBJEXT), %.dep, $(APPLOBJECTS))
 APPLICATIONS := $(addsuffix $(EXEEXT), $(APPLICATIONS))
@@ -70,19 +72,14 @@ APPLICATIONS := $(addsuffix $(EXEEXT), $(APPLICATIONS))
 #
 
 .PHONY: all
-all: $(CODE_DEPENDENCIES) $(APPLOBJECTS)
+all: $(CODE_DEPENDENCIES) $(APPLOBJECTS) 
+	@chmod u+x ../bin/SecondoTTYBDB
+	@chmod u+x ../bin/TestRunner
+	@chmod u+x ../bin/TestRunnerCS
+	@chmod u+x ../bin/SecondoTTYCS
 
 .PHONY: buildapp
 buildapp: $(APPLICATIONS)
-
-.PHONY: TestRunner
-TestRunner: $(BINDIR)/TestRunnerApp$(EXEEXT)
-
-.PHONY: TTYCS
-TTYCS: $(BINDIR)/SecondoTTYCS$(EXEEXT)
-
-.PHONY: TTY
-TTY: $(BINDIR)/SecondoTTY$(SMIUP)$(EXEEXT)
 
 .PHONY: TTYDemo
 TTYDemo: ../$(SECONDO_DEMO)/SecondoTTY$(SMIUP)$(EXEEXT)
@@ -106,8 +103,14 @@ clean:
 
 CCFLAGS += $(DEFAULTCCFLAGS)
 
+MainTTYCS.cpp: MainTTY.cpp
+	$(CP) $< $@ 
+
 %.dep: %.cpp
 	$(CC) -MM $(CCFLAGS) $< > $@
+
+MainTTYCS.$(OBJEXT): MainTTY.cpp
+	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS 
 
 %.$(OBJEXT): %.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) $(RL_COMPILE_FLAG) 
@@ -115,38 +118,25 @@ CCFLAGS += $(DEFAULTCCFLAGS)
 
 #  Rules for linkage
 
-APP_OBJECTS :=  DisplayTTY.o SecondoInterfaceGeneral.o AlgebraList.o
+APP_OBJECTS :=  SecondoTTY.o MainTTY.o TestRunner.o \
+		$(PL_OBJECTS) \
+		../ClientServer/SecondoServer.o \
+		SecondoInterface.o \
+		DisplayTTY.o \
+		SecondoInterfaceGeneral.o \
+		AlgebraList.o
 
+$(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES)
+$(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(APP_OBJECTS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(OPTLIB_LIBS) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
 
-$(BINDIR)/SecondoTTYBDB$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES)
-$(BINDIR)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG)
-
-
-../$(SECONDO_DEMO)/SecondoTTYBDB$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES) 
-../$(SECONDO_DEMO)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS)
+../$(SECONDO_DEMO)/Secondo$(SMIUP)$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES) 
+../$(SECONDO_DEMO)/Secondo$(SMIUP)$(EXEEXT): $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) -static $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG)
 	strip $@
 
-$(BINDIR)/SecondoTTYORA$(EXEEXT):  $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES) 
-$(BINDIR)/SecondoTTYORA$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG)
-
-$(BINDIR)/SecondoTTYCS$(EXEEXT): $(SECLIBFILES)
-$(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS) $(RL_LD_FLAG)
-
-$(BINDIR)/TestRunnerApp$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES) 
-$(BINDIR)/TestRunnerApp$(EXEEXT): TestRunner.o SecondoInterface.o  $(APP_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG)
-
-$(OPTDIR)/SecondoPL$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES)
-$(OPTDIR)/SecondoPL$(EXEEXT): SecondoPL.o SecondoInterface.o $(ENTROPY_OBJ) $(APP_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(OPTLIB_LIBS) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
-
-$(OPTDIR)/SecondoPLCS$(EXEEXT): $(SECLIBFILES)
-$(OPTDIR)/SecondoPLCS$(EXEEXT): SecondoPL.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o $(ENTROPY_OBJ)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(PLLDFLAGS) $(RL_LD_FLAG) 
-
+$(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES)
+$(BINDIR)/SecondoCS$(EXEEXT): SecondoTTY.o MainTTYCS.o TestRunner.o $(PL_OBJECTS) DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS)
 
 include $(CODE_DEPENDENCIES:.cpp=.dep)

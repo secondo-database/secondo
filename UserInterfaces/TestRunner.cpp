@@ -39,7 +39,6 @@ This is the test enviroment for Secondo. The code is derived from SecondoTTY.
 
 */
 
-using namespace std;
 
 #include <string>
 #include <iostream>
@@ -62,13 +61,12 @@ using namespace std;
 #include "CharTransform.h"
 #include "LogMsg.h"
 
-
-static const bool needIdent = false;
+using namespace std;
 
 class TestRunner : public Application
 {
  public:
-  TestRunner( const int argc, const char** argv );
+  TestRunner( const TTYParameter& tp );
   virtual ~TestRunner() { };
   int  Execute();
 
@@ -78,7 +76,6 @@ class TestRunner : public Application
   void ProcessCommand();
   void ProcessCommands();
 
-  bool CheckConfiguration();
   ListExpr CallSecondo();
   void CallSecondo2();
   void RegisterError();
@@ -118,18 +115,27 @@ class TestRunner : public Application
   ErrorInfo errorLines;
 
 
-  /* the following variables and constants are 
-     needed for maintaining the test state */
-  int state;
+/* 
+the following variables and constants are 
+needed for maintaining the test state 
+
+*/
+  
+  Tolerance realValTolerance;
+  ListExpr expectedResult;
+  
   string testName;
   string testCaseName;
-  string yields;
-  bool yieldsError;
+ 
+  typedef enum {Success, Error, Result, Unknown} YieldState; 
+  YieldState yieldState;
   bool skipToTearDown;
+  
   int testCaseNumber;
   int testCaseLine;
   int numErrors;
 
+  int state;
   static const int START = 0;
   static const int SETUP = 1;
   static const int TESTCASE = 2;
@@ -137,16 +143,18 @@ class TestRunner : public Application
 
 };
 
-TestRunner::TestRunner( const int argc, const char** argv )
-  : Application( argc, argv )
+
+
+TestRunner::TestRunner( const TTYParameter& tp )
+  : Application( tp.numArgs, (const char**)tp.argValues )
 {
-  parmFile      = "";
-  user          = "";
-  pswd          = "";
-  host          = "";
-  port          = "";
-  iFileName     = "";
-  oFileName     = "";
+  parmFile      = tp.parmFile;
+  user          = tp.user;
+  pswd          = tp.pswd;
+  host          = tp.host;
+  port          = tp.port;
+  iFileName     = tp.iFileName;
+  oFileName     = tp.oFileName;
   string cmd    = "";
   isStdInput    = true;
   quit          = false;
@@ -154,11 +162,16 @@ TestRunner::TestRunner( const int argc, const char** argv )
   si            = 0;
 
   state = START;
+  
   skipToTearDown = false;
+  yieldState = Success;
+  
   testCaseNumber = 0;
   testCaseLine = 0;
   numErrors = 0;
 
+  expectedResult = nl->TheEmptyList();
+  
   verbose = false;
 
 }
@@ -196,7 +209,7 @@ TestRunner::ShowTestSuccessMsg(const string& msg) const
 {
   cout
     << color(green)
-    << "*** OK " << "Testcase " << testCaseNumber << " \"" << testCaseName << "\" "
+    << "** " << testCaseNumber << " ** OK! Testcase \"" << testCaseName << "\" "
     << msg << color(normal) << endl;
 }
 
@@ -206,8 +219,8 @@ TestRunner::ShowTestErrorMsg() const
 {
   cout
     << endl << color(red) 
-    << "*** ERROR at line " << testCaseLine 
-    << " in Testcase No " << testCaseNumber << " \"" << testCaseName << "\"." 
+    << "** " << testCaseNumber << " ** ERROR" 
+    << " in Testcase \"" << testCaseName << "\"." 
     << color(normal) << endl;
   return;
 }
@@ -220,7 +233,8 @@ TestRunner::ShowErrCodeInfo(  const int errorCode,
 {
    cout 
      << "But got error : " <<  errorCode << endl
-     << "  code2Msg    : \"" << SecondoInterface::GetErrorMessage( errorCode ) << "\""
+     << "  code2Msg    : \"" << SecondoInterface::GetErrorMessage( errorCode ) 
+     << "\""
      << endl;
 
    if ( errorMessage.length() > 0 ) {
@@ -317,7 +331,9 @@ TestRunner::ProcessCommand()
   }
   else
   {
-    isQuery = (cmdWord == "QUERY" || cmdWord == "(QUERY" || cmdWord == "( QUERY");
+    isQuery = ( cmdWord == "QUERY" 
+                || cmdWord == "(QUERY" 
+                || cmdWord == "( QUERY" );
     CallSecondo2();
   }
 }
@@ -333,9 +349,6 @@ TestRunner::IsInternalCommand( const string& line ) const
              ToUpperProperFunction );
 
   return ( cmdWord == "?" || cmdWord == "HELP"        ||
-           cmdWord == "D" || cmdWord == "DESCRIPTIVE" ||
-           cmdWord == "E" || cmdWord == "EXECUTABLE"  ||
-           cmdWord == "H" || cmdWord == "HYBRID"      ||
            cmdWord == "Q" || cmdWord == "QUIT"        ||
            cmdWord == "DEBUG" || cmdWord == "SHOW" || cmdWord[0] == '@' );
 }
@@ -355,7 +368,7 @@ TestRunner::GetCommand()
     lineCtr++;
     if ( line.length() > 0 )
     {
-      if ( line[0] != '#' )    // Process if not comment line
+      if ( line[0] != '#' )    // # no comment => SECONDO command 
       {
         if ( line[line.length()-1] == ';' ) // check for command end
         {
@@ -383,56 +396,39 @@ TestRunner::GetCommand()
       }
       else
       {
-        // processing directive
+        // process a test runner directive
         if(line.size() < 2)
         {
           /* assume that this line is part of a real comment */
         }
-        else // check if TestRunner directives are present
+        else // check for directives
         {
-          // if a continuation symbol \ is found concat the lines
-          while(line[line.size() - 1] == '\\') 
+          // concat lines with continuation symbol "\"
+          static const char contSym = '\\';
+          size_t endPos = line.size() - 1;
+          while( line[endPos] == contSym ) 
           {
-            line.erase(line.size() - 1);
-            string nextline;
-            getline(cin, nextline);
-            if( line[line.size() - 1] == '\\') {
-              line.erase(line.size() - 1);
-              line += "\n";
-            }
-            line += nextline;
+            string nextLine;
+            getline(cin, nextLine);
+            
+            /*
+            cout << "Concating lines:" << endl;   
+            cout << "1st: <" << line << ">" << endl
+                 << "2nd: <" << nextLine << ">" << endl;
+            */   
+                 
+            line.erase(endPos);
+            line += "\n" + nextLine;
+            endPos = line.size() - 1;
           }
+          //cout << "Concat result:" << line << endl;     
 
-          size_t pos = 1;
-          char current = line[pos];
-          string command;
-          string restOfLine;
+          string command = parse<string>(line.substr(1));
+          size_t pos = line.find(command) + command.size();
+          string restOfLine = trim( line.substr(pos) );
 
-          // remove spaces after # symbol
-          while(isspace(current) && pos < line.size() - 1)
-          {
-            pos++;
-            current = line[pos];
-          }
-
-          // extract the first word and save it in variable command
-          command += current;
-          while(isalpha(current) && pos < line.size() - 1)
-          {
-            pos++;
-            current = line[pos];
-            command += current;
-          }
-          if(pos == line.size() - 1)
-          {
-            pos++;
-          }
-
-          restOfLine = line.substr(pos);
-          while(restOfLine.size() > 0 && isspace(restOfLine[0]))
-          {
-            restOfLine.erase(0, 1);
-          }
+          //cout << "command: " << command << endl;
+          //cout << "rest: <" << restOfLine << ">" << endl;
           
           // check for TestRunner directives
           if(command.find("setup") == 0)
@@ -453,11 +449,14 @@ TestRunner::GetCommand()
           }
           else if(command.find("stop") == 0) {
             if (state == START) {
-              cout << endl << "Stop directive found! Test will not be executed." << endl;
-              cout << "Reason: " << restOfLine << endl << endl;
+              cout << endl 
+                   << "Stop directive found! Test will not be executed." 
+                   << endl
+                   << "Reason: " << restOfLine << endl << endl;
               exit(0);
             } else {
-              cout << "Warning: stop directives after setup are ignored!" << endl;
+              cout << "Warning: stop directives after setup are ignored!" 
+                   << endl;
             }
           }
           else if(command.find("testcase") == 0)
@@ -467,11 +466,65 @@ TestRunner::GetCommand()
             testCaseNumber++;
             testCaseLine = lineCtr;
           }
+          else if(command.find("tolerance_real") == 0)
+          {
+            assert(state == TESTCASE);
+            string toleranceStr = parse<string>( restOfLine );
+            if (toleranceStr[0] == '%') 
+            {
+              realValTolerance.isRelative = true;
+              cout << "Relative";
+            }              
+            else
+            {
+              realValTolerance.isRelative = false;
+              cout << "Absolute";
+            }               
+            realValTolerance.value = parse<double>( toleranceStr.substr(1) );
+            cout << " tolerance set to " << realValTolerance.value << endl;
+          }
           else if(command.find("yields") == 0)
           {
             assert(state == TESTCASE);
-            yields = restOfLine;
-            yieldsError = yields.find("error") != string::npos;
+            size_t pos = firstNonSpace(restOfLine);
+            if (pos == string::npos)
+            {               
+              yieldState = Unknown;
+            }
+            else
+            {       
+              char first=restOfLine[pos];           
+              if ( (first=='@') ||  (first=='(') ) // result specified
+              {
+                yieldState = Result;
+
+                expectedResult = nl->TheEmptyList();
+                if (first=='@')
+                {             
+                  // result stored in a separate file        
+                  string resultFileStr = parse<string>( restOfLine.substr(1) );
+                  cout << "Query result specified in file '" << resultFileStr 
+                       << "'" << endl;
+                  nl->ReadFromFile( expandVar(resultFileStr), expectedResult );
+                }       
+                else
+                {
+                  nl->ReadFromString(restOfLine, expectedResult);
+                }             
+              }
+              else if ( restOfLine.find("error") != string::npos )
+              {
+                yieldState = Error;
+              }       
+              else if ( restOfLine.find("success") != string::npos )
+              {               
+                yieldState = Success;
+              } 
+              else
+              {
+                yieldState = Unknown;
+              }       
+            }       
           }
           else if(command.find("teardown") == 0)
           {
@@ -554,12 +607,11 @@ This function gives a query to secondo and receives the result from secondo.
 ListExpr
 TestRunner::CallSecondo()
 {
-  int errorCode = 0, errorPos;
+  int errorCode = 0, errorPos = 0;
   ListExpr cmdList = nl->TheEmptyList();
   ListExpr outList = nl->TheEmptyList();
-  string errorMessage;
-  string errorText;
-  ListExpr expectedResult;
+  string errorMessage = "";
+  string errorText = "";
 
   if(!skipToTearDown)
   {
@@ -621,7 +673,8 @@ TestRunner::CallSecondo()
       if(errorCode != 0)
       {
         cout
-          << "*** Encountered error during setup, skipping to teardown. ***" << endl
+          << "*** Encountered error during setup, skipping to teardown. ***" 
+          << endl
           << rightArrow << endl;
         ShowErrCodeInfo(errorCode, errorMessage, outList);
         ShowCommand(cmd);
@@ -635,8 +688,14 @@ TestRunner::CallSecondo()
       if(!skipToTearDown)
       {
  
-        if( (errorCode == 0) && yieldsError)
+        if( yieldState == Error)
         {
+          if (errorCode)
+          {       
+           ShowTestSuccessMsg("returned an error as expected.");
+          }
+          else
+          {               
           RegisterError();
           cout 
             << color(red)
@@ -648,20 +707,47 @@ TestRunner::CallSecondo()
           ShowCommand(cmd);
           cout
             << leftArrow << endl;
+          }
         }
-        else if( (errorCode != 0) && yieldsError)
+        else if( yieldState == Success )
         {
-           ShowTestSuccessMsg("returned an error as expected.");
-        }
-        else if( (errorCode == 0) && !yieldsError)
-        {
-          if(yields.find("success") == string::npos)
+          if(!errorCode)
           {
+            ShowTestSuccessMsg("succeeded as expected.");
+          }
+          else
+          {
+            RegisterError();
+          cout 
+            << color(red)
+            << "The test returned an error, but should not do so!" << endl
+            << color(normal)
+            << rightArrow << endl
+            << "Expected result : " << endl
+            << nl->ToString(expectedResult) << endl;
+          ShowErrCodeInfo(errorCode, errorMessage, outList);
+          ShowCommand(cmd);
+          cout
+            << leftArrow << endl;
+          }
+        }
+        else if( yieldState == Result )
+        {
             /* verify that the expected results were delivered */
-            nl->ReadFromString(yields, expectedResult);
-            if(nl->Equal(outList, expectedResult))
+            bool result = false;
+            if (realValTolerance.value != 0.0)
+            { 
+              cout << "realValTolerance!" << endl;
+              result = nl->Equal(outList, expectedResult, realValTolerance);
+            }  
+            else
+            { 
+              result = nl->Equal(outList, expectedResult);
+            }  
+         
+            if(result)
             {
-              ShowTestSuccessMsg("succeeded as expected.");
+              ShowTestSuccessMsg("computing result as specified.");
             }
             else
             {
@@ -679,26 +765,14 @@ TestRunner::CallSecondo()
               cout
                 << leftArrow << endl;
             }
-          }
-          else
-          {
-            ShowTestSuccessMsg("succeeded as expected.");
-          }
         }
-        else if( (errorCode != 0) && !yieldsError)
+        else if( yieldState == Unknown )
         {
           RegisterError();
           cout 
             << color(red)
-            << "The test returned an error, but should not do so!" << endl
-            << color(normal)
-            << rightArrow << endl
-            << "Expected result : " << endl
-            << yields << endl;
-          ShowErrCodeInfo(errorCode, errorMessage, outList);
-          ShowCommand(cmd);
-          cout
-            << leftArrow << endl;
+            << "The test has an unknown yields value!" << endl
+            << color(normal) << endl;
         }
         else { // default
 
@@ -743,188 +817,6 @@ TestRunner::CallSecondo2()
   nl->initializeListMemory();
 }
 
-/*
-1 CheckConfiguration
-
-This function checks the Secondo configuration. First it looks for the name
-of the configuration file on the command line. If no file name was given on
-the command line or a file with the given name does not exist, the environment
-variable SECONDO\_HOME is checked. If this variable is defined it should point
-to a directory where the configuration file can be found. If the configuration
-file is not found there, the current directory will be checked. If no configuration
-file can be found the program terminates.
-
-If a valid configuration file was found initialization continues.
-
-*/
-
-bool
-TestRunner::CheckConfiguration()
-{
-  bool ok = true;
-  int i = 1;
-  string argSwitch, argValue;
-  bool argOk;
-  while (i < GetArgCount())
-  {
-    argSwitch = GetArgValues()[i];
-    if ( i < GetArgCount()-1)
-    {
-      argValue  = GetArgValues()[i+1];
-      argOk = (argValue[0] != '-');
-    }
-    else
-    {
-      argValue = "";
-      argOk = false;
-    }
-    if ( argSwitch == "-?" || argSwitch == "--help" )  // Help
-    {
-      cout << "Usage: TestRunner [options] <TestFile" << endl << endl
-           << "Options:                                             (Environment)" << endl
-           << "  -c config  : Secondo configuration file            (SECONDO_CONFIG)" << endl
-           << "  -i input   : Name of input file  (default: stdin)" << endl
-           << "  -o output  : Name of output file (default: stdout)" << endl
-           << "  -u user    : User id                               (SECONDO_USER)" << endl
-           << "  -s pswd    : Password                              (SECONDO_PSWD)" << endl
-           << "  -h host    : Host address of Secondo server        (SECONDO_HOST)" << endl
-           << "  -p port    : Port of Secondo server                (SECONDO_PORT)" << endl << endl
-           << "Command line options overrule environment variables." << endl;
-      ok = false;
-      break;
-    }
-    else if ( argOk && argSwitch == "-c" )  // Configuration file
-    {
-      parmFile = argValue;
-    }
-    else if ( argOk && argSwitch == "-i" )
-    {
-      iFileName = argValue;
-    }
-    else if ( argOk && argSwitch == "-o" )  // Output file
-    {
-      oFileName = argValue;
-    }
-    else if ( argOk && argSwitch == "-u" )  // User id
-    {
-      user = argValue;
-    }
-    else if ( argOk && argSwitch == "-s" )  // Password
-    {
-      pswd = argValue;
-    }
-    else if ( argOk && argSwitch == "-h" )  // Host
-    {
-      host = argValue;
-    }
-    else if ( argOk && argSwitch == "-p" )  // Port
-    {
-      port = argValue;
-    }
-    else
-    {
-      cout << "Error: Invalid option: '" << argSwitch << "'." << endl;
-      if ( argOk )
-      {
-        cout << "  having option value: '" << argValue << "'." << endl;
-      }
-      cout << "Use option -? or --help to get information about available options." << endl;
-      ok = false;
-    }
-    i++;
-    if ( argOk )
-    {
-      i++;
-    }
-  }
-  char* envValue;
-  if ( parmFile.length() == 0 )
-  {
-    envValue = getenv( "SECONDO_CONFIG" );
-    if ( envValue != 0 )
-    {
-      parmFile = envValue;
-    }
-  }
-  if ( user.length() == 0 )
-  {
-    envValue = getenv( "SECONDO_USER" );
-    if ( envValue != 0 )
-    {
-      user = envValue;
-    }
-  }
-  if ( pswd.length() == 0 )
-  {
-    envValue = getenv( "SECONDO_PSWD" );
-    if ( envValue != 0 )
-    {
-      pswd = envValue;
-    }
-  }
-  if ( host.length() == 0 )
-  {
-    envValue = getenv( "SECONDO_HOST" );
-    if ( envValue != 0 )
-    {
-      host = envValue;
-    }
-  }
-  if ( port.length() == 0 )
-  {
-    envValue = getenv( "SECONDO_PORT" );
-    if ( envValue != 0 )
-    {
-      port = envValue;
-    }
-  }
-  if ( needIdent ) // Is user identification needed?
-  {
-    int count = 0;
-    while (count <= 3 && user.length() == 0)
-    {
-      count++;
-      cout << "Enter user id: ";
-      getline( cin, user );
-    }
-    ok = user.length() > 0;
-    if ( !ok )
-    {
-      cout << "Error: No user id specified." << endl;
-    }
-    if ( ok && pswd.length() == 0 )
-    {
-      count = 0;
-      while (count <= 3 && user.length() == 0)
-      {
-        count++;
-        cout << "Enter password: ";
-        getline( cin, pswd );
-      }
-      if ( pswd.length() == 0 )
-      {
-        cout << "Error: No password specified." << endl;
-        ok = false;
-      }
-    }
-  }
-  else
-  {
-    user = "SECONDO";
-    pswd = "SECONDO";
-  }
-  if ( ok )
-  {
-    // config file or (host and port) must be specified
-    ok = parmFile.length() > 0 || (host.length() > 0 && port.length() > 0);
-    if ( !ok )
-    {
-      cout << "Error: Neither config file nor host and port of Secondo server specified." << endl;
-      cout << "Use option -? or --help to get information about available options." << endl;
-    }
-  }
-  return (ok);
-}
 
 /*
 1 Execute
@@ -942,8 +834,7 @@ TestRunner::Execute()
   cout << endl
        << "--- Secondo TestRunner ---"
        << endl << endl;
-  if ( CheckConfiguration() )
-  {
+  
     streambuf* oldInputBuffer  = 0;
     streambuf* oldOutputBuffer = 0;
     ifstream fileInput;
@@ -1001,26 +892,14 @@ TestRunner::Execute()
     si->Terminate();
     delete si;
     cout << "--- Secondo TestRunner terminated ---" << endl;
-  }
-  else
-  {
-    return -1;
-  }
+
   return (numErrors);
 }
 
-/*
-14 main
-
-The main function creates the TestRunner and starts its execution.
-
-*/
-int
-main( const int argc, const char* argv[] )
+int SecondoTestRunner(const TTYParameter& tp)
 {
-  TestRunner* appPointer = new TestRunner( argc, argv );
+  TestRunner* appPointer = new TestRunner( tp );
   int rc = appPointer->Execute();
   delete appPointer;
   return (rc);
 }
-

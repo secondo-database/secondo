@@ -21,8 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 \vspace{1cm}
-\def\CC{C\raise.22ex\hbox{{\footnotesize +}}\raise.22ex\hbox{\footnotesize +}\xs
-pace}
 \centerline{\LARGE \bf  SecondoPL}
 
 \begin{center}
@@ -363,7 +361,9 @@ Converts a PROLOG list of (integer,float) pair to a vector of (int,float) pair.
 
 */
 void
-FloatListPairToVectorPair(term_t t, std::vector<pair<int,double> >& v, bool& error)
+FloatListPairToVectorPair( term_t t, 
+                           std::vector<pair<int,double> >& v, 
+                           bool& error                        )
 {
   error = 1;
   if( PL_is_list(t) )
@@ -381,7 +381,8 @@ FloatListPairToVectorPair(term_t t, std::vector<pair<int,double> >& v, bool& err
 
       PL_get_list(i_list, i_head, i_list);
       if ( PL_get_integer(i_head, &p.first) )
-        if ( PL_get_list(i_list, i_head, i_list) && PL_get_float(i_head, &p.second) )
+        if (    PL_get_list(i_list, i_head, i_list) 
+             && PL_get_float(i_head, &p.second)     )
           v.push_back(p);
         else
           return;
@@ -423,7 +424,8 @@ Converts a vector of (int,float) numbers to a PROLOG list of (integer,float).
 
 */
 void
-FloatVectorPairToListPair(std::vector<pair<int,double> >& v,term_t& t, bool& error)
+FloatVectorPairToListPair( std::vector<pair<int,double> >& v,
+                           term_t& t, bool& error             )
 {
   // Outer list
   term_t o_list = PL_copy_term_ref(t);
@@ -487,9 +489,12 @@ of the last issued Secondo command.
 static foreign_t
 pl_get_error_info(term_t errorCode, term_t errorMessage)
 {
-  if(PL_unify_integer(errorCode, lastErrorCode) != 0
-     && PL_unify_atom_chars(errorMessage, 
-	           (SecondoInterface::GetErrorMessage(lastErrorCode) + "\n" + lastErrorMessage).c_str()) != 0)
+  int unify1 = PL_unify_integer(errorCode, lastErrorCode);
+ 
+  string msg = SecondoInterface::GetErrorMessage(lastErrorCode) + "\n" 
+               + lastErrorMessage;
+  
+  if( (unify1 != 0) && PL_unify_atom_chars( errorMessage, msg.c_str()) != 0)
   {
     PL_succeed;
   }
@@ -535,31 +540,41 @@ pl_call_secondo(term_t command, term_t result)
     commandLE = TermToListExpr(command, plnl, error);
     /* executable command in nested list syntax */
     commandLevel = 0;
+    if (error)
+    {
+      cerr << "SecondoPL: TermToListExpr() failed." << endl; 
+      PL_fail;
+    }       
   }
 
-  if(!error)
-  {
-    si->Secondo(commandStr,
-                commandLE,
-                commandLevel,
-                false,
-                false,
-                resultList,
-                lastErrorCode,
-                errorPos,
-                lastErrorMessage);
+  lastErrorCode = 0;
+  si->Secondo(commandStr,
+              commandLE,
+              commandLevel,
+              false,
+              false,
+              resultList,
+              lastErrorCode,
+              errorPos,
+              lastErrorMessage);
 
-    if(lastErrorCode != 0)
-    {
+  if(lastErrorCode != 0)
+  {
       PL_fail;
+  }
+  else
+  {
+    plnl->WriteListExpr(resultList);
+    if(PL_unify(result, ListExprToTerm(resultList, plnl)) != 0)
+    {
+      plnl->initializeListMemory();
+      PL_succeed;
     }
     else
     {
-      if(PL_unify(result, ListExprToTerm(resultList, plnl)) != 0)
-      {
-        plnl->initializeListMemory();
-        PL_succeed;
-      }
+      cerr << "SecondoPL: Predicate secondo/2 failed, but error code was 0."
+           << endl; 
+      plnl->WriteListExpr(resultList);
     }
   }
 
@@ -570,17 +585,16 @@ pl_call_secondo(term_t command, term_t result)
 
 4 Function pl\_maximize\_entropy
 
-Computes conditional probabilities using the Maximum Entropy Aproach
-Function to compute the conditional probabilities using Maximum Entropy Approach
+Computes conditional probabilities using the Maximum Entropy Aproach Function
+to compute the conditional probabilities using Maximum Entropy Approach
 
 usage: maximize\_entropy( [p1 p2 p3 ... pn], [[1, cp1], [2, cp2] ...], result )
 In this function is assumed the same codification of predicates using bits, as
-done in POG construction - that is, to the predicate n, if the ith-bit is set to 1
-then the ith-predicate is already evaluated.
-Each pi is the probability of predicate $2^i$
-Each pair [n, cp] is the given probability cp of joint predicates n using the ith-bit
-convention above.
-Result is in the form of a list of pairs [n, cp] also.
+done in POG construction - that is, to the predicate n, if the ith-bit is set
+to 1 then the ith-predicate is already evaluated.  Each pi is the probability
+of predicate $2^i$ Each pair [n, cp] is the given probability cp of joint
+predicates n using the ith-bit convention above.  Result is in the form of a
+list of pairs [n, cp] also.
 
 Example: if we call
 
@@ -615,7 +629,10 @@ pl_maximize_entropy(term_t predicates, term_t probabilities, term_t result)
 
       try
       {
-        maximize_entropy( vectorPredicates, vectorProbabilities, vectorResult );
+        maximize_entropy( vectorPredicates, 
+                          vectorProbabilities, 
+                          vectorResult         );
+
         FloatVectorPairToListPair(vectorResult, result, error);
       }
       catch(...)
@@ -729,7 +746,7 @@ StartSecondoC(char* configFileName)
 9. registerSecondo
 
 This function registers the secondo predicate at the prolog engine.
-	 
+
 */
 
 int registerSecondo(){
@@ -756,9 +773,8 @@ int registerSecondo(){
 
 
 int
-main(int argc, char **argv)
+SecondoPLMode(int argc, char **argv)
 {
-  cout << License::getStr() << endl;
 
   char* configFile;
 
@@ -769,7 +785,8 @@ main(int argc, char **argv)
   configFile = GetConfigFileNameFromArgV(argc, argv);
   if(configFile == 0 || !StartSecondoC(configFile))
   {
-    cout << "Usage : SecondoPL [-c ConfigFileName] [prolog engine options]" << endl;
+    cout << "Usage : SecondoPL [-c ConfigFileName] [prolog engine options]" 
+         << endl;
     exit(1);
   }
 
@@ -827,6 +844,7 @@ main(int argc, char **argv)
   // this function never returns. Entering "halt." at the Userinterface
   // calls exit().
 
+  return 0;
 }
 
 

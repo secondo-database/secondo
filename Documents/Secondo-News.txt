@@ -6,8 +6,27 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below the ruler and not at the end.
 
+2006-02-20
 ===============================================================================
+The build procedure has been changed. Now only two applications called
+SecondoBDB and SecondoCS are compiled. They know the options
+
+-pl: Start as SecondoPL
+-test: Start as TestRunner
+-srv: Start as Server  (only SecondoBDB)
+
+Hence we need only to link the algebra libraries into one application
+instead of many of them. This speeds up linking. For convenicence and
+backward compatibility there are some shell scripts called
+
+SecondoTTYBDB, SecondoTTYCS, SecondoPL, SecondoPLCS, etc ...
+
+If CVS complains that one of these files needs to be removed then remove it.
+To be sure do a "make clean" and make EVERYTHING again.
+
+
 2006-01-09 A big change on the kernel of the system has been made
+===============================================================================
 
 - The algebra levels were removed. Since the descriptive level is
 implemented in the optimizer, it is not needed anymore. The kernel of

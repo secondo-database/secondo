@@ -22,26 +22,33 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //[_] [\_]
 
-\def\CC{C\raise.22ex\hbox{{\footnotesize +}}\raise.22ex\hbox{\footnotesize +}\xs
-pace}
-\centerline{\LARGE \bf  SecondoTTY}
+\vspace{1cm}
 
-\centerline{Friedhelm Becker , Dec1997}
+\centerline{\LARGE \bf  SecondoTTY}
 
 
 Changes:
 
+
+December 1997: Friedhelm Becker
+
 July 1999: Jose Antonio Cotelo Lema: changes in the code and interface of the
 Gettext() and getline() functions, to allow input commands of arbitrary size.
 
-Dec 2004, M. Spiekermann. The read in command lines will be separated by a "\\n"
-symbol, otherwise the parser can't calculate a position in terms of lines and cols. 
+Dec 2004, M. Spiekermann. The read in command lines will be separated by a
+"\\n" symbol, otherwise the parser can't calculate a position in terms of lines
+and cols. 
 
 July 2005, M. Spiekermann. Help message improved.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains.
+
+February 2006, M. Spiekermann reorganized the makefiles in order to save linking
+instructions. Now only two applications are built, namely ~SecondoBDB~ and ~SecondoCS~.
+The former known applications are replaced by shell scripts invoking one of the applications
+above with suitable paramaters.
 
 \begin{center}
 \footnotesize
@@ -76,6 +83,8 @@ using namespace std;
 #endif
 
 #include "Application.h"
+#include "TestRunner.h"
+
 #include "Profiles.h"
 #include "FileSystem.h"
 #include "SecondoSystem.h"
@@ -86,19 +95,18 @@ using namespace std;
 #include "CharTransform.h"
 #include "LogMsg.h"
 
-static const bool needIdent = false;
 
-class SecondoTTY : public Application
+
+class SecondoTTY : public Application 
 {
  public:
-  SecondoTTY( const int argc, const char** argv );
+  SecondoTTY( const TTYParameter& t );
   virtual ~SecondoTTY() {};
   bool AbortOnSignal( int sig );
   void Usage();
   void ProcessFile( const string& fileName );
   void ProcessCommand();
   void ProcessCommands();
-  bool CheckConfiguration();
   int  Execute();
   void ShowPrompt( const bool first );
   void TypeOutputList ( ListExpr list );
@@ -110,13 +118,14 @@ class SecondoTTY : public Application
   ListExpr CallSecondo();
   void CallSecondo2();
  private:
-  string            parmFile;
-  string            user;
-  string            pswd;
-  string            host;
-  string            port;
-  string            iFileName;
-  string            oFileName;
+  string parmFile;
+  string user;
+  string pswd;
+  string host;
+  string port;
+  string iFileName;
+  string oFileName;
+
   string            cmd;
   string            prompt;
   bool              isStdInput;
@@ -126,16 +135,17 @@ class SecondoTTY : public Application
   SecondoInterface* si;
 };
 
-SecondoTTY::SecondoTTY( const int argc, const char** argv )
-  : Application( argc, argv )
+SecondoTTY::SecondoTTY( const TTYParameter& t )
+  : Application( t.numArgs, (const char**)t.argValues )
 {
-  parmFile      = "";
-  user          = "";
-  pswd          = "";
-  host          = "";
-  port          = "";
-  iFileName     = "";
-  oFileName     = "";
+  parmFile = t.parmFile;
+  user = t.user;
+  pswd = t.pswd;
+  host = t.host;
+  port = t.port ;
+  iFileName = t.iFileName;
+  oFileName = t.oFileName;
+
   string cmd    = "";
   isStdInput    = true;
   quit          = false;
@@ -152,26 +162,28 @@ SecondoTTY::AbortOnSignal( int sig )
 void
 SecondoTTY::Usage()
 {
-  cout << "The following internal commands are available:" << endl << endl
-       << "  ?, HELP         - display this message" << endl
-       << "  @{FILE}         - read commands from file 'FILE'"
-       << " (may be nested)" << endl
-       << "  DEBUG {0|1|2}   - set debug level:" << endl
-       << "                      0   - debug and trace turned off" << endl
-       << "                      1   - debug mode (show annotated query and operator tree)" << endl
-       << "                      2   - debug and trace (show also type mapping and recursive calls)" << endl
-       << "                      3   - trace more (construction of nodes of the operator tree, " 
-       << "                              and execution of the query processors Eval method)" << endl
-       << "  Q, QUIT         - exit the program" << endl << endl
-       << "  # ...           - comment line (first character"
-       << " on line has to be '#')" << endl << endl
-       << "Additionally you may enter any valid SECONDO command." << endl
-       << "Internal commands are restricted to ONE line, while SECONDO"
-       << " commands may span" << endl
-       << "several lines; a semicolon as the last character on a line"
-       << " ends a command, but" << endl
-       << "is not part of the command, alternatively you may"
-       << " enter an empty line." << endl << endl;
+  stringstream cmdList;
+  cmdList << 
+  "The following internal commands are available:\n" << 
+  "\n" <<
+  "  ?, HELP  - display this message\n" <<
+  "  @{FILE}  - read commands from file 'FILE' (may be nested)\n" <<
+  "  DEBUG n  - set debug level to n, with\n" <<
+  "             0: debug and trace turned off\n" <<
+  "             1: debug mode (show annotated query and operator tree)\n" <<
+  "             2: debug and trace (show type mapping and rec. calls)\n" <<
+  "             3: trace more (construction of nodes of the op. tree,\n" <<
+  "                and execution of the query processors Eval method)\n" <<
+  "  Q, QUIT  - exit the program\n" <<
+  "  # ...    - comment line (first character on line has to be '#')\n" <<
+  "\n" <<
+  "Additionally you may enter any valid SECONDO command. Internal\n" <<
+  "commands are restricted to ONE line, while SECONDO commands may\n" << 
+  "span several lines; a semicolon as the last character on a line ends a\n" <<
+  "command, but is not part of the command, alternatively you may enter\n" <<
+  "an empty line.";
+
+  cout << cmdList.str() << endl << endl;
 }
 
 void
@@ -227,7 +239,10 @@ SecondoTTY::ProcessCommand()
   }
   else
   {
-    isQuery = (cmdWord == "QUERY" || cmdWord == "(QUERY" || cmdWord == "( QUERY");
+    isQuery = (    cmdWord == "QUERY" 
+                || cmdWord == "(QUERY" 
+                || cmdWord == "( QUERY" );
+
     CallSecondo2();
   }
 }
@@ -337,13 +352,13 @@ SecondoTTY::GetCommand()
      if(complete && (cmd.length()>0) && isStdInput){
         // get the last entry from the history if avaiable
         int noe = history_length;
-	string last = "";
-	if(noe){
+        string last = "";
+        if(noe){
            HIST_ENTRY* he = history_get(noe);
-	   if(he)
-	       last = string(he->line);
-	}
-	if(last!=cmd && (cmd.find_last_not_of(" \t\n")!=string::npos))
+           if(he)
+               last = string(he->line);
+        }
+        if(last!=cmd && (cmd.find_last_not_of(" \t\n")!=string::npos))
           add_history(cmd.c_str());
        }
   #endif
@@ -387,7 +402,8 @@ SecondoTTY::TypeOutputList ( ListExpr list )
 /*
 8 TypeOutputListFormatted
 
-TypeOutputList prints the result of a nonquery input (e. g. list) in formatted manner.
+TypeOutputList prints the result of a nonquery input (e. g. list) in formatted
+manner.
 
 */
 
@@ -544,7 +560,7 @@ SecondoTTY::CallSecondo2()
            nl->SymbolValue(nl->First(result)) == "inquiry"  )
       {
         TypeOutputListFormatted( nl->Second( result ));
-	//TypeOutputList( result );
+        //TypeOutputList( result );
       }
       else
       {
@@ -560,212 +576,14 @@ SecondoTTY::CallSecondo2()
   nl->initializeListMemory();
 }
 
-/*
-13 SecondoMain
-
-This is the function where everything is done. If one wants to use the
-sotrage manager provided by SHORE, one should struture its program
-like this. Since using SHORE makes necessary to be on top of a thread,
-we cannot just initiate the storage manager and then keep in the same
-function. Using SHORE we must use this workaround. Call the initiation
-method from the main function, and then we know that the functions
-SecondoMain will be "called back"
-
-*/
-
-/*
-1 CheckConfiguration
-
-This function checks the Secondo configuration. First it looks for the name
-of the configuration file on the command line. If no file name was given on
-the command line or a file with the given name does not exist, the environment
-variable SECONDO\_CONFIG is checked. If this variable is defined it should point
-to a directory where the configuration file can be found. If the configuration
-file is not found there, the current directory will be checked. If no configuration
-file can be found the program terminates.
-
-If a valid configuration file was found initialization continues.
-
-*/
-
-bool
-SecondoTTY::CheckConfiguration()
-{
-  bool ok = true;
-  int i = 1;
-  string argSwitch, argValue;
-  bool argOk;
-  while (i < GetArgCount())
-  {
-    argSwitch = GetArgValues()[i];
-    if ( i < GetArgCount()-1)
-    {
-      argValue  = GetArgValues()[i+1];
-      argOk = (argValue[0] != '-');
-    }
-    else
-    {
-      argValue = "";
-      argOk = false;
-    }
-    if ( argSwitch == "-?" || argSwitch == "--help" )  // Help
-    {
-      cout << "Usage: SecondoTTY{BDB|ORA|CS} [options]" << endl << endl
-           << "Options:"
-           << "                                             (Environment)"
-           << endl
-           << "  -c config  : Secondo configuration file"
-           << "            (SECONDO_CONFIG)" << endl
-           << "  -i input   : Name of input file  (default: stdin)" << endl
-           << "  -o output  : Name of output file (default: stdout)" << endl
-           << "  -u user    : User id"
-           << "                               (SECONDO_USER)" << endl
-           << "  -s pswd    : Password"
-           << "                              (SECONDO_PSWD)" << endl
-           << "  -h host    : Host address of Secondo server"
-           << "        (SECONDO_HOST)" << endl
-           << "  -p port    : Port of Secondo server"
-           << "                (SECONDO_PORT)" << endl << endl
-           << "Command line options overrule environment variables." << endl;
-      ok = false;
-      break;
-    }
-    else if ( argOk && argSwitch == "-c" )  // Configuration file
-    {
-      parmFile = argValue;
-    }
-    else if ( argOk && argSwitch == "-i" )  // Input file
-    {
-      iFileName = argValue;
-    }
-    else if ( argOk && argSwitch == "-o" )  // Output file
-    {
-      oFileName = argValue;
-    }
-    else if ( argOk && argSwitch == "-u" )  // User id
-    {
-      user = argValue;
-    }
-    else if ( argOk && argSwitch == "-s" )  // Password
-    {
-      pswd = argValue;
-    }
-    else if ( argOk && argSwitch == "-h" )  // Host
-    {
-      host = argValue;
-    }
-    else if ( argOk && argSwitch == "-p" )  // Port
-    {
-      port = argValue;
-    }
-    else
-    {
-      cout << "Error: Invalid option: '" << argSwitch << "'." << endl;
-      if ( argOk )
-      {
-        cout << "  having option value: '" << argValue << "'." << endl;
-      }
-      cout << "Use option -? or --help to get"
-           << " information about available options." << endl;
-      ok = false;
-    }
-    i++;
-    if ( argOk )
-    {
-      i++;
-    }
-  }
-  char* envValue;
-  if ( parmFile.length() == 0 )
-  {
-    envValue = getenv( "SECONDO_CONFIG" );
-    if ( envValue != 0 )
-    {
-      parmFile = envValue;
-    }
-  }
-  if ( user.length() == 0 )
-  {
-    envValue = getenv( "SECONDO_USER" );
-    if ( envValue != 0 )
-    {
-      user = envValue;
-    }
-  }
-  if ( pswd.length() == 0 )
-  {
-    envValue = getenv( "SECONDO_PSWD" );
-    if ( envValue != 0 )
-    {
-      pswd = envValue;
-    }
-  }
-  if ( host.length() == 0 )
-  {
-    envValue = getenv( "SECONDO_HOST" );
-    if ( envValue != 0 )
-    {
-      host = envValue;
-    }
-  }
-  if ( port.length() == 0 )
-  {
-    envValue = getenv( "SECONDO_PORT" );
-    if ( envValue != 0 )
-    {
-      port = envValue;
-    }
-  }
-  if ( needIdent ) // Is user identification needed?
-  {
-    int count = 0;
-    while (count <= 3 && user.length() == 0)
-    {
-      count++;
-      cout << "Enter user id: ";
-      getline( cin, user );
-    }
-    ok = user.length() > 0;
-    if ( !ok )
-    {
-      cout << "Error: No user id specified." << endl;
-    }
-    if ( ok && pswd.length() == 0 )
-    {
-      count = 0;
-      while (count <= 3 && user.length() == 0)
-      {
-        count++;
-        cout << "Enter password: ";
-        getline( cin, pswd );
-      }
-      if ( pswd.length() == 0 )
-      {
-        cout << "Error: No password specified." << endl;
-        ok = false;
-      }
-    }
-  }
-  else
-  {
-    user = "SECONDO";
-    pswd = "SECONDO";
-  }
-  if ( !ok )
-  {
-    cout << "Use option -? or --help to get information about"
-         << " available options." << endl;
-  }
-  return (ok);
-}
 
 /*
 1 Execute
 
-This function checks the configuration of the Secondo system. If the configuration
-seems to be ok the system is intialized. If the initialization succeeds the user
-commands are processed. If the initialization fails or the user finishes work
-the system is terminated.
+This function checks the configuration of the Secondo system. If the
+configuration seems to be ok the system is intialized. If the initialization
+succeeds the user commands are processed. If the initialization fails or the
+user finishes work the system is terminated.
 
 */
 
@@ -776,8 +594,6 @@ SecondoTTY::Execute()
   cout << endl
        << "*** Secondo TTY ***"
        << endl << endl;
-  if ( CheckConfiguration() )
-  {
     streambuf* oldInputBuffer  = 0;
     streambuf* oldOutputBuffer = 0;
     ifstream fileInput;
@@ -829,11 +645,6 @@ SecondoTTY::Execute()
     si->Terminate();
     delete si;
     cout << "SecondoTTY terminated." << endl;
-  }
-  else
-  {
-    rc = 1;
-  }
   return (rc);
 }
 
@@ -853,11 +664,11 @@ be NULL.
 char* keywords[] = { "abort", "algebra", "algebras", "begin", "commit",
                      "close", "constructors", "consume","count", "create",
                      "database", "databases", "DEBUG", "delete",
-		     "extend", "feed", "filter", "from",  "let", "list",
-		     "objects", "open", "operators", "query",
-		     "restore", "save", "SHOW", "transaction", "type",
-		     "types", "update",
-		     (char *)0 };
+                     "extend", "feed", "filter", "from",  "let", "list",
+                     "objects", "open", "operators", "query",
+                     "restore", "save", "SHOW", "transaction", "type",
+                     "types", "update",
+                     (char *)0 };
 
 
 /*
@@ -930,17 +741,9 @@ char** secondo_completion(const char* text, int start, int end){
 
 #endif
 
-
-/*
-14 main
-
-The main function creates the Secondo TTY application and starts its execution.
-
-*/
-int
-main( const int argc, const char* argv[] )
+int SecondoTTYMode(const TTYParameter& tp)
 {
-  SecondoTTY* appPointer = new SecondoTTY( argc, argv );
+  SecondoTTY* appPointer = new SecondoTTY( tp );
 #ifdef READLINE
   rl_initialize();
   rl_readline_name = "secondo";
@@ -969,12 +772,15 @@ main( const int argc, const char* argv[] )
      HIST_ENTRY* he;
      for(int i=0;i<history_length;i++){ // ignore quit
         he = history_get(i);
-	if(he)
-	   out_history << he->line << endl;
+        if(he)
+           out_history << he->line << endl;
      }
      out_history.close();
   }
 #endif
   return (rc);
-}
+} 
+
+
+
 
