@@ -17,31 +17,8 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-########################################################################
-#
-# SECONDO makefile for PointRectangle Algebra C++
-#
-########################################################################
 
-include ../../makefile.env
-
-MODNAME = TemporalAlgebra
-CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS) -I../Temporal -I../Spatial -I../Rectangle -I../Relation-C++
-
-.PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
-
-include $(DEP_FILES)
-
-$(LIBOBJ): $(OBJECTS)
-ifeq ($(shared),yes)
-# ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBOBJ) $(TUPLEMANAGER) -L$(LIBDIR) -lStandardAlgebra -lRelationAlgebra $(SMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
-else
-# ... as static library
-	$(AR) -r $(LIBOBJ) $(OBJECTS)
-endif
-
-.PHONY: clean
-clean:
-	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBOBJ)
+operator speed alias SPEED pattern op ( _ )
+operator queryrect2d alias QUERYRECT2D pattern op ( _ )
+operator point2d alias POINT2D pattern op ( _ )
+operator makemvalue alias MAKEMVALUE pattern _ op [ _ ]
