@@ -83,7 +83,6 @@ using namespace std;
 #endif
 
 #include "Application.h"
-#include "TestRunner.h"
 
 #include "Profiles.h"
 #include "FileSystem.h"
