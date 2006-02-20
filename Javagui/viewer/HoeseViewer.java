@@ -131,7 +131,7 @@ public class HoeseViewer extends SecondoViewer {
  /* settings-menu */
   private javax.swing.JMenu jMenuGui;
   private JMenuItem jMenuBackgroundColor;
-  private static boolean changeAllBackgrounds=true; 
+  private static boolean changeAllBackgrounds=false; 
   private javax.swing.JMenuItem MINewCat;
 
   private JMenu Menu_Prj;
