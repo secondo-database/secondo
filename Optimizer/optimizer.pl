@@ -4312,6 +4312,9 @@ by the symmjoin operator with a constant filter function which returns always tr
 This operator works well and has symmetric costs, whereas product has antisymmetric
 costs. 
 
+C. Duentgen, Feb/17/2006: changed tuple variable names for the sake of uniqueness
+                          (otherwise, a triple-product will crash). 
+
 */
 
 
@@ -4320,13 +4323,17 @@ translate(Select from Rel, Stream, Select, 0) :-
   makeStream(Rel, Stream), !.
 
 translate(Select from [Rel], Stream, Select, 0) :-
-  makeStream(Rel, Stream).
+  makeStream(Rel, Stream),
+  deleteVariables.
 
 translate(Select from [Rel | Rels], 
-            symmjoin(S1, S2, fun([param(t1, tuple), param(t2, tuple2)], true)), 
-            Select, 0) :-
+        symmjoin(S1, S2, fun([param(T1, tuple), param(T2, tuple2)], true)), 
+        Select, 0) :-
   makeStream(Rel, S1),
-  translate(Select from Rels, S2, Select, _).
+  translate(Select from Rels, S2, Select, _),
+  newVariable(T1),
+  newVariable(T2),
+  !.
 
 makeStream(Rel, feed(Rel)) :- Rel = rel(_, *, _), !.
 
@@ -5264,7 +5271,7 @@ rewriteQuery(Query, RewrittenQuery) :-
 
 rewriteQueryForInferenceOfPredicates(Query, RewrittenQuery) :-
   rewriteQueryForNonempty(Query, RQuery1),
-  rewriteQueryForInferredSubstituions(RQuery1, RewrittenQuery),
+  rewriteQueryForInferredSubstitutions(RQuery1, RewrittenQuery),
   dm(['\nAfter Step 1: Infer nonempty-predicates:\n', RQuery1,
       '\nAfter Step 2: Infer substitutions:\n', RewrittenQuery, '\n']).
 
@@ -5431,9 +5438,98 @@ replaced by equivalent, but cheaper ones.
 
 */
 
+% simple redundancy removement
+simplifyCondition([starts(X,Y), contains(X,Y)], [contains(X,Y)]).
 
-rewriteQueryForInferredSubstituions(Query, Query). % XRIS: Extend this
+simplifyCondition([X <= Y, X = Y], [X <= Y]).
+simplifyCondition([X <= Y, Y = X], [X <= Y]).
 
+simplifyCondition([X >= Y, X = Y], [X >= Y]).
+simplifyCondition([X >= Y, Y = X], [X >= Y]).
+
+simplifyCondition([X < Y, X # Y], [X # Y]).
+simplifyCondition([X < Y, Y # X], [X # Y]).
+
+simplifyCondition([X > Y, X # Y], [X # Y]). 
+simplifyCondition([X > Y, Y # X], [X # Y]). 
+
+simplifyCondition([X = X], [X = X]).
+
+simplifyCondition([X = Y, Y = X], [Y = X]).
+
+
+% replacements with inferred conditions
+% may need further processing 
+expandCondition([X >= Y, X <= Y], [X = Y]).
+expandCondition([X <= Y, X # Y], [X < Y]).
+expandCondition([X >= Y, X # Y], [X > Y]).
+expandCondition([not(isempty(atinstant(val(X),Y)))], [present(X,Y)]).
+
+% Conditions resulting in false 
+isFalseCondition(CondSet) :- 
+  (
+    member(false, CondSet)
+  ; subset([X, not(X)], CondSet)
+  ; subset([X > Y, X = Y], CondSet)
+  ; subset([X < Y, X = Y], CondSet)
+  ; subset([X < Y, X > Y], CondSet)
+  ; subset([X <= Y, X > Y], CondSet)
+  ; subset([X < Y, X >= Y], CondSet)
+  ; subset([X # Y, X = Y], CondSet)
+  ; subset([X # X], CondSet)
+  ),
+  write('\nYour where clause is syntactically equivalent to \'FALSE\'. \n'),
+  write('This makes no sense as the query will return an empty result.\n'),
+  write('Therefore, the query is canceled\n\n'),
+  !.
+
+
+simplifyOneCondition(In, Remove) :-
+  simplifyCondition(X,Remove),
+  subset(X,In).
+
+simplifyAllConditions(CondIn, SimpleConds) :-
+  findall(Out, simplifyOneCondition(CondIn,Out), RemoveList),
+  flatten(RemoveList,FlatRemoveList),
+  list_to_set(FlatRemoveList,RemoveSet),
+  subtract(CondIn, RemoveSet, SimpleConds).
+
+analyseConditions(ConditionsIn,WhereOut):-
+%  doAllExpansions(ConditionsIn,ConditionsOut),
+  not(isFalseCondition(ConditionsIn)),
+  simplifyAllConditions(ConditionsIn,WhereOut).
+
+%%%%%%
+
+rewriteQueryForInferredSubstitutions(QIn, QIn) :-
+  % case: no where clause
+  QIn = from(select(_),WhereClause),
+  WhereClause \= where(_,_).
+
+rewriteQueryForInferredSubstitutions(QIn, QOut) :-
+  % case: non-empty where clause
+  QIn = from(select(SelClause),where(Rels,WhereIn)),
+  analyseConditions(WhereIn,WhereOut),
+  QOut = from(select(SelClause),where(Rels,WhereOut)).
+
+% Special cases: ordering and grouping clauses can be ignored
+rewriteQueryForInferredSubstitutions(Query, RewrittenQuery) :-
+  Query = first(Query2, X),
+  rewriteQueryForInferredSubstitutions(Query2, RewrittenQuery2),
+  RewrittenQuery = first(RewrittenQuery2,X),
+  !.
+
+rewriteQueryForInferredSubstitutions(Query, RewrittenQuery) :-
+  Query = orderby(Query2, X),
+  rewriteQueryForInferredSubstitutions(Query2, RewrittenQuery2),
+  RewrittenQuery = orderby(RewrittenQuery2,X),
+  !.
+
+rewriteQueryForInferredSubstitutions(Query, RewrittenQuery) :-
+  Query = groupby(Query2, X),
+  rewriteQueryForInferredSubstitutions(Query2, RewrittenQuery2),
+  RewrittenQuery = groupby(RewrittenQuery2,X),
+  !.
 
 /*
 
@@ -5481,7 +5577,8 @@ rewriteQueryForRedundancy(Query, RewrittenQuery) :-
   !.
 
 rewriteQueryForRedundancy(Query,Query).
-  
+
+
 /*
 
 14.3 Handle Common SubExpressions (CSEs)
@@ -5581,10 +5678,12 @@ as a sub-expression.
 :- dynamic(storedExpressionLabel/3),
    reset_gensym. % reset unique identifier generator
 
+% delete table of label-term associations
 retractExpressionLabels :-
   retractall(storedExpressionLabel(_, _, _)),
   reset_gensym. % reset unique identifier generator
 
+% print a table of all stored term-label associations
 showExpressionLabel :-
   storedExpressionLabel(Expr,Label,LevelList),
   write(' '), write(Label), write('   '), write(LevelList), 
@@ -5596,8 +5695,25 @@ showExpressionLabels :-
   findall(_,showExpressionLabel,_),
   nl.
   
-getExpressionLabel(Node, Label, Level) :-
-  storedExpressionLabel(Node, Label, LevelList), % this is a CSE
+% succeeds, if Expr1 = Expr2 or (Expr1 = attr(X,_,Y) and Expr2 = attr(X,_Y))
+compareExpression(Expr1,Expr1) :- !.
+compareExpression(attr(X,_,Y),attr(X,_,Y)) :- !.
+compareExpression(Expr1,Expr2) :- 
+  Expr1 =.. [Op|Args1],
+  Expr2 =.. [Op|Args2],
+  compareExpression2(Args1,Args2),
+  !.
+compareExpression2([],[]).
+compareExpression2([M1|O1],[M2|O2]) :- 
+  compareExpression(M1,M2),
+  compareExpression2(O1,O2),
+  !.
+
+% return the label associated with a known Node, or create a new association 
+% and return that new label 
+getExpressionLabel(Node1, Label, Level) :-
+  storedExpressionLabel(Node2, Label, LevelList), 
+  compareExpression(Node1,Node2),                  % this is a CSE
   retractall(storedExpressionLabel(Node, _, _)),
   !,
   assert(storedExpressionLabel(Node, Label, [Level|LevelList])).
@@ -5608,7 +5724,7 @@ getExpressionLabel(Node, Label, Level) :-
   !,
   assert(storedExpressionLabel(Node, Label, [Level])).
 
-
+% mark a list of arguments
 markNode1([],[], _).            % nothing to do
 markNode1([Me|Others],[MeMarked|OthersMarked],Level) :-
     markNode1(Others, OthersMarked,Level),
@@ -5665,8 +5781,8 @@ baseAttributes(Label,RecList) :-
   !.
 
 baseAttributes(Term,[Term]) :- 
-    atom(Term)
-  ; Term = :(_,_),
+    atom(Term)     % attribute or secondo object
+  ; Term = :(_,_), % renamed attribute
   !.
 
 baseAttributes(Term,[]) :- 
