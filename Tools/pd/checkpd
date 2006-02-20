@@ -64,6 +64,7 @@ LATEXFAILED=0
 LINEFAILED=0
 NOTFOUND=0
 TABCONTAMINATED=0
+TABSYM=$(echo -e "\t")
 
 for F in $MYFILES
 do
@@ -71,7 +72,7 @@ do
       NOTFOUND=$(expr "$NOTFOUND" + 1)
    else
       PROCESSED=$(expr "$PROCESSED" + 1)
-      grep -n "	" "$F"  
+      grep -n "$TABSYM" "$F"  
       if [ $? -eq 0 ]; then
         echo -e "Warning: $F contains $TABS tabulators\n"
         TABCONTAMINATED=$(expr "$TABCONTAMINATED" + 1)
