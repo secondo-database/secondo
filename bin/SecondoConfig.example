@@ -170,7 +170,8 @@ RTFlags += DEBUG:DemangleStackTrace
 
 [BerkeleyDB]
 # Name of the executable of the Secondo server program
-ServerProgram=SecondoServerBDB
+ServerProgram=SecondoBDB
+#ServerProgram=SecondoServerBDB
 
 # Name of the executable of the Berkeley DB checkpoint program
 CheckpointProgram=SecondoCheckpoint
