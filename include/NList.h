@@ -85,7 +85,7 @@ class NListErr {
 };
 
 
-#define CHECK(n) {if (n>0 && length()<n) { 
+#define CHECK(n) {if (n>0 && length()<n) { \
         throw NListErr("Element "#n" not in list!"); } }
 
 class NList {
