@@ -15,11 +15,12 @@ if ! source ./libutil.sh; then exit 1; fi
 
 printf "\n%s\n" "Running tests in ${buildDir}."
 
-runnerCmd="TestRunnerApp"
+runnerCmd="SecondoBDB"
 if ! isCmdPresent $runnerCmd; then
   printf "\n%s\n" "Sorry, command $runnerCmd not present."
   exit 1;
 fi
+runnerCmd="$runnerCmd -test"
 
 failedFileInfoDir=$1
 failedTests=""
@@ -44,7 +45,7 @@ function runTest() {
   fi
 
   echo -e "\n Running $testName in $runDir"
-  echo -e "\n $runCmd "
+  echo -e "\n $runCmd"
   cd $runDir
   timeOut $waitSeconds $runCmd > ${logFile} 2>&1
 

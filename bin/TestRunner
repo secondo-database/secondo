@@ -12,9 +12,9 @@ export SECONDO_PARAM_SecondoHome="$tempDir"
 # check if nice command is present
 ncmd=$(which nice)
 if [ $? -ne 0 ]; then
-  TestRunnerApp $*
+  SecondoBDB -test $*
 else
-  nice -n 19 TestRunnerApp $*
+  nice -n 19 SecondoBDB -test $*
 fi
 
 rm -rf $tempDir
