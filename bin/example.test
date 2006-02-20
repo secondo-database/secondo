@@ -96,9 +96,8 @@ query staedte feed count;
 
 query Staedte count;
 
-#    testcase sumOfStaedte
-
-#     yields (int 3490000)
+# testcase sumOfStaedte
+# yields (int 3490000)
 query staedte feed sum[Bev]
 
 #testcase 
@@ -108,8 +107,8 @@ query Staedte feed avg[Bev]
 # directives can be continued by placing a backslash at the end
 # of the line
 
-#    testcase StaedteQuery
-#     yields ((rel(tuple((SName string)(Bev int)(PLZ int)\
+# testcase StaedteQuery
+# yields ((rel(tuple((SName string)(Bev int)(PLZ int)\
 	(Vorwahl string)(Kennzeichen string))))\
 		(("Aachen" 239000 5100 "0241" "AC")\
 		("Dortmund" 572000 4600 "0231" "DO")\
@@ -124,11 +123,18 @@ query Staedte feed avg[Bev]
 		("Wuppertal" 377000 5600 "0202" "W")))
 query staedte;
 
+# In order to specify big result lists you may specify a
+# result file by @<file>, for example
+ 
+# testcase StaedteQuery2
+# yields @staedte
+query staedte;
+
 # you do not have to specify a complete result in a YIELD
 # directive, you may also just specify that a command suceeds
 
-#    testcase StaedteQuery2
-#     yields     success          
+#testcase StaedteQuery2
+#yields success          
 query staedte feed avg[Bev];
 
 #testcase query a constant value 
@@ -144,7 +150,7 @@ query staedte feed avg[Bev];
 # Hence it was commented out, but the bug was not fixed !!!
 #
 #Testcase UnexpectedError
-#Yields success
+#yields success
 #query staedte feed;
 
 #testcase UnexpectedSuccess
@@ -155,6 +161,31 @@ query staedte feed;
 #yields (int 11)
 query staedte feed consume count;
 
+# For floating point values it may be sufficient if the result
+# is aprroximately correct. Therefore a tolerance can be specified
+# either as relative or as absolute abberration. The tolerance will
+# be defined until it is reset by ~tolerance_real 0.0~ 
+
+
+# First we compute 10 / 3.14 ~ 3.1847133758
+# we allow a deviation in the 4th value behind the period
+# by setting
+#
+# tolerance_real 0.0009
+#
+# hence the following test will be correct
+
+#testcase FloatingPoint1
+# yields (real 3.184)
+query 10 / 3.14 
+
+
+# An unspecified yields definition will result in an error
+# for example
+
+#testcase FloatingPoint4
+# yields 3.184
+query 10 / 3.14 
 
 # the TEARDOWN directive is followed by commands which
 # should be executed after the execution of all TESTCASES
