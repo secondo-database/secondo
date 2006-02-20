@@ -59,8 +59,17 @@ ToLowerProperFunction(char c)
 
 /*
 The class below can be used as a manipulator in streams:
-os << tab(5, 'x') will create "xxxxx". Without parameters
-the default tab(4, ' ') will be used.
+
+----
+os << tab(5, 'x')} will create "xxxxx". 
+----
+
+Without parameters the default 
+
+----
+tab(4, ' '}
+----
+will be used.
 
 */
 
@@ -86,7 +95,7 @@ ostream& operator << (ostream& os, const tab& f);
 
 /*
 The class below can be used as manipulator in streams. If the
-runtime flag "CMSG:Color" is set os << color(red) will return
+runtime flag "CMSG:Color" is set $os << color(red)$ will return
 a escape sequence which switches to color red on "some" terminals.
 Without the flag an empty string will be returned. 
 
@@ -138,6 +147,32 @@ ostream& operator << (ostream& os, const color& c);
 
 
 /*
+The templates below can be used to extract numbers or the next
+word out of a string or input stream by ignoring white spaces. 
+For example: 
+
+----
+parse<double>("\t\n\n 0.005") => 0.005 
+----  
+
+*/
+
+template<class T>
+inline T parse(istream& is)
+{
+  T v;
+  is >> v;
+  return v;
+}
+
+template<class T>
+inline T parse(const string& s) 
+{
+  istringstream is(s);
+  return parse<T>(is);
+}
+
+/*
 The function below checks if a string contains only white space
 characters or if it is empty.
 
@@ -146,7 +181,102 @@ characters or if it is empty.
 inline bool 
 isSpaceStr(const string& s)
 {
-  return s.find_first_not_of(" \t\v\n") == string::npos; 
+  return s.find_first_not_of(" \t\v\n\r") == string::npos; 
+}
+
+inline size_t
+firstNonSpace(const string& s)
+{
+  return s.find_first_not_of(" \t\v\n\r"); 
+}
+
+inline string removeNewLines(const string& s)
+{
+  string result=s;
+
+  size_t end = s.size();
+  size_t p1 = 0;
+  size_t p2 = 0;
+
+  while (p1 < end)
+  {
+    p2 = result.find_first_of('\n',p1);
+
+    if (p2 != string::npos)
+      result.erase(p2,1);    
+
+    p1 = p2;
+  }  
+  return result;  
+}
+
+
+inline string
+wordWrap( const int indent1, const int indent2, 
+          const int textwidth, const string& s )
+{
+  static const string wrapChars(" ,.!?;)");
+  string indent1Str = "";
+  string indent2Str = string(indent2,' ');
+  string& indentStr = indent1Str;
+
+  string text = removeNewLines(s);
+
+  // usable width for the first line
+  size_t len = textwidth - indent1;
+  int lines = 1;
+  
+  string result="";
+  size_t end = text.size();
+  size_t p1 = 0;
+  
+  while ( p1 < end )
+  {
+    if (lines > 1) {
+      len = textwidth - indent2;
+      indentStr = indent2Str;
+    }  
+
+    string substr="";
+    if ( (end - p1) <= len) // check if rest fits
+    {    
+      substr = text.substr(p1,len);
+      p1 = end; 
+    }
+    else
+    {    
+    // search next wrap position    
+    size_t p2 = text.find_last_of(wrapChars, p1+len);
+
+    if (p2 == string::npos) // force wrap
+    {
+       substr = text.substr(p1,len);
+    }  
+    else
+    {
+       assert( p2 <= (p1+len) );    
+       substr = text.substr(p1,p2-p1);
+    }
+    lines++;
+    p1 = p2+1;
+    }
+    result += indentStr + substr + "\n";    
+  }
+  return result;
+}
+
+
+inline string
+wordWrap(const string& s1, const int textwidth, const string& s2)
+{
+  return s1 + wordWrap( s1.size(), s1.size(), textwidth, s2);
+}
+
+inline string
+wordWrap( const string& s1, const int indent2, 
+          const int textwidth, const string& s2 )
+{
+  return s1 + wordWrap( s1.size(), indent2, textwidth, s2);
 }
 
 /*
@@ -157,11 +287,19 @@ for trimming can be defined.
 */
 
 inline string trim(const string& s, const string& ext="")
-{	
+{
   static const string ignoreChars=" \n\r\a\b\f\t\v"+ext;
   size_t start = s.find_first_not_of(ignoreChars);
   size_t end = s.find_last_not_of(ignoreChars);
-  return s.substr(start,end-start+1);
+  
+  if (start != string::npos && end != string::npos)
+    return s.substr(start,end-start+1);
+  if (start == string::npos && end != string::npos)
+    return s.substr(0, end+1);  
+  if (start != string::npos && end == string::npos)
+    return s.substr(start);  
+
+  return s;  
 }
 
 inline bool expandVarRef(string& s)
@@ -193,6 +331,7 @@ inline string expandVar(const string& s)
   return t; 
 }
 
+
 class SpecialChars {
 
 public:
@@ -211,6 +350,8 @@ public:
   {}
 
 };
+
+
 
 
 #endif /* CHAR_TRANSFORM_H */
