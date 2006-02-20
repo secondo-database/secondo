@@ -71,8 +71,8 @@ do
       NOTFOUND=$(expr "$NOTFOUND" + 1)
    else
       PROCESSED=$(expr "$PROCESSED" + 1)
-      TABS=$(grep "	" "$F" | wc -l )
-      if [ $TABS -gt 0 ]; then
+      grep -n "	" "$F"  
+      if [ $? -eq 0 ]; then
         echo -e "Warning: $F contains $TABS tabulators\n"
         TABCONTAMINATED=$(expr "$TABCONTAMINATED" + 1)
       fi
@@ -102,16 +102,16 @@ do
              LATEXFAILED=$(expr "$LATEXFAILED" + 1)
            fi
         else
-           linecheck "$MAXLINES" $F >/dev/null
-           CL="$?"
-           if [ "$CL" -ne 0 ]; then
-              if [ "$STRONG" == "true" ]; then
-                 echo -e "Error: $CL lines too long in \"$F\""
-              else
-                 echo -e "Warning: $CL lines too long in \"$F\""
-              fi
-              LINEFAILED=$(expr "$LINEFAILED" + 1)
-           fi
+            linecheck "$MAXLINES" $F
+            CL="$?"
+            if [ "$CL" -ne 0 ]; then
+               if [ "$STRONG" == "true" ]; then
+                  echo -e "Error: $CL lines too long in \"$F\""
+               else
+                  echo -e "Warning: $CL lines too long in \"$F\""
+               fi
+               LINEFAILED=$(expr "$LINEFAILED" + 1)
+            fi
         fi
         rm -f $TEMPDIR/*.dvi $TEMPDIR/*.log $TEMPDIR/*.aux $TEMPDIR/*.tmp $TEMPDIR/*.toc $TEMPDIR/tmp.tex
       fi
