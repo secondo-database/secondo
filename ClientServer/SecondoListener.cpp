@@ -42,7 +42,9 @@ const int EXIT_LISTENER_FAIL     = 5;
 class SecondoListener : public Application
 {
  public:
-  SecondoListener( const int argc, const char** argv ) : Application( argc, argv, false ) {};
+  SecondoListener( const int argc, const char** argv ) : 
+    Application( argc, argv, false ) 
+  {};
   virtual ~SecondoListener() {};
   int  Execute();
   bool ClientAllowed();
@@ -79,19 +81,28 @@ SecondoListener::Execute()
   parmFile = (GetArgCount() > 1) ? GetArgValues()[1] : "SecondoConfig.ini";
 
   // --- Load ruleSet
-  string rulePolicy = SmiProfile::GetParameter( "Environment", "RulePolicy", "ALLOW", parmFile );
-  transform( rulePolicy.begin(), rulePolicy.end(), rulePolicy.begin(), ToUpperProperFunction );
-  SocketRule::Policy policy = (rulePolicy == "ALLOW") ? SocketRule::ALLOW : SocketRule::DENY;
+  string rulePolicy = SmiProfile::GetParameter( "Environment", 
+                                                "RulePolicy", 
+                                                "ALLOW", parmFile );
+  
+  transform( rulePolicy.begin(), rulePolicy.end(), rulePolicy.begin(), 
+             ToUpperProperFunction );
+  
+  SocketRule::Policy policy = (rulePolicy == "ALLOW") ? SocketRule::ALLOW 
+                                                      : SocketRule::DENY;
   SocketRuleSet ipRules( policy );
-  string ruleSetFile = SmiProfile::GetParameter( "Environment", "RuleSetFile", "", parmFile );
+  string ruleSetFile = SmiProfile::GetParameter( "Environment", 
+                                                 "RuleSetFile", "", parmFile );
   if ( ruleSetFile != "" )
   {
     ipRules.LoadFromFile( ruleSetFile );
   }
 
   // --- Get host and port of Secondo server
-  string host = SmiProfile::GetParameter( "Environment", "SecondoHost", "", parmFile );
-  string port = SmiProfile::GetParameter( "Environment", "SecondoPort", "", parmFile );
+  string host = SmiProfile::GetParameter( "Environment", 
+                                          "SecondoHost", "", parmFile );
+  string port = SmiProfile::GetParameter( "Environment", 
+                                          "SecondoPort", "", parmFile );
 
   if ( host.length() == 0 || port.length() == 0 )
   {
@@ -100,7 +111,8 @@ SecondoListener::Execute()
 
   // --- Get name of client server program
   string section = (GetArgCount() > 2) ? GetArgValues()[2] : "BerkeleyDB";
-  string server  = SmiProfile::GetParameter( section, "ServerProgram", "", parmFile );
+  string server  = SmiProfile::GetParameter( section, "ServerProgram", 
+                                             "", parmFile );
   if ( server.length() == 0 )
   {
     return (EXIT_LISTENER_NOSERVER);
@@ -126,7 +138,7 @@ SecondoListener::Execute()
         {
           // --- Spawn server for client
           int pidServer;
-          string pgmArgs = string( "\"" ) + parmFile + "\""; 
+          string pgmArgs = string( "\"-srv\" \"" ) + parmFile + "\""; 
           if ( !ProcessFactory::SpawnProcess( server, pgmArgs,
                                               pidServer, true, client ) )
           {
@@ -150,7 +162,8 @@ SecondoListener::Execute()
              << "</SecondoError>" << endl;
           client->Close();
           delete client;
-          string errmsg = string( "Client '" ) + client->GetPeerAddress() + "' not allowed.";
+          string errmsg = string( "Client '" ) + client->GetPeerAddress() 
+                          + "' not allowed.";
           LogMessage( errmsg );
         }
       }
@@ -177,4 +190,3 @@ int main( const int argc, const char* argv[] )
   delete appPointer;
   return (rc);
 }
-

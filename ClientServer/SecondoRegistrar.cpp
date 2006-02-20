@@ -44,7 +44,9 @@ typedef void (SecondoRegistrar::*ExecCommand)();
 class SecondoRegistrar : public Application
 {
  public:
-  SecondoRegistrar( const int argc, const char** argv ) : Application( argc, argv, false ) {};
+  SecondoRegistrar( const int argc, const char** argv ) : 
+    Application( argc, argv, false ) 
+  {};
   virtual ~SecondoRegistrar() {};
   int Execute();
   bool AbortOnSignal( int sig );
@@ -347,7 +349,8 @@ SecondoRegistrar::Execute()
   {
     parmFile = "SecondoConfig.ini";
   }
-  string msgQueue = SmiProfile::GetParameter( "Environment", "RegistrarName", "SECONDO_REGISTRAR", parmFile );
+  string msgQueue = SmiProfile::GetParameter( "Environment", "RegistrarName", 
+                                              "SECONDO_REGISTRAR", parmFile   );
   msgSocket = Socket::CreateLocal( msgQueue );
   if ( msgSocket->IsOk() )
   {

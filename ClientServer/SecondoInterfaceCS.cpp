@@ -88,15 +88,20 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     cout << "Initializing the Secondo system ..." << endl;
 
     // initialize runtime flags
-		InitRTFlags(parmFile);
+    InitRTFlags(parmFile);
 
     // Connect with server, needed host and port
     if ( secHost.length() == 0 || secPort.length() == 0 )
     {
       if ( parmFile.length() != 0 )
       {
-        secHost = SmiProfile::GetParameter( "Environment", "SecondoHost", "", parmFile );
-        secPort = SmiProfile::GetParameter( "Environment", "SecondoPort", "", parmFile );
+        secHost = SmiProfile::GetParameter( "Environment", 
+                                            "SecondoHost", 
+                                            "", parmFile );
+        
+        secPort = SmiProfile::GetParameter( "Environment", 
+                                            "SecondoPort", 
+                                            "", parmFile );
       }
     }
     if ( secHost.length() > 0 && secPort.length() > 0 )
@@ -197,7 +202,7 @@ SecondoInterface::Secondo( const string& commandText,
                            int& errorCode,
                            int& errorPos,
                            string& errorMessage,
-                           const string& resultFileName /* = "SecondoResult" */ )
+                           const string& resultFileName /*="SecondoResult"*/)
 {
 /*
 ~Secondo~ reads a command and executes it; it possibly returns a result.
@@ -340,8 +345,8 @@ If value 0 is returned, the command was executed without error.
   }
   else if ( posSave != string::npos && // save object to filename
             posTo   != string::npos &&
-	    posDatabase == string::npos &&                        
-	    posSave < posTo )
+            posDatabase == string::npos &&                        
+            posSave < posTo )
   {
     if ( commandType == 1 )
     {
@@ -352,16 +357,16 @@ If value 0 is returned, the command was executed without error.
       if ( nl->ListLength( list ) == 4 &&
            nl->IsEqual( nl->First( list ), "save" ) &&
            nl->IsAtom( nl->Second( list )) &&
-	  (nl->AtomType( nl->Fourth( list )) == SymbolType) &&
+          (nl->AtomType( nl->Fourth( list )) == SymbolType) &&
            nl->IsEqual( nl->Third( list ), "to" ) &&
            nl->IsAtom( nl->Fourth( list )) && 
           (nl->AtomType( nl->Fourth( list )) == SymbolType) )
       {
         filename = nl->SymbolValue( nl->Fourth( list ) );
-	objName = nl->SymbolValue( nl->Second( list ) );
+        objName = nl->SymbolValue( nl->Second( list ) );
         iosock << "<ObjectSave>" << endl
                << filename << endl
-	       << objName << endl
+               << objName << endl
                << "</ObjectSave>" << endl;
         getline( iosock, line );
         if ( line == "<ReceiveFile>" )
@@ -554,40 +559,45 @@ If value 0 is returned, the command was executed without error.
     if ( line == "<SecondoResponse>" )
     {
       bool success = false;
-      if ( !RTFlag::isActive("Server:BinaryTransfer") ) { // textual data transfer
-	do
-	{
-	  getline( iosock, line );
-	  if ( line != "</SecondoResponse>" )
-	  {
-	    result += line + "\n";
-	  }
-	}
-	while (line != "</SecondoResponse>" && !iosock.fail());      
-	nl->ReadFromString( result, resultList );
+      
+      if ( !RTFlag::isActive("Server:BinaryTransfer") ) { 
+        // textual data transfer
+        do
+        {
+          getline( iosock, line );
+          if ( line != "</SecondoResponse>" )
+          {
+            result += line + "\n";
+          }
+        }
+        while (line != "</SecondoResponse>" && !iosock.fail());      
+        nl->ReadFromString( result, resultList );
         success = true;
-	
+        
       } else { // binary data transfer
       
-	nl->ReadBinaryFrom(iosock, resultList);
+        nl->ReadBinaryFrom(iosock, resultList);
         ofstream outFile("TTYCS.bnl");
         nl->WriteBinaryTo(resultList, outFile);
-	getline( iosock, line );
-	if (line != "</SecondoResponse>" ) {
-	  cerr << "Error: No </SecondoResponse> found after receiving a binary list!" << endl;
-	  errorCode = ERR_IN_SECONDO_PROTOCOL;
+        getline( iosock, line );
+        if (line != "</SecondoResponse>" ) {
+          cerr << "Error: No </SecondoResponse> found after "
+               << "receiving a binary list!" << endl;
+          errorCode = ERR_IN_SECONDO_PROTOCOL;
           resultList = nl->TheEmptyList();
-	} else {
+        } else {
           success = true;
         }  
       }  
         if (success) {
-      	  errorCode = nl->IntValue( nl->First( resultList ) );
-	  errorPos  = nl->IntValue( nl->Second( resultList ) );
-	  TextScan ts = nl->CreateTextScan( nl->Third( resultList ) );
-	  nl->GetText( ts, nl->TextLength( nl->Third( resultList ) ), errorMessage );
-	  nl->DestroyTextScan( ts );
-	  resultList = nl->Fourth( resultList );
+          errorCode = nl->IntValue( nl->First( resultList ) );
+          errorPos  = nl->IntValue( nl->Second( resultList ) );
+          TextScan ts = nl->CreateTextScan( nl->Third( resultList ) );
+          nl->GetText( ts, nl->TextLength( nl->Third( resultList ) ), 
+                       errorMessage );
+
+          nl->DestroyTextScan( ts );
+          resultList = nl->Fourth( resultList );
         }
     }
     else if ( line == "<SecondoError>" )

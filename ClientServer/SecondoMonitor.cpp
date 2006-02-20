@@ -91,17 +91,18 @@ SecondoMonitor::AbortOnSignal( int sig )
 void
 SecondoMonitor::Usage()
 {
-  cout << "The following commands are available:" << endl << endl
-       << "  ?, HELP        - display this message" << endl
-       << "  STARTUP        - start up the Secondo Listener" << endl
-       << "  SHUTDOWN       - shut down the Secondo Listener" << endl
-       << "  SHOW {OPTION}  - show system status information" << endl
-       << "                   OPTION = { LOG | USERS | DATABASES | LOCKS }" << endl
-       << "                     LOG        - new log file entries" << endl
-       << "                     USERS      - currently connected users" << endl
-       << "                     DATABASES  - databases currently in use" << endl
-       << "                     LOCKS      - databases currently locked" << endl
-       << "  QUIT           - shut down (if necessary) and exit" << endl << endl;
+  cout 
+  << "The following commands are available:" << endl << endl
+  << "  ?, HELP        - display this message" << endl
+  << "  STARTUP        - start up the Secondo Listener" << endl
+  << "  SHUTDOWN       - shut down the Secondo Listener" << endl
+  << "  SHOW {OPTION}  - show system status information" << endl
+  << "                   OPTION = { LOG | USERS | DATABASES | LOCKS }" << endl
+  << "                     LOG        - new log file entries" << endl
+  << "                     USERS      - currently connected users" << endl
+  << "                     DATABASES  - databases currently in use" << endl
+  << "                     LOCKS      - databases currently locked" << endl
+  << "  QUIT           - shut down (if necessary) and exit" << endl << endl;
 }
 
 void
@@ -110,9 +111,13 @@ SecondoMonitor::ExecStartUp()
   if ( !running )
   {
     cout << "Startup in progress ... ";
-    string pgmListener = SmiProfile::GetParameter( "Environment", "ListenerProgram", "", parmFile );
+    string pgmListener = SmiProfile::GetParameter( "Environment", 
+                                                   "ListenerProgram", 
+                                                   "", parmFile );
+
     string pgmArgs = string( "\"" ) + parmFile + "\"";
-    if ( ProcessFactory::SpawnProcess( pgmListener, pgmArgs, pidListener, true ) )
+    if ( ProcessFactory::SpawnProcess( pgmListener, pgmArgs, 
+                                       pidListener, true )   )
     {
       cout << "completed." << endl;
       running = true;
@@ -139,7 +144,8 @@ SecondoMonitor::ExecShutDown()
     cout << "completed." << endl;
     int status = 0;
     ProcessFactory::GetExitCode( pidListener, status );
-    cout << "Secondo Listener terminated with return code " << status << "." << endl;
+    cout << "Secondo Listener terminated with return code " 
+         << status << "." << endl;
     running = false;
   }
   else
@@ -154,7 +160,9 @@ SecondoMonitor::ExecShow()
   string cmd, cmdword, cmdrest, answer;
   cin >> cmdword;
   getline( cin, cmdrest );
-  transform( cmdword.begin(), cmdword.end(), cmdword.begin(), ToUpperProperFunction );
+  transform( cmdword.begin(), cmdword.end(), 
+             cmdword.begin(), ToUpperProperFunction );
+
   if ( cmdword != "USERS"     && cmdword != "LOCKS" &&
        cmdword != "DATABASES" && cmdword != "LOG" )
   {
@@ -168,7 +176,10 @@ SecondoMonitor::ExecShow()
   else if ( cmdword == "DATABASES" ) cmd = "SHOWDATABASES";
   else if ( cmdword == "LOCKS"     ) cmd = "SHOWLOCKS";
  
-  string regName = SmiProfile::GetParameter( "Environment", "RegistrarName", "SECONDO_REGISTRAR", parmFile );
+  string regName = SmiProfile::GetParameter( "Environment", 
+                                             "RegistrarName", 
+                                             "SECONDO_REGISTRAR", parmFile );
+
   Socket* msgClient = Socket::Connect( regName, "", Socket::SockLocalDomain );
   if ( msgClient && msgClient->IsOk() )
   {
@@ -271,7 +282,8 @@ SecondoMonitor::ProcessCommands()
     }
     if ( Application::Instance()->ShouldAbort() )
     {
-      cout << "*** Termination signal received, please shutdown and quit immediately!" << endl;
+      cout << "*** Termination signal received, please shutdown "
+           << " and quit immediately!" << endl;
       ExecQuit();
     }
   }
@@ -322,7 +334,8 @@ SecondoMonitor::CheckConfiguration()
     }
     if ( !found )
     {
-      cout << "Searching current directory for configuration file ..." << endl;
+      cout << "Searching current directory for configuration file ..."
+           << endl;
       string cwd = FileSystem::GetCurrentFolder();
       FileSystem::AppendSlash( cwd );
       parmFile = cwd + "SecondoConfig.ini";
@@ -341,55 +354,49 @@ SecondoMonitor::CheckConfiguration()
   if ( found )
   {
     string value, foundValue;
-    if ( SmiProfile::GetParameter( "Environment", "SecondoHome", "", parmFile ) == "")
+    if ( SmiProfile::GetParameter( "Environment", 
+                                   "SecondoHome", "", parmFile ) == "" )
     {
       cout << "Error: Secondo home directory not specified." << endl;
       found = false;
     }
-    if ( SmiProfile::GetParameter( "Environment", "SecondoHost", "", parmFile ) == "" ||
-         SmiProfile::GetParameter( "Environment", "SecondoPort", "", parmFile ) == "" )
+    if ( SmiProfile::GetParameter( "Environment", 
+                                   "SecondoHost", "", parmFile ) == "" ||
+         SmiProfile::GetParameter( "Environment", 
+                                   "SecondoPort", "", parmFile ) == ""    )
     {
       cout << "Error: Secondo host and/or port not specified." << endl;
       found = false;
     }
     if ( smiType == SmiEnvironment::SmiBerkeleyDB )
     {
-      value = SmiProfile::GetParameter( "BerkeleyDB", "ServerProgram", "", parmFile );
+      value = SmiProfile::GetParameter( "BerkeleyDB", 
+                                        "ServerProgram", "", parmFile );
+      
       if ( value == "" || !FileSystem::SearchPath( value, foundValue ) )
       {
         cout << "Error: Server program '" << value << "' not found." << endl;
         found = false;
       }
-    }
-    else if ( smiType == SmiEnvironment::SmiOracleDB )
-    {
-      if ( SmiProfile::GetParameter( "OracleDB", "ConnectString", "", parmFile ) == "" ||
-           SmiProfile::GetParameter( "OracleDB", "SecondoUser", "", parmFile ) == "" ||
-           SmiProfile::GetParameter( "OracleDB", "SecondoPswd", "", parmFile ) == "" )
-      {
-        cout << "Error: Oracle connect parameters incomplete." << endl;
-        found = false;
-      }
-      value = SmiProfile::GetParameter( "OracleDB", "ServerProgram", "", parmFile );
-      if ( value == "" || !FileSystem::SearchPath( value, foundValue ) )
-      {
-        cout << "Error: Server program '" << value << "' not found." << endl;
-        found = false;
-      }
-      cout << "Found file name: " << foundValue << endl;
-    }
+    } else {
+      cout << "Unknown SMI-Type" << endl;
+      exit(1);
+    } 
+     
     if ( found )
     {
       cout << "Configuration seems to be ok." << endl << endl;
     }
     else
     {
-      cout << "Sorry, configuration parameters missing. Terminating program." << endl;
+      cout << "Sorry, configuration parameters missing. Terminating program."
+           << endl;
     }
   }
   else
   {
-    cout << "Sorry, no configuration file found. Terminating program." << endl;
+    cout << "Sorry, no configuration file found. Terminating program."
+         << endl;
   }
   return (found);
 }
@@ -409,15 +416,21 @@ SecondoMonitor::Initialize()
 
   // --- Check storage management interface
   cout << "Initializing storage management interface ... ";
-  if ( SmiEnvironment::StartUp( SmiEnvironment::MultiUserMaster, parmFile, cout ) )
+  if ( SmiEnvironment::StartUp( SmiEnvironment::MultiUserMaster, 
+                                parmFile, cout )                  )
   {
     cout << "completed." << endl;
     if ( smiType == SmiEnvironment::SmiBerkeleyDB )
     {
       cout << "Launching Checkpoint service ... ";
-      string pgmCheckpoint = SmiProfile::GetParameter( "BerkeleyDB", "CheckpointProgram", "", parmFile );
+      string pgmCheckpoint = SmiProfile::GetParameter( "BerkeleyDB", 
+                                                       "CheckpointProgram", 
+                                                       "", 
+                                                       parmFile );
+
       string pgmArgs = string( "\"" ) + parmFile + "\"";
-      if ( ProcessFactory::SpawnProcess( pgmCheckpoint, pgmArgs, pidCheckpoint, true ) )
+      if ( ProcessFactory::SpawnProcess( pgmCheckpoint, 
+                                         pgmArgs, pidCheckpoint, true ) )
       {
         cout << "completed." << endl;
       }
@@ -445,9 +458,13 @@ SecondoMonitor::Initialize()
   {
     // --- Launch the Secondo registrar
     cout << "Launching Secondo Registrar ... ";
-    string pgmRegistrar = SmiProfile::GetParameter( "Environment", "RegistrarProgram", "", parmFile );
+    string pgmRegistrar = SmiProfile::GetParameter( "Environment", 
+                                                    "RegistrarProgram", 
+                                                    "", parmFile );
+
     string pgmArgs = string( "\"" ) + parmFile + "\"";
-    if ( ProcessFactory::SpawnProcess( pgmRegistrar, pgmArgs, pidRegistrar, true ) )
+    if ( ProcessFactory::SpawnProcess( pgmRegistrar, 
+                                       pgmArgs, pidRegistrar, true ) )
     {
       cout << "completed." << endl;
       ProcessFactory::Sleep( 0 );
@@ -473,7 +490,8 @@ SecondoMonitor::Terminate()
     cout << "completed." << endl;
     int status = 0;
     ProcessFactory::GetExitCode( pidRegistrar, status );
-    cout << "Secondo Registrar terminated with return code " << status << "." << endl;
+    cout << "Secondo Registrar terminated with return code " 
+         << status << "." << endl;
   }
   if ( smiType == SmiEnvironment::SmiBerkeleyDB )
   {
@@ -485,13 +503,15 @@ SecondoMonitor::Terminate()
       cout << "completed." << endl;
       int status = 0;
       ProcessFactory::GetExitCode( pidCheckpoint, status );
-      cout << "Checkpoint service terminated with return code " << status << "." << endl;
+      cout << "Checkpoint service terminated with return code " 
+           << status << "." << endl;
     }
     if ( !SmiEnvironment::ShutDown() )
     {
       string errMsg;
       SmiEnvironment::GetLastErrorCode( errMsg );
-      cout << "Error: Shutdown of the storage management interface failed." << endl;
+      cout << "Error: Shutdown of the storage management interface failed."
+           << endl;
       cout << "Error: " << errMsg << endl;
     }
   }
@@ -538,9 +558,11 @@ int main( const int argc, const char* argv[] )
         // list allowed arguments
         cout << "Usage: " << argv[0] << " [options]" << endl;
         cout << "Options:" << endl;
-        cout << "    --help          Display this information and exit" << endl;
+        cout << "    --help          Display this information and exit"
+             << endl;
         cout << "   -S <startup>    Startup automatically" << endl;
-        cout << "   -V <version>    Display version information and exit" << endl;
+        cout << "   -V <version>    Display version information and exit"
+             << endl;
         done = true;
         execute = false;
      } else if((arg=="-V") || (arg=="-version")){

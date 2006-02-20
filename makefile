@@ -187,6 +187,10 @@ TTY: TTY2 update-config
 TTY2: makedirs buildlibs buildalg
 	$(MAKE) -C UserInterfaces TTY
 
+.PHONY: linkonly 
+linkonly:
+	$(MAKE) -C UserInterfaces TTY
+	$(MAKE) -C UserInterfaces TestRunner
 
 .PHONY: TestRunner
 TestRunner: TestRunner2 update-config
@@ -225,6 +229,7 @@ clean:
 .PHONY: realclean
 realclean: clean
 	$(MAKE) -C Javagui clean
+	$(MAKE) -C Tests clean
 	rm -f $(CONFIG_FILES) 
 
 

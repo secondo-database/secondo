@@ -68,7 +68,9 @@ typedef void (SecondoServer::*ExecCommand)();
 class SecondoServer : public Application
 {
  public:
-  SecondoServer( const int argc, const char** argv ) : Application( argc, argv, false ) {};
+  SecondoServer( const int argc, const char** argv ) : 
+     Application( argc, argv, false ) 
+  {};
   virtual ~SecondoServer() {};
   int Execute();
   void CallSecondo();
@@ -336,7 +338,8 @@ SecondoServer::CallObjectSave()
   }
   else
   {
-    WriteResponse( 80, 0, "Protocol error: </ObjectSave> expected.", nl->TheEmptyList() );
+    WriteResponse( 80, 0, "Protocol error: </ObjectSave> expected.", 
+                   nl->TheEmptyList() );
   }
 }
 
@@ -369,7 +372,8 @@ SecondoServer::CallDbSave()
   }
   else
   {
-    WriteResponse( 80, 0, "Protocol error: </DbSave> expected.", nl->TheEmptyList() );
+    WriteResponse( 80, 0, "Protocol error: </DbSave> expected.", 
+                   nl->TheEmptyList() );
   }
 }
 
@@ -429,13 +433,15 @@ SecondoServer::CallObjectRestore()
     }
     else
     {
-      WriteResponse( 80, 0, "Protocol error: File not received correctly.", nl->TheEmptyList() );
+      WriteResponse( 80, 0, "Protocol error: File not received correctly.", 
+                     nl->TheEmptyList() );
     }
     FileSystem::DeleteFileOrFolder( serverFileName );
   }
   else
   {
-    WriteResponse( 80, 0, "Protocol error: </ObjectRes> expected.", nl->TheEmptyList() );
+    WriteResponse( 80, 0, "Protocol error: </ObjectRes> expected.", 
+                   nl->TheEmptyList() );
   }
 }
 
@@ -465,13 +471,15 @@ SecondoServer::CallDbRestore()
     }
     else
     {
-      WriteResponse( 80, 0, "Protocol error: File not received correctly.", nl->TheEmptyList() );
+      WriteResponse( 80, 0, "Protocol error: File not received correctly.", 
+                     nl->TheEmptyList() );
     }
     FileSystem::DeleteFileOrFolder( serverFileName );
   }
   else
   {
-    WriteResponse( 80, 0, "Protocol error: </DbRestore> expected.", nl->TheEmptyList() );
+    WriteResponse( 80, 0, "Protocol error: </DbRestore> expected.", 
+                   nl->TheEmptyList() );
   }
 }
 
@@ -514,7 +522,8 @@ SecondoServer::Execute()
 {
   int rc = 0;
   parmFile = (GetArgCount() > 1) ? GetArgValues()[1] : "SecondoConfig.ini";
-  registrar = SmiProfile::GetParameter( "Environment", "RegistrarName", "SECONDO_REGISTRAR", parmFile );
+  registrar = SmiProfile::GetParameter( "Environment", "RegistrarName", 
+                                        "SECONDO_REGISTRAR", parmFile );
   si = new SecondoInterface();
   if ( si->Initialize( "", "", "", "", parmFile, true ) )
   {
@@ -532,7 +541,8 @@ SecondoServer::Execute()
     commandTable["<Disconnect/>"] = &SecondoServer::Disconnect;
 
 
-    string logMsgList = SmiProfile::GetParameter( "Environment", "RTFlags", "", parmFile );
+    string logMsgList = SmiProfile::GetParameter( "Environment", 
+                                                  "RTFlags", "", parmFile );
     RTFlag::initByString(logMsgList);
 
     nl = si->GetNestedList();
@@ -542,7 +552,7 @@ SecondoServer::Execute()
       quit = false;
 
       iostream& iosock = client->GetSocketStream();
-			ios_base::iostate s = iosock.exceptions();
+      ios_base::iostate s = iosock.exceptions();
       iosock.exceptions(ios_base::failbit|ios_base::badbit|ios_base::eofbit);
       iosock << "<SecondoOk/>" << endl;
 
@@ -571,7 +581,9 @@ SecondoServer::Execute()
         }
     
       } catch (ios_base::failure) {
-        cerr << endl << "I/O error on socket stream object while sending response!" << endl;
+        cerr << endl 
+             << "I/O error on socket stream object while sending response!" 
+             << endl;
         if ( !client->IsOk() ) {
            cerr << "Socket Error: " << client->GetErrorText() << endl;  
          }
@@ -580,8 +592,8 @@ SecondoServer::Execute()
 
       } while (!iosock.fail() && !quit);
       
-			iosock.exceptions(s);
-			
+      iosock.exceptions(s);
+
       client->Close();
       delete client;
       Messenger messenger( registrar );
@@ -604,7 +616,7 @@ SecondoServer::Execute()
   return (rc);
 }
 
-int main( const int argc, const char* argv[] )
+int SecondoServerMode( const int argc, const char* argv[] )
 {
   SecondoServer* appPointer = new SecondoServer( argc, argv );
   int rc = appPointer->Execute();

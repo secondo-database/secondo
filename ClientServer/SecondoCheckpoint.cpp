@@ -24,16 +24,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 May 2002 Ulrich Telle
 
-For client/server operation of the Berkeley DB environment checkpoints need to be
-generated regularly. This utility program writes checkpoints at configurable time
-intervals.
+For client/server operation of the Berkeley DB environment checkpoints need to
+be generated regularly. This utility program writes checkpoints at configurable
+time intervals.
 
 */
 
 using namespace std;
 
 #include <db_cxx.h>
-#define	DB_FTYPE_SET  -1  // Call pgin/pgout functions
+#define DB_FTYPE_SET  -1  // Call pgin/pgout functions
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -56,7 +56,9 @@ const int EXIT_CHECKPOINT_FAIL  = 3;
 class SecondoCheckpoint : public Application
 {
  public:
-  SecondoCheckpoint( const int argc, const char** argv ) : Application( argc, argv, false ) {};
+  SecondoCheckpoint( const int argc, const char** argv ) : 
+    Application( argc, argv, false ) 
+  {};
   virtual ~SecondoCheckpoint() {};
   int  Execute();
  private:
@@ -74,8 +76,12 @@ SecondoCheckpoint::Execute()
   {
     parmFile = "SecondoConfig.ini";
   }
-  string    bdbHome = SmiProfile::GetParameter( "Environment", "SecondoHome", "", parmFile );
-  u_int32_t minutes = SmiProfile::GetParameter( "BerkeleyDB", "CheckpointTime", 5, parmFile );
+  string bdbHome = SmiProfile::GetParameter( "Environment", 
+                                                "SecondoHome", "", parmFile );
+  
+  u_int32_t minutes = SmiProfile::GetParameter( "BerkeleyDB", 
+                                                "CheckpointTime", 
+                                                5, parmFile       );
   u_int32_t seconds = minutes * 60;
   int rc;
 
@@ -86,13 +92,14 @@ SecondoCheckpoint::Execute()
   rc = bdbEnv->open( bdbHome.c_str(), DB_JOINENV | DB_USE_ENVIRON, 0 );
   if ( rc != 0 )
   {
-//    rc = bdbEnv->close( 0 );
+    //rc = bdbEnv->close( 0 );
     delete bdbEnv;
     return (EXIT_CHECKPOINT_NOENV);
   }
 
   // --- Register the standard pgin/pgout functions, in case we do I/O
-  if ( (rc = bdbEnv->memp_register( DB_FTYPE_SET, __db_pgin, __db_pgout )) != 0 )
+  rc = bdbEnv->memp_register( DB_FTYPE_SET, __db_pgin, __db_pgout );
+  if ( rc != 0 )
   {
     rc = bdbEnv->close( 0 );
     delete bdbEnv;
