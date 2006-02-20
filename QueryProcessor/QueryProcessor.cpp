@@ -199,7 +199,6 @@ using namespace std;
 #include "MemCTable.h"
 #include "NameIndex.h"
 #include "NestedList.h"
-#include "NList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "SecondoCatalog.h"
@@ -476,17 +475,8 @@ struct OpNode
     struct OpNodeIndirectObject
     {
       ArgVectorPointer vector;
-      int funNumber;            /* needed for testing only */
+      int funNumber; // needed for testing only
       int argIndex;
-
-/*
-The three attributes below are used in the case when an
-operator has a parameter function which may have streams as
-arguments. In this case the operator must  
-
-*/
-      //int isStream;
-      bool received;
     } iobj;
     struct OpNodeOperator
     {
@@ -542,8 +532,6 @@ OpNode(OpNodeType type = Operator) :
       u.iobj.vector = 0;
       u.iobj.funNumber = 0;   
       u.iobj.argIndex = 0;
-      //u.iobj.isStream = 0;
-      u.iobj.received = false;
       break;
     }
     case Operator :
@@ -621,9 +609,7 @@ ostream& operator<<(ostream& os, const OpNode& node) {
         os << "Indirect Object" << endl
            << "  vector = " << node.u.iobj.vector << endl
            << "  funNumber = " << node.u.iobj.funNumber << endl   
-           << "  argIndex = " << node.u.iobj.argIndex << endl
-	 //<< "  isStream = " << node.u.iobj.isStream << endl
-           << "  received = " << node.u.iobj.received << endl;
+           << "  argIndex = " << node.u.iobj.argIndex << endl;
         break;
       }
       case Operator :
@@ -979,7 +965,7 @@ all objects mentioned in the expression have defined values.
   if ( debugMode )
   {
     cout << endl << "*** AnnotateX Begin ***" << endl;
-    nl->WriteListExpr( list, cout, 2 );
+    nl->WriteListExpr( list, cout );
     cout << endl << "*** AnnotateX End ***" << endl;
   }
   return (list);
@@ -1315,31 +1301,23 @@ function index.
 
 */
 
-  int alId=0, opId=0, position=0, funindex=0, opFunId=0, errorPos=0; 
+  int alId, opId, position, funindex, opFunId, errorPos; 
+  ListExpr first, rest, list, lastElem, typeExpr, typeList, 
+           resultType, last, errorInfo, pair, lastType, signature, 
+           firstSig, firstType, result, functionList; 
+  string name, typeName; 
+  bool definedValue, hasNamedType, correct, newOperator;
+  Word value;
 
-  ListExpr first, rest, list, lastElem, typeExpr, typeList; 
-  first = rest = list = lastElem = typeExpr = typeList = nl->TheEmptyList();
-  
-  ListExpr resultType, last, pair, lastType, signature;
-  resultType = last = pair = lastType = signature = nl->TheEmptyList();
-  
-  ListExpr firstSig, firstType, result, functionList; 
-  firstSig = firstType = result = functionList = nl->TheEmptyList();
-  
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-  
-  string name="", typeName=""; 
-  
-  bool definedValue=false, hasNamedType=false, correct=false, newOperator=false;
-  
-  Word value=SetWord(0);
+  errorPos = 0;
+  errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
 
   if ( traceMode )
   {
     cout << "Annotate applied to: " << endl;
-    nl->WriteListExpr( expr, cout, 2 );
+    nl->WriteListExpr( expr, cout );
     cout << endl << "argument types passed from father: " << endl;
-    nl->WriteListExpr( fatherargtypes, cout, 2 );
+    nl->WriteListExpr( fatherargtypes, cout );
     cout << endl;
     for ( int i=0; i<= valueno; i++ ) 
       cout << "values[" << i <<"]=" 
@@ -1775,14 +1753,14 @@ for a given ~expr~ (+ 3 10).
               if ( traceMode )
               {
                 cout << "signature: ";
-                nl->WriteListExpr( signature, cout, 2 );
+                nl->WriteListExpr( signature, cout );
                 cout << endl;
               }
               typeList = nl->Rest( typeList );
               if ( traceMode )
               {
                 cout << "typeList: ";
-                nl->WriteListExpr( typeList, cout, 2 );
+                nl->WriteListExpr( typeList, cout );
                 cout << endl;
               }
               if ( nl->ListLength(signature) == 
@@ -1803,7 +1781,7 @@ for a given ~expr~ (+ 3 10).
                 if ( traceMode )
                 {
                   cout << "resultType: ";
-                  nl->WriteListExpr( resultType, cout, 2 );
+                  nl->WriteListExpr( resultType, cout );
                   cout << endl;
                 }
                 result = nl->TwoElemList(
@@ -1815,7 +1793,7 @@ for a given ~expr~ (+ 3 10).
                 if ( traceMode )
                 {
                   cout << "result: ";
-                  nl->WriteListExpr( result, cout, 2 );
+                  nl->WriteListExpr( result, cout );
                   cout << endl;
                 }
                 return (result);
@@ -1831,14 +1809,14 @@ for a given ~expr~ (+ 3 10).
               if ( traceMode )
               {
                 cout << "signature: ";
-                nl->WriteListExpr( signature, cout, 2 );
+                nl->WriteListExpr( signature, cout );
                 cout << endl;
               }
               typeList = nl->Rest( typeList );
               if ( traceMode )
               {
                 cout << "typeList: ";
-                nl->WriteListExpr( typeList, cout, 2 );
+                nl->WriteListExpr( typeList, cout );
                 cout << endl;
               }
               if ( nl->ListLength( signature ) == 
@@ -1941,7 +1919,7 @@ for a given ~expr~ (+ 3 10).
 
 ListExpr 
 QueryProcessor::TestOverloadedOperators( const string& 
-                                         operatorSymbolStr, 
+                                           operatorSymbolStr, 
                                          ListExpr opList, 
                                          ListExpr typeList,
                                          int& alId,
@@ -1952,19 +1930,12 @@ QueryProcessor::TestOverloadedOperators( const string&
 {
   ListExpr resultType = nl->TheEmptyList();
 
-  static const int width=70;
-  static const string sepLine = "\n" + string(width,'-') + "\n";
-  
-  if ( traceMode )
-  {	  
-    cout << sepLine 
-	 << "Type mapping for operator " << operatorSymbolStr << ":" << endl; 
-  }  
+  if ( traceMode ) 
+    cout << "Type mapping for operator " 
+         << operatorSymbolStr << ":" << endl;
 
-  string typeErrorMsg = 
-	   "Type map error for operator " + operatorSymbolStr + "!" + sepLine
-	   + wordWrap("Input: ", width, NList(typeList).convertToString()) + sepLine + 
-	   "Error Message(s):" + sepLine; 
+  string typeErrorMsg = "Possible type mapping errors for operator " 
+                        + operatorSymbolStr + ":\n";
 
   do // Overloading: test operator candidates 
   {
@@ -1996,7 +1967,7 @@ QueryProcessor::TestOverloadedOperators( const string&
 				// testing operators
       if ( msg == "" ) 
         msg = "<No error message specified>";
-      typeErrorMsg += wordWrap(algName + ": ",4 ,width, msg) + "\n";
+      typeErrorMsg += "\n-- " + algName + ": " + msg + "\n";
     }
 
     opList = nl->Rest( opList );
@@ -2012,7 +1983,7 @@ QueryProcessor::TestOverloadedOperators( const string&
        nl->IsEqual( resultType, "typeerror" ) )
   {
     ErrorReporter::TypeMapError = true; 
-    ErrorReporter::ReportError(typeErrorMsg + sepLine);
+    ErrorReporter::ReportError(typeErrorMsg);	
   }
   else
   {	
@@ -2036,9 +2007,16 @@ QueryProcessor::TestOverloadedOperators( const string&
 
   if ( traceMode ) 
   {
-    cout << wordWrap( "IN: ", width, NList(typeList).convertToString() )
-         << wordWrap( "OUT: ", width, NList(resultType).convertToString() )
-         << sepLine << endl;
+    cout << endl;		
+    cout << "Result of type mapping for operator " 
+         << operatorSymbolStr
+         << " >>>>>>>>" << endl;
+    cout << "IN: " << endl;
+    nl->WriteListExpr(typeList);
+    cout << endl;
+    cout << "OUT: " << endl;
+    nl->WriteListExpr(resultType);
+    cout << " <<<<<<<<" << endl;
   }
 
   return resultType;
@@ -2083,7 +2061,6 @@ the abstraction in ~typeList~, always appending the next type to
 arguments preceding this function argument in an operator application. 
 
 */
-  static const string fn("AnnotateFunction");	
   string name = "", name2 = "", xxx = "";
   ListExpr annexpr = nl->TheEmptyList();
   ListExpr list = nl->TheEmptyList();
@@ -2093,13 +2070,13 @@ arguments preceding this function argument in an operator application.
   
   if ( traceMode )
   {
-    cout << fn << " applied to: " << endl;
-    nl->WriteListExpr( expr, cout, 2 );
+    cout << "AnnotateFunction applied to: " << endl;
+    nl->WriteListExpr( expr, cout );
     cout << endl;
   }
   if ( nl->IsEmpty( expr ))
   { 
-    cmsg.error() << fn << ": No expression in function definition." << endl;
+    cerr << "Error: no expression in function definition." << endl;
     return (nl->TwoElemList(
               nl->SymbolAtom( "functionerror" ),
               nl->SymbolAtom( "typeerror" ) ));
@@ -2142,7 +2119,7 @@ arguments preceding this function argument in an operator application.
         else if ( GetCatalog()->IsOperatorName( name2 ) )
         { /* name2 is a type operator */
           ListExpr opList = GetCatalog()->GetOperatorIds( name2 );
- 	  ListExpr typeList = nl->Rest( fatherargtypes );
+					ListExpr typeList = nl->Rest( fatherargtypes );
 					
           int alId = 0;
           int opId = 0;
@@ -2161,18 +2138,7 @@ arguments preceding this function argument in an operator application.
       {
         paramtype = nl->Second( nl->First( expr ) );
       }
-      NList param(paramtype);
-      bool typeOk = false;
-      if (param.isList() && param.first().isSymbol("stream")) 
-      {
-        typeOk = IsCorrectTypeExpr( param.second().listExpr() );
-      }
-      else
-      {
-        typeOk = IsCorrectTypeExpr( paramtype );
-      }
-
-      if ( typeOk )
+      if ( IsCorrectTypeExpr( paramtype ) )
       {
         name = nl->SymbolValue( nl->First( nl->First( expr ) ) );
         /* IsIdentifier has checked that name is not a variable yet,
@@ -2187,7 +2153,7 @@ arguments preceding this function argument in an operator application.
       }
       else
       {
-        cmsg.error() << fn << ": Wrong parameter type " << NList(paramtype) << endl;
+        cerr << "Error: wrong parameter type." << endl;
         return (nl->TwoElemList(
                   nl->SymbolAtom( "functionerror" ),
                   nl->SymbolAtom( "typeerror" ) ));
@@ -2195,7 +2161,8 @@ arguments preceding this function argument in an operator application.
     }
     else
     {
-      cmsg.error() << fn << ": Branch should never be reached." << endl;
+      cerr << "Error in AnnotateFunction: branch should never be"
+              " reached." << endl;
       return (nl->TwoElemList(
                 nl->SymbolAtom( "functionerror" ),
                 nl->SymbolAtom( "typeerror" ) ));
@@ -2203,7 +2170,8 @@ arguments preceding this function argument in an operator application.
   }
   else
   {
-    cmsg.error() << fn <<": Branch should never be reached." << endl;
+    cerr << "Error in AnnotateFunction: branch should never be"
+            " reached." << endl;
     return (nl->TwoElemList(
               nl->SymbolAtom( "functionerror" ),
               nl->SymbolAtom( "typeerror" ) ));
@@ -2275,7 +2243,7 @@ QueryProcessor::SubtreeX( const ListExpr expr )
   {
     cout << endl << "*** SubtreeX Begin ***" << endl;
     ListExpr treeList = ListOfTree( resultTree, cerr );
-    nl->WriteListExpr( treeList, cout, 2 );
+    nl->WriteListExpr( treeList, cout );
     nl->Destroy( treeList );
     cout << endl << "*** SubtreeX End ***" << endl;
   }
@@ -2321,9 +2289,9 @@ QueryProcessor::Subtree( const ListExpr expr,
   if ( traceMode )
   { 
     cout << "subtree applied to: " << endl;
-    nl->WriteListExpr( expr, cout, 2 );
+    nl->WriteListExpr( expr, cout );
     cout << endl << "TypeOfSymbol applied to <";
-    nl->WriteListExpr( nl->Second( nl->First( expr ) ), cout, 2 );
+    nl->WriteListExpr( nl->Second( nl->First( expr ) ), cout );
     cout << ">" << endl;
   }
 
@@ -2617,7 +2585,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     { 
       cerr << "subtree: unexpected stuff in annotated expr" << endl;
       cerr << "The expression is: " << endl;
-      nl->WriteListExpr( expr, cout, 2 );
+      nl->WriteListExpr( expr, cout );
       cout << endl; 
       exit(1);
     }
@@ -2883,48 +2851,9 @@ the moment.
       }
       case IndirectObject:
       {
-        // check if the indirect object uses a stream or not. 
-        // This is only checked the first time
-        /*if (tree->u.iobj.isStream == 0) {
-          if ((*tree->u.iobj.vector)[MAXARG-1].addr != 0) {
-            if (traceNodes) {
-              cerr << fn << "Parameter function with stream arg detected!" << endl;
-            }
-            tree->u.iobj.isStream = 1;
-          } else { 
-            tree->u.iobj.isStream = 2;
-          }
-        }
-        */
-          
-        if ((*tree->u.iobj.vector)[MAXARG-1].addr == 0 /*tree->u.iobj.isStream == 2*/) // no stream, return object
+        result = (*tree->u.iobj.vector)[tree->u.iobj.argIndex-1]; 
+        if (traceNodes) 
         { 
-          result = (*tree->u.iobj.vector)[tree->u.iobj.argIndex-1];
-        }
-        else // call evaluation function of the stream operator
-        {
-          OpTree caller = (OpTree) (*tree->u.iobj.vector)[MAXARG-1].addr;
-          if (traceNodes) {
-            cerr << fn << "Parameter function's caller node = " << caller->id << endl;
-          }
-          // copy arguments
-          for ( i = 0; i < caller->u.op.noSons; i++ )
-          {
-            arg[i].addr = caller->u.op.sons[i];
-            if ( traceNodes ) {
-                cerr << fn << "Copy argument " << i << endl;
-            }
-          }
-          status = algebraManager->Execute( caller->u.op.algebraId, 
-			                    caller->u.op.opFunId,
-                                            arg, result, 
-					    (tree->u.iobj.argIndex*FUNMSG)+message, 
-					    caller->u.op.local, 
-					    caller );
-        
-          tree->u.iobj.received = (status == YIELD);
-        }
-        if (traceNodes) { 
           cerr << fn << "IndirectObject return [" 
                << (void*)result.addr << "]" << endl;
         }
@@ -2965,7 +2894,7 @@ the moment.
           if ( traceNodes )
           {
             cout << fn << "The tree is: " << endl;
-            nl->WriteListExpr( ListOfTree( tree, cerr ), cout, 2 );
+            nl->WriteListExpr( ListOfTree( tree, cerr ), cout );
             cout << endl;
           }
           absArgs = Argument(tree->u.op.sons[0] );
@@ -3070,10 +2999,7 @@ Returns ~true~ if the supplier responded to the previous ~request~ by a
 
 */
   OpTree tree = (OpTree) s;
-  if ( tree->nodetype == Operator )
-    return (tree->u.op.received);
-  else
-    return (tree->u.iobj.received);
+  return (tree->u.op.received);
 }
 
 void
