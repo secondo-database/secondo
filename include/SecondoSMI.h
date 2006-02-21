@@ -55,6 +55,11 @@ Sept 15, 2004. M. Spiekermann. Declaration of SmiError moved to ErrorCodes.h.
 
 Nov 2004. M. Spiekermann. Some functions were implemented as inline functions.
 
+Feb. 2006. M. Spiekermann Some new functions were declared which allow to set up
+only a temporary BDB-Environment needed for the implementation of persistent 
+nested lists.
+
+
 1.1 Overview
 
 The *Storage Management Interface* provides all types and classes needed
@@ -609,6 +614,9 @@ Returns a pointer to the "Secondo"[3] Storage Management Environment
 (seldom needed).
 
 */
+
+  static bool SetHomeDir(const string& parmFile);
+  static int CreateTmpEnvironment(ostream& err);  
   static bool StartUp( const RunMode mode,
                        const string& parmFile,
                        ostream& errStream );
@@ -814,8 +822,8 @@ or if the application runs in single user mode.
   static bool           useTransactions;
  
   // the next member is used in the Berkeley-DB Implementation
-  static bool	          dontSyncDiskCache;
-		
+  static bool           dontSyncDiskCache;
+
   static string         configFile;  // Name of config file
   static string         uid;         // ID of Secondo user
   static bool           dbOpened;    // Flag database opened
@@ -1176,7 +1184,8 @@ An ~SmiRecord~ handle is initialized on return to write the record.
 The function returns "true"[4] when the record was created successfully.
 
 */
-  bool DeleteRecord( const SmiKey& key, const bool all = true, const SmiRecordId = 0 );
+  bool DeleteRecord( const SmiKey& key, 
+		     const bool all = true, const SmiRecordId = 0 );
 /*
 Deletes all records having the given key.
 
