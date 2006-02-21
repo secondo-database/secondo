@@ -30,7 +30,7 @@ open database binfiletest;
 (update a := (binfile <file>$(SECONDO_BUILD_DIR)/bin/JNI.ini</file--->));
 
 (create b : binfile);
-(update b := (binfile <file>$(SECONDO_BUILD_DIR)/bin/TestRunnerApp</file--->));
+(update b := (binfile <file>$(SECONDO_BUILD_DIR)/bin/SecondoBDB</file--->));
 
 (create relFile :
   (rel
@@ -58,7 +58,7 @@ open database binfiletest;
   )
   (
     (1 <file>$(SECONDO_BUILD_DIR)/bin/JNI.ini</file---> "JNI.ini")
-    (2 <file>$(SECONDO_BUILD_DIR)/bin/TestRunnerApp</file---> "TestRunnerApp")
+    (2 <file>$(SECONDO_BUILD_DIR)/bin/SecondoBDB</file---> "SecondoBDB")
   )
 ) );
 
