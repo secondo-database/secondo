@@ -255,8 +255,8 @@ CheckConfiguration()
   "\n" <<
   "CS only:\n" <<
   "-----------------------------------------------------------------------\n" <<
-  "  -h host    : Host address of Secondo server         (SECONDO_HOST)\n" <<
-  "  -p port    : Port of Secondo server                 (SECONDO_PORT)\n" <<
+  "  -h host    : Host address of Secondo server        (SECONDO_HOST)\n" <<
+  "  -p port    : Port of Secondo server                (SECONDO_PORT)\n" <<
   "\n" <<
   "Note: Command line options overrule environment variables.\n";
 
@@ -277,7 +277,7 @@ CheckConfiguration()
     if ( argSwitch == "-?" || argSwitch == "--help")  // Help
     {
       cout << usageMsg.str() << endl;
-      return false;
+      ok = false;
     }
     else if ( argOk && argSwitch == "-c" )  // Configuration file
     {
@@ -335,8 +335,10 @@ CheckConfiguration()
     }
   }
  
-  if (!ok)
+  if (!ok) {
+    cout << availOptions << endl;
     return false;
+  }  
   
   // check if parameter values are empty and environment variables are set
   getEnvValue("SECONDO_CONFIG", parmFile);
