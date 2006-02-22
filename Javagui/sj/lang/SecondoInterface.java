@@ -495,20 +495,23 @@ not accessible by the user code.
   **/
   private void callSaveCommand(String command,
                                ListExpr resultList,
-                               IntByReference errorCode, 
+                               IntByReference errorCode,
+                               IntByReference errorPos, 
                                 StringBuffer errorMessage) throws IOException{
 
      resultList.setValueTo(ListExpr.theEmptyList());
-     boolean allowSave=false;
-     // while the new protocol is not supported by the server, we forbid
-     // a call of restore from javagui
      
 
+     boolean allowSave=false;
+     // while the new protocol is not supported by the server, we forbid
+     // a call of save from javagui
      if(!allowSave){
         errorCode.value=ServerErrorCodes.COMMAND_NOT_SUPPORTED;
         errorMessage.append("save not implemented\n");
         return; 
      }
+
+
      if(command.startsWith("save"))
           command = "("+command+")";
      ListExpr cmdList = new ListExpr();
@@ -516,6 +519,51 @@ not accessible by the user code.
         errorCode.value=9; // syntax error in command
         return;
      }
+     int len = cmdList.listLength();
+     if(len!=4){
+        errorCode.value=9;
+        return;
+     }
+     // check for correct List structure
+     if( cmdList.first().atomType()!=ListExpr.SYMBOL_ATOM ||
+         cmdList.second().atomType()!=ListExpr.SYMBOL_ATOM ||
+         cmdList.third().atomType()!=ListExpr.SYMBOL_ATOM ){
+            errorCode.value=9;
+            return;
+      }
+      if(!cmdList.first().symbolValue().equals("save") ||
+         !cmdList.third().symbolValue().equals("to")){
+          errorCode.value=9;
+          return;
+      }
+
+      ListExpr fileList = cmdList.fourth();
+      String filename="";
+      switch( fileList.atomType() ){
+        case ListExpr.SYMBOL_ATOM: filename=fileList.symbolValue(); break;
+        case ListExpr.STRING_ATOM: filename=fileList.stringValue(); break;
+        case ListExpr.TEXT_ATOM: filename = fileList.textValue(); break;
+        default: errorCode.value=9;
+                 return;
+      }
+      String objectName = cmdList.second().symbolValue();
+
+      //  all thems to be correct, begin communication
+      if(objectName.equals("database")){
+          outSocketStream.write("<DbSave/>\n");
+      }else{
+          outSocketStream.write("<ObjectSave>\n");
+          outSocketStream.write(objectName+"\n");
+          outSocketStream.write("</ObjectSave>\n");
+      }
+      // wait for answer
+      outSocketStream.flush();
+      receiveResponse(resultList, errorCode, errorPos, errorMessage);
+      if(errorCode.value==0){ // no error save List
+          errorCode.value=resultList.writeToFile(filename);
+      }
+       // suppress a result
+       resultList.setValueTo(new ListExpr());
   }
 
 /**************************************************************************
@@ -559,11 +607,11 @@ protected void secondo(String command,
      }
      // check for save command
      if(command.startsWith("save")){
-        callSaveCommand(command,resultList,errorCode,errorMessage);
+        callSaveCommand(command,resultList,errorCode,errorPos,errorMessage);
         return;
      }
      if(command.startsWith("(") && command.substring(1,command.length()).trim().startsWith("save ")){
-        callSaveCommand(command,resultList,errorCode,errorMessage);
+        callSaveCommand(command,resultList,errorCode,errorPos,errorMessage);
         return;
      }
  
