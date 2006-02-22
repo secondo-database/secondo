@@ -66,6 +66,7 @@ OBJECTS = pdtabs \
 	  enumerate \
 	  maketex \
           linecheck \
+    tabcheck \
 	  filterpd
 
 DOCU = docu docuhtml
@@ -116,6 +117,12 @@ docu: $(DOCU_FILES)
 
 docuhtml: $(DOCU_HTML_FILES)
 	cat $^ > $@
+
+tabcheck: tabcheck.c
+	$(CC) -o $@ $< $(LINKLIBS)
+
+tabcheck.c: tabcheck.l
+	$(LEX) -otabcheck.c $<
 
 linecheck: linecheck.c
 	$(CC) -o $@ $< $(LINKLIBS)
