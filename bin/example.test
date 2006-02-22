@@ -181,11 +181,7 @@ query 10 / 3.14
 
 
 # An unspecified yields definition will result in an error
-# for example
-
-#testcase FloatingPoint4
-# yields 3.184
-query 10 / 3.14 
+# for example a result specified as "yields 3.184" will do so.
 
 # the TEARDOWN directive is followed by commands which
 # should be executed after the execution of all TESTCASES
