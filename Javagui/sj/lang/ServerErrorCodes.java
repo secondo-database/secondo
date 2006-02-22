@@ -86,12 +86,15 @@ The following public fields are defined in the ServerErrorCodes class.
     public static final int NETWORK_ERROR_CODE = 98;
     public static final int INTERNAL_ERROR_CODE = 99;
 
+    // some constants for client error codes
+    public static final int COMMAND_NOT_SUPPORTED = 101;
+
     // size set in the next line for the errors array  must be bigger
     // than the highest error code (this is, if the highest error code is 99,
     // the errors array capacity must be at least 100), because each error
     // message will be stored in the position inside the array according
     // with its error code.
-    private static String[] errors = new String[100];
+    private static String[] errors = new String[106];
 
 /*
 
@@ -169,6 +172,9 @@ None private fields are defined in the ServerErrorCodes class.
 
       // error code for the list algebra xxx operator
       errors[85]="Algebra not know or currently not included";
+
+      // section for client errors
+      errors[COMMAND_NOT_SUPPORTED]="command not supported by client server protocol";
 
     }
 

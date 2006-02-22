@@ -42,7 +42,7 @@ Error Codes: see definition module.
 If value 0 is returned, the command was executed without error.
 
 */
-	public void secondo( String commandText,
+/*	public void secondo( String commandText,
             ListExpr commandLE,
             int commandLevel,
             boolean commandAsText,
@@ -51,6 +51,12 @@ If value 0 is returned, the command was executed without error.
             IntByReference errorCode,
             IntByReference errorPos,
             StringBuffer errorMessage );
+ */
+     public void secondo(String command,
+                         ListExpr resultList,
+                         IntByReference errorCode,
+                         IntByReference errorPos,
+                         StringBuffer errorMessage);
 	
 /* 
 returns true if this interface is connected to secondo server 

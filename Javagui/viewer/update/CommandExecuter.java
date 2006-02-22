@@ -44,7 +44,7 @@ public class CommandExecuter {
     private StringBuffer errorMessage ;
 	
 	public CommandExecuter (){
-		resultList = new ListExpr();
+	  	resultList = new ListExpr();
 	    errorCode = new IntByReference(0);
 	    errorPos = new IntByReference(0);
 	    errorMessage = new StringBuffer();
@@ -57,9 +57,6 @@ public class CommandExecuter {
 		// Executes the remote command.
 		if(updateInterface.isInitialized()){
 			updateInterface.secondo(command,           //Command to execute.
-		         ListExpr.theEmptyList(),                    // we don't use it here.
-		         commandLevel, true,         // command as text.
-		         false,      // result as ListExpr.
 		         resultList, errorCode, errorPos, errorMessage);
 		    boolean success = errorCode.value==0;
 		    return success;

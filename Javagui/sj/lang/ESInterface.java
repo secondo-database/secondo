@@ -137,6 +137,19 @@ public class ESInterface extends SecondoInterface implements UpdateInterface{
     * if error points to lost connection then 
     * connected  is set to false 
     */
+    public void secondo(String command,
+                        ListExpr resultList,
+                        IntByReference errorCode,
+                        IntByReference errorPos,
+                        StringBuffer errorMessage){
+
+          super.secondo(command,resultList,errorCode,errorPos,errorMessage);
+          if(errorCode.value==81)
+              terminate();
+     }
+   
+
+/*
   public void secondo( String commandText,
                        ListExpr commandLE,
                        int commandLevel,
@@ -151,7 +164,7 @@ public class ESInterface extends SecondoInterface implements UpdateInterface{
      if (errorCode.value==81)
         terminate();
   }  
-
+ */
 
   protected boolean connected=false;
 

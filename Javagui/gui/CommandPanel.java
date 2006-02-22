@@ -693,22 +693,10 @@ public class CommandPanel extends JScrollPane {
     ListExpr displayErrorList;
     int displayErrorCode;
     ListExpr resultList = new ListExpr();
-    int commandLevel = 0;
     IntByReference errorCode = new IntByReference(0);
     IntByReference errorPos = new IntByReference(0);
     StringBuffer errorMessage = new StringBuffer();
     // Builds the data to send to the server.
-
-    if (command.startsWith("(")) {
-      // if command is a list representation, then the command level to use
-      // is EXEC_COMMAND_LISTEXPR_SYNTAX.
-      commandLevel = SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX;
-    }
-    else {
-      // if command is not a list representation, then the command level to
-      // use is EXEC_COMMAND_SOS_SYNTAX.
-      commandLevel = SecondoInterface.EXEC_COMMAND_SOS_SYNTAX;
-    }
 
     // Executes the remote command.
     if(Secondointerface.isInitialized()){
@@ -720,10 +708,8 @@ public class CommandPanel extends JScrollPane {
 	    starttime = System.currentTimeMillis();
 
 	 Secondointerface.secondo(command,           //Command to execute.
-         ListExpr.theEmptyList(),                    // we don't use it here.
-         commandLevel, true,         // command as text.
-         false,      // result as ListExpr.
-         resultList, errorCode, errorPos, errorMessage);
+                            resultList, 
+                            errorCode, errorPos, errorMessage);
 
          if(Environment.MEASURE_TIME)
             System.out.println("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
@@ -754,8 +740,7 @@ public class CommandPanel extends JScrollPane {
         }
         cmd = optimize(cmd);
         IntByReference errorPos=new IntByReference();
-        Secondointerface.secondo(cmd,ListExpr.theEmptyList(),SecondoInterface.EXEC_COMMAND_SOS_SYNTAX,true,true,
-                resultList,errorCode,errorPos,errorMessage);
+        Secondointerface.secondo(cmd, resultList,errorCode,errorPos,errorMessage);
         return errorCode.value==0;
   }
 
@@ -769,31 +754,20 @@ public class CommandPanel extends JScrollPane {
     ListExpr displayErrorList;
     int displayErrorCode;
     ListExpr resultList = new ListExpr();
-    int commandLevel = 0;
     IntByReference errorCode = new IntByReference(0);
     IntByReference errorPos = new IntByReference(0);
     StringBuffer errorMessage = new StringBuffer();
 
-    if (command.startsWith("(")) {
-      // if command is a list representation, then the command level to use
-      // is EXEC_COMMAND_LISTEXPR_SYNTAX.
-      commandLevel = SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX;
-    }
-    else {
-      // if command is not a list representation, then the command level to
-      // use is EXEC_COMMAND_SOS_SYNTAX.
-      commandLevel = SecondoInterface.EXEC_COMMAND_SOS_SYNTAX;
-    }
     long starttime=0;
     if(Environment.MEASURE_TIME)
         starttime = System.currentTimeMillis();
 
      // Executes the remote command.
     Secondointerface.secondo(command,           //Command to execute.
-                      ListExpr.theEmptyList(),                    // we don't use it here.
-                      commandLevel, true,         // command as text.
-                      false,      // result as ListExpr.
-                      resultList, errorCode, errorPos, errorMessage);
+                             resultList,
+                             errorCode, 
+                             errorPos, 
+                             errorMessage);
     if(Environment.MEASURE_TIME)
        System.out.println("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
 
@@ -816,21 +790,9 @@ public class CommandPanel extends JScrollPane {
     ListExpr displayErrorList;
     int displayErrorCode;
     ListExpr resultList = new ListExpr();
-    int commandLevel = 0;
     IntByReference errorCode = new IntByReference(0);
     IntByReference errorPos = new IntByReference(0);
     StringBuffer errorMessage = new StringBuffer();
-
-    if (command.startsWith("(")) {
-      // if command is a list representation, then the command level to use
-      // is EXEC_COMMAND_LISTEXPR_SYNTAX.
-      commandLevel = SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX;
-    }
-    else {
-      // if command is not a list representation, then the command level to
-      // use is EXEC_COMMAND_SOS_SYNTAX.
-      commandLevel = SecondoInterface.EXEC_COMMAND_SOS_SYNTAX;
-    }
 
     long starttime=0;
     if(Environment.MEASURE_TIME)
@@ -838,10 +800,8 @@ public class CommandPanel extends JScrollPane {
 
     // Executes the remote command.
     Secondointerface.secondo(command,           //Command to execute.
-                      ListExpr.theEmptyList(),                    // we don't use it here.
-                      commandLevel, true,         // command as text.
-                      false,      // result as ListExpr.
-                      resultList, errorCode, errorPos, errorMessage);
+                             resultList, 
+                             errorCode, errorPos, errorMessage);
     if(Environment.MEASURE_TIME)
        System.out.println("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
 
