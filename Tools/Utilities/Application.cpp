@@ -84,8 +84,9 @@ Class constructors/destructors
 */
 
 Application::Application( int argc, const char** argv, 
-                          const bool showLicense /* =true */ )
+                          bool showCounters /*=true*/ )
 {
+  this->showCounters = showCounters;
   if ( appPointer )
   {
     cerr << "Fatal error: Only one *Application* instance allowed!" << endl;
@@ -164,14 +165,14 @@ Application::Application( int argc, const char** argv,
 
   // --- Trap all signals that would terminate the program by default anyway.
 //  signal( SIGHUP,    Application::AbortOnSignalHandler );
-  signal( SIGINT,    Application::AbortOnSignalHandler );
-  signal( SIGQUIT,   Application::AbortOnSignalHandler );
-  signal( SIGILL,    Application::AbortOnSignalHandler );
+//  signal( SIGINT,    Application::AbortOnSignalHandler );
+//  signal( SIGQUIT,   Application::AbortOnSignalHandler );
+//  signal( SIGILL,    Application::AbortOnSignalHandler );
   signal( SIGABRT,   Application::AbortOnSignalHandler );
   signal( SIGFPE,    Application::AbortOnSignalHandler );
 //  signal( SIGPIPE,   Application::AbortOnSignalHandler );
 //  signal( SIGALRM,   Application::AbortOnSignalHandler );
-  signal( SIGTERM,   Application::AbortOnSignalHandler );
+//  signal( SIGTERM,   Application::AbortOnSignalHandler );
   signal( SIGSEGV,   Application::AbortOnSignalHandler );
 //  signal( SIGUSR1,   Application::UserSignalHandler );
 //  signal( SIGUSR2,   Application::UserSignalHandler );
@@ -217,7 +218,8 @@ Application::~Application()
     rshSocket = 0;
   }
 #endif
-  Counter::reportValues();
+  if (showCounters)
+    Counter::reportValues();
 }
 
 void
@@ -322,21 +324,23 @@ abort the process if not handled otherwise.
   {
     if ( Application::appPointer->AbortOnSignal( sig ) )
     {
-      //signal( sig, SIG_DFL );
-      //kill( getpid(), sig );
+      if ( sig == SIGABRT || sig == SIGSEGV || sig == SIGFPE )
+      { 
+        Counter::reportValues();
+        cout << endl << " ********************************************";
+        cout << endl << " **";
+        cout << endl << " ** Signal #" << signalStr[sig] 
+             << " caught! Printing Stack ...";
+        cout << endl << " **";
+        cout << endl << " ********************************************" << endl;
+        PrintStacktrace();
+        cout << endl << " *********** End Stack **********************" << endl;
+        
+      }
       exit(1);
     }
     else
     {
-      Counter::reportValues();
-      cout << endl << " ********************************************";
-      cout << endl << " **";
-      cout << endl << " ** Signal #" << signalStr[sig] 
-           << " caught! Printing Stack ...";
-      cout << endl << " **";
-      cout << endl << " ********************************************" << endl;
-      PrintStacktrace();
-      cout << endl << " *********** End Stack **********************" << endl;
       Application::appPointer->abortFlag = true;
       Application::appPointer->lastSignal = sig;
       signal( sig, Application::AbortOnSignalHandler );
