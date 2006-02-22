@@ -762,13 +762,13 @@ bool DateTime::ReadFrom(const ListExpr LE,const bool typeincluded){
   // real representation
   if(nl->AtomType(ValueList)==RealType ){
         bool res = ReadFrom(nl->RealValue(ValueList));
-	      return res;
+        return res;
   }
   // accect also integer values
   if(nl->AtomType(ValueList)==IntType ){
      if(type==instanttype){
         bool res = ReadFrom(nl->IntValue(ValueList));
-	      return res;
+        return res;
      }
      else
         return false;
@@ -1999,25 +1999,25 @@ int AfterFun(Word* args, Word& result, int message, Word& local, Supplier s){
 }
 
 int MulFun(Word* args, Word& result, int message, Word& local, Supplier s){
-	result = qp->ResultStorage(s);
-	DateTime* T1 = (DateTime*) args[0].addr;
-	CcInt* Fact = (CcInt*) args[1].addr;
-	DateTime* TRes = T1->Clone();
-	TRes->Mul((long)Fact->GetIntval());
-	((DateTime*) result.addr)->Equalize(TRes);
-	delete TRes;
-	return 0;
+  result = qp->ResultStorage(s);
+  DateTime* T1 = (DateTime*) args[0].addr;
+  CcInt* Fact = (CcInt*) args[1].addr;
+  DateTime* TRes = T1->Clone();
+  TRes->Mul((long)Fact->GetIntval());
+  ((DateTime*) result.addr)->Equalize(TRes);
+  delete TRes;
+  return 0;
 }
 
 int DivFun(Word* args, Word& result, int message, Word& local, Supplier s){
-	result = qp->ResultStorage(s);
-	DateTime* T1 = (DateTime*) args[0].addr;
-	DateTime* T2 = (DateTime*) args[1].addr;
+  result = qp->ResultStorage(s);
+  DateTime* T1 = (DateTime*) args[0].addr;
+  DateTime* T2 = (DateTime*) args[1].addr;
   DateTime Remainder(durationtype);
   bool overflow=false;
   long res = T1->Div( (*T2),Remainder,overflow);
-	((CcInt*) result.addr)->Set(true,res);
-	return 0;
+  ((CcInt*) result.addr)->Set(true,res);
+  return 0;
 }
 
 int WeekdayFun(Word* args, Word& result, int message,
