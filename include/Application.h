@@ -143,6 +143,7 @@ struct TTYParameter
     if ( value == expected ) 
     { 
       numArgs--;
+      argValues[1] = argValues[0];
       argValues = &(argValues[1]);
       return true;
     }  
@@ -611,6 +612,8 @@ These methods emulate the signal mechanism for the ~Microsoft Windows~ platform.
 
   static Application* appPointer;
   static map<int, std::string> signalStr;
+
+  bool showCounters;
 };
 
 #endif // APPLICATION_H

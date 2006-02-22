@@ -126,6 +126,8 @@ in the treatment of the database state in database commands.
 #include "NestedList.h"
 #include "AlgebraTypes.h"
 
+#include "CSProtocol.h"
+
 // forward declaration to avoid cyclic includes
 class DerivedObj;
 
@@ -955,19 +957,22 @@ after the error number have the following meaning:
 	 = "Kind does not match type expression.";  // (60 k t)
 				 
 	errors[ERR_SPECIFIC_KIND_CHECKING_ERROR] 
-	 = "Specific kind checking error for kind."; // (61 k j ...)
+	 = "Specific kind checking error for kind."; 
+        // (61 k j ...)
 
 	errors[ERR_IN_VALUELIST_TC_V] 
-	 = "Value list is not a representation for type constructor."; // (70 tc v)
+	 = "Value list is not a representation for type constructor."; 
+        // (70 tc v)
 				 
 	errors[ERR_SPECIFIC_FOR_TYPE_CONSTRUCTOR] 
-	 = "Specific error for type constructor in value list.";  // (71 tc j ...)
+	 = "Specific error for type constructor in value list.";  
+        // (71 tc j ...)
 				 
 	errors[ERR_IN_VALUELIST_TC] 
-	 = "Value list is not a representation for type constructor."; // (72 tc)
+	 = "Value list is not a representation for type constructor.";
 				 
 	errors[ERR_AT_POS_IN_VALUELIST] 
-	 = "Error at a position within value list for type constructor."; // (73 pos)
+	 = "Error at a position within value list for type constructor.";
 
 	errors[ERR_IN_SECONDO_PROTOCOL] 
 	 = "Secondo protocol error.";
@@ -988,7 +993,7 @@ after the error number have the following meaning:
 	 = "Algebra not known or currently not included.";
 				 
 	errors[ERR_UNKNOWN_RETURN_CODE]
-	 = "A function call returned with an unknown message. ";			 
+	 = "A function call returned with an unknown message. ";
 
 }
 
@@ -1033,7 +1038,7 @@ Sets the debug level of the query processor.
   SI_Error Command_Let( const ListExpr list );
   
   SI_Error Command_Set( const ListExpr list );
-									 	 
+
   SI_Error Command_Derive( const ListExpr list );
 	
   SI_Error Command_Update( const ListExpr list );
@@ -1051,6 +1056,8 @@ Sets the debug level of the query processor.
   static map<int,string> errors;
 
   DerivedObj* derivedObjPtr;
+
+  CSProtocol* csp;
 };
 
 /*
