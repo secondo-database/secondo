@@ -157,7 +157,7 @@ Sets the report flag with the value of ~reportVal~.
       mapsize = CounterMap.size();
     }
 
-    cout << sep << endl << "Counter Values:" << endl;
+    cout << endl << sep << endl << "Counter Values:" << endl;
     clog << ++nr;
 
     // calculate the longest entry
