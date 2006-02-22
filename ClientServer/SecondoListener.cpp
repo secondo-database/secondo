@@ -63,7 +63,7 @@ SecondoListener::AbortOnSignal( int sig )
   {
     gate->CancelAccept();
   }
-  return (false);
+  return (true);
 }
 
 void

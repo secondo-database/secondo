@@ -79,7 +79,7 @@ SecondoRegistrar::AbortOnSignal( int sig )
   {
     msgSocket->CancelAccept();
   }
-  return (false);
+  return (true);
 }
 
 void
