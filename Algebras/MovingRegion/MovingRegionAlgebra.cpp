@@ -5286,6 +5286,9 @@ are not border of any region, and create region.
             Point e(true, xe, ye);
             CHalfSegment chs(true, true, s, e);
 
+            chs.attr.faceno = 0;
+            chs.attr.cycleno = 0;
+            chs.attr.edgeno = partnerno;
             chs.attr.partnerno = partnerno++;
 
             if (initialInstant
