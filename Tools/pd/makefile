@@ -152,5 +152,5 @@ install: $(OBJECTS) $(SCRIPTS)
 
 .PHONY clean:
 clean:
-	rm -f $(OBJECTS) $(DOCU) $(TEMPORARYS) *.exe linecheck.c
+	rm -f $(OBJECTS) $(DOCU) $(TEMPORARYS) *.exe linecheck.c tabcheck.c
 
