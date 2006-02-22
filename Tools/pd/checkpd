@@ -22,13 +22,23 @@ IGNORE_INCLUDES="true"
 # using this argument, too long lines will be treated as errors
 # instead of warnings
 STRONG=false
-if [ "$1" == "--strong" ]; then
+VERYSTRONG=false
+VERBOSE=true
+if [ "$1" = "--strong" ]; then
    STRONG=true
    shift
+else 
+  if [ "$1" = "--verystrong" ]; then
+      VERYSTRONG="true"
+      shift     
+  fi
 fi
 
+if [ "$1" = "--quiet" ]; then
+ VERBOSE=false
+ shift
+fi
 
-ARGS=$*
 if [ -z "$ARGS" ]
 then
    FILESCPP=$(find $PWD -name '*.cpp')
@@ -72,17 +82,14 @@ do
       NOTFOUND=$(expr "$NOTFOUND" + 1)
    else
       PROCESSED=$(expr "$PROCESSED" + 1)
-      grep -n "$TABSYM" "$F"  
-      if [ $? -eq 0 ]; then
-        echo -e "Warning: $F contains $TABS tabulators\n"
-        TABCONTAMINATED=$(expr "$TABCONTAMINATED" + 1)
-      fi
       S=$((pdtabs <"$F" | maketex >/dev/null) 2>&1)
       if [ $? -ne 0 ]
       then
         echo "pdcheck for $F failed"
-        echo "message : $S"
-        echo -e "\n"
+        if [ "$VERBOSE" = "true" ]; then
+             echo "message : $S"
+             echo -e "\n"
+        fi
         PDFAILED=$(expr "$PDFAILED" + 1)
       else
         {
@@ -103,15 +110,30 @@ do
              LATEXFAILED=$(expr "$LATEXFAILED" + 1)
            fi
         else
-            linecheck "$MAXLINES" $F
+            if [ "$VERBOSE" = "true" ]; then
+                linecheck "$MAXLINES" $F
+            else
+                linecheck "$MAXLINES" $F >/dev/null
+            fi
             CL="$?"
             if [ "$CL" -ne 0 ]; then
-               if [ "$STRONG" == "true" ]; then
+               if [ \( "$STRONG" = "true" \) -o  \( "$VERYSTRONG" = "true" \) ]; then
                   echo -e "Error: $CL lines too long in \"$F\""
                else
                   echo -e "Warning: $CL lines too long in \"$F\""
                fi
                LINEFAILED=$(expr "$LINEFAILED" + 1)
+            else
+              if [ "$VERBOSE" = "true" ]; then
+                  tabcheck "$F"  
+              else
+                  tabcheck "$F" > /dev/null
+              fi
+              TABS=$?
+              if [ $TABS -gt 0 ]; then
+                  echo -e "Warning: $F contains $TABS tabulators\n"
+                  TABCONTAMINATED=$(expr "$TABCONTAMINATED" + 1)
+              fi
             fi
         fi
         rm -f $TEMPDIR/*.dvi $TEMPDIR/*.log $TEMPDIR/*.aux $TEMPDIR/*.tmp $TEMPDIR/*.toc $TEMPDIR/tmp.tex
@@ -122,7 +144,7 @@ done
 cd "$HERE"
 rm -rf "$TEMPDIR"
 
-SUCCESS=$(expr "$PROCESSED" - "$PDFAILED" - "$LINEFAILED" - "$LATEXFAILED" )
+SUCCESS=$(expr "$PROCESSED" - "$PDFAILED" - "$LINEFAILED" - "$LATEXFAILED" - "$TABCONTAMINATED" )
 if [ "$PROCESSED" -gt 0 ]; then
    echo "checkpd Statistic:"
    if [ "$NOTFOUND" -gt 0 ]; then
@@ -144,7 +166,12 @@ fi
 if [ "$STRONG" != "true" ]; then
     FAILED=$(expr "$PDFAILED" + "$LATEXFAILED")
 else
-    FAILED=$(expr "$PDFAILED" + "$LATEXFAILED" +  "$LINEFAILED" )
+	FAILED=$(expr "$PDFAILED" + "$LATEXFAILED" +  "$LINEFAILED" )
 fi
+
+if [ "$VERYSTRONG" = "true"  ]; then
+    FAILED=$(expr "$PDFAILED" + "$LATEXFAILED" +  "$LINEFAILED" + "$TABCONTAMINATED" )
+fi
+
 #FAILED="$PDFAILED"
 exit "$FAILED"
