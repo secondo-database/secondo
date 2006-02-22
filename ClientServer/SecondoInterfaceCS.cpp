@@ -46,13 +46,8 @@ using namespace std;
 #include "SocketIO.h"
 #include "Profiles.h"
 #include "LogMsg.h"
+#include "CSProtocol.h"
 
-static istream&
-skipline( istream&  strm )
-{
-  strm.ignore( INT_MAX, '\n' );
-  return (strm);
-}
 
 SecondoInterface::SecondoInterface() : 
   initialized( false ), 
@@ -62,6 +57,7 @@ SecondoInterface::SecondoInterface() :
 {
   nl = new NestedList();
   al = nl;
+  csp = 0;
 }
 
 SecondoInterface::~SecondoInterface()
@@ -90,6 +86,30 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     // initialize runtime flags
     InitRTFlags(parmFile);
 
+    cout << "Setting up temporary Berkeley-DB envinronment" << endl;
+    bool ok=false;
+    if ( SmiEnvironment::SetHomeDir(parmFile) )
+    {
+      SmiEnvironment::SetUser( user ); // TODO: Check for valid user/pswd
+      ok = true;
+    }
+    else
+    {
+      string errMsg;
+      SmiEnvironment::GetLastErrorCode( errMsg );
+      cout << "Error: " << errMsg << endl;
+      ok=false;
+    }
+
+    if (ok)
+      ok = (SmiEnvironment::CreateTmpEnvironment( cerr ) == 0);
+
+    if (!ok) {
+      cerr << "Error: No Berkeley-DB environment! " 
+           << "Persistent nested lists not available!"
+           << endl;
+    }      
+    
     // Connect with server, needed host and port
     if ( secHost.length() == 0 || secPort.length() == 0 )
     {
@@ -112,6 +132,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
       if ( server != 0 && server->IsOk() )
       {
         iostream& iosock = server->GetSocketStream();
+        csp = new CSProtocol(iosock);
         getline( iosock, line );
         if ( line == "<SecondoOk/>" )
         {
@@ -187,6 +208,9 @@ SecondoInterface::Terminate()
   }
 }
 
+
+
+
 /************************************************************************** 
 3.1 The Secondo Procedure 
 
@@ -214,12 +238,9 @@ If value 0 is returned, the command was executed without error.
 
 */
 
-  string cmdText;
+  string cmdText="";
   ListExpr list, errorList, errorInfo;
-  string filename, dbName, objName, typeName;
-  string listCommand;         /* buffer for command in list form */
-  bool readResponse = false;
-
+  string filename="", dbName="", objName="", typeName="";
   errorMessage = "";
   errorCode    = 0;
   errorList    = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
@@ -244,7 +265,8 @@ If value 0 is returned, the command was executed without error.
         {
           if ( !nl->WriteToString( cmdText, commandLE ) )
           {
-            errorCode = ERR_SYNTAX_ERROR;  // syntax error in command/expression
+            // syntax error in command/expression
+            errorCode = ERR_SYNTAX_ERROR;  
           }
         }
         break;
@@ -256,13 +278,18 @@ If value 0 is returned, the command was executed without error.
       }
       default:
       {
-        errorCode = ERR_CMD_LEVEL_NOT_YET_IMPL;  // Command type not implemented
+       // Command type not implemented
+        errorCode = ERR_CMD_LEVEL_NOT_YET_IMPL; 
       }
     } // switch
   }
 
   string line;
   iostream& iosock = server->GetSocketStream();
+
+  ios_base::iostate s = iosock.exceptions();
+  iosock.exceptions(ios_base::failbit|ios_base::badbit|ios_base::eofbit);
+  
   if ( iosock.fail() )
   {
     errorCode = ERR_CONNECTION_TO_SERVER_LOST;
@@ -297,39 +324,18 @@ If value 0 is returned, the command was executed without error.
           (nl->AtomType( nl->Fourth( list )) == SymbolType) )
       {
         filename = nl->SymbolValue( nl->Fourth( list ) );
-        iosock << "<DbSave>" << endl
-               << filename << endl
-               << "</DbSave>" << endl;
-        getline( iosock, line );
-        if ( line == "<ReceiveFile>" )
-        {
-          getline( iosock, filename );
-          getline( iosock, line );          // Hope it is '</ReceiveFile>'
-          ofstream restoreFile( filename.c_str() );
-          if ( restoreFile )
-          {
-            iosock << "<ReceiveFileReady/>" << endl;
-            getline( iosock, line );
-            if ( line == "<ReceiveFileData>" )
-            {
-              while (line != "</ReceiveFileData>" && !iosock.fail())
-              {
-                getline( iosock, line );
-                if ( line != "</ReceiveFileData>" )
-                {
-                  restoreFile << line << endl;
-                }
-              }
-            }
-            restoreFile.close();
-          }
-          else
-          {
-            iosock << "<ReceiveFileError/>" << endl;
-          }
-        }
-        getline( iosock, line );
-        readResponse = true;
+
+        // request for save database
+        iosock << "<DbSave/>" << endl;
+        
+        errorCode = csp->ReadResponse( nl, resultList, 
+                                       errorCode, errorPos, 
+                                       errorMessage         );
+
+        if (errorCode == ERR_NO_ERROR) {
+          nl->WriteToFile( filename.c_str(), resultList );
+          resultList=nl->TheEmptyList();
+        }  
       }
       else
       {
@@ -364,40 +370,21 @@ If value 0 is returned, the command was executed without error.
       {
         filename = nl->SymbolValue( nl->Fourth( list ) );
         objName = nl->SymbolValue( nl->Second( list ) );
+        
+        // request list representation for object
         iosock << "<ObjectSave>" << endl
-               << filename << endl
                << objName << endl
                << "</ObjectSave>" << endl;
-        getline( iosock, line );
-        if ( line == "<ReceiveFile>" )
-        {
-          getline( iosock, filename );
-          getline( iosock, line );          // Hope it is '</ReceiveFile>'
-          ofstream restoreFile( filename.c_str() );
-          if ( restoreFile )
-          {
-            iosock << "<ReceiveFileReady/>" << endl;
-            getline( iosock, line );
-            if ( line == "<ReceiveFileData>" )
-            {
-              while (line != "</ReceiveFileData>" && !iosock.fail())
-              {
-                getline( iosock, line );
-                if ( line != "</ReceiveFileData>" )
-                {
-                  restoreFile << line << endl;
-                }
-              }
-            }
-            restoreFile.close();
-          }
-          else
-          {
-            iosock << "<ReceiveFileError/>" << endl;
-          }
-        }
-        getline( iosock, line );
-        readResponse = true;
+        
+        errorCode = csp->ReadResponse( nl, resultList, 
+                                       errorCode, errorPos, 
+                                       errorMessage         );
+
+        if (errorCode == ERR_NO_ERROR) {
+          cout << "writing file " << filename << endl;
+          nl->WriteToFile( filename.c_str(), resultList );
+          resultList=nl->TheEmptyList();
+        }  
       }
       else
       {
@@ -431,40 +418,25 @@ If value 0 is returned, the command was executed without error.
            nl->IsAtom( nl->Fourth( list )) && 
           (nl->AtomType( nl->Fourth( list )) == SymbolType) )
       {
+        // send object symbol 
+        iosock << csp->startObjectRestore << endl
+               << nl->SymbolValue( nl->Second( list ) ) << endl;
+
+        // send file data
         filename = nl->SymbolValue( nl->Fourth( list ) ); 
-        iosock << "<ObjectRes>" << endl
-               << nl->SymbolValue( nl->Second( list ) )
-               << " " << filename << endl
-               << "</ObjectRes>" << endl;
-        getline( iosock, line );
-        if ( line == "<SendFile>" )
-        {
-          getline( iosock, filename );
-          getline( iosock, line );          // Hope it is '</SendFile>'
-          ifstream restoreFile( filename.c_str() );
-          if ( restoreFile )
-          {
-            iosock << "<SendFileData>" << endl;
-            while (!restoreFile.eof() && !iosock.fail())
-            {
-              getline( restoreFile, line );
-              iosock << line << endl;
-            }
-            iosock << "</SendFileData>" << endl;
-            restoreFile.close();
-          }
-          else
-          {
-            iosock << "<SendFileError/>" << endl;
-          }
-        }
-        getline( iosock, line );
-        readResponse = true;
+        csp->SendFile(filename);
+        
+        // send end tag
+        iosock << csp->endObjectRestore << endl;
+        
+        errorCode = csp->ReadResponse( nl, resultList, 
+                                       errorCode, errorPos, 
+                                       errorMessage         );
       }
       else
       {
         // Not a valid 'restore object' command
-        errorCode = 1;
+        errorCode = ERR_CMD_NOT_RECOGNIZED;
       }
     }
     else
@@ -494,46 +466,25 @@ If value 0 is returned, the command was executed without error.
            nl->IsAtom( nl->Fifth( list )) && 
           (nl->AtomType( nl->Fifth( list )) == SymbolType) )
       {
+        // send object symbol 
+        iosock << csp->startDbRestore << endl
+               << nl->SymbolValue( nl->Third( list ) ) << endl;
+
+        // send file data
         filename = nl->SymbolValue( nl->Fifth( list ) ); 
-        iosock << "<DbRestore>" << endl
-               << nl->SymbolValue( nl->Third( list ) )
-               << " " << filename << endl
-               << "</DbRestore>" << endl;
-        getline( iosock, line );
-        if ( line == "<SendFile>" )
-        {
-          getline( iosock, filename );
-          getline( iosock, line );          // Hope it is '</SendFile>'
-          ifstream restoreFile( filename.c_str() );
-          if ( restoreFile )
-          {
-            iosock << "<SendFileData>" << endl;
-            int lines = 0;
-            cout << "Sending file to server ";
-            while (!restoreFile.eof() && !iosock.fail())
-            {
-              getline( restoreFile, line );
-              iosock << line << endl;
-              lines++;
-              if (lines == 10000) 
-                { cout << "."; lines = 0; }
-            }
-            cout << " file transmitted. " << endl;
-            iosock << "</SendFileData>" << endl;
-            restoreFile.close();
-          }
-          else
-          {
-            iosock << "<SendFileError/>" << endl;
-          }
-        }
-        getline( iosock, line );
-        readResponse = true;
+        csp->SendFile(filename);
+        
+        // send end tag
+        iosock << csp->endDbRestore << endl;
+
+        errorCode = csp->ReadResponse( nl, resultList, 
+                                       errorCode, errorPos, 
+                                       errorMessage         );
       }
       else
       {
         // Not a valid 'restore database' command
-        errorCode = 1;
+        errorCode = ERR_CMD_NOT_RECOGNIZED;
       }
     }
     else
@@ -550,67 +501,12 @@ If value 0 is returned, the command was executed without error.
            << cmdText << endl
            << "</Secondo>" << endl;
     // Receive result
-    getline( iosock, line );
-    readResponse = true;
+    errorCode = csp->ReadResponse( nl, resultList, 
+                                       errorCode, errorPos, 
+                                       errorMessage         );
   }
-  if ( readResponse )
-  {
-    string result = "";
-    if ( line == "<SecondoResponse>" )
-    {
-      bool success = false;
-      
-      if ( !RTFlag::isActive("Server:BinaryTransfer") ) { 
-        // textual data transfer
-        do
-        {
-          getline( iosock, line );
-          if ( line != "</SecondoResponse>" )
-          {
-            result += line + "\n";
-          }
-        }
-        while (line != "</SecondoResponse>" && !iosock.fail());      
-        nl->ReadFromString( result, resultList );
-        success = true;
-        
-      } else { // binary data transfer
-      
-        nl->ReadBinaryFrom(iosock, resultList);
-        ofstream outFile("TTYCS.bnl");
-        nl->WriteBinaryTo(resultList, outFile);
-        getline( iosock, line );
-        if (line != "</SecondoResponse>" ) {
-          cerr << "Error: No </SecondoResponse> found after "
-               << "receiving a binary list!" << endl;
-          errorCode = ERR_IN_SECONDO_PROTOCOL;
-          resultList = nl->TheEmptyList();
-        } else {
-          success = true;
-        }  
-      }  
-        if (success) {
-          errorCode = nl->IntValue( nl->First( resultList ) );
-          errorPos  = nl->IntValue( nl->Second( resultList ) );
-          TextScan ts = nl->CreateTextScan( nl->Third( resultList ) );
-          nl->GetText( ts, nl->TextLength( nl->Third( resultList ) ), 
-                       errorMessage );
 
-          nl->DestroyTextScan( ts );
-          resultList = nl->Fourth( resultList );
-        }
-    }
-    else if ( line == "<SecondoError>" )
-    {
-      errorCode = ERR_IN_SECONDO_PROTOCOL;
-      getline( iosock, errorMessage );
-      getline( iosock, line );
-    }
-    else
-    {
-      errorCode = ERR_IN_SECONDO_PROTOCOL;
-    }
-  }
+  iosock.exceptions(s);
   if ( resultAsText )
   {
     nl->WriteToFile( resultFileName, resultList );
@@ -655,6 +551,8 @@ SecondoInterface::NumericTypeExpr( const ListExpr type )
   return (list);
 }
 
+
+
 bool
 SecondoInterface::GetTypeId( const string& name,
                              int& algebraId, int& typeId )
@@ -670,7 +568,8 @@ SecondoInterface::GetTypeId( const string& name,
     getline( iosock, line );
     if ( line == "<GetTypeIdResponse>" )
     {
-      iosock >> algebraId >> typeId >> skipline;
+      iosock >> algebraId >> typeId;
+      csp->skipRestOfLine();
       getline( iosock, line ); // Skip end tag '</GetTypeIdResponse>'
       ok = !(algebraId == 0 && typeId == 0);
     }

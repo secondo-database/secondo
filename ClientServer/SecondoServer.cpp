@@ -28,8 +28,16 @@ Implementation of the Secondo Server Module
 binary encoded list transfer and error handling of socket streams.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
-(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+(~executable~, ~descriptive~, and ~hybrid~). Only the executable
 level remains.
+
+February 2006. M. Spiekermann. Changes in the client server protocol. Now
+the ~restore~ and ~save~ object/database commands work correctly. Moreover the
+code was simplified and restructured. As a consequence protocol related procedures 
+are implemented in class ~CSProtocol~ and can be used by inside the 
+~TTYCS~ and the ~Server~ code. 
+
+
 
 */
 
@@ -55,12 +63,7 @@ using namespace std;
 #include "LogMsg.h"
 #include "StopWatch.h"
 
-static istream&
-skipline( istream&  strm )
-{
-  strm.ignore( INT_MAX, '\n' );
-  return strm;
-}
+#include "CSProtocol.h"
 
 class SecondoServer;
 typedef void (SecondoServer::*ExecCommand)();
@@ -87,9 +90,13 @@ class SecondoServer : public Application
                       const string& errorMessage, ListExpr resultList );
   bool ReceiveFile( const string& clientFileName,
                     const string& serverFileName );
-  bool SendFile( const string& clientFileName,
-                 const string& serverFileName );
+  
  private:
+
+  void CallRestore(const string& tag, bool database=false);
+  void CallSave(const string& tag, bool database=false);
+  string CreateTmpName(const string& prefix);
+  
   Socket*           client;
   SecondoInterface* si;
   NestedList*       nl;
@@ -97,6 +104,8 @@ class SecondoServer : public Application
   bool              quit;
   string            registrar;
   string            user;
+
+  CSProtocol* csp;
 };
 
 void
@@ -117,7 +126,9 @@ SecondoServer::WriteResponse( const int errorCode, const int errorPos,
   iosock << "<SecondoResponse>" << endl;
 
   if ( !RTFlag::isActive("Server:BinaryTransfer") ) {
-  
+ 
+    //*** Send List as TEXT-Format ***// 
+    
     StopWatch* sendTime = 0;
     LOGMSG( "Server:SendTimeMsg",
       sendTime = new StopWatch();
@@ -137,6 +148,8 @@ SecondoServer::WriteResponse( const int errorCode, const int errorPos,
 
   } else {
 
+    //*** Send List in BINARY-Format ***//
+    
     if ( RTFlag::isActive("Server:ResultFile") ) {
       ofstream file("result.bnl", ios::out|ios::trunc|ios::binary);
       nl->WriteBinaryTo(list,file);
@@ -158,18 +171,19 @@ SecondoServer::WriteResponse( const int errorCode, const int errorPos,
 
   }
   iosock << "</SecondoResponse>" << endl;
-
+  
 }
 
 void
 SecondoServer::CallSecondo()
 {
-  string line, cmdText, cmdEnd;
+  string line="", cmdText="", cmdEnd="";
   iostream& iosock = client->GetSocketStream();
-  int type;
-  iosock >> type >> skipline;
+  int type=0;
+  iosock >> type;
+  csp->skipRestOfLine();
 
-  bool ready;
+  bool ready=false;
   do
   {
     getline( iosock, line );
@@ -182,8 +196,8 @@ SecondoServer::CallSecondo()
   while (!ready && !iosock.fail());
   ListExpr commandLE = nl->TheEmptyList();
   ListExpr resultList = nl->TheEmptyList();
-  int errorCode, errorPos;
-  string errorMessage;
+  int errorCode=0, errorPos=0;
+  string errorMessage="";
   si->Secondo( cmdText, commandLE, type, true, false, 
                resultList, errorCode, errorPos, errorMessage );
   WriteResponse( errorCode, errorPos, errorMessage, resultList );
@@ -224,7 +238,8 @@ SecondoServer::CallGetTypeId()
   int algebraId, typeId;
   iostream& iosock = client->GetSocketStream();
   iosock.clear();
-  iosock >> name >> skipline;
+  iosock >> name;
+  csp->skipRestOfLine();
   getline( iosock, cmdEnd );
   if ( cmdEnd == "</GetTypeId>" )
   {
@@ -277,211 +292,162 @@ SecondoServer::CallLookUpType()
   }
 }
 
-bool
-SecondoServer::SendFile( const string& clientFileName,
-                         const string& serverFileName )
+
+
+string
+SecondoServer::CreateTmpName(const string& prefix)
 {
-  bool ok = false;
-  iostream& iosock = client->GetSocketStream();
-  iosock << "<ReceiveFile>" << endl
-         << clientFileName << endl
-         << "</ReceiveFile>" << endl;
-  string line;
-  getline( iosock, line );
-  if ( line == "<ReceiveFileReady/>" )
-  {
-    ifstream serverFile( serverFileName.c_str() );
-    iosock << "<ReceiveFileData>" << endl;
-    while (!serverFile.eof() && !iosock.fail())
-    {
-      getline( serverFile, line );
-      iosock << line << endl;
-    }
-    iosock << "</ReceiveFileData>" << endl;
-    serverFile.close();
-  }
-  else
-  {
-    // in case we get here line should be '<ReceiveFileError/>'
-    ok = false;
-  }
-  return (ok);
-}
+  ostringstream os;
+  os << prefix << GetOwnProcessId();
+  return os.str();
+}       
+
 
 void
-SecondoServer::CallObjectSave()
+SecondoServer::CallSave(const string& tag, bool database /*=false*/)
 {
-  string clientFileName, serverFileName, objName, cmdEnd;
-  iostream& iosock = client->GetSocketStream();
-  iosock >> clientFileName >> skipline;
-  iosock >> objName >> skipline;
-  getline( iosock, cmdEnd );
-  if ( cmdEnd == "</ObjectSave>" )
+
+  //cout << "Begin CallSave()" << endl;
+ 
+  // parameters for Secondo interface call
+  SI_Error errorCode=ERR_NO_ERROR;
+  int errorPos=0;
+  string errorMessage="";
+  ListExpr commandLE = nl->TheEmptyList();
+  ListExpr resultList = nl->TheEmptyList();
+
+  string cmdText="";
+  string serverFileName = CreateTmpName(tag);
+  // Read client message and construct Secondo command
+  if (!database)
   {
-    // serverFileName erzeugen
-    ostringstream os;
-    os << "SObjectSave" << GetOwnProcessId();
-    serverFileName = os.str();
-    string cmdText = "(save " + objName + " to " + serverFileName + ")";
-    ListExpr commandLE = nl->TheEmptyList();
-    ListExpr resultList = nl->TheEmptyList();
-    int errorCode, errorPos;
-    string errorMessage;
-    si->Secondo( cmdText, commandLE, 0, true, false, 
-                 resultList, errorCode, errorPos, errorMessage );
-    if ( errorCode == 0 )
-    {
-      SendFile( clientFileName, serverFileName );
-    }
-    WriteResponse( errorCode, errorPos, errorMessage, resultList );
-    FileSystem::DeleteFileOrFolder( serverFileName );
+    // read in object or database name
+    iostream& iosock = client->GetSocketStream();
+    string name = "";
+    iosock >> name;
+    csp->skipRestOfLine();
+
+    if(!csp->nextLine("</"+tag+">", errorMessage))
+      errorCode = ERR_IN_SECONDO_PROTOCOL;
+      
+    cmdText= "(save " + name + " to " + serverFileName + ")";
   }
   else
   {
-    WriteResponse( 80, 0, "Protocol error: </ObjectSave> expected.", 
-                   nl->TheEmptyList() );
-  }
+    cmdText = "(save database to " + serverFileName + ")";
+  }  
+  
+  // create file on server 
+  if (errorCode == ERR_NO_ERROR)
+  {
+   
+    si->Secondo( cmdText, commandLE, 0, true, false, 
+                 resultList, errorCode, errorPos, errorMessage );
+
+  } 
+
+  // If successful create list from file
+  if (errorCode == ERR_NO_ERROR)
+  {
+    nl->ReadFromFile( serverFileName, resultList );
+  } 
+   
+  WriteResponse( errorCode, errorPos, errorMessage, resultList );
+  //FileSystem::DeleteFileOrFolder( serverFileName );
+
+  //cout << "End CallSave()" << endl;
 }
+
 
 void
 SecondoServer::CallDbSave()
 {
-  string clientFileName, serverFileName, cmdEnd;
+  CallSave("DbSave", true);
+}
+
+
+void
+SecondoServer::CallObjectSave()
+{
+  CallSave("ObjectSave");
+}
+
+
+void
+SecondoServer::CallRestore(const string& tag, bool database/*=false*/)
+{
+  // parameters for Secondo interface call
+  SI_Error errorCode=0;
+  int errorPos=0;
+  string errorMessage="";
+  ListExpr commandLE = nl->TheEmptyList();
+  ListExpr resultList = nl->TheEmptyList();
+  bool readLastLine=false;
+
+  
+  // read in object or database name
   iostream& iosock = client->GetSocketStream();
-  iosock >> clientFileName >> skipline;
-  getline( iosock, cmdEnd );
-  if ( cmdEnd == "</DbSave>" )
+  string name = "";
+  iosock >> name;
+  csp->skipRestOfLine();
+  
+  //cout << "Begin CallRestore()" << endl;
+  
+  string serverFileName= CreateTmpName(tag);
+  if ( csp->ReceiveFile( serverFileName ) )
   {
-    // serverFileName erzeugen
-    ostringstream os;
-    os << "SdbSave" << GetOwnProcessId();
-    serverFileName = os.str();
-    string cmdText = "(save database to " + serverFileName + ")";
-    ListExpr commandLE = nl->TheEmptyList();
-    ListExpr resultList = nl->TheEmptyList();
-    int errorCode, errorPos;
-    string errorMessage;
+    string cmdText="";
+
+    // construct Secondo command
+    if (database)
+    {
+      cmdText = "(restore database " + name +
+                " from " + serverFileName + ")";
+            
+    }
+    else
+    {       
+      cmdText= "(restore " + name +
+               " from " + serverFileName + ")";
+    } 
+    
     si->Secondo( cmdText, commandLE, 0, true, false, 
                  resultList, errorCode, errorPos, errorMessage );
-    if ( errorCode == 0 )
-    {
-      SendFile( clientFileName, serverFileName );
-    }
-    WriteResponse( errorCode, errorPos, errorMessage, resultList );
-    FileSystem::DeleteFileOrFolder( serverFileName );
+    
+    readLastLine=true;
   }
   else
   {
-    WriteResponse( 80, 0, "Protocol error: </DbSave> expected.", 
-                   nl->TheEmptyList() );
+    
+    errorCode = ERR_IN_SECONDO_PROTOCOL;
+    errorMessage = "Protocol-Error: File not received correctly."; 
+    resultList = nl->TheEmptyList();
+    readLastLine=false;
   }
+  
+  if ( readLastLine && !csp->nextLine("</"+tag+">", errorMessage) )
+  {
+    errorCode = ERR_IN_SECONDO_PROTOCOL;
+  }
+  WriteResponse( errorCode, errorPos, errorMessage, resultList );
+  //FileSystem::DeleteFileOrFolder( serverFileName );
+
+  //cout << "End CallRestore()" << endl;
 }
 
-bool
-SecondoServer::ReceiveFile( const string& clientFileName,
-                            const string& serverFileName )
-{
-  bool ok = false;
-  iostream& iosock = client->GetSocketStream();
-  iosock << "<SendFile>" << endl
-         << clientFileName << endl
-         << "</SendFile>" << endl;
-  string line;
-  getline( iosock, line );
-  if ( line == "<SendFileData>" )
-  {
-    ofstream serverFile( serverFileName.c_str() );
-    bool ready = false;
-    while (!ready && !iosock.fail())
-    {
-      getline( iosock, line );
-      ready = (line == "</SendFileData>");
-      if ( !ready )
-      {
-        serverFile << line << endl;
-      }
-    }
-    serverFile.close();
-    ok = true;
-  }
-  return (ok);
-}
 
 void
 SecondoServer::CallObjectRestore()
 {
-  string objName, clientFileName, serverFileName, cmdEnd;
-  iostream& iosock = client->GetSocketStream();
-  iosock >> objName >> clientFileName >> skipline;
-  getline( iosock, cmdEnd );
-  if ( cmdEnd == "</ObjectRes>" )
-  {
-    ostringstream os;
-    os << "SObjectRest" << GetOwnProcessId();
-    serverFileName = os.str();
-    if ( ReceiveFile( clientFileName, serverFileName ) )
-    {
-      string cmdText = "(restore " + objName +
-                       " from " + serverFileName + ")";
-      ListExpr commandLE = nl->TheEmptyList();
-      ListExpr resultList = nl->TheEmptyList();
-      int errorCode, errorPos;
-      string errorMessage;
-      si->Secondo( cmdText, commandLE, 0, true, false, 
-                   resultList, errorCode, errorPos, errorMessage );
-      WriteResponse( errorCode, errorPos, errorMessage, resultList );
-    }
-    else
-    {
-      WriteResponse( 80, 0, "Protocol error: File not received correctly.", 
-                     nl->TheEmptyList() );
-    }
-    FileSystem::DeleteFileOrFolder( serverFileName );
-  }
-  else
-  {
-    WriteResponse( 80, 0, "Protocol error: </ObjectRes> expected.", 
-                   nl->TheEmptyList() );
-  }
-}
+  CallRestore("ObjectRestore");    
+}       
 
 void
 SecondoServer::CallDbRestore()
 {
-  string dbName, clientFileName, serverFileName, cmdEnd;
-  iostream& iosock = client->GetSocketStream();
-  iosock >> dbName >> clientFileName >> skipline;
-  getline( iosock, cmdEnd );
-  if ( cmdEnd == "</DbRestore>" )
-  {
-    ostringstream os;
-    os << "SdbRest" << GetOwnProcessId();
-    serverFileName = os.str();
-    if ( ReceiveFile( clientFileName, serverFileName ) )
-    {
-      string cmdText = "(restore database " + dbName +
-                       " from " + serverFileName + ")";
-      ListExpr commandLE = nl->TheEmptyList();
-      ListExpr resultList = nl->TheEmptyList();
-      int errorCode, errorPos;
-      string errorMessage;
-      si->Secondo( cmdText, commandLE, 0, true, false, 
-                   resultList, errorCode, errorPos, errorMessage );
-      WriteResponse( errorCode, errorPos, errorMessage, resultList );
-    }
-    else
-    {
-      WriteResponse( 80, 0, "Protocol error: File not received correctly.", 
-                     nl->TheEmptyList() );
-    }
-    FileSystem::DeleteFileOrFolder( serverFileName );
-  }
-  else
-  {
-    WriteResponse( 80, 0, "Protocol error: </DbRestore> expected.", 
-                   nl->TheEmptyList() );
-  }
-}
+  CallRestore("DbRestore",true);        
+}       
+
 
 void
 SecondoServer::Connect()
@@ -499,7 +465,9 @@ SecondoServer::Connect()
     }
   }
   nl->Destroy( userinfo );
-  getline( iosock, line );
+
+  getline( iosock, line ); //eat up </USER> ?
+  
   iosock << "<SecondoIntro>" << endl
          << "You are connected with a Secondo server." << endl
          << "</SecondoIntro>" << endl;
@@ -533,9 +501,9 @@ SecondoServer::Execute()
     commandTable["<NumericType>"] = &SecondoServer::CallNumericType;
     commandTable["<GetTypeId>"]   = &SecondoServer::CallGetTypeId;
     commandTable["<LookUpType>"]  = &SecondoServer::CallLookUpType;
-    commandTable["<DbSave>"]      = &SecondoServer::CallDbSave;
+    commandTable["<DbSave/>"]      = &SecondoServer::CallDbSave;
     commandTable["<ObjectSave>"]  = &SecondoServer::CallObjectSave;
-    commandTable["<ObjectRes>"]   = &SecondoServer::CallObjectRestore;
+    commandTable["<ObjectRestore>"]   = &SecondoServer::CallObjectRestore;
     commandTable["<DbRestore>"]   = &SecondoServer::CallDbRestore;
     commandTable["<Connect>"]     = &SecondoServer::Connect;
     commandTable["<Disconnect/>"] = &SecondoServer::Disconnect;
@@ -552,6 +520,8 @@ SecondoServer::Execute()
       quit = false;
 
       iostream& iosock = client->GetSocketStream();
+      csp = new CSProtocol(iosock);
+      
       ios_base::iostate s = iosock.exceptions();
       iosock.exceptions(ios_base::failbit|ios_base::badbit|ios_base::eofbit);
       iosock << "<SecondoOk/>" << endl;
@@ -569,7 +539,8 @@ SecondoServer::Execute()
         else
         {
           iosock << "<SecondoError>" << endl
-                 << "SECONDO-0080 Protocol error: Unknown command." << endl
+                 << "SECONDO-0080 Protocol-Error: Start tag \"" 
+                 << cmd << "\" unknown!" << endl
                  << "</SecondoError>" << endl;
         }
         if ( Application::Instance()->ShouldAbort() )
@@ -582,7 +553,7 @@ SecondoServer::Execute()
     
       } catch (ios_base::failure) {
         cerr << endl 
-             << "I/O error on socket stream object while sending response!" 
+             << "I/O error on socket stream object!" 
              << endl;
         if ( !client->IsOk() ) {
            cerr << "Socket Error: " << client->GetErrorText() << endl;  
