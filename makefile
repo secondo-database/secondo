@@ -280,9 +280,6 @@ Documents/.Secondo-News.txt : Documents/Secondo-News.txt
 bin/SecondoConfig.ini: bin/SecondoConfig.example
 	$(cp-config-file)
 	
-Optimizer/SecondoConfig.ini: bin/SecondoConfig.example
-	$(cp-config-file)
-
 bin/JNI.ini: bin/JNI.ini.sample
 	$(cp-config-file)
 
