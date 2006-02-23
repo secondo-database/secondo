@@ -28,7 +28,6 @@ Sept 2004 M. Spiekermann. Bugs in ~GetparentFolder~ and ~AppendSlash~ corrected.
 
 */
 
-using namespace std;
 
 #include "SecondoConfig.h"
 #include <iostream>
@@ -44,6 +43,35 @@ using namespace std;
 #endif
 
 #include "FileSystem.h"
+#include "LogMsg.h"
+
+#include <sstream>
+
+using namespace std;
+
+/*
+2 ~FileErr~ a class representing Nested-List exceptions
+   
+*/
+class FileErr : public SecondoException {
+
+  public:
+   
+  FileErr(const string& Msg, const int rc) : SecondoException(Msg), rc(rc) {}
+  const string msg() {
+    /*
+    stringstream tmp;
+    tmp << msgStr << "( rc = " << rc ")";
+    return tmp.str(); */
+    return msgStr;
+  }
+
+  private:
+  int rc;
+
+};
+
+
 
 #ifdef SECONDO_WIN32
 const FileAttributes attrMask = ( FILE_ATTRIBUTE_HIDDEN   |
@@ -129,7 +157,12 @@ FileSystem::CreateFolder( const string& folder )
 bool
 FileSystem::DeleteFileOrFolder( const string& fileName )
 {
-  assert( &fileName );
+  int rc=0;
+  const string errMsg = "Can't remove element \"" + fileName + "\"! ";
+  try {
+  if (fileName == "")
+    throw FileErr(errMsg, rc);
+   
   FileAttributes fileAttribs = GetFileAttributes( fileName );
 #ifdef SECONDO_WIN32
   int isFolder = (fileAttribs & FILE_ATTRIBUTE_DIRECTORY);
@@ -141,20 +174,33 @@ FileSystem::DeleteFileOrFolder( const string& fileName )
   {
     // Remove the directory.
 #ifdef SECONDO_WIN32
-    return (::RemoveDirectory( fileName.c_str() ) != 0);
+    rc = ::RemoveDirectory( fileName.c_str() );
+    if (!(rc != 0))
+      throw FileErr(errMsg, rc);
 #else
-    return (::rmdir( fileName.c_str() ) == 0);
+    rc = ::rmdir( fileName.c_str() );
+    if (!(rc == 0))
+      throw FileErr(errMsg, rc);
 #endif
   }
   else
   {
     // Delete the file
 #ifdef SECONDO_WIN32
-    return (::DeleteFile( fileName.c_str() ) != 0);
+    rc = ::DeleteFile( fileName.c_str() );
+    if (!(rc != 0))
+      throw FileErr(errMsg, rc);
 #else
-    return (::unlink( fileName.c_str()) == 0);
+    rc = ::unlink( fileName.c_str() );
+    if (!(rc == 0))
+      throw FileErr(errMsg, rc);
 #endif
   }
+  } catch (FileErr f) {
+    cerr << f.msg();
+    return false;
+  }
+  return true;
 }
 
 bool
@@ -404,7 +450,8 @@ delete each file.
         {
           if ( !fileSearchCallback ||
               (fileSearchCallback &&
-               fileSearchCallback( absoluteFolder, dirEntry->d_name, fileAttribs )) )
+               fileSearchCallback( absoluteFolder,
+                                   dirEntry->d_name, fileAttribs )) )
           {
             if ( fullPath )
             {
@@ -433,9 +480,11 @@ FileSystem::SearchPath( const string& fileName, string& foundFile )
 #ifdef SECONDO_WIN32
   char buffer[MAX_PATH];
   char* filepart;
-  if ( ::SearchPath( NULL, fileName.c_str(), NULL, MAX_PATH, buffer, &filepart ) == 0 )
+  if ( ::SearchPath( NULL, fileName.c_str(), NULL, 
+                     MAX_PATH, buffer, &filepart ) == 0 )
   {
-    if ( ::SearchPath( NULL, fileName.c_str(), ".exe", MAX_PATH, buffer, &filepart ) != 0 )
+    if ( ::SearchPath( NULL, fileName.c_str(), ".exe", 
+                       MAX_PATH, buffer, &filepart ) != 0 )
     {
       foundFile = buffer;
       ok = true;
