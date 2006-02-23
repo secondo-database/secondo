@@ -113,3 +113,9 @@ OLD_OBJECT_STYLE  false
 # if this variable is set to true, each command is printed out before
 # is is sent to the Secondo server
 SHOW_COMMAND false
+
+
+# this switch is for debugging the client server protocol.
+# if it set to true, all commands (but not file contents) sent to the
+# secondo server are printed out to standardout
+TRACE_SERVER_COMMANDS false

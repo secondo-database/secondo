@@ -363,7 +363,8 @@ not accessible by the user code.
 
 
 
-/** performs a restore (object or database) command supporting the 
+/** performs a restore (object or database) command supporting the
+  * secondo method. 
   **/
   private void callRestoreCommand(String command,
                                   ListExpr resultList,
@@ -372,17 +373,6 @@ not accessible by the user code.
                                   StringBuffer errorMessage) throws IOException{
 
      resultList.setValueTo(ListExpr.theEmptyList());
-     
-     boolean allowRestore=false;
-     // while the new protocol is not supported by the server, we forbid
-     // a call of restore from javagui
-     if(!allowRestore){
-        errorCode.value=ServerErrorCodes.COMMAND_NOT_SUPPORTED;
-        errorMessage.append("restore not possible\n");
-        return; 
-     }
-
-
      if(command.startsWith("restore"))
           command = "("+command+")";
      ListExpr cmdList = new ListExpr();
@@ -463,29 +453,29 @@ not accessible by the user code.
       }
 
       // command seems to be correct and the file seems to be readable
-     // => begin server communication
+      // => begin server communication
 
       String tag = dbrestore?"DbRestore":"ObjectRestore"; 
-
       outSocketStream.write("<"+tag+">\n");
       outSocketStream.write(name+"\n");
       outSocketStream.write("<FileData>\n");
       long filelength = file.length();
       outSocketStream.write(""+filelength+"\n");
       // write the content of the file
+      outSocketStream.flush();
       long sentData = 0; // number of data sent 
       int next;
-           while ((next=restoreFile.read())>=0 ){
+      while ((next=restoreFile.read())>=0 ){
               outSocketStream.write((byte)next);
               sentData++;
        }
        if(sentData!=filelength){ // should never occur
           System.err.println("sent data("+sentData+") unequals filesize ("+filelength+") ");
        }
-             outSocketStream.write( "</FileData>\n" );
+       outSocketStream.write( "</FileData>\n" );
        outSocketStream.write("</"+tag+">\n");
-           outSocketStream.flush();
-             restoreFile.close();
+       outSocketStream.flush();
+       restoreFile.close();
        receiveResponse(resultList, errorCode, errorPos, errorMessage);
   }
 
@@ -500,18 +490,6 @@ not accessible by the user code.
                                 StringBuffer errorMessage) throws IOException{
 
      resultList.setValueTo(ListExpr.theEmptyList());
-     
-
-     boolean allowSave=false;
-     // while the new protocol is not supported by the server, we forbid
-     // a call of save from javagui
-     if(!allowSave){
-        errorCode.value=ServerErrorCodes.COMMAND_NOT_SUPPORTED;
-        errorMessage.append("save not implemented\n");
-        return; 
-     }
-
-
      if(command.startsWith("save"))
           command = "("+command+")";
      ListExpr cmdList = new ListExpr();
@@ -812,10 +790,14 @@ private class MyBufferedOutputStream extends BufferedOutputStream{
           super(out);
      }
      public void write(String s) throws IOException{
+            if(gui.Environment.TRACE_SERVER_COMMANDS){
+                System.out.println("Send to Server: \""+s+"\"");
+            }
             int len = s.length();
             for(int i=0;i<len;i++){
                write((byte)s.charAt(i));
             }
+            flush();
      }
 
 }

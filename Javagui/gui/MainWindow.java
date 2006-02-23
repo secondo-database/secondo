@@ -297,6 +297,11 @@ public MainWindow(String Title){
                                   OldObjectStyle.toLowerCase().trim().equals("true");
      OldObjectStyle=null;
 
+     String TraceServerCommands = Config.getProperty("TRACE_SERVER_COMMANDS");
+     if(TraceServerCommands!=null && TraceServerCommands.trim().toLowerCase().equals("true")){
+        Environment.TRACE_SERVER_COMMANDS = true;  
+     }
+
  }
  createMenuBar();
  if(config_file_ok){

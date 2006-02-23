@@ -34,6 +34,7 @@ public static boolean FORMATTED_TEXT = false;
 public static boolean OLD_OBJECT_STYLE = false;
 public static boolean SHOW_COMMAND = false;
 public static int MAX_STRING_LENGTH = 48;
+public static boolean TRACE_SERVER_COMMANDS = false;
 
 
 public static long usedMemory(){
