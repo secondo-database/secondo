@@ -4,10 +4,16 @@
 #
 # 31.01.2006, M. Spiekermann
 
+if [ "$1" != "--no-tmp" ]; then
+
 dateStr=$(date +%Y_%m%d_%H%M%S)
 tempDir="/tmp/$USER/TestRunner_$dateStr"
 mkdir -p $tempDir
 export SECONDO_PARAM_SecondoHome="$tempDir"
+
+else
+ shift
+fi
 
 # check if nice command is present
 ncmd=$(which nice)

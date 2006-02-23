@@ -233,10 +233,16 @@ realclean: clean
 	rm -f $(CONFIG_FILES) 
 
 
-.PHONY: runtests 
-runtests:
-	cd CM-Scripts; ./run-tests.sh
+.PHONY: runtests
+runtests: ttytest
 
+.PHONY: ttytest 
+ttytest:
+	cd CM-Scripts; ./run-tests.sh -tty
+
+.PHONY: cstest 
+cstest:
+	cd CM-Scripts; ./run-tests.sh -cs
 
 .PHONY: cvstest
 cvstest:

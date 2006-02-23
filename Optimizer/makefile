@@ -23,6 +23,7 @@ optimizer:	optimizer.pl calloptimizer.pl database.pl operators.pl boundary.pl se
 .PHONY: clean
 clean:
 	make -C ./Entropy clean
+	rm -f SecondoConfig.ini
 
 
 

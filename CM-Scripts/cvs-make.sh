@@ -220,7 +220,7 @@ $cvsChanges"
 mailFooter="
 Please contact the involved people in order to find out 
 who should fix the problem! A history of the old error log
-files is stored in home/secondo/error-logs on server zeppelin."
+files is stored in $cvsHistRootDir on server zeppelin."
 
 mailBody1="
 $mailHeader
@@ -270,7 +270,7 @@ if [ $? == 0 ]; then
 
   printSep "Running automatic tests"
   cd $scriptDir
-  checkCmd "run-tests.sh $cvsHistRootDir" 
+  checkCmd "run-tests.sh -tty $cvsHistRootDir" 
 
   if [ $? -ne 0 ]; then
     

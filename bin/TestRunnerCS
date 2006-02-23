@@ -4,10 +4,16 @@
 #
 # 31.01.2006, M. Spiekermann
 
+if [ "$1" != "--no-tmp" ]; then
+ 
 dateStr=$(date +%Y_%m%d_%H%M%S)
 tempDir="/tmp/$USER/TestRunnerCS_$dateStr"
 mkdir -p $tempDir
 export SECONDO_PARAM_SecondoHome="$tempDir"
+
+else
+ shift
+fi
 
 # start up SecondoMonitor in background
 SecondoListener "SecondoConfig.ini"&

@@ -1,5 +1,11 @@
 #!/bin/sh
 #
+# run-tests.sh $1 $2
+#
+# $1 switch "-cs"  or "-tty" indicates if the tests should run in client server mode
+#    or not
+# $2 Root directory for keeping CVS-history and failed test
+#
 # Jan 2005, M. Spiekermann
 #
 # August 2005, M. Spiekermann. Major changes. A function for calling the tests
@@ -15,15 +21,27 @@ if ! source ./libutil.sh; then exit 1; fi
 
 printf "\n%s\n" "Running tests in ${buildDir}."
 
-runnerCmd="SecondoBDB"
+if [ "$1" == "-cs" ]; then
+  runnerCmd="TestRunnerCS --no-tmp"
+else
+  runnerCmd="TestRunner --no-tmp"
+fi
+
+failedFileInfoDir="/tmp/run-tests"$$
+if [ "$2" != "" ]; then
+  failedFileInfoDir="$2"
+fi
+if [ ! -d $failedFileInfoDir ]; then
+  mkdir $failedFileInfoDir
+fi
+failedTests=""
+
 if ! isCmdPresent $runnerCmd; then
   printf "\n%s\n" "Sorry, command $runnerCmd not present."
   exit 1;
 fi
-runnerCmd="$runnerCmd -test"
+runnerCmd="$runnerCmd"
 
-failedFileInfoDir=$1
-failedTests=""
 
 # runTest $1 $2 $3 [$4]
 #
@@ -127,10 +145,14 @@ done
 # Other tests not executed by the TestRunner application
 #
 
-runTest ${buildDir}/Optimizer "TestOptimizer" "time TestOptimizer" 600
+if [ "$1" == "-tty" ]; then
+  runTest ${buildDir}/Optimizer "TestOptimizer" "time TestOptimizer" 600
+fi
 
-cd $buildDir
-tar -cvzf failedTests.tar.gz $failedTests
+if [ "$failedTests" != "" ]; then
+  cd $buildDir
+  tar -cvzf failedTests.tar.gz $failedTests
+fi
 
 #clean up
 printf "\n%s\n\n" "Cleaning up ..."
