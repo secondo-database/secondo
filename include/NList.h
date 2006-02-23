@@ -76,12 +76,27 @@ struct Symbols {
 };  
 
 
-class NListErr {
+/*
+2 ~NListErr~ a class representing Nested-List exceptions
+   
+*/
+
+class NListErr : public SecondoException {
 
   public:
-  NListErr(const string& Msg) : msg(Msg) {}
+  NListErr(const string& Msg) : SecondoException(Msg) {}
+  NListErr(const Cardinal n, const Cardinal len, const string& ext="") : 
+    SecondoException() 
+  {
+    stringstream s; 
+    s << "Out of range exception in nested list! "
+      << "Element " << n << " requested, but "
+      << "list has length " << len << "." << ext;
+    msgStr = s.str();
+  }
+ 
+  const string msg() { return msgStr; }
   
-  string msg;
 };
 
 
@@ -121,34 +136,36 @@ class NList {
   ~NList() {}
   inline bool isEmpty() const { return nl->IsEmpty(l); }
 
-  inline bool isEqual(const string& s) const { return nl->IsEqual(l, s); }
-
-  inline bool isAtom()                       const { return nl->IsAtom(l); }
+  inline bool isEqual(const string& s) const { 
+    return nl->IsEqual(l, s); 
+  }
+  inline bool isAtom() const { return nl->IsAtom(l); }
+  
   inline bool isSymbol(const Cardinal n = 0) const { 
     CHECK(n) return isNodeType(n, SymbolType); 
   }
-  inline bool isSymbol(const string& s)      const { 
+  inline bool isSymbol(const string& s) const { 
     return isNodeType(0, SymbolType) && (s == nl->SymbolValue(l)); 
   }
   inline bool isString(const Cardinal n = 0) const { 
     CHECK(n) return isNodeType(n, StringType); 
   }
-  inline bool isText(const Cardinal n = 0)   const { 
+  inline bool isText(const Cardinal n = 0) const { 
     CHECK(n) return isNodeType(n, TextType); 
   }
   inline bool isNoAtom(const Cardinal n = 0) const { 
     CHECK(n) return isNodeType(n, NoAtom); 
   }
-  inline bool isList(const Cardinal n = 0)   const { 
+  inline bool isList(const Cardinal n = 0) const { 
     CHECK(n) return isNodeType(n, NoAtom); 
   }
-  inline bool isInt(const Cardinal n  = 0)   const { 
+  inline bool isInt(const Cardinal n  = 0) const { 
     CHECK(n) return isNodeType(n, IntType); 
   }
-  inline bool isReal(const Cardinal n = 0)   const { 
+  inline bool isReal(const Cardinal n = 0) const { 
     CHECK(n) return isNodeType(n, RealType); 
   }
-  inline bool isBool(const Cardinal n = 0)   const { 
+  inline bool isBool(const Cardinal n = 0) const { 
     CHECK(n) return isNodeType(n, BoolType); 
   }
   
@@ -164,19 +181,11 @@ class NList {
   inline NList elem(Cardinal n) const
   {
     if ( (length() < n)   ) {
-      stringstream s; 
-      s << "Out of range exception in nested list. "
-        << "Element " << n << " requested, but "
-        << "list has length " << len << ".";
-      throw NListErr(s.str());
+      throw NListErr(n,len);
     } 
     
     if ( (n == 1) && isAtom() ) {
-      stringstream s; 
-      s << "Out of range exception in nested list. "
-        << "Element " << n << " requested, but "
-        << "list is an atom.";
-      throw NListErr(s.str());
+      throw NListErr("Element 1 requested but list is an Atom!");
     }
 
     return NList(nl->Nth(n,l)); 
@@ -217,7 +226,10 @@ class NList {
 
   inline string convertToString() const { return nl->ToString(l); } 
   
-  inline bool operator==(const NList& rhs) const { return nl->Equal(l,rhs.l); }
+  inline bool operator==(const NList& rhs) const 
+  { 
+    return nl->Equal(l,rhs.l);
+  }
   
   inline bool operator==(const string& rhs) const
   {

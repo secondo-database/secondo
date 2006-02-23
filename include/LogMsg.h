@@ -115,7 +115,9 @@ with the ~send~ method.
 #ifdef TRACE_ON
 #define ETRACE(a) { a }
 #define TRACE(a) {cout << a << ":" << endl;}
-#define NTRACE(n,a) {static int ctr=0; ctr++; if ( (ctr % n)  == 0) {cout << ctr << " - " << a << ":" << endl; }}
+#define NTRACE(n,a) { static int ctr=0; ctr++; \
+                      if ( (ctr % n)  == 0) \
+                       {cout << ctr << " - " << a << ":" << endl; }}
 #define SHOW(a) {cout << "  " << #a << " = " << a << endl;} 
 #else
 #define ETRACE(a)
@@ -353,6 +355,24 @@ public:
   static void ReportError(string msg);
   static void ReportError(char* msg);
   static void GetErrorMessage(string& msg);
+};
+
+
+/*
+A Base class for Exceptions. All specific exception classes should be inherit
+this class.
+
+*/
+
+class SecondoException {
+
+  public:
+  string msgStr;
+
+  SecondoException() : msgStr("Unknown Error") {}
+  SecondoException(const string& Msg) : msgStr(Msg) {}
+  const string msg() { return msgStr; }
+  
 };
 
 
