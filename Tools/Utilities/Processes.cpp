@@ -186,7 +186,7 @@ ProcessFactory::SpawnProcess( const string& programpath,
     processDir = instance->processDirectory.c_str();
   }
   cout << "Starting Process:" << endl
-       << "Program: " << pathbuf << endl;
+       << "Program: " << pathbuf << endl
        << "Args: " << argsbuf << endl;
 
   success = CreateProcess( pathbuf.c_str(),
