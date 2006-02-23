@@ -1131,7 +1131,7 @@ SmiEnvironment::CreateDatabase( const string& dbname )
       else
       {
         SetError( E_SMI_DB_CREATE );
-//        FileSystem::DeleteFileOrFolder( database );
+        FileSystem::DeleteFileOrFolder( database );
       }
       FileSystem::SetCurrentFolder( oldHome );
     }
@@ -1280,14 +1280,14 @@ SmiEnvironment::EraseDatabase( const string& dbname )
               iter++;
             }
           }
-//          ok = FileSystem::EraseFolder( database );
+          ok = FileSystem::EraseFolder( database );
 /*
 Since the Berkeley DB is not able to recreate folders on recovery, the
 folder is not erased. When making backups of the Secondo database empty
 folders should be removed.
 
 */
-          FileSystem::SetCurrentFolder( oldHome );
+        FileSystem::SetCurrentFolder( oldHome );
         }
         UnlockDatabase( database );
         if ( ok )
