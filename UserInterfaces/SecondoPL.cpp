@@ -473,7 +473,8 @@ pl_print_term_le(term_t term)
   }
   else
   {
-    plnl->WriteListExpr(listLE);
+    // for debugging
+    // plnl->WriteListExpr(listLE);
     PL_succeed;
   }
 }
@@ -564,7 +565,6 @@ pl_call_secondo(term_t command, term_t result)
   }
   else
   {
-    plnl->WriteListExpr(resultList);
     if(PL_unify(result, ListExprToTerm(resultList, plnl)) != 0)
     {
       plnl->initializeListMemory();
