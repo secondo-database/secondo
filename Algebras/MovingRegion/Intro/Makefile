@@ -3,7 +3,8 @@ TEXTMODULES = \
 GRAPHIC = \
 	uregion-degenerated.pdf
 SCREENSHOTS = \
-	screenshot01.png
+	screenshot01.png \
+	screenshot02.png
 
 Using.pdf: $(TEXTMODULES) $(GRAPHIC) $(SCREENSHOTS)
 	pdflatex Intro
