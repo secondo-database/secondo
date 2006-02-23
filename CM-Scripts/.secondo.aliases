@@ -48,10 +48,6 @@ cmdDir=Tools/Generators/TPC-H/secondo
 newAlias tpcgen tpcgen.sh
 newAlias tpcrun tpcrun.sh
 
-cmdDir=bin
-newAlias SecondoTTY SecondoTTYBDB
-newAlias SecondoMonitor "SecondoMonitorBDB -s"
-
 # Envrionment for SECONDO 
 alias setvar="source ${SECONDO_SDK}/bin/setvar.bash" 
 alias catvar="${SECONDO_SDK}/bin/catvar.sh" 

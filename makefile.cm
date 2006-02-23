@@ -99,7 +99,7 @@ ALL_SDK_SCRIPTS := $(net)/installsdk $(INST_KIT_BIN) $(INST_KIT_HOME)
 
 
 .PHONY: update-environment 
-update-environment: show-separator $(SDK_SCRIPTS_BIN) $(SDK_SCRIPTS_HOME) show-update-msg
+update-environment: show-separator remove-old-apps remove-old-config $(SDK_SCRIPTS_BIN) $(SDK_SCRIPTS_HOME) show-update-msg
 
 
 UPDATE_MSG := "\n\
@@ -220,12 +220,28 @@ doc-dist: $(net)/documentation
 
 SECONDO_DEMO = $(tempdir)/secondo-demo
 
-SECONDO_APP := SecondoTTYBDB \
+OLD_APPS := bin/SecondoTTYBDB \
+	    bin/SecondoMonitorBDB \
+	    bin/SecondoServerBDB \
+	    bin/TestRunner \
+	    bin/TestRunnerApp \
+	    Optimizer/SecondoPL \
+	    Optimizer/SecondoPLCS \
+
+.PHONY: remove-old-apps
+remove-old-apps:
+	rm -f $(OLD_APPS)
+
+.PHONY: remove-old-config
+remove-old-config:
+	rm -f bin/SecondoConfig.ini Optimizer/SecondoConfig.ini
+
+SECONDO_APP := SecondoBDB \
+	       SecondoCS \
 	       SecondoListener \
-	       SecondoMonitorBDB \
+	       SecondoMonitor \
 	       SecondoRegistrar \
 	       SecondoCheckpoint \
-	       SecondoServerBDB
 
 DEMO_BIN_FILES := $(addprefix $(SECONDO_DEMO)/bin/, $(SECONDO_APP))
 DEMO_QUERY := bin/testqueries
