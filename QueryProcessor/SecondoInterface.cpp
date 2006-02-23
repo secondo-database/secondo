@@ -733,7 +733,7 @@ separate functions which should be named Command\_<name>.
         else
         {
           StartCommand();
-          if ( !sys.SaveObject( objectname, filename ) )
+          if ( !sys.SaveObject( objectname, expandVar(trim(filename)) ) )
           {
             // Problem in writing to file
             errorCode = ERR_PROBLEM_IN_WRITING_TO_FILE; 
@@ -767,7 +767,9 @@ separate functions which should be named Command\_<name>.
         }
         else
         {
-          message = sys.RestoreObjectFromFile( objName, filename, errorInfo );
+          message = sys.RestoreObjectFromFile( objName, 
+                                               expandVar(trim(filename)), 
+                                               errorInfo                   );
           // the command above should return these values directly!
           switch (message)
           {
