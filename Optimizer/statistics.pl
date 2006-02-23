@@ -62,6 +62,8 @@ sel(staedte:bev < 500000, 0.79).
 sel(staedte:kennzeichen starts "F", 0.034).
 sel(staedte:kennzeichen starts "W", 0.068).
 
+
+
 /*
 
 1.3 Determine the Simple Form of Predicates
@@ -237,6 +239,12 @@ dynamicCardQuery(Pred, Rel1, Rel2, Query) :-
   transformPred(Pred, t, 1, Pred2),
   Query = count(loopsel(Rel1Query, fun([param(t, tuple)], filter(Rel2Query, Pred2)))).
 
+/*
+----
+  % the first two clauses for sels/2 are needed for using hard coded 
+  % selectivities. Since these cause problems with non-existing 
+  % predicate cost, they should be omitted.
+
 sels(Pred, Sel) :-
   sel(Pred, Sel),
   !.
@@ -245,6 +253,9 @@ sels(Pred, Sel) :-
   commute(Pred, Pred2),
   sel(Pred2, Sel),
   !.
+----
+
+*/
 
 sels(Pred, Sel) :-
   storedSel(Pred, Sel),
@@ -415,7 +426,9 @@ selectivity(pr(Pred, Rel), Sel) :-
   !.
 
 selectivity(P, _) :- write('Error in optimizer: cannot find selectivity for '),
-  simplePred(P, PSimple), write(PSimple), nl, fail.
+  simplePred(P, PSimple), write(PSimple), nl, 
+  write('Call: selectivity('), write(P), write(',Sel)\n'),
+  fail.
 
 /*
 

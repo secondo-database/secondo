@@ -871,8 +871,9 @@ to its attribute name e.g. ort.
 
 */
 
-hasIndex(rel(Rel, _, _), attr(_:A, _, _), IndexName, _) :-
-  hasIndex(rel(Rel, _, _), attr(A, _, _), IndexName, _).
+hasIndex(rel(Rel, _, _), attr(_:A, _, _), IndexName, Type) :-
+  hasIndex(rel(Rel, _, _), attr(A, _, _), IndexName, Type),
+  write('\nhasIndex 1\n').
 /*
 
 Gets the index name ~Index~ for relation ~Rel~ and attribute ~Attr~
@@ -882,7 +883,8 @@ via dynamic predicate ~storedIndex/4~.
 
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, Type) :-
   storedIndex(Rel, Attr, Type, Index),
-  !.
+  !,
+  write('\nhasIndex 2\n').
 
 /*
 If there is information stored in local memory, that there is no index
@@ -893,6 +895,7 @@ for relation ~Rel~ and attribute ~Attr~ then this rule fails.
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
   storedNoIndex(Rel, Attr),
   !,
+  write('\nhasIndex 3\n'),
   fail.
 /*
 We have to differentiate the next rules, if the first letter of attribute 
@@ -912,6 +915,7 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :- %attr in lc
   '_small create', IndexType, ' [', Attr, ']'], '', QueryAtom),
   tryCreate(QueryAtom),    
   %write(QueryAtom),nl,
+  write('\nhasIndex 4\n'),
   !.
 
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :- %attr in lc
@@ -928,6 +932,7 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :- %attr in lc
   '_small create', IndexType, ' [', Attr, ']'], '', QueryAtom),
   tryCreate(QueryAtom),    
   %write(QueryAtom),nl,
+  write('\nhasIndex 5\n'),
   !.
 
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-     %attr in lc
@@ -935,7 +940,9 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-     %attr in lc
   not(Attr = _:_),                                   
   spelled(Rel:Attr, attr(_, 0, l)),
   verifyIndexAndStoreNoIndex(Rel, Attr),
-  !, fail.
+  !,
+  write('\nhasIndex 6\n'), 
+  fail.
 
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :- %attr in uc
                                             	                %rel in lc
@@ -950,6 +957,7 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :- %attr in uc
   '_small create', IndexType, ' [', SpelledAttr, ']'], '', QueryAtom),
   tryCreate(QueryAtom),    
   %write(QueryAtom),nl,
+  write('\nhasIndex \7n'),
   !.
 
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :- %attr in uc
@@ -967,6 +975,7 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :- %attr in uc
   '_small create', IndexType, ' [', SpelledAttr, ']'], '', QueryAtom),
   tryCreate(QueryAtom),    
   %write(QueryAtom),nl,
+  write('\nhasIndex 8\n'),
   !.
 
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
@@ -974,7 +983,9 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
   not(Attr = _:_),                                      %fails
   spelled(Rel:Attr, attr(_, 0, u)),
   verifyIndexAndStoreNoIndex(Rel, Attr),
-  !, fail.
+  !,
+  write('\nhasIndex 9\n'), 
+  fail.
 
 /*
 1.4.3 Storing And Loading About Existing Indexes
