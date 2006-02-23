@@ -1435,28 +1435,11 @@ indexselect(arg(N), pr(Y touches attr(AttrName, Arg, Case), Rel)) => X :-
 
 /*
 
-C. Duentgen, Feb/2006: When using renaming, the indexselect rule failed, because 
-the rules accesses the original (not renamed) relation. The correct approach is 
+C. Duentgen, Feb 2006: When using renaming, the indexselect rule failed, because 
+the rule accesses the original (not renamed) relation. The correct approach is 
 to do a rename on the result immedeatly of the select.
 
-% Original code:
-indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) touches Y, _)) =>
-  filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), attr(AttrName, Arg, AttrCase) touches Y)
-  :-
-  argument(N, rel(Name, _, Case)),
-  !,
-  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
-
 */
-
-% Corrected Code:
-indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) touches Y, _)) =>
-  filter(rename(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)),RelAlias), attr(AttrName, Arg, AttrCase) touches Y)
-  :-
-  argument(N, rel(Name, RelAlias, Case)),
-  RelAlias \= *,
-  !,
-  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
 
 indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) touches Y, _)) =>
   filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), attr(AttrName, Arg, AttrCase) touches Y)
@@ -1465,6 +1448,12 @@ indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) touches Y, _)) =>
   !,
   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
 
+indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) touches Y, _)) =>
+  filter(rename(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)),RelAlias), attr(AttrName, Arg, AttrCase) touches Y)
+  :-
+  argument(N, rel(Name, RelAlias, Case)), % Case: RelAlias \= *,
+  !,
+  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
 
 /*
 Here ~ArgS~ is meant to indicate ``argument stream''.
