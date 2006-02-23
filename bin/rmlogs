@@ -18,4 +18,10 @@ else
     echo -e "deleting $file"
     rm -f $file
   done
+  echo -e "Deleting old 0tmp subdirectories ..."
+  files=$(find $dbDir -name "0tmp*")
+  for file in $files; do
+    echo -e "deleting $file"
+    rm -rf $file
+  done
 fi
