@@ -32,6 +32,7 @@ entry in makefile.algebras.
 
 #include "Algebra.h"
 #include "NestedList.h"
+#include "QueryProcessor.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -43,7 +44,7 @@ class XXXAlgebra : public Algebra
     XXXAlgebra() : Algebra()
     {
     }
-    ~XXXAlgebra() {};
+    ~XXXAlgebra() {}
 };
 
 XXXAlgebra xxxAlgebra;
