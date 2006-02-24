@@ -1,4 +1,6 @@
 #!/bin/sh
 #
 
-SecondoBDB $*
+#We start the program with absolute path information
+cmd="$(which SecondoBDB)"
+$cmd $*

@@ -15,12 +15,13 @@ else
  shift
 fi
 
+runner="$(which SecondoBDB) -test"
 # check if nice command is present
 ncmd=$(which nice)
 if [ $? -ne 0 ]; then
-  SecondoBDB -test $*
+   $runner $*
 else
-  nice -n 19 SecondoBDB -test $*
+  nice -n 19  $runner $*
 fi
 
 rm -rf $tempDir
