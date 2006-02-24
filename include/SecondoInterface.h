@@ -1026,22 +1026,23 @@ Sets the debug level of the query processor.
  protected:
  private:
   void StartCommand();
-  void FinishCommand( SI_Error& errorCode );
+  bool FinishCommand( SI_Error& errorCode, string& errorMessage );
 	
   // implementation of SECONDO commands
   SI_Error Command_Query( const ListExpr list, 
                           ListExpr& result, string& errorMessage );
 
   SI_Error Command_Create( const ListExpr list,
-                           ListExpr& result, ListExpr& error );
+                           ListExpr& result, 
+                           ListExpr& error, string& errorMessage );
 
-  SI_Error Command_Let( const ListExpr list );
+  SI_Error Command_Let( const ListExpr list, string& errorMessage );
   
   SI_Error Command_Set( const ListExpr list );
 
-  SI_Error Command_Derive( const ListExpr list );
+  SI_Error Command_Derive( const ListExpr list, string& errorMessage );
 	
-  SI_Error Command_Update( const ListExpr list );
+  SI_Error Command_Update( const ListExpr list, string& errorMessage );
 
 
   bool        initialized;       // state of interface
