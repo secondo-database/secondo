@@ -733,6 +733,22 @@ TestRunner::CallSecondo()
         }
         else if( yieldState == Result )
         {
+          if(errorCode)
+          {
+            RegisterError();
+            cout 
+              << color(red)
+              << "The test returned an error, but should not do so!" << endl
+              << color(normal)
+              << rightArrow << endl
+              << "Expected result : " << endl
+              << nl->ToString(expectedResult) << endl;
+            ShowErrCodeInfo(errorCode, errorMessage, outList);
+            ShowCommand(cmd);
+            cout << leftArrow << endl;
+          }
+          else 
+          {
             /* verify that the expected results were delivered */
             bool result = false;
             if (realValTolerance.value != 0.0)
@@ -749,7 +765,7 @@ TestRunner::CallSecondo()
             {
               ShowTestSuccessMsg("computing result as specified.");
             }
-            else
+            else 
             {
               RegisterError();
               cout 
@@ -765,6 +781,7 @@ TestRunner::CallSecondo()
               cout
                 << leftArrow << endl;
             }
+          }  
         }
         else if( yieldState == Unknown )
         {

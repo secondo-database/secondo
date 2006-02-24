@@ -84,6 +84,11 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
+February 2006, M. Spiekermann. A proper handling of errors when commit or abort transaction 
+fails after command execution was implemented. Further, the scope of variables in function
+Secondo was limited to a minimum, e.g. the declarations were moved nearer to the usage. This
+gives more encapsulation and is easier to understand and maintain.
+
 \tableofcontents
 
 */
@@ -362,27 +367,16 @@ separate functions which should be named Command\_<name>.
 
 */
 
-  const ListExpr emp = nl->TheEmptyList();
-  ListExpr first = emp, 
-           list = emp, 
-           typeExpr = emp, 
-           typeExpr2 = emp, 
-           errorList = emp,  
-           errorInfo = emp; 
-         
-  string filename = "", dbName = "", objName = "", typeName = "";
-
-  Word result = SetWord( Address(0) );
-  
-  int length = 0;
-  int message = 0;                 /* error code from called procedures */
-  string listCommand = "";         /* buffer for command in list form */
+  // initialize variable parameters
+  errorMessage = "";
+  errorCode    = 0;
+  errorPos     = 0;
+  resultList   = nl->TheEmptyList();
 
   StopWatch cmdTime;  // measure the time used for executing the command.
 
   NestedList* nl = SecondoSystem::GetNestedList();
   NestedList* al = SecondoSystem::GetAppNestedList();
-
 
   // copy command list to internal NL memory
   ListExpr commandLE2 = nl->TheEmptyList();
@@ -391,16 +385,13 @@ separate functions which should be named Command\_<name>.
      commandLE2 = al->CopyList(commandLE, nl);
   }
 
+  // The error list which may be extended by some catalog commands
+  ListExpr errorList    = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  ListExpr errorInfo    = errorList;
 
-  errorMessage = "";
-  errorCode    = 0;
-  errorPos     = 0;
-  errorList    = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-  errorInfo    = errorList;
-  resultList   = nl->TheEmptyList();
-
-  SecParser sp; // translates SECONDO syntax into nested list expression
-
+  // the next variable stores the command as a nested list data structure
+  ListExpr list = nl->TheEmptyList();
+  
   switch (commandLevel)
   {
     case 0:  // executable, list form
@@ -420,13 +411,17 @@ separate functions which should be named Command\_<name>.
     }
     case 1:  // executable, text form
     {
-      if ( sp.Text2List( commandText, listCommand ) != 0 )
+      SecParser sp;            // translates SECONDO syntax into nested list
+      string listCommand = ""; // buffer for command in list form 
+      
+      if ( sp.Text2List( commandText, listCommand ) != 0 )      
       {
-        errorCode = ERR_SYNTAX_ERROR;  // syntax error in command/expression
+        // conversion into a textual nested list failed
+        errorCode = ERR_SYNTAX_ERROR;  
       }
       else if ( !nl->ReadFromString( listCommand, list ) )
       {
-        errorCode = ERR_SYNTAX_ERROR;  // syntax error in command/expression
+        errorCode = ERR_SYNTAX_ERROR;
       }
       break;
     }
@@ -436,7 +431,12 @@ separate functions which should be named Command\_<name>.
       break;
     }
   } // end of switch
-
+  
+  if (!RTFlag::isActive("SI:NoCommandEcho")) 
+  {
+     nl->WriteListExpr(list, cerr);
+     cerr << endl;
+  }
 
   if ( errorCode != 0 )
   {
@@ -454,27 +454,29 @@ separate functions which should be named Command\_<name>.
     ShowStandardTypesStatistics( true ); 
   ) 
 
-  // RUN COMMAND !!!
 
-  NList nlist(list);
-
-  // local references of important objects
-  QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
-  SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
-  SecondoSystem& sys = *SecondoSystem::GetInstance();
-  AlgebraManager& am = *SecondoSystem::GetAlgebraManager();
-
-  if (!RTFlag::isActive("SI:NoCommandEcho")) 
-  {
-     nl->WriteListExpr(list, cerr);
-     cerr << endl;
-  }
-  length = nl->ListLength( list );
+  //*** START COMMAND RECOGNITION ***//
+  
+  int length = nl->ListLength( list );
   if ( length > 1 )
   {
-    first = nl->First( list );
+    ListExpr first = nl->First( list );
+
+    // use simpler progromming interface "NList.h"
+    NList nlist(list);
     NList nfirst(first);
 
+    // strings needed for catalog commands         
+    string filename = "", dbName = "", objName = "", typeName = "";
+    
+    bool fc=true; // stores if call to FinishCommand was successful 
+    
+    // local references of important objects
+    QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
+    SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
+    SecondoSystem& sys = *SecondoSystem::GetInstance();
+    AlgebraManager& am = *SecondoSystem::GetAlgebraManager();
+    
     // --- Transaction handling
 
     if ( nl->IsEqual( nl->Second( list ), "transaction" ) && (length == 2) )
@@ -637,7 +639,7 @@ separate functions which should be named Command\_<name>.
             // Problem in writing to file
             errorCode = ERR_PROBLEM_IN_WRITING_TO_FILE; 
           }
-          FinishCommand( errorCode );
+          fc = FinishCommand( errorCode, errorMessage );
         }
       }
       else if ( nfirst.isEqual("restore") && 
@@ -738,7 +740,7 @@ separate functions which should be named Command\_<name>.
             // Problem in writing to file
             errorCode = ERR_PROBLEM_IN_WRITING_TO_FILE; 
           }
-          FinishCommand( errorCode );
+          fc = FinishCommand( errorCode, errorMessage );
         }
       }
     }
@@ -767,7 +769,7 @@ separate functions which should be named Command\_<name>.
         }
         else
         {
-          message = sys.RestoreObjectFromFile( objName, 
+          int message = sys.RestoreObjectFromFile( objName, 
                                                expandVar(trim(filename)), 
                                                errorInfo                   );
           // the command above should return these values directly!
@@ -848,7 +850,6 @@ separate functions which should be named Command\_<name>.
       }
       else if ( nl->IsEqual( nl->Second( list ), "databases" ) )
       {
-        assert(errorCode==0);       
         resultList = nl->TwoElemList( 
                            nl->SymbolAtom("inquiry"),
                            nl->TwoElemList( nl->SymbolAtom("databases"),
@@ -866,7 +867,7 @@ separate functions which should be named Command\_<name>.
           resultList = nl->TwoElemList( nl->SymbolAtom("inquiry"),
           nl->TwoElemList( nl->SymbolAtom("types"),
                            ctlg.ListTypes() ));
-          FinishCommand( errorCode );
+          fc = FinishCommand( errorCode, errorMessage );
         }
       }
       else if ( nl->IsEqual( nl->Second( list ), "objects" ) )
@@ -881,7 +882,7 @@ separate functions which should be named Command\_<name>.
           resultList = nl->TwoElemList( nl->SymbolAtom("inquiry"),
           nl->TwoElemList( nl->SymbolAtom("objects"),
                            ctlg.ListObjects() ));
-          FinishCommand( errorCode );
+          fc = FinishCommand( errorCode, errorMessage );
         }
       }
       else if ( nl->IsEqual( nl->Second( list ), "counters" ) )
@@ -894,7 +895,7 @@ separate functions which should be named Command\_<name>.
         {
           StartCommand();
           resultList = qp.GetCounters();
-          FinishCommand( errorCode );
+          fc = FinishCommand( errorCode, errorMessage );
         }
       }
       else
@@ -914,8 +915,8 @@ separate functions which should be named Command\_<name>.
       {
         StartCommand();
         typeName = nl->SymbolValue( nl->Second( list ) );
-        typeExpr = nl->Fourth( list );
-        typeExpr2 = ctlg.ExpandedType( typeExpr );
+        ListExpr typeExpr = nl->Fourth( list );
+        ListExpr typeExpr2 = ctlg.ExpandedType( typeExpr );
   
         if ( ctlg.KindCorrect( typeExpr2, errorInfo ) )
         {
@@ -929,7 +930,7 @@ separate functions which should be named Command\_<name>.
           errorCode = ERR_NO_TYPE_DEFINED;     // Wrong type expression
           resultList = errorList;
         }
-        FinishCommand( errorCode );
+        fc = FinishCommand( errorCode, errorMessage );
       }
       else
       {
@@ -949,7 +950,7 @@ separate functions which should be named Command\_<name>.
         {
           StartCommand();
           typeName = nl->SymbolValue( nl->Third( list ) );
-          message = ctlg.DeleteType( typeName );
+          int message = ctlg.DeleteType( typeName );
           if ( message == 1 )
           {
             errorCode = ERR_TYPE_NAME_USED_BY_OBJ;   // Type used by an object
@@ -959,7 +960,7 @@ separate functions which should be named Command\_<name>.
             // identifier not a known type name
             errorCode = ERR_IDENT_UNKNOWN_TYPE;   
           }
-          FinishCommand( errorCode );
+          fc = FinishCommand( errorCode, errorMessage );
         }
         else
         {
@@ -997,7 +998,7 @@ separate functions which should be named Command\_<name>.
              derivedObjPtr->deleteObj( objName ); 
            }
          }
-         FinishCommand( errorCode );
+         fc = FinishCommand( errorCode, errorMessage );
   
       } 
       else 
@@ -1039,7 +1040,7 @@ separate functions which should be named Command\_<name>.
            derivedObjPtr->deleteObj( objName ); 
          }
        }
-       FinishCommand( errorCode );
+       fc = FinishCommand( errorCode, errorMessage );
     }
 
     // --- Create object command
@@ -1049,7 +1050,8 @@ separate functions which should be named Command\_<name>.
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), ":" ) )
     {
-      errorCode = Command_Create( list, resultList, errorList );   
+      errorCode = Command_Create( list, resultList, 
+                                  errorList, errorMessage );   
     }
 
     // --- Update object command
@@ -1059,7 +1061,7 @@ separate functions which should be named Command\_<name>.
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), ":=" ) )
     {
-      errorCode = Command_Update( list );    
+      errorCode = Command_Update( list, errorMessage );    
     }
 
     // --- Let command
@@ -1069,7 +1071,7 @@ separate functions which should be named Command\_<name>.
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), "=" ) )
     {
-      errorCode = Command_Let( list );       
+      errorCode = Command_Let( list, errorMessage );       
     }
 
     // --- derive command
@@ -1079,7 +1081,7 @@ separate functions which should be named Command\_<name>.
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), "=" ) )
     {     
-      errorCode = Command_Derive( list );         
+      errorCode = Command_Derive( list, errorMessage );         
     }
  
     // --- Query command
@@ -1098,13 +1100,20 @@ separate functions which should be named Command\_<name>.
     {
       errorCode = Command_Set( list );   
     }
-
-
     else
     {
       errorCode = ERR_CMD_NOT_RECOGNIZED;         // Command not recognized
     }
+    
+    // commit or abort transaction failed!
+    if (!fc || (errorCode != ERR_NO_ERROR)) 
+    {
+      resultList=errorList;
+    } 
   }
+
+  //*** END COMMAND RECOGNITION ***//
+  
   if ( resultAsText )
   {
     nl->WriteToFile( resultFileName, resultList );
@@ -1295,7 +1304,7 @@ SecondoInterface::Command_Query( const ListExpr list,
   
   qp.Destroy( tree, true ); 
   SmiEnvironment::SetFlag_NOSYNC(true);
-  FinishCommand( errorCode );
+  FinishCommand( errorCode, errorMessage );
   SmiEnvironment::SetFlag_NOSYNC(false);
   
   return errorCode;
@@ -1309,7 +1318,7 @@ SecondoInterface::Command_Query( const ListExpr list,
 
 
 SI_Error 
-SecondoInterface::Command_Derive( const ListExpr list )
+SecondoInterface::Command_Derive( const ListExpr list, string& errorMessage )
 {
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
   SecondoSystem& sys = *SecondoSystem::GetInstance();
@@ -1346,7 +1355,7 @@ SecondoInterface::Command_Derive( const ListExpr list )
     }
   }
 
-  FinishCommand( errorCode );
+  FinishCommand( errorCode, errorMessage );
   
   return errorCode;
 }
@@ -1359,7 +1368,7 @@ SecondoInterface::Command_Derive( const ListExpr list )
 
 
 SI_Error 
-SecondoInterface::Command_Let( const ListExpr list  )
+SecondoInterface::Command_Let( const ListExpr list, string& errorMessage  )
 {
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
@@ -1447,7 +1456,7 @@ SecondoInterface::Command_Let( const ListExpr list  )
           errorCode = ERR_IN_QUERY_EXPR;    
         }
       }
-      FinishCommand( errorCode );
+      FinishCommand( errorCode, errorMessage );
     }
   }
   else // no database open
@@ -1466,7 +1475,7 @@ SecondoInterface::Command_Let( const ListExpr list  )
 */
 
 SI_Error 
-SecondoInterface::Command_Update( const ListExpr list )
+SecondoInterface::Command_Update( const ListExpr list, string& errorMessage )
 {
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
@@ -1559,7 +1568,7 @@ SecondoInterface::Command_Update( const ListExpr list )
       {
         errorCode = ERR_IN_QUERY_EXPR;    
       }
-      FinishCommand( errorCode );
+      FinishCommand( errorCode, errorMessage );
     }
   }
   else // no database open
@@ -1580,7 +1589,8 @@ SecondoInterface::Command_Update( const ListExpr list )
 SI_Error 
 SecondoInterface::Command_Create( const ListExpr list, 
                                   ListExpr& resultList,
-                                  ListExpr& errorList   )
+                                  ListExpr& errorList,
+                                  string& errorMessage  )
 {
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
   SecondoSystem& sys = *SecondoSystem::GetInstance();
@@ -1622,7 +1632,7 @@ SecondoInterface::Command_Create( const ListExpr list,
       errorCode = ERR_NO_OBJ_CREATED;     
       resultList = errorList;
     }
-    FinishCommand( errorCode );
+    FinishCommand( errorCode, errorMessage );
   }
   else // no database open
   {
@@ -1643,13 +1653,12 @@ SecondoInterface::Command_Set( const ListExpr list )
 {
   NestedList& nl = *SecondoSystem::GetNestedList();
   
-  SI_Error errorCode = ERR_NO_ERROR;
-  
   string paramStr = nl.StringValue(nl.Second(list));
   bool value = nl.BoolValue(nl.Fourth(list));
   
   RTFlag::setFlag(paramStr, value);
 
+  SI_Error errorCode = ERR_NO_ERROR;
   return errorCode;
 }
 
@@ -1708,8 +1717,8 @@ SecondoInterface::StartCommand()
   }
 }
 
-void
-SecondoInterface::FinishCommand( SI_Error& errorCode )
+bool
+SecondoInterface::FinishCommand( SI_Error& errorCode, string& errMsg )
 {
   if ( !activeTransaction )
   {
@@ -1717,22 +1726,29 @@ SecondoInterface::FinishCommand( SI_Error& errorCode )
     {
       if ( !SecondoSystem::CommitTransaction() )
       {
+        errMsg = errMsg 
+               + "CommitTransaction() failed! "
+               + "But the previous command was successful.";
         errorCode = ERR_COMMIT_OR_ABORT_FAILED;
+        return false;
       }
     }
     else
     {
-      cerr << "Error: " << GetErrorMessage(errorCode) 
-           << " - aborting transaction!" << endl;
-      cerr.flush();
       if ( !SecondoSystem::AbortTransaction() )
       {
+        errMsg = errMsg 
+               + "AbortTransaction() failed! An abort was necessary "
+               + "since the previous command failed with: " 
+               + GetErrorMessage(errorCode);
+        
         errorCode = ERR_COMMIT_OR_ABORT_FAILED;
+        return false;
       }
     }
   }
+  return true;
 }
-
 
 
 void
@@ -1740,4 +1756,3 @@ SecondoInterface::SetDebugLevel( const int level )
 {
   SecondoSystem::GetQueryProcessor()->SetDebugLevel( level );
 }
-

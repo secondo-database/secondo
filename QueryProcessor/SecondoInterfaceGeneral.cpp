@@ -27,11 +27,14 @@ Nov 2004, M. Spiekermann. The CMsg instance was moved to the file
 Application.cpp since not all applications are linked with
 SecondoInterfaceGeneral.o
 
+
 */
 
 using namespace std;
 
 #include "SecondoInterface.h"
+#include "SecondoSystem.h"
+#include "QueryProcessor.h"
 #include "LogMsg.h"
 #include "Profiles.h"
 
@@ -46,7 +49,8 @@ void
 SecondoInterface::InitRTFlags(const string& configFile) {
 
   // initialize runtime flags
-  string logMsgList = SmiProfile::GetParameter( "Environment", "RTFlags", "", configFile );    
+  string logMsgList = SmiProfile::GetParameter( "Environment", 
+                                                "RTFlags", "", configFile );    
   RTFlag::initByString(logMsgList);
   RTFlag::showActiveFlags(cout);
 	
@@ -88,8 +92,8 @@ SecondoInterface::GetErrorMessage( const int errorCode )
   else
   {
     defaultMsg  
-      << " Unknown Error! No message for error code No" 
-      << errorCode << "found"; 
+      << " Unknown Error! No message for error code No. " 
+      << errorCode << "found."; 
   }
   return defaultMsg.str();
 }

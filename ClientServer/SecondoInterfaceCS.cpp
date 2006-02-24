@@ -22,16 +22,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 The Implementation-Module SecondoInterface
 
-April 2002 Ulrich Telle Client/Server version of the 
-~SecondoInterface~.
+April 2002 Ulrich Telle Client/Server version of the ~SecondoInterface~.
 
-April 29 2003 Hoffmann Client/Server adaption for single objects 
-save and restore commands.
+April 29 2003 Hoffmann Client/Server adaption for single objects save and
+restore commands.
 
-December 2005, Victor Almeida deleted the deprecated algebra 
-levels (~executable~, ~descriptive~, and ~hibrid~). Only the 
-executable level remains.
+December 2005, Victor Almeida deleted the deprecated algebra levels
+(~executable~, ~descriptive~, and ~hibrid~). Only the executable level remains.
 
+February 2006, M. Spiekermann. Bug fix in the save and restore commands.  The
+protocol for these commands has been changed. The implementation of the client
+server communication was partly encapsulated into class ~CSProtocol~ which
+provides functions useful for the client and for the server implementation.
 [TOC]
 
 */
@@ -641,18 +643,8 @@ SecondoInterface::LookUpTypeExpr( ListExpr type, string& name,
   return (ok);
 }
 
-void
-SecondoInterface::StartCommand()
-{
-}
-
-void
-SecondoInterface::FinishCommand( SI_Error& errorCode )
-{
-}
 
 void
 SecondoInterface::SetDebugLevel( const int level )
 {
 }
-
