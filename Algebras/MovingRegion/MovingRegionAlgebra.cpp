@@ -1339,9 +1339,10 @@ This case should never happen.
 
 */
 
-            assert(false);
+//            assert(false);
 
-            // return false;
+            detailedResult = 10;
+            return false;
         } else {
             if (MRA_DEBUG)
                 cerr << "specialTrapeziumIntersects() intersection"
@@ -2328,6 +2329,26 @@ Both segments are not vertical.
             collinear = 
                    nearlyEqual((iey-isy)/(iex-isx), (fey-fsy)/(fex-fsx))
                 || nearlyEqual((iey-isy)*(fex-fsx), (fey-fsy)*(iex-isx));
+
+            if (!collinear) {
+                cerr << setprecision(10)
+                     << "parameters for segment orientation comparison:"
+                     << endl
+                     << "  1. (iey-isy)/(iex-isx) = " 
+                     << (iey-isy)/(iex-isx) 
+                     << endl
+                     << "  2. (fey-fsy)/(fex-fsx) = " 
+                     << (fey-fsy)/(fex-fsx)
+                     << endl
+                     << "  3. (iey-isy)*(fex-fsx) = " 
+                     << (iey-isy)*(fex-fsx) 
+                     << endl
+                     << "  4. (fey-fsy)*(iex-isx) = " 
+                     << (fey-fsy)*(iex-isx)
+                     << endl
+                     << "1. and 2. or 3. and 4. should be equal."
+                     << endl;
+            }
 
             if (MRA_DEBUG) {
                 cerr << ::std::fixed << ::std::setprecision(6);
@@ -5653,10 +5674,10 @@ $(x, y, t)$, this is equivalent to the intersection of two trapeziums.
                      << " " << existingDms.initialEndX
                      << " " << existingDms.initialEndY
                      << ")-("
-                     << existingDms.initialStartX
-                     << " " << existingDms.initialStartY
-                     << " " << existingDms.initialEndX
-                     << " " << existingDms.initialEndY
+                     << existingDms.finalStartX
+                     << " " << existingDms.finalStartY
+                     << " " << existingDms.finalEndX
+                     << " " << existingDms.finalEndY
                      << ")"
                      << endl;
 
