@@ -6,11 +6,54 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below the ruler and not at the end.
 
-
-2006-02-23
+2006-02-24 Automatic Tests
 ===============================================================================
-Important Notes:
-My changes of 02-23 can have some confusing effects since files which before
+The TestRunner has new features! Please refer to example.test for its
+documentation. The following features are new:
+
+1) The expected result of a query can be specified in a separate file, e.g.
+#yields @resultFile
+
+2) Values of real atoms of the result and the expected result can be compared
+approximately either by a relative or by a fix tolerance parameter
+
+3) File names can be specified including environment variables of the shell, e.g.
+#yields $(HOME)/data/query1.result
+
+Moreover, the notation $(VARIABLE) can be used for SECONDO's restore and save
+commands, but then the file name needs to be a text atom which can easily specified
+by enclosing it in single quotes, e.g. 
+
+restore database germany from '$(VARIABLE)/secondo-data/germany'; 
+
+There should be comprehensive test cases for every algebra. The automated test scripts
+will run all files below "Tests/Testspecs" which are ending with ".test". Moreover, you
+need not to set up your own data in a test. The databases defined in "bin/createdb.test"
+are restored before all other tests. Hence, if you need a specific database of the
+secondo-data repository, please add it there in the test file you must only open the 
+database. 
+
+Finally, you can run all tests locally by calling
+
+  make runtests
+
+and a single test can be invoked by
+
+  TestRunner -i <file>
+
+
+*** Please try to create and maintain test files for             ***
+*** your algebra from the very beginning of its implementation!  ***
+
+
+Best regards
+
+Markus
+
+
+2006-02-23 Environment Changes
+===============================================================================
+The changes of 02-20 can have some confusing effects since files which before
 are created by make are now under CVS control. In order to make sure that
 everyone has the same configuration please run the following commands:
 
@@ -22,9 +65,11 @@ open a new shell and run
 cvs update -dP
 make
 
+Sorry for the trouble,
 
+Markus
 
-2006-02-20
+2006-02-20 Changes of building, linking, and starting the applications
 ===============================================================================
 The build procedure has been changed. Now only two applications called
 "SecondoBDB" and "SecondoCS" are compiled. They know the options
@@ -39,6 +84,10 @@ backward compatibility there are some shell scripts called
 
 bin: SecondoTTYBDB, SecondoTTYCS, TestRunnner, TestRunnerCS, SecondoMonitor
 Optimizer: SecondoPL, SecondoPLCS 
+
+Hope it works for all, 
+
+Markus
 
 
 2006-01-09 A big change on the kernel of the system has been made
