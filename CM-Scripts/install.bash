@@ -251,7 +251,14 @@ function checkGCC {
   checkCmd "gcc --print-search-dirs >> $logfile"
 
   local gccVersion=$(gcc --version | sed -ne '1 s#[^0-9]*\([\.0-9]*\)#\1#g p')
-  if [ "$gccVersion" != "$1" ]; then
+  local ok="false"
+  for version in $1; do
+    if [ "$gccVersion" == "$version" ]; then
+      ok="true"
+    fi
+  done
+ 
+  if [ "$ok" != "false" ]; then
     return 1
   fi
   return 0
@@ -641,23 +648,23 @@ else
   xtermPID=$LU_xPID
 fi
 
-
 #
 # GCC 3.2.3 installation
 #
 export PATH=".:$sdk/bin:$PATH"
 export LD_LIBRARY_PATH=".:$sdk/lib:$LD_LIBRARY_PATH"
-printSep "Installation of GCC 3.2.3"
-if checkGCC "3.2.3"; then
-  showMsg "info" "Your system's GCC has already version \"3.2.3\" \n\
+gccVer="3.4.4"
+printSep "Installation of GCC $gccVer"
+if checkGCC "3.2.3 3.3.6 3.4.4 4.0.0"; then
+  showMsg "info" "Your system's GCC has already a suitable version \n\
 hence we will not install it again below $sdk"
 else
-  # Compile GCC 3.2.3
+  # Compile GCC
   gccfiles=$platformdir/gnu/gcc-*
   installPackage "GCC with C++ support" "$gccfiles"  $temp/gcc-* "bootstrap install"
   assert hash -r
-  if ! checkGCC "3.2.3"; then
-    showMsg "err" "Something went wrong! gcc --version does not report version 3.2.3" 
+  if ! checkGCC "$gccVer"; then
+    showMsg "err" "Something went wrong! gcc --version does not report version $gccVer"
     abort
   fi
 fi

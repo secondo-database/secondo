@@ -613,6 +613,12 @@ function uncompress {
     run="true"
   fi
 
+  if [ "$suffix" == "bz2" -o "$suffix" == "BZ2" ]; then
+    checkCmd "tar -xjf $1"
+    rc=$?
+    run="true"
+  fi
+
   if [ "$suffix" == "zip" -o "$suffix" == "ZIP" ]; then
     checkCmd "unzip -q -o $1"
     rc=$? 
