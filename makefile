@@ -58,7 +58,6 @@ endef
 # The corresponding .example files are stored in the CVS
 
 CONFIG_FILES = bin/SecondoConfig.ini \
-	Optimizer/SecondoConfig.ini \
 	bin/JNI.ini \
 	Javagui/gui.cfg \
 	Javagui/GBS.cfg
@@ -274,8 +273,9 @@ config: $(CONFIG_FILES)
 Documents/.Secondo-News.txt : Documents/Secondo-News.txt
 	@touch $@ 
 	@echo -e "\n *** New information in the file $< *** \n"
-	@head -n 20 $< | sed -ne '10~1p'
-	@echo -e "\n *** file truncated after 20 lines *** \n" 
+	firstSectionEnd=$$(grep -ine "=====" $< | sed -ne '2s/:.*//gp'); \
+	head -n $$[$$firstSectionEnd] $< | sed -ne '10~1p'
+	@echo -e "\n *** file truncated 20 lines *** \n" 
 
 bin/SecondoConfig.ini: bin/SecondoConfig.example
 	$(cp-config-file)
