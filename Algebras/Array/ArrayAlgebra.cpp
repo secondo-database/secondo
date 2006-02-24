@@ -86,6 +86,9 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
+February 2006, M. Spiekermann. Bug fixes in type mapping of the ~distribute~ and in the
+value mapping of the ~summarize~ operator.
+
 1 Preliminaries
 
 1.1 Includes
@@ -96,6 +99,7 @@ using namespace std;
 #include <sstream>
 #include "Algebra.h"
 #include "NestedList.h"
+#include "NList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "StandardTypes.h"
@@ -524,7 +528,9 @@ OpenArray( SmiRecord& valueRecord, size_t& offset,
   delete []buffer;
   nl->ReadFromString( valueString, valueList );
 
-  value = RestoreFromListArray( typeInfo, nl->First(valueList), 1, errorInfo, correct );
+  value = RestoreFromListArray( typeInfo, 
+                                nl->First(valueList), 
+                                1, errorInfo, correct );
 
   if (errorInfo != 0)
   {
@@ -611,7 +617,8 @@ CloneArray( const ListExpr typeInfo, const Word& w )
   Word a[array->getSize()];
 
   for (int i=0; i < n; i++) {
-    a[i] = (am->CloneObj(algebraId, typeId))(nl->TheEmptyList(), array->getElement(i));
+    a[i] = (am->CloneObj(algebraId, typeId))( nl->TheEmptyList(), 
+                                              array->getElement(i) );
 
     // Check whether cloning was successful
 
@@ -1816,18 +1823,19 @@ the first respectively the last relation.
 
 */
 static ListExpr
-distributeTypeMap( ListExpr args )
+distributeTypeMap( ListExpr inArgs )
 {
-  if (nl->ListLength(args) == 2)
+  NList args(inArgs);
+  if ( args.length() == 2 )
   {
-    ListExpr streamDesc = nl->First(args);
-    ListExpr attrNameLE = nl->Second(args);
+    NList streamDesc = args.first();
+    ListExpr attrNameLE = args.second().listExpr();
 
-    if (nl->IsEqual(nl->First(streamDesc), "stream")
-        && (nl->ListLength(streamDesc) == 2)
-        && (nl->AtomType(attrNameLE) == SymbolType))
+    if ( streamDesc.isList() && streamDesc.first().isSymbol("stream") 
+         && (streamDesc.length() == 2)
+         && (nl->AtomType(attrNameLE) == SymbolType)          )
     {
-      ListExpr tupleDesc = nl->Second(streamDesc);
+      ListExpr tupleDesc = streamDesc.second().listExpr();
       string attrName = nl->SymbolValue(attrNameLE);
 
       if (nl->IsEqual(nl->First(tupleDesc), "tuple")
@@ -1879,7 +1887,7 @@ distributeTypeMap( ListExpr args )
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return args.typeError("input is not (stream(tuple(y))) x ...");
 }
 
 
@@ -1934,7 +1942,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
     Tuple* tuple = (Tuple*)actual.addr;
     Tuple* tuple2 = new Tuple(tupleType);
  
-		// Copy all attributes except the package number from tuple to tuple2.
+    // Copy all attributes except the package number from tuple to tuple2.
     int j = 0;
     for (int i=0; i<tuple->GetNoAttributes(); i++) {
       if (i!=pkgAttr) 
@@ -1945,22 +1953,23 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
     pkgNrCcInt = (CcInt*)(tuple->GetAttribute(pkgAttr));
     pkgNr = pkgNrCcInt->GetIntval();
 
-		tuple->DeleteIfAllowed();
-		 
-		if ( pkgNr > (MAX_OPEN_RELATIONS - 1) ) { // check if pckNr is valid
+    tuple->DeleteIfAllowed();
+	 
+    if ( pkgNr > (MAX_OPEN_RELATIONS - 1) ) { // check if pckNr is valid
 
-      if ( !msgPrinted ) {
-		    cerr << "Warning: Package number out of Range. "
-			       << "Open files per process are limited! "
-			       << "Since every open relation needs to open files "
-					   << "it is only possible to create at most an array "
-					   << "with " << MAX_OPEN_RELATIONS << " relations." << endl;
-			  msgPrinted = true;	
-			}	 
-			
-			pkgNr = outOfRangePkgNr % MAX_OPEN_RELATIONS;
-			outOfRangePkgNr++;
-		}
+      if ( !msgPrinted ) 
+      {
+         cerr << "Warning: Package number out of Range. "
+              << "Open files per process are limited! "
+              << "Since every open relation needs to open files "
+              << "it is only possible to create at most an array "
+              << "with " << MAX_OPEN_RELATIONS << " relations." << endl;
+               msgPrinted = true;	
+      }	 
+           
+      pkgNr = outOfRangePkgNr % MAX_OPEN_RELATIONS;
+      outOfRangePkgNr++;
+    }
 
     while ( n < pkgNr ) { // enlarge the array if necessary
       
@@ -2063,60 +2072,95 @@ summarizeTypeMap( ListExpr args )
     }
   }
 
-  ErrorReporter::ReportError("summarize: Input type array( rel( tuple(...))) expected!");
+  ErrorReporter::ReportError(
+     "summarize: Input type array( rel( tuple(...))) expected!");
   return nl->SymbolAtom("typeerror");
 }
 
 static int
 summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  struct ArrayIterator{int current; Array* array;
-                       GenericRelationIterator* rit;}* ait = 0;
+  struct ArrayIterator
+  {
+    private:
+    int current; 
+    Array* array;
+    GenericRelationIterator* rit;
+   
+    // create an Tuple iterater for the next array element
+    bool makeNextRelIter()
+    {
+      if (rit)
+        delete rit;
+      
+      if ( current < array->getSize() ) 
+      {
+        Relation* r = static_cast<Relation*>( array->getElement(current).addr );
+        current++;
+        rit = r->MakeScan();
+        return true;
+      }
+      rit=0;
+      return false;  
+    } 
 
-  GenericRelation* r = 0;
-  Tuple* t = 0;
-  Word argArray;
-  Word element;
+    public:
+    ArrayIterator(Array* a, const int pos=0) : current(pos), array(a), rit(0)
+    {
+      makeNextRelIter();
+    }
+    
+    ~ArrayIterator()
+    {
+      if (rit)
+        delete rit;
+    }  
+    
+    Tuple* getNextTuple() // try to get next tuple
+    {
+      if (!rit)
+        return 0;
+      
+      Tuple* t = rit->GetNextTuple();
+      if ( !t )
+      { 
+         if (!makeNextRelIter())
+           return 0;
+         else
+           return rit->GetNextTuple();
+      }   
+      return t; 
+    } 
+  };
+ 
+  ArrayIterator* ait = 0;
+  ait = (ArrayIterator*)local.addr;
 
   switch (message) {
-    case OPEN :
-      ait = new ArrayIterator;
-      ait->current = -1;
-			ait->rit = 0;
+    case OPEN : {
+      Word argArray;
       qp->Request(args[0].addr, argArray);
-      ait->array = (Array*)argArray.addr;
-
+      ait = new ArrayIterator( (Array*)argArray.addr );
       local.addr = ait;
       return 0;
+    }
+    case REQUEST : {
 
-    case REQUEST :
-      ait = (ArrayIterator*)local.addr;
-
-      // Try to get the next tuple of the current package. While this has not
-      // been successful, go to the next package (if the current package is
-      // not already the last package).
-
-      while ( ait->current < 0
-              || (((t = ait->rit->GetNextTuple()) == 0)
-                  && (ait->current < ait->array->getSize()-1))) {
-
-        element = ait->array->getElement(++(ait->current));
-        r = (Relation*)element.addr;
-        ait->rit = r->MakeScan();
-      }
-
+      Tuple* t = ait->getNextTuple();
       if (t != 0) {
         result = SetWord(t);
         return YIELD;
       }
-      else {
-        return CANCEL;
-      }
-
-    case CLOSE :
+      return CANCEL;
+    }  
+    case CLOSE : {
       ait = (ArrayIterator*)local.addr;
-      delete ait->rit;
+      delete ait;
       return 0;
+    }  
+    default : {
+      return 0;              
+    }                
   }
   return 0;
 }
