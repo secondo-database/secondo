@@ -273,9 +273,9 @@ config: $(CONFIG_FILES)
 Documents/.Secondo-News.txt : Documents/Secondo-News.txt
 	@touch $@ 
 	@echo -e "\n *** New information in the file $< *** \n"
-	firstSectionEnd=$$(grep -ine "=====" $< | sed -ne '2s/:.*//gp'); \
+	@firstSectionEnd=$$(grep -ine "=====" $< | sed -ne '2s/:.*//gp'); \
 	head -n $$[$$firstSectionEnd] $< | sed -ne '10~1p'
-	@echo -e "\n *** file truncated 20 lines *** \n" 
+	@echo -e "\n *** file truncated *** \n"
 
 bin/SecondoConfig.ini: bin/SecondoConfig.example
 	$(cp-config-file)
