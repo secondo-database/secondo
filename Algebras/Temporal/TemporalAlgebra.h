@@ -3995,7 +3995,7 @@ bool Mapping<Unit, Alpha>::Present( const Periods& t ) const
   Periods defTime( 0 );
   DefTime( defTime );
 
-  return t.Inside( defTime );
+  return t.Intersects( defTime );
 }
 
 template <class Unit, class Alpha>
