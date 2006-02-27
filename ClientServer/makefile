@@ -40,8 +40,6 @@ DEP_FILES := $(filter-out UnixSocket%, $(DEP_FILES))
 endif
 
 
-CCFLAGS := $(DEFAULTCCFLAGS) $(JNIINCLUDE)
-
 .PHONY: all
 all: $(OBJECTS) $(LIBDIROBJECTS)
 
@@ -53,7 +51,6 @@ $(LIBDIR)/%.$(OBJEXT): %.$(OBJEXT)
 
 
 # --- Link applications
-SERVER_OBJECTS = SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o
 
 $(BINDIR)/SecondoMonitor$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoMonitor$(EXEEXT): SecondoMonitor.o

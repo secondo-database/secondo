@@ -208,6 +208,8 @@ The operations are defined below.
 
 #include <string>
 #include <iostream>
+#include <cmath>
+
 #include <assert.h>
 
 /* 
@@ -428,7 +430,7 @@ struct Tolerance
     cout << "d1: " << d1 << endl;
     cout << "d2: " << d2 << endl;
     cout << "err: " << err << endl;
-    return abs(d2-d1) < err; 
+    return fabs(d2-d1) < err; 
   }  
 };      
 

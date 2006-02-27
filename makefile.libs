@@ -25,7 +25,7 @@
 include ./makefile.env
 
 #libsdbtool
-LIB_SDBTOOL_BASENAMES=\
+LIB_SDBTOOL_BASENAMES:=\
 	Tools/NestedLists/NestedList \
 	Tools/NestedLists/NLLex \
 	Tools/NestedLists/NLScanner \
@@ -37,7 +37,7 @@ LIB_SDBTOOL_BASENAMES=\
 	Tools/Parser/NestedText
 
 #libsdbutils
-LIB_SDBUTILS_BASENAMES=\
+LIB_SDBUTILS_BASENAMES:=\
 	Tools/Utilities/Processes \
 	Tools/Utilities/Application \
 	Tools/Utilities/Messenger \
@@ -46,16 +46,16 @@ LIB_SDBUTILS_BASENAMES=\
 	Tools/Utilities/Profiles \
 	Tools/Utilities/UtilFunctions \
 	Tools/Utilities/WinUnix \
-	Tools/Utilities/Base64 \
+	Tools/Utilities/Base64
 
 #libsdbsocket
-LIB_SDBSOCKET_BASENAMES=\
+LIB_SDBSOCKET_BASENAMES:=\
 	ClientServer/SocketIO \
 	ClientServer/SocketAddress \
 	ClientServer/SocketRuleSet
 
 #libsdbsys
-LIB_SDBSYS_BASENAMES=\
+LIB_SDBSYS_BASENAMES:=\
 	Algebras/Management/Algebra \
 	Algebras/Management/AlgebraManager \
 	QueryProcessor/QueryProcessor \
@@ -63,10 +63,17 @@ LIB_SDBSYS_BASENAMES=\
 	QueryProcessor/SecondoCatalog
 
 
-LIB_SDBTOOL_OBJECTS   = $(addsuffix .$(OBJEXT), $(LIB_SDBTOOL_BASENAMES))
-LIB_SDBUTILS_OBJECTS  = $(addsuffix .$(OBJEXT), $(LIB_SDBUTILS_BASENAMES))
-LIB_SDBSOCKET_OBJECTS = $(addsuffix .$(OBJEXT), $(LIB_SDBSOCKET_BASENAMES))
-LIB_SDBSYS_OBJECTS    = $(addsuffix .$(OBJEXT), $(LIB_SDBSYS_BASENAMES))
+LIB_SDBTOOL_OBJECTS   := $(addsuffix .$(OBJEXT), $(LIB_SDBTOOL_BASENAMES))
+LIB_SDBUTILS_OBJECTS  := $(addsuffix .$(OBJEXT), $(LIB_SDBUTILS_BASENAMES))
+LIB_SDBSOCKET_OBJECTS := $(addsuffix .$(OBJEXT), $(LIB_SDBSOCKET_BASENAMES))
+LIB_SDBSYS_OBJECTS    := $(addsuffix .$(OBJEXT), $(LIB_SDBSYS_BASENAMES))
+
+
+ALL_LIB_OBJS := $(LIBDIR)/libsdbtool.$(LIBEXT) \
+		$(LIBDIR)/libsdbutils.$(LIBEXT) \
+		$(LIBDIR)/libsdbsys.$(LIBEXT) \
+		$(LIBDIR)/libsdbsocket.$(LIBEXT)
+
 
 .PHONY: all
 all: $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbutils.$(LIBEXT) buildsmilibs $(LIBDIR)/libsdbsys.$(LIBEXT) $(LIBDIR)/libsdbsocket.$(LIBEXT)
@@ -133,11 +140,4 @@ endif
 
 .PHONY: clean
 clean:
-	$(RM) $(LIBDIR)/libsdbtool.$(LIBEXT) \
-	      $(LIBDIR)/libsdbutils.$(LIBEXT) \
-	      $(LIBDIR)/libsdbsys.$(LIBEXT) \
-	      $(LIBDIR)/libsdbsocket.$(LIBEXT)
-
-	$(RM) $(LIBDIR)/SecondoInterface*.o $(LIBDIR)/SecondoInterface*.lo
-	$(RM) $(LIBDIR)/AlgebraList.o $(LIBDIR)/AlgebraList.lo
-
+	$(RM) -f $(ALL_LIB_OBJS)

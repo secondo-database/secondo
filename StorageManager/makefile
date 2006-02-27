@@ -25,41 +25,8 @@
 
 include ../makefile.env
 
-BDBOBJECTSBASENAMES :=\
-	smiEnvironment \
-	smiKey \
-	bdbKeyedFile \
-	bdbRecordFile \
-	bdbFile \
-	bdbRecord \
-	bdbEnvironment
-
-ORAOBJECTSBASENAMES :=\
-	smiEnvironment \
-	smiKey \
-	oraKeyedFile \
-	oraRecordFile \
-	oraFile \
-	oraRecord \
-	oraEnvironment
-
-BDBOBJECTS := $(addsuffix .$(OBJEXT), $(BDBOBJECTSBASENAMES)) 
-ORAOBJECTS := $(addsuffix .$(OBJEXT), $(ORAOBJECTSBASENAMES))
-
-
-ifeq ($(smitype),ora)
-CCFLAGS := $(PICFLAG) $(OCICPPINCLUDE) $(DEFAULTCCFLAGS)
-ALLOBJ := $(ORAOBJECTS)
-else
-CCFLAGS := $(PICFLAG) $(DEFAULTCCFLAGS)
-ALLOBJ := $(BDBOBJECTS)
-endif
-
-CODE_DEPENDENCIES = $(patsubst %.$(OBJEXT), %.dep, $(ALLOBJ))
-
-
 .PHONY: all
-all: $(CODE_DEPENDENCIES) $(ALLOBJ)
+all: $(OBJECTS)
 
 LIBNAME = libsmi$(SMILOW)
 .PHONY: buildlibs
@@ -67,39 +34,17 @@ buildlibs: $(LIBNAME).$(LIBEXT)
 
 # --- Storage Management Interface library ---
 
-# Windows needs special treatment for dynamic libraries!
-# The variable LIBNAME will be used in the LDOPTTOOL variable 
-# which is only defined makefile.win32 included by makefile.env.
-
-$(LIBDIR)/libsmibdb.$(LIBEXT): $(BDBOBJECTS)
+$(LIBDIR)/libsmibdb.$(LIBEXT): $(OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
 	$(LD) $(LDFLAGS) -o $@ $(LDOPT) $(BDBOBJECTS) -L$(BDBDIR)/lib $(BDBLIB) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $@ $(BDBOBJECTS)
+	$(AR) -r $@ $(OBJECTS)
 endif
 
-$(LIBDIR)/libsmiora.$(LIBEXT): $(ORAOBJECTS)
-ifeq ($(shared),yes)
-# ... as shared object
-	$(LD) $(LDFLAGS) -o $@ $(LDOPT) $(ORAOBJECTS) $(OCICPPLIBDIR) $(OCICPPLIB) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
-else
-# ... as static library
-	$(AR) -r $@ $(ORAOBJECTS)
-endif
-
-# --- Storage Management Interface modules ---
-
-# create dependencies from include directives
-%.dep: %.cpp
-	$(CC) -MM $(CCFLAGS) $< > $@
-
-%.$(OBJEXT): %.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS)
-
-include $(CODE_DEPENDENCIES:.cpp=.dep)
+include $(DEP_FILES)
 
 .PHONY: clean
 clean:
-	$(RM) *.dep $(ALLOBJ) $(LIBDIR)/$(LIBNAME).$(LIBEXT)
+	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBDIR)/$(LIBNAME).$(LIBEXT)

@@ -72,11 +72,11 @@ buildlibs:
 	@echo -e "\n *** Building algebra libs ***\n";
 	for dir in $(ALL_ALGEBRA_DIRS); do \
           if [ -e $$dir/makefile ]; then \
-          if !($(MAKE) -C $$dir) then \
-            exit 1; \
+            if !(make LIBNAME=lib$${dir}Algebra -C $$dir all) then \
+	      exit 1; \
+	    fi \
           fi \
-          fi \
-        done
+	done
 	@echo -e "\n *** Algebra libs successfully created ***\n";
 
 
