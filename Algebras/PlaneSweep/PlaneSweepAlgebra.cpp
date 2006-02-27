@@ -35,7 +35,8 @@ using namespace std;
 #include <list>
 #include <set>
 
-#ifdef SECONDO_WIN32
+// some compiler versions seem not to have a definition for M_PI
+#ifndef M_PI 
 const double M_PI = acos( -1.0 );
 #endif
 
@@ -2200,8 +2201,10 @@ private:
       Segment segs[], int counter);
 };
 
-void MakeRealm::REALM(const CRegion* reg1, const CRegion* reg2, CRegion* result1,
-   CRegion* result2)
+void MakeRealm::REALM( const CRegion* reg1, 
+                       const CRegion* reg2, 
+		       CRegion* result1,
+                       CRegion* result2      )
 {
    PQueue pqueue ;  // priority Queue for XEvents
    // Prepare the first region for PlanSweep
@@ -2761,7 +2764,8 @@ result: -1 means that the new SEntry < SEntry in tree
 int SEntry::Less (const SEntry in2, const Coord x, const
    SEntry oldev, BinTreeNode<SEntry>* oldnode) const
 {
- //  cout << " test Sentry in Less   1. CHS:" << GetCHS() << "     2.CHS: " << in2.GetCHS() << endl; ;
+ //  cout << " test Sentry in Less   1. CHS:" 
+ //       << GetCHS() << "     2.CHS: " << in2.GetCHS() << endl; ;
    if ( Equal(in2) )     return 0;
    if (GetCHS().GetLP().GetX() == x &&
       in2.GetCHS().GetLP().GetX() == x) {
