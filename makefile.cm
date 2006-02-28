@@ -332,8 +332,32 @@ $(net)/installsdk: install.bash
 	chmod 755 $@
 
 # store modified files in a tar archive
+
+.PHONY: changes
+changes: /tmp/modfiles.list
+	sort -u $<
+
+.PHONY: /tmp/cvslist
+/tmp/cvslist:	
+	cvs -nq update | grep "^[MAC] " | sed -e "s#[M,A,C] #./#g" > $@
+
+
 .PHONY: backup 
 backup: backup.tgz
+	rm -f /tmp/modfiles.list
 
-backup.tgz:
-	tar -cvzf $@ $$( cvs -nq update | grep "^[MAC] " | sed -e "s#[M,A,C] ##g" )
+ifndef days
+days:=0
+endif
+ifndef hours 
+hours:=1
+endif
+/tmp/modfiles.list: /tmp/cvslist
+	rm -f $@
+	find . -cmin -$$[$(days)*24+$(hours)*60] -a ! -iregex ".*\.\(\(tab\|yy\)\..*\|a\|o\|class\|dep\)" >> $@
+	cat $< >> $@
+
+backup.tgz: /tmp/modfiles.list
+	rm -f $@
+	tar -cvzf $@ $$(sort -u $<)
+
