@@ -31,7 +31,7 @@ ALGOBJ := AlgebraList.o
 CCFLAGS = $(DEFAULTCCFLAGS)
 
 .PHONY: all
-all: createAlgList $(OBJECTS) 
+all: $(DEP_FILES) createAlgList $(OBJECTS) 
 
 .PHONY: createAlgList
 createAlgList:
@@ -43,6 +43,8 @@ else
 endif
 	$(CC) -c -o AlgebraList.$(OBJEXT) AlgebraList.cpp $(CCFLAGS)
 	cp $(ALGOBJ) $(LIBDIR)/$(ALGOBJ)
+
+include $(DEP_FILES)
 
 .PHONY: clean
 clean:
