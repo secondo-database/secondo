@@ -645,9 +645,7 @@ secondo(X) :-
 secondo(X) :-
   (
     secondo(X, Y),
-    write('Tach1\n'),
     retractall(storedSecondoList(_)),
-    write('Tach2\n'),
     (notIsDatabaseOpen; getSecondoList(_)),
     write('Command succeeded, result:'),
     nl, nl,

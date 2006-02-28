@@ -998,8 +998,8 @@ to its attribute name e.g. ort.
 
 */
 
-hasIndex(rel(Rel, _, _), attr(_:A, _, _), IndexName, _) :-
-  hasIndex(rel(Rel, _, _), attr(A, _, _), IndexName, _).
+hasIndex(rel(Rel, _, _), attr(_:A, _, _), IndexName, Type) :-
+  hasIndex(rel(Rel, _, _), attr(A, _, _), IndexName, Type).
 /*
 
 Gets the index name ~Index~ for relation ~Rel~ and attribute ~Attr~

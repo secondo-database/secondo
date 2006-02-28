@@ -215,9 +215,9 @@ select(arg(0), pr(p, a) or join(res(4), res(1), pr(q, a, b))
 ~Result~ is the number of the node into which the result of this predicate
 application should be written. Normally it is the same as Target,
 but for an edge leading to a node combining several independent results,
-it is the number of the ``real'' node to obtain this result. An example of this can
-be found in [Figure pog2] where the join edge leading from node 3 to node 7 does
-not use the result of node 3 (there is none) but rather the two independent
+it is the number of the ``real'' node to obtain this result. An example of this 
+can be found in [Figure pog2] where the join edge leading from node 3 to node 7 
+does not use the result of node 3 (there is none) but rather the two independent
 results from nodes 1 and 2 (this pair is conceptually the result available in
 node 3).
 
@@ -237,8 +237,9 @@ for nodes.
 
 For a given list of relations ~Rels~ and predicates ~Preds~, ~Nodes~ and
 ~Edges~ are the predicate order graph where edges are annotated with selection
-and join operations applied to the correct arguments. Moreover, for each edge possible
-translations into terms of the executable algebra are computed by the rule ~createPlanEdges~.
+and join operations applied to the correct arguments. Moreover, for each edge 
+possible translations into terms of the executable algebra are computed by the 
+rule ~createPlanEdges~.
 
 Example call:
 
@@ -600,38 +601,38 @@ need to define the input notation precisely.
 We assume the queries can be entered basically as select-from-where 
 structures, as follows. Let schemas be given as:
 
-----    plz(PLZ:string, Ort:string)
-        Staedte(SName:string, Bev:int, PLZ:int, Vorwahl:string, Kennzeichen:string)
+---- plz(PLZ:string, Ort:string)
+     Staedte(SName:string, Bev:int, PLZ:int, Vorwahl:string, Kennzeichen:string)
 ----
 
 Then we should be able to enter queries:
 
-----    select SName, Bev
-        from Staedte
-        where Bev > 500000
+---- select SName, Bev
+     from Staedte
+     where Bev > 500000
 ----
 
 In the next example we need to avoid the name conflict for PLZ
 
-----    select *
-        from Staedte as s, plz as p
-        where s.SName = p.Ort and p.PLZ > 40000
+---- select *
+     from Staedte as s, plz as p
+     where s.SName = p.Ort and p.PLZ > 40000
 ----
 
 In the PROLOG version, we will use the following notations:
 
-----    rel(Name, Var, Case)
+---- rel(Name, Var, Case)
 ----
 
 For example
 
-----    rel(staedte, *, u)
+----  rel(staedte, *, u)
 ----
 
 is a term denoting the ~Staedte~ relation; ~u~ says that it is actually to be 
 written in upper case whereas
 
-----    rel(plz, *, l)
+---- rel(plz, *, l)
 ----
 
 denotes the ~plz~ relation to be written in lower case. The second argument
@@ -640,15 +641,15 @@ symbol [*]. If an explicit variable has been used in the query, we need to
 perfom renaming in the plan. For example, in the second query above, the 
 relations would be denoted as 
 
-----    rel(staedte, s, u)
-        rel(plz, p, l)
+---- rel(staedte, s, u)
+     rel(plz, p, l)
 ----
 
 Within predicates, attributes are annotated as follows:
 
-----    attr(Name, Arg, Case)
+---- attr(Name, Arg, Case)
 
-        attr(ort, 2, u)
+     attr(ort, 2, u)
 ----
 
 This says that  ~ort~ is an attribute of the second argument within a join 
@@ -790,10 +791,10 @@ In the target language, we use the following operators:
 
         groupby stream(Tuple) x GroupAttrs x NewFields -> stream(Tuple2)
 
-                                group stream by the grouping attributes; for each group
-                                compute new fields each of which is specified in the
-                                form Attrname : Expr. The argument stream must already
-                                be sorted by the grouping attributes.
+                             group stream by the grouping attributes; for each group
+                             compute new fields each of which is specified in the
+                             form Attrname : Expr. The argument stream must already
+                             be sorted by the grouping attributes.
 ----
 
 In PROLOG, all expressions involving such operators are written in prefix
@@ -861,10 +862,11 @@ deleteVariables :- not(deleteVariable).
 
 
 /*
-The ~plan\_to\_atom(attr(Name, Arg, Case), Result)~ predicate is not able to distinguish whether 
-to return ~.Name~ or ~..Name~ for ~Arg~ = 2. Now, we use a predicate ~consider\_Arg2(T1, T2)~ to
- return a term ~T2~, that is constructed from term ~T1~ by replacing all occurrences of 
-~attr(\_, 2, \_)~ in it by ~attr2(\_, 2, \_)~.
+The ~plan\_to\_atom(attr(Name, Arg, Case), Result)~ predicate is not able to 
+distinguish whether to return ~.Name~ or ~..Name~ for ~Arg~ = 2. Now, we use 
+a predicate ~consider\_Arg2(T1, T2)~ to return a term ~T2~, that is constructed 
+from term ~T1~ by replacing all occurrences of ~attr(\_, 2, \_)~ in it by 
+~attr2(\_, 2, \_)~.
  
 */
 
@@ -1004,7 +1006,7 @@ plan_to_atom(equals(X, Y, A, B), Result) :-
   plan_to_atom(Y, YAtom),
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
-  concat_atom([XAtom, ' ', YAtom, ' equals[', AAtom, ', ', BAtom, ']'], '', Result),
+  concat_atom([XAtom,' ',YAtom,' equals[',AAtom,', ',BAtom,']'],'',Result),
   !.
 
 plan_to_atom(like(X, Y, Z, A, B), Result) :-
@@ -1013,7 +1015,7 @@ plan_to_atom(like(X, Y, Z, A, B), Result) :-
   plan_to_atom(Z, ZAtom),
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
-  concat_atom([XAtom, ' like[', YAtom, ', ', ZAtom, ', ', AAtom, ', ', BAtom, ']'], 
+  concat_atom([XAtom,' like[', YAtom,', ',ZAtom,', ',AAtom,', ',BAtom, ']'], 
   '', Result),
   !.
 
@@ -1327,14 +1329,14 @@ indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
   :-
   argument(N, rel(Name, *, Case)),
   !,
-  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name, *, Case), attr(AttrName,Arg,AttrCase),IndexName,btree).
 
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
   rename(exactmatch(IndexName, rel(Name, Var, Case), Y), Var)
   :-
   argument(N, rel(Name, Var, Case)),
   !,
-  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name,Var,Case),attr(AttrName,Arg,AttrCase),IndexName,btree).
 
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) <= Y, Rel)) => X :-
   indexselect(arg(N), pr(Y >= attr(AttrName, Arg, Case), Rel)) => X.
@@ -1351,7 +1353,7 @@ indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
   :-
   argument(N, rel(Name, Var, Case)),
   !,
-  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase),IndexName,btree).
 
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) >= Y, Rel)) => X :-
   indexselect(arg(N), pr(Y <= attr(AttrName, Arg, Case), Rel)) => X.
@@ -1368,18 +1370,37 @@ indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
   :-
   argument(N, rel(Name, Var, Case)),
   !,
-  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase),IndexName,btree).
 
 %fapra1590
 indexselect(arg(N), pr(Y touches attr(AttrName, Arg, Case), Rel)) => X :-
   indexselect(arg(N), pr(attr(AttrName, Arg, Case) touches Y, Rel)) => X.
 
+/*
+
+C. Duentgen, Feb/2006: When using renaming, the indexselect rule failed, because 
+the rules accesses the original (not renamed) relation. The correct approach is 
+to do a rename on the result immedeatly of the select.
+
+*/
+
 indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) touches Y, _)) =>
-  filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), attr(AttrName, Arg, AttrCase) touches Y)
+  filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), 
+         attr(AttrName, Arg, AttrCase) touches Y)
   :-
   argument(N, rel(Name, *, Case)),
   !,
-  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
+  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
+
+indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) touches Y, _)) =>
+  filter(rename(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)),
+                RelAlias), attr(AttrName, Arg, AttrCase) touches Y)
+  :-
+  argument(N, rel(Name, RelAlias, Case)),
+  RelAlias \= *,
+  !,
+  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
+
 
 /*
 Here ~ArgS~ is meant to indicate ``argument stream''.
@@ -1402,11 +1423,13 @@ so the arguments must be ordered in both possible ways!
 */
 
 /*
-join(Arg1, Arg2, pr(Pred, A1, A2)) => filter(product(Arg1S, Arg2S), pr(Pred, A1, A2)) :-
+join(Arg1, Arg2, pr(Pred, A1, A2)) 
+  => filter(product(Arg1S, Arg2S), pr(Pred, A1, A2)) :-
   Arg1 => Arg1S,
   Arg2 => Arg2S.
 
-join(Arg1, Arg2, pr(Pred, A1, A2)) => filter(product(Arg2S, Arg1S), pr(Pred, A1, A2)) :-
+join(Arg1, Arg2, pr(Pred, A1, A2)) 
+  => filter(product(Arg2S, Arg1S), pr(Pred, A1, A2)) :-
   Arg1 => Arg1S,
   Arg2 => Arg2S.
 
@@ -1645,7 +1668,8 @@ writePlanEdges :- not(writePlanEdges2).
 
 
 /*
-7 Assigning Sizes, TupleSizes, Selectivities and Predicate Costs to the Nodes and Edges of the POG
+7 Assigning Sizes, TupleSizes, Selectivities and Predicate Costs to the Nodes 
+and Edges of the POG
 
 ----    assignSizes.
         deleteSizes.
@@ -1655,7 +1679,8 @@ Assign sizes (numbers of tuples) to all nodes in the pog, based on the
 cardinalities of the argument relations and the selectivities of the
 predicates. Store sizes as facts of the form resultSize(Result, Size). Stored
 result tuple sizes as facts of the form resultTupleSize(Result, Size), stored
-selectivities as facts of the form edgeSelectivity(Source, Target, Sel, PredCost, TupleGenerationCost).
+selectivities as facts of the form edgeSelectivity(Source, Target, Sel, 
+PredCost, TupleGenerationCost).
 
 Delete sizes from memory.
 
@@ -1701,7 +1726,7 @@ assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   setNodeTupleSize(Result, TSize),
   predicateCost(Pred, PredCost),
   Pred = pr( _, R1, R2),
-  sampleRuntimesJ(R1,R2, _, _,TupleGenerationCost),  % CAVE: no info present for ad-hoc joins!
+  sampleRuntimesJ(R1,R2, _, _,TupleGenerationCost),
   assert(edgeSelectivity(Source, Target, Sel, PredCost, TupleGenerationCost)),
   !.
 
@@ -1754,7 +1779,8 @@ resTupleSize(arg(N), tupleSizeData(CoreTupleSize,InFlobSize,ExtFlobSize)) :-
   Rel = rel(_, _, _),
   calculateQueryTupleSize(Rel, CoreTupleSize, InFlobSize, ExtFlobSize), 
   !.
-resTupleSize(arg(N), _) :- write('Error in optimizer: cannot find tuple size for '),
+resTupleSize(arg(N), _) :- 
+  write('Error in optimizer: cannot find tuple size for '),
   argument(N, Rel), wp(Rel), nl, fail.
 resTupleSize(res(N), Size) :- resultTupleSize(N, Size), !.
 
@@ -1932,7 +1958,7 @@ setCurrentResultSizes(ResCard, ResTupleSize) :-
 
 
 cost(rel(Rel, X, Y), _, _, Size, TupleSize, _, _, 0) :-
-  calculateQueryTupleSize(rel(Rel, X, Y), CoreTupleSize, InFlobSize, ExtFlobSize), 
+  calculateQueryTupleSize(rel(Rel, X, Y),CoreTupleSize,InFlobSize,ExtFlobSize),
   TupleSize = tupleSizeData(CoreTupleSize,InFlobSize,ExtFlobSize),
   card(Rel, Size).
 
@@ -2181,17 +2207,19 @@ Cost function for ~hashjoin~:
 
   * NBuckets: Number of buckets in hash table
 
-  * MemSizeX = 0.25[*]MaxMem; this one is used to hold X-tuples hashed against the hash table
+  * MemSizeX = 0.25[*]MaxMem; this one is used to hold X-tuples hashed against 
+the hash table
 
   * MemSizeY = 0.75[*]MaxMem; this one is used for the hash table of Y-tuples
 
-  For the evaluation of the join predicate, we know, that only 'is equal' is allowed, as
-  hashjoin is an equijoin. For all 'is equal' predicates, it is assumed, that only in the
-  case of $A=B$, the evaluation is really expensive, for in the contrary case, some cheap 
-  test will usually discover, that $A\neqB$.
+For the evaluation of the join predicate, we know, that only `is equal' is 
+allowed, as hashjoin is an equijoin. For all `is equal' predicates, it is 
+assumed, that only in the case of $A=B$, the evaluation is really expensive, 
+for in the contrary case, some cheap test will usually discover, that $A \neq B$.
 
-  Hence, we can estimate the number of expensive predicate evaluations by $\mbox{Sel} \cdot CX \cdot CY$.
-  All other predicate evaluations are expected to be 'cheap' (with cost ~MinPET~).
+Hence, we can estimate the number of expensive predicate evaluations by 
+$\mbox{Sel} \cdot CX \cdot CY$.
+All other predicate evaluations are expected to be 'cheap' (with cost ~MinPET~).
 
   For the calculation of a hash value, a cost of ~MinPET~ is assigned.
 
@@ -2239,8 +2267,10 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
     Bn   is ResSize,
     MinPETn is CX * max((CY/NBuckets),1) - ResSize + (CX + CY),
     TCn  is ResSize,
-    write('\n\n\nhashjoin('), write(X), write(','), write(Y), write(', _, _, '), write(NBuckets), write('), '),
-    write(P), write(','), write(Sel), write(','), write(ResSize), write(','), write(TupleSize), write(','), 
+    write('\n\n\nhashjoin('), write(X), write(','), write(Y), 
+    write(', _, _, '), write(NBuckets), write('), '),
+    write(P), write(','), write(Sel), write(','), write(ResSize), 
+    write(','), write(TupleSize), write(','), 
     write(B), write(','), write(TC), write(','), write(Cost), write(') Case1'),
     write('\n\tRTM: '), write(RTMn),
     write('\n\tWTM: '), write(WTMn),
@@ -2255,7 +2285,8 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
     write('\n\tB  :  '), write(Bn),
     write('\n\tTC :  '), write(TCn),
     write('\n\tMinPET:  '), write(MinPETn), 
-    write('\n\tNeeded FlobSizes: '), write(ExtFlobSize1), write('/'), write(ExtFlobSize2), nl
+    write('\n\tNeeded FlobSizes: '), write(ExtFlobSize1),
+    write('/'), write(ExtFlobSize2), nl
   ); true).
 
 cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
@@ -2486,10 +2517,11 @@ cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
   For more accurate estimations, information on the distribution and order of 
   values of sort attributes would be needed.
 
-  Operator ~sort~ applies ~sortby~ using lexicographical ordering on all attributes.
+  Operator ~sort~ applies ~sortby~ using lexicographical ordering on all 
+  attributes.
 
-  Argument ~Order~ is either a float/integer representing the cost to evaluate the ordering predicate once,
-  or a list of (Attrname SortOrder) elements.
+  Argument ~Order~ is either a float/integer representing the cost to evaluate 
+  the ordering predicate once, or a list of (Attrname SortOrder) elements.
 
 */
 
@@ -2600,7 +2632,8 @@ cost(sort(X), P, Sel, CardX, TX, PredCost, TC, Cost) :- %
   Returns one extended tuple per group.
 
 */
-cost(groupby(X, _, _), P, Sel, Card, TS, PredCost, TC, Cost) :- % XRIS: cost function missing!
+cost(groupby(X, _, _), P, Sel, Card, TS, PredCost, TC, Cost) :- 
+% XRIS: cost function missing!
 %cost(groupby(X, GroupAttr, NewAttr-Fun-List), P, Sel, Card, TX, PredCost, TC, Cost) :-
   % for each tuple: check if GroupAttr-values matches predecessor, then store to buffer
   % for each group: for each NewAttr: calculate value by evaluating functions - similar to k-times ``extend''
@@ -2712,7 +2745,7 @@ cost(mergejoin(X, Y, _, _), P, Sel, ResultCard, ResultTupleSize, B, TC, Cost) :-
         + TC  * ResultCard.            % create result tuple
 
 /*
-   Quick & dirty cost function for Operator ~mergeunion~
+   Quick and dirty cost function for Operator ~mergeunion~
 
 */
 
@@ -2725,7 +2758,7 @@ cost(mergeunion(X,Y), P, _, ResultCard, ResultTupleSize, PredCost, TC, Cost) :-
         + A * (CX + CY).               % compare tuples
 
 /*
-  Quick & dirty Cost function for Operator ~mergesec~
+  Quick and dirty Cost function for Operator ~mergesec~
 
 */
 
@@ -3068,19 +3101,22 @@ cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
 
 cost(extend(X, _), P, Sel, S, TupleSize, PredCost, TC, C) :-
   cost(X, P, Sel, S, TupleSize1, PredCost, TC, C1),
-  addTupleSizes(TupleSize1, tupleSizeData(12,0,0), TupleSize), % XRIS: TupleSize should be increased by the real extension size
+  addTupleSizes(TupleSize1, tupleSizeData(12,0,0), TupleSize), 
+  % XRIS: TupleSize should be increased by the real extension size
   extendTC(A),
   C is C1 + A * S.                   % XRIS: costs for evaluation of mapping to generate value 
                                      %       for new attributes not yet considered!
 
 cost(remove(X, _), P, Sel, S, TupleSize, PredCost, TC, C) :-
   cost(X, P, Sel, S, TupleSize1, PredCost, TC, C1),
-  addTupleSizes(TupleSize1,tupleSizeData(-12,0,0), TupleSize), % XRIS: TupleSize should be decreased by the real removal size
+  addTupleSizes(TupleSize1,tupleSizeData(-12,0,0), TupleSize), 
+  % XRIS: TupleSize should be decreased by the real removal size
   removeTC(A),
   C is C1 + A * S.
 
 cost(project(X, _), P, Sel, S, TupleSize, PredCost, TC, C) :-
-  cost(X, P, Sel, S, TupleSize, PredCost, TC, C1), % XRIS: TupleSize should be reduced according to the projection!
+  cost(X, P, Sel, S, TupleSize, PredCost, TC, C1), 
+  % XRIS: TupleSize should be reduced according to the projection!
   projectTC(A,B),
   TupleSize = tupleSizeData(TSC, TSI, _),
   C is C1 + max(A*S, B*S*(TSC+TSI)).
@@ -3130,7 +3166,7 @@ cost(windowintersects(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
     the Rtree. After the treshold getMaxLeaves() is passed, any overflow in a 
     leaf does not result in a structural change of the tree, but the tuple is 
     simply written to into the according Y-partition file. Partition files are 
-    organized in buckets of size MaxMem/#leaves.
+    organized in buckets of size MaxMem/\#leaves.
     
     When all Y-tuples have been processed, each leaf in the RTree is examined. 
     If its Y-partition is not empty, all tuples from that leaf are flushed to 
@@ -3157,7 +3193,8 @@ cost(windowintersects(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
 */
 
 
-cost(spatialjoin(X,Y,_,_,D), P, Sel, Size, TupleSize, B, TC, Cost) :- % XRIS: Flobs not yet considered
+cost(spatialjoin(X,Y,_,_,D), P, Sel, Size, TupleSize, B, TC, Cost) :- 
+  % XRIS: Flobs not yet considered
   % D is the dimension of the joinattributes' bounding boxes
   cost(X, P, 1, CX, TX, B, TC, CostX),
   cost(Y, P, 1, CY, TY, B, TC, CostY),
@@ -3797,6 +3834,8 @@ We introduce ~select~, ~from~, ~where~, and ~as~ as PROLOG operators:
 */
 
 :- op(990,  fx, sql).
+:- op(988,  fx, with).
+:- op(987, xfx, in).
 :- op(986, xfx, first).
 %:- op(985, xfx, >>).         % XRIS: what's that operator for?
 :- op(980, xfx, orderby).
@@ -4305,12 +4344,12 @@ translate(Select from Rels where Preds, Stream, Select, Cost) :-
 /*
 Below we handle the case of queries without where-clause. This results
 in simple Cartesian products of the relations in the from-clause. 
-This case is not very important and we don't want to make the code complicated by
-applying projections for removing unnecessary attributes which might be a performance
-benefit if a groupby- or orderby- clause is present. The product will be computed
-by the symmjoin operator with a constant filter function which returns always true.
-This operator works well and has symmetric costs, whereas product has antisymmetric
-costs. 
+This case is not very important and we don't want to make the code complicated 
+by applying projections for removing unnecessary attributes which might be a 
+performance benefit if a groupby- or orderby- clause is present. The product 
+will be computed by the symmjoin operator with a constant filter function which 
+returns always true. This operator works well and has symmetric costs, whereas 
+product has antisymmetric costs. 
 
 C. Duentgen, Feb/17/2006: changed tuple variable names for the sake of uniqueness
                           (otherwise, a triple-product will crash). 
@@ -4534,9 +4573,12 @@ queryToStream(Query first N, head(Stream, N), Cost) :-
   % determine extra costs for head(...)
   cost(head(Arg, N), *, 1, ResCard, _, 0, 0, Cost2),
   dm(['External cost (1) for head(...,', N, '): ', Cost2, '\n']),
-  setCurrentResultSizes(ResCard,TupleSize), % XRIS: reduce result cardinality at least for final ``consume''
+  setCurrentResultSizes(ResCard,TupleSize), 
+  % XRIS: reduce result cardinality at least for final ``consume''
   ppCostFactor(PPCF),
-  Cost is Cost1 + Cost2 * PPCF,  % XRIS: optimizer could be extended to handle early aborts by ``head'' in non-blocking sub-OP-trees
+  Cost is Cost1 + Cost2 * PPCF,  
+  % XRIS: optimizer could be extended to handle early aborts 
+  %       by ``head'' in non-blocking sub-OP-trees
   !.
 
 queryToStream(Query orderby SortAttrs, Stream2, Cost) :- % OK
@@ -4578,7 +4620,8 @@ queryToStream(Select from Rels where Preds, Stream2, Cost) :- % OK
   !.
 
 queryToStream(Select from Rels groupby Attrs, Stream2, Cost) :- % OK
-  translate(Select from Rels groupby Attrs, Stream, Select1, Cost1), % costs for groupby(sort(...),...) already considered
+  translate(Select from Rels groupby Attrs, Stream, Select1, Cost1), 
+  % costs for groupby(sort(...),...) already considered
   finish(Stream, Select1, [], Stream2),
   getCurrentResultSizes(Arg),
   term_to_atom(Arg, ArgA),
@@ -4632,7 +4675,9 @@ finish(Stream, Select, Sort, Stream2) :-
 ----	selectClause(Select, Extend, Project, Rdup) :-
 ----
 
-The ~Select~ clause contains attribute lists ~Extend~ for extension, ~Project~ for projection, and possibly a ~distinct~ keyword indicating duplicate removal returned in ~Rdup~.
+The ~Select~ clause contains attribute lists ~Extend~ for extension, ~Project~ 
+for projection, and possibly a ~distinct~ keyword indicating duplicate removal 
+returned in ~Rdup~.
 
 */
 
@@ -4657,7 +4702,8 @@ selectClause(select distinct Attrs, Extend, Project, distinct) :-
 ----	finish2(Stream, Extend, Project, Rdup, Sort, Stream5) :-
 ----
 
-Apply extension, projection, duplicate removal and sorting as specified to ~Stream~ to obtain ~Stream5~.
+Apply extension, projection, duplicate removal and sorting as specified to 
+~Stream~ to obtain ~Stream5~.
 
 */
 
@@ -5200,11 +5246,13 @@ ExtFlobSize)~ does the same for relation ~Rel~ and the attribute list  ~AttrList
 given as complex terms.
 
 */
-calculateProjectedTupleSizeA(RelName, [AttrName], CoreTupleSize, InFlobSize, ExtFlobSize) :-
+calculateProjectedTupleSizeA(RelName, [AttrName], 
+                             CoreTupleSize, InFlobSize, ExtFlobSize) :-
   databaseName(DB),
   storedAttrSize(DB, RelName, AttrName, _, CoreTupleSize, InFlobSize, ExtFlobSize).
 
-calculateProjectedTupleSizeA(RelName, [AttrName | Rest], CoreTupleSize, InFlobSize, ExtFlobSize) :-
+calculateProjectedTupleSizeA(RelName, [AttrName|Rest], 
+                             CoreTupleSize, InFlobSize, ExtFlobSize) :-
   databaseName(DB),
   storedAttrSize(DB, RelName, AttrName, _, Core1, Inl1, Ext1),
   calculateProjectedTupleSizeA(RelName, Rest, Core2, Inl2, Ext2),
@@ -5212,11 +5260,13 @@ calculateProjectedTupleSizeA(RelName, [AttrName | Rest], CoreTupleSize, InFlobSi
   InFlobSize is Inl1+Inl2,
   ExtFlobSize is Ext1+Ext2.
   
-calculateProjectedTupleSize(Rel, AttrList, CoreTupleSize, InFlobSize, ExtFlobSize) :-
+calculateProjectedTupleSize(Rel, AttrList, 
+                            CoreTupleSize, InFlobSize, ExtFlobSize) :-
   Rel = rel(R, _, _),
   downcase_atom(R, RelName),
   atomicAttrName(AttrList, AttrNameList),
-  calculateProjectedTupleSizeA(RelName, AttrNameList, CoreTupleSize, InFlobSize, ExtFlobSize).
+  calculateProjectedTupleSizeA(RelName, AttrNameList, 
+                               CoreTupleSize, InFlobSize, ExtFlobSize).
 
 /*
 ~calculateQueryTupleSize(Rel, CoreTupleSize, InFlobSize)~ unifies 
@@ -5230,7 +5280,8 @@ calculateQueryTupleSize(Rel, CoreTupleSize, InFlobSize, ExtFlobSize) :-
   usedAttrListAtom(Rel, UsedAttr),
   Rel = rel(R, _, _),
   downcase_atom(R, RelName),
-  calculateProjectedTupleSizeA(RelName, UsedAttr, CoreTupleSize, InFlobSize, ExtFlobSize).  
+  calculateProjectedTupleSizeA(RelName, UsedAttr, 
+                               CoreTupleSize, InFlobSize, ExtFlobSize).  
   
 /*
 
@@ -5253,15 +5304,181 @@ rewrites the ~OriginalQuery~ performing several steps of rewriting and returns
 the finally ~RewrittenQuery~.
 
 */
+%rewriteQuery(Query,Query). % XRIS: for testing only
 
 rewriteQuery(Query, RewrittenQuery) :-
-  rewriteQueryForInferenceOfPredicates(Query, RQuery1),
-  rewriteQueryForRedundancy(RQuery1, RQuery2),
-  rewriteQueryForCSE(RQuery2, RewrittenQuery),
-  dm(['\nOriginal Query: ', Query, 
-      '\n\nAfter Rewriting Stage 1: Infer Predicates:\n', RQuery1,
-      '\n\nAfter Rewriting Stage 2: Remove redundancies:\n', RQuery2, 
-      '\n\nAfter Rewriting Stage 3: Handle CSEs:\n', RewrittenQuery, '\n']).
+  rewriteQueryForMacros(Query, RQuery1),
+  rewriteQueryForInferenceOfPredicates(RQuery1, RQuery2),
+  rewriteQueryForRedundancy(RQuery2, RQuery3),
+  rewriteQueryForCSE(RQuery3, RewrittenQuery),
+  dm(['\nRewriting \n---------\nOriginal Query: ', Query, 
+      '\n\nAfter Rewriting Stage 1: Expanding Macros:\n', RQuery1,
+      '\n\nAfter Rewriting Stage 2: Infer Predicates:\n', RQuery2,
+      '\n\nAfter Rewriting Stage 3: Remove redundancies:\n', RQuery3, 
+      '\n\nAfter Rewriting Stage 4: Handle CSEs:\n', RewrittenQuery, '\n']).
+
+
+/*
+
+14.0 Makros: with $\ldots$ in
+
+In Queries, users are allowed to define makros. Makros can be used within the
+query and are expanded automatically. A makro declaration is noted as 
+
+  with <makro-mext> as <makro-mnemo> in <SQL-Query>
+
+*/
+
+
+ 
+/*
+---- rewriteQueryForMacros(+QueryIn,-QueryOut)
+----
+
+Rewrites a query by extracting macro definitions and expanding all
+macros within ~QueryIn~ and unifies rewritten query with ~QueryOut~.
+
+*/
+
+rewriteQueryForMacros(QueryIn,QueryOut) :-
+  extractMacros(QueryIn, QueryTmp),
+  expandMacros(QueryTmp, QueryOut).
+
+% dynamic tables for translating mnemos
+:- dynamic(storedMacro/2),
+   dynamic(storedFlatMacro/2).
+
+% mopping up the translation tables
+retractMacros :- 
+  retractall(storedMacro(_,_)), 
+  retractall(storedFlatMacro(_,_)).
+
+/*
+---- extractMacros(+QueryIn, -QueryOut)
+----
+will analyse ~QUeryIn~ for any makro definitions and stote them in a table
+~storedMacro(Mnemo,Expansion)~. Then, the macro definitions are removed from
+~QueryIn~ and the result is returned in ~QueryOut~.
+
+*/
+
+extractMacros(QueryIn, QueryOut) :-
+  QueryIn = with(in(Macros,QueryOut)),
+  retractMacros,
+  makeList(Macros,MacroList),
+  extractMacros1(MacroList),
+  !.
+
+extractMacros(with(_), _) :-
+  write('\nERROR: Correct syntax for using macros in queries is \n'),
+  write('           \'sql with <macro> as <mnemo> in <query>.\'\n'),
+  write('           \'sql with [<macro> as <mnemo> {, <macro> as <mnemo>}] in <query>.\'.\n'), 
+  !, 
+  fail.
+
+extractMacros(Query, Query).
+
+extractMacros1([]) :- !.
+
+extractMacros1([Me|Others]) :-
+  extractMacros1(Me),
+  extractMacros1(Others), 
+  !.
+
+extractMacros1(Macro as Mnemo) :-
+  isSubTerm(Macro,Mnemo),
+  write('\nERROR: Left side of a macro declaration \'<macro> as <mnemo>\' must be an acyclic expression.'), 
+  !,
+  fail.
+         
+extractMacros1(_ as Mnemo) :-
+  not(atom(Mnemo)),
+  write('\nERROR: Right side of a macro declaration \'<macro> as <mnemo>\' must be an identifier.'), 
+  !, 
+  fail.
+
+extractMacros1(Macro as Mnemo) :-
+  not(isUsedMnemo(Mnemo)),
+  not(isCyclicMacro(Mnemo)),
+  asserta(storedMacro(Mnemo, Macro)), % bring later macros to front
+  !.
+
+/*
+---- isCyclicMacro(Mnemo)
+----
+Succeeds, if ~Mnemo~ appears as a subterm in the ~storedMacros/2~.
+
+*/
+
+isCyclicMacro(Mnemo) :-
+  storedMacro(XMnemo, XMacro),
+  isSubTerm(XMacro, Mnemo),
+  write('\nERROR: Mnemo \''), write(Mnemo), 
+  write('\' has already been used in macro declaration\n       \''),
+  write(XMacro), write(' as '), write(XMnemo), 
+  write('\'.\n'),
+  write('       To avoid cyclic definitions, macros may not contain\n'),
+  write('       the nmemos of other macros, that are declared later.\n').
+
+/*
+---- isUsedMnemo(Mnemo)
+----
+Succeeds, if ~Mnemo~ is already used in ~storedMacro/2~.
+
+*/
+
+isUsedMnemo(Mnemo) :-
+  storedMacro(Mnemo,_),
+  write('\nERROR: Mnemo \''), write(Mnemo), write('\' was used more than once.\n').
+
+
+/*
+---- expandMacros(+QueryIn, -QueryOut)
+----
+Used the table of ~storedMacro(Mnemo,Expansion)~ to expand any macros found
+in ~QueryIn~ and returns the expanded query in ~QueryOut~.
+
+A table ~storedFlatMacro(Mnemo,Expansion)~ is built, which holds macros that
+have been flattened, i.e. all nested mnemos have been expanded with their
+corresponding macros.
+
+*/
+
+expandMacros(QueryIn, QueryOut) :-
+  flattenAllMacros,
+  listAllMacros(Macros),
+  expandSingleMacro(QueryIn,Macros,QueryOut).
+
+expandSingleMacro(QueryIn, [], QueryIn).
+expandSingleMacro(QueryIn, [Mnemo|Rest], QueryOut) :-
+  storedFlatMacro(Mnemo, Macro),
+  replace_term(QueryIn,Mnemo,Macro,TermOut),
+  expandSingleMacro(TermOut, Rest, QueryOut).
+
+listAllMacros(List) :-
+  findall(Mnemo,storedMacro(Mnemo,_),ListR),
+  reverse(ListR,List).
+
+% extend a list of macros within MacroIn
+flattenMacro(MacroIn,[],MacroIn).
+flattenMacro(MacroIn,[N2|N2s],MacroOut) :-
+  storedMacro(N2, M2),
+  replace_term(MacroIn,N2,M2,MacroTemp),
+  flattenMacro(MacroTemp,N2s,MacroOut).
+
+flattenMacro(Mnemo) :-
+  storedMacro(Mnemo, Macro),
+  listAllMacros(Macros),
+  flattenMacro(Macro,Macros,MacroFlat),
+  assert(storedFlatMacro(Mnemo,MacroFlat)).
+
+flattenMacros :-
+  storedMacro(Mnemo,_),
+  flattenMacro(Mnemo),
+  fail.
+
+flattenAllMacros :- not(flattenMacros).
+
 
 /*
 
@@ -5346,14 +5563,13 @@ rewriteQueryForNonempty(Query, Query) :-
 rewriteQueryForNonempty(Query, RewrittenQuery) :-
   Query = from(select(distinct(nonempty(SelectClause))),where(Rels,WhereClause)),
   retractExpressionLabels,
-  markNode(select(SelectClause),_,0),          % decompose select clause into terms
-  inferNonemptyPredicates(NonEmptyConditions), % analyse SelectClause collection for inferred predicates
+  markNode(select(SelectClause),_,0),
+  inferNonemptyPredicates(NonEmptyConditions),
   ( is_list(WhereClause) -> 
       append_list(WhereClause, NonEmptyConditions, RewrittenWhereClause)
     ; RewrittenWhereClause = [WhereClause|NonEmptyConditions]
   ),
   sort(RewrittenWhereClause,RewrittenWhereClause1),
-  % remove `nonempty' from query & append inferred predicates to where-clauses
   RewrittenQuery = from(select(distinct(SelectClause)),where(Rels,RewrittenWhereClause1)),
   write('2\n'),
   !.
@@ -5362,14 +5578,13 @@ rewriteQueryForNonempty(Query, RewrittenQuery) :-
 rewriteQueryForNonempty(Query, RewrittenQuery) :-
   Query = from(select(nonempty(SelectClause)),where(Rels,WhereClause)),
   retractExpressionLabels,
-  markNode(select(SelectClause),_,0),           % decompose select clause into terms
-  inferNonemptyPredicates(NonEmptyConditions),  % analyse SelectClause collection for inferred predicates
+  markNode(select(SelectClause),_,0),
+  inferNonemptyPredicates(NonEmptyConditions),
   ( is_list(WhereClause) -> 
       append_list(WhereClause, NonEmptyConditions, RewrittenWhereClause)
     ; RewrittenWhereClause = [WhereClause|NonEmptyConditions]
   ),
   sort(RewrittenWhereClause,RewrittenWhereClause1),
-  % remove `nonempty' from query & append inferred predicates to where-clauses
   RewrittenQuery = from(select(SelectClause),where(Rels,RewrittenWhereClause1)),
   write('3\n'),
   !.
@@ -5379,8 +5594,8 @@ rewriteQueryForNonempty(Query, RewrittenQuery) :-
   Query \= from(select(distinct(nonempty(_))),where(_,_)),
   Query  = from(select(distinct(nonempty(SelectClause))),Rels),
   retractExpressionLabels,
-  markNode(select(SelectClause),_,0),           % decompose select clause into terms
-  inferNonemptyPredicates(NonEmptyConditions),  % analyse SelectClause collection for inferred predicates
+  markNode(select(SelectClause),_,0),
+  inferNonemptyPredicates(NonEmptyConditions),
   sort(NonEmptyConditions,NonEmptyConditions1),
   ( NonEmptyConditions1 = [] -> 
       RewrittenQuery = from(select(distinct(SelectClause)),Rels)
@@ -5394,8 +5609,8 @@ rewriteQueryForNonempty(Query, RewrittenQuery) :-
   Query \= from(select(nonempty(_)),where(_,_)),
   Query  = from(select(nonempty(SelectClause)),Rels),
   retractExpressionLabels,
-  markNode(select(SelectClause),_,0),           % decompose select clause into terms
-  inferNonemptyPredicates(NonEmptyConditions),  % analyse SelectClause collection for inferred predicates
+  markNode(select(SelectClause),_,0),
+  inferNonemptyPredicates(NonEmptyConditions),
   sort(NonEmptyConditions,NonEmptyConditions1),
   ( NonEmptyConditions1 = [] -> 
       RewrittenQuery = from(select(SelectClause),Rels)
@@ -5404,7 +5619,8 @@ rewriteQueryForNonempty(Query, RewrittenQuery) :-
   write('5\n'),
   !.
 
-% Special cases: ordering and grouping clauses can be ignored for nonempty-rewriting.
+% Special cases: ordering and grouping clauses can be 
+%                ignored for nonempty-rewriting.
 rewriteQueryForNonempty(Query, RewrittenQuery) :-
   Query = first(Query2, X),
   rewriteQueryForNonempty(Query2, RewrittenQuery2),
@@ -5426,9 +5642,6 @@ rewriteQueryForNonempty(Query, RewrittenQuery) :-
   write('8\n'),
   !.
 
-% fallback case
-%rewriteQueryForNonempty(Query,Query).
-
 /*
 
 14.1.2 Substitution of Conditions
@@ -5438,34 +5651,121 @@ replaced by equivalent, but cheaper ones.
 
 */
 
-% simple redundancy removement
-simplifyCondition([starts(X,Y), contains(X,Y)], [contains(X,Y)]).
 
-simplifyCondition([X <= Y, X = Y], [X <= Y]).
-simplifyCondition([X <= Y, Y = X], [X <= Y]).
+/*
+---- simplifyAllConditions(+CondIn, -SimpleConds) 
+----
 
-simplifyCondition([X >= Y, X = Y], [X >= Y]).
-simplifyCondition([X >= Y, Y = X], [X >= Y]).
+Will return a set ~SimpleConds~ of conditions, wherein redundant conditions from 
+the input set of conditions ~CondIn~ have been retracted.
 
-simplifyCondition([X < Y, X # Y], [X # Y]).
-simplifyCondition([X < Y, Y # X], [X # Y]).
+*/
 
-simplifyCondition([X > Y, X # Y], [X # Y]). 
-simplifyCondition([X > Y, Y # X], [X # Y]). 
+% simplifyCondition(TriggerList,RetractList)
+% Always prefer strict ordering to unstrict (e.g. < to <=)
 
-simplifyCondition([X = X], [X = X]).
+% transitivity
+simplifyCondition(trans, [T1, T2, T3], [T3]) :-
+ isTransitiveOP(OP),
+ T1 =.. [OP, X, Y],
+ T2 =.. [OP, Y, Z],
+ T3 =.. [OP, X, Z].
 
-simplifyCondition([X = Y, Y = X], [Y = X]).
+% symmetry
+simplifyCondition(symm, [T1, T2], [T2]) :-
+  isSymmetricOP(OP),
+  T1 =.. [OP, X, Y],
+  T2 =.. [OP, Y, X].
+
+% antisymmetry
+simplifyCondition(antisymm, [T1, T2, X=Y], [T1, T2]) :-
+  isAntiSymmetricOP(OP),
+  T1 =.. [OP, X, Y],
+  T2 =.. [OP, Y, X].
+
+% involution
+simplifyCondition(invol, [T1, X], [T1]) :- 
+  isInvolutaryOP(OP),
+  T1 =.. [OP, T2],
+  T2 =.. [OP, X].
+
+% reflexivity
+simplifyCondition(refl, [T1, T2], [T1, T2]) :- 
+  isReflexiveOP(OP),
+  T1 =.. [OP, X, X],
+  T2 =.. [OP, X, X].
+
+% idempotence
+%simplifyCondition(idempot, [T1, T2], [T2]) :- 
+%  isIdempotentOP(OP),
+%  T1 =.. [OP, _],
+%  T2 =.. [OP, T1].
+
+% weak and strict ordering
+simplifyCondition(weakenorder, [T1, T2], [T2]) :- 
+  isStrictOrderingOP(OPstrict),
+  isOrderingRestriction(OPstrict,OPweak),
+  T1 =.. [OPstrict, X, Y],
+  T2 =.. [OPweak, X , Y].
+
+% weak ordering and equality
+simplifyCondition(eq_weak, [T1, X = Y], [T1]) :- 
+  isWeakOrderingOP(OP),
+  T1 =.. [OP, X, Y].
+
+% strict orderings and inequality
+simplifyCondition(strict_uneq, [T1, X # Y], [X # Y, Y # X]) :- 
+  isStrictOrderingOP(OP),
+  T1 =.. [OP, X, Y].
+
+simplifyCondition(100,[starts(X,Y), contains(X,Y)], [contains(X,Y)]).
+
+simplifyCondition(101,[not(isempty(atinstant(val(X),Y))), present(X,Y)], [not(isempty(atinstant(val(X),Y)))]).
+simplifyCondition(102,[isempty(atinstant(val(X),Y)), not(present(X,Y))], [isempty(atinstant(val(X),Y))]).
+
+simplifyCondition(103,[not(or(not(X),not(Y))), X, Y], [not(or(not(X),not(Y)))]).
+simplifyCondition(104,[not(and(not(X),not(Y))), or(X,Y)], [not(and(not(X),not(Y)))]).
+
+%simplifyCondition(200,[X < Y, not(X >= Y)], [not(X >= Y)]).
+%simplifyCondition(201,[X > Y, not(X <= Y)], [not(X >= Y)]).
+%simplifyCondition(202,[X <= Y, not(X > Y)], [not(X > Y)]).
+%simplifyCondition(203,[X >= Y, not(X < Y)], [not(X < Y)]).
+%simplifyCondition(204,[X = Y, not(X # Y)], [not(X # Y)]).
+%simplifyCondition(205,[X # Y, not(X = Y)], [not(X = Y)]).
+%simplifyCondition(206,[not(X >= Y), X< Y], [not(X >= Y)]).
+%simplifyCondition(207,[not(X <= Y), X > Y], [not(X <= Y)]).
+%simplifyCondition(208,[not(X > Y), X <= y], [not(X > Y)]).
+%simplifyCondition(209,[not(X < Y), X >= Y], [not(X < Y)]).
+%simplifyCondition(210,[not(X # Y), X = Y], [not(X # Y)]).
+%simplifyCondition(211,[not(X = Y), X # Y], [not(X = Y)]).
+
+simplifyCondition(300,[X < Y, Y > X], [Y > X]).
+simplifyCondition(301,[X > Y, Y < X], [X > Y]).
+simplifyCondition(302,[X <= Y, Y >= X], [Y >= X]).
+simplifyCondition(303,[X >= Y, Y <= X], [X >= Y]).
+
+simplifyOneCondition(In, Remove) :-
+  simplifyCondition(_,X,Remove),
+  subset(X,In).
+
+simplifyAllConditions(CondIn, SimpleConds) :-
+  findall(Out, simplifyOneCondition(CondIn,Out), RemoveList),
+  flatten(RemoveList,FlatRemoveList),
+  list_to_set(FlatRemoveList,RemoveSet),
+  subtract(CondIn, RemoveSet, SimpleConds).
 
 
-% replacements with inferred conditions
-% may need further processing 
-expandCondition([X >= Y, X <= Y], [X = Y]).
-expandCondition([X <= Y, X # Y], [X < Y]).
-expandCondition([X >= Y, X # Y], [X > Y]).
-expandCondition([not(isempty(atinstant(val(X),Y)))], [present(X,Y)]).
+/*
+---- isFalseCondition(+CondSet) 
+----
 
-% Conditions resulting in false 
+succeeds, if the set of conditions ~CondSet~ contains at least one set of 
+contradictory conditions. Such queries will result in empty results and
+are rejected by the optimizer.
+
+*/
+
+
 isFalseCondition(CondSet) :- 
   (
     member(false, CondSet)
@@ -5484,22 +5784,188 @@ isFalseCondition(CondSet) :-
   !.
 
 
-simplifyOneCondition(In, Remove) :-
-  simplifyCondition(X,Remove),
-  subset(X,In).
+/*
+---- expandConditions(+CondsIn,-CondsOut)
+----
 
-simplifyAllConditions(CondIn, SimpleConds) :-
-  findall(Out, simplifyOneCondition(CondIn,Out), RemoveList),
-  flatten(RemoveList,FlatRemoveList),
-  list_to_set(FlatRemoveList,RemoveSet),
-  subtract(CondIn, RemoveSet, SimpleConds).
+Will expand the set of conditions ~CondsIn~ using a set of expansion rules
+given by ~expandCondition/2~ and return the closure of ~CondsIn~ under these
+rules.
 
+*/
+
+% expandCondition(Premises,Conclusions)
+
+
+% transitivity
+expandCondition(trans, [T1, T2], [T3]) :-
+ isTransitiveOP(OP),
+ T1 =.. [OP, X, Y],
+ T2 =.. [OP, Y, Z],
+ T3 =.. [OP, X, Z].
+
+% symmetry
+expandCondition(symm, [T1], [T2]) :-
+  isSymmetricOP(OP),
+  T1 =.. [OP, X, Y],
+  T2 =.. [OP, Y, X].
+
+% antisymmetry
+expandCondition(antisymm, [T1, T2], [X = Y]) :-
+  isAntiSymmetricOP(OP),
+  T1 =.. [OP, X, Y],
+  T2 =.. [OP, Y, X].
+
+% involution
+expandCondition(invol, [T1], [X]) :- 
+  isInvolutaryOP(OP),
+  T1 =.. [OP, T2],
+  T2 =.. [OP, X].
+
+% idempotence - should not be applied!
+
+
+% strict and unstrict orderings
+expandCondition(restrict,[T1, X # Y], [T2]) :-
+  isWeakOrderingOP(OP),
+  isOrderingRestriction(OPstrict,OP),
+  T1 =.. [OP, X, Y],
+  T2 =.. [OPstrict, X, Y].
+
+% strict orderings
+expandCondition(restrict_to_uneq,[T1], [X # Y]) :-
+  isStrictOrderingOP(OP),
+  T1 =.. [OP, X, Y].
+
+
+expandCondition(100,[not(isempty(atinstant(val(X),Y)))], [present(X,Y)]).
+expandCondition(101,[isempty(atinstant(val(X),Y))], [not(present(X,Y))]).
+
+% De Morgan
+expandCondition(200,[not(or(not(X),not(Y)))], [X, Y]).
+expandCondition(201,[not(and(not(X),not(Y)))], [or(X,Y)]).
+
+
+
+% Properties of orderings
+%expandCondition(301,[X < Y],[not(X >= Y)]).
+%expandCondition(302,[X > Y],[not(X <= Y)]).
+%expandCondition(303,[X <= Y],[not(X > Y)]).
+%expandCondition(304,[X >= Y],[not(X < Y)]).
+%expandCondition(305,[X = Y],[not(X # Y)]).
+%expandCondition(306,[X # Y],[not(X = Y)]).
+%expandCondition(307,[not(X >= Y)],[X < Y]).
+%expandCondition(308,[not(X <= Y)],[X > Y]).
+%expandCondition(309,[not(X > Y)],[X <= Y]).
+%expandCondition(310,[not(X < Y)],[X >= Y]).
+%expandCondition(311,[not(X # Y)],[X = Y]).
+%expandCondition(312,[not(X = Y)],[X # Y]).
+
+expandCondition(400,[X < Y],[Y > X]).
+expandCondition(401,[X > Y],[Y < X]).
+expandCondition(402,[X <= Y],[Y >= X]).
+expandCondition(403,[X >= Y],[Y <= X]).
+
+
+% properties of operators
+
+isTransitiveOP(X) :- isStrictOrderingOP(X).
+isTransitiveOP(X) :- isWeakOrderingOP(X).
+isTransitiveOP(=).
+
+isSymmetricOP(=).
+isSymmetricOP(#).
+isSymmetricOP(intersects).
+
+isAntiSymmetricOP(X) :- isWeakOrderingOP(X).
+
+isInvolutaryOP(not).
+
+isReflexiveOP(X) :- isWeakOrderingOP(X).
+isReflexiveOP(=).
+isReflexiveOP(#).
+isReflexiveOP(intersects).
+
+isIrreflexiveOP(X) :- isStrictOrdering(X).
+
+isWeakOrderingOP(<=).
+isWeakOrderingOP(>=).
+isWeakOrderingOP(contains).
+isWeakOrderingOP(starts).
+
+isStrictOrderingOP(<).
+isStrictOrderingOP(>).
+
+isOrderingRestriction(>, >=).
+isOrderingRestriction(<, <=).
+
+
+/*
+---- applyAllExpansionRules(+CondsIn,-CondsOut,+UsedIn,-UsedOut) :-
+----
+
+~Used~ are set of used(Rule,Premises), where Premises is a list of premises that 
+have already been used to trigger expansionRule ~Rule~
+
+*/
+
+:- dynamic(usedRule/2).
+
+applyExpansionRule(CondsIn,CondsOut) :-
+  expandCondition(Rule,Premises,Conclusions),
+  not(usedRule(Rule,Premises)),
+  subset(Premises,CondsIn),
+  union(Conclusions, CondsIn, CondsOut),
+  write(Rule), write(': '), write(Premises), write(' --> '), write(Conclusions), nl,
+  assert(usedRule(Rule,Premises)).
+
+/*
+applyExpansionRule1(Rule,CondsIn,CondsOut) :-
+  expandCondition(Rule,Premises,Conclusions),
+  not(usedRule(Rule,Premises)),
+  subset(Premises,CondsIn), % vielleicht besser member/2 ???
+  assert(usedRule(Rule,Premises)).
+
+*/
+
+applyExpansionRule(CondsIn,CondsOut) :-
+  expandCondition(Rule,_,_),
+  findall(Pattern,applyExpansionRule1(Rule,CondsIn,CondsOut),Bag).
+
+% gets a set of conditions ~CondsIn~ and returns its closure ~Closure~
+expandCond(CondsIn,Closure) :-
+  retractall(usedRule(_,_)),
+  expandCond1(CondsIn,Closure).
+  
+expandCond1(CondsIn,Closure) :-
+  findall(X, applyExpansionRule(CondsIn, X), Expansion),
+  flatten([CondsIn|Expansion],Closure1), % concatenate and flatten result
+  list_to_set(Closure1,Closure2),
+  subtract(Closure2, CondsIn, Change),
+  nl, write_canonical(Change), nl, nl,
+  ( Change = []                           % if a fixpoint is reached
+     -> Closure = CondsIn                 % then return old result
+      ; expandCond1(Closure2, Closure)    % else recurse 
+  ).
+  
+
+
+testI(I) :-
+  expandCond(I,X), 
+  write('\nClosure: '), write_canonical(X), nl,
+  not(isFalseCondition(X)), 
+  simplifyAllConditions(X,Y), 
+  write('\nSimple: '), write_canonical(Y), nl.
+
+
+%%%%%%
 analyseConditions(ConditionsIn,WhereOut):-
 %  doAllExpansions(ConditionsIn,ConditionsOut),
   not(isFalseCondition(ConditionsIn)),
   simplifyAllConditions(ConditionsIn,WhereOut).
 
-%%%%%%
+
+rewriteQueryForInferredSubstitutions(Query,Query). % XRIS: for Texting Only
 
 rewriteQueryForInferredSubstitutions(QIn, QIn) :-
   % case: no where clause
@@ -5618,18 +6084,29 @@ rewriteQueryForCSE(Query, Query). % XRIS: Extend this
 
 14.3.1 Auxiliary Predicates to ~rewriteQueryForCSE/2~
 
----- isSubTerm(+Term,-SubTerm)
+---- isSubTerm(+Term,+SubTerm)
+     isSubTermNotEqual(+Term,+SubTerm)
 ----
 
-succeeds, iff ~SubTerm~ is a real (not equal) subterm of ~Term~.
+succeeds, iff ~SubTerm~ is a (not equal) subterm of ~Term~.
 
 */
 
-isSubTerm(Term,SubTerm) :-
-  term_to_atom(Term, TermA),
-  term_to_atom(SubTerm, SubTermA),
-  sub_atom(TermA, Before, _, After, SubTermA),
-  After + Before > 0.
+isSubTermNotEqual(Term,SubTerm) :-
+  Term \= SubTerm,
+  isSubTerm(Term,SubTerm).
+
+isSubTerm(Term,Term).
+isSubTerm(Term, Subterm) :-
+  compound(Term),
+  Term =.. [_|Args],
+  isSubTerm1(Args, Subterm).
+
+isSubTerm1([],_) :- fail.
+isSubTerm1([Me|Others],Subterm) :-
+    isSubTerm(Me,Subterm)
+  ; isSubTerm1(Others,Subterm).
+
 
 /*
 ---- replace_term(+Term, +SubExpr, +Replacement, -Result)
@@ -5817,7 +6294,7 @@ hasNoStoredCSE(Expr) :- % succeeds, iff Expr does not contain any CSE
   storedExpressionLabel(Expr,_,_),         % if Expr is a term
   \+ ((
        storedExpressionLabel(Expr1,_,_),   % Expr1 is a term
-       isSubTerm(Expr,Expr1),            % Expr1 is a subterm of Expr
+       isSubTermNotEqual(Expr,Expr1),              % Expr1 is a subterm of Expr
        isCSE(Expr1)                        % Expr1 is a CSE
      )), !.
   
@@ -5832,7 +6309,7 @@ replaceAllCSEs :-
         % retract Expr1 from term table to reduce search space
   storedExpressionLabel(Expr2,Label2,LevelList2),      
         % choose a second term Expr2
-  isSubTerm(Expr2,Expr1),
+  isSubTermNotEqual(Expr2,Expr1),
         % Expr2 contains CSE Expr1 as a real subterm
   % replace Expr1 in all other stored terms Expr2 with Label1:
   replace_term(Expr2, Expr1, Label1, Expr2Replaced),
@@ -5881,4 +6358,3 @@ rewritingCSEisExpensiveExpression(Expr) :-
     ; rewritingCSEisExpensiveExpression(Args)
   ),
   !.
-
