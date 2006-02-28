@@ -31,6 +31,13 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. 
 
+February 2006, M. Spiekermann. Reimplementation of the ~GetCommand()~ method. Parsing
+the input lines is now done with less code by using some useful functions operating
+on ~strings~ implemented in "CharTransform.h". Moreover some bugs concerning result 
+evaluation have been fixed. Finally, some new features (Approximate comparison of float values,
+result specification in external files and envrionment variable expansion in file names) were
+implemented.
+
 1 Overview
 
 This is the test enviroment for Secondo. The code is derived from SecondoTTY.
@@ -554,7 +561,6 @@ TestRunner::GetCommand()
       // check if cmd contains information, otherwise continue
       complete = (cmd.length() > 0); 
       first = true;
-      expectedResult = nl->Empty();
     }
   }
   return (complete);
