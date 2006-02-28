@@ -27,6 +27,9 @@ Nov 2004, M. Spiekermann. The CMsg instance was moved to the file
 Application.cpp since not all applications are linked with
 SecondoInterfaceGeneral.o
 
+February 2006, M. Spiekermann. Function ~WriteErrorList~ was moved into
+this implementation file since it was implemented in the SecondoTTY and in
+th TestRunner applicaton.
 
 */
 
@@ -96,5 +99,71 @@ SecondoInterface::GetErrorMessage( const int errorCode )
       << errorCode << "found."; 
   }
   return defaultMsg.str();
+}
+
+/*
+10 WriteErrorList
+
+This Function prints an errortext. The expected list format is 
+
+----
+((e1 ...) (e2 ...) ... (eN ...))
+----
+
+each $e_i$ is an integer and must represent a valid SECONDO error code.
+
+*/
+
+void
+SecondoInterface::WriteErrorList ( ListExpr list, ostream& os /* = cerr */ )
+{
+  bool ok = true;
+  int errorCode = 0;
+  string errorText ="";
+  const ListExpr errList = list;
+  NestedList* nl = GetNestedList();
+  
+  if ( !nl->IsEmpty( list ) )
+  {
+    list = nl->Rest( list );
+    while (!nl->IsEmpty( list ))
+    {
+      ListExpr first;
+      if (!nl->IsAtom( list)) 
+      {
+        first=nl->First(list);
+      } 
+      else
+      { 
+        os << "Error: The list has not the expected format!" << endl;
+        ok = false;
+        break;
+      }
+      nl->WriteListExpr( first, os );
+
+      ListExpr listErrorCode = nl->Empty();
+      if (!nl->IsAtom(first))
+        listErrorCode = nl->First( first );
+      else
+        listErrorCode = first;
+
+      if (!(nl->AtomType(listErrorCode) == IntType))
+      { 
+        os << "Error: Integer atom expected" << endl;
+        ok = false;
+        break;
+      }  
+      errorCode = nl->IntValue( listErrorCode );
+      errorText = GetErrorMessage( errorCode );
+      os << "=> " << errorText << endl;
+      list = nl->Rest( list );
+    }
+  }
+
+  if (!ok) 
+  {
+    os << "Received error list:" << endl;
+    nl->WriteListExpr(errList);
+  }  
 }
 

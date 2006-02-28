@@ -94,7 +94,6 @@ class TestRunner : public Application
   void ShowTestErrorMsg() const;
   void ShowErrorSummary() const;
   void ShowTestSuccessMsg(const string& msg) const;
-  void WriteErrorList ( ListExpr list ) const;
 
   string            parmFile;
   string            user;
@@ -245,7 +244,7 @@ TestRunner::ShowErrCodeInfo(  const int errorCode,
    if ( !nl->IsEmpty(outList) ) 
    {
      cout << " Errorlist: " << endl;
-     WriteErrorList(outList);
+     si->WriteErrorList(outList);
    }
 }
 
@@ -361,6 +360,10 @@ TestRunner::GetCommand()
   bool first = true;
   string line = "";
   cmd = "";
+
+  // clear last expected result
+  expectedResult = nl->Empty();
+  
   while (!complete && !cin.eof() && !cin.fail())
   {
     line = "";
@@ -498,7 +501,6 @@ TestRunner::GetCommand()
               {
                 yieldState = Result;
 
-                expectedResult = nl->TheEmptyList();
                 if (first=='@')
                 {             
                   // result stored in a separate file        
@@ -552,6 +554,7 @@ TestRunner::GetCommand()
       // check if cmd contains information, otherwise continue
       complete = (cmd.length() > 0); 
       first = true;
+      expectedResult = nl->Empty();
     }
   }
   return (complete);
@@ -569,33 +572,6 @@ TestRunner::ProcessCommands()
   }
 }
 
-/*
-10 WriteErrorList
-
-This Function prints an errortext.
-
-*/
-
-void
-TestRunner::WriteErrorList ( const ListExpr errList ) const
-{
-  int errorCode = 0;
-  string errorText = "";
-  ListExpr list = errList;
-
-  if ( !nl->IsEmpty( list ) )
-  {
-    list = nl->Rest( list );
-    while (!nl->IsEmpty( list ))
-    {
-      nl->WriteListExpr( nl->First( list ), cout );
-      errorCode = nl->IntValue( nl->First( nl->First( list ) ) );
-      errorText = si->GetErrorMessage( errorCode );
-      cout << "=> " << errorText << endl;
-      list = nl->Rest( list );
-    }
-  }
-}
 
 /*
 11 CallSecondo

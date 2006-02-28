@@ -997,6 +997,12 @@ after the error number have the following meaning:
 
 }
 
+/*
+The next function writes an ~error list~ as returned by 
+a call to ~Secondo()~ into an ostream. 
+
+*/
+  void WriteErrorList ( ListExpr list, ostream& ostr = cerr );
 
 /*
 

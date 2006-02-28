@@ -113,7 +113,6 @@ class SecondoTTY : public Application
   bool IsInternalCommand( const string& line );
   bool GetCommand();
   void ShowQueryResult( ListExpr list );
-  void WriteErrorList ( ListExpr list );
   ListExpr CallSecondo();
   void CallSecondo2();
  private:
@@ -447,70 +446,6 @@ SecondoTTY::ShowQueryResult( ListExpr list )
   }
 }
 
-/*
-10 WriteErrorList
-
-This Function prints an errortext. The expected list format is 
-
-----
-((e1 ...) (e2 ...) ... (eN ...))
-----
-
-each $e_i$ is an integer and must represent a valid SECONDO error code.
-
-*/
-
-void
-SecondoTTY::WriteErrorList ( ListExpr list )
-{
-  bool ok = true;
-  int errorCode = 0;
-  string errorText ="";
-  const ListExpr errList = list;
-  
-  if ( !nl->IsEmpty( list ) )
-  {
-    list = nl->Rest( list );
-    while (!nl->IsEmpty( list ))
-    {
-      ListExpr first;
-      if (!nl->IsAtom( list)) 
-      {
-        first=nl->First(list);
-      } 
-      else
-      { 
-        cerr << "Error: The list has not the expected format!" << endl;
-        ok = false;
-        break;
-      }
-      nl->WriteListExpr( first, cout );
-
-      ListExpr listErrorCode;
-      if (!nl->IsAtom(first))
-        listErrorCode = nl->First( first );
-      else
-        listErrorCode = first;
-
-      if (!(nl->AtomType(listErrorCode) == IntType))
-      { 
-        cerr << "Error: Integer atom expected" << endl;
-        ok = false;
-        break;
-      }  
-      errorCode = nl->IntValue( listErrorCode );
-      errorText = si->GetErrorMessage( errorCode );
-      cout << "=> " << errorText << endl;
-      list = nl->Rest( list );
-    }
-  }
-
-  if (!ok) 
-  {
-    cerr << "Received error list:" << endl;
-    nl->WriteListExpr(errList);
-  }  
-}
 
 /*
 11 CallSecondo
@@ -548,7 +483,7 @@ SecondoTTY::CallSecondo()
   }
   if ( errorCode != 0 )
   {
-    WriteErrorList( outList );
+    si->WriteErrorList( outList );
     nl->Destroy( outList );
     outList = nl->TheEmptyList();
   }
