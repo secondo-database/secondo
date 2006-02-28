@@ -1417,186 +1417,184 @@ ValueMapping temporalunitatmap[] = {  MappingUnitAt< UBool, CcBool>,
 
 */
 const string
-TemporalSpecSpeed  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                     "\"Example\" ) "
-                     "( <text>(mpoint/upoint) -> mreal/ureal</text->"
-                     "<text>speed( _ )</text--->"
-                     "<text>return the speed of a spatial object.</text--->"
-                     "<text>query speed(mp1)</text--->"
-                     ") )";
+TemporalSpecSpeed  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>(mpoint/upoint) -> mreal/ureal</text--->"
+"<text>speed( _ )</text--->"
+"<text>return the speed of a spatial object.</text--->"
+"<text>query speed(mp1)</text---> ) )";
+
+
 /*
 17.2.2 Specification string of operator ~queryrect2d~
 
 */
 const string
-TemporalSpecQueryrect2d  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-"\"Example\" ) "
+TemporalSpecQueryrect2d  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>(instant) -> rect</text--->"
 "<text>queryrect2d( _ )</text--->"
 "<text>return the rect of an instant object for a time interval.</text--->"
-"<text>query queryrect2d(instant)</text--->"
-") )";
+"<text>query queryrect2d(instant)</text---> ) )";
+
 /*
 17.2.3 Specification string of operator ~point2d~
 
 */
 const string
-TemporalSpecPoint2d  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                       "\"Example\" ) "
-                       "( <text>(periods) -> point</text--->"
-                       "<text>point2d( _ )</text--->"
-                       "<text>return the point of a given interval.</text--->"
-                       "<text>query point2d(periods)</text--->"
-                       ") )";
+TemporalSpecPoint2d  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>(periods) -> point</text--->"
+"<text>point2d( _ )</text--->"
+"<text>return the point of a given interval.</text--->"
+"<text>query point2d(periods)</text---> ) )";
+
 /*
 17.2.4 Specification string of operator ~size~
 
 */
 const string
-TemporalSpecSize  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                    "\"Example\" ) "
-                    "( <text>(periods) -> real</text--->"
-                    "<text>size( _ )</text--->"
-                    "<text>return the duration of a moving object.</text--->"
-                    "<text>query size(periods)</text--->"
-                    ") )";
+TemporalSpecSize  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>(periods) -> real</text--->"
+"<text>size( _ )</text--->"
+"<text>return the duration of a moving object.</text--->"
+"<text>query size(periods)</text---> ) )";
+
 /*
 17.2.5 Specification string of operator ~makemvalue~
 
 */
 const string
-TemporalSpecMakemvalue  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" ) "
-                          "( <text>((stream (tuple ((x1 t1)...(xn tn)))"
-                          " (unit(xi))))-> moving(x)</text--->"
-                          "<text> makemvalue[ _ ]</text--->"
-                          "<text>get the moving value of the stream "
-                          "of units.</text--->"
-                          "<text>makemvalue[ u1 ]</text--->"
-                          ") )";
+TemporalSpecMakemvalue  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>((stream (tuple ((x1 t1)...(xn tn)))"
+" (unit(xi))))-> moving(x)</text--->"
+"<text> makemvalue[ _ ]</text--->"
+"<text>get the moving value of the stream of units.</text--->"
+"<text>makemvalue[ u1 ]</text---> ) )";
+
 /*
 17.2.6 Specification string of operator ~trajectory~
 
 */
 const string
-TemporalSpecTrajectory  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" ) "
-                          "( <text>upoint -> line</text--->"
-                          "<text> trajectory( _ )</text--->"
-                          "<text>get the trajectory of the corresponding"
-                          "unit point object.</text--->"
-                          "<text>trajectory( up1 )</text--->"
-                          ") )";
+TemporalSpecTrajectory  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>upoint -> line</text--->"
+"<text> trajectory( _ )</text--->"
+"<text>get the trajectory of the corresponding"
+"unit point object.</text--->"
+"<text>trajectory( up1 )</text---> ) )";
+
 /*
 17.2.7 Specification string of operator ~deftime~
 
 */
 const string
-TemporalSpecDefTime  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                       "\"Example\" ) "
-                       "( <text>unit(x) -> periods</text--->"
-                       "<text> deftime( _ )</text--->"
-                       "<text>get the defined time of the corresponding"
-                       " unit data objects.</text--->"
-                       "<text>deftime( up1 )</text--->"
-                       ") )";
+TemporalSpecDefTime  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>unit(x) -> periods</text--->"
+"<text> deftime( _ )</text--->"
+"<text>get the defined time of the corresponding"
+" unit data objects.</text--->"
+"<text>deftime( up1 )</text---> ) )";
+
 /*
 17.2.8 Specification string of operator ~atinstant~
 
 */
 const string
-TemporalSpecAtInstant  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                         "\"Example\" ) "
-                         "( <text>(unit(x) instant) -> intime(x)</text--->"
-                         "<text>_ atinstant _ </text--->"
-                         "<text>get the Intime value corresponding to the "
-                         "instant.</text--->"
-                         "<text>upoint1 atinstant instant1</text--->"
-                         ") )";
+TemporalSpecAtInstant  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>(unit(x) instant) -> intime(x)</text--->"
+"<text>_ atinstant _ </text--->"
+"<text>get the Intime value corresponding to the "
+"instant.</text--->"
+"<text>upoint1 atinstant instant1</text---> ) )";
 
 /*
 17.2.9 Specification string of operator ~atperiods~
 
 */
 const string
-TemporalSpecAtPeriods  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                         "\"Example\" ) "
-                         "( <text>(unit(x) periods) -> unit(x)</text--->"
-                         "<text>_ atperiods _ </text--->"
-                         "<text>restrict the movement to the given"
-                         " periods.</text--->"
-                         "<text>upoint1 atperiods periods1</text--->"
-                         ") )";
+TemporalSpecAtPeriods  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>(unit(x) periods) -> unit(x)</text--->"
+"<text>_ atperiods _ </text--->"
+"<text>restrict the movement to the given"
+" periods.</text--->"
+"<text>upoint1 atperiods periods1</text---> ) )";
+
 
 /*
 17.2.10 Specification string of operator ~Initial~
 
 */
 const string
-TemporalSpecInitial  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                       "\"Example\" ) "
-                       "( <text>unit(x) -> intime(x)</text--->"
-                       "<text> initial( _ )</text--->"
-                       "<text>get the intime value corresponding"
-                       " to the initial instant.</text--->"
-                       "<text>initial( upoint1 )</text--->"
-                       ") )";
+TemporalSpecInitial  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>unit(x) -> intime(x)</text--->"
+"<text> initial( _ )</text--->"
+"<text>get the intime value corresponding"
+" to the initial instant.</text--->"
+"<text>initial( upoint1 )</text---> ) )";
+
 
 /*
 17.2.11 Specification string of operator ~final~
 
 */
 const string
-TemporalSpecFinal  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                     "\"Example\" ) "
-                     "( <text>unit(x) -> intime(x)</text--->"
-                     "<text> final( _ )</text--->"
-                     "<text>get the intime value corresponding"
-                     " to the final instant.</text--->"
-                     "<text>final( upoint1 )</text--->"
-                     ") )";
+TemporalSpecFinal  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>unit(x) -> intime(x)</text--->"
+"<text> final( _ )</text--->"
+"<text>get the intime value corresponding"
+" to the final instant.</text--->"
+"<text>final( upoint1 )</text---> ) )";
+
 /*
 17.2.12 Specification string of operator ~present~
 
 */
 const string
-TemporalSpecPresent  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                       "\"Example\" ) "
-                       "( <text>(moving/unit(x) instant) -> bool,"
-                       " (moving/unit(x) periods) -> bool</text--->"
-                       "<text>_ present _ </text--->"
-                       "<text>whether the object is present at the"
-                       " given instant or period.</text--->"
-                       "<text>mpoint1 present instant1</text--->"
-                       ") )";
+TemporalSpecPresent  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>(moving/unit(x) instant) -> bool,"
+" (moving/unit(x) periods) -> bool</text--->"
+"<text>_ present _ </text--->"
+"<text>whether the object is present at the"
+" given instant or period.</text--->"
+"<text>mpoint1 present instant1</text---> ) )";
 
 /*
 17.2.13 Specification string of operator ~passes~
 
 */
 const string
-TemporalSpecPasses = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                     "\"Example\" ) "
-                     "( <text>(unit(x) x) -> bool</text--->"
-                     "<text>_ passes _ </text--->"
-                     "<text>whether the object passes the given"
-                     " value.</text--->"
-                     "<text>upoint1 passes point1</text--->"
-                     ") )";
+TemporalSpecPasses =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>(unit(x) x) -> bool</text--->"
+"<text>_ passes _ </text--->"
+"<text>whether the object passes the given"
+" value.</text--->"
+"<text>upoint1 passes point1</text---> ) )";
+
 
 /*
 17.2.14 Specification string of operator ~at~
 
 */
 const string
-TemporalSpecAt = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                 "\"Example\" ) "
-                 "( <text>(unit(x) x) -> unit(x)</text--->"
-                 "<text> _ at _ </text--->"
-                 "<text>restrict the movement at the times"
-                 " where the equality occurs.</text--->"
-                 "<text>upoint1 at point1</text--->"
-                 ") )";
+TemporalSpecAt =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>(unit(x) x) -> unit(x)</text--->"
+"<text> _ at _ </text--->"
+"<text>restrict the movement at the times"
+" where the equality occurs.</text--->"
+"<text>upoint1 at point1</text---> ) )";
+
 /*
 17.3 Operators
 
