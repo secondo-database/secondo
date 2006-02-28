@@ -82,6 +82,10 @@ percent compared to the implementation before.
 July 2005, M. Spiekermann. Function ~TextAtom~ overloaded. Now a string can be passed
 directly in order to set a value.
 
+February 2006, M. Spiekermann. All value reading functions are now declared as ~fn() const~.
+Moreover, some code was moved between the ".h" and ".cpp" files and a new function ~Empty()~
+as alternative for ~TheEmptyList()~ was introduced.
+
 1.1 Overview
 
 A ~nested list~ can be viewed in two different ways. The first is to consider
@@ -167,7 +171,7 @@ and the following operations:
 
 [24]    Construction    & Test        & Traversal  & Input/Output    \\
         [--------]
-        TheEmptyList   & IsEmpty     & First      & ReadFromFile    \\
+        Empty          & IsEmpty     & First      & ReadFromFile    \\
         Cons           & IsAtom      & Rest       & WriteToFile     \\
         Append         & EndOfList   &            & ReadFromString  \\
         Destroy        & ListLength  &            & WriteToString   \\
@@ -427,9 +431,9 @@ struct Tolerance
     {
       err = 2.0 * DBL_MIN;
     }  
-    cout << "d1: " << d1 << endl;
-    cout << "d2: " << d2 << endl;
-    cout << "err: " << err << endl;
+    //cout << "d1: " << d1 << endl;
+    //cout << "d2: " << d2 << endl;
+    //cout << "err: " << err << endl;
     return fabs(d2-d1) < err; 
   }  
 };      
@@ -470,7 +474,8 @@ Destroys a nested list container.
 1.3.2 Construction Operations
 
 */
-  inline ListExpr TheEmptyList() { return (0); };
+  inline ListExpr TheEmptyList() const { return (0); }
+  inline ListExpr Empty()        const { return (0); }
 /*
 Returns a pointer to an empty list (a ``nil'' pointer).
 
@@ -516,12 +521,12 @@ result.
 1.3.3 Test Operations
 
 */
-  inline bool IsEmpty( const ListExpr list ) { return (list == 0); };
+  inline bool IsEmpty( const ListExpr list ) const { return (list == 0); }
 /*
 Returns "true"[4] if ~list~ is the empty list.
 
 */
-  inline bool IsAtom( const ListExpr list )
+  inline bool IsAtom( const ListExpr list ) const
   {
     if ( IsEmpty( list ) )
     {
@@ -536,7 +541,7 @@ Returns "true"[4] if ~list~ is the empty list.
 Returns "true"[4] if ~list~ is an atom.
 
 */
-  inline bool IsNodeType( const NodeType n, const ListExpr list )
+  inline bool IsNodeType( const NodeType n, const ListExpr list ) const
   {
     if ( IsEmpty( list ) )
     {
@@ -549,7 +554,7 @@ Returns "true"[4] if ~list~ is an atom.
   };
 
 
-  inline bool EndOfList( ListExpr list )
+  inline bool EndOfList( ListExpr list ) const
   {
     if ( IsEmpty( list ) )
     {
@@ -570,7 +575,7 @@ Returns "true"[4] if ~Right~(~list~) is the empty list. Returns "false"[4]
 otherwise and if ~list~ is empty or an atom.
 
 */
-  int ListLength( ListExpr list );
+  int ListLength( ListExpr list ) const;
 /*
 ~list~ may be any list expression. Returns the number of elements, if it is 
 a list, and -1, if it is an atom. *Be warned:* unlike most others, this is 
@@ -578,13 +583,13 @@ not a constant time operation; it requires a list traversal and therefore
 time proportional to the length that it returns.
 
 */
-  int ExprLength( ListExpr expr );
+  int ExprLength( ListExpr expr ) const;
 /* 
 Reads a list expression ~expr~ and counts the number ~length~ of
 subexpressions.
 
 */
-  bool Equal( const ListExpr list1, const ListExpr list2 )
+  bool Equal( const ListExpr list1, const ListExpr list2 ) const
   {
     static Tolerance t;
     return EqualTemp<true>(list1, list2, t);
@@ -601,7 +606,7 @@ equivalent to ~list2~, otherwise "false"[4].
 
 */
   bool IsEqual( const ListExpr atom, const string& str,
-                const bool caseSensitive = true );
+                const bool caseSensitive = true         ) const;
 /* 
 Returns "true"[4] if ~atom~ is a symbol atom and has the same value as ~str~.
 
@@ -611,7 +616,7 @@ Returns "true"[4] if ~atom~ is a symbol atom and has the same value as ~str~.
 1.3.4 Traversal
 
 */
-  inline ListExpr First( const ListExpr list )
+  inline ListExpr First( const ListExpr list ) const
   {
     assert( !IsEmpty( list ) && !IsAtom( list ) );
     return ((*nodeTable)[list].n.left);
@@ -622,7 +627,7 @@ Returns (a pointer to) the left son of ~list~. Result can be the empty list.
 *Precondition*: ~list~ is no atom and is not empty.
 
 */
-  inline ListExpr Rest( const ListExpr list )
+  inline ListExpr Rest( const ListExpr list ) const
   {
     assert( !IsEmpty( list ) && !IsAtom( list ) );
     return ((*nodeTable)[list].n.right);
@@ -636,7 +641,7 @@ Returns (a pointer to) the right son of ~list~. Result can be the empty list.
 
 */
   bool ReadFromFile( const string& fileName,
-                     ListExpr& list );
+                     ListExpr& list          );
 /*
 Reads a nested list from file ~filename~ and assigns it to ~list~. 
 The format of the file must be as explained above. Returns "true"[4] if reading 
@@ -645,7 +650,7 @@ line number in the file where an error occurred.
 
 */
   bool WriteToFile( const string& fileName,
-                    const ListExpr list );
+                    const ListExpr list     ) const;
 /*
 Writes the nested list ~list~ to file ~filename~. 
 The format of the file will be as explained above. The previous contents 
@@ -656,15 +661,15 @@ if the file could not be written properly.
 
 */
   bool ReadFromString( const string& nlChars,
-                       ListExpr& list );
-  bool ReadBinaryFrom( istream& in, ListExpr& list);
+                       ListExpr& list              );
+  bool ReadBinaryFrom( istream& in, ListExpr& list );
 /*
 Like ~ReadFromFile~, but reads a nested list from string ~nlChars~ or istream ~in~. 
 Returns "true"[4] if reading was successful.
 
 */
   bool WriteToString( string& nlChars,
-                      const ListExpr list );
+                      const ListExpr list ) const;
 /*
 Like ~WriteToFile~, but writes to the string ~nlChars~. Returns "true"[4]
 if writing was successful, "false"[4] if the string could not be written properly.
@@ -672,8 +677,8 @@ if writing was successful, "false"[4] if the string could not be written properl
 *Precondition*: ~list~ must not be an atom.
 
 */
-  bool WriteStringTo( const ListExpr list, ostream& os );
-  bool WriteBinaryTo( const ListExpr list, ostream& os );
+  bool WriteStringTo( const ListExpr list, ostream& os ) const;
+  bool WriteBinaryTo( const ListExpr list, ostream& os ) const;
 /*
 Writes the list in a binary coded or textual format into the referenced stream.
 
@@ -683,7 +688,7 @@ implementations
 
 */
 
-  string ToString( const ListExpr list );
+  string ToString( const ListExpr list ) const;
 
 /*
 A wrapper for ~WriteToString~ which directly returns a string object. 
@@ -691,10 +696,9 @@ A wrapper for ~WriteToString~ which directly returns a string object.
 */
 
   void WriteListExpr( const ListExpr list, ostream& ostr = cout, const int offset=4 );
-  //void WriteListExpr( ListExpr list );
 
 /*
-Write ~list~ indented by level to standard output.
+Writes a ~list~ indented by level to standard output or another ostream. 
 
 1.3.5 Auxiliary Operations for Construction
 
@@ -813,27 +817,27 @@ pieces of text stored in ~textBuffer~ at the end.
 There are corresponding procedures to get typed values from atoms:
 
 */
-  long IntValue( const ListExpr atom );
+  long IntValue( const ListExpr atom ) const; 
 /*
 *Precondition*: ~atom~ must be of type ~Int~.
 
 */
-  double RealValue( const ListExpr atom );
+  double RealValue( const ListExpr atom ) const;
 /*
 *Precondition*: ~atom~ must be of type ~Real~.
 
 */
-  bool BoolValue( const ListExpr atom);
+  bool BoolValue( const ListExpr atom) const;
 /*
 *Precondition*: ~atom~ must be of type ~Bool~.
 
 */
-  string StringValue( const ListExpr atom );
+  string StringValue( const ListExpr atom ) const;
 /*
 *Precondition*: ~atom~ must be of type ~String~.
 
 */
-  string SymbolValue( const ListExpr atom);
+  string SymbolValue( const ListExpr atom) const;
 /*
 *Precondition*: ~atom~ must be of type ~Symbol~.
 
@@ -846,16 +850,17 @@ Again, the treatment of ~Text~ values is a little more difficult.
 To read from a ~Text~ atom, a ~TextScan~ is opened.
 
 */
-  TextScan CreateTextScan( const ListExpr atom );
+  TextScan CreateTextScan( const ListExpr atom ) const;
 /*
 Creates a text scan. Current position is 0 (the first character in the ~atom~).
 
 *Precondition*: ~atom~ must be of type ~Text~.
 
 */
-  void GetText( TextScan textScan, const Cardinal noChars,
-                string& textBuffer );
-  bool GetNextText(const ListExpr textAtom, string& textFragment, const int size);
+  void GetText( TextScan textScan, 
+                const Cardinal noChars, string& textBuffer ) const;
+  bool GetNextText( const ListExpr textAtom, 
+                    string& textFragment, const int size) const;
 
 
 /*
@@ -870,18 +875,18 @@ text. The size can not be changed during subseqent calls. The function returns f
 when the text ends and the next call of the function will restart the iteration.
 
 */
-  bool EndOfText( const TextScan textScan );
+  bool EndOfText( const TextScan textScan ) const;
 /*
 Returns "true"[4], if the current position of the ~TextScan~ is behind the last
 character of the text.
 
 */
-  void DestroyTextScan( TextScan& textScan );
+  void DestroyTextScan( TextScan& textScan ) const;
 /*
 Destroys the text scan ~textScan~ by deallocating the corresponding memory.
 
 */
-  Cardinal TextLength( const ListExpr textAtom );
+  Cardinal TextLength( const ListExpr textAtom ) const;
 /*
 Returns the number of characters of ~textAtom~.
 
@@ -889,8 +894,8 @@ Returns the number of characters of ~textAtom~.
 
 */
 
-void Text2String( const ListExpr& textAtom, string& resultStr );
-string Text2String( const ListExpr& textAtom);
+void Text2String( const ListExpr& textAtom, string& resultStr ) const;
+string Text2String( const ListExpr& textAtom) const;
 
 /*
 Transforms the text atom into C++ string object 
@@ -898,8 +903,9 @@ Transforms the text atom into C++ string object
 1.3.10 Atom Test
 
 */
-  NodeType AtomType( const ListExpr atom );
-  void ExtractAtoms( const ListExpr list, vector<ListExpr>& atomVec) {
+  NodeType AtomType( const ListExpr atom ) const;
+  void ExtractAtoms( const ListExpr list, vector<ListExpr>& atomVec) const 
+  {
     
     if ( IsEmpty(list) )
        return;
@@ -925,7 +931,8 @@ Afterwards you can easily iterate over the atoms.
 1.3.11 Size and Implementation Info
 
 */
-  const string ReportTableSizes(const bool onOff, const bool prettyPrint = false);
+  const string ReportTableSizes( const bool onOff, 
+                                 const bool prettyPrint = false ) const;
   const string ReportTableStates() { 
     return ( "Nodes: " + nodeTable->StateToStr() + "\n" );
   }
@@ -967,135 +974,153 @@ useful in the present development state of SECONDO.
 
 */
 
-  const ListExpr CopyList( const ListExpr list, NestedList* target );
+  const ListExpr CopyList( const ListExpr list, NestedList* target )
+  {
+    return SimpleCopy(list, target);
+  }
 
 /*
 Copies a nested list from ~this~ instance to the target instance.
 
 */
 
- protected:
-  const ListExpr CopyRecursive( const ListExpr list, const NestedList* target );
+ private:
   
   void DestroyRecursive ( const ListExpr list );
-  void DeleteListMemory();                            // delete CTable pointers
-  void PrintTableTexts();
+  void DeleteListMemory(); // delete CTable pointers
+  
+/*
+Functions needed for retrieving atom values and for writing
+entire lists into ostream references.
 
+*/  
+  void PrintTableTexts() const;
+  string NodeType2Text( NodeType type ) const;
 
-  string NodeType2Text( NodeType type );
-  string BoolToStr( const bool boolValue );
+  inline string BoolToStr( const bool boolValue ) const
+  {
+    return (boolValue ? "TRUE" : "FALSE");
+  }
 
   ListExpr NthElement( const Cardinal n,
                        const Cardinal initialN,
-                       const ListExpr list );
+                       const ListExpr list      ) const;
 
   bool WriteList( const ListExpr list, 
                   const int level,
                   const bool afterList, 
                   const bool toScreen, 
-                  const int offset=4    );
+                  ostream& os,
+                  const int offset=4    ) const;
 
-  void WriteAtom( const ListExpr atom, bool toScreen );
+  void WriteAtom( const ListExpr atom, bool toScreen, ostream& os ) const;
 
-  bool WriteToStringLocal( ostream& nlChars, ListExpr list );
+  bool WriteToStringLocal( ostream& nlChars, ListExpr list ) const;
 
- private:
- 
+/*
+Approximate or exact comparison of lists. This is implmented by using
+template functions
+
+*/
+  
   template<bool EXACT>
-  bool EqualTemp( const ListExpr list1, const ListExpr list2, const Tolerance& t)
+  bool EqualTemp( const ListExpr list1, 
+                  const ListExpr list2, 
+                  const Tolerance& t    ) const
   {
-   //cout << "EqualTemp: " << EXACT << endl;
-  if ( IsEmpty( list1 ) && IsEmpty( list2 ) )
-  {
-    return true;
+   if ( IsEmpty( list1 ) && IsEmpty( list2 ) )
+   {
+     return true;
+   }
+   else if ( IsEmpty( list1 ) || IsEmpty( list2 ) )
+   {
+     return false;
+   }
+   else if ( IsAtom( list1 ) && IsAtom( list2 ) )
+   {
+     if ( AtomType( list1 ) == AtomType( list2 ) )
+     {
+       switch ( AtomType( list1 ) )
+       {       
+         case IntType: 
+           return (IntValue( list1 ) == IntValue( list2 ));
+         case BoolType:
+           return (BoolValue( list1 ) == BoolValue( list2 ));
+         case RealType: 
+         {
+           if (EXACT) 
+           {             
+             return (RealValue( list1 ) == RealValue( list2 ));
+           }
+           else
+           {
+             return t.approxEqual( RealValue( list1 ), RealValue( list2 ) ); 
+           }               
+         }  
+         case SymbolType:
+           return (SymbolValue( list1 ) == SymbolValue( list2 ));
+         case StringType:
+           return (StringValue( list1 ) == StringValue( list2 ));
+         case TextType:
+           return (ToString( list1 ) == ToString( list2));
+         default:
+           return false;
+       }   
+     }
+     else
+     {
+       return false;
+     }
+   }
+   else if ( !IsAtom( list1 ) && !IsAtom( list2 ) )
+   {
+     return (EqualTemp<EXACT>( First( list1 ), First( list2 ), t ) &&
+             EqualTemp<EXACT>( Rest( list1 ), Rest( list2 ), t ));
+   }
+   else
+   {
+     return false;
+   }
   }
-  else if ( IsEmpty( list1 ) || IsEmpty( list2 ) )
-  {
-    return false;
-  }
-  else if ( IsAtom( list1 ) && IsAtom( list2 ) )
-  {
-    if ( AtomType( list1 ) == AtomType( list2 ) )
-    {
-      switch ( AtomType( list1 ) )
-      {       
-        case IntType: 
-          return (IntValue( list1 ) == IntValue( list2 ));
-        case BoolType:
-          return (BoolValue( list1 ) == BoolValue( list2 ));
-        case RealType: 
-        {
-          if (EXACT) 
-          {             
-            return (RealValue( list1 ) == RealValue( list2 ));
-          }
-          else
-          {
-            return t.approxEqual( RealValue( list1 ), RealValue( list2 ) ); 
-          }               
-        }  
-        case SymbolType:
-          return (SymbolValue( list1 ) == SymbolValue( list2 ));
-        case StringType:
-          return (StringValue( list1 ) == StringValue( list2 ));
-        case TextType:
-          return (ToString( list1 ) == ToString( list2));
-        default:
-          return false;
-      }   
-    }
-    else
-    {
-      return false;
-    }
-  }
-  else if ( !IsAtom( list1 ) && !IsAtom( list2 ) )
-  {
-    return (EqualTemp<EXACT>( First( list1 ), First( list2 ), t ) &&
-            EqualTemp<EXACT>( Rest( list1 ), Rest( list2 ), t ));
-  }
-  else
-  {
-    return false;
-  }
-}
 
+  // list copying methods
+  const ListExpr SimpleCopy( const ListExpr list, NestedList* target ) const;
+  const ListExpr SophisticatedCopy( const ListExpr list, 
+                                    const NestedList* target ) const;
+  const ListExpr CopyRecursive( const ListExpr list, const NestedList* target );
+  
+/*
+prototypes for functions used for the binary encoding/decoding of lists
 
-  
-  unsigned int UsedBytesOfTextFragment(const TextRecord& fragment);
- 
-  // Common code for symbols and strings
-  string NestedList::StringSymbolValue( const ListExpr atom );
- 
-  // Two alternative list copying methods
-  const ListExpr SimpleCopy( const ListExpr list, NestedList* target );
-  const ListExpr SophisticatedCopy( const ListExpr list, const NestedList* target );
-  
-  // prototypes for functions used for the binary encoding/decoding of lists
-  bool  WriteBinaryRec( ListExpr list, ostream& os );
+*/
+  bool  WriteBinaryRec( ListExpr list, ostream& os ) const;
   bool  ReadBinaryRec( ListExpr& result, istream& in );
   bool  ReadBinarySubLists( ListExpr& LE, istream& in, unsigned long length );
-  long  ReadShort( istream& in );  
-  long  ReadInt( istream& in, const int len = 4 );
-  void  ReadString( istream& in, string& outStr, unsigned long length );
+  long  ReadShort( istream& in ) const;  
+  long  ReadInt( istream& in, const int len = 4 ) const;
+  void  ReadString( istream& in, string& outStr, unsigned long length ) const;
   
-  byte  GetBinaryType(ListExpr list);
-  char* hton(long value);
-  inline void  NestedList::swap(char* buffer,int size);
-  ListExpr typeError; 
+  byte  GetBinaryType(const ListExpr list) const;
+  char* hton(long value) const;
+  inline void  NestedList::swap(char* buffer,int size) const;
   
-  CTable<NodeRecord>   *nodeTable;   // nodes
-  //CTable<Constant>     *intTable;    // ints;
-  CTable<StringRecord> *stringTable; // strings
-  CTable<TextRecord>   *textTable  ; // texts
 
-  ostream*             outStream;
+  // the internal represenatation of lists
+  
+  CTable<StringRecord> *stringTable; // storage for strings
+  string NestedList::StringSymbolValue( const ListExpr atom ) const;
+  
+  CTable<NodeRecord>   *nodeTable;   // storage for nodes
 
-  static bool          doDestroy;
-  static const bool    isPersistent;
+  CTable<TextRecord>   *textTable  ; // storage for text atoms
+  unsigned int UsedBytesOfTextFragment(const TextRecord& fragment) const;
   void AppendShortText( const ListExpr atom,
                         const string&  textBuffer );
 
+  static bool          doDestroy;
+  static const bool    isPersistent;
+  ListExpr typeError; 
+  
 
 /*
 The class member ~doDestroy~ defines whether the ~Destroy~ method really
@@ -1108,9 +1133,4 @@ to deleting parts of nested lists which are still in use elsewhere.
 
 */
 };
-
-
-
-
 #endif
-

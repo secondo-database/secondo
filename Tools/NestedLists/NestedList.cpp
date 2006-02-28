@@ -225,7 +225,7 @@ not used anywhere in the current version of the module.
 */
 
 void
-NestedList::PrintTableTexts()
+NestedList::PrintTableTexts() const
 {
   Cardinal i, numEntries;
 
@@ -254,7 +254,7 @@ Converts an instance of NODETYPE into the corresponding textual representation.
 */
 
 string
-NestedList::NodeType2Text( NodeType type )
+NestedList::NodeType2Text( NodeType type ) const
 {
   switch (type)
   {
@@ -463,7 +463,7 @@ NestedList::Destroy ( const ListExpr list )
 */
 
 int
-NestedList::ListLength( ListExpr list )
+NestedList::ListLength( ListExpr list ) const
 {
 /*
 ~list~ may be any list expression. Returns the number of elements, if it is
@@ -488,7 +488,7 @@ a list, and -1, if it is an atom.
 }
 
 int
-NestedList::ExprLength( ListExpr expr )
+NestedList::ExprLength( ListExpr expr ) const
 {
 /*
 Reads a list expression ~expr~ and counts the number ~length~ of
@@ -523,11 +523,15 @@ struct CopyStackRecord
   ListExpr le;
 };
 
+
+#undef COMPILE_SOPH_COPY_IMPL
+
 const ListExpr
-NestedList::SophisticatedCopy(const ListExpr list, const NestedList* target)
+NestedList::SophisticatedCopy( const ListExpr list, 
+                               const NestedList* target ) const
 {
   ListExpr result = 0;
-#ifdef COMPILE_DESTROY
+#ifdef COMPILE_SOPH_COPY_IMPL
   stack<CopyStackRecord*> nodeRecordStack;
   ListExpr newnode = 0;
   CTable<NodeRecord> *pnT_target = target->nodeTable;
@@ -738,7 +742,7 @@ NestedList::SophisticatedCopy(const ListExpr list, const NestedList* target)
 
 
 const ListExpr
-NestedList::SimpleCopy(const ListExpr list, NestedList* target)
+NestedList::SimpleCopy(const ListExpr list, NestedList* target) const
 {
 
   stringstream ss;
@@ -751,15 +755,9 @@ NestedList::SimpleCopy(const ListExpr list, NestedList* target)
 }
 
 
-const ListExpr
-NestedList::CopyList(const ListExpr list, NestedList* target)
-{
-  return SimpleCopy(list, target);
-}
-
 bool
 NestedList::IsEqual( const ListExpr atom, const string& str,
-                     const bool caseSensitive )
+                     const bool caseSensitive                ) const
 {
 /*
 returns TRUE if ~atom~ is a symbol atom and has the same value as ~str~.
@@ -821,16 +819,6 @@ NestedList::ReadFromFile ( const string& fileName, ListExpr& list )
   return (success);
 }
 
-/*
-Internal procedure *BoolToStr*
-
-*/
-
-string
-NestedList::BoolToStr( const bool boolValue )
-{
-  return (boolValue ? "TRUE" : "FALSE");
-}
 
 /*
 Internal procedure *WriteAtom*
@@ -838,13 +826,13 @@ Internal procedure *WriteAtom*
 */
 
 void
-NestedList::WriteAtom( const ListExpr atom, bool toScreen )
+NestedList::WriteAtom( const ListExpr atom, 
+                       bool toScreen, ostream& ostr ) const
 {
-
   switch ((*nodeTable)[atom].nodeType)
   {
     case IntType:
-      *outStream << IntValue( atom );
+      ostr << IntValue( atom );
       break;
     case RealType:
       {
@@ -854,28 +842,28 @@ NestedList::WriteAtom( const ListExpr atom, bool toScreen )
         {
           os << ".0";
         }
-        *outStream << os.str();
+        ostr << os.str();
       }
       break;
     case BoolType:
-      *outStream << BoolToStr( BoolValue( atom ) );
+      ostr << BoolToStr( BoolValue( atom ) );
       break;
     case StringType:
-      *outStream << "\"" << StringValue( atom ) << "\"";
+      ostr << "\"" << StringValue( atom ) << "\"";
       break;
     case SymbolType:
-      *outStream << SymbolValue( atom );
+      ostr << SymbolValue( atom );
       break;
     case TextType:
       {
         if ( !toScreen )
         {
-          *outStream << "<text>";
+          ostr << "<text>";
           string textFragment = "";
           while ( GetNextText(atom, textFragment, 1024) ) {
-           *outStream << textFragment;
+           ostr << textFragment;
           }
-          *outStream << "</text--->";
+          ostr << "</text--->";
 
         } else {
          
@@ -883,9 +871,9 @@ NestedList::WriteAtom( const ListExpr atom, bool toScreen )
           string textFragment = "";
           TextScan textScan = CreateTextScan( atom );
           GetText( textScan, len, textFragment );
-          *outStream << textFragment;
+          ostr << textFragment;
           if ( textFragment.length() > len ) {
-            *outStream << " ... (text atom truncated after " 
+            ostr << " ... (text atom truncated after " 
                        << len << " bytes)";          
           }
           DestroyTextScan ( textScan );
@@ -894,7 +882,7 @@ NestedList::WriteAtom( const ListExpr atom, bool toScreen )
       }
       break;
     default:  /* Error */
-      *outStream << "WriteAtom: NodeType out of range!" << endl;
+      ostr << "WriteAtom: NodeType out of range!" << endl;
       break;
   }
 }
@@ -904,9 +892,12 @@ Internal procedure *WriteList*
 
 */
 bool
-NestedList::WriteList( ListExpr list, const int level,
+NestedList::WriteList( ListExpr list, 
+                       const int level,
                        const bool afterList, 
-                       const bool toScreen, const int offset /*=4*/ )
+                       const bool toScreen, 
+                       ostream& os, 
+                       const int offset /*=4*/ ) const
 {
 /*
 Write a list ~List~ indented by 4 blanks for each ~Level~ of nesting. Atoms
@@ -923,32 +914,35 @@ without their brackets.
   
   if ( IsEmpty( list ) )
   {
-    *outStream << endl << tab(indent) << "()";
+    os << endl << tab(indent) << "()";
     return (afterList);
   }
   else if ( IsAtom( list ))
   {
     if ( afterList || (AtomType( list) == TextType ) )
     {
-      *outStream << endl << tab(indent);
+      os << endl << tab(indent);
     }
-    WriteAtom( list, toScreen );
+    WriteAtom( list, toScreen, os );
     return (afterList);
   }
   else
   {
-    *outStream << endl << tab(indent) << "(";
-    after = WriteList( First( list ), level+1, false, toScreen, offset );
+    os << endl << tab(indent) << "(";
+    after = WriteList( First( list ), level+1, false, toScreen, os, offset );
     while (!IsEmpty( Rest( list ) ))
     {
       list = Rest( list );
-      *outStream << " ";
-      after = WriteList( First( list ), level+1, after, toScreen, offset );
+      os << " ";
+      after = WriteList( First( list ), level+1, after, toScreen, os, offset );
     }
-    *outStream << ")";
+    os << ")";
     return (true);
   }
 }
+
+
+
 
 /*
 6.2 WriteToFile
@@ -956,19 +950,16 @@ without their brackets.
 */
 
 bool
-NestedList::WriteToFile( const string& fileName, const ListExpr list )
+NestedList::WriteToFile( const string& fileName, const ListExpr list ) const
 {
   assert( !IsAtom( list ) );
   bool ok = false;
   ofstream outFile( fileName.c_str() );
   if ( outFile )
   {
-    outStream = &outFile;
-    //outStream.rdbuf( outFile.rdbuf() );
-    /* bool afterList = */ WriteList( list, 0, false, false );
-    *outStream << endl;
+    WriteList( list, 0, false, false, outFile );
+    outFile << endl;
     outFile.close();
-    outStream = 0;
     ok = true;
   }
   return (ok);
@@ -1014,7 +1005,7 @@ NestedList::ReadFromString( const string& nlChars, ListExpr& list )
 */
 
 string
-NestedList::ToString( const ListExpr list )
+NestedList::ToString( const ListExpr list ) const
 {
    string listStr;
    assert( WriteToString(listStr, list) );
@@ -1027,7 +1018,7 @@ NestedList::ToString( const ListExpr list )
 */
 
 bool
-NestedList::WriteToString( string& nlChars, const ListExpr list )
+NestedList::WriteToString( string& nlChars, const ListExpr list ) const
 {
   bool ok =false;
   ostringstream nlos;
@@ -1049,7 +1040,7 @@ Write a list in its textual representation into an ostream object
 */
 
 bool
-NestedList::WriteStringTo(  const ListExpr list, ostream& os )
+NestedList::WriteStringTo(  const ListExpr list, ostream& os ) const
 {
   bool ok =false;
   ok=WriteToStringLocal( os, list  );
@@ -1062,7 +1053,7 @@ Internal procedure *WriteToStringLocal*
 */
 
 bool
-NestedList::WriteToStringLocal( ostream& nlChars, ListExpr list )
+NestedList::WriteToStringLocal( ostream& nlChars, ListExpr list ) const
 {
 /*
 Error Handling in this procedure: If anything goes wrong, the execution of the
@@ -1167,7 +1158,7 @@ within the structure of the list, otherwise, the function result is ~true~.
 
 
 bool
-NestedList::WriteBinaryTo(ListExpr list, ostream& os) {
+NestedList::WriteBinaryTo(const ListExpr list, ostream& os) const {
 
   assert( os.good() );
 
@@ -1216,7 +1207,7 @@ NestedList::ReadBinaryFrom(istream& in, ListExpr& list) {
 */
 
 char*
-NestedList::hton(long value) {
+NestedList::hton(long value) const {
 
    static const int n = sizeof(long);    
    static char buffer[n];
@@ -1257,7 +1248,7 @@ static const byte BIN_DOUBLE = 20;
 */
 
 byte
-NestedList::GetBinaryType(ListExpr list) {
+NestedList::GetBinaryType(const ListExpr list) const {
   switch( AtomType(list) ) {
 
   case BoolType     : return  BIN_BOOLEAN;
@@ -1310,7 +1301,7 @@ NestedList::GetBinaryType(ListExpr list) {
 
 
 long
-NestedList::ReadInt(istream& in, const int len /*= 4*/) {
+NestedList::ReadInt(istream& in, const int len /*= 4*/) const{
 
   static char buffer[4] = { 0, 0, 0, 0 };
   long result = 0;
@@ -1347,7 +1338,7 @@ NestedList::ReadInt(istream& in, const int len /*= 4*/) {
 
 
 long
-NestedList::ReadShort(istream& in) {
+NestedList::ReadShort(istream& in) const {
 
   return ReadInt(in, 2);
 }  
@@ -1360,7 +1351,7 @@ NestedList::ReadShort(istream& in) {
 */
 
 inline void
-NestedList::swap(char* buffer, const int n) 
+NestedList::swap(char* buffer, const int n) const
 {
   for (int i = 0; i < n/2; i++)
   {
@@ -1380,8 +1371,9 @@ NestedList::swap(char* buffer, const int n)
 */
 
 void
-NestedList::ReadString(istream& in, string& outStr, unsigned long length) {
-
+NestedList::ReadString( istream& in, 
+                        string& outStr, unsigned long length) const
+{
   char* strBuf = new char[length+1];
   in.read(strBuf, length);
   strBuf[length]=0;
@@ -1603,7 +1595,7 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
 */
 
 bool
-NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
+NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
 
   static const int floatLen=sizeof(float);
   static const int doubleLen=sizeof(double);
@@ -1744,20 +1736,16 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
 /*
 6.5 WriteListExpr
 
+Write ~list~ indented by level to standard output.
+
 */
 
 void
 NestedList::WriteListExpr( const ListExpr list, 
                            ostream& ostr  /*= cout*/, 
                            const int offset /*= 4*/   )
-/*
-Write ~list~ indented by level to standard output.
-
-*/
 {
-  outStream = &ostr;
-  WriteList( list, 0, false, true, offset );
-  outStream = 0;
+  WriteList( list, 0, false, true, ostr, offset );
 }
 
 /*
@@ -1770,7 +1758,7 @@ Write ~list~ indented by level to standard output.
 ListExpr
 NestedList::NthElement( const Cardinal n,
                         const Cardinal initialN,
-                        const ListExpr list )
+                        const ListExpr list      ) const
 {
 /*
 Return the ~n~-th element of ~List~. Since this is used recursively,
@@ -1821,7 +1809,7 @@ least ~N~ elements.
 */
 
 ListExpr
-NestedList::IntAtom( const long  value )
+NestedList::IntAtom( const long  value ) 
 {
   Cardinal newNode = nodeTable->EmptySlot();
 
@@ -2124,7 +2112,7 @@ NestedList::AppendText( const ListExpr atom,
 */
 
 long
-NestedList::IntValue( const ListExpr atom )
+NestedList::IntValue( const ListExpr atom ) const
 {
   assert( AtomType( atom ) == IntType );
   return ((*nodeTable)[atom].a.value.intValue);
@@ -2136,7 +2124,7 @@ NestedList::IntValue( const ListExpr atom )
 */
 
 double
-NestedList::RealValue( const ListExpr atom )
+NestedList::RealValue( const ListExpr atom ) const
 {
   assert( AtomType( atom ) == RealType );
   return ((*nodeTable)[atom].a.value.realValue);
@@ -2148,7 +2136,7 @@ NestedList::RealValue( const ListExpr atom )
 */
 
 bool
-NestedList::BoolValue( const ListExpr atom )
+NestedList::BoolValue( const ListExpr atom ) const
 {
   assert( AtomType( atom ) == BoolType );
   return ((*nodeTable)[atom].a.value.boolValue);
@@ -2160,7 +2148,7 @@ NestedList::BoolValue( const ListExpr atom )
 */
 
 string
-NestedList::StringSymbolValue( const ListExpr atom )
+NestedList::StringSymbolValue( const ListExpr atom ) const
 {
 
   const NodeRecord& atomRef = (*nodeTable)[atom];
@@ -2206,14 +2194,14 @@ NestedList::StringSymbolValue( const ListExpr atom )
 */
 
 string
-NestedList::StringValue( const ListExpr atom )
+NestedList::StringValue( const ListExpr atom ) const
 {
   assert( AtomType( atom ) == StringType );
   return StringSymbolValue(atom); 
 }
 
 string
-NestedList::SymbolValue( const ListExpr atom )
+NestedList::SymbolValue( const ListExpr atom ) const
 {
   assert( AtomType( atom ) == SymbolType );
   return StringSymbolValue(atom);
@@ -2227,7 +2215,7 @@ NestedList::SymbolValue( const ListExpr atom )
 */
 
 TextScan
-NestedList::CreateTextScan (const ListExpr atom )
+NestedList::CreateTextScan (const ListExpr atom ) const
 {
   assert( AtomType( atom ) == TextType );
 
@@ -2249,7 +2237,7 @@ NestedList::CreateTextScan (const ListExpr atom )
 void
 NestedList::GetText ( TextScan       textScan,
                       const Cardinal noChars,
-                      string&        textBuffer )
+                      string&        textBuffer ) const
 {
   unsigned int pos=0; // position in text
   TextRecord fragment;
@@ -2291,7 +2279,7 @@ to save memory in the NodeRecord representation.
 
 
 unsigned int 
-NestedList::UsedBytesOfTextFragment(const TextRecord& fragment) {
+NestedList::UsedBytesOfTextFragment(const TextRecord& fragment) const {
 
   unsigned int usedLength = 0;
   for ( usedLength = 0;
@@ -2304,7 +2292,8 @@ NestedList::UsedBytesOfTextFragment(const TextRecord& fragment) {
 
 
 Cardinal
-NestedList::TextLength ( const ListExpr textAtom ) {
+NestedList::TextLength ( const ListExpr textAtom ) const 
+{
   assert( AtomType( textAtom ) == TextType );
   
   TextRecord fragment;
@@ -2329,7 +2318,7 @@ NestedList::TextLength ( const ListExpr textAtom ) {
 */
 
 bool
-NestedList::EndOfText( const TextScan textScan )
+NestedList::EndOfText( const TextScan textScan ) const
 {
   if ( textScan->currentFragment == 0 )
   {
@@ -2369,7 +2358,7 @@ SECONDO code.
 bool
 NestedList::GetNextText( const ListExpr textAtom, 
                          string& textFragment, 
-                         const int size           ) 
+                         const int size           ) const
 {
   static bool first = true;
   static bool last = false;
@@ -2421,7 +2410,7 @@ NestedList::GetNextText( const ListExpr textAtom,
 */
 
 void
-NestedList::DestroyTextScan( TextScan& textScan )
+NestedList::DestroyTextScan( TextScan& textScan ) const
 {
   if ( textScan != 0 )
   {
@@ -2437,7 +2426,8 @@ NestedList::DestroyTextScan( TextScan& textScan )
 */
 
 void
-NestedList::Text2String( const ListExpr& textAtom, string& resultStr ) {
+NestedList::Text2String( const ListExpr& textAtom, string& resultStr ) const 
+{
 
   ostringstream outStream; 
   string textFragment = "";
@@ -2449,7 +2439,7 @@ NestedList::Text2String( const ListExpr& textAtom, string& resultStr ) {
 }
 
 string
-NestedList::Text2String( const ListExpr& textAtom ) {
+NestedList::Text2String( const ListExpr& textAtom ) const {
 
   ostringstream outStream; 
   string textFragment = "";
@@ -2468,7 +2458,7 @@ NestedList::Text2String( const ListExpr& textAtom ) {
 */
 
 NodeType
-NestedList::AtomType (const ListExpr atom )
+NestedList::AtomType (const ListExpr atom ) const
 {
   if ( !IsAtom( atom ) )
   {
@@ -2488,7 +2478,7 @@ NestedList::AtomType (const ListExpr atom )
 
 const string
 NestedList::ReportTableSizes( const bool onOff, 
-                              const bool prettyPrint /*=false*/) 
+                              const bool prettyPrint /*=false*/) const
 {
   string msg = "";
   const int tables=2;
