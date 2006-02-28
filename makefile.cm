@@ -361,3 +361,9 @@ backup.tgz: /tmp/modfiles.list
 	rm -f $@
 	tar -cvzf $@ $$(sort -u $<)
 
+.PHONY: cscope
+cscope: cscope.files
+	cscope -bq -i $<
+
+cscope.files:
+	find . -iname "*.cpp" -or -iname "*.h" > $@ 
