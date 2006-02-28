@@ -34,7 +34,7 @@ DEP_FILES += NLParser.tab.dep
 OBJECTS += NLLex.$(OBJEXT) NLParser.tab.cpp NLParser.tab.hpp
 
 .PHONY: all
-all: $(OBJECTS)
+all: $(DEP_FILES) $(OBJECTS)
 
 NLParser.tab.cpp NLParser.tab.hpp: NLParser.y
 	$(YACC) -d -p __NLParser__ -o NLParser.tab.c NLParser.y
