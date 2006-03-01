@@ -9,9 +9,21 @@ import java.util.Vector;
 **/
 
 public class RegTransLinear{
+  
 
-/** returns a list consisting of the original point 
-  * and the transformed point.
+static int points;
+static boolean firstRun;
+static PrintStream out;
+static boolean init;
+static boolean firstUnit;
+static java.text.DecimalFormat Format;
+static String FormatString = "#.#####";
+static boolean oldStyle=false;
+static boolean triangles=false;
+
+
+/** returns a point in nested list format which results by application of AT
+  * to the point coded by AT. 
   **/
 private static ListExpr processPoint(ListExpr PL, ATransform AT){
    Point P = new Point();
@@ -26,19 +38,19 @@ private static ListExpr processPoint(ListExpr PL, ATransform AT){
 
 /**
   * transforms a single Cycle of a region
-**/
+  **/
 private static ListExpr processCycle(ListExpr Cycle,ATransform AT){
-   if(Cycle.isEmpty())
-      return  new ListExpr();
+		if(Cycle.isEmpty())
+			 return  new ListExpr();
 
-   ListExpr Res = ListExpr.oneElemList(processPoint(Cycle.first(),AT));
-   ListExpr Last = Res;
-   Cycle = Cycle.rest();
-   while(!Cycle.isEmpty()){
-      Last = ListExpr.append(Last,processPoint(Cycle.first(),AT));
-      Cycle = Cycle.rest();
-   }
-   return Res;
+		ListExpr Res = ListExpr.oneElemList(processPoint(Cycle.first(),AT));
+		ListExpr Last = Res;
+		Cycle = Cycle.rest();
+		while(!Cycle.isEmpty()){
+			 Last = ListExpr.append(Last,processPoint(Cycle.first(),AT));
+			 Cycle = Cycle.rest();
+		}
+		return Res;
 }
 
 /*
@@ -103,15 +115,106 @@ private static void writePointMap(ListExpr Start, ListExpr End){
                           Format.format(x2)+" "+Format.format(y2)+")");
 }
 
+
+
+/** writes a moving segment-map resulting from the parameters 
+  * to out. All movements are represented by triangles. Note that no
+  * check is performed for ensuring the correct reprentations of the 
+  * points.
+  * @param fs: startpoint of one point of the segment
+  * @param fe: the endpoint corresponding to fs
+  * @param ss: second start points of this segment
+  * @param se: location of ss at the end of this unit
+  **/
+
+private static void writeSegmentTriangles(ListExpr fs,
+                                   ListExpr fe,
+                                   ListExpr ss,
+                                   ListExpr se){
+
+     double fs_x = LEUtils.readNumeric(fs.first()).doubleValue();
+     double fs_y = LEUtils.readNumeric(fs.second()).doubleValue();
+     double fe_x = LEUtils.readNumeric(fe.first()).doubleValue();
+     double fe_y = LEUtils.readNumeric(fe.second()).doubleValue();
+     
+     double ss_x = LEUtils.readNumeric(ss.first()).doubleValue();
+     double ss_y = LEUtils.readNumeric(ss.second()).doubleValue();
+     double se_x = LEUtils.readNumeric(se.first()).doubleValue();
+     double se_y = LEUtils.readNumeric(se.second()).doubleValue();
+
+     if(fs_x==ss_x && fs_y==ss_y){ // common start point
+        if(fe_x==se_x && fe_y==se_y){ // common end point
+          // write the map for a single point
+          out.println("("+Format.format(fs_x)+" "+Format.format(fs_y)+" "
+                         +Format.format(fe_x)+" "+Format.format(fe_y)+" )");
+        } else{ // endpoints differa
+          out.println("("+Format.format(fs_x)+" "+Format.format(fs_y)+" "
+                         +Format.format(fe_x)+" "+Format.format(fe_y)+" )");
+          out.println("("+Format.format(fs_x)+" "+Format.format(fs_y)+" "
+                         +Format.format(se_x)+" "+Format.format(se_y)+" )");
+        }
+     }else{ // different start points
+        if(fe_x==se_x && fe_y==se_y){ // common end point
+          // write the map for a single point
+          out.println("("+Format.format(fs_x)+" "+Format.format(fs_y)+" "
+                         +Format.format(fe_x)+" "+Format.format(fe_y)+" )");
+          out.println("("+Format.format(ss_x)+" "+Format.format(ss_y)+" "
+                         +Format.format(fe_x)+" "+Format.format(fe_y)+" )");
+        } else{ // all differ
+          out.println("("+Format.format(fs_x)+" "+Format.format(fs_y)+" "
+                         +Format.format(fe_x)+" "+Format.format(fe_y)+" )");
+          out.println("("+Format.format(fs_x)+" "+Format.format(fs_y)+" "
+                         +Format.format(se_x)+" "+Format.format(se_y)+" )");
+        }
+     }     
+}
+                      
+
+
 /** write a single cyclemap to the standard output **/
 private static void writeCycleMap(ListExpr Start, ListExpr End){
-  out.println("("); // open map
-  while(!Start.isEmpty()){
-      writePointMap(Start.first(),End.first());
-      Start = Start.rest();
+  if(!triangles){
+     out.println("("); // open map
+     while(!Start.isEmpty()){
+         writePointMap(Start.first(),End.first());
+         Start = Start.rest();
+         End = End.rest();
+     }
+     out.println(")"); // close map
+  } else{
+   /* in the triangle mode we have to process whole segments */
+
+   // ensure to havce at least 3 points whithin the cycle 
+   if(Start.isEmpty() || Start.rest().isEmpty() || Start.rest().rest().isEmpty() ){
+       return;
+   }
+   out.println("("); // open map
+   ListExpr firstStart = Start.first(); 
+   ListExpr firstEnd = End.first();
+   
+   ListExpr fs = firstStart;
+   ListExpr fe = firstEnd;
+   Start = Start.rest();
+   End = End.rest();
+   ListExpr ss=null;
+   ListExpr se=null;
+   while(!Start.isEmpty()){
+      ss = Start.first();
+      se = End.first();
+      writeSegmentTriangles(fs,fe,ss,se);
+      Start=Start.rest();
       End = End.rest();
+      fs = ss;
+      fe = se;
+      if(!Start.isEmpty()){
+        ss = Start.first();
+        se = End.first();
+      }
+   }
+   // close the cycle
+   writeSegmentTriangles(ss,se,firstStart,firstEnd); 
+   out.println(")"); // close map
   }
-  out.println(")"); // close map
 }
 
 /** write a single facemap to the standard output **/
@@ -241,6 +344,11 @@ public static void main(String[] args){
      oldStyle=true;
      start++;
   }
+  if(args.length>start && args[start].equals("--triangle")){
+     triangles=true;
+     start++;
+  }
+
 
   java.text.DecimalFormatSymbols dfs = new java.text.DecimalFormatSymbols();
   dfs.setDecimalSeparator('.');
@@ -339,13 +447,5 @@ public static void main(String[] args){
        System.err.println("Warning: Error in Closing output file");
     }
 }
-  static int points;
-  static boolean firstRun;
-  static PrintStream out;
-  static boolean init;
-  static boolean firstUnit;
-  static java.text.DecimalFormat Format;
-  static String FormatString = "#.#####";
-  static boolean oldStyle=false;
   
 }
