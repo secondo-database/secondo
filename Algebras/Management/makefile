@@ -25,27 +25,34 @@
 
 include ../../makefile.env
 
-ALGFILE := AlgebraList.i
-ALGOBJ := AlgebraList.o
-
 CCFLAGS = $(DEFAULTCCFLAGS)
+ALL_OBJS = AlgebraList.i $(DEP_FILES) $(LIBDIR)/AlgebraList.$(OBJEXT) $(OBJECTS)
 
 .PHONY: all
-all: $(DEP_FILES) createAlgList $(OBJECTS) 
+all:  $(ALL_OBJS) 
 
-.PHONY: createAlgList
-createAlgList:
-	@rm -f $(ALGFILE)
+
+AlgebraList.i: ../../makefile.algebras
+AlgebraList.i: AlgebraList.i.cfg 
+	@rm -f $@
 ifndef SECONDO_ACTIVATE_ALL_ALGEBRAS
-	chmod 755 ./alg.bash && ./alg.bash $(ALGEBRAS) $(JNI_ALGEBRAS) > $(ALGFILE)
+	chmod 755 ./alg.bash && ./alg.bash $< $(ALGEBRAS) $(JNI_ALGEBRAS) > $@
 else
-	sed -e "s#ALGEBRA(#ALGEBRA_INCLUDE(#" AlgebraList.i.cfg > $(ALGFILE)
+	sed -e "s#ALGEBRA(#ALGEBRA_INCLUDE(#" $< > $(ALGFILE)
 endif
-	$(CC) -c -o AlgebraList.$(OBJEXT) AlgebraList.cpp $(CCFLAGS)
-	cp $(ALGOBJ) $(LIBDIR)/$(ALGOBJ)
+
+AlgebraList.cpp : AlgebraList.i
+	
+# After building AlgebraList.o the file AlgebraList.i will be deleted
+# this ensures that it will be rebuild for every call of make. This guarantees
+# that only the algebras of makefile.algebras are used even if the timestamp is
+# older
+$(LIBDIR)/AlgebraList.$(OBJEXT): AlgebraList.cpp AlgebraList.i
+	$(CC) -c -o  $@ $(CCFLAGS) $<
+	rm -f AlgebraList.i
 
 include $(DEP_FILES)
 
 .PHONY: clean
 clean:
-	$(RM) $(OBJECTS) $(DEP_FILES) $(LIBDIR)/AlgebraList.$(OBJEXT)
+	$(RM) $(ALL_OBJS)

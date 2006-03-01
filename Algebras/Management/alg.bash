@@ -24,6 +24,11 @@
 # the configuration parameters are extracted from the file AlgebraList.i.cfg
 # and prefixed with an "ALGEBRA_INCLUDE("
 
+# Parameters:
+# $1 file with algebra IDs
+# $2 - $n algebra names
+
+file="$1"
 regexp="(,$1"
 shift
 while [ $# -ne 0 ];
@@ -33,4 +38,4 @@ do
 done
 
 regexp=$regexp")"
-awk "BEGIN {FS=\"(\"}; /"$regexp"/{print \"ALGEBRA_INCLUDE(\"\$2}; " AlgebraList.i.cfg
+awk "BEGIN {FS=\"(\"}; /"$regexp"/{print \"ALGEBRA_INCLUDE(\"\$2}; " $file 

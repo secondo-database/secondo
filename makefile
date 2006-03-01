@@ -224,6 +224,8 @@ clean:
 	$(MAKE) -C OptServer clean
 	$(MAKE) -C Optimizer clean
 	$(MAKE) -f ./makefile.libs clean
+	rm -f lib/*.a
+	rm -f lib/*.o
 
 .PHONY: realclean
 realclean: clean

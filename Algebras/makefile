@@ -25,22 +25,20 @@
 
 include ../makefile.env
 
+ALL_ALGEBRA_DIRS := $(shell find $(BUILDDIR)/Algebras -maxdepth 1 -type d ! -name "Algebras" ! -name "Management" ! -name "CVS" -printf "%f ")
+
 ifdef SECONDO_ACTIVATE_ALL_ALGEBRAS
-
 $(warning Activating all Algebras!)
-ALGEBRA_DIRS := $(shell find $(BUILDDIR)/Algebras -maxdepth 1 -type d ! -name "Algebras" ! -name "Management" ! -name "CVS" -printf "%f ")
-endif
-
-ALL_ALGEBRA_DIRS := $(ALGEBRA_DIRS)
-ifeq ($(USE_JNI),"true")
-ALL_ALGEBRA_DIRS += $(JNI_ALGEBRA_DIRS)
+USED_ALGEBRA_DIRS := $(ALL_ALGEBRA_DIRS)
+else
+USED_ALGEBRA_DIRS := $(ALGEBRA_DIRS)
 endif
 
 
 .PHONY: all
 all: buildlibs
 
-SPECFILES := $(wildcard $(addsuffix /*.spec, $(ALL_ALGEBRA_DIRS) ))
+SPECFILES := $(wildcard $(addsuffix /*.spec, $(USED_ALGEBRA_DIRS) ))
 
 specs: specs.test
 	@chmod u+x *.awk
@@ -70,7 +68,7 @@ specs.test: $(SPECFILES) ../makefile.algebras
 .PHONY:buildlibs
 buildlibs:
 	@echo -e "\n *** Building algebra libs ***\n";
-	for dir in $(ALL_ALGEBRA_DIRS); do \
+	for dir in $(USED_ALGEBRA_DIRS); do \
           if [ -e $$dir/makefile ]; then \
             if !(make LIBNAME=lib$${dir}Algebra -C $$dir all) then \
 	      exit 1; \
