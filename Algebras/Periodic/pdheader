@@ -12,6 +12,8 @@
 \renewenvironment{quote}{\begin{list}{}{\leftmargin-7mm \rightmargin0cm}\item\color{darkred}}
                         {\color{darkblue}\end{list}\normalsize}
 \lstset{language=C++}
+
+
 \hfuzz=0.5cm
 \hbadness=3000
 \begin{document}

@@ -52,10 +52,18 @@ PeriodicAlgebra.doc.dvi: PeriodicAlgebra.doc.tex
 	latex $<
 
 PeriodicAlgebra.doc.tex: PeriodicAlgebra.doc.tex1
+ifndef LISTINGS
+	cp $< PeriodicAlgebra.doc.tex
+else
 	sed -e 's/\\begin{verbatim}/\\begin{lstlisting}/g' -e 's/\\end{verbatim}/\\end{lstlisting}/g' $< >PeriodicAlgebra.doc.tex
+endif	
 
 PeriodicAlgebra.doc.tex1: PeriodicAlgebra.doc Figures/ObviousSolution.eps Figures/UniLogo.eps Figures/MRealFormula.eps Figures/SecondoLogo.eps pdheader
-	PD_HEADER=pdheader pd2tex PeriodicAlgebra.doc	
+ifdef LISTINGS
+	PD_HEADER=pdheader pd2tex PeriodicAlgebra.doc
+else
+	pd2tex PeriodicAlgebra.doc
+endif	
 	mv PeriodicAlgebra.doc.tex PeriodicAlgebra.doc.tex1
 
 
