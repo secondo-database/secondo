@@ -1,0 +1,20 @@
+include ../../makefile.env
+
+.PHONY: all
+all: TreeTest
+
+TreeTest: RepTree.o TreeTest.o List.h ST.o
+	$(GCC) -o TreeTest TreeTest.o RepTree.o ST.o -lstdc++
+
+RepTree.o: RepTree.h RepTree.cpp
+	$(GCC) -c -o RepTree.o RepTree.cpp
+
+TreeTest.o: TreeTest.cpp
+	$(GCC) -c -o TreeTest.o TreeTest.cpp
+
+ST.o: ST.cpp ST.h
+	$(GCC) -c -o ST.o ST.cpp
+
+.PHONY:clean
+clean:
+	rm -f TreeTest RepTree.o TreeTest.o List.o
