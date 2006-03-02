@@ -44,10 +44,10 @@ cleanpdf:
 pdf: PeriodicAlgebra.pdf
 
 PeriodicAlgebra.pdf: PeriodicAlgebra.doc.dvi
-	PD_HEADER=pdheader; dvipdfm -p a4 -o PeriodicAlgebra.pdf PeriodicAlgebra.doc.dvi
+	dvipdfm -p a4 -o PeriodicAlgebra.pdf PeriodicAlgebra.doc.dvi
 
 PeriodicAlgebra.doc.dvi: PeriodicAlgebra.doc Figures/ObviousSolution.eps Figures/UniLogo.eps Figures/MRealFormula.eps Figures/SecondoLogo.eps
-	pd2dvi PeriodicAlgebra.doc
+	PD_HEADER=pdheader pd2dvi PeriodicAlgebra.doc
 
 
 %eps:
