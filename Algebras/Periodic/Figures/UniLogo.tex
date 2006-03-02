@@ -1,0 +1,19 @@
+\documentclass{article}
+\usepackage{fp,pst-eps,pstricks,multido}
+\input{logo_command}
+
+\begin{document}
+\thispagestyle{empty}
+% This document is a source for the logo of the 
+% University of Hagen. It can be used for creating
+% a high quality eps graphic containing this logo.
+% To do that. please input the lines below:
+% latex unilogo_shaded
+% dvips -E -o unilogo_shaded.eps unilogo_shaded.dvi
+\TeXtoEPS
+\Unilogo{12cm}{1}{0}{0}{100}
+\endTeXtoEPS
+
+     
+\end{document}
+                         

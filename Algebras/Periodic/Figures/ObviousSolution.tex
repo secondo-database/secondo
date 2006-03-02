@@ -1,0 +1,48 @@
+\documentclass{article}
+\usepackage{pstricks}
+\usepackage{pst-eps}
+
+\begin{document}
+\TeXtoEPS
+\psset{unit=0.1mm}
+\begin{pspicture}(0,0)(600,350)
+
+\pspolygon(0,0)(300,0)(300,350)(0,350)
+\multirput{0}(150,280)(0,20){3}{\ldots}
+\multirput{0}(80,80)(0,60){3}{
+               \pspolygon(0,0)(140,0)(140,40)(0,40)
+               \psline(120,0)(120,40)
+             }
+\rput[l]{0}(150,40){$\vdots$}
+\rput[l]{0}(90,100){$\cdots$}
+\rput[l]{0}(90,160){unit 2}
+\rput[l]{0}(90,220){unit 1}
+
+\rput{90}(520,200){
+    \multirput{0}(0,0)(0,40){3}{
+      \pspolygon(0,0)(120,0)(120,40)(0,40)
+     }
+     \rput{0}(60,100){map$_1$}
+     \rput{0}(60,60){map$_2$}
+     \rput{0}(60,20){\ldots}
+     \rput{0}(60,-20){$\vdots$}
+}
+\pscurve[arrows=->](220,220)(260,220)(320,260)(400,260)
+
+
+\rput{90}(520,60){
+    \multirput{0}(0,0)(0,40){3}{
+      \pspolygon(0,0)(120,0)(120,40)(0,40)
+     }
+     \rput{0}(60,100){map$_1$}
+     \rput{0}(60,60){map$_2$}
+     \rput{0}(60,20){\ldots}
+     \rput{0}(60,-20){$\vdots$}
+}
+\pscurve[arrows=->](220,160)(260,140)(320,120)(400,120)
+
+
+\end{pspicture}
+\endTeXtoEPS
+
+\end{document}

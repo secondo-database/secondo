@@ -1,0 +1,47 @@
+% This code snipped provides the LaTeX representation of 
+% logo of the FernUniversitaet in Hagen. 
+% They are 5 parameters:
+%  #1 = width of the logo, e.g. 10cm
+%  #2 #3 #4 The basic color in rgb model . all values must be in range 0-1
+%  #5 number of repeatations for creating the shaded pen
+%     The minimum value has to be 1 
+%
+%  Before you can use this macro, you have to insert some packages, namely
+%  fp, pstricks, multido
+%  Note that the fp package must be the first one in the import list
+\newcommand{\Unilogo}[5]
+{\newdimen\LogoWidth
+\LogoWidth=#1
+\newrgbcolor{BC}{{#2} {#3} {#4}} % define the basic color
+\FPset\circnumber{#5} % this definition determines the granularity of the gradient
+\FPsub{1}{#2}{\DiffR}
+\FPdiv{\DiffR}{\DiffR}{\circnumber}
+\FPsub{1}{#3}{\DiffG}
+\FPdiv{\DiffG}{\DiffG}{\circnumber}
+\FPsub{1}{#4}{\DiffB}
+\FPdiv{\DiffB}{\DiffB}{\circnumber}
+\FPdiv{\DiffRad}{70}{\circnumber}
+\scaleboxto(\LogoWidth,0){
+\psset{unit=1pt}
+\begin{pspicture}(0,0)(420,420)
+\rput[bl]{0}(210,210){
+\psarc[linewidth=20,linecolor=BC](0,0){100}{180}{0}
+\psarc[linewidth=20,linecolor=BC](0,0){150}{180}{0}
+\psarc[linewidth=20,linecolor=BC](0,0){200}{180}{0}
+\pspolygon[linestyle=none,fillstyle=solid,fillcolor=BC](-110,0)(-110,170)(-90,200)(-90,0)
+\pspolygon[linestyle=none,fillstyle=solid,fillcolor=BC](110,0)(110,170)(90,200)(90,0)
+\pspolygon[linestyle=none,fillstyle=solid,fillcolor=BC](-160,0)(-160,120)(-140,150)(-140,0)
+\pspolygon[linestyle=none,fillstyle=solid,fillcolor=BC](160,0)(160,120)(140,150)(140,0)
+\pspolygon[linestyle=none,fillstyle=solid,fillcolor=BC](-210,0)(-210,70)(-190,100)(-190,0)
+\pspolygon[linestyle=none,fillstyle=solid,fillcolor=BC](210,0)(210,70)(190,100)(190,0)
+% paint a shaded  circle
+\begin{psclip}{\pscircle[linestyle=none,fillstyle=solid,fillcolor=BC](0,0){70}}
+	\multido{\rR=#2+\DiffR,\rG=#3+\DiffG,\rB=#4+\DiffB,\rr=70+-\DiffRad}{\circnumber}{ 
+			\newrgbcolor{c}{{\rR} {\rG} {\rB}}
+			\pscircle[linestyle=none,fillstyle=solid,fillcolor=c](17,17){\rr}
+	}
+\end{psclip}
+}
+\end{pspicture}
+}
+}

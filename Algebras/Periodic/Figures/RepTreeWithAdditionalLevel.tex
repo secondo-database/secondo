@@ -1,0 +1,61 @@
+\documentclass{article}
+\usepackage{pstricks}
+\usepackage{pst-eps}
+
+\begin{document}
+\TeXtoEPS
+\psset{unit=0.1mm}
+\begin{pspicture}(0,0)(900,350)
+
+\rput[t]{0}(300,345){PMInt9M}
+\pspolygon(300,300)(40,170)(560,170)
+\rput[B]{0}(300,200){\parbox{3cm}{ \begin{center}
+                       \small
+                        Repetition Tree \\
+                        without units
+                      \end{center}
+                     }}
+
+\multirput[l]{0}(0,0)(30,0){23}{\pspolygon(0,0)(30,0)(30,40)(0,40)}
+\multirput{0}(45,90)(30,0){17}{\pspolygon(0,0)(30,0)(30,40)(0,40)}
+\multirput{0}(60,130)(30,0){17}{\psline[arrows=<-](0,0)(0,40)}
+
+\psline[arrows=->](56,90)(15,40)
+\psline[arrows=->](64,90)(75,40)
+
+\multirput{0}(0,0)(30,0){8}{
+     \psline[arrows=->](86,90)(101,40)
+     \psline[arrows=->](94,90)(109,40)
+}
+
+
+\psline[arrows=->](326,90)(345,40)
+\psline[arrows=->](334,90)(375,40)
+
+\multirput{0}(0,0)(30,0){4}{
+    \psline[arrows=->](356,90)(401,40)
+    \psline[arrows=->](364,90)(409,40)
+}
+
+
+\psline[arrows=->](476,90)(525,40)
+\psline[arrows=->](484,90)(615,40)
+
+
+\multirput{0}(0,0)(30,0){2}{
+     \psline[arrows=->](505,90)(640,40)
+     \psline[arrows=->](515,90)(650,40)
+}
+
+\rput[l]{0}(700,105){\small additional level}
+\rput[l]{0}(700,15){\small units}
+
+\rput{0}(700,300){\lightgray Example}
+
+
+
+
+\end{pspicture}
+\endTeXtoEPS
+
+\end{document}

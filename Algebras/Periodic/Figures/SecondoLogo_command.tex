@@ -1,0 +1,66 @@
+% This file provides the logo of the
+% Secondo system 
+%
+% for using this command, the packages
+% pstricks,and  relsize has to be imported
+%
+% This command understands a single parameter defining the
+% width of this logo.
+%
+% Note that the unit sizes ofthe pstricks packages will be changed
+% by using this command.
+
+\newcommand{\SecondoLogo}[1]{
+% define the colors of the picture
+\newrgbcolor{shadow}{0.8046875 0.79296875 0.8125}
+\newrgbcolor{secred}{0.7421875 0 0}
+\newrgbcolor{purple}{0.9453125 0.796875 0.796875}
+\newrgbcolor{secblack}{0 0 0}
+\newdimen\logowidth
+\logowidth=#1
+\psset{unit=1mm}
+\scaleboxto(\logowidth,0){
+\begin{pspicture}(0,0)(118, 21) % (1430 256)
+\rput[bl]{0}(0,2){
+% First : paint all shadows
+% the text
+\rput[bl]{0}(0.7,-0.3){\scaleboxto(117,17){\textsf{\shadow{\larger S}{\smaller ECONDO}}}}
+% rectangle below
+\rput[bl]{0}(1,-1){\pspolygon[fillstyle=solid,fillcolor=shadow,linestyle=none](0,0)(117,0)(117,2.5)(0,2.5)}
+% rectangle above
+\rput[bl]{0}(1,-3.5){\pspolygon[fillstyle=solid,fillcolor=shadow,linestyle=none](17,18)(117,18)(117,20)(17,20)}
+
+% the black parts
+% rectangle below
+\rput[bl]{0}(0,-0.5){\pspolygon[fillstyle=solid,fillcolor=black,linestyle=none](0,0)(117,0)(117,2.5)(0,2.5)}
+% rectangle above
+\rput[bl]{0}(0,-3){\pspolygon[fillstyle=solid,fillcolor=black,linestyle=none](17,18)(117,18)(117,20)(17,20)}
+% the text
+\rput[bl]{0}(0,0){\scaleboxto(117,17){\textsf{\secred{\larger S}{\smaller ECONDO}}}}
+
+% the inverse text
+\begin{psclip}{
+  \rput[bl]{0}(0,-0.5){\pspolygon[linewidth=0.3pt](0,0)(117,0)(117,2.5)(0,2.5)}}
+  {\rput[bl]{0}(0,0){\scaleboxto(117,17){\textsf{\purple{\larger S}{\smaller ECONDO}}}}}
+\end{psclip}
+% circles and lines in the rectangle above
+\rput[l]{0}(0,0){
+	% dots above the 'E'
+	\rput[l](19,16){\pscircle[fillstyle=solid,linestyle=none,fillcolor=purple](0,0){0.7}}
+	\rput[l](23.5,16){\pscircle[fillstyle=solid,linestyle=none,fillcolor=purple](0,0){0.7}}
+	\rput[l](28,16){\pscircle[fillstyle=solid,linestyle=none,fillcolor=purple](0,0){0.7}}
+	% rectangles above CON
+	\rput[l](33,16){\pspolygon[fillstyle=solid,fillcolor=purple,linestyle=none](0,-0.35)(11,-0.35)(11,0.35)(0,0.35)}
+	\rput[l](49,16){\pspolygon[fillstyle=solid,fillcolor=purple,linestyle=none](0,-0.35)(11,-0.35)(11,0.35)(0,0.35)}
+
+	\rput[l](66,16){\pspolygon[fillstyle=solid,fillcolor=purple,linestyle=none](0,-0.35)(11,-0.35)(11,0.35)(0,0.35)}
+	% dots above the 'D'
+	\rput[l](84,16){\pscircle[fillstyle=solid,linestyle=none,fillcolor=purple](0,0){0.7}}
+	\rput[l](88.5,16){\pscircle[fillstyle=solid,linestyle=none,fillcolor=purple](0,0){0.7}}
+	\rput[l](93,16){\pscircle[fillstyle=solid,linestyle=none,fillcolor=purple](0,0){0.7}}
+	% rectangle above 'O'
+	\rput[l](101,16){\pspolygon[fillstyle=solid,fillcolor=purple,linestyle=none](0,-0.35)(11,-0.35)(11,0.35)(0,0.35)}
+}
+} % rput
+\end{pspicture}}
+}
