@@ -1,5 +1,5 @@
 \documentclass[11pt,a4paper]{article}
-\usepackage{epsfig, a4wide, xspace, times, color}
+\usepackage{epsfig, a4wide, xspace, times, color,listings}
 \parindent0em
 \parskip0.8ex plus0.4ex minus 0.4ex
 \setcounter{secnumdepth}{4}
@@ -11,6 +11,7 @@
 %                        {\color{darkblue}\end{list}\normalsize}
 \renewenvironment{quote}{\begin{list}{}{\leftmargin-7mm \rightmargin0cm}\item\color{darkred}}
                         {\color{darkblue}\end{list}\normalsize}
+\lstset{language=C++}
 \hfuzz=0.5cm
 \hbadness=3000
 \begin{document}

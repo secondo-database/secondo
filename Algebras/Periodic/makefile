@@ -46,8 +46,17 @@ pdf: PeriodicAlgebra.pdf
 PeriodicAlgebra.pdf: PeriodicAlgebra.doc.dvi
 	dvipdfm -p a4 -o PeriodicAlgebra.pdf PeriodicAlgebra.doc.dvi
 
-PeriodicAlgebra.doc.dvi: PeriodicAlgebra.doc Figures/ObviousSolution.eps Figures/UniLogo.eps Figures/MRealFormula.eps Figures/SecondoLogo.eps
-	PD_HEADER=pdheader pd2dvi PeriodicAlgebra.doc
+PeriodicAlgebra.doc.dvi: PeriodicAlgebra.doc.tex
+	latex $<
+	latex $<
+	latex $<
+
+PeriodicAlgebra.doc.tex: PeriodicAlgebra.doc.tex1
+	sed -e 's/\\begin{verbatim}/\\begin{lstlisting}/g' -e 's/\\end{verbatim}/\\end{lstlisting}/g' $< >PeriodicAlgebra.doc.tex
+
+PeriodicAlgebra.doc.tex1: PeriodicAlgebra.doc Figures/ObviousSolution.eps Figures/UniLogo.eps Figures/MRealFormula.eps Figures/SecondoLogo.eps pdheader
+	PD_HEADER=pdheader pd2tex PeriodicAlgebra.doc	
+	mv PeriodicAlgebra.doc.tex PeriodicAlgebra.doc.tex1
 
 
 %eps:
