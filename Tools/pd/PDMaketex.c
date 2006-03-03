@@ -20,12 +20,31 @@ Use the parser to transform from implicitly formatted text to TeX.
 
 */
 
-int main()
-{	int error=0;
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdlib.h>
 
-	error = yyparse();
-	print_tail();
-        return error;
+char* envToken;
+
+int main()
+{
+  envToken="verbatim";
+  char* s = getenv("PD_HEADER");
+  if (s) {
+    const char* lst="listing";
+    // check if value of s ends with "listing"
+    char* cs = strstr(s,lst);
+    if ( cs && strcmp(cs,lst) == 0 ) 
+    {
+      envToken="lstlisting";
+    } 
+  }
+  //fprintf(stderr, "envToken: %s\n", envToken);
+   
+  int error=0;
+  error = yyparse();
+  print_tail();
+  return error;
 }
 
 print_tail()

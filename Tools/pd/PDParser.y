@@ -64,6 +64,9 @@ followed by an empty line is written to the output file. To understand the outpu
 #include "PDNestedText.h"
 #include "PDParserDS.c"
 
+extern char* envToken;
+
+
 #define YYERROR_VERBOSE
 %}
 
@@ -91,8 +94,9 @@ doc		: space doc_section
 doc_section 	: OPEN elements CLOSE  
 		;
 
-program_section : 	{printf("{\\small \\begin{quote} \\begin{verbatim}\n");}
-		  chars	{printf("\n\\end{%s} \\end{quote}}\n\n", "verbatim");}
+program_section : 	{printf("{\\small \\begin{quote} \\begin{%s}\n",
+                                                                   envToken);}
+		  chars	{printf("\n\\end{%s} \\end{quote}}\n\n", envToken);}
 		;
 
 chars 		:	
