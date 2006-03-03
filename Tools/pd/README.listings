@@ -1,0 +1,39 @@
+The pd-system and Latex's listings-package
+==========================================
+
+
+Normally, the pd systems includes program code into a verbatim 
+environment. This means, all code ist printed out like it is given.
+The output can be maked mor pretty when program code is formatted.
+Unfortunately, the listings package which can be used for this propose
+is not part of a latex standard installation. To take the advantages of 
+this package, do the following steps:
+
+1. Install the listings package (one one time required)
+
+ - on miktex, use the appropriate tool for it
+
+ - on linux system unpack the file listings.zip into the
+   directory $HOME/texmf/text/latex
+ - go into this directory and run 'latex listings-1.3.ins'
+   (this will create the style files)
+ - call texhash
+
+2. Create a tex document with the listings-header using the following command:
+   PD_HEADER=pd_header_listings pd2tex <pd-file> >file.tex
+
+   Set the correct path to the pd_header_listings file or copy it into
+   the working directory.
+
+3. Replace the verbatim environments by listings environments
+   (unfortunately, the renewenvironment does not work correctlye for verbatim)
+   sed -e 's/\\begin{verbatim}/\\begin{lstlisting}/g' \
+       -e 's/\\end{verbatim}/\\end{lstlisting}/g' file.tex >file1.tex
+
+4. create an dvi, pdf or whatever you want from this file using 
+   latex dvips dvipdfm and so on
+
+
+   
+
+ 
