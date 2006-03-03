@@ -12,12 +12,15 @@
 \definecolor{lightblue}{rgb}{0.6,0.6,1.0}
 %\renewenvironment{quote}{\footnotesize \begin{list}{}{\leftmargin3mm \rightmargin0cm}\item\color{darkred}}
 %                        {\color{darkblue}\end{list}\normalsize}
-\renewenvironment{quote}{\begin{list}{}{\leftmargin-7mm \rightmargin0cm}\item\color{darkred}}
+\oddsidemargin0mm
+\evensidemargin0mm
+\textwidth16cm
+\renewenvironment{quote}{\begin{list}{}{\leftmargin0mm \rightmargin0cm}\item\color{darkred}}
                         {\color{darkblue}\end{list}\normalsize}
 \newcommand{\textred}[1]{\color{red}#1\color{darkred}}
 \newcommand{\textcomment}[1]{\textit{\color{lightblue}#1}}
 
-\lstset{language=C++,basicstyle=\ttfamily,stringstyle=\textred,
+\lstset{language=C++,basicstyle=\ttfamily\footnotesize,stringstyle=\textred,
         backgroundcolor=\color{lightyellow},
         showstringspaces=false,
         commentstyle=\textcomment}
