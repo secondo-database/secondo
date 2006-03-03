@@ -17,7 +17,7 @@ static PrintStream out;
 static boolean init;
 static boolean firstUnit;
 static java.text.DecimalFormat Format;
-static String FormatString = "#.#####";
+static String FormatString = "#.##########";
 static boolean oldStyle=false;
 static boolean triangles=false;
 
