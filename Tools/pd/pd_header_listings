@@ -1,0 +1,20 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{epsfig, a4wide, xspace, times, color,listings}
+\parindent0em
+\parskip0.8ex plus0.4ex minus 0.4ex
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{3}
+\fussy
+\definecolor{darkblue}{rgb}{0.0,0.0,0.5}
+\definecolor{darkred}{rgb}{0.5,0.0,0.0}
+%\renewenvironment{quote}{\footnotesize \begin{list}{}{\leftmargin3mm \rightmargin0cm}\item\color{darkred}}
+%                        {\color{darkblue}\end{list}\normalsize}
+\renewenvironment{quote}{\begin{list}{}{\leftmargin-7mm \rightmargin0cm}\item\color{darkred}}
+                        {\color{darkblue}\end{list}\normalsize}
+\lstset{language=C++}
+
+
+\hfuzz=0.5cm
+\hbadness=3000
+\begin{document}
+\color{darkblue}
