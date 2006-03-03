@@ -1,0 +1,6 @@
+
+JGUI=$SECONDO_BUILD_DIR/Javagui
+CLASSPATH=.:$JGUI:$JGUI/lib/java_cup_v10k.jar:$JGUI/lib/JLex_v1.2.6.jar
+
+
+java -classpath $CLASSPATH Projector $*
