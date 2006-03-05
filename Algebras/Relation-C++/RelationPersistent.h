@@ -133,14 +133,18 @@ The destructor.
                                int destIndex )
     {
       assert( state == Fresh );
+      if( attributes[destIndex] != 0 )
+        attributes[destIndex]->DeleteIfAllowed();
+
       if( source->state == Fresh )
+      {
         attributes[destIndex] = source->attributes[sourceIndex]->Copy();
+      }
       else
       {
-        if( attributes[destIndex] != 0 )
-          attributes[destIndex]->DeleteIfAllowed();
         void *aux = malloc( tupleType->GetAttributeType(destIndex).size );
-        memcpy(aux, source->attributes[sourceIndex], tupleType->GetAttributeType(destIndex).size);
+        memcpy( aux, source->attributes[sourceIndex], 
+                tupleType->GetAttributeType(destIndex).size);
         attributes[destIndex] = (Attribute*)
           (*(am->Cast(tupleType->GetAttributeType(destIndex).algId, 
                         tupleType->GetAttributeType(destIndex).typeId)))(aux);

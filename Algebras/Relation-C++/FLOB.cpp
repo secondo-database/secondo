@@ -93,11 +93,25 @@ const char *FLOB::BringToMemory() const
     }
     return buffer;
   }
+  else if( type == InDiskSmall )
+  {
+    type = InMemory;
+    fd.inMemory.canDelete = false;
+    if( size == 0 )
+      fd.inMemory.buffer = 0;
+    else
+    {
+      char *buffer = fd.inDiskSmall.buffer;
+      fd.inMemory.buffer = buffer;
+    }
+  }
   else if( type == InMemory )
     return fd.inMemory.buffer;
   else if( type == InMemoryCached )
     return fd.inMemoryCached.buffer;
-
+  else
+    assert( false );
+  
   return 0;
 }
 
@@ -130,6 +144,9 @@ void FLOB::Destroy()
     qp->GetFLOBCache()->Destroy( fd.inDiskLarge.lobFileId, 
                                  fd.inDiskLarge.lobId );
   }
+  else if( type == InDiskSmall )
+    fd.inDiskSmall.buffer = 0;
+
   size = 0;
   type = Destroyed;
 }

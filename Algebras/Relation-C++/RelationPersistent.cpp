@@ -189,6 +189,22 @@ int PrivateTuple::Save( SmiRecordFile *tuplefile,
   }
   else if( state == Fresh )
   { 
+    // Create a structure to store the old attributes
+    Attribute **oldAttributes = new Attribute*[tupleType->GetNoAttributes()];
+
+    // Move external attributes to memory tuple
+    assert( memoryTuple == 0 );
+    memoryTuple = (char*)malloc( tupleType->GetTotalSize() );
+    int offset = 0;
+    for( int i = 0; i < tupleType->GetNoAttributes(); i++)
+    {
+      memcpy( &memoryTuple[offset], attributes[i], 
+              tupleType->GetAttributeType(i).size );
+      oldAttributes[i] = attributes[i];
+      attributes[i] = (Attribute*) &memoryTuple[offset];
+      offset += tupleType->GetAttributeType(i).size;
+    }
+
     // Move FLOB data to extension tuple.
     if( hasFLOBs )
     {
@@ -210,22 +226,14 @@ int PrivateTuple::Save( SmiRecordFile *tuplefile,
       } 
     }
 
-    // Move external attributes to memory tuple
-    assert( memoryTuple == 0 );
-    memoryTuple = (char*)malloc( tupleType->GetTotalSize() );
-    int offset = 0;
+    // Delete (if allowed) the old attributes.
     for( int i = 0; i < tupleType->GetNoAttributes(); i++)
-    {
-      memcpy( &memoryTuple[offset], attributes[i], 
-              tupleType->GetAttributeType(i).size );
-      attributes[i]->DeleteIfAllowed();
-      attributes[i] =
-        (Attribute*)(*(am->Cast(tupleType->GetAttributeType(i).algId, 
-                                   tupleType->GetAttributeType(i).typeId)))(&memoryTuple[offset]);
-      offset += tupleType->GetAttributeType(i).size;
-    }
+      oldAttributes[i]->DeleteIfAllowed();
+
+    delete []oldAttributes;
   }
 
+  // Write the tuple
   tupleFile = tuplefile;
   SmiRecord *tupleRecord = new SmiRecord();
   tupleId = 0;

@@ -160,7 +160,7 @@ Read
         *target = fd.inMemory.buffer + offset;
       else if( type == InMemoryCached )
         *target = fd.inMemoryCached.buffer + offset;
-      else if( type == InDiskLarge )
+      else if( type == InDiskLarge || type == InDiskSmall )
       {
         BringToMemory();
         Get( offset, target );
@@ -281,16 +281,24 @@ to ~InDiskSmall~.
 */
     inline void SaveToExtensionTuple( void *extensionTuple ) const
     {
-      assert( type == InMemory || type == InDiskSmall );
+      assert( type == InMemory );
       if( type == InMemory && size > 0 )
       {
         if( extensionTuple != 0 )
+        {
           memcpy( extensionTuple, fd.inMemory.buffer, size );
-        if( fd.inMemory.canDelete && size > 0 )
-          free( fd.inMemory.buffer );
-        fd.inMemory.buffer = 0;
-        fd.inMemory.canDelete = true;
+          fd.inDiskSmall.buffer = (char*)extensionTuple;
+        }
+        else
+        {
+          assert( fd.inMemory.canDelete == false );
+          char *buffer = fd.inMemory.buffer;
+          fd.inDiskSmall.buffer = buffer;
+        }
       }
+      else
+        fd.inDiskSmall.buffer = 0;
+
       type = InDiskSmall;
     }
 
@@ -371,6 +379,11 @@ Returns true, if value stored in underlying LOB, otherwise false.
         SmiFileId lobFileId;
         SmiRecordId lobId;
       } inMemoryCached;
+
+      struct InDiskSmall
+      { 
+        char *buffer;
+      } inDiskSmall;
 
       struct InDiskLarge
       {
