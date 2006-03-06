@@ -24,6 +24,7 @@ IGNORE_INCLUDES="true"
 STRONG=false
 VERYSTRONG=false
 VERBOSE=true
+
 if [ "$1" = "--strong" ]; then
    STRONG=true
    shift
@@ -38,6 +39,8 @@ if [ "$1" = "--quiet" ]; then
  VERBOSE=false
  shift
 fi
+
+ARGS=$*
 
 if [ -z "$ARGS" ]
 then
