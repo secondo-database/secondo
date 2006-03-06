@@ -107,6 +107,10 @@ today               & [->] instant
 #include <math.h>
 #include <time.h>
 #include <sys/timeb.h>
+#include "LogMsg.h"
+#include <limits>
+
+
 #define POS "DateTimeAlgebra.cpp:" << __LINE__
 
 extern NestedList* nl;
@@ -114,6 +118,10 @@ extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
 using namespace std;
+
+
+static long min_long = numeric_limits<long>::min(); 
+static long max_long = numeric_limits<long>::max();
 
 namespace datetime{
 
@@ -294,6 +302,30 @@ void DateTime::Today(){
    milliseconds = 0;
 }
 
+/*
+~ToMinimum~
+
+Sets this instant to the mimimum possible value.
+
+*/
+void DateTime::ToMinimum(){
+   day = min_long;
+   milliseconds = 0; 
+}
+
+
+/*
+~ToMaximum~
+
+Sets this instant to the maximum possible value.
+
+*/
+void DateTime::ToMaximum(){
+   day = max_long;
+   milliseconds = MILLISECONDS-1; 
+}
+
+
 
 /*
 ~GetDay~
@@ -328,20 +360,23 @@ This functions cannot applied to durations.
 
 int DateTime::GetGregDay()const{
     assert(type!=durationtype);
-    int y,m,d;
+    long y;
+    int m,d;
     ToGregorian(day,y,m,d);
     return d;
 }
 
 int DateTime::GetMonth()const{
    assert(type!=durationtype);
-   int y,m,d;
+   long y;
+   int m,d;
    ToGregorian(day,y,m,d);
    return m;
 }
-int DateTime::GetYear()const{
+long DateTime::GetYear()const{
    assert(type!=durationtype);
-   int y,m,d;
+   long y;
+   int m,d;
    ToGregorian(day,y,m,d);
    return y;
 }
@@ -417,31 +452,55 @@ This algorithm is from Press et al., Numerical Recipes
 in C, 2nd ed., Cambridge University Press 1992
 
 */
-void DateTime::ToGregorian(const long Julian, int &year,
+void DateTime::ToGregorian(const long Julian, long &year,
                            int &month, int &day) const{
-   int j=(int)(Julian+NULL_DAY);
-   int ja = j;
-   int JGREG = 2299161;
-   /* the Julian date of the adoption of the Gregorian
-      calendar
-   */
+
+  /*
+
+   long long j= (((long long) Julian)+NULL_DAY);
+   long long ja = j;
+   long long JGREG = 2299161;
+   // the Julian date of the adoption of the Gregorian
+   //   calendar
+   
     if (j >= JGREG){
-    /* cross-over to Gregorian Calendar produces this
-       correction
-    */
-       int jalpha = (int)(((float)(j - 1867216) - 0.25)/36524.25);
-       ja += 1 + jalpha - (int)(0.25 * jalpha);
+    // cross-over to Gregorian Calendar produces this correction
+       long long jalpha = (long long)(((double)(j - 1867216) - 0.25)/36524.25);
+       ja += 1 + jalpha - jalpha/4;
     }
-    int jb = ja + 1524;
-    int jc = (int)(6680.0 + ((float)(jb-2439870) - 122.1)/365.25);
-    int jd = (int)(365 * jc + (0.25 * jc));
-    int je = (int)((jb - jd)/30.6001);
-    day = jb - jd - (int)(30.6001 * je);
-    month = je - 1;
+    long long jb = ja + 1524;
+    long long jc = (6680 +(100*(jb-2439870) - 12210)/36525);
+    long long jd = (365 * jc + (jc/4));
+    long long je = ((jb - jd)*10000)/306001;
+    day = jb - jd - (306001 * je)/10000;
+    month = (int) (je - 1);
     if (month > 12) month -= 12;
     year = jc - 4715;
     if (month > 2) --year;
     if (year <= 0) --year;
+  */
+
+// the followingcode is converted from the fre pascal compiler unixutils.pp
+//     long long C1970=2440588;
+     long long D0   =   1461;
+     long long D1   = 146097;
+     long long D2   =1721119;
+     long long JulianDN = (long long)Julian+(long long)NULL_DAY;
+     long long  Temp =((JulianDN-D2) << 2ll)-1ll;
+     JulianDN = Temp / D1;
+     long long  XYear=(Temp % D1) |  3ll;
+     long long  YYear=(XYear / D0);
+     Temp=((((XYear % D0)+4ll) >> 2ll)*5ll)-3ll;
+     long long  Day=((Temp % 153ll)+5ll) / 5ll;
+     long long  TempMonth=Temp / 153ll;
+     if(TempMonth>=10ll){
+           YYear++;
+           TempMonth-=12ll;
+     }
+     TempMonth+=3ll;
+     month = TempMonth;
+     year=YYear+(JulianDN*100ll);
+     day = Day;
 }
 
 /*
@@ -471,14 +530,21 @@ string DateTime::ToString() const{
     tmp << day << ";";
     tmp << milliseconds;
   }else if(type==instanttype){ // an instant
-    int day,month,year;
+    int day,month;
+    long year;
     ToGregorian(this->day,year,month,day);
+    if(!(day>0 && month>0 && month<13 && day<31)){
+       cmsg.error() << "error in ToString function of instant detected \n"
+                    << "day ("<<day<<") or month ("<<month<<") outside"
+                    << " of the valid range\n";
+       cmsg.send();
+    }
     // ensure to write at least 4 digits for a year
-    if(year < 1000)
+    if(year < 1000 && year>0)
       tmp << "0";
-    if(year < 100)
+    if(year < 100 && year >0)
       tmp << "0";
-    if(year < 10)
+    if(year < 10 && year > 0)
       tmp << "0";    
     tmp << year << "-";
     if(month<10)
@@ -699,7 +765,8 @@ or the day is not included in the given month/year.
 */
 bool DateTime::IsValid(const int year,const int month,const int day)const {
    long jday = ToJulian(year,month,day);
-   int y=0,m=0,d=0;
+   int m=0,d=0;
+   long y = 0;
    ToGregorian(jday,y,m,d);
    return year==y && month==m && day==d;
 }
@@ -1691,27 +1758,38 @@ TypeConstructor duration(
 ListExpr VoidInstant(ListExpr args){
   if(nl->IsEmpty(args))
      return nl->SymbolAtom("instant");
+  ErrorReporter::ReportError("no argument allowed\n");
   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr IntBool(ListExpr args){
-  if(nl->ListLength(args)!=1)
+  if(nl->ListLength(args)!=1){
+     ErrorReporter::ReportError("one argument expected\n");
      return nl->SymbolAtom("typeerror");
+  }
   if(nl->IsEqual(nl->First(args),"int"))
      return nl->SymbolAtom("bool");
+  ErrorReporter::ReportError("argument must be of type int\n");
   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr InstantInt(ListExpr args){
-  if(nl->ListLength(args)==1)
-     if(nl->IsEqual(nl->First(args),"instant"))
+  if(nl->ListLength(args)==1){
+     if(nl->IsEqual(nl->First(args),"instant")){
          return nl->SymbolAtom("int");
+     } else {
+         ErrorReporter::ReportError("int parapater expected \n");
+     }
+  }
+  ErrorReporter:: ReportError("exactly one argument required");
   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr PlusCheck(ListExpr args){
-  if(nl->ListLength(args)!=2)
+  if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("plus expects two arguments\n");
      return nl->SymbolAtom("typeerror");
+  }
   if(nl->IsEqual(nl->First(args),"instant") &&
      nl->IsEqual(nl->Second(args),"duration"))
      return nl->SymbolAtom("instant");
@@ -1721,12 +1799,16 @@ ListExpr PlusCheck(ListExpr args){
   if(nl->IsEqual(nl->First(args),"duration") &&
      nl->IsEqual(nl->Second(args),"duration"))
      return nl->SymbolAtom("duration");
+  ErrorReporter::ReportError("duration/instant or"
+                             " duration/duration expected\n"); 
   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr MinusCheck(ListExpr args){
-  if(nl->ListLength(args)!=2)
+  if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("operator - requires two arguments\n");
      return nl->SymbolAtom("typeerror");
+  }
   if(nl->IsEqual(nl->First(args),"instant") &&
      nl->IsEqual(nl->Second(args),"duration"))
      return nl->SymbolAtom("instant");
@@ -1736,31 +1818,41 @@ ListExpr MinusCheck(ListExpr args){
   if(nl->IsEqual(nl->First(args),"duration") &&
      nl->IsEqual(nl->Second(args),"duration"))
      return nl->SymbolAtom("duration");
+  ErrorReporter::ReportError("duration/instant or"
+                             " duration/duration expected\n"); 
   return nl->SymbolAtom("typeerror");
 }
 
 
 ListExpr DurationIntDuration(ListExpr args){
-  if(nl->ListLength(args)!=2)
+  if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("Two arguments required\n");
      return nl->SymbolAtom("typeerror");
+  }
   if(nl->IsEqual(nl->First(args),"duration") &&
      nl->IsEqual(nl->Second(args),"int"))
      return nl->SymbolAtom("duration");
+  ErrorReporter::ReportError("duration x int expected\n" );
   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr InstantString(ListExpr args){
-  if(nl->ListLength(args)!=1)
+  if(nl->ListLength(args)!=1){
+     ErrorReporter::ReportError("one argument expected\n");
      return nl->SymbolAtom("typeerror");
+  }
   if(nl->IsEqual(nl->First(args),"instant"))
      return nl->SymbolAtom("string");
+  ErrorReporter::ReportError("string expected\n");
   return nl->SymbolAtom("typeerror");
 }
 
 
 ListExpr CheckComparisons(ListExpr args){
-  if(nl->ListLength(args)!=2)
+  if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("two arguments required\n");
      return nl->SymbolAtom("typeerror");
+  }
 
   if(nl->IsEqual(nl->First(args),"instant") &&
      nl->IsEqual(nl->Second(args),"instant"))
@@ -1770,17 +1862,23 @@ ListExpr CheckComparisons(ListExpr args){
      nl->IsEqual(nl->Second(args),"duration"))
        return nl->SymbolAtom("bool");
 
+  ErrorReporter::ReportError("(instant x instant) or"
+                             "(duratin x duration) required");
   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr TheInstantTM(ListExpr args){
    int l = nl->ListLength(args);
-   if(l<1 || l>7)
+   if(l<1 || l>7){
+      ErrorReporter::ReportError(" 1..7 arguements required\n");
       return nl->SymbolAtom("typeerror");
+   }
    ListExpr rest = args;
    while(!nl->IsEmpty(rest)){
-       if(!nl->IsEqual(nl->First(rest),"int"))
+       if(!nl->IsEqual(nl->First(rest),"int")){
+           ErrorReporter::ReportError("All arguments must be of type int\n");
            return nl->SymbolAtom("typeerror");
+       }
        rest = nl->Rest(rest);
    }
    return nl->SymbolAtom("instant");
@@ -1798,6 +1896,23 @@ ListExpr DivTM(ListExpr args){
    }
    return nl->SymbolAtom("int");
 }
+
+ListExpr MinMaxInstantTM(ListExpr args){
+   if(nl->IsEmpty(args)){
+       return nl->SymbolAtom("instant");
+   }
+   ErrorReporter::ReportError("no arguments allowed");
+   return nl->SymbolAtom("typeerror");
+}
+
+ListExpr MinMaxDurationTM(ListExpr args){
+   if(nl->IsEmpty(args)){
+       return nl->SymbolAtom("duration");
+   }
+   ErrorReporter::ReportError("no arguments allowed");
+   return nl->SymbolAtom("typeerror");
+}
+
 
 
 /*
@@ -2020,6 +2135,20 @@ int DivFun(Word* args, Word& result, int message, Word& local, Supplier s){
   return 0;
 }
 
+int MinFun(Word* args, Word& result, int message,
+                  Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  ((DateTime*) result.addr)->ToMinimum(); 
+  return 0;
+}
+
+int MaxFun(Word* args, Word& result, int message,
+                  Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  ((DateTime*) result.addr)->ToMaximum(); 
+  return 0;
+}
+
 int WeekdayFun(Word* args, Word& result, int message,
                Word& local, Supplier s){
     result = qp->ResultStorage(s);
@@ -2188,6 +2317,37 @@ const string DivSpec =
    " \"  _ / _  \" "
    "   \"Computes how often the second argument is part of the first one\" "
    "   \" query a / b \" ))";
+
+
+const string MinInstantSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \" -> instant\""
+   " \"  minInstant()  \" "
+   "   \"returns the minimum possible instant \" "
+   "   \" query minInstant() \" ))";
+
+
+const string MaxInstantSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \" -> instant\""
+   " \"  maxInstant()  \" "
+   "   \"returns the maximum possible instant \" "
+   "   \" query maxInstant() \" ))";
+
+const string MinDurationSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \" -> duration \""
+   " \"  minDuration()  \" "
+   "   \"returns the minimum representable duration value \" "
+   "   \" query minDuration() \" ))";
+
+const string MaxDurationSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \" -> duration \""
+   " \"  maxDuration()  \" "
+   "   \"returns the maximum representable duration value \" "
+   "   \" query maxDuration() \" ))";
+
 /*
 4.3 ValueMappings of overloaded Operators
 
@@ -2303,6 +2463,34 @@ Operator dt_div(
        Operator::SimpleSelect,
        DivTM);
 
+Operator dt_minInstant(
+       "minInstant", // name
+       MinInstantSpec, // specification
+       MinFun,
+       Operator::SimpleSelect,
+       MinMaxInstantTM);
+
+Operator dt_maxInstant(
+       "maxInstant", // name
+       MaxInstantSpec, // specification
+       MaxFun,
+       Operator::SimpleSelect,
+       MinMaxInstantTM);
+
+Operator dt_maxDuration(
+       "maxDuration", // name
+       MaxDurationSpec, // specification
+       MaxFun,
+       Operator::SimpleSelect,
+       MinMaxDurationTM);
+
+Operator dt_minDuration(
+       "minDuration", // name
+       MinDurationSpec, // specification
+       MinFun,
+       Operator::SimpleSelect,
+       MinMaxDurationTM);
+
 Operator dt_less(
        "<", // name
        LessSpec, // specification
@@ -2384,6 +2572,10 @@ class DateTimeAlgebra : public Algebra
     AddOperator(&dt_today);
     AddOperator(&dt_theInstant);
     AddOperator(&dt_div);
+    AddOperator(&dt_minInstant);
+    AddOperator(&dt_maxInstant);
+    AddOperator(&dt_minDuration);
+    AddOperator(&dt_maxDuration);
 
   }
   ~DateTimeAlgebra() {};

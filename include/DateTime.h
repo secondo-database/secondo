@@ -166,7 +166,7 @@ All this functions can only applied to instant types.
 */
      int GetGregDay()const;        // [1..31]
      int GetMonth()const;          // [1..12]
-     int GetYear()const;           //  int / {0}
+     long GetYear()const;           //  int / {0}
      int GetHour()const;           // [0..23]
      int GetMinute()const;         // [0..59]
      int GetSecond()const;        // [0..59]
@@ -188,7 +188,8 @@ This function overwrites the inherited ~Open~ function for the reason
 of resistency against recompiling.
 
 */
-     virtual void Open(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+     virtual void Open(SmiRecord& valueRecord, size_t& offset, 
+                       const ListExpr typeInfo);
 
 /*
 ~Save~
@@ -196,7 +197,8 @@ of resistency against recompiling.
 The ~Save~ function is the counterpart of the ~Open~ function.
 
 */
-     virtual void Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+     virtual void Save(SmiRecord& valueRecord, size_t& offset, 
+                       const ListExpr typeInfo);
 
 /*
 ~Conversion from and into other formats~
@@ -481,6 +483,27 @@ ignoring the time part. (for {\tt instant}s only)
      void Today();
 
 /*
+~ToMinimum~
+
+This function sets this instant to the mimimum possible instant.
+
+*/
+    void ToMinimum();
+
+
+/*
+~ToMaximum~
+
+If this function is called, the value of this datetime instance will
+set to the maximum possible value.
+
+*/
+    void ToMaximum();
+
+
+
+
+/*
 ~Algebra Functions~
 
 The next functions are needed for the DateTime class to act as
@@ -539,7 +562,8 @@ delta in [0,1].
     TimeType type; // can be an instant or a duration
     // a few functions for internal use
     long ToJulian(const int year, const int month,const int day) const;
-    void ToGregorian(const long Julian, int &year, int &month, int &day) const;
+    void ToGregorian(const long Julian, long  &year, 
+                     int &month, int &day) const;
 };
 
 namespace datetime{
