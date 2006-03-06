@@ -54,7 +54,6 @@ shows examples of these spatial data types.
 #include "StandardAttribute.h"
 #include "DBArray.h"
 #include "RectangleAlgebra.h"
-#include "TopRel.h"
 
 //#define RATIONAL_COORDINATES
 #define DOUBLE_COORDINATES
@@ -136,7 +135,9 @@ This constructor should not be used.
 There are two ways of constructing a point:
 
 */
-    inline Point( const bool d, const Coord& x = Coord(), const Coord& y = Coord() ):
+    inline Point( const bool d, 
+                  const Coord& x = Coord(), 
+                  const Coord& y = Coord() ):
     defined( d ),
     x( x ),
     y( y )
@@ -698,13 +699,6 @@ return ~true~ if found and ~false~ if not.
 
 */
     bool Contains(const Points& ps) const;
-/*
-3.3.10 Operation GetTopRel
-
-*Precondition:* IsDefined() \& IsOrdered
-
-*/
-   Int9M GetTopRel(const Points& ps) const;
 
 
 /*
@@ -1360,8 +1354,11 @@ part of the segment is a point instead of a segment.
                             double &x0, double &y0, double &x1, double &y1,
                             bool &accept) const;
 
-   void WindowClippingIn(const Rectangle<2> &window, CHalfSegment &chsInside, bool &inside,
-                         bool &isIntersectionPoint,Point &intersectionPoint) const;
+   void WindowClippingIn(const Rectangle<2> &window,
+                         CHalfSegment &chsInside, 
+                         bool &inside,
+                         bool &isIntersectionPoint,
+                         Point &intersectionPoint) const;
 
 /*
 Returns a segment representing the part of the half segment that is inside the window.
