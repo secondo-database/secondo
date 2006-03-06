@@ -122,6 +122,15 @@ using namespace std;
 
 static long min_long = numeric_limits<long>::min(); 
 static long max_long = numeric_limits<long>::max();
+static int min_int = numeric_limits<int>::min(); 
+static int max_int = numeric_limits<int>::max();
+
+static string begin_of_time="begin of time";
+static string end_of_time="end of time";
+
+static long MAX_REPRESENTABLE = 2450000;
+static long MIN_REPRESENTABLE = -2450000;
+
 
 namespace datetime{
 
@@ -326,6 +335,32 @@ void DateTime::ToMaximum(){
 }
 
 
+/*
+~IsMinimum~
+
+Checks if this value is the most minimum representable one.
+
+*/
+bool DateTime::IsMinimum()const {
+  if(!defined){
+     return false;
+  }
+  return day==min_long && milliseconds==0; 
+}
+
+/*
+~IsMaximum~
+
+Checks if this value is the most maximum representable one.
+
+*/
+bool DateTime::IsMaximum()const{
+  if(!defined){
+     return false;
+  }
+  return day==max_long && milliseconds==MILLISECONDS-1; 
+}
+
 
 /*
 ~GetDay~
@@ -454,35 +489,33 @@ in C, 2nd ed., Cambridge University Press 1992
 */
 void DateTime::ToGregorian(const long Julian, long &year,
                            int &month, int &day) const{
-
-  /*
-
-   long long j= (((long long) Julian)+NULL_DAY);
-   long long ja = j;
-   long long JGREG = 2299161;
-   // the Julian date of the adoption of the Gregorian
-   //   calendar
-   
+  int j=(int)(Julian+NULL_DAY);
+   int ja = j;
+   int JGREG = 2299161;
+   /* the Julian date of the adoption of the Gregorian
+      calendar
+   */
     if (j >= JGREG){
-    // cross-over to Gregorian Calendar produces this correction
-       long long jalpha = (long long)(((double)(j - 1867216) - 0.25)/36524.25);
-       ja += 1 + jalpha - jalpha/4;
+    /* cross-over to Gregorian Calendar produces this
+       correction
+    */
+       int jalpha = (int)(((float)(j - 1867216) - 0.25)/36524.25);
+       ja += 1 + jalpha - (int)(0.25 * jalpha);
     }
-    long long jb = ja + 1524;
-    long long jc = (6680 +(100*(jb-2439870) - 12210)/36525);
-    long long jd = (365 * jc + (jc/4));
-    long long je = ((jb - jd)*10000)/306001;
-    day = jb - jd - (306001 * je)/10000;
-    month = (int) (je - 1);
+    int jb = ja + 1524;
+    int jc = (int)(6680.0 + ((float)(jb-2439870) - 122.1)/365.25);
+    int jd = (int)(365 * jc + (0.25 * jc));
+    int je = (int)((jb - jd)/30.6001);
+    day = jb - jd - (int)(30.6001 * je);
+    month = je - 1;
     if (month > 12) month -= 12;
     year = jc - 4715;
     if (month > 2) --year;
     if (year <= 0) --year;
-  */
+  
 
 // the followingcode is converted from the fre pascal compiler unixutils.pp
-//     long long C1970=2440588;
-     long long D0   =   1461;
+   /*    long long D0   =   1461;
      long long D1   = 146097;
      long long D2   =1721119;
      long long JulianDN = (long long)Julian+(long long)NULL_DAY;
@@ -501,6 +534,7 @@ void DateTime::ToGregorian(const long Julian, long &year,
      month = TempMonth;
      year=YYear+(JulianDN*100ll);
      day = Day;
+   */
 }
 
 /*
@@ -530,6 +564,19 @@ string DateTime::ToString() const{
     tmp << day << ";";
     tmp << milliseconds;
   }else if(type==instanttype){ // an instant
+     if(IsMinimum()){
+       return begin_of_time;
+     }
+     if(IsMaximum()){
+       return end_of_time;
+     }
+     // SOME DATES CAN'T BE CONVERTED CORRECTLY INTO THE GREGORIAN
+     // calendar
+    if(day < MIN_REPRESENTABLE || day >MAX_REPRESENTABLE){
+        tmp << ToDouble();
+        return tmp.str(); 
+    } 
+
     int day,month;
     long year;
     ToGregorian(this->day,year,month,day);
@@ -1424,8 +1471,14 @@ string in format year-month-day-hour:minute:second.millisecond
 ListExpr DateTime::ToListExpr(const bool typeincluded)const {
   assert( defined );
   ListExpr value;
-  if(type==instanttype)
-      value = nl->StringAtom(this->ToString());
+  if(type==instanttype){
+      if( (day<MIN_REPRESENTABLE || day>MAX_REPRESENTABLE )
+         && !IsMinimum() && !IsMaximum()){
+          value = nl->RealAtom(ToDouble());
+      }else{
+          value = nl->StringAtom(this->ToString());
+      }
+  }
 
   else // a duration
     value = nl->TwoElemList( nl->IntAtom((int)day),
@@ -1528,8 +1581,14 @@ Word InInstant( const ListExpr typeInfo, const ListExpr instance,
   DateTime* T = new DateTime(instanttype);
 
   if( nl->IsEqual(instance, "undef") )
-    T->SetDefined( false );
-  else {
+     T->SetDefined( false );
+  else if(nl->IsEqual(instance,begin_of_time)){
+     T->SetDefined(true);
+     T->ToMinimum();
+  } else if(nl->IsEqual(instance,end_of_time)){
+     T->SetDefined(true);
+     T->ToMaximum();     
+  } else {
     ListExpr value = instance;
     if(nl->ListLength(instance)==2){
       if(nl->IsEqual(nl->First(instance),"instant"))

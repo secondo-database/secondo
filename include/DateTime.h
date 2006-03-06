@@ -501,7 +501,24 @@ set to the maximum possible value.
     void ToMaximum();
 
 
+/*
+~IsMinimum~
 
+This function checks whether this dateTime value is the mimimum
+representable one. If it is not defined, the result is __false__. 
+
+*/
+    bool IsMinimum() const;
+
+
+/*
+~IsMaximum~
+
+This function checks whether this dateTime value is the maximum
+representable one. If it is not defined, the result is __false__. 
+
+*/
+    bool IsMaximum() const;
 
 /*
 ~Algebra Functions~

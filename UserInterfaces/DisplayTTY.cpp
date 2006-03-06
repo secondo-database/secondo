@@ -775,8 +775,9 @@ DisplayTTY::DisplayInstant( ListExpr type, ListExpr numType, ListExpr value )
   {
     cout << "UNDEFINED";
   }
-  else
-  {
+  else if(nl->AtomType(value) ==RealType){
+    cout << nl->RealValue(value);   
+  } else {
     cout << nl->StringValue( value );
   }
 }
