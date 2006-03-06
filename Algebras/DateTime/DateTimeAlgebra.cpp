@@ -664,6 +664,14 @@ bool DateTime::ReadFrom(const string Time){
       defined=false;
       return true;
    }
+   if(Time==begin_of_time){
+        ToMinimum();
+        return true;
+   }
+   if(Time==end_of_time){
+      ToMaximum();
+      return true;
+   }
    int year = 0;
    int digit;
    int len = Time.length();
@@ -1580,21 +1588,15 @@ Word InInstant( const ListExpr typeInfo, const ListExpr instance,
 
   DateTime* T = new DateTime(instanttype);
 
-  if( nl->IsEqual(instance, "undef") )
+  if( nl->IsEqual(instance, "undef") ){
      T->SetDefined( false );
-  else if(nl->IsEqual(instance,begin_of_time)){
-     T->SetDefined(true);
-     T->ToMinimum();
-  } else if(nl->IsEqual(instance,end_of_time)){
-     T->SetDefined(true);
-     T->ToMaximum();     
+     return SetWord(T);
   } else {
     ListExpr value = instance;
     if(nl->ListLength(instance)==2){
       if(nl->IsEqual(nl->First(instance),"instant"))
         value = nl->Second(instance);
     }
-
     if(T->ReadFrom(value,false)){
       correct=true;
       return SetWord(T);
