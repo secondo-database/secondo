@@ -64,7 +64,10 @@ followed by an empty line is written to the output file. To understand the outpu
 #include "PDNestedText.h"
 #include "PDParserDS.c"
 
-extern char* envToken;
+extern char* startProgram;
+extern char* endProgram;
+extern char* startVerbatim;
+extern char* endVerbatim;
 
 
 #define YYERROR_VERBOSE
@@ -74,8 +77,8 @@ extern char* envToken;
 %token OPEN CLOSE EPAR DEFLINE LETTER DIGIT OTHER TILDE STAR
 	QUOTE BLANKTILDE BLANKSTAR BLANKQUOTE DUS BLANKDUS
 	HEAD1 HEAD2 HEAD3 HEAD4 HEAD5 ENUM1 ENUM2 BULLET1 BULLET2
-	FOLLOW1 FOLLOW2 DISPLAY FIGURE STARTREF REF VERBATIM
-	PARFORMAT CHARFORMAT TTFORMAT
+	FOLLOW1 FOLLOW2 DISPLAY FIGURE STARTREF REF VCHAR VERBATIM ENDVERBATIM
+	PARFORMAT CHARFORMAT TTFORMAT 
 %%
 
 /*
@@ -94,9 +97,8 @@ doc		: space doc_section
 doc_section 	: OPEN elements CLOSE  
 		;
 
-program_section : 	{printf("{\\small \\begin{quote} \\begin{%s}\n",
-                                                                   envToken);}
-		  chars	{printf("\n\\end{%s} \\end{quote}}\n\n", envToken);}
+program_section : 	{ printf("%s", startProgram); }
+		  chars	{ printf("%s", endProgram);   }
 		;
 
 chars 		:	
@@ -113,7 +115,7 @@ chars 		:
 		| chars follow_elem	{print($2);}
 		| chars EPAR		{print($2);}
 		| chars DEFLINE		{print($2);}
-    | chars TTFORMAT        {print($2);}
+                | chars TTFORMAT        {print($2);}
 		;
 
 elements	: 
@@ -239,11 +241,15 @@ heading5	: HEAD5 paragraph_rest	{printf("\\subparagraph {");
 verb		: verb_start verb_end
 		;
 
-verb_start	: VERBATIM	{printf("\\hspace{0.9cm} \\rule{2in}{0.1pt}\n{\\small \\begin{verbatim}\n    ");}
+verb_start	: VERBATIM	  { printf("%s", startVerbatim); }
 		;
 
-verb_end	: chars VERBATIM	{printf("\\end{%s}}\n\\hspace{0.9cm} \\rule{2in}{0.1pt}\n", "verbatim");}
+verb_end	: vchars ENDVERBATIM  { printf("%s", endVerbatim); }
 		;
+
+vchars          : vchars VCHAR  { print($2); }
+                | VCHAR         { print($1); }
+                ;
 
 
 display		: DISPLAY paragraph_rest {printf("\\begin{quote}\n");

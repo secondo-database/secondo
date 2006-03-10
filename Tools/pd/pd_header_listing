@@ -1,5 +1,5 @@
 \documentclass[11pt,a4paper]{article}
-\usepackage{epsfig, a4wide, xspace, times, color,listings}
+\usepackage{epsfig, a4wide, xspace, times, color, listings, alltt}
 \parindent0em
 \parskip0.8ex plus0.4ex minus 0.4ex
 \setcounter{secnumdepth}{4}
@@ -15,8 +15,12 @@
 \oddsidemargin0mm
 \evensidemargin0mm
 \textwidth16cm
-\renewenvironment{quote}{\begin{list}{}{\leftmargin0mm \rightmargin0cm}\item\color{darkred}}
-                        {\color{darkblue}\end{list}\normalsize}
+\newenvironment{pdprogram}{\color{darkred}}
+                        {\color{darkblue}}
+
+\newenvironment{pdverbatim}{\begin{alltt}\hspace{0.9cm}\rule[0.5eX]{2in}{0.1pt}\nopagebreak\small}
+                       {\hspace{0.9cm}\rule[0.5eX]{2in}{0.1pt}\nopagebreak\end{alltt}}
+
 \newcommand{\textred}[1]{\color{red}#1\color{darkred}}
 \newcommand{\textcomment}[1]{\textit{\color{lightblue}#1}}
 

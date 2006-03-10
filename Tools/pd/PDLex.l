@@ -16,6 +16,8 @@ GNU General Public License for more details.
 
 */
 
+%option yylineno
+
 %{
 #include "PDNestedText.h"
 %}
@@ -37,7 +39,7 @@ digit		[0-9]
 num		({digit}{digit}|{digit})
 ref		"["{num}"]"
 verbatim	"----"
-tt        "__"
+tt              "__"
 
 head1		{num}" "
 head2		{num}"."{head1}
@@ -55,46 +57,69 @@ follow2		"  "{follow1}
 display		"        "
 figure		"                "
 	
+%x VERB 
 %%
 
-^{open}			{return(OPEN);}
-{open2}			{return(OPEN);}
-^{close}		{return(CLOSE);}
-^{close}{open}		{ }
-^{verbatim}		{return(VERBATIM);}
-{epar}			{yylval = atom(yytext, yyleng); return(EPAR);}
-{defline1}		{yylval = atom(yytext, yyleng); return(DEFLINE);}
-^{defline2}		{yylval = atom(yytext, yyleng); return(DEFLINE);}
-[A-Za-z]		{yylval = atom(yytext, yyleng); return(LETTER);}
-^{head1}		{yylval = atom(yytext, yyleng); return(HEAD1);}
-^{head2}		{yylval = atom(yytext, yyleng); return(HEAD2);}
-^{head3}		{yylval = atom(yytext, yyleng); return(HEAD3);}
-^{head4}		{yylval = atom(yytext, yyleng); return(HEAD4);}
-^{head5}		{yylval = atom(yytext, yyleng); return(HEAD5);}
-^{enum1}		{yylval = atom(yytext, yyleng); return(ENUM1);}
-^{enum2}		{yylval = atom(yytext, yyleng); return(ENUM2);}
-^{bullet1}		{yylval = atom(yytext, yyleng); return(BULLET1);}
-^{bullet2}		{yylval = atom(yytext, yyleng); return(BULLET2);}
-^{follow1}		{yylval = atom(yytext, yyleng); return(FOLLOW1);}
-^{follow2}		{yylval = atom(yytext, yyleng); return(FOLLOW2);}
-^{display}		{yylval = atom(yytext, yyleng); return(DISPLAY);}
-^{figure}		{yylval = atom(yytext, yyleng); return(FIGURE);}
-^({ref}" "|"[] ")	{yylval = atom(yytext, yyleng); return(STARTREF);}
-{ref}			{yylval = atom(yytext, yyleng); return(REF);}
-[0-9]			{yylval = atom(yytext, yyleng); return(DIGIT);}
-"[~]"			{yylval = atom(yytext, yyleng); return(TILDE);}
-"[*]"			{yylval = atom(yytext, yyleng); return(STAR);}
-"[__]"			{yylval = atom(yytext, yyleng); return(DUS);}
-"[\"]"			{yylval = atom(yytext, yyleng); return(QUOTE);}
-" ~ "			{yylval = atom(yytext, yyleng); return(BLANKTILDE);}
-" * "			{yylval = atom(yytext, yyleng); return(BLANKSTAR);}
-" __ "			{yylval = atom(yytext, yyleng); return(BLANKDUS);}
-" \" "			{yylval = atom(yytext, yyleng); return(BLANKQUOTE);}
-{other}			{yylval = atom(yytext, yyleng); return(OTHER);}
-.			          {yylval = atom(yytext, yyleng); return(yytext[0]);}
-"paragraph" 		{yylval = atom(yytext, yyleng); return(PARFORMAT);}
-"characters" 		{yylval = atom(yytext, yyleng); return(CHARFORMAT);}
-{tt}          	{yylval = atom(yytext, yyleng); return(TTFORMAT);}
+<INITIAL>^{open}		{return(OPEN);}
+<INITIAL>{open2}		{return(OPEN);}
+<INITIAL>^{close}		{return(CLOSE);}
+<INITIAL>^{close}{open}		{ }
+
+<INITIAL>^{verbatim}		{ 
+                                  BEGIN(VERB); 
+                                  return(VERBATIM);
+                                }
+<VERB>.			        {
+                                  const char* v1="\\verb!{!";
+                                  const char* v2="\\verb!}!";
+                                  const char* v3="\\verb!\\!";
+
+                                  switch (yytext[0]) {
+                                    case '{'  : { yylval = atom(v1,8); break; }
+                                    case '}'  : { yylval = atom(v2,8); break; }
+                                    case '\\' : { yylval = atom(v3,8); break; }
+                                    default   : { yylval = atom(yytext, yyleng); }
+                                  }
+                                  return(VCHAR);
+                                }
+<VERB>^{verbatim}		{ 
+                                  BEGIN(INITIAL); 
+                                  return(ENDVERBATIM);
+                                }
+
+<INITIAL>{epar}			{yylval = atom(yytext, yyleng); return(EPAR);}
+<INITIAL>{defline1}		{yylval = atom(yytext, yyleng); return(DEFLINE);}
+<INITIAL>^{defline2}		{yylval = atom(yytext, yyleng); return(DEFLINE);}
+<INITIAL>[A-Za-z]		{yylval = atom(yytext, yyleng); return(LETTER);}
+<INITIAL>^{head1}		{yylval = atom(yytext, yyleng); return(HEAD1);}
+<INITIAL>^{head2}		{yylval = atom(yytext, yyleng); return(HEAD2);}
+<INITIAL>^{head3}		{yylval = atom(yytext, yyleng); return(HEAD3);}
+<INITIAL>^{head4}		{yylval = atom(yytext, yyleng); return(HEAD4);}
+<INITIAL>^{head5}		{yylval = atom(yytext, yyleng); return(HEAD5);}
+<INITIAL>^{enum1}		{yylval = atom(yytext, yyleng); return(ENUM1);}
+<INITIAL>^{enum2}		{yylval = atom(yytext, yyleng); return(ENUM2);}
+<INITIAL>^{bullet1}		{yylval = atom(yytext, yyleng); return(BULLET1);}
+<INITIAL>^{bullet2}		{yylval = atom(yytext, yyleng); return(BULLET2);}
+<INITIAL>^{follow1}		{yylval = atom(yytext, yyleng); return(FOLLOW1);}
+<INITIAL>^{follow2}		{yylval = atom(yytext, yyleng); return(FOLLOW2);}
+<INITIAL>^{display}		{yylval = atom(yytext, yyleng); return(DISPLAY);}
+<INITIAL>^{figure}		{yylval = atom(yytext, yyleng); return(FIGURE);}
+<INITIAL>^({ref}" "|"[] ")	{yylval = atom(yytext, yyleng); return(STARTREF);}
+<INITIAL>{ref}			{yylval = atom(yytext, yyleng); return(REF);}
+<INITIAL>[0-9]			{yylval = atom(yytext, yyleng); return(DIGIT);}
+<INITIAL>"[~]"			{yylval = atom(yytext, yyleng); return(TILDE);}
+<INITIAL>"[*]"			{yylval = atom(yytext, yyleng); return(STAR);}
+<INITIAL>"[__]"			{yylval = atom(yytext, yyleng); return(DUS);}
+<INITIAL>"[\"]"			{yylval = atom(yytext, yyleng); return(QUOTE);}
+<INITIAL>" ~ "			{yylval = atom(yytext, yyleng); return(BLANKTILDE);}
+<INITIAL>" * "			{yylval = atom(yytext, yyleng); return(BLANKSTAR);}
+<INITIAL>" __ "			{yylval = atom(yytext, yyleng); return(BLANKDUS);}
+<INITIAL>" \" "			{yylval = atom(yytext, yyleng); return(BLANKQUOTE);}
+<INITIAL>{other}		{yylval = atom(yytext, yyleng); return(OTHER);}
+<INITIAL>.			{yylval = atom(yytext, yyleng); return(yytext[0]);}
+<INITIAL>"paragraph" 		{yylval = atom(yytext, yyleng); return(PARFORMAT);}
+<INITIAL>"characters" 		{yylval = atom(yytext, yyleng); return(CHARFORMAT);}
+<INITIAL>{tt}          	        {yylval = atom(yytext, yyleng); return(TTFORMAT);}
 
 
 %%

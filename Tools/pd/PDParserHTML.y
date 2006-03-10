@@ -83,7 +83,7 @@ followed by an empty line is written to the output file. To understand the outpu
 %token OPEN CLOSE EPAR DEFLINE LETTER DIGIT OTHER TILDE STAR
 	QUOTE BLANKTILDE BLANKSTAR BLANKQUOTE DUS BLANKDUS 
 	HEAD1 HEAD2 HEAD3 HEAD4 HEAD5 ENUM1 ENUM2 BULLET1 BULLET2
-	FOLLOW1 FOLLOW2 DISPLAY FIGURE STARTREF REF VERBATIM
+	FOLLOW1 FOLLOW2 DISPLAY FIGURE STARTREF REF VCHAR VERBATIM ENDVERBATIM
 	PARFORMAT CHARFORMAT TTFORMAT
 %%
 
@@ -250,9 +250,12 @@ verb		: verb_start verb_end
 verb_start	: VERBATIM		{printf("<PRE>\n    ");}
 		;
 
-verb_end	: chars VERBATIM	{printf("</PRE>\n");}
+verb_end	: vchars ENDVERBATIM	{printf("</PRE>\n");}
 		;
 
+vchars          : vchars VCHAR  { print($2); }
+                | VCHAR         { print($1); }
+                ;
 
 display		: DISPLAY paragraph_rest {printf("<BLOCKQUOTE>\n");
 					printf("        ");
