@@ -84,10 +84,7 @@ buildapp: $(APPLICATIONS)
 .PHONY: TTYDemo
 TTYDemo: ../$(SECONDO_DEMO)/SecondoTTY$(SMIUP)$(EXEEXT)
 
-.PHONY: optimizer
-optimizer: $(OPTDIR)/SecondoPL$(EXEEXT) $(OPTDIR)/SecondoPLCS$(EXEEXT)
-
-:PHONE: callEntropy
+.PHONY: callEntropy
 callEntropy:
 	$(MAKE) -C ../Optimizer/Entropy allEntropy
 
