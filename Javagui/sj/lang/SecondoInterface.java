@@ -333,9 +333,11 @@ not accessible by the user code.
          long parsetime = t3-t2;
          long receivetime = t2-t1;
          long alltime = t3-t1;
-         System.out.println("receive a nested list (textual) : "+receivetime+" milliseconds");
-         System.out.println("parsing                         : "+parsetime+" milliseconds");
-         System.out.println("sum                             : "+alltime+" milliseconds"); 
+         if(gui.Environment.MEASURE_TIME){
+            System.out.println("receive a nested list (textual) : "+receivetime+" milliseconds");
+            System.out.println("parsing                         : "+parsetime+" milliseconds");
+            System.out.println("sum                             : "+alltime+" milliseconds"); 
+         }
      } else { // handle binary lists
        long t1 = System.currentTimeMillis();
         answerList = ListExpr.readBinaryFrom(inSocketStream);
@@ -351,7 +353,9 @@ not accessible by the user code.
              return;
           }
           long t = System.currentTimeMillis()-t1;
-          System.out.println("receive and building a nested list (binary) :"+t+" milliseconds");
+          if(gui.Environment.MEASURE_TIME){
+               System.out.println("receive and building a nested list (binary) :"+t+" milliseconds");
+          }
      } // handle binary lists
      // divide the answerlist
      errorCode.value = answerList.first().intValue();
