@@ -2769,22 +2769,22 @@ lookupPreds(Pred, Pred2) :-
   lookupPred(Pred, Pred2), !.
 
 lookupPred(Pred, pr(Pred2, Rel)) :-
-  lookupPred1(Pred, Pred2, 0, [], _, [Rel]), 
+  lookupPred1(Pred, Pred2, [], [Rel]), 
   dm(lookup,['lookupPred1(',Pred,', pr(',Pred2,', ',Rel,'))',' Case1']),
   !.
 
 lookupPred(Pred, pr(Pred2, Rel1, Rel2)) :-
-  lookupPred1(Pred, Pred2, 0, [], _, [Rel1, Rel2]), 
+  lookupPred1(Pred, Pred2, [], [Rel1, Rel2]), 
   dm(lookup,['lookupPred1(',Pred,', pr(',Pred2,', ',Rel1,', ',Rel2,'))',' Case2']),
   !.
 
 lookupPred(Pred, _) :-
-  lookupPred1(Pred, _, 0, [], _, []),
+  lookupPred1(Pred, _, [], []),
   write('Error in query: Predicate \''),  write(Pred),
   write('\' is a constant. This is not allowed.'), nl, fail, !.
 
 lookupPred(Pred, _) :-
-  lookupPred1(Pred, _, 0, [], _, Rels),
+  lookupPred1(Pred, _, [], Rels),
   length(Rels, N),
   N > 2,
   write('Error in query: Predicate \''), write(Pred), 
@@ -2792,21 +2792,19 @@ lookupPred(Pred, _) :-
   write('This is not allowed.'), nl, fail, !.
 
 /*
-----    lookupPred1(+Pred, -Pred2, +N, +RelsBefore, -M, -RelsAfter) :-
+----    lookupPred1(+Pred, -Pred2, +RelsBefore, -RelsAfter) :-
 ----
 
-~Pred2~ is the transformed version of ~Pred~; before this is called, ~N~
-attributes in list ~RelsBefore~ have been found; after the transformation in
-total ~M~ attributes referring to the relations in list ~RelsAfter~ have been
-found.
+~Pred2~ is the transformed version of ~Pred~; before this is called, 
+attributes in list ~RelsBefore~ may have been found; after the transformation in
+attributes referring to the relations in list ~RelsAfter~ have been found.
 
 */
 
-lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), N, RelsBefore, N1, RelsAfter)
+lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), RelsBefore, RelsAfter)
   :-
   variable(Var, Rel2), !, Rel2 = rel(Rel, _, _),
   spelled(Rel:Attr, attr(Attr2, X, Case)),
-  N1 is N + 1,
   ( memberchk(Rel2, RelsBefore) 
       -> RelsAfter = RelsBefore
        ; append(RelsBefore, [Rel2], RelsAfter)
@@ -2815,11 +2813,10 @@ lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), N, RelsBefore, N1, RelsAfter
   assert(usedAttr(Rel2, attr(Attr2, X, Case))),
   !.
 
-lookupPred1(Attr, attr(Attr2, Index, Case), N, RelsBefore, N1, RelsAfter) :-
+lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
   isAttribute(Attr, Rel), !,
   spelled(Rel:Attr, attr(Attr2, X, Case)),
   queryRel(Rel, Rel2),
-  N1 is N + 1,
   ( memberchk(Rel2, RelsBefore)
       -> RelsAfter = RelsBefore
        ; append(RelsBefore, [Rel2], RelsAfter)
@@ -2836,26 +2833,26 @@ on Feb/16/2006 by C. Duentgen. See also  ~lookupAttrs~.
 
 */
 
-lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
+lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-
   compound(Term),
   Term =.. [Op|Args],
-  lookupPred2(Args, Args2, N, RelsBefore, M, RelsAfter),
+  lookupPred2(Args, Args2, RelsBefore, RelsAfter),
   Term2 =.. [Op|Args2],
   !.  
 
-lookupPred1(Term, Term, N, Rels, N, Rels) :-
+lookupPred1(Term, Term, Rels, Rels) :-
   atom(Term),
   not(is_list(Term)),
   write('Symbol \''), write(Term), 
   write('\' not recognized, supposed to be a Secondo object.'), nl, !.
 
-lookupPred1(Term, Term, N, Rels, N, Rels).
+lookupPred1(Term, Term, Rels, Rels).
  
-lookupPred2([], [], N, RelsBefore, N, RelsBefore).
+lookupPred2([], [], RelsBefore, RelsBefore).
 
-lookupPred2([Me|Others], [Me2|Others2], N, RelsBefore, M, RelsAfter) :-
-  lookupPred1(Me,     Me2,     N, RelsBefore,  Q, RelsAfterMe),
-  lookupPred2(Others, Others2, Q, RelsAfterMe, M, RelsAfter),
+lookupPred2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
+  lookupPred1(Me,     Me2,     RelsBefore,  RelsAfterMe),
+  lookupPred2(Others, Others2, RelsAfterMe, RelsAfter),
   !.
 
 /*
@@ -4667,55 +4664,6 @@ replaceSingleCSEList([Me|Others]) :-
   replaceSingleCSEList(Others).
   
 
-
-
-/*
----- baseAttributes(+Term,-BaseAttributeList).
-----
-Collects the set ~BaseAttributeList~ of all attributes used within ~Term~.
-
-*/
-
-baseAttributes1([],[]) :- !.
-  % no more arguments
-
-baseAttributes1([Me|Others],BaseAttributes) :- 
-  % process argument list
-  baseAttributes(Me,MyBAList),
-  baseAttributes(Others,OthersBAList),
-  merge_set(MyBAList,OthersBAList,BaseAttributes),
-  !.
-
-baseAttributes(Label,RecList) :- 
-  % term is a CSE attribute - recurse into CSE
-  atom(Label),
-  sub_atom(Label, 0, _, _, cse_),
-  virtual_attribute(Label, Expr, _),
-  baseAttributes(Expr,RecList),
-  !.
-
-baseAttributes(Term,[Term]) :- 
-    atom(Term)     % attribute or secondo object
-  ; Term = :(_,_), % renamed attribute
-  !.
-
-baseAttributes(Term,[]) :- 
-  % numbers and strings are boring
-  atomic(Term),
-  !.
-
-baseAttributes(as(Term,_),BaseAttributeList) :- 
-  % we are not interested in aliases here
-  baseAttributes(Term,BaseAttributeList),
-  !.
-
-baseAttributes(Term,BaseAttributeList) :- 
-  % the base case
-  compound(Term),
-  Term =.. [_|Args],
-  baseAttributes1(Args,BaseAttributeList),
-  !.
-
 /*
 ---- retractNonCSE/0
 ----
@@ -4731,34 +4679,11 @@ retractNonCSE :-
 
 retractNonCSEs :- not(retractNonCSE).
 
-% remove all CSEs within List from table
-restrictCSE1([]).
-restrictCSE1([X|Y]) :-
-  retractall(storedExpressionLabel(_,X,_,_)),
-  restrictCSE1(Y).
-
-
 /*
----- restrictCSE(SaveList)
----- 
-
-Remove all expressions from ~storedExpressionLabel/4~, whose labels do not
-occur in ~SaveLst~.
-
-*/
-  
-restrictCSE(SaveList) :- 
-  findall(X,storedExpressionLabel(_,X,_,_),AllCSE),
-  subtract(AllCSE,SaveList,DeleteList),
-  restrictCSE1(DeleteList).
-
-
-
-/*
-----
+---- replaceAllFlatCSEs/0
 ----
 
-Replace CSEs within CSEs recursively by according labels cse\_N.
+Replace CSEs within CSEs recursively with according labels cse\_N.
 
 */
 
@@ -4776,8 +4701,6 @@ isUnflatCSE(Expr) :-
   storedExpressionLabel(Expr, _, _),
   storedExpressionLabel(CSE, _, _),
   isSubTermNotEqual(Expr,CSE), !.
-
-
 
 
 % replaces all flat CSEs within the table
@@ -4866,20 +4789,20 @@ flattenCSEList([Me|Rest]) :-
 
 % testing the predicates
 analyseCSE(TermIn) :-
-  retractExpressionLabels,
+  retractExpressionLabels, % delete old data
   showExpressionLabels,
 
-  findCSEs(TermIn, 0, expensive, _),
+  findCSEs(TermIn, 0, expensive, _), % find all expensive subexpressions
   showExpressionLabels,
 
-  retractNonCSEs,
+  retractNonCSEs, % delete all subexpressions used less than twice
   showExpressionLabels,
 
-  replaceAllCSEs,
-  showExpressionLabels,
-
-  flattenAllCSEs,
+  replaceAllCSEs, % shorten CSEs by using other CSEs but also save flat CSE expression
   showExpressionLabels.
+
+%  flattenAllCSEs, 
+%  showExpressionLabels.
 
 
 % examples for expensive operators
