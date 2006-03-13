@@ -451,7 +451,7 @@ newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
 ----
 
 find the relation ~Rel~ within a node description ~Node~ and return the
-node number ~No~ and the description ~Arg~ of the argument (e.g. res(3)) found
+node number ~Source~ and the description ~Arg~ of the argument (e.g. res(3)) found
 within the arp containing Rel.
 
 ----    findRels(Rel1, Rel2, Node, Source, Arg1, Arg2):-
@@ -767,8 +767,8 @@ In the target language, we use the following operators:
 
         remove:         stream(Tuple1) x Attrname+ -> stream(Tuple2)
 
-                                where   Tuple2 is Tuple1 from which the mentioned
-                                        attributes have been removed.
+                                where   Tuple2 is Tuple1 from which the 
+                                        mentioned attributes have been removed.
 
         project:        stream(Tuple1) x Attrname+ -> stream(Tuple2)
 
@@ -791,10 +791,11 @@ In the target language, we use the following operators:
 
         groupby stream(Tuple) x GroupAttrs x NewFields -> stream(Tuple2)
 
-                             group stream by the grouping attributes; for each group
-                             compute new fields each of which is specified in the
-                             form Attrname : Expr. The argument stream must already
-                             be sorted by the grouping attributes.
+                             group stream by the grouping attributes; for each 
+                             group compute new fields each of which is 
+                             specified in the form Attrname : Expr. 
+                             The argument stream must already be sorted by the 
+                             grouping attributes.
 ----
 
 In PROLOG, all expressions involving such operators are written in prefix
@@ -813,8 +814,8 @@ the plan as a SECONDO query in text syntax. For attributes we have to
 distinguish whether a leading ``.'' needs to be written (if the attribute occurs
 within a parameter function) or whether just the attribute name is needed as in
 the arguments for hashjoin, for example. Predicate ~wp~ (``write plan'') uses
-predicate ~plan\_to\_atom~ to convert its argument to an atom and then writes that
-atom to standard output.
+predicate ~plan\_to\_atom~ to convert its argument to an atom and then writes 
+that atom to standard output.
 
 */
 
@@ -823,10 +824,6 @@ upper(Lower, Upper) :-
   char_type(First2, to_upper(First)),
   append([First2], Rest, UpperList),
   atom_chars(Upper, UpperList).
-  /*atom_codes(Lower, [First | Rest]),
-  to_upper(First, First2),
-  UpperList = [First2 | Rest],
-  atom_codes(Upper, UpperList).*/
 
 wp(Plan) :-
   plan_to_atom(Plan, PlanAtom),
@@ -1380,7 +1377,7 @@ indexselect(arg(N), pr(Y touches attr(AttrName, Arg, Case), Rel)) => X :-
 
 C. Duentgen, Feb/2006: When using renaming, the indexselect rule failed, because 
 the rules accesses the original (not renamed) relation. The correct approach is 
-to do a rename on the result immedeatly of the select.
+to do a rename on the result immedeatly after the select.
 
 */
 
@@ -1441,15 +1438,15 @@ Spatial Joins:
 Joins with geometric predicates using bbox-operators like ~intersects~ or 
 ~touches~ can make use of the operator ~spatialjoin~ to filter the argument 
 streams prior to applying the actual predicate using ~filter~. BBox operators 
-are recognizable by using predicate ~isBBoxOperator\1~ as defined in file  
+are recognizable by using predicate ~isBBoxOperator/1~ as defined in file  
 ~operators.pl~.
 
 As ~spatialjoin~ is an asymmetric operator, both possible argument orderings
 have to be considered.
 
 XRIS: For cost functions, the spatialjoin is considered to work on 2D-MBBs 
-only. Rules to detect 3/4D-MBBs and pass the correct dimension-argument to 
-the spatialjoin-term should be added later.
+only. Rules to detect 3/4D-MBBs and indices and to pass the correct 
+dimension-argument to the spatialjoin-term should be added later.
 
 For the cost functions, the selectivity is distributed among the spatialjoin 
 and the filter operators. Otherwise, cost/8 will over-estimate. This feature 
@@ -1845,1410 +1842,15 @@ of that predicate ~PedCost~ and possibly the cost to generate a result tuple ~TC
 is taken into account when estimating the total cost. It is assumed that only a 
 single operator of this kind occurs within the term.
 
-The base cost factors are defined in file ``operators.pl''. 
-
-A standard naming scheme for cost factors is used to enhance the readability of 
-the cost functions:
-
-----   RTM:  ReadTupleMem 
-       WTM:  WriteTupleMem 
-       RTD:  ReadTupleDisk 
-       WTD:  WriteTupleDisk 
-       RPD:  ReadPageDisk 
-       WPD:  WritePageDisk 
-       FND:  FileNewDisk 
-       FDD:  FileDeleteDisk 
-       FOD:  FileOpenDisk 
-       FCD:  FileClose 
-    MaxMem:  maximum memory size per operator
-        TC:  TupleCreate
-         B:  PredicateCost/cost of evaluating of an ordering predicate
-       Sel:  Selectivity
-        CX:  Cardinality of first argument
-        CX:  Cardinality of second argument
-        Tx:  (necessary) TupleSize of first argument
-        Ty:  (necessary) TupleSize of second argument
-       TSC:  TupleSizeCoretuple (always handled)
-       TSI:  TupleSizeInlineFlob (always handled)
-       TSE:  TupleSizeExternalFlob (only handled when used in predicate)
-----
-
-8.1.0 Auxiliary Predicates to cost
-
-----    gsf(M, N, S)
-        log(B, V, R)
-----
-
-These predicates calculate $S=\sum_{i=1}^{N-M}{i+M} = {{(N-M)(N+M+1)}\over{2}}$
-and $R = log_B V$.
+The code that implements the cost functions of the supported Secondo operators 
+is extensive and has therefore been moved to a separate file named 
+~costfunctions.pl~.
 
 */
 
-:- arithmetic_function(gsf/2).
-gsf(M, N, S) :-
-  S is (N-M)*(N+M+1)*0.5.
+:- [costfunctions]. % Import the cost functions
 
-:- arithmetic_function(log/2).
-log(Base, Value, Result) :-
-  Result is log(Value) / log(Base).
 
-% add two tupleSizeData(A,B,C) terms component wise:
-addTupleSizes(tupleSizeData(Core1, InlFlob1, ExtFlob1), 
-              tupleSizeData(Core2, InlFlob2, ExtFlob2), 
-              tupleSizeData(Core, InlFlob, ExtFlob)) :- 
-  Core    is Core1    + Core2,
-  InlFlob is InlFlob1 + InlFlob2,
-  ExtFlob is ExtFlob1 + ExtFlob2.
-
-/*
----- setCurrentResultSizes
-     setCurrentResultSizes(ResCard, ResTupleSize)
-     getCurrentResultSizes(Term)
-----
-Get cardinality and tuplesize of the current (intermediate) result, formatted as 
-a 'fixed'-term ~Term~, suitable as an input for the predicate cost/8.
-
-The predicates are used to calculate costs arising from Secondo operators 
-inserted into the executable plan by the pre-processing steps of the optimizer's 
-~sql/1~ predicate, e.g. the final ~consume~, ~count~, ~project~, or commands 
-inserted between multiple optimized streams, like ~mergeunion~ or ~mergesec~.
-
-~setCurrentResultSizes/0~ should be called after a stream has been optimized in 
-~streamOptimize~.
-
-~setCurrentResultSizes(ResCard, ResTupleSize)~ will update 
-~storedCurrentResultSizes/1~ with its arguments.
-
-*/
-
-:- dynamic(storedCurrentResultSizes/1),
-   assert(storedCurrentResultSizes(fixed(0, tupleSizeData(0,0,0)))).
-
-getCurrentResultSizes(Term) :-
-  storedCurrentResultSizes(Term).
-
-setCurrentResultSizes :- 
-  highNode(0),
-  retract(storedCurrentResultSizes(_)),
-  assert(storedCurrentResultSizes(fixed(0, tupleSizeData(0,0,0)))),
-  !.
-
-setCurrentResultSizes :-
-  highNode(N),
-  resultSize(N, ResCard),
-  resultTupleSize(N, ResTS),
-  retract(storedCurrentResultSizes(_)),
-  assert(storedCurrentResultSizes(fixed(ResCard, ResTS))),
-  !.
-
-setCurrentResultSizes :-
-  retract(storedCurrentResultSizes(_)),
-  assert(storedCurrentResultSizes(fixed(0, tupleSizeData(0,0,0)))),
-  !.
-
-setCurrentResultSizes(ResCard, ResTupleSize) :-
-  retract(storedCurrentResultSizes(_)),
-  assert(storedCurrentResultSizes(fixed(ResCard, ResTupleSize))),
-  !.
-
-/*
-8.1.1 Arguments
-
-*/
-
-
-cost(rel(Rel, X, Y), _, _, Size, TupleSize, _, _, 0) :-
-  calculateQueryTupleSize(rel(Rel, X, Y),CoreTupleSize,InFlobSize,ExtFlobSize),
-  TupleSize = tupleSizeData(CoreTupleSize,InFlobSize,ExtFlobSize),
-  card(Rel, Size).
-
-cost(res(N), _, _, Size, TupleSize, _, _, 0) :-
-  resultTupleSize(N, TupleSize), 
-  resultSize(N, Size).
-
-
-/*
-Argument with explicitly defined cardinality ~ResCard~ and tuple size 
-~TupleSize~.  Used to calculate cost of operators inserted by the pre-processor, 
-eg. in predicate ~mStreamOptimize~, and for the final count/consume.
-
-*/
-
-cost(fixed(ResCard, TupleSize), _, _, ResCard, TupleSize, _, _, 0).
-
-/*
-8.1.2 Operators
-
-*/
-
-cost(feed(X), P, Sel, S, TupleSize, PredCost, TC, C) :-
-  cost(X, P, Sel, S, TupleSize, PredCost, TC, C1),
-  cost_factors(_, _, _, _, RPD, _, _, _, FOD, _, _, BDBPS, _),
-  feedTC(A,B),
-  TupleSize = tupleSizeData(TSC, TSI, _),
-  NumPages is ceiling((S * (TSC+TSI))/BDBPS),
-  C is C1                        % create Relation, 
-     + FOD                       % open relation
-     + RPD * NumPages            % read tuples pagewise
-     + A * S                     % consider overhead tuplewise
-     + B * S * (TSC+TSI).        % consider overhead bytewise
-
-/*
-Here ~feedTC~ means ``feed tuple cost'', i.e., the cost per tuple, a constant to
-be determined in experiments. These constants are kept in file ``Operators.pl''.
-
-*/
-
-cost(consume(X), P, Sel, S, TupleSize, PredCost, TC, C) :-
-  cost(X, P, Sel, S, TupleSize, PredCost, TC, C1),
-  consumeTC(A,B),
-  TupleSize = tupleSizeData(TSC, TSI, TSE),
-  C is C1                          % create input stream
-     + A * S                       % consider overhead tuplewise
-     + B * S * (TSC+TSI+TSE).      % consider overhead bytewise
-
-/*
-Generic cost function for aggregation operators like count, min, max, sum, avg.
-For these operators, the fact ~isAggregationOP(name)~ should be defined in file
-``operators.pl''.
-
-*/
-
-cost(Term, P, Sel, S, TupleSize, PredCost, TC, C) :-
-  compound(Term),
-  functor(Term, Op, 1),
-  isAggregationOP(Op),               % recognize OP as an aggregation operator
-  arg(1, Term, X),
-  cost(X, P, Sel, S, TupleSize, PredCost, TC, C1),
-  aggregateTC(A),
-  C is C1                            % create input stream
-     + A*S.                          % consider overhead tuplewise
-
-     
-/*
-When filter is used on the output of a spatialjoin, the edge-selectivity is 
-distributed among both operators. You can change the behaviour by changing 
-~spatialjoinSDR/1~ in file ~operators.pl~.
-
-*/
-
-cost(filter(X, _), P, Sel, S, TupleSize, PredCost, TC, C) :-
-%cost(filter(X, Pred), P, Sel, S, TupleSize, PredCost, TC, C) :- 
-% A cost function for the ordering predicate built from Pred could be calculated
-  X \= spatialjoin(_, _, _, _, _), % this is the normal case
-  cost_factors(_, _, _, _, RPD, _, _, _, _, _, _, BDBPS, FCMR),
-  filterTC(A),
-  cost(X, P, Sel, SizeX, TupleSize, PredCost, TC, CostX),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  S is SizeX * Sel,
-  C is CostX                     % create input stream
-     + SizeX * (ExtFlobSize1 + ExtFlobSize2)/BDBPS * FCMR * RPD % read flobs from disk
-     + (A + PredCost) * SizeX.   % consider predicate evaluation and overhead tuplewise
-
-cost(filter(X, _), P, Sel, S, TupleSize, PredCost, TC, C) :-
-%cost(filter(X, Pred), P, Sel, S, TupleSize, PredCost, TC, C) :- 
-% A cost function for the ordering predicate built from Pred could be calculated
-  X = spatialjoin(_, _, _, _, _),  % this is the special case where filter is used 
-                                   % on the output of a spatialjoin.
-  cost_factors(_, _, _, _, RPD, _, _, _, _, _, _, BDBPS, FCMR),
-  filterTC(A),
-  spatialjoinSDR(Z),           % (spatial join selectivity distribution ratio)
-  SelJ is Z + Sel * (1-Z/100), % distribute overall selectivity between
-  SelF is Sel/SelJ,            % the spatialjoin and filter operator
-  cost(X, P, SelJ, SizeX, TupleSize, PredCost, TC, CostX),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  S is SizeX * SelF,
-  C is CostX                     % create input stream
-     + SizeX * (ExtFlobSize1 + ExtFlobSize2)/BDBPS * FCMR * RPD % read flobs from disk
-     + (A + PredCost) * SizeX.   % consider predicate evaluation and overhead tuplewise
-
-
-cost(product(X, Y), P, _, ResultCard, ResultTupleSize, B, TC, Cost) :-
-  % the product operator is not symmetric. Y is buffered and X will get consumed.
-  cost(X, P, 1, CX, TX, B, TC, CostX),
-  cost(Y, P, 1, CY, TY, B, TC, CostY),
-  TY = tupleSizeData(TSCy, TSIy, _),
-  Ty is TSCy + TSIy,
-  cost_factors(RTM, WTM, _, _, _, _, _, _, _, _, MaxMem, _, _),
-  OY is (MaxMem / Ty),
-  CY =< OY,
-  % write('\nProduct: Case 1\n'),
-  ResultCard is CX * CY,
-  addTupleSizes(TX,TY, ResultTupleSize),
-  Cost is CostX + CostY          % produce input streams
-        + WTM * CY               % write Y-tuples to in-memory buffer
-        + RTM * CX * CY          % read Y-tuples from in-memory buffer
-        + TC * ResultCard.       % generate result tuples
-
-cost(product(X, Y), P, _, ResultCard, ResultTupleSize, B, TC, Cost) :-
-  cost(X, P, 1, CX, TX, B, TC, CostX),
-  cost(Y, P, 1, CY, TY, B, TC, CostY),
-  TY = tupleSizeData(TSCy, TSIy, _),
-  Ty is TSCy + TSIy,
-  cost_factors( _, WTM, RTD, WTD, _, _, FND, FDD, _, _, MaxMem, _, _),
-  OY is (MaxMem / Ty),
-  CY > OY,
-  % write('\nProduct: Case 2\n'),
-  ResultCard is CX * CY,
-  addTupleSizes(TX,TY, ResultTupleSize),
-  Cost is CostX + CostY          % produce input streams
-        + FND + FDD              % create and remove temp file
-        + WTM * OY               % write Y-tuples to in-memory buffer
-        + WTD * CY               % write Y-tuples to disk
-        + RTD * CX * CY          % read Y-tuples from disk
-        + TC * ResultCard.       % generate result tuple
-
-/*
-  Uses a btree-index to select tuples from a relation.
-  The index must be opened. The predicate is always ${X}\geq v$
-  for ~rightrange~, ${}\leq v$ for ~leftrange~, and ${}= v$ for 
-  ~exactmatch~.
-  
-  To estimate the number of disk accesses, we query the 
-  height and the keys-per-leafe size $K$ of the BTree.
-  then we expect to access 
-  $\mbox{height}+{\mbox{Sel} \cdot \mbox{RelSize}}\over K$ disk pages 
-  and evalute ${\mbox{Height}+K}\over 2$ times the comparisons.
-
-  XRIS: By now, the fan-out for Btrees is assumed to be 15.
-  
-*/
-
-cost(leftrange(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
-  cost(Rel, P, 1, RelSize, TupleSize, B, TC, CostR),
-  cost_factors(_, _, _, _, RPD, _, _, _, FOD, FCD, _, BDBPS, FCMR),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  Size is Sel * RelSize,
-  Cost is CostR                           % produce input stream
-        + Size*(ExtFlobSize1 + ExtFlobSize2)/BDBPS * FCMR * RPD % read flobs from disk
-        + FOD + FCD                       % open/close btree file        
-        + B * log(15,RelSize)             % later: RPD * (Height + K/2)
-        + RPD * log(15,RelSize)           % later: RPD * (Height + Sel*RelSize/K)
-        + TC * Sel * RelSize.             % produce tuple stream
-
-cost(rightrange(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
-  cost(Rel, P, 1, RelSize, TupleSize, B, TC, CostR),
-  cost_factors(_, _, _, _, RPD, _, _, _, FOD, FCD, _, BDBPS, FCMR),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  Size is Sel * RelSize,
-  Cost is CostR                           % produce input stream
-        + Size*(ExtFlobSize1 + ExtFlobSize2)/BDBPS * FCMR * RPD % read flobs from disk
-        + FOD + FCD                       % open/close btree file        
-        + B * log(15,RelSize)             % find all matches,           later: B * (Height + K/2)
-        + RPD * log(15,RelSize)           % read index pages from disk, later: D * (Height + Sel*RelSize/K)
-        + TC * Sel * RelSize.             % produce tuple stream
-
-/*
-Simplistic cost estimation for loop joins.
-
-If attribute values are assumed independent, then the selectivity
-of a subquery appearing in an index join equals the overall
-join selectivity. Therefore it is possible to estimate
-the result size and cost of a subquery
-(i.e. ~exactmatch~ and ~exactmatchfun~). As a subquery in an
-index join is executed as often as a tuple from the left
-input stream arrives, it is also possible to estimate the
-overall index join cost.
-
-See: ~cost(leftrange(...),...)~ for key on tuple constants.
-
-*/
-
-cost(exactmatchfun(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
-  cost(Rel, P, 1, RelSize, TupleSize, B, TC, CostR),
-  cost_factors(_, _, _, _, RPD, _, _, _, FOD, FCD, _, BDBPS, FCMR),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  Size is Sel * RelSize,
-  Cost is CostR                           % produce input stream
-        + Size*(ExtFlobSize1 + ExtFlobSize2)/BDBPS * FCMR * RPD % read flobs from disk
-        + FOD + FCD                       % open/close btree file        
-        + B * (log(15,RelSize)+Size)      % find all matches,           later: B * (Height + K/2)
-        + RPD * log(15,RelSize)           % read index pages from disk, later: D * (Height + Sel*RelSize/K)
-        + TC * Sel * RelSize.             % produce tuple stream
-
-cost(exactmatch(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
-  cost(Rel, P, 1, RelSize, TupleSize, B, TC, CostR),
-  cost_factors(_, _, _, _, RPD, _, _, _, FOD, FCD, _, BDBPS, FCMR),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  Size is Sel * RelSize,
-  Cost is CostR                           % produce input stream
-        + Size*(ExtFlobSize1 + ExtFlobSize2)/BDBPS * FCMR * RPD % read flobs from disk
-        + FOD + FCD                       % open/close btree file        
-        + B * (log(15,RelSize)+Size)      % find all matches,           later: B * (Height + K/2)
-        + RPD * log(15,RelSize)           % read index pages from disk, later: D * (Height + Sel*RelSize/K)
-        + TC * Sel * RelSize.             % produce tuple stream
-
-
-/*
-  Algorithm loopjoin: see file ``ExtRelationAlgebra.cpp''.
-
-*/
-
-cost(loopjoin(X, Y), P, Sel, ResCard, TupleSize, PredCost, TC, Cost) :-
-  cost(X, P, 1, CX, TX, PredCost, TC, CostX),
-  cost(Y, P, Sel, CY, _, PredCost, TC, CostY),
-  addTupleSizes(TX, TX, TupleSize),
-  ResCard is CX * CY,
-  cost_factors(_, _, _, _, RPD, _, _, _, _, _, _, BDBPS, _),
-  loopjoinTC(A),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  Cost is CostX + CX * CostY        % produce input streams, stream Y is produced once per X-tuple
-        + RPD * CX*(ExtFlobSize1)/BDBPS % read flobs from disk
-        + RPD * CY*(ExtFlobSize2)/BDBPS % read flobs from disk
-        + A * CX                    % overhead for opening stream Y
-        + TC * ResCard.             % create result tuples
-
-cost(fun(_, X), P, Sel, Size, TupleSize, PredCost, TC, Cost) :- % no overhead considered, by now
-  cost(X, P, Sel, Size, TupleSize, PredCost, TC, Cost).
-
-
-/*
-Cost function for ~hashjoin~:
-
-  * NBuckets: Number of buckets in hash table
-
-  * MemSizeX = 0.25[*]MaxMem; this one is used to hold X-tuples hashed against 
-the hash table
-
-  * MemSizeY = 0.75[*]MaxMem; this one is used for the hash table of Y-tuples
-
-For the evaluation of the join predicate, we know, that only `is equal' is 
-allowed, as hashjoin is an equijoin. For all `is equal' predicates, it is 
-assumed, that only in the case of $A=B$, the evaluation is really expensive, 
-for in the contrary case, some cheap test will usually discover, that $A \neq B$.
-
-Hence, we can estimate the number of expensive predicate evaluations by 
-$\mbox{Sel} \cdot CX \cdot CY$.
-All other predicate evaluations are expected to be 'cheap' (with cost ~MinPET~).
-
-  For the calculation of a hash value, a cost of ~MinPET~ is assigned.
-
-*/
-
-cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, P, 1, CX, TX, B, TC, CostArgX),
-  cost(Y, P, 1, CY, TY, B, TC, CostArgY),
-  cost_factors(RTM, WTM, _, _, RPD, _, _, _, _, _, MaxMem, BDBPS, FCMR),
-  MemSizeX is 0.25*MaxMem,
-  MemSizeY is 0.75*MaxMem,
-  TX = tupleSizeData(TSCx, TSIx, _),
-  TY = tupleSizeData(TSCy, TSIy, _),
-  Tx is TSCx + TSIx,
-  Ty is TSCy + TSIy,
-  % test for case1: Both argument relations X,Y fit into memory  
-  (CX * (Tx+12)) =< MemSizeX, 
-  (CY * (Ty+12)) =< MemSizeY, 
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  minPET(MinPET),
-  ResSize is CX * CY * Sel,
-  addTupleSizes(TX,TY,TupleSize),
-  Cost is CostArgX + CostArgY                  % create input streams
-       + RPD * (CX * ExtFlobSize1)/BDBPS       % read flobs from disk
-       + RPD * (CX * max((CY/NBuckets),1) * ExtFlobSize2)/BDBPS/(1-FCMR) % read flobs from disk
-       + MinPET * (CX + CY)                    % calculate hash value (use MinPET as an approximation to cost)
-       + WTM * CY                              % inserting Y-tuples into hash table
-                                               % collide each X-tuple with Y-tuples from hashed bucket
-       % +(RTM + B) * CX * max((CY/NBuckets),1)%  (this is the original line)
-       + (RTM + B) * ResSize                   %  - expensive cases
-       + (RTM + MinPET)                        %  - cheap cases
-               * (CX * max((CY/NBuckets),1) - ResSize) 
-       + TC * ResSize,                         % create result tuples
-  (optDebug *-> (
-    RTMn is CX * max((CY/NBuckets),1),
-    WTMn is CY,
-    RTDn is 0,
-    WTDn is 0,
-    RPDn is (CX * ExtFlobSize1)/BDBPS + (CX * max((CY/NBuckets),1) * ExtFlobSize2)/BDBPS/(1-FCMR),
-    WPDn is 0,
-    FNDn is 0,
-    FDDn is 0,
-    FODn is 0,
-    FCDn is 0,
-    Bn   is ResSize,
-    MinPETn is CX * max((CY/NBuckets),1) - ResSize + (CX + CY),
-    TCn  is ResSize,
-    write('\n\n\nhashjoin('), write(X), write(','), write(Y), 
-    write(', _, _, '), write(NBuckets), write('), '),
-    write(P), write(','), write(Sel), write(','), write(ResSize), 
-    write(','), write(TupleSize), write(','), 
-    write(B), write(','), write(TC), write(','), write(Cost), write(') Case1'),
-    write('\n\tRTM: '), write(RTMn),
-    write('\n\tWTM: '), write(WTMn),
-    write('\n\tRTD: '), write(RTDn),
-    write('\n\tWTD: '), write(WTDn),
-    write('\n\tRPD: '), write(RPDn),
-    write('\n\tWPD: '), write(WPDn),
-    write('\n\tFND: '), write(FNDn),
-    write('\n\tFDD:  '), write(FDDn),
-    write('\n\tFOD:  '), write(FODn),
-    write('\n\tFCD:  '), write(FCDn),
-    write('\n\tB  :  '), write(Bn),
-    write('\n\tTC :  '), write(TCn),
-    write('\n\tMinPET:  '), write(MinPETn), 
-    write('\n\tNeeded FlobSizes: '), write(ExtFlobSize1),
-    write('/'), write(ExtFlobSize2), nl
-  ); true).
-
-cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, P, 1, CX, TX, B, TC, CostArgX),
-  cost(Y, P, 1, CY, TY, B, TC, CostArgY),
-  cost_factors(RTM, WTM, RTD, WTD, RPD, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
-  MemSizeX is 0.25*MaxMem,
-  MemSizeY is 0.75*MaxMem,
-  TX = tupleSizeData(TSCx, TSIx, _),
-  TY = tupleSizeData(TSCy, TSIy, _),
-  Tx is TSCx + TSIx,
-  Ty is TSCy + TSIy,
-  % test for case4: neither X, nor Y fit in memory                                       
-  (CX * (Tx+12)) > MemSizeX,
-  (CY * (Ty+12)) > MemSizeY,
-  MemSizeTY is max(1,(MemSizeY / Ty)),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  minPET(MinPET),
-  ResSize is CX * CY * Sel,
-  addTupleSizes(TX,TY,TupleSize),
-  Cost is CostArgX + CostArgY          % create input streams
-       + WTM * CY                      % insert pointers to Y in hash tables
-       + RPD * (CY/MemSizeTY) * (CX * ExtFlobSize1)/BDBPS % read flobs from disk
-       + RPD * CX * max(1,(MemSizeTY/NBuckets)) 
-                  * (CY/MemSizeTY) * ExtFlobSize2/BDBPS/(1-FCMR) % read flobs from disk
-                                       % compare X- and Y-tuples
-       % +(B + RTM)  * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) % (original line)
-       + (B + RTM)  * ResSize          %  - cheap comparisons
-       + (MinPET + RTM) 
-           * (  CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
-              - ResSize )              %  - expensive comparisons
-       + 2 * (FND + FDD)               % create and delete temp files
-       + WTD * CX                      % write X-tuples to disk
-       + RTD * CX * CY/MemSizeTY       % X-tuples to be read from disk once per hash table
-       + MinPET * (CY + CX * max(1,CY/MemSizeTY))  % calculate hash value (use MinPET as an approximation to cost)
-       + TC * ResSize,                 % create result tuples
-  (optDebug *-> (
-    RTMn is CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY),
-    WTMn is CY,
-    RTDn is CX * CY/MemSizeTY,
-    WTDn is CX,
-    RPDn is (CY/MemSizeTY) * (CX * ExtFlobSize1)/BDBPS + CX 
-            * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
-            * ExtFlobSize2/BDBPS/(1-FCMR),
-    WPDn is 0,
-    FNDn is 2,
-    FDDn is 2,
-    FODn is 0,
-    FCDn is 0,
-    Bn   is ResSize,
-    MinPETn is CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
-                         - ResSize + (CY + CX * max(1,CY/MemSizeTY)),
-    TCn  is Sel * CX * CY,
-    write('\n\nhashjoin('), write(X), write(','), write(Y), 
-    write(', _, _, '), write(NBuckets), write('), '),
-    write(P), write(','), write(Sel), write(','), write(ResSize), 
-    write(','), write(TupleSize), write(','), 
-    write(B), write(','), write(TC), write(','), write(Cost), write(') Case4'),
-    write('\n\tRTM: '), write(RTMn),
-    write('\n\tWTM: '), write(WTMn),
-    write('\n\tRTD: '), write(RTDn),
-    write('\n\tWTD: '), write(WTDn),
-    write('\n\tRPD: '), write(RPDn),
-    write('\n\tWPD: '), write(WPDn),
-    write('\n\tFND: '), write(FNDn),
-    write('\n\tFDD:  '), write(FDDn),
-    write('\n\tFOD:  '), write(FODn),
-    write('\n\tFCD:  '), write(FCDn),
-    write('\n\tB  :  '), write(Bn),
-    write('\n\tTC :  '), write(TCn), 
-    write('\n\tMinPET:  '), write(MinPETn), 
-    write('\n\tNeeded FlobSizes: '), write(ExtFlobSize1), write('/'), 
-    write(ExtFlobSize2), nl
-  ); true).
-
-cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, P, 1, CX, TX, B, TC, CostArgX),
-  cost(Y, P, 1, CY, TY, B, TC, CostArgY),
-  cost_factors(RTM, WTM, _, _, RPD, _, _, _, _, _, MaxMem, BDBPS, FCMR),
-  MemSizeX is 0.25*MaxMem,
-  MemSizeY is 0.75*MaxMem,
-  TX = tupleSizeData(TSCx, TSIx, _),
-  TY = tupleSizeData(TSCy, TSIy, _),
-  Tx is TSCx + TSIx,
-  Ty is TSCy + TSIy,
-  % case2: X fits in memory, but Y does not 
-  (CX * (Tx+12)) =< MemSizeX, 
-  (CY * (Ty+12)) >  MemSizeY,            
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  minPET(MinPET),
-  ResSize is CX * CY * Sel,
-  addTupleSizes(TX,TY,TupleSize),
-  MemSizeTY is max(1,(MemSizeY / Ty)), % amount of Y-tuples fitting into MemY
-  Cost is CostArgX + CostArgY          % create input streams
-       + WTM * CY                      % insert Y-tuples into hash table
-       + RPD * (CY/MemSizeTY) * (CX*ExtFlobSize1)/BDBPS % read flobs from disk
-       + RPD * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
-                     * ExtFlobSize2/BDBPS/(1-FCMR) % read flobs from disk
-                                       % compare each X-tuple with
-                                       % the hashed Y-tuples from several hashtables
-       %+ (B + RTM) * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) % (original line)
-       + (B + RTM) * ResSize           %  - expensive comparisons
-       + (MinPET+RTM)*(  CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
-                       - ResSize)      %  - cheap comparisons
-
-       + RTM * CX * (CY/MemSizeTY)     % read X-tuples from memory once per hashtable
-       + MinPET * (CY + CX * max(1,CY/MemSizeTY)) % calculate hash values (use MinPET as an approximation to cost)
-       + TC * ResSize,                 % create result tuples
-  (optDebug *-> (
-    RTMn is CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) + CX * (CY/MemSizeTY),
-    WTMn is CY,
-    RTDn is 0,
-    WTDn is 0,
-    RPDn is (CY/MemSizeTY) * (CX*ExtFlobSize1)/BDBPS 
-             +  CX * max(1,(MemSizeTY/NBuckets)) 
-                   * (CY/MemSizeTY) 
-                   * ExtFlobSize2/BDBPS/(1-FCMR),
-    WPDn is 0,
-    FNDn is 0,
-    FDDn is 0,
-    FODn is 0,
-    FCDn is 0,
-    Bn   is ResSize,
-    MinPETn is CX * max(1,(MemSizeTY/NBuckets)) 
-                  * (CY/MemSizeTY) 
-                  - ResSize + (CY + CX * max(1,CY/MemSizeTY)),
-    TCn  is Sel * CX * CY,
-    write('\n\nhashjoin('), write(X), write(','), write(Y), 
-    write(', _, _, '), write(NBuckets), write('), '),
-    write(P), write(','), write(Sel), write(','), write(ResSize), 
-    write(','), write(TupleSize), write(','), 
-    write(B), write(','), write(TC), write(','), write(Cost), write(') Case2'),
-    write('\n\tRTM: '), write(RTMn),
-    write('\n\tWTM: '), write(WTMn),
-    write('\n\tRTD: '), write(RTDn),
-    write('\n\tWTD: '), write(WTDn),
-    write('\n\tRPD: '), write(RPDn),
-    write('\n\tWPD: '), write(WPDn),
-    write('\n\tFND: '), write(FNDn),
-    write('\n\tFDD:  '), write(FDDn),
-    write('\n\tFOD:  '), write(FODn),
-    write('\n\tFCD:  '), write(FCDn),
-    write('\n\tB  :  '), write(Bn),
-    write('\n\tTC :  '), write(TCn),
-    write('\n\tMinPET:  '), write(MinPETn), 
-    write('\n\tNeeded FlobSizes: '), write(ExtFlobSize1), write('/'), 
-    write(ExtFlobSize2), nl
-  ); true).
-
-cost(hashjoin(X, Y, _, _, NBuckets), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, P, 1, CX, TX, B, TC, CostArgX),
-  cost(Y, P, 1, CY, TY, B, TC, CostArgY),
-  cost_factors(RTM, WTM, _, _, RPD, _, _, _, _, _, MaxMem, BDBPS, FCMR),
-  MemSizeX is 0.25*MaxMem,
-  MemSizeY is 0.75*MaxMem,
-  TX = tupleSizeData(TSCx, TSIx, _),
-  TY = tupleSizeData(TSCy, TSIy, _),
-  Tx is TSCx + TSIx,
-  Ty is TSCy + TSIy,
-  % case3: X does not fit in memory, but Y does  (Nearly the same cost function as in case2!)
-  (CX * (Tx+12)) >  MemSizeX, 
-  (CY * (Ty+12)) =< MemSizeY,  
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  minPET(MinPET),
-  ResSize is CX * CY * Sel,
-  addTupleSizes(TX,TY,TupleSize),
-  MemSizeTY is max(1,(MemSizeY / Ty)), % amount of Y-tuples fitting into MemY
-  Cost is CostArgX + CostArgY          % create input streams
-       + WTM * CY                      % insert Y-tuplesinto hash table
-       + RPD * (CX * ExtFlobSize1)/BDBPS % read flobs from disk
-       + RPD * CX * max(1,(MemSizeTY/NBuckets)) 
-                  * (CY/MemSizeTY) 
-                  * ExtFlobSize2/BDBPS/(1-FCMR) % read flobs from disk
-                                       % compare each X-tuple with
-                                       % the hashed Y-tuples from several hashtables
-       %+ (B + RTM) * CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) % (original line)
-       + (B + RTM) * ResSize           %  - expensive comparisons
-       + (MinPET+RTM)*(  CX * max(1,(MemSizeTY/NBuckets)) * (CY/MemSizeTY) 
-                       - ResSize)      %  - cheap comparisons
-       + RTM * CX * (CY/MemSizeTY)     % read X-tuples from memory once per hashtable
-       + MinPET * (CX + CY)            % calculate hash values (use MinPET as an approximation to cost)
-       + TC * ResSize,                 % create result tuples
-  (optDebug *-> (
-    RTMn is CX * max(1,(MemSizeTY/NBuckets)) 
-               * (CY/MemSizeTY) 
-               + CX * (CY/MemSizeTY),
-    WTMn is CY,
-    RTDn is 0,
-    WTDn is 0,
-    RPDn is (CX * ExtFlobSize1)/BDBPS + CX * max(1,(MemSizeTY/NBuckets)) 
-                * (CY/MemSizeTY) * ExtFlobSize2/BDBPS/(1-FCMR),
-    WPDn is 0,
-    FNDn is 0,
-    FDDn is 0,
-    FODn is 0,
-    FCDn is 0,
-    Bn   is ResSize,
-    MinPETn is CX * max(1,(MemSizeTY/NBuckets)) 
-                  * (CY/MemSizeTY) - ResSize + (CX + CY),
-    TCn  is ResSize,
-    write('\n\nhashjoin('), write(X), write(','), write(Y), write(', _, _, '), 
-    write(NBuckets), write('), '),
-    write(P), write(','), write(Sel), write(','), write(ResSize), write(','), 
-    write(TupleSize), write(','), 
-    write(B), write(','), write(TC), write(','), write(Cost), write(') Case3'),
-    write('\n\tRTM: '), write(RTMn),
-    write('\n\tWTM: '), write(WTMn),
-    write('\n\tRTD: '), write(RTDn),
-    write('\n\tWTD: '), write(WTDn),
-    write('\n\tRPD: '), write(RPDn),
-    write('\n\tWPD: '), write(WPDn),
-    write('\n\tFND: '), write(FNDn),
-    write('\n\tFDD:  '), write(FDDn),
-    write('\n\tFOD:  '), write(FODn),
-    write('\n\tFCD:  '), write(FCDn),
-    write('\n\tB  :  '), write(Bn),
-    write('\n\tTC :  '), write(TCn), 
-    write('\n\tMinPET:  '), write(MinPETn), 
-    write('\n\tNeeded FlobSizes: '), write(ExtFlobSize1), write('/'), 
-    write(ExtFlobSize2), nl
-  );true).
-
-
-/*
-  This cost function for ~sortby~ depends on the operator's  implementation
-  in ExtRelAlgPersistent, a variant of mergesort.
- 
-  For more accurate estimations, information on the distribution and order of 
-  values of sort attributes would be needed.
-
-  Operator ~sort~ applies ~sortby~ using lexicographical ordering on all 
-  attributes.
-
-  Argument ~Order~ is either a float/integer representing the cost to evaluate 
-  the ordering predicate once, or a list of (Attrname SortOrder) elements.
-
-*/
-
-cost(sortby(X,Order), P, Sel, Card, TX, PredCost, TC, Cost) :- % XRIS: flob loading not yet considered here!
-% A cost function for the ordering predicate built from Pred could be calculated
-  cost(X, P, Sel, Card, TX, PredCost, TC, CostX),
-  cost_factors(RTM, WTM, _, _, _, _, _, _, _, _, MaxMem, _, _),
-  ((float(Order); integer(Order)) *-> B is Order; sortTC(B)),  % get cost for ordering predicate
-  TX = tupleSizeData(TSCx, TSIx, _),
-  Tx is TSCx + TSIx,
-  HeapSize is MaxMem / (Tx + 12),      % determine heapsize in tuples
-  % case1: complete relation fits into memory - no merging needed
-  Card =< HeapSize,
-  % write('\nCase1\n'),
-  MCard is max(1,Card),                % ensure MCard >0
-  Cost is CostX                        % produce argument stream
-        + WTM * Card *0.5 *log(2,MCard)% inserts into heap 
-        + RTM * Card                   % reads from heap 
-        + B * Card * log(2,MCard),     % compare a pair of tuples (building the heap)
-  (optDebug *-> (
-    RTMn is Card,
-    WTMn is Card *0.5 *log(2,MCard),
-    RTDn is 0,
-    WTDn is 0,
-    RPDn is 0,
-    WPDn is 0,
-    FNDn is 0,
-    FDDn is 0,
-    FODn is 0,
-    FCDn is 0,
-    Bn   is Card * log(2,MCard),
-    TCn  is 0,
-    write('\n\nsortby('), write(X), write(','), write(Order), write(') Case1'),
-    write('\n\tCostX: '), write(CostX),
-    write('\n\tRTM: '), write(RTMn),
-    write('\n\tWTM: '), write(WTMn),
-    write('\n\tRTD: '), write(RTDn),
-    write('\n\tWTD: '), write(WTDn),
-    write('\n\tRPD: '), write(RPDn),
-    write('\n\tWPD: '), write(WPDn),
-    write('\n\tFND: '), write(FNDn),
-    write('\n\tFDD:  '), write(FDDn),
-    write('\n\tFOD:  '), write(FODn),
-    write('\n\tFCD:  '), write(FCDn),
-    write('\n\tB  :  '), write(Bn),
-    write('\n\tTC :  '), write(TCn), nl
-  ); true).
-
-
-cost(sortby(X,Order), P, Sel, Card, TX, PredCost, TC, Cost) :-  % XRIS: flob loading not yet considered here!
-% A cost function for the ordering predicate built from Pred could be calculated
-  cost(X, P, Sel, Card, TX, PredCost, TC, CostX),             
-  cost_factors(RTM, WTM, RTD, WTD, _, _, FND, FDD, FOD, FCD, MaxMem, _, _),
-  ((float(Order); integer(Order)) *-> B is Order; sortTC(B)),   % get cost for ordering predicate
-  TX = tupleSizeData(TSCx, TSIx, _),
-  Tx is TSCx + TSIx,
-  HeapSize is max(1,MaxMem / (Tx + 12)),           % determine heapsize in tuples
-  % case2: relation does not fit into memory
-  Card > HeapSize,
-  PartCard is 2 * HeapSize,                        % calculate average cardinality of partion files generated
-  PartNum is ceiling(max(0,(Card-HeapSize)) / max(1,PartCard)),  % calculate average number of partion files, 
-  Cost is CostX                                    % produce argument stream
-        + WTM * max(0,(Card-HeapSize))*0.5*log(2,HeapSize)  % inserts into heap =(Card-HeapSize)*0.5 * O(log HeapSize)
-        + RTM * Card                               % reads from heap =Card * O(1)
-        + WTD * max(0,(Card-HeapSize))             % write tuple to partition file (=Card-HeapSize)
-        + RTD * max(0,(Card-HeapSize))             % read tuple from partition file (=Card-HeapSize)
-        + (FND + FCD + FOD + FDD) * PartNum        % create, close, open and remove a partition file (=PartNum)
-        + B * Card * log(2,HeapSize)               % compare a pair of tuples (partition step)
-        + B * Card * log(2,PartNum+2),             % compare a pair of tuples (merge step)
-  (optDebug *-> (
-    RTMn is Card,
-    WTMn is max(0,(Card-HeapSize))*0.5*log(2,HeapSize),
-    RTDn is max(0,(Card-HeapSize)),
-    WTDn is max(0,(Card-HeapSize)),
-    RPDn is 0,
-    WPDn is 0,
-    FNDn is PartNum,
-    FDDn is PartNum,
-    FODn is PartNum,
-    FCDn is PartNum,
-    Bn   is Card * log(2,HeapSize) + Card * log(2,PartNum+2),
-    TCn  is 0,
-    write('\n\nsortby('), write(X), write(','), write(Order), write(') Case2'),
-    write('\n\tCostX: '), write(CostX),
-    write('\n\tRTM: '), write(RTMn),
-    write('\n\tWTM: '), write(WTMn),
-    write('\n\tRTD: '), write(RTDn),
-    write('\n\tWTD: '), write(WTDn),
-    write('\n\tRPD: '), write(RPDn),
-    write('\n\tWPD: '), write(WPDn),
-    write('\n\tFND: '), write(FNDn),
-    write('\n\tFDD:  '), write(FDDn),
-    write('\n\tFOD:  '), write(FODn),
-    write('\n\tFCD:  '), write(FCDn),
-    write('\n\tB  :  '), write(Bn),
-    write('\n\tTC :  '), write(TCn), nl
-  ); true).
-
-cost(sort(X), P, Sel, CardX, TX, PredCost, TC, Cost) :- % 
-% A cost function for the ordering predicate built from Pred could be calculated
-  cost(sortby(X,lexall), P, Sel, CardX, TX, PredCost, TC, Cost).
-
-
-/*
-  Cost function for operator groupby, as defined in file ``ExtRelationAlgebra.cpp''
-
-  Expects argument to be sorted on GroupAttr.
-  Returns one extended tuple per group.
-
-*/
-cost(groupby(X, _, _), P, Sel, Card, TS, PredCost, TC, Cost) :- 
-% XRIS: cost function missing!
-%cost(groupby(X, GroupAttr, NewAttr-Fun-List), P, Sel, Card, TX, PredCost, TC, Cost) :-
-  % for each tuple: check if GroupAttr-values matches predecessor, then store to buffer
-  % for each group: for each NewAttr: calculate value by evaluating functions - similar to k-times ``extend''
-  cost(X, P, Sel, Card, TS, PredCost, TC, Cost).
-  
-
-/*
-  Cost function for operator ~rdup~. Similar to ~sort~, using comparison to test 
-  on equality of tuples. Only the effords for forwarding and comparison of tuples
-  is considered here.
-
-  Expects a totally ordered input.
-
-*/
-
-cost(rdup(X), P, Sel, Card, TS, PredCost, TC, Cost) :-
-  cost(X, P, Sel, CardX, TS, PredCost, TC, CostX),
-  sortTC(B),
-  Cost is CostX                  % produce argument stream
-        + B * max(0,(CardX-1)),  % compare subsequent tuples for equality
-  Card is CardX * Sel.
-
-
-/*
-  Detailed cost estimation for sortmergejoin
-
-  A realistic cost estimation would need information, like histograms, 
-  on the values of the join attributes. An option would be to recognize only
-  those cases, that perform very bad, because the buffers overflow to disk.
-
-  Problem: We do not know, how large the equivalence classes of $A \times B$ 
-  with respect to ``A=B'' are. So, we even don't know how much of the buffers
-  is used and how many tuples have to be temporarily stored to disk relations.
-
-  For the sake of simplicity we assume, that all tuples with a common join 
-  value fit into memory.
-
-*/
-
-cost(sortmergejoin(X, Y, _, _), P, Sel, ResultCard, 
-     ResultTupleSize, B, TC, Cost) :-
-  cost(sortby(X, B), P, 1, CX, TX, PredCost, TC, CostX),
-  cost(sortby(Y, B), P, 1, CY, TY, PredCost, TC, CostY),
-  cost_factors(RTM, WTM, _, _, RPD, _, _, _, _, _, _, BDBPS, FCMR),
-  addTupleSizes(TX,TY,ResultTupleSize),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  ResultCard is CX * CY * Sel,
-  Cost is CostX + CostY                % producing and sorting the arguments
-        + (CX * ExtFlobSize1)/BDBPS * RPD/FCMR % load flobs
-        + (CY * ExtFlobSize2)/BDBPS * RPD/FCMR % load flobs
-        + WTM * (CX+CY) * sqrt(Sel)    % write tuples to buffer/memory; A BAD ESTIMATION!
-        + B   * (CX+CY)                % compare tuples 
-        + RTM * (CX+CY) * sqrt(Sel)    % read tuples from buffer/memory; A BAD ESTIMATION!
-        + TC  * ResultCard,            % create result tuple
-  (optDebug *-> (
-    RTMn is (CX+CY) * sqrt(Sel),
-    WTMn is (CX+CY) * sqrt(Sel),
-    RTDn is 0,
-    WTDn is 0,
-    RPDn is (CX * ExtFlobSize1)/BDBPS/FCMR + (CY * ExtFlobSize2)/BDBPS/FCMR,
-    WPDn is 0,
-    FNDn is 0,
-    FDDn is 0,
-    FODn is 0,
-    FCDn is 0,
-    Bn   is 0,
-    TCn  is Sel * CX * CY,
-    write('\n\nSortmergejoin('), write(X), write(','), write(Y), write(',_,_)'),
-    write('\n\tCostX: '), write(CostX),
-    write('\n\tCostY: '), write(CostY),
-    write('\n\tRTM: '), write(RTMn),
-    write('\n\tWTM: '), write(WTMn),
-    write('\n\tRTD: '), write(RTDn),
-    write('\n\tWTD: '), write(WTDn),
-    write('\n\tRPD: '), write(RPDn),
-    write('\n\tWPD: '), write(WPDn),
-    write('\n\tFND: '), write(FNDn),
-    write('\n\tFDD:  '), write(FDDn),
-    write('\n\tFOD:  '), write(FODn),
-    write('\n\tFCD:  '), write(FCDn),
-    write('\n\tB  :  '), write(Bn),
-    write('\n\tTC :  '), write(TCn),
-    write('\nNeeded FlobSizes: '), write(ExtFlobSize1), write(ExtFlobSize2), nl
-  ); true).
-
-
-
-/*
-  Cost function for mergejoin
-
-  Same function as for ~sortmergejoin~, just without sorting the argument streams.
-
-*/
-
-cost(mergejoin(X, Y, _, _), P, Sel, ResultCard, ResultTupleSize, B, TC, Cost) :-
-  cost(X, P, 1, CX, TX, PredCost, TC, CostX),
-  cost(Y, P, 1, CY, TY, PredCost, TC, CostY),
-  cost_factors(RTM, WTM, _, _, RPD, _, _, _, _, _, _, BDBPS, FCMR),
-  addTupleSizes(TX,TY,ResultTupleSize),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  ResultCard is CX * CY * Sel,
-  Cost is CostX + CostY                % producing and sorting the arguments
-                                       % XRIS: Individual cost of ordering still not applied!
-        + (CX * ExtFlobSize1)/BDBPS * RPD/FCMR % load flobs
-        + (CY * ExtFlobSize2)/BDBPS * RPD/FCMR % load flobs
-        + WTM * (CX+CY) * sqrt(Sel)    % write tuples to buffer/memory; A BAD ESTIMATION!
-        + B   * (CX+CY)                % compare tuples (B could also be fixed, e.g. 0.001)
-        + RTM * (CX+CY) * sqrt(Sel)    % read tuples from buffer/memory; A BAD ESTIMATION!
-        + TC  * ResultCard.            % create result tuple
-
-/*
-   Quick and dirty cost function for Operator ~mergeunion~
-
-*/
-
-cost(mergeunion(X,Y), P, _, ResultCard, ResultTupleSize, PredCost, TC, Cost) :-
-  cost(X, P, 1, CX, ResultTupleSize, PredCost, TC, CostX),
-  cost(Y, P, 1, CY, ResultTupleSize, PredCost, TC, CostY),
-  sortTC(A),
-  ResultCard is CX + CY,               % neglect cardinality of intersection (similar to concat-operator)
-  Cost is CostX + CostY                % producing and sorting the arguments
-        + A * (CX + CY).               % compare tuples
-
-/*
-  Quick and dirty Cost function for Operator ~mergesec~
-
-*/
-
-cost(mergesec(X,Y), P, _, ResultCard, ResultTupleSize, PredCost, TC, Cost) :-
-  cost(X, P, 1, CX, ResultTupleSize, PredCost, TC, CostX),
-  cost(Y, P, 1, CY, ResultTupleSize, PredCost, TC, CostY),
-  sortTC(A),
-  ResultCard is min(CX,CY),            % not a very good estimation
-  Cost is CostX + CostY                % producing and sorting the arguments
-        + A * (CX + CY).               % compare tuples
-
-
-/*
-   Detailed cost function for ~symmjoin~
-
-*/
-
-cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, P, 1, CX, TX, B, TC, CostX),
-  cost(Y, P, 1, CY, TY, B, TC, CostY),
-  cost_factors(RTM, WTM, _, _, RPD, _, _, _, _, _, MaxMem, BDBPS, FCMR),
-  TX = tupleSizeData(TSCx, TSIx, _),
-  TY = tupleSizeData(TSCy, TSIy, _),
-  Tx is TSCx + TSIx,
-  Ty is TSCy + TSIy,
-  % case1: X and Y fit into memory; OK
-  (CX * (Tx+12)) =< (0.5 * MaxMem), (CY * (Ty+12)) =<  (0.5 * MaxMem),
-  % write('\nSymmjoin Case1\n'),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  (CX =< CY -> (Min is CX, Max is CY, 
-                MinFlob is ExtFlobSize1/BDBPS, 
-                MaxFlob is ExtFlobSize2/BDBPS)
-             ; (Min is CY, Max is CX, 
-                MinFlob is ExtFlobSize2/BDBPS, 
-                MaxFlob is ExtFlobSize1/BDBPS)),
-  addTupleSizes(TX,TY,TupleSize),
-  Cost is CostX + CostY                    % produce arguments
-       + RPD * FCMR * (Min * (Min+1)/2 +       (Max-Min)) * MaxFlob % load flobs
-       + RPD * FCMR * (Min * (Min+1)/2 + Min * (Max-Min)) * MinFlob % load flobs
-       + WTM * 2 * Min                     % write X/Y-tuples to buffer in memory.
-       + B   * Min * Max                   % check join condition
-       + TC  * Min * Max * Sel             % create result tuples  
-       + RTM * (Min*Min + Min*(Max-Min)),  % read X/Y-tuples from memory
-  ResSize is CX * CY * Sel.
-
-cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, P, 1, CX, TX, B, TC, CostX),
-  cost(Y, P, 1, CY, TY, B, TC, CostY),
-  cost_factors(RTM, WTM, RTD, WTD, RPD, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
-  TX = tupleSizeData(TSCx, TSIx, _),
-  TY = tupleSizeData(TSCy, TSIy, _),
-  Tx is TSCx + TSIx,
-  Ty is TSCy + TSIy,
-  OY is min(CY,MaxMem/(2 * Ty)), % from this tuple+1 on, Y will be entirely buffered on disk
-  % case 2.1: X fits in memory, but Y does not; CX =< CY; OY =< CX
-  (CX * (Tx+12)) =< (0.5 * MaxMem), 
-  (CY * (Ty+12)) > (0.5 * MaxMem), CX =< CY, OY =< CX,
-  % write('\nSymmjoin Case2.1\n'),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  addTupleSizes(TX,TY,TupleSize), 
-  Cost is CostX + CostY              % produce arguments
-       + RPD * FCMR * (CX * (CX+1)/2 +      (CY-CX)) * ExtFlobSize2/BDBPS % load flobs
-       + RPD * FCMR * (CX * (CX+1)/2 + CX * (CY-CX)) * ExtFlobSize1/BDBPS % load flobs
-       + WTM * (CX + OY)             % write elements to buffer in memory
-       + B * CX * CY                 % check join condition
-       + TC * CX * CY * Sel          % create result tuples  
-       + RTM * ( OY*OY               
-                +gsf(OY,CX)
-                +(CY-CX)*CX)         % read X/Y-tuples from memory
-       + FND + FDD                   % create and delete tmp file
-       + WTD * CX                    % write Y-tuples to disk
-       + RTD * gsf(OY,CX),           % read Y-tuples from disk
-  ResSize is CX * CY * Sel.
-
-cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, P, 1, CX, TX, B, TC, CostX),
-  cost(Y, P, 1, CY, TY, B, TC, CostY),
-  cost_factors(RTM, WTM, _, _, RPD, _, _, _, _, _, MaxMem, BDBPS, FCMR),
-  TX = tupleSizeData(TSCx, TSIx, _),
-  TY = tupleSizeData(TSCy, TSIy, _),
-  Tx is TSCx + TSIx,
-  Ty is TSCy + TSIy,
-  OY is min(CY,MaxMem/(2 * Ty)),    % from this tuple+1 on, Y will be entirely buffered on disk
-  % case 2.2: X fits in memory, but Y does not; CX =< CY; OY > CX
-  % this case has the same cost function as case1!
-  (CX * (Tx+12)) =< (0.5 * MaxMem), 
-  (CY * (Ty+12)) > (0.5 * MaxMem), CX =< CY, OY > CX,
-  % write('\nSymmjoin Case2.2\n'),
-  addTupleSizes(TX,TY,TupleSize),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  Cost is CostX + CostY              % produce arguments
-       + RPD * FCMR * (CX * (CX+1)/2 +      (CY-CX)) * ExtFlobSize2/BDBPS % load flobs
-       + RPD * FCMR * (CX * (CX+1)/2 + CX * (CY-CX)) * ExtFlobSize1/BDBPS % load flobs
-       + WTM * (CX + CX)             % write X/Y-tuples to buffer in memory
-       + B * CX * CY                 % check join condition
-       + TC * CX * CY * Sel          % create result tuples  
-       + RTM * ( CX*CX
-               +(CY-CX)*CX),         % read X/Y-tuples from memory
-  ResSize is CX * CY * Sel.
- 
-cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, P, 1, CX, TX, B, TC, CostX),
-  cost(Y, P, 1, CY, TY, B, TC, CostY),
-  cost_factors(RTM, WTM, RTD, WTD, _, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
-  TX = tupleSizeData(TSCx, TSIx, _),
-  TY = tupleSizeData(TSCy, TSIy, _),
-  Tx is TSCx + TSIx,
-  Ty is TSCy + TSIy,
-  OY is min(CY,MaxMem/(2 * Ty)),    % from this tuple+1 on, Y will be entirely buffered on disk
-  % case 2.3: X fits in memory, but Y does not; CX > CY
-  (CX * (Tx+12)) =< (0.5 * MaxMem), 
-  (CY * (Ty+12)) > (0.5 * MaxMem), CX > CY,
-  % write('\nSymmjoin Case2.3\n'),
-  addTupleSizes(TX,TY,TupleSize),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  Cost is CostX + CostY              % produce arguments
-       + RPD * FCMR * (CY * (CY+1)/2 +      (CX-CY)) * ExtFlobSize1/BDBPS % load flobs
-       + RPD * FCMR * (CY * (CY+1)/2 + CY * (CX-CY)) * ExtFlobSize2/BDBPS % load flobs
-       + WTM * (CY + OY)             % write X/Y-tuples to buffer in memory
-       + B * CX * CY                 % check join condition
-       + TC * CX * CY * Sel          % create result tuples  
-       + RTM * ( OY*OY
-              +gsf(OY,CY))           % read X/Y-tuples from memory
-       + FND + FDD                   % create and delete tmp file
-       + WTD * CY                    % write Y-tuples to disk
-       + RTD * ( gsf(OY,CY)
-              +(CX-CY)*CY),          % read Y-tuples from disk
-  ResSize is CX * CY * Sel.
-
-cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, P, 1, CX, TX, B, TC, CostX),
-  cost(Y, P, 1, CY, TY, B, TC, CostY),
-  cost_factors(RTM, WTM, RTD, WTD, RPD, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
-  TX = tupleSizeData(TSCx, TSIx, _),
-  TY = tupleSizeData(TSCy, TSIy, _),
-  Tx is TSCx + TSIx,
-  Ty is TSCy + TSIy,
-  OX is min(CX,MaxMem/(2 * Tx)), % from this tuple+1 on, X will be entirely buffered on disk
-  % case 3.1: Y fits in memory, but X does not; CY =< CX; OX =< CY
-  (CY * (Ty+12)) =< (0.5 * MaxMem), 
-  (CX * (Tx+12)) > (0.5 * MaxMem), CY =< CX, OX =< CY, 
-  % write('\nSymmjoin Case3.1\n'),
-  addTupleSizes(TX,TY,TupleSize),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  Cost is CostX + CostY              % produce arguments
-       + RPD * FCMR * (CY * (CY+1)/2 +      (CX-CY)) * ExtFlobSize1/BDBPS % load flobs
-       + RPD * FCMR * (CY * (CY+1)/2 + CY * (CX-CY)) * ExtFlobSize2/BDBPS % load flobs
-       + WTM * (CY + OX)             % write elements to buffer in memory
-       + B * CY * CX                 % check join condition
-       + TC * CY * CX * Sel          % create result tuples  
-       + RTM * ( OX*OX               
-              +gsf(OX,CY)
-              +(CX-CY)*CY)           % read X/Y-tuples from memory
-       + FND + FDD                   % create and delete tmp file
-       + WTD * CY                    % write X-tuples to disk
-       + RTD * gsf(OX,CY),           % read X-tuples from disk
-  ResSize is CY * CX * Sel.
-
-cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, P, 1, CX, TX, B, TC, CostX),
-  cost(Y, P, 1, CY, TY, B, TC, CostY),
-  cost_factors(RTM, WTM, _, _, RPD, _, _, _, _, _, MaxMem, BDBPS, FCMR),
-  TX = tupleSizeData(TSCx, TSIx, _),
-  TY = tupleSizeData(TSCy, TSIy, _),
-  Tx is TSCx + TSIx,
-  Ty is TSCy + TSIy,
-  OX is min(CX,MaxMem/(2 * Tx)),    % from this tuple+1 on, X will be entirely buffered on disk
-  % case 3.2: Y fits in memory, but X does not; CY =< CX; OX > CY
-  % this case has the same cost function as case1!
-  (CY * (Ty+12)) =< (0.5 * MaxMem), 
-  (CX * (Tx+12)) > (0.5 * MaxMem), CY =< CX, OX > CY,
-  % write('\nSymmjoin Case3.2\n'),
-  addTupleSizes(TX,TY,TupleSize),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  Cost is CostX + CostY              % produce arguments
-       + RPD * FCMR * (CY * (CY+1)/2 +      (CX-CY)) * ExtFlobSize1/BDBPS % load flobs
-       + RPD * FCMR * (CY * (CY+1)/2 + CY * (CX-CY)) * ExtFlobSize2/BDBPS % load flobs
-       + WTM * (CY + CY)             % write X/Y-tuples to buffer in memory
-       + B * CY * CX                 % check join condition
-       + TC * CY * CX * Sel          % create result tuples  
-       + RTM * ( CY*CY
-              +(CX-CY)*CY),          % read X/Y-tuples from memory
-  ResSize is CY * CX * Sel.
- 
-cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, P, 1, CX, TX, B, TC, CostX),
-  cost(Y, P, 1, CY, TY, B, TC, CostY),
-  cost_factors(RTM, WTM, RTD, WTD, RPD, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
-  TX = tupleSizeData(TSCx, TSIx, _),
-  TY = tupleSizeData(TSCy, TSIy, _),
-  Tx is TSCx + TSIx,
-  Ty is TSCy + TSIy,
-  OX is min(CX,MaxMem/(2 * Tx)),    % from this tuple+1 on, X will be entirely buffered on disk
-  % case 3.3: Y fits in memory, but X does not; CY > CX
-  (CY * (Ty+12)) =< (0.5 * MaxMem), (CX * (Tx+12)) > (0.5 * MaxMem), CY > CX,
-  % write('\nSymmjoin Case3.3\n'),
-  addTupleSizes(TX,TY,TupleSize),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  Cost is CostX + CostY              % produce arguments
-       + RPD * FCMR * (CX * (CX+1)/2 +      (CY-CX)) * ExtFlobSize2/BDBPS % load flobs
-       + RPD * FCMR * (CX * (CX+1)/2 + CX * (CY-CX)) * ExtFlobSize1/BDBPS % load flobs
-       + WTM * (CX + OX)             % write X/Y-tuples to buffer in memory
-       + B * CY * CX                 % check join condition
-       + TC * CY * CX * Sel          % create result tuples  
-       + RTM * ( OX*OX
-              +gsf(OX,CX))           % read X/Y-tuples from memory
-       + FND + FDD                   % create and delete tmp file
-       + WTD * CX                    % write X-tuples to disk
-       + RTD * ( gsf(OX,CX)
-                +(CY-CX)*CX),        % read X/Y-tuples from disk
-  ResSize is CY * CX * Sel.
-
-cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, P, 1, CX, TX, B, TC, CostX),
-  cost(Y, P, 1, CY, TY, B, TC, CostY),
-  cost_factors(RTM, WTM, RTD, WTD, RPD, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
-  TX = tupleSizeData(TSCx, TSIx, _),
-  TY = tupleSizeData(TSCy, TSIy, _),
-  Tx is TSCx + TSIx,
-  Ty is TSCy + TSIy,
-  OX is min(CX,MaxMem/(2 * Tx)), % from this tuple+1 on, X will be entirely buffered on disk
-  OY is min(CY,MaxMem/(2 * Ty)), % from this tuple+1 on, Y will be entirely buffered on disk
-  % case 4.1: neither X nor Y fit into memory; CX =< CY, OX =< OY
-  (CX * (Tx+12)) > (0.5 * MaxMem), 
-  (CY * (Ty+12)) > (0.5 * MaxMem), CX =< CY, OX =< OY,
-  % write('\nSymmjoin Case4.1\n'),
-  addTupleSizes(TX,TY,TupleSize),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  Cost is CostX + CostY
-       + RPD * FCMR * (CX * (CX+1)/2 +      (CY-CX)) * ExtFlobSize2/BDBPS % load flobs
-       + RPD * FCMR * (CX * (CX+1)/2 + CX * (CY-CX)) * ExtFlobSize1/BDBPS % load flobs
-       + WTM * (OX + OY)             % write elements to buffer in memory
-       + B * CX * CY                 % check join condition
-       + TC * CX * CY * Sel          % create result tuples  
-       + RTM * ( OX*OX                 
-              +gsf(OX,OY)            
-              +(CY-CX)*CX)           % read X/Y-tuples from memory
-       + 2 * (FND + FDD)             % create and delete tmp files
-       + WTD * (CX*CY)               % write X/Y-tuples to disk
-       + RTD * ( gsf(OX,OY)            
-              +gsf(OY,CX)            
-              +(CY-CX)*CX),          % read X/Y-tuples from disk
-  ResSize is CX * CY * Sel.
-
-cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, P, 1, CX, TX, B, TC, CostX),
-  cost(Y, P, 1, CY, TY, B, TC, CostY),
-  cost_factors(RTM, WTM, RTD, WTD, RPD, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
-  TX = tupleSizeData(TSCx, TSIx, _),
-  TY = tupleSizeData(TSCy, TSIy, _),
-  Tx is TSCx + TSIx,
-  Ty is TSCy + TSIy,
-  OX is min(CX,MaxMem/(2 * Tx)), % from this tuple+1 on, X will be entirely buffered on disk
-  OY is min(CY,MaxMem/(2 * Ty)), % from this tuple+1 on, Y will be entirely buffered on disk
-  % case 4.2: neither X nor Y fit into memory; CX =< CY, OX > OY
-  (CX * (Tx+12)) > (0.5 * MaxMem), 
-  (CY * (Ty+12)) > (0.5 * MaxMem), CX =< CY, OX > OY,
-  % write('\nSymmjoin Case4.2\n'),
-  addTupleSizes(TX,TY,TupleSize),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  Cost is CostX + CostY
-       + RPD * FCMR * (CX * (CX+1)/2 +      (CY-CX)) * ExtFlobSize2/BDBPS % load flobs
-       + RPD * FCMR * (CX * (CX+1)/2 + CX * (CY-CX)) * ExtFlobSize1/BDBPS % load flobs
-       + WTM * (OX + OY)             % write elements to buffer in memory.
-       + B * CX * CY                 % check join condition
-       + TC * CX * CY * Sel          % create result tuples  
-       + RTM * ( OY*OY
-              +gsf(OY,CX)
-              +(CY-CX)*CX)           % read X/Y-tuples from memory
-       + 2 * (FND + FDD)             % create and delete tmp files
-       + WTD * (CX*CY)               % write X/Y-tuples to disk
-       + RTD * ( gsf(OY,OX)
-                +gsf(OX,CX)
-                +(CY-CX)*CX),        % read X/Y-tuples from disk
-  ResSize is CX * CY * Sel.
-
-cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, P, 1, CX, TX, B, TC, CostX),
-  cost(Y, P, 1, CY, TY, B, TC, CostY),
-  cost_factors(RTM, WTM, RTD, WTD, RPD, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
-  TX = tupleSizeData(TSCx, TSIx, _),
-  TY = tupleSizeData(TSCy, TSIy, _),
-  Tx is TSCx + TSIx,
-  Ty is TSCy + TSIy,
-  OX is min(CX,MaxMem/(2 * Tx)), % from this tuple+1 on, X will be entirely buffered on disk
-  OY is min(CY,MaxMem/(2 * Ty)), % from this tuple+1 on, Y will be entirely buffered on disk
-  % case 4.3: neither X nor Y fit into memory; CY =< CX, OY =< OX
-  (CX * (Tx+12)) > (0.5 * MaxMem), 
-  (CY * (Ty+12)) > (0.5 * MaxMem), CY =< CX, OY =< OX,
-  % write('\nSymmjoin Case4.3\n'),
-  addTupleSizes(TX,TY,TupleSize),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  Cost is CostX + CostY
-       + RPD * FCMR * (CY * (CY+1)/2 +      (CX-CY)) * ExtFlobSize1/BDBPS % load flobs
-       + RPD * FCMR * (CY * (CY+1)/2 + CY * (CX-CY)) * ExtFlobSize2/BDBPS % load flobs
-       + WTM * (OY + OX)             % write elements to buffer in memory.
-       + B * CY * CX                 % check join condition
-       + TC * CY * CX * Sel          % create result tuples  
-       + RTM * ( OY*OY
-              +gsf(OY,OX)
-              +(CX-CY)*CY)           % read X/Y-tuples from memory
-       + 2 * (FND + FDD)             % create and delete tmp files
-       + WTD * (CY*CX)               % write X/Y-tuples to disk
-       + RTD * ( gsf(OY,OX)
-                +gsf(OX,CY)
-                +(CX-CY)*CY),        % read X/Y-tuples from disk
-  ResSize is CY * CX * Sel.
-
-cost(symmjoin(X, Y, _), P, Sel, ResSize, TupleSize, B, TC, Cost) :-
-  cost(X, P, 1, CX, TX, B, TC, CostX),
-  cost(Y, P, 1, CY, TY, B, TC, CostY),
-  cost_factors(RTM, WTM, RTD, WTD, RPD, _, FND, FDD, _, _, MaxMem, BDBPS, FCMR),
-  TX = tupleSizeData(TSCx, TSIx, _),
-  TY = tupleSizeData(TSCy, TSIy, _),
-  Tx is TSCx + TSIx,
-  Ty is TSCy + TSIy,
-  OX is min(CX,MaxMem/(2 * Tx)), % from this tuple+1 on, X will be entirely buffered on disk
-  OY is min(CY,MaxMem/(2 * Ty)), % from this tuple+1 on, Y will be entirely buffered on disk
-  % case 4.4: neither X nor Y fit into memory; CY =< CX, OY > OX
-  (CX * (Tx+12)) > (0.5 * MaxMem), 
-  (CY * (Ty+12)) > (0.5 * MaxMem), CY =< CX, OY > OX,
-  % write('\nSymmjoin Case4.4\n'),
-  addTupleSizes(TX,TY,TupleSize),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2),
-  Cost is CostX + CostY
-       + RPD * FCMR * (CY * (CY+1)/2 +      (CX-CY)) * ExtFlobSize1/BDBPS % load flobs
-       + RPD * FCMR * (CY * (CY+1)/2 + CY * (CX-CY)) * ExtFlobSize2/BDBPS % load flobs
-       + WTM * (OY + OX)             % write elements to buffer in memory.
-       + B * CY * CX                 % check join condition
-       + TC * CY * CX * Sel          % create result tuples  
-       + RTM * ( OX*OX
-              +gsf(OX,CY)
-              +(CX-CY)*CY)           % read X/Y-tuples from memory
-       + 2 * (FND + FDD)             % create and delete tmp files
-       + WTD * (CY*CX)               % write X/Y-tuples to disk
-       + RTD * ( gsf(OX,OY)
-                +gsf(OY,CY)
-                +(CX-CY)*CY),        % read X/Y-tuples from disk
-  ResSize is CX * CY * Sel.
-
-cost(extend(X, _), P, Sel, S, TupleSize, PredCost, TC, C) :-
-  cost(X, P, Sel, S, TupleSize1, PredCost, TC, C1),
-  addTupleSizes(TupleSize1, tupleSizeData(12,0,0), TupleSize), 
-  % XRIS: TupleSize should be increased by the real extension size
-  extendTC(A),
-  C is C1 + A * S.                   % XRIS: costs for evaluation of mapping to generate value 
-                                     %       for new attributes not yet considered!
-
-cost(remove(X, _), P, Sel, S, TupleSize, PredCost, TC, C) :-
-  cost(X, P, Sel, S, TupleSize1, PredCost, TC, C1),
-  addTupleSizes(TupleSize1,tupleSizeData(-12,0,0), TupleSize), 
-  % XRIS: TupleSize should be decreased by the real removal size
-  removeTC(A),
-  C is C1 + A * S.
-
-cost(project(X, _), P, Sel, S, TupleSize, PredCost, TC, C) :-
-  cost(X, P, Sel, S, TupleSize, PredCost, TC, C1), 
-  % XRIS: TupleSize should be reduced according to the projection!
-  projectTC(A,B),
-  TupleSize = tupleSizeData(TSC, TSI, _),
-  C is C1 + max(A*S, B*S*(TSC+TSI)).
-
-cost(rename(X, _), P, Sel, S, TupleSize, PredCost, TC, C) :-
-  cost(X, P, Sel, S, TupleSize, PredCost, TC, C1),
-  renameTC(A),
-  C is C1 + A * S.
-
-cost(head(X, N), P, Sel, Card, TupleSize, PredCost, TC, Cost) :-
-  cost(X, P, Sel, CX, TupleSize, PredCost, TC, C1),
-  aggregateTC(B),
-  Card is min(N, CX),
-  Cost is C1                              % create argument
-        + B * Card.                       % overhead for counting each tuple
-
-cost(counter(X, _), P, Sel, S, TupleSize, PredCost, TC, C) :-
-  cost(X, P, Sel, S, TupleSize, PredCost, TC, C).
-
-
-%fapra1590
-% See cost(leftrange(...),...) for comments on future refinements.
-cost(windowintersects(_, Rel, _), P, Sel, Size, TupleSize, B, TC, Cost) :-
-  cost(Rel, P, 1, RelSize, TupleSize, TC, B, _),
-  cost_factors(_,_,_,_,RPD,_,_,_,FOD,FCD,_, _, _),
-  Size is Sel * RelSize,
-  Cost is FOD + FCD                       % open/close RTree file        
-        + B * (log(15,RelSize)+Size)      % find all matches,           later: B * (Height + K/2)
-        + RPD * log(15,RelSize)           % read index pages from disk, later: D * (Height + Sel*RelSize/K)
-        + TC * Sel * RelSize.             % produce tuple stream
-
-
-/*
-
-  Cost function for operator spatialjoin as defined in file PlugJoinAlgebra.cpp.
-  The smaller relation should be passed as the inner relation (Y), as it is used
-  to build an index (R[*]Tree), while tuples from the outer relation are queried 
-  against the index. The join performs a test on intersection of BBoxes.
-
-  1 All records of Y fit into memory. getMaxLeaves() returns infinite, number of 
-    leaves remains unlimited. 
-
-  2 Y does not completely fit into memory. X and Y will be partitioned pairwise. 
-    Each pair of partitions corresponds to one leaf of the index, getMaxLeaves() 
-    determines how many pairs of partitions are created.
-    As long as getMaxLeaves() is not reached, tuples from Y are inserted into
-    the Rtree. After the treshold getMaxLeaves() is passed, any overflow in a 
-    leaf does not result in a structural change of the tree, but the tuple is 
-    simply written to into the according Y-partition file. Partition files are 
-    organized in buckets of size MaxMem/\#leaves.
-    
-    When all Y-tuples have been processed, each leaf in the RTree is examined. 
-    If its Y-partition is not empty, all tuples from that leaf are flushed to 
-    that Y-partition.
-
-    Now, all tuples from X are processed: Each tuple is queried against the 
-    Rtree and directed to all leaves and Y-partitions that might contain join
-    partners (replication of x may occur). If a leaf is empty, x is spooled to
-    the S-partition of that leaf, otherwise the join results are immeadeatly 
-    reported.
-
-    When all queries are processed, the Rtree is deleted and the operator is 
-    restarted recursively for each partition with non-empty S- and R-part on 
-    disk.
-
-    Splitting an R[star]-tree costs $O(d \cdot M \log_2 M)$, for node capacity 
-    $M$, number of dimensions $d$. 
-
-    $\mbox{height}(Y) = \log_M (Y)$, $\mbox{nodes}(Y) = M^{\mbox{height}(Y)-1}$ 
-    
-    Creating an R[star]-tree ideally causes $\mbox{nodes}(Y) = M^{\mbox{height}(Y)-1}-1$ 
-    splits.
-
-*/
-
-
-cost(spatialjoin(X,Y,_,_,D), P, Sel, Size, TupleSize, B, TC, Cost) :- 
-  % XRIS: Flobs not yet considered
-  % D is the dimension of the joinattributes' bounding boxes
-  cost(X, P, 1, CX, TX, B, TC, CostX),
-  cost(Y, P, 1, CY, TY, B, TC, CostY),
-  cost_factors(RTM,WTM,_,_,RPD,WPD,FND,FDD,FOD,FCD,MaxMem,BDBPS,FCMR),
-  TX = tupleSizeData(TSCx, TSIx, TSEx),
-  TY = tupleSizeData(TSCy, TSIy, TSEy),
-  Tx is TSCx + TSIx,
-  Ty is TSCy + TSIy,
-  addTupleSizes(TX,TY,TupleSize),
-  getNeededExtFlobSize(P, ExtFlobSize1, ExtFlobSize2), % Flobs should not be needed...
-  Size is Sel * CX * CY,
-  MaxLeaves  is max(0,(MaxMem/(Ty+24))),        % determine number of leaves fitting into in-memory Rtree
-  PartNumber is max(0,ceiling(CY/MaxLeaves)-1), % determine how many partitions will be created
-  ( PartNumber > 1 -> 
-               (
-                  PartSizeY  is (CY-MaxLeaves)/PartNumber, % determine average size of spooled partitions
-                  PartSizeX  is (CX/CY)*PartSizeY, 
-                  % estimate cost for one recursive call:
-                  cost(spatialjoin(fixed(PartSizeX,TX),
-                       fixed(PartSizeY,TY),_,_,D), P, Sel, _, _, B, TC, CostR)
-               )
-	      ;(
-                  CostR is 0
-               )
-  ),
-         
-/*
-  MaxLeavesOfRtree      is 10000, % parameter found in PlugJoinAlgebra.h
-  MinLeaveOfRtree       is    40, % parameter found in PlugJoinAlgebra.h
-  DefaultEntriesPerNode is    15, % parameter found in PlugJoinAlgebra.h
-  ScalingFactor         is    17, % parameter found in PlugJoinAlgebra.h
-  NodesToUse is max(min((ScalingFactor*(CX+CY)/(DefaultEntriesPerNode*MaxLeavesOfRtree)+1.0),
-                         MaxLeavesOfRtree),
-                    MinLeaveOfRtree), % found in PlugAndJoinAlgebra.cpp
-
-*/
-  Height = max(1,log(15,min(MaxLeaves,CY))),% fanout/node capacity set to 15 
-  M = min(MaxLeaves, CY),
-  INSERT_CONST is (RTM + WTM),  
-  QUERY_CONST  is RTM * Height,
-  SPLIT_CONST  is (RTM + WTM) * D * M * Height,
-
-  Cost is CostX + CostY                     % produce arguments
-        + INSERT_CONST * max(0,(CY-M))      % insert Y-tuples into Rtree
-        + SPLIT_CONST * (15 ** (Height-1))  % resolve splits on insertions
-        + QUERY_CONST * CX                  % query X-tuple against Rtree  
-                                            % spool Y-tuples to partition file
-        + (WPD+RPD) * ceiling((CY-M)*(Ty+TSEy)/BDBPS)
-                                            % spool X-tuples to partition file 
-        + (WPD+RPD) * ceiling(CX * (1 - M/CY)*(Tx+TSEx)/BDBPS)
-        + (FND+FOD+FCD+FDD) * PartNumber    % handle partitions on disk
-        + CostR * PartNumber                % cost for recursive calls
-        + TC * Sel * M * CX * M/CY.         % create result tuples
-  
 
 /*
 8.2 Creating Cost Edges
@@ -3817,7 +2419,7 @@ Example:
 This example also shows that the where-clause may be omitted. It is also
 possible to combine grouping and ordering:
 
-----    select [ort, min(plz) as minplz, max(plz) as maxplz,  count(*) as cntplz]
+----    select [ort, min(plz) as minplz, max(plz) as maxplz, count(*) as cntplz]
         from plz
         where plz > 40000
         groupby ort
@@ -4148,34 +2750,46 @@ isAttribute(Name, Rel) :-
 /*
 11.3.5 Modification of the Where-Clause
 
+
+03/10/2006: (C. Duentgen) Enabled optimizer to process even predicates with more 
+            than two occurences of attributes, as long as at most 2 relations 
+            are concerned, e.g. something like $a+a>b$, a and b being attributes 
+            of relations A resp. B, is now accepted.
+
 */
 
 lookupPreds([], []).
 
-lookupPreds([P | Ps], [P2 | P2s]) :- !,
+lookupPreds([P | Ps], [P2 | P2s]) :- 
   lookupPred(P, P2),
-  lookupPreds(Ps, P2s).
+  lookupPreds(Ps, P2s), !.
 
 lookupPreds(Pred, Pred2) :-
   not(is_list(Pred)),
-  lookupPred(Pred, Pred2).
-
+  lookupPred(Pred, Pred2), !.
 
 lookupPred(Pred, pr(Pred2, Rel)) :-
-  lookupPred1(Pred, Pred2, 0, [], 1, [Rel]), !.
+  lookupPred1(Pred, Pred2, 0, [], _, [Rel]), 
+  dm(lookup,['lookupPred1(',Pred,', pr(',Pred2,', ',Rel,'))',' Case1']),
+  !.
 
 lookupPred(Pred, pr(Pred2, Rel1, Rel2)) :-
-  lookupPred1(Pred, Pred2, 0, [], 2, [Rel1, Rel2]), !.
+  lookupPred1(Pred, Pred2, 0, [], _, [Rel1, Rel2]), 
+  dm(lookup,['lookupPred1(',Pred,', pr(',Pred2,', ',Rel1,', ',Rel2,'))',' Case2']),
+  !.
 
 lookupPred(Pred, _) :-
-  lookupPred1(Pred, _, 0, [], 0, []),
-  write('Error in query: constant predicate is not allowed.'), nl, fail, !.
+  lookupPred1(Pred, _, 0, [], _, []),
+  write('Error in query: Predicate \''),  write(Pred),
+  write('\' is a constant. This is not allowed.'), nl, fail, !.
 
 lookupPred(Pred, _) :-
-  lookupPred1(Pred, _, 0, [], N, _),
+  lookupPred1(Pred, _, 0, [], _, Rels),
+  length(Rels, N),
   N > 2,
-  write('Error in query: predicate involving more than two relations '),
-  write('is not allowed.'), nl, fail.
+  write('Error in query: Predicate \''), write(Pred), 
+  write('\' involves more than two relations. '),
+  write('This is not allowed.'), nl, fail, !.
 
 /*
 ----    lookupPred1(+Pred, -Pred2, +N, +RelsBefore, -M, -RelsAfter) :-
@@ -4188,23 +2802,32 @@ found.
 
 */
 
-lookupPred1(Var:Attr, attr(Var:Attr2, N1, Case), N, RelsBefore, N1, RelsAfter)
+lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), N, RelsBefore, N1, RelsAfter)
   :-
-  variable(Var, Rel2), !,   Rel2 = rel(Rel, _, _),
+  variable(Var, Rel2), !, Rel2 = rel(Rel, _, _),
   spelled(Rel:Attr, attr(Attr2, X, Case)),
-  assert(usedAttr(Rel2, attr(Attr2, X, Case))),
   N1 is N + 1,
-  append(RelsBefore, [Rel2], RelsAfter),
+  ( memberchk(Rel2, RelsBefore) 
+      -> RelsAfter = RelsBefore
+       ; append(RelsBefore, [Rel2], RelsAfter)
+  ),
+  nth1(Index,RelsAfter,Rel2),
+  assert(usedAttr(Rel2, attr(Attr2, X, Case))),
   !.
 
-lookupPred1(Attr, attr(Attr2, N1, Case), N, RelsBefore, N1, RelsAfter) :-
+lookupPred1(Attr, attr(Attr2, Index, Case), N, RelsBefore, N1, RelsAfter) :-
   isAttribute(Attr, Rel), !,
   spelled(Rel:Attr, attr(Attr2, X, Case)),
   queryRel(Rel, Rel2),
-  assert(usedAttr(Rel2, attr(Attr2, X, Case))),
   N1 is N + 1,
-  append(RelsBefore, [Rel2], RelsAfter),
+  ( memberchk(Rel2, RelsBefore)
+      -> RelsAfter = RelsBefore
+       ; append(RelsBefore, [Rel2], RelsAfter)
+  ),
+  nth1(Index,RelsAfter,Rel2),
+  assert(usedAttr(Rel2, attr(Attr2, X, Case))),
   !.
+
 
 /*
 
@@ -4329,7 +2952,7 @@ translate(Query groupby Attrs,
   % determine extra costs for 'groupby(sort(...),...)'
   cost(groupby(sortby(Arg,AttrNamesSort),
                AttrNamesGroup,Fields),*,1,ResCard,ResTupleSize,0,0,Cost2),
-  dm(['External cost (6) for groupby(sortby(...,',AttrNamesSort,')',
+  dm(externalcost,['External cost (6) for groupby(sortby(...,',AttrNamesSort,')',
       AttrNamesGroup,',',Fields,'): ',Cost2,'\n']),
   setCurrentResultSizes(ResCard,ResTupleSize),
   ppCostFactor(PPCF),
@@ -4522,7 +3145,7 @@ queryToPlan(Query, count(Stream), Cost) :-
   queryToStream(Query, Stream, Cost1),
   getCurrentResultSizes(Arg),
   cost(count(Arg), *, 1, _, _, 0, 0, Cost2), % extra costs for count(...)
-  dm(['External cost for count(...): ', Cost2, '\n']),
+  dm(externalcost,['External cost for count(...): ', Cost2, '\n']),
   ppCostFactor(PPCF),
   Cost is Cost1 + Cost2 * PPCF,
   !.
@@ -4531,7 +3154,7 @@ queryToPlan(Query, consume(Stream), Cost) :-
   queryToStream(Query, Stream, Cost1),
   getCurrentResultSizes(Arg),
   cost(consume(Arg), *, 1, _, _, 0, 0, Cost2), % extra costs for consume(...)
-  dm(['External cost for consume(...): ', Cost2, '\n']),
+  dm(externalcost,['External cost for consume(...): ', Cost2, '\n']),
   ppCostFactor(PPCF),
   Cost is Cost1 + Cost2 * PPCF,
   !.
@@ -4572,7 +3195,7 @@ queryToStream(Query first N, head(Stream, N), Cost) :-
   ATerm = fixed(_,TupleSize),
   % determine extra costs for head(...)
   cost(head(Arg, N), *, 1, ResCard, _, 0, 0, Cost2),
-  dm(['External cost (1) for head(...,', N, '): ', Cost2, '\n']),
+  dm(externalcost,['External cost (1) for head(...,', N, '): ', Cost2, '\n']),
   setCurrentResultSizes(ResCard,TupleSize), 
   % XRIS: reduce result cardinality at least for final ``consume''
   ppCostFactor(PPCF),
@@ -4588,13 +3211,18 @@ queryToStream(Query orderby SortAttrs, Stream2, Cost) :- % OK
   term_to_atom(Arg, ArgA),
   term_to_atom(Stream, StreamA),
   term_to_atom(Stream2, Stream2A),
-  sub_atom(Stream2A, PrefixLen, _, SuffixLen, StreamA),     % get positions of Stream in Stream2
-  sub_atom(Stream2A, 0, PrefixLen, _, PrefixA),             % get Prefix of Stream in Stream2
-  sub_atom(Stream2A, _, SuffixLen, 0, SuffixA),             % get Suffix of Stream in Stream2
+  sub_atom(Stream2A, PrefixLen, _, SuffixLen, StreamA),     
+% get positions of Stream in Stream2
+  sub_atom(Stream2A, 0, PrefixLen, _, PrefixA),             
+% get Prefix of Stream in Stream2
+  sub_atom(Stream2A, _, SuffixLen, 0, SuffixA),             
+% get Suffix of Stream in Stream2
   concat_atom([PrefixA, ArgA, SuffixA], CostTermA),         
   term_to_atom(CostTerm, CostTermA),
-  cost(CostTerm, *, 1, ResCard, ResTupleSize, 0, 0, Cost2), % determine extra costs for sort and project
-  dm(['External cost (2) for ', PrefixA, '...', SuffixA, ': ', Cost2, '\n']),
+  cost(CostTerm, *, 1, ResCard, ResTupleSize, 0, 0, Cost2), 
+% determine extra costs for sort and project
+  dm(externalcost,
+     ['External cost (2) for ', PrefixA, '...', SuffixA, ': ', Cost2, '\n']),
   setCurrentResultSizes(ResCard,ResTupleSize),
   ppCostFactor(PPCF),
   Cost is Cost1 + Cost2 * PPCF,
@@ -4607,13 +3235,18 @@ queryToStream(Select from Rels where Preds, Stream2, Cost) :- % OK
   term_to_atom(Arg, ArgA),
   term_to_atom(Stream, StreamA),
   term_to_atom(Stream2, Stream2A),
-  sub_atom(Stream2A, PrefixLen, _, SuffixLen, StreamA),     % get positions of Stream in Stream2
-  sub_atom(Stream2A, 0, PrefixLen, _, PrefixA),             % get Prefix of Stream in Stream2
-  sub_atom(Stream2A, _, SuffixLen, 0, SuffixA),             % get Suffix of Stream in Stream2
+  sub_atom(Stream2A, PrefixLen, _, SuffixLen, StreamA),     
+% get positions of Stream in Stream2
+  sub_atom(Stream2A, 0, PrefixLen, _, PrefixA),             
+% get Prefix of Stream in Stream2
+  sub_atom(Stream2A, _, SuffixLen, 0, SuffixA),             
+% get Suffix of Stream in Stream2
   concat_atom([PrefixA, ArgA, SuffixA], CostTermA),         
   term_to_atom(CostTerm, CostTermA),
-  cost(CostTerm, *, 1, ResCard, ResTupleSize, 0, 0, Cost2), % determine extra costs for project etc
-  dm(['External cost (3) for ', PrefixA, '...', SuffixA, ': ', Cost2, '\n']),
+  cost(CostTerm, *, 1, ResCard, ResTupleSize, 0, 0, Cost2), 
+% determine extra costs for project etc
+  dm(externalcost,
+     ['External cost (3) for ', PrefixA, '...', SuffixA, ': ', Cost2, '\n']),
   setCurrentResultSizes(ResCard,ResTupleSize),
   ppCostFactor(PPCF),
   Cost is Cost1 + Cost2 * PPCF,
@@ -4627,13 +3260,18 @@ queryToStream(Select from Rels groupby Attrs, Stream2, Cost) :- % OK
   term_to_atom(Arg, ArgA),
   term_to_atom(Stream, StreamA),
   term_to_atom(Stream2, Stream2A),
-  sub_atom(Stream2A, PrefixLen, _, SuffixLen, StreamA),     % get positions of Stream in Stream2
-  sub_atom(Stream2A, 0, PrefixLen, _, PrefixA),             % get Prefix of Stream in Stream2
-  sub_atom(Stream2A, _, SuffixLen, 0, SuffixA),             % get Suffix of Stream in Stream2
+  sub_atom(Stream2A, PrefixLen, _, SuffixLen, StreamA),     
+% get positions of Stream in Stream2
+  sub_atom(Stream2A, 0, PrefixLen, _, PrefixA),             
+% get Prefix of Stream in Stream2
+  sub_atom(Stream2A, _, SuffixLen, 0, SuffixA),             
+% get Suffix of Stream in Stream2
   concat_atom([PrefixA, ArgA, SuffixA], CostTermA),
   term_to_atom(CostTerm, CostTermA),
-  cost(CostTerm, *, 1, ResCard, ResTupleSize, 0, 0, Cost2), % determine extra costs for project etc
-  dm(['External cost (4) for ', PrefixA, '...', SuffixA, ': ', Cost2, '\n']),
+  cost(CostTerm, *, 1, ResCard, ResTupleSize, 0, 0, Cost2), 
+% determine extra costs for project etc
+  dm(externalcost,
+     ['External cost (4) for ', PrefixA, '...', SuffixA, ': ', Cost2, '\n']),
   setCurrentResultSizes(ResCard,ResTupleSize),
   ppCostFactor(PPCF),
   Cost is Cost1 + Cost2 * PPCF,
@@ -4646,13 +3284,18 @@ queryToStream(Query, Stream2, Cost) :-
   term_to_atom(Arg, ArgA),
   term_to_atom(Stream, StreamA),
   term_to_atom(Stream2, Stream2A),
-  sub_atom(Stream2A, PrefixLen, _, SuffixLen, StreamA),   % get positions of Stream in Stream2
-  sub_atom(Stream2A, 0, PrefixLen, _, PrefixA),             % get Prefix of Stream in Stream2
-  sub_atom(Stream2A, _, SuffixLen, 0, SuffixA),             % get Suffix of Stream in Stream2
+  sub_atom(Stream2A, PrefixLen, _, SuffixLen, StreamA),     
+% get positions of Stream in Stream2
+  sub_atom(Stream2A, 0, PrefixLen, _, PrefixA),             
+% get Prefix of Stream in Stream2
+  sub_atom(Stream2A, _, SuffixLen, 0, SuffixA),             
+% get Suffix of Stream in Stream2
   concat_atom([PrefixA, ArgA, SuffixA], CostTermA),
   term_to_atom(CostTerm, CostTermA),
-  cost(CostTerm, *, 1, ResCard, ResTupleSize, 0, 0, Cost2), % determine extra costs for project etc
-  dm(['External cost (5) for ', PrefixA, '...', SuffixA, ': ', Cost2, '\nl']),
+  cost(CostTerm, *, 1, ResCard, ResTupleSize, 0, 0, Cost2), 
+% determine extra costs for project etc
+  dm(externalcost,
+     ['External cost (5) for ', PrefixA, '...', SuffixA, ': ', Cost2, '\n']),
   setCurrentResultSizes(ResCard,ResTupleSize),
   ppCostFactor(PPCF),
   Cost is Cost1 + Cost2 * PPCF,
@@ -4663,7 +3306,8 @@ queryToStream(Query, Stream2, Cost) :-
 ----
 
 Given a ~Stream~, a ~Select~ clause, and a set of attributes for sorting,
-apply the final tranformations (extend, project, duplicate removal, sorting) to obtain ~Stream2~.
+apply the final tranformations (extend, project, duplicate removal, sorting) 
+to obtain ~Stream2~.
 
 */
 
@@ -4876,7 +3520,8 @@ showExample(Nr, Query) :-
   nl, write('SQL: '), write(Query), nl, nl.
 
 example(Nr) :- showExample(Nr, Query), optimize(Query).
-example(Nr, Query, Cost) :- showExample(Nr, Example), optimize(Example, Query, Cost).
+example(Nr, Query, Cost) :- 
+  showExample(Nr, Example), optimize(Example, Query, Cost).
 
 
 /*
@@ -5107,7 +3752,8 @@ mStreamOptimize(union [Term | Terms], Query, Cost) :-
   mStreamOptimize(union Terms, Plan2, Cost2),
   getCurrentResultSizes(Arg2),
   concat_atom([Plan1, 'sort rdup ', Plan2, 'mergeunion '], '', Query), 
-  cost(mergeunion(Arg1, rdup(sort(Arg2))), *, 1, ResCard, ResTupleSize, 0, 0, Cost3),
+  cost(mergeunion(Arg1, 
+                  rdup(sort(Arg2))), *, 1, ResCard, ResTupleSize, 0, 0, Cost3),
   setCurrentResultSizes(ResCard, ResTupleSize),
   Cost is Cost1 + Cost2 + Cost3.
 
@@ -5125,7 +3771,8 @@ mStreamOptimize(intersection [Term | Terms], Query, Cost) :-
   mStreamOptimize(intersection Terms, Plan2, Cost2), 
   getCurrentResultSizes(Arg2),
   concat_atom([Plan1, 'sort rdup ', Plan2, 'mergesec '], '', Query),
-  cost(mergesec(Arg1, rdup(sort(Arg2))), *, 1, ResCard, ResTupleSize, 0, 0, Cost3),
+  cost(mergesec(Arg1, 
+                rdup(sort(Arg2))), *, 1, ResCard, ResTupleSize, 0, 0, Cost3),
   setCurrentResultSizes(ResCard, ResTupleSize),
   Cost is Cost1 + Cost2 + Cost3.
 
@@ -5159,6 +3806,9 @@ Print debugging information
 Predicate ~dm/1~ can be used as ~write~/1. Output is printed when option
 optDebug is defined (see file operators.pl).
 
+Predicate ~dm(mode,message)~ writes ~message~ if ~optDebugLevel(mode)~ 
+or ~optDebugLevel(all)~ is defined.
+
 */
 
 dm([]) :- !.
@@ -5175,7 +3825,12 @@ dm(X) :-
   !.
 
 dm(_) :- !.
+  
+dm(Level, X) :-
+  (optDebugLevel(Level) ; optDebugLevel(all)),
+  dm(X).
 
+dm(_,_) :- !.
   
 /*
 
@@ -5249,7 +3904,8 @@ given as complex terms.
 calculateProjectedTupleSizeA(RelName, [AttrName], 
                              CoreTupleSize, InFlobSize, ExtFlobSize) :-
   databaseName(DB),
-  storedAttrSize(DB, RelName, AttrName, _, CoreTupleSize, InFlobSize, ExtFlobSize).
+  storedAttrSize(DB, RelName, AttrName, _, 
+                 CoreTupleSize, InFlobSize, ExtFlobSize).
 
 calculateProjectedTupleSizeA(RelName, [AttrName|Rest], 
                              CoreTupleSize, InFlobSize, ExtFlobSize) :-
@@ -5311,7 +3967,7 @@ rewriteQuery(Query, RewrittenQuery) :-
   rewriteQueryForInferenceOfPredicates(RQuery1, RQuery2),
   rewriteQueryForRedundancy(RQuery2, RQuery3),
   rewriteQueryForCSE(RQuery3, RewrittenQuery),
-  dm(['\nRewriting \n---------\nOriginal Query: ', Query, 
+  dm(rewriting,['\nRewriting \n---------\nOriginal Query: ', Query, 
       '\n\nAfter Rewriting Stage 1: Expanding Macros:\n', RQuery1,
       '\n\nAfter Rewriting Stage 2: Infer Predicates:\n', RQuery2,
       '\n\nAfter Rewriting Stage 3: Remove redundancies:\n', RQuery3, 
@@ -5320,7 +3976,7 @@ rewriteQuery(Query, RewrittenQuery) :-
 
 /*
 
-14.0 Makros: with $\ldots$ in
+14.1 Makros: with $\ldots$ in
 
 In Queries, users are allowed to define makros. Makros can be used within the
 query and are expanded automatically. A makro declaration is noted as 
@@ -5372,7 +4028,8 @@ extractMacros(QueryIn, QueryOut) :-
 extractMacros(with(_), _) :-
   write('\nERROR: Correct syntax for using macros in queries is \n'),
   write('           \'sql with <macro> as <mnemo> in <query>.\'\n'),
-  write('           \'sql with [<macro> as <mnemo> {, <macro> as <mnemo>}] in <query>.\'.\n'), 
+  write('           \'sql with [<macro> as <mnemo> {, <macro> as <mnemo>}] '),
+  write('in <query>.\'.\n'), 
   !, 
   fail.
 
@@ -5387,13 +4044,15 @@ extractMacros1([Me|Others]) :-
 
 extractMacros1(Macro as Mnemo) :-
   isSubTerm(Macro,Mnemo),
-  write('\nERROR: Left side of a macro declaration \'<macro> as <mnemo>\' must be an acyclic expression.'), 
+  write('\nERROR: Left side of a macro declaration \'<macro> as <mnemo>\' '),
+  write('must be an acyclic expression.'), 
   !,
   fail.
          
 extractMacros1(_ as Mnemo) :-
   not(atom(Mnemo)),
-  write('\nERROR: Right side of a macro declaration \'<macro> as <mnemo>\' must be an identifier.'), 
+  write('\nERROR: Right side of a macro declaration \'<macro> as <mnemo>\' '),
+  write('must be an identifier.'), 
   !, 
   fail.
 
@@ -5429,7 +4088,9 @@ Succeeds, if ~Mnemo~ is already used in ~storedMacro/2~.
 
 isUsedMnemo(Mnemo) :-
   storedMacro(Mnemo,_),
-  write('\nERROR: Mnemo \''), write(Mnemo), write('\' was used more than once.\n').
+  write('\nERROR: Mnemo \''), 
+  write(Mnemo), 
+  write('\' was used more than once.\n').
 
 
 /*
@@ -5482,20 +4143,20 @@ flattenAllMacros :- not(flattenMacros).
 
 /*
 
-14.1 Inference of Predicates
+14.2 Inference of Predicates
 
 */
 
 rewriteQueryForInferenceOfPredicates(Query, RewrittenQuery) :-
   rewriteQueryForNonempty(Query, RQuery1),
   rewriteQueryForInferredSubstitutions(RQuery1, RewrittenQuery),
-  dm(['\nAfter Step 1: Infer nonempty-predicates:\n', RQuery1,
+  dm(rewriting,['\nAfter Step 1: Infer nonempty-predicates:\n', RQuery1,
       '\nAfter Step 2: Infer substitutions:\n', RewrittenQuery, '\n']).
 
 
 /*
 
-14.1.1 Nonempty-Queries
+14.2.1 Nonempty-Queries
 
 Spatial data may contain `undefined' data and empty sets. Often, a user wants to
 suppress empty results. To this end, the kewword `nonempty' within the select 
@@ -5523,12 +4184,12 @@ rewritingNonemptyRule(X,                  [not(isempty(X))]) :-
 ---- inferNonemptyPredicates(-InferredPreds)
 ----
 uses rules defined by ~inferNonemptyPredicate/2~ to detect expressions
-within the term indexed by calling ~markNode/3~  that allow to infer 
+within the term indexed by calling ~findCSEs/4~  that allow to infer 
 nonempty-predicates. The latter are collected within list ~InferredPred~
 and returned.
 
 ~inferSingleNonemptyPredicate(-Pred)~ searches the dynamic predicate
-~storedExpressionLabel/3~ and the table ~inferNonemptyPredicate/2~ for 
+~storedExpressionLabel/4~ and the table ~inferNonemptyPredicate/2~ for 
 any matches and returns the predictate inferred ~Pred~.
 
 */
@@ -5538,7 +4199,7 @@ inferNonemptyPredicates(NewPreds) :-
   flatten(NewPredsListList,NewPreds).
 
 inferSingleNonemptyPredicate(Pred) :-
-  storedExpressionLabel(Trigger, _, _),  
+  storedExpressionLabel(Trigger, _, _, _),  
   rewritingNonemptyRule(Trigger, Pred).
    
 /*
@@ -5556,29 +4217,31 @@ rewriteQueryForNonempty(Query, Query) :-
   Query \= from(select(nonempty(_)),_),
   Query \= from(select(distinct(nonempty(_))),_),
   retractExpressionLabels,
-  write('1\n'),
+  dm(rewriting,['rewriteQueryForNonempty 1\n']),
   !.
 
 % Ordinary nonempty-queries with distinct
 rewriteQueryForNonempty(Query, RewrittenQuery) :-
-  Query = from(select(distinct(nonempty(SelectClause))),where(Rels,WhereClause)),
+  Query 
+     = from(select(distinct(nonempty(SelectClause))),where(Rels,WhereClause)),
   retractExpressionLabels,
-  markNode(select(SelectClause),_,0),
+  findCSEs(select(SelectClause),0,all,_),
   inferNonemptyPredicates(NonEmptyConditions),
   ( is_list(WhereClause) -> 
       append_list(WhereClause, NonEmptyConditions, RewrittenWhereClause)
     ; RewrittenWhereClause = [WhereClause|NonEmptyConditions]
   ),
   sort(RewrittenWhereClause,RewrittenWhereClause1),
-  RewrittenQuery = from(select(distinct(SelectClause)),where(Rels,RewrittenWhereClause1)),
-  write('2\n'),
+  RewrittenQuery 
+     = from(select(distinct(SelectClause)),where(Rels,RewrittenWhereClause1)),
+  dm(rewriting,'rewriteQueryForNonempty 2\n'),
   !.
   
 % Ordinary nonempty-queries w/o distinct
 rewriteQueryForNonempty(Query, RewrittenQuery) :-
   Query = from(select(nonempty(SelectClause)),where(Rels,WhereClause)),
   retractExpressionLabels,
-  markNode(select(SelectClause),_,0),
+  findCSEs(select(SelectClause),0,all,_),
   inferNonemptyPredicates(NonEmptyConditions),
   ( is_list(WhereClause) -> 
       append_list(WhereClause, NonEmptyConditions, RewrittenWhereClause)
@@ -5586,7 +4249,7 @@ rewriteQueryForNonempty(Query, RewrittenQuery) :-
   ),
   sort(RewrittenWhereClause,RewrittenWhereClause1),
   RewrittenQuery = from(select(SelectClause),where(Rels,RewrittenWhereClause1)),
-  write('3\n'),
+  dm(rewriting,'rewriteQueryForNonempty 3\n'),
   !.
 
 % Special cases: nonempty with empty where clause and distinct
@@ -5594,14 +4257,15 @@ rewriteQueryForNonempty(Query, RewrittenQuery) :-
   Query \= from(select(distinct(nonempty(_))),where(_,_)),
   Query  = from(select(distinct(nonempty(SelectClause))),Rels),
   retractExpressionLabels,
-  markNode(select(SelectClause),_,0),
+  findCSEs(select(SelectClause),0,all,_),
   inferNonemptyPredicates(NonEmptyConditions),
   sort(NonEmptyConditions,NonEmptyConditions1),
   ( NonEmptyConditions1 = [] -> 
       RewrittenQuery = from(select(distinct(SelectClause)),Rels)
-    ; RewrittenQuery = from(select(distinct(SelectClause)),where(Rels,NonEmptyConditions1))
+    ; RewrittenQuery 
+       = from(select(distinct(SelectClause)),where(Rels,NonEmptyConditions1))
   ),
-  write('4\n'),
+  dm(rewriting,'rewriteQueryForNonempty 4\n'),
   !.
   
 % Special cases: nonempty with empty where clause but w/o distinct
@@ -5609,14 +4273,15 @@ rewriteQueryForNonempty(Query, RewrittenQuery) :-
   Query \= from(select(nonempty(_)),where(_,_)),
   Query  = from(select(nonempty(SelectClause)),Rels),
   retractExpressionLabels,
-  markNode(select(SelectClause),_,0),
+  findCSEs(select(SelectClause),0,all,_),
   inferNonemptyPredicates(NonEmptyConditions),
   sort(NonEmptyConditions,NonEmptyConditions1),
   ( NonEmptyConditions1 = [] -> 
       RewrittenQuery = from(select(SelectClause),Rels)
-    ; RewrittenQuery = from(select(SelectClause),where(Rels,NonEmptyConditions1))
+    ; RewrittenQuery 
+       = from(select(SelectClause),where(Rels,NonEmptyConditions1))
   ),
-  write('5\n'),
+  dm(rewriting,'rewriteQueryForNonempty 5\n'),
   !.
 
 % Special cases: ordering and grouping clauses can be 
@@ -5625,347 +4290,36 @@ rewriteQueryForNonempty(Query, RewrittenQuery) :-
   Query = first(Query2, X),
   rewriteQueryForNonempty(Query2, RewrittenQuery2),
   RewrittenQuery = first(RewrittenQuery2,X),
-  write('6\n'),
+  dm(rewriting,'6\n'),
   !.
 
 rewriteQueryForNonempty(Query, RewrittenQuery) :-
   Query = orderby(Query2, X),
   rewriteQueryForNonempty(Query2, RewrittenQuery2),
   RewrittenQuery = orderby(RewrittenQuery2,X),
-  write('7\n'),
+  dm(rewriting,'rewriteQueryForNonempty 7\n'),
   !.
 
 rewriteQueryForNonempty(Query, RewrittenQuery) :-
   Query = groupby(Query2, X),
   rewriteQueryForNonempty(Query2, RewrittenQuery2),
   RewrittenQuery = groupby(RewrittenQuery2,X),
-  write('8\n'),
+  dm(rewriting,'rewriteQueryForNonempty 8\n'),
   !.
 
 /*
 
-14.1.2 Substitution of Conditions
+14.2.2 Substitution of Conditions
 
 If the where clause contains certain sets of conditions, these conditions may be
 replaced by equivalent, but cheaper ones.
 
 */
 
+%:- [inference]. % XRIS: load module for inference machine
 
-/*
----- simplifyAllConditions(+CondIn, -SimpleConds) 
-----
 
-Will return a set ~SimpleConds~ of conditions, wherein redundant conditions from 
-the input set of conditions ~CondIn~ have been retracted.
-
-*/
-
-% simplifyCondition(TriggerList,RetractList)
-% Always prefer strict ordering to unstrict (e.g. < to <=)
-
-% transitivity
-simplifyCondition(trans, [T1, T2, T3], [T3]) :-
- isTransitiveOP(OP),
- T1 =.. [OP, X, Y],
- T2 =.. [OP, Y, Z],
- T3 =.. [OP, X, Z].
-
-% symmetry
-simplifyCondition(symm, [T1, T2], [T2]) :-
-  isSymmetricOP(OP),
-  T1 =.. [OP, X, Y],
-  T2 =.. [OP, Y, X].
-
-% antisymmetry
-simplifyCondition(antisymm, [T1, T2, X=Y], [T1, T2]) :-
-  isAntiSymmetricOP(OP),
-  T1 =.. [OP, X, Y],
-  T2 =.. [OP, Y, X].
-
-% involution
-simplifyCondition(invol, [T1, X], [T1]) :- 
-  isInvolutaryOP(OP),
-  T1 =.. [OP, T2],
-  T2 =.. [OP, X].
-
-% reflexivity
-simplifyCondition(refl, [T1, T2], [T1, T2]) :- 
-  isReflexiveOP(OP),
-  T1 =.. [OP, X, X],
-  T2 =.. [OP, X, X].
-
-% idempotence
-%simplifyCondition(idempot, [T1, T2], [T2]) :- 
-%  isIdempotentOP(OP),
-%  T1 =.. [OP, _],
-%  T2 =.. [OP, T1].
-
-% weak and strict ordering
-simplifyCondition(weakenorder, [T1, T2], [T2]) :- 
-  isStrictOrderingOP(OPstrict),
-  isOrderingRestriction(OPstrict,OPweak),
-  T1 =.. [OPstrict, X, Y],
-  T2 =.. [OPweak, X , Y].
-
-% weak ordering and equality
-simplifyCondition(eq_weak, [T1, X = Y], [T1]) :- 
-  isWeakOrderingOP(OP),
-  T1 =.. [OP, X, Y].
-
-% strict orderings and inequality
-simplifyCondition(strict_uneq, [T1, X # Y], [X # Y, Y # X]) :- 
-  isStrictOrderingOP(OP),
-  T1 =.. [OP, X, Y].
-
-simplifyCondition(100,[starts(X,Y), contains(X,Y)], [contains(X,Y)]).
-
-simplifyCondition(101,[not(isempty(atinstant(val(X),Y))), present(X,Y)], [not(isempty(atinstant(val(X),Y)))]).
-simplifyCondition(102,[isempty(atinstant(val(X),Y)), not(present(X,Y))], [isempty(atinstant(val(X),Y))]).
-
-simplifyCondition(103,[not(or(not(X),not(Y))), X, Y], [not(or(not(X),not(Y)))]).
-simplifyCondition(104,[not(and(not(X),not(Y))), or(X,Y)], [not(and(not(X),not(Y)))]).
-
-%simplifyCondition(200,[X < Y, not(X >= Y)], [not(X >= Y)]).
-%simplifyCondition(201,[X > Y, not(X <= Y)], [not(X >= Y)]).
-%simplifyCondition(202,[X <= Y, not(X > Y)], [not(X > Y)]).
-%simplifyCondition(203,[X >= Y, not(X < Y)], [not(X < Y)]).
-%simplifyCondition(204,[X = Y, not(X # Y)], [not(X # Y)]).
-%simplifyCondition(205,[X # Y, not(X = Y)], [not(X = Y)]).
-%simplifyCondition(206,[not(X >= Y), X< Y], [not(X >= Y)]).
-%simplifyCondition(207,[not(X <= Y), X > Y], [not(X <= Y)]).
-%simplifyCondition(208,[not(X > Y), X <= y], [not(X > Y)]).
-%simplifyCondition(209,[not(X < Y), X >= Y], [not(X < Y)]).
-%simplifyCondition(210,[not(X # Y), X = Y], [not(X # Y)]).
-%simplifyCondition(211,[not(X = Y), X # Y], [not(X = Y)]).
-
-simplifyCondition(300,[X < Y, Y > X], [Y > X]).
-simplifyCondition(301,[X > Y, Y < X], [X > Y]).
-simplifyCondition(302,[X <= Y, Y >= X], [Y >= X]).
-simplifyCondition(303,[X >= Y, Y <= X], [X >= Y]).
-
-simplifyOneCondition(In, Remove) :-
-  simplifyCondition(_,X,Remove),
-  subset(X,In).
-
-simplifyAllConditions(CondIn, SimpleConds) :-
-  findall(Out, simplifyOneCondition(CondIn,Out), RemoveList),
-  flatten(RemoveList,FlatRemoveList),
-  list_to_set(FlatRemoveList,RemoveSet),
-  subtract(CondIn, RemoveSet, SimpleConds).
-
-
-/*
----- isFalseCondition(+CondSet) 
-----
-
-succeeds, if the set of conditions ~CondSet~ contains at least one set of 
-contradictory conditions. Such queries will result in empty results and
-are rejected by the optimizer.
-
-*/
-
-
-isFalseCondition(CondSet) :- 
-  (
-    member(false, CondSet)
-  ; subset([X, not(X)], CondSet)
-  ; subset([X > Y, X = Y], CondSet)
-  ; subset([X < Y, X = Y], CondSet)
-  ; subset([X < Y, X > Y], CondSet)
-  ; subset([X <= Y, X > Y], CondSet)
-  ; subset([X < Y, X >= Y], CondSet)
-  ; subset([X # Y, X = Y], CondSet)
-  ; subset([X # X], CondSet)
-  ),
-  write('\nYour where clause is syntactically equivalent to \'FALSE\'. \n'),
-  write('This makes no sense as the query will return an empty result.\n'),
-  write('Therefore, the query is canceled\n\n'),
-  !.
-
-
-/*
----- expandConditions(+CondsIn,-CondsOut)
-----
-
-Will expand the set of conditions ~CondsIn~ using a set of expansion rules
-given by ~expandCondition/2~ and return the closure of ~CondsIn~ under these
-rules.
-
-*/
-
-% expandCondition(Premises,Conclusions)
-
-
-% transitivity
-expandCondition(trans, [T1, T2], [T3]) :-
- isTransitiveOP(OP),
- T1 =.. [OP, X, Y],
- T2 =.. [OP, Y, Z],
- T3 =.. [OP, X, Z].
-
-% symmetry
-expandCondition(symm, [T1], [T2]) :-
-  isSymmetricOP(OP),
-  T1 =.. [OP, X, Y],
-  T2 =.. [OP, Y, X].
-
-% antisymmetry
-expandCondition(antisymm, [T1, T2], [X = Y]) :-
-  isAntiSymmetricOP(OP),
-  T1 =.. [OP, X, Y],
-  T2 =.. [OP, Y, X].
-
-% involution
-expandCondition(invol, [T1], [X]) :- 
-  isInvolutaryOP(OP),
-  T1 =.. [OP, T2],
-  T2 =.. [OP, X].
-
-% idempotence - should not be applied!
-
-
-% strict and unstrict orderings
-expandCondition(restrict,[T1, X # Y], [T2]) :-
-  isWeakOrderingOP(OP),
-  isOrderingRestriction(OPstrict,OP),
-  T1 =.. [OP, X, Y],
-  T2 =.. [OPstrict, X, Y].
-
-% strict orderings
-expandCondition(restrict_to_uneq,[T1], [X # Y]) :-
-  isStrictOrderingOP(OP),
-  T1 =.. [OP, X, Y].
-
-
-expandCondition(100,[not(isempty(atinstant(val(X),Y)))], [present(X,Y)]).
-expandCondition(101,[isempty(atinstant(val(X),Y))], [not(present(X,Y))]).
-
-% De Morgan
-expandCondition(200,[not(or(not(X),not(Y)))], [X, Y]).
-expandCondition(201,[not(and(not(X),not(Y)))], [or(X,Y)]).
-
-
-
-% Properties of orderings
-%expandCondition(301,[X < Y],[not(X >= Y)]).
-%expandCondition(302,[X > Y],[not(X <= Y)]).
-%expandCondition(303,[X <= Y],[not(X > Y)]).
-%expandCondition(304,[X >= Y],[not(X < Y)]).
-%expandCondition(305,[X = Y],[not(X # Y)]).
-%expandCondition(306,[X # Y],[not(X = Y)]).
-%expandCondition(307,[not(X >= Y)],[X < Y]).
-%expandCondition(308,[not(X <= Y)],[X > Y]).
-%expandCondition(309,[not(X > Y)],[X <= Y]).
-%expandCondition(310,[not(X < Y)],[X >= Y]).
-%expandCondition(311,[not(X # Y)],[X = Y]).
-%expandCondition(312,[not(X = Y)],[X # Y]).
-
-expandCondition(400,[X < Y],[Y > X]).
-expandCondition(401,[X > Y],[Y < X]).
-expandCondition(402,[X <= Y],[Y >= X]).
-expandCondition(403,[X >= Y],[Y <= X]).
-
-
-% properties of operators
-
-isTransitiveOP(X) :- isStrictOrderingOP(X).
-isTransitiveOP(X) :- isWeakOrderingOP(X).
-isTransitiveOP(=).
-
-isSymmetricOP(=).
-isSymmetricOP(#).
-isSymmetricOP(intersects).
-
-isAntiSymmetricOP(X) :- isWeakOrderingOP(X).
-
-isInvolutaryOP(not).
-
-isReflexiveOP(X) :- isWeakOrderingOP(X).
-isReflexiveOP(=).
-isReflexiveOP(#).
-isReflexiveOP(intersects).
-
-isIrreflexiveOP(X) :- isStrictOrdering(X).
-
-isWeakOrderingOP(<=).
-isWeakOrderingOP(>=).
-isWeakOrderingOP(contains).
-isWeakOrderingOP(starts).
-
-isStrictOrderingOP(<).
-isStrictOrderingOP(>).
-
-isOrderingRestriction(>, >=).
-isOrderingRestriction(<, <=).
-
-
-/*
----- applyAllExpansionRules(+CondsIn,-CondsOut,+UsedIn,-UsedOut) :-
-----
-
-~Used~ are set of used(Rule,Premises), where Premises is a list of premises that 
-have already been used to trigger expansionRule ~Rule~
-
-*/
-
-:- dynamic(usedRule/2).
-
-applyExpansionRule(CondsIn,CondsOut) :-
-  expandCondition(Rule,Premises,Conclusions),
-  not(usedRule(Rule,Premises)),
-  subset(Premises,CondsIn),
-  union(Conclusions, CondsIn, CondsOut),
-  write(Rule), write(': '), write(Premises), write(' --> '), write(Conclusions), nl,
-  assert(usedRule(Rule,Premises)).
-
-/*
-applyExpansionRule1(Rule,CondsIn,CondsOut) :-
-  expandCondition(Rule,Premises,Conclusions),
-  not(usedRule(Rule,Premises)),
-  subset(Premises,CondsIn), % vielleicht besser member/2 ???
-  assert(usedRule(Rule,Premises)).
-
-*/
-
-applyExpansionRule(CondsIn,CondsOut) :-
-  expandCondition(Rule,_,_),
-  findall(Pattern,applyExpansionRule1(Rule,CondsIn,CondsOut),Bag).
-
-% gets a set of conditions ~CondsIn~ and returns its closure ~Closure~
-expandCond(CondsIn,Closure) :-
-  retractall(usedRule(_,_)),
-  expandCond1(CondsIn,Closure).
-  
-expandCond1(CondsIn,Closure) :-
-  findall(X, applyExpansionRule(CondsIn, X), Expansion),
-  flatten([CondsIn|Expansion],Closure1), % concatenate and flatten result
-  list_to_set(Closure1,Closure2),
-  subtract(Closure2, CondsIn, Change),
-  nl, write_canonical(Change), nl, nl,
-  ( Change = []                           % if a fixpoint is reached
-     -> Closure = CondsIn                 % then return old result
-      ; expandCond1(Closure2, Closure)    % else recurse 
-  ).
-  
-
-
-testI(I) :-
-  expandCond(I,X), 
-  write('\nClosure: '), write_canonical(X), nl,
-  not(isFalseCondition(X)), 
-  simplifyAllConditions(X,Y), 
-  write('\nSimple: '), write_canonical(Y), nl.
-
-
-%%%%%%
-analyseConditions(ConditionsIn,WhereOut):-
-%  doAllExpansions(ConditionsIn,ConditionsOut),
-  not(isFalseCondition(ConditionsIn)),
-  simplifyAllConditions(ConditionsIn,WhereOut).
-
-
-rewriteQueryForInferredSubstitutions(Query,Query). % XRIS: for Texting Only
+rewriteQueryForInferredSubstitutions(Query,Query) :- !. % XRIS: for Testing Only
 
 rewriteQueryForInferredSubstitutions(QIn, QIn) :-
   % case: no where clause
@@ -5999,7 +4353,7 @@ rewriteQueryForInferredSubstitutions(Query, RewrittenQuery) :-
 
 /*
 
-14.2 Redundancy Elimination
+14.3 Redundancy Elimination
 
 Redundant clauses should be removed.
 
@@ -6038,7 +4392,8 @@ rewriteQueryForRedundancy(Query, RewrittenQuery) :-
   list_to_set(WhereClause,RewrittenWhereClause),  % eliminate condition doublets  
   (RewrittenWhereClause = [] -> 
      (RewrittenQuery = from(select(SelClause), Rels))
-   ; (RewrittenQuery = from(select(SelClause), where(Rels,RewrittenWhereClause)))
+   ; (RewrittenQuery 
+       = from(select(SelClause), where(Rels,RewrittenWhereClause)))
   ),
   !.
 
@@ -6047,7 +4402,7 @@ rewriteQueryForRedundancy(Query,Query).
 
 /*
 
-14.3 Handle Common SubExpressions (CSEs)
+14.4 Handle Common SubExpressions (CSEs)
 
 The repeated evaluation of common subexpressions (CSEs) should be avoided, 
 especially if complex funtions are used or big objects are created. Intermediary
@@ -6079,10 +4434,9 @@ operator labeled by ~rewritingCSEExpensiveOP/1~. The definitions of
 
 rewriteQueryForCSE(Query, Query). % XRIS: Extend this
 
-
 /*
 
-14.3.1 Auxiliary Predicates to ~rewriteQueryForCSE/2~
+14.4.1 Auxiliary Predicates to ~rewriteQueryForCSE/2~
 
 ---- isSubTerm(+Term,+SubTerm)
      isSubTermNotEqual(+Term,+SubTerm)
@@ -6135,36 +4489,43 @@ replace_term(Term, SubExpr, _, Term) :-
   atomic(Term),
   Term \= SubExpr.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% =================================================
 
 
 /*
----- markNode(+Node, -NodeMarked, +Level)
+---- findCSEs(+Node, +Level, +Mode, -Expensive)
 ----
 
-Creates a dynamic table ~storedExpressionLabel(Expr,Label,LevelList)~ by
-parsing the operator tree for term ~node~. Returns the same term in ~NodeMarked~.
+Creates a dynamic table ~storedExpressionLabel(Expr,Label,LevelList,FlatExp)~ by
+parsing the operator tree for term ~node~. 
 ~Level~ gives the level of the operator tree`S ROOT (usually 0).
+
+Depending on ~Mode~, either all subexpressions are idexed (Mode = all), or only 
+expensive subexpressions (Mode \= all) are indexed.
 
 Each sub-expression ~Expr~ is labeled with an unique identifier ~label~ and a 
 list ~LevelList~ of all levels within the operator tree, where ~Expr~ occurs 
 as a sub-expression.
 
+If a term contains an expensive operator (as indicated by a defined fact 
+~rewritingCSEExpensiveOP(OP)~), ~Expensive~ will be 1, 0 
+otherwise.
+
 */
 
-:- dynamic(storedExpressionLabel/3),
+:- dynamic(storedExpressionLabel/4),
    reset_gensym. % reset unique identifier generator
 
 % delete table of label-term associations
 retractExpressionLabels :-
-  retractall(storedExpressionLabel(_, _, _)),
+  retractall(storedExpressionLabel(_, _, _, _)),
   reset_gensym. % reset unique identifier generator
 
 % print a table of all stored term-label associations
 showExpressionLabel :-
-  storedExpressionLabel(Expr,Label,LevelList),
+  storedExpressionLabel(Expr,Label,LevelList,FlatExpr),
   write(' '), write(Label), write('   '), write(LevelList), 
-  write('\t'), write(Expr), nl,
+  write('\t'), write(Expr), write('   '), write(FlatExpr), nl,
   fail.
 
 showExpressionLabels :-
@@ -6172,69 +4533,145 @@ showExpressionLabels :-
   findall(_,showExpressionLabel,_),
   nl.
   
-% succeeds, if Expr1 = Expr2 or (Expr1 = attr(X,_,Y) and Expr2 = attr(X,_Y))
-compareExpression(Expr1,Expr1) :- !.
-compareExpression(attr(X,_,Y),attr(X,_,Y)) :- !.
-compareExpression(Expr1,Expr2) :- 
-  Expr1 =.. [Op|Args1],
-  Expr2 =.. [Op|Args2],
-  compareExpression2(Args1,Args2),
-  !.
-compareExpression2([],[]).
-compareExpression2([M1|O1],[M2|O2]) :- 
-  compareExpression(M1,M2),
-  compareExpression2(O1,O2),
-  !.
-
 % return the label associated with a known Node, or create a new association 
 % and return that new label 
-getExpressionLabel(Node1, Label, Level) :-
-  storedExpressionLabel(Node2, Label, LevelList), 
-  compareExpression(Node1,Node2),                  % this is a CSE
-  retractall(storedExpressionLabel(Node, _, _)),
+getExpressionLabel(Node, Label, Level) :-
+  storedExpressionLabel(Node, Label, LevelList, *), 
+  retractall(storedExpressionLabel(_, Label, _, *)),
   !,
-  assert(storedExpressionLabel(Node, Label, [Level|LevelList])).
+  assert(storedExpressionLabel(Node, Label, [Level|LevelList], *)).
 
 getExpressionLabel(Node, Label, Level) :-
-  not(storedExpressionLabel(Node, _, _)),
+  not(storedExpressionLabel(Node, _, _, _)),
   gensym(cse_, Label),
   !,
-  assert(storedExpressionLabel(Node, Label, [Level])).
+  assert(storedExpressionLabel(Node, Label, [Level], *)).
 
-% mark a list of arguments
-markNode1([],[], _).            % nothing to do
-markNode1([Me|Others],[MeMarked|OthersMarked],Level) :-
-    markNode1(Others, OthersMarked,Level),
-    markNode(Me,MeMarked,Level),
-    !.
-
-markNode(Node, Node, _) :-     % Node is a leaf. No label is assigned to leaves.
-  atomic(Node);
-  Node = :(_,_),
+% find all CSEs
+findCSEs1([], _, _, 0).      % nothing to do
+findCSEs1([Me|Others],Level,Mode,Expense) :-
+  findCSEs1(Others, Level, Mode, OthersExpense),
+  findCSEs(Me, Level, Mode, MyExpense),
+  Expense is MyExpense \/ OthersExpense,
   !.
 
-markNode(NodeList, MarkedNodeList, Level) :-
+findCSEs(Node, _, _, 0) :-   % Node is a leaf. No label is assigned to leaves.
+  atomic(Node)
+  ; Node = :(_,_),
+  !.
+
+findCSEs(NodeList, Level, Mode, Expense) :-
   is_list(NodeList),
-  markArgs(NodeList, MarkedNodeList, Level),
+  findCSEs1(NodeList, Level, Mode, Expense),
   !.
 
-markNode(Node, NodeMarked, Level) :-
+findCSEs(Node, Level, Mode, Expense) :-
   compound(Node),             % Node is an inner node.
   not(is_list(Node)),
   Node =.. [Me|MyArgs],       % decompose node
   NextLevel is Level+1,
-  markNode1(MyArgs, MyArgsMarked, NextLevel),
-  getExpressionLabel(Node,MyLabel,Level), % get label and update ExprList
-%  MeMarked =.. [Me|MyArgsMarked],                 % label the node
-%  NodeMarked =.. [xxx, MeMarked, MyLabel, Level], % label the node
-  NodeMarked =.. [Me|MyArgsMarked],                % w/o labeling
+  findCSEs1(MyArgs, NextLevel, Mode, ArgsExpense),
+  (rewritingCSEExpensiveOP(Me) 
+   -> Expense is 1
+    ; Expense is ArgsExpense
+  ),
+  ((Mode = all ; Expense = 1)  % check if Node should be indexed
+    -> getExpressionLabel(Node,_,Level)   % handle only expensive CSEs
+     ; true
+  ),
   !.
+
+/*
+---- compactCSEs(+Node, -NodeMarked, -Used)
+----
+For term ~Node~, return an equivalent term ~NodeMarked~, where all CSEs have 
+been replaced by their labels (according to table storedExpressionLabel/4) 
+and also return a list of all applied CSE-labels.
+
+*/
+
+% Starting rules to avoid replacement of X by X
+compactCSEs(Node, NodeMarked, Used) :-
+  compound(Node),            
+  not(is_list(Node)),
+  Node =.. [Me|MyArgs], 
+  replaceCSEs1(MyArgs, MyArgsMarked, MyArgsUsed),
+  NodeMarked =.. [Me|MyArgsMarked],
+  Used = MyArgsUsed,
+  !.
+
+compactCSEs(NodeList, MarkedNodeList, Used) :-
+  is_list(NodeList),
+  replaceCSEs1(NodeList, MarkedNodeList, Used),
+  !.
+
+compactCSEs(Node, Node, []).
+
+% Normal rules
+replaceCSEs1([],[],[]).           % nothing to do
+replaceCSEs1([Me|Others],[MeMarked|OthersMarked],Used) :-
+  replaceCSEs1(Others, OthersMarked, OthersUsed),
+  replaceCSEs(Me, MeMarked, MyUsed),
+  merge_set(MyUsed, OthersUsed, Used),
+  !.
+
+replaceCSEs(Node, Node, []) :- 
+  atomic(Node);
+  Node = :(_,_),
+  !.
+
+replaceCSEs(NodeList, MarkedNodeList, Used) :-
+  is_list(NodeList),
+  replaceCSEs1(NodeList, MarkedNodeList, Used),
+  !.
+
+replaceCSEs(Node, NodeMarked, Used) :- % Node is a CSE
+  compound(Node),            
+  not(is_list(Node)),
+  storedExpressionLabel(Node, MyLabel, LevelList, *),
+  length(LevelList, L),
+  L > 1, 
+  NodeMarked = MyLabel,
+  Used = [MyLabel],
+  !.
+
+replaceCSEs(Node, NodeMarked, Used) :- % Node is not a CSE
+  compound(Node), 
+  not(is_list(Node)),
+  Node =.. [Me|MyArgs], 
+  replaceCSEs1(MyArgs, MyArgsMarked, MyArgsUsed),
+  NodeMarked =.. [Me|MyArgsMarked],
+  Used = MyArgsUsed,
+  !.
+
+/*
+---- replaceAllCSEs/0
+----
+Update the table of stored expressions by replacing all occurences of CSEs by 
+the according label cse\_N and move the original expression to the FlatExpr 
+argument.
+
+*/
+
+replaceAllCSEs :- 
+  findall(X, storedExpressionLabel(_,X,_, _),XList),
+  replaceSingleCSEList(XList),
+  !.
+
+replaceSingleCSEList([]).
+replaceSingleCSEList([Me|Others]) :-
+  storedExpressionLabel(Expr, Me, LevelList, _),
+  compactCSEs(Expr,ExprR,_),
+  retractall(storedExpressionLabel(_,Me,_,_)),
+  assert(storedExpressionLabel(ExprR, Me, LevelList, Expr)),
+  replaceSingleCSEList(Others).
+  
+
 
 
 /*
 ---- baseAttributes(+Term,-BaseAttributeList).
 ----
-
 Collects the set ~BaseAttributeList~ of all attributes used within ~Term~.
 
 */
@@ -6279,47 +4716,174 @@ baseAttributes(Term,BaseAttributeList) :-
   baseAttributes1(Args,BaseAttributeList),
   !.
 
-isCSE(Expr) :-
-  storedExpressionLabel(Expr,_,LevelList),
-  not(length(LevelList,1)), !.
+/*
+---- retractNonCSE/0
+----
+Remove non-CSE entries from the expression table.
 
-isNoCSE(Expr) :-
-  storedExpressionLabel(Expr,_,LevelList),
-  length(LevelList,1), !.
+*/
 
-isNoCSE(Expr) :-
-  \+(storedExpressionLabel(Expr,_,_)), !.
-
-hasNoStoredCSE(Expr) :- % succeeds, iff Expr does not contain any CSE
-  storedExpressionLabel(Expr,_,_),         % if Expr is a term
-  \+ ((
-       storedExpressionLabel(Expr1,_,_),   % Expr1 is a term
-       isSubTermNotEqual(Expr,Expr1),              % Expr1 is a subterm of Expr
-       isCSE(Expr1)                        % Expr1 is a CSE
-     )), !.
-  
-replaceAllCSEs :-
-  storedExpressionLabel(Expr1,Label1,_), % choose a term Expr1
-  isCSE(Expr1),                     % Expr1 is a CSE
-  hasNoStoredCSE(Expr1), % Expr1 contains no subterm, that is a CSE
-  baseAttributes(Expr1,BaseAttrs1), % get base attributes for Expr1
-  assert(virtual_attribute(Label1, Expr1,BaseAttrs1)), 
-        % add (Label1,Expr1) to the the table of 'virtual attributes'
-  retractall(storedExpressionLabel(Expr1,_,_)),        
-        % retract Expr1 from term table to reduce search space
-  storedExpressionLabel(Expr2,Label2,LevelList2),      
-        % choose a second term Expr2
-  isSubTermNotEqual(Expr2,Expr1),
-        % Expr2 contains CSE Expr1 as a real subterm
-  % replace Expr1 in all other stored terms Expr2 with Label1:
-  replace_term(Expr2, Expr1, Label1, Expr2Replaced),
-  retractall(storedExpressionLabel(Expr2,_,_)),
-  retractall(storedExpressionLabel(Expr2Replaced,_,_)),
-  assert(storedExpressionLabel(Expr2Replaced,Label2,LevelList2)),
+retractNonCSE :-
+  storedExpressionLabel(_,Label,LevelList, _),
+  length(LevelList,1), 
+  retractall(storedExpressionLabel(_,Label,_,_)),
   fail.
+
+retractNonCSEs :- not(retractNonCSE).
+
+% remove all CSEs within List from table
+restrictCSE1([]).
+restrictCSE1([X|Y]) :-
+  retractall(storedExpressionLabel(_,X,_,_)),
+  restrictCSE1(Y).
+
+
+/*
+---- restrictCSE(SaveList)
+---- 
+
+Remove all expressions from ~storedExpressionLabel/4~, whose labels do not
+occur in ~SaveLst~.
+
+*/
   
+restrictCSE(SaveList) :- 
+  findall(X,storedExpressionLabel(_,X,_,_),AllCSE),
+  subtract(AllCSE,SaveList,DeleteList),
+  restrictCSE1(DeleteList).
+
+
+
+/*
+----
+----
+
+Replace CSEs within CSEs recursively by according labels cse\_N.
+
+*/
+
+% succeeds, if Expr contains no CSE
+:- dynamic(storedFlatCSE/1).
+
+isFlatCSE(Expr) :- storedFlatCSE(Expr), !.
+
+isFlatCSE(Expr) :-
+  storedExpressionLabel(Expr, _, _),
+  not(isUnflatCSE(Expr)),
+  assert(storedFlatCSE(Expr)), !.
+  
+isUnflatCSE(Expr) :-
+  storedExpressionLabel(Expr, _, _),
+  storedExpressionLabel(CSE, _, _),
+  isSubTermNotEqual(Expr,CSE), !.
+
+
+
+
+% replaces all flat CSEs within the table
+replaceAllFlatCSEs :-
+  findall(X,isFlatCSE(X),FlatCSEs),
+  findall(Y,isUnflatCSE(Y),UnflatCSEs),
+  replace_term_list(UnflatCSEs,FlatCSEs).
+
+replace_term_list([],_) :- !.
+replace_term_list(_,[]) :- !.
+
+replace_term_list([First|Rest],FlatCSEs) :-
+  storedExpressionLabel(First, FirstLabel, FirstList),
+  replace_term_list1(First,FlatCSEs,Result),
+  retractall(storedExpressionLabel(First, FirstLabel, FirstList)),
+  asserta(storedExpressionLabel(Result, FirstLabel, FirstList)),
+  replace_term_list(Rest,FlatCSEs), !.
+
+replace_term_list1(X, [], X) :- !.
+replace_term_list1(Expr, [CSE|Rest], Result) :-
+  storedExpressionLabel(CSE, CSELabel, _),
+  replace_term(Expr, CSE, CSELabel, Result1),
+  replace_term_list1(Result1, Rest, Result), !.
+
+
+
+/*
+---- flattenCSE(+Term, -FlatTerm)
+----
+Flatten an expression ~Term~, this means replace any CSEs occuring within CSEs 
+recursively. Return the flat expression ~FlatTerm~.
+
+*/
+
+flattenCSE(Term,FlatTerm) :-
+  storedExpressionLabel(Expr,Term,_,_), % Term is a cse-label
+  flattenCSE(Expr,FlatTerm),
+  !.
+
+flattenCSE(Term, Term) :-   % Node is a leaf. No label is assigned to leaves.
+  atomic(Term)
+  ; Term = :(_,_),
+  !.
+
+flattenCSE(TermList, FlatTermList) :-
+  is_list(TermList),
+  flattenCSE1(TermList, FlatTermList),
+  !.
+
+flattenCSE(Term,FlatTerm) :-
+  compound(Term),                     % Term is an inner node.
+  not(is_list(Term)),
+  Term =.. [OP|Args],
+  flattenCSE1(Args,FlatArgs),
+  FlatTerm =.. [OP|FlatArgs],
+  !.
+
+flattenCSE1([],[]).
+flattenCSE1([Me|Others],[FlatMe|FlatOthers]) :-
+  flattenCSE(Me,FlatMe),
+  flattenCSE1(Others,FlatOthers),
+  !.
+
+/*
+---- flattenAllCSEs/0
+----
+Calculates flat expressions for all stored CSEs by replacing labels cse\_N by
+the referred CSEs.
+
+*/
+
+flattenAllCSEs :- 
+  findall(X,storedExpressionLabel(_,X,_,_),CSE_Set),
+  flattenCSEList(CSE_Set),
+  !.
+
+flattenCSEList([]).
+flattenCSEList([Me|Rest]) :-
+  storedExpressionLabel(Expr,Me,List,_),
+  flattenCSE(Expr,ExprFlat),
+  retractall(storedExpressionLabel(_,Me,_,_)),
+  assert(storedExpressionLabel(Expr,Me,List,ExprFlat)),
+  flattenCSEList(Rest),
+  !.
+
+
+% testing the predicates
+analyseCSE(TermIn) :-
+  retractExpressionLabels,
+  showExpressionLabels,
+
+  findCSEs(TermIn, 0, expensive, _),
+  showExpressionLabels,
+
+  retractNonCSEs,
+  showExpressionLabels,
+
+  replaceAllCSEs,
+  showExpressionLabels,
+
+  flattenAllCSEs,
+  showExpressionLabels.
+
 
 % examples for expensive operators
+rewritingCSEExpensiveOP(*). % XRIS: for testing only
 rewritingCSEExpensiveOP(intersection).
 rewritingCSEExpensiveOP(minus).
 rewritingCSEExpensiveOP(atinstant).
@@ -6331,30 +4895,3 @@ rewritingCSEExpensiveOP(touchpoints).
 rewritingCSEExpensiveOP(commonborder).
 rewritingCSEExpensiveOP(trajectory).
 rewritingCSEExpensiveOP(distance).
-
-
-% succeeds, iff Expr contains an expensive operator
-rewritingCSEisExpensiveExpression(Expr) :-
-  rewritingCSEExpensiveOP(Expr).
-
-rewritingCSEisExpensiveExpression(Expr) :-
-  is_list(Expr),
-  Expr = [],
-  fail.
-
-rewritingCSEisExpensiveExpression(Expr) :-
-  is_list(Expr),
-  Expr = [Me|Others],
-  (   rewritingCSEisExpensiveExpression(Me)
-    ; rewritingCSEisExpensiveExpression(Others)
-  ),
-  !.
-
-rewritingCSEisExpensiveExpression(Expr) :-
-  compound(Expr),
-  Expr =.. [OP|Args],
-  (
-      rewritingCSEExpensiveOP(OP)
-    ; rewritingCSEisExpensiveExpression(Args)
-  ),
-  !.

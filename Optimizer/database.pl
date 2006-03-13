@@ -613,7 +613,6 @@ relation(Rel, AttrList) :-
   trycreateSmallRelation(Rel, ObjList),!.
 
 relation(Rel, AttrList) :-
-  write('relation2.1\n'),
   set_dynamic_sample(off),
   getSecondoList(ObjList),
   databaseName(DBName),

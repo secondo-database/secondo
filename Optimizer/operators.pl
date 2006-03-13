@@ -250,10 +250,14 @@ Some features may be switched on or off:
 */
 
 :- dynamic(optConjunctiveCosts/0),
-   dynamic(optDebug/0).
-   % assert(optUniformSpeed),     % Uncomment to use uniform uniform machine speed factor (1.0)
-   % assert(optConjunctiveCosts), % Uncomment to apply costs only to operators considered by dijkstra
-   % assert(optDebug),            % Uncomment to see debugging output
+   dynamic(optDebug/0),
+   dynamic(optDebugLevel/1).
+
+% :- assert(optUniformSpeed).     % Uncomment to use uniform uniform machine speed factor (1.0)
+% :- assert(optConjunctiveCosts). % Uncomment to apply costs only to operators considered by dijkstra
+% :- assert(optDebug), assert(optDebugLevel(all)). % Uncomment to see all debugging output
+:- assert(optDebug), assert(optDebugLevel(lookup)). % Uncomment to see all debugging output
+
 
 
 ppCostFactor(0) :-
@@ -272,17 +276,36 @@ optionConjunctiveCosts :-
   write('\nNow, only costs from the conjunctive query are applied! - type \'optionTotalCosts.\' to calculate all costs.\n\n'),
   !.
 
+showDebugLevel :-
+  findall(X,optDebugLevel(X),List),
+  write('\tDebug levels: '),
+  write(List), nl.
+
 toggleDebug :-
   optDebug,
   retract(optDebug),
-  write('\nNow surpressing debugging output.'),
+  write('\nNow surpressing all debugging output.'),
   !.
 
 toggleDebug :-
   not(optDebug),
   assert(optDebug),
-  write('\nNow displaying debugging output.'),
+  write('\nNow displaying debugging output.\n'),
+  showDebugLevel,
+  write('\tYou can add debug levels by \'debugLevel(level).\'\n'),
+  write('\tor drop them by \'nodebugLevel(level).\'.\n'),
+  write('\tLevel \'all\' will output messages from all levels.\n'),
   !.
+
+debugLevel(Mode) :- 
+  \+(optDebugLevel(Mode)) -> assert(optDebugLevel(Mode)),
+  showDebugLevel,
+  nl.
+
+nodebugLevel(Mode) :-
+  optDebugLevel(Mode) -> retractall(optDebugLevel(Mode)),
+  showDebugLevel,
+  nl.
 
 toggleCosts :-
   optConjunctiveCosts,
