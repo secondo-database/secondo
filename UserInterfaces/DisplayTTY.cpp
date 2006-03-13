@@ -310,7 +310,7 @@ DisplayTTY::DisplayText( ListExpr type, ListExpr numType, ListExpr value )
   bool lastline;
 
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-    nl->SymbolValue( value ) == "undef" )
+      nl->SymbolValue( value ) == "undef" )
   {
     cout << "UNDEFINED";
   }
@@ -318,6 +318,7 @@ DisplayTTY::DisplayText( ListExpr type, ListExpr numType, ListExpr value )
   {
     TextScan txtscan = nl->CreateTextScan(nl->First(value));
     nl->GetText(txtscan, nl->TextLength(nl->First(value)),printstr);
+    delete txtscan;
     position = 0;
     lastblank = -1;
     line = "";
@@ -330,31 +331,31 @@ DisplayTTY::DisplayText( ListExpr type, ListExpr numType, ListExpr value )
       if ( position == LINELENGTH || lastline || (printstr[i-1] == '\n') )
       {
         if ( lastline || (printstr[i-1] == '\n') )
-  {
-    cout << line;
-    line = "";
-    lastblank = -1;
-    position = 0;
-  }
+        {
+          cout << line;
+          line = "";
+          lastblank = -1;
+          position = 0;
+        }
         else
-  {
+        {
           if ( lastblank > 0 )
-    {
-      cout << line.substr(0, lastblank) << endl;
-      restline = line.substr(lastblank+1, position);
-      line = "";
-      line += restline;
-      lastblank = -1;
-      position = line.length();
-    }
-    else
-    {
-      cout << line << endl;
-      line = "";
-      lastblank = -1;
-      position = 0;
-    }
-  }
+          {
+            cout << line.substr(0, lastblank) << endl;
+            restline = line.substr(lastblank+1, position);
+            line = "";
+            line += restline;
+            lastblank = -1;
+            position = line.length();
+          }
+          else
+          {
+            cout << line << endl;
+            line = "";
+            lastblank = -1;
+            position = 0;
+          }
+        }
       }
     }
   }

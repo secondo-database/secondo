@@ -137,21 +137,9 @@ The destructor.
         attributes[destIndex]->DeleteIfAllowed();
 
       if( source->state == Fresh )
-      {
         attributes[destIndex] = source->attributes[sourceIndex]->Copy();
-      }
       else
-      {
-        void *aux = malloc( tupleType->GetAttributeType(destIndex).size );
-        memcpy( aux, source->attributes[sourceIndex], 
-                tupleType->GetAttributeType(destIndex).size);
-        attributes[destIndex] = (Attribute*)
-          (*(am->Cast(tupleType->GetAttributeType(destIndex).algId, 
-                        tupleType->GetAttributeType(destIndex).typeId)))(aux);
-        attributes[destIndex]->SetFreeAttr(); 
-        for( int i = 0; i < attributes[destIndex]->NumOfFLOBs(); i++ )
-          attributes[destIndex]->GetFLOB(i)->ReInit();
-      }
+        attributes[destIndex] = source->attributes[sourceIndex]->Clone();
     }
 /*
 This function is used to copy attributes from tuples to tuples 
