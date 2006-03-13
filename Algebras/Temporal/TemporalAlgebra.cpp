@@ -34,6 +34,15 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
+12.03.2006 Juergen Schmidt seperated the ~=~ and ~\#~ Operater
+because of wrong syntax of these operators. 
+For T in (bool, int, real, point) it should be mT x mT -> mbool, 
+but it was mT x mT -> bool. The new operators ~equal~ and
+~nonequal~ represents the old meaning. The operators with the
+"right" syntax can be found in TemporalLiftedAlgebra.
+(Some formating work is done to re-check in the algebra to cvs)
+
+
 [TOC]
 
 1 Overview
@@ -103,7 +112,8 @@ bool UReal::At( const CcReal& val, TemporalUnit<CcReal>& result ) const
   return false;
 }
 
-void UReal::AtInterval( const Interval<Instant>& i, TemporalUnit<CcReal>& result ) const
+void UReal::AtInterval( const Interval<Instant>& i,
+ TemporalUnit<CcReal>& result ) const
 {
   TemporalUnit<CcReal>::AtInterval( i, result );
 
@@ -207,7 +217,8 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
   {
     if( timeInterval.lc )
     {
-      Interval<Instant> interval( timeInterval.start, timeInterval.start, true, true );
+      Interval<Instant> interval( timeInterval.start,
+       timeInterval.start, true, true );
       UPoint unit( interval, p, p );
       *pResult = unit;
       return true;
@@ -217,7 +228,8 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
   {
     if( timeInterval.rc )
     {
-      Interval<Instant> interval( timeInterval.end, timeInterval.end, true, true );
+      Interval<Instant> interval( timeInterval.end,
+       timeInterval.end, true, true );
       UPoint unit( interval, p, p );
       *pResult = unit;
       return true;
@@ -276,7 +288,8 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
   return false;
 }
 
-void UPoint::AtInterval( const Interval<Instant>& i, TemporalUnit<Point>& result ) const
+void UPoint::AtInterval( const Interval<Instant>& i,
+ TemporalUnit<Point>& result ) const
 {
   TemporalUnit<Point>::AtInterval( i, result );
 
@@ -390,8 +403,9 @@ ListExpr
 RangeIntProperty()
 {
   ListExpr remarkslist = nl->TextAtom();
-  nl->AppendText(remarkslist,"lci means left closed interval, rci respectively right closed interval,"
-                             " e.g. (0 1 TRUE FALSE) means the range [0, 1[");
+  nl->AppendText(remarkslist,
+  "lci means left closed interval, rci respectively right closed interval,"
+    " e.g. (0 1 TRUE FALSE) means the range [0, 1[");
 
   return (nl->TwoElemList(
             nl->FiveElemList(nl->StringAtom("Signature"),
@@ -401,8 +415,8 @@ RangeIntProperty()
                              nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> RANGE"),
                              nl->StringAtom("(rint) "),
-                             nl->StringAtom("((b1 e1 lci rci) ... (bn en lci rci))"),
-                             nl->StringAtom("((0 1 TRUE FALSE) (2 5 TRUE TRUE))"),
+        nl->StringAtom("((b1 e1 lci rci) ... (bn en lci rci))"),
+        nl->StringAtom("((0 1 TRUE FALSE) (2 5 TRUE TRUE))"),
                              remarkslist)));
 }
 
@@ -421,11 +435,11 @@ CheckRangeInt( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor rangeint(
-        "rint",                 	         //name
-        RangeIntProperty,            	         //property function describing signature
+        "rint",             //name
+        RangeIntProperty,   //property function describing signature
         OutRange<CcInt, OutCcInt>,
         InRange<CcInt, InCcInt>,                 //Out and In functions
-        0,                      0,       	 //SaveToList and RestoreFromList functions
+        0,            0,  //SaveToList and RestoreFromList functions
         CreateRange<CcInt>,DeleteRange<CcInt>,   //object creation and deletion
         OpenRange<CcInt>,  SaveRange<CcInt>,     // object open and save
         CloseRange<CcInt>, CloneRange<CcInt>,    //object close and clone
@@ -458,8 +472,9 @@ ListExpr
 RangeRealProperty()
 {
   ListExpr remarkslist = nl->TextAtom();
-  nl->AppendText(remarkslist,"lci means left closed interval, rci respectively right closed interval,"
-                             " e.g. (0.5 1.1 TRUE FALSE) means the range [0.5, 1.1[");
+  nl->AppendText(remarkslist,
+  "lci means left closed interval, rci respectively right closed interval,"
+  " e.g. (0.5 1.1 TRUE FALSE) means the range [0.5, 1.1[");
 
   return (nl->TwoElemList(
             nl->FiveElemList(nl->StringAtom("Signature"),
@@ -469,8 +484,8 @@ RangeRealProperty()
                              nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> RANGE"),
                              nl->StringAtom("(rreal) "),
-                             nl->StringAtom("((b1 e1 lci rci) ... (bn en lci rci))"),
-                             nl->StringAtom("((0.5 1.1 TRUE FALSE) (2 5.04 TRUE TRUE))"),
+        nl->StringAtom("((b1 e1 lci rci) ... (bn en lci rci))"),
+        nl->StringAtom("((0.5 1.1 TRUE FALSE) (2 5.04 TRUE TRUE))"),
                              remarkslist)));
 }
 
@@ -489,17 +504,17 @@ CheckRangeReal( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor rangereal(
-        "rreal",                  		  //name
-        RangeRealProperty,   			  //property function describing signature
+        "rreal",              //name
+        RangeRealProperty,   //property function describing signature
         OutRange<CcReal, OutCcReal>,
-        InRange<CcReal, InCcReal>, 		  //Out and In functions
-        0,              	0,            	  //SaveToList and RestoreFromList functions
+        InRange<CcReal, InCcReal>,   //Out and In functions
+        0,       0,      //SaveToList and RestoreFromList functions
         CreateRange<CcReal>,DeleteRange<CcReal>,  //object creation and deletion
-        OpenRange<CcReal>,SaveRange<CcReal>,	  // object open and save
-        CloseRange<CcReal>,CloneRange<CcReal>,	  //object close and clone
-        CastRange<CcReal>,			  //cast function
-        SizeOfRange<CcReal>,                  	  //sizeof function
-        CheckRangeReal );     		          //kind checking function
+        OpenRange<CcReal>,SaveRange<CcReal>,  // object open and save
+        CloseRange<CcReal>,CloneRange<CcReal>,  //object close and clone
+        CastRange<CcReal>,  //cast function
+        SizeOfRange<CcReal>,                    //sizeof function
+        CheckRangeReal );               //kind checking function
 
 /*
 4.3 Type Constructor ~periods~
@@ -528,8 +543,9 @@ ListExpr
 PeriodsProperty()
 {
   ListExpr remarkslist = nl->TextAtom();
-  nl->AppendText(remarkslist,"lci means left closed interval, rci respectively right closed interval,"
-                             " e.g. ((instant 0.5) (instant 1.1) TRUE FALSE) means the interval [0.5, 1.1[");
+  nl->AppendText(remarkslist,
+  "lci means left closed interval, rci respectively right closed interval,"
+" e.g. ((instant 0.5) (instant 1.1) TRUE FALSE) means the interval [0.5, 1.1[");
 
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
@@ -538,8 +554,8 @@ PeriodsProperty()
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> RANGE"),
                              nl->StringAtom("(periods) "),
-                             nl->StringAtom("( (b1 e1 lci rci) ... (bn en lci rci) )"),
-                             nl->StringAtom("((i1 i2 TRUE FALSE) ...)"))));
+           nl->StringAtom("( (b1 e1 lci rci) ... (bn en lci rci) )"),
+           nl->StringAtom("((i1 i2 TRUE FALSE) ...)"))));
 }
 
 /*
@@ -557,17 +573,18 @@ CheckPeriods( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor periods(
-        "periods",       	                        //name
-        PeriodsProperty,        		        //property function describing signature
+        "periods",         //name
+        PeriodsProperty,  //property function describing signature
         OutRange<Instant, OutDateTime>,
-        InRange<Instant, InInstant>, 		        //Out and In functions
-        0,                      0,     			        //SaveToList and RestoreFromList functions
-        CreateRange<Instant>, DeleteRange<Instant>,     //object creation and deletion
+        InRange<Instant, InInstant>, //Out and In functions
+        0,        0,        //SaveToList and RestoreFromList functions
+        CreateRange<Instant>, DeleteRange<Instant>, 
+   //object creation and deletion
         OpenRange<Instant>,   SaveRange<Instant>,       // object open and save
         CloseRange<Instant>,  CloneRange<Instant>,      //object close and clone
-        CastRange<Instant>,                          	//cast function
-        SizeOfRange<Instant>,                         	//sizeof function
-        CheckPeriods );                                 	//kind checking function
+        CastRange<Instant>,                          //cast function
+        SizeOfRange<Instant>,                         //sizeof function
+        CheckPeriods );    //kind checking function
 
 /*
 4.4 Type Constructor ~ibool~
@@ -623,7 +640,7 @@ TypeConstructor intimebool(
         OutIntime<CcBool, OutCcBool>,
         InIntime<CcBool, InCcBool>,     //Out and In functions
         0,
-        0,                              //SaveToList and RestoreFromList functions
+        0,     //SaveToList and RestoreFromList functions
         CreateIntime<CcBool>,
         DeleteIntime<CcBool>,           //object creation and deletion
         0,
@@ -688,11 +705,11 @@ TypeConstructor intimeint(
         OutIntime<CcInt, OutCcInt>,
         InIntime<CcInt, InCcInt>,      //Out and In functions
         0,
-        0,                	       //SaveToList and RestoreFromList functions
+        0,    //SaveToList and RestoreFromList functions
         CreateIntime<CcInt>,
         DeleteIntime<CcInt>,           //object creation and deletion
         0,
-        0,                 	       // object open and save
+        0,                        // object open and save
         CloseIntime<CcInt>,
         CloneIntime<CcInt>,            //object close and clone
         CastIntime<CcInt>,             //cast function
@@ -750,16 +767,16 @@ CheckIntimeReal( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor intimereal(
-        "ireal",                      //name
-        IntimeRealProperty,                //property function describing signature
+        "ireal",              //name
+        IntimeRealProperty,   //property function describing signature
         OutIntime<CcReal, OutCcReal>,
         InIntime<CcReal, InCcReal>,        //Out and In functions
         0,
-        0,            	                   //SaveToList and RestoreFromList functions
+        0,    //SaveToList and RestoreFromList functions
         CreateIntime<CcReal>,
         DeleteIntime<CcReal>,              //object creation and deletion
         0,
-        0,             	                   // object open and save
+        0,                                // object open and save
         CloseIntime<CcReal>,
         CloneIntime<CcReal>,               //object close and clone
         CastIntime<CcReal>,                //cast function
@@ -816,15 +833,15 @@ CheckIntimePoint( ListExpr type, ListExpr& errorInfo )
 */
 TypeConstructor intimepoint(
         "ipoint",                    //name
-        IntimePointProperty,              //property function describing signature
+        IntimePointProperty,  //property function describing signature
         OutIntime<Point, OutPoint>,
         InIntime<Point, InPoint>,         //Out and In functions
         0,
-        0,                	          //SaveToList and RestoreFromList functions
+        0,       //SaveToList and RestoreFromList functions
         CreateIntime<Point>,
         DeleteIntime<Point>,              //object creation and deletion
         0,
-        0,                 	          // object open and save
+        0,                           // object open and save
         CloseIntime<Point>,
         CloneIntime<Point>,               //object close and clone
         CastIntime<Point>,                //cast function
@@ -880,11 +897,11 @@ CheckUBool( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor unitbool(
-        "ubool",                                  //name
-        UBoolProperty,                            //property function describing signature
+        "ubool",        //name
+        UBoolProperty,    //property function describing signature
         OutConstTemporalUnit<CcBool, OutCcBool>,
         InConstTemporalUnit<CcBool, InCcBool>,    //Out and In functions
-        0,                      0,                //SaveToList and RestoreFromList functions
+        0,     0,  //SaveToList and RestoreFromList functions
         CreateConstTemporalUnit<CcBool>,
         DeleteConstTemporalUnit<CcBool>,          //object creation and deletion
         0,                      0,                // object open and save
@@ -943,19 +960,19 @@ CheckUInt( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor unitint(
-        "uint",                   	  	//name
-        UIntProperty,                     	//property function describing signature
+        "uint",     //name
+        UIntProperty, //property function describing signature
         OutConstTemporalUnit<CcInt, OutCcInt>,
-        InConstTemporalUnit<CcInt, InCcInt>,	//Out and In functions
-        0,                      0,           	//SaveToList and RestoreFromList functions
+        InConstTemporalUnit<CcInt, InCcInt>, //Out and In functions
+        0,                      0,//SaveToList and RestoreFromList functions
         CreateConstTemporalUnit<CcInt>,
-        DeleteConstTemporalUnit<CcInt>,  	//object creation and deletion
-        0,                      0,            	        	    // object open and save
+        DeleteConstTemporalUnit<CcInt>, //object creation and deletion
+        0,                      0,     // object open and save
         CloseConstTemporalUnit<CcInt>,
-        CloneConstTemporalUnit<CcInt>,   	//object close and clone
-        CastConstTemporalUnit<CcInt>,       	//cast function
-        SizeOfConstTemporalUnit<CcInt>, 	//sizeof function
-        CheckUInt );                     	//kind checking function
+        CloneConstTemporalUnit<CcInt>, //object close and clone
+        CastConstTemporalUnit<CcInt>,       //cast function
+        SizeOfConstTemporalUnit<CcInt>, //sizeof function
+        CheckUInt );                    //kind checking function
 
 /*
 4.8 Type Constructor ~ureal~
@@ -989,8 +1006,8 @@ URealProperty()
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> UNIT"),
                              nl->StringAtom("(ureal) "),
-                             nl->StringAtom("( timeInterval (real1 real2 real3 bool)) "),
-                             nl->StringAtom("((i1 i2 TRUE FALSE) (1.0 2.2 2.5 TRUE))"))));
+         nl->StringAtom("( timeInterval (real1 real2 real3 bool)) "),
+         nl->StringAtom("((i1 i2 TRUE FALSE) (1.0 2.2 2.5 TRUE))"))));
 }
 
 /*
@@ -1012,7 +1029,8 @@ ListExpr OutUReal( ListExpr typeInfo, Word value )
   UReal* ureal = (UReal*)(value.addr);
 
   ListExpr timeintervalList = nl->FourElemList(
-          OutDateTime( nl->TheEmptyList(), SetWord(&ureal->timeInterval.start) ),
+          OutDateTime( nl->TheEmptyList(),
+          SetWord(&ureal->timeInterval.start) ),
           OutDateTime( nl->TheEmptyList(), SetWord(&ureal->timeInterval.end) ),
           nl->BoolAtom( ureal->timeInterval.lc ),
           nl->BoolAtom( ureal->timeInterval.rc));
@@ -1047,15 +1065,17 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
       nl->IsAtom( nl->Fourth( first ) ) &&
       nl->AtomType( nl->Fourth( first ) ) == BoolType )
     {
-      Instant *start = (Instant *)InInstant( nl->TheEmptyList(), nl->First( first ),
-                                             errorPos, errorInfo, correct ).addr;
+      Instant *start = (Instant *)InInstant( nl->TheEmptyList(),
+       nl->First( first ),
+        errorPos, errorInfo, correct ).addr;
       if( correct == false )
       {
         delete start;
         return SetWord( Address(0) );
       }
 
-      Instant *end = (Instant *)InInstant( nl->TheEmptyList(), nl->Second( first ),
+      Instant *end = (Instant *)InInstant( nl->TheEmptyList(),
+       nl->Second( first ),
                                            errorPos, errorInfo, correct ).addr;
       if( correct == false )
       {
@@ -1164,16 +1184,16 @@ void* CastUReal(void* addr)
 
 */
 TypeConstructor unitreal(
-        "ureal",                   	 //name
-        URealProperty,                 	 //property function describing signature
-        OutUReal,     InUReal,		 //Out and In functions
-        0,            0,           	 //SaveToList and RestoreFromList functions
+        "ureal",              //name
+        URealProperty,  //property function describing signature
+        OutUReal,     InUReal, //Out and In functions
+        0,            0,   //SaveToList and RestoreFromList functions
         CreateUReal,
-        DeleteUReal,			 //object creation and deletion
-        0,            0,            	 // object open and save
-        CloseUReal,   CloneUReal,	 //object close and clone
-        CastUReal,			 //cast function
-        SizeOfUReal,			 //sizeof function
+        DeleteUReal, //object creation and deletion
+        0,            0,   // object open and save
+        CloseUReal,   CloneUReal, //object close and clone
+        CastUReal, //cast function
+        SizeOfUReal, //sizeof function
         CheckUReal );                     //kind checking function
 
 /*
@@ -1206,8 +1226,8 @@ UPointProperty()
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> UNIT"),
                              nl->StringAtom("(upoint) "),
-                             nl->StringAtom("( timeInterval (real1 real2 real3 real4) ) "),
-                             nl->StringAtom("((i1 i2 TRUE FALSE) (1.0 2.2 2.5 2.1))"))));
+      nl->StringAtom("( timeInterval (real1 real2 real3 real4) ) "),
+      nl->StringAtom("((i1 i2 TRUE FALSE) (1.0 2.2 2.5 2.1))"))));
 }
 
 /*
@@ -1229,7 +1249,8 @@ ListExpr OutUPoint( ListExpr typeInfo, Word value )
   UPoint* upoint = (UPoint*)(value.addr);
 
   ListExpr timeintervalList = nl->FourElemList(
-          OutDateTime( nl->TheEmptyList(), SetWord(&upoint->timeInterval.start) ),
+          OutDateTime( nl->TheEmptyList(),
+          SetWord(&upoint->timeInterval.start) ),
           OutDateTime( nl->TheEmptyList(), SetWord(&upoint->timeInterval.end) ),
           nl->BoolAtom( upoint->timeInterval.lc ),
           nl->BoolAtom( upoint->timeInterval.rc));
@@ -1263,8 +1284,9 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
         nl->AtomType( nl->Fourth( first ) ) == BoolType )
     {
       correct = true;
-      Instant *start = (Instant *)InInstant( nl->TheEmptyList(), nl->First( first ),
-                                             errorPos, errorInfo, correct ).addr;
+      Instant *start = (Instant *)InInstant( nl->TheEmptyList(),
+       nl->First( first ),
+        errorPos, errorInfo, correct ).addr;
 
       if( correct == false )
       {
@@ -1272,7 +1294,8 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
         return SetWord( Address(0) );
       }
 
-      Instant *end = (Instant *)InInstant( nl->TheEmptyList(), nl->Second( first ),
+      Instant *end = (Instant *)InInstant( nl->TheEmptyList(),
+       nl->Second( first ),
                                            errorPos, errorInfo, correct ).addr;
 
       if( correct == false )
@@ -1284,7 +1307,7 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
 
       Interval<Instant> tinterval( *start, *end,
                                    nl->BoolValue( nl->Third( first ) ),
-                                   nl->BoolValue( nl->Fourth( first ) ) );
+       nl->BoolValue( nl->Fourth( first ) ) );
 
       delete start;
       delete end;
@@ -1381,16 +1404,16 @@ void* CastUPoint(void* addr)
 
 */
 TypeConstructor unitpoint(
-        "upoint",                   	 //name
-        UPointProperty,                  //property function describing signature
-        OutUPoint,     InUPoint,	 //Out and In functions
-        0,             0,           	 //SaveToList and RestoreFromList functions
+        "upoint",      //name
+        UPointProperty,               //property function describing signature
+        OutUPoint,     InUPoint, //Out and In functions
+        0,             0,  //SaveToList and RestoreFromList functions
         CreateUPoint,
-        DeleteUPoint,		  	 //object creation and deletion
-        0,             0,            	 // object open and save
-        CloseUPoint,   CloneUPoint,	 //object close and clone
-        CastUPoint,			 //cast function
-        SizeOfUPoint,			 //sizeof function
+        DeleteUPoint, //object creation and deletion
+        0,             0,        // object open and save
+        CloseUPoint,   CloneUPoint, //object close and clone
+        CastUPoint, //cast function
+        SizeOfUPoint, //sizeof function
         CheckUPoint );                    //kind checking function
 
 /*
@@ -1429,7 +1452,7 @@ MBoolProperty()
             nl->FourElemList(nl->StringAtom("-> MAPPING"),
                              nl->StringAtom("(mbool) "),
                              nl->StringAtom("( u1 ... un)"),
-                             nl->StringAtom("(((i1 i2 TRUE TRUE) TRUE) ...)"))));
+           nl->StringAtom("(((i1 i2 TRUE TRUE) TRUE) ...)"))));
 }
 
 /*
@@ -1449,21 +1472,22 @@ CheckMBool( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor movingbool(
-        "mbool",                                                            //name
-        MBoolProperty,                                                      //property function describing signature
+        "mbool", //name
+        MBoolProperty,  //property function describing signature
         OutMapping<MBool, UBool, OutConstTemporalUnit<CcBool, OutCcBool> >,
-        InMapping<MBool, UBool, InConstTemporalUnit<CcBool, InCcBool> >,    //Out and In functions
+        InMapping<MBool, UBool, InConstTemporalUnit<CcBool, InCcBool> >,    
+       //Out and In functions
         0,
-        0,                                                                  //SaveToList and RestoreFromList functions
+        0,    //SaveToList and RestoreFromList functions
         CreateMapping<MBool>,
-        DeleteMapping<MBool>,                                               //object creation and deletion
+        DeleteMapping<MBool>,        //object creation and deletion
         0,
-        0,                                                                  // object open and save
+        0,                // object open and save
         CloseMapping<MBool>,
-        CloneMapping<MBool>,                                                //object close and clone
-        CastMapping<MBool>,                                                 //cast function
-        SizeOfMapping<MBool>,                                               //sizeof function
-        CheckMBool );                                                       //kind checking function
+        CloneMapping<MBool>,     //object close and clone
+        CastMapping<MBool>,     //cast function
+        SizeOfMapping<MBool>,    //sizeof function
+        CheckMBool );          //kind checking function
 
 /*
 4.10 Type Constructor ~mint~
@@ -1521,21 +1545,22 @@ CheckMInt( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor movingint(
-        "mint",                   	  	      	                 //name
-        MIntProperty,                 	     	                         //property function describing signature
+        "mint",               //name
+        MIntProperty,   //property function describing signature
         OutMapping<MInt, UInt, OutConstTemporalUnit<CcInt, OutCcInt> >,
-        InMapping<MInt, UInt, InConstTemporalUnit<CcInt, InCcInt> >,     //Out and In functions
+        InMapping<MInt, UInt, InConstTemporalUnit<CcInt, InCcInt> >,
+    //Out and In functions
         0,
-        0,           	     	    	                                 //SaveToList and RestoreFromList functions
+        0,            //SaveToList and RestoreFromList functions
         CreateMapping<MInt>,
-        DeleteMapping<MInt>,		  	    	                 //object creation and deletion
+        DeleteMapping<MInt>,   //object creation and deletion
         0,
-        0,                                                               // object open and save
+        0,           // object open and save
         CloseMapping<MInt>,
-        CloneMapping<MInt>,	   	                                 //object close and clone
-        CastMapping<MInt>,			       	                 //cast function
-        SizeOfMapping<MInt>,			 	                 //sizeof function
-        CheckMInt );                       	  	                 //kind checking function
+        CloneMapping<MInt>, //object close and clone
+        CastMapping<MInt>,  //cast function
+        SizeOfMapping<MInt>,  //sizeof function
+        CheckMInt );      //kind checking function
 
 /*
 4.11 Type Constructor ~mreal~
@@ -1573,7 +1598,7 @@ MRealProperty()
             nl->FourElemList(nl->StringAtom("-> MAPPING"),
                              nl->StringAtom("(mreal) "),
                              nl->StringAtom("( u1 ... un) "),
-                             nl->StringAtom("(((i1 i2 TRUE FALSE) (1.0 2.2 2.5 FALSE)) ...)"))));
+           nl->StringAtom("(((i1 i2 TRUE FALSE) (1.0 2.2 2.5 FALSE)) ...)"))));
 }
 
 /*
@@ -1591,20 +1616,20 @@ CheckMReal( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor movingreal(
-        "mreal",                   	    //name
-        MRealProperty,                 	    //property function describing signature
+        "mreal",                    //name
+        MRealProperty,    //property function describing signature
         OutMapping<MReal, UReal, OutUReal>,
         InMapping<MReal, UReal, InUReal>,   //Out and In functions
         0,
-        0,           	     	    	    //SaveToList and RestoreFromList functions
+        0,      //SaveToList and RestoreFromList functions
         CreateMapping<MReal>,
-        DeleteMapping<MReal>,		    //object creation and deletion
+        DeleteMapping<MReal>,    //object creation and deletion
         0,
-        0,            	        	    // object open and save
+        0,        // object open and save
         CloseMapping<MReal>,
-        CloneMapping<MReal>,	   	    //object close and clone
-        CastMapping<MReal>,		    //cast function
-        SizeOfMapping<MReal>,		    //sizeof function
+        CloneMapping<MReal>,    //object close and clone
+        CastMapping<MReal>,    //cast function
+        SizeOfMapping<MReal>,    //sizeof function
         CheckMReal );                        //kind checking function
 
 /*
@@ -1643,7 +1668,7 @@ MPointProperty()
             nl->FourElemList(nl->StringAtom("-> MAPPING"),
                              nl->StringAtom("(mpoint) "),
                              nl->StringAtom("( u1 ... un ) "),
-                             nl->StringAtom("(((i1 i2 TRUE FALSE) (1.0 2.2 2.5 2.1)) ...)"))));
+        nl->StringAtom("(((i1 i2 TRUE FALSE) (1.0 2.2 2.5 2.1)) ...)"))));
 }
 
 /*
@@ -1661,21 +1686,21 @@ CheckMPoint( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor movingpoint(
-        "mpoint",                                           //name
-        MPointProperty,                                     //property function describing signature
+        "mpoint",                           //name
+        MPointProperty,        //property function describing signature
         OutMapping<MPoint, UPoint, OutUPoint>,
-        InMapping<MPoint, UPoint, InUPoint>,                //Out and In functions
+        InMapping<MPoint, UPoint, InUPoint>,//Out and In functions
         0,
-        0,                                                  //SaveToList and RestoreFromList functions
+        0,                 //SaveToList and RestoreFromList functions
         CreateMapping<MPoint>,
-        DeleteMapping<MPoint>,                              //object creation and deletion
+        DeleteMapping<MPoint>,     //object creation and deletion
         0,
-        0,                                                  // object open and save
+        0,      // object open and save
         CloseMapping<MPoint>,
-        CloneMapping<MPoint>,                               //object close and clone
-        CastMapping<MPoint>,                                //cast function
-        SizeOfMapping<MPoint>,                              //sizeof function
-        CheckMPoint );                                       //kind checking function
+        CloneMapping<MPoint>, //object close and clone
+        CastMapping<MPoint>,    //cast function
+        SizeOfMapping<MPoint>, //sizeof function
+        CheckMPoint );  //kind checking function
 
 /*
 16 Operators
@@ -1737,8 +1762,21 @@ TemporalTemporalTypeMapBool( ListExpr args )
     if( (nl->IsEqual( arg1, "instant" ) && nl->IsEqual( arg2, "instant" )) ||
         (nl->IsEqual( arg1, "rint" ) && nl->IsEqual( arg2, "rint" )) ||
         (nl->IsEqual( arg1, "rreal" ) && nl->IsEqual( arg2, "rreal" )) ||
-        (nl->IsEqual( arg1, "periods" ) && nl->IsEqual( arg2, "periods" )) ||
-        (nl->IsEqual( arg1, "mbool" ) && nl->IsEqual( arg2, "mbool" )) ||
+        (nl->IsEqual( arg1, "periods" ) && nl->IsEqual( arg2, "periods" )) )
+      return nl->SymbolAtom( "bool" );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+ListExpr
+TemporalTemporalTypeMapBool2( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 2 )
+  {
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+
+    if(  (nl->IsEqual( arg1, "mbool" ) && nl->IsEqual( arg2, "mbool" )) ||
         (nl->IsEqual( arg1, "mint" ) && nl->IsEqual( arg2, "mint" )) ||
         (nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "mreal" )) ||
         (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "mpoint" )) )
@@ -2239,7 +2277,8 @@ ListExpr MovingTypeMapUnits( ListExpr args )
       return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("ureal"));
 
     if( nl->IsEqual( arg1, "mpoint" ) )
-      return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("upoint"));
+      return nl->TwoElemList(nl->SymbolAtom("stream"),
+       nl->SymbolAtom("upoint"));
   }
   return nl->SymbolAtom("typeerror");
 }
@@ -2364,7 +2403,7 @@ ListExpr MPointTypeMapTranslate( ListExpr args )
 
     if( nl->IsEqual( arg1, "mpoint" ) &&
         nl->IsEqual(nl->First( arg2 ), "duration") &&
-	nl->IsEqual(nl->Second( arg2 ), "real") &&
+        nl->IsEqual(nl->Second( arg2 ), "real") &&
         nl->IsEqual(nl->Third( arg2 ), "real")) {
       return (nl->SymbolAtom( "mpoint" )); }
   }
@@ -2455,7 +2494,8 @@ RangeDualSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "rreal" && nl->SymbolValue( arg2 ) == "rreal" )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "periods" && nl->SymbolValue( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == "periods" && nl->SymbolValue
+  ( arg2 ) == "periods" )
     return 2;
 
   if( nl->SymbolValue( arg1 ) == "int" && nl->SymbolValue( arg2 ) == "rint" )
@@ -2464,7 +2504,8 @@ RangeDualSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "real" && nl->SymbolValue( arg2 ) == "rreal" )
     return 4;
 
-  if( nl->SymbolValue( arg1 ) == "instant" && nl->SymbolValue( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == "instant" && nl->SymbolValue
+  ( arg2 ) == "periods" )
     return 5;
 
   if( nl->SymbolValue( arg1 ) == "rint" && nl->SymbolValue( arg2 ) == "int" )
@@ -2473,7 +2514,8 @@ RangeDualSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "rreal" && nl->SymbolValue( arg2 ) == "real" )
     return 7;
 
-  if( nl->SymbolValue( arg1 ) == "periods" && nl->SymbolValue( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == "periods" && nl->SymbolValue
+  ( arg2 ) == "instant" )
     return 8;
 
   return -1; // This point should never be reached
@@ -2541,7 +2583,8 @@ TemporalDualSelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "instant" && nl->SymbolValue( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == "instant" && 
+    nl->SymbolValue( arg2 ) == "instant" )
     return 0;
 
   if( nl->SymbolValue( arg1 ) == "rint" && nl->SymbolValue( arg2 ) == "rint" )
@@ -2550,20 +2593,31 @@ TemporalDualSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "rreal" && nl->SymbolValue( arg2 ) == "rreal" )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == "periods" && nl->SymbolValue( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == "periods" && 
+    nl->SymbolValue( arg2 ) == "periods" )
     return 3;
 
+  return -1; // This point should never be reached
+}
+
+int
+TemporalDualSelect2( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args ),
+           arg2 = nl->Second( args );
+
   if( nl->SymbolValue( arg1 ) == "mbool" && nl->SymbolValue( arg2 ) == "mbool" )
-    return 4;
+    return 0;
 
   if( nl->SymbolValue( arg1 ) == "mint" && nl->SymbolValue( arg2 ) == "mint" )
-    return 5;
+    return 1;
 
   if( nl->SymbolValue( arg1 ) == "mreal" && nl->SymbolValue( arg2 ) == "mreal" )
-    return 6;
+    return 2;
 
-  if( nl->SymbolValue( arg1 ) == "mpoint" && nl->SymbolValue( arg2 ) == "mpoint" )
-    return 7;
+  if( nl->SymbolValue( arg1 ) == "mpoint" && nl->SymbolValue
+  ( arg2 ) == "mpoint" )
+    return 3;
 
   return -1; // This point should never be reached
 }
@@ -2668,28 +2722,36 @@ MovingInstantPeriodsSelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "mbool" && nl->SymbolValue( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == "mbool" && nl->SymbolValue
+  ( arg2 ) == "instant" )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "mint" && nl->SymbolValue( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == "mint" && nl->SymbolValue
+  ( arg2 ) == "instant" )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "mreal" && nl->SymbolValue( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == "mreal" && nl->SymbolValue
+  ( arg2 ) == "instant" )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == "mpoint" && nl->SymbolValue( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == "mpoint" && nl->SymbolValue
+  ( arg2 ) == "instant" )
     return 3;
 
-  if( nl->SymbolValue( arg1 ) == "mbool" && nl->SymbolValue( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == "mbool" && nl->SymbolValue
+  ( arg2 ) == "periods" )
     return 4;
 
-  if( nl->SymbolValue( arg1 ) == "mint" && nl->SymbolValue( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == "mint" && nl->SymbolValue
+  ( arg2 ) == "periods" )
     return 5;
 
-  if( nl->SymbolValue( arg1 ) == "mreal" && nl->SymbolValue( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == "mreal" && nl->SymbolValue
+  ( arg2 ) == "periods" )
     return 6;
 
-  if( nl->SymbolValue( arg1 ) == "mpoint" && nl->SymbolValue( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == "mpoint" && nl->SymbolValue
+  ( arg2 ) == "periods" )
     return 7;
 
   return -1; // This point should never be reached
@@ -2716,7 +2778,8 @@ MovingBaseSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "mreal" && nl->SymbolValue( arg2 ) == "real" )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == "mpoint" && nl->SymbolValue( arg2 ) == "point" )
+  if( nl->SymbolValue( arg1 ) == "mpoint" && nl->SymbolValue
+  ( arg2 ) == "point" )
     return 3;
 
   return -1; // This point should never be reached
@@ -2764,7 +2827,8 @@ parameter types.
 16.3.1 Value mapping functions of operator ~isempty~
 
 */
-int InstantIsEmpty( Word* args, Word& result, int message, Word& local, Supplier s )
+int InstantIsEmpty( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( !((Instant*)args[0].addr)->IsDefined() )
@@ -2775,7 +2839,8 @@ int InstantIsEmpty( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 template <class Range>
-int RangeIsEmpty( Word* args, Word& result, int message, Word& local, Supplier s )
+int RangeIsEmpty( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Range*)args[0].addr)->IsEmpty() )
@@ -2790,7 +2855,8 @@ int RangeIsEmpty( Word* args, Word& result, int message, Word& local, Supplier s
 
 */
 int
-InstantEqual( Word* args, Word& result, int message, Word& local, Supplier s )
+InstantEqual( Word* args, Word& result, int message, Word& local,
+ Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -2809,7 +2875,8 @@ InstantEqual( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 template <class Range>
-int RangeEqual( Word* args, Word& result, int message, Word& local, Supplier s )
+int RangeEqual( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( *((Range*)args[0].addr) == *((Range*)args[1].addr) )
@@ -2824,7 +2891,8 @@ int RangeEqual( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 int
-InstantNotEqual( Word* args, Word& result, int message, Word& local, Supplier s )
+InstantNotEqual( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -2843,7 +2911,8 @@ InstantNotEqual( Word* args, Word& result, int message, Word& local, Supplier s 
 }
 
 template <class Range>
-int RangeNotEqual( Word* args, Word& result, int message, Word& local, Supplier s )
+int RangeNotEqual( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( *((Range*)args[0].addr) != *((Range*)args[1].addr) )
@@ -2858,7 +2927,8 @@ int RangeNotEqual( Word* args, Word& result, int message, Word& local, Supplier 
 
 */
 int
-InstantLess( Word* args, Word& result, int message, Word& local, Supplier s )
+InstantLess( Word* args, Word& result, int message, Word& local,
+ Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -2877,7 +2947,8 @@ InstantLess( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 int
-InstantLessEqual( Word* args, Word& result, int message, Word& local, Supplier s )
+InstantLessEqual( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -2896,7 +2967,8 @@ InstantLessEqual( Word* args, Word& result, int message, Word& local, Supplier s
 
 */
 int
-InstantGreater( Word* args, Word& result, int message, Word& local, Supplier s )
+InstantGreater( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -2915,7 +2987,8 @@ InstantGreater( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 int
-InstantGreaterEqual( Word* args, Word& result, int message, Word& local, Supplier s )
+InstantGreaterEqual( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -2934,7 +3007,8 @@ InstantGreaterEqual( Word* args, Word& result, int message, Word& local, Supplie
 
 */
 template <class Range>
-int RangeIntersects( Word* args, Word& result, int message, Word& local, Supplier s )
+int RangeIntersects( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Range*)args[0].addr)->Intersects( *((Range*)args[1].addr) ) )
@@ -2949,7 +3023,8 @@ int RangeIntersects( Word* args, Word& result, int message, Word& local, Supplie
 
 */
 template <class Range>
-int RangeInside_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+int RangeInside_rr( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Range*)args[0].addr)->Inside( *((Range*)args[1].addr) ) )
@@ -2960,7 +3035,8 @@ int RangeInside_rr( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 template <class Alpha, class Range>
-int RangeInside_ar( Word* args, Word& result, int message, Word& local, Supplier s )
+int RangeInside_ar( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Range*)args[1].addr)->Contains( *((Alpha*)args[0].addr) ) )
@@ -2975,7 +3051,8 @@ int RangeInside_ar( Word* args, Word& result, int message, Word& local, Supplier
 
 */
 template <class Range>
-int RangeBefore_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+int RangeBefore_rr( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Range*)args[0].addr)->Before( *((Range*)args[1].addr) ) )
@@ -2986,7 +3063,8 @@ int RangeBefore_rr( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 template <class Alpha, class Range>
-int RangeBefore_ar( Word* args, Word& result, int message, Word& local, Supplier s )
+int RangeBefore_ar( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Range*)args[1].addr)->After( *((Alpha*)args[0].addr) ) )
@@ -2997,7 +3075,8 @@ int RangeBefore_ar( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 template <class Range, class Alpha>
-int RangeBefore_ra( Word* args, Word& result, int message, Word& local, Supplier s )
+int RangeBefore_ra( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Range*)args[0].addr)->Before( *((Alpha*)args[1].addr) ) )
@@ -3012,10 +3091,12 @@ int RangeBefore_ra( Word* args, Word& result, int message, Word& local, Supplier
 
 */
 template <class Range>
-int RangeIntersection( Word* args, Word& result, int message, Word& local, Supplier s )
+int RangeIntersection( Word* args, Word& result, int message,
+ Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((Range*)args[0].addr)->Intersection( *((Range*)args[1].addr), (*(Range*)result.addr) );
+  ((Range*)args[0].addr)->Intersection( *((Range*)args[1].addr),
+   (*(Range*)result.addr) );
   return 0;
 }
 
@@ -3024,10 +3105,12 @@ int RangeIntersection( Word* args, Word& result, int message, Word& local, Suppl
 
 */
 template <class Range>
-int RangeUnion( Word* args, Word& result, int message, Word& local, Supplier s )
+int RangeUnion( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((Range*)args[0].addr)->Union( *((Range*)args[1].addr), (*(Range*)result.addr) );
+  ((Range*)args[0].addr)->Union( *((Range*)args[1].addr),
+   (*(Range*)result.addr) );
   return 0;
 }
 
@@ -3036,10 +3119,12 @@ int RangeUnion( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 template <class Range>
-int RangeMinus( Word* args, Word& result, int message, Word& local, Supplier s )
+int RangeMinus( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((Range*)args[0].addr)->Minus( *((Range*)args[1].addr), (*(Range*)result.addr) );
+  ((Range*)args[0].addr)->Minus( *((Range*)args[1].addr),
+   (*(Range*)result.addr) );
   return 0;
 }
 
@@ -3048,7 +3133,8 @@ int RangeMinus( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 template <class Range, class Alpha>
-int RangeMinimum( Word* args, Word& result, int message, Word& local, Supplier s )
+int RangeMinimum( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -3064,7 +3150,8 @@ int RangeMinimum( Word* args, Word& result, int message, Word& local, Supplier s
 
 */
 template <class Range, class Alpha>
-int RangeMaximum( Word* args, Word& result, int message, Word& local, Supplier s )
+int RangeMaximum( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -3080,10 +3167,12 @@ int RangeMaximum( Word* args, Word& result, int message, Word& local, Supplier s
 
 */
 template <class Range>
-int RangeNoComponents( Word* args, Word& result, int message, Word& local, Supplier s )
+int RangeNoComponents( Word* args, Word& result, int message,
+ Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((CcInt *)result.addr)->Set( true, ((Range*)args[0].addr)->GetNoComponents() );
+  ((CcInt *)result.addr)->Set( true,
+   ((Range*)args[0].addr)->GetNoComponents() );
   return 0;
 }
 
@@ -3091,7 +3180,8 @@ int RangeNoComponents( Word* args, Word& result, int message, Word& local, Suppl
 16.3.23 Value mapping functions of operator ~trajectory~
 
 */
-int MPointTrajectory( Word* args, Word& result, int message, Word& local, Supplier s )
+int MPointTrajectory( Word* args, Word& result, int message,
+ Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -3106,10 +3196,12 @@ int MPointTrajectory( Word* args, Word& result, int message, Word& local, Suppli
 16.3.29 Value mapping functions of operator ~distance~
 
 */
-int MPointDistance( Word* args, Word& result, int message, Word& local, Supplier s )
+int MPointDistance( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((MPoint*)args[0].addr)->Distance( *((Point*)args[1].addr), *((MReal*)result.addr) );
+  ((MPoint*)args[0].addr)->Distance( *((Point*)args[1].addr),
+   *((MReal*)result.addr) );
   return 0;
 }
 
@@ -3118,7 +3210,8 @@ int MPointDistance( Word* args, Word& result, int message, Word& local, Supplier
 
 */
 static int
-UPointBBox( Word* args, Word& result, int message, Word& local, Supplier s )
+UPointBBox( Word* args, Word& result, int message, Word& local,
+ Supplier s )
 {
   result = qp->ResultStorage( s );
   *((Rectangle<3>*)result.addr) = ((UPoint*)args[0].addr)->BoundingBox();
@@ -3130,7 +3223,8 @@ UPointBBox( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 static int
-MPointTranslate( Word* args, Word& result, int message, Word& local, Supplier s )
+MPointTranslate( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   Word t;
   double dx,dy;
@@ -3146,7 +3240,7 @@ MPointTranslate( Word* args, Word& result, int message, Word& local, Supplier s 
   Supplier son = qp->GetSupplier( args[1].addr, 0 );
   qp->Request( son, t );
   dd = (DateTime *)t.addr;
-	
+
   son = qp->GetSupplier( args[1].addr, 1 );
   qp->Request( son, t );
   dx = ((CcReal *)t.addr)->GetRealval();
@@ -3183,7 +3277,8 @@ MPointTranslate( Word* args, Word& result, int message, Word& local, Supplier s 
 16.3.32 Value mapping functions of operator ~theyear~
 
 */
-int TheYear( Word* args, Word& result, int message, Word& local, Supplier s )
+int TheYear( Word* args, Word& result, int message, Word& local,
+ Supplier s )
 { // int --> periods (=range(instant))
   result = qp->ResultStorage( s );
   Periods* pResult = (Periods*)result.addr;
@@ -3211,7 +3306,8 @@ int TheYear( Word* args, Word& result, int message, Word& local, Supplier s )
 16.3.33 Value mapping functions of operator ~themonth~
 
 */
-int TheMonth( Word* args, Word& result, int message, Word& local, Supplier s )
+int TheMonth( Word* args, Word& result, int message, Word& local,
+ Supplier s )
 {
   result = qp->ResultStorage( s );
   Periods *pResult = (Periods*)result.addr;
@@ -3244,7 +3340,8 @@ int TheMonth( Word* args, Word& result, int message, Word& local, Supplier s )
 16.3.34 Value mapping functions of operator ~theday~
 
 */
-int TheDay( Word* args, Word& result, int message, Word& local, Supplier s )
+int TheDay( Word* args, Word& result, int message, Word& local,
+ Supplier s )
 {
   result = qp->ResultStorage( s );
   Periods *pResult = (Periods*)result.addr;
@@ -3276,7 +3373,8 @@ int TheDay( Word* args, Word& result, int message, Word& local, Supplier s )
 16.3.35 Value mapping functions of operator ~thehour~
 
 */
-int TheHour( Word* args, Word& result, int message, Word& local, Supplier s )
+int TheHour( Word* args, Word& result, int message, Word& local,
+ Supplier s )
 {
   result = qp->ResultStorage( s );
   Periods* pResult = (Periods*)result.addr;
@@ -3309,7 +3407,8 @@ int TheHour( Word* args, Word& result, int message, Word& local, Supplier s )
 16.3.36 Value mapping functions of operator ~theminute~
 
 */
-int TheMinute( Word* args, Word& result, int message, Word& local, Supplier s )
+int TheMinute( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
   Periods *pResult = (Periods*)result.addr;
@@ -3343,7 +3442,8 @@ int TheMinute( Word* args, Word& result, int message, Word& local, Supplier s )
 16.3.37 Value mapping functions of operator ~thesecond~
 
 */
-int TheSecond( Word* args, Word& result, int message, Word& local, Supplier s )
+int TheSecond( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
   Periods *pResult = (Periods*)result.addr;
@@ -3378,7 +3478,8 @@ int TheSecond( Word* args, Word& result, int message, Word& local, Supplier s )
 16.3.38 Value mapping functions of operator ~theperiod~
 
 */
-int ThePeriod( Word* args, Word& result, int message, Word& local, Supplier s )
+int ThePeriod( Word* args, Word& result, int message, Word&
+ local, Supplier s )
 {
   result = qp->ResultStorage( s );
   Periods *pResult = (Periods*)result.addr,
@@ -3406,7 +3507,8 @@ int ThePeriod( Word* args, Word& result, int message, Word& local, Supplier s )
       range2->Get( range2->GetNoComponents()-1, intv2 );
     }
 
-    Interval<Instant> timeInterval( intv1->start, intv2->end, intv1->lc, intv2->rc );
+    Interval<Instant> timeInterval( intv1->start, intv2->end,
+     intv1->lc, intv2->rc );
 
     pResult->StartBulkLoad();
     pResult->Add( timeInterval );
@@ -3420,7 +3522,8 @@ int ThePeriod( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-int Box3d_rect( Word* args, Word& result, int message, Word& local, Supplier s ){
+int Box3d_rect( Word* args, Word& result, int message, Word&
+ local, Supplier s ){
    result = qp->ResultStorage(s);
    Rectangle<3>* res = (Rectangle<3>*) result.addr;
    Rectangle<2>* arg = (Rectangle<2>*) args[0].addr;
@@ -3436,7 +3539,8 @@ int Box3d_rect( Word* args, Word& result, int message, Word& local, Supplier s )
    return 0; 
 }
 
-int Box3d_instant( Word* args, Word& result, int message, Word& local, Supplier s ){
+int Box3d_instant( Word* args, Word& result, int message, Word&
+ local, Supplier s ){
    result = qp->ResultStorage(s);
    Rectangle<3>* res = (Rectangle<3>*) result.addr;
    Instant* arg = (Instant*) args[0].addr;
@@ -3454,7 +3558,8 @@ int Box3d_instant( Word* args, Word& result, int message, Word& local, Supplier 
 }
 
 
-int Box3d_rect_instant( Word* args, Word& result, int message, Word& local, Supplier s ){
+int Box3d_rect_instant( Word* args, Word& result, int message,
+ Word& local, Supplier s ){
    result = qp->ResultStorage(s);
    Rectangle<3>* res = (Rectangle<3>*) result.addr;
    Rectangle<2>* arg1 = (Rectangle<2>*) args[0].addr;
@@ -3473,7 +3578,8 @@ int Box3d_rect_instant( Word* args, Word& result, int message, Word& local, Supp
 }
 
 
-int Box3d_periods( Word* args, Word& result, int message, Word& local, Supplier s ){
+int Box3d_periods( Word* args, Word& result, int message, Word&
+ local, Supplier s ){
    result = qp->ResultStorage(s);
    Rectangle<3>* res = (Rectangle<3>*) result.addr;
    Periods* arg = (Periods*) args[0].addr;
@@ -3494,7 +3600,8 @@ int Box3d_periods( Word* args, Word& result, int message, Word& local, Supplier 
    return 0; 
 }
 
-int Box3d_rect_periods( Word* args, Word& result, int message, Word& local, Supplier s ){
+int Box3d_rect_periods( Word* args, Word& result, int message,
+ Word& local, Supplier s ){
    result = qp->ResultStorage(s);
    Rectangle<3>* res = (Rectangle<3>*) result.addr;
    Rectangle<2>* arg1 = (Rectangle<2>*) args[0].addr;
@@ -3547,8 +3654,9 @@ ValueMapping temporalisemptymap[] = { InstantIsEmpty,
 ValueMapping temporalequalmap[] = { InstantEqual,
                                     RangeEqual<RInt>,
                                     RangeEqual<RReal>,
-                                    RangeEqual<Instant>,
-                                    MappingEqual<MBool>,
+                                    RangeEqual<Instant>};
+
+ValueMapping temporalequalmap2[] = { MappingEqual<MBool>,
                                     MappingEqual<MInt>,
                                     MappingEqual<MReal>,
                                     MappingEqual<MPoint> };
@@ -3556,8 +3664,9 @@ ValueMapping temporalequalmap[] = { InstantEqual,
 ValueMapping temporalnotequalmap[] = { InstantNotEqual,
                                        RangeNotEqual<RInt>,
                                        RangeNotEqual<RReal>,
-                                       RangeNotEqual<Periods>,
-                                       MappingNotEqual<MBool>,
+                                       RangeNotEqual<Periods>};
+
+ValueMapping temporalnotequalmap2[] = { MappingNotEqual<MBool>,
                                        MappingNotEqual<MInt>,
                                        MappingNotEqual<MReal>,
                                        MappingNotEqual<MPoint> };
@@ -3637,9 +3746,9 @@ ValueMapping temporaldeftimemap[] = { MappingDefTime<MBool>,
                                       MappingDefTime<MPoint> };
 
 ValueMapping temporalpresentmap[] = { MappingPresent_i<MBool>,
-		                      MappingPresent_i<MInt>,
-		                      MappingPresent_i<MReal>,
-			              MappingPresent_i<MPoint>,
+                      MappingPresent_i<MInt>,
+                        MappingPresent_i<MReal>,
+              MappingPresent_i<MPoint>,
                                       MappingPresent_p<MBool>,
                                       MappingPresent_p<MInt>,
                                       MappingPresent_p<MReal>,
@@ -3680,29 +3789,47 @@ ValueMapping Box3dMap[] = { Box3d_rect, Box3d_instant,Box3d_rect_instant,
 */
 const string TemporalSpecIsEmpty  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                     "\"Example\" ) "
-                                    "( <text>instant -> bool, range(x) -> bool, moving(x) -> bool"
-                                    "unit(x) -> bool</text--->"
-                                    "<text>isempty ( _ )</text--->"
-                                    "<text>Returns whether the value is empty or not.</text--->"
-                                    "<text>query isempty( mpoint1 )</text--->"
+        "( <text>instant -> bool, range(x) -> bool, moving(x) -> bool"
+        "unit(x) -> bool</text--->"
+        "<text>isempty ( _ )</text--->"
+        "<text>Returns whether the value is empty or not.</text--->"
+        "<text>query isempty( mpoint1 )</text--->"
                                     ") )";
 
 const string TemporalSpecEQ  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                "\"Example\" )"
-                               "( <text>(instant instant) -> bool, (range(x) range(x)) -> bool,"
+              "( <text>(instant instant) -> bool, (range(x) range(x)) -> bool,"
+              " </text--->"
+              "<text>_ = _</text--->"
+              "<text>Equal.</text--->"
+              "<text>query i1 = i2</text--->"
+                               ") )";
+
+const string TemporalSpecEQ2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                               "\"Example\" )"
+                               "( <text> "
                                "(moving(x) moving(x)) -> bool</text--->"
-                               "<text>_ = _</text--->"
+                               "<text>_ equal _</text--->"
                                "<text>Equal.</text--->"
-                               "<text>query i1 = i2</text--->"
+                               "<text>query mi equal mi2</text--->"
                                ") )";
 
 const string TemporalSpecNE  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                "\"Example\" )"
-                               "( <text>(instant instant) -> bool, (range(x) range(x)) -> bool,"
+            "( <text>(instant instant) -> bool, (range(x) range(x)) -> bool,"
+            " </text--->"
+            "<text>_ # _</text--->"
+            "<text>Not equal.</text--->"
+            "<text>query i1 # i2</text--->"
+                               ") )";
+
+const string TemporalSpecNE2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                               "\"Example\" )"
+                               "( <text> "
                                "(moving(x) moving(x)) -> bool</text--->"
-                               "<text>_ # _</text--->"
+                               "<text>_ nonequal _</text--->"
                                "<text>Not equal.</text--->"
-                               "<text>query i1 # i2</text--->"
+                               "<text>query mi1 nonequal mi2</text--->"
                                ") )";
 
 const string TemporalSpecLT  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -3737,12 +3864,12 @@ const string TemporalSpecGE  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                "<text>query i1 >= i2</text--->"
                                ") )";
 
-const string TemporalSpecIntersects  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string TemporalSpecIntersects ="( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                        "\"Example\" ) "
-                                       "( <text>( (range(x) range(x)) -> bool</text--->"
-                                       "<text>_ intersects _</text--->"
-                                       "<text>Intersects.</text--->"
-                                       "<text>query range1 intersects range2</text--->"
+                 "( <text>( (range(x) range(x)) -> bool</text--->"
+                 "<text>_ intersects _</text--->"
+                 "<text>Intersects.</text--->"
+                 "<text>query range1 intersects range2</text--->"
                                        ") )";
 
 const string TemporalSpecInside  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -3764,28 +3891,28 @@ const string TemporalSpecBefore  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                    "<text>query 5 before rint</text--->"
                                    ") )";
 
-const string TemporalSpecIntersection  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string TemporalSpecIntersection="( ( \"Signature\" \"Syntax\"\"Meaning\" "
                                          "\"Example\" ) "
-                                         "( <text>(range(x) range(x)) -> range(x)</text--->"
-                                         "<text>_ intersection _</text--->"
-                                         "<text>Intersection.</text--->"
-                                         "<text>query range1 intersection range2</text--->"
+               "( <text>(range(x) range(x)) -> range(x)</text--->"
+               "<text>_ intersection _</text--->"
+               "<text>Intersection.</text--->"
+               "<text>query range1 intersection range2</text--->"
                                          ") )";
 
 const string TemporalSpecUnion  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                   "\"Example\" ) "
-                                  "( <text>(range(x) range(x)) -> range(x)</text--->"
-                                  "<text>_ union _</text--->"
-                                  "<text>Union.</text--->"
-                                  "<text>query range1 union range2</text--->"
+                    "( <text>(range(x) range(x)) -> range(x)</text--->"
+                    "<text>_ union _</text--->"
+                    "<text>Union.</text--->"
+                    "<text>query range1 union range2</text--->"
                                   ") )";
 
 const string TemporalSpecMinus  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                   "\"Example\" ) "
-                                  "( <text>(range(x) range(x) ) -> range(x)</text--->"
-                                  "<text>_ minus _</text--->"
-                                  "<text>Minus.</text--->"
-                                  "<text>query range1 minus range2</text--->"
+           "( <text>(range(x) range(x) ) -> range(x)</text--->"
+           "<text>_ minus _</text--->"
+           "<text>Minus.</text--->"
+           "<text>query range1 minus range2</text--->"
                                   ") )";
 
 const string TemporalSpecMinimum  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -3804,12 +3931,12 @@ const string TemporalSpecMaximum  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                     "<text>maximum ( range1 )</text--->"
                                     ") )";
 
-const string TemporalSpecNoComponents  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string TemporalSpecNoComponents="( ( \"Signature\" \"Syntax\"\"Meaning\" "
                                          "\"Example\" ) "
-                                         "( <text>range(x) -> int, moving(x) -> int</text--->"
-                                         "<text>no_components ( _ )</text--->"
-                                         "<text>Number of components.</text--->"
-                                         "<text>no_components ( mpoint1 )</text--->"
+          "( <text>range(x) -> int, moving(x) -> int</text--->"
+          "<text>no_components ( _ )</text--->"
+          "<text>Number of components.</text--->"
+          "<text>no_components ( mpoint1 )</text--->"
                                          ") )";
 
 const string TemporalSpecInst  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -3828,169 +3955,170 @@ const string TemporalSpecVal  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "<text>val ( i1 )</text--->"
                                 ") )";
 
-const string TemporalSpecAtInstant  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string TemporalSpecAtInstant = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-                                "( <text>(moving(x) instant) -> intime(x)</text--->"
-                                "<text>_ atinstant _ </text--->"
-                                "<text>get the Intime value corresponding to the instant.</text--->"
-                                "<text>mpoint1 atinstant instant1</text--->"
+       "( <text>(moving(x) instant) -> intime(x)</text--->"
+       "<text>_ atinstant _ </text--->"
+       "<text>get the Intime value corresponding to the instant.</text--->"
+       "<text>mpoint1 atinstant instant1</text--->"
                                 ") )";
 
-const string TemporalSpecAtPeriods  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string TemporalSpecAtPeriods = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-                                "( <text>(moving(x) instant) -> intime(x)</text--->"
-                                "<text>_ atperiods _ </text--->"
-                                "<text>restrict the movement to the given periods.</text--->"
-                                "<text>mpoint1 atperiods periods1</text--->"
+            "( <text>(moving(x) instant) -> intime(x)</text--->"
+            "<text>_ atperiods _ </text--->"
+            "<text>restrict the movement to the given periods.</text--->"
+            "<text>mpoint1 atperiods periods1</text--->"
                                 ") )";
 
 const string TemporalSpecDefTime  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-                                "( <text>moving(x) -> periods</text--->"
-                                "<text> deftime( _ )</text--->"
-                                "<text>get the defined time of the corresponding moving data objects.</text--->"
-                                "<text>deftime( mp1 )</text--->"
+            "( <text>moving(x) -> periods</text--->"
+            "<text> deftime( _ )</text--->"
+"<text>get the defined time of the corresponding moving data objects.</text--->"
+            "<text>deftime( mp1 )</text--->"
                                 ") )";
 
-const string TemporalSpecTrajectory  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string TemporalSpecTrajectory ="( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-                                "( <text>mpoint -> line</text--->"
-                                "<text> trajectory( _ )</text--->"
-                                "<text>get the trajectory of the corresponding moving point object.</text--->"
-                                "<text>trajectory( mp1 )</text--->"
+           "( <text>mpoint -> line</text--->"
+           "<text> trajectory( _ )</text--->"
+  "<text>get the trajectory of the corresponding moving point object.</text--->"
+           "<text>trajectory( mp1 )</text--->"
                                 ") )";
 
 const string TemporalSpecPresent  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-                                "( <text>(moving(x) instant) -> bool, (moving(x) periods) -> bool</text--->"
-                                "<text>_ present _ </text--->"
-                                "<text>whether the object is present at the given instant or period.</text--->"
-                                "<text>mpoint1 present instant1</text--->"
+    "( <text>(moving(x) instant) -> bool, (moving(x) periods) -> bool</text--->"
+       "<text>_ present _ </text--->"
+ "<text>whether the object is present at the given instant or period.</text--->"
+       "<text>mpoint1 present instant1</text--->"
                                 ") )";
 
 const string TemporalSpecPasses = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-                                "( <text>(moving(x) x) -> bool</text--->"
-                                "<text>_ passes _ </text--->"
-                                "<text>whether the object passes the given value.</text--->"
-                                "<text>mpoint1 passes point1</text--->"
+    "( <text>(moving(x) x) -> bool</text--->"
+    "<text>_ passes _ </text--->"
+    "<text>whether the object passes the given value.</text--->"
+    "<text>mpoint1 passes point1</text--->"
                                 ") )";
 
 const string TemporalSpecInitial  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-                                "( <text>moving(x) -> intime(x)</text--->"
-                                "<text> initial( _ )</text--->"
-                                "<text>get the intime value corresponding to the initial instant.</text--->"
-                                "<text>initial( mpoint1 )</text--->"
+        "( <text>moving(x) -> intime(x)</text--->"
+        "<text> initial( _ )</text--->"
+    "<text>get the intime value corresponding to the initial instant.</text--->"
+        "<text>initial( mpoint1 )</text--->"
                                 ") )";
 
 const string TemporalSpecFinal  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-                                "( <text>moving(x) -> intime(x)</text--->"
-                                "<text> final( _ )</text--->"
-                                "<text>get the intime value corresponding to the final instant.</text--->"
-                                "<text>final( mpoint1 )</text--->"
+          "( <text>moving(x) -> intime(x)</text--->"
+          "<text> final( _ )</text--->"
+      "<text>get the intime value corresponding to the final instant.</text--->"
+          "<text>final( mpoint1 )</text--->"
                                 ") )";
 
 const string TemporalSpecAt = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-                                "( <text>(moving(x) x) -> moving(x)</text--->"
-                                "<text> _ at _ </text--->"
-                                "<text>restrict the movement at the times where the equality occurs.</text--->"
-                                "<text>mpoint1 at point1</text--->"
+           "( <text>(moving(x) x) -> moving(x)</text--->"
+           "<text> _ at _ </text--->"
+ "<text>restrict the movement at the times where the equality occurs.</text--->"
+           "<text>mpoint1 at point1</text--->"
                                 ") )";
 
 const string TemporalSpecDistance = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-                                "( <text>(mpoint point) -> mreal</text--->"
-                                "<text> distance( _, _ ) </text--->"
-                                "<text>returns the moving distance</text--->"
-                                "<text>distance( mpoint1, point1 )</text--->"
+             "( <text>(mpoint point) -> mreal</text--->"
+             "<text> distance( _, _ ) </text--->"
+             "<text>returns the moving distance</text--->"
+             "<text>distance( mpoint1, point1 )</text--->"
                                 ") )";
 
 const string TemporalSpecUnits  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-                                "( <text>moving(x) -> stream(unit(x))</text--->"
-                                "<text> units( _ )</text--->"
-                                "<text>get the stream of units of the moving value.</text--->"
-                                "<text>units( mpoint1 )</text--->"
+               "( <text>moving(x) -> stream(unit(x))</text--->"
+               "<text> units( _ )</text--->"
+               "<text>get the stream of units of the moving value.</text--->"
+               "<text>units( mpoint1 )</text--->"
                                 ") )";
 
 const string TemporalSpecBBox  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                     "\"Example\" ) "
-                                    "( <text>upoint -> rect3</text--->"
-                                    "<text>bbox ( _ )</text--->"
-                                    "<text>Returns the 3d bounding box of the unit.</text--->"
-                                    "<text>query bbox( upoint1 )</text--->"
+               "( <text>upoint -> rect3</text--->"
+               "<text>bbox ( _ )</text--->"
+               "<text>Returns the 3d bounding box of the unit.</text--->"
+               "<text>query bbox( upoint1 )</text--->"
                                     ") )";
-				    
+    
 const string MPointSpecTranslate  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                     "\"Example\" ) "
-                                    "( <text>mpoint x duration x real x real -> mpoint</text--->"
-                                    "<text>_ translate[list]</text--->"
-                                    "<text>Moves the object parallely for distance and time.</text--->"
-                                    "<text>query mp1 translate[[const duration value (5 10)],5.0,8.0]</text--->"
+            "( <text>mpoint x duration x real x real -> mpoint</text--->"
+            "<text>_ translate[list]</text--->"
+            "<text>Moves the object parallely for distance and time.</text--->"
+  "<text>query mp1 translate[[const duration value (5 10)],5.0,8.0]</text--->"
                                     ") )";
 
 const string TemporalSpecTheYear  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-		                "( <text>int -> periods</text--->"
-                                "<text> theyear( _ )</text--->"
-                                "<text>get the periods value of the year.</text--->"
-                                "<text>theyear(2002)</text--->"
+                "( <text>int -> periods</text--->"
+                "<text> theyear( _ )</text--->"
+                "<text>get the periods value of the year.</text--->"
+                "<text>theyear(2002)</text--->"
                                 ") )";
 
 const string TemporalSpecTheMonth  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-		                "( <text>int x int -> periods</text--->"
-                                "<text> themonth( _, _ )</text--->"
-                                "<text>get the periods value of the month.</text--->"
-                                "<text>themonth(2002, 3)</text--->"
+               "( <text>int x int -> periods</text--->"
+               "<text> themonth( _, _ )</text--->"
+               "<text>get the periods value of the month.</text--->"
+               "<text>themonth(2002, 3)</text--->"
                                 ") )";
 
 const string TemporalSpecTheDay  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-		                "( <text>int x int x int -> periods</text--->"
-                                "<text> theday( _, _, _ )</text--->"
-                                "<text>get the periods value of the day.</text--->"
-                                "<text>theday(2002, 6,3)</text--->"
+                "( <text>int x int x int -> periods</text--->"
+                "<text> theday( _, _, _ )</text--->"
+                "<text>get the periods value of the day.</text--->"
+                "<text>theday(2002, 6,3)</text--->"
                                 ") )";
 
 const string TemporalSpecTheHour  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-		                "( <text>int x int x int x int -> periods</text--->"
-                                "<text> thehour( _, _, _ , _)</text--->"
-                                "<text>get the periods value of the hour.</text--->"
-                                "<text>thehour(2002, 2, 28, 8)</text--->"
+                 "( <text>int x int x int x int -> periods</text--->"
+                 "<text> thehour( _, _, _ , _)</text--->"
+                 "<text>get the periods value of the hour.</text--->"
+                 "<text>thehour(2002, 2, 28, 8)</text--->"
                                 ") )";
 
-const string TemporalSpecTheMinute  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string TemporalSpecTheMinute = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-		                "( <text>int x int x int x int x int -> periods</text--->"
-                                "<text> theminute( _ )</text--->"
-                                "<text>get the periods value of the minute.</text--->"
-                                "<text>theminute(2002, 3, 28, 8, 59)</text--->"
+                 "( <text>int x int x int x int x int -> periods</text--->"
+                 "<text> theminute( _ )</text--->"
+                 "<text>get the periods value of the minute.</text--->"
+                 "<text>theminute(2002, 3, 28, 8, 59)</text--->"
                                 ") )";
 
-const string TemporalSpecTheSecond  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string TemporalSpecTheSecond = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-		                "( <text>int x int x int x int x int x int  -> periods</text--->"
-                                "<text> thesecond( _ )</text--->"
-                                "<text>get the periods value of the second.</text--->"
-                                "<text>thesecond(2002, 12, 31, 23, 59, 59)</text--->"
+   "( <text>int x int x int x int x int x int  -> periods</text--->"
+                   "<text> thesecond( _ )</text--->"
+                   "<text>get the periods value of the second.</text--->"
+                   "<text>thesecond(2002, 12, 31, 23, 59, 59)</text--->"
                                 ") )";
 
-const string TemporalSpecThePeriod  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string TemporalSpecThePeriod = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-		                "( <text>(periods periods) -> periods</text--->"
-                                "<text> theperiod( _, _ )</text--->"
-                                "<text>get the periods value of the 2 periods.</text--->"
-                                "<text>theperiod(theyear(2002), theyear(2004))</text--->"
+                 "( <text>(periods periods) -> periods</text--->"
+                 "<text> theperiod( _, _ )</text--->"
+                 "<text>get the periods value of the 2 periods.</text--->"
+                 "<text>theperiod(theyear(2002), theyear(2004))</text--->"
                                 ") )";
 
 const string Box3dSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                     "\"Example\" ) "
-		                "( <text>{rect, instant,periods} -> rect3 \n rect x {instant,periods} -> rect3  </text--->"
+      "( <text>{rect, instant,periods} -> rect3 \n rect x"
+      "{instant,periods} -> rect3  </text--->"
                     "<text> box3d(_)</text--->"
                     "<text>returns a threedimensional box which is unlimitedi"
                     " in non-specified parts</text--->"
@@ -4010,17 +4138,31 @@ Operator temporalisempty( "isempty",
 
 Operator temporalequal( "=",
                         TemporalSpecEQ,
-                        8,
+                        4,
                         temporalequalmap,
                         TemporalDualSelect,
                         TemporalTemporalTypeMapBool );
 
+Operator temporalequal2( "equal",
+                        TemporalSpecEQ2,
+                        4,
+                        temporalequalmap2,
+                        TemporalDualSelect2,
+                        TemporalTemporalTypeMapBool2 );
+
 Operator temporalnotequal( "#",
                            TemporalSpecNE,
-                           8,
+                           4,
                            temporalnotequalmap,
                            TemporalDualSelect,
                            TemporalTemporalTypeMapBool );
+
+Operator temporalnotequal2( "nonequal",
+                           TemporalSpecNE2,
+                           4,
+                           temporalnotequalmap2,
+                           TemporalDualSelect2,
+                           TemporalTemporalTypeMapBool2 );
 
 Operator temporalless( "<",
                        TemporalSpecLT,
@@ -4325,6 +4467,8 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalisempty );
     AddOperator( &temporalequal );
     AddOperator( &temporalnotequal );
+    AddOperator( &temporalequal2 );
+    AddOperator( &temporalnotequal2 );
     AddOperator( &temporalless );
     AddOperator( &temporallessequal );
     AddOperator( &temporalgreater );

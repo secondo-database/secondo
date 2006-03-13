@@ -30,6 +30,12 @@ January 2004 Victor Almeida
 
 March - April 2004 Zhiming Ding
 
+12.03.2005 Juergen Schmidt:
+Adding ~Mapping<Unit, Alpha>::MergeAdd~ for merging two adjacent
+units with the same values. This is for simplify the result of
+operations. For this adding ~TemporalUnit::EqualValue~ to decide
+the equality of values.
+
 [TOC]
 
 1 Overview
@@ -846,6 +852,21 @@ to ~val~.
 /*
 Returns a unit restricted to the time interval ~i~.
 
+*/
+
+  virtual bool EqualValue( TemporalUnit<Alpha>& i )
+  {
+    return false;
+  }
+  
+/*
+Returns ~true~ if the value of this temporal unit is equal to the
+value of the temporal unit ~i~ and ~false~ if they are different.
+Equality is computed with respect of temporal evolution.
+
+*/
+
+/*
 3.5.3 Attributes
 
 */
@@ -1272,6 +1293,24 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   virtual bool At( const CcReal& val, TemporalUnit<CcReal>& result ) const;
   virtual void AtInterval( const Interval<Instant>& i, 
                            TemporalUnit<CcReal>& result ) const;
+  
+  virtual bool EqualValue( UReal& i )
+  {
+    double offset = i.timeInterval.start.ToDouble() 
+    - timeInterval.start.ToDouble();
+    
+    return AlmostEqual( a, i.a ) &&
+           AlmostEqual( 2 * a * offset + b, i.b ) &&
+           AlmostEqual( a * pow(offset, 2) + b * offset + c, i.c )
+           && r == i.r;
+  }
+  
+/*
+Returns ~true~ if the value of this temporal unit is equal to the
+value of the temporal unit ~i~ and ~false~ if they are different.
+Equality is calculated with respect to temporal evolution.
+
+*/ 
 
 /*
 3.7.3 Functions to be part of relations
@@ -1413,7 +1452,11 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   void UTrajectory( UPoint& unit,CLine& line ) const;
   void USpeed( UReal& result ) const;
 
-
+  virtual bool EqualValue( UPoint& i )
+  {
+  return   AlmostEqual( p0, i.p0 ) &&
+           AlmostEqual( p1, i.p1 );
+  }
 
 /*
 3.8.3 Functions to be part of relations
@@ -1569,6 +1612,19 @@ Returns the unit ~upi~ at the position ~i~ in the mapping.
 /*
 Adds an unit ~upi~ to the mapping. We will assume that the only way of adding units
 is in bulk loads, i.e., in a non-ordered array.
+
+*Precondition:* ~IsOrdered() == false~
+
+*/
+
+    void MergeAdd( Unit& upi );
+/*
+Adds an unit ~upi~ to the mapping. If the new unit and the last
+unit in the Mapping are equalValue it merges the two units.
+We will assume that the only way of adding units
+is in bulk loads, i.e., in a non-ordered array.
+Without defining the function ~equalValue~ for units 
+~MergeAdd~ works the same way as ~Add~.
 
 *Precondition:* ~IsOrdered() == false~
 
@@ -3653,6 +3709,36 @@ void Mapping<Unit, Alpha>::Add( const Unit& unit )
 {
   assert( unit.IsValid() );
   units.Append( unit );
+}
+
+template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::MergeAdd( Unit& unit )
+{
+  Unit lastunit;
+  const Unit *u1transfer;
+  int size = units.Size();
+  
+  assert( unit.IsValid() );
+  if (size > 0) {
+      units.Get( size - 1, u1transfer );
+      lastunit = *u1transfer;
+      assert( unit.IsValid() );
+      
+      if (lastunit.EqualValue(unit) &&
+      (AlmostEqual(lastunit.timeInterval.end.ToDouble(),
+       unit.timeInterval.start.ToDouble())) && 
+      (lastunit.timeInterval.rc || unit.timeInterval.lc)) {
+          lastunit.timeInterval.end = unit.timeInterval.end;
+          lastunit.timeInterval.rc = unit.timeInterval.rc;
+          units.Put(size - 1, lastunit);
+      }
+      else {
+          units.Append( unit);
+      }
+  }
+  else {
+      units.Append( unit );
+  }
 }
 
 template <class Unit, class Alpha>
