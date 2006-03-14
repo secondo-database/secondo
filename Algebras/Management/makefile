@@ -26,15 +26,28 @@
 include ../../makefile.env
 
 CCFLAGS = $(DEFAULTCCFLAGS)
-ALL_OBJS = AlgebraList.i $(DEP_FILES) $(LIBDIR)/AlgebraList.$(OBJEXT) $(OBJECTS)
+ALL_OBJS = AlgebraList.i $(DEP_FILES) \
+	   $(LIBDIR)/AlgebraList.$(OBJEXT) Algebra.$(OBJEXT) AlgebraManager.$(OBJEXT)
 
 .PHONY: all
-all:  $(ALL_OBJS) 
+all:  first $(ALL_OBJS) 
+	rm -f AlgebraList.i
 
+.PHONY: first
+first: DEPS=true
+first:
+ifdef DEPS
+include $(DEP_FILES)
+endif	
+
+# After building AlgebraList.o the file AlgebraList.i will be deleted
+# this ensures that it will be rebuild for every call of make. This guarantees
+# that only the algebras of makefile.algebras are used even if the timestamp is
+# older
 
 AlgebraList.i: ../../makefile.algebras
 AlgebraList.i: AlgebraList.i.cfg 
-	@rm -f $@
+	rm -f $@
 ifndef SECONDO_ACTIVATE_ALL_ALGEBRAS
 	chmod 755 ./alg.bash && ./alg.bash $< $(ALGEBRAS) $(JNI_ALGEBRAS) > $@
 else
@@ -43,16 +56,10 @@ endif
 
 AlgebraList.cpp : AlgebraList.i
 	
-# After building AlgebraList.o the file AlgebraList.i will be deleted
-# this ensures that it will be rebuild for every call of make. This guarantees
-# that only the algebras of makefile.algebras are used even if the timestamp is
-# older
 $(LIBDIR)/AlgebraList.$(OBJEXT): AlgebraList.cpp AlgebraList.i
 	$(CC) -c -o  $@ $(CCFLAGS) $<
-	rm -f AlgebraList.i
 
-include $(DEP_FILES)
 
 .PHONY: clean
-clean:
+clean: 
 	$(RM) $(ALL_OBJS)
