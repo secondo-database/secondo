@@ -1502,7 +1502,7 @@ factors and uniform cost factors of 1.0 (e.g. for testing of cost functions).
 */
 
 machineSpeedFactor(1,1) :- 
-  optUniformSpeed,
+  optimizerOption(uniformSpeed),
   !.
 
 machineSpeedFactor(CPU, FS) :-
@@ -1524,15 +1524,15 @@ referenceSpeed(2155.33, 30218.02).
 % (CPUtime, FStime) determine the times needed by the reference system
 
 toggleSpeed :-
- optUniformSpeed,
- retract(optUniformSpeed),
+ optimizerOption(uniformSpeed),
+ retract(optimizerOption(uniformSpeed)),
  write('\nNow using actual machineSpeedFactor:'),
  machineSpeedFactor,
  !.
 
 toggleSpeed :-
- not(optUniformSpeed),
- assert(optUniformSpeed),
+ not(optimizerOption(uniformSpeed)),
+ assert(optimizerOption(uniformSpeed)),
  write('\nNow using uniform machineSpeedFactor:'),
  machineSpeedFactor,
  !.
@@ -1670,8 +1670,7 @@ writeMachineSpeedFactor :-
   write(FD, '.\n'),
   close(FD).
 
-:-  dynamic(optUniformSpeed/0),
-    dynamic(storedMachineSpeedFactor/2),
+:-  dynamic(storedMachineSpeedFactor/2),
     at_halt(writeMachineSpeedFactor),
     readMachineSpeedFactor,
     setMachineSpeedFactor.

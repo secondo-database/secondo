@@ -39,7 +39,7 @@ constants below are quite accurate e.g. for examples 14 to
 1.1 General Constants for Cost Estimation
 
 General cost factors, given in milliseconds [ms] per operation. The constants have been derived
-from query times on a reference system and are multiplied by the actual machine's relative speed
+from query times on a reference system and are multiplied by the actual machine´s relative speed
 as inquired by ~machineSpeedFactor(CPU, FS)~.
  
 A standard schema is used to enhance the readybility of the cost functions.
@@ -249,32 +249,101 @@ Some features may be switched on or off:
 
 */
 
-:- dynamic(optConjunctiveCosts/0),
-   dynamic(optDebug/0),
+:- dynamic(optimizerOption/1),
    dynamic(optDebugLevel/1).
 
-% :- assert(optUniformSpeed).     % Uncomment to use uniform uniform machine speed factor (1.0)
-% :- assert(optConjunctiveCosts). % Uncomment to apply costs only to operators considered by dijkstra
-% :- assert(optDebug), assert(optDebugLevel(all)). % Uncomment to see all debugging output
-:- assert(optDebug), assert(optDebugLevel(lookup)). % Uncomment to see all debugging output
+/*
+---- optimizerOptionInfo(+Option,-Meaning)
+----
+Provides information on optimizer options. ~Option~ is the option in question,
+~Meaning~ is a description of that option.
 
+*/
+
+optimizerOptionInfo(uniformSpeed, 'Instructs the optimizer to use an uniform machine speed factor (1.0)').
+optimizerOptionInfo(costsConjuctive, 'Apply costs only to operators directly considered by Dijkstra').
+optimizerOptionInfo(rewriteMacros, 'Allow use of  macros (with[<expr> as <macro>] in ...)').
+optimizerOptionInfo(rewriteInference, 'Automatically add inferred predicates to where clause').
+optimizerOptionInfo(rewriteCSE, 'Substitute common subexpressions').
+optimizerOptionInfo(debug, '\tActivate debugging code and messages. Also use \'toggleDebug.\'').
+
+/*
+---- showOptions
+     setOtion(+Option)
+     delOption(+Option)
+----
+Show information of possible optimizer options and current option settings, select and unselect
+optimizer options.
+
+*/
+
+showOptions :- 
+  findall(X,optimizerOptionInfo(X,_),Options),
+  write('\n\nOptimizer options:\n'),
+  showOption(Options), 
+  write('\nType \'setOption(X).\' to select option X.\n'), 
+  write('Type \'delOption(X).\' to unselect option X.\n'),
+  write('Type \'showOptions.\' to view this option list.\n\n').
+
+showOption([]).
+showOption([Option|Y]) :-
+  optimizerOptionInfo(Option,Text),
+  ( optimizerOption(Option) 
+      -> write(' [x] ')
+       ; write(' [ ] ')
+  ),
+  write(Option), write(':\t'), write(Text), nl,
+  showOption(Y), !.
+
+setOption(X) :-
+  nonvar(X),
+  optimizerOptionInfo(X,Text),
+  retractall(optimizerOption(X)),
+  assert(optimizerOption(X)), 
+  write('Switched on: \''), write(X), write('\': '), write(Text), write('.\n'), !.
+
+setOption(X) :-
+  write('Unknown option \''), write(X), write('\'.\n'), fail, !.
+
+delOption(X) :-
+  nonvar(X),
+  optimizerOptionInfo(X,Text),
+  retractall(optimizerOption(X)), 
+  write('Switched off: \''), write(X), write('\': '), write(Text), write('.\n'), !.
+
+delOption(X) :-
+  write('Unknown option \''), write(X), write('\'.\n'), fail, !.
+
+
+/*
+Standart startup settings
+
+*/
+
+% :- setOption(uniformSpeed).     % Uncomment to use uniform machine speed factor (1.0)
+% :- setOption(costsConjunctive). % Uncomment to apply costs only to operators considered by dijkstra
+:- setOption(rewriteMacros).    % Comment out to switch off macro expansion features
+:- setOption(rewriteInference). % Comment out to switch off automatic inference of predicates
+%:- setOption(rewriteCSE).       % Comment out to switch off substitution of common subexpressions
+:- setOption(debug), assert(optDebugLevel(all)). % Uncomment to see all debugging output
+
+:- showOptions.
+
+
+
+
+
+/*
+Code for certain optimizer options
+
+*/
 
 
 ppCostFactor(0) :-
-  optConjunctiveCosts, !.
+  optimizerOption(costConjunctive), !.
 
 ppCostFactor(1) :- !.
  
-optionTotalCosts :-
-  retractall(optConjunctiveCosts), 
-  write('\nNow, all costs will be applied! - type \'optionConjunctiveCosts.\' to calculate cost of the conjunctive query only.\n\n'),
-  !.
-
-optionConjunctiveCosts :-
-  retractall(optConjunctiveCosts),
-  assert(optConjunctiveCosts), 
-  write('\nNow, only costs from the conjunctive query are applied! - type \'optionTotalCosts.\' to calculate all costs.\n\n'),
-  !.
 
 showDebugLevel :-
   findall(X,optDebugLevel(X),List),
@@ -282,14 +351,14 @@ showDebugLevel :-
   write(List), nl.
 
 toggleDebug :-
-  optDebug,
-  retract(optDebug),
+  optimizerOption(debug),
+  retract(optimizerOption(debug)),
   write('\nNow surpressing all debugging output.'),
   !.
 
 toggleDebug :-
-  not(optDebug),
-  assert(optDebug),
+  not(optimizerOption(debug)),
+  assert(optimizerOption(debug)),
   write('\nNow displaying debugging output.\n'),
   showDebugLevel,
   write('\tYou can add debug levels by \'debugLevel(level).\'\n'),
@@ -307,14 +376,3 @@ nodebugLevel(Mode) :-
   showDebugLevel,
   nl.
 
-toggleCosts :-
-  optConjunctiveCosts,
-  retract(optConjunctiveCosts),
-  write('\nNow, all costs will be applied! - Type \'optionConjunctiveCosts.\' or \'toggleCosts.\' to calculate cost of the conjunctive query only.\n\n'),
-  !.
-
-toggleCosts :-
-  not(optConjunctiveCosts),
-  assert(optConjunctiveCosts),
-  write('\nNow, only costs from the conjunctive query are applied! - Type \'optionTotalCosts.\' or \'toggleCosts.\' to calculate all costs instead.\n\n'),
-  !.

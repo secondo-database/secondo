@@ -2794,10 +2794,9 @@ lookupPred(Pred, _) :-
 /*
 ----    lookupPred1(+Pred, -Pred2, +RelsBefore, -RelsAfter) :-
 ----
-
 ~Pred2~ is the transformed version of ~Pred~; before this is called, 
-attributes in list ~RelsBefore~ may have been found; after the transformation in
-attributes referring to the relations in list ~RelsAfter~ have been found.
+attributes so far considered have already used relations from list ~RelsBefore~.
+The relation list is updated and returnd in ~RelsAfter~.
 
 */
 
@@ -3800,8 +3799,8 @@ bestPlanConsume :-
 /*
 Print debugging information
 
-Predicate ~dm/1~ can be used as ~write~/1. Output is printed when option
-optDebug is defined (see file operators.pl).
+Predicate ~dm/1~ can be used as ~write~/1. Output is printed when optimizer option
+debug is defined (see file operators.pl).
 
 Predicate ~dm(mode,message)~ writes ~message~ if ~optDebugLevel(mode)~ 
 or ~optDebugLevel(all)~ is defined.
@@ -3811,13 +3810,13 @@ or ~optDebugLevel(all)~ is defined.
 dm([]) :- !.
 
 dm([X1 | XR]) :-
-  optDebug,
+  optimizerOption(debug),
   write(X1),
   dm(XR), 
   !.
 
 dm(X) :-
-  optDebug,
+  optimizerOption(debug),
   write(X),
   !.
 
@@ -3959,7 +3958,11 @@ the finally ~RewrittenQuery~.
 */
 %rewriteQuery(Query,Query). % XRIS: for testing only
 
+rewriteQuery(Query, Query) :-
+  not(optimizerOption(rewriteMacros)), !.
+
 rewriteQuery(Query, RewrittenQuery) :-
+  optimizerOption(rewriteMacros),
   rewriteQueryForMacros(Query, RQuery1),
   rewriteQueryForInferenceOfPredicates(RQuery1, RQuery2),
   rewriteQueryForRedundancy(RQuery2, RQuery3),
@@ -4144,11 +4147,15 @@ flattenAllMacros :- not(flattenMacros).
 
 */
 
+rewriteQueryForInferenceOfPredicates(Query, Query) :-
+  not(optimizerOption(rewriteInference)), !.
+
 rewriteQueryForInferenceOfPredicates(Query, RewrittenQuery) :-
+  optimizerOption(rewriteInference),
   rewriteQueryForNonempty(Query, RQuery1),
   rewriteQueryForInferredSubstitutions(RQuery1, RewrittenQuery),
   dm(rewriting,['\nAfter Step 1: Infer nonempty-predicates:\n', RQuery1,
-      '\nAfter Step 2: Infer substitutions:\n', RewrittenQuery, '\n']).
+      '\nAfter Step 2: Infer substitutions:\n', RewrittenQuery, '\n']), !.
 
 
 /*
@@ -4181,7 +4188,7 @@ rewritingNonemptyRule(X,                  [not(isempty(X))]) :-
 ---- inferNonemptyPredicates(-InferredPreds)
 ----
 uses rules defined by ~inferNonemptyPredicate/2~ to detect expressions
-within the term indexed by calling ~findCSEs/4~  that allow to infer 
+within the term indexed by calling ~findCSEs/3~  that allow to infer 
 nonempty-predicates. The latter are collected within list ~InferredPred~
 and returned.
 
@@ -4222,7 +4229,7 @@ rewriteQueryForNonempty(Query, RewrittenQuery) :-
   Query 
      = from(select(distinct(nonempty(SelectClause))),where(Rels,WhereClause)),
   retractExpressionLabels,
-  findCSEs(select(SelectClause),0,all,_),
+  findCSEs(select(SelectClause),all,_),
   inferNonemptyPredicates(NonEmptyConditions),
   ( is_list(WhereClause) -> 
       append_list(WhereClause, NonEmptyConditions, RewrittenWhereClause)
@@ -4238,7 +4245,7 @@ rewriteQueryForNonempty(Query, RewrittenQuery) :-
 rewriteQueryForNonempty(Query, RewrittenQuery) :-
   Query = from(select(nonempty(SelectClause)),where(Rels,WhereClause)),
   retractExpressionLabels,
-  findCSEs(select(SelectClause),0,all,_),
+  findCSEs(select(SelectClause),all,_),
   inferNonemptyPredicates(NonEmptyConditions),
   ( is_list(WhereClause) -> 
       append_list(WhereClause, NonEmptyConditions, RewrittenWhereClause)
@@ -4254,7 +4261,7 @@ rewriteQueryForNonempty(Query, RewrittenQuery) :-
   Query \= from(select(distinct(nonempty(_))),where(_,_)),
   Query  = from(select(distinct(nonempty(SelectClause))),Rels),
   retractExpressionLabels,
-  findCSEs(select(SelectClause),0,all,_),
+  findCSEs(select(SelectClause),all,_),
   inferNonemptyPredicates(NonEmptyConditions),
   sort(NonEmptyConditions,NonEmptyConditions1),
   ( NonEmptyConditions1 = [] -> 
@@ -4270,7 +4277,7 @@ rewriteQueryForNonempty(Query, RewrittenQuery) :-
   Query \= from(select(nonempty(_)),where(_,_)),
   Query  = from(select(nonempty(SelectClause)),Rels),
   retractExpressionLabels,
-  findCSEs(select(SelectClause),0,all,_),
+  findCSEs(select(SelectClause),all,_),
   inferNonemptyPredicates(NonEmptyConditions),
   sort(NonEmptyConditions,NonEmptyConditions1),
   ( NonEmptyConditions1 = [] -> 
@@ -4429,8 +4436,21 @@ operator labeled by ~rewritingCSEExpensiveOP/1~. The definitions of
 
 */
 
-rewriteQueryForCSE(Query, Query). % XRIS: Extend this
+rewriteQueryForCSE(Query, Query) :-
+  not(optimizerOption(rewriteCSE)), !.
 
+rewriteQueryForCSE(QueryIn, QueryOut) :-
+  optimizerOption(rewriteCSE),
+  retractExpressionLabels, % delete old data
+  (optimizerOption(debug) -> showExpressionLabels),
+  findCSEs(QueryIn, expensive, _), % find all expensive subexpressions
+  (optimizerOption(debug) -> showExpressionLabels),
+  retractNonCSEs, % delete all subexpressions used less than twice
+  (optimizerOption(debug) -> showExpressionLabels),
+  replaceAllCSEs, % shorten CSEs by using other CSEs but also save flat CSE expression
+  (optimizerOption(debug) -> showExpressionLabels),
+  compactCSEs(QueryIn, QueryOut, _). % replace CSEs by virtual attributes
+  
 /*
 
 14.4.1 Auxiliary Predicates to ~rewriteQueryForCSE/2~
@@ -4490,19 +4510,17 @@ replace_term(Term, SubExpr, _, Term) :-
 
 
 /*
----- findCSEs(+Node, +Level, +Mode, -Expensive)
+---- findCSEs(+Node, +Mode, -Expensive)
 ----
 
-Creates a dynamic table ~storedExpressionLabel(Expr,Label,LevelList,FlatExp)~ by
+Creates a dynamic table ~storedExpressionLabel(FlatExpr,Label,NoOccurences,CompactExp)~ by
 parsing the operator tree for term ~node~. 
-~Level~ gives the level of the operator tree`S ROOT (usually 0).
 
 Depending on ~Mode~, either all subexpressions are idexed (Mode = all), or only 
 expensive subexpressions (Mode \= all) are indexed.
 
-Each sub-expression ~Expr~ is labeled with an unique identifier ~label~ and a 
-list ~LevelList~ of all levels within the operator tree, where ~Expr~ occurs 
-as a sub-expression.
+Each sub-expression ~FlatExpr~ is labeled with an unique identifier ~label~ and the
+number of encountered occurrences ~NoOccurences~ of ~FlatExpr~.
 
 If a term contains an expensive operator (as indicated by a defined fact 
 ~rewritingCSEExpensiveOP(OP)~), ~Expensive~ will be 1, 0 
@@ -4520,9 +4538,9 @@ retractExpressionLabels :-
 
 % print a table of all stored term-label associations
 showExpressionLabel :-
-  storedExpressionLabel(Expr,Label,LevelList,FlatExpr),
-  write(' '), write(Label), write('   '), write(LevelList), 
-  write('\t'), write(Expr), write('   '), write(FlatExpr), nl,
+  storedExpressionLabel(FlatExpr,Label,NoOcc,CompactExpr),
+  write(' '), write(Label), write('   '), write(NoOcc), 
+  write('\t'), write(FlatExpr), write('   '), write(CompactExpr), nl,
   fail.
 
 showExpressionLabels :-
@@ -4532,48 +4550,48 @@ showExpressionLabels :-
   
 % return the label associated with a known Node, or create a new association 
 % and return that new label 
-getExpressionLabel(Node, Label, Level) :-
-  storedExpressionLabel(Node, Label, LevelList, *), 
-  retractall(storedExpressionLabel(_, Label, _, *)),
+getExpressionLabel(Node, Label) :-
+  storedExpressionLabel(Node, Label, NoOcc, X), 
+  retractall(storedExpressionLabel(_, Label, _, _)),
+  NoOcc1 is NoOcc + 1,
   !,
-  assert(storedExpressionLabel(Node, Label, [Level|LevelList], *)).
+  assert(storedExpressionLabel(Node, Label, NoOcc1, X)).
 
-getExpressionLabel(Node, Label, Level) :-
+getExpressionLabel(Node, Label) :-
   not(storedExpressionLabel(Node, _, _, _)),
   gensym(cse_, Label),
   !,
-  assert(storedExpressionLabel(Node, Label, [Level], *)).
+  assert(storedExpressionLabel(Node, Label, 1, *)).
 
 % find all CSEs
-findCSEs1([], _, _, 0).      % nothing to do
-findCSEs1([Me|Others],Level,Mode,Expense) :-
-  findCSEs1(Others, Level, Mode, OthersExpense),
-  findCSEs(Me, Level, Mode, MyExpense),
+findCSEs1([], _, 0).      % nothing to do
+findCSEs1([Me|Others],Mode,Expense) :-
+  findCSEs1(Others, Mode, OthersExpense),
+  findCSEs(Me, Mode, MyExpense),
   Expense is MyExpense \/ OthersExpense,
   !.
 
-findCSEs(Node, _, _, 0) :-   % Node is a leaf. No label is assigned to leaves.
+findCSEs(Node, _, 0) :-   % Node is a leaf. No label is assigned to leaves.
   atomic(Node)
   ; Node = :(_,_),
   !.
 
-findCSEs(NodeList, Level, Mode, Expense) :-
+findCSEs(NodeList, Mode, Expense) :-
   is_list(NodeList),
-  findCSEs1(NodeList, Level, Mode, Expense),
+  findCSEs1(NodeList, Mode, Expense),
   !.
 
-findCSEs(Node, Level, Mode, Expense) :-
+findCSEs(Node, Mode, Expense) :-
   compound(Node),             % Node is an inner node.
   not(is_list(Node)),
   Node =.. [Me|MyArgs],       % decompose node
-  NextLevel is Level+1,
-  findCSEs1(MyArgs, NextLevel, Mode, ArgsExpense),
+  findCSEs1(MyArgs, Mode, ArgsExpense),
   (rewritingCSEExpensiveOP(Me) 
    -> Expense is 1
     ; Expense is ArgsExpense
   ),
   ((Mode = all ; Expense = 1)  % check if Node should be indexed
-    -> getExpressionLabel(Node,_,Level)   % handle only expensive CSEs
+    -> getExpressionLabel(Node,_)   % handle only expensive CSEs
      ; true
   ),
   !.
@@ -4583,7 +4601,7 @@ findCSEs(Node, Level, Mode, Expense) :-
 ----
 For term ~Node~, return an equivalent term ~NodeMarked~, where all CSEs have 
 been replaced by their labels (according to table storedExpressionLabel/4) 
-and also return a list of all applied CSE-labels.
+and also return a list ~Used~ of all applied CSE-labels.
 
 */
 
@@ -4592,51 +4610,49 @@ compactCSEs(Node, NodeMarked, Used) :-
   compound(Node),            
   not(is_list(Node)),
   Node =.. [Me|MyArgs], 
-  replaceCSEs1(MyArgs, MyArgsMarked, MyArgsUsed),
+  compactCSEs_1(MyArgs, MyArgsMarked, MyArgsUsed),
   NodeMarked =.. [Me|MyArgsMarked],
   Used = MyArgsUsed,
   !.
 
 compactCSEs(NodeList, MarkedNodeList, Used) :-
   is_list(NodeList),
-  replaceCSEs1(NodeList, MarkedNodeList, Used),
+  compactCSEs_1(NodeList, MarkedNodeList, Used),
   !.
 
 compactCSEs(Node, Node, []).
 
 % Normal rules
-replaceCSEs1([],[],[]).           % nothing to do
-replaceCSEs1([Me|Others],[MeMarked|OthersMarked],Used) :-
-  replaceCSEs1(Others, OthersMarked, OthersUsed),
-  replaceCSEs(Me, MeMarked, MyUsed),
+compactCSEs_1([],[],[]).           % nothing to do
+compactCSEs_1([Me|Others],[MeMarked|OthersMarked],Used) :-
+  compactCSEs_1(Others, OthersMarked, OthersUsed),
+  compactCSEs_(Me, MeMarked, MyUsed),
   merge_set(MyUsed, OthersUsed, Used),
   !.
 
-replaceCSEs(Node, Node, []) :- 
+compactCSEs_(Node, Node, []) :- 
   atomic(Node);
   Node = :(_,_),
   !.
 
-replaceCSEs(NodeList, MarkedNodeList, Used) :-
+compactCSEs_(NodeList, MarkedNodeList, Used) :-
   is_list(NodeList),
-  replaceCSEs1(NodeList, MarkedNodeList, Used),
+  compactCSEs_1(NodeList, MarkedNodeList, Used),
   !.
 
-replaceCSEs(Node, NodeMarked, Used) :- % Node is a CSE
+compactCSEs_(Node, NodeMarked, Used) :- % Node is a CSE
   compound(Node),            
   not(is_list(Node)),
-  storedExpressionLabel(Node, MyLabel, LevelList, *),
-  length(LevelList, L),
-  L > 1, 
+  storedExpressionLabel(Node, MyLabel, _, _),
   NodeMarked = MyLabel,
   Used = [MyLabel],
   !.
 
-replaceCSEs(Node, NodeMarked, Used) :- % Node is not a CSE
+compactCSEs_(Node, NodeMarked, Used) :- % Node is not a CSE
   compound(Node), 
   not(is_list(Node)),
   Node =.. [Me|MyArgs], 
-  replaceCSEs1(MyArgs, MyArgsMarked, MyArgsUsed),
+  compactCSEs_1(MyArgs, MyArgsMarked, MyArgsUsed),
   NodeMarked =.. [Me|MyArgsMarked],
   Used = MyArgsUsed,
   !.
@@ -4645,8 +4661,8 @@ replaceCSEs(Node, NodeMarked, Used) :- % Node is not a CSE
 ---- replaceAllCSEs/0
 ----
 Update the table of stored expressions by replacing all occurences of CSEs by 
-the according label cse\_N and move the original expression to the FlatExpr 
-argument.
+the according label cse\_N and save that compacted expression to the forth 
+(CompactExpr) argument of ~storedExpressionLabel/4~.
 
 */
 
@@ -4657,11 +4673,12 @@ replaceAllCSEs :-
 
 replaceSingleCSEList([]).
 replaceSingleCSEList([Me|Others]) :-
-  storedExpressionLabel(Expr, Me, LevelList, _),
-  compactCSEs(Expr,ExprR,_),
+  storedExpressionLabel(FlatExpr, Me, NoOcc, _),
+  compactCSEs(FlatExpr,CompactExpr,_),
   retractall(storedExpressionLabel(_,Me,_,_)),
-  assert(storedExpressionLabel(ExprR, Me, LevelList, Expr)),
-  replaceSingleCSEList(Others).
+  assert(storedExpressionLabel(FlatExpr, Me, NoOcc, CompactExpr)),
+  replaceSingleCSEList(Others),
+  !.
   
 
 /*
@@ -4672,8 +4689,8 @@ Remove non-CSE entries from the expression table.
 */
 
 retractNonCSE :-
-  storedExpressionLabel(_,Label,LevelList, _),
-  length(LevelList,1), 
+  storedExpressionLabel(_,Label,NoOcc, _),
+  NoOcc < 2,
   retractall(storedExpressionLabel(_,Label,_,_)),
   fail.
 
@@ -4693,13 +4710,13 @@ Replace CSEs within CSEs recursively with according labels cse\_N.
 isFlatCSE(Expr) :- storedFlatCSE(Expr), !.
 
 isFlatCSE(Expr) :-
-  storedExpressionLabel(Expr, _, _),
+  storedExpressionLabel(Expr, _, _, _),
   not(isUnflatCSE(Expr)),
   assert(storedFlatCSE(Expr)), !.
   
 isUnflatCSE(Expr) :-
-  storedExpressionLabel(Expr, _, _),
-  storedExpressionLabel(CSE, _, _),
+  storedExpressionLabel(Expr, _, _, _),
+  storedExpressionLabel(CSE, _, _, _),
   isSubTermNotEqual(Expr,CSE), !.
 
 
@@ -4726,84 +4743,21 @@ replace_term_list1(Expr, [CSE|Rest], Result) :-
   replace_term_list1(Result1, Rest, Result), !.
 
 
-
-/*
----- flattenCSE(+Term, -FlatTerm)
-----
-Flatten an expression ~Term~, this means replace any CSEs occuring within CSEs 
-recursively. Return the flat expression ~FlatTerm~.
-
-*/
-
-flattenCSE(Term,FlatTerm) :-
-  storedExpressionLabel(Expr,Term,_,_), % Term is a cse-label
-  flattenCSE(Expr,FlatTerm),
-  !.
-
-flattenCSE(Term, Term) :-   % Node is a leaf. No label is assigned to leaves.
-  atomic(Term)
-  ; Term = :(_,_),
-  !.
-
-flattenCSE(TermList, FlatTermList) :-
-  is_list(TermList),
-  flattenCSE1(TermList, FlatTermList),
-  !.
-
-flattenCSE(Term,FlatTerm) :-
-  compound(Term),                     % Term is an inner node.
-  not(is_list(Term)),
-  Term =.. [OP|Args],
-  flattenCSE1(Args,FlatArgs),
-  FlatTerm =.. [OP|FlatArgs],
-  !.
-
-flattenCSE1([],[]).
-flattenCSE1([Me|Others],[FlatMe|FlatOthers]) :-
-  flattenCSE(Me,FlatMe),
-  flattenCSE1(Others,FlatOthers),
-  !.
-
-/*
----- flattenAllCSEs/0
-----
-Calculates flat expressions for all stored CSEs by replacing labels cse\_N by
-the referred CSEs.
-
-*/
-
-flattenAllCSEs :- 
-  findall(X,storedExpressionLabel(_,X,_,_),CSE_Set),
-  flattenCSEList(CSE_Set),
-  !.
-
-flattenCSEList([]).
-flattenCSEList([Me|Rest]) :-
-  storedExpressionLabel(Expr,Me,List,_),
-  flattenCSE(Expr,ExprFlat),
-  retractall(storedExpressionLabel(_,Me,_,_)),
-  assert(storedExpressionLabel(Expr,Me,List,ExprFlat)),
-  flattenCSEList(Rest),
-  !.
-
-
 % testing the predicates
-analyseCSE(TermIn) :-
+analyseCSE(TermIn,TermOut) :-
   retractExpressionLabels, % delete old data
   showExpressionLabels,
 
-  findCSEs(TermIn, 0, expensive, _), % find all expensive subexpressions
+  findCSEs(TermIn, expensive, _), % find all expensive subexpressions
   showExpressionLabels,
 
   retractNonCSEs, % delete all subexpressions used less than twice
   showExpressionLabels,
 
   replaceAllCSEs, % shorten CSEs by using other CSEs but also save flat CSE expression
-  showExpressionLabels.
+  showExpressionLabels,
 
-%  flattenAllCSEs, 
-%  showExpressionLabels.
-
+  compactCSEs_(TermIn, TermOut, _).
 
 % examples for expensive operators
 rewritingCSEExpensiveOP(*). % XRIS: for testing only
