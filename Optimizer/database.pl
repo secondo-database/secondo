@@ -316,9 +316,25 @@ new relations by sending a Secondo ~let~-command.
 
 */
 
-:- dynamic(set_dynamic_sample/1). 
+% C. Duentgen replaced proprietary option dynamic(set_dynamic_sample/1) by 
+% more general optimizerOption(dynamicSample), 03/15/2006.
+%:- dynamic(set_dynamic_sample/1). 
+%set_dynamic_sample(off).
 
-set_dynamic_sample(off).
+%dynamic_sample(X) :-
+% var(X),
+% set_dynamic_sample(Y),
+% atom_concat(Y, '',X),!.
+
+%dynamic_sample(X) :-
+%  X = on,
+%  retractall(set_dynamic_sample(_)),
+%  assert(set_dynamic_sample(on)),!.
+
+%dynamic_sample(X) :-
+%  X = off,
+%  retractall(set_dynamic_sample(_)),
+%  assert(set_dynamic_sample(off)).
 
 sampleSizeJoin(500).
 
@@ -327,21 +343,6 @@ sampleSizeSelection(2000).
 thresholdMainMemorySizeSampleJ(2048).
 
 thresholdMainMemorySizeSampleS(2048).
-
-dynamic_sample(X) :-
- var(X),
- set_dynamic_sample(Y),
- atom_concat(Y, '',X),!.
-
-dynamic_sample(X) :-
-  X = on,
-  retractall(set_dynamic_sample(_)),
-  assert(set_dynamic_sample(on)),!.
-
-dynamic_sample(X) :-
-  X = off,
-  retractall(set_dynamic_sample(_)),
-  assert(set_dynamic_sample(off)).
   
 hasSampleS(Rel) :-
   getSecondoList(ObjList),
@@ -543,11 +544,13 @@ createSampleRelation(Rel) :-
   hasSampleJ(Rel),fail.
 
 createSampleRelationIfNotDynamic(Rel) :-
-  set_dynamic_sample(off),
+  not(optimizerOption(dynamicSample)),
+%  set_dynamic_sample(off),
   createSampleRelation(Rel),!.
 
 createSampleRelationIfNotDynamic(_) :-
-  set_dynamic_sample(on).
+  optimizerOption(dynamicSample).
+%  set_dynamic_sample(on).
 
 
 /*
@@ -602,7 +605,8 @@ relation(Rel, AttrList) :-
   !.
 
 relation(Rel, AttrList) :-
-  set_dynamic_sample(on),
+  optimizerOption(dynamicSample),
+%  set_dynamic_sample(on),
   getSecondoList(ObjList),
   member(['OBJECT',ORel,_ | [[[_ | [[_ | [AttrList2]]]]]]], ObjList),
   downcase_atom(ORel, DCRel),
@@ -613,7 +617,8 @@ relation(Rel, AttrList) :-
   trycreateSmallRelation(Rel, ObjList),!.
 
 relation(Rel, AttrList) :-
-  set_dynamic_sample(off),
+  not(optimizerOption(dynamicSample)),
+%  set_dynamic_sample(off),
   getSecondoList(ObjList),
   databaseName(DBName),
   member(['OBJECT',ORel,_ | [[[_ | [[_ | [AttrList2]]]]]]], ObjList),

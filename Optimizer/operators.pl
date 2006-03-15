@@ -260,9 +260,10 @@ Provides information on optimizer options. ~Option~ is the option in question,
 
 */
 
-optimizerOptionInfo(uniformSpeed, 'Instructs the optimizer to use an uniform machine speed factor (1.0)').
+optimizerOptionInfo(uniformSpeed, 'Instructs the optimizer to use a uniform machine speed factor (1.0)').
 optimizerOptionInfo(costsConjuctive, 'Apply costs only to operators directly considered by Dijkstra').
-optimizerOptionInfo(rewriteMacros, 'Allow use of  macros (with[<expr> as <macro>] in ...)').
+optimizerOptionInfo(dynamicSample, 'Use dynamic samples instead of static ones').
+optimizerOptionInfo(rewriteMacros, 'Allow use of macros (with[<expr> as <macro>] in ...)').
 optimizerOptionInfo(rewriteInference, 'Automatically add inferred predicates to where clause').
 optimizerOptionInfo(rewriteCSE, 'Substitute common subexpressions').
 optimizerOptionInfo(debug, '\tActivate debugging code and messages. Also use \'toggleDebug.\'').
@@ -322,6 +323,7 @@ Standart startup settings
 
 % :- setOption(uniformSpeed).     % Uncomment to use uniform machine speed factor (1.0)
 % :- setOption(costsConjunctive). % Uncomment to apply costs only to operators considered by dijkstra
+% :- setOption(dynamicSample).    % Uncomment to use dynamic samples instead of static ones
 :- setOption(rewriteMacros).    % Comment out to switch off macro expansion features
 :- setOption(rewriteInference). % Comment out to switch off automatic inference of predicates
 %:- setOption(rewriteCSE).       % Comment out to switch off substitution of common subexpressions
