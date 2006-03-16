@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
+//[_] [\_]
 
 [1] Implementation of the Spatial Algebra
 
@@ -647,12 +648,14 @@ void Points::StartBulkLoad()
   ordered = false;
 }
 
-void Points::EndBulkLoad( const bool sort )
+void Points::EndBulkLoad(const bool sort )
 {
   assert( !IsOrdered() );
-  if( sort )
+  if( sort ){
     Sort();
+  }
   ordered = true;
+  RemoveDuplicates();
 }
 
 bool Points::operator==( const Points& ps ) const
@@ -694,16 +697,6 @@ Points& Points::operator+=(const Point& p)
 
   if( !IsOrdered() )
   {
-    bool found=false;
-    const Point *auxp;
-
-    for( int i = 0; ((i < points.Size())&&(!found)); i++ )
-    {
-      points.Get( i, auxp );
-      if (*auxp==p) found=true;
-    }
-
-    if (!found)
       points.Append(p);
   }
   else
@@ -818,6 +811,34 @@ void Points::Sort()
 
   ordered = true;
 }
+
+void Points::RemoveDuplicates(){
+  assert(IsOrdered());
+  int size = points.Size();
+  if(size==0){ // nothing to do
+     return;
+  } 
+  Point tmp;
+  Point last;
+  const Point* ptmp;
+  int pos = 0;
+  points.Get(0,ptmp);
+  last = (*ptmp); 
+  for(int i=1;i<size;i++){
+     points.Get(i,ptmp);
+     tmp = (*ptmp);
+     if(last!=tmp){ // new point found
+       pos++;
+       if(pos!=i){
+           points.Put(pos,tmp);
+       }
+       last = tmp;
+     } 
+  }
+  points.Resize(pos+1);
+}
+
+
 
 bool Points::Contains( const Point& p ) const
 {
@@ -1050,7 +1071,7 @@ OutPoints( ListExpr typeInfo, Word value )
   {
     const Point *p;
     points->Get( 0, p );
-    Point aux( p );
+    Point aux(*p);
     ListExpr result = nl->OneElemList( OutPoint( nl->TheEmptyList(),
                                                  SetWord( &aux ) ) );
     ListExpr last = result;
@@ -9206,6 +9227,24 @@ ComponentsMap( ListExpr args )
 
 
 /*
+10.1.18 Type Mapping function for operator ~vertices~
+
+*/
+
+static ListExpr VerticesMap(ListExpr args){
+   if(nl->ListLength(args)!=1){
+     ErrorReporter::ReportError("one argument expected");
+     return nl->SymbolAtom("typeerror");
+   }
+   if(nl->IsEqual(nl->First(args),"region")){
+      return nl->SymbolAtom("points");
+   }
+   ErrorReporter::ReportError("region required");
+   return nl->SymbolAtom("typeerror");
+}
+
+
+/*
 10.4 Value mapping functions
 
 A value mapping function implements an operator's main functionality: it takes
@@ -13630,6 +13669,37 @@ components_r( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+10.4.28 ~Vertices[_]r~
+
+This is the value mapping function for the vertices operator.
+
+*/
+static int Vertices_r(Word* args, Word& result, 
+                      int message, Word& local, Supplier s ){
+    result = qp->ResultStorage(s);
+    CRegion* reg = (CRegion*) args[0].addr;
+    Points* res = (Points*) result.addr;
+    res->Clear();     
+    const CHalfSegment* hs;
+    if(!reg->IsEmpty()){
+       int size = reg->Size();
+       res->StartBulkLoad();
+       Point p;
+       for(int i=0;i<size;i++){
+          reg->Get(i,hs);
+          p = hs->GetLP();
+          (*res) += p;
+          p = hs->GetRP();
+          (*res) += p;
+       }
+       res->EndBulkLoad();
+    }
+    return 0;
+}
+
+
+
+/*
 10.5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -14150,6 +14220,13 @@ const string SpatialSpecComponents  =
         "<text>query components(r1) count;</text--->"
         ") )";
 
+const string SpatialSpecVertices  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+        "( <text>region -> points</text--->"
+        "<text>vertices(_)</text--->"
+        "<text>Returns the vertices of a region.</text--->"
+        "<text>query vertices(r1)</text--->"
+        ") )";
 
 /*
 10.5.3 Definition of the operators
@@ -14306,6 +14383,9 @@ Operator spatialcomponents
           components_r, SimpleSelect, ComponentsMap );
 
 
+Operator spatialvertices
+  ( "vertices", SpatialSpecVertices,  Vertices_r, 
+    Operator::SimpleSelect,  VerticesMap);
 
 /*
 11 Creating the Algebra
@@ -14369,6 +14449,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialwindowclippingout );
     AddOperator( &spatialclip );
     AddOperator( &spatialcomponents );
+    AddOperator( &spatialvertices );
   }
   ~SpatialAlgebra() {};
 };

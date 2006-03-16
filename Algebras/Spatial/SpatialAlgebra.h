@@ -886,6 +886,14 @@ as an attribute.
 Sorts the persistent array of points.
 
 */
+    void RemoveDuplicates();
+/*
+Removes all Duplicates from this points value.
+The points must be sorted.
+
+*/
+
+
     int Position(const Point&) const;
 /*
 Searches (binary search algorithm) for a point in the point set and
