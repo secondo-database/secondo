@@ -1017,6 +1017,36 @@ bool PredicateGroup::AddWithPriority(const Cluster *C){
 }
 
 /*
+~GetClusterOf~
+
+Returns the clsuetr which has the given name or NULL if
+no cluster found with this name. The Caller of this function
+has to remove the result.
+
+*/
+Cluster* PredicateGroup::GetClusterOf(const STRING* name)const{
+   if(strcmp((*name),UNSPECIFIED)==0){
+     Cluster* res = new Cluster();
+     res->Equalize(unSpecified);
+     return res;
+   }
+   int size = theClusters.Size();
+   const Cluster* tmp;
+   for(int i=0;i<size;i++){
+      theClusters.Get(i,tmp);
+      const STRING* n;
+      n  = tmp->GetName();
+      if(strcmp(*n,*name)==0){
+         Cluster* res = new Cluster();
+         res->Equalize(tmp);
+         return res;
+      }
+   }
+   return NULL;
+}
+
+
+/*
 4 Functions for the type constructors
 
 4.1 Out Functions

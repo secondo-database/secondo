@@ -457,6 +457,7 @@ an attribute type within secondo relations.
 };
 
 
+
 /*
 2.2 The Type Cluster
 
@@ -652,7 +653,7 @@ This function checks whether this cluster is empty.
 
 */
 
-	bool IsEmpty() const{
+   bool IsEmpty() const{
            return (memcmp(BitVector,emptyBlock,64)==0);
         }
 
@@ -1123,6 +1124,21 @@ by this function.
        }
        assert(false); // should never be reached
     }
+
+/*
+2.3.11 GetClusterOf
+
+This function returns a pointer to a cluster with given name.
+If no cluster assignet to this name is part of this predicate
+group, the result will be __NULL__.  
+
+*/
+Cluster* GetClusterOf(const STRING* name) const;
+   
+
+
+
+
 private:
    mutable DBArray<Cluster> theClusters;
    bool defined;
