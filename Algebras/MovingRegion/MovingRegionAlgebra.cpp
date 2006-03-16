@@ -14,7 +14,7 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
-January 2006, various bugfixes and improvements by Holger M[ue]nx,
+January-March 2006, various bugfixes and improvements by Holger M[ue]nx,
 with the help of Victor Almeida and Thomas Behr.
 
 [TOC]
@@ -31,6 +31,15 @@ it is sufficiently stable, it is planned to merge its code into the
 complexity of the ~MovingRegionAlgebra~, the current version should be
 considered as prototype or proof of concept only, and needs to be finalised
 before production usage.
+
+The class definitions of ~MSegmentData~, 
+~TrapeziumSegmentIntersection~, ~RefinementPartition~,
+~URegion~ and ~MRegion~, which
+are implemented in ~MovingRegionAlgebra.cpp~, have been moved to
+the header file ~MovingRegionAlgebra.h~ to facilitate development work on 
+top of the ~MovingRegionAlgebra~ without modifying the ~MovingRegionAlgebra~ 
+itself. This file contains detailed descriptions for the usage of the methods
+of these classes too.
 
 The MovingRegionAlgebra has been developed for the bachelor thesis of
 Holger M[ue]nx together with Prof. Dr. G[ue]ting, Fachbereich Informatik,
@@ -129,6 +138,7 @@ Closed:
 #include "StandardTypes.h"
 
 #include "TemporalAlgebra.h"
+#include "MovingRegionAlgebra.h"
 
 #include "DateTime.h"
 using namespace datetime;
@@ -269,16 +279,17 @@ static void GaussTransform(const unsigned int n,
                            const unsigned int m,
                            double** a,
                            double* b) {
-    if (MRA_DEBUG)
+    if (MRA_DEBUG) {
         cerr << "GaussTransform() called, n="
              << n << " m=" << m << endl;
 
-    if (MRA_DEBUG)
         for (unsigned int j = 0; j < n; j++) {
             for (unsigned int k = 0; k < m; k++)
                 fprintf(stderr, "%7.3f ", a[j][k]);
             fprintf(stderr, "| %7.3f\n", b[j]);
         }
+    }
+
 
 /*
 For each row...
@@ -1334,13 +1345,6 @@ If they overlap, the sections intersect.
                      << "no intersection"
                      << endl;
 
-/*
-This case should never happen.
-
-*/
-
-//            assert(false);
-
             detailedResult = 10;
             return false;
         } else {
@@ -1802,7 +1806,7 @@ $(p2x, p2y, t2)$ outside trapezium but still intersecting with trapezium.
                         cerr << "sITS() p1 in trapezium"
                              << endl;
 
-                    assert(l1p1is || l1p2is);
+                    assert(l1p1is || l1p2is); // change
 
                     ip1present = true;
                     ip2present = true;
@@ -1827,7 +1831,7 @@ $(p2x, p2y, t2)$ outside trapezium but still intersecting with trapezium.
                         cerr << "sITS() p2 in trapezium"
                              << endl;
 
-                    assert(l1p1is || l1p2is);
+                    assert(l1p1is || l1p2is); // change
 
                     ip1present = true;
                     ip2present = true;
@@ -1886,7 +1890,7 @@ $(p2x, p2y, t2)$ outside trapezium but still intersecting with trapezium.
                                  << "trapezium"
                                  << endl;
 
-                        assert(!l1p1is && !l1p2is);
+                        assert(!l1p1is && !l1p2is); // change
 
                         ip1present = false;
                         ip2present = false;
@@ -2090,332 +2094,202 @@ region units in section \ref{uregion}.
 
 1.1.1 Class definition
 
-The enumeratation ~DegenMode~ specifies how to handle these segments of a
-degenerated region unit, which are causing the degeneration (in this case,
-we say that the segment is degenerated).
+The class definition has been moved to ~MovingRegionAlgebra.h~.
 
-  * ~DGM\_UNKNOWN~: If is not known yet whether the segment is degenerated.
-  * ~DGM\_NONE~: Segment is not degenerated.
-  * ~DGM\_IGNORE~: Segment is degenerated and can be ignored because it is not
-    a border of region area due to its degeneration.
-  * ~DGM\_INSIDEABOVE~: Segment is degenerated but is still border of region
-    area, which is left or above the segment.
-  * ~DGM\_NOTINSIDEABOVE~: Segment is degenerated but is still border of
-    region area, which is right or below the segment.
-
-*/
-enum DegenMode { DGM_UNKNOWN,
-                 DGM_NONE,
-                 DGM_IGNORE,
-                 DGM_INSIDEABOVE,
-                 DGM_NOTINSIDEABOVE };
-
-class MSegmentData {
-/*
-The private attributes are used as follows:
-
-  * ~faceno~: The number of the region's face to which the segment belongs.
-  * ~cycleno~: The number of the face's cycle, to which the segment belongs.
-  * ~segmentno~: The number of the segment in its cycle.
-  * ~insideAbove~: ~true~, if the region's interior is left or above of the
-    segment. Please note that this is independent of the degeneration status
-    of the segment.
-  * ~degeneratedInitialInitial~, ~degeneratedFinalFinal~: Specifies whether
-    the segment degenerated in the initial or final instant. If so, these
-    attributes indicate too whether it is still border of any region area
-    even though it is degenerated.
-  * ~degeneratedInitialNext~, ~degeneratedFinalNext~: If segments merge into
-    a single segments due to degeneration, these attributes are the next
-    merged degenerated segments in the region unit's list of segments. The
-    last segment will have the value $-1$ in these attributes.
-  * ~initialStartX~, ~initialStartY~, ~initialEndX~, ~initialEndY~: The
-    coordinates of the segment's start and end points in the initial instant.
-  * ~finalStartX~, ~finalStartY~, ~finalEndX~, ~finalEndY~: The
-    coordinates of the segment's start and end points in the initial instant.
-  * ~pointInitial~, ~pointFinal~: A segment might be reduced to a point in the
-    initial or final instant (but not both). This is indicated by these
-    values of these two attributes. Please note that reduction of a segment
-    to a point and degeneration of a segment are different concepts.
-
-The constructor assures that the segment in initial and final instant is
-collinear.
+1.1.1 Constructor
 
 */
 
-// *hm* Debug only, set attributes to private later again
-// private:
-public:
-    unsigned int faceno;
-    unsigned int cycleno;
-    unsigned int segmentno;
+MSegmentData::MSegmentData(
+    unsigned int fno,
+    unsigned int cno,
+    unsigned int sno,
+    bool ia,
+    double isx,
+    double isy,
+    double iex,
+    double iey,
+    double fsx,
+    double fsy,
+    double fex,
+    double fey) :
+    faceno(fno),
+    cycleno(cno),
+    segmentno(sno),
+    insideAbove(ia),
+    degeneratedInitialNext(-1),
+    degeneratedFinalNext(-1),
+    degeneratedInitial(DGM_UNKNOWN),
+    degeneratedFinal(DGM_UNKNOWN),
+    initialStartX(isx),
+    initialStartY(isy),
+    initialEndX(iex),
+    initialEndY(iey),
+    finalStartX(fsx),
+    finalStartY(fsy),
+    finalEndX(fex),
+    finalEndY(fey)  {
 
-    bool insideAbove;
-
-    int degeneratedInitialNext;
-    int degeneratedFinalNext;
-    DegenMode degeneratedInitial;
-    DegenMode degeneratedFinal;
-
-    double initialStartX;
-    double initialStartY;
-    double initialEndX;
-    double initialEndY;
-
-    double finalStartX;
-    double finalStartY;
-    double finalEndX;
-    double finalEndY;
-
-    bool pointInitial;
-    bool pointFinal;
-
-    MSegmentData() {
-        if (MRA_DEBUG)
-            cerr << "MSegmentData::MSegmentData() #1 called" << endl;
-    }
-
-/*
-This constructor sets the ~faceno~, ~cycleno~, ~segmentno~, ~insideAbove~,
-~initialStartX~, ~initialStartY~, ~initialEndX~, ~initialEndY~,
-~finalStartX~, ~finalStartY~, ~finalEndX~ and ~finalEndY~ attributes
-according to the parameters.
-
-~degeneratedInitialNext~ and ~degeneratedFinalNext~ are initialised with
-$-1$, ~degeneratedInitial~ and ~degeneratedFinal~ with $DGM_UNKNOWN$.
-
-~pointInitial~ and ~pointFinal~ are calculated from the parameters and
-an exception is thrown if segment is reduced to a point in initial and
-final instant.
-
-It is assured that the segment is collinear in initial and final instant
-and an exception is thrown otherwise.
-
-*/
-    MSegmentData(unsigned int fno,
-                 unsigned int cno,
-                 unsigned int sno,
-                 bool ia,
-                 double isx,
-                 double isy,
-                 double iex,
-                 double iey,
-                 double fsx,
-                 double fsy,
-                 double fex,
-                 double fey) :
-        faceno(fno),
-        cycleno(cno),
-        segmentno(sno),
-        insideAbove(ia),
-        degeneratedInitialNext(-1),
-        degeneratedFinalNext(-1),
-        degeneratedInitial(DGM_UNKNOWN),
-        degeneratedFinal(DGM_UNKNOWN),
-        initialStartX(isx),
-        initialStartY(isy),
-        initialEndX(iex),
-        initialEndY(iey),
-        finalStartX(fsx),
-        finalStartY(fsy),
-        finalEndX(fex),
-        finalEndY(fey)  {
-        if (MRA_DEBUG)
-            cerr << "MSegmentData::MSegmentData() #2 "
-                 << "called counter=["
-                 << faceno << " " << cycleno << segmentno
-                 << "] flags=["
-                 << insideAbove
-                 << " " << degeneratedInitialNext
-                 << " " << degeneratedFinalNext
-                 << "] initial=["
-                 << initialStartX << " " << initialStartY
-                 << " "
-                 << initialEndX << " " << initialEndY
-                 << "] final=["
-                 << finalStartX << " " << finalStartY
-                 << " "
-                 << finalEndX << " " << finalEndY
-                 << "]"
-                 << endl;
-
+    if (MRA_DEBUG)
+        cerr << "MSegmentData::MSegmentData() #2 "
+             << "called counter=["
+             << faceno << " " << cycleno << segmentno
+             << "] flags=["
+             << insideAbove
+             << " " << degeneratedInitialNext
+             << " " << degeneratedFinalNext
+             << "] initial=["
+             << initialStartX << " " << initialStartY
+             << " "
+             << initialEndX << " " << initialEndY
+             << "] final=["
+             << finalStartX << " " << finalStartY
+             << " "
+             << finalEndX << " " << finalEndY
+             << "]"
+             << endl;
+    
 /*
 Calculate whether segment is point in initial or final instant.
 
 */
-        pointInitial =
-            nearlyEqual(isx, iex) && nearlyEqual(isy, iey);
-        pointFinal =
-            nearlyEqual(fsx, fex) && nearlyEqual(fsy, fey);
-
+    pointInitial =
+        nearlyEqual(isx, iex) && nearlyEqual(isy, iey);
+    pointFinal =
+        nearlyEqual(fsx, fex) && nearlyEqual(fsy, fey);
+    
 /*
-Check whether initial and final segment are collinear,
-
+  Check whether initial and final segment are collinear,
+  
 */
-        bool collinear;
-
-        if (pointInitial && pointFinal) {
+    bool collinear;
+    
+    if (pointInitial && pointFinal) {
 /*
 Error: A segment may not be reduced to a point both in initial and final
 instant.
 
 */
-            if (MRA_DEBUG)
-                cerr << "MSegmentData::MSegmentData() both reduced"
-                     << endl;
-
-            throw invalid_argument("both initial and final segment "
-                                   "reduced to point, which is not "
-                                   "allowed");
-        } else if (pointInitial) {
+        if (MRA_DEBUG)
+            cerr << "MSegmentData::MSegmentData() both reduced"
+                 << endl;
+        
+        throw invalid_argument("both initial and final segment "
+                               "reduced to point, which is not "
+                               "allowed");
+    } else if (pointInitial) {
 /*
 Only initial segment reduced to point. Initial and final segment are trivially
 collinear.
 
 */
-            if (MRA_DEBUG)
-                cerr << "MSegmentData::MSegmentData() "
-                     << "initial reduced"
-                     << endl;
-
-            collinear = true;
-        } else if (pointFinal) {
+        if (MRA_DEBUG)
+            cerr << "MSegmentData::MSegmentData() "
+                 << "initial reduced"
+                 << endl;
+        
+        collinear = true;
+    } else if (pointFinal) {
 /*
 Only final segment reduced to point. Initial and final segment are trivially
 collinear.
 
 */
-            if (MRA_DEBUG)
-                cerr << "MSegmentData::MSegmentData() "
-                     << "final reduced"
-                     << endl;
-
-            collinear = true;
-        } else if (nearlyEqual(isx, iex) && nearlyEqual(fsx, fex)) {
+        if (MRA_DEBUG)
+            cerr << "MSegmentData::MSegmentData() "
+                 << "final reduced"
+                 << endl;
+        
+        collinear = true;
+    } else if (nearlyEqual(isx, iex) && nearlyEqual(fsx, fex)) {
 /*
 Both segments are vertical. Check if both segments have the same
 orientation.
-
+  
 */
-            if (MRA_DEBUG)
-                cerr << "MSegmentData::MSegmentData() "
-                     << "both vertical"
-                     << endl;
+        if (MRA_DEBUG)
+            cerr << "MSegmentData::MSegmentData() "
+                 << "both vertical"
+                 << endl;
 
-            collinear =
-                (lowerOrNearlyEqual(isy, iey)
-                 && lowerOrNearlyEqual(fsy, fey))
-                || (greaterOrNearlyEqual(isy, iey)
-                    && greaterOrNearlyEqual(fsy, fey));
-        } else if (nearlyEqual(isx, iex) || nearlyEqual(fsx, fex)) {
+        collinear =
+            (lowerOrNearlyEqual(isy, iey)
+             && lowerOrNearlyEqual(fsy, fey))
+            || (greaterOrNearlyEqual(isy, iey)
+                && greaterOrNearlyEqual(fsy, fey));
+    } else if (nearlyEqual(isx, iex) || nearlyEqual(fsx, fex)) {
 /*
 Only initial or final segment is vertical but not both.
 
 */
-            if (MRA_DEBUG)
-                cerr << "MSegmentData::MSegmentData() "
-                     << "one vertical" << endl;
-
-            collinear = false;
-        } else {
+        if (MRA_DEBUG)
+            cerr << "MSegmentData::MSegmentData() "
+                 << "one vertical" << endl;
+        
+        collinear = false;
+    } else {
 /*
 Both segments are not vertical.
 
 */
-            if (MRA_DEBUG)
-                cerr << "MSegmentData::MSegmentData() "
-                     << "none vertical"
-                     << endl;
-
-            collinear = 
-                   nearlyEqual((iey-isy)/(iex-isx), (fey-fsy)/(fex-fsx))
-                || nearlyEqual((iey-isy)*(fex-fsx), (fey-fsy)*(iex-isx));
-
-            if (!collinear) {
-                cerr << setprecision(10)
-                     << "parameters for segment orientation comparison:"
-                     << endl
-                     << "  1. (iey-isy)/(iex-isx) = " 
-                     << (iey-isy)/(iex-isx) 
-                     << endl
-                     << "  2. (fey-fsy)/(fex-fsx) = " 
-                     << (fey-fsy)/(fex-fsx)
-                     << endl
-                     << "  3. (iey-isy)*(fex-fsx) = " 
-                     << (iey-isy)*(fex-fsx) 
-                     << endl
-                     << "  4. (fey-fsy)*(iex-isx) = " 
-                     << (fey-fsy)*(iex-isx)
-                     << endl
-                     << "1. and 2. or 3. and 4. should be equal."
-                     << endl;
-            }
-
-            if (MRA_DEBUG) {
-                cerr << ::std::fixed << ::std::setprecision(6);
-                cerr << "MSegmentData::MSegmentData() isx=" << isx
-                     << " isy=" << isy
-                     << " iex=" << iex
-                     << " iey=" << iey
-                     << " fsx=" << fsx
-                     << " fsy=" << fsy
-                     << " fex=" << fex
-                     << " fey=" << fey
-                     << endl;
-                cerr << "MSegmentData::MSegmentData() (iey-isy)/(iex-isx)=" 
-                     << (iey-isy)/(iex-isx) << endl;
-                cerr << "MSegmentData::MSegmentData() (fey-fsy)/(fex-fsx)=" 
-                     << (fey-fsy)/(fex-fsx) << endl;
-                cerr << "MSegmentData::MSegmentData() (iey-isy)*(fex-fsx)=" 
-                     << (iey-isy)*(fex-fsx) << endl;
-                cerr << "MSegmentData::MSegmentData() (fey-fsy)*(iex-isx)=" 
-                     << (fey-fsy)*(iex-isx) << endl;
-                cerr << "MSegmentData::MSegmentData() collinear=" 
-                     << collinear << endl;
-            }
+        if (MRA_DEBUG)
+            cerr << "MSegmentData::MSegmentData() "
+                 << "none vertical"
+                 << endl;
+        
+        collinear = 
+            nearlyEqual((iey-isy)/(iex-isx), (fey-fsy)/(fex-fsx))
+            || nearlyEqual((iey-isy)*(fex-fsx), (fey-fsy)*(iex-isx));
+        
+        if (!collinear) {
+            cerr << setprecision(10)
+                 << "parameters for segment orientation comparison:"
+                 << endl
+                 << "  1. (iey-isy)/(iex-isx) = " 
+                 << (iey-isy)/(iex-isx) 
+                 << endl
+                 << "  2. (fey-fsy)/(fex-fsx) = " 
+                 << (fey-fsy)/(fex-fsx)
+                 << endl
+                 << "  3. (iey-isy)*(fex-fsx) = " 
+                 << (iey-isy)*(fex-fsx) 
+                 << endl
+                 << "  4. (fey-fsy)*(iex-isx) = " 
+                 << (fey-fsy)*(iex-isx)
+                 << endl
+                 << "1. and 2. or 3. and 4. should be equal."
+                 << endl;
         }
 
-        if (!collinear)
-            throw
-                invalid_argument(
-                    "initial and final segment not collinear");
+        if (MRA_DEBUG) {
+            cerr << ::std::fixed << ::std::setprecision(6);
+            cerr << "MSegmentData::MSegmentData() isx=" << isx
+                 << " isy=" << isy
+                 << " iex=" << iex
+                 << " iey=" << iey
+                 << " fsx=" << fsx
+                 << " fsy=" << fsy
+                 << " fex=" << fex
+                 << " fey=" << fey
+                 << endl;
+            cerr << "MSegmentData::MSegmentData() (iey-isy)/(iex-isx)=" 
+                 << (iey-isy)/(iex-isx) << endl;
+            cerr << "MSegmentData::MSegmentData() (fey-fsy)/(fex-fsx)=" 
+                 << (fey-fsy)/(fex-fsx) << endl;
+            cerr << "MSegmentData::MSegmentData() (iey-isy)*(fex-fsx)=" 
+                 << (iey-isy)*(fex-fsx) << endl;
+            cerr << "MSegmentData::MSegmentData() (fey-fsy)*(iex-isx)=" 
+                 << (fey-fsy)*(iex-isx) << endl;
+            cerr << "MSegmentData::MSegmentData() collinear=" 
+                 << collinear << endl;
+        }
     }
 
-/*
-Attribute access methods.
-
-*/
-    unsigned int GetFaceNo(void) const { return faceno; }
-    unsigned int GetCycleNo(void) const { return cycleno; }
-    unsigned int GetSegmentNo(void) const { return segmentno; }
-    double GetInitialStartX(void) const { return initialStartX; }
-    double GetInitialStartY(void) const { return initialStartY; }
-    double GetInitialEndX(void) const { return initialEndX; }
-    double GetInitialEndY(void) const { return initialEndY; }
-    double GetFinalStartX(void) const { return finalStartX; }
-    double GetFinalStartY(void) const { return finalStartY; }
-    double GetFinalEndX(void) const { return finalEndX; }
-    double GetFinalEndY(void) const { return finalEndY; }
-    bool GetInsideAbove(void) const { return insideAbove; }
-
-/*
-Generate new ~MSegmentData~ instant in ~rDms~ from current instant, where the
-original interval ~origIv~ has been restricted to ~restrIv~.
-
-*/
-    void restrictToInterval(Interval<Instant> origIv,
-                            Interval<Instant> restrIv,
-                            MSegmentData& rDms) const;
-
-/*
-Since no other classes are accessing the private attributes of
-~MSegmentData~, we declare ~URegion~ as friend. This is shorter,
-yet somewhat clumsy than creating attribute access functions.
-
-*/
-    // *hm* is there a better solution?
-    friend class URegion;
-
-};
+    if (!collinear)
+        throw
+            invalid_argument(
+                "initial and final segment not collinear");
+}
 
 /*
 1.1.1 Method ~MSegmentData::restrictToInterval()~
@@ -2491,42 +2365,18 @@ be adjusted, and calculate the new initial and final end points.
 /*
 1.1 Class ~TrapeziumSegmentIntersection~
 
-Represents an intersection point as used by the ~intersection~ operator.
-
-The enumeration ~TsiType~ denotes whether an intersection will be used
-($TSI\_ENTER$ when a point enters a moving region at the intersection
-point and $TSI\_LEAVE$ when the point leaves the moving region at the
-intersection point) or will be ignored due to degeneration
-related special cases ($TSI\_IGNORE$).
-
+The class definition has been moved to ~MovingRegionAlgebra.h~.
+ 
 */
-enum TsiType { TSI_ENTER, TSI_LEAVE, TSI_IGNORE };
 
-class TrapeziumSegmentIntersection {
-public:
-/*
-~type~ is the type of the intersection as described by above shown
-enumeration. ~x~ and ~y~ are the coordinates of the intersection
-and ~t~ the time of the intersection.
+bool TrapeziumSegmentIntersection::operator<(
+    const TrapeziumSegmentIntersection& tsi) const {
 
-*/
-    TsiType type;
-
-    double x;
-    double y;
-    double t;
-
-/*
-Compares intersections by their time.
-
-*/
-    bool operator<(const TrapeziumSegmentIntersection& tsi) const {
-        if (nearlyEqual(t, tsi.t)) {
-            return type < tsi.type;
-        } else
-            return t < tsi.t;
-    }
-};
+    if (nearlyEqual(t, tsi.t)) {
+        return type < tsi.type;
+    } else
+        return t < tsi.t;
+}
 
 /*
 1.1 Class template ~RefinementPartition~
@@ -2555,93 +2405,9 @@ The classes used for ~Mapping1~ and ~Mapping2~ must inherit from class
 
 1.1.1 Class template definition
 
-*/
-
-template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-class RefinementPartition {
-private:
-/*
-Private attributes:
-
-  * ~iv~: Array (vector) of sub-intervals, which has been calculated from the
-    unit intervals of the ~Mapping~ instances.
-
-  * ~vur~: Maps intervals in ~iv~ to indices of original units in first
-    ~Mapping~ instance. A $-1$ values indicates that interval in ~iv~ is no
-    sub-interval of any unit interval in first ~Mapping~ instance.
-
-  * ~vup~: Same as ~vur~ for second mapping instance.
+The class template definition has been moved to ~MovingRegionAlgebra.h~.
 
 */
-    vector< Interval<Instant>* > iv;
-    vector<int> vur;
-    vector<int> vup;
-
-/*
-~AddUnit()~ is a small helper method to create a new interval from
-~start~ and ~end~ instant and ~lc~ and ~rc~ flags and to add these to the
-~iv~, ~vur~ and ~vup~ vectors.
-
-*/
-    void AddUnits(const int urPos,
-                  const int upPos,
-                  const Instant& start,
-                  const Instant& end,
-                  const bool lc,
-                  const bool rc);
-
-public:
-/*
-The constructor creates the refinement partition from the two ~Mapping~
-instances ~mr~ and ~mp~.
-
-Runtime is $O(\max(n, m))$ with $n$ and $m$ the numbers of units in
-~mr~ and ~mp~.
-
-*/
-    RefinementPartition(Mapping1& mr, Mapping2& mp);
-
-/*
-Since the elements of ~iv~ point to dynamically allocated objects, we need
-a destructor.
-
-*/
-    ~RefinementPartition();
-
-/*
-Return the number of intervals in the refinement partition.
-
-*/
-    unsigned int Size(void ) {
-        if (MRA_DEBUG)
-            cerr << "RP::Size() called" << endl;
-
-        return iv.size();
-    }
-
-/*
-Return the interval and indices in original units of position $pos$ in
-the refinement partition in the referenced variables ~civ~, ~ur~ and
-~up~. Remember that ~ur~ or ~up~ may be $-1$ if interval is no sub-interval
-of unit intervals in the respective ~Mapping~ instance.
-
-Runtime is $O(1)$.
-
-*/
-    void Get(unsigned int pos,
-             Interval<Instant>*& civ,
-             int& ur,
-             int& up) {
-        if (MRA_DEBUG)
-            cerr << "RP::Get() called" << endl;
-
-        assert(pos < iv.size());
-
-        civ = iv[pos];
-        ur = vur[pos];
-        up = vup[pos];
-    }
-};
 
 /*
 1.1.1 Constructor template
@@ -3370,6 +3136,39 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
 }
 
 /*
+1.1.1 Method template ~Size()~
+
+*/
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+unsigned int RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
+::Size(void) {
+    if (MRA_DEBUG)
+        cerr << "RP::Size() called" << endl;
+    
+    return iv.size();
+}
+
+/*
+1.1.1 Method template ~Get()~
+
+*/
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+void RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
+::Get(unsigned int pos,
+      Interval<Instant>*& civ,
+      int& ur,
+      int& up) {
+    if (MRA_DEBUG)
+        cerr << "RP::Get() called" << endl;
+
+    assert(pos < iv.size());
+    
+    civ = iv[pos];
+    ur = vur[pos];
+    up = vup[pos];
+}
+
+/*
 1.1.1 Method template ~AddUnits()~
 
 */
@@ -3459,364 +3258,97 @@ static TypeConstructor iregion(
     CheckIRegion );
 
 /*
-1 Data type ~uregion~
-\label{uregion}
+1 Class ~URegion~
 
-This data type implements regions units.
+Please note that their is no corresponding SECONDO data type for this class.
+It is used internally by the MovingRegionAlgebra only, even though it is
+explicitely defined the theory of moving regions.
 
-1.1 Class ~URegion~
+1.1 Class definition
 
-1.1.1 Class definition
+The class definition has been moved to ~MovingRegionAlgebra.h~.
 
-This extension of ~SpatialTemporalUnit<CRegion, 3>~ is fairly simple in its
-structure but offers complex methods.
-
-Since ~URegion~ instances are typically referenced by ~MRegion~ instances,
-there is one detail about SECONDO's ~DBArray~ mechanism to be considered.
+1.1 Constructors and destructor
 
 */
 
-class URegion : public SpatialTemporalUnit<CRegion, 3> {
-private:
-/*
-A ~URegion~ instance either maintains its own memory for segments
-(~role = NORMAL~) or receives it from its ~MRegion~ instance
-(~role = EMBEDDED~).
+URegion::URegion(const Interval<Instant>& interval) :
+    SpatialTemporalUnit<CRegion, 3>(interval),
+    role(NORMAL),
+    segmentsNormal(0),
+    segments(&segmentsNormal),
+    segmentsStartPos(0),
+    segmentsNum(0) {
 
-*/
-    enum { NORMAL, EMBEDDED } role;
+    if (MRA_DEBUG)
+        cerr << "URegion::URegion() #1 called, segments=" 
+             << segments
+             << endl;
+}
 
-/*
-~segments~ is a pointer to a DBArray, either allocated by the ~URegion~
-instance itself or passed by its ~MRegion~ instance. See ~type~ to find
-out which is the current case.
+URegion::URegion(const Interval<Instant>& interval,
+                 DBArray<MSegmentData>* segs,
+                 unsigned int pos) :
+    SpatialTemporalUnit<CRegion, 3>(interval),
+    role(EMBEDDED),
+    segments(segs),
+    segmentsStartPos(pos),
+    segmentsNum(0) {
 
-~segmentsStartPos~ is the index in ~segments~, where this instances
-segments are starting. If the instance allocated its own memory,
-~segmentsStartPos~ is $0$.
+    if (MRA_DEBUG)
+        cerr << "URegion::URegion() #2 called" << endl;
+}
 
-~segmentsNum~ is the number of segments in the ~URegion~ instance.
+URegion::URegion(const Interval<Instant>& interval,
+                 const CRegion& region,
+                 DBArray<MSegmentData>* segs,
+                 unsigned int pos) :
+    SpatialTemporalUnit<CRegion, 3>(interval),
+    role(EMBEDDED),
+    segments(segs),
+    segmentsStartPos(pos),
+    segmentsNum(0) {
 
-*/
-    DBArray<MSegmentData>* segments;
-    unsigned int segmentsStartPos;
-    unsigned int segmentsNum;
+    if (MRA_DEBUG)
+        cerr << "URegion::URegion() #4 called" << endl;
+    
+    for (int i = 0; i < region.Size(); i += 2) {
+        const CHalfSegment *thisChs;
+        region.Get(i, thisChs);
+        
+        const CHalfSegment *nextChs;
+        region.Get(i+1 == region.Size() ? 0 : i+1, nextChs);
+        
+        MSegmentData dms(thisChs->GetAttr().faceno,
+                         thisChs->GetAttr().cycleno,
+                         thisChs->GetAttr().edgeno,
+                         thisChs->GetAttr().insideAbove,
+                         thisChs->GetLP().GetX(),
+                         thisChs->GetLP().GetY(),
+                         thisChs->GetRP().GetX(),
+                         thisChs->GetRP().GetY(),
+                         thisChs->GetLP().GetX(),
+                         thisChs->GetLP().GetY(),
+                         thisChs->GetRP().GetX(),
+                         thisChs->GetRP().GetY());
+        
+        dms.degeneratedInitial = DGM_NONE;
+        dms.degeneratedFinal = DGM_NONE;
 
-/*
-Return the number of segments in ~segments~, which is locate above
-~up~ during the interval ~iv~. Before calling this method, it must be
-assured that the point does not intersect with one of the segments
-during the interval.
-
-*/
-    unsigned int Plumbline(const UPoint& up, const Interval<Instant>& iv) const;
-
-/*
-Add new ~UPoint~ unit to ~res~ which reflects that during the
-interface $(starttime, endtime, lc, rc)$ the moving point was
-from coordinates $(x0, y0)$ to $(x1, y1)$ within this ~URegion~
-instance. ~pending~ is used to merge ~UPoint~ instances, if possible.
-
-*/
-
-    void RestrictedIntersectionAddUPoint(MPoint& res,
-                                         double starttime,
-                                         double endtime,
-                                         bool lc,
-                                         bool rc,
-                                         double x0,
-                                         double y0,
-                                         double x1,
-                                         double y1,
-                                         UPoint*& pending) const;
-
-/*
-Collect 'normal' intersections between ~UPoint~ unit ~rUp~ and moving segment
-~rDms~, which occured in interval ~iv~ at point $(ip1x, ip1y)$ at the time
-$ip1t$. The intersections are written to the vector ~vtsi~.
-
-*/
-    void RestrictedIntersectionFindNormal(
-        const Interval<Instant>& iv,
-        const UPoint& rUp,
-        MSegmentData& rDms,
-        bool& ip1present,
-        double& ip1x,
-        double& ip1y,
-        double& ip1t,
-        vector<TrapeziumSegmentIntersection>& vtsi) const;
-
-/*
-Handle intersection line between ~UPoint~ unit ~rUp~ and a moving segment,
-which lies in the same plane as the moving segment and occured in the
-intervall ~iv~. $(ip1x, ip1y)$ is the
-first intersection point, $(ip2y, ip2y)$ is the second intersection point,
-~ip1present~ and ~ip2present~ denote whether both points are present
-(they may be reduced to a single point) The intersections are written to
-the vector ~vtsi~.
-
-*/
-    void RestrictedIntersectionFindInPlane(
-        const Interval<Instant>& iv,
-        const UPoint& rUp,
-        bool& ip1present,
-        double& ip1x,
-        double& ip1y,
-        double& ip1t,
-        bool& ip2present,
-        double& ip2x,
-        double& ip2y,
-        double& ip2t,
-        vector<TrapeziumSegmentIntersection>& vtsi) const;
-
-/*
-Find all intersections between the ~UPoint~ unit ~up~ and the segments
-of this ~URegion~ instance during the interval ~iv~. Write intersections
-to vector ~vtsi~.
-
-*/
-    void RestrictedIntersectionFind(
-        const UPoint& up,
-        const Interval<Instant>& iv,
-        vector<TrapeziumSegmentIntersection>& vtsi) const;
-
-/*
-For the intersections between ~up~ and this ~URegion~ instance's segments
-stored in ~vtsi~,
-match two pairs of intersection points, which have been previously calculated
-by ~RestrictedIntersectionFind()~, so that each pair contains an intersection
-point where the ~URegion~ instance is being entered and an intersection point
-where it is left. From each pair, construct a ~UPoint~ unit and add it to
-~res~. ~pending~ is used to merge ~UPoint~ instances, if possible.
-
-*/
-    bool RestrictedIntersectionProcess(
-        const UPoint& up,
-        const Interval<Instant>& iv,
-        vector<TrapeziumSegmentIntersection>& vtsi,
-        MPoint& res,
-        UPoint*& pending) const;
-
-/*
-Handle intersections in ~vtsi~ with degenerated segments.
-
-*/
-    void RestrictedIntersectionFix(
-        vector<TrapeziumSegmentIntersection>& vtsi) const;
-
-public:
-    URegion() {
-        if (MRA_DEBUG)
-            cerr << "URegion::URegion() #1 called"
-                 << endl;
+        segments->Resize(segmentsStartPos+segmentsNum+1);
+        segments->Put(segmentsStartPos+segmentsNum, dms);
+        segmentsNum++;
     }
+}
+ 
+void URegion::Destroy(void) {
+    if (MRA_DEBUG) cerr << "URegion::Destroy() called" << endl;
+
+    if (role == EMBEDDED) delete segments;
+}
 
 /*
-Constructor, which received pointer to storage for segments from
-~MRegion~ instance.
-
-*/
-    URegion(const Interval<Instant>& interval,
-            DBArray<MSegmentData>* segs,
-            unsigned int pos) :
-        SpatialTemporalUnit<CRegion, 3>(interval),
-        role(EMBEDDED),
-        segments(segs),
-        segmentsStartPos(pos),
-        segmentsNum(0) {
-
-        if (MRA_DEBUG)
-            cerr << "URegion::URegion() #2 called"
-                 << endl;
-    }
-
-/*
-Constructor, which allocates its own storage for segments..
-
-*/
-    URegion(const Interval<Instant>& interval) :
-        SpatialTemporalUnit<CRegion, 3>(interval),
-        role(NORMAL),
-        segments(new DBArray<MSegmentData>(0)),
-        segmentsStartPos(0),
-        segmentsNum(0) {
-
-        if (MRA_DEBUG)
-            cerr << "URegion::URegion() #3 called"
-                 << endl;
-
-/*
-Lets see if this constructor is really required. If somebody complains,
-we know it. That's solid empirical reasoning!
-
-*/
-        assert(false);
-    }
-
-/*
-Constructor, which receives storage for its segments from ~MRegion~
-instance and creates a constant unit for the specied interval from the
-provided ~CRegion~ instance.
-
-*/
-    URegion(const Interval<Instant>& interval,
-            const CRegion& region,
-            DBArray<MSegmentData>* segs,
-            unsigned int pos) :
-        SpatialTemporalUnit<CRegion, 3>(interval),
-        role(EMBEDDED),
-        segments(segs),
-        segmentsStartPos(pos),
-        segmentsNum(0) {
-
-        if (MRA_DEBUG)
-            cerr << "URegion::URegion() #4 called" << endl;
-
-        for (int i = 0; i < region.Size(); i += 2) {
-            const CHalfSegment *thisChs;
-            region.Get(i, thisChs);
-
-            const CHalfSegment *nextChs;
-            region.Get(i+1 == region.Size() ? 0 : i+1, nextChs);
-
-            MSegmentData dms(thisChs->GetAttr().faceno,
-                             thisChs->GetAttr().cycleno,
-                             thisChs->GetAttr().edgeno,
-                             thisChs->GetAttr().insideAbove,
-                             thisChs->GetLP().GetX(),
-                             thisChs->GetLP().GetY(),
-                             thisChs->GetRP().GetX(),
-                             thisChs->GetRP().GetY(),
-                             thisChs->GetLP().GetX(),
-                             thisChs->GetLP().GetY(),
-                             thisChs->GetRP().GetX(),
-                             thisChs->GetRP().GetY());
-
-            dms.degeneratedInitial = DGM_NONE;
-            dms.degeneratedFinal = DGM_NONE;
-
-            segments->Resize(segmentsStartPos+segmentsNum+1);
-            segments->Put(segmentsStartPos+segmentsNum, dms);
-            segmentsNum++;
-        }
-    }
-
-/*
-Required for ~OpenMRegion()~. Set the storage for segments after the
-instance has been created.
-
-*/
-    void SetMSegmentData(DBArray<MSegmentData>* s) {
-        if (MRA_DEBUG)
-            cerr << "URegion::SetMSegmentData() called" << endl;
-
-        segments = s;
-    }
-
-/*
-Adds a segment to this ~URegion~ instance.
-
-~cr~ is a ~CRegion~ instance, which is used to check whether the ~URegion~
-instance represents a valid region in the middle of its interval, when no
-degeneration can occur. All segments added to the ~URegion~ instance are
-added as non-moving segments to ~cr~ too.
-
-~rDir~ is used to check the direction of a cylce, which is required to
-finalise the ~insideAbove~ attributes of the segments.
-
-Both ~cr~ and ~rDir~ are checked outside the methods of ~URegion~, they
-are just filled by ~AddSegment()~.
-
-~faceno~, ~cycleno~, ~segmentno~ and ~pointno~ are the obvious indices
-in the ~URegion~ unit's segment.
-
-~intervalLen~ is the length of the interval covered by this ~URegion~
-instance.
-
-~start~ and ~end~ contain the initial and final positions of the segment
-in list representation, which will be added to the ~URegion~ instance
-
-~AddSegment()~ performs numerous calculations and checks. See the method
-description below for details.
-
-*/
-    bool AddSegment(CRegion& cr,
-                    CRegion& rDir,
-                    unsigned int faceno,
-                    unsigned int cycleno,
-                    unsigned int segmentno,
-                    unsigned int partnerno,
-                    double intervalLen,
-                    ListExpr start,
-                    ListExpr end);
-
-/*
-Set the value of the ~insideAbove~ attribut of segment as position ~pos~ to
-the value ~insideAbove~.
-
-*/
-
-    void SetSegmentInsideAbove(int pos, bool insideAbove);
-
-/*
-Get number of segments, get specific segment, write specific segment.
-
-*/
-    int GetSegmentsNum(void) const;
-    void GetSegment(int pos, const MSegmentData*& dms) const;
-    void PutSegment(int pos, const MSegmentData& dms);
-
-/*
-Calculate ~MPoint~ instance ~res~ from the intersection ~up~ and this
-~URegion~ unit, restricted to interval ~iv~ instead of ~up~'s or this
-instances full intervals. ~pending~ is used to try to merge multiple
-units.
-
-*/
-    void RestrictedIntersection(const UPoint& up,
-                                const Interval<Instant>& iv,
-                                MPoint& res,
-                                UPoint*& pending) const;
-
-/*
-Destroy the ~URegion~ unit. If it has its own segments memory, free it.
-
-*/
-    void Destroy(void) {
-        if (MRA_DEBUG) cerr << "URegion::Destroy() called" << endl;
-
-        assert(role == NORMAL || role == EMBEDDED);
-
-        if (role == NORMAL) segments->Destroy();
-    }
-
-/*
-Returns the ~CRegion~ value of this ~URegion~ unit at instant ~t~
-in ~result~.
-
-*/
-    virtual void TemporalFunction(const Instant& t, CRegion& result) const;
-
-/*
-~At()~, ~Passes()~ and ~BoundingBox()~ are not yet implemented. Stubs
-required for to make this class non-abstract.
-
-*/
-    virtual bool At(const CRegion& val, TemporalUnit<CRegion>& result) const;
-    virtual bool Passes(const CRegion& val) const;
-
-    virtual const Rectangle<3> BoundingBox() const;
-
-/*
-Required for Algebra integration. Not implemented either.
-
-*/
-    virtual URegion* Clone() const;
-    virtual void CopyFrom(const StandardAttribute* right);
-};
-
-/*
-1.1.1 Method stubs
+1.1 Method stubs
 
 */
 URegion* URegion::Clone(void) const {
@@ -3838,7 +3370,63 @@ const Rectangle<3> URegion::BoundingBox() const {
 }
 
 /*
-1.1.1 Method ~At()~
+1.1 ~DBArray~ access
+
+*/
+
+int URegion::NumOfFLOBs() const {
+    if (MRA_DEBUG) cerr << "URegion::NumOfFLOBs() called" << endl;
+
+    assert(role == NORMAL);
+
+    return 1;
+}
+
+FLOB* URegion::GetFLOB(const int i) {
+    if (MRA_DEBUG) 
+        cerr << "URegion::GetFLOB() called, segments=" 
+             << segments
+             << endl;
+
+    assert(role == NORMAL);
+    assert(i == 0);
+
+    return &segmentsNormal;
+}
+
+/*
+1.1 Method ~IsEmbedded()~
+
+*/
+bool URegion::IsEmbedded(void) {
+    if (MRA_DEBUG)
+        cerr << "URegion::IsEmbedded() called" << endl;
+
+    assert(role == NORMAL || role == EMBEDDED);
+
+    return role == EMBEDDED;
+}
+
+/*
+1.1 Methods ~SetMSegmentData()~
+
+*/
+void URegion::SetMSegmentData(void) {
+    if (MRA_DEBUG)
+        cerr << "URegion::SetMSegmentData() #1 called" << endl;
+    
+    segments = &segmentsNormal;
+}
+
+void URegion::SetMSegmentData(DBArray<MSegmentData>* s) {
+    if (MRA_DEBUG)
+        cerr << "URegion::SetMSegmentData() #2 called" << endl;
+    
+    segments = s;
+}
+
+/*
+1.1 Method ~At()~
 
 */
 bool URegion::At(const CRegion& val, TemporalUnit<CRegion>& result) const {
@@ -3848,7 +3436,7 @@ bool URegion::At(const CRegion& val, TemporalUnit<CRegion>& result) const {
 }
 
 /*
-1.1.1 Method ~Passes()~
+1.1 Method ~Passes()~
 
 */
 bool URegion::Passes(const CRegion& val) const {
@@ -3858,9 +3446,9 @@ bool URegion::Passes(const CRegion& val) const {
 }
 
 /*
-1.1.1 Methods required for intersection with ~UPoint~
+1.1 Methods required for intersection with ~UPoint~
 
-1.1.1.1 Method ~RestrictedIntersectionFindNormal()~
+1.1.1 Method ~RestrictedIntersectionFindNormal()~
 
 */
 void URegion::RestrictedIntersectionFindNormal(
@@ -4151,7 +3739,7 @@ See handling of previous case.
 
 
 /*
-1.1.1.1 Method ~RestrictedIntersectionFindInPlane()~
+1.1.1 Method ~RestrictedIntersectionFindInPlane()~
 
 */
 void URegion::RestrictedIntersectionFindInPlane(
@@ -4379,7 +3967,7 @@ of the segments.
 }
 
 /*
-1.1.1 Method ~Plumbline()~
+1.1 Method ~Plumbline()~
 
 */
 unsigned int 
@@ -4592,7 +4180,7 @@ is above ~(x, y)~.
 }
 
 /*
-1.1.1 Function ~RestrictedIntersectionFind()~
+1.1 Function ~RestrictedIntersectionFind()~
 
 */
 void URegion::RestrictedIntersectionFind(
@@ -4740,7 +4328,7 @@ sufficient context to understand this method.
 }
 
 /*
-1.1.1 Function ~RestrictedIntersectionAddUPoint()~
+1.1 Function ~RestrictedIntersectionAddUPoint()~
 
 */
 void URegion::RestrictedIntersectionAddUPoint(MPoint& res,
@@ -4915,7 +4503,7 @@ reduce the number of units produced - but is this really a requirement?)
 }
 
 /*
-1.1.1 Function ~RestrictedIntersectionProcess()~
+1.1 Function ~RestrictedIntersectionProcess()~
 
 */
 bool URegion::RestrictedIntersectionProcess(
@@ -5068,7 +4656,7 @@ consider the $TSI\_LEAVE$ intersection first.
 }
 
 /*
-1.1.1 Function ~RestrictedIntersectionFix()~
+1.1 Function ~RestrictedIntersectionFix()~
 
 */
 void URegion::RestrictedIntersectionFix(
@@ -5131,10 +4719,6 @@ $TSI\_ENTER$ intersections or the same number of them.
                  << endl;
         }
 
-/*
-blubb
-
-*/
         if (j > i) {
             if (numEnter == numLeave) {
                 if (i > 0 && lastType == TSI_ENTER) {
@@ -5168,7 +4752,7 @@ blubb
 }
 
 /*
-1.1.1.1 Method ~RestrictedIntersection()~
+1.1.1 Method ~RestrictedIntersection()~
 
 Checks whether the point unit ~up~ intersects this region unit, while
 both units are restrictured to the interval ~iv~, which must be inside
@@ -5218,7 +4802,7 @@ void URegion::RestrictedIntersection(const UPoint& up,
 }
 
 /*
-1.1.1 Method ~TemporalFunction()~
+1.1 Method ~TemporalFunction()~
 
 */
 void URegion::TemporalFunction(const Instant& t, CRegion& res) const {
@@ -5413,7 +4997,7 @@ no better solution right now.
 }
 
 /*
-1.1.1 Method ~AddSegment()~
+1.1 Method ~AddSegment()~
 
 */
 bool URegion::AddSegment(CRegion& cr,
@@ -5433,8 +5017,6 @@ bool URegion::AddSegment(CRegion& cr,
              << " "
              << segmentno
              << endl;
-
-    assert(role == NORMAL || role == EMBEDDED);
 
 /*
 To avoid awkward return value handling, we throw an exception if we find
@@ -5462,9 +5044,9 @@ Check list representation.
             || (nl->AtomType(nl->Fourth(start)) != RealType
                 && nl->AtomType(nl->Fourth(start)) != IntType))
             throw invalid_argument(
-                "start point "
+                "  Start point "
                 +nl->ToString(start)
-                +" not in format (<number> <number> <number> <number>)");
+                +" not in format (<number> <number> <number> <number>).");
 
         if (nl->ListLength(end) != 4
 
@@ -5481,9 +5063,9 @@ Check list representation.
             || (nl->AtomType(nl->Fourth(end)) != RealType
                 && nl->AtomType(nl->Fourth(end)) != IntType))
             throw invalid_argument(
-                "end point "
+                "  End point "
                 +nl->ToString(end)
-                +" not in format (<number> <number> <number> <number>)");
+                +" not in format (<number> <number> <number> <number>).");
 
 /*
 Create segment from list representation.
@@ -5631,16 +5213,55 @@ If we have a point time interval, degeneration is not allowed.
 */
             if (nearlyEqual(intervalLen, 0.0)
                 && (dms.degeneratedInitialNext >= 0
-                    || dms.degeneratedFinalNext >= 0))
-                throw invalid_argument(
-                    "units with zero length time interval must not "
-                    "be degenerated");
-            else if (!nearlyEqual(intervalLen, 0.0)
+                    || dms.degeneratedFinalNext >= 0)) {
+                stringstream msg;
+                msg << "  Units with zero length time interval must not" 
+                    << " be degenerated." << endl
+                    << "    New segment:" << endl
+                    << "      Initial: ("
+                    << dms.initialStartX
+                    << " "
+                    << dms.initialStartY
+                    << ") - ("
+                    << dms.initialEndX
+                    << " "
+                    << dms.initialEndY
+                    << ")" << endl
+                    << "      Final: ("
+                    << dms.finalStartX
+                    << " "
+                    << dms.finalStartY
+                    << ") - ("
+                    << dms.finalEndX
+                    << " "
+                    << dms.finalEndY;
+                throw invalid_argument(msg.str());
+            } else if (!nearlyEqual(intervalLen, 0.0)
                      && dms.degeneratedInitialNext >= 0
-                     && dms.degeneratedFinalNext >= 0)
-                throw invalid_argument(
-                    "units must not degenerate both in initial and "
-                    "final instant");
+                     && dms.degeneratedFinalNext >= 0) {
+                stringstream msg;
+                msg << "  Units must not degenerate both in initial and" 
+                    << " final instant." << endl
+                    << "    New segment:" << endl
+                    << "      Initial: ("
+                    << dms.initialStartX
+                    << " "
+                    << dms.initialStartY
+                    << ") - ("
+                    << dms.initialEndX
+                    << " "
+                    << dms.initialEndY
+                    << ")" << endl
+                    << "      Final: ("
+                    << dms.finalStartX
+                    << " "
+                    << dms.finalStartY
+                    << ") - ("
+                    << dms.finalEndX
+                    << " "
+                    << dms.finalEndY;
+                throw invalid_argument(msg.str());
+            }
 
 /*
 Check if the current segment intersects with the existing segment.
@@ -5668,23 +5289,48 @@ $(x, y, t)$, this is equivalent to the intersection of two trapeziums.
                                            dms.finalEndX,
                                            dms.finalEndY,
                                            detailedResult)) {
-                cerr << "existing segment: ("
-                     << existingDms.initialStartX
-                     << " " << existingDms.initialStartY
-                     << " " << existingDms.initialEndX
-                     << " " << existingDms.initialEndY
-                     << ")-("
-                     << existingDms.finalStartX
-                     << " " << existingDms.finalStartY
-                     << " " << existingDms.finalEndX
-                     << " " << existingDms.finalEndY
-                     << ")"
-                     << endl;
 
                 stringstream msg;
-                msg << "moving segments intersect (code "
+                msg << "  Moving segments intersect (code "
                     << detailedResult
-                    << ")";
+                    << ")." << endl
+                    << "    Existing segment:" << endl
+                    << "      Initial: ("
+                    << existingDms.initialStartX
+                    << " "
+                    << existingDms.initialStartY
+                    << ") - ("
+                    << existingDms.initialEndX
+                    << " "
+                    << existingDms.initialEndY
+                    << ")" << endl
+                    << "      Final:  ("
+                    << existingDms.finalStartX
+                    << " "
+                    << existingDms.finalStartY
+                    << ") - ("
+                    << existingDms.finalEndX
+                    << " "
+                    << existingDms.finalEndY
+                    << ")" << endl
+                    << "    New segment:" << endl
+                    << "      Initial: ("
+                    << dms.initialStartX
+                    << " "
+                    << dms.initialStartY
+                    << ") - ("
+                    << dms.initialEndX
+                    << " "
+                    << dms.initialEndY
+                    << ")" << endl
+                    << "      Final:  ("
+                    << dms.finalStartX
+                    << " "
+                    << dms.finalStartY
+                    << ") - ("
+                    << dms.finalEndX
+                    << " "
+                    << dms.finalEndY;
                 throw invalid_argument(msg.str());
             }
         }
@@ -5703,8 +5349,6 @@ computation.
             dms.initialEndX+(dms.finalEndX-dms.initialEndX)*t;
         double ye =
             dms.initialEndY+(dms.finalEndY-dms.initialEndY)*t;
-
-        assert(!nearlyEqual(xs, xe) || !nearlyEqual(ys, ye));
 
         Point s(true, xs, ys);
         Point e(true, xe, ye);
@@ -5757,10 +5401,29 @@ computation.
                  << chs.attr.insideAbove
                  << endl;
 
-        if (!cr.insertOK(chs))
-            throw
-                invalid_argument(
-                    "CRegion checks for segment failed");
+        if (!cr.insertOK(chs)) {
+            stringstream msg;
+            msg << "  CRegion checks for segment failed." << endl
+                << "    New segment:" << endl
+                << "      Initial: ("
+                << dms.initialStartX
+                << " "
+                << dms.initialStartY
+                << ") - ("
+                << dms.initialEndX
+                << " "
+                << dms.initialEndY
+                << ")" << endl
+                << "      Final:  ("
+                << dms.finalStartX
+                << " "
+                << dms.finalStartY
+                << ") - ("
+                << dms.finalEndX
+                << " "
+                << dms.finalEndY;
+            throw invalid_argument(msg.str());
+        }
 
         cr += chs;
         rDir += chs;
@@ -5772,12 +5435,13 @@ computation.
         segments->Put(segmentsStartPos+segmentsNum, dms);
         segmentsNum++;
     } catch (invalid_argument& e) {
-        cerr << "checking segment "
-             << nl->ToString(start)
-             << " - "
-             << nl->ToString(end)
-             << " failed: "
+        cerr << "-----------------------------------------------------------"
+             << endl
+             << "Checking segment failed."
+             << endl
              << e.what()
+             << endl
+             << "-----------------------------------------------------------"
              << endl;
         return false;
     }
@@ -5787,9 +5451,9 @@ computation.
 
 /*
 
-1.1.1 Attribute access methods
+1.1 Attribute access methods
 
-1.1.1.1 Method ~SetSegmentInsideAbove()~
+1.1.1 Method ~SetSegmentInsideAbove()~
 
 */
 void URegion::SetSegmentInsideAbove(int pos, bool insideAbove) {
@@ -5804,7 +5468,7 @@ void URegion::SetSegmentInsideAbove(int pos, bool insideAbove) {
 }
 
 /*
-1.1.1.1 Method ~GetSegmentsNum()~
+1.1.1 Method ~GetSegmentsNum()~
 
 */
 int URegion::GetSegmentsNum(void) const {
@@ -5813,13 +5477,11 @@ int URegion::GetSegmentsNum(void) const {
              << segmentsNum
              << endl;
 
-    assert(role == NORMAL || role == EMBEDDED);
-
     return segmentsNum;
 }
 
 /*
-1.1.1.1 Method ~GetSegment()~
+1.1.1 Method ~GetSegment()~
 
 */
 void URegion::GetSegment(int pos, const MSegmentData*& dms) const {
@@ -5827,13 +5489,11 @@ void URegion::GetSegment(int pos, const MSegmentData*& dms) const {
         cerr << "URegion::GetSegment() called, pos=" << pos
              << endl;
 
-    assert(role == NORMAL || role == EMBEDDED);
-
     segments->Get(segmentsStartPos+pos, dms);
 }
 
 /*
-1.1.1.1 Method ~PutSegment()~
+1.1.1 Method ~PutSegment()~
 
 */
 void URegion::PutSegment(int pos, const MSegmentData& dms) {
@@ -5841,79 +5501,12 @@ void URegion::PutSegment(int pos, const MSegmentData& dms) {
         cerr << "URegion::PutSegment() called, pos=" << pos
              << endl;
 
-    assert(role == NORMAL || role == EMBEDDED);
-
     segments->Put(segmentsStartPos+pos, dms);
 }
 
 /*
-1.1 Algebra integration
+1.1 Conversion to and from list representation
 
-1.1.1 Function ~URegionProperty()~
-
-*/
-
-// *hm* Verify list representation
-
-static ListExpr URegionProperty() {
-    if (MRA_DEBUG) cerr << "URegionProperty() called" << endl;
-
-    ListExpr listrep = nl->TextAtom();
-    nl->AppendText(listrep,
-                   "(<interval> <face>*), where <interval> is "
-                   "(<real> <real> <bool> <bool>) and where "
-                   "<face> is (<outercycle> <holecycle>*), "
-                   "where <outercycle> and <holecycle> are "
-                   "(<real> <real> <real> <real>), representing "
-                   "start X, start Y, end X and end Y values.");
-    ListExpr example = nl->TextAtom();
-    nl->AppendText(example,
-                   "((0.0 10.0 TRUE TRUE)"
-                   "((((1.0 3.5 1.5 1.5)"
-                   "(2.0 5.5 3.0 4.5)"
-                   "(3.0 6.5 3.5 5.0)"
-                   "(4.0 6.5 5.5 5.0)"
-                   "(4.0 5.5 5.5 4.5)"
-                   "(5.0 4.5 7.5 2.5)"
-                   "(5.0 2.5 7.5 1.0)"
-                   "(4.0 1.5 7.0 0.5)"
-                   "(3.0 1.5 2.5 0.5))"
-                   "((2.0 3.0 3.0 2.0)"
-                   "(2.0 4.0 3.0 3.0)"
-                   "(3.0 4.0 4.0 3.0)"
-                   "(3.0 3.0 4.0 2.0)))))");
-    ListExpr remarks = nl->TextAtom();
-    nl->AppendText(remarks,
-                   "All <holecycle> must be completely within "
-                   "corresponding <outercylce>.");
-
-    return
-        nl->TwoElemList(
-            nl->FiveElemList(
-                nl->StringAtom("Signature"),
-                nl->StringAtom("Example Type List"),
-                nl->StringAtom("List Rep"),
-                nl->StringAtom("Example List"),
-                nl->StringAtom("Remarks")),
-            nl->FiveElemList(
-                nl->StringAtom("-> UNIT"),
-                nl->StringAtom("(uregion)"),
-                listrep,
-                example,
-                remarks));
-}
-
-/*
-1.1.1 Function ~CheckURegion()~
-
-*/
-static bool CheckURegion(ListExpr type, ListExpr& errorInfo) {
-    if (MRA_DEBUG) cerr << "CheckURegion() called" << endl;
-
-    return nl->IsEqual(type, "uregion");
-}
-
-/*
 1.1.1 Function ~OutURegion()~
 
 */
@@ -6121,10 +5714,12 @@ Create ~URegion~ instance and pass storage of segments, if we received
 any.
 
 */
-    URegion* uregion =
-        segments == 0
-        ? new URegion(tinterval)
-        : new URegion(tinterval, segments, segmentsStartPos);
+    URegion* uregion;
+
+    if (segments)
+        uregion = new URegion(tinterval, segments, segmentsStartPos);
+    else 
+        uregion = new URegion(tinterval);
 
     unsigned int faceno = 0;
     unsigned int partnerno = 0;
@@ -6540,9 +6135,7 @@ static Word InURegion(const ListExpr typeInfo,
                       bool& correct) {
     if (MRA_DEBUG) cerr << "InURegion() called" << endl;
 
-    assert(false);
-
-    return
+        return
         InURegionEmbedded(typeInfo,
                           instance,
                           errorPos,
@@ -6553,6 +6146,70 @@ static Word InURegion(const ListExpr typeInfo,
 }
 
 /*
+1.1 Algebra integration
+
+1.1.1 Function ~URegionProperty()~
+
+*/
+static ListExpr URegionProperty() {
+    if (MRA_DEBUG) cerr << "URegionProperty() called" << endl;
+
+    ListExpr listrep = nl->TextAtom();
+    nl->AppendText(listrep,
+                   "(<interval> <face>*), where <interval> is "
+                   "(<real> <real> <bool> <bool>) and where "
+                   "<face> is (<outercycle> <holecycle>*), "
+                   "where <outercycle> and <holecycle> are "
+                   "(<real> <real> <real> <real>), representing "
+                   "start X, start Y, end X and end Y values.");
+    ListExpr example = nl->TextAtom();
+    nl->AppendText(example,
+                   "((0.0 10.0 TRUE TRUE)"
+                   "((((1.0 3.5 1.5 1.5)"
+                   "(2.0 5.5 3.0 4.5)"
+                   "(3.0 6.5 3.5 5.0)"
+                   "(4.0 6.5 5.5 5.0)"
+                   "(4.0 5.5 5.5 4.5)"
+                   "(5.0 4.5 7.5 2.5)"
+                   "(5.0 2.5 7.5 1.0)"
+                   "(4.0 1.5 7.0 0.5)"
+                   "(3.0 1.5 2.5 0.5))"
+                   "((2.0 3.0 3.0 2.0)"
+                   "(2.0 4.0 3.0 3.0)"
+                   "(3.0 4.0 4.0 3.0)"
+                   "(3.0 3.0 4.0 2.0)))))");
+    ListExpr remarks = nl->TextAtom();
+    nl->AppendText(remarks,
+                   "All <holecycle> must be completely within "
+                   "corresponding <outercylce>.");
+
+    return
+        nl->TwoElemList(
+            nl->FiveElemList(
+                nl->StringAtom("Signature"),
+                nl->StringAtom("Example Type List"),
+                nl->StringAtom("List Rep"),
+                nl->StringAtom("Example List"),
+                nl->StringAtom("Remarks")),
+            nl->FiveElemList(
+                nl->StringAtom("-> UNIT"),
+                nl->StringAtom("(uregion)"),
+                listrep,
+                example,
+                remarks));
+}
+
+/*
+1.1.1 Function ~CheckURegion()~
+
+*/
+static bool CheckURegion(ListExpr type, ListExpr& errorInfo) {
+    if (MRA_DEBUG) cerr << "CheckURegion() called" << endl;
+
+    return nl->IsEqual(type, "uregion");
+}
+
+/*
 1.1.1 Function ~CreateURegion()~
 
 */
@@ -6560,7 +6217,13 @@ static Word InURegion(const ListExpr typeInfo,
 static Word CreateURegion(const ListExpr typeInfo) {
     if (MRA_DEBUG) cerr << "CreateURegion() called" << endl;
 
-    assert(false);
+/*
+~dummy~ is required to use single constructor, which creates its own storage
+for moving segments.
+
+*/
+    Interval<Instant> dummy;
+    return (SetWord(new URegion(dummy)));
 }
 
 /*
@@ -6603,7 +6266,7 @@ static Word CloneURegion(const ListExpr typeInfo, const Word& w) {
 static void* CastURegion(void* addr) {
     if (MRA_DEBUG) cerr << "CastURegion() called" << endl;
 
-    assert(false);
+    return new (addr) URegion;
 }
 
 /*
@@ -6613,7 +6276,44 @@ static void* CastURegion(void* addr) {
 static int SizeOfURegion() {
     if (MRA_DEBUG) cerr << "SizeOfURegion() called" << endl;
 
-    return 0;
+    return sizeof(URegion);
+}
+
+/*
+1.1.1 Function ~OpenURegion()~
+
+*/
+bool OpenURegion(SmiRecord& rec,
+                 size_t& offset,
+                 const ListExpr typeInfo,
+                 Word& w) {
+    if (MRA_DEBUG) cerr << "OpenURegion() called" << endl;
+
+    URegion* ur = (URegion*) Attribute::Open(rec, offset, typeInfo);
+    ur->SetMSegmentData();
+    w = SetWord(ur);
+
+    return true;
+}
+
+/*
+1.1.1 Function ~SaveURegion()~
+
+Makes sense on ~URegion~ instances with own segment storage only and will
+run into failed assertion for other instances.
+
+*/
+static bool SaveURegion(SmiRecord& rec,
+                        size_t& offset,
+                        const ListExpr typeInfo,
+                        Word& w) {
+    if (MRA_DEBUG) cerr << "SaveURegion() called" << endl;
+
+    URegion* ur = static_cast<URegion*> (w.addr);
+    assert(!ur->IsEmbedded());
+    Attribute::Save(rec, offset, typeInfo, ur);
+
+    return true;
 }
 
 /*
@@ -6628,12 +6328,13 @@ static TypeConstructor uregion(
     0, 0, // SaveToList, RestoreFromList
     CreateURegion,
     DeleteURegion,
-    0, 0, // open, save
+    OpenURegion, 
+    SaveURegion,
     CloseURegion,
     CloneURegion,
     CastURegion,
     SizeOfURegion,
-    CheckURegion );
+    CheckURegion);
 
 /*
 1 Data type ~movingregion~
@@ -6642,194 +6343,61 @@ static TypeConstructor uregion(
 
 1.1.1 Class definition
 
-Represents a moving region. It contains an array of segments, which is
-references by its ~URegion~ units, which do not have its own storage for
-segments.
+The class definition has been moved to ~MovingRegionAlgebra.h~.
+
+1.1.1 Constructors
 
 */
 
-class MRegion : public Mapping<URegion, CRegion> {
-private:
-/*
-The array with the segments.
+MRegion::MRegion(const int n) :
+    Mapping<URegion, CRegion>(n),
+    msegmentdata(n) {
 
-*/
-    DBArray<MSegmentData> msegmentdata;
+    if (MRA_DEBUG)
+        cerr << "MRegion::MRegion(int) called" << endl;
+}
 
-/*
-Calculates the intersection between this ~mp~ instance and ~mp~ based
-on the refinement partition ~rp~. The result goes into ~res~.
+MRegion::MRegion(MPoint& mp, CRegion& r) :
+    Mapping<URegion, CRegion>(0),
+    msegmentdata(0) {
 
-*/
-    void IntersectionRP(
-        MPoint& mp,
-        MPoint& res,
-        RefinementPartition<MRegion, MPoint, URegion, UPoint>& rp);
+    if (MRA_DEBUG)
+        cerr << "MRegion::MRegion(MPoint, CRegion) called"
+             << endl;
 
-/*
-Add a ~UBool~ unit to ~res~ for interval $(starttime, endtime, lc, rc)$
-with value ~value~. ~pending~ is used to merge units to reduce their
-number. ~prev~ and ~prev\_c~ are used to assure continuous coverage.
+    r.logicsort();
 
-*/
-    void InsideAddUBool(MBool& res,
-                        double starttime,
-                        double endtime,
-                        bool lc,
-                        bool rc,
-                        bool value,
-                        double& prev,
-                        bool& prev_c,
-                        UBool*& pending);
-
-public:
-    MRegion() {
+    for (int i = 0; i < mp.GetNoComponents(); i++) {
+        const UPoint *up;
+        
+        mp.Get(i, up);
+            
         if (MRA_DEBUG)
-            cerr << "MRegion::MRegion(int) called" << endl;
-    }
-
-/*
-Create ~MRegion()~ instance, which is prepared for ~n~ units.
-
-*/
-    MRegion(const int n) :
-        Mapping<URegion, CRegion>(n),
-        msegmentdata(0) {
-
-        if (MRA_DEBUG)
-            cerr << "MRegion::MRegion(int) called" << endl;
-    }
-
-/*
-Create ~MRegion()~ instance, determine its units by the units in ~mp~ and
-set each unit to the constant value of ~r~.
-
-*/
-    MRegion(MPoint& mp, CRegion& r) :
-        Mapping<URegion, CRegion>(0),
-        msegmentdata(0) {
-
-        if (MRA_DEBUG)
-            cerr << "MRegion::MRegion(MPoint, CRegion) called"
+            cerr << "MRegion::MRegion(MPoint, CRegion) i="
+                 << i
+                 << " interval=["
+                 << up->timeInterval.start.ToString()
+                 << " ("
+                 << up->timeInterval.start.ToDouble()
+                 << ") "
+                 << up->timeInterval.end.ToString()
+                 << "("
+                 << up->timeInterval.end.ToDouble()
+                 << ") "
+                 << up->timeInterval.lc
+                 << " "
+                 << up->timeInterval.rc
+                 << "]"
                  << endl;
-
-        r.logicsort();
-
-        for (int i = 0; i < mp.GetNoComponents(); i++) {
-            const UPoint *up;
-
-            mp.Get(i, up);
-
-            if (MRA_DEBUG)
-                cerr << "MRegion::MRegion(MPoint, CRegion) i="
-                     << i
-                     << " interval=["
-                     << up->timeInterval.start.ToString()
-                     << " ("
-                     << up->timeInterval.start.ToDouble()
-                     << ") "
-                     << up->timeInterval.end.ToString()
-                     << "("
-                     << up->timeInterval.end.ToDouble()
-                     << ") "
-                     << up->timeInterval.lc
-                     << " "
-                     << up->timeInterval.rc
-                     << "]"
-                     << endl;
-
-            URegion
-                ur(up->timeInterval,
-                   r,
-                   &msegmentdata,
-                   msegmentdata.Size());
-            Add(ur);
-        }
+        
+        URegion
+            ur(up->timeInterval,
+               r,
+               &msegmentdata,
+               msegmentdata.Size());
+        Add(ur);
     }
-
-/*
-~DBArray~ access.
-
-*/
-    int NumOfFLOBs() const;
-    FLOB *GetFLOB(const int i);
-
-/*
-Calculate intersection between ~mp~ and this ~MRegion~ isntance and
-return result in ~res~.
-
-*/
-    void Intersection(MPoint& mp, MPoint& res);
-
-/*
-Check when ~mp~ is inside this ~MRegion~ instance and create ~res~
-accordingly.
-
-*/
-    void Inside(MPoint& mp, MBool& res);
-
-/*
-Calculate region traversed by ~MRegion~ instant in ~res~.
-
-*/
-    void Traversed(CRegion& res);
-
-/*
-Get ~CRegion~ value ~result~ at instant ~t~.
-
-*/
-    void AtInstant(Instant& t, Intime<CRegion>& result);
-
-/*
-Get ~CRegion~ value ~result~ at initial and final instants.
-
-*/
-    void Initial(Intime<CRegion>& result);
-    void Final(Intime<CRegion>& result);
-
-/*
-Friend access for ~InMRegion()~ and ~OpenMRegion()~ makes live easier.
-
-*/
-    friend Word InMRegion(const ListExpr typeInfo,
-                          const ListExpr instance,
-                          const int errorPos,
-                          ListExpr& errorInfo,
-                          bool& correct);
-
-/*
-Get ~URegion~ unit ~i~ from this ~MRegion~ instance and return it in ~ur~.
-
-*/
-    void Get(const int i, URegion& ur) {
-        if (MRA_DEBUG)
-            cerr << "MRegion::Get() called i=" << i << endl;
-
-        const URegion *auxUr;
-        Mapping<URegion, CRegion>::Get(i, auxUr);
-        ur = *auxUr;
-        ur.SetMSegmentData(&msegmentdata);
-    }
-
-/*
-For unit testing only.
-
-*/
-
-    int Unittest2(int pos) {
-        if (MRA_DEBUG)
-            cerr << "MRegion::Unittest2() called pos="
-                 << pos
-                 << endl;
-
-        if (pos < 0 || pos >= msegmentdata.Size()) return -1;
-
-        const MSegmentData *dms;
-        msegmentdata.Get(pos, dms);
-
-        return dms->GetInsideAbove() ? 1 : 0;
-    }
-};
+}
 
 /*
 1.1.1 ~DBArray~ access
@@ -6851,6 +6419,39 @@ FLOB* MRegion::GetFLOB(const int i) {
         i == 0
         ? Mapping<URegion, CRegion>::GetFLOB(0)
         : &msegmentdata;
+}
+
+/*
+1.1.1 Method ~Get()~
+
+*/
+void MRegion::Get(const int i, URegion& ur) {
+    if (MRA_DEBUG)
+        cerr << "MRegion::Get() called i=" << i << endl;
+    
+    const URegion *auxUr;
+    Mapping<URegion, CRegion>::Get(i, auxUr);
+    ur = *auxUr;
+    ur.SetMSegmentData(&msegmentdata);
+}
+
+/*
+1.1.1 Method ~Unittest2()~
+
+*/
+int MRegion::Unittest2(int pos) {
+
+    if (MRA_DEBUG)
+        cerr << "MRegion::Unittest2() called pos="
+             << pos
+             << endl;
+
+    if (pos < 0 || pos >= msegmentdata.Size()) return -1;
+
+    const MSegmentData *dms;
+    msegmentdata.Get(pos, dms);
+
+    return dms->GetInsideAbove() ? 1 : 0;
 }
 
 /*
@@ -7352,7 +6953,13 @@ static ListExpr MRegionProperty() {
     ListExpr listrep = nl->TextAtom();
     nl->AppendText(listrep,
                    "(u1 ... un) with ui uregion list representations "
-                   "and n >= 1.");
+                   "and n >= 1. Each ui is of format "
+                   "(<interval> <face>*), where <interval> is "
+                   "(<real> <real> <bool> <bool>) and where "
+                   "<face> is (<outercycle> <holecycle>*), "
+                   "where <outercycle> and <holecycle> are "
+                   "(<real> <real> <real> <real>), representing "
+                   "start X, start Y, end X and end Y values.");
     ListExpr example = nl->TextAtom();
     nl->AppendText(example,
                    "(((0.0 10.0 TRUE TRUE)"
