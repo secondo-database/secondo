@@ -35,6 +35,8 @@ Adding ~Mapping<Unit, Alpha>::MergeAdd~ for merging two adjacent
 units with the same values. This is for simplify the result of
 operations. For this adding ~TemporalUnit::EqualValue~ to decide
 the equality of values.
+16.03.2006 Juergen Schmidt:
+Added ~ConstTemporalUnit:EqualValue~
 
 [TOC]
 
@@ -1147,6 +1149,15 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
     ((ConstTemporalUnit<Alpha>*)&result)->constValue.CopyFrom( &constValue );
   }
 
+virtual bool EqualValue( ConstTemporalUnit<Alpha>& i )
+  {
+    return constValue.Compare( &i.constValue ) == 0;
+  }
+/*
+Returns ~true~ if the value of this temporal unit is equal to the value of the temporal unit ~i~ and ~false~ if they are different.
+
+*/
+  
 /*
 3.6.3 Functions to be part of relations
 
@@ -3717,8 +3728,9 @@ void Mapping<Unit, Alpha>::MergeAdd( Unit& unit )
   Unit lastunit;
   const Unit *u1transfer;
   int size = units.Size();
-  
+
   assert( unit.IsValid() );
+
   if (size > 0) {
       units.Get( size - 1, u1transfer );
       lastunit = *u1transfer;
