@@ -722,7 +722,7 @@ For unit testing only.
 
 */
     int Unittest2(int pos);
-
+    void Unittest3(MPoint* mp, RReal* res);
 };
 
 #endif // _MOVING_REGION_ALGEBRA_H_

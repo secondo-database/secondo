@@ -65,15 +65,18 @@ Open:
     double precision only and not with the datatypes own calculation
     operations.
 
-  * Not confirmed: J[oe]rg Schmidt thinks there is an issue in the
-    generation of the refinement partition if two intervals start or
-    end at the same instant.
-
   * Feature: Debug bug output is very verbose. Due to its verbosity, it
     has impact on the algebra's performance, when enabled. It would be useful
     to have different debug levels.
 
 Closed:
+
+  * Not confirmed: J[oe]rg Schmidt thinks there is an issue in the
+    generation of the refinement partition if two intervals start or
+    end at the same instant.
+
+    Resolved: Bugfix implemented, storing end instant of previously
+    created interval was incorrect.
 
   * Bug: Sorting units at the beginning of RefinementPartition() is missing.
     Constructor only works if units appear in ~mr~ and ~mp~ in proper order!
@@ -2754,7 +2757,7 @@ Add point interval for the common border.
 Remember point interval border and increase unit pointer ~mpUnit~.
 
 */
-                t = up->timeInterval.start;
+                t = ur.timeInterval.start;
                 c = true;
 
                 if (++mpUnit < mp.GetNoComponents())
@@ -2882,13 +2885,14 @@ than the right border of the interval from ~mp~.
 Add left point of interval from ~mp~ to refinement partition.
 
 */
-                    AddUnits(
-                        mrUnit,
-                        -1,
-                        ur.timeInterval.start,
-                        ur.timeInterval.start,
-                        true,
-                        true);
+                    if (t < ur.timeInterval.start || !c)
+                        AddUnits(
+                            mrUnit,
+                            -1,
+                            ur.timeInterval.start,
+                            ur.timeInterval.start,
+                            true,
+                            true);
 
 /*
 Add intersection to refinement partition.
@@ -2935,13 +2939,14 @@ already checked.
 Add left point of interval from ~mr~ to refinement partition.
 
 */
-                    AddUnits(
-                        -1,
-                        mpUnit,
-                        up->timeInterval.start,
-                        up->timeInterval.start,
-                        true,
-                        true);
+                    if (t < up->timeInterval.start || !c)
+                        AddUnits(
+                            -1,
+                            mpUnit,
+                            up->timeInterval.start,
+                            up->timeInterval.start,
+                            true,
+                            true);
 
 /*
 Add intersection to refinement partition.
@@ -6499,6 +6504,40 @@ int MRegion::Unittest2(int pos) {
 }
 
 /*
+1.1.1 Method ~Unittest3()~
+
+*/
+void MRegion::Unittest3(MPoint* mp, RReal* res) {
+    if (MRA_DEBUG)
+        cerr << "MRegion::Unittest3() called" << endl;
+
+    RefinementPartition<
+        MRegion,
+        MPoint,
+        URegion,
+        UPoint> rp(*this, *mp);
+
+    res->Clear();
+    res->StartBulkLoad();
+
+    for (unsigned int i = 0; i < rp.Size(); i++) {
+        Interval<Instant>* iv;
+        int urPos;
+        int upPos;
+
+        rp.Get(i, iv, urPos, upPos);
+
+        CcReal left(true, iv->start.ToDouble());
+        CcReal right(true, iv->end.ToDouble());
+        Interval<CcReal> resIv(left, right, iv->lc, iv->rc);
+
+        res->Add(resIv);
+    }
+
+    res->EndBulkLoad(true);
+}
+
+/*
 1.1.1 Method ~Intersection()~
 
 */
@@ -7449,6 +7488,18 @@ static ListExpr Unittest2TypeMap(ListExpr args) {
         return nl->SymbolAtom("typeerror");
 }
 
+static ListExpr Unittest3TypeMap(ListExpr args) {
+    if (MRA_DEBUG)
+        cerr << "Unittest3TypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 2
+        && nl->IsEqual(nl->First(args), "movingregion")
+        && nl->IsEqual(nl->Second(args), "mpoint"))
+        return nl->SymbolAtom("rreal");
+    else
+        return nl->SymbolAtom("typeerror");
+}
+
 /*
 1.1 Selection functions
 
@@ -7747,6 +7798,20 @@ static int Unittest2ValueMap(Word* args,
     return 0;
 }
 
+static int Unittest3ValueMap(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s) {
+    if (MRA_DEBUG) cerr << "Unittest3ValueMap() called" << endl;
+
+    result = qp->ResultStorage(s);
+    ((MRegion*) args[0].addr)->Unittest3(
+        (MPoint*) args[1].addr,
+        (RReal *) result.addr);
+
+    return 0;
+}
 
 /*
 1.1 Value mapping arrays
@@ -8018,6 +8083,11 @@ static Operator unittest2("unittest2",
                           Unittest2ValueMap,
                           simpleSelect,
                           Unittest2TypeMap);
+static Operator unittest3("unittest3",
+                          unittestspec,
+                          Unittest3ValueMap,
+                          simpleSelect,
+                          Unittest3TypeMap);
 
 /*
 1 Algebra creation
@@ -8060,6 +8130,7 @@ Used for unit testing only.
 */
         AddOperator(&unittest1);
         AddOperator(&unittest2);
+        AddOperator(&unittest3);
     }
     ~MovingRegionAlgebra() {}
 };
