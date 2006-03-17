@@ -339,6 +339,8 @@ segments are starting. If the instance allocated its own memory,
     unsigned int segmentsStartPos;
     unsigned int segmentsNum;
 
+    Rectangle<3> bbox;
+
 /*
 Return the number of segments in ~segments~, which is locate above
 ~up~ during the interval ~iv~. Before calling this method, it must be

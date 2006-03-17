@@ -3278,7 +3278,8 @@ URegion::URegion(const Interval<Instant>& interval) :
     segmentsNormal(0),
     segments(&segmentsNormal),
     segmentsStartPos(0),
-    segmentsNum(0) {
+    segmentsNum(0),
+    bbox(false) {
 
     if (MRA_DEBUG)
         cerr << "URegion::URegion() #1 called, segments=" 
@@ -3293,7 +3294,8 @@ URegion::URegion(const Interval<Instant>& interval,
     role(EMBEDDED),
     segments(segs),
     segmentsStartPos(pos),
-    segmentsNum(0) {
+    segmentsNum(0),
+    bbox(false) {
 
     if (MRA_DEBUG)
         cerr << "URegion::URegion() #2 called" << endl;
@@ -3339,12 +3341,17 @@ URegion::URegion(const Interval<Instant>& interval,
         segments->Put(segmentsStartPos+segmentsNum, dms);
         segmentsNum++;
     }
+
+    Rectangle<2> rbb = region.BoundingBox();
+    double min[3] = { rbb.MinD(0), rbb.MinD(1), interval.start.ToDouble() };
+    double max[3] = { rbb.MaxD(0), rbb.MaxD(1), interval.end.ToDouble() };
+    bbox.Set(true, min, max);
 }
  
 void URegion::Destroy(void) {
     if (MRA_DEBUG) cerr << "URegion::Destroy() called" << endl;
 
-    if (role == EMBEDDED) delete segments;
+    if (role == NORMAL) delete segments;
 }
 
 /*
@@ -3366,7 +3373,7 @@ void URegion::CopyFrom(const StandardAttribute* right) {
 const Rectangle<3> URegion::BoundingBox() const {
     if (MRA_DEBUG) cerr << "URegion::BoundingBox() called" << endl;
 
-    assert(false);
+    return bbox;
 }
 
 /*
@@ -5434,6 +5441,35 @@ computation.
         segments->Resize(segmentsStartPos+segmentsNum+1);
         segments->Put(segmentsStartPos+segmentsNum, dms);
         segmentsNum++;
+
+        if (bbox.IsDefined()) {
+            double min[3] = { bbox.MinD(0), bbox.MinD(1), bbox.MinD(2) };
+            double max[3] = { bbox.MaxD(0), bbox.MaxD(1), bbox.MaxD(2) };
+            if (dms.initialStartX < min[0]) min[0] = dms.initialStartX;
+            if (dms.finalStartX < min[0]) min[0] = dms.finalStartX;
+            if (dms.initialStartY < min[1]) min[1] = dms.initialStartY;
+            if (dms.finalStartY < min[1]) min[1] = dms.finalStartY;
+            if (dms.initialStartX > max[0]) max[0] = dms.initialStartX;
+            if (dms.finalStartX > max[0]) max[0] = dms.finalStartX;
+            if (dms.initialStartY > max[1]) max[1] = dms.initialStartY;
+            if (dms.finalStartY > max[1]) max[1] = dms.finalStartY;
+            bbox.Set(true, min, max);
+
+        } else {
+            double min[3] = 
+                { dms.initialStartX < dms.finalStartX 
+                  ? dms.initialStartX : dms.finalStartX,
+                  dms.initialStartY < dms.finalStartY 
+                  ? dms.initialStartY : dms.finalStartY,
+                  timeInterval.start.ToDouble() };
+            double max[3] = 
+                { dms.initialStartX > dms.finalStartX 
+                  ? dms.initialStartX : dms.finalStartX,
+                  dms.initialStartY > dms.finalStartY 
+                  ? dms.initialStartY : dms.finalStartY,
+                  timeInterval.end.ToDouble() };
+            bbox.Set(true, min, max);
+        }
     } catch (invalid_argument& e) {
         cerr << "-----------------------------------------------------------"
              << endl
@@ -7359,6 +7395,22 @@ static ListExpr MraprecTypeMap(ListExpr args) {
 }
 
 /*
+Used by ~bbox~:
+
+*/
+
+static ListExpr BboxTypeMap(ListExpr args) {
+    if (MRA_DEBUG)
+        cerr << "BboxTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 1
+        && nl->IsEqual(nl->First(args), "uregion"))
+        return nl->SymbolAtom("rect3");
+    else
+        return nl->SymbolAtom("typeerror");
+}
+
+/*
 1.1.1 For unit testing operators
 
 */
@@ -7614,6 +7666,19 @@ static int MraprecValueMap(Word* args,
     return 0;
 }
 
+static int BboxValueMap(Word* args,
+                           Word& result,
+                           int message,
+                           Word& local,
+                           Supplier s) {
+    if (MRA_DEBUG) cerr << "BBox() called" << endl;
+
+    result = qp->ResultStorage( s );
+    *((Rectangle<3>*) result.addr) = ((URegion*) args[0].addr)->BoundingBox();
+
+    return (0);
+}
+
 /*
 1.1.1 For unit testing operators
 
@@ -7817,6 +7882,13 @@ static const string mraprecspec =
     "    <text>Sets precision of comparisions. Always returns true.</text--->"
     "    <text>mraprec(0.0001)</text---> ) )";
 
+static const string bboxspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>(uregion) -> rect3</text--->"
+    "    <text>bbox ( _ )</text--->"
+    "    <text>Returns the 3d bounding box of the unit.</text--->"
+    "    <text>bbox(mregion1)</text---> ) )";
+
 /*
 Used for unit testing only.
 
@@ -7917,6 +7989,12 @@ static Operator mraprec("mraprec",
                         simpleSelect,
                         MraprecTypeMap);
 
+static Operator bbox("bbox",
+                     bboxspec,
+                     BboxValueMap,
+                     simpleSelect,
+                     BboxTypeMap);
+
 /*
 Used for unit testing only.
 
@@ -7966,6 +8044,7 @@ public:
         AddOperator(&traversed);
         AddOperator(&at);
         AddOperator(&mraprec);
+        AddOperator(&bbox);
 
 /*
 Used for unit testing only.
