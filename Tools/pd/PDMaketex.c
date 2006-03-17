@@ -26,8 +26,8 @@ Use the parser to transform from implicitly formatted text to TeX.
 char*  startProgram = "{\\small \\begin{quote} \\begin{verbatim}\n";
 char*  endProgram = "\n\\end{verbatim} \\end{quote}}\n\n";
 
-char*  startVerbatim = "\\hspace{0.9cm} \\rule{2in}{0.1pt}\n{\\small \\begin{verbatim}\n    ";
-char*  endVerbatim = "\n\\end{verbatim}}\n\\hspace{0.9cm} \\rule{2in}{0.1pt}\n";
+char*  startVerbatim = "\\hspace{0.9cm} \\rule{2in}{0.1pt}\n{\\small \\begin{alltt}\n    ";
+char*  endVerbatim = "\n\\end{alltt}}\n\\hspace{0.9cm} \\rule{2in}{0.1pt}\n";
 
 int main()
 {
