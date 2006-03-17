@@ -190,6 +190,20 @@ In this constructor, all matrix entries can be explicitely set.
              const bool BI, const bool BB, const bool BE,
              const bool EI, const bool EB, const bool EE);
 
+
+/*
+2.1.5 Constructor
+
+The copy constructor
+
+*/
+       Int9M(const Int9M& m){
+          value = m.value;
+          defined = m.defined;
+       }
+
+
+
 /*
 2.1.5 Destructor
 
@@ -399,6 +413,16 @@ from the argument.
        void Equalize(const Int9M* value);
 
 /*
+2.1.19 ToString function
+
+This function returns a string representation of this matrix.
+
+*/
+
+     string ToString();
+
+
+/*
 2.1.19 Further functions
 
 The following functions are needed for using this type as
@@ -447,6 +471,16 @@ an attribute type within secondo relations.
        bool operator!=(const Int9M I2) const{
           return CompareTo(I2)!=0;
        }
+
+/*
+2.1.24 Assignment Operator
+
+*/
+  inline Int9M& operator=(const Int9M& m){
+      value = m.value;
+      defined = m.defined;
+      return *this;
+  }
  
 
    private:

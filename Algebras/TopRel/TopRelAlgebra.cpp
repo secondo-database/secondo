@@ -302,6 +302,30 @@ Int9M* Int9M::Clone() const
  }
 
 /*
+2.1.15 ToString
+
+This function creates the sting repreentation of a matrix.
+
+*/
+  string Int9M::ToString(){
+     int ii = GetII()?1:0;
+     int ib = GetIB()?1:0;
+     int ie = GetIE()?1:0;
+     int bi = GetBI()?1:0;
+     int bb = GetBB()?1:0;
+     int be = GetBE()?1:0;
+     int ei = GetEI()?1:0;
+     int eb = GetEB()?1:0;
+     int ee = GetEE()?1:0;
+     stringstream res;
+     res << "\n"<<ii<<" "<<ib<<" "<<ie<<"\n"
+         <<       bi<<" "<<bb<<" "<<be<<"\n"
+         <<       ei<<" "<<eb<<" "<<ee<<"\n";
+     return res.str();
+  }
+
+
+/*
 2.1.15 Equal Operator
 
 */

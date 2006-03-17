@@ -675,7 +675,7 @@ Returns the size of the point set. Returns ~0~ if the set is empty.
 */
     inline void Get( const int i, Point const*& p ) const
     {
-      return points.Get( i, p );
+       points.Get( i, p );
     }
 /*
 Retrieves the point ~p~ at position ~i~ in the point set.
@@ -683,6 +683,7 @@ Retrieves the point ~p~ at position ~i~ in the point set.
 *Precondition:* $0 \leq i < Size()$
 
 */
+
     Points& operator=(const Points& ps);
 /*
 Assignement operator redefinition.
