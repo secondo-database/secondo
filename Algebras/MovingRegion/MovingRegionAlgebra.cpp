@@ -61,9 +61,6 @@ Open:
     this problem actually occurs before ~InMRegion()~ is called. It is very
     likely that this problem is not caused by this algebra.
 
-  * Bug: Sorting units at the beginning of RefinementPartition() is missing.
-    Constructor only works if units appear in ~mr~ and ~mp~ in proper order!
-
   * Bug: Calculations with values of datatype $Instant$ are done with
     double precision only and not with the datatypes own calculation
     operations.
@@ -77,6 +74,13 @@ Open:
     to have different debug levels.
 
 Closed:
+
+  * Bug: Sorting units at the beginning of RefinementPartition() is missing.
+    Constructor only works if units appear in ~mr~ and ~mp~ in proper order!
+
+    Rejected: ~InMRegion()~ and ~InMapping()~ sort units by using the
+    ~StartBulkLoad()~ and ~EndBulkLoad()~ methods (the latter with parameter
+    ~true~, of course).
 
   * Bug: ~initial~ and ~final~ resulting in failed ~assert()~ when unit's
     interval is open in the respective instant.
