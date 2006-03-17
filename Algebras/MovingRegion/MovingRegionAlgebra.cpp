@@ -49,6 +49,10 @@ Fernuniversit[ae]t Hagen.
 
 Open:
 
+  * Bug: There is a number of assertions, which can be triggered by input
+    data. This is caused by rounding errors, which render assumptions 
+    verified before inapplicable later.
+
   * Bug: List representation checks incorrect for
     ~(update mv := ((movingregion)((0.0 0.0 true true)(0.0 0.0 1.0 1.0))));~.
     Aleksej Struk found this issue.
