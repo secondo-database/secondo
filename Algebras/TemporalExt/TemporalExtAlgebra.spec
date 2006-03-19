@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -18,3 +18,12 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator atinstantext alias ATINSTANTEXT pattern _ infixop _
+operator atperiodsext alias ATPERIODSEXT pattern _ infixop _
+operator presentext alias PRESENTEXT pattern _ infixop _
+operator passesext alias PASSESEXT pattern _ infixop _
+operator initialext alias INITIALEXT pattern op ( _ )
+operator finalext alias FINALEXT pattern op ( _ )
+operator atext alias ATEXT pattern _ infixop _
+operator deftimeext alias DEFTIMEEXT pattern op ( _ )
+operator instext alias INSTEXT pattern op ( _ )
+operator valext alias VALEXT pattern op ( _ )
