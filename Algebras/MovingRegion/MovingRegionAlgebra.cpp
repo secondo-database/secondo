@@ -49,10 +49,6 @@ Fernuniversit[ae]t Hagen.
 
 Open:
 
-  * Bug: There is a number of assertions, which can be triggered by input
-    data. This is caused by rounding errors, which render assumptions 
-    verified before inapplicable later.
-
   * Bug: List representation checks incorrect for
     ~(update mv := ((movingregion)((0.0 0.0 true true)(0.0 0.0 1.0 1.0))));~.
     Aleksej Struk found this issue.
@@ -61,7 +57,7 @@ Open:
     this problem actually occurs before ~InMRegion()~ is called. It is very
     likely that this problem is not caused by this algebra.
 
-  * Bug: Calculations with values of datatype $Instant$ are done with
+  * Feature: Calculations with values of datatype $Instant$ are done with
     double precision only and not with the datatypes own calculation
     operations.
 
@@ -71,7 +67,17 @@ Open:
 
 Closed:
 
-  * Not confirmed: J[oe]rg Schmidt thinks there is an issue in the
+  * Bug: There is a number of assertions, which can be triggered by input
+    data. This is caused by rounding errors, which render assumptions 
+    verified before inapplicable later.
+
+    Resolved: Failed asserts replaced by proper error handling. Additionally,
+    some method stubs have been replaced by proper code. If the remaining
+    asserts fail, this will be caused by bugs in the algebra logic or by
+    calls to non-implemented functions or methods, where stubs had to be
+    provided.
+
+  * Bug: J[oe]rg Schmidt thinks there is an issue in the
     generation of the refinement partition if two intervals start or
     end at the same instant.
 
@@ -132,9 +138,31 @@ Closed:
     Resolved: Implemented operator ~mraprec~ which allows to set precision
     without re-compiling the algreba.
 
-*/
+1 Unit testing
 
-/*
+To facilitate automated unit testing, a large number of test cases is provided
+together with a ~Makefile~ to execute them. These are located in the directory
+~Tests~. See the file ~Tests/README~ on running the test cases.
+
+Special SECONDO operators have been implemented to make internal 
+functionality of the ~MovingRegionAlgebra~ available for unit testing.
+These operators are included in the list of test cases below.
+
+The following groups of test cases are available:
+
+  * ~Tests/trapeziumintersection.tests~: Checks the functions to calculate
+    the intersection of two trapeziums. These functions are required to
+    check the segments of moving regions for validity. The special operator
+    ~unittest1~ allows unit testing to directly access these functions.
+
+  * ~Tests/insideabove.tests~: Verifies the ~insideAbove~ attribute of
+    segments in moving regions. The special operator ~unittest2~ provides
+    direct access to the value of this attribute for a specific segment.
+
+  * ~Tests/refinementpartition.tests~: Assures that the calculation of
+    refinement partitions is correct. The special operator ~unittest3~ 
+    provides the refinement partition of two ~mpoint~ values.
+
 1 Defines and includes
 \label{defines}
 
@@ -277,7 +305,7 @@ static void minmax4(double a,
 /*
 1 Mathematical and geometrical functions
 
-1.1 Function ~GaussTransform()~
+1.1 Function ~GausTsransform()~
 
 Apply the Gauss transformation to system of equations. The left hand sides
 of the equations are in matrix $a$ with $n$ rows and $m$ columns and the
@@ -299,6 +327,8 @@ static void GaussTransform(const unsigned int n,
                 fprintf(stderr, "%7.3f ", a[j][k]);
             fprintf(stderr, "| %7.3f\n", b[j]);
         }
+        cerr << "=========================================================="
+             << endl;
     }
 
 
@@ -375,12 +405,16 @@ to $0$ during the substraction.
             }
         }
 
-        if (MRA_DEBUG)
+        if (MRA_DEBUG) {
             for (j = 0; j < n; j++) {
                 for (unsigned int k = 0; k < m; k++)
                     fprintf(stderr, "%7.3f ", a[j][k]);
                 fprintf(stderr, "| %7.3f\n", b[j]);
             }
+            cerr 
+                << "----------------------------------------------------------"
+                << endl;
+        }
     }
 }
 
@@ -450,19 +484,6 @@ $(x, y)$-plane with distance z from the $(x, y)$-plane.
         cerr << "specialSegmentIntersects2() t="
              << t2
              << endl;
-
-/*
-If $t2<>z$, the segments do not intersect.
-
-*/
-    if (!nearlyEqual(t2, z)) {
-        if (MRA_DEBUG)
-            cerr
-                << "specialSegmentIntersects2() no intersection #0"
-                << endl;
-
-        return false;
-    }
 
     double x = P[0]+Q[0]*t2;
     double y = P[1]+Q[1]*t2;
@@ -995,6 +1016,8 @@ $T1B+T1A\cdot (s, t)$ and Plane 2 is $T2B+T1A\cdot (s', t')$.
     double T1B[3];
 
     if (nearlyEqual(t1p1x, t1p2x) && nearlyEqual(t1p1y, t1p2y)) {
+        if (MRA_DEBUG) cerr << "#1a" << endl;
+
         T1A[0][0] = t1p4x-t1p3x;
         T1A[1][0] = t1p4y-t1p3y;
         T1A[2][0] = 0;
@@ -1007,6 +1030,8 @@ $T1B+T1A\cdot (s, t)$ and Plane 2 is $T2B+T1A\cdot (s', t')$.
         T1B[1] = t1p3y;
         T1B[2] = dt;
     } else {
+        if (MRA_DEBUG) cerr << "#1b" << endl;
+
         T1A[0][0] = t1p2x-t1p1x;
         T1A[1][0] = t1p2y-t1p1y;
         T1A[2][0] = 0;
@@ -1024,6 +1049,8 @@ $T1B+T1A\cdot (s, t)$ and Plane 2 is $T2B+T1A\cdot (s', t')$.
     double T2B[3];
 
     if (nearlyEqual(t2p1x, t2p2x) && nearlyEqual(t2p1y, t2p2y)) {
+        if (MRA_DEBUG) cerr << "#2a" << endl;
+
         T2A[0][0] = t2p4x-t2p3x;
         T2A[1][0] = t2p4y-t2p3y;
         T2A[2][0] = 0;
@@ -1036,9 +1063,10 @@ $T1B+T1A\cdot (s, t)$ and Plane 2 is $T2B+T1A\cdot (s', t')$.
         T2B[1] = t2p3y;
         T2B[2] = dt;
     } else {
+        if (MRA_DEBUG) cerr << "#2b" << endl;
+
         T2A[0][0] = t2p2x-t2p1x;
         T2A[1][0] = t2p2y-t2p1y;
-
         T2A[2][0] = 0;
 
         T2A[0][1] = t2p3x-t2p1x;
@@ -1048,6 +1076,20 @@ $T1B+T1A\cdot (s, t)$ and Plane 2 is $T2B+T1A\cdot (s', t')$.
         T2B[0] = t2p1x;
         T2B[1] = t2p1y;
         T2B[2] = 0;
+    }
+
+    if (MRA_DEBUG) {
+        cerr << "T1B      T1A                T2B      T2A" << endl;
+        cerr << "-------  ---------------    -------  ---------------" << endl;
+        for (unsigned int i = 0; i < 3; i++)
+            fprintf(stderr, 
+                    "%7.3f  %7.3f %7.3f    %7.3f  %7.3f %7.3f\n",
+                    T1B[i],
+                    T1A[i][0],
+                    T1A[i][1],
+                    T2B[i],
+                    T2A[i][0],
+                    T2A[i][1]);
     }
 
 /*
@@ -1126,16 +1168,18 @@ of the other trapezium.
                     cerr << "specialTrapeziumIntersects() intersects"
                          << endl;
 
-                cerr << ::std::fixed
-                     << ::std::setprecision(6);
-                for (unsigned int i = 0; i < 3; i++) 
-                    cerr <<Ap[i][0]<<" "
-                         <<Ap[i][1]<<" "
-                         <<Ap[i][2]<<" "
-                         <<Ap[i][3] 
-                         <<"|"
-                         <<B[i]
-                         <<endl;
+                if (MRA_DEBUG) {
+                    cerr << ::std::fixed
+                         << ::std::setprecision(6);
+                    for (unsigned int i = 0; i < 3; i++) 
+                        cerr <<Ap[i][0]<<" "
+                             <<Ap[i][1]<<" "
+                             <<Ap[i][2]<<" "
+                             <<Ap[i][3] 
+                             <<"|"
+                             <<B[i]
+                             <<endl;
+                }
 
                 detailedResult = 3;
                 return true;
@@ -1186,6 +1230,11 @@ Case 1: $c1=0$.
 
         double f = B[2]/Ap[2][3]; // = b/c2
 
+        if (MRA_DEBUG)
+            cerr << "specialTrapeziumIntersects() c1=0 f="
+                 << f
+                 << endl;
+
         for (unsigned int i = 0; i < 3; i++) {
             P[i] = T2B[i]+T2A[i][1]*f;
             Q[i] = T2A[i][0];
@@ -1197,6 +1246,11 @@ Case 2: $c2=0$.
 */
 
         double f = B[2]/Ap[2][2]; // = b/c1
+
+        if (MRA_DEBUG)
+            cerr << "specialTrapeziumIntersects() c2=0 f="
+                 << f
+                 << endl;
 
         for (unsigned int i = 0; i < 3; i++) {
             P[i] = T2B[i]+T2A[i][0]*f;
@@ -1383,12 +1437,14 @@ separately.
 
         if (specialSegmentIntersects2(
                 0, t1p1x, t1p1y, t1p2x, t1p2y, P, Q)) {
+            if (MRA_DEBUG) cerr << "#3a" << endl;
             t1zMin = t1zMin > 0 ? 0 : t1zMin;
             t1zMax = t1zMax < 0 ? 0 : t1zMax;
             t1Intersects = true;
         }
         if (specialSegmentIntersects2(
                 dt, t1p3x, t1p3y, t1p4x, t1p4y, P, Q)) {
+            if (MRA_DEBUG) cerr << "#3b" << endl;
             t1zMin = t1zMin > dt ? dt : t1zMin;
             t1zMax = t1zMax < dt ? dt : t1zMax;
             t1Intersects = true;
@@ -1397,6 +1453,7 @@ separately.
                 dt,
                 t1p1x, t1p1y, t1p3x, t1p3y,
                 P[0], P[1], P[0]+Q[0], P[1]+Q[1])) {
+            if (MRA_DEBUG) cerr << "#3c" << endl;
             t1zMin = t1zMin > z ? z : t1zMin;
             t1zMax = t1zMax < z ? z : t1zMax;
             t1Intersects = true;
@@ -1406,6 +1463,7 @@ separately.
                 t1p2x, t1p2y, t1p4x, t1p4y,
                 P[0], P[1], P[0]+Q[0], P[1]+Q[1],
                 z)) {
+            if (MRA_DEBUG) cerr << "#3d" << endl;
             t1zMin = t1zMin > z ? z : t1zMin;
             t1zMax = t1zMax < z ? z : t1zMax;
             t1Intersects = true;
@@ -1418,12 +1476,14 @@ separately.
 
         if (specialSegmentIntersects2(
                 0, t2p1x, t2p1y, t2p2x, t2p2y, P, Q)) {
+            if (MRA_DEBUG) cerr << "#4a" << endl;
             t2zMin = t2zMin > 0 ? 0 : t2zMin;
             t2zMax = t2zMax < 0 ? 0 : t2zMax;
             t2Intersects = true;
         }
         if (specialSegmentIntersects2(
                 dt, t2p3x, t2p3y, t2p4x, t2p4y, P, Q)) {
+            if (MRA_DEBUG) cerr << "#4b" << endl;
             t2zMin = t2zMin > dt ? dt : t2zMin;
             t2zMax = t2zMax < dt ? dt : t2zMax;
             t2Intersects = true;
@@ -1433,6 +1493,7 @@ separately.
                 t2p1x, t2p1y, t2p3x, t2p3y,
                 P[0], P[1], P[0]+Q[0], P[1]+Q[1],
                 z)) {
+            if (MRA_DEBUG) cerr << "#4c" << endl;
             t2zMin = t2zMin > z ? z : t2zMin;
             t2zMax = t2zMax < z ? z : t2zMax;
             t2Intersects = true;
@@ -1442,12 +1503,16 @@ separately.
                 t2p2x, t2p2y, t2p4x, t2p4y,
                 P[0], P[1], P[0]+Q[0], P[1]+Q[1],
                 z)) {
+            if (MRA_DEBUG) cerr << "#4d" << endl;
             t2zMin = t2zMin > z ? z : t2zMin;
             t2zMax = t2zMax < z ? z : t2zMax;
             t2Intersects = true;
         }
 
         if (MRA_DEBUG) {
+            cerr << "specialTrapeziumIntersects() dt="
+                 << dt
+                 << endl;
             cerr << "specialTrapeziumIntersects() t1Intersects="
                  << t1Intersects
                  << endl;
@@ -1817,7 +1882,37 @@ $(p2x, p2y, t2)$ outside trapezium but still intersecting with trapezium.
                         cerr << "sITS() p1 in trapezium"
                              << endl;
 
-                    assert(l1p1is || l1p2is); // change
+                    // assert(l1p1is || l1p2is);
+                    if (!l1p1is && !l1p2is) {
+                        stringstream msg;
+                        msg << "Contradicting results for intersection" 
+                            << endl
+                            << " between trapezium and segment (#1)."
+                            << endl
+                            << "Trapezium is: ("
+                            << l1p1x << " " << l1p1y
+                            << ") ("
+                            << l1p2x << " " << l1p2y
+                            << ") ("
+                            << l2p1x << " " << l2p1y
+                            << ") ("
+                            << l2p2x << " " << l2p2y
+                            << ")"
+                            << endl
+                            << "Segment is: ("
+                            << p1x << " " << p1y
+                            << ") ("
+                            << p2x << " " << p2y
+                            << ")"
+                            << endl
+                            << "It is very likely that this has been"
+                            << " caused by rounding errors."
+                            << endl
+                            << "Try adjusting the precision with the "
+                            << " mraprec operator"
+                            << endl;
+                        throw invalid_argument(msg.str());
+                    }
 
                     ip1present = true;
                     ip2present = true;
@@ -1842,7 +1937,37 @@ $(p2x, p2y, t2)$ outside trapezium but still intersecting with trapezium.
                         cerr << "sITS() p2 in trapezium"
                              << endl;
 
-                    assert(l1p1is || l1p2is); // change
+                    // assert(l1p1is || l1p2is);
+                    if (!l1p1is && !l1p2is) {
+                        stringstream msg;
+                        msg << "Contradicting results for intersection" 
+                            << endl
+                            << " between trapezium and segment (#2)."
+                            << endl
+                            << "Trapezium is: ("
+                            << l1p1x << " " << l1p1y
+                            << ") ("
+                            << l1p2x << " " << l1p2y
+                            << ") ("
+                            << l2p1x << " " << l2p1y
+                            << ") ("
+                            << l2p2x << " " << l2p2y
+                            << ")"
+                            << endl
+                            << "Segment is: ("
+                            << p1x << " " << p1y
+                            << ") ("
+                            << p2x << " " << p2y
+                            << ")"
+                            << endl
+                            << "It is very likely that this has been"
+                            << " caused by rounding errors."
+                            << endl
+                            << "Try adjusting the precision with the "
+                            << " mraprec operator"
+                            << endl;
+                        throw invalid_argument(msg.str());
+                    }
 
                     ip1present = true;
                     ip2present = true;
@@ -1901,7 +2026,37 @@ $(p2x, p2y, t2)$ outside trapezium but still intersecting with trapezium.
                                  << "trapezium"
                                  << endl;
 
-                        assert(!l1p1is && !l1p2is); // change
+                        // assert(!l1p1is && !l1p2is); 
+                        if (l1p1is || l1p2is) {
+                            stringstream msg;
+                            msg << "Contradicting results for intersection" 
+                                << endl
+                                << " between trapezium and segment (#2)."
+                                << endl
+                                << "Trapezium is: ("
+                                << l1p1x << " " << l1p1y
+                                << ") ("
+                                << l1p2x << " " << l1p2y
+                                << ") ("
+                                << l2p1x << " " << l2p1y
+                                << ") ("
+                                << l2p2x << " " << l2p2y
+                                << ")"
+                                << endl
+                                << "Segment is: ("
+                                << p1x << " " << p1y
+                                << ") ("
+                                << p2x << " " << p2y
+                                << ")"
+                                << endl
+                                << "It is very likely that this has been"
+                                << " caused by rounding errors."
+                                << endl
+                                << "Try adjusting the precision with the "
+                                << " mraprec operator"
+                                << endl;
+                            throw invalid_argument(msg.str());
+                        }
 
                         ip1present = false;
                         ip2present = false;
@@ -2433,6 +2588,9 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
     if (MRA_DEBUG)
         cerr << "RP::RP() called" << endl;
 
+    assert(mr.IsOrdered());
+    assert(mp.IsOrdered());
+
 /*
 To construct the refinement partition, we will move ~mrUnit~ and
 ~mpUnit~ through the units of ~mr~ and ~mp~. ~mrUnit~ and ~mpUnit~ will
@@ -2447,7 +2605,7 @@ partition.
 ~ur~ and ~up~ will hold the units with the indeces ~mrUnit~ and ~mpUnit~.
 
 */
-    Unit1 ur;
+    const Unit1 *ur;
     const Unit2 *up;
 
     mr.Get(0, ur);
@@ -2462,10 +2620,11 @@ below.
 */
     Instant t;
     bool c;
+    bool first = true;
 
-    if (ur.timeInterval.start < up->timeInterval.start) {
-        t = ur.timeInterval.start;
-        c = !ur.timeInterval.lc;
+    if (ur->timeInterval.start < up->timeInterval.start) {
+        t = ur->timeInterval.start;
+        c = !ur->timeInterval.lc;
     } else {
         t = up->timeInterval.start;
         c = !up->timeInterval.lc;
@@ -2486,13 +2645,13 @@ As long as we did not reach the end of units in ~mr~ or ~mp~...
                  << t.ToDouble()
                  << endl;
             cerr << "RP::RP() mrUnit interval=["
-                 << ur.timeInterval.start.ToDouble()
+                 << ur->timeInterval.start.ToDouble()
                  << " "
-                 << ur.timeInterval.end.ToDouble()
+                 << ur->timeInterval.end.ToDouble()
                  << " "
-                 << ur.timeInterval.lc
+                 << ur->timeInterval.lc
                  << " "
-                 << ur.timeInterval.rc
+                 << ur->timeInterval.rc
                  << "]"
                  << endl;
             cerr << "RP::RP() mpUnit interval=["
@@ -2519,9 +2678,9 @@ different cases.
         // ]---|  interval open on left side, open or closed status
         //        of right side not relevant
 
-        if (ur.timeInterval.start.Compare(
+        if (ur->timeInterval.start.Compare(
                 &up->timeInterval.start) == 0
-            && ur.timeInterval.end.Compare(
+            && ur->timeInterval.end.Compare(
                    &up->timeInterval.end) == 0) {
 /*
 \textbf{Case 1:} Both intervals have the same start and end time.
@@ -2537,21 +2696,21 @@ If one of the intervals is open and one is closed on the left side,
 we have to add a point interval to the refinement partition.
 
 */
-            if (!(ur.timeInterval.lc && up->timeInterval.lc)) {
-                if (ur.timeInterval.lc)
+            if (!(ur->timeInterval.lc && up->timeInterval.lc)) {
+                if (ur->timeInterval.lc)
                     AddUnits(
                         mrUnit,
                         -1,
-                        ur.timeInterval.start,
-                        ur.timeInterval.start,
+                        ur->timeInterval.start,
+                        ur->timeInterval.start,
                         true,
                         true);
                 else if (up->timeInterval.lc)
                     AddUnits(
                         -1,
                         mpUnit,
-                        ur.timeInterval.start,
-                        ur.timeInterval.start,
+                        ur->timeInterval.start,
+                        ur->timeInterval.start,
                         true,
                         true);
             }
@@ -2564,10 +2723,10 @@ intervals are closed on the left (right) side.
             AddUnits(
                 mrUnit,
                 mpUnit,
-                ur.timeInterval.start,
-                ur.timeInterval.end,
-                ur.timeInterval.lc && up->timeInterval.lc,
-                ur.timeInterval.rc && up->timeInterval.rc);
+                ur->timeInterval.start,
+                ur->timeInterval.end,
+                ur->timeInterval.lc && up->timeInterval.lc,
+                ur->timeInterval.rc && up->timeInterval.rc);
 
 /*
 If one of the intervals is open and one is closed on the right side,
@@ -2576,13 +2735,13 @@ the value of ~c~ too, which we use to remember the open/closed flag of the
 last interval added to the refinement partition.
 
 */
-            if (!(ur.timeInterval.rc && up->timeInterval.rc)) {
-                if (ur.timeInterval.rc) {
+            if (!(ur->timeInterval.rc && up->timeInterval.rc)) {
+                if (ur->timeInterval.rc) {
                     AddUnits(
                         mrUnit,
                         -1,
-                        ur.timeInterval.end,
-                        ur.timeInterval.end,
+                        ur->timeInterval.end,
+                        ur->timeInterval.end,
                         true,
                         true);
                     c = true;
@@ -2590,8 +2749,8 @@ last interval added to the refinement partition.
                     AddUnits(
                         -1,
                         mpUnit,
-                        ur.timeInterval.end,
-                        ur.timeInterval.end,
+                        ur->timeInterval.end,
+                        ur->timeInterval.end,
                         true,
                         true);
                     c = true;
@@ -2604,7 +2763,7 @@ last interval added to the refinement partition.
 Remember right border of the added interval.
 
 */
-            t = ur.timeInterval.end;
+            t = ur->timeInterval.end;
 
 /*
 Since we added an interval for both unit interval, increase both unit
@@ -2615,7 +2774,7 @@ pointers.
                 mr.Get(mrUnit, ur);
             if (++mpUnit < mp.GetNoComponents())
                 mp.Get(mpUnit, up);
-        } else if (ur.timeInterval.Inside(up->timeInterval)) {
+        } else if (ur->timeInterval.Inside(up->timeInterval)) {
 /*
 \textbf{Case 2:} Interval from ~mr~ is embedded into interval from ~mp~.
 
@@ -2631,16 +2790,16 @@ Check if we have to add the left side of the interval from ~mp~ to the
 refinement partition first.
 
 */
-            if (t < ur.timeInterval.start)
+            if (t < ur->timeInterval.start)
                 AddUnits(
                     -1,
                     mpUnit,
                     t > up->timeInterval.start
                     ? t
                     : up->timeInterval.start,
-                    ur.timeInterval.start,
+                    ur->timeInterval.start,
                     !c,
-                    !ur.timeInterval.lc);
+                    !ur->timeInterval.lc);
 
 /*
 Now add interval from ~mr~. Since it is entirely embedded into the interval
@@ -2650,21 +2809,21 @@ from ~mp~, we directly use its border open/close flags.
             AddUnits(
                 mrUnit,
                 mpUnit,
-                ur.timeInterval.start,
-                ur.timeInterval.end,
-                ur.timeInterval.lc,
-                ur.timeInterval.rc);
+                ur->timeInterval.start,
+                ur->timeInterval.end,
+                ur->timeInterval.lc,
+                ur->timeInterval.rc);
 
 /*
 Remember right border, right border flag and increase unit pointer ~mrUnit~.
 
 */
-            t = ur.timeInterval.end;
-            c = ur.timeInterval.rc;
+            t = ur->timeInterval.end;
+            c = ur->timeInterval.rc;
 
             if (++mrUnit < mr.GetNoComponents())
                 mr.Get(mrUnit, ur);
-        } else if (up->timeInterval.Inside(ur.timeInterval)) {
+        } else if (up->timeInterval.Inside(ur->timeInterval)) {
 /*
 \textbf{Case 3:} Interval from ~mp~ is embedded into interval from ~mr~.
 This is similar to case 2 and no further details need to be explained.
@@ -2680,9 +2839,9 @@ This is similar to case 2 and no further details need to be explained.
                 AddUnits(
                     mrUnit,
                     -1,
-                    t > ur.timeInterval.start
+                    t > ur->timeInterval.start
                       ? t
-                      : ur.timeInterval.start,
+                      : ur->timeInterval.start,
                     up->timeInterval.start,
                     !c,
                     !up->timeInterval.lc);
@@ -2700,7 +2859,7 @@ This is similar to case 2 and no further details need to be explained.
 
             if (++mpUnit < mp.GetNoComponents())
                 mp.Get(mpUnit, up);
-        } else if (ur.timeInterval.Intersects(up->timeInterval)) {
+        } else if (ur->timeInterval.Intersects(up->timeInterval)) {
 /*
 \textbf{Case 4:} The intervals intersect. Further analysis is required,
 which will be handled by sub-cases of case 4.
@@ -2709,9 +2868,9 @@ which will be handled by sub-cases of case 4.
             if (MRA_DEBUG)
                 cerr << "RP::RP()   intersect" << endl;
 
-            if (ur.timeInterval.start.Compare(
+            if (ur->timeInterval.start.Compare(
                     &up->timeInterval.end) == 0
-                && ur.timeInterval.lc
+                && ur->timeInterval.lc
                 && up->timeInterval.rc) {
 /*
 \textbf{Case 4.1:} Left border of interval from ~mr~ and right border of
@@ -2748,8 +2907,8 @@ Add point interval for the common border.
                 AddUnits(
                     mrUnit,
                     mpUnit,
-                    ur.timeInterval.start,
-                    ur.timeInterval.start,
+                    ur->timeInterval.start,
+                    ur->timeInterval.start,
                     true,
                     true);
 
@@ -2757,14 +2916,14 @@ Add point interval for the common border.
 Remember point interval border and increase unit pointer ~mpUnit~.
 
 */
-                t = ur.timeInterval.start;
+                t = ur->timeInterval.start;
                 c = true;
 
                 if (++mpUnit < mp.GetNoComponents())
                     mp.Get(mpUnit, up);
-            } else if (ur.timeInterval.end.Compare(
+            } else if (ur->timeInterval.end.Compare(
                            &up->timeInterval.start) == 0
-                       && ur.timeInterval.rc
+                       && ur->timeInterval.rc
                        && up->timeInterval.lc) {
 /*
 \textbf{Case 4.2:} Right border of interval from ~mr~ and left border of
@@ -2777,14 +2936,14 @@ point. Similar to case 4.1, no further details explained.
                     cerr << "RP::RP()   up:     [---|" << endl;
                 }
 
-                if (t < ur.timeInterval.end)
+                if (t < ur->timeInterval.end)
                     AddUnits(
                         mrUnit,
                         -1,
-                        t > ur.timeInterval.start
+                        t > ur->timeInterval.start
                           ? t
-                          : ur.timeInterval.start,
-                        ur.timeInterval.end,
+                          : ur->timeInterval.start,
+                        ur->timeInterval.end,
                         !c,
                         false);
 
@@ -2796,12 +2955,12 @@ point. Similar to case 4.1, no further details explained.
                     true,
                     true);
 
-                t = ur.timeInterval.end;
+                t = ur->timeInterval.end;
                 c = true;
 
                 if (++mrUnit < mr.GetNoComponents())
                     mr.Get(mrUnit, ur);
-            } else if (ur.timeInterval.start.Compare(
+            } else if (ur->timeInterval.start.Compare(
                            &up->timeInterval.start) < 0) {
 /*
 \textbf{Case 4.3:} Both intervals overlap, interval from ~mr~ starts right
@@ -2823,9 +2982,9 @@ refinement partition first.
                     AddUnits(
                         mrUnit,
                         -1,
-                        t > ur.timeInterval.start
+                        t > ur->timeInterval.start
                           ? t
-                          : ur.timeInterval.start,
+                          : ur->timeInterval.start,
                         up->timeInterval.start,
                         !c,
                         !up->timeInterval.lc);
@@ -2839,20 +2998,20 @@ right borders and their open/close flags.
                     mrUnit,
                     mpUnit,
                     up->timeInterval.start,
-                    ur.timeInterval.end,
+                    ur->timeInterval.end,
                     up->timeInterval.lc,
-                    ur.timeInterval.rc);
+                    ur->timeInterval.rc);
 
 /*
 Remember interval border and increase unit pointer ~mrUnit~.
 
 */
-                t = ur.timeInterval.end;
-                c = ur.timeInterval.rc;
+                t = ur->timeInterval.end;
+                c = ur->timeInterval.rc;
 
                 if (++mrUnit < mr.GetNoComponents())
                     mr.Get(mrUnit, ur);
-            } else if (ur.timeInterval.start.Compare(
+            } else if (ur->timeInterval.start.Compare(
                            &up->timeInterval.start) == 0) {
 /*
 \textbf{Case 4.4:} Both intervals have the same start point.
@@ -2861,13 +3020,13 @@ The following assertion holds or we would have cases 2 or 3, which have been
 already checked.
 
 */
-                assert(!ur.timeInterval.lc || !up->timeInterval.lc);
+                assert(!ur->timeInterval.lc || !up->timeInterval.lc);
 
 /*
 Case 4.4 is broken into two sub-cases again.
 
 */
-                if (ur.timeInterval.end.Compare(
+                if (ur->timeInterval.end.Compare(
                         &up->timeInterval.end) < 0) {
 /*
 \textbf{Case 4.4.1:} The right border of the interval from ~mr~ is lower
@@ -2885,12 +3044,12 @@ than the right border of the interval from ~mp~.
 Add left point of interval from ~mp~ to refinement partition.
 
 */
-                    if (t < ur.timeInterval.start || !c)
+                    if (first || t < ur->timeInterval.start || !c)
                         AddUnits(
                             mrUnit,
                             -1,
-                            ur.timeInterval.start,
-                            ur.timeInterval.start,
+                            ur->timeInterval.start,
+                            ur->timeInterval.start,
                             true,
                             true);
 
@@ -2902,17 +3061,17 @@ Add intersection to refinement partition.
                     AddUnits(
                         mrUnit,
                         mpUnit,
-                        ur.timeInterval.start,
-                        ur.timeInterval.end,
+                        ur->timeInterval.start,
+                        ur->timeInterval.end,
                         false,
-                        ur.timeInterval.rc);
+                        ur->timeInterval.rc);
 
 /*
 Remember interval border and increase unit pointer ~mrUnit~.
 
 */
-                    t = ur.timeInterval.end;
-                    c = ur.timeInterval.rc;
+                    t = ur->timeInterval.end;
+                    c = ur->timeInterval.rc;
 
                     if (++mrUnit < mr.GetNoComponents())
                         mr.Get(mrUnit, ur);
@@ -2925,7 +3084,7 @@ The following assertion holds or we would have cases 2 or 3, which have been
 already checked.
 
 */
-                    assert(ur.timeInterval.end.Compare(
+                    assert(ur->timeInterval.end.Compare(
                                &up->timeInterval.end) != 0);
 
                     if (MRA_DEBUG) {
@@ -2955,7 +3114,7 @@ Add intersection to refinement partition.
                     AddUnits(
                         mrUnit,
                         mpUnit,
-                        ur.timeInterval.start,
+                        ur->timeInterval.start,
                         up->timeInterval.end,
                         false,
                         up->timeInterval.rc);
@@ -2982,23 +3141,23 @@ of interval from ~mp~. Similar to case 4.3, no further details explained.
                     cerr << "RP::RP()   up: |----|" << endl;
                 }
 
-                if (t < ur.timeInterval.start)
+                if (t < ur->timeInterval.start)
                     AddUnits(
                         -1,
                         mpUnit,
                         t > up->timeInterval.start
                           ? t
                           : up->timeInterval.start,
-                        ur.timeInterval.start,
+                        ur->timeInterval.start,
                         !c,
-                        !ur.timeInterval.lc);
+                        !ur->timeInterval.lc);
 
                 AddUnits(
                     mrUnit,
                     mpUnit,
-                    ur.timeInterval.start,
+                    ur->timeInterval.start,
                     up->timeInterval.end,
-                    ur.timeInterval.lc,
+                    ur->timeInterval.lc,
                     up->timeInterval.rc);
 
                 t = up->timeInterval.end;
@@ -3007,7 +3166,7 @@ of interval from ~mp~. Similar to case 4.3, no further details explained.
                 if (++mpUnit < mp.GetNoComponents())
                     mp.Get(mpUnit, up);
             }
-        } else if (ur.timeInterval.end.Compare(
+        } else if (ur->timeInterval.end.Compare(
                        &up->timeInterval.start) <= 0) {
 /*
 \textbf{Case 5:} Both intervals are disjunct, the interval from ~mr~ is
@@ -3023,9 +3182,9 @@ left of the interval from ~mp~.
                 mrUnit,
                 -1,
                 t,
-                ur.timeInterval.end,
+                ur->timeInterval.end,
                 !c,
-                ur.timeInterval.lc);
+                ur->timeInterval.rc);
 
             t = up->timeInterval.start;
             c = !up->timeInterval.lc;
@@ -3050,14 +3209,16 @@ right of the interval from ~mp~.
                 t,
                 up->timeInterval.end,
                 !c,
-                up->timeInterval.lc);
+                up->timeInterval.rc);
 
-            t = ur.timeInterval.start;
-            c = !ur.timeInterval.lc;
+            t = ur->timeInterval.start;
+            c = !ur->timeInterval.lc;
 
             if (++mpUnit < mp.GetNoComponents())
                 mp.Get(mpUnit, up);
         }
+
+        first = false;
     }
 
 /*
@@ -3074,14 +3235,14 @@ First check whether processing already reached the end of the current unit's
 interval. If not, add its right part to the refinement partition.
 
 */
-        if (t < ur.timeInterval.end)
+        if (t < ur->timeInterval.end)
             AddUnits(
                 mrUnit,
                 -1,
                 t,
-                ur.timeInterval.end,
+                ur->timeInterval.end,
                 !c,
-                ur.timeInterval.rc);
+                ur->timeInterval.rc);
         mrUnit++;
 
 /*
@@ -3094,10 +3255,10 @@ Now just add the remaining unit intervals to the refinement partition.
             AddUnits(
                 mrUnit,
                 -1,
-                ur.timeInterval.start,
-                ur.timeInterval.end,
-                ur.timeInterval.lc,
-                ur.timeInterval.rc);
+                ur->timeInterval.start,
+                ur->timeInterval.end,
+                ur->timeInterval.lc,
+                ur->timeInterval.rc);
 
             mrUnit++;
         }
@@ -3368,19 +3529,38 @@ void URegion::Destroy(void) {
 }
 
 /*
-1.1 Method stubs
+1.1 Method ~Clone()~
 
 */
 URegion* URegion::Clone(void) const {
     if (MRA_DEBUG) cerr << "URegion::Clone() called" << endl;
 
-    assert(false);
+    URegion* res = new URegion(timeInterval);
+    res->CopyFrom(this);
+
+    return res;
 }
 
+/*
+1.1 Method ~CopyFrom()~
+
+*/
 void URegion::CopyFrom(const StandardAttribute* right) {
     if (MRA_DEBUG) cerr << "URegion::CopyFrom() called" << endl;
 
-    assert(false);
+    const URegion* ur = (const URegion*) right;
+
+    role = NORMAL;
+    segments = &segmentsNormal;
+    segmentsStartPos = 0;
+    segmentsNum = ur->segmentsNum;
+    bbox = ur->bbox;
+
+    for (unsigned int i = 0; i < segmentsNum; i++) {
+        const MSegmentData* dms;
+        ur->segments->Get(segmentsStartPos+i, dms);
+        segments->Put(i, *dms);
+    }
 }
 
 const Rectangle<3> URegion::BoundingBox() const {
@@ -3403,10 +3583,7 @@ int URegion::NumOfFLOBs() const {
 }
 
 FLOB* URegion::GetFLOB(const int i) {
-    if (MRA_DEBUG) 
-        cerr << "URegion::GetFLOB() called, segments=" 
-             << segments
-             << endl;
+    if (MRA_DEBUG) cerr << "URegion::GetFLOB() called" << endl;
 
     assert(role == NORMAL);
     assert(i == 0);
@@ -3448,6 +3625,10 @@ void URegion::SetMSegmentData(DBArray<MSegmentData>* s) {
 /*
 1.1 Method ~At()~
 
+This method is not part of the bachelor thesis but a stub is required to make
+~URegion~ non-abstract. To assure that accidential calls of this method are
+recognized, its body contains a failed assertion.
+
 */
 bool URegion::At(const CRegion& val, TemporalUnit<CRegion>& result) const {
     if (MRA_DEBUG) cerr << "URegion::At() called" << endl;
@@ -3457,6 +3638,10 @@ bool URegion::At(const CRegion& val, TemporalUnit<CRegion>& result) const {
 
 /*
 1.1 Method ~Passes()~
+
+This method is not part of the bachelor thesis but a stub is required to make
+~URegion~ non-abstract. To assure that accidential calls of this method are
+recognized, its body contains a failed assertion.
 
 */
 bool URegion::Passes(const CRegion& val) const {
@@ -5507,7 +5692,9 @@ computation.
 */
 void URegion::SetSegmentInsideAbove(int pos, bool insideAbove) {
     if (MRA_DEBUG)
-        cerr << "URegion::GetSegmentLeftOrAbove() called" << endl;
+        cerr << "URegion::GetSegmentLeftOrAbove() called, segments=" 
+             << segments
+             << endl;
 
     const MSegmentData *auxDms;
     segments->Get(segmentsStartPos+pos, auxDms);
@@ -5536,6 +5723,8 @@ int URegion::GetSegmentsNum(void) const {
 void URegion::GetSegment(int pos, const MSegmentData*& dms) const {
     if (MRA_DEBUG)
         cerr << "URegion::GetSegment() called, pos=" << pos
+             << ", segments="
+             << segments
              << endl;
 
     segments->Get(segmentsStartPos+pos, dms);
@@ -5584,8 +5773,11 @@ these changes.
         if (MRA_DEBUG)
             cerr << "OutURegion() segment #" << i << endl;
 
-        const MSegmentData *dms;
+        const MSegmentData* dms;
         ur->GetSegment(i, dms);
+
+        if (MRA_DEBUG)
+            cerr << "OutURegion() returned, dms=" << dms << endl;
 
         if (MRA_DEBUG)
             cerr << "OutURegion() point is "
@@ -6282,7 +6474,7 @@ for moving segments.
 static void DeleteURegion(const ListExpr typeInfo, Word& w) {
     if (MRA_DEBUG) cerr << "DeleteURegion() called" << endl;
 
-    URegion *ur = (URegion *)w.addr;
+    URegion *ur = (URegion*)w.addr;
     delete ur;
     w.addr = 0;
 }
@@ -6294,7 +6486,7 @@ static void DeleteURegion(const ListExpr typeInfo, Word& w) {
 static void CloseURegion(const ListExpr typeInfo, Word& w) {
     if (MRA_DEBUG) cerr << "CloseURegion() called" << endl;
 
-    delete (URegion *) w.addr;
+    delete (URegion*) w.addr;
     w.addr = 0;
 }
 
@@ -6305,7 +6497,7 @@ static void CloseURegion(const ListExpr typeInfo, Word& w) {
 static Word CloneURegion(const ListExpr typeInfo, const Word& w) {
     if (MRA_DEBUG) cerr << "CloneURegion() called" << endl;
 
-    assert(false);
+    return SetWord(((URegion*)w.addr)->Clone());
 }
 
 /*
@@ -6449,6 +6641,76 @@ MRegion::MRegion(MPoint& mp, CRegion& r) :
 }
 
 /*
+1.1.1 Method ~Clone()~
+
+*/
+
+MRegion* MRegion::Clone(void) const {
+    if (MRA_DEBUG) cerr << "MRegion::Clone() called" << endl;
+
+    MRegion* res = new MRegion(0);
+    res->CopyFrom(this);
+
+    return res;
+}
+
+/*
+1.1.1 Method ~CopyFrom()~
+
+*/
+void MRegion::CopyFrom(const StandardAttribute* right) {
+    if (MRA_DEBUG) 
+        cerr << "MRegion::CopyFrom() called, this="
+             << this
+             << ", &msegmentdata=" 
+             << &msegmentdata
+             << endl;
+
+    MRegion* mr = (MRegion*) right;
+
+    if (MRA_DEBUG) 
+        cerr << "MRegion::CopyFrom() called, &mr->msegmentdata=" 
+             << &mr->msegmentdata
+             << endl;
+
+/*
+~InMRegion()~ sorts the region units, therefore the following assumption
+should hold.
+
+*/
+    assert(mr->IsOrdered());
+
+    Clear();
+
+/*
+Copy the units and assure that their pointer to the ~DBAarry~ containing
+their moving segments points to this instance's ~DBArray~.
+
+*/
+    StartBulkLoad();
+    for(int i = 0; i < mr->GetNoComponents(); i++) {
+        const URegion* ur;
+        mr->Get(i, ur);
+        URegion newUr = *ur;
+        newUr.SetMSegmentData(&msegmentdata);
+        Add(newUr);
+    }
+    EndBulkLoad(false);
+
+/* 
+Copy the moving segments.
+
+*/
+    msegmentdata.Clear();
+    msegmentdata.Resize(mr->msegmentdata.Size());
+    for (int i = 0; i < mr->msegmentdata.Size(); i++) {
+        const MSegmentData* dms;
+        mr->msegmentdata.Get(i, dms);
+        msegmentdata.Put(i, *dms);
+    }
+}
+
+/*
 1.1.1 ~DBArray~ access
 
 */
@@ -6471,24 +6733,21 @@ FLOB* MRegion::GetFLOB(const int i) {
 }
 
 /*
-1.1.1 Method ~Get()~
+1.1.1 Methods ~Get()~
 
 */
-void MRegion::Get(const int i, URegion& ur) {
+void MRegion::Get(const int i, const URegion*& ur) const {
     if (MRA_DEBUG)
-        cerr << "MRegion::Get() called i=" << i << endl;
+        cerr << "MRegion::Get() #2 called i=" << i << endl;
     
-    const URegion *auxUr;
-    Mapping<URegion, CRegion>::Get(i, auxUr);
-    ur = *auxUr;
-    ur.SetMSegmentData(&msegmentdata);
+    Mapping<URegion, CRegion>::Get(i, ur);
 }
 
 /*
 1.1.1 Method ~Unittest2()~
 
 */
-int MRegion::Unittest2(int pos) {
+bool MRegion::Unittest2(int pos) {
 
     if (MRA_DEBUG)
         cerr << "MRegion::Unittest2() called pos="
@@ -6500,41 +6759,7 @@ int MRegion::Unittest2(int pos) {
     const MSegmentData *dms;
     msegmentdata.Get(pos, dms);
 
-    return dms->GetInsideAbove() ? 1 : 0;
-}
-
-/*
-1.1.1 Method ~Unittest3()~
-
-*/
-void MRegion::Unittest3(MPoint* mp, RReal* res) {
-    if (MRA_DEBUG)
-        cerr << "MRegion::Unittest3() called" << endl;
-
-    RefinementPartition<
-        MRegion,
-        MPoint,
-        URegion,
-        UPoint> rp(*this, *mp);
-
-    res->Clear();
-    res->StartBulkLoad();
-
-    for (unsigned int i = 0; i < rp.Size(); i++) {
-        Interval<Instant>* iv;
-        int urPos;
-        int upPos;
-
-        rp.Get(i, iv, urPos, upPos);
-
-        CcReal left(true, iv->start.ToDouble());
-        CcReal right(true, iv->end.ToDouble());
-        Interval<CcReal> resIv(left, right, iv->lc, iv->rc);
-
-        res->Add(resIv);
-    }
-
-    res->EndBulkLoad(true);
+    return dms->GetInsideAbove();
 }
 
 /*
@@ -6591,8 +6816,8 @@ and point unit, both restricted to this interval, intersect.
 
         if (urPos == -1 || upPos == -1) continue;
 
-        URegion ur;
-        const UPoint *up;
+        const URegion* ur;
+        const UPoint* up;
 
         Get(urPos, ur);
         mp.Get(upPos, up);
@@ -6601,7 +6826,7 @@ and point unit, both restricted to this interval, intersect.
             cerr << "MRegion::IntersectionRP() both elements present"
                  << endl;
 
-        ur.RestrictedIntersection(*up, *iv, res, pending);
+        ur->RestrictedIntersection(*up, *iv, res, pending);
     }
 
     if (pending) {
@@ -6939,11 +7164,11 @@ void MRegion::AtInstant(Instant& t, Intime<CRegion>& result) {
     if( pos == -1 )
         result.SetDefined(false);
     else {
-        URegion posUnit;
+        const URegion* posUnit;
         Get(pos, posUnit);
 
         result.SetDefined(true);
-        posUnit.TemporalFunction(t, result.value);
+        posUnit->TemporalFunction(t, result.value);
         result.instant.CopyFrom(&t);
   }
 }
@@ -6966,17 +7191,17 @@ void MRegion::Initial(Intime<CRegion>& result) {
         return;
     }
 
-    URegion unit;
+    const URegion* unit;
     Get(0, unit);
 
-    if (!unit.timeInterval.lc) {
+    if (!unit->timeInterval.lc) {
         result.SetDefined(false);
         return;
     }
         
     result.SetDefined(true);
-    unit.TemporalFunction(unit.timeInterval.start, result.value);
-    result.instant.CopyFrom(&unit.timeInterval.start);
+    unit->TemporalFunction(unit->timeInterval.start, result.value);
+    result.instant.CopyFrom(&unit->timeInterval.start);
 }
 
 /*
@@ -6997,17 +7222,17 @@ void MRegion::Final(Intime<CRegion>& result) {
         return;
     }
 
-    URegion unit;
+    const URegion* unit;
     Get(GetNoComponents()-1, unit);
         
-    if (!unit.timeInterval.rc) {
+    if (!unit->timeInterval.rc) {
         result.SetDefined(false);
         return;
     }
         
     result.SetDefined(true);
-    unit.TemporalFunction(unit.timeInterval.end, result.value);
-    result.instant.CopyFrom(&unit.timeInterval.end);
+    unit->TemporalFunction(unit->timeInterval.end, result.value);
+    result.instant.CopyFrom(&unit->timeInterval.end);
 }
 
 /*
@@ -7018,6 +7243,12 @@ void MRegion::Final(Intime<CRegion>& result) {
 void MRegion::Traversed(CRegion& res) {
     if (MRA_DEBUG) cerr << "MRegion::Traversed() called" << endl;
 
+/*
+Methods relating to operator ~traversed~ are currently being developed.
+In the meantime, we provide a stub with a failed assertion to recognize
+accidential calls of this method.
+
+*/
     assert(false);
 }
 
@@ -7102,10 +7333,11 @@ static ListExpr OutMRegion(ListExpr typeInfo, Word value) {
     ListExpr l = nl->TheEmptyList();
     ListExpr lastElem;
 
-    for(int i = 0; i < mr->GetNoComponents(); i++) {
-        URegion ur;
+    for (int i = 0; i < mr->GetNoComponents(); i++) {
+        const URegion* ur;
         mr->Get(i, ur);
-        ListExpr unitList = OutURegion(nl->TheEmptyList(), SetWord(&ur));
+        ListExpr unitList = 
+            OutURegion(nl->TheEmptyList(), SetWord((void*) ur));
 
         if (l == nl->TheEmptyList()) {
             l = nl->Cons(unitList, nl->TheEmptyList());
@@ -7174,7 +7406,22 @@ bool OpenMRegion(SmiRecord& rec,
     if (MRA_DEBUG) cerr << "OpenMRegion() called" << endl;
 
     MRegion* mr = (MRegion*) Attribute::Open(rec, offset, typeInfo);
-    w = SetWord(mr);
+
+/*
+The cloning is required to assure that the ~segments~ pointers of the
+region units reference the moving region's ~msegmentdata~. 
+Since ~units~ is
+private in ~Mapping~ and since ~Mapping~ does not provide any methods
+to modify an existing unit, ~MRegion~ cannot provide such method
+either. The method ~Clone()~ assures, though, that each region unit
+properly references the moving region's ~msegmentdata~.
+
+*/
+    MRegion* res = mr->Clone();
+
+    delete mr;
+
+    w = SetWord(res);
 
     return true;
 }
@@ -7226,23 +7473,15 @@ static MPoint CreateMPointFromCPoint(MRegion* mr, CPoint* p) {
     MPoint mp(0);
 
     for (int i = 0; i < mr->GetNoComponents(); i++) {
-        if (MRA_DEBUG) cerr << "CreateMPointFromCPoint() i=" << i << endl;
-
-        URegion ur;
+        const URegion* ur;
 
         mr->Get(i, ur);
 
-        if (MRA_DEBUG) cerr << "CreateMPointFromCPoint() trace #1" << endl;
-
-        UPoint up(ur.timeInterval,
+        UPoint up(ur->timeInterval,
                   p->GetX(), p->GetY(),
                   p->GetX(), p->GetY());
 
-        if (MRA_DEBUG) cerr << "CreateMPointFromCPoint() trace #2" << endl;
-
         mp.Add(up);
-
-        if (MRA_DEBUG) cerr << "CreateMPointFromCPoint() trace #3" << endl;
     }
 
     return mp;
@@ -7483,7 +7722,7 @@ static ListExpr Unittest2TypeMap(ListExpr args) {
     if (nl->ListLength(args) == 2
         && nl->IsEqual(nl->First(args), "movingregion")
         && nl->IsEqual(nl->Second(args), "int"))
-        return nl->SymbolAtom("int");
+        return nl->SymbolAtom("bool");
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -7493,7 +7732,7 @@ static ListExpr Unittest3TypeMap(ListExpr args) {
         cerr << "Unittest3TypeMap() called" << endl;
 
     if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), "movingregion")
+        && nl->IsEqual(nl->First(args), "mpoint")
         && nl->IsEqual(nl->Second(args), "mpoint"))
         return nl->SymbolAtom("rreal");
     else
@@ -7636,8 +7875,27 @@ static int IntersectionValueMap(Word* args,
     if (MRA_DEBUG) cerr << "IntersectionValueMap() called" << endl;
 
     result = qp->ResultStorage(s);
-    ((MRegion*) args[1].addr)->Intersection(* (MPoint*) args[0].addr,
-                                            * (MPoint*) result.addr);
+    MPoint* res = (MPoint*) result.addr;
+
+    try {
+        MPoint* mp = (MPoint*) args[0].addr;
+        MRegion* mr = (MRegion*) args[1].addr;
+
+        if (!mp->IsDefined() || !mr->IsDefined())
+            res->SetDefined(false);
+        else
+            mr->Intersection(*mp, *res);
+    } catch (invalid_argument& e) {
+        cerr << "-----------------------------------------------------------"
+             << endl
+             << "An error occured during the inside operation:"
+             << endl
+             << e.what()
+             << endl
+             << "-----------------------------------------------------------"
+             << endl;
+        res->SetDefined(false);
+    }
 
     return 0;
 }
@@ -7650,8 +7908,27 @@ static int InsideValueMap(Word* args,
     if (MRA_DEBUG) cerr << "InsideValueMap() called" << endl;
 
     result = qp->ResultStorage(s);
-    ((MRegion*) args[1].addr)->Inside(* (MPoint*) args[0].addr,
-                                      * (MBool*) result.addr);
+    MBool* res = (MBool*) result.addr;
+
+    try {
+        MPoint* mp = (MPoint*) args[0].addr;
+        MRegion* mr = (MRegion*) args[1].addr;
+
+        if (!mp->IsDefined() || !mr->IsDefined())
+            res->SetDefined(false);
+        else
+            mr->Inside(*mp, *res);
+     } catch (invalid_argument& e) {
+        cerr << "-----------------------------------------------------------"
+             << endl
+             << "An error occured during the inside operation:"
+             << endl
+             << e.what()
+             << endl
+             << "-----------------------------------------------------------"
+             << endl;
+        ((MBool*) result.addr)->SetDefined(false);
+    }
 
     return 0;
 }
@@ -7663,12 +7940,31 @@ static int AtValueMap_MPoint(Word* args,
                              Supplier s) {
     if (MRA_DEBUG) cerr << "AtValueMap_MPoint() called" << endl;
 
-    MRegion* mr = new MRegion(* (MPoint*) args[0].addr,
-                              * (CRegion*) args[1].addr);
-
     result = qp->ResultStorage(s);
-    mr->Intersection(* (MPoint*) args[0].addr,
-                     * (MPoint*) result.addr);
+    MPoint* res = (MPoint*) result.addr;
+
+    try {
+        MPoint* mp = (MPoint*) args[0].addr;
+        CRegion* r = (CRegion*) args[1].addr;
+        
+        if (!mp->IsDefined() || !r->IsDefined())
+            res->SetDefined(false);
+        else {
+            MRegion* mr = new MRegion(*mp, *r);
+
+            mr->Intersection(*mp, *res);
+        }
+    } catch (invalid_argument& e) {
+        cerr << "-----------------------------------------------------------"
+             << endl
+             << "An error occured during the inside operation:"
+             << endl
+             << e.what()
+             << endl
+             << "-----------------------------------------------------------"
+             << endl;
+        ((MPoint*) result.addr)->SetDefined(false);
+    }
 
     return 0;
 }
@@ -7680,17 +7976,31 @@ static int AtValueMap_MRegion(Word* args,
                               Supplier s) {
     if (MRA_DEBUG) cerr << "AtValueMap_MRegion() called" << endl;
 
-    MRegion* mr = (MRegion*) args[0].addr;
-    CPoint* p = (CPoint*) args[1].addr;
-
-    MPoint mp = CreateMPointFromCPoint(mr, p);
-
-    if (MRA_DEBUG) cerr << "AtValueMap_MRegion() trace #1" << endl;
-
     result = qp->ResultStorage(s);
-    mr->Intersection(mp, * (MPoint*) result.addr);
+    MPoint* res = (MPoint*) result.addr;
 
-    if (MRA_DEBUG) cerr << "AtValueMap_MRegion() trace #2" << endl;
+    try {
+        MRegion* mr = (MRegion*) args[0].addr;
+        CPoint* p = (CPoint*) args[1].addr;
+
+        if (!mr->IsDefined() || !p->IsDefined()) 
+            res->SetDefined(false);
+        else {
+            MPoint mp = CreateMPointFromCPoint(mr, p);
+
+            mr->Intersection(mp, *res);
+        }
+    } catch (invalid_argument& e) {
+        cerr << "-----------------------------------------------------------"
+             << endl
+             << "An error occured during the inside operation:"
+             << endl
+             << e.what()
+             << endl
+             << "-----------------------------------------------------------"
+             << endl;
+        ((MPoint*) result.addr)->SetDefined(false);
+    }
 
     return 0;
 }
@@ -7703,8 +8013,14 @@ static int TraversedValueMap(Word* args,
     if (MRA_DEBUG) cerr << "TraversedValueMap() called" << endl;
 
     result = qp->ResultStorage(s);
+    CRegion* res = (CRegion*) result.addr;
 
-    ((MRegion*) args[0].addr)->Traversed(* (CRegion*) result.addr);
+    MRegion* mr = (MRegion*) args[0].addr;
+
+    if (!mr->IsDefined()) 
+        res->SetDefined(false);
+    else
+        mr->Traversed(*res);
 
     return 0;
 }
@@ -7717,10 +8033,17 @@ static int MraprecValueMap(Word* args,
                            Supplier s) {
     if (MRA_DEBUG) cerr << "MraprecValueMap() called" << endl;
 
-    eps = ((CcReal*) args[0].addr)->GetRealval();
-
     result = qp->ResultStorage(s);
-    ((CcBool*) result.addr)->Set(true, true);
+    CcBool* res = (CcBool*) result.addr;
+
+    CcReal* r = (CcReal*) args[0].addr;
+
+    if (!r->IsDefined()) 
+        res->SetDefined(false);
+    else {
+        eps = r->GetRealval();
+        res->Set(true, true);
+    }
 
     return 0;
 }
@@ -7732,8 +8055,15 @@ static int BboxValueMap(Word* args,
                            Supplier s) {
     if (MRA_DEBUG) cerr << "BBox() called" << endl;
 
-    result = qp->ResultStorage( s );
-    *((Rectangle<3>*) result.addr) = ((URegion*) args[0].addr)->BoundingBox();
+    result = qp->ResultStorage(s);
+    Rectangle<3>* res = (Rectangle<3>*) result.addr;
+
+    URegion* ur = (URegion*) args[0].addr;
+
+    if (!ur->IsDefined()) 
+        res->SetDefined(false);
+    else
+        *res = ur->BoundingBox();
 
     return (0);
 }
@@ -7790,7 +8120,7 @@ static int Unittest2ValueMap(Word* args,
     if (MRA_DEBUG) cerr << "Unittest2ValueMap() called" << endl;
 
     result = qp->ResultStorage(s);
-    ((CcInt *)result.addr)->Set(
+    ((CcBool *)result.addr)->Set(
         true,
         ((MRegion*) args[0].addr)->Unittest2(
             ((CcInt*) args[1].addr)->GetIntval()));
@@ -7806,9 +8136,35 @@ static int Unittest3ValueMap(Word* args,
     if (MRA_DEBUG) cerr << "Unittest3ValueMap() called" << endl;
 
     result = qp->ResultStorage(s);
-    ((MRegion*) args[0].addr)->Unittest3(
-        (MPoint*) args[1].addr,
-        (RReal *) result.addr);
+    RReal* res = (RReal *) result.addr;
+
+    MPoint* mp1 = (MPoint*) args[0].addr;
+    MPoint* mp2 = (MPoint*) args[1].addr;
+
+    RefinementPartition<
+        MPoint,
+        MPoint,
+        UPoint,
+        UPoint> rp(*mp1, *mp2);
+
+    res->Clear();
+    res->StartBulkLoad();
+
+    for (unsigned int i = 0; i < rp.Size(); i++) {
+        Interval<Instant>* iv;
+        int urPos;
+        int upPos;
+
+        rp.Get(i, iv, urPos, upPos);
+
+        CcReal left(true, iv->start.ToDouble());
+        CcReal right(true, iv->end.ToDouble());
+        Interval<CcReal> resIv(left, right, iv->lc, iv->rc);
+
+        res->Add(resIv);
+    }
+
+    res->EndBulkLoad(true);
 
     return 0;
 }

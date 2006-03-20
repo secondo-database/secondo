@@ -577,13 +577,18 @@ in ~result~.
     virtual void TemporalFunction(const Instant& t, CRegion& result) const;
 
 /*
-~At()~, ~Passes()~ and ~BoundingBox()~ are not yet implemented. Stubs
-required for to make this class non-abstract.
+~At()~ and ~Passes()~ are not yet implemented. Stubs
+required to make this class non-abstract.
 
 */
     virtual bool At(const CRegion& val, TemporalUnit<CRegion>& result) const;
     virtual bool Passes(const CRegion& val) const;
 
+/*
+Return the bounding box of the region unit. This is an $O(1)$ operation
+since the bounding box is calculated when the region unit is created.
+
+*/
     virtual const Rectangle<3> BoundingBox() const;
 
 /*
@@ -591,14 +596,21 @@ required for to make this class non-abstract.
 storage only, and will run into failed assertions for other instances.
 
 */
-    int NumOfFLOBs() const;
+    int NumOfFLOBs(void) const;
     FLOB *GetFLOB(const int i);
 
 /*
-Required for Algebra integration. Not implemented either.
+Clone ~URegion~ instance. Please note that resulting instance will have
+its own moving segments storage, even if the cloned instance has not.
 
 */
-    virtual URegion* Clone() const;
+    virtual URegion* Clone(void) const;
+
+/*
+Copy ~URegion~ instance. Please note that resulting instance will have
+its own moving segments storage, even if the copied instance has not.
+
+*/
     virtual void CopyFrom(const StandardAttribute* right);
 };
 
@@ -665,7 +677,7 @@ set each unit to the constant value of ~r~.
 ~DBArray~ access.
 
 */
-    int NumOfFLOBs() const;
+    int NumOfFLOBs(void) const;
     FLOB *GetFLOB(const int i);
 
 /*
@@ -702,7 +714,25 @@ Get ~CRegion~ value ~result~ at initial and final instants.
     void Final(Intime<CRegion>& result);
 
 /*
-Friend access for ~InMRegion()~ makes live easier.
+Get ~URegion~ unit ~i~ from this ~MRegion~ instance and return it in ~ur~.
+
+*/
+    void Get(const int i, const URegion*& ur) const;
+
+/*
+Clone ~MRegion~ instance.
+
+*/
+    MRegion* Clone(void) const;
+
+/*
+Copy ~MRegion~ instance.
+
+*/
+    void CopyFrom(const StandardAttribute* right);
+
+/*
+Friend access for ~InMRegion()~ and ~OpenMRegion()~ makes live easier.
 
 */
     friend Word InMRegion(const ListExpr typeInfo,
@@ -710,19 +740,12 @@ Friend access for ~InMRegion()~ makes live easier.
                           const int errorPos,
                           ListExpr& errorInfo,
                           bool& correct);
-
-/*
-Get ~URegion~ unit ~i~ from this ~MRegion~ instance and return it in ~ur~.
-
-*/
-    void Get(const int i, URegion& ur);
-
+        
 /*
 For unit testing only.
 
 */
-    int Unittest2(int pos);
-    void Unittest3(MPoint* mp, RReal* res);
+    bool Unittest2(int pos);
 };
 
 #endif // _MOVING_REGION_ALGEBRA_H_

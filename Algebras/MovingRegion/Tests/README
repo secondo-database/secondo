@@ -1,0 +1,19 @@
+This directory contains unit tests for the MovingRegionAlgebra. Please
+refer to the pdview documentation of MovingRegionAlgebra.cpp for details
+on the unit testing concept.
+
+To run the tests, execute the following commands:
+
+   cd Algebras/MovingRegion/Tests
+   make
+
+A summary of the test results will be displayed. See the .out files for
+more detailed test results.
+
+Run
+
+   make clean
+
+to delete files created during the test.
+
+

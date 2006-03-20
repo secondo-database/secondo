@@ -1,0 +1,80 @@
+# Unit tests for inside-above attribute of moving segments.
+
+###############################################################################
+
+create database mratest;
+open database mratest;
+
+###############################################################################
+
+let mr1 = 
+    [ const movingregion value (((0.0 10.0 TRUE TRUE)
+			        ((((1.0 3.5 1.5 1.5)
+			 	   (2.0 5.5 3.0 4.5)
+				   (3.0 6.5 3.5 5.0)
+  			           (4.0 6.5 5.5 5.0)
+			           (4.0 5.5 5.5 4.5)
+			           (5.0 4.5 7.5 2.5)
+			           (5.0 2.5 7.5 1.0)
+			           (4.0 1.5 7.0 0.5)
+			           (3.0 1.5 2.5 0.5))
+			          ((2.0 3.0 3.0 2.0)
+			           (2.0 4.0 3.0 3.0)
+			           (3.0 4.0 4.0 3.0)
+			           (3.0 3.0 4.0 2.0)))))) ];
+
+#testcase "1"
+#yields (bool FALSE)
+query mr1 unittest2 0;
+
+#testcase "2"
+#yields (bool FALSE)
+query mr1 unittest2 1;
+
+#testcase "3"
+#yields (bool FALSE)
+query mr1 unittest2 2;
+
+#testcase "4"
+#yields (bool TRUE)
+query mr1 unittest2 3;
+
+#testcase "5"
+#yields (bool FALSE)
+query mr1 unittest2 4;
+
+#testcase "6"
+#yields (bool TRUE)
+query mr1 unittest2 5;
+
+#testcase "7"
+#yields (bool TRUE)
+query mr1 unittest2 6;
+
+#testcase "8"
+#yields (bool TRUE)
+query mr1 unittest2 7;
+
+#testcase "9"
+#yields (bool TRUE)
+query mr1 unittest2 8;
+
+#testcase "10"
+#yields (bool TRUE)
+query mr1 unittest2 9;
+
+#testcase "11"
+#yields (bool TRUE)
+query mr1 unittest2 10;
+
+#testcase "12"
+#yields (bool FALSE)
+query mr1 unittest2 11;
+
+#testcase "13"
+#yields (bool FALSE)
+query mr1 unittest2 12;
+
+#teardown
+close database;
+delete database mratest;
