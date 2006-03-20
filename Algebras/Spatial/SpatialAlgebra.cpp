@@ -835,7 +835,9 @@ void Points::RemoveDuplicates(){
        last = tmp;
      } 
   }
-  points.Resize(pos+1);
+  if(pos+1!=size){ // duplicates found 
+     points.Resize(pos+1);
+  }
 }
 
 
