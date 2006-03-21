@@ -2690,7 +2690,6 @@ lookupAttr(*, *) :- assert(isStarQuery), !.
 
 lookupAttr(count(*), count(*)) :- !.
 
-
 lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
   lookupAttr(Expr, Expr2),
   not(queryAttr(attr(Name, 0, u))),
@@ -2781,7 +2780,9 @@ lookupPred(Pred, pr(Pred2, Rel1, Rel2)) :-
 lookupPred(Pred, _) :-
   lookupPred1(Pred, _, [], []),
   write('Error in query: Predicate \''),  write(Pred),
-  write('\' is a constant. This is not allowed.'), nl, fail, !.
+  write('\' is a constant. This is not allowed.'), nl, 
+  throw(lookup_pred),
+  fail, !.
 
 lookupPred(Pred, _) :-
   lookupPred1(Pred, _, [], Rels),
@@ -2789,7 +2790,9 @@ lookupPred(Pred, _) :-
   N > 2,
   write('Error in query: Predicate \''), write(Pred), 
   write('\' involves more than two relations. '),
-  write('This is not allowed.'), nl, fail, !.
+  write('This is not allowed.'), nl, 
+  throw(lookup_pred),
+  fail, !.
 
 /*
 ----    lookupPred1(+Pred, -Pred2, +RelsBefore, -RelsAfter) :-
@@ -3971,17 +3974,18 @@ rewriteQuery(Query, RewrittenQuery) :-
       '\n\nAfter Rewriting Stage 1: Expanding Macros:\n', RQuery1,
       '\n\nAfter Rewriting Stage 2: Infer Predicates:\n', RQuery2,
       '\n\nAfter Rewriting Stage 3: Remove redundancies:\n', RQuery3, 
-      '\n\nAfter Rewriting Stage 4: Handle CSEs:\n', RewrittenQuery, '\n']).
+      '\n\nAfter Rewriting Stage 4: Handle CSEs:\n', RewrittenQuery, '\n\n']).
 
 
 /*
 
-14.1 Makros: with $\ldots$ in
+14.1 Macros: with $\ldots$ in
 
-In Queries, users are allowed to define makros. Makros can be used within the
-query and are expanded automatically. A makro declaration is noted as 
+In Queries, users are allowed to define macros. Macros can be used within the
+query and are expanded automatically. A macro declaration is noted as 
 
-  with <makro-mext> as <makro-mnemo> in <SQL-Query>
+----  with <macro-mext> as <macro-mnemo> in <SQL-Query>
+----
 
 */
 
@@ -4031,6 +4035,7 @@ extractMacros(with(_), _) :-
   write('           \'sql with [<macro> as <mnemo> {, <macro> as <mnemo>}] '),
   write('in <query>.\'.\n'), 
   !, 
+  throw(rewriting_macro_syntax),
   fail.
 
 extractMacros(Query, Query).
@@ -4047,6 +4052,7 @@ extractMacros1(Macro as Mnemo) :-
   write('\nERROR: Left side of a macro declaration \'<macro> as <mnemo>\' '),
   write('must be an acyclic expression.'), 
   !,
+  throw(rewriting_macro_syntax),
   fail.
          
 extractMacros1(_ as Mnemo) :-
@@ -4054,6 +4060,7 @@ extractMacros1(_ as Mnemo) :-
   write('\nERROR: Right side of a macro declaration \'<macro> as <mnemo>\' '),
   write('must be an identifier.'), 
   !, 
+  throw(rewriting_macro_syntax),
   fail.
 
 extractMacros1(Macro as Mnemo) :-
@@ -4526,6 +4533,9 @@ If a term contains an expensive operator (as indicated by a defined fact
 ~rewritingCSEExpensiveOP(OP)~), ~Expensive~ will be 1, 0 
 otherwise.
 
+If a complete CSE has an alias (like `CSE as Alias'), its label is Alias rather
+than the canonical label cse\_N.
+
 */
 
 :- dynamic(storedExpressionLabel/4),
@@ -4550,7 +4560,11 @@ showExpressionLabels :-
   
 % return the label associated with a known Node, or create a new association 
 % and return that new label 
+% if called with Label being a bound variable or term, the latter is used as
+% the label. If a label has already been assigned to an identical term, it
+% is overwritten with Label.
 getExpressionLabel(Node, Label) :-
+  var(Label),
   storedExpressionLabel(Node, Label, NoOcc, X), 
   retractall(storedExpressionLabel(_, Label, _, _)),
   NoOcc1 is NoOcc + 1,
@@ -4558,10 +4572,68 @@ getExpressionLabel(Node, Label) :-
   assert(storedExpressionLabel(Node, Label, NoOcc1, X)).
 
 getExpressionLabel(Node, Label) :-
+  var(Label),
   not(storedExpressionLabel(Node, _, _, _)),
   gensym(cse_, Label),
   !,
   assert(storedExpressionLabel(Node, Label, 1, *)).
+
+getExpressionLabel(Node, Label) :- % case: Label unknown, Node unknown
+  nonvar(Label),
+  not(storedExpressionLabel(_, Label, _, _)), 
+  not(storedExpressionLabel(Node, _, _, _)),
+  !,
+  assert(storedExpressionLabel(Node, Label, 1, *)).
+
+getExpressionLabel(Node, Label) :- 
+% case: Label unknown, Node known - Change Label if OldLabel is canonical
+  nonvar(Label),
+  not(storedExpressionLabel(_, Label, _, _)), 
+  storedExpressionLabel(Node, OldLabel, NoOcc, X),
+  sub_atom(OldLabel, 0, _, _, cse_),
+  NoOcc1 is NoOcc + 1,
+  !,
+  retractall(storedExpressionLabel(_, OldLabel, _, _)),
+  assert(storedExpressionLabel(Node, Label, NoOcc1, X)).
+
+
+getExpressionLabel(Node, Label) :- 
+% case: Label unknown, Node known - Forget the new label, but increase the old 
+%       counter
+% This can happen if a column is multiplied in the output 
+% (e.g. select[Expr as n1, Expr as n2]...)
+  nonvar(Label),
+  not(storedExpressionLabel(_, Label, _, _)), 
+  storedExpressionLabel(Node, OldLabel, NoOcc, X),
+  not(sub_atom(OldLabel, 0, _, _, cse_)),
+  NoOcc1 is NoOcc + 1,
+  !,
+  retractall(storedExpressionLabel(Node, OldLabel, NoOcc, X)),
+  assert(storedExpressionLabel(Node, OldLabel, NoOcc1, X)).
+
+getExpressionLabel(Node, Label) :- % case: Label known, Node matches - Warning
+  nonvar(Label),
+  storedExpressionLabel(Node, Label, NoOcc, X), 
+  retractall(storedExpressionLabel(_, Label, _, _)),
+  NoOcc1 is NoOcc + 1,
+  !,
+  assert(storedExpressionLabel(Node, Label, NoOcc1, X)),
+  write('WARNING (getExpressionLabel/2): Identical alias used severalfold:\n'),
+  write('\tstoredExpressionLabel('), write(Node), write(','), write(Label), 
+  write(','), write(NoOcc), write(','), write(X), write(').\n\n').
+
+getExpressionLabel(Node, Label) :- % case: Label known, Node conflicts - Error
+  nonvar(Label),
+  storedExpressionLabel(NodeOld, Label, _, _),
+  Node \= NodeOld,
+  write('Error in getExpressionLabel: Conflicting expressions for Alias \''), 
+  write(Label), write('\': \n'),
+  write('\tOld Expression: '), write(NodeOld), write('.\n'),
+  write('\tNew Expression: '), write(Node), write('.\n\n'),
+  throw(rewriting_cse_preprocessing_label_conflict(Label)),
+  fail,
+  !.
+
 
 % find all CSEs
 findCSEs1([], _, 0).      % nothing to do
@@ -4582,6 +4654,17 @@ findCSEs(NodeList, Mode, Expense) :-
   !.
 
 findCSEs(Node, Mode, Expense) :-
+  compound(Node),                      % Node is an inner node.
+  not(is_list(Node)),
+  Node =.. [as, Arg, Alias],           % special case: renaming
+  findCSEs_alias_case(Arg, Mode, Alias, Expense), % use specialized predicate
+  ((Mode = all ; Expense = 1)          % check if Node should be indexed
+    -> getExpressionLabel(Node,_)      % handle only expensive CSEs
+     ; true
+  ),
+  !.
+
+findCSEs(Node, Mode, Expense) :-
   compound(Node),             % Node is an inner node.
   not(is_list(Node)),
   Node =.. [Me|MyArgs],       % decompose node
@@ -4594,6 +4677,26 @@ findCSEs(Node, Mode, Expense) :-
     -> getExpressionLabel(Node,_)   % handle only expensive CSEs
      ; true
   ),
+  !.
+
+% like findCSEs(Node, Mode, Expense), but use Alias as potential label
+findCSEs_alias_case(Node, Mode, Alias, Expense) :-
+  compound(Node),             % Node is an inner node.
+  not(is_list(Node)),
+  Node =.. [Me|MyArgs],       % decompose node
+  findCSEs1(MyArgs, Mode, ArgsExpense),
+  (rewritingCSEExpensiveOP(Me) 
+   -> Expense is 1
+    ; Expense is ArgsExpense
+  ),
+  ((Mode = all ; Expense = 1)  % check if Node should be indexed
+    -> getExpressionLabel(Node,Alias)   % handle only expensive CSEs
+     ; true
+  ),
+  !.
+
+findCSEs_alias_case(Node, Mode, _, Expense) :-
+  findCSEs(Node, Mode, Expense),
   !.
 
 /*
@@ -4653,7 +4756,12 @@ compactCSEs_(Node, NodeMarked, Used) :- % Node is not a CSE
   not(is_list(Node)),
   Node =.. [Me|MyArgs], 
   compactCSEs_1(MyArgs, MyArgsMarked, MyArgsUsed),
-  NodeMarked =.. [Me|MyArgsMarked],
+  ( (Me = as, MyArgsMarked = [Alias,Alias]) 
+     % Special case: renaming CSE = Alias, where CSE-label = Alias
+     %               The rename will then already be done during optimization
+      -> NodeMarked = Alias
+       ; NodeMarked =.. [Me|MyArgsMarked]
+  ),
   Used = MyArgsUsed,
   !.
 

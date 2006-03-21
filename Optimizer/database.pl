@@ -20,6 +20,9 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+*/
+
+/*
 1 Database Dependent Information
 
 [File ~database.pl~]
@@ -1528,20 +1531,6 @@ machineSpeedFactor(CPU, FS) :-
 referenceSpeed(2155.33, 30218.02).        
 % (CPUtime, FStime) determine the times needed by the reference system
 
-toggleSpeed :-
- optimizerOption(uniformSpeed),
- retract(optimizerOption(uniformSpeed)),
- write('\nNow using actual machineSpeedFactor:'),
- machineSpeedFactor,
- !.
-
-toggleSpeed :-
- not(optimizerOption(uniformSpeed)),
- assert(optimizerOption(uniformSpeed)),
- write('\nNow using uniform machineSpeedFactor:'),
- machineSpeedFactor,
- !.
- 
 /*
 ~queryTime(+Query, -TimeMS)~ unifies ~TimeMS~ with the time in ms that it takes 
 SECONDO to run ~Query~
