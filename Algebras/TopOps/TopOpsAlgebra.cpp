@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[title] [ \title{TopOps-Algebra} \author{Thomas Behr} \maketitle]
 //[times] [\ensuremath{\times}]
 //[->] [\ensuremath{\rightarrow}]
+//[<=] [\ensuremath{\leq{}}]
+//[>=] [\ensuremath{\ge{}}]
 
 [title]
 [toc]
@@ -84,10 +86,10 @@ two spatial objects is part of a predicate cluster which is defined
 by a predicate group together with the name of this cluster. So, the 
 signature of this operator is:
 
-  $o_1$ [times] $o_2$ [times] string [times] predicategroup [to] bool 
+  $o_1$ [times] $o_2$ [times] string [times] predicategroup [->] bool 
 
 
-3.3.1 ~IsSpatialType~
+3.3.1 IsSpatialType
 
 This function checks whether the type given as a ListExpr is one of
 point, points, line, or region.
@@ -95,32 +97,22 @@ point, points, line, or region.
 */
 
 inline bool IsSpatialType(ListExpr type){
-   if(nl->IsEqual(type,"point")) return true;
-   if(nl->IsEqual(type,"points")) return true;
-   if(nl->IsEqual(type,"line")) return true;
-   if(nl->IsEqual(type,"region")) return true;
+   if(!nl->IsAtom(type)){
+      return false;
+   }
+   if(!nl->AtomType(type)==SymbolType){
+      return false;
+   }
+   string t = nl->SymbolValue(type);
+   if(t=="point") return true;
+   if(t=="points") return true;
+   if(t=="line") return true;
+   if(t=="region") return true;
    return false;
 }
 
 /*
-3.3.2 IsImplementedTopPred
-
-This function returns true if the TopPred value mapping 
-is implemented for the given combination of types.
-
-*/
-
-inline bool IsImplementedTopPred(ListExpr type1, ListExpr type2){
-    string t1 = nl->SymbolValue(type1);
-    string t2 = nl->SymbolValue(type2);
-    if( (t1=="point" || t1=="points")  &&
-        (t2=="point" || t2=="points")){
-        return true;
-    }
-    return false;
-}
-/*
-3.3.3 IsImplementedTopRel
+3.3.2 IsImplementedTopRel
 
 This function returns true if the TopRel value mapping 
 is implemented for the given combination of types.
@@ -133,12 +125,34 @@ bool IsImplementedTopRel(ListExpr type1, ListExpr type2){
         (t2=="point" || t2=="points")){
         return true;
     }
+    if( ((t1=="point") && (t2=="line"))){
+       return true;
+    }
+      
+    if(((t1=="line") && (t2=="point"))){
+      return true;
+    }
+    cout << t1 << " x " << t2 << " is not implemented" << endl;
     return false;
 }
 
+/*
+3.3.3 IsImplementedTopPred
+
+This function returns true if the TopPred value mapping 
+is implemented for the given combination of types.
+
+*/
+
+inline bool IsImplementedTopPred(ListExpr type1, ListExpr type2){
+   // there is a standard implementation based on the 
+   // TopRel operator. Therefore we can assume that for each
+   // TopRel operator an TopPred operator is implemented
+   return IsImplementedTopRel(type1,type2);
+}
 
 /*
-3.3.4 ~TopPredTypeMap~
+3.3.4 TopPredTypeMap
 
 This function is the type mapping for the toppred operator.
 
@@ -182,7 +196,7 @@ ListExpr TopPredTypeMap(ListExpr args){
 
 
 /*
-~TopRelTypeMap~
+3.3.5 TopRelTypeMap
 
 This function is the Type mapping for the toppred operator.
 
@@ -196,7 +210,7 @@ ListExpr TopRelTypeMap(ListExpr args){
    if(!IsSpatialType(nl->First(args)) 
       || !IsSpatialType(nl->Second(args))){
        ErrorReporter::ReportError("Spatial types expected");
-       return nl->SymbolAtom("typeerror");
+       return (nl->SymbolAtom( "typeerror" ));
    }
    if(!IsImplementedTopRel(nl->First(args),nl->Second(args))){
        ErrorReporter::ReportError("combination not implemented yet");
@@ -250,11 +264,11 @@ This function compare two point values
 
 ~GetInt9M~
 
-This function computes the 9 intersectionmmatrix between two point values.
-Because a single point is very simple, no boundix box tests are
-perperformed.
+This function computes the 9-intersection matrix between two point values.
+Because a single point is very simple, no bounding box tests are
+performed.
 
-This fucntion has constant runtime.
+Complexity: O(1)
 
 */
 
@@ -277,9 +291,8 @@ Int9M  GetInt9M(Point* p1 , Point*  p2){
 The next function computes the 9 intersection matrix between a 
 point value and a points value. 
 
-If the point is outside the bounding box of the points value,
-this function will have constant runtime, otherwise the runtime 
-is equal to the number of points within the points instance.
+Complexity: O(log(n))  where ~n~ is the number of points in the __points__
+value.
 
 */
 Int9M GetInt9M(Points*  ps, Point* p){
@@ -318,8 +331,10 @@ Int9M GetInt9M(Points*  ps, Point* p){
 
 This function returns the 9 intersection matrix describing the 
 topological relationship between two __points__ values.
-The runtime of this function is O(n+m) where n,m is the number 
-of points contained within a single __points__ value.
+
+Complexity: O(~n~+~m~) , where ~n~ and ~m~ is the size of ~ps~1 and
+~ps~2 respectively, where ~n~ and ~m~ is the size of ~ps~1 and
+~ps~2 respectively.
 
 */
 Int9M GetInt9M(Points const* const  ps1, Points const*  const ps2){
@@ -408,6 +423,186 @@ Int9M GetInt9M(Points const* const  ps1, Points const*  const ps2){
    }
    return res;
 }
+
+
+
+
+/*
+~NumberOfEndpoints~
+
+This function computes the number of endpoints of __line__.
+The function stops the computation when the number of endpoints
+is greater than or equals to __stop__. If this argument holds a
+value [<=] 0, the function will not stop before all halfsegments
+are processed.
+
+Complexity: O(n)
+
+*/
+int  NumberOfEndpoints(CLine const* const line, const int stop=-1 ){
+  if(line->IsEmpty()){ // an empty line has no endpoints
+     return 0;
+  }  
+  int size = line->Size();
+  // because the first sort criteria of halfsegments is the 
+  // dominating point, we have just to check whether a halfsegment
+  // at index+1 or index-1 has the same dominating point
+  CHalfSegment const* chs1=NULL;  
+  CHalfSegment const* chs2=NULL;
+  Point p1;
+  Point p2;
+  line->Get(0,chs1);
+  p1 = chs1->GetDPoint();
+  int pos=1;
+  int num=0; // no endpoint up to now
+  while(pos<size){
+    line->Get(pos,chs2);
+    p2 = chs2->GetDPoint();
+    if(p1!=p2){ // found an endpoint
+      num++;
+      if( (stop>0) && (num>=stop)){
+        return num;
+      }
+    }
+    pos++;
+    // search a point different to p2
+    bool found = false;
+    while( (pos<size) && !found){
+      line->Get(pos,chs1);
+      p1 = chs1->GetDPoint();
+      if(p1!=p2){
+        found = true;
+      }
+      pos++;
+    }
+  }
+  return num;
+}
+
+
+/*
+~InnerContains~
+
+This function checks whether __point__ is located on the 
+interior of __chs__.
+This check is done by checking whether the distance between the
+endpoints of the segments is equals to the sum of the distances between
+the endpoints to the point to check.
+
+*/
+bool InnerContains(CHalfSegment const* const chs, const Point& point){
+  double x = point.GetX();
+  double y = point.GetY();
+  Point p1 = chs->GetLP();
+  Point p2 = chs->GetRP();
+  double x1 = p1.GetX();
+  double x2 = p2.GetX();
+  double y1 = p1.GetY();
+  double y2 = p2.GetY();
+  if( ( (x==x1) && (y==y1)) || // endpoint, not inner point
+      ( (x==x2) && (y==y2))){
+      return false;
+  }   
+  // distance between p1 and p2
+  double d1 = sqrt( (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
+  // distance between p2 and p
+  double d2 = sqrt( (x2-x)*(x2-x) + (y2-y)*(y2-y));
+  // distance between p1 and p
+  double d3 = sqrt( (x1-x)*(x1-x) + (y1-y)*(y1-y));
+  
+  double d = d1 - (d2+d3);
+  return About(0,d); 
+}
+
+
+/*
+~GetInt9M~
+
+This function computes the 9-intersection matrix for a line and a single point.
+
+Complexity: O(n)
+
+*/
+Int9M GetInt9M(CLine const* const line, Point const* const point){
+   Int9M res(0);
+   res.SetEE(true);
+   if(line->IsEmpty()){
+     res.SetEI(true);
+     return res;
+   }
+   // the interior of a non-empty line has always
+   // an intersection with the exterior of a single point
+   // because of the difference in the dimension   
+   res.SetIE(true);
+
+   // the line contains at least one halfsegment
+   Rectangle<2> bbox_line = line->BoundingBox();
+   Rectangle<2> bbox_point = point->BoundingBox();
+   if(!bbox_line.Intersects(bbox_point)){
+      res.SetIE(true);
+      res.SetEI(true);
+      if(NumberOfEndpoints(line,1)>0){
+        res.SetBE(true); 
+      }
+      return res;
+   }
+
+   // prefilter unsuccessful -> scan the halfsegments
+   int size = line->Size(); 
+   bool done = false;
+   Point thePoint = (*point);
+   CHalfSegment const* chs;
+   Point p;
+   int endpoints = NumberOfEndpoints(line,2);
+   for(int i=0;(i<size) && !done; i++){
+       line->Get(i,chs);
+       p = chs->GetDPoint();
+       if(p==thePoint){ // point on endpoint of chs
+         done = true;
+         if(i+1<size){
+            line->Get(i+1,chs);
+            p=chs->GetDPoint();
+            if(p==thePoint){ // an inner point of the line
+               res.SetII(true);
+               if(endpoints>0){
+                 res.SetBE(true);
+               }
+            } else{ // an endpoint of the line
+               res.SetBI(true);
+               if(endpoints>1){
+                 res.SetBE(true);
+               }
+            }
+         } else{ // an endpoint of the line
+             res.SetBI(true);
+             if(endpoints>1){
+               res.SetBE(true);
+             }
+         }
+         return res; 
+       }
+       if(InnerContains(chs,thePoint)){
+           res.SetII(true);
+           if(endpoints>0){
+              res.SetBE(true);
+           } 
+           return res;
+       }
+       // we can stop the computation when the next point is
+       // greater than thePoint
+       done = p>thePoint;
+   }
+   // the point is outside the closure of the line
+   res.SetEI(true); // point in exterior
+   if(endpoints>0){
+      res.SetBE(true);
+   } 
+   return res;
+}
+
+
+
+
 
 /*
 4 Implementation of the TopRel Value Mappings 
@@ -554,11 +749,13 @@ operations.
 
 ValueMapping TopRelMap[] = {
        TopRel<Point,Point> , TopRel<Points,Point>,
-       TopRelSym<Point,Points>, TopRel<Points,Points>  };
+       TopRelSym<Point,Points>, TopRel<Points,Points>, TopRel<CLine,Point>,
+       TopRelSym<Point,CLine>  };
 
 ValueMapping TopPredMap[] = {
        TopPred<Point,Point> , TopPred<Points,Point>,
-       TopPredSym<Point,Points>, TopPred<Points,Points> };
+       TopPredSym<Point,Points>, TopPred<Points,Points>, TopPred<CLine,Point>,
+       TopPredSym<Point,CLine> };
 
 
 
@@ -576,19 +773,25 @@ static int TopOpsSelect(ListExpr args){
    // and both elements are symbols
    string type1 = nl->SymbolValue(nl->First(args));
    string type2 = nl->SymbolValue(nl->Second(args));
-   if(type1=="point" && type2=="point"){
+   if( (type1=="point") && (type2=="point")){
       return 0;
    }
-   if(type1=="points" && type2=="point"){
+   if( (type1=="points") && (type2=="point")){
       return 1;
    }
-   if(type1=="point" && type2=="points"){
+   if((type1=="point") && (type2=="points")){
       return 2;
    }
-   if(type1=="points" && type2=="points"){
+   if((type1=="points") && (type2=="points")){
       return 3;
    }
-
+   if((type1=="line") && (type2=="point")){
+       return 4;
+   }
+   if((type1=="point") && (type2=="line")){
+       return 5;
+   }
+   cout << "try to compute combination " << type1 << " x " << type2 << endl;
    assert(false); // SelectionFunction inconsistent to IsImplemented
 } 
 
@@ -621,7 +824,7 @@ Operator toppred(
 
 
 /*
-10. Creating the algebra
+10 Creating the algebra
 
 */
 class TopOpsAlgebra : public Algebra {
