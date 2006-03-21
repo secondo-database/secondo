@@ -144,11 +144,12 @@ extern AlgebraManager *am;
 This struct contains the private attributes of the class ~Tuple~.
 
 */
-int PrivateTuple::Save( SmiRecordFile *tuplefile, 
-                        SmiFileId& lobFileId )
+void PrivateTuple::Save( SmiRecordFile *tuplefile, 
+                         SmiFileId& lobFileId,
+                         long& extSize, long& size )
 {
-  int tupleSize = tupleType->GetTotalSize(),
-      extensionSize = 0;
+  long extensionSize = 0,
+       lobSize = 0;
   bool hasFLOBs = false;
 
   // Calculate the size of the small FLOB data which will be 
@@ -160,13 +161,13 @@ int PrivateTuple::Save( SmiRecordFile *tuplefile,
     {
       hasFLOBs = true;
       FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-      tupleSize += tmpFLOB->Size();
       if( !tmpFLOB->IsLob() )
         extensionSize += tmpFLOB->Size();
       else
       {
         tmpFLOB->BringToMemory();
         tmpFLOB->SaveToLob( lobFileId );
+        lobSize += tmpFLOB->Size();
       }
     }
   }
@@ -251,9 +252,8 @@ int PrivateTuple::Save( SmiRecordFile *tuplefile,
   state = Solid;
   this->lobFileId = lobFileId;
 
-  if( !rc )
-    return 0;
-  return tupleSize;
+  extSize = tupleType->GetTotalSize() + extensionSize;
+  size = tupleType->GetTotalSize() + extensionSize + lobSize;
 }
 
 bool PrivateTuple::Open( SmiRecordFile *tuplefile, 
@@ -548,8 +548,8 @@ void Tuple::PutAttribute( const int index, Attribute* attr )
     privateTuple->attributes[index]->DeleteIfAllowed();
   privateTuple->attributes[index] = attr;
 
-  recomputeMemSize = true;
-  recomputeTotalSize = true;
+  recomputeExtSize = true;
+  recomputeSize = true;
 }
 
 /*
@@ -569,6 +569,7 @@ struct PrivateTupleBuffer
     MAX_MEMORY_SIZE( maxMemorySize ),
     diskBuffer( 0 ),
     inMemory( true ),
+    totalExtSize( 0 ),
     totalSize( 0 )
     {}
 /*
@@ -609,9 +610,16 @@ The buffer stored on disk.
 A flag that tells if the buffer fit in memory or not.
 
 */
+  double totalExtSize;
+/*
+The total size occupied by the tuples in the buffer,
+taking into account the small FLOBs.
+
+*/
   double totalSize;
 /*
-The total size occupied by the tuples in the buffer.
+The total size occupied by the tuples in the buffer,
+taking into account the FLOBs.
 
 */
 };
@@ -645,6 +653,25 @@ int TupleBuffer::GetNoTuples() const
     return privateTupleBuffer->diskBuffer->GetNoTuples();
 }
 
+double TupleBuffer::GetTotalRootSize() const
+{
+  if( IsEmpty() )
+    return 0;
+
+  return GetNoTuples() * 
+    ( privateTupleBuffer->inMemory ?
+      privateTupleBuffer->memoryBuffer[0]->GetRootSize() :
+      privateTupleBuffer->diskBuffer->GetTupleType()->GetTotalSize() ); 
+}
+
+double TupleBuffer::GetTotalExtSize() const
+{
+  if( privateTupleBuffer->inMemory )
+    return privateTupleBuffer->totalExtSize;
+  else
+    return privateTupleBuffer->diskBuffer->GetTotalExtSize();
+}
+
 double TupleBuffer::GetTotalSize() const
 {
   if( privateTupleBuffer->inMemory )
@@ -670,6 +697,7 @@ void TupleBuffer::Clear()
          i++ )
       delete privateTupleBuffer->memoryBuffer[i];
     privateTupleBuffer->memoryBuffer.clear();
+    privateTupleBuffer->totalExtSize = 0;
     privateTupleBuffer->totalSize = 0;
   }
   else
@@ -682,12 +710,13 @@ void TupleBuffer::AppendTuple( Tuple *t )
 {
   if( privateTupleBuffer->inMemory )
   {
-    if( privateTupleBuffer->totalSize + t->GetMemorySize() <= 
+    if( privateTupleBuffer->totalExtSize + t->GetExtSize() <= 
         privateTupleBuffer->MAX_MEMORY_SIZE )
     {
       t->IncReference();
       privateTupleBuffer->memoryBuffer.push_back( t );
-      privateTupleBuffer->totalSize += t->GetMemorySize();
+      privateTupleBuffer->totalExtSize += t->GetExtSize();
+      privateTupleBuffer->totalSize += t->GetSize();
     }
     else
     {
@@ -710,6 +739,7 @@ void TupleBuffer::AppendTuple( Tuple *t )
         iter++;
       }
       privateTupleBuffer->memoryBuffer.clear();
+      privateTupleBuffer->totalExtSize = 0;
       privateTupleBuffer->totalSize = 0;
       privateTupleBuffer->diskBuffer->AppendTuple( t );
       privateTupleBuffer->inMemory = false;
@@ -849,23 +879,19 @@ Relation::pointerTable;
 Relation::Relation( const ListExpr typeInfo, bool isTemp ):
 privateRelation( new PrivateRelation( typeInfo, isTemp ) )
 {
-  RelationDescriptor d( privateRelation->noTuples,
-                        privateRelation->totalSize,
-                        privateRelation->tupleFile.GetFileId(),
-                        privateRelation->lobFileId );
-  if( pointerTable.find( d ) == pointerTable.end() )
-    pointerTable.insert( make_pair( d, this ) );
+  if( pointerTable.find( privateRelation->relDescriptor ) == 
+                         pointerTable.end() )
+    pointerTable.insert( make_pair( privateRelation->relDescriptor, 
+                                    this ) );
 }
 
 Relation::Relation( TupleType *tupleType, bool isTemp ):
 privateRelation( new PrivateRelation( tupleType, isTemp ) )
 {
-  RelationDescriptor d( privateRelation->noTuples,
-                        privateRelation->totalSize,
-                        privateRelation->tupleFile.GetFileId(),
-                        privateRelation->lobFileId );
-  if( pointerTable.find( d ) == pointerTable.end() )
-    pointerTable.insert( make_pair( d, this ) );
+  if( pointerTable.find( privateRelation->relDescriptor ) == 
+                         pointerTable.end() )
+    pointerTable.insert( make_pair( privateRelation->relDescriptor, 
+                                    this ) );
 }
 
 Relation::Relation( TupleType *tupleType, 
@@ -908,38 +934,34 @@ Relation::RestoreFromList( ListExpr typeInfo, ListExpr value,
 {
   RelationDescriptor relDesc( nl->IntValue( nl->First( value ) ),
                               nl->RealValue( nl->Second( value ) ),
-                              nl->IntValue( nl->Third( value ) ),
-                              nl->IntValue( nl->Fourth( value ) ));
+                              nl->RealValue( nl->Third( value ) ),
+                              nl->IntValue( nl->Fourth( value ) ),
+                              nl->IntValue( nl->Fifth( value ) ));
   return new Relation( typeInfo, relDesc );
 }
 
 ListExpr 
 Relation::SaveToList( ListExpr typeInfo )
 {
-  return nl->FourElemList( 
-           nl->IntAtom( privateRelation->noTuples ),
-           nl->RealAtom( privateRelation->totalSize ),
-           nl->IntAtom( privateRelation->tupleFile.GetFileId() ),
-           nl->IntAtom( privateRelation->lobFileId ) );
+  return nl->FiveElemList( 
+    nl->IntAtom( privateRelation->relDescriptor.noTuples ),
+    nl->RealAtom( privateRelation->relDescriptor.totalExtSize ),
+    nl->RealAtom( privateRelation->relDescriptor.totalSize ),
+    nl->IntAtom( privateRelation->relDescriptor.tupleFileId ),
+    nl->IntAtom( privateRelation->relDescriptor.lobFileId ) );
 }
 
 Relation *
 Relation::Open( SmiRecord& valueRecord, size_t& offset, 
                 const ListExpr typeInfo )
 {
-  SmiFileId tupleId, lobId;
-  int noTuples;
-  double totalSize;
-  valueRecord.Read( &tupleId, sizeof( SmiFileId ), offset );
-  offset += sizeof( SmiFileId );
-  valueRecord.Read( &lobId, sizeof( SmiFileId ), offset );
-  offset += sizeof( SmiFileId );
-  valueRecord.Read( &noTuples, sizeof( int ), offset );
-  offset += sizeof( int );
-  valueRecord.Read( &totalSize, sizeof( double ), offset );
-  offset += sizeof( double );
+  RelationDescriptor relDesc;
 
-  RelationDescriptor relDesc( noTuples, totalSize, tupleId, lobId );
+  valueRecord.Read( &relDesc, 
+                    sizeof( RelationDescriptor ), 
+                    offset );
+  offset += sizeof( RelationDescriptor );
+
   return new Relation( typeInfo, relDesc );
 }
 
@@ -947,18 +969,10 @@ bool
 Relation::Save( SmiRecord& valueRecord, size_t& offset, 
                 const ListExpr typeInfo )
 {
-  SmiFileId tupleId = privateRelation->tupleFile.GetFileId(),
-            lobId = privateRelation->lobFileId;
-  valueRecord.Write( &tupleId, sizeof(SmiFileId), offset );
-  offset += sizeof(SmiFileId);
-  valueRecord.Write( &lobId, sizeof(SmiFileId), offset );
-  offset += sizeof(SmiFileId);
-  valueRecord.Write( &(privateRelation->noTuples), sizeof(int), 
+  valueRecord.Write( &privateRelation->relDescriptor, 
+                     sizeof(RelationDescriptor),
                      offset );
-  offset += sizeof(int);
-  valueRecord.Write( &(privateRelation->totalSize), sizeof(double),
-                     offset );
-  offset += sizeof(double);
+  offset += sizeof(RelationDescriptor);
 
   return true;
 }
@@ -972,8 +986,9 @@ void Relation::Delete()
 {
   privateRelation->tupleFile.Close();
   privateRelation->tupleFile.Drop();
-  qp->GetFLOBCache()->Drop( privateRelation->lobFileId, 
-                            privateRelation->isTemp );
+  qp->GetFLOBCache()->Drop( 
+    privateRelation->relDescriptor.lobFileId, 
+    privateRelation->isTemp );
   delete this;
 }
 
@@ -995,27 +1010,36 @@ Relation *Relation::Clone()
 
 void Relation::AppendTuple( Tuple *tuple )
 {
-  privateRelation->totalSize +=
-    tuple->GetPrivateTuple()->Save( &privateRelation->tupleFile, 
-                                    privateRelation->lobFileId );
-  privateRelation->noTuples += 1;
+  long extSize, size;
+  tuple->GetPrivateTuple()->Save( 
+    &privateRelation->tupleFile, 
+    privateRelation->relDescriptor.lobFileId,
+    extSize, size );
+  privateRelation->relDescriptor.totalExtSize += 
+    extSize;
+  privateRelation->relDescriptor.totalSize += 
+    size;
+  privateRelation->relDescriptor.noTuples += 1;
 }
  
 void Relation::Clear()
 {
-  privateRelation->noTuples = 0;
-  privateRelation->totalSize = 0;
+  privateRelation->relDescriptor.noTuples = 0;
+  privateRelation->relDescriptor.totalExtSize = 0;
+  privateRelation->relDescriptor.totalSize = 0;
   privateRelation->tupleFile.Truncate();
-  qp->GetFLOBCache()->Truncate( privateRelation->lobFileId, 
-                                privateRelation->isTemp );
+  qp->GetFLOBCache()->Truncate( 
+    privateRelation->relDescriptor.lobFileId, 
+    privateRelation->isTemp );
 }
 
 Tuple *Relation::GetTuple( const TupleId& id ) const
 {
   Tuple *result = new Tuple( privateRelation->tupleType );
-  if( result->GetPrivateTuple()->Open( &privateRelation->tupleFile,
-                                       privateRelation->lobFileId,
-                                       id ) )
+  if( result->GetPrivateTuple()->Open( 
+        &privateRelation->tupleFile,
+        privateRelation->relDescriptor.lobFileId,
+        id ) )
     return result;
 
   delete result;
@@ -1024,7 +1048,7 @@ Tuple *Relation::GetTuple( const TupleId& id ) const
 
 int Relation::GetNoTuples() const
 {
-  return privateRelation->noTuples;
+  return privateRelation->relDescriptor.noTuples;
 }
 
 TupleType *Relation::GetTupleType() const
@@ -1032,9 +1056,20 @@ TupleType *Relation::GetTupleType() const
   return privateRelation->tupleType;
 }
 
+double Relation::GetTotalRootSize() const
+{
+  return privateRelation->relDescriptor.noTuples *
+         privateRelation->tupleType->GetTotalSize();
+}
+
+double Relation::GetTotalExtSize() const
+{
+  return privateRelation->relDescriptor.totalExtSize;
+}
+
 double Relation::GetTotalSize() const
 {
-  return privateRelation->totalSize;
+  return privateRelation->relDescriptor.totalSize;
 }
 
 RelationIterator *Relation::MakeScan() const
@@ -1122,7 +1157,8 @@ Tuple* RelationIterator::GetNextTuple()
     privateRelationIterator->relation.privateRelation->tupleType );
   result->GetPrivateTuple()->Open( 
     &privateRelationIterator->relation.privateRelation->tupleFile,
-    privateRelationIterator->relation.privateRelation->lobFileId,
+    privateRelationIterator->relation.
+      privateRelation->relDescriptor.lobFileId,
     privateRelationIterator->iterator );
   privateRelationIterator->currentTupleId = result->GetTupleId();
   return result;

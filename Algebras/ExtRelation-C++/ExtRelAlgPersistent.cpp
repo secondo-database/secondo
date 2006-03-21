@@ -90,7 +90,8 @@ public:
     cmpPtr(0) 
   {};
   
-  TupleAndRelPos(Tuple* newTuple, TupleCompareBy* cmpObjPtr = 0, int newPos = 0) :
+  TupleAndRelPos(Tuple* newTuple, TupleCompareBy* cmpObjPtr = 0, 
+                 int newPos = 0) :
     tuple(newTuple),
     pos(newPos),
     cmpPtr(cmpObjPtr)
@@ -181,14 +182,19 @@ class SortByLocalInfo
     SortByLocalInfo( Word stream, const bool lexicographic, void *tupleCmp ):
       stream( stream ),
       currentIndex( 0 ),
-      lexiTupleCmp( lexicographic ? (LexicographicalTupleCompare*)tupleCmp : 0 ),
+      lexiTupleCmp( lexicographic ? 
+                    (LexicographicalTupleCompare*)tupleCmp : 
+                    0 ),
       tupleCmpBy( lexicographic ? 0 : (TupleCompareBy*)tupleCmp ),
       lexicographic( lexicographic )
       {
-        // Note: Is is not possible to define a Cmp object using the constructor 
-        // mergeTuples( PairTupleCompareBy( tupleCmpBy )). It does only work if
-        // mergeTuples is a local variable which does not help us in this case.
-        // Hence a new class TupleAndRelPos was defined to define a '<' operator. 
+        // Note: Is is not possible to define a Cmp object using the 
+        // constructor 
+        // mergeTuples( PairTupleCompareBy( tupleCmpBy )). 
+        // It does only work if mergeTuples is a local variable which 
+        // does not help us in this case.
+        // Hence a new class TupleAndRelPos was defined to define a 
+        // '<' operator. 
         TupleQueue* currentRun = &queue[0];
         TupleQueue* nextRun = &queue[1];
        
@@ -213,12 +219,12 @@ class SortByLocalInfo
           c++; // tuple counter;
           Tuple *t = static_cast<Tuple*>( wTuple.addr );
           TupleAndRelPos nextTuple(t, tupleCmpBy); 
-          if( MAX_MEMORY > (size_t)t->GetMemorySize() )
+          if( MAX_MEMORY > (size_t)t->GetExtSize() )
           {
             nextTuple.tuple->IncReference();
             currentRun->push(nextTuple);
             i++; // increment Tuples in memory counter
-            MAX_MEMORY -= t->GetMemorySize();
+            MAX_MEMORY -= t->GetExtSize();
           }
           else 
           { // memory is completely used 
@@ -501,13 +507,16 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
             boolWord = SetWord(args[2 * i + 2].addr);
 
           sortOrderIsAscending = ((CcBool*)boolWord.addr)->GetBoolval();
-          spec.push_back(pair<int, bool>(sortAttrIndex, sortOrderIsAscending));
+          spec.push_back(pair<int, bool>(sortAttrIndex, 
+                                         sortOrderIsAscending));
         };
 
         tupleCmp = new TupleCompareBy( spec );
       }
 
-      local = SetWord(new SortByLocalInfo( args[0], lexicographically, tupleCmp ));
+      local = SetWord(new SortByLocalInfo( args[0], 
+                                           lexicographically,  
+                                           tupleCmp ));
       return 0;
     }
     case REQUEST:
@@ -592,7 +601,8 @@ private:
       return 1;
     }
 
-    return ((Attribute*)a->GetAttribute(attrIndexA))->Compare((Attribute*)b->GetAttribute(attrIndexB));
+    return ((Attribute*)a->GetAttribute(attrIndexA))->
+             Compare((Attribute*)b->GetAttribute(attrIndexB));
   }
 
   void SetArgs(ArgVector& args, Word stream, Word attrIndex)
@@ -614,7 +624,8 @@ private:
     }
     else
     {
-      int errorCode = SortBy<false, false>(aArgs, aResult, REQUEST, streamALocalInfo, 0);
+      int errorCode = 
+        SortBy<false, false>(aArgs, aResult, REQUEST, streamALocalInfo, 0);
       yield = (errorCode == YIELD);
     }
 
@@ -640,7 +651,8 @@ private:
     }
     else
     {
-      int errorCode = SortBy<false, false>(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
+      int errorCode = 
+        SortBy<false, false>(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
       yield = (errorCode == YIELD);
     }
 
@@ -675,7 +687,7 @@ private:
 
     if( (t = iter->GetNextTuple()) != 0 )
     {
-      memory += t->GetMemorySize();
+      memory += t->GetExtSize();
       while( memory < MAX_MEMORY / 2)
       {
         t->IncReference();
@@ -683,7 +695,7 @@ private:
         t = iter->GetNextTuple();
         if( t == 0 )
           break;
-        memory += t->GetMemorySize();
+        memory += t->GetExtSize();
       }
     }
   }
@@ -891,8 +903,8 @@ public:
         tupleB->IncReference();
         bucketB.push_back( tupleB );
 
-        size_t bucketASize = tupleA->GetMemorySize(),
-               bucketBSize = tupleB->GetMemorySize();
+        size_t bucketASize = tupleA->GetExtSize(),
+               bucketBSize = tupleB->GetExtSize();
 
         tupleA = NextATuple();
         if ( tupleA && RTFlag::isActive(traceFlag) ) 
@@ -904,7 +916,7 @@ public:
 
         while( tupleA != 0 && CompareTuples( tupleA, equalTupleB ) == 0 )
         {
-          bucketASize += tupleA->GetMemorySize();
+          bucketASize += tupleA->GetExtSize();
           if( bucketASize > MAX_MEMORY / 2 )
           {
             relationA = new Relation( tupleA->GetTupleType(), true );
@@ -942,7 +954,7 @@ public:
 
         while( tupleB != 0 && CompareTuples( equalTupleA, tupleB ) == 0 )
         {
-          bucketBSize += tupleB->GetMemorySize();
+          bucketBSize += tupleB->GetExtSize();
           if( bucketBSize > MAX_MEMORY / 2 )
           {
             relationB = new Relation( tupleB->GetTupleType(), true );
@@ -1105,7 +1117,9 @@ private:
 
   size_t HashTuple(Tuple* tuple, int attrIndex)
   {
-    return (((StandardAttribute*)tuple->GetAttribute(attrIndex))->HashValue() % nBuckets);
+    return 
+      (((StandardAttribute*)tuple->GetAttribute(attrIndex))->HashValue() % 
+      nBuckets);
   }
 
   void ClearBucket( vector<Tuple*>& bucket )
@@ -1158,7 +1172,7 @@ private:
     while(qp->Received(streamB.addr) )
     {
       Tuple* tupleB = (Tuple*)wTupleB.addr;
-      b += tupleB->GetMemorySize();
+      b += tupleB->GetExtSize();
       i++;
       if( b > bucketsB_Mem )
       {
@@ -1202,7 +1216,8 @@ public:
     this->streamA = streamA;
     this->streamB = streamB;
 
-    ListExpr resultType = SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
+    ListExpr resultType = 
+      SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
     resultTupleType = new TupleType( nl->Second( resultType ) );
 
     attrIndexA = ((CcInt*)attrIndexAWord.addr)->GetIntval() - 1;
@@ -1287,7 +1302,7 @@ bucket that the tuple coming from A hashes is also initialized.
         {
           cmsg.info("ERA:ShowMemInfo") 
             << "TupleBuffer for relA can hold " 
-            << relA_Mem / tupleA->GetMemorySize() << " tuples" << endl;
+            << relA_Mem / tupleA->GetExtSize() << " tuples" << endl;
           cmsg.send();
           memInfoShown = true;
         }
@@ -1389,12 +1404,16 @@ The compiler cannot expand these template functions.
 
 */
 template int
-SortBy<false, true>(Word* args, Word& result, int message, Word& local, Supplier s);
+SortBy<false, true>(Word* args, Word& result, int message, 
+                    Word& local, Supplier s);
 template int
-SortBy<true, true>(Word* args, Word& result, int message, Word& local, Supplier s);
+SortBy<true, true>(Word* args, Word& result, int message, 
+                   Word& local, Supplier s);
 template int
-MergeJoin<true>(Word* args, Word& result, int message, Word& local, Supplier s);
+MergeJoin<true>(Word* args, Word& result, int message, 
+                Word& local, Supplier s);
 template int
-MergeJoin<false>(Word* args, Word& result, int message, Word& local, Supplier s);
+MergeJoin<false>(Word* args, Word& result, int message, 
+                 Word& local, Supplier s);
 
 #endif // RELALG_PERSISTENT

@@ -421,12 +421,21 @@ disk. The implementation of this function is found in the
 Update Relation Algebra.
 
 */
-    inline int GetMemorySize()
+    inline int GetRootSize() const
     {
-      if ( !recomputeMemSize ) 
-        return tupleMemSize;
+      return privateTuple->tupleType->GetTotalSize();
+    }
+/*
+Returns the size of the tuple's root part.
 
-      int extensionSize = 0;
+*/
+
+    inline int GetExtSize() const
+    {
+      if ( !recomputeExtSize ) 
+        return tupleExtSize;
+
+      tupleExtSize = privateTuple->tupleType->GetTotalSize();
       for( int i = 0; 
            i < privateTuple->tupleType->GetNoAttributes(); i++)
       {
@@ -435,39 +444,37 @@ Update Relation Algebra.
         {
           FLOB *tmpFLOB = privateTuple->attributes[i]->GetFLOB(j);
           if( !tmpFLOB->IsLob() )
-            extensionSize += tmpFLOB->Size();
+            tupleExtSize += tmpFLOB->Size();
         }
       }
-      tupleMemSize = 
-        privateTuple->tupleType->GetTotalSize() + extensionSize;
-      recomputeMemSize = false;
-      return tupleMemSize; 
+      recomputeExtSize = false;
+      return tupleExtSize; 
     }
 /*
-Returns the size of the memory (in bytes) used by the tuple.
+Returns the size of the tuple taking into account the extension
+part, i.e. the small FLOBs.
 
 */
-    inline int GetTotalSize()
+    inline int GetSize() const
     {
-      if ( !recomputeTotalSize ) 
-        return tupleTotalSize;
+      if ( !recomputeSize ) 
+        return tupleSize;
 
-      int totalSize = privateTuple->tupleType->GetTotalSize();
+      tupleSize = privateTuple->tupleType->GetTotalSize();
       for( int i = 0; 
            i < privateTuple->tupleType->GetNoAttributes(); i++)
       {
         for( int j = 0; 
              j < privateTuple->attributes[i]->NumOfFLOBs(); j++)
-          totalSize += 
+          tupleSize += 
             privateTuple->attributes[i]->GetFLOB(j)->Size();
       }
-      tupleTotalSize = totalSize;
-      recomputeTotalSize = false;
-      return tupleTotalSize;
+      recomputeSize = false;
+      return tupleSize;
     }
 /*
-Returns the total size of the tuple taking into consideration the 
-tuple and the FLOBs.
+Returns the total size of the tuple taking into account the 
+the FLOBs.
 
 */
     inline void CopyAttribute( int sourceIndex, 
@@ -566,8 +573,8 @@ Initializes the attributes array with zeros.
 */
     inline void Init( int NoAttr, PrivateTuple* pt )
     {
-      recomputeTotalSize = true;
-      recomputeMemSize = true;
+      recomputeExtSize = true;
+      recomputeSize = true;
 
       noAttributes = NoAttr;
       
@@ -581,8 +588,8 @@ Initializes the attributes array with zeros.
       pt->attributes = attributes;
       InitAttrArray();
 
-      tupleMemSize = 0;
-      tupleTotalSize = 0;
+      tupleExtSize = 0;
+      tupleSize = 0;
 
       tuplesCreated++;
       tuplesInMemory++;
@@ -609,21 +616,25 @@ the tuple will be deleted.
 
 */
 
-    bool recomputeMemSize;
-    bool recomputeTotalSize;
+    mutable bool recomputeExtSize;
+    mutable bool recomputeSize;
 /*
 These two flags together with the next two attributes are used
-in order to avoid re-computing the memory and the total sizes of
+in order to avoid re-computing the extension and the total sizes of
 tuples. The first time these sizes are computed they are stored.
 
 */
 
-    int tupleMemSize;
-    int tupleTotalSize;
+    mutable int tupleExtSize;
 /*
-Store the values of the tuple memory and total size. The memory
-size of a tuple does not take the big FLOBs into consideration,
-which the total size does.
+Stores the size of the tuples taking into account the extension
+part of the tuple, i.e. the small FLOBs.
+
+*/
+    mutable int tupleSize;
+/*
+Stores the total size of the tuples taking into account the 
+FLOBs.
 
 */
     int noAttributes;
@@ -782,9 +793,24 @@ The virtual destructor.
 The function to return the number of tuples.
 
 */
+    virtual double GetTotalRootSize() const = 0;
+/*
+The function to return the total size of the relation
+in bytes, taking into account only the root part of the 
+tuples.
+
+*/
+    virtual double GetTotalExtSize() const = 0;
+/*
+The function to return the total size of the relation
+in bytes, taking into account the root part of the 
+tuples and the extension part, i.e. the small FLOBs. 
+
+*/
     virtual double GetTotalSize() const = 0;
 /*
-The function to return the total size in bytes.
+The function to return the total size of the relation
+in bytes.
 
 */
     virtual void Clear() = 0;
@@ -903,9 +929,24 @@ The destructor. Deletes (if allowed) all tuples.
 Returns the number of tuples in the buffer.
 
 */
+    double GetTotalRootSize() const;
+/*
+The function to return the total size of the buffer
+in bytes, taking into account only the root part of the
+tuples.
+
+*/
+    double GetTotalExtSize() const;
+/*
+The function to return the total size of the buffer
+in bytes, taking into account the root part of the
+tuples and the extension part, i.e. the small FLOBs.
+
+*/
     double GetTotalSize() const;
 /*
-Returns the total size of the buffer in bytes.
+The function to return the total size of the buffer
+in bytes.
 
 */
     bool IsEmpty() const;
@@ -1190,9 +1231,24 @@ Clears (empties) a relation removing all its tuples.
 Gets the number of tuples in the relation.
 
 */
+    double GetTotalRootSize() const;
+/*
+The function to return the total size of the relation
+in bytes, taking into account only the root part of the
+tuples.
+
+*/
+    double GetTotalExtSize() const;
+/*
+The function to return the total size of the relation
+in bytes, taking into account the root part of the
+tuples and the extension part, i.e. the small FLOBs.
+
+*/
     double GetTotalSize() const;
 /*
-Returns the total size of the relation in bytes.
+The function to return the total size of the relation
+in bytes.
 
 */
     RelationIterator *MakeScan() const;

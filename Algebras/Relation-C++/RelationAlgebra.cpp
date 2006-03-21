@@ -125,9 +125,9 @@ ListExpr TupleProp ()
   return (nl->TwoElemList(
             nl->FourElemList(
               nl->StringAtom("Signature"),
-	            nl->StringAtom("Example Type List"),
-			        nl->StringAtom("List Rep"),
-			        nl->StringAtom("Example List")),
+              nl->StringAtom("Example Type List"),
+              nl->StringAtom("List Rep"),
+              nl->StringAtom("Example List")),
             nl->FourElemList(
               nl->StringAtom("(ident x DATA)+ -> TUPLE"),
               nl->StringAtom("(tuple((name string)(age int)))"),
@@ -450,10 +450,10 @@ constructor's name and the eleven functions previously defined.
 TypeConstructor cpptuple( "tuple",         TupleProp,
                           OutTuple,        InTuple,
                           SaveToListTuple, RestoreFromListTuple,
-                          CreateTuple,		 DeleteTuple,
+                          CreateTuple,     DeleteTuple,
                           0,               0,
-                          CloseTuple, 		 CloneTuple,
-                          CastTuple,   		 SizeOfTuple,
+                          CloseTuple,      CloneTuple,
+                          CastTuple,       SizeOfTuple,
                           CheckTuple );
 /*
 4 TypeConstructor ~rel~
@@ -729,7 +729,7 @@ constructor's name and the eleven functions previously defined.
 TypeConstructor cpprel( "rel",           RelProp,
                         OutRel,          InRel,
                         SaveToListRel,   RestoreFromListRel,
-                        CreateRel, 	     DeleteRel,
+                        CreateRel,       DeleteRel,
                         OpenRel,         SaveRel,
                         CloseRel,        CloneRel,
                         CastRel,         SizeOfRel,
@@ -779,9 +779,9 @@ ListExpr TUPLETypeMap(ListExpr args)
   CHECK_COND( 
     nl->ListLength(first) == 2 &&
     (TypeOfRelAlgSymbol(nl->First(first)) == rel ||
-	   TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-	  nl->ListLength(nl->Second(first)) == 2 &&
-	  TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple, 
+     TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+    nl->ListLength(nl->Second(first)) == 2 &&
+    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple, 
     "Type operator TUPLE expects as argument a list with "
     "structure, (rel(tuple((a1 t1)...(an tn)))) or "
     "(stream(tuple((a1 t1)...(an tn)))).\n"
@@ -795,16 +795,17 @@ ListExpr TUPLETypeMap(ListExpr args)
 
 */
 const string TUPLESpec =
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" "
-	"\"Remarks\" ) "
-	"( <text>((stream x)...) -> x, ((rel x)...) -> "
-	"x</text--->"
-	"<text>type operator</text--->"
-	"<text>Extract tuple type from a stream or "
-	"relation type given as the first argument."
-	"</text--->"
-	"<text>not for use with sos-syntax</text--->"
-	"  ) )";
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Remarks\" ) "
+  "( <text>((stream x)...) -> x, ((rel x)...) -> "
+  "x</text--->"
+  "<text>type operator</text--->"
+  "<text>Extract tuple type from a stream or "
+  "relation type given as the first argument."
+  "</text--->"
+  "<text>not for use with sos-syntax</text--->"
+  "  ) )";
+
 /*
 
 5.3.3 Definition of operator ~TUPLE~
@@ -891,7 +892,7 @@ A nested list describing the output type of the operator is returned.
 
 Result type of feed operation.
 
-----	((rel x))		-> (stream x)
+----    ((rel x))  -> (stream x)
 ----
 
 */
@@ -909,13 +910,13 @@ ListExpr FeedTypeMap(ListExpr args)
     nl->ListLength(first) == 2 &&
     TypeOfRelAlgSymbol(nl->First(first)) == rel &&
     (!(nl->IsAtom(nl->Second(first)) ||
-    nl->IsEmpty(nl->Second(first))) &&	     
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),	 
+    nl->IsEmpty(nl->Second(first))) &&    
+    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),
   "Operator feed expects an argument of type relation, "
   "(rel(tuple((a1 t1)...(an tn)))).\n"
   "Operator feed gets an argument of type '" + argstr + "'."
   " Relation name not known in the database ?");
-  	    	
+     
   return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
 }
 /*
@@ -1020,7 +1021,7 @@ ListExpr ConsumeTypeMap(ListExpr args)
     ((nl->ListLength(first) == 2) &&
     (TypeOfRelAlgSymbol(nl->First(first)) == stream)) &&
     (!(nl->IsAtom(nl->Second(first)) ||
-       nl->IsEmpty(nl->Second(first))) &&	     
+       nl->IsEmpty(nl->Second(first))) &&    
     (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),
   "Operator consume expects an argument of type (stream(tuple"
   "((a1 t1)...(an tn)))).\n"
@@ -1080,10 +1081,10 @@ const string ConsumeSpec  =
 */
 Operator relalgconsume (
    "consume",              // name
-	 ConsumeSpec,            // specification
-	 Consume,                // value mapping
-	 Operator::SimpleSelect, // trivial selection function
-	 ConsumeTypeMap          // type mapping
+   ConsumeSpec,            // specification
+   Consume,                // value mapping
+   Operator::SimpleSelect, // trivial selection function
+   ConsumeTypeMap          // type mapping
 );
 
 /*
@@ -1245,7 +1246,7 @@ ListExpr FilterTypeMap(ListExpr args)
   CHECK_COND(
     nl->ListLength(first) == 2 &&
     TypeOfRelAlgSymbol(nl->First(first)) == stream &&
-	  nl->ListLength(nl->Second(first)) == 2 &&
+    nl->ListLength(nl->Second(first)) == 2 &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
     "Operator filter expects as first argument a list with "
     "structure (stream (tuple ((a1 t1)...(an tn))))\n"
@@ -1360,12 +1361,11 @@ Operator relalgfilter (
 
 Result type of project operation.
 
-----	((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik))	->
-
-		(APPEND
-			(k (i1 ... ik))
-			(stream (tuple ((ai1 Ti1) ... (aik Tik))))
-		)
+----  ((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik))  ->
+        (APPEND
+          (k (i1 ... ik))
+          (stream (tuple ((ai1 Ti1) ... (aik Tik))))
+        )
 ----
 
 The type mapping computes the number of attributes and the list of 
@@ -1396,7 +1396,7 @@ ListExpr ProjectTypeMap(ListExpr args)
   CHECK_COND(
     nl->ListLength(first) == 2 &&
     TypeOfRelAlgSymbol(nl->First(first)) == stream &&
-	  nl->ListLength(nl->Second(first)) == 2 &&
+    nl->ListLength(nl->Second(first)) == 2 &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
     "Operator project expects a list with structure " 
     "(stream (tuple ((a1 t1)...(an tn))))\n"
@@ -1435,7 +1435,7 @@ ListExpr ProjectTypeMap(ListExpr args)
         newAttrList = 
           nl->OneElemList(nl->TwoElemList(first2, attrtype));
         lastNewAttrList = newAttrList;
-	      numberList = nl->OneElemList(nl->IntAtom(j));
+        numberList = nl->OneElemList(nl->IntAtom(j));
         lastNumberList = numberList;
       }
       else
@@ -1565,9 +1565,8 @@ Operator relalgproject (
 
 Result type of product operation.
 
-----	((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym))))
-
-				-> (stream (tuple (x1 ... xn y1 ... ym)))
+----  ((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym))))
+        -> (stream (tuple (x1 ... xn y1 ... ym)))
 ----
 
 */
@@ -1584,7 +1583,7 @@ ListExpr ProductTypeMap(ListExpr args)
   nl->WriteToString(argstr, first);  
   CHECK_COND(nl->ListLength(first) == 2 &&
     TypeOfRelAlgSymbol(nl->First(first)) == stream &&
-	  nl->ListLength(nl->Second(first)) == 2 &&
+    nl->ListLength(nl->Second(first)) == 2 &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
     "Operator product expects a first list with structure " 
     "(stream (tuple ((a1 t1)...(an tn))))\n"
@@ -1596,7 +1595,7 @@ ListExpr ProductTypeMap(ListExpr args)
   nl->WriteToString(argstr, second);  
   CHECK_COND(nl->ListLength(second) == 2 &&
     TypeOfRelAlgSymbol(nl->First(second)) == stream &&
-	  nl->ListLength(nl->Second(second)) == 2 &&
+    nl->ListLength(nl->Second(second)) == 2 &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple,
     "Operator product expects a second list with structure " 
     "(stream (tuple ((a1 t1)...(an tn))))\n"
@@ -1826,8 +1825,8 @@ TCountTypeMap(ListExpr args)
   nl->WriteToString(argstr, first);    
   CHECK_COND( nl->ListLength(first) == 2 && 
     nl->ListLength(nl->Second(first)) == 2 &&
-	  (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
-	  TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
+    (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
+    TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
     "Operator count expects a list with structure " 
     "(stream (tuple ((a1 t1)...(an tn)))) or "
@@ -1937,6 +1936,246 @@ Operator relalgcount (
 );
 
 /*
+5.11 Operator ~roottuplesize~
+
+Reports the size of the tuples' root part in a relation. This operator 
+is useful for the optimizer, but it is usable as an operator itself.
+
+5.11.1 Type mapping function of operator ~roottuplesize~
+
+Operator ~roottuplesize~ accepts a relation or a stream of tuples and 
+returns an integer.
+
+----    (rel     (tuple x))                 -> int
+        (stream  (tuple x))                 -> int
+----
+
+*/
+ListExpr
+RootTupleSizeTypeMap(ListExpr args)
+{
+  ListExpr first;
+  string argstr;
+  
+  CHECK_COND(nl->ListLength(args) == 1,
+  "Operator tuplesize expects a list of length one.");
+
+  first = nl->First(args);
+  
+  nl->WriteToString(argstr, first);    
+  CHECK_COND( nl->ListLength(first) == 2 && 
+    nl->ListLength(nl->Second(first)) == 2 &&
+    (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
+    TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
+    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
+    "Operator roottuplesize expects a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn)))) or "
+    "(rel (tuple ((a1 t1)...(an tn))))\n"
+    "Operator roottuplesize gets a list with structure '" + 
+    argstr + "'.");
+  
+  return nl->SymbolAtom("int");
+}
+
+/*
+
+5.11.2 Value mapping functions of operator ~roottuplesize~
+
+*/
+int
+RootTupleSizeStream(Word* args, Word& result, int message, 
+                    Word& local, Supplier s)
+{
+  Word elem;
+  int count = 0;
+  double totalSize = 0;
+
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, elem);
+  while ( qp->Received(args[0].addr) )
+  {
+    totalSize += ((Tuple*)elem.addr)->GetRootSize();
+    count++;
+    ((Tuple*)elem.addr)->DeleteIfAllowed();
+    qp->Request(args[0].addr, elem);
+  }
+  result = qp->ResultStorage(s);
+
+  ((CcInt*) result.addr)->Set( true, (int)(totalSize / count) );
+  qp->Close(args[0].addr);
+  return 0;
+}
+
+int
+RootTupleSizeRel(Word* args, Word& result, int message, 
+                 Word& local, Supplier s)
+{
+  Relation* rel = (Relation*)args[0].addr;
+  result = qp->ResultStorage(s);
+  ((CcInt*) result.addr)->
+    Set(true, (int)(rel->GetTotalRootSize() / rel->GetNoTuples()) );
+  return 0;
+}
+
+/*
+
+5.11.3 Specification of operator ~roottuplesize~
+
+*/
+const string RootTupleSizeSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream|rel (tuple x))) -> int"
+  "</text--->"
+  "<text>_ roottuplesize</text--->"
+  "<text>Return the size of the tuples' root part within a "
+  "stream or a relation.</text--->"
+  "<text>query cities roottuplesize or query cities "
+  "feed roottuplesize</text--->"
+  ") )";
+
+/*
+5.11.4 Selection function of operator ~roottuplesize~
+
+This function is the same as for the ~count~ operator.
+
+5.11.5 Definition of operator ~roottuplesize~
+
+*/
+ValueMapping roottuplesizemap[] = {RootTupleSizeStream, 
+                                   RootTupleSizeRel };
+
+Operator relalgroottuplesize (
+         "roottuplesize",           // name
+         RootTupleSizeSpec,         // specification
+         2,                     // number of value mapping functions
+         roottuplesizemap,          // value mapping functions
+         TCountSelect,          // selection function
+         RootTupleSizeTypeMap       // type mapping
+);
+
+/*
+5.11 Operator ~exttuplesize~
+
+Reports the average size of the tuples in a relation taking into
+account the extension part, i.e. the small FLOBs. This operator 
+is useful for the optimizer, but it is usable as an operator itself.
+
+5.11.1 Type mapping function of operator ~exttuplesize~
+
+Operator ~exttuplesize~ accepts a relation or a stream of tuples 
+and returns a real.
+
+----    (rel     (tuple x))                 -> real
+        (stream  (tuple x))                 -> real
+----
+
+*/
+ListExpr
+ExtTupleSizeTypeMap(ListExpr args)
+{
+  ListExpr first;
+  string argstr;
+  
+  CHECK_COND(nl->ListLength(args) == 1,
+  "Operator exttuplesize expects a list of length one.");
+
+  first = nl->First(args);
+  
+  nl->WriteToString(argstr, first);    
+  CHECK_COND( nl->ListLength(first) == 2 && 
+    nl->ListLength(nl->Second(first)) == 2 &&
+    (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
+    TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
+    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
+    "Operator exttuplesize expects a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn)))) or "
+    "(rel (tuple ((a1 t1)...(an tn))))\n"
+    "Operator exttuplesize gets a list with structure '" + 
+    argstr + "'.");
+  
+  return nl->SymbolAtom("real");
+}
+
+/*
+
+5.11.2 Value mapping functions of operator ~exttuplesize~
+
+*/
+int
+ExtTupleSizeStream(Word* args, Word& result, int message, 
+                   Word& local, Supplier s)
+{
+  Word elem;
+  int count = 0;
+  float size = 0;
+
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, elem);
+  while ( qp->Received(args[0].addr) )
+  {
+    size += ((Tuple*)elem.addr)->GetExtSize();
+    count++;
+    ((Tuple*)elem.addr)->DeleteIfAllowed();
+    qp->Request(args[0].addr, elem);
+  }
+  result = qp->ResultStorage(s);
+
+  ((CcReal*) result.addr)->Set(true, size/count);
+  qp->Close(args[0].addr);
+  return 0;
+}
+
+int
+ExtTupleSizeRel(Word* args, Word& result, int message, 
+                Word& local, Supplier s)
+{
+  Relation* rel = (Relation*)args[0].addr;
+  result = qp->ResultStorage(s);
+  ((CcReal*) result.addr)->
+    Set(true, (float)rel->GetTotalExtSize()/rel->GetNoTuples());
+  return 0;
+}
+
+
+/*
+
+5.11.3 Specification of operator ~exttuplesize~
+
+*/
+const string ExtTupleSizeSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream/rel (tuple x))) -> real"
+  "</text--->"
+  "<text>_ exttuplesize</text--->"
+  "<text>Return the average size of the tuples within a stream "
+  "or a relation taking into account the small FLOBs.</text--->"
+  "<text>query cities exttuplesize or query cities "
+  "feed exttuplesize</text--->"
+  ") )";
+
+/*
+5.11.4 Selection function of operator ~exttuplesize~
+
+This function is the same as for the ~count~ operator.
+
+5.11.5 Definition of operator ~exttuplesize~
+
+*/
+ValueMapping exttuplesizemap[] = {ExtTupleSizeStream, 
+                                  ExtTupleSizeRel };
+
+Operator relalgexttuplesize (
+         "exttuplesize",           // name
+         ExtTupleSizeSpec,         // specification
+         2,                     // number of value mapping functions
+         exttuplesizemap,          // value mapping functions
+         TCountSelect,          // selection function
+         ExtTupleSizeTypeMap       // type mapping
+);
+
+/*
 5.11 Operator ~tuplesize~
 
 Reports the average size of the tuples in a relation. This operator 
@@ -1944,10 +2183,11 @@ is useful for the optimizer, but it is usable as an operator itself.
 
 5.11.1 Type mapping function of operator ~tuplesize~
 
-Operator ~tuplesize~ accepts a stream of tuples and returns an 
-integer.
+Operator ~tuplesize~ accepts a stream of tuples and returns a 
+real.
 
-----    (stream  (tuple x))                 -> real
+----    (real    (tuple x))                 -> real
+        (stream  (tuple x))                 -> real
 ----
 
 */
@@ -1965,8 +2205,8 @@ TupleSizeTypeMap(ListExpr args)
   nl->WriteToString(argstr, first);    
   CHECK_COND( nl->ListLength(first) == 2 && 
     nl->ListLength(nl->Second(first)) == 2 &&
-	  (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
-	  TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
+    (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
+    TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
     "Operator tuplesize expects a list with structure " 
     "(stream (tuple ((a1 t1)...(an tn)))) or "
@@ -1979,7 +2219,7 @@ TupleSizeTypeMap(ListExpr args)
 
 /*
 
-5.11.2 Value mapping functions of operator ~count~
+5.11.2 Value mapping functions of operator ~tuplesize~
 
 */
 int
@@ -1988,20 +2228,20 @@ TupleSizeStream(Word* args, Word& result, int message,
 {
   Word elem;
   int count = 0;
-  float totalSize = 0;
+  float size = 0;
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, elem);
   while ( qp->Received(args[0].addr) )
   {
-    totalSize += ((Tuple*)elem.addr)->GetTotalSize();
+    size += ((Tuple*)elem.addr)->GetSize();
     count++;
     ((Tuple*)elem.addr)->DeleteIfAllowed();
     qp->Request(args[0].addr, elem);
   }
   result = qp->ResultStorage(s);
 
-  ((CcReal*) result.addr)->Set(true, totalSize/count);
+  ((CcReal*) result.addr)->Set(true, size/count);
   qp->Close(args[0].addr);
   return 0;
 }
@@ -2030,7 +2270,7 @@ const string TupleSizeSpec  =
   "</text--->"
   "<text>_ tuplesize</text--->"
   "<text>Return the average size of the tuples within a stream "
-  "or a relation.</text--->"
+  "or a relation taking into account the FLOBs.</text--->"
   "<text>query cities tuplesize or query cities "
   "feed tuplesize</text--->"
   ") )";
@@ -2064,7 +2304,7 @@ as parameter.
 
 Type mapping for ~rename~ is
 
-----	((stream (tuple([a1:d1, ... ,an:dn)))ar) ->
+----  ((stream (tuple([a1:d1, ... ,an:dn)))ar) ->
            (stream (tuple([a1ar:d1, ... ,anar:dn)))
 ----
 
@@ -2088,7 +2328,7 @@ RenameTypeMap( ListExpr args )
   nl->WriteToString(argstr, first);  
   CHECK_COND( nl->ListLength(first) == 2   &&
     TypeOfRelAlgSymbol(nl->First(first) == stream) &&
-	  TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
+    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
     "Operator rename expects as first argument a list with "
     "structure (stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator rename gets a list with structure '" + argstr + "'.");
@@ -2234,8 +2474,8 @@ ListExpr MConsumeTypeMap(ListExpr args)
   nl->WriteToString(argstr, first);  
   CHECK_COND( nl->ListLength(first) == 2 &&
     TypeOfRelAlgSymbol(nl->First(first) == stream) &&
-	  nl->ListLength(nl->Second(first)) == 2 &&
-	  TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
+    nl->ListLength(nl->Second(first)) == 2 &&
+    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
   "Operator mconsume expects as argument a list with structure " 
   "(stream (tuple ((a1 t1)...(an tn))))\n"
   "Operator mconsume gets a list with structure '" + argstr + "'.");
@@ -2302,10 +2542,10 @@ const string MConsumeSpec  =
 */
 Operator relalgmconsume (
    "mconsume",             // name
-	 MConsumeSpec,           // specification
-	 MConsume,               // value mapping
-	 Operator::SimpleSelect, // trivial selection function
-	 MConsumeTypeMap         // type mapping
+   MConsumeSpec,           // specification
+   MConsume,               // value mapping
+   Operator::SimpleSelect, // trivial selection function
+   MConsumeTypeMap         // type mapping
 );
 
 /*
@@ -2339,6 +2579,8 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgproject);
     AddOperator(&relalgproduct);
     AddOperator(&relalgcount);
+    AddOperator(&relalgroottuplesize);
+    AddOperator(&relalgexttuplesize);
     AddOperator(&relalgtuplesize);
     AddOperator(&relalgrename);
     AddOperator(&relalgmconsume);

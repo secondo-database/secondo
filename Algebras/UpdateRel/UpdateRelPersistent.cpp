@@ -24,7 +24,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the Module Update Relation Algebra for Persistent storage
+[1] Implementation of the Module Update Relation Algebra for persistent 
+storage
 
 June 2005 Matthias Zielke
 
@@ -52,12 +53,13 @@ extern QueryProcessor* qp;
 /*
 2 Class ~Tuple~
 
-Updates the tuple by replacing the old attributes at the positions given by 'changedIndices'
-with the new ones from 'newAttrs'. If the old attribute had FLOBs they are destroyed so that there
-is no garbage left on the disk.
+Updates the tuple by replacing the old attributes at the positions given 
+by 'changedIndices' with the new ones from 'newAttrs'. If the old attribute 
+had FLOBs they are destroyed so that there is no garbage left on the disk.
 
 */
-void Tuple::UpdateAttributes(const vector<int>& changedIndices, const vector<Attribute*>& newAttrs)
+void Tuple::UpdateAttributes( const vector<int>& changedIndices, 
+                              const vector<Attribute*>& newAttrs )
 {
   int index;
   for ( size_t i = 0; i < changedIndices.size(); i++)
@@ -65,7 +67,9 @@ void Tuple::UpdateAttributes(const vector<int>& changedIndices, const vector<Att
     index = changedIndices[i];
     assert( index >= 0 && index < GetNoAttributes() );
     assert( privateTuple->attributes[index] != 0 );
-    for (int j = 0; j < privateTuple->attributes[index]->NumOfFLOBs(); j++)
+    for (int j = 0; 
+         j < privateTuple->attributes[index]->NumOfFLOBs(); 
+         j++)
     {
       FLOB *tmpFLOB = privateTuple->attributes[index]->GetFLOB(j);
       tmpFLOB->Destroy();
@@ -81,17 +85,21 @@ void Tuple::UpdateAttributes(const vector<int>& changedIndices, const vector<Att
               privateTuple->tupleType->GetAttributeType(index).size );
     }
   }
-  privateTuple->UpdateSave(changedIndices);
+  privateTuple->UpdateSave( changedIndices );
+
+  recomputeExtSize = true;
+  recomputeSize = true;
 }
 
 /*
 2 Class ~PrivateTuple~
 
-Saves the updated tuple to disk. Only for the new attributes the real LOBs are saved to the lobfile.
-The memorytuple and extensiontuple are again computed and saved to the corresponding tuplerecord.
+Saves the updated tuple to disk. Only for the new attributes the real 
+LOBs are saved to the lobfile. The memorytuple and extensiontuple are 
+again computed and saved to the corresponding tuplerecord.
 
 */
-int PrivateTuple::UpdateSave(const vector<int>& changedIndices)
+void PrivateTuple::UpdateSave( const vector<int>& changedIndices )
 {
   int tupleSize = tupleType->GetTotalSize(), extensionSize = 0;
   bool hasFLOBs = false;
@@ -148,9 +156,10 @@ int PrivateTuple::UpdateSave(const vector<int>& changedIndices)
       memcpy( &memoryTuple[offset], attributes[i],
               tupleType->GetAttributeType(i).size );
       attributes[i]->DeleteIfAllowed();
-      attributes[i] =
-        (Attribute*)(*(am->Cast(tupleType->GetAttributeType(i).algId,
-                                   tupleType->GetAttributeType(i).typeId)))(&memoryTuple[offset]);
+      attributes[i] = (Attribute*)
+        (*(am->Cast(tupleType->GetAttributeType(i).algId,
+                    tupleType->GetAttributeType(i).typeId)))
+          (&memoryTuple[offset]);
       offset += tupleType->GetAttributeType(i).size;
     }
   }
@@ -160,67 +169,59 @@ int PrivateTuple::UpdateSave(const vector<int>& changedIndices)
                                      SmiFile::Update );
   if (! ok)
   {
-    cout << "UpdateSave: there was no record for the tuple with tupleId: " << tupleId << " found" << endl;
+    cout << "UpdateSave: there was no record for the tuple with "
+         << "tupleId: " << tupleId << " found" << endl;
     assert (false);
   }
   int oldRecordSize = tupleRecord->Size();
-  int newRecordSize = sizeof(int) + tupleType->GetTotalSize() + extensionSize;
+  int newRecordSize = sizeof(int) + 
+                      tupleType->GetTotalSize() + 
+                      extensionSize;
   bool rc = true;
 
   // Now write the attributes
-  rc =
-    tupleRecord->Write(memoryTuple, tupleType->GetTotalSize(), 0) &&
-    rc;
+  rc = tupleRecord->Write( memoryTuple, 
+                           tupleType->GetTotalSize(), 
+                           0 ) && rc;
 
   // The whole extension tuple must be rewritten.
   if( extensionSize > 0 )
-    rc = 
-      tupleRecord->Write( extensionTuple, extensionSize, tupleType->GetTotalSize() ) && 
-      rc;
+    rc = tupleRecord->Write( extensionTuple, 
+                             extensionSize, 
+                             tupleType->GetTotalSize() ) && rc;
 
-  // The record must be truncated in case the size of a small FLOB has decreased.
+  // The record must be truncated in case the size of a small 
+  // FLOB has decreased.
   if( newRecordSize < oldRecordSize )
     tupleRecord->Truncate( newRecordSize );
 
   tupleRecord->Finish();
   delete tupleRecord;
 
-  // Reset lobFile for all saved LOBs. 
-  // VTA - Do we really need this?
-//  for (size_t k = 0; k < changedIndices.size(); k++)
-//  {
-//    for( int j = 0; j < attributes[changedIndices[k]]->NumOfFLOBs(); j++)
-//    {
-//      FLOB *tmpFLOB = attributes[changedIndices[k]]->GetFLOB(j);
-//      if( tmpFLOB->IsLob() )
-//      {
-//        tmpFLOB->SetLobFileId( lobFileId );
-//      }
-//    }
-//  }
-
   state = Solid;
-  if( !rc )
-    return 0;
-  return tupleSize;
 }
 
 /*
 4 Class ~Relation~
 
-Updates the tuple by deleting the old attributes at the positions given by 'changedIndices'
-and puts the new attributres from 'newAttrs' into their places. These changes are made persistent.
+Updates the tuple by deleting the old attributes at the 
+positions given by 'changedIndices' and puts the new attributres 
+from 'newAttrs' into their places. These changes are made persistent.
 
 */
 void Relation::UpdateTuple( Tuple *tuple, 
                             const vector<int>& changedIndices,
                             const vector<Attribute *>& newAttrs )
 {
-  int oldSize = tuple->GetTotalSize();
+  long oldExtSize = tuple->GetExtSize(),
+       oldSize = tuple->GetSize();
   tuple->UpdateAttributes(changedIndices, newAttrs);
-  int newSize = tuple->GetTotalSize();
-  privateRelation->totalSize -= oldSize;
-  privateRelation->totalSize += newSize;
+  privateRelation->relDescriptor.totalExtSize = 
+    privateRelation->relDescriptor.totalExtSize - 
+    oldExtSize + tuple->GetExtSize();
+  privateRelation->relDescriptor.totalSize = 
+    privateRelation->relDescriptor.totalSize - 
+    oldSize + tuple->GetSize();
 }
 
 /*
@@ -232,7 +233,8 @@ bool Relation::DeleteTuple( Tuple *tuple )
 {
   Attribute* nextAttr;
   FLOB* nextFLOB;
-  int tupleSize = tuple->GetTotalSize();
+  long tupleExtSize = tuple->GetExtSize(),
+       tupleSize = tuple->GetSize();
   for (int i = 0; i < tuple->GetNoAttributes(); i++)
   {
     nextAttr = tuple->GetAttribute(i);
@@ -245,8 +247,9 @@ bool Relation::DeleteTuple( Tuple *tuple )
   }
   if (privateRelation->tupleFile.DeleteRecord(tuple->GetTupleId()))
   {
-    privateRelation->totalSize -= tupleSize;
-    privateRelation->noTuples -= 1;
+    privateRelation->relDescriptor.totalExtSize -= tupleExtSize;
+    privateRelation->relDescriptor.totalSize -= tupleSize;
+    privateRelation->relDescriptor.noTuples -= 1;
     return true;
   }
   else

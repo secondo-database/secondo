@@ -18,6 +18,8 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator count alias COUNT pattern _ op
+operator roottuplesize alias ROOTTUPLESIZE pattern _ op
+operator exttuplesize alias EXTTUPLESIZE pattern _ op
 operator tuplesize alias TUPLESIZE pattern _ op
 operator feed alias FEED pattern _ op
 operator consume alias CONSUME pattern _ op
