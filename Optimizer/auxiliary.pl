@@ -278,10 +278,10 @@ indexType(btree).
 indexType(rtree).
 
 createIndexSmall(_, _, _, _) :- 
-  usingVersion(standard),!.
+  not(optimizerOption(entropy)), !.
   
 createIndexSmall(Rel, ObjList, IndexName, _) :- 
-  usingVersion(entropy),
+  optimizerOption(entropy),
   concat_atom([Rel, 'small'], '_', RelSmallName),
   member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList),
   concat_atom([IndexName, 'small'], '_', IndexSmallName),
@@ -289,7 +289,7 @@ createIndexSmall(Rel, ObjList, IndexName, _) :-
   member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList),!.
   
 createIndexSmall(Rel, ObjList, IndexName, Attr) :- 
-  usingVersion(entropy),
+  optimizerOption(entropy),
   concat_atom([Rel, 'small'], '_', RelSmallName),
   member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList),
   concat_atom([IndexName, 'small'], '_', IndexSmallName),
@@ -300,7 +300,7 @@ createIndexSmall(Rel, ObjList, IndexName, Attr) :-
   tryCreate(QueryAtom),!.  
 
 createIndexSmall(Rel, ObjList, IndexName, Attr) :- 
-  usingVersion(entropy),
+  optimizerOption(entropy),
   concat_atom([Rel, 'small'], '_', RelSmallName),
   not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
   member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
@@ -313,7 +313,7 @@ createIndexSmall(Rel, ObjList, IndexName, Attr) :-
   tryCreate(QueryAtom),!.
 
 createIndexSmall(Rel, ObjList, IndexName, _) :- 
-  usingVersion(entropy),
+  optimizerOption(entropy),
   concat_atom([Rel, 'small'], '_', RelSmallName),
   not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
   member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
@@ -323,7 +323,7 @@ createIndexSmall(Rel, ObjList, IndexName, _) :-
   member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList),!.
 
 createIndexSmall(Rel, ObjList, _, _) :- 
-  usingVersion(entropy),
+  optimizerOption(entropy),
   concat_atom([Rel, 'small'], '_', RelSmallName),
   not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
   not(member(['OBJECT', Rel, _ , [[rel | _]]], ObjList)),

@@ -596,11 +596,11 @@ are executed furthermore by this rule.
 */
 
 trycreateSmallRelation(Rel, ObjList) :- 
-  usingVersion(entropy),
+  optimizerOption(entropy),
   createSmallRelation(Rel, ObjList),!.
 
 trycreateSmallRelation(_, _) :- 
-  usingVersion(standard).
+  not(optimizerOption(entropy)).
 
 relation(Rel, AttrList) :-
   databaseName(DBName),

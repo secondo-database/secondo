@@ -72,8 +72,9 @@ getprompt :-
 
 % Change comments to activate the entropy approach!
 %
-% Uncomment the next line to activate the entropy approach
+% Uncomment the next lines to activate the entropy approach
 % ['./Entropy/optimizer'],
+% :- setOption(entropy),
 
 % Load files for standard optimizer
   [optimizer],
@@ -83,7 +84,7 @@ getprompt :-
   [boundary],
   [searchtree].
 
-%:- [experiments].
+:- [experiments].
 
 :-  nl, write('NOTE: Version 5.4.7 shows in the MSYS console no prompt!'), nl,
     write('A workaround is to type in the predicate "getprompt."'), nl, nl.
@@ -115,6 +116,7 @@ Provides information on optimizer options. ~Option~ is the option in question,
 
 */
 
+optimizerOptionInfo(entropy,          '\tUse the entropy extension (needs additional changes in calloptimizer.pl)').
 optimizerOptionInfo(uniformSpeed,     'Instructs the optimizer to use a uniform machine speed factor (1.0)').
 optimizerOptionInfo(costsConjuctive,  'Apply costs only to operators directly considered by Dijkstra').
 optimizerOptionInfo(dynamicSample,    'Use dynamic samples instead of static ones').
@@ -228,7 +230,7 @@ This are the optional standart settings for the optimizer when getting started.
 Feel free to change.
  
 */
-
+% :- setOption(entropy).          % Uncomment to use entropy extension
 % :- setOption(uniformSpeed).     % Uncomment to use uniform machine speed factor (1.0)
 % :- setOption(costsConjunctive). % Uncomment to apply costs only to operators considered by dijkstra
 % :- setOption(dynamicSample).    % Uncomment to use dynamic samples instead of static ones
