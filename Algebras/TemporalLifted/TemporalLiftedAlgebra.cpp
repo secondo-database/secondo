@@ -3330,6 +3330,155 @@ int MRealSMDistance( Word* args, Word& result, int message, Word&
 }
 
 /*
+Function CompletePeriods2MBool completes a Periods-value to 
+a MBool-value. For this it puts the intervals in pResult as uBool
+with value ~true~ and added the difference to the MPoint-
+intervals with ~false~.
+
+*/
+
+static void CompletePeriods2MBool(MPoint* mp, Periods* pResult,
+  MBool* endResult){
+  const UPoint *up;
+  
+  endResult->Clear();
+  endResult->StartBulkLoad();
+  const Interval<Instant> *per;
+  UBool uBool;
+  int m = 0;
+  bool pfinished = (pResult->GetNoComponents() == 0);
+  for ( int i = 0; i < mp->GetNoComponents(); i++) {
+    mp->Get(i, up);
+    cout<<"UPoint # "<<i<<" ["<<up->timeInterval.start.ToDouble()
+    <<" "<<up->timeInterval.end.ToDouble()<<" "
+    <<up->timeInterval.lc<<" "<<up->timeInterval.rc<<"] ("
+    <<up->p0.GetX()<<" "<<up->p0.GetY()<<")->("<<up->p1.GetX()
+    <<" "<<up->p1.GetY()<<")"<<endl;
+    if(!pfinished) {
+      pResult->Get(m, per);
+      cout<<"per "<<m<<" ["<<per->start.ToDouble()<<" "
+      <<per->end.ToDouble()<<" "<<per->lc<<" "<<per->rc<<"]"<<endl;
+    }
+    else
+      cout<<"no per any more"<<endl;
+    if(pfinished 
+       || up->timeInterval.end < per->start 
+       || (up->timeInterval.end == per->start 
+       && !up->timeInterval.rc && per->lc)) {
+       cout<<"per totally after up"<<endl;
+       uBool.constValue.Set(true, false);
+       uBool.timeInterval = up->timeInterval;
+       cout<<"MergeAdd1 "<<uBool.constValue.GetBoolval()
+       <<" ["<<uBool.timeInterval.start.ToDouble()<<" "
+       <<uBool.timeInterval.end.ToDouble()<<" "
+       <<uBool.timeInterval.lc<<" "
+       <<uBool.timeInterval.rc<<"]"<<endl;
+       endResult->MergeAdd(uBool);
+    }
+    else {
+      cout<<"per not after before up"<<endl;
+      if(up->timeInterval.start < per->start || 
+        (up->timeInterval.start == per->start 
+         && up->timeInterval.lc && !per->lc)) {
+        cout<<"up starts before up"<<endl;
+        uBool.constValue.Set(true, false);
+        uBool.timeInterval.start = up->timeInterval.start; 
+        uBool.timeInterval.lc = up->timeInterval.lc;
+        uBool.timeInterval.end = per->start; 
+        uBool.timeInterval.rc = !per->lc;  
+        cout<<"MergeAdd2 "<<uBool.constValue.GetBoolval()
+        <<" ["<<uBool.timeInterval.start.ToDouble()<<" "
+        <<uBool.timeInterval.end.ToDouble()<<" "
+        <<uBool.timeInterval.lc<<" "
+        <<uBool.timeInterval.rc<<"]"<<endl;
+        endResult->MergeAdd(uBool);
+        uBool.timeInterval = *per;
+      }
+      else {
+        cout<<"per starts before or with up"<<endl;
+        uBool.timeInterval.start = up->timeInterval.start;
+        uBool.timeInterval.lc = up->timeInterval.lc;
+      }
+      while(true) {
+        uBool.constValue.Set(true, true);
+        if(up->timeInterval.end < per->end
+             || (up->timeInterval.end == per->end 
+             && per->rc && !up->timeInterval.rc)) {
+            cout<<"per ends after up (break)"<<endl;
+            uBool.timeInterval.end = up->timeInterval.end; 
+            uBool.timeInterval.rc = up->timeInterval.rc; 
+            cout<<"MergeAdd3 "<<uBool.constValue.GetBoolval()
+            <<" ["<<uBool.timeInterval.start.ToDouble()<<" "
+            <<uBool.timeInterval.end.ToDouble()<<" "
+            <<uBool.timeInterval.lc<<" "
+            <<uBool.timeInterval.rc<<"]"<<endl;
+            endResult->MergeAdd(uBool); 
+            break;
+        }
+        else {
+          cout<<"per ends inside up"<<endl;
+          uBool.timeInterval.end = per->end;
+          uBool.timeInterval.rc = per->rc;
+          cout<<"MergeAdd4 "<<uBool.constValue.GetBoolval()
+          <<" ["<<uBool.timeInterval.start.ToDouble()<<" "
+          <<uBool.timeInterval.end.ToDouble()<<" "
+          <<uBool.timeInterval.lc<<" "
+          <<uBool.timeInterval.rc<<"]"<<endl;
+          endResult->MergeAdd(uBool);
+        }
+        uBool.timeInterval.start = per->end; 
+        uBool.timeInterval.lc = !per->rc; 
+        if(m == pResult->GetNoComponents() - 1){
+          pfinished = true;
+          //break;
+        }
+        else {
+          pResult->Get(++m, per);
+          cout<<"per "<<m<<" ["<<per->start.ToDouble()<<" "<<per->end.ToDouble()
+          <<" "<<per->lc<<" "<<per->rc<<"]"<<endl;
+        }
+        
+        if(!pfinished && (per->start < up->timeInterval.end 
+           || (per->start == up->timeInterval.end 
+           && up->timeInterval.rc && per->rc))){
+          cout<<"next per starts in same up"<<endl;
+          uBool.timeInterval.end = per->start; 
+          uBool.timeInterval.rc = !per->lc;
+          uBool.constValue.Set(true, false);
+          cout<<"MergeAdd6 "<<uBool.constValue.GetBoolval()
+          <<" ["<<uBool.timeInterval.start.ToDouble()<<" "
+          <<uBool.timeInterval.end.ToDouble()<<" "
+          <<uBool.timeInterval.lc<<" "
+          <<uBool.timeInterval.rc<<"]"<<endl;
+          endResult->MergeAdd(uBool); 
+          uBool.timeInterval.start = per->start; 
+          uBool.timeInterval.lc = per->lc; 
+        }
+        else {
+          cout<<"next interval after up -> finish up"<<endl;
+          uBool.timeInterval.end = up->timeInterval.end; 
+          uBool.timeInterval.rc = up->timeInterval.rc;
+          uBool.constValue.Set(true, false);
+          if(uBool.timeInterval.end > uBool.timeInterval.start 
+             || (uBool.timeInterval.rc && uBool.timeInterval.lc)) {
+            cout<<"MergeAdd5 "<<uBool.constValue.GetBoolval()
+            <<" ["<<uBool.timeInterval.start.ToDouble()<<" "
+            <<uBool.timeInterval.end.ToDouble()<<" "
+            <<uBool.timeInterval.lc<<" "
+            <<uBool.timeInterval.rc<<"]"<<endl;
+            endResult->MergeAdd(uBool);
+          }
+          break;
+        }
+      } //while
+    }
+  }
+  endResult->EndBulkLoad(false);
+}
+
+
+
+/*
 16.3.47. Value mapping of operator ~inside~ for mpoint/points
 
 */
@@ -3343,11 +3492,12 @@ int MPointsPointInside( Word* args, Word& result, int message,
   Points* ps = (Points*)args[1].addr;
   const UPoint *up;
   const Point *p;
-  MBool* pResult = new MBool(0);
-  UBool uBool; //part of the result
+  Periods* pResult = new Periods(0);
+  Periods* between = new Periods(0);
+  Periods* period = new Periods(0);
+  Interval<Instant> newper; //part of the result
   
   pResult->Clear();
-  pResult->StartBulkLoad();
   for( int i = 0; i < mp->GetNoComponents(); i++)
   {
     cout<<"MPointsPointInside # "<<i<<endl;
@@ -3388,15 +3538,7 @@ int MPointsPointInside( Word* args, Word& result, int message,
         cout<<"hor and vert"<<endl;
         if(AlmostEqual(p->GetY(), up->p0.GetY())
         && AlmostEqual(p->GetX(), up->p0.GetX())){
-          uBool.timeInterval = up->timeInterval;
-          uBool.constValue.Set(true, true);
-          cout<<"Add ["<<uBool.timeInterval.start.ToDouble()
-          <<" "<<uBool.timeInterval.end.ToDouble()<<" "
-          <<uBool.timeInterval.lc<<" "
-          <<uBool.timeInterval.rc<<"]"<<endl;
-          pResult->MergeAdd(uBool);
-          cout<<"break!!!"<<endl;
-          break;
+          newper = up->timeInterval;
         }
       }
       else if(hor || AlmostEqual(dx, dy)){
@@ -3408,16 +3550,10 @@ int MPointsPointInside( Word* args, Word& result, int message,
           - up->timeInterval.start.ToDouble()) * dx 
           + up->timeInterval.start.ToDouble());
           t.SetType(instanttype);
-          uBool.timeInterval.start = t;
-          uBool.timeInterval.end = t;
-          uBool.timeInterval.lc = true;
-          uBool.timeInterval.rc = true;
-          uBool.constValue.Set(true, true);
-          cout<<"Add ["<<uBool.timeInterval.start.ToDouble()
-          <<" "<<uBool.timeInterval.end.ToDouble()<<" "
-          <<uBool.timeInterval.lc<<" "
-          <<uBool.timeInterval.rc<<"]"<<endl;
-          pResult->MergeAdd(uBool);
+          newper.start = t;
+          newper.end = t;
+          newper.lc = true;
+          newper.rc = true;
         }
       }
       else if(vert){
@@ -3429,57 +3565,34 @@ int MPointsPointInside( Word* args, Word& result, int message,
           - up->timeInterval.start.ToDouble()) * dy 
           + up->timeInterval.start.ToDouble());
           t.SetType(instanttype);
-          uBool.timeInterval.start = t;
-          uBool.timeInterval.end = t;
-          uBool.timeInterval.lc = true;
-          uBool.timeInterval.rc = true;
-          uBool.constValue.Set(true, true);
-          cout<<"Add ["<<uBool.timeInterval.start.ToDouble()
-          <<" "<<uBool.timeInterval.end.ToDouble()<<" "
-          <<uBool.timeInterval.lc<<" "
-          <<uBool.timeInterval.rc<<"]"<<endl;
-          pResult->MergeAdd(uBool);
+          newper.start = t;
+          newper.end = t;
+          newper.lc = true;
+          newper.rc = true;
         }
       }
+      cout<<"newper ["<< newper.start.ToDouble()
+      <<" "<<newper.end.ToDouble()<<" "<<newper.lc<<" "
+      <<newper.rc<<"]"<<endl;
+      period->Clear();
+      period->StartBulkLoad();
+      period->Add(newper);
+      period->EndBulkLoad(false);
+      if (!pResult->IsEmpty()) {
+        between->Clear();
+        period->Union(*pResult, *between);
+        pResult->Clear();
+        pResult->CopyFrom(between);
+      }
+      else 
+        pResult->CopyFrom(period);
     }
   }
-  pResult->EndBulkLoad(true);
+  delete between;
+  delete period;
   
-  endResult->Clear();
-  endResult->StartBulkLoad();
-  Instant start, end;
-  bool lc, rc;
-  const UBool *ub;
-  mp->Get(0, up);
-  start = up->timeInterval.start;
-  lc = up->timeInterval.lc;
-  for( int i = 0; i < pResult->GetNoComponents(); i++){
-     pResult->Get(i, ub);
-     end = ub->timeInterval.start;
-     rc = !ub->timeInterval.lc;
-     uBool.timeInterval.start = start;
-     uBool.timeInterval.end = end;  
-     uBool.timeInterval.lc = lc;
-     uBool.timeInterval.rc = rc;
-     uBool.constValue.Set(true, false);
-     if((end > start) || (lc && rc))
-        endResult->Add(uBool);
-     endResult->Add(*ub);
-     start = ub->timeInterval.end;
-     lc = !ub->timeInterval.rc;
-  }
-  mp->Get(mp->GetNoComponents()-1, up);
-  end = up->timeInterval.end;
-  rc = up->timeInterval.rc;
-  uBool.timeInterval.start = start;
-     uBool.timeInterval.end = end; 
-     uBool.timeInterval.lc = lc;
-     uBool.timeInterval.rc = rc;
-     uBool.constValue.Set(true, false);
-     if((end > start) || (lc && rc))
-        endResult->Add(uBool);
-  endResult->EndBulkLoad(false);
-  
+  CompletePeriods2MBool(mp, pResult, endResult);
+
   delete pResult;
   
   return 0;
@@ -3506,7 +3619,6 @@ int MPointsLineInside( Word* args, Word& result, int message,
   Interval<Instant> newper; //part of the result
   
   pResult->Clear();
-  //pResult->StartBulkLoad();
   for( int i = 0; i < mp->GetNoComponents(); i++)
   {
     cout<<"MPointsLineInside # "<<i<<endl;
@@ -3516,7 +3628,7 @@ int MPointsLineInside( Word* args, Word& result, int message,
     <<up->timeInterval.lc<<" "<<up->timeInterval.rc<<"] ("
     <<up->p0.GetX()<<" "<<up->p0.GetY()<<")->("<<up->p1.GetX()
     <<" "<<up->p1.GetY()<<")"<<endl;
-    //ln->Sort();
+
     for( int n = 0; n < ln->Size(); n++)
     {
       Instant t;
@@ -3645,6 +3757,23 @@ int MPointsLineInside( Word* args, Word& result, int message,
               newper.start = t;
               newper.lc = (up->timeInterval.start == t) 
               ? up->timeInterval.lc : true;
+            }
+            if(up->p0.GetY() <= l->GetRP().GetY() 
+            && up->p0.GetY() >= l->GetLP().GetY()){
+              cout<<"uPoint starts inside linesegemet"<<endl;
+              newper.start = up->timeInterval.start;
+              newper.lc =  up->timeInterval.lc;
+            }
+            if(up->p1.GetY() <= l->GetRP().GetY() 
+            && up->p1.GetY() >= l->GetLP().GetY()){
+              cout<<"uPoint ends inside linesegemet"<<endl;
+              newper.end = up->timeInterval.end;
+              newper.rc =  up->timeInterval.rc;
+            }
+            if(newper.start == newper.end 
+              && (!newper.lc || !newper.rc)){
+              cout<<"not an interval"<<endl;
+              continue;
             }
           }
         }
@@ -3788,6 +3917,18 @@ int MPointsLineInside( Word* args, Word& result, int message,
            newper.lc = (up->timeInterval.start == t) 
            ? up->timeInterval.lc : true;
         }
+        if(up->p0.GetX() <= l->GetRP().GetX() 
+        && up->p0.GetX() >= l->GetLP().GetX()){
+           cout<<"uPoint starts inside linesegemet"<<endl;
+           newper.start = up->timeInterval.start;
+           newper.lc = up->timeInterval.lc;
+        }
+        if(up->p1.GetX() <= l->GetRP().GetX() 
+        && up->p1.GetX() >= l->GetLP().GetX()){
+           cout<<"uPoint ends inside linesegemet"<<endl;
+           newper.end = up->timeInterval.end;
+           newper.rc = up->timeInterval.rc;
+        }
         if(newper.start == newper.end 
         && (!newper.lc || !newper.rc)){
           cout<<"not an interval"<<endl;
@@ -3826,126 +3967,29 @@ int MPointsLineInside( Word* args, Word& result, int message,
         newper.end = t;
         newper.rc = true;
       }
-      //newper.constValue.Set(true, true);
-      //cout<<"uBool: "<<newper.constValue.GetBoolval()<<
       cout<<"newper ["<< newper.start.ToDouble()
       <<" "<<newper.end.ToDouble()<<" "<<newper.lc<<" "
       <<newper.rc<<"]"<<endl;
       period->Clear();
-      cout<<"ok1"<<endl;
       period->StartBulkLoad();
       period->Add(newper);
       period->EndBulkLoad(false);
-      cout<<"ok2"<<endl;
-      for(int m = 0; m < period->GetNoComponents(); m++){
-         const Interval<Instant> *per;
-         period->Get(m, per);
-         cout<<"period "<<m<<" : ["<< per->start.ToDouble()
-         <<" "<<per->end.ToDouble()<<" "<<per->lc<<" "
-         <<per->rc<<"]"<<endl;
-      }
-      //period.Merge(*pResult);
-      cout<<"ok3"<<endl;
-      for(int m = 0; m < pResult->GetNoComponents(); m++){
-         const Interval<Instant> *per;
-         pResult->Get(m, per);
-         cout<<"oldper "<<m<<" : ["<< per->start.ToDouble()
-         <<" "<<per->end.ToDouble()<<" "<<per->lc<<" "
-         <<per->rc<<"]"<<endl;
-      }
-      cout<<"ok4"<<endl;
       if (!pResult->IsEmpty()) {
         between->Clear();
         period->Union(*pResult, *between);
-        cout<<"ok5"<<endl;
         pResult->Clear();
-        cout<<"ok6"<<endl;
         pResult->CopyFrom(between);
       }
-      else { 
-        cout<<"ok copy"<<endl;
+      else 
         pResult->CopyFrom(period);
-      }
-      cout<<"ok7"<<endl;
-      //pResult->Merge(period);
-      //period.Merge(*pResult);
-      for(int m = 0; m < pResult->GetNoComponents(); m++){
-         const Interval<Instant> *per;
-         pResult->Get(m, per);
-         cout<<"mergeper "<<m<<" : ["<< per->start.ToDouble()
-         <<" "<<per->end.ToDouble()<<" "<<per->lc<<" "
-         <<per->rc<<"]"<<endl;
-      }
-      //Baustelle!!!!
     }
   }
-  
-  //pResult->EndBulkLoad(true);
-  
-  endResult->Clear();
-  endResult->StartBulkLoad();
-  Instant start, end;
-  bool lc, rc;
-  const Interval<Instant> *per;
-  UBool uBool;
-  mp->Get(0, up);
-  start = up->timeInterval.start;
-  lc = up->timeInterval.lc;
-  cout<<"start: "<<start.ToDouble()<<" "<<lc
-  <<" with Components:  "<<pResult->GetNoComponents()<<endl;
-  for( int i = 0; i < pResult->GetNoComponents(); i++){
-     pResult->Get(i, per);
-     cout<<"per: ["<< per->start.ToDouble()
-     <<" "<<per->end.ToDouble()<<" "<<per->lc<<" "
-     <<per->rc<<"]"<<endl;
-     end = per->start;
-     rc = !per->lc;
-     uBool.timeInterval.start = start;
-     uBool.timeInterval.end = end;
-     uBool.timeInterval.lc = lc;
-     uBool.timeInterval.rc = rc;
-     uBool.constValue.Set(true, false);
-     if((end > start) || (lc && rc)){
-        cout<<"Add "<<uBool.constValue.GetBoolval()
-        <<" ["<<uBool.timeInterval.start.ToDouble()<<" "
-        <<uBool.timeInterval.end.ToDouble()<<" "
-        <<uBool.timeInterval.lc<<" "
-        <<uBool.timeInterval.rc<<"]"<<endl;
-        endResult->Add(uBool);
-     }
-     uBool.timeInterval = *per;
-     uBool.constValue.Set(true, true);
-     cout<<"Add "<<uBool.constValue.GetBoolval()
-     <<" ["<<uBool.timeInterval.start.ToDouble()<<" "
-     <<uBool.timeInterval.end.ToDouble()<<" "
-     <<uBool.timeInterval.lc<<" "
-     <<uBool.timeInterval.rc<<"]"<<endl;
-     endResult->Add(uBool);
-     start = per->end;
-     lc = !per->rc;
-  }
-  mp->Get(mp->GetNoComponents()-1, up);
-  end = up->timeInterval.end;
-  rc = up->timeInterval.rc;
-  cout<<"end: "<<end.ToDouble()<<" "<<rc<<endl;
-  uBool.timeInterval.start = start;
-     uBool.timeInterval.end = end;
-     uBool.timeInterval.lc = lc;
-     uBool.timeInterval.rc = rc;
-     uBool.constValue.Set(true, false);
-     if((end > start) || (lc && rc)){
-        cout<<"Add "<<uBool.constValue.GetBoolval()
-        <<" ["<<uBool.timeInterval.start.ToDouble()<<" "
-        <<uBool.timeInterval.end.ToDouble()<<" "
-        <<uBool.timeInterval.lc<<" "
-        <<uBool.timeInterval.rc<<"]"<<endl;
-        endResult->Add(uBool);
-     }
-  endResult->EndBulkLoad(false);
-  
-  delete pResult;
   delete between;
   delete period;
+  
+  CompletePeriods2MBool(mp, pResult, endResult);
+
+  delete pResult;
   
   return 0;
 }
