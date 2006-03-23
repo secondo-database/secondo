@@ -642,9 +642,9 @@ int TopRelSym(Word* args, Word& result, int message,
            Word& local, Supplier s){
 
   result = qp->ResultStorage(s);
-  type2* p2 = (type2*) args[0].addr;
-  type1* p1 = (type1*) args[1].addr;
-  Int9M matrix=GetInt9M(p2,p1);
+  type1* p2 = (type1*) args[0].addr;
+  type2* p1 = (type2*) args[1].addr;
+  Int9M matrix=GetInt9M(p1,p2);
   matrix.Transpose(); // correct the swapping 
   ((Int9M*)result.addr)->Equalize(matrix);
   return 0;
