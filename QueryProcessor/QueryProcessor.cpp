@@ -1979,11 +1979,12 @@ QueryProcessor::TestOverloadedOperators( const string&
    *  If so save the messages in the error reporter. Errors detected
    *  afterwards will not be reported any more.
   */
-  if ( !ErrorReporter::TypeMapError && 
-       nl->IsEqual( resultType, "typeerror" ) )
+  if ( nl->IsEqual( resultType, "typeerror" ) )
   {
+    if(!ErrorReporter::TypeMapError){
+        ErrorReporter::ReportError(typeErrorMsg);	
+    }
     ErrorReporter::TypeMapError = true; 
-    ErrorReporter::ReportError(typeErrorMsg);	
   }
   else
   {	
