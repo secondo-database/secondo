@@ -27,3 +27,5 @@ operator atext alias ATEXT pattern _ infixop _
 operator deftimeext alias DEFTIMEEXT pattern op ( _ )
 operator instext alias INSTEXT pattern op ( _ )
 operator valext alias VALEXT pattern op ( _ )
+operator derivativeext alias DERIVATIVEEXT pattern op ( _ )
+operator derivableext alias DERIVABLEEXT pattern op ( _ )

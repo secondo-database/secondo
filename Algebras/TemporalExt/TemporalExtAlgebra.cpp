@@ -42,11 +42,24 @@ using namespace datetime;
 
 /*
 
-2 Type definitions
+2 Type definitions, Auxiliary Functions
 
 */
 typedef ConstTemporalUnit<CcString> UString;
 typedef Mapping< UString, CcString > MString;
+
+/*
+2.1 Auxiliary Funcions
+
+2.1.1 Aux. Function ~CheckURealDerivable~
+
+
+*/
+bool CheckURealDerivable(const UReal* unit)
+{
+    UReal* tmp_unit = (UReal*)unit;
+    return tmp_unit->r;
+}
 
 /*
 3.1 Type Constructor ~istring~
@@ -538,6 +551,44 @@ IntimeExtTypeMapBase( ListExpr args )
 }
 
 /*
+4.1.10 Type mapping function ~MovingRExtTypeMapMovingR~
+
+It is for the operator ~derivativeext~.
+
+*/
+ListExpr
+MovingRExtTypeMapMovingR( ListExpr args )
+{
+    if ( nl->ListLength( args ) == 1 )
+    {
+        ListExpr arg1 = nl->First( args );
+
+        if( nl->IsEqual( arg1, "mreal" ) )
+            return nl->SymbolAtom( "mreal" );
+    }
+    return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+4.1.11 Type mapping function ~MovingRExtTypeMapBool~
+
+It is for the operator ~derivativeext~.
+
+*/
+ListExpr
+MovingRExtTypeMapBool( ListExpr args )
+{
+    if ( nl->ListLength( args ) == 1 )
+    {
+        ListExpr arg1 = nl->First( args );
+
+        if( nl->IsEqual( arg1, "mreal" ) )
+            return nl->SymbolAtom( "mbool" );
+    }
+    return nl->SymbolAtom( "typeerror" );
+}
+
+/*
 4.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -551,7 +602,8 @@ is applied to correct arguments.
 
 4.2.1 Selection function ~MovingSimpleSelect~
 
-Is used for the ~deftimeext~, ~initialext~, ~finalext~, ~instext~, ~valext~, ~atinstantext~,
+Is used for the ~deftimeext~, ~initialext~, ~finalext~, ~instext~, ~valext~,
+~atinstantext~,
 ~atperiods~  operations.
 
 */
@@ -977,13 +1029,102 @@ int IntimeValExt( Word* args,
 }
 
 /*
+4.3.11 Value mapping functions of operator ~derivativeext~
+
+*/
+template <class Mapping>
+int MovingDerivativeExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    Mapping* m = ((Mapping*)args[0].addr);
+    Mapping* pResult = ((Mapping*)result.addr);
+    const UReal* unitin;
+    UReal unitout;
+
+    pResult->Clear();
+    pResult->StartBulkLoad();
+    for(int i=0;i<m->GetNoComponents();i++)
+    {
+        m->Get(i, unitin);
+        if(!CheckURealDerivable(unitin))
+        {
+            unitout.a = 0.;
+            unitout.b = 2*unitin->a;
+            unitout.c = unitin->b;
+            unitout.r = false;
+            unitout.timeInterval = unitin->timeInterval;
+        }
+        else
+        {
+/*
+Result Unit is undefined because it is not
+a quadratic polynom
+
+*/
+            unitout.a = unitin->a;
+            unitout.b = unitin->b;
+            unitout.c = unitin->c;
+            unitout.r = unitin->r;
+            unitout.timeInterval = unitin->timeInterval;
+        }
+        pResult->Add(unitout);
+    }
+    pResult->EndBulkLoad( false );
+
+    return 0;
+}
+
+/*
+4.3.12 Value mapping functions of operator ~derivableext~
+
+*/
+template <class Mapping>
+int MovingDerivableExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    Mapping* m = ((Mapping*)args[0].addr);
+    MBool* pResult = ((MBool*)result.addr);
+    const UReal* unitin;
+    UBool unitout;
+    CcBool myValue;
+
+    pResult->Clear();
+    pResult->StartBulkLoad();
+    for(int i=0;i<m->GetNoComponents();i++)
+    {
+        m->Get(i, unitin);
+        myValue.Set(true, !CheckURealDerivable(unitin));
+        unitout.constValue.CopyFrom(&myValue);
+        unitout.timeInterval = unitin->timeInterval;
+        pResult->Add(unitout);
+    }
+    pResult->EndBulkLoad( false );
+
+    return 0;
+}
+
+/*
 4.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
 type constructors: an instance of class ~Operator~ is defined.
 
-Because almost all operators are overloaded, we have first do define an array of value
-mapping functions for each operator. For nonoverloaded operators there is also such and array
+Because almost all operators are overloaded, we have first do define an array of
+value
+mapping functions for each operator. For nonoverloaded operators there is also
+such and array
 defined, so it easier to make them overloaded.
 
 */
@@ -1064,6 +1205,12 @@ ValueMapping temporalvalextmap[] = {
     IntimeValExt<CcReal>,
     IntimeValExt<Point>,
     IntimeValExt<CcString> };
+
+ValueMapping temporalderivativeextmap[] = {
+    MovingDerivativeExt<MReal> };
+
+ValueMapping temporalderivableextmap[] = {
+    MovingDerivableExt<MReal> };
 
 /*
 4.5 Specification strings
@@ -1162,79 +1309,123 @@ const string TemporalSpecValExt  =
     "<text>val ( i1 )</text--->"
     ") )";
 
+const string TemporalSpecDerivativeExt  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>derivativeext(mreal) -> mreal</text--->"
+    "<text>derivativeext ( _ )</text--->"
+    "<text>Derivative of a mreal.</text--->"
+    "<text>derivativeext ( mr1 )</text--->"
+    ") )";
+
+const string TemporalSpecDerivableExt  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>derivableext(mreal) -> mbool</text--->"
+    "<text>derivableext ( _ )</text--->"
+    "<text>Checking if mreal is derivable.</text--->"
+    "<text>derivableext ( mr1 )</text--->"
+    ") )";
+
 /*
 4.6 Operators
 
 */
-Operator temporalatinstantext( "atinstantext",
-                            TemporalSpecAtInstantExt,
-                            5,
-                            temporalatinstantextmap,
-                            MovingExtSimpleSelect,
-                            MovingInstantExtTypeMapIntime );
+Operator temporalatinstantext(
+    "atinstantext",
+    TemporalSpecAtInstantExt,
+    5,
+    temporalatinstantextmap,
+    MovingExtSimpleSelect,
+    MovingInstantExtTypeMapIntime );
 
-Operator temporalatperiodsext( "atperiodsext",
-                            TemporalSpecAtPeriodsExt,
-                            5,
-                            temporalatperiodsextmap,
-                            MovingExtSimpleSelect,
-                            MovingPeriodsExtTypeMapMoving );
+Operator temporalatperiodsext(
+    "atperiodsext",
+    TemporalSpecAtPeriodsExt,
+    5,
+    temporalatperiodsextmap,
+    MovingExtSimpleSelect,
+    MovingPeriodsExtTypeMapMoving );
 
-Operator temporalinitialext( "initialext",
-                          TemporalSpecInitialExt,
-                          5,
-                          temporalinitialextmap,
-                          MovingExtSimpleSelect,
-                          MovingExtTypeMapIntime );
+Operator temporalinitialext(
+    "initialext",
+    TemporalSpecInitialExt,
+    5,
+    temporalinitialextmap,
+    MovingExtSimpleSelect,
+    MovingExtTypeMapIntime );
 
-Operator temporalfinalext( "finalext",
-                        TemporalSpecFinalExt,
-                        5,
-                        temporalfinalextmap,
-                        MovingExtSimpleSelect,
-                        MovingExtTypeMapIntime );
+Operator temporalfinalext(
+    "finalext",
+    TemporalSpecFinalExt,
+    5,
+    temporalfinalextmap,
+    MovingExtSimpleSelect,
+    MovingExtTypeMapIntime );
 
-Operator temporalpresentext( "presentext",
-                          TemporalSpecPresentExt,
-                          10,
-                          temporalpresentextmap,
-                          MovingExtInstantPeriodsSelect,
-                          MovingInstantPeriodsExtTypeMapBool);
+Operator temporalpresentext(
+    "presentext",
+    TemporalSpecPresentExt,
+    10,
+    temporalpresentextmap,
+    MovingExtInstantPeriodsSelect,
+    MovingInstantPeriodsExtTypeMapBool);
 
-Operator temporalatext( "atext",
-                     TemporalSpecAtExt,
-                     5,
-                     temporalatextmap,
-                     MovingExtBaseRangeSelect,
-                     MovingBaseExtTypeMapMoving );
+Operator temporalatext(
+    "atext",
+    TemporalSpecAtExt,
+    5,
+    temporalatextmap,
+    MovingExtBaseRangeSelect,
+    MovingBaseExtTypeMapMoving );
 
-Operator temporalpassesext( "passesext",
-                         TemporalSpecPassesExt,
-                         5,
-                         temporalpassesextmap,
-                         MovingExtBaseSelect,
-                         MovingBaseExtTypeMapBool);
+Operator temporalpassesext(
+    "passesext",
+    TemporalSpecPassesExt,
+    5,
+    temporalpassesextmap,
+    MovingExtBaseSelect,
+    MovingBaseExtTypeMapBool);
 
-Operator temporaldeftimeext( "deftimeext",
-                        TemporalSpecDefTimeExt,
-                          5,
-                          temporaldeftimeextmap,
-                          MovingExtSimpleSelect,
-                          MovingExtTypeMapPeriods );
+Operator temporaldeftimeext(
+    "deftimeext",
+    TemporalSpecDefTimeExt,
+    5,
+    temporaldeftimeextmap,
+    MovingExtSimpleSelect,
+    MovingExtTypeMapPeriods );
 
-Operator temporalinstext( "instext",
-                       TemporalSpecInstExt,
-                       5,
-                       temporalinstextmap,
-                       IntimeExtSimpleSelect,
-                       IntimeExtTypeMapInstant );
+Operator temporalinstext(
+    "instext",
+    TemporalSpecInstExt,
+    5,
+    temporalinstextmap,
+    IntimeExtSimpleSelect,
+    IntimeExtTypeMapInstant );
 
-Operator temporalvalext( "valext",
-                      TemporalSpecValExt,
-                      5,
-                      temporalvalextmap,
-                      IntimeExtSimpleSelect,
-                      IntimeExtTypeMapBase );
+Operator temporalvalext(
+    "valext",
+    TemporalSpecValExt,
+    5,
+    temporalvalextmap,
+    IntimeExtSimpleSelect,
+    IntimeExtTypeMapBase );
+
+Operator temporalderivativeext(
+    "derivativeext",
+    TemporalSpecDerivativeExt,
+    1,
+    temporalderivativeextmap,
+    Operator::SimpleSelect,
+    MovingRExtTypeMapMovingR);
+
+Operator temporalderivableext(
+    "derivableext",
+    TemporalSpecDerivableExt,
+    1,
+    temporalderivableextmap,
+    Operator::SimpleSelect,
+    MovingRExtTypeMapBool);
 
 class TemporalExtAlgebra : public Algebra
 {
@@ -1266,6 +1457,8 @@ class TemporalExtAlgebra : public Algebra
         AddOperator( &temporaldeftimeext );
         AddOperator( &temporalinstext );
         AddOperator( &temporalvalext );
+        AddOperator( &temporalderivativeext );
+        AddOperator( &temporalderivableext );
 
     }
     ~TemporalExtAlgebra() {}
