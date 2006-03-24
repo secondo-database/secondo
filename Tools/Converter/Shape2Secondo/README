@@ -1,0 +1,25 @@
+
+This directory is obsolete. It contains no files except 
+this README. 
+If you want to convert shape-files into a Secondo readable format,
+perform the following steps.
+
+- Compile Secondo's Javagui
+- Copy all *.shp and *.db3 files to convert into an empty directory
+- If the files are zipped, unzip them
+- call the following command:
+	java -Xmx 512m -classpath $SECONDO_BUILD_DIR/Javagui tools.xxx2secdb <dbname> *.shp
+- The result will be a file named <dbname> which contains a database with all
+converted shape-files.
+
+- If you have problems with memory (Java.OutOfMemory Exception), switch the
+Nested List to the persistent version by doing the following steps:
+
+- go into the Javagui directory
+- change the entry  "NL_PERSISTENT=false" to "NL_PERSISTENT=true" in the file 
+  makefile.inc
+- Recompile Javagui using make.
+ 
+
+
+
