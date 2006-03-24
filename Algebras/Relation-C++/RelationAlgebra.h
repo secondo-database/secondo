@@ -429,6 +429,14 @@ Update Relation Algebra.
 Returns the size of the tuple's root part.
 
 */
+    inline int GetRootSize( int i ) const
+    {
+      return privateTuple->tupleType->GetAttributeType(i).size;
+    }
+/*
+Returns the size of the tuple's root part.
+
+*/
 
     inline int GetExtSize() const
     {
@@ -455,6 +463,24 @@ Returns the size of the tuple taking into account the extension
 part, i.e. the small FLOBs.
 
 */
+    inline int GetExtSize( int i ) const
+    {
+      tupleExtSize = GetRootSize( i );
+      for( int j = 0;
+           j < privateTuple->attributes[i]->NumOfFLOBs(); j++)
+      {
+        FLOB *tmpFLOB = privateTuple->attributes[i]->GetFLOB(j);
+        if( !tmpFLOB->IsLob() )
+          tupleExtSize += tmpFLOB->Size();
+      }
+      return tupleExtSize;
+    }
+/*
+Returns the size of an attribute of the tuple taking into account 
+the extension part, i.e. the small FLOBs.
+
+*/
+
     inline int GetSize() const
     {
       if ( !recomputeSize ) 
@@ -473,10 +499,25 @@ part, i.e. the small FLOBs.
       return tupleSize;
     }
 /*
-Returns the total size of the tuple taking into account the 
+Returns the total size of the tuple taking into account  
 the FLOBs.
 
 */
+    inline int GetSize( int i ) const
+    {
+      tupleSize = GetRootSize(i);
+      for( int j = 0;
+           j < privateTuple->attributes[i]->NumOfFLOBs(); j++)
+        tupleSize +=
+          privateTuple->attributes[i]->GetFLOB(j)->Size();
+      return tupleSize;
+    }
+/*
+Returns the total size of an attribute of the tuple taking 
+into account the FLOBs.
+
+*/
+
     inline void CopyAttribute( int sourceIndex, 
                                const Tuple *source, 
                                int destIndex )
@@ -1094,22 +1135,12 @@ The second constructor. It creates an empty relation from a
 relations.
 
 */
-    Relation( TupleType *tupleType, 
-              const RelationDescriptor& relDesc, 
+    Relation( const RelationDescriptor& relDesc, 
               bool isTemp = false );
 /*
 The third constructor. It opens a previously created relation. 
 The flag ~isTemporary~ can be used to open temporary created 
 relations.
-
-*/
-    Relation( const ListExpr typeInfo, 
-              const RelationDescriptor& relDesc, 
-              bool isTemp = false );
-/*
-The fourth constructor. It opens a previously created relation using
-the ~typeInfo~ instead of the ~tupleType~. The flag ~isTemp~ can be 
-used to open temporary created relations.
 
 */
     ~Relation();
@@ -1238,11 +1269,26 @@ in bytes, taking into account only the root part of the
 tuples.
 
 */
+    double GetTotalRootSize(int i) const;
+/*
+The function to return the total size of and attribute 
+of the relation in bytes, taking into account only the 
+root part of the tuples.
+
+*/
     double GetTotalExtSize() const;
 /*
 The function to return the total size of the relation
 in bytes, taking into account the root part of the
 tuples and the extension part, i.e. the small FLOBs.
+
+*/
+    double GetTotalExtSize( int i ) const;
+/*
+The function to return the total size of an attribute 
+of the relation in bytes, taking into account the root 
+part of the tuples and the extension part, i.e. the 
+small FLOBs.
 
 */
     double GetTotalSize() const;
@@ -1251,6 +1297,13 @@ The function to return the total size of the relation
 in bytes.
 
 */
+    double GetTotalSize( int i ) const;
+/*
+The function to return the total size of an attribute 
+of the relation in bytes.
+
+*/
+
     RelationIterator *MakeScan() const;
 /*
 Returns a ~RelationIterator~ for a relation scan.

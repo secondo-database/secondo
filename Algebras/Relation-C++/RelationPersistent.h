@@ -147,7 +147,8 @@ without cloning attributes.
 
 */
   void Save( SmiRecordFile *tuplefile, SmiFileId& lobFileId,
-             long& extSize, long& size );
+             double& extSize, double& size, 
+             double *attrExtSize, double *attrSize );
 /*
 Saves a fresh tuple into ~tuplefile~ and ~lobfile~. Returns the 
 sizes of the tuple saved.
@@ -231,45 +232,150 @@ This struct contains necessary information for opening a relation.
 */
 struct RelationDescriptor
 {
-  RelationDescriptor():
+  inline 
+  RelationDescriptor( TupleType* tupleType ):
+    tupleType( tupleType ),
     noTuples( 0 ),
     totalExtSize( 0.0 ),
     totalSize( 0.0 ),
+    attrExtSize( new double[tupleType->GetNoAttributes()] ),
+    attrSize( new double[tupleType->GetNoAttributes()] ),
     tupleFileId( 0 ),
     lobFileId( 0 )
-    {}
+    {
+      tupleType->IncReference();
+      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+      {
+        attrExtSize[i] = 0.0;
+        attrSize[i] = 0.0;
+      }
+    }
 
-  RelationDescriptor( int noTuples,
+  inline
+  RelationDescriptor( const ListExpr typeInfo ):
+    tupleType( new TupleType( nl->Second( typeInfo ) ) ),
+    noTuples( 0 ),
+    totalExtSize( 0.0 ),
+    totalSize( 0.0 ),
+    attrExtSize( 0 ),
+    attrSize( 0 ),
+    tupleFileId( 0 ),
+    lobFileId( 0 )
+    {
+      tupleType->IncReference();
+      attrExtSize = new double[tupleType->GetNoAttributes()];
+      attrSize = new double[tupleType->GetNoAttributes()];
+      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+      {
+        attrExtSize[i] = 0.0;
+        attrSize[i] = 0.0;
+      }
+    }
+/*
+The simple constructors.
+
+*/
+  inline 
+  RelationDescriptor( TupleType *tupleType,
+                      int noTuples, 
                       double totalExtSize, double totalSize,
+                      const double *attrExtSize, const double *attrSize,
                       const SmiFileId tId, const SmiFileId lId ):
+    tupleType( tupleType ),
     noTuples( noTuples ),
     totalExtSize( totalExtSize ),
     totalSize( totalSize ),
+    attrExtSize( 0 ),
+    attrSize( 0 ),
     tupleFileId( tId ),
     lobFileId( lId )
-    {}
+    {
+      this->attrExtSize = new double[tupleType->GetNoAttributes()];
+      this->attrSize = new double[tupleType->GetNoAttributes()];
+      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+      {
+        this->attrExtSize[i] = attrExtSize[i];
+        this->attrSize[i] = attrSize[i];
+      }
+    }
+
+  inline
+  RelationDescriptor( const ListExpr typeInfo,
+                      int noTuples,
+                      double totalExtSize, double totalSize,
+                      double *attrExtSize, double *attrSize,
+                      const SmiFileId tId, const SmiFileId lId ):
+    tupleType( new TupleType( nl->Second( typeInfo ) ) ),
+    noTuples( noTuples ),
+    totalExtSize( totalExtSize ),
+    totalSize( totalSize ),
+    attrExtSize( 0 ),
+    attrSize( 0 ),
+    tupleFileId( tId ),
+    lobFileId( lId )
+    {
+      this->attrExtSize = new double[tupleType->GetNoAttributes()];
+      this->attrSize = new double[tupleType->GetNoAttributes()];
+      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+      {
+        this->attrExtSize[i] = attrExtSize[i];
+        this->attrSize[i] = attrSize[i];
+      }
+    }
+
 /*
 The first constructor.
 
 */
+  inline 
   RelationDescriptor( const RelationDescriptor& desc ):
+    tupleType( desc.tupleType ),
     noTuples( desc.noTuples ),
     totalExtSize( desc.totalExtSize ),
     totalSize( desc.totalSize ),
     tupleFileId( desc.tupleFileId ),
     lobFileId( desc.lobFileId )
-    {}
+    {
+      this->attrExtSize = new double[tupleType->GetNoAttributes()];
+      this->attrSize = new double[tupleType->GetNoAttributes()];
+      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+      {
+        this->attrExtSize[i] = desc.attrExtSize[i];
+        this->attrSize[i] = desc.attrSize[i];
+      }
+      tupleType->IncReference();
+    }
 /*
 The copy constructor.
 
 */
+  inline 
+  ~RelationDescriptor()
+  {
+    tupleType->DeleteIfAllowed();
+    delete []attrExtSize;
+    delete []attrSize;
+  }
+/*
+The destructor.
+
+*/
   inline RelationDescriptor& operator=( const RelationDescriptor& d )
   {
+    tupleType = d.tupleType;
+    tupleType->IncReference();
     noTuples = d.noTuples;
     totalExtSize = d.totalExtSize;
     totalSize = d.totalSize;
     tupleFileId = d.tupleFileId;
     lobFileId = d.lobFileId;
+    this->attrExtSize = new double[tupleType->GetNoAttributes()];
+    this->attrSize = new double[tupleType->GetNoAttributes()];
+    for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+    {
+      this->attrExtSize[i] = d.attrExtSize[i];
+      this->attrSize[i] = d.attrSize[i];
+    }
     return *this;
   }
 /*
@@ -277,6 +383,11 @@ Redefinition of the assignement operator.
 
 */
 
+  TupleType *tupleType;
+/*
+Stores the tuple type of every tuple in the relation.
+
+*/
   int noTuples;
 /*
 The quantity of tuples inside the relation.
@@ -293,6 +404,20 @@ the tuples.
 /*
 The total size occupied by the tuples in the relation taking
 into account all parts of the tuples, including the FLOBs.
+
+*/
+  double *attrExtSize;
+/*
+The total size occupied by the attributes in the relation
+taking into account the small FLOBs, i.e. the extension part
+of the tuples.
+
+*/
+  double *attrSize;
+/*
+The total size occupied by the attributes in the relation 
+taking into account all parts of the tuples, including the 
+FLOBs.
 
 */
   SmiFileId tupleFileId;
@@ -336,7 +461,7 @@ This struct contains the private attributes of the class ~Relation~.
 struct PrivateRelation
 {
   PrivateRelation( const ListExpr typeInfo, bool isTemp ):
-    tupleType( new TupleType( nl->Second( typeInfo ) ) ),
+    relDesc( new TupleType( nl->Second( typeInfo ) ) ),
     tupleFile( false, 0, isTemp ),
     isTemp( isTemp )
     {
@@ -347,14 +472,14 @@ struct PrivateRelation
         cout << error << endl;
         assert( false );
       }
-      relDescriptor.tupleFileId = tupleFile.GetFileId();
+      relDesc.tupleFileId = tupleFile.GetFileId();
     }
 /*
 The first constructor. Creates an empty relation from a ~typeInfo~.
 
 */
   PrivateRelation( TupleType *tupleType, bool isTemp ):
-    tupleType( tupleType ),
+    relDesc( tupleType ),
     tupleFile( false, 0, isTemp ),
     isTemp( isTemp )
     {
@@ -366,21 +491,18 @@ The first constructor. Creates an empty relation from a ~typeInfo~.
         cout << error << endl;
         assert( false );
       }
-      relDescriptor.tupleFileId = tupleFile.GetFileId();
+      relDesc.tupleFileId = tupleFile.GetFileId();
     }
 /*
 The second constructor. Creates an empty relation from a ~tupleType~.
 
 */
-  PrivateRelation( TupleType *tupleType, 
-                   const RelationDescriptor& relDesc, 
+  PrivateRelation( const RelationDescriptor& relDesc, 
                    bool isTemp ):
-    relDescriptor( relDesc ),
-    tupleType( tupleType ),
+    relDesc( relDesc ),
     tupleFile( false, 0, isTemp ),
     isTemp( isTemp )
     {
-      tupleType->IncReference();
       if( !tupleFile.Open( relDesc.tupleFileId ) )
       {
         string error;
@@ -388,51 +510,23 @@ The second constructor. Creates an empty relation from a ~tupleType~.
         cout << error << endl;
         assert( false );
       }
-      relDescriptor.tupleFileId = tupleFile.GetFileId();
+      this->relDesc.tupleFileId = tupleFile.GetFileId();
     }
 /*
 The third constructor. Opens a previously created relation.
 
 */
-  PrivateRelation( const ListExpr typeInfo, 
-                   const RelationDescriptor& relDesc, 
-                   bool isTemp ):
-    relDescriptor( relDesc ),
-    tupleType( new TupleType( nl->Second( typeInfo ) ) ),
-    tupleFile( false, 0, isTemp ),
-    isTemp( isTemp )
-    {
-      if( !tupleFile.Open( relDesc.tupleFileId ) )
-      {
-        string error;
-        SmiEnvironment::GetLastErrorCode( error );
-        cout << error << endl;
-        assert( false );
-      }
-      relDescriptor.tupleFileId = tupleFile.GetFileId();
-    }
-/*
-The fourth constructor. It opens a previously created relation 
-using the ~typeInfo~ instead of the ~tupleType~.
-
-*/
   ~PrivateRelation()
   {
     tupleFile.Close();
-    tupleType->DeleteIfAllowed();
   }
 /*
 The destuctor.
 
 */
-  RelationDescriptor relDescriptor;
+  mutable RelationDescriptor relDesc;
 /*
 Stores the descriptor of the relation.
-
-*/
-  mutable TupleType *tupleType;
-/*
-Stores the tuple type for every tuple of this relation.
 
 */
   SmiRecordFile tupleFile;

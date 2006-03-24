@@ -216,11 +216,11 @@ void Relation::UpdateTuple( Tuple *tuple,
   long oldExtSize = tuple->GetExtSize(),
        oldSize = tuple->GetSize();
   tuple->UpdateAttributes(changedIndices, newAttrs);
-  privateRelation->relDescriptor.totalExtSize = 
-    privateRelation->relDescriptor.totalExtSize - 
+  privateRelation->relDesc.totalExtSize = 
+    privateRelation->relDesc.totalExtSize - 
     oldExtSize + tuple->GetExtSize();
-  privateRelation->relDescriptor.totalSize = 
-    privateRelation->relDescriptor.totalSize - 
+  privateRelation->relDesc.totalSize = 
+    privateRelation->relDesc.totalSize - 
     oldSize + tuple->GetSize();
 }
 
@@ -247,9 +247,9 @@ bool Relation::DeleteTuple( Tuple *tuple )
   }
   if (privateRelation->tupleFile.DeleteRecord(tuple->GetTupleId()))
   {
-    privateRelation->relDescriptor.totalExtSize -= tupleExtSize;
-    privateRelation->relDescriptor.totalSize -= tupleSize;
-    privateRelation->relDescriptor.noTuples -= 1;
+    privateRelation->relDesc.totalExtSize -= tupleExtSize;
+    privateRelation->relDesc.totalSize -= tupleSize;
+    privateRelation->relDesc.noTuples -= 1;
     return true;
   }
   else
