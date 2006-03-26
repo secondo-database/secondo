@@ -4,6 +4,7 @@ SUMMARYFILE=summary
 TESTS=	refinementpartition.out \
 	insideabove.out \
 	trapeziumintersection.out \
+	basic.out \
 	atinstant.out
 
 all: clean $(TESTS) printsummary

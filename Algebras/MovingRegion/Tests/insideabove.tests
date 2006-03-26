@@ -23,6 +23,8 @@ let mr1 =
 			           (3.0 4.0 4.0 3.0)
 			           (3.0 3.0 4.0 2.0)))))) ];
 
+###############################################################################
+
 #testcase "1"
 #yields (bool FALSE)
 query mr1 unittest2 0;
@@ -74,6 +76,8 @@ query mr1 unittest2 11;
 #testcase "13"
 #yields (bool FALSE)
 query mr1 unittest2 12;
+
+###############################################################################
 
 #teardown
 close database;
