@@ -49,6 +49,15 @@ Fernuniversit[ae]t Hagen.
 
 Open:
 
+  * Bug: Lets consider two units ~up~ of type ~upoint~ and ~ur~ of type
+    ~uregion~ with the same interval. If ~val(initial(up))~ is within
+    ~val(initial(ur))~ and ~val(initial(up))~ is not within 
+    ~val(final(ur))~, the operators ~intersection~ and ~inside~ correctly
+    recognize the intersection with the edge of the region but do not
+    correctly calculate the intervals when the point is within and outside 
+    the region. If ~val(initial(up))~ is within ~val(final(ur))~, everything
+    works.
+
   * Bug: List representation checks incorrect for
     ~(update mv := ((movingregion)((0.0 0.0 true true)(0.0 0.0 1.0 1.0))));~.
     Aleksej Struk found this issue.
@@ -162,6 +171,12 @@ The following groups of test cases are available:
   * ~Tests/refinementpartition.tests~: Assures that the calculation of
     refinement partitions is correct. The special operator ~unittest3~ 
     provides the refinement partition of two ~mpoint~ values.
+
+  * ~Tests/basic.tests~: Checks operators ~bbox~, ~inst~, ~val~, ~deftime~ 
+    and present.
+
+  * ~Tests/intersection.tests~: Checks operators ~intersection~, ~inside~ 
+    and ~at~.
 
 1 Defines and includes
 \label{defines}
@@ -4960,7 +4975,7 @@ $TSI\_ENTER$ intersections or the same number of them.
 1.1.1 Method ~RestrictedIntersection()~
 
 Checks whether the point unit ~up~ intersects this region unit, while
-both units are restrictured to the interval ~iv~, which must be inside
+both units are restricted to the interval ~iv~, which must be inside
 the interval of the two units (this is not checked and must be assured
 before this method is called!).
 
@@ -6843,9 +6858,6 @@ and point unit, both restricted to this interval, intersect.
         cerr << "MRegion::IntersectionRP() res.IsEmpty()="
              << res.IsEmpty()
              << endl;
-
-    res.SetDefined(!res.IsEmpty());
-
 }
 
 /*
@@ -7885,7 +7897,7 @@ static int IntersectionValueMap(Word* args,
 
         if (!mp->IsDefined() || !mr->IsDefined())
             res->SetDefined(false);
-        else
+        else 
             mr->Intersection(*mp, *res);
     } catch (invalid_argument& e) {
         cerr << "-----------------------------------------------------------"
