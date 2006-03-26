@@ -42,32 +42,20 @@ extern QueryProcessor* qp;
 using namespace datetime;
 
 #include "TemporalAlgebra.h"
+#include "MovingRegionAlgebra.h"
+
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-class RefinementPartition {
-private:
-    vector< Interval<Instant>* > iv;
-    vector<int> vur;
-    vector<int> vup;
-
-    void AddUnits(int urPos, 
-                  int upPos, 
-                  Instant& start,
-                  Instant& end,
-                  bool lc,
-                  bool rc);
-
-public:
-    RefinementPartition(Mapping1& mr, Mapping2& mp);
-    ~RefinementPartition();
-
-    unsigned int Size(void ) { 
+unsigned int RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
+::Size(void) { 
         cout << "RP::Size() called" << endl;
             
         return iv.size(); 
     }
 
-    void Get(unsigned int pos, Interval<Instant>*& civ, int& ur,
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+void RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
+::Get(unsigned int pos, Interval<Instant>*& civ, int& ur,
      int& up) {
         cout << "RP::Get() called" << endl;
     
@@ -77,17 +65,16 @@ public:
         ur = vur[pos];
         up = vup[pos];
     }
-};
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
 void RefinementPartition<Mapping1, Mapping2, Unit1,
  Unit2>::AddUnits(
-    int urPos,
-    int upPos,
-    Instant& start,
-    Instant& end,
-    bool lc,
-    bool rc) {
+    const int urPos,
+    const int upPos,
+    const Instant& start,
+    const Instant& end,
+    const bool lc,
+    const bool rc) {
     cout << "RP::AddUnits() called" << endl;
     cout << "RP::AddUnits() start="
              << start.ToDouble()
@@ -392,7 +379,6 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
     }
 }
 
-//js
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
 RefinementPartition<Mapping1, Mapping2, Unit1,
  Unit2>::~RefinementPartition() {
@@ -401,6 +387,315 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
 
     for (unsigned int i = 0; i < iv.size(); i++) delete iv[i];
 }
+
+/*
+1.1.1 Method ~MPerimeter()~
+
+*/
+
+void MPerimeter(MRegion& reg, MReal& res) {
+    cout<< "MRegion::MPerimeter() called" << endl;
+    
+    int nocomponents = reg.GetNoComponents();
+    cout<<"GetNoComponents() "<<nocomponents<<endl;
+    res.Clear();
+    res.StartBulkLoad();
+    for(int n = 0; n < nocomponents; n++){
+      const URegion *ur;
+      UReal ures;
+      double start = 0.0, end = 0.0;
+      reg.Get(n, ur);
+      cout<<"URegion # "<<n<<" "<<"[ "
+      <<ur->timeInterval.start.ToDouble()<<" "
+      <<ur->timeInterval.end.ToDouble()<<" ]"<<endl;
+      ures.timeInterval = ur->timeInterval;
+      int number = ur->GetSegmentsNum();
+      cout<<"number = "<< number<<endl;
+      for(int i = 0; i < number; i++){
+        const MSegmentData *dms;
+        ur->GetSegment(i, dms);
+        /*
+        cout<<"GetFaceNo()"<<dms->GetFaceNo()<<endl;
+        cout<<"GetCycleNo()"<<dms->GetCycleNo()<<endl;
+        cout<<"GetSegmentNo()"<<dms->GetSegmentNo()<<endl;
+        cout<<"GetInitialStartX()"<<dms->GetInitialStartX()<<endl;
+        cout<<"GetInitialStartY()"<<dms->GetInitialStartY()<<endl;
+        cout<<"GetInitialEndX()"<<dms->GetInitialEndX()<<endl;
+        cout<<"GetInitialEndY()"<<dms->GetInitialEndY()<<endl;
+        cout<<"GetFinalStartX()"<<dms->GetFinalStartX()<<endl;
+        cout<<"GetFinalStartY()"<<dms->GetFinalStartY()<<endl;
+        cout<<"GetFinalEndX()"<<dms->GetFinalEndX()<<endl;
+        cout<<"GetFinalEndY()"<<dms->GetFinalEndY()<<endl;
+        cout<<"GetInsideAbove()"<<dms->GetInsideAbove()<<endl;
+        */
+        if(dms->GetCycleNo() == 0){ //only outercycle
+          start += sqrt(pow(dms->GetInitialStartX() 
+          - dms->GetInitialEndX(), 2) + pow(dms->GetInitialStartY() 
+          - dms->GetInitialEndY(), 2));                
+          end += sqrt(pow(dms->GetFinalStartX() 
+          - dms->GetFinalEndX(), 2) + pow(dms->GetFinalStartY() 
+          - dms->GetFinalEndY(), 2));
+        }
+      }
+      cout<<"URegion # "<<n<<endl;
+      cout<<"start "<<start<<endl;
+      cout<<"end "<<end<<endl;
+      ures.a = 0.0;
+      ures.b = (ures.timeInterval.end > ures.timeInterval.start)
+      ? (end - start) / (ures.timeInterval.end.ToDouble() 
+      - ures.timeInterval.start.ToDouble()) : 0.0;
+      ures.c = start;
+      ures.r = false;
+      cout<<"ures.a "<<ures.a<<endl;
+      cout<<"ures.b "<<ures.b<<endl;
+      cout<<"ures.c "<<ures.c<<endl;
+      cout<<"ures.r "<<ures.r<<endl;
+      res.MergeAdd(ures); 
+    }
+    res.EndBulkLoad(false);
+}
+
+/*
+1.1.1 Method ~MArea()~
+
+*/
+
+void MArea(MRegion& reg, MReal& res) {
+    cout<< "MRegion::MArea() called" << endl;
+    
+    int nocomponents = reg.GetNoComponents();
+    cout<<"GetNoComponents() "<<nocomponents<<endl;
+    res.Clear();
+    res.StartBulkLoad();
+    for(int n = 0; n < nocomponents; n++){
+      const URegion *ur;
+      UReal ures;
+      double at = 0.0, bt = 0.0, ct = 0.0;
+      reg.Get(n, ur);
+      cout<<"URegion # "<<n<<" "<<"[ "
+      <<ur->timeInterval.start.ToDouble()<<" "
+      <<ur->timeInterval.end.ToDouble()<<" ]"<<endl;
+      double dt = ur->timeInterval.end.ToDouble() 
+      - ur->timeInterval.start.ToDouble();
+      cout<<"dt "<<dt<<endl;
+      if (dt == 0.0) continue;
+      ures.timeInterval = ur->timeInterval;
+      int number = ur->GetSegmentsNum();
+      cout<<"number = "<< number<<endl;
+      for(int i = 0; i < number; i++){
+        const MSegmentData *dms;
+        ur->GetSegment(i, dms);
+        /*
+        cout<<"GetFaceNo()"<<dms->GetFaceNo()<<endl;
+        cout<<"GetCycleNo()"<<dms->GetCycleNo()<<endl;
+        cout<<"GetSegmentNo()"<<dms->GetSegmentNo()<<endl;
+        cout<<"GetInitialStartX()"<<dms->GetInitialStartX()<<endl;
+        cout<<"GetInitialStartY()"<<dms->GetInitialStartY()<<endl;
+        cout<<"GetInitialEndX()"<<dms->GetInitialEndX()<<endl;
+        cout<<"GetInitialEndY()"<<dms->GetInitialEndY()<<endl;
+        cout<<"GetFinalStartX()"<<dms->GetFinalStartX()<<endl;
+        cout<<"GetFinalStartY()"<<dms->GetFinalStartY()<<endl;
+        cout<<"GetFinalEndX()"<<dms->GetFinalEndX()<<endl;
+        cout<<"GetFinalEndY()"<<dms->GetFinalEndY()<<endl;
+        cout<<"GetInsideAbove()"<<dms->GetInsideAbove()<<endl;
+        */
+        double kx1 = (dms->GetFinalStartX() 
+        - dms->GetInitialStartX()) / dt;
+        cout<<"kx1 "<<kx1<<endl;
+        double kx2 = (dms->GetFinalEndX() 
+        - dms->GetInitialEndX()) / dt;
+        cout<<"kx2 "<<kx2<<endl;
+        double ky1 = (dms->GetFinalStartY() 
+        - dms->GetInitialStartY()) / dt;
+        cout<<"ky1 "<<ky1<<endl;
+        double ky2 = (dms->GetFinalEndY() 
+        - dms->GetInitialEndY()) / dt;
+        cout<<"ky2 "<<ky2<<endl;
+
+        at += ((kx2 - kx1) * (ky1 + ky2)) / 2;
+        bt += (((kx2 - kx1) * (dms->GetInitialStartY() 
+        + dms->GetInitialEndY())) + ((dms->GetInitialEndX() 
+        - dms->GetInitialStartX()) * (ky1 + ky2))) / 2;          
+        ct += ((dms->GetInitialStartY() + dms->GetInitialEndY()) 
+        * (dms->GetInitialEndX() - dms->GetInitialStartX())) / 2;
+       
+      }
+      cout<<"URegion # "<<n<<endl;
+      ures.a = at;
+      ures.b = bt;
+      ures.c = ct;
+      ures.r = false;
+      cout<<"ures.a "<<ures.a<<endl;
+      cout<<"ures.b "<<ures.b<<endl;
+      cout<<"ures.c "<<ures.c<<endl;
+      cout<<"ures.r "<<ures.r<<endl;
+      res.MergeAdd(ures);
+    }
+    res.EndBulkLoad(false);
+}
+
+/*
+1.1.1 Method ~RCenter()~
+
+*/
+
+void RCenter(MRegion& reg, MPoint& res) {
+    cout<< "MRegion::RCenter() called" << endl;
+    
+    int nocomponents = reg.GetNoComponents();
+    cout<<"GetNoComponents() "<<nocomponents<<endl;
+    res.Clear();
+    res.StartBulkLoad();
+    for(int n = 0; n < nocomponents; n++){
+      const URegion *ur;
+      double Ainitial = 0.0, Axinitial = 0.0, Ayinitial = 0.0,
+             Afinal = 0.0, Axfinal = 0.0, Ayfinal = 0.0;
+      reg.Get(n, ur);
+      cout<<"URegion # "<<n<<" "<<"[ "
+      <<ur->timeInterval.start.ToDouble()<<" "
+      <<ur->timeInterval.end.ToDouble()<<" ]"<<endl;
+      int number = ur->GetSegmentsNum();
+      cout<<"number = "<< number<<endl;
+      const MSegmentData *dms;
+      for(int i = 0; i < number; i++){
+        ur->GetSegment(i, dms);
+
+       //Calculate Area of Beginning and End of Unit
+       Ainitial += (dms->GetInitialEndX() 
+       - dms->GetInitialStartX()) * (dms->GetInitialEndY() 
+       + dms->GetInitialStartY()) / 2;
+       Afinal += (dms->GetFinalEndX() - dms->GetFinalStartX()) 
+       * (dms->GetFinalEndY() + dms->GetFinalStartY()) / 2;
+       
+       double initialax, initialbx, finalax, finalbx, initialay,
+       initialby, finalay, finalby; //Ax=ax^3+bx^2 
+       
+       //Calculate Momentum of Area
+       initialax = (dms->GetInitialStartX() 
+                 != dms->GetInitialEndX())
+       ? ((dms->GetInitialEndY() - dms->GetInitialStartY()) / (
+       dms->GetInitialEndX() - dms->GetInitialStartX()) / 3.0)
+       : 0.0;
+       cout<<"initialax "<<initialax<<endl;
+       initialbx = (dms->GetInitialStartY() - 3.0 * initialax 
+       * dms->GetInitialStartX()) / 2.0;
+       cout<<"initialbx "<<initialbx<<endl;
+       finalax = (dms->GetFinalStartX() != dms->GetFinalEndX())
+       ? ((dms->GetFinalEndY() - dms->GetFinalStartY()) / (
+       dms->GetFinalEndX() - dms->GetFinalStartX()) / 3.0)
+       : 0.0;
+       cout<<"finalax "<<finalax<<endl;
+       finalbx = (dms->GetFinalStartY() - 3.0 * finalax 
+       * dms->GetFinalStartX()) / 2.0;
+       cout<<"finalbx "<<finalbx<<endl;
+       
+       initialay = (dms->GetInitialStartY() 
+                 != dms->GetInitialEndY())
+       ? ((dms->GetInitialEndX() - dms->GetInitialStartX()) / (
+       dms->GetInitialEndY() - dms->GetInitialStartY()) / 3.0)
+       : 0.0;
+       cout<<"initialay "<<initialay<<endl;
+       initialby = (dms->GetInitialStartX() - 3.0 * initialay 
+       * dms->GetInitialStartY()) / 2.0;
+       cout<<"initialby "<<initialby<<endl;
+       finalay = (dms->GetFinalStartY() != dms->GetFinalEndY())
+       ? ((dms->GetFinalEndX() - dms->GetFinalStartX()) / (
+       dms->GetFinalEndY() - dms->GetFinalStartY()) / 3.0)
+       : 0.0;
+       cout<<"finalay "<<finalay<<endl;
+       finalby = (dms->GetFinalStartX() - 3.0 * finalay 
+       * dms->GetFinalStartY()) / 2.0;
+       cout<<"finalby "<<finalby<<endl;
+       
+       Axinitial += initialax * pow(dms->GetInitialEndX(), 3) 
+       + initialbx * pow(dms->GetInitialEndX(), 2) 
+       - initialax * pow(dms->GetInitialStartX(), 3) 
+       - initialbx * pow(dms->GetInitialStartX(),2 );
+       
+       Axfinal += finalax * pow(dms->GetFinalEndX(), 3) 
+       + finalbx * pow(dms->GetFinalEndX(), 2) 
+       - finalax * pow(dms->GetFinalStartX(), 3) - finalbx 
+       * pow(dms->GetFinalStartX(),2 );
+       
+       Ayinitial += initialay * pow(dms->GetInitialEndY(), 3) 
+       + initialby * pow(dms->GetInitialEndY(), 2) 
+       - initialay * pow(dms->GetInitialStartY(), 3) 
+       - initialby * pow(dms->GetInitialStartY(),2 );
+       
+       Ayfinal += finalay * pow(dms->GetFinalEndY(), 3) 
+       + finalby * pow(dms->GetFinalEndY(), 2) 
+       - finalay * pow(dms->GetFinalStartY(), 3) - finalby 
+       * pow(dms->GetFinalStartY(),2 );
+      }
+      cout<<"URegion # "<<n<<endl;
+      cout<<"Ainitial"<<Ainitial<<endl;
+      cout<<"Afinal"<<Afinal<<endl;
+      cout<<"Axinitial"<<Axinitial<<endl;
+      cout<<"Axfinal"<<Axfinal<<endl;
+      cout<<"Ayinitial"<<Ayinitial<<endl;
+      cout<<"Ayfinal"<<Ayfinal<<endl;
+      
+      if ((Ainitial != 0.0) || (Afinal != 0.0)){
+        UPoint *ures;
+        if((Ainitial != 0.0) && (Afinal != 0.0)) {
+          ures = new UPoint(ur->timeInterval,
+          (Axinitial / Ainitial), (-Ayinitial / Ainitial),
+          (Axfinal / Afinal), (-Ayfinal / Afinal));
+        }
+        else if (Ainitial == 0.0) {
+          ures = new UPoint(ur->timeInterval,
+          dms->GetInitialStartX(), dms->GetInitialStartY(),
+          (Axfinal / Afinal), (-Ayfinal / Afinal));
+        }
+        else {
+        ures = new UPoint(ur->timeInterval,
+        (Axinitial / Ainitial), (-Ayinitial / Ainitial),
+        dms->GetFinalStartX(), dms->GetFinalStartY());
+        }
+        cout<<"uresXinitial "<<ures->p0.GetX()<<endl;
+        cout<<"uresYinitial "<<ures->p0.GetY()<<endl;
+        cout<<"uresXfinal "<<ures->p1.GetX()<<endl;
+        cout<<"uresXfinal "<<ures->p1.GetY()<<endl;
+        res.Add(*ures);
+        delete ures;
+      }
+    }
+    res.EndBulkLoad(false);
+}
+
+/*
+1.1.1 Method ~NComponents()~
+
+*/
+
+void NComponents(MRegion& reg, MInt& res) {
+    cout<< "MRegion::NComponents() called" << endl;
+    
+    int nocomponents = reg.GetNoComponents();
+    cout<<"GetNoComponents() "<<nocomponents<<endl;
+    res.Clear();
+    res.StartBulkLoad();
+    for(int n = 0; n < nocomponents; n++){
+      const URegion *ur;
+      
+      reg.Get(n, ur);
+      cout<<"URegion # "<<n<<" "<<"[ "
+      <<ur->timeInterval.start.ToDouble()<<" "
+      <<ur->timeInterval.end.ToDouble()<<" ]"<<endl;
+
+      cout<<"number = "<< ur->GetSegmentsNum()<<endl;
+      CcInt *constVal = new CcInt(true, ur->GetSegmentsNum());
+      UInt *ures = new UInt(ur->timeInterval, *constVal);
+
+      cout<<"ures.constValue "<<ures->constValue.GetIntval()<<endl;
+      res.MergeAdd(*ures);
+      delete constVal;
+      delete ures;
+    }
+    res.EndBulkLoad(false);
+}
+
+
 
 template <class Alpha>
 bool CompareValue( ConstTemporalUnit<Alpha>& n,
@@ -2540,6 +2835,144 @@ InsideTypeMapMBool( ListExpr args )
 }
 
 /*
+16.1.3 Type mapping function ~PerimeterTypeMap~
+
+Used by ~perimeter~ and ~area~
+
+*/
+static ListExpr PerimeterTypeMap(ListExpr args) {
+    cout << "PerimeterTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 1
+        && nl->IsEqual(nl->First(args), "movingregion"))
+        return nl->SymbolAtom("mreal");
+    else
+        return nl->SymbolAtom("typeerror");
+}
+
+/*
+16.1.3 Type mapping function ~RCenterTypeMap~
+
+Used by ~rough\_center~
+
+*/
+static ListExpr RCenterTypeMap(ListExpr args) {
+    cout<< "RCenterTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 1
+        && nl->IsEqual(nl->First(args), "movingregion"))
+        return nl->SymbolAtom("mpoint");
+    else
+        return nl->SymbolAtom("typeerror");
+}
+
+/*
+16.1.3 Type mapping function ~NComponentsTypeMap~
+
+Used by ~no\_components~
+
+*/
+static ListExpr NComponentsTypeMap(ListExpr args) {
+    cout<< "NComponentsTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 1
+        && nl->IsEqual(nl->First(args), "movingregion"))
+        return nl->SymbolAtom("mint");
+    else
+        return nl->SymbolAtom("typeerror");
+}
+
+/*
+16.1.3 Type mapping function ~MinusTypeMap~
+
+Used by ~minus~:
+
+*/
+static ListExpr MinusTypeMap(ListExpr args) {
+    cout<< "MinusTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 2){
+      if(nl->IsEqual(nl->First(args), "region") 
+         && nl->IsEqual(nl->Second(args), "mpoint"))
+         return nl->SymbolAtom("movingregion");
+      if(nl->IsEqual(nl->First(args), "movingregion") 
+         && nl->IsEqual(nl->Second(args), "point"))
+         return nl->SymbolAtom("movingregion");
+      if(nl->IsEqual(nl->First(args), "movingregion") 
+         && nl->IsEqual(nl->Second(args), "mpoint"))
+         return nl->SymbolAtom("movingregion");
+      if(nl->IsEqual(nl->First(args), "movingregion") 
+         && nl->IsEqual(nl->Second(args), "points"))
+         return nl->SymbolAtom("movingregion");
+      if(nl->IsEqual(nl->First(args), "movingregion") 
+         && nl->IsEqual(nl->Second(args), "line"))
+         return nl->SymbolAtom("movingregion");
+      
+      else
+        return nl->SymbolAtom("typeerror");
+    }
+    else
+        return nl->SymbolAtom("typeerror");
+}
+
+/*
+16.1.3 Type mapping function ~UnionTypeMap~
+
+Used by ~union~:
+
+*/
+static ListExpr UnionTypeMap(ListExpr args) {
+    cout<< "UnionTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 2){
+      if(nl->IsEqual(nl->First(args), "mpoint") 
+         && nl->IsEqual(nl->Second(args), "region"))
+         return nl->SymbolAtom("movingregion");
+      if(nl->IsEqual(nl->First(args), "mpoint") 
+         && nl->IsEqual(nl->Second(args), "movingregion"))
+         return nl->SymbolAtom("movingregion");
+      if(nl->IsEqual(nl->First(args), "point") 
+         && nl->IsEqual(nl->Second(args), "movingregion"))
+         return nl->SymbolAtom("movingregion");
+      
+      else
+        return nl->SymbolAtom("typeerror");
+    }
+    else
+        return nl->SymbolAtom("typeerror");
+}
+
+/*
+Used by ~isempty~:
+
+16.1.3 Type mapping function ~IsemptyTypeMap~
+
+*/
+static ListExpr IsemptyTypeMap(ListExpr args) {
+    cout<<"IsemptyTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 1
+        && nl->IsEqual(nl->First(args), "movingregion"))
+        return nl->SymbolAtom("mbool");
+    else
+        return nl->SymbolAtom("typeerror");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
 16.2.12 Selection function ~MovingAndOrSelect~
 
 Is used for the ~and~ and ~or~ operations.
@@ -2782,6 +3215,78 @@ InsideSelect( ListExpr args )
     
   return -1; // This point should never be reached
 }
+
+/*
+16.2.1 Selection function ~MinusSelect~
+
+For ~minus~:
+
+*/
+
+static int MinusSelect(ListExpr args) {
+    cout<< "MinusSelect() called" << endl;
+
+    if (nl->ListLength(args) == 2){
+      if(nl->SymbolValue(nl->First(args)) == "region"
+        && nl->SymbolValue(nl->Second(args)) == "mpoint")
+        return 0;
+      else if  (nl->SymbolValue(nl->First(args)) == "movingregion"
+        && nl->SymbolValue(nl->Second(args)) == "point")
+        return 1;
+      else if  (nl->SymbolValue(nl->First(args)) == "movingregion"
+        && nl->SymbolValue(nl->Second(args)) == "mpoint")
+        return 2;     
+      else if  (nl->SymbolValue(nl->First(args)) == "movingregion"
+        && nl->SymbolValue(nl->Second(args)) == "points")
+        return 3;
+      else if  (nl->SymbolValue(nl->First(args)) == "movingregion"
+        && nl->SymbolValue(nl->Second(args)) == "line")
+        return 4;
+      else
+        return -1;
+    }
+    else
+        return -1;
+}
+
+/*
+16.2.1 Selection function ~UnionSelect~
+
+For ~union~:
+
+*/
+
+static int UnionSelect(ListExpr args) {
+    cout<< "UnionSelect() called" << endl;
+
+    if (nl->ListLength(args) == 2){
+      if(nl->SymbolValue(nl->First(args)) == "mpoint"
+        && nl->SymbolValue(nl->Second(args)) == "region")
+        return 0;
+      else if  (nl->SymbolValue(nl->First(args)) == "mpoint"
+        && nl->SymbolValue(nl->Second(args)) == "movingregion")
+        return 1;
+      else if  (nl->SymbolValue(nl->First(args)) == "point"
+        && nl->SymbolValue(nl->Second(args)) == "movingregion")
+        return 2;     
+
+      else
+        return -1;
+    }
+    else
+        return -1;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 //js
 
@@ -3994,6 +4499,334 @@ int MPointsLineInside( Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+ValueMapping for ~perimeter~
+
+*/
+
+static int PerimeterValueMap(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s) {
+    cout<< "PerimeterValueMap() called" << endl;
+
+    result = qp->ResultStorage(s);
+
+    MPerimeter(* (MRegion*) args[0].addr, * (MReal*) result.addr);
+
+    return 0;
+}
+
+/*
+ValueMapping for ~area~
+
+*/
+
+static int AreaValueMap(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s) {
+    cout<< "AreaValueMap) called" << endl;
+
+    result = qp->ResultStorage(s);
+
+    MArea(* (MRegion*) args[0].addr, * (MReal*) result.addr);
+
+    return 0;
+}
+
+/*
+ValueMapping for ~rough\_center~
+
+*/
+
+static int RCenterValueMap(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s) {
+    cout<< "RCenterValueMap() called" << endl;
+
+    result = qp->ResultStorage(s);
+
+    RCenter(* (MRegion*) args[0].addr,* (MPoint*) result.addr);
+
+    return 0;
+}
+
+/*
+ValueMapping for ~no\_components~
+
+*/
+
+static int NComponentsValueMap(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s) {
+    cout<< "NComponentsValueMap() called" << endl;
+
+    result = qp->ResultStorage(s);
+
+    NComponents(* (MRegion*) args[0].addr,* (MInt*) result.addr);
+
+    return 0;
+}
+
+void copyMRegion(MRegion& res, MRegion& result) {
+   cout<<"copyMRegion() called"<<endl;
+   result = res;
+}
+
+void copyRegionMPoint(CRegion& reg, MPoint& pt, MRegion& result) {
+   cout<<"copyMRegion2() called"<<endl;
+   MRegion* res = new MRegion(pt, reg);
+   cout<<"ölaks"<<endl;
+   //result = *res;
+   copyMRegion(*res, result);
+   cout<<"söldsödflk"<<endl;
+   delete res;
+}
+
+void copyMRegionMPoint(MRegion& reg, MPoint& pt, MRegion& result) {
+    RefinementPartition<MRegion, MPoint, URegion, UPoint> rp(reg,pt);
+    result.Clear();
+    result.StartBulkLoad();
+    Interval<Instant>* iv;
+    int regPos;
+    int ptPos;
+    const URegion *ureg;
+    for( unsigned int i = 0; i < rp.Size(); i++ ){
+      rp.Get(i, iv, regPos, ptPos);
+      if(regPos == -1 ||ptPos == -1)
+        continue;
+      cout<<"bothoperators in iv # "<<i<<endl;
+      reg.Get(regPos, ureg);
+      result.Add(*ureg);//Baustelle!!
+    }
+    result.EndBulkLoad(false);
+}
+
+/*
+ValueMapping for ~Minus~ with Region/MPoint
+
+*/
+
+static int RMPMinusValueMap(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s) {
+    cout<< "RMPMinusValueMap() called" << endl;
+    result = qp->ResultStorage(s);
+
+    copyRegionMPoint(*((CRegion*)args[0].addr) ,
+    *((MPoint*)args[1].addr), *((MRegion*)result.addr) );
+    
+    return 0;
+}
+
+/*
+ValueMapping for ~Minus~ with MRegion/Point
+
+*/
+
+static int MRPMinusValueMap(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s) {
+    cout<< "MRPMinusValueMap() called" << endl;
+
+    result = qp->ResultStorage(s);
+
+    copyMRegion(*((MRegion*)args[0].addr), *(MRegion*)result.addr);
+
+    return 0;
+}
+
+/*
+ValueMapping for ~Minus~ with MRegion/MPoint
+
+*/
+
+static int MRMPMinusValueMap(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s) {
+    cout<< "MRMPMinusValueMap() called" << endl;
+
+    result = qp->ResultStorage(s);
+
+    copyMRegionMPoint(*((MRegion*)args[0].addr) ,
+    *((MPoint*)args[1].addr), *((MRegion*)result.addr) );
+    
+    return 0;
+}
+
+/*
+ValueMapping for ~Union~ with Region/MPoint
+
+*/
+
+static int MPRUnionValueMap(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s) {
+    cout<< "MPRUnionValueMap() called" << endl;
+    result = qp->ResultStorage(s);
+
+    copyRegionMPoint(*((CRegion*)args[1].addr) ,
+    *((MPoint*)args[0].addr), *((MRegion*)result.addr) );
+    
+    return 0;
+}
+
+/*
+ValueMapping for ~Union~ with MRegion/Point
+
+*/
+
+static int PMRUnionValueMap(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s) {
+    cout<< "PMRUnionValueMap() called" << endl;
+
+    result = qp->ResultStorage(s);
+
+    copyMRegion(*((MRegion*)args[1].addr),
+     *(MRegion*)result.addr);
+
+    return 0;
+}
+
+/*
+ValueMapping for ~Union~ with MRegion/MPoint
+
+*/
+
+static int MPMRUnionValueMap(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s) {
+    cout<< "MPMRUnionValueMap() called" << endl;
+
+    result = qp->ResultStorage(s);
+
+    copyMRegionMPoint(*((MRegion*)args[1].addr) ,
+    *((MPoint*)args[0].addr), *((MRegion*)result.addr) );
+    
+    return 0;
+}
+
+/*
+ValueMapping for ~isempty~ for MRegion
+
+*/
+
+static int IsemptyValueMap(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s) {
+    cout<< "IsemptyValueMap() called" << endl;
+
+    result = qp->ResultStorage(s);
+    MBool* pResult = (MBool*)result.addr;
+    MRegion* reg = (MRegion*)args[0].addr;
+    UBool uBool;
+    const URegion *ureg;
+    
+    pResult->Clear();
+    pResult->StartBulkLoad();
+    if(reg->GetNoComponents() < 0){
+      uBool.timeInterval.lc = true;
+      uBool.timeInterval.start.ToMinimum();
+      uBool.timeInterval.start.SetType(instanttype);
+      uBool.timeInterval.rc = true;
+      uBool.timeInterval.end.ToMaximum();
+      uBool.timeInterval.end.SetType(instanttype);
+      uBool.constValue.Set(true,true);
+      pResult->Add(uBool);
+    }
+    else{    
+      cout<<"1"<<endl;
+      uBool.timeInterval.lc = true;
+      uBool.timeInterval.start.ToMinimum();
+      uBool.timeInterval.start.SetType(instanttype);
+      cout<<"2"<<endl;
+      for( int i = 0; i < reg->GetNoComponents(); i++) {
+        reg->Get(i, ureg);
+        
+        cout<<"ureg "<<i<<" [ "
+        <<ureg->timeInterval.start.ToDouble()<<" "
+        <<ureg->timeInterval.end.ToDouble()<<" "
+        <<ureg->timeInterval.lc<<" "<<ureg->timeInterval.rc<<" ] "
+        <<ureg->GetSegmentsNum()<<endl;
+        
+        uBool.timeInterval.rc = !ureg->timeInterval.lc;
+        uBool.timeInterval.end = ureg->timeInterval.start;
+        uBool.constValue.Set(true,true);
+        
+        cout<<"a "<<i<<" "<<uBool.constValue.GetBoolval()<<" [ "
+        <<uBool.timeInterval.start.ToDouble()<<" "
+        <<uBool.timeInterval.end.ToDouble()<<" "
+        <<uBool.timeInterval.lc<<" "<<uBool.timeInterval.rc<<" ]"
+        <<endl;
+        if(uBool.timeInterval.start < uBool.timeInterval.end 
+          || (uBool.timeInterval.start == uBool.timeInterval.end
+          && uBool.timeInterval.lc && uBool.timeInterval.rc))  
+          pResult->MergeAdd(uBool);
+        uBool.timeInterval = ureg->timeInterval;
+        if(ureg->GetSegmentsNum() < 1) 
+          uBool.constValue.Set(true,true);
+        else 
+          uBool.constValue.Set(true,false);
+          
+        cout<<"b "<<i<<" "<<uBool.constValue.GetBoolval()<<" [ "
+        <<uBool.timeInterval.start.ToDouble()<<" "
+        <<uBool.timeInterval.end.ToDouble()<<" "
+        <<uBool.timeInterval.lc<<" "<<uBool.timeInterval.rc<<" ]"
+        <<endl;
+        pResult->MergeAdd(uBool);
+        
+        uBool.timeInterval.lc = !ureg->timeInterval.rc;
+        uBool.timeInterval.start = ureg->timeInterval.end;
+      }
+      uBool.timeInterval.end.ToMaximum();
+      uBool.timeInterval.end.SetType(instanttype);
+      cout<<"3"<<endl;
+      if(ureg->timeInterval.end 
+         < uBool.timeInterval.end){
+        uBool.timeInterval.rc = true;
+        uBool.constValue.Set(true,true);
+        
+        cout<<uBool.constValue.GetBoolval()<<" [ "
+        <<uBool.timeInterval.start.ToDouble()<<" "
+        <<uBool.timeInterval.end.ToDouble()<<" "
+        <<uBool.timeInterval.lc<<" "<<uBool.timeInterval.rc<<" ]"
+        <<endl;
+        pResult->MergeAdd(uBool);;
+      }
+    }
+    pResult->EndBulkLoad(false);
+    
+    return 0;
+}
+
+
+
+
+
+
+
 ValueMapping temporalandmap[] = {TemporalMMLogic<1>,
                                  TemporalMSLogic<1>,
                                  TemporalSMLogic<1>};
@@ -4106,6 +4939,22 @@ ValueMapping temporalliftminusmap[] = {
 
 ValueMapping temporalliftinsidemap[] = { MPointsPointInside,
                                          MPointsLineInside  };
+
+static ValueMapping minusvaluemap[] =
+    { RMPMinusValueMap,
+      MRPMinusValueMap,
+      MRMPMinusValueMap,
+      MRPMinusValueMap,
+      MRPMinusValueMap,
+      };
+
+static ValueMapping unionvaluemap[] =
+    { MPRUnionValueMap,
+      MPMRUnionValueMap,
+      PMRUnionValueMap
+      }; 
+
+
 
 
 const string TemporalLiftSpecNot 
@@ -4247,6 +5096,66 @@ const string TemporalLiftSpecInside
          "<text>query mp1 inside pts1</text--->"
          ") )";
 
+static const string perimeterspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>movingregion -> mreal</text--->"
+    "    <text>perimeter ( _ )</text--->"
+    "    <text>Calculates the perimeter of a moving Region.</text--->"
+    "    <text>mraperimeter(mrg1)</text---> ) )";
+
+static const string areaspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>movingregion -> mreal</text--->"
+    "    <text>area ( _ )</text--->"
+    "    <text>Calculates the area of a moving Region.</text--->"
+    "    <text>area(mrg1)</text---> ) )";    
+
+static const string rcenterspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>movingregion -> mpoint</text--->"
+    "    <text>rough_center ( _ )</text--->"
+    "    <text>Calculates an approach to the"
+    "  center of gravity of a moving Region.</text--->"
+    "    <text>rough_center(mrg1)</text---> ) )";
+
+static const string ncomponentsspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>movingregion -> mint</text--->"
+    "    <text>no_components ( _ )</text--->"
+    "    <text>Calculates the number of faces of a moving Region.</text--->"
+    "    <text>no_components(mrg1)</text---> ) )";
+
+static const string minusspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>R in {region}, P in {point}, R x mP -> mR, "
+    "mR x P -> mR, mR x mP -> mR, mR x points -> mR, mR x line -> mR</text--->"
+    "    <text>_ minus _</text--->"
+    "    <text>Calculates the differece between the given objects.</text--->"
+    "    <text>rg1 minus mp1</text---> ) )";
+
+static const string unionspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>R in {region}, P in {point}, mP x R-> mR,"
+    " mP x mR -> mR, P x mR -> mR</text--->"
+    "    <text>_ union _</text--->"
+    "    <text>Calculates union between the given objects.</text--->"
+    "    <text>rg1 union mp1</text---> ) )";
+
+static const string isemptyspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>mregion -> mbool</text--->"
+    "    <text>isempty( _ )</text--->"
+    "    <text>Checks if the moving region is empty.</text--->"
+    "    <text>isempty(mrg1)</text---> ) )";
+
+
+
+
+
+
+
+
+
 
 Operator temporalnot( "not",
                             TemporalLiftSpecNot,
@@ -4344,6 +5253,50 @@ Operator temporalminside( "inside",
                          InsideSelect,
                          InsideTypeMapMBool );
 
+static Operator perimeter("perimeter",
+                        perimeterspec,
+                        PerimeterValueMap,
+                        Operator::SimpleSelect,
+                        PerimeterTypeMap);
+
+static Operator area("area",
+                        areaspec,
+                        AreaValueMap,
+                        Operator::SimpleSelect,
+                        PerimeterTypeMap);
+
+static Operator rcenter("rough_center",
+                        rcenterspec,
+                        RCenterValueMap,
+                        Operator::SimpleSelect,
+                        RCenterTypeMap);
+
+static Operator ncomponents("no_components",
+                        ncomponentsspec,
+                        NComponentsValueMap,
+                        Operator::SimpleSelect,
+                        NComponentsTypeMap);
+
+static Operator mminus("minus",
+                          minusspec,
+                          5,
+                          minusvaluemap,
+                          MinusSelect,
+                          MinusTypeMap);
+
+static Operator munion("union",
+                          unionspec,
+                          3,
+                          unionvaluemap,
+                          UnionSelect,
+                          UnionTypeMap);
+
+static Operator isempty("isempty",
+                        isemptyspec,
+                        IsemptyValueMap,
+                        Operator::SimpleSelect,
+                        IsemptyTypeMap);
+
 
 class TemporalLiftedAlgebra : public Algebra
 {
@@ -4367,6 +5320,14 @@ class TemporalLiftedAlgebra : public Algebra
     AddOperator( &temporalmequal );
     AddOperator( &temporalmnotequal );
     AddOperator( &temporalabs );
+    
+    AddOperator( &perimeter);
+    AddOperator( &area);
+    AddOperator( &rcenter);
+    AddOperator( &ncomponents);
+    AddOperator( &mminus);
+    AddOperator( &munion);
+    AddOperator( &isempty);
     }
     ~TemporalLiftedAlgebra() {}
 };
