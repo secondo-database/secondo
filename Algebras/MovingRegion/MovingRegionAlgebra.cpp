@@ -7167,9 +7167,9 @@ void MRegion::AtInstant(Instant& t, Intime<CRegion>& result) {
         const URegion* posUnit;
         Get(pos, posUnit);
 
-        result.SetDefined(true);
         posUnit->TemporalFunction(t, result.value);
         result.instant.CopyFrom(&t);
+        result.SetDefined(result.value.Size() > 0);
   }
 }
 
@@ -7202,6 +7202,7 @@ void MRegion::Initial(Intime<CRegion>& result) {
     result.SetDefined(true);
     unit->TemporalFunction(unit->timeInterval.start, result.value);
     result.instant.CopyFrom(&unit->timeInterval.start);
+    result.SetDefined(result.value.Size() > 0);
 }
 
 /*
@@ -7233,6 +7234,7 @@ void MRegion::Final(Intime<CRegion>& result) {
     result.SetDefined(true);
     unit->TemporalFunction(unit->timeInterval.end, result.value);
     result.instant.CopyFrom(&unit->timeInterval.end);
+    result.SetDefined(result.value.Size() > 0);
 }
 
 /*

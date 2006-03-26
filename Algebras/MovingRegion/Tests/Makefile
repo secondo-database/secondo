@@ -3,7 +3,8 @@ SUMMARYFILE=summary
 
 TESTS=	refinementpartition.out \
 	insideabove.out \
-	trapeziumintersection.out
+	trapeziumintersection.out \
+	atinstant.out
 
 all: clean $(TESTS) printsummary
 
