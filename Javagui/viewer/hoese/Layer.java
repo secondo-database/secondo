@@ -210,7 +210,7 @@ public class Layer extends JComponent {
    * @see <a href="Layersrc.html#getActualTime">Source</a>
    */
   public double getActualTime () {
-    return  owner.mw.ActualTime;
+    return  CurrentState.ActualTime;
   }
 
   /**
@@ -282,7 +282,7 @@ public class Layer extends JComponent {
 	  DsplGraph dg = (DsplGraph)GeoObjects.get(i);
           if ((dg.getVisible()) && (!dg.getSelected())){
 	    setCategory(dg,g2);
-            dg.draw(g2);
+            dg.draw(g2,CurrentState.ActualTime);
 	  }
         }
       else
@@ -290,7 +290,7 @@ public class Layer extends JComponent {
           DsplGraph dg = (DsplGraph)GeoObjects.get(i);
           if (dg.getVisible()){
 	    setCategory(dg,g2);
-            dg.draw(g2);
+            dg.draw(g2,CurrentState.ActualTime);
 	  }
         }
      } catch(Exception e){

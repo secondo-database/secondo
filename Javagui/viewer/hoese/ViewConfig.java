@@ -34,7 +34,7 @@ import gui.Environment;
 
 /**
  * The objects in a query result had no category in the beginning. This dialog offers the
- * ability to associate single raphical objects or whole quries. A label attribute can be
+ * ability to associate single graphical objects or whole quries. A label attribute can be
  * selected. An attribute can be chosen for attribute dependant rendering.The top is made
  * up by the InfoPanel, followed by the Ref or NavPanel (reference depending mode or single
  * tupel mode.The buttonPanel is the bottommost region in this dialog.
@@ -95,19 +95,20 @@ public class ViewConfig extends javax.swing.JDialog {
     String MainType = TypeList.symbolValue();
 
     if(MainType.equals("rel") ){
-	v.add("Tupel-No.");
-	LabelAList.add("no Label");
-	TupelCount = Query.LEResult.second().listLength();
-	ListExpr attrlist = Query.LEResult.first().second().second();
-	while (!attrlist.isEmpty()) {
-	  String type = attrlist.first().second().symbolValue();
-	  LabelAList.add(attrlist.first().first().symbolValue());
-	  if ((type.equals("int")) || (type.equals("real")) || (type.equals("string"))
-	      || (type.equals("bool")))
-	     v.add(attrlist.first().first().symbolValue());
-	  AttrCount++;
-	  attrlist = attrlist.rest();
-	}
+				v.add("Tupel-No.");
+				LabelAList.add("no Label");
+				TupelCount = Query.LEResult.second().listLength();
+				ListExpr attrlist = Query.LEResult.first().second().second();
+
+				while (!attrlist.isEmpty()) {
+					String type = attrlist.first().second().symbolValue();
+					LabelAList.add(attrlist.first().first().symbolValue());
+					if ((type.equals("int")) || (type.equals("real")) || (type.equals("string"))
+							|| (type.equals("bool")))
+						 v.add(attrlist.first().first().symbolValue());
+						 AttrCount++;
+							attrlist = attrlist.rest();
+				}
     }
 
     if(MainType.equals("nmap")){
@@ -123,7 +124,6 @@ public class ViewConfig extends javax.swing.JDialog {
        LabelAList.add("name"); 
        v.add("name");
     }
-
     return  v;
   }
 
@@ -389,9 +389,9 @@ public class ViewConfig extends javax.swing.JDialog {
           AktGO.getLabPosOffset().setLocation(Double.parseDouble(LabXOffText.getText()),
               Double.parseDouble(LabYOffText.getText()));
         if (LabelText.getText().equals(""))
-          AktGO.setLabelText(null);
+          AktGO.setLabelAttribute(null);
         else
-          AktGO.setLabelText(LabelText.getText());
+          AktGO.setLabelAttribute(new DefaultLabelAttribute(LabelText.getText()));
       }
     });
     NavRow2.add(ApplyTuB);
@@ -559,7 +559,7 @@ public class ViewConfig extends javax.swing.JDialog {
     CatCB.setSelectedItem(AktGO.getCategory());
     LabXOffText.setText(Double.toString(AktGO.getLabPosOffset().getX()));
     LabYOffText.setText(Double.toString(AktGO.getLabPosOffset().getY()));
-    LabelText.setText(AktGO.getLabelText());
+    LabelText.setText(AktGO.getLabelText(CurrentState.ActualTime));
   }
 
 
@@ -598,20 +598,25 @@ public class ViewConfig extends javax.swing.JDialog {
             dg.getLabPosOffset().setLocation(Double.parseDouble(LabXOffText.getText()),
                 Double.parseDouble(LabYOffText.getText()));
           if ((LabIndex >= 0) && (LabelText.getText().equals(""))) {
-            String text;
+            LabelAttribute label;
             if(LabIndex==0)  // no Label
-               text ="";
+               label=null;
             else {
-               text = Query.getModel().getElementAt(cnt*(AttrCount + 1)
-                + LabIndex-1).toString();
-               text = text.substring(text.indexOf(":") + 1);
+               Object labobj = Query.getModel().getElementAt(cnt*(AttrCount + 1)+ LabIndex-1);
+               if(! (labobj instanceof LabelAttribute)){
+                   String labeltext =labobj.toString();
+                   labeltext = labeltext.substring(labeltext.indexOf(":")+1);
+                   label = new DefaultLabelAttribute(labeltext);
+               } else{
+                    label = (LabelAttribute) labobj; 
+               }
             }
-            dg.setLabelText(text);
+            dg.setLabelAttribute(label);
           }
           else if (LabelText.getText().equals(""))
-            dg.setLabelText(null);
+            dg.setLabelAttribute(null);
           else
-            dg.setLabelText(LabelText.getText());
+            dg.setLabelAttribute(new DefaultLabelAttribute(LabelText.getText()));
           cnt++;
         }
       }
@@ -1123,5 +1128,7 @@ public class ViewConfig extends javax.swing.JDialog {
 
   private static int VariantNr = 0;
   // End of variables declaration//GEN-END:variables
+
+
 }
 

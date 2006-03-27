@@ -69,8 +69,6 @@ public class HoeseViewer extends SecondoViewer {
   private AffineTransform ZoomTransform = new AffineTransform();
   private SelMouseAdapter SelectionControl;
 
-  /** The time which is actually set in app. */
-  public double ActualTime = 0;
   private Interval TimeBounds;
   private LongScrollBar TimeSlider;
 
@@ -1729,14 +1727,14 @@ public boolean canDisplay(SecondoObject o){
       TimeSlider.setValues(0, 0, 1);
       actTimeLabel.setText("no time");
       //TimeSlider.setVisible(false);
-      ActualTime = 0;
+      CurrentState.ActualTime = 0;
     } 
     else {
       TimeSlider.setVisible(true);
-      ActualTime = TimeBounds.getStart();
+      CurrentState.ActualTime = TimeBounds.getStart();
       TimeSlider.setValues((long)Math.round(in.getStart()*86400000), (long)Math.round(in.getStart()*86400000),
           (long)Math.round(in.getEnd()*86400000) + 1);
-      actTimeLabel.setText(LEUtils.convertTimeToString(ActualTime));
+      actTimeLabel.setText(LEUtils.convertTimeToString(CurrentState.ActualTime));
     }
   }
 
@@ -2308,11 +2306,11 @@ public boolean canDisplay(SecondoObject o){
           anf = TimeBounds.getEnd();
       }
       //System.out.println("anf"+e.getValue());
-      if (anf == ActualTime)
+      if (anf == CurrentState.ActualTime)
         return;
       GraphDisplay.setIgnorePaint(true);
-      ActualTime = anf;
-      actTimeLabel.setText(LEUtils.convertTimeToString(ActualTime));
+      CurrentState.ActualTime = anf;
+      actTimeLabel.setText(LEUtils.convertTimeToString(CurrentState.ActualTime));
       makeSelectionVisible();
       GraphDisplay.setIgnorePaint(false);
       GraphDisplay.repaint();
@@ -2674,7 +2672,7 @@ public boolean canDisplay(SecondoObject o){
               GraphDisplay.repaint();
            points.add(thePoint);
            Graphics2D G = (Graphics2D)GraphDisplay.getGraphics();
-           ps.draw(G,allProjection);
+           ps.draw(G,allProjection,CurrentState.ActualTime);
 }
 
       /** This function computes the coordinates in the 'world' from the 

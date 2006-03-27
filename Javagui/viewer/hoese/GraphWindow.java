@@ -336,16 +336,16 @@ public class GraphWindow extends JLayeredPane
     
     if ((dg != null) && (dg.getVisible())){
       if(!dg.isLineType())
-          dg.draw(g2);              //the selected GraphObject must be drawn on top
+          dg.draw(g2,CurrentState.ActualTime);              //the selected GraphObject must be drawn on top
       else{
          Composite C = g2.getComposite();
          g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.0f));
-         dg.draw(g2);
+         dg.draw(g2,CurrentState.ActualTime);
          g2.setComposite(C);
       } 
 	  }
     if(additionalGraphObject!=null){
-      additionalGraphObject.draw(g2,at); 
+      additionalGraphObject.draw(g2,at,CurrentState.ActualTime); 
     } 
   }
 

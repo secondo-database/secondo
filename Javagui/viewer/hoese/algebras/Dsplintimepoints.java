@@ -70,10 +70,10 @@ public class Dsplintimepoints extends Dsplpoints
    * @param g The graphics context
    * @see <a href="Dsplintimepointssrc.html#draw">Source</a>
    */
-  public void draw (Graphics g) {
+  public void draw (Graphics g,double time) {
     double t = RefLayer.getActualTime();
     if (Math.abs(t - TimeBounds.getStart()) < 0.000001)
-      super.draw(g);
+      super.draw(g,time);
   }
 
   /**

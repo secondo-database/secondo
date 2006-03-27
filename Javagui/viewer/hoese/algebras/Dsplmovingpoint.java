@@ -31,11 +31,32 @@ import  gui.Environment;
 /**
  * A displayclass for the movingpoint-type (spatiotemp algebra), 2D with TimePanel
  */
-public class Dsplmovingpoint extends DisplayTimeGraph {
+public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute {
   //AffineTransform internAT;
   Point2D.Double point;
   Vector PointMaps;
   Rectangle2D.Double bounds;
+
+
+  /** Returns a short text usable as label **/
+  public String getLabel(double time){
+    if(Intervals==null || PointMaps==null){
+       return null;
+    }
+    int index = getTimeIndex(time,Intervals);
+    if(index<0){
+      return null; 
+    }
+    PointMap pm = (PointMap) PointMaps.get(index);
+    Interval in = (Interval)Intervals.get(index);
+    double t1 = in.getStart();
+    double t2 = in.getEnd();
+    double Delta = (time-t1)/(t2-t1);
+    double x = pm.x1+Delta*(pm.x2-pm.x1);
+    double y = pm.y1+Delta*(pm.y2-pm.y1);
+    return "("+x+", "+ y+")";
+
+  }
 
 
   /**

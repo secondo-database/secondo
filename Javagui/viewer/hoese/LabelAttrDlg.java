@@ -68,7 +68,7 @@ public class LabelAttrDlg extends javax.swing.JDialog {
     LTLabel.setText("Label Text:");
     InfoPanel.add(LTLabel);
     LabelText.setColumns(10);
-    LabelText.setText(AktGO.getLabelText());
+    LabelText.setText(AktGO.getLabelText(CurrentState.ActualTime));
     LabXOffText.setText(Double.toString(AktGO.getLabPosOffset().getX()));
     LabYOffText.setText(Double.toString(AktGO.getLabPosOffset().getY()));
     InfoPanel.add(LabelText);
@@ -114,7 +114,7 @@ public class LabelAttrDlg extends javax.swing.JDialog {
     else 
       AktGO.getLabPosOffset().setLocation(Double.parseDouble(LabXOffText.getText()), 
           Double.parseDouble(LabYOffText.getText()));
-    AktGO.setLabelText(LabelText.getText());
+    AktGO.setLabelAttribute(new DefaultLabelAttribute(LabelText.getText()));
     CancelBActionPerformed(null);
   }
   // Variables declaration - do not modify//GEN-BEGIN:variables

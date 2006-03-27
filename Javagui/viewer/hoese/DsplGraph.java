@@ -47,7 +47,7 @@ public interface DsplGraph extends DsplBase
    * Text of the associated Label.
    * @return Labeltext
    */
-  public String getLabelText ();
+  public String getLabelText ( double time);
 
 
 
@@ -55,7 +55,7 @@ public interface DsplGraph extends DsplBase
    * Sets the labeltext for an object
    * @param label Text of label
    */
-  public void setLabelText (String label);
+  public void setLabelAttribute(LabelAttribute labelAttribute);
 
 
 
@@ -96,14 +96,14 @@ public interface DsplGraph extends DsplBase
    * This method is called to draw this object .
    * @param g The graphic context to draw in.
    */
-  public void draw (Graphics g);
+  public void draw (Graphics g,double time);
 
 
   /**
    * This method is called to draw this object .
    * @param g The graphic context to draw in.
    */
-   public void draw (Graphics g,AffineTransform at);
+   public void draw (Graphics g,AffineTransform at, double time);
 
   
   /**
@@ -111,7 +111,7 @@ public interface DsplGraph extends DsplBase
    * @param g graphics context
    * @param ro the shape of the associated object.
    */
-  public void drawLabel (Graphics g, Shape ro);
+  public void drawLabel (Graphics g, Shape ro, double time);
 
 
 

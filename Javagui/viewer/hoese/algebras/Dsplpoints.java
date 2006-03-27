@@ -137,14 +137,14 @@ public class Dsplpoints extends DisplayGraph {
    * @param g The graphics context
    * @see <a href="Dsplpointssrc.html#draw">Source</a>
    */
-  public void draw (Graphics g) {
+  public void draw (Graphics g, double time) {
     ListIterator li = points.listIterator();
     while (li.hasNext()) {
       Point2D.Double p = (Point2D.Double)li.next();
-      new Dsplpoint(p, this).draw(g);
+      new Dsplpoint(p, this).draw(g,time);
       //g2.fillOval((int)  p.getX()-3  ,(int) p.getY()-3,6,6);
     }
-    drawLabel(g, bounds);
+    drawLabel(g, bounds, time);
   }
 }
 

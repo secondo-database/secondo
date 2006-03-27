@@ -42,8 +42,8 @@ public class DisplayGraph extends DsplGeneric
   protected Shape RenderObject;
 /** Point datatayes e.g. point,points need special treatment,therefore this flag need to be set */
   protected boolean ispointType = false;
-/** The label text of this object */
-  private String LabelText;
+/** The Object labeling this one */
+  private LabelAttribute labelAttribute;
 /** Position of the label */
   private Point LabPosOffset = new Point(-30, -10);
  /** the typewidth to display in a relation */
@@ -74,19 +74,20 @@ public class DisplayGraph extends DsplGeneric
   /**
    *
    * @return The text of the label.
-   * @see <a href="DisplayGraphsrc.html#getLabelText">Source</a>
    */
-  public String getLabelText () {
-    return  LabelText;
+  public String getLabelText (double time) {
+    if(labelAttribute==null)
+      return null;
+    else
+      return labelAttribute.getLabel(time);
   }
 
   /**
    * Sets the label text
    * @param label the text for the label
-   * @see <a href="DisplayGraphsrc.html#setLabelText">Source</a>
    */
-  public void setLabelText (String label) {
-    LabelText = label;
+  public void setLabelAttribute(LabelAttribute labelAttribute) {
+    this.labelAttribute = labelAttribute;
   }
 
   /**
@@ -132,10 +133,10 @@ public class DisplayGraph extends DsplGeneric
   }
 
   /** paints this component on g **/
-  public void draw(Graphics g){
+  public void draw(Graphics g, double time){
      if(RefLayer==null)
         return;
-     draw(g,RefLayer.getProjection());
+     draw(g,RefLayer.getProjection(),time);
   }
 
 
@@ -143,7 +144,7 @@ public class DisplayGraph extends DsplGeneric
    * This method draws the RenderObject with ist viewattributes collected in the category
    * @param g The graphic context to draw in.
    */
-  public void draw (Graphics g,AffineTransform af2) {
+  public void draw (Graphics g,AffineTransform af2,double time) {
     Shape sh;
     Graphics2D g2 = (Graphics2D)g;
     Shape render = getRenderObject(af2);
@@ -165,7 +166,7 @@ public class DisplayGraph extends DsplGeneric
           g2.setStroke(Cat.getLineStroke());
       g2.draw(sh);
     }
-    drawLabel(g2, render);
+    drawLabel(g2, render,time);
   }
 
   /**
@@ -174,7 +175,8 @@ public class DisplayGraph extends DsplGeneric
    * @param ro  The Shape-object to witch this label belong.
    * @see <a href="DisplayGraphsrc.html#drawLabel">Source</a>
    */
-  public void drawLabel (Graphics g, Shape ro) {
+  public void drawLabel (Graphics g, Shape ro, double time) {
+    String LabelText = getLabelText(time);
     if (LabelText == null || LabelText.trim().equals(""))
       return;
     Graphics2D g2 = (Graphics2D)g;

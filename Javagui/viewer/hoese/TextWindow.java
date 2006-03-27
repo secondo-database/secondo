@@ -203,7 +203,10 @@ public class TextWindow extends JPanel {
       if (catl.isEmpty()) {
         left = ListExpr.cons(ListExpr.intAtom(catnr), catl);
         catl = left;
-        String lab = (dg.getLabelText() == null) ? "" : dg.getLabelText();
+        String lab = dg.getLabelText(CurrentState.ActualTime);
+        if(lab==null){
+            lab ="";
+        }
         left = ListExpr.append(left, ListExpr.stringAtom(lab));
         left = ListExpr.append(left, ListExpr.realAtom(dg.getLabPosOffset().getX()));
         left = ListExpr.append(left, ListExpr.realAtom(dg.getLabPosOffset().getY()));
@@ -211,7 +214,10 @@ public class TextWindow extends JPanel {
       } 
       else {
         left = ListExpr.append(left, ListExpr.intAtom(catnr));
-        String lab = (dg.getLabelText() == null) ? "" : dg.getLabelText();
+        String lab = dg.getLabelText(CurrentState.ActualTime);
+        if(lab==null){
+             lab="";
+        }
         left = ListExpr.append(left, ListExpr.stringAtom(lab));
         left = ListExpr.append(left, ListExpr.realAtom(dg.getLabPosOffset().getX()));
         left = ListExpr.append(left, ListExpr.realAtom(dg.getLabPosOffset().getY()));
@@ -296,9 +302,8 @@ public class TextWindow extends JPanel {
               LayerList.second().intValue());
 
           CatList = CatList.rest();
-          dg.setLabelText(CatList.first().stringValue());
-          if (dg.getLabelText().equals(""))
-            dg.setLabelText(null);
+          dg.setLabelAttribute(new
+DefaultLabelAttribute(CatList.first().stringValue()));
 
           CatList = CatList.rest();
           dg.getLabPosOffset().setLocation(CatList.first().realValue(), CatList.second().realValue());
