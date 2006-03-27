@@ -317,11 +317,14 @@ else
 
 
   # move label for stable version
-  tagMsg="Moving CVS tag LAST_STABLE"
+  tagSym="LAST_STABLE"
+  tagMsg="Moving CVS tag $tagSym"
   printSep $tagMsg
   echo -e "Automatic regression test was successful. ${tagMsg}!" >> $cvsHistFile
-  cvs -Q tag -d LAST_STABLE 
-  cvs -Q tag LAST_STABLE
+  cvs -Q tag -d $tagSym 
+  cvs -Q tag $tagSym
+  make tag $tagSym src-archives
+  cp /tmp/make-spieker/secondo-$tagSym* /www/secondo/internal
   rm -rf ${cbuildDir}
 
 fi
