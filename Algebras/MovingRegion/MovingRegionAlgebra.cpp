@@ -8,7 +8,9 @@
 
 [1] The ~MovingRegionAlgebra~
 
-December 2005, initial version created by Holger M[ue]nx.
+December 2005, initial version created by Holger M[ue]nx for bachelor
+thesis with Prof. Dr. G[ue]ting, Fachbereich Informatik,
+Fernuniversit[ae]t Hagen.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
@@ -56,15 +58,15 @@ Open:
     recognize the intersection with the edge of the region but do not
     correctly calculate the intervals when the point is within and outside 
     the region. If ~val(initial(up))~ is within ~val(final(ur))~, everything
-    works.
+    works. Please note that this bug is causing two failed unit tests.
 
   * Bug: List representation checks incorrect for
     ~(update mv := ((movingregion)((0.0 0.0 true true)(0.0 0.0 1.0 1.0))));~.
     Aleksej Struk found this issue.
 
     Update: Debug output at the beginning on ~InMRegion()~ indicated that
-    this problem actually occurs before ~InMRegion()~ is called. It is very
-    likely that this problem is not caused by this algebra.
+    this problem actually occurs before ~InMRegion()~ is called. The problem
+    is not caused by the ~MovingRegionAlgebra~.
 
   * Feature: Calculations with values of datatype $Instant$ are done with
     double precision only and not with the datatypes own calculation
@@ -174,6 +176,9 @@ The following groups of test cases are available:
 
   * ~Tests/basic.tests~: Checks operators ~bbox~, ~inst~, ~val~, ~deftime~ 
     and present.
+
+  * ~Tests/atinstant.tests~: Checks operators ~atinstant~, ~initial~ and
+    ~final~.
 
   * ~Tests/intersection.tests~: Checks operators ~intersection~, ~inside~ 
     and ~at~.
@@ -5957,6 +5962,16 @@ See there for more details.
 
     bool lc = nl->BoolValue(nl->Third(interval));
     bool rc = nl->BoolValue(nl->Fourth(interval));
+
+    if (end->ToDouble() < start->ToDouble()
+        || (nearlyEqual(start->ToDouble(), end->ToDouble())
+            && !(lc && rc))) {
+        cerr << "uregion invalid interval" << endl;
+        correct = false;
+        delete start;
+        delete end;
+        return SetWord(Address(0));
+    }
 
     Interval<Instant> tinterval(*start, *end, lc, rc);
 

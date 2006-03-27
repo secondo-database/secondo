@@ -288,34 +288,32 @@ query mr1pl5 inside mr1;
 let mr1pk1 =
     [ const mpoint value (((-10.0 10.0 TRUE TRUE) 
 		           (1.0 4.25 2.5 4.25))) ];
-let mr1pk1a =
-    [ const mpoint value (((0.0 10.0 TRUE TRUE) 
-		           (1.75 4.25 2.5 4.25))) ];
 
-#testcase "k1 - intersection"
+#testcase "k11 - intersection"
 #tolerance_real 0.00000001
 #yields (mpoint ((("2000-01-05-12:00" "2000-01-11-08:00" TRUE TRUE) (2.25 5.25 3.416666666666667 5.25))))
 query intersection(mr1pk1, mr1);
 
-#testcase "k2 - inside"
+#testcase "k11 - inside"
 #tolerance_real 0.00000001
 #yields (mbool ((("2000-01-03" "2000-01-05-12:00" TRUE FALSE) FALSE) (("2000-01-05-12:00" "2000-01-11-08:00" TRUE TRUE) TRUE) (("2000-01-11-08:00" "2000-01-13" FALSE TRUE) FALSE)))
 query mr1pk1 inside mr1;
 
-let mr1pk1b =
-    [ const mpoint value (((0.0 10.0 TRUE TRUE) 
-		           (2.5 4.25 1.75 4.25))) ];
-
-#testcase "k2 - inside"
-#tolerance_real 0.00000001
-#yields (mbool ((("2000-01-03" "2000-01-05-12:00" TRUE FALSE) FALSE) (("2000-01-05-12:00" "2000-01-11-08:00" TRUE TRUE) TRUE) (("2000-01-11-08:00" "2000-01-13" FALSE TRUE) FALSE)))
-query mr1pk1b inside mr1;
-
 ###############################################################################
 
 let mr1pk2 =
-    [ const mpoint value (((-10.0 10.0 TRUE TRUE) 
-		           (0.0 4.25 3.0 4.25))) ];
+    [ const mpoint value (((0.0 10.0 TRUE TRUE) 
+		           (2.5 4.25 1.75 4.25))) ];
+
+#testcase "k21 - intersection"
+#tolerance_real 0.00000001
+#yields (mpoint ((("2000-01-03" "2000-01-08" TRUE TRUE) (2.5 4.25 2.125 4.25))))
+query intersection(mr1pk2, mr1);
+
+#testcase "k21 - inside"
+#tolerance_real 0.00000001
+#yields (mbool ((("2000-01-03" "2000-01-08" TRUE TRUE) TRUE) (("2000-01-08" "2000-01-13" FALSE TRUE) FALSE)))
+query mr1pk2 inside mr1;
 
 ###############################################################################
 

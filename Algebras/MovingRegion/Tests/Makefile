@@ -5,7 +5,8 @@ TESTS=	refinementpartition.out \
 	insideabove.out \
 	trapeziumintersection.out \
 	basic.out \
-	atinstant.out
+	atinstant.out \
+	intersection.out
 
 all: clean $(TESTS) printsummary
 
