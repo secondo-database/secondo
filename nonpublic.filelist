@@ -1,0 +1,13 @@
+# March 2006, M. Spiekermann
+#
+# This file contains files which will be not exported
+# into the public version of SECONDO. Please add directories
+# or files here which represent unfinished research.
+
+nonpublic.filelist
+Algebras/TopOps
+Algebras/TopRel
+Algebras/Periodic
+Algebras/Network
+Algebras/Rose
+
