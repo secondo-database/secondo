@@ -36,7 +36,7 @@ operator distribute alias DISTRIBUTE pattern _ op [ _ ]
 
 operator summarize alias SUMMARIZE pattern _ op
 
-operator loop alias LOOP pattern _ op [ fun ] 
+operator loop alias LOOP pattern _ op [ fun ]
          implicit parameter element type ELEMENT
 
 operator loopa alias LOOPA pattern _ _ op [ fun ] 

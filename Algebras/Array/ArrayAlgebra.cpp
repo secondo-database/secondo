@@ -97,6 +97,7 @@ value mapping of the ~summarize~ operator.
 using namespace std;
 
 #include <sstream>
+
 #include "Algebra.h"
 #include "NestedList.h"
 #include "NList.h"
@@ -105,10 +106,26 @@ using namespace std;
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
 #include "time.h"
+#include "FunVector.h"
+
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
+
+bool ::operator<( const FunInfo& f1, const FunInfo& f2 )
+{
+  return (f1.no < f2.no);
+}
+
+std::ostream&
+::operator<<( std::ostream& os, const FunInfo& f )
+{
+  os << "function " << f.name << " used " << f.timesUsed
+     << " times, used CPU time: " << f.consumedTime << " seconds.";
+  return os;
+}
+
 
 namespace {
 
@@ -734,37 +751,9 @@ TypeConstructor array (
       CheckArray );
 
 /*
-3 Handling of Functions, Implementation of the Switch- and the Select Algorithm
-
-3.1 Class ~FunInfo~
-
-
-Each object of this class contains a function (given by a Supplier object)
-together with some additional information, e.g. an assigned number
-(["]function-id["]) and an assigned name.
-
-A function can be requested with given parameters. The system measures, sums up
-and prints out the used CPU time of the function. The total number of function
-requests is also available.
+3 Implementation of Utility Datastructures for handling parameter functions 
 
 */
-class FunInfo {
-  public :
-    FunInfo();
-    FunInfo(int, string, Supplier);
-    double getTime();
-    void request(Word*, int, Word&, string);
-    void request(Word, Word&, string);
-    void request(Word, Word, Word&, string);
-  private :
-    int no;
-    string name;
-    Supplier supplier;
-    int timesUsed;
-    double consumedTime;
-  friend bool operator<(const FunInfo&, const FunInfo&);
-  friend ostream& operator<<(ostream&, const FunInfo&);
-};
 
 FunInfo::FunInfo() {}
 
@@ -815,6 +804,19 @@ FunInfo::request( Word* arguments, int n, Word& funresult, string info = "" )
        << ") seconds." << endl;
 }
 
+
+void
+FunInfo::open()
+{
+  qp->Open(supplier);
+} 
+
+void
+FunInfo::close()
+{
+  qp->Close(supplier);
+} 
+
 void
 FunInfo::request( Word argument, Word& funresult, string info = "" )
 {
@@ -829,56 +831,18 @@ FunInfo::request( Word firstArg, Word secondArg, Word& funresult,
   request(arguments, 2, funresult, info);
 }
 
-bool
-operator<( const FunInfo& f1, const FunInfo& f2 )
-{
-  return (f1.no < f2.no);
-}
 
-ostream&
-operator<<( ostream& stream, const FunInfo& f )
-{
-  return stream << "function " << f.name << " used " << f.timesUsed
-                << " times, used CPU time: " << f.consumedTime << " seconds.";
-}
-
-/*
-3.2 Class ~FunVector~
-
-This class uses the class template ["]vector["]. Each object of the class
-~FunVector~ contains a vector of ~FunInfo~ objects. The vector is initialized
-with a set of functions (given by a Supplier object) and an array of function
-names. After initializing the vector, a single function or all functions stored
-in the vector may be requested.
-
-The class also provides some useful methods for the implementation of the
-switch- and the select algorithm.
-
-*/
-class FunVector {
-  public:
-    void load(Word, Word*);
-    void requestFun(int, Word, Word&, string);
-    void requestFun(int, Word, Word, Word&, string);
-    void requestAll(Word, Word&, string);
-    void requestAll(Word, Word, Word&, string);
-    void writeSummary();
-    void reorder();
-    int getMin();
-  private:
-    vector<FunInfo> funInfos;
-    void addFunction(string, Supplier);
-};
 
 void
 FunVector::addFunction( string name, Supplier s )
 {
+  cout << "size: " << funInfos.size() << endl;
   FunInfo f( funInfos.size()+1, name, s );
   funInfos.push_back(f);
 }
 
 void
-FunVector::load( Word suppl, Word* funNames )
+FunVector::load( Word suppl, Word* funNames, const bool doRequest /*= false*/ )
 {
   Supplier funSupplier = (Supplier)suppl.addr;
   Supplier supplier1;
@@ -887,8 +851,15 @@ FunVector::load( Word suppl, Word* funNames )
   int noOfFuns = qp->GetNoSons(funSupplier);
 
   for (int i=0; i<noOfFuns; i++) {
-    const STRING* name = ((CcString*)funNames[i].addr)->GetStringval();
 
+    Word wfunName = funNames[i];
+    if (doRequest)
+    {
+	qp->Request(funNames[i].addr, wfunName);
+    }
+    const STRING* name = ((CcString*)wfunName.addr)->GetStringval();
+
+    cerr << "Function " << i << "/" << noOfFuns << *name << endl;
     supplier1 = qp->GetSupplier(funSupplier, i);
     supplier2 = qp->GetSupplier(supplier1, 1);
 
@@ -926,6 +897,20 @@ FunVector::requestAll( Word firstArgument, Word secondArgument,
     requestFun(i, firstArgument, secondArgument, funresult, info);
   }
 }
+
+void
+FunVector::sendMsgForAll(int msg) 
+{
+  for (size_t i=0; i < funInfos.size(); i++ )
+  {
+    switch (msg) {
+      case OPEN: funInfos[i].open();
+      case CLOSE: funInfos[i].close();
+      default: assert(false);           
+    } 
+  }
+} 
+
 
 void
 FunVector::reorder()
@@ -997,6 +982,8 @@ FunVector::writeSummary()
     cout << "SUMMARY, " << funInfos[i] << "\n";
   }
 }
+
+
 
 /*
 3.3 Class ~SwitchAlgorithm~
