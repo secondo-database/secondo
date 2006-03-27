@@ -3034,17 +3034,36 @@ int RangeInside_rr( Word* args, Word& result, int message, Word&
   return 0;
 }
 
+
 template <class Alpha, class Range>
-int RangeInside_ar( Word* args, Word& result, int message, Word&
- local, Supplier s )
+int RangeInside_ar( Word* args, Word& result, int message, Word& local, 
+	Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( ((Range*)args[1].addr)->Contains( *((Alpha*)args[0].addr) ) )
-    ((CcBool*)result.addr)->Set( true, true );
+
+  if ( ((Alpha*)args[0].addr)->IsDefined() &&
+       ((Range*)args[1].addr)->IsDefined() )
+  {
+
+    if( ((Range*)args[1].addr)->Contains( *((Alpha*)args[0].addr) ) )
+      ((CcBool*)result.addr)->Set( true, true );
+    else
+      ((CcBool *)result.addr)->Set( true, false );
+  }
+
   else
-    ((CcBool *)result.addr)->Set( true, false );
+    ((CcBool *)result.addr)->Set( false, false );
+
   return 0;
 }
+
+
+
+
+
+
+
+
 
 /*
 16.3.10 Value mapping functions of operator ~before~
