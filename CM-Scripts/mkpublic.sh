@@ -12,7 +12,7 @@ fi
 
 elements=$(sed -ne 's/\(^[^#].*\)/\1/p' $1)
 
-cmd="find ! -type d"
+cmd="find secondo ! -type d"
 
 for elem in $elements; do
 

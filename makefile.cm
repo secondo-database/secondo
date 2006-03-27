@@ -281,43 +281,49 @@ tag-version:
 
 fileList := $(tempdir)/_SRC_FILE_LIST
 .PHONY: src-archives
-src-archives: $(fileList) 
+src-archives: rmList mkArchives
+
+.PHONY: mkArchives
+mkArchives: $(fileList) 
 	rm -rf $(SRC_FILES)
 	tar -czf $(LIN_SRC) -T $<
 # a list of file endings which need not to be recoded
 	find secondo ! \( \
           -type d \
           -or -name "*.bmp" \
-          -or -name "*.zip" \
-          -or -name "*.tgz" \
-          -or -name "*.jar" \
-          -or -name "*.dll" \
-          -or -name "*.gif" \
-          -or -name "*.jpg" \
-          -or -name "*.sxd" \
-          -or -name "*.sda" \
-          -or -name "*.fig" \
-          -or -name "*.pdf" \
-          -or -name "*.eps" \
-          -or -name "*.fm" \
-          -or -name "*.gz" \
           -or -name "*.book" \
           -or -name "*.canvas" \
+          -or -name "*.dll" \
+          -or -name "*.eps" \
+          -or -name "*.fig" \
+          -or -name "*.fm" \
+          -or -name "*.gz" \
+          -or -name "*.gif" \
+          -or -name "*.tgz" \
+          -or -name "*.jar" \
+          -or -name "*.jpg" \
+          -or -name "*.pdf" \
+          -or -name "*.png" \
+          -or -name "*.sxd" \
+          -or -name "*.sda" \
+          -or -name "*.vsd" \
+          -or -name "*.zip" \
           -or -path "*javazoom*" \
         \) \
         -exec recode lat1..cp1252 {} \;
-ifdef mkpublic
-	CM-SCripts/mkpublic.sh
-endif
 	cat $< | zip -9 -r $(WIN_SRC) -@ > /dev/null
 	rm -rf secondo
 
+.PHONY: rmList
+rmList: 
+	rm -f $(fileList)
+
 $(fileList): secondo/makefile
-	CM-Scripts nonpublic.filelist > $@
+	CM-Scripts/mkpublic.sh nonpublic.filelist $@
 
 secondo/makefile:
 	$(checkTag)
-	cvs -Q export -r$(tag) secondo 
+	cvs -Q export -r$(tag) secondo
 
 
 $(net)/installsdk: install.bash

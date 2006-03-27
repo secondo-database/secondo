@@ -1,8 +1,7 @@
 # March 2006, M. Spiekermann
 #
-# This file contains files which will be not exported
-# into the public version of SECONDO. Please add directories
-# or files here which represent unfinished research.
+# This file contains a list of files which will not be exported
+# into the public available version of SECONDO.
 
 # Directories
 
@@ -13,6 +12,8 @@ Algebras/Network
 Algebras/Rose
 
 Optimizer/Entropy
+
+Tools/Generators/TPC-H
 
 # Remove example data
 
@@ -26,7 +27,9 @@ geo
 # Files by name
 
 nonpublic.filelist
-
+CM-Scripts/cvs-make.sh
+CM-Scripts/cvspass.pl
+CM-Scripts/mkpublic.sh
 
 # Files by ending
 
