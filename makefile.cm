@@ -306,21 +306,14 @@ src-archives: $(fileList)
           -or -path "*javazoom*" \
         \) \
         -exec recode lat1..cp1252 {} \;
+ifdef mkpublic
+	CM-SCripts/mkpublic.sh
+endif
 	cat $< | zip -9 -r $(WIN_SRC) -@ > /dev/null
 	rm -rf secondo
 
 $(fileList): secondo/makefile
-	find secondo ! -type d \
-                     ! -name "opt" \
-                     ! -name "geo" \
-                     ! -name ".sda" \
-                     ! -name ".sxd" \
-                     ! -name ".canvas" \
-                     ! -path "*/Data/*" \
-                     ! -path "*/Generators/TPC-H/*" \
-                     ! -path "*/Algebras/NauticalMap*" \
-                     ! -name "*.pdf" > $@ 
-	find secondo/Data ! -type d -size -10k >> $@
+	CM-Scripts nonpublic.filelist > $@
 
 secondo/makefile:
 	$(checkTag)
@@ -354,7 +347,7 @@ hours:=1
 endif
 /tmp/modfiles.list: /tmp/cvslist
 	rm -f $@
-	find . -cmin -$$[$(days)*24+$(hours)*60] -a ! -iregex ".*\.\(\(tab\|yy\)\..*\|a\|o\|class\|dep\)" >> $@
+	find . -cmin -$$[$(days)*24+$(hours)*60] -a -type f ! -ipath "*/pd/*" ! -iregex ".*\.\(\(tab\|yy\)\..*\|log\|a\|o\|class\|dep\)" >> $@
 	cat $< >> $@
 
 backup.tgz: /tmp/modfiles.list
