@@ -30,7 +30,7 @@ import  viewer.hoese.*;
 /**
  * The displayclass of the Rose algebras point datatype.
  */
-public class Dsplpoint extends DisplayGraph {
+public class Dsplpoint extends DisplayGraph implements LabelAttribute {
 /** The internal datatype representation */
   Point2D.Double point;
 
@@ -41,6 +41,12 @@ public class Dsplpoint extends DisplayGraph {
   public Dsplpoint () {
     super();
   }
+
+  /** Returns a short text **/
+  public String getLabel(double time){
+      return "("+point.getX()+", "+point.getY()+")";
+  }
+
 
   /**
    * Constructor used by the points datatype
