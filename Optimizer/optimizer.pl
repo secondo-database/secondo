@@ -1082,6 +1082,23 @@ plan_to_atom(like(X, Y, Z, A, B), Result) :-
 /*
 End of Picture Algebra
 
+Temporal Algebra
+
+*/
+plan_to_atom(theminute(X, Y, Z, A, B), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(Z, ZAtom),
+  plan_to_atom(A, AAtom),
+  plan_to_atom(B, BAtom),
+  concat_atom([' theminute(', XAtom, ', ', YAtom, ', ', ZAtom, ', ', 
+    AAtom, ', ', BAtom, ')'], 
+  '', Result),
+  !.
+
+/*
+End of Temporal Algebra
+
 */
 
 
