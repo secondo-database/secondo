@@ -32,9 +32,37 @@ import  gui.Environment;
 /**
  * A displayclass for the movingint-type (spatiotemp algebra), alphanumeric with TimePanel
  */
-public class Dsplmovingint extends Dsplinstant {
+public class Dsplmovingint extends Dsplinstant implements LabelAttribute{
   Vector Intervals = new Vector(10, 5);
   Vector Ints = new Vector(10, 5);
+
+ /** returns the first index in Intervals containing t
+   * if not an intervals containing t exists -1 is returned
+   */
+  protected int getTimeIndex(double t,Vector Intervals){
+     for(int i=0;i<Intervals.size();i++){
+        if( ((Interval) Intervals.get(i)).isDefinedAt(t)){
+           return i;
+        }
+     }
+     return -1;
+  }
+ 
+
+
+  
+  /** returns the value of this integer as a string */
+public String getLabel(double time){
+    if(Intervals==null || Ints==null){
+        return null;
+    }
+    int index = getTimeIndex(time,Intervals);
+    if(index<0){
+       return null;
+    }
+    return "" + Ints.get(index);
+  }
+
 
   /**
    * A method of the Timed-Interface to render the content of the TimePanel
