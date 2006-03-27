@@ -4,10 +4,33 @@
 # into the public version of SECONDO. Please add directories
 # or files here which represent unfinished research.
 
-nonpublic.filelist
+# Directories
+
 Algebras/TopOps
 Algebras/TopRel
 Algebras/Periodic
 Algebras/Network
 Algebras/Rose
 
+Optimizer/Entropy
+
+# Remove example data
+
+Data/Databases
+Data/Objects
+GuiData/hoese/sessions
+opt
+geo
+
+
+# Files by name
+
+nonpublic.filelist
+
+
+# Files by ending
+
+.sda
+.sxd
+.canvas
+.pdf
