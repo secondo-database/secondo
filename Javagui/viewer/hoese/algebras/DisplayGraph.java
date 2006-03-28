@@ -176,6 +176,7 @@ public class DisplayGraph extends DsplGeneric
     Shape render = getRenderObject(af2);
     Shape[] moreShapes = getRenderObjects(af2);
     Rectangle2D bounds = null;
+
     if (render == null && moreShapes==null)
       return;
     if(render!=null){ 
@@ -183,6 +184,8 @@ public class DisplayGraph extends DsplGeneric
         bounds = sh.getBounds();
     }
     Paint fillStyle = Cat.getFillStyle(renderAttribute,time);
+
+    // paint the interior
     if (fillStyle != null && !isLineType()){
       g2.setPaint(fillStyle);
       if(sh!=null){
@@ -208,6 +211,8 @@ public class DisplayGraph extends DsplGeneric
       aktLineColor = new Color(Color.white.getRGB() ^ Cat.getLineColor().getRGB());
     }
     g2.setColor(aktLineColor);
+
+    // paint the border
     if ((Cat.getLineWidth(renderAttribute,time) > 0.0f) || (selected)){
       if(Cat!=null)
           g2.setStroke(Cat.getLineStroke(renderAttribute,time));
@@ -217,7 +222,13 @@ public class DisplayGraph extends DsplGeneric
       if(moreShapes!=null){
         for(int i=0;i<moreShapes.length;i++){
            if(moreShapes[i]!=null){
-              g2.draw(af2.createTransformedShape(moreShapes[i]));
+              Shape shp = af2.createTransformedShape(moreShapes[i]);
+              g2.draw(shp);
+              if(bounds==null){
+                 bounds = shp.getBounds();
+              }else{
+                 bounds.add(shp.getBounds());
+             }
            }      
         }
       }
@@ -232,14 +243,19 @@ public class DisplayGraph extends DsplGeneric
    * @see <a href="DisplayGraphsrc.html#drawLabel">Source</a>
    */
   public void drawLabel (Graphics g, Rectangle2D r, double time) {
+    if(r==null){
+       System.err.println("drawLabel with null-bounding box called !!");
+       return; 
+    }
     String LabelText = getLabelText(time);
-    if (LabelText == null || LabelText.trim().equals(""))
+    if (LabelText == null || LabelText.trim().equals("")){
       return;
+    }
     Graphics2D g2 = (Graphics2D)g;
     AffineTransform af2 = RefLayer.getProjection();
     Point2D.Double p = new Point2D.Double(r.getX() + r.getWidth()/2, r.getY()
         + r.getHeight()/2);
-    af2.transform(p, p);
+    //af2.transform(p, p);
     if (selected) {
       Rectangle2D re = g2.getFont().getStringBounds(LabelText, g2.getFontRenderContext());
       g2.setPaint(new Color(255, 128, 255, 255));
@@ -248,8 +264,9 @@ public class DisplayGraph extends DsplGeneric
           true);
     }
     g2.setPaint(Cat.getLineColor());
-    g2.drawString(LabelText, (float)(p.getX() + LabPosOffset.getX()), (float)(
-          p.getY() + LabPosOffset.getY()));
+    float x = (float)(p.getX()+LabPosOffset.getX());
+    float y = (float)(p.getY()+LabPosOffset.getX());
+    g2.drawString(LabelText, x,y);
   }
 
   /**
