@@ -36,6 +36,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute 
   Point2D.Double point;
   Vector PointMaps;
   Rectangle2D.Double bounds;
+  static java.text.DecimalFormat format = new java.text.DecimalFormat("#.#####");
 
 
   /** Returns a short text usable as label **/
@@ -54,7 +55,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute 
     double Delta = (time-t1)/(t2-t1);
     double x = pm.x1+Delta*(pm.x2-pm.x1);
     double y = pm.y1+Delta*(pm.y2-pm.y1);
-    return "("+x+", "+ y+")";
+    return "("+format.format(x)+", "+ format.format(y)+")";
 
   }
 
