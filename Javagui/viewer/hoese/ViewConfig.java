@@ -64,10 +64,29 @@ public class ViewConfig extends javax.swing.JDialog {
   ListExpr AttrValues;
   static LinkAttrCat LAC=null;
 
+  static String RENDER_WHITE_BLACK="white -> black";
+  static String RENDER_WHITE_RED  ="white -> red";
+  static String RENDER_WHITE_BLUE ="white -> blue";
+  static String RENDER_WHITE_GREEN="white -> green";
+  static String RENDER_GREEN_RED  ="green -> red";
+  static String RENDER_BLUE_RED   ="blue -> red";
+  static String RENDER_BLUE_GREEN ="blue -> green";
+
+  static String RENDER_POINTSIZE ="pointsize";
+  static String RENDER_LINEWIDTH ="linewidth";
+
   /** Creates new JDialog ViewConfig with the attribute-name an
    */
   public ViewConfig (HoeseViewer parent, String an) {
     super(parent.getMainFrame(), true);
+    
+    try{
+     RenderAttributeClass = Class.forName("viewer.hoese.RenderAttribute");
+    }catch(Exception e){
+      System.err.println("fatal error : class RenderAttribute not found ");
+    }
+
+
     setTitle("Set Representation of GraphObjects");
     mw = parent;
     if(LAC==null)
@@ -87,6 +106,7 @@ public class ViewConfig extends javax.swing.JDialog {
    * @return A Vector with attributes been found
    */
   private Vector getRefAttrList () {
+    // v contains all attributes which can be used as render attribute
     Vector v = new Vector(5, 1);
     LabelAList = new Vector(10, 5);
     ListExpr TypeList = Query.LEResult;
@@ -95,19 +115,20 @@ public class ViewConfig extends javax.swing.JDialog {
     String MainType = TypeList.symbolValue();
 
     if(MainType.equals("rel") ){
-				v.add("Tupel-No.");
+				v.add("Tuple-No.");
 				LabelAList.add("no Label");
 				TupelCount = Query.LEResult.second().listLength();
 				ListExpr attrlist = Query.LEResult.first().second().second();
-
+        
 				while (!attrlist.isEmpty()) {
 					String type = attrlist.first().second().symbolValue();
-					LabelAList.add(attrlist.first().first().symbolValue());
-					if ((type.equals("int")) || (type.equals("real")) || (type.equals("string"))
-							|| (type.equals("bool")))
-						 v.add(attrlist.first().first().symbolValue());
-						 AttrCount++;
-							attrlist = attrlist.rest();
+          String attrName = attrlist.first().first().symbolValue();
+					LabelAList.add(attrName);
+					if(isRenderAttribute(type)){
+             v.add(new RenderAttr(attrName,AttrCount));
+          }
+          AttrCount++;
+          attrlist = attrlist.rest();
 				}
     }
 
@@ -139,9 +160,6 @@ public class ViewConfig extends javax.swing.JDialog {
     RTLabel = new javax.swing.JLabel();
     RefAttrCB = new javax.swing.JComboBox(RefAList);
     RendTypeCB = new javax.swing.JComboBox();
-    NGLabel = new javax.swing.JLabel();
-    NoSlider = new javax.swing.JSlider();
-    NoText = new javax.swing.JTextField();
     SingleTupelCBo = new javax.swing.JCheckBox();
     NeTuB = new javax.swing.JButton();
     PrTuB = new javax.swing.JButton();
@@ -240,7 +258,7 @@ public class ViewConfig extends javax.swing.JDialog {
 	     return;
 	  }
 	  String CatName = SelectedCat.getName();
-	  String as = (String)RefAttrCB.getSelectedItem();
+	  String as = RefAttrCB.getSelectedItem().toString();
 	  int index = LabelAList.indexOf(as);
 	  AttrValues = getAttrValues(index);
 	  if(AttrValues==null){
@@ -275,7 +293,7 @@ public class ViewConfig extends javax.swing.JDialog {
 	     return;
 	  }
 	  String CatName = SelectedCat.getName();
-	  String as = (String)RefAttrCB.getSelectedItem();
+	  String as = RefAttrCB.getSelectedItem().toString();
 	  int index = LabelAList.indexOf(as);
 	  AttrValues = getAttrValues(index);
 	  if(AttrValues==null){
@@ -422,20 +440,15 @@ public class ViewConfig extends javax.swing.JDialog {
 
     //P.add(Box.createHorizontalStrut(40));
     RTLabel.setText("Rendering Type");
-    NoText.setColumns(4);
-    NoText.setText("16");
-
-    //P.add(Box.createHorizontalStrut(60));
-    RendTypeCB.addItem(new String("Solid Gray Values"));
-    RendTypeCB.addItem(new String("Solid Red Values"));
-    RendTypeCB.addItem(new String("Solid Green Values"));
-    RendTypeCB.addItem(new String("Solid Blue Values"));
-    RendTypeCB.addItem(new String("Point Size <32Px"));
-    RendTypeCB.addItem(new String("Standard Palette"));
-    searchForCalcCats();
+    RendTypeCB.addItem(RENDER_WHITE_RED);
+    RendTypeCB.addItem(RENDER_WHITE_GREEN);
+    RendTypeCB.addItem(RENDER_WHITE_BLUE);
+    RendTypeCB.addItem(RENDER_GREEN_RED);
+    RendTypeCB.addItem(RENDER_BLUE_RED);
+    RendTypeCB.addItem(RENDER_BLUE_GREEN);
+    RendTypeCB.addItem(RENDER_POINTSIZE);
+    RendTypeCB.addItem(RENDER_LINEWIDTH);
     searchForImageDirs();
-    //P.add(Box.createHorizontalStrut(60));
-    NGLabel.setText("No. of different groups");
     LinkCheckBox = new JCheckBox("manual link");
     LinkCheckBox.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
@@ -446,7 +459,6 @@ public class ViewConfig extends javax.swing.JDialog {
 	    MLNewBtn.setEnabled(true);
 	    MLRemoveBtn.setEnabled(true);
             RendTypeCB.setEnabled(false);
-            NoText.setEnabled(false);
 
           } else{
             LinkComboBox.setEnabled(false);
@@ -454,7 +466,6 @@ public class ViewConfig extends javax.swing.JDialog {
 	    MLNewBtn.setEnabled(false);
 	    MLRemoveBtn.setEnabled(false);
             RendTypeCB.setEnabled(true);
-            NoText.setEnabled(true);
           }
        }
     });
@@ -473,8 +484,6 @@ public class ViewConfig extends javax.swing.JDialog {
     P.add(RTLabel);
     P.add(RendTypeCB);
 
-    P.add(NGLabel);
-    P.add(NoText);
 
     P.add(LinkCheckBox);
     P.add(LinkComboBox);
@@ -502,8 +511,6 @@ public class ViewConfig extends javax.swing.JDialog {
     RefAttrCB.addKeyListener(RKL);
     RendTypeCB.addKeyListener(RKL);
     LabelAttrCB.addKeyListener(RKL);
-    NoSlider.addKeyListener(RKL);
-    NoText.addKeyListener(RKL);
     SingleTupelCBo.addKeyListener(RKL);
     NeTuB.addKeyListener(RKL);
     PrTuB.addKeyListener(RKL);
@@ -588,6 +595,7 @@ public class ViewConfig extends javax.swing.JDialog {
       int LabIndex = LabelAttrCB.getSelectedIndex();
       ListIterator li = Query.getGraphObjects().listIterator();
       int cnt = 0;
+      // set labels to the objects
       while (li.hasNext()) {
         DsplGraph dg = (DsplGraph)li.next();
         if (dg.getAttrName().equals(AttrName)) {
@@ -622,56 +630,60 @@ public class ViewConfig extends javax.swing.JDialog {
       }
     }
 
-    String as = (String)RefAttrCB.getSelectedItem();
+    String as = RefAttrCB.getSelectedItem().toString();
 
     if (RefDepCBo.isSelected()) {
       if(!LinkCheckBox.isSelected()){
+         // handling of reference attributes
          int RefAttrIndex = LabelAList.indexOf(as)-1;
          //int RendTypeIndex=RendTypeCB.getSelectedIndex());
-         Point2D.Double p = calcMinMax(RefAttrIndex);
-         double min = p.getX();
-         double max = p.getY();
-         //create number of groups cats
-         int nr = 8;
-         try {
-           nr = Integer.parseInt(NoText.getText());
-         } catch (NumberFormatException n) {
-	   MessageBox.showMessage("Invalid number of groups");
-	   return;
-	 }
-         if (max != min) {         // no cat need to be created if <=
-           Category GroupCats[] = new Category[nr];
-           for (int i = 0; i < nr;i++)
-	      GroupCats[i] = calcCategory(i, nr, (Category)CatCB.getSelectedItem());
-
-           ListExpr   tl = extractRelation();
-
-           ListIterator li = Query.getGraphObjects().listIterator();
-           nr -= 1;
-           int val = 0;
-           double value;
-           //create new Cat for every GO with Attribute AttrName according to its ref. Tupel-Value
-           while (li.hasNext()) {
-             DsplGraph dg = (DsplGraph)li.next();
-             if (dg.getAttrName().equals(AttrName)) {              //create Cat. only for recent GAttribute
-               ListExpr le = tl.first();
-               for (int i = 1; i <= RefAttrIndex; i++)
-                 le = le.rest();
-               if (RefAttrIndex < 0 )
-                 value = (double)val;
-               else
-                 value = convertLEtoDouble(le.first());
-
-               int chg = (int)(nr*((value - min)/(max - min)));
-	       if(mw.Cats.indexOf(GroupCats[chg])<0){
-                  mw.Cats.add(GroupCats[chg]);
-	       }
-               dg.setCategory(GroupCats[chg]);
-               tl = tl.rest();
-               val++;
-             }
-           }
+	       Category cat  = calcCategory((Category)CatCB.getSelectedItem());
+         if(mw.Cats.indexOf(cat)<0){
+           mw.Cats.add(cat);
          }
+         ListExpr   tl = extractRelation();
+         ListIterator li = Query.getGraphObjects().listIterator();
+         int attrno=-1;//indicating tuple number
+         if(RefAttrCB.getSelectedIndex()>0){
+            attrno = ((RenderAttr)RefAttrCB.getSelectedItem()).pos; 
+         }
+         boolean first = true;
+         double min=0;
+         double max=0;
+         int cnt=0;
+         while (li.hasNext()) {
+           DsplGraph dg = (DsplGraph)li.next();
+           if (dg.getAttrName().equals(AttrName)) {
+                dg.setCategory(cat);
+               // get the attribute for using in rendering
+               if(attrno<0){
+                 dg.setRenderAttribute(new DefaultRenderAttribute(cnt));
+                 max = cnt;
+               } else{ 
+                   int rendobjpos = cnt*(AttrCount + 1)+ attrno;
+									 Object rendobj = Query.getModel().getElementAt(rendobjpos);
+									 if(!(rendobj instanceof RenderAttribute)){
+											System.err.println("Fatal error, no renderattribute found .");
+                      System.err.println("found "+ rendobj+" instead on pos"+rendobjpos);
+									 } else{
+										 RenderAttribute curAttr = (RenderAttribute) rendobj;
+										 dg.setRenderAttribute(curAttr);
+										 double cmin = curAttr.getMinRenderValue();
+										 double cmax = curAttr.getMaxRenderValue();
+										 if(first){
+												 first=false;
+												 min = cmin;
+												 max = cmax;
+										 } else{
+											 min = cmin<min?cmin:min;
+											 max = cmax>max?cmax:max;
+										 }
+									 }
+               }
+           }
+           cnt++;
+         }
+         cat.setValueRange(min,max);
       } else{
          // take the categories for the object from LinkAttrCat LAC
 	 if(LinkComboBox.getSelectedIndex()<0){ // no references selected
@@ -759,7 +771,7 @@ public class ViewConfig extends javax.swing.JDialog {
 
   /**create new Cat for every GO with Attribute AttrName according to its ref. Tupel-Value
    */
-  private Category calcCategory (int chg, int nr, Category templCat) {
+  private Category calcCategory (Category templCat) {
     Category NewCat = null;
     try {
       NewCat = (Category)templCat.clone();
@@ -772,84 +784,38 @@ public class ViewConfig extends javax.swing.JDialog {
     NewCat.setName(NewCat.getName() + "V" + VariantNr);
     VariantNr++;
     Object o = RendTypeCB.getSelectedItem();
-    if (o instanceof CalcCategory)
-      return  ((CalcCategory)o).calcCategory(chg, nr, templCat);
-
     String RendType = (String)o;
-    if (RendType.equals("Solid Gray Values")) {
-      int inc = 255/nr;
-      int cv = chg*inc;
-      NewCat.setFillStyle(new Color(cv, cv, cv));
+    NewCat.setRenderMethod(Category.RENDER_COLOR);
+    if (RendType.equals(RENDER_WHITE_BLACK)) {
+      NewCat.setColorRange(Color.WHITE,Color.BLACK);
     }
-    if (RendType.equals("Solid Blue Values")) {
-      int inc = 255/nr;
-      int cv = chg*inc;
-      NewCat.setFillStyle(new Color(cv, cv, 255));
+    if (RendType.equals(RENDER_WHITE_BLUE)) {
+      NewCat.setColorRange(Color.WHITE,Color.BLUE);
     }
-    if (RendType.equals("Solid Red Values")) {
-      int inc = 255/nr;
-      int cv =  chg*inc;
-      NewCat.setFillStyle(new Color(255, cv, cv));
+    if (RendType.equals(RENDER_WHITE_RED)) {
+      NewCat.setColorRange(Color.WHITE,Color.RED);
     }
-    if (RendType.equals("Solid Green Values")) {
-      int inc = 255/nr;
-      int cv =  chg*inc;
-      NewCat.setFillStyle(new Color(cv, 255, cv));
+    if (RendType.equals(RENDER_WHITE_GREEN)) {
+      NewCat.setColorRange(Color.WHITE,Color.GREEN);
     }
-    if (RendType.startsWith("Images in ")) {
-      FileFilter ImageFilter = new FileFilter() {
-        public boolean accept (File f) {
-          String name = f.getName().toLowerCase();
-          return  name.endsWith(".gif") || name.endsWith(".jpg");
-        }
-        public String getDescription () {
-          return  "Hintergrundkarten (*.gif , *.jpg)";
-        }       //end getDescription
-      };        // end newFileFilter
-      File f = new File("res/" + RendType.substring(10));
-      File[] fileList = f.listFiles(ImageFilter);
-      if (fileList.length != 0) {
-        chg = chg%fileList.length;
-        ImageIcon ii = new ImageIcon(fileList[chg].getPath());
-        BufferedImage bi = new BufferedImage(ii.getIconWidth(), ii.getIconHeight(),
-            BufferedImage.TYPE_INT_ARGB);
-        Graphics2D big = bi.createGraphics();
-        big.drawImage(ii.getImage(), 0, 0, null);
-        Rectangle r = new Rectangle(0, 0, ii.getIconWidth(), ii.getIconHeight());
-        //NewCat.setPointasRect(true);
-        NewCat.setFillStyle(new TexturePaint(bi, r));
-        NewCat.setIconName(fileList[chg].getName());
-      }
+    if (RendType.equals(RENDER_GREEN_RED)) {
+      NewCat.setColorRange(Color.GREEN,Color.RED);
     }
-    if (RendType.equals("Point Size <32Px")) {
-      double inc = 32.0/(double)nr;
-      double cv = 4 + chg*inc;
-      NewCat.setPointSize(cv);
+    if (RendType.equals(RENDER_BLUE_RED)) {
+      NewCat.setColorRange(Color.BLUE,Color.RED);
     }
-    if (RendType.equals("Standard Palette")) {
-      int inc = 64/nr;
-      int cv = chg*inc;
-      int red = (cv & 48)/16*64;
-      int green = (cv & 12)/4*64;
-      int blue = (cv & 3)*64;
-      NewCat.setFillStyle(new Color(red, green, blue));
+    if (RendType.equals(RENDER_BLUE_GREEN)) {
+      NewCat.setColorRange(Color.BLUE,Color.GREEN);
+    }
+    if (RendType.equals(RENDER_POINTSIZE)) {
+       NewCat.setRenderMethod(Category.RENDER_POINTSIZE); 
+    }
+    if(RendType.equals(RENDER_LINEWIDTH)){
+       NewCat.setRenderMethod(Category.RENDER_LINEWIDTH); 
     }
     return  NewCat;
   }
 
-  /**
-   * Searches for registered (Config-file)classes of new rendering types that calc. categories
-   */
-  private void searchForCalcCats () {
-    StringTokenizer ccc = new StringTokenizer(HoeseViewer.configuration.getProperty("CalcCats"),
-        ",");
-    while (ccc.hasMoreTokens())
-      try {
-        RendTypeCB.addItem(Class.forName("viewer.hoese." + ccc.nextToken()).newInstance());
-      } catch (Exception except) {
-        System.out.println("CCClass not found");
-      }
-  }
 
   /**
    * Searches the images/ directory for subdirectories with images. They are listed as
@@ -871,32 +837,6 @@ public class ViewConfig extends javax.swing.JDialog {
     if(fileList!=null)
        for (int i = 0; i < fileList.length; i++)
            RendTypeCB.addItem(new String("Images in " + fileList[i].getName()));
-  }
-
-  /**
-   * Calculates the minimum and maximum of an attribute over all tuples
-   * @param ind The ind's attribute in a tuple
-   * @return Min. and max. as Point2D.double
-   */
-  private Point2D.Double calcMinMax (int ind) {
-    if (ind < 0) {// tuplenumber
-      return  new Point2D.Double(0, (double)(TupelCount - 1));
-    }  
-    ListExpr tl = extractRelation();
-    double min = Double.MAX_VALUE;
-    double max = Double.MIN_VALUE;
-    while (!tl.isEmpty()) {
-      ListExpr le = tl.first(); // get the first tuple
-      for (int i = 0; i < ind; i++) // read over attributes
-        le = le.rest();
-      double w = convertLEtoDouble(le.first()); // get value for desired attribute
-      if (min >  w)
-        min = w;
-      if (max < w)
-        max = w;
-      tl = tl.rest();
-    }
-    return  new Point2D.Double(min, max);
   }
 
    /**
@@ -1084,6 +1024,30 @@ public class ViewConfig extends javax.swing.JDialog {
   }
 
 
+  /** checks if the given string decribes a type of RenderAttribute
+    **/
+   private boolean isRenderAttribute(String type){
+      // search within the vector
+      for(int i=0;i<storedRenderAttributes.size();i++){
+          RenderType rt =  (RenderType)storedRenderAttributes.get(i);
+          if( rt.type.equals(type)){
+             return rt.isRenderAttribute;
+          }
+      }
+      Class theClass=null;
+      // nothing known about this type
+      String className = "viewer.hoese.algebras.Dspl"+type;
+      try{
+         theClass = Class.forName(className);
+      } catch(ClassNotFoundException e){
+        // my be implemented while runtime -> store nothing
+        return false;
+      }  
+      boolean isRender = RenderAttributeClass.isAssignableFrom(theClass);
+      RenderType rt = new RenderType(type,isRender);
+      storedRenderAttributes.add(rt);
+      return isRender;
+   }
 
 
   /** Closes the dialog
@@ -1102,9 +1066,6 @@ public class ViewConfig extends javax.swing.JDialog {
   private JLabel RTLabel;
   private JComboBox RefAttrCB;
   private JComboBox RendTypeCB;
-  private JLabel NGLabel;
-  private JSlider NoSlider;
-  private JTextField NoText;
   private JTextField LabelText;
   private JTextField LabXOffText;
   private JTextField LabYOffText;
@@ -1127,8 +1088,40 @@ public class ViewConfig extends javax.swing.JDialog {
   private JComboBox LinkComboBox;
 
   private static int VariantNr = 0;
-  // End of variables declaration//GEN-END:variables
 
+  private Vector storedRenderAttributes = new Vector(20);
+  private Class RenderAttributeClass;
+
+  /** This class represents a connection between a type name
+    * and a flag indicating if this type can be used as
+    * an ReferenceAttribute.
+    **/
+  private class RenderType {
+    public RenderType(String type, boolean isRenderAttribute){
+       this.type = type;
+       this.isRenderAttribute=isRenderAttribute;
+    }
+    private String type;
+    private boolean isRenderAttribute;
+  }
+
+  /** this class connects an attribute name with an 
+    * attribute index. It is used to get the index od a
+    * attribute used for rendering 
+    */  
+   private class RenderAttr {
+     public RenderAttr(String name, int pos){
+        this.name = name;
+        this.pos = pos;
+     }
+     public String toString(){
+        return name;
+     }
+     private String name;
+     private int pos;
+   }
+
+ 
 
 }
 

@@ -44,8 +44,9 @@ public Shape getRenderObject(AffineTransform at){
     return RenderObject;
   }
   Area res = new Area();
-  double pixx = Math.abs(Cat.getPointSize()/at.getScaleX());
-  double pixy = Math.abs(Cat.getPointSize()/at.getScaleY());
+  double ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
+  double pixx = Math.abs(ps/at.getScaleX());
+  double pixy = Math.abs(ps/at.getScaleY());
   for(int i=0; i< Pts.length;i++){
      if(Cat.getPointasRect()){
         res.add(new Area(new Rectangle2D.Double(Pts[i].getX()-pixx/2,

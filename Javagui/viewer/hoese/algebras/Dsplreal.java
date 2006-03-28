@@ -29,7 +29,10 @@ import viewer.hoese.*;
  * A displayclass for the real-type, alphanumeric only
  */
 public class Dsplreal extends DsplGeneric implements DsplSimple{
-
+  // this value is represented
+  private double value;
+  private String entry;
+  
   /**
    * This method is used to analyse the type and value in NestedList format and build
    * up the intern datastructures for this type. An alphanumeric representation is
@@ -42,18 +45,26 @@ public class Dsplreal extends DsplGeneric implements DsplSimple{
    * @see <a href="Dsplrealsrc.html#init">Source</a>
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    qr.addEntry(new String(type.symbolValue() + ":" + value.realValue()));
+    this.value = value.realValue();
+    entry = (new String(type.symbolValue() + ":" + value.realValue()));
+    qr.addEntry(this);
     return;
   }
 
   public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
      String T = new String(type.symbolValue());
-     String V = ""+value.realValue();
+     this.value = value.realValue();
+     String V = ""+this.value;
      T=extendString(T,typewidth);
      V=extendString(V,valuewidth);
-     qr.addEntry(T + " : " + V);
+     entry = (T + " : " + V);
+     qr.addEntry(this);
      return;
+  }
+
+  public String toString(){
+     return entry;
   }
 
 

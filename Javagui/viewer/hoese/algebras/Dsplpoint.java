@@ -71,8 +71,9 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute {
    */
   public Shape getRenderObject (AffineTransform at) {
     Rectangle2D.Double r = getBounds();
-    double pixy = Math.abs(Cat.getPointSize()/at.getScaleY());
-    double pix = Math.abs(Cat.getPointSize()/at.getScaleX());
+    double ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
+    double pixy = Math.abs(ps/at.getScaleY());
+    double pix = Math.abs(ps/at.getScaleX());
     if (Cat.getPointasRect())
       RenderObject = new Rectangle2D.Double(r.getX()- pix/2, r.getY() - pixy/2, pix, pixy);
     else {

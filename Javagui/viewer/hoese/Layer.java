@@ -245,9 +245,9 @@ public class Layer extends JComponent {
     } else{
       g2.setComposite(HoeseViewer.emptyStyle);
     }
-    g2.setStroke(Cat.getLineStroke());
-    g2.setPaint(Cat.getFillStyle());
-    Paint P = Cat.getFillStyle();
+    g2.setStroke(Cat.getLineStroke(dg.getRenderAttribute(),CurrentState.ActualTime));
+    Paint P = Cat.getFillStyle(dg.getRenderAttribute(),CurrentState.ActualTime);
+    g2.setPaint(P);
     if(P==null) return;
     if (dg.isPointType()) {
       if (P instanceof TexturePaint){
@@ -257,8 +257,8 @@ public class Layer extends JComponent {
       }
       else if (P instanceof GradientPaint)
         g2.setPaint(new GradientPaint((float)sh.getBounds().getX(),(float)sh.getBounds().getY(),
-          ((GradientPaint)Cat.getFillStyle()).getColor1(),(float)(sh.getBounds().getX()+sh.getBounds().getWidth()),
-          (float)(sh.getBounds().getY()+sh.getBounds().getHeight()),((GradientPaint)Cat.getFillStyle()).getColor2(),false));
+          ((GradientPaint)P).getColor1(),(float)(sh.getBounds().getX()+sh.getBounds().getWidth()),
+          (float)(sh.getBounds().getY()+sh.getBounds().getHeight()),((GradientPaint)P).getColor2(),false));
     }
     
 
@@ -289,9 +289,9 @@ public class Layer extends JComponent {
         for(int i=0;i<GeoObjects.size();i++){
           DsplGraph dg = (DsplGraph)GeoObjects.get(i);
           if (dg.getVisible()){
-	    setCategory(dg,g2);
+            setCategory(dg,g2);
             dg.draw(g2,CurrentState.ActualTime);
-	  }
+          }
         }
      } catch(Exception e){
        System.out.println("Exception "+e);

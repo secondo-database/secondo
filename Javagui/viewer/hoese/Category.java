@@ -85,6 +85,35 @@ public class Category
 
 /** Default-Category */
   private static Category defCat;
+
+/* The following variables control the color of this
+   object at displaying
+ */
+ private double minValue = 0;
+ private double maxValue = 0;
+ private Color minColor = Color.GREEN;
+ private Color maxColor = Color.RED;
+
+ /** represents a attribute depending render method **/
+ public static final int RENDER_COLOR=0;
+ /** represents a attribute depending render method **/
+ public static final int RENDER_POINTSIZE=1;
+ /** represents a attribute depending render method **/
+ public static final int RENDER_LINEWIDTH=2;
+
+ /** the attribute depending render method used in this category **/
+ private int attrRenderMethod = RENDER_COLOR;
+ 
+ /** the minimum pointsize used in reference depending rendering **/
+ private static final int minPointSize = 1;
+ /** the maximum pointsize used in reference depending rendering **/
+ private static final int maxPointSize = 32;
+ /** the minimum linewidth used for reference depending rendering **/
+ private static final int minLinewidth=1;
+ /** the maximum linewidth used for reference depending rendering **/
+ private static final int maxLinewidth=20; 
+
+
 /** The stroke for the selection */
   public static Stroke SelectionStroke;
 
@@ -157,17 +186,51 @@ public class Category
    * @return The width of the outline
       * @see <a href="Categorysrc.html#">Source</a>
    */
-  public float getLineWidth () {
-    return  LineWidth;
+  public float getLineWidth (RenderAttribute renderAttribute, double time) {
+    if(renderAttribute==null || attrRenderMethod!=RENDER_LINEWIDTH){
+       return  LineWidth;
+    }
+    double value = renderAttribute.getRenderValue(time);
+    if(value<minValue){
+        value = minValue;
+    }
+    if(value>maxValue){
+        value = maxValue;
+    }
+    double delta = (value-minValue)/ (maxValue-minValue);
+    float res = (float) (minLinewidth+delta*(maxLinewidth-minLinewidth));
+    return res;
+    
   }
 
-  /**
-   *
-   * @return The fillstyle as a Paint-object
-   * @see <a href="Categorysrc.html#getFillStyle">Source</a>
+  /** Returns the Fillstyle of this category.
+    * If renderAttribute is not null, the fillstyle will be 
+    * computed from it using the given time. Otherwise, the 
+    * fillstyle stored in this catagory is returned.
    */
-  public Paint getFillStyle () {
-    return  FillStyle;
+  public Paint getFillStyle(RenderAttribute renderAttribute, double time){
+    if(renderAttribute==null || attrRenderMethod!=RENDER_COLOR){
+        return  FillStyle;
+    } else {
+        double value = renderAttribute.getRenderValue(time);
+        if(value<minValue){
+             value = minValue;
+        }
+        if(value>maxValue){
+             value = maxValue;
+        }
+        double r1 = minColor.getRed();
+        double g1 = minColor.getGreen();
+        double b1 = minColor.getBlue();
+        double r2 = maxColor.getRed();
+        double g2 = maxColor.getGreen();
+        double b2 = maxColor.getBlue();
+        double delta = (value-minValue)/ (maxValue-minValue);
+        int r = (int)(r1 + delta*(r2-r1));
+        int g = (int)(g1 + delta*(g2-g1));
+        int b = (int)(b1 + delta*(b2-b1));
+        return new Color(r,g,b);
+    }
   }
 
   /**
@@ -184,8 +247,19 @@ public class Category
    * @return The size of a point
    * @see <a href="Categorysrc.html#getPointSize">Source</a>
    */
-  public double getPointSize () {
-    return  PointSize;
+  public double getPointSize (RenderAttribute renderAttribute, double time) {
+    if(renderAttribute==null || attrRenderMethod!=RENDER_POINTSIZE){
+       return  PointSize;
+    }
+    double value = renderAttribute.getRenderValue(time);
+    if(value<minValue){
+        value = minValue;
+    }
+    if(value>maxValue){
+        value = maxValue;
+    }
+    double delta = (value-minValue)/ (maxValue-minValue);
+    return (minPointSize+delta*(maxPointSize-minPointSize));
   }
 
   /**
@@ -196,6 +270,48 @@ public class Category
   public boolean getPointasRect () {
     return  PointasRect;
   }
+
+  /** gets the minimum value for changing color **/
+  double getMinValue(){
+      return minValue;
+  }   
+
+  /** gets the maximum value for changing color **/
+  double getMaxValue(){
+      return maxValue;
+  } 
+
+  /** sets the  valid range for changing color **/
+  void setValueRange(double min, double max){
+     if(min<=max){
+        minValue=min;
+        maxValue=max;
+     }else{
+        maxValue=min;
+        minValue=max;
+     }
+  }
+
+  /** sets the range for colors **/
+  void setColorRange(Color minColor, Color maxColor){
+     this.minColor=minColor;
+     this.maxColor=maxColor;
+  }
+
+  /** sets the method used for attribute depending rendering **/
+  boolean setRenderMethod(int method){
+    if(method<0 || method>RENDER_LINEWIDTH){
+        return false;
+    }
+    attrRenderMethod=method;
+    return true;
+  }
+
+  /** returns the method used for attribute dependend rendering **/
+  int getRenderMethod(){
+     return attrRenderMethod;
+  }
+
 
   /**
    * Sets the cats name
@@ -352,26 +468,29 @@ public class Category
     ListExpr le = ListExpr.append(l, ListExpr.threeElemList(ListExpr.intAtom(cat.getLineColor().getRed()),
         ListExpr.intAtom(cat.getLineColor().getGreen()), ListExpr.intAtom(cat.getLineColor().getBlue())));
     le = ListExpr.append(le, ListExpr.intAtom(cat.getLineStyle()));
-    le = ListExpr.append(le, ListExpr.realAtom(cat.getLineWidth()));
+    // ignore reference depending rendering
+    le = ListExpr.append(le, ListExpr.realAtom(cat.getLineWidth(null,0)));
     le = ListExpr.append(le, ListExpr.boolAtom(cat.getPointasRect()));
-    le = ListExpr.append(le, ListExpr.realAtom(cat.getPointSize()));
+    // ignore reference depending rendering
+    le = ListExpr.append(le, ListExpr.realAtom(cat.getPointSize(null,0)));
     double f = 100.0 - ((AlphaComposite)cat.getAlphaStyle()).getAlpha()*100;
     le = ListExpr.append(le, ListExpr.realAtom(f));
-    if (cat.getFillStyle() instanceof Color) {
+    Paint fillStyle = cat.getFillStyle(null,0); // render attributes not supported
+    if (fillStyle instanceof Color) {
       le = ListExpr.append(le, ListExpr.symbolAtom("solid"));
-      c1 = (Color)cat.getFillStyle();
+      c1 = (Color)fillStyle;
       c2 = Color.black;
     }
-    else if (cat.getFillStyle() instanceof TexturePaint) {
+    else if (fillStyle instanceof TexturePaint) {
       le = ListExpr.append(le, ListExpr.symbolAtom("texture"));
       c1 = Color.black;
       c2 = Color.black;
       Name = cat.getIconName();
     }
-    else if (cat.getFillStyle() instanceof GradientPaint) {
+    else if (fillStyle instanceof GradientPaint) {
       le = ListExpr.append(le, ListExpr.symbolAtom("gradient"));
-      c1 = ((GradientPaint)cat.getFillStyle()).getColor1();
-      c2 = ((GradientPaint)cat.getFillStyle()).getColor2();
+      c1 = ((GradientPaint)fillStyle).getColor1();
+      c2 = ((GradientPaint)fillStyle).getColor2();
     }
     else {
       le = ListExpr.append(le, ListExpr.symbolAtom("nofill"));
@@ -520,8 +639,17 @@ public class Category
    * @return The LineStroke to render the outline.
    * @see <a href="Categorysrc.html#getLineStroke">Source</a> 
    */
-  public BasicStroke getLineStroke () {
-    return  LineStroke;
+  public BasicStroke getLineStroke (RenderAttribute renderAttribute, double time) {
+    if(renderAttribute==null || attrRenderMethod!=RENDER_LINEWIDTH){
+       return  LineStroke;
+    }
+    if(LineStyle!=0){
+       return new BasicStroke(getLineWidth(renderAttribute,time),
+                              capStyle,joinStyle,10.0f,dash[LineStyle-1],0.0f); 
+    } else{
+       return new BasicStroke(getLineWidth(renderAttribute,time),capStyle,joinStyle);
+  }
+    
   }
 
   /**

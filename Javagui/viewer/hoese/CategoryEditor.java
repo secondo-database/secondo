@@ -562,9 +562,10 @@ public class CategoryEditor extends javax.swing.JDialog {
       RectRB.setSelected(true); 
     else 
       CircleRB.setSelected(true);
-    SizeT.setText(Double.toString(cat.getPointSize()));
+    // ignore reference depending rendeing
+    SizeT.setText(Double.toString(cat.getPointSize(null,0)));
     //	  BasicStroke bs=Category.getLineStroke(cat.getLineStyle());
-    WidthT.setText(Float.toString(cat.getLineWidth()));
+    WidthT.setText(Float.toString(cat.getLineWidth(null,0)));
     ColorB.setBackground(cat.getLineColor());
     TypeCB.setSelectedIndex(cat.getLineStyle());
     int cap = cat.getCapStyle();
@@ -586,21 +587,22 @@ public class CategoryEditor extends javax.swing.JDialog {
     GradientColorB.setBackground(Color.lightGray);
     SolidColorB.setBackground(Color.lightGray);
     TextureIconB.setBackground(Color.lightGray);
-    if (cat.getFillStyle() == null)
+    Paint fillStyle = cat.getFillStyle(null,0); // not supported
+    if (fillStyle == null)
       NoFillRB.setSelected(true); 
-    else if (cat.getFillStyle() instanceof TexturePaint) {
+    else if (fillStyle instanceof TexturePaint) {
       IconFileName=(new File(cat.getIconPath())).getName();
       TextureRB.setSelected(true);
-      TextureIconB.setIcon(new ImageIcon(((TexturePaint)cat.getFillStyle()).getImage()));
+      TextureIconB.setIcon(new ImageIcon(((TexturePaint)fillStyle).getImage()));
     } 
-    else if (cat.getFillStyle() instanceof GradientPaint) {
+    else if (fillStyle instanceof GradientPaint) {
       GradientRB.setSelected(true);
-      SolidColorB.setBackground(((GradientPaint)cat.getFillStyle()).getColor1());
-      GradientColorB.setBackground(((GradientPaint)cat.getFillStyle()).getColor2());
+      SolidColorB.setBackground(((GradientPaint)fillStyle).getColor1());
+      GradientColorB.setBackground(((GradientPaint)fillStyle).getColor2());
     } 
     else {
       SolidRB.setSelected(true);
-      SolidColorB.setBackground((Color)cat.getFillStyle());
+      SolidColorB.setBackground((Color)fillStyle);
     }
   }
 

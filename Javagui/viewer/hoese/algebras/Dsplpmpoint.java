@@ -48,9 +48,9 @@ public Shape getRenderObject(AffineTransform at){
      RenderObject = null;
      return null;
   }
-  
-  double pixy = Math.abs(Cat.getPointSize()/at.getScaleY());
-  double pixx = Math.abs(Cat.getPointSize()/at.getScaleX());
+  double ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime); 
+  double pixy = Math.abs(ps/at.getScaleY());
+  double pixx = Math.abs(ps/at.getScaleX());
   if(Cat.getPointasRect()){
     RenderObject = new Rectangle2D.Double(Pos.getX()-pixx/2,Pos.getY()-pixy/2,pixx,pixy);
   }else{

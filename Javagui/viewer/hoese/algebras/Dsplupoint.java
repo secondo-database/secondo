@@ -53,10 +53,10 @@ public class Dsplupoint extends DisplayTimeGraph {
     double y = y1+Delta*(y2-y1);
 
     point = new Point2D.Double(x, y);
-
-    double pixy = Math.abs(Cat.getPointSize()/at.getScaleY());
+    double ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
+    double pixy = Math.abs(ps/at.getScaleY());
     //double pix = Cat.getPointSize();
-    double pix = Math.abs(Cat.getPointSize()/at.getScaleX());
+    double pix = Math.abs(ps/at.getScaleX());
     //Point2D p=at.transform(point,p);
     if (Cat.getPointasRect())
       RenderObject = new Rectangle2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy);

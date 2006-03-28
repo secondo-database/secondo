@@ -57,6 +57,14 @@ public interface DsplGraph extends DsplBase
    */
   public void setLabelAttribute(LabelAttribute labelAttribute);
 
+  /**
+    * sets the renderattribute of this object 
+    **/
+   public void setRenderAttribute(RenderAttribute renderAttribute);  
+     
+
+   /** returns the render attribute assigned to this object **/
+   public RenderAttribute getRenderAttribute();
 
 
   /**
@@ -111,7 +119,7 @@ public interface DsplGraph extends DsplBase
    * @param g graphics context
    * @param ro the shape of the associated object.
    */
-  public void drawLabel (Graphics g, Shape ro, double time);
+  public void drawLabel (Graphics g,Rectangle2D  bounds, double time);
 
 
 

@@ -19,11 +19,14 @@
 package viewer.hoese;
 
 /** This Interface is used for changing the attrbitutes of an
-  * graphical object.
+  * graphical object during the animation/displaying.
   **/
 public interface RenderAttribute{
-   int getRenderValue(double time);
-   int getMinRenderValue();
-   int getMaxRenderValue();
+   /** returns the minimum value of this attribute **/
+   double getRenderValue(double time);
+   /** returns the maximum value of this attribute **/
+   double getMinRenderValue();
+   /** returns the value of this attribute for the given time **/
+   double getMaxRenderValue();
 }
 

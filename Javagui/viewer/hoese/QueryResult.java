@@ -42,6 +42,7 @@ public class QueryResult extends JList {
   private int TupelCount, AttrCount;
 
 
+
 /** the QueryRepresentations for this QueryResult */
   // private ViewConfig myViewConfig = null;
   // for each DsplGraph we need a separate ViewConfig
@@ -85,7 +86,7 @@ public class QueryResult extends JList {
       AttrCount = 0;
     else 
       AttrCount = LEResult.first().second().second().listLength();
-    GraphObjects = new Vector(50, 50);
+    GraphObjects = new Vector(50);
   }
 
 
@@ -236,6 +237,7 @@ public class QueryResult extends JList {
       super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
       //if (value instanceof DsplGraph)
       //setIcon(new ImageIcon("images/labdlg.gif"));
+      setForeground(Color.BLACK);
       if ((value instanceof DsplGraph) && (value instanceof Timed))
         setForeground(Color.magenta); 
       else if (value instanceof DsplGraph)
@@ -247,6 +249,9 @@ public class QueryResult extends JList {
       if (value instanceof DsplBase)
         if (!((DsplBase)value).getVisible())
           setForeground(Color.gray);
+      if( value instanceof ExternDisplay){
+         setForeground(Color.GREEN);
+      } 
       return  this;
     }
   }

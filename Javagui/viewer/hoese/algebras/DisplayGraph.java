@@ -44,6 +44,9 @@ public class DisplayGraph extends DsplGeneric
   protected boolean ispointType = false;
 /** The Object labeling this one */
   private LabelAttribute labelAttribute;
+/** Object changing the color during painting **/
+ protected RenderAttribute renderAttribute=null;
+
 /** Position of the label */
   private Point LabPosOffset = new Point(-30, -10);
  /** the typewidth to display in a relation */
@@ -83,12 +86,24 @@ public class DisplayGraph extends DsplGeneric
   }
 
   /**
-   * Sets the label text
-   * @param label the text for the label
+   * Sets the label attribute 
    */
   public void setLabelAttribute(LabelAttribute labelAttribute) {
     this.labelAttribute = labelAttribute;
   }
+
+  /** Sets the renderAttribute.
+  **/
+  public void setRenderAttribute(RenderAttribute renderAttribute){
+    this.renderAttribute = renderAttribute;
+  }
+
+  /** returns the render attribute **/
+  public RenderAttribute getRenderAttribute(){
+     return renderAttribute;
+  }
+
+
 
   /**
    *
@@ -132,6 +147,17 @@ public class DisplayGraph extends DsplGeneric
     return  RenderObject;
   }
 
+  /** returns a set of objects to paint.
+    * This can be usefull when different kinds of objects
+    * should be drawn, e.g. point, line and region within a
+    * single object.
+    **/
+  public Shape[] getRenderObjects(AffineTransform af){
+      return null;
+  } 
+
+
+
   /** paints this component on g **/
   public void draw(Graphics g, double time){
      if(RefLayer==null)
@@ -145,15 +171,36 @@ public class DisplayGraph extends DsplGeneric
    * @param g The graphic context to draw in.
    */
   public void draw (Graphics g,AffineTransform af2,double time) {
-    Shape sh;
+    Shape sh=null;
     Graphics2D g2 = (Graphics2D)g;
     Shape render = getRenderObject(af2);
-    if (render == null)
+    Shape[] moreShapes = getRenderObjects(af2);
+    Rectangle2D bounds = null;
+    if (render == null && moreShapes==null)
       return;
-    sh = af2.createTransformedShape(render);
-    if (Cat.getFillStyle() != null && !isLineType()){
-      g2.setPaint(Cat.getFillStyle());
-      g2.fill(sh);
+    if(render!=null){ 
+        sh = af2.createTransformedShape(render);
+        bounds = sh.getBounds();
+    }
+    Paint fillStyle = Cat.getFillStyle(renderAttribute,time);
+    if (fillStyle != null && !isLineType()){
+      g2.setPaint(fillStyle);
+      if(sh!=null){
+         g2.fill(sh);
+      }
+      if(moreShapes!=null){
+        for(int i=0;i<moreShapes.length;i++){
+           if(moreShapes[i]!=null){
+              Shape shp = af2.createTransformedShape(moreShapes[i]);
+              g2.fill(shp);
+              if(bounds==null){
+                bounds = shp.getBounds();
+              }else{
+                bounds.add(shp.getBounds());
+              }
+           }      
+        }
+      }
     }
     g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
     Color aktLineColor = Cat.getLineColor();
@@ -161,12 +208,21 @@ public class DisplayGraph extends DsplGeneric
       aktLineColor = new Color(Color.white.getRGB() ^ Cat.getLineColor().getRGB());
     }
     g2.setColor(aktLineColor);
-    if ((Cat.getLineWidth() > 0.0f) || (selected)){
+    if ((Cat.getLineWidth(renderAttribute,time) > 0.0f) || (selected)){
       if(Cat!=null)
-          g2.setStroke(Cat.getLineStroke());
-      g2.draw(sh);
+          g2.setStroke(Cat.getLineStroke(renderAttribute,time));
+      if(sh!=null){
+          g2.draw(sh);
+      }
+      if(moreShapes!=null){
+        for(int i=0;i<moreShapes.length;i++){
+           if(moreShapes[i]!=null){
+              g2.draw(af2.createTransformedShape(moreShapes[i]));
+           }      
+        }
+      }
     }
-    drawLabel(g2, render,time);
+    drawLabel(g2, bounds,time);
   }
 
   /**
@@ -175,12 +231,11 @@ public class DisplayGraph extends DsplGeneric
    * @param ro  The Shape-object to witch this label belong.
    * @see <a href="DisplayGraphsrc.html#drawLabel">Source</a>
    */
-  public void drawLabel (Graphics g, Shape ro, double time) {
+  public void drawLabel (Graphics g, Rectangle2D r, double time) {
     String LabelText = getLabelText(time);
     if (LabelText == null || LabelText.trim().equals(""))
       return;
     Graphics2D g2 = (Graphics2D)g;
-    Rectangle2D r = ro.getBounds2D();
     AffineTransform af2 = RefLayer.getProjection();
     Point2D.Double p = new Point2D.Double(r.getX() + r.getWidth()/2, r.getY()
         + r.getHeight()/2);

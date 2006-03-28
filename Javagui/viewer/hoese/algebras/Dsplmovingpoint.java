@@ -31,12 +31,15 @@ import  gui.Environment;
 /**
  * A displayclass for the movingpoint-type (spatiotemp algebra), 2D with TimePanel
  */
-public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute {
+public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute, RenderAttribute {
   //AffineTransform internAT;
   Point2D.Double point;
   Vector PointMaps;
   Rectangle2D.Double bounds;
+  double minValue = Integer.MAX_VALUE;
+  double maxValue = Integer.MIN_VALUE;
   static java.text.DecimalFormat format = new java.text.DecimalFormat("#.#####");
+
 
 
   /** Returns a short text usable as label **/
@@ -89,9 +92,9 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute 
     double y = pm.y1+Delta*(pm.y2-pm.y1);
 
     point = new Point2D.Double(x, y);
-
-    double pixy = Math.abs(Cat.getPointSize()/at.getScaleY());
-    double pix = Math.abs(Cat.getPointSize()/at.getScaleX());
+    double ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
+    double pixy = Math.abs(ps/at.getScaleY());
+    double pix = Math.abs(ps/at.getScaleX());
     if (Cat.getPointasRect())
       RenderObject = new Rectangle2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy);
     else {
@@ -119,6 +122,16 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute 
       le = le.rest();
     }
     double x1, y1;
+    
+    double v0 = value[0].doubleValue();
+    double v1 = value[1].doubleValue();
+    double v2 = value[2].doubleValue();
+    double v3 = value[3].doubleValue();
+    if(minValue>v0) minValue=v0;
+    if(maxValue<v0) maxValue=v0;
+    if(minValue>v2) minValue=v2;
+    if(maxValue<v2) maxValue=v2;
+   
     if(!ProjectionManager.project(value[0].doubleValue(),value[1].doubleValue(),aPoint)){
         return null;
     }
@@ -244,6 +257,33 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute 
   public Rectangle2D.Double getBounds () {
     return  bounds;
   }
+
+  /** returns the minimum x value **/
+  public double getMinRenderValue(){
+    return minValue;
+  }
+  /** returns the maximum x value **/
+  public double getMaxRenderValue(){
+    return maxValue;
+  }
+  /** returns the current x value **/
+  public double getRenderValue(double time){
+    if(Intervals==null || PointMaps==null){
+       return 0;
+    }
+    int index = getTimeIndex(time,Intervals);
+    if(index<0){
+      return 0; 
+    }
+    PointMap pm = (PointMap) PointMaps.get(index);
+    Interval in = (Interval)Intervals.get(index);
+    double t1 = in.getStart();
+    double t2 = in.getEnd();
+    double Delta = (time-t1)/(t2-t1);
+    double x = pm.x1+Delta*(pm.x2-pm.x1);
+    return (int) x;
+  }
+  
 
   class PointMap {
     double x1,x2,y1,y2;

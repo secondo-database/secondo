@@ -126,7 +126,7 @@ public class Dsplpoints extends DisplayGraph {
   public boolean contains (double xpos, double ypos, double scalex, double scaley) {
     boolean hit = false;
     ListIterator li = points.listIterator();
-    double scale = Cat.getPointSize()*0.7*scalex;               //Pythagoras Math.max(scalex,scaley);
+    double scale = Cat.getPointSize(renderAttribute,CurrentState.ActualTime)*0.7*scalex;  
     while (li.hasNext())
       hit |= (((Point2D.Double)li.next()).distance(xpos, ypos) <= scale);
     return  hit;

@@ -28,8 +28,9 @@ import viewer.hoese.*;
 /**
  * A displayclass for the int-type, alphanumeric only
  */
-public class Dsplint extends DsplGeneric implements DsplSimple {
-
+public class Dsplint extends DsplGeneric implements DsplSimple,RenderAttribute {
+   int value;
+   String text;
   /**
    * This method is used to analyse the type and value in NestedList format and build
    * up the intern datastructures for this type. An alphanumeric representation is 
@@ -42,19 +43,39 @@ public class Dsplint extends DsplGeneric implements DsplSimple {
    * @see <a href="Dsplintsrc.html#init">Source</a>
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    qr.addEntry(new String(type.symbolValue() + ":" + value.intValue()));
+    this.value = value.intValue();
+    text = (new String(type.symbolValue() + ":" + value.intValue()));
+    qr.addEntry(this);
     return;
   }
 
   public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
+     this.value = value.intValue();
      String T = new String(type.symbolValue());
      String V = ""+value.intValue();
      T=extendString(T,typewidth);
      V=extendString(V,valuewidth);
-     qr.addEntry(T + " : " + V);
+     text=(T + " : " + V);
+     qr.addEntry(this);
      return;
+  }
 
+  public String toString(){
+      return text;
+  }
+
+  /** returns the maximum value **/
+  public double getMaxRenderValue(){
+     return value;
+  }
+  /** returns the minimum value **/
+  public double getMinRenderValue(){
+     return value;
+  }
+  /** returns the current value **/
+  public double getRenderValue(double time){
+     return value;
   }
 
 
