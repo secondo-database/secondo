@@ -190,7 +190,7 @@ public class DisplayGraph extends DsplGeneric
 
     if(render!=null){ 
         sh = af2.createTransformedShape(render);
-        bounds = render.getBounds();
+        bounds = render.getBounds2D();
     }
     Shape[] shs=null;
     if(moreShapes!=null){
@@ -198,9 +198,9 @@ public class DisplayGraph extends DsplGeneric
       for(int i=0;i<shs.length;i++){
           shs[i] = af2.createTransformedShape(moreShapes[i]);
           if(bounds==null){
-             bounds = moreShapes[i].getBounds();
+             bounds = moreShapes[i].getBounds2D();
           }else{
-             bounds.add(moreShapes[i].getBounds());
+             bounds.add(moreShapes[i].getBounds2D());
           }
       }
     }
