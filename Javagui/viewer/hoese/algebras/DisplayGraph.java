@@ -171,18 +171,40 @@ public class DisplayGraph extends DsplGeneric
    * @param g The graphic context to draw in.
    */
   public void draw (Graphics g,AffineTransform af2,double time) {
-    Shape sh=null;
+   
+    Shape sh=null; // transformed renderobject
+
     Graphics2D g2 = (Graphics2D)g;
+
+
     Shape render = getRenderObject(af2);
     Shape[] moreShapes = getRenderObjects(af2);
+
+    // the bounding box of all objects
     Rectangle2D bounds = null;
 
-    if (render == null && moreShapes==null)
+    if (render == null && moreShapes==null){
+      // no object found
       return;
+    }
+
     if(render!=null){ 
         sh = af2.createTransformedShape(render);
-        bounds = sh.getBounds();
+        bounds = render.getBounds();
     }
+    Shape[] shs=null;
+    if(moreShapes!=null){
+      shs = new Shape[moreShapes.length];
+      for(int i=0;i<shs.length;i++){
+          shs[i] = af2.createTransformedShape(moreShapes[i]);
+          if(bounds==null){
+             bounds = moreShapes[i].getBounds();
+          }else{
+             bounds.add(moreShapes[i].getBounds());
+          }
+      }
+    }
+
     Paint fillStyle = Cat.getFillStyle(renderAttribute,time);
 
     // paint the interior
@@ -191,20 +213,13 @@ public class DisplayGraph extends DsplGeneric
       if(sh!=null){
          g2.fill(sh);
       }
-      if(moreShapes!=null){
-        for(int i=0;i<moreShapes.length;i++){
-           if(moreShapes[i]!=null){
-              Shape shp = af2.createTransformedShape(moreShapes[i]);
-              g2.fill(shp);
-              if(bounds==null){
-                bounds = shp.getBounds();
-              }else{
-                bounds.add(shp.getBounds());
-              }
-           }      
+      if(shs!=null){
+        for(int i=0;i<shs.length;i++){
+           g2.fill(shs[i]);
         }
       }
     }
+  
     g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
     Color aktLineColor = Cat.getLineColor();
     if (selected){
@@ -214,23 +229,14 @@ public class DisplayGraph extends DsplGeneric
 
     // paint the border
     if ((Cat.getLineWidth(renderAttribute,time) > 0.0f) || (selected)){
-      if(Cat!=null)
-          g2.setStroke(Cat.getLineStroke(renderAttribute,time));
+      g2.setStroke(Cat.getLineStroke(renderAttribute,time));
       if(sh!=null){
           g2.draw(sh);
       }
-      if(moreShapes!=null){
-        for(int i=0;i<moreShapes.length;i++){
-           if(moreShapes[i]!=null){
-              Shape shp = af2.createTransformedShape(moreShapes[i]);
-              g2.draw(shp);
-              if(bounds==null){
-                 bounds = shp.getBounds();
-              }else{
-                 bounds.add(shp.getBounds());
-             }
-           }      
-        }
+      if(shs!=null){
+          for(int i=0;i<shs.length;i++){
+             g2.draw(shs[i]); 
+          }
       }
     }
     drawLabel(g2, bounds,time);
@@ -239,8 +245,7 @@ public class DisplayGraph extends DsplGeneric
   /**
    * The draw method for the label.
    * @param g  The graphic context to draw in.
-   * @param ro  The Shape-object to witch this label belong.
-   * @see <a href="DisplayGraphsrc.html#drawLabel">Source</a>
+   * @param r  The bounding box of the object to label.
    */
   public void drawLabel (Graphics g, Rectangle2D r, double time) {
     if(r==null){
@@ -248,14 +253,15 @@ public class DisplayGraph extends DsplGeneric
        return; 
     }
     String LabelText = getLabelText(time);
-    if (LabelText == null || LabelText.trim().equals("")){
+    if (LabelText == null || LabelText.trim().equals("")){ // no label
       return;
     }
+
     Graphics2D g2 = (Graphics2D)g;
     AffineTransform af2 = RefLayer.getProjection();
     Point2D.Double p = new Point2D.Double(r.getX() + r.getWidth()/2, r.getY()
         + r.getHeight()/2);
-    //af2.transform(p, p);
+    af2.transform(p, p);
     if (selected) {
       Rectangle2D re = g2.getFont().getStringBounds(LabelText, g2.getFontRenderContext());
       g2.setPaint(new Color(255, 128, 255, 255));
