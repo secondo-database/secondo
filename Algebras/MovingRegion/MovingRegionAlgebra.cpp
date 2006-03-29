@@ -35,7 +35,7 @@ considered as prototype or proof of concept only, and needs to be finalised
 before production usage.
 
 The class definitions of ~MSegmentData~, 
-~TrapeziumSegmentIntersection~, ~RefinementPartition~,
+~TrapeziumSegmentIntersection~, ~RefinementPartitionOrig~,
 ~URegion~ and ~MRegion~, which
 are implemented in ~MovingRegionAlgebra.cpp~, have been moved to
 the header file ~MovingRegionAlgebra.h~ to facilitate development work on 
@@ -106,7 +106,7 @@ Closed:
     Resolved: Bugfix implemented, storing end instant of previously
     created interval was incorrect.
 
-  * Bug: Sorting units at the beginning of RefinementPartition() is missing.
+  * Bug: Sorting units at the beginning of RefinementPartitionOrig() is missing.
     Constructor only works if units appear in ~mr~ and ~mp~ in proper order!
 
     Rejected: ~InMRegion()~ and ~InMapping()~ sort units by using the
@@ -137,7 +137,7 @@ Closed:
     with other compilers than gcc.
 
   * Bug: References to ~URegion~ and ~UPoint~ instead of ~Unit1~ and ~Unit2~
-    in ~RefinementPartition()~. Victor Almeida found this one!
+    in ~RefinementPartitionOrig()~. Victor Almeida found this one!
 
     Resolved: Replaced references.
 
@@ -2537,7 +2537,7 @@ bool TrapeziumSegmentIntersection::operator<(
 }
 
 /*
-1.1 Class template ~RefinementPartition~
+1.1 Class template ~RefinementPartitionOrig~
 
 This class calculates a list of time intervals from two ~Mapping~ instances
 ~m1~ and ~m2~. For each of these intervals, one of the following three
@@ -2561,6 +2561,12 @@ The classes used for ~Mapping1~ and ~Mapping2~ must inherit from class
 ~Mapping~ from the ~TemporalAlgebra~. The classes user for ~Unit1~ and
 ~Unit2~ must inherit from class ~Unit~ in ~TemporalAlgebra~.
 
+The class template is called ~RefinementPartitionOrig~ and not
+~RefinementPartition~ because J[ue]rgen Schmidt decided to implement
+his own version of ~RefinementPartition~ in his ~TemporalLiftedAlgebra~,
+resulting in conflicts. The postfix ~Orig~ indicates who was here first!
+:-)
+
 1.1.1 Class template definition
 
 The class template definition has been moved to ~MovingRegionAlgebra.h~.
@@ -2573,8 +2579,8 @@ The class template definition has been moved to ~MovingRegionAlgebra.h~.
 */
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
-::RefinementPartition(
+RefinementPartitionOrig<Mapping1, Mapping2, Unit1, Unit2>
+::RefinementPartitionOrig(
     Mapping1& mr,
     Mapping2& mp) {
     if (MRA_DEBUG)
@@ -3293,8 +3299,8 @@ There are still units to be processed in ~mp~. See the previous case for
 
 */
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
-::~RefinementPartition() {
+RefinementPartitionOrig<Mapping1, Mapping2, Unit1, Unit2>
+::~RefinementPartitionOrig() {
     if (MRA_DEBUG)
         cerr << "RP::~RP() called" << endl;
 
@@ -3306,7 +3312,7 @@ RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
 
 */
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-unsigned int RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
+unsigned int RefinementPartitionOrig<Mapping1, Mapping2, Unit1, Unit2>
 ::Size(void) {
     if (MRA_DEBUG)
         cerr << "RP::Size() called" << endl;
@@ -3319,7 +3325,7 @@ unsigned int RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
 
 */
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-void RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
+void RefinementPartitionOrig<Mapping1, Mapping2, Unit1, Unit2>
 ::Get(unsigned int pos,
       Interval<Instant>*& civ,
       int& ur,
@@ -3339,7 +3345,7 @@ void RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
 
 */
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-void RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
+void RefinementPartitionOrig<Mapping1, Mapping2, Unit1, Unit2>
 ::AddUnits(
     const int urPos,
     const int upPos,
@@ -6787,7 +6793,7 @@ bool MRegion::Unittest2(int pos) {
 void MRegion::IntersectionRP(
     MPoint& mp,
     MPoint& res,
-    RefinementPartition<
+    RefinementPartitionOrig<
         MRegion,
         MPoint,
         URegion,
@@ -6871,7 +6877,7 @@ void MRegion::Intersection(MPoint& mp, MPoint& res) {
     if (MRA_DEBUG)
         cerr << "MRegion::Intersection() #2 called" << endl;
 
-    RefinementPartition<
+    RefinementPartitionOrig<
         MRegion,
         MPoint,
         URegion,
@@ -6994,7 +7000,7 @@ Use intersection algorithm and then see how the units in the result
 match to the original units in ~mp~.
 
 */
-    RefinementPartition<
+    RefinementPartitionOrig<
         MRegion,
         MPoint,
         URegion,
@@ -8158,7 +8164,7 @@ static int Unittest3ValueMap(Word* args,
     MPoint* mp1 = (MPoint*) args[0].addr;
     MPoint* mp2 = (MPoint*) args[1].addr;
 
-    RefinementPartition<
+    RefinementPartitionOrig<
         MPoint,
         MPoint,
         UPoint,

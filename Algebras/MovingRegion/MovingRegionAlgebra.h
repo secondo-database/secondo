@@ -22,7 +22,7 @@ with the help of Victor Almeida and Thomas Behr.
 1 Introduction
 
 This file contains the class definitions of ~MSegmentData~, 
-~RefinementPartition~, 
+~RefinementPartitionOrig~, 
 ~TrapeziumSegmentIntersection~, ~URegion~ and ~MRegion~, which
 are implemented in ~MovingRegionAlgebra.cpp~. These class definitions have
 been moved to this header file to facilitate development work on top of the
@@ -224,12 +224,18 @@ Compares intersections by their time.
 };
 
 /*
-1 Class template ~RefinementPartition~
+1 Class template ~RefinementPartitionOrig~
+
+The class template is called ~RefinementPartitionOrig~ and not
+~RefinementPartition~ because J[ue]rgen Schmidt decided to implement
+his own version of ~RefinementPartition~ in his ~TemporalLiftedAlgebra~,
+resulting in conflicts. The postfix ~Orig~ indicates who was here first!
+:-)
 
 */
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-class RefinementPartition {
+class RefinementPartitionOrig {
 private:
 /*
 Private attributes:
@@ -270,14 +276,14 @@ Runtime is $O(\max(n, m))$ with $n$ and $m$ the numbers of units in
 ~mr~ and ~mp~.
 
 */
-    RefinementPartition(Mapping1& mr, Mapping2& mp);
+    RefinementPartitionOrig(Mapping1& mr, Mapping2& mp);
 
 /*
 Since the elements of ~iv~ point to dynamically allocated objects, we need
 a destructor.
 
 */
-    ~RefinementPartition();
+    ~RefinementPartitionOrig();
 
 /*
 Return the number of intervals in the refinement partition.
@@ -639,7 +645,7 @@ on the refinement partition ~rp~. The result goes into ~res~.
     void IntersectionRP(
         MPoint& mp,
         MPoint& res,
-        RefinementPartition<MRegion, MPoint, URegion, UPoint>& rp);
+        RefinementPartitionOrig<MRegion, MPoint, URegion, UPoint>& rp);
 
 /*
 Add a ~UBool~ unit to ~res~ for interval $(starttime, endtime, lc, rc)$
