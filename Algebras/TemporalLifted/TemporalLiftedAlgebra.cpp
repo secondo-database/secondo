@@ -2830,6 +2830,14 @@ InsideTypeMapMBool( ListExpr args )
       if ((nl->IsEqual( arg1, "mpoint" ) 
       && nl->IsEqual( arg2, "line" )))
         return nl->SymbolAtom( "mbool" );
+      
+      if(nl->IsEqual(nl->First(args), "movingregion") 
+         && nl->IsEqual(nl->Second(args), "points"))
+         return nl->SymbolAtom("mbool");
+         
+      if(nl->IsEqual(nl->First(args), "movingregion") 
+         && nl->IsEqual(nl->Second(args), "line"))
+         return nl->SymbolAtom("mbool");
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -3204,16 +3212,28 @@ InsideSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
+  if (nl->ListLength(args) == 2){
     
-  if( nl->SymbolValue( arg1 ) == "mpoint" 
-  && nl->SymbolValue( arg2 ) == "points" )
-    return 0;  
+    if( nl->SymbolValue( arg1 ) == "mpoint" 
+    && nl->SymbolValue( arg2 ) == "points" )
+      return 0;  
     
-  if( nl->SymbolValue( arg1 ) == "mpoint" 
-  && nl->SymbolValue( arg2 ) == "line" )
-    return 1;
-    
-  return -1; // This point should never be reached
+    if( nl->SymbolValue( arg1 ) == "mpoint" 
+    && nl->SymbolValue( arg2 ) == "line" )
+      return 1;
+      
+    if  (nl->SymbolValue(nl->First(args)) == "movingregion"
+      && nl->SymbolValue(nl->Second(args)) == "points")
+      return 2;
+        
+    if  (nl->SymbolValue(nl->First(args)) == "movingregion"
+      && nl->SymbolValue(nl->Second(args)) == "line")
+      return 3;     
+
+    return -1; // This point should never be reached
+  }
+  else
+    return -1; 
 }
 
 /*
@@ -4577,16 +4597,14 @@ static int NComponentsValueMap(Word* args,
 
 void copyMRegion(MRegion& res, MRegion& result) {
    cout<<"copyMRegion() called"<<endl;
-   result = res;
+   result.CopyFrom(&res);
 }
 
 void copyRegionMPoint(CRegion& reg, MPoint& pt, MRegion& result) {
    cout<<"copyMRegion2() called"<<endl;
    MRegion* res = new MRegion(pt, reg);
-   cout<<"ölaks"<<endl;
-   //result = *res;
-   copyMRegion(*res, result);
-   cout<<"söldsödflk"<<endl;
+   result.Clear();
+   result.CopyFrom(res);
    delete res;
 }
 
@@ -4597,14 +4615,83 @@ void copyMRegionMPoint(MRegion& reg, MPoint& pt, MRegion& result) {
     Interval<Instant>* iv;
     int regPos;
     int ptPos;
-    const URegion *ureg;
+    
+    
     for( unsigned int i = 0; i < rp.Size(); i++ ){
       rp.Get(i, iv, regPos, ptPos);
-      if(regPos == -1 ||ptPos == -1)
+      if(regPos == -1 || ptPos == -1)
         continue;
-      cout<<"bothoperators in iv # "<<i<<endl;
+      cout<<"bothoperators in iv # "<<i<<" [ "
+      <<iv->start.ToDouble()<<" "<<iv->end.ToDouble()<<" "
+      <<iv->lc<<" "<<iv->rc<<" ] regPos "<<regPos<<endl;
+      URegion *ures = new URegion(*iv);
+      const URegion *ureg;
       reg.Get(regPos, ureg);
-      result.Add(*ureg);//Baustelle!!
+      cout<<"12"<<endl;
+      ures->CopyFrom(ureg);
+      cout<<"13"<<endl;
+      if(ureg->timeInterval.start < iv->start 
+        || ureg->timeInterval.end > iv->end){
+        cout<<"clip ureg to interval"<<endl;
+        for(int n = 0; n < ureg->GetSegmentsNum(); n++){
+          cout<<n<<". Segment"<<endl;
+          const MSegmentData *dms;
+          cout<<"1"<<endl;
+          ureg->GetSegment(n, dms);
+          cout<<"2"<<endl;
+          MSegmentData rdms;
+        
+        cout<<"GetFaceNo()"<<dms->GetFaceNo()<<endl;
+        cout<<"GetCycleNo()"<<dms->GetCycleNo()<<endl;
+        cout<<"GetSegmentNo()"<<dms->GetSegmentNo()<<endl;
+        cout<<"GetInitialStartX()"<<dms->GetInitialStartX()<<endl;
+        cout<<"GetInitialStartY()"<<dms->GetInitialStartY()<<endl;
+        cout<<"GetInitialEndX()"<<dms->GetInitialEndX()<<endl;
+        cout<<"GetInitialEndY()"<<dms->GetInitialEndY()<<endl;
+        cout<<"GetFinalStartX()"<<dms->GetFinalStartX()<<endl;
+        cout<<"GetFinalStartY()"<<dms->GetFinalStartY()<<endl;
+        cout<<"GetFinalEndX()"<<dms->GetFinalEndX()<<endl;
+        cout<<"GetFinalEndY()"<<dms->GetFinalEndY()<<endl;
+        cout<<"GetInsideAbove()"<<dms->GetInsideAbove()<<endl;
+
+          dms->restrictToInterval(ureg->timeInterval, *iv, rdms);
+          cout<<"3"<<endl;
+          cout<<"iv [ "
+      <<iv->start.ToDouble()<<" "<<iv->end.ToDouble()<<" "
+      <<iv->lc<<" "<<iv->rc<<" ]"<<endl;
+      cout<<"ureg [ "
+      <<ureg->timeInterval.start.ToDouble()<<" "
+      <<ureg->timeInterval.end.ToDouble()<<" "
+      <<ureg->timeInterval.lc<<" "<<ureg->timeInterval.rc<<" ]"
+      <<endl;
+          ures->PutSegment(n, rdms);
+          cout<<"4"<<endl;
+       cout<<"GetFaceNo()"<<rdms.GetFaceNo()<<endl;
+        cout<<"GetCycleNo()"<<rdms.GetCycleNo()<<endl;
+        cout<<"GetSegmentNo()"<<rdms.GetSegmentNo()<<endl;
+        cout<<"GetInitialStartX()"<<rdms.GetInitialStartX()<<endl;
+        cout<<"GetInitialStartY()"<<rdms.GetInitialStartY()<<endl;
+        cout<<"GetInitialEndX()"<<rdms.GetInitialEndX()<<endl;
+        cout<<"GetInitialEndY()"<<rdms.GetInitialEndY()<<endl;
+        cout<<"GetFinalStartX()"<<rdms.GetFinalStartX()<<endl;
+        cout<<"GetFinalStartY()"<<rdms.GetFinalStartY()<<endl;
+        cout<<"GetFinalEndX()"<<rdms.GetFinalEndX()<<endl;
+        cout<<"GetFinalEndY()"<<rdms.GetFinalEndY()<<endl;
+        cout<<"GetInsideAbove()"<<rdms.GetInsideAbove()<<endl;
+        
+        }
+      }
+      cout<<"5"<<endl;   
+      ures->timeInterval = *iv;
+      cout<<"6"<<endl;
+      cout<<"[ "
+      <<ures->timeInterval.start.ToDouble()<<" "
+      <<ures->timeInterval.end.ToDouble()<<" "
+      <<ures->timeInterval.lc<<" "<<ures->timeInterval.rc<<" ]"
+      <<endl;
+      result.Add(*ures);//Baustelle!!
+      cout<<"7"<<endl;
+      delete ures;
     }
     result.EndBulkLoad(false);
 }
@@ -4621,10 +4708,20 @@ static int RMPMinusValueMap(Word* args,
                              Supplier s) {
     cout<< "RMPMinusValueMap() called" << endl;
     result = qp->ResultStorage(s);
+    //MRegion* res = (MRegion*) result.addr;
 
     copyRegionMPoint(*((CRegion*)args[0].addr) ,
     *((MPoint*)args[1].addr), *((MRegion*)result.addr) );
+   
+    //MPoint* mp = (MPoint*) args[1].addr;
+   // CRegion* r = (CRegion*) args[0].addr;
     
+    //MRegion* mr = new MRegion(*mp, *r);
+    
+    //res->CopyFrom(mr);
+    
+    //delete mr;
+   
     return 0;
 }
 
@@ -4821,7 +4918,43 @@ static int IsemptyValueMap(Word* args,
     return 0;
 }
 
+/*
+~MFalseValueMap~ is used in ~inside~ with 
+mregion x points / line and creats false for every
+periode in mregion.
 
+*/
+
+static int MFalseValueMap(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s) {
+    cout<< "MFalseValueMap() called" << endl;
+
+    result = qp->ResultStorage(s);
+    MBool* pResult = (MBool*)result.addr;
+    MRegion* reg = (MRegion*)args[0].addr;
+    UBool uBool;
+    
+    pResult->Clear();
+    pResult->StartBulkLoad();
+    for( int i = 0; i < reg->GetNoComponents(); i++) {
+      const URegion *ureg;
+      reg->Get(i, ureg);
+      uBool.timeInterval = ureg->timeInterval; 
+      uBool.constValue.Set(true,false);
+      cout<<uBool.constValue.GetBoolval()<<" [ "
+      <<uBool.timeInterval.start.ToDouble()<<" "
+      <<uBool.timeInterval.end.ToDouble()<<" "
+      <<uBool.timeInterval.lc<<" "
+      <<uBool.timeInterval.rc<<" ]"<<endl;
+      pResult->MergeAdd(uBool);
+    }
+    pResult->EndBulkLoad(false);
+    
+    return 0;
+}
 
 
 
@@ -4937,8 +5070,11 @@ ValueMapping temporalliftminusmap[] = {
             TemporalMSRealIntercept<2>,
             TemporalSMRealIntercept<2> };
 
-ValueMapping temporalliftinsidemap[] = { MPointsPointInside,
-                                         MPointsLineInside  };
+ValueMapping temporalliftinsidemap[] = {
+            MPointsPointInside,
+            MPointsLineInside,
+            MFalseValueMap,
+            MFalseValueMap  };
 
 static ValueMapping minusvaluemap[] =
     { RMPMinusValueMap,
@@ -5050,7 +5186,7 @@ const string TemporalLiftSpecGE
 const string TemporalLiftSpecIntersection  
         = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
           "\"Example\" ) "
-          "( <text>S in {bool,  int, real}, mS x mS -> mS,"
+          "( <text>S in {bool, int, real}, mS x mS -> mS,"
           " mS x S -> mS, S x mS -> mS</text--->"
           "<text>intersection _, _</text--->"
           "<text>Intersection.</text--->"
@@ -5090,7 +5226,8 @@ const string TemporalLiftSpecInside
        = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
          "\"Example\" ) "
          "( <text>mpoint x points -> mbool,"
-         " mpoint x line -> mbool</text--->"
+         " mpoint x line -> mbool, mregion x points ->"
+         " mbool, mregion x line -> mbool</text--->"
          "<text>_ inside _</text--->"
          "<text>Inside.</text--->"
          "<text>query mp1 inside pts1</text--->"
@@ -5227,11 +5364,11 @@ Operator temporalmdistance( "distance",
                            MovingDistanceTypeMapMReal );
 
 Operator temporalmintersection( "intersection",
-                               TemporalLiftSpecIntersection,
-                               9,
-                               temporalliftintersectionmap,
-                               MovingIntersectionSelect,
-                               MovingIntersectionTypeMap );
+                 TemporalLiftSpecIntersection,
+                 9,
+                 temporalliftintersectionmap,
+                 MovingIntersectionSelect,
+                 MovingIntersectionTypeMap );
 
 Operator temporalmminus( "minus",
                         TemporalLiftSpecMinus,
@@ -5248,7 +5385,7 @@ Operator temporalabs( "abs",
 
 Operator temporalminside( "inside",
                          TemporalLiftSpecInside,
-                         2,
+                         4,
                          temporalliftinsidemap,
                          InsideSelect,
                          InsideTypeMapMBool );
@@ -5296,6 +5433,7 @@ static Operator isempty("isempty",
                         IsemptyValueMap,
                         Operator::SimpleSelect,
                         IsemptyTypeMap);
+
 
 
 class TemporalLiftedAlgebra : public Algebra
