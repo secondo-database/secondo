@@ -361,8 +361,8 @@ public class ViewConfig extends javax.swing.JDialog {
         else {
           TupNrLabel.setText("Tuples: " + TupelCount);
           LabelText.setText(null);
-          LabXOffText.setText(null);
-          LabYOffText.setText(null);
+          LabXOffText.setText("0");
+          LabYOffText.setText("0");
         }
       }
     });
@@ -600,11 +600,15 @@ public class ViewConfig extends javax.swing.JDialog {
         DsplGraph dg = (DsplGraph)li.next();
         if (dg.getAttrName().equals(AttrName)) {
           dg.setCategory(cat);
-          if ((LabXOffText.getText().equals("")) || (LabYOffText.getText().equals("")))
-            ;
-          else
-            dg.getLabPosOffset().setLocation(Double.parseDouble(LabXOffText.getText()),
-                Double.parseDouble(LabYOffText.getText()));
+          double laboffx=0;
+          double laboffy=0;
+          try{
+             laboffx = Double.parseDouble(LabXOffText.getText());
+          }catch(NumberFormatException e){}
+          try{
+             laboffy = Double.parseDouble(LabXOffText.getText());
+          }catch(NumberFormatException e){}
+          dg.getLabPosOffset().setLocation(laboffx,laboffy);
           if ((LabIndex >= 0) && (LabelText.getText().equals(""))) {
             LabelAttribute label;
             if(LabIndex==0)  // no Label
@@ -621,17 +625,22 @@ public class ViewConfig extends javax.swing.JDialog {
             }
             dg.setLabelAttribute(label);
           }
-          else if (LabelText.getText().equals(""))
+          else if (LabelText.getText().equals("")){
             dg.setLabelAttribute(null);
-          else
+          }
+          else{
             dg.setLabelAttribute(new DefaultLabelAttribute(LabelText.getText()));
+          }
           cnt++;
         }
       }
     }
 
-    String as = RefAttrCB.getSelectedItem().toString();
 
+    String as ="";
+    if(RefAttrCB.getSelectedIndex()>=0){
+        as  = RefAttrCB.getSelectedItem().toString();
+    }
     if (RefDepCBo.isSelected()) {
       if(!LinkCheckBox.isSelected()){
          // handling of reference attributes
