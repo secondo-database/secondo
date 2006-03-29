@@ -291,12 +291,12 @@ let mr1pk1 =
 
 #testcase "k11 - intersection"
 #tolerance_real 0.00000001
-#yields (mpoint ((("2000-01-05-12:00" "2000-01-11-08:00" TRUE TRUE) (2.25 5.25 3.416666666666667 5.25))))
+#yields (mpoint ((("2000-01-03" "2000-01-08" TRUE TRUE) (1.75 4.25 2.125 4.25))))
 query intersection(mr1pk1, mr1);
 
-#testcase "k11 - inside"
+#testcase "k12 - inside"
 #tolerance_real 0.00000001
-#yields (mbool ((("2000-01-03" "2000-01-05-12:00" TRUE FALSE) FALSE) (("2000-01-05-12:00" "2000-01-11-08:00" TRUE TRUE) TRUE) (("2000-01-11-08:00" "2000-01-13" FALSE TRUE) FALSE)))
+#yields (mbool ((("1999-12-24" "2000-01-03" TRUE FALSE) FALSE) (("2000-01-03" "2000-01-08" TRUE TRUE) TRUE) (("2000-01-08" "2000-01-13" FALSE TRUE) FALSE)))
 query mr1pk1 inside mr1;
 
 ###############################################################################
@@ -310,7 +310,7 @@ let mr1pk2 =
 #yields (mpoint ((("2000-01-03" "2000-01-08" TRUE TRUE) (2.5 4.25 2.125 4.25))))
 query intersection(mr1pk2, mr1);
 
-#testcase "k21 - inside"
+#testcase "k22 - inside"
 #tolerance_real 0.00000001
 #yields (mbool ((("2000-01-03" "2000-01-08" TRUE TRUE) TRUE) (("2000-01-08" "2000-01-13" FALSE TRUE) FALSE)))
 query mr1pk2 inside mr1;

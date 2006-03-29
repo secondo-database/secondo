@@ -51,15 +51,6 @@ Fernuniversit[ae]t Hagen.
 
 Open:
 
-  * Bug: Lets consider two units ~up~ of type ~upoint~ and ~ur~ of type
-    ~uregion~ with the same interval. If ~val(initial(up))~ is within
-    ~val(initial(ur))~ and ~val(initial(up))~ is not within 
-    ~val(final(ur))~, the operators ~intersection~ and ~inside~ correctly
-    recognize the intersection with the edge of the region but do not
-    correctly calculate the intervals when the point is within and outside 
-    the region. If ~val(initial(up))~ is within ~val(final(ur))~, everything
-    works. Please note that this bug is causing two failed unit tests.
-
   * Bug: List representation checks incorrect for
     ~(update mv := ((movingregion)((0.0 0.0 true true)(0.0 0.0 1.0 1.0))));~.
     Aleksej Struk found this issue.
@@ -77,6 +68,26 @@ Open:
     to have different debug levels.
 
 Closed:
+
+  * Bug: Lets consider two units ~up~ of type ~upoint~ and ~ur~ of type
+    ~uregion~ with the same interval. If ~val(initial(up))~ is within
+    ~val(initial(ur))~ and ~val(initial(up))~ is not within 
+    ~val(final(ur))~, the operators ~intersection~ and ~inside~ correctly
+    recognize the intersection with the edge of the region but do not
+    correctly calculate the intervals when the point is within and outside 
+    the region. If ~val(initial(up))~ is within ~val(final(ur))~, everything
+    works. Please note that this bug is causing two failed unit tests.
+
+    Resolved: Simplifying ~URegion::RestrictedIntersectionFindNormal()~
+    fixed the issue.
+
+  * Bug: The ~URegion~ constructor, which constructs the instance from a 
+    ~CRegion~ instance, does not work properly if the region contains half
+    segments, where the two end points have been swapped during half segment
+    created. J[ue]rgen Schmidt spotted this problem.
+
+    Resolved: Half segments with swapped end points are now being correctly
+    handled.
 
   * Bug: There is a number of assertions, which can be triggered by input
     data. This is caused by rounding errors, which render assumptions 
@@ -2145,8 +2156,10 @@ Segment not parallel to trapezium.
 
 1.1.1 Function ~pointAboveSegment()~
 
-Returns ~true~ if point $(x, y)$ is located above or on segment spanned by
-the points $(p1x, p1y)$ and $(p2x, p2y)$.
+Returns ~true~ if point $(x, y)$ is located left or above or on segment 
+spanned by the points $(p1x, p1y)$ and $(p2x, p2y)$. This matches the
+definition of the ~insideAbove~ attribute in ~CRegion~ and ~URegion~
+instances.
 
 */
 
@@ -2183,47 +2196,6 @@ static bool pointAboveSegment(double x,
             cerr << "pointAboveSegment() py=" << py << endl;
 
         return y >= py;
-    }
-}
-
-/*
-1.1.1 Function ~pointBelowSegment()~
-
-Returns ~true~ if point $(x, y)$ is located below or on segment spanned by
-the points $(p1x, p1y)$ and $(p2x, p2y)$.
-
-*/
-
-static bool pointBelowSegment(double x,
-                              double y,
-                              double p1x,
-                              double p1y,
-                              double p2x,
-                              double p2y) {
-    if (MRA_DEBUG)
-        cerr << "pointBelowSegment() called p=(" << x << " " << y
-             << ") p1=(" << p1x << " " << p1y
-             << ") p2=(" << p2x << " " << p2y << ")"
-             << endl;
-
-    if (nearlyEqual(p1x, p2x)) {
-        if (MRA_DEBUG)
-            cerr << "pointBelowSegment() p1x=p2x" << endl;
-
-        return x >= p1x;
-    } else if (nearlyEqual(p1y, p2y)) {
-        if (MRA_DEBUG)
-            cerr << "pointBelowSegment() p1y=p2y" << endl;
-
-        return y <= p1y;
-    } else {
-        if (MRA_DEBUG)
-            cerr << "pointBelowSegment() other" << endl;
-
-        double t = (x-p1x)/(p2x-p1x);
-        double py = p1y+(p2y-p1y)*t;
-
-        return y <= py;
     }
 }
 
@@ -2319,7 +2291,7 @@ MSegmentData::MSegmentData(
     if (MRA_DEBUG)
         cerr << "MSegmentData::MSegmentData() #2 "
              << "called counter=["
-             << faceno << " " << cycleno << segmentno
+             << faceno << " " << cycleno << " " << segmentno
              << "] flags=["
              << insideAbove
              << " " << degeneratedInitialNext
@@ -3508,32 +3480,61 @@ URegion::URegion(const Interval<Instant>& interval,
     if (MRA_DEBUG)
         cerr << "URegion::URegion() #4 called" << endl;
     
+    const CHalfSegment* prevChs = 0;
+
     for (int i = 0; i < region.Size(); i += 2) {
         const CHalfSegment *thisChs;
         region.Get(i, thisChs);
         
-        const CHalfSegment *nextChs;
-        region.Get(i+1 == region.Size() ? 0 : i+1, nextChs);
-        
-        MSegmentData dms(thisChs->GetAttr().faceno,
-                         thisChs->GetAttr().cycleno,
-                         thisChs->GetAttr().edgeno,
-                         thisChs->GetAttr().insideAbove,
-                         thisChs->GetLP().GetX(),
-                         thisChs->GetLP().GetY(),
-                         thisChs->GetRP().GetX(),
-                         thisChs->GetRP().GetY(),
-                         thisChs->GetLP().GetX(),
-                         thisChs->GetLP().GetY(),
-                         thisChs->GetRP().GetX(),
-                         thisChs->GetRP().GetY());
-        
-        dms.degeneratedInitial = DGM_NONE;
-        dms.degeneratedFinal = DGM_NONE;
-
         segments->Resize(segmentsStartPos+segmentsNum+1);
-        segments->Put(segmentsStartPos+segmentsNum, dms);
+
+        if (prevChs && prevChs->GetRP() != thisChs->GetLP()) {
+            if (MRA_DEBUG)
+                cerr << "URegion::URegion() swapping" << endl;
+
+            MSegmentData dms(thisChs->GetAttr().faceno,
+                             thisChs->GetAttr().cycleno,
+                             thisChs->GetAttr().edgeno,
+                             thisChs->GetAttr().insideAbove,
+                             thisChs->GetRP().GetX(),
+                             thisChs->GetRP().GetY(),
+                             thisChs->GetLP().GetX(),
+                             thisChs->GetLP().GetY(),
+                             thisChs->GetRP().GetX(),
+                             thisChs->GetRP().GetY(),
+                             thisChs->GetLP().GetX(),
+                             thisChs->GetLP().GetY());
+
+            dms.degeneratedInitial = DGM_NONE;
+            dms.degeneratedFinal = DGM_NONE;
+            
+            segments->Put(segmentsStartPos+segmentsNum, dms);
+        } else {
+            if (MRA_DEBUG)
+                cerr << "URegion::URegion() no swapping" << endl;
+
+            MSegmentData dms(thisChs->GetAttr().faceno,
+                             thisChs->GetAttr().cycleno,
+                             thisChs->GetAttr().edgeno,
+                             thisChs->GetAttr().insideAbove,
+                             thisChs->GetLP().GetX(),
+                             thisChs->GetLP().GetY(),
+                             thisChs->GetRP().GetX(),
+                             thisChs->GetRP().GetY(),
+                             thisChs->GetLP().GetX(),
+                             thisChs->GetLP().GetY(),
+                             thisChs->GetRP().GetX(),
+                             thisChs->GetRP().GetY());
+
+            dms.degeneratedInitial = DGM_NONE;
+            dms.degeneratedFinal = DGM_NONE;
+
+            segments->Put(segmentsStartPos+segmentsNum, dms);
+        }
+
         segmentsNum++;
+
+        prevChs = thisChs;
     }
 
     Rectangle<2> rbb = region.BoundingBox();
@@ -3719,7 +3720,13 @@ Calculate end points of moving segment at time of intersection ~ip1t~.
             +(rDms.finalEndY-rDms.initialEndY)*f;
     }
 
-    if (MRA_DEBUG)
+    if (1==1) {
+        cerr << "URegion::RIFN() rUp=("
+             << rUp.p0.GetX() << " " << rUp.p0.GetY()
+             << ")-("
+             << rUp.p1.GetX() << " " << rUp.p1.GetY()
+             << ")"
+             << endl;
         cerr << "URegion::RIFN() p1=("
              << p1x << " " << p1y
              << ") p2=("
@@ -3728,6 +3735,7 @@ Calculate end points of moving segment at time of intersection ~ip1t~.
              << " ip1=("
              << ip1x << " " << ip1y << " " << ip1t << ")"
              << endl;
+    }
 
     TrapeziumSegmentIntersection tsi;
 
@@ -3743,11 +3751,11 @@ Is the ~UPoint~ instance constant and is it located on the segment?
         && nearlyEqual(rUp.p0.GetY(), ip1y)
         && nearlyEqual(rUp.p1.GetX(), ip1x)
         && nearlyEqual(rUp.p1.GetY(), ip1y)) {
-        if (MRA_DEBUG)
+        if (1==1)
             cerr << "URegion::RIFN() through p0 and p1" << endl;
 
 /*
-Yes, lets see if we the moving segment did not touch the ~UPoint~ instance
+Yes, lets see if the moving segment did not touch the ~UPoint~ instance
 during initial time. If yes, we can deduce from the ~insideAbove~ attribute
 and the direction of the movement whether the ~URegion~ has been entered or
 left at the intersection point. If not, we just two identical points, one
@@ -3764,7 +3772,7 @@ has been entered and left in the same instance.
                 tsi.type = rDms.insideAbove ? TSI_ENTER : TSI_LEAVE;
             }
 
-            if (MRA_DEBUG)
+            if (1==1)
                 cerr << "URegion::RIFN() adding "
                      << tsi.type
                      << " " << tsi.x << " " << tsi.y << " " << tsi.t
@@ -3779,14 +3787,14 @@ has been entered and left in the same instance.
                 tsi.type = rDms.insideAbove ? TSI_LEAVE : TSI_ENTER;
             }
 
-            if (MRA_DEBUG)
+            if (1==1)
                 cerr << "URegion::RIFN() adding "
                      << tsi.type
                      << " " << tsi.x << " " << tsi.y << " " << tsi.t
                      << endl;
             vtsi.push_back(tsi);
         } else {
-            if (MRA_DEBUG)
+            if (1==1)
                 cerr << "URegion::RIFN() adding "
                      << tsi.type
                      << " " << tsi.x << " " << tsi.y << " " << tsi.t
@@ -3794,7 +3802,7 @@ has been entered and left in the same instance.
             tsi.type = TSI_ENTER;
             vtsi.push_back(tsi);
 
-            if (MRA_DEBUG)
+            if (1==1)
                 cerr << "URegion::RIFN() adding "
                      << tsi.type
                      << " " << tsi.x << " " << tsi.y << " " << tsi.t
@@ -3812,13 +3820,12 @@ whether the ~URegion~ instance has been entered or left.
 The same is checked for the end of the interval. This is to determine
 whether point and segment move into the same direction with the segment
 being faster than the point. In this case, both only touch without the
-point actually entering the ~URegion~ instance. You can visualise this
-by imagining that the ~segment~ is overtaking the point.
+point actually entering the ~URegion~ instance. 
 
 */
     } else if (nearlyEqual(rUp.p0.GetX(), ip1x)
                && nearlyEqual(rUp.p0.GetY(), ip1y)) {
-        if (MRA_DEBUG)
+        if (1==1)
             cerr << "URegion::RIFN() through p0" << endl;
 
         if (pointAboveSegment(rUp.p1.GetX(), rUp.p1.GetY(),
@@ -3828,7 +3835,7 @@ by imagining that the ~segment~ is overtaking the point.
             tsi.type = rDms.insideAbove ? TSI_LEAVE : TSI_ENTER;
         }
 
-        if (MRA_DEBUG)
+        if (1==1)
             cerr << "URegion::RIFN() adding "
                  << tsi.type
                  << " " << tsi.x << " " << tsi.y << " " << tsi.t
@@ -3841,7 +3848,7 @@ by imagining that the ~segment~ is overtaking the point.
                               rDms.finalEndX, rDms.finalEndY)) {
             tsi.type = tsi.type == TSI_ENTER ? TSI_LEAVE : TSI_ENTER;
 
-            if (MRA_DEBUG)
+            if (1==1)
                 cerr << "URegion::RIFN() adding "
                      << tsi.type
                      << " " << tsi.x << " " << tsi.y << " " << tsi.t
@@ -3851,14 +3858,14 @@ by imagining that the ~segment~ is overtaking the point.
         }
 
 /*
-Is one of the endpoints of the ~UPoint~ instance located on the segment?
+Is the other endpoint of the ~UPoint~ instance located on the segment?
 If so, see handling of previous case.
 
 */
 
     } else if (nearlyEqual(rUp.p1.GetX(), ip1x)
                && nearlyEqual(rUp.p1.GetY(), ip1y)) {
-        if (MRA_DEBUG)
+        if (1==1)
             cerr << "URegion::RIFN() through p1" << endl;
 
         if (pointAboveSegment(rUp.p0.GetX(), rUp.p0.GetY(),
@@ -3868,7 +3875,7 @@ If so, see handling of previous case.
             tsi.type = rDms.insideAbove ? TSI_ENTER : TSI_LEAVE;
         }
 
-        if (MRA_DEBUG)
+        if (1==1)
             cerr << "URegion::RIFN() adding "
                  << tsi.type
                  << " " << tsi.x << " " << tsi.y << " " << tsi.t
@@ -3881,7 +3888,7 @@ If so, see handling of previous case.
                               rDms.initialEndX, rDms.initialEndY)) {
             tsi.type = tsi.type == TSI_ENTER ? TSI_LEAVE : TSI_ENTER;
 
-            if (MRA_DEBUG)
+            if (1==1)
                 cerr << "URegion::RIFN() adding "
                      << tsi.type
                      << " " << tsi.x << " " << tsi.y << " " << tsi.t
@@ -3891,74 +3898,38 @@ If so, see handling of previous case.
         }
 
 /*
-Is one of the endpoints of the ~UPoint~ instance located above the
-segment? Determining whether the ~UPoint~ instance entered the
-~URegion~ instance is simple then and relies on the ~insideAbove~
-attribute again. Moreover, it needs to check the same ~overtaking~
-situation as described for the previous cases before.
+At this point, we do know that one endpoint of the ~UPoint~ instance is
+left or above the segment. Lets find out which in the remaining two cases.
 
 */
     } else if (pointAboveSegment(rUp.p0.GetX(), rUp.p0.GetY(),
-                                 p1x, p1y, p2x, p2y)) {
-        if (MRA_DEBUG)
+                                 rDms.initialStartX, rDms.initialStartY,
+                                 rDms.initialEndX, rDms.initialEndY)) {
+        if (1==1)
             cerr << "URegion::RIFN() p0 above segment" << endl;
 
         tsi.type = rDms.insideAbove ? TSI_LEAVE : TSI_ENTER;
 
-        if (MRA_DEBUG)
+        if (1==1)
             cerr << "URegion::RIFN() adding "
                  << tsi.type
                  << " " << tsi.x << " " << tsi.y << " " << tsi.t
                  << endl;
 
         vtsi.push_back(tsi);
-
-        if (pointAboveSegment(rUp.p1.GetX(), rUp.p1.GetY(),
-                              rDms.finalStartX, rDms.finalStartY,
-                              rDms.finalEndX, rDms.finalEndY)) {
-            tsi.type = rDms.insideAbove ? TSI_ENTER : TSI_LEAVE;
-
-            if (MRA_DEBUG)
-                cerr << "URegion::RIFN() adding "
-                     << tsi.type
-                     << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                     << endl;
-
-            vtsi.push_back(tsi);
-        }
-
-/*
-In this case, the previously checked endpoint is below the segment.
-See handling of previous case.
-
-*/
     } else {
-        if (MRA_DEBUG)
+        if (1==1)
             cerr << "URegion::RIFN() p0 below segment" << endl;
 
         tsi.type = rDms.insideAbove ? TSI_ENTER : TSI_LEAVE;
 
-        if (MRA_DEBUG)
+        if (1==1)
             cerr << "URegion::RIFN() adding "
                  << tsi.type
                  << " " << tsi.x << " " << tsi.y << " " << tsi.t
                  << endl;
 
         vtsi.push_back(tsi);
-
-        if (pointBelowSegment(rUp.p1.GetX(), rUp.p1.GetY(),
-                              rDms.finalStartX, rDms.finalStartY,
-                              rDms.finalEndX, rDms.finalEndY)) {
-            tsi.type = rDms.insideAbove ? TSI_LEAVE : TSI_ENTER;
-
-            if (MRA_DEBUG)
-                cerr << "URegion::RIFN() adding "
-                     << tsi.type
-                     << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                     << endl;
-
-            vtsi.push_back(tsi);
-        }
     }
 }
 
@@ -4524,14 +4495,14 @@ sufficient context to understand this method.
         }
 
         if (ip1present) {
-            if (MRA_DEBUG)
+            if (1==1)
                 cerr << "URegion::RIF() intersection" << endl;
 
             if (ip2present
                 && !(nearlyEqual(ip1x, ip2x)
                      && nearlyEqual(ip1y, ip2y)
                      && nearlyEqual(ip1t, ip2t))) {
-                if (MRA_DEBUG)
+                if (1==1)
                     cerr << "URegion::RIF() in plane" << endl;
 
                 RestrictedIntersectionFindInPlane(
@@ -4540,7 +4511,7 @@ sufficient context to understand this method.
                     ip2present, ip2x, ip2y, ip2t,
                     vtsi);
             } else {
-                if (MRA_DEBUG)
+                if (1==1)
                     cerr << "URegion::RIF() not in plane" << endl;
 
                 RestrictedIntersectionFindNormal(
@@ -6736,6 +6707,23 @@ Copy the moving segments.
     for (int i = 0; i < mr->msegmentdata.Size(); i++) {
         const MSegmentData* dms;
         mr->msegmentdata.Get(i, dms);
+
+        if (MRA_DEBUG) 
+            cerr << "MRegion::CopyFrom() segment " 
+                 << i 
+                 << ": initial=[" 
+                 << dms->GetInitialStartX() 
+                 << " " << dms->GetInitialStartY() 
+                 << " " << dms->GetInitialEndX() 
+                 << " " << dms->GetInitialEndY()
+                 << "] final=["
+                 << dms->GetFinalStartX() 
+                 << " " << dms->GetFinalStartY() 
+                 << " " << dms->GetFinalEndX() 
+                 << " " << dms->GetFinalEndY()
+                 << "]"
+                 << endl;
+
         msegmentdata.Put(i, *dms);
     }
 }
