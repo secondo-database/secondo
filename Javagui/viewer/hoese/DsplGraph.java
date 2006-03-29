@@ -51,6 +51,11 @@ public interface DsplGraph extends DsplBase
 
 
 
+  /** Returns the attribute controlling the 
+    * creation of the label.
+    **/
+  public LabelAttribute getLabelAttribute(); 
+
   /**
    * Sets the labeltext for an object
    * @param label Text of label

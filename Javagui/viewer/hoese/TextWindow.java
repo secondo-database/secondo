@@ -197,33 +197,65 @@ public class TextWindow extends JPanel {
   private ListExpr convertQueryResulttoLE (QueryResult qr) {
     ListExpr catl = ListExpr.theEmptyList();
     ListExpr left = catl;
+    int labno=0;
+    int rendno=0;
     for (int i = 0; i < qr.getGraphObjects().size(); i++) {
       DsplGraph dg = (DsplGraph)qr.getGraphObjects().elementAt(i);
       int catnr = parent.Cats.indexOf(dg.getCategory());
-      if (catl.isEmpty()) {
-        left = ListExpr.cons(ListExpr.intAtom(catnr), catl);
-        catl = left;
-        String lab = dg.getLabelText(CurrentState.ActualTime);
-        if(lab==null){
-            lab ="";
-        }
-        left = ListExpr.append(left, ListExpr.stringAtom(lab));
-        left = ListExpr.append(left, ListExpr.realAtom(dg.getLabPosOffset().getX()));
-        left = ListExpr.append(left, ListExpr.realAtom(dg.getLabPosOffset().getY()));
-        left = ListExpr.append(left, ListExpr.boolAtom(dg.getVisible()));
-      } 
-      else {
-        left = ListExpr.append(left, ListExpr.intAtom(catnr));
-        String lab = dg.getLabelText(CurrentState.ActualTime);
-        if(lab==null){
-             lab="";
-        }
-        left = ListExpr.append(left, ListExpr.stringAtom(lab));
-        left = ListExpr.append(left, ListExpr.realAtom(dg.getLabPosOffset().getX()));
-        left = ListExpr.append(left, ListExpr.realAtom(dg.getLabPosOffset().getY()));
-        left = ListExpr.append(left, ListExpr.boolAtom(dg.getVisible()));
+      LabelAttribute la = dg.getLabelAttribute();
+      RenderAttribute ra = dg.getRenderAttribute();
+      // find the objects within the query result
+      labno=-1; 
+      rendno=-1;
+      boolean doneLab  = (la==null) || (la instanceof DefaultLabelAttribute);
+      boolean doneRend = (ra==null) || (ra instanceof DefaultRenderAttribute);
+      if(ra instanceof DefaultRenderAttribute){
+        rendno = -2;
       }
+      ListModel lm = qr.getModel();
+      int p = 0;
+      int size = lm.getSize();
+      while(p<size && !(doneLab || doneRend)){
+        Object o = lm.getElementAt(p);
+        if(!doneLab){
+          if(la.equals(o)){
+             labno=p;
+             doneLab=true;
+          }   
+        }
+        if(!doneRend){
+          if(ra.equals(o)){
+             rendno = p; 
+             doneRend=true;
+          }
+        }
+        p++;
+      }
+     String lab = dg.getLabelText(CurrentState.ActualTime);
+     if(lab==null){
+        lab ="";
+     }
+     ListExpr currentCat = ListExpr.cons(
+                              ListExpr.intAtom(catnr),
+                              ListExpr.sixElemList(
+                                 ListExpr.stringAtom(lab),
+                                 ListExpr.realAtom(dg.getLabPosOffset().getX()),
+                                 ListExpr.realAtom(dg.getLabPosOffset().getY()),
+                                 ListExpr.boolAtom(dg.getVisible()),
+                                 ListExpr.intAtom(labno),
+                                 ListExpr.intAtom(rendno)
+                              )
+                             );
+     if(catl.isEmpty()){
+       catl=ListExpr.oneElemList(currentCat);
+       left = catl;
+     }else{
+       left = ListExpr.append(left,currentCat);
+     }
+        
     }
+
+    // create the list of layer-assignments
     ListExpr layerl = ListExpr.theEmptyList();
     left = layerl;
     for (int i = 0; i < qr.getGraphObjects().size(); i++) {
@@ -231,17 +263,19 @@ public class TextWindow extends JPanel {
       //int layernr = parent.GraphDisplay.getLayer(dg.getLayer());
       int layernr = JLayeredPane.getLayer(dg.getLayer());
       int layerpos = dg.getLayer().getGeoObjects().indexOf(dg);
+      ListExpr SingleLayerList = ListExpr.twoElemList(
+                      ListExpr.intAtom(layernr),
+                      ListExpr.intAtom(layerpos));
+
       if (layerl.isEmpty()) {
-        left = ListExpr.cons(ListExpr.intAtom(layernr), layerl);
-        layerl = left;
-        left = ListExpr.append(left, ListExpr.intAtom(layerpos));
+         layerl = ListExpr.oneElemList(SingleLayerList);
+         left = layerl;
       } 
       else {
-        left = ListExpr.append(left, ListExpr.intAtom(layernr));
-        left = ListExpr.append(left, ListExpr.intAtom(layerpos));
+        left = ListExpr.append(left, SingleLayerList);
       }
     }
-    return  ListExpr.fourElemList(ListExpr.stringAtom(qr.command), qr.LEResult, 
+    return  ListExpr.fourElemList(ListExpr.textAtom(qr.command), qr.LEResult, 
         catl, layerl);
   }
 
@@ -267,13 +301,138 @@ public class TextWindow extends JPanel {
     return  ListExpr.twoElemList(ListExpr.symbolAtom("QueryResults"), le);
   }
 
+  /** Method supporting the readAllQueryResults method **/
+  private void assignCatsAndLayersOldVersion(Vector Layers, QueryResult qr, ListExpr catList, ListExpr layerList){
+     Iterator li = qr.getGraphObjects().iterator();
+     while (li.hasNext()) {
+        DsplGraph dg = (DsplGraph)li.next();
+        setGOtoLayerPos(Layers, 
+                        dg, 
+                        catList.first().intValue(), 
+                        layerList.first().intValue(), 
+                        layerList.second().intValue());
+        catList = catList.rest();
+        String label = catList.first().stringValue();
+        if(label.equals("")){
+          dg.setLabelAttribute(null);
+        }
+        dg.setLabelAttribute(new DefaultLabelAttribute(label));
+				catList = catList.rest();
+	      dg.getLabPosOffset().setLocation(catList.first().realValue(), catList.second().realValue());
+        catList = catList.rest().rest();
+        dg.setVisible(catList.first().boolValue());
+        catList = catList.rest();
+        layerList = layerList.rest().rest();
+		}
+  }
+
+
+  /** Method supporting the readAllQueryResult method.
+    **/
+  private void assignCatsAndLayers(Vector Layers, QueryResult qr,
+                                   ListExpr catList, ListExpr layerList){
+
+     Vector GraphObjects = qr.getGraphObjects();
+     if(catList.atomType()!=ListExpr.NO_ATOM){ // wromg format
+        return;
+     }
+     if(layerList.atomType()!=ListExpr.NO_ATOM){ // wrong format
+        return;
+     }
+     int size = GraphObjects.size();
+     // method stops if an error occurs
+     ListModel lm = qr.getModel();
+     int catno;
+     String label;
+     double xOffset;
+     double yOffset;
+     boolean visible;
+     int la_no;
+     int ra_no;
+     int layerno;
+     int layerpos;
+     for(int i=0;i<size ;i++){
+        if(catList.isEmpty() || layerList.isEmpty()){
+          System.err.println("empty lists found ");
+          return;
+        } 
+        ListExpr cat = catList.first();
+        ListExpr aLayer = layerList.first();
+        catList=catList.rest();
+        layerList = layerList.rest();
+        if(cat.listLength()!=7 || aLayer.listLength()!=2){
+           System.err.println("invalid listlength found ");
+           return;
+        }
+        if(cat.first().atomType() != ListExpr.INT_ATOM ||
+           cat.second().atomType() != ListExpr.STRING_ATOM ||
+           cat.third().atomType() != ListExpr.REAL_ATOM ||
+           cat.fourth().atomType() !=ListExpr.REAL_ATOM || 
+           cat.fifth().atomType() !=ListExpr.BOOL_ATOM ||
+           cat.sixth().atomType() != ListExpr.INT_ATOM ||
+           cat.rest().sixth().atomType() != ListExpr.INT_ATOM){
+           System.err.println("invalid list structure for cat");
+           return;
+        } 
+        if(aLayer.first().atomType()!=ListExpr.INT_ATOM ||
+           aLayer.second().atomType()!=ListExpr.INT_ATOM){
+           System.err.println("invalid list structure for layer");
+           return;
+        }       
+        catno = cat.first().intValue();
+        label = cat.second().stringValue();
+        xOffset = cat.third().realValue();
+        yOffset = cat.fourth().realValue();
+        visible = cat.fifth().boolValue();
+        la_no = cat.sixth().intValue();
+        ra_no = cat.rest().sixth().intValue();
+        layerno = aLayer.first().intValue();
+        layerpos = aLayer.second().intValue();
+        DsplGraph dg = (DsplGraph) GraphObjects.get(i);
+        setGOtoLayerPos(Layers, dg, catno, layerno, layerpos);
+        dg.setVisible(visible);
+        dg.getLabPosOffset().setLocation(xOffset,yOffset);
+        // compute the label attribute
+        if(la_no<0){
+          if(label.equals("")){
+             dg.setLabelAttribute(null);
+          }else{
+             dg.setLabelAttribute(new DefaultLabelAttribute(label));
+          }
+        } else{ // get the attribute
+           Object o = lm.getElementAt(la_no);
+           if(o==null ||  !(o instanceof LabelAttribute)) {
+              dg.setLabelAttribute(null);
+           } else{
+              dg.setLabelAttribute((LabelAttribute)o);
+           }
+        }
+        // compute the rendering attribute
+        if(ra_no<0){
+          if(ra_no==-2){
+            dg.setRenderAttribute(new DefaultRenderAttribute(i));
+          } else{
+            dg.setRenderAttribute(null);
+          }
+        }else{
+            Object o = lm.getElementAt(ra_no);
+            if(o==null || !(o instanceof RenderAttribute)){
+               dg.setRenderAttribute(null);
+            } else{
+               dg.setRenderAttribute((RenderAttribute) o);
+            }
+        }
+     } 
+  }
+
+
   /**
    * Reads the saved QueryResult from a ListExpr.Used in session-loading.
    * @param le
    * @return True if no error has ocured
    */
   public boolean readAllQueryResults (ListExpr le) {
-
+    
     if(le.listLength()!=2)
       return false;
 
@@ -282,39 +441,54 @@ public class TextWindow extends JPanel {
       return  false;
     if (!le.first().symbolValue().equals("QueryResults"))
       return  false;
-    le = le.second();
+
+
+    le = le.second(); // switch to single query results
     ListExpr Current;
     while (!le.isEmpty()) {
       //Query lesen
       Current = le.first();
-      QueryResult qr = new QueryResult(Current.first().stringValue(), Current.second());
+      if(Current.listLength()!=4){ // wrong format for query result
+         return false;
+      }
+      String qrName=null;
+      ListExpr nameList = Current.first();
+      int at = nameList.atomType();
+      switch(at){
+        case ListExpr.STRING_ATOM: qrName = nameList.stringValue(); 
+                                   break;
+        case ListExpr.TEXT_ATOM: qrName = nameList.textValue();
+                                 break;
+        default: return false; // wrong format for name
+      }
+      // create the corresponding queryresult
+
+      QueryResult qr = new QueryResult(qrName, Current.second());
+
+
+
       // ensure to take the background from the textarea for this new object
       qr.setOpaque(this.isOpaque());
       qr.setBackground(this.getBackground());
-      if (parent.addQueryResult(qr)) {
+
+      if (parent.addQueryResult(qr)) { // successful adding this result
         ListExpr CatList = Current.third();
         ListExpr LayerList = Current.fourth();
-        ListIterator li = qr.getGraphObjects().listIterator();
-
-        while (li.hasNext()) {
-          DsplGraph dg = (DsplGraph)li.next();
-          setGOtoLayerPos(Layers, dg, CatList.first().intValue(), LayerList.first().intValue(), 
-              LayerList.second().intValue());
-
-          CatList = CatList.rest();
-          dg.setLabelAttribute(new
-DefaultLabelAttribute(CatList.first().stringValue()));
-
-          CatList = CatList.rest();
-          dg.getLabPosOffset().setLocation(CatList.first().realValue(), CatList.second().realValue());
-          CatList = CatList.rest().rest();
-          dg.setVisible(CatList.first().boolValue());
-          CatList = CatList.rest();
-          LayerList = LayerList.rest().rest();
-        }
+        if(CatList.atomType()==ListExpr.NO_ATOM && !CatList.isEmpty()){
+            at = CatList.first().atomType();
+            if(at==ListExpr.NO_ATOM){
+               assignCatsAndLayers(Layers, qr, CatList,LayerList);
+            } else{
+               assignCatsAndLayersOldVersion(Layers, qr,CatList,LayerList);
+            }
+        } // non empty catlist
+      } else{ // query result successful added 
+        System.out.println("can't add the queryresult");
       }
-      le = le.rest();
+      le = le.rest(); // switch to the next qr in the list
     }
+
+
     ListIterator lil = Layers.listIterator();
     while (lil.hasNext()) {
       Layer lay = (Layer)lil.next();

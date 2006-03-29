@@ -6,7 +6,7 @@ package viewer.hoese;
  constant values.
 **/
 
-public class DefaultLabelAttribute implements LabelAttribute{
+public final class DefaultLabelAttribute implements LabelAttribute{
   /** holds the value for this label **/
   private String text;
 

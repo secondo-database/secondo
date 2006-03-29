@@ -36,21 +36,13 @@ public class Category
     implements Cloneable {
 /** Some constants for possible dash-patterns */
   private static float[][] dash =  {
-    {
-      2.0f, 2.0f
-    },  {
-      4.0f, 2.0f, 2.0f, 2.0f
-    },  {
-      8.0f, 4.0f
-    },  {
-      8.0f, 4.0f, 4.0f, 4.0f
-    },  {
-      4.0f, 4.0f
-    },  {
-      12.0f, 4.0f, 4.0f, 4.0f
-    },  {
-      12.0f, 4.0f, 8.0f, 4.0f
-    }
+    { 2.0f, 2.0f }, 
+    { 4.0f, 2.0f, 2.0f, 2.0f },
+    { 8.0f, 4.0f },
+    { 8.0f, 4.0f, 4.0f, 4.0f },
+    { 4.0f, 4.0f },
+    { 12.0f, 4.0f, 4.0f, 4.0f },
+    { 12.0f, 4.0f, 8.0f, 4.0f }
   };
 /** The name of a category */
   String name;
@@ -454,24 +446,86 @@ public class Category
     defCat.PointSize = 16;
     defCat.PointasRect = false;
   }
+
+
+  /** converts a color into a list of integer values **/
+  private static ListExpr color2list(Color color){
+     return ListExpr.threeElemList(
+                ListExpr.intAtom(color.getRed()),
+                ListExpr.intAtom(color.getGreen()),
+                ListExpr.intAtom(color.getBlue())
+             );
+  }
+
+  /** Converts a listExpr into a color value.
+    * If the list format is not valid, null is returned.
+    **/
+  private static Color list2Color(ListExpr list){
+    if(list.listLength()!=3){
+       return null;
+    }
+    if(list.first().atomType()!=ListExpr.INT_ATOM ||
+       list.second().atomType()!=ListExpr.INT_ATOM ||
+       list.third().atomType()!=ListExpr.INT_ATOM){
+         return null;
+    }
+    return new Color( list.first().intValue(),
+                      list.second().intValue(),
+                      list.third().intValue());
+  }
+
+  /** returns the listexpr defining the refence depending values **/
+  private static ListExpr getRefDependendList( Category cat){
+     return ListExpr.fiveElemList(
+                ListExpr.realAtom(cat.minValue),
+                ListExpr.realAtom(cat.maxValue),
+                color2list(cat.minColor),
+                color2list(cat.maxColor),
+                ListExpr.intAtom(cat.attrRenderMethod));
+  }
+
+  /** Writes the values from the list to cat. 
+    * if the list is not formatted valid, the result will be 
+    * false and cat is not canged.
+    **/
+  private static boolean writeRefDep(ListExpr list, Category cat){
+     if(list.listLength()!=5){
+       return false;
+     }
+     if( list.first().atomType()!=ListExpr.REAL_ATOM ||
+         list.second().atomType()!=ListExpr.REAL_ATOM ||
+         list.fifth().atomType()!=ListExpr.INT_ATOM){
+        return false;
+     }
+     Color c1 = list2Color(list.third());
+     Color c2 = list2Color(list.fourth());
+     if(c1==null || c2==null){
+         return false;
+     }
+     // format ok
+     cat.minValue = list.first().realValue();
+     cat.maxValue = list.second().realValue();
+     cat.minColor = c1;
+     cat.maxColor = c2;
+     cat.attrRenderMethod = list.fifth().intValue();
+     return true;
+  }
+
+
   /**
    * Converts a category to a listexpr. Used in session-saving
    * @param cat The cat to convert
    * @return The result as a ListExpr
-   * @see <a href="Categorysrc.html#ConvertCattoLE">Source</a>
    */
 
   public static ListExpr ConvertCattoLE (Category cat) {
     Color c1, c2;
     String Name = "";
     ListExpr l = ListExpr.oneElemList(ListExpr.stringAtom(cat.getName()));
-    ListExpr le = ListExpr.append(l, ListExpr.threeElemList(ListExpr.intAtom(cat.getLineColor().getRed()),
-        ListExpr.intAtom(cat.getLineColor().getGreen()), ListExpr.intAtom(cat.getLineColor().getBlue())));
+    ListExpr le = ListExpr.append(l, color2list(cat.getLineColor()));
     le = ListExpr.append(le, ListExpr.intAtom(cat.getLineStyle()));
-    // ignore reference depending rendering
     le = ListExpr.append(le, ListExpr.realAtom(cat.getLineWidth(null,0)));
     le = ListExpr.append(le, ListExpr.boolAtom(cat.getPointasRect()));
-    // ignore reference depending rendering
     le = ListExpr.append(le, ListExpr.realAtom(cat.getPointSize(null,0)));
     double f = 100.0 - ((AlphaComposite)cat.getAlphaStyle()).getAlpha()*100;
     le = ListExpr.append(le, ListExpr.realAtom(f));
@@ -497,11 +551,14 @@ public class Category
       c1 = Color.black;
       c2 = Color.black;
     }
-    le = ListExpr.append(le, ListExpr.threeElemList(ListExpr.intAtom(c1.getRed()),
-        ListExpr.intAtom(c1.getGreen()), ListExpr.intAtom(c1.getBlue())));
-    le = ListExpr.append(le, ListExpr.threeElemList(ListExpr.intAtom(c2.getRed()),
-        ListExpr.intAtom(c2.getGreen()), ListExpr.intAtom(c2.getBlue())));
+    le = ListExpr.append(le, color2list(c1));
+    le = ListExpr.append(le, color2list(c2));
+
     le = ListExpr.append(le, ListExpr.stringAtom(Name));
+    // new version
+    le = ListExpr.append(le, ListExpr.intAtom(cat.capStyle));
+    le = ListExpr.append(le, ListExpr.intAtom(cat.joinStyle));
+    le = ListExpr.append(le, getRefDependendList(cat));
     return  l;
   }
 
@@ -512,39 +569,53 @@ public class Category
    * @see <a href="Categorysrc.html#ConvertLEtoCat">Source</a>
    */
   public static Category ConvertLEtoCat (ListExpr le) {
-    if (le.listLength() != 11) {
+    int len = le.listLength();
+    if (len!= 11 && len!=14) {
       System.out.println("Error: No correct category expression: 11 elements needed");
       return  null;
     }
     Category cat = new Category();
-    if (le.first().atomType() != ListExpr.STRING_ATOM)
+
+    // name
+    if (le.first().atomType() != ListExpr.STRING_ATOM){
       return  null;
+    }
     cat.setName(le.first().stringValue());
+    
+    // line color
     le = le.rest();
-    ListExpr v = le.first();
-    if ((v.isAtom()) || (v.listLength() != 3) || (v.first().atomType() != ListExpr.INT_ATOM)
-        || (v.second().atomType() != ListExpr.INT_ATOM) || (v.third().atomType()
-        != ListExpr.INT_ATOM))
-      return  null;
-    cat.setLineColor(new Color(v.first().intValue(), v.second().intValue(),
-        v.third().intValue()));
+    Color lc = list2Color(le.first());
+    if(lc==null){
+       return null;
+    }
+    cat.setLineColor(lc);
     le = le.rest();
+
+    // line style
     if (le.first().atomType() != ListExpr.INT_ATOM)
       return  null;
     cat.setLineStyle(le.first().intValue());
     le = le.rest();
+    
+    // line width 
     if (le.first().atomType() != ListExpr.REAL_ATOM)
       return  null;
     cat.setLineWidth(le.first().realValue());
     le = le.rest();
+
+    // point as rect
     if (le.first().atomType() != ListExpr.BOOL_ATOM)
       return  null;
     cat.setPointasRect(le.first().boolValue());
     le = le.rest();
+    
+    // point size
     if (le.first().atomType() != ListExpr.REAL_ATOM)
       return  null;
     cat.setPointSize((double)le.first().realValue());
     le = le.rest();
+    
+    // alpha Style
     if (le.first().atomType() != ListExpr.REAL_ATOM)
       return  null;
     double f = -le.first().realValue()/100 + 1.0;
@@ -554,30 +625,50 @@ public class Category
       f = 0.0f;
     cat.setAlphaStyle(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, (float) f));
     le = le.rest();
+
+    // FillStyle
     if (le.first().atomType() != ListExpr.SYMBOL_ATOM)
       return  null;
     String style = le.first().symbolValue();
     le = le.rest();
-    v = le.first();
-    if ((v.isAtom()) || (v.listLength() != 3) || (v.first().atomType() != ListExpr.INT_ATOM)
-        || (v.second().atomType() != ListExpr.INT_ATOM) || (v.third().atomType()
-        != ListExpr.INT_ATOM))
-      return  null;
-    Color Color1 = new Color(v.first().intValue(), v.second().intValue(), v.third().intValue());
+
+    // color 1
+    Color Color1 = list2Color(le.first());
+    if(Color1==null){
+       return null;
+    }
     le = le.rest();
-    v = le.first();
-    if ((v.isAtom()) || (v.listLength() != 3) || (v.first().atomType() != ListExpr.INT_ATOM)
-        || (v.second().atomType() != ListExpr.INT_ATOM) || (v.third().atomType()
-        != ListExpr.INT_ATOM))
-      return  null;
-    Color Color2 = new Color(v.first().intValue(), v.second().intValue(), v.third().intValue());
+
+    // color 2
+    Color Color2=list2Color(le.first());
+    if(Color2==null){
+       return null;
+    }
     le = le.rest();
+
+    // iconname
     if (le.first().atomType() != ListExpr.STRING_ATOM)
       return  null;
     cat.IconName=le.first().stringValue();
-//    ImageIcon ii = new ImageIcon(ClassLoader.getSystemResource(TexturePath+cat.IconName));
+
+    if(len ==14){ // new version
+        le=le.rest();    
+        if(le.first().atomType()!=ListExpr.INT_ATOM){
+           return null;
+        }
+        cat.capStyle = le.first().intValue();
+        le = le.rest();
+        if(le.first().atomType()!=ListExpr.INT_ATOM){
+          return null;
+        }
+        cat.joinStyle = le.first().intValue();
+        le = le.rest();
+        if(!writeRefDep(le.first(),cat)){
+           return null;
+        }
+    }
+
     ImageIcon ii = new ImageIcon(TexturePath+cat.IconName);
-    
     if (ii == null)
       style = "nofill";
     if (style.equals("nofill"))
@@ -599,9 +690,12 @@ public class Category
         Rectangle r = new Rectangle(0, 0, ii.getIconWidth(), ii.getIconHeight());
         cat.setFillStyle(new TexturePaint(bi, r));
      }
+     
+
     }
-    else
+    else{ // invalid style 
       return  null;
+    }
     return  cat;
   }
 

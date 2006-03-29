@@ -5,7 +5,7 @@ package viewer.hoese;
 This class provides a standard RenderAttribute.
 
 **/
-public class DefaultRenderAttribute implements RenderAttribute{
+public final class DefaultRenderAttribute implements RenderAttribute{
   private double value;
   
   public DefaultRenderAttribute(double value){

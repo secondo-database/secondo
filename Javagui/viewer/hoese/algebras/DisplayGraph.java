@@ -85,6 +85,10 @@ public class DisplayGraph extends DsplGeneric
       return labelAttribute.getLabel(time);
   }
 
+  public LabelAttribute getLabelAttribute(){
+     return labelAttribute;
+  }
+   
   /**
    * Sets the label attribute 
    */
