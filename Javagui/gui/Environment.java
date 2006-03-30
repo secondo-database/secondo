@@ -20,6 +20,7 @@
 package gui;
 
 import tools.TextFormat;
+import tools.Reporter;
 
 /* This class provides some variables for globale use.
  *
@@ -59,8 +60,8 @@ public static String formatMemory(long md){
 public static void printMemoryUsage(){
     String F1=FORMATTED_TEXT?TextFormat.GREEN+TextFormat.BG_BLACK:"";
     String F2=FORMATTED_TEXT?TextFormat.NORMAL:"";
-    System.out.println(F1+ "total Memory :"+F2+" "+formatMemory(rt.totalMemory()));
-    System.out.println(F1+ "free Memory  :"+F2+" "+formatMemory(rt.freeMemory()));
+    Reporter.writeInfo(F1+ "total Memory :"+F2+" "+formatMemory(rt.totalMemory()));
+    Reporter.writeInfo(F1+ "free Memory  :"+F2+" "+formatMemory(rt.freeMemory()));
 }
 
 

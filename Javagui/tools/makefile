@@ -23,7 +23,7 @@
 
 include ../makefile.inc
 
-CLASSFILES=xxx2secondo.class xxx2secdb.class MovingPointBuilder.class Base64Encoder.class Base64Decoder.class Base64.class DupRemover.class PeriodicPointBuilder.class TFWCreator.class TextFormat.class
+CLASSFILES=xxx2secondo.class xxx2secdb.class MovingPointBuilder.class Base64Encoder.class Base64Decoder.class Base64.class DupRemover.class PeriodicPointBuilder.class TFWCreator.class TextFormat.class Reporter.class
 
 
 .PHONY: all 

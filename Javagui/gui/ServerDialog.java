@@ -22,6 +22,7 @@ package gui;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import tools.Reporter;
 
 
 public class ServerDialog extends JDialog{
@@ -102,8 +103,9 @@ private void closeDialog(boolean accept){
      // check inputs
      String HN = HostName.getText().trim();
      int Port = getPortAddress();
-     if(HN.equals("") || Port<0)
-        JOptionPane.showMessageDialog(null,"wrong inputs","error",JOptionPane.ERROR_MESSAGE);
+     if(HN.equals("") || Port<0){
+        Reporter.showError("wrong inputs");
+     }
      else{
        result = OK;
        setVisible(false);      

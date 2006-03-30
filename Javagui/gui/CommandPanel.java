@@ -19,14 +19,15 @@
 
 package  gui;
 
-import  java.awt.*;
-import  java.awt.event.*;
-import  javax.swing.*;
-import  javax.swing.text.*;
-import  javax.swing.event.*;
-import  java.util.*;
-import  sj.lang.*;
-import  communication.optimizer.*;
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
+import javax.swing.text.*;
+import javax.swing.event.*;
+import java.util.*;
+import sj.lang.*;
+import communication.optimizer.*;
+import tools.Reporter;
 
 /**
  * The command area is a component of the GUI. Here the user
@@ -599,7 +600,7 @@ public class CommandPanel extends JScrollPane {
         starttime = System.currentTimeMillis();
      String opt = OptInt.optimize_execute(SelectClause,OpenedDatabase,Err,false);
      if(Environment.MEASURE_TIME){
-        System.out.println("used time to optimize query: "+(System.currentTimeMillis()-starttime)+" ms");
+        Reporter.writeInfo("used time to optimize query: "+(System.currentTimeMillis()-starttime)+" ms");
      }
      if(Err.value!=ErrorCodes.NO_ERROR){  // error in optimization
         appendText("\nerror in optimization of this query");
@@ -655,7 +656,7 @@ public class CommandPanel extends JScrollPane {
        String answer = sendToOptimizer(command.substring(OptCommandLength));
 
        if(Environment.MEASURE_TIME)
-          System.out.println("used time for optimizing: "+(System.currentTimeMillis()-starttime)+" ms");
+          Reporter.writeInfo("used time for optimizing: "+(System.currentTimeMillis()-starttime)+" ms");
 
        if(answer==null){
           appendText("\nerror in optimizer command");
@@ -711,8 +712,9 @@ public class CommandPanel extends JScrollPane {
                             resultList, 
                             errorCode, errorPos, errorMessage);
 
-         if(Environment.MEASURE_TIME)
-            System.out.println("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
+         if(Environment.MEASURE_TIME){
+            Reporter.writeInfo("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
+         }
 
 	 RV.processResult(command,resultList,errorCode,errorPos,errorMessage);
          boolean success = errorCode.value==0;
@@ -768,8 +770,9 @@ public class CommandPanel extends JScrollPane {
                              errorCode, 
                              errorPos, 
                              errorMessage);
-    if(Environment.MEASURE_TIME)
-       System.out.println("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
+    if(Environment.MEASURE_TIME){
+       Reporter.writeInfo("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
+    }
 
     int res = errorCode.value;
     if(res==0)
@@ -802,8 +805,9 @@ public class CommandPanel extends JScrollPane {
     Secondointerface.secondo(command,           //Command to execute.
                              resultList, 
                              errorCode, errorPos, errorMessage);
-    if(Environment.MEASURE_TIME)
-       System.out.println("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
+    if(Environment.MEASURE_TIME){
+       Reporter.writeInfo("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
+    }
 
     if(errorCode.value!=0){
        if(!Secondointerface.isConnected())

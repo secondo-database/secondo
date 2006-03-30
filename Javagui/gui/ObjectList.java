@@ -32,6 +32,7 @@ import java.io.File;
 import javax.swing.event.*;
 import extern.*;
 import extern.binarylist.*;
+import tools.Reporter;
 
 public class ObjectList extends JPanel{
 
@@ -65,10 +66,6 @@ private ImportManager importmanager = new ImportManager();
 
 private final static String DisplayMark ="** ";    // ensure thas Displaymark and NoDisplayMark have the same length
 private final static String NoDisplayMark ="   ";
-
-private void showMessage(String text){
-  JOptionPane.showMessageDialog(this,text);
-}
 
 
 public String getErrorText(int ErrorCode){
@@ -379,7 +376,7 @@ public void clearList(){
   System.gc();
   updateList();
   if(Environment.MEASURE_MEMORY){
-     System.out.println("Memory difference by clearing object list: "+
+     Reporter.writeInfo("Memory difference by clearing object list: "+
                          Environment.formatMemory(Environment.usedMemory()-usedMemory));
      Environment.printMemoryUsage();
   }
@@ -457,8 +454,9 @@ public int loadObject(){
               File F = Fs[i];
               if(loadObject(F))
                  number++;
-              else
-                 showMessage("cannot load the file:"+F.getName());
+              else{
+                 Reporter.showError("cannot load the file:"+F.getName());
+              }
            }
        }
        return number;
@@ -493,7 +491,7 @@ public boolean saveSelectedObject(){
   boolean saved = false;
  int index =Content.getSelectedIndex();
   if (index<0){
-      showMessage("no item selected");
+      Reporter.showWarning("no item selected");
   }
   else{
        File CurrentDir = FileChooser.getCurrentDirectory();
@@ -556,8 +554,9 @@ public boolean saveSelectedObject(){
  public boolean removeSelectedObject(){
    boolean removed = false;
    int index = Content.getSelectedIndex();
-   if (index<0 || index>=Objects.size())
-      showMessage("no item selected");
+   if (index<0 || index>=Objects.size()){
+      Reporter.showWarning("no item selected");
+   }
    else {
      SecondoObject SO = (SecondoObject) Objects.get(index);
      VC.hideObject(this,SO);
@@ -585,46 +584,54 @@ public boolean storeSelectedObject(){
   boolean stored = false;
   int index = Content.getSelectedIndex();
   if (index<0){
-     showMessage("no item selected");
+     Reporter.showWarning("no item selected");
   } else{
        SecondoObject SO = (SecondoObject) Objects.get(index);
        String SOName = SO.getName().trim();
-       if (SOName.indexOf(" ")>=0)  // a space cannot be in objectname
-           showMessage("objectname contains spaces\n please rename");
+       if (SOName.indexOf(" ")>=0){  // a space cannot be in objectname
+           Reporter.showWarning("objectname contains spaces\n please rename");
+       }
        else{
           String cmd;
           ListExpr SOList = SO.toListExpr();
           ListExpr type = SOList.first();
           StringBuffer SB = new StringBuffer();
-          if (type.writeToString(SB)!=0)
-              showMessage("type analyse failed");
+          if (type.writeToString(SB)!=0){
+              Reporter.showError("type analyse failed");
+          }
           else{
               cmd = "(create "+SOName+" : "+SB+")";
               int ErrorCode = RP.internCommand(cmd);
               if (ErrorCode!=0){
-                 showMessage("create object error:\n"+ServerErrorCodes.getErrorMessageText(ErrorCode));
+                 Reporter.showError("create object error:\n"+
+                                     ServerErrorCodes.getErrorMessageText(ErrorCode));
               }else{
                   if (SOList.writeToString(SB)!=0){
-                     showMessage("cannot update object (error in objectList)");
+                     Reporter.showError("cannot update object (error in objectList)");
                      // delete the object
                      cmd ="delete "+SOName;
                      ErrorCode = RP.internCommand(cmd);
-                     if (ErrorCode!=0)
-                         showMessage("cannot delete object\n"+ServerErrorCodes.getErrorMessageText(ErrorCode));
+                     if (ErrorCode!=0){
+                         Reporter.showError("cannot delete object\n"+
+                               ServerErrorCodes.getErrorMessageText(ErrorCode));
+                     }
                   }  // list not ok
   
                   cmd = "(update "+SOName+" := "+SB+")";
                   ErrorCode = RP.internCommand(cmd);
                   if (ErrorCode!=0){
-                     showMessage("cannot update object\n"+ServerErrorCodes.getErrorMessageText(ErrorCode));
+                     Reporter.showError("cannot update object\n"+
+                                        ServerErrorCodes.getErrorMessageText(ErrorCode));
                      // delete the object
                      cmd ="delete "+SOName;
                      ErrorCode = RP.internCommand(cmd);
-                     if (ErrorCode!=0)
-                         showMessage("cannot delete object\n"+ServerErrorCodes.getErrorMessageText(ErrorCode));
+                     if (ErrorCode!=0){
+                         Reporter.showError("cannot delete object\n"+
+                                  ServerErrorCodes.getErrorMessageText(ErrorCode));
+                     }
                   } 
                   else { // success
-                     showMessage("object "+SOName+" stored into database");
+                     Reporter.showError("object "+SOName+" stored into database");
                      stored = true;
                   }
               }
@@ -741,8 +748,9 @@ private void setRenameMode(boolean mode){
          StoreBtn.setEnabled(on);
          RenameBtn.setEnabled(on);
      }
-     else
-       showMessage("no item selected");
+     else{
+       Reporter.showWarning("no item selected");
+     }
   }
   if(!mode && isRenameMode){
     remove(aRenamePanel);
@@ -844,7 +852,7 @@ private class RenamePanel extends JPanel{
         String Name = NewName.getText();
 
 	if (UsedNames.contains(Name)) {
-            ObjectList.this.showMessage("Name allready used\n please choose another one");
+            Reporter.showWarning("Name allready used\n please choose another one");
         }
         else{
            if(!Name.equals("")){
@@ -855,7 +863,7 @@ private class RenamePanel extends JPanel{
 	       ObjectList.this.revalidate();
 	       ObjectList.this.repaint();
            } else
-	      ObjectList.this.showMessage("not a valid object name");
+	           Reporter.showWarning("not a valid object name");
        }
  } // accept
 

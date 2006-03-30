@@ -30,6 +30,7 @@ import java.io.*;
 import gui.idmanager.*;
 import java.awt.image.BufferedImage;
 import java.awt.geom.*;
+import tools.Reporter;
 
 public class MainWindow extends JFrame implements ResultProcessor,ViewerControl,SecondoChangeListener{
 
@@ -179,16 +180,7 @@ private JFileChooser FC_ExecuteFile = new JFileChooser();
 private JFileChooser FC_Database = new JFileChooser();
 private JFileChooser FC_Snapshot = new JFileChooser();
 private PriorityDialog PriorityDlg;
-private String ErrorFormat = "";
-private String OkFormat = "";
-private String EndFormat="";
 
-
-
-/* display a message in a new frame */
-public void showMessage(String Text){
-  JOptionPane.showMessageDialog(this,Text);
-}
 
 /* return this */
 public Frame getMainFrame(){ return this; }
@@ -252,23 +244,20 @@ public MainWindow(String Title){
   File CF = new File(CONFIGURATION_FILE);
   boolean config_file_ok =true;
   if(!CF.exists()){
-     System.err.print(ErrorFormat);
-     System.err.println("Javagui: configuration file not found");
-     System.err.println("searched configuration file: "+CF.getAbsolutePath()+EndFormat);
+     Reporter.writeError("Javagui: configuration file not found \n" +
+                          "searched configuration file: "+CF.getAbsolutePath());
      config_file_ok = false;
   }
 
   if(config_file_ok){
     try{
-      System.out.println(OkFormat+"load configuration datas from: "+CF.getAbsolutePath()+EndFormat);
+      Reporter.writeInfo("load configuration datas from: "+CF.getAbsolutePath());
       FileInputStream CFG = new FileInputStream(CF);
       Config.load(CFG);
       CFG.close();
     } catch(Exception e){
       config_file_ok = false;
-      if(DEBUG_MODE){
-        e.printStackTrace();
-      }
+      Reporter.debug(e);
     }
   }
  int maxStringLength=48;
@@ -285,9 +274,6 @@ public MainWindow(String Title){
      if(UseFormattedText!=null){
         if(UseFormattedText.toLowerCase().trim().equals("true")){
            Environment.FORMATTED_TEXT=true;
-           ErrorFormat=tools.TextFormat.RED;
-           OkFormat=tools.TextFormat.GREEN;
-           EndFormat=tools.TextFormat.NORMAL;
         }
      }
      UseFormattedText=null;
@@ -306,35 +292,39 @@ public MainWindow(String Title){
  createMenuBar();
  if(config_file_ok){
     String TMPServerName = Config.getProperty("SERVERNAME");
-    if (TMPServerName==null)
-      System.err.println(ErrorFormat+"Servername not found in "+CONFIGURATION_FILE+EndFormat);
+    if (TMPServerName==null){
+      Reporter.writeError("Servername not found in "+CONFIGURATION_FILE);
+    }
     else{
       ServerName = TMPServerName;
-      System.out.println(OkFormat+"set ServerName to "+ServerName+EndFormat);
+      Reporter.writeInfo("set ServerName to "+ServerName);
     }
 
     String TMPServerPort = Config.getProperty("SERVERPORT");
-    if(TMPServerPort==null)
-       System.err.println(ErrorFormat+"Serverport not found in "+CONFIGURATION_FILE+EndFormat);
+    if(TMPServerPort==null){
+       Reporter.writeError("Serverport not found in "+CONFIGURATION_FILE);
+    }
     else{
        try{
           int PortInt = (new Integer(TMPServerPort)).intValue();
-          if(PortInt <0)
-            System.err.println(ErrorFormat+"ServerPort in "+CONFIGURATION_FILE+" less than 0"+EndFormat);
+          if(PortInt <0){
+            Reporter.writeError("ServerPort in "+CONFIGURATION_FILE+" less than 0");
+          }
           else{
-            System.out.println(OkFormat+"set port to "+PortInt+EndFormat);
+            Reporter.writeInfo("set port to "+PortInt);
             ServerPort = PortInt;
           }
        }
         catch(Exception wrongport){
-          System.err.println(ErrorFormat+"error in ServerPort (not an Integer)"+EndFormat);
+          Reporter.writeError("error in ServerPort (not an Integer)");
         }
     }
 
 
     String Connection = Config.getProperty("START_CONNECTION");
-    if(Connection==null)
-       System.err.println(ErrorFormat+"START_CONNECTION not found in "+CONFIGURATION_FILE+EndFormat);
+    if(Connection==null){
+       Reporter.writeError("START_CONNECTION not found in "+CONFIGURATION_FILE);
+    }
     else{
        Connection=Connection.trim().toLowerCase();
        if(Connection.equals("true"))
@@ -342,36 +332,38 @@ public MainWindow(String Title){
        else if(Connection.equals("false"))
            StartConnection = false;
        else{
-           System.err.println(ErrorFormat+"START_CONNECTION has unknown value in "+CONFIGURATION_FILE+EndFormat);
-           System.out.println("allowed values are  true  and false");
+           Reporter.writeError("START_CONNECTION has unknown value in "+CONFIGURATION_FILE);
+           Reporter.writeInfo("allowed values are  true  and false");
        }
     }
 
 
     String FontSize = Config.getProperty("COMMAND_FONTSIZE");
-    if(FontSize==null)
-       System.err.println(ErrorFormat+"COMMAND_FONTSIZE NOT found in "+CONFIGURATION_FILE+EndFormat);
+    if(FontSize==null){
+       Reporter.writeError("COMMAND_FONTSIZE NOT found in "+CONFIGURATION_FILE);
+    }
     else{
        try{
            int size = Integer.parseInt(FontSize.trim());
 	   ComPanel.setFontSize(size);
        }
        catch(Exception e){
-           System.err.println(ErrorFormat+"COMMAND_FONTSIZE has no valid value (not an integer)"+EndFormat);
+           Reporter.writeError("COMMAND_FONTSIZE has no valid value (not an integer)");
        }
 
     }
 
     FontSize = Config.getProperty("LIST_FONTSIZE");
-    if(FontSize==null)
-        System.err.println(ErrorFormat+"LIST_FONTSIZE not found in "+CONFIGURATION_FILE+EndFormat);
+    if(FontSize==null){
+       Reporter.writeError("LIST_FONTSIZE not found in "+CONFIGURATION_FILE);
+    }
     else{
       try{
          int size = Integer.parseInt(FontSize.trim());
-	 OList.setFontSize(size);
+         OList.setFontSize(size);
       }
       catch(Exception e){
-         System.err.println(ErrorFormat+"LIST_FONTSIZE has no valid value (not an integer)"+EndFormat);
+         Reporter.writeError("LIST_FONTSIZE has no valid value (not an integer)");
       }
 
     }
@@ -383,7 +375,7 @@ public MainWindow(String Title){
 	 if(tmp>0)
 	    maxStringLength = tmp;
       } catch(Exception e){
-         System.err.println(ErrorFormat+"invalid value for MAX_STRING_LENGTH"+EndFormat);
+         Reporter.writeError("invalid value for MAX_STRING_LENGTH");
       }
    }
 
@@ -391,10 +383,10 @@ public MainWindow(String Title){
    if(NLCache!=null){
       try{
         int tmp = Integer.parseInt(NLCache);
-        System.out.println(OkFormat+"initialize NLCache : "+ tmp+EndFormat);
+        Reporter.writeInfo("initialize NLCache : "+ tmp);
         ListExpr.initialize(tmp);
       } catch(Exception e){
-         System.err.println(ErrorFormat+"invalid value for NLCACHE"+EndFormat);
+         Reporter.writeError("invalid value for NLCACHE");
       }
    }
 
@@ -418,15 +410,14 @@ public MainWindow(String Title){
              Class VC = Class.forName(ClassName);
              Object Cand = VC.newInstance();
              if(Cand instanceof SecondoViewer){
-                System.out.println(OkFormat+"addViewer "+ViewerName+EndFormat);
+                Reporter.writeInfo("addViewer "+ViewerName);
                 addViewer((SecondoViewer)Cand);
               }
-             else
-               System.err.println(ErrorFormat+ViewerName+" is not a SecondoViewer"+EndFormat);
+             else{
+               Reporter.writeError(ViewerName+" is not a SecondoViewer");
+             }
             }catch(Exception e){
-            if(DEBUG_MODE)
-               e.printStackTrace();
-           System.err.println(ErrorFormat+"cannot load viewer:"+ViewerName+EndFormat+"\n");
+               Reporter.debug("cannot load viewer ",e);
            }
         }
    }
@@ -449,26 +440,26 @@ public MainWindow(String Title){
    if(ShowCommand!=null && ShowCommand.toLowerCase().equals("true")){
        Environment.SHOW_COMMAND = true;
    }
-   System.out.println(OkFormat+"ShowCommand " + Environment.SHOW_COMMAND+EndFormat); 
+   Reporter.writeInfo("ShowCommand " + Environment.SHOW_COMMAND); 
 
 
    String Measure_Time = Config.getProperty("MEASURE_TIME");
    Environment.MEASURE_TIME=Measure_Time!=null &&
                             Measure_Time.toLowerCase().trim().equals("true");
    if(Environment.MEASURE_TIME){
-     System.out.println(OkFormat+"Enable messages about used time."+EndFormat);
+     Reporter.writeInfo("Enable messages about used time.");
    }
 
    String Measure_Memory = Config.getProperty("MEASURE_MEMORY");
    Environment.MEASURE_MEMORY=Measure_Memory!=null &&
                             Measure_Memory.toLowerCase().trim().equals("true");
    if(Environment.MEASURE_MEMORY){
-      System.out.println(OkFormat+"Enable messages about the used memory."+EndFormat);
+      Reporter.writeInfo("Enable messages about the used memory.");
    }
 
    String FS = System.getProperty("file.separator");
    if(FS==null){
-      System.err.println(ErrorFormat+"error in reading file separator"+EndFormat);
+      Reporter.writeError("error in reading file separator");
       FS="/";
    }
 
@@ -519,14 +510,14 @@ public MainWindow(String Title){
           } else{
              maxTextLength=tmpMaxTextLength;
              if(persistentText){
-                System.out.println(OkFormat+"Swap texts with length greater than "+maxTextLength+
-                                   " to file"+EndFormat);
+                Reporter.writeInfo("Swap texts with length greater than "+maxTextLength+
+                                   " to file");
              }
           }
        }catch(Exception e){
-           System.err.println(ErrorFormat+"MAX_INTERNAL_STRING_LENGTH must be an positive integer");
-           System.err.println(" the actual value is :"+MAX_INTERNAL_TEXT_LENGTH);
-           System.err.println(" use default value   :"+maxTextLength+EndFormat);
+           Reporter.writeError("MAX_INTERNAL_STRING_LENGTH must be an positive integer \n"+
+                               " the actual value is :"+MAX_INTERNAL_TEXT_LENGTH+"\n"+
+                               " use default value   :"+maxTextLength);
        }
    } 
    ListExpr.setMaxInternalTextLength(maxTextLength);
@@ -558,12 +549,10 @@ public MainWindow(String Title){
    if(TMPSnapshotDirectory!=null)
         SnapshotDirectory = TMPSnapshotDirectory;
 
-   System.out.print(OkFormat);
-   System.out.println("set objectdirectory to "+ObjectDirectory);
-   System.out.println("set historydirectory to "+HistoryDirectory);
-   System.out.println("set databasedirectory to "+DatabaseDirectory);
-   System.out.println("set snapshotdirectory to "+SnapshotDirectory);
-   System.out.println(EndFormat);
+   Reporter.writeInfo("set objectdirectory to "+ObjectDirectory);
+   Reporter.writeInfo("set historydirectory to "+HistoryDirectory);
+   Reporter.writeInfo("set databasedirectory to "+DatabaseDirectory);
+   Reporter.writeInfo("set snapshotdirectory to "+SnapshotDirectory);
 
    OList.setObjectDirectory(new File(ObjectDirectory));
    FC_History.setCurrentDirectory(new File(HistoryDirectory));
@@ -592,7 +581,7 @@ public MainWindow(String Title){
    String OptHost = Config.getProperty("OPTIMIZER_HOST");
    if(OptHost==null){
       OptHost ="localhost";  // the default value
-      System.err.println(ErrorFormat+"OPTIMIZER_HOST not defined, use default: "+OptHost+EndFormat);
+      Reporter.writeError("OPTIMIZER_HOST not defined, use default: "+OptHost);
    }
    String OptPortString = Config.getProperty("OPTIMIZER_PORT");
    int OptPort = 1235; // default value
@@ -600,27 +589,29 @@ public MainWindow(String Title){
       try{
         int P = Integer.parseInt(OptPortString);
         if(P<=0){
-          System.err.println(ErrorFormat+"optimizer-port has no valid value"+EndFormat);
+          Reporter.writeError("optimizer-port has no valid value");
 	}else
 	   OptPort = P;
        }
        catch(Exception e){
-          System.err.println(ErrorFormat+"optimizer-port is not a valid integer"+EndFormat);
+          Reporter.writeError("optimizer-port is not a valid integer");
        }
    }else{
-      System.err.println(ErrorFormat+"OPTIMIZER_PORT not defined, use default: "+OptPort+EndFormat);
+      Reporter.writeError("OPTIMIZER_PORT not defined, use default: "+OptPort);
    }
    ComPanel.setOptimizer(OptHost,OptPort);
    String OptEnable = Config.getProperty("ENABLE_OPTIMIZER");
-   if(OptEnable==null)
-      System.err.println(ErrorFormat+"ENABLE_OPTIMIZER not defined in configuration file"+EndFormat);
+   if(OptEnable==null){
+      Reporter.writeError("ENABLE_OPTIMIZER not defined in configuration file");
+   }
    else  {
       OptEnable=OptEnable.trim().toLowerCase();
       if(OptEnable.equals("true"))
-          if(!ComPanel.enableOptimizer())
-	     System.err.println(ErrorFormat+"error in enabling optimizer"+EndFormat);
-	  else
-	     System.err.println(OkFormat+"optimizer enabled"+EndFormat);
+          if(!ComPanel.enableOptimizer()){
+             Reporter.writeError("error in enabling optimizer");
+          } else {
+             Reporter.writeInfo("optimizer enabled");
+          }
    }
 
    String ShowLicence = Config.getProperty("SHOW_LICENCE");
@@ -635,8 +626,9 @@ public MainWindow(String Title){
 
   ComPanel.setConnection(UserName,PassWd,ServerName,ServerPort);
   if (StartConnection){
-      if (!ComPanel.connect())
-         showMessage("I can't find a Secondo-server");
+      if (!ComPanel.connect()){
+         Reporter.showWarning("I can't find a Secondo-server");
+      }
       else
          getServerInfos();
   }
@@ -647,7 +639,7 @@ public MainWindow(String Title){
 
   if(StartScript!=null){
       StartScript = StartScript.trim();
-      System.out.println(OkFormat+"execute "+StartScript+EndFormat);
+      Reporter.writeInfo("execute "+StartScript);
       if (StartScript.endsWith("-i")){
          StartScript = StartScript.substring(0,StartScript.length()-2).trim();
          executeFile(StartScript,true);
@@ -686,13 +678,15 @@ public MainWindow(String Title){
               return;
           int c = evt.getKeyCode();
           if(c==KeyEvent.VK_S){
-             if(saveSnapshot(true))
-                showMessage("Snapshot written");
+             if(saveSnapshot(true)){
+                Reporter.showInfo("Snapshot written");
+             }
              evt.consume();
           }
           if(c==KeyEvent.VK_C){
-             if(saveSnapshot(false))
-                showMessage("Snapshot written");
+             if(saveSnapshot(false)){
+                Reporter.showInfo("Snapshot written");
+             }
              evt.consume();
           }
       } 
@@ -785,16 +779,15 @@ private boolean saveSnapshot(boolean completeScreen){
    else
       snapshot = makeSnapshot();
    if(snapshot==null){
-      showMessage("Error in creating snapshot");
+      Reporter.showError("Error in creating snapshot");
       return false;
    }
    if(FC_Snapshot.showSaveDialog(this)==JFileChooser.APPROVE_OPTION){
        try{
           return javax.imageio.ImageIO.write(snapshot,"png",FC_Snapshot.getSelectedFile());
        } catch(Exception e){
-           if(DEBUG_MODE)
-             e.printStackTrace();
-           showMessage("Error in saving snapshot");
+           Reporter.debug(e);
+           Reporter.showError("Error in saving snapshot");
            return false;
        } 
 
@@ -859,7 +852,6 @@ private void updateRelationList(){
 	      UpdateIndexMenu.add(RelMenu);
 	      // insert the attributes into the RelMenu
 	      ListExpr FullType = CurrentObject.third().first();
-	      //System.out.println("Fulltype ="+FullType.writeListExprToString());
 	      ListExpr TupleList = FullType.second().second();
 	      JMenuItem MI_Attr;
 	      while(!TupleList.isEmpty()){
@@ -1055,8 +1047,7 @@ public boolean execGuiCommand(String command){
      }catch(Exception e){
         ComPanel.appendText("cannot load viewer:"+ViewerName+"\n");
         success=false;
-        if(DEBUG_MODE)
-           e.printStackTrace();
+        Reporter.debug(e);
      }
      ComPanel.showPrompt();
   }
@@ -1290,11 +1281,7 @@ private int executeFile(String FileName,boolean ignoreErrors){
   }
   catch(Exception e){
     ComPanel.appendText("a IO error is occurred\n");
-    if(DEBUG_MODE){
-       System.out.println(ErrorFormat+"io error occured"+EndFormat);
-       System.out.println(e);
-       e.printStackTrace();
-    }   
+    Reporter.debug("io error occured",e);
     errors++;
   }
   finally{
@@ -1327,9 +1314,8 @@ public void updateMenu(){
         OList.updateMarks();
      }
      catch(Exception e) {
-        if(DEBUG_MODE)
-           e.printStackTrace();
-        showMessage("error when update the menu");
+        Reporter.debug(e);
+        Reporter.showError("error when update the menu");
      }
    }  
 }
@@ -1383,8 +1369,9 @@ public void processResult(String command,ListExpr ResultList,IntByReference Erro
          if(CurrentViewer!=null){
             try{
               SecondoViewer SV = PriorityDlg.getBestViewer(CurrentViewer,o);
-              if(SV==null)
-                showMessage("no viewer found to display the result");
+              if(SV==null){
+                Reporter.showError("no viewer found to display the result");
+              }
               else{
                   if(SV!=CurrentViewer)
                      setViewer(SV);
@@ -1393,9 +1380,8 @@ public void processResult(String command,ListExpr ResultList,IntByReference Erro
                }
   
             } catch(Exception e){
-               if(DEBUG_MODE)
-                  e.printStackTrace();
-               showMessage("an error is occurred (in current viewer)");
+               Reporter.debug(e);
+               Reporter.showError("an error is occurred (in current viewer)");
             }
          }
          ComPanel.appendText("see result in object list");
@@ -1412,9 +1398,7 @@ public boolean canActualDisplay(SecondoObject SO){
   else
     try{return CurrentViewer.canDisplay(SO);}
     catch(Exception e){
-       if(DEBUG_MODE)
-          e.printStackTrace();
-       System.out.println(ErrorFormat+"error in method canDisplay in the current Viewer"+EndFormat);
+       Reporter.debug("error in method canDisplay in the current Viewer",e);
        return false;
     }
 }
@@ -1425,10 +1409,8 @@ public boolean isActualDisplayed(SecondoObject SO){
      return false;
   else
      try{return CurrentViewer.isDisplayed(SO);}
-     catch(Exception e){ 
-        if(DEBUG_MODE)
-           e.printStackTrace();
-        System.out.println(ErrorFormat+"error in current Viewer "+CurrentViewer+" method: isDisplayed"+EndFormat);
+     catch(Exception e){
+        Reporter.debug("error in current Viewer "+CurrentViewer+" method: isDisplayed",e);
         return false;
      }
 } 
@@ -1444,7 +1426,7 @@ public boolean showObject(SecondoObject SO){
         else{
           SecondoViewer TheBest = PriorityDlg.getBestViewer(CurrentViewer,SO);
           if(TheBest==null){
-             showMessage("no Viewer found to display this object");
+             Reporter.showError("no Viewer found to display this object");
              return false;
           }
           else{
@@ -1454,9 +1436,7 @@ public boolean showObject(SecondoObject SO){
         }  
      }      
      catch(Exception e){
-        System.out.println(ErrorFormat+"error in Viewer :"+CurrentViewer+" method addObject"+EndFormat);
-        if(DEBUG_MODE)
-           e.printStackTrace();
+        Reporter.debug("error in Viewer :"+CurrentViewer+" method addObject", e);
         return false;
      }
 }
@@ -1474,9 +1454,7 @@ public void hideObject(Object Sender,SecondoObject SO){
           ((SecondoViewer)AllViewers.get(i)).removeObject(SO);
         }
         catch(Exception e){
-           if(DEBUG_MODE)
-              e.printStackTrace();
-           System.out.println(ErrorFormat+"an Exception is occured in removeObject-Method of a Viewer"+EndFormat);
+           Reporter.debug("an Exception is occured in removeObject-Method of a Viewer", e);
         }
      }
 }
@@ -1501,9 +1479,8 @@ public void selectObject(Object Sender,SecondoObject SO){
          CurrentViewer.selectObject(SO);
           }
        catch(Exception e){
-          if(DEBUG_MODE)
-            e.printStackTrace();
-          showMessage("Exception in current viewer (method selectObject)");
+          Reporter.debug(e);
+          Reporter.showError("Exception in current viewer (method selectObject)");
        }
      }
   }
@@ -1643,15 +1620,17 @@ private void createMenuBar(){
    MI_Snapshot.setAccelerator(KeyStroke.getKeyStroke("alt C"));
    MI_Snapshot.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
-           if(saveSnapshot(false))
-              showMessage("Snapshot written");
+           if(saveSnapshot(false)){
+              Reporter.showInfo("Snapshot written");
+           }
        }
    });
    JMenuItem MI_ScreenSnapshot = ProgramMenu.add("ScreenSnapshot");
    MI_ScreenSnapshot.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
-           if(saveSnapshot(true))
-              showMessage("Snapshot written");
+           if(saveSnapshot(true)){
+              Reporter.showInfo("Snapshot written");
+           }
        }
    });
    MI_ScreenSnapshot.setAccelerator(KeyStroke.getKeyStroke("alt S"));
@@ -1931,14 +1910,14 @@ private void createMenuBar(){
            // a Viewer must be in  "viewer" package and so in the viewer-directory
            int pos = Name.lastIndexOf("viewer");
            if (pos<0){
-             showMessage("a viewer must be in the viewer directory");
+              Reporter.showWarning("a viewer must be in the viewer directory");
            }
            else{
                 Name = Name.substring(pos);
                 char FileSep = File.separatorChar;
                 Name = Name.replace(FileSep,'.');
                 if (!Name.endsWith(".class")){
-                   showMessage("this is no class file");
+                   Reporter.showError("this is no class file");
                 }
                 else{
                    Name= Name.substring(0,Name.length()-6);  // remove ".class" extension
@@ -1946,7 +1925,7 @@ private void createMenuBar(){
                         Class NViewerClass = Class.forName(Name);
                         Object O = NViewerClass.newInstance();
                         if (!(O instanceof SecondoViewer)){
-					showMessage("the selected class is not an SecondoViewer");
+                          Reporter.showError("the selected class is not an SecondoViewer");
                         }
                         else{  // is allright
                            addViewer((SecondoViewer)O);
@@ -1955,10 +1934,9 @@ private void createMenuBar(){
                    catch(Exception e){
                         ComPanel.appendText(""+e);
                         ComPanel.showPrompt();
-     				    showMessage("cannot load the given Viewer\n see commandPanel for details");
-     				    if(DEBUG_MODE)
-                           e.printStackTrace();
-
+                        Reporter.showError("cannot load the given Viewer\n"+
+                                           " see commandPanel for details");
+                        Reporter.debug(e);
                    }
                 }
            }
@@ -1983,8 +1961,8 @@ public void clearAll(){
      ((SecondoViewer) AllViewers.get(i)).removeAll();
   System.gc();
   if(Environment.MEASURE_MEMORY){
-     System.out.println(OkFormat+ "Memory difference by clear: "+
-                         Environment.formatMemory(Environment.usedMemory()-usedMemory)+EndFormat);
+     Reporter.writeInfo("Memory difference by clear: "+
+                         Environment.formatMemory(Environment.usedMemory()-usedMemory));
   }
 }
 
@@ -2056,11 +2034,10 @@ private void loadHistory(File F,boolean replace,boolean showMessage){
         } // end loading of version 2.0
       } catch(Exception e){
         if(showMessage){
-	   ComPanel.appendText("load history failed \n");
-	   ComPanel.showPrompt();
-	   if(DEBUG_MODE)
-              e.printStackTrace();
-	}
+           ComPanel.appendText("load history failed \n");
+           ComPanel.showPrompt();
+           Reporter.debug(e);
+        }
         ok = false;
       }
       finally{
@@ -2090,8 +2067,9 @@ public void onlyViewerSwitch(){
      DefaultContentPane.validate();
    }
    else{
-     if(CurrentViewer==null)
-        showMessage("there is no viewer to show");
+     if(CurrentViewer==null){
+       Reporter.showError("there is no viewer to show");
+     }
      else{
         MI_ShowOnlyViewer.setText("Show all");
         DefaultContentPane.removeAll();
@@ -2122,7 +2100,7 @@ private void showServerSettings(){
        if (ServerDlg.getResultValue()==ServerDialog.OK){
           ComPanel.setConnection("","",ServerDlg.getHostName(),ServerDlg.getPortAddress());
           if (!ComPanel.connect()){
-             showMessage("I can't find a SecondoServer ");
+             Reporter.showError("I can't find a SecondoServer ");
           }
 	  else{
 	    getServerInfos();
@@ -2164,8 +2142,7 @@ private void saveHistory(File F,boolean showMessage,int length){
        }
        catch(Exception e){
          if(showMessage){
-            if(DEBUG_MODE)
-              e.printStackTrace();
+            Reporter.debug(e);
             ComPanel.appendText("IO error");
 	 }
        }
@@ -2197,7 +2174,7 @@ private void getServerInfos(){
 
   ListExpr Algebras = ComPanel.getCommandResult("list algebras");
   if(Algebras==null){
-     System.err.println(ErrorFormat+"Error in reading algebras from server"+EndFormat);
+     Reporter.writeError("Error in reading algebras from server");
      return;
   }
   Algebras = Algebras.second().second();
@@ -2260,10 +2237,12 @@ public boolean updateDatabases(){
 			         String FName = FC_Database.getSelectedFile().getAbsolutePath();
 				 String cmd = cmd_part1+" '"+FName+"'";
 				 MainWindow.ComPanel.addToHistory(cmd);
-				 if(MainWindow.ComPanel.execUserCommand(cmd))
-				    MessageBox.showMessage("restoring database successful");
-				 else
-                                    MessageBox.showMessage("restoring database failed");
+				 if(MainWindow.ComPanel.execUserCommand(cmd)){
+				    Reporter.showInfo("restoring database successful");
+         }
+				 else{
+            Reporter.showError("restoring database failed");
+         }
 			         MainWindow.ComPanel.showPrompt();
 			      }
 			   }});
@@ -2443,7 +2422,7 @@ class Command_Listener implements ActionListener{
 		if(Source.equals(MainWindow.this.MI_UpdateDatabases)){
          ok = false; // execute no Secondo command
 		     if(!MainWindow.this.updateDatabases())
-		          MessageBox.showMessage("error in reading databases");
+		          Reporter.showError("error in reading databases");
               return;
          }
          if(Source.equals(MainWindow.this.MI_ListDatabases)){
@@ -2510,7 +2489,7 @@ public static UpdateInterface getUpdateInterface(){
 }
 
 private static void showLicence(){
-    JOptionPane.showMessageDialog(null,Licence,"Licence",JOptionPane.INFORMATION_MESSAGE);
+    Reporter.showInfo(Licence);
 }
 
 private static final String Licence = 
