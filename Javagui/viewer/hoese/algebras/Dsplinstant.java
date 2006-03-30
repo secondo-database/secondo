@@ -20,12 +20,13 @@
 
 package  viewer.hoese.algebras;
 
-import  sj.lang.ListExpr;
-import  viewer.*;
-import  viewer.hoese.*;
-import  java.util.*;
-import  javax.swing.*;
-import  java.awt.*;
+import sj.lang.ListExpr;
+import viewer.*;
+import viewer.hoese.*;
+import java.util.*;
+import javax.swing.*;
+import java.awt.*;
+import tools.Reporter;
 
 
 /**
@@ -73,7 +74,6 @@ public class Dsplinstant extends DsplGeneric
    */
   public void ScanValue (ListExpr v) {
     Double d;
-    //System.out.println(v.writeListExprToString());
     d = LEUtils.readInstant(v);
     if (d == null)
       return;
@@ -94,7 +94,7 @@ public class Dsplinstant extends DsplGeneric
     AttrName = type.symbolValue();
     ScanValue(value);
     if (err) {
-      System.out.println("Error in ListExpr :parsing aborted");
+      Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": TA(Instant))"));
       return;
     } 

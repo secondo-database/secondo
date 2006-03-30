@@ -26,6 +26,7 @@ import javax.swing.*;
 import sj.lang.ListExpr;
 import java.util.Vector;
 import sj.lang.IntByReference;
+import tools.Reporter;
 
 public class QueryViewer extends SecondoViewer implements ViewerControl,ViewerChangeListener{
 
@@ -51,7 +52,7 @@ public QueryViewer(){
         if(evt.getClickCount()>1){
            SecondoObject SO = QueryViewer.this.RelSplitter.getSelectedObject();
            if(SO==null)
-             QueryViewer.this.showMessage("no Object selected");
+             Reporter.showError("no Object selected");
            else{
              QueryViewer.this.getCurrentViewer().addObject(SO);
            }
@@ -161,16 +162,16 @@ public void updateObject(SecondoObject SO){
 
 
 public SecondoViewer[] getViewers(){
-   System.out.println("QueryViewer.getViewers not implemented");
+   Reporter.writeWarning("QueryViewer.getViewers not implemented");
    return null;
 }
 
 public void addViewerChangeListener(ViewerChangeListener VCL){
-  System.out.println("QueryViewer.addViewerChangeListener not implemented");
+  Reporter.writeWarning("QueryViewer.addViewerChangeListener not implemented");
 }
 
 public void removeViewerChangeListener(ViewerChangeListener VCL){
-   System.out.println("QueryViewer.removeViewerChangeListener not implemented");
+   Reporter.writeWarning("QueryViewer.removeViewerChangeListener not implemented");
 }
 
 public int execCommand(String cmd){
@@ -311,14 +312,14 @@ public void createShowMenu(){
         if(Source.equals(MI_ShowSelectedObject)){
            SecondoObject SO = RelSplitter.getSelectedObject();
            if(SO==null)
-             showMessage("no Object selected");
+             Reporter.showError("no Object selected");
            else{
              getCurrentViewer().addObject(SO);
            }
         } else if(Source.equals(MI_ShowSelectedAttribut)){
            SecondoObject[] SOs = RelSplitter.getSelectedAttribute();
            if(SOs==null)
-             showMessage("no attribute selected");
+             Reporter.showError("no attribute selected");
            else{
              SecondoViewer CV = getCurrentViewer();
              if(SOs.length>0){
@@ -336,7 +337,7 @@ public void createShowMenu(){
         } else if(Source.equals(MI_ShowSelectedTuple)){
            SecondoObject SOs = RelSplitter.getSelectedTuple();
            if(SOs==null)
-             showMessage("no attribute selected");
+             Reporter.showError("no attribute selected");
            else{
              SecondoViewer CV = getCurrentViewer();
              CV.addObject(SOs);
@@ -362,9 +363,6 @@ public void createShowMenu(){
 
 }
 
-private void showMessage(String Text){
-    JOptionPane.showMessageDialog(this,Text);
-}
 
 private Vector SubViewers = new Vector();
 private MenuVector MenuExtension;

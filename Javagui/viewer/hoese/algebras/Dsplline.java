@@ -25,6 +25,7 @@ import  sj.lang.ListExpr;
 import  java.util.*;
 import  viewer.*;
 import viewer.hoese.*;
+import tools.Reporter;
 
 
 /**
@@ -57,7 +58,7 @@ public boolean isLineType(){
     while (!value.isEmpty()) {
       ListExpr v = value.first();
       if (v.listLength() != 4) {
-        System.out.println("Error: No correct line expression: 4 elements needed");
+        Reporter.writeError("Error: No correct line expression: 4 elements needed");
         GP=null;
         err = true;
         return;
@@ -75,8 +76,7 @@ public boolean isLineType(){
 			try{
 				if(!ProjectionManager.project(koord[0],koord[1],aPoint)){
 					 err = true; 
-           if(gui.Environment.DEBUG_MODE)
-               System.out.println("error in project segment ("+koord[0]+","+koord[1]+")->"+koord[2]+","+koord[3]+")");
+           Reporter.debug("error in project segment ("+koord[0]+","+koord[1]+")->"+koord[2]+","+koord[3]+")");
            GP=null;
            return;
 				}else{ 
@@ -85,8 +85,7 @@ public boolean isLineType(){
 					 if(!ProjectionManager.project(koord[2],koord[3],aPoint)){
 							err = true;
               GP=null;
-              if(gui.Environment.DEBUG_MODE) 
-							    System.out.println("error in project segment ("+koord[0]+","+koord[1]+")->"+koord[2]+","+koord[3]+")");
+              Reporter.debug("error in project segment ("+koord[0]+","+koord[1]+")->"+koord[2]+","+koord[3]+")");
               return;
 					 }else{
 							x2 = aPoint.x;
@@ -118,10 +117,9 @@ public boolean isLineType(){
 					 }
 			 }
 			} catch(Exception e){
-           if(gui.Environment.DEBUG_MODE)
-             e.printStackTrace();  
-				}
-        value = value.rest();
+          Reporter.debug(e); 
+			}
+      value = value.rest();
     }
     if(first){ // empty line
        GP=null;
@@ -141,7 +139,7 @@ public boolean isLineType(){
     ScanValue(value);
     RenderObject = GP;
     if (err) {
-      System.out.println("Error in ListExpr :parsing aborted");
+      Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GA(line))"));
       bounds =null;
       RenderObject=null;

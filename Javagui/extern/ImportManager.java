@@ -25,6 +25,7 @@ import extern.shapedbf.ShapeDbf;
 import extern.shapereader.ShapeReader;
 import java.io.File;
 import extern.binarylist.*;
+import tools.Reporter;
 
 public class ImportManager{
 
@@ -44,7 +45,6 @@ public ListExpr importFile(String FileName){
   if(FileName.toLowerCase().endsWith(".dbf")){
      ListExpr Res = dbf3Reader.getList(FileName);
      if(Res!=null){
-        // System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
         return Res;
      }
      else{
@@ -59,12 +59,11 @@ public ListExpr importFile(String FileName){
      if(F2.exists()){ // try to load combined shape-dbf
          Res = shapedbfreader.getList(FileName);
 	     if(Res==null){
-             ErrorText = shapedbfreader.getErrorString();
-	         System.out.println("combined shape-dbf failed :"+ErrorText);
+           ErrorText = shapedbfreader.getErrorString();
+	         Reporter.writeError("combined shape-dbf failed :"+ErrorText);
 	         t1 = System.currentTimeMillis();
 	     }
 	 	 else{
-	         // System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
 	         return Res;
          }
      }
@@ -72,7 +71,6 @@ public ListExpr importFile(String FileName){
      if(Res==null)
         ErrorText = shapereader.getErrorString();
      else{
-        // System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
             return Res;
      }
  }
@@ -84,7 +82,6 @@ public ListExpr importFile(String FileName){
      if(LE==null)
         ErrorText = BN.getErrorString();
      else{
-        // System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
         return extractFromObject(LE);
      }
   }
@@ -97,7 +94,6 @@ public ListExpr importFile(String FileName){
         ErrorText ="cannot load this file";
      return null;
   }else{
-   // System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
    return extractFromObject(R);
   }
 
@@ -117,7 +113,7 @@ private ListExpr extractFromObject(ListExpr LE){
       LE.third().destroy();
       LE.sixth().destroy();
       if(!gui.Environment.OLD_OBJECT_STYLE){
-        tools.TextFormat.printWarning("Old styled ListExpr found");
+        Reporter.writeWarning("Old styled ListExpr found");
       }
       return res;
    }

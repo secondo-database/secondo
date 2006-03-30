@@ -28,6 +28,7 @@ import  java.util.*;
 import  javax.swing.border.*;
 import viewer.HoeseViewer;
 import java.awt.image.*;
+import tools.Reporter;
 
 /**
  * A Swing JComponent that represent a Layer in the layerstack
@@ -99,8 +100,8 @@ public class Layer extends JComponent {
     }
     }
     catch(Exception e){
-      System.out.println("Exception in Layer.calcBounds "+e);
-      e.printStackTrace();
+      Reporter.writeError("Exception in Layer.calcBounds "+e);
+      Reporter.debug(e);
     }
   }
 
@@ -294,8 +295,8 @@ public class Layer extends JComponent {
           }
         }
      } catch(Exception e){
-       System.out.println("Exception "+e);
-       e.printStackTrace();
+       Reporter.writeError("Exception "+e);
+       Reporter.debug(e);
      }
 
   }

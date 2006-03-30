@@ -30,6 +30,7 @@ import javax.swing.event.*;
 import java.io.*;
 import tools.Base64Decoder;
 import java.awt.image.*;
+import tools.Reporter;
 
 
 /**
@@ -177,8 +178,7 @@ public void setSource(Dsplpicture S){
        picture.setImage(image);
        picture.checkImage(image,iob); 
     }catch(Exception e){
-       System.err.println("Error in reading picture data");
-       e.printStackTrace();
+       Reporter.debug("Error in reading picture data",e);
        picture.setImage(null);
     }
     repaint();

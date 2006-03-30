@@ -2,6 +2,8 @@ package project;
 
 
 import javax.swing.*;
+import tools.Reporter;
+
 
 public class WGSGK extends ProjectionAdapter{
 
@@ -27,7 +29,7 @@ public boolean project(double l1, double b1, java.awt.geom.Point2D.Double result
          BesselBLnachGaussKrueger(b,a,result);
          return true;
      } catch(Exception e){
-         e.printStackTrace();
+         Reporter.debug(e);
          return false;
      }
   }
@@ -59,7 +61,7 @@ public boolean project(double l1, double b1, java.awt.geom.Point2D.Double result
 	  BesselBLnachGaussKrueger(b2,l2,result);
     return true;
   }catch(Exception e){
-     e.printStackTrace();
+     Reporter.debug(e);
      return false;
   }
 }

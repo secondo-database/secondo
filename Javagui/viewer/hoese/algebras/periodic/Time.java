@@ -22,6 +22,7 @@ package viewer.hoese.algebras.periodic;
 import sj.lang.ListExpr;
 import viewer.hoese.DateTime;
 import gui.Environment;
+import tools.Reporter;
 
 /** This class provides an abstraction of time
   */
@@ -71,23 +72,19 @@ public int compareTo(Time T){
   */
 public boolean readFrom(ListExpr E){
   if(E.listLength()!=2){
-    if(Environment.DEBUG_MODE)
-      System.err.println("Time.readFrom: wrong ListLength");
+    Reporter.debug("Time.readFrom: wrong ListLength");
     return false;
   }
   if(E.first().atomType()!=ListExpr.SYMBOL_ATOM){
-     if(Environment.DEBUG_MODE)
-        System.err.println("Time.readFrom: wrong list type of typedescriptor");
+     Reporter.debug("Time.readFrom: wrong list type of typedescriptor");
      return false;
   }
   if(!E.first().symbolValue().equals("instant") &&
      !E.first().symbolValue().equals("datetime") &&
      !E.first().symbolValue().equals("duration")){
-    if(Environment.DEBUG_MODE){
-       System.err.println("Time.readFrom wrong type value (expected" +
-                          " 'datetime | instant | duration', received" +
-			  (E.first().symbolValue())+")");
-    }
+    Reporter.debug("Time.readFrom wrong type value (expected" +
+                   " 'datetime | instant | duration', received" +
+                   (E.first().symbolValue())+")");
     return false;
   }
   ListExpr V = E.second();
@@ -95,9 +92,7 @@ public boolean readFrom(ListExpr E){
   if(V.atomType()==ListExpr.STRING_ATOM){
     long[] DM = DateTime.getDayMillis(V.stringValue());
     if(DM==null){
-        if(Environment.DEBUG_MODE){
-           System.err.println("Time.readFrom: error in converting String to Time ");
-	}
+        Reporter.debug("Time.readFrom: error in converting String to Time ");
         return false;
      }
      day = DM[0];
@@ -107,11 +102,9 @@ public boolean readFrom(ListExpr E){
   }
   if(V.listLength()==2){
      if(V.first().atomType()!=ListExpr.INT_ATOM || V.second().atomType()!=ListExpr.INT_ATOM){
-        if(Environment.DEBUG_MODE){
-           System.err.println("Error in Reading Time in Format Days Milliseconds");
-	   return false;
-	}
-     }
+         Reporter.debug("Error in Reading Time in Format Days Milliseconds");
+	       return false;
+      }
 	day = V.first().intValue();
 	milliseconds = V.second().intValue();
 	correct();
@@ -130,9 +123,8 @@ public void readFrom(double d){
 public boolean readFrom(String value){
     long[] DM = DateTime.getDayMillis(value);
     if(DM==null){
-        if(Environment.DEBUG_MODE)
-	   System.err.println("invalid Time format in Time.readFrom(String) :"+value);
-        return false;
+       Reporter.debug("invalid Time format in Time.readFrom(String) :"+value);
+       return false;
      }
     day = DM[0];
     milliseconds = DM[1];
@@ -221,10 +213,10 @@ private Time correct(){
 
   if(Environment.DEBUG_MODE){
      if(milliseconds<0 || milliseconds>=MILLISECONDS){
-        System.err.println("Time::Correct() has computes a wrong value ");
-        System.err.println("Oldms :"+oldms);
-        System.err.println("Oldday :"+oldday);
-        System.err.println("new values : "+oldday+" : "+oldms);
+        Reporter.writeError("Time::Correct() has computes a wrong value \n"+
+                            "Oldms :"+oldms+"\n"+
+                            "Oldday :"+oldday+"\n"+
+                            "new values : "+oldday+" : "+oldms);
      }
   }
 

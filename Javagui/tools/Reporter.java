@@ -134,12 +134,19 @@ public static void writeInfo(String message){
 public static void showInfo(String message){
     reportInfo(message,false);
 }
+
  
 
 /** writes a simple error message to the console **/
 public static void writeError(String message){
     reportError(message,null,false,true,false);
 }
+
+/** writes a simple warning message to the console **/
+public static void writeWarning(String message){
+    reportWarning(message,null,false,true,false);
+}
+
 
 /** Shows an error message within a graphical window **/
 public static void showError(String message){
@@ -167,6 +174,35 @@ public static void debug(Exception e){
 public static void debug(String message, Exception e){
   reportError(message,e,false,true,gui.Environment.DEBUG_MODE);   
 }
+
+/** prints the message as error when debug mode is enabled **/
+public static void debug(String message){
+  reportError(message,null,true,true,false);
+}
+
+/** Prints out a Stacktrace **/
+public static void printTrace(){
+   new Throwable().printStackTrace();
+}
+
+/** Writes the string to std out **/
+public static void write(String message){
+   System.out.println(message);
+}
+
+public static int showQuestion(String ASK){
+  int res = JOptionPane.showConfirmDialog(null,ASK,null,
+            JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE);
+  if(res==JOptionPane.YES_OPTION)
+     return YES;
+  if(res==JOptionPane.NO_OPTION)
+    return NO;
+  return ERROR;
+ }
+
+public static final int YES = 0;
+public static final int NO = 1;
+public static final int ERROR = -1;
 
 
 }

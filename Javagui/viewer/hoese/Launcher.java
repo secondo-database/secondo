@@ -20,10 +20,11 @@
 
 package  viewer.hoese;
 
-import  java.io.*;
-import  javax.swing.*;
-import  sj.lang.ListExpr;
+import java.io.*;
+import javax.swing.*;
+import sj.lang.ListExpr;
 import viewer.HoeseViewer;
+import tools.Reporter;
 
 
 /**
@@ -46,7 +47,7 @@ public class Launcher
     try {
       r.exec(de.getCommand());
     } catch (IOException e) {
-      System.out.println("Error while starting:" + de.getCommand());
+      Reporter.writeError("Error while starting:" + de.getCommand());
     }
   }
 

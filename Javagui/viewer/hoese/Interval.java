@@ -21,6 +21,7 @@
 package  viewer.hoese;
 
 import java.util.Vector;
+import tools.Reporter;
 /**
  * An instance of this class represent a time interval
  */
@@ -42,7 +43,7 @@ public class Interval {
     leftclosed = leftcl;
     rightclosed = rightcl;
     if(viewer.HoeseViewer.DEBUG_MODE && start==end && (!leftclosed || !rightclosed)){
-        System.out.println("Warning: nonclosed interval of length null created !");
+        Reporter.writeWarning("Warning: nonclosed interval of length null created !");
     }
   }
 

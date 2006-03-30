@@ -22,6 +22,7 @@ package viewer.hoese.algebras.periodic;
 import viewer.hoese.*;
 import sj.lang.ListExpr;
 import java.awt.geom.*;
+import tools.Reporter;
 
 public class PMRealUnit extends LinearMove{
 
@@ -40,8 +41,7 @@ public class PMRealUnit extends LinearMove{
   /** returns a Double */
   public Object getObjectAt(Time T){
      if(!defined){
-        if(Environment.DEBUG_MODE)
-        System.err.println("PMRealUnit.getObjectAt called on an undefined instance");
+        Reporter.debug("PMRealUnit.getObjectAt called on an undefined instance");
         return null;
      }
      if(!interval.contains(T)){
@@ -51,9 +51,7 @@ public class PMRealUnit extends LinearMove{
      double res1 = (a*p +b)*p+c;
      if(root){
           if(res1<0){
-              if(Environment.DEBUG_MODE){
-               System.err.println("Trying to compute thr square root of a negative number in PMRealUnit::getObjectAt");
-              }
+              Reporter.debug("Trying to compute thr square root of a negative number in PMRealUnit::getObjectAt");
               return null;
            }
            return new Double(Math.sqrt(res1));
@@ -68,8 +66,7 @@ public class PMRealUnit extends LinearMove{
      Double B = LEUtils.readNumeric(map.second());
      Double C = LEUtils.readNumeric(map.third());
      if(A==null || B==null || C==null || map.fourth().atomType() !=ListExpr.BOOL_ATOM){
-       if(Environment.DEBUG_MODE)
-         System.err.println("PMRealUnit.readStartEnd : error in map");
+       Reporter.debug("PMRealUnit.readStartEnd : error in map");
        return false;
      }
      a = A.doubleValue();

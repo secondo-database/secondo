@@ -21,6 +21,7 @@ package viewer.relsplit;
 
 import sj.lang.ListExpr;
 import java.util.Vector;
+import tools.Reporter;
 
 public class Head{
 
@@ -69,7 +70,7 @@ public boolean readFromRelTypeLE(ListExpr LE){
 
   ListExpr Tuple = LE.second();
   if(Tuple.listLength()!=2){
-     System.out.println("wrong tuple listlength");
+     Reporter.writeError("wrong tuple listlength");
      return false;
   }
 

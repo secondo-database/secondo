@@ -22,6 +22,7 @@ package viewer.hoese.algebras.periodic;
 import viewer.hoese.*;
 import sj.lang.ListExpr;
 import java.awt.geom.*;
+import tools.Reporter;
 
 public class PMRectLinear extends LinearMove{
 
@@ -40,8 +41,7 @@ public class PMRectLinear extends LinearMove{
   /** returns a Rectangle2D.Double */
   public Object getObjectAt(Time T){
      if(!defined){
-        if(Environment.DEBUG_MODE)
-	   System.err.println("PMRectLinear.getObjectAt called on an undefined instance");
+        Reporter.debug("PMRectLinear.getObjectAt called on an undefined instance");
         return null;
      }
      if(!interval.contains(T)){
@@ -65,8 +65,7 @@ public class PMRectLinear extends LinearMove{
      ListExpr start = map.first();
      ListExpr end = map.second();
      if(start.listLength()!=4 || end.listLength()!=4){
-       if(Environment.DEBUG_MODE)
-          System.err.println("PMRectLinear.readStartEnd wrong ListLength");
+       Reporter.debug("PMRectLinear.readStartEnd wrong ListLength");
        return false;
      }
      Double MinX1 = LEUtils.readNumeric(start.first());
@@ -81,8 +80,7 @@ public class PMRectLinear extends LinearMove{
 
      if(MinX1==null || MinY1==null || MaxX1==null || MaxY1==null ||
         MinX2==null || MinY2==null || MaxX2==null || MaxY2==null ){
-        if(Environment.DEBUG_MODE)
-           System.err.println("PmRectLinear.readStartEnd : found a non-numeric");
+        Reporter.debug("PmRectLinear.readStartEnd : found a non-numeric");
         return false;
      }
      minX1 = Math.min(MinX1.doubleValue(),MaxX1.doubleValue());
@@ -102,12 +100,11 @@ public class PMRectLinear extends LinearMove{
 
   public BBox getBoundingBox(){
       if(!defined){
-         if(Environment.DEBUG_MODE)
-	    System.err.println("PMRectLinear.getBoundingBox called with an undefined instance");
+         Reporter.debug("PMRectLinear.getBoundingBox called with an undefined instance");
          return null;
       }
-      if(bounds==null & Environment.DEBUG_MODE){
-           System.err.println("PMRectLinear.getBoundingBox called without a bounding box");
+      if(bounds==null){
+           Reporter.debug("PMRectLinear.getBoundingBox called without a bounding box");
       }
       return bounds;
   }

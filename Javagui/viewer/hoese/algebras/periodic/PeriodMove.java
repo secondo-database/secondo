@@ -19,6 +19,7 @@
 
 package viewer.hoese.algebras.periodic;
 import sj.lang.ListExpr;
+import tools.Reporter;
 
 public class PeriodMove implements Move{
 
@@ -45,8 +46,7 @@ private void setUndefined(){
 public boolean set(int repeatations, Move subMove){
    RelInterval smInterval = subMove.getInterval();
    if(smInterval.isLeftInfinite() || smInterval.isRightInfinite()){
-      if(Environment.DEBUG_MODE)
-         System.err.println("PeriodMove.set: try to repeat a infinite move ");
+      Reporter.debug("PeriodMove.set: try to repeat a infinite move ");
       setUndefined();
       return false;
    }
@@ -65,14 +65,12 @@ public boolean set(int repeatations, Move subMove){
       return true;
    }
    if(repeatations<=0){
-      if(Environment.DEBUG_MODE)
-         System.err.println("PeriodMove.set: invlaid number of repeatation :"+repeatations);
+      Reporter.debug("PeriodMove.set: invlaid number of repeatation :"+repeatations);
       setUndefined();
       return false;
    }
    if(!(smInterval.isLeftClosed() ^ smInterval.isRightClosed())){
-      if(Environment.DEBUG_MODE)
-         System.err.println("PeriodMove.set: try to repeat an move with an completely open (closed) interval");
+      Reporter.debug("PeriodMove.set: try to repeat an move with an completely open (closed) interval");
       setUndefined();
       return false;
    }
@@ -92,8 +90,7 @@ public boolean set(int repeatations, Move subMove){
 public Object getObjectAt(Time T){
 
    if(!defined){
-     if(Environment.DEBUG_MODE)
-        System.err.println("PeriodMove.getObjectAt on an undefined move called");
+     Reporter.debug("PeriodMove.getObjectAt on an undefined move called");
      return null;
    }
 
@@ -111,8 +108,7 @@ public Object getObjectAt(Time T){
 
    long Fact = SMInterval.getExtensionFactor(T);
    if(Fact<0){
-      if(Environment.DEBUG_MODE)
-         System.err.println("PeriodMove.getObjectAt ExtensionFactor <0 ");
+      Reporter.debug("PeriodMove.getObjectAt ExtensionFactor <0 ");
       return null;
    }
 
@@ -127,65 +123,55 @@ public Object getObjectAt(Time T){
   */
 public boolean readFrom(ListExpr LE,Class linearClass){
    if(LE.listLength()!=2){
-      if(Environment.DEBUG_MODE)
-         System.err.println("PeriodMove.readFrom :: wrong ListLength()");
+      Reporter.debug("PeriodMove.readFrom :: wrong ListLength()");
       setUndefined();
       return false;
    }
    if(LE.first().atomType()!=ListExpr.SYMBOL_ATOM){
-      if(Environment.DEBUG_MODE)
-         System.err.println("PeriodMove.readFrom :: wrong type of typedescriptor");
+      Reporter.debug("PeriodMove.readFrom :: wrong type of typedescriptor");
       setUndefined();
       return false;
    }
    if(!LE.first().symbolValue().equals("period")){
-      if(Environment.DEBUG_MODE)
-         System.err.println("PeriodMove.readFrom :: wrong Value for typedescriptor");
+      Reporter.debug("PeriodMove.readFrom :: wrong Value for typedescriptor");
       setUndefined();
       return false;
    }
    if(LE.second().atomType()!=ListExpr.NO_ATOM){
-      if(Environment.DEBUG_MODE)
-         System.err.println("PeriodMove.readFrom :: value is not a list");
+      Reporter.debug("PeriodMove.readFrom :: value is not a list");
       setUndefined();
       return false;
    }
    ListExpr Value = LE.second();
    if(Value.listLength()!=2){
-      if(Environment.DEBUG_MODE)
-         System.err.println("PeriodMove.readFrom :: wrong ListLength() for value list");
+      Reporter.debug("PeriodMove.readFrom :: wrong ListLength() for value list");
       setUndefined();
       return false;
    }
    if(Value.first().atomType()!=ListExpr.INT_ATOM){
-     if(Environment.DEBUG_MODE)
-         System.err.println("PeriodMove.readFrom :: wrong type for repeatations");
+      Reporter.debug("PeriodMove.readFrom :: wrong type for repeatations");
       setUndefined();
       return false;
    }
    int rep = Value.first().intValue();
    if(rep<=1 && rep!=LEFTINFINITE && rep!=RIGHTINFINITE){
-      if(Environment.DEBUG_MODE)
-         System.err.println("PeriodMove.readFrom :: not a valid number of repeatations");
+      Reporter.debug("PeriodMove.readFrom :: not a valid number of repeatations");
       setUndefined();
       return false;
    }
    if(Value.second().atomType()!=ListExpr.NO_ATOM || Value.second().listLength()<1){
-      if(Environment.DEBUG_MODE)
-         System.err.println("PeriodMove.readFrom :: wrong list type for submove");
+      Reporter.debug("PeriodMove.readFrom :: wrong list type for submove");
       setUndefined();
       return false;
    }
    if(Value.second().first().atomType()!=ListExpr.SYMBOL_ATOM){
-      if(Environment.DEBUG_MODE)
-         System.err.println("PeriodMove.readFrom :: wrong listtype for type descriptor of the submove");
+      Reporter.debug("PeriodMove.readFrom :: wrong listtype for type descriptor of the submove");
       setUndefined();
       return false;
    }
    String s = Value.second().first().symbolValue();
    if(!s.equals("linear") && !s.equals("composite")){
-      if(Environment.DEBUG_MODE)
-         System.err.println("PeriodMove.readFrom :: wrong type descriptor for subtype");
+      Reporter.debug("PeriodMove.readFrom :: wrong type descriptor for subtype");
       setUndefined();
       return false;
    }
@@ -196,17 +182,14 @@ public boolean readFrom(ListExpr LE,Class linearClass){
       else
          sm = new CompositeMove();
    }catch(Exception e){
-      if(Environment.DEBUG_MODE){
-         System.err.println("PeriodMove.readFrom :: error in creating submove\n"+e);
-	 e.printStackTrace();
-      }
+      Reporter.debug("PeriodMove.readFrom :: error in creating submove\n"+e);
+	    Reporter.debug(e);
       setUndefined();
       return false;
    }
 
    if(!sm.readFrom(Value.second(),linearClass)){
-      if(Environment.DEBUG_MODE)
-         System.err.println("PeriodMove.readFrom :: error in reading submove ");
+      Reporter.debug("PeriodMove.readFrom :: error in reading submove ");
       setUndefined();
       return false;
    }
@@ -215,13 +198,11 @@ public boolean readFrom(ListExpr LE,Class linearClass){
 
 public BBox getBoundingBox(){
    if(!defined){
-      if(Environment.DEBUG_MODE)
-        System.err.println("PeriodMove.getBoundingBox with an undefined instance");
+      Reporter.debug("PeriodMove.getBoundingBox with an undefined instance");
       return null;
    }
    if(subMove==null){
-     if(Environment.DEBUG_MODE)
-        System.err.println("PeriodMove.getBoundingBox without a submove (null)");
+     Reporter.debug("PeriodMove.getBoundingBox without a submove (null)");
        return null;
    }
    return subMove.getBoundingBox();

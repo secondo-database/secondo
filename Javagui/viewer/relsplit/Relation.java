@@ -23,6 +23,7 @@ import java.util.Vector;
 import gui.SecondoObject;
 import sj.lang.ListExpr;
 import gui.idmanager.*;
+import tools.Reporter;
 
 public class Relation{
 
@@ -42,15 +43,15 @@ public boolean readFromSecondoObject(SecondoObject SO){
    initialized = false;
    ListExpr LE = SO.toListExpr();
    if(LE.listLength()!=2){
-      System.out.println("relplit.Relation.readFromSecondoObject : wrong list length");
+      Reporter.writeError("relplit.Relation.readFromSecondoObject : wrong list length");
       return false;
    }
    if(!head.readFromRelTypeLE(LE.first())){
-      System.out.println("relplit.Relation.readFromSecondoObject : wrong type list");
+      Reporter.writeError("relplit.Relation.readFromSecondoObject : wrong type list");
       return false;
    }
    if(!readValue(head,LE.second())){
-      System.out.println("relplit.Relation.readFromSecondoObject : wrong value list");
+      Reporter.writeError("relplit.Relation.readFromSecondoObject : wrong value list");
       return false;
    }
 

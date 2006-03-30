@@ -28,7 +28,7 @@ import java.util.*;
 import gui.SecondoObject;
 import gui.Environment;
 import java.io.*;
-
+import tools.Reporter;
 
 
 /** This class provides a datastructure for representing a Tree.
@@ -74,9 +74,7 @@ class Node{
    public boolean readFrom(ListExpr LE){
        if(LE.atomType()!=ListExpr.NO_ATOM){ // a leaf
           if(!readLabel(LE)){
-            if(Environment.DEBUG_MODE){
-                System.err.println("Error in reading Label 1");
-            } 
+            Reporter.debug("Error in reading Label 1");
             Label = "Error";
             sons = null;
             return false; 
@@ -87,8 +85,7 @@ class Node{
        // now we have a list descibing a tree in the from (root subtree_1 .. subtree_n)
        // empty lists are not allowed here
        if(LE.listLength()==0){
-          if(Environment.DEBUG_MODE)
-            System.err.println("Empty lists are not allowed as trees");
+          Reporter.debug("Empty lists are not allowed as trees");
           Label = "Error";
           sons = null;
           return false;  
@@ -96,8 +93,7 @@ class Node{
        
        ListExpr Root = LE.first(); // the root must be only a label 
        if(!readLabel(Root)){
-         if(Environment.DEBUG_MODE)
-            System.err.println("The root must be an atom");
+         Reporter.debug("The root must be an atom");
          Label = "Error";
          sons = null;
          return false;
@@ -351,9 +347,7 @@ class Node{
           out.println("\\end{document}");
           out.close();
       }catch(Exception e){
-        if(gui.Environment.DEBUG_MODE){
-          e.printStackTrace();
-        }
+        Reporter.debug(e);
         return false;
       }
       return true;
@@ -642,19 +636,19 @@ public TreeViewer(){
   SaveBtn.addActionListener(new ActionListener(){
       public void actionPerformed(ActionEvent evt){
         if(TPP.Tree==null){
-           JOptionPane.showMessageDialog(null,"no tree present");
+          Reporter.showError("no tree present");
         }
         JFileChooser FC = new JFileChooser();
         if(FC.showSaveDialog(null)==JFileChooser.APPROVE_OPTION){
            File F = FC.getSelectedFile();
            if(F.exists()){
-              JOptionPane.showMessageDialog(null,"File "+ F.getName()+" alreday exists");
+              Reporter.showError("File "+ F.getName()+" alreday exists");
               return;
            }
            if(!TPP.Tree.saveAsLatex(F)){
-              JOptionPane.showMessageDialog(null,"error occured");
+              Reporter.showError("error occured");
            } else{
-              JOptionPane.showMessageDialog(null,"tree stored");
+              Reporter.showInfo("tree stored");
            }
         }
       }

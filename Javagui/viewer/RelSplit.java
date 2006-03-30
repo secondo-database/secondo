@@ -28,6 +28,7 @@ import java.util.Vector;
 import gui.idmanager.*;
 import viewer.relsplit.*;
 import javax.swing.event.*;
+import tools.Reporter;
 
 public class RelSplit extends SecondoViewer{
 
@@ -250,7 +251,7 @@ public RelSplit(){
 private void search(){
   String What = SearchText.getText();
   if (What.trim().equals(""))
-      showMessage("no text to search");
+      Reporter.showError("no text to search");
   else
       search(What);
 }
@@ -260,12 +261,12 @@ private void search(){
 
 private void search(String S){
   if(CurrentRelation==null){
-    showMessage("no relation");
+    Reporter.showError("no relation");
     return;
   }
   ListModel LM = CurrentRelation.getModel();
   if(LM==null || !(LM instanceof RelationListModel)){
-    showMessage("no relation");
+    Reporter.showError("no relation");
     return;
   }
   
@@ -276,7 +277,7 @@ private void search(String S){
   if(next<0) 
      next = RLM.find(S,false,1);
   if(next<0)
-      showMessage("text not found");
+      Reporter.showError("text not found");
   else{
       int H = ScrollPane.getSize().height;
       int FH = CurrentRelation.getFont().getSize();
@@ -307,8 +308,7 @@ public Dimension getPreferredSize(){
 public boolean addRelation(SecondoObject SO){
   Relation R=new Relation();
   if (!R.readFromSecondoObject(SO)){
-    if(DEBUG_MODE)
-      System.err.println("Relation.readFromSecondoObject failed ");
+    Reporter.debug("Relation.readFromSecondoObject failed ");
     return false;
   }
   else{
@@ -319,17 +319,12 @@ public boolean addRelation(SecondoObject SO){
        return true;
     }
     catch(Exception e){
-       if(DEBUG_MODE)
-          e.printStackTrace(); 
+       Reporter.debug(e); 
        return false;
     }    
   }
 }
 
-
-private void showMessage(String S){
-   JOptionPane.showMessageDialog(this,S);
-}
 
 public void addMouseListener(MouseListener ml){
    CurrentRelation.addMouseListener(ml);

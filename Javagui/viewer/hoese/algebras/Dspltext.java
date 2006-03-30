@@ -30,6 +30,7 @@ import javax.swing.text.EditorKit;
 import javax.swing.text.Document;
 import tools.Base64Decoder;
 import org.jpedal.*;
+import tools.Reporter;
 
 
 /**
@@ -129,7 +130,7 @@ private boolean checkForHtml(String Text,int offset){
             case 3 : if(c=='t' || c=='T') state=4; else state=1; break;
             case 4 : if(c=='m' || c=='M') state=5; else state=1; break;
             case 5 : if(c=='l' || c=='L') found=true; else state=1; break;
-            default: System.err.println("Undefined state");
+            default: Reporter.writeError("Undefined state");
         }
         if(c=='<') state = 2; 
     }  
@@ -252,7 +253,7 @@ public TextViewerFrame(){
     try{
        pdf_viewer = new PDFPanel();
     }catch(Exception e){
-      System.err.println("cannot initialize pdf-viewer");
+      Reporter.writeError("cannot initialize pdf-viewer");
     }
   }
 
@@ -384,7 +385,7 @@ public TextViewerFrame(){
 private void searchText(){
   String Text = SearchField.getText();
   if(Text.length()==0){
-    MessageBox.showMessage("no text to search");
+    Reporter.showError("no text to search");
     return;
   }
   try{
@@ -396,7 +397,7 @@ private void searchText(){
      }
      int pos = DocText.indexOf(Text,LastSearchPos);
      if(pos<0){
-        MessageBox.showMessage("end of text is reached");
+        Reporter.showError("end of text is reached");
         LastSearchPos=0;
         return;
      }
@@ -408,9 +409,8 @@ private void searchText(){
      Display.moveCaretPosition(i2);
      Display.getCaret().setSelectionVisible(true);
   } catch(Exception e){
-    if(gui.Environment.DEBUG_MODE)
-       e.printStackTrace();
-    MessageBox.showMessage("error in searching text");
+    Reporter.debug(e);
+    Reporter.showError("error in searching text");
 
   }
 
@@ -419,8 +419,8 @@ private void searchText(){
 
 private void setToPlainBecauseError(){
     
-    JOptionPane.showMessageDialog(null,"Cannot show the text in specified format\n"+
-                                       ", switch to plain text","Error",JOptionPane.ERROR_MESSAGE);
+    Reporter.showError("Cannot show the text in specified format\n"+
+                       ", switch to plain text");
     LastSearchPos=0;
     Display.setEditorKit(EKPlain);
     Display.setEditable(true);
@@ -488,7 +488,7 @@ public void setSource(Dspltext S){
              invalidate();validate();repaint();
            }
        }catch(Exception e){
-          e.printStackTrace();
+          Reporter.debug(e);
           setToPlainBecauseError();
        }
     }
@@ -535,7 +535,7 @@ public PDFPanel(){
                   CurrentPage.setImage(pdf_decoder.getPageAsImage(page));
                   PDFPanel.this.repaint(); 
                } catch(Exception e){
-                  e.printStackTrace();
+                  Reporter.debug(e);
                   CurrentPage.setImage(null);
                   PDFPanel.this.repaint();
                }
@@ -564,7 +564,7 @@ public PDFPanel(){
               TextViewerFrame.this.validate();
               TextViewerFrame.this.repaint(); 
             }catch(Exception e){
-               e.printStackTrace();
+               Reporter.debug(e);
                CurrentPage.setImage(null);
                PDFPanel.this.repaint();
             }

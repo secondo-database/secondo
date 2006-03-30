@@ -20,6 +20,7 @@
 package viewer.hoese.algebras.periodic;
 
 import sj.lang.ListExpr;
+import tools.Reporter;
 
 public abstract class LinearMove implements Move{
 
@@ -45,30 +46,25 @@ abstract protected boolean readMap(ListExpr map);
 /** reads this from the Given ListExpr */
 public boolean readFrom(ListExpr LE,Class linearClass){
    if(LE.listLength()!=2){
-      if(Environment.DEBUG_MODE)
-         System.err.println("LinearMove.readFrom :: Wrong ListLength, should be 2, but is :"+LE.listLength());
+      Reporter.debug("LinearMove.readFrom :: Wrong ListLength, should be 2, but is :"+LE.listLength());
       return false;
    }
    if(LE.first().atomType()!=ListExpr.SYMBOL_ATOM || !LE.first().symbolValue().equals("linear")){
-      if(Environment.DEBUG_MODE){
-         System.err.println("LinearMove.readFrom :: Typdescriptor 'linear' not found ");
-	 System.err.println("list is "+LE.first().writeListExprToString());
-      }
+      Reporter.debug("LinearMove.readFrom :: Typdescriptor 'linear' not found \n"+
+      	             "list is "+LE.first().writeListExprToString());
       return false;
    }
    ListExpr Content = LE.second();
    int len = Content.listLength();
    if( (len!=3) && (len!=2) ){
-     if(Environment.DEBUG_MODE)
-        System.err.println("LinearMove.readFrom :: wrong listLength of the value, \n "+
+     Reporter.debug("LinearMove.readFrom :: wrong listLength of the value, \n "+
 	                   " expected : 3 or 2 ; get :"+Content.listLength());
      return false;
    }
    if(interval==null)
       interval = new RelInterval();
    if(!interval.readFrom(Content.first())){
-     if(Environment.DEBUG_MODE)
-        System.err.println("LinearMove.readFrom :: error in reading interval ");
+     Reporter.debug("LinearMove.readFrom :: error in reading interval ");
      return false;
    }
    if(len==3)
@@ -77,8 +73,8 @@ public boolean readFrom(ListExpr LE,Class linearClass){
        defined = readMap(Content.second());
 
 
-   if(!defined & Environment.DEBUG_MODE)
-      System.err.println("LinearMove.readFrom :: error in method readStartEnd");
+   if(!defined)
+      Reporter.debug("LinearMove.readFrom :: error in method readStartEnd");
    return defined;
 
 }

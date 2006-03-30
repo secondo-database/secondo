@@ -23,6 +23,7 @@ package  viewer.hoese.algebras;
 import  sj.lang.ListExpr;
 import  viewer.*;
 import viewer.hoese.*;
+import tools.Reporter;
 
 
 /**
@@ -39,10 +40,9 @@ public class Dsplcoordinate extends DsplGeneric {
    * @see <a href="Dsplcoordinatesrc.html#ScanValue">Source</a>
    */
   private boolean ScanValue (ListExpr v) {
-    //System.out.println(v.writeListExprToString());
     if (v.isAtom()) {
       if (v.atomType() != ListExpr.INT_ATOM) {
-        System.out.println("Error: No correct coordinate expression: rat or int-type needed");
+        Reporter.writeError("Error: No correct coordinate expression: rat or int-type needed");
         return  false;
       }
       koord = (double)v.intValue();
@@ -50,18 +50,18 @@ public class Dsplcoordinate extends DsplGeneric {
     } 
     else {
       if (v.listLength() != 5) {
-        System.out.println("Error: No correct rat expression: 5 elements needed");
+        Reporter.writeError("Error: No correct rat expression: 5 elements needed");
         return  false;
       }
       if ((v.first().atomType() != ListExpr.SYMBOL_ATOM) || (v.second().atomType()
           != ListExpr.INT_ATOM) || (v.third().atomType() != ListExpr.INT_ATOM)
           || (v.fourth().atomType() != ListExpr.SYMBOL_ATOM) || (v.fifth().atomType()
           != ListExpr.INT_ATOM)) {
-        System.out.println("Error: No correct rat expression: wrong types");
+        Reporter.writeError("Error: No correct rat expression: wrong types");
         return  false;
       }
       if ((!v.first().symbolValue().equals("rat")) || (!v.fourth().symbolValue().equals("/"))) {
-        System.out.println("Error: No correct rat expression: wrong symbols");
+        Reporter.writeError("Error: No correct rat expression: wrong symbols");
         return  false;
       }
       koord = (double)v.second().intValue() + (double)v.third().intValue()/(double)v.fifth().intValue();

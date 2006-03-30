@@ -40,6 +40,7 @@ import javax.swing.event.*;
 import gui.SecondoObject;
 import viewer.update.*;
 import sj.lang.*;
+import tools.Reporter;
 
 
 /*
@@ -243,7 +244,7 @@ Shows a dialog with the errorText.
 
 */
 	public void showErrorDialog(String errorText) {
-		JOptionPane.showMessageDialog(this, errorText);
+		Reporter.showError(errorText);
 		this.repaint();
 		this.validate();
 	}
@@ -827,8 +828,7 @@ public boolean resetUpdates(){
     try{
       relTable.editCellAt(x,y,null); 
     } catch(Exception e){
-      if(gui.Environment.DEBUG_MODE)
-        e.printStackTrace();
+      Reporter.debug(e);
     }
   }
 
@@ -837,8 +837,7 @@ public boolean resetUpdates(){
      try{
        insertTable.editCellAt(x,y,null);
      }catch(Exception e){
-       if(gui.Environment.DEBUG_MODE)
-          e.printStackTrace();
+       Reporter.debug(e);
      }
   }
 

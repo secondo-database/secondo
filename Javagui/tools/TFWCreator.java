@@ -84,14 +84,14 @@ public TFWCreator(){
              try{
                  BufferedImage img = javax.imageio.ImageIO.read(f);
                  if(img==null){
-                   viewer.MessageBox.showMessage("error in loading image");
+                   Reporter.showError("error in loading image");
                  }else{
                    imageName.setText(f.getName());
                    pictureView.setImage(img);
                    TFWCreator.this.SP.revalidate();
                  }
              } catch (Exception e){
-                viewer.MessageBox.showMessage("Error in loading image");
+                Reporter.showError("Error in loading image");
              }
 
          }
@@ -203,11 +203,11 @@ public TFWCreator(){
                 String Line = in.readLine();
                 in.close();
                 if(Line==null){
-                    viewer.MessageBox.showMessage("Error in loading file ");
+                    Reporter.showError("Error in loading file ");
                     return;
                 }else{
                    if(!Line.startsWith("$GPHOM") || (Line.length()<30)){
-                      viewer.MessageBox.showMessage("invalid fileformat");
+                      Reporter.showError("invalid fileformat");
                       return;
                    }else{  
                        // try to analyse the line
@@ -238,7 +238,7 @@ public TFWCreator(){
                    }
                 }
               } catch(Exception e){
-                viewer.MessageBox.showMessage("Error in loading file ");
+                Reporter.showError("Error in loading file ");
                 try{
                   in.close();
                 }catch(Exception e2){}
@@ -247,7 +247,7 @@ public TFWCreator(){
            } else{ // assume  point in nested list format
               ListExpr LE = ListExpr.getListExprFromFile(f.getAbsolutePath());
               if(LE==null){
-                viewer.MessageBox.showMessage("Error in loading nested List");
+                Reporter.showError("Error in loading nested List");
                 return;
               }else{
                 int length = LE.listLength();
@@ -265,18 +265,18 @@ public TFWCreator(){
                 }else if(length==2){
                    value=LE;
                 }else{ // error detected
-                   viewer.MessageBox.showMessage("invalid nested list for point type ");
+                   Reporter.showError("invalid nested list for point type ");
                    return;
                 }
                 length = value.listLength();
                 if(length!=2){
-                    viewer.MessageBox.showMessage("invalid list format for a point ");
+                    Reporter.showError("invalid list format for a point ");
                     return; 
                 }
                 Double X = viewer.hoese.LEUtils.readNumeric(value.first());
                 Double Y = viewer.hoese.LEUtils.readNumeric(value.second());
                 if(X==null || Y==null){
-                    viewer.MessageBox.showMessage("invalid list format ");
+                    Reporter.showError("invalid list format ");
                     return;
                 }     
                 x = X.doubleValue();
@@ -342,20 +342,20 @@ public TFWCreator(){
                meridian = Integer.parseInt(meridianTF.getText());
              }
           } catch(Exception e){
-              viewer.MessageBox.showMessage("all fields have to contain numerix values");
+              Reporter.showError("all fields have to contain numerix values");
           }
           if(!useGK.isSelected()){
               Projection.enableWGS(useWGS.isSelected());
               Projection.setMeridian(meridian);  
               java.awt.geom.Point2D.Double P = new java.awt.geom.Point2D.Double();
               if(!Projection.project(worldX1,worldY1,P)){
-                   viewer.MessageBox.showMessage("Error in projection of point 1");
+                   Reporter.showError("Error in projection of point 1");
                    return;
               }
               worldX1 = P.x;
               worldY1 = P.y;
              if(!Projection.project(worldX2,worldY2,P)){
-                  viewer.MessageBox.showMessage("Error in projection of point 2");
+                  Reporter.showError("Error in projection of point 2");
                   return;
              }
              worldX2 = P.x;
@@ -363,11 +363,11 @@ public TFWCreator(){
           }
           // some checks
           if(pictureX1 == pictureX2 || pictureY1 == pictureY2){
-               viewer.MessageBox.showMessage("error: points in the picture are axes parallel");
+               Reporter.showError("error: points in the picture are axes parallel");
                return;
           }
           if(worldX1 == worldX2 || worldY1 == worldY2){
-               viewer.MessageBox.showMessage("error: points in the  world are axes parallel");
+               Reporter.showError("error: points in the  world are axes parallel");
                return;
           }
 
@@ -406,9 +406,9 @@ public TFWCreator(){
                 out=new PrintStream(new FileOutputStream(FC.getSelectedFile()));
                 out.print(FileText);
                 out.close();
-                viewer.MessageBox.showMessage("File written successfully:\n "+quality);
+                Reporter.showError("File written successfully:\n "+quality);
              }catch(Exception e){
-               viewer.MessageBox.showMessage("Error in writing file");
+                 Reporter.showError("Error in writing file");
                  try{out.close();}catch(Exception e2){}
              }
           }

@@ -28,7 +28,7 @@ package viewer.update;
 
 import sj.lang.ListExpr;
 import java.util.Vector;
-
+import tools.Reporter;
 
 /*
 This class is the central instance for formatting attributes within the 
@@ -73,9 +73,7 @@ public static LEFormatter getFormatter(String TypeName){
       return FC.formatter; 
    }catch(Exception e){
      // its a normal case that this try crashes. we do not anything here
-      if(gui.Environment.DEBUG_MODE){
-          e.printStackTrace();
-      }
+     Reporter.debug(e);
    }
    FormatConnection FC = new FormatConnection(TypeName,StdFormat);
    FormatObjects.add(FC);

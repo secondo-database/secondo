@@ -137,7 +137,6 @@ Moreover, it sets the dimension of the graphic.
 
     	public  void set( ListExpr LE, double panelWidth, double panelHeight )
     	{
-	     //System.err.println("DisplayPicture::set() called");
 
 		removeall();
 
@@ -157,11 +156,8 @@ Moreover, it sets the dimension of the graphic.
 		boolean scale = false;
 
 		if (zoom == 0 && panelWidth > 0 && panelHeight > 0) {
-		    //System.err.println("Fit Window called");
 		    double widthf = wi/(panelWidth-10);
 		    double heightf = hi/(panelHeight-10);
-		    //System.err.println("widthf="+widthf);
-		    //System.err.println("height="+heightf);
 		    if (widthf > heightf && widthf > 1) {
 			wi /= widthf;
 			hi /= widthf;
@@ -202,7 +198,6 @@ Moreover, it sets the dimension of the graphic.
 
 		repaint();
 
-	    //System.err.println("DisplayPicture::set() done");
 	}
 
 

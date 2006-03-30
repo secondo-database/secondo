@@ -82,6 +82,7 @@ import java_cup.runtime.*;
 import sj.lang.ListExpr;
 import java.io.*;
 import tools.Base64Encoder;
+import tools.Reporter;
 
 class NLToken extends Symbol implements NLSymbol{
   // It extends the Symbol class to allow return the line and character where
@@ -177,7 +178,7 @@ filename    =   "<file>".*"</file--->"
                     // If an error when parsing occur, an unknown token was
                     // read.
                     if (NLTokenizer.DEBUG_MODE){
-                      System.err.println("DEBUG MODE: Error when parsing an integer number from the input in the NLTokenizer class.");
+                      Reporter.writeError("DEBUG MODE: Error when parsing an integer number from the input in the NLTokenizer class.");
                     }
                     return (new NLToken(NLToken.error, null, yychar+1,
                             yyline+1));
@@ -207,7 +208,7 @@ filename    =   "<file>".*"</file--->"
                     // If an error when parsing occur, an unknown token was
                     // read.
                     if (NLTokenizer.DEBUG_MODE){
-                      System.err.println("DEBUG MODE: Error when parsing a real number from the input in the NLTokenizer class.");
+                      Reporter.writeError("DEBUG MODE: Error when parsing a real number from the input in the NLTokenizer class.");
                     }
                     return (new NLToken(NLToken.error, null, yychar+1,
                             yyline+1));
@@ -252,7 +253,7 @@ filename    =   "<file>".*"</file--->"
                      try{
 		        String Directory = ListExpr.getDirectory();
 			if(Directory==null)
-			   System.err.println("Directory shound not be null");
+			   Reporter.writeError("Directory shound not be null");
 			if(!Directory.endsWith(File.separator))
 			   Directory += File.separatorChar;
 			File F = new File(Directory+FN);
@@ -271,8 +272,8 @@ filename    =   "<file>".*"</file--->"
                                 yychar+1,yyline+1));
 		     } catch(Exception e){
 		        if(DEBUG_MODE){
-                            System.err.println("error in reading binary data from file");
-			    e.printStackTrace();
+                            Reporter.writeError("error in reading binary data from file");
+			                      Reporter.debug(e);
 			}
 			 return (new NLToken(NLToken.error, null, yychar+1,
                             yyline+1));
@@ -334,8 +335,8 @@ filename    =   "<file>".*"</file--->"
 <YYINITIAL> .   {
                   // If an unknown token is read.
                   if (NLTokenizer.DEBUG_MODE){
-                    System.err.println("DEBUG MODE: Error: Unknown token found when scanning the input in the NLTokenizer class.");
-                    System.err.println("The value is'"+yytext()+"'");
+                    Reporter.writeError("DEBUG MODE: Error: Unknown token found when scanning the input in the NLTokenizer class.");
+                    Reporter.writeError("The value is'"+yytext()+"'");
                   }
                   return (new NLToken(NLToken.error, null, yychar+1,
                           yyline+1));

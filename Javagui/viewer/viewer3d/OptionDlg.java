@@ -24,6 +24,7 @@ import viewer.viewer3d.graphic3d.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import tools.Reporter;
 
 public class OptionDlg extends JDialog{
 
@@ -82,7 +83,7 @@ public boolean apply(){
      return true;
   else{
      if(! (CB_Border.isSelected() | CB_Filled.isSelected())){
-        JOptionPane.showMessageDialog(this,"please select border or filled");
+        Reporter.writeError("please select border or filled");
         return false;
      }
      else{

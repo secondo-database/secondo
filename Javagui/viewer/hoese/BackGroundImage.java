@@ -10,6 +10,7 @@ import sj.lang.ListExpr;
 import tools.Base64Encoder;
 import tools.Base64Decoder;
 import java.io.*;
+import tools.Reporter;
 
 /**
   * This class handles a image object together with an 
@@ -93,7 +94,7 @@ public class  BackGroundImage extends JDialog{
      loadTFW.addActionListener(new ActionListener(){
          public void actionPerformed(ActionEvent evt){
              if(!tfw.load()){
-                viewer.MessageBox.showMessage("Error in loading file");
+                Reporter.showError("Error in loading file");
              }
          }
 
@@ -104,7 +105,7 @@ public class  BackGroundImage extends JDialog{
             if(useTFW.isSelected()){
                if(!tfw.initialized){
                   useTFW.setSelected(false);
-                  viewer.MessageBox.showMessage("load tfw file first");
+                  Reporter.showError("load tfw file first");
                   return;
                }
                XTF.setEnabled(false);
@@ -142,14 +143,14 @@ private void selectImage(){
      try{
         BufferedImage img = javax.imageio.ImageIO.read(f);
         if(img==null){
-            viewer.MessageBox.showMessage("Error in creating image from file");
+            Reporter.showError("Error in creating image from file");
             return;
         }
         theImage = img;
         imageDisplay.setImage(theImage);
         ImageName.setText(f.getName());
      } catch(Exception e){
-        viewer.MessageBox.showMessage("Error in creating image from file");
+        Reporter.showError("Error in creating image from file");
      }
   }
 }
@@ -168,11 +169,11 @@ private boolean  apply(){
       tmpw = Double.parseDouble(WTF.getText());
       tmph = Double.parseDouble(HTF.getText());
     }catch(Exception e){
-        viewer.MessageBox.showMessage("All entries have to be real numbers. ");
+        Reporter.showError("All entries have to be real numbers. ");
         return false;
     }
     if(tmpw<=0 || tmph <=0){  
-        viewer.MessageBox.showMessage("width and height have to be greater than zero. ");
+        Reporter.showError("width and height have to be greater than zero. ");
         return false;
     }
     bounds.setRect(tmpx,tmpy,tmpw,tmph);
@@ -233,12 +234,12 @@ public ListExpr toListExpr(String BackgroundImagePath){
          // select a non-existent fileName for the image
          File F = new File(BackgroundImagePath);
          if(!F.exists()){
-            viewer.MessageBox.showMessage("Error in creating background image \n"+
+            Reporter.showError("Error in creating background image \n"+
                                           " directory "+BackgroundImagePath +
                                           "don't exists");
             ImageList = ListExpr.theEmptyList();
          } else if(!F.isDirectory()){
-            viewer.MessageBox.showMessage("Error in creating background image \n"+
+            Reporter.showError("Error in creating background image \n"+
                                           BackgroundImagePath +
                                           "is not a directory");
             ImageList = ListExpr.theEmptyList();
@@ -255,8 +256,8 @@ public ListExpr toListExpr(String BackgroundImagePath){
             ImageList = ListExpr.textAtom(FileName+BGNumber+".png"); 
          }
       }catch(Exception e){
-         viewer.MessageBox.showMessage("cannot create the ListExpr for Background Image ");
-         e.printStackTrace();
+         Reporter.showError("cannot create the ListExpr for Background Image ");
+         Reporter.debug(e);
          ImageList=ListExpr.theEmptyList();
       }
    }
@@ -292,13 +293,13 @@ public boolean readFromListExpr(ListExpr le,String BackgroundImagePath){
          BackgroundImagePath+=File.separator;
      File F = new File(BackgroundImagePath+le.fifth().textValue());
      if(!F.exists()){
-        viewer.MessageBox.showMessage("Background File not found");
+        Reporter.showError("Background File not found");
         bi = null;;
      } else{ // ok file exists-> read the image
         try{
            bi = javax.imageio.ImageIO.read(F);
         }catch(Exception e){
-             viewer.MessageBox.showMessage("Error in loading background-Image");
+             Reporter.showError("Error in loading background-Image");
              bi=null;   
         }
      }
@@ -434,7 +435,7 @@ private class TFW{
             initialized=true;           
             return true;
           }catch(Exception e){
-             e.printStackTrace();
+             Reporter.debug(e);
              return false;
           }
       } else{

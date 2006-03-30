@@ -19,7 +19,7 @@
 
 package project;
 
-
+import tools.Reporter;
 
 public class Sinusoidal implements Projection{
 
@@ -40,7 +40,7 @@ public class Sinusoidal implements Projection{
    }
 
    public boolean showSettings(){
-     System.out.println("Sinusoisal.showSettings not implemented");
+     Reporter.writeWarning("Sinusoisal.showSettings not implemented");
      return true;
    }
 

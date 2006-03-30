@@ -70,6 +70,7 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.io.*;
 import javax.sound.midi.*;
+import tools.Reporter;
 
 
 /*
@@ -271,12 +272,12 @@ initialized.
     try { sequencer = MidiSystem.getSequencer(); }
     catch (MidiUnavailableException e)
     {
-      System.out.println("MidiFile 3: Midi unavailable");
+      Reporter.writeError("MidiFile 3: Midi unavailable");
     }
 
     if (sequencer == null)
     {
-      System.out.println("MidiFile 4: can't get a sequencer");
+      Reporter.writeError("MidiFile 4: can't get a sequencer");
     }
 
     if (! (sequencer instanceof Synthesizer))
@@ -291,7 +292,7 @@ initialized.
       }
       catch (MidiUnavailableException e)
       {
-        System.out.println("MidiFile 7: can't get a synthesizer");
+        Reporter.writeError("MidiFile 7: can't get a synthesizer");
       }
     }
 
@@ -935,7 +936,7 @@ the buttons and their listener are linked
               sequencer.setTickPosition(l);
             }
           }
-          catch (Exception ede) {System.out.println("wrong Input");}
+          catch (Exception ede) {Reporter.writeError("wrong Input");}
         }
         refreshSlider();
       }
@@ -1247,13 +1248,13 @@ starts playing
     try { sequencer.open(); }
     catch (MidiUnavailableException e)
     {
-      System.out.println("MidFile 5: Midi unavailable");
+      Reporter.writeError("MidFile 5: Midi unavailable");
       return false;
     }
     try { sequencer.setSequence(thisMidiFile.getSequence());}
     catch (InvalidMidiDataException e)
     {
-      System.out.println("MidiFile 6: Invalid Mididfile");
+      Reporter.writeError("MidiFile 6: Invalid Mididfile");
       return false;
     }
 /*
@@ -1543,7 +1544,7 @@ to remove all midis loaded from a relation, when the relation is removed.
     }
     catch (Exception e)
     {
-      System.out.println("MidiViewer: incorrect Vectorhandling");
+      Reporter.writeError("MidiViewer: incorrect Vectorhandling");
     }
   }
 
@@ -1689,7 +1690,6 @@ Creates the table of a relation
               else
               {
                 row[pos] = TupleValue.first().writeListExprToString();
-                System.out.println(row[pos]);
 
                 if (pos == midiPosition)
                 {

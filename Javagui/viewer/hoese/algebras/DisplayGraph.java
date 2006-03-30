@@ -24,6 +24,7 @@ import  java.awt.*;
 import  viewer.*;
 import viewer.hoese.*;
 import  sj.lang.ListExpr;
+import tools.Reporter;
 
 
 /**
@@ -253,7 +254,7 @@ public class DisplayGraph extends DsplGeneric
    */
   public void drawLabel (Graphics g, Rectangle2D r, double time) {
     if(r==null){
-       System.err.println("drawLabel with null-bounding box called !!");
+       Reporter.writeError("drawLabel with null-bounding box called !!");
        return; 
     }
     String LabelText = getLabelText(time);

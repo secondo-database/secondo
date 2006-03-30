@@ -20,12 +20,13 @@
 
 package  viewer.hoese.algebras;
 
-import  java.awt.geom.*;
-import  java.awt.*;
-import  sj.lang.ListExpr;
-import  java.util.*;
-import  viewer.*;
+import java.awt.geom.*;
+import java.awt.*;
+import sj.lang.ListExpr;
+import java.util.*;
+import viewer.*;
 import viewer.hoese.*;
+import tools.Reporter;
 
 
 /**
@@ -46,9 +47,8 @@ public class Dsplpoints extends DisplayGraph {
     points = new Vector(20, 20);
     while (!value.isEmpty()) {
       ListExpr v = value.first();
-      //System.out.println(v.writeListExprToString());
       if (v.listLength() != 2) {
-        System.out.println("Error: No correct points expression: 2 elements needed");
+        Reporter.writeError("Error: No correct points expression: 2 elements needed");
         err = true;
         return;
       }
@@ -63,7 +63,7 @@ public class Dsplpoints extends DisplayGraph {
       }
       if (!err) {
         if(!ProjectionManager.project(koord[0],koord[1],aPoint))
-           System.err.println("error in projection at coordinate ("+koord[0]+", "+koord[1]+")");
+           Reporter.writeError("error in projection at coordinate ("+koord[0]+", "+koord[1]+")");
         else{
           points.add(new Point2D.Double(aPoint.x,aPoint.y));
         }
@@ -85,7 +85,7 @@ public class Dsplpoints extends DisplayGraph {
     AttrName = type.symbolValue();
     ScanValue(value);
     if (err) {
-      System.out.println("Error in ListExpr :parsing aborted");
+      Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GA(points))"));
       return;
     }
@@ -101,7 +101,6 @@ public class Dsplpoints extends DisplayGraph {
         bounds = (Rectangle2D.Double)bounds.createUnion(new Rectangle2D.Double(p.getX(),
             p.getY(), 0, 0));
     }
-    //System.out.println("Pointsb:"+bounds);
     RenderObject = bounds;
   }
 
@@ -110,7 +109,6 @@ public class Dsplpoints extends DisplayGraph {
    * @see <a href="Dsplpointssrc.html#getBounds">Source</a>
    */
   public Rectangle2D.Double getBounds () {
-    //System.out.println(bounds);
     return  bounds;
   }
 

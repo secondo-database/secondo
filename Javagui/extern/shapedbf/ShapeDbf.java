@@ -24,6 +24,7 @@ import extern.shapereader.*;
 import extern.dbfreader.*;
 import sj.lang.ListExpr;
 import java.util.*;
+import tools.Reporter;
 
 public class ShapeDbf implements SecondoImporter{
 
@@ -56,11 +57,11 @@ public ListExpr getList(String FileName){
   ListExpr V1 = L1.second();
   ListExpr V2 = L2.second();
   if(V1.listLength()!=V2.listLength()){
-    System.out.println("different number of tuples in dbf and shape file:"+V1.listLength()+"<->"+V2.listLength());
+    Reporter.writeWarning("different number of tuples in dbf and shape file:"+
+                          V1.listLength()+"<->"+V2.listLength());
     return null;
   }
   ListExpr TupleList = T2.second().second();
-  //System.err.println("TupleList ="+TupleList.writeListExprToString());
   int length = TupleList.listLength();
   
   Vector UsedNames = new Vector(TupleList.listLength());

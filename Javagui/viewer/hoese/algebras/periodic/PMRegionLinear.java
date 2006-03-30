@@ -23,6 +23,7 @@ import viewer.hoese.*;
 import sj.lang.ListExpr;
 import java.awt.geom.*;
 import java.util.Vector;
+import tools.Reporter;
 
 public class PMRegionLinear extends LinearMove{
 
@@ -38,8 +39,7 @@ public class PMRegionLinear extends LinearMove{
   /** returns a Point2D.Double */
   public Object getObjectAt(Time T){
      if(!defined){
-        if(Environment.DEBUG_MODE)
-	   System.err.println("PMRegionLinear.getObjectAt called on an undefined instance");
+        Reporter.debug("PMRegionLinear.getObjectAt called on an undefined instance");
         return null;
      }
      if(!interval.contains(T)){
@@ -81,9 +81,8 @@ public class PMRegionLinear extends LinearMove{
     int sLength = start.listLength();
     int eLength = end.listLength();
     if(sLength!=eLength || sLength<1){
-        if(Environment.DEBUG_MODE)
-	   System.err.println("different ListLength or empty Region");
-	defined = false;
+        Reporter.debug("different ListLength or empty Region");
+        defined = false;
         return false;
     }
     Faces.ensureCapacity(sLength);
@@ -95,8 +94,7 @@ public class PMRegionLinear extends LinearMove{
         int sfl = CurrentStartFace.listLength();
 	int sel = CurrentEndFace.listLength();
 	if(sfl!=sel || sfl<1){
-           if(Environment.DEBUG_MODE)
-	     System.err.println("different face length or face without an outer cycle");
+       Reporter.debug("different face length or face without an outer cycle");
 	   defined = false;
 	   return false;
 	}
@@ -109,11 +107,9 @@ public class PMRegionLinear extends LinearMove{
 	   int scl = CurrentStartCycle.listLength();
 	   int ecl = CurrentEndCycle.listLength();
 	   if(scl!=ecl || scl<3){
-              if(Environment.DEBUG_MODE){
-	         System.err.println("different cycle length or too less vertices in cycle");
-		 System.err.println("StartCycleLength ="+scl);
-		 System.err.println("EndCycleLength ="+ecl);
-	      }
+        Reporter.debug("different cycle length or too less vertices in cycle\n"+
+		                     "StartCycleLength ="+scl+"\n"+
+                         "EndCycleLength ="+ecl);
 	      return false;
 	   }
 	   Vector CurrentCycle = new Vector(scl+1);
@@ -142,12 +138,11 @@ public class PMRegionLinear extends LinearMove{
 
   public BBox getBoundingBox(){
       if(!defined){
-         if(Environment.DEBUG_MODE)
-	    System.err.println("PMRegionLinear.getBoundingBox called with an undefined instance");
+         Reporter.debug("PMRegionLinear.getBoundingBox called with an undefined instance");
          return null;
       }
-      if(bounds==null & Environment.DEBUG_MODE){
-           System.err.println("PMRegionLinear.getBoundingBox called without a bounding box");
+      if(bounds==null){
+           Reporter.debug("PMRegionLinear.getBoundingBox called without a bounding box");
       }
       return bounds;
   }
@@ -169,17 +164,15 @@ public class PMRegionLinear extends LinearMove{
      }
      boolean readFrom(ListExpr start, ListExpr end){
         if(start.listLength()!=2 || end.listLength()!=2){
-           if(Environment.DEBUG_MODE)
-	     System.err.println("Wrong ListLength for a point");
-	   return false;
-	}
+           Reporter.debug("Wrong ListLength for a point");
+	         return false;
+        }
 	Double X1 = LEUtils.readNumeric(start.first());
 	Double Y1 = LEUtils.readNumeric(start.second());
         Double X2 = LEUtils.readNumeric(end.first());
 	Double Y2 = LEUtils.readNumeric(end.second());
 	if(X1==null || X2==null || Y1==null || Y1==null){
-            if(Environment.DEBUG_MODE)
-	       System.err.println("found a non numeric for a coordinate of a point");
+         Reporter.debug("found a non numeric for a coordinate of a point");
 	    return false;
 	}
         startX = X1.doubleValue();

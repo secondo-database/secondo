@@ -41,6 +41,7 @@ import  components.*;
 import  java.awt.image.*;
 import  viewer.hoese.algebras.Dsplpointsequence;
 import javax.swing.plaf.basic.*;
+import tools.Reporter;
 
 /**
  * this is a viewer for spatial and temporal spatial objects
@@ -224,18 +225,14 @@ public class HoeseViewer extends SecondoViewer {
     try {
       UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
     } catch (Exception exc) {
-      System.err.println("Error loading L&F: " + exc);
-      if(DEBUG_MODE){
-        System.err.println(exc);
-        exc.printStackTrace();
-      }
+      Reporter.debug("Error loading L&F: " , exc);
     }
 
     Properties SystemProps = System.getProperties();
     FileSeparator = SystemProps.getProperty("file.separator");
     if(FileSeparator==null){
         FileSeparator ="/";
-  System.out.println("i can't determine the Systems file separator");
+        Reporter.writeError("i can't determine the Systems file separator");
      }
      TexturePath = FileSeparator;
 
@@ -252,13 +249,13 @@ public class HoeseViewer extends SecondoViewer {
         ListExpr le = new ListExpr();
   File F1 = new File(FileName);
   if(!F1.exists()){
-     System.out.println("i can't find the StandardCategoryFile "+FileName);
+     Reporter.writeError("i can't find the StandardCategoryFile "+FileName);
   }else
            if(le.readFromFile(FileName)!=0){
-              System.out.println("i can't load the file "+FileName);
+              Reporter.writeError("i can't load the file "+FileName);
            } else{
              if(!readAllCats(le))
-               System.out.println("no categories in file "+FileName);
+               Reporter.writeError("no categories in file "+FileName);
            }
       }
     }
@@ -583,14 +580,6 @@ public class HoeseViewer extends SecondoViewer {
   }
 
 
-  /** shows a messagebox */
-  public void showMessage(String message){
-     MessageBox.showMessage(message);
-  }
-
-
-
-
   /**
    * Sets the divider between split-components
    * @see <a href="MainWindowsrc.html#setdivider>Source</a>
@@ -782,13 +771,13 @@ public class HoeseViewer extends SecondoViewer {
             Cats.add(Category.getDefaultCat());
             suc ="OK";
       if (readAllCats(le))
-         MessageBox.showMessage("categories loaded");
+         Reporter.showInfo("categories loaded");
       else
-         MessageBox.showMessage("error in categories");
+         Reporter.showError("error in categories");
           }
           else{
             suc = "Failed";
-      MessageBox.showMessage("error in categories");
+            Reporter.showError("error in categories");
     }
         }
       }
@@ -806,9 +795,9 @@ public class HoeseViewer extends SecondoViewer {
           ListExpr le = writeAllCats();
           String suc;
           if (le.writeToFile(file.getPath())!= 0)
-             showMessage("save category failed");
+             Reporter.showError("save category failed");
           else
-             showMessage("success");
+             Reporter.showInfo("success");
         }
       }
     });
@@ -821,16 +810,16 @@ public class HoeseViewer extends SecondoViewer {
     MI_SaveAttrCatLink.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
            if(ManualLinkPool.numberOfLinks()==0){
-        showMessage("no references defined");
+              Reporter.showError("no references defined");
         return;
      }
      if(FC_References.showSaveDialog(HoeseViewer.this)==JFileChooser.APPROVE_OPTION){
               ListExpr LE = ManualLinkPool.toListExpr();
         File f = FC_References.getSelectedFile();
         if(LE.writeToFile(f.getPath())!=0)
-             showMessage("saves references failed");
+             Reporter.showError("saves references failed");
         else
-             showMessage("save references successful");
+             Reporter.showError("save references successful");
      }
        }});
 
@@ -839,9 +828,9 @@ public class HoeseViewer extends SecondoViewer {
        public void actionPerformed(ActionEvent evt){
           if(FC_References.showOpenDialog(HoeseViewer.this)==JFileChooser.APPROVE_OPTION)
        if (loadReferences(FC_References.getSelectedFile())){
-           showMessage("load references successful");
+           Reporter.showInfo("load references successful");
        }else{
-                showMessage("load references failed");
+              Reporter.showError("load references failed");
        }
     }});
 
@@ -849,7 +838,7 @@ public class HoeseViewer extends SecondoViewer {
     MI_AppendAttrCatLink.setText("Append Attribute -> Category");
     MI_AppendAttrCatLink.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
-                showMessage("this function is not implemented");
+                Reporter.showError("this function is not implemented");
 
     }});
 
@@ -866,7 +855,7 @@ public class HoeseViewer extends SecondoViewer {
         public void actionPerformed(ActionEvent evt){
            // create the image
            Rectangle2D R = GraphDisplay.getBounds();
-           System.out.println("Restrict the size of the image  !!!");
+           Reporter.writeWarning("Restrict the size of the image  !!!");
            BufferedImage bi = new BufferedImage((int)R.getWidth(),(int)R.getHeight(),
                                                  BufferedImage.TYPE_INT_RGB);
            Graphics2D g = bi.createGraphics();
@@ -876,7 +865,7 @@ public class HoeseViewer extends SecondoViewer {
               try{
                  javax.imageio.ImageIO.write(bi,"png",F); 
               } catch(Exception e){
-                 MessageBox.showMessage("Error in saving image ");
+                 Reporter.showError("Error in saving image ");
               }
            }
            g.dispose(); 
@@ -961,7 +950,7 @@ public class HoeseViewer extends SecondoViewer {
    selectSequenceCat.addActionListener(new ActionListener(){
          public void actionPerformed(ActionEvent evt){
              if(Cats==null || Cats.size()==0){
-                MessageBox.showMessage("No categories available");
+                Reporter.showError("No categories available");
                 return;
              }
              Category[] catarray = new Category[Cats.size()];
@@ -1030,7 +1019,7 @@ public class HoeseViewer extends SecondoViewer {
            double w =  R.getWidth();
            double h =  R.getHeight();
            if(w<=0 | h<=0){
-              showMessage("cannot capture the background");
+              Reporter.showError("cannot capture the background");
               bgImage.setImage(null);
               GraphDisplay.updateBackground();
               return; 
@@ -1040,12 +1029,10 @@ public class HoeseViewer extends SecondoViewer {
               double sf=1.0; // the scale factor
               long MAXPIXELS = MAXCAPTUREPIXELS;            
               if((long)(w*h) > MAXPIXELS){
-                 //System.out.println("scale down the image because it's too big");
                  sf = Math.sqrt( MAXPIXELS/ ((R.getWidth()*R.getHeight())));
                  w =  (w*sf);
                  h =  (h*sf);
                  scale = true;
-                 //System.out.println("The resulting picture will have " + (w*h)+" pixels");
               }
 
               BufferedImage bi = new BufferedImage((int)w,(int)h,BufferedImage.TYPE_3BYTE_BGR);
@@ -1065,14 +1052,14 @@ public class HoeseViewer extends SecondoViewer {
                   R.setRect(0,0,R.getWidth(),R.getHeight());    
                   R = at.createInverse().createTransformedShape(R).getBounds2D();
               } catch(Exception e){
-                  MessageBox.showMessage("Cannot determine the bounding box of this image");
+                  Reporter.showError("Cannot determine the bounding box of this image");
               }
               bgImage.setBBox(R.getX(),R.getY(),R.getWidth(),R.getHeight());
               g.dispose();
               GraphDisplay.updateBackground();
             }catch(Exception e){
                // because large sized data are processed, a OutOfMemory error is possible
-               showMessage("an error in capturing the background is occured");
+               Reporter.showError("an error in capturing the background is occured");
                bgImage.setImage(null); 
            }
            System.gc();
@@ -1087,7 +1074,7 @@ public class HoeseViewer extends SecondoViewer {
               // the screen size
               Rectangle VisRect = GeoScrollPane.getBounds();
               if(VisRect.getHeight()<=0 || VisRect.getWidth()<=0){
-                MessageBox.showMessage("cannot capture the rectangle");
+                Reporter.showError("cannot capture the rectangle");
               }
               int border = CaptureBorder; // later change for setting by the user
               int vw = (int)VisRect.getWidth()+2*border;
@@ -1112,14 +1099,14 @@ public class HoeseViewer extends SecondoViewer {
                   R2.setRect(-x,-y,vw,vh);    
                   R2 = at.createInverse().createTransformedShape(R2).getBounds2D();
               } catch(Exception e){
-                  MessageBox.showMessage("Cannot determine the bounding box of this image");
+                  Reporter.showError("Cannot determine the bounding box of this image");
               }
               bgImage.setBBox(R2.getX(),R2.getY(),R2.getWidth(),R2.getHeight());
               g.dispose();
               GraphDisplay.updateBackground();
             }catch(Exception e){
                // because large sized data are processed, a OutOfMemory error is possible
-               showMessage("an error in capturing the background is occured");
+               Reporter.showError("an error in capturing the background is occured");
                bgImage.setImage(null); 
            }
            System.gc();
@@ -1163,7 +1150,7 @@ public class HoeseViewer extends SecondoViewer {
            try{
              CaptureBorder = Integer.parseInt(Label);
            }catch(Exception e){
-              showMessage("Cannot determine the size of the border");
+              Reporter.showError("Cannot determine the size of the border");
            } 
         }
     };
@@ -1348,10 +1335,10 @@ public class HoeseViewer extends SecondoViewer {
             GraphDisplay.repaint();
           } 
           else
-            showMessage("No DsplBase object selected!");
+            Reporter.showError("No DsplBase object selected!");
         } 
         else
-          showMessage("No query selected!");
+          Reporter.showError("No query selected!");
       }
     });
 
@@ -1370,10 +1357,10 @@ public class HoeseViewer extends SecondoViewer {
             TextDisplay.repaint();
           } 
           else 
-            showMessage("No DsplBase object selected!");
+            Reporter.showError("No DsplBase object selected!");
         }
         else 
-          showMessage("No query selected!");
+          Reporter.showError("No query selected!");
       }
     });
 
@@ -1381,7 +1368,7 @@ public class HoeseViewer extends SecondoViewer {
     AAViewCat = new AbstractAction("Change category"){
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         if (selGraphObj == null) {
-          showMessage("No DsplGraph object selected!");
+          Reporter.showError("No DsplGraph object selected!");
           return;
         }
         CategoryEditor ce = new CategoryEditor(HoeseViewer.this, true, selGraphObj.getCategory());
@@ -1397,7 +1384,7 @@ public class HoeseViewer extends SecondoViewer {
     AALabelAttr = new AbstractAction("Label attributes"){
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         if (selGraphObj == null) {
-          showMessage("No DsplGraph object selected!");
+          Reporter.showError("No DsplGraph object selected!");
           return;
         }
         new LabelAttrDlg(HoeseViewer.this, selGraphObj).show();
@@ -1411,7 +1398,7 @@ public class HoeseViewer extends SecondoViewer {
     MIMoveTop.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         if (selGraphObj == null) {
-          showMessage("No DsplGraph object selected!");
+          Reporter.showError("No DsplGraph object selected!");
           return;
         }
         //oldLayer.getGeoObjects().remove(selGraphObj);
@@ -1434,7 +1421,7 @@ public class HoeseViewer extends SecondoViewer {
     MIMoveUp.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         if (selGraphObj == null) {
-          showMessage("No DsplGraph object selected!");
+          Reporter.showError("No DsplGraph object selected!");
           return;
         }
         //oldLayer.getGeoObjects().remove(selGraphObj);
@@ -1458,7 +1445,7 @@ public class HoeseViewer extends SecondoViewer {
     MIMoveDown.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         if (selGraphObj == null) {
-          showMessage("No DsplGraph object selected!");
+          Reporter.showError("No DsplGraph object selected!");
           return;
         }
         //oldLayer.getGeoObjects().remove(selGraphObj);
@@ -1483,7 +1470,7 @@ public class HoeseViewer extends SecondoViewer {
     MIMoveBottom.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         if (selGraphObj == null) {
-          showMessage("No DsplGraph object selected!");
+          Reporter.showError("No DsplGraph object selected!");
           return;
         }
         int min = 1;
@@ -1593,10 +1580,7 @@ public boolean addProjection(String Name){
      return true;
     }
  catch(Exception e){ 
-     if(DEBUG_MODE){
-         System.out.println(e); 
-   e.printStackTrace();
-     }
+     Reporter.debug(e);
      return false;}
 }
 
@@ -1672,7 +1656,7 @@ public boolean canDisplay(SecondoObject o){
     // If an error happened when showing the query result, shows the error
     // message.
     if (displayErrorCode != NOT_ERROR_CODE) {
-      showMessage("add queryresult failed");
+      Reporter.showError("add queryresult failed");
       return  false;
     }
     else {
@@ -1761,9 +1745,9 @@ public boolean canDisplay(SecondoObject o){
           writeAllCats(), TextDisplay.convertAllQueryResults());
       String suc;
       if(le.writeToFile(file.getPath()) == 0)
-         showMessage("session written");
+         Reporter.showInfo("session written");
       else
-         showMessage("save session failed");
+         Reporter.showError("save session failed");
     }
   }             
 
@@ -1787,20 +1771,20 @@ public boolean canDisplay(SecondoObject o){
           ok=false;
         }
       if(!ok){
-         showMessage("i can't load the file");
+         Reporter.showError("i can't load the file");
          return;
       }
       
       // check ListExprFormat
       if (le.listLength()!=4){
-         showMessage(" the file contains not a session ");
+         Reporter.showError(" the file contains not a session ");
          return;
       }
          
       ListExpr type = le.first();
 
       if (!type.isAtom() || !(type.atomType()==ListExpr.SYMBOL_ATOM) || !type.symbolValue().equals("session")){
-         showMessage(" the file contains no session ");
+         Reporter.showError(" the file contains no session ");
          le.destroy();
          return;
       }
@@ -1918,7 +1902,6 @@ public boolean canDisplay(SecondoObject o){
   private AffineTransform calcProjection () {
     double extra = 30;   //extra portion at every border of 30 pix
     Rectangle2D.Double BBWC = BBoxWC;
-   // System.out.println("bbwc:" + BBWC.toString());
     double wp1x = BBWC.getX();
     double wp1y = BBWC.getY();
     double wpw = BBWC.getWidth();
@@ -1926,7 +1909,6 @@ public boolean canDisplay(SecondoObject o){
     double w = ClipRect.getWidth();             //(double) GeoScrollPane.getViewport().getWidth();
     double h = ClipRect.getHeight();            //(double) GeoScrollPane.getViewport().getHeight();
     //ClipRect.setSize((int)w,(int)h);
-    //System.out.println("ClipRect:" + ClipRect.toString());
     // if no objects or only a single point,line is visible
     if ((wpw == 0) && (wph == 0)) {
       return  new AffineTransform(1, 0, 0, 1, -wp1x + extra, -wp1y + extra);
@@ -1993,7 +1975,6 @@ public boolean canDisplay(SecondoObject o){
        return;
     //try{
     Shape s = allProjection.createTransformedShape(r);
-    //System.out.println(s.getBounds());
     r = s.getBounds2D();
     if (!isMouseSelected) {
       double w = (double)GeoScrollPane.getViewport().getWidth();
@@ -2059,7 +2040,6 @@ public boolean canDisplay(SecondoObject o){
       if (selGraphObj != null) {
         selGraphObj.getLayer().setSelectedButton(false);
         selGraphObj.setSelected(false);
-        //System.out.println("selection off:"+selGraphObj.getAttrName());
         selGraphObj = null;
         //selGraphObj.getLayer().repaint();
       }
@@ -2177,7 +2157,6 @@ public boolean canDisplay(SecondoObject o){
           m[5] *= zf;
           allProjection = new AffineTransform(m);
           BBoxDC.setSize((int)(BBoxDC.getWidth()*zf), (int)(BBoxDC.getHeight()*zf));
-          //System.out.println("ClipRect:"+ClipRect.toString());
           GraphDisplay.updateLayersSize(BBoxDC);
           GraphDisplay.scrollRectToVisible(new Rectangle((int)(r.getX()*zf),
               (int)(r.getY()*zf), (int)w, (int)h));
@@ -2243,7 +2222,6 @@ public boolean canDisplay(SecondoObject o){
             continue;
           if (dg.contains(p.getX(), p.getY(), scalex, scaley)) {
             double AktIndex = (dg.getSelected()) ? SelIndex : dg.getLayer().getObjIndex(dg);
-            //System.out.println("A:"+AktIndex);
             //top is the topmost GO
             if (AktIndex > TopIndex) {
               TopIndex = AktIndex;
@@ -2254,7 +2232,6 @@ public boolean canDisplay(SecondoObject o){
               //the next GO smaller than selindex and greater than best until now
               Obj2sel = dg;
               BestIndex = AktIndex;
-              //System.out.println("B:"+BestIndex+"S: "+SelIndex);
               ComboIndex = j;
             }
           }
@@ -2305,7 +2282,6 @@ public boolean canDisplay(SecondoObject o){
         if (anf > TimeBounds.getEnd())
           anf = TimeBounds.getEnd();
       }
-      //System.out.println("anf"+e.getValue());
       if (anf == CurrentState.ActualTime)
         return;
       GraphDisplay.setIgnorePaint(true);
@@ -2315,7 +2291,6 @@ public boolean canDisplay(SecondoObject o){
       GraphDisplay.setIgnorePaint(false);
       GraphDisplay.repaint();
       SelectionControl.drawRectangle();
-      //System.out.println(ActualTime);
       
     }
   }
@@ -2328,7 +2303,7 @@ public boolean canDisplay(SecondoObject o){
     configuration = new Properties();
     File CF = new File(CONFIGURATION_FILE);
     if(!CF.exists()){
-       MessageBox.showMessage("HoeseViewer : configuration file not found");
+       Reporter.showError("HoeseViewer : configuration file not found");
        return;
     }
     try {
@@ -2337,10 +2312,7 @@ public boolean canDisplay(SecondoObject o){
       Cfg.close();
       }
     catch(Exception e){
-       if(DEBUG_MODE){
-          System.err.println(e);
-    e.printStackTrace();
-       }
+       Reporter.debug(e);
        return;
     }
     if(success){
@@ -2379,7 +2351,7 @@ public boolean canDisplay(SecondoObject o){
        File F;
        F = new File(CatPath);
        if(!F.exists())
-          System.out.println("wrong categorypath "+CatPath);
+          Reporter.writeError("wrong categorypath "+CatPath);
        else
           FC_Category.setCurrentDirectory(new File(CatPath));
 
@@ -2390,7 +2362,7 @@ public boolean canDisplay(SecondoObject o){
            SessionPath = TMPSessionPath.trim();
        F = new File(SessionPath);
        if(!F.exists())
-          System.out.println("wrong SessionPath "+SessionPath);
+          Reporter.writeError("wrong SessionPath "+SessionPath);
        else
           FC_Session.setCurrentDirectory(new File(SessionPath));
 
@@ -2405,11 +2377,11 @@ public boolean canDisplay(SecondoObject o){
 
        F = new File(TexturePath);
        if(!F.exists()){
-          System.out.println("the TEXTURE_PATH in "+CONFIGURATION_FILE+" is setted to a non existing Path");
-    System.out.println("please set this variable to a existing non relative pathname");
+          Reporter.writeWarning("the TEXTURE_PATH in "+CONFIGURATION_FILE+" is setted to a non existing Path");
+          Reporter.writeWarning("please set this variable to a existing non relative pathname");
        }else{
     CategoryEditor.setTextureDirectory(new File(TexturePath));
-    System.out.println("set TexturePath to "+TexturePath);
+    Reporter.writeInfo("set TexturePath to "+TexturePath);
     Category.setTexturePath(TexturePath);
        }
 
@@ -2420,7 +2392,7 @@ public boolean canDisplay(SecondoObject o){
              long mp = Long.parseLong(MaxPixels);
              ScalableImage.setMaxPixels(mp); 
           } catch(Exception e){
-            System.out.println("Error in readng MaxPixels");
+            Reporter.writeError("Error in reading MaxPixels");
           } 
     }
     
@@ -2431,7 +2403,7 @@ public boolean canDisplay(SecondoObject o){
              long mp = Long.parseLong(MaxCapPixels);
              MAXCAPTUREPIXELS=mp; 
           } catch(Exception e){
-            System.out.println("Error in readng MaxCapturePixels");
+            Reporter.writeError("Error in readng MaxCapturePixels");
           } 
     }
 
@@ -2446,7 +2418,7 @@ public boolean canDisplay(SecondoObject o){
 
        F = new File(ReferencePath);
        if(!F.exists())
-          System.out.println("wrong ReferencePath "+ReferencePath);
+          Reporter.writeError("wrong ReferencePath "+ReferencePath);
        else
           FC_References.setCurrentDirectory(new File(ReferencePath));
 
@@ -2455,15 +2427,15 @@ public boolean canDisplay(SecondoObject o){
        if(StdRef!=null){
          F = new File(ReferencePath+StdRef);
    if(!F.exists())
-     System.out.println("the Reference-File "+StdRef+" not exists");
+     Reporter.writeError("the Reference-File "+StdRef+" not exists");
    else
      if(!loadReferences(F))
-       System.out.println("i can't load the reference file :"+StdRef);
+       Reporter.writeError("i can't load the reference file :"+StdRef);
        }
 
        String Prjs = configuration.getProperty("PROJECTIONS");
        if(Prjs==null)
-          System.out.println("PROJECTIONS not found in " +CONFIGURATION_FILE);
+          Reporter.writeWarning("PROJECTIONS not found in " +CONFIGURATION_FILE);
        else{
           boolean ok = true;
     String Errors ="";
@@ -2476,7 +2448,7 @@ public boolean canDisplay(SecondoObject o){
        }
     }
     if(!ok){
-      MessageBox.showMessage("not all projections loaded \n errors in \n"+Errors);
+      Reporter.showError("not all projections loaded \n errors in \n"+Errors);
     }
 
 
@@ -2635,7 +2607,7 @@ public boolean canDisplay(SecondoObject o){
              return;
       
           if(!computeOrig(evt.getPoint(),aPoint)){
-              MessageBox.showMessage("Error in computing Projection");  
+              Reporter.showError("Error in computing Projection");  
               return;// ignore this point 
           }
           double x = aPoint.x;
@@ -2660,7 +2632,7 @@ public boolean canDisplay(SecondoObject o){
           Point2D.Double thePoint = new Point2D.Double(x,y);
           if(mode==REGION_MODE){
               if(haveIntersections(points,thePoint)){
-                  MessageBox.showMessage("Intersection detected");
+                  Reporter.showError("Intersection detected");
                   return;
               }
           }
@@ -2758,13 +2730,13 @@ public boolean canDisplay(SecondoObject o){
               Point p1 = new Point(Math.min(x1,x2),Math.min(y1,y2));
               Point p2 = new Point(Math.max(x1,x2),Math.max(y1,y2));
               if(!computeOrig(p1,aPoint)){
-                  MessageBox.showMessage("Error in computing a point from mouse coordinates");
+                  Reporter.showError("Error in computing a point from mouse coordinates");
                   return;
               }
               double dx1 = aPoint.x;
               double dy1 = aPoint.y;
               if(!computeOrig(p2,aPoint)){
-                  MessageBox.showMessage("Error in computing a point from mouse coordinates");
+                  Reporter.showError("Error in computing a point from mouse coordinates");
                   return;
               }
               double dx2 = aPoint.x;
@@ -2916,7 +2888,7 @@ public boolean canDisplay(SecondoObject o){
              if(mode==REGION_MODE){
               // first component, face
                if(points.size()<3){
-                 MessageBox.showMessage("Points don't build a valid polygon.");
+                 Reporter.showError("Points don't build a valid polygon.");
                  reset();
                  return;
                } 
@@ -2931,7 +2903,7 @@ public boolean canDisplay(SecondoObject o){
                     case LINE_MODE : TypeName ="line"; break;
                     case POINTS_MODE : TypeName ="points";break;
                     case REGION_MODE : TypeName ="region";break;
-                    default : TypeName ="unknown"; System.err.println("invalid mode detected");
+                    default : TypeName ="unknown"; Reporter.writeError("invalid mode detected");
                   }
                   ListExpr result = ListExpr.twoElemList(ListExpr.symbolAtom(TypeName),value);
                   processSecondoObject(Name,TypeName,result);
@@ -2951,7 +2923,7 @@ public boolean canDisplay(SecondoObject o){
           ListExpr resultList = ListExpr.theEmptyList();
            StringBuffer errorMessage= new StringBuffer();
           if(!VC.execCommand(cmd,errorCode,resultList,errorMessage)){
-               MessageBox.showMessage("Error in storing pointsequence\n"+ 
+               Reporter.showError("Error in storing pointsequence\n"+ 
                                         sj.lang.ServerErrorCodes.getErrorMessageText(errorCode.value)+"\n"+
                                         errorMessage);
                 return false;

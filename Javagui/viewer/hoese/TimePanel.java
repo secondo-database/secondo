@@ -48,7 +48,6 @@ public class TimePanel extends javax.swing.JPanel               // implements Va
     public void paintComponent (Graphics g) {
       //            Rectangle drawHere = g.getClipBounds();
       Rectangle drawHere = ZeitScrollPane.getViewport().getViewRect();
-      //System.out.println(drawHere.x);
       g.setColor(new Color(20, 200, 4));
       g.fillRect(drawHere.x, 0, drawHere.width, SIZE);
       g.setFont(new Font("SansSerif", Font.PLAIN, 10));
@@ -149,7 +148,6 @@ public class TimePanel extends javax.swing.JPanel               // implements Va
       TimeFormatLen = 10;
     }
     PixelTime = 1440/(double)TimeperPixel;
-    //System.out.println(PixelTime);	
   }
 
   /**

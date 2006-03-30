@@ -29,6 +29,7 @@ import  javax.swing.border.*;
 import  java.awt.event.*;
 import  java.awt.geom.*;
 import gui.Environment;
+import tools.Reporter;
 
 
 /**
@@ -56,7 +57,7 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
          functionframe.setVisible(true);
          functionframe.toFront();
       } else{
-         viewer.MessageBox.showMessage("The moving real is empty");
+         Reporter.showInfo("The moving real is empty");
       }
   }
 
@@ -107,7 +108,7 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
       	 double actTime = (double)x/PixelTime+TimeBounds.getStart();
          Double Mv = getValueAt(actTime,jc.ValueIndex);      
          if(Mv==null){
-            System.err.println("Cannot determine the value at"+actTime);
+            Reporter.writeError("Cannot determine the value at"+actTime);
          }else{
             double mv=Mv.doubleValue();
             max=Math.max(max,mv);
@@ -170,8 +171,8 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
          return new Double(polyvalue);
        }else{
          if(polyvalue<0){
-            System.err.println("Wrong MRealMap detected !!!");
-            System.err.println("attempt to compute the sqareroot of a negative number");
+            Reporter.writeError("Wrong MRealMap detected !!!"+
+                                "attempt to compute the sqareroot of a negative number");
             return null;
          }else{
             return new Double(Math.sqrt(polyvalue));
@@ -205,8 +206,7 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
       if(len!=2 && len !=8)
          return;
       if (len == 8){
-         if(Environment.DEBUG_MODE)
-            System.err.println("Warning: deprecated list represenation for moving real");
+         Reporter.writeWarning("Warning: deprecated list represenation for moving real");
          in = LEUtils.readInterval(ListExpr.fourElemList(le.first(),
                        le.second(), le.third(), le.fourth()));
          map = le.rest().rest().rest().rest();
@@ -264,7 +264,7 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
     err=true;
     ScanValue(value);
     if (err) {
-      System.out.println("Error in ListExpr :parsing aborted");
+      Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": TA(MReal))"));
       return;
     } 
@@ -357,7 +357,7 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
       	 double actTime = (double)x/PixelTime+TimeBounds.getStart();
          Double Mv = getValueAt(actTime,ValueIndex);
          if(Mv==null){
-           System.err.println("Error in computing the real value for instant "+actTime);
+           Reporter.writeError("Error in computing the real value for instant "+actTime);
          }else{
       	    double mv=Mv.doubleValue();
 	    int ypos=(int)(mv*y1+y2);

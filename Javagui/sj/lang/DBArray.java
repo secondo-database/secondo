@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.RandomAccessFile;
 import java.util.List;
 import java.util.Vector;
+import tools.Reporter;
 
 
 /**
@@ -161,16 +162,16 @@ Prints some statistics
 
 */
 public void printStatistics(){
-   System.out.println("*******************************");
-   System.out.println("CacheSize: " + cacheSize);
-   System.out.println("cached   : " + cached);
-   System.out.println("Read     : " + readAccesses);
-   System.out.println("DB-read  : " + dbreadAccesses);
-   System.out.println("write    : " + writeAccesses);
-   System.out.println("DB-write1 : " + dbwrite1);
-   System.out.println("DB-write2 : " + dbwrite2);
-   System.out.println("DB-write3 : " + dbwrite3);
-   System.out.println("*******************************");
+   Reporter.writeInfo("*******************************");
+   Reporter.writeInfo("CacheSize: " + cacheSize);
+   Reporter.writeInfo("cached   : " + cached);
+   Reporter.writeInfo("Read     : " + readAccesses);
+   Reporter.writeInfo("DB-read  : " + dbreadAccesses);
+   Reporter.writeInfo("write    : " + writeAccesses);
+   Reporter.writeInfo("DB-write1 : " + dbwrite1);
+   Reporter.writeInfo("DB-write2 : " + dbwrite2);
+   Reporter.writeInfo("DB-write3 : " + dbwrite3);
+   Reporter.writeInfo("*******************************");
 }
 
 
@@ -206,16 +207,14 @@ private boolean initEnvironment(){
      }
      DBDir.deleteOnExit();
      tempDir = DBDir;
-     System.out.println("Creating new Directory "+tempDir.getName()+" for DBArrays");
+     Reporter.writeInfo("Creating new Directory "+tempDir.getName()+" for DBArrays");
      tempDir.mkdir();  // create a directory if not exists
      rmEnv = new RemoveEnv(tempDir);
      Thread t = new Thread(rmEnv);
      Runtime.getRuntime().addShutdownHook(t);
      return true; 
     } catch(Exception e){
-       if(DEBUG_MODE){
-            e.printStackTrace();
-       }
+       Reporter.debug(e);
        return false; 
     }
 }
@@ -343,8 +342,7 @@ private boolean writeToDatabase(long key, byte[] data){
      }
      return true;     
    }catch(Exception e){
-      if(DEBUG_MODE)
-         e.printStackTrace();
+      Reporter.debug(e);
       return false;
    }
 }
@@ -417,8 +415,7 @@ private Entry readFromDatabase(long key){
     lastUsedFile2.readFully(data);
     return new Entry(key,data);
    }catch(Exception e){
-       if(DEBUG_MODE)
-          e.printStackTrace();
+       Reporter.debug(e);
        return null;
    }
 }
@@ -470,8 +467,7 @@ private boolean deleteFromDatabase(long key){
     lastUsedFile1.write(connector1); 
     return true;
    }catch(Exception e){
-       if(DEBUG_MODE)
-          e.printStackTrace();
+       Reporter.debug(e);
        return false;
    }
 }
@@ -563,8 +559,7 @@ static class RemoveEnv implements Runnable {
             try{
                  ((RandomAccessFile)openFiles.get(i)).close();
             }catch(Exception e){
-                if(DEBUG_MODE)
-		     e.printStackTrace();	 
+               Reporter.debug(e);	 
             }		    
        }	       
        deleteFile(directory);

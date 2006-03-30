@@ -20,14 +20,15 @@
 
 package  viewer.hoese;
 
-import  java.awt.*;
-import  java.awt.event.*;
-import  javax.swing.*;
-import  java.awt.geom.*;
-import  java.util.*;
-import  viewer.HoeseViewer;
-import  javax.swing.border.*;
-import  java.awt.image.BufferedImage;
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
+import java.awt.geom.*;
+import java.util.*;
+import viewer.HoeseViewer;
+import javax.swing.border.*;
+import java.awt.image.BufferedImage;
+import tools.Reporter;
 
 /**
  * This class implements the layer-stack for the graphical objects. The super class is a 
@@ -153,7 +154,7 @@ public class GraphWindow extends JLayeredPane
       while (li.hasNext()) {
         DsplGraph dg = ((DsplGraph)li.next());
 	if(dg==null)
-	   System.out.println("viewer.hoese.GraphWindow .addLayerObjects has received a null object");
+	   Reporter.writeError("viewer.hoese.GraphWindow .addLayerObjects has received a null object");
 	else
            dg.setCategory(acat);
         //dg.LabelText=dg.getAttrName();
@@ -210,8 +211,8 @@ public class GraphWindow extends JLayeredPane
       }
     }
     catch(Exception e){
-      System.out.println("Exception in : GraphWindow.newQueryRep "+e );
-      e.printStackTrace();
+      Reporter.writeError("Exception in : GraphWindow.newQueryRep "+e );
+      Reporter.debug(e);
     }
   }
 
@@ -280,7 +281,7 @@ public class GraphWindow extends JLayeredPane
       remove(background);
       repaint();
       if(gui.Environment.DEBUG_MODE){
-          System.err.println("cannot find the background ");
+          Reporter.writeError("cannot find the background ");
       }
       return;
     }

@@ -19,13 +19,14 @@
 
 package  viewer.hoese.algebras;
 
-import  java.awt.geom.*;
-import  java.awt.*;
-import  viewer.*;
-import  viewer.hoese.*;
-import  sj.lang.ListExpr;
-import  java.util.*;
-import  gui.Environment;
+import java.awt.geom.*;
+import java.awt.*;
+import viewer.*;
+import viewer.hoese.*;
+import sj.lang.ListExpr;
+import java.util.*;
+import gui.Environment;
+import tools.Reporter;
 
 
 /**
@@ -162,15 +163,14 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
       ListExpr tmp = aunit;
       int L = aunit.listLength();
       if(L!=2 && L!=8){
-         if(Environment.DEBUG_MODE)
-            System.err.println("wrong ListLength in reading moving point unit");
+         Reporter.debug("wrong ListLength in reading moving point unit");
          return;
       }
       // deprecated version of external representation
       Interval in=null;
       PointMap pm=null;
       if (L == 8){
-         System.out.println("Warning: using deprecated external representation of a moving point !");
+         Reporter.writeWarning("Warning: using deprecated external representation of a moving point !");
          in = LEUtils.readInterval(ListExpr.fourElemList(aunit.first(),
                                    aunit.second(), aunit.third(), aunit.fourth()));
          aunit = aunit.rest().rest().rest().rest();
@@ -184,16 +184,15 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
       }
 
       if ((in == null) || (pm == null)){
-        if(Environment.DEBUG_MODE){
-           System.err.println("Error in reading Unit");
-           System.err.println(tmp.writeListExprToString());
-           if(in==null){
-              System.err.println("Error in reading interval");
-           }
-           if(pm==null){
-              System.err.println("Error in reading Start and EndPoint");
-           }
-        }
+        
+         Reporter.debug("Error in reading Unit");
+         Reporter.debug(tmp.writeListExprToString());
+         if(in==null){
+              Reporter.debug("Error in reading interval");
+          }
+          if(pm==null){
+             Reporter.debug("Error in reading Start and EndPoint");
+          }
         return;
       }
       Intervals.add(in);
@@ -220,7 +219,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
     PointMaps = new Vector(length+2);
     ScanValue(value);
     if (err) {
-      System.out.println("Dsplmovingpoint Error in ListExpr :parsing aborted");
+      Reporter.writeError("Dsplmovingpoint Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GTA(mpoint))"));
       return;
     }

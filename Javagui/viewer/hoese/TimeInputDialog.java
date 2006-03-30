@@ -30,6 +30,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import viewer.*;
+import tools.Reporter;
 
 public class TimeInputDialog extends JDialog{
 
@@ -65,12 +66,12 @@ public class TimeInputDialog extends JDialog{
 	      try{
                  long tmp = Long.parseLong(Text.getText().trim());
 		 if(tmp<=0){
-		   MessageBox.showMessage("the time must be greater then zero!");
+		   Reporter.showError("the time must be greater then zero!");
 		   return;
 		 }
                  int i = CB.getSelectedIndex();
 		 if(i<0){
-		    MessageBox.showMessage("internal error"); // should never be reached
+		    Reporter.showError("internal error"); // should never be reached
 		    return;
 		 }
                  time = tmp*factors[i];
@@ -78,7 +79,7 @@ public class TimeInputDialog extends JDialog{
 		 Result = OK;
 	         hide(); //setVisible(false);
 	      } catch(Exception e){
-  	          MessageBox.showMessage("the input is not correct");
+  	          Reporter.showError("the input is not correct");
 		  return;
 	      }
 

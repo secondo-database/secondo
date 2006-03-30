@@ -25,6 +25,7 @@ import  sj.lang.ListExpr;
 import  java.util.*;
 import  viewer.*;
 import viewer.hoese.*;
+import tools.Reporter;
 
 
 /**
@@ -38,9 +39,8 @@ public class Dsplrect extends DisplayGraph {
    */
   private void ScanValue (ListExpr v) {
     double koord[] = new double[2];
-    //System.out.println(v.writeListExprToString());
     if (v.listLength() != 4) {
-      System.err.println("Error: No correct rectangle expression: 4 elements needed");
+      Reporter.writeError("Error: No correct rectangle expression: 4 elements needed");
       err = true;
       return;
     }
@@ -49,7 +49,7 @@ public class Dsplrect extends DisplayGraph {
     Double Y1 = LEUtils.readNumeric(v.third());
     Double Y2 = LEUtils.readNumeric(v.fourth());
     if(X1==null || X2==null || Y1==null | Y2==null){
-       System.err.println("Error: no correct rectangle expression (not a numeric)");
+       Reporter.writeError("Error: no correct rectangle expression (not a numeric)");
        err =true;
        return;
     }
@@ -92,7 +92,7 @@ public class Dsplrect extends DisplayGraph {
     AttrName = type.symbolValue();
     ScanValue(value);
     if (err) {
-      System.out.println("Error in ListExpr :parsing aborted");
+      Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GA(rectangle))"));
       return;
     } 

@@ -24,6 +24,7 @@ import  sj.lang.ListExpr;
 import  viewer.*;
 import viewer.hoese.*;
 import java.io.*;
+import tools.Reporter;
 
 
 /**
@@ -48,7 +49,7 @@ public class Dsplbinfile extends DsplGeneric implements DsplSimple{
         V = type.symbolValue() + ":" + size+" bytes";
 	in.close();
     } catch(Exception E){
-      E.printStackTrace();
+      Reporter.debug(E);
       V = "error";
     }
      qr.addEntry(V);
@@ -69,7 +70,7 @@ public class Dsplbinfile extends DsplGeneric implements DsplSimple{
 	in.close();
 	V = ""+size+" bytes";
      }catch(Exception e){
-        e.printStackTrace();
+       Reporter.debug(e); 
         V = "error";
      }
 

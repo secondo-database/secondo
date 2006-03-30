@@ -248,10 +248,6 @@ This Function extracts the picturename from a histogramname.
 */
 
     private String getBasenameFromHistogramName(String histogramName) {
-	//System.err.println("getBasenameFromHistogramName() histogramName="
-	//		   +histogramName);
-
-	//
 	//      Find _hist_X postfix and return -1 unless found
 	int postfixPos = -1;
 	for (int i = 0; i < histogramPostfixes.length; i++) {
@@ -259,8 +255,6 @@ This Function extracts the picturename from a histogramname.
 	    if (postfixPos != -1
 		&& histogramName.endsWith(histogramPostfixes[i])) {
 		String basename = histogramName.substring( 0, postfixPos);
-		//System.err.println("getBasenameFromHistogramName() basename="
-		//		   +basename);
 		return basename;
 	    }
 	}
@@ -302,7 +296,6 @@ It returns all column indexes by a vector
 */
 
     private Vector getHistogramColumns(String basename) {
-	//System.err.println("getHistogramColumns()-1 basename="+basename);
 
 	Vector res = new Vector();
 
@@ -310,12 +303,9 @@ It returns all column indexes by a vector
 	for ( int i=0; i<getColumnCount(); i++ ) {
 	    columnName = getColumnName(i);
 
-	    //System.err.println("getHistogramColumns()-1 columnName="
-	    //		       +columnName);
 
 	    for (int j = 0; j < histogramPostfixes.length; j++)
 		if (columnName.equals(basename+histogramPostfixes[j])) {
-		    //System.err.println("getHistogramColumns()-1   matched!");
 		    res.add(new Integer(i));
 		}
 	}

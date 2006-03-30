@@ -24,6 +24,7 @@ import java.io.*;
 import java.util.*;
 import sj.lang.*;
 import extern.*;
+import tools.Reporter;
 
 public class ShapeReader implements SecondoImporter{
 
@@ -128,15 +129,15 @@ private boolean readHeader(){
    byte[] Buffer = new byte[100];
    int readed = FIS.read(Buffer);
    if(readed!=Buffer.length){
-      System.err.println("Shapeheader not correct readed");
+      Reporter.writeError("Shapeheader not correct readed");
       return false;
    }
    if(!Head.readFrom(Buffer)){
-      System.err.println("error in Reading ShapeHeader");
+      Reporter.writeError("error in Reading ShapeHeader");
       return false;
    }
    }catch(Exception e){
-     System.err.println(e);
+     Reporter.debug(e.toString(),e);
      Last_Error = "ERROR_IN_READING_FILE";
      return false;
    }
@@ -152,7 +153,7 @@ private RecordHeader readRecordHeader(){
      Res = new RecordHeader();
      Res.readFrom(Buffer);
    }catch(Exception e){
-     System.err.println(e);
+     Reporter.debug(e.toString(),e);
      Last_Error = "ERROR_IN_READING_FILE";
    }
    return Res;
@@ -164,7 +165,7 @@ private byte[] readNextRecord(RecordHeader RH){
    try{
       byte[] Buffer = new byte[RH.getContentLength()*2];
       if(FIS.read(Buffer)!=Buffer.length){
-         System.err.println("Buffer not complete loaded");
+         Reporter.writeError("Buffer not complete loaded");
          return null;
       }
       return Buffer;

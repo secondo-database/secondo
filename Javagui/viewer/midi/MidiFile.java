@@ -64,6 +64,7 @@ import java.io.*;
 import javax.sound.midi.*;
 import javax.sound.midi.Track.*;
 import java.util.Vector;
+import tools.Reporter;
 
 /*
 2 Class ~MidiFile~
@@ -129,12 +130,12 @@ public MidiFile (InputStream stream, String secondoName, String secondoID)
   try {sequence = MidiSystem.getSequence(stream);}
   catch (InvalidMidiDataException e)
   {
-    System.out.println("MidiFile 1: Invalid Midifile");
+    Reporter.writeError("MidiFile 1: Invalid Midifile");
     name = "Error2";
   }
   catch (IOException e)
   {
-     System.out.println("MidiFile 2: Readingerror");
+     Reporter.writeError("MidiFile 2: Readingerror");
      name = "Error 2";
   }
 
@@ -320,7 +321,7 @@ public void export()
       }
       MidiSystem.write(sequence,1,file);
     }
-    catch (Exception e) {System.out.println("Error in writing");}
+    catch (Exception e) {Reporter.writeError("Error in writing");}
   }
 }
 

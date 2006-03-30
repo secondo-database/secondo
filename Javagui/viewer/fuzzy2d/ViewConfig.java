@@ -25,6 +25,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.Vector;
 import javax.swing.event.*;
+import tools.Reporter;
 
 /** this class provided a ViewConfiguration for Fuzzy-Viewer*/
 public class ViewConfig extends JDialog{
@@ -157,12 +158,12 @@ private boolean processInputs(){
  try{
     TMPPointSize = Integer.parseInt(PointSizeText.getText());
     if (TMPPointSize<1 || TMPPointSize>250){
-       MessageBox.showMessage("the PointSize must be in range [1..250]");
+       Reporter.showError("the PointSize must be in range [1..250]");
        ok = false;
     }   
  }
  catch(Exception e){
-   MessageBox.showMessage("the PointSize Field contains not an integer");
+   Reporter.showError("the PointSize Field contains not an integer");
    ok = false;
  }
 
@@ -171,14 +172,14 @@ private boolean processInputs(){
        try{
           double BSTMP = Double.parseDouble(BorderSize.getText());
           if(BSTMP<0){
-             MessageBox.showMessage("the border must be greater then zero");
+             Reporter.showError("the border must be greater then zero");
              ok = false;
           }   
           else
              BorderSizeValue = BSTMP;
        }
        catch(Exception e){
-           MessageBox.showMessage("the border size field contains not a double");
+           Reporter.showError("the border size field contains not a double");
            ok = false;
        }
    }else{ // no AutoBoundingBox
@@ -189,7 +190,7 @@ private boolean processInputs(){
         double TMPH = Double.parseDouble(DimY.getText());
         
         if(TMPW<MINWIDTH || TMPH<MINHEIGHT){
-           MessageBox.showMessage("the dimension must be greater then ("+MINWIDTH+","+MINHEIGHT+")");
+            Reporter.showError("the dimension must be greater then ("+MINWIDTH+","+MINHEIGHT+")");
            ok =false;
         } else{
           BB.setTo(TMPX,TMPY,TMPX+TMPW,TMPY+TMPH);
@@ -197,7 +198,7 @@ private boolean processInputs(){
       
       }
       catch(Exception e){
-         MessageBox.showMessage("a field of the bounding box contains not a double");
+         Reporter.showError("a field of the bounding box contains not a double");
          ok = false;
       }
    }

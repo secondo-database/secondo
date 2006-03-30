@@ -30,6 +30,7 @@ import java.beans.*;
 import gui.idmanager.*;
 import viewer.fuzzy2d.*;
 import javax.swing.event.*;
+import tools.Reporter;
 
 /** this class provioded a viewer for fuzzy spatial objects
   * the objects are displayed with 2 dimensions
@@ -495,7 +496,7 @@ private void update(){
 private void showObjectSettings(){
   Object3D O3D = (Object3D) ComboBox.getSelectedItem();
   if(O3D==null){
-     MessageBox.showMessage("no Object selected");
+     Reporter.showError("no Object selected");
      return;
   }
   O3D.showSettings(VC.getMainFrame());

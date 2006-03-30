@@ -26,6 +26,7 @@ import java.awt.*;
 import java.awt.event.*;
 import gui.SecondoObject;
 import sj.lang.*;
+import tools.Reporter;
 
 /* this viewer displays the results all inquiries, except list types
 and list objects, in a formatted manner*/
@@ -135,7 +136,7 @@ public class FormattedViewer extends SecondoViewer {
      }
      else{
        i1 = 0;
-       MessageBox.showMessage("end of text is reached");
+       Reporter.showInfo("end of text is reached");
      }
  }
 

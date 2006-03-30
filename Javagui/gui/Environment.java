@@ -19,7 +19,6 @@
 
 package gui;
 
-import tools.TextFormat;
 import tools.Reporter;
 
 /* This class provides some variables for globale use.
@@ -51,17 +50,12 @@ public static String formatMemory(long md){
     } else{
       mem = Long.toString(md)+" B";
     }
-    if(FORMATTED_TEXT){
-        mem = TextFormat.BLUE+mem+TextFormat.NORMAL;
-    }
     return mem;
 }
 
 public static void printMemoryUsage(){
-    String F1=FORMATTED_TEXT?TextFormat.GREEN+TextFormat.BG_BLACK:"";
-    String F2=FORMATTED_TEXT?TextFormat.NORMAL:"";
-    Reporter.writeInfo(F1+ "total Memory :"+F2+" "+formatMemory(rt.totalMemory()));
-    Reporter.writeInfo(F1+ "free Memory  :"+F2+" "+formatMemory(rt.freeMemory()));
+    Reporter.writeInfo("total Memory :"+" "+formatMemory(rt.totalMemory()));
+    Reporter.writeInfo("free Memory  :"+" "+formatMemory(rt.freeMemory()));
 }
 
 

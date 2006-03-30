@@ -30,6 +30,7 @@ package  sj.lang;
 import java.net.*;
 import java.io.*;
 import java.util.StringTokenizer;
+import tools.Reporter;
 
 /* this class extends the SecondoInterface
  * to make the change of server settings easy
@@ -45,13 +46,13 @@ public class ESInterface extends SecondoInterface implements UpdateInterface{
 
   /* set the UserName for Secondo-Server */
   public void setUserName(String UserName){
-   System.out.println("Warning: UserName is not supported by Secondo-Server");
+   Reporter.writeWarning("UserName is not supported by Secondo-Server");
    this.UserName = UserName;
   }
 
   /* set the Passwd for secondo-Server */
   public void setPassWd(String PassWd){
-   System.out.println("Warning: PassWd is not supported by Secondo-Server");
+   Reporter.writeWarning("Warning: PassWd is not supported by Secondo-Server");
    this.PassWd = PassWd;
   }
 

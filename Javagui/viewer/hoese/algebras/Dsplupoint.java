@@ -19,13 +19,14 @@
 
 package  viewer.hoese.algebras;
 
-import  java.awt.geom.*;
-import  java.awt.*;
-import  viewer.*;
-import  viewer.hoese.*;
-import  sj.lang.ListExpr;
-import  gui.Environment;
+import java.awt.geom.*;
+import java.awt.*;
+import viewer.*;
+import viewer.hoese.*;
+import sj.lang.ListExpr;
+import gui.Environment;
 import javax.swing.JPanel;
+import tools.Reporter;
 
 
 /**
@@ -114,7 +115,7 @@ public class Dsplupoint extends DisplayTimeGraph {
     ispointType = true;         //to create the desired form
     ScanValue(value);
     if (err) {
-      System.out.println("Dsplmovingpoint Error in ListExpr :parsing aborted");
+      Reporter.writeError("Dsplmovingpoint Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GTA(mpoint))"));
       return;
     }

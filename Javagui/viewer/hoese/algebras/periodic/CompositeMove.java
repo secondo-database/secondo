@@ -21,6 +21,7 @@ package viewer.hoese.algebras.periodic;
 
 import java.util.Vector;
 import sj.lang.ListExpr;
+import tools.Reporter;
 
 /* to do :
    - accelerate the search by including a vector of
@@ -57,8 +58,7 @@ public RelInterval getInterval(){
 
 public Object getObjectAt(Time T){
    if(!defined){
-     if(Environment.DEBUG_MODE)
-        System.err.println("CompositeMove.getObjectAt called on undefined instance");
+     Reporter.debug("CompositeMove.getObjectAt called on undefined instance");
      return null;
    }
    if(!this.interval.contains(T)){
@@ -118,30 +118,25 @@ private void setUndefined(){
 
 public boolean readFrom(ListExpr LE, Class linearClass){
    if(LE.listLength()!=2){
-     if(Environment.DEBUG_MODE){
-        System.err.println("CompositeMove.readFrom : wrong ListLength");
-	System.err.println("exected 2, received : "+LE.listLength());
-     }
+     Reporter.debug("CompositeMove.readFrom : wrong ListLength \n"+
+                    "exected 2, received : "+LE.listLength());
      setUndefined();
      return false;
    }
    if(LE.first().atomType()!=ListExpr.SYMBOL_ATOM ||
       LE.second().atomType() != ListExpr.NO_ATOM){
-      if(Environment.DEBUG_MODE)
-        System.err.println("CompositeMove.readFrom : wrong types of the sublists");
+      Reporter.debug("CompositeMove.readFrom : wrong types of the sublists");
      setUndefined();
      return false;
    }
    if(!LE.first().symbolValue().equals("composite")){
-     if(Environment.DEBUG_MODE)
-        System.err.println("CompositeMove.readFrom : wrong type description");
+     Reporter.debug("CompositeMove.readFrom : wrong type description");
      setUndefined();
    }
 
    int length = LE.second().listLength();
    if(length<1){
-      if(Environment.DEBUG_MODE)
-        System.err.println("CompositeMove.readFrom : wrong length of the value list");
+      Reporter.debug("CompositeMove.readFrom : wrong length of the value list");
       setUndefined();
       return false;
    }
@@ -157,8 +152,7 @@ public boolean readFrom(ListExpr LE, Class linearClass){
      }else{
        String type = SML.first().symbolValue();
        if(!type.equals("period") && !type.equals("linear")){
-            if(Environment.DEBUG_MODE)
-              System.err.println("CompositeMove.readFrom : found unknown type of sub move");
+            Reporter.debug("CompositeMove.readFrom : found unknown type of sub move");
             ok = false;
        } else{
          try{
@@ -168,26 +162,25 @@ public boolean readFrom(ListExpr LE, Class linearClass){
    	    else
 	       SM = (Move) linearClass.newInstance();
             ok = SM.readFrom(SML,linearClass);
-            if(!ok && Environment.DEBUG_MODE)
-                   System.err.println("CompositeMove.readFrom : error in reading submove ");
+            if(!ok){
+                Reporter.debug("CompositeMove.readFrom : error in reading submove ");
+            }
             if(ok)
 	       ok = append(SM);
-	    if(!ok && Environment.DEBUG_MODE)
-	       System.err.println("CompositeMOve.readFRom: error in appending submove");
+	    if(!ok){
+	       Reporter.debug("CompositeMOve.readFRom: error in appending submove");
+      }
 
 	 }catch(Exception e){
-	     if(Environment.DEBUG_MODE){
-                 System.err.println("CompositeMove.readFrom : can't create the Submove");
-		 e.printStackTrace();
-	     }
-             ok = false;
+	     Reporter.debug("CompositeMove.readFrom : can't create the Submove");
+       Reporter.debug(e);
+       ok = false;
 	 }
        }
      }
     } // while
     if(!ok){
-     if(Environment.DEBUG_MODE)
-        System.err.println("CompositeMove.readFrom : error in reading submoves");
+      Reporter.debug("CompositeMove.readFrom : error in reading submoves");
      setUndefined();
      return false;
    }
@@ -201,8 +194,7 @@ public boolean readFrom(ListExpr LE, Class linearClass){
   */
 public boolean append(Move M){
   if(M==null){
-     if(Environment.DEBUG_MODE)
-        System.err.println("CompositeMove.append: tray to append null");
+    Reporter.debug("CompositeMove.append: try to append null");
      return false;
   }
   if(!defined){
@@ -215,8 +207,7 @@ public boolean append(Move M){
   }
   RelInterval Minterval = M.getInterval();
   if(!this.interval.canAppended(Minterval)){
-     if(Environment.DEBUG_MODE)
-        System.err.println("CompositeMove.append: submove interval collides with this interval");
+     Reporter.debug("CompositeMove.append: submove interval collides with this interval");
      return false;
   }
   subMoves.add(M);

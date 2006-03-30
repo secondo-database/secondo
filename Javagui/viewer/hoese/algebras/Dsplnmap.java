@@ -19,12 +19,13 @@
 
 package  viewer.hoese.algebras;
 
-import  java.awt.geom.*;
-import  java.awt.*;
-import  sj.lang.ListExpr;
-import  java.util.*;
-import  viewer.*;
+import java.awt.geom.*;
+import java.awt.*;
+import sj.lang.ListExpr;
+import java.util.*;
+import viewer.*;
 import viewer.hoese.*;
+import tools.Reporter;
 
 /**
  * The displayclass of the NauticalMap algebras nmap datatype.
@@ -139,7 +140,7 @@ public class Dsplnmap extends DisplayGraph {
 */
     else
     {
-       System.out.println("Error in ListExpr :parsing aborted");
+       Reporter.writeError("Error in ListExpr :parsing aborted");
        qr.addEntry(new String("(" + AttrName + ": GA(nmap))"));
        return;
     }

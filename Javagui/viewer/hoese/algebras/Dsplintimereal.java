@@ -25,6 +25,7 @@ import  viewer.*;
 import viewer.hoese.*;
 import  java.util.*;
 import  javax.swing.*;
+import tools.Reporter;
 
 
 /**
@@ -53,9 +54,8 @@ public class Dsplintimereal extends Dsplinstant {
    * @see <a href="Dsplintimerealsrc.html#ScanValue">Source</a>
    */
   public void ScanValue (ListExpr v) {
-    //System.out.println(v.writeListExprToString());
     if (v.listLength() != 2) {
-      System.out.println("Error: No correct intimebool expression: 2 elements needed");
+      Reporter.writeError("Error: No correct intimebool expression: 2 elements needed");
       err = true;
       return;
     }
@@ -84,7 +84,7 @@ public class Dsplintimereal extends Dsplinstant {
     AttrName = type.symbolValue();
     ScanValue(value);
     if (err) {
-      System.out.println("Error in ListExpr :parsing aborted");
+      Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": TA(InstantReal))"));
       return;
     } 

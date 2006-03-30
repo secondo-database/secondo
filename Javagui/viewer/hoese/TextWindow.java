@@ -20,14 +20,15 @@
 
 package  viewer.hoese;
 
-import  java.awt.*;
-import  java.awt.event.*;
-import  javax.swing.*;
-import  sj.lang.ListExpr;
-import  java.util.Properties;
-import  java.util.*;
-import  javax.swing.event.*;
-import  viewer.HoeseViewer;
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
+import sj.lang.ListExpr;
+import java.util.Properties;
+import java.util.*;
+import javax.swing.event.*;
+import viewer.HoeseViewer;
+import tools.Reporter;
 
 
 /**
@@ -131,12 +132,12 @@ public class TextWindow extends JPanel {
  private void search(){
    QueryResult QR = (QueryResult) QueryCombo.getSelectedItem();
    if(QR==null){
-     JOptionPane.showMessageDialog(this,"no query result selected");
+     Reporter.showError("no query result selected");
      return;
    }
    String Text=SearchText.getText().trim();
    if(Text.equals("")){
-     JOptionPane.showMessageDialog(this,"no text to search entered");
+     Reporter.showError("no text to search entered");
      return;
    }
 
@@ -146,7 +147,7 @@ public class TextWindow extends JPanel {
    if (Pos<0)
        Pos=QR.find(Text,false,1);
    if(Pos<0){
-     JOptionPane.showMessageDialog(this,"text not found");
+     Reporter.showError("text not found");
      return;
    }   
    QR.setSelectedIndex(Pos);
@@ -353,7 +354,7 @@ public class TextWindow extends JPanel {
      int layerpos;
      for(int i=0;i<size ;i++){
         if(catList.isEmpty() || layerList.isEmpty()){
-          System.err.println("empty lists found ");
+          Reporter.writeError("empty lists found ");
           return;
         } 
         ListExpr cat = catList.first();
@@ -361,7 +362,7 @@ public class TextWindow extends JPanel {
         catList=catList.rest();
         layerList = layerList.rest();
         if(cat.listLength()!=7 || aLayer.listLength()!=2){
-           System.err.println("invalid listlength found ");
+           Reporter.writeError("invalid listlength found ");
            return;
         }
         if(cat.first().atomType() != ListExpr.INT_ATOM ||
@@ -371,12 +372,12 @@ public class TextWindow extends JPanel {
            cat.fifth().atomType() !=ListExpr.BOOL_ATOM ||
            cat.sixth().atomType() != ListExpr.INT_ATOM ||
            cat.rest().sixth().atomType() != ListExpr.INT_ATOM){
-           System.err.println("invalid list structure for cat");
+           Reporter.writeError("invalid list structure for cat");
            return;
         } 
         if(aLayer.first().atomType()!=ListExpr.INT_ATOM ||
            aLayer.second().atomType()!=ListExpr.INT_ATOM){
-           System.err.println("invalid list structure for layer");
+           Reporter.writeError("invalid list structure for layer");
            return;
         }       
         catno = cat.first().intValue();
@@ -483,7 +484,7 @@ public class TextWindow extends JPanel {
             }
         } // non empty catlist
       } else{ // query result successful added 
-        System.out.println("can't add the queryresult");
+        Reporter.writeError("can't add the queryresult");
       }
       le = le.rest(); // switch to the next qr in the list
     }
@@ -536,7 +537,7 @@ public class TextWindow extends JPanel {
     }
     if (qr.LEResult.listLength() != 2) {
       // If the queryResult is not a two elements list.
-      System.out.println("laenge nicht 2");
+      Reporter.writeError("laenge nicht 2");
       qr.addEntry(new String(qr.LEResult.writeListExprToString()));
       answerList = ListExpr.twoElemList(ListExpr.intAtom(NOT_ERROR_CODE), ListExpr.theEmptyList());
       return  answerList;

@@ -20,13 +20,14 @@
 
 package  viewer.hoese.algebras;
 
-import  java.awt.geom.*;
-import  java.awt.*;
-import  viewer.*;
+import java.awt.geom.*;
+import java.awt.*;
+import viewer.*;
 import viewer.hoese.*;
-import  sj.lang.ListExpr;
-import  java.util.*;
-import  javax.swing.*;
+import sj.lang.ListExpr;
+import java.util.*;
+import javax.swing.*;
+import tools.Reporter;
 
 
 /**
@@ -88,9 +89,8 @@ public class Dsplintimepoint extends Dsplpoint
   private void ScanValue (ListExpr v) {
     double koord[] = new double[2];
     Double d;
-    //System.out.println(v.writeListExprToString());
     if (v.listLength() != 3) {                  //perhaps changes later
-      System.out.println("Error: No correct intimepoint expression: 3 elements needed");
+      Reporter.writeError("Error: No correct intimepoint expression: 3 elements needed");
       err = true;
       return;
     }
@@ -129,7 +129,7 @@ public class Dsplintimepoint extends Dsplpoint
     ispointType = true;         //to create the desired form
     ScanValue(value);
     if (err) {
-      System.out.println("Error in ListExpr :parsing aborted");
+      Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GTA(IntimePoint))"));
       return;
     } 

@@ -19,7 +19,7 @@
 
 package project;
 
-
+import tools.Reporter;
 
 public class Mercator implements Projection{
 
@@ -40,7 +40,7 @@ public class Mercator implements Projection{
   }
    
   public boolean showSettings(){
-     System.out.println("Mercator.showSettings not implemented");
+     Reporter.writeWarning("Mercator.showSettings not implemented");
      return true;
    }
 

@@ -26,6 +26,7 @@ import  java.util.*;
 import  javax.swing.*;
 import  java.awt.*;
 import  javax.swing.border.*;
+import tools.Reporter;
 
 
 /**
@@ -51,7 +52,6 @@ public class Dsplmovingstring extends Dsplinstant {
       Interval in = (Interval)li.next();
       int start = (int)((in.getStart() - TimeBounds.getStart())*PixelTime);
       int end = (int)((in.getEnd() - TimeBounds.getStart())*PixelTime);
-      //System.out.println(new String(start+" "+end));
       String bs = Strings.elementAt(cnt++).toString();
       JLabel jc = new JLabel(bs);
       jc.setFont(new Font("Dialog", Font.PLAIN, 12));
@@ -79,10 +79,8 @@ public class Dsplmovingstring extends Dsplinstant {
    * @see <a href="Dsplmovingstringsrc.html#ScanValue">Source</a>
    */
   public void ScanValue (ListExpr v) {
-    ////System.out.println(v.writeListExprToString());
     while (!v.isEmpty()) {
       ListExpr le = v.first();
-      //System.out.println(le.writeListExprToString());
       if (le.listLength() != 5)
         return;
       Interval in = LEUtils.readInterval(ListExpr.fourElemList(le.first(), 
@@ -111,7 +109,7 @@ public class Dsplmovingstring extends Dsplinstant {
     AttrName = type.symbolValue();
     ScanValue(value);
     if (err) {
-      System.out.println("Error in ListExpr :parsing aborted");
+      Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": TA(MString))"));
       return;
     } 

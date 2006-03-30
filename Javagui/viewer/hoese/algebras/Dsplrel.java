@@ -19,9 +19,10 @@
 
 package  viewer.hoese.algebras;
 
-import  sj.lang.ListExpr;
-import  viewer.*;
-import  viewer.hoese.*;
+import sj.lang.ListExpr;
+import viewer.*;
+import viewer.hoese.*;
+import tools.Reporter;
 
 
 /**
@@ -50,11 +51,11 @@ public class Dsplrel extends DsplGeneric {
     }
     LEUtils.analyse(type.second(), value, qr);
     if(gui.Environment.MEASURE_TIME){
-       System.out.println(" Building relation has taken :"+
+       Reporter.writeInfo(" Building relation has taken :"+
                           (System.currentTimeMillis()-startTime)+" milliseconds");
     }
     if(gui.Environment.MEASURE_MEMORY){
-      System.out.println("Memory-Difference :"+ 
+      Reporter.writeInfo("Memory-Difference :"+ 
                           gui.Environment.formatMemory( gui.Environment.usedMemory()-usedMemory));
     }
     return;

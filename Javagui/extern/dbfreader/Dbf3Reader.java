@@ -24,7 +24,7 @@ import sj.lang.*;
 import extern.numericreader.*;
 import java.io.*;
 import extern.*;
-
+import tools.Reporter;
 
 
 // todo-list
@@ -101,8 +101,7 @@ public  ListExpr getList(String FileName){
           BR.close();
      }catch(Exception e2){}
      ErrorString ="ERROR_IN_READING_FILE";
-     System.err.println(e);
-     e.printStackTrace();
+     Reporter.debug(e.toString(),e);
      return null;
   }
 
@@ -364,7 +363,6 @@ public boolean readFrom(byte[] Buffer,DB3RecordHeader RH){
       }
 
       CurrentPos += length;
-      //System.err.println("add Entry"+Next.writeListExprToString());
       if(TMP==null) {  // the first entry
         TMP = ListExpr.oneElemList(Next);
 	Last = TMP;

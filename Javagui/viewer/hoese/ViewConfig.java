@@ -19,18 +19,18 @@
 
 package  viewer.hoese;
 
-import  java.util.*;
-import  javax.swing.*;
-import  sj.lang.ListExpr;
-import  java.awt.*;
-import  javax.swing.border.*;
-import  java.awt.geom.*;
-import  java.io.*;
-import  java.awt.image.*;
-import  java.awt.event.*;
-import  viewer.HoeseViewer;
-import  viewer.MessageBox;
+import java.util.*;
+import javax.swing.*;
+import sj.lang.ListExpr;
+import java.awt.*;
+import javax.swing.border.*;
+import java.awt.geom.*;
+import java.io.*;
+import java.awt.image.*;
+import java.awt.event.*;
+import viewer.HoeseViewer;
 import gui.Environment;
+import tools.Reporter;
 
 /**
  * The objects in a query result had no category in the beginning. This dialog offers the
@@ -83,7 +83,7 @@ public class ViewConfig extends javax.swing.JDialog {
     try{
      RenderAttributeClass = Class.forName("viewer.hoese.RenderAttribute");
     }catch(Exception e){
-      System.err.println("fatal error : class RenderAttribute not found ");
+      Reporter.writeError("fatal error : class RenderAttribute not found ");
     }
 
 
@@ -254,7 +254,7 @@ public class ViewConfig extends javax.swing.JDialog {
           // create a new AttrCatList from given values
 	  Category SelectedCat = (Category) CatCB.getSelectedItem();
 	  if (SelectedCat==null){
-	     MessageBox.showMessage("no Category selected");
+	     Reporter.showError("no Category selected");
 	     return;
 	  }
 	  String CatName = SelectedCat.getName();
@@ -262,7 +262,7 @@ public class ViewConfig extends javax.swing.JDialog {
 	  int index = LabelAList.indexOf(as);
 	  AttrValues = getAttrValues(index);
 	  if(AttrValues==null){
-	     MessageBox.showMessage("no reference attribute selected");
+	     Reporter.showError("no reference attribute selected");
 	     return;
 	  }
 	  LAC.setLinks(new AttrCatList());
@@ -278,7 +278,7 @@ public class ViewConfig extends javax.swing.JDialog {
 	     AttrCatList ACL = LAC.getLinks();
 	     if(!ManualLinkPool.add(ACL)){
 	       // should never be reached
-	       MessageBox.showMessage("i can't insert this new references to reference pool");
+	       Reporter.showError("i can't insert this new references to reference pool");
 	     }
 	  }
        }});
@@ -289,7 +289,7 @@ public class ViewConfig extends javax.swing.JDialog {
           // create a new AttrCatList from given values
 	  Category SelectedCat = (Category) CatCB.getSelectedItem();
 	  if (SelectedCat==null){
-	     MessageBox.showMessage("no Category selected");
+	     Reporter.showError("no Category selected");
 	     return;
 	  }
 	  String CatName = SelectedCat.getName();
@@ -297,18 +297,18 @@ public class ViewConfig extends javax.swing.JDialog {
 	  int index = LabelAList.indexOf(as);
 	  AttrValues = getAttrValues(index);
 	  if(AttrValues==null){
-	     MessageBox.showMessage("no reference attribute selected");
+	     Reporter.showError("no reference attribute selected");
 	     return;
 	  }
 	  String RefName = (String) LinkComboBox.getSelectedItem();
 	  if(RefName==null){
-	    MessageBox.showMessage("no Referenceclass selected");
+	    Reporter.showError("no Referenceclass selected");
 	    return;
 	  }
 
 	  AttrCatList ACL = ManualLinkPool.getLinkWithName(RefName);
 	  if(ACL==null){
-	     MessageBox.showMessage("i can't find the selected Referenceclass");
+	     Reporter.showError("i can't find the selected Referenceclass");
 	     return;
 	  }
 
@@ -327,7 +327,7 @@ public class ViewConfig extends javax.swing.JDialog {
 	     ACL = LAC.getLinks();
 	     if(!ManualLinkPool.update(RefName,ACL)){
 	       // should never be reached
-	       MessageBox.showMessage("i can't update the references in reference pool");
+	       Reporter.showError("i can't update the references in reference pool");
 	     }
 	  }
        }});
@@ -337,7 +337,7 @@ public class ViewConfig extends javax.swing.JDialog {
        public void actionPerformed(ActionEvent e){
          String Name = (String) LinkComboBox.getSelectedItem();
 	 if(Name==null){
-	   MessageBox.showMessage("no reference selected ");
+	   Reporter.showError("no reference selected ");
 	   return;
 	 }
 	 LinkComboBox.removeItem(Name);
@@ -672,8 +672,8 @@ public class ViewConfig extends javax.swing.JDialog {
                    int rendobjpos = cnt*(AttrCount + 1)+ attrno;
 									 Object rendobj = Query.getModel().getElementAt(rendobjpos);
 									 if(!(rendobj instanceof RenderAttribute)){
-											System.err.println("Fatal error, no renderattribute found .");
-                      System.err.println("found "+ rendobj+" instead on pos"+rendobjpos);
+											Reporter.writeError("Fatal error, no renderattribute found .");
+                      Reporter.writeError("found "+ rendobj+" instead on pos"+rendobjpos);
 									 } else{
 										 RenderAttribute curAttr = (RenderAttribute) rendobj;
 										 dg.setRenderAttribute(curAttr);
@@ -696,7 +696,7 @@ public class ViewConfig extends javax.swing.JDialog {
       } else{
          // take the categories for the object from LinkAttrCat LAC
 	 if(LinkComboBox.getSelectedIndex()<0){ // no references selected
-	    MessageBox.showMessage("you have selected to use a manual link \n but the choice for this link is empty !!");
+	    Reporter.showError("you have selected to use a manual link \n but the choice for this link is empty !!");
 	    return;
 	 }
 
@@ -704,25 +704,25 @@ public class ViewConfig extends javax.swing.JDialog {
     int RefAttrIndex = LabelAList.indexOf(as);
     ListExpr attrValueList = getAttrValues(RefAttrIndex);
 	  if(attrValueList==null){
-	     MessageBox.showMessage("no reference attribute selected");
+	     Reporter.showError("no reference attribute selected");
 	     return;
 	  }
 	 // get the Manual Link from MLPool
 	 String LinkName = (String) LinkComboBox.getSelectedItem();
 	 AttrCatList ACL = ManualLinkPool.getLinkWithName(LinkName);
 	 if(ACL==null){
-	    MessageBox.showMessage("internal error: selected reference name not found");
+	    Reporter.showError("internal error: selected reference name not found");
 	    return;
 	 }
 	 boolean found =false;
 	 int number = ACL.numberOfLinksFor(attrValueList);
 	 if(number<1){
-	    MessageBox.showMessage("the selected reference contains no links for selected attribute");
+	    Reporter.showError("the selected reference contains no links for selected attribute");
 	    return;
 	 }
 	 if(number < attrValueList.listLength()){
-	    if (MessageBox.showQuestion("not all attribute values have a refered category \n "+
-	                                "you want to use the default category ?")==MessageBox.NO)
+	    if (Reporter.showQuestion("not all attribute values have a refered category \n "+
+	                                "you want to use the default category ?")==Reporter.NO)
 
                   return;
 	 }
@@ -742,13 +742,13 @@ public class ViewConfig extends javax.swing.JDialog {
 	    if(!found) failed++;
 	 }
 	 if(numberNames==failed && numberNames>0){
-	    MessageBox.showMessage("no categorie in the selected references is loaded \n abort");
+	    Reporter.showError("no categorie in the selected references is loaded \n abort");
 	    return;
 	 }
 
 	 if(failed>0){
-	    if(MessageBox.showQuestion("not all categories in the seleced references are loaded \n"+
-	                                "you want to use the default category ?")==MessageBox.NO)
+	    if(Reporter.showQuestion("not all categories in the seleced references are loaded \n"+
+	                             "you want to use the default category ?")==Reporter.NO)
 		return;
 	 }
 
@@ -786,7 +786,7 @@ public class ViewConfig extends javax.swing.JDialog {
       NewCat = (Category)templCat.clone();
     } catch (Exception e) {
        if(Environment.DEBUG_MODE){
-          System.err.println("Error in cloning of category");
+          Reporter.writeError("Error in cloning of category");
        }
        return null;
     }
@@ -871,7 +871,7 @@ public class ViewConfig extends javax.swing.JDialog {
            value=Relations.third();
          else{
             value = new ListExpr();
-            System.err.println("Unknow AttrName for nmap detected");
+            Reporter.writeError("Unknow AttrName for nmap detected");
          }   
 	 TupelCount = value.listLength();
 	 return value;
@@ -920,7 +920,7 @@ public class ViewConfig extends javax.swing.JDialog {
        case ListExpr.SYMBOL_ATOM : return ListExpr.symbolAtom(Original.symbolValue());
        case ListExpr.TEXT_ATOM : return ListExpr.textAtom(Original.textValue());
        case ListExpr.NO_ATOM : { if(Original.listLength()<1){
-                            System.out.println("viewer.hoese.ViewConfig.CloneListExpr :: error in ListExpr");
+                            Reporter.writeError("viewer.hoese.ViewConfig.CloneListExpr :: error in ListExpr");
                             return null;
                          }
                          ListExpr First,Last;
@@ -939,7 +939,7 @@ public class ViewConfig extends javax.swing.JDialog {
                        }
      }
 
-     System.out.println("viewer.hoese.ViewConfig.ClonListExpr : unknow AtomType");
+     Reporter.writeError("viewer.hoese.ViewConfig.ClonListExpr : unknow AtomType");
      return null;
   }
 
@@ -961,7 +961,7 @@ public class ViewConfig extends javax.swing.JDialog {
       while(!AllValues.isEmpty()){
          CurrentTuple = AllValues.first();
          if(index>CurrentTuple.listLength()){
-             System.err.println("The selected Reference is outside the tuple");
+             Reporter.writeError("The selected Reference is outside the tuple");
              return null;
          }
          // search the attribute

@@ -20,10 +20,11 @@
 
 package  viewer.hoese.algebras;
 
-import  sj.lang.ListExpr;
-import  viewer.*;
+import sj.lang.ListExpr;
+import viewer.*;
 import viewer.hoese.*;
-import  java.util.*;
+import java.util.*;
+import tools.Reporter;
 
 
 /**
@@ -40,10 +41,8 @@ public class Dsplrangereal extends DsplGeneric {
    */
   private boolean ScanValue (ListExpr v) {
     int i = 0;
-    ////System.out.println(v.writeListExprToString());
     while (!v.isEmpty()) {
       ListExpr le = v.first();
-      //System.out.println(le.writeListExprToString());
       if (le.listLength() != 4)
         return  false;
       Double start = LEUtils.readNumeric(le.first());

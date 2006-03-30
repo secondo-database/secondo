@@ -51,6 +51,7 @@ import  sj.lang.JavaListExpr.NLParser;
 import java.io.*;
 import  tools.Base64Decoder;
 import  java_cup.runtime.*;
+import tools.Reporter;
 
 
 public class ListExpr{
@@ -88,13 +89,14 @@ public ListExpr () {
 public static boolean initialize(int cachesize){
 #ifdef PERSISTENT
   if(dbarray!=null){
-      System.err.println("ListExpr initialize already called.");
-      System.err.println("The call with cachesize ="+cachesize+" will have no effect.");
+      Reporter.writeWarning("ListExpr initialize already called.");
+      Reporter.writeWarning("The call with cachesize ="+cachesize+" will have no effect.");
       return false;
    }
-   if(cachesize < MINCACHESIZE)
+   if(cachesize < MINCACHESIZE){
        cachesize = MINCACHESIZE;
-   System.out.println("initialize Cache with "+cachesize +"elements");
+   }
+   Reporter.writeInfo("initialize Cache with "+cachesize +"elements");
    /* we have make the choice 30 as maxdatasize.
       So all non-string-types are cached. furthermore all string with a
       length upto 30 characters are also chached.
@@ -134,8 +136,8 @@ public static void setTempDir(String DirName){
       TEMPDIR = DirName;
    } else{
       if(!F.mkdirs()){
-        System.err.println("cannot create directory "+DirName+"for temporal storing of text atoms");
-        System.err.println("Directory name remains unchanged. ");
+        Reporter.writeError("cannot create directory "+DirName+"for temporal storing of text atoms");
+        Reporter.writeError("Directory name remains unchanged. ");
       }else{
         TEMPDIR=DirName;
       }
@@ -252,16 +254,16 @@ public static ListExpr theEmptyList () {
 public static ListExpr cons (ListExpr left, ListExpr right) {
   if(DEBUG_MODE){
      if(left==null || right==null){
-        System.err.println("ListExpr.cons called with an null argument");
-        if(left==null) System.err.println("Left==null");
-        if(right==null) System.err.println("Right==null");
-        new Throwable().printStackTrace();
+        Reporter.writeError("ListExpr.cons called with an null argument");
+        if(left==null) Reporter.writeError("Left==null");
+        if(right==null) Reporter.writeError("Right==null");
+        Reporter.printTrace();
      }
   }
  if (CHECK_PRECONDITIONS) {
     if (right.isAtom()) {
-       System.err.println("CHECK PRECONDITIONS: Error when calling the cons() method");
-       System.err.println(" the input argument ~right~ does not fulfil the preconditions.");
+       Reporter.writeError("CHECK PRECONDITIONS: Error when calling the cons() method");
+       Reporter.writeError(" the input argument ~right~ does not fulfil the preconditions.");
      }
  }
 #ifndef PERSISTENT
@@ -279,16 +281,16 @@ public static ListExpr cons (ListExpr left, ListExpr right) {
 public static ListExpr append (ListExpr lastElement, ListExpr newSon) {
     if(DEBUG_MODE){
        if(lastElement==null || newSon==null){
-           System.err.println("ListExpr.append called with an null argument");
-           if(lastElement==null) System.err.println("lastElement==null");
-           if(newSon==null) System.err.println("newSon==null");
-           new Throwable().printStackTrace();
+          Reporter.writeError(" ListExpr.append called with an null argument");
+           if(lastElement==null) Reporter.writeError("lastElement==null");
+           if(newSon==null) Reporter.writeError("newSon==null");
+           Reporter.printTrace();
        }
     }
     if (ListExpr.CHECK_PRECONDITIONS) {
       if ((!lastElement.endOfList()) || lastElement.isEmpty() || lastElement.isAtom()) {
-        System.err.println("CHECK PRECONDITIONS: Error when calling the append() method");
-        System.err.println(" the input argument astElement~ does not fulfil the preconditions.");
+        Reporter.writeError("CHECK PRECONDITIONS: Error when calling the append() method");
+        Reporter.writeError(" the input argument astElement~ does not fulfil the preconditions.");
       }
     }
 #ifndef PERSISTENT
@@ -413,7 +415,7 @@ public int listLength () {
   * output in an indented way.
   **/
 public void writeListExpr () {
-    System.out.print(this.writeListExprToString());
+    Reporter.write(this.writeListExprToString());
     return;
 }
 
@@ -423,8 +425,8 @@ public void writeListExpr () {
 public int writeToString (StringBuffer chars) {
     if (ListExpr.CHECK_PRECONDITIONS) {
       if (this.isAtom()) {
-        System.err.println("CHECK PRECONDITIONS: Error when calling the writeToString() method");
-        System.err.println("The ListExpr object does not fulfil the preconditions.");
+        Reporter.writeError("CHECK PRECONDITIONS: Error when calling the writeToString() method");
+        Reporter.writeError("The ListExpr object does not fulfil the preconditions.");
       }
     }
     chars.setLength(0);
@@ -562,8 +564,8 @@ public ListExpr sixth(){
 public ListExpr rest () {
   if (ListExpr.CHECK_PRECONDITIONS) {
      if (this.isAtom() || this.isEmpty()) {
-        System.err.println("CHECK PRECONDITIONS: Error when calling the rest() method");
-        System.err.println("the ListExpr object does not fulfil the preconditions.");
+        Reporter.writeError("CHECK PRECONDITIONS: Error when calling the rest() method");
+        Reporter.writeError("the ListExpr object does not fulfil the preconditions.");
       }
     }
     if(atomType()!=NO_ATOM)
@@ -616,35 +618,29 @@ public static ListExpr getListExprFromFile(String fileName){
       inputReader.close();
       storeDirectory(null);
       if (result == null) {
-        if (DEBUG_MODE) {
-          System.err.println("DEBUG MODE: Error in line " + parser.linePos +
-              " when parsing input file"+fileName +" in Line "+parser.linePos);
-        }
+          Reporter.debug(" Error in line " + parser.linePos +
+                         " when parsing input file"+fileName +
+                         " in Line "+parser.linePos,
+                         null);
       }else {
           if(gui.Environment.MEASURE_TIME){
-                System.out.println("Building nested List from File " + fileName+" has taken "+ 
+                Reporter.writeInfo("Building nested List from File " + fileName+" has taken "+ 
                               (System.currentTimeMillis()-startTime) + " milliseconds");
            }
            if(gui.Environment.MEASURE_MEMORY){
                long md = (gui.Environment.usedMemory()-usedMemory);
-               System.out.println("memory difference:"+gui.Environment.formatMemory(md) );
+               Reporter.writeInfo("memory difference:"+gui.Environment.formatMemory(md) );
                gui.Environment.printMemoryUsage();
             }   
       } 
       return (ListExpr)result.value;
     } catch (FileNotFoundException except) {
-      if (DEBUG_MODE) {
-        System.err.println("DEBUG MODE: Error when opening file in getListExprFromFile()");
-        except.printStackTrace();
-      }
-      return  null;
+        Reporter.debug(except);
+        return  null;
     } catch (Exception except) {
-      if (DEBUG_MODE) {
-        System.err.println("DEBUG MODE: EXCEPTION in getListExprFromFile()");
-        except.printStackTrace();
-      }
-      return  null;
+      Reporter.debug(except);
     }
+      return  null;
 }
 
 
@@ -665,8 +661,7 @@ public int writeToFile (String fileName) {
         return WRITE_TO_FILE_ERROR;
      } 
   } catch(Exception e){
-      if(DEBUG_MODE)
-        e.printStackTrace();
+      Reporter.debug(e);
       return WRITE_TO_FILE_ERROR;
   }
 }
@@ -702,8 +697,7 @@ public boolean writeBinaryTo(OutputStream OS){
      DOS.flush();
      return ok;
    } catch(Exception e){
-     if(DEBUG_MODE)
-        e.printStackTrace();
+     Reporter.debug(e);
      try{DOS.close();}catch(Exception e1){}
      return false;
    }
@@ -713,8 +707,7 @@ public boolean writeBinaryTo(OutputStream OS){
 private static boolean writeBinaryRec(ListExpr LE, MyDataOutputStream OS){
    byte T = LE.getBinaryType();
    if(T<0){
-      if(DEBUG_MODE)
-        System.err.println("unknow Listtype in writeBinaryRec");
+      Reporter.debug("unknow Listtype in writeBinaryRec");
       return false;
    }
 
@@ -845,8 +838,7 @@ private static boolean writeBinaryRec(ListExpr LE, MyDataOutputStream OS){
       }
    }
    catch(Exception e){
-     if(DEBUG_MODE)
-        e.printStackTrace();
+     Reporter.debug(e);
      return false;
    }
 }
@@ -954,7 +946,7 @@ private void writeToRec(Writer out,boolean OnlyRationals,String indent) throws I
                            out.write(")");
                            break;
                          }
-        default: System.err.println("unknow AtomType in WriteToRec(..) method found");
+        default: Reporter.writeError("unknow AtomType in WriteToRec(..) method found");
      }
  }
 
@@ -974,11 +966,11 @@ public static ListExpr readBinaryFrom(InputStream In){
     int major = DIN.readShort();
     int minor = DIN.readShort();
     if(!Sig.equals("bnl") ){
-      System.out.println("wrong signatur or version "+Sig );
+      Reporter.writeError("wrong signatur or version "+Sig );
       return null;
     }
     if(major!=1 | ( minor!=0 & minor!=1 & minor!=2)){
-       System.out.println("wrong version numer "+major+"."+minor);
+       Reporter.writeError("wrong version numer "+major+"."+minor);
        return null;
     }
 
@@ -986,10 +978,7 @@ public static ListExpr readBinaryFrom(InputStream In){
     return LE;
  }
  catch(Exception e){
-   if(DEBUG_MODE){
-      System.out.println(e);
-      e.printStackTrace();
-   }
+   Reporter.debug(e);
    return null;
  }
 }
@@ -1188,19 +1177,19 @@ public static ListExpr realAtom(double value){
 public static ListExpr stringAtom(String value){
    if (ListExpr.CHECK_PRECONDITIONS) {
       if (value.length() > MAX_STRING_LENGTH) {
-         System.err.println("CHECK PRECONDITIONS: ");
-         System.err.println("   Error when calling the stringAtom() method:");
-         System.err.println("       the input string is larger than "+
+         Reporter.writeError("CHECK PRECONDITIONS: ");
+         Reporter.writeError("   Error when calling the stringAtom() method:");
+         Reporter.writeError("       the input string is larger than "+
                               MAX_STRING_LENGTH+" characters.");
-         System.err.println("   String will be shortened");
+         Reporter.writeWarning("   String will be shortened");
        }
    }
    if( value.length() > MAX_STRING_LENGTH){
       value = value.substring(0,MAX_STRING_LENGTH);
    }
    if(value.indexOf("\"")>0){
-       System.err.println("Warning: String of a string-atom contains doublequotes");
-       System.err.println("         replace it by single quotes");
+       Reporter.writeWarning("Warning: String of a string-atom contains doublequotes");
+       Reporter.writeWarning("         replace it by single quotes");
        value = value.replace('\"','\'');
    }
 #ifdef PERSISTENT
@@ -1220,8 +1209,8 @@ public static ListExpr stringAtom(String value){
 public static ListExpr symbolAtom(String value){
    if (ListExpr.CHECK_PRECONDITIONS) {
       if (value.length() > MAX_STRING_LENGTH) {
-         System.err.println("CHECK PRECONDITIONS: Error when calling the symbolAtom() method");
-         System.err.println("The input string is larger than "+
+         Reporter.writeError("CHECK PRECONDITIONS: Error when calling the symbolAtom() method");
+         Reporter.writeError("The input string is larger than "+
                              MAX_STRING_LENGTH+" characters.");
       }
     }
@@ -1263,9 +1252,9 @@ public static ListExpr textAtom(String value){
  public void setText(String value){
     if (CHECK_PRECONDITIONS) {
       if (atomType() != ListExpr.TEXT_ATOM) {
-        System.err.println("CHECK PRECONDITIONS:");
-        System.err.println("   Error when calling the setText() method: ");
-        System.err.println("   the ListExpr object is not a text atom.");
+        Reporter.writeError("CHECK PRECONDITIONS:");
+        Reporter.writeError("   Error when calling the setText() method: ");
+        Reporter.writeError("   the ListExpr object is not a text atom.");
         return;
       }
     }
@@ -1291,11 +1280,9 @@ public static ListExpr textAtom(String value){
             out.flush();
             out.close();
         }catch(Exception e){
-            if(DEBUG_MODE){
-                e.printStackTrace();
-            }
-            System.err.println("Error in writing temporal file of text atom");
-            System.err.println("Using main memory to store text!");
+            Reporter.debug(e);
+            Reporter.writeError("Error in writing temporal file of text atom");
+            Reporter.writeError("Using main memory to store text!");
             this.value = new String(value);
         }
 
@@ -1307,16 +1294,12 @@ public static ListExpr textAtom(String value){
   try{
       byte[] textData = value.getBytes("UTF-8");
       if(!dbarray.put(v,textData)){
-          if(DEBUG_MODE){
-             System.err.println("Error in putting text into dbarray");
-          }
+         Reporter.debug("Error in putting text into dbarray");
       }
       setNext(value.length());
       update();
    }catch(Exception e){
-      if(DEBUG_MODE){
-        e.printStackTrace();
-      }
+      Reporter.debug(e);
    }
 #endif
 }
@@ -1338,8 +1321,8 @@ public void appendText (String text, int startPos, int length) {
 public void appendText(String text){
    if(CHECK_PRECONDITIONS){
       if(atomType()!=TEXT_ATOM){
-         System.err.println("Error in Checking preconditions. ListExpr::appendText");
-         System.err.println("List is not a text");
+         Reporter.writeError("Error in Checking preconditions. ListExpr::appendText");
+         Reporter.writeError("List is not a text");
          return;
       }
    }
@@ -1353,14 +1336,10 @@ public void appendText(String text){
      try{
         byte[] theData = NewText.getBytes("UTF-8");
         if (! dbarray.put(v,theData)){ // write new text into the dbarray
-             if(DEBUG_MODE){
-                System.err.println("Error in writing text to dbarray ");
-              }
-         }
-     }catch(Exception e){
-        if(DEBUG_MODE){
-            e.printStackTrace();
+           Reporter.debug("Error in writing text to dbarray ");
         }
+     }catch(Exception e){
+        Reporter.debug(e);
      }
 #else
     setText(textValue()+text);
@@ -1373,8 +1352,8 @@ public void appendText(String text){
 public int intValue () {
    if (ListExpr.CHECK_PRECONDITIONS) {
       if (this.atomType() != INT_ATOM) {
-        System.err.println("CHECK PRECONDITIONS: Error when calling the intValue() method");
-        System.err.println("The atomtype is not INT_ATOM");
+        Reporter.writeError("CHECK PRECONDITIONS: Error when calling the intValue() method");
+        Reporter.writeError("The atomtype is not INT_ATOM");
       }
     }
 #ifdef PERSISTENT
@@ -1391,8 +1370,8 @@ public int intValue () {
 public double realValue () {
     if (ListExpr.CHECK_PRECONDITIONS) {
       if (this.atomType() != ListExpr.REAL_ATOM) {
-        System.err.println("CHECK PRECONDITIONS: Error when calling the realValue() method");
-        System.err.println("The ListExpr object does not fulfil the preconditions.");
+        Reporter.writeError("CHECK PRECONDITIONS: Error when calling the realValue() method");
+        Reporter.writeError("The ListExpr object does not fulfil the preconditions.");
         return 0.0;
       }
     }
@@ -1410,8 +1389,8 @@ public double realValue () {
 public boolean boolValue () {
    if (ListExpr.CHECK_PRECONDITIONS) {
       if (this.atomType() != ListExpr.BOOL_ATOM) {
-        System.err.println("CHECK PRECONDITIONS: Error when calling the boolValue() method");
-        System.err.println("The ListExpr is not a boolean atom");
+        Reporter.writeError("CHECK PRECONDITIONS: Error when calling the boolValue() method");
+        Reporter.writeError("The ListExpr is not a boolean atom");
       }
     }
 #ifdef PERSISTENT
@@ -1431,8 +1410,8 @@ public String stringValue () {
 #else
     if (ListExpr.CHECK_PRECONDITIONS) {
       if (this.atomType() != ListExpr.STRING_ATOM) {
-        System.err.println("CHECK PRECONDITIONS: Error when calling the stringValue() method");
-        System.err.println("The List is not a string atom.");
+        Reporter.writeError("CHECK PRECONDITIONS: Error when calling the stringValue() method");
+        Reporter.writeError("The List is not a string atom.");
       }
     }
     return  (String)this.value;
@@ -1448,8 +1427,8 @@ public String symbolValue () {
 #else
     if (ListExpr.CHECK_PRECONDITIONS) {
       if (this.atomType() != ListExpr.SYMBOL_ATOM) {
-         System.err.println("CHECK PRECONDITIONS: Error when calling the symbolValue() method");
-         System.err.println("The list is not a symbol");
+         Reporter.writeError("CHECK PRECONDITIONS: Error when calling the symbolValue() method");
+         Reporter.writeError("The list is not a symbol");
       }
     }
     return  (String)this.value;
@@ -1463,15 +1442,15 @@ public String textValue () {
 #else
     if (CHECK_PRECONDITIONS) {
       if (atomType() != TEXT_ATOM) {
-        System.err.println("CHECK PRECONDITIONS:");
-        System.err.println(" Error when calling the textValue() method:");
-        System.err.println(" the ListExpr object is not a text atom.");
+        Reporter.writeError("CHECK PRECONDITIONS:");
+        Reporter.writeError(" Error when calling the textValue() method:");
+        Reporter.writeError(" the ListExpr object is not a text atom.");
       }
     }
     if(value==null || !(value instanceof File)){ // main memory based
        if(DEBUG_MODE && value==null){
-          System.err.println("Error in ListExpr: value is null");
-          new Throwable().printStackTrace();
+          Reporter.writeError("Error in ListExpr: value is null");
+          Reporter.printTrace();
        }
        return  (String)this.value;
     }else{
@@ -1488,10 +1467,9 @@ public String textValue () {
          in.close();
          return res;
        }catch(Exception e){
-          if(DEBUG_MODE)
-            e.printStackTrace();
-          System.err.println("Cannot load a TextAtom value from its temporal file ");
-          System.err.println(" empty String is returned");
+          Reporter.debug(e);
+          Reporter.writeError("Cannot load a TextAtom value from its temporal file ");
+          Reporter.writeError(" empty String is returned");
           return "";
        }
     }
@@ -1753,17 +1731,13 @@ try{
                            }
 
 
-    default      : { if(DEBUG_MODE)
-                         System.out.println("unknow binary list type");
+    default      : {  Reporter.debug("unknow binary list type");
                      return null;}
   }
 
 }
 catch(Exception e){
-  if(DEBUG_MODE){
-    System.out.println(e);
-    e.printStackTrace();
-  }
+  Reporter.debug(e);
   return null;
 }
 
@@ -1787,19 +1761,15 @@ public int readFromString (String chars) {
 		if (result == null) {
 			// If the parser returns a null value, then an error was detected
 			// when parsing the input.
-			if (ListExpr.DEBUG_MODE) {
-				System.err.println("DEBUG MODE: Error in character " + parser.charPos
+				Reporter.debug("Error in character " + parser.charPos
 						+ " when parsing input string in ReadFromString()");
-			}
 			// It returns the character position where the error was detected.
 			return  parser.charPos;
 		}
 		// else, it sets this ListExpr to the value returned by the parser.
 		this.setValueTo((ListExpr)result.value);
 	} catch (Exception except) {
-		System.out.println("EXCEPTION in readFromString()");
-		if(DEBUG_MODE)
-			 except.printStackTrace();
+		Reporter.debug(except);
 		return  INPUT_STRING_ERROR;
 	} finally {
 		inputReader.close();
@@ -1824,9 +1794,9 @@ public byte[] textValueAsByteArray () {
     //if CHECK_PRECONDITIONS is set, it checks the preconditions.
     if (CHECK_PRECONDITIONS) {
       if (atomType() != TEXT_ATOM) {
-        System.err.println("CHECK PRECONDITIONS:");
-        System.err.println(" Error when calling the textValueAsByteArray() method:");
-        System.err.println(" the ListExpr object is not a text atom.");
+        Reporter.writeError("CHECK PRECONDITIONS:");
+        Reporter.writeError(" Error when calling the textValueAsByteArray() method:");
+        Reporter.writeError(" the ListExpr object is not a text atom.");
       }
     }
 #ifdef PERSISTENT
@@ -1848,10 +1818,9 @@ public byte[] textValueAsByteArray () {
          in.close();
          return content;
        }catch(Exception e){
-          if(DEBUG_MODE)
-            e.printStackTrace();
-          System.err.println("Cannot load a TextAtom value from its temporal file ");
-          System.err.println(" empty String is returned");
+          Reporter.debug(e);
+          Reporter.writeError("Cannot load a TextAtom value from its temporal file ");
+          Reporter.writeError(" empty String is returned");
           return new byte[0];
        }
     }
@@ -1865,9 +1834,9 @@ public byte[] textValueAsByteArray () {
 public InputStream textValueAsInputStream() throws IOException{
   if(atomType()!=TEXT_ATOM){
     if(CHECK_PRECONDITIONS){
-       System.err.println("Check preconditions failed");
-       System.err.println("  error in textValueAsInputStream");
-       System.err.println("  list is not of type text atom ");
+       Reporter.writeError("Check preconditions failed");
+       Reporter.writeError("  error in textValueAsInputStream");
+       Reporter.writeError("  list is not of type text atom ");
     }
     return null;
   }
@@ -1976,8 +1945,8 @@ private ListExpr(long key){
     this.data = dbarray.get(key);
     if(DEBUG_MODE){
       if(data.length!=17){
-         System.err.println("Error in getting data from DBarray"+key);
-         System.err.println("Expected : 17 bytes, received : "+ data.length+" bytes ");
+         Reporter.writeError("Error in getting data from DBarray"+key);
+         Reporter.writeError("Expected : 17 bytes, received : "+ data.length+" bytes ");
       }
     }
 }
@@ -2012,7 +1981,7 @@ private void setValue(long v){
     }
    if(DEBUG_MODE){
       if(getValue()!=v)
-          System.err.println("Error in setValue method");
+          Reporter.writeError("Error in setValue method");
    }
 }
 
@@ -2042,7 +2011,7 @@ private void setNext(long v){
     }
     if(DEBUG_MODE){
       if(getNext()!=v){
-         System.err.println("Error in setNext Method ");
+         Reporter.writeError("Error in setNext Method ");
       } 
     }
 }
@@ -2104,8 +2073,8 @@ private void destroyValue(){
          break;
       }
       default: {
-          System.err.println("DestroyValue: unknown atomtype detected"+at);
-          System.out.println(" key = "+ key);
+          Reporter.writeError("DestroyValue: unknown atomtype detected"+at);
+          Reporter.writeError(" key = "+ key);
       }
    }
 }
@@ -2116,14 +2085,11 @@ private static ListExpr stringValuedAtom(String value,byte atomType){
  try{
     byte[] StringBytes = value.getBytes("UTF-8");
     if(!dbarray.put(SKey,StringBytes)){
-        if(DEBUG_MODE){
-           System.err.println("Error in putting text into dbarray ");
-         }
+        Reporter.debug("Error in putting text into dbarray ");
          return null;
      }
  } catch(Exception e){
-    if(DEBUG_MODE)
-       e.printStackTrace();
+    Reporter.debug(e);
     return null;
  }
  return new ListExpr(atomType,SKey,value.length());
@@ -2133,8 +2099,8 @@ private static ListExpr stringValuedAtom(String value,byte atomType){
 private String stringLikeValue(byte atomtype){
   if(atomType()!=atomtype){
      if(CHECK_PRECONDITIONS){
-        System.err.println("precondition failed in ListExpr::stringLikeValue");
-        System.err.println("List is not of the appropriate type ");
+        Reporter.writeError("precondition failed in ListExpr::stringLikeValue");
+        Reporter.writeError("List is not of the appropriate type ");
      }
      return null;
   }
@@ -2170,7 +2136,7 @@ private static String getText(long key){
   try{
      return new String(getTextBytes(key),"UTF-8");
   } catch(Exception e){
-    e.printStackTrace();
+    Reporter.debug(e);
     return null;
   }
 }

@@ -27,6 +27,7 @@ import sj.lang.ListExpr;
 import java.util.*;
 import viewer.hoese.algebras.periodic.*;
 import javax.swing.JPanel;
+import tools.Reporter;
 
 public class Dsplpmreal extends DsplGeneric implements Function,ExternDisplay {
 
@@ -92,7 +93,7 @@ public void  displayExtern(){
          functionframe.setVisible(true);
          functionframe.toFront();
       } else{
-         viewer.MessageBox.showMessage("The periodic moving real is empty");
+         Reporter.showInfo("The periodic moving real is empty");
       }
 }
 

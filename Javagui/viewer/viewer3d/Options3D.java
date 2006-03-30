@@ -24,6 +24,7 @@ import java.awt.*;
 import java.awt.event.*;
 import viewer.viewer3d.graphic3d.*;
 import viewer.viewer3d.objects.BoundingBox3D;
+import tools.Reporter;
 
 /**
   * this class provides a JDialog to change the 3d-Options for
@@ -137,8 +138,7 @@ private boolean accept(){
   }
   catch(Exception e){
      ok = false;
-     JOptionPane.showMessageDialog(this,"invalid values in fields (not a double)",
-                                  "error",JOptionPane.ERROR_MESSAGE);
+     Reporter.showError("invalid values in fields (not a double)");
   }
 
   boolean viewcheck=true;
@@ -153,14 +153,12 @@ private boolean accept(){
     windowok = WindowX >0 & WindowY>0;
  
     if (!viewcheck){
-       JOptionPane.showMessageDialog(this,"Eye,VRP,ViewUp cannot be on a line",
-                                    "error",JOptionPane.ERROR_MESSAGE);
+       Reporter.showError("Eye,VRP,ViewUp cannot be on a line");
        ok = false;
        }
     else
        if (!windowok) {
-          JOptionPane.showMessageDialog(this,"Window must be greater then 0x0","error",
-                                        JOptionPane.ERROR_MESSAGE);
+          Reporter.showError("Window must be greater then 0x0");
           ok = false;
        }
   }   // if ok
@@ -201,8 +199,7 @@ public void setBoundingBox(BoundingBox3D BB){
 /** compute a Proposal */
 public void makeProposal(){
   if(BB==null){
-     JOptionPane.showMessageDialog(this,"no bounding box is set",
-                                  "error",JOptionPane.ERROR_MESSAGE);
+     Reporter.showError("no bounding box is set");
      return;
   }
   

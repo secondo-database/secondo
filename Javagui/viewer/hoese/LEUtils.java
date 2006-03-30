@@ -24,6 +24,7 @@ package  viewer.hoese;
 import  sj.lang.ListExpr;
 import viewer.HoeseViewer;
 import gui.Environment;
+import tools.Reporter;
 
 
 /**
@@ -95,7 +96,7 @@ public class LEUtils {
       if(length==4 &&
          value.first().atomType()==ListExpr.SYMBOL_ATOM &&
          value.first().symbolValue().equals("date")){
-         System.err.println("Deprecated version of instant (date day month year");
+         Reporter.writeWarning("Deprecated version of instant (date day month year");
          value=value.rest(); //ignore "date"
          if(value.first().atomType()!=ListExpr.INT_ATOM ||
             value.second().atomType()!=ListExpr.INT_ATOM ||
@@ -110,7 +111,7 @@ public class LEUtils {
       // check for an deprecated data version
       if(value.first().atomType()==ListExpr.SYMBOL_ATOM &&
          value.first().symbolValue().equals("datetime")){
-         System.err.println("Deprecated nested list representation of time !!");
+         Reporter.writeWarning("Deprecated nested list representation of time !!");
        	 value = value.rest();
          length = length-1;
       }
@@ -237,32 +238,23 @@ public class LEUtils {
   public static Interval readInterval (ListExpr le) {
      int length = le.listLength();
      if (length != 4){
-      if(Environment.DEBUG_MODE){
-         System.err.println("wrong listlength for interval (needed is 4) :" + length);
-      }
+      Reporter.debug("wrong listlength for interval (needed is 4) :" + length);
       return  null;
     }
     Double start = readInstant(le.first());
     if(start==null){
-       if(Environment.DEBUG_MODE){
-          System.err.println("Error in reading start - instant ");
-          System.out.println(le.first().writeListExprToString());
-       }
+       Reporter.debug("Error in reading start - instant \n"+
+                      le.first().writeListExprToString());
        return null;
     }
     Double end = readInstant(le.second());
     if(end==null){
-       if(Environment.DEBUG_MODE){
-          System.err.println("Error in reading end instant ");
-       }
+       Reporter.debug("Error in reading end instant ");
        return null;
     }
-    //System.out.println("start:"+start+" end:"+end);
     if ((le.third().atomType() != ListExpr.BOOL_ATOM)
         || (le.fourth().atomType() != ListExpr.BOOL_ATOM)){
-      if(Environment.DEBUG_MODE){
-         System.err.println("not boolean atoms for lefttclosed or rightclosed");
-      }
+      Reporter.debug("not boolean atoms for lefttclosed or rightclosed");
       return  null;
     }
     boolean leftcl = le.third().boolValue();
@@ -310,7 +302,7 @@ public class LEUtils {
   public static Double readNumeric (ListExpr le) {
     if (le.isAtom()) {
       if (! (le.atomType()==ListExpr.INT_ATOM || le.atomType()==ListExpr.REAL_ATOM)) {
-        System.out.println("Error: No correct numeric expression: rat or int or real-type needed");
+        Reporter.writeError("Error: No correct numeric expression: rat or int or real-type needed");
         return  null;
       }
       if (le.atomType()==ListExpr.INT_ATOM)
@@ -321,7 +313,7 @@ public class LEUtils {
     else {
       int length = le.listLength();
       if ((length != 5)&& (length != 6)){
-        System.out.println("Error: No correct rat expression: 5 or 6 elements needed");
+        Reporter.writeError("Error: No correct rat expression: 5 or 6 elements needed");
         return  null;
       }
       if (length==5) {
@@ -329,11 +321,11 @@ public class LEUtils {
              != ListExpr.INT_ATOM) || (le.third().atomType() != ListExpr.INT_ATOM)
              || (le.fourth().atomType() != ListExpr.SYMBOL_ATOM) || (le.fifth().atomType()
              != ListExpr.INT_ATOM)) {
-             System.out.println("Error: No correct rat5 expression: wrong types");
+             Reporter.writeError("Error: No correct rat5 expression: wrong types");
              return  null;
           }
           if ((!le.first().symbolValue().equals("rat")) || (!le.fourth().symbolValue().equals("/"))) {
-              System.out.println("Error: No correct rat5 expression: wrong symbols"
+              Reporter.writeError("Error: No correct rat5 expression: wrong symbols"
                  + le.first().symbolValue() + ":" + le.fourth().symbolValue() +
                   ":");
               return  null;
@@ -345,14 +337,14 @@ public class LEUtils {
               ||(le.third().atomType()!= ListExpr.INT_ATOM) || (le.fourth().atomType() != ListExpr.INT_ATOM)
               || (le.fifth().atomType() != ListExpr.SYMBOL_ATOM) || (le.sixth().atomType()
               != ListExpr.INT_ATOM)) {
-             System.out.println("Error: No correct rat6 expression: wrong types");
+             Reporter.writeError("Error: No correct rat6 expression: wrong types");
              return  null;
           }
           if ((!le.first().symbolValue().equals("rat")) ||
       	      (!le.fifth().symbolValue().equals("/")  ) ||
       	      !(le.second().symbolValue().equals("-")  ||
       	        le.second().symbolValue().equals("+") )) {
-              System.out.println("Error: No correct rat6 expression: wrong symbols"
+              Reporter.writeError("Error: No correct rat6 expression: wrong symbols"
                   + le.first().symbolValue() + ":" + le.fifth().symbolValue() +
                   ":"+le.writeListExprToString());
               return  null;

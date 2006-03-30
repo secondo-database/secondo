@@ -27,6 +27,7 @@ import  java.util.*;
 import  javax.swing.*;
 import  javax.swing.border.*;
 import  java.awt.*;
+import tools.Reporter;
 
 
 /**
@@ -74,10 +75,8 @@ public class Dsplperiods extends Dsplinstant {
    * @see <a href="Dsplperiodssrc.html#ScanValue">Source</a>
    */
   public void ScanValue (ListExpr v) {
-    ////System.out.println(v.writeListExprToString());
     while (!v.isEmpty()) {
       ListExpr le = v.first();
-      //System.out.println(le.writeListExprToString());
       if (le.listLength() != 4)
         return;
       Interval in = LEUtils.readInterval(le);
@@ -102,7 +101,7 @@ public class Dsplperiods extends Dsplinstant {
     AttrName = type.symbolValue();
     ScanValue(value);
     if (err) {
-      System.out.println("Error in ListExpr :parsing aborted");
+      Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": TA(Periods))"));
       return;
     } 

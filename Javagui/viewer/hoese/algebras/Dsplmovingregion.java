@@ -25,6 +25,7 @@ import  viewer.*;
 import viewer.hoese.*;
 import  sj.lang.ListExpr;
 import  java.util.*;
+import tools.Reporter;
 
 /**
  * A displayclass for the movingregion-type (spatiotemp algebra), 2D with TimePanel
@@ -91,7 +92,7 @@ public class Dsplmovingregion extends DisplayTimeGraph {
              double tmpx = em.x1+delta*(em.x2-em.x1);
 	     double tmpy = em.y1+delta*(em.y2-em.y1);
        if(!ProjectionManager.project(tmpx,tmpy,aPoint)){
-          System.err.println("wrong parameter for choosed projection");
+          Reporter.writeError("wrong parameter for choosed projection");
           return (RenderObject=null);
        } 
 	     float x = (float)aPoint.x;
@@ -103,7 +104,7 @@ public class Dsplmovingregion extends DisplayTimeGraph {
          }
      }
    } catch(Exception e){
-     System.err.println("wrong parameter for choosed projection");
+     Reporter.writeError("wrong parameter for choosed projection");
      return (RenderObject=null);
    }
    GP.closePath();
@@ -166,8 +167,6 @@ public class Dsplmovingregion extends DisplayTimeGraph {
    */
   public void ScanValue (ListExpr value) {
     err = true;
-    //System.out.println(value.writeListExprToString());
-    // 	 areas = new Area();
     int length = value.listLength();
     RegionMaps = new Vector(length+1);
     Intervals = new Vector(length+1);
@@ -183,8 +182,8 @@ public class Dsplmovingregion extends DisplayTimeGraph {
       RegionMap rm = null;
 
       if(L==5){
-         System.out.println("Warning: use a deprecated version of"+
-	                    " external representation of a moving region!");
+         Reporter.writeWarning("Warning: use a deprecated version of"+
+                               " external representation of a moving region!");
          in = LEUtils.readInterval(ListExpr.fourElemList(unit.first(),
                                    unit.second(), unit.third(), unit.fourth()));
          rm = readRegionMap(unit.fifth());
@@ -214,7 +213,7 @@ public class Dsplmovingregion extends DisplayTimeGraph {
     AttrName = type.symbolValue();
     ScanValue(value);
     if (err) {
-      System.out.println("Dsplmovingregion Error in ListExpr :parsing aborted");
+      Reporter.writeError("Dsplmovingregion Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GTA(mregion))"));
       return;
     }

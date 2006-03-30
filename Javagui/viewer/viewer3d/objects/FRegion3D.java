@@ -25,6 +25,7 @@ import java.util.Vector;
 import gui.idmanager.*;
 import gui.SecondoObject;
 import java.awt.*;
+import tools.Reporter;
 
 public class FRegion3D implements Object3D{
 
@@ -106,7 +107,6 @@ public boolean readFromListExpr(ListExpr LE){
     }
     else{
        ok = false;
-       //System.out.println("error reading TriangleList :"+Triangles.first().writeListExprToString());
      }
 
   }
@@ -171,7 +171,7 @@ public void showSettings(Frame F){
   FS.setMinColor(new Color(minR,minG,minB));
   FS.setMaxColor(new Color(maxR,maxG,maxB));
   FS.show();
-  if (FS.getReturnValue()==FS.OK){
+  if (FS.getReturnValue()==FuzzySettings.OK){
       Color C1 = FS.getMinColor();
       Color C2 = FS.getMaxColor();
       minR = C1.getRed();
@@ -232,15 +232,15 @@ public boolean readFromListExpr(ListExpr LE){
   SingleFPoint tmpP3 = new SingleFPoint();
   boolean ok =  tmpP1.readFromListExpr(LE.first());
   if(!ok)
-     System.out.println("Error reading :"+LE.first().writeListExprToString());
+     Reporter.writeError("Error reading :"+LE.first().writeListExprToString());
   else{
      ok = tmpP2.readFromListExpr(LE.second());
      if(!ok)
-        System.out.println("Error reading :"+LE.second().writeListExprToString());
+        Reporter.writeError("Error reading :"+LE.second().writeListExprToString());
      else {
         ok = tmpP3.readFromListExpr(LE.third());
         if(!ok)
-	  System.out.println("error reading :"+LE.third().writeListExprToString());
+           Reporter.writeError("error reading :"+LE.third().writeListExprToString());
       }
   }
 

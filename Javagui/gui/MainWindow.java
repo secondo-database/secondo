@@ -1337,7 +1337,6 @@ public boolean addObject(SecondoObject SO){
 
 /* the main function to start program */
 public static void main(String[] args){
-  System.setErr(System.out);
   MainWindow SecGui = new MainWindow("Secondo-GUI");
   SecGui.setVisible(true);
   MainWindow.ComPanel.requestFocus();

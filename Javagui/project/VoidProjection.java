@@ -19,7 +19,7 @@
 
 package project;
 
-
+import tools.Reporter;
 
 public class VoidProjection implements Projection{
 
@@ -30,7 +30,7 @@ public class VoidProjection implements Projection{
    }
 
    public boolean showSettings(){
-     System.out.println("VoidProjection.showSettings not implemented");
+     Reporter.writeWarning("VoidProjection.showSettings not implemented");
      return true;
    }
 

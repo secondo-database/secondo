@@ -24,6 +24,7 @@ import  java.io.*;
 import  javax.swing.*;
 import  sj.lang.ListExpr;
 import viewer.HoeseViewer;
+import tools.Reporter;
 
 
 /**
@@ -316,20 +317,20 @@ public class Dsplexternal
   {
     if (args.length != 1)
     {
-      System.out.println("Usage: Base64 string");
+      Reporter.writeError("Usage: Base64 string");
       System.exit(0);
     }
     try
     {
       String e = Dsplexternal.encode(args[0].getBytes());
       String d = new String(Dsplexternal.decode(e));
-      System.out.println("Input   = '" + args[0] + "'");
-      System.out.println("Encoded = '" + e + "'");
-      System.out.println("Decoded = '" + d + "'");
+      Reporter.write("Input   = '" + args[0] + "'");
+      Reporter.write("Encoded = '" + e + "'");
+      Reporter.write("Decoded = '" + d + "'");
     }
     catch (Exception x)
     {
-      x.printStackTrace();
+      Reporter.debug(x);
     }
   }
 

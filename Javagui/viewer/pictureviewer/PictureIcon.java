@@ -43,6 +43,7 @@ import tools.*;
 import java.io.*;
 import java.awt.image.*;
 import java.lang.*;
+import tools.Reporter;
 
 
 
@@ -120,12 +121,9 @@ It creates an icon for a picture with data of the picture.
 		Image ima = Toolkit.getDefaultToolkit().createImage( buf );
 
 		if (width == -1 || height == -1) {
-		    //System.err.println("PictureIcon()-2 #1d");
 		    ImageIcon icon = new ImageIcon(ima);
 		    width = icon.getIconWidth();
 		    height = icon.getIconHeight();
-		    //System.err.println("PictureIcon()-2 #1e width="+width);
-		    //System.err.println("PictureIcon()-2 #1f height="+height);
 		}
 
 		float widthFactor = ((float) width)/widthIcon;
@@ -209,7 +207,7 @@ This methode searches for metadata in the byterepresentation for jpeg.
 	{
 	    int len = 1;
             if(gui.Environment.DEBUG_MODE)
-  	       System.out.println("PictureIcon jpeg meta M_COM="
+  	       Reporter.debug("PictureIcon jpeg meta M_COM="
 	  		           + M_COM
 			           + " M_SOS="
 			           + M_SOS
@@ -245,8 +243,7 @@ This methode searches for metadata in the byterepresentation for jpeg.
 			if (len<2) return;
 			if (marker == M_COM)
 			{ // process metastring
-                                if(gui.Environment.DEBUG_MODE)
-      			  	   System.out.println(
+      			  	   Reporter.debug(
 				  	"    PictureIcon jpeg meta M_COM len="
 					+ len + " index=" + i);
 				metaData += "\n ";
@@ -259,8 +256,7 @@ This methode searches for metadata in the byterepresentation for jpeg.
 			}
 			else if (marker>=M_SOF0 && marker<=M_SOF15)
 			{ // SOF marker
-                                if(gui.Environment.DEBUG_MODE)
-      				   System.out.println(" PictureIcon jpeg meta M_SOF len="
+      				   Reporter.debug(" PictureIcon jpeg meta M_SOF len="
 				  	              + len + " index=" + i);
 				int jpeg_precision 	= buf[i+2];
 				int jpeg_height
@@ -292,8 +288,7 @@ This methode searches for metadata in the byterepresentation for jpeg.
 		}
 	    } catch (IndexOutOfBoundsException e) {
 		// ready
-                if(gui.Environment.DEBUG_MODE)
-      		    System.out.println(" PictureIcon jpeg meta finish" );
+      		    Reporter.debug(" PictureIcon jpeg meta finish" );
 	    }
 	}
 
@@ -330,7 +325,6 @@ This methode creates the byterepresentation for jpeg of base64 code.
    	{
 		int j=0;
 		int n=0;
-     		//System.out.println(" PictureIcon fast64 ");
 		datap += "====";
 		byte[] bin = datap.getBytes();
 		byte[] bufo = new byte[ ( 3*bin.length)/4 +4 ];
@@ -353,10 +347,8 @@ This methode creates the byterepresentation for jpeg of base64 code.
 				bufo[j++] = (byte)((n>>8) & 0xff);
 				bufo[j++] = (byte)((n) & 0xff);
 			}
-//         System.out.println(" Selection picture fast len=" + i );
       		} catch (IndexOutOfBoundsException  e ) {
-                        if(gui.Environment.DEBUG_MODE)
-           		   System.out.println(" PictureIcon create picture bound end " );
+           		   Reporter.debug(" PictureIcon create picture bound end " );
       		}
 		return bufo;
    	}

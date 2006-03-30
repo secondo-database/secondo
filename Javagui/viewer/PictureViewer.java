@@ -350,7 +350,6 @@ public void displayTableObject( int row, int col)
 		//	There's no picture, nevertheless, show the
 		//	histogram (only this one)!
 		//
-		//System.out.println("There is no picture" );
 		phVec = CurrentTable.getHistogramColumns(col, true);
 
 		//      Remove currently displayed picture.& meta data
@@ -372,7 +371,6 @@ public void displayTableObject( int row, int col)
         //	elements should be displayed as well !
 	//
 	//Vector phVec = CurrentTable.getHistogramColumns(col);
-	//System.out.println( phVec.size() + " Histograms found" );
 
  	//
  	//	Show all histogram which were found
@@ -462,9 +460,7 @@ private PictureIcon getExprHistogram(ListExpr LE)
 	for (int i=0; i<258; i++)
 		histo[i] = 0.0;
 	if (LE.listLength() != 3){
-                if(gui.Environment.DEBUG_MODE)
-		     System.out.println(" Histogram len=" + (LE.listLength()) );
-//		return new PictureIcon( histo, 0, null );
+		Reporter.debug(" Histogram len=" + (LE.listLength()) );
 		return null;
 	}
 	if (    (LE.first().atomType() != ListExpr.INT_ATOM) ||
@@ -472,10 +468,8 @@ private PictureIcon getExprHistogram(ListExpr LE)
 		(LE.third().atomType() != ListExpr.NO_ATOM) ||
 		(LE.third().listLength()!=256) )
 	{
-                if(gui.Environment.DEBUG_MODE)
-		   System.out.println(" Histogram bad Types" );
-//		return new PictureIcon( histo, 0, null );
-		return null;
+		 Reporter.debug(" Histogram bad Types" );
+		 return null;
 	}
 	int colorchannel = LE.first().intValue();
 	double maxvalue = LE.second().realValue();
@@ -580,8 +574,6 @@ This methode returns the type of ListExpr as String
 
 private String getExprType(ListExpr LE)
 {
-   //System.out.println( "getExprType called" );
-
    if(LE.listLength()!=2)
       	return "";
 
@@ -678,8 +670,6 @@ private PictureTable tuplereport(ListExpr LE)
 	Vector names = new Vector();
 	Vector types = new Vector();
 	interpretTuple( LE, names, types);
-	//System.out.println( "Anzahl Namen: " + names.size() );
-	//System.out.println( "Anzahl Typen: " + types.size() );
 	Vector values = getTupleValues( LE, types);
 
 	return new PictureTable(values, names, types, this);
@@ -709,7 +699,6 @@ This methode shows the table of the selected object
 		    && CurrentTable.getColumnCount()==1)
 		{
 		    displayTableObject( 0, 0);
-		    //System.out.println( " PictureViewer select (0,0)" );
 		}
     } else {
         tableScroll.setViewportView(dummy);
@@ -893,13 +882,13 @@ This methode adds an Objects to the viewer, stores it and displays it.
 		 ( ! tuple.symbolValue().equals("tuple"))    ||
   		 ( attrlist.atomType() != ListExpr.NO_ATOM ) )
 	{
-		if (DEBUG_MODE) System.out.println( "canDisplay(): rel expected" );
+		Reporter.debug( "canDisplay(): rel expected" );
 		return false;
 	}
 
 	if ( attrlist.listLength() == 0 )
 	{
-		if (DEBUG_MODE) System.out.println( "canDisplay(): no attributes" );
+		Reporter.debug( "canDisplay(): no attributes" );
 		return false;
 	}
 
@@ -917,9 +906,7 @@ This methode adds an Objects to the viewer, stores it and displays it.
 			  (elem.second().symbolValue().equals("histogram")) ||
 			  (elem.second().symbolValue().equals("instant")) )))
 		{
-			if (DEBUG_MODE)
-				System.out.println( "canDisplay(): unexpected parameter" );
-
+			Reporter.debug( "canDisplay(): unexpected parameter" );
 			parameterOK = false;
 			break;
 		}
@@ -929,8 +916,7 @@ This methode adds an Objects to the viewer, stores it and displays it.
 	if ( !parameterOK )
 		return false;
 
-	if ( DEBUG_MODE)
-		System.out.println( "canDisplay(): Each Parameter is valid" );
+		Reporter.debug( "canDisplay(): Each Parameter is valid" );
 
 	return true;
 }

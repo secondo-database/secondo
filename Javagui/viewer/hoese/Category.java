@@ -27,6 +27,7 @@ import  java.awt.image.*;
 import  sj.lang.ListExpr;
 import viewer.HoeseViewer;
 import java.util.Properties;
+import tools.Reporter;
 
 /**
  * A graph. object can have several display attributes. All possible attributes are collected in one category which
@@ -571,7 +572,7 @@ public class Category
   public static Category ConvertLEtoCat (ListExpr le) {
     int len = le.listLength();
     if (len!= 11 && len!=14) {
-      System.out.println("Error: No correct category expression: 11 elements needed");
+      Reporter.writeError("Error: No correct category expression: 11 elements needed");
       return  null;
     }
     Category cat = new Category();

@@ -40,6 +40,7 @@ package sj.lang;
 import java.net.*;
 import java.io.*;
 import java.util.StringTokenizer;
+import tools.Reporter;
 
 /*
 
@@ -87,11 +88,6 @@ not accessible by the user code.
 
 */
 
-  /* FIELDS DEFINITION*/
-  // If this field is set to true the debug messages will be printed in the
-  // standard error output stream (System.err). Otherwise the debug messages
-  // will not be shown.
-  private static final boolean DEBUG_MODE = true;
 
   // This field sets the name of the file where Secondo() method must store the
   // result when the commandAsText parameter is set to true. It is predefined
@@ -130,9 +126,9 @@ not accessible by the user code.
   public void useBinaryLists(boolean ubl){
      binaryLists=ubl;
      if(ubl)
-        System.out.println("use binary lists");
+        Reporter.writeInfo("use binary lists");
      else
-        System.out.println("use textual lists");
+        Reporter.writeInfo("use textual lists");
   }
 
   public boolean initialize( String user, String pswd,
@@ -143,11 +139,11 @@ not accessible by the user code.
     String line;
     if ( !initialized )
     {
-      System.out.println( "Initializing the Secondo system ..." );
+      Reporter.writeInfo( "Initializing the Secondo system ..." );
       // Connect with server, needed host and port
       if ( secHost.length() > 0 && secPort > 0 )
       {
-        System.out.println( "SecondoInterface: Connecting with Secondo server '" +
+        Reporter.writeInfo( "SecondoInterface: Connecting with Secondo server '" +
                             secHost + "' on port " + secPort + " ..." );
         try
         {
@@ -160,19 +156,19 @@ not accessible by the user code.
           } catch (IOException e) {
             closeSocket( serverSocket );
             serverSocket = null; // To help detecting internal errors.
-            System.out.println( "SecondoInterface: IOError creating input/output streams for serverSocket.." );
+            Reporter.writeError( "SecondoInterface: IOError creating input/output streams for serverSocket.." );
           }
         } catch (UnknownHostException e) {
-          System.out.println( "SecondoInterface: Network error: Unknown host '" + secHost + "'." );
+          Reporter.writeError( "SecondoInterface: Network error: Unknown host '" + secHost + "'." );
         } catch (IOException e) {
-          System.out.println( "SecondoInterface: Network error: Unable to connect with the Secondo Server." );
+          Reporter.writeError( "SecondoInterface: Network error: Unable to connect with the Secondo Server." );
         }
 
         if ( serverSocket != null ) {
           try {
             line = inSocketStream.readLine();
         if(line==null){
-           System.out.println("failed");
+           Reporter.writeError("failed");
            initialized = false;
            return false;
         }
@@ -184,7 +180,7 @@ not accessible by the user code.
               line = inSocketStream.readLine();
               if(line==null){
             initialized = false;
-        System.out.println("failed");
+            Reporter.writeError("failed");
         return false;
           }
               if ( line.equals( "<SecondoIntro>" ) )
@@ -194,12 +190,12 @@ not accessible by the user code.
           line = inSocketStream.readLine();
           if(line==null){
              initialized = false;
-             System.out.println("failed");
+             Reporter.writeError("failed");
              return false;
           }
                   if ( !line.equals( "</SecondoIntro>" ) )
                   {
-                    System.out.println( line );
+                     Reporter.writeError( line );
                   }
                 }
                 while ( !line.equals( "</SecondoIntro>" ) );
@@ -210,38 +206,38 @@ not accessible by the user code.
                 line = inSocketStream.readLine();
         if(line==null){
           initialized = false;
-          System.out.println("SecondoError");
+          Reporter.writeError("SecondoError");
           return false;
         }
-                System.out.println( "Server-Error: " + line );
+                Reporter.writeError( "Server-Error: " + line );
                 line = inSocketStream.readLine();
               }
               else
               {
-                System.out.println( "Unidentifiable response from server: " + line );
+                Reporter.writeError( "Unidentifiable response from server: " + line );
               }
             }
             else if ( line.equals( "<SecondoError>" ) )
             {
               line = inSocketStream.readLine();
-              System.out.println( "Server-Error: " + line );
+              Reporter.writeError( "Server-Error: " + line );
               line = inSocketStream.readLine();
             }
             else
             {
-              System.out.println( "Unidentifiable response from server: " + line );
+              Reporter.writeError( "Unidentifiable response from server: " + line );
             }
           } catch (IOException e) {
           }
         } else {
-          System.out.println( "failed." );
+          Reporter.writeError( "failed." );
         }
         if ( !initialized && serverSocket != null ) {
           closeSocket( serverSocket );
           serverSocket = null;
         }
       } else {
-        System.out.println( "*** SecondoInterface: Invalid or missing host (" + secHost +
+        Reporter.writeError( "*** SecondoInterface: Invalid or missing host (" + secHost +
                             ") and/or port (" + secPort + ")." );
       }
     }
@@ -256,22 +252,22 @@ not accessible by the user code.
         outSocketStream.write( "<Disconnect/>\n" );
         outSocketStream.flush();
       } catch (IOException e) {
-        System.out.println( "SecondoInterface: Terminate: Error sending <Disconnect/>." );
+        Reporter.writeError( "SecondoInterface: Terminate: Error sending <Disconnect/>." );
       }
       try {
         inSocketStream.close();
       } catch (IOException e) {
-        System.out.println( "SecondoInterface: Terminate: Error closing input stream." );
+        Reporter.writeError( "SecondoInterface: Terminate: Error closing input stream." );
       }
       try {
         outSocketStream.close();
       } catch (IOException e) {
-        System.out.println( "SecondoInterface: Terminate: Error closing output stream." );
+        Reporter.writeError( "SecondoInterface: Terminate: Error closing output stream." );
       }
       try {
         serverSocket.close();
       } catch (IOException e) {
-        System.out.println( "SecondoInterface: Terminate: Error closing server socket." );
+        Reporter.writeError( "SecondoInterface: Terminate: Error closing server socket." );
       }
       serverSocket = null;
     }
@@ -299,7 +295,7 @@ not accessible by the user code.
              errorMessage.append( line );
              line = inSocketStream.readLine();
            } else{
-             System.err.println( "SecondoInterface: Network Error in method secondo reading SecondoError." );
+             Reporter.writeError( "SecondoInterface: Network Error in method secondo reading SecondoError." );
              errorCode.value = 81;
              return;
          }
@@ -334,9 +330,9 @@ not accessible by the user code.
          long receivetime = t2-t1;
          long alltime = t3-t1;
          if(gui.Environment.MEASURE_TIME){
-            System.out.println("receive a nested list (textual) : "+receivetime+" milliseconds");
-            System.out.println("parsing                         : "+parsetime+" milliseconds");
-            System.out.println("sum                             : "+alltime+" milliseconds"); 
+            Reporter.writeInfo("receive a nested list (textual) : "+receivetime+" milliseconds");
+            Reporter.writeInfo("parsing                         : "+parsetime+" milliseconds");
+            Reporter.writeInfo("sum                             : "+alltime+" milliseconds"); 
          }
      } else { // handle binary lists
        long t1 = System.currentTimeMillis();
@@ -347,14 +343,14 @@ not accessible by the user code.
          }
          line = inSocketStream.readLine();
          if(!line.equals("</SecondoResponse>")){
-             System.err.println("SecondoInterface: Missing </SecondoResponse>");
-             System.err.println("received :" +line);
+             Reporter.writeError("SecondoInterface: Missing </SecondoResponse>");
+             Reporter.writeError("received :" +line);
              errorCode.value=81;
              return;
           }
           long t = System.currentTimeMillis()-t1;
           if(gui.Environment.MEASURE_TIME){
-               System.out.println("receive and building a nested list (binary) :"+t+" milliseconds");
+               Reporter.writeInfo("receive and building a nested list (binary) :"+t+" milliseconds");
           }
      } // handle binary lists
      // divide the answerlist
@@ -474,7 +470,7 @@ not accessible by the user code.
               sentData++;
        }
        if(sentData!=filelength){ // should never occur
-          System.err.println("sent data("+sentData+") unequals filesize ("+filelength+") ");
+          Reporter.writeError("sent data("+sentData+") unequals filesize ("+filelength+") ");
        }
        outSocketStream.write( "</FileData>\n" );
        outSocketStream.write("</"+tag+">\n");
@@ -561,7 +557,7 @@ protected void secondo(String command,
    // write command to console if desired
 
  if(gui.Environment.SHOW_COMMAND){
-    System.out.println(command);
+    Reporter.write(command);
   }  
 
   // clean the errormessage
@@ -642,7 +638,7 @@ protected void secondo(String command,
             } while ( line.compareTo( "</SecondoError>" ) != 0 );
           }
         } catch (IOException e) {
-          System.out.println( "SecondoInterface: Network Error in method numericTypeExpr." );
+          Reporter.writeError( "SecondoInterface: Network Error in method numericTypeExpr." );
         }
       }
     }
@@ -683,7 +679,7 @@ protected void secondo(String command,
           ok = false;
         }
       } catch (IOException e) {
-        System.out.println( "SecondoInterface: Network Error in method getTypeId." );
+        Reporter.writeError( "SecondoInterface: Network Error in method getTypeId." );
       }
     }
     return (ok);
@@ -726,7 +722,7 @@ protected void secondo(String command,
             } while ( line.compareTo( "</SecondoError>" ) != 0 );
           }
         } catch (IOException e) {
-          System.out.println( "SecondoInterface: Network Error in method lookUpTypeExpr." );
+          Reporter.writeError( "SecondoInterface: Network Error in method lookUpTypeExpr." );
         }
       }
     }
@@ -754,7 +750,7 @@ close the socket.
       try {
         socket.close();
       } catch (IOException e) {
-        System.err.println("SecondoInterface: IOException while closing server socket.");
+        Reporter.writeError("SecondoInterface: IOException while closing server socket.");
       }
     }
   }
@@ -779,12 +775,12 @@ close the stream.
         } else if ( stream.getClass() == Class.forName( "java.io.BufferedWriter" ) ) {
           ((BufferedWriter)stream).close();
         } else {
-      System.out.println( "SecondoInterface: Error closing stream, object is neither a BufferedReader nor a BufferedWriter." );
+           Reporter.writeError( "SecondoInterface: Error closing stream, object is neither a BufferedReader nor a BufferedWriter." );
     }
       } catch (ClassNotFoundException e) {
-        System.out.println( "SecondoInterface: ClassNotFoundException while closing stream.");
+        Reporter.writeError( "SecondoInterface: ClassNotFoundException while closing stream.");
       } catch (IOException except) {
-        System.out.println( "SecondoInterface: IOException while closing stream.");
+        Reporter.writeError( "SecondoInterface: IOException while closing stream.");
       }
     }
   }
@@ -795,7 +791,7 @@ private class MyBufferedOutputStream extends BufferedOutputStream{
      }
      public void write(String s) throws IOException{
             if(gui.Environment.TRACE_SERVER_COMMANDS){
-                System.out.println("Send to Server: \""+s+"\"");
+                Reporter.write("Send to Server: \""+s+"\"");
             }
             int len = s.length();
             for(int i=0;i<len;i++){

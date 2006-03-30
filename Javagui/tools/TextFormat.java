@@ -29,7 +29,7 @@ package tools;
   * printing a red colored message on green background:
   * System.out.println(TextFormat.RED+TextFormat.BG_GREEN+"The Message"+TextFormat.NORMAL);
   **/
-public  class TextFormat{
+class TextFormat{
  public static final String NORMAL    ="\033[m";
  public static final String NORMAL1   ="\033[0m";
  public static final String BOLD      ="\033[1m";

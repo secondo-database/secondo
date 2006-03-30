@@ -27,6 +27,7 @@ import viewer.hoese.*;
 import  sj.lang.ListExpr;
 import  java.util.*;
 import  javax.swing.*;
+import tools.Reporter;
 
 
 /**
@@ -101,9 +102,8 @@ public class Dsplintimepoints extends Dsplpoints
    */
   public void ScanValue (ListExpr v) {
     Double d;
-    //System.out.println(v.writeListExprToString());
     if (v.listLength() != 2) {                  //perhaps changes later
-      System.out.println("Error: No correct intimepoints expression: 2 elements needed");
+      Reporter.writeError("Error: No correct intimepoints expression: 2 elements needed");
       err = true;
       return;
     }
@@ -129,7 +129,7 @@ public class Dsplintimepoints extends Dsplpoints
     AttrName = type.symbolValue();
     ScanValue(value);
     if (err) {
-      System.out.println("Error in ListExpr :parsing aborted");
+      Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GTA(IntimePoints))"));
       return;
     } 

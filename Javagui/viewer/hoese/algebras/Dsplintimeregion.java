@@ -27,6 +27,7 @@ import viewer.hoese.*;
 import  sj.lang.ListExpr;
 import  java.util.*;
 import  javax.swing.*;
+import tools.Reporter;
 
 
 /**
@@ -73,9 +74,8 @@ public class Dsplintimeregion extends Dsplregion
    */
   public void ScanValue (ListExpr v) {
     Double d;
-    //System.out.println(v.writeListExprToString());
     if (v.listLength() != 2) {                  //perhaps changes later
-      System.out.println("Error: No correct intimeregion expression: 2 elements needed");
+      Reporter.writeError("Error: No correct intimeregion expression: 2 elements needed");
       err = true;
       return;
     }
@@ -115,7 +115,7 @@ public class Dsplintimeregion extends Dsplregion
     AttrName = type.symbolValue();
     ScanValue(value);
     if (err) {
-      System.out.println("Error in ListExpr :parsing aborted");
+      Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GTA(IntimeRegion))"));
       return;
     } 

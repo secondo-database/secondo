@@ -19,13 +19,14 @@
 
 package  viewer.hoese.algebras;
 
-import  sj.lang.ListExpr;
-import  viewer.*;
+import sj.lang.ListExpr;
+import viewer.*;
 import viewer.hoese.*;
-import  java.util.*;
-import  javax.swing.*;
-import  java.awt.*;
-import  javax.swing.border.*;
+import java.util.*;
+import javax.swing.*;
+import java.awt.*;
+import javax.swing.border.*;
+import tools.Reporter;
 
 
 /**
@@ -51,7 +52,6 @@ public class Dsplmovingbool extends Dsplinstant {
       Interval in = (Interval)li.next();
       int start = (int)((in.getStart() - TimeBounds.getStart())*PixelTime);
       int end = (int)((in.getEnd() - TimeBounds.getStart())*PixelTime);
-      //System.out.println(new String(start+" "+end));
       String bs = Bools.elementAt(cnt++).toString();
       JLabel jc = new JLabel(bs);
       jc.setFont(new Font("Dialog", Font.PLAIN, 12));
@@ -79,7 +79,6 @@ public class Dsplmovingbool extends Dsplinstant {
    * @see <a href="Dsplmovingboolsrc.html#ScanValue">Source</a>
    */
   public void ScanValue (ListExpr v) {
-    ////System.out.println(v.writeListExprToString());
     while (!v.isEmpty()) {
       ListExpr le = v.first();
       int len = le.listLength();
@@ -120,7 +119,7 @@ public class Dsplmovingbool extends Dsplinstant {
     AttrName = type.symbolValue();
     ScanValue(value);
     if (err) {
-      System.out.println("Error in ListExpr :parsing aborted");
+      Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": TA(MBool))"));
       return;
     } 

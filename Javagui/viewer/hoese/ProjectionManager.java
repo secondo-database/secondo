@@ -21,6 +21,7 @@ package viewer.hoese;
 
 import project.*;
 import java.awt.geom.*;
+import tools.Reporter;
 
 
 public class ProjectionManager {
@@ -122,11 +123,9 @@ public class ProjectionManager {
          }
       }
     if(iterations >= maxIterations){
-       if(gui.Environment.DEBUG_MODE){
-          System.err.println("give up after "+maxIterations+" iterations");
-          System.out.println("error was " + error);
-          System.out.println("Last values are " + x + " , " + y);
-       }
+       Reporter.debug("give up after "+maxIterations+" iterations\n"+
+                      "error was " + error +"\n"+
+                      "Last values are " + x + " , " + y);
        return false;
     }
     result.x = x;

@@ -28,6 +28,7 @@ import java.awt.*;
 import javax.swing.event.*;
 import java.awt.event.*;
 import javax.swing.table.*;
+import tools.Reporter;
 
 public class LinkAttrCat extends JDialog{
 
@@ -83,12 +84,12 @@ public LinkAttrCat(HoeseViewer HV){
    CloseBtn.addActionListener(new ActionListener(){
       public void actionPerformed(ActionEvent e){
           if(NameText.getText().equals("")){
-	     MessageBox.showMessage("you must enter a Name ");
+	           Reporter.showError("Please enter a Name ");
 	     return;
 	  }
 	  if(!UpdateMode){
 	     if(ManualLinkPool.exists(NameText.getText())){
-                MessageBox.showMessage("the name allready exists \n please chose another one ");
+          Reporter.showError("the name allready exists \n please chose another one ");
 	        return;
 	     }
 	     TM.getLinks().setName(NameText.getText());
@@ -100,7 +101,7 @@ public LinkAttrCat(HoeseViewer HV){
                LinkAttrCat.this.setVisible(false);
 	    }else{ // Name is changed
                 if(ManualLinkPool.exists(NameText.getText())){
-                    MessageBox.showMessage("the name allready exists \n please chose another one ");
+                    Reporter.showError("the name allready exists \n please chose another one ");
 	            return;
 	         }
 	         TM.getLinks().setName(NameText.getText());
@@ -194,13 +195,13 @@ public void setDefaultCat(Category Cat){
 private void setCat(){
   Category TheCat = (Category) ComboBox.getSelectedItem();
   if(TheCat==null){
-     MessageBox.showMessage("no category selected");
+     Reporter.showError("no category selected");
      return;
   }
   String CatName = TheCat.getName();
   int index = Tab.getSelectedRow();
   if(index<0) {
-      MessageBox.showMessage("no attribute selected");
+      Reporter.showError("no attribute selected");
       return;
   }
   TM.setCatNameAt(index,CatName);

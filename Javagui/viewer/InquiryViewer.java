@@ -26,6 +26,7 @@ import java.awt.*;
 import java.awt.event.*;
 import gui.SecondoObject;
 import sj.lang.*;
+import tools.Reporter;
 
 public class InquiryViewer extends SecondoViewer{
 
@@ -173,7 +174,7 @@ public class InquiryViewer extends SecondoViewer{
 private void searchText(){
   String Text = SearchField.getText();
   if(Text.length()==0){
-    MessageBox.showMessage("no text to search");
+    Reporter.showInfo("no text to search");
     return;
   }
   try{
@@ -185,7 +186,7 @@ private void searchText(){
      }
      int pos = DocText.indexOf(Text,LastSearchPos);
      if(pos<0){
-        MessageBox.showMessage("end of text is reached");
+        Reporter.showInfo("end of text is reached");
         LastSearchPos=0;
         return;
      }
@@ -197,9 +198,8 @@ private void searchText(){
      HTMLArea.moveCaretPosition(i2);
      HTMLArea.getCaret().setSelectionVisible(true);
   } catch(Exception e){
-    if(DEBUG_MODE)
-       e.printStackTrace();
-    MessageBox.showMessage("error in searching text");
+    Reporter.debug(e);
+    Reporter.showError("error in searching text");
 
   }
 
@@ -213,14 +213,14 @@ private void searchText(){
 	*/
  private String formatEntry(ListExpr LE){
    if(LE.listLength()!=3){
-     System.err.println("InquiryViewer : error in list (listLength() # 3");
+     Reporter.writeError("InquiryViewer : error in list (listLength() # 3");
      return "";
    }
    ListExpr Name = LE.first();
    ListExpr Properties = LE.second();
    ListExpr Values = LE.third();
    if(Properties.listLength()!= Values.listLength()){
-      System.err.println("InquiryViewer : Warning: lists "+
+      Reporter.writeWarning("InquiryViewer : Warning: lists "+
 			"have different lengths ("+Name.symbolValue()+")");
    }
 
@@ -437,8 +437,7 @@ private void searchText(){
          showObject();
       }
       catch(Exception e){
-        if(DEBUG_MODE)
-	   e.printStackTrace();
+	      Reporter.debug(e);
       }
    }
    return true;

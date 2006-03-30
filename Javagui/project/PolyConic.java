@@ -19,6 +19,7 @@
 
 package project;
 
+import tools.Reporter;
 
 
 public class PolyConic extends ProjectionAdapter{
@@ -46,7 +47,7 @@ public class PolyConic extends ProjectionAdapter{
    }
 
    public boolean showSettings(){
-     System.out.println("Polyconic.showSettings not implemented");
+     Reporter.writeWarning("Polyconic.showSettings not implemented");
      return true;
    }
 

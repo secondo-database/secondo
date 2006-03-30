@@ -20,6 +20,7 @@
 package viewer.hoese.algebras.periodic;
 
 import sj.lang.ListExpr;
+import tools.Reporter;
 
 public class TotalMove implements Move{
 
@@ -34,8 +35,7 @@ public TotalMove(){
   */
 public Object getObjectAt(Time T){
    if(!defined){
-      if(Environment.DEBUG_MODE)
-         System.err.println("TotalMove: getObjectAt called when undefined");
+      Reporter.debug("TotalMove: getObjectAt called when undefined");
       return null;
    }
    Time T2 = T.minus(start);
@@ -59,8 +59,7 @@ public RelInterval getInterval(){
   */
 public boolean readFrom(ListExpr LE, Class linearClass){
    if(LE.listLength()!=2){
-      if(Environment.DEBUG_MODE)
-         System.err.println("TotalMove.readFrom :: wrong length of the list ");
+      Reporter.debug("TotalMove.readFrom :: wrong length of the list ");
       setUndefined();
       return false;
    }
@@ -68,17 +67,13 @@ public boolean readFrom(ListExpr LE, Class linearClass){
    try{
      O = linearClass.newInstance();
      if(!(O instanceof LinearMove)){
-        if(Environment.DEBUG_MODE)
-            System.err.println("TotalMove.readFrom :: LinearClass creates not an instance of LinearMove");
+        Reporter.debug("TotalMove.readFrom :: LinearClass creates not an instance of LinearMove");
         setUndefined();
         return false;
      }
    }catch(Exception e){
-     if(Environment.DEBUG_MODE){
-        System.err.println(e);
-        System.err.println("TotalMove.readFrom :: error in creating linear move of Class "+linearClass);
-	e.printStackTrace();
-     }
+     Reporter.debug(e);
+     Reporter.debug("TotalMove.readFrom :: error in creating linear move of Class "+linearClass);
      setUndefined();
      return false;
    }
@@ -87,16 +82,13 @@ public boolean readFrom(ListExpr LE, Class linearClass){
    String Type = LM.getName();
    Time T = new Time();
    if(LE.listLength()!=2){
-      if(Environment.DEBUG_MODE)
-         System.err.println("TotalMove.readFrom :: Value list has a wrong listLength()");
+      Reporter.debug("TotalMove.readFrom :: Value list has a wrong listLength()");
       setUndefined();
       return false;
    }
    if(!T.readFrom(LE.first())){
-      if(Environment.DEBUG_MODE){
-         System.err.println("TotalMove.readFrom :: The start time can't be readed");
-       	 System.err.println("List is :" + LE.first().writeListExprToString());
-      }
+      Reporter.debug("TotalMove.readFrom :: The start time can't be readed");
+      Reporter.debug("List is :" + LE.first().writeListExprToString());
       setUndefined();
       return false;
    }
@@ -106,21 +98,17 @@ public boolean readFrom(ListExpr LE, Class linearClass){
       if(LE.second().atomType()==ListExpr.SYMBOL_ATOM && LE.second().symbolValue().equals("undefined")){
           return true;
       }
-      if(Environment.DEBUG_MODE){
-         System.err.println("TotalMove.readFrom :: wrong list length for submove");
-      }
+      Reporter.debug("TotalMove.readFrom :: wrong list length for submove");
       return false;
    }
    if(LE.second().first().atomType()!=ListExpr.SYMBOL_ATOM){
-      if(Environment.DEBUG_MODE)
-         System.err.println("TotalMove.readFrom :: Wrong list type for subtype type descriptor");
+      Reporter.debug("TotalMove.readFrom :: Wrong list type for subtype type descriptor");
       setUndefined();
       return false;
    }
    String typedes = LE.second().first().symbolValue();
    if(!typedes.equals("period") && !typedes.equals("linear") && !typedes.equals("composite")){
-      if(Environment.DEBUG_MODE)
-         System.err.println("TotalMove.readFrom :: unknown value for type descriptor ("+typedes+")");
+      Reporter.debug("TotalMove.readFrom :: unknown value for type descriptor ("+typedes+")");
       setUndefined();
       return false;
    }
@@ -131,8 +119,7 @@ public boolean readFrom(ListExpr LE, Class linearClass){
    else
       tmpmove = new CompositeMove();
    if(!tmpmove.readFrom(LE.second(),linearClass)){
-      if(Environment.DEBUG_MODE)
-         System.err.println("TotalMove.readFrom :: Error in Reading the Move");
+      Reporter.debug("TotalMove.readFrom :: Error in Reading the Move");
       setUndefined();
       return false;
    }
@@ -144,8 +131,7 @@ public boolean readFrom(ListExpr LE, Class linearClass){
 
 public BBox getBoundingBox(){
    if(!defined){
-      if(Environment.DEBUG_MODE)
-         System.err.println("getBounding Box called with undefined TotalMove");
+      Reporter.debug("getBounding Box called with undefined TotalMove");
       return null;
    }
    return move.getBoundingBox();

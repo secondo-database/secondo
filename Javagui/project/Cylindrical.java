@@ -19,7 +19,7 @@
 
 package project;
 
-
+import tools.Reporter;
 
 public class Cylindrical implements Projection{
 
@@ -43,7 +43,7 @@ public class Cylindrical implements Projection{
    }
 
    public boolean showSettings(){
-     System.out.println("Cylindrical.showSettings not implemented");
+     Reporter.writeWarning("Cylindrical.showSettings not implemented");
      return true;
    }
 

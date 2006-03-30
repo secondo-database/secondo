@@ -20,6 +20,7 @@
 package viewer.viewer3d.objects;
 
 import sj.lang.ListExpr;
+import tools.Reporter;
 
 class SingleFPoint{
 
@@ -39,7 +40,7 @@ public boolean readFromListExpr(ListExpr LE){
    if (LE==null)
       return false;
    if(LE.listLength()!=3){
-      System.out.println("wrong listlength"+LE.listLength());
+      Reporter.writeError("wrong listlength"+LE.listLength());
       return false;
    }
    ListExpr LE1 = LE.first();
@@ -51,14 +52,14 @@ public boolean readFromListExpr(ListExpr LE){
    if(LE1.isAtom() && LE1.atomType()==ListExpr.INT_ATOM)
       tx = LE1.intValue();
    else{
-      System.out.println("error reading x:");
+      Reporter.writeError("error reading x:");
       return false;
    }
 
    if(LE2.isAtom() && LE2.atomType()==ListExpr.INT_ATOM)
       ty = LE2.intValue();
     else{
-      System.out.println("error reading y");
+      Reporter.writeError("error reading y");
       return false;
     }
 
@@ -68,12 +69,12 @@ public boolean readFromListExpr(ListExpr LE){
        else
           tz=LE3.realValue();
     else{
-       System.out.println("error reading z");
+       Reporter.writeError("error reading z");
        return false;
     }
 
     if(tz<0 | tz>1){
-       System.out.println("wrong z :"+z);
+       Reporter.writeError("wrong z :"+z);
        return false;
     }
 

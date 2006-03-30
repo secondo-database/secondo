@@ -27,6 +27,7 @@ import sj.lang.ListExpr;
 import java.util.*;
 import viewer.hoese.algebras.periodic.*;
 import javax.swing.JPanel;
+import tools.Reporter;
 
 public class Dsplpmpoint extends DisplayTimeGraph{
 
@@ -74,7 +75,7 @@ public void init(ListExpr type,ListExpr value,QueryResult qr){
 
   qr.addEntry(this);
   if(Move.getBoundingBox()==null){
-     System.err.println("Bounding Box can't be created");
+     Reporter.writeError("Bounding Box can't be created");
   }
   bounds = Move.getBoundingBox().toRectangle2D();
   double StartTime = Move.getStartTime().getDouble();

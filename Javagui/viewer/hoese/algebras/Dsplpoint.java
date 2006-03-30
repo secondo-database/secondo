@@ -19,12 +19,13 @@
 
 package  viewer.hoese.algebras;
 
-import  java.awt.geom.*;
-import  java.awt.*;
-import  sj.lang.ListExpr;
-import  java.util.*;
-import  viewer.*;
-import  viewer.hoese.*;
+import java.awt.geom.*;
+import java.awt.*;
+import sj.lang.ListExpr;
+import java.util.*;
+import viewer.*;
+import viewer.hoese.*;
+import tools.Reporter;
 
 
 /**
@@ -90,9 +91,8 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute {
    */
   private void ScanValue (ListExpr v) {
     double koord[] = new double[2];
-    //System.out.println(v.writeListExprToString());
     if (v.listLength() != 2) {
-      System.out.println("Error: No correct point expression: 2 elements needed");
+      Reporter.writeError("Error: No correct point expression: 2 elements needed");
       err = true;
       return;
     }
@@ -130,7 +130,7 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute {
     }
     ScanValue(value);
     if (err) {
-      System.out.println("Error in ListExpr :parsing aborted");
+      Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GA(point))"));
       return;
     }

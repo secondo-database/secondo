@@ -40,6 +40,7 @@ import  project.*;
 import  components.*;
 import  java.util.TimerTask;
 import  java.util.Timer;
+import tools.Reporter;
 
 
 /** The class MP3V implements a viewer for MP3, ID3 and Lyrics.
@@ -578,7 +579,9 @@ public class MP3V extends SecondoViewer
 		player.start();
 	    }
 	}
-	catch(Exception e){System.err.println("Error in player");}
+	catch(Exception e){
+      Reporter.writeError("Error in player");
+   }
     }
 
     /* stops the MP3 player. */
@@ -607,7 +610,7 @@ public class MP3V extends SecondoViewer
 	    }
 	}
 	catch(Exception e){
-	    System.err.println("Error in Lyricsplayer");
+	    Reporter.writeError("Error in Lyricsplayer");
 	}
     }
 
@@ -956,7 +959,7 @@ public class MP3V extends SecondoViewer
 		try {
 		    P.play();
 		} catch(Exception e){
-		    e.printStackTrace();
+		    Reporter.debug(e);
 		}
 	}
 	

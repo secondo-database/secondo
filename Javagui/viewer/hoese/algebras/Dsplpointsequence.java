@@ -25,6 +25,7 @@ import  sj.lang.ListExpr;
 import  java.util.*;
 import  viewer.*;
 import viewer.hoese.*;
+import tools.Reporter;
 
 
 /**
@@ -158,8 +159,7 @@ public class Dsplpointsequence extends DisplayGraph {
          double y = Y.doubleValue();
          add(x,y);
          if(err){
-            if(gui.Environment.DEBUG_MODE)
-               System.out.println("error in project  point t("+x+" , " +y+")");
+            Reporter.debug("error in project  point t("+x+" , " +y+")");
             reset();
             return;
          }
@@ -179,7 +179,7 @@ public class Dsplpointsequence extends DisplayGraph {
     AttrName = type.symbolValue();
     ScanValue(value);
     if (err) {
-      System.err.println("Error in ListExpr :parsing aborted");
+      Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GA(pointsequence))"));
       bounds =null;
       return;

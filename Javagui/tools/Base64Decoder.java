@@ -234,7 +234,6 @@ static public byte[] decode(String Data){
 	public void close() throws IOException{ Decoder.close();}
         
         public int read(byte[] buffer,int off, int len)throws IOException{
-           System.out.println("read called");
            int pos = off;
            if(len>0){
               int last = Decoder.getNext();

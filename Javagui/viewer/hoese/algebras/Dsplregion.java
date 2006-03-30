@@ -25,6 +25,7 @@ import  sj.lang.ListExpr;
 import  java.util.*;
 import  viewer.*;
 import viewer.hoese.*;
+import tools.Reporter;
 
 
 /**
@@ -53,7 +54,6 @@ public class Dsplregion extends DisplayGraph implements DsplSimple{
 	 }
      }
 
-     //System.out.println("Area with +"+no+" points");
      GeneralPath GP = new GeneralPath(GeneralPath.WIND_EVEN_ODD,no);
      boolean empty = true;
      while(!LE.isEmpty()){
@@ -71,7 +71,7 @@ public class Dsplregion extends DisplayGraph implements DsplSimple{
 	      if(x!=null && y!=null)
 	        try{
             if(!ProjectionManager.project(x.doubleValue(),y.doubleValue(),aPoint)){
-               System.err.println("error in projection at ("+x+", "+y+")");
+               Reporter.writeError("error in projection at ("+x+", "+y+")");
                 err=true;
                 return;
              }else{
@@ -86,7 +86,7 @@ public class Dsplregion extends DisplayGraph implements DsplSimple{
 	              }
 	           } 
           }catch(Exception e){
-	           System.out.println("Error in Projection at ("+x+","+y+")");
+	           Reporter.writeError("Error in Projection at ("+x+","+y+")");
 		          err=true;
 		          return;
 	        }
@@ -117,14 +117,13 @@ public class Dsplregion extends DisplayGraph implements DsplSimple{
     AttrName = type.symbolValue();
     ScanValue(value);
     if (err) {
-      System.out.println("Error in ListExpr :parsing aborted");
+      Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(extendString(AttrName,minTypeWidth)+" : Error(region)");
       return;
     }
     else
       qr.addEntry(this);
     RenderObject = areas;
-    // System.out.println(value.writeListExprToString());
   }
 
 

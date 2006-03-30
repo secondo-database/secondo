@@ -19,7 +19,7 @@
 
 package project;
 
-
+import tools.Reporter;
 
 public class Orthographic implements Projection{
 
@@ -42,7 +42,7 @@ public class Orthographic implements Projection{
    }
 
    public boolean showSettings(){
-     System.out.println("Orthographic.showSettings not implemented");
+     Reporter.writeWarning("Orthographic.showSettings not implemented");
      return true;
    }
 

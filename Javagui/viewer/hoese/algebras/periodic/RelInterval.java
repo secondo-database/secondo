@@ -20,6 +20,7 @@
 package viewer.hoese.algebras.periodic;
 
 import sj.lang.ListExpr;
+import tools.Reporter;
 
 /** This class is the implementation of a relative interval.
   */
@@ -130,8 +131,7 @@ public boolean setLeftRightInfinite(){
 /** appends interval to this */
 public boolean append(RelInterval interval){
   if(!canAppended(interval)){
-     if(Environment.DEBUG_MODE)
-        System.err.println("try to append "+interval+" at "+this);
+     Reporter.debug("try to append "+interval+" at "+this);
      return false;
   }
   if(this.length==null){
@@ -198,21 +198,17 @@ public RelInterval copy(){
   */
 public boolean readFrom(ListExpr LE){
   if(LE.listLength()!=2){
-     if(Environment.DEBUG_MODE)
-       System.err.println("RelInterval.readFrom :: wrong list length ");
+     Reporter.debug("RelInterval.readFrom :: wrong list length ");
      return false;
   }
   // check the type
   if(LE.first().atomType()!=ListExpr.SYMBOL_ATOM || !LE.first().symbolValue().equals("rinterval")){
-     if(Environment.DEBUG_MODE){
-        System.err.println("RelInterval.readFrom :: Typidentifier 'rinterval' not found");
-     }
+     Reporter.debug("RelInterval.readFrom :: Typidentifier 'rinterval' not found");
      return false;
   }
   ListExpr Value = LE.second();
   if(Value.listLength()!=5){
-     if(Environment.DEBUG_MODE)
-        System.err.println("RelInterval.readFrom :: wrong list length of the value ");
+     Reporter.debug("RelInterval.readFrom :: wrong list length of the value ");
      return false;
   }
   // check the List
@@ -221,9 +217,7 @@ public boolean readFrom(ListExpr LE){
      Value.third().atomType()!=ListExpr.BOOL_ATOM ||
      Value.fourth().atomType()!=ListExpr.BOOL_ATOM ||
      Value.fifth().atomType()!=ListExpr.NO_ATOM){
-       if(Environment.DEBUG_MODE){
-         System.err.println("RelInterval.readFrom ::the Value List contains invalid types ");
-       }
+       Reporter.debug("RelInterval.readFrom ::the Value List contains invalid types ");
        return false;
    }
    boolean LC = Value.first().boolValue();
@@ -237,8 +231,7 @@ public boolean readFrom(ListExpr LE){
       ok = L.readFrom(Value.fifth());
    }
    if(!ok){
-      if(Environment.DEBUG_MODE)
-         System.err.println("RelInterval.readFrom :: Error in reading time value "+Value.fifth().writeListExprToString());
+      Reporter.debug("RelInterval.readFrom :: Error in reading time value "+Value.fifth().writeListExprToString());
       return false;
    }
    leftClosed=LC;

@@ -22,6 +22,7 @@ package extern.shapereader;
 import sj.lang.*;
 import java.util.Vector;
 import extern.numericreader.*;
+import tools.Reporter;
 
 
 // todo-list
@@ -91,7 +92,7 @@ private boolean readPoints(byte[] Buffer){
    double ymax = NumericReader.getDoubleLittle(Buffer,28);
    int numpoints = NumericReader.getIntLittle(Buffer,36);
    if(Buffer.length-40 < 8*numpoints){
-       System.err.println("wrong numpoints in Multipoint");
+       Reporter.writeError("wrong numpoints in Multipoint");
        numpoints = (Buffer.length-40) /8;
    }
    BBox = new BoundingBox(xmin,ymin,xmax,ymax);
@@ -267,7 +268,7 @@ private boolean readPolygon(byte[] Buffer){
 		else if(isHoleFrom(H2,Hole)){ // a existing hole is contained in the new hole
 		   Hs.remove(m);
 		   usedHoles--;
-		   System.out.println("found hole in another one");
+		   Reporter.writeWarning("found hole in another one");
 		}
 		else  // holes are disjunct
 		   m++;
@@ -276,7 +277,7 @@ private boolean readPolygon(byte[] Buffer){
 	       usedHoles++;
 	       Hs.add(Hole);
 	     } else{
-	       System.out.println("found hole in another one");
+	       Reporter.writeWarning("found hole in another one");
 	     }
 	   }
 	 }
@@ -285,7 +286,7 @@ private boolean readPolygon(byte[] Buffer){
  }
 
  if(foundHoles!=usedHoles){
-   System.out.println("readPolygon : found "+foundHoles+" holes but used "+usedHoles+" holes");
+   Reporter.writeWarning("readPolygon : found "+foundHoles+" holes but used "+usedHoles+" holes");
  }
 
  ListExpr Next = ListExpr.oneElemList( ((Cycle2D)Faces.get(0)).getList());

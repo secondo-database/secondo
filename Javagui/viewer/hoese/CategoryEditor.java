@@ -26,7 +26,7 @@ import  java.util.*;
 import  java.awt.image.*;
 import  javax.swing.tree.*;
 import  viewer.HoeseViewer;
-
+import tools.Reporter;
 
 /**
  * A class for editing categories based on swing's JDialog
@@ -62,7 +62,6 @@ public class CategoryEditor extends javax.swing.JDialog {
     String s = " ";
     while (li.hasNext()) {
       s = ((Category)li.next()).getName();
-      //System.out.println(s);
       CatCB.addItem(s);
     }
     //CatCB.setSelectedIndex(0);
@@ -269,7 +268,7 @@ public class CategoryEditor extends javax.swing.JDialog {
     try{
        TextureIconB.setIcon(new ImageIcon(ClassLoader.getSystemResource(IconFileName)));
     }catch(Exception e){
-        System.err.println("Cannot find the resource " + IconFileName);
+        Reporter.writeError("Cannot find the resource " + IconFileName);
     }
 
     TextureIconB.setPreferredSize(new java.awt.Dimension(40, 40));
@@ -439,7 +438,7 @@ public class CategoryEditor extends javax.swing.JDialog {
     boolean isused = false;
     Category aktCat = (Category)mw.Cats.elementAt(aktIndex);
     if (aktCat == Category.getDefaultCat()) {
-      JOptionPane.showMessageDialog(mw, "This is the Default !");
+      Reporter.showError("This is the Default !");
       return;
     }
     JComboBox cb = mw.TextDisplay.getQueryCombo();
@@ -452,7 +451,7 @@ public class CategoryEditor extends javax.swing.JDialog {
       }
     }
     if (isused) {
-      JOptionPane.showMessageDialog(mw, "Category is in use!");
+      Reporter.showError("Category is in use!");
       return;
     } 
     else {
@@ -484,7 +483,6 @@ public class CategoryEditor extends javax.swing.JDialog {
   private void CatCBActionPerformed (java.awt.event.ActionEvent evt) {          //GEN-FIRST:event_CatCBActionPerformed
     JComboBox cb = (JComboBox)evt.getSource();
     int i = cb.getSelectedIndex();
-    //System.out.println(i);
     if ((i >= 0) && (i < mw.Cats.size())) {
       aktIndex = i;
       Category aktCat = (Category)mw.Cats.elementAt(i);
@@ -574,13 +572,13 @@ public class CategoryEditor extends javax.swing.JDialog {
        case BasicStroke.CAP_BUTT: capStyle.setSelectedIndex(0);break;
        case BasicStroke.CAP_ROUND: capStyle.setSelectedIndex(1);break;
        case BasicStroke.CAP_SQUARE: capStyle.setSelectedIndex(2); break;
-       default: System.err.println("unknown cap style detected in category");
+       default: Reporter.writeError("unknown cap style detected in category");
     }
     switch(join){
        case BasicStroke.JOIN_BEVEL: joinStyle.setSelectedIndex(0);break;
        case BasicStroke.JOIN_MITER: joinStyle.setSelectedIndex(1);break;
        case BasicStroke.JOIN_ROUND: joinStyle.setSelectedIndex(2); break;
-       default: System.err.println("unknown join style detected in category");
+       default: Reporter.writeError("unknown join style detected in category");
     }
 
     TransparencyT.setText(Float.toString(100.0f - ((AlphaComposite)cat.getAlphaStyle()).getAlpha()*100));
@@ -633,14 +631,14 @@ public class CategoryEditor extends javax.swing.JDialog {
         case 0 : cap = BasicStroke.CAP_BUTT;break;
         case 1 : cap = BasicStroke.CAP_ROUND; break;
         case 2 : cap = BasicStroke.CAP_SQUARE; break;
-        default: System.err.println("invalid value for cap style");
+        default: Reporter.writeError("invalid value for cap style");
     }    
     int join = BasicStroke.JOIN_BEVEL;
     switch(joinStyle.getSelectedIndex()){
         case 0 : join = BasicStroke.JOIN_BEVEL;break;
         case 1 : join = BasicStroke.JOIN_MITER;break;
         case 2 : join = BasicStroke.JOIN_ROUND;break;
-        default: System.err.println("invalid value for join style");
+        default: Reporter.writeError("invalid value for join style");
     }
     int dash = TypeCB.getSelectedIndex();
     cat.setLineStyle(dash,cap,join,linewidth);

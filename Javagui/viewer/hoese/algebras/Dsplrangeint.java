@@ -39,10 +39,8 @@ public class Dsplrangeint extends DsplGeneric {
    */
   private boolean ScanValue (ListExpr v) {
     int i = 0;
-    ////System.out.println(v.writeListExprToString());
     while (!v.isEmpty()) {
       ListExpr le = v.first();
-      //System.out.println(le.writeListExprToString());
       if (le.listLength() != 4)
         return  false;
       if ((le.first().atomType() != ListExpr.INT_ATOM) || (le.second().atomType()

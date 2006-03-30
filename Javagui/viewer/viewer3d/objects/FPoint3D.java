@@ -145,7 +145,7 @@ public void showSettings(Frame F){
   FS.setMinColor(new Color(minR,minG,minB));
   FS.setMaxColor(new Color(maxR,maxG,maxB));
   FS.show();
-  if (FS.getReturnValue()==FS.OK){
+  if (FS.getReturnValue()==FuzzySettings.OK){
       Color C1 = FS.getMinColor();
       Color C2 = FS.getMaxColor();
       minR = C1.getRed();
