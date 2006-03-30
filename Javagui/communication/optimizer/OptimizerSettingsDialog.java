@@ -23,7 +23,7 @@ import sj.lang.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-
+import tools.Reporter; 
 
 public class OptimizerSettingsDialog extends JDialog{
 
@@ -68,13 +68,13 @@ public OptimizerSettingsDialog(JFrame parent){
 private void accept(){
  String H = HostName.getText().trim();
  if(H.equals("")){
-    JOptionPane.showMessageDialog(this,"the hostname must not be empty");
+    Reporter.showError("the hostname must not be empty");
     return;
  }
  try{
     int P = Integer.parseInt(PortNumber.getText());
     if(P<=0){
-        JOptionPane.showMessageDialog(this,"the portnumber must be greater then zero");
+        Reporter.showError("the portnumber must be greater then zero");
 	return;
     }
     Host = H;
@@ -82,7 +82,7 @@ private void accept(){
     accepted = true;
     setVisible(false);
  }catch(Exception e){
-     JOptionPane.showMessageDialog(this,"the portnumber is not a valid integer");
+     Reporter.showError("the portnumber is not a valid integer");
      return;
  }
 }

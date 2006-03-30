@@ -21,6 +21,7 @@ package communication.optimizer;
 
 import java.io.*;
 import java.net.*;
+import tools.Reporter;
 
 
 /* this class provides a interface for communication with a
@@ -126,14 +127,14 @@ public void disconnect(){
         sendLine("<end connection>");
 	out.flush();
      }catch(Exception e){
-        System.out.println("error in sending end-message to optimizer-server");
+        Reporter.writeError("error in sending end-message to optimizer-server");
      }
      finally{
         try{
 	  ClientSocket.close();
 	}
 	catch(Exception e2){
-	  System.out.println("error in closing connection to optimizer-server");
+	  Reporter.writeError("error in closing connection to optimizer-server");
 	}
      }
   }
