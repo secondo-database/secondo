@@ -44,9 +44,86 @@ using namespace datetime;
 #include "TemporalAlgebra.h"
 #include "MovingRegionAlgebra.h"
 
+/*
+1 Class template ~RefinementPartition~
+
+*/
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-unsigned int RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
+class RefinementPartitionLift {
+private:
+/*
+Private attributes:
+
+  * ~iv~: Array (vector) of sub-intervals, which has been calculated from the
+    unit intervals of the ~Mapping~ instances.
+
+  * ~vur~: Maps intervals in ~iv~ to indices of original units in first
+    ~Mapping~ instance. A $-1$ values indicates that interval in ~iv~ is no
+    sub-interval of any unit interval in first ~Mapping~ instance.
+
+  * ~vup~: Same as ~vur~ for second mapping instance.
+
+*/
+    vector< Interval<Instant>* > iv;
+    vector<int> vur;
+    vector<int> vup;
+
+/*
+~AddUnit()~ is a small helper method to create a new interval from
+~start~ and ~end~ instant and ~lc~ and ~rc~ flags and to add these to the
+~iv~, ~vur~ and ~vup~ vectors.
+
+*/
+    void AddUnits(const int urPos,
+                  const int upPos,
+                  const Instant& start,
+                  const Instant& end,
+                  const bool lc,
+                  const bool rc);
+
+public:
+/*
+The constructor creates the refinement partition from the two ~Mapping~
+instances ~mr~ and ~mp~.
+
+Runtime is $O(\max(n, m))$ with $n$ and $m$ the numbers of units in
+~mr~ and ~mp~.
+
+*/
+    RefinementPartitionLift(Mapping1& mr, Mapping2& mp);
+
+/*
+Since the elements of ~iv~ point to dynamically allocated objects, we need
+a destructor.
+
+*/
+    ~RefinementPartitionLift();
+
+/*
+Return the number of intervals in the refinement partition.
+
+*/
+    unsigned int Size(void);
+
+/*
+Return the interval and indices in original units of position $pos$ in
+the refinement partition in the referenced variables ~civ~, ~ur~ and
+~up~. Remember that ~ur~ or ~up~ may be $-1$ if interval is no sub-interval
+of unit intervals in the respective ~Mapping~ instance.
+
+Runtime is $O(1)$.
+
+*/
+    void Get(unsigned int pos,
+             Interval<Instant>*& civ,
+             int& ur,
+             int& up);
+};
+
+
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+unsigned int RefinementPartitionLift<Mapping1, Mapping2, Unit1, Unit2>
 ::Size(void) { 
         cout << "RP::Size() called" << endl;
             
@@ -54,7 +131,7 @@ unsigned int RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
     }
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-void RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
+void RefinementPartitionLift<Mapping1, Mapping2, Unit1, Unit2>
 ::Get(unsigned int pos, Interval<Instant>*& civ, int& ur,
      int& up) {
         cout << "RP::Get() called" << endl;
@@ -67,7 +144,7 @@ void RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
     }
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-void RefinementPartition<Mapping1, Mapping2, Unit1,
+void RefinementPartitionLift<Mapping1, Mapping2, Unit1,
  Unit2>::AddUnits(
     const int urPos,
     const int upPos,
@@ -100,8 +177,8 @@ void RefinementPartition<Mapping1, Mapping2, Unit1,
 }
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-RefinementPartition<Mapping1, Mapping2, Unit1,
- Unit2>::RefinementPartition(
+RefinementPartitionLift<Mapping1, Mapping2, Unit1,
+ Unit2>::RefinementPartitionLift(
     Mapping1& mr,
     Mapping2& mp) {
     cout << "RP::RP() called" << endl;
@@ -380,8 +457,8 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
 }
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-RefinementPartition<Mapping1, Mapping2, Unit1,
- Unit2>::~RefinementPartition() {
+RefinementPartitionLift<Mapping1, Mapping2, Unit1,
+ Unit2>::~RefinementPartitionLift() {
 
     cout << "RP::~RP() called" << endl;
 
@@ -792,7 +869,7 @@ void DistanceMPoint( MPoint& p1, MPoint& p2, MReal& result)
   UReal uReal;
   
   cout<<"DistanceMPoint called"<<endl;
-  RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(p1, p2);
+  RefinementPartitionLift<MPoint, MPoint, UPoint, UPoint> rp(p1, p2);
   cout<<"Refinement abgeschlossen, rp.size: "<<rp.Size()<<endl;
 
   result.Clear();
@@ -1248,7 +1325,7 @@ static void MRealDistanceMM(MReal& op1, MReal& op2, MReal& result)
 {  
   UReal uReal;
   
-  RefinementPartition<MReal, MReal, UReal, UReal> rp(op1, op2);
+  RefinementPartitionLift<MReal, MReal, UReal, UReal> rp(op1, op2);
  cout<<"Refinement abgeschlossen, rp.size: "<<rp.Size()<<endl;
   
   result.Clear();
@@ -1445,7 +1522,7 @@ static void MovingRealCompareMM(MReal& op1, MReal& op2, MBool&
 {
   UBool uBool;
    
-  RefinementPartition<MReal, MReal, UReal, UReal> rp(op1, op2);
+  RefinementPartitionLift<MReal, MReal, UReal, UReal> rp(op1, op2);
  cout<<"Refinement abgeschlossen, rp.size: "<<rp.Size()<<endl;
   
   result.Clear();
@@ -1685,7 +1762,7 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
 {
  UReal un;
    
- RefinementPartition<MReal, MReal, UReal, UReal> rp(op1, op2);
+ RefinementPartitionLift<MReal, MReal, UReal, UReal> rp(op1, op2);
  cout<<"Refinement abgeschlossen, rp.size: "<<rp.Size()<<endl;
   
  result.Clear();
@@ -2004,7 +2081,7 @@ void MovingPointCompareMM( MPoint& p1, MPoint& p2, MBool& result,
   UBool uBool;
   
   cout<<"MovingPointCompareMM called"<<endl;
-  RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(p1, p2);
+  RefinementPartitionLift<MPoint, MPoint, UPoint, UPoint> rp(p1, p2);
   cout<<"Refinement abgeschlossen, rp.size: "<<rp.Size()<<endl;
 
   result.Clear();
@@ -2299,7 +2376,7 @@ The comparisons are 1: AND; 2: OR.
 {
   UBool uBool;  //part of the Result
   
-  RefinementPartition<MBool, MBool, UBool, UBool> rp(op1, op2);
+  RefinementPartitionLift<MBool, MBool, UBool, UBool> rp(op1, op2);
   cout<<"Refinement abgeschlossen, rp.size: "<<rp.Size()<<endl;
   result.Clear();
   result.StartBulkLoad();
@@ -2401,7 +2478,7 @@ Compares the two operators in the given way: The comparisons are -3: \#; -2: <; 
 {
   UBool uBool;  //part of the Result
   
-  RefinementPartition<Mapping1, Mapping2, Unit1, Unit2> 
+  RefinementPartitionLift<Mapping1, Mapping2, Unit1, Unit2> 
   rp(op1, op2);
  cout<<"Refinement abgeschlossen, rp.size: "<<rp.Size()<<endl;
   result.Clear();
@@ -2461,7 +2538,7 @@ Calculates the Intersection
 
 {
   Unit1 un;  //part of the Result
-  RefinementPartition<Mapping1, Mapping2, Unit1, Unit2> 
+  RefinementPartitionLift<Mapping1, Mapping2, Unit1, Unit2> 
   rp(op1, op2);
  cout<<"Refinement abgeschlossen, rp.size: "<<rp.Size()<<endl;
   result.Clear();
@@ -4609,7 +4686,7 @@ void copyRegionMPoint(CRegion& reg, MPoint& pt, MRegion& result) {
 }
 
 void copyMRegionMPoint(MRegion& reg, MPoint& pt, MRegion& result) {
-    RefinementPartition<MRegion, MPoint, URegion, UPoint> rp(reg,pt);
+    RefinementPartitionLift<MRegion, MPoint, URegion, UPoint> rp(reg,pt);
     result.Clear();
     result.StartBulkLoad();
     Interval<Instant>* iv;
