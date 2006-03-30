@@ -195,7 +195,7 @@ not accessible by the user code.
           }
                   if ( !line.equals( "</SecondoIntro>" ) )
                   {
-                     Reporter.writeError( line );
+                     Reporter.writeInfo( line );
                   }
                 }
                 while ( !line.equals( "</SecondoIntro>" ) );
