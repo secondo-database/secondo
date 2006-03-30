@@ -2299,7 +2299,6 @@ public boolean canDisplay(SecondoObject o){
 
   private void init() {
     // Once the address of the configuration file is known, it tries to
-    boolean success=true;
     configuration = new Properties();
     File CF = new File(CONFIGURATION_FILE);
     if(!CF.exists()){
@@ -2315,7 +2314,6 @@ public boolean canDisplay(SecondoObject o){
        Reporter.debug(e);
        return;
     }
-    if(success){
        CatPath="";
        String SessionPath="";
        String ReferencePath ="";
@@ -2453,10 +2451,10 @@ public boolean canDisplay(SecondoObject o){
 
 
        }
-
+    String AutoCat = configuration.getProperty("AUTOCAT");
+    if(AutoCat!=null && AutoCat.trim().toUpperCase().equals("TRUE")){
+      isAutoCatMI.setSelected(true);
     }
-
-
  }
 
 

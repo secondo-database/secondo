@@ -72,6 +72,7 @@ MAXCAPTUREPIXELS 15000000
 # maxsize for  complete background image
 MAXPIXELS 8000000
 
-
+# enable automatic computation of categories by default
+AUTOCAT false
 
 
