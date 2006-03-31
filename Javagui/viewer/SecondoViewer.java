@@ -70,6 +70,19 @@ public abstract boolean isDisplayed(SecondoObject o);
       this.VC = VC;
  }
 
+/** sets the using in testmode
+  * In the testmode the viewer should not open any Frames and so on
+  * without any user interaction with the viewer itsself. Therefore,
+  * a testfile which is processed in testmode runs up to the end without
+  * the requirement of user interaction.
+  **/
+ public void enableTestmode(boolean on){
+  // does nothing by default
+ }
+
+
+
+
  protected ViewerControl VC=null;  // inform this Control if select/remove a Object
  
  public static boolean DEBUG_MODE=false;

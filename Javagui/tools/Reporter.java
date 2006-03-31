@@ -46,7 +46,7 @@ public static void reportError(String message,
  if(debug && !gui.Environment.DEBUG_MODE){
     return;
  }
- if(!console){
+ if(!console && !gui.Environment.TESTMODE){
     if(ex!=null){
        message = message+"\n"+ex.getMessage();
     }
@@ -55,7 +55,7 @@ public static void reportError(String message,
                                "An error is detected",
                                 JOptionPane.ERROR_MESSAGE);
     } catch(Exception e){
-      System.err.println("could not create error frame for \n"+message);
+      TextFormat.printError("could not create error frame for \n"+message);
     }
    return;
  }
@@ -85,7 +85,7 @@ public static void reportWarning(String message,
  if(debug && !gui.Environment.DEBUG_MODE){
     return;
  }
- if(!console){
+ if(!console && !gui.Environment.TESTMODE){
     if(ex!=null){
        message = message+"\n"+ex.getMessage();
     }
@@ -94,7 +94,7 @@ public static void reportWarning(String message,
                                "Warning",
                                 JOptionPane.WARNING_MESSAGE);
     } catch(Exception e){
-      System.err.println("could not create error frame for \n"+message);
+      TextFormat.printError("could not create error frame for \n"+message);
     }
    return;
  }
@@ -112,7 +112,7 @@ public static void reportWarning(String message,
  
 /** reports an Information **/
 public static void reportInfo(String message, boolean console){
-   if(console){
+   if(console || gui.Environment.TESTMODE){
      TextFormat.printInfo(message);
    }else{
     try{

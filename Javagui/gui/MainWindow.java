@@ -187,7 +187,7 @@ public Frame getMainFrame(){ return this; }
 
 
 /* creates a new MainWindow */
-public MainWindow(String Title){
+public MainWindow(String Title,File testfile){
   super(Title);
   String StartScript=null;
   setSize(800,600);
@@ -412,6 +412,7 @@ public MainWindow(String Title){
              if(Cand instanceof SecondoViewer){
                 Reporter.writeInfo("addViewer "+ViewerName);
                 addViewer((SecondoViewer)Cand);
+                ((SecondoViewer)Cand).enableTestmode(Environment.TESTMODE);
               }
              else{
                Reporter.writeError(ViewerName+" is not a SecondoViewer");
@@ -637,6 +638,10 @@ public MainWindow(String Title){
   ListExpr.setMaxStringLength(maxStringLength);
   Environment.MAX_STRING_LENGTH = maxStringLength;
 
+  /** overwrite the StartScript when testmode is used **/
+  if(Environment.TESTMODE && testfile!=null){
+      StartScript = testfile.getAbsolutePath();
+  }
   if(StartScript!=null){
       StartScript = StartScript.trim();
       Reporter.writeInfo("execute "+StartScript);
@@ -1337,7 +1342,28 @@ public boolean addObject(SecondoObject SO){
 
 /* the main function to start program */
 public static void main(String[] args){
-  MainWindow SecGui = new MainWindow("Secondo-GUI");
+  if(args.length<1){
+     Reporter.writeInfo("start Javagui without any argument");
+  }else{
+     String allArgs=args[0];
+     for(int i=1;i<args.length;i++){
+       allArgs += " " + args[i];
+     }
+     Reporter.writeInfo("start Javagui with \""+allArgs+"\"");  
+  }
+
+  Environment.TESTMODE = args.length>0 && args[0].equals("--testmode");
+  File testfile=null;
+  if(Environment.TESTMODE){
+     if(args.length>1){
+        testfile = new File(args[1]);
+        if(!testfile.exists()){
+            Reporter.writeError("testfile " + testfile+" not found");
+            System.exit(1);
+        }
+     }
+  }
+  MainWindow SecGui = new MainWindow("Secondo-GUI",testfile);
   SecGui.setVisible(true);
   MainWindow.ComPanel.requestFocus();
 }
