@@ -187,7 +187,7 @@ public Frame getMainFrame(){ return this; }
 
 
 /* creates a new MainWindow */
-public MainWindow(String Title,File testfile){
+public MainWindow(String Title){
   super(Title);
   String StartScript=null;
   setSize(800,600);
@@ -638,19 +638,16 @@ public MainWindow(String Title,File testfile){
   ListExpr.setMaxStringLength(maxStringLength);
   Environment.MAX_STRING_LENGTH = maxStringLength;
 
-  /** overwrite the StartScript when testmode is used **/
-  if(Environment.TESTMODE && testfile!=null){
-      StartScript = testfile.getAbsolutePath();
-  }
-  if(StartScript!=null){
+  if(StartScript!=null ){
       StartScript = StartScript.trim();
       Reporter.writeInfo("execute "+StartScript);
-      if (StartScript.endsWith("-i")){
+      if (StartScript.endsWith("-i") ){
          StartScript = StartScript.substring(0,StartScript.length()-2).trim();
          executeFile(StartScript,true);
       }
-      else
-         executeFile(StartScript,false);
+      else{ // ignore errors in StartScript in testmode
+         executeFile(StartScript,Environment.TESTMODE);
+      }
    }
 
 
@@ -1363,8 +1360,12 @@ public static void main(String[] args){
         }
      }
   }
-  MainWindow SecGui = new MainWindow("Secondo-GUI",testfile);
+  MainWindow SecGui = new MainWindow("Secondo-GUI");
   SecGui.setVisible(true);
+  if(Environment.TESTMODE && testfile!=null){
+     Reporter.writeInfo("Run Testfile");
+     SecGui.executeFile(testfile.getAbsolutePath(),true);
+  }
   MainWindow.ComPanel.requestFocus();
 }
 

@@ -12,4 +12,4 @@ else
   JAVA="java"
 fi
 
-$JAVA  -Xmx580M  -classpath $CP gui.MainWindow
+$JAVA  -Xmx580M  -classpath $CP gui.MainWindow $*
