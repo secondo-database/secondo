@@ -30,6 +30,26 @@ nonpublic.filelist
 CM-Scripts/cvs-make.sh
 CM-Scripts/cvspass.pl
 CM-Scripts/mkpublic.sh
+Javagui/viewer/hoese/algebras/periodic/BBox.java
+Javagui/viewer/hoese/algebras/periodic/LinearMove.java
+Javagui/viewer/hoese/algebras/periodic/PMPLinear.java
+Javagui/viewer/hoese/algebras/periodic/PMRectLinear.java
+Javagui/viewer/hoese/algebras/periodic/Time.java
+Javagui/viewer/hoese/algebras/periodic/CompositeMove.java
+Javagui/viewer/hoese/algebras/periodic/Move.java
+Javagui/viewer/hoese/algebras/periodic/PMPsLinear.java
+Javagui/viewer/hoese/algebras/periodic/PMRegionLinear.java
+Javagui/viewer/hoese/algebras/periodic/TotalMove.java
+Javagui/viewer/hoese/algebras/periodic/Environment.java
+Javagui/viewer/hoese/algebras/periodic/PeriodMove.java
+Javagui/viewer/hoese/algebras/periodic/PMRealUnit.java
+Javagui/viewer/hoese/algebras/periodic/RelInterval.java
+Javagui/viewer/hoese/algebras/Dsplpmpoint.java
+Javagui/viewer/hoese/algebras/Dsplpmpoints.java
+Javagui/viewer/hoese/algebras/Dsplpmreal.java
+Javagui/viewer/hoese/algebras/Dsplpmrect.java
+Javagui/viewer/hoese/algebras/Dsplpmregion.java
+
 
 # Files by ending
 
