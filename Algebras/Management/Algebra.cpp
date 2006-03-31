@@ -36,6 +36,8 @@ using namespace std;
 #include "NestedList.h"
 #include "SecondoSystem.h"
 
+#include <fstream>
+
 NestedList *nl;
 QueryProcessor *qp;
 AlgebraManager *am;
@@ -133,7 +135,9 @@ TypeConstructor::DefaultOpen( SmiRecord& valueRecord,
   valueString.assign( buffer, valueLength );
   delete []buffer;
   nl->ReadFromString( valueString, valueList );
-  value = RestoreFromList( nl->First(typeInfo), nl->First( valueList ), 1, errorInfo, correct );
+  value = RestoreFromList( nl->First(typeInfo), 
+                           nl->First(valueList), 
+                           1, errorInfo, correct  );
   if ( errorInfo != 0 )
   {
     nl->Destroy( errorInfo );
@@ -269,11 +273,14 @@ TypeConstructor::SaveToList( ListExpr type, Word value )
 }
 
 Word
-TypeConstructor::RestoreFromList( const ListExpr typeInfo, const ListExpr value,
-                                  const int errorPos, ListExpr& errorInfo, bool& correct )
+TypeConstructor::RestoreFromList( const ListExpr typeInfo, 
+                                  const ListExpr value,
+                                  const int errorPos, 
+                                  ListExpr& errorInfo, bool& correct )
 {
   if( restoreFromListFunc != 0 )
-    return ((*restoreFromListFunc)( typeInfo, value, errorPos, errorInfo, correct ));
+    return ((*restoreFromListFunc)( typeInfo, value, 
+                                    errorPos, errorInfo, correct ));
   else
     return ((*inFunc)( typeInfo, value, errorPos, errorInfo, correct ));
 }
@@ -354,6 +361,7 @@ Algebra::AddTypeConstructor( TypeConstructor* tc )
 {
   tcs.push_back( tc );
   tcsNum++;
+
 }
 
 void
