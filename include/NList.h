@@ -165,32 +165,38 @@ c)~.
   
   NList() : 
     l(nl->Empty()), 
+    e(nl->Empty()),
     len(0) 
   {}
   NList(const NList& rhs) : 
     l(rhs.l), 
+    e(rhs.e),
     len(rhs.len) 
   {}
   NList(const ListExpr list) : 
     l(list), 
+    e(nl->Empty()),
     len(nl->ListLength(list)) 
   {}
   NList(const NList& a, const NList& b) : 
-    l( nl->TwoElemList(a.l, b.l) ), 
+    l( nl->TwoElemList(a.l, b.l) ),
+    e( b.l ), 
     len(2)
   {}
   NList(const NList& a, const NList& b, const NList& c) : 
-    l( nl->ThreeElemList(a.l, b.l, c.l) ), 
+    l( nl->ThreeElemList(a.l, b.l, c.l) ),
+    e( c.l ), 
     len(3)
   {}
-  NList(const string& s, const bool isStr = false)
+  NList(const string& s, const bool isStr = false) :
+    e( nl->Empty() ),
+    len( 1)
   {
    
     if (isStr)
       l = nl->StringAtom(s);
     else 
       l = nl->SymbolAtom(s);
-    len = 1;
   }
   
   ~NList() {}
@@ -341,16 +347,19 @@ Construction of big lists
   inline void makeHead(NList head) 
   {
     l = nl->OneElemList( head.l );
+    e = l;
     len = 1;
   } 
   
-  inline NList append(NList tail)
+  inline void append(NList tail)
   {
-     return NList(nl->Append(l, tail.l));
+     e = nl->Append(e, tail.l);
+     len++;
   }
            
  private:
-  ListExpr l;
+  ListExpr l; 
+  ListExpr e; // points to the last element of a list
   Cardinal len;
   inline bool isNodeType(const int n, const NodeType t) const
   {
