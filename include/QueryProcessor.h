@@ -163,6 +163,7 @@ such as "ArgVectorPointer"[4], "Supplier"[4], "Word"[4], "Address"[4], etc.
 #include "SecondoSystem.h"
 #include "MemCTable.h"
 #include "LogMsg.h"
+#include "StopWatch.h"
 #include "FLOBCache.h"
 
 struct OpNode;
@@ -373,6 +374,8 @@ the form (counterno, value).
 
 */
 
+  void ResetTimer();
+  StopWatch& GetTimer();
 
 /*
 3.2.3 Procedures Exported for Testing Only
@@ -636,9 +639,10 @@ of the type constructor associated with the ~value~.
   vector<ArgVectorPointer> argVectors; // MAXFUNCTIONS = 30
 
   static const int NO_COUNTERS = 16;
-
   int counter[NO_COUNTERS];	
-
+  
+  StopWatch evalRunTime;
+  
   size_t maxMemPerOperator;
 /*
 The maximum memory available per operator.

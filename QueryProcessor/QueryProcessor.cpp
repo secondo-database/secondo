@@ -205,6 +205,7 @@ using namespace std;
 #include "SecondoSystem.h"
 #include "LogMsg.h"
 #include "CharTransform.h"
+#include "NList.h"
 #include "FLOBCache.h"
 
 /************************************************************************** 
@@ -477,6 +478,15 @@ struct OpNode
       ArgVectorPointer vector;
       int funNumber; // needed for testing only
       int argIndex;
+
+/*
+The three attributes below are used in the case when an
+operator has a parameter function which may have streams as
+arguments. In this case the operator must  
+
+*/
+      //int isStream;
+      bool received;
     } iobj;
     struct OpNodeOperator
     {
@@ -532,6 +542,8 @@ OpNode(OpNodeType type = Operator) :
       u.iobj.vector = 0;
       u.iobj.funNumber = 0;   
       u.iobj.argIndex = 0;
+      //u.iobj.isStream = 0;
+      u.iobj.received = false;
       break;
     }
     case Operator :
@@ -2154,7 +2166,7 @@ arguments preceding this function argument in an operator application.
       }
       else
       {
-        cerr << "Error: wrong parameter type." << endl;
+        cerr << "Error: wrong parameter type:" << NList(paramtype) << endl;
         return (nl->TwoElemList(
                   nl->SymbolAtom( "functionerror" ),
                   nl->SymbolAtom( "typeerror" ) ));
@@ -2958,6 +2970,7 @@ the moment.
 1.1 Procedures for Cooperation with Operator Evaluation Functions
 
 */
+
 ArgVectorPointer
 QueryProcessor::Argument( const Supplier s )
 {
@@ -2991,6 +3004,8 @@ supplied before). The result is returned in ~result~.
 		
 }
 
+
+
 bool
 QueryProcessor::Received( const Supplier s )
 {
@@ -3000,7 +3015,10 @@ Returns ~true~ if the supplier responded to the previous ~request~ by a
 
 */
   OpTree tree = (OpTree) s;
-  return (tree->u.op.received);
+  if ( tree->nodetype == Operator )
+    return (tree->u.op.received);
+  else
+    return (tree->u.iobj.received);
 }
 
 void
@@ -3011,7 +3029,10 @@ Changes state of the supplier stream to ~open~.
 
 */
   Word result;
-  Eval( (OpTree) s, result, OPEN );
+  OpTree tree = (OpTree) s;
+  TRACE("Open: " << *tree)
+
+  Eval( tree, result, OPEN );
 }
 
 void
@@ -3229,6 +3250,19 @@ QueryProcessor::GetCounters()
                          nl->IntAtom(counter[i]-1)));
   }
   return list;
+}
+
+
+void
+QueryProcessor::ResetTimer()
+{
+  evalRunTime.start();
+} 
+
+StopWatch&
+QueryProcessor::GetTimer()
+{
+  return evalRunTime;
 }
 
 void
