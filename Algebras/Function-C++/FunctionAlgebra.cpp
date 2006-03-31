@@ -34,12 +34,15 @@ The sole purpose of this little algebra is to provide a type constructor ~map~
 which can be used to store the list expressions defining functions 
 (abstractions).
 
+March 2006 M. Spiekermann, operators ~within~ and ~within2~ modified.
+
 */
 
 using namespace std;
 
 #include "Algebra.h"
 #include "NestedList.h"
+#include "NList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 
@@ -150,7 +153,7 @@ functions. They have a type mapping but no evaluation function.
 
 The type operator ~ANY~ corresponds to the type of the first argument.
 
-----    x      -> x
+----    (t1 t2 ... tn)      -> t1 
 ----
 
 */
@@ -161,7 +164,7 @@ ListExpr ANYTypeMap( ListExpr args )
 
 const string ANYSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
-   "( <text>x -> x</text--->"
+   "( <text>(t1 t2 ... tn) -> t1</text--->"
    "<text>type operator</text--->"
    "<text>Simply returns the type of the first argument.</text--->"
    "<text></text---> ))";
@@ -173,6 +176,28 @@ Operator ANY (
       Operator::SimpleSelect,
       ANYTypeMap );
 
+
+ListExpr ANY2TypeMap( ListExpr args )
+{
+  return nl->Second( args );
+}
+
+const string ANY2Spec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
+   "( <text>(t1 t2 ... tn) -> t1 -> t2</text--->"
+   "<text>type operator</text--->"
+   "<text>Simply returns the type of the first argument.</text--->"
+   "<text></text---> ))";
+
+Operator ANY2 (
+      "ANY2",
+      ANY2Spec,
+      0,
+      Operator::SimpleSelect,
+      ANY2TypeMap );
+
+
+
 /*
 2.4 Operator ~within~
 
@@ -180,52 +205,78 @@ Operator ANY (
 
 Result type of within operation.
 
-----    ( a x (a -> b) ) -> b
-----
+----    ( a (map a b) ) -> b
+----    ( a b (map a b c) ) -> c
 
 */
-ListExpr WithinTypeMap(ListExpr args)
+ListExpr WithinTypeMap(ListExpr Args)
 {
-  ListExpr first, second;
-  string argstr1, argstr2;
+  NList args(Args);
+  NList mapResult;
 
-  CHECK_COND( nl->ListLength(args) == 2,
-              "Operator within expects a list of length two.");
+  static const string typeA = "(obj_a (map type_a type_b))";
+  static const string typeB = "(obj_a obj_b (map type_a type_b type_c))";
 
-  first = nl->First(args);
-  nl->WriteToString(argstr1, first);
-  second  = nl->Second(args);
-  nl->WriteToString(argstr2, first);
+  bool ok = false;
 
-  CHECK_COND( nl->ListLength( second ) == 3 &&
-              nl->IsEqual( nl->First( second ), "map" ),
-              "Operator within expects a mapping function as the second argument, but gets\n" + 
-              argstr2 + "." ); 
+  try {
+  switch (args.length()) 
+  {
+    case 2: {
+    
+      if (  args.second().hasLength(3) ) 
+      {
+        ok = ( args.first() == args.second().second()) 
+               && (args.second().first() == "map"      ); 
+      } 
 
-  CHECK_COND( nl->Equal( first, nl->Second(second) ),
-              "Operator within expects that the first argument and the argument\n" 
-              "of the mapping function are equal, but gets\n" 
-              "First argument: " + argstr1 + "\n" +
-              "Mapping argument: " + argstr2 + "." );
+      if (!ok) {
+        return NList::typeError("Input list has not structure " + typeA + ".");
+      }
+      mapResult = args.second().third();
+      break;
+    }
 
-  return nl->Third( second );
+    case 3: {
+
+      if ( args.third().hasLength(4) )
+      {
+        ok = (args.third().first() == "map")
+             && (args.first() == args.third().second()) 
+             && (args.second() == args.third().third());  
+      }
+      
+      if (!ok) {
+        return NList::typeError("Input list has not structure " + typeB + ".");
+      }
+      mapResult = args.third().fourth();
+      break;
+    }
+
+    default:
+    {
+      return NList::typeError("Input list has not structure " + typeA + 
+                              " or " + typeB + ".");
+    }
+
+  } 
+
+  if ( !(args.first() == mapResult) ) 
+  {
+    NList::typeError( 
+      "Operator within expects that the first argument and the argument\n" 
+      "of the mapping function are equal, but gets\n" 
+      "First argument: " + args.first().convertToString() + "\n" +
+      "Mapping argument: " +  mapResult.convertToString() + "." 
+    );
+  }
+
+  } catch ( NListErr e ) {
+    return NList::typeError( e.msg() );
+  }
+  return mapResult.listExpr();
 }
 
-/*
-2.4.2 Selection function of operator ~within~
-
-*/
-int
-WithinSelect( ListExpr args )
-{
-  if( nl->IsAtom( nl->Third( nl->Second( args ) ) ) )
-    return 0;
-
-  if( nl->IsEqual( nl->First( nl->Third( nl->Second( args ) ) ), "stream" ) )
-    return 1;
-
-  return 0;
-}
 
 /*
 2.4.3 Value mapping function of operator ~within~
@@ -260,6 +311,36 @@ Within_s(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
+int 
+Within2_s(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  ArgVectorPointer funArgs;
+  Word w;
+
+  switch ( message )
+  {
+    case OPEN:
+      funArgs = qp->Argument( args[1].addr );
+      qp->Request( args[0].addr, w );
+      (*funArgs)[0] = w;
+      qp->Open( args[1].addr );
+      return 0;
+
+    case REQUEST:
+      qp->Request( args[1].addr, result );
+      if( qp->Received( args[1].addr ) )
+        return YIELD;
+      return CANCEL;
+
+    case CLOSE:
+      qp->Close( args[1].addr );
+      return 0;
+  }
+
+  return 0;
+}
+
+
 int
 Within_o(Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -270,7 +351,74 @@ Within_o(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-ValueMapping withinmap[] = { Within_o, Within_s };
+int
+Within2_o(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  ArgVectorPointer funArgs = qp->Argument( args[2].addr );
+  (*funArgs)[0] = args[0];
+  (*funArgs)[1] = args[1];
+  qp->Request( args[2].addr, result );
+
+  return 0;
+}
+
+ValueMapping withinmap[] = { Within_o, Within_s, Within2_o, Within2_s };
+
+/*
+2.4.2 Selection function of operator ~within~
+
+Return values 0,2 are used for within and values 1,3 for operator within2
+
+*/
+int
+WithinSelect( ListExpr Args )
+{
+  NList args(Args);
+
+  TRACE("WithinSelect")
+  SHOW(args)   
+
+  try { 
+
+    int funIndex = 0;
+    NList map;
+    NList mapRes;
+   
+    if ( args.length() == 2) 
+    {
+      map = args.second();
+      mapRes = map.third();
+    }
+    else 
+    {
+      map = args.third();
+      mapRes = map.fourth();
+      funIndex += 2;
+    }
+
+    if( mapRes.isNoAtom() && mapRes.first().str() == "stream" )
+    {
+      return funIndex+1;
+    }
+    else
+    {
+      return funIndex;
+    }
+
+  } catch ( NListErr e ) {
+
+    NList::typeError( e.msg() );
+    return -1;
+  }
+
+  cmsg.error() 
+    << "Can't select value mapping function for"
+    << " the overloaded operator 'within'.";
+  cmsg.send();
+  return -1;
+}
+
+
 
 /*
 
@@ -283,7 +431,8 @@ const string WithinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                         "<text>_ within [ fun ]</text--->"
                         "<text>Calls the function passing as argument "
                         "its own first argument.</text--->"
-                        "<text>query plz createbtree[Ort] within[fun( index: ANY ) "
+                        "<text>query plz createbtree[Ort] "
+                        "within[fun( index: ANY ) "
                         "Orte feed {o} loopjoin[index plz "
                         "exactmatch[.Ort_o]] consume]</text--->))";
 
@@ -292,13 +441,15 @@ const string WithinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
 */
 Operator within (
-         "within",                  // name
-         WithinSpec,                // specification
-         2, 	                   // the number of overloaded functions
-         withinmap,                 // value mapping function array
-         WithinSelect,              // the selection function
-         WithinTypeMap              // type mapping
+         "within",               // name
+         WithinSpec,             // specification
+         4, 	                 // the number of overloaded functions
+         withinmap,              // value mapping function array
+         WithinSelect,           // the selection function
+         WithinTypeMap           // type mapping
 );
+
+
 
 /*
 3 Creating the Algebra
@@ -311,6 +462,7 @@ class FunctionAlgebra : public Algebra
   {
     AddTypeConstructor( &functionMap );
     AddOperator( &ANY );
+    AddOperator( &ANY2 );
     AddOperator( &within );
   }
   ~FunctionAlgebra() {};
