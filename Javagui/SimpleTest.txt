@@ -1,0 +1,20 @@
+delete database germany
+
+create database germany
+
+restore database germany from '../../secondo-data/Databases/germany'
+
+
+open database germany
+
+
+query Kreis feed head[20] consume
+
+
+select * from kreis where kname contains "Hagen"
+
+
+
+
+
+
