@@ -481,6 +481,7 @@ SecondoTTY::CallSecondo()
     si->Secondo( cmd, cmdList, 1, false, false,
                  outList, errorCode, errorPos, errorMessage );
   }
+  
   if ( errorCode != 0 )
   {
     si->WriteErrorList( outList );
@@ -492,12 +493,21 @@ SecondoTTY::CallSecondo()
     nl->Destroy( cmdList );
   }
 
-  // printing out error messages
+  // print out error messages
   cerr << endl;
-  if ( errorMessage != "" ) 
+  if (errorCode != 0)
   {
-    cerr << errorMessage << endl;
-  }
+    if (errorMessage != "") 
+    {
+      cerr << color(red) << errorMessage << color(normal) << endl;
+    }
+    else
+    {
+      // retrieve error message for errorCode
+      cmsg.error() << si->GetErrorMessage( errorCode ) << endl;
+      cmsg.send();
+    }
+  } 
  
   return (outList);
 }
