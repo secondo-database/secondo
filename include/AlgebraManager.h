@@ -205,6 +205,8 @@ overloaded, identity (on the numbers) is sufficient.
 //class Algebra;
 
 const int MAXARG = 20;
+const int FUNMSG = 10;
+
 /*
 Is the maximal number of arguments for one operator
 
@@ -217,6 +219,15 @@ const int YIELD   = 4;
 const int CANCEL  = 5;
 /*
 Are constants for stream processing.
+
+Operators which have a parameter function with streams as arguments need to
+recognize more different messages. For this purpose we will encode the argument
+number in the second byte of the integer, in general: 
+
+(argNr * FUNMSG) + <message>  
+
+Hence if the first argument of a parameter function is a stream we
+will use FUNMSG+OPEN (for OPEN), FUNMSG+RQUEST (for REQUEST) etc.  
 
 */
 
@@ -474,7 +485,8 @@ at runtime. It has the id number "2"[2].
 class AlgebraManager
 {
  public:
-  AlgebraManager( NestedList& nlRef, GetAlgebraEntryFunction getAlgebraEntryFunc );
+  AlgebraManager( NestedList& nlRef, 
+                  GetAlgebraEntryFunction getAlgebraEntryFunc );
 /*
 Creates an instance of the algebra manager. ~nlRef~ is a reference to the
 nested list container which should be used for nested lists.
@@ -556,7 +568,8 @@ Returns the specification of operator ~operatorId~ of algebra ~algebraId~
 as a nested list expression.
 
 */
-  inline int Select( const int algebraId, const int operatorId, const ListExpr typeList )
+  inline int Select( const int algebraId, 
+                     const int operatorId, const ListExpr typeList )
   {
     return getOperator(algebraId, operatorId)->Select(typeList);
   }
@@ -574,8 +587,9 @@ algebra ~algebraId~.
     int opId  = opFunId % 65536;
     int funId = opFunId / 65536;
       
-    return getOperator(algebraId, opId)->CallValueMapping( funId, args, result, 
-		                                                       msg, local, tree );	       	       
+    return getOperator(algebraId, opId)->CallValueMapping( funId, 
+                                                           args, result, 
+		                                           msg, local, tree );
   }	       
 
 /*
