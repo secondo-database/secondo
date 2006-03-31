@@ -52,6 +52,7 @@ operator relcount alias RELCOUNT pattern _ op
 operator relcount2 alias RELCOUNT2 pattern _ op
 
 operator keywords alias KEYWORD pattern _ op
+operator elapsedtime alias ELAPSEDTIME pattern _ op
 operator between alias BETWEEN pattern _ op [ _, _]
 
 

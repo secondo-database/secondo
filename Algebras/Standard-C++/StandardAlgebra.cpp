@@ -51,6 +51,8 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
+January 2006, M. Spiekermann new operator ~elapsedtime~ implemented.
+
 \begin{center}
 \footnotesize
 \tableofcontents
@@ -180,6 +182,7 @@ using namespace std;
 #include "StandardTypes.h"
 #include "SecondoSystem.h" //operator queries
 #include "Counter.h"
+#include "StopWatch.h"
 
 #include <iostream>
 #include <string>
@@ -3442,6 +3445,42 @@ int CcBetween_bbb(Word* args, Word& result, int message, Word& local,
   return (0);
 }
 
+/* 
+Map any type to a string
+
+*/
+
+ListExpr
+ElapsedTypeMap( ListExpr args )
+{
+  return (nl->SymbolAtom( "string" ));
+}
+
+
+
+int
+ccelapsedfun(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result = qp->ResultStorage( s );
+  CcString* resStr = reinterpret_cast<CcString*>( result.addr );
+
+  StopWatch& elapsedTime = qp->GetTimer();
+  elapsedTime.diffTimes();
+
+  stringstream estr;
+  estr << elapsedTime.diffSecondsReal()
+       << "/" << elapsedTime.diffSecondsCPU();
+
+  // reset timer
+  elapsedTime.start();
+
+  resStr->Set(true, (STRING*) estr.str().c_str()); 
+ 
+  return 0;
+}
+
+
+
 /*
 5 Definition of operators
 
@@ -3815,6 +3854,15 @@ CCSpecSubStr = "(" + specListHeader + "("
                    + "position parameters p and q. Positions start at 0." + ET
                    + ST + "query substr(\"test\",2,3)" + ET + "))";
 
+const string 
+CCSpecElapsed = "(" + specListHeader + "("
+                    + ST + "(Any type) ->  string." + ET
+                    + ST + "Returns the elpased time and the " 
+                         + "cpu time in seconds"  
+                         + "encoded in a string" + ET
+                    + ST + "query substr(\"test\",2,3)" + ET + "))";
+
+
    
 Operator ccplus( "+", CCSpecAdd, 5, ccplusmap,  
                  CcMathSelectCompute, CcMathTypeMap );
@@ -3912,6 +3960,9 @@ Operator ccopifthenelse( "ifthenelse", CCSpecIfthenelse, 1, ccifthenelsemap,
 Operator ccbetween( "between", CCSpecBetween, 4, ccbetweenmap, 
                     CcBetweenSelect, CcBetweenTypeMap );
 
+Operator ccelapsedtime( "elapsedtime", CCSpecElapsed, ccelapsedfun, 
+                        Operator::SimpleSelect, ElapsedTypeMap );
+
 /*
 6 Class ~CcAlgebra~
 
@@ -3982,6 +4033,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccopkeywords );
     AddOperator( &ccopifthenelse );
     AddOperator( &ccbetween );
+    AddOperator( &ccelapsedtime );
   }
   ~CcAlgebra1() {};
 
