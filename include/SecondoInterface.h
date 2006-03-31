@@ -1033,6 +1033,7 @@ Sets the debug level of the query processor.
  private:
   void StartCommand();
   bool FinishCommand( SI_Error& errorCode, string& errorMessage );
+  void constructErrMsg(int errorCode, string& errorMessage);
 	
   // implementation of SECONDO commands
   SI_Error Command_Query( const ListExpr list, 

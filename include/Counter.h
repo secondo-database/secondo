@@ -73,13 +73,20 @@ be introduced and called at a suitable position.
 #include <algorithm>
 
 #include "LogMsg.h"
+#include "CharTransform.h"
 
 using namespace std;
+
 
 class Counter 
 {
 
 public:
+
+  typedef map<string, long> Str2ValueMap;
+  typedef pair<long,bool> CounterInfo;
+  typedef map<string, CounterInfo> Str2InfoMap;
+  typedef Str2InfoMap::iterator iterator;
 
   Counter(){};
   ~Counter(){};
@@ -128,60 +135,61 @@ Resets all values to 0.
       it->second.second = reportVal;
     }
   }
+  
+  static Counter::Str2ValueMap usedCounters()
+  {
+    Str2ValueMap resMap; 
+    it=CounterMap.begin();
+    for ( it++; it!=CounterMap.end(); it++) 
+    {
+      if ( it->second.second )
+      {  
+        resMap[it->first] = it->second.first;
+      }
+    }
+    return resMap;
+  }  
+
+  
 /*
 Sets the report flag with the value of ~reportVal~.
 
 */
-
-  static void reportValues() 
+  static void reportValues(const int CmdNr = -1 )
   {
-    static int nr = 0;
-    static size_t mapsize = 0;
     int colSepWidth = 2; 
     int windowWidth = 80;
 
     const string colSepStr(colSepWidth,' ');
     const string sep(windowWidth,'_');
-    const string csvsep="|";
-    ostream& clog = cmsg.file("cmd-counters.csv");  
-
-    if ( mapsize != CounterMap.size() ) { // this implies CounterMap > 0
-      
-      it=CounterMap.begin();
-      clog << it->first;
-      for ( it++; it!=CounterMap.end(); it++) {
-       clog << csvsep << it->first;
-      }
-      clog << endl;
-      cmsg.send();
-      mapsize = CounterMap.size();
-    }
 
     cout << endl << sep << endl << "Counter Values:" << endl;
-    clog << ++nr;
 
     // calculate the longest entry
+    typedef vector<string> CounterStrings; 
+    CounterStrings entryTable;
+    Str2ValueMap usedCtrs = usedCounters();
+    Str2ValueMap::iterator sit = usedCtrs.begin();
+    
     int maxEntryLen = 0;
-    vector<string> entryTable;
-    for (it=CounterMap.begin(); it!=CounterMap.end(); it++) {
+    while ( sit != usedCtrs.end()) 
+    {
+      stringstream counter;
+      counter << sit->first << " = " << sit->second;
       
-       stringstream counter;
-       if ( it->second.second ) 
-       {
-         counter << it->first << " = " << it->second.first;
-         int len = counter.str().length();
-         if ( len > maxEntryLen ) {
-           maxEntryLen = len;
-         }
-         entryTable.push_back( counter.str() );
-         clog << csvsep << it->second.first;
-       }
+      int len = counter.str().length();
+      if ( len > maxEntryLen )
+        maxEntryLen = len;
+      
+      entryTable.push_back( counter.str() );
+      sit++;
     }
     int colMax = windowWidth / (maxEntryLen + colSepWidth);
  
     // pretty print counter values
+    // sort by string names
     sort( entryTable.begin(), entryTable.end() );
-    vector<string>::const_iterator it2=entryTable.begin();
+    CounterStrings::const_iterator it2=entryTable.begin();
     int colNr = 0;
     while ( it2 != entryTable.end() ) {
      
@@ -195,7 +203,6 @@ Sets the report flag with the value of ~reportVal~.
      } 
     }
     cout << endl << sep << endl << endl;
-    clog << endl;
     cmsg.send();
 
   };
@@ -205,12 +212,11 @@ Reports the values of all counters diplaying on the screen and also to a
 
 */
 
-  typedef pair<long,bool> CounterInfo;
 
 private:
 
-  static map<string, CounterInfo> CounterMap;
-  static map<string, CounterInfo>::iterator it;
+  static Str2InfoMap CounterMap;
+  static iterator it;
 /*
 The map (and iterator) structure that holds the counters.
 

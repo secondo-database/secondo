@@ -137,6 +137,8 @@ with the ~send~ method.
 
 #include <CharTransform.h>
 
+#include "FileSystem.h"
+
 using namespace std;
 
 #ifndef LOGMSG_OFF
@@ -198,14 +200,14 @@ public:
   CMsg() : 
     stdOutput(1), 
     fp(new ofstream()),
-    logFileStr("secondo.log")
+    logFileStr("secondo.log"),
+    prefix("tmp/")
   {
     files[logFileStr] = fp;
-    fp->open(logFileStr.c_str()); 
+    fp->open((prefix + logFileStr).c_str()); 
     buffer.str("");
     allErrors.str("");
     devnull.str("");
-
   }
   ~CMsg() // close open files
   {
@@ -237,10 +239,10 @@ public:
     
       fp = new ofstream();
       files[fileName] = fp;
-      fp->open(fileName.c_str());
+      fp->open((prefix + fileName).c_str());
     }
-    stdOutput = 3;    
-    return buffer; 
+    //stdOutput = 3;    
+    return *fp; 
   }
 
   inline ostream& info(const string& key) {
@@ -318,6 +320,7 @@ private:
   stringstream allErrors;
   stringstream devnull;
   const string logFileStr;
+  const string prefix;
   map<string,ofstream*> files;
   
 };

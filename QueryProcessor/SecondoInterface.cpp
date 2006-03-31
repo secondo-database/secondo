@@ -120,6 +120,110 @@ using namespace std;
 
 #include "CharTransform.h"
 
+// The system tables
+#include "SystemInfoRel.h"
+SystemTables* SystemTables::instance = 0;
+
+class CmdTimes : public InfoTuple 
+{
+   int nr;
+   string cmdStr;
+   double elapsedTime;
+   double cpuTime;
+
+   public: 
+   CmdTimes(int num, const string& cmd, double realT, double cpuT) :
+     nr(num),
+     cmdStr(cmd),
+     elapsedTime(realT),
+     cpuTime(cpuT)
+   {
+   }
+   virtual ~CmdTimes() {}
+  
+   virtual ostream& print(ostream& os) const
+   {
+      os << nr << sep << cmdStr << sep << elapsedTime << sep << cpuTime;
+      return os;
+   } 
+
+}; 
+
+
+class CmdTimesRel : public SystemInfoRel 
+{
+   public:
+   CmdTimesRel(const string& name) : SystemInfoRel(name, initSchema()) 
+   {} 
+
+   ~CmdTimesRel() {}
+   
+   private:
+   RelSchema* initSchema()
+   { 
+     RelSchema*  attrList = new RelSchema();
+     attrList->push_back( make_pair("CmdNr", "int") );
+     attrList->push_back( make_pair("CmdStr", "text") );
+     attrList->push_back( make_pair("ElapsedTime", "real") );
+     attrList->push_back( make_pair("CpuTime", "real") );
+     return attrList;  
+   } 
+
+}; 
+
+class CmdCtr : public InfoTuple 
+{
+   int nr;
+   string ctrStr;
+   long value;
+
+   public: 
+   CmdCtr(int num, const string& cmd, long ctrVal) :
+     nr(num),
+     ctrStr(cmd),
+     value(ctrVal)
+   {}
+   virtual ~CmdCtr() {}
+   
+   virtual ostream& print(ostream& os) const
+   {
+      os << nr << sep << ctrStr << sep << value;
+      return os;
+   } 
+}; 
+
+
+class CmdCtrRel : public SystemInfoRel 
+{
+   public:
+   CmdCtrRel(const string& name) : SystemInfoRel(name, initSchema()) 
+   {}
+   virtual ~CmdCtrRel() {}
+   
+   private:
+   RelSchema* initSchema()
+   { 
+     RelSchema* attrList = new RelSchema();
+     attrList->push_back( make_pair("CmdNr", "int") );
+     attrList->push_back( make_pair("CtrStr", "string") );
+     attrList->push_back( make_pair("Value", "int") );
+     return attrList;
+   } 
+}; 
+
+
+
+ostream& operator<<(ostream& os, const InfoTuple& si) 
+{
+  return si.print(os);
+} 
+
+// currently we will have 2 tables 
+
+CmdTimesRel cmdTimesRel("CmdTimes");
+CmdCtrRel cmdCtrRel("CmdCounters");
+
+
 extern AlgebraListEntry& GetAlgebraEntry( const int j );
 
 static SecondoSystem* ss = 0;
@@ -190,6 +294,19 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   else
   {
     ok = true;
+  }
+
+
+  // create directory tmp below current dir
+  string tempDir("tmp");
+  if (! FileSystem::FileOrFolderExists(tempDir) ) 
+  {
+    if (! FileSystem::CreateFolder(tempDir) )
+    {
+      cmsg.error() << "Could not create directory " << tempDir << endl;
+      cmsg.send();
+      ok = false;
+    } 
   }
 
   if ( ok )
@@ -263,11 +380,9 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
 void
 SecondoInterface::Terminate()
 {
-  const string bullet("  - ");
-
+  const string bullet(" - ");
   if ( initialized )
   {    
-
     cmsg.info() << "Terminating the secondo interface instance ..." << endl;
     cmsg.send();
     // --- Abort open transaction, if there is an open transaction
@@ -282,7 +397,7 @@ SecondoInterface::Terminate()
       SecondoSystem::GetInstance()->CloseDatabase();
     }
     if ( derivedObjPtr != 0 ) { // The destructor closes a relation object 
-      cmsg.info() << bullet << "Closing system tables ..." << endl;
+      cmsg.info() << "Closing system tables ..." << endl;
       cmsg.send();
       delete derivedObjPtr;
       derivedObjPtr = 0;
@@ -440,11 +555,8 @@ separate functions which should be named Command\_<name>.
 
   if ( errorCode != 0 )
   {
-     cmsg.send(); // flush cmsg buffer
-     if ( isCSImpl ) {
-       errorMessage += cmsg.getErrorMsg();
-     }
-     errorMessage += GetErrorMessage(errorCode);
+     //abort command execution
+     constructErrMsg(errorCode, errorMessage);
      return;
   }
 
@@ -1119,12 +1231,6 @@ separate functions which should be named Command\_<name>.
     nl->WriteToFile( resultFileName, resultList );
   }
 
-  if (RTFlag::isActive("SI:PrintCounters"))
-  {
-    Counter::reportValues();
-    Counter::resetAll();
-  }
-
   LOGMSG( "SI:ResultList",
     cmsg.info() << endl << "### Result List before copying: " 
           << nl->ToString(resultList) << endl;
@@ -1146,49 +1252,69 @@ separate functions which should be named Command\_<name>.
     cmsg.send();           
   )
   nl->initializeListMemory();
-  
-  if ( RTFlag::isActive("SI:CommandTime") )
-  {
-    static int nr = 0;
-    static bool writeHeadLine = true;
-    const string logFile="cmd-times.csv"; 
-    const string sep="|";
-   
-    if ( writeHeadLine ) 
-    {
-      cmsg.file(logFile) << "#nr" << sep
-                         << "command" << sep
-                         << "realtime" << sep
-                         << "cpu-time" << endl; 
-      cmsg.send();
-      writeHeadLine = false; 
-    } 
+ 
+  // initialize and increment query counter 
+  static int CmdNr = 0;
+  CmdNr++;
 
-    nr++;
-    cmsg.file(logFile) << nr << sep << commandText
-                       << sep << cmdTime.diffSecondsReal()
-                       << sep << cmdTime.diffSecondsCPU() << endl;
-    cmsg.send();                
+  // handle command times
+  bool printCmdTimes = RTFlag::isActive("SI:PrintCmdTimes");
+  bool dumpCmdTimes = RTFlag::isActive("SI:DumpCmdTimes");
+
+  double treal = cmdTime.diffSecondsReal();
+  double tcpu = cmdTime.diffSecondsCPU();
+  CmdTimes* ctp = new CmdTimes(CmdNr, commandText, treal, tcpu);
+  cmdTimesRel.append(ctp, dumpCmdTimes);
+  cmdTimesRel.resultType();  
+  
+  if (printCmdTimes) 
+  {
     cmsg.info() << endl << "Command " << cmdTime.diffTimes() << endl;
     cmsg.send();
- } 
+  } 
+    
+  // handle counters
+  bool printCtrs = RTFlag::isActive("SI:PrintCounters");
+  bool dumpCtrs = RTFlag::isActive("SI:DumpCounters");
+  Counter::Str2ValueMap cm = Counter::usedCounters();
+  Counter::Str2ValueMap::iterator it = cm.begin();
+  while ( it != cm.end() )
+  {
+    CmdCtr* cp = new CmdCtr(CmdNr, it->first, it->second);
+    cmdCtrRel.append(cp, dumpCtrs);
+    it++;
+  }
+  cmdCtrRel.resultType();  
 
- if ( errorCode != 0) { 
-   // translate error code into text
-   // check if the queryprocessor reports errors
-   string repMsg("");
-   ErrorReporter::GetErrorMessage(repMsg);
-   ErrorReporter::Reset();
-   errorMessage += repMsg + "\n";
+  if (printCtrs)
+  {  
+    Counter::reportValues(CmdNr);
+  }  
+  Counter::resetAll();
+   
+  constructErrMsg(errorCode, errorMessage);
+  
+  return;
+}
 
-   cmsg.send(); // flush cmsg buffer
-   if ( isCSImpl ) {
-     errorMessage += cmsg.getErrorMsg();
-   }
-   errorMessage += GetErrorMessage(errorCode);
 
- }
- return;
+void
+SecondoInterface::constructErrMsg(int errorCode, string& errorMessage)
+{
+  if ( errorCode != 0) {
+    // translate error code into text
+    // check if the queryprocessor reports errors
+    string repMsg("");
+    ErrorReporter::GetErrorMessage(repMsg);
+    ErrorReporter::Reset();
+    errorMessage += repMsg + "\n";
+
+    cmsg.send(); // flush cmsg buffer
+    if ( isCSImpl ) {
+      errorMessage += cmsg.getErrorMsg();
+    }
+    errorMessage += GetErrorMessage(errorCode);
+  }  
 }
 
 
@@ -1256,6 +1382,7 @@ SecondoInterface::Command_Query( const ListExpr list,
      cmsg.info() << "Execute ..." << endl;
      cmsg.send();
 
+     qp.ResetTimer();
      qp.Eval( tree, result, 1 );
      
      ListExpr valueList = ctlg.OutObject( resultType, result );
