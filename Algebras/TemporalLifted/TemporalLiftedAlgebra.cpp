@@ -2829,7 +2829,7 @@ MovingDistanceTypeMapMReal( ListExpr args )
 
 /*
 16.1.11 Type mapping function ~MovingIntersectionTypeMap~
-It is for the operators ~intersection~.
+It is for the operator ~intersection~.
 
 */
 
@@ -2868,6 +2868,87 @@ MovingIntersectionTypeMap( ListExpr args )
     if( nl->IsEqual( arg1, "real" ) 
     && nl->IsEqual( arg2, "mreal" ) )
       return nl->SymbolAtom( "mreal" );
+    if( nl->IsEqual( arg1, "mpoint" ) 
+    && nl->IsEqual( arg2, "points" ) )
+      return nl->SymbolAtom( "mpoint" );
+    if( nl->IsEqual( arg1, "mpoint" ) 
+    && nl->IsEqual( arg2, "line" ) )
+      return nl->SymbolAtom( "mpoint" );
+    if( nl->IsEqual( arg1, "points" ) 
+    && nl->IsEqual( arg2, "mpoint" ) )
+      return nl->SymbolAtom( "mpoint" );
+    if( nl->IsEqual( arg1, "line" ) 
+    && nl->IsEqual( arg2, "mpoint" ) )
+      return nl->SymbolAtom( "mpoint" );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+16.1.11 Type mapping function ~MovingMinusTypeMap~
+It is for the operator ~minus~.
+
+*/
+
+ListExpr
+MovingMinusTypeMap( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 2 )
+  {
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+    
+    if( nl->IsEqual( arg1, "mbool" ) 
+    && nl->IsEqual( arg2, "mbool" ) )
+      return nl->SymbolAtom( "mbool" );
+    if( nl->IsEqual( arg1, "mbool" ) 
+    && nl->IsEqual( arg2, "bool" ) )
+      return nl->SymbolAtom( "mbool" );
+    if( nl->IsEqual( arg1, "bool" ) 
+    && nl->IsEqual( arg2, "mbool" ) )
+      return nl->SymbolAtom( "mbool" );
+    if( nl->IsEqual( arg1, "mint" ) 
+    && nl->IsEqual( arg2, "mint" ) )
+      return nl->SymbolAtom( "mint" );
+    if( nl->IsEqual( arg1, "mint" ) 
+    && nl->IsEqual( arg2, "int" ) )
+      return nl->SymbolAtom( "mint" );
+    if( nl->IsEqual( arg1, "int" ) 
+    && nl->IsEqual( arg2, "mint" ) )
+      return nl->SymbolAtom( "mint" );
+    if( nl->IsEqual( arg1, "mreal" ) 
+    && nl->IsEqual( arg2, "mreal" ) )
+      return nl->SymbolAtom( "mreal" );
+    if( nl->IsEqual( arg1, "mreal" ) 
+    && nl->IsEqual( arg2, "real" ) )
+      return nl->SymbolAtom( "mreal" );
+    if( nl->IsEqual( arg1, "real" ) 
+    && nl->IsEqual( arg2, "mreal" ) )
+      return nl->SymbolAtom( "mreal" );
+    if( nl->IsEqual( arg1, "mpoint" ) 
+    && nl->IsEqual( arg2, "mpoint" ) )
+      return nl->SymbolAtom( "mpoint" );
+    if( nl->IsEqual( arg1, "mpoint" ) 
+    && nl->IsEqual( arg2, "point" ) )
+      return nl->SymbolAtom( "mpoint" );
+    if( nl->IsEqual( arg1, "point" ) 
+    && nl->IsEqual( arg2, "mpoint" ) )
+      return nl->SymbolAtom( "mpoint" );
+    if(nl->IsEqual(nl->First(args), "region") 
+    && nl->IsEqual(nl->Second(args), "mpoint"))
+      return nl->SymbolAtom("movingregion");
+    if(nl->IsEqual(nl->First(args), "movingregion") 
+    && nl->IsEqual(nl->Second(args), "point"))
+      return nl->SymbolAtom("movingregion");
+    if(nl->IsEqual(nl->First(args), "movingregion") 
+    && nl->IsEqual(nl->Second(args), "mpoint"))
+      return nl->SymbolAtom("movingregion");
+    if(nl->IsEqual(nl->First(args), "movingregion") 
+    && nl->IsEqual(nl->Second(args), "points"))
+      return nl->SymbolAtom("movingregion");
+    if(nl->IsEqual(nl->First(args), "movingregion") 
+    && nl->IsEqual(nl->Second(args), "line"))
+      return nl->SymbolAtom("movingregion");
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -2967,38 +3048,7 @@ static ListExpr NComponentsTypeMap(ListExpr args) {
         return nl->SymbolAtom("typeerror");
 }
 
-/*
-16.1.3 Type mapping function ~MinusTypeMap~
 
-Used by ~minus~:
-
-*/
-static ListExpr MinusTypeMap(ListExpr args) {
-    cout<< "MinusTypeMap() called" << endl;
-
-    if (nl->ListLength(args) == 2){
-      if(nl->IsEqual(nl->First(args), "region") 
-         && nl->IsEqual(nl->Second(args), "mpoint"))
-         return nl->SymbolAtom("movingregion");
-      if(nl->IsEqual(nl->First(args), "movingregion") 
-         && nl->IsEqual(nl->Second(args), "point"))
-         return nl->SymbolAtom("movingregion");
-      if(nl->IsEqual(nl->First(args), "movingregion") 
-         && nl->IsEqual(nl->Second(args), "mpoint"))
-         return nl->SymbolAtom("movingregion");
-      if(nl->IsEqual(nl->First(args), "movingregion") 
-         && nl->IsEqual(nl->Second(args), "points"))
-         return nl->SymbolAtom("movingregion");
-      if(nl->IsEqual(nl->First(args), "movingregion") 
-         && nl->IsEqual(nl->Second(args), "line"))
-         return nl->SymbolAtom("movingregion");
-      
-      else
-        return nl->SymbolAtom("typeerror");
-    }
-    else
-        return nl->SymbolAtom("typeerror");
-}
 
 /*
 16.1.3 Type mapping function ~UnionTypeMap~
@@ -3272,10 +3322,109 @@ int MovingIntersectionSelect( ListExpr args )
   && nl->SymbolValue( arg2 ) == "mreal" )
     return 8; 
     
+  if( nl->SymbolValue( arg1 ) == "mpoint" 
+  && nl->SymbolValue( arg2 ) == "points" )
+    return 9; 
+    
+  if( nl->SymbolValue( arg1 ) == "mpoint" 
+  && nl->SymbolValue( arg2 ) == "line" )
+    return 10; 
+    
+  if( nl->SymbolValue( arg1 ) == "points" 
+  && nl->SymbolValue( arg2 ) == "mpoint" )
+    return 11;
+  
+  if( nl->SymbolValue( arg1 ) == "line" 
+  && nl->SymbolValue( arg2 ) == "mpoint" )
+    return 12; 
+    
   return -1; // This point should never be reached
 }
 
-//js
+/*
+16.2.1 Selection function ~MovingMinusSelect~
+Is used for the ~minus~ operation.
+
+*/
+
+int MovingMinusSelect( ListExpr args )
+{
+  if (nl->ListLength(args) != 2)
+  return -1;
+  
+  ListExpr arg1 = nl->First( args ),
+           arg2 = nl->Second( args );
+
+  if( nl->SymbolValue( arg1 ) == "mbool" 
+  && nl->SymbolValue( arg2 ) == "mbool" )
+    return 0;
+
+  if( nl->SymbolValue( arg1 ) == "mbool" 
+  && nl->SymbolValue( arg2 ) == "bool" )
+    return 1;    
+    
+  if( nl->SymbolValue( arg1 ) == "bool" 
+  && nl->SymbolValue( arg2 ) == "mbool" )
+    return 2;  
+    
+    if( nl->SymbolValue( arg1 ) == "mint" 
+    && nl->SymbolValue( arg2 ) == "mint" )
+    return 3;
+
+  if( nl->SymbolValue( arg1 ) == "mint" 
+  && nl->SymbolValue( arg2 ) == "int" )
+    return 4;    
+    
+  if( nl->SymbolValue( arg1 ) == "int" 
+  && nl->SymbolValue( arg2 ) == "mint" )
+    return 5;  
+    
+  if( nl->SymbolValue( arg1 ) == "mreal" 
+  && nl->SymbolValue( arg2 ) == "mreal" )
+    return 6;
+
+  if( nl->SymbolValue( arg1 ) == "mreal" 
+  && nl->SymbolValue( arg2 ) == "real" )
+    return 7;    
+    
+  if( nl->SymbolValue( arg1 ) == "real" 
+  && nl->SymbolValue( arg2 ) == "mreal" )
+    return 8; 
+    
+  if( nl->SymbolValue( arg1 ) == "mpoint" 
+  && nl->SymbolValue( arg2 ) == "mpoint" )
+    return 9; 
+    
+  if( nl->SymbolValue( arg1 ) == "mpoint" 
+  && nl->SymbolValue( arg2 ) == "point" )
+    return 10; 
+   
+  if( nl->SymbolValue( arg1 ) == "point" 
+  && nl->SymbolValue( arg2 ) == "mpoint" )
+    return 11;  
+    
+  if(nl->SymbolValue(nl->First(args)) == "region"
+  && nl->SymbolValue(nl->Second(args)) == "mpoint")
+    return 12;
+    
+  if  (nl->SymbolValue(nl->First(args)) == "movingregion"
+  && nl->SymbolValue(nl->Second(args)) == "point")
+    return 13;
+    
+  if  (nl->SymbolValue(nl->First(args)) == "movingregion"
+  && nl->SymbolValue(nl->Second(args)) == "mpoint")
+    return 14;   
+      
+  if  (nl->SymbolValue(nl->First(args)) == "movingregion"
+  && nl->SymbolValue(nl->Second(args)) == "points")
+    return 15;
+    
+  if  (nl->SymbolValue(nl->First(args)) == "movingregion"
+  && nl->SymbolValue(nl->Second(args)) == "line")
+    return 16;
+     
+  return -1; // This point should never be reached
+}
 
 /*
 16.2.1 Selection function ~InsideSelect~
@@ -3313,38 +3462,7 @@ InsideSelect( ListExpr args )
     return -1; 
 }
 
-/*
-16.2.1 Selection function ~MinusSelect~
 
-For ~minus~:
-
-*/
-
-static int MinusSelect(ListExpr args) {
-    cout<< "MinusSelect() called" << endl;
-
-    if (nl->ListLength(args) == 2){
-      if(nl->SymbolValue(nl->First(args)) == "region"
-        && nl->SymbolValue(nl->Second(args)) == "mpoint")
-        return 0;
-      else if  (nl->SymbolValue(nl->First(args)) == "movingregion"
-        && nl->SymbolValue(nl->Second(args)) == "point")
-        return 1;
-      else if  (nl->SymbolValue(nl->First(args)) == "movingregion"
-        && nl->SymbolValue(nl->Second(args)) == "mpoint")
-        return 2;     
-      else if  (nl->SymbolValue(nl->First(args)) == "movingregion"
-        && nl->SymbolValue(nl->Second(args)) == "points")
-        return 3;
-      else if  (nl->SymbolValue(nl->First(args)) == "movingregion"
-        && nl->SymbolValue(nl->Second(args)) == "line")
-        return 4;
-      else
-        return -1;
-    }
-    else
-        return -1;
-}
 
 /*
 16.2.1 Selection function ~UnionSelect~
@@ -3678,6 +3796,294 @@ int message, Word& local, Supplier s )
   MovingRealIntersectionMM( mop1, mop2, *((MReal*)result.addr),
    op);
   
+  return 0;
+}
+
+/*
+Function TransformMBool2MPoint completes a MBool to 
+a MPoint-value. For this it adds the starting and end points.
+
+*/
+
+static void TransformMBool2MPoint(MPoint *mp, MBool *mBool,
+  MPoint *endResult)
+{
+  const UPoint *up;
+  
+  endResult->Clear();
+  endResult->StartBulkLoad();
+  const UBool *ub;
+  UPoint newUp;
+  Point pt;
+  int m = 0;
+  bool pfinished = false;
+  cout<<"TransformMBool2MPoint1 called"<<endl;
+  for ( int i = 0; i < mp->GetNoComponents(); i++) {
+    mp->Get(i, up);
+    cout<<"UPoint # "<<i<<" ["<<up->timeInterval.start.ToDouble()
+    <<" "<<up->timeInterval.end.ToDouble()<<" "
+    <<up->timeInterval.lc<<" "<<up->timeInterval.rc<<"] ("
+    <<up->p0.GetX()<<" "<<up->p0.GetY()<<")->("<<up->p1.GetX()
+    <<" "<<up->p1.GetY()<<")"<<endl;
+    while(m < mBool->GetNoComponents()){
+      mBool->Get(m, ub);
+      cout<<"ub "<<m<<" ["<<ub->timeInterval.start.ToDouble()
+      <<" "<<ub->timeInterval.end.ToDouble()<<" "
+      <<ub->timeInterval.lc<<" "<<ub->timeInterval.rc<<"] "
+      <<ub->constValue.GetBoolval()<<endl;
+      if(ub->constValue.GetBoolval()){
+        cout<<"ub is ok!"<<endl;
+        break;
+      }
+      else{
+        cout<<"ub is not ok, next ub"<<endl;
+        m++;
+      }
+    }
+    if(m >= mBool->GetNoComponents()){
+      cout<<"no ub any more"<<endl;
+      pfinished = true;
+    }
+    if(pfinished || (ub->timeInterval.start > up->timeInterval.end
+      || (ub->timeInterval.start == up->timeInterval.end 
+      && !(ub->timeInterval.lc && up->timeInterval.rc)))){
+      cout<<"ub is not inside up, take whole up"<<endl;
+      newUp = *up;
+      cout<<"Add1 ("
+      <<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
+      <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
+      <<") ["<<newUp.timeInterval.start.ToDouble()<<" "
+      <<newUp.timeInterval.end.ToDouble()<<" "
+      <<newUp.timeInterval.lc<<" "
+      <<newUp.timeInterval.rc<<"]"<<endl;
+      if(newUp.timeInterval.end > newUp.timeInterval.start
+        || (newUp.timeInterval.end == newUp.timeInterval.start
+        && newUp.timeInterval.lc && newUp.timeInterval.rc))
+        endResult->Add(newUp);
+    }
+    else{
+      if(ub->timeInterval.start > up->timeInterval.start 
+        || (ub->timeInterval.start == up->timeInterval.start
+        && !ub->timeInterval.lc && up->timeInterval.lc)){
+        cout<<"ub starts after up.start, but inside up"<<endl;
+        newUp.p0 = up->p0;
+        newUp.timeInterval.start = up->timeInterval.start;
+        newUp.timeInterval.lc = up->timeInterval.lc;
+        newUp.timeInterval.end = ub->timeInterval.start;
+        newUp.timeInterval.rc = !ub->timeInterval.lc;
+        up->TemporalFunction(newUp.timeInterval.end, pt);
+        newUp.p1 = pt;
+        cout<<"Add2 ("
+        <<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
+        <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
+        <<") ["<<newUp.timeInterval.start.ToDouble()<<" "
+        <<newUp.timeInterval.end.ToDouble()<<" "
+        <<newUp.timeInterval.lc<<" "
+        <<newUp.timeInterval.rc<<"]"<<endl;
+        if(newUp.timeInterval.end > newUp.timeInterval.start
+          || (newUp.timeInterval.end == newUp.timeInterval.start
+          && newUp.timeInterval.lc && newUp.timeInterval.rc))
+          endResult->Add(newUp);
+      }
+      if(ub->timeInterval.end < up->timeInterval.end
+        || (ub->timeInterval.end == up->timeInterval.end
+        && !ub->timeInterval.rc && up->timeInterval.rc)){
+        cout<<"ub ends before up.end "<<endl;
+        newUp.timeInterval.start = ub->timeInterval.end;
+        newUp.timeInterval.lc = !ub->timeInterval.rc;
+        up->TemporalFunction(newUp.timeInterval.start, pt);
+        newUp.p0 = pt;  //1:
+        bool loopfinished = false;
+        while(!loopfinished){
+          while(m < mBool->GetNoComponents()){
+            mBool->Get(m, ub);
+            cout<<"ub "<<m<<" ["<<ub->timeInterval.start.ToDouble()
+            <<" "<<ub->timeInterval.end.ToDouble()<<" "
+            <<ub->timeInterval.lc<<" "<<ub->timeInterval.rc<<"] "
+            <<ub->constValue.GetBoolval()<<endl;
+            if(ub->constValue.GetBoolval()){
+              cout<<"ub is ok!"<<endl;
+              break;
+            }
+            else{
+              cout<<"ub is not ok, next ub"<<endl;
+              m++;
+            }
+          }
+          if(m >= mBool->GetNoComponents()){
+            cout<<"no ub any more"<<endl;
+            pfinished = true;
+          }
+          if(!pfinished
+            && (ub->timeInterval.start < up->timeInterval.end
+            || (ub->timeInterval.start == up->timeInterval.end
+            && !ub->timeInterval.rc && up->timeInterval.rc))){
+            cout<<"new ub starts before up.end "<<endl;
+            newUp.timeInterval.end = up->timeInterval.start;
+            newUp.timeInterval.rc = !up->timeInterval.lc;
+            up->TemporalFunction(newUp.timeInterval.end, pt);
+            newUp.p1 = pt;
+            cout<<"Add3 ("
+            <<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
+            <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
+            <<") ["<<newUp.timeInterval.start.ToDouble()<<" "
+            <<newUp.timeInterval.end.ToDouble()<<" "
+            <<newUp.timeInterval.lc<<" "
+            <<newUp.timeInterval.rc<<"]"<<endl;
+            if(newUp.timeInterval.end > newUp.timeInterval.start
+            || (newUp.timeInterval.end == newUp.timeInterval.start
+            && newUp.timeInterval.lc && newUp.timeInterval.rc))
+              endResult->Add(newUp);
+            newUp.timeInterval.start = ub->timeInterval.end;
+            newUp.timeInterval.lc = !ub->timeInterval.rc;
+            up->TemporalFunction(newUp.timeInterval.start, pt);
+            newUp.p0 = pt;
+            loopfinished = false;
+            m++;
+          }//goto 1
+          else {
+            cout<<"new ub starts after up.end, finish up"<<endl;
+            newUp.timeInterval.end = up->timeInterval.end;
+            newUp.timeInterval.rc = up->timeInterval.rc;
+            newUp.p1 = up->p1;
+            cout<<"Add4 ("
+            <<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
+            <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
+            <<") ["<<newUp.timeInterval.start.ToDouble()<<" "
+            <<newUp.timeInterval.end.ToDouble()<<" "
+            <<newUp.timeInterval.lc<<" "
+            <<newUp.timeInterval.rc<<"]"<<endl;
+            if(newUp.timeInterval.end > newUp.timeInterval.start
+            || (newUp.timeInterval.end == newUp.timeInterval.start
+            && newUp.timeInterval.lc && newUp.timeInterval.rc))
+              endResult->Add(newUp);
+            loopfinished = true;
+          }
+        }
+      }
+    }
+  }
+  endResult->EndBulkLoad(false);
+}
+
+/*
+Function TransformMBool2MPoint completes a MBool to 
+a MPoint-value. For this it adds the starting and end points from point.
+
+*/
+
+static void TransformMBool2MPoint(Point *p, MBool *mBool,
+  MPoint *endResult)
+{
+  
+  endResult->Clear();
+  endResult->StartBulkLoad();
+  const UBool *ub;
+  UPoint newUp;
+  
+  cout<<"TransformMBool2MPoint2 called"<<endl;
+  for ( int i = 0; i < mBool->GetNoComponents(); i++) {
+    mBool->Get(i, ub);
+    cout<<"UBool # "<<i<<" ["<<ub->timeInterval.start.ToDouble()
+    <<" "<<ub->timeInterval.end.ToDouble()<<" "
+    <<ub->timeInterval.lc<<" "<<ub->timeInterval.rc<<"] "
+    <<ub->constValue.GetBoolval()<<endl;
+    if(ub->constValue.GetBoolval()){
+     cout<<"point and mpoint are equal ignore timeInterval"<<endl;
+    }
+    else{
+      cout<<"point and mpoint are equal take timeInterval"<<endl;
+      newUp.timeInterval = ub->timeInterval;
+      newUp.p0 = *p;
+      newUp.p1 = *p;
+      cout<<"Add4 ("
+      <<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
+      <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
+      <<") ["<<newUp.timeInterval.start.ToDouble()<<" "
+      <<newUp.timeInterval.end.ToDouble()<<" "
+      <<newUp.timeInterval.lc<<" "
+      <<newUp.timeInterval.rc<<"]"<<endl;
+      if(newUp.timeInterval.end > newUp.timeInterval.start
+        || (newUp.timeInterval.end == newUp.timeInterval.start
+        && newUp.timeInterval.lc && newUp.timeInterval.rc))
+        endResult->Add(newUp);
+    }
+  }
+  endResult->EndBulkLoad(false);
+}
+
+/*
+16.3.45 Value mapping functions of operator ~minus~ 
+ for mpoint/mpoint
+
+*/
+
+int TemporalMMPointIntercept( Word* args, Word& result, int
+ message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  
+  MBool *mBool = new MBool(0);
+  
+  MovingPointCompareMM(*((MPoint*)args[0].addr),
+    *((MPoint*)args[1].addr), *mBool, 0);
+
+  MPoint* endResult = (MPoint*)result.addr;
+  TransformMBool2MPoint(((MPoint*)args[0].addr), mBool,
+    endResult);
+ 
+  delete mBool;
+ 
+  return 0;
+}
+
+/*
+16.3.45 Value mapping functions of operator ~minus~ 
+ for mpoint/point
+
+*/
+
+int TemporalMSPointIntercept( Word* args, Word& result, int
+ message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  
+  MBool *mBool = new MBool(0);
+  
+  MovingPointCompareMS(*((MPoint*)args[0].addr),
+    *((Point*)args[1].addr), *mBool, 0);
+
+  MPoint* endResult = (MPoint*)result.addr;
+  TransformMBool2MPoint(((MPoint*)args[0].addr), mBool,
+    endResult);
+ 
+  delete mBool;
+ 
+  return 0;
+}
+
+/*
+16.3.45 Value mapping functions of operator ~minus~ 
+ for point/mpoint
+
+*/
+
+int TemporalSMPointIntercept( Word* args, Word& result, int
+ message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  
+  MBool *mBool = new MBool(0);
+  
+  MovingPointCompareMS(*((MPoint*)args[1].addr),
+    *((Point*)args[0].addr), *mBool, 0);
+
+  MPoint* endResult = (MPoint*)result.addr;
+  TransformMBool2MPoint(((Point*)args[0].addr), mBool,
+    endResult);
+ 
+  delete mBool;
+ 
   return 0;
 }
 
@@ -4078,41 +4484,154 @@ static void CompletePeriods2MBool(MPoint* mp, Periods* pResult,
   endResult->EndBulkLoad(false);
 }
 
-
-
 /*
-16.3.47. Value mapping of operator ~inside~ for mpoint/points
+Function CompletePeriods2MPoint completes a Periods-value to 
+a MPoint-value. For this it adds the starting and end points.
 
 */
 
-int MPointsPointInside( Word* args, Word& result, int message,
- Word& local, Supplier s )
+static void CompletePeriods2MPoint(MPoint* mp, Periods* pResult,
+  MPoint* endResult){
+  const UPoint *up;
+  
+  endResult->Clear();
+  endResult->StartBulkLoad();
+  const Interval<Instant> *per;
+  UPoint newUp;
+  Point pt;
+  int m = 0;
+  bool pfinished = false; //(pResult->GetNoComponents() == 0);
+  for ( int i = 0; i < mp->GetNoComponents(); i++) {
+    mp->Get(i, up);
+    cout<<"UPoint # "<<i<<" ["<<up->timeInterval.start.ToDouble()
+    <<" "<<up->timeInterval.end.ToDouble()<<" "
+    <<up->timeInterval.lc<<" "<<up->timeInterval.rc<<"] ("
+    <<up->p0.GetX()<<" "<<up->p0.GetY()<<")->("<<up->p1.GetX()
+    <<" "<<up->p1.GetY()<<")"<<endl;
+    if(!pfinished) {
+      pResult->Get(m, per);
+      cout<<"per "<<m<<" ["<<per->start.ToDouble()<<" "
+      <<per->end.ToDouble()<<" "<<per->lc<<" "<<per->rc<<"]"<<endl;
+    }
+    else
+      cout<<"no per any more"<<endl;
+    if(pfinished) {
+      cout<<"no per any more. break 1"<<endl;
+      break;
+    }
+    if(!(pfinished 
+       || up->timeInterval.end < per->start 
+       || (up->timeInterval.end == per->start 
+       && !up->timeInterval.rc && per->lc))) {
+      cout<<"per not totally after up"<<endl;
+      if(up->timeInterval.start < per->start || 
+        (up->timeInterval.start == per->start 
+         && up->timeInterval.lc && !per->lc)) {
+        cout<<"up starts before per"<<endl;
+        newUp.timeInterval = *per;
+      }
+      else {
+        cout<<"per starts before or with up"<<endl;
+        newUp.timeInterval.start = up->timeInterval.start;
+        newUp.timeInterval.lc = up->timeInterval.lc;
+      }
+      while(true) {
+        if(up->timeInterval.end < per->end
+             || (up->timeInterval.end == per->end 
+             && per->rc && !up->timeInterval.rc)) {
+            cout<<"per ends after up (break)"<<endl;
+            newUp.timeInterval.end = up->timeInterval.end; 
+            newUp.timeInterval.rc = up->timeInterval.rc; 
+            up->TemporalFunction(newUp.timeInterval.start, pt);
+            newUp.p0 = pt;
+            up->TemporalFunction(newUp.timeInterval.end, pt);
+            newUp.p1 = pt;
+            cout<<"Add3 ("
+            <<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
+            <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
+            <<") ["<<newUp.timeInterval.start.ToDouble()<<" "
+            <<newUp.timeInterval.end.ToDouble()<<" "
+            <<newUp.timeInterval.lc<<" "
+            <<newUp.timeInterval.rc<<"]"<<endl;
+            endResult->Add(newUp); 
+            break;
+        }
+        else {
+          cout<<"per ends inside up"<<endl;
+          newUp.timeInterval.end = per->end;
+          newUp.timeInterval.rc = per->rc;
+          up->TemporalFunction(newUp.timeInterval.start, pt);
+          newUp.p0 = pt;
+          up->TemporalFunction(newUp.timeInterval.end, pt);
+          newUp.p1 = pt;
+          cout<<"Add4 ("
+          <<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
+          <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
+          <<") ["<<newUp.timeInterval.start.ToDouble()<<" "
+          <<newUp.timeInterval.end.ToDouble()<<" "
+          <<newUp.timeInterval.lc<<" "
+          <<newUp.timeInterval.rc<<"]"<<endl;
+          endResult->Add(newUp);
+        }
+       // newUp.timeInterval.start = per->end; 
+       // newUp.timeInterval.lc = !per->rc; 
+        if(m == pResult->GetNoComponents() - 1){
+          cout<<"last per"<<endl;
+          pfinished = true;
+          //break;
+        }
+        else {
+          pResult->Get(++m, per);
+          cout<<"per "<<m<<" ["<<per->start.ToDouble()<<" "<<per->end.ToDouble()
+          <<" "<<per->lc<<" "<<per->rc<<"]"<<endl;
+        }
+        if(!pfinished && (per->start < up->timeInterval.end 
+           || (per->start == up->timeInterval.end 
+           && up->timeInterval.rc && per->rc))){
+          cout<<"next per starts in same up"<<endl;
+          newUp.timeInterval.start = per->start; 
+          newUp.timeInterval.lc = per->lc; 
+        }
+        else {
+          cout<<"next interval after up -> finish up"<<endl;
+          break;
+        }
+      } //while
+    }
+  }
+  endResult->EndBulkLoad(false);
+}
+
+/*
+Function ~MPointInsidePoints~ calcultates the periods where the 
+given MPoint lies inside the given Points. It return the existing 
+intervals in a Periods-Object. 
+
+*/
+
+static void MPointInsidePoints(MPoint& mp, Points& ps, Periods& pResult)
 {
-  result = qp->ResultStorage( s );
-  MBool* endResult = (MBool*)result.addr;
-  MPoint* mp = (MPoint*)args[0].addr;
-  Points* ps = (Points*)args[1].addr;
   const UPoint *up;
   const Point *p;
-  Periods* pResult = new Periods(0);
+  
   Periods* between = new Periods(0);
   Periods* period = new Periods(0);
   Interval<Instant> newper; //part of the result
   
-  pResult->Clear();
-  for( int i = 0; i < mp->GetNoComponents(); i++)
+  pResult.Clear();
+  for( int i = 0; i < mp.GetNoComponents(); i++)
   {
-    cout<<"MPointsPointInside # "<<i<<endl;
-    mp->Get(i, up);
+    cout<<"MPointPointsInside # "<<i<<endl;
+    mp.Get(i, up);
     cout<<"UPoint # "<<i<<" ["
     <<up->timeInterval.start.ToDouble()<<" "
     <<up->timeInterval.end.ToDouble()<<" "
     <<up->timeInterval.lc<<" "<<up->timeInterval.rc<<"] ("
     <<up->p0.GetX()<<" "<<up->p0.GetY()<<")-("<<up->p1.GetX()<<" "
     <<up->p1.GetY()<<")"<<endl;
-    for( int n = 0; n < ps->Size(); n++)
+    for( int n = 0; n < ps.Size(); n++)
     {
-      ps->Get(n, p);
+      ps.Get(n, p);
       cout<<"point # "<<n<<" ("<<p->GetX()<<" "<<p->GetY()
       <<") "<<endl;
       double dx, dy;
@@ -4180,20 +4699,47 @@ int MPointsPointInside( Word* args, Word& result, int message,
       period->StartBulkLoad();
       period->Add(newper);
       period->EndBulkLoad(false);
-      if (!pResult->IsEmpty()) {
+      if (!pResult.IsEmpty()) {
         between->Clear();
-        period->Union(*pResult, *between);
-        pResult->Clear();
-        pResult->CopyFrom(between);
+        period->Union(pResult, *between);
+        pResult.Clear();
+        pResult.CopyFrom(between);
       }
       else 
-        pResult->CopyFrom(period);
+        pResult.CopyFrom(period);
     }
   }
   delete between;
   delete period;
+}
+
+/*
+16.3.47. Value mapping of operator ~inside~ and ~intersection~
+for mpoint/points. op decides whether it means inside(1) or
+intersection(2)
+
+*/
+
+template<int op>
+int MPointPointsInside( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s ); 
+  Periods* pResult = new Periods(0);
   
-  CompletePeriods2MBool(mp, pResult, endResult);
+  MPointInsidePoints( *((MPoint*)args[0].addr),
+    *((Points*)args[1].addr), *pResult);
+
+  if(op == 1){ //create a MBool (inside)
+    MBool* endResult = (MBool*)result.addr;
+    CompletePeriods2MBool(((MPoint*)args[0].addr),
+      pResult, endResult);
+  }
+  else{ //create a MPoint (intersection)
+    MPoint* endResult = (MPoint*)result.addr;
+    CompletePeriods2MPoint(((MPoint*)args[0].addr),
+      pResult, endResult);
+  }
 
   delete pResult;
   
@@ -4201,40 +4747,61 @@ int MPointsPointInside( Word* args, Word& result, int message,
 }
 
 /*
-16.3.47. Value mapping of operator ~inside~ for mpoint/line
+16.3.47. Value mapping of operator ~intersection~ for points/mPoint
 
 */
 
-int MPointsLineInside( Word* args, Word& result, int message,
+int PointsMPointIntersection( Word* args, Word& result, int message,
  Word& local, Supplier s )
 {
-  result = qp->ResultStorage( s );
-  MBool* endResult = (MBool*)result.addr;
-  MPoint* mp = (MPoint*)args[0].addr;
-  CLine* ln = (CLine*)args[1].addr;
+  result = qp->ResultStorage( s ); 
+  Periods* pResult = new Periods(0);
+  
+  MPointInsidePoints( *((MPoint*)args[1].addr),
+    *((Points*)args[0].addr), *pResult);
+
+  //create a MPoint (intersection)
+  MPoint* endResult = (MPoint*)result.addr;
+  CompletePeriods2MPoint(((MPoint*)args[1].addr),
+    pResult, endResult);
+
+  delete pResult;
+  
+  return 0;
+}
+
+/*
+Function ~MPointInsideLine~ calcultates the periods where the 
+given MPoint lies inside the given CLine. It return the existing 
+intervals in a Periods-Object. 
+
+*/
+
+static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
+{
   const UPoint *up;
   const CHalfSegment *l;
-  Periods* pResult = new Periods(0);
+
   Periods* period = new Periods(0);
   Periods* between = new Periods(0);
   Point pt;
   Interval<Instant> newper; //part of the result
   
-  pResult->Clear();
-  for( int i = 0; i < mp->GetNoComponents(); i++)
+  pResult.Clear();
+  for( int i = 0; i < mp.GetNoComponents(); i++)
   {
-    cout<<"MPointsLineInside # "<<i<<endl;
-    mp->Get(i, up);
+    cout<<"MPointLineInside # "<<i<<endl;
+    mp.Get(i, up);
     cout<<"UPoint # "<<i<<" ["<<up->timeInterval.start.ToDouble()
     <<" "<<up->timeInterval.end.ToDouble()<<" "
     <<up->timeInterval.lc<<" "<<up->timeInterval.rc<<"] ("
     <<up->p0.GetX()<<" "<<up->p0.GetY()<<")->("<<up->p1.GetX()
     <<" "<<up->p1.GetY()<<")"<<endl;
 
-    for( int n = 0; n < ln->Size(); n++)
+    for( int n = 0; n < ln.Size(); n++)
     {
       Instant t;
-      ln->Get(n, l);
+      ln.Get(n, l);
       cout<<"UPoint # "<<i
       <<" ["<<up->timeInterval.start.ToDouble()
       <<" "<<up->timeInterval.end.ToDouble()<<" "
@@ -4576,21 +5143,74 @@ int MPointsLineInside( Word* args, Word& result, int message,
       period->StartBulkLoad();
       period->Add(newper);
       period->EndBulkLoad(false);
-      if (!pResult->IsEmpty()) {
+      if (!pResult.IsEmpty()) {
         between->Clear();
-        period->Union(*pResult, *between);
-        pResult->Clear();
-        pResult->CopyFrom(between);
+        period->Union(pResult, *between);
+        pResult.Clear();
+        pResult.CopyFrom(between);
       }
       else 
-        pResult->CopyFrom(period);
+        pResult.CopyFrom(period);
     }
   }
   delete between;
   delete period;
-  
-  CompletePeriods2MBool(mp, pResult, endResult);
+}
 
+/*
+16.3.47. Value mapping of operator ~inside~ and ~intersection~
+for mpoint/line. op decides whether it means inside(1) or
+intersection(2)
+
+*/
+
+template<int op>
+int MPointLineInside( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Periods* pResult = new Periods(0);
+  
+  MPointInsideLine( *((MPoint*)args[0].addr),
+    *((CLine*)args[1].addr), *pResult);
+  
+  if(op == 1) { //create a MBool (inside)
+    MBool* endResult = (MBool*)result.addr;
+    CompletePeriods2MBool(((MPoint*)args[0].addr), 
+      pResult, endResult);
+  }
+  else { //create a MPoint (intersection)
+    MPoint* endResult = (MPoint*)result.addr;
+    CompletePeriods2MPoint(((MPoint*)args[0].addr), 
+      pResult, endResult);
+  }
+  
+  delete pResult;
+  
+  return 0;
+}
+
+
+
+/*
+16.3.47. Value mapping of operator ~intersection~ for line/mpoint
+
+*/
+
+int LineMPointIntersection( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Periods* pResult = new Periods(0);
+  
+  MPointInsideLine( *((MPoint*)args[1].addr),
+    *((CLine*)args[0].addr), *pResult);
+  
+  //create a MPoint (intersection)
+  MPoint* endResult = (MPoint*)result.addr;
+  CompletePeriods2MPoint(((MPoint*)args[1].addr), 
+    pResult, endResult);
+  
   delete pResult;
   
   return 0;
@@ -5134,7 +5754,12 @@ ValueMapping temporalliftintersectionmap[] = {
             TemporalSMIntersection<MInt, UInt, CcInt, 1>,
             TemporalMMRealIntercept<1>,
             TemporalMSRealIntercept<1>,
-            TemporalSMRealIntercept<1>};
+            TemporalSMRealIntercept<1>,
+            MPointPointsInside<2>,
+            MPointLineInside<2>,
+            PointsMPointIntersection,
+            LineMPointIntersection
+            };
 
 ValueMapping temporalliftminusmap[] = {
             TemporalMMIntersection<MBool, MBool, UBool, UBool, 2>,
@@ -5145,21 +5770,21 @@ ValueMapping temporalliftminusmap[] = {
             TemporalSMIntersection<MInt, UInt, CcInt, 2>,
             TemporalMMRealIntercept<2>,
             TemporalMSRealIntercept<2>,
-            TemporalSMRealIntercept<2> };
+            TemporalSMRealIntercept<2>,
+            TemporalMMPointIntercept,
+            TemporalMSPointIntercept,
+            TemporalSMPointIntercept,
+            RMPMinusValueMap,
+            MRPMinusValueMap,
+            MRMPMinusValueMap,
+            MRPMinusValueMap,
+            MRPMinusValueMap};
 
 ValueMapping temporalliftinsidemap[] = {
-            MPointsPointInside,
-            MPointsLineInside,
+            MPointPointsInside<1>,
+            MPointLineInside<1>,
             MFalseValueMap,
             MFalseValueMap  };
-
-static ValueMapping minusvaluemap[] =
-    { RMPMinusValueMap,
-      MRPMinusValueMap,
-      MRMPMinusValueMap,
-      MRPMinusValueMap,
-      MRPMinusValueMap,
-      };
 
 static ValueMapping unionvaluemap[] =
     { MPRUnionValueMap,
@@ -5263,9 +5888,10 @@ const string TemporalLiftSpecGE
 const string TemporalLiftSpecIntersection  
         = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
           "\"Example\" ) "
-          "( <text>S in {bool, int, real}, mS x mS -> mS,"
-          " mS x S -> mS, S x mS -> mS</text--->"
-          "<text>intersection _, _</text--->"
+          "( <text>S in {bool, int, real}, T in {line, points),"
+          " mS x mS -> mS, mS x S -> mS, S x mS -> mS, "
+          "mpoint x T -> mpoint, T x mpoint -> mpoint</text--->"
+          "<text>intersection( _, _ )</text--->"
           "<text>Intersection.</text--->"
           "<text>query intersection (mi1,  mi2)</text--->"
           ") )";
@@ -5274,11 +5900,14 @@ const string TemporalLiftSpecMinus
          = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
            "\"Example\" ) "
            "( <text>S in {bool, int, real}, mS x mS -> mS,"
-           " mS x S -> mS, S x mS -> mS</text--->"
+           " mS x S -> mS, S x mS -> mS, "
+           "R in {region}, P in {point}, R x mP -> mR, "
+           "mR x P -> mR, mR x mP -> mR, mR x points -> mR, "
+           "mR x line -> mR</text--->"
            "<text>_ minus _</text--->"
            "<text>Minus.</text--->"
            "<text>query mi1 minus mi2</text--->"
-           ") )";       
+           ") )";    
 
 const string TemporalLiftSpecABS  
                  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -5339,13 +5968,6 @@ static const string ncomponentsspec =
     "    <text>Calculates the number of faces of a moving Region.</text--->"
     "    <text>no_components(mrg1)</text---> ) )";
 
-static const string minusspec =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>R in {region}, P in {point}, R x mP -> mR, "
-    "mR x P -> mR, mR x mP -> mR, mR x points -> mR, mR x line -> mR</text--->"
-    "    <text>_ minus _</text--->"
-    "    <text>Calculates the differece between the given objects.</text--->"
-    "    <text>rg1 minus mp1</text---> ) )";
 
 static const string unionspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -5442,18 +6064,18 @@ Operator temporalmdistance( "distance",
 
 Operator temporalmintersection( "intersection",
                  TemporalLiftSpecIntersection,
-                 9,
+                 13,
                  temporalliftintersectionmap,
                  MovingIntersectionSelect,
                  MovingIntersectionTypeMap );
 
 Operator temporalmminus( "minus",
                         TemporalLiftSpecMinus,
-                        9,
+                        17,  //12
                         temporalliftminusmap,
-                        MovingIntersectionSelect,
-                        MovingIntersectionTypeMap );
-
+                        MovingMinusSelect,
+                        MovingMinusTypeMap );              
+                        
 Operator temporalabs( "abs",
                             TemporalLiftSpecABS,
                             MovingRealABS,
@@ -5490,13 +6112,6 @@ static Operator ncomponents("no_components",
                         NComponentsValueMap,
                         Operator::SimpleSelect,
                         NComponentsTypeMap);
-
-static Operator mminus("minus",
-                          minusspec,
-                          5,
-                          minusvaluemap,
-                          MinusSelect,
-                          MinusTypeMap);
 
 static Operator munion("union",
                           unionspec,
@@ -5540,7 +6155,6 @@ class TemporalLiftedAlgebra : public Algebra
     AddOperator( &area);
     AddOperator( &rcenter);
     AddOperator( &ncomponents);
-    AddOperator( &mminus);
     AddOperator( &munion);
     AddOperator( &isempty);
     }
