@@ -55,6 +55,9 @@ public static boolean TRACE_SERVER_COMMANDS = false;
   **/
 public static boolean TESTMODE = false;
 
+/** Runs Javagui in extended testmode **/
+public static boolean EXTENDED_TESTMODE = false;
+
 
 /** Returns the currently used memeory in bytes **/
 public static long usedMemory(){

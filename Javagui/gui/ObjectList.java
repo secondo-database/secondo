@@ -887,7 +887,7 @@ public int getSize(){
 }
 
 public Object getElementAt(int index){
-  if(index<0 || index>myListModel.getSize())
+  if(index<0 || index>=Content.size())
     return null;
   else
     return Content.get(index);

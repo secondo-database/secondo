@@ -251,7 +251,7 @@ public MainWindow(String Title){
 
   if(config_file_ok){
     try{
-      Reporter.writeInfo("load configuration datas from: "+CF.getAbsolutePath());
+      Reporter.writeInfo("load configuration data from: "+CF.getAbsolutePath());
       FileInputStream CFG = new FileInputStream(CF);
       Config.load(CFG);
       CFG.close();
@@ -1294,6 +1294,252 @@ private int executeFile(String FileName,boolean ignoreErrors){
     catch(Exception e){}
   }
   return errors;
+}
+
+
+/** Converts a list into a command.
+  * The list can be a string atom, a text atom or a 
+  * list consisting of a sequence of text atoms and string atoms.
+  * If the list has an invalid format, the reuslt will be null.
+  **/
+private String listToCommand(ListExpr list){
+  int at = list.atomType();
+  String command="";
+  switch(at){
+     case ListExpr.STRING_ATOM: command = list.stringValue();
+                                break;
+     case ListExpr.TEXT_ATOM:   command = list.textValue();
+                                break;
+     case ListExpr.NO_ATOM:
+          while(!list.isEmpty()){
+              ListExpr part = list.first();
+              list = list.rest();
+              int atp = part.atomType();
+              switch(atp){
+                   case ListExpr.STRING_ATOM: command += part.stringValue();
+                                                break;
+                    case ListExpr.TEXT_ATOM: command += part.textValue();
+                                             break;
+                    default: return null;
+                   }
+                 }
+                 break;
+        default: return null;
+  }  
+  return command;  
+}
+
+
+/** Executes the test describen in the testlist.
+  * The listformat has to be:
+  *  ( COMMAND RESULT )
+  * The COMMAND format is described in listToCommand.
+  * The RESULT must be a list formatted as
+  * ( SUCCESS EPSILON RESULTLIST )
+  * where SUCCESS is a boolean atom (if false, the remaining parts
+  * are ignored. The value of EPSILON described the precision used for
+  * checking numeric values for equality. And the resultlist describes
+  * expected result list. If an error occurs while executing a command,
+  * the command is appended to theCommand).
+  * @return: the succcess of the test 
+  **/
+private boolean makeTest(ListExpr test,StringBuffer failedCommands){
+   if(test.listLength()!=2){
+      Reporter.writeError("invalid listlength for test");
+      test.writeListExpr();
+      return false;
+   }
+   String command = listToCommand(test.first());
+   if(command==null){
+       Reporter.writeError("invalid format of command in test");
+       test.writeListExpr();
+       return false;
+   }
+   
+   ListExpr resultSpec = test.second();
+   if(resultSpec.listLength()!=2){
+       Reporter.writeError("Error in resultspecification detected, \n"+      
+                          "list containing two elements expected");
+       return false;
+   }
+   ListExpr resPlace=resultSpec.first();
+   int at = resPlace.atomType();
+   if(at!=ListExpr.SYMBOL_ATOM){
+      Reporter.writeError("first element of result must be an symbol ");
+      return false;
+   }
+
+
+   String rp = resPlace.symbolValue();
+   boolean fromFile=false;
+   if(rp.equals("file")){
+       fromFile=true;
+   } else if(rp.equals("list")){
+       fromFile=false;
+   } else{
+       Reporter.writeError("first element of result has to be 'list' or 'file'");
+       return false;
+   }
+   resultSpec=resultSpec.second();
+ 
+   at = resultSpec.atomType();
+   if(at!=ListExpr.BOOL_ATOM && at!=ListExpr.NO_ATOM){
+       Reporter.writeError("wrong result format in test");
+       test.writeListExpr();
+       return false;
+   } 
+   boolean expSuccess=false;
+   ListExpr expResult = null;
+   double epsilon = 0.0;
+   boolean isTest=true;
+   
+   if(at==ListExpr.BOOL_ATOM){
+      expSuccess=resultSpec.boolValue(); 
+   } else{
+      int len = resultSpec.listLength();
+      if(len==0){
+        // only a command, not a proper test
+        isTest = false; 
+      } else {  
+        // read the value of success
+        ListExpr f = resultSpec.first();
+        if(f.atomType()!=ListExpr.BOOL_ATOM){
+            Reporter.writeError("invalid result specification in test");
+            resultSpec.writeListExpr();
+            return false;
+        } else{
+             expSuccess = f.boolValue();
+        }
+        if(len>=2){
+           if(!fromFile){
+              expResult = resultSpec.second();
+            } else {
+               int at2 = resultSpec.second().atomType();
+               String FileName="";
+               switch(at2){
+                  case ListExpr.SYMBOL_ATOM: 
+                        FileName = resultSpec.second().symbolValue();
+                        break;
+                  case ListExpr.STRING_ATOM:
+                         FileName = resultSpec.second().stringValue();
+                         break;
+                  case ListExpr.TEXT_ATOM:
+                         FileName = resultSpec.second().textValue();
+                         break;
+                  default:
+                         Reporter.writeError("invalid filename specification in result");
+
+               }
+               expResult = ListExpr.getListExprFromFile(FileName);
+               if(expResult==null){
+                  Reporter.writeError("Error in loading '" + FileName+"'");
+                  return false;
+               }
+            }
+        }
+        if(len==3){ // full format (<success><result><epsilon>
+           ListExpr t = resultSpec.third();
+           int tat = t.atomType();
+           switch(tat){
+             case ListExpr.INT_ATOM : epsilon = t.intValue();
+                                      break;
+             case ListExpr.REAL_ATOM : epsilon = t.realValue();
+                                       break;
+             default: Reporter.writeError("invalid format for epsilon in test");
+                      t.writeListExpr();
+                      return false;
+           }
+        }
+      }  
+   }  
+   Reporter.writeInfo("test command " + command); 
+   boolean res = ComPanel.execUserCommand(command,isTest,expSuccess,
+                                          epsilon,expResult);
+   if(!res){
+      failedCommands.append(command+"\n");  
+   }
+   return res;
+}
+
+/** executes a testfile 
+  * @param haltOnErrors: if set to true, the test section will be finished if an
+                         error occurs.
+  * @return: numbe of errors found
+  */
+private int executeTestFile(String fileName, boolean haltOnErrors, 
+                            StringBuffer failedCommands){
+  Reporter.writeInfo("test file "+ fileName);
+  int errors = 0;
+  try{
+			// Test specifications within Javagui are given as NestedList 
+			ListExpr testList = ListExpr.getListExprFromFile(fileName);
+			if(testList==null){
+				 Reporter.writeError("Error in loading of test specification");
+				 return 1;
+			} 
+			int len = testList.listLength();
+			if(len!=3){
+				 // format has to be ( <setup> <tests> <teardown> )
+				 Reporter.writeError("Invalid listlength for testfile specification");
+				 return 1;
+			}
+			ListExpr setup = testList.first();
+			// the setup file is a list in form ( <com_1> <com_2> ... <com_n> )
+			if(setup.atomType()!=ListExpr.NO_ATOM){
+				 Reporter.writeError("Invalid Setup part in TestList found ");
+				 return 1;
+			}
+			// execute all commands in setup part ignoring any errors in execution
+			while(!setup.isEmpty()){
+				String command = listToCommand(setup.first());
+				setup = setup.rest();
+				if(command==null){ 
+					 Reporter.writeError("Invalid format for a command in setup section detected");
+					 errors++;
+				 }else{
+					 ComPanel.execUserCommand(command); 
+				 }
+			}
+
+			
+		ListExpr tests =  testList.second();
+		// tests has to be in format ( <test_1> <test_2> ... <test_n> )
+		if(tests.atomType() != ListExpr.NO_ATOM){
+				 Reporter.writeError("Invalid format of tests found in file specification "); 
+				 Reporter.writeInfo(" switch to teardown ");
+		} else{
+			 boolean stop = false;
+			 while(!tests.isEmpty() && !stop){
+						if(!makeTest(tests.first(),failedCommands)){
+							 errors++;
+							 stop = haltOnErrors;
+						}
+						tests = tests.rest();
+		   }
+			}
+			// teardown: this section has the same format as the setup section
+			// all errors except wrong formatted lists are ignored
+      ListExpr teardown = testList.third();
+			if(teardown.atomType()!=ListExpr.NO_ATOM){
+				 Reporter.writeError("Invalid format of teardown section in testfile ");
+				 return errors + 1;
+			}
+			while(!teardown.isEmpty()){
+				String command = listToCommand(teardown.first());
+				if(command==null){
+					 Reporter.writeError("Invalid command format in teardown section found");
+					 errors++;
+				}else{
+					ComPanel.execUserCommand(command);
+				}
+        teardown = teardown.rest();
+			} 
+  } catch(Exception e){
+     Reporter.writeError("Error in testing file ");
+     Reporter.debug(e);
+     errors++;
+  }    
+  return errors;
 
 }
 
@@ -1337,6 +1583,14 @@ public boolean addObject(SecondoObject SO){
    return true;
 }
 
+/** closes all connections and exits the program */
+public void shutdown(int errorCode){
+    ComPanel.disconnect();
+    ComPanel.disableOptimizer();
+    setVisible(false);
+    System.exit(errorCode);
+}
+
 /* the main function to start program */
 public static void main(String[] args){
   if(args.length<1){
@@ -1350,6 +1604,10 @@ public static void main(String[] args){
   }
 
   Environment.TESTMODE = args.length>0 && args[0].equals("--testmode");
+  Environment.EXTENDED_TESTMODE = args.length>0 && args[0].equals("--testmode2");
+  if(Environment.EXTENDED_TESTMODE){
+     Environment.TESTMODE=true;
+  }
   File testfile=null;
   if(Environment.TESTMODE){
      if(args.length>1){
@@ -1362,9 +1620,30 @@ public static void main(String[] args){
   }
   MainWindow SecGui = new MainWindow("Secondo-GUI");
   SecGui.setVisible(true);
-  if(Environment.TESTMODE && testfile!=null){
+  if(Environment.TESTMODE && !Environment.EXTENDED_TESTMODE && testfile!=null){
      Reporter.writeInfo("Run Testfile");
      SecGui.executeFile(testfile.getAbsolutePath(),true);
+  }
+  if(Environment.EXTENDED_TESTMODE){
+     Environment.DEBUG_MODE=true;
+     if(testfile==null){
+        Reporter.writeError("the extended testmode requires an testfile ");
+        SecGui.shutdown(1);
+     }
+     StringBuffer failedCommands = new StringBuffer(); 
+     int errors = SecGui.executeTestFile(testfile.getAbsolutePath(),true,
+                                         failedCommands);
+     if(errors>0){
+        Reporter.writeError("They are "+errors+" erros occured during the test");
+        Reporter.writeError("failed commands :"+failedCommands);
+     } else{
+        Reporter.writeInfo("All tests was performed successful");
+     }
+     try{
+        Thread.sleep(10000);
+     }catch(Exception e){}
+     SecGui.shutdown(errors);
+     
   }
   MainWindow.ComPanel.requestFocus();
 }

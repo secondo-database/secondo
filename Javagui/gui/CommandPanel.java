@@ -160,8 +160,10 @@ public class CommandPanel extends JScrollPane {
    * @param txt Text to append.
    */
   public void appendText (String txt) {
-    //SystemArea.setForeground(Color.black);
     SystemArea.append(txt);
+    if(Environment.EXTENDED_TESTMODE){
+      Reporter.writeInfo(txt);
+    }
   }
 
   /**
@@ -629,23 +631,62 @@ public class CommandPanel extends JScrollPane {
    *
    * @param command The user command
    */
-  public boolean execUserCommand (String command) {
+   public boolean execUserCommand(String command){
+      return execUserCommand(command,false,false,0,null);
+   }
+  
+
+  /** This functions executes a command and performs some test
+    * if isTest is set to true.
+    * @param command: the command to execute
+    * @param isTest:  if set to true, make a test using the remaining parameters
+    * @param success: expected success of this command
+    * @param epsilon: precision for comparing lists
+    * @param expectedResult: the result expected for this query
+    **/
+  public boolean execUserCommand (String command,
+                                  boolean isTest,
+                                  boolean success,
+                                  double epsilon,
+                                  ListExpr expectedResult) {
+    // empty commands are successful 
     command = command.replaceAll("\n"," ").trim();
     if (command.equals("")){
        showPrompt();
-       return true;
+       if(isTest){
+          return success;
+       } else{
+          return true;
+       }
     }
 
+    // process commands designates for the gui
     if(command.startsWith("gui ") & RV!=null){
-       return RV.execGuiCommand(command.substring(4));
+       boolean res = RV.execGuiCommand(command.substring(4));
+       if(!isTest){
+          return res;
+       } else{ // testMode
+          if(res!=success){
+            return false;
+          } 
+          if(!success){
+            return true;
+          }
+          return expectedResult==null;
+       }
     }
-   
+  
+    // command designates for the optimizer 
     boolean eval=false; 
     if((eval = command.startsWith(EvalString)) || command.startsWith(OptString)){
        if(!useOptimizer()){
           appendText("\noptimizer not available");
-	  showPrompt();
-	  return false;
+          showPrompt();
+          if(!isTest){
+             return false;
+          } else{
+             return !success;
+          }
        }
        long starttime=0;
        if(Environment.MEASURE_TIME)
@@ -660,14 +701,22 @@ public class CommandPanel extends JScrollPane {
 
        if(answer==null){
           appendText("\nerror in optimizer command");
-	  showPrompt();
-	  return  false;
+           showPrompt();
+           if(!isTest){
+               return  false;
+           } else{
+               return !success;
+           }
        }
        else{
-         if(!eval){
+         if(!eval){ 
              appendText("\n"+answer);
-   	     showPrompt();
-	     return true;
+             showPrompt();
+             if(!isTest){
+                return true;
+             }else{
+                return success;
+             }
          }else{ // execute the plan
              // remove the "VARNAME =  " from the answer
              int pos = answer.indexOf("=");
@@ -679,17 +728,21 @@ public class CommandPanel extends JScrollPane {
                  appendText("\nsuppress execution of the optimized result");
                  appendText("\n the result is:\n"+answer);
                  showPrompt();
-                 return false; 
+                 if(!isTest){
+                     return false; 
+                 } else{
+                     return !success;
+                 }
              } else{
                  appendText("\nevaluate the query:\n"+answer+"\n"); 
                  addToHistory(answer);
-                 return execUserCommand(answer); 
+                 return execUserCommand(answer,isTest,success,epsilon,expectedResult); 
              }
          }
        }
     }
    
-
+    // normal command
 
     ListExpr displayErrorList;
     int displayErrorCode;
@@ -702,35 +755,69 @@ public class CommandPanel extends JScrollPane {
     // Executes the remote command.
     if(Secondointerface.isInitialized()){
          command = optimize(command);
-	 if(command.equals("")) return false;
-	 appendText("\n" + command + "...");
-         long starttime=0;
-	 if(Environment.MEASURE_TIME)
-	    starttime = System.currentTimeMillis();
+         if(command.equals("")){
+             if(!isTest){
+               return false;
+             } else{
+                return !success;
+             }
+          }
+          appendText("\n" + command + "...");
+          long starttime=0;
+          if(Environment.MEASURE_TIME){
+               starttime = System.currentTimeMillis();
+          }
 
-	 Secondointerface.secondo(command,           //Command to execute.
-                            resultList, 
-                            errorCode, errorPos, errorMessage);
+           Secondointerface.secondo(command,      
+                                   resultList, 
+                                   errorCode, 
+                                   errorPos, 
+                                   errorMessage);
 
-         if(Environment.MEASURE_TIME){
-            Reporter.writeInfo("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
-         }
+           if(Environment.MEASURE_TIME){
+                 Reporter.writeInfo("used time for query: "+
+                 (System.currentTimeMillis()-starttime)+" ms");
+            }
 
-	 RV.processResult(command,resultList,errorCode,errorPos,errorMessage);
-         boolean success = errorCode.value==0;
-	 if(success)
-	   informListeners(command);
-	 else if(!Secondointerface.isConnected()){ // connection lost
-           informListeners("disconnect");
-	 }
-	 return success;
+            RV.processResult(command,resultList,errorCode,
+                             errorPos,errorMessage);
+           boolean succ = errorCode.value==0;
+           if(succ){
+               informListeners(command);
+            }
+            else if(!Secondointerface.isConnected()){ // connection lost
+               informListeners("disconnect");
+            }
+            if(!isTest){
+               return succ;
+            }else{ // testmode
+               if(succ!=success){ // not the expected result
+                  return false;
+               }
+               if(!success){ // this was expected
+                  return true;
+               }
+               if(expectedResult!=null){
+                   Reporter.writeInfo("compare expected result with actual result");
+                   boolean res = resultList.equals(expectedResult,epsilon);
+                   if(!res){
+                      Reporter.writeError("failed comparison");   
+                   }
+                   return res;
+               } else{
+                   return true;
+               }
+            }
     }
     else{
       appendText("\n you are not connected to SecondoServer");
       showPrompt();
-      return false;
+      if(!isTest){
+         return false;
+      } else{
+         return !success;
+      }
     }
-
   }
 
   /** Executes a command in sos syntax **/

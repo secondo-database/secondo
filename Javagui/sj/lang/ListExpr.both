@@ -1483,6 +1483,9 @@ public int textLength(){
 }
 
 
+
+
+
 /** The familiar Equals method.
   */
 public boolean equals(Object o){
@@ -1490,10 +1493,18 @@ public boolean equals(Object o){
         return false;
     if(!(o instanceof ListExpr))
        return false;
-    ListExpr LE = (ListExpr)o;
+    return equals((ListExpr)o,0.0);
+} 
 
-    if(!equalValues(LE)) // check type and value of the first element
+
+
+public boolean equals(ListExpr LE, double epsilon){
+    if(LE==null)
+      return false;
+
+    if(!equalValues(LE,epsilon)){ // check type and value of the first element
        return false;
+    }
     if(atomType()!=NO_ATOM)
        return true;
 
@@ -1503,8 +1514,9 @@ public boolean equals(Object o){
     while(TNkey!=0  && LENkey!=0){
          ListExpr TN = new ListExpr(TNkey);
          ListExpr LEN = new ListExpr(LENkey);
-         if(!TN.equalValues(LEN)) // differences found
+         if(!TN.equalValues(LEN,epsilon)){ // differences found
              return false;
+         }
          if(TN.atomType()==NO_ATOM){
             TNkey  = TN.getNext();
             LENkey = LEN.getNext();
@@ -1513,15 +1525,17 @@ public boolean equals(Object o){
             LENkey=0;
          }
     }
-    if(TNkey!=0 || LENkey!=0) // different lengths
+    if(TNkey!=0 || LENkey!=0){ // different lengths
        return false;
+    }
     return true;
 #else
-     ListExpr TN = next;
+    ListExpr TN = next;
     ListExpr LEN = LE.next;
     while(TN!=null && LEN!=null){
-         if(!TN.equalValues(LEN)) // differences found
+         if(!TN.equalValues(LEN,epsilon)){ // differences found
              return false;
+         }
          if(type==NO_ATOM){
             TN = TN.next;
             LEN=LEN.next;
@@ -1538,49 +1552,63 @@ public boolean equals(Object o){
 
 
 
-
+private static boolean similar(double a, double b,double epsilon){
+  double diff = a>b? a-b:b-a;
+  return diff<=epsilon;
+} 
 
 
 /**
   * Checks for euqlity of the value
   **/
-private boolean equalValues(ListExpr LE){
+private boolean equalValues(ListExpr LE,double epsilon){
 #ifdef PERSISTENT
     if(LE==null) return false; // this is not null
 
     int a1 = atomType();
     int a2 = LE.atomType();
 
-    if(a1!=a2) // different types
+    if(a1!=a2){ // different types
        return false;
-
+    }
     long v1 = getValue();
-    long v2 = getValue();
-
-    if(v1==0  && v2!=0)
-       return false;
-    if(v1!=0 && v2==0)
-       return false;
-
-    if(v1==0 && v2==0)
-       return true;
-    else{
-       // check numric values directly
-       if(a1==REAL_ATOM || a1==INT_ATOM){
-         return v1==v2;
-       }else if(a1==NO_ATOM){ // check in the depth
-          return (new ListExpr(v1)).equals(new ListExpr(v2));
-       }else{ // one of the text types
-          // for string values we misuse the next pointer as
-          // length
-          if(getNext()!=LE.getNext())
-             return false;
-          // load the appropriate strings and compare them
-          String S1 = getText(v1);
-          String S2 = getText(v2);
-          return S1.compareTo(S2)==0;
-
-       }
+    long v2 = LE.getValue();
+    String s1,s2;
+    switch(a1){
+      case INT_ATOM:
+             return v1==v2;
+      case TEXT_ATOM:
+            s1 = textValue();
+            s2 = LE.textValue();
+            return s1.equals(s2);
+      case STRING_ATOM:
+            s1 = stringValue();
+            s2 = LE.stringValue();
+             return s1.equals(s2);
+      case REAL_ATOM:
+            double d1 = realValue();
+            double d2 = LE.realValue();
+            return similar(d1,d2,epsilon);
+      case SYMBOL_ATOM:
+             s1 = symbolValue();
+             s2 = LE.symbolValue();
+             return s1.equals(s2);
+      case BOOL_ATOM:
+              boolean b1 = boolValue();
+              boolean b2 = LE.boolValue();
+              return b1==b2;
+       case NO_ATOM:
+              if(v1==0 && v2==0){ // two empty lists
+                 return true;
+              }
+              if(v1==0 || v2==0){ // an empty and an non-empty list
+                 return false;
+              }
+              ListExpr l1 = new ListExpr(v1);
+              ListExpr l2 = new ListExpr(v2);
+              return l1.equals(l2,epsilon);
+       default: Reporter.writeError("unknon atom type found in list comparision");
+                return false;
     }
 #else
     if(LE==null) return false; // this is not null
@@ -1601,10 +1629,12 @@ private boolean equalValues(ListExpr LE){
     if(value==null && LE.value==null)
        return true;
     else{ // both value members are not null
-       if(type!=REAL_ATOM)
-           return value.equals(LE.value);
+       if(type!=REAL_ATOM){
+           boolean res = value.equals(LE.value);
+           return res;
+       }
        else{
-           return (float)realValue()==(float)LE.realValue();
+           return similar(realValue(),LE.realValue(),epsilon);
        }
     }
 #endif
