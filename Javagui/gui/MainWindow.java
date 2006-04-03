@@ -412,7 +412,10 @@ public MainWindow(String Title){
              if(Cand instanceof SecondoViewer){
                 Reporter.writeInfo("addViewer "+ViewerName);
                 addViewer((SecondoViewer)Cand);
-                ((SecondoViewer)Cand).enableTestmode(Environment.TESTMODE);
+                boolean tm = Environment.TESTMODE || Environment.EXTENDED_TESTMODE;
+                System.out.println("enable testmode : "+tm);
+                ((SecondoViewer)Cand).enableTestmode(Environment.TESTMODE ||
+                                                     Environment.EXTENDED_TESTMODE);
               }
              else{
                Reporter.writeError(ViewerName+" is not a SecondoViewer");
@@ -1644,13 +1647,13 @@ public static void main(String[] args){
         SecGui.shutdown(1);
      }
      StringBuffer failedCommands = new StringBuffer(); 
-     int errors = SecGui.executeTestFile(testfile.getAbsolutePath(),true,
+     int errors = SecGui.executeTestFile(testfile.getAbsolutePath(),false,
                                          failedCommands);
      if(errors>0){
-        Reporter.writeError("They are "+errors+" erros occured during the test");
+        Reporter.writeError("during the test " + errors + " errors occurred" );
         Reporter.writeError("failed commands :"+failedCommands);
      } else{
-        Reporter.writeInfo("All tests was performed successful");
+        Reporter.writeInfo("All tests was performed successfully");
      }
      try{
         Thread.sleep(10000);
