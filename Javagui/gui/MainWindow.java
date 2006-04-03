@@ -1490,6 +1490,9 @@ private int executeTestFile(String fileName, boolean haltOnErrors,
 				 return 1;
 			}
 			// execute all commands in setup part ignoring any errors in execution
+      Reporter.writeInfo("--------------------------------\n"+
+                         "      enter setup section \n"+
+                         "--------------------------------n");
 			while(!setup.isEmpty()){
 				String command = listToCommand(setup.first());
 				setup = setup.rest();
@@ -1508,12 +1511,19 @@ private int executeTestFile(String fileName, boolean haltOnErrors,
 				 Reporter.writeError("Invalid format of tests found in file specification "); 
 				 Reporter.writeInfo(" switch to teardown ");
 		} else{
+       Reporter.writeInfo("--------------------------------------------\n"+
+                          "        enter test section \n"+
+                          "---------------------------------------------");
+                      
 			 boolean stop = false;
+       int testno = 1;
 			 while(!tests.isEmpty() && !stop){
+            Reporter.writeInfo (" -------> test number " + testno + " <------");
 						if(!makeTest(tests.first(),failedCommands)){
 							 errors++;
 							 stop = haltOnErrors;
 						}
+            testno++;
 						tests = tests.rest();
 		   }
 			}
@@ -1524,6 +1534,9 @@ private int executeTestFile(String fileName, boolean haltOnErrors,
 				 Reporter.writeError("Invalid format of teardown section in testfile ");
 				 return errors + 1;
 			}
+      Reporter.writeInfo("--------------------------------------------\n"+
+                          "        enter teardown section \n"+
+                          "---------------------------------------------");
 			while(!teardown.isEmpty()){
 				String command = listToCommand(teardown.first());
 				if(command==null){
