@@ -140,12 +140,11 @@ Resets all values to 0.
   {
     Str2ValueMap resMap; 
     it=CounterMap.begin();
-    for ( it++; it!=CounterMap.end(); it++) 
+    while ( it != CounterMap.end() ) 
     {
       if ( it->second.second )
-      {  
         resMap[it->first] = it->second.first;
-      }
+      it++;
     }
     return resMap;
   }  
