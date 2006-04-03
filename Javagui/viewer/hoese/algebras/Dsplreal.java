@@ -32,6 +32,23 @@ public class Dsplreal extends DsplGeneric implements DsplSimple{
   // this value is represented
   private double value;
   private String entry;
+
+
+  private String computeValue(ListExpr value){
+    if(isUndefined(value)){
+       this.value = 0.0;
+       return "undefined";
+    } else{
+       Double v = LEUtils.readNumeric(value);
+       if(v==null){
+          this.value =0.0;
+          return "<error>"; 
+       } 
+       else {
+           return ""+v.doubleValue();
+       }
+    }
+  }
   
   /**
    * This method is used to analyse the type and value in NestedList format and build
@@ -45,22 +62,19 @@ public class Dsplreal extends DsplGeneric implements DsplSimple{
    * @see <a href="Dsplrealsrc.html#init">Source</a>
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    this.value = value.realValue();
-    entry = (new String(type.symbolValue() + ":" + value.realValue()));
-    qr.addEntry(this);
-    return;
+      String v = computeValue(value);
+      entry = type.symbolValue() + ":" + v;
+      qr.addEntry(this);
   }
 
   public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
      String T = new String(type.symbolValue());
-     this.value = value.realValue();
-     String V = ""+this.value;
+     String V = computeValue(value);
      T=extendString(T,typewidth);
      V=extendString(V,valuewidth);
      entry = (T + " : " + V);
      qr.addEntry(this);
-     return;
   }
 
   public String toString(){
