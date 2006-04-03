@@ -1690,7 +1690,7 @@ public boolean canDisplay(SecondoObject o){
 
   /** switchs to the testmode **/
   public void enableTestmode(boolean on){
-     isAutoCatMI.setEnabled(!on);
+     isAutoCatMI.setSelected(on);
   }
 
 
