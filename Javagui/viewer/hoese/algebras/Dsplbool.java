@@ -27,7 +27,41 @@ import viewer.hoese.*;
 /**
  * A displayclass for the bool-type, alphanumeric only
  */
-public class Dsplbool extends DsplGeneric {
+public class Dsplbool extends DsplGeneric 
+                      implements RenderAttribute, LabelAttribute,
+                                  DsplSimple {
+  /** the value of this boolean if defined **/
+  boolean value;
+  /** the defined flag of this boolean **/
+  boolean defined;
+  /** the text to display */
+  String entry;
+  /** the label **/
+  String label;
+
+  /** analyses the arguments, sets all internal variables except entry
+    * and returns the string for displaying this value textual
+    **/
+  private String getString(ListExpr value){
+    if(isUndefined(value)){
+        defined=false;
+        this.value=false;
+        label = "undefined"; 
+        return label;
+    }
+    if(value.atomType()!=ListExpr.BOOL_ATOM){
+       defined=false;
+       this.value = false;
+       label = "<error>";
+       return label;
+    }
+    defined = true;
+    this.value = value.boolValue();
+    label ="" + value;
+    return label;
+  }
+
+
 
   /**
    * This method is used to analyse the type and value in NestedList format and build
@@ -41,9 +75,54 @@ public class Dsplbool extends DsplGeneric {
    * @see <a href="Dsplboolsrc.html#init">Source</a>
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    qr.addEntry(new String(type.symbolValue() + ":" + value.boolValue()));
+    String l = getString(value);
+    entry = type.symbolValue() +":"+l;
+    qr.addEntry(this);
     return;
   }
+
+  public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  {
+     String T = new String(type.symbolValue());
+     String V = getString(value);
+     T=extendString(T,typewidth);
+     V=extendString(V,valuewidth);
+     entry=(T + " : " + V);
+     qr.addEntry(this);
+     return;
+  }
+
+  public String toString(){
+      return entry;
+  }
+
+  /** returns the maximum value **/
+  public double getMaxRenderValue(){
+     return value?1:0;
+  }
+  /** returns the minimum value **/
+  public double getMinRenderValue(){
+     return value?1:0;
+  }
+  /** returns the current value **/
+  public double getRenderValue(double time){
+     return value?1:0;
+  }
+  /** returns true if this int is defined **/
+  public boolean canBeDefined(){
+      return defined;
+  }
+  /** returns tre if this integer is defined **/
+  public boolean isDefined(double time){
+     return defined;
+  }
+ /** returns the label **/
+  public String getLabel(double time){
+    return label;
+  }
+
+
+
 }
 
 

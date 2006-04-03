@@ -35,6 +35,8 @@ import tools.Reporter;
 public class Dsplintimeline extends Dsplline
     implements Timed {
     Interval TimeBounds;
+   private String entry;
+   private boolean defined;  
 
   /** A method of the Timed-Interface
    * 
@@ -52,6 +54,9 @@ public class Dsplintimeline extends Dsplline
    * @see <a href="Dsplintimeregionsrc.html#getTimeRenderer">Source</a>
    */
   public JPanel getTimeRenderer (double PixelTime) {
+    if(!defined){
+       return new JPanel();
+    }
     int start = 0;              
     JLabel label = new JLabel("|"+LEUtils.convertTimeToString(TimeBounds.getStart()).substring(11, 
         16), JLabel.LEFT);
@@ -82,20 +87,26 @@ public class Dsplintimeline extends Dsplline
    * @see sj.lang.ListExpr
    * @see <a href="Dsplintimelinesrc.html#ScanValue">Source</a>
    */
-  public void ScanValue (ListExpr v) {
+  public String getString (ListExpr v) {
+    if(isUndefined(v)){
+      defined=false;
+      return "undefined";
+    }
     Double d;
-    if (v.listLength() != 2) {                  //perhaps changes later
-      Reporter.writeError("Error: No correct intimeline expression: 2 elements needed");
-      err = true;
-      return;
+    if (v.listLength() != 2) {   
+      err=true;
+      defined = false;
+      return "<error>";
     }
     d = LEUtils.readInstant(v.first());
     if (d == null) {
       err = true;
-      return;
+      defined=false;
+      return "<error>";
     }
     TimeBounds = new Interval(d.doubleValue(), d.doubleValue(), true, true);
     super.ScanValue(v.second());
+    return "intimeline";
   }
 
   /**
@@ -109,17 +120,39 @@ public class Dsplintimeline extends Dsplline
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
     AttrName = type.symbolValue();
-    ScanValue(value);
-    if (err) {
-      Reporter.writeError("Error in ListExpr :parsing aborted");
-      qr.addEntry(new String("(" + AttrName + ": GTA(IntimeLine))"));
-      return;
-    } 
-    else 
-      qr.addEntry(this);
+    String v = getString(value);
+    entry = type.symbolValue()+":"+v;
+    if(!err){
+        qr.addEntry(this);
+    }else{
+        qr.addEntry(entry);
+    }
     bounds = new Rectangle2D.Double();
     bounds.setRect(GP.getBounds2D());
   }
+
+
+  public String toString(){
+     return entry;
+  }
+
+  /** The formatted output "*/
+  public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  {
+     String T = new String(type.symbolValue());
+     String V = getString(value);
+     T=extendString(T,typewidth);
+     V=extendString(V,valuewidth);
+     entry=(T + " : " + V);
+     if(!err){
+         qr.addEntry(this);
+     } else{
+        qr.addEntry(entry);
+     }
+
+     return;
+  }
+
 
   /**
    * Tests if a given position is near (10pxs) of this line, by iterating over all segments.

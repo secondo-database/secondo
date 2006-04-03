@@ -46,6 +46,9 @@ public class Dsplint9m extends DsplGeneric implements DsplSimple, ExternDisplay{
 
   /* returns the string representation for the given value list */
   private String getDisplay(ListExpr value){
+     if(isUndefined(value)){
+       return "undefined";
+     }
      String display = "";
      int at = value.atomType();
      switch(at){

@@ -36,6 +36,8 @@ public class Dsplinstant extends DsplGeneric
     implements Timed {
   Interval TimeBounds;
   boolean err = true;
+  boolean defined;
+  String entry;
 
   /** A method of the Timed-Interface
    * 
@@ -72,13 +74,21 @@ public class Dsplinstant extends DsplGeneric
    * @see sj.lang.ListExpr
    * @see <a href="Dsplinstantsrc.html#ScanValue">Source</a>
    */
-  public void ScanValue (ListExpr v) {
+  public String getString(ListExpr v) {
+    if(isUndefined(v)){
+        defined=false;
+        return "undefined";
+    }
     Double d;
     d = LEUtils.readInstant(v);
-    if (d == null)
-      return;
+    if (d == null){
+     defined = false;
+      return "<error>";
+    }
+    defined = true;
     TimeBounds = new Interval(d.doubleValue(), d.doubleValue(), true, true);
     err = false;
+    return LEUtils.convertTimeToString(TimeBounds.getStart());
   }
 
   /**
@@ -92,22 +102,33 @@ public class Dsplinstant extends DsplGeneric
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
     AttrName = type.symbolValue();
-    ScanValue(value);
+    String v = getString(value);
+    entry = AttrName + ":"+v;
     if (err) {
-      Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": TA(Instant))"));
       return;
     } 
     else 
       qr.addEntry(this);
   }
+  public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  {
+     String T = new String(type.symbolValue());
+     String V = getString(value);
+     T=extendString(T,typewidth);
+     V=extendString(V,valuewidth);
+     entry=(T + " : " + V);
+     qr.addEntry(this);
+     return;
+  }
+
+
 
   /** The text representation of this object 
    * @see <a href="Dsplinstantsrc.html#toString">Source</a>
    */
   public String toString () {
-    return  AttrName + ":" + LEUtils.convertTimeToString(TimeBounds.getStart())
-        + ": TA(Instant) ";
+    return  entry;
   }
   /** A method of the Timed-Interface
    * @return The Vector representation of the time intervals this instance is defined at 

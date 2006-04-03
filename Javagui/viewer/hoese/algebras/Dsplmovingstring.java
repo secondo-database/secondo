@@ -43,6 +43,9 @@ public class Dsplmovingstring extends Dsplinstant {
    * @see <a href="Dsplmovingstringsrc.html#getTimeRenderer">Source</a>
    */
   public JPanel getTimeRenderer (double PixelTime) {
+    if(!defined){
+      return new JPanel();
+    }
     JPanel jp = new JPanel(null);
     if (Intervals == null)
       return  null;
@@ -78,22 +81,47 @@ public class Dsplmovingstring extends Dsplinstant {
    * @see sj.lang.ListExpr
    * @see <a href="Dsplmovingstringsrc.html#ScanValue">Source</a>
    */
-  public void ScanValue (ListExpr v) {
+  public String getString (ListExpr v) {
+    if(isUndefined(v)){
+        err=false;
+        defined=false;
+        return "undefined";
+    }
+    if(v.atomType()!=ListExpr.NO_ATOM){
+       err=true;
+       defined=false;
+       return "<error>";
+    }
+
+
     while (!v.isEmpty()) {
       ListExpr le = v.first();
-      if (le.listLength() != 5)
-        return;
+      if (le.listLength() != 5){
+        err=true;
+        defined=false;
+        return "<error>";
+      }
       Interval in = LEUtils.readInterval(ListExpr.fourElemList(le.first(), 
           le.second(), le.third(), le.fourth()));
-      if (in == null)
-        return;
+      if (in == null){
+        defined=false;
+        err=true;
+        return "<error>";
+      }
       Intervals.add(in);
-      if (le.fifth().atomType() != ListExpr.STRING_ATOM)
-        return;
+      if (le.fifth().atomType() != ListExpr.STRING_ATOM){
+        defined=false;
+        err=true;
+        return "<error>";
+
+      }
       Strings.add(le.fifth().stringValue());
       v = v.rest();
     }
     err = false;
+    defined=true;
+    return "mstring";
+    
   }
 
   /**
@@ -107,14 +135,17 @@ public class Dsplmovingstring extends Dsplinstant {
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
     AttrName = type.symbolValue();
-    ScanValue(value);
+    String v = getString(value);
+    entry = AttrName+":"+v;
     if (err) {
+       
       Reporter.writeError("Error in ListExpr :parsing aborted");
-      qr.addEntry(new String("(" + AttrName + ": TA(MString))"));
+      qr.addEntry(entry);
       return;
     } 
-    else 
+    else {
       qr.addEntry(this);
+    }
     TimeBounds = null;
     for (int i = 0; i < Intervals.size(); i++) {
       Interval in = (Interval)Intervals.elementAt(i);
@@ -127,11 +158,26 @@ public class Dsplmovingstring extends Dsplinstant {
     }
   }
 
+   public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  {
+     String T = new String(type.symbolValue());
+     String V = getString(value);
+     T=extendString(T,typewidth);
+     V=extendString(V,valuewidth);
+     entry=(T + " : " + V);
+     if(err){
+        qr.addEntry(entry);
+     }else{
+        qr.addEntry(this);
+     }
+  }
+
+
   /** The text representation of this object 
    * @see <a href="Dsplmovingstringsrc.html#toString">Source</a>
    */
   public String toString () {
-    return  AttrName + ": TA(MString) ";
+    return  entry;
   }
   /** A method of the Timed-Interface
    * @return The Vector representation of the time intervals this instance is defined at 

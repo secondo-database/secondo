@@ -41,6 +41,9 @@ public class Dsplintimestring extends Dsplinstant {
    * @see <a href="Dsplintimestringsrc.html#getTimeRenderer">Source</a>
    */
   public JPanel getTimeRenderer (double PixelTime) {
+    if(!defined){
+      return new JPanel();
+    }
     JPanel jp = super.getTimeRenderer(PixelTime);
     JLabel jl = (JLabel)jp.getComponent(0);
     jl.setText(jl.getText() + "  " + Wert);
@@ -49,25 +52,36 @@ public class Dsplintimestring extends Dsplinstant {
 
   /**
    * Scans the representation of a intimestring datatype 
-   * @param v An instant and a string value
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplintimestringsrc.html#ScanValue">Source</a>
+   * and produces a human readable string from it.
    */
-  public void ScanValue (ListExpr v) {
+  public  String getString (ListExpr v) {
+    if(isUndefined(v)){
+      defined=false;
+      err=false;
+      return "undefined";
+    }
     if (v.listLength() != 2) {
       Reporter.writeError("Error: No correct intimebool expression: 2 elements needed");
       err = true;
-      return;
+      defined=false;
+      return "<error>";
     }
-    super.ScanValue(v.first());
-    if (err)
-      return; 
-    else 
-      err = true;
-    if (v.second().atomType() != ListExpr.STRING_ATOM)
-      return;
+    err=false;
+    String v2 = super.getString(v.first());
+    if (err){
+      defined=false;
+      return "<error>";
+    } 
+    err = true;
+    if (v.second().atomType() != ListExpr.STRING_ATOM){
+      defined=false;
+      err=true;
+      return "<error>";
+    }
     Wert = v.second().stringValue();
     err = false;
+    defined=true;
+    return "v2 -"+Wert;
   }
 
   /**
@@ -81,22 +95,37 @@ public class Dsplintimestring extends Dsplinstant {
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
     AttrName = type.symbolValue();
-    ScanValue(value);
-    if (err) {
-      Reporter.writeError("Error in ListExpr :parsing aborted");
-      qr.addEntry(new String("(" + AttrName + ": TA(InstantString))"));
-      return;
-    } 
-    else 
-      qr.addEntry(this);
+    String v = getString(value);
+    entry = AttrName + ":"+v;
+    if(err){
+       qr.addEntry(entry);
+       return;
+    }
+    qr.addEntry(this); 
   }
+
+public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  {
+     String T = new String(type.symbolValue());
+     String V = getString(value);
+     T=extendString(T,typewidth);
+     V=extendString(V,valuewidth);
+     entry=(T + " : " + V);
+     if(!err){
+       qr.addEntry(this);
+     } else{
+       qr.addEntry(entry);
+     }
+     return;
+  }
+
+
 
   /** The text representation of this object 
    * @see <a href="Dsplintimestringsrc.html#toString">Source</a>
    */
   public String toString () {
-    return  AttrName + ":" + LEUtils.convertTimeToString(TimeBounds.getStart())
-        + " " + Wert + ": TA(InstantString) ";
+     return entry;
   }
 }
 

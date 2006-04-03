@@ -28,23 +28,29 @@ import viewer.hoese.*;
 /**
  * A displayclass for the real-type, alphanumeric only
  */
-public class Dsplreal extends DsplGeneric implements DsplSimple{
+public class Dsplreal extends DsplGeneric 
+       implements DsplSimple, LabelAttribute, RenderAttribute{
+
   // this value is represented
   private double value;
   private String entry;
+  private boolean defined;
 
 
   private String computeValue(ListExpr value){
     if(isUndefined(value)){
+       defined = false;
        this.value = 0.0;
        return "undefined";
     } else{
        Double v = LEUtils.readNumeric(value);
        if(v==null){
           this.value =0.0;
+          defined = false;
           return "<error>"; 
        } 
        else {
+           defined=true;
            return ""+v.doubleValue();
        }
     }
@@ -79,6 +85,31 @@ public class Dsplreal extends DsplGeneric implements DsplSimple{
 
   public String toString(){
      return entry;
+  }
+
+  /** returns the maximum value **/
+  public double getMaxRenderValue(){
+     return value;
+  }
+  /** returns the minimum value **/
+  public double getMinRenderValue(){
+     return value;
+  }
+  /** returns the current value **/
+  public double getRenderValue(double time){
+     return value;
+  }
+  /** returns true if this int is defined **/
+  public boolean canBeDefined(){
+      return defined;
+  }
+  /** returns tre if this integer is defined **/
+  public boolean isDefined(double time){
+     return defined;
+  }
+ /** returns the label **/
+  public String getLabel(double time){
+    return defined?""+value:"undefined";
   }
 
 

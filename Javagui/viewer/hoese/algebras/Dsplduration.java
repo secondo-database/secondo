@@ -30,12 +30,19 @@ import viewer.hoese.*;
  */
 public class Dsplduration extends DsplGeneric implements DsplSimple{
 
+  String entry;
+  boolean defined;
+
   /** Converts a duration given in nested list format into 
     * a string representing the same value. If the list don't
     * is a valid representation for a durationtype (day ms), null 
     * is returned. 
     **/
   private String getString(ListExpr value){
+    if(isUndefined(value)){
+       defined=false;
+       return "undefined";
+    }
     // first, extract day and millisecond infro from value
     if(value.listLength()!=2)
         return null;
@@ -57,9 +64,14 @@ public class Dsplduration extends DsplGeneric implements DsplSimple{
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
     String v = getString(value);
     if(v==null)
-       v = "invalid list rep";
-    qr.addEntry(new String(type.symbolValue() + ":" + v));
+       v = "<error>";
+    entry = (new String(type.symbolValue() + ":" + v));
+    qr.addEntry(this);
     return;
+  }
+
+  public String toString(){
+     return entry;
   }
 
   public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
@@ -67,10 +79,11 @@ public class Dsplduration extends DsplGeneric implements DsplSimple{
      String T = new String(type.symbolValue());
      String V = getString(value);
      if(V==null)
-       V = "invalid list rep";
+       V = "<error>";
      T=extendString(T,typewidth);
      V=extendString(V,valuewidth);
-     qr.addEntry(T + " : " + V);
+     entry=(T + " : " + V);
+     qr.addEntry(this);
      return;
   }
 

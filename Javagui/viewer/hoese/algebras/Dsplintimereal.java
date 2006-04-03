@@ -41,6 +41,9 @@ public class Dsplintimereal extends Dsplinstant {
    * @see <a href="Dsplintimerealsrc.html#getTimeRenderer">Source</a>
    */
   public JPanel getTimeRenderer (double PixelTime) {
+    if(!defined){
+      return new JPanel(); 
+    }
     JPanel jp = super.getTimeRenderer(PixelTime);
     JLabel jl = (JLabel)jp.getComponent(0);
     jl.setText(jl.getText() + "  " + Wert);
@@ -53,22 +56,32 @@ public class Dsplintimereal extends Dsplinstant {
    * @see sj.lang.ListExpr
    * @see <a href="Dsplintimerealsrc.html#ScanValue">Source</a>
    */
-  public void ScanValue (ListExpr v) {
+  public String getString(ListExpr v) {
+    if(isUndefined(v)){
+       defined = false;
+       return "undefined";
+    }
     if (v.listLength() != 2) {
       Reporter.writeError("Error: No correct intimebool expression: 2 elements needed");
       err = true;
-      return;
+      return "<error>";
     }
-    super.ScanValue(v.first());
-    if (err)
-      return; 
-    else 
-      err = true;
+    String v2 = super.getString(v.first());
+    if (err){
+      defined=false;
+      return "<error>";
+    } 
+    err = true;
     Double d = LEUtils.readNumeric(v.second());
-    if (d == null)
-      return;
+    if (d == null){
+      defined=false; 
+      return "<error>";
+
+    }
     Wert = d.doubleValue();
+    defined = true;
     err = false;
+    return "["+v2+"] "+Wert;
   }
 
   /**
@@ -82,23 +95,36 @@ public class Dsplintimereal extends Dsplinstant {
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
     AttrName = type.symbolValue();
-    ScanValue(value);
-    if (err) {
-      Reporter.writeError("Error in ListExpr :parsing aborted");
-      qr.addEntry(new String("(" + AttrName + ": TA(InstantReal))"));
-      return;
-    } 
-    else 
-      qr.addEntry(this);
+    String v = getString(value);
+    entry = AttrName+":"+v;
+    if(err){
+       qr.addEntry("<error>");    
+    }else{
+       qr.addEntry(this);
+    }
   }
 
-  /** The text representation of this object 
-   * @see <a href="Dsplintimerealsrc.html#toString">Source</a>
-   */
   public String toString () {
-    return  AttrName + ":" + LEUtils.convertTimeToString(TimeBounds.getStart())
-        + " " + Wert + ": TA(InstantReal) ";
+    return entry; 
   }
+
+  public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  {
+     String T = new String(type.symbolValue());
+     String V = getString(value);
+     T=extendString(T,typewidth);
+     V=extendString(V,valuewidth);
+     entry=(T + " : " + V);
+     if(!err){
+        qr.addEntry(this);
+     }else{
+        qr.addEntry(entry);
+     }
+     return;
+  }
+
+
+
 }
 
 

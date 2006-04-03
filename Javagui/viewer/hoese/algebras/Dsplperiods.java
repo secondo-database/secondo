@@ -43,6 +43,9 @@ public class Dsplperiods extends Dsplinstant {
    * @see <a href="Dsplperiodssrc.html#getTimeRenderer">Source</a>
    */
   public JPanel getTimeRenderer (double PixelTime) {
+    if(!defined){
+        return new JPanel();
+    }
     JPanel jp = new JPanel(null);
     if (Intervals == null)
       return  null;
@@ -74,18 +77,31 @@ public class Dsplperiods extends Dsplinstant {
    * @see sj.lang.ListExpr
    * @see <a href="Dsplperiodssrc.html#ScanValue">Source</a>
    */
-  public void ScanValue (ListExpr v) {
+  public String getString (ListExpr v) {
+    if(isUndefined(v)){
+        defined = false;
+        err=false;
+        return "undefined";
+    }
     while (!v.isEmpty()) {
       ListExpr le = v.first();
-      if (le.listLength() != 4)
-        return;
+      if (le.listLength() != 4){
+        err=true;
+        defined=false;
+        return "<error>";
+      }
       Interval in = LEUtils.readInterval(le);
-      if (in == null)
-        return;
+      if (in == null){
+        err=true;
+        defined=false;
+        return "<error>";
+      }
       Intervals.add(in);
       v = v.rest();
     }
+    defined = true;
     err = false;
+    return "periods";
   }
 
   /**
@@ -98,15 +114,35 @@ public class Dsplperiods extends Dsplinstant {
    * @see <a href="Dsplperiodssrc.html#init">Source</a>
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = type.symbolValue();
-    ScanValue(value);
-    if (err) {
-      Reporter.writeError("Error in ListExpr :parsing aborted");
-      qr.addEntry(new String("(" + AttrName + ": TA(Periods))"));
-      return;
-    } 
-    else 
-      qr.addEntry(this);
+    String t = type.symbolValue();
+    String v = getString(value);
+    entry = t+":"+v;
+    if(err){
+       qr.addEntry(entry); 
+       return;
+    }
+    qr.addEntry(this);
+    computeTimeBounds(); 
+  }
+public void init (ListExpr type, int typewidth, ListExpr value,
+                  int valuewidth, QueryResult qr)
+  {
+     String T = new String(type.symbolValue());
+     String V = getString(value);
+     T=extendString(T,typewidth);
+     V=extendString(V,valuewidth);
+     entry=(T + " : " + V);
+     if(err){
+        qr.addEntry(entry);
+     } else{
+        qr.addEntry(this);
+     }
+     computeTimeBounds();
+  }
+
+
+ /** computes the timebounds for this objects **/
+  private void computeTimeBounds(){
     TimeBounds = null;
     for (int i = 0; i < Intervals.size(); i++) {
       Interval in = (Interval)Intervals.elementAt(i);
@@ -118,6 +154,12 @@ public class Dsplperiods extends Dsplinstant {
       }
     }
   }
+
+   public String toString(){
+     return entry;
+  }
+
+
   /** A method of the Timed-Interface
    * @return The Vector representation of the time intervals this instance is defined at 
    * @see <a href="Dsplperiodssrc.html#getIntervals">Source</a>
@@ -127,12 +169,6 @@ public class Dsplperiods extends Dsplinstant {
     return Intervals;
     } 
 
-  /** The text representation of this object 
-   * @see <a href="Dsplperiodssrc.html#toString">Source</a>
-   */
-  public String toString () {
-    return  AttrName + ": TA(Periods) ";
-  }
 }
 
 

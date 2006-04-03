@@ -35,8 +35,12 @@ Rectangle2D.Double bounds;
 Class linearClass = (new PMPsLinear()).getClass();
 Time T = new Time();
 TotalMove Move=null;
+boolean defined;
 
 public Shape getRenderObject(AffineTransform at){
+  if(!defined){
+     return null;
+  }
   double t = RefLayer.getActualTime();
   T.readFrom(t);
   Point2D.Double[] Pts = (Point2D.Double[]) Move.getObjectAt(T);
@@ -66,9 +70,17 @@ public Shape getRenderObject(AffineTransform at){
 public void init(ListExpr type,ListExpr value,QueryResult qr){
   AttrName = type.symbolValue();
   ispointType = true;
+   if(isUndefined(value)){
+     defined=false;
+     qr.addEntry(AttrName+"undefined");
+   }
+   defined = true;
+
+
   Move = new TotalMove();
   if(!Move.readFrom(value,linearClass)){
      qr.addEntry("("+AttrName +"WrongListFormat )");
+     defined = false;
      return;
   }
   qr.addEntry(this);
