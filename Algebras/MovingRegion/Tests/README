@@ -1,6 +1,17 @@
 This directory contains unit tests for the MovingRegionAlgebra. Please
 refer to the pdview documentation of MovingRegionAlgebra.cpp for details
-on the unit testing concept.
+on the unit testing concept. 
+
+Before running the tests, you have to build the MovingRegionAlgebra with
+the symbol with the MRA_UNITTEST symbol defined so that the specific unit 
+testing operators are available. The best place to define this symbol is 
+the makefile, where the proper preparations have been already done at the 
+head of the file. After editing the makefile, execute the following 
+commands:
+
+   cd secondo
+   (cd Algebras/MovingRegion; make clean)
+   make
 
 To run the tests, execute the following commands:
 

@@ -168,7 +168,15 @@ together with a ~Makefile~ to execute them. These are located in the directory
 
 Special SECONDO operators have been implemented to make internal 
 functionality of the ~MovingRegionAlgebra~ available for unit testing.
-These operators are included in the list of test cases below.
+These operators are included in the list of test cases below. 
+
+Please note that you have to compile this algebra with the ~MRA\_UNITTEST~
+symbol defined so that the specific unit testing operators are available.
+Even though this is rendering unit testing slightly more complicated,
+this approach has been chosen to avoid puzzling users with operators, which
+are not required for the production version of this algebra. The best place
+to define this symbol is the ~makefile~, where the proper preparations have
+been already done at the head of the file.
 
 The following groups of test cases are available:
 
@@ -6771,6 +6779,8 @@ void MRegion::Get(const int i, const URegion*& ur) const {
 1.1.1 Method ~Unittest2()~
 
 */
+
+#ifdef MRA_UNITTEST
 bool MRegion::Unittest2(int pos) {
 
     if (MRA_DEBUG)
@@ -6785,6 +6795,7 @@ bool MRegion::Unittest2(int pos) {
 
     return dms->GetInsideAbove();
 }
+#endif // MRA_UNITTEST
 
 /*
 1.1.1 Method ~Intersection()~
@@ -7724,6 +7735,7 @@ static ListExpr BboxTypeMap(ListExpr args) {
 
 */
 
+#ifdef MRA_UNITTEST
 static ListExpr Unittest1TypeMap(ListExpr args) {
     if (MRA_DEBUG)
         cerr << "Unittest1TypeMap() called" << endl;
@@ -7761,6 +7773,7 @@ static ListExpr Unittest3TypeMap(ListExpr args) {
     else
         return nl->SymbolAtom("typeerror");
 }
+#endif // MRA_UNITTEST
 
 /*
 1.1 Selection functions
@@ -8096,6 +8109,7 @@ static int BboxValueMap(Word* args,
 
 */
 
+#ifdef MRA_UNITTEST
 static int Unittest1ValueMap(Word* args,
                              Word& result,
                              int message,
@@ -8191,6 +8205,7 @@ static int Unittest3ValueMap(Word* args,
 
     return 0;
 }
+#endif // MRA_UNITTEST
 
 /*
 1.1 Value mapping arrays
@@ -8298,7 +8313,7 @@ static const string presentspec =
 static const string intersectionspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>(mpoint mregion) -> mpoint</text--->"
-    "    <text>intersection( _ , _)</text--->"
+    "    <text>intersection( _ , _ )</text--->"
     "    <text>Intersection between mpoint and mregion.</text--->"
     "    <text>intersection(mpoint1, mregion1)</text---> ) )";
 
@@ -8331,7 +8346,7 @@ static const string mraprecspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>(real) -> bool</text--->"
     "    <text>mraprec ( _ )</text--->"
-    "    <text>Sets precision of comparisions. Always returns true.</text--->"
+    "    <text>Sets precision of comparisons. Always returns true.</text--->"
     "    <text>mraprec(0.0001)</text---> ) )";
 
 static const string bboxspec =
@@ -8346,12 +8361,14 @@ Used for unit testing only.
 
 */
 
+#ifdef MRA_UNITTEST
 static const string unittestspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>unit testing only</text--->"
     "    <text>unit testing only</text--->"
     "    <text>unit testing only</text--->"
     "    <text>unit testing only</text---> ) )";
+#endif // MRA_UNITTEST
 
 /*
 1.1 Operator creation
@@ -8452,6 +8469,7 @@ Used for unit testing only.
 
 */
 
+#ifdef MRA_UNITTEST
 static Operator unittest1("unittest1",
                           unittestspec,
                           Unittest1ValueMap,
@@ -8467,6 +8485,7 @@ static Operator unittest3("unittest3",
                           Unittest3ValueMap,
                           simpleSelect,
                           Unittest3TypeMap);
+#endif // MRA_UNITTEST
 
 /*
 1 Algebra creation
@@ -8507,9 +8526,11 @@ public:
 Used for unit testing only.
 
 */
+#ifdef MRA_UNITTEST
         AddOperator(&unittest1);
         AddOperator(&unittest2);
         AddOperator(&unittest3);
+#endif // MRA_UNITTEST
     }
     ~MovingRegionAlgebra() {}
 };

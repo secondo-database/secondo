@@ -35,9 +35,15 @@ include ../../makefile.env
 # should work for nearly every algebra. 
 MODNAME = MovingRegionAlgebra
 
+# Include this statement if you want to include specific code for  
+# unit test. The algebra will contain specific unit test operators which
+# do not have other applications than unit testing. It is recommend to
+# exclude this statement for production versions of the algebra.
+#UNITTEST = -DMRA_UNITTEST
+
 # Use the mace CCFLAGS to add special compiler flags if needed.
 # In this case the defaults are sufficient
-CCFLAGS = $(DEFAULTCCFLAGS) -I../Temporal -I../Spatial -I../Rectangle
+CCFLAGS = $(DEFAULTCCFLAGS) -I../Temporal -I../Spatial -I../Rectangle $(UNITTEST)
 
 # The next rule will create a ".o" file for every ".cpp" file and 
 # creates a "lib$(MODNAME).a" file in the secondo/lib dir. Rules
