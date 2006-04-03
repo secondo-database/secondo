@@ -3734,7 +3734,7 @@ Calculate end points of moving segment at time of intersection ~ip1t~.
             +(rDms.finalEndY-rDms.initialEndY)*f;
     }
 
-    if (1==1) {
+    if (MRA_DEBUG) {
         cerr << "URegion::RIFN() rUp=("
              << rUp.p0.GetX() << " " << rUp.p0.GetY()
              << ")-("
@@ -3765,7 +3765,7 @@ Is the ~UPoint~ instance constant and is it located on the segment?
         && nearlyEqual(rUp.p0.GetY(), ip1y)
         && nearlyEqual(rUp.p1.GetX(), ip1x)
         && nearlyEqual(rUp.p1.GetY(), ip1y)) {
-        if (1==1)
+        if (MRA_DEBUG)
             cerr << "URegion::RIFN() through p0 and p1" << endl;
 
 /*
@@ -3786,7 +3786,7 @@ has been entered and left in the same instance.
                 tsi.type = rDms.insideAbove ? TSI_ENTER : TSI_LEAVE;
             }
 
-            if (1==1)
+            if (MRA_DEBUG)
                 cerr << "URegion::RIFN() adding "
                      << tsi.type
                      << " " << tsi.x << " " << tsi.y << " " << tsi.t
@@ -3801,14 +3801,14 @@ has been entered and left in the same instance.
                 tsi.type = rDms.insideAbove ? TSI_LEAVE : TSI_ENTER;
             }
 
-            if (1==1)
+            if (MRA_DEBUG)
                 cerr << "URegion::RIFN() adding "
                      << tsi.type
                      << " " << tsi.x << " " << tsi.y << " " << tsi.t
                      << endl;
             vtsi.push_back(tsi);
         } else {
-            if (1==1)
+            if (MRA_DEBUG)
                 cerr << "URegion::RIFN() adding "
                      << tsi.type
                      << " " << tsi.x << " " << tsi.y << " " << tsi.t
@@ -3816,7 +3816,7 @@ has been entered and left in the same instance.
             tsi.type = TSI_ENTER;
             vtsi.push_back(tsi);
 
-            if (1==1)
+            if (MRA_DEBUG)
                 cerr << "URegion::RIFN() adding "
                      << tsi.type
                      << " " << tsi.x << " " << tsi.y << " " << tsi.t
@@ -3839,7 +3839,7 @@ point actually entering the ~URegion~ instance.
 */
     } else if (nearlyEqual(rUp.p0.GetX(), ip1x)
                && nearlyEqual(rUp.p0.GetY(), ip1y)) {
-        if (1==1)
+        if (MRA_DEBUG)
             cerr << "URegion::RIFN() through p0" << endl;
 
         if (pointAboveSegment(rUp.p1.GetX(), rUp.p1.GetY(),
@@ -3849,7 +3849,7 @@ point actually entering the ~URegion~ instance.
             tsi.type = rDms.insideAbove ? TSI_LEAVE : TSI_ENTER;
         }
 
-        if (1==1)
+        if (MRA_DEBUG)
             cerr << "URegion::RIFN() adding "
                  << tsi.type
                  << " " << tsi.x << " " << tsi.y << " " << tsi.t
@@ -3862,7 +3862,7 @@ point actually entering the ~URegion~ instance.
                               rDms.finalEndX, rDms.finalEndY)) {
             tsi.type = tsi.type == TSI_ENTER ? TSI_LEAVE : TSI_ENTER;
 
-            if (1==1)
+            if (MRA_DEBUG)
                 cerr << "URegion::RIFN() adding "
                      << tsi.type
                      << " " << tsi.x << " " << tsi.y << " " << tsi.t
@@ -3879,7 +3879,7 @@ If so, see handling of previous case.
 
     } else if (nearlyEqual(rUp.p1.GetX(), ip1x)
                && nearlyEqual(rUp.p1.GetY(), ip1y)) {
-        if (1==1)
+        if (MRA_DEBUG)
             cerr << "URegion::RIFN() through p1" << endl;
 
         if (pointAboveSegment(rUp.p0.GetX(), rUp.p0.GetY(),
@@ -3889,7 +3889,7 @@ If so, see handling of previous case.
             tsi.type = rDms.insideAbove ? TSI_ENTER : TSI_LEAVE;
         }
 
-        if (1==1)
+        if (MRA_DEBUG)
             cerr << "URegion::RIFN() adding "
                  << tsi.type
                  << " " << tsi.x << " " << tsi.y << " " << tsi.t
@@ -3902,7 +3902,7 @@ If so, see handling of previous case.
                               rDms.initialEndX, rDms.initialEndY)) {
             tsi.type = tsi.type == TSI_ENTER ? TSI_LEAVE : TSI_ENTER;
 
-            if (1==1)
+            if (MRA_DEBUG)
                 cerr << "URegion::RIFN() adding "
                      << tsi.type
                      << " " << tsi.x << " " << tsi.y << " " << tsi.t
@@ -3919,12 +3919,12 @@ left or above the segment. Lets find out which in the remaining two cases.
     } else if (pointAboveSegment(rUp.p0.GetX(), rUp.p0.GetY(),
                                  rDms.initialStartX, rDms.initialStartY,
                                  rDms.initialEndX, rDms.initialEndY)) {
-        if (1==1)
+        if (MRA_DEBUG)
             cerr << "URegion::RIFN() p0 above segment" << endl;
 
         tsi.type = rDms.insideAbove ? TSI_LEAVE : TSI_ENTER;
 
-        if (1==1)
+        if (MRA_DEBUG)
             cerr << "URegion::RIFN() adding "
                  << tsi.type
                  << " " << tsi.x << " " << tsi.y << " " << tsi.t
@@ -3932,12 +3932,12 @@ left or above the segment. Lets find out which in the remaining two cases.
 
         vtsi.push_back(tsi);
     } else {
-        if (1==1)
+        if (MRA_DEBUG)
             cerr << "URegion::RIFN() p0 below segment" << endl;
 
         tsi.type = rDms.insideAbove ? TSI_ENTER : TSI_LEAVE;
 
-        if (1==1)
+        if (MRA_DEBUG)
             cerr << "URegion::RIFN() adding "
                  << tsi.type
                  << " " << tsi.x << " " << tsi.y << " " << tsi.t
@@ -4509,14 +4509,14 @@ sufficient context to understand this method.
         }
 
         if (ip1present) {
-            if (1==1)
+            if (MRA_DEBUG)
                 cerr << "URegion::RIF() intersection" << endl;
 
             if (ip2present
                 && !(nearlyEqual(ip1x, ip2x)
                      && nearlyEqual(ip1y, ip2y)
                      && nearlyEqual(ip1t, ip2t))) {
-                if (1==1)
+                if (MRA_DEBUG)
                     cerr << "URegion::RIF() in plane" << endl;
 
                 RestrictedIntersectionFindInPlane(
@@ -4525,7 +4525,7 @@ sufficient context to understand this method.
                     ip2present, ip2x, ip2y, ip2t,
                     vtsi);
             } else {
-                if (1==1)
+                if (MRA_DEBUG)
                     cerr << "URegion::RIF() not in plane" << endl;
 
                 RestrictedIntersectionFindNormal(
