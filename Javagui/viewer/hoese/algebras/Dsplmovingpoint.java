@@ -39,6 +39,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
   Rectangle2D.Double bounds;
   double minValue = Integer.MAX_VALUE;
   double maxValue = Integer.MIN_VALUE;
+  boolean defined;
   static java.text.DecimalFormat format = new java.text.DecimalFormat("#.#####");
 
 
@@ -156,6 +157,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
       Intervals=null;
       PointMaps=null;
       err=false;
+      defined = false;
       return;
     }
     while (!v.isEmpty()) {      // unit While maybe empty
@@ -164,6 +166,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
       int L = aunit.listLength();
       if(L!=2 && L!=8){
          Reporter.debug("wrong ListLength in reading moving point unit");
+         defined = false;
          return;
       }
       // deprecated version of external representation
@@ -193,13 +196,15 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
           if(pm==null){
              Reporter.debug("Error in reading Start and EndPoint");
           }
-        return;
+          defined = false;
+          return;
       }
       Intervals.add(in);
       PointMaps.add(pm);
       v = v.rest();
     }
     err = false;
+    defined = true;
   }
 
   /**
@@ -235,9 +240,6 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
       PointMap pm = (PointMap)PointMaps.elementAt(j);
       Rectangle2D.Double r = new Rectangle2D.Double(pm.x1,pm.y1,0,0);
       r = (Rectangle2D.Double)r.createUnion(new Rectangle2D.Double(pm.x2,pm.y2,0,0));
-
-
-
       if (bounds == null) {
         bounds = r;
         TimeBounds = in;
@@ -281,6 +283,18 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
     double Delta = (time-t1)/(t2-t1);
     double x = pm.x1+Delta*(pm.x2-pm.x1);
     return (int) x;
+  }
+
+  public boolean canBeDefined(){
+    return defined;
+  }
+
+  public boolean isDefined(double time){
+    if(!defined){
+      return false;
+    }
+    int index = getTimeIndex(time,Intervals);
+    return index>=0;
   }
   
 

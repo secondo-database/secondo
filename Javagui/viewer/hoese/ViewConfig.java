@@ -677,16 +677,18 @@ public class ViewConfig extends javax.swing.JDialog {
 									 } else{
 										 RenderAttribute curAttr = (RenderAttribute) rendobj;
 										 dg.setRenderAttribute(curAttr);
-										 double cmin = curAttr.getMinRenderValue();
-										 double cmax = curAttr.getMaxRenderValue();
-										 if(first){
-												 first=false;
-												 min = cmin;
-												 max = cmax;
-										 } else{
-											 min = cmin<min?cmin:min;
-											 max = cmax>max?cmax:max;
-										 }
+                     if(curAttr.canBeDefined()){
+												 double cmin = curAttr.getMinRenderValue();
+												 double cmax = curAttr.getMaxRenderValue();
+												 if(first){
+														 first=false;
+														 min = cmin;
+														 max = cmax;
+												 } else{
+													 min = cmin<min?cmin:min;
+													 max = cmax>max?cmax:max;
+												 }
+                     }
 									 }
                }
            }

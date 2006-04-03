@@ -183,14 +183,14 @@ public class Category
     if(renderAttribute==null || attrRenderMethod!=RENDER_LINEWIDTH){
        return  LineWidth;
     }
-    double value = renderAttribute.getRenderValue(time);
+    double value = renderAttribute.isDefined(time)?renderAttribute.getRenderValue(time):minValue;
     if(value<minValue){
         value = minValue;
     }
     if(value>maxValue){
         value = maxValue;
     }
-    double delta = (value-minValue)/ (maxValue-minValue);
+    double delta = (maxValue>minValue)?(value-minValue)/ (maxValue-minValue):0;
     float res = (float) (minLinewidth+delta*(maxLinewidth-minLinewidth));
     return res;
     
@@ -205,7 +205,7 @@ public class Category
     if(renderAttribute==null || attrRenderMethod!=RENDER_COLOR){
         return  FillStyle;
     } else {
-        double value = renderAttribute.getRenderValue(time);
+        double value = renderAttribute.isDefined(time)?renderAttribute.getRenderValue(time):minValue;
         if(value<minValue){
              value = minValue;
         }
@@ -218,7 +218,7 @@ public class Category
         double r2 = maxColor.getRed();
         double g2 = maxColor.getGreen();
         double b2 = maxColor.getBlue();
-        double delta = (value-minValue)/ (maxValue-minValue);
+        double delta = (maxValue>minValue)?(value-minValue)/ (maxValue-minValue):0;
         int r = (int)(r1 + delta*(r2-r1));
         int g = (int)(g1 + delta*(g2-g1));
         int b = (int)(b1 + delta*(b2-b1));
@@ -244,14 +244,14 @@ public class Category
     if(renderAttribute==null || attrRenderMethod!=RENDER_POINTSIZE){
        return  PointSize;
     }
-    double value = renderAttribute.getRenderValue(time);
+    double value = renderAttribute.isDefined(time)?renderAttribute.getRenderValue(time):minValue;
     if(value<minValue){
         value = minValue;
     }
     if(value>maxValue){
         value = maxValue;
     }
-    double delta = (value-minValue)/ (maxValue-minValue);
+    double delta = (maxValue>minValue)?(value-minValue)/ (maxValue-minValue):0;
     return (minPointSize+delta*(maxPointSize-minPointSize));
   }
 

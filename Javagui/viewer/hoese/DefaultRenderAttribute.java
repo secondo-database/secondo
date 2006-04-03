@@ -21,6 +21,14 @@ public final class DefaultRenderAttribute implements RenderAttribute{
   public double getMaxRenderValue(){
      return value;
   }
+
+  public boolean isDefined(double time){
+    return true;
+  }
+
+  public boolean canBeDefined(){
+    return true;
+  }
   
   public double getRenderValue(double time){
      return value;

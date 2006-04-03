@@ -28,41 +28,72 @@ import viewer.hoese.*;
 /**
  * A displayclass for the int-type, alphanumeric only
  */
-public class Dsplint extends DsplGeneric implements DsplSimple,RenderAttribute {
+public class Dsplint extends DsplGeneric implements DsplSimple, RenderAttribute, LabelAttribute {
+   /** the value of this integer **/
    int value;
-   String text;
+   /** the text to display **/
+   String entry;
+   /** flag for  defined state **/
+   boolean defined;
+
+
+   /** scans value and sets all internal variables **/
+   private boolean scanValue(ListExpr value){
+      if(isUndefined(value)){
+          defined=false;
+          this.value = 0;
+          return true;
+      } else {
+        int at = value.atomType();
+        if(at!=ListExpr.INT_ATOM){
+          defined = false;
+          this.value = 0;
+          return false;
+        }else{
+           defined = true;
+           this.value = value.intValue();
+           return true;
+        }
+      }
+   }
+
+   /** scans the value, sets all internal variables and produces the
+     * string of the value
+     **/
+   private String getString(ListExpr value){
+    if(!scanValue(value)){
+      return "<error>"; 
+    } else if(defined){
+      return ""+(this.value);
+    } else{
+      return "undefined"; 
+    }
+   }
+
   /**
    * This method is used to analyse the type and value in NestedList format and build
    * up the intern datastructures for this type. An alphanumeric representation is 
    * neccessary for the displaying this type in the queryresultlist.
-   * @param type datatype int 
-   * @param value An int in a listexpr
-   * @param qr The queryresultlist to add alphanumeric representation
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplintsrc.html#init">Source</a>
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    this.value = value.intValue();
-    text = (new String(type.symbolValue() + ":" + value.intValue()));
+    entry = type.symbolValue() + getString(value);
     qr.addEntry(this);
     return;
   }
 
   public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
-     this.value = value.intValue();
      String T = new String(type.symbolValue());
-     String V = ""+value.intValue();
+     String V = getString(value); 
      T=extendString(T,typewidth);
      V=extendString(V,valuewidth);
-     text=(T + " : " + V);
+     entry=(T + " : " + V);
      qr.addEntry(this);
      return;
   }
 
   public String toString(){
-      return text;
+      return entry;
   }
 
   /** returns the maximum value **/
@@ -77,7 +108,18 @@ public class Dsplint extends DsplGeneric implements DsplSimple,RenderAttribute {
   public double getRenderValue(double time){
      return value;
   }
-
+  /** returns true if this int is defined **/
+  public boolean canBeDefined(){
+      return defined;
+  }
+  /** returns tre if this integer is defined **/
+  public boolean isDefined(double time){
+     return defined;
+  }
+ /** returns the label **/
+  public String getLabel(double time){
+    return defined?""+value:"undefined";
+  }
 
 }
 
