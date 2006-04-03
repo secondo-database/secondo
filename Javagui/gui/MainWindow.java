@@ -1653,7 +1653,7 @@ public static void main(String[] args){
         Reporter.writeError("during the test " + errors + " errors occurred" );
         Reporter.writeError("failed commands :"+failedCommands);
      } else{
-        Reporter.writeInfo("All tests was performed successfully");
+        Reporter.writeInfo("All tests were performed successfully");
      }
      try{
         Thread.sleep(10000);
