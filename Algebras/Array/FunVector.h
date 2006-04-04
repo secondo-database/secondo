@@ -115,8 +115,8 @@ class FunVector {
     void addFunction(string, Supplier);
 };
 
-bool ::operator<( const FunInfo& f1, const FunInfo& f2 );
-std::ostream& ::operator<<( std::ostream& os, const FunInfo& f );
+bool operator<( const FunInfo& f1, const FunInfo& f2 );
+std::ostream& operator<<( std::ostream& os, const FunInfo& f );
 
 
 

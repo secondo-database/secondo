@@ -113,13 +113,13 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
-bool ::operator<( const FunInfo& f1, const FunInfo& f2 )
+bool operator<( const FunInfo& f1, const FunInfo& f2 )
 {
   return (f1.no < f2.no);
 }
 
 std::ostream&
-::operator<<( std::ostream& os, const FunInfo& f )
+operator<<( std::ostream& os, const FunInfo& f )
 {
   os << "function " << f.name << " used " << f.timesUsed
      << " times, used CPU time: " << f.consumedTime << " seconds.";
