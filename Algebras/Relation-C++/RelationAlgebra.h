@@ -412,7 +412,10 @@ Puts an attribute in the position ~index~ inside the tuple.
 
 */
     void UpdateAttributes( const vector<int>& changedIndices,
-                           const vector<Attribute*>& newAttrs );
+                           const vector<Attribute*>& newAttrs,
+                           double& extSize, double& size,
+                           vector<double>& attrExtSize,
+                           vector<double>& attrSize );
 /*
 Puts the attributes from ~newAttrs~ at the corresponding position 
 from ~changedIndices~ into the tuple. Destroys the physical 
@@ -434,10 +437,9 @@ Returns the size of the tuple's root part.
       return privateTuple->tupleType->GetAttributeType(i).size;
     }
 /*
-Returns the size of the tuple's root part.
+Returns the size of the attribute's root part.
 
 */
-
     inline int GetExtSize() const
     {
       if ( !recomputeExtSize ) 
@@ -476,11 +478,10 @@ part, i.e. the small FLOBs.
       return tupleExtSize;
     }
 /*
-Returns the size of an attribute of the tuple taking into account 
+Returns the size of an attribute of the tuple taking into account
 the extension part, i.e. the small FLOBs.
 
 */
-
     inline int GetSize() const
     {
       if ( !recomputeSize ) 
@@ -499,7 +500,7 @@ the extension part, i.e. the small FLOBs.
       return tupleSize;
     }
 /*
-Returns the total size of the tuple taking into account  
+Returns the total size of the tuple taking into account the 
 the FLOBs.
 
 */
@@ -513,11 +514,10 @@ the FLOBs.
       return tupleSize;
     }
 /*
-Returns the total size of an attribute of the tuple taking 
+Returns the total size of an attribute of the tuple taking
 into account the FLOBs.
 
 */
-
     inline void CopyAttribute( int sourceIndex, 
                                const Tuple *source, 
                                int destIndex )
@@ -1271,8 +1271,8 @@ tuples.
 */
     double GetTotalRootSize(int i) const;
 /*
-The function to return the total size of and attribute 
-of the relation in bytes, taking into account only the 
+The function to return the total size of and attribute
+of the relation in bytes, taking into account only the
 root part of the tuples.
 
 */
@@ -1285,9 +1285,9 @@ tuples and the extension part, i.e. the small FLOBs.
 */
     double GetTotalExtSize( int i ) const;
 /*
-The function to return the total size of an attribute 
-of the relation in bytes, taking into account the root 
-part of the tuples and the extension part, i.e. the 
+The function to return the total size of an attribute
+of the relation in bytes, taking into account the root
+part of the tuples and the extension part, i.e. the
 small FLOBs.
 
 */
@@ -1299,11 +1299,10 @@ in bytes.
 */
     double GetTotalSize( int i ) const;
 /*
-The function to return the total size of an attribute 
+The function to return the total size of an attribute
 of the relation in bytes.
 
 */
-
     RelationIterator *MakeScan() const;
 /*
 Returns a ~RelationIterator~ for a relation scan.

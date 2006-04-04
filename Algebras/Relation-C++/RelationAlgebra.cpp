@@ -2282,12 +2282,12 @@ Operator relalgtuplesize (
 /*
 5.11 Operator ~rootattrsize~
 
-Reports the size of the attribute's root part in a relation. This operator 
+Reports the size of the attribute's root part in a relation. This operator
 is useful for the optimizer, but it is usable as an operator itself.
 
 5.11.1 Type mapping function of operator ~rootattrsize~
 
-Operator ~rootattrsize~ accepts a relation or a stream of tuples and 
+Operator ~rootattrsize~ accepts a relation or a stream of tuples and
 an attribute name identifier and returns an integer.
 
 ----    (rel     (tuple X)) x ident         -> int
@@ -2300,25 +2300,25 @@ RootAttrSizeTypeMap(ListExpr args)
 {
   ListExpr first, second, attrtype;
   string argstr, attrname;
-  
+
   CHECK_COND(nl->ListLength(args) == 2,
   "Operator tuplesize expects a list of length two.");
 
   first = nl->First(args);
   second = nl->Second(args);
-  
-  nl->WriteToString(argstr, first);    
-  CHECK_COND( nl->ListLength(first) == 2 && 
+
+  nl->WriteToString(argstr, first);
+  CHECK_COND( nl->ListLength(first) == 2 &&
     nl->ListLength(nl->Second(first)) == 2 &&
     (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
     TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
     "Operator rootattrsize expects as first argument "
-    "a list with structure " 
+    "a list with structure "
     "(stream (tuple ((a1 t1)...(an tn)))) or "
     "(rel (tuple ((a1 t1)...(an tn))))\n"
     "Operator rootattrsize gets as first argument "
-    "a list with structure '" + 
+    "a list with structure '" +
     argstr + "'.");
 
   nl->WriteToString(argstr, second);
@@ -2349,7 +2349,7 @@ RootAttrSizeTypeMap(ListExpr args)
   // Check whether all new attribute names are distinct
   // - not yet implemented
 
-  return 
+  return
     nl->ThreeElemList(
       nl->SymbolAtom("APPEND"),
       nl->OneElemList(nl->IntAtom(j)),
@@ -2362,7 +2362,7 @@ RootAttrSizeTypeMap(ListExpr args)
 
 */
 int
-RootAttrSizeStream(Word* args, Word& result, int message, 
+RootAttrSizeStream(Word* args, Word& result, int message,
                    Word& local, Supplier s)
 {
   Word elem;
@@ -2387,7 +2387,7 @@ RootAttrSizeStream(Word* args, Word& result, int message,
 }
 
 int
-RootAttrSizeRel(Word* args, Word& result, int message, 
+RootAttrSizeRel(Word* args, Word& result, int message,
                  Word& local, Supplier s)
 {
   Relation* rel = (Relation*)args[0].addr;
@@ -2403,7 +2403,7 @@ RootAttrSizeRel(Word* args, Word& result, int message,
 5.11.3 Specification of operator ~rootattrsize~
 
 */
-const string RootAttrSizeSpec  = 
+const string RootAttrSizeSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>stream|rel(tuple X) x ident -> int"
@@ -2423,7 +2423,7 @@ This function is the same as for the ~count~ operator.
 5.11.5 Definition of operator ~rootattrsize~
 
 */
-ValueMapping rootattrsizemap[] = {RootAttrSizeStream, 
+ValueMapping rootattrsizemap[] = {RootAttrSizeStream,
                                   RootAttrSizeRel };
 
 Operator relalgrootattrsize (
@@ -2439,12 +2439,12 @@ Operator relalgrootattrsize (
 5.11 Operator ~extattrsize~
 
 Reports the size of the attribute in a relation taking into account
-the extended part, i.e. the small FLOBs. This operator 
+the extended part, i.e. the small FLOBs. This operator
 is useful for the optimizer, but it is usable as an operator itself.
 
 5.11.1 Type mapping function of operator ~extattrsize~
 
-Operator ~extattrsize~ accepts a relation or a stream of tuples and 
+Operator ~extattrsize~ accepts a relation or a stream of tuples and
 an attribute name identifier and returns a real.
 
 ----    (rel     (tuple X)) x ident         -> real
@@ -2457,25 +2457,25 @@ ExtAttrSizeTypeMap(ListExpr args)
 {
   ListExpr first, second, attrtype;
   string argstr, attrname;
-  
+
   CHECK_COND(nl->ListLength(args) == 2,
   "Operator tuplesize expects a list of length two.");
 
   first = nl->First(args);
   second = nl->Second(args);
-  
-  nl->WriteToString(argstr, first);    
-  CHECK_COND( nl->ListLength(first) == 2 && 
+
+  nl->WriteToString(argstr, first);
+  CHECK_COND( nl->ListLength(first) == 2 &&
     nl->ListLength(nl->Second(first)) == 2 &&
     (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
     TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
     "Operator extattrsize expects as first argument "
-    "a list with structure " 
+    "a list with structure "
     "(stream (tuple ((a1 t1)...(an tn)))) or "
     "(rel (tuple ((a1 t1)...(an tn))))\n"
     "Operator extattrsize gets as first argument "
-    "a list with structure '" + 
+    "a list with structure '" +
     argstr + "'.");
 
   nl->WriteToString(argstr, second);
@@ -2506,7 +2506,7 @@ ExtAttrSizeTypeMap(ListExpr args)
   // Check whether all new attribute names are distinct
   // - not yet implemented
 
-  return 
+  return
     nl->ThreeElemList(
       nl->SymbolAtom("APPEND"),
       nl->OneElemList(nl->IntAtom(j)),
@@ -2519,7 +2519,7 @@ ExtAttrSizeTypeMap(ListExpr args)
 
 */
 int
-ExtAttrSizeStream(Word* args, Word& result, int message, 
+ExtAttrSizeStream(Word* args, Word& result, int message,
                   Word& local, Supplier s)
 {
   Word elem;
@@ -2544,7 +2544,7 @@ ExtAttrSizeStream(Word* args, Word& result, int message,
 }
 
 int
-ExtAttrSizeRel(Word* args, Word& result, int message, 
+ExtAttrSizeRel(Word* args, Word& result, int message,
                  Word& local, Supplier s)
 {
   Relation* rel = (Relation*)args[0].addr;
@@ -2560,7 +2560,7 @@ ExtAttrSizeRel(Word* args, Word& result, int message,
 5.11.3 Specification of operator ~extattrsize~
 
 */
-const string ExtAttrSizeSpec  = 
+const string ExtAttrSizeSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>stream|rel(tuple X) x ident -> real"
@@ -2581,7 +2581,7 @@ This function is the same as for the ~count~ operator.
 5.11.5 Definition of operator ~extattrsize~
 
 */
-ValueMapping extattrsizemap[] = {ExtAttrSizeStream, 
+ValueMapping extattrsizemap[] = {ExtAttrSizeStream,
                                  ExtAttrSizeRel };
 
 Operator relalgextattrsize (
@@ -2597,12 +2597,12 @@ Operator relalgextattrsize (
 5.11 Operator ~attrsize~
 
 Reports the size of the attribute in a relation taking into account
-the FLOBs. This operator is useful for the optimizer, but it is 
+the FLOBs. This operator is useful for the optimizer, but it is
 usable as an operator itself.
 
 5.11.1 Type mapping function of operator ~attrsize~
 
-Operator ~attrsize~ accepts a relation or a stream of tuples and 
+Operator ~attrsize~ accepts a relation or a stream of tuples and
 an attribute name identifier and returns a real.
 
 ----    (rel     (tuple X)) x ident         -> real
@@ -2615,25 +2615,25 @@ AttrSizeTypeMap(ListExpr args)
 {
   ListExpr first, second, attrtype;
   string argstr, attrname;
-  
+
   CHECK_COND(nl->ListLength(args) == 2,
   "Operator tuplesize expects a list of length two.");
 
   first = nl->First(args);
   second = nl->Second(args);
-  
-  nl->WriteToString(argstr, first);    
-  CHECK_COND( nl->ListLength(first) == 2 && 
+
+  nl->WriteToString(argstr, first);
+  CHECK_COND( nl->ListLength(first) == 2 &&
     nl->ListLength(nl->Second(first)) == 2 &&
     (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
     TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
     "Operator attrsize expects as first argument "
-    "a list with structure " 
+    "a list with structure "
     "(stream (tuple ((a1 t1)...(an tn)))) or "
     "(rel (tuple ((a1 t1)...(an tn))))\n"
     "Operator attrsize gets as first argument "
-    "a list with structure '" + 
+    "a list with structure '" +
     argstr + "'.");
 
   nl->WriteToString(argstr, second);
@@ -2664,7 +2664,7 @@ AttrSizeTypeMap(ListExpr args)
   // Check whether all new attribute names are distinct
   // - not yet implemented
 
-  return 
+  return
     nl->ThreeElemList(
       nl->SymbolAtom("APPEND"),
       nl->OneElemList(nl->IntAtom(j)),
@@ -2677,7 +2677,7 @@ AttrSizeTypeMap(ListExpr args)
 
 */
 int
-AttrSizeStream(Word* args, Word& result, int message, 
+AttrSizeStream(Word* args, Word& result, int message,
                Word& local, Supplier s)
 {
   Word elem;
@@ -2702,7 +2702,7 @@ AttrSizeStream(Word* args, Word& result, int message,
 }
 
 int
-AttrSizeRel(Word* args, Word& result, int message, 
+AttrSizeRel(Word* args, Word& result, int message,
             Word& local, Supplier s)
 {
   Relation* rel = (Relation*)args[0].addr;
@@ -2718,7 +2718,7 @@ AttrSizeRel(Word* args, Word& result, int message,
 5.11.3 Specification of operator ~attrsize~
 
 */
-const string AttrSizeSpec  = 
+const string AttrSizeSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>stream|rel(tuple X) x ident -> real"
@@ -2739,7 +2739,7 @@ This function is the same as for the ~count~ operator.
 5.11.5 Definition of operator ~attrsize~
 
 */
-ValueMapping attrsizemap[] = {AttrSizeStream, 
+ValueMapping attrsizemap[] = {AttrSizeStream,
                               AttrSizeRel };
 
 Operator relalgattrsize (

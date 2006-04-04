@@ -147,14 +147,17 @@ without cloning attributes.
 
 */
   void Save( SmiRecordFile *tuplefile, SmiFileId& lobFileId,
-             double& extSize, double& size, 
-             double *attrExtSize, double *attrSize );
+             double& extSize, double& size,
+             vector<double>& attrExtSize, vector<double>& attrSize );
 /*
 Saves a fresh tuple into ~tuplefile~ and ~lobfile~. Returns the 
 sizes of the tuple saved.
 
 */
-  void UpdateSave( const vector<int>& changedIndices );
+  void UpdateSave( const vector<int>& changedIndices,
+                   double& extSize, double& size,
+                   vector<double>& attrExtSize,
+                   vector<double>& attrSize );
 /*
 Saves a solid tuple with updated attributes and reuses the old 
 record. This function is implemented in the Update Relation Algebra.
@@ -232,14 +235,14 @@ This struct contains necessary information for opening a relation.
 */
 struct RelationDescriptor
 {
-  inline 
+  inline
   RelationDescriptor( TupleType* tupleType ):
     tupleType( tupleType ),
     noTuples( 0 ),
     totalExtSize( 0.0 ),
     totalSize( 0.0 ),
-    attrExtSize( new double[tupleType->GetNoAttributes()] ),
-    attrSize( new double[tupleType->GetNoAttributes()] ),
+    attrExtSize( tupleType->GetNoAttributes() ),
+    attrSize( tupleType->GetNoAttributes() ),
     tupleFileId( 0 ),
     lobFileId( 0 )
     {
@@ -262,9 +265,8 @@ struct RelationDescriptor
     tupleFileId( 0 ),
     lobFileId( 0 )
     {
-      tupleType->IncReference();
-      attrExtSize = new double[tupleType->GetNoAttributes()];
-      attrSize = new double[tupleType->GetNoAttributes()];
+      attrExtSize.resize( tupleType->GetNoAttributes() );
+      attrSize.resize( tupleType->GetNoAttributes() );
       for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
       {
         attrExtSize[i] = 0.0;
@@ -275,86 +277,68 @@ struct RelationDescriptor
 The simple constructors.
 
 */
-  inline 
+  inline
   RelationDescriptor( TupleType *tupleType,
-                      int noTuples, 
+                      int noTuples,
                       double totalExtSize, double totalSize,
-                      const double *attrExtSize, const double *attrSize,
+                      const vector<double>& attrExtSize,
+                      const vector<double>& attrSize,
                       const SmiFileId tId, const SmiFileId lId ):
     tupleType( tupleType ),
     noTuples( noTuples ),
     totalExtSize( totalExtSize ),
     totalSize( totalSize ),
-    attrExtSize( 0 ),
-    attrSize( 0 ),
+    attrExtSize( attrExtSize ),
+    attrSize( attrSize ),
     tupleFileId( tId ),
     lobFileId( lId )
     {
-      this->attrExtSize = new double[tupleType->GetNoAttributes()];
-      this->attrSize = new double[tupleType->GetNoAttributes()];
-      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
-      {
-        this->attrExtSize[i] = attrExtSize[i];
-        this->attrSize[i] = attrSize[i];
-      }
+      tupleType->IncReference();
     }
 
   inline
   RelationDescriptor( const ListExpr typeInfo,
                       int noTuples,
                       double totalExtSize, double totalSize,
-                      double *attrExtSize, double *attrSize,
+                      const vector<double>& attrExtSize,
+                      const vector<double>& attrSize,
                       const SmiFileId tId, const SmiFileId lId ):
     tupleType( new TupleType( nl->Second( typeInfo ) ) ),
     noTuples( noTuples ),
     totalExtSize( totalExtSize ),
     totalSize( totalSize ),
-    attrExtSize( 0 ),
-    attrSize( 0 ),
+    attrExtSize( attrExtSize ),
+    attrSize( attrSize ),
     tupleFileId( tId ),
     lobFileId( lId )
     {
-      this->attrExtSize = new double[tupleType->GetNoAttributes()];
-      this->attrSize = new double[tupleType->GetNoAttributes()];
-      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
-      {
-        this->attrExtSize[i] = attrExtSize[i];
-        this->attrSize[i] = attrSize[i];
-      }
     }
 
 /*
 The first constructor.
 
 */
-  inline 
+  inline
   RelationDescriptor( const RelationDescriptor& desc ):
     tupleType( desc.tupleType ),
     noTuples( desc.noTuples ),
     totalExtSize( desc.totalExtSize ),
     totalSize( desc.totalSize ),
+    attrExtSize( desc.attrExtSize ),
+    attrSize( desc.attrSize ),
     tupleFileId( desc.tupleFileId ),
     lobFileId( desc.lobFileId )
     {
-      this->attrExtSize = new double[tupleType->GetNoAttributes()];
-      this->attrSize = new double[tupleType->GetNoAttributes()];
-      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
-      {
-        this->attrExtSize[i] = desc.attrExtSize[i];
-        this->attrSize[i] = desc.attrSize[i];
-      }
       tupleType->IncReference();
     }
 /*
 The copy constructor.
 
 */
-  inline 
+  inline
   ~RelationDescriptor()
   {
     tupleType->DeleteIfAllowed();
-    delete []attrExtSize;
-    delete []attrSize;
   }
 /*
 The destructor.
@@ -362,6 +346,7 @@ The destructor.
 */
   inline RelationDescriptor& operator=( const RelationDescriptor& d )
   {
+    tupleType->DeleteIfAllowed();
     tupleType = d.tupleType;
     tupleType->IncReference();
     noTuples = d.noTuples;
@@ -369,13 +354,9 @@ The destructor.
     totalSize = d.totalSize;
     tupleFileId = d.tupleFileId;
     lobFileId = d.lobFileId;
-    this->attrExtSize = new double[tupleType->GetNoAttributes()];
-    this->attrSize = new double[tupleType->GetNoAttributes()];
-    for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
-    {
-      this->attrExtSize[i] = d.attrExtSize[i];
-      this->attrSize[i] = d.attrSize[i];
-    }
+    attrExtSize = d.attrExtSize;
+    attrSize = d.attrSize;
+
     return *this;
   }
 /*
@@ -396,7 +377,7 @@ The quantity of tuples inside the relation.
   double totalExtSize;
 /*
 The total size occupied by the tuples in the relation taking
-into account the small FLOBs, i.e. the extension part of 
+into account the small FLOBs, i.e. the extension part of
 the tuples.
 
 */
@@ -406,17 +387,17 @@ The total size occupied by the tuples in the relation taking
 into account all parts of the tuples, including the FLOBs.
 
 */
-  double *attrExtSize;
+  vector<double> attrExtSize;
 /*
 The total size occupied by the attributes in the relation
 taking into account the small FLOBs, i.e. the extension part
 of the tuples.
 
 */
-  double *attrSize;
+  vector<double> attrSize;
 /*
-The total size occupied by the attributes in the relation 
-taking into account all parts of the tuples, including the 
+The total size occupied by the attributes in the relation
+taking into account all parts of the tuples, including the
 FLOBs.
 
 */
@@ -524,7 +505,7 @@ The third constructor. Opens a previously created relation.
 The destuctor.
 
 */
-  mutable RelationDescriptor relDesc;
+  RelationDescriptor relDesc;
 /*
 Stores the descriptor of the relation.
 

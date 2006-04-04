@@ -59,7 +59,10 @@ had FLOBs they are destroyed so that there is no garbage left on the disk.
 
 */
 void Tuple::UpdateAttributes( const vector<int>& changedIndices, 
-                              const vector<Attribute*>& newAttrs )
+                              const vector<Attribute*>& newAttrs,
+                              double& extSize, double& size,
+                              vector<double>& attrExtSize,
+                              vector<double>& attrSize )
 {
   int index;
   for ( size_t i = 0; i < changedIndices.size(); i++)
@@ -72,8 +75,20 @@ void Tuple::UpdateAttributes( const vector<int>& changedIndices,
          j++)
     {
       FLOB *tmpFLOB = privateTuple->attributes[index]->GetFLOB(j);
+
+      assert( index >= 0 && (size_t)index < attrSize.size() );
+      attrSize[index] -= tmpFLOB->Size();
+      size -= tmpFLOB->Size();
+
+      if( !tmpFLOB->IsLob() )
+      {
+        assert( index >= 0 && (size_t)index < attrExtSize.size() );
+        attrExtSize[index] -= tmpFLOB->Size();
+        extSize -= tmpFLOB->Size();
+      }        
       tmpFLOB->Destroy();
     }
+
     if( privateTuple->state == Fresh )
     {
       privateTuple->attributes[index]->DeleteIfAllowed();
@@ -85,7 +100,9 @@ void Tuple::UpdateAttributes( const vector<int>& changedIndices,
               privateTuple->tupleType->GetAttributeType(index).size );
     }
   }
-  privateTuple->UpdateSave( changedIndices );
+  privateTuple->UpdateSave( changedIndices,
+                            extSize, size, 
+                            attrExtSize, attrSize );
 
   recomputeExtSize = true;
   recomputeSize = true;
@@ -99,9 +116,12 @@ LOBs are saved to the lobfile. The memorytuple and extensiontuple are
 again computed and saved to the corresponding tuplerecord.
 
 */
-void PrivateTuple::UpdateSave( const vector<int>& changedIndices )
+void PrivateTuple::UpdateSave( const vector<int>& changedIndices,
+                               double& extSize, double& size,
+                               vector<double>& attrExtSize,
+                               vector<double>& attrSize )
 {
-  int tupleSize = tupleType->GetTotalSize(), extensionSize = 0;
+  long extensionSize = 0;
   bool hasFLOBs = false;
 
   // Calculate the size of the small FLOB data which will be
@@ -113,9 +133,19 @@ void PrivateTuple::UpdateSave( const vector<int>& changedIndices )
     {
       hasFLOBs = true;
       FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-      tupleSize += tmpFLOB->Size();
+
+      assert( i >= 0 && (size_t)i < attrSize.size() );
+      attrSize[i] += tmpFLOB->Size();
+      size += tmpFLOB->Size();
+
       if( !tmpFLOB->IsLob() )
+      {
+        assert( i >= 0 && (size_t)i < attrExtSize.size() );
+        attrExtSize[i] += tmpFLOB->Size();
+        extSize += tmpFLOB->Size();
+
         extensionSize += tmpFLOB->Size();
+      }
       else
       {
         tmpFLOB->BringToMemory();
@@ -124,8 +154,40 @@ void PrivateTuple::UpdateSave( const vector<int>& changedIndices )
     }
   }
 
-  if( state == Fresh )
+  if( state == Solid && hasFLOBs && extensionSize > 0 )
   {
+    assert( memoryTuple != 0 );
+    assert( (extensionSize == 0 && extensionTuple == 0 ) ||
+            (extensionSize != 0 && extensionTuple != 0 ) );
+
+    for( int i = 0; i < tupleType->GetNoAttributes(); i++)
+    {
+      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
+      {
+        FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
+        if( !tmpFLOB->IsLob() )
+          tmpFLOB->SaveToExtensionTuple( 0 );
+      }
+    }
+  }
+  else if( state == Fresh )
+  {
+    // Create a structure to store the old attributes
+    Attribute **oldAttributes = new Attribute*[tupleType->GetNoAttributes()];
+
+    // Move external attributes to memory tuple
+    assert( memoryTuple == 0 );
+    memoryTuple = (char*)malloc( tupleType->GetTotalSize() );
+    int offset = 0;
+    for( int i = 0; i < tupleType->GetNoAttributes(); i++)
+    {
+      memcpy( &memoryTuple[offset], attributes[i],
+              tupleType->GetAttributeType(i).size );
+      oldAttributes[i] = attributes[i];
+      attributes[i] = (Attribute*) &memoryTuple[offset];
+      offset += tupleType->GetAttributeType(i).size;
+    }
+
     // Move FLOB data to extension tuple.
     if( hasFLOBs )
     {
@@ -147,21 +209,11 @@ void PrivateTuple::UpdateSave( const vector<int>& changedIndices )
       }
     }
 
-    // Move external attributes to memory tuple
-    assert( memoryTuple == 0 );
-    memoryTuple = (char*)malloc( tupleType->GetTotalSize() );
-    int offset = 0;
+    // Delete (if allowed) the old attributes.
     for( int i = 0; i < tupleType->GetNoAttributes(); i++)
-    {
-      memcpy( &memoryTuple[offset], attributes[i],
-              tupleType->GetAttributeType(i).size );
-      attributes[i]->DeleteIfAllowed();
-      attributes[i] = (Attribute*)
-        (*(am->Cast(tupleType->GetAttributeType(i).algId,
-                    tupleType->GetAttributeType(i).typeId)))
-          (&memoryTuple[offset]);
-      offset += tupleType->GetAttributeType(i).size;
-    }
+      oldAttributes[i]->DeleteIfAllowed();
+
+    delete []oldAttributes;
   }
 
   SmiRecord *tupleRecord = new SmiRecord();
@@ -213,15 +265,12 @@ void Relation::UpdateTuple( Tuple *tuple,
                             const vector<int>& changedIndices,
                             const vector<Attribute *>& newAttrs )
 {
-  long oldExtSize = tuple->GetExtSize(),
-       oldSize = tuple->GetSize();
-  tuple->UpdateAttributes(changedIndices, newAttrs);
-  privateRelation->relDesc.totalExtSize = 
-    privateRelation->relDesc.totalExtSize - 
-    oldExtSize + tuple->GetExtSize();
-  privateRelation->relDesc.totalSize = 
-    privateRelation->relDesc.totalSize - 
-    oldSize + tuple->GetSize();
+  tuple->UpdateAttributes(
+    changedIndices, newAttrs,
+    privateRelation->relDesc.totalExtSize, 
+    privateRelation->relDesc.totalSize,
+    privateRelation->relDesc.attrExtSize, 
+    privateRelation->relDesc.attrSize );
 }
 
 /*
@@ -231,29 +280,43 @@ and the size of the relation is adjusted.
 */
 bool Relation::DeleteTuple( Tuple *tuple )
 {
-  Attribute* nextAttr;
-  FLOB* nextFLOB;
-  long tupleExtSize = tuple->GetExtSize(),
-       tupleSize = tuple->GetSize();
-  for (int i = 0; i < tuple->GetNoAttributes(); i++)
+  if( privateRelation->tupleFile.DeleteRecord( tuple->GetTupleId() ) )
   {
-    nextAttr = tuple->GetAttribute(i);
-    nextAttr->Finalize();
-    for (int j = 0; j < nextAttr->NumOfFLOBs(); j++)
-    {
-      nextFLOB = nextAttr->GetFLOB(j);
-      nextFLOB->Destroy();
-    }
-  }
-  if (privateRelation->tupleFile.DeleteRecord(tuple->GetTupleId()))
-  {
-    privateRelation->relDesc.totalExtSize -= tupleExtSize;
-    privateRelation->relDesc.totalSize -= tupleSize;
+    Attribute* nextAttr;
+    FLOB* nextFLOB;
+
     privateRelation->relDesc.noTuples -= 1;
+    privateRelation->relDesc.totalExtSize -= tuple->GetRootSize();
+    privateRelation->relDesc.totalSize -= tuple->GetRootSize();
+ 
+    for (int i = 0; i < tuple->GetNoAttributes(); i++)
+    { 
+      nextAttr = tuple->GetAttribute(i);
+      nextAttr->Finalize();
+      for (int j = 0; j < nextAttr->NumOfFLOBs(); j++)
+      {
+        nextFLOB = nextAttr->GetFLOB(j);
+
+        assert( i >= 0 && 
+                (size_t)i < privateRelation->relDesc.attrSize.size() );
+        privateRelation->relDesc.attrSize[i] -= nextFLOB->Size();
+        privateRelation->relDesc.totalSize -= nextFLOB->Size();
+
+        if( !nextFLOB->IsLob() )
+        {
+          assert( i >= 0 && 
+                  (size_t)i < privateRelation->relDesc.attrExtSize.size() );
+          privateRelation->relDesc.attrExtSize[i] -= nextFLOB->Size();
+          privateRelation->relDesc.totalExtSize -= nextFLOB->Size();
+        }
+
+        nextFLOB->Destroy();
+      }
+    }
     return true;
   }
-  else
-    return false;
+
+  return false;
 }
 
 #endif

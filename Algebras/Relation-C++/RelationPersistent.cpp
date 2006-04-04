@@ -147,32 +147,38 @@ This struct contains the private attributes of the class ~Tuple~.
 void PrivateTuple::Save( SmiRecordFile *tuplefile, 
                          SmiFileId& lobFileId,
                          double& extSize, double& size,
-                         double *attrExtSize, double *attrSize )
+                         vector<double>& attrExtSize, vector<double>& attrSize )
 {
-  bool hasFLOBs = false;
   long extensionSize = 0;
+  bool hasFLOBs = false;
 
   // Calculate the size of the small FLOB data which will be 
   // saved together with the tuple attributes and save the LOBs 
   // in the lobFile.
   extSize += tupleType->GetTotalSize();
   size += tupleType->GetTotalSize();
+
   for( int i = 0; i < tupleType->GetNoAttributes(); i++)
   {
+    assert( i >= 0 && (size_t)i < attrExtSize.size() );
     attrExtSize[i] += tupleType->GetAttributeType(i).size;
+    assert( i >= 0 && (size_t)i < attrSize.size() );
     attrSize[i] += tupleType->GetAttributeType(i).size;
 
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
     {
       hasFLOBs = true;
       FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
+
       attrSize[i] += tmpFLOB->Size();
       size += tmpFLOB->Size();
+
       if( !tmpFLOB->IsLob() )
       {
-        extensionSize += tmpFLOB->Size();
-        extSize += tmpFLOB->Size();
         attrExtSize[i] += tmpFLOB->Size();
+        extSize += tmpFLOB->Size();
+
+        extensionSize += tmpFLOB->Size();
       }
       else
       {
@@ -930,57 +936,59 @@ Relation::RestoreFromList( ListExpr typeInfo, ListExpr value,
                            bool& correct )
 {
   ListExpr rest = value;
-  for( int i = 0; i < 5; i++ )
+  for( int i = 0; i < 3; i++ )
     rest = nl->Rest( rest );
 
-  double *attrExtSize = new double[nl->ListLength( rest )/2],
-         *attrSize = new double[nl->ListLength( rest )/2];
-  int i = 0;
-  while( !nl->IsEmpty( rest ) )
+  int n = (nl->ListLength( rest )-2)/2;
+  vector<double> attrExtSize( n ),
+                 attrSize( n );
+
+  for( int i = 0; i < n; i++  )
   {
     attrExtSize[i] = nl->RealValue( nl->First( rest ) );
     attrSize[i] = nl->RealValue( nl->Second( rest ) );
+    rest = nl->Rest( rest );
+    rest = nl->Rest( rest );
   }
-    
+
   RelationDescriptor relDesc( typeInfo,
                               nl->IntValue( nl->First( value ) ),
                               nl->RealValue( nl->Second( value ) ),
                               nl->RealValue( nl->Third( value ) ),
                               attrExtSize, attrSize,
-                              nl->IntValue( nl->Fourth( value ) ),
-                              nl->IntValue( nl->Fifth( value ) ) );
-  delete []attrExtSize;
-  delete []attrSize;
+                              nl->IntValue( nl->First( rest ) ),
+                              nl->IntValue( nl->Second( rest ) ) );
+
   return new Relation( relDesc );
 }
 
 ListExpr 
 Relation::SaveToList( ListExpr typeInfo )
 {
-  ListExpr result = 
+  ListExpr result =
     nl->OneElemList( nl->IntAtom( privateRelation->relDesc.noTuples ) ),
            last = result;
 
-  last = 
+  last =
     nl->Append( last, nl->RealAtom( privateRelation->relDesc.totalExtSize ) );
-  last = 
+  last =
     nl->Append( last, nl->RealAtom( privateRelation->relDesc.totalSize ) );
 
-  for( int i = 0; 
-       i < privateRelation->relDesc.tupleType->GetNoAttributes(); 
+  for( int i = 0;
+       i < privateRelation->relDesc.tupleType->GetNoAttributes();
        i++ )
   {
-    last = 
-      nl->Append( last, 
+    last =
+      nl->Append( last,
                   nl->RealAtom( privateRelation->relDesc.attrExtSize[i] ) );
-    last = 
-      nl->Append( last, 
+    last =
+      nl->Append( last,
                   nl->RealAtom( privateRelation->relDesc.attrSize[i] ) );
   }
 
-  last = 
+  last =
     nl->Append( last, nl->IntAtom( privateRelation->relDesc.tupleFileId ) );
-  last = 
+  last =
     nl->Append( last, nl->IntAtom( privateRelation->relDesc.lobFileId ) );
 
   return result;
@@ -1001,18 +1009,21 @@ Relation::Open( SmiRecord& valueRecord, size_t& offset,
   valueRecord.Read( &relDesc.totalSize, sizeof( double ), offset );
   offset += sizeof( double );
 
-  relDesc.attrExtSize = new double[relDesc.tupleType->GetNoAttributes()];
-  relDesc.attrSize = new double[relDesc.tupleType->GetNoAttributes()];
+  for( int i = 0; i < relDesc.tupleType->GetNoAttributes(); i++ )
+  {
+    double d;
+    valueRecord.Read( &d, sizeof( double ), offset );
+    relDesc.attrExtSize[i] = d;
+    offset += sizeof( double );
+  }
 
-  valueRecord.Read( relDesc.attrExtSize,     
-                    relDesc.tupleType->GetNoAttributes() * sizeof( double ),
-                    offset );
-  offset += relDesc.tupleType->GetNoAttributes() * sizeof( double );
- 
-  valueRecord.Read( relDesc.attrSize,     
-                    relDesc.tupleType->GetNoAttributes() * sizeof( double ),
-                    offset );
-  offset += relDesc.tupleType->GetNoAttributes() * sizeof( double );
+  for( int i = 0; i < relDesc.tupleType->GetNoAttributes(); i++ )
+  {
+    double d;
+    valueRecord.Read( &d, sizeof( double ), offset );
+    relDesc.attrSize[i] = d;
+    offset += sizeof( double );
+  }
 
   valueRecord.Read( &relDesc.tupleFileId, sizeof( SmiFileId ), offset );
   offset += sizeof( SmiFileId );
@@ -1038,15 +1049,17 @@ Relation::Save( SmiRecord& valueRecord, size_t& offset,
   valueRecord.Write( &relDesc.totalSize, sizeof( double ), offset );
   offset += sizeof( double );
 
-  valueRecord.Write( relDesc.attrExtSize,
-                    relDesc.tupleType->GetNoAttributes() * sizeof( double ),
-                    offset );
-  offset += relDesc.tupleType->GetNoAttributes() * sizeof( double );
+  for( int i = 0; i < relDesc.tupleType->GetNoAttributes(); i++ )
+  {
+    valueRecord.Write( &relDesc.attrExtSize[i], sizeof( double ), offset );
+    offset += sizeof( double );
+  }
 
-  valueRecord.Write( relDesc.attrSize,
-                    relDesc.tupleType->GetNoAttributes() * sizeof( double ),
-                    offset );
-  offset += relDesc.tupleType->GetNoAttributes() * sizeof( double );
+  for( int i = 0; i < relDesc.tupleType->GetNoAttributes(); i++ )
+  {
+    valueRecord.Write( &relDesc.attrSize[i], sizeof( double ), offset );
+    offset += sizeof( double );
+  }
 
   valueRecord.Write( &relDesc.tupleFileId, sizeof( SmiFileId ), offset );
   offset += sizeof( SmiFileId );
@@ -1095,8 +1108,9 @@ void Relation::AppendTuple( Tuple *tuple )
     privateRelation->relDesc.lobFileId,
     privateRelation->relDesc.totalExtSize,
     privateRelation->relDesc.totalSize,
-    privateRelation->relDesc.attrExtSize, 
+    privateRelation->relDesc.attrExtSize,
     privateRelation->relDesc.attrSize );
+
   privateRelation->relDesc.noTuples += 1;
 }
  
@@ -1153,6 +1167,8 @@ double Relation::GetTotalExtSize() const
 
 double Relation::GetTotalExtSize( int i ) const
 {
+  assert( i >= 0 && 
+          (size_t)i < privateRelation->relDesc.attrExtSize.size() );
   return privateRelation->relDesc.attrExtSize[i];
 }
 
@@ -1163,6 +1179,8 @@ double Relation::GetTotalSize() const
 
 double Relation::GetTotalSize( int i ) const
 {
+  assert( i >= 0 && 
+          (size_t)i < privateRelation->relDesc.attrSize.size() );
   return privateRelation->relDesc.attrSize[i];
 }
 
