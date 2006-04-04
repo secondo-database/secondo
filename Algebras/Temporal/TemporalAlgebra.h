@@ -2144,7 +2144,7 @@ void Interval<Alpha>::Intersection( const Interval<Alpha>& i,
     if( comp < 0 )
     {
       result.start.CopyFrom( &i.start );
-      result.lc = true;
+      result.lc = i.lc;
     }
     else if( comp == 0 )
     {
@@ -2154,14 +2154,14 @@ void Interval<Alpha>::Intersection( const Interval<Alpha>& i,
     else
     {
       result.start.CopyFrom( &start );
-      result.lc = true;
+      result.lc = lc;
     }
 
     comp = end.Compare( &i.end );
     if( comp > 0 )
     {
       result.end.CopyFrom( &i.end );
-      result.rc = true;
+      result.rc = i.rc;
     }
     else if( comp == 0 )
     {
@@ -2171,7 +2171,7 @@ void Interval<Alpha>::Intersection( const Interval<Alpha>& i,
     else
     {
       result.end.CopyFrom( &this->end );
-      result.rc = true;
+      result.rc = rc;
     }
   }
 }
