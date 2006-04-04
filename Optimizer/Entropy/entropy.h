@@ -1,4 +1,11 @@
 /*
+
+2005, Geraldo Zimbrao. Initial Version
+   
+April 2006, M. Spiekermann. As a replacement for the OPT++ library we use now the
+iterative scaling algorithm.
+
+   
 1 The Header File of entropy
 
 1.1 Remarks
@@ -24,12 +31,20 @@ Result is in the form of a list of pairs [n, cp] also.
 ----
 
 */
+
+
 #ifndef __ENTROPY_H__
 #define __ENTROPY_H__
+
+//#include <pair>
 #include <vector>
 
-void maximize_entropy( vector<double>& marginalProbabilities,
-                       vector<pair<int,double> >& jointProbabilities,
-                       vector<pair<int,double> >& estimatedProbabilities );
+typedef std::pair<int, double> JointSelPair;
+typedef std::vector<JointSelPair> JointProbabilityVec; 
+typedef std::vector<double> MarginalProbabilityVec;
+
+void maximize_entropy( const MarginalProbabilityVec& marginalProbabilities,
+                       JointProbabilityVec& jointProbabilities,
+                       JointProbabilityVec& estimatedProbabilities );
 
 #endif

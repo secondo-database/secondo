@@ -13,7 +13,7 @@ include ./makefile.optlib
 CXX      := g++
 CXXFLAGS := -c -g -D_G_HAVE_BOOL -fwritable-strings -ansi -Wno-deprecated -static -pedantic
 
-ENTROPY_OBJ := entropy entropy.o tmpent.o
+ENTROPY_OBJ := IterScale Iterative_scaling.o # entropy entropy.o tmpent.o
 
 CURDIR := $(PWD)
 
@@ -30,6 +30,12 @@ entropy.o tmpent.o: entropy.cpp
 	$(CXX) -o entropy.o $(CXXFLAGS) -I. $(OPTPP_INCL) $(NEWMAT_INCL) $<
 	$(CXX) -o tmpent.o $(CXXFLAGS) -DSTAND_ALONE -I. $(OPTPP_INCL) $(NEWMAT_INCL) $<
 
+
+Iterative_scaling.o: Iterative_scaling.cpp
+	gcc -c $<
+
+IterScale: Iterative_scaling.cpp
+	g++ -o $@ -DSTAND_ALONE $<
 
 .PHONY: patch
 patch:
