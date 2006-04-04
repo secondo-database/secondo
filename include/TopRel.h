@@ -218,6 +218,21 @@ This function returns the matrix number of this int9m instance.
 */
        int GetNumber()const{ return (value & 511);}
 
+
+/*
+2.1.7 SetValue
+
+Sets the matrix number directly. When the given value is outside the valid
+range, only the significant bits are used to set the value.
+
+*/
+       void SetValue(const short value){
+           this->value = value&511;
+           this->defined = true;
+       }
+
+
+
 /*
 2.1.7 ~Invert~
 
@@ -462,7 +477,9 @@ an attribute type within secondo relations.
 2.1.22 Equal operator
 
 */
-       bool operator==(const Int9M I2) const;  
+       bool operator==(const Int9M I2) const; 
+
+
 
 /*
 2.1.23 Unequal operator
@@ -476,7 +493,7 @@ an attribute type within secondo relations.
 2.1.24 Assignment Operator
 
 */
-  inline Int9M& operator=(const Int9M& m){
+  inline Int9M operator=(const Int9M& m){
       value = m.value;
       defined = m.defined;
       return *this;

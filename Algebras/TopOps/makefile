@@ -26,7 +26,9 @@
 include ../../makefile.env
 
 MODNAME = TopOpsAlgebra
-CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS) -I../Spatial -I../TopRel -I../Rectangle 
+CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS) -I../Spatial -I../TopRel -I../Rectangle\
+          -I../FText
+
 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
