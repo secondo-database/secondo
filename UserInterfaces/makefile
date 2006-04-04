@@ -50,17 +50,16 @@ endif
 # refer to "SecondoPL.cpp" and the subdirectory "Optimizer/Entropy"
 ifdef ENTROPY 
 
-include ../Optimizer/Entropy/makefile.optlib
-
-ENTROPY_OBJ := ../Optimizer/Entropy/entropy.$(OBJEXT) 
+ENTROPY_OBJ := ../Optimizer/Entropy/Iterative_scaling.$(OBJEXT)
 APPLOBJECTS += callEntropy
 CCFLAGS += -DSECONDO_USE_ENTROPY
 endif
 
 ifeq ($(optimizer),"true")
-APPLOBJECTS += SecondoPL.$(OBJEXT)
+PLOBJ := SecondoPL.$(OBJEXT)
+PL_OBJECTS := $(PLOBJ) $(ENTROPY_OBJ)
+APPLOBJECTS += $(PLOBJ)
 CCFLAGS += $(PLINCLUDEFLAGS)
-PL_OBJECTS := SecondoPL.$(OBJEXT) $(ENTROPY_OBJ)
 endif
 
 
@@ -115,8 +114,7 @@ MainTTYCS.$(OBJEXT): MainTTY.cpp
 
 #  Rules for linkage
 
-APP_OBJECTS :=  SecondoTTY.o MainTTY.o TestRunner.o \
-		$(PL_OBJECTS) \
+APP_OBJECTS :=  SecondoTTY.o MainTTY.o TestRunner.o $(PL_OBJECTS) \
 		../ClientServer/SecondoServer.o \
 		SecondoInterface.o \
 		DisplayTTY.o \
@@ -124,8 +122,8 @@ APP_OBJECTS :=  SecondoTTY.o MainTTY.o TestRunner.o \
 		AlgebraList.o
 
 $(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES)
-$(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(APP_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(OPTLIB_LIBS) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
+$(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(APP_OBJECTS) $(PL_OBJECTS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
 
 ../$(SECONDO_DEMO)/Secondo$(SMIUP)$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES) 
 ../$(SECONDO_DEMO)/Secondo$(SMIUP)$(EXEEXT): $(APP_OBJECTS)
