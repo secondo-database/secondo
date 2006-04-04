@@ -76,8 +76,9 @@ void maximize_entropy( const MarginalProbabilityVec& marginalSels,
   // 2^N number of atoms
   const int NN = static_cast<const int>( pow(2.0,N*1.0) ); 
 
-  // number of known selectivities
-  int k = N + jointSels.size();   
+  // number of known selectivities.
+  // The + 1 is needed since we will add predicate sum=1
+  int k = N + jointSels.size() + 1;   
 
   unsigned i=0, j=0, j2=0, i2=0;
 
@@ -126,6 +127,13 @@ fullfilled or not.
     //selindex[6] = 0;	selvalue[6] = 1.0;
 ----
 
+Inside the optimizer a predicate ~maximze\_entropy/3~ is provided which
+can be called with the values above by
+
+----
+    maximize_entropy([0.1, 0.2, 0.25], [[6, 0.05], [5, 0.03]], R).
+----
+
 */
   
   // marginal selectivities
@@ -160,6 +168,7 @@ fullfilled or not.
      pos++;
    }
    else {
+    // decrement number of used selectivites
      k = k-1;
    }  
    itj++;
@@ -172,9 +181,11 @@ fullfilled or not.
     selindex[pos] = 0; 
     selvalue[pos] = 1;
     definedPreds.insert(0);
-    k = k + 1;
   } 
-
+  else {
+    // decrement number of used selectivites
+    k = k - 1;
+  }
   
   if (trace) 
   {
@@ -300,6 +311,7 @@ fullfilled or not.
     }
 
     predsel[i] = sum;
+    resultSels.push_back( make_pair(i, sum) );
 
     if (trace)
       printf("i = %d: %f\n", i, predsel[i]);
@@ -336,9 +348,9 @@ int main( int argc, const char* argv[] )
   int ngiven = argc - npred - 2;
   int nvars = 1 << npred;
 
-  vector<double> marginalProb;
-  vector<pair<int,double> > jointProb;
-  vector<pair<int,double> > estimProb;
+  MarginalProbabilityVec marginalProb;
+  JointProbabilityVec jointProb;
+  JointProbabilityVec estimProb;
 
   for( int i = 0; i < npred; i++ )
     marginalProb.push_back( atof( argv[i+2] ) );
@@ -353,6 +365,15 @@ int main( int argc, const char* argv[] )
   }
 
   maximize_entropy(marginalProb, jointProb, estimProb);
+
+  JointProbabilityVec::const_iterator it = estimProb.begin();
+  cout << endl << "Returned values:" << endl;
+  while ( it != estimProb.end() )
+  {
+    cout <<  "p[" << it->first << "] = " << it->second << endl;
+    it++;
+  } 
+  
 }
 
 #endif
