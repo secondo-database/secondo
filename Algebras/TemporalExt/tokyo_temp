@@ -1419,27 +1419,27 @@
                  (("1991-12-15" "1992-12-15" FALSE TRUE) (0.0 0.00054645 9.19999981 FALSE))
                  (("1992-12-15" "1993-12-15" FALSE TRUE) (0.0 -0.00246575 9.39999962 FALSE)))) 
             )
-          ())
+)
         (OBJECT wwi_start 
             () 
             instant 
             "1914-07-28"
-            ()) 
+) 
         (OBJECT wwi_end 
             () 
             instant 
             "1918-11-11"
-            ()) 
+) 
         (OBJECT wwii_start 
             () 
             instant 
             "1939-09-01"
-            ()) 
+) 
         (OBJECT wwii_end 
             () 
             instant 
             "1945-09-02"
-            ()) 
+) 
         (OBJECT weltkriege 
             () 
             periods
@@ -1447,5 +1447,5 @@
               ("1914-07-28" "1918-11-11" FALSE TRUE)
                ("1939-09-01" "1945-09-02"FALSE TRUE)
              )
-            ()) 
+) 
 ))
