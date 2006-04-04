@@ -114,10 +114,12 @@ Deletes the FLOB instance.
 */
     inline ~FLOB()
     {
-      assert( type != InMemoryCached );
-      // The cached FLOBs are never deleted because they are created
-      // with malloc and destroyed with free
-      if( type == InMemory && fd.inMemory.canDelete && fd.inMemory.buffer != 0 )
+      if( type == InMemoryCached )
+        qp->GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,
+                                     fd.inMemoryCached.lobId );
+      else if( type == InMemory && 
+               fd.inMemory.canDelete && 
+               fd.inMemory.buffer != 0 )
         free( fd.inMemory.buffer );
     }
 
