@@ -51,7 +51,8 @@ public class Dsplreal extends DsplGeneric
        } 
        else {
            defined=true;
-           return ""+v.doubleValue();
+           this.value = v.doubleValue();
+           return ""+this.value;
        }
     }
   }
@@ -68,9 +69,7 @@ public class Dsplreal extends DsplGeneric
    * @see <a href="Dsplrealsrc.html#init">Source</a>
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-      String v = computeValue(value);
-      entry = type.symbolValue() + ":" + v;
-      qr.addEntry(this);
+      init(type,0,value,0,qr);
   }
 
   public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
@@ -100,7 +99,7 @@ public class Dsplreal extends DsplGeneric
      return value;
   }
   /** returns true if this int is defined **/
-  public boolean canBeDefined(){
+  public boolean mayBeDefined(){
       return defined;
   }
   /** returns tre if this integer is defined **/

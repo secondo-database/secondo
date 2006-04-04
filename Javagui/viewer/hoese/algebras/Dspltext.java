@@ -38,6 +38,9 @@ import tools.Reporter;
  */
 public class Dspltext extends DsplGeneric implements ExternDisplay{
 
+private boolean defined;
+
+
  /** Creates a new Instance of this.
    */ 
 public  Dspltext(){
@@ -64,15 +67,23 @@ public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, Que
      String T = new String(type.symbolValue());
      String V;
 
-     if (value.listLength()==1)
-     value = value.first();
-     if(value.atomType()!=ListExpr.TEXT_ATOM){
-        V =  "error in value ";
-        theList = ListExpr.textAtom(V);
+     if (value.listLength()==1){
+         value = value.first();
      }
-     else{
-        V =  value.textValue();
-        theList = value;
+     defined = !isUndefined(value);
+     if(!defined){
+        V = "undefined";
+        theList = ListExpr.textAtom(V);
+     }else{
+				 if(value.atomType()!=ListExpr.TEXT_ATOM){
+						V =  "error in value ";
+						theList = ListExpr.textAtom(V);
+            defined = false;
+				 }
+				 else{
+						V =  value.textValue();
+						theList = value;
+				 }
      }
      T=extendString(T,typewidth);
      String Text = V;

@@ -26,7 +26,7 @@ public final class DefaultRenderAttribute implements RenderAttribute{
     return true;
   }
 
-  public boolean canBeDefined(){
+  public boolean mayBeDefined(){
     return true;
   }
   

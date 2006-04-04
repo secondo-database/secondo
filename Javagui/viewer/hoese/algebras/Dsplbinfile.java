@@ -31,6 +31,7 @@ import tools.Reporter;
  * A displayclass for the string-type, alphanumeric only
  */
 public class Dsplbinfile extends DsplGeneric implements DsplSimple{
+  boolean defined;
 
   /**
    * This method is used to analyse the type and value in NestedList format and build
@@ -38,22 +39,7 @@ public class Dsplbinfile extends DsplGeneric implements DsplSimple{
    * neccessary for the displaying this type in the queryresultlist.
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-     int size = 0;
-     byte[] dummy = new byte[128];
-     int r;
-     String V="";
-     try{
-        BufferedInputStream in = new BufferedInputStream(value.decodeText());
-        while( (r=in.read(dummy))>=0)
-            size += r;
-        V = type.symbolValue() + ":" + size+" bytes";
-	in.close();
-    } catch(Exception E){
-      Reporter.debug(E);
-      V = "error";
-    }
-     qr.addEntry(V);
-     return;
+     init(type,0,value,0,qr);
   }
 
   public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
@@ -63,17 +49,24 @@ public class Dsplbinfile extends DsplGeneric implements DsplSimple{
      byte[] dummy = new byte[128];
      int r;
      String V="";
-     try{
-        BufferedInputStream in = new BufferedInputStream(value.decodeText());
-        while( (r=in.read(dummy))>=0)
-            size += r;
-	in.close();
-	V = ""+size+" bytes";
-     }catch(Exception e){
-       Reporter.debug(e); 
-        V = "error";
+     if(isUndefined(value)){
+        V = "undefined";
+        defined=false;
+     } else{
+         defined=true;
+         try{
+            BufferedInputStream in = new BufferedInputStream(value.decodeText());
+            while( (r=in.read(dummy))>=0){
+                size += r;
+            }
+            in.close();
+            V = ""+size+" bytes";
+         }catch(Exception e){
+            Reporter.debug(e); 
+            V = "error";
+            defined=false;
+         }
      }
-
      T=extendString(T,typewidth);
      V=extendString(V,valuewidth);
      qr.addEntry(T + " : " + V);

@@ -32,7 +32,8 @@ import tools.Reporter;
 /**
  * A displayclass for the movingbool-type (spatiotemp algebra), alphanumeric with TimePanel
  */
-public class Dsplmovingbool extends Dsplinstant {
+public class Dsplmovingbool extends Dsplinstant
+  implements LabelAttribute, RenderAttribute {
   Vector Intervals = new Vector(10, 5);
   Vector Bools = new Vector(10, 5);
 
@@ -79,6 +80,11 @@ public class Dsplmovingbool extends Dsplinstant {
    * @see <a href="Dsplmovingboolsrc.html#ScanValue">Source</a>
    */
   public void ScanValue (ListExpr v) {
+    if(isUndefined(v)){
+       defined=false;
+       return;
+    } 
+    defined = true;
     while (!v.isEmpty()) {
       ListExpr le = v.first();
       int len = le.listLength();
@@ -121,6 +127,7 @@ public class Dsplmovingbool extends Dsplinstant {
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": TA(MBool))"));
+      defined=false;
       return;
     } 
     else 
@@ -149,7 +156,53 @@ public class Dsplmovingbool extends Dsplinstant {
    */
   public Vector getIntervals(){
     return Intervals;
-    } 
+    }
+
+   /** implementation of the LabelAttribute interface **/
+  public String getLabel(double time){
+      int index = IntervalSearch.getTimeIndex(time,Intervals);
+      if(index<0){
+        return "undefined";
+      }
+      return Bools.get(index).toString();
+  }
+
+
+  /* Implementation of the renderAttribute interface */
+
+  public boolean mayBeDefined(){
+     // the min and max render functions returns valid values in
+     // each case, so we can return true even when this instance is
+     // undefined
+     return true;
+  }
+  
+  public boolean isDefined(double time){
+     // we return in each case valid values in the getRenderValue function
+     return true;  
+  }
+
+  public double getMinRenderValue(){
+     return 0;
+  }
+  public double getMaxRenderValue(){
+     return 1;
+  }
+
+  public double getRenderValue(double time){
+     if(!defined){
+        return 0.5; // value for undefined
+     }
+     int index = IntervalSearch.getTimeIndex(time,Intervals);
+     if(index<0){
+        return 0.5;
+     }
+     boolean v = ((Boolean)Bools.get(index)).booleanValue();
+     return v?1:0;
+  }
+
+  
+ 
 }
 
 

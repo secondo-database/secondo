@@ -674,10 +674,11 @@ public class ViewConfig extends javax.swing.JDialog {
 									 if(!(rendobj instanceof RenderAttribute)){
 											Reporter.writeError("Fatal error, no renderattribute found .");
                       Reporter.writeError("found "+ rendobj+" instead on pos"+rendobjpos);
+                      dg.setRenderAttribute(null);
 									 } else{
 										 RenderAttribute curAttr = (RenderAttribute) rendobj;
 										 dg.setRenderAttribute(curAttr);
-                     if(curAttr.canBeDefined()){
+                     if(curAttr.mayBeDefined()){
 												 double cmin = curAttr.getMinRenderValue();
 												 double cmax = curAttr.getMaxRenderValue();
 												 if(first){

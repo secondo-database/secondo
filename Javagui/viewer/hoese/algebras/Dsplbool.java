@@ -109,7 +109,7 @@ public class Dsplbool extends DsplGeneric
      return value?1:0;
   }
   /** returns true if this int is defined **/
-  public boolean canBeDefined(){
+  public boolean mayBeDefined(){
       return defined;
   }
   /** returns tre if this integer is defined **/

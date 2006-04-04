@@ -36,28 +36,18 @@ import tools.Reporter;
 public class Dsplmovingint extends Dsplinstant implements LabelAttribute{
   Vector Intervals = new Vector(10, 5);
   Vector Ints = new Vector(10, 5);
-
- /** returns the first index in Intervals containing t
-   * if not an intervals containing t exists -1 is returned
-   */
-  protected int getTimeIndex(double t,Vector Intervals){
-     for(int i=0;i<Intervals.size();i++){
-        if( ((Interval) Intervals.get(i)).isDefinedAt(t)){
-           return i;
-        }
-     }
-     return -1;
-  }
- 
-
+  
 
   
   /** returns the value of this integer as a string */
 public String getLabel(double time){
-    if(Intervals==null || Ints==null){
-        return null;
+    if(!defined | err){
+      return null;
     }
-    int index = getTimeIndex(time,Intervals);
+    if(Intervals==null || Ints==null){
+        return null; 
+    }
+    int index = IntervalSearch.getTimeIndex(time,Intervals);
     if(index<0){
        return null;
     }
@@ -107,6 +97,15 @@ public String getLabel(double time){
    * @see <a href="Dsplmovingintsrc.html#ScanValue">Source</a>
    */
   public void ScanValue (ListExpr v) {
+    if(isUndefined(v)){
+       defined=false;
+       err=false;
+       return;
+    }
+    if(v.atomType()!=ListExpr.NO_ATOM){
+       err=true;
+       return;
+    }
     while (!v.isEmpty()) {
       ListExpr le = v.first();
       Interval in = null;
@@ -146,6 +145,7 @@ public String getLabel(double time){
     AttrName = type.symbolValue();
     ScanValue(value);
     if (err) {
+      defined=false;
       Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": TA(MInt))"));
       return;

@@ -124,17 +124,6 @@ public class DisplayTimeGraph extends DisplayGraph
     }
 
 
-  /** returns the first index in Intervals containing t
-    * if not an intervals containing t exists -1 is returned
-    */
-  protected int getTimeIndex(double t,Vector Intervals){
-     for(int i=0;i<Intervals.size();i++)
-        if( ((Interval) Intervals.get(i)).isDefinedAt(t))
-	    return i;
-     return -1;
-  }
-
-
 }
 
 

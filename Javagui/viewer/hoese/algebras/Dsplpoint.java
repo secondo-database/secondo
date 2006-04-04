@@ -26,14 +26,17 @@ import java.util.*;
 import viewer.*;
 import viewer.hoese.*;
 import tools.Reporter;
+import java.text.DecimalFormat;
 
 
 /**
  * The displayclass of the Rose algebras point datatype.
  */
-public class Dsplpoint extends DisplayGraph implements LabelAttribute {
-/** The internal datatype representation */
+public class Dsplpoint extends DisplayGraph implements LabelAttribute,DsplSimple {
+  /** The internal datatype representation */
   Point2D.Double point;
+  DecimalFormat format = new DecimalFormat("#.#####");
+  String label = null;
 
   /**
    * standard constructor.
@@ -45,7 +48,7 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute {
 
   /** Returns a short text **/
   public String getLabel(double time){
-      return "("+point.getX()+", "+point.getY()+")";
+     return label;
   }
 
 
@@ -71,6 +74,9 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute {
    * @see <a href="Dsplpointsrc.html#getRenderObject">Source</a>
    */
   public Shape getRenderObject (AffineTransform at) {
+    if(point==null){
+        return null;
+    }
     Rectangle2D.Double r = getBounds();
     double ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
     double pixy = Math.abs(ps/at.getScaleY());
@@ -90,26 +96,38 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute {
    * @see <a href="Dsplpointsrc.html#ScanValue">Source</a>
    */
   private void ScanValue (ListExpr v) {
+    if(isUndefined(v)){
+        err=false;
+        point=null;
+        label = "-";
+        return;
+    }
     double koord[] = new double[2];
     if (v.listLength() != 2) {
       Reporter.writeError("Error: No correct point expression: 2 elements needed");
       err = true;
+      label =null;
       return;
     }
     for (int koordindex = 0; koordindex < 2; koordindex++) {
       Double d = LEUtils.readNumeric(v.first());
       if (d == null) {
         err = true;
+        label = null;
         return;
       }
       koord[koordindex] = d.doubleValue();
       v = v.rest();
     }
 
-    if(ProjectionManager.project(koord[0],koord[1],aPoint))
+    if(ProjectionManager.project(koord[0],koord[1],aPoint)){
           point = new Point2D.Double(aPoint.x,aPoint.y);
-    else
+          label = "("+format.format(point.getX())+", "+format.format(point.getY())+")";
+    }
+    else{
+       label = null;
        err = true;
+    }
   }
 
   /**
@@ -122,7 +140,14 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute {
    * @see <a href="Dsplpointsrc.html#init">Source</a>
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = type.symbolValue();
+     init(type,0,value,0,qr);
+  }
+  
+
+  public void init (ListExpr type, int  typewidth,
+                    ListExpr value, int valueWidth, 
+                    QueryResult qr) {
+    AttrName = extendString(type.symbolValue(),typewidth);
     ispointType = true;         //to create the desired form
     if(isUndefined(value)){
        qr.addEntry(new String("" + AttrName + ": undefined"));

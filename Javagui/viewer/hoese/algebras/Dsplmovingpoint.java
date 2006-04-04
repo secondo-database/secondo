@@ -49,7 +49,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
     if(Intervals==null || PointMaps==null){
        return null;
     }
-    int index = getTimeIndex(time,Intervals);
+    int index = IntervalSearch.getTimeIndex(time,Intervals);
     if(index<0){
       return null; 
     }
@@ -79,7 +79,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
        return null;    
     }
     double t = RefLayer.getActualTime();
-    int index = getTimeIndex(t,Intervals);
+    int index = IntervalSearch.getTimeIndex(t,Intervals);
     if(index<0){
       RenderObject = null;
       return  RenderObject;
@@ -272,7 +272,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
     if(Intervals==null || PointMaps==null){
        return 0;
     }
-    int index = getTimeIndex(time,Intervals);
+    int index = IntervalSearch.getTimeIndex(time,Intervals);
     if(index<0){
       return 0; 
     }
@@ -285,7 +285,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
     return (int) x;
   }
 
-  public boolean canBeDefined(){
+  public boolean mayBeDefined(){
     return defined;
   }
 
@@ -293,7 +293,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
     if(!defined){
       return false;
     }
-    int index = getTimeIndex(time,Intervals);
+    int index = IntervalSearch.getTimeIndex(time,Intervals);
     return index>=0;
   }
   

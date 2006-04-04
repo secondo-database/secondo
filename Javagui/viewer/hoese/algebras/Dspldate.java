@@ -41,14 +41,22 @@ public class Dspldate extends DsplGeneric implements DsplSimple{
    * @see sj.lang.ListExpr
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-     qr.addEntry(new String(type.symbolValue() + ":" + value.stringValue()));
-     return;
+     init(type,0,value,0,qr);
   }
 
   public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
-  {
+  {  
+     String V="";
+     if(isUndefined(value)){
+        V = "undefined";
+     } else{
+        if(value.atomType()==ListExpr.STRING_ATOM){
+           V = type.stringValue();
+        }else{
+           V = "<error>";
+        }
+     }
      String T = new String(type.symbolValue());
-     String V = new String(value.stringValue());
      T=extendString(T,typewidth);
      V=extendString(V,valuewidth);
      qr.addEntry(T + " : " + V);

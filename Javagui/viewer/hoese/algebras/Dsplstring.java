@@ -28,7 +28,9 @@ import viewer.hoese.*;
 /**
  * A displayclass for the string-type, alphanumeric only
  */
-public class Dsplstring extends DsplGeneric implements DsplSimple{
+public class Dsplstring extends DsplGeneric implements DsplSimple,LabelAttribute{
+  
+   String label;
 
   /**
    * This method is used to analyse the type and value in NestedList format and build
@@ -42,19 +44,30 @@ public class Dsplstring extends DsplGeneric implements DsplSimple{
    * @see <a href="Dsplstringsrc.html#init">Source</a>
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-     qr.addEntry(new String(type.symbolValue() + ":" + value.stringValue()));
-     return;
+      init(type,0,value,0,qr);
   }
 
   public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
      String T = new String(type.symbolValue());
-     String V = new String(value.stringValue());
+     String V;
+     if(value.atomType()==ListExpr.STRING_ATOM){
+        V = value.stringValue();
+     } else if(isUndefined(value)){
+         V = "undefined";
+    } else{
+         V = "<error>";
+     }
+     label = V;
      T=extendString(T,typewidth);
      V=extendString(V,valuewidth);
      qr.addEntry(T + " : " + V);
      return;
 
+  }
+
+  public String getLabel(double time){
+     return label;
   }
 
 

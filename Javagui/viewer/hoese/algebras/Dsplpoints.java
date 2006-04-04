@@ -35,6 +35,7 @@ import tools.Reporter;
 public class Dsplpoints extends DisplayGraph {
   Vector points;
   Rectangle2D.Double bounds;
+  private boolean defined;
 
   /**
    * Scans the representation of the points datatype and constructs the points Vector.
@@ -43,6 +44,12 @@ public class Dsplpoints extends DisplayGraph {
    * @see <a href="Dsplpointssrc.html#ScanValue">Source</a>
    */
   public void ScanValue (ListExpr value) {
+    if(isUndefined(value)){
+       err=false;
+       defined = false;
+       return;
+    }
+    defined = true;
     double koord[] = new double[2];
     points = new Vector(20, 20);
     while (!value.isEmpty()) {
@@ -87,10 +94,10 @@ public class Dsplpoints extends DisplayGraph {
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GA(points))"));
+      defined = false;
       return;
     }
-    else
-      qr.addEntry(this);
+    qr.addEntry(this);
     ListIterator li = points.listIterator();
     bounds = null;
     while (li.hasNext()) {
@@ -122,6 +129,9 @@ public class Dsplpoints extends DisplayGraph {
    * @see <a href="Dsplpointssrc.html#contains">Source</a>
    */
   public boolean contains (double xpos, double ypos, double scalex, double scaley) {
+    if(!defined){
+       return false;
+    }
     boolean hit = false;
     ListIterator li = points.listIterator();
     double scale = Cat.getPointSize(renderAttribute,CurrentState.ActualTime)*0.7*scalex;  
@@ -136,6 +146,9 @@ public class Dsplpoints extends DisplayGraph {
    * @see <a href="Dsplpointssrc.html#draw">Source</a>
    */
   public void draw (Graphics g, double time) {
+    if(!defined){
+       return;
+    }
     ListIterator li = points.listIterator();
     while (li.hasNext()) {
       Point2D.Double p = (Point2D.Double)li.next();

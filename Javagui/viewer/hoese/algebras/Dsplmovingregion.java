@@ -30,13 +30,15 @@ import tools.Reporter;
 /**
  * A displayclass for the movingregion-type (spatiotemp algebra), 2D with TimePanel
  */
-public class Dsplmovingregion extends DisplayTimeGraph {
+public class Dsplmovingregion extends DisplayTimeGraph implements DsplSimple{
   //AffineTransform internAT;
   Point2D.Double point;
   Vector RegionMaps;
   Rectangle2D.Double bounds;
   double bufferedTime;
   int bufferedIndex=-1;
+  /** defined flag */
+  boolean defined;
 
   /**
    * Gets the shape of this instance at the ActualTime
@@ -46,6 +48,9 @@ public class Dsplmovingregion extends DisplayTimeGraph {
    */
 
   public Shape getRenderObject (AffineTransform at) {
+    if(!defined){
+      return null;
+    }
     double t = RefLayer.getActualTime();
     if((t != bufferedTime) || (bufferedIndex <0))
       RenderObject = getRenderObjectAtTime(t);
@@ -58,6 +63,9 @@ public class Dsplmovingregion extends DisplayTimeGraph {
    * @return A Shape representing this instance at time t.
    */
   private Shape getRenderObjectAtTime (double t) {
+    if(!defined){
+       return null;
+    }
     bufferedTime = t;
     int index;
     if(bufferedIndex>=0){
@@ -65,9 +73,9 @@ public class Dsplmovingregion extends DisplayTimeGraph {
       if(lastInterval.isDefinedAt(t))
          index = bufferedIndex;
       else
-         index = getTimeIndex(t,Intervals); 
+         index = IntervalSearch.getTimeIndex(t,Intervals); 
     }else{
-       index = getTimeIndex(t,Intervals);
+       index = IntervalSearch.getTimeIndex(t,Intervals);
     }
     bufferedIndex = index;
     if(index<0){
@@ -166,6 +174,12 @@ public class Dsplmovingregion extends DisplayTimeGraph {
    * @see sj.lang.ListExpr
    */
   public void ScanValue (ListExpr value) {
+    if(isUndefined(value)){
+      defined=false;
+      err=false;
+      return;
+    }
+    defined=true;
     err = true;
     int length = value.listLength();
     RegionMaps = new Vector(length+1);
@@ -210,15 +224,24 @@ public class Dsplmovingregion extends DisplayTimeGraph {
    * @see sj.lang.ListExpr
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = type.symbolValue();
+       init(type,0,value,0,qr);
+  }
+
+  public void init (ListExpr type, int typewidth,
+                    ListExpr value,int valuewidth,
+                    QueryResult qr) {
+    AttrName = extendString(type.symbolValue(),typewidth);
     ScanValue(value);
     if (err) {
       Reporter.writeError("Dsplmovingregion Error in ListExpr :parsing aborted");
-      qr.addEntry(new String("(" + AttrName + ": GTA(mregion))"));
+      qr.addEntry(new String( AttrName + ": <error>"));
       return;
     }
-    else
-      qr.addEntry(this);
+    if(!defined){
+       qr.addEntry(AttrName+": undefined");
+       return;
+    }
+    qr.addEntry(this);
     //ListIterator li=iv.listIterator();
     bounds = null;
     TimeBounds = null;

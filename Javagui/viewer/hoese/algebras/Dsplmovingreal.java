@@ -35,7 +35,8 @@ import tools.Reporter;
 /**
  * A displayclass for the instant-type (spatiotemp algebra), alphanumeric with TimePanel
  */
-public class Dsplmovingreal extends DsplGeneric implements Timed,Function,ExternDisplay{
+public class Dsplmovingreal extends DsplGeneric implements 
+      Timed,Function,ExternDisplay,LabelAttribute, RenderAttribute{
 
   Interval TimeBounds;
   Vector Intervals = new Vector(10, 5);
@@ -45,6 +46,8 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
   double max=Double.NEGATIVE_INFINITY ;
   final static int PSIZE=300;
   boolean err;
+  boolean defined;
+  
 
 
   public boolean isExternDisplayed(){
@@ -52,6 +55,10 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
   }
 
   public void  displayExtern(){
+      if(!defined){
+          Reporter.showInfo("not defined");
+          return;
+      }
       if(TimeBounds!=null){
          functionframe.setSource(this);
          functionframe.setVisible(true);
@@ -128,25 +135,12 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
   
   }
 
-
- /** This functions searchs in the vector of intervals for the 
-   * given instant. If found the index within the Vector is returned,
-   * otherwise -1.
-   */
- private int getIndexFrom(double time){
-    for(int i=0;i<Intervals.size();i++)
-       if(((Interval)Intervals.get(i)).isDefinedAt(time))
-         return i;
-    return -1;
- }
-
-
   /**  Computes the value of this real for a given instant.
     *  The instant is just given as a double. 
     *  If the moving real is not defined at the given instant null is returned.
     **/
   public    Double getValueAt(double time){
-    int index = getIndexFrom(time);
+    int index = IntervalSearch.getTimeIndex(time,Intervals);
     return getValueAt(time,index); 
   }
 
@@ -194,6 +188,12 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
    * @see <a href="Dsplmovingrealsrc.html#ScanValue">Source</a>
    */
   public void ScanValue (ListExpr v) {
+    if(isUndefined(v)){
+       err=false;
+       defined=false;
+       return;
+    }
+    defined=true;
     if (v.isEmpty()){
       err=false; // allow empty mreals
       return;
@@ -264,6 +264,7 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
     err=true;
     ScanValue(value);
     if (err) {
+      defined = false;
       Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": TA(MReal))"));
       return;
@@ -296,6 +297,48 @@ public class Dsplmovingreal extends DsplGeneric implements Timed,Function,Extern
   public Vector getIntervals(){
     return Intervals;
     } 
+
+   /* Implementation of LabelAttribute */
+   public String getLabel(double time){
+     if(!defined){
+        return "undefined";
+     }
+     Double d = getValueAt(time);
+     if(d==null){
+        return "undefined";  
+     }
+     return d.toString();
+  }
+
+
+  /* Implemenattin of the RenderAtribute interface **/
+  public boolean mayBeDefined(){
+     return defined;
+  }
+  public double getMinRenderValue(){
+     return min;
+  }
+  public double getMaxRenderValue(){
+     return max;
+  }
+  public boolean isDefined(double time){
+     if(!defined){
+        return false;
+     }
+     Double d = getValueAt(time);
+     return d!=null;
+  }
+  public double getRenderValue(double time){
+      Double d = getValueAt(time);
+      if(d==null){
+        return (max+min)/2;
+      } else{
+        return d.doubleValue();
+      }
+  }
+
+
+
 
   /** The class which holds the formula parameter for an interval */
   class MRealMap {

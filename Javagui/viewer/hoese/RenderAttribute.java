@@ -27,7 +27,7 @@ public interface RenderAttribute{
    /** returns the minimum value of this attribute **/
    double getRenderValue(double time);
    /** return whether this objects is defined at any time**/
-   boolean canBeDefined();
+   boolean mayBeDefined();
    /** returns the maximum value of this attribute **/
    double getMinRenderValue();
    /** returns the value of this attribute for the given time **/

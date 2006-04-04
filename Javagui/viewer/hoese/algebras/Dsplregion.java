@@ -34,13 +34,21 @@ import tools.Reporter;
 public class Dsplregion extends DisplayGraph implements DsplSimple{
   /** The internal datastructure of the region datatype */
   Area areas;
+  boolean defined;
 
   /** convert the Listrepresentation LE to a Area */
   public void ScanValue(ListExpr LE){
+     if(isUndefined(LE)){
+        defined=false;
+        err=false;
+        return;
+     }
      if(LE==null){
+       defined=false;
        err=true;
        return;
      }
+     defined=true;
      areas = null;
      // first compute the number of all containing points
      ListExpr TMP  = LE;
@@ -120,9 +128,11 @@ public class Dsplregion extends DisplayGraph implements DsplSimple{
       Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(extendString(AttrName,minTypeWidth)+" : Error(region)");
       return;
+    } else if(!defined){
+       qr.addEntry(extendString(AttrName,minTypeWidth)+" : undefined");
+       return;
     }
-    else
-      qr.addEntry(this);
+    qr.addEntry(this);
     RenderObject = areas;
   }
 

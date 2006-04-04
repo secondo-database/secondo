@@ -36,11 +36,23 @@ public class Dsplline extends DisplayGraph {
   Rectangle2D.Double bounds;
   /** The shape representing this line */
   GeneralPath GP;
-  
+  /** boolean flag indicating the defined state*/
+  boolean defined;
+  /** The textual representation of this line **/
+  String entry;
 
-public boolean isLineType(){
-  return true;
-}
+  
+  /** returns true because this type is a line **/
+  public boolean isLineType(){
+    return true;
+  }
+
+  /** returns the string for the textual representation of this **/
+  public String toString(){
+     return entry;
+  }
+
+  
 
 
  /**
@@ -50,6 +62,12 @@ public boolean isLineType(){
    * @see <a href="Dspllinesrc.html#ScanValue">Source</a>
   */
   public void ScanValue (ListExpr value) {
+    if(isUndefined(value)){
+       defined=false;
+       GP=null;
+       return;
+    }
+    defined=true;
     double koord[] = new double[4];
     double x1,y1,x2,y2;
     double lastX=0, lastY=0;
@@ -126,27 +144,40 @@ public boolean isLineType(){
     }
   }
 
+
+  public void init(ListExpr type, ListExpr value,QueryResult qr){
+        init(type,0,value,0,qr);
+  }
+
+
   /**
    * Init. the Dsplline instance.
    * @param type The symbol line
+   * @param typwwidth the minium number of cahracters uded for the type
    * @param value A list of segments.
    * @param qr queryresult to display output.
    * @see QueryResult
    * @see sj.lang.ListExpr
    */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = type.symbolValue();
+  public void init (ListExpr type,int typewidth, ListExpr value,int valueWidth, QueryResult qr) {
+    AttrName = extendString(type.symbolValue(),typewidth);
     ScanValue(value);
     RenderObject = GP;
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");
-      qr.addEntry(new String("(" + AttrName + ": GA(line))"));
+      entry = AttrName + " : <error>"; 
+      qr.addEntry(entry);
       bounds =null;
       RenderObject=null;
       return;
     }
-    else
-      qr.addEntry(this);
+    else if(!defined){
+      entry = AttrName+" : undefined";
+      qr.addEntry(entry);
+      return;
+    }
+    // normal case-> defined line
+    qr.addEntry(this);
     if(GP==null)
         bounds = null;
     else{

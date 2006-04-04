@@ -109,7 +109,7 @@ public class Dsplint extends DsplGeneric implements DsplSimple, RenderAttribute,
      return value;
   }
   /** returns true if this int is defined **/
-  public boolean canBeDefined(){
+  public boolean mayBeDefined(){
       return defined;
   }
   /** returns tre if this integer is defined **/
