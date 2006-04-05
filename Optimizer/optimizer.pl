@@ -248,7 +248,6 @@ Example call:
 
 */
 
-usingVersion(standard).
 
 pog(Rels, Preds, Nodes, Edges) :-
   length(Rels, N), reverse(Rels, Rels2), deleteArguments,
@@ -257,7 +256,7 @@ pog(Rels, Preds, Nodes, Edges) :-
   pog2(Partition0, M, Preds2, Nodes, Edges),
   deleteNodes, storeNodes(Nodes),
   deleteEdges, storeEdges(Edges),
-  deletePlanEdges, deleteVariables, createPlanEdges,
+  deletePlanEdges, deleteVariables, deleteCounters, createPlanEdges,
   HighNode is 2**M -1,
   retract(highNode(_)), assert(highNode(HighNode)),
   % uncomment next line for debugging
@@ -1208,6 +1207,17 @@ plan_to_atom(true, Result) :-
   !.
 
 /*
+integrating counters into query plans
+
+*/
+ 
+plan_to_atom(counter(N,Term), Result) :-
+  plan_to_atom( Term, TermRes ),
+  concat_atom( [ TermRes, ' {', N,'} '], Result ),
+  !.
+
+ 
+/*
 Translation of operators driven by predicate ~secondoOp~ in 
 file ~opSyntax~. There are rules for
 
@@ -1760,7 +1770,7 @@ resSize(res(N), Size) :- resultSize(N, Size), !.
 ----    writeSizes :-
 ----
 
-Write sizes and selectivitiess.
+Write sizes and selectivities.
 
 */
 
@@ -2323,12 +2333,16 @@ plan(Path, Plan) :-
   highestNode(Path, N), 
   nodePlan(N, Plan).
 
-
 deleteNodePlans :- not(deleteNodePlan).
 
 deleteNodePlan :- retract(nodePlan(_, _)), fail.
 
+% switch for entropy optimizer
+traversePath(Path) :-
+  usingVersion(entropy),
+  traversePath2(Path), !.
 
+ 
 traversePath([]).
 
 traversePath([costEdge(_, _, Term, Result, _, _) | Path]) :-
@@ -3167,10 +3181,26 @@ only the cost for evaluating the essential part, the conjunctive query.
 
 */
 
-translate(Query groupby Attrs,
+
+% special handling for the entropy optimizer
+
+translate(Query, Stream2, Select, Cost2) :-
+  usingVersion(entropy),
+  deleteSmallResults,
+  retractall(highNode(_)), assert(highNode(0)),
+  translate1(Query, Stream1, Select, Cost1), !,
+  translate2(Stream1, Stream2, Cost1, Cost2), !.
+
+% default handling
+
+translate(Query, Stream, Select, Cost) :-
+  translate1(Query, Stream, Select, Cost), !.
+
+ 
+translate1(Query groupby Attrs,
         groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields), 
         select Select2, Cost) :-
-  translate(Query, Stream, SelectClause, Cost),
+  translate1(Query, Stream, SelectClause, Cost),
   makeList(Attrs, Attrs2),
   attrnames(Attrs2, AttrNamesGroup),
   attrnamesSort(Attrs2, AttrNamesSort),
@@ -3179,7 +3209,8 @@ translate(Query groupby Attrs,
   translateFields(SelAttrs, Attrs2, Fields, Select2),
   !.
 
-translate(Select from Rels where Preds, Stream, Select, Cost) :- 
+ 
+translate1(Select from Rels where Preds, Stream, Select, Cost) :- 
   pog(Rels, Preds, _, _),
   bestPlan(Stream, Cost),
   !.
@@ -3200,19 +3231,19 @@ C. Duentgen, Feb/17/2006: changed tuple variable names for the sake of uniquenes
 */
 
 
-translate(Select from Rel, Stream, Select, 0) :-
+translate1(Select from Rel, Stream, Select, 0) :-
   not(is_list(Rel)),
   makeStream(Rel, Stream), !.
 
-translate(Select from [Rel], Stream, Select, 0) :-
+translate1(Select from [Rel], Stream, Select, 0) :-
   makeStream(Rel, Stream),
   deleteVariables.
 
-translate(Select from [Rel | Rels], 
+translate1(Select from [Rel | Rels], 
         symmjoin(S1, S2, fun([param(T1, tuple), param(T2, tuple2)], true)), 
         Select, 0) :-
   makeStream(Rel, S1),
-  translate(Select from Rels, S2, Select, _),
+  translate1(Select from Rels, S2, Select, _),
   newVariable(T1),
   newVariable(T2),
   !.
@@ -3768,6 +3799,15 @@ The two versions of ~let~ allow one to assign the result of a query
 to a new object ~X~, using the optimizer.
 
 */
+
+% The entropy approach needs a special handling
+
+sql Term :-
+  usingVersion(entropy),
+  sql2(Term), !. 
+
+% Default handling
+
 sql Term :-
   isDatabaseOpen,
   mOptimize(Term, Query, Cost),
@@ -3775,6 +3815,7 @@ sql Term :-
   write('Estimated Cost: '), write(Cost), nl, nl,
   query(Query).
 
+ 
 sql(Term, SecondoQueryRest) :-
   isDatabaseOpen,
   mStreamOptimize(Term, SecondoQuery, Cost),
@@ -3883,10 +3924,21 @@ bestPlanConsume :-
   query(Q).
 
   
+/* 
+Clauses for handling counters which are 
+used in the entropy optimizer 
 
+*/
 
+:- 
+  dynamic(nCounter/1).
 
+deleteCounter :- retract(nCounter(_)), fail.
 
+deleteCounters :- not(deleteCounter).
+
+listCounters :-
+  secondo('list counters').
 
 
 

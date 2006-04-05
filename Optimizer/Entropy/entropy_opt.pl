@@ -82,13 +82,10 @@ nextCounter(C) :-
   assert(nCounter(1)),
   C = 1.
 
-% deleteCounter :- retract(nCounter(_)), fail.
-%
-% deleteCounters :- not(deleteCounter).
-
 traversePath2([]).
 
 traversePath2([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
+  %nl, write('### traversePath2'), nl,
   embedSubPlans(Term, Term2),
   nextCounter(Nc),
   assert(nodePlan(Result, counter(Nc,Term2))),
@@ -272,7 +269,7 @@ queryToStream(Query, Stream2, Cost) :-
 */
 
 translate2(Stream1, Stream2, Cost1, Cost2) :-
-  deleteSmallResults,   
+  % deleteSmallResults,   
   %  retractall(highNode(_)),assert(highNode(0)),
   %  translate(Query, Stream1, Select, Cost1), !,
   try_entropy(Stream1, Stream2, Cost1, Cost2), !,
@@ -367,9 +364,7 @@ createJointProbabilities( JP ) :-
   createJointProbability( 0, 1, [_|JP] ).
 
 createJointProbability( N0, AccSel, [[N1,CP1]|T] ) :-
-  nl, write('X4'), nl,
   small_cond_sel( N0, N1, _, Sel ),
-  nl, write('X5'), nl,
   CP1 is Sel * AccSel,
   createJointProbability( N1, CP1, T ).
 
@@ -377,14 +372,10 @@ createJointProbability( _, _, [] ).
 
 
 assignEntropyCost :-
-  nl, write('X1'), nl,
   createSmallResultSizes, !,
   createSmallSelectivity, !,
-  nl, write('X2'), nl,
   createMarginalProbabilities( MP ),!,
-  nl, write('X3'), nl,
   createJointProbabilities( JP ),!,
-  nl, write('SUCCESS'), nl,
   saveFirstSizes,
   deleteSizes,
   deleteCostEdges,

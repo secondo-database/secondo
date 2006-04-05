@@ -42,25 +42,99 @@ getprompt :-
   current_stream(1, write, ConOut), set_stream(ConOut, tty(true)),
   current_stream(2, write, ConErr), set_stream(ConErr, tty(true)). 
 
-:- [opsyntax].
 
-:-
-  assert(highNode(0)),
-  assert(boundarySize(0)),
-  assert(boundaryMaxSize(0)),
 
-% Change comments to activate the entropy approach!
-%
-% Uncomment the next line to activate the entropy approach
-% ['./Entropy/optimizer'],
+% the version predicate can be used to query the current operating
+% mode of the query optimizer. Currently one of the modes ~standard~ 
+% and ~entropy~ may be chosen.
 
-% Load files for standard optimizer
+:-  [opsyntax].
+
+:- dynamic
+  version/2,
+  loaded/1.
+
+% The files for the standard optimiztation procedure will be
+% loaded by default!
+
+mode(standard,'Shortest path search in POG.').
+mode(entropy, 'Run a plan computed by the standard optimization on a 
+             small database afterwards compute a new plan based on 
+             observed and computed selectivities.').
+
+
+loadFiles(mode(standard,_)) :-
+%  Mode = 'standard',
+%  not loaded(standard), 
+%  ['./Entropy/optimizer'], 
   [optimizer], 
   [statistics],
   [database],
   [operators],
   [boundary],
   [searchtree],
+%  retractall(loaded(_)),
+  assert(loaded(standard)).
+
+% Optional files for the entropy optimization procedure
+loadFiles(mode(entropy,_)) :-
+ %  Mode = 'entropy',
+  %  not loaded(entropy),
+  ['./Entropy/entropy_opt'],
+  %  retract(loaded(_)), 
+  assert(loaded(entropy)).
+  
+usingVersion(V) :-
+  version(V, on).
+ 
+useVersion(V) :-
+  version(V, on),
+  printVersion(V).
+ 
+useVersion(V) :-
+  version(Last, on),
+  loadFiles(mode(V,_)),
+  assert( version(V, on) ),
+  retract( version(Last, on) ),
+  printVersion(V).
+
+ %showVersions :- not showVersions2. 
+
+showVersions :-
+  nl, 
+  write('Optimization procedure variants:'), nl,
+  write('--------------------------------'), nl,
+  not showModInfo,
+  write('Use the predicate "useVersion/1" to switch between these variants.').
+  
+showModInfo :-  
+  mode(M,Desc),
+  write('* "'), write(M), write('": '), write(Desc), nl, nl, fail.
+ 
+ 
+printVersion(V) :- 
+  nl, nl, 
+  write('** Optimizer version set to "'), write(V), write('" **'), 
+  nl, nl.
+
+ 
+% Startup procedure for the optimizer
+:-
+  assert(highNode(0)),
+  assert(boundarySize(0)),
+  assert(boundaryMaxSize(0)),
+  
+% always load the files for the standard optimizes  
+  assert(version(standard, on)),
+  loadFiles(mode(standard,_)),
+
+% A info message for a special prolog version 
   nl, write('Note: Version 5.4.7 shows in the MSYS console no prompt!'), nl,
-  write('A workaround is to type in the predicate "getprompt."'), nl, nl.
+  write('A workaround is to type in the predicate "getprompt."'), nl,
+ 
+% show info about avaliable versions
+  showVersions,
+  
+% use the standard optimization 
+  useVersion(standard).
   
