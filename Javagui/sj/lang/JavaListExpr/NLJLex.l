@@ -145,11 +145,12 @@ class NLToken extends Symbol implements NLSymbol{
 %}
 
 %state TEXTATOM_STATE
+%state COMMENT_STATE
 
 
 
 
-otherChar   =   [^\(\)\"A-Za-z0-9_" "\b\f\n\r\t]
+otherChar   =   [^\(\)\"A-Za-z0-9_" "\'\b\f\n\r\t]
 letter      =   [a-zA-Z]
 digit       =   [0-9]
 ident       =   {letter}({letter}|{digit}|_)*
@@ -158,6 +159,8 @@ symbol      =   {math}|{ident}
 string      =   \"[^\"]*\"
 simpletext  =   "'"[^']*"'"
 filename    =   "<file>".*"</file--->"
+commentstart =  "_!"
+commentend   =  "!_"
 
 
 
@@ -287,6 +290,15 @@ filename    =   "<file>".*"</file--->"
                          ListExpr.symbolAtom(yytext()),
                          yychar+1, yyline+1));
                 }
+
+<YYINITIAL> {commentstart} {
+                            yybegin(COMMENT_STATE);
+                           }
+<COMMENT_STATE> {commentend} {
+                             yybegin(YYINITIAL);
+                            }
+<COMMENT_STATE> .|\n        {
+                           }
 
 
 <YYINITIAL> "<text>" {

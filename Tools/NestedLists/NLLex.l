@@ -86,7 +86,7 @@ int yyFlexLexer::yylex()
 }
 
 %}
-otherChar       [^\(\)\"A-Za-z0-9_ \a\b\f\n\r\t\v]
+otherChar       [^\(\)\"\'A-Za-z0-9_ \a\b\f\n\r\t\v]
 letter          [a-zA-Z]
 digit           [0-9]
 ident           {letter}({letter}|{digit}|_)*
@@ -96,12 +96,16 @@ num1	        [-+]?{digit}+\.?([eE][-+]?{digit}+)?
 num2	        [-+]?{digit}*\.{digit}+([eE][-+]?{digit}+)?
 number	        {num1}|{num2}
 
+commentstart	"_!"
+commentend		"!_"
+
 string          \"[^\"]*\"
 simpletext	"'"[^']*"'"		
 
 file		"<file>"[^<]+"</file--->"
 
 %x TEXT
+%x COMMENT
 %%
 
 <INITIAL>\n|\r            { lines++; cols=0; }
@@ -149,6 +153,19 @@ file		"<file>"[^<]+"</file--->"
                         text->write(yytext, yyleng);
                         }
  */
+<INITIAL>{commentstart} { cols += yyleng;
+                          BEGIN(COMMENT);
+                        }
+<COMMENT>{commentend}   { cols += yyleng;
+                          BEGIN(INITIAL);
+                        }
+<COMMENT>\n             { cols=0;
+                          lines++;
+                        }
+
+<COMMENT>.              { cols++;
+                        }
+
 
 <TEXT>.|\n              { cols += yyleng;
                           if(yytext[0]=='\n'){
