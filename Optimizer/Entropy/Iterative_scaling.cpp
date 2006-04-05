@@ -241,7 +241,7 @@ can be called with the values above by
     iteration++;
     error = 0;
   
-    printf("\n");
+    //printf("\n");
     for (j = 0; j < k; j++)	// for each equation
     {
 
@@ -264,14 +264,12 @@ can be called with the values above by
       }
     
       z[j] = selvalue[j] * e / sum; 
-      if (trace)
-        printf("   z[%d] = %f", j, z[j]);
+      //  printf("   z[%d] = %f", j, z[j]);
 
       error += (fabs(z[j] - z_old) / z_old); 
     }
 
-    if (trace)
-      printf("\n  Error = %f", error);
+    // printf("\n  Error = %f", error);
   }
   while ( error > epsilon );
 
