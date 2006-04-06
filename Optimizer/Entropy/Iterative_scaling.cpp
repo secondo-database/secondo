@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-March 2006, RHG. Implementation of the Iterative Scaling algorithm
+March 2006, RHG. Implementation of the Iterative Scaling algorithm.
 
 April 2006, M. Spiekermann. Interface modifications and changes of the start value
 initalization including a check which avoids doubly defined predicate selectivities. 
@@ -67,6 +67,8 @@ void maximize_entropy( const MarginalProbabilityVec& marginalSels,
                        JointProbabilityVec& resultSels             )
 {
   bool trace = true;
+  bool traceIter = false;
+  
   // A set of int needed to avoid doubly definitions of predicates 
   PredicateSet definedPreds;
   
@@ -111,16 +113,16 @@ void maximize_entropy( const MarginalProbabilityVec& marginalSels,
 /* 
 
 Below an example configuration for three predicates p1, p2, and p3 is shown.
-The ith predicate is encoded in the ith bit, e.g. p1 = 100 = 4. The array
-~selindex~ stores the integer value encoding a marginal or joint predicate and
-the array ~selvalue~ stores the known selectivity. A set bit indicates that the
-predicate must hold and an unset bit indicates that the predicate can be
-fullfilled or not.
+The ith predicate is encoded with the integer value $2^{i-1}$, e.g. $p1 = 001 =
+2^0 = 1$. The array ~selindex~ stores the integer value encoding a marginal or
+joint predicate and the array ~selvalue~ stores the known selectivity. A set bit
+indicates that the predicate must hold and an unset bit indicates that the
+predicate can be fullfilled or not.
 
 ----
-    100: selindex[0] = 4;  selvalue[0] = 0.1;
+    001: selindex[0] = 1;  selvalue[0] = 0.1;
     010: selindex[1] = 2;  selvalue[1] = 0.2;
-    001: selindex[2] = 1;  selvalue[2] = 0.25;
+    100: selindex[2] = 4;  selvalue[2] = 0.25;
     110: selindex[3] = 6;  selvalue[3] = 0.05;
     101: selindex[4] = 5;  selvalue[4] = 0.03;
     000: selindex[5] = 0;  selvalue[5] = 1.0;   
@@ -142,7 +144,6 @@ can be called with the values above by
   int pos = 0; 
   while( it != marginalSels.end() )
   {
-   //assert(pos < k);
    int code = (int) pow(2.0, exp1*1.0); // 2^(0), 2^(1), ..., 2^N-1 
    selindex[pos] = code; 
    selvalue[pos] = *it;
@@ -157,8 +158,6 @@ can be called with the values above by
   JointProbabilityVec::const_iterator itj = jointSels.begin();
   while( itj != jointSels.end() )
   {
-   //assert( pos < k);
-
    int code = itj->first; 
    bool ok = registerPredCode(definedPreds, code);
    
@@ -215,7 +214,7 @@ can be called with the values above by
     }
   }  
 
-  if (trace)
+  if (traceIter)
   { 
     for (i = 0; i < NN; i++)
     {
@@ -230,10 +229,8 @@ can be called with the values above by
     cout << endl;
   }
 
-   // determine new z factors
-
+  // determine new z factors
   double epsilon = 0.000001;
-
   int iteration = 0;
 
   do
@@ -241,7 +238,6 @@ can be called with the values above by
     iteration++;
     error = 0;
   
-    //printf("\n");
     for (j = 0; j < k; j++)	// for each equation
     {
 
@@ -264,12 +260,14 @@ can be called with the values above by
       }
     
       z[j] = selvalue[j] * e / sum; 
-      //  printf("   z[%d] = %f", j, z[j]);
+      if (traceIter)
+        printf("   z[%d] = %f", j, z[j]);
 
       error += (fabs(z[j] - z_old) / z_old); 
     }
 
-    // printf("\n  Error = %f", error);
+    if (traceIter)
+      printf("\n  Error = %f\n", error);
   }
   while ( error > epsilon );
 
