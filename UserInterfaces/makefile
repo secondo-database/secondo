@@ -50,8 +50,8 @@ endif
 # refer to "SecondoPL.cpp" and the subdirectory "Optimizer/Entropy"
 ifdef ENTROPY 
 
+MK_ENTROPY := entropy
 ENTROPY_OBJ := ../Optimizer/Entropy/Iterative_scaling.$(OBJEXT)
-APPLOBJECTS += callEntropy
 CCFLAGS += -DSECONDO_USE_ENTROPY
 endif
 
@@ -71,7 +71,7 @@ APPLICATIONS := $(addsuffix $(EXEEXT), $(APPLICATIONS))
 #
 
 .PHONY: all
-all: $(CODE_DEPENDENCIES) $(APPLOBJECTS) 
+all: $(CODE_DEPENDENCIES) $(MK_ENTROPY) $(APPLOBJECTS) 
 	@chmod u+x ../bin/SecondoTTYBDB
 	@chmod u+x ../bin/TestRunner
 	@chmod u+x ../bin/TestRunnerCS
@@ -83,14 +83,14 @@ buildapp: $(APPLICATIONS)
 .PHONY: TTYDemo
 TTYDemo: ../$(SECONDO_DEMO)/SecondoTTY$(SMIUP)$(EXEEXT)
 
-.PHONY: callEntropy
-callEntropy:
-	$(MAKE) -C ../Optimizer/Entropy allEntropy
-
+.PHONY: entropy
+entropy:
+	$(MAKE) -C ../Optimizer/Entropy
 
 .PHONY: clean
 clean:
-	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS)
+	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ)
+
 
 #
 # RULES SECTION
@@ -98,6 +98,7 @@ clean:
 # create dependencies from include directives
 
 CCFLAGS += $(DEFAULTCCFLAGS)
+
 
 MainTTYCS.cpp: MainTTY.cpp
 	$(CP) $< $@ 
@@ -108,6 +109,7 @@ MainTTYCS.cpp: MainTTY.cpp
 MainTTYCS.$(OBJEXT): MainTTY.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS 
 
+SecondoPL.$(OBJEXT): $(ENTROPY_OBJ)
 %.$(OBJEXT): %.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) $(RL_COMPILE_FLAG) 
 
