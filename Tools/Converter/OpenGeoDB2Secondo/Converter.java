@@ -37,15 +37,15 @@ public class Converter{
   prints the header of a database definition
 */
 private static void printDBProlog(){
-	System.out.println("(DATABASE OPENGEODB");
+    System.out.println("(DATABASE OPENGEODB");
   if(oldStyle){
      System.out.println("    (DESCRIPTIVE ALGEBRA)");
      System.out.println("    (TYPES)");
      System.out.println("    (OBJECTS)");
-	   System.out.println("    (EXECUTABLE ALGEBRA)");
+       System.out.println("    (EXECUTABLE ALGEBRA)");
   }
-	System.out.println("    (TYPES)");
-	System.out.println("    (OBJECTS");
+    System.out.println("    (TYPES)");
+    System.out.println("    (OBJECTS");
         System.out.println("       (OBJECT License () text ");
         System.out.println("          <text>");
         System.out.println("OpenGeoDB");
@@ -66,8 +66,8 @@ private static void printDBProlog(){
    finished a database definition
 */
 private static void printDBEpilog(){
-	System.out.println("    )");
-	System.out.println(")");
+    System.out.println("    )");
+    System.out.println(")");
 }
 
 /*
@@ -154,23 +154,24 @@ private static int kfz(String Line){
 private static int searchOrt(String Line){
    if(!Line.startsWith("#")){
       System.out.println("    (OBJECT Orte");
-	 System.out.println("       ()");
-	 System.out.println("       (rel ");
-	 System.out.println("         (tuple");
-	 System.out.println("           (");
-	 System.out.println("             (key int)");
+     System.out.println("       ()");
+     System.out.println("       (rel ");
+     System.out.println("         (tuple");
+     System.out.println("           (");
+     System.out.println("             (key int)");
          System.out.println("             (Staat string)");
-	 System.out.println("             (Bundesland string)");
-	 System.out.println("             (Regierungsbezirk string)");
-	 System.out.println("             (Landkreis text)");
-	 System.out.println("             (Verwaltungszusammenschluss text)");
-	 System.out.println("             (Ort string)");
-	 System.out.println("             (Ortsteil string)");
-	 System.out.println("             (Gemeindeteil string)");
-	 System.out.println("             (Position point)");
-	 System.out.println("             (Kzeichen string))))");
-	 System.out.println("        (");
-	 return ORT;
+     System.out.println("             (Bundesland string)");
+     System.out.println("             (Regierungsbezirk string)");
+     System.out.println("             (Landkreis text)");
+     System.out.println("             (Verwaltungszusammenschluss text)");
+     System.out.println("             (Ort string)");
+     System.out.println("             (Ortsteil string)");
+     System.out.println("             (Gemeindeteil string)");
+   System.out.println("             (AndererOrt   string)");
+     System.out.println("             (Position point)");
+     System.out.println("             (Kzeichen string))))");
+     System.out.println("        (");
+     return ORT;
    }
    return SEARCHORT;
 }
@@ -185,14 +186,14 @@ private static int processOrt(String Line){
    tmpS.clear();
    while(ST.hasMoreTokens())
       tmpS.add(ST.nextToken().trim());
-   if(tmpS.size()<13){
+   if(tmpS.size()<14){
      if(tmpS.size()>2)
         System.err.println("error in reading Ort "+Line);
       return ORT;
    }
    try{
-      Double.parseDouble((String)tmpS.get(9));
       Double.parseDouble((String)tmpS.get(10));
+      Double.parseDouble((String)tmpS.get(11));
    } catch(Exception e){
       System.err.println("wrong coordinates in: "+ Line);
       return ORT;
@@ -207,8 +208,9 @@ private static int processOrt(String Line){
    System.out.print("\""+tmpS.get(6)+"\" "); // Ort
    System.out.print("\""+tmpS.get(7)+"\" "); // Ortsteil
    System.out.print("\""+tmpS.get(8)+"\" "); // Gemeindeteil
-   System.out.print(" ("+tmpS.get(10)+" "+tmpS.get(9)+") "); // Koordinaten
-   System.out.println("\""+tmpS.get(11)+"\" )"); // Kennzeichen
+   System.out.println("\""+tmpS.get(9)+"\""); // anderer Ort
+   System.out.print(" ("+tmpS.get(11)+" "+tmpS.get(10)+") "); // Koordinaten
+   System.out.println("\""+tmpS.get(12)+"\" )"); // Kennzeichen
 
    // check for lengths
    boolean err = false;
@@ -244,7 +246,7 @@ private static int processOrt(String Line){
      System.err.println("Error in Line "+Line);
    }
    Vector PLZs = new Vector();
-   StringTokenizer PLZST = new StringTokenizer((String)tmpS.get(12),",.");
+   StringTokenizer PLZST = new StringTokenizer((String)tmpS.get(13),",.");
    while(PLZST.hasMoreTokens())
        PLZs.add(PLZST.nextToken().trim());
    PLZTuple PT = new PLZTuple();
@@ -271,13 +273,13 @@ private static void printPLZ(){
      PLZTuple T = (PLZTuple) i.next();
      for(int j=0;j<T.Plzs.size();j++){
          boolean err = false;
-	 try{
+     try{
             Integer.parseInt((String)T.Plzs.get(j));
-	 }catch(Exception e){ err=true;}
-	 if(err){
+     }catch(Exception e){ err=true;}
+     if(err){
             System.err.println("wrong plz in city whith id "+T.Ident);
             System.out.println("  ( "+T.Ident+" -1 ) ");
-	 }else
+     }else
            System.out.println("  ( "+T.Ident+" "+T.Plzs.get(j)+" ) ");
      }
   }
@@ -296,13 +298,13 @@ private static int processLine(String Line, int Mode){
       Mode= searchLand(Line);
       if(Mode!=SEARCHLAND){  // Laeder found, print objectprolog
          System.out.println("    (OBJECT Bundeslaender");
-	 System.out.println("       ()");
-	 System.out.println("       (rel ");
-	 System.out.println("         (tuple");
-	 System.out.println("           (");
-	 System.out.println("             (Ident string)");
+     System.out.println("       ()");
+     System.out.println("       (rel ");
+     System.out.println("         (tuple");
+     System.out.println("           (");
+     System.out.println("             (Ident string)");
          System.out.println("             (Name string))))");
-	 System.out.println("        (");
+     System.out.println("        (");
       }
    } else
       if(Mode==LAND){
@@ -319,13 +321,13 @@ private static int processLine(String Line, int Mode){
       Mode=searchKFZ(Line);
       if(Mode!=SEARCHKFZ){
          System.out.println("    (OBJECT Kennzeichen");
-	 System.out.println("       ()");
-	 System.out.println("       (rel ");
-	 System.out.println("         (tuple");
-	 System.out.println("           (");
-	 System.out.println("             (Kzeichen string)");
+     System.out.println("       ()");
+     System.out.println("       (rel ");
+     System.out.println("         (tuple");
+     System.out.println("           (");
+     System.out.println("             (Kzeichen string)");
          System.out.println("             (Landkreis text))))");
-	 System.out.println("        (");
+     System.out.println("        (");
       }
    } else
    if(Mode==KFZ){

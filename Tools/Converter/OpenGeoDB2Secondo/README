@@ -1,18 +1,22 @@
 This program converts the open-geo-database to a database ready for restoring
-in SECONDO. The latest version of this database can be downloaded from:
-    http://opengeodb.de/download/
-Unfortunately the format of the data is changed since version 1.1.
-The converter works with version 1.3 of this database. 
-I hope it will works also with later versions. The version 1.3 contains
-more than 17.000 locations of cities. The most of them are located in 
-germany. 
+in SECONDO. 
+You can donwload the latest version of the database from:
+    http://sourceforge.net/projects/opengeodb/
+
+This converter requires version 0.2.4d of the database.
+The database contains more than 20.000 locations most in germany.
+
 For converting the database into SECONDO's nested list format you have to:
 - download the txt-version of this database 
+  in the file opengeodb-0.2.4d-UTF8-text-orte.zip
+- unzip the file
+  unzip opengeodb-0.2.4d-UTF8-text-orte.zip
 - recode the file for correction of umlauts
-    recode ISO-8859-1 <filename>
-- compile the Converter (just type in make)
+    recode UTF-8..ISO-8859-1 opengeodb-0.2.4d-UTF8-text-orte.zip
+- compile the Converter 
+    make
 - convert the database:
-    java Converter <Name_of_the_database>   ><Outputfile>
+    java Converter opengeodb-0.2.4d-UTF8-text-orte.zip   ><Outputfile>
   some errors are reported because some bugs in the data; ignore it
 - copy <Outputfile> into SECONDO's bin directory
 - start SECONDO
