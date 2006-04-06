@@ -209,7 +209,7 @@ private static int processOrt(String Line){
    System.out.print("\""+tmpS.get(7)+"\" "); // Ortsteil
    System.out.print("\""+tmpS.get(8)+"\" "); // Gemeindeteil
    System.out.println("\""+tmpS.get(9)+"\""); // anderer Ort
-   System.out.print(" ("+tmpS.get(11)+" "+tmpS.get(10)+") "); // Koordinaten
+   System.out.print(" ("+tmpS.get(10)+" "+tmpS.get(11)+") "); // Koordinaten
    System.out.println("\""+tmpS.get(12)+"\" )"); // Kennzeichen
 
    // check for lengths
