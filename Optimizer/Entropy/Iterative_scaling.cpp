@@ -138,20 +138,20 @@ can be called with the values above by
   
   // marginal selectivities
   MarginalProbabilityVec::const_iterator it = marginalSels.begin();
-  int exp1 = N-1;
+  int exp1 = 0;
   int pos = 0; 
   while( it != marginalSels.end() )
   {
    //assert(pos < k);
-   int code = (int) pow(2.0, exp1*1.0); // 2^(N-1), 2^(N-2), ..., 2^0 
+   int code = (int) pow(2.0, exp1*1.0); // 2^(0), 2^(1), ..., 2^N-1 
    selindex[pos] = code; 
    selvalue[pos] = *it;
    registerPredCode(definedPreds, code);
    it++;
    pos++;
-   exp1--;
+   exp1++;
   } 
-  assert(exp1 == -1);
+  assert(exp1 == N);
   
   // joint selectivities
   JointProbabilityVec::const_iterator itj = jointSels.begin();
