@@ -20,18 +20,42 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+September 2005, G. Zimbrao. Initial version. 
+
 April 2006, M. Spiekermann. Isolating the changes neede for the entropy optimizer.
 Redundant code (code which is also defined in the standard optimizer) removed.
+Some parts were merged with the standard optimizer. Moreover a mechanism for
+switching between ~standard~ and ~entropy~ optimiztation was implemented in
+~calloptimizer.pl~. Finally, the ~entropy~ code was documented.
 
 */
 
 
+/*
+1 Data Structures
+
+*/
+
+:- dynamic
+   % nCounter/1, defined in optimizer.pl
+   % nCounter tracks the number of counters in queries which are used
+   % to compute the size of intermediate results along a path through the POG.
+
+   smallResultSize/2,
+   smallResultCounter/4,
+   
+   % smallResultCounter(Nc, Source, Target, Result))
+   % 
+   
+   entropy_node/2,
+   small_cond_sel/4,
+   useEntropy/0,
+   firstResultSize/2,
+   firstEdgeSelectivity/3.
 
 /*
-----    writeSizes :-
-----
-
-Write first sizes and compare sizes.
+Some clauses which print the estimated sizes of the standard optimizer
+and compares them with the sizes calculated by the entropy approach.
 
 */
 
@@ -40,6 +64,7 @@ writeFirstSize :-
   write('Node: '), write(Node), nl,
   write('Size: '), write(Size), nl, nl,
   fail.
+ 
 writeFirstSize :-
   firstEdgeSelectivity(Source, Target, Sel),
   write('Source: '), write(Source), nl,
@@ -55,6 +80,7 @@ compareSize :-
   write(', Size: '), write(Size1),
   write(' ==> '), write(Size2), nl, nl,
   fail.
+ 
 compareSize :-
   firstEdgeSelectivity(Source, Target, Sel1),
   edgeSelectivity(Source, Target, Sel2),
@@ -63,12 +89,18 @@ compareSize :-
   write(', Selectivity: '), write(Sel1),
   write(' ==> '), write(Sel2), nl, nl,
   fail.
+ 
 compareSizes :- not(compareSize).
 
+/*
+Maintain and increment the number of used counters. The dynamic fact ~nCounter~
+tracks the number of counters in queries which are used to compute the size of
+intermediate results along a path through the POG.
 
-% nCounter tracks the number of counters in queries to get the size of intermediate results.
-%:-
-%  dynamic(nCounter/1).
+*/
+
+%:- dynamic
+%     nCounter/1, defined in optimizer.pl
 
 nextCounter(C) :-
   nCounter(N),
@@ -82,16 +114,14 @@ nextCounter(C) :-
   assert(nCounter(1)),
   C = 1.
 
-traversePath2([]).
 
-traversePath2([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
-  %nl, write('### traversePath2'), nl,
-  embedSubPlans(Term, Term2),
-  nextCounter(Nc),
-  assert(nodePlan(Result, counter(Nc,Term2))),
-  assert(smallResultCounter(Nc, Source, Target, Result)),
-  traversePath2(Path).
+/* 
+The clauses below are used to store a list of counters returned by SECONDO.
+The command ~list counters~ will return a list of pairs (ctrNum, value) which
+is stored in ~smallResultSize/2~
 
+*/
+ 
 deleteSmallResultCounter :-
   retractall(smallResultCounter(_,_,_,_)).
 
@@ -113,12 +143,14 @@ createSmallResultSizes :-
 deleteSmallResultSize :-
   retractall(smallResultSize(_,_)).
 
-createSmallSelectivity :-
-  deleteSmallSelectivity, !,
-  not(createSmallSelectivity2).
+/*
+Based on the counter values we can compute the conditional selectivities
+along the path chosen by the ~standard~ optimizer. The values are stored
+in ~small\_cond\_sel/4~.
 
-deleteSmallSelectivity :-
-  retractall(small_cond_sel(_,_,_,_)).
+*/
+ 
+ 
 
 compute_sel( 0, 0, Sel ) :-
   Sel is 1.
@@ -138,6 +170,10 @@ assignSmallSelectivity(Source, Target, Result, join(Arg1, Arg2, _), Value) :-
   compute_sel( Value, Card, Sel ),!,
   assert(small_cond_sel(Source, Target, Result, Sel)).
 
+createSmallSelectivity :-
+  deleteSmallSelectivity, !,
+  not(createSmallSelectivity2).
+ 
 createSmallSelectivity2 :-
   smallResultCounter(_, Source, Target, Result),
   smallResultSize(Result, Value),
@@ -145,17 +181,21 @@ createSmallSelectivity2 :-
   assignSmallSelectivity(Source, Target, Result, Term, Value),
   fail.
 
+/*
+2 Some clauses operationg the ~small~ database.
+
+prepare\_query\_small prepares the query to be executed in the small database.
+Assumes that the small database has the same indexes that are in the full database,
+but with the sufix '\_small'
+
+*/
+ 
 small(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
   atom_concat(Rel, '_small', Rel2).
 
 newResSize(arg(N), Size) :- argument(N, R ), small( R, rel(SRel, _, _)), card(SRel, Size), !.
 newResSize(res(N), Size) :- smallResultSize(N, Size), !.
 
-/*
-prepare\_query\_small prepares the query to be executed in the small database.
-Assumes that the small database has the same indexes that are in the full database,
-but with the sufix '\_small'
-*/
 
 prepare_query_small( count(Term), count(Result) ) :-
   query_small(Term, Result).
@@ -236,35 +276,45 @@ query_small( Term, Result ) :-
   Result = Term,
   !.
 
+
+
 /*
-We introduce ~sql2~ as PROLOG operator:
+3 Interaction with the ~standard~ optimizer
+
+At some places in optimizer.pl it will be checked
+if ~usingVersion(entropy)~ holds. If this is true ~clause2~ will be 
+called instead of ~clause~.
 
 */
 
-:- op(990, fx, sql2).
-
 
 /*
-Modifications in queryToStream(Query, Plan, Cost) :-
+The rule ~traversePath~ is used inside predicate ~plan/2~ of the
+standard optimizer, but for the entropy approach the version below will
+be called. In this case the values of the counters will be stored in 
 
-
-queryToStream(Query first N, head(Stream, N), Cost) :-
-  queryToStream(Query, Stream, Cost),
-  !.
-
-queryToStream(Query orderby SortAttrs, Stream2, Cost) :-
-  translate(Query, Stream, Select, Cost),
-  finish(Stream, Select, SortAttrs, Stream2),
-  !.
-
-queryToStream(Query, Stream2, Cost) :-
-  translate(Query, Stream, Select, Cost),
-  finish(Stream, Select, [], Stream2).
+----  nodePlan/2
+      smallResultCounter/4
+----      
 
 */
 
+traversePath2([]).
+
+traversePath2([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
+  %nl, write('### traversePath2'), nl,
+  embedSubPlans(Term, Term2),
+  nextCounter(Nc),
+  assert(nodePlan(Result, counter(Nc,Term2))),
+  assert(smallResultCounter(Nc, Source, Target, Result)),
+  traversePath2(Path).
+
 /*
-  Entropy stuff.
+The clause ~translate2~ runs a plan given as ~STREAM1~ with ~Cost1~, runs
+it on the small database. Conditional selectivities are computed along
+the path of the first plan. Then the iterative scaling algorithm computes the
+remaining conditional selectivites. The new selectivites are assigned to the
+POG and a second plan is computed and returned as ~Stream2~ with costs ~Cost2~.
 
 */
 
@@ -276,43 +326,52 @@ translate2(Stream1, Stream2, Cost1, Cost2) :-
   warn_plan_changed(Stream1, Stream2).
 
 try_entropy(Stream1, Stream2, Cost1, Cost2) :-
+ 
   useEntropy, highNode(HN), HN > 1, HN < 256, !,
-  nl, write('*** Trying to use the Entropy-approach ******************************' ), nl, !,
+  
+  nl, 
+  write('*** Using Entropy-approach ************' ), 
+  nl, !,
+  
   plan_to_atom(Stream1, FirstQuery),
   prepare_query_small(Stream1, PlanSmall),
   plan_to_atom(PlanSmall, SmallQuery),
-  write('The plan in small database is: '), nl, write(SmallQuery), nl, nl,
+  
+  write('The plan in small database is: '), nl, 
+  write(SmallQuery), nl, nl,
   write('Executing the query in the small database...'),
+  
   deleteEntropyNodes, !,
   query(SmallQuery), !, nl,
-  assignEntropyCost, !,
-  write('First Plan:'), nl, write( FirstQuery ), nl, nl,
-  write('Estimated Cost: '), write(Cost1), nl, nl,
-  entropyBestPlan(Stream2, Cost2).
+  
+  write('First Plan:'), nl, 
+  write( FirstQuery ), nl, nl,
+  write('Estimated Cost: '), 
+  write(Cost1), nl, nl,
+ 
+  % compute a new plan. The assignCost clause will use assignEntropyCost. 
+  bestPlan(Stream2, Cost2).
 
 try_entropy(Stream1, Stream1, Cost1, Cost1).
-
-entropyBestPlan(Plan,Cost) :-
-  deleteCounters,
-  highNode(N),
-  dijkstra(0, N, Path, Cost),
-  plan(Path, Plan).
 
 warn_plan_changed(Plan1, Plan2) :-
   not(Plan1 = Plan2),
   nl,
-  write( '*******************************************************' ), nl,
-  write( '* * *  INITIAL PLAN CHANGED BY ENTROPY APPROACH!  * * *' ), nl,
-  write( '*******************************************************' ), nl.
+  write( '************************************' ), nl,
+  write( '* * *  INITIAL PLAN CHANGED !  * * *' ), nl,
+  write( '************************************' ), nl.
 
 warn_plan_changed(_,_).
 
 
 /*
 
-12 Optimizing and Calling Secondo.
+We introduce ~sql2~ as a prolog operator.
 
 */
+
+:- op(990, fx, sql2).
+
 
 sql2 Term :-
   isDatabaseOpen,
@@ -347,8 +406,11 @@ entropySel( Source, Target, Sel ) :-
   entropy_node( Target, P2 ),
   P1 > 0,
   Sel is P2 / P1.
+ 
 /*
-Now it is assuming an implicit order. Should be altered to work in the same way as conditional probabilities
+Now it is assuming an implicit order. Should be altered to work i
+n the same way as conditional probabilities
+
 */
 
 createMarginalProbabilities( MP ) :-
@@ -407,36 +469,12 @@ assignEntropySize(Source, Target, join(Arg1, Arg2, _), Result) :-
   setNodeSize(Result, Size),
   assert(edgeSelectivity(Source, Target, Sel)).
 
-deleteEntropyNodes :-
-  retractall(entropy_node(_,_)).
 
 createEntropyNode( [] ).
 createEntropyNode( [[N,E]|L] ) :-
   assert(entropy_node(N,E)),
   createEntropyNode( L ).
 
-:- dynamic
-   smallResultSize/2,
-   smallResultCounter/4,
-   entropy_node/2,
-   small_cond_sel/4,
-   useEntropy/0,
-   firstResultSize/2,
-   firstEdgeSelectivity/3.
-
-useEntropy.
-
-use_entropy :-
-  assert(useEntropy).
-
-dont_use_entropy :-
-  retractall(useEntropy).
-  
-deleteSmallResults :-
-  deleteSmallResultCounter,
-  deleteSmallResultSize,
-  deleteSmallSelectivity,
-  deleteFirstSizes.
 
 saveFirstSizes :-
   not(copyFirstResultSize), !,
@@ -452,9 +490,42 @@ copyFirstEdgeSelectivity :-
   assert(firstEdgeSelectivity(Source, Target, Sel)),
   fail.
 
+ 
+/*
+Delete facts stored during the ~entropy~ optimization
+procedure.
+
+*/
+ 
+deleteEntropyNodes :-
+  retractall(entropy_node(_,_)).
+ 
 deleteFirstSizes :-
   retractall(firstResultSize(_,_)),
   retractall(firstEdgeSelectivity(_,_,_)).
+  
+deleteSmallSelectivity :-
+  retractall(small_cond_sel(_,_,_,_)).
+ 
+deleteSmallResults :-
+  deleteSmallResultCounter,
+  deleteSmallResultSize,
+  deleteSmallSelectivity,
+  deleteFirstSizes.
+ 
+ 
+/*
+Auxiliary stuff
+
+*/
+ 
+useEntropy.
+
+use_entropy :-
+  assert(useEntropy).
+
+dont_use_entropy :-
+  retractall(useEntropy).
   
 quit :- 
   halt.

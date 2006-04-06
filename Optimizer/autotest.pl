@@ -7,8 +7,23 @@ optimizer. However, it will only test if optimization and execution of given
 SQL queries is successful. There is no check if the result of the optimization
 is correct. 
 
-The test is invoked by the goal ~optimizeTest~. You will need the databases
-~opt~ and ~tpc~.
+Currently there are three kinds of tests:
+
+  * ~runExamples/0~ which runs the examples presented in the file optimizer.pl.
+Therefore you will need database opt. 
+
+  * ~runTPCExamples/0~ which runs some queries of the TPC-H benchmark. The
+queries need the database ~tpc~.
+
+  * ~runGenExamples~. This is a stress test for the optimizer since it generates
+many variants of possible queries on data of database opt.
+
+Some of the queries need more than the default global and local stack sizes of
+SWI-Prolog, hence the optimizer must be started with the following options
+
+
+---- SecondoPL -G6m -L8m
+----
 
 */
 

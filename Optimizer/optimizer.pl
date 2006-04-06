@@ -2055,6 +2055,10 @@ This just puts together creation of sizes and cost edges.
 */
 
 assignCosts :-
+  usingVersion(entropy),
+  assignEntropyCost.
+ 
+assignCosts :-
   assignSizes,
   createCostEdges.
 
@@ -2381,14 +2385,10 @@ highestNode(Path, N) :-
 */
 
 bestPlan :-
-  assignCosts,
-  highNode(N), 
-  dijkstra(0, N, Path, Cost),
-%   writePath(Path),
-  plan(Path, Plan),
+  bestPlan(Plan, Cost), !,
   write('The best plan is:'), nl, nl,
   wp(Plan),
-  nl, nl,
+  nl, nl, 
   write('The cost is: '), write(Cost), nl.
 
 bestPlan(Plan, Cost) :-
