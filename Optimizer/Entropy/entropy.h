@@ -36,15 +36,14 @@ Result is in the form of a list of pairs [n, cp] also.
 #ifndef __ENTROPY_H__
 #define __ENTROPY_H__
 
-//#include <pair>
 #include <vector>
 
-typedef std::pair<int, double> JointSelPair;
-typedef std::vector<JointSelPair> JointProbabilityVec; 
-typedef std::vector<double> MarginalProbabilityVec;
+typedef std::pair<int, double> ProbabilityPair;
+typedef std::vector<ProbabilityPair> ProbabilityPairVec; 
+typedef std::vector<double> ProbabilityVec;
 
-void maximize_entropy( const MarginalProbabilityVec& marginalProbabilities,
-                       JointProbabilityVec& jointProbabilities,
-                       JointProbabilityVec& estimatedProbabilities );
+void maximize_entropy( const ProbabilityPairVec& marginalProbabilities,
+                       ProbabilityPairVec& jointProbabilities,
+                       ProbabilityPairVec& estimatedProbabilities );
 
 #endif

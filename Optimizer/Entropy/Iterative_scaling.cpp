@@ -63,9 +63,9 @@ bool registerPredCode(PredicateSet& ps, const int code) {
 } 
 
 
-void maximize_entropy( const MarginalProbabilityVec& marginalSels,
-                       JointProbabilityVec& jointSels,
-                       JointProbabilityVec& resultSels             )
+void maximize_entropy( const ProbabilityPairVec& marginalSels,
+                       ProbabilityPairVec& jointSels,
+                       ProbabilityPairVec& resultSels         )
 {
   bool trace = true;
   bool traceIter = false;
@@ -134,44 +134,35 @@ Inside the optimizer a predicate ~maximze\_entropy/3~ is provided which
 can be called with the values above by
 
 ----
-    maximize_entropy([0.1, 0.2, 0.25], [[6, 0.05], [5, 0.03]], R).
+    maximize_entropy([[1 0.1], [2, 0.2], [4, 0.25]], [[6, 0.05], [5, 0.03]], R).
 ----
 
 */
   
-  // marginal selectivities
-  MarginalProbabilityVec::const_iterator it = marginalSels.begin();
-  int exp1 = 0;
+  // process marginal and joint selectivities
+  const ProbabilityPairVec* args[2] = { &marginalSels, &jointSels };
+
   int pos = 0; 
-  while( it != marginalSels.end() )
-  {
-   int code = (int) pow(2.0, exp1*1.0); // 2^(0), 2^(1), ..., 2^N-1 
-   selindex[pos] = code; 
-   selvalue[pos] = *it;
-   registerPredCode(definedPreds, code);
-   it++;
-   pos++;
-   exp1++;
-  } 
-  assert(exp1 == N);
-  
-  // joint selectivities
-  JointProbabilityVec::const_iterator itj = jointSels.begin();
-  while( itj != jointSels.end() )
-  {
-   int code = itj->first; 
-   bool ok = registerPredCode(definedPreds, code);
-   
-   if (ok) { 
-     selindex[pos] = code; 
-     selvalue[pos] = itj->second;
-     pos++;
-   }
-   else {
-    // decrement number of used selectivites
-     k = k-1;
-   }  
-   itj++;
+  for (int i = 0; i<2; i++) 
+  { 
+    const ProbabilityPairVec& v = *(args[i]);
+    ProbabilityPairVec::const_iterator itj = v.begin();
+    while( itj != v.end() )
+    {
+     int code = itj->first; 
+     bool ok = registerPredCode(definedPreds, code);
+     
+     if (ok) { 
+       selindex[pos] = code; 
+       selvalue[pos] = itj->second;
+       pos++;
+     }
+     else {
+      // decrement number of used selectivites
+       k = k-1;
+     }  
+     itj++;
+    }
   } 
 
    // Check if predicate 0 ( sum=1 ) is already included
@@ -191,7 +182,7 @@ can be called with the values above by
   {
     cout << endl << "There are " << k << " known selectivities:" << endl;
     for (j = 0; j < k; j++) {
-      printf("s[%d] = %f\n", selindex[j], selvalue[j]);
+      cout << "s[" << selindex[j] << "] = " << selvalue[j] << endl;
     }
     //exit(1);
   } 
@@ -272,13 +263,13 @@ can be called with the values above by
   }
   while ( error > epsilon );
 
-  printf("\nIteration stopped. Error = %f\n", error);
-  printf("%d iterations needed\n\n", iteration);
+  cout << "\nIteration stopped. Error = " << error << endl;
+  cout << iteration << " iterations needed." << endl << endl;
 
 
   // Compute atom selectivities from z factors
 
-  printf("Computing atom selectivities ... \n");
+ cout << "Computing atom selectivities ... " << endl;
 
   for (i = 0; i < NN; i++)
   {
@@ -290,13 +281,13 @@ can be called with the values above by
     atomsel[i] = prod;
 
     if (trace)
-      printf("i = %d: %f\n", i, atomsel[i]);
+      cout << "i = " << i << ":" << atomsel[i] << endl;
   }
 
   
   // Compute predicate selectivities
 
-  printf("\nComputing predicate selectivities ... \n");
+  cout << "\nComputing predicate selectivities ..." << endl;
 
 
   for (i = 0; i < NN; i++)
@@ -311,13 +302,31 @@ can be called with the values above by
     resultSels.push_back( make_pair(i, sum) );
 
     if (trace)
-      printf("i = %d: %f\n", i, predsel[i]);
+      cout << "i = " << i << ":" << predsel[i] << endl;
   }
 
+  cout.flush();
   return;
 }
 
 #ifdef STAND_ALONE
+
+
+void appendProbabilityArgs( ProbabilityPairVec& v, 
+                            const char* argv[], 
+                            const int offset, 
+                            const int n            )
+{ 
+  for( int i = 0; i < n*2; i+=2 )
+  {
+    int pos = offset+i;
+    int code = atoi(argv[pos]);
+    double prob = atof(argv[pos+1]);
+      
+    v.push_back( ProbabilityPair( code, prob ) );
+  }
+}  
+
 
 int main( int argc, const char* argv[] )
 {
@@ -328,42 +337,44 @@ int main( int argc, const char* argv[] )
          << endl
          << "Unknown joint predictes are computed by the " 
          << "Interative Scaling algorithm." << endl << endl
-         << "Usage: " << argv[0] << " n p1 p2 p3 ... pn cp1 cp2 ..." 
+         << "Usage: " << argv[0] << " n m1 m2 ...  j1 j2 ..." 
          << endl << endl
-         << "        n: the number of predicates." << endl
-         << "  p1...pn: is the known probability of a single predicate." << endl
-         << "  j1...jn: is the joint probability; a pair (int real)."  << endl
-         << "           The bit encoding of the integer determines the" << endl
-         << "           predicates which are fulfilled simultaneous." << endl
+         << "        n: the number of predicates" << endl
+         << "  m1...mn: is the known marginal probability of a predicate."
+         << endl
+         << "  j1...jk: is the joint probability of two ore more predicates;"
+         << endl
+         << "           Every probability is denoted as pair (int real). "
+         << endl 
+         << "           2^i determines the i-th predicate!" << endl
          << "Example:" << endl 
-         << "  IterScale 3 0.1 0.2 0.25 6 0.05 5 0.03" << endl;
+         << "  IterScale 1 0.1 2 0.2 4 0.25 6 0.05 5 0.03" << endl;
 
     exit(0);
   }
 
-  int npred = atoi( argv[1] );
-  int ngiven = argc - npred - 2;
-  int nvars = 1 << npred;
-
-  MarginalProbabilityVec marginalProb;
-  JointProbabilityVec jointProb;
-  JointProbabilityVec estimProb;
-
-  for( int i = 0; i < npred; i++ )
-    marginalProb.push_back( atof( argv[i+2] ) );
-
-  int pos = 0;
-  for( int i = 0; i < ngiven; i+=2 )
+  
+  const int offset = 2;
+  int npreds = atoi(argv[1]);
+  
+  int ngiven = (argc - offset) / 2;
+  cout << "ngiven: " << ngiven << endl;
+  if ( (ngiven * 2) != (argc-offset) ) 
   {
-    int k = npred+2+i;
-    jointProb.push_back( pair<int,double>( atoi(argv[k]), atof( argv[k+1] ) ) );
-    //cout << jointProb[pos].first << " " << jointProb[pos].second << endl;
-    pos++;
-  }
+    cerr << "ERROR: The number of arguments must be 2n+1!" << endl;
+    exit(1+ngiven);
+  }  
 
+  ProbabilityPairVec marginalProb;
+  ProbabilityPairVec jointProb;
+
+  appendProbabilityArgs(marginalProb, argv, offset, npreds);
+  appendProbabilityArgs(jointProb, argv, offset + npreds*2, ngiven - npreds);
+  
+  ProbabilityPairVec estimProb;
   maximize_entropy(marginalProb, jointProb, estimProb);
 
-  JointProbabilityVec::const_iterator it = estimProb.begin();
+  ProbabilityPairVec::const_iterator it = estimProb.begin();
   cout << endl << "Returned values:" << endl;
   while ( it != estimProb.end() )
   {
