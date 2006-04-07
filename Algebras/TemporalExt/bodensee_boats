@@ -1,0 +1,80 @@
+
+(DATABASE BODENSEE_BOATS
+    (DESCRIPTIVE ALGEBRA)
+    (TYPES)
+    (OBJECTS)
+    (EXECUTABLE ALGEBRA)
+    (TYPES)
+    (OBJECTS
+        (OBJECT Schiffe
+            ()
+            (rel
+                (tuple
+                    (
+                        (Typ string)
+                        (AktName string)
+                        (Namen mstring)
+                        (Eigner string))))
+            (
+                ("MS" "Albatros" ((("1900-01-01" "2010-01-01" TRUE TRUE) "Albatros")) "Stoll AG")
+                 ("MB" "Adler I" ((("1920-01-01" "1945-01-01" TRUE TRUE) "Adler I")) "-")
+                 ("MB" "Adler II" ((("1953-01-01" "1994-01-01" TRUE TRUE) "Adler II")) "-")
+                 ("MS" "Alet" ((("1984-01-01" "2010-01-01" TRUE TRUE) "Alet")) "Sb. Allensbach")
+                 ("MS" "Allgaeu" ((("1929-08-14" "2002-01-01" TRUE TRUE) "Allgaeu")) "-")
+                 ("MS" "Alte Rhy" ((("1983-01-01" "2010-01-01" TRUE TRUE) "Alte Rhy")) "Sb. Rorschach")
+                 ("MS" "Arbor Felix" ((("1934-01-01" "2010-01-01" TRUE TRUE) "Arbor Felix")) "Popp")
+                 ("GD" "Arenaberg" ((("1865-04-15" "1924-01-01" TRUE TRUE) "Arenaberg")) "-")
+                 ("MS" "Arenenberg I" ((("1936-06-01" "1983-07-16" TRUE TRUE) "Arenenberg I")) "-")
+                 ("MS" "Arenenberg II" ((("1983-07-16" "2010-01-01" TRUE TRUE) "Arenenberg II")) "URh")
+                 ("MB" "Arthur" ((("1879-01-01" "1945-01-01" TRUE TRUE) "Arthur")) "-")
+                 ("SD" "Augsburg" ((("1879-01-01" "1917-12-31" TRUE TRUE) "Wittelsbach") (("1918-01-01" "1929-01-01" FALSE TRUE) "Augsburg")) "-")
+                 ("MS" "Augsburg" ((("1931-01-01" "1970-01-01" TRUE TRUE) "Augsburg")) "-")
+                 ("GD" "Austria" ((("1884-01-01" "1918-12-31" TRUE TRUE) "Austria") (("1919-01-01" "1926-01-01" FALSE TRUE) "Bezau")) "-")
+                 ("MS" "Austria" ((("1937-01-01" "1938-12-31" TRUE TRUE) "Austria") (("1939-01-01" "1945-07-29" FALSE TRUE) "Ostmark") (("1946-01-01" "2010-01-01" FALSE TRUE) "Austria")) "OeBB")
+                 ("MB" "Bacchus" ((("1926-01-01" "2010-01-01" TRUE TRUE) "Bacchus")) "Kirst GmbH")
+                 ("SD" "Baden" ((("1871-01-01" "1918-12-31" TRUE TRUE) "Kaiser Wilhelm") (("1919-01-01" "1931-01-01" FALSE TRUE) "Baden")) "-")
+                 ("MS" "Baden I" ((("1932-01-01" "1934-12-31" TRUE TRUE) "Baden I") (("1935-01-01" "1964-01-01" FALSE TRUE) "Hegau")) "-")
+                 ("MS" "Baden II" ((("1935-06-02" "2010-01-01" TRUE TRUE) "Baden II")) "BSB")
+                 ("GD" "Bavaria I" ((("1869-01-01" "1912-06-22" TRUE TRUE) "Bavaria I")) "-")
+                 ("SD" "Bavaria II" ((("1912-11-06" "1961-01-01" TRUE TRUE) "Bavaria II")) "-")
+                 ("MB" "Bayern" ((("1920-01-01" "1956-09-01" TRUE TRUE) "Bayern")) "-")
+                 ("MS" "Bayern" ((("1988-01-01" "2002-10-31" TRUE TRUE) "Wolfsberg") (("2002-11-01" "2010-01-01" FALSE TRUE) "Bayern")) "Wiehrer")
+                 ("GD" "Bezau" ((("1884-01-01" "1918-12-31" TRUE TRUE) "Austria") (("1919-01-01" "1926-01-01" FALSE TRUE) "Bezau")) "-")
+                 ("SD" "Bludenz" ((("1887-06-04" "1918-12-31" TRUE TRUE) "Kaiserin Elisabeth") (("1919-01-01" "1958-10-22" FALSE TRUE) "Bludenz")) "-")
+                 ("GD" "Bodan" ((("1854-01-01" "1907-01-01" TRUE TRUE) "Bodan")) "-")
+                 ("MF" "Bodan" ((("1939-04-30" "1946-12-31" TRUE TRUE) "Konstanz II") (("1947-01-01" "1962-12-31" FALSE TRUE) "Bodan") (("1963-10-02" "2010-01-01" FALSE TRUE) "Meersburg II")) "-")
+                 ("MS" "Bodensee" ((("1961-01-01" "2010-01-01" TRUE TRUE) "Bodensee")) "Heidegger")
+                 ("MS" "Bodman" ((("1979-01-01" "2010-01-01" TRUE TRUE) "Bodman")) "Mg. Bodman")
+                 ("SchD" "Bregenz" ((("1885-06-03" "1909-12-31" TRUE TRUE) "Bregenz") (("1910-01-01" "1922-01-01" FALSE TRUE) "Vorarlberg")) "-")
+                 ("SchD" "Buchhorn" ((("1891-01-01" "1928-01-01" TRUE TRUE) "Buchhorn")) "-")
+            )
+          ())
+        (OBJECT wwi_start 
+            () 
+            instant 
+            "1914-07-28"
+            ()) 
+        (OBJECT wwi_end 
+            () 
+            instant 
+            "1918-11-11"
+            ()) 
+        (OBJECT wwii_start 
+            () 
+            instant 
+            "1939-09-01"
+            ()) 
+        (OBJECT wwii_end 
+            () 
+            instant 
+            "1945-09-02"
+            ()) 
+        (OBJECT weltkriege 
+            () 
+            periods
+            ( 
+              ("1914-07-28" "1918-11-11" FALSE TRUE)
+               ("1939-09-01" "1945-09-02"FALSE TRUE)
+             )
+            ()) 
+))
