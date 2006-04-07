@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 September 2005, G. Zimbrao. Initial version. 
 
-April 2006, M. Spiekermann. Isolating the changes neede for the entropy optimizer.
+April 2006, M. Spiekermann. Isolating the changes needed for the entropy optimizer.
 Redundant code (code which is also defined in the standard optimizer) removed.
 Some parts were merged with the standard optimizer. Moreover a mechanism for
 switching between ~standard~ and ~entropy~ optimiztation was implemented in
@@ -148,15 +148,17 @@ Based on the counter values we can compute the conditional selectivities
 along the path chosen by the ~standard~ optimizer. The values are stored
 in ~small\_cond\_sel/4~.
 
+When both counter values are 0 or equal, we have a selectivity of 1. In this case we assign 0.99 instead, to ``leave some space'' for avoiding zero atoms.
+
 */
  
- 
+compute_sel(0, 0, 0.99).
 
-compute_sel( 0, 0, Sel ) :-
-  Sel is 1.
+compute_sel(X, X, 0.99).
 
-compute_sel( Num, Den, Sel ) :-
+compute_sel(Num, Den, Sel) :-
   Sel is Num / Den.
+
 
 assignSmallSelectivity(Source, Target, Result, select(Arg, _), Value) :-
   newResSize(Arg, Card),
@@ -282,7 +284,7 @@ query_small( Term, Result ) :-
 3 Interaction with the ~standard~ optimizer
 
 At some places in optimizer.pl it will be checked
-if ~usingVersion(entropy)~ holds. If this is true ~clause2~ will be 
+whether ~usingVersion(entropy)~ holds. If this is true, ~clause2~ will be 
 called instead of ~clause~.
 
 */
@@ -408,29 +410,76 @@ entropySel( Source, Target, Sel ) :-
   Sel is P2 / P1.
  
 /*
-Now it is assuming an implicit order. Should be altered to work i
-n the same way as conditional probabilities
+Now it is assuming an implicit order. Should be altered to work in the same way as conditional probabilities.
 
 */
 
 createMarginalProbabilities( MP ) :-
   createMarginalProbability( 0, MP ).
 
-createMarginalProbability( N, [Sel|T] ) :-
+createMarginalProbability( N, [[Pred, Sel]|T] ) :-
   edgeSelectivity(N, M, Sel),
+  Pred is M - N,
   createMarginalProbability( M, T ).
 
 createMarginalProbability( _, [] ).
 
 createJointProbabilities( JP ) :-
-  createJointProbability( 0, 1, [_|JP] ).
+  createJointProbability( 0, 1, JP ).
 
-createJointProbability( N0, AccSel, [[N1,CP1]|T] ) :-
+createJointProbability( N0, AccSel, [[N0, N1, CP1]|T] ) :-
   small_cond_sel( N0, N1, _, Sel ),
   CP1 is Sel * AccSel,
   createJointProbability( N1, CP1, T ).
 
 createJointProbability( _, _, [] ).
+
+
+
+
+
+
+
+
+
+:- dynamic
+
+  marginal/2.
+
+
+
+saveMarginal([]).
+
+saveMarginal([[Pred, Sel]|L]) :-
+  assert(marginal(Pred, Sel)),
+  saveMarginal(L).
+
+
+loadMarginal(MP) :-
+  findall([Pred, Sel], marginal(Pred, Sel), MP).
+
+
+deleteMarginal :- 
+  retractall(marginal(_, _)).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 assignEntropyCost :-
