@@ -52,6 +52,7 @@ using namespace std;
 #include "LogMsg.h"
 #include "License.h"
 
+
 #ifdef SECONDO_USE_ENTROPY
 #include "../Optimizer/Entropy/entropy.h"
 #endif
@@ -362,7 +363,7 @@ Converts a PROLOG list of (integer,float) pair to a vector of (int,float) pair.
 */
 void
 FloatListPairToVectorPair( term_t t, 
-                           std::vector<pair<int,double> >& v, 
+                           ProbabilityPairVec& v, 
                            bool& error                        )
 {
   error = 1;
@@ -375,7 +376,7 @@ FloatListPairToVectorPair( term_t t,
     v.clear();
     while( PL_get_list(o_list, o_head, o_list) )
     {
-      pair<int,double> p;
+      ProbabilityPair p;
       term_t i_head = PL_new_term_ref();
       term_t i_list = PL_copy_term_ref(o_head);
 
@@ -401,11 +402,11 @@ Converts a Vector of float numbers to a PROLOG list of float numbers (double).
 
 */
 void
-FloatVectorToList(std::vector<double>& v,term_t& t, bool& error)
+FloatVectorToList(ProbabilityVec& v,term_t& t, bool& error)
 {
   term_t list = PL_copy_term_ref(t);
   term_t head = PL_new_term_ref();
-  std::vector<double>::iterator iter;
+  ProbabilityVec::iterator iter;
 
   error = 1;
   for( iter = v.begin(); iter != v.end(); iter++ )
@@ -424,13 +425,13 @@ Converts a vector of (int,float) numbers to a PROLOG list of (integer,float).
 
 */
 void
-FloatVectorPairToListPair( std::vector<pair<int,double> >& v,
+FloatVectorPairToListPair( ProbabilityPairVec& v,
                            term_t& t, bool& error             )
 {
   // Outer list
   term_t o_list = PL_copy_term_ref(t);
   term_t o_head = PL_new_term_ref();
-  std::vector<pair<int,double> >::iterator iter;
+  ProbabilityPairVec::iterator iter;
 
   error = 1;
   for( iter = v.begin(); iter != v.end(); iter++ )
@@ -585,27 +586,19 @@ pl_call_secondo(term_t command, term_t result)
 
 4 Function pl\_maximize\_entropy
 
-Computes conditional probabilities using the Maximum Entropy Aproach Function
-to compute the conditional probabilities using Maximum Entropy Approach
-
-usage: maximize\_entropy( [p1 p2 p3 ... pn], [[1, cp1], [2, cp2] ...], result )
-In this function is assumed the same codification of predicates using bits, as
-done in POG construction - that is, to the predicate n, if the ith-bit is set
-to 1 then the ith-predicate is already evaluated.  Each pi is the probability
-of predicate $2^i$ Each pair [n, cp] is the given probability cp of joint
-predicates n using the ith-bit convention above.  Result is in the form of a
-list of pairs [n, cp] also.
-
-Example: if we call
+Function to compute the remaining conditional probabilities. 
+Syntax:
 
 ----
-maximize\_entropy( [0.1, 0.3, 0.4], [[3,0.03],[5,0.04]], result )
-the result should be
-  [[1,0.1],[2,0.3],[3,0.03],[4,0.4],[5,0.04],[6,0.12],[7,0.012]]
-----
+    maximize_entropy( [[1, p1] [2, p2] ... ], [[3, cp1], [5, cp2] ...], R )
+----  
+
+pi, cpi are floating point values.
 
 */
 #ifdef SECONDO_USE_ENTROPY
+
+
 
 static foreign_t
 pl_maximize_entropy(term_t predicates, term_t probabilities, term_t result)
@@ -615,18 +608,18 @@ pl_maximize_entropy(term_t predicates, term_t probabilities, term_t result)
     PL_fail;
   else
   {
-    std::vector<double> vectorPredicates;
-    std::vector<pair<int,double> > vectorProbabilities, vectorResult;
-    bool error1, error2;
+    //ProbabilityVec vectorPredicates;
+    ProbabilityPairVec vectorPredicates, vectorProbabilities, vectorResult;
+    bool error1=false, error2=false;
 
-    FloatListToVector(predicates, vectorPredicates, error1);
+    //FloatListToVector(predicates, vectorPredicates, error1);
+    FloatListPairToVectorPair(predicates, vectorPredicates, error1);
     FloatListPairToVectorPair(probabilities, vectorProbabilities, error2);
     if( error1 || error2 )
       PL_fail;
     else
     {
-      bool error;
-
+      bool error=false;
       try
       {
         maximize_entropy( vectorPredicates, 
