@@ -258,12 +258,14 @@ pog(Rels, Preds, Nodes, Edges) :-
   deleteEdges, storeEdges(Edges),
   deletePlanEdges, deleteVariables, deleteCounters, createPlanEdges,
   HighNode is 2**M -1,
-  retract(highNode(_)), assert(highNode(HighNode)),
+  retract(highNode(_)), assert(highNode(HighNode)).
   % uncomment next line for debugging
   % showpog(Rels, Preds),
-  deleteSizes,
-  deleteCostEdges.
 
+% counters are only important for the entropy version
+deleteCounters :- usingVersion(standard).
+deleteCounters :- not(deleteCounters2).
+ 
 showpog(Rels, Preds) :-
   nl, write('Rels: '), write(Rels),
   nl, write('Preds: '), write(Preds), 
@@ -1698,7 +1700,6 @@ writePlanEdges :- not(writePlanEdges2).
 7 Assigning Sizes and Selectivities to the Nodes and Edges of the POG
 
 ----    assignSizes.
-        deleteSizes.
 ----
 
 Assign sizes (numbers of tuples) to all nodes in the pog, based on the
@@ -1770,21 +1771,29 @@ resSize(res(N), Size) :- resultSize(N, Size), !.
 ----    writeSizes :-
 ----
 
-Write sizes and selectivities.
+Clauses for writing sizes and selectivities for nodes and edges.
 
 */
 
-writeSize :-
-  resultSize(Node, Size),
+writeNodeInfo(Node, Size) :-
   write('Node: '), write(Node), nl,
-  write('Size: '), write(Size), nl, nl,
-  fail.
-writeSize :-
-  edgeSelectivity(Source, Target, Sel),
+  write('Size: '), write(Size), nl, nl.
+
+writeEdgeInfo(Source, Target, Sel) :-
   write('Source: '), write(Source), nl,
   write('Target: '), write(Target), nl,
-  write('Selectivity: '), write(Sel), nl, nl,
+  write('Selectivity: '), write(Sel), nl, nl.
+
+writeSize :-
+  resultSize(Node, Size),
+  writeNodeInfo(Node, Size),
   fail.
+ 
+writeSize :-
+  edgeSelectivity(Source, Target, Sel),
+  writeEdgeInfo(Source, Target, Sel),
+  fail.
+ 
 writeSizes :- not(writeSize).
 
 /*
@@ -2050,15 +2059,21 @@ writeCostEdges :- not(writeCostEdges2).
 ----    assignCosts
 ----
 
-This just puts together creation of sizes and cost edges.
+This just puts together creation of sizes and cost edges. It must be applied
+before calling ~bestPlan/2~. Hence a clause sequence ~pog, assignCosts,
+bestPlan~ will unify a best plan according to the assigned costs.
 
 */
 
+/*
 assignCosts :-
   usingVersion(entropy),
   assignEntropyCost.
+*/ 
  
 assignCosts :-
+  deleteSizes,
+  deleteCostEdges,
   assignSizes,
   createCostEdges.
 
@@ -2393,7 +2408,6 @@ bestPlan :-
 
 bestPlan(Plan, Cost) :-
   nl, write('Computing best Plan ...'), nl,
-  assignCosts,
 %   writeCostEdges,
   highNode(N), 
   dijkstra(0, N, Path, Cost),
@@ -3172,7 +3186,7 @@ example13 :- showTranslate(
 /*
 11.4 Translating a Query to a Plan
 
-----    translate(Query, Stream, SelectClause, Cost) :-
+----    translate1(Query, Stream, SelectClause, Cost) :-
 ----
 
 ~Query~ is translated into a ~Stream~ to which still the translation of the
@@ -3184,20 +3198,21 @@ only the cost for evaluating the essential part, the conjunctive query.
 
 % special handling for the entropy optimizer
 
-translate(Query, Stream2, Select, Cost2) :-
+translate1(Query, Stream2, Select, Cost2) :-
   usingVersion(entropy),
   deleteSmallResults,
   retractall(highNode(_)), assert(highNode(0)),
-  translate1(Query, Stream1, Select, Cost1), !,
-  translate2(Stream1, Stream2, Cost1, Cost2), !.
+  translate(Query, Stream1, Select, Cost1), !,
+  translateEntropy(Stream1, Stream2, Cost1, Cost2), !.
 
 % default handling
 
-translate(Query, Stream, Select, Cost) :-
-  translate1(Query, Stream, Select, Cost), !.
-
+translate1(Query, Stream, Select, Cost) :-
+  translate(Query, Stream, Select, Cost), !.
  
-translate1(Query groupby Attrs,
+% the main predicate which does the translation of a query 
+ 
+translate(Query groupby Attrs,
         groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields), 
         select Select2, Cost) :-
   translate1(Query, Stream, SelectClause, Cost),
@@ -3210,8 +3225,9 @@ translate1(Query groupby Attrs,
   !.
 
  
-translate1(Select from Rels where Preds, Stream, Select, Cost) :- 
+translate(Select from Rels where Preds, Stream, Select, Cost) :- 
   pog(Rels, Preds, _, _),
+  assignCosts,
   bestPlan(Stream, Cost),
   !.
 
@@ -3231,15 +3247,15 @@ C. Duentgen, Feb/17/2006: changed tuple variable names for the sake of uniquenes
 */
 
 
-translate1(Select from Rel, Stream, Select, 0) :-
+translate(Select from Rel, Stream, Select, 0) :-
   not(is_list(Rel)),
   makeStream(Rel, Stream), !.
 
-translate1(Select from [Rel], Stream, Select, 0) :-
+translate(Select from [Rel], Stream, Select, 0) :-
   makeStream(Rel, Stream),
   deleteVariables.
 
-translate1(Select from [Rel | Rels], 
+translate(Select from [Rel | Rels], 
         symmjoin(S1, S2, fun([param(T1, tuple), param(T2, tuple2)], true)), 
         Select, 0) :-
   makeStream(Rel, S1),
@@ -3251,8 +3267,6 @@ translate1(Select from [Rel | Rels],
 makeStream(Rel, feed(Rel)) :- Rel = rel(_, *, _), !.
 
 makeStream(Rel, rename(feed(Rel), Var)) :- Rel = rel(_, Var, _).
-
-
 
 
 /*
@@ -3435,22 +3449,22 @@ queryToStream(Query first N, head(Stream, N), Cost) :-
   !.
 
 queryToStream(Query orderby SortAttrs, Stream2, Cost) :-
-  translate(Query, Stream, Select, Cost),
+  translate1(Query, Stream, Select, Cost),
   finish(Stream, Select, SortAttrs, Stream2),
   !.
 
 queryToStream(Select from Rels where Preds, Stream2, Cost) :-
-  translate(Select from Rels where Preds, Stream, Select1, Cost),
+  translate1(Select from Rels where Preds, Stream, Select1, Cost),
   finish(Stream, Select1, [], Stream2),
   !.
 
 queryToStream(Select from Rels groupby Attrs, Stream2, Cost) :-
-  translate(Select from Rels groupby Attrs, Stream, Select1, Cost),
+  translate1(Select from Rels groupby Attrs, Stream, Select1, Cost),
   finish(Stream, Select1, [], Stream2),
   !.
 
 queryToStream(Query, Stream2, Cost) :-
-  translate(Query, Stream, Select, Cost),
+  translate1(Query, Stream, Select, Cost),
   finish(Stream, Select, [], Stream2).
 
 /*
@@ -3802,9 +3816,11 @@ to a new object ~X~, using the optimizer.
 
 % The entropy approach needs a special handling
 
+/*
 sql Term :-
   usingVersion(entropy),
-  sql2(Term), !. 
+  sql2(Term), !.
+*/ 
 
 % Default handling
 
@@ -3924,22 +3940,5 @@ bestPlanConsume :-
   query(Q).
 
   
-/* 
-Clauses for handling counters which are 
-used in the entropy optimizer 
-
-*/
-
-:- 
-  dynamic(nCounter/1).
-
-deleteCounter :- retract(nCounter(_)), fail.
-
-deleteCounters :- not(deleteCounter).
-
-listCounters :-
-  secondo('list counters').
-
-
 
 

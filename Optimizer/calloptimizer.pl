@@ -42,13 +42,14 @@ getprompt :-
   current_stream(1, write, ConOut), set_stream(ConOut, tty(true)),
   current_stream(2, write, ConErr), set_stream(ConErr, tty(true)). 
 
-
+quit :- 
+  halt.
 
 % the version predicate can be used to query the current operating
 % mode of the query optimizer. Currently one of the modes ~standard~ 
 % and ~entropy~ may be chosen.
 
-:-  [opsyntax].
+:- [opsyntax].
 
 :- dynamic
   version/2,

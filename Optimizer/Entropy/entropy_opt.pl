@@ -33,7 +33,7 @@ April 2006, M. Spiekermann. Isolating the changes needed for the entropy optimiz
 Redundant code (code which is also defined in the standard optimizer) removed.
 Some parts were merged with the standard optimizer. Moreover a mechanism for
 switching between ~standard~ and ~entropy~ optimiztation was implemented in
-~calloptimizer.pl~. Finally, the ~entropy~ code was documented.
+~calloptimizer.pl~. Finally, the code documentation was revised.
 
 */
 
@@ -44,8 +44,6 @@ switching between ~standard~ and ~entropy~ optimiztation was implemented in
 */
 
 :- dynamic
-   % nCounter/1, defined in optimizer.pl
-   % nCounter tracks the number of counters in queries which are used
    % to compute the size of intermediate results along a path through the POG.
 
    smallResultSize/2,
@@ -56,7 +54,6 @@ switching between ~standard~ and ~entropy~ optimiztation was implemented in
    
    entropy_node/2,
    small_cond_sel/4,
-   useEntropy/0,
    firstResultSize/2,
    firstEdgeSelectivity/3.
 
@@ -68,16 +65,14 @@ and compares them with the sizes calculated by the entropy approach.
 
 writeFirstSize :-
   firstResultSize(Node, Size),
-  write('Node: '), write(Node), nl,
-  write('Size: '), write(Size), nl, nl,
+  writeNodeInfo(Node, Size),
   fail.
  
 writeFirstSize :-
   firstEdgeSelectivity(Source, Target, Sel),
-  write('Source: '), write(Source), nl,
-  write('Target: '), write(Target), nl,
-  write('Selectivity: '), write(Sel), nl, nl,
+  writeEdgeInfo(Source, Target, Sel),
   fail.
+ 
 writeFirstSizes :- not(writeFirstSize).
 
 compareSize :-
@@ -100,14 +95,17 @@ compareSize :-
 compareSizes :- not(compareSize).
 
 /*
-Maintain and increment the number of used counters. The dynamic fact ~nCounter~
-tracks the number of counters in queries which are used to compute the size of
-intermediate results along a path through the POG.
+
+2 Maintaining Counters
+
+The dynamic fact ~nCounter~ tracks the number of counters in queries which are
+used to compute the size of intermediate results along a path through the POG.
 
 */
 
-%:- dynamic
-%     nCounter/1, defined in optimizer.pl
+% fact nCounter tracks the number of counters in queries which are used
+:- dynamic
+     nCounter/1.
 
 nextCounter(C) :-
   nCounter(N),
@@ -121,7 +119,9 @@ nextCounter(C) :-
   assert(nCounter(1)),
   C = 1.
 
-
+% called by the standard optimizer 
+deleteCounters2 :- retract(nCounter(_)), fail.
+ 
 /* 
 The clauses below are used to store a list of counters returned by SECONDO.
 The command ~list counters~ will return a list of pairs (ctrNum, value) which
@@ -191,7 +191,7 @@ createSmallSelectivity2 :-
   fail.
 
 /*
-2 Some clauses operationg the ~small~ database.
+3 Some clauses operationg the ~small~ database.
 
 prepare\_query\_small prepares the query to be executed in the small database.
 Assumes that the small database has the same indexes that are in the full database,
@@ -218,6 +218,8 @@ query_small(rel(Name, V, C), Result) :-
   !.
 
 query_small(exactmatch(IndexName, R, V), Result) :-
+  write('R:'), write(R), nl,
+  write('V:'), write(V), nl,
   atom_concat(IndexName,'_small', IndexNameSmall),
   query_small( R, R2 ),
   Result = exactmatch(IndexNameSmall, R2, V),
@@ -288,7 +290,7 @@ query_small( Term, Result ) :-
 
 
 /*
-3 Interaction with the ~standard~ optimizer
+3 Interaction with the ~standard~ Optimizer
 
 At some places in optimizer.pl it will be checked
 whether ~usingVersion(entropy)~ holds. If this is true, ~clause2~ will be 
@@ -319,7 +321,7 @@ traversePath2([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
   traversePath2(Path).
 
 /*
-The clause ~translate2~ runs a plan given as ~STREAM1~ with ~Cost1~, runs
+The clause ~translateEntropy~ runs a plan given as ~STREAM1~ with ~Cost1~, runs
 it on the small database. Conditional selectivities are computed along
 the path of the first plan. Then the iterative scaling algorithm computes the
 remaining conditional selectivites. The new selectivites are assigned to the
@@ -327,16 +329,9 @@ POG and a second plan is computed and returned as ~Stream2~ with costs ~Cost2~.
 
 */
 
-translate2(Stream1, Stream2, Cost1, Cost2) :-
-  % deleteSmallResults,   
-  %  retractall(highNode(_)),assert(highNode(0)),
-  %  translate(Query, Stream1, Select, Cost1), !,
-  try_entropy(Stream1, Stream2, Cost1, Cost2), !,
-  warn_plan_changed(Stream1, Stream2).
+translateEntropy(Stream1, Stream2, Cost1, Cost2) :-
 
-try_entropy(Stream1, Stream2, Cost1, Cost2) :-
- 
-  useEntropy, highNode(HN), HN > 1, HN < 256, !,
+  highNode(HN), HN > 1, HN < 256, !,
   
   nl, 
   write('*** Using Entropy-approach ************' ), 
@@ -357,12 +352,95 @@ try_entropy(Stream1, Stream2, Cost1, Cost2) :-
   write('First Plan:'), nl, 
   write( FirstQuery ), nl, nl,
   write('Estimated Cost: '), 
-  write(Cost1), nl, nl,
+  write(Cost1), nl, nl, !,
  
-  % compute a new plan. The assignCost clause will use assignEntropyCost. 
-  bestPlan(Stream2, Cost2).
+  % compute a new plan based on the cost annotations of
+  % the new selectivities computed by maximize_entropy 
+  deleteCounters,
+  assignEntropyCost,
+  bestPlan(Stream2, Cost2), !,
 
-try_entropy(Stream1, Stream1, Cost1, Cost1).
+  warn_plan_changed(Stream1, Stream2).
+
+translateEntropy(Stream1, Stream1, Cost1, Cost1).
+
+
+assignEntropyCost :-
+ 
+  createSmallResultSizes, !,
+  createSmallSelectivity, !,
+  
+  createMarginalProbabilities( MP ),!,
+  createJointProbabilities( JP ),!,
+ 
+  % store selectivities of the first query and  delete the
+  % cost annotations in the POG 
+  saveFirstSizes,
+  deleteSizes,
+  deleteCostEdges,
+  
+  nl, 
+  write('Marginal Sel.: MP ='), write( MP ), nl,
+  write('Conditional Sel.: JP =') , write( JP ), nl, nl,
+  
+  %simpleadjust(MP, JP, MP2, JP2),
+  feasible(MP, JP, MP2, JP2),
+  %margadjust(MP2, MP3),		
+
+ 
+  % call the predicate implemented in C++ which computes the 
+  % remaining conditional probabilities. 
+  write('maximize_entropy called with:'), nl,
+  write( MP2 ), write(', ') , write( JP2 ), nl, nl,
+  maximize_entropy(MP2, JP2, Result), !,
+  
+  createEntropyNode(Result),
+  assignEntropySizes,
+  createCostEdges.
+
+
+
+/*
+
+4 Predicate ~pl\_maximize\_entropy/3~ 
+
+This predicate computes conditional probabilities using the
+Maximum Entropy approach. It is done by means of the so called iterative
+scaling algorithm which is implemented in C++. 
+The implementation is in the file "iterative\_scaling.cpp".
+
+Usage: 
+
+----
+    maximize_entropy( [p1 p2 p3 ... pn], [[1, cp1], [2, cp2] ...], R )
+----  
+
+The parameters are a list of marginal probabilites (e.g. the selectivites on the
+sample relations) and a list of conditional probabilities (computed after running
+an initail query plan on a small database). It assumed the same coding of
+predicates using bits, as done in POG construction - that is, to the predicate
+n, if the ith-bit is set to 1 then the ith-predicate is already evaluated.  
+
+Each pi is the probability for predicate $2^i$ Each pair [n, cp] is the given
+probability cp of joint predicates n using the ith-bit convention above.  The result
+is in the form of a list of pairs [n, cp] also.
+
+Example applications:
+
+----
+    maximize_entropy([[1, 0.5], [2, 0.5]], [], R).
+    R = [[0, 1.0], [1, 0.5], [2, 0.5], [3, 0.25]]
+
+    maximize_entropy([[1, 0.5], [2, 0.5], [4, 0.5]], [[3, 0.4], [6, 0.4]], R).
+    R = [ [0, 1.0], [1, 0.5], [2, 0.5], [3, 0.4], 
+          [4, 0.5], [5, 0.34], [6, 0.4], [7, 0.32] ]
+----
+
+In the first case nothing is known about conditional probabilities and the
+result is just the product (the independence assumption). In the second case the
+remaining unknown conditional selectivites are computed.
+
+*/
 
 warn_plan_changed(Plan1, Plan2) :-
   not(Plan1 = Plan2),
@@ -375,36 +453,7 @@ warn_plan_changed(_,_).
 
 
 /*
-
-We introduce ~sql2~ as a prolog operator.
-
-*/
-
-:- op(990, fx, sql2).
-
-
-sql2 Term :-
-  isDatabaseOpen,
-  use_entropy,
-  mOptimize(Term, Query, Cost),
-  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
-  write('Estimated Cost: '), write(Cost), nl, nl,
-  query(Query),
-  dont_use_entropy.
-
-sql2(Term, SecondoQueryRest) :-
-  isDatabaseOpen,
-  use_entropy,
-  mStreamOptimize(Term, SecondoQuery, Cost),
-  concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
-  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
-  write('Estimated Cost: '), write(Cost), nl, nl,
-  query(Query),
-  dont_use_entropy.
-
-
-/*
-Some auxiliary stuff.
+4 Clauses working with Selectivities
 
 */
 
@@ -418,7 +467,11 @@ entropySel( Source, Target, Sel ) :-
   Sel is P2 / P1.
  
 /*
-Now it is assuming an implicit order. Should be altered to work in the same way as conditional probabilities.
+Construction of the input parameters (a lists of marginal probabilites and
+conditional probabilities) for the ~maximze\_entropy/3~ predicate.
+
+The marginal probabilities must have an implicit order. This should be altered
+to work in the same way as conditional probabilities.
 
 */
 
@@ -441,13 +494,6 @@ createJointProbability( N0, AccSel, [[N0, N1, CP1]|T] ) :-
   createJointProbability( N1, CP1, T ).
 
 createJointProbability( _, _, [] ).
-
-
-
-
-
-
-
 
 
 :- dynamic
@@ -566,28 +612,7 @@ jointadjust([[_, Target, TargetSel] | L], [[Target, TargetSel] | L2]) :-
 
 
 
-
-assignEntropyCost :-
-  createSmallResultSizes, !,
-  createSmallSelectivity, !,
-  createMarginalProbabilities( MP ),!, write('MP = '), write(MP), nl,
-  createJointProbabilities( JP ),!, write('JP = '), write(JP), nl,
  
- %simpleadjust(MP, JP, MP2, JP2),
-
-  feasible(MP, JP, MP2, JP2),
-  margadjust(MP2, MP3),			%remove for new format
-
-  saveFirstSizes,
-  deleteSizes,
-  deleteCostEdges,
-  write('maximize_entropy called with:'), nl,
-  write( MP3 ), write(', ') , write( JP2 ), nl, nl,
-  maximize_entropy(MP3, JP2, Result), !,
-  createEntropyNode(Result),
-  assignEntropySizes,
-  createCostEdges.
-
 assignEntropySizes :- not(assignEntropySizes1).
 
 assignEntropySizes1 :-
@@ -654,38 +679,15 @@ deleteSmallResults :-
   deleteSmallSelectivity,
   deleteFirstSizes.
  
- 
 /*
-Auxiliary stuff
+6 Example Queries
+
+----
+   sql select count(*) from plz as p where [p:plz > 40000, p:plz < 50000].
+   sql select count(*) from plz as p where [(p:plz mod 20) = 0, (p:plz mod 30) = 0].
+----
 
 */
  
-useEntropy.
-
-use_entropy :-
-  assert(useEntropy).
-
-dont_use_entropy :-
-  retractall(useEntropy).
-  
-quit :- 
-  halt.
-
-argList( 1, [_] ).
-argList( N, [_|L] ) :-
-  N1 is N-1,
-  argList( N1, L ).
-
-showValues( Pred, Arity ) :-
-  not(showValues2( Pred, Arity )).
-
-showValues2( Pred, Arity ) :-
-  argList( Arity, L ),
-  P=..[Pred|L], !, P, nl, write( P ), fail.
-  
-
-
-% sql select count(*) from plz as p where [p:plz > 40000, p:plz < 50000].
-% sql select count(*) from plz as p where [(p:plz mod 20) = 0, (p:plz mod 30) = 0].
 
 
