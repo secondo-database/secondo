@@ -1,4 +1,11 @@
 /*
+//characters [1] formula: [$] [$]
+//characters [2] program: [{\tt ] [}]
+//[<=] [$\leq$]
+//[>=] [$\geq$]
+
+" "[1]
+
 ----
 This file is part of SECONDO.
 
@@ -345,6 +352,7 @@ try_entropy(Stream1, Stream2, Cost1, Cost2) :-
   
   deleteEntropyNodes, !,
   query(SmallQuery), !, nl,
+  deleteCounters,
   
   write('First Plan:'), nl, 
   write( FirstQuery ), nl, nl,
@@ -447,7 +455,6 @@ createJointProbability( _, _, [] ).
   marginal/2.
 
 
-
 saveMarginal([]).
 
 saveMarginal([[Pred, Sel]|L]) :-
@@ -456,17 +463,95 @@ saveMarginal([[Pred, Sel]|L]) :-
 
 
 loadMarginal(MP) :-
-  findall([Pred, Sel], marginal(Pred, Sel), MP).
+  setof([Pred, Sel], marginal(Pred, Sel), MP).
 
 
 deleteMarginal :- 
   retractall(marginal(_, _)).
 
 
+/*
+----	feasible(Marginal, Joint, Marginal2, Joint2) :-
+----
+
+~Marginal2~ and ~Joint2~ are adjusted versions of the marginal selectivities ~Marginal~ and the joint selectivities ~Joint~. Adjustments are done to avoid inconsistent settings and zero atoms, to ensure that iterative scaling finds a numeric solution. The basic conditions that need to hold for a conjunction of two predicates "p" and "q" with selectivities "S_p" and "S_q" and the joint selectivity "S_{pq}" are the following:
+
+  1 "S_{pq}" [<=] "S_p"
+
+  2 "S_{pq}" [<=] "S_q"
+
+  3 "S_{pq}" [>=] "S_p + S_q - 1"
+
+If any "S_{pq}" lies outside these bounds it will be set to the corresponding boundary value. To avoid zero atoms, additionally the value of "S_{pq}" is reduced or increased by 1 \%, respectively.
+
+
+*/
+
+feasible(Marginal, Joint, Marginal2, Joint2) :-
+  deleteMarginal,
+  saveMarginal(Marginal),
+  feasible2(Joint, Joint2),
+  loadMarginal(Marginal2).
+
+/*
+----	feasible2(Joint, Joint2) :-
+----
+
+~Joint2~ is the adjusted version of the joint selectivities given in ~Joint~ in the form "[[Source, Target, TargetSel] | List]"[2]. The first ~Source~ is 0, hence the first entry in the list is that marginal selectivity measured on the small database. Since this value is likely to be more precise than the marginal value obtained from sampling, we use it to replace that marginal value. This has also the advantage that the remaining selectivities observed on the small database are consistent with this one.
+
+*/
+
+feasible2([], []).
+
+feasible2([[0, Target, TargetSel] | Joint], Joint2) :-
+  retract(marginal(Target, _)),
+  assert(marginal(Target, TargetSel)),
+  feasible3(TargetSel, Joint, Joint2).
+
+
+feasible3(_, [], []).
+
+feasible3(PrevJoint, [[Source, Target, TargetSel] | Joint], 
+	[[Target, TargetSel2] | Joint2]) :-
+  LastPred is Target - Source,
+  marginal(LastPred, LastPredSel),
+  adjusted(PrevJoint, LastPredSel, TargetSel, TargetSel2),
+  feasible3(TargetSel2, Joint, Joint2).
 
 
 
+adjusted(PSel, QSel, JointSel, JointSel) :-
+  JointSel < 0.99 * PSel,
+  JointSel < 0.99 * QSel,
+  JointSel > 1.01 * (PSel + QSel - 1).
 
+adjusted(PSel, QSel, JointSel, JointSel2) :-
+  MinSel is min(PSel, QSel),
+  JointSel > 0.99 * MinSel,
+  JointSel2 is 0.99 * MinSel.
+
+adjusted(PSel, QSel, JointSel, JointSel2) :-
+  JointSel < 1.01 * (PSel + QSel - 1),
+  JointSel2 is 1.01 * (PSel + QSel - 1).
+
+  
+
+  
+
+
+simpleadjust(MP, [_ |JP] , MP2, JP2):-
+  margadjust(MP, MP2),
+  jointadjust(JP, JP2).
+
+margadjust([], []).
+
+margadjust([[_, Sel] | L], [Sel | L2]) :-
+  margadjust(L, L2).
+
+jointadjust([], []).
+
+jointadjust([[_, Target, TargetSel] | L], [[Target, TargetSel] | L2]) :-
+  jointadjust(L, L2).
 
 
 
@@ -485,15 +570,22 @@ deleteMarginal :-
 assignEntropyCost :-
   createSmallResultSizes, !,
   createSmallSelectivity, !,
-  createMarginalProbabilities( MP ),!,
-  createJointProbabilities( JP ),!,
+  createMarginalProbabilities( MP ),!, write('MP = '), write(MP), nl,
+  createJointProbabilities( JP ),!, write('JP = '), write(JP), nl,
+ 
+ %simpleadjust(MP, JP, MP2, JP2),
+
+  feasible(MP, JP, MP2, JP2),
+  margadjust(MP2, MP3),			%remove for new format
+
   saveFirstSizes,
   deleteSizes,
   deleteCostEdges,
-  maximize_entropy(MP, JP, Result), !,
+  write('maximize_entropy called with:'), nl,
+  write( MP3 ), write(', ') , write( JP2 ), nl, nl,
+  maximize_entropy(MP3, JP2, Result), !,
   createEntropyNode(Result),
   assignEntropySizes,
-  write( MP ), write(', ') , write( JP ), nl, nl,
   createCostEdges.
 
 assignEntropySizes :- not(assignEntropySizes1).
