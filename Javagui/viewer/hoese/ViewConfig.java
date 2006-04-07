@@ -141,9 +141,7 @@ public class ViewConfig extends javax.swing.JDialog {
           AttrCount++;
           attrlist = attrlist.rest();
 				}
-    }
-
-    if(MainType.equals("nmap")){
+    } else if(MainType.equals("nmap")){
        //v.add("Tupel-No.");
        TupelCount = 0;
        LabelAList.add("no Label");
@@ -155,6 +153,12 @@ public class ViewConfig extends javax.swing.JDialog {
        */
        LabelAList.add("name"); 
        v.add("name");
+    } else{ // no relation, no nmap
+      if(isRenderAttribute(MainType)){
+           v.add(new RenderAttr(AttrName,0));
+      }
+      LabelAList.add("no Label");
+      LabelAList.add(AttrName);  
     }
     return  v;
   }
@@ -655,8 +659,6 @@ public class ViewConfig extends javax.swing.JDialog {
     if (RefDepCBo.isSelected()) {
       if(!LinkCheckBox.isSelected()){
          // handling of reference attributes
-         int RefAttrIndex = LabelAList.indexOf(as)-1;
-
          Category cat = calcCategory((Category)CatCB.getSelectedItem());
          if(mw.Cats.indexOf(cat)<0){
            mw.Cats.add(cat);
@@ -667,9 +669,11 @@ public class ViewConfig extends javax.swing.JDialog {
          }
          ListIterator li = Query.getGraphObjects().listIterator();
          int attrno=-1;//indicating tuple number
-         if(RefAttrCB.getSelectedIndex()>0){
+         Object refobject = RefAttrCB.getSelectedItem();
+         if(refobject instanceof RenderAttr){
             attrno = ((RenderAttr)RefAttrCB.getSelectedItem()).pos; 
          }
+         
          boolean first = true;
          double min=0;
          double max=0;

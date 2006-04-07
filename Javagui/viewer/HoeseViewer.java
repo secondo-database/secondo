@@ -643,17 +643,23 @@ public class HoeseViewer extends SecondoViewer {
    * @return A listExpr of all the categories in Cats
    */
   public ListExpr writeAllCats () {
-    ListExpr le = ListExpr.theEmptyList();
-    ListExpr left = le;
-    for (int i = 0; i < Cats.size(); i++)
-      if (le.isEmpty()) {
-        left = ListExpr.cons(Category.ConvertCattoLE((Category)Cats.elementAt(i)),
-            le);
-        le = left;
+    ListExpr right = null;
+    ListExpr theList = null;
+    int size = Cats.size();
+    for (int i = 0; i <size; i++){
+      ListExpr catList = Category.ConvertCattoLE((Category)Cats.get(i));
+      if(theList==null){
+          theList = ListExpr.oneElemList(catList);
+          right = theList;
+
+      }   else{
+          right = ListExpr.append(right,catList); 
       }
-      else
-        left = ListExpr.append(left, Category.ConvertCattoLE((Category)Cats.elementAt(i)));
-    return  ListExpr.twoElemList(ListExpr.symbolAtom("Categories"), le);
+    }
+    if(theList==null) {
+       theList = ListExpr.theEmptyList();
+    }
+    return  ListExpr.twoElemList(ListExpr.symbolAtom("Categories"), theList);
   }
 
 
@@ -1838,6 +1844,8 @@ public boolean canDisplay(SecondoObject o){
 
  // remove querys
    JComboBox CB = TextDisplay.getQueryCombo();
+
+   // all queries
    int count = CB.getItemCount();
    QueryResult qr=null;
    while (count!=0) {

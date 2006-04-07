@@ -303,7 +303,10 @@ public class TextWindow extends JPanel {
   }
 
   /** Method supporting the readAllQueryResults method **/
-  private void assignCatsAndLayersOldVersion(Vector Layers, QueryResult qr, ListExpr catList, ListExpr layerList){
+  private void assignCatsAndLayersOldVersion(Vector Layers, 
+                                             QueryResult qr, 
+                                             ListExpr catList,
+                                             ListExpr layerList){
      Iterator li = qr.getGraphObjects().iterator();
      while (li.hasNext()) {
         DsplGraph dg = (DsplGraph)li.next();
@@ -352,15 +355,18 @@ public class TextWindow extends JPanel {
      int ra_no;
      int layerno;
      int layerpos;
+
+     // scan all GraphObjects contained in qr
      for(int i=0;i<size ;i++){
         if(catList.isEmpty() || layerList.isEmpty()){
           Reporter.writeError("empty lists found ");
           return;
         } 
-        ListExpr cat = catList.first();
-        ListExpr aLayer = layerList.first();
+        ListExpr cat = catList.first(); // current category
+        ListExpr aLayer = layerList.first(); // current layer
         catList=catList.rest();
         layerList = layerList.rest();
+
         if(cat.listLength()!=7 || aLayer.listLength()!=2){
            Reporter.writeError("invalid listlength found ");
            return;
@@ -387,6 +393,7 @@ public class TextWindow extends JPanel {
         visible = cat.fifth().boolValue();
         la_no = cat.sixth().intValue();
         ra_no = cat.rest().sixth().intValue();
+
         layerno = aLayer.first().intValue();
         layerpos = aLayer.second().intValue();
         DsplGraph dg = (DsplGraph) GraphObjects.get(i);
@@ -502,14 +509,36 @@ public class TextWindow extends JPanel {
   /**GOs will be placed on its original position before saving.Used in Session-saving 
    * @see <a href="TextWindowsrc.html#setGOtoLayerPos">Source</a> 
    */
-  private void setGOtoLayerPos (Vector l, DsplGraph dg, int catnr, int laynr, 
-      int laypos) {
-    while (l.size() <= laynr)
-      l.add(new Layer());
-    Layer lay = (Layer)l.elementAt(laynr);
-    while (lay.getGeoObjects().size() <= laypos)
+  private void setGOtoLayerPos (Vector layers, 
+                                DsplGraph dg, 
+                                int catnr, 
+                                int laynr, 
+                                int laypos) {
+    // extend Layers by enough elements
+    while (layers.size() <= laynr){
+      layers.add(new Layer());
+    }
+    // get the layer selected in argument
+    Layer lay = (Layer)layers.elementAt(laynr);
+
+    // add GeoObjects to fill the layer
+    while (lay.getGeoObjects().size() <= laypos){
       lay.getGeoObjects().add(null);
-    dg.setCategory((Category)parent.Cats.elementAt(catnr));
+    }
+    // assign the category
+    int maxCats = parent.Cats.size();
+    if(catnr < maxCats){
+        dg.setCategory((Category)parent.Cats.elementAt(catnr));
+    } else{
+        Reporter.writeError("try to assign category number "+ catnr+
+                            " but only " + maxCats+" categories exist");
+        if(maxCats>0){
+          dg.setCategory((Category)parent.Cats.get(0));
+        } else{
+            Reporter.writeError("panik, cannot find any categories !");
+        }
+    }
+    // insert into layer
     lay.getGeoObjects().setElementAt(dg, laypos);
   }
 
