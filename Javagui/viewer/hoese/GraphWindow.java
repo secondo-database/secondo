@@ -121,7 +121,7 @@ public class GraphWindow extends JLayeredPane
   public Category createAutoCat () {
     Category defCat = new Category();
     int r, g, b;
-    /*		r=(int)(Math.random()*256);
+    /*        r=(int)(Math.random()*256);
      g=(int)(Math.random()*256);
      b=(int)(Math.random()*256);
      defCat.setLineColor(new Color(r,g,b));* @see <a href="Categorysrc.html#GraphWindow">Source</a>
@@ -153,9 +153,9 @@ public class GraphWindow extends JLayeredPane
       ListIterator li = grob.listIterator();
       while (li.hasNext()) {
         DsplGraph dg = ((DsplGraph)li.next());
-	if(dg==null)
-	   Reporter.writeError("viewer.hoese.GraphWindow .addLayerObjects has received a null object");
-	else
+    if(dg==null)
+       Reporter.writeError("viewer.hoese.GraphWindow .addLayerObjects has received a null object");
+    else
            dg.setCategory(acat);
         //dg.LabelText=dg.getAttrName();
       }
@@ -163,7 +163,7 @@ public class GraphWindow extends JLayeredPane
     else
       newQueryRepresentation(grob);             // spaeter werden hier aus Viewconfig den GOs die Cats,Labels zugeordnet
     Layer lay = new Layer(grob, this);
-    //	add (lay,new Integer(highestLayer()+1));
+    //    add (lay,new Integer(highestLayer()+1));
     int Laynr = ++highest;
     add(lay, new Integer(Laynr));
     mw.updateViewParameter();
@@ -177,7 +177,7 @@ public class GraphWindow extends JLayeredPane
    * @see <a href="Categorysrc.html#addLayer">Source</a> 
    */
   public JToggleButton addLayer (Layer l) {
-    //	add (lay,new Integer(highestLayer()+1));
+    //    add (lay,new Integer(highestLayer()+1));
     Layer lay = new Layer(l.getGeoObjects(), this);
     int Laynr = highest++;
     add(lay, new Integer(Laynr));
@@ -206,7 +206,7 @@ public class GraphWindow extends JLayeredPane
                Query.addViewConfig(VCfg);
            }
            VCfg.readPool();
-	   VCfg.setVisible(true);
+           VCfg.setVisible(true);
          }
       }
     }
@@ -250,7 +250,6 @@ public class GraphWindow extends JLayeredPane
     }else{
          r = null;
     }
-    Interval in = null;
     for (int i = 0; i < getComponentCount(); i++)
       if (getComponent(i) instanceof Layer) {
         Layer l = (Layer)getComponent(i);
@@ -261,18 +260,9 @@ public class GraphWindow extends JLayeredPane
           if(layer_box!=null)
               r = (Rectangle2D.Double)r.createUnion(layer_box);
         }
-        if (l.getTimeBounds() != null){
-          Interval layer_interval = l.getTimeBounds(); 
-          if (in == null)
-            in = layer_interval; 
-          else 
-            if(layer_interval!=null)
-               in = in.union(l.getTimeBounds());
-        }
       }
     if (r != null)
       mw.BBoxWC = r;
-    mw.setActualTime(in);
   }
 
   public void updateBackground(){
@@ -344,7 +334,7 @@ public class GraphWindow extends JLayeredPane
          dg.draw(g2,CurrentState.ActualTime);
          g2.setComposite(C);
       } 
-	  }
+      }
     if(additionalGraphObject!=null){
       additionalGraphObject.draw(g2,at,CurrentState.ActualTime); 
     } 

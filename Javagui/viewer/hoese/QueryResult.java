@@ -19,12 +19,13 @@
 
 package  viewer.hoese;
 
-import  java.util.Vector;
-import  sj.lang.ListExpr;
-import  javax.swing.*;
-import  java.awt.*;
-import  java.awt.event.*;
-import  viewer.HoeseViewer;
+import java.util.Vector;
+import sj.lang.ListExpr;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import viewer.HoeseViewer;
+import tools.Reporter;
 
 
 /**
@@ -40,13 +41,19 @@ public class QueryResult extends JList {
   private Vector GraphObjects;
 /** No. of tuples, no. of attributes of a tuple   */
   private int TupelCount, AttrCount;
+  
 
 
 
 /** the QueryRepresentations for this QueryResult */
   // private ViewConfig myViewConfig = null;
-  // for each DsplGraph we need a separate ViewConfig
   private Vector ViewConfigs= new Vector(2);
+
+
+/** stores the interval where Time dependent objects are defined
+  **/
+  private Interval interval;
+
 
   /**
    * Creates a QueryResult with a command and a result of a query
@@ -55,15 +62,19 @@ public class QueryResult extends JList {
    */
   public QueryResult (String acommand, ListExpr aLEResult) {
     super();
+    interval = null;
     setFont(new Font("Monospaced",Font.PLAIN,12));
+
+    // processing double clicks
     addMouseListener(new MouseAdapter() {
       public void mouseClicked (MouseEvent e) {
-        if (e.getClickCount() != 2)
+        if (e.getClickCount() != 2){
           return;
+        }
         Object o = QueryResult.this.getSelectedValue();
-	if ((o instanceof DsplBase) && (((DsplBase)o).getFrame() != null)) {
-	  ((DsplBase)o).getFrame().select(o);
-          ((DsplBase)o).getFrame().show(true);
+        if ((o instanceof DsplBase) && (((DsplBase)o).getFrame() != null)) {
+            ((DsplBase)o).getFrame().select(o);
+            ((DsplBase)o).getFrame().show(true);
         }
         if((o instanceof ExternDisplay)){
             ExternDisplay BG = (ExternDisplay) o;
@@ -71,10 +82,10 @@ public class QueryResult extends JList {
                 BG.displayExtern(); 
             }
         }
-
-        //			((DsplBase)o).getFrame().select(o);
       }
     });
+
+
     setModel(new DefaultListModel());
     setCellRenderer(new QueryRenderer());
     setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -82,10 +93,12 @@ public class QueryResult extends JList {
     command = acommand;
     LEResult = aLEResult;
     TupelCount = LEResult.second().listLength();
-    if (LEResult.first().isAtom())
+    if (LEResult.first().isAtom()){
       AttrCount = 0;
-    else 
+    }
+    else {
       AttrCount = LEResult.first().second().second().listLength();
+    }
     GraphObjects = new Vector(50);
   }
 
@@ -166,12 +179,17 @@ public class QueryResult extends JList {
    * @param entry The entry object
    */
   public void addEntry (Object entry) {
-    if (entry instanceof DsplBase) {
-      if (entry instanceof DsplGraph)
-        GraphObjects.add(entry);
-      if (((DsplBase)entry).getFrame() != null)
-        ((DsplBase)entry).getFrame().addObject(entry);
+    if(entry!=null){
+      if (entry instanceof DsplBase) {
+        if (entry instanceof DsplGraph){
+          GraphObjects.add(entry);
+        }
+        if (((DsplBase)entry).getFrame() != null){
+          ((DsplBase)entry).getFrame().addObject(entry);
+        }
+      }
     }
+
     ((DefaultListModel)getModel()).addElement(entry);
   }
 
@@ -221,6 +239,40 @@ public class QueryResult extends JList {
 
   /** return the ListExpr */
   public  ListExpr getListExpr(){return LEResult;}
+
+
+  /** computes the TimeBounds from the contained objects.
+   **/
+  public void computeTimeBounds(){
+     ListModel listModel = getModel();
+     int size = listModel.getSize();
+     this.interval=null;
+     for(int i=0;i<size;i++){
+        Object o = listModel.getElementAt(i);
+        if(o instanceof Timed){
+           Interval oInterval = ((Timed)o).getTimeBounds();
+           if(oInterval!=null){
+              if(this.interval==null){
+                 this.interval = oInterval.copy();
+              } else{
+                 this.interval.unionInternal(oInterval);
+              }
+           }
+        }
+     } 
+  } 
+
+
+
+  /** Returns the interval containing all definition times of
+    * object instances of Timed. If no such time exist, the result
+    * is null.
+    **/
+  public Interval getTimeBounds(){
+    return interval;
+  }
+   
+
 
   /**
    * 

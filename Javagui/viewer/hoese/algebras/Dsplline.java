@@ -49,7 +49,14 @@ public class Dsplline extends DisplayGraph {
 
   /** returns the string for the textual representation of this **/
   public String toString(){
-     return entry;
+     if(err || !defined){
+        return entry;
+   
+     }
+     else{
+        return entry + " ("+Cat.getName()+")";
+     }
+        
   }
 
   
@@ -177,6 +184,9 @@ public class Dsplline extends DisplayGraph {
       return;
     }
     // normal case-> defined line
+    entry = AttrName + " : line";
+    defined=GP!=null;
+    err=false;
     qr.addEntry(this);
     if(GP==null)
         bounds = null;

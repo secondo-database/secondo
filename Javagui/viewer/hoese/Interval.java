@@ -47,6 +47,12 @@ public class Interval {
     }
   }
 
+  /** returns a copy of this interval **/
+  public Interval copy(){
+    return new Interval(start,end,leftclosed,rightclosed);
+  }
+
+
   /** returns the String representation for this interval */
   public String toString(){
     String res= leftclosed?"[":"(";
@@ -113,40 +119,40 @@ public class Interval {
    * @see <a href="Intervalsrc.html#union">Source</a>
    */
   public Interval union (Interval iv) {
-    Interval i = new Interval(0, 0, true, true);
-    if(iv==null){
-       i.leftclosed=leftclosed;
-       i.rightclosed=rightclosed;
-       i.start=start;
-       i.end=end;
-       return i;
-    }
-    if (start < iv.start) {
-      i.leftclosed = leftclosed;
-      i.start = start;
-    }
-    else if (start == iv.start) {
-      i.leftclosed = leftclosed || iv.leftclosed;
-      i.start = start;
-    }
-    else {
-      i.leftclosed = iv.leftclosed;
-      i.start = iv.start;
-    }
-    if (end > iv.end) {
-      i.rightclosed = rightclosed;
-      i.end = end;
-    }
-    else if (end == iv.end) {
-      i.rightclosed = rightclosed || iv.rightclosed;
-      i.end = end;
-    }
-    else {
-      i.rightclosed = iv.rightclosed;
-      i.end = iv.end;
-    }
-    return  i;
+    Interval i = copy();
+    i.unionInternal(iv);
+    return i;
   }
+
+  /** build the interval covering this interval and 
+    * the argument and stored the result in this interval.
+    */
+  public void unionInternal(Interval interval){
+     if(interval==null){ // ignore empty intervals
+         return;
+     }
+     if(interval.start==interval.end &&  // ignore wrong formatted intervals
+        (!interval.leftclosed || !interval.rightclosed)){
+        return;
+     }
+     // handle start
+     if(interval.start<this.start){
+        this.start = interval.start; 
+        this.leftclosed = interval.leftclosed;
+     }
+     if(interval.start==this.start){
+        this.leftclosed = interval.leftclosed || this.leftclosed;
+     }
+     // handle end
+     if(interval.end >this.end){
+        this.end=interval.end;
+        this.rightclosed = interval.rightclosed;
+     }
+     if(interval.end==this.end){
+       this.rightclosed = interval.rightclosed || this.rightclosed;
+     }
+  } 
+
 
   /**
    * Tests if this Interval is defined at a certain time t

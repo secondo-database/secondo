@@ -1964,6 +1964,22 @@ public boolean canDisplay(SecondoObject o){
     BBoxDC = new Rectangle(0, 0, (int)w, (int)h);
     GraphDisplay.updateLayersSize(BBoxDC);
     GraphDisplay.repaint();
+    // compute the bounds of all contained Timed objects
+    ListModel listModel = TextDisplay.getQueryCombo().getModel();
+    int size = listModel.getSize();
+    Interval interval=null;
+    for(int i=0;i<size;i++){
+      QueryResult qr = (QueryResult) listModel.getElementAt(i);
+      Interval qrInterval = qr.getTimeBounds();
+      if(qrInterval!=null){
+         if(interval==null){
+          interval = qrInterval.copy();
+         }else{
+          interval.unionInternal(qrInterval);
+         }
+      }
+    }
+    setActualTime(interval);
   }
 
 

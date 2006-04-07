@@ -202,9 +202,16 @@ public class Category
     * fillstyle stored in this catagory is returned.
    */
   public Paint getFillStyle(RenderAttribute renderAttribute, double time){
+    
+
     if(renderAttribute==null || attrRenderMethod!=RENDER_COLOR){
         return  FillStyle;
     } else {
+        if(Double.isInfinite(minValue) || Double.isInfinite(maxValue)){
+           Reporter.debug("try to compute render depening color with"+
+                               "unbounded range");
+           return FillStyle;
+        }
         double value = renderAttribute.isDefined(time)?renderAttribute.getRenderValue(time):minValue;
         if(value<minValue){
              value = minValue;

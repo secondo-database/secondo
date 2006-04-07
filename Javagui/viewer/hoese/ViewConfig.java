@@ -28,6 +28,7 @@ import java.awt.geom.*;
 import java.io.*;
 import java.awt.image.*;
 import java.awt.event.*;
+import javax.swing.event.*;
 import viewer.HoeseViewer;
 import gui.Environment;
 import tools.Reporter;
@@ -100,6 +101,16 @@ public class ViewConfig extends javax.swing.JDialog {
     setSize(500,500);
     setResizable(true);
   }
+
+  /** Check for equality with another object **/
+  public boolean equals(Object o){
+      if(!(o instanceof ViewConfig))
+         return false;
+      ViewConfig vc = (ViewConfig)o;
+      return AttrName.equals(vc.AttrName) &&
+             Query == vc.Query;
+  }
+
 
   /**
    * Searches the attributes for possible reference attributes (int,real,string,bool)
@@ -645,12 +656,15 @@ public class ViewConfig extends javax.swing.JDialog {
       if(!LinkCheckBox.isSelected()){
          // handling of reference attributes
          int RefAttrIndex = LabelAList.indexOf(as)-1;
-         //int RendTypeIndex=RendTypeCB.getSelectedIndex());
-	       Category cat  = calcCategory((Category)CatCB.getSelectedItem());
+
+         Category cat = calcCategory((Category)CatCB.getSelectedItem());
          if(mw.Cats.indexOf(cat)<0){
            mw.Cats.add(cat);
+           CatCB.contentsChanged(new ListDataEvent(this,
+                                                 ListDataEvent.CONTENTS_CHANGED,
+                                                 0,
+                                                 mw.Cats.size()));
          }
-         ListExpr   tl = extractRelation();
          ListIterator li = Query.getGraphObjects().listIterator();
          int attrno=-1;//indicating tuple number
          if(RefAttrCB.getSelectedIndex()>0){
@@ -681,14 +695,18 @@ public class ViewConfig extends javax.swing.JDialog {
                      if(curAttr.mayBeDefined()){
 												 double cmin = curAttr.getMinRenderValue();
 												 double cmax = curAttr.getMaxRenderValue();
-												 if(first){
-														 first=false;
-														 min = cmin;
-														 max = cmax;
-												 } else{
-													 min = cmin<min?cmin:min;
-													 max = cmax>max?cmax:max;
-												 }
+                         if(!Double.isInfinite(cmin) && !Double.isInfinite(cmax)){
+														 if(first){
+																 first=false;
+																 min = cmin;
+																 max = cmax;
+														 } else{
+															 min = cmin<min?cmin:min;
+															 max = cmax>max?cmax:max;
+														 }
+                          } else{
+                             Reporter.debug("infinite range given from "+dg.getClass());
+                          }
                      }
 									 }
                }
@@ -1059,6 +1077,13 @@ public class ViewConfig extends javax.swing.JDialog {
       RenderType rt = new RenderType(type,isRender);
       storedRenderAttributes.add(rt);
       return isRender;
+   }
+
+   /** should be called whenever the categories were changed **/
+   public void CatsChanged(Object source){
+       CatCB.contentsChanged(new ListDataEvent( source,
+                                        ListDataEvent.CONTENTS_CHANGED,
+                                        0,mw.Cats.size())); 
    }
 
 

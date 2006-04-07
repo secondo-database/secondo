@@ -413,7 +413,6 @@ public MainWindow(String Title){
                 Reporter.writeInfo("addViewer "+ViewerName);
                 addViewer((SecondoViewer)Cand);
                 boolean tm = Environment.TESTMODE || Environment.EXTENDED_TESTMODE;
-                System.out.println("enable testmode : "+tm);
                 ((SecondoViewer)Cand).enableTestmode(Environment.TESTMODE ||
                                                      Environment.EXTENDED_TESTMODE);
               }

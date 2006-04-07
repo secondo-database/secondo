@@ -42,8 +42,6 @@ public class Layer extends JComponent {
   public JToggleButton button;
   /** the world boundingbox of this  layer */
   Rectangle2D.Double boundsWC;
-  /** global timebounds of this layer */
-  Interval TimeBounds;
   /** True if the selected object is in this layer */
   boolean Selected = false;
   /** the internal no. of this layer */
@@ -69,12 +67,10 @@ public class Layer extends JComponent {
     owner = gw;
     GeoObjects = (Vector)obj.clone();
     setDoubleBuffered(true);
-    //Graphics2D g2 = (Graphics2D) g;
-    //Vector copy = (Vector)obj.clone();
     calcBounds();
   }
 
-  /** Calculates timebounds and world-boundinbox for this layer
+  /** Calculates world-bounding  box for this layer
    * @see <a href="Layersrc.html#calcBounds">Source</a>
    */
   public void calcBounds () {
@@ -85,19 +81,14 @@ public class Layer extends JComponent {
         Rectangle2D.Double bds = null;            // null sp. entf
         DsplGraph dg = ((DsplGraph)li.next());
         dg.setLayer(this);
-        if (dg instanceof Timed)
-          if (TimeBounds == null)
-            TimeBounds = ((Timed)dg).getTimeBounds();
-          else
-            TimeBounds = TimeBounds.union(((Timed)dg).getTimeBounds());
         bds = dg.getBounds();
-	if(bds != null){ // not an empty line
+        if(bds != null){ // not an empty object
            if (boundsWC == null)
              boundsWC = bds;
            else
              boundsWC = (Rectangle2D.Double)boundsWC.createUnion(bds);
-	}
-    }
+        }
+      }
     }
     catch(Exception e){
       Reporter.writeError("Exception in Layer.calcBounds "+e);
@@ -214,15 +205,6 @@ public class Layer extends JComponent {
     return  CurrentState.ActualTime;
   }
 
-  /**
-   *
-   * @return The TimeBounds of this layer
-   * @see <a href="Layersrc.html#getTimeBounds">Source</a>
-   */
-  public Interval getTimeBounds () {
-    return  TimeBounds;
-  }
-
 
   /** set a new Category to paint the next object */
   private void setCategory(DsplGraph dg,Graphics2D g2){
@@ -253,7 +235,7 @@ public class Layer extends JComponent {
     if (dg.isPointType()) {
       if (P instanceof TexturePaint){
         BufferedImage bi = ((TexturePaint)P).getImage();
-	    if(bi==null) return;
+        if(bi==null) return;
         g2.setPaint(new TexturePaint(bi,sh.getBounds2D()));
       }
       else if (P instanceof GradientPaint)
@@ -280,11 +262,11 @@ public class Layer extends JComponent {
       LastDisplayGraph = null;
       if (Selected)
         for(int i=0;i<GeoObjects.size();i++){
-	  DsplGraph dg = (DsplGraph)GeoObjects.get(i);
+      DsplGraph dg = (DsplGraph)GeoObjects.get(i);
           if ((dg.getVisible()) && (!dg.getSelected())){
-	    setCategory(dg,g2);
+        setCategory(dg,g2);
             dg.draw(g2,CurrentState.ActualTime);
-	  }
+      }
         }
       else
         for(int i=0;i<GeoObjects.size();i++){

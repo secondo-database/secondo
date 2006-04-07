@@ -90,12 +90,11 @@ public class Dsplmovingreal extends DsplGeneric implements
 
     // Create a MRealLabel for each unit and add it to
     // the panel 
-    min=Double.POSITIVE_INFINITY ;
-    max=Double.NEGATIVE_INFINITY ;
     PixelTime = PixTime;
     JPanel jp = new JPanel(null);
     if (Intervals == null)
       return  null;
+
     ListIterator li = Intervals.listIterator();
     int cnt = 0;
     while (li.hasNext()) {
@@ -118,8 +117,6 @@ public class Dsplmovingreal extends DsplGeneric implements
             Reporter.writeError("Cannot determine the value at"+actTime);
          }else{
             double mv=Mv.doubleValue();
-            max=Math.max(max,mv);
-            min=Math.min(min,mv);
         }
       }
       // set posittion and size of this label      
@@ -174,6 +171,105 @@ public class Dsplmovingreal extends DsplGeneric implements
        }
   }
 
+  /** computes the minimum and the maximum value **/
+  private void computeMinMax(){
+     min = 0.0;
+     max = 0.0;
+     if(Intervals==null){
+         return; 
+     }
+     boolean first = true;
+     int size = Intervals.size();
+     for(int i=0;i<size;i++){
+         Interval interval = (Interval) Intervals.get(i);
+         MRealMap map = (MRealMap) MRealMaps.get(i);
+         if(updateMinMax(interval,map,first)){
+              first = false;
+         } 
+     }
+  }
+
+  /** computes the extremums of the given interval-map combination
+    * and updates minvalue and maxvalue if required.
+    * @param interval the interval to check
+    * @param map      the map hlding for this interval
+    * @param first    flag indicating that min and max are undefined up to now
+    * @return true if the values are defined after calling this functiom 
+    **/
+  private boolean updateMinMax(Interval interval, MRealMap map, boolean first){
+    double a = map.a;
+    double b = map.b;
+    double c = map.c;
+    double start = interval.getStart();
+    double end = interval.getEnd();  
+
+ 
+    // check the intervals start
+    double y;
+    if(!map.f || c>=0){ // ensure a defined value
+       y = map.f?Math.sqrt(c):c;
+       if(first){
+         first=false;
+         min=y;
+         max=y;
+       }else{
+         if(y<min){
+           min=y;
+         }
+         if(y>max){
+           max=y;
+         }
+       }
+    } 
+
+    // check the end of the interval
+    double t = end-start;
+    double ty = a*t*t + b*t + c;
+    if(!map.f || ty>=0){
+        y = map.f?Math.sqrt(ty):ty; 
+        if(first){
+           first=false;
+           min=y;
+           max=y;
+        }else{
+           if(y<min){
+             min=y;
+           }
+           if(y>max){
+             max=y;
+           }
+        }
+    } 
+
+   // check a possible angular point
+   if(a!=0.0){
+     t = start - b / (2*a); // the moved angular point
+     // check whether t is inside interval
+     if(t>0 && t < (end-start)){
+				 ty = a*t*t + b*t + c;
+				 if(!map.f || ty>=0){
+						y = map.f?Math.sqrt(ty):ty; 
+						if(first){
+							 first=false;
+							 min=y;
+							 max=y;
+						}else{
+							 if(y<min){
+								 min=y;
+							 }
+							 if(y>max){
+								 max=y;
+							 }
+						}
+				 }  
+      }
+  }
+  return !first;
+
+}
+
+
+
 
   /** Returns the interval of this moving real **/
   public Interval getInterval(){
@@ -206,7 +302,7 @@ public class Dsplmovingreal extends DsplGeneric implements
       if(len!=2 && len !=8)
          return;
       if (len == 8){
-         Reporter.writeWarning("Warning: deprecated list represenation for moving real");
+         Reporter.writeWarning("Warning: deprecated list representation for moving real");
          in = LEUtils.readInterval(ListExpr.fourElemList(le.first(),
                        le.second(), le.third(), le.fourth()));
          map = le.rest().rest().rest().rest();
@@ -263,6 +359,7 @@ public class Dsplmovingreal extends DsplGeneric implements
     AttrName = type.symbolValue();
     err=true;
     ScanValue(value);
+    computeMinMax();
     if (err) {
       defined = false;
       Reporter.writeError("Error in ListExpr :parsing aborted");
