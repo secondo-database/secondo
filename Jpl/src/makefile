@@ -26,15 +26,13 @@ LINKFILES = $(JPL_LIB)/jpl.o $(SECONDOPL_DIR)/SecondoPL.o $(LIBDIR)/SecondoInter
 # Some optional switches used for providing a prolog
 # predicate which maximizes the entropy. For details
 # refer to "SecondoPL.cpp" and the subdirectory "Optimizer/Entropy"
+
 ifdef ENTROPY
 
-include ../../Optimizer/Entropy/makefile.optlib
-
-LINKFILES += ../../Optimizer/Entropy/entropy.$(OBJEXT)
-ENT_LINK_LIBS = -L$(OPTLIB_BUILD) -lopt-$(TARGET_NAME) -lnewmat-$(TARGET_NAME)
-CCFLAGS += -DSECONDO_USE_ENTROPY
+LINKFILES += $(OPTDIR)/Entropy/Iterative_scaling.o
 
 endif
+
 
 .PHONY: all
 all: compile build
