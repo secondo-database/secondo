@@ -283,6 +283,10 @@ be retrieved only once.
 
 % Selectivities must not be 0
 
+nonzero(0, 1) :- !.
+
+nonzero(N, N).
+
 selectivity(pr(Pred, Rel, Rel), Sel) :-
   selectivity(pr(Pred, Rel), Sel), !.
 
@@ -313,8 +317,9 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   write('Elapsed Time: '),
   write(MSs),
   write(' ms'),nl, 
-  MSsRes is MSs / (SampleCard1 * SampleCard2), 
-  Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
+  MSsRes is MSs / (SampleCard1 * SampleCard2),
+  nonzero(ResCard, NonzeroResCard), 
+  Sel is NonzeroResCard / (SampleCard1 * SampleCard2),	% must not be 0
   write('Predicate Cost: '),
   write(MSsRes),
   write(' ms'),nl,
@@ -346,7 +351,8 @@ selectivity(pr(Pred, Rel), Sel) :-
   write(MSs),
   write(' ms'),nl,
   MSsRes is MSs / SampleCard,
-  Sel is (ResCard + 1)/ SampleCard,		% must not be 0
+  nonzero(ResCard, NonzeroResCard),
+  Sel is NonzeroResCard / SampleCard,		% must not be 0
   write('Predicate Cost: '),
   write(MSsRes),
   write(' ms'),nl,
@@ -382,7 +388,8 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   write(MSs),
   write(' ms'),nl,
   MSsRes is MSs / (SampleCard1 * SampleCard2),
-  Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
+  nonzero(ResCard, NonzeroResCard),
+  Sel is NonzeroResCard / (SampleCard1 * SampleCard2),	% must not be 0
   write('Predicate Cost: '),
   write(MSsRes),
   write(' ms'),nl,
@@ -414,7 +421,8 @@ selectivity(pr(Pred, Rel), Sel) :-
   write(MSs),
   write(' ms'),nl,
   MSsRes is MSs / SampleCard,
-  Sel is (ResCard + 1)/ SampleCard,		% must not be 0
+  nonzero(ResCard, NonzeroResCard),
+  Sel is NonzeroResCard / SampleCard,		% must not be 0
   write('Predicate Cost: '),
   write(MSsRes),
   write(' ms'),nl,
