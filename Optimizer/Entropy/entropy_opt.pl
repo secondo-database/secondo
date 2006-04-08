@@ -155,16 +155,43 @@ Based on the counter values we can compute the conditional selectivities
 along the path chosen by the ~standard~ optimizer. The values are stored
 in ~small\_cond\_sel/4~.
 
-When both counter values are 0 or equal, we have a selectivity of 1. In this case we assign 0.99 instead, to ``leave some space'' for avoiding zero atoms.
+
+
+----	compute_sel(ResSize, ArgSize, Sel) :-
+----
+
+Observed selectivities are determined according to the following rules.
+
+  1 If the argument size is 0, then a selectivity 0 is assigned. The chain of dependent probablities constructed in ~ComputeJointProbabilities~ is terminated when a selectivity 0 is encountered. This means that the entropy optimizer will not get assumptions about the probabilities of nodes after this point.
+
+  2 If the argument size is big enough, but the result size is zero, then we assume that one element has been found instead (similar to the other selectivity queries on samples).
+
+  3 If the result size is equal to the argument size, we have a selectivity of one. Instead we assume a selectivity of 0.99, to avoid zero atoms.
+
+  4 Otherwise the selectivity is ~ResSize~ / ~ArgSize~, as expected.
 
 */
- 
-compute_sel(0, 0, 0.99).
 
-compute_sel(X, X, 0.99).
+compute_sel(_, N, 0) :-
+  N = 0,
+  !.
 
-compute_sel(Num, Den, Sel) :-
-  Sel is Num / Den.
+compute_sel(0, N, N1) :-
+  N1 is 1 / N,
+  !.
+
+compute_sel(N, N, 0.99) :-
+  !.
+
+compute_sel(ResSize, ArgSize, Sel) :-
+  Sel is ResSize / ArgSize.
+
+
+
+
+
+
+
 
 
 assignSmallSelectivity(Source, Target, Result, select(Arg, _), Value) :-
@@ -202,8 +229,12 @@ but with the sufix '\_small'
 small(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
   atom_concat(Rel, '_small', Rel2).
 
-newResSize(arg(N), Size) :- argument(N, R ), small( R, rel(SRel, _, _)), card(SRel, Size), !.
-newResSize(res(N), Size) :- smallResultSize(N, Size), !.
+newResSize(arg(N), Size) :- 
+  argument(N, R ), 
+  small( R, rel(SRel, _, _)),   card(SRel, Size), !.
+
+newResSize(res(N), Size) :- 
+  smallResultSize(N, Size), !.
 
 
 prepare_query_small( count(Term), count(Result) ) :-
@@ -218,8 +249,6 @@ query_small(rel(Name, V, C), Result) :-
   !.
 
 query_small(exactmatch(IndexName, R, V), Result) :-
-  write('R:'), write(R), nl,
-  write('V:'), write(V), nl,
   atom_concat(IndexName,'_small', IndexNameSmall),
   query_small( R, R2 ),
   Result = exactmatch(IndexNameSmall, R2, V),
@@ -347,7 +376,6 @@ translateEntropy(Stream1, Stream2, Cost1, Cost2) :-
   
   deleteEntropyNodes, !,
   query(SmallQuery), !, nl,
-  deleteCounters,
   
   write('First Plan:'), nl, 
   write( FirstQuery ), nl, nl,
@@ -360,7 +388,8 @@ translateEntropy(Stream1, Stream2, Cost1, Cost2) :-
   assignEntropyCost,
   bestPlan(Stream2, Cost2), !,
 
-  warn_plan_changed(Stream1, Stream2).
+  warn_plan_changed(Stream1, Stream2),
+  !.
 
 translateEntropy(Stream1, Stream1, Cost1, Cost1).
 
@@ -383,11 +412,8 @@ assignEntropyCost :-
   write('Marginal Sel.: MP ='), write( MP ), nl,
   write('Conditional Sel.: JP =') , write( JP ), nl, nl,
   
-  %simpleadjust(MP, JP, MP2, JP2),
-  feasible(MP, JP, MP2, JP2),
-  %margadjust(MP2, MP3),		
+  feasible(MP, JP, MP2, JP2), !,
 
- 
   % call the predicate implemented in C++ which computes the 
   % remaining conditional probabilities. 
   write('maximize_entropy called with:'), nl,
@@ -417,7 +443,7 @@ Usage:
 
 The parameters are a list of marginal probabilites (e.g. the selectivites on the
 sample relations) and a list of conditional probabilities (computed after running
-an initail query plan on a small database). It assumed the same coding of
+an initial query plan on a small database). It assumed the same coding of
 predicates using bits, as done in POG construction - that is, to the predicate
 n, if the ith-bit is set to 1 then the ith-predicate is already evaluated.  
 
@@ -468,10 +494,7 @@ entropySel( Source, Target, Sel ) :-
  
 /*
 Construction of the input parameters (a lists of marginal probabilites and
-conditional probabilities) for the ~maximze\_entropy/3~ predicate.
-
-The marginal probabilities must have an implicit order. This should be altered
-to work in the same way as conditional probabilities.
+conditional probabilities) for the ~maximize\_entropy/3~ predicate.
 
 */
 
@@ -485,35 +508,24 @@ createMarginalProbability( N, [[Pred, Sel]|T] ) :-
 
 createMarginalProbability( _, [] ).
 
+/*
+The chain of probabilities constructed in ~createJointProbability~ is terminated when a selectivity 0 is encountered. Selectivity 0 is put into small_cond_sel if the sample (intermediate result on the small database) had a size of less than 10).
+
+*/
+
 createJointProbabilities( JP ) :-
   createJointProbability( 0, 1, JP ).
 
 createJointProbability( N0, AccSel, [[N0, N1, CP1]|T] ) :-
   small_cond_sel( N0, N1, _, Sel ),
+  Sel > 0,
   CP1 is Sel * AccSel,
   createJointProbability( N1, CP1, T ).
 
 createJointProbability( _, _, [] ).
 
 
-:- dynamic
 
-  marginal/2.
-
-
-saveMarginal([]).
-
-saveMarginal([[Pred, Sel]|L]) :-
-  assert(marginal(Pred, Sel)),
-  saveMarginal(L).
-
-
-loadMarginal(MP) :-
-  setof([Pred, Sel], marginal(Pred, Sel), MP).
-
-
-deleteMarginal :- 
-  retractall(marginal(_, _)).
 
 
 /*
@@ -530,8 +542,35 @@ deleteMarginal :-
 
 If any "S_{pq}" lies outside these bounds it will be set to the corresponding boundary value. To avoid zero atoms, additionally the value of "S_{pq}" is reduced or increased by 1 \%, respectively.
 
+Marginals of value 1 can arise if all tuples in a sample qualify. In this case we also lower the selectivity slightly (to 0.99) to avoid zero atoms. 
+
 
 */
+
+:- dynamic
+
+  marginal/2.
+
+
+saveMarginal([]).
+
+saveMarginal([[Pred, 1]|L]) :-			% marginals must not be 1
+  assert(marginal(Pred, 0.99)),
+  saveMarginal(L).
+
+saveMarginal([[Pred, Sel]|L]) :-
+  assert(marginal(Pred, Sel)),
+  saveMarginal(L).
+
+
+loadMarginal(MP) :-
+  setof([Pred, Sel], marginal(Pred, Sel), MP).
+
+
+deleteMarginal :- 
+  retractall(marginal(_, _)).
+
+
 
 feasible(Marginal, Joint, Marginal2, Joint2) :-
   deleteMarginal,
