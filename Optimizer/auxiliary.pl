@@ -326,29 +326,52 @@ createIndexSmall(Rel, ObjList, _, _) :-
   write(Rel),
   write(' cannot create small relation and an index on small relation!'),!,fail.
 
-checkIfIndexIsStored(Rel, Attr, IndexType, IndexName, _) :-
-  storedIndex(Rel, Attr, IndexType, IndexName),!.
 
-checkIfIndexIsStored(Rel, Attr, IndexType, IndexName, ObjList) :-
-  storedNoIndex(Rel, Attr),
-  retract(storedNoIndex(Rel, Attr)),
-  assert(storedIndex(Rel, Attr, IndexType, IndexName)),
+
+
+checkIfIndexIsStored(_, _, LFRel, LFAttr, IndexType, IndexName, _) :-
+  storedIndex(LFRel, LFAttr, IndexType, IndexName),!.
+
+checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, IndexType, IndexName, ObjList) :-
+  storedNoIndex(LFRel, LFAttr),
+  retract(storedNoIndex(LFRel, LFAttr)),
+  assert(storedIndex(LFRel, LFAttr, IndexType, IndexName)),
   createIndexSmall(Rel, ObjList, IndexName, Attr),!.
 
-checkIfIndexIsStored(Rel, Attr, IndexType, IndexName, ObjList) :-
-  assert(storedIndex(Rel, Attr, IndexType, IndexName)),
+checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, IndexType, IndexName, ObjList) :-
+  assert(storedIndex(LFRel, LFAttr, IndexType, IndexName)),
   createIndexSmall(Rel, ObjList, IndexName, Attr).
+
+
+
 
 checkForAddedIndex(ObjList) :-
   member(['OBJECT', IndexName, _ , [[IndexType | _]]], ObjList),
   concat_atom(L, '_', IndexName),
-  L = [Rel, Attr],
+  L = [LFRel, Attr],
   not(Attr = small),
   not(Attr = sample),
   indexType(IndexType),
-  lowerfl(Rel, LFRel),
+  relname(LFRel, Rel),
   lowerfl(Attr, LFAttr),
-  checkIfIndexIsStored(LFRel, LFAttr, IndexType, IndexName, ObjList).
+    %write('checking for index: '), write(Rel), write(' '), write(Attr), write(' '),
+    %write(IndexType), write(' '), write(IndexName), nl,
+  checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, IndexType, IndexName, ObjList).
+
+
+
+relname(LFRel, LFRel) :-
+  spelled(LFRel, _, l), 
+  !.
+
+relname(LFRel, Rel) :-
+  spelled(LFRel, _, u),
+  upper(LFRel, Rel).
+  
+  
+  
+
+
 
 checkForAddedIndices(ObjList) :-
   findall(_, checkForAddedIndex(ObjList), _).
