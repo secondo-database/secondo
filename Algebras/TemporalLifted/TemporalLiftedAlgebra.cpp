@@ -742,6 +742,8 @@ void RCenter(MRegion& reg, MPoint& res) {
 
 /*
 1.1.1 Method ~NComponents()~
+It gets for each URegion the last segment and givs the FaceNo of
+this segment, because the last segment ist on the last face .
 
 */
 
@@ -761,7 +763,9 @@ void NComponents(MRegion& reg, MInt& res) {
       <<ur->timeInterval.end.ToDouble()<<" ]"<<endl;
 
       cout<<"number = "<< ur->GetSegmentsNum()<<endl;
-      CcInt *constVal = new CcInt(true, ur->GetSegmentsNum());
+      const MSegmentData *dms;
+      ur->GetSegment(ur->GetSegmentsNum() - 1, dms);
+      CcInt *constVal = new CcInt(true, dms->GetFaceNo() + 1);
       UInt *ures = new UInt(ur->timeInterval, *constVal);
 
       cout<<"ures.constValue "<<ures->constValue.GetIntval()<<endl;
@@ -3080,25 +3084,77 @@ static ListExpr UnionTypeMap(ListExpr args) {
 /*
 Used by ~isempty~:
 
-16.1.3 Type mapping function ~IsemptyTypeMap~
+16.1.3 Type mapping function ~TemporalLiftIsemptyTypeMap~
 
 */
-static ListExpr IsemptyTypeMap(ListExpr args) {
-    cout<<"IsemptyTypeMap() called" << endl;
+static ListExpr TemporalLiftIsemptyTypeMap(ListExpr args) {
+    cout<<"TemporalLiftIsemptyTypeMap() called" << endl;
 
-    if (nl->ListLength(args) == 1
-        && nl->IsEqual(nl->First(args), "movingregion"))
+    if (nl->ListLength(args) == 1){
+      if(nl->IsEqual(nl->First(args), "movingregion"))
         return nl->SymbolAtom("mbool");
+     if(nl->IsEqual(nl->First(args), "mbool"))
+        return nl->SymbolAtom("mbool");
+     if(nl->IsEqual(nl->First(args), "mint"))
+        return nl->SymbolAtom("mbool");   
+     if(nl->IsEqual(nl->First(args), "mreal"))
+        return nl->SymbolAtom("mbool");
+     if(nl->IsEqual(nl->First(args), "mpoint"))
+        return nl->SymbolAtom("mbool");
+     else
+        return nl->SymbolAtom("typeerror");
+    }
     else
         return nl->SymbolAtom("typeerror");
 }
 
+/*
+Used by ~mint~:
 
+16.1.3 Type mapping function ~TemporalMIntTypeMap~
 
+*/
+static ListExpr TemporalMIntTypeMap(ListExpr args) {
+    cout<<"TemporalMIntTypeMap() called" << endl;
 
+    if (nl->ListLength(args) == 1
+        && nl->IsEqual(nl->First(args), "periods"))
+        return nl->SymbolAtom("mint");
+    else
+        return nl->SymbolAtom("typeerror");
+}
 
+/*
+Used by ~+~:
 
+16.1.3 Type mapping function ~TemporalPlusTypeMap~
 
+*/
+static ListExpr TemporalPlusTypeMap(ListExpr args) {
+    cout<<"TemporalPlusTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 2
+        && nl->IsEqual(nl->First(args), "mint")
+        && nl->IsEqual(nl->Second(args), "mint"))
+        return nl->SymbolAtom("mint");
+    else
+        return nl->SymbolAtom("typeerror");
+}
+
+/*
+Used by ~zero~:
+
+16.1.3 Type mapping function ~TemporalZeroTypeMap~
+
+*/
+static ListExpr TemporalZeroTypeMap(ListExpr args) {
+    cout<<"TemporalZeroTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 0)
+        return nl->SymbolAtom("mint");
+    else
+        return nl->SymbolAtom("typeerror");
+}
 
 
 
@@ -3492,8 +3548,34 @@ static int UnionSelect(ListExpr args) {
         return -1;
 }
 
+/*
+16.2.1 Selection function ~TemporalLiftIsemptySelect~
 
+For ~isempty~:
 
+*/
+
+static int TemporalLiftIsemptySelect(ListExpr args) {
+    cout<< "TemporalLiftIsemptySelect() called" << endl;
+
+    if (nl->ListLength(args) == 1){
+      if(nl->SymbolValue(nl->First(args)) == "movingregion")
+        return 0;
+      else if  (nl->SymbolValue(nl->First(args)) == "mbool")
+        return 1;
+      else if  (nl->SymbolValue(nl->First(args)) == "mint")
+        return 2;     
+      else if  (nl->SymbolValue(nl->First(args)) == "mreal")
+        return 3; 
+      else if  (nl->SymbolValue(nl->First(args)) == "mpoint")
+        return 4; 
+
+      else
+        return -1;
+    }
+    else
+        return -1;
+}
 
 
 
@@ -4276,30 +4358,30 @@ int MRealMSDistance( Word* args, Word& result, int message, Word&
 {
   cout<<"MRealMSDistance called"<<endl;
   result = qp->ResultStorage( s );
-  MReal mop1(0);
-  MReal mop2(0); 
-  UReal up1;
-  const UReal *u1transfer;
-  mop1 = *((MReal*)args[0].addr);
-  CcReal constop = *((CcReal*)args[1].addr);
+  MReal *mop1;
+  MReal *mop2 = new MReal(0); 
+  const UReal *up1;
+  mop1 = (MReal*)args[0].addr;
+  CcReal *constop = (CcReal*)args[1].addr;
   
-  mop2.Clear();
-  mop2.StartBulkLoad();
-  for (int i = 0; i < mop1.GetNoComponents(); i++) {
-    mop1.Get(i, u1transfer);
-    up1 = *u1transfer;
-    up1.a = 0.0;
-    up1.b = 0.0;
-    up1.c = (up1.r) ? pow(constop.GetRealval(), 2) 
-    : constop.GetRealval();
-    cout<<"up1["<<i<<"] ["<<up1.timeInterval.start.ToDouble()
-    <<" "<<up1.timeInterval.end.ToDouble()<<" "
-    <<up1.timeInterval.lc<<" "<<up1.timeInterval.rc<<"] "<<" a: "
-    <<up1.a<<" b: "<<up1.b<<" c: "<<up1.c<<" r: "<<up1.r<<endl;
-    mop2.Add(up1);
+  mop2->Clear();
+  mop2->StartBulkLoad();
+  for (int i = 0; i < mop1->GetNoComponents(); i++) {
+    mop1->Get(i, up1);
+    UReal *up2 = new UReal(up1->timeInterval, 0.0, 0.0, 
+      (up1->r) ? pow(constop->GetRealval(), 2)
+      : constop->GetRealval(),up1->r);
+    cout<<"up2["<<i<<"] ["<<up2->timeInterval.start.ToDouble()
+    <<" "<<up2->timeInterval.end.ToDouble()<<" "
+    <<up2->timeInterval.lc<<" "<<up2->timeInterval.rc<<"] "<<" a: "
+    <<up2->a<<" b: "<<up2->b<<" c: "<<up2->c<<" r: "<<up2->r<<endl;
+    mop2->Add(*up2);
+    delete up2;
   }
-  mop2.EndBulkLoad(false);
-  MRealDistanceMM( mop1, mop2, *((MReal*)result.addr));
+  mop2->EndBulkLoad(false);
+  MRealDistanceMM( *mop1, *mop2, *((MReal*)result.addr));
+  
+  delete mop2;
   
   return 0;
 }
@@ -4309,30 +4391,30 @@ int MRealSMDistance( Word* args, Word& result, int message, Word&
 {
   cout<<"MRealSMDistance called"<<endl;
   result = qp->ResultStorage( s );
-  MReal mop1(0);
-  MReal mop2(0); 
-  UReal up1;
-  const UReal *u1transfer;
-  mop1 = *((MReal*)args[1].addr);
-  CcReal constop = *((CcReal*)args[0].addr);
+  MReal *mop1;
+  MReal *mop2 = new MReal(0); 
+  const UReal *up1;
+  mop1 = (MReal*)args[1].addr;
+  CcReal *constop = (CcReal*)args[0].addr;
   
-  mop2.Clear();
-  mop2.StartBulkLoad();
-  for (int i = 0; i < mop1.GetNoComponents(); i++) {
-    mop1.Get(i, u1transfer);
-    up1 = *u1transfer;
-    up1.a = 0.0;
-    up1.b = 0.0;
-    up1.c = (up1.r) ? pow(constop.GetRealval(), 2) 
-    : constop.GetRealval();
-    cout<<"up1["<<i<<"] ["<<up1.timeInterval.start.ToDouble()
-    <<" "<<up1.timeInterval.end.ToDouble()<<" "
-    <<up1.timeInterval.lc<<" "<<up1.timeInterval.rc<<"] "<<" a: "
-    <<up1.a<<" b: "<<up1.b<<" c: "<<up1.c<<" r: "<<up1.r<<endl;
-    mop2.Add(up1);
+  mop2->Clear();
+  mop2->StartBulkLoad();
+  for (int i = 0; i < mop1->GetNoComponents(); i++) {
+    mop1->Get(i, up1);
+    UReal *up2 = new UReal(up1->timeInterval, 0.0, 0.0, 
+      (up1->r) ? pow(constop->GetRealval(), 2)
+      : constop->GetRealval(),up1->r);
+    cout<<"up2["<<i<<"] ["<<up2->timeInterval.start.ToDouble()
+    <<" "<<up2->timeInterval.end.ToDouble()<<" "
+    <<up2->timeInterval.lc<<" "<<up2->timeInterval.rc<<"] "<<" a: "
+    <<up2->a<<" b: "<<up2->b<<" c: "<<up2->c<<" r: "<<up2->r<<endl;
+    mop2->Add(*up2);
+    delete up2;
   }
-  mop2.EndBulkLoad(false);
-  MRealDistanceMM( mop1, mop2, *((MReal*)result.addr));
+  mop2->EndBulkLoad(false);
+  MRealDistanceMM( *mop1, *mop2, *((MReal*)result.addr));
+  
+  delete mop2;
   
   return 0;
 }
@@ -5540,7 +5622,7 @@ static int IsemptyValueMap(Word* args,
     
     pResult->Clear();
     pResult->StartBulkLoad();
-    if(reg->GetNoComponents() < 0){
+    if(reg->GetNoComponents() < 1){
       uBool.timeInterval.lc = true;
       uBool.timeInterval.start.ToMinimum();
       uBool.timeInterval.start.SetType(instanttype);
@@ -5551,11 +5633,9 @@ static int IsemptyValueMap(Word* args,
       pResult->Add(uBool);
     }
     else{    
-      cout<<"1"<<endl;
       uBool.timeInterval.lc = true;
       uBool.timeInterval.start.ToMinimum();
       uBool.timeInterval.start.SetType(instanttype);
-      cout<<"2"<<endl;
       for( int i = 0; i < reg->GetNoComponents(); i++) {
         reg->Get(i, ureg);
         
@@ -5596,7 +5676,96 @@ static int IsemptyValueMap(Word* args,
       }
       uBool.timeInterval.end.ToMaximum();
       uBool.timeInterval.end.SetType(instanttype);
-      cout<<"3"<<endl;
+      if(ureg->timeInterval.end 
+         < uBool.timeInterval.end){
+        uBool.timeInterval.rc = true;
+        uBool.constValue.Set(true,true);
+        
+        cout<<uBool.constValue.GetBoolval()<<" [ "
+        <<uBool.timeInterval.start.ToDouble()<<" "
+        <<uBool.timeInterval.end.ToDouble()<<" "
+        <<uBool.timeInterval.lc<<" "<<uBool.timeInterval.rc<<" ]"
+        <<endl;
+        pResult->MergeAdd(uBool);;
+      }
+    }
+    pResult->EndBulkLoad(false);
+    
+    return 0;
+}
+
+/*
+ValueMapping for ~isempty~ for mbool, mint, mreal and mpoint
+
+*/
+
+template<class Mapping1, class Unit1>
+static int IsEmptyValueMap2(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s) {
+    cout<< "IsemptyValueMap2() called" << endl;
+
+    result = qp->ResultStorage(s);
+    MBool* pResult = (MBool*)result.addr;
+    Mapping1* reg = (Mapping1*)args[0].addr;
+    UBool uBool;
+    const Unit1 *ureg;
+    
+    pResult->Clear();
+    pResult->StartBulkLoad();
+    if(reg->GetNoComponents() < 1){
+      uBool.timeInterval.lc = true;
+      uBool.timeInterval.start.ToMinimum();
+      uBool.timeInterval.start.SetType(instanttype);
+      uBool.timeInterval.rc = true;
+      uBool.timeInterval.end.ToMaximum();
+      uBool.timeInterval.end.SetType(instanttype);
+      uBool.constValue.Set(true,true);
+      pResult->Add(uBool);
+    }
+    else{    
+      uBool.timeInterval.lc = true;
+      uBool.timeInterval.start.ToMinimum();
+      uBool.timeInterval.start.SetType(instanttype);
+      for( int i = 0; i < reg->GetNoComponents(); i++) {
+        reg->Get(i, ureg);
+        
+        cout<<"ureg "<<i<<" [ "
+        <<ureg->timeInterval.start.ToDouble()<<" "
+        <<ureg->timeInterval.end.ToDouble()<<" "
+        <<ureg->timeInterval.lc<<" "<<ureg->timeInterval.rc<<" ] "
+        <<endl;
+        
+        uBool.timeInterval.rc = !ureg->timeInterval.lc;
+        uBool.timeInterval.end = ureg->timeInterval.start;
+        uBool.constValue.Set(true,true);
+        
+        cout<<"a "<<i<<" "<<uBool.constValue.GetBoolval()<<" [ "
+        <<uBool.timeInterval.start.ToDouble()<<" "
+        <<uBool.timeInterval.end.ToDouble()<<" "
+        <<uBool.timeInterval.lc<<" "<<uBool.timeInterval.rc<<" ]"
+        <<endl;
+        if(uBool.timeInterval.start < uBool.timeInterval.end 
+          || (uBool.timeInterval.start == uBool.timeInterval.end
+          && uBool.timeInterval.lc && uBool.timeInterval.rc))  
+          pResult->MergeAdd(uBool);
+        uBool.timeInterval = ureg->timeInterval;
+        uBool.constValue.Set(true,false);
+          
+        cout<<"b "<<i<<" "<<uBool.constValue.GetBoolval()<<" [ "
+        <<uBool.timeInterval.start.ToDouble()<<" "
+        <<uBool.timeInterval.end.ToDouble()<<" "
+        <<uBool.timeInterval.lc<<" "<<uBool.timeInterval.rc<<" ]"
+        <<endl;
+        pResult->MergeAdd(uBool);
+        
+        uBool.timeInterval.lc = !ureg->timeInterval.rc;
+        uBool.timeInterval.start = ureg->timeInterval.end;
+      }
+      uBool.timeInterval.end.ToMaximum();
+      uBool.timeInterval.end.SetType(instanttype);
       if(ureg->timeInterval.end 
          < uBool.timeInterval.end){
         uBool.timeInterval.rc = true;
@@ -5653,8 +5822,183 @@ static int MFalseValueMap(Word* args,
     return 0;
 }
 
+/*
+16.3.40 Value mapping functions of operator ~mint~ 
+Every periode in periods will be transformed into an UInt with 
+value 1 the holes will be transformed into UInts with value 0.
 
+*/
 
+int TemporalMIntValueMap( Word* args, Word& result, int message, Word&
+ local, Supplier s )
+{
+    cout<<"TemporalMIntValueMap called"<<endl;
+    result = qp->ResultStorage( s );
+    Periods *pers = (Periods*)args[0].addr;
+    MInt *pResult = (MInt*)result.addr;
+    const Interval<Instant> *per;
+    UInt uInt;
+    
+    pResult->Clear();
+    pResult->StartBulkLoad();
+    if(pers->GetNoComponents() < 1){
+      uInt.timeInterval.lc = true;
+      uInt.timeInterval.start.ToMinimum();
+      uInt.timeInterval.start.SetType(instanttype);
+      uInt.timeInterval.rc = true;
+      uInt.timeInterval.end.ToMaximum();
+      uInt.timeInterval.end.SetType(instanttype);
+      uInt.constValue.Set(true, 0);
+      pResult->Add(uInt);
+    }
+    else{    
+      uInt.timeInterval.lc = true;
+      uInt.timeInterval.start.ToMinimum();
+      uInt.timeInterval.start.SetType(instanttype);
+      for( int i = 0; i < pers->GetNoComponents(); i++) {
+        pers->Get(i, per);
+        
+        cout<<"per "<<i<<" [ "
+        <<per->start.ToDouble()<<" "
+        <<per->end.ToDouble()<<" "
+        <<per->lc<<" "<<per->rc<<" ] "
+        <<endl;
+        
+        uInt.timeInterval.rc = !per->lc;
+        uInt.timeInterval.end = per->start;
+        uInt.constValue.Set(true, 0);
+        
+        cout<<"a "<<i<<" "<<uInt.constValue.GetIntval()<<" [ "
+        <<uInt.timeInterval.start.ToDouble()<<" "
+        <<uInt.timeInterval.end.ToDouble()<<" "
+        <<uInt.timeInterval.lc<<" "<<uInt.timeInterval.rc<<" ]"
+        <<endl;
+        if(uInt.timeInterval.start < uInt.timeInterval.end 
+          || (uInt.timeInterval.start == uInt.timeInterval.end
+          && uInt.timeInterval.lc && uInt.timeInterval.rc))  
+          pResult->MergeAdd(uInt);
+        uInt.timeInterval = *per;
+        uInt.constValue.Set(true, 1);
+          
+        cout<<"b "<<i<<" "<<uInt.constValue.GetIntval()<<" [ "
+        <<uInt.timeInterval.start.ToDouble()<<" "
+        <<uInt.timeInterval.end.ToDouble()<<" "
+        <<uInt.timeInterval.lc<<" "<<uInt.timeInterval.rc<<" ]"
+        <<endl;
+        pResult->MergeAdd(uInt);
+        
+        uInt.timeInterval.lc = !per->rc;
+        uInt.timeInterval.start = per->end;
+      }
+      uInt.timeInterval.end.ToMaximum();
+      uInt.timeInterval.end.SetType(instanttype);
+      if(per->end < uInt.timeInterval.end){
+        uInt.timeInterval.rc = true;
+        uInt.constValue.Set(true, 0);
+        
+        cout<<uInt.constValue.GetIntval()<<" [ "
+        <<uInt.timeInterval.start.ToDouble()<<" "
+        <<uInt.timeInterval.end.ToDouble()<<" "
+        <<uInt.timeInterval.lc<<" "<<uInt.timeInterval.rc<<" ]"
+        <<endl;
+        pResult->MergeAdd(uInt);;
+      }
+    }
+    pResult->EndBulkLoad(false);
+  
+  return 0;
+}
+
+/*
+16.3.40 Value mapping functions of operator ~+~ with two mint-objects
+
+*/
+
+int TemporalPlusValueMap( Word* args, Word& result, int message, Word&
+ local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  MInt *op1 = (MInt*)args[0].addr;
+  MInt *op2 = (MInt*)args[1].addr;
+  MInt *pResult = (MInt*)result.addr;
+
+  cout<<"TemporalPlusValueMap called"<<endl;
+   
+  UInt uInt;  //part of the Result
+  
+  RefinementPartitionLift<MInt, MInt, UInt, UInt> rp(*op1, *op2);
+  cout<<"Refinement abgeschlossen, rp.size: "<<rp.Size()<<endl;
+  pResult->Clear();
+  pResult->StartBulkLoad();
+  for(unsigned int i = 0; i < rp.Size(); i++)
+  {
+    Interval<Instant>* iv;
+    int u1Pos;
+    int u2Pos;
+    const UInt *u1;
+    const UInt *u2;
+    
+    rp.Get(i, iv, u1Pos, u2Pos);
+    cout<< "+ interval #"<< i<< ": "<< iv->start.ToDouble()<< " "
+    << iv->end.ToDouble()<< " "<< iv->lc<< " "<< iv->rc<< " "
+    << u1Pos<< " "<< u2Pos<< endl;
+    
+    if (u1Pos == -1 || u2Pos == -1)     
+      continue;  
+    else {
+      cout<<"Both operators existant in interval iv #"<<i<<endl;
+      op1->Get(u1Pos, u1);
+      op2->Get(u2Pos, u2);
+    }
+    
+    cout<<"wert 1 "<<u1->constValue.GetIntval()<<endl;
+    cout<<"wert 2 "<<u2->constValue.GetIntval()<<endl;
+    uInt.timeInterval = *iv;
+
+    uInt.constValue.Set(true,
+      u1->constValue.GetIntval() + u2->constValue.GetIntval());
+    cout<<"wert "<<uInt.constValue.GetIntval()<<endl;
+    cout<<"interval "<<uInt.timeInterval.start.ToDouble()
+    <<" "<<uInt.timeInterval.end.ToDouble()<<" "
+    <<uInt.timeInterval.lc<<" "<<uInt.timeInterval.rc<<endl;
+    
+    pResult->MergeAdd(uInt);
+  }
+  pResult->EndBulkLoad(false);
+
+  return 0;
+}
+
+/*
+ValueMapping for ~zero~ 
+
+*/
+
+static int TemporalZeroValueMap(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s) {
+    cout<< "TemporalZeroValueMap() called" << endl;
+
+    result = qp->ResultStorage(s);
+    MInt* pResult = (MInt*)result.addr;
+    
+    pResult->Clear();
+    pResult->StartBulkLoad();
+    UInt uInt;
+    uInt.timeInterval.lc = true;
+    uInt.timeInterval.start.ToMinimum();
+    uInt.timeInterval.start.SetType(instanttype);
+    uInt.timeInterval.rc = true;
+    uInt.timeInterval.end.ToMaximum();
+    uInt.timeInterval.end.SetType(instanttype);
+    uInt.constValue.Set(true,0);
+    pResult->Add(uInt);
+    pResult->EndBulkLoad(false);
+
+    return 0;
+}
 
 
 ValueMapping temporalandmap[] = {TemporalMMLogic<1>,
@@ -5792,7 +6136,13 @@ static ValueMapping unionvaluemap[] =
       PMRUnionValueMap
       }; 
 
-
+static ValueMapping temporalliftisemptyvaluemap[] =
+    { IsemptyValueMap,
+      IsEmptyValueMap2<MBool, UBool>,
+      IsEmptyValueMap2<MInt, UInt>,
+      IsEmptyValueMap2<MReal, UReal>,
+      IsEmptyValueMap2<MPoint, UPoint>
+      }; 
 
 
 const string TemporalLiftSpecNot 
@@ -5977,18 +6327,36 @@ static const string unionspec =
     "    <text>Calculates union between the given objects.</text--->"
     "    <text>rg1 union mp1</text---> ) )";
 
-static const string isemptyspec =
+static const string temporalliftisemptyspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>mregion -> mbool</text--->"
+    "  ( <text>T in {bool, int, real, point, region}"
+    "    mT -> mbool</text--->"
     "    <text>isempty( _ )</text--->"
-    "    <text>Checks if the moving region is empty.</text--->"
+    "    <text>Checks if the m. object is not defined .</text--->"
     "    <text>isempty(mrg1)</text---> ) )";
 
+static const string temporalmintspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>periods -> mint</text--->"
+    "    <text>mmint( _ )</text--->"
+    "    <text>Creats a MInt from a periods-object with value 1"
+    " for each existing period and 0 for every hole.</text--->"
+    "    <text>mmint(per1)</text---> ) )";
 
+static const string temporalplusspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>mint x mint -> mint</text--->"
+    "    <text>_ + _</text--->"
+    "    <text>Adds two mint-obects when both are existant</text--->"
+    "    <text>mi1 + mi2</text---> ) )";
 
-
-
-
+static const string temporalzerospec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>      -> mint</text--->"
+    "    <text>zero()</text--->"
+    "    <text>Creates an mint-Object with value 0 from minInstant"
+    " to maxInstant</text--->"
+    "    <text>zero()</text---> ) )";
 
 
 
@@ -6121,12 +6489,29 @@ static Operator munion("union",
                           UnionTypeMap);
 
 static Operator isempty("isempty",
-                        isemptyspec,
-                        IsemptyValueMap,
+                        temporalliftisemptyspec,
+                        5,
+                        temporalliftisemptyvaluemap,
+                        TemporalLiftIsemptySelect,
+                        TemporalLiftIsemptyTypeMap);
+
+static Operator temporalmint("mmint",
+                        temporalmintspec,
+                        TemporalMIntValueMap,
                         Operator::SimpleSelect,
-                        IsemptyTypeMap);
-
-
+                        TemporalMIntTypeMap);
+                        
+static Operator temporalplus("+",
+                        temporalplusspec,
+                        TemporalPlusValueMap,
+                        Operator::SimpleSelect,
+                        TemporalPlusTypeMap);
+                        
+static Operator temporalzero("zero",
+                        temporalzerospec,
+                        TemporalZeroValueMap,
+                        Operator::SimpleSelect,
+                        TemporalZeroTypeMap);
 
 class TemporalLiftedAlgebra : public Algebra
 {
@@ -6157,6 +6542,10 @@ class TemporalLiftedAlgebra : public Algebra
     AddOperator( &ncomponents);
     AddOperator( &munion);
     AddOperator( &isempty);
+    
+    AddOperator( &temporalmint);
+    AddOperator( &temporalplus);
+    AddOperator( &temporalzero);
     }
     ~TemporalLiftedAlgebra() {}
 };
