@@ -42,6 +42,16 @@ but it was mT x mT -> bool. The new operators ~equal~ and
 "right" syntax can be found in TemporalLiftedAlgebra.
 (Some formating work is done to re-check in the algebra to cvs)
 
+09.04.2006 seperated the ~isempty~ Operater
+because of wrong syntax of this operators. 
+For T in (bool, int, real, point) it should be mT -> mbool with 
+TRUE as result if the argument is defined and FALSE when the
+argument is not defined, but it was mT -> bool with TRUE when it is
+defined somewhere in time. (The total implementation has been left in
+place.)
+The operator with the "right" syntax can be found in
+TemporalLiftedAlgebra.
+
 
 [TOC]
 
@@ -1735,11 +1745,11 @@ TemporalTypeMapBool( ListExpr args )
         nl->IsEqual( arg1, "ubool" ) ||
         nl->IsEqual( arg1, "uint" ) ||
         nl->IsEqual( arg1, "ureal" ) ||
-        nl->IsEqual( arg1, "upoint" ) ||
-        nl->IsEqual( arg1, "mbool" ) ||
-        nl->IsEqual( arg1, "mint" ) ||
-        nl->IsEqual( arg1, "mreal" ) ||
-        nl->IsEqual( arg1, "mpoint" ) )
+        nl->IsEqual( arg1, "upoint" )) // ||
+//        nl->IsEqual( arg1, "mbool" ) ||
+//        nl->IsEqual( arg1, "mint" ) ||
+//        nl->IsEqual( arg1, "mreal" ) ||
+//        nl->IsEqual( arg1, "mpoint" ) )
       return nl->SymbolAtom( "bool" );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -2556,17 +2566,17 @@ TemporalSimpleSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "upoint" )
     return 7;
 
-  if( nl->SymbolValue( arg1 ) == "mbool" )
-    return 8;
+//  if( nl->SymbolValue( arg1 ) == "mbool" )
+//    return 8;
 
-  if( nl->SymbolValue( arg1 ) == "mint" )
-    return 9;
+//  if( nl->SymbolValue( arg1 ) == "mint" )
+//    return 9;
 
-  if( nl->SymbolValue( arg1 ) == "mreal" )
-    return 10;
+//  if( nl->SymbolValue( arg1 ) == "mreal" )
+//    return 10;
 
-  if( nl->SymbolValue( arg1 ) == "mpoint" )
-    return 11;
+//  if( nl->SymbolValue( arg1 ) == "mpoint" )
+//    return 11;
 
   return (-1); // This point should never be reached
 }
@@ -3660,10 +3670,10 @@ ValueMapping temporalisemptymap[] = { InstantIsEmpty,
                                       RangeIsEmpty<RInt>,
                                       RangeIsEmpty<RReal>,
                                       RangeIsEmpty<Periods>,
-                                      MappingIsEmpty<MBool>,
-                                      MappingIsEmpty<MInt>,
-                                      MappingIsEmpty<MReal>,
-                                      MappingIsEmpty<MPoint>,
+                                 //   MappingIsEmpty<MBool>,
+                                 //   MappingIsEmpty<MInt>,
+                                 //   MappingIsEmpty<MReal>,
+                                 //   MappingIsEmpty<MPoint>,
                                       UnitIsEmpty<UBool>,
                                       UnitIsEmpty<UInt>,
                                       UnitIsEmpty<UReal>,
@@ -3808,7 +3818,7 @@ ValueMapping Box3dMap[] = { Box3d_rect, Box3d_instant,Box3d_rect_instant,
 */
 const string TemporalSpecIsEmpty  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                     "\"Example\" ) "
-        "( <text>instant -> bool, range(x) -> bool, moving(x) -> bool"
+        "( <text>instant -> bool, range(x) -> bool "
         "unit(x) -> bool</text--->"
         "<text>isempty ( _ )</text--->"
         "<text>Returns whether the value is empty or not.</text--->"
@@ -4150,7 +4160,7 @@ const string Box3dSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 */
 Operator temporalisempty( "isempty",
                           TemporalSpecIsEmpty,
-                          12,
+                          8,//12
                           temporalisemptymap,
                           TemporalSimpleSelect,
                           TemporalTypeMapBool );
