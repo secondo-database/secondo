@@ -44,6 +44,15 @@ using namespace datetime;
 #include "TemporalAlgebra.h"
 #include "MovingRegionAlgebra.h"
 
+/* 
+Should be removed when TemporalExtAlgebra.h is created!
+
+*/
+typedef ConstTemporalUnit<CcString> UString;
+typedef Mapping< UString, CcString > MString;
+
+//#include "TemporalExtAlgebra.h"
+
 /*
 1 Class template ~RefinementPartition~
 
@@ -2367,6 +2376,115 @@ void MovingPointCompareMS( MPoint& p1, Point& p2, MBool& result,
   result.EndBulkLoad( false );
 }
 
+/*
+For Operators ~=~ and ~\#~ and MovingRegion/Region
+
+*/
+
+void MovingRegionCompareMS( MRegion *mr, CRegion *r, MBool *result,
+ int op) 
+{
+  const URegion *ur;
+  UBool uBool;   //Part of the result
+  
+  result->Clear();
+  result->StartBulkLoad();
+  cout<<"MovingRegionCompareMS called"<<endl;
+  for(int i = 0; i < mr->GetNoComponents(); i++){
+    mr->Get(i, ur);
+    cout<<"URegion # "<<i<<" "<<"[ "
+    <<ur->timeInterval.start.ToDouble()<<" "
+    <<ur->timeInterval.end.ToDouble()<<" ]"<<endl;
+    int number = ur->GetSegmentsNum();
+    cout<<"number of segments = "<< number<<endl;
+    
+    bool staticequal = true;
+    bool finish = false;
+    int i = 0;
+    while(staticequal && (i < ur->GetSegmentsNum())){
+      const MSegmentData *dms;
+      ur->GetSegment(i, dms);
+      cout<<"GetFaceNo()"<<dms->GetFaceNo()<<endl;
+      cout<<"GetCycleNo()"<<dms->GetCycleNo()<<endl;
+      cout<<"GetSegmentNo()"<<dms->GetSegmentNo()<<endl;
+      cout<<"GetInitialStartX()"<<dms->GetInitialStartX()<<endl;
+      cout<<"GetFinalStartX()"<<dms->GetFinalStartX()<<endl;
+      cout<<"GetInitialStartY()"<<dms->GetInitialStartY()<<endl;
+      cout<<"GetFinalStartY()"<<dms->GetFinalStartY()<<endl;
+      cout<<"GetInitialEndX()"<<dms->GetInitialEndX()<<endl;
+      cout<<"GetFinalEndX()"<<dms->GetFinalEndX()<<endl;
+      cout<<"GetInitialEndY()"<<dms->GetInitialEndY()<<endl;
+      cout<<"GetFinalEndY()"<<dms->GetFinalEndY()<<endl;
+      cout<<"GetInsideAbove()"<<dms->GetInsideAbove()<<endl;
+      
+      if(dms->GetInitialStartX() == dms->GetFinalStartX()
+        && dms->GetInitialStartY() == dms->GetFinalStartY()
+        && dms->GetInitialEndX() == dms->GetFinalEndX()
+        && dms->GetInitialEndY() == dms->GetFinalEndY()){
+        cout<<"s is static"<<endl;
+        //find matching CHalfsegment set staticequal!!
+        Point *p1 = new Point(true, 
+             dms->GetFinalStartX(), dms->GetFinalStartY());
+        Point *p2 = new Point(true, 
+             dms->GetFinalEndX(), dms->GetFinalEndY());
+        CHalfSegment *nHS = new CHalfSegment(true, true, *p1, *p2);
+        delete p1;
+        delete p2;
+        const CHalfSegment *mid;
+        bool found = false;
+        int left = 0;
+        int right = r->Size();
+        int middle;
+        while(!found && left != right){
+          middle = (left + right) / 2;
+          cout<<"left "<<left<<" middle "<<middle<<" right "<<right<<endl;
+          r->Get(middle, mid);
+          cout<<"["
+          <<mid->GetLP().GetX()<<" "<<mid->GetLP().GetY()<<" "
+          <<mid->GetRP().GetX()<<" "<<mid->GetRP().GetY()<<"]"<<endl;
+          if(mid == nHS)
+            found = true;
+          else if(mid < nHS){
+            cout<<"mid < nHS"<<endl;
+            left = middle;
+          }
+          else{
+            cout<<"mid > nHS"<<endl;
+            right = middle;
+          }
+        }
+        if(!found){
+          cout<<"no matching Halfsegment -> Unit not equal!!"<<endl;
+          staticequal = false;
+          finish = true;
+        }
+      }
+      else {
+        cout<<"s is not static"<<endl;
+        staticequal = false;
+      }
+      i++;
+    }  
+    if(staticequal){
+      cout<<"all matching Halfsegments -> Unit is equal!!"<<endl;
+      uBool.timeInterval = ur->timeInterval;
+      uBool.constValue.Set(true, true);
+      result->MergeAdd(uBool);
+    }
+    else if(finish){
+      cout<<"a static s with no matching HS -> unit not equal!"
+      <<endl;
+      uBool.timeInterval = ur->timeInterval;
+      uBool.constValue.Set(true, false);
+      result->MergeAdd(uBool);
+    }
+    else{ //the complicate way with not static mregions
+    
+    }
+  }
+  
+  result->EndBulkLoad(false);
+}
 
 static void MovingBoolMMOperators( MBool& op1, MBool& op2,
  MBool& result, int op )
@@ -2719,6 +2837,15 @@ ListExpr MovingEqualTypeMapMBool( ListExpr args )
     if( nl->IsEqual( arg1, "int" ) 
     and nl->IsEqual( arg2, "mint" ) )
       return (nl->SymbolAtom( "mbool" ));
+    if( nl->IsEqual( arg1, "mstring" ) 
+    and nl->IsEqual( arg2, "mstring" ) )
+      return (nl->SymbolAtom( "mbool" ));
+    if( nl->IsEqual( arg1, "mstring" ) 
+    and nl->IsEqual( arg2, "string" ) )
+      return (nl->SymbolAtom( "mbool" ));
+    if( nl->IsEqual( arg1, "string" ) 
+    and nl->IsEqual( arg2, "mstring" ) )
+      return (nl->SymbolAtom( "mbool" ));
     if( nl->IsEqual( arg1, "mreal" ) 
     and nl->IsEqual( arg2, "mreal" ) )
       return (nl->SymbolAtom( "mbool" ));
@@ -2736,6 +2863,10 @@ ListExpr MovingEqualTypeMapMBool( ListExpr args )
       return (nl->SymbolAtom( "mbool" ));
     if( nl->IsEqual( arg1, "point" ) 
     and nl->IsEqual( arg2, "mpoint" ) )
+      return (nl->SymbolAtom( "mbool" ));
+   
+    if( nl->IsEqual( arg1, "movingregion" ) 
+    and nl->IsEqual( arg2, "region" ) )
       return (nl->SymbolAtom( "mbool" ));
 
   }
@@ -2786,7 +2917,16 @@ ListExpr MovingCompareTypeMapMBool( ListExpr args )
     if( nl->IsEqual( arg1, "real" ) 
     and nl->IsEqual( arg2, "mreal" ) )
       return (nl->SymbolAtom( "mbool" ));
-
+    if( nl->IsEqual( arg1, "mstring" ) 
+    and nl->IsEqual( arg2, "mstring" ) )
+      return (nl->SymbolAtom( "mbool" ));
+    if( nl->IsEqual( arg1, "mstring" ) 
+    and nl->IsEqual( arg2, "string" ) )
+      return (nl->SymbolAtom( "mbool" ));
+    if( nl->IsEqual( arg1, "string" ) 
+    and nl->IsEqual( arg2, "mstring" ) )
+      return (nl->SymbolAtom( "mbool" ));
+      
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -3101,6 +3241,9 @@ static ListExpr TemporalLiftIsemptyTypeMap(ListExpr args) {
         return nl->SymbolAtom("mbool");
      if(nl->IsEqual(nl->First(args), "mpoint"))
         return nl->SymbolAtom("mbool");
+     if(nl->IsEqual(nl->First(args), "mstring"))
+        return nl->SymbolAtom("mbool");
+        
      else
         return nl->SymbolAtom("typeerror");
     }
@@ -3156,7 +3299,22 @@ static ListExpr TemporalZeroTypeMap(ListExpr args) {
         return nl->SymbolAtom("typeerror");
 }
 
+/*
+Used by ~concat~:
 
+16.1.3 Type mapping function ~TemporalConcatTypeMap~
+
+*/
+static ListExpr TemporalConcatTypeMap(ListExpr args) {
+    cout<<"TemporalConcatTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 2
+        && nl->IsEqual(nl->First(args), "mpoint")
+        && nl->IsEqual(nl->Second(args), "mpoint") )
+        return nl->SymbolAtom("mpoint");
+    else
+        return nl->SymbolAtom("typeerror");
+}
 
 
 
@@ -3224,24 +3382,36 @@ MovingEqualSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "int" 
   && nl->SymbolValue( arg2 ) == "mint" )
     return 5;
+  if( nl->SymbolValue( arg1 ) == "mstring" 
+  && nl->SymbolValue( arg2 ) == "mstring" )
+    return 6;
+  if( nl->SymbolValue( arg1 ) == "mstring" 
+  && nl->SymbolValue( arg2 ) == "string" )
+    return 7;
+  if( nl->SymbolValue( arg1 ) == "string" 
+  && nl->SymbolValue( arg2 ) == "mstring" )
+    return 8;
   if( nl->SymbolValue( arg1 ) == "mreal" 
   && nl->SymbolValue( arg2 ) == "mreal" )
-    return 6;
+    return 9;
   if( nl->SymbolValue( arg1 ) == "mreal" 
   && nl->SymbolValue( arg2 ) == "real" )
-    return 7;
+    return 10;
   if( nl->SymbolValue( arg1 ) == "real" 
   && nl->SymbolValue( arg2 ) == "mreal" )
-    return 8;
+    return 11;
   if( nl->SymbolValue( arg1 ) == "mpoint" 
   && nl->SymbolValue( arg2 ) == "mpoint" )
-    return 9;
+    return 12;
   if( nl->SymbolValue( arg1 ) == "mpoint" 
   && nl->SymbolValue( arg2 ) == "point" )
-    return 10;
+    return 13;
   if( nl->SymbolValue( arg1 ) == "point" 
   && nl->SymbolValue( arg2 ) == "mpoint" )
-    return 11;
+    return 14;
+  if( nl->SymbolValue( arg1 ) == "movingregion" 
+  && nl->SymbolValue( arg2 ) == "region" )
+    return 15; //16
     
   return -1; // This point should never be reached
 }
@@ -3286,7 +3456,16 @@ MovingCompareSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "real" 
   && nl->SymbolValue( arg2 ) == "mreal" )
     return 8;
-
+  if( nl->SymbolValue( arg1 ) == "mstring" 
+  && nl->SymbolValue( arg2 ) == "mstring" )
+    return 9;
+  if( nl->SymbolValue( arg1 ) == "mstring" 
+  && nl->SymbolValue( arg2 ) == "string" )
+    return 10;
+  if( nl->SymbolValue( arg1 ) == "string" 
+  && nl->SymbolValue( arg2 ) == "mstring" )
+    return 11;
+    
   return -1; // This point should never be reached
 }
 
@@ -3569,7 +3748,9 @@ static int TemporalLiftIsemptySelect(ListExpr args) {
         return 3; 
       else if  (nl->SymbolValue(nl->First(args)) == "mpoint")
         return 4; 
-
+      else if  (nl->SymbolValue(nl->First(args)) == "mstring")
+        return 5; 
+        
       else
         return -1;
     }
@@ -4276,6 +4457,24 @@ int TemporalSMPointCompare( Word* args, Word& result, int message,
   
   MovingPointCompareMS(*((MPoint*)args[1].addr),
    *((Point*)args[0].addr), *((MBool*)result.addr), op); 
+ 
+  return 0;
+}
+
+/*
+16.3.45 Value mapping functions of operator ~=~ 
+and ~\#~ for mpoint/point
+
+*/
+
+template<int op>
+int TemporalMSRegionCompare( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  
+  MovingRegionCompareMS((MRegion*)args[0].addr,
+   (CRegion*)args[1].addr, (MBool*)result.addr, op); 
  
   return 0;
 }
@@ -6000,6 +6199,63 @@ static int TemporalZeroValueMap(Word* args,
     return 0;
 }
 
+/*
+ValueMapping for ~concat~ 
+
+*/
+
+static int TemporalConcatValueMap(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s) {
+    cout<< "TemporalConcatValueMap() called" << endl;
+    
+    result = qp->ResultStorage(s);
+    MPoint* pResult = (MPoint*)result.addr;
+    MPoint* p1 = (MPoint*)args[0].addr;
+    MPoint* p2 = (MPoint*)args[1].addr;
+    const UPoint *up1;
+    const UPoint *up2;
+    
+    if(p1->GetNoComponents() > 0 && p2->GetNoComponents() > 0){
+      p1->Get(p1->GetNoComponents() - 1, up1);
+      p2->Get(0, up2);
+      if(!(up1->timeInterval.end < up2->timeInterval.start
+        || (up1->timeInterval.end == up2->timeInterval.start
+        && !(up1->timeInterval.rc && up2->timeInterval.lc))))
+        cout<<"DefTime of mpoints are not disjunct!"<<
+        " Last interval of first mpoint ends after first interval of"
+        <<" of second mpoint begins."<<endl;
+      assert(up1->timeInterval.end < up2->timeInterval.start
+        || (up1->timeInterval.end == up2->timeInterval.start
+        && !(up1->timeInterval.rc && up2->timeInterval.lc)));
+    }
+    
+    pResult->Clear();
+    pResult->StartBulkLoad();
+    for( int i = 0; i < p1->GetNoComponents(); i++) {
+      p1->Get(i, up1);
+      cout<<"p1 #"<<i<<" [ "
+      <<up1->timeInterval.start.ToDouble()<<" "
+      <<up1->timeInterval.end.ToDouble()<<" "
+      <<up1->timeInterval.lc<<" "
+      <<up1->timeInterval.rc<<" ]"<<endl;
+      pResult->Add(*up1);
+    }
+    for( int i = 0; i < p2->GetNoComponents(); i++) {
+      p2->Get(i, up2);
+      cout<<"p2 #"<<i<<" [ "
+      <<up2->timeInterval.start.ToDouble()<<" "
+      <<up2->timeInterval.end.ToDouble()<<" "
+      <<up2->timeInterval.lc<<" "
+      <<up2->timeInterval.rc<<" ]"<<endl;
+      pResult->Add(*up2);
+    }
+    pResult->EndBulkLoad(false);
+
+    return 0;
+}
 
 ValueMapping temporalandmap[] = {TemporalMMLogic<1>,
                                  TemporalMSLogic<1>,
@@ -6016,12 +6272,16 @@ ValueMapping temporalmequalmap[] = {
                 TemporalMMCompare<MInt, MInt, UInt, UInt, 0>,
                 TemporalMSCompare<MInt, UInt,  CcInt, 0>,
                 TemporalSMCompare<MInt, UInt,  CcInt, 0>,
+                TemporalMMCompare<MString, MString, UString, UString, 0>,
+                TemporalMSCompare<MString, UString,  CcString, 0>,
+                TemporalSMCompare<MString, UString,  CcString, 0>,
                 TemporalMMRealCompare<0>,
                 TemporalMSRealCompare<0>,
                 TemporalSMRealCompare<0>,
                 TemporalMMPointCompare<0>,
                 TemporalMSPointCompare<0>,
-                TemporalSMPointCompare<0>};
+                TemporalSMPointCompare<0>,
+                TemporalMSRegionCompare<0>};
 
 ValueMapping temporalmnotequalmap[] = {
                TemporalMMCompare<MBool, MBool, UBool, UBool, -3>,
@@ -6035,7 +6295,8 @@ ValueMapping temporalmnotequalmap[] = {
                TemporalSMRealCompare<-3>,
                TemporalMMPointCompare<-3>,
                TemporalMSPointCompare<-3>,
-               TemporalSMPointCompare<-3>};
+               TemporalSMPointCompare<-3>,
+               TemporalMSRegionCompare<-3>};
 
 
 ValueMapping temporalmlessmap[] =     {
@@ -6047,7 +6308,10 @@ ValueMapping temporalmlessmap[] =     {
                TemporalSMCompare<MInt, UInt, CcInt, -2>,
                TemporalMMRealCompare<-2>,
                TemporalMSRealCompare<-2>,
-               TemporalSMRealCompare<-2>};
+               TemporalSMRealCompare<-2>,
+               TemporalMMCompare<MString, MString, UString, UString, -2>,
+               TemporalMSCompare<MString, UString, CcString, -2>,
+               TemporalSMCompare<MString, UString, CcString, -2>};
 
 ValueMapping temporalmlessequalmap[] =     {   
                TemporalMMCompare<MBool, MBool, UBool, UBool, -1>,
@@ -6058,7 +6322,10 @@ ValueMapping temporalmlessequalmap[] =     {
                TemporalSMCompare<MInt, UInt, CcInt, -1>,
                TemporalMMRealCompare<-1>,
                TemporalMSRealCompare<-1>,
-               TemporalSMRealCompare<-1>};
+               TemporalSMRealCompare<-1>,
+               TemporalMMCompare<MString, MString, UString, UString, -1>,
+               TemporalMSCompare<MString, UString, CcString, -1>,
+               TemporalSMCompare<MString, UString, CcString, -1>};
 
 ValueMapping temporalmgreatermap[] =     {
                 TemporalMMCompare<MBool, MBool, UBool, UBool, 2>,
@@ -6069,7 +6336,10 @@ ValueMapping temporalmgreatermap[] =     {
                 TemporalSMCompare<MInt, UInt, CcInt, 2>,
                 TemporalMMRealCompare<2>,
                 TemporalMSRealCompare<2>,
-                TemporalSMRealCompare<2>};
+                TemporalSMRealCompare<2>,
+               TemporalMMCompare<MString, MString, UString, UString, 2>,
+               TemporalMSCompare<MString, UString, CcString, 2>,
+               TemporalSMCompare<MString, UString, CcString, 2>};
 
 ValueMapping temporalmgreaterequalmap[] =    {
                TemporalMMCompare<MBool, MBool, UBool, UBool, 1>,
@@ -6080,7 +6350,10 @@ ValueMapping temporalmgreaterequalmap[] =    {
                TemporalSMCompare<MInt, UInt, CcInt, 1>,
                TemporalMMRealCompare<1>,
                TemporalMSRealCompare<1>,
-               TemporalSMRealCompare<1>};
+               TemporalSMRealCompare<1>,
+               TemporalMMCompare<MString, MString, UString, UString, 1>,
+               TemporalMSCompare<MString, UString, CcString, 1>,
+               TemporalSMCompare<MString, UString, CcString, 1>};
        
 ValueMapping temporaldistancemap[] = {MPointMMDistance,
                                       //MPointMSDistance,
@@ -6141,7 +6414,8 @@ static ValueMapping temporalliftisemptyvaluemap[] =
       IsEmptyValueMap2<MBool, UBool>,
       IsEmptyValueMap2<MInt, UInt>,
       IsEmptyValueMap2<MReal, UReal>,
-      IsEmptyValueMap2<MPoint, UPoint>
+      IsEmptyValueMap2<MPoint, UPoint>,
+      IsEmptyValueMap2<MString, UString>
       }; 
 
 
@@ -6177,7 +6451,7 @@ const string TemporalLiftSpecOr
 const string TemporalLiftSpecMEqual  
           = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
             "\"Example\" ) "
-            "( <text>T in {bool, int, real, point}, mT X mT -> mbool,"
+            "( <text>T in {bool, int, string, real, point}, mT X mT -> mbool,"
             " mT x T -> mbool, T x mT -> mbool</text--->"
             "<text> _ = _ </text--->"
             "<text>Logical equality for two MovingT.</text--->"
@@ -6187,7 +6461,7 @@ const string TemporalLiftSpecMEqual
 const string TemporalLiftSpecMNotEqual  
            = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "\"Example\" ) "
-             "( <text>T in {bool, int, real, point}, mT X mT -> mbool,"
+             "( <text>T in {bool, int, string, real, point}, mT X mT -> mbool,"
              " mT x T -> mbool, T x mT -> mbool</text--->"
              "<text> _ # _ </text--->"
              "<text>Logical unequality for two MovingT.</text--->"
@@ -6197,7 +6471,7 @@ const string TemporalLiftSpecMNotEqual
 const string TemporalLiftSpecLT  
           = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
             "\"Example\" )"
-            "( <text>T in {bool, int, real},  mT x T -> mbool,"
+            "( <text>T in {bool, int, real, string},  mT x T -> mbool,"
             " (mT x mT) -> mbool, (T x mT) -> mbool</text--->"
             "<text>_ < _</text--->"
             "<text>Less than.</text--->"
@@ -6207,7 +6481,7 @@ const string TemporalLiftSpecLT
 const string TemporalLiftSpecLE  = 
             "( ( \"Signature\" \"Syntax\" \"Meaning\" "
             "\"Example\" )"
-            "( <text>T in {bool, int, real}, mT x T -> mbool,"
+            "( <text>T in {bool, int, real, string}, mT x T -> mbool,"
             " (mT x mT) -> mbool, (T x mT) -> mbool</text--->"
             "<text>_ <= _</text--->"
             "<text>Less or equal than.</text--->"
@@ -6217,7 +6491,7 @@ const string TemporalLiftSpecLE  =
 const string TemporalLiftSpecGT 
           = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
            "\"Example\" )"
-           "( <text>T in {bool, int, real},  mT x T -> mbool,"
+           "( <text>T in {bool, int, real, string},  mT x T -> mbool,"
            " (mT x mT) -> mbool, (T x mT) -> mbool</text--->"
            "<text>_ > _</text--->"
            "<text>Greater than.</text--->"
@@ -6227,7 +6501,7 @@ const string TemporalLiftSpecGT
 const string TemporalLiftSpecGE  
          = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
            "\"Example\" )"
-           "( <text>T in {bool, int, real},  mT x T -> mbool,"
+           "( <text>T in {bool, int, real, string},  mT x T -> mbool,"
            " (mT x mT) -> mbool, (T x mT) -> mbool</text--->"
            "<text>_ >= _</text--->"
            "<text>Greater or equal than.</text--->"
@@ -6329,7 +6603,7 @@ static const string unionspec =
 
 static const string temporalliftisemptyspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>T in {bool, int, real, point, region}"
+    "  ( <text>T in {bool, int, string, real, point, region}"
     "    mT -> mbool</text--->"
     "    <text>isempty( _ )</text--->"
     "    <text>Checks if the m. object is not defined .</text--->"
@@ -6358,7 +6632,13 @@ static const string temporalzerospec =
     " to maxInstant</text--->"
     "    <text>zero()</text---> ) )";
 
-
+static const string temporalconcatspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>mpoint x mpoint -> mpoint</text--->"
+    "    <text>_ _ concat</text--->"
+    "    <text>Concats two MPoints. DefTime of the first mpoint must"
+    " end before deftime of second point!</text--->"
+    "    <text>mp1 mp2 concat</text---> ) )";
 
 
 Operator temporalnot( "not",
@@ -6383,42 +6663,42 @@ Operator temporalor( "or",
 
 Operator temporalmequal( "=",
                             TemporalLiftSpecMEqual,
-                            12,
+                            16,
                             temporalmequalmap,
                             MovingEqualSelect,
                             MovingEqualTypeMapMBool );
 
 Operator temporalmnotequal( "#",
                             TemporalLiftSpecMNotEqual,
-                            12,
+                            16,
                             temporalmnotequalmap,
                             MovingEqualSelect,
                             MovingEqualTypeMapMBool );
 
 Operator temporalmless ( "<",
                             TemporalLiftSpecLT,
-                            9,
+                            12,
                             temporalmlessmap,
                             MovingCompareSelect,
                             MovingCompareTypeMapMBool );
 
 Operator temporalmlessequal ( "<=",
                             TemporalLiftSpecLE,
-                            9,
+                            12,
                             temporalmlessequalmap,
                             MovingCompareSelect,
                             MovingCompareTypeMapMBool );
 
 Operator temporalmgreater ( ">",
                             TemporalLiftSpecGT,
-                            9,
+                            12,
                             temporalmgreatermap,
                             MovingCompareSelect,
                             MovingCompareTypeMapMBool );
 
 Operator temporalmgreaterequal ( ">=",
                             TemporalLiftSpecGE,
-                            9,
+                            12,
                             temporalmgreaterequalmap,
                             MovingCompareSelect,
                             MovingCompareTypeMapMBool );
@@ -6490,12 +6770,12 @@ static Operator munion("union",
 
 static Operator isempty("isempty",
                         temporalliftisemptyspec,
-                        5,
+                        6,
                         temporalliftisemptyvaluemap,
                         TemporalLiftIsemptySelect,
                         TemporalLiftIsemptyTypeMap);
 
-static Operator temporalmint("mmint",
+static Operator temporalmint("periods2mint",
                         temporalmintspec,
                         TemporalMIntValueMap,
                         Operator::SimpleSelect,
@@ -6512,6 +6792,12 @@ static Operator temporalzero("zero",
                         TemporalZeroValueMap,
                         Operator::SimpleSelect,
                         TemporalZeroTypeMap);
+                        
+static Operator temporalconcat("concat",
+                        temporalconcatspec,
+                        TemporalConcatValueMap,
+                        Operator::SimpleSelect,
+                        TemporalConcatTypeMap);
 
 class TemporalLiftedAlgebra : public Algebra
 {
@@ -6546,6 +6832,7 @@ class TemporalLiftedAlgebra : public Algebra
     AddOperator( &temporalmint);
     AddOperator( &temporalplus);
     AddOperator( &temporalzero);
+    AddOperator( &temporalconcat);
     }
     ~TemporalLiftedAlgebra() {}
 };
