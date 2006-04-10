@@ -572,7 +572,7 @@ MovingRExtTypeMapMovingR( ListExpr args )
 /*
 4.1.11 Type mapping function ~MovingRExtTypeMapBool~
 
-It is for the operator ~derivativeext~.
+It is for the operator ~derivableext~.
 
 */
 ListExpr
@@ -1059,21 +1059,8 @@ int MovingDerivativeExt(
             unitout.c = unitin->b;
             unitout.r = false;
             unitout.timeInterval = unitin->timeInterval;
+            pResult->Add(unitout);
         }
-        else
-        {
-/*
-Result Unit is undefined because it is not
-a quadratic polynom
-
-*/
-            unitout.a = unitin->a;
-            unitout.b = unitin->b;
-            unitout.c = unitin->c;
-            unitout.r = unitin->r;
-            unitout.timeInterval = unitin->timeInterval;
-        }
-        pResult->Add(unitout);
     }
     pResult->EndBulkLoad( false );
 
@@ -1105,10 +1092,74 @@ int MovingDerivableExt(
     for(int i=0;i<m->GetNoComponents();i++)
     {
         m->Get(i, unitin);
-        myValue.Set(true, !CheckURealDerivable(unitin));
-        unitout.constValue.CopyFrom(&myValue);
-        unitout.timeInterval = unitin->timeInterval;
-        pResult->Add(unitout);
+        if(i==0)
+        {
+            /*
+            Steps fpr the first Unit
+
+            */
+            myValue.Set(true, !unitin->r);
+            unitout.constValue.CopyFrom(&myValue);
+
+            if(m->GetNoComponents()==1)
+            {
+                /*
+                Only one Unit available
+
+                */
+                unitout.timeInterval = unitin->timeInterval;
+                pResult->Add(unitout);
+            }
+            else
+            {
+                /*
+                Just the first Unit ...
+
+                */
+                unitout.timeInterval.start = unitin->timeInterval.start;
+                unitout.timeInterval.end = unitin->timeInterval.end;
+                unitout.timeInterval.lc = unitin->timeInterval.lc;
+                unitout.timeInterval.rc = unitin->timeInterval.rc;
+            }
+        }
+        else
+        {
+            if(!unitin->r == unitout.constValue.GetBoolval())
+            {
+                /*
+                The Unit has the same Bool value as the
+                previous. So, the time interval of the previous
+                Unit will be extended.
+
+                */
+                unitout.timeInterval.end = unitin->timeInterval.end;
+                unitout.timeInterval.rc = unitin->timeInterval.rc;
+            }
+            else
+            {
+                /*
+                The current Unit has another Bool value as the
+                previous. The previous Unit must be created. New
+                values must be assumed from the current Unit.
+
+                */
+                pResult->Add(unitout);
+                myValue.Set(true, !unitin->r);
+                unitout.constValue.CopyFrom(&myValue);
+                unitout.timeInterval.start = unitin->timeInterval.start;
+                unitout.timeInterval.end = unitin->timeInterval.end;
+                unitout.timeInterval.lc = unitin->timeInterval.lc;
+                unitout.timeInterval.rc = unitin->timeInterval.rc;
+            }
+            if(i==m->GetNoComponents()-1)
+            {
+                /*
+                Last Unit must be created.
+
+                */
+                pResult->Add(unitout);
+            }
+        }
     }
     pResult->EndBulkLoad( false );
 
