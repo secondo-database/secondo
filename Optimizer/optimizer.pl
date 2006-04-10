@@ -3224,10 +3224,9 @@ translate(Query groupby Attrs,
   translateFields(SelAttrs, Attrs2, Fields, Select2),
   !.
 
-translate(Select from Rels where Preds, Stream2, Select2, Cost) :- 
+translate(Select from Rels where Preds, Stream, Select, Cost) :- 
   pog(Rels, Preds, _, _),
   bestPlan(Stream, Cost),
-  rewritePlanforCSE(Stream, Stream2, Select, Select2), % Hook for CSE substitution
   !.
 
 
@@ -3623,8 +3622,7 @@ Optimize ~Query~ and print the best ~Plan~.
 
 
 optimize(Query) :-
-  rewriteQuery(Query, RQuery),
-  callLookup(RQuery, Query2),
+  callLookup(Query, Query2),
   queryToPlan(Query2, Plan, Cost),
   plan_to_atom(Plan, SecondoQuery),
   write('The plan is: '), nl, nl,
@@ -3633,8 +3631,7 @@ optimize(Query) :-
 
 
 optimize(Query, QueryOut, CostOut) :-
-  rewriteQuery(Query, RQuery),
-  callLookup(RQuery, Query2),
+  callLookup(Query, Query2),
   queryToPlan(Query2, Plan, CostOut),
   plan_to_atom(Plan, QueryOut).
 
