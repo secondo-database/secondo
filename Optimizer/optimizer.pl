@@ -3224,12 +3224,12 @@ translate(Query groupby Attrs,
   translateFields(SelAttrs, Attrs2, Fields, Select2),
   !.
 
- 
-translate(Select from Rels where Preds, Stream, Select, Cost) :- 
+translate(Select from Rels where Preds, Stream2, Select2, Cost) :- 
   pog(Rels, Preds, _, _),
-  assignCosts,
   bestPlan(Stream, Cost),
+  rewritePlanforCSE(Stream, Stream2, Select, Select2), % Hook for CSE substitution
   !.
+
 
 /*
 Below we handle the case of queries without where-clause. This results
@@ -3620,8 +3620,11 @@ Optimize ~Query~ and print the best ~Plan~.
 
 */
 
+
+
 optimize(Query) :-
-  callLookup(Query, Query2),
+  rewriteQuery(Query, RQuery),
+  callLookup(RQuery, Query2),
   queryToPlan(Query2, Plan, Cost),
   plan_to_atom(Plan, SecondoQuery),
   write('The plan is: '), nl, nl,
@@ -3630,7 +3633,8 @@ optimize(Query) :-
 
 
 optimize(Query, QueryOut, CostOut) :-
-  callLookup(Query, Query2),
+  rewriteQuery(Query, RQuery),
+  callLookup(RQuery, Query2),
   queryToPlan(Query2, Plan, CostOut),
   plan_to_atom(Plan, QueryOut).
 
@@ -3940,5 +3944,65 @@ bestPlanConsume :-
   query(Q).
 
   
+/*
+Print debugging information
+
+Predicate ~dm/1~ can be used as ~write~/1. Output is printed when optimizer option
+debug is defined (see file operators.pl).
+
+Predicate ~dm(mode,message)~ writes ~message~ if ~optDebugLevel(mode)~ 
+or ~optDebugLevel(all)~ is defined.
+
+*/
+
+dm([]) :- !.
+
+dm([X1 | XR]) :-
+  optimizerOption(debug), !,
+  write(X1),
+  dm(XR).
+
+dm(X) :-
+  optimizerOption(debug), !,
+  write(X).
+
+dm(_) :- !.
+  
+dm(Level, X) :-
+  ( optDebugLevel(Level) ; optDebugLevel(all) ), !, 
+  dm(X).
+
+dm(_,_) :- !.
+
+/*
+Execute debugging code
+
+dc works like dm, but calls a goal instead of simply printing messages:
+
+*/
+
+dc(Command) :-
+  optimizerOption(debug), !,
+  call(Command).
+
+dc(_) :- !.
+
+dc(Level, Command) :-
+  ( optDebugLevel(Level) ; optDebugLevel(all) ), !,
+  dc(Command).
+
+dc(_,_) :- !.
 
 
+
+13 Query Rewriting
+
+See file ``rewriting.pl''
+
+14 Plan Rewriting
+
+See file ``rewriting.pl''
+
+*/
+
+:- [rewriting]. % include query and plan rewriting

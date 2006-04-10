@@ -74,8 +74,73 @@ spatialjoinTC(10.0, 0.7).
 
 
 
+/*
+
+2 Properties Of Certain Operators
+
+Several operators, like geometric predicates who use bounding boxes, have properties, that
+require them to be handled differently in some ways.
+
+*/
+
+isBBoxOperator(intersects).
+isBBoxOperator(intersection).
+isBBoxOperator(inside).
+isBBoxOperator(insideold).
+isBBoxOperator(touches).
+isBBoxOperator(attached).
+isBBoxOperator(overlaps).
+isBBoxOperator(onborder).
+isBBoxOperator(ininterior).
+isBBoxOperator(touchpoints).
+isBBoxOperator(commonborder).
+isBBoxOperator(commonborderscan).
+%isBBoxOperator(minus).
+%isBBoxOperator(union).
+%isBBoxOperator(crossings).
+%isBBoxOperator(distance).
+%isBBoxOperator(direction).
+%isBBoxOperator(insidepathlength).
+%isBBoxOperator(insidescanned).
 
 
+/*
+Aggregation operators use a common cost function. They can be recognized by predicate
+~isAggregationOP(OP)~.
+
+*/
+isAggregationOP(count).
+isAggregationOP(min).
+isAggregationOP(max).
+isAggregationOP(sum).
+isAggregationOP(avg).
+
+/*
+For later extensions (though needing separate cost functions):
+
+*/
+%isAggregationOP(aggregate).  % the cost of the provided function should be applied, works lineary
+%isAggregationOP(aggregateb). % the cost of the provided function should be applied,
+                              %   Additionally, the operator works balanced (in log(CX) steps).
+
+
+/*
+PlanRewriting needs to identify join operators to allow for a generalized handling.
+For each join operator ~j~, a fact ~isJoinOP(j)~ must be defined. Join operators 
+are expected to merge the attribute sets of their first two arguments. All other
+operators are expected not to change the attribute set of the manipulated stream.
+
+Otherwise, a dedicated rule must be added to predicate ~insertExtend/4~ in file
+~optimizer.pl~.
+
+*/
+isJoinOP(sortmergejoin).
+isJoinOP(mergejoin).
+%isJoinOP(symmjoin). % has a dedicated rule for insertExtend/4
+isJoinOP(hashjoin).
+isJoinOP(spatialjoin).
+isJoinOP(loopjoin).
+isJoinOP(product).
 
 
 
