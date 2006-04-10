@@ -103,7 +103,7 @@ hasFirstOp(_ first _).
 
 
 showExamples :-
-  findall(X, sqlExample(_,X), List),
+  findall([Nr, Q], sqlExample(Nr, Q), List),
   showQueries(List).
 
 showTPCExamples :-
@@ -115,12 +115,14 @@ showGenExamples :-
   showQueries(List).
 
 showQueries(L) :-
-  nl, write('List of Queries:'), nl, write('==================='),
+  nl, 
+  write('List of SQL queries:'), nl, 
+  write('===================='),
   showQueries2(L).
 
 showQueries2([]) :- nl .
-showQueries2([H|T]) :-
-  nl, write(H), nl, write('--'), showQueries2(T).
+showQueries2([[Nr, Q]|T]) :-
+  nl, write(Nr), write(': '), write(Q), nl, write('--'), showQueries2(T).
 
 /*
 The predicated below are useful to open databases from a
