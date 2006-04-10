@@ -81,9 +81,7 @@ quit :-
 % loaded by default!
 
 mode(standard,'Shortest path search in POG.').
-mode(entropy, 'Run a plan computed by the standard optimization on a 
-             small database afterwards compute a new plan based on 
-             observed and computed selectivities.').
+mode(entropy, 'Selectivity estimation is done by maximizing the entropy.').
 
 
 loadFiles(mode(standard,_)) :-
