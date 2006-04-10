@@ -416,7 +416,7 @@ assignEntropyCost :-
 
   % call the predicate implemented in C++ which computes the 
   % remaining conditional probabilities. 
-  write('maximize_entropy called with:'), nl,
+  write('calling maximize_entropy with:'), nl,
   write( MP2 ), write(', ') , write( JP2 ), nl, nl,
   maximize_entropy(MP2, JP2, Result), !,
   
@@ -600,9 +600,12 @@ feasible3(PrevJoint, [[Source, Target, TargetSel] | Joint],
 	[[Target, TargetSel2] | Joint2]) :-
   LastPred is Target - Source,
   marginal(LastPred, LastPredSel),
+  %nl, write('call adjusted with '), 
+  %write('PrevJoint = '), write(PrevJoint), write(', '), 
+  %write('LastPredSel = '), write(LastPredSel), write(', '), 
+  %write('TargetSel'), write(TargetSel), nl,
   adjusted(PrevJoint, LastPredSel, TargetSel, TargetSel2),
   feasible3(TargetSel2, Joint, Joint2).
-
 
 
 adjusted(PSel, QSel, JointSel, JointSel) :-
@@ -612,11 +615,11 @@ adjusted(PSel, QSel, JointSel, JointSel) :-
 
 adjusted(PSel, QSel, JointSel, JointSel2) :-
   MinSel is min(PSel, QSel),
-  JointSel > 0.99 * MinSel,
+  JointSel >= 0.99 * MinSel,
   JointSel2 is 0.99 * MinSel.
 
 adjusted(PSel, QSel, JointSel, JointSel2) :-
-  JointSel < 1.01 * (PSel + QSel - 1),
+  JointSel =< 1.01 * (PSel + QSel - 1),
   JointSel2 is 1.01 * (PSel + QSel - 1).
 
   
