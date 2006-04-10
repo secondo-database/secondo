@@ -3991,7 +3991,7 @@ dc(Level, Command) :-
 dc(_,_) :- !.
 
 
-
+/*
 13 Query Rewriting
 
 See file ``rewriting.pl''
@@ -4002,4 +4002,4 @@ See file ``rewriting.pl''
 
 */
 
-:- [rewriting]. % include query and plan rewriting
+% :- [rewriting]. % include query and plan rewriting
