@@ -69,6 +69,9 @@ void maximize_entropy( const ProbabilityPairVec& marginalSels,
 {
   bool trace = true;
   bool traceIter = false;
+
+  // set output of flaot values to fixed format
+  cout.setf(ios_base::fixed, ios_base::floatfield);   
   
   // A set of int needed to avoid doubly definitions of predicates 
   PredicateSet definedPreds;
@@ -305,7 +308,9 @@ can be called with the values above by
       cout << "i = " << i << ":" << predsel[i] << endl;
   }
 
-  cout.flush();
+  // reinstall default output format for float values
+  cout.flush(); 
+  cout.setf(ios_base::floatfield);   
   return;
 }
 
@@ -348,7 +353,7 @@ int main( int argc, const char* argv[] )
          << endl 
          << "           2^i determines the i-th predicate!" << endl
          << "Example:" << endl 
-         << "  IterScale 1 0.1 2 0.2 4 0.25 6 0.05 5 0.03" << endl;
+         << "  IterScale 3 1 0.1 2 0.2 4 0.25 6 0.05 5 0.03" << endl;
 
     exit(0);
   }
