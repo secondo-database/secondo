@@ -42,26 +42,28 @@ The optimizer is started by loading this file.
 
 getprompt :-
   current_prolog_flag(version,Version),
-  ( Version >= 50600 -> % test for version of SWI-Prolog later than 5.6
-      (  % using ISO stream predicates for recent versions
-         stream_property(ConIn,  file_no(0)), 
-         stream_property(ConIn,  mode(read)),  
-         set_stream(ConIn,  tty(true)),
+  ( Version >=50500 
+    -> ( Version >= 50600 % test for version of SWI-Prolog later than 5.6
+          -> (  % using ISO stream predicates for recent versions
+               stream_property(ConIn,  file_no(0)), 
+               stream_property(ConIn,  mode(read)),  
+               set_stream(ConIn,  tty(true)),
 
-         stream_property(ConOut, file_no(1)), 
-         stream_property(ConOut, mode(write)), 
-         set_stream(ConOut, tty(true)),
-
-         stream_property(ConErr, file_no(2)), 
-         stream_property(ConErr, mode(write)), 
-         set_stream(ConErr, tty(true))
-      )
-    ; (  % using deprecated predicates for old versions
-         current_stream(0, read, ConIn), set_stream(ConIn, tty(true)),
-         current_stream(1, write, ConOut), set_stream(ConOut, tty(true)), 
-         current_stream(2, write, ConErr), set_stream(ConErr, tty(true))
-      )
-  ).
+               stream_property(ConOut, file_no(1)), 
+               stream_property(ConOut, mode(write)), 
+               set_stream(ConOut, tty(true)),
+  
+               stream_property(ConErr, file_no(2)), 
+               stream_property(ConErr, mode(write)), 
+               set_stream(ConErr, tty(true))
+            )
+          ; (  % using deprecated predicates for old versions
+               current_stream(0, read, ConIn), set_stream(ConIn, tty(true)),
+               current_stream(1, write, ConOut), set_stream(ConOut, tty(true)), 
+               current_stream(2, write, ConErr), set_stream(ConErr, tty(true))
+            )
+       )
+     ; true).
 
  
 /*
@@ -109,8 +111,11 @@ optimizerOptionInfo(rewriteInference,
                     'Automatically add inferred predicates to where clause',
                     true, true).
 optimizerOptionInfo(rewriteCSE,       
-                    'Substitute common subexpressions',
+                    'Substitute common subexpressions by extended attrinutes',
                     true, true).
+%optimizerOptionInfo(rewriteRemoves,       
+%                    'Remove unused attributes as early as possible',
+%                    true, true).
 optimizerOptionInfo(debug,            
                     '\tActivate debugging code and messages. Also use \'toggleDebug.\'',
                     showDebugLevel,true).
