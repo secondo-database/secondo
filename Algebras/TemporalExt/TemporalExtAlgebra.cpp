@@ -589,6 +589,25 @@ MovingRExtTypeMapBool( ListExpr args )
 }
 
 /*
+4.1.12 Type mapping function ~MovingPointExtTypeMapMReal~
+
+It is for the operator ~speedext~.
+
+*/
+ListExpr
+MovingPointExtTypeMapMReal( ListExpr args )
+{
+    if ( nl->ListLength( args ) == 1 )
+    {
+        ListExpr arg1 = nl->First( args );
+
+        if( nl->IsEqual( arg1, "mpoint" ) )
+            return nl->SymbolAtom( "mreal" );
+    }
+    return nl->SymbolAtom( "typeerror" );
+}
+
+/*
 4.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -1167,6 +1186,48 @@ int MovingDerivableExt(
 }
 
 /*
+4.3.12 Value mapping functions of operator ~speedext~
+
+*/
+template <class Mapping>
+int MovingSpeedExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    Mapping* m = ((Mapping*)args[0].addr);
+    MReal* pResult = ((MReal*)result.addr);
+    double speed, distance, t;
+    const Point p0, p1;
+    const UPoint* unitin;
+    UReal unitout;
+
+    pResult->Clear();
+    pResult->StartBulkLoad();
+    for(int i=0;i<m->GetNoComponents();i++)
+    {
+        m->Get(i, unitin);
+        distance = unitin->p0.Distance(unitin->p1);
+        t = unitin->timeInterval.end.ToDouble() -
+            unitin->timeInterval.start.ToDouble();
+        speed = distance / t;
+        unitout.a = 0.;
+        unitout.b = 0.;
+        unitout.c = speed;
+        unitout.r = false;
+        unitout.timeInterval = unitin->timeInterval;
+        pResult->Add(unitout);
+    }
+    pResult->EndBulkLoad( false );
+
+    return 0;
+}
+
+/*
 4.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -1262,6 +1323,9 @@ ValueMapping temporalderivativeextmap[] = {
 
 ValueMapping temporalderivableextmap[] = {
     MovingDerivableExt<MReal> };
+
+ValueMapping temporalspeedextmap[] = {
+    MovingSpeedExt<MPoint> };
 
 /*
 4.5 Specification strings
@@ -1378,6 +1442,15 @@ const string TemporalSpecDerivableExt  =
     "<text>derivableext ( mr1 )</text--->"
     ") )";
 
+const string TemporalSpecSpeedExt  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>speedext(mpoint) -> mreal</text--->"
+    "<text>speedext ( _ )</text--->"
+    "<text>Velocity of a mpoint given as mreal.</text--->"
+    "<text>speedext ( mp1 )</text--->"
+    ") )";
+
 /*
 4.6 Operators
 
@@ -1478,6 +1551,14 @@ Operator temporalderivableext(
     Operator::SimpleSelect,
     MovingRExtTypeMapBool);
 
+Operator temporalspeedext(
+    "speedext",
+    TemporalSpecSpeedExt,
+    1,
+    temporalspeedextmap,
+    Operator::SimpleSelect,
+    MovingPointExtTypeMapMReal);
+
 class TemporalExtAlgebra : public Algebra
 {
   public:
@@ -1510,6 +1591,7 @@ class TemporalExtAlgebra : public Algebra
         AddOperator( &temporalvalext );
         AddOperator( &temporalderivativeext );
         AddOperator( &temporalderivableext );
+        AddOperator( &temporalspeedext );
 
     }
     ~TemporalExtAlgebra() {}
