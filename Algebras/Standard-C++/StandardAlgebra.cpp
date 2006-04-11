@@ -3848,19 +3848,19 @@ const string ET = "</text--->";
 
 const string 
 CCSpecSubStr = "(" + specListHeader + "("
-                   + ST + "(string x int x int) ->  string." + ET
-                   + ST + "substr(s, p, q)" + ET
-                   + ST + "Returns the part of a string s between the"  
-                   + "position parameters p and q. Positions start at 0." + ET
-                   + ST + "query substr(\"test\",2,3)" + ET + "))";
+                   + "'(string x int x int) ->  string.'"
+                   + "'substr(s, p, q)'"
+                   + "'Returns the part of a string s between the"
+                     + "position parameters p and q. Positions start at 0.'"
+                   + "'query substr(\"test\",2,3)'))";
 
 const string 
 CCSpecElapsed = "(" + specListHeader + "("
-                    + ST + "(Any type) ->  string." + ET
-                    + ST + "Returns the elpased time and the " 
-                         + "cpu time in seconds"  
-                         + "encoded in a string" + ET
-                    + ST + "query substr(\"test\",2,3)" + ET + "))";
+                    + "'(any type) ->  string.'"
+		    + "'_ elapsedtime'"
+                    + "'Returns the elpased time and the " 
+                      + "cpu time in seconds encoded in a string'"
+                    + "'query plz feed elapsedtime'))";
 
 
    
