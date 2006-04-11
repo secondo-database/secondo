@@ -82,31 +82,31 @@ public class FormattedViewer extends SecondoViewer {
 
     GoButton.addActionListener(new ActionListener(){
      public void actionPerformed(ActionEvent evt){
-	 try {
-	     searchText();
-	 }
-	 catch(Exception e){}
+      try {
+          searchText();
+      }
+      catch(Exception e){}
      }
    });
 
    TextField.addKeyListener(new KeyAdapter(){
-	   public void keyPressed(KeyEvent evt){
-	       if( evt.getKeyCode() == KeyEvent.VK_ENTER )
-		   searchText();
-	   }
+        public void keyPressed(KeyEvent evt){
+            if( evt.getKeyCode() == KeyEvent.VK_ENTER )
+             searchText();
+        }
    });
 
    JMenu FontSizeMenu = new JMenu("Fontsize");
    ActionListener FS_Listener=new ActionListener(){
       public void actionPerformed(ActionEvent evt){
           JMenuItem S = (JMenuItem) evt.getSource();
-	  try{
+       try{
              int size = Integer.parseInt(S.getText().trim());
-	     FormattedViewer.this.TextArea.setFont( new Font ("Monospaced", Font.PLAIN, size));
-	     for(int i=0;i<9;i++)
-	       FontSizes[i].setEnabled(true);
-	     S.setEnabled(false);
-	  }catch(Exception e){}
+          FormattedViewer.this.TextArea.setFont( new Font ("Monospaced", Font.PLAIN, size));
+          for(int i=0;i<9;i++)
+            FontSizes[i].setEnabled(true);
+          S.setEnabled(false);
+       }catch(Exception e){}
       }
    };
 
@@ -130,9 +130,9 @@ public class FormattedViewer extends SecondoViewer {
      int i2 = i1 + search.length();
      lastindex = i1;
      if (i1 >= 0) {
-	TextArea.setCaretPosition(i1);
-	TextArea.moveCaretPosition(i2);
-	TextArea.getCaret().setSelectionVisible(true);
+     TextArea.setCaretPosition(i1);
+     TextArea.moveCaretPosition(i2);
+     TextArea.getCaret().setSelectionVisible(true);
      }
      else{
        i1 = 0;
@@ -237,12 +237,12 @@ public class FormattedViewer extends SecondoViewer {
 
      max = 0;
      while( !type.isEmpty() ) {
-	 s = type.first().stringValue();
-	 len = s.length();
-	 if (len > max) {
-	     max = len;
-	 }
-	 type = type.rest();
+      s = type.first().stringValue();
+      len = s.length();
+      if (len > max) {
+          max = len;
+      }
+      type = type.rest();
      }
      return max;
  }
@@ -250,11 +250,11 @@ public class FormattedViewer extends SecondoViewer {
  private static ListExpr concatLists(ListExpr le1, ListExpr le2) {
      if ( le1.isEmpty() ) return le2;
      else {
-	 ListExpr first = le1.first();
-	 ListExpr rest = le1.rest();
-	 ListExpr second = concatLists( rest, le2);
-	 ListExpr newnode = ListExpr.cons( first, second);
-	 return newnode;
+      ListExpr first = le1.first();
+      ListExpr rest = le1.rest();
+      ListExpr second = concatLists( rest, le2);
+      ListExpr newnode = ListExpr.cons( first, second);
+      return newnode;
      }
  }
 
@@ -273,73 +273,77 @@ public class FormattedViewer extends SecondoViewer {
      outstr += value.first().symbolValue() + "\n";
      printstr = "";
      while ( !valueheader.isEmpty() ) {
-	 s = valueheader.first().stringValue();
-	 blanks = "";
-	 for (i = 1; i <= maxNameLen-s.length(); i++) blanks += " ";
-	 printstr = blanks + s + ": ";
-	 if ( valuedescr.first().isAtom() ) {
-	     if ( valuedescr.first().atomType() == ListExpr.STRING_ATOM )
-		 printstr += valuedescr.first().stringValue();
-	     else
-		 if( valuedescr.first().atomType() == ListExpr.TEXT_ATOM )
-		     for (i = 0; i < 1 ; i++)
-			 printstr += valuedescr.first().textValue();
-	 }
+      s = valueheader.first().stringValue();
+      blanks = "";
+      for (i = 1; i <= maxNameLen-s.length(); i++) blanks += " ";
+      printstr = blanks + s + ": ";
+      if(!valuedescr.isEmpty()){
+         if ( valuedescr.first().isAtom() ) {
+             if ( valuedescr.first().atomType() == ListExpr.STRING_ATOM )
+               printstr += valuedescr.first().stringValue();
+             else
+               if( valuedescr.first().atomType() == ListExpr.TEXT_ATOM )
+                  for (i = 0; i < 1 ; i++)
+                     printstr += valuedescr.first().textValue();
+          }
+       } else{
+          Reporter.writeWarning("value not available operator:"+value.first().symbolValue());
+       }
 
      // check whether line break is necessary
-	 if (printstr.length() <= LINELENGTH) {
-	     outstr += printstr + "\n";
-	 }
-	 else {
-	 firstline = true;
-	 position = 0;
-	 lastblank = -1;
-	 line = "";
+      if (printstr.length() <= LINELENGTH) {
+          outstr += printstr + "\n";
+      }
+      else {
+      firstline = true;
+      position = 0;
+      lastblank = -1;
+      line = "";
          for (i = 1; i <= printstr.length(); i++) {
-	     line += printstr.charAt(i-1);
-	     if(printstr.charAt(i-1) == ' ' ) lastblank = position;
-	     position++;
-	     lastline = (i == printstr.length());
+          line += printstr.charAt(i-1);
+          if(printstr.charAt(i-1) == ' ' ) lastblank = position;
+          position++;
+          lastline = (i == printstr.length());
 
-	     if ( (firstline && (position == LINELENGTH)) || (!firstline &&
-	       (position == (LINELENGTH-maxNameLen-2))) || lastline) {
-		 if (lastblank > 0) {
-		     if (firstline) {
-			 if (lastline && (line.length() <= LINELENGTH)) {
-			     outstr += line + "\n";
-			 }
-			 else outstr += line.substring(0, lastblank) + "\n";
-			 firstline = false;
-		     }
-		     else {
-			 blanks = "";
-			 for (int j = 1; j <= maxNameLen+2; j++) blanks += " ";
-			 if (lastline && (line.length() <= LINELENGTH))
-			     outstr += blanks + line + "\n";
-			 else outstr += blanks + line.substring(0,lastblank) + "\n";
-		     }
-		     restline = line.substring(lastblank+1, position);
-		     line = "";
-		     line += restline;
-		     lastblank = -1;
-		     position=line.length();
-		 }
+          if ( (firstline && (position == LINELENGTH)) || (!firstline &&
+            (position == (LINELENGTH-maxNameLen-2))) || lastline) {
+           if (lastblank > 0) {
+               if (firstline) {
+                if (lastline && (line.length() <= LINELENGTH)) {
+                    outstr += line + "\n";
+                }
+                else outstr += line.substring(0, lastblank) + "\n";
+                firstline = false;
+               }
+               else {
+                blanks = "";
+                for (int j = 1; j <= maxNameLen+2; j++) blanks += " ";
+                if (lastline && (line.length() <= LINELENGTH))
+                    outstr += blanks + line + "\n";
+                else outstr += blanks + line.substring(0,lastblank) + "\n";
+               }
+               restline = line.substring(lastblank+1, position);
+               line = "";
+               line += restline;
+               lastblank = -1;
+               position=line.length();
+           }
                  else {
-		     if (firstline) {
-			 outstr += line + "\n";
-			 firstline = false;
-		     }
-		     else {
-			 blanks = "";
-			 for (int j = 1; j <= maxNameLen+2; j++) blanks += " ";
-			 outstr += blanks + line + "\n";
-		     }
-		     line = "";
-		     lastblank = -1;
-		     position = 0;
-		 }
-	     }
-	 }
+               if (firstline) {
+                outstr += line + "\n";
+                firstline = false;
+               }
+               else {
+                blanks = "";
+                for (int j = 1; j <= maxNameLen+2; j++) blanks += " ";
+                outstr += blanks + line + "\n";
+               }
+               line = "";
+               lastblank = -1;
+               position = 0;
+           }
+          }
+      }
          }
      valueheader = valueheader.rest();
      valuedescr = valuedescr.rest();
@@ -386,7 +390,7 @@ public class FormattedViewer extends SecondoViewer {
      ListExpr tmp = objects;
      while(!tmp.isEmpty()){
         Text += "  * "+tmp.first().second().symbolValue()+"\n";
-	tmp = tmp.rest();
+     tmp = tmp.rest();
      }
      Text += "\n----------------------\n\n";
      Text += "Complete List \n\n";
@@ -424,7 +428,7 @@ private String getOperatorsText(ListExpr operators){
    ListExpr concatenatedlist = headerlist.first().second();
    while (!headerlist.isEmpty()) {
        concatenatedlist =
-	   concatLists(concatenatedlist, headerlist.first().second());
+        concatLists(concatenatedlist, headerlist.first().second());
             headerlist = headerlist.rest();
    }
    int maxHeadNameLen = maxHeaderLength( concatenatedlist );
@@ -447,7 +451,7 @@ private String getConstructorsText(ListExpr constructors){
    ListExpr concatenatedlist = headerlist.first().second();
    while (!headerlist.isEmpty()) {
        concatenatedlist =
-	   concatLists(concatenatedlist, headerlist.first().second());
+        concatLists(concatenatedlist, headerlist.first().second());
             headerlist = headerlist.rest();
    }
    int maxHeadNameLen = maxHeaderLength( concatenatedlist );
@@ -477,14 +481,14 @@ private String getAlgebraText(ListExpr algebra){
      concatenatedlist = headerlist.first().second();
      while (!headerlist.isEmpty()) {
          concatenatedlist =
-	     concatLists(concatenatedlist, headerlist.first().second());
+          concatLists(concatenatedlist, headerlist.first().second());
               headerlist = headerlist.rest();
      }
    }
    headerlist = Operators;
    while (!headerlist.isEmpty()) {
        concatenatedlist =
-	   concatLists(concatenatedlist, headerlist.first().second());
+        concatLists(concatenatedlist, headerlist.first().second());
             headerlist = headerlist.rest();
    }
    int maxHeadNameLen = maxHeaderLength( concatenatedlist );
