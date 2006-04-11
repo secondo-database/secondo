@@ -194,6 +194,8 @@ using namespace std;
 #include <errno.h>
 #include <time.h> 	//needed for random number generator
 
+#include <NList.h>
+
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
@@ -3451,8 +3453,13 @@ Map any type to a string
 */
 
 ListExpr
-ElapsedTypeMap( ListExpr args )
+CcElapsedTypeMap( ListExpr args )
 {
+  NList list(args);
+  if ( list.hasLength(1) )
+   if ( list.first().str() == "typeerror" )
+     return list.typeError("elapsedtime: input has a typeerror");
+  
   return (nl->SymbolAtom( "string" ));
 }
 
@@ -3961,7 +3968,7 @@ Operator ccbetween( "between", CCSpecBetween, 4, ccbetweenmap,
                     CcBetweenSelect, CcBetweenTypeMap );
 
 Operator ccelapsedtime( "elapsedtime", CCSpecElapsed, ccelapsedfun, 
-                        Operator::SimpleSelect, ElapsedTypeMap );
+                        Operator::SimpleSelect, CcElapsedTypeMap );
 
 /*
 6 Class ~CcAlgebra~
