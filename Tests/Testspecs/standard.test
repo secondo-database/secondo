@@ -185,6 +185,9 @@ query "house" < "hotel"
 #yields (bool TRUE)
 query upper ( "hello" ) = "hellp"
 
+#testcase elapsedtime 
+#yields success
+query (5 + 6) elapsedtime 
 
 # ... to be continued
 
