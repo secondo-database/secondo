@@ -263,8 +263,7 @@ pog(Rels, Preds, Nodes, Edges) :-
   % showpog(Rels, Preds),
 
 % counters are only important for the entropy version
-deleteCounters :- usingVersion(standard).
-deleteCounters :- not(deleteCounters2).
+deleteCounters :- (optimizerOption(entropy), deleteCounters2) ; true.
  
 showpog(Rels, Preds) :-
   nl, write('Rels: '), write(Rels),
@@ -545,14 +544,9 @@ storeNodes([]).
 storeEdges([Edge | Edges]) :- assert(Edge), storeEdges(Edges).
 storeEdges([]).
 
-deleteNode :- retract(node(_, _, _)), fail.
-deleteNodes :- not(deleteNode).
-
-deleteEdge :- retract(edge(_, _, _, _, _, _)), fail.
-deleteEdges :- not(deleteEdge).
-
-deleteArgument :- retract(argument(_, _)), fail.
-deleteArguments :- not(deleteArgument).
+deleteNodes     :- retractall(node(_, _, _)).
+deleteEdges     :- retractall(edge(_, _, _, _, _, _)).
+deleteArguments :- retractall(argument(_, _)).
 
 
 /*
@@ -848,9 +842,7 @@ newVariable(Var) :-
   assert(varDefined(1)),
   Var = 'var1'.
 
-deleteVariable :- retract(varDefined(_)), fail.
-
-deleteVariables :- not(deleteVariable).
+deleteVariables :- retractall(varDefined(_)).
 
 
 /*
@@ -1213,7 +1205,7 @@ integrating counters into query plans
 
 */
  
-plan_to_atom(counter(N,Term), Result) :-
+plan_to_atom(counter(Term,N), Result) :-
   plan_to_atom( Term, TermRes ),
   concat_atom( [ TermRes, ' {', N,'} '], Result ),
   !.
@@ -1674,10 +1666,7 @@ createPlanEdge :-
 
 createPlanEdges :- not(createPlanEdge).
 
-deletePlanEdge :-
-  retract(planEdge(_, _, _, _)), fail.
-
-deletePlanEdges :- not(deletePlanEdge).
+deletePlanEdges :- retractall(planEdge(_, _, _, _)).
 
 planEdgeInfo(Source, Target, Plan, Result) :-
   write('Source: '), write(Source), nl,
@@ -1804,9 +1793,9 @@ Delete node sizes and selectivities of edges.
 
 */
 
-deleteSize :- retract(resultSize(_, _)), fail.
-deleteSize :- retract(edgeSelectivity(_, _, _)), fail.
-deleteSizes :- not(deleteSize).
+deleteSizes :- 
+  retractall(resultSize(_, _)),
+  retractall(edgeSelectivity(_, _, _)).
 
 
 /*
@@ -2030,10 +2019,7 @@ createCostEdge :-
 
 createCostEdges :- not(createCostEdge).
 
-deleteCostEdge :-
-  retract(costEdge(_, _, _, _, _, _)), fail.
-
-deleteCostEdges :- not(deleteCostEdge).
+deleteCostEdges :- retractall(costEdge(_, _, _, _, _, _)).
 
 costEdgeInfo(Edge) :-
   Edge = costEdge(Source, Target, Plan, Result, Size, Cost),
@@ -2067,7 +2053,7 @@ bestPlan~ will unify a best plan according to the assigned costs.
 
 /*
 assignCosts :-
-  usingVersion(entropy),
+  optimizerOption(entropy),
   assignEntropyCost.
 */ 
  
@@ -2147,9 +2133,7 @@ dijkstra(Source, Dest, Path, Length) :-
   dijkstra1(Boundary1, Dest, 0, notfound),
   center(Dest, node(Dest, Length, Path)).
 
-emptyCenter :- not(emptyCenter1).
-
-emptyCenter1 :- retract(center(_, _)), fail.
+emptyCenter :- retractall(center(_, _)).
 
  
 /* 
@@ -2352,13 +2336,11 @@ plan(Path, Plan) :-
   highestNode(Path, N), 
   nodePlan(N, Plan).
 
-deleteNodePlans :- not(deleteNodePlan).
-
-deleteNodePlan :- retract(nodePlan(_, _)), fail.
+deleteNodePlans :-  retractall(nodePlan(_, _)).
 
 % switch for entropy optimizer
 traversePath(Path) :-
-  usingVersion(entropy),
+  optimizerOption(entropy),
   traversePath2(Path), !.
 
  
@@ -2680,21 +2662,17 @@ callLookup(Query, Query2) :-
   lookup(Query, Query2), !.
 
 newQuery :- 
-  not(clearVariables), 
-  not(clearQueryRelations), 
-  not(clearQueryAttributes), 
-  not(clearUsedAttributes), 
-  not(clearIsStarQuery).
+  clearVariables, 
+  clearQueryRelations, 
+  clearQueryAttributes, 
+  clearUsedAttributes, 
+  clearIsStarQuery.
 
-clearVariables :- retract(variable(_, _)), fail.
-
-clearQueryRelations :- retract(queryRel(_, _)), fail.
-
-clearQueryAttributes :- retract(queryAttr(_)), fail.
-
-clearUsedAttributes :- retract(usedAttr(_, _)), fail.
-
-clearIsStarQuery :- retract(isStarQuery), fail.
+clearVariables       :- retractall(variable(_, _)).
+clearQueryRelations  :- retractall(queryRel(_, _)).
+clearQueryAttributes :- retractall(queryAttr(_)).
+clearUsedAttributes  :- retractall(usedAttr(_, _)).
+clearIsStarQuery     :- retractall(isStarQuery).
 
 /*
 
@@ -2970,148 +2948,133 @@ isAttribute(Name, Rel) :-
 /*
 11.3.5 Modification of the Where-Clause
 
+
+03/10/2006: (C. D[ue]ntgen) Enabled optimizer to process even predicates with more 
+            than two occurences of attributes, as long as at most 2 relations 
+            are concerned, e.g. something like $a+a>b$, a and b being attributes 
+            of relations A resp. B, is now accepted.
+
 */
 
-lookupPreds([], []).
+lookupPreds([], []) :- !.
 
-lookupPreds([P | Ps], [P2 | P2s]) :- !,
+lookupPreds([P | Ps], [P2 | P2s]) :- 
   lookupPred(P, P2),
-  lookupPreds(Ps, P2s).
+  lookupPreds(Ps, P2s), !.
 
 lookupPreds(Pred, Pred2) :-
   not(is_list(Pred)),
-  lookupPred(Pred, Pred2).
-
+  lookupPred(Pred, Pred2), !.
 
 lookupPred(Pred, pr(Pred2, Rel)) :-
-  lookupPred1(Pred, Pred2, 0, [], 1, [Rel]), !.
+  lookupPred1(Pred, Pred2, [], [Rel]), !.
 
 lookupPred(Pred, pr(Pred2, Rel1, Rel2)) :-
-  lookupPred1(Pred, Pred2, 0, [], 2, [Rel1, Rel2]), !.
+  lookupPred1(Pred, Pred2, [], [Rel1, Rel2]), !.
 
 lookupPred(Pred, _) :-
-  lookupPred1(Pred, _, 0, [], 0, []),
-  write('Error in query: constant predicate is not allowed.'), nl, fail, !.
+  lookupPred1(Pred, _, [], []),
+  write('Error in query: Predicate \''),  write(Pred),
+  write('\' is a constant. This is not allowed.'), nl, 
+  throw(lookup_pred),
+  fail, !.
 
 lookupPred(Pred, _) :-
-  lookupPred1(Pred, _, 0, [], N, _),
+  lookupPred1(Pred, _, [], Rels),
+  length(Rels, N),
   N > 2,
-  write('Error in query: predicate involving more than two relations '),
-  write('is not allowed.'), nl, fail.
+  write('Error in query: Predicate \''), write(Pred), 
+  write('\' involves more than two relations. '),
+  write('This is not allowed.'), nl, 
+  throw(lookup_pred),
+  fail, !.
 
 /*
-----    lookupPred1(+Pred, Pred2, +N, +RelsBefore, -M, -RelsAfter) :-
+----    lookupPred1(+Pred, -Pred2, +RelsBefore, -RelsAfter) :-
 ----
-
-~Pred2~ is the transformed version of ~Pred~; before this is called, ~N~
-attributes in list ~RelsBefore~ have been found; after the transformation in
-total ~M~ attributes referring to the relations in list ~RelsAfter~ have been
-found.
+~Pred2~ is the transformed version of ~Pred~; before this is called, 
+attributes so far considered have already used relations from list ~RelsBefore~.
+The relation list is updated and returned in ~RelsAfter~.
 
 */
 
-lookupPred1(Var:Attr, attr(Var:Attr2, N1, Case), N, RelsBefore, N1, RelsAfter)
+lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), RelsBefore, RelsAfter)
   :-
-  variable(Var, Rel2), !,   Rel2 = rel(Rel, _, _),
+  variable(Var, Rel2), !, Rel2 = rel(Rel, _, _),
   spelled(Rel:Attr, attr(Attr2, X, Case)),
+  ( memberchk(Rel2, RelsBefore) 
+      -> RelsAfter = RelsBefore
+       ; append(RelsBefore, [Rel2], RelsAfter)
+  ),
+  nth1(Index,RelsAfter,Rel2),
   assert(usedAttr(Rel2, attr(Attr2, X, Case))),
-  N1 is N + 1,
-  append(RelsBefore, [Rel2], RelsAfter).
+  !.
 
-lookupPred1(Attr, attr(Attr2, N1, Case), N, RelsBefore, N1, RelsAfter) :-
+lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
   isAttribute(Attr, Rel), !,
   spelled(Rel:Attr, attr(Attr2, X, Case)),
   queryRel(Rel, Rel2),
+  ( memberchk(Rel2, RelsBefore)
+      -> RelsAfter = RelsBefore
+       ; append(RelsBefore, [Rel2], RelsAfter)
+  ),
+  nth1(Index,RelsAfter,Rel2),
   assert(usedAttr(Rel2, attr(Attr2, X, Case))),
-  N1 is N + 1,
-  append(RelsBefore, [Rel2], RelsAfter).
+  !.
+
 
 /*
-Currently terms involving operators with up to five arguments are handled. When this is extended, modify also ~lookupAttrs~.
+
+Generic lookup for operators of arbitrary arity using (=../2) implemented
+on Feb/16/2006 by C. D[ue]ntgen. See also  ~lookupAttrs~.
 
 */
 
-lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
+lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-
   compound(Term),
-  functor(Term, F, 1), !,
-  arg(1, Term, Arg1),
-  lookupPred1(Arg1, Arg1Out, N, RelsBefore, M, RelsAfter),
-  functor(Term2, F, 1),
-  arg(1, Term2, Arg1Out).
+  Term =.. [Op|Args],
+  lookupPred2(Args, Args2, RelsBefore, RelsAfter),
+  Term2 =.. [Op|Args2],
+  !.  
 
-lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
-  compound(Term),
-  functor(Term, F, 2), !,
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  lookupPred1(Arg1, Arg1Out,  N, RelsBefore, M1, RelsAfter1),
-  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1,  M, RelsAfter),
-  functor(Term2, F, 2),
-  arg(1, Term2, Arg1Out),
-  arg(2, Term2, Arg2Out).
-
-lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
-  compound(Term),
-  functor(Term, F, 3), !,
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  lookupPred1(Arg1, Arg1Out,  N, RelsBefore, M1, RelsAfter1),
-  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1, M2, RelsAfter2),
-  lookupPred1(Arg3, Arg3Out, M2, RelsAfter2,  M, RelsAfter),
-  functor(Term2, F, 3),
-  arg(1, Term2, Arg1Out),
-  arg(2, Term2, Arg2Out),
-  arg(3, Term2, Arg3Out).
-
-lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
-  compound(Term),
-  functor(Term, F, 4), !,
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  arg(4, Term, Arg4),
-  lookupPred1(Arg1, Arg1Out,  N, RelsBefore, M1, RelsAfter1),
-  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1, M2, RelsAfter2),
-  lookupPred1(Arg3, Arg3Out, M2, RelsAfter2, M3, RelsAfter3),
-  lookupPred1(Arg4, Arg4Out, M3, RelsAfter3,  M, RelsAfter),
-  functor(Term2, F, 4),
-  arg(1, Term2, Arg1Out),
-  arg(2, Term2, Arg2Out),
-  arg(3, Term2, Arg3Out),
-  arg(4, Term2, Arg4Out).
-
-lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
-  compound(Term),
-  functor(Term, F, 5), !,
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  arg(4, Term, Arg4),
-  arg(5, Term, Arg5),
-  lookupPred1(Arg1, Arg1Out,  N, RelsBefore, M1, RelsAfter1),
-  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1, M2, RelsAfter2),
-  lookupPred1(Arg3, Arg3Out, M2, RelsAfter2, M3, RelsAfter3),
-  lookupPred1(Arg4, Arg4Out, M3, RelsAfter3, M4, RelsAfter4),
-  lookupPred1(Arg5, Arg5Out, M4, RelsAfter4,  M, RelsAfter),
-  functor(Term2, F, 5),
-  arg(1, Term2, Arg1Out),
-  arg(2, Term2, Arg2Out),
-  arg(3, Term2, Arg3Out),
-  arg(4, Term2, Arg4Out),
-  arg(5, Term2, Arg5Out).
-
-
-% may need to be extended to operators with more than five arguments.
-
-lookupPred1(Term, Term, N, Rels, N, Rels) :-
+lookupPred1(Term, Term, Rels, Rels) :-
   atom(Term),
   not(is_list(Term)),
-  write('Symbol '), write(Term), 
-  write(' not recognized, supposed to be a Secondo object.'), nl, !.
+  write('Symbol \''), write(Term), 
+  write('\' not recognized, supposed to be a Secondo object.'), nl, !.
 
-lookupPred1(Term, Term, N, Rels, N, Rels).
+lookupPred1(Term, Term, Rels, Rels).
  
+lookupPred2([], [], RelsBefore, RelsBefore).
+
+lookupPred2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
+  lookupPred1(Me,     Me2,     RelsBefore,  RelsAfterMe),
+  lookupPred2(Others, Others2, RelsAfterMe, RelsAfter),
+  !.
+
+
+/*
+---- mergeRelations(+RelsBefore,+RelsAdd,-RelsResult,+IndexIn,-IndexOut)   OK
+----
+Auxiliary predicate to ~lookupPred1/4~. Given a list of relations ~RelsBefore~, 
+and a second list of relations ~RelsAdd~, both lists will be merged, maintaining
+the give ordering, but avoiding dublets. Furthermore, it will return the binary
+encoded index of ~RelsAdd~ with respect to ~RelsResult~. ~IndexIn~ should be
+initialized to 0.
+
+*/
+
+mergeRelations(Before, [], Before, IndexIn, IndexIn) :- !.
+mergeRelations(Before, [First|Rest], After, IndexIn, IndexOut) :-
+  ( not(memberchk(First,Before))
+      -> append(Before,[First],Intermediate)
+       ; Intermediate = Before
+  ),
+  nth1(Index,Intermediate,First),
+  IndexIntermediate is IndexIn + 2**Index,
+  mergeRelations(Intermediate, Rest, After, IndexIntermediate, IndexOut), 
+  !.
+
 
 
 
@@ -3186,7 +3149,7 @@ example13 :- showTranslate(
 /*
 11.4 Translating a Query to a Plan
 
-----    translate1(Query, Stream, SelectClause, Cost) :-
+----    translate1(+Query, -Stream, -SelectClause, -Cost) :-
 ----
 
 ~Query~ is translated into a ~Stream~ to which still the translation of the
@@ -3198,24 +3161,29 @@ only the cost for evaluating the essential part, the conjunctive query.
 
 % special handling for the entropy optimizer
 
-translate1(Query, Stream2, Select, Cost2) :-
-  usingVersion(entropy),
-  deleteSmallResults,
-  retractall(highNode(_)), assert(highNode(0)),
-  translate(Query, Stream1, Select, Cost1), !,
-  translateEntropy(Stream1, Stream2, Cost1, Cost2), !.
+translate1(Query, Stream3, Select2, Cost2) :-
+  optimizerOption(entropy), write('\na\n'),
+  deleteSmallResults, write('\nb\n'),
+  retractall(highNode(_)), assert(highNode(0)), write('\nc\n'),
+  translate(Query, Stream1, Select, Cost1), write('\nd\n'), !,
+  translateEntropy(Stream1, Stream2, Cost1, Cost2), write('\ne\n'), !,
+% Hook for CSE substitution
+  rewritePlanforCSE(Stream2, Stream3, Select, Select2), write('\nf\n'),
+  !.
 
 % default handling
 
-translate1(Query, Stream, Select, Cost) :-
-  translate(Query, Stream, Select, Cost), !.
+translate1(Query, Stream2, Select2, Cost) :-
+  translate(Query, Stream, Select, Cost), 
+  rewritePlanforCSE(Stream, Stream2, Select, Select2), % Hook for CSE substitution
+  !.
  
 % the main predicate which does the translation of a query 
  
 translate(Query groupby Attrs,
         groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields), 
         select Select2, Cost) :-
-  translate1(Query, Stream, SelectClause, Cost),
+  translate(Query, Stream, SelectClause, Cost),
   makeList(Attrs, Attrs2),
   attrnames(Attrs2, AttrNamesGroup),
   attrnamesSort(Attrs2, AttrNamesSort),
@@ -3621,7 +3589,8 @@ Optimize ~Query~ and print the best ~Plan~.
 */
 
 optimize(Query) :-
-  callLookup(Query, Query2),
+  rewriteQuery(Query, RQuery),
+  callLookup(RQuery, Query2),
   queryToPlan(Query2, Plan, Cost),
   plan_to_atom(Plan, SecondoQuery),
   write('The plan is: '), nl, nl,
@@ -3630,7 +3599,8 @@ optimize(Query) :-
 
 
 optimize(Query, QueryOut, CostOut) :-
-  callLookup(Query, Query2),
+  rewriteQuery(Query, RQuery),
+  callLookup(RQuery, Query2),
   queryToPlan(Query2, Plan, CostOut),
   plan_to_atom(Plan, QueryOut).
 
@@ -3818,7 +3788,7 @@ to a new object ~X~, using the optimizer.
 
 /*
 sql Term :-
-  usingVersion(entropy),
+  optimizerOption(entropy),
   sql2(Term), !.
 */ 
 
@@ -3939,6 +3909,18 @@ bestPlanConsume :-
   nl, write(Q), nl,
   query(Q).
 
-  
+/*
+14 Query Rewriting
 
+See file ``rewriting.pl''
 
+*/
+
+/*
+15 Plan Rewriting
+
+See file ``rewriting.pl''
+
+*/
+
+:- [rewriting]. % include query and plan rewriting

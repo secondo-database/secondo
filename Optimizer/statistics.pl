@@ -296,7 +296,7 @@ selectivity(P, Sel) :-
   !.
 
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
-  set_dynamic_sample(off),
+  not(optimizerOption(dynamicSample)),
   Rel1 = rel(BaseName1, _, _),
   sampleNameJ(BaseName1, SampleName1),
   card(SampleName1, SampleCard1),
@@ -332,7 +332,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   !.
 
 selectivity(pr(Pred, Rel), Sel) :-
-  set_dynamic_sample(off),
+  not(optimizerOption(dynamicSample)),
   Rel = rel(BaseName, _, _),
   sampleNameS(BaseName, SampleName),
   card(SampleName, SampleCard),
@@ -365,7 +365,7 @@ selectivity(pr(Pred, Rel), Sel) :-
   !.
 
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
-  set_dynamic_sample(on),
+  optimizerOption(dynamicSample),
   Rel1 = rel(BaseName1, _, _),
   card(BaseName1, Card1),
   sampleSizeJoin(JoinSize),
@@ -401,7 +401,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   !.
 
 selectivity(pr(Pred, Rel), Sel) :-
-  set_dynamic_sample(on),
+  optimizerOption(dynamicSample),
   Rel = rel(BaseName, _, _),
   card(BaseName, Card),
   sampleSizeSelection(SelectionSize),

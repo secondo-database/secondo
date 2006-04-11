@@ -63,98 +63,7 @@ getprompt :-
       )
   ).
 
-
-quit :- 
-  halt.
-
-% the version predicate can be used to query the current operating
-% mode of the query optimizer. Currently one of the modes ~standard~ 
-% and ~entropy~ may be chosen.
-
-:- [opsyntax].
-
-:- dynamic
-  version/2,
-  loaded/1.
-
-% The files for the standard optimiztation procedure will be
-% loaded by default!
-
-mode(standard,'Shortest path search in POG.').
-mode(entropy, 'Selectivity estimation is done by maximizing the entropy.').
-
-
-loadFiles(mode(standard,_)) :-
-%  Mode = 'standard',
-%  not loaded(standard), 
-%  ['./Entropy/optimizer'], 
-  [optimizer], 
-  [statistics],
-  [database],
-  [operators],
-  [boundary],
-  [searchtree],
-%  retractall(loaded(_)),
-  assert(loaded(standard)).
-
-% Optional files for the entropy optimization procedure
-loadFiles(mode(entropy,_)) :-
- %  Mode = 'entropy',
-  %  not loaded(entropy),
-  ['./Entropy/entropy_opt'],
-  %  retract(loaded(_)), 
-  assert(loaded(entropy)).
-  
-usingVersion(V) :-
-  version(V, on).
  
-useVersion(V) :-
-  version(V, on),
-  printVersion(V).
- 
-useVersion(V) :-
-  version(Last, on),
-  loadFiles(mode(V,_)),
-  assert( version(V, on) ),
-  retract( version(Last, on) ),
-  printVersion(V).
-
- %showVersions :- not showVersions2. 
-
-showVersions :-
-  nl, 
-  write('Optimization procedure variants:'), nl,
-  write('--------------------------------'), nl,
-  not showModInfo,
-  write('Use the predicate "useVersion/1" to switch between these variants.').
-  
-showModInfo :-  
-  mode(M,Desc),
-  write('* "'), write(M), write('": '), write(Desc), nl, nl, fail.
- 
- 
-printVersion(V) :- 
-  nl, nl, 
-  write('** Optimizer version set to "'), write(V), write('" **'), 
-  nl, nl.
-
- 
-% Startup procedure for the optimizer
-:-
-  assert(highNode(0)),
-  assert(boundarySize(0)),
-  assert(boundaryMaxSize(0)),
-  
-% always load the files for the standard optimizes  
-  assert(version(standard, on)),
-  loadFiles(mode(standard,_)),
-
-% show info about avaliable versions
-  showVersions,
-  
-% use the standard optimization 
-  useVersion(standard).
-  
 /*
 
 2 Properties of the optimizer
@@ -169,7 +78,8 @@ meaning when typing ~showOptions/0~. Predicates ~setOption/1~ and
 */
 
 :- dynamic(optimizerOption/1),
-   dynamic(optDebugLevel/1).
+   dynamic(optDebugLevel/1),
+   dynamic(loadedModule/1).
 
 /*
 ---- optimizerOptionInfo(+Option,-Meaning,-GoalOn,-GoalOff)
@@ -181,14 +91,14 @@ should be called, is it is deactivated, ~GoalOff~ is called.
 */
 
 optimizerOptionInfo(entropy,          
-                    '\tUse the entropy extension',
-                    useVersion(entropy), useVersion(standard)).
-optimizerOptionInfo(uniformSpeed,     
-                    'Instructs the optimizer to use a uniform machine speed factor (1.0)',
-                    true, true).
-optimizerOptionInfo(costsConjuctive,  
-                    'Apply costs only to operators directly considered by Dijkstra',
-                    true, true).
+                    '\tEstimate selectivity by maximizing the entropy',
+                    loadFiles(entropy), loadFiles(standard)).
+%optimizerOptionInfo(uniformSpeed,     
+%                    'Instructs the optimizer to use a uniform machine speed factor (1.0)',
+%                    true, true).
+%optimizerOptionInfo(costsConjuctive,  
+%                    'Apply costs only to operators directly considered by Dijkstra',
+%                    true, true).
 optimizerOptionInfo(dynamicSample,    
                     'Use dynamic samples instead of static ones',
                     true, true).
@@ -239,7 +149,7 @@ setOption(X) :-
   retractall(optimizerOption(X)),
   assert(optimizerOption(X)), 
   call(GoalOn),
-  write('Switched on: \''), write(X), write('\': '), 
+  write('Switched on option: \''), write(X), write('\': '), 
   write(Text), write('.\n'), !.
 
 setOption(X) :-
@@ -250,11 +160,13 @@ delOption(X) :-
   optimizerOptionInfo(X,Text,_,GoalOff),
   retractall(optimizerOption(X)), 
   call(GoalOff),
-  write('Switched off: \''), write(X), write('\': '), 
+  write('Switched off option: \''), write(X), write('\': '), 
   write(Text), write('.\n'), !.
 
 delOption(X) :-
-  write('Unknown option \''), write(X), write('\'.\n'), fail, !.
+  write('Unknown option \''), write(X), write('\'.\n'), 
+  showOptions,
+  fail, !.
 
 
 /*
@@ -304,9 +216,106 @@ nodebugLevel(Mode) :-
   showDebugLevel,
   nl.
 
+% The files for the standard optimization procedure will be
+% loaded by default!
+loadFiles(standard) :-
+  ( not(loadedModule(standard)),
+    [optimizer], 
+    [statistics],
+    [database],
+    [operators],
+    [boundary],
+    [searchtree],
+    retractall(loadedModule(_)),
+    assert(loadedModule(standard))
+  )
+  ; true.
+
+% Optional files for the entropy optimization procedure
+loadFiles(entropy) :-
+  ( not(loadedModule(entropy)),
+    ['./Entropy/entropy_opt'],
+    retract(loadedModule(_)), 
+    assert(loadedModule(entropy))
+  )
+  ; true.
+
 
 /*
-4 Optimizer Startup Settings
+4 Some Auxiliary predicates for Debugging
+
+*/
+
+/*
+Print debugging information
+
+Predicate ~dm/1~ can be used as ~write~/1. Output is printed when optimizer option
+debug is defined (see file operators.pl).
+
+Predicate ~dm(mode,message)~ writes ~message~ if ~optDebugLevel(mode)~ 
+or ~optDebugLevel(all)~ is defined.
+
+*/
+
+dm([]) :- !.
+
+dm([X1 | XR]) :-
+  optimizerOption(debug), !,
+  write(X1),
+  dm(XR).
+
+dm(X) :-
+  optimizerOption(debug), !,
+  write(X).
+
+dm(_) :- !.
+  
+dm(Level, X) :-
+  ( optDebugLevel(Level) ; optDebugLevel(all) ), !, 
+  dm(X).
+
+dm(_,_) :- !.
+
+/*
+Execute debugging code
+
+dc works like dm, but calls a goal instead of simply printing messages:
+
+*/
+
+dc(Command) :-
+  optimizerOption(debug), !,
+  call(Command).
+
+dc(_) :- !.
+
+dc(Level, Command) :-
+  ( optDebugLevel(Level) ; optDebugLevel(all) ), !,
+  dc(Command).
+
+dc(_,_) :- !.
+
+
+/*
+5 Optimizer Startup Procedure
+
+*/
+
+/*
+5.1 Loading and Initializing Modules
+
+*/
+
+% Startup procedure for the optimizer
+:- [opsyntax].
+:- loadFiles(standard).        % load the files for the standard optimizer 
+:- assert(highNode(0)),
+   assert(boundarySize(0)),
+   assert(boundaryMaxSize(0)).
+  
+/*
+5.2 Setting Startup Options
+
 
 This are the optional standart settings for the optimizer when getting started. 
 Feel free to change.
@@ -321,16 +330,40 @@ Feel free to change.
 :- setOption(rewriteCSE).       % Comment out to switch off substitution of common subexpressions
 % :- setOption(debug), assert(optDebugLevel(all)). % Uncomment to see all debugging output
 
+
+
 :- showOptions.
+:- nl, write('NOTE: Version 5.4.7 shows in the MSYS console no prompt!'), nl,
+   write('A workaround is to type in the predicate "getprompt."'), nl, nl.
+:- current_prolog_flag(windows,true), % query getprompt on windows systems
+   getprompt.
+
+
+
+/*
+Some shortcuts and aliases
+
+*/
+
+quit :- halt. % aliasing halt in conformity to the Secondo system
+
+
+
+
+
+
 
 % predicates for testing CSE substitution:
 
-testquery1 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] from ten where (no*1)*(no*1) > 1.
-testquery2 :- sql select[no*1 as no1, (no*1)*(no*1) as no2]from[ten, ten as ten2] where[no*1* (no*1)<ten2:no].
-testquery3 :- sql select[no*1 as no1, (no*1)*(no*1)+ten2:no as no2]from[ten, ten as ten2] where[no*1* (no*1)>ten2:no].
-testquery4 :- sql select[no*1+ten2:no as no1, (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]from[ten, ten as ten2] where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no].
-testquery5 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] from ten where[(no*1)*(no*1) > 1, (no*1)*(no*1)+1 <20].
-testquery6 :- sql select[no*1+ten2:no as no1, (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]from[ten, ten as ten2] where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no, (no*1)*(no*1) > 1, (no*1)*(no*1)+1 <20].
+%testquery1 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] from ten where (no*1)*(no*1) > 1.
+%testquery2 :- sql select[no*1 as no1, (no*1)*(no*1) as no2]from[ten, ten as ten2] where[no*1* (no*1)<ten2:no].
+%testquery3 :- sql select[no*1 as no1, (no*1)*(no*1)+ten2:no as no2]from[ten, ten as ten2] where[no*1* (no*1)>ten2:no].
+%testquery4 :- sql select[no*1+ten2:no as no1, (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]from[ten, ten as ten2] where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no].
+%testquery5 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] from ten where[(no*1)*(no*1) > 1, (no*1)*(no*1)+1 <20].
+%testquery6 :- sql select[no*1+ten2:no as no1, (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]from[ten, ten as ten2] where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no, (no*1)*(no*1) > 1, (no*1)*(no*1)+1 <20].
+%testquery7 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] from ten where [(no*1)*(no*1) > 1] first 3.
+%testquery8 :- sql select[no*1+ten2:no as no1, (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]from[ten, ten as ten2] where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no, (no*1)*(no*1) > 1, (no*1)*(no*1)+1 <20] first 3.
 
+%:- open 'database opt'. % XRIS: testing only!
+%:- [autotest].
 
-:- open 'database opt'. % XRIS: testing only!

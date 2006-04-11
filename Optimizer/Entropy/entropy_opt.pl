@@ -1,5 +1,5 @@
 /*
-//characters [1] formula: [$] [$]
+//Characters [1] formula: [$] [$]
 //characters [2] program: [{\tt ] [}]
 //[<=] [$\leq$]
 //[>=] [$\geq$]
@@ -120,7 +120,7 @@ nextCounter(C) :-
   C = 1.
 
 % called by the standard optimizer 
-deleteCounters2 :- retract(nCounter(_)), fail.
+deleteCounters2 :- retractall(nCounter(_)).
  
 /* 
 The clauses below are used to store a list of counters returned by SECONDO.
@@ -322,7 +322,7 @@ query_small( Term, Result ) :-
 3 Interaction with the ~standard~ Optimizer
 
 At some places in optimizer.pl it will be checked
-whether ~usingVersion(entropy)~ holds. If this is true, ~clause2~ will be 
+whether ~optimizerOption(entropy)~ holds. If this is true, ~clause2~ will be 
 called instead of ~clause~.
 
 */
@@ -345,7 +345,7 @@ traversePath2([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
   %nl, write('### traversePath2'), nl,
   embedSubPlans(Term, Term2),
   nextCounter(Nc),
-  assert(nodePlan(Result, counter(Nc,Term2))),
+  assert(nodePlan(Result, counter(Term2,Nc))),
   assert(smallResultCounter(Nc, Source, Target, Result)),
   traversePath2(Path).
 
