@@ -3162,13 +3162,13 @@ only the cost for evaluating the essential part, the conjunctive query.
 % special handling for the entropy optimizer
 
 translate1(Query, Stream3, Select2, Cost2) :-
-  optimizerOption(entropy), write('\na\n'),
-  deleteSmallResults, write('\nb\n'),
-  retractall(highNode(_)), assert(highNode(0)), write('\nc\n'),
-  translate(Query, Stream1, Select, Cost1), write('\nd\n'), !,
-  translateEntropy(Stream1, Stream2, Cost1, Cost2), write('\ne\n'), !,
+  optimizerOption(entropy), 
+  deleteSmallResults, 
+  retractall(highNode(_)), assert(highNode(0)), 
+  translate(Query, Stream1, Select, Cost1), 
+  translateEntropy(Stream1, Stream2, Cost1, Cost2), 
 % Hook for CSE substitution
-  rewritePlanforCSE(Stream2, Stream3, Select, Select2), write('\nf\n'),
+  rewritePlanforCSE(Stream2, Stream3, Select, Select2), 
   !.
 
 % default handling
