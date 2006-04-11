@@ -103,7 +103,7 @@ const SmiSize CE_TYPES_EXPR_START = sizeof( int ) + CE_TYPES_EXPR_SIZE;
 const SmiSize CE_OBJS_VALUE          = 0;
 const SmiSize CE_OBJS_VALUE_DEF      = sizeof( Word ) + CE_OBJS_VALUE;
 const SmiSize CE_OBJS_VALUE_RECID    = sizeof( bool ) + CE_OBJS_VALUE_DEF;
-const SmiSize CE_OBJS_ALGEBRA_ID     = sizeof( SmiRecordId ) + CE_OBJS_VALUE_RECID;
+const SmiSize CE_OBJS_ALGEBRA_ID = sizeof( SmiRecordId ) + CE_OBJS_VALUE_RECID;
 const SmiSize CE_OBJS_TYPE_ID        = sizeof( int ) + CE_OBJS_ALGEBRA_ID;
 const SmiSize CE_OBJS_TYPENAME_SIZE  = sizeof( int ) + CE_OBJS_TYPE_ID;
 const SmiSize CE_OBJS_TYPEEXPR_SIZE  = sizeof( int ) + CE_OBJS_TYPENAME_SIZE;
@@ -186,9 +186,11 @@ Precondition: dbState = dbOpen.
              tPos->second.state == EntryUpdate ) continue;
       }
       int exprSize;
-      if ( !typeRecord.Read( &exprSize, sizeof( int ), CE_TYPES_EXPR_SIZE ) ) continue;
+      if ( !typeRecord.Read( &exprSize, 
+	   sizeof( int ), CE_TYPES_EXPR_SIZE ) ) continue;
       typeBuffer = new char[exprSize];
-      if ( !typeRecord.Read( typeBuffer, exprSize, CE_TYPES_EXPR_START ) ) continue;
+      if ( !typeRecord.Read( typeBuffer, 
+	                     exprSize, CE_TYPES_EXPR_START ) ) continue;
       typeExprString.assign( typeBuffer, exprSize );
       delete []typeBuffer;
       nl->ReadFromString( typeExprString, typeExpr );
@@ -346,9 +348,12 @@ Precondition: dbState = dbOpen.
         TypesCatalogEntry tEntry;
         int exprSize;
         tEntry.state = EntryDelete;
-        if ( tRec.Read( &tEntry.algebraId, sizeof( int ), CE_TYPES_ALGEBRA_ID ) &&
-             tRec.Read( &tEntry.typeId, sizeof( int ), CE_TYPES_TYPE_ID ) &&
-             tRec.Read( &exprSize, sizeof( int ), CE_TYPES_EXPR_SIZE ) )
+        if ( tRec.Read( &tEntry.algebraId, 
+	     sizeof( int ), CE_TYPES_ALGEBRA_ID ) &&
+             tRec.Read( &tEntry.typeId, 
+	     sizeof( int ), CE_TYPES_TYPE_ID ) &&
+             tRec.Read( &exprSize, 
+	     sizeof( int ), CE_TYPES_EXPR_SIZE ) )
         {
           char* tBuffer = new char[exprSize];
           tRec.Read( tBuffer, exprSize, CE_TYPES_EXPR_START );
@@ -535,7 +540,8 @@ Precondition: dbState = dbOpen and ~MemberType(typeName)~ delivers TRUE.
     }
     else if ( testMode )
     {
-      cerr << " GetTypeExpr: " << typeName << " is not a valid type name!" << endl;
+      cerr << " GetTypeExpr: " << typeName 
+           << " is not a valid type name!" << endl;
       exit( 0 );
     }
   }
@@ -720,20 +726,24 @@ Precondition: dbState = dbOpen.
              oPos->second.state == EntryUpdate ) continue;
       }
       int nameSize, exprSize;
-      if ( !oRec.Read( &nameSize, sizeof( int ), CE_OBJS_TYPENAME_SIZE ) ) continue;
-      if ( !oRec.Read( &exprSize, sizeof( int ), CE_OBJS_TYPEEXPR_SIZE ) ) continue;
+      if ( !oRec.Read( &nameSize, 
+	   sizeof( int ), CE_OBJS_TYPENAME_SIZE ) ) continue;
+      if ( !oRec.Read( &exprSize, 
+	   sizeof( int ), CE_OBJS_TYPEEXPR_SIZE ) ) continue;
       int bufSize = (nameSize > exprSize) ? nameSize : exprSize;
       oBuffer = new char[bufSize];
       if ( nameSize > 0 )
       {
-        if ( !oRec.Read( oBuffer, nameSize, CE_OBJS_TYPEINFO_START ) ) continue;
+        if ( !oRec.Read( oBuffer, 
+	     nameSize, CE_OBJS_TYPEINFO_START ) ) continue;
         typeName.assign( oBuffer, nameSize );
       }
       else
       {
         typeName = "";
       }
-      if ( !oRec.Read( oBuffer, exprSize, CE_OBJS_TYPEINFO_START+nameSize ) ) continue;
+      if ( !oRec.Read( oBuffer, 
+	   exprSize, CE_OBJS_TYPEINFO_START+nameSize ) ) continue;
       typeExprString.assign( oBuffer, exprSize );
       delete []oBuffer;
       nl->ReadFromString( typeExprString, typeExpr );
@@ -744,7 +754,8 @@ Precondition: dbState = dbOpen.
         objectsList = nl->Cons( nl->FourElemList(
                                   nl->SymbolAtom( "OBJECT" ),
                                   nl->SymbolAtom( objectName ),
-                                  nl->OneElemList( nl->SymbolAtom( typeName ) ),
+                                  nl->OneElemList( 
+				        nl->SymbolAtom( typeName ) ),
                                   typeExpr ),
                                 nl->TheEmptyList() );
         lastElem = objectsList;
@@ -774,7 +785,8 @@ Precondition: dbState = dbOpen.
         objectsList = nl->Cons( nl->FourElemList(
                                   nl->SymbolAtom( "OBJECT" ),
                                   nl->SymbolAtom( oPos->first ),
-                                  nl->OneElemList( nl->SymbolAtom( oPos->second.typeName ) ),
+                                  nl->OneElemList( 
+				    nl->SymbolAtom( oPos->second.typeName ) ),
                                   typeExpr ),
                                 nl->TheEmptyList() );
         lastElem = objectsList;
@@ -785,7 +797,8 @@ Precondition: dbState = dbOpen.
                      nl->FourElemList(
                        nl->SymbolAtom( "OBJECT" ),
                        nl->SymbolAtom( oPos->first ),
-                       nl->OneElemList( nl->SymbolAtom( oPos->second.typeName ) ),
+                       nl->OneElemList( 
+			     nl->SymbolAtom( oPos->second.typeName ) ),
                        typeExpr ) );
       }
     }
@@ -862,13 +875,14 @@ Precondition: dbState = dbOpen.
       }
       if ( objectsList == nl->TheEmptyList() )
       {
-        objectsList = nl->Cons( nl->FiveElemList(
-                                  nl->SymbolAtom( "OBJECT" ),
-                                  nl->SymbolAtom( objectName ),
-                                  nl->OneElemList( nl->SymbolAtom( typeName ) ),
-                                  typeExpr,
-                                  valueList ),
-                                nl->TheEmptyList() );
+        objectsList = 
+	   nl->Cons( nl->FiveElemList(
+                           nl->SymbolAtom( "OBJECT" ),
+                           nl->SymbolAtom( objectName ),
+                           nl->OneElemList( nl->SymbolAtom( typeName ) ),
+                           typeExpr,
+                           valueList ),
+                      nl->TheEmptyList() );
         lastElem = objectsList;
       }
       else
@@ -911,23 +925,27 @@ Precondition: dbState = dbOpen.
       }
       if ( objectsList == nl->TheEmptyList() )
       {
-        objectsList = nl->Cons( nl->FiveElemList(
-                                  nl->SymbolAtom( "OBJECT" ),
-                                  nl->SymbolAtom( oPos->first ),
-                                  nl->OneElemList( nl->SymbolAtom( oPos->second.typeName ) ),
-                                  typeExpr,
-                                  valueList ),
-                                nl->TheEmptyList() );
+        objectsList = 
+	   nl->Cons( nl->FiveElemList(
+                       nl->SymbolAtom( "OBJECT" ),
+                       nl->SymbolAtom( oPos->first ),
+                       nl->OneElemList( 
+			     nl->SymbolAtom( oPos->second.typeName ) ),
+                       typeExpr,
+                       valueList ),
+                     nl->TheEmptyList() );
         lastElem = objectsList;
       }
       else
       {
-        lastElem = nl->Append( lastElem,
-                     nl->FiveElemList(
-                       nl->SymbolAtom( "OBJECT" ),
-                       nl->SymbolAtom( oPos->first ),
-                       nl->OneElemList( nl->SymbolAtom( oPos->second.typeName ) ),
-                       typeExpr,
+        lastElem = 
+	   nl->Append( lastElem,
+                       nl->FiveElemList(
+                         nl->SymbolAtom( "OBJECT" ),
+                         nl->SymbolAtom( oPos->first ),
+                         nl->OneElemList( 
+			       nl->SymbolAtom( oPos->second.typeName ) ),
+                         typeExpr,
                        valueList ) );
       }
     cout << msgSaved << endl;
@@ -938,8 +956,10 @@ Precondition: dbState = dbOpen.
 }
 
 bool
-SecondoCatalog::CreateObject( const string& objectName, const string& typeName,
-                              const ListExpr typeExpr, const int sizeOfComponents )
+SecondoCatalog::CreateObject( const string& objectName, 
+                              const string& typeName,
+                              const ListExpr typeExpr, 
+			      const int sizeOfComponents )
 {
 /*
 Creates a new object with identifier ~objectName~ defined with type name ~typeName~ 
@@ -1607,7 +1627,8 @@ new value ~value~. Returns error 1 if object does not exist.
     {
       if( oPos->second.valueDefined )
       {
-        ObjectDeletion del = am->DeleteObj( oPos->second.algebraId, oPos->second.typeId );
+        ObjectDeletion del = am->DeleteObj( oPos->second.algebraId, 
+	                                    oPos->second.typeId     );
         ListExpr typeExpr, typeInfo;
         nl->ReadFromString( oPos->second.typeExpr, typeExpr );
         typeInfo = NumericType( nl->First( typeExpr ) );
@@ -1628,7 +1649,8 @@ new value ~value~. Returns error 1 if object does not exist.
     if ( found )
     {
       oRec.Read( &oEntry.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
-      oRec.Read( &oEntry.valueRecordId, sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
+      oRec.Read( &oEntry.valueRecordId, 
+	         sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
       oRec.Read( &oEntry.algebraId, sizeof( int ), CE_OBJS_ALGEBRA_ID );
       oRec.Read( &oEntry.typeId, sizeof( int ), CE_OBJS_TYPE_ID );
       int nameSize, exprSize, bufSize;
@@ -1650,12 +1672,14 @@ new value ~value~. Returns error 1 if object does not exist.
         {
           Word oldvalue;
           ListExpr typeExpr, typeInfo;
-          ObjectDeletion del = am->DeleteObj( oEntry.algebraId, oEntry.typeId );
+          ObjectDeletion del = am->DeleteObj( oEntry.algebraId, 
+	                                      oEntry.typeId     );
 
           nl->ReadFromString( oEntry.typeExpr, typeExpr );
           typeInfo = NumericType( nl->First( typeExpr ) );
 
-          if( am->OpenObj( oEntry.algebraId, oEntry.typeId, vRec, offset, typeInfo, oldvalue ) )
+          if( am->OpenObj( oEntry.algebraId, 
+	                   oEntry.typeId, vRec, offset, typeInfo, oldvalue ) )
             del( typeInfo, oldvalue );
 
           nl->Destroy( typeInfo );
@@ -1708,8 +1732,10 @@ object is only modified, so that no deletion function is necessary.
     found = objCatalogFile.SelectRecord( SmiKey( objectName ), oRec );
     if ( found )
     {
-      oRec.Read( &oEntry.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
-      oRec.Read( &oEntry.valueRecordId, sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
+      oRec.Read( &oEntry.valueDefined, 
+	         sizeof( bool ), CE_OBJS_VALUE_DEF );
+      oRec.Read( &oEntry.valueRecordId, 
+	         sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
       oRec.Read( &oEntry.algebraId, sizeof( int ), CE_OBJS_ALGEBRA_ID );
       oRec.Read( &oEntry.typeId, sizeof( int ), CE_OBJS_TYPE_ID );
       int nameSize, exprSize, bufSize;
@@ -1751,10 +1777,12 @@ new value cloned from ~value~. Returns error 1 if object does not exist.
       typeInfo = NumericType( nl->First( typeExpr ) );
       if( oPos->second.valueDefined )
       {
-        ObjectDeletion del = am->DeleteObj( oPos->second.algebraId, oPos->second.typeId );
+        ObjectDeletion del = am->DeleteObj( oPos->second.algebraId, 
+	                                    oPos->second.typeId     );
         del( typeInfo, oPos->second.value );
       }
-      oPos->second.value = (am->CloneObj( oPos->second.algebraId, oPos->second.typeId ))
+      oPos->second.value = (am->CloneObj( oPos->second.algebraId, 
+	                                  oPos->second.typeId     ))
         ( typeInfo, value );
       oPos->second.valueDefined = true;
       found = true;
@@ -1770,7 +1798,8 @@ new value cloned from ~value~. Returns error 1 if object does not exist.
     if ( found )
     {
       oRec.Read( &oEntry.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
-      oRec.Read( &oEntry.valueRecordId, sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
+      oRec.Read( &oEntry.valueRecordId, 
+	         sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
       oRec.Read( &oEntry.algebraId, sizeof( int ), CE_OBJS_ALGEBRA_ID );
       oRec.Read( &oEntry.typeId, sizeof( int ), CE_OBJS_TYPE_ID );
       int nameSize, exprSize, bufSize;
@@ -1796,9 +1825,11 @@ new value cloned from ~value~. Returns error 1 if object does not exist.
         if ( objValueFile.SelectRecord( oEntry.valueRecordId, vRec ) )
         {
           Word oldvalue;
-          ObjectDeletion del = am->DeleteObj( oEntry.algebraId, oEntry.typeId );
+          ObjectDeletion del = am->DeleteObj( oEntry.algebraId, 
+	                                      oEntry.typeId     );
 
-          if( am->OpenObj( oEntry.algebraId, oEntry.typeId, vRec, offset, typeInfo, oldvalue ) )
+          if( am->OpenObj( oEntry.algebraId, 
+	                   oEntry.typeId, vRec, offset, typeInfo, oldvalue ) )
             del( typeInfo, oldvalue );
         }
       }
@@ -1907,7 +1938,8 @@ Precondition: ~IsTypeName(typeName)~ delivers TRUE.
 
   if ( testMode && !IsTypeName( typeName ) )
   {
-    cerr << "  GetTypeId: " << typeName << " is not a valid type name!" << endl;
+    cerr << "  GetTypeId: " << typeName 
+         << " is not a valid type name!" << endl;
     exit( 0 );
   }
 
@@ -2012,19 +2044,24 @@ Precondition: ~IsOperatorName( opName)~ delivers TRUE.
     CatalogEntrySet::iterator operatorSetIterator = operatorSet->begin();
 
     opList = nl->OneElemList(
-               nl->TwoElemList( nl->IntAtom( operatorSetIterator->algebraId ), nl->IntAtom( operatorSetIterator->entryId ) ) );
+               nl->TwoElemList( 
+		 nl->IntAtom( operatorSetIterator->algebraId ), 
+		   nl->IntAtom( operatorSetIterator->entryId ) ) );
     ListExpr last = opList;
 
     while ( ++operatorSetIterator != operatorSet->end() )
     {
       last = nl->Append( last,
-                         nl->TwoElemList( nl->IntAtom( operatorSetIterator->algebraId ), nl->IntAtom( operatorSetIterator->entryId ) ) );
+               nl->TwoElemList( 
+		 nl->IntAtom( operatorSetIterator->algebraId ), 
+		    nl->IntAtom( operatorSetIterator->entryId ) ) );
     }
     return opList;
   }
   else
   {
-    cerr << "  GetOperatorIds: " << opName << " is not a valid operator name!" << endl;
+    cerr << "  GetOperatorIds: " << opName 
+         << " is not a valid operator name!" << endl;
     exit( 0 );
   }
 }
@@ -2084,6 +2121,13 @@ ListExpr
 SecondoCatalog::ListOperators()
 {
 /*
+The returned list is (opname ...). Where ... is a list which is the 
+result returned  by NestedList::ReadFromString of the operator's 
+specification string. Hence the list structure for an operator 
+specification is not fixed and may be chosen freely by the implementor.
+  
+Note: The list structure below is not implemented!
+
 Returns a list of operators specifications in the following format:
 
 ----
@@ -2169,7 +2213,8 @@ SecondoCatalog::SecondoCatalog()
   nl = SecondoSystem::GetNestedList();
   am = SecondoSystem::GetAlgebraManager();
 
-  AddSystemObjName("DERIVED_OBJ"); // enter object identifiers used by the system
+  // enter object identifiers used by the system
+  AddSystemObjName("DERIVED_OBJ"); 
   AddSystemObjName("OBJ_DEP");
 
   CatalogEntry newEntry;
@@ -2186,7 +2231,8 @@ Defines a dictionary for algebra type constructors.
     for ( j = 0; j < am->ConstrNumber( algebraId ); j++ )
     {
       newEntry.entryId = j;
-      constructors.insert( make_pair( am->Constrs( algebraId, j ), newEntry ) );
+      constructors.insert( make_pair( 
+	                          am->Constrs( algebraId, j ), newEntry ) );
     }
 /*
 Defines a dictionary for algebra operators.
@@ -2195,7 +2241,8 @@ Defines a dictionary for algebra operators.
     for ( j = 0; j < am->OperatorNumber( algebraId ); j++ )
     {
       newEntry.entryId = j;
-      LocalOperatorCatalog::iterator pos = operators.find( am->Ops( algebraId, j ) );
+      LocalOperatorCatalog::iterator 
+        pos = operators.find( am->Ops( algebraId, j ) );
       CatalogEntrySet* entrySet;
 
       if (  pos != operators.end() )
@@ -2271,7 +2318,9 @@ SecondoCatalog::CleanUp( const bool revert )
   if ( !revert )
   {
     SmiRecord tRec;
-    for ( TypesCatalog::iterator tPos = types.begin(); tPos != types.end(); tPos++ )
+    for ( TypesCatalog::iterator tPos = types.begin();
+          tPos != types.end(); 
+	  tPos++ )
     {
       switch (tPos->second.state)
       {
@@ -2279,11 +2328,14 @@ SecondoCatalog::CleanUp( const bool revert )
         {
           if ( typeCatalogFile.InsertRecord( SmiKey( tPos->first ), tRec ) )
           {
-            tRec.Write( &tPos->second.algebraId, sizeof( int ), CE_TYPES_ALGEBRA_ID );
-            tRec.Write( &tPos->second.typeId, sizeof( int ), CE_TYPES_TYPE_ID );
+            tRec.Write( &tPos->second.algebraId, 
+	                sizeof( int ), CE_TYPES_ALGEBRA_ID );
+            tRec.Write( &tPos->second.typeId, 
+	                sizeof( int ), CE_TYPES_TYPE_ID );
             int exprSize = tPos->second.typeExpr.length();
             tRec.Write( &exprSize, sizeof( int ), CE_TYPES_EXPR_SIZE );
-            tRec.Write( tPos->second.typeExpr.data(), exprSize, CE_TYPES_EXPR_START );
+            tRec.Write( tPos->second.typeExpr.data(), 
+	                exprSize, CE_TYPES_EXPR_START );
           }
           else
           {
@@ -2293,13 +2345,17 @@ SecondoCatalog::CleanUp( const bool revert )
         }
         case EntryUpdate:
         {
-          if ( typeCatalogFile.SelectRecord( SmiKey( tPos->first ), tRec, SmiFile::Update ) )
+          if ( typeCatalogFile.SelectRecord( SmiKey( tPos->first ), 
+	                                     tRec, SmiFile::Update ) )
           {
-            tRec.Write( &tPos->second.algebraId, sizeof( int ), CE_TYPES_ALGEBRA_ID );
-            tRec.Write( &tPos->second.typeId, sizeof( int ), CE_TYPES_TYPE_ID );
+            tRec.Write( &tPos->second.algebraId, 
+	                sizeof( int ), CE_TYPES_ALGEBRA_ID );
+            tRec.Write( &tPos->second.typeId, 
+	                sizeof( int ), CE_TYPES_TYPE_ID );
             int exprSize = tPos->second.typeExpr.length();
             tRec.Write( &exprSize, sizeof( int ), CE_TYPES_EXPR_SIZE );
-            tRec.Write( tPos->second.typeExpr.data(), exprSize, CE_TYPES_EXPR_START );
+            tRec.Write( tPos->second.typeExpr.data(), 
+	                exprSize, CE_TYPES_EXPR_START );
           }
           else
           {
@@ -2324,7 +2380,9 @@ In this first iteration:
  * In the deletion, only the catalog part of the object is deleted.
 
 */
-  for ( ObjectsCatalog::iterator oPos = objects.begin(); oPos != objects.end(); oPos++ )
+  for ( ObjectsCatalog::iterator oPos = objects.begin(); 
+        oPos != objects.end(); 
+	oPos++ )
   {
     switch (oPos->second.state)
     {
@@ -2336,16 +2394,22 @@ In this first iteration:
           if ( objCatalogFile.InsertRecord( SmiKey( oPos->first ), oRec ) )
           {
             bool f = false;
-            oRec.Write( &oPos->second.value, sizeof( Word ), CE_OBJS_VALUE );
-            oRec.Write( &f, sizeof( bool ), CE_OBJS_VALUE_DEF );
-            oRec.Write( &oPos->second.algebraId, sizeof( int ), CE_OBJS_ALGEBRA_ID );
-            oRec.Write( &oPos->second.typeId, sizeof( int ), CE_OBJS_TYPE_ID );
+            oRec.Write( &oPos->second.value, 
+	                sizeof( Word ), CE_OBJS_VALUE );
+            oRec.Write( &f, sizeof( bool ), 
+	                CE_OBJS_VALUE_DEF );
+            oRec.Write( &oPos->second.algebraId, 
+	                sizeof( int ), CE_OBJS_ALGEBRA_ID );
+            oRec.Write( &oPos->second.typeId, 
+	                sizeof( int ), CE_OBJS_TYPE_ID );
             int nameSize = oPos->second.typeName.length();
             int exprSize = oPos->second.typeExpr.length();
             oRec.Write( &nameSize, sizeof( int ), CE_OBJS_TYPENAME_SIZE );
             oRec.Write( &exprSize, sizeof( int ), CE_OBJS_TYPEEXPR_SIZE );
-            oRec.Write( oPos->second.typeName.data(), nameSize, CE_OBJS_TYPEINFO_START );
-            oRec.Write( oPos->second.typeExpr.data(), exprSize, CE_OBJS_TYPEINFO_START + nameSize );
+            oRec.Write( oPos->second.typeName.data(), 
+	                nameSize, CE_OBJS_TYPEINFO_START );
+            oRec.Write( oPos->second.typeExpr.data(), 
+	                exprSize, CE_OBJS_TYPEINFO_START + nameSize );
             oRec.Finish();
           }
           else
@@ -2360,19 +2424,23 @@ In this first iteration:
         if ( !revert )
         {
           SmiRecord oRec;
-          if ( objCatalogFile.SelectRecord( SmiKey( oPos->first ), oRec, SmiFile::Update ) )
+          if ( objCatalogFile.SelectRecord( SmiKey( oPos->first ), 
+	                                    oRec, SmiFile::Update ) )
           {
             bool f = false;
             oRec.Write( &oPos->second.value, sizeof( int ), CE_OBJS_VALUE );
             oRec.Write( &f, sizeof( bool ), CE_OBJS_VALUE_DEF );
-            oRec.Write( &oPos->second.algebraId, sizeof( int ), CE_OBJS_ALGEBRA_ID );
+            oRec.Write( &oPos->second.algebraId, 
+	                sizeof( int ), CE_OBJS_ALGEBRA_ID );
             oRec.Write( &oPos->second.typeId, sizeof( int ), CE_OBJS_TYPE_ID );
             int nameSize = oPos->second.typeName.length();
             int exprSize = oPos->second.typeExpr.length();
             oRec.Write( &nameSize, sizeof( int ), CE_OBJS_TYPENAME_SIZE );
             oRec.Write( &exprSize, sizeof( int ), CE_OBJS_TYPEEXPR_SIZE );
-            oRec.Write( oPos->second.typeName.data(), nameSize, CE_OBJS_TYPEINFO_START );
-            oRec.Write( oPos->second.typeExpr.data(), exprSize, CE_OBJS_TYPEINFO_START + nameSize );
+            oRec.Write( oPos->second.typeName.data(), 
+	                nameSize, CE_OBJS_TYPEINFO_START );
+            oRec.Write( oPos->second.typeExpr.data(), 
+	                exprSize, CE_OBJS_TYPEINFO_START + nameSize );
             oRec.Finish();
           }
           else
@@ -2417,7 +2485,9 @@ save process. Then, if it occurs, the database state will be
 preserved and the objects are created with undefined values.
 
 */
-  for ( ObjectsCatalog::iterator oPos = objects.begin(); oPos != objects.end(); oPos++ )
+  for ( ObjectsCatalog::iterator oPos = objects.begin();
+        oPos != objects.end(); 
+	oPos++ )
   {
     switch (oPos->second.state)
     {
@@ -2426,17 +2496,21 @@ preserved and the objects are created with undefined values.
         if ( !revert )
         {
           SmiRecord oRec;
-          if ( objCatalogFile.SelectRecord( SmiKey( oPos->first ), oRec, SmiFile::Update ) )
+          if ( objCatalogFile.SelectRecord( SmiKey( oPos->first ), 
+	                                    oRec, SmiFile::Update ) )
           {
             if ( oPos->second.valueDefined )
             {
-              oRec.Write( &oPos->second.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
+              oRec.Write( &oPos->second.valueDefined, 
+		          sizeof( bool ), CE_OBJS_VALUE_DEF );
               SmiRecord vRec;
               size_t offset = 0;
-              ok = objValueFile.AppendRecord( oPos->second.valueRecordId, vRec );
+              ok = objValueFile.AppendRecord( oPos->second.valueRecordId, 
+		                              vRec                        );
               if ( ok )
               {
-                oRec.Write( &oPos->second.valueRecordId, sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
+                oRec.Write( &oPos->second.valueRecordId, 
+		            sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
                 ListExpr typeExpr, typeInfo;
                 nl->ReadFromString( oPos->second.typeExpr, typeExpr );
                 typeInfo = NumericType( nl->First( typeExpr ) );
@@ -2462,9 +2536,11 @@ preserved and the objects are created with undefined values.
         if ( !revert )
         {
           SmiRecord oRec;
-          if ( objCatalogFile.SelectRecord( SmiKey( oPos->first ), oRec, SmiFile::Update ) )
+          if ( objCatalogFile.SelectRecord( SmiKey( oPos->first ), 
+	                                    oRec, SmiFile::Update ) )
           {
-            oRec.Write( &oPos->second.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
+            oRec.Write( &oPos->second.valueDefined, 
+	                sizeof( bool ), CE_OBJS_VALUE_DEF );
             bool ok2;
             if ( oPos->second.valueDefined )
             {
@@ -2472,12 +2548,15 @@ preserved and the objects are created with undefined values.
               size_t offset = 0;
               if ( oPos->second.valueRecordId == 0 )
               {
-                ok2 = objValueFile.AppendRecord( oPos->second.valueRecordId, vRec );
-                oRec.Write( &oPos->second.valueRecordId, sizeof( int ), CE_OBJS_VALUE_RECID );
+                ok2 = objValueFile.AppendRecord(
+		        oPos->second.valueRecordId, vRec );
+                oRec.Write( &oPos->second.valueRecordId, 
+		            sizeof( int ), CE_OBJS_VALUE_RECID );
               }
               else
               {
-                ok2 = objValueFile.SelectRecord( oPos->second.valueRecordId, vRec, SmiFile::Update );
+                ok2 = objValueFile.SelectRecord( 
+		        oPos->second.valueRecordId, vRec, SmiFile::Update );
               }
               if ( ok2 )
               {
