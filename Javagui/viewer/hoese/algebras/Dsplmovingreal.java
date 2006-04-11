@@ -47,6 +47,7 @@ public class Dsplmovingreal extends DsplGeneric implements
   final static int PSIZE=300;
   boolean err;
   boolean defined;
+  /** format specification for label **/ static java.text.DecimalFormat format = new java.text.DecimalFormat("#.####");
   
 
 
@@ -404,11 +405,11 @@ public class Dsplmovingreal extends DsplGeneric implements
      if(d==null){
         return "undefined";  
      }
-     return d.toString();
+     return format.format(d.doubleValue());
   }
 
 
-  /* Implemenattin of the RenderAtribute interface **/
+  /* Implementation of the RenderAttribute interface **/
   public boolean mayBeDefined(){
      return defined;
   }
