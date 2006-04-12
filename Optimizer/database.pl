@@ -465,15 +465,7 @@ trycreateSmallRelation(_, _) :-
   not(optimizerOption(entropy)).
 
 relation(Rel, AttrList) :-
-  storedRel(Rel, AttrList),
-  % to avoid problems with unknown, but expected _small-relations
-  % when using the entropy optimizer version:
-  ( not(optimizerOption(entropy))
-    ; ( getSecondoList(ObjList), ! ,
-        trycreateSmallRelation(Rel, ObjList)
-      )
-  ),
-  !.
+  storedRel(Rel, AttrList), !.
 
 relation(Rel, AttrList) :-
   optimizerOption(dynamicSample),

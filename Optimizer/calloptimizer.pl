@@ -92,12 +92,15 @@ should be called, is it is deactivated, ~GoalOff~ is called.
 
 */
 
-optimizerOptionInfo(entropy,          
+optimizerOptionInfo(entropy,       
                     '\tEstimate selectivity by maximizing the entropy.',
-                    ( loadFiles(entropy),   
-                      getSecondoList(ObjList),
-                      checkForAddedIndices(ObjList),
-	              checkForRemovedIndices(ObjList)
+                    ( loadFiles(entropy), 
+                      (   notIsDatabaseOpen
+                        ; ( getSecondoList(ObjList),
+                            checkForAddedIndices(ObjList), 
+                            checkForRemovedIndices(ObjList)
+                          )
+                      )
                     ), 
 	            loadFiles(standard)).
 %optimizerOptionInfo(uniformSpeed,     
