@@ -24,8 +24,11 @@ August 2004, M. Spiekermann. This comment was inserted to make it a PD-File. Mor
 implementation of ~GetAlgebraName~ was done.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
-(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+(~executable~, ~descriptive~, and ~hybrid~). Only the executable
 level remains. Models are also removed from type constructors.
+
+January 2006. M. Spiekermann TypeCheck will now return a boolean value instead
+of a pointer to a function.
 
 */
 
@@ -41,7 +44,8 @@ using namespace std;
 #include "SecondoSystem.h"
 #include "DynamicLibrary.h"
 
-AlgebraManager::AlgebraManager( NestedList& nlRef, GetAlgebraEntryFunction getAlgebraEntryFunc )
+AlgebraManager::AlgebraManager( NestedList& nlRef, 
+                                GetAlgebraEntryFunction getAlgebraEntryFunc )
 {
   int j = 0;
   nl = &nlRef;
@@ -72,25 +76,25 @@ AlgebraManager::~AlgebraManager()
 ListExpr
 AlgebraManager::ListAlgebras()
 {
-  int j;
-  ListExpr list, lastElem = 0;
+  int j = 0;
+  ListExpr list = nl->Empty();
+  ListExpr lastElem = nl->Empty();
     
-  list = nl->TheEmptyList();
- 
   for ( j = 0; (*getAlgebraEntry)( j ).algebraId > 0; j++ )
   {
     if ( (*getAlgebraEntry)( j ).useAlgebra )
     {
       if ( (*getAlgebraEntry)( j ).algebraInit != 0 )
       {
+        ListExpr alg = nl->SymbolAtom( (*getAlgebraEntry)( j ).algebraName );
         if ( list == nl->TheEmptyList() )
         {
-          list = nl->OneElemList( nl->SymbolAtom( (*getAlgebraEntry)( j ).algebraName ) ); 
+          list = nl->OneElemList( alg ); 
           lastElem = list;
         }
         else
         {
-          lastElem = nl->Append( lastElem, nl->SymbolAtom( (*getAlgebraEntry)( j ).algebraName ) );
+          lastElem = nl->Append( lastElem, alg );
         }
       }
     }
@@ -140,7 +144,8 @@ AlgebraManager::LoadAlgebras()
  
   ofstream f("storedTypeSizes.pl", ios_base::out | ios_base::trunc);
   f << "% Automatic generated file, do not edit." << endl;
-  f << "% For each datatype the return value of its 'SizeOf' function is stored here." << endl;
+  f << "% For each datatype the return value of its " <<
+    << "'SizeOf' function is stored here." << endl;
   f << endl;
  
   for ( j = 0; (*getAlgebraEntry)( j ).algebraId > 0; j++ )
@@ -161,14 +166,17 @@ AlgebraManager::LoadAlgebras()
         string libraryName  = string( "lib" ) + algNameStr;
         string initFuncName = string( "Initialize" ) + algNameStr;
         (*getAlgebraEntry)( j ).dynlib = new DynamicLibrary();
-        transform( libraryName.begin(), libraryName.end(), libraryName.begin(), ToLowerProperFunction );
+        transform( libraryName.begin(), libraryName.end(), 
+                   libraryName.begin(), ToLowerProperFunction );
         if ( (*getAlgebraEntry)( j ).dynlib->Load( libraryName ) )
         {
           AlgebraInitFunction initFunc =
-            (AlgebraInitFunction) (*getAlgebraEntry)( j ).dynlib->GetFunctionAddress( initFuncName );
+            (AlgebraInitFunction) (*getAlgebraEntry)( j ).dynlib
+                                          ->GetFunctionAddress( initFuncName );
           if ( initFunc != 0 )
           {
-            algebra[(*getAlgebraEntry)( j ).algebraId] = (initFunc)( nl, qp, this );
+            algebra[(*getAlgebraEntry)( j ).algebraId] 
+                                            = (initFunc)( nl, qp, this );
             loaded = true;
           }
           else
@@ -183,12 +191,16 @@ AlgebraManager::LoadAlgebras()
           continue;
         }
       }
-      for ( k = 0; k < algebra[(*getAlgebraEntry)( j ).algebraId]->GetNumTCs(); k++ )
+      for ( k = 0; 
+            k < algebra[(*getAlgebraEntry)( j ).algebraId]->GetNumTCs(); k++ )
       {
-        tc = algebra[(*getAlgebraEntry)( j ).algebraId]->GetTypeConstructor( k );
+        tc = algebra[(*getAlgebraEntry)( j ).algebraId]
+                                                   ->GetTypeConstructor( k );
         // write information about type constructors into a file
-        f << "secDatatype('" << tc->Name() << "', " << tc->SizeOf() << ")." << endl;
-        for ( vector<string>::size_type idx = 0; idx < tc->kinds.size(); idx++ )
+        f << "secDatatype('" << tc->Name() << "', " 
+                             << tc->SizeOf() << ")." << endl;
+        for ( vector<string>::size_type idx = 0; 
+              idx < tc->kinds.size(); idx++      )
         {
           if ( tc->kinds[idx] != "" )
           {
@@ -206,7 +218,8 @@ AlgebraManager::UnloadAlgebras()
 {
   for ( int j = 0; (*getAlgebraEntry)( j ).algebraId > 0; j++ )
   {
-    if ( (*getAlgebraEntry)( j ).useAlgebra && (*getAlgebraEntry)( j ).dynlib != 0 )
+    if ( (*getAlgebraEntry)( j ).useAlgebra 
+         && (*getAlgebraEntry)( j ).dynlib != 0 )
     {
       (*getAlgebraEntry)( j ).dynlib->Unload();
       delete (*getAlgebraEntry)( j ).dynlib;
@@ -323,8 +336,10 @@ AlgebraManager::OutObj( int algebraId, int typeId )
 OutObject
 AlgebraManager::SaveToListObj( int algebraId, int typeId )
 {
-  if( algebra[algebraId]->GetTypeConstructor( typeId )->saveToListFunc != 0 )
-    return (algebra[algebraId]->GetTypeConstructor( typeId )->saveToListFunc);
+  if( algebra[algebraId]->GetTypeConstructor( typeId )
+                                      ->saveToListFunc != 0 )
+    return (algebra[algebraId]->GetTypeConstructor( typeId )
+                                               ->saveToListFunc);
   else
     return (algebra[algebraId]->GetTypeConstructor( typeId )->outFunc);
 }
@@ -332,8 +347,10 @@ AlgebraManager::SaveToListObj( int algebraId, int typeId )
 InObject
 AlgebraManager::RestoreFromListObj( int algebraId, int typeId )
 {
-  if( algebra[algebraId]->GetTypeConstructor( typeId )->restoreFromListFunc != 0 )
-    return (algebra[algebraId]->GetTypeConstructor( typeId )->restoreFromListFunc);
+  if( algebra[algebraId]->GetTypeConstructor( typeId )
+                                 ->restoreFromListFunc != 0 )
+    return (algebra[algebraId]->GetTypeConstructor( typeId )
+                                           ->restoreFromListFunc);
   else 
     return (algebra[algebraId]->GetTypeConstructor( typeId )->inFunc);
 }
@@ -392,10 +409,12 @@ AlgebraManager::SizeOfObj( int algebraId, int typeId )
   return (algebra[algebraId]->GetTypeConstructor( typeId )->sizeofFunc);
 }
 
-TypeCheckFunction
-AlgebraManager::TypeCheck( int algebraId, int typeId )
+bool
+AlgebraManager::TypeCheck( int algebraId, int typeId, 
+                           const ListExpr type, ListExpr& errorInfo )
 {
-  return (algebra[algebraId]->GetTypeConstructor( typeId )->typeCheckFunc);
+  return (algebra[algebraId]->GetTypeConstructor( typeId )
+                                 ->TypeCheck(type, errorInfo));
 }
 
 bool

@@ -27,6 +27,9 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
+January 2006, M. Spiekermann. New costructors for operators and type constructors
+added.
+
 */
 
 using namespace std;
@@ -43,11 +46,6 @@ QueryProcessor *qp;
 AlgebraManager *am;
 
 /* Member functions of class Operator: */
-int
-Operator::SimpleSelect( ListExpr )
-{
-  return (0);
-}
 
 Operator::Operator( const string& nm,
                     const string& spec,
@@ -83,9 +81,29 @@ Operator::Operator( const string& nm,
   AddValueMapping( 0, vm );
 }
 
-Operator::~Operator()
+Operator::Operator( const OperatorInfo& oi,
+                    ValueMapping vm,
+                    TypeMapping tm )
 {
-  delete[] valueMap;
+  // construct a specification list
+  static const string txtBegin("<text>");  
+  static const string txtEnd("</text--->");  
+  stringstream spec;  
+  spec << "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\")(" 
+    << txtBegin << oi.signature << txtEnd
+    << txtBegin << oi.syntax << txtEnd
+    << txtBegin << oi.meaning << txtEnd
+    << txtBegin << oi.example << txtEnd << "))" << endl;
+
+  // define member attributes
+  name           = oi.name;
+  specString     = spec.str();  
+  numOfFunctions = 1;
+  selectFunc     = SimpleSelect;
+  valueMap       = new ValueMapping[1];
+  typeMap        = tm;
+
+  AddValueMapping( 0, vm );
 }
 
 bool
@@ -102,17 +120,6 @@ Operator::AddValueMapping( const int index, ValueMapping f )
   }
 }
 
-string
-Operator::Specification()
-{
-  return (specString);
-}
-
-ListExpr
-Operator::CallTypeMapping( ListExpr argList )
-{
-  return ((*typeMap)( argList ));
-}
 
 /* Member functions of Class TypeConstructor */
 bool
@@ -246,9 +253,28 @@ TypeConstructor::AssociateKind( const string& kindName )
 ListExpr
 TypeConstructor::Property()
 {
-  ListExpr property = (*propFunc)();
-  return (property);
+  if (propFunc)	
+   return (*propFunc)();
+  return Property(conInfo);
 }
+
+
+ListExpr
+TypeConstructor::Property(const ConstructorInfo& ci)
+{
+  return (nl->TwoElemList(
+         nl->FiveElemList(nl->StringAtom("Signature"),
+	                  nl->StringAtom("Example Type List"),
+			  nl->StringAtom("List Rep"),
+			  nl->StringAtom("Example List"),
+			  nl->StringAtom("Remarks")),
+         nl->FiveElemList(nl->StringAtom( ci.signature ),
+	                  nl->StringAtom( ci.typeExample ),
+			  nl->StringAtom( ci.listRep ),
+			  nl->StringAtom( ci.valueExample ),
+			  nl->StringAtom( ci.remarks ))));
+}
+
 
 ListExpr
 TypeConstructor::Out( ListExpr type, Word value )
