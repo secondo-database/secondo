@@ -22,28 +22,32 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 March 2006, M. Spiekermann
 
+1 Overview
+
 This file declares and implements a classes called ~SystemInfoRel~ and
 ~InfoTuple~.  It will be used to store tuples in memory. Hence they can be
+regarded as a kind of memory or virtual relations which are recognized by the
+system catalog. If they are used inside a query, a list representation of them
+will be generated and a relation object will be created on the fly using the
+~In-Function~ of type constructor ~rel~. But even without the relation algebra
+the contents of the relations is available since it will be dumped into files in
+CSV format which can be read in by a spreadsheet program. Hence there will be no
+compile time or run time dependency to the relational algebra module.
 
-regarded as a kind of memory relations which are not maintained by the system
-catalog. A special operator in the relational algebra called ~feedinfo~
-will create a stream of tuples, hence their data may be used by the relational
-algebra operations. Currently, there are two info relations:
 
-  * CmdTimes
+Currently there are two system relations (implemented in SecondoInterface.cpp):
 
-  * CmdCounters
+  * SEC\_COMMANDS
+
+  * SEC\_COUNTERS
 
 For example the query
 
-----    query feedinfo["CmdTimes"] consume
+----    query SEC_COMMANDS feed consume
 ----
 
-will show all queries and their command times. But even without this operator
-and the relation algebra the contents of the relations is available since it
-will be dumped into files in CSV format which can be read in by a spreadsheet
-program. 
-   
+will show all queries and their command times.
+
 */
 
 #ifndef CLASS_SYSINFOREL_H
@@ -55,10 +59,17 @@ program.
 
 #include "NList.h"
 
-// forward declaration
-class Tuple;
-
 using namespace std;
+
+/*
+2 Class ~InfoTuple~
+ 
+This class defines 2 virtual functions which need to be implemented by
+its subclasses. An instance of ~InfoTuple~ represents a tuple and can be
+appended to an instance of class ~SystemInfoRel~.
+
+*/
+
 
 class InfoTuple
 {
@@ -66,7 +77,7 @@ class InfoTuple
    public:
    const string sep;
    
-   virtual Tuple* mkTuple() { return 0; }
+   virtual NList valueList() const = 0;
    virtual ostream& print(ostream&) const = 0; 
    
    InfoTuple() : sep("|") {}
@@ -77,29 +88,39 @@ class InfoTuple
 ostream& operator<<(ostream&, const InfoTuple&); 
 
 /*
-Class ~SystemInfoRel~
-   
+3 Class ~SystemInfoRel~
+ 
+Reserved object identifiers for the SECONDO System can be added
+in the Constructor of this class. As a convention all system reserverd 
+identifiers should be prefixed with "SEC\_".
+
 */
+
 
 class SystemInfoRel 
 {
-  typedef vector<InfoTuple*> InfoTupVec;
-  typedef InfoTupVec::iterator iterator;
- 
-  public:   
-    typedef vector< pair<string, string> > RelSchema;
-  
-     InfoTupVec tuples;
-     RelSchema* attrList; 
-     const string name;
-     const string logFile;
-     const string sep;
 
-  SystemInfoRel(const string& inName, RelSchema* attrs) :
+  typedef vector<InfoTuple*> InfoTupVec;
+  typedef InfoTupVec::const_iterator iterator;
+
+  public:   
+  typedef vector< pair<string, string> > RelSchema;
+  
+  InfoTupVec tuples;
+  RelSchema* attrList; 
+  const string name;
+  const string logFile;
+  const string sep;
+  const bool isPersistent;
+     
+  SystemInfoRel( const string& inName, 
+                 RelSchema* attrs, 
+                 const bool persistent=false ) :
     attrList(attrs), 
     name(inName),
     logFile(name + ".csv"),
-    sep("|") 
+    sep("|"),
+    isPersistent(persistent) 
   {
       // Write Headline
       ostream& clog = cmsg.file(logFile);
@@ -146,29 +167,46 @@ class SystemInfoRel
     attrList = 0;
   }  
 
-  NList resultType() 
+  NList relSchema() const
   { 
      RelSchema::iterator it = attrList->begin();
      assert(it != attrList->end());
      
-     NList type;
+     NList types;
      NList pair( NList(it->first), NList(it->second) );
-     type.makeHead( pair );
+     types.makeHead( pair );
      it++;
       
      while ( it != attrList->end() )
      { 
        pair = NList( NList(it->first), NList(it->second) );
-       type.append( pair );
+       types.append( pair );
        it++;
      }   
      
-     type = NList( NList("tuple"), type); 
-     //cout << type << endl;
-     return type;
+     NList relSchema = NList( NList("rel"), NList(NList("tuple"), types) ); 
+     //cout << "Schema: " << relSchema << endl;
+     return relSchema;
   } 
+
+  NList relValues() const
+  {  
+    //SHOW(tuples.size())
+    iterator it = begin();
+    NList values;
+    values.makeHead( (*it)->valueList() );
+    it++;
+      
+    while( it != end() )
+    {
+       values.append( (*it)->valueList() );
+       it++;
+    } 
+    //cout << "Values: " << values << endl;
+    return values;
+  }
   
-  const string& getName() { return name; }   
+  const string& getName() const { return name; }   
   
   void append(InfoTuple* t, bool dump) 
   {
@@ -177,17 +215,16 @@ class SystemInfoRel
     tuples.push_back(t); 
   }
  
-  iterator begin() { return tuples.begin(); } 
-  iterator end() { return tuples.end(); } 
-  
-  
+  iterator begin() const { return tuples.begin(); } 
+  iterator end()   const { return tuples.end(); } 
+ 
 };
 
 
 class SystemTables {
 
-   typedef map<string, SystemInfoRel*> Str2TableMap;
-   typedef Str2TableMap::iterator iterator;
+   typedef map<string, const SystemInfoRel*> Str2TableMap;
+   typedef Str2TableMap::const_iterator iterator;
    
    private:
    
@@ -212,6 +249,7 @@ class SystemTables {
      if (instance) {
        return *instance;
      } else {
+       cout << "Creating SystemTable instance!" << endl;
        instance = new SystemTables;
        return *instance;
      }  
@@ -219,17 +257,24 @@ class SystemTables {
   
   void insert(SystemInfoRel* rel) 
   {
-     const string& name = rel->getName(); 
-     iterator it = tables.find(name);
-     assert( it == tables.end() );
-     tables[name] = rel;
+     const string& name = rel->getName();
+     assert( tables.find(name) == tables.end() );
+
+     // register new system table
+     string type="virtual";
+     if (rel->isPersistent)
+       type="persistent";
+     cout << "  registering " << type << " system table " << name << endl;
+     tables[name] = /*(const SystemInfoRel*)*/ rel;
   }
    
-  SystemInfoRel* getInfoRel(const string& name)
+  const SystemInfoRel* getInfoRel(const string& name) const
   {
      iterator it = tables.find(name);
-     if ( it == tables.end() )
+     if ( it == tables.end() ) {
+       //cout << "table " << name << " not found!" << endl;
        return 0;
+     }  
      else
        return it->second;
   } 
