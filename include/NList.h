@@ -190,7 +190,7 @@ c)~.
   {}
   NList(const string& s, const bool isStr = false) :
     e( nl->Empty() ),
-    len( 1)
+    len(0)
   {
    
     if (isStr)
@@ -198,7 +198,52 @@ c)~.
     else 
       l = nl->SymbolAtom(s);
   }
+ 
+  NList(const int n) :
+    l( nl->IntAtom(n) ),
+    e( nl->Empty() ),
+    len(0)
+  {}
+
+  NList(const double d) :
+    l( nl->RealAtom(d) ),
+    e( nl->Empty() ),
+    len(0)
+  {}
+    
+  inline NList& stringAtom(const string& val) 
+  {
+    len = 0;
+    e = nl->Empty();
+    l = nl->StringAtom(val);
+    return *this;
+  } 
   
+  inline NList& textAtom(const string& val) 
+  {
+    len = 0;
+    e = nl->Empty();
+    l = nl->TextAtom(val);
+    return *this;
+  } 
+
+  
+  inline NList& symbolAtom(const string& val) 
+  {
+    len = 0;
+    e = nl->Empty();
+    l = nl->SymbolAtom(val);
+    return *this;
+  } 
+  
+  inline NList& enclose() 
+  {
+    len = 1;
+    l = nl->OneElemList(l);
+    e = l;
+    return *this;
+  } 
+
   ~NList() {}
 
 /*
