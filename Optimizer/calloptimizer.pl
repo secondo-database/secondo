@@ -93,8 +93,12 @@ should be called, is it is deactivated, ~GoalOff~ is called.
 */
 
 optimizerOptionInfo(entropy,          
-                    '\tEstimate selectivity by maximizing the entropy.',
-                    loadFiles(entropy), loadFiles(standard)).
+                    '\tEstimate selectivity by maximizing the entropy',
+      	(loadFiles(entropy),   
+	  getSecondoList(ObjList),
+	  checkForAddedIndices(ObjList),
+	  checkForRemovedIndices(ObjList)), 
+	loadFiles(standard)).
 %optimizerOptionInfo(uniformSpeed,     
 %                    'Set machine speed factor to constant 1.0.',
 %                    true, true).
