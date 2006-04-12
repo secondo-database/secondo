@@ -329,8 +329,8 @@ createIndexSmall(Rel, ObjList, _, _) :-
 
 
 
-checkIfIndexIsStored(_, _, LFRel, LFAttr, IndexType, IndexName, _) :-
-  storedIndex(LFRel, LFAttr, IndexType, IndexName),!.
+% checkIfIndexIsStored(_, _, LFRel, LFAttr, IndexType, IndexName, _) :-
+%   storedIndex(LFRel, LFAttr, IndexType, IndexName),!.
 
 checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, IndexType, IndexName, ObjList) :-
   storedNoIndex(LFRel, LFAttr),
