@@ -2585,19 +2585,21 @@ We introduce ~select~, ~from~, ~where~, and ~as~ as PROLOG operators:
 
 */
 
-:- op(990, fx, sql).
-:- op(985, xfx, >>).
-:- op(950, fx, select).
-:- op(940, fx, distinct).
-:- op(960, xfx, from).
-:- op(950, xfx, where).
-:- op(930, xfx, as).
-:- op(970, xfx, groupby).
-:- op(980, xfx, orderby).
+:- op(990,  fx, sql).
+:- op(988,  fx, with).
+:- op(987, xfx, in).
 :- op(986, xfx, first).
-:- op(930, xf, asc).
-:- op(930, xf, desc).
-
+%:- op(985, xfx, >>).         % XRIS: what's that operator for?
+:- op(980, xfx, orderby).
+:- op(970, xfx, groupby).
+:- op(960, xfx, from).
+:- op(950,  fx, select).
+:- op(950, xfx, where).
+:- op(940,  fx, distinct).
+:- op(935,  fx, nonempty). 
+:- op(930, xfx, as).
+:- op(930, xf , asc).
+:- op(930, xf , desc).
 
 /*
 This ensures that the select-from-where statement is viewed as a term with the
