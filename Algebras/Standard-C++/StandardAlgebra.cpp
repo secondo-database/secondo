@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 //paragraph [1] Title:	[{\Large \bf ]	[}]
+//[->] [\ensuremath{\rightarrow}]
 
 [1] Secondo Standardalgebra
 
@@ -1313,6 +1314,31 @@ CcBetweenTypeMap( ListExpr args )
   }
   return (nl->SymbolAtom( "typeerror" ));
 }
+
+
+/*
+4.2.15 Type mapping function for the ~ldistance~ operator:
+ 
+Type mapping for ~ldistance~ is string x string [->] int
+
+
+*/
+ 
+ListExpr CcLDistTypeMap(ListExpr args){
+   if(nl->ListLength(args)!=2){
+       ErrorReporter::ReportError("two arguments expected\n");
+       return nl->SymbolAtom("typeerror");
+   }
+   ListExpr arg1 = nl->First(args);
+   ListExpr arg2 = nl->Second(args);
+   if(!nl->IsEqual(arg1,"string") ||
+      !nl->IsEqual(arg2,"string")){
+       ErrorReporter::ReportError("string x string required");
+       return nl->SymbolAtom("typeerror");
+   }
+   return nl->SymbolAtom("int");
+}
+
 
 /*
 4.3 Selection function
@@ -3447,6 +3473,70 @@ int CcBetween_bbb(Word* args, Word& result, int message, Word& local,
   return (0);
 }
 
+
+/* 
+4.15 Computes the Levenshtein distance between two strings.
+
+This distance is defined by the minimum count of operators in
+   
+  * add character
+
+  * remove character
+
+  * replace character
+
+to get the __target__ from the __source__.
+
+The complexity is source.length [*] target.length.
+
+*/
+static  int ld(const string source, const string target){
+  int n = source.length();
+  int m = target.length();
+  if(n==0){
+     return m;
+  }
+  if(m==0){
+     return n;
+  }
+  n++; 
+  m++;
+  int matrix[n][m]; 
+  // initialize
+  for(int i=0;i<n;i++){
+    matrix[i][0] = i;
+  }
+  for(int i=0;i<m;i++){
+    matrix[0][i] = i;
+  }
+  int cost;
+  for(int i=1;i<n;i++){
+     for(int j=1;j<m;j++){
+        cost = source[i-1]==target[j-1]?0:1;
+        matrix[i][j] = min(matrix[i-1][j]+1,
+                           min(matrix[i][j-1]+1,
+                           matrix[i-1][j-1]+cost));
+     }
+  }
+  int res = matrix[n-1][m-1];
+  return res; 
+}
+ 
+
+int
+DistanceStrStrFun( Word* args, Word& result, int message, Word& local,
+                   Supplier s ){
+   result = qp->ResultStorage(s);
+   CcString* source = (CcString*) args[0].addr;
+   CcString* target = (CcString*) args[1].addr;
+   string str1 = (const char*)(source->GetStringval());
+   string str2 = (const char*)(target->GetStringval());
+   int dist = ld(str1,str2);
+   ((CcInt*)result.addr)->Set(true,dist);
+   return 0;
+}
+
+
 /* 
 Map any type to a string
 
@@ -3869,6 +3959,13 @@ CCSpecElapsed = "(" + specListHeader + "("
                       + "cpu time in seconds encoded in a string'"
                     + "'query plz feed elapsedtime'))";
 
+const string CCLDistSpec  = 
+            "( ( \"Signature\" \"Syntax\" \"Meaning\" " "\"Example\" )"
+            "( <text>string x string  -> int</text--->"
+               "<text>ldistance ( _ _ )</text--->"
+               "<text>compute the distance between two strings </text--->"
+               "<text>query ldistance( \"hello\" \"world\" )</text--->"
+			       ") )";
 
    
 Operator ccplus( "+", CCSpecAdd, 5, ccplusmap,  
@@ -3970,6 +4067,9 @@ Operator ccbetween( "between", CCSpecBetween, 4, ccbetweenmap,
 Operator ccelapsedtime( "elapsedtime", CCSpecElapsed, ccelapsedfun, 
                         Operator::SimpleSelect, CcElapsedTypeMap );
 
+Operator ccldistance( "ldistance", CCLDistSpec, DistanceStrStrFun,  
+                 Operator::SimpleSelect, CcLDistTypeMap);
+
 /*
 6 Class ~CcAlgebra~
 
@@ -4041,6 +4141,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccopifthenelse );
     AddOperator( &ccbetween );
     AddOperator( &ccelapsedtime );
+    AddOperator( &ccldistance);
   }
   ~CcAlgebra1() {};
 

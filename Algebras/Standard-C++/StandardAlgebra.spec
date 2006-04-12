@@ -55,5 +55,7 @@ operator keywords alias KEYWORD pattern _ op
 operator elapsedtime alias ELAPSEDTIME pattern _ op
 operator between alias BETWEEN pattern _ op [ _, _]
 
+operator ldistance alias LDISTANCE pattern op (_ , _)
+
 
 
