@@ -93,31 +93,31 @@ should be called, is it is deactivated, ~GoalOff~ is called.
 */
 
 optimizerOptionInfo(entropy,          
-                    '\tEstimate selectivity by maximizing the entropy',
+                    '\tEstimate selectivity by maximizing the entropy.',
                     loadFiles(entropy), loadFiles(standard)).
 %optimizerOptionInfo(uniformSpeed,     
-%                    'Instructs the optimizer to use a uniform machine speed factor (1.0)',
+%                    'Set machine speed factor to constant 1.0.',
 %                    true, true).
 %optimizerOptionInfo(costsConjuctive,  
 %                    'Apply costs only to operators directly considered by Dijkstra',
 %                    true, true).
 optimizerOptionInfo(dynamicSample,    
-                    'Use dynamic samples instead of static ones',
+                    'Use dynamic instead of static samples.',
                     true, true).
 optimizerOptionInfo(rewriteMacros,    
-                    'Allow use of macros (with[<expr> as <macro>] in ...)',
+                    'Allow for macros (with[<expr> as <macro>] in <query>).',
                     true, true).
 optimizerOptionInfo(rewriteInference, 
-                    'Automatically add inferred predicates to where clause',
+                    'Automatically add inferred predicates to where clause.',
                     true, true).
 optimizerOptionInfo(rewriteCSE,       
-                    'Substitute common subexpressions by extended attrinutes',
+                    'Substitute common subexpressions by extended attributes.',
                     true, true).
 %optimizerOptionInfo(rewriteRemoves,       
 %                    'Remove unused attributes as early as possible',
 %                    true, true).
 optimizerOptionInfo(debug,            
-                    '\tActivate debugging code and messages. Also use \'toggleDebug.\'',
+                    '\tActivate debugging code. Also use \'toggleDebug.\'.',
                     showDebugLevel,true).
 
 /*
@@ -335,7 +335,10 @@ Feel free to change.
 :- setOption(rewriteCSE).       % Comment out to switch off substitution of common subexpressions
 % :- setOption(debug), assert(optDebugLevel(all)). % Uncomment to see all debugging output
 
+/*
+5.3 Print Additional Information
 
+*/
 
 :- showOptions.
 :- nl, write('NOTE: Version 5.4.7 shows in the MSYS console no prompt!'), nl,
@@ -346,17 +349,19 @@ Feel free to change.
 
 
 /*
-Some shortcuts and aliases
+6 Shortcuts and Aliases
 
 */
 
-quit :- halt. % aliasing halt in conformity to the Secondo system
+quit :- halt. % aliasing 'halt/0' in conformity to the Secondo system
 
 
+/*
+7 Testing Code 
 
+Comment out this complete section for standard behavior.
 
-
-
+*/
 
 % predicates for testing CSE substitution:
 
@@ -370,5 +375,5 @@ quit :- halt. % aliasing halt in conformity to the Secondo system
 %testquery8 :- sql select[no*1+ten2:no as no1, (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]from[ten, ten as ten2] where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no, (no*1)*(no*1) > 1, (no*1)*(no*1)+1 <20] first 3.
 
 %:- open 'database opt'. % XRIS: testing only!
-%:- [autotest].
-
+%:- [autotest].          % XRIS: testing only!
+%:- [experiments].       % XRIS: testing only!

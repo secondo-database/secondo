@@ -412,70 +412,6 @@ createSampleRelationIfNotDynamic(Rel) :-
 createSampleRelationIfNotDynamic(_) :-
   optimizerOption(dynamicSample), !.
 
-/*createSampleRelation(Rel, ObjList) :-   Rel in lc
-  spelling(Rel, Rel2),
-  Rel2 = lc(Rel3),
-  sampleNameS(Rel3, Sample1),
-  member(['OBJECT', Sample1, _ , [[_ | _]]], ObjList),
-  sampleNameJ(Rel3, Sample2),
-  member(['OBJECT', Sample2, _ , [[_ | _]]], ObjList),
-  !.
-
-createSampleRelation(Rel, ObjList) :-   Rel in uc
-  spelling(Rel, Rel2),
-  not(Rel2 = lc(_)),
-  upper(Rel2, URel),
-  sampleNameS(URel, Sample1),
-  member(['OBJECT', Sample1, _ , [[_ | _]]], ObjList),
-  sampleNameJ(URel, Sample2),
-  member(['OBJECT', Sample2, _ , [[_ | _]]], ObjList),
-  !.
-
-createSampleRelation(Rel, _)  :-   Rel in lc
-  spelling(Rel, Rel2),
-  Rel2 = lc(Rel3),
-  sampleNameS(Rel3, Sample1),
-  concat_atom(['let ', Sample1, ' = ', Rel3, 
-    ' sample[2000, 0.00001] consume'], '', QueryAtom1),
-  sampleNameJ(Rel3, Sample2),
-  concat_atom(['let ', Sample2, ' = ', Rel3, 
-    ' sample[500, 0.00001] consume'], '', QueryAtom2),    
-  tryCreate(QueryAtom1),
-  tryCreate(QueryAtom2),
-  card(Rel3, Card),
-  SampleCard1 is truncate(min(Card, max(2000, Card*0.00001))),
-  SampleCard2 is truncate(min(Card, max(500, Card*0.00001))),
-  assert(storedCard(Sample1, SampleCard1)),
-  assert(storedCard(Sample2, SampleCard2)),
-  downcase_atom(Sample1, DCSample1),
-  downcase_atom(Sample2, DCSample2),  
-  assert(storedSpell(DCSample1, lc(Sample1))),
-  assert(storedSpell(DCSample2, lc(Sample2))),
-  !.
-
-createSampleRelation(Rel, _) :-   Rel in uc
-  spelling(Rel, Rel2),
-  upper(Rel2, URel),
-  sampleNameS(URel, Sample1),
-  concat_atom(['let ', Sample1, ' = ', URel, 
-    ' sample[2000, 0.00001] consume'], '', QueryAtom1),
-  sampleNameJ(URel, Sample2),
-  concat_atom(['let ', Sample2, ' = ', URel, 
-    ' sample[500, 0.00001] consume'], '', QueryAtom2),
-  tryCreate(QueryAtom1),
-  tryCreate(QueryAtom2),
-  card(Rel2, Card),
-  SampleCard1 is truncate(min(Card, max(2000, Card*0.00001))),
-  lowerfl(Sample1, LSample1),
-  assert(storedCard(LSample1, SampleCard1)),
-  SampleCard2 is truncate(min(Card, max(500, Card*0.00001))),
-  lowerfl(Sample2, LSample2),
-  assert(storedCard(LSample2, SampleCard2)),
-  downcase_atom(Sample1, DCSample1),
-  assert(storedSpell(DCSample1, LSample1)),
-  downcase_atom(Sample2, DCSample2),
-  assert(storedSpell(DCSample2, LSample2)),
-  !.*/
 /*
 Checks, if an index exists for ~Rel~ and ~Attr~ and stores the 
 respective values to the dynamic predicates ~storedIndex/4~ or 
@@ -529,7 +465,15 @@ trycreateSmallRelation(_, _) :-
   not(optimizerOption(entropy)).
 
 relation(Rel, AttrList) :-
-  storedRel(Rel, AttrList),!.
+  storedRel(Rel, AttrList),
+  % to avoid problems with unknown, but expected _small-relations
+  % when using the entropy optimizer version:
+  ( not(optimizerOption(entropy))
+    ; ( getSecondoList(ObjList), ! ,
+        trycreateSmallRelation(Rel, ObjList)
+      )
+  ),
+  !.
 
 relation(Rel, AttrList) :-
   optimizerOption(dynamicSample),
@@ -556,8 +500,7 @@ relation(Rel, AttrList) :-
   trycreateSmallRelation(Rel, ObjList),
   assert(storedRel(Rel, AttrList)),
   createAttrSpelledAndIndexLookUp(Rel, AttrList3).
-
-  %retract(storedSecondoList(ObjList)).
+%  retract(storedSecondoList(ObjList)).
 
 /*
 1.1.3 Storing And Loading Relation Schemas

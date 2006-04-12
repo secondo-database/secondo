@@ -2581,7 +2581,7 @@ Currently only a basic part of this language has been implemented.
 
 11.2 Structure
 
-We introduce ~select~, ~from~, ~where~, and ~as~ as PROLOG operators:
+We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 
 */
 
@@ -2596,7 +2596,7 @@ We introduce ~select~, ~from~, ~where~, and ~as~ as PROLOG operators:
 :- op(950,  fx, select).
 :- op(950, xfx, where).
 :- op(940,  fx, distinct).
-:- op(935,  fx, nonempty). 
+:- op(935,  fx, nonempty).
 :- op(930, xfx, as).
 :- op(930, xf , asc).
 :- op(930, xf , desc).
