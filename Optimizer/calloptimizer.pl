@@ -42,7 +42,7 @@ The optimizer is started by loading this file.
 
 getprompt :-
   current_prolog_flag(version,Version),
-  ( Version >=50500 
+  ( Version >=50407 
     -> ( Version >= 50600 % test for version of SWI-Prolog later than 5.6
           -> (  % using ISO stream predicates for recent versions
                stream_property(ConIn,  file_no(0)), 
@@ -93,12 +93,13 @@ should be called, is it is deactivated, ~GoalOff~ is called.
 */
 
 optimizerOptionInfo(entropy,          
-                    '\tEstimate selectivity by maximizing the entropy',
-      	(loadFiles(entropy),   
-	  getSecondoList(ObjList),
-	  checkForAddedIndices(ObjList),
-	  checkForRemovedIndices(ObjList)), 
-	loadFiles(standard)).
+                    '\tEstimate selectivity by maximizing the entropy.',
+                    ( loadFiles(entropy),   
+                      getSecondoList(ObjList),
+                      checkForAddedIndices(ObjList),
+	              checkForRemovedIndices(ObjList)
+                    ), 
+	            loadFiles(standard)).
 %optimizerOptionInfo(uniformSpeed,     
 %                    'Set machine speed factor to constant 1.0.',
 %                    true, true).
@@ -358,26 +359,3 @@ Feel free to change.
 */
 
 quit :- halt. % aliasing 'halt/0' in conformity to the Secondo system
-
-
-/*
-7 Testing Code 
-
-Comment out this complete section for standard behavior.
-
-*/
-
-% predicates for testing CSE substitution:
-
-%testquery1 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] from ten where (no*1)*(no*1) > 1.
-%testquery2 :- sql select[no*1 as no1, (no*1)*(no*1) as no2]from[ten, ten as ten2] where[no*1* (no*1)<ten2:no].
-%testquery3 :- sql select[no*1 as no1, (no*1)*(no*1)+ten2:no as no2]from[ten, ten as ten2] where[no*1* (no*1)>ten2:no].
-%testquery4 :- sql select[no*1+ten2:no as no1, (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]from[ten, ten as ten2] where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no].
-%testquery5 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] from ten where[(no*1)*(no*1) > 1, (no*1)*(no*1)+1 <20].
-%testquery6 :- sql select[no*1+ten2:no as no1, (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]from[ten, ten as ten2] where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no, (no*1)*(no*1) > 1, (no*1)*(no*1)+1 <20].
-%testquery7 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] from ten where [(no*1)*(no*1) > 1] first 3.
-%testquery8 :- sql select[no*1+ten2:no as no1, (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]from[ten, ten as ten2] where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no, (no*1)*(no*1) > 1, (no*1)*(no*1)+1 <20] first 3.
-
-%:- open 'database opt'. % XRIS: testing only!
-%:- [autotest].          % XRIS: testing only!
-%:- [experiments].       % XRIS: testing only!
