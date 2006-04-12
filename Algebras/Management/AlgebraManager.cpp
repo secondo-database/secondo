@@ -144,7 +144,7 @@ AlgebraManager::LoadAlgebras()
  
   ofstream f("storedTypeSizes.pl", ios_base::out | ios_base::trunc);
   f << "% Automatic generated file, do not edit." << endl;
-  f << "% For each datatype the return value of its " <<
+  f << "% For each datatype the return value of its " 
     << "'SizeOf' function is stored here." << endl;
   f << endl;
  
