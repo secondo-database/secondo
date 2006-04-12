@@ -61,6 +61,11 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
+January 2006, M. Spiekermann new constructors for class ~Operator~ and ~TypeConstructor~
+added. They assume arguments stored in the structs ~OperatorInfo~ and ~ConstructorInfo~.
+Moreover, it is possible to use defaults for many functions needed by a type constructor
+which are defined as template functions in ConstructorTemplates.h.
+
 1.1 Overview
 
 A snapshot of a working "Secondo"[3] system will show a collection of algebras,
@@ -99,10 +104,13 @@ type constructors.
 
 #include <string>
 #include <vector>
-#include "AlgebraManager.h"
+
+#include "AlgebraTypes.h"
 
 #ifndef ALGEBRA_H
 #define ALGEBRA_H
+
+extern NestedList* nl;
 
 /*
 1.3 Macro ~CHECK\_COND~
@@ -138,8 +146,28 @@ number is set in the constructor (~noF~).
 
 */
 
+struct OperatorInfo {
+
+  string name;	
+  string signature;
+  string syntax;
+  string meaning;
+  string example;
+  
+  OperatorInfo() :
+    name(""),	  
+    signature(""),	  
+    syntax(""),
+    meaning(""),
+    example("")
+  {}	    
+};
+
+
+
 class Operator
 {
+
  public:
   Operator( const string& nm,
             const string& spec,
@@ -156,24 +184,32 @@ Constructs an operator with ~noF~ overloaded evaluation functions.
             ValueMapping vm,
             SelectFunction sf,
             TypeMapping tm );
+
+  Operator( const OperatorInfo& oi,
+            ValueMapping vm,
+            TypeMapping tm );
+
+  
 /*
 Constructs an operator with *one* evaluation functions.
 
 */
-  virtual ~Operator();
+  virtual ~Operator()
+  {
+    delete[] valueMap;
+  }
 /*
 Destroys an operator instance.
 
 */
-  string Specification();
 /*
 Returns the operator specification as a string.
 
 */
-  inline int Select( ListExpr argtypes ) 
-	{
-	  return ((*selectFunc)( argtypes ));
-	}
+  inline int Select( ListExpr argtypes ) const 
+  {
+    return ((*selectFunc)( argtypes ));
+  }
 /*
 Returns the index of the overloaded evaluation function depending on
 the argument types ~argtypes~.
@@ -184,34 +220,37 @@ the argument types ~argtypes~.
                                Word& result,
                                int message,
                                Word& local,
-                               Supplier s )
-	{	
-	  assert((0 <= index) && (index < numOfFunctions));
-	  return (*valueMap[index])( args, result, message, local, s );
-	}	
+                               Supplier s ) const
+  {	
+    assert((0 <= index) && (index < numOfFunctions));
+    return (*valueMap[index])( args, result, message, local, s );
+  }	
 
 /*
 Calls the value mapping function of the operator.
 
 */
-  ListExpr CallTypeMapping( ListExpr argList );
+  inline ListExpr CallTypeMapping( ListExpr argList ) const
+  {
+    return ((*typeMap)( argList ));
+  }
 /*
 Calls the type mapping function of the operator.
 
 */
-  static int SimpleSelect( ListExpr );
+  inline static int SimpleSelect( ListExpr ) { return 0; }
 /*
 Defines a simple selection function for operators.
 
 */
-  inline const string& GetName() const
-    { return name; }
+  inline const string& GetName() const { return name; }
 /*
 Returns the name of the operator.
 
 */
-  inline const string& GetSpecString() const 
-    { return specString; }
+  inline const string& GetSpecString() const { return specString; }
+  inline const string& Specification() const { return specString; }
+
 /*
 Returns the specification string of the operator.
 
@@ -264,6 +303,28 @@ constructor.
 
 */
 
+struct ConstructorInfo {
+
+  string name;	
+  string signature;
+  string typeExample;
+  string listRep;
+  string valueExample;
+  string remarks;
+
+  ConstructorInfo() :
+    name(""),	  
+    signature(""),	  
+    typeExample(""),
+    listRep(""),
+    valueExample(""),
+    remarks("")
+  {}	    
+};
+
+
+#include "ConstructorTemplates.h"
+
 class TypeConstructor
 {
  public:
@@ -282,6 +343,31 @@ class TypeConstructor
                    ObjectCast ca,
                    ObjectSizeof sizeOf,
                    TypeCheckFunction tcf );
+
+  template<class T>
+  TypeConstructor( const ConstructorInfo ci,
+                   ConstructorFunctions<T> cf  )
+  {  
+    conInfo              = ci;	
+    name                 = ci.name;
+    propFunc             = 0;
+    
+    outFunc              = cf.out;
+    inFunc               = cf.in;
+    saveToListFunc       = cf.saveToList;
+    restoreFromListFunc  = cf.restoreFromList;
+    createFunc           = cf.create;
+    deleteFunc           = cf.deletion;
+    openFunc             = cf.open;
+    saveFunc             = cf.save;
+    closeFunc            = cf.close;
+    cloneFunc            = cf.clone;
+    castFunc             = cf.cast;
+    sizeofFunc           = cf.sizeOf;
+    typeCheckFunc        = cf.typeCheck;
+  }
+
+  
 /*
 Constructs a type constructor.
 
@@ -297,6 +383,7 @@ Associates the kind ~kindName~ with this type constructor.
 
 */
   ListExpr Property();
+  static ListExpr Property(const ConstructorInfo& ci);
 /*
 Returns the properties of the type constructor as a nested list.
 
@@ -357,12 +444,28 @@ These methods use the ~RestoreFromList~ and ~SaveToList~ if provided, and
   static Word DummyClone( const ListExpr typeInfo,
                           const Word& w );
   static int  DummySizeOf();
+  
+  bool TypeCheck( ListExpr type, ListExpr& errorInfo )
+  {
+    if (typeCheckFunc)
+      return (*typeCheckFunc)( type, errorInfo);
+    else 
+      return SimpleCheck( type, errorInfo );
+  }
+
 
 /*
 Dummy methods used as placeholders for type constructor functions.
 
 */
  private:
+ 
+  inline bool SimpleCheck( ListExpr type, ListExpr& errorInfo )
+  {
+    return (nl->IsEqual( type, name ));
+  }
+
+  ConstructorInfo          conInfo;
   string                   name;   // Name of type constr.
   TypeProperty             propFunc;
   OutObject                outFunc;
@@ -425,13 +528,19 @@ Returns the number of operators provided by the algabra module.
 
 */
   TypeConstructor* GetTypeConstructor( int index )
-                     { assert((index >= 0) && (index <= tcsNum-1)); return tcs[index]; }
+  { 
+     assert((index >= 0) && (index <= tcsNum-1)); 
+     return tcs[index]; 
+  }
 /*
 Returns a reference to the type constructor identified by ~index~.
 
 */
   Operator* GetOperator( int index ) 
-               { assert((index >= 0) && (index <= opsNum-1)); return ops[index]; }
+  { 
+     assert((index >= 0) && (index <= opsNum-1)); 
+     return ops[index]; 
+  }
 /*
 Returns a reference to the operator identified by ~index~.
 
