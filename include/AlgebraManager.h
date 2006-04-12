@@ -88,6 +88,7 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
+January 2006, M. Spiekermann. Some declarations were moved to Algebra.h 
 
 1.1 Overview
 
@@ -202,139 +203,8 @@ overloaded, identity (on the numbers) is sufficient.
 #include "NestedList.h"
 #include "SecondoSMI.h"
 
-//class Algebra;
-
-const int MAXARG = 20;
-const int FUNMSG = 10;
-
-/*
-Is the maximal number of arguments for one operator
-
-*/
-
-const int OPEN    = 1;
-const int REQUEST = 2;
-const int CLOSE   = 3;
-const int YIELD   = 4;
-const int CANCEL  = 5;
-/*
-Are constants for stream processing.
-
-Operators which have a parameter function with streams as arguments need to
-recognize more different messages. For this purpose we will encode the argument
-number in the second byte of the integer, in general: 
-
-(argNr * FUNMSG) + <message>  
-
-Hence if the first argument of a parameter function is a stream we
-will use FUNMSG+OPEN (for OPEN), FUNMSG+RQUEST (for REQUEST) etc.  
-
-*/
-
-enum PersistDirection { ReadFrom, WriteTo, DeleteFrom };
-/*
-Defines whether the methods managing the persistence of object values and models
-are persisting an object ("WriteTo"[4]), restoring an object ("ReadFrom"[4]),
-or deleting an object ("DeleteFrom"[4]).
-
-*/
-/*
-1.5 Types
-
-*/
-
-typedef Word ArgVector[MAXARG];
-typedef ArgVector* ArgVectorPointer;
-/*
-Are the types for generic argument vectors for algebra functions.
-
-*/
-
-typedef Address Supplier;
-/*
-Is the type for references to a supplier of information of the operator tree.
-
-*/
-
-typedef int (*ValueMapping)( ArgVector args, Word& result,
-                             int msg, Word& local,
-                             Supplier tree );
-/*
-Is the type of an evaluation function.
-
-*/
-
-typedef ListExpr (*TypeMapping)( ListExpr typeList );
-/*
-Is the type of a type mapping procedure.
-
-*/
-
-typedef int (*SelectFunction)( ListExpr typeList );
-/*
-Is the type of a selection function.
-
-*/
-
-typedef Word (*InObject)( const ListExpr typeInfo,
-                          const ListExpr valueList,
-                          const int errorPos,
-                          ListExpr& errorInfo,
-                          bool& correct );
-
-typedef ListExpr (*OutObject)( const ListExpr numType,
-                               const Word object );
-
-typedef Word (*ObjectCreation)( const ListExpr typeInfo );
-
-typedef void (*ObjectDeletion)( const ListExpr typeInfo,
-                                Word& object );
-
-typedef bool (*ObjectOpen)( SmiRecord& valueRecord,
-                            size_t& offset,
-                            const ListExpr typeExpr,
-                            Word& value );
-
-typedef bool (*ObjectSave)( SmiRecord& valueRecord,
-                            size_t& offset,
-                            const ListExpr typeExpr,
-                            Word& value );
-
-typedef void (*ObjectClose)( const ListExpr typeInfo,
-                             Word& object );
-
-typedef Word (*ObjectClone)( const ListExpr typeInfo,
-                             const Word& object );
-
-typedef void* (*ObjectCast)( void* );
-
-typedef int (*ObjectSizeof)();
-
-/*
-Are the types used for creating, deleting and initializing the
-algebra objects or components of the objects and for appending new
-subobjects.
-
-This shows also the types of the generic functions for the type constructors.
-This is not yet satisfactory, will be revised.
-
-*/
-
-typedef bool (*TypeCheckFunction)( const ListExpr type,
-                                   ListExpr& errorInfo );
-/*
-Is the type for type checking functions, one for each type constructor.
-
-*/
-
-typedef ListExpr (*TypeProperty)();
-/*
-Is the type of property functions, one for each type constructor.
-
-*/
-
-// the definitions above are needed in Algebra.h and here some
-// definitions of algebra.h are used. Hence we include here since
+// the definitions above are needed in Algebra.h and at this point some
+// definitions of Algebra.h are used. Hence we include here since
 // a simple forward declaration doesn't work. Algebra.h will first
 // include AlgebraManager.h and then recognize that Algebra.h is already
 // read  
@@ -709,10 +579,12 @@ Returns the address of the object sizeof function of type constructor
 ~typeId~ of algebra ~algebraId~.
 
 */
-  TypeCheckFunction TypeCheck( const int algebraId,
-                               const int typeId );
+  bool TypeCheck( const int algebraId,
+                  const int typeId, 
+                  const ListExpr type,
+		  ListExpr& errorInfo  );
 /*
-Returns the address of the type check function of type constructor
+Returns the result of the type check function of type constructor
 ~typeId~ of algebra ~algebraId~.
 
 */
