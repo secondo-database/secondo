@@ -15,7 +15,7 @@ else
  shift
 fi
 
-# start up SecondoMonitor in background
+# start up SecondoListener in background
 SecondoListener "SecondoConfig.ini"&
 lpid=$!
 echo -e "SecondoListener running with pid=$lpid"
