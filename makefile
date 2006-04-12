@@ -74,6 +74,14 @@ ALL_TARGETS = makedirs \
 .PHONY: all
 all: jnicheck $(ALL_TARGETS) 
 
+.PHONY: TTY 
+TTY: kernel
+
+
+.PHONY: kernel
+kernel: makedirs buildlibs buildalg buildapps
+
+
 .PHONY: jnicheck
 jnicheck:
 ifeq ($(USE_JNI),"true")
@@ -94,16 +102,6 @@ show-vars:
 
 .PHONY: javagui
 javagui: java2
-
-
-.PHONY: clientserver
-clientserver: cs
-
-.PHONY: cs
-cs: makedirs buildlibs buildalg update-config
-	$(MAKE) -C ClientServer
-	$(MAKE) -C UserInterfaces TTYCS
-	$(MAKE) -C ClientServer buildapp
 
 
 .PHONY: makedirs
@@ -179,24 +177,7 @@ else
 	$(javac-msg)
 endif
 
-.PHONY: TTY
-TTY: TTY2 update-config
 
-.PHONY: TTY2
-TTY2: makedirs buildlibs buildalg
-	$(MAKE) -C UserInterfaces TTY
-
-.PHONY: linkonly 
-linkonly:
-	$(MAKE) -C UserInterfaces TTY
-	$(MAKE) -C UserInterfaces TestRunner
-
-.PHONY: TestRunner
-TestRunner: TestRunner2 update-config
-	
-.PHONY: TestRunner2
-TestRunner2: makedirs buildlibs buildalg
-	$(MAKE) -C UserInterfaces TestRunner
 
 
 .PHONY: buildapps
@@ -231,6 +212,7 @@ clean:
 realclean: clean
 	$(MAKE) -C Javagui clean
 	$(MAKE) -C Tests clean
+	$(MAKE) -C Algebras realclean
 	rm -f $(CONFIG_FILES) 
 
 
