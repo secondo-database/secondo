@@ -56,8 +56,12 @@ introduced. To avoid saving derived objects (for further Information see Derived
 method ~ListObjectsFull~ was modified.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
-(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+(~executable~, ~descriptive~, and ~hybrid~). Only the executable
 level remains. Models are also removed from type constructors.
+
+April 2006, M. Spiekermann. New methods ~systemTable~ and ~createRelation~ added.
+These will be used to check if a given object name is a system table and if a
+relation should be created on the fly by calling ~InObject~.
 
 1.1 Overview
 
@@ -113,6 +117,8 @@ The class ~SecondoCatalog~ provides the following methods:
 #include "NestedList.h"
 #include "NameIndex.h"
 #include "SecondoSMI.h"
+#include "SystemInfoRel.h"
+
 
 // forward declaration
 class DerivedObj;
@@ -572,8 +578,7 @@ The function below test if a name is reserved for system use.
 */
   
   inline bool IsSystemObject(const string& s) {
-    set<string>::const_iterator it = sysObjNames.find(s);
-    return ( it != sysObjNames.end() );   
+    return (systemTable(s) != 0);
   }
 
  protected:
@@ -631,16 +636,35 @@ If ~testMode~ is set some preconditions are tested. If an error occurs,
 an error it should always be reported to the client.
 
 
-A set of reserved object identifiers for the SECONDO System can be added
-in the Constructor of the class Catalog. All system reserverd identifiers
-are prefixed with "SEC\_".
 
 */
-  set<string> sysObjNames;  
-  inline void AddSystemObjName(const string& s) {
-     string name = "SEC_"+s; 
-     sysObjNames.insert(name); 
-  }
+  
+  // check if name is a sytem table 
+  inline const SystemInfoRel* systemTable(const string& name) const {
+     const SystemInfoRel* r = SystemTables::getInstance().getInfoRel(name);
+     if (r && !r->isPersistent)
+       return r;
+     else
+       return 0;
+  } 
+
+  Word createRelation(const string& name)
+  {  
+      // create a relation object for the system table
+      const SystemInfoRel* table = systemTable(name);
+      if (table == 0)
+         return SetWord(0);
+      
+      ListExpr typeInfo = table->relSchema().listExpr();
+      ListExpr value = table->relValues().listExpr();
+      ListExpr errorInfo = nl->Empty();
+      int errorPos = 0;
+      bool ok = false;
+      
+      Word w = InObject(typeInfo, value, errorPos, errorInfo, ok);
+      assert(ok);
+      return w;
+  }    
 
   friend class SecondoSystem;
 };

@@ -61,6 +61,11 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
+April 2006, M. Spiekermann. New methods ~systemTable~ and ~createRelation~ added.
+These will be used to check if a given object name is a system table and if a
+relation should be created on the fly by calling ~InObject~.
+
+
 This module implements the module *SecondoCatalog*. It consists of six
 parts: First it contains an interface to *Databases and Transactions*
 for loading the actual catalog of database types and objects and for
@@ -87,6 +92,7 @@ The names of existing databases are stored in a list ~DBTable~.
 #include "SecondoSystem.h"
 #include "DerivedObj.h"
 #include "SecondoCatalog.h"
+#include "NList.h"
 
 using namespace std;
 
@@ -675,7 +681,7 @@ says that kind ~DATA~ does not match the type expression ~(hello world)~. This i
   }
   else
   {
-    return ((am->TypeCheck( algebraId, typeId ))( typeExpr, errorInfo ));
+    return am->TypeCheck( algebraId, typeId, typeExpr, errorInfo );
   }
 }
 
@@ -1177,10 +1183,10 @@ Converts an object of the type given by ~typeExpr~ and the value given as a nest
 Precondition: dbState = dbOpen.
 
 */
-  ListExpr pair, numtype;
-  int algebraId, typeId;
+   ListExpr pair, numtype;
+   int algebraId, typeId;
 
-  numtype = NumericType( typeExpr );
+   numtype = NumericType( typeExpr );
 
   if ( nl->IsEmpty( numtype ) )
   {
@@ -1309,6 +1315,10 @@ Precondition: dbState = dbOpen.
 
 */
   bool found = false;
+
+  if ( systemTable(objectName) != 0 )
+    return true;
+  
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
   {
     cerr << " IsObjectName: database is closed!" << endl;
@@ -1337,6 +1347,17 @@ Returns the value ~value~ of an object with identifier ~objectName~. ~defined~ t
 Precondition: ~IsObjectName(objectName)~ delivers TRUE.
 
 */
+ 
+  const SystemInfoRel* table = systemTable(objectName);
+  if (  table != 0 )
+  { 
+    value = createRelation(objectName);
+    defined = true;
+    return true;
+  }  
+    
+ 
+ 
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
   {
     cerr << " GetObject: database is closed!" << endl;
@@ -1422,6 +1443,19 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
 
 */
   bool ok = false;
+
+  const SystemInfoRel* table = systemTable(objectName);
+  if (  table != 0 )
+  { 
+    value = createRelation(objectName);
+    typeExpr = table->relSchema().listExpr();
+    typeName= "rel";
+    hasTypeName = true;
+    defined = true;
+    return true;
+  }  
+
+  
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
   {
     cerr << " GetObjectExpr: database is closed!" << endl;
@@ -1562,8 +1596,14 @@ Returns the type expression of an object with identifier ~objectName~.
 *Precondition*: "IsObjectName( objectName ) == true"[4].
 
 */
-  ListExpr typeExpr;
+  ListExpr typeExpr = nl->Empty();
 
+  const SystemInfoRel* table = systemTable(objectName);
+  if (  table != 0 )
+  {
+    return table->relSchema().listExpr();
+  } 
+   
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
   {
     cerr << " GetObjectTypeExpr: database is closed!" << endl;
@@ -2121,12 +2161,13 @@ ListExpr
 SecondoCatalog::ListOperators()
 {
 /*
-The returned list is (opname ...). Where ... is a list which is the 
+The list format for a single operator is (opname (a)(b)). 
+Where (a) and (b) are flat list of string or text atoms. This is the 
 result returned  by NestedList::ReadFromString of the operator's 
-specification string. Hence the list structure for an operator 
-specification is not fixed and may be chosen freely by the implementor.
-  
-Note: The list structure below is not implemented!
+specification string.
+
+Note: The list structure below is not implemented! This seems to be an
+old attempt for describing an operator which is not pratical.
 
 Returns a list of operators specifications in the following format:
 
@@ -2158,6 +2199,7 @@ specifications from [BeG95b, Section3.1].
     for( i = entrySet->begin(); i != entrySet->end(); i++ )
     {
       list = am->Specs( i->algebraId, i->entryId );
+      assert( nl->HasLength(list,2) );
       if ( opList == nl->TheEmptyList() )
       {
         opList = nl->Cons( nl->Cons( nl->SymbolAtom( pos->first ), list ),
@@ -2212,10 +2254,6 @@ SecondoCatalog::SecondoCatalog()
 {
   nl = SecondoSystem::GetNestedList();
   am = SecondoSystem::GetAlgebraManager();
-
-  // enter object identifiers used by the system
-  AddSystemObjName("DERIVED_OBJ"); 
-  AddSystemObjName("OBJ_DEP");
 
   CatalogEntry newEntry;
   int algebraId = 0;
@@ -2272,7 +2310,6 @@ SecondoCatalog::~SecondoCatalog()
 
   types.clear();
   objects.clear();
-  sysObjNames.clear();
 }
 
 bool
