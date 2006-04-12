@@ -89,6 +89,8 @@ fails after command execution was implemented. Further, the scope of variables i
 Secondo was limited to a minimum, e.g. the declarations were moved nearer to the usage. This
 gives more encapsulation and is easier to understand and maintain.
 
+April 2006, M. Spiekermann. Implementation of system tables SEC\_COUNTERS and SEC\_COMMANDS.
+
 \tableofcontents
 
 */
@@ -120,7 +122,14 @@ using namespace std;
 
 #include "CharTransform.h"
 
-// The system tables
+/* 
+The System Tables
+
+Below there are implementations of system tables. More information
+about them can be found in SystemInfoRel.h
+
+*/
+
 #include "SystemInfoRel.h"
 SystemTables* SystemTables::instance = 0;
 
@@ -141,6 +150,16 @@ class CmdTimes : public InfoTuple
    }
    virtual ~CmdTimes() {}
   
+   virtual NList valueList() const
+   {
+     NList value;
+     value.makeHead( NList(nr) );
+     value.append( NList().textAtom(cmdStr) );
+     value.append( NList(elapsedTime) );
+     value.append( NList(cpuTime) );
+     return value;
+   } 
+   
    virtual ostream& print(ostream& os) const
    {
       os << nr << sep << cmdStr << sep << elapsedTime << sep << cpuTime;
@@ -185,6 +204,16 @@ class CmdCtr : public InfoTuple
    {}
    virtual ~CmdCtr() {}
    
+   virtual NList valueList() const
+   {
+     NList list;
+     list.makeHead( NList(nr) );
+     list.append( NList().stringAtom(ctrStr) );
+     list.append( NList((int) value) );
+     return list;
+   } 
+
+   
    virtual ostream& print(ostream& os) const
    {
       os << nr << sep << ctrStr << sep << value;
@@ -211,17 +240,75 @@ class CmdCtrRel : public SystemInfoRel
    } 
 }; 
 
+class DerivedObjInfo : public InfoTuple 
+{
+   string name;
+   string value;
+   string usedObjs;
+
+   public: 
+   DerivedObjInfo(const string& n, const string& v, const string&u) :
+     name(n),
+     value(v),
+     usedObjs(u)
+   {}
+   virtual ~DerivedObjInfo() {}
+   
+   virtual NList valueList() const
+   {
+     NList list;
+     list.makeHead( NList().stringAtom(name) );
+     list.append( NList().textAtom(value) );
+     list.append( NList().textAtom(usedObjs) );
+     return list;
+   } 
+
+   
+   virtual ostream& print(ostream& os) const
+   {
+      os << name << sep << value << sep << usedObjs;
+      return os;
+   } 
+}; 
 
 
+
+class DerivedObjRel : public SystemInfoRel 
+{
+   public:
+   DerivedObjRel(const string& name) : SystemInfoRel(name, initSchema(), true) 
+   {}
+   virtual ~DerivedObjRel() {}
+   
+   private:
+   RelSchema* initSchema()
+   { 
+     RelSchema* attrList = new RelSchema();
+     attrList->push_back( make_pair("name", "string") );
+     attrList->push_back( make_pair("value", "text") );
+     attrList->push_back( make_pair("usedObjs", "text") );
+     return attrList;
+   } 
+}; 
+
+
+
+  
 ostream& operator<<(ostream& os, const InfoTuple& si) 
 {
   return si.print(os);
 } 
 
-// currently we will have 2 tables 
+// currently we will have 3 tables 
 
-CmdTimesRel cmdTimesRel("CmdTimes");
-CmdCtrRel cmdCtrRel("CmdCounters");
+CmdTimesRel cmdTimesRel("SEC_COMMANDS");
+CmdCtrRel cmdCtrRel("SEC_COUNTERS");
+
+// The next table is currently only a dummy. This is necessary
+// that the catalog recognizes it as a system table. In the future
+// I try to change the implementation of class ~DerivedObj~ in order
+// to make it to a subclass of SystemInfoRel
+DerivedObjRel devObjRel("SEC_DERIVED_OBJ");
 
 
 extern AlgebraListEntry& GetAlgebraEntry( const int j );
@@ -365,6 +452,11 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
               << keyVal << "kb" << endl;
   cmsg.send();
 
+  SystemTables& st = SystemTables::getInstance();
+  st.insert(&cmdCtrRel);
+  st.insert(&cmdTimesRel);
+  st.insert(&devObjRel);
+  
   initialized = ok;
   return (ok);
 }
@@ -1265,7 +1357,6 @@ separate functions which should be named Command\_<name>.
   double tcpu = cmdTime.diffSecondsCPU();
   CmdTimes* ctp = new CmdTimes(CmdNr, commandText, treal, tcpu);
   cmdTimesRel.append(ctp, dumpCmdTimes);
-  cmdTimesRel.resultType();  
   
   if (printCmdTimes) 
   {
@@ -1284,7 +1375,6 @@ separate functions which should be named Command\_<name>.
     cmdCtrRel.append(cp, dumpCtrs);
     it++;
   }
-  cmdCtrRel.resultType();  
 
   if (printCtrs)
   {  
