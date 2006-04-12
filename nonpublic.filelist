@@ -10,6 +10,7 @@ Algebras/TopRel
 Algebras/Periodic
 Algebras/Network
 Algebras/Rose
+Algebras/RemoteStream
 
 Optimizer/Entropy
 
@@ -56,4 +57,3 @@ Javagui/viewer/hoese/algebras/Dsplpmregion.java
 .sda
 .sxd
 .canvas
-.pdf
