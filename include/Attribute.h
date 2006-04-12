@@ -49,6 +49,9 @@ April 2002 Ulrich Telle Adjustments for the new Secondo version
 Oct 2004 M. Spiekermann. Adding some more detailed documentation and some 
 thoughts about redesign and performance. 
 
+January 2006, M. Spiekermann. Some template functions which could be used as default
+for some type constructor functions were moved to ConstructoTemplates.h
+
 1.1 Overview
 
 Classes implementing attribute data types have to be subtypes of class
@@ -200,7 +203,8 @@ functions.
 Prints the attribute. Used for debugging purposes.
 
 */
-    inline static void Save( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo, Attribute *elem )
+    inline static void Save( SmiRecord& valueRecord, size_t& offset, 
+                             const ListExpr typeInfo, Attribute *elem )
     {
       NestedList *nl = SecondoSystem::GetNestedList();
       AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
@@ -245,7 +249,8 @@ Prints the attribute. Used for debugging purposes.
 Default save function.
 
 */
-    inline static Attribute *Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo )
+    inline static Attribute *Open( SmiRecord& valueRecord, 
+                                   size_t& offset, const ListExpr typeInfo )
     {
       NestedList *nl = SecondoSystem::GetNestedList();
       AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
@@ -253,7 +258,8 @@ Default save function.
           typeId = nl->IntValue( nl->Second( typeInfo ) );
       size_t size = (algMgr->SizeOfObj(algId, typeId))();
 
-      Attribute *elem = (Attribute*)(algMgr->CreateObj(algId, typeId))( typeInfo ).addr;
+      Attribute*
+        elem = (Attribute*)(algMgr->CreateObj(algId, typeId))( typeInfo ).addr;
       // Read the element
       valueRecord.Read( elem, size, offset );
       elem = (Attribute*)(algMgr->Cast(algId, typeId))( elem );
@@ -321,82 +327,6 @@ Stores the way this attribute is deleted.
 
 */
 };
-
-/* 
-The next class defines some default functions which can be passed to the
-constructor of class ~TypeConstructor~. Whenever these defaults are not
-sufficient you must inherhit from this base class and overwrite (hide) the
-default implementation.
-
-*/
-
-template<class T>
-  void* Cast( void* addr ) 
-  { 
-    return (new (addr)T ); 
-  }
-
-template<class T>
-  Word Create( const ListExpr typeInfo )
-  {
-    return (SetWord( new T() ));
-  }
-
-template<class T>
-  void Delete( Word& w )
-  {
-    delete (T *)w.addr;
-    w.addr = 0;
-  }
-
-template<class T>
-  void Close( Word& w )
-  {
-    delete (T *)w.addr;
-    w.addr = 0;
-  }
-
-template<class T>
-  Word Clone( const Word& w )
-  {
-    return SetWord( new T(*(T *)w.addr) );
-  }
-
-template<class T>
-  int SizeOf()
-  {
-    return sizeof(T);
-  }
-
-template<class T>
-  bool Open( SmiRecord& valueRecord,
-             const ListExpr typeInfo,
-             Word& value )
-  {
-    T *p = new T;
-    p->Open( valueRecord, typeInfo );
-    value = SetWord( p );
-    return true;
-  }
-
-template<class T>
-  bool Save( SmiRecord& valueRecord,
-             const ListExpr typeInfo,
-             Word& value )
-  {
-    T *p = (T *)value.addr;
-    p->Save( valueRecord, typeInfo );
-    return true;
-  }
-
-
-template<class T>
-bool
-SimpleCheck( ListExpr type, ListExpr& errorInfo )
-{
-  return (nl->IsEqual( type, T::Symbol() ));
-}
-
 
 
 #endif
