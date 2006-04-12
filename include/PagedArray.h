@@ -35,6 +35,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 August 2003 M. Spiekermann 
 
+April 2006 M. Spiekermann. Use of ~cmsg~ and reformatting of some code.
+
 1.1 Overview
 
 This module offers a generic persistent array implemented as a template class
@@ -87,6 +89,7 @@ elements of type ~T~.
 #include <typeinfo>
 
 #include "SecondoSMI.h"
+#include "LogMsg.h"
 
 typedef unsigned long Cardinal;
 
@@ -103,7 +106,8 @@ class RecordBuffer
 {
 
 public:
-  RecordBuffer(const int recSize, const int bufSize, const int maxBuffers=4, const bool traceOn=false) : 
+  RecordBuffer( const int recSize, const int bufSize, 
+                const int maxBuffers=4, const bool traceOn=false) : 
     REC_SIZE(recSize),
     BUF_SIZE(bufSize),
     MAX_BUFFERS(maxBuffers),
@@ -150,14 +154,18 @@ public:
        cout << "==========================" << endl;
        cout << "pageNr: " << pageNr << endl; 
        int k=0;
-       for (vector<BufInfoRec>::iterator it = BufInfo.begin(); it != BufInfo.end(); it++ ) {
+       for ( vector<BufInfoRec>::iterator it = BufInfo.begin(); 
+             it != BufInfo.end(); it++                          ) 
+       {
           cout << k << ": ";
           it->print(cout);
           k++;
        }
        cout << "--------------------------" << endl;
        k=0;
-       for (vector<RecordInfo>::iterator it = recidVec.begin(); it != recidVec.end(); it++ ) {
+       for ( vector<RecordInfo>::iterator it = recidVec.begin(); 
+             it != recidVec.end(); it++                          ) 
+       {
           cout << k << ": ";
           it->print(cout);
           k++;
@@ -274,7 +282,10 @@ private:
     } else { // entry is present in page table
 
       record.Finish();
-      assert( filePtr->SelectRecord( recidVec[pageNr].id, record, SmiFile::Update ) );
+      bool ok = filePtr->SelectRecord( recidVec[pageNr].id, 
+                                       record, SmiFile::Update );
+      assert(ok);
+      
       record.Read( bufPtr, BUF_SIZE, 0);
       BufInfo[bufNr].recExists = true;
       BufInfo[bufNr].pageNr = pageNr;
@@ -283,7 +294,8 @@ private:
     }
 
     if (trace) {
-      cout << "MaxPageNr: " << maxPageNr << ", pageNr: " << pageNr << ", index: " << bufNr << endl; 
+      cout << "MaxPageNr: " << maxPageNr 
+           << ", pageNr: " << pageNr << ", index: " << bufNr << endl; 
     }
  
     bufferReplacements++;
@@ -394,11 +406,10 @@ reflects the total number of the called ~Get~ operations.
   bool canDelete;
   Cardinal size;
 
-
   //Cardinal maxPageNo;
   
-  struct PageRecordInfo { // define some important sizes derived from the record size
-    
+  // define some important sizes derived from the record size
+  struct PageRecordInfo {     
     int size;      // size of the record
     int slotSize;  // size of the objects stored in the array
     int slots;     // number of slots per record
@@ -424,15 +435,17 @@ reflects the total number of the called ~Get~ operations.
   struct  LogInfo {
 
     bool switchedOn;
-    ofstream *filePtr;
+    const string fileName;
     unsigned long pageChangeCounter; 
     unsigned long slotAccessCounter;
     LogInfo( const bool swOn ) : 
       switchedOn(swOn),
-      filePtr( new ofstream(("PagedArray_" + string( typeid(T).name() ) + ".log").c_str(), ios_base::app) ),
+      fileName( "PagedArray_" + string( typeid(T).name() ) + ".log" ),
       pageChangeCounter(0),
       slotAccessCounter(0)
     {}
+
+    ostream& os() const { return cmsg.file(fileName); }
 
   };
   LogInfo log;
@@ -460,7 +473,9 @@ template<class T>
 int PagedArray<T>::InstCtr = 0;
 
 template<class T>
-PagedArray<T>::PagedArray( const int recSize, const int buffers /*=4*/,  const bool logOn /*=false*/) :
+PagedArray<T>::PagedArray( const int recSize, 
+                           const int buffers /*=4*/,  
+                           const bool logOn /*=false*/) :
 writeable( true ),
 canDelete( false ),
 size( 0 ),
@@ -474,7 +489,7 @@ log( logOn )
   if ( log.switchedOn ) {
 
     ThisInstNr = ++InstCtr;
-    (*log.filePtr) << ThisInstNr <<  "c: " 
+    log.os() << ThisInstNr <<  "c: " 
                    << "( slotsize=" << pageRecord.slotSize
                    << ", slots=" << pageRecord.slots
                    << ", pagesize=" << pageRecord.size 
@@ -489,10 +504,9 @@ PagedArray<T>::~PagedArray()
 {
 
   if ( log.switchedOn ) { // Write global Ctrs for page changes
-    (*log.filePtr) << ThisInstNr << "d: ( pageChanges=" <<  log.pageChangeCounter 
+    log.os() << ThisInstNr << "d: ( pageChanges=" <<  log.pageChangeCounter 
                    << ", slotAccesses: " << log.slotAccessCounter
                    << " )" << endl;
-  delete log.filePtr;
   }
 }
 
