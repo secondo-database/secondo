@@ -575,12 +575,14 @@ Returns "true"[4] if ~Right~(~list~) is the empty list. Returns "false"[4]
 otherwise and if ~list~ is empty or an atom.
 
 */
-  int ListLength( ListExpr list ) const;
+  int ListLength( ListExpr list) const;
+  bool HasLength( ListExpr list, const int n ) const;
 /*
 ~list~ may be any list expression. Returns the number of elements, if it is 
 a list, and -1, if it is an atom. *Be warned:* unlike most others, this is 
 not a constant time operation; it requires a list traversal and therefore 
-time proportional to the length that it returns.
+time proportional to the length that it returns. The variant ~HasLength~
+may be used to assert a requested length of ~n~, this avoids a long running traversal.
 
 */
   int ExprLength( ListExpr expr ) const;

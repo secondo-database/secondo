@@ -487,6 +487,22 @@ a list, and -1, if it is an atom.
   return (result);
 }
 
+bool
+NestedList::HasLength( ListExpr list, const int n ) const
+{
+  int result = 0;
+  while ( !IsEmpty( list ) && (result < n) )
+  {
+    result++;
+    list = Rest( list );
+  }
+  if ( !IsEmpty( list ) )
+    return false;
+  else
+    return true;
+}
+
+
 int
 NestedList::ExprLength( ListExpr expr ) const
 {
