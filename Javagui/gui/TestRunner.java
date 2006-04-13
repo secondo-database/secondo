@@ -312,7 +312,7 @@ public int processFile(String fileName, boolean ignoreErrors){
    try{
       in = new BufferedReader(new FileReader(fileName));
       boolean done=false;
-      while(in.ready()&&!done){
+      while(in.ready()&&!done && state!=STOP){
           if(nextCommand(in)){
              execute();
           }
