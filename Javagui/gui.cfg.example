@@ -119,3 +119,11 @@ SHOW_COMMAND false
 # if it set to true, all commands (but not file contents) sent to the
 # secondo server are printed out to standardout
 TRACE_SERVER_COMMANDS false
+
+
+# Javagui can process two kinds of scripts
+# a simple script contains one commands per line
+# a tty script is styled as a script executed via the
+# @... command in the tty version of secondo
+# allowed values are GUI (simple files) or TTY (default)
+SCRIPT_STYLE TTY

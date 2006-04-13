@@ -46,7 +46,7 @@ private boolean DEBUG_MODE = true;
 /*
 The version-line of the history 
 
-This line is used as the first line in a hisrory file 
+This line is used as the first line in a history file 
 starting with version 2.0. 
 */
 private final static String HIST_VERSION20_LINE = "# VER 2.0";
@@ -286,6 +286,14 @@ public MainWindow(String Title){
      String TraceServerCommands = Config.getProperty("TRACE_SERVER_COMMANDS");
      if(TraceServerCommands!=null && TraceServerCommands.trim().toLowerCase().equals("true")){
         Environment.TRACE_SERVER_COMMANDS = true;  
+     }
+
+     String ScriptStyle = Config.getProperty("SCRIPT_STYLE");
+     if(ScriptStyle!=null){
+        ScriptStyle = ScriptStyle.trim().toUpperCase();
+        if(ScriptStyle.equals("GUI")){
+          Environment.TTY_STYLED_SCRIPT=false;
+        }
      }
 
  }
@@ -1257,8 +1265,25 @@ public boolean execGuiCommand(String command){
 }
 
 
-/** executes all commands in a file */
-private int executeFile(String FileName,boolean ignoreErrors){
+/** switches to the correct executeFile method 
+  * @param fileName name of the file to process
+  * @param ignoreErrors stop if an errors is detected and the value is false
+  * @return number of errors occured*/
+public int executeFile(String fileName, boolean ignoreErrors){
+  if(Environment.TTY_STYLED_SCRIPT){
+     return executeTTYScript(fileName,true);
+  }else{
+     return executeSimpleFile(fileName,true);
+ }
+
+}
+
+
+
+/** executes all commands contained in a file
+  * each command is given within a single line
+  **/
+private int executeSimpleFile(String FileName,boolean ignoreErrors){
   BufferedReader BR = null;
   try{
      BR = new BufferedReader(new FileReader(FileName));
@@ -1297,6 +1322,101 @@ private int executeFile(String FileName,boolean ignoreErrors){
   }
   return errors;
 }
+
+
+/** returns the next command within a file which is given in TTY style
+  */
+private String getNextCommand(BufferedReader in) throws IOException{
+    String line;
+    String command = "";
+    boolean first=true; 
+    while(in.ready()){
+      line = in.readLine();
+      if(!line.startsWith("#")){ // ignore comments
+          if(line.length()==0) { // an empty line
+             if(command.length()>0){ // command finished
+                return command;
+             }
+          }else{
+             if(line.endsWith(";")){ // command end
+                line = line.substring(0,line.length()-1); // remove ';'
+                if(!first){
+                  command += "\n";
+                }
+                command += line;
+                return command;
+             }  
+             else{
+                if(first){
+                  command = line+" ";
+                  first=false;
+                } else{
+                   command += "\n" + line;
+                } 
+             }
+          }
+      }
+    }
+    // end of file reached
+    return command;
+} 
+
+
+/** executes all commands in a file where the file syntax is
+  * as a TTY script
+  * @param FileName the name of the file to process
+  * @param ignoreErrors if set to false, the processing will be stopped
+  *                     when an error occurs
+  * @return number of errors occured during processing of this file
+  **/
+private int  executeTTYScript(String fileName, boolean ignoreErrors){
+   // open file for processing
+   BufferedReader in = null;
+   try{
+     in = new BufferedReader(new FileReader(fileName));
+   }catch(Exception e){
+     ComPanel.appendText("error in opening file \""+fileName+"\" \n");
+     return 1;
+   }
+   int errors = 0;
+   try{
+      boolean done = false;
+      while(in.ready() && !done){ // process the whole file
+        String cmd = getNextCommand(in);
+        if(cmd.length()>0){
+           if(cmd.startsWith("@")){
+             String subFileName = cmd.substring(1,cmd.length()-1);
+             errors += executeTTYScript(subFileName.trim(),ignoreErrors);
+             if(!ignoreErrors && errors>0){
+                 done = true;
+             }
+           } else{
+             ComPanel.appendText(cmd+"\n");
+             if(!ComPanel.execUserCommand(cmd)){
+                Reporter.debug("error during process command " + cmd);
+                errors++;
+                if(!ignoreErrors){
+                   done = true;
+                }
+             }
+           }
+        }
+      }
+   }catch(Exception e){
+      ComPanel.appendText("exception in processing file "+fileName+"\n");
+      Reporter.debug(e);
+      errors++;
+   }
+   finally{
+     try{
+        if(in!=null){
+          in.close();
+        }
+     }catch(Exception e){}
+   }
+   return errors;
+}
+
 
 
 /** Converts a list into a command.

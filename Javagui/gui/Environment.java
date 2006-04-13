@@ -58,6 +58,11 @@ public static boolean TESTMODE = false;
 /** Runs Javagui in extended testmode **/
 public static boolean EXTENDED_TESTMODE = false;
 
+/** interpretes scrips in ttystyle instead of 
+  * simple one-line commands 
+  **/
+public static boolean TTY_STYLED_SCRIPT = true;
+
 
 /** Returns the currently used memeory in bytes **/
 public static long usedMemory(){
