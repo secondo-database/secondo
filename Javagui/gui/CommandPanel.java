@@ -632,7 +632,7 @@ public class CommandPanel extends JScrollPane {
    * @param command The user command
    */
    public boolean execUserCommand(String command){
-      return execUserCommand(command,false,false,0,null);
+      return execUserCommand(command,false,false,0,true,null);
    }
   
 
@@ -648,6 +648,7 @@ public class CommandPanel extends JScrollPane {
                                   boolean isTest,
                                   boolean success,
                                   double epsilon,
+                                  boolean isAbsolute,
                                   ListExpr expectedResult) {
     // empty commands are successful 
     command = command.replaceAll("\n"," ").trim();
@@ -736,7 +737,7 @@ public class CommandPanel extends JScrollPane {
              } else{
                  appendText("\nevaluate the query:\n"+answer+"\n"); 
                  addToHistory(answer);
-                 return execUserCommand(answer,isTest,success,epsilon,expectedResult); 
+                 return execUserCommand(answer,isTest,success,epsilon,isAbsolute,expectedResult); 
              }
          }
        }
@@ -799,7 +800,7 @@ public class CommandPanel extends JScrollPane {
                }
                if(expectedResult!=null){
                    Reporter.writeInfo("compare expected result with actual result");
-                   boolean res = resultList.equals(expectedResult,epsilon);
+                   boolean res = resultList.equals(expectedResult,epsilon,isAbsolute);
                    if(!res){
                       Reporter.writeError("failed comparison");   
                    }

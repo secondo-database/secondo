@@ -1576,7 +1576,7 @@ private boolean makeTest(ListExpr test,StringBuffer failedCommands){
    }  
    Reporter.writeInfo("test command " + command); 
    boolean res = ComPanel.execUserCommand(command,isTest,expSuccess,
-                                          epsilon,expResult);
+                                          epsilon,true,expResult);
    if(!res){
       failedCommands.append(command+"\n");  
    }
@@ -1739,12 +1739,13 @@ public static void main(String[] args){
   }
 
   Environment.TESTMODE = args.length>0 && args[0].equals("--testmode");
-  Environment.EXTENDED_TESTMODE = args.length>0 && args[0].equals("--testmode2");
+  boolean testrunner = args.length>0 && args[0].equals("--testrunner");
+  Environment.EXTENDED_TESTMODE = args.length>0 && (args[0].equals("--testmode2")||testrunner );
   if(Environment.EXTENDED_TESTMODE){
      Environment.TESTMODE=true;
   }
   File testfile=null;
-  if(Environment.TESTMODE){
+  if(Environment.TESTMODE && !testrunner){
      if(args.length>1){
         testfile = new File(args[1]);
         if(!testfile.exists()){
@@ -1755,11 +1756,11 @@ public static void main(String[] args){
   }
   MainWindow SecGui = new MainWindow("Secondo-GUI");
   SecGui.setVisible(true);
-  if(Environment.TESTMODE && !Environment.EXTENDED_TESTMODE && testfile!=null){
+  if(Environment.TESTMODE && !Environment.EXTENDED_TESTMODE && testfile!=null && !testrunner){
      Reporter.writeInfo("Run Testfile");
      SecGui.executeFile(testfile.getAbsolutePath(),true);
   }
-  if(Environment.EXTENDED_TESTMODE){
+  if(Environment.EXTENDED_TESTMODE && !testrunner){
      Environment.DEBUG_MODE=true;
      if(testfile==null){
         Reporter.writeError("the extended testmode requires an testfile ");
@@ -1779,6 +1780,25 @@ public static void main(String[] args){
      }catch(Exception e){}
      SecGui.shutdown(errors);
      
+  } 
+  if(args.length>0 && args[0].equals("--testrunner")){
+      Reporter.writeInfo(" ======    TESTRUNNER MODE ====");
+      Environment.DEBUG_MODE=true;
+      if(args.length<2){
+         Reporter.writeError("file expected");
+      }else{
+         TestRunner tr = new TestRunner(ComPanel);
+         int errors = tr.processFile(args[1],true);
+         if(errors==0){
+            Reporter.writeInfo("all tests were ok");
+         }  else{
+            Reporter.writeError("found "+errors+" errors during processing of "+args[1]);
+         }  
+         try{
+            Thread.sleep(5000);
+         }catch(Exception e){}
+         SecGui.shutdown(errors);
+      }
   }
   MainWindow.ComPanel.requestFocus();
 }

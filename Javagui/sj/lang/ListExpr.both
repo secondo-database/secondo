@@ -1493,16 +1493,16 @@ public boolean equals(Object o){
         return false;
     if(!(o instanceof ListExpr))
        return false;
-    return equals((ListExpr)o,0.0);
+    return equals((ListExpr)o,0.0,true);
 } 
 
 
 
-public boolean equals(ListExpr LE, double epsilon){
+public boolean equals(ListExpr LE, double epsilon, boolean isAbsolute){
     if(LE==null)
       return false;
 
-    if(!equalValues(LE,epsilon)){ // check type and value of the first element
+    if(!equalValues(LE,epsilon,isAbsolute)){ // check type and value of the first element
        return false;
     }
     if(atomType()!=NO_ATOM)
@@ -1514,7 +1514,7 @@ public boolean equals(ListExpr LE, double epsilon){
     while(TNkey!=0  && LENkey!=0){
          ListExpr TN = new ListExpr(TNkey);
          ListExpr LEN = new ListExpr(LENkey);
-         if(!TN.equalValues(LEN,epsilon)){ // differences found
+         if(!TN.equalValues(LEN,epsilon,isAbsolute)){ // differences found
              return false;
          }
          if(TN.atomType()==NO_ATOM){
@@ -1533,7 +1533,7 @@ public boolean equals(ListExpr LE, double epsilon){
     ListExpr TN = next;
     ListExpr LEN = LE.next;
     while(TN!=null && LEN!=null){
-         if(!TN.equalValues(LEN,epsilon)){ // differences found
+         if(!TN.equalValues(LEN,epsilon,isAbsolute)){ // differences found
              return false;
          }
          if(type==NO_ATOM){
@@ -1552,16 +1552,21 @@ public boolean equals(ListExpr LE, double epsilon){
 
 
 
-private static boolean similar(double a, double b,double epsilon){
+private static boolean similar(double a, double b,double epsilon, boolean isAbsolute){
   double diff = a>b? a-b:b-a;
-  return diff<=epsilon;
+  if(isAbsolute){
+     return diff<=epsilon;
+  }
+  // non absolute
+  double epsilon2 = a>0?epsilon*a/100:-epsilon*a/100; 
+  return diff<=epsilon2;
 } 
 
 
 /**
   * Checks for euqlity of the value
   **/
-private boolean equalValues(ListExpr LE,double epsilon){
+private boolean equalValues(ListExpr LE,double epsilon, boolean isAbsolute){
 #ifdef PERSISTENT
     if(LE==null) return false; // this is not null
 
@@ -1588,7 +1593,7 @@ private boolean equalValues(ListExpr LE,double epsilon){
       case REAL_ATOM:
             double d1 = realValue();
             double d2 = LE.realValue();
-            return similar(d1,d2,epsilon);
+            return similar(d1,d2,epsilon,isAbsolute);
       case SYMBOL_ATOM:
              s1 = symbolValue();
              s2 = LE.symbolValue();
@@ -1606,7 +1611,7 @@ private boolean equalValues(ListExpr LE,double epsilon){
               }
               ListExpr l1 = new ListExpr(v1);
               ListExpr l2 = new ListExpr(v2);
-              return l1.equals(l2,epsilon);
+              return l1.equals(l2,epsilon,isAbsolute);
        default: Reporter.writeError("unknon atom type found in list comparision");
                 return false;
     }
@@ -1634,7 +1639,7 @@ private boolean equalValues(ListExpr LE,double epsilon){
            return res;
        }
        else{
-           return similar(realValue(),LE.realValue(),epsilon);
+           return similar(realValue(),LE.realValue(),epsilon, isAbsolute);
        }
     }
 #endif
