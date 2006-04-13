@@ -93,7 +93,7 @@ should be called, is it is deactivated, ~GoalOff~ is called.
 */
 
 optimizerOptionInfo(entropy,       
-                    '\tEstimate selectivity by maximizing the entropy.',
+                    '\tEstimate selectivities by maximizing the entropy.',
                     ( loadFiles(entropy), 
                       (   notIsDatabaseOpen
                         ; ( getSecondoList(ObjList),
@@ -110,7 +110,7 @@ optimizerOptionInfo(entropy,
 %           'Apply costs only to operators directly considered by Dijkstra',
 %           true, true).
 optimizerOptionInfo(dynamicSample,    
-                    'Use dynamic instead of static samples.',
+                    'Use dynamic instead of static (saved) samples.',
                     true, true).
 optimizerOptionInfo(rewriteMacros,    
                     'Allow for macros (with[<expr> as <macro>] in <query>).',
@@ -352,8 +352,9 @@ Feel free to change.
 :- showOptions.
 :- nl, write('NOTE: Version 5.4.7 shows in the MSYS console no prompt!'), nl,
    write('A workaround is to type in the predicate "getprompt."'), nl, nl.
-:- current_prolog_flag(windows,true), % query getprompt on windows systems
-   getprompt.
+:- ( current_prolog_flag(windows,true), % query getprompt on windows systems
+     getprompt
+   ) ; true.
 
 
 
