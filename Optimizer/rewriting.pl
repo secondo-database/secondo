@@ -1906,8 +1906,19 @@ usedAttributes([A|As],Attrs) :-
 usedAttributes(X,[]) :-
   atomic(X), !.
 
+usedAttributes(attr(A:N,_,_),[A1:N1]) :- 
+  downcase_atom(A,A1), 
+  downcase_atom(N,N1), !.
 usedAttributes(attr(A,_,_),[A1]) :- downcase_atom(A,A1), !.
+
+usedAttributes(attr2(A:N,_,_),[A1:N1]) :- 
+  downcase_atom(A,A1), 
+  downcase_atom(N,N1), !.
 usedAttributes(attr2(A,_,_),[A1]) :- downcase_atom(A,A1), !.
+
+usedAttributes(a(A:N,_,_),[A1:N1]) :- 
+  downcase_atom(A,A1), 
+  downcase_atom(N,N1), !.
 usedAttributes(a(A,_,_),[A1]) :- downcase_atom(A,A1), !.
 
 usedAttributes(remove(_,AttrList),Attrs) :-
