@@ -80,7 +80,8 @@ rewriteQueryForMacros(QueryIn,QueryIn) :-
 rewriteQueryForMacros(QueryIn,QueryOut) :-
   extractMacros(QueryIn, QueryTmp),
   expandMacros(QueryTmp, QueryOut),
-  dm(rewriteMacros,['\nREWRITING: Macros\n\tIn:  ',QueryIn,'\n\tOut: ',QueryOut,'\n\n']).
+  dm(rewriteMacros,['\nREWRITING: Macros\n\tIn:  ',QueryIn,'\n\tOut: ',
+                    QueryOut,'\n\n']).
 
 % dynamic tables for translating mnemos
 :- dynamic(storedMacro/2),
@@ -569,14 +570,14 @@ rewriteQueryForCSE(Query, Query) :-
 
 rewriteQueryForCSE(QueryIn, QueryIn) :-
   optimizerOption(rewriteCSE),
-  retractExpressionLabels,           % delete old data
-  dc(debug,showExpressionLabels),    % output debugging info
-  findCSEs(QueryIn, expensive, _),   % find all expensive subexpressions
-  dc(debug,showExpressionLabels),    % output debugging info
-  retractNonCSEs, % delete all subexpressions used less than twice
-  dc(debug,showExpressionLabels),    % output debugging info
-  replaceAllCSEs, % shorten CSEs by using other CSEs but also save flat CSE expression
-  dc(debug,showExpressionLabels),    % output debugging info
+  retractExpressionLabels,          % delete old data
+  dc(debug,showExpressionLabels),   % output debugging info
+  findCSEs(QueryIn, expensive, _),  % find all expensive subexpressions
+  dc(debug,showExpressionLabels),   % output debugging info
+  retractNonCSEs,                   % delete expressions used less than twice
+  dc(debug,showExpressionLabels),   % output debugging info
+  replaceAllCSEs,                   % nest CSEs but also save flat CSE expression
+  dc(debug,showExpressionLabels),   % output debugging info
 %  compactCSEs(QueryIn, QueryOut, _), % replace CSEs by virtual attributes
 %  dm(rewrite,['\nREWRITING: Substitute Common Subexpressions\n\tIn:  ',
 %              QueryIn,'\n\tOut: ',QueryOut,'\n\n']),
@@ -985,7 +986,7 @@ analyseCSE(TermIn,TermOut) :-
   retractNonCSEs, % delete all subexpressions used less than twice
   showExpressionLabels,
 
-  replaceAllCSEs, % shorten CSEs by using other CSEs but also save flat CSE expression
+  replaceAllCSEs, % nest CSEs but also save flat CSE expression
   showExpressionLabels,
 
   compactCSEs_(TermIn, TermOut, _).
@@ -1014,6 +1015,7 @@ replacing CSEs with virtual attributes and removing unused attributes from the p
 as early as possible.
 */
 
+
 /*
 15.1 Substituting CSE by Virtual Attributes
 
@@ -1027,13 +1029,16 @@ are inserted into the plan as late as possible, but as early as needed.
 
 While attributes not used at all within a query are removed by initial project operators directly
 after the feed, attributes (both from base relations and virtual attributes) might thrash the memory.
-To avoid this, in a subsequent step, they are removed from the streams as early as possible.
+To avoid this, in a subsequent step, they can be removed from the streams as early as possible
+(when ~optimizerOption(rewriteRemove)~ is defined). In all cases, virtual attributes are removed
+within the translation of the select clause, either by the standard procedure, or by dedicated
+clauses added to ~selectClause/4~ in file ``optimizer.pl'' in case of ``select [star]''-queries.
 
-This step is done in a bottom-up trace through the operator-tree represented by the query plan.
-For each stream, a set of contained attributes is propagated upwards. Attribute sets are initialised 
-using the ~variable~ and ~usedAttr~ facts stored in the lookup-step of the query preprocessing.
-If an extend or remove operator is encountered, the attribute set is updated, for each join, the
-sets of attributes from both argument streams get merged.
+The substitution of CSEs is done in a bottom-up trace through the operator-tree represented by the 
+query plan. For each stream, a set of contained attributes is propagated upwards. Attribute sets 
+are initialised using the ~variable~ and ~usedAttr~ facts stored in the lookup-step of the query 
+preprocessing. If an extend or remove operator is encountered, the attribute set is updated, for 
+each join, the sets of attributes from both argument streams get merged.
 
 All predicates within the plan are analyzed, whether they contain CSEs identified in section 14.4. 
 If a CSE is detected, the set of available attributes is checked to determine, whether the 
@@ -1610,8 +1615,8 @@ have already been marked as ~usedAttr/2~ or ~queryAttr/1~ by ~lookupAttrs/2~.
 
 ~UsedAttrs~ is the set of all attributes used within the select clause in the 
 simple format (including those used to extend the demanded virtual attributes).
-If the select clause contains ``[star]'' or ``count([star])'', all base attributes will be
-preserved.
+If the select clause contains ``[star]'' or ``count([star])'', all base 
+attributes will be preserved.
 
 */
 
@@ -1733,10 +1738,47 @@ lookupCSESelect(Term, Term2, AttrsIn, AttrsExt, AttrsUsed) :-
 
 
 /*
+15.1.4 Remove Virtual Attributes from Result
+
+When CSE substitution is enabled, virtual attributes may be added into the streams and will
+also be propagated into the result stream. If the query is a star-query 
+(having ``select [star]''), the virtual attributes will occur within the result, when no
+final projection is inserted into the plan (as it is in all other cases). For 
+``select count([star])'', no removes are needed at all. 
+
+To avoid the occurences of virtual attributes with the result, in case of a 
+``select [star]''-query, we will project the result on all base relation attributes, 
+instead of doing no projection, when CSE substitution is switched on.
+
+The projections are carried out in file ``optimizer.pl'', predicate ~selectClause/4~,
+which calls ~rewritePlanGetBaseAttrs/1~ from this file to receive a list of attributes
+to keep when translating ``select [star]''.
+
+This functionality will be automatically added to the optimzer, when ~optimizerOption(rewriteCSE)~
+is defined.
+
+*/
+
+% create the set of all base-attributes needed for projection in case 'select *'
+rewritePlanGetBaseAttrs(BaseAttrSet) :-
+  findall(X,
+          usedAttr(rel(_,*,_),X),
+          UnrenamedL),
+  findall(Y,
+          ( usedAttr(rel(_,Alias,_),attr(AttrName,AttrArg,AttrCase)),
+            Alias \= *,
+            Y = attr(Alias:AttrName,AttrArg,AttrCase) 
+          ),
+          RenamedL),
+  list_to_set(UnrenamedL,UnrenamedS),
+  list_to_set(RenamedL,RenamedS),
+  union(UnrenamedS,RenamedS,BaseAttrSet), !.
+
+/*
 
 15.2 Early Removal of Unused Attributes
 
-Early Removal of Unused Attributes should be applied together with CSE-Subsitution, but can also
+Early Removal of Unused Attributes can be applied together with CSE-Subsitution, but can also
 be useful without prior CSE-Substitution to free memory from unused data and avoid IO-overhead
 for buffered tuples in external phases of operator execution.
 
@@ -1750,6 +1792,9 @@ a predicate or extend operator, parallely branching into all argument streams.
 If an attribute ~A~ is encountered for the first time, it is added to ~S~. Also, we wrap the actual
 subplan ~P~ into a ~remove(P, A)~ operator, which will remove the attribute from the tuplestream.
 
+~Early Removal of Unused Attributes~ is an optional optimizer expansion that will only be used 
+when ~optimizerOption(rewriteCSE)~ AND ~optimizerOption(rewriteRemove)~ are defined.
+
 */
 
 /*
@@ -1759,6 +1804,9 @@ Remove all attributes occurring in ~PlanIn~ as early as possible, but keep all
 attributes passed in ~ExceptionList~. Pass the result as ~PlanOut~.
 
 */
+
+removeUnusedAttrs(PlanIn,PlanIn, _) :-
+  not(optimizerOption(rewriteRemove)), !.
 
 removeUnusedAttrs(PlanIn,PlanIn, _) :-
   atomic(PlanIn), !.
@@ -1908,3 +1956,65 @@ usedAttributes(Term,Attrs) :-
   not(is_list(Term)),
   Term =.. [_|Args],
   usedAttributes(Args,Attrs), !.
+/*
+15.3 Testing
+
+Comment out this complete section for standard behavior.
+
+*/
+
+% predicates for testing CSE substitution:
+
+%xristest :- delOption(rewriteCSE), 
+%            setOption(rewriteRemove), 
+%            open 'database opt'. % XRIS: testing only!
+
+%:- [autotest].          % XRIS: testing only!
+
+%testquery1 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] 
+%                  from ten 
+%                  where (no*1)*(no*1) > 1.
+
+%testquery2 :- sql select[no*1 as no1, (no*1)*(no*1) as no2]
+%                  from[ten, ten as ten2] 
+%                  where[no*1* (no*1)<ten2:no].
+
+%testquery3 :- sql select[no*1 as no1, (no*1)*(no*1)+ten2:no as no2]
+%                  from[ten, ten as ten2] 
+%                  where[no*1* (no*1)>ten2:no].
+
+%testquery4 :- sql select[no*1+ten2:no as no1, 
+%                         (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]
+%                  from[ten, ten as ten2] 
+%                  where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no].
+
+%testquery5 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] 
+%                  from ten 
+%                  where[(no*1)*(no*1) > 1, (no*1)*(no*1)+1 <20].
+
+%testquery6 :- sql select[no*1+ten2:no as no1, 
+%                         (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]
+%                  from[ten, ten as ten2] 
+%                  where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no, 
+%                        (no*1)*(no*1) > 1, 
+%                        (no*1)*(no*1)+1 <20].
+
+%testquery7 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] 
+%                  from ten 
+%                  where [(no*1)*(no*1) > 1] 
+%                  first 3.
+
+%testquery8 :- sql select[no*1+ten2:no as no1, 
+%                         (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]
+%                  from[ten, ten as ten2] 
+%                  where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no, 
+%                        (no*1)*(no*1) > 1, 
+%                        (no*1)*(no*1)+1 <20] 
+%                  first 3.
+
+%testquery9 :- sql select sname 
+%                  from staedte 
+%                  where[sname starts "B", 
+%                        bev >= 1000000, 
+%                        plz<90000, 
+%                        kennzeichen starts "B"].

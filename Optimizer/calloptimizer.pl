@@ -107,8 +107,8 @@ optimizerOptionInfo(entropy,
 %                    'Set machine speed factor to constant 1.0.',
 %                    true, true).
 %optimizerOptionInfo(costsConjuctive,  
-%                    'Apply costs only to operators directly considered by Dijkstra',
-%                    true, true).
+%           'Apply costs only to operators directly considered by Dijkstra',
+%           true, true).
 optimizerOptionInfo(dynamicSample,    
                     'Use dynamic instead of static samples.',
                     true, true).
@@ -121,9 +121,9 @@ optimizerOptionInfo(rewriteInference,
 optimizerOptionInfo(rewriteCSE,       
                     'Substitute common subexpressions by extended attributes.',
                     true, true).
-%optimizerOptionInfo(rewriteRemoves,       
-%                    'Remove unused attributes as early as possible',
-%                    true, true).
+optimizerOptionInfo(rewriteRemove,       
+'Remove attributes as early as possible.\n\t\t\t(Autoselects \'rewriteCSE\').',
+                    setOption(rewriteCSE), true).
 optimizerOptionInfo(debug,            
                     '\tActivate debugging code. Also use \'toggleDebug.\'.',
                     showDebugLevel,true).
@@ -334,14 +334,15 @@ This are the optional standart settings for the optimizer when getting started.
 Feel free to change.
  
 */
-% :- setOption(entropy).          % Uncomment to use entropy extension
-% :- setOption(uniformSpeed).     % Uncomment to use uniform machine speed factor (1.0)
-% :- setOption(costsConjunctive). % Uncomment to apply costs only to operators considered by dijkstra
-% :- setOption(dynamicSample).    % Uncomment to use dynamic samples instead of static ones
-:- setOption(rewriteMacros).    % Comment out to switch off macro expansion features
-:- setOption(rewriteInference). % Comment out to switch off automatic inference of predicates
-:- setOption(rewriteCSE).       % Comment out to switch off substitution of common subexpressions
-% :- setOption(debug), assert(optDebugLevel(all)). % Uncomment to see all debugging output
+% :- setOption(entropy).          % Using entropy extension?
+% :- setOption(uniformSpeed).     % Using uniform machine speed factor?
+% :- setOption(costsConjunctive). % Applying costs only to conjunctive sub query?
+% :- setOption(dynamicSample).    % Using dynamic samples instead of static ones?
+:- setOption(rewriteMacros).    % Using macro expansion features?
+:- setOption(rewriteInference). % Using automatic inference of predicates?
+:- setOption(rewriteCSE).       % Substitute common subexpressions in queries?
+%:- setOption(rewriteRemove).    % Apply early removal of unused attributes?
+% :- setOption(debug), assert(optDebugLevel(all)). % Activating debugging code?
 
 /*
 5.3 Print Additional Information

@@ -2051,11 +2051,11 @@ bestPlan~ will unify a best plan according to the assigned costs.
 
 */
 
-/*
-assignCosts :-
-  optimizerOption(entropy),
-  assignEntropyCost.
-*/ 
+
+% assignCosts :-
+%   optimizerOption(entropy),
+%   assignEntropyCost.
+ 
  
 assignCosts :-
   deleteSizes,
@@ -3458,6 +3458,9 @@ The ~Select~ clause contains attribute lists ~Extend~ for extension, ~Project~ f
 
 */
 
+selectClause(select *, [], BaseAttrs, duplicates) :-
+  optimizerOption(rewriteCSE),
+  rewritePlanGetBaseAttrs(BaseAttrs), !.  
 
 selectClause(select *, [], *, duplicates).
 
@@ -3467,8 +3470,13 @@ selectClause(select Attrs, Extend, Project, duplicates) :-
   makeList(Attrs, Attrs2),
   extendProject(Attrs2, Extend, Project).
 
+selectClause(select distinct *, BaseAttrs, *, distinct) :-
+  optimizerOption(rewriteCSE),
+  rewritePlanGetBaseAttrs(BaseAttrs), !. 
+
 selectClause(select distinct *, [], *, distinct).
 
+% XRIS: When using CSE-substitution, must be projected here?
 selectClause(select distinct count(*), [], count(*), distinct).
 
 selectClause(select distinct Attrs, Extend, Project, distinct) :-
@@ -3788,11 +3796,11 @@ to a new object ~X~, using the optimizer.
 
 % The entropy approach needs a special handling
 
-/*
-sql Term :-
-  optimizerOption(entropy),
-  sql2(Term), !.
-*/ 
+
+% sql Term :-
+%  optimizerOption(entropy),
+%  sql2(Term), !.
+ 
 
 % Default handling
 
