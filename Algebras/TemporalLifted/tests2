@@ -1,0 +1,41 @@
+let mb1 = [const mbool value ((((instant 0.0)(instant 2.0) TRUE TRUE) TRUE)(((instant 2.0)(instant 4.0) FALSE TRUE) FALSE)(((instant 4.0)(instant 6.0) FALSE TRUE) TRUE)(((instant 6.0)(instant 8.0) FALSE TRUE) FALSE))];
+
+let mb2 = [const mbool value ((((instant 0.0)(instant 2.0) TRUE FALSE) FALSE)(((instant 2.0)(instant 4.0) TRUE FALSE) TRUE)(((instant 4.0)(instant 6.0) TRUE FALSE) FALSE)(((instant 6.0)(instant 8.0) TRUE TRUE) TRUE))];
+
+let mb3 = [const mbool value ((((instant 0.5)(instant 2.5) TRUE FALSE) FALSE)(((instant 2.5)(instant 4.5) TRUE FALSE) TRUE)(((instant 4.5)(instant 6.5) TRUE FALSE) FALSE)(((instant 6.5)(instant 8.5) TRUE TRUE) TRUE))];
+
+let mi1 = [const mint value ((((instant 0.0)(instant 2.0) TRUE TRUE) 1)(((instant 2.0)(instant 4.0) FALSE TRUE) 2)(((instant 4.0)(instant 6.0) FALSE TRUE) 3)(((instant 6.0)(instant 8.0) FALSE TRUE) 4))];
+
+let mi2 = [const mint value ((((instant 0.0)(instant 2.0) TRUE FALSE) 1)(((instant 2.0)(instant 4.0) TRUE FALSE) 2)(((instant 4.0)(instant 6.0) TRUE FALSE) 3)(((instant 6.0)(instant 8.0) TRUE TRUE) 4))];
+
+let mi3 = [const mint value ((((instant 0.5)(instant 2.5) TRUE FALSE) 1)(((instant 2.5)(instant 4.5) TRUE FALSE) 2)(((instant 4.5)(instant 6.5) TRUE FALSE) 3)(((instant 6.5)(instant 8.5) TRUE TRUE) 4))];
+
+let mr1 = [const mreal value ((((instant 0.0)(instant 5.0) TRUE TRUE)(1.0 -5.0 4.0 FALSE))(((instant 5.0)(instant 10.0) FALSE TRUE) (-1.0 5.0 4.0 FALSE)))];
+
+let mr2 = [const mreal value ((((instant 0.0)(instant 5.0) TRUE TRUE)(1.0 -5.0 7.0 TRUE))(((instant 5.0)(instant 10.0) FALSE TRUE) (-1.0 5.0 7.0 TRUE)))];
+
+let mr3 = [const mreal value ((((instant 0.0)(instant 3.0) TRUE TRUE)(0.0 0.0 0.0 FALSE))(((instant 3.0)(instant 6.0) FALSE TRUE) (1.0 0.0 0.0 FALSE))(((instant 6.0)(instant 10.0) FALSE TRUE) (0.0 6.0 9.0 FALSE))(((instant 10.0)(instant 12.0) FALSE TRUE) (-1.5 6.0 33.0 FALSE))(((instant 12.0)(instant 15.0) FALSE TRUE) (0.0 0.0 39.0 FALSE)))];
+
+let mr0 = [const mreal value ((((instant 0.0)(instant 20.0) TRUE TRUE)(0.0 0.0 0.0 FALSE)))];
+
+let pts1 = [const points value ((0.0 0.0)(10.0 0.0)(0.0 10.0)(10.0 10.0))];
+
+let mp2 = [const mpoint value ((((instant 0.0)(instant 5.0) TRUE TRUE)(0.0 0.0 10.0 10.0)))];
+
+let mp1 = [const mpoint value ((((instant 0.0)(instant 5.0) TRUE TRUE)(0.0 0.0 10.0 10.0))(((instant 5.0)(instant 10.0) FALSE TRUE)(10.0 10.0 10.0 10.0))(((instant 10.0)(instant 15.0) FALSE TRUE)(10.0 10.0 -5.0 10.0))(((instant 15.0)(instant 20.0) FALSE TRUE)(-5.0 10.0 15.0 10.0))(((instant 20.0)(instant 25.0) FALSE TRUE)(15.0 10.0 10.0 5.0))(((instant 25.0)(instant 30.0) FALSE TRUE)(10.0 5.0 10.0 0.0)))];
+
+let line1 = trajectory(mp1);
+
+let mp3 = [const mpoint value ((((instant 1.0)(instant 6.0) TRUE TRUE)(0.0 0.0 20.0 10.0))(((instant 6.0)(instant 11.0) FALSE TRUE)(20.0 10.0 10.0 20.0))(((instant 11.0)(instant 16.0) FALSE TRUE)(10.0 20.0 5.0 5.0))(((instant 16.0)(instant 21.0) FALSE TRUE)(5.0 5.0 15.0 10.0))(((instant 21.0)(instant 26.0) FALSE TRUE)(15.0 10.0 5.0 10.0))(((instant 26.0)(instant 31.0) FALSE TRUE)(5.0 10.0 10.0 10.0)))];
+
+let line3 = [const line value ((10.0 1.0 10.0 4.0)(0.0 10.0 5.0 10.0)(0.0 0.0 10.0 5.0))];
+
+let ms1 = [const mstring value ((((instant 3.0)(instant 18.0) TRUE TRUE) "Hallo"))];
+
+let ms2 = [const mstring value ((((instant 0.0)(instant 10.0) TRUE TRUE) "Hallo")(((instant 10.0)(instant 20.0) FALSE TRUE) "Hallo Du")(((instant 20.0)(instant 30.0) FALSE TRUE) "Hallo Du da!"))];
+
+let ms3 = [const mstring value ((((instant 0.0)(instant 8.0) TRUE TRUE) "Hallo")(((instant 9.0)(instant 24.0) FALSE TRUE) "Hallo Du")(((instant 24.0)(instant 28.0) FALSE TRUE) "Hallo Du da!")(((instant 29.0)(instant 35.0) FALSE TRUE) "Schonwieder weg"))];
+
+
+
+
