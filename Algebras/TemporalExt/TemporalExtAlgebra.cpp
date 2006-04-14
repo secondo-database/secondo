@@ -20,6 +20,11 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+0 TODO
+
+- Change operators names, without "ext".
+
+
 1 Includes and Initialization
 
 Place for initialization of pointer variables, constants and namespaces and
@@ -40,13 +45,14 @@ extern QueryProcessor *qp;
 #include "DateTime.h"
 using namespace datetime;
 
+#include "TemporalExtAlgebra.h"
+
 /*
 
 2 Type definitions, Auxiliary Functions
 
 */
-typedef ConstTemporalUnit<CcString> UString;
-typedef Mapping< UString, CcString > MString;
+
 
 /*
 2.1 Auxiliary Funcions
@@ -291,21 +297,8 @@ MovingInstantExtTypeMapIntime( ListExpr args )
 
         if( nl->IsEqual( arg2, "instant" ) )
         {
-            if( nl->IsEqual( arg1, "mbool" ) )
-                return nl->SymbolAtom( "ibool" );
-
-            if( nl->IsEqual( arg1, "mint" ) )
-                return nl->SymbolAtom( "iint" );
-
-            if( nl->IsEqual( arg1, "mreal" ) )
-                return nl->SymbolAtom( "ireal" );
-
-            if( nl->IsEqual( arg1, "mpoint" ) )
-                return nl->SymbolAtom( "ipoint" );
-
             if( nl->IsEqual( arg1, "mstring" ) )
                 return nl->SymbolAtom( "istring" );
-
         }
     }
     return nl->SymbolAtom( "typeerror" );
@@ -327,18 +320,6 @@ MovingPeriodsExtTypeMapMoving( ListExpr args )
 
         if( nl->IsEqual( arg2, "periods" ) )
         {
-            if( nl->IsEqual( arg1, "mbool" ) )
-                return nl->SymbolAtom( "mbool" );
-
-            if( nl->IsEqual( arg1, "mint" ) )
-                return nl->SymbolAtom( "mint" );
-
-            if( nl->IsEqual( arg1, "mreal" ) )
-                return nl->SymbolAtom( "mreal" );
-
-            if( nl->IsEqual( arg1, "mpoint" ) )
-                return nl->SymbolAtom( "mpoint" );
-
             if( nl->IsEqual( arg1, "mstring" ) )
                 return nl->SymbolAtom( "mstring" );
         }
@@ -358,18 +339,6 @@ MovingExtTypeMapIntime( ListExpr args )
     if ( nl->ListLength( args ) == 1 )
     {
         ListExpr arg1 = nl->First( args );
-
-        if( nl->IsEqual( arg1, "mbool" ) )
-            return nl->SymbolAtom( "ibool" );
-
-        if( nl->IsEqual( arg1, "mint" ) )
-            return nl->SymbolAtom( "iint" );
-
-        if( nl->IsEqual( arg1, "mreal" ) )
-            return nl->SymbolAtom( "ireal" );
-
-        if( nl->IsEqual( arg1, "mpoint" ) )
-            return nl->SymbolAtom( "ipoint" );
 
         if( nl->IsEqual( arg1, "mstring" ) )
             return nl->SymbolAtom( "istring" );
@@ -394,11 +363,7 @@ MovingInstantPeriodsExtTypeMapBool( ListExpr args )
         if( nl->IsEqual( arg2, "instant" ) ||
           nl->IsEqual( arg2, "periods" ) )
         {
-            if( nl->IsEqual( arg1, "mbool" ) ||
-                 nl->IsEqual( arg1, "mint" ) ||
-                 nl->IsEqual( arg1, "mreal" ) ||
-                 nl->IsEqual( arg1, "mpoint" ) ||
-                 nl->IsEqual( arg1, "mstring" ))
+            if( nl->IsEqual( arg1, "mstring" ))
                 return nl->SymbolAtom( "bool" );
         }
     }
@@ -433,9 +398,6 @@ MovingBaseExtTypeMapMoving( ListExpr args )
         if( nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "real" ) )
             return nl->SymbolAtom( "mreal" );
 
-        if( nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "point" ) )
-            return nl->SymbolAtom( "mpoint" );
-
         if( nl->IsEqual( arg1, "mstring" ) && nl->IsEqual( arg2, "string" ) )
             return nl->SymbolAtom( "mstring" );
 
@@ -463,9 +425,8 @@ MovingBaseExtTypeMapBool( ListExpr args )
             (nl->IsEqual( arg1, "mint" ) && nl->IsEqual( arg2, "int" )) ||
 // VTA - This operator is not yet implemented for the type of ~mreal~
             (nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "real" )) ||
-            (nl->IsEqual( arg1, "mstring" ) && nl->IsEqual( arg2, "string" )) ||
-            (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "point" )) )
-            return nl->SymbolAtom( "bool" );
+            (nl->IsEqual( arg1, "mstring" ) && nl->IsEqual( arg2, "string" )))
+          return nl->SymbolAtom( "bool" );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -483,11 +444,7 @@ MovingExtTypeMapPeriods( ListExpr args )
     {
         ListExpr arg1 = nl->First( args );
 
-        if( nl->IsEqual( arg1, "mbool" ) ||
-                  nl->IsEqual( arg1, "mint" ) ||
-                  nl->IsEqual( arg1, "mreal" ) ||
-                  nl->IsEqual( arg1, "mpoint" ) ||
-                  nl->IsEqual( arg1, "mstring" ))
+        if( nl->IsEqual( arg1, "mstring" ))
 
             return nl->SymbolAtom( "periods" );
     }
@@ -507,11 +464,7 @@ IntimeExtTypeMapInstant( ListExpr args )
     {
         ListExpr arg1 = nl->First( args );
 
-        if( nl->IsEqual( arg1, "ibool" ) ||
-                  nl->IsEqual( arg1, "iint" ) ||
-                  nl->IsEqual( arg1, "ireal" ) ||
-                  nl->IsEqual( arg1, "ipoint" ) ||
-                  nl->IsEqual( arg1, "istring" ))
+        if( nl->IsEqual( arg1, "istring" ))
 
             return nl->SymbolAtom( "instant" );
     }
@@ -531,18 +484,6 @@ IntimeExtTypeMapBase( ListExpr args )
     {
         ListExpr arg1 = nl->First( args );
 
-        if( nl->IsEqual( arg1, "ibool" ) )
-            return nl->SymbolAtom( "bool" );
-
-        if( nl->IsEqual( arg1, "iint" ) )
-            return nl->SymbolAtom( "int" );
-
-        if( nl->IsEqual( arg1, "ireal" ) )
-            return nl->SymbolAtom( "real" );
-
-        if( nl->IsEqual( arg1, "ipoint" ) )
-            return nl->SymbolAtom( "point" );
-
         if( nl->IsEqual( arg1, "istring" ) )
             return nl->SymbolAtom( "string" );
 
@@ -553,7 +494,7 @@ IntimeExtTypeMapBase( ListExpr args )
 /*
 4.1.10 Type mapping function ~MovingRExtTypeMapMovingR~
 
-It is for the operator ~derivativeext~.
+It is for the operator ~derivative~.
 
 */
 ListExpr
@@ -572,7 +513,7 @@ MovingRExtTypeMapMovingR( ListExpr args )
 /*
 4.1.11 Type mapping function ~MovingRExtTypeMapBool~
 
-It is for the operator ~derivableext~.
+It is for the operator ~derivable~.
 
 */
 ListExpr
@@ -591,7 +532,7 @@ MovingRExtTypeMapBool( ListExpr args )
 /*
 4.1.12 Type mapping function ~MovingPointExtTypeMapMReal~
 
-It is for the operator ~speedext~.
+It is for the operator ~speed~.
 
 */
 ListExpr
@@ -621,8 +562,8 @@ is applied to correct arguments.
 
 4.2.1 Selection function ~MovingSimpleSelect~
 
-Is used for the ~deftimeext~, ~initialext~, ~finalext~, ~instext~, ~valext~,
-~atinstantext~,
+Is used for the ~deftime~, ~initial~, ~final~, ~inst~, ~val~,
+~atinstant~,
 ~atperiods~  operations.
 
 */
@@ -631,20 +572,8 @@ MovingExtSimpleSelect( ListExpr args )
 {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->SymbolValue( arg1 ) == "mbool" )
-        return 0;
-
-    if( nl->SymbolValue( arg1 ) == "mint" )
-        return 1;
-
-    if( nl->SymbolValue( arg1 ) == "mreal" )
-        return 2;
-
-    if( nl->SymbolValue( arg1 ) == "mpoint" )
-        return 3;
-
     if( nl->SymbolValue( arg1 ) == "mstring" )
-        return 4;
+        return 0;
 
     return -1; // This point should never be reached
 }
@@ -661,45 +590,13 @@ MovingExtInstantPeriodsSelect( ListExpr args )
     ListExpr arg1 = nl->First( args ),
     arg2 = nl->Second( args );
 
-    if( nl->SymbolValue( arg1 ) == "mbool" &&
+    if( nl->SymbolValue( arg1 ) == "mstring" &&
         nl->SymbolValue( arg2 ) == "instant" )
         return 0;
 
-    if( nl->SymbolValue( arg1 ) == "mint" &&
-        nl->SymbolValue( arg2 ) == "instant" )
+    if( nl->SymbolValue( arg1 ) == "mstring" &&
+        nl->SymbolValue( arg2 ) == "periods" )
         return 1;
-
-    if( nl->SymbolValue( arg1 ) == "mreal" &&
-        nl->SymbolValue( arg2 ) == "instant" )
-        return 2;
-
-    if( nl->SymbolValue( arg1 ) == "mpoint" &&
-        nl->SymbolValue( arg2 ) == "instant" )
-        return 3;
-
-    if( nl->SymbolValue( arg1 ) == "mstring" &&
-        nl->SymbolValue( arg2 ) == "instant" )
-        return 4;
-
-    if( nl->SymbolValue( arg1 ) == "mbool" &&
-        nl->SymbolValue( arg2 ) == "periods" )
-        return 5;
-
-    if( nl->SymbolValue( arg1 ) == "mint" &&
-        nl->SymbolValue( arg2 ) == "periods" )
-        return 6;
-
-    if( nl->SymbolValue( arg1 ) == "mreal" &&
-        nl->SymbolValue( arg2 ) == "periods" )
-        return 7;
-
-    if( nl->SymbolValue( arg1 ) == "mpoint" &&
-        nl->SymbolValue( arg2 ) == "periods" )
-        return 8;
-
-    if( nl->SymbolValue( arg1 ) == "mstring" &&
-        nl->SymbolValue( arg2 ) == "periods" )
-        return 9;
 
     return -1; // This point should never be reached
 }
@@ -728,17 +625,13 @@ MovingExtBaseRangeSelect( ListExpr args )
         nl->SymbolValue( arg2 ) == "real" )
         return 2;
 
-    if( nl->SymbolValue( arg1 ) == "mpoint" &&
-        nl->SymbolValue( arg2 ) == "point" )
-        return 3;
-
     if( nl->SymbolValue( arg1 ) == "mstring" &&
         nl->SymbolValue( arg2 ) == "string" )
-        return 4;
+        return 3;
 
     if( nl->SymbolValue( arg1 ) == "mint" &&
         nl->SymbolValue( arg2 ) == "rint" )
-        return 5;
+        return 4;
 
   /*if( nl->SymbolValue( arg1 ) == "mreal" &&
     nl->SymbolValue( arg2 ) == "rreal"
@@ -772,13 +665,9 @@ MovingExtBaseSelect( ListExpr args )
         nl->SymbolValue( arg2 ) == "real" )
         return 2;
 
-    if( nl->SymbolValue( arg1 ) == "mpoint" &&
-        nl->SymbolValue( arg2 ) == "point" )
-        return 3;
-
     if( nl->SymbolValue( arg1 ) == "mstring" &&
         nl->SymbolValue( arg2 ) == "string" )
-        return 4;
+        return 3;
 
     return -1; // This point should never be reached
 }
@@ -794,20 +683,8 @@ IntimeExtSimpleSelect( ListExpr args )
 {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->SymbolValue( arg1 ) == "ibool" )
-        return 0;
-
-    if( nl->SymbolValue( arg1 ) == "iint" )
-        return 1;
-
-    if( nl->SymbolValue( arg1 ) == "ireal" )
-        return 2;
-
-    if( nl->SymbolValue( arg1 ) == "ipoint" )
-        return 3;
-
     if( nl->SymbolValue( arg1 ) == "istring" )
-        return 4;
+        return 0;
 
     return -1; // This point should never be reached
 }
@@ -1242,80 +1119,42 @@ defined, so it easier to make them overloaded.
 */
 
 ValueMapping temporalatinstantextmap[] = {
-    MappingAtInstantExt<MBool, CcBool>,
-    MappingAtInstantExt<MInt, CcInt>,
-    MappingAtInstantExt<MReal, CcReal>,
-    MappingAtInstantExt<MPoint, Point>,
     MappingAtInstantExt<MString, CcString> };
 
 ValueMapping temporalatperiodsextmap[] = {
-    MappingAtPeriodsExt<MBool>,
-    MappingAtPeriodsExt<MInt>,
-    MappingAtPeriodsExt<MReal>,
-    MappingAtPeriodsExt<MPoint>,
     MappingAtPeriodsExt<MString>};
 
 ValueMapping temporalinitialextmap[] = {
-    MappingInitialExt<MBool, UBool, CcBool>,
-    MappingInitialExt<MInt, UInt, CcInt>,
-    MappingInitialExt<MReal, UReal, CcReal>,
-    MappingInitialExt<MPoint, UPoint, Point>,
     MappingInitialExt<MString, UString, CcString> };
 
 ValueMapping temporalfinalextmap[] = {
-    MappingFinalExt<MBool, UBool, CcBool>,
-    MappingFinalExt<MInt, UInt, CcInt>,
-    MappingFinalExt<MReal, UReal, CcReal>,
-    MappingFinalExt<MPoint, UPoint, Point>,
     MappingFinalExt<MString, UString, CcString> };
 
 ValueMapping temporalpresentextmap[] = {
-    MappingPresentExt_i<MBool>,
-    MappingPresentExt_i<MInt>,
-    MappingPresentExt_i<MReal>,
-    MappingPresentExt_i<MPoint>,
     MappingPresentExt_i<MString>,
-    MappingPresentExt_p<MBool>,
-    MappingPresentExt_p<MInt>,
-    MappingPresentExt_p<MReal>,
-    MappingPresentExt_p<MPoint>,
     MappingPresentExt_p<MString>, };
 
 ValueMapping temporalatextmap[] = {
     MappingAtExt<MBool, UBool, CcBool>,
     MappingAtExt<MInt, UInt, CcInt>,
     MappingAtExt<MReal, UReal, CcReal>,
-    MappingAtExt<MPoint, UPoint, Point>,
-    MappingAtExt<MString, UString, CcString>/*,
-    MappingAt_r<MInt, UInt, RInt>*/ };
+    MappingAtExt<MString, UString, CcString>
+    /*,MappingAt_r<MInt, UInt, RInt>*/ };
 
 ValueMapping temporalpassesextmap[] = {
     MappingPassesExt<MBool, CcBool>,
     MappingPassesExt<MInt, CcInt>,
     MappingPassesExt<MReal, CcReal>,
-    MappingPassesExt<MPoint, Point>,
     MappingPassesExt<MString, CcString> };
 
 ValueMapping temporaldeftimeextmap[] = {
-    MappingDefTimeExt<MBool>,
-    MappingDefTimeExt<MInt>,
-    MappingDefTimeExt<MReal>,
-    MappingDefTimeExt<MPoint>,
     MappingDefTimeExt<MString> };
 
 ValueMapping temporalinstextmap[] = {
-    IntimeInstExt<CcBool>,
-    IntimeInstExt<CcInt>,
-    IntimeInstExt<CcReal>,
-    IntimeInstExt<Point>,
     IntimeInstExt<CcString> };
 
 
 ValueMapping temporalvalextmap[] = {
-    IntimeValExt<CcBool>,
-    IntimeValExt<CcInt>,
-    IntimeValExt<CcReal>,
-    IntimeValExt<Point>,
     IntimeValExt<CcString> };
 
 ValueMapping temporalderivativeextmap[] = {
@@ -1427,28 +1266,28 @@ const string TemporalSpecValExt  =
 const string TemporalSpecDerivativeExt  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>derivativeext(mreal) -> mreal</text--->"
-    "<text>derivativeext ( _ )</text--->"
+    "( <text>derivative(mreal) -> mreal</text--->"
+    "<text>derivative ( _ )</text--->"
     "<text>Derivative of a mreal.</text--->"
-    "<text>derivativeext ( mr1 )</text--->"
+    "<text>derivative ( mr1 )</text--->"
     ") )";
 
-const string TemporalSpecDerivableExt  =
+const string TemporalSpecDerivableExt =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>derivableext(mreal) -> mbool</text--->"
-    "<text>derivableext ( _ )</text--->"
+    "( <text>derivable(mreal) -> mbool</text--->"
+    "<text>derivable ( _ )</text--->"
     "<text>Checking if mreal is derivable.</text--->"
-    "<text>derivableext ( mr1 )</text--->"
+    "<text>derivable ( mr1 )</text--->"
     ") )";
 
 const string TemporalSpecSpeedExt  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>speedext(mpoint) -> mreal</text--->"
-    "<text>speedext ( _ )</text--->"
+    "( <text>speed(mpoint) -> mreal</text--->"
+    "<text>speed ( _ )</text--->"
     "<text>Velocity of a mpoint given as mreal.</text--->"
-    "<text>speedext ( mp1 )</text--->"
+    "<text>speed ( mp1 )</text--->"
     ") )";
 
 /*
@@ -1456,7 +1295,7 @@ const string TemporalSpecSpeedExt  =
 
 */
 Operator temporalatinstantext(
-    "atinstantext",
+    "atinstant",
     TemporalSpecAtInstantExt,
     5,
     temporalatinstantextmap,
@@ -1464,7 +1303,7 @@ Operator temporalatinstantext(
     MovingInstantExtTypeMapIntime );
 
 Operator temporalatperiodsext(
-    "atperiodsext",
+    "atperiods",
     TemporalSpecAtPeriodsExt,
     5,
     temporalatperiodsextmap,
@@ -1472,7 +1311,8 @@ Operator temporalatperiodsext(
     MovingPeriodsExtTypeMapMoving );
 
 Operator temporalinitialext(
-    "initialext",
+    "initial",
+
     TemporalSpecInitialExt,
     5,
     temporalinitialextmap,
@@ -1480,7 +1320,7 @@ Operator temporalinitialext(
     MovingExtTypeMapIntime );
 
 Operator temporalfinalext(
-    "finalext",
+    "final",
     TemporalSpecFinalExt,
     5,
     temporalfinalextmap,
@@ -1488,7 +1328,7 @@ Operator temporalfinalext(
     MovingExtTypeMapIntime );
 
 Operator temporalpresentext(
-    "presentext",
+    "present",
     TemporalSpecPresentExt,
     10,
     temporalpresentextmap,
@@ -1496,7 +1336,7 @@ Operator temporalpresentext(
     MovingInstantPeriodsExtTypeMapBool);
 
 Operator temporalatext(
-    "atext",
+    "at",
     TemporalSpecAtExt,
     5,
     temporalatextmap,
@@ -1504,7 +1344,7 @@ Operator temporalatext(
     MovingBaseExtTypeMapMoving );
 
 Operator temporalpassesext(
-    "passesext",
+    "passes",
     TemporalSpecPassesExt,
     5,
     temporalpassesextmap,
@@ -1512,7 +1352,7 @@ Operator temporalpassesext(
     MovingBaseExtTypeMapBool);
 
 Operator temporaldeftimeext(
-    "deftimeext",
+    "deftime",
     TemporalSpecDefTimeExt,
     5,
     temporaldeftimeextmap,
@@ -1520,7 +1360,7 @@ Operator temporaldeftimeext(
     MovingExtTypeMapPeriods );
 
 Operator temporalinstext(
-    "instext",
+    "inst",
     TemporalSpecInstExt,
     5,
     temporalinstextmap,
@@ -1528,7 +1368,7 @@ Operator temporalinstext(
     IntimeExtTypeMapInstant );
 
 Operator temporalvalext(
-    "valext",
+    "val",
     TemporalSpecValExt,
     5,
     temporalvalextmap,
@@ -1536,7 +1376,7 @@ Operator temporalvalext(
     IntimeExtTypeMapBase );
 
 Operator temporalderivativeext(
-    "derivativeext",
+    "derivative",
     TemporalSpecDerivativeExt,
     1,
     temporalderivativeextmap,
@@ -1544,7 +1384,7 @@ Operator temporalderivativeext(
     MovingRExtTypeMapMovingR);
 
 Operator temporalderivableext(
-    "derivableext",
+    "derivable",
     TemporalSpecDerivableExt,
     1,
     temporalderivableextmap,
@@ -1552,7 +1392,7 @@ Operator temporalderivableext(
     MovingRExtTypeMapBool);
 
 Operator temporalspeedext(
-    "speedext",
+    "speed",
     TemporalSpecSpeedExt,
     1,
     temporalspeedextmap,
@@ -1613,5 +1453,6 @@ InitializeTemporalExtAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
   qp = qpRef;
   return (&tempExtAlgebra);
 }
+
 
 

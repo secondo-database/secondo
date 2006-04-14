@@ -17,16 +17,17 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator atinstantext alias ATINSTANTEXT pattern _ infixop _
-operator atperiodsext alias ATPERIODSEXT pattern _ infixop _
-operator presentext alias PRESENTEXT pattern _ infixop _
-operator passesext alias PASSESEXT pattern _ infixop _
-operator initialext alias INITIALEXT pattern op ( _ )
-operator finalext alias FINALEXT pattern op ( _ )
-operator atext alias ATEXT pattern _ infixop _
-operator deftimeext alias DEFTIMEEXT pattern op ( _ )
-operator instext alias INSTEXT pattern op ( _ )
-operator valext alias VALEXT pattern op ( _ )
-operator derivativeext alias DERIVATIVEEXT pattern op ( _ )
-operator derivableext alias DERIVABLEEXT pattern op ( _ )
-operator speedext alias SPEEDEXT pattern op ( _ )
+operator atinstant alias ATINSTANT pattern _ infixop _
+operator atperiods alias ATPERIODS pattern _ infixop _
+operator present alias PRESENT pattern _ infixop _
+operator passes alias PASSES pattern _ infixop _
+operator initial alias INITIAL pattern op ( _ )
+operator final alias FINAL pattern op ( _ )
+operator at alias AT pattern _ infixop _
+operator deftime alias DEFTIME pattern op ( _ )
+operator inst alias INST pattern op ( _ )
+operator val alias VAL pattern op ( _ )
+operator derivative alias DERIVATIVE pattern op ( _ )
+operator derivable alias DERIVABLE pattern op ( _ )
+operator speed alias SPEED pattern op ( _ )
+
