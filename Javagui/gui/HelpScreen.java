@@ -131,6 +131,13 @@ private void init(){
  GC.add("gui onlyViewer ");
  GC.add("gui executeFile [-i] filename");
  GC.add("    -i = ignore errors");
+ GC.add("gui set debugmode = <true,false>");
+ GC.add("gui set timemeasures = <true,false>");
+ GC.add("gui set formattedtext = <true,false>");
+ GC.add("gui set showCommand = <true,false>");
+ GC.add("gui set servertrace = <true,false>");
+ GC.add("gui set commandstyle = <tty,gui>");
+ GC.add("gui set scriptstyle = <tty,gui>");
  GuiCommands = new JList(GC);
 }
 

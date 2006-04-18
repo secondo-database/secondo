@@ -161,7 +161,7 @@ public class CommandPanel extends JScrollPane {
    */
   public void appendText (String txt) {
     SystemArea.append(txt);
-    if(Environment.EXTENDED_TESTMODE){
+    if(Environment.TESTMODE != Environment.NO_TESTMODE ){
       Reporter.writeInfo(txt);
     }
   }
@@ -1095,87 +1095,69 @@ public class CommandPanel extends JScrollPane {
      * @see <a href="CommandPanelsrc.html#keypressed">Source</a>
      */
     public void keyPressed (KeyEvent e) {
-      String com = "";
-      int keyCode = e.getKeyCode();
-      int mod = e.getModifiersEx();
-      if (keyCode == KeyEvent.VK_ENTER ) {
-        if((mod&KeyEvent.SHIFT_DOWN_MASK)!=0){
-           // Note: Pressing the return key together with the 
-           // shift key has no affect in the JTextArea. Unfortunately,
-           // the setModifier method is deprecated since java 1.1.4
-           // For this reasong, we have to insert a newline manually at
-           // the plca eunder the cursor
-           String text = SystemArea.getText();
-           int cursor = SystemArea.getCaretPosition();
-           text = text.substring(0,cursor)+"\n"+text.substring(cursor,text.length());
-           ignoreCaretUpdate=true; 
-           SystemArea.setText(text);
-           SystemArea.setCaretPosition(cursor+1);
-           ignoreCaretUpdate=false;
-           e.setKeyCode(0);
+       int keyCode = e.getKeyCode();
+       int mod = e.getModifiersEx();
+       if(keyCode==KeyEvent.VK_ENTER){
+           if(Environment.TTY_STYLED_COMMAND){
+              processReturnInTTYMode(e);
+           } else{
+              processReturnInGuiMode(e);
+           }
            return;
-        }
-        try {
-          com = SystemArea.getText(aktPos, SystemArea.getText().length() -
-              aktPos);
-          if(com.trim().length()>0){
-             History.add(com);
-             HistoryPos=History.size();
-          }
-          execUserCommand(com);
-          
-        } catch (Exception ex) {}
        }
+        
+       // other keys are processed in the same way
+       Caret C = SystemArea.getCaret();
+       int p1 = C.getDot();
+       int p2 = C.getMark();
+       int pos = SystemArea.getCaretPosition();
+       // selected area crosses the begin of the new command
 
-
-      Caret C = SystemArea.getCaret();
-      int p1 = C.getDot();
-      int p2 = C.getMark();
-      int pos = SystemArea.getCaretPosition();
-      if(p1<aktPos | p2<aktPos){
-         if( (mod&KeyEvent.CTRL_DOWN_MASK)==0 ){ // no key allowed
+       if(p1<aktPos | p2<aktPos){
+          if( (mod&KeyEvent.CTRL_DOWN_MASK)==0 ){ // no key allowed
               C.moveDot(aktPos);
               C.setDot(aktPos);
          }
-         else {  // ctrl is pressed allow C and Control
+       else {  // ctrl is pressed allow C and Control
             if(keyCode!=KeyEvent.VK_C & keyCode!=KeyEvent.VK_CONTROL){
               C.moveDot(aktPos);
               C.setDot(aktPos);
             }
          }
-      }
-      if( ( ( (mod&KeyEvent.CTRL_DOWN_MASK)!=0 & keyCode==KeyEvent.VK_H ) |
+       }
+       // try to go back over the prompt
+       if( ( ( (mod&KeyEvent.CTRL_DOWN_MASK)!=0 & keyCode==KeyEvent.VK_H ) |
             ( keyCode==KeyEvent.VK_BACK_SPACE))
           && SystemArea.getCaretPosition()==aktPos){
         SystemArea.insert(" ",aktPos);
 
       }
+
       // avoid selection using keyboard
       if(((mod&KeyEvent.SHIFT_DOWN_MASK)!=0) & (keyCode==KeyEvent.VK_LEFT | keyCode==KeyEvent.VK_UP)){
          if(pos==aktPos){
              e.setKeyCode(0);
-	     return;
-	 }
+             return;
+       	 }
       }
+      // try to select crossing the prompt
       if(keyCode==KeyEvent.VK_HOME | keyCode==KeyEvent.VK_PAGE_UP){
          if((mod&KeyEvent.SHIFT_DOWN_MASK)!=0)
-	    C.moveDot(aktPos);
-	 else{
-	    C.setDot(aktPos);
-	 }
+            C.moveDot(aktPos);
+         else{
+            C.setDot(aktPos);
+         }
          e.setKeyCode(0);
-	 return;
+         return;
       }
-
-
-      int qrs=History.size();
+      // pressing home => go to the prompt 
       if(keyCode==KeyEvent.VK_HOME){
          SystemArea.setCaretPosition(aktPos);
          e.setKeyCode(0);
          return;
       }
 
-
+      // do not allow selection using the keyboard
       if((mod&KeyEvent.SHIFT_DOWN_MASK)!=0){
          if(keyCode==KeyEvent.VK_DOWN || keyCode==KeyEvent.VK_PAGE_DOWN ||
             keyCode==KeyEvent.VK_UP || keyCode==KeyEvent.VK_PAGE_UP) {
@@ -1183,6 +1165,10 @@ public class CommandPanel extends JScrollPane {
          }
          return;
       }
+
+
+      // replace the current command by a history entry
+      int qrs=History.size();
       if (qrs==0) return;
       if ((keyCode==KeyEvent.VK_DOWN) &&(HistoryPos <qrs)) HistoryPos++;
       else if ((keyCode==KeyEvent.VK_UP) &&(HistoryPos >0))	HistoryPos--;
@@ -1202,12 +1188,106 @@ public class CommandPanel extends JScrollPane {
         }
       }
       e.setKeyCode(0);
+ 
+
     }
-    /*	public void keyReleased(KeyEvent e){
-     if (e.getKeyCode()==KeyEvent.VK_ENTER){
-     }
-     }*/
-  }
+
+    /** processes a key event e. 
+      * Returns true if a command was executed 
+      **/
+    private boolean processReturnInTTYMode(KeyEvent e){
+        int keyCode = e.getKeyCode();
+        // only process the return key
+        if(keyCode!=KeyEvent.VK_ENTER){
+           return false;
+        }
+        int lastLine = SystemArea.getLineCount();
+        int position = SystemArea.getCaretPosition();
+        int currentLine=-1;
+        try{
+           currentLine = SystemArea.getLineOfOffset(position);
+        }catch(Exception ex){
+           Reporter.debug(ex);
+        }
+        if(currentLine!=lastLine-1){ // only process when command end in the last line
+           // insert a newLine
+           String text = SystemArea.getText();
+           int cursor = SystemArea.getCaretPosition();
+           text = text.substring(0,cursor)+"\n"+text.substring(cursor,text.length());
+           ignoreCaretUpdate=true; 
+           SystemArea.setText(text);
+           SystemArea.setCaretPosition(cursor+1);
+           ignoreCaretUpdate=false;
+           e.setKeyCode(0);
+           return false;
+        }
+        // get the command 
+        String command = "";
+        try{
+            command = SystemArea.getText(aktPos,SystemArea.getText().length()-aktPos);
+        }catch(Exception ex){
+            Reporter.debug(ex);
+        }
+        boolean complete = false;
+        if(command.trim().startsWith("gui")){
+          complete=true;
+        } else if(command.endsWith(";")){ // command finished
+           command = command.substring(0,command.length()-1).trim();
+           complete = true;
+        } else if(command.endsWith("\n")){ // command ends with empty line
+           command = command.substring(0,command.length()-1).trim();
+           complete = true;
+        }
+        if(complete && command.length()>0) {
+           History.add(command);     
+           HistoryPos = History.size();
+           execUserCommand(command); 
+           return true;
+        }else{
+           appendText("\n");
+        }
+        return false;
+    }
+
+    private boolean processReturnInGuiMode(KeyEvent e){
+      String com = "";
+      int keyCode = e.getKeyCode();
+      int mod = e.getModifiersEx();
+      if (keyCode == KeyEvent.VK_ENTER ) {
+        if((mod&KeyEvent.SHIFT_DOWN_MASK)!=0){
+           // Note: Pressing the return key together with the 
+           // shift key has no affect in the JTextArea. Unfortunately,
+           // the setModifier method is deprecated since java 1.1.4
+           // For this reasong, we have to insert a newline manually at
+           // the place under the cursor
+           String text = SystemArea.getText();
+           int cursor = SystemArea.getCaretPosition();
+           text = text.substring(0,cursor)+"\n"+text.substring(cursor,text.length());
+           ignoreCaretUpdate=true; 
+           SystemArea.setText(text);
+           SystemArea.setCaretPosition(cursor+1);
+           ignoreCaretUpdate=false;
+           e.setKeyCode(0);
+           return false;
+        }
+        try {
+          com = SystemArea.getText(aktPos, SystemArea.getText().length() -
+              aktPos);
+          if(com.trim().length()>0){
+             History.add(com);
+             HistoryPos=History.size();
+          }
+          execUserCommand(com);
+          return true;
+          
+        } catch (Exception ex) {}
+       }
+       return false;
+
+    }
+  
+
+ }
  /** This class controls the caret-movement */
   class BoundMoveListener
       implements CaretListener {

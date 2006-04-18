@@ -35,7 +35,7 @@ START_CONNECTION true
 #SECONDO_HOME_DIR = /home/behr/secondo
 
 # if DEBUG_MODE is set to true additional error
-# messages are printed
+# messages are printed out
 # valid values are true and false
 DEBUG_MODE false
 
@@ -85,6 +85,8 @@ ENABLE_OPTIMIZER true
 USE_ENTROPY false
 
 #enable persitent storing of text atoms
+# this will have only effect when non-persistent nested list
+# are used 
 USE_PERSISTENT_TEXT true
 
 #set the maximum size of a text atom managed in main memory
@@ -127,3 +129,12 @@ TRACE_SERVER_COMMANDS false
 # @... command in the tty version of secondo
 # allowed values are GUI (simple files) or TTY (default)
 SCRIPT_STYLE TTY
+
+# When set to true, the behaviour of the command panel
+# is the same as a tty client. This means, a command is
+# finshed by an empty line or a ';' at the end of the last
+# line of a command.
+# When set to false, just pressing the return key will
+# lead to the execution of the current command. A linebreak
+# can be inserted by pressing [shift]+[return] in common.
+COMMAND_STYLE GUI

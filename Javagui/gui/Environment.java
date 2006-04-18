@@ -50,18 +50,33 @@ public static int MAX_STRING_LENGTH = 48;
 /** Print out all stuff related to the Server communication **/
 public static boolean TRACE_SERVER_COMMANDS = false;
 
-/** Runs Javagui in Testmode, this means without any 
-  * user interaction.
-  **/
-public static boolean TESTMODE = false;
 
-/** Runs Javagui in extended testmode **/
-public static boolean EXTENDED_TESTMODE = false;
+
+/*constants denoting various testmodes */
+public static final int NO_TESTMODE=0;
+public static final int SIMPLE_TESTMODE=1;
+public static final int EXTENDED_TESTMODE=2;
+public static final int TESTRUNNER_MODE=4;
+
+
+/** currently used testmode.
+  * the value may be a one of the testmodes specified above 
+  * or an OR-connection of them.
+  **/
+public static int TESTMODE = NO_TESTMODE;
+
+
 
 /** interpretes scrips in ttystyle instead of 
   * simple one-line commands 
   **/
 public static boolean TTY_STYLED_SCRIPT = true;
+
+/** if set to true, commands are entered as in 
+  * secondo tty, this means a ';' or an empty line
+  * finish the command.
+  **/
+public static boolean TTY_STYLED_COMMAND = false;
 
 
 /** Returns the currently used memeory in bytes **/

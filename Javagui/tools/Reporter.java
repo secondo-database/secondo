@@ -46,7 +46,7 @@ public static void reportError(String message,
  if(debug && !gui.Environment.DEBUG_MODE){
     return;
  }
- if(!console && !gui.Environment.TESTMODE){
+ if(!console && gui.Environment.TESTMODE==gui.Environment.NO_TESTMODE){
     if(ex!=null){
        message = message+"\n"+ex.getMessage();
     }
@@ -85,7 +85,7 @@ public static void reportWarning(String message,
  if(debug && !gui.Environment.DEBUG_MODE){
     return;
  }
- if(!console && !gui.Environment.TESTMODE){
+ if(!console && gui.Environment.TESTMODE==gui.Environment.NO_TESTMODE){
     if(ex!=null){
        message = message+"\n"+ex.getMessage();
     }
@@ -112,7 +112,7 @@ public static void reportWarning(String message,
  
 /** reports an Information **/
 public static void reportInfo(String message, boolean console){
-   if(console || gui.Environment.TESTMODE){
+   if(console || gui.Environment.TESTMODE!=gui.Environment.NO_TESTMODE){
      TextFormat.printInfo(message);
    }else{
     try{

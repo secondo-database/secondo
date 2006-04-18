@@ -295,6 +295,12 @@ public MainWindow(String Title){
           Environment.TTY_STYLED_SCRIPT=false;
         }
      }
+     String CommandStyle = Config.getProperty("COMMAND_STYLE");
+     if(CommandStyle!=null){
+       if(CommandStyle.trim().toUpperCase().equals("TTY")){
+          Environment.TTY_STYLED_COMMAND=true;
+       }
+     }
 
  }
  createMenuBar();
@@ -420,9 +426,8 @@ public MainWindow(String Title){
              if(Cand instanceof SecondoViewer){
                 Reporter.writeInfo("addViewer "+ViewerName);
                 addViewer((SecondoViewer)Cand);
-                boolean tm = Environment.TESTMODE || Environment.EXTENDED_TESTMODE;
-                ((SecondoViewer)Cand).enableTestmode(Environment.TESTMODE ||
-                                                     Environment.EXTENDED_TESTMODE);
+                boolean tm = Environment.TESTMODE != Environment.NO_TESTMODE;
+                ((SecondoViewer)Cand).enableTestmode(tm);
               }
              else{
                Reporter.writeError(ViewerName+" is not a SecondoViewer");
@@ -656,7 +661,7 @@ public MainWindow(String Title){
          executeFile(StartScript,true);
       }
       else{ // ignore errors in StartScript in testmode
-         executeFile(StartScript,Environment.TESTMODE);
+         executeFile(StartScript,Environment.TESTMODE!=Environment.NO_TESTMODE);
       }
    }
 
@@ -1255,8 +1260,115 @@ public boolean execGuiCommand(String command){
          ComPanel.appendText("not connected");
        }
        ComPanel.showPrompt();
-  }
-  else {
+  } else if(command.startsWith("set")){
+     command = command.substring(3).trim().toLowerCase();
+     StringTokenizer st = new StringTokenizer(command," \n\t=");
+     if(st.countTokens()!=2){ // format set xxx = yyy 
+        ComPanel.appendText("invalid format for set command");
+        ComPanel.showPrompt();
+        success=false;
+     }else{
+        String var = st.nextToken();
+        String value = st.nextToken();
+        if(var.equals("debugmode")){
+           if(value.equals("true")){
+             Environment.DEBUG_MODE = true;
+             ComPanel.appendText("enable debug mode");
+             ComPanel.showPrompt();
+           }else if(value.equals("false")){
+             Environment.DEBUG_MODE = false;
+             ComPanel.appendText("disable debug mode");
+             ComPanel.showPrompt();
+           } else{
+              ComPanel.appendText("invalid value for debug mode");
+              ComPanel.showPrompt();
+           }
+        }  else if(var.equals("timemeasures")){
+           if(value.equals("true")){
+             Environment.MEASURE_TIME = true;
+             ComPanel.appendText("enable time measures");
+             ComPanel.showPrompt();
+           }else if(value.equals("false")){
+             Environment.MEASURE_TIME = false;
+             ComPanel.appendText("disable time measures");
+             ComPanel.showPrompt();
+           } else{
+              ComPanel.appendText("invalid value for time measures");
+              ComPanel.showPrompt();
+           }
+        } else if(var.equals("formattedtext")){
+           if(value.equals("true")){
+             Environment.FORMATTED_TEXT = true;
+             ComPanel.appendText("enable colorized text");
+             ComPanel.showPrompt();
+           }else if(value.equals("false")){
+             Environment.FORMATTED_TEXT = false;
+             ComPanel.appendText("disable colorized text");
+             ComPanel.showPrompt();
+           } else{
+              ComPanel.appendText("invalid value for text formatting");
+              ComPanel.showPrompt();
+           }
+        } else if(var.equals("showcommand")){
+           if(value.equals("true")){
+             Environment.SHOW_COMMAND = true;
+             ComPanel.appendText("show command before executing it");
+             ComPanel.showPrompt();
+           }else if(value.equals("false")){
+             Environment.SHOW_COMMAND = false;
+             ComPanel.appendText("do not show command before executing it");
+             ComPanel.showPrompt();
+           } else{
+              ComPanel.appendText("invalid value for command echo");
+              ComPanel.showPrompt();
+           }
+        } else if(var.equals("servertrace")){
+           if(value.equals("true")){
+             Environment.TRACE_SERVER_COMMANDS = true;
+             ComPanel.appendText("enable tracing of client server protocol");
+             ComPanel.showPrompt();
+           }else if(value.equals("false")){
+             Environment.TRACE_SERVER_COMMANDS= false;
+             ComPanel.appendText("disable tracing of client server protocol");
+             ComPanel.showPrompt();
+           } else{
+              ComPanel.appendText("invalid value for server trace");
+              ComPanel.showPrompt();
+           }
+       } else if(var.equals("commandstyle")){
+           if(value.equals("tty")){
+             Environment.TTY_STYLED_COMMAND = true;
+             ComPanel.appendText("use commands in tty style");
+             ComPanel.showPrompt();
+           }else if(value.equals("gui")){
+             Environment.TTY_STYLED_COMMAND= false;
+             ComPanel.appendText("use commands in gui style");
+             ComPanel.showPrompt();
+           } else{
+              ComPanel.appendText("invalid value for command style (tty, gui are allowed)");
+              ComPanel.showPrompt();
+           }
+       } else if(var.equals("scriptstyle")){
+           if(value.equals("tty")){
+             Environment.TTY_STYLED_SCRIPT = true;
+             ComPanel.appendText("use scripts in tty style");
+             ComPanel.showPrompt();
+           }else if(value.equals("gui")){
+             Environment.TTY_STYLED_SCRIPT= false;
+             ComPanel.appendText("use scripts in gui style");
+             ComPanel.showPrompt();
+           } else{
+              ComPanel.appendText("invalid value for script style (tty,gui are allowed)");
+              ComPanel.showPrompt();
+           }
+
+       } else{
+            ComPanel.appendText("unknown option for set command");
+            ComPanel.showPrompt();
+            success=false;
+       }  
+     }
+  } else {
     ComPanel.appendText("unknown gui command \n show help to get a list of available commands");
     ComPanel.showPrompt();
     success=false;
@@ -1738,14 +1850,20 @@ public static void main(String[] args){
      Reporter.writeInfo("start Javagui with \""+allArgs+"\"");  
   }
 
-  Environment.TESTMODE = args.length>0 && args[0].equals("--testmode");
-  boolean testrunner = args.length>0 && args[0].equals("--testrunner");
-  Environment.EXTENDED_TESTMODE = args.length>0 && (args[0].equals("--testmode2")||testrunner );
-  if(Environment.EXTENDED_TESTMODE){
-     Environment.TESTMODE=true;
+  if(args.length>0){
+     if(args[0].equals("--testmode")){
+        Environment.TESTMODE = Environment.SIMPLE_TESTMODE;
+     } else if(args[0].equals("--testmode2")){
+        Environment.TESTMODE = Environment.EXTENDED_TESTMODE;
+     } else if(args[0].equals("--testrunner")){
+        Environment.TESTMODE = Environment.TESTRUNNER_MODE;
+     }
+ 
   }
+
   File testfile=null;
-  if(Environment.TESTMODE && !testrunner){
+  // extract the file from the second argument
+  if(Environment.TESTMODE != Environment.NO_TESTMODE){
      if(args.length>1){
         testfile = new File(args[1]);
         if(!testfile.exists()){
@@ -1754,13 +1872,20 @@ public static void main(String[] args){
         }
      }
   }
+  // start Javagui
   MainWindow SecGui = new MainWindow("Secondo-GUI");
   SecGui.setVisible(true);
-  if(Environment.TESTMODE && !Environment.EXTENDED_TESTMODE && testfile!=null && !testrunner){
+
+
+  // simple testmode
+  if(Environment.TESTMODE == Environment.SIMPLE_TESTMODE && testfile!=null){
      Reporter.writeInfo("Run Testfile");
      SecGui.executeFile(testfile.getAbsolutePath(),true);
   }
-  if(Environment.EXTENDED_TESTMODE && !testrunner){
+
+
+   // extended testmode
+  if(Environment.TESTMODE == Environment.EXTENDED_TESTMODE){
      Environment.DEBUG_MODE=true;
      if(testfile==null){
         Reporter.writeError("the extended testmode requires an testfile ");
@@ -1776,19 +1901,19 @@ public static void main(String[] args){
         Reporter.writeInfo("All tests were performed successfully");
      }
      try{
-        Thread.sleep(10000);
+        Thread.sleep(5000);
      }catch(Exception e){}
      SecGui.shutdown(errors);
-     
   } 
-  if(args.length>0 && args[0].equals("--testrunner")){
+
+  if(Environment.TESTMODE==Environment.TESTRUNNER_MODE){
       Reporter.writeInfo(" ======    TESTRUNNER MODE ====");
       Environment.DEBUG_MODE=true;
-      if(args.length<2){
+      if(testfile==null){
          Reporter.writeError("file expected");
       }else{
          TestRunner tr = new TestRunner(ComPanel);
-         int errors = tr.processFile(args[1],true);
+         int errors = tr.processFile(testfile.getAbsolutePath(),true);
          if(errors==0){
             Reporter.writeInfo("all tests were ok");
          }  else{
