@@ -275,7 +275,7 @@ indexType(rtree).
 createIndexSmall(_, _, _, _) :- 
   not(optimizerOption(entropy)),!.
   
-createIndexSmall(Rel, ObjList, IndexName, _) :- 
+createIndexSmall(Rel, ObjList, IndexName, _) :- % s, si -> .
   optimizerOption(entropy),
   concat_atom([Rel, 'small'], '_', RelSmallName),
   member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList),
@@ -283,7 +283,7 @@ createIndexSmall(Rel, ObjList, IndexName, _) :-
   indexType(Type),
   member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList),!.
   
-createIndexSmall(Rel, ObjList, IndexName, Attr) :- 
+createIndexSmall(Rel, ObjList, IndexName, Attr) :- % s, not(si) -> si.
   optimizerOption(entropy),
   concat_atom([Rel, 'small'], '_', RelSmallName),
   member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList),
@@ -294,30 +294,30 @@ createIndexSmall(Rel, ObjList, IndexName, Attr) :-
     '_small create', Type, ' [', Attr, ']'], '', QueryAtom),
   tryCreate(QueryAtom),!.  
 
-createIndexSmall(Rel, ObjList, IndexName, Attr) :- 
+createIndexSmall(Rel, ObjList, IndexName, Attr) :- % not(s), not(si), r, -> s, si
   optimizerOption(entropy),
   concat_atom([Rel, 'small'], '_', RelSmallName),
   not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
   member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
-  trycreateSmallRelation(Rel, ObjList),
   concat_atom([IndexName, 'small'], '_', IndexSmallName),
   indexType(Type),
   not(member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList)),
+  trycreateSmallRelation(Rel, ObjList),
   concat_atom(['let ', IndexName, '_small', ' = ', Rel, 
     '_small create', Type, ' [', Attr, ']'], '', QueryAtom),
   tryCreate(QueryAtom),!.
 
-createIndexSmall(Rel, ObjList, IndexName, _) :- 
+createIndexSmall(Rel, ObjList, IndexName, _) :- % not(s), si, r -> s
   optimizerOption(entropy),
   concat_atom([Rel, 'small'], '_', RelSmallName),
   not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
   member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
-  trycreateSmallRelation(Rel, ObjList),
   concat_atom([IndexName, 'small'], '_', IndexSmallName),
   indexType(Type),
-  member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList),!.
+  member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList),
+  trycreateSmallRelation(Rel, ObjList),!.
 
-createIndexSmall(Rel, ObjList, _, _) :- 
+createIndexSmall(Rel, ObjList, _, _) :- % not(s), not(r) -> ERROR
   optimizerOption(entropy),
   concat_atom([Rel, 'small'], '_', RelSmallName),
   not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
@@ -326,24 +326,54 @@ createIndexSmall(Rel, ObjList, _, _) :-
   write(Rel),
   write(' cannot create small relation and an index on small relation!'),!,fail.
 
+createIndexSmall(Rel, ObjList, IndexName, _) :- % not(s), si, r -> s
+  optimizerOption(entropy),
+  concat_atom([Rel, 'small'], '_', RelSmallName),
+  not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
+  member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
+  concat_atom([IndexName, 'small'], '_', IndexSmallName),
+  indexType(Type),
+  member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList),
+  trycreateSmallRelation(Rel, ObjList),!.
 
 
+% Test, if there is a _small-relation for relation Rel, otherwise create it
+checkIfSmallRelationExists(Rel, ObjList) :-
+  member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
+  concat_atom([Rel, 'small'], '_', RelSmallName),
+  not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
+  downcase_atom(Rel, RelSimple),
+  trycreateSmallRelation(RelSimple, ObjList),!.
 
+% Test if for each relation there also is a _small-relation, otherwise create it
+checkIfSmallRelationsExist(ObjList) :-
+  optimizerOption(entropy),
+  findall(X,
+          ( member(['OBJECT', X, _ , [[rel | _]]], ObjList),
+            not(sub_atom(X, _, _, 0, '_small')),
+            not(sub_atom(X, _, _, 1, '_sample_')),
+            not(sub_atom(X, 0, _, 0, 'SEC_DERIVED_OBJ')),
+            checkIfSmallRelationExists(X, ObjList)
+          ),
+          _), 
+  retractall(storedSecondoList(_)),
+  !.
+  
 % checkIfIndexIsStored(_, _, LFRel, LFAttr, IndexType, IndexName, _) :-
 %   storedIndex(LFRel, LFAttr, IndexType, IndexName),!.
 
 checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, IndexType, IndexName, ObjList) :-
   storedNoIndex(LFRel, LFAttr),
-  retract(storedNoIndex(LFRel, LFAttr)),
+  retractall(storedNoIndex(LFRel, LFAttr)),
+  retractall(storedIndex(LFRel, LFAttr, IndexType, IndexName)),
   assert(storedIndex(LFRel, LFAttr, IndexType, IndexName)),
   createIndexSmall(Rel, ObjList, IndexName, Attr),!.
 
 checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, IndexType, IndexName, ObjList) :-
+  retractall(storedNoIndex(LFRel, LFAttr)),
+  retractall(storedIndex(LFRel, LFAttr, IndexType, IndexName)),
   assert(storedIndex(LFRel, LFAttr, IndexType, IndexName)),
   createIndexSmall(Rel, ObjList, IndexName, Attr).
-
-
-
 
 checkForAddedIndex(ObjList) :-
   member(['OBJECT', IndexName, _ , [[IndexType | _]]], ObjList),
@@ -358,8 +388,6 @@ checkForAddedIndex(ObjList) :-
     %write(IndexType), write(' '), write(IndexName), nl,
   checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, IndexType, IndexName, ObjList).
 
-
-
 relname(LFRel, LFRel) :-
   spelled(LFRel, _, l), 
   !.
@@ -368,11 +396,6 @@ relname(LFRel, Rel) :-
   spelled(LFRel, _, u),
   upper(LFRel, Rel).
   
-  
-  
-
-
-
 checkForAddedIndices(ObjList) :-
   findall(_, checkForAddedIndex(ObjList), _).
 
@@ -567,26 +590,6 @@ secondo(X) :-
   storeupdateRel(1),  
   secondo(X, _),
   !.
-
-/*secondo(X) :-
-  concat_atom([Command, Name],' ',X),
-  Command = 'delete',
-  isDatabaseOpen,
-  getSecondoList(ObjList),
-  checkIsInList(Name, ObjList, rel),
-  storeupdateRel(0),
-  not(storedRel(Name, _)),
-  downcase_atom(Name, DCName),
-  getSpelledRel(DCName, SpelledRel), 
-  secondo(X, Y),
-  deleteSampleAndSmallFiles(SpelledRel, ObjList),
-  retractStoredInformation(SpelledRel), 
-  retract(storedSecondoList(_)),
-  getSecondoList(_),
-  write('Command succeeded, result:'),
-  nl, nl,
-  show(Y),
-  !.*/
   	
 secondo(X) :-
   concat_atom([Command, Name],' ',X),

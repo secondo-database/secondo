@@ -517,6 +517,7 @@ writeStoredRel(Stream) :-
   dynamic(storedRel/2),
   at_halt(writeStoredRels),
   readStoredRels.
+
 /*
 1.2 Spelling of Relation and Attribute Names
 
@@ -956,22 +957,6 @@ updateIndex :-
   retract(storeupdateIndex(1)),
   assert(storeupdateIndex(0)).
 
-/*updateIndex(Rel, Attr) :- % add index on small relation
-  spelled(Rel, SRel, _),  
-  spelled(Rel:Attr, attr(Attr2, _, _)),
-  storedNoIndex(SRel, Attr2),
-  retract(storedNoIndex(SRel, Attr2)),  
-  hasIndex(rel(SRel, _, _),attr(Attr2, _, _), _, _).
-
-updateIndex(Rel, Attr) :- % delete index on small relation
-  spelled(Rel, SRel, _),
-  spelled(Rel:Attr, attr(Attr2, _, _)),
-  storedIndex(SRel, Attr2, _, Index),
-  %concat_atom([X,Y], '_', Index),
-  retract(storedIndex(SRel, Attr2, _, Index)), 
-  assert(storedNoIndex(SRel, Attr2)),
-  concat_atom(['delete ', Index, '_small'], '', QueryAtom),
-  secondo(QueryAtom).*/
 
 /*
 1.5.2 Update Relations
@@ -1110,78 +1095,6 @@ updateRel(Rel) :-
   assert(storeupdateRel(0)).  
   
 
-
-  
-
-/*updateRel(Rel) :- % rel in lc
-  spelling(Rel, Spelled),
-  Spelled = lc(Rel),
-  sampleNameS(Rel, Sample1),
-  concat_atom(['delete ', Sample1], '', QueryAtom1),
-  tryDelete(QueryAtom1),
-  sampleNameJ(Rel, Sample2),
-  concat_atom(['delete ', Sample2], '', QueryAtom2),
-  tryDelete(QueryAtom2),
-  sampleNameSmall(Rel, Small),
-  concat_atom(['delete ', Small], '',  QueryAtom3),
-  tryDelete(QueryAtom3),
-  retract(storedSecondoList(_)),
-  getSecondoList(_),
-  lowerfl(Sample1, LSample1),
-  downcase_atom(Sample1, DCSample1),
-  lowerfl(Sample2, LSample2),
-  downcase_atom(Sample2, DCSample2),
-  retractall(storedCard(Rel, _)),
-  concat_atom([Rel,'_small'], '', Small2),
-  retractall(storedCard(Small2, _)),
-  retractall(storedTupleSize(Rel, _)),
-  retractall(storedCard(LSample1, _)),
-  retractall(storedCard(LSample2, _)),
-  retractall(storedSpell(Rel, _)),
-  retractall(storedSpell(Rel:_, _)),
-  retractall(storedSpell(DCSample1, _)),
-  retractall(storedSpell(DCSample2, _)),  
-  retractall(storedSpell(Small2, _)),
-  retractSels(Rel),
-  retractPETs(Rel),
-  retractall(storedRel(Rel, _)),
-  retractall(storedIndex(Rel, _, _, _)),
-  retractall(storedNoIndex(Rel, _)),!.*/
-
-/*updateRel(Rel) :- % rel in uc
-  spelled(Rel, Rel2, u),
-  upper(Rel2, URel),
-  sampleNameS(URel, Sample1),
-  concat_atom(['delete ', Sample1], '', QueryAtom1),
-  tryDelete(QueryAtom1),
-  sampleNameJ(URel, Sample2),
-  concat_atom(['delete ', Sample2], '', QueryAtom2),
-  tryDelete(QueryAtom2),
-  sampleNameSmall(URel, Small),
-  concat_atom(['delete ', Small], '', QueryAtom3),
-  tryDelete(QueryAtom3),
-  retract(storedSecondoList(_)),
-  getSecondoList(_),
-  lowerfl(Sample1, LSample1),
-  downcase_atom(Sample1, DCSample1),
-  lowerfl(Sample2, LSample2),
-  downcase_atom(Sample2, DCSample2),
-  retractall(storedCard(Rel2, _)),
-  concat_atom([Rel,'_small'], '', Small2),
-  retractall(storedCard(Small2, _)),
-  retractall(storedTupleSize(Rel2, _)),
-  retractall(storedCard(LSample1, _)),
-  retractall(storedCard(LSample2, _)),
-  retractall(storedSpell(Rel, _)),
-  retractall(storedSpell(Rel:_, _)),
-  retractall(storedSpell(DCSample1, _)),
-  retractall(storedSpell(DCSample2, _)),
-  retractall(storedSpell(Small2, _)),
-  retractSels(Rel2),
-  retractPETs(Rel2),
-  retractall(storedRel(Rel, _)),
-  retractall(storedIndex(Rel2, _, _, _)),
-  retractall(storedNoIndex(Rel2, _)).*/
 /*
 1.6 Average Size Of A Tuple
 

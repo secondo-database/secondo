@@ -98,7 +98,9 @@ optimizerOptionInfo(entropy,
                       (   notIsDatabaseOpen
                         ; ( getSecondoList(ObjList),
                             checkForAddedIndices(ObjList), 
-                            checkForRemovedIndices(ObjList)
+                            checkForRemovedIndices(ObjList),
+                            checkIfSmallRelationsExist(ObjList),
+                            retractall(storedSecondoList(_))
                           )
                       )
                     ), 
@@ -120,9 +122,9 @@ optimizerOptionInfo(rewriteInference,
                     true, true).
 optimizerOptionInfo(rewriteCSE,       
                     'Substitute common subexpressions by extended attributes.',
-                    true, true).
+                    true, delOption(rewriteRemove)).
 optimizerOptionInfo(rewriteRemove,       
-'Remove attributes as early as possible.\n\t\t\t(Autoselects \'rewriteCSE\').',
+'Remove attributes as early as possible.\n\t\t\t(NOTE: This auto-selects \'rewriteCSE\'!)',
                     setOption(rewriteCSE), true).
 optimizerOptionInfo(debug,            
                     '\tActivate debugging code. Also use \'toggleDebug.\'.',
@@ -162,8 +164,8 @@ setOption(X) :-
   retractall(optimizerOption(X)),
   assert(optimizerOption(X)), 
   call(GoalOn),
-  write('Switched on option: \''), write(X), write('\': '), 
-  write(Text), write('.\n'), !.
+  write('Switched on option: \''), write(X), write('\' - '), 
+  write(Text), write('\n'), !.
 
 setOption(X) :-
   write('Unknown option \''), write(X), write('\'.\n'), fail, !.
@@ -173,8 +175,8 @@ delOption(X) :-
   optimizerOptionInfo(X,Text,_,GoalOff),
   retractall(optimizerOption(X)), 
   call(GoalOff),
-  write('Switched off option: \''), write(X), write('\': '), 
-  write(Text), write('.\n'), !.
+  write('Switched off option: \''), write(X), write('\' - '), 
+  write(Text), write('\n'), !.
 
 delOption(X) :-
   write('Unknown option \''), write(X), write('\'.\n'), 
@@ -341,7 +343,7 @@ Feel free to change.
 :- setOption(rewriteMacros).    % Using macro expansion features?
 :- setOption(rewriteInference). % Using automatic inference of predicates?
 :- setOption(rewriteCSE).       % Substitute common subexpressions in queries?
-%:- setOption(rewriteRemove).    % Apply early removal of unused attributes?
+% :- setOption(rewriteRemove).    % Apply early removal of unused attributes?
 % :- setOption(debug), assert(optDebugLevel(all)). % Activating debugging code?
 
 /*
@@ -350,8 +352,9 @@ Feel free to change.
 */
 
 :- showOptions.
-:- nl, write('NOTE: Version 5.4.7 shows in the MSYS console no prompt!'), nl,
-   write('A workaround is to type in the predicate "getprompt."'), nl, nl.
+:-   nl, write('NOTE: SWI-Prolog Version 5.4.7 shows '),
+     write('no prompt in the MSYS console!'), nl,
+     write('      A workaround is to type in the predicate "getprompt."'), nl, nl.
 :- ( current_prolog_flag(windows,true), % query getprompt on windows systems
      getprompt
    ) ; true.
