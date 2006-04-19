@@ -26,8 +26,10 @@ include ../makefile.inc
 platform := $(SECONDO_PLATFORM)
 ifeq ($(platform),win32)
    GetEnvSO := ../lib/GetEnv.dll
+   JNI_MD := win32
 else
    GetEnvSO := ../lib/libGetEnv.so
+   JNI_MD = linux
 endif
 
 ifndef GCC
@@ -53,7 +55,7 @@ GetEnv.h: GetEnv.java
 	$(JAVAH) -classpath .. -o GetEnv.h tools.GetEnv
 
 GetEnv.o: GetEnv.c
-	$(GCC) -fPIC -D_REENTRANT -Wall -I$(J2SDK_ROOT)/include -I$(J2SDK_ROOT)/include/linux -I. -c GetEnv.c -o GetEnv.o
+	$(GCC) -fPIC -D_REENTRANT -Wall -I$(J2SDK_ROOT)/include -I$(J2SDK_ROOT)/include/$(JNI_MD) -I. -c GetEnv.c -o GetEnv.o
 
 ../lib/libGetEnv.so: GetEnv.o
 	$(GCC) -shared -o $(GetEnvSO) GetEnv.o
