@@ -64,7 +64,7 @@ GetEnv.o: GetEnv.c
 	gcc -shared -Wl,-soname,GetEnv.dll GetEnv.o GetEnv.def
 
 GetEnv.def: GetEnv.o
-	dlltool -z GetEnv.def.tmp  MeshGenerator.o
+	dlltool -z GetEnv.def.tmp  GetEnv.o
 	sed -e "s#\(.*\)@\(.*\)@.*;#\1 = \1@\2;#g" GetEnv.def.tmp >GetEnv.def
 	rm GetEnv.def.tmp
 
