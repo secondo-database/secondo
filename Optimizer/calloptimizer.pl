@@ -123,6 +123,9 @@ optimizerOptionInfo(rewriteInference,
 optimizerOptionInfo(rewriteCSE,       
                     'Substitute common subexpressions by extended attributes.',
                     true, delOption(rewriteRemove)).
+optimizerOptionInfo(rewriteCSEall,       
+                    'Extended with attributes for ALL CSEs (Option for \'rewriteCSE\').',
+                    true, true).
 optimizerOptionInfo(rewriteRemove,       
 'Remove attributes as early as possible.\n\t\t\t(NOTE: This auto-selects \'rewriteCSE\'!)',
                     setOption(rewriteCSE), true).
@@ -343,6 +346,7 @@ Feel free to change.
 :- setOption(rewriteMacros).    % Using macro expansion features?
 :- setOption(rewriteInference). % Using automatic inference of predicates?
 :- setOption(rewriteCSE).       % Substitute common subexpressions in queries?
+% :- setOption(rewriteCSEall).    % Extend attributes for ALL CSEs?
 % :- setOption(rewriteRemove).    % Apply early removal of unused attributes?
 % :- setOption(debug), assert(optDebugLevel(all)). % Activating debugging code?
 

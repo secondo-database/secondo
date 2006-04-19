@@ -755,8 +755,7 @@ getExpressionLabel(Node, Label) :- % case: Label known, Node conflicts - Error
   write('\tOld Expression: '), write(NodeOld), write('.\n'),
   write('\tNew Expression: '), write(Node), write('.\n\n'),
   throw(rewriting_cse_preprocessing_label_conflict(Label)),
-  fail,
-  !.
+  fail, !.
 
 
 % find all CSEs
@@ -764,18 +763,20 @@ findCSEs1([], _, 0).      % nothing to do
 findCSEs1([Me|Others],Mode,Expense) :-
   findCSEs1(Others, Mode, OthersExpense),
   findCSEs(Me, Mode, MyExpense),
-  Expense is MyExpense \/ OthersExpense,
-  !.
+  Expense is MyExpense \/ OthersExpense, !.
 
 findCSEs(Node, _, 0) :-   % Node is a leaf. No label is assigned to leaves.
-  atomic(Node)
-  ; Node = :(_,_),
-  !.
+  ( atomic(Node) ; Node = :(_,_) ), !.
 
 findCSEs(NodeList, Mode, Expense) :-
   is_list(NodeList),
-  findCSEs1(NodeList, Mode, Expense),
-  !.
+  findCSEs1(NodeList, Mode, Expense), !.
+
+findCSEs(Node, Mode, 1) :- % Don't recurse into term, if term is already known
+  not(optimizerOption(rewriteCSEall)),
+  Mode \= all,
+  storedExpressionLabel(Node, _, _, _),
+  getExpressionLabel(Node, _), !.
 
 findCSEs(Node, Mode, Expense) :-
   compound(Node),                      % Node is an inner node.
@@ -785,8 +786,7 @@ findCSEs(Node, Mode, Expense) :-
   ((Mode = all ; Expense = 1)          % check if Node should be indexed
     -> getExpressionLabel(Node,_)      % handle only expensive CSEs
      ; true
-  ),
-  !.
+  ), !.
 
 findCSEs(Node, Mode, Expense) :-
   compound(Node),             % Node is an inner node.
@@ -800,8 +800,7 @@ findCSEs(Node, Mode, Expense) :-
   ((Mode = all ; Expense = 1)  % check if Node should be indexed
     -> getExpressionLabel(Node,_)   % handle only expensive CSEs
      ; true
-  ),
-  !.
+  ), !.
 
 % like findCSEs(Node, Mode, Expense), but use Alias as potential label
 findCSEs_alias_case(Node, Mode, Alias, Expense) :-
@@ -816,12 +815,10 @@ findCSEs_alias_case(Node, Mode, Alias, Expense) :-
   ((Mode = all ; Expense = 1)  % check if Node should be indexed
     -> getExpressionLabel(Node,Alias)   % handle only expensive CSEs
      ; true
-  ),
-  !.
+  ), !.
 
 findCSEs_alias_case(Node, Mode, _, Expense) :-
-  findCSEs(Node, Mode, Expense),
-  !.
+  findCSEs(Node, Mode, Expense), !.
 
 /*
 ---- compactCSEs(+Node, -NodeMarked, -Used)
@@ -839,13 +836,11 @@ compactCSEs(Node, NodeMarked, Used) :-
   Node =.. [Me|MyArgs], 
   compactCSEs_1(MyArgs, MyArgsMarked, MyArgsUsed),
   NodeMarked =.. [Me|MyArgsMarked],
-  Used = MyArgsUsed,
-  !.
+  Used = MyArgsUsed, !.
 
 compactCSEs(NodeList, MarkedNodeList, Used) :-
   is_list(NodeList),
-  compactCSEs_1(NodeList, MarkedNodeList, Used),
-  !.
+  compactCSEs_1(NodeList, MarkedNodeList, Used), !.
 
 compactCSEs(Node, Node, []).
 
@@ -854,26 +849,22 @@ compactCSEs_1([],[],[]).           % nothing to do
 compactCSEs_1([Me|Others],[MeMarked|OthersMarked],Used) :-
   compactCSEs_1(Others, OthersMarked, OthersUsed),
   compactCSEs_(Me, MeMarked, MyUsed),
-  merge_set(MyUsed, OthersUsed, Used),
-  !.
+  merge_set(MyUsed, OthersUsed, Used), !.
 
 compactCSEs_(Node, Node, []) :- 
   atomic(Node);
-  Node = :(_,_),
-  !.
+  Node = :(_,_), !.
 
 compactCSEs_(NodeList, MarkedNodeList, Used) :-
   is_list(NodeList),
-  compactCSEs_1(NodeList, MarkedNodeList, Used),
-  !.
+  compactCSEs_1(NodeList, MarkedNodeList, Used), !.
 
 compactCSEs_(Node, NodeMarked, Used) :- % Node is a CSE
   compound(Node),            
   not(is_list(Node)),
   storedExpressionLabel(Node, MyLabel, _, _),
   NodeMarked = MyLabel,
-  Used = [MyLabel],
-  !.
+  Used = [MyLabel], !.
 
 compactCSEs_(Node, NodeMarked, Used) :- % Node is not a CSE
   compound(Node), 
@@ -886,8 +877,7 @@ compactCSEs_(Node, NodeMarked, Used) :- % Node is not a CSE
       -> NodeMarked = Alias
        ; NodeMarked =.. [Me|MyArgsMarked]
   ),
-  Used = MyArgsUsed,
-  !.
+  Used = MyArgsUsed, !.
 
 /*
 ---- replaceAllCSEs/0
@@ -900,8 +890,7 @@ the according label cse\_N and save that compacted expression to the forth
 
 replaceAllCSEs :- 
   findall(X, storedExpressionLabel(_,X,_, _),XList),
-  replaceSingleCSEList(XList),
-  !.
+  replaceSingleCSEList(XList), !.
 
 replaceSingleCSEList([]).
 replaceSingleCSEList([Me|Others]) :-
@@ -909,8 +898,7 @@ replaceSingleCSEList([Me|Others]) :-
   compactCSEs(FlatExpr,CompactExpr,_),
   retractall(storedExpressionLabel(_,Me,_,_)),
   assert(storedExpressionLabel(FlatExpr, Me, NoOcc, CompactExpr)),
-  replaceSingleCSEList(Others),
-  !.
+  replaceSingleCSEList(Others), !.
   
 
 /*

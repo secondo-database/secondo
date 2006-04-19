@@ -342,10 +342,11 @@ checkIfSmallRelationExists(Rel, ObjList) :-
   member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
   concat_atom([Rel, 'small'], '_', RelSmallName),
   not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
-  downcase_atom(Rel, RelSimple),
-  trycreateSmallRelation(RelSimple, ObjList),!.
+  downcase_atom(Rel, RelD),
+  trycreateSmallRelation(RelD, ObjList), !.
 
-% Test if for each relation there also is a _small-relation, otherwise create it
+% Test if for each relation in ObjList there also is a _small-relation, 
+% otherwise create it
 checkIfSmallRelationsExist(ObjList) :-
   optimizerOption(entropy),
   findall(X,
@@ -358,6 +359,10 @@ checkIfSmallRelationsExist(ObjList) :-
           _), 
   retractall(storedSecondoList(_)),
   !.
+
+checkIfSmallRelationsExist(ObjList) :-
+  not(optimizerOption(entropy)), !.
+
   
 % checkIfIndexIsStored(_, _, LFRel, LFAttr, IndexType, IndexName, _) :-
 %   storedIndex(LFRel, LFAttr, IndexType, IndexName),!.
@@ -445,6 +450,7 @@ secondo(X) :-
   getSecondoList(ObjList),
   checkForAddedIndices(ObjList),
   checkForRemovedIndices(ObjList),
+  checkIfSmallRelationsExist(ObjList),
   write('Command succeeded, result:'),
   nl, nl,
   show(Y),!.
