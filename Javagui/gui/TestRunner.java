@@ -196,7 +196,7 @@ private boolean nextCommand(BufferedReader in){
            if(command.length()==connected.length()){
                 restOfLine="";
            }else{
-              restOfLine = connected.substring(command.length());
+              restOfLine = connected.substring(command.length()+1);
            }
            if(command.equals("setup")){
               if(state!=START){
@@ -336,12 +336,6 @@ public int processFile(String fileName, boolean ignoreErrors){
 }
 
 public static String expandVar(String source){
- if(!getEnvAllowed){
-    if(source.indexOf("$")>=0){
-         Reporter.writeError("expandVar not implemented for Java version 1.4");
-    }
-    return source;
- }
  int pos = 0;
  int index;
  while((index=source.indexOf("$",pos)) >0){
@@ -352,7 +346,11 @@ public static String expandVar(String source){
           }else{
             String var = source.substring(index+2,pos-3-index);
             Reporter.writeInfo("expand variable "+ var);
-            String repl = System.getenv(var);
+            String repl = tools.GetEnv.getEnv(var);
+            if(repl==null){
+              Reporter.writeWarning("environment variable "+var+" used but not defined");
+              repl="";
+            }
             source = (source.substring(0,index)+repl+source.substring(pos+1)); 
             pos = index+repl.length();
           }
@@ -362,25 +360,6 @@ public static String expandVar(String source){
  }
  return source; 
 }
-
-private static boolean getEnvOk(){
-  String ver =null;
-  try{
-      ver = System.getProperty("java.version");
-      Reporter.writeInfo("Java Version is " + ver);
-      if(ver!=null && ver.startsWith("1.4")){
-         Reporter.writeError("Java version 1.4 does not support getEnv");
-         return false;
-      }
-  } catch(Exception e){
-     Reporter.debug(e);
-     Reporter.writeError("cannot get the current java version");
-     return false;
-  }
-  return true; 
-}
-
-private static boolean getEnvAllowed=getEnvOk();
 
 
 }
