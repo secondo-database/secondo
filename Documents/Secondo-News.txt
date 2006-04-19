@@ -26,6 +26,10 @@ by enclosing it in single quotes, e.g.
 
 restore database germany from '$(VARIABLE)/secondo-data/germany'; 
 
+Note: On windows the path separator must be a backslash, for example
+
+restore database germany from 'C:\msys\1.0\home\myname\secondo-data\germany'
+
 There should be comprehensive test cases for every algebra. The automated test scripts
 will run all files below "Tests/Testspecs" which are ending with ".test". Moreover, you
 need not to set up your own data in a test. The databases defined in "bin/createdb.test"
