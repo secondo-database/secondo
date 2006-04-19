@@ -61,7 +61,7 @@ GetEnv.o: GetEnv.c
 	$(GCC) -shared -o $(GetEnvSO) GetEnv.o
 
 ../lib/GetEnv.dll: GetEnv.o GetEnv.def
-	gcc -shared -Wl,-soname,GetEnv.dll GetEnv.o GetEnv.def
+	gcc -shared -Wl,-soname,GetEnv.dll -o $(GetEnvSO) GetEnv.o GetEnv.def
 
 GetEnv.def: GetEnv.o
 	dlltool -z GetEnv.def.tmp  GetEnv.o
