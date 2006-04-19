@@ -57,7 +57,7 @@ specs.test: $(SPECFILES) ../makefile.algebras
 	@for file in $(SPECFILES); do \
           echo -e "checking $$file ... "; \
           if !($(PARSERDIR)/Parser < $$file &> /dev/null) then \
-            $(PARSERDIR)/Parser2 < $$file \
+            $(PARSERDIR)/Parser2 < $$file; \
             exit 1; \
           fi \
         done
@@ -70,9 +70,9 @@ buildlibs:
 	@echo -e "\n *** Building algebra libs ***\n";
 	for dir in $(USED_ALGEBRA_DIRS); do \
           if [ -e $$dir/makefile ]; then \
-            if !(make LIBNAME=lib$${dir}Algebra -C $$dir all) then \
+            cd $$dir; if !($(MAKE)) then \
 	      exit 1; \
-	    fi \
+	    fi; cd ..; \
           fi \
 	done
 	@echo -e "\n *** Algebra libs successfully created ***\n";
@@ -81,8 +81,17 @@ buildlibs:
 .PHONY: clean
 clean:
 	rm -f specs specs.test
-	for dir in $(ALL_ALGEBRA_DIRS); do \
-          if !($(MAKE) -C $$dir clean) then \
+	for dir in $(USED_ALGEBRA_DIRS); do \
+          cd $$dir; if !($(MAKE) clean) then \
             exit 1; \
-          fi \
+          fi; cd ..; \
+        done
+
+.PHONY: realclean
+realclean:
+	rm -f specs specs.test
+	for dir in $(ALL_ALGEBRA_DIRS); do \
+          cd $$dir; if !($(MAKE) clean) then \
+            exit 1; \
+          fi; cd ..; \
         done
