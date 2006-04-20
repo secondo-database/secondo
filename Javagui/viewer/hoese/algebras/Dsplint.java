@@ -76,7 +76,7 @@ public class Dsplint extends DsplGeneric implements DsplSimple, RenderAttribute,
    * neccessary for the displaying this type in the queryresultlist.
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    entry = type.symbolValue() + getString(value);
+    entry = type.symbolValue() +" : "+ getString(value);
     qr.addEntry(this);
     return;
   }
