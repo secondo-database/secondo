@@ -72,6 +72,7 @@ JPEG images. We suggest to use the ~display~ program from ImageMagick.
 #include "DateTime.h"
 #include "StandardAttribute.h"
 #include "StandardTypes.h"
+#include "Algebra.h"
 
 const bool PA_DEBUG = false;
 const string PROG_DISPLAY = "/usr/bin/display";

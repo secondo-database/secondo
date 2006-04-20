@@ -93,7 +93,6 @@ The class ~SecondoSystem~ provides the following methods:
 
 #include "ErrorCodes.h"
 #include "NestedList.h"
-#include "AlgebraManager.h"
 #include "SecondoCatalog.h"
 
 /**************************************************************************

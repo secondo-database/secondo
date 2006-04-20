@@ -30,11 +30,11 @@ SECONDO types ~picture~ and ~histogram~ are located in other modules.
 
 */
 
-using namespace std;
-
+#include "Algebra.h"
 #include "QueryProcessor.h"
-
 #include "PictureAlgebra.h"
+
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -57,41 +57,41 @@ enum Picture2ScalarTypeMapReturnType { P2STM_INT, P2STM_BOOL, P2STM_STRING };
 template<Picture2ScalarTypeMapReturnType returnType>
 static ListExpr Picture2ScalarTypeMap(ListExpr args) {
     if (PA_DEBUG) 
-	cerr << "Picture2ScalarTypeMap() called with returnType=" 
-	     << returnType
-	     << endl;
+        cerr << "Picture2ScalarTypeMap() called with returnType=" 
+             << returnType
+             << endl;
 
     if (PA_DEBUG) 
-	cerr << "Picture2ScalarTypeMap() nl->ListLength(args)=" 
-	     << nl->ListLength(args)
-	     << endl;
+        cerr << "Picture2ScalarTypeMap() nl->ListLength(args)=" 
+             << nl->ListLength(args)
+             << endl;
     if (PA_DEBUG) 
-	cerr << "Picture2ScalarTypeMap() nl->First(args)=" 
-	     << nl->First(args)
-	     << endl;
+        cerr << "Picture2ScalarTypeMap() nl->First(args)=" 
+             << nl->First(args)
+             << endl;
 
     if (nl->ListLength(args) == 1) {
-	if (nl->IsEqual(nl->First(args), "picture")) {
-	    if (PA_DEBUG) cerr << "Picture2ScalarTypeMap() #1" << endl;
+        if (nl->IsEqual(nl->First(args), "picture")) {
+            if (PA_DEBUG) cerr << "Picture2ScalarTypeMap() #1" << endl;
     
-	    if (returnType == P2STM_INT)
-		return nl->SymbolAtom("int");
-	    else if (returnType == P2STM_BOOL)
-		return nl->SymbolAtom("bool");
-	    else
-		return nl->SymbolAtom("string");
-	} else {
-	    if (PA_DEBUG) cerr << "Picture2ScalarTypeMap() #2" << endl;
+            if (returnType == P2STM_INT)
+                return nl->SymbolAtom("int");
+            else if (returnType == P2STM_BOOL)
+                return nl->SymbolAtom("bool");
+            else
+                return nl->SymbolAtom("string");
+        } else {
+            if (PA_DEBUG) cerr << "Picture2ScalarTypeMap() #2" << endl;
     
-	    string lexpr;
-	    nl->WriteToString(lexpr, nl->First(args));
-	    ErrorReporter::ReportError(
-		"expected 'picture' argument but received '"+lexpr+"'");
-	}
+            string lexpr;
+            nl->WriteToString(lexpr, nl->First(args));
+            ErrorReporter::ReportError(
+                "expected 'picture' argument but received '"+lexpr+"'");
+        }
     } else 
-	ErrorReporter::ReportError(
-	    "expected only one argument but received "
-	    +nl->ListLength(args));
+        ErrorReporter::ReportError(
+            "expected only one argument but received "
+            +nl->ListLength(args));
 
     return nl->SymbolAtom("typeerror");
 }
@@ -175,8 +175,8 @@ static const string pictureEqualsSpec =
     "defines the avagerage of n subsequent color values. If this "
     "tolerance is exceeded the sum of all "
     "aberrations will be calculated and returned as result.'"
-    "'pic1 pic2 equals [ 5, 100 ] : This means a sliding window of five values " 
-    "may have an abberration of 1%.'"
+    "'pic1 pic2 equals [ 5, 100 ] : This means a sliding window of "
+    "five values may have an abberration of 1%.'"
     ") )";
 
 static const string pictureSimpleEqualsSpec =
@@ -264,40 +264,40 @@ ListExpr PictureExportTypeMap(ListExpr args);
 ListExpr PictureSimpleEqualsTypeMap(ListExpr args);
 
 int PictureFilenameValueMap(Word* args,
-			    Word& result,
-			    int message,
-			    Word& local,
-			    Supplier s);
+                            Word& result,
+                            int message,
+                            Word& local,
+                            Supplier s);
 int PictureCategoryValueMap(Word* args,
-			    Word& result,
-			    int message,
-			    Word& local,
-			    Supplier s);
+                            Word& result,
+                            int message,
+                            Word& local,
+                            Supplier s);
 int PictureDateValueMap(Word* args,
-			Word& result,
-			int message,
-			Word& local,
-			Supplier s);
+                        Word& result,
+                        int message,
+                        Word& local,
+                        Supplier s);
 int PictureIsPortraitValueMap(Word* args,
-			      Word& result,
-			      int message,
-			      Word& local,
-			      Supplier s);
+                              Word& result,
+                              int message,
+                              Word& local,
+                              Supplier s);
 int PictureDisplayValueMap(Word* args,
-			   Word& result,
-			   int message,
-			   Word& local,
-			   Supplier s);
+                           Word& result,
+                           int message,
+                           Word& local,
+                           Supplier s);
 int PictureExportValueMap(Word* args,
-			  Word& result,
-			  int message,
-			  Word& local,
-			  Supplier s);
+                          Word& result,
+                          int message,
+                          Word& local,
+                          Supplier s);
 int PictureSimpleEqualsValueMap(Word* args,
-				Word& result,
-				int message,
-				Word& local,
-				Supplier s);
+                                Word& result,
+                                int message,
+                                Word& local,
+                                Supplier s);
 
 extern TypeConstructor picture;
 
@@ -308,20 +308,20 @@ extern TypeConstructor picture;
 */
 
 extern int PictureWidthValueMap(Word* args,
-				Word& result,
-				int message,
-				Word& local,
-				Supplier s);
+                                Word& result,
+                                int message,
+                                Word& local,
+                                Supplier s);
 extern int PictureHeightValueMap(Word* args,
-				 Word& result,
-				 int message,
-				 Word& local,
-				 Supplier s);
+                                 Word& result,
+                                 int message,
+                                 Word& local,
+                                 Supplier s);
 extern int PictureIsGrayscaleValueMap(Word* args,
-				      Word& result,
-				      int message,
-				      Word& local,
-				      Supplier s);
+                                      Word& result,
+                                      int message,
+                                      Word& local,
+                                      Supplier s);
 
 /*
 
@@ -342,15 +342,15 @@ extern ListExpr PictureEqualsTypeMap(ListExpr args);
 extern ListExpr PictureLikeTypeMap(ListExpr args);
 
 extern int PictureColordistValueMap(Word* args,
-				    Word& result,
-				    int message,
-				    Word& local,
-				    Supplier s);
+                                    Word& result,
+                                    int message,
+                                    Word& local,
+                                    Supplier s);
 extern int PictureEqualsValueMap(Word* args,
-				 Word& result,
-				 int message,
-				 Word& local,
-				 Supplier s);
+                                 Word& result,
+                                 int message,
+                                 Word& local,
+                                 Supplier s);
 
 extern ValueMapping pictureLikeValueMap[];
 
@@ -369,25 +369,25 @@ extern ListExpr PictureFlipleftTypeMap(ListExpr args);
 extern ListExpr PictureMirrorTypeMap(ListExpr args);
 
 extern int PictureCutValueMap(Word* args,
-			      Word& result,
-			      int message,
-			      Word& local,
-			      Supplier s);
+                              Word& result,
+                              int message,
+                              Word& local,
+                              Supplier s);
 extern int PictureScaleValueMap(Word* args,
-				Word& result,
-				int message,
-				Word& local,
-				Supplier s);
+                                Word& result,
+                                int message,
+                                Word& local,
+                                Supplier s);
 extern int PictureFlipleftValueMap(Word* args,
-				   Word& result,
-				   int message,
-				   Word& local,
-				   Supplier s);
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier s);
 extern int PictureMirrorValueMap(Word* args,
-				 Word& result,
-				 int message,
-				 Word& local,
-				 Supplier s);
+                                 Word& result,
+                                 int message,
+                                 Word& local,
+                                 Supplier s);
 
 /*
 
@@ -555,31 +555,31 @@ static Operator exportop(
 class PictureAlgebra: public Algebra {
 public:
     PictureAlgebra() : Algebra() {
-	if (PA_DEBUG) cerr << "initializing PictureAlgebra" << endl;
+        if (PA_DEBUG) cerr << "initializing PictureAlgebra" << endl;
 
-	AddTypeConstructor(&picture);
-	AddTypeConstructor(&histogram);
+        AddTypeConstructor(&picture);
+        AddTypeConstructor(&histogram);
 
-	picture.AssociateKind("DATA");
-	histogram.AssociateKind("DATA");
+        picture.AssociateKind("DATA");
+        histogram.AssociateKind("DATA");
 
-	AddOperator(&height);
-	AddOperator(&width);
-	AddOperator(&isgrayscale);
-	AddOperator(&filename);
-	AddOperator(&category);
-	AddOperator(&date);
-	AddOperator(&isportrait);
-	AddOperator(&colordist);
-	AddOperator(&equals);
-	AddOperator(&simpleequals);
-	AddOperator(&like);
-	AddOperator(&scale);
-	AddOperator(&cut);
-	AddOperator(&flipleft);
-	AddOperator(&mirror);
-	AddOperator(&display);
-	AddOperator(&exportop);
+        AddOperator(&height);
+        AddOperator(&width);
+        AddOperator(&isgrayscale);
+        AddOperator(&filename);
+        AddOperator(&category);
+        AddOperator(&date);
+        AddOperator(&isportrait);
+        AddOperator(&colordist);
+        AddOperator(&equals);
+        AddOperator(&simpleequals);
+        AddOperator(&like);
+        AddOperator(&scale);
+        AddOperator(&cut);
+        AddOperator(&flipleft);
+        AddOperator(&mirror);
+        AddOperator(&display);
+        AddOperator(&exportop);
     }
     ~PictureAlgebra() {}
 };
