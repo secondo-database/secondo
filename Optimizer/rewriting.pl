@@ -1233,6 +1233,29 @@ directAttributes(X,[],[]) :-
   atomic(X), !.
 
 /*
+---- mergeRelations(+RelsBefore,+RelsAdd,-RelsResult,+IndexIn,-IndexOut)
+----
+Auxiliary predicate. Given a list of relations ~RelsBefore~, 
+and a second list of relations ~RelsAdd~, both lists will be merged, maintaining
+the given ordering, but avoiding dublets. Furthermore, it will return the binary
+encoded index of ~RelsAdd~ with respect to ~RelsResult~. ~IndexIn~ should be
+initialized to 0.
+
+*/
+
+mergeRelations(Before, [], Before, IndexIn, IndexIn) :- !.
+mergeRelations(Before, [First|Rest], After, IndexIn, IndexOut) :-
+  ( not(memberchk(First,Before))
+      -> append(Before,[First],Intermediate)
+       ; Intermediate = Before
+  ),
+  nth1(Index,Intermediate,First),
+  IndexIntermediate is IndexIn + 2**Index,
+  mergeRelations(Intermediate, Rest, After, IndexIntermediate, IndexOut), 
+  !.
+
+
+/*
 15.1.2 Rewriting the Plan for the Where-Clause
 
 ---- insertExtend(+PlanIn, -PlanOut, +AvailableAttrsIn, -AvailableAttrsOut).
@@ -1748,6 +1771,10 @@ is defined.
 */
 
 % create the set of all base-attributes needed for projection in case 'select *'
+
+/*
+Old: 
+----
 rewritePlanGetBaseAttrs(BaseAttrSet) :-
   findall(X,
           usedAttr(rel(_,*,_),X),
@@ -1761,6 +1788,52 @@ rewritePlanGetBaseAttrs(BaseAttrSet) :-
   list_to_set(UnrenamedL,UnrenamedS),
   list_to_set(RenamedL,RenamedS),
   union(UnrenamedS,RenamedS,BaseAttrSet), !.
+----
+
+*/
+
+/*
+New:
+
+*/
+
+rewritePlanGetBaseAttrs(BaseAttrSet) :-
+  findall(X, % get list of used relations
+          ( usedAttr(rel(RelName,RelAlias,_),_), 
+            ( RelAlias = * -> X = RelName
+                           ;  X = RelName:RelAlias
+            ) 
+          ),
+          UsedRelationsL),
+  list_to_set(UsedRelationsL,UsedRelationsS),
+  findall(Attrs,
+          ( member(Rel,UsedRelationsS),
+            ( Rel = RelName:RelAlias
+              -> ( relation(RelName,Attrs1),
+                   rewritePlanGetAttrsRenamed(RelName,RelAlias,Attrs1,Attrs)
+                 )
+              ;  ( relation(Rel,Attrs1),
+                   rewritePlanGetAttrsUnrenamed(Rel, Attrs1, Attrs)
+                 )
+            )
+          ),
+          BaseAttrList
+         ),
+  flatten(BaseAttrList,BaseAttrListF),
+  list_to_set(BaseAttrListF,BaseAttrSet), !.
+
+rewritePlanGetAttrsUnrenamed(_, [], []) :- !.
+rewritePlanGetAttrsUnrenamed(RelName, [X|MoreX], [X2|MoreX2]) :-
+  spelled(RelName:X,X2),
+  rewritePlanGetAttrsUnrenamed(RelName, MoreX, MoreX2), !.
+
+rewritePlanGetAttrsRenamed(_,_,[],[]) :- !.
+rewritePlanGetAttrsRenamed(RelName,RelAlias,[X|MoreX],[X2|MoreX2]) :-
+  spelled(RelName:X,X1),
+  X1 = attr(AttrName, Arg, Case),
+  X2 = attr(RelAlias:AttrName, Arg, Case),
+  rewritePlanGetAttrsRenamed(RelName, RelAlias, MoreX, MoreX2), !.
+  
 
 /*
 

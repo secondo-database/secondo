@@ -2974,20 +2974,21 @@ lookupPred(Pred, pr(Pred2, Rel)) :-
 lookupPred(Pred, pr(Pred2, Rel1, Rel2)) :-
   lookupPred1(Pred, Pred2, [], [Rel1, Rel2]), !.
 
-lookupPred(Pred, _) :-
-  lookupPred1(Pred, _, [], []),
-  write('Error in query: Predicate \''),  write(Pred),
-  write('\' is a constant. This is not allowed.'), nl, 
-  throw(lookup_pred),
-  fail, !.
-
-lookupPred(Pred, _) :-
+lookupPred(Pred, error) :-
   lookupPred1(Pred, _, [], Rels),
   length(Rels, N),
-  N > 2,
-  write('Error in query: Predicate \''), write(Pred), 
-  write('\' involves more than two relations. '),
-  write('This is not allowed.'), nl, 
+  ( (N = 0)
+    -> ( write('Error in query: Predicate \''),  write(Pred),
+         write('\' is a constant. This is not allowed.'), nl
+       )
+    ; ( (N > 2)
+        -> ( write('Error in query: Predicate \''), write(Pred), 
+             write('\' involves more than two relations: '),
+             write(Rels), write('. This is not allowed.'), nl
+           )
+        ; true
+      )
+  ),
   throw(lookup_pred),
   fail, !.
 
@@ -3053,31 +3054,6 @@ lookupPred2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
   lookupPred1(Me,     Me2,     RelsBefore,  RelsAfterMe),
   lookupPred2(Others, Others2, RelsAfterMe, RelsAfter),
   !.
-
-
-/*
----- mergeRelations(+RelsBefore,+RelsAdd,-RelsResult,+IndexIn,-IndexOut)   OK
-----
-Auxiliary predicate to ~lookupPred1/4~. Given a list of relations ~RelsBefore~, 
-and a second list of relations ~RelsAdd~, both lists will be merged, maintaining
-the give ordering, but avoiding dublets. Furthermore, it will return the binary
-encoded index of ~RelsAdd~ with respect to ~RelsResult~. ~IndexIn~ should be
-initialized to 0.
-
-*/
-
-mergeRelations(Before, [], Before, IndexIn, IndexIn) :- !.
-mergeRelations(Before, [First|Rest], After, IndexIn, IndexOut) :-
-  ( not(memberchk(First,Before))
-      -> append(Before,[First],Intermediate)
-       ; Intermediate = Before
-  ),
-  nth1(Index,Intermediate,First),
-  IndexIntermediate is IndexIn + 2**Index,
-  mergeRelations(Intermediate, Rest, After, IndexIntermediate, IndexOut), 
-  !.
-
-
 
 
 /*

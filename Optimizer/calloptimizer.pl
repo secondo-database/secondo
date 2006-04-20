@@ -124,7 +124,7 @@ optimizerOptionInfo(rewriteCSE,
                     'Substitute common subexpressions by extended attributes.',
                     true, delOption(rewriteRemove)).
 optimizerOptionInfo(rewriteCSEall,       
-                    'Extended with attributes for ALL CSEs (Option for \'rewriteCSE\').',
+'Extend with attributes for _ALL_ CSEs.\n\t\t\t(Sub-option for \'rewriteCSE\')',
                     true, true).
 optimizerOptionInfo(rewriteRemove,       
 'Remove attributes as early as possible.\n\t\t\t(NOTE: This auto-selects \'rewriteCSE\'!)',
