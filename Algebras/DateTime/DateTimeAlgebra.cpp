@@ -318,6 +318,7 @@ Sets this instant to the mimimum possible value.
 
 */
 void DateTime::ToMinimum(){
+   defined = true;
    day = min_long;
    milliseconds = 0; 
 }
@@ -330,6 +331,7 @@ Sets this instant to the maximum possible value.
 
 */
 void DateTime::ToMaximum(){
+   defined = true;
    day = max_long;
    milliseconds = MILLISECONDS-1; 
 }
