@@ -1634,11 +1634,13 @@ private boolean equalValues(ListExpr LE,double epsilon, boolean isAbsolute){
     if(value==null && LE.value==null)
        return true;
     else{ // both value members are not null
-       if(type!=REAL_ATOM){
+       if(type!=REAL_ATOM && type!=NO_ATOM){
            boolean res = value.equals(LE.value);
            return res;
-       }
-       else{
+       }else if(type==NO_ATOM){
+          return ((ListExpr)value).equals((ListExpr)value,epsilon,isAbsolute);
+
+       } else{
            return similar(realValue(),LE.realValue(),epsilon, isAbsolute);
        }
     }
