@@ -47,11 +47,13 @@ using namespace datetime;
 /* 
 Should be removed when TemporalExtAlgebra.h is created!
 
-*/
+
 typedef ConstTemporalUnit<CcString> UString;
 typedef Mapping< UString, CcString > MString;
 
-//#include "TemporalExtAlgebra.h"
+*/
+
+#include "TemporalExtAlgebra.h"
 
 /*
 1 Class template ~RefinementPartition~
@@ -2084,6 +2086,68 @@ static void MovingRealCompareMS(MReal& op1,CcReal& op2, MBool&
   
 }
 
+double MPointInMPoint(double startx1, double starty1, double endx1,
+                     double endy1, double startx2, double starty2,
+                     double endx2, double endy2){
+/*
+Function MPointInMPoint checks whether the two mpoints are crossing.
+It returns -1.0 if the mpoints are not crossing and 
+2.0 if both mpoints are equal all the time. In all other cases it 
+return thr fraction of iv when mpoints are crossing (0.0 .. 1.0).
+
+*/  
+  if(startx1 == startx2 && starty1 == starty2 && endx1 == endx2 
+  && endy1 == endy2) {
+    cout<<"start and end equal"<<endl;
+    return 2.0;
+  }
+  else if(startx1 == startx2 && starty1 == starty2) {  
+    cout<<"only start equal"<<endl;
+    return 0.0;
+  }
+  else if(endx1 == endx2 && endy1 == endy2) { 
+    return 1.0;
+  }
+  else {
+    cout<<"neither start nor end equal"<<endl;
+    double dx = endx1 - startx1 - endx2 + startx2;
+    double dy = endy1 - starty1 - endy2 + starty2;
+    double tx = 0.0;
+    double ty = 0.0;
+    bool vert = false;
+    bool hor = false;
+    if (dx == 0.0)
+      vert = true;
+    else
+      tx = (startx2 - startx1) / dx;
+    if (dy == 0.0)
+      hor = true;
+    else 
+      ty = (starty2 - starty1) / dy;
+    cout<<" tx "<<tx<<" "<<vert<<" , ty "<<ty<<
+    " "<<hor<<endl;
+    if (hor) {
+      if ((starty1 <= starty2 && starty1 >= endy2) 
+       || (starty1 <= endy2 && starty1 >= endy2))
+          ty = tx;
+      else
+        ty = -1.0;
+    }
+    else if (vert) {
+      if ((startx1 <= startx2 && startx1 >= endx2) 
+        || (startx1 <= endx2 && startx1 >= startx2))
+        tx = ty;
+      else
+        tx = -1.0;
+    }
+    if(AlmostEqual(tx, ty) && tx > 0.0 && tx < 1.0)
+      return tx;
+    else 
+      return -1.0;
+  }
+  return -1.0;  //should not be reached!
+}
+
 /*
 For Operators ~=~ and ~\#~ and MovingPoint/MovingPoint
 
@@ -2129,6 +2193,78 @@ void MovingPointCompareMM( MPoint& p1, MPoint& p2, MBool& result,
     u2->TemporalFunction(iv->start, rp2);
     u2->TemporalFunction(iv->end, rp3);
     
+    double t = MPointInMPoint(rp0.GetX(), rp0.GetY(), rp1.GetX(),
+                    rp1.GetY(),rp2.GetX(), rp2.GetY(),
+                    rp3.GetX(), rp3.GetY());
+    if(t == 2.0){
+      cout<<"start and end equal"<<endl;
+      uBool.timeInterval = *iv;
+      uBool.constValue.Set(true, op == 0 ? true : false);
+      result.MergeAdd( uBool );
+    }
+    else if(t == 0.0){
+      cout<<"only start equal"<<endl;
+      if (iv->lc) {
+        cout<<"point ok"<<endl;
+        uBool.timeInterval.start = iv->start;
+        uBool.timeInterval.end = iv->start;
+        uBool.timeInterval.lc = true;
+        uBool.timeInterval.rc = true;
+        uBool.constValue.Set(true, op == 0 ? true : false);
+        result.MergeAdd( uBool );
+      }
+      uBool.timeInterval = *iv;
+      uBool.timeInterval.lc = false;
+      uBool.constValue.Set(true, op == 0 ? false : true);
+      result.MergeAdd( uBool );
+    }
+    else if(t == 1.0){
+      cout<<"only end equal"<<endl;
+      uBool.timeInterval = *iv;
+      uBool.timeInterval.rc = false;
+      uBool.constValue.Set(true, op == 0 ? false : true);
+      result.MergeAdd( uBool );
+      if (iv->rc) {
+        cout<<"point ok"<<endl;
+        uBool.timeInterval.start = iv->end;
+        uBool.timeInterval.end = iv->end;
+        uBool.timeInterval.lc = true;
+        uBool.timeInterval.rc = true;;
+        uBool.constValue.Set(true, op == 0 ? true : false);
+        result.MergeAdd( uBool );
+      }
+    }
+    else if(t > 0.0 && t < 1.0){
+      cout<<"crossing -> one point equal"<<endl;
+      Instant time;
+      time.ReadFrom(t  * (iv->end.ToDouble() 
+                       - iv->start.ToDouble()) 
+                       + iv->start.ToDouble());
+      time.SetType(instanttype);
+      uBool.timeInterval = *iv;
+      uBool.timeInterval.rc = false;
+      uBool.timeInterval.end = time;
+      uBool.constValue.Set(true, op == 0 ? false : true);
+      result.MergeAdd( uBool );
+      uBool.timeInterval.rc = true;
+      uBool.timeInterval.start = time;
+      uBool.timeInterval.lc = true;
+      uBool.constValue.Set(true, op == 0 ? true : false);
+      result.MergeAdd( uBool );
+      uBool.timeInterval.lc = false;
+      uBool.timeInterval.rc = iv->rc;
+      uBool.timeInterval.end = iv->end;
+      uBool.constValue.Set(true, op == 0 ? false : true);
+      result.MergeAdd( uBool );
+    }
+    else {
+      cout<<"no crossing -> no equal"<<endl;
+      uBool.timeInterval = *iv;
+      uBool.constValue.Set(true, op == 0 ? false : true);
+      result.MergeAdd( uBool );
+    }
+    
+    /*
     if(rp0 == rp2 && rp1 == rp3) {  //start and end equal
       cout<<"start and end equal"<<endl;
       uBool.timeInterval = *iv;
@@ -2235,6 +2371,8 @@ void MovingPointCompareMM( MPoint& p1, MPoint& p2, MBool& result,
         result.MergeAdd( uBool );
       }
     }
+    */
+    
   }
   result.EndBulkLoad( false );
 }
@@ -2656,6 +2794,251 @@ void MovingRegionCompareMS( MRegion *mr, CRegion *r, MBool *result,
   result->EndBulkLoad(false);
 }
 
+/*
+For Operators ~=~ and ~\#~ and MovingRegion/Region
+
+*/
+
+void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
+ int op)
+{
+  cout<<"MovingRegionCompareMM called"<<endl;
+  RefinementPartitionLift<MRegion, MRegion, URegion, URegion> rp(*mr1, *mr2);
+  cout<<"RefimentPartiion done with size "<<rp.Size()<<endl;
+  Interval<Instant>* iv;
+  int reg1Pos;
+  int reg2Pos;
+  UBool uBool;
+  
+  result->Clear();
+  result->StartBulkLoad();
+  
+  for( unsigned int i = 0; i < rp.Size(); i++ ){
+    rp.Get(i, iv, reg1Pos, reg2Pos);
+    cout<<"interval # "<<i<<" "<<reg1Pos<<" "<<reg2Pos<<endl;
+    if(reg1Pos == -1 || reg2Pos == -1)
+      continue;
+    cout<<"bothoperators in iv # "<<i<<" [ "
+    <<iv->start.ToDouble()<<" "<<iv->end.ToDouble()<<" "<<iv->lc<<" "
+    <<iv->rc<<" ] reg1Pos "<<reg1Pos<<", reg2Pos "<<reg2Pos <<endl;
+    const URegion *ureg1;
+    const URegion *ureg2;
+    mr1->Get(reg1Pos, ureg1);
+    mr2->Get(reg2Pos, ureg2);
+    if(ureg1->GetSegmentsNum() != ureg1->GetSegmentsNum()){
+      cout<<"uregions have different numbers of segments -> "
+      <<"iv not equal"<<endl;
+      uBool.timeInterval = *iv;
+      uBool.constValue.Set(true, op == 0 ? false : true);
+      cout<<"MergeAdd uBool "<<uBool.constValue.GetBoolval()
+      <<" ["<<uBool.timeInterval.start.ToDouble()
+      <<" "<<uBool.timeInterval.end.ToDouble()<<" "
+      <<uBool.timeInterval.lc<<" "<<uBool.timeInterval.rc<<"]"<<endl;
+      result->MergeAdd(uBool);
+      continue;
+    }
+    if((ureg1->GetSegmentsNum() == 0)&&(ureg1->GetSegmentsNum() == 0)){
+      cout<<"both uregions have no segments -> iv  equal"<<endl;
+      uBool.timeInterval = *iv;
+      uBool.constValue.Set(true, op == 0 ? true : false);
+      cout<<"MergeAdd uBool "<<uBool.constValue.GetBoolval()
+      <<" ["<<uBool.timeInterval.start.ToDouble()
+      <<" "<<uBool.timeInterval.end.ToDouble()<<" "
+      <<uBool.timeInterval.lc<<" "<<uBool.timeInterval.rc<<"]"<<endl;
+      result->MergeAdd(uBool);
+      continue;
+    }
+    //find possible times of equality
+    const MSegmentData *dms1;
+    Periods* period = new Periods(0);
+    Periods* between = new Periods(0);
+    Periods* pResult = new Periods(0);
+    Interval<Instant> newper; //part of the result
+    bool uregionPerhapsEqual = false;
+    MSegmentData rdms1;
+    
+    ureg1->GetSegment(0, dms1);
+    dms1->restrictToInterval(ureg1->timeInterval, *iv, rdms1);
+    
+    pResult->Clear();
+    for(int n = 0; n < ureg2->GetSegmentsNum(); n++){  
+      const MSegmentData *dms2; 
+      MSegmentData rdms2;
+      
+      ureg2->GetSegment(n, dms2);
+      dms2->restrictToInterval(ureg2->timeInterval, *iv, rdms2);
+      double ts = MPointInMPoint(
+        rdms1.GetInitialStartX(), rdms1.GetInitialStartY(),
+        rdms1.GetFinalStartX(), rdms1.GetFinalStartY(),
+        rdms2.GetInitialStartX(), rdms2.GetInitialStartY(), 
+        rdms2.GetFinalStartX(), rdms2.GetFinalStartY());
+      double te = MPointInMPoint(
+        rdms1.GetInitialEndX(), rdms1.GetInitialEndY(),
+        rdms1.GetFinalEndX(), rdms1.GetFinalEndY(),
+        rdms2.GetInitialEndX(), rdms2.GetInitialEndY(), 
+        rdms2.GetFinalEndX(), rdms2.GetFinalEndY());
+       
+      if(ts == 2.0 && te == 2.0){
+        cout<<"uregions are possibly equal"<<endl;
+        uregionPerhapsEqual = true;  
+      }
+      else if(((ts >=0.0) && (ts <= 1.0) && AlmostEqual(ts, te))
+        || (ts == 2.0 && (te >=0.0) && (te <= 1.0))
+        || (te == 2.0 && (ts >=0.0) && (ts <= 1.0))){
+        cout<<"equality found at t "<<ts<<" for dms "<<n<<endl;
+        Instant t;
+        t.ReadFrom((iv->end.ToDouble() 
+          - iv->start.ToDouble()) * ts 
+          + iv->start.ToDouble());
+        t.SetType(instanttype);
+        newper.start = t;
+        newper.end = t;
+        newper.lc = true;
+        newper.rc = true;
+        cout<<"newper ["<< newper.start.ToDouble()
+        <<" "<<newper.end.ToDouble()<<" "<<newper.lc<<" "
+        <<newper.rc<<"]"<<endl;
+        period->Clear();
+        period->StartBulkLoad();
+        period->Add(newper);
+        period->EndBulkLoad(false);
+        if (!pResult->IsEmpty()) {
+          between->Clear();
+          period->Union(*pResult, *between);
+          pResult->Clear();
+          pResult->CopyFrom(between);
+        }
+        else 
+          pResult->CopyFrom(period);      
+      }
+    }
+    delete period;
+    delete between;
+    
+    if(uregionPerhapsEqual){
+      /*
+      test for eaquality of total uregion
+      this can not be done at start and end of interval,
+      because they are probably not inside the interval.
+      So it is used the 10 and 90 percent time of the uregion.
+    
+      */
+
+      CRegion snapshot1;
+      CRegion snapshot2;
+      cout<<"uregions are possibly equal. Create snapshots"<<endl;
+      Instant time;
+      time.ReadFrom(0.1  * (iv->end.ToDouble() 
+                         - iv->start.ToDouble()) 
+                         + iv->start.ToDouble());
+      time.SetType(instanttype);
+      ureg1->TemporalFunction(time, snapshot1);
+      ureg2->TemporalFunction(time, snapshot2);
+      if(snapshot1 == snapshot2){
+        cout<<"snapshots of iv->start are equal"<<endl;
+        time.ReadFrom(0.1  * (iv->end.ToDouble() 
+                           - iv->start.ToDouble()) 
+                           + iv->start.ToDouble());
+        time.SetType(instanttype);
+        ureg1->TemporalFunction(time, snapshot1);
+        ureg2->TemporalFunction(time, snapshot2);
+        if(snapshot1 == snapshot2){
+          cout<<"snapshots of iv->end are equal, too."<<endl;
+          uBool.timeInterval = *iv;
+          uBool.constValue.Set(true, op == 0 ? true : false);
+          cout<<"MergeAdd uBool "<<uBool.constValue.GetBoolval()
+          <<" ["<<uBool.timeInterval.start.ToDouble()
+          <<" "<<uBool.timeInterval.end.ToDouble()<<" "
+          <<uBool.timeInterval.lc<<" "<<uBool.timeInterval.rc<<"]"<<endl;
+          result->MergeAdd(uBool);
+          continue;
+        }
+        else
+          cout<<"snapshots of iv->end are not equal,"
+          <<" uregions are not equal"<<endl;
+      }
+      else
+        cout<<"snapshots of iv->start are not equal,"
+        <<" uregegions are not equal"<<endl;
+    }
+    
+    const Interval<Instant> *per;
+    bool finished = false;
+    cout<<"number of times : "<<pResult->GetNoComponents()<<endl;
+    for(int i = 0; i < pResult->GetNoComponents(); i++){
+      CRegion snapshot1;
+      CRegion snapshot2;
+      pResult->Get(i, per);
+      cout<<"test time # "<<i<<" "<<per->start.ToDouble()<<endl;
+      if((per->start == ureg1->timeInterval.start 
+          && !ureg1->timeInterval.lc)
+        || (per->start == ureg2->timeInterval.start 
+          && !ureg2->timeInterval.lc)
+        || (per->start == ureg1->timeInterval.end 
+          && !ureg1->timeInterval.rc)
+        || (per->start == ureg2->timeInterval.end 
+          && !ureg2->timeInterval.rc))
+        //no snapshot possible, so this uregions can not be 
+        //equal at this time!
+        continue;
+      ureg1->TemporalFunction(per->start, snapshot1);
+      ureg2->TemporalFunction(per->start, snapshot2);
+      if(snapshot1 == snapshot2){
+        cout<<"snapshot equal!"<<endl;
+        if(per->start > iv->start){
+          uBool.timeInterval.start = iv->start;
+          uBool.timeInterval.lc = iv->lc;
+          uBool.timeInterval.end = per->start;
+          uBool.timeInterval.rc = !per->rc;
+          uBool.constValue.Set(true, (op == 0) ? false : true);
+          cout<<"uBool "<<uBool.constValue.GetBoolval()
+          <<" ["<<uBool.timeInterval.start.ToDouble()
+          <<" "<<uBool.timeInterval.end.ToDouble()<<" "
+          <<uBool.timeInterval.lc<<" "
+          <<uBool.timeInterval.rc<<"]"<<endl;
+          result->MergeAdd(uBool);
+        }
+        uBool.timeInterval = *per;
+        uBool.constValue.Set(true, (op == 0) ? true : false);
+        cout<<"uBool "<<uBool.constValue.GetBoolval()
+        <<" ["<<uBool.timeInterval.start.ToDouble()
+        <<" "<<uBool.timeInterval.end.ToDouble()<<" "
+        <<uBool.timeInterval.lc<<" "<<uBool.timeInterval.rc<<"]"<<endl;
+        result->MergeAdd(uBool);
+        if(per->end < iv->end){
+          uBool.timeInterval.start = per->end;
+          uBool.timeInterval.lc = !per->lc;
+          uBool.timeInterval.end = iv->end;
+          uBool.timeInterval.rc = iv->rc;        
+          uBool.constValue.Set(true, (op == 0) ? false : true);
+          cout<<"uBool "<<uBool.constValue.GetBoolval()
+          <<" ["<<uBool.timeInterval.start.ToDouble()
+          <<" "<<uBool.timeInterval.end.ToDouble()<<" "
+          <<uBool.timeInterval.lc<<" "
+          <<uBool.timeInterval.rc<<"]"<<endl;
+          result->MergeAdd(uBool);
+        }
+        finished = true;
+        break;
+      }
+      else
+        cout<<"snapshot not equal"<<endl;
+    }
+    delete pResult;
+    if(!finished){
+      uBool.timeInterval = *iv;      
+      uBool.constValue.Set(true, (op == 0) ? false : true);
+      cout<<"uBool "<<uBool.constValue.GetBoolval()
+      <<" ["<<uBool.timeInterval.start.ToDouble()
+      <<" "<<uBool.timeInterval.end.ToDouble()<<" "
+      <<uBool.timeInterval.lc<<" "
+      <<uBool.timeInterval.rc<<"]"<<endl;
+      result->MergeAdd(uBool);
+    }   
+  }
+  result->EndBulkLoad(false);
+}
+
 static void MovingBoolMMOperators( MBool& op1, MBool& op2,
  MBool& result, int op )
 
@@ -3039,6 +3422,9 @@ ListExpr MovingEqualTypeMapMBool( ListExpr args )
     and nl->IsEqual( arg2, "region" ) )
       return (nl->SymbolAtom( "mbool" ));
     if( nl->IsEqual( arg1, "region" ) 
+    and nl->IsEqual( arg2, "movingregion" ) )
+      return (nl->SymbolAtom( "mbool" ));
+    if( nl->IsEqual( arg1, "movingregion" ) 
     and nl->IsEqual( arg2, "movingregion" ) )
       return (nl->SymbolAtom( "mbool" ));
 
@@ -3607,6 +3993,9 @@ MovingEqualSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "region" 
   && nl->SymbolValue( arg2 ) == "movingregion" )
     return 16;
+  if( nl->SymbolValue( arg1 ) == "movingregion" 
+  && nl->SymbolValue( arg2 ) == "movingregion" )
+    return 17;
     
   return -1; // This point should never be reached
 }
@@ -4715,6 +5104,24 @@ int TemporalSMRegionCompare( Word* args, Word& result, int message,
   
   MovingRegionCompareMS((MRegion*)args[1].addr,
    (CRegion*)args[0].addr, (MBool*)result.addr, op); 
+ 
+  return 0;
+}
+
+/*
+16.3.45 Value mapping functions of operator ~=~ 
+and ~\#~ for mregion/mregion
+
+*/
+
+template<int op>
+int TemporalMMRegionCompare( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  
+  MovingRegionCompareMM((MRegion*)args[0].addr,
+   (MRegion*)args[1].addr, (MBool*)result.addr, op); 
  
   return 0;
 }
@@ -6522,7 +6929,8 @@ ValueMapping temporalmequalmap[] = {
                 TemporalMSPointCompare<0>,
                 TemporalSMPointCompare<0>,
                 TemporalMSRegionCompare<0>,
-                TemporalSMRegionCompare<0>};
+                TemporalSMRegionCompare<0>,
+                TemporalMMRegionCompare<0>};
 
 ValueMapping temporalmnotequalmap[] = {
                TemporalMMCompare<MBool, MBool, UBool, UBool, -3>,
@@ -6541,7 +6949,8 @@ ValueMapping temporalmnotequalmap[] = {
                TemporalMSPointCompare<-3>,
                TemporalSMPointCompare<-3>,
                TemporalMSRegionCompare<-3>,
-               TemporalSMRegionCompare<-3>};
+               TemporalSMRegionCompare<-3>,
+               TemporalMMRegionCompare<-3>};
 
 
 ValueMapping temporalmlessmap[] =     {
@@ -6702,7 +7111,8 @@ const string TemporalLiftSpecOr
 const string TemporalLiftSpecMEqual  
           = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
             "\"Example\" ) "
-            "( <text>T in {bool, int, string, real, point}, mT X mT -> mbool,"
+            "( <text>T in {bool, int, string, real, point, region}"
+            ", mT X mT -> mbool,"
             " mT x T -> mbool, T x mT -> mbool</text--->"
             "<text> _ = _ </text--->"
             "<text>Logical equality for two MovingT.</text--->"
@@ -6712,7 +7122,8 @@ const string TemporalLiftSpecMEqual
 const string TemporalLiftSpecMNotEqual  
            = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "\"Example\" ) "
-             "( <text>T in {bool, int, string, real, point}, mT X mT -> mbool,"
+             "( <text>T in {bool, int, string, real, point, region}"
+             ", mT X mT -> mbool,"
              " mT x T -> mbool, T x mT -> mbool</text--->"
              "<text> _ # _ </text--->"
              "<text>Logical unequality for two MovingT.</text--->"
@@ -6914,14 +7325,14 @@ Operator temporalor( "or",
 
 Operator temporalmequal( "=",
                             TemporalLiftSpecMEqual,
-                            17,
+                            18,
                             temporalmequalmap,
                             MovingEqualSelect,
                             MovingEqualTypeMapMBool );
 
 Operator temporalmnotequal( "#",
                             TemporalLiftSpecMNotEqual,
-                            17,
+                            18,
                             temporalmnotequalmap,
                             MovingEqualSelect,
                             MovingEqualTypeMapMBool );
