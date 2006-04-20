@@ -92,6 +92,18 @@ public TestRunner(CommandPanel cp){
    init();
 }
 
+private String getStateAsString(){
+ switch(state){
+  case START : return "START";
+  case SETUP : return "SETUP";
+  case TESTCASE : return "TESTCASE";
+  case TEARDOWN : return "TEARDOWN";
+  case STOP : return "STOP";
+  default : return "INVALID";
+ }
+
+}
+
 /** initialized this instance **/
 private void init(){
    state = START;
@@ -120,10 +132,6 @@ private void execute(){
       Reporter.writeError("command failed : " + cmd);
       if(isTest){
         errors++;
-        if(resultList!=null){
-           System.out.println("The expected result is"+resultList.writeListExprToString());
-
-        }
       }
    }
 }
@@ -191,7 +199,7 @@ private boolean nextCommand(BufferedReader in){
         // connected holds all lines of the command
         java.util.StringTokenizer st = new java.util.StringTokenizer(connected);
         if(st.hasMoreElements()){
-           String command = st.nextToken().toLowerCase();
+           String command = st.nextToken();
            String restOfLine;
            if(command.length()==connected.length()){
                 restOfLine="";
@@ -201,10 +209,11 @@ private boolean nextCommand(BufferedReader in){
            if(command.equals("setup")){
               if(state!=START){
                   Reporter.writeError("try to switch to setup state when state != START");
+                  Reporter.writeInfo("the currentState is "+getStateAsString()); 
                   Reporter.writeInfo("the complete line is "+connected); 
               } else{
                   state = SETUP;
-                  Reporter.writeInfo("switch to start: "+restOfLine);
+                  Reporter.writeInfo("switch to setup: "+restOfLine);
               }
               return false;
            } else if(command.equals("stop")){
@@ -338,13 +347,13 @@ public int processFile(String fileName, boolean ignoreErrors){
 public static String expandVar(String source){
  int pos = 0;
  int index;
- while((index=source.indexOf("$",pos)) >0){
-     if(index>source.length() && source.charAt(index+1)=='('){
+ while((index=source.indexOf("$",pos)) >=0){
+     if(index<source.length()-1 && source.charAt(index+1)=='('){
           pos = source.indexOf(")",index+1);
           if(pos<0){
              pos = index+1;
           }else{
-            String var = source.substring(index+2,pos-3-index);
+            String var = source.substring(index+2,pos-index);
             Reporter.writeInfo("expand variable "+ var);
             String repl = tools.GetEnv.getEnv(var);
             if(repl==null){
