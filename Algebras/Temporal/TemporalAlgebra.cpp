@@ -4144,10 +4144,10 @@ const string TemporalSpecThePeriod = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                  "<text>theperiod(theyear(2002), theyear(2004))</text--->"
                                 ") )";
 
-const string Box3dSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string Box3dSpec  = "( ( \"Signatures\" \"\"  \"Syntax\" \"Meaning\" "
                     "\"Example\" ) "
-      "( <text>{rect, instant,periods} -> rect3 \n rect x"
-      "{instant,periods} -> rect3  </text--->"
+      "( <text>{rect, instant,periods} -> rect3 </text--->"
+      " <text> rect x {instant,periods} -> rect3  </text--->"
                     "<text> box3d(_)</text--->"
                     "<text>returns a threedimensional box which is unlimitedi"
                     " in non-specified parts</text--->"
