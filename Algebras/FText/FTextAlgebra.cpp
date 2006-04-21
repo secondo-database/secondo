@@ -347,7 +347,7 @@ TypeConstructor ftext(
   CreateFText, DeleteFText,     //object creation and deletion
   0, 0, CloseFText, CloneFText, //object open, save, close, and clone
   CastFText,                    //cast function
-  SizeOfFText,        		//sizeof function
+  SizeOfFText,                  //sizeof function
   CheckFText );                 //kind checking function
 
 
@@ -604,119 +604,119 @@ The length of a string is three characters or more.
       while (true) {
         switch ( state ) {
           case 0 : c = thetext->subw[textcursor];
-	           if ( isalnum(c) 
+                   if ( isalnum(c) 
                         || c == '-' || c == 'ä' || c =='ö' || c =='ü'
-		        || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
-		   {
-		     outstr[stringcursor] = c;
-		     stringcursor++;
-		     state = 1;
-		   }
-		   else {
-		     state = 2;
-		     stringcursor = 0;
-		   }
-		   if ( c == '\0' ) { return CANCEL; }
-		   textcursor++;
-		   break;
+                        || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+                   {
+                     outstr[stringcursor] = c;
+                     stringcursor++;
+                     state = 1;
+                   }
+                   else {
+                     state = 2;
+                     stringcursor = 0;
+                   }
+                   if ( c == '\0' ) { return CANCEL; }
+                   textcursor++;
+                   break;
           case 1 : c = thetext->subw[textcursor];
-	           //cout << c << " state 1 " << endl;
-	           if ( isalnum(c) 
+                   //cout << c << " state 1 " << endl;
+                   if ( isalnum(c) 
                         || c == '-' || c == 'ä' || c =='ö' || c =='ü'
-		        || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
-		   {
-		     outstr[stringcursor] = c;
-		     stringcursor++;
-		     state = 3;
-		   }
-		   else {
-		     state = 2;
-		     stringcursor = 0;
-		   }
-		   if ( c == '\0' ) { return CANCEL; }
-		   textcursor++;
-		   break;
+                        || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+                   {
+                     outstr[stringcursor] = c;
+                     stringcursor++;
+                     state = 3;
+                   }
+                   else {
+                     state = 2;
+                     stringcursor = 0;
+                   }
+                   if ( c == '\0' ) { return CANCEL; }
+                   textcursor++;
+                   break;
           case 2 : c = thetext->subw[textcursor];
-	           //cout << c << " state 2 " << endl;
-	           if ( isalnum(c) 
+                   //cout << c << " state 2 " << endl;
+                   if ( isalnum(c) 
                         || c == '-' || c == 'ä' || c =='ö' || c =='ü'
-		        || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
-		   {
-		     outstr[stringcursor] = c;
-	             stringcursor++;
-		     state = 1;
-		   }
-		   else {
-		     state = 2;
-		     stringcursor = 0;
-		   }
-		   if ( c == '\0' ) { return CANCEL; }
-		   textcursor++;
-		   break;
+                        || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+                   {
+                     outstr[stringcursor] = c;
+                     stringcursor++;
+                     state = 1;
+                   }
+                   else {
+                     state = 2;
+                     stringcursor = 0;
+                   }
+                   if ( c == '\0' ) { return CANCEL; }
+                   textcursor++;
+                   break;
           case 3 : c = thetext->subw[textcursor];
-	           //cout << c << " state 3 " << endl;
-	           if ( isalnum(c) 
+                   //cout << c << " state 3 " << endl;
+                   if ( isalnum(c) 
                         || c == '-' || c == 'ä' || c =='ö' || c =='ü'
-		        || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
-		   {
-		     outstr[stringcursor] = c;
-		     stringcursor++;
-		     state = 4;
-		   }
-		   else {
-		     state = 2;
-		     stringcursor = 0;
-		   }
-		   if ( c == '\0' ) { return CANCEL; }
-		   textcursor++;
-		   break;
+                        || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+                   {
+                     outstr[stringcursor] = c;
+                     stringcursor++;
+                     state = 4;
+                   }
+                   else {
+                     state = 2;
+                     stringcursor = 0;
+                   }
+                   if ( c == '\0' ) { return CANCEL; }
+                   textcursor++;
+                   break;
         case 4 : c = thetext->subw[textcursor];
-	         //cout << c << " state 4 " << endl;
-	         if ( (isalnum(c) 
+                 //cout << c << " state 4 " << endl;
+                 if ( (isalnum(c) 
                        || c == '-'|| c == 'ä' || c =='ö' || c =='ü'
-		       || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
-		       && (stringcursor == 48) ) {
-	         state = 5;
-		 stringcursor = 0;
-		 }         
-	         else if ( (isalnum(c) 
+                       || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+                       && (stringcursor == 48) ) {
+                 state = 5;
+                 stringcursor = 0;
+                 }         
+                 else if ( (isalnum(c) 
                            || c == '-'|| c == 'ä' || c =='ö' || c =='ü'
-		           || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
-		           && (stringcursor < 48) ) {
-		   outstr[stringcursor] = c;
-		   stringcursor++;
-		   state = 4;
-		 }
-		 else {
-		   //if ( c == '\0' ) 
+                           || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+                           && (stringcursor < 48) ) {
+                   outstr[stringcursor] = c;
+                   stringcursor++;
+                   state = 4;
+                 }
+                 else {
+                   //if ( c == '\0' ) 
                    //{ outstr[stringcursor] = c; stringcursor ++; }
-		   if ( textcursor == thetext->strlength ) 
+                   if ( textcursor == thetext->strlength ) 
                    { outstr[stringcursor] = c; stringcursor++; };
-		   outstr[stringcursor] = '\0';
-		   stringcursor = 0; 
-		   mystring = new CcString();
+                   outstr[stringcursor] = '\0';
+                   stringcursor = 0; 
+                   mystring = new CcString();
                    mystring->Set(true, &outstr);
-		   result = SetWord(mystring);  
-	           thetext->start = ++textcursor;
-	           local.addr = thetext;   
+                   result = SetWord(mystring);  
+                   thetext->start = ++textcursor;
+                   local.addr = thetext;   
                    return YIELD;
-		 }
-		 textcursor++;
-		 break;
+                 }
+                 textcursor++;
+                 break;
         case 5 : c = thetext->subw[textcursor];
-	         //cout << c << " state 5 " << endl;
-	         if ( isalnum(c) || c == '-' ) {
-		   state = 5;
-		   stringcursor = 0;
-		 }
-		 else {
-		   state = 0;
-		   stringcursor = 0;
-		 }
-		 if ( textcursor == thetext->strlength ) { return CANCEL; }
-		 textcursor++;
-		 break;
-	
+                 //cout << c << " state 5 " << endl;
+                 if ( isalnum(c) || c == '-' ) {
+                   state = 5;
+                   stringcursor = 0;
+                 }
+                 else {
+                   state = 0;
+                   stringcursor = 0;
+                 }
+                 if ( textcursor == thetext->strlength ) { return CANCEL; }
+                 textcursor++;
+                 break;
+        
       }
     }       
        
@@ -765,80 +765,80 @@ ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
       while (true) {
         switch ( state ) {
           case 0 : c = thetext->subw[textcursor];
-		   if ( (c == '\0') || (textcursor > thetext->strlength) )
+                   if ( (c == '\0') || (textcursor > thetext->strlength) )
                    { return CANCEL; }
-	           if ( c == ',' || c == ';' || c ==':' || c ==' '
-		                 || c == '\n' || c == '\t' ) 
-		   {
-		     state = 0;
-		   }
-	           else { if ( c == '.' || c == '!' || c =='?' )
-		     {
-		       tmpstr += c;
-		       state = 3;
-		     }
-		     else  {
-		       tmpstr += c;
-		       state = 1;
-		     }
-		   }
-		   textcursor++;
-		   break;
+                   if ( c == ',' || c == ';' || c ==':' || c ==' '
+                                 || c == '\n' || c == '\t' ) 
+                   {
+                     state = 0;
+                   }
+                   else { if ( c == '.' || c == '!' || c =='?' )
+                     {
+                       tmpstr += c;
+                       state = 3;
+                     }
+                     else  {
+                       tmpstr += c;
+                       state = 1;
+                     }
+                   }
+                   textcursor++;
+                   break;
           case 1 : c = thetext->subw[textcursor];
-		   if ( (c == '\0') || (textcursor > thetext->strlength) )
+                   if ( (c == '\0') || (textcursor > thetext->strlength) )
                    { return CANCEL; }
-	           if ( c == ',' || c == ';' || c ==':' )
-		   {
-		     tmpstr += c;
-		     tmpstr += " ";
-		     state = 0;
-		   }
-		   else { if ( c == ' ' || c == '\n' || c == '\t' )
-		     state = 2;
-		     else { if ( c == '.' || c == '!' || c =='?' )
-		       {
-		         tmpstr += c;
-			 state = 3;
-		       }
-		       else {
-		         tmpstr += c;
-			 state = 1;
-		       }
-		     }
-		   }
-		   textcursor++;
-		   break;
+                   if ( c == ',' || c == ';' || c ==':' )
+                   {
+                     tmpstr += c;
+                     tmpstr += " ";
+                     state = 0;
+                   }
+                   else { if ( c == ' ' || c == '\n' || c == '\t' )
+                     state = 2;
+                     else { if ( c == '.' || c == '!' || c =='?' )
+                       {
+                         tmpstr += c;
+                         state = 3;
+                       }
+                       else {
+                         tmpstr += c;
+                         state = 1;
+                       }
+                     }
+                   }
+                   textcursor++;
+                   break;
           case 2 : c = thetext->subw[textcursor];
-		   if ( (c == '\0') || (textcursor > thetext->strlength) ) 
+                   if ( (c == '\0') || (textcursor > thetext->strlength) ) 
                    { return CANCEL; }
-	           if ( c == ',' || c == ';' || c ==':' )
-		   {
-		     tmpstr += c;
-		     tmpstr += " ";
-		     state = 0;
-		   }
-		   else { if ( c == ' ' || c == '\n' || c == '\t' )
-		     state = 2;
-		     else { if ( c == '.' || c == '!' || c =='?' )
-		       {
-		         tmpstr += c;
-			 state = 3;
-		       }
-		       else {
-		         tmpstr += ' ';
-		         tmpstr += c;
-			 state = 1;
-		       }
-		     }
-		   }
-		   textcursor++;
-		   break;  
-	  case 3 : if ( (c == '\0') || (textcursor > thetext->strlength) )
+                   if ( c == ',' || c == ';' || c ==':' )
+                   {
+                     tmpstr += c;
+                     tmpstr += " ";
+                     state = 0;
+                   }
+                   else { if ( c == ' ' || c == '\n' || c == '\t' )
+                     state = 2;
+                     else { if ( c == '.' || c == '!' || c =='?' )
+                       {
+                         tmpstr += c;
+                         state = 3;
+                       }
+                       else {
+                         tmpstr += ' ';
+                         tmpstr += c;
+                         state = 1;
+                       }
+                     }
+                   }
+                   textcursor++;
+                   break;  
+          case 3 : if ( (c == '\0') || (textcursor > thetext->strlength) )
                    { return CANCEL; }
-		   returnsentence = new FText(true, (char*)tmpstr.c_str());
-		   result = SetWord(returnsentence);  
-	           thetext->start = textcursor;
-	           local.addr = thetext;
+                   returnsentence = new FText(true, (char*)tmpstr.c_str());
+                   result = SetWord(returnsentence);  
+                   thetext->start = textcursor;
+                   local.addr = thetext;
                    return YIELD;
         }
       }
