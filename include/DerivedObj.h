@@ -77,39 +77,41 @@ using namespace std;
 class DerivedObj {
 
 public:
-   DerivedObj() : 
-     tableExists(false),
-     derivedObjRelName("SEC_DERIVED_OBJ"),
-     derivedObjTypeStr("(rel(tuple((name string)(value text)(usedObjs text))))"),
-     nl( *SecondoSystem::GetNestedList() ),
-     ctlg( *SecondoSystem::GetCatalog() ),
-     qp( *SecondoSystem::GetQueryProcessor() )
-   {
-     // check if the system tables are already present 
-     // and read in the stored values
-     if ( ctlg.IsObjectName(derivedObjRelName) ) {
-     
-       bool defined = false;
-       bool ok = false; 
-       ok = ctlg.GetObject( derivedObjRelName, derivedObjWord, defined );
-       assert( ok && defined );
-       derivedObjValueList = ctlg.OutObject(typeExpr(), derivedObjWord);
-       DerivedObjMemoryRep( derivedObjValueList );
-       ctlg.CloseObject( typeExpr(), derivedObjWord );
-       tableExists = true;
-     }
-   
-   }
-   ~DerivedObj(){ // close relation object
+ 
+DerivedObj() : 
+  tableExists(false),
+  derivedObjRelName("SEC_DERIVED_OBJ"),
+  derivedObjTypeStr("(rel(tuple((name string)(value text)(usedObjs text))))"),
+  nl( *SecondoSystem::GetNestedList() ),
+  ctlg( *SecondoSystem::GetCatalog() ),
+  qp( *SecondoSystem::GetQueryProcessor() )
+{
+  // check if the system tables are already present 
+  // and read in the stored values
+  if ( ctlg.IsObjectName(derivedObjRelName) ) {
   
-     // free allocated memory
-     for ( vector<ObjRecord*>::const_iterator it = derivedObjRecords.begin();
-           it != derivedObjRecords.end();
-           it++ )
-     {
-       delete (*it);   
-     } 
-    }   
+    bool defined = false;
+    bool ok = false; 
+    ok = ctlg.GetObject( derivedObjRelName, derivedObjWord, defined );
+    assert( ok && defined );
+    derivedObjValueList = ctlg.OutObject(typeExpr(), derivedObjWord);
+    ListToMemory( derivedObjValueList );
+    ctlg.CloseObject( typeExpr(), derivedObjWord );
+    tableExists = true;
+  }
+
+}
+
+~DerivedObj(){ // close relation object
+
+  // free allocated memory
+  for ( vector<ObjRecord*>::const_iterator it = derivedObjRecords.begin();
+        it != derivedObjRecords.end();
+        it++ )
+  {
+    delete (*it);   
+  } 
+}   
 
 
 /*
@@ -117,21 +119,23 @@ public:
 
 */
 
-   void createTableIfNecessary() {
-   
-     if (tableExists)
-       return;
+void createTableIfNecessary() {
 
-     if ( !ctlg.IsObjectName(derivedObjRelName) ) { 
-     
-        string typeName = "";
-        if ( ctlg.CreateObject( derivedObjRelName, typeName, typeExpr(), 0 ) ) {
-	  tableExists = true;
-	} else {
-	  cerr << "Error: Creation of " << derivedObjRelName << " failed!" << endl;
-	}	  
-     }
-   } 
+  if (tableExists)
+    return;
+
+  if ( !ctlg.IsObjectName(derivedObjRelName) ) { 
+  
+     string typeName = "";
+     if ( ctlg.CreateObject( derivedObjRelName, typeName, typeExpr(), 0 ) )
+     {
+       tableExists = true;
+     } else {
+       cerr << "Error: Creation of " << derivedObjRelName 
+            << " failed!" << endl;
+     }  
+  }
+} 
       
       
    
@@ -142,324 +146,331 @@ command and extracts the object dependencies from the annotated query.
 
 */
 
-   void addObj(string& objName, const ListExpr valueExpr ) {
+void addObj(string& objName, const ListExpr valueExpr ) {
+    
+   createTableIfNecessary();
+   
+   // extract dependent objects
+   bool defined = false;  
+   ListExpr annotatedList = qp.AnnotateX( valueExpr, defined);
+
+   // delete and close objects which were opened during annotate
+   qp.DestroyValuesArray();
+
+   //nl.WriteListExpr(annotatedList);
+   vector<ListExpr> atoms;
+   nl.ExtractAtoms(annotatedList, atoms);
+          
+   string valueExprStr = "";
+   nl.WriteToString( valueExprStr, valueExpr );  
        
-      createTableIfNecessary();
-      
-      // extract dependent objects
-      bool defined = false;	  
-      ListExpr annotatedList = qp.AnnotateX( valueExpr, defined);
-
-      // delete and close objects which were opened during annotate
-      qp.DestroyValuesArray();
-
-      //nl.WriteListExpr(annotatedList);
-      vector<ListExpr> atoms;
-      nl.ExtractAtoms(annotatedList, atoms);
-      				        	
-      string valueExprStr = "";
-      nl.WriteToString( valueExprStr, valueExpr );	  
-	  
-      // create new entries for derived objects
-      ObjRecord* newObj = new ObjRecord(objName, valueExprStr);
-      int& objId = newObj->id;
-      derivedObjNames[objName] = objId - 1;
-      
-      for ( vector<ListExpr>::const_iterator it = atoms.begin();
-            it != atoms.end();
-	    it++ )
-      { 
-        if ( nl.AtomType(*it) == SymbolType && nl.SymbolValue(*it) == "object" ) {
-          string val = nl.SymbolValue(*(it - 1));
-          newObj->addDepObj( val );
-	  usedObjs.insert( val );
-	}  
-      }
-      derivedObjRecords.push_back( newObj );  
-      updateTable();    
-  }
+   // create new entries for derived objects
+   ObjRecord* newObj = new ObjRecord(objName, valueExprStr);
+   int& objId = newObj->id;
+   derivedObjNames[objName] = objId - 1;
+   
+   for ( vector<ListExpr>::const_iterator it = atoms.begin();
+         it != atoms.end();
+         it++ )
+   { 
+     if ( nl.AtomType(*it) == SymbolType 
+          && nl.SymbolValue(*it) == "object" ) {
+       string val = nl.SymbolValue(*(it - 1));
+       newObj->addDepObj( val );
+       usedObjs.insert( val );
+     }  
+   }
+   derivedObjRecords.push_back( newObj );  
+   updateTable();    
+}
   
   
-  void reportObjDeps(const string& objName) {
+void reportObjDeps(const string& objName) {
+  
+  set<string>::const_iterator it = usedObjs.find(objName);
+  
+  if ( it == usedObjs.end() )
+    return;
     
-    set<string>::const_iterator it = usedObjs.find(objName);
-    
-    if ( it == usedObjs.end() )
-      return;
-      
-    cout << "Warning: dependent objects ";
- 
-    // to do: iterate over all dependent obj. 
-    
-    cout << "can not be restored after save database." << endl;
-  }
+  cout << "Warning: dependent objects ";
+
+  // to do: iterate over all dependent obj. 
+  
+  cout << "can not be restored after save database." << endl;
+}
   
    
-  bool deleteObj(const string& objName, bool internal=false) {
-  
-    bool deleted = false;
-    map<string,int>::iterator it = derivedObjNames.find(objName);
-    
-    if ( it != derivedObjNames.end() ) {
-    
-      ObjRecord& objRec = *(derivedObjRecords[it->second]);
-      objRec.deleted = true;
-      deleted = true; 
-      derivedObjNames.erase(it);
+bool deleteObj(const string& objName, bool internal=false) {
 
-      if (!internal) { // in the rebuild phase no messages are printed
-         reportObjDeps(objName);
-         updateTable();
+  bool deleted = false;
+  map<string,int>::iterator it = derivedObjNames.find(objName);
+  
+  if ( it != derivedObjNames.end() ) {
+  
+    ObjRecord& objRec = *(derivedObjRecords[it->second]);
+    objRec.deleted = true;
+    deleted = true; 
+    derivedObjNames.erase(it);
+
+    if (!internal) { // in the rebuild phase no messages are printed
+       reportObjDeps(objName);
+       updateTable();
+    }
+  }
+  
+  return deleted;
+}
+
+
+bool isDerived(const string& objName) const {
+
+   map<string,int>::const_iterator it = derivedObjNames.find(objName);
+   return ( it != derivedObjNames.end() );
+}
+ 
+// called after a database is restored.
+void rebuildObjs() {
+
+  if ( !tableExists )
+     return;
+     
+  cout << endl << "Rebuilding derived objects ..." << endl;
+  for ( vector<ObjRecord*>::const_iterator it = derivedObjRecords.begin();
+        it != derivedObjRecords.end();
+        it++ )
+  {
+    assert( !(*it)->deleted );
+    ListExpr valueList = nl.TheEmptyList();
+    nl.ReadFromString( (*it)->value, valueList );
+    
+    cout << "  " << (*it)->name << " ... ";
+    SecondoSystem::BeginTransaction();
+    int rc = createObj( (*it)->name, valueList );
+    
+    if (rc != 0) {
+      cout << "failed." << endl;
+      const string sep = "    ";
+      const string& errMsg = SecondoInterface::GetErrorMessage(rc);
+      cerr << sep << "Could not rebuild object. Error msg: " 
+                  << errMsg << endl;
+      cerr << sep << "Maybe objects which are used for " 
+                  << "the derived object were deleted!" << endl; 
+      cerr << sep << "ValueExpr: " << (*it)->value << endl << endl;
+      SecondoSystem::AbortTransaction();
+      deleteObj((*it)->name,true);
+      
+    } else {
+    
+      SecondoSystem::CommitTransaction();
+      cout << "created." << endl;
+    } 
+  }
+}
+
+
+void updateObj() {
+
+/*   
+what happens when an Secondo object is updated. Currently nothing
+
+(i) derived object  => new creation expr and recreation of all dependent objects 
+(ii) regular object => recreation of all dependent objects
+
+*/  
+}
+  
+
+
+int createObj(string& objName, ListExpr valueExpr) {
+
+  OpTree tree;
+  Word result;
+  bool correct=false, evaluable=false, defined=false, isFunction=false;
+  ListExpr resultType = nl.TheEmptyList();
+
+  int rc = 0;
+  if ( ctlg.IsObjectName(objName) )
+  {
+    rc = ERR_IDENT_USED;   // identifier is already used
+  }
+  else
+  {
+    qp.Construct( valueExpr, correct, evaluable, defined,
+                  isFunction, tree, resultType );
+    if ( !defined )
+    {
+      rc = 8;      // Undefined object value in expression
+    }
+    else if ( correct )
+    {
+      if ( evaluable || isFunction )
+      {
+          string typeName = "";
+          ctlg.CreateObject(objName, typeName, resultType, 0);
+      }
+      if ( evaluable )
+      {
+          qp.Eval( tree, result, 1 );
+
+        if( IsRootObject( tree ) && !IsConstantObject( tree ) )
+        {
+          ctlg.CloneObject( objName, result );
+          qp.Destroy( tree, true );
+        }
+        else
+        {
+          ctlg.UpdateObject( objName, result );
+          qp.Destroy( tree, false );
+        }
+      }
+      else if ( isFunction )   // abstraction or function object
+      {
+        if ( nl.IsAtom( valueExpr ) )  // function object
+        {
+           ListExpr 
+             functionList = 
+                   ctlg.GetObjectValue( nl.SymbolValue( valueExpr ) );
+           ctlg.UpdateObject( objName, SetWord( functionList ) );
+        }
+        else
+        {
+          ctlg.UpdateObject( objName, SetWord( valueExpr ) );
+        }
+      }
+      else
+      {
+        rc = 3;   // Expression not evaluable
       }
     }
-    
-    return deleted;
-  }
-
-
-  bool isDerived(const string& objName) const {
-  
-     map<string,int>::const_iterator it = derivedObjNames.find(objName);
-     return ( it != derivedObjNames.end() );
-  }
- 
-  // called after a database is restored.
-  void rebuildObjs() {
-  
-    if ( !tableExists )
-       return;
-       
-    cout << endl << "Rebuilding derived objects ..." << endl;
-    for ( vector<ObjRecord*>::const_iterator it = derivedObjRecords.begin();
-          it != derivedObjRecords.end();
-          it++ )
+    else
     {
-      assert( !(*it)->deleted );
-      ListExpr valueList = nl.TheEmptyList();
-      nl.ReadFromString( (*it)->value, valueList );
-      
-      cout << "  " << (*it)->name << " ... ";
-      SecondoSystem::BeginTransaction();
-      int rc = createObj( (*it)->name, valueList );
-      
-      if (rc != 0) {
-        cout << "failed." << endl;
-	const string sep = "    ";
-	const string& errMsg = SecondoInterface::GetErrorMessage(rc);
-	cerr << sep << "Could not rebuild object. Error msg: " << errMsg << endl;
-	cerr << sep << "Maybe objects which are used for the derived object were deleted!" << endl; 
-	cerr << sep << "ValueExpr: " << (*it)->value << endl << endl;
-        SecondoSystem::AbortTransaction();
-	deleteObj((*it)->name,true);
-	
-      }	else {
-      
-        SecondoSystem::CommitTransaction();
-	cout << "created." << endl;
-      }	
+      rc = 2;    // Error in expression
     }
+  }  
+  return rc;
+        
+}
+
+// return all derived object names
+const set<string>& getObjNames() {
+
+  static set<string> nameSet;
+  nameSet.clear();
+  
+  for ( map<string,int>::const_iterator it = derivedObjNames.begin();
+        it != derivedObjNames.end();
+        it++ )
+  {  
+     nameSet.insert(it->first);  
   }
-
-
-  void updateObj() {
-  
-   // what happens when an Secondo object is updated. Currently Nothing
-   //
-   // (i) derived object  => new creation expr and recreation of all dependent objects 
-   // (ii) regular object => recreation of all dependent objects
-  
-  }
-  
-
-
-  int createObj(string& objName, ListExpr valueExpr) {
-  
-    OpTree tree;
-    Word result;
-    bool correct=false, evaluable=false, defined=false, isFunction=false;
-    ListExpr resultType = nl.TheEmptyList();
-
-          int rc = 0;
-          if ( ctlg.IsObjectName(objName) )
-          {
-            rc = ERR_IDENT_USED;   // identifier is already used
-          }
-          else
-          {
-            qp.Construct( valueExpr, correct, evaluable, defined,
-                          isFunction, tree, resultType );
-            if ( !defined )
-            {
-              rc = 8;      // Undefined object value in expression
-            }
-            else if ( correct )
-            {
-              if ( evaluable || isFunction )
-              {
-		  string typeName = "";
-		  ctlg.CreateObject(objName, typeName, resultType, 0);
-              }
-              if ( evaluable )
-              {
-                  qp.Eval( tree, result, 1 );
-
-                if( IsRootObject( tree ) && !IsConstantObject( tree ) )
-                {
-                  ctlg.CloneObject( objName, result );
-                  qp.Destroy( tree, true );
-                }
-                else
-                {
-                  ctlg.UpdateObject( objName, result );
-                  qp.Destroy( tree, false );
-                }
-              }
-              else if ( isFunction )   // abstraction or function object
-              {
-                if ( nl.IsAtom( valueExpr ) )  // function object
-                {
-                   ListExpr functionList = ctlg.GetObjectValue( nl.SymbolValue( valueExpr ) );
-                   ctlg.UpdateObject( objName, SetWord( functionList ) );
-                }
-                else
-                {
-                  ctlg.UpdateObject( objName, SetWord( valueExpr ) );
-                }
-              }
-              else
-              {
-                rc = 3;   // Expression not evaluable
-              }
-            }
-            else
-            {
-              rc = 2;    // Error in expression
-            }
-          }  
-	  return rc;
-	  
-  }
-
-  // return all derived object names
-  const set<string>& getObjNames() {
-  
-    static set<string> nameSet;
-    nameSet.clear();
-    
-    for ( map<string,int>::const_iterator it = derivedObjNames.begin();
-          it != derivedObjNames.end();
-	  it++ )
-    {	  
-       nameSet.insert(it->first);	  
-    }
-    return nameSet;
-  }
+  return nameSet;
+}
 
 
 private:
 
-  // the typeExpr needs to be stored in a string since ListExpr are only
-  // valid inside a call of SecondoInterface::Secondo(...)
-  ListExpr& typeExpr() {
+// the typeExpr needs to be stored in a string since ListExpr are only
+// valid inside a call of SecondoInterface::Secondo(...)
+ListExpr& typeExpr() {
+
+   nl.ReadFromString( derivedObjTypeStr, derivedObjTypeList ); 
+   return derivedObjTypeList;
+}
+
+// build a nested list from the memory structure
+ListExpr MemoryToList() {
+
+  ListExpr result = nl.TheEmptyList();
+  ListExpr last = nl.TheEmptyList();
+
+  for ( vector<ObjRecord*>::const_iterator it = derivedObjRecords.begin();
+        it != derivedObjRecords.end();
+        it++ )
+  {
   
-     nl.ReadFromString( derivedObjTypeStr, derivedObjTypeList ); 
-     return derivedObjTypeList;		
-  }
-
-  // build a nested list from the memory structure
-  ListExpr DerivedObjList() {
-
-    ListExpr result = nl.TheEmptyList();
-    ListExpr last = nl.TheEmptyList();
-
-    for ( vector<ObjRecord*>::const_iterator it = derivedObjRecords.begin();
-          it != derivedObjRecords.end();
-          it++ )
-    {
+    if ( !(*it)->deleted) { // omit deleted objects
     
-      if ( !(*it)->deleted) { // omit deleted objects
-      
-      // create list expr. for tuples
-      ListExpr stringAtom = nl.StringAtom( (*it)->name );
-      ListExpr textAtom = nl.TextAtom();
-      ListExpr textAtom2 = nl.TextAtom();
-      nl.AppendText( textAtom, (*it)->value );
-      string objListStr = "";
-      (*it)->depObjListStr(objListStr);
-      nl.AppendText( textAtom2, objListStr );
-      
-      ListExpr newTuple = nl.ThreeElemList( stringAtom, nl.OneElemList(textAtom), nl.OneElemList(textAtom2) ); 
-      
-      if ( result == nl.TheEmptyList() ) {
-      
-        result = nl.Cons( newTuple, nl.TheEmptyList() );
-	last = result;
-      } else {
-        last = nl.Append( last, newTuple );
-      }
-      }
+    // create list expr. for tuples
+    ListExpr stringAtom = nl.StringAtom( (*it)->name );
+    ListExpr textAtom = nl.TextAtom();
+    ListExpr textAtom2 = nl.TextAtom();
+    nl.AppendText( textAtom, (*it)->value );
+    string objListStr = "";
+    (*it)->depObjListStr(objListStr);
+    nl.AppendText( textAtom2, objListStr );
+    
+    ListExpr newTuple = nl.ThreeElemList( stringAtom, textAtom, textAtom2 ); 
+    
+    if ( result == nl.TheEmptyList() ) {
+    
+      result = nl.Cons( newTuple, nl.TheEmptyList() );
+      last = result;
+    } else {
+      last = nl.Append( last, newTuple );
     }
-    return result;
-
-  }
-
-  // initialize a memory representation from a nested list rep.
-  void DerivedObjMemoryRep(ListExpr list) {
-  
-    // insert the tuple values into memory structures   
-    while ( list != nl.TheEmptyList() ) {
-      
-      ListExpr tuple = nl.First(list);      
-      list = nl.Rest(list);
-      string name = nl.StringValue( nl.First(tuple) );
-      
-      string value = "", depListStr = "";     
-      nl.Text2String( nl.First( nl.Second(tuple) ), value );
-      nl.Text2String( nl.First( nl.Third(tuple) ), depListStr);
-      
-      // convert a list stored in a textatom into a ListExpr
-      ListExpr depList = nl.TheEmptyList();   
-      nl.ReadFromString(depListStr, depList); 
-                
-      ObjRecord* newObjRec = new ObjRecord( name, value );
-      while ( depList != nl.TheEmptyList() ) {
-         string symbol =  nl.SymbolValue( nl.First(depList) );
-         newObjRec->addDepObj( symbol );
-	 usedObjs.insert( symbol );
-	 depList = nl.Rest(depList);
-      }
-      derivedObjNames[name] = newObjRec->id - 1;
-      derivedObjRecords.push_back( newObjRec );       
     }
   }
+  return result;
 
-   // converts the memory representation into a nested list
-   // and updates the relation object.
-   void updateTable() {
+}
+
+// initialize a memory representation from a nested list rep.
+void ListToMemory(ListExpr list) {
+
+  // insert the tuple values into memory structures   
+  while ( list != nl.TheEmptyList() ) {
+    
+    ListExpr tuple = nl.First(list);      
+    list = nl.Rest(list);
+    string name = nl.StringValue( nl.First(tuple) );
+    
+    string value = "", depListStr = "";     
+    nl.Text2String( nl.Second(tuple), value );
+    nl.Text2String( nl.Third(tuple), depListStr);
+    
+    // convert a list stored in a textatom into a ListExpr
+    ListExpr depList = nl.TheEmptyList();   
+    nl.ReadFromString(depListStr, depList); 
+              
+    ObjRecord* newObjRec = new ObjRecord( name, value );
+    while ( depList != nl.TheEmptyList() ) {
+       string symbol =  nl.SymbolValue( nl.First(depList) );
+       newObjRec->addDepObj( symbol );
+       usedObjs.insert( symbol );
+       depList = nl.Rest(depList);
+    }
+    derivedObjNames[name] = newObjRec->id - 1;
+    derivedObjRecords.push_back( newObjRec );       
+  }
+}
+
+// converts the memory representation into a nested list
+// and updates the relation object.
+void updateTable() {
+
+   Word result;
+   bool correct=false, defined=false;
+   ListExpr newValue = MemoryToList();
    
-      Word result;
-      bool correct=false, defined=false;
-      ListExpr newValue = DerivedObjList();
-      
-      const int errorPos = 0;
-      ListExpr errorInfo = 0;
+   const int errorPos = 0;
+   ListExpr errorInfo = 0;
 
-      result = ctlg.InObject( typeExpr(), newValue, errorPos,
-                              errorInfo, correct );
-      assert( correct );
+   result = ctlg.InObject( typeExpr(), newValue, errorPos,
+                           errorInfo, correct );
+   assert( correct );
 
-      defined = false;
-      bool ok = false;
+   defined = false;
+   bool ok = false;
 
-      ok = ctlg.UpdateObject(derivedObjRelName, result );
-      assert( ok );
-   }
+   ok = ctlg.UpdateObject(derivedObjRelName, result );
+   assert( ok );
+}
 
 
 
-  // Below a container for information about derived objects
-  // is declared.
-  class ObjRecord {
+// Below a container for information about derived objects
+// is declared.
+class ObjRecord {
  
   public: 
     string name;
@@ -468,7 +479,8 @@ private:
     bool deleted;
     static int id;
 
-    ObjRecord(const string& nameStr, const string& val) : name(nameStr), value(val), deleted(false) { 
+    ObjRecord(const string& nameStr, const string& val) : 
+      name(nameStr), value(val), deleted(false) { 
       id++; 
     }
     ~ObjRecord(){
@@ -478,7 +490,8 @@ private:
     
     void depObjListStr(string& listStr) {   
       listStr = "(";
-      for ( set<string>::const_iterator it = depSet.begin(); it != depSet.end(); it++ ) {
+      for ( set<string>::const_iterator it = depSet.begin(); 
+            it != depSet.end(); it++ ) {
         listStr += (" " + *it + " ");
       }
       listStr += ")";
