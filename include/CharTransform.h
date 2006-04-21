@@ -21,9 +21,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 Dec. 2002, H. Bals
+
 July 2005, M. Spiekermann, class ~tab~ added. 
+
 August 2005, M. Spiekermann, new class ~color~ and new function ~isSpaceStr~ added. 
 
+Jan-April 2006, M. Spiekermann. New functions, especially ~wordWrap~ which allows a pretty
+folding of words with a specified text length.
 
 */
 #ifndef CHAR_TRANSFORM_H
@@ -211,16 +215,51 @@ inline string removeNewLines(const string& s)
 }
 
 
+inline string expandTabs(const string& s, const int n)
+{
+  string result=s;
+
+  size_t end = s.size();
+  size_t p1 = 0;
+  size_t p2 = 0;
+
+  while (p1 < end)
+  {
+    p2 = result.find_first_of('\t',p1);
+
+    if ( p2 != string::npos ) 
+    {
+      result.erase(p2, 1);
+      result.insert(p2, string(n,' '));
+    }  
+
+    p1 = p2;
+  }  
+  return result;  
+} 
+
+/*
+A simple word wrapping algorithm which tries to fold a given
+string after one of the allowed wrap chars (see below). Optionally
+one could specify ~indent1~ for the first and ~indent2~ for the following lines.
+Examples can be found in file "Tests/tcharutils.cpp".
+
+
+*/
+
 inline string
 wordWrap( const int indent1, const int indent2, 
           const int textwidth, const string& s )
 {
-  static const string wrapChars(" ,.!?;)");
+  const bool trace = false;
+  static const string wrapChars1(",.:!?;)]}-+*><=\t\n");
+  static const string wrapChars = wrapChars1 + " ";
   string indent1Str = "";
   string indent2Str = string(indent2,' ');
   string& indentStr = indent1Str;
 
-  string text = removeNewLines(s);
+  //string text = removeNewLines(s);
+  string text = expandTabs(s,4);
 
   // usable width for the first line
   size_t len = textwidth - indent1;
@@ -229,12 +268,18 @@ wordWrap( const int indent1, const int indent2,
   string result="";
   size_t end = text.size();
   size_t p1 = 0;
+  size_t lastbreak = 0;
   
   while ( p1 < end )
   {
+    if (trace)
+      cout << "text[" << p1 << "]='" << text[p1] << "'" << endl;
+    
     if (lines > 1) {
       len = textwidth - indent2;
       indentStr = indent2Str;
+      // do a line break
+      result += "\n";
     }  
 
     string substr="";
@@ -244,27 +289,93 @@ wordWrap( const int indent1, const int indent2,
       p1 = end; 
     }
     else
-    {    
-    // search next wrap position    
-    size_t p2 = text.find_last_of(wrapChars, p1+len);
+    {
+      // search a suitable wrap position
+      bool found = false;
+      size_t p2 = 0;
+      size_t endPos = p1+len;
+      
+      while ( !found && (endPos >= (p1+(2*len/3))) )
+      { 
+        p2 = text.find_last_of(wrapChars, endPos);
+        
+        // found a predefined linebreak
+        if (text[p2] == '\n')
+          break;
+        
+        bool lastOk = (end-p2) >= len/3;
+        // dont wrap if the next char is also a wrap char
+        if (lastOk && wrapChars.find(text[p2+1]) == string::npos) 
+        {
+          found = true;
+        }  
+        else
+        { 
+          endPos = p2-1;
+        }  
+      }
 
-    if (p2 == string::npos) // force wrap
-    {
-       substr = text.substr(p1,len);
+      if (trace) {
+        cout << "p1: " << p1 << endl;
+        cout << "p2: " << p2 << endl;
+      }  
+        
+      if ( (p2 == string::npos) || ((p2-p1+1) < 2*len/3) || (p2 <= p1) )      
+      {
+        if (trace) 
+          cout << "force break" << endl;
+          
+        // There is no suitable wrap char in the next len 
+        // chars, hence we need to force a wrap. We split after
+        // the first non-wrapChar below 4/5 of the textwidth
+        
+        size_t cutLen = 4*len/5; 
+        endPos = p1+len;
+        p2=endPos;
+        while ( (p2 >= p1+cutLen) )
+        { 
+          p2 = text.find_last_not_of(wrapChars, endPos);
+          endPos = p2-1;
+        }  
+        if (p2 == string::npos)
+          p2 = p1+cutLen;
+        substr = text.substr(p1,p2-p1);
+        lastbreak = p2;
+      }  
+      else
+      {
+        if (trace) 
+          cout << "soft break" << endl;
+        
+        assert( p2 <= (p1+len) );    
+        assert( p2 > p1 );    
+        substr = text.substr(p1,p2-p1);
+        lastbreak = p2;
+      }
+      if (trace)
+        cout << "text[" << lastbreak << "]='" << text[lastbreak] << "'" << endl;
+      lines++;
+
+      // 
+      if ( isspace(text[lastbreak]) ) {
+        lastbreak++;
+      }  
+      p1 = lastbreak;
+    }
+    result += indentStr + substr;
+    if (trace) {
+      cout << "substr: " << substr << endl;    
+      cout << "lastbreak: " << lastbreak << endl;    
     }  
-    else
-    {
-       assert( p2 <= (p1+len) );    
-       substr = text.substr(p1,p2-p1);
-    }
-    lines++;
-    p1 = p2+1;
-    }
-    result += indentStr + substr + "\n";    
   }
   return result;
 }
 
+/*
+Some more convenient signatures which call wordWrap with apropriate
+parameters.
+
+*/
 
 inline string
 wordWrap(const string& s1, const int textwidth, const string& s2)
@@ -277,6 +388,13 @@ wordWrap( const string& s1, const int indent2,
           const int textwidth, const string& s2 )
 {
   return s1 + wordWrap( s1.size(), indent2, textwidth, s2);
+}
+
+inline string
+wordWrap( const int textwidth, const string& s, 
+          const int indent1=0, const int indent2=0 )
+{
+  return wordWrap(indent1, indent2, textwidth, s);
 }
 
 /*
