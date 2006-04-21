@@ -233,15 +233,16 @@ OutFText( ListExpr typeInfo, Word value )
     cout << '\n' << "Start OutFText" << '\n';
   FText* pftext;
   pftext = (FText*)(value.addr);
-  ListExpr TextAtomVar=nl->TextAtom();
 
   if(traces)
     cout <<"pftext->Get()='"<< pftext->Get() <<"'\n";
-  nl->AppendText( TextAtomVar, pftext->Get() );
+  
+  ListExpr TextAtomVar=nl->TextAtom(pftext->Get());
+  //nl->AppendText( TextAtomVar, pftext->Get() );
 
   if(traces)
     cout <<"End OutFText" << '\n';
-  return nl->OneElemList(TextAtomVar);
+  return TextAtomVar;
 }
 
 
@@ -250,19 +251,18 @@ InFText( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   if(traces)
-    cout << '\n' << "Start InFText with ListLength "<<nl->ListLength( instance );
+    cout << '\n' << "Start InFText with ListLength " 
+         << nl->ListLength( instance );
   ListExpr First;
-  if (nl->ListLength( instance ) == 1 || nl->ListLength( instance ) == 4 )
+  if (nl->ListLength( instance ) == 1)
     First = nl->First(instance);
   else
-    First =instance;
+    First = instance;
+  
   if ( nl->IsAtom(First) && nl->AtomType(First) == TextType)
   {
     string buffer;
-    TextScan textScan = nl->CreateTextScan (First);
-    nl->GetText (textScan, nl->TextLength( First ), buffer);
-    nl->DestroyTextScan (textScan);
-
+    nl->Text2String(First, buffer);
     FText* newftext = new FText( true, buffer.c_str() );
     correct = true;
 
@@ -347,7 +347,7 @@ TypeConstructor ftext(
   CreateFText, DeleteFText,     //object creation and deletion
   0, 0, CloseFText, CloneFText, //object open, save, close, and clone
   CastFText,                    //cast function
-  SizeOfFText,        					//sizeof function
+  SizeOfFText,        		//sizeof function
   CheckFText );                 //kind checking function
 
 
@@ -442,7 +442,8 @@ TypeMapkeywords( ListExpr args ){
   {
     arg = nl->First(args);
     if ( nl->IsEqual(arg, typeName) )
-      return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("string"));
+      return nl->TwoElemList( nl->SymbolAtom("stream"), 
+                              nl->SymbolAtom("string"));
   }
   return nl->SymbolAtom("typeerror");
 }
@@ -466,7 +467,8 @@ TypeMapsentences( ListExpr args ){
 */
 
 int
-ValMapTextStringBool (Word* args, Word& result, int message, Word& local, Supplier s)
+ValMapTextStringBool ( Word* args, Word& result, 
+                       int message, Word& local, Supplier s)
 /*
 Value Mapping for the ~contains~ operator with the operands text and string.
 
@@ -480,7 +482,9 @@ Value Mapping for the ~contains~ operator with the operands text and string.
 
   result = qp->ResultStorage(s); //query processor has provided
           //a CcBool instance to take the result
-  ((CcBool*)result.addr)->Set(true, ftext1->SearchString( *string1->GetStringval() ));
+  ((CcBool*)
+    result.addr)->Set( true, 
+                       ftext1->SearchString( *string1->GetStringval() ));
           //the first argument says the boolean
           //value is defined, the second is the
           //real boolean value)
@@ -492,7 +496,8 @@ Value Mapping for the ~contains~ operator with the operands text and string.
 
 
 int
-ValMapTextTextBool (Word* args, Word& result, int message, Word& local, Supplier s)
+ValMapTextTextBool ( Word* args, Word& result, 
+                     int message, Word& local, Supplier s)
 /*
 Value Mapping for the ~contains~ operator with two text operands.
 
@@ -599,8 +604,9 @@ The length of a string is three characters or more.
       while (true) {
         switch ( state ) {
           case 0 : c = thetext->subw[textcursor];
-	           if ( isalnum(c) || c == '-' || c == 'ä' || c =='ö' || c =='ü'
-		                   || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+	           if ( isalnum(c) 
+                        || c == '-' || c == 'ä' || c =='ö' || c =='ü'
+		        || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
 		   {
 		     outstr[stringcursor] = c;
 		     stringcursor++;
@@ -615,8 +621,9 @@ The length of a string is three characters or more.
 		   break;
           case 1 : c = thetext->subw[textcursor];
 	           //cout << c << " state 1 " << endl;
-	           if ( isalnum(c) || c == '-' || c == 'ä' || c =='ö' || c =='ü'
-		                   || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+	           if ( isalnum(c) 
+                        || c == '-' || c == 'ä' || c =='ö' || c =='ü'
+		        || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
 		   {
 		     outstr[stringcursor] = c;
 		     stringcursor++;
@@ -631,8 +638,9 @@ The length of a string is three characters or more.
 		   break;
           case 2 : c = thetext->subw[textcursor];
 	           //cout << c << " state 2 " << endl;
-	           if ( isalnum(c) || c == '-' || c == 'ä' || c =='ö' || c =='ü'
-		                   || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+	           if ( isalnum(c) 
+                        || c == '-' || c == 'ä' || c =='ö' || c =='ü'
+		        || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
 		   {
 		     outstr[stringcursor] = c;
 	             stringcursor++;
@@ -647,8 +655,9 @@ The length of a string is three characters or more.
 		   break;
           case 3 : c = thetext->subw[textcursor];
 	           //cout << c << " state 3 " << endl;
-	           if ( isalnum(c) || c == '-' || c == 'ä' || c =='ö' || c =='ü'
-		                   || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+	           if ( isalnum(c) 
+                        || c == '-' || c == 'ä' || c =='ö' || c =='ü'
+		        || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
 		   {
 		     outstr[stringcursor] = c;
 		     stringcursor++;
@@ -663,27 +672,31 @@ The length of a string is three characters or more.
 		   break;
         case 4 : c = thetext->subw[textcursor];
 	         //cout << c << " state 4 " << endl;
-	         if ( (isalnum(c) || c == '-'|| c == 'ä' || c =='ö' || c =='ü'
-		                 || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
-		                 && (stringcursor == 48) ) {
+	         if ( (isalnum(c) 
+                       || c == '-'|| c == 'ä' || c =='ö' || c =='ü'
+		       || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+		       && (stringcursor == 48) ) {
 	         state = 5;
 		 stringcursor = 0;
-		 }	         
-	         else if ( (isalnum(c) || c == '-'|| c == 'ä' || c =='ö' || c =='ü'
-		                 || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
-				 && (stringcursor < 48) ) {
+		 }         
+	         else if ( (isalnum(c) 
+                           || c == '-'|| c == 'ä' || c =='ö' || c =='ü'
+		           || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+		           && (stringcursor < 48) ) {
 		   outstr[stringcursor] = c;
 		   stringcursor++;
 		   state = 4;
 		 }
 		 else {
-		   //if ( c == '\0' ) { outstr[stringcursor] = c; stringcursor ++; }
-		   if ( textcursor == thetext->strlength ) { outstr[stringcursor] = c; stringcursor++; };
+		   //if ( c == '\0' ) 
+                   //{ outstr[stringcursor] = c; stringcursor ++; }
+		   if ( textcursor == thetext->strlength ) 
+                   { outstr[stringcursor] = c; stringcursor++; };
 		   outstr[stringcursor] = '\0';
-		   stringcursor = 0;		   
+		   stringcursor = 0; 
 		   mystring = new CcString();
                    mystring->Set(true, &outstr);
-		   result = SetWord(mystring);		   
+		   result = SetWord(mystring);  
 	           thetext->start = ++textcursor;
 	           local.addr = thetext;   
                    return YIELD;
@@ -752,7 +765,8 @@ ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
       while (true) {
         switch ( state ) {
           case 0 : c = thetext->subw[textcursor];
-		   if ( (c == '\0') || (textcursor > thetext->strlength) ) { return CANCEL; }
+		   if ( (c == '\0') || (textcursor > thetext->strlength) )
+                   { return CANCEL; }
 	           if ( c == ',' || c == ';' || c ==':' || c ==' '
 		                 || c == '\n' || c == '\t' ) 
 		   {
@@ -771,7 +785,8 @@ ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
 		   textcursor++;
 		   break;
           case 1 : c = thetext->subw[textcursor];
-		   if ( (c == '\0') || (textcursor > thetext->strlength) ) { return CANCEL; }
+		   if ( (c == '\0') || (textcursor > thetext->strlength) )
+                   { return CANCEL; }
 	           if ( c == ',' || c == ';' || c ==':' )
 		   {
 		     tmpstr += c;
@@ -794,7 +809,8 @@ ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
 		   textcursor++;
 		   break;
           case 2 : c = thetext->subw[textcursor];
-		   if ( (c == '\0') || (textcursor > thetext->strlength) ) { return CANCEL; }
+		   if ( (c == '\0') || (textcursor > thetext->strlength) ) 
+                   { return CANCEL; }
 	           if ( c == ',' || c == ';' || c ==':' )
 		   {
 		     tmpstr += c;
@@ -816,10 +832,11 @@ ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
 		     }
 		   }
 		   textcursor++;
-		   break;	  
-	  case 3 : if ( (c == '\0') || (textcursor > thetext->strlength) ) { return CANCEL; }
+		   break;  
+	  case 3 : if ( (c == '\0') || (textcursor > thetext->strlength) )
+                   { return CANCEL; }
 		   returnsentence = new FText(true, (char*)tmpstr.c_str());
-		   result = SetWord(returnsentence);		   
+		   result = SetWord(returnsentence);  
 	           thetext->start = textcursor;
 	           local.addr = thetext;
                    return YIELD;
@@ -880,17 +897,22 @@ const string keywordsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "<text>Creates a stream of strings containing the single words"
              " of the origin text, on the assumption, that words in the text"
              " are separated by a space character.</text--->"
-             "<text>let Keyword = documents feed extendstream[kword: .title keywords] consume</text--->"
+             "<text>let Keyword = documents feed "
+             "extendstream[kword: .title keywords] consume</text--->"
              ") )";
 
 const string sentencesSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"
                              "( <text>(text) -> (stream text)</text--->"
              "<text>_ sentences</text--->"
-             "<text>Creates a stream of standardized texts containing complete sentences"
-             " of the origin text, on the assumption, that sentences in the text"
+             "<text>Creates a stream of standardized texts containing " 
+             "complete sentences"
+             " of the origin text, on the assumption, that sentences "
+             "in the text"
              " are terminated by a ., ! or ? character.</text--->"
-             "<text>let MySentences = documents feed projectextendstream[title; newattr: .content sentences] consume</text--->"
+             "<text>let MySentences = documents feed "
+             "projectextendstream[title; newattr: .content sentences] "
+             "consume</text--->"
              ") )";  
 
 /*
