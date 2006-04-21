@@ -30,6 +30,9 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
+April 2006, M. Spiekermann. Output format of type text changed! 
+Now it will be only a text atom instead of a one element list containing a text atom.  
+
 The algebra ~FText~ provides the type constructor ~text~ and two operators:
 
 (i) ~contains~, which search text or string in a text.
