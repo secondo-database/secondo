@@ -85,54 +85,54 @@ public class OptimizerServer extends Thread{
       if(pl_query==null)
          return false;
       try{
-	 if(trace){
-	   System.out.println("execute query: "+pl_query);
-	 }
-	 String ret ="";
+         if(trace){
+           System.out.println("execute query: "+pl_query);
+         }
+         String ret ="";
          int number =0; // the number of solutions
-	 if(results!=null)
-	    results.clear();
+         if(results!=null)
+            results.clear();
          while(pl_query.hasMoreSolutions(Prolog.Q_NODEBUG)){
             number++;
-	    Hashtable solution = pl_query.nextSolution();
-	    if(results!=null){
-	       ret = "";
+            Hashtable solution = pl_query.nextSolution();
+            if(results!=null){
+               ret = "";
                if(variables==null || variables.length==0)
-	           results.add("yes");
-	       else{
-	          for(int i=0;i<variables.length;i++){
-	              NamedVariable P = variables[i];
-		      if (i>0) ret += " $$$ ";
-	              ret += ( P.getName() + " = " + solution.get(P.getVariable()));
-	          }
-	          results.add(ret);
-	       }
-	    }
+                   results.add("yes");
+               else{
+                  for(int i=0;i<variables.length;i++){
+                      NamedVariable P = variables[i];
+                      if (i>0) ret += " $$$ ";
+                      ret += ( P.getName() + " = " + solution.get(P.getVariable()));
+                  }
+                  results.add(ret);
+               }
+            }
          }
          if(number == 0){
             if(trace)
-	       System.out.println("no solution found for' "+pl_query.atom() +"/"+pl_query.args().length);
-	    return false;
+               System.out.println("no solution found for' "+pl_query.atom() +"/"+pl_query.args().length);
+            return false;
          } else{
              // check if a new database is opened
-	     if(pl_query.atom().toString().equals("secondo") & pl_query.args().length>0){
+             if(pl_query.atom().toString().equals("secondo") & pl_query.args().length>0){
                 String first = pl_query.args()[0].toString().trim();
                 if(first.startsWith("open ") && first.indexOf(" database ")>0){
-		   int lastindex = first.lastIndexOf(" ");
-		   openedDatabase = first.substring(lastindex).trim();
-		   if(trace){
-		      System.out.println("open database "+ openedDatabase);
-		      showPrompt();
-		   }
-		}
-	     }
-	     return true;
+                   int lastindex = first.lastIndexOf(" ");
+                   openedDatabase = first.substring(lastindex).trim();
+                   if(trace){
+                      System.out.println("open database "+ openedDatabase);
+                      showPrompt();
+                   }
+                }
+             }
+             return true;
         }
-	} catch(Exception e){
-	   if(trace)
+        } catch(Exception e){
+           if(trace)
               System.out.println("exception in calling the "+pl_query.atom()+"-predicate"+e);
-	   return false;
-	}
+           return false;
+        }
     }
 
 
@@ -142,42 +142,42 @@ public class OptimizerServer extends Thread{
       */
     private synchronized static boolean execute(String command,Vector Solution){
           if(Solution!=null)
-	      Solution.clear();
-	      
-	  // clients should not have the possibility
-	  // to shut down the Optimizer-Server
-	  command = command.trim();
-	  if(command.startsWith("halt ") || command.equals("halt"))
-	     return false;
+              Solution.clear();
+              
+          // clients should not have the possibility
+          // to shut down the Optimizer-Server
+          command = command.trim();
+          if(command.startsWith("halt ") || command.equals("halt"))
+             return false;
 
-	  Vector TMPVars = new Vector();
-	  if(trace){
-	    System.out.println("analyse command: "+command);
-	  }
-	  Query pl_query = Parser.parse(command,TMPVars);
+          Vector TMPVars = new Vector();
+          if(trace){
+            System.out.println("analyse command: "+command);
+          }
+          Query pl_query = Parser.parse(command,TMPVars);
           if(pl_query==null){
-	     if(trace)
-	        System.out.println("error in parsing command: "+command);
+             if(trace)
+                System.out.println("error in parsing command: "+command);
              return  false;
-	  }
+          }
 
-	  NamedVariable[] variables = new NamedVariable[TMPVars.size()];
-	  for(int i=0;i<TMPVars.size();i++)
-	       variables[i] = (NamedVariable) TMPVars.get(i);
+          NamedVariable[] variables = new NamedVariable[TMPVars.size()];
+          for(int i=0;i<TMPVars.size();i++)
+               variables[i] = (NamedVariable) TMPVars.get(i);
 
           boolean res = command(pl_query,variables,Solution);
 
-	  if(res & trace & Solution!=null){ // successful
+          if(res & trace & Solution!=null){ // successful
              if(Solution.size()==0)
-	        System.out.println("Yes");
-	     else
-	       for(int i=0;i<Solution.size();i++){
+                System.out.println("Yes");
+             else
+               for(int i=0;i<Solution.size();i++){
                  System.out.println("*** Solution "+(i+1)+"  ****");
                  System.out.println(Solution.get(i));
-	       }
+               }
 
-	  }
-	  return res;
+          }
+          return res;
      }
 
 
@@ -188,38 +188,38 @@ public class OptimizerServer extends Thread{
       */
     private synchronized String optimize(String query){
       try{
-	  if(trace)
-	       System.out.println("\n optimization-input : "+query+"\n");
-	  Term[] args = new Term[2];
+          if(trace)
+               System.out.println("\n optimization-input : "+query+"\n");
+          Term[] args = new Term[2];
           Variable X = new Variable();
-	  args[0] = new Atom(query);
-	  args[1] = X;
-	  Query pl_query = new Query(new Atom("sqlToPlan"),args);
+          args[0] = new Atom(query);
+          args[1] = X;
+          Query pl_query = new Query(new Atom("sqlToPlan"),args);
 
-	  String ret ="";
-	  int number =0;
-	  while(pl_query.hasMoreSolutions(Prolog.Q_NODEBUG)){
-	        number++;
-	        Hashtable solution = pl_query.nextSolution();
+          String ret ="";
+          int number =0;
+          while(pl_query.hasMoreSolutions(Prolog.Q_NODEBUG)){
+                number++;
+                Hashtable solution = pl_query.nextSolution();
                 // ret = ret+" "+solution.get(X);
                 ret = ""+solution.get(X);
-	  }
-	  if(number==0){
-	     if(trace)
-	         System.out.println("optimization failed - no solution found");
-	     return query;
-	  }
-	  else{
-	     if(trace)
-	         System.out.println("\n optimization-result : "+ret+"\n");
-	     return ret;
-	  }
-	 } catch(Exception e){
-	     if(trace)
-	        System.out.println("\n Exception :"+e);
-	     showPrompt();
-	   return  query;
-	 }
+          }
+          if(number==0){
+             if(trace)
+                 System.out.println("optimization failed - no solution found");
+             return query;
+          }
+          else{
+             if(trace)
+                 System.out.println("\n optimization-result : "+ret+"\n");
+             return ret;
+          }
+         } catch(Exception e){
+             if(trace)
+                System.out.println("\n Exception :"+e);
+             showPrompt();
+           return  query;
+         }
 
     }
 
@@ -233,9 +233,9 @@ public class OptimizerServer extends Thread{
        Term[] arg = new Term[1];
        if(!openedDatabase.equals("")){
           if(trace)
-	     System.out.println("close the opened database");
-	  arg[0] = new Atom("close database");
-	  Query Q = new Query(new Atom("secondo"),arg);
+             System.out.println("close the opened database");
+          arg[0] = new Atom("close database");
+          Query Q = new Query(new Atom("secondo"),arg);
           command(Q,null,null);
        }
        
@@ -255,55 +255,55 @@ public class OptimizerServer extends Thread{
          this.S = S;
          //System.out.println("requesting from client");
          try{
-	    in = new BufferedReader(new InputStreamReader(S.getInputStream()));
+            in = new BufferedReader(new InputStreamReader(S.getInputStream()));
             out = new BufferedWriter(new OutputStreamWriter(S.getOutputStream()));
-	    String First = in.readLine();
-	    //System.out.println("receive :"+First);
-	    if(First==null){
-	       if(trace)
-	          System.out.println("connection broken");
-	        showPrompt();
-		running=false;
-		return;
-	    }
+            String First = in.readLine();
+            //System.out.println("receive :"+First);
+            if(First==null){
+               if(trace)
+                  System.out.println("connection broken");
+                showPrompt();
+                running=false;
+                return;
+            }
             if(First.equals("<who>")){
                out.write("<optimizer>\n",0,12);
-	       out.flush();
-	       running = true;
+               out.flush();
+               running = true;
              }else{
-	        if(trace)
+                if(trace)
                    System.out.println("protocol-error , close connection (expect: <who>, received :"+First);
-		showPrompt();
-		running = false;
+                showPrompt();
+                running = false;
              }
          }catch(Exception e){
              if(trace){
-	        System.out.println("Exception occured "+e);
-	        e.printStackTrace();
-	     }
-	     showPrompt();
-	     running = false;
+                System.out.println("Exception occured "+e);
+                e.printStackTrace();
+             }
+             showPrompt();
+             running = false;
          }
       }
 
       /** disconnect this server from a client */
       private void disconnect(){
         // close Connection if possible
-	try{
-	   if(S!=null)
-	      S.close();
-	}catch(Exception e){
-	    if(trace){
-	       System.out.println("Exception in closing connection "+e);
-	       e.printStackTrace();
-	    }
-	}
+        try{
+           if(S!=null)
+              S.close();
+        }catch(Exception e){
+            if(trace){
+               System.out.println("Exception in closing connection "+e);
+               e.printStackTrace();
+            }
+        }
         OptimizerServer.Clients--;
-	if(trace){
+        if(trace){
            System.out.println("\nbye client");
-	   System.out.println("number of clients is :"+ OptimizerServer.Clients);
-	}
-	showPrompt();
+           System.out.println("number of clients is :"+ OptimizerServer.Clients);
+        }
+        showPrompt();
       }
 
 
@@ -311,159 +311,159 @@ public class OptimizerServer extends Thread{
 
        /**  processes requests from clients until the client
         *  finish the connection or an error occurs
-	*/
+        */
       public void run(){
          if(!running){
            disconnect();
-	   return;
-	 }
+           return;
+         }
 
-	 boolean execFlag=false; // flags for control execute or optimize request
-	 try{
+         boolean execFlag=false; // flags for control execute or optimize request
+         try{
              String input = in.readLine();
-	     if(input==null){
-	        if(trace)
-		   System.out.println("connection is broken");
-		disconnect();
-		return;
-	     }
+             if(input==null){
+                if(trace)
+                   System.out.println("connection is broken");
+                disconnect();
+                return;
+             }
              while(!input.equals("<end connection>")){
 
-	       if(!input.equals("<optimize>") && !input.equals("<execute>") ){ // protocol_error
-	           if(trace)
-		      System.out.println("protocol error( expect: <optimize> or <execute> , found:"+input);
+               if(!input.equals("<optimize>") && !input.equals("<execute>") ){ // protocol_error
+                   if(trace)
+                      System.out.println("protocol error( expect: <optimize> or <execute> , found:"+input);
                    disconnect();
-		   return;
-	       }
-	       execFlag = input.equals("<execute>");
-	       // read the database name
-	       input = in.readLine();
-               if(input==null){
-	          if(trace)
-		     System.out.println("connection is broken");
-		  disconnect();
-		  return;
-	       }
-	       if(!input.equals("<database>")){ // protocol_error
-	          if(trace)
-		     System.out.println("protocol error( expect: <database> , found:"+input);
-                  disconnect();
-		  return;
-	       }
-               String Database = in.readLine();
-	       if(Database==null){
-	          System.out.println("connection is broken");
-		  disconnect();
-		  return;
-	       }else {
-	         Database = Database.trim();
-	       }
-	       input = in.readLine();
-	       if(input==null){
-	        if(trace)
-		   System.out.println("connection is broken");
-		disconnect();
-		return;
-	       }else{
-	         input = input.trim();
-	       }
-	       if(!input.equals("</database>")){ // protocol error
-	           if(trace)
-		      System.out.println("protocol error( expect: </database> , found:"+input);
-	           disconnect();
-		   return;
-	       }
+                   return;
+               }
+               execFlag = input.equals("<execute>");
+               // read the database name
                input = in.readLine();
-	       if(input==null){
-	        if(trace)
-		   System.out.println("connection is broken");
-		disconnect();
-		return;
-	        }else{
-		  input = input.trim();
-		}
-	       if(!input.equals("<query>")){ // protocol error
-	           if(trace)
- 	 	      System.out.println("protocol error( expect: <query> , found:"+input);
- 	           disconnect();
-		   return;
-	       }
-
-	       StringBuffer res = new StringBuffer();
-	       // build the query from the next lines
-	       input = in.readLine();
-	       //System.out.println("receive"+input);
-	       if(input==null){
-	        if(trace)
-		   System.out.println("connection is broken");
-		disconnect();
-		return;
-	       }
-	       while(!input.equals("</query>")){
-                  res.append(input + " ");
-	          input = in.readLine();
-		  //System.out.println("receive"+input);
-		  if(input==null){
-	            if(trace)
-		       System.out.println("connection is broken");
-		    disconnect();
-		    return;
-	          }
-	       }
-
-	       input = in.readLine();
-	       if(input==null){
-	          System.out.println("connection is broken");
-		  disconnect();
-		  return;
-	       }
-
-	       if(! (input.equals("</optimize>") & !execFlag)  & !(input.equals("</execute>") & execFlag)){ //protocol-error
-	           if(trace)
-		     System.out.println("protocol error( expect: </optimize> or </execute>, found:"+input);
+               if(input==null){
+                  if(trace)
+                     System.out.println("connection is broken");
+                  disconnect();
+                  return;
+               }
+               if(!input.equals("<database>")){ // protocol_error
+                  if(trace)
+                     System.out.println("protocol error( expect: <database> , found:"+input);
+                  disconnect();
+                  return;
+               }
+               String Database = in.readLine();
+               if(Database==null){
+                  System.out.println("connection is broken");
+                  disconnect();
+                  return;
+               }else {
+                 Database = Database.trim();
+               }
+               input = in.readLine();
+               if(input==null){
+                if(trace)
+                   System.out.println("connection is broken");
+                disconnect();
+                return;
+               }else{
+                 input = input.trim();
+               }
+               if(!input.equals("</database>")){ // protocol error
+                   if(trace)
+                      System.out.println("protocol error( expect: </database> , found:"+input);
                    disconnect();
-		   return;
-	       }
-
-	       String Request = res.toString().trim();
-	       Vector V = new Vector();
-	       synchronized(SyncObj){
-	          useDatabase(Database);
-		  if(!execFlag){
-   	              String opt = OptimizerServer.this.optimize(Request);
-		      if(!opt.equals(Request))
-		         V.add(opt);
-	          }else{
-		     execute(Request,V);
-		  }
+                   return;
+               }
+               input = in.readLine();
+               if(input==null){
+                if(trace)
+                   System.out.println("connection is broken");
+                disconnect();
+                return;
+                }else{
+                  input = input.trim();
+                }
+               if(!input.equals("<query>")){ // protocol error
+                   if(trace)
+                        System.out.println("protocol error( expect: <query> , found:"+input);
+                    disconnect();
+                   return;
                }
 
-	       showPrompt();
+               StringBuffer res = new StringBuffer();
+               // build the query from the next lines
+               input = in.readLine();
+               //System.out.println("receive"+input);
+               if(input==null){
+                if(trace)
+                   System.out.println("connection is broken");
+                disconnect();
+                return;
+               }
+               while(!input.equals("</query>")){
+                  res.append(input + " ");
+                  input = in.readLine();
+                  //System.out.println("receive"+input);
+                  if(input==null){
+                    if(trace)
+                       System.out.println("connection is broken");
+                    disconnect();
+                    return;
+                  }
+               }
 
-	       out.write("<answer>\n",0,9);
+               input = in.readLine();
+               if(input==null){
+                  System.out.println("connection is broken");
+                  disconnect();
+                  return;
+               }
+
+               if(! (input.equals("</optimize>") & !execFlag)  & !(input.equals("</execute>") & execFlag)){ //protocol-error
+                   if(trace)
+                     System.out.println("protocol error( expect: </optimize> or </execute>, found:"+input);
+                   disconnect();
+                   return;
+               }
+
+               String Request = res.toString().trim();
+               Vector V = new Vector();
+               synchronized(SyncObj){
+                  useDatabase(Database);
+                  if(!execFlag){
+                         String opt = OptimizerServer.this.optimize(Request);
+                      if(!opt.equals(Request))
+                         V.add(opt);
+                  }else{
+                     execute(Request,V);
+                  }
+               }
+
+               showPrompt();
+
+               out.write("<answer>\n",0,9);
                String answer;
-	       for(int i=0;i<V.size();i++){
-	          answer = (String) V.get(i);
-		  out.write(answer+"\n",0,answer.length()+1);
-	       }
-	       out.write("</answer>\n",0,10);
+               for(int i=0;i<V.size();i++){
+                  answer = (String) V.get(i);
+                  out.write(answer+"\n",0,answer.length()+1);
+               }
+               out.write("</answer>\n",0,10);
                out.flush();
                input = in.readLine().trim();
-	       if (input==null){
-  	          System.out.println("connection broken");
-		  showPrompt();
-	          disconnect();
-	          return;
-	       }
+               if (input==null){
+                    System.out.println("connection broken");
+                  showPrompt();
+                  disconnect();
+                  return;
+               }
              } // while
-	     System.out.println("connection ended normaly");
-	     showPrompt();
-	   }catch(IOException e){
-	      System.out.println("error in socket-communication");
-	      disconnect();
-	      showPrompt();
-	      return;
-	   }
+             System.out.println("connection ended normaly");
+             showPrompt();
+           }catch(IOException e){
+              System.out.println("error in socket-communication");
+              disconnect();
+              showPrompt();
+              return;
+           }
              disconnect();
          }
 
@@ -496,16 +496,16 @@ public class OptimizerServer extends Thread{
       while(running){
        try{
            Socket S = SS.accept();
-	   Clients++;
-	   if(trace){
-	       System.out.println("\na new client is connected");
-	       System.out.println("number of clients :"+Clients);
-	       showPrompt();
-	   }
-	   (new Server(S)).start();
-	  } catch(Exception e){
+           Clients++;
+           if(trace){
+               System.out.println("\na new client is connected");
+               System.out.println("number of clients :"+Clients);
+               showPrompt();
+           }
+           (new Server(S)).start();
+          } catch(Exception e){
          System.out.println("error in communication");
-	 showPrompt();
+         showPrompt();
        }
      }
 
@@ -522,7 +522,7 @@ public class OptimizerServer extends Thread{
    public static void main(String[] args){
        if(args.length<1){
         System.err.println("usage:  java OptimizerServer -classpath .:<jplclasses> OptimizerServer  PortNumber");
-      	System.exit(1);
+              System.exit(1);
        }
        // process options
        Runtime rt = Runtime.getRuntime();
@@ -555,64 +555,64 @@ public class OptimizerServer extends Thread{
 
        try{
          Class.forName("jpl.fli.Prolog"); // ensure to load the jpl library
-	} catch(Exception e){
-	   System.err.println("loading prolog class failed");
-	   System.exit(1);
-	}
+        } catch(Exception e){
+           System.err.println("loading prolog class failed");
+           System.exit(1);
+        }
 
        if(! OS.initialize()){
           System.out.println("initialization failed");
-	  System.exit(1);
+          System.exit(1);
        }
        if(!OS.createServer()){
          System.out.println("creating Server failed");
-	 System.exit(1);
+         System.exit(1);
        }
        OS.running = true;
        OS.start();
        try{
          BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-	 System.out.print("optserver >");
+         System.out.print("optserver >");
          String command = "";
-	 Vector ResVector = new Vector();
+         Vector ResVector = new Vector();
          while(!command.equals("quit")){
            command = in.readLine().trim();
-	   if(command.equals("clients")){
-	      System.out.println("Number of Clients: "+ Clients);
-	   }else if(command.equals("quit")){
-	      if( Clients > 0){
-	         System.out.print("clients exists ! shutdown anyway (y/n) >");
-	         String answer = in.readLine().trim().toLowerCase();
-	         if(!answer.startsWith("y"))
-	             command="";
-	      }
-	   } else if(command.equals("trace-on")){
-	       trace=true;
-	       System.out.println("tracing is activated");
-	   } else if(command.equals("trace-off")){
-	       trace=false;
-	       System.out.println("tracing is deactivated");
-	   } else if(command.equals("help") | command.equals("?") ){
-	        System.out.println("quit      : quits the server ");
-		System.out.println("clients   : prints out the number of connected clients");
-		System.out.println("trace-on  : prints out messages about command, optimized command, open database");
-		System.out.println("trace-off : disable messages");
-	   } else if(command.startsWith("exec")){
+           if(command.equals("clients")){
+              System.out.println("Number of Clients: "+ Clients);
+           }else if(command.equals("quit")){
+              if( Clients > 0){
+                 System.out.print("clients exists ! shutdown anyway (y/n) >");
+                 String answer = in.readLine().trim().toLowerCase();
+                 if(!answer.startsWith("y"))
+                     command="";
+              }
+           } else if(command.equals("trace-on")){
+               trace=true;
+               System.out.println("tracing is activated");
+           } else if(command.equals("trace-off")){
+               trace=false;
+               System.out.println("tracing is deactivated");
+           } else if(command.equals("help") | command.equals("?") ){
+                System.out.println("quit      : quits the server ");
+                System.out.println("clients   : prints out the number of connected clients");
+                System.out.println("trace-on  : prints out messages about command, optimized command, open database");
+                System.out.println("trace-off : disable messages");
+           } else if(command.startsWith("exec")){
              String cmdline = command.substring(5,command.length());
-	     execute(cmdline,ResVector);
-	   }else{
-	      System.out.println("unknow command, try help show a list of valid commands");
-	   }
+             execute(cmdline,ResVector);
+           }else{
+              System.out.println("unknow command, try help show a list of valid commands");
+           }
            if(!command.equals("quit"))
-	      showPrompt();
+              showPrompt();
 
-	 }
-	 OS.running = false;
+         }
+         OS.running = false;
        }catch(Exception e){
           OS.running = false;
-	  System.out.println("error in reading commands");
-	  if(trace)
-	     e.printStackTrace();
+          System.out.println("error in reading commands");
+          if(trace)
+             e.printStackTrace();
        }
        try{
           JPL.halt();
@@ -643,7 +643,7 @@ public class OptimizerServer extends Thread{
    private boolean running;
    private static String openedDatabase ="";
    private static boolean trace = true;
-   private Object SyncObj = new Object();
+   private static Object SyncObj = new Object();
 
 }
 
