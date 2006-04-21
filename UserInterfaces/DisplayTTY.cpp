@@ -23,6 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 December 2005, Victor Almeida deleted the deprecated algebra levels (~executable~,
 ~descriptive~, and ~hibrid~). Only the executable level remains.
 
+April 2006, M. Spiekermann. Display function for type text changed since its output
+format was changed. Moreover, the word wrapping of text atoms was improved. 
+
 \def\CC{C\raise.22ex\hbox{{\footnotesize +}}\raise.22ex\hbox{\footnotesize +}\xs
 pace}
 \centerline{\LARGE \bf  DisplayTTY}
@@ -75,6 +78,7 @@ the corresponding type constructor.
 SecondoInterface* DisplayTTY::si = 0;
 NestedList*       DisplayTTY::nl = 0;
 map<string,DisplayFunction> DisplayTTY::displayFunctions;
+int DisplayTTY::maxIndent = 0;
 
 /*
 The function *CallDisplayFunction* uses its first argument *idPair*
@@ -177,9 +181,8 @@ DisplayTTY::MaxHeaderLength( ListExpr type )
 int
 DisplayTTY::MaxAttributLength( ListExpr type )
 {
-  int max, len;
-  string s;
-  max = 0;
+  int max=0, len=0;
+  string s="";
   while (!nl->IsEmpty( type ))
   {
     s = nl->SymbolValue( nl->First( nl->First( type ) ) );
@@ -197,13 +200,13 @@ void
 DisplayTTY::DisplayTuple( ListExpr type, ListExpr numType,
                           ListExpr value, const int maxNameLen )
 {
-  string s, blanks;
   while (!nl->IsEmpty( value ))
   {
     cout << endl;
-    s = nl->SymbolValue( nl->First( nl->First( numType ) ) );
-    blanks.assign( maxNameLen-s.length() , ' ' );
-    cout << blanks << s << ": ";
+    string s = nl->SymbolValue( nl->First( nl->First( numType ) ) );
+    string attr = string( maxNameLen-s.length() , ' ' ) + s + string(":");
+    cout << attr;
+    maxIndent = attr.length();
 
     if( nl->IsAtom( nl->First( nl->Second( nl->First( numType ) ) ) ) )
     {
@@ -219,7 +222,8 @@ DisplayTTY::DisplayTuple( ListExpr type, ListExpr numType,
                            nl->Second( nl->First( numType ) ),
                            nl->First( value ) );
     }
-
+    maxIndent = 0;
+    
     type    = nl->Rest( type );
     numType = nl->Rest( numType );
     value   = nl->Rest( value );
@@ -302,12 +306,10 @@ DisplayTTY::DisplayString( ListExpr type, ListExpr numType, ListExpr value )
   }
 }
 
+
 void
 DisplayTTY::DisplayText( ListExpr type, ListExpr numType, ListExpr value )
 {
-  string printstr, line, restline;
-  int lastblank, position;
-  bool lastline;
 
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
       nl->SymbolValue( value ) == "undef" )
@@ -316,9 +318,13 @@ DisplayTTY::DisplayText( ListExpr type, ListExpr numType, ListExpr value )
   }
   else
   {
-    TextScan txtscan = nl->CreateTextScan(nl->First(value));
-    nl->GetText(txtscan, nl->TextLength(nl->First(value)),printstr);
-    delete txtscan;
+    //TextScan txtscan = nl->CreateTextScan(nl->First(value));
+    //nl->GetText(txtscan, nl->TextLength(nl->First(value)),printstr);
+    //delete txtscan;
+    string printstr="";
+    nl->Text2String(value, printstr);
+    cout << wordWrap(0, maxIndent, LINELENGTH, printstr);
+    /*
     position = 0;
     lastblank = -1;
     line = "";
@@ -358,6 +364,7 @@ DisplayTTY::DisplayText( ListExpr type, ListExpr numType, ListExpr value )
         }
       }
     }
+    */
   }
 }
 
@@ -858,110 +865,45 @@ DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
 void
 DisplayTTY::DisplayDescriptionLines( ListExpr value, int  maxNameLen)
 {
-  string s, blanks, printstr, line, restline, descrstr;
-  int position, lastblank;
-  ListExpr valueheader, valuedescr;
-  bool firstline, lastline;
+   string s, blanks, printstr, line, restline, descrstr;
+   int position, lastblank;
+   ListExpr valueheader, valuedescr;
+   bool firstline, lastline;
 
-  valueheader = nl->Second(value);
-  valuedescr  = nl->Third(value);
+   valueheader = nl->Second(value);
+   valuedescr  = nl->Third(value);
 
-  cout << endl;
+   cout << endl;
 
-  blanks.assign( maxNameLen-4 , ' ' );
-  cout << blanks << "Name: " << nl->SymbolValue(nl->First(value)) << endl;
+   blanks.assign( maxNameLen-4 , ' ' );
+   cout << blanks << "Name: " << nl->SymbolValue(nl->First(value)) << endl;
 
-  while (!nl->IsEmpty( valueheader ))
-  {
-    s = nl->StringValue( nl->First( valueheader ));
-    blanks.assign( maxNameLen-s.length() , ' ' );
-    //cout << blanks << s << ": ";
-    printstr = blanks + s + ": ";
+   while (!nl->IsEmpty( valueheader ))
+   {
+     s = nl->StringValue( nl->First( valueheader ));
+     blanks.assign( maxNameLen-s.length() , ' ' );
+     //cout << blanks << s << ": ";
+     printstr = blanks + s + ": ";
 
-    if( nl->IsAtom(nl->First( valuedescr ))) //&&
-      //nl->AtomType(nl->First(valuedescr))==StringType)
-    {
-      if ( nl->AtomType(nl->First(valuedescr))==StringType )
-      //DisplayString(nl->TheEmptyList(), nl->TheEmptyList(),
-        //nl->First(valuedescr));
-      printstr += nl->StringValue( nl->First(valuedescr) );
+     if( nl->IsAtom(nl->First( valuedescr ))) //&&
+       //nl->AtomType(nl->First(valuedescr))==StringType)
+     {
+       if ( nl->AtomType(nl->First(valuedescr))==StringType )
+       { 
+        printstr += nl->StringValue( nl->First(valuedescr) );
+      }  
       else
       {
         if ( nl->AtomType(nl->First(valuedescr))==TextType )
-  {
-    TextScan txtscan = nl->CreateTextScan(nl->First(valuedescr));
-    descrstr = "";
-    nl->GetText(txtscan, nl->TextLength(nl->First(valuedescr)),descrstr);
-    printstr += descrstr;
-    //cout << printstr << endl;
-    nl->DestroyTextScan(txtscan);
-  }
-      }
-      //check whether line break is necessary
-      if (printstr.length() <= LINELENGTH) cout << printstr << endl;
-      //cout << endl;
-      else
-      {
-        firstline = true;
-        position = 0;
-  lastblank = -1;
-  line = "";
-        for (unsigned i = 1; i <= printstr.length(); i++)
         {
-    line += printstr[i-1];
-    //cout << line << endl;
-    if (printstr[i-1] == ' ') lastblank = position;
-    position++;
-    lastline = (i == printstr.length());
-    if ( (firstline && (position == LINELENGTH)) || (!firstline &&
-    (position == (LINELENGTH-maxNameLen-2))) || lastline )
-    //if ((position == LINELENGTH) || lastline)
-    {
-      if (lastblank > 0)
-      {
-        if (firstline)
-        {
-          if (lastline && (line.length() <= LINELENGTH))
-    {
-      cout << line << endl;
-    }
-          else cout << line.substr(0, lastblank) << endl;
-    firstline = false;
+          TextScan txtscan = nl->CreateTextScan(nl->First(valuedescr));
+          descrstr = "";
+          nl->GetText(txtscan, nl->TextLength(nl->First(valuedescr)),descrstr);
+          printstr += descrstr;
+          nl->DestroyTextScan(txtscan);
         }
-        else
-        {
-          blanks.assign( maxNameLen+2 , ' ' );
-    if (lastline && (line.length() <= LINELENGTH))
-    {
-      cout << blanks << line << endl;
-    }
-          else cout << blanks << line.substr(0, lastblank) << endl;
-        }
-        restline = line.substr(lastblank+1, position);
-        line = "";
-        line += restline;
-        lastblank = -1;
-        position = line.length();
       }
-      else
-      {
-        if (firstline)
-        {
-          cout << line << endl;
-    firstline = false;
-        }
-        else
-        {
-          blanks.assign( maxNameLen+2 , ' ' );
-          cout << blanks << line << endl;
-        }
-        line = "";
-        lastblank = -1;
-        position = 0;
-      }
-    }
-  }
-      }
+      cout << wordWrap(0, maxNameLen+2, LINELENGTH, printstr) << endl;
     }
     valueheader   = nl->Rest( valueheader );
     valuedescr    = nl->Rest( valuedescr );
@@ -991,134 +933,168 @@ DisplayTTY::ConcatLists( ListExpr list1, ListExpr list2)
 }
 
 
+/*
+The function below is not a display function but used to display
+lists starting with (inquiry ...). It is called directly by 
+SecondoTTY.
+
+*/
+
 void
 DisplayTTY::DisplayResult2( ListExpr value )
 {
   ListExpr InquiryType = nl->First(value);
   string TypeName = nl->SymbolValue(InquiryType);
   ListExpr v = nl->Second(value);
-  if(TypeName=="databases"){
-      cout << endl << "--------------------" << endl;
-      cout << "Database(s)" << endl;
-      cout << "--------------------" << endl;
-      if(nl->ListLength(v)==0)
-         cout << "none" << endl;
-      while(!nl->IsEmpty(v)){
-        cout << "  " << nl->SymbolValue(nl->First(v)) << endl;
-  v = nl->Rest(v);
-      }
-      return;
-  }else if(TypeName=="algebras"){
-   cout << endl << "--------------------" << endl;
-      cout << "Algebra(s) " << endl;
-      cout << "--------------------" << endl;
-      if(nl->ListLength(v)==0)
-         cout << "none" << endl;
-      while(!nl->IsEmpty(v)){
-        cout << "  " << nl->SymbolValue(nl->First(v)) << endl;
-  v = nl->Rest(v);
-      }
-      return;
-  }else if(TypeName=="types"){
+  if(TypeName=="databases")
+  {
+    cout << endl << "--------------------" << endl;
+    cout << "Database(s)" << endl;
+    cout << "--------------------" << endl;
+    if(nl->ListLength(v)==0)
+       cout << "none" << endl;
+    while(!nl->IsEmpty(v)){
+      cout << "  " << nl->SymbolValue(nl->First(v)) << endl;
+      v = nl->Rest(v);
+    }
+    return;
+  } 
+  else if(TypeName=="algebras")
+  {
+    cout << endl << "--------------------" << endl;
+    cout << "Algebra(s) " << endl;
+    cout << "--------------------" << endl;
+    if(nl->ListLength(v)==0)
+       cout << "none" << endl;
+    while(!nl->IsEmpty(v))
+    {
+      cout << "  " << nl->SymbolValue(nl->First(v)) << endl;
+      v = nl->Rest(v);
+    }
+    return;
+  } 
+  else if(TypeName=="types")
+  {
       nl->WriteListExpr(v,cout);
       return;
-  }else if(TypeName=="objects"){
-      ListExpr tmp = nl->Rest(v); // ignore the OBJECTS
-      if(! nl->IsEmpty(tmp)){
-         cout << " short list " << endl;
-         while(!nl->IsEmpty(tmp)){
-             cout << "  * " << nl->SymbolValue(nl->Second(nl->First(tmp)));
-       cout << endl;
-       tmp = nl->Rest(tmp);
-   }
-   cout << endl << "---------------" << endl;
-   cout << " complete list " << endl;
+  }
+  else if(TypeName=="objects")
+  {
+    ListExpr tmp = nl->Rest(v); // ignore the OBJECTS
+    if(! nl->IsEmpty(tmp))
+    {
+      cout << " short list " << endl;
+      while(!nl->IsEmpty(tmp))
+      {
+        cout << "  * " << nl->SymbolValue(nl->Second(nl->First(tmp)));
+        cout << endl;
+        tmp = nl->Rest(tmp);
       }
-
-      nl->WriteListExpr(v,cout);
-      return;
-  } else if(TypeName=="constructors" || TypeName=="operators"){
-      cout << endl << "--------------------" << endl;
-      if(TypeName=="constructors")
-         cout <<"Type Constructor(s)\n";
-      else cout << "Operator(s)" << endl;
-      cout << "--------------------" << endl;
-      if(nl->IsEmpty(v)){
-         cout <<"  none " << endl;
-      } else{
-         ListExpr headerlist = v;
-   int MaxLength = 0;
-   int currentlength;
-   while(!nl->IsEmpty(headerlist)){
+      cout << endl << "---------------" << endl;
+      cout << " complete list " << endl;
+    }
+    nl->WriteListExpr(v,cout);
+    return;
+  } 
+  else if(TypeName=="constructors" || TypeName=="operators")
+  {
+    cout << endl << "--------------------" << endl;
+    if(TypeName=="constructors")
+      cout <<"Type Constructor(s)\n";
+    else 
+      cout << "Operator(s)" << endl;
+    cout << "--------------------" << endl;
+    if(nl->IsEmpty(v))
+    {
+     cout <<"  none " << endl;
+    } 
+    else 
+    {
+      ListExpr headerlist = v;
+      int MaxLength = 0;
+      int currentlength;
+      while(!nl->IsEmpty(headerlist))
+      {
         ListExpr tmp = (nl->Second(nl->First(headerlist)));
-      while(!nl->IsEmpty(tmp)){
-         currentlength = (nl->StringValue(nl->First(tmp))).length();
-         tmp = nl->Rest(tmp);
-         if(currentlength>MaxLength)
+        while(!nl->IsEmpty(tmp))
+        {
+          currentlength = (nl->StringValue(nl->First(tmp))).length();
+          tmp = nl->Rest(tmp);
+          if(currentlength>MaxLength)
             MaxLength = currentlength;
+        }
+        headerlist = nl->Rest(headerlist);
       }
-      headerlist = nl->Rest(headerlist);
-   }
 
-         while (!nl->IsEmpty( v ))
-         {
-            DisplayDescriptionLines( nl->First(v), MaxLength );
-            v   = nl->Rest( v );
-         }
-     }
-  }else if(TypeName=="algebra"){
-      string AlgebraName = nl->SymbolValue(nl->First(v));
-      cout << endl << "-----------------------------------" << endl;
-      cout << "Algebra : " << AlgebraName << endl;
-      cout << "-----------------------------------" << endl;
-      ListExpr Cs = nl->First(nl->Second(v));
-      ListExpr Ops = nl->Second(nl->Second(v));
-      // determine the headerlength
-      ListExpr tmp1 = Cs;
-      int maxLength=0;
-      int len;
-      while(!nl->IsEmpty(tmp1)){
-        ListExpr tmp2 = nl->Second(nl->First(tmp1));
-  while(!nl->IsEmpty(tmp2)){
-          len = (nl->StringValue(nl->First(tmp2))).length();
-    if(len>maxLength)
-       maxLength=len;
-    tmp2 = nl->Rest(tmp2);
+      while (!nl->IsEmpty( v ))
+      {
+        DisplayDescriptionLines( nl->First(v), MaxLength );
+        v   = nl->Rest( v );
+      }
+    }
   }
-        tmp1 = nl->Rest(tmp1);
+  else if(TypeName=="algebra")
+  {
+    string AlgebraName = nl->SymbolValue(nl->First(v));
+    cout << endl << "-----------------------------------" << endl;
+    cout << "Algebra : " << AlgebraName << endl;
+    cout << "-----------------------------------" << endl;
+    ListExpr Cs = nl->First(nl->Second(v));
+    ListExpr Ops = nl->Second(nl->Second(v));
+    // determine the headerlength
+    ListExpr tmp1 = Cs;
+    int maxLength=0;
+    int len;
+    while(!nl->IsEmpty(tmp1))
+    {
+      ListExpr tmp2 = nl->Second(nl->First(tmp1));
+      while(!nl->IsEmpty(tmp2))
+      {
+        len = (nl->StringValue(nl->First(tmp2))).length();
+        if(len>maxLength)
+          maxLength=len;
+         tmp2 = nl->Rest(tmp2);
       }
-      tmp1 = Ops;
-      while(!nl->IsEmpty(tmp1)){
-        ListExpr tmp2 = nl->Second(nl->First(tmp1));
-  while(!nl->IsEmpty(tmp2)){
-          len = (nl->StringValue(nl->First(tmp2))).length();
-    if(len>maxLength)
-       maxLength=len;
-    tmp2 = nl->Rest(tmp2);
+      tmp1 = nl->Rest(tmp1);
+    }
+    tmp1 = Ops;
+    while(!nl->IsEmpty(tmp1))
+    {
+      ListExpr tmp2 = nl->Second(nl->First(tmp1));
+      while(!nl->IsEmpty(tmp2))
+      {
+        len = (nl->StringValue(nl->First(tmp2))).length();
+        if(len>maxLength)
+          maxLength=len;
+        tmp2 = nl->Rest(tmp2);
+      }
+      tmp1 = nl->Rest(tmp1);
+    } 
+
+    cout << endl << "-------------------------" << endl;
+    cout << "  "<< "Type Constructor(s)" << endl;
+    cout << "-------------------------" << endl;
+    if(nl->ListLength(Cs)==0)
+       cout << "  none" << endl;
+    while(!nl->IsEmpty(Cs))
+    {
+      DisplayDescriptionLines(nl->First(Cs),maxLength);
+      Cs = nl->Rest(Cs);
+    }
+
+    cout << endl << "-------------------------" << endl;
+    cout << "  " << "Operator(s)" << endl;
+    cout << "-------------------------" << endl;
+    if(nl->ListLength(Ops)==0)
+      cout << "  none" << endl;
+    while(!nl->IsEmpty(Ops))
+    {
+      DisplayDescriptionLines(nl->First(Ops),maxLength);
+      Ops = nl->Rest(Ops);
+    }
   }
-        tmp1 = nl->Rest(tmp1);
-      }
-
-      cout << endl << "-------------------------" << endl;
-      cout << "  "<< "Type Constructor(s)" << endl;
-      cout << "-------------------------" << endl;
-      if(nl->ListLength(Cs)==0)
-         cout << "  none" << endl;
-      while(!nl->IsEmpty(Cs)){
-         DisplayDescriptionLines(nl->First(Cs),maxLength);
-   Cs = nl->Rest(Cs);
-      }
-
-      cout << endl << "-------------------------" << endl;
-      cout << "  " << "Operator(s)" << endl;
-      cout << "-------------------------" << endl;
-      if(nl->ListLength(Ops)==0)
-         cout << "  none" << endl;
-      while(!nl->IsEmpty(Ops)){
-         DisplayDescriptionLines(nl->First(Ops),maxLength);
-   Ops = nl->Rest(Ops);
-      }
-  }else{
+  else
+  {
     cout << "unknow inquiry type" << endl;
     nl->WriteListExpr(value,cout);
   }

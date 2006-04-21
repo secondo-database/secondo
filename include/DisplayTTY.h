@@ -277,6 +277,9 @@ Is a display function for date.
   static SecondoInterface* si; // Ref. to Secondo interface
   static NestedList*       nl; // Ref. to nested list container
   static map<string,DisplayFunction> displayFunctions;
+
+  static int maxIndent; // used for multi line text values inside tuples
+
 };
 
 #endif
