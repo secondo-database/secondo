@@ -3170,12 +3170,21 @@ translate(Query groupby Attrs,
   translateFields(SelAttrs, Attrs2, Fields, Select2),
   !.
 
- 
+% Modified to integrate the optional generation of immediate Plans,
+% The option is activated, when optimizerOption(immediatePath) is
+% defined. See file ''immediateplan.pl'' for further information.
 translate(Select from Rels where Preds, Stream, Select, Cost) :- 
+  not(optimizerOption(immediatePlan)),
   pog(Rels, Preds, _, _),
   assignCosts,
   bestPlan(Stream, Cost),
   !.
+
+translate(Select from Rels where Preds, Stream, Select, Cost) :- 
+  optimizerOption(immediatePlan),
+  immPlanTranslate(Select from Rels where Preds, Stream, Select, Cost),
+  !.
+
 
 /*
 Below we handle the case of queries without where-clause. This results

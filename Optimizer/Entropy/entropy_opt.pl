@@ -120,7 +120,7 @@ nextCounter(C) :-
   C = 1.
 
 % called by the standard optimizer 
-deleteCounters2 :- retractall(nCounter(_)).
+deleteCounters :- retractall(nCounter(_)).
  
 /* 
 The clauses below are used to store a list of counters returned by SECONDO.
@@ -189,11 +189,6 @@ compute_sel(ResSize, ArgSize, Sel) :-
 
 
 
-
-
-
-
-
 assignSmallSelectivity(Source, Target, Result, select(Arg, _), Value) :-
   newResSize(Arg, Card),
   compute_sel( Value, Card, Sel ),!,
@@ -218,7 +213,7 @@ createSmallSelectivity2 :-
   fail.
 
 /*
-3 Some clauses operationg the ~small~ database.
+3 Some clauses operating the ~small~ database.
 
 prepare\_query\_small prepares the query to be executed in the small database.
 Assumes that the small database has the same indexes that are in the full database,
@@ -317,7 +312,6 @@ query_small( Term, Result ) :-
   !.
 
 
-
 /*
 3 Interaction with the ~standard~ Optimizer
 
@@ -350,7 +344,7 @@ traversePath2([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
   traversePath2(Path).
 
 /*
-The clause ~translateEntropy~ runs a plan given as ~STREAM1~ with ~Cost1~, runs
+The clause ~translateEntropy~ runs a plan given as ~Stream1~ with ~Cost1~, runs
 it on the small database. Conditional selectivities are computed along
 the path of the first plan. Then the iterative scaling algorithm computes the
 remaining conditional selectivites. The new selectivites are assigned to the
@@ -547,10 +541,7 @@ Marginals of value 1 can arise if all tuples in a sample qualify. In this case w
 
 */
 
-:- dynamic
-
-  marginal/2.
-
+:- dynamic marginal/2.
 
 saveMarginal([]).
 
@@ -562,14 +553,11 @@ saveMarginal([[Pred, Sel]|L]) :-
   assert(marginal(Pred, Sel)),
   saveMarginal(L).
 
-
 loadMarginal(MP) :-
   setof([Pred, Sel], marginal(Pred, Sel), MP).
 
-
 deleteMarginal :- 
   retractall(marginal(_, _)).
-
 
 
 feasible(Marginal, Joint, Marginal2, Joint2) :-
@@ -623,10 +611,6 @@ adjusted(PSel, QSel, JointSel, JointSel2) :-
   JointSel2 is 1.01 * (PSel + QSel - 1).
 
   
-
-  
-
-
 simpleadjust(MP, [_ |JP] , MP2, JP2):-
   margadjust(MP, MP2),
   jointadjust(JP, JP2).
@@ -643,18 +627,6 @@ jointadjust([[_, Target, TargetSel] | L], [[Target, TargetSel] | L2]) :-
 
 
 
-
-
-
-
-
-
-
-
-
-
-
- 
 assignEntropySizes :- not(assignEntropySizes1).
 
 assignEntropySizes1 :-

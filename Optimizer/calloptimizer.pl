@@ -93,8 +93,9 @@ should be called, is it is deactivated, ~GoalOff~ is called.
 */
 
 optimizerOptionInfo(entropy,       
-                    '\tEstimate selectivities by maximizing the entropy.',
-                    ( loadFiles(entropy), 
+'\tEstimate selectivities by maximizing the entropy.\n\t\t\t(Incompatible with \'immediatePlan\')',
+                    ( delOption(immediatePlan),
+                      loadFiles(entropy), 
                       (   notIsDatabaseOpen
                         ; ( getSecondoList(ObjList),
                             checkForAddedIndices(ObjList), 
@@ -111,6 +112,15 @@ optimizerOptionInfo(entropy,
 %optimizerOptionInfo(costsConjuctive,  
 %           'Apply costs only to operators directly considered by Dijkstra',
 %           true, true).
+optimizerOptionInfo(immediatePlan,    
+'Immediately create a path instead of the complete POG.\n\t\t\t(Incompatible with \'entropy\')',
+                    ( loadFiles(immediatePlan),
+                      delOption(entropy)
+                    ), 
+                    loadFiles(completePOG)).
+optimizerOptionInfo(immediatePlanTime,    
+'Prompt time used to find a path when \'immediatePlan\' is selected',
+                    immPlanPrintTimeMessage, true).
 optimizerOptionInfo(dynamicSample,    
                     'Use dynamic instead of static (saved) samples.',
                     true, true).
@@ -196,6 +206,10 @@ integrated debugging features.
 
 */
 
+/*
+3.1 Setting Debugging Options
+
+*/
 
 ppCostFactor(0) :-
   optimizerOption(costConjunctive), !.
@@ -234,6 +248,11 @@ nodebugLevel(Mode) :-
   showDebugLevel,
   nl.
 
+/*
+3.2 Switching between optimization module options
+
+*/
+
 % The files for the standard optimization procedure will be
 % loaded by default!
 loadFiles(standard) :-
@@ -244,7 +263,8 @@ loadFiles(standard) :-
     [operators],
     [boundary],
     [searchtree],
-    retractall(loadedModule(_)),
+    retractall(loadedModule(standard)),
+    retractall(loadedModule(entropy)),
     assert(loadedModule(standard))
   )
   ; true.
@@ -253,9 +273,29 @@ loadFiles(standard) :-
 loadFiles(entropy) :-
   ( not(loadedModule(entropy)),
     ['./Entropy/entropy_opt'],
-    retract(loadedModule(_)), 
+    retract(loadedModule(standard)), 
+    retract(loadedModule(entropy)), 
     assert(loadedModule(entropy))
   )
+  ; true.
+
+loadFiles(immediatePlan) :-
+  ( not(loadedModule(immediatePlan)),
+    [immediateplan],
+    retractall(loadedModule(immediatePlan)),
+    retractall(loadedModule(completePOG)),
+    assert(loadedModule(immediatePlan)),
+    immPlanPrintWelcomeMod
+  ) 
+  ; true.
+    
+loadFiles(completePOG) :-
+  ( loadedModule(immediatePlan),
+    retractall(loadedModule(immediatePlan)),
+    retractall(loadedModule(completePOG)),
+    assert(loadedModule(immediatePlan)),
+    immPlanPrintWelcomePOG
+  ) 
   ; true.
 
 
@@ -340,6 +380,8 @@ Feel free to change.
  
 */
 % :- setOption(entropy).          % Using entropy extension?
+% :- setOption(immediatePlan)     % Don't create complete POG?
+% :- setOption(immediatePlanTime) % Prompt time used to create immediate plan?
 % :- setOption(uniformSpeed).     % Using uniform machine speed factor?
 % :- setOption(costsConjunctive). % Applying costs only to conjunctive sub query?
 % :- setOption(dynamicSample).    % Using dynamic samples instead of static ones?

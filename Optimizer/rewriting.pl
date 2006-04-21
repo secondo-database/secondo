@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+April 2006, Christian D[ue]ntgen. Initial Version
+
 */
 
  
@@ -1771,32 +1773,6 @@ is defined.
 */
 
 % create the set of all base-attributes needed for projection in case 'select *'
-
-/*
-Old: 
-----
-rewritePlanGetBaseAttrs(BaseAttrSet) :-
-  findall(X,
-          usedAttr(rel(_,*,_),X),
-          UnrenamedL),
-  findall(Y,
-          ( usedAttr(rel(_,Alias,_),attr(AttrName,AttrArg,AttrCase)),
-            Alias \= *,
-            Y = attr(Alias:AttrName,AttrArg,AttrCase) 
-          ),
-          RenamedL),
-  list_to_set(UnrenamedL,UnrenamedS),
-  list_to_set(RenamedL,RenamedS),
-  union(UnrenamedS,RenamedS,BaseAttrSet), !.
-----
-
-*/
-
-/*
-New:
-
-*/
-
 rewritePlanGetBaseAttrs(BaseAttrSet) :-
   findall(X, % get list of used relations
           ( usedAttr(rel(RelName,RelAlias,_),_), 
