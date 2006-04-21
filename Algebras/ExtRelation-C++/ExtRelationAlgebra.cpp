@@ -4581,6 +4581,7 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
     (*vector)[0] = iterWord;
     (*vector)[1] = SetWord( ((Tuple*)t.addr)->GetAttribute( index-1 ) );
     qp->Request(args[2].addr, iterWord);
+    qp->ReInitResultStorage( args[2].addr );
 
     ((Tuple*)t.addr)->DeleteIfAllowed();
     qp->Request( args[0].addr, t );
@@ -4626,7 +4627,7 @@ int AggregateB(Word* args, Word& result, int message,
   // args[3] = zero value
   // args[4] = attribute index added by APPEND
 
-  Word t, iterWord;
+  Word t1, t2, iterWord, resultWord;
   ArgVectorPointer vector = qp->Argument(args[2].addr);
 
   qp->Open(args[0].addr);
@@ -4634,7 +4635,7 @@ int AggregateB(Word* args, Word& result, int message,
   int index = ((CcInt*)args[4].addr)->GetIntval();
 
   // read the first tuple
-  qp->Request( args[0].addr, t );
+  qp->Request( args[0].addr, t1 );
   if( !qp->Received( args[0].addr ) )
     ((StandardAttribute*)result.addr)->
       CopyFrom( (const StandardAttribute*)args[3].addr );
@@ -4642,87 +4643,98 @@ int AggregateB(Word* args, Word& result, int message,
   {
     stack<AggrStruct> aggrStack;
 
-    // match the first tuple with the initial value into the stack
-    (*vector)[0] = SetWord( ((Tuple*)t.addr)->GetAttribute( index-1 ) );
-    (*vector)[1] = args[3];
-    qp->Request( args[2].addr, iterWord );
-    aggrStack.push( AggrStruct( 1, iterWord ) ); 
-      // level 1 because we matched a level 0 tuple
-    qp->ReInitResultStorage( args[2].addr );
-    ((Tuple*)t.addr)->DeleteIfAllowed();
-
-    // process the rest of the tuples
-    qp->Request( args[0].addr, t );
-    while( qp->Received( args[0].addr ) )
-    {
-      long level = 0;
-      iterWord = SetWord( ((Tuple*)t.addr)->GetAttribute( index-1 ) );
-      while( !aggrStack.empty() && aggrStack.top().level == level )
-      {
-        (*vector)[0] = aggrStack.top().level == 0 ? 
-          SetWord(((Tuple*)aggrStack.top().value.addr)->GetAttribute(index-1)):
-          aggrStack.top().value;
-        (*vector)[1] = iterWord;
-        qp->Request(args[2].addr, iterWord);
-        if( aggrStack.top().level == 0 )
-          ((Tuple*)aggrStack.top().value.addr)->DeleteIfAllowed();
-        else
-          delete (StandardAttribute*)aggrStack.top().value.addr;
-        aggrStack.pop();
-        level++;
-      }
-      if( level == 0 )
-        aggrStack.push( AggrStruct( level, t ) );
-      else
-      {
-        aggrStack.push( AggrStruct( level, iterWord ) );
-        qp->ReInitResultStorage( args[2].addr );
-        ((Tuple*)t.addr)->DeleteIfAllowed();
-      }
-      qp->Request( args[0].addr, t );
-    }
-
-    // if the stack contains only one entry, then we are done
-    if( aggrStack.size() == 1 )
-    {
-      delete (StandardAttribute*)aggrStack.top().value.addr;
+    // read the second tuple
+    qp->Request( args[0].addr, t2 );
+    if( !qp->Received( args[0].addr ) )
       ((StandardAttribute*)result.addr)->
-        CopyFrom( (const StandardAttribute*)aggrStack.top().value.addr );
-    }
+        CopyFrom( (StandardAttribute*)((Tuple*)t1.addr)->
+          GetAttribute( index-1 ) );
     else
-      // the stack must contain more elements and we call the 
-      // aggregate function for them
     {
-      iterWord = aggrStack.top().value;
-      int level = aggrStack.top().level;
-      aggrStack.pop();
+      // match both tuples and put the result into the stack
+      (*vector)[0] = SetWord( ((Tuple*)t1.addr)->GetAttribute( index-1 ) );
+      (*vector)[1] = SetWord( ((Tuple*)t2.addr)->GetAttribute( index-1 ) );
+      qp->Request( args[2].addr, resultWord );
+      aggrStack.push( AggrStruct( 1, resultWord ) ); 
+        // level 1 because we matched a level 0 tuple
+      qp->ReInitResultStorage( args[2].addr );
+      ((Tuple*)t1.addr)->DeleteIfAllowed();
+      ((Tuple*)t2.addr)->DeleteIfAllowed();
 
-      while( !aggrStack.empty() )
+      // process the rest of the tuples
+      qp->Request( args[0].addr, t1 );
+      while( qp->Received( args[0].addr ) )
       {
-        Word resultWord;
-        (*vector)[0] = level == 0 ? 
-          SetWord( ((Tuple*)iterWord.addr)->GetAttribute( index-1 ) ) :
-          iterWord;
-        (*vector)[1] = aggrStack.top().value;
-        qp->Request( args[2].addr, resultWord );
-
+        long level = 0;
+        iterWord = SetWord( ((Tuple*)t1.addr)->GetAttribute( index-1 ) );
+        while( !aggrStack.empty() && aggrStack.top().level == level )
+        {
+          (*vector)[0] = aggrStack.top().level == 0 ? 
+            SetWord(((Tuple*)aggrStack.top().value.addr)->
+              GetAttribute(index-1)):
+            aggrStack.top().value;
+          (*vector)[1] = iterWord;
+          qp->Request(args[2].addr, iterWord);
+          qp->ReInitResultStorage( args[2].addr );
+          if( aggrStack.top().level == 0 )
+            ((Tuple*)aggrStack.top().value.addr)->DeleteIfAllowed();
+          else
+            delete (StandardAttribute*)aggrStack.top().value.addr;
+          aggrStack.pop();
+          level++;
+        }
         if( level == 0 )
-          ((Tuple*)iterWord.addr)->DeleteIfAllowed();
+          aggrStack.push( AggrStruct( level, t1 ) );
         else
-          delete (StandardAttribute*)iterWord.addr;
-
-        delete (StandardAttribute*)aggrStack.top().value.addr;
-
-        iterWord = resultWord;
-        level++;
-        qp->ReInitResultStorage( args[2].addr );
-
-        aggrStack.pop();
+        {
+          aggrStack.push( AggrStruct( level, iterWord ) );
+          qp->ReInitResultStorage( args[2].addr );
+          ((Tuple*)t1.addr)->DeleteIfAllowed();
+        }
+        qp->Request( args[0].addr, t1 );
       }
-
-      ((StandardAttribute*)result.addr)->
-        CopyFrom( (const StandardAttribute*)iterWord.addr );
-      delete (StandardAttribute*)iterWord.addr;
+  
+      // if the stack contains only one entry, then we are done
+      if( aggrStack.size() == 1 )
+      {
+        delete (StandardAttribute*)aggrStack.top().value.addr;
+        ((StandardAttribute*)result.addr)->
+          CopyFrom( (const StandardAttribute*)aggrStack.top().value.addr );
+      }
+      else
+        // the stack must contain more elements and we call the 
+        // aggregate function for them
+      {
+        iterWord = aggrStack.top().value;
+        int level = aggrStack.top().level;
+        aggrStack.pop();
+  
+        while( !aggrStack.empty() )
+        {
+          (*vector)[0] = level == 0 ? 
+            SetWord( ((Tuple*)iterWord.addr)->GetAttribute( index-1 ) ) :
+            iterWord;
+          (*vector)[1] = aggrStack.top().value;
+          qp->Request( args[2].addr, resultWord );
+  
+          if( level == 0 )
+            ((Tuple*)iterWord.addr)->DeleteIfAllowed();
+          else
+            delete (StandardAttribute*)iterWord.addr;
+  
+          delete (StandardAttribute*)aggrStack.top().value.addr;
+  
+          iterWord = resultWord;
+          level++;
+          qp->ReInitResultStorage( args[2].addr );
+  
+          aggrStack.pop();
+        }
+  
+        ((StandardAttribute*)result.addr)->
+          CopyFrom( (const StandardAttribute*)iterWord.addr );
+        delete (StandardAttribute*)iterWord.addr;
+      }
     }
   }
   qp->Close(args[0].addr);
