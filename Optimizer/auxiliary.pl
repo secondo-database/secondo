@@ -275,67 +275,33 @@ indexType(rtree).
 createIndexSmall(_, _, _, _) :- 
   not(optimizerOption(entropy)),!.
   
-createIndexSmall(Rel, ObjList, IndexName, _) :- % s, si -> .
+createIndexSmall(Rel, ObjList, IndexName, Attr)
   optimizerOption(entropy),
-  concat_atom([Rel, 'small'], '_', RelSmallName),
-  member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList),
-  concat_atom([IndexName, 'small'], '_', IndexSmallName),
-  indexType(Type),
-  member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList),!.
-  
-createIndexSmall(Rel, ObjList, IndexName, Attr) :- % s, not(si) -> si.
-  optimizerOption(entropy),
-  concat_atom([Rel, 'small'], '_', RelSmallName),
-  member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList),
-  concat_atom([IndexName, 'small'], '_', IndexSmallName),
-  indexType(Type),
-  not(member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList)),
-  concat_atom(['let ', IndexName, '_small', ' = ', Rel, 
-    '_small create', Type, ' [', Attr, ']'], '', QueryAtom),
-  tryCreate(QueryAtom),!.  
-
-createIndexSmall(Rel, ObjList, IndexName, Attr) :- % not(s), not(si), r, -> s, si
-  optimizerOption(entropy),
-  concat_atom([Rel, 'small'], '_', RelSmallName),
-  not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
   member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
-  concat_atom([IndexName, 'small'], '_', IndexSmallName),
-  indexType(Type),
-  not(member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList)),
-  trycreateSmallRelation(Rel, ObjList),
-  concat_atom(['let ', IndexName, '_small', ' = ', Rel, 
-    '_small create', Type, ' [', Attr, ']'], '', QueryAtom),
-  tryCreate(QueryAtom),!.
-
-createIndexSmall(Rel, ObjList, IndexName, _) :- % not(s), si, r -> s
-  optimizerOption(entropy),
   concat_atom([Rel, 'small'], '_', RelSmallName),
-  not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
-  member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
   concat_atom([IndexName, 'small'], '_', IndexSmallName),
+  % create _small relation if necessary
+  ( not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
+    -> trycreateSmallRelation(Rel, ObjList) 
+    ;  true
+  )
+  % create _small index if necessary
   indexType(Type),
-  member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList),
-  trycreateSmallRelation(Rel, ObjList),!.
+  ( not(member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList))
+    -> ( concat_atom(['let ', IndexName, '_small', ' = ', Rel, 
+                      '_small create', Type, ' [', Attr, ']'], '', QueryAtom),
+         tryCreate(QueryAtom)
+       )
+    ; true
+  ),
+  !.
 
-createIndexSmall(Rel, ObjList, _, _) :- % not(s), not(r) -> ERROR
+createIndexSmall(Rel, ObjList, _, _) :-
   optimizerOption(entropy),
-  concat_atom([Rel, 'small'], '_', RelSmallName),
-  not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
   not(member(['OBJECT', Rel, _ , [[rel | _]]], ObjList)),
   write('ERROR: missing relation '),
   write(Rel),
   write(' cannot create small relation and an index on small relation!'),!,fail.
-
-createIndexSmall(Rel, ObjList, IndexName, _) :- % not(s), si, r -> s
-  optimizerOption(entropy),
-  concat_atom([Rel, 'small'], '_', RelSmallName),
-  not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
-  member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
-  concat_atom([IndexName, 'small'], '_', IndexSmallName),
-  indexType(Type),
-  member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList),
-  trycreateSmallRelation(Rel, ObjList),!.
-
 
 % Test, if there is a _small-relation for relation Rel, otherwise create it
 checkIfSmallRelationExists(Rel, ObjList) :-
