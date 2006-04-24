@@ -63,7 +63,7 @@ if [ $rc -ne 0 ]; then
 
   printf "%s\n" "Problems during build, sending a mail."
 
-  sendMail "$subject" "$mailRecipients" "$mailBody1" "$cvsHistMailBackupDir" "$msgFile" 
+  sendMail "$subject" "$mailRecipients spieker@zeppelin behr@zeppelin" "$mailBody1" "$cvsHistMailBackupDir" "$msgFile" 
 
   return $rc 
 fi
