@@ -496,7 +496,7 @@ void print_complex_postfix(){
   (*yaccrules2) << ";" << endl;
   // delete values of all paramameters
   for(int i=0;i<sizei;i++){
-     (*yaccrules2) << "\t\tsprintf(param"<<(i+1)<<",\"\");"<< endl;
+     (*yaccrules2) << "\t\tsprintf(param"<<(i+1)<<",\"%s\",\"\");"<< endl;
   }
 
   (*yaccrules2) << "\t\t }" << endl;
