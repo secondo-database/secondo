@@ -28,6 +28,7 @@ include ../../makefile.env
 MODNAME = TopOpsAlgebra
 CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS) -I../Spatial -I../TopRel -I../Rectangle\
           -I../FText
+LATEX = latex -interaction=nonstopmode
 
 
 .PHONY: all
@@ -45,5 +46,23 @@ else
 endif
 
 .PHONY: clean
-clean:
+clean: cleanpdf
 	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBOBJ)
+
+.PHONY: pdf
+pdf: $(MODNAME).cpp.ps
+	ps2pdf $<
+
+$(MODNAME).cpp.ps: $(MODNAME).cpp.dvi
+	dvips $<
+
+$(MODNAME).cpp.dvi: $(MODNAME).cpp.tex
+	$(LATEX) $<
+	$(LATEX) $<
+	$(LATEX) $<
+
+$(MODNAME).cpp.tex: $(MODNAME).cpp
+	pd2tex $<
+.PHONY: cleanpdf
+cleanpdf:
+	$(RM)  $(MODNAME).cpp.*

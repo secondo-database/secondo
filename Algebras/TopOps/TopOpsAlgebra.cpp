@@ -21,15 +21,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 //[_] [\_]
-//[toc] [\tableofcontents]
-//[title] [ \title{TopOps-Algebra} \author{Thomas Behr} \maketitle]
+//[toc] [\setcounter{page}{1} \renewcommand{\thepage}{\Roman{page}} 
+         \tableofcontents]
+//[etoc][\clearpage \setcounter{page}{1} \renewcommand{\thepage}{\arabic{page}}]
+
+//[title] [ \thispagestyle{empty} \title{TopOps-Algebra} \author{Thomas Behr} \maketitle]
 //[times] [\ensuremath{\times}]
 //[->] [\ensuremath{\rightarrow}]
 //[<=] [\ensuremath{\leq{}}]
 //[>=] [\ensuremath{\ge{}}]
 
+
 [title]
 [toc]
+[etoc]
 
 2 General Description
 
@@ -440,14 +445,14 @@ This fucntion checks if the halfsegment contains the point.
 */
 
 inline bool Contains(CHalfSegment const* const chs, const Point& point){
-   double x = point.GetX();
-   double y = point.GetY();
+   Coord x = point.GetX();
+   Coord y = point.GetY();
    Point p1 = chs->GetLP();
    Point p2 = chs->GetRP();
-   double x1 = p1.GetX();
-   double x2 = p2.GetX();
-   double y1 = p1.GetY();
-   double y2 = p2.GetY();
+   Coord x1 = p1.GetX();
+   Coord x2 = p2.GetX();
+   Coord y1 = p1.GetY();
+   Coord y2 = p2.GetY();
    // distance between p1 and p2
    double d1 = sqrt( (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
    // distance between p2 and p
@@ -472,14 +477,14 @@ the endpoints to the point to check.
 
 */
 bool InnerContains(CHalfSegment const* const chs, const Point& point){
-  double x = point.GetX();
-  double y = point.GetY();
+  Coord x = point.GetX();
+  Coord y = point.GetY();
   Point p1 = chs->GetLP();
   Point p2 = chs->GetRP();
-  double x1 = p1.GetX();
-  double x2 = p2.GetX();
-  double y1 = p1.GetY();
-  double y2 = p2.GetY();
+  Coord x1 = p1.GetX();
+  Coord x2 = p2.GetX();
+  Coord y1 = p1.GetY();
+  Coord y2 = p2.GetY();
   if( ( (x==x1) && (y==y1)) || // endpoint, not inner point
       ( (x==x2) && (y==y2))){
       return false;
@@ -818,9 +823,9 @@ void GetInt9M(CLine const* const line, Points const* const ps, Int9M& res){
    CHalfSegment const* chs=NULL; // current halfsegment
    Point dp;                     // dominating point of chs
    Point ndp;                    // non-dominating point of chs  
-   double dpx;                   // x coordinate of dp
-   double dpy;
-   double ndpx;
+   Coord dpx;                   // x coordinate of dp
+   Coord dpy;
+   Coord ndpx;
 
    line->Get(0,chs);
    dp = chs->GetDPoint();
@@ -838,7 +843,7 @@ void GetInt9M(CLine const* const line, Points const* const ps, Int9M& res){
    int max = ps_size-1;
    int mid;
    Point const* psp=NULL; // current point in pointset
-   double pspx; // x coordinate of psp
+   Coord pspx; // x coordinate of psp
    while(min<max){
       mid = (min+max)/2;
       ps->Get(mid,psp);
@@ -894,8 +899,8 @@ void GetInt9M(CLine const* const line, Points const* const ps, Int9M& res){
        dpy = dp.GetY();
        int pointpos=min;
        Point const* currentPoint;
-       double point_x;
-       double point_y;
+       Coord point_x;
+       Coord point_y;
        while(((pspx<ndpx)|| (pspx==dpx)) && pointpos<ps_size){
          ps->Get(pointpos,currentPoint);
          point_x = currentPoint->GetX();
