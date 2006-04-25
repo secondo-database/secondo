@@ -2253,14 +2253,18 @@ return thr fraction of iv when mpoints are crossing (0.0 .. 1.0).
       " "<<hor<<endl;}
     if (hor) {
       if ((starty1 <= starty2 && starty1 >= endy2) 
-       || (starty1 <= endy2 && starty1 >= endy2))
+       || (starty1 <= endy2 && starty1 >= starty2)
+       || (endy1 <= starty2 && endy1 >= endy2)
+       || (endy1 <= endy2 && endy1 >= starty2))
           ty = tx;
       else
         ty = -1.0;
     }
     else if (vert) {
       if ((startx1 <= startx2 && startx1 >= endx2) 
-        || (startx1 <= endx2 && startx1 >= startx2))
+        || (startx1 <= endx2 && startx1 >= startx2)
+        || (endx1 <= startx2 && endx1 >= endx2) 
+        || (endx1 <= endx2 && endx1 >= startx2))
         tx = ty;
       else
         tx = -1.0;
@@ -2427,20 +2431,23 @@ void MovingPointCompareMS( MPoint& p1, Point& p2, MBool& result,
       << iv.start.ToDouble()<< " "
       << iv.end.ToDouble()<< " "<< iv.lc<< endl;}
 
-    Point rp0, rp1, rp2;
+    Point rp0, rp1;
   
     u1->TemporalFunction(iv.start, rp0);
     u1->TemporalFunction(iv.end, rp1);
-    rp2 = p2;
     
-    if(rp0 == rp2 && rp1 == rp2) {  //start and end equal
+    double t = MPointInMPoint(rp0.GetX(), rp0.GetY(), rp1.GetX(),
+               rp1.GetY(), p2.GetX(), p2.GetY(), p2.GetX(), p2.GetY());
+    
+    
+    if(t == 2.0) {  //start and end equal
       if(TLA_DEBUG)
         cout<<"start and end equal"<<endl;
       uBool.timeInterval = iv;
       uBool.constValue.Set(true, op == 0 ? true : false);
       result.MergeAdd( uBool );
     }
-    else if(rp0 == rp2) {  //only start equal
+    else if(t == 0.0) {  //only start equal
       if(TLA_DEBUG)
         cout<<"only start equal"<<endl;
       if (iv.lc) {
@@ -2458,7 +2465,7 @@ void MovingPointCompareMS( MPoint& p1, Point& p2, MBool& result,
       uBool.constValue.Set(true, op == 0 ? false : true);
       result.MergeAdd( uBool );
     }
-    else if(rp1 == rp2) {  //only end equal
+    else if(t == 1.0) {  //only end equal
       if(TLA_DEBUG)
         cout<<"only end equal"<<endl;
       uBool.timeInterval = iv;
@@ -2476,138 +2483,42 @@ void MovingPointCompareMS( MPoint& p1, Point& p2, MBool& result,
         result.MergeAdd( uBool );
       }
     }
-    else { //neither start nor end equal
+    else if(t > 0.0 && t < 1.0) {
       if(TLA_DEBUG)
-        cout<<"neither start nor end equal"<<endl;
-      double x0, x1, x2, y0, y1, y2, dx, dy, t0, t1, tx, ty;
-      bool vert = false;
-      bool hor = false;
-      x0 = rp0.GetX(); y0 = rp0.GetY();
-      x1 = rp1.GetX(); y1 = rp1.GetY();
-      x2 = rp2.GetX(); y2 = rp2.GetY();
-      dx = x1 - x0;
-      dy = y1 - y0;
-      t0 = iv.start.ToDouble(),
-      t1 = iv.end.ToDouble();
-      
-      if (dx == 0.0)
-        vert = true;
-      else
-        tx = (x2 - x0) / dx;
-      if (dy == 0.0)
-        hor = true;
-      else 
-        ty = (y2 - y0) / dy;
-      if(TLA_DEBUG){
-        cout<<" tx "<<tx<<" "<<vert<<" , ty "<<ty<<
-        " "<<hor<<endl;}
-      if (hor) {
-        if(TLA_DEBUG)
-          cout<<"horzizontal vector"<<endl;
-        if (AlmostEqual(y0, y2))
-          ty = tx;
-        else
-          ty = 0.0;
-      }
-      else if (vert) {
-        if (AlmostEqual(x0, x2))
-          tx = ty;
-        else
-          tx = 0.0;
-      }
+        cout<<"crossing -> one point equal"<<endl;
 
-      if(tx == ty && tx > 0.0 && tx < 1.0) {
-        if(TLA_DEBUG)
-          cout<<"crossing -> one point equal"<<endl;
-        Instant t;
-        t.ReadFrom(tx  * (iv.end.ToDouble() 
-                       - iv.start.ToDouble()) 
-                       + iv.start.ToDouble());
-        t.SetType(instanttype);
-        uBool.timeInterval = iv;
-        uBool.timeInterval.rc = false;
-        uBool.timeInterval.end = t;
-        uBool.constValue.Set(true, op == 0 ? false : true);
-        result.MergeAdd( uBool );
-        uBool.timeInterval.rc = true;
-        uBool.timeInterval.start = t;
-        uBool.timeInterval.lc = true;
-        uBool.constValue.Set(true, op == 0 ? true : false);
-        result.MergeAdd( uBool );
-        uBool.timeInterval.lc = false;
-        uBool.timeInterval.rc = iv.rc;
-        uBool.timeInterval.end = iv.end;
-        uBool.constValue.Set(true, op == 0 ? false : true);
-        result.MergeAdd( uBool );
-      }
-      else {
-        if(TLA_DEBUG)
-          cout<<"no crossing -> no equal"<<endl;
-        uBool.timeInterval = iv;
-        uBool.constValue.Set(true, op == 0 ? false : true);
-        result.MergeAdd( uBool );
-      }
+      Instant time;
+      time.ReadFrom(t  * (iv.end.ToDouble() 
+                     - iv.start.ToDouble()) 
+                     + iv.start.ToDouble());
+      time.SetType(instanttype);
+      uBool.timeInterval = iv;
+      uBool.timeInterval.rc = false;
+      uBool.timeInterval.end = time;
+      uBool.constValue.Set(true, op == 0 ? false : true);
+      result.MergeAdd( uBool );
+      uBool.timeInterval.rc = true;
+      uBool.timeInterval.start = time;
+      uBool.timeInterval.lc = true;
+      uBool.constValue.Set(true, op == 0 ? true : false);
+      result.MergeAdd( uBool );
+      uBool.timeInterval.lc = false;
+      uBool.timeInterval.rc = iv.rc;
+      uBool.timeInterval.end = iv.end;
+      uBool.constValue.Set(true, op == 0 ? false : true);
+      result.MergeAdd( uBool );
     }
+    else {
+      if(TLA_DEBUG)
+        cout<<"no crossing -> no equal"<<endl;
+      uBool.timeInterval = iv;
+      uBool.constValue.Set(true, op == 0 ? false : true);
+      result.MergeAdd( uBool );
+    }  
   }
   result.EndBulkLoad( false );
 }
 
-double PointInMPoint(double startx, double starty, double endx,
-                     double endy, double cmpx, double cmpy){
-/*
-Function PointInMPoint checks whether Point (cmpx cmpy) lies inside
-the given MPoint. Ir returns -1.0 if mpoint does not cross cmp and 
-2.0 if mpoint stays on comp (does not move). In all other cases it 
-return thr fraction of mpoint when mpoint is over cmp (0.0 .. 1.0).
-
-*/
-  
-  if(AlmostEqual(startx, endx) && AlmostEqual(starty, endy)){
-    if(AlmostEqual(startx, cmpx) && AlmostEqual(starty, cmpy))
-      return 2.0;
-    else
-      return -1.0;
-  }
-  
-  if(AlmostEqual(startx, cmpx) && AlmostEqual(starty, cmpy)){
-    return 0.0;
-  }
-  else if(AlmostEqual(endx, cmpx) && AlmostEqual(endy, cmpy)){
-    return 1.0;
-  }
-  else{
-    bool vert = false;
-    bool hor = false;
-    double tx, ty;
-    double dx = endx - startx;
-    double dy = endy - starty;
-    if (dx == 0.0)
-      vert = true;
-    else
-      tx = (cmpx - startx) / dx;
-    if (dy == 0.0)
-      hor = true;
-    else 
-      ty = (cmpy - starty) / dy;
-    if (hor) {
-      if (AlmostEqual(starty, cmpy))
-        ty = tx;
-      else
-        ty = -1.0;
-    }
-    else if (vert) {
-      if (AlmostEqual(startx, cmpx))
-        tx = ty;
-      else
-        tx = -1.0;
-    }
-    if(tx == ty && tx > 0.0 && tx < 1.0) {
-      return tx;
-    }
-  }
-  
-  return -1.0;
-}
 
 /*
 For Operators ~=~ and ~\#~ and MovingRegion/Region
@@ -2719,21 +2630,25 @@ void MovingRegionCompareMS( MRegion *mr, CRegion *r, MBool *result,
       for(int i = 0 ;i < r->Size(); i++){
         r->Get(i, chs);   
         
-        double tsd = PointInMPoint(dms->GetInitialStartX(),
+        double tsd = MPointInMPoint(dms->GetInitialStartX(),
           dms->GetInitialStartY(), dms->GetFinalStartX(),
           dms->GetFinalStartY(), chs->GetDPoint().GetX(),
+          chs->GetDPoint().GetY(), chs->GetDPoint().GetX(),
           chs->GetDPoint().GetY());
-        double ted = PointInMPoint(dms->GetInitialEndX(),
+        double ted = MPointInMPoint(dms->GetInitialEndX(),
           dms->GetInitialEndY(), dms->GetFinalEndX(),
           dms->GetFinalEndY(), chs->GetDPoint().GetX(),
+          chs->GetDPoint().GetY(), chs->GetDPoint().GetX(),
           chs->GetDPoint().GetY());
-        double tss = PointInMPoint(dms->GetInitialStartX(),
+        double tss = MPointInMPoint(dms->GetInitialStartX(),
           dms->GetInitialStartY(), dms->GetFinalStartX(),
           dms->GetFinalStartY(), chs->GetSPoint().GetX(),
+          chs->GetSPoint().GetY(), chs->GetSPoint().GetX(),
           chs->GetSPoint().GetY());
-        double tes = PointInMPoint(dms->GetInitialEndX(),
+        double tes = MPointInMPoint(dms->GetInitialEndX(),
           dms->GetInitialEndY(), dms->GetFinalEndX(),
           dms->GetFinalEndY(), chs->GetSPoint().GetX(),
+          chs->GetSPoint().GetY(), chs->GetSPoint().GetX(),
           chs->GetSPoint().GetY());
            
         double tpoint = -1.0;
