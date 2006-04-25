@@ -817,79 +817,63 @@ name ~Attr~ is written in lower or in upper case and if there is an
 index available for relation ~Rel~ and attribute ~Attr~.
 
 */
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :- %attr in lc
-						                %rel in lc  						     
-  not(Attr = _:_),                                              %succeeds
+
+% cases: Attr in lc, Rel in lc or uc succeeds
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :-
+  not(Attr = _:_), 
   spelled(Rel:Attr, attr(Attr2, 0, l)),              
-  spelled(Rel, _, l),
+  (   ( % Rel in lc
+        spelled(Rel, _, l) 
+        URel = Rel
+      )
+    ; ( % Rel in uc
+        spelling(Rel, Spelled),
+        Rel = Spelled,
+        upper(Rel, URel)
+      )
+  ),
   atom_concat(Rel, '_', Index1),
   atom_concat(Index1, Attr2, Index),
-  verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType),
-  concat_atom(['let ', Index, '_small', ' = ', Rel, 
-  '_small create', IndexType, ' [', Attr, ']'], '', QueryAtom),
-  tryCreate(QueryAtom),    
-  %write(QueryAtom),nl,
-  !.
-
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :- %attr in lc
-                                                                %rel in uc
-  not(Attr = _:_),                                              %succeeds
-  spelled(Rel:Attr, attr(Attr2, 0, l)),  
-  spelling(Rel, Spelled),
-  Rel = Spelled,
-  upper(Rel, URel),
-  atom_concat(Rel, '_', Index1),
-  atom_concat(Index1, Attr2, Index),
-  verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType),
+  verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType)
   concat_atom(['let ', Index, '_small', ' = ', URel, 
-  '_small create', IndexType, ' [', Attr, ']'], '', QueryAtom),
-  tryCreate(QueryAtom),    
-  %write(QueryAtom),nl,
+               '_small create', IndexType, ' [', Attr, ']'], '', QueryAtom),
+  tryCreate(QueryAtom),
   !.
 
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-     %attr in lc
-                                                        %fails
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-  %attr in lc fails
   not(Attr = _:_),                                   
   spelled(Rel:Attr, attr(_, 0, l)),
   verifyIndexAndStoreNoIndex(Rel, Attr),
   !,
   fail.
 
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :- %attr in uc
-                                            	                %rel in lc
-  not(Attr = _:_),                                              %succeeds
-  spelled(Rel:Attr, attr(Attr2, 0, u)),             
-  spelled(Rel, _, l),
-  upper(Attr2, SpelledAttr),
-  atom_concat(Rel, '_', Index1),
-  atom_concat(Index1, SpelledAttr, Index),
-  verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType),
-  concat_atom(['let ', Index, '_small', ' = ', Rel, 
-  '_small create', IndexType, ' [', SpelledAttr, ']'], '', QueryAtom),
-  tryCreate(QueryAtom),    
-  %write(QueryAtom),nl,
-  !.
 
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :- %attr in uc
-                                                                %rel in uc
-  not(Attr = _:_),                                              %succeeds
-  spelled(Rel:Attr, attr(Attr2, 0, u)),              
-  spelling(Rel, Spelled),
-  Rel = Spelled,
-  upper(Rel, URel),
+% cases: Attr in uc, Rel in lc or uc succeeds
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :-
+  not(Attr = _:_), 
+  spelled(Rel:Attr, attr(Attr2, 0, u)),             
+  (   ( % Rel in lc
+        spelled(Rel, _, l),
+        URel = Rel
+      )
+    ; ( % Rel in uc
+        spelling(Rel, Spelled),
+        Rel = Spelled,
+        upper(Rel, URel)
+      )
+  ),
   upper(Attr2, SpelledAttr),
   atom_concat(Rel, '_', Index1),
   atom_concat(Index1, SpelledAttr, Index),
   verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType),
   concat_atom(['let ', Index, '_small', ' = ', URel, 
-  '_small create', IndexType, ' [', SpelledAttr, ']'], '', QueryAtom),
-  tryCreate(QueryAtom),    
-  %write(QueryAtom),nl,
+          '_small create', IndexType, ' [', SpelledAttr, ']'], '', QueryAtom),
+  tryCreate(QueryAtom),
   !.
 
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
-                                                 	%attr in uc
-  not(Attr = _:_),                                      %fails
+
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :- %attr in uc fails
+  not(Attr = _:_),
   spelled(Rel:Attr, attr(_, 0, u)),
   verifyIndexAndStoreNoIndex(Rel, Attr),
   !,
