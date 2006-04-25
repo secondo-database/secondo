@@ -241,7 +241,7 @@ rewriteQueryForInferenceOfPredicates(Query, Query) :-
 rewriteQueryForInferenceOfPredicates(Query, RewrittenQuery) :-
   optimizerOption(rewriteInference),
   rewriteQueryForNonempty(Query, RQuery1),
-  rewriteQueryForInferredSubstitutions(RQuery1, RewrittenQuery),
+  rewriteQueryForInferredPredicates(RQuery1, RewrittenQuery),
   dm(rewriteMacros,['\nREWRITING: Inference of Predicates\n\tIn:  ',
                     Query,'\n\tOut: ',RewrittenQuery,'\n\n']).
 
@@ -410,22 +410,21 @@ rewriteQueryForNonempty(Query, RewrittenQuery) :-
 
 /*
 
-14.2.2 Substitution of Conditions
+14.2.2 Inference of Conditions
 
 If the where clause contains certain sets of conditions, these conditions may be
-replaced by equivalent, but cheaper ones.
+extended by additional ones, e.g. in order to force the use of available indices.
 
 */
 
 %:- [inference]. % XRIS: load module for inference machine
 
+%rewriteQueryForInferredPredicates(Query,Query) :- % XRIS: for Testing Only
+%  dm(rewrite,['\nREWRITING: Inferred predicates\n\tIn:  ',
+%              Query,'\n\tOut: ',Query,'\n\n']),
+%  !.
 
-rewriteQueryForInferredSubstitutions(Query,Query) :- % XRIS: for Testing Only
-  dm(rewrite,['\nREWRITING: Inferred predicates\n\tIn:  ',
-              Query,'\n\tOut: ',Query,'\n\n']),
-  !.
-
-rewriteQueryForInferredSubstitutions(QIn, QIn) :-
+rewriteQueryForInferredPredicates(QIn, QIn) :-
   % case: no where clause
   QIn = from(select(_),WhereClause),
   WhereClause \= where(_,_),
@@ -433,7 +432,7 @@ rewriteQueryForInferredSubstitutions(QIn, QIn) :-
               QIn,'\n\tOut: ',QIn,'\n\n']),
   !.
 
-rewriteQueryForInferredSubstitutions(QIn, QOut) :-
+rewriteQueryForInferredPredicates(QIn, QOut) :-
   % case: non-empty where clause
   QIn = from(select(SelClause),where(Rels,WhereIn)),
   analyseConditions(WhereIn,WhereOut),
@@ -443,29 +442,60 @@ rewriteQueryForInferredSubstitutions(QIn, QOut) :-
   !.
 
 % Special cases: ordering and grouping clauses can be ignored
-rewriteQueryForInferredSubstitutions(Query, RewrittenQuery) :-
+rewriteQueryForInferredPredicates(Query, RewrittenQuery) :-
   Query = first(Query2, X),
-  rewriteQueryForInferredSubstitutions(Query2, RewrittenQuery2),
+  rewriteQueryForInferredPredicates(Query2, RewrittenQuery2),
   RewrittenQuery = first(RewrittenQuery2,X),
   dm(rewrite,['\nREWRITING: Inferred predicates\n\tIn:  ',
               Query,'\n\tOut: ',RewrittenQuery,'\n\n']),
   !.
 
-rewriteQueryForInferredSubstitutions(Query, RewrittenQuery) :-
+rewriteQueryForInferredPredicates(Query, RewrittenQuery) :-
   Query = orderby(Query2, X),
-  rewriteQueryForInferredSubstitutions(Query2, RewrittenQuery2),
+  rewriteQueryForInferredPredicates(Query2, RewrittenQuery2),
   RewrittenQuery = orderby(RewrittenQuery2,X),
   dm(rewrite,['\nREWRITING: Inferred predicates\n\tIn:  ',
               Query,'\n\tOut: ',RewrittenQuery,'\n\n']),
   !.
 
-rewriteQueryForInferredSubstitutions(Query, RewrittenQuery) :-
+rewriteQueryForInferredPredicates(Query, RewrittenQuery) :-
   Query = groupby(Query2, X),
-  rewriteQueryForInferredSubstitutions(Query2, RewrittenQuery2),
+  rewriteQueryForInferredPredicates(Query2, RewrittenQuery2),
   RewrittenQuery = groupby(RewrittenQuery2,X),
   dm(rewrite,['\nREWRITING: Inferred predicates\n\tIn:  ',
               Query,'\n\tOut: ',RewrittenQuery,'\n\n']),
   !.
+
+
+/*
+---- analyseConditions(+WhereIn,-WhereOut)
+----
+
+Analyze the predicates and infer additional conditions which are added to 
+the where-clause, e.g. to inforce the use of indices etc.
+
+*/
+
+analyseConditions(WhereIn,WhereOut) :- 
+  makeList(WhereIn,WhereInList),
+  list_to_set(WhereInList,WhereInSet),
+  findall(X,
+          ( inferPredicate(Premises, X),
+            list_to_set(Premises, PremisesSet),
+            subset(PremisesSet, WhereInSet)
+          ),
+          NewPredicates),
+  flatten(NewPredicates, NewPredicatesFlat),
+  append(WhereInSet, NewPredicatesFlat, WhereOutList), 
+  list_to_set(WhereOutList,WhereOut), !.
+
+
+% rules to infer additional predicates
+inferPredicate([X present Y, X passes Z], [bbox(X) intersects box3d(bbox(Z), Y)]) :-
+  X \= Y, X \= Z, Y \= Z.
+%inferPredicate([test1, test2], [test_ok]). % XRIS: testing only!
+
+
 
 /*
 

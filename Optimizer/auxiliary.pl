@@ -271,32 +271,110 @@ and error message are printed.
 */
 indexType(btree).
 indexType(rtree).
+indexType(rtree3).
 
-createIndexSmall(_, _, _, _) :- 
+/*
+---- getSmallIndexCreateQuery(Granularity, BBoxType, Type, Rel, Attr, IndexName, QueryAtom)
+----
+Create a ~QueryAtom~ that is a executable Secondo command string, that will create the
+appropriate specialized R-Tree index from relation ~Rel~ for key attribute ~Attr~, with 
+bounding boxes of type ~BBoxType~ and granularity of the bounding boxes set to ~Granularity~,
+where the index is named ~IndexName~.
+
+If both, ~Granularity~ and ~BBoxType~ are ~none~, a standard index will be created
+
+*/
+
+getSmallIndexCreateQuery(Granularity, BBoxType, Type, Rel, Attr, IndexName, QueryAtom) :-
+  indexCreateQuery(Granularity, BBoxType, Type, Rel, Attr, IndexName, QueryList),
+  concat_atom(QueryList, QueryAtom), !.
+
+% Rules to create index queries
+
+% rules to build specialized R-tree indices:
+indexCreateQuery(object, time, _, Rel, Attr, IndexName, 
+  ['let ', IndexName, '_small = ', Rel, 
+   '_small feed extend[ p: point2d( deftime( .', Attr,
+   ' ) ) ] creatertree[ p ]']) :- !.
+indexCreateQuery(object, space, _, Rel, Attr, IndexName, 
+  ['let ', IndexName, '_small = ', Rel, 
+   '_small feed extend[ t: trajectory( .', Attr,
+   ' ) ] creatertree[ t ]']) :- !.
+indexCreateQuery(object, d3, _, Rel, Attr, IndexName, 
+  ['let ', IndexName, '_small = ', Rel, 
+   '_small feed extend[ b: box3d( bbox( trajectory( .', Attr,
+   ' ) ), deftime( .', Attr, ' ) ) ] creatertree[ b ]']) :- !.
+
+indexCreateQuery(unit, time, _, Rel, Attr, IndexName, 
+  ['let ', IndexName, '_small = ', Rel, 
+   '_small feed extendstream[ Unit: units( .', Attr, 
+   ' ) ] extend[ p: point2d( deftime( .Unit ) ) ] creatertree[ p ]']) :- !.
+indexCreateQuery(unit, space, _, Rel, Attr, IndexName, 
+  ['let ', IndexName, '_small = ', Rel, 
+   '_small feed extendstream[ Unit: units( .', Attr, 
+   ' ) ] extend[ t: trajectory( .', Attr, ' ) ] creatertree[ t ]']) :- !.
+indexCreateQuery(unit, d3, _, Rel, Attr, IndexName, 
+  ['let ', IndexName, '_small = ', Rel, 
+   '_small feed extendstream[ Unit: units( .', Attr, 
+   ' ) ] cretertree[ Unit ]']) :- !.
+
+indexCreateQuery(group10, time,  _, _, _, _, _) :- fail, !.
+indexCreateQuery(group10, space, _, _, _, _, _) :- fail, !.
+indexCreateQuery(group10, d3,    _, _, _, _, _) :- fail, !.
+
+% the standard indices must go last:
+
+% all types 'rtree<n>' are created with 'creatertree':
+indexCreateQuery(none, none, Type, Rel, Attr, IndexName, 
+  ['let ', IndexName, '_small = ', Rel, 
+   '_small creatertree[', Attr, ']']) :-
+  sub_atom(Type, 0, _, _, rtree), !.
+
+% all other standard indices are created as follows:
+indexCreateQuery(none, none, Type, Rel, Attr, IndexName, 
+  ['let ', IndexName, '_small = ', Rel, 
+   '_small create', Type, ' [', Attr, ']']).
+
+
+
+% Test, if a _small index has to be created and create it if necessary
+% Also, add a _small relation, if it is still not available
+createIndexSmall(_, _, _, _, _, _, _) :- 
   not(optimizerOption(entropy)),!.
   
-createIndexSmall(Rel, ObjList, IndexName, Attr)
+createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr, Granularity, BBoxType) :-
   optimizerOption(entropy),
   member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
   concat_atom([Rel, 'small'], '_', RelSmallName),
   concat_atom([IndexName, 'small'], '_', IndexSmallName),
-  % create _small relation if necessary
-  ( not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
+  % create _small relation if not present (needed to create _small index)
+  ( not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList))
     -> trycreateSmallRelation(Rel, ObjList) 
     ;  true
-  )
-  % create _small index if necessary
-  indexType(Type),
-  ( not(member(['OBJECT', IndexSmallName, _ , [[Type | _]]], ObjList))
-    -> ( concat_atom(['let ', IndexName, '_small', ' = ', Rel, 
-                      '_small create', Type, ' [', Attr, ']'], '', QueryAtom),
-         tryCreate(QueryAtom)
-       )
+  ),
+  % create _small index if not present
+  (   ( indexType(LogicalIndexType),
+        LogicalIndexType = PhysicalIndexType
+      )
+    ; member([LogicalIndexType, PhysicalIndexType],
+             [[object_time,rtree],  [object_space,rtree3], [object_d3,rtree3],
+              [unit_time,rtee],     [unit_space,rtree3],   [unit_d3_rtree3],
+              [group10_time,rtree2],[group10_space,rtree3],[group10_d3,rtree3]
+             ])
+  ),
+  ( not(member(['OBJECT', IndexSmallName, _ , [[PhysicalIndexType | _]]], ObjList))
+    *-> ( dm(index,['\nIn createIndexSmall: getSmallIndexCreateQuery(',
+                    Granularity, ',', BBoxType, ',', PhysicalIndexType, ',', 
+                    Rel, ',', Attr, ',', IndexName, ',', QueryAtom, ')\n']),
+          getSmallIndexCreateQuery(Granularity, BBoxType, PhysicalIndexType, 
+                                   Rel, Attr, IndexName, QueryAtom),
+          tryCreate(QueryAtom)
+        )
     ; true
   ),
   !.
 
-createIndexSmall(Rel, ObjList, _, _) :-
+createIndexSmall(Rel, ObjList, _, _, _, _, _) :-
   optimizerOption(entropy),
   not(member(['OBJECT', Rel, _ , [[rel | _]]], ObjList)),
   write('ERROR: missing relation '),
@@ -326,38 +404,70 @@ checkIfSmallRelationsExist(ObjList) :-
   retractall(storedSecondoList(_)),
   !.
 
-checkIfSmallRelationsExist(ObjList) :-
+checkIfSmallRelationsExist(_) :-
   not(optimizerOption(entropy)), !.
 
   
-% checkIfIndexIsStored(_, _, LFRel, LFAttr, IndexType, IndexName, _) :-
-%   storedIndex(LFRel, LFAttr, IndexType, IndexName),!.
+% checkIfIndexIsStored(_, _, LFRel, LFAttr, Granularity, BBoxType, IndexType, IndexName, _) :-
+%  (   ( % standard index
+%        Granularity = none,
+%        BBoxType = none,
+%        LogicalIndexType = IndexType
+%      )
+%    ; ( % specialized R-Tree index
+%        concat_atom([Granularity, BBoxType], '_', LogicalIndexType)
+%      )
+%  ),
+%  storedIndex(LFRel, LFAttr, LogicalIndexType, IndexName),!.
 
-checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, IndexType, IndexName, ObjList) :-
+checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, 
+                     Granularity, BBoxType, IndexType, 
+                     IndexName, ObjList) :-
   storedNoIndex(LFRel, LFAttr),
+  ( (Granularity = none, BBoxType = none) % standard index
+    -> LogicalIndexType = IndexType
+    ; ( % specializes R-Tree index
+        concat_atom([Granularity, BBoxType], '_', LogicalIndexType)
+      )
+  ),
   retractall(storedNoIndex(LFRel, LFAttr)),
-  retractall(storedIndex(LFRel, LFAttr, IndexType, IndexName)),
-  assert(storedIndex(LFRel, LFAttr, IndexType, IndexName)),
-  createIndexSmall(Rel, ObjList, IndexName, Attr),!.
+  retractall(storedIndex(LFRel, LFAttr, LogicalIndexType, IndexName)),
+  assert(storedIndex(LFRel, LFAttr, LogicalIndexType, IndexName)),
+  createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr, Granularity, BBoxType),!.
 
-checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, IndexType, IndexName, ObjList) :-
+checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, 
+                     Granularity, BBoxType, IndexType, 
+                     IndexName, ObjList) :-
+  ( (Granularity = none, BBoxType = none) 
+    -> LogicalIndexType = IndexType % standard index
+       % specialized R-Tree index
+    ;  concat_atom([Granularity, BBoxType], '_', LogicalIndexType) 
+  ),
   retractall(storedNoIndex(LFRel, LFAttr)),
-  retractall(storedIndex(LFRel, LFAttr, IndexType, IndexName)),
-  assert(storedIndex(LFRel, LFAttr, IndexType, IndexName)),
-  createIndexSmall(Rel, ObjList, IndexName, Attr).
+  retractall(storedIndex(LFRel, LFAttr, LogicalIndexType, IndexName)),
+  assert(storedIndex(LFRel, LFAttr, LogicalIndexType, IndexName)),
+  createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr, Granularity, BBoxType).
 
 checkForAddedIndex(ObjList) :-
   member(['OBJECT', IndexName, _ , [[IndexType | _]]], ObjList),
+  indexType(IndexType),
   concat_atom(L, '_', IndexName),
-  L = [LFRel, Attr],
+  (  ( L = [LFRel, Attr], atomic(LFRel), atomic(Attr) )  % standard index
+     *-> ( Granularity = none, BBoxType = none )
+     ; ( % specialized R-tree index
+        L = [LFRel, Attr, Granularity, BBoxType],
+        member(Granularity, [object, unit, group10]),
+        member(BBoxType, [time, space, d3])
+       ) 
+  ),
   not(Attr = small),
   not(Attr = sample),
-  indexType(IndexType),
   relname(LFRel, Rel),
   lowerfl(Attr, LFAttr),
     %write('checking for index: '), write(Rel), write(' '), write(Attr), write(' '),
     %write(IndexType), write(' '), write(IndexName), nl,
-  checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, IndexType, IndexName, ObjList).
+  checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, Granularity, BBoxType, 
+                       IndexType, IndexName, ObjList).
 
 relname(LFRel, LFRel) :-
   spelled(LFRel, _, l), 
@@ -371,12 +481,21 @@ checkForAddedIndices(ObjList) :-
   findall(_, checkForAddedIndex(ObjList), _).
 
 checkForRemovedIndex(ObjList) :-
-  storedIndex(Rel, Attr, IndexType, IndexName),
-  not(member(['OBJECT', IndexName, _ , [[IndexType | _]]], ObjList)),
-  retract(storedIndex(Rel, Attr, IndexType, IndexName)),
+  storedIndex(Rel, Attr, LogicalIndexType, IndexName),
+  (   ( indexType(LogicalIndexType),
+        LogicalIndexType = PhysicalIndexType
+      )
+    ; member([LogicalIndexType, PhysicalIndexType],
+             [[object_time,rtree],  [object_space,rtree3], [object_d3,rtree3],
+              [unit_time,rtee],     [unit_space,rtree3],   [unit_d3_rtree3],
+              [group10_time,rtree2],[group10_space,rtree3],[group10_d3,rtree3]
+             ])
+  ),
+  not(member(['OBJECT', IndexName, _ , [[PhysicalIndexType | _]]], ObjList)),
+  retract(storedIndex(Rel, Attr, LogicalIndexType, IndexName)),
   assert(storedNoIndex(Rel, Attr)),
   concat_atom([IndexName, 'small'], '_', IndexNameSmall),
-  member(['OBJECT', IndexNameSmall, _ , [[IndexType | _]]], ObjList),
+  member(['OBJECT', IndexNameSmall, _ , [[PhysicalIndexType | _]]], ObjList),
   concat_atom(['delete ',IndexNameSmall], '', QueryAtom),
   secondo(QueryAtom).
 
@@ -605,7 +724,7 @@ secondo(X) :-
   storedIndex(_, _, Type, Name),  
   secondo(X, Y),
   updateIndex,  
-  %retract(storedSecondoList(_)),
+  %retractall(storedSecondoList(_)),
   %getSecondoList(_),
   write('Command succeeded, result:'),
   nl, nl,

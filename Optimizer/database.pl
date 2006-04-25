@@ -451,12 +451,6 @@ are executed furthermore by this rule.
 
 */
 
-%checkForIndex(_, []).
-
-%checkForIndex(Rel, [First|Rest]) :-
-%updateIndex(Rel, First),
-%checkForIndex(Rel, Rest).
-
 trycreateSmallRelation(Rel, ObjList) :- 
   optimizerOption(entropy),
   createSmallRelation(Rel, ObjList),!.
@@ -549,10 +543,7 @@ lowerfl(Upper, Lower) :-
   char_type(First2, to_lower(First)),
   append([First2], Rest, LowerList),
   atom_chars(Lower, LowerList).
-  %atom_codes(Upper, [First | Rest]),
-  %to_lower(First, First2),
-  %LowerList = [First2 | Rest],
-  %atom_codes(Lower, LowerList).
+
 /*
 Returns a list of Secondo objects, if available in the knowledge
 base, otherwise a Secondo command is issued to get the list. The
@@ -766,25 +757,43 @@ opened database. Depending on this result the dynamic predicate
 ~storedIndex/4~ or ~storedNoIndex/2~ is set. 
 
 */
-verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType) :- % Index exists
+verifyIndexAndStoreIndex(Rel, Attr, Index, LogicalIndexType) :- % Index exists
+  dm(index,['\n-->verifyIndexAndStoreIndex(',Rel, ',',Attr, ',',Index, ',',LogicalIndexType, ')\n']),
   getSecondoList(ObjList),
-  member(['OBJECT', Index, _ , [[IndexType | _]]], ObjList),
-    %write(Index),nl,
-    %write(IndexType),nl, 
-  assert(storedIndex(Rel, Attr, IndexType, Index)),
+  member(['OBJECT', Index, _ , [[PhysicalIndexType | _]]], ObjList),
+  (   ( indexType(LogicalIndexType),
+        LogicalIndexType = PhysicalIndexType
+      )
+    ; member([LogicalIndexType, PhysicalIndexType],
+             [[object_time,rtree],  [object_space,rtree3], [object_d3,rtree3],
+              [unit_time,rtee],     [unit_space,rtree3],   [unit_d3_rtree3],
+              [group10_time,rtree2],[group10_space,rtree3],[group10_d3,rtree3]
+             ])
+  ),
+  assert(storedIndex(Rel, Attr, LogicalIndexType, Index)),
+  dm(index,['\n<--verifyIndexAndStoreIndex(',Rel, ',',Attr, ',',Index, ',',LogicalIndexType, ')\n']),
   !.
 
 verifyIndexAndStoreNoIndex(Rel, Attr) :-      % No index
+  dm(index,['\n-->verifyIndexAndStoreNoIndex(',Rel, ',',Attr, ',',Index, ',',IndexType, ')\n']),
   downcase_atom(Rel, DCRel),
   downcase_atom(Attr, DCAttr),
   relation(DCRel, List),
   member(DCAttr, List),
-  assert(storedNoIndex(Rel, Attr)).
+  assert(storedNoIndex(Rel, Attr)),
+  dm(index,['\n<--verifyIndexAndStoreNoIndex(',Rel, ',',Attr, ',',Index, ',',IndexType, ')\n']).
+
 /*
 1.4.2 Look up Index
 
 The first rule simply reduces an attribute of the form e.g. p:ort just 
 to its attribute name e.g. ort.
+
+---- hasIndex(+Rel, +Attr, -IndexName, ?IndexType)
+----
+ 
+There is an index named ~IndexName~ of type ~IndexType~ on relation 
+~Rel~ with key ~Attr~ in the opened database.
 
 */
 
@@ -811,6 +820,7 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
   storedNoIndex(Rel, Attr),
   !,
   fail.
+
 /*
 We have to differentiate the next rules, if the first letter of attribute 
 name ~Attr~ is written in lower or in upper case and if there is an
@@ -818,14 +828,12 @@ index available for relation ~Rel~ and attribute ~Attr~.
 
 */
 
-% cases: Attr in lc, Rel in lc or uc succeeds
+% cases: Attr in lc, Rel in lc or uc succeeds (index found)
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :-
   not(Attr = _:_), 
   spelled(Rel:Attr, attr(Attr2, 0, l)),              
-  (   ( % Rel in lc
-        spelled(Rel, _, l) 
-        URel = Rel
-      )
+  ( spelled(Rel, _, l, URel = Rel ) % Rel in lc
+    *-> true
     ; ( % Rel in uc
         spelling(Rel, Spelled),
         Rel = Spelled,
@@ -834,13 +842,13 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :-
   ),
   atom_concat(Rel, '_', Index1),
   atom_concat(Index1, Attr2, Index),
-  verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType)
-  concat_atom(['let ', Index, '_small', ' = ', URel, 
-               '_small create', IndexType, ' [', Attr, ']'], '', QueryAtom),
+  verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType),
+  getSmallIndexCreateQuery(none, none, IndexType, URel, Attr, Index, QueryAtom),
   tryCreate(QueryAtom),
   !.
 
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-  %attr in lc fails
+%attr in lc fails (no index)
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-  
   not(Attr = _:_),                                   
   spelled(Rel:Attr, attr(_, 0, l)),
   verifyIndexAndStoreNoIndex(Rel, Attr),
@@ -848,14 +856,12 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-  %attr in lc fails
   fail.
 
 
-% cases: Attr in uc, Rel in lc or uc succeeds
+% cases: Attr in uc, Rel in lc or uc succeeds (index found)
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :-
   not(Attr = _:_), 
   spelled(Rel:Attr, attr(Attr2, 0, u)),             
-  (   ( % Rel in lc
-        spelled(Rel, _, l),
-        URel = Rel
-      )
+  ( ( spelled(Rel, _, l), URel = Rel ) % Rel in lc
+    *-> true
     ; ( % Rel in uc
         spelling(Rel, Spelled),
         Rel = Spelled,
@@ -866,13 +872,13 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :-
   atom_concat(Rel, '_', Index1),
   atom_concat(Index1, SpelledAttr, Index),
   verifyIndexAndStoreIndex(Rel, Attr, Index, IndexType),
-  concat_atom(['let ', Index, '_small', ' = ', URel, 
-          '_small create', IndexType, ' [', SpelledAttr, ']'], '', QueryAtom),
+  getSmallIndexCreateQuery(none, none, IndexType, URel, Attr, Index, QueryAtom),
   tryCreate(QueryAtom),
   !.
 
 
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :- %attr in uc fails
+%attr in uc fails (no index)
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :- 
   not(Attr = _:_),
   spelled(Rel:Attr, attr(_, 0, u)),
   verifyIndexAndStoreNoIndex(Rel, Attr),
@@ -1162,7 +1168,6 @@ tryDelete(QueryAtom) :-
   secondo(QueryAtom), !.
   
 tryDelete(_).
-
 
 
 
