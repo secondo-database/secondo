@@ -185,8 +185,13 @@ private void compute_y(int width,int height){
    // now, the bounding box of the function is determined
    // we can compute an affine transformation for bringing the
    // function to screen
-   double scaleX =  1.0; //width/dx;  
-   double scaleY =  height/dy;
+   double scaleX =  1.0; //width/dx; 
+   double scaleY;
+   if(dy!=0){
+      scaleY =  height/dy;
+   }else{
+      scaleY = 1; 
+   }
    double tx = 0; // -xmin;
    double ty = -ymin;
    AffineTransform Flip = new AffineTransform();
