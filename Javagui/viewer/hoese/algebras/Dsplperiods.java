@@ -33,8 +33,12 @@ import tools.Reporter;
 /**
  * A displayclass for the periods-type (spatiotemp algebra), alphanumeric with TimePanel
  */
-public class Dsplperiods extends Dsplinstant {
-  Vector Intervals = new Vector(10, 5);
+public class Dsplperiods extends DsplGeneric implements Timed {
+  protected Vector Intervals = new Vector(10, 5);
+  protected Interval TimeBounds;
+  protected boolean err=true;
+  protected boolean defined;
+  protected String entry;
 
   /**
    * A method of the Timed-Interface to render the content of the TimePanel
@@ -69,6 +73,11 @@ public class Dsplperiods extends Dsplinstant {
       jp.add(jc);
     }
     return  jp;
+  }
+
+  /** returns the Timebounds of this object **/
+  public Interval getTimeBounds(){
+    return TimeBounds;
   }
 
   /**
