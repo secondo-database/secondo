@@ -1535,8 +1535,13 @@ Even here, a possible ~rename~ must be done before ~filter~ can be applied.
 
 */
 
+
+indexselect(arg(N), Pred) => X :-
+  optimizerOption(rtreeIndexRules),
+  indexselectRT(arg(N), Pred) => X.
+
 % present with object_time index
-indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
+indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   filter(windowintersects(IndexName, rel(Name, *, Case), queryrect2d(Y)), 
          attr(AttrName, Arg, AttrCase) present Y)
   :-
@@ -1545,7 +1550,7 @@ indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), 
            IndexName, object_time).
 
-indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
+indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   filter(rename(windowintersects(IndexName, rel(Name, *, Case), queryrect2d(Y)), 
          RelAlias), attr(AttrName, Arg, AttrCase) present Y)
   :-
@@ -1555,7 +1560,7 @@ indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
            IndexName, object_time).
 
 % present with unit_time index
-indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
+indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   filter(gettuples(rdup(sort(windowintersectsS(IndexName, queryrect2d(Y)))), 
          rel(Name, *, Case)), attr(AttrName, Arg, AttrCase) present Y)
   :-
@@ -1563,7 +1568,7 @@ indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   !,
   hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, unit_time).
 
-indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
+indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   filter(rename(gettuples(rdup(sort(windowintersectsS(IndexName, queryrect2d(Y)))), 
          rel(Name, *, Case)), RelAlias), attr(AttrName, Arg, AttrCase) present Y)
   :-
@@ -1573,7 +1578,7 @@ indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
 
 
 % passes with object_time index
-indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
+indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), 
          attr(AttrName, Arg, AttrCase) passes Y)
   :-
@@ -1582,7 +1587,7 @@ indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), 
            IndexName, object_time).
 
-indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
+indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   filter(rename(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), 
          RelAlias), attr(AttrName, Arg, AttrCase) passes Y)
   :-
@@ -1593,7 +1598,7 @@ indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
 
 
 % passes with unit_time index
-indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
+indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   filter(gettuples(rdup(sort(windowintersectsS(IndexName, bbox(Y)))), 
          rel(Name, *, Case)), attr(AttrName, Arg, AttrCase) passes Y)
   :-
@@ -1601,7 +1606,7 @@ indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   !,
   hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, unit_time).
 
-indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
+indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   filter(rename(gettuples(rdup(sort(windowintersectsS(IndexName, bbox(Y)))), 
          rel(Name, *, Case)), RelAlias), attr(AttrName, Arg, AttrCase) passes Y)
   :-
@@ -1611,7 +1616,7 @@ indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
 
 
 % bbox(x) intersects box3d(bbox(Z),Y) with object_3d index
-indexselect(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
+indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
                        box3d(bbox(Z),Y), _)) =>
   windowintersects(IndexName, rel(Name, *, Case), box3d(bbox(Z),Y))
   :-
@@ -1619,7 +1624,7 @@ indexselect(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
   !,
   hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, object_d3).
 
-indexselect(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
+indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
                        box3d(bbox(Z),Y), _)) =>
   rename(windowintersects(IndexName, rel(Name, *, Case), box3d(bbox(Z),Y)),
          RelAlias)
@@ -1630,7 +1635,7 @@ indexselect(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
   
 
 % bbox(x) intersects box3d(bbox(Z),Y) with unit_3d index
-indexselect(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
+indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
                        box3d(bbox(Z),Y), _)) =>
   gettuples(rdup(sort(windowintersects(IndexName, box3d(bbox(Z),Y)))), 
             rel(Name, *, Case))
@@ -1639,7 +1644,7 @@ indexselect(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
   !,
   hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, unit_3d).
 
-indexselect(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
+indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
                        box3d(bbox(Z),Y), _)) =>
   rename(gettuples(rdup(sort(windowintersects(IndexName, box3d(bbox(Z),Y)))), 
             rel(Name, *, Case)), RelAlias)

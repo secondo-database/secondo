@@ -360,11 +360,13 @@ createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr, Granularity, B
   (   ( indexType(LogicalIndexType),
         LogicalIndexType = PhysicalIndexType
       )
-    ; member([LogicalIndexType, PhysicalIndexType],
-             [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
-              [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3]
-%              [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3] % for later extensions
-             ])
+    ; ( optimizerOption(rtreeIndexRules), 
+        member([LogicalIndexType, PhysicalIndexType],
+               [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
+                [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3]
+%                [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3] % for later extensions
+               ])
+      )
   ),
   ( not(member(['OBJECT', IndexSmallName, _ , [[PhysicalIndexType | _]]], ObjList))
     *-> ( dm(index,['\nIn createIndexSmall: getSmallIndexCreateQuery(',
@@ -489,11 +491,13 @@ checkForRemovedIndex(ObjList) :-
   (   ( indexType(LogicalIndexType),
         LogicalIndexType = PhysicalIndexType
       )
-    ; member([LogicalIndexType, PhysicalIndexType],
-             [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
-              [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3]
-%              [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3] % for later extensions
-             ])
+    ; ( optimizerOption(rtreeIndexRules), 
+        member([LogicalIndexType, PhysicalIndexType],
+              [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
+               [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3]
+%               [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3] % for later extensions
+              ])
+      )
   ),
   not(member(['OBJECT', IndexName, _ , [[PhysicalIndexType | _]]], ObjList)),
   retract(storedIndex(Rel, Attr, LogicalIndexType, IndexName)),

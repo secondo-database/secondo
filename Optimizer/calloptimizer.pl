@@ -140,6 +140,19 @@ optimizerOptionInfo(rewriteCSEall,
 optimizerOptionInfo(rewriteRemove,       
 'Remove attributes as early as possible.\n\t\t\t(NOTE: This auto-selects \'rewriteCSE\'!)',
                     setOption(rewriteCSE), true).
+optimizerOptionInfo(rtreeIndexRules,       
+'Use additional rules to exploit R-tree indices.',
+                      (   not(optimizerOption(entropy))
+                        ; notIsDatabaseOpen
+                        ; ( retractall(storedSecondoList(_)),
+                            getSecondoList(ObjList),
+                            checkForAddedIndices(ObjList), 
+                            checkForRemovedIndices(ObjList),
+                            checkIfSmallRelationsExist(ObjList),
+                            retractall(storedSecondoList(_))
+                          )
+                      ), 
+                      true).
 optimizerOptionInfo(debug,            
                     '\tActivate debugging code. Also use \'toggleDebug.\'.',
                     showDebugLevel,true).
@@ -391,6 +404,7 @@ Feel free to change.
 :- setOption(rewriteCSE).       % Substitute common subexpressions in queries?
 % :- setOption(rewriteCSEall).    % Extend attributes for ALL CSEs?
 % :- setOption(rewriteRemove).    % Apply early removal of unused attributes?
+% :- setOption(rtreeIndexRules).  % Use additional rules to exploit R-tree indices?
 % :- setOption(debug), assert(optDebugLevel(all)). % Activating debugging code?
 
 /*

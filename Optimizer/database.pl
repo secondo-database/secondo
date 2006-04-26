@@ -764,11 +764,13 @@ verifyIndexAndStoreIndex(Rel, Attr, Index, LogicalIndexType) :- % Index exists
   (   ( indexType(LogicalIndexType),
         LogicalIndexType = PhysicalIndexType
       )
-    ; member([LogicalIndexType, PhysicalIndexType],
-             [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
-              [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3]
-%              [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3]
-             ])
+    ; ( optimizerOption(rtreeIndexRules), 
+        member([LogicalIndexType, PhysicalIndexType],
+               [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
+                [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3]
+%                [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3]
+               ])
+      )
   ),
   assert(storedIndex(Rel, Attr, LogicalIndexType, Index)),
   dm(index,['\n<--verifyIndexAndStoreIndex(',Rel, ',',Attr, ',',Index, ',',LogicalIndexType, ')\n']),
