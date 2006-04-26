@@ -1369,6 +1369,32 @@ insertExtend(rightrange(Index, Rel, X),
   dm(insertExtend,['insertExtend - avail attrs: rightrange = ',AttrsOut,'\n']),
   !.
 
+insertExtend(windowintersects(Index, Rel, X), 
+             windowintersects(Index, Rel, X),
+             AttrsIn,
+             AttrsOut) :-
+  insertExtend(feed(Rel),_,AttrsIn,AttrsOut), 
+  dm(insertExtend,['insertExtend - avail attrs: windowintersects = ',AttrsOut,'\n']),
+  !.
+
+insertExtend(windowintersectsS(Index, X), 
+             windowintersectsS(Index, X),
+             _,
+             AttrsOut) :-
+  AttrsOut = [], % ignoring stream of tuple identifiers (attr name = 'tid') produced
+  dm(insertExtend,['insertExtend - avail attrs: windowintersectsS = ',AttrsOut,'\n']),
+  !.
+
+insertExtend(gettuples(X, Rel), 
+             gettuples(X, Rel),
+             AttrsIn,
+             AttrsOut) :-
+  % ignoring tupleidentifier tid
+  insertExtend(feed(Rel),_,AttrsIn,AttrsOut), 
+  dm(insertExtend,['insertExtend - avail attrs: gettuples = ',AttrsOut,'\n']),
+  !.
+
+
 % Case: project (Recurse for argument and return set of projection attributes)
 insertExtend(project(Stream, AttrNames), 
              project(Stream2, AttrNames), 
@@ -2016,6 +2042,10 @@ usedAttributes(leftrange(_, _, Pred),Attrs) :-
 usedAttributes(rightrange(_, _, Pred),Attrs) :-
   usedAttributes(Pred,Attrs), !.
 usedAttributes(exactmatch(_, _, Pred), Attrs) :-
+  usedAttributes(Pred,Attrs), !.
+usedAttributes(windowintersects(_, _, Pred), Attrs) :-
+  usedAttributes(Pred,Attrs), !.
+usedAttributes(windowintersectsS(_, _, Pred), Attrs) :-
   usedAttributes(Pred,Attrs), !.
 usedAttributes(filter(_,Pred),Attrs) :-
   usedAttributes(Pred,Attrs), !.

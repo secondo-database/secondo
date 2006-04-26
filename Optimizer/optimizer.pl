@@ -759,26 +759,54 @@ In the target language, we use the following operators:
                                 where   Tuple2 is Tuple1 projected on the
                                         mentioned attributes.
 
-        rename          stream(Tuple1) x NewName -> stream(Tuple2)
+        rename:         stream(Tuple1) x NewName -> stream(Tuple2)
 
                                 where   Tuple2 is Tuple1 modified by appending
                                         "_newname" to each attribute name
 
-        count           stream(Tuple) -> int
+        count:          stream(Tuple) -> int
 
                                 count the number of tuples in a stream
 
-        sortby          stream(Tuple) x (Attrname, asc/desc)+   -> stream(Tuple)
+        sortby:         stream(Tuple) x (Attrname, asc/desc)+   -> stream(Tuple)
 
                                 sort stream lexicographically by the given
                                 attribute names
 
-        groupby stream(Tuple) x GroupAttrs x NewFields -> stream(Tuple2)
+        groupby:       stream(Tuple) x GroupAttrs x NewFields -> stream(Tuple2)
 
-                                group stream by the grouping attributes; for each group
-                                compute new fields each of which is specified in the
-                                form Attrname : Expr. The argument stream must already
-                                be sorted by the grouping attributes.
+                                group stream by the grouping attributes; for 
+                                each group compute new fields each of which is 
+                                specified in the form Attrname : Expr. The 
+                                argument stream must already be sorted by the 
+                                grouping attributes.
+
+        windowintersects:   rtree(Tuple) x rel(Tuple) x rect -> stream(Tuple)
+
+                                Creates a stream of tuples containing all
+                                tuples stored within the rtree and the relation, 
+                                whose bbox intersects the second argument.
+
+        windowintersectsS:  rtree(Tuple) x rect -> stream(tid)
+ 
+                                Creates a stream of tuple identifiers for all
+                                tuples stored within the rtree, whose bbox 
+                                intersects the second argument.
+
+        gettuples:          stream(tip) x rel(Tuple) -> stream(Tuple)
+
+                                Create a stream of tuples, by reading all those 
+                                tuples from the relation, whose tuple identifier 
+                                are passed in the input stream 
+ 
+        sort:               stream(Tuple) -> stream(Tuple)
+                                
+                                Sorts the input stream lexicographically
+
+        rdup:               stream(Tuple) -> stream(Tuple)
+
+                                Removes duplicates from a lexicographically 
+                                ordered input stream
 ----
 
 In PROLOG, all expressions involving such operators are written in prefix
@@ -1395,9 +1423,29 @@ select(Arg, pr(Pred, _, _)) => filter(ArgS, Pred) :-
 
 Translation of selections using indices.
 
+April 2006, Christian D[ue]ntgen. Added project-translation for index selections
+
 */
 select(arg(N), Y) => X :-
+  isStarQuery, % no projection needed
   indexselect(arg(N), Y) => X.
+
+select(arg(N), Y) => project(X, AttrNames) :-
+  not(isStarQuery), 
+  argument(N, rel(Name, *, Case)), !, 
+  indexselect(arg(N), Y) => X,
+  % no renaming, so just use native projection attr list
+  usedAttrList(rel(Name, *, Case), AttrNames).
+
+select(arg(N), Y) => project(X, RenamedAttrNames) :-
+  not(isStarQuery),
+  argument(N, rel(Name, Var, Case)), !, 
+  indexselect(arg(N), Y) => X,
+  usedAttrList(rel(Name, Var, Case), AttrNames),
+  % with renaming, so modify the projection attr list
+  renameAttributes(Var, AttrNames, RenamedAttrNames).
+
+
 
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) = Y, Rel)) => X :-
   indexselect(arg(N), pr(Y = attr(AttrName, Arg, Case), Rel)) => X.
@@ -1414,7 +1462,7 @@ indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
   :-
   argument(N, rel(Name, Var, Case)),
   !,
-  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name,Var,Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
 
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) <= Y, Rel)) => X :-
   indexselect(arg(N), pr(Y >= attr(AttrName, Arg, Case), Rel)) => X.
@@ -1424,14 +1472,14 @@ indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
   :-
   argument(N, rel(Name, *, Case)),
   !,
-  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name,*,Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
 
 indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
   rename(leftrange(IndexName, rel(Name, Var, Case), Y), Var)
   :-
   argument(N, rel(Name, Var, Case)),
   !,
-  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name,Var,Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
 
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) >= Y, Rel)) => X :-
   indexselect(arg(N), pr(Y <= attr(AttrName, Arg, Case), Rel)) => X.
@@ -1448,7 +1496,7 @@ indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
   :-
   argument(N, rel(Name, Var, Case)),
   !,
-  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name,Var,Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
 
 %fapra1590
 indexselect(arg(N), pr(Y touches attr(AttrName, Arg, Case), Rel)) => X :-
@@ -1456,25 +1504,153 @@ indexselect(arg(N), pr(Y touches attr(AttrName, Arg, Case), Rel)) => X :-
 
 /*
 
-C. Duentgen, Feb 2006: When using renaming, the indexselect rule failed, because 
-the rule accesses the original (not renamed) relation. The correct approach is 
-to do a rename on the result immedeatly of the select.
+C. D[ue]ntgen, Feb 2006: When using renaming, the indexselect rule using 
+``windowintersectd'' failed, because the rule accesses the original (not renamed) 
+relation. The correct approach is to do a rename on the result ~before~ the 
+filter is used.
 
 */
 
 indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) touches Y, _)) =>
-  filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), attr(AttrName, Arg, AttrCase) touches Y)
+  filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), 
+         attr(AttrName, Arg, AttrCase) touches Y)
   :-
   argument(N, rel(Name, *, Case)),
   !,
   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
 
 indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) touches Y, _)) =>
-  filter(rename(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)),RelAlias), attr(AttrName, Arg, AttrCase) touches Y)
+  filter(rename(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)),RelAlias), 
+         attr(AttrName, Arg, AttrCase) touches Y)
+  :-
+  argument(N, rel(Name, RelAlias, Case)), % Case: 'RelAlias \= *'
+  !,
+  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
+
+/*
+C. D[ue]ntgen, Apr 2006: Added rules for spacialized spatio-temporal R-tree indices
+These indices are recognized by their index type, it is a combination of a ``granularity''
+(one of ~object~, ~unit~, ~group10~) and a ``bounding box type'' (one of ~time~, ~space~, ~d3~). 
+Even here, a possible ~rename~ must be done before ~filter~ can be applied.
+
+*/
+
+% present with object_time index
+indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
+  filter(windowintersects(IndexName, rel(Name, *, Case), queryrect2d(Y)), 
+         attr(AttrName, Arg, AttrCase) present Y)
+  :-
+  argument(N, rel(Name, *, Case)),
+  !,
+  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), 
+           IndexName, object_time).
+
+indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
+  filter(rename(windowintersects(IndexName, rel(Name, *, Case), queryrect2d(Y)), 
+         RelAlias), attr(AttrName, Arg, AttrCase) present Y)
   :-
   argument(N, rel(Name, RelAlias, Case)), % Case: RelAlias \= *,
   !,
-  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
+  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), 
+           IndexName, object_time).
+
+% present with unit_time index
+indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
+  filter(gettuples(rdup(sort(windowintersectsS(IndexName, queryrect2d(Y)))), 
+         rel(Name, *, Case)), attr(AttrName, Arg, AttrCase) present Y)
+  :-
+  argument(N, rel(Name, *, Case)),
+  !,
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, unit_time).
+
+indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
+  filter(rename(gettuples(rdup(sort(windowintersectsS(IndexName, queryrect2d(Y)))), 
+         rel(Name, *, Case)), RelAlias), attr(AttrName, Arg, AttrCase) present Y)
+  :-
+  argument(N, rel(Name, RelAlias, Case)), % Case: RelAlias \= *,
+  !,
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, unit_time).
+
+
+% passes with object_time index
+indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
+  filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), 
+         attr(AttrName, Arg, AttrCase) passes Y)
+  :-
+  argument(N, rel(Name, *, Case)),
+  !,
+  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), 
+           IndexName, object_time).
+
+indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
+  filter(rename(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), 
+         RelAlias), attr(AttrName, Arg, AttrCase) passes Y)
+  :-
+  argument(N, rel(Name, RelAlias, Case)), % Case: RelAlias \= *,
+  !,
+  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), 
+           IndexName, object_time).
+
+
+% passes with unit_time index
+indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
+  filter(gettuples(rdup(sort(windowintersectsS(IndexName, bbox(Y)))), 
+         rel(Name, *, Case)), attr(AttrName, Arg, AttrCase) passes Y)
+  :-
+  argument(N, rel(Name, *, Case)),
+  !,
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, unit_time).
+
+indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
+  filter(rename(gettuples(rdup(sort(windowintersectsS(IndexName, bbox(Y)))), 
+         rel(Name, *, Case)), RelAlias), attr(AttrName, Arg, AttrCase) passes Y)
+  :-
+  argument(N, rel(Name, RelAlias, Case)), % Case: RelAlias \= *,
+  !,
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, unit_time).
+
+
+% bbox(x) intersects box3d(bbox(Z),Y) with object_3d index
+indexselect(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
+                       box3d(bbox(Z),Y), _)) =>
+  windowintersects(IndexName, rel(Name, *, Case), box3d(bbox(Z),Y))
+  :-
+  argument(N, rel(Name, *, Case)),
+  !,
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, object_d3).
+
+indexselect(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
+                       box3d(bbox(Z),Y), _)) =>
+  rename(windowintersects(IndexName, rel(Name, *, Case), box3d(bbox(Z),Y)),
+         RelAlias)
+  :-
+  argument(N, rel(Name, RelAlias, Case)), % Case: RelAlias \= *,
+  !,
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, object_d3).
+  
+
+% bbox(x) intersects box3d(bbox(Z),Y) with unit_3d index
+indexselect(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
+                       box3d(bbox(Z),Y), _)) =>
+  gettuples(rdup(sort(windowintersects(IndexName, box3d(bbox(Z),Y)))), 
+            rel(Name, *, Case))
+  :-
+  argument(N, rel(Name, *, Case)),
+  !,
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, unit_3d).
+
+indexselect(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
+                       box3d(bbox(Z),Y), _)) =>
+  rename(gettuples(rdup(sort(windowintersects(IndexName, box3d(bbox(Z),Y)))), 
+            rel(Name, *, Case)), RelAlias)
+  :-
+  argument(N, rel(Name, RelAlias, Case)), % Case: RelAlias \= *,
+  !,
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, unit_time).
+
+
+
+
 
 /*
 Here ~ArgS~ is meant to indicate ``argument stream''.
@@ -1940,16 +2116,27 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, C) :-
       (SizeY/NBuckets +1) +                             % pair of buckets
     B * S.                                              % producing the result tuples
 
+cost(sort(X), _, S, C) :- 
+  cost(X, 1, SizeX, CostX),
+  sortmergejoinTC(A, _),
+  S is SizeX,
+  C is CostX +                                  % producing the argument
+    A * SizeX * log(SizeX + 1).                 % sorting the arguments
+             %   individual cost of ordering predicate still not applied!
 
-cost(sortmergejoin(X, Y, _, _), Sel, S, C) :-
+cost(sortby(X, _), Sel, S, C) :-
+  cost(sort(X), Sel, S, C).
+  
+cost(mergejoin(X, Y, _, _), Sel, S, C) :-
   cost(X, 1, SizeX, CostX),
   cost(Y, 1, SizeY, CostY),
-  sortmergejoinTC(A, B),
+  sortmergejoinTC(_, B),
   S is SizeX * SizeY * Sel,
   C is CostX + CostY +                          % producing the arguments
-    A * SizeX * log(SizeX + 1) +                % sorting the arguments
-    A * SizeY * log(SizeY + 1) +                %   individual cost of ordering predicate still not applied!
     B * S.                                      % parallel scan of sorted relations
+
+cost(sortmergejoin(X, Y, AX, AY), Sel, S, C) :-
+  cost(mergejoin(sortby(X, [AX]),sortby(Y, [AY]), AX, AY), Sel, S, C).
 
 
 /* 
@@ -1997,13 +2184,33 @@ cost(rename(X, _), Sel, S, C) :-
   renameTC(A),
   C is C1 + A * S.
 
+% Xris: Added, costfactors not verified
+cost(rdup(X), Sel, S, C) :-
+  cost(X, Sel, S, C1),
+  sortmergejoinTC(A, _),
+  C is C1 + A * S.
+ 
+
+
 %fapra1590
 cost(windowintersects(_, Rel, _), Sel, Size, Cost) :-
   cost(Rel, 1, RelSize, _),
   windowintersectsTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
+
+% XRIS: cost function copied from windowintersects
+%       May be wrong, but as it is uually used together
+%       with 'gettuples', the total cost should be OK
+cost(windowintersectsS(_, Rel, _), Sel, Size, Cost) :-
+  cost(Rel, 1, RelSize, _),
+  windowintersectsTC(C),
+  Size is Sel * RelSize,
+  Cost is Sel * RelSize * C.
+
+
 /*
+
 8.2 Creating Cost Edges
 
 These are plan edges extended by a cost measure.
@@ -3237,6 +3444,12 @@ usedAttrList(Rel, ResList) :-
   setof(X, usedAttr(Rel, X), R1),
   %nl, write('AttrList: '), write(R1), nl,
   attrnames(R1, ResList). 
+
+renameAttributes(_, [], []).
+renameAttributes(Var, [attrname(attr(Attr,Arg,Case))|AttrNames], 
+                      [attrname(attr(Var:Attr,Arg,Case))|RenamedAttrNames]
+                ) :-
+  renameAttributes(Var, AttrNames, RenamedAttrNames), !.
 
 
 

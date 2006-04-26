@@ -119,8 +119,8 @@ nextCounter(C) :-
   assert(nCounter(1)),
   C = 1.
 
-% called by the standard optimizer 
-deleteCounters :- retractall(nCounter(_)).
+% Also called by the standard optimizer:
+deleteCounters2 :- retractall(nCounter(_)).
  
 /* 
 The clauses below are used to store a list of counters returned by SECONDO.
@@ -378,7 +378,7 @@ translateEntropy(Stream1, Stream2, Cost1, Cost2) :-
  
   % compute a new plan based on the cost annotations of
   % the new selectivities computed by maximize_entropy 
-  deleteCounters,
+  deleteCounters2,
   assignEntropyCost,
   bestPlan(Stream2, Cost2), !,
 
