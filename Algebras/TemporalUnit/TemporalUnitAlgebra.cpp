@@ -1422,25 +1422,25 @@ int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
 
   if (( p->IsDefined())&&(n>3)&&(n<10000)&&(radius >=0.0))
     {
-	for( int i = 0; i < n; i++ )
-	{
-	angle = i * 2 * PI/n;
-	valueX = x + radius*cos(angle);
-	valueY = y + radius*sin(angle);
-	Point corner(true,valueX ,valueY);
+       for( int i = 0; i < n; i++ )
+        {
+        angle = i * 2 * PI/n;
+        valueX = x + radius*cos(angle);
+        valueY = y + radius*sin(angle);
+        Point corner(true,valueX ,valueY);
 
-	if (i==0)
-	 {
-	 instance = nl->OneElemList(OutPoint(nl->TheEmptyList(),
-	            SetWord(&corner)));
-	 last= instance;
-	 }
-	else
-	 {
-	last = nl->Append( last,
-			OutPoint(nl->TheEmptyList(), SetWord(&corner)));
-	 }
-        }
+        if (i==0)
+         {
+          instance = nl->OneElemList(OutPoint(nl->TheEmptyList(),
+                     SetWord(&corner)));
+          last= instance;
+         }
+        else
+         {
+         last = nl->Append( last,
+                    OutPoint(nl->TheEmptyList(), SetWord(&corner)));
+         }
+       }
     instance = nl->OneElemList(nl->OneElemList(instance));
     CRegion* reg = (CRegion*)InRegion( nl->TheEmptyList(),
                                  instance, 0, errorInfo, correct ).addr;
