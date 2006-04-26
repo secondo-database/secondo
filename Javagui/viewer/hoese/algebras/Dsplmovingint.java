@@ -33,16 +33,19 @@ import tools.Reporter;
 /**
  * A displayclass for the movingint-type (spatiotemp algebra), alphanumeric with TimePanel
  */
-public class Dsplmovingint extends DsplGeneric implements LabelAttribute, Timed{
+public class Dsplmovingint extends DsplGeneric implements LabelAttribute, Timed, RenderAttribute{
 
-  Interval TimeBounds;
-  boolean err = true;
-  boolean defined;
-  String entry;
-  Vector Intervals = new Vector(10, 5);
-  Vector Ints = new Vector(10, 5);
+  protected Interval TimeBounds;
+  protected boolean err = true;
+  protected boolean defined;
+  protected String entry;
+  protected Vector Intervals = new Vector(10, 5);
+  protected Vector Ints = new Vector(10, 5);
+  protected int min;
+  protected int max;
   
-  /** returns the value of this integer as a string */
+  
+  /** returns the value of this moving integer at the given time as string */
 public String getLabel(double time){
     if(!defined | err){
       return null;
@@ -56,6 +59,47 @@ public String getLabel(double time){
     }
     return "" + Ints.get(index);
   }
+
+  /** Returns whether this moving integer has any value .
+    * This means, this integer is not empty, defined and the
+    * scanning of the list has been successfully finished.
+    **/
+  public boolean mayBeDefined(){
+    return !err && defined && (Intervals.size()>0); 
+  }
+  
+  /** Returns the minimum value of this moving integer **/
+  public double getMinRenderValue(){
+     return min;
+  }
+  /** Returns the maximum value of this moving integer **/
+  public double getMaxRenderValue(){
+     return max;
+  }
+
+  /** Checks whether this moving integer is defined to the given time **/
+  public boolean isDefined(double time){
+    if(!defined | err){
+       return false;
+    }
+    int index = IntervalSearch.getTimeIndex(time,Intervals);
+    return index>=0;
+  } 
+
+  /** Returns the value of this moving integer at the
+    *  given time 
+    **/
+  public double getRenderValue(double time){
+    if(!defined | err){
+       return (min+max)/2;
+    }
+    int index = IntervalSearch.getTimeIndex(time,Intervals);
+    if(index<0){
+       return (min+max)/2;
+    }
+    return ((Integer)Ints.get(index)).intValue();
+  }
+  
 
   /** A method of the Timed-Interface
    * 
@@ -107,7 +151,6 @@ public String getLabel(double time){
    * @see <a href="Dsplmovingintsrc.html#ScanValue">Source</a>
    */
   public void ScanValue (ListExpr v) {
-    System.out.println("begin scanning of a moving object");
     if(isUndefined(v)){
        defined=false;
        err=false;
@@ -116,7 +159,8 @@ public String getLabel(double time){
     if(v.atomType()!=ListExpr.NO_ATOM){
        err=true;
        return;
-    }
+    } 
+    boolean first=true;
     while (!v.isEmpty()) {
       ListExpr le = v.first();
       Interval in = null;
@@ -141,33 +185,49 @@ public String getLabel(double time){
         return;
       }
       int i = value.intValue();
+      if(first){
+        min = i;
+        max = i;
+        first = false;
+      } else{
+        min = i<min?i:min;
+        max = i>max?i:max;  
+      }
       Ints.add(new Integer(i));
       v = v.rest();
     }
-    System.out.println("scanning of a moving int finished successfully");
+    defined = true;
     err = false;
   }
+  
 
   /**
-   * Init. the Dsplmovingint instance.
-   * @param type The symbol movingint
-   * @param value A list of time-intervals with an int value
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
+   * This method is used to analyse the type and value in NestedList format and build
+   * up the intern datastructures for this type. An alphanumeric representation is 
+   * neccessary for the displaying this type in the queryresultlist.
+   * @param type A ListExpr of the datatype string 
+   * @param value A string in a listexpr
+   * @param qr The queryresultlist to add alphanumeric representation
+   * @see QueryResult
    * @see sj.lang.ListExpr
-   * @see <a href="Dsplmovingintsrc.html#init">Source</a>
+   * @see <a href="Dsplstringsrc.html#init">Source</a>
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = type.symbolValue();
+      init(type,0,value,0,qr);
+  }
+
+  public void init (ListExpr type,int typeWidth,ListExpr value,int valueWidth, QueryResult qr){
+    AttrName = extendString(type.symbolValue(),typeWidth);
     ScanValue(value);
     if (err) {
       defined=false;
       Reporter.writeError("Error in ListExpr :parsing aborted");
-      qr.addEntry(new String("(" + AttrName + ": TA(MInt))"));
+      qr.addEntry( AttrName + ": <error>");
       return;
     } 
     else 
       qr.addEntry(this);
+    // compute the timebounds
     TimeBounds = null;
     for (int i = 0; i < Intervals.size(); i++) {
       Interval in = (Interval)Intervals.elementAt(i);
