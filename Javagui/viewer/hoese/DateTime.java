@@ -24,11 +24,44 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
    last change: 8-2003 , Thomas Behr */
 package viewer.hoese;
 
+import tools.Reporter;
+
 
 /* this class proovides transformations between internal double representation of a
    datetime and the external representation as year month day hour min sec msec
    */
 public class DateTime{
+
+/** Represents the maximum representable instant.
+  * Ensure the same representation as in the DateTime-Algebra of
+  * the Secondo kernel.
+  **/
+private static final String endOfTime = "end of time";
+/** String describing the minimum representable instant.
+  * Ensure to use the same name as in the DateTime Algebra in the 
+  * Secondo kernel.
+   **/
+private static final String beginOfTime = "begin of time"; 
+
+/** Value of the maximum representable instant.
+  * Ensure the same value as in the DateTime-Algebra of
+  * the Secondo kernel.
+  **/
+private static final long minInstant = -2450000;
+
+/** Value of the minimum representable instant.
+  * Ensure the same value as in the DateTime-Algebra of
+  * the Secondo kernel.
+  **/
+private static final long maxInstant = 2450000;
+
+/** The resolution of a day.
+  * A single day is divided into DAY_RESOLUTION parts.
+  **/
+public static final long DAY_RESOLUTION = 86400000;  // 1 millisecond
+
+
+
 
 /* convert the given values to a Double representation */
 public static double convertToDouble(int year, int month, int day, int hour, int minute, int second, int millisec){
@@ -169,6 +202,19 @@ public static String getListStringOld(double time){
   * if the Format is not correct null will be returned
   */
 public static long[] getDayMillis(String DT){
+  if(DT.equals(beginOfTime)){
+     long[] res = new long[2];
+     res[0] = minInstant;
+     res[1] = 0;
+     return res;
+  }
+  if(DT.equals(endOfTime)){
+     long[] res = new long[2];
+     res[0] = maxInstant;
+     res[1] = DAY_RESOLUTION;
+     return res;
+  }
+
   char[] D = DT.toCharArray();
   int len = D.length;
   int i = 0;
@@ -205,6 +251,11 @@ public static long[] getDayMillis(String DT){
      long[] res = new long[2];
      res[0] = (JulianDate.toJulian(year,month,day));
      res[1] = 0;
+     if(res[0] < minInstant){
+        res[0] = minInstant;
+     } else if(res[0]>maxInstant){
+        res[0] = maxInstant;
+     }
      return res;
    }
   // read hour
@@ -248,6 +299,15 @@ public static long[] getDayMillis(String DT){
   long[] res = new long[2];
   res[0] = (JulianDate.toJulian(year,month,day));
   res[1] = getMilliSecs(hour,min,sec,msec);
+  if(res[0]<minInstant){
+    Reporter.writeWarning("found instant outside the valid boundaries (changed)");
+    res[0] = minInstant;
+    res[1] = 0;
+  } else if(res[0]>maxInstant){
+    Reporter.writeWarning("found instant outside the valid boundaries (changed)");
+    res[0] = maxInstant;
+    res[1] = DAY_RESOLUTION;
+  }
   return res;
 
 }
@@ -285,7 +345,6 @@ private static int getValue(char c){
 }
 
 
-public static final long DAY_RESOLUTION = 86400000;  // 1 millisecond
 
 
 }
