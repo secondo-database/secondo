@@ -33,12 +33,17 @@ import tools.Reporter;
  * A displayclass for the movingbool-type (spatiotemp algebra), alphanumeric with TimePanel
  */
 public class Dsplmovingbool extends DsplGeneric  
-  implements LabelAttribute, RenderAttribute,Timed {
+  implements LabelAttribute, RenderAttribute,Timed,Function,ExternDisplay {
   Interval TimeBounds;
   boolean err = true;
   boolean defined;
   Vector Intervals = new Vector(10, 5);
   Vector Bools = new Vector(10, 5);
+  private static final Double VALUE_NOT_DEFINED = null;
+  private static final Double VALUE_TRUE = new Double(1);
+  private static final Double VALUE_FALSE = new Double(0);
+  private static  FunctionFrame functionframe = new FunctionFrame();
+
 
   /**
    * A method of the Timed-Interface to render the content of the TimePanel
@@ -78,6 +83,28 @@ public class Dsplmovingbool extends DsplGeneric
 
   public Interval getTimeBounds(){
     return TimeBounds;
+  }
+
+  /** returns the definition time interval **/
+  public Interval getInterval(){
+    return TimeBounds;
+  }
+ 
+  /** returns the value converted into a double **/
+  public Double getValueAt(double time){
+    if(err | !defined){
+       return VALUE_NOT_DEFINED;
+    }
+    int index = IntervalSearch.getTimeIndex(time,Intervals);
+    if(index<0){
+       return VALUE_NOT_DEFINED;
+    }
+    if( ((Boolean)Bools.get(index)).booleanValue()){
+       return VALUE_TRUE;
+    } else{
+       return VALUE_FALSE;
+    }
+
   }
 
 
@@ -210,7 +237,32 @@ public class Dsplmovingbool extends DsplGeneric
      return v?1:0;
   }
 
-  
+  // implementing the externalDisplay interface
+
+  public boolean isExternDisplayed(){
+    return (functionframe.isVisible() && this.equals(functionframe.getSource()));
+  }  
+
+  public void displayExtern(){
+     if(err){
+       Reporter.showInfo("cannot display because list representation is invalid");
+       return;
+     }
+     if(!defined){
+        Reporter.showInfo("the object is not defined at all instants");
+        return;
+     }
+     if(TimeBounds!=null){
+          functionframe.setSource(this);
+          functionframe.setVisible(true);
+          functionframe.toFront();
+     }else{
+         Reporter.showInfo("The moving bool is empty");
+     }
+
+  }
+
+ 
  
 }
 
