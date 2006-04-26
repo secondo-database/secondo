@@ -32,9 +32,13 @@ import tools.Reporter;
 /**
  * A displayclass for the movingstring-type (spatiotemp algebra), alphanumeric with TimePanel
  */
-public class Dsplmovingstring extends Dsplinstant {
-  Vector Intervals = new Vector(10, 5);
-  Vector Strings = new Vector(10, 5);
+public class Dsplmovingstring extends DsplGeneric implements Timed,LabelAttribute {
+  protected Vector Intervals = new Vector(10, 5);
+  protected Vector Strings = new Vector(10, 5);
+  protected Interval TimeBounds;
+  protected boolean defined;
+  protected String entry;
+  protected boolean err=true; 
 
   /**
    * A method of the Timed-Interface to render the content of the TimePanel
@@ -73,6 +77,23 @@ public class Dsplmovingstring extends Dsplinstant {
       jp.add(jc);
     }
     return  jp;
+  }
+
+  /** Returns the label at the given time **/
+  public String getLabel(double time){
+    if(err | !defined){
+      return null;
+    }
+    int index = IntervalSearch.getTimeIndex(time,Intervals);
+    if(index<0){
+      return null;
+    }
+    return Strings.get(index).toString();
+ }
+
+  /** returns the bounds of the interval **/
+  public Interval getTimeBounds(){
+     return TimeBounds;
   }
 
   /**
@@ -134,28 +155,7 @@ public class Dsplmovingstring extends Dsplinstant {
    * @see <a href="Dsplmovingstringsrc.html#init">Source</a>
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = type.symbolValue();
-    String v = getString(value);
-    entry = AttrName+":"+v;
-    if (err) {
-       
-      Reporter.writeError("Error in ListExpr :parsing aborted");
-      qr.addEntry(entry);
-      return;
-    } 
-    else {
-      qr.addEntry(this);
-    }
-    TimeBounds = null;
-    for (int i = 0; i < Intervals.size(); i++) {
-      Interval in = (Interval)Intervals.elementAt(i);
-      if (TimeBounds == null) {
-        TimeBounds = in;
-      } 
-      else {
-        TimeBounds = TimeBounds.union(in);
-      }
-    }
+    init(type,0,value,0,qr);
   }
 
    public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
