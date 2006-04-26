@@ -357,7 +357,11 @@ public class Dsplmovingreal extends DsplGeneric implements
    * @see <a href="Dsplmovingrealsrc.html#init">Source</a>
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = type.symbolValue();
+     init(type,0,value,0,qr);
+  }
+
+  public void init (ListExpr type,int typeWidth, ListExpr value,int valueWidth, QueryResult qr) {
+    AttrName = extendString(type.symbolValue(),typeWidth);
     err=true;
     ScanValue(value);
     computeMinMax();
@@ -386,7 +390,7 @@ public class Dsplmovingreal extends DsplGeneric implements
    * @see <a href="Dsplmovingrealsrc.html#toString">Source</a>
    */
   public String toString () {
-    return  AttrName + ": TA(MReal) ";
+    return  AttrName + " : TA(MReal) ";
   }
   /** A method of the Timed-Interface
    * @return The Vector representation of the time intervals this instance is defined at 
