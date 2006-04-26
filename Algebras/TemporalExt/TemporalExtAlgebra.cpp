@@ -38,6 +38,7 @@ inclusion of header files concerning Secondo.
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
 #include "TemporalAlgebra.h"
+#include "MovingRegionAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -425,7 +426,8 @@ MovingBaseExtTypeMapBool( ListExpr args )
             (nl->IsEqual( arg1, "mint" ) && nl->IsEqual( arg2, "int" )) ||
 // VTA - This operator is not yet implemented for the type of ~mreal~
             (nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "real" )) ||
-            (nl->IsEqual( arg1, "mstring" ) && nl->IsEqual( arg2, "string" )))
+            (nl->IsEqual( arg1, "mstring" ) && nl->IsEqual( arg2, "string" )) ||
+            (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "region" )))
           return nl->SymbolAtom( "bool" );
     }
     return nl->SymbolAtom( "typeerror" );
@@ -668,6 +670,10 @@ MovingExtBaseSelect( ListExpr args )
     if( nl->SymbolValue( arg1 ) == "mstring" &&
         nl->SymbolValue( arg2 ) == "string" )
         return 3;
+
+    if( nl->SymbolValue( arg1 ) == "mpoint" &&
+        nl->SymbolValue( arg2 ) == "region" )
+        return 4;
 
     return -1; // This point should never be reached
 }
@@ -1145,7 +1151,7 @@ ValueMapping temporalpassesextmap[] = {
     MappingPassesExt<MBool, CcBool>,
     MappingPassesExt<MInt, CcInt>,
     MappingPassesExt<MReal, CcReal>,
-    MappingPassesExt<MString, CcString> };
+    MappingPassesExt<MString, CcString>};
 
 ValueMapping temporaldeftimeextmap[] = {
     MappingDefTimeExt<MString> };
@@ -1171,45 +1177,55 @@ ValueMapping temporalspeedextmap[] = {
 
 */
 const string TemporalSpecAtInstantExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Signature\" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>(moving(x) instant) -> intime(x)</text--->"
+    "( <text>T in {int, bool, real, string, point, region},</text--->"
+    "<text>mT x instant  -> intime(T)</text--->"
     "<text>_ atinstant _ </text--->"
     "<text>get the Intime value corresponding to the instant.</text--->"
     "<text>mpoint1 atinstant instant1</text--->"
     ") )";
 
 const string TemporalSpecAtPeriodsExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>(moving(x) instant) -> intime(x)</text--->"
+    "( <text>T in {int, bool, real, string, point, region*},</text--->"
+    "<text>mT x periods -> moving(T)</text--->"
+    "<text>(*) Not yet implemented for this type constructor.</text--->"
     "<text>_ atperiods _ </text--->"
     "<text>restrict the movement to the given periods.</text--->"
     "<text>mpoint1 atperiods periods1</text--->"
     ") )";
 
 const string TemporalSpecInitialExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>moving(x) -> intime(x)</text--->"
+    "( <text>T in {int, bool, real, string, point, region*},</text--->"
+    "<text>(*) Not yet implemented for this type constructor.</text--->"
+    "<text>moving(T) -> intime(T)</text--->"
     "<text> initial( _ )</text--->"
     "<text>get the intime value corresponding to the initial instant.</text--->"
     "<text>initial( mpoint1 )</text--->"
     ") )";
 
 const string TemporalSpecFinalExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>moving(x) -> intime(x)</text--->"
+    "( <text>T in {int, bool, real, string, point, region*},</text--->"
+    "<text>(*) Not yet implemented for this type constructor.</text--->"
+    "<text>moving(T) -> intime(T)</text--->"
     "<text> final( _ )</text--->"
     "<text>get the intime value corresponding to the final instant.</text--->"
     "<text>final( mpoint1 )</text--->"
     ") )";
 
 const string TemporalSpecPresentExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Signature\" \" \" \" \" \" \" \"Syntax\" \"Meaning\" \" \""
     "\"Example\" ) "
-    "( <text>(moving(x) instant) -> bool, (moving(x) periods) -> bool</text--->"
+    "( <text>T in {int, bool, real, string, point, region*},</text--->"
+    "<text>moving(T) x instant -> bool,</text--->"
+    "<text>moving(T) x periods -> bool</text--->"
+    "<text>(*) Not yet implemented for this type constructor.</text--->"
     "<text>_ present _ </text--->"
     "<text>whether the object is present at the given instant</text--->"
     "<text>or period.</text--->"
@@ -1217,9 +1233,15 @@ const string TemporalSpecPresentExt  =
     ") )";
 
 const string TemporalSpecAtExt =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>(moving(x) x) -> moving(x)</text--->"
+    "( ( \"Signature\" \" \" \" \" \" \" \" \" \" \" \" \" \"Syntax\" "
+    "\"Meaning\" \" \" \"Example\" ) "
+    "( <text>T in {int, bool, real, string},</text--->"
+    "<text>moving(T) x T -> moving(T);</text--->"
+    "<text>T in {point, points*, line*, region*},</text--->"
+    "<text>moving(T) x range(T) -> moving(T);</text--->"
+    "<text>moving(region) x point -> mpoint**</text--->"
+    "<text>(*) Not yet implemented for this type constructor.</text--->"
+    "<text>(**) Operator combination is not implemented yet.</text--->"
     "<text> _ at _ </text--->"
     "<text>restrict the movement at the times where the equality </text--->"
     "<text>occurs.</text--->"
@@ -1227,18 +1249,24 @@ const string TemporalSpecAtExt =
     ") )";
 
 const string TemporalSpecPassesExt =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Signature\" \" \" \" \" \" \" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>(moving(x) x) -> bool</text--->"
+    "( <text>T in {int, bool, real, string},</text--->"
+    "<text>moving(T) x T -> bool;</text--->"
+    "<text>T in {point, points*, line*, region*},</text--->"
+    "<text>moving(point) x T -> bool</text--->"
+    "<text>(*) Not yet implemented for this type constructor.</text--->"
     "<text>_ passes _ </text--->"
     "<text>whether the object passes the given value.</text--->"
     "<text>mpoint1 passes point1</text--->"
     ") )";
 
 const string TemporalSpecDefTimeExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>moving(x) -> periods</text--->"
+    "( <text>T in {int, bool, real, string, point, region*},</text--->"
+    "<text>moving(T) -> periods</text--->"
+    "<text>(*) Not yet implemented for this type constructor.</text--->"
     "<text> deftime( _ )</text--->"
     "<text>get the defined time of the corresponding moving </text--->"
     "<text>data objects.</text--->"
@@ -1246,18 +1274,22 @@ const string TemporalSpecDefTimeExt  =
     ") )";
 
 const string TemporalSpecInstExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>intime(x) -> instant</text--->"
+    "( <text>T in {int, bool, real, string, point, region*},</text--->"
+    "<text>intime(T) -> instant</text--->"
+    "<text>(*) Not yet implemented for this type constructor.</text--->"
     "<text>inst ( _ )</text--->"
     "<text>Intime time instant.</text--->"
     "<text>inst ( i1 )</text--->"
     ") )";
 
 const string TemporalSpecValExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>intime(x) -> x</text--->"
+    "( <text>T in {int, bool, real, string, point, region*},</text--->"
+    "<text>intime(T) -> T</text--->"
+    "<text>(*) Not yet implemented for this type constructor.</text--->"
     "<text>val ( _ )</text--->"
     "<text>Intime value.</text--->"
     "<text>val ( i1 )</text--->"
@@ -1453,6 +1485,7 @@ InitializeTemporalExtAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
   qp = qpRef;
   return (&tempExtAlgebra);
 }
+
 
 
 
