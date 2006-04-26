@@ -33,11 +33,14 @@ import tools.Reporter;
 /**
  * A displayclass for the movingint-type (spatiotemp algebra), alphanumeric with TimePanel
  */
-public class Dsplmovingint extends Dsplinstant implements LabelAttribute{
+public class Dsplmovingint extends DsplGeneric implements LabelAttribute, Timed{
+
+  Interval TimeBounds;
+  boolean err = true;
+  boolean defined;
+  String entry;
   Vector Intervals = new Vector(10, 5);
   Vector Ints = new Vector(10, 5);
-  
-
   
   /** returns the value of this integer as a string */
 public String getLabel(double time){
@@ -54,6 +57,13 @@ public String getLabel(double time){
     return "" + Ints.get(index);
   }
 
+  /** A method of the Timed-Interface
+   * 
+   * @return the global time boundaries [min..max] this instance is defined at
+   */
+  public Interval getTimeBounds () {
+    return  TimeBounds;
+  }
 
   /**
    * A method of the Timed-Interface to render the content of the TimePanel
@@ -97,6 +107,7 @@ public String getLabel(double time){
    * @see <a href="Dsplmovingintsrc.html#ScanValue">Source</a>
    */
   public void ScanValue (ListExpr v) {
+    System.out.println("begin scanning of a moving object");
     if(isUndefined(v)){
        defined=false;
        err=false;
@@ -120,15 +131,20 @@ public String getLabel(double time){
          in = LEUtils.readInterval(le.first());
          value = le.second();
       }
-      if (in == null) // error in reading interval
+      if (in == null){ // error in reading interval
+        Reporter.debug("Dsplmovingint: cannot read the interval from list ");
         return;
+      }
       Intervals.add(in);
-      if (value.atomType() != ListExpr.INT_ATOM)
+      if (value.atomType() != ListExpr.INT_ATOM){ // error in reading value
+        Reporter.debug("Dsplmovingint: error in ListExpr, int atom required");
         return;
+      }
       int i = value.intValue();
       Ints.add(new Integer(i));
       v = v.rest();
     }
+    System.out.println("scanning of a moving int finished successfully");
     err = false;
   }
 
