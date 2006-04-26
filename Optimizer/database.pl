@@ -765,9 +765,9 @@ verifyIndexAndStoreIndex(Rel, Attr, Index, LogicalIndexType) :- % Index exists
         LogicalIndexType = PhysicalIndexType
       )
     ; member([LogicalIndexType, PhysicalIndexType],
-             [[object_time,rtree],  [object_space,rtree3], [object_d3,rtree3],
-              [unit_time,rtee],     [unit_space,rtree3],   [unit_d3_rtree3],
-              [group10_time,rtree2],[group10_space,rtree3],[group10_d3,rtree3]
+             [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
+              [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3]
+%              [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3]
              ])
   ),
   assert(storedIndex(Rel, Attr, LogicalIndexType, Index)),

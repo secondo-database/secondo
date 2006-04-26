@@ -1381,7 +1381,7 @@ insertExtend(windowintersectsS(Index, X),
              windowintersectsS(Index, X),
              _,
              AttrsOut) :-
-  AttrsOut = [], % ignoring stream of tuple identifiers (attr name = 'tid') produced
+  AttrsOut = [], % ignoring stream of tuple identifiers (attr name = 'id') produced
   dm(insertExtend,['insertExtend - avail attrs: windowintersectsS = ',AttrsOut,'\n']),
   !.
 
@@ -1389,7 +1389,7 @@ insertExtend(gettuples(X, Rel),
              gettuples(X, Rel),
              AttrsIn,
              AttrsOut) :-
-  % ignoring tupleidentifier tid
+  % ignoring tupleidentifier id
   insertExtend(feed(Rel),_,AttrsIn,AttrsOut), 
   dm(insertExtend,['insertExtend - avail attrs: gettuples = ',AttrsOut,'\n']),
   !.

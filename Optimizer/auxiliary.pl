@@ -286,7 +286,7 @@ If both, ~Granularity~ and ~BBoxType~ are ~none~, a standard index will be creat
 */
 
 getSmallIndexCreateQuery(Granularity, BBoxType, Type, Rel, Attr, IndexName, QueryAtom) :-
-  indexCreateQuery(Granularity, BBoxType, Type, Rel, Attr, IndexName, QueryList),
+  indexCreateQuery(Granularity, BBoxType, Type, Rel, Attr, IndexName, QueryList), !,
   concat_atom(QueryList, QueryAtom), !.
 
 % Rules to create index queries
@@ -294,30 +294,34 @@ getSmallIndexCreateQuery(Granularity, BBoxType, Type, Rel, Attr, IndexName, Quer
 % rules to build specialized R-tree indices:
 indexCreateQuery(object, time, _, Rel, Attr, IndexName, 
   ['let ', IndexName, '_small = ', Rel, 
-   '_small feed extend[ p: point2d( deftime( .', Attr,
+   '_small feed addid extend[ p: point2d( deftime( .', Attr,
    ' ) ) ] creatertree[ p ]']) :- !.
-indexCreateQuery(object, space, _, Rel, Attr, IndexName, 
+indexCreateQuery(object, space, _, Rel, Attr, IndexName,  % OK
   ['let ', IndexName, '_small = ', Rel, 
-   '_small feed extend[ t: trajectory( .', Attr,
+   '_small feed addid extend[ t: trajectory( .', Attr,
    ' ) ] creatertree[ t ]']) :- !.
 indexCreateQuery(object, d3, _, Rel, Attr, IndexName, 
   ['let ', IndexName, '_small = ', Rel, 
-   '_small feed extend[ b: box3d( bbox( trajectory( .', Attr,
-   ' ) ), deftime( .', Attr, ' ) ) ] creatertree[ b ]']) :- !.
+   '_small feed addid extend[ b: box3d( bbox( trajectory( .', Attr,
+   ' ) ), deftime( .', Attr, ' ) ) ]',
+   ' creatertree[ b ]']) :- !.
 
-indexCreateQuery(unit, time, _, Rel, Attr, IndexName, 
+indexCreateQuery(unit, time, _, Rel, Attr, IndexName,     % OK
   ['let ', IndexName, '_small = ', Rel, 
-   '_small feed extendstream[ Unit: units( .', Attr, 
-   ' ) ] extend[ p: point2d( deftime( .Unit ) ) ] creatertree[ p ]']) :- !.
-indexCreateQuery(unit, space, _, Rel, Attr, IndexName, 
+   '_small feed addid extendstream[ Unit: units( .', Attr, 
+   ' ) ] extend[ p: point2d( deftime( .Unit ) ) ]',
+   ' creatertree[ p ]']) :- !.
+indexCreateQuery(unit, space, _, Rel, Attr, IndexName,    % OK
   ['let ', IndexName, '_small = ', Rel, 
-   '_small feed extendstream[ Unit: units( .', Attr, 
-   ' ) ] extend[ t: trajectory( .', Attr, ' ) ] creatertree[ t ]']) :- !.
+   '_small feed addid extendstream[ Unit: units( .', Attr, 
+   ' ) ] extend[ t: trajectory( .', Attr, ' ) ]',
+   ' creatertree[ t ]']) :- !.
 indexCreateQuery(unit, d3, _, Rel, Attr, IndexName, 
   ['let ', IndexName, '_small = ', Rel, 
-   '_small feed extendstream[ Unit: units( .', Attr, 
-   ' ) ] cretertree[ Unit ]']) :- !.
+   '_small feed addid extendstream[ Unit: units( .', Attr, 
+   ' ) ] creatertree[ Unit ]']) :- !.
 
+% for later extensions:
 indexCreateQuery(group10, time,  _, _, _, _, _) :- fail, !.
 indexCreateQuery(group10, space, _, _, _, _, _) :- fail, !.
 indexCreateQuery(group10, d3,    _, _, _, _, _) :- fail, !.
@@ -357,9 +361,9 @@ createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr, Granularity, B
         LogicalIndexType = PhysicalIndexType
       )
     ; member([LogicalIndexType, PhysicalIndexType],
-             [[object_time,rtree],  [object_space,rtree3], [object_d3,rtree3],
-              [unit_time,rtee],     [unit_space,rtree3],   [unit_d3_rtree3],
-              [group10_time,rtree2],[group10_space,rtree3],[group10_d3,rtree3]
+             [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
+              [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3]
+%              [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3] % for later extensions
              ])
   ),
   ( not(member(['OBJECT', IndexSmallName, _ , [[PhysicalIndexType | _]]], ObjList))
@@ -486,9 +490,9 @@ checkForRemovedIndex(ObjList) :-
         LogicalIndexType = PhysicalIndexType
       )
     ; member([LogicalIndexType, PhysicalIndexType],
-             [[object_time,rtree],  [object_space,rtree3], [object_d3,rtree3],
-              [unit_time,rtee],     [unit_space,rtree3],   [unit_d3_rtree3],
-              [group10_time,rtree2],[group10_space,rtree3],[group10_d3,rtree3]
+             [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
+              [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3]
+%              [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3] % for later extensions
              ])
   ),
   not(member(['OBJECT', IndexName, _ , [[PhysicalIndexType | _]]], ObjList)),
