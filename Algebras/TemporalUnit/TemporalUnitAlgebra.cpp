@@ -11,7 +11,7 @@ February 2006  Thomas Fischer
 -----
                             Signatur
   ~Trajectory~           upoint -> line
-  ~Makemvalue~           ((stream (tuple ((x1 t1)...(xn tn))) xi(ua)))  ->  ma
+  ~Makemvalue~           (stream (tuple ([x1:t1,...,xn:tn])) x xi  ->  ma
   ~Size~                 periods  ->  real
   ~Deftime~              unit(a) -> periods
   ~Atinstant~            unit(a) x instant -> ix
@@ -26,6 +26,9 @@ February 2006  Thomas Fischer
                          upoint -> ureal
   ~passes~               upoint x point -> bool
   ~at~                   upoint x point -> upoint
+  ~circle~               point x real x int -> region
+  ~move~                 mpoint x region  -> mregion
+
 
 -----
 
@@ -54,6 +57,7 @@ file.
 #include "SpatialAlgebra.h"
 #include "RelationAlgebra.h"
 #include "TemporalAlgebra.h"
+#include "MovingRegionAlgebra.h"
 
 #include <limits>
 
@@ -617,7 +621,51 @@ UnitBaseTypeMapUnit( ListExpr args )
   }
   return nl->SymbolAtom( "typeerror" );
 }
+/*
+10.4 Type mapping function ~TypeMapCircle~
 
+It is for the operator ~circle~.
+
+*/
+ListExpr
+TypeMapCircle( ListExpr args )
+{
+  ListExpr arg1, arg2, arg3;
+  if( nl->ListLength( args ) == 3 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    arg3 = nl->Third( args );
+
+
+    if( nl->IsEqual( arg1, "point" ) && nl->IsEqual( arg2, "real" )
+       && nl->IsEqual( arg3, "int" ) )
+      return nl->SymbolAtom( "region" );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+10.5 Type mapping function ~TypeMapMove~
+
+It is for the operator ~move~.
+
+*/
+ListExpr
+TypeMapMove( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg1, "mpoint" )
+       && nl->IsEqual( arg2, "region" ) )
+      return nl->SymbolAtom( "movingregion" );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
 /*
 16 Selection function
 
@@ -1344,7 +1392,79 @@ int MappingUnitAt( Word* args, Word& result, int message,
 
   return 0;
 }
+/*
+16.2.15 Value mapping functions of operator ~circle~
 
+*/
+int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  Point* p = (Point*)args[0].addr;
+  CcReal* r = (CcReal*)args[1].addr;
+  CcInt* narg = (CcInt*)args[2].addr;
+
+  double x, y;
+  int n;
+  double radius;
+  double valueX, valueY;
+  double angle;
+
+  ListExpr errorInfo, instance, last;
+  bool correct;
+
+  x = p->GetX();
+  y = p->GetY();
+
+  n = narg->GetIntval();
+  radius = r->GetRealval();
+
+
+  if (( p->IsDefined())&&(n>3)&&(n<10000)&&(radius >=0.0))
+    {
+	for( int i = 0; i < n; i++ )
+	{
+	angle = i * 2 * PI/n;
+	valueX = x + radius*cos(angle);
+	valueY = y + radius*sin(angle);
+	Point corner(true,valueX ,valueY);
+
+	if (i==0)
+	 {
+	 instance = nl->OneElemList(OutPoint(nl->TheEmptyList(),
+	            SetWord(&corner)));
+	 last= instance;
+	 }
+	else
+	 {
+	last = nl->Append( last,
+			OutPoint(nl->TheEmptyList(), SetWord(&corner)));
+	 }
+        }
+    instance = nl->OneElemList(nl->OneElemList(instance));
+    CRegion* reg = (CRegion*)InRegion( nl->TheEmptyList(),
+                                 instance, 0, errorInfo, correct ).addr;
+  if ( correct ) ((CRegion*)result.addr)->CopyFrom(reg);
+  else ((CRegion*)result.addr)->SetDefined(false);
+
+    }
+  return 0;
+}
+/*
+16.2.16 Value mapping functions of operator ~move~
+
+*/
+int Move( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+   MPoint* mp = ((MPoint*)args[0].addr);
+   CRegion* r = ((CRegion*)args[1].addr);
+
+  
+
+  return 0;
+}
 /*
 17 Definition of operators
 
@@ -1596,6 +1716,33 @@ TemporalSpecAt =
 "<text>upoint1 at point1</text---> ) )";
 
 /*
+17.2.15 Specification string of operator ~circle~
+
+*/
+const string
+TemporalSpecCircle =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>point x real x int -> region</text--->"
+"<text> circle ( _ ) </text--->"
+"<text>defines a circle with a given radius"
+" and n calculated points.</text--->"
+"<text>circle (p,10.0,10)</text---> ) )";
+
+/*
+17.2.15 Specification string of operator ~move~
+
+*/
+const string
+TemporalSpecMove =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>mpoint x region -> movingregion</text--->"
+"<text> move ( _ ) </text--->"
+"<text>describes the movement of a mpoint with a"
+" moving region.</text--->"
+"<text>move (mp,movingregion)</text---> ) )";
+
+
+/*
 17.3 Operators
 
 */
@@ -1693,6 +1840,18 @@ Operator temporalunitat( "at",
                      temporalunitatmap,
                      UnitBaseSelect,
                      UnitBaseTypeMapUnit );
+
+Operator temporalcircle( "circle",
+                      TemporalSpecCircle,
+                      Circle,
+                      Operator::SimpleSelect,
+                      TypeMapCircle);
+
+Operator temporalmove( "move",
+                      TemporalSpecMove,
+                      Move,
+                      Operator::SimpleSelect,
+                      TypeMapMove);
 /*
 18 Creating the Algebra
 
@@ -1717,6 +1876,8 @@ class TemporalUnitAlgebra : public Algebra
    AddOperator( &temporalunitpresent );
    AddOperator( &temporalunitpasses );
    AddOperator( &temporalunitat );
+   AddOperator( &temporalcircle );
+  // AddOperator( &temporalmove );
 
   }
   ~TemporalUnitAlgebra() {};

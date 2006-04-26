@@ -25,8 +25,8 @@
 
 include ../../makefile.env
 
-MODNAME = TemporalAlgebra
-CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS) -I../Temporal -I../Spatial -I../Rectangle -I../Relation-C++
+MODNAME = TemporalUnitAlgebra
+CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS) -I../Temporal -I../MovingRegion -I../Spatial -I../Rectangle -I../Relation-C++
 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
