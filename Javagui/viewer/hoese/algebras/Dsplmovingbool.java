@@ -32,8 +32,11 @@ import tools.Reporter;
 /**
  * A displayclass for the movingbool-type (spatiotemp algebra), alphanumeric with TimePanel
  */
-public class Dsplmovingbool extends Dsplinstant
-  implements LabelAttribute, RenderAttribute {
+public class Dsplmovingbool extends DsplGeneric  
+  implements LabelAttribute, RenderAttribute,Timed {
+  Interval TimeBounds;
+  boolean err = true;
+  boolean defined;
   Vector Intervals = new Vector(10, 5);
   Vector Bools = new Vector(10, 5);
 
@@ -73,6 +76,11 @@ public class Dsplmovingbool extends Dsplinstant
     return  jp;
   }
 
+  public Interval getTimeBounds(){
+    return TimeBounds;
+  }
+
+
   /**
    * Scans the representation of a movingbool datatype 
    * @param v A list of time-intervals with a bool value
@@ -109,6 +117,7 @@ public class Dsplmovingbool extends Dsplinstant
       Bools.add(new Boolean(b));
       v = v.rest();
     }
+    defined = true;
     err = false;
   }
 
