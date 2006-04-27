@@ -865,13 +865,10 @@ DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
 void
 DisplayTTY::DisplayDescriptionLines( ListExpr value, int  maxNameLen)
 {
-   string s, blanks, printstr, line, restline, descrstr;
-   int position, lastblank;
-   ListExpr valueheader, valuedescr;
-   bool firstline, lastline;
+   string s="", blanks="", printstr="", line="", restline="", descrstr="";
 
-   valueheader = nl->Second(value);
-   valuedescr  = nl->Third(value);
+   ListExpr valueheader = nl->Second(value);
+   ListExpr valuedescr  = nl->Third(value);
 
    cout << endl;
 
