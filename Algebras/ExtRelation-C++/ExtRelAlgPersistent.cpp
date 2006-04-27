@@ -105,8 +105,9 @@ public:
     // It would be nice to have also an < operator in the class
     // Tuple. Moreover lexicographical comparison should be done by means of
     // TupleCompareBy and an appropriate sort order specification, 
-    static long& ctr = Counter::getRef("TupleAndRelPos::less");
-    ctr++;
+
+    //static long& ctr = Counter::getRef("TupleAndRelPos::less");
+    //ctr++;
 
     if (!this->tuple || !ref.tuple) {
       return true;
