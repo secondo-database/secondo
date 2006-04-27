@@ -1,8 +1,22 @@
 \documentclass[11pt]{article}
-\usepackage{epsfig, a4wide, xspace, times, color, alltt}
+\usepackage{epsfig, xspace, times, color, alltt}
 \parindent0em
 \parskip0.8ex plus0.4ex minus 0.4ex
 \setcounter{secnumdepth}{4}
 \setcounter{tocdepth}{3}
 \fussy
+\oddsidemargin0mm
+\evensidemargin0mm
+
+%% --- uncomment to set up the text body area for landscape mode --
+%%\usepackage{portland}
+%%\topmargin-2cm
+%%\textwidth26cm
+%%\textheight17cm
+
 \begin{document}
+%%\landscape
+%% --- It seems that the paper dimension is not kept in the dvi file.
+%% --- Hence other tools (dvi viewer, dvips, etc.) must be informed about
+%% --- the "unusal" paper dimensions otherwise they will use their default 
+%% --- one; e.g. use dvips -t landscape for setting up correct paper dimensions.
