@@ -31,7 +31,9 @@ December 1998 Friedhelm Becker
 2002-2003 U. Telle. Diploma thesis "reimplementation of SECONDO"
 
 Nov. 2004. M. Spiekermann. Modifications in CcInt. Using inline directives
-and avoiding to dereference pointers in the ~Compare~ method improves performance. 
+and avoiding to dereference pointers in the ~Compare~ method improves performance.
+
+April 2006. M. Spiekermann. A new struct StdTypes was added. It offers static methods for retrieving integer or string arguments from a given Word value. Moreover, counters for calls of ~Compare~ and ~HashValue~ are implemented. 
 
 1.1 Overview
 
@@ -46,6 +48,7 @@ are the data types which are provided by the Standardalgebra.
 #include <string>
 #include "StandardAttribute.h"
 #include "NestedList.h"
+#include "Counter.h"
 
 /*
 2.1 CcInt
@@ -109,6 +112,8 @@ class CcInt : public StandardAttribute
   
   inline size_t HashValue() const
   { 
+    static long& ctr = Counter::getRef("CcInt::HashValue");
+    ctr++;
     return (defined ? intval : 0); 
   }
   
@@ -121,6 +126,9 @@ class CcInt : public StandardAttribute
   
   inline int Compare(const Attribute *arg) const
   {
+
+    static long& ctr = Counter::getRef("CcInt::Compare");
+    ctr++;
     if(!defined) 
       return -1;
     const CcInt* p = (const CcInt*)arg;
@@ -478,6 +486,8 @@ class CcString : public StandardAttribute
 
   inline size_t HashValue() const
   {
+    static long& ctr = Counter::getRef("CcString::HashValue");
+    ctr++;
     if(!defined)
       return 0;
 
@@ -500,6 +510,8 @@ class CcString : public StandardAttribute
 
   inline int Compare( const Attribute* arg ) const
   {
+    static long& ctr = Counter::getRef("CcString::Compare");
+    ctr++;
     if(!defined)
       return -1;
     const CcString* p = (const CcString*)(arg);
@@ -518,7 +530,9 @@ class CcString : public StandardAttribute
 
   bool Adjacent( const Attribute* arg ) const;
 
-  inline ostream& Print( ostream &os ) const { return (os << "\"" << stringval << "\""); }
+  inline ostream& Print( ostream &os ) const { 
+    return (os << "\"" << stringval << "\""); 
+  }
 
   static long stringsCreated;
   static long stringsDeleted;
@@ -546,6 +560,22 @@ ListExpr OutCcReal( ListExpr typeinfo, Word value );
 Word InCcString( ListExpr typeInfo, ListExpr value,
                  int errorPos, ListExpr& errorInfo, bool& correct );
 ListExpr OutCcString( ListExpr typeinfo, Word value );
+
+/*
+Functions which convert a ~Word~ value (argument of an operator)
+into the corresponding C++ type
+   
+*/
+
+struct StdTypes
+{
+  static int GetInt(const Word& w); 
+  static string GetString(const Word& w); 
+  static string RequestString(const Word& w); 
+
+  private:
+  static string GetString(Word w, const bool doRequest); 
+};
 
 #endif
 

@@ -4229,3 +4229,29 @@ ShowStandardTypesStatistics( const bool reset )
   }
 }
 
+int 
+StdTypes::GetInt(const Word& w) 
+{
+  static Word wArgVal;
+  qp->Request(w.addr, wArgVal);
+  return static_cast<CcInt*>( wArgVal.addr )->GetIntval();
+} 
+
+string
+StdTypes::GetString(Word w, const bool doRequest) 
+{
+  if (doRequest)
+    qp->Request(w.addr, w);
+  CcString* cName = static_cast<CcString*>(w.addr);
+  return *cName->GetStringval();     
+} 
+
+string 
+StdTypes::RequestString(const Word& w) {
+   return GetString(w, true);
+}
+
+string 
+StdTypes::GetString(const Word& w) {
+   return GetString(w, false);
+} 
