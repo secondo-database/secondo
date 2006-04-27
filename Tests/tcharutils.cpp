@@ -96,5 +96,15 @@ main () {
      "erzwungener Umbruch!";
  y = wordWrap(70,z);
  printWrapped(70,y);
+
+ z = "Man kann dies auch mit einem \\n\n"
+     "hängenden Einzug kombinieren! "
+     "Dann wird ab der zweiten \\n\n"
+     "Spalte eingerückt.";
+
+ y = wordWrap("Hinweis: ",20,z);
+ printWrapped(20,y);
+            
+
  
 }

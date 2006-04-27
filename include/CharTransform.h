@@ -26,8 +26,8 @@ July 2005, M. Spiekermann, class ~tab~ added.
 
 August 2005, M. Spiekermann, new class ~color~ and new function ~isSpaceStr~ added. 
 
-Jan-April 2006, M. Spiekermann. New functions, especially ~wordWrap~ which allows a pretty
-folding of words with a specified text length.
+Jan-April 2006, M. Spiekermann. New functions, especially ~wordWrap~ which
+allows a pretty folding of words with a specified text length.
 
 */
 #ifndef CHAR_TRANSFORM_H
@@ -292,16 +292,21 @@ wordWrap( const int indent1, const int indent2,
     {
       // search a suitable wrap position
       bool found = false;
+      bool newLine = false;
       size_t p2 = 0;
       size_t endPos = p1+len;
       
       while ( !found && (endPos >= (p1+(2*len/3))) )
       { 
-        p2 = text.find_last_of(wrapChars, endPos);
-        
-        // found a predefined linebreak
-        if (text[p2] == '\n')
+        // check for a predefined linebreak
+        p2 = text.find_first_of('\n', p1);
+        if ( p2 <= endPos ) 
+        { 
+          newLine = true;
           break;
+        }  
+        
+        p2 = text.find_last_of(wrapChars, endPos);
         
         bool lastOk = (end-p2) >= len/3;
         // dont wrap if the next char is also a wrap char
@@ -320,7 +325,8 @@ wordWrap( const int indent1, const int indent2,
         cout << "p2: " << p2 << endl;
       }  
         
-      if ( (p2 == string::npos) || ((p2-p1+1) < 2*len/3) || (p2 <= p1) )      
+      if ( !newLine && 
+           ( (p2 == string::npos) || ((p2-p1+1) < 2*len/3) || (p2 <= p1) ))
       {
         if (trace) 
           cout << "force break" << endl;
@@ -352,8 +358,10 @@ wordWrap( const int indent1, const int indent2,
         substr = text.substr(p1,p2-p1);
         lastbreak = p2;
       }
-      if (trace)
-        cout << "text[" << lastbreak << "]='" << text[lastbreak] << "'" << endl;
+      if (trace) {
+        cout << "text[" << lastbreak << "]='" 
+             << text[lastbreak] << "'" << endl;
+      }  
       lines++;
 
       // 
