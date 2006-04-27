@@ -24,6 +24,8 @@ operator tuplesize alias TUPLESIZE pattern _ op
 operator rootattrsize alias ROOTATTRSIZE pattern _ op[ _ ]
 operator extattrsize alias EXTATTRSIZE pattern _ op[ _ ]
 operator attrsize alias ATTRSIZE pattern _ op[ _ ]
+operator sizecounters alias SIZECOUNTERS pattern _ op[ _ ]
+operator dumpstream alias DUMPSTREAM pattern _ op[ _ ]
 operator feed alias FEED pattern _ op
 operator consume alias CONSUME pattern _ op
 operator attr alias ATTR pattern op (_, _)

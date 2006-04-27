@@ -577,10 +577,11 @@ Increses the reference count of this tuple.
 */
     inline void DecReference()
     {
-      refs--;
+      if (refs > 0) 
+        refs--;
     }
 /*
-Increses the reference count of this tuple.
+Decreses the reference count of this tuple.
 
 */
     inline PrivateTuple *GetPrivateTuple()
@@ -593,6 +594,13 @@ class.
 
 */
 
+    int GetNumOfRefs() { return refs; }
+/*
+Returns the number of references
+
+*/
+    
+    
   private:
 
     static long& tuplesCreated;
@@ -700,7 +708,8 @@ The private implementation dependent attributes of the class
 */
 };
 
-ostream& operator <<( ostream& o, Tuple& t );
+ostream& operator<<(ostream &os, Attribute &attrib);
+ostream& operator<<( ostream& o, Tuple& t );
 /*
 The print function for tuples. Used for debugging purposes
 

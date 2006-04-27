@@ -49,6 +49,9 @@ reference counters. There are reference counters on tuples and also
 on attributes. Some assertions were removed, since the code is
 stable.
 
+April 2006, M. Spiekermann. New operators ~dumpstream~ and ~sizecounters~
+added.
+
 [TOC]
 
 1 Overview
@@ -70,6 +73,7 @@ RelationAlgebra.h header file.
 #include "StandardTypes.h"
 
 #include "LogMsg.h"
+#include "NList.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -1106,10 +1110,7 @@ This index is computed within the type mapping function. The
 request is given through the result expression of the type mapping 
 which has the form, for example,
 
-----
-
-    (APPEND (1) string)
-
+---- (APPEND (1) string)
 ----
 
 The keyword ~APPEND~ occuring as a first element of a returned type 
@@ -2751,6 +2752,322 @@ Operator relalgattrsize (
          AttrSizeTypeMap       // type mapping
 );
 
+
+/*
+5.12 Operator ~sizecounters~
+
+This operator maps
+
+----   (stream  (tuple X)) x string -> (stream (tuple X)) 
+----
+
+It sums up the sizes (Root, Extension, Flobs) of the tuples of a given input
+stream.  These values are stored as entries in the system table SEC\_COUNTERS
+which can be queried afterwards. 
+
+5.12.0 Specification 
+
+*/
+
+struct SizeCountersInfo : OperatorInfo {
+ 
+  SizeCountersInfo() : OperatorInfo()
+  { 
+    name =      "sizecounters";
+    signature = "stream(tuple(y) x string -> stream(tuple(y))";
+    syntax =    "_ sizecounters[ s ]";
+    meaning =   "Sums up the size for the tuples root size, the extension "
+                "size and the flob size. The results will be stored in "
+                "counters which are named \n\n"
+                "- RA:RootSize_s\n"
+                "- RA:ExtSize_s (Root + Extension)\n"
+                "- RA:Size_s\n  (Root + Extension + Flobs)\n"
+                "- RA:FlobSizeOnly_s\n"
+                "- RA:ExtSizeOnly_s\n";
+    example =   "plz feed sizecounters[\"plz\"] count";
+  }
+
+};
+
+
+
+/*
+5.12.1 Type mapping 
+
+The type mapping uses the wrapper class ~NList~ which hides calls
+to class NestedList. Moreover, there are some useful functions for
+handling streams of tuples.
+
+*/
+
+static ListExpr sizecounters_tm(ListExpr args)
+{
+  NList l(args);
+  
+  const string opName = "sizecounters";
+  string err1 = opName + "expects (stream(tuple(...)) string)!";
+  cout << opName << ": " << l << endl;
+  
+  if ( !l.checkLength(2, err1) )
+    return l.typeError( err1 );
+  
+  NList attrs;
+  if ( !l.first().checkStreamTuple( attrs ) )
+    return l.typeError(err1);
+  
+  if ( !l.second().isSymbol(Symbols::STRING()) ) 
+    return l.typeError(err1);
+
+  return l.first().listExpr();
+}
+
+/*
+
+5.12.1 Value mapping 
+
+*/
+
+static int sizecounters_vm( Word* args, Word& result, int message, 
+                    Word& local, Supplier s)
+{
+  // args[0]: stream(tuple(...)) 
+  // args[1]: string
+  
+  struct Info {
+
+    long& rootSize;
+    long& extSize;
+    long& size;
+    long& extSizeOnly;
+    long& flobSizeOnly;
+    long& tuples;
+
+    Info(const string& s) :
+     rootSize(Counter::getRef("RA::RootSize_" + s)),
+     extSize(Counter::getRef("RA::ExtSize_" + s)),
+     size(Counter::getRef("RA::Size_" + s)),
+     extSizeOnly(Counter::getRef("RA::ExtSizeOnly_" + s)),
+     flobSizeOnly(Counter::getRef("RA::FlobSizeOnly_" + s)),
+     tuples(Counter::getRef("RA::Tuples_" + s))
+    {}
+    ~Info()
+    {} 
+
+    void computeSizes()
+    {
+      extSizeOnly = size - rootSize;
+      flobSizeOnly = size - extSize;
+    } 
+
+    void addSizes(Tuple* t)
+    {
+      tuples++;
+      rootSize += t->GetRootSize(); 
+      extSize += t->GetExtSize(); 
+      size += t->GetSize();
+    }
+    
+  };
+
+  Info* pi = static_cast<Info*>( local.addr );
+  void* stream = args[0].addr;
+  
+  switch ( message )
+  {
+
+    case OPEN: {
+      
+      qp->Open(stream); 
+      local.addr = new Info( StdTypes::RequestString(args[1]) );
+      return 0;
+    }
+               
+    case REQUEST: {
+     
+      Word elem;
+      qp->Request(stream, elem);
+      if ( qp->Received(stream) ) 
+      {
+        Tuple* t = static_cast<Tuple*>(elem.addr);
+        pi->addSizes(t);
+        result = elem; 
+        return YIELD;
+      }
+      else
+      {  
+        return CANCEL;
+      }  
+    }
+                  
+    case CLOSE: {
+
+      pi->computeSizes();           
+      delete pi;
+      qp->Close(stream);      
+      return 0;           
+    }
+                
+    default: {
+       assert(false);
+    }       
+  }
+  return 0;
+}   
+
+/*
+5.13 Operator ~dumpstream~
+
+This operator maps
+
+----   (stream (tuple y)) x string -> (stream (tuple y))
+----
+
+It just passes the tuples streamupwards and dumps the tuple values into a file
+which is specified by the 2nd parameter.
+
+5.12.0 Specification 
+
+*/
+
+struct DumpStreamInfo : OperatorInfo {
+ 
+  DumpStreamInfo() : OperatorInfo()
+  { 
+    name =      "dumpstream";
+    signature = "stream(tuple(y) x string -> stream(tuple(y)";
+    syntax =    "_ dumpstream[ f, s ]";
+    meaning =   "Stores the tuples' values in a file specified by f. "
+                "The attribute values are separated by s.";
+    example =   "plz feed dumpstream[\"plz.txt\", \"|\"] count";
+  }
+
+};
+
+
+/*
+5.12.1 Type mapping 
+
+The type mapping uses the wrapper class ~NList~ which hides calls
+to class NestedList. Moreover, there are some useful functions for
+handling streams of tuples.
+
+*/
+
+static ListExpr dumpstream_tm(ListExpr args)
+{
+  NList l(args);
+  
+  const string opName = "dumpstream";
+  string err1 = opName + "expects (stream(tuple(...)) string string)!";
+  
+  if ( !l.checkLength(3, err1) )
+    return l.typeError( err1 );
+  
+  NList attrs;
+  if ( !l.first().checkStreamTuple( attrs ) )
+    return l.typeError(err1);
+  
+  if ( !l.second().isSymbol(Symbols::STRING()) ) 
+    return l.typeError(err1);
+
+  if ( !l.third().isSymbol(Symbols::STRING()) ) 
+    return l.typeError(err1);
+
+  return l.first().listExpr();
+}
+
+/*
+
+5.12.1 Value mapping 
+
+*/
+
+static int dumpstream_vm( Word* args, Word& result, int message, 
+                    Word& local, Supplier s)
+{
+  // args[0]: stream(tuple(...)) 
+  // args[1]: string -> file name
+  // args[2]: string -> separator
+  
+  struct Info {
+
+    ofstream os;
+    const string colsep;
+    int tuples;
+    
+    Info(const string& fileName, const string& sep) :
+      colsep(sep)
+    {
+      os.open(fileName.c_str());
+    }
+    ~Info()
+    {
+      os.close();
+    } 
+
+    void appendTuple(Tuple& t)
+    { 
+      for( int i = 0; i < t.GetNoAttributes(); i++)
+      {
+        os << *t.GetAttribute(i);
+        if (i < t.GetNoAttributes() - 1)
+          os << colsep;
+        else
+          os << endl;
+      }
+    }  
+    
+  };
+
+  Info* pi = static_cast<Info*>( local.addr );
+  void* stream = args[0].addr;
+  
+  switch ( message )
+  {
+
+    case OPEN: {
+      
+      qp->Open(stream); 
+                
+       string name = StdTypes::RequestString(args[1]);          
+       string colsep = StdTypes::RequestString(args[2]);
+      
+       local.addr = new Info(name, colsep);
+       return 0;
+     }
+                
+     case REQUEST: {
+      
+      Word elem;
+      qp->Request(stream, elem);
+      if ( qp->Received(stream) ) 
+      {
+        Tuple* t = static_cast<Tuple*>(elem.addr);
+        pi->appendTuple(*t);
+        result = elem; 
+        return YIELD;
+      }
+      else
+      {  
+        return CANCEL;
+      }  
+    }
+                  
+    case CLOSE: {
+
+      delete pi;
+      qp->Close(stream);
+      return 0;           
+    }
+                
+    default: {
+       assert(false);
+    }       
+  }
+  return 0;
+}   
+
+
 /*
 5.12 Operator ~rename~
 
@@ -3045,6 +3362,26 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgrename);
     AddOperator(&relalgmconsume);
 
+/*
+its important to declare the Operator variable below
+as static otherwise it is just a temporary variable and
+cannot be accessed by the algebra manager.
+
+*/
+    static SizeCountersInfo sizecounters_oi;
+    static Operator sizecounters_op( sizecounters_oi, 
+                                     sizecounters_vm, 
+                                     sizecounters_tm );
+    AddOperator(&sizecounters_op);
+
+
+    static DumpStreamInfo dumpstream_oi;
+    static Operator dumpstream_op( dumpstream_oi, 
+                                   dumpstream_vm, 
+                                   dumpstream_tm );
+    AddOperator(&dumpstream_op);
+
+    
     cpptuple.AssociateKind( "TUPLE" );
     cpprel.AssociateKind( "REL" );
 
