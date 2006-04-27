@@ -12,5 +12,13 @@ EXAMPLE:
 	ListToTable Staedte.list > Staedte.table (writes to file Staedte.table)
 	ListToTable help | h (displays help message)
 
+ENVIRONMENT VARIABLES:
+
+        CSV_SEP: one character. Defines a separator character, the default is a tabulator
+
+        FLOAT_SEP: two characters. Defines a translation rule for numbers. For example ".,"
+                   converts 1.2345 to 1,2345.          
+
+
 SEE ALSO:
 	TableToList

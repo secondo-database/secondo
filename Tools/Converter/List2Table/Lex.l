@@ -20,10 +20,16 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+April 2006, M. Spiekermann. Support for text atoms and variable separator
+added. 
+
 */
 
 %{
-   int i;
+   char separator;
+   char floatSep1;
+   char floatSep2;
+   bool convert;
 %}
 
 otherChar      [^\(\)\"A-Za-z0-9_ \t\n]
@@ -37,31 +43,76 @@ num2	       [-+]?{digit}*\.{digit}+([eE][-+]?{digit}+)?
 number	       {num1}|{num2}
 
 string         \"[^\"]*\"         
+text           "<text>".*"</text--->"
 
 %%
 
 [ \t\n(]+       ;
 
--?[0-9]+       {for (i=0; i<yyleng; i++) putchar(yytext[i]); putchar('\t');}
+-?[0-9]+       {for (int i=0; i<yyleng; i++) 
+                  putchar(yytext[i]); 
+                putchar(separator);
+               }
 
-"TRUE"         {for (i=0; i<yyleng; i++) putchar(yytext[i]); putchar('\t');}
+"TRUE"         {for (int i=0; i<yyleng; i++) 
+                  putchar(yytext[i]); 
+                putchar(separator);
+               }
 
-"FALSE"        {for (i=0; i<yyleng; i++) putchar(yytext[i]); putchar('\t');}
+"FALSE"        {for (int i=0; i<yyleng; i++) 
+                  putchar(yytext[i]); 
+                putchar(separator);
+               }
 
-{number}       {for (i=0; i<yyleng; i++) putchar(yytext[i]); putchar('\t');}
+{number}       {for (int i=0; i<yyleng; i++) { 
+                  char c = yytext[i];
+                  if (c == floatSep1 && convert) {
+                    c = floatSep2;
+                  }
+                  putchar(c);
+                }
+                putchar(separator);
+               }
 
-{symbol}       {for (i=0; i<yyleng; i++) putchar(yytext[i]); putchar('\t');}
+{symbol}       {for (int i=0; i<yyleng; i++) 
+                  putchar(yytext[i]); 
+                putchar(separator);}
 
-{string}       {for (i=1; i<(yyleng-1); i++) putchar(yytext[i]); putchar('\t');}
+{string}       {for (int i=1; i<(yyleng-1); i++) 
+                  putchar(yytext[i]); 
+                putchar(separator);
+               }
+
+{text}         {for (int i=6; i<(yyleng-10); i++) 
+                  putchar(yytext[i]); 
+                putchar(separator);
+               }
 
 ")"            {putchar('\n');}
 
 %%
 
-main (argc, argv)
-int argc;
-char** argv;
+main (int argc, char* argv[])
 {
+  // default csv separator is a tabulator
+  separator = '\t';
+
+  char* sep2 = getenv("CSV_SEP"); 
+  if (sep2 != 0) {
+    separator = sep2[0];
+  }
+
+  
+  floatSep1 = '.';
+  floatSep2 = ',';
+  convert = false;
+  char* fsep = getenv("FLOAT_SEP");
+  if (fsep != 0) {
+    convert = true;
+    floatSep1 = fsep[0];
+    floatSep2 = fsep[1];
+  }
+
   if (argc == 2)
   {
     FILE *ifile;
