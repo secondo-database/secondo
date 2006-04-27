@@ -321,7 +321,7 @@ rewriteQueryForNonempty(Query, RewrittenQuery) :-
   findCSEs(select(SelectClause),all,_),
   inferNonemptyPredicates(NonEmptyConditions),
   ( is_list(WhereClause) -> 
-      append_list(WhereClause, NonEmptyConditions, RewrittenWhereClause)
+      append(WhereClause, NonEmptyConditions, RewrittenWhereClause)
     ; RewrittenWhereClause = [WhereClause|NonEmptyConditions]
   ),
   sort(RewrittenWhereClause,RewrittenWhereClause1),
@@ -338,7 +338,7 @@ rewriteQueryForNonempty(Query, RewrittenQuery) :-
   findCSEs(select(SelectClause),all,_),
   inferNonemptyPredicates(NonEmptyConditions),
   ( is_list(WhereClause) -> 
-      append_list(WhereClause, NonEmptyConditions, RewrittenWhereClause)
+      append(WhereClause, NonEmptyConditions, RewrittenWhereClause)
     ; RewrittenWhereClause = [WhereClause|NonEmptyConditions]
   ),
   sort(RewrittenWhereClause,RewrittenWhereClause1),
@@ -1316,19 +1316,7 @@ insertExtend(incomplete_subplan, incomplete_subplan, AttrsIn, AttrsIn).
 % Case: feed(rel(Name,Alias,Case))
 insertExtend(feed(rel(Name,Alias,Case)), feed(rel(Name,Alias,Case)), 
              _, AttrsOut) :-
-  ( Alias = * 
-     -> findall(X, 
-                ( isAttribute(X1, Name), 
-                  downcase_atom(X1,X)
-                ),
-                AttrsOutL)
-      ; findall(X, 
-              ( variable(Alias,rel(Name,Alias,_)), 
-                isAttribute(X1, Name),
-                downcase_atom(X1,X)
-              ),
-              AttrsOutL)
-  ),
+  relation(Name,AttrsOutL),
   list_to_set(AttrsOutL,AttrsOut),
   dm(insertExtend,['insertExtend - avail attrs: feed(rel)) = ',AttrsOut,'\n']),
   !.
@@ -1381,32 +1369,41 @@ insertExtend(windowintersectsS(Index, X),
              windowintersectsS(Index, X),
              _,
              AttrsOut) :-
-  AttrsOut = [], % ignoring stream of tuple identifiers (attr name = 'id') produced
+  AttrsOut = [id], % produces a stream of tuple identifiers (attr name = 'id') 
   dm(insertExtend,['insertExtend - avail attrs: windowintersectsS = ',AttrsOut,'\n']),
   !.
 
 insertExtend(gettuples(X, Rel), 
-             gettuples(X, Rel),
+             gettuples(X2, Rel),
              AttrsIn,
              AttrsOut) :-
-  % ignoring tupleidentifier id
+  % expects a stream of tuple identifiers (attr name 'id')
+  % returns tuples from relation Rel with all of its base attrs
+  insertExtend(X, X2, AttrsIn, _), 
   insertExtend(feed(Rel),_,AttrsIn,AttrsOut), 
   dm(insertExtend,['insertExtend - avail attrs: gettuples = ',AttrsOut,'\n']),
   !.
-
 
 % Case: project (Recurse for argument and return set of projection attributes)
 insertExtend(project(Stream, AttrNames), 
              project(Stream2, AttrNames), 
              AttrsIn, 
              AttrsOut) :-
+  dm(rewrite,['--->',insertExtend(project(Stream, AttrNames)),'\n\t']),
   findall( FlatAttr,
-         ( member(X,AttrNames), 
-           X = attrname(attr(Attr,_,_)), 
-           downcase_atom(Attr,FlatAttr) 
-         ),
-         AttrsOutL
-       ), 
+           ( member(X,AttrNames), 
+             X = attrname(attr(Attr,_,_)), 
+             ( atomic(Attr) 
+               -> downcase_atom(Attr,FlatAttr) 
+               ;  ( Attr = Alias:Attr2,
+                    downcase_atom(Alias,AliasF),
+                    downcase_atom(Attr2,Attr2F),
+                    FlatAttr = AliasF:Attr2F
+                  )
+             )
+           ),
+           AttrsOutL
+         ), 
   list_to_set(AttrsOutL,AttrsOut),
   insertExtend(Stream,Stream2,AttrsIn,AttrsStream), 
   dm(insertExtend,['insertExtend - avail attrs: ',project(AttrsStream,AttrsOut),
@@ -1879,7 +1876,7 @@ This step is carried out in a top-down fashion with regard to the operator tree 
 the query plan. First, the set of attributes needed within the select-clause is needed, let us call
 it ~S~.
 
-While descending into the operator-tree, we maintain ~S~ an add every attribute encountered within
+While descending into the operator-tree, we maintain ~S~ and add every attribute encountered within
 a predicate or extend operator, parallely branching into all argument streams.
 
 If an attribute ~A~ is encountered for the first time, it is added to ~S~. Also, we wrap the actual
@@ -1914,6 +1911,10 @@ removeUnusedAttrs(remove(Arg,AttrList), remove(ArgE,AttrList), SeenAttrs) :-
 removeUnusedAttrs(project(Arg,AttrList),project(ArgE,AttrList),_) :-
   usedAttributes(project(Arg,AttrList),UsedAttrs),
   removeUnusedAttrs(Arg, ArgE, UsedAttrs), !.
+
+% Case: gettuples. Remove nothing, but replace SeenAttrs by id 
+removeUnusedAttrs(gettuples(Arg,Rel), gettuples(ArgE,Rel), _) :-
+  removeUnusedAttrs(Arg,ArgE,[id]).
 
 % Case: (generic linear operator). Add UsedAttrs to SeenAttrs, Remove New Attrs
 removeUnusedAttrs(PlanIn,PlanOut,SeenAttrs) :-
@@ -2045,12 +2046,14 @@ usedAttributes(exactmatch(_, _, Pred), Attrs) :-
   usedAttributes(Pred,Attrs), !.
 usedAttributes(windowintersects(_, _, Pred), Attrs) :-
   usedAttributes(Pred,Attrs), !.
-usedAttributes(windowintersectsS(_, _, Pred), Attrs) :-
+usedAttributes(windowintersectsS(_, Pred), Attrs) :-
   usedAttributes(Pred,Attrs), !.
 usedAttributes(filter(_,Pred),Attrs) :-
   usedAttributes(Pred,Attrs), !.
+usedAttributes(gettuples(_,_), [id]) :- !.
 
 usedAttributes(sort(_),[]) :- !. % XRIS: Perhaps, to be handeled separately?
+usedAttributes(rdup(_),[]) :- !.
 
 usedAttributes(Term,Attrs) :-
   compound(Term),
@@ -2064,6 +2067,7 @@ usedAttributes(Term,Attrs) :-
   not(is_list(Term)),
   Term =.. [_|Args],
   usedAttributes(Args,Attrs), !.
+
 /*
 15.3 Testing
 
