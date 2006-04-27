@@ -18,7 +18,7 @@ documentation. The following features are new:
 approximately either by a relative or by a fix tolerance parameter
 
 3) File names can be specified including environment variables of the shell, e.g.
-#yields $(HOME)/data/query1.result
+#yields @$(HOME)/data/query1.result
 
 Moreover, the notation $(VARIABLE) can be used for SECONDO's restore and save
 commands, but then the file name needs to be a text atom which can easily specified
