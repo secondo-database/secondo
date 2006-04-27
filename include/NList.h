@@ -24,6 +24,8 @@ August 2005, M. Spiekermann. Initial version.
 
 January - March 2006, M. Spiekermann. New constructors and functions added. Documentation revised.
 
+April 2006, M. Spiekermann. Helpful functions for type mappings added.
+
 */
 
 #ifndef SECONDO_NLIST_H
@@ -91,6 +93,7 @@ struct Symbols {
     const string stream;
     const string typeerror;
     const string integer;
+    const string _string;
    
     Symbols() :
       rel("rel"),
@@ -99,10 +102,18 @@ struct Symbols {
       ptuple("ptuple"),
       stream("stream"),
       typeerror("typeerror"),
-      integer("int")
-    {} 
+      integer("int"),
+      _string("string")
+    {}
+
+    static const string& STRING() { 
+       static string s("string"); return s; 
+    }  
 };  
 
+
+// defined in Secondointerface.cpp
+extern Symbols sym;
 
 /*
 3 Exception Class ~NListErr~ 
@@ -401,7 +412,32 @@ Construction of big lists
      e = nl->Append(e, tail.l);
      len++;
   }
-           
+
+/*
+3 Support for implementing type mappings
+
+The functions below may be useful for implementing type mapping
+functions.
+
+*/
+  inline bool checkStreamTuple(NList& attrs)
+  {
+    return checkDepth3(sym.stream, sym.tuple, attrs);
+  }
+
+  inline bool checkLength(const int len, string& err)
+  {
+    if ( !hasLength(len) )
+    {
+      stringstream s;
+      s << "List length unequal " << len <<  ", " << err;
+      err = s.str();
+      return false;
+    }
+    return true;
+  }
+
+  
  private:
   ListExpr l; 
   ListExpr e; // points to the last element of a list
@@ -415,6 +451,29 @@ Construction of big lists
     return ( /*nl->IsAtom(list) &&*/ (nl->AtomType(list) == t) ); 
   }
   
+  inline bool checkDepth3(const string& s1, const string& s2, NList& attrs)
+  {
+	
+  if ( !hasLength(2) )
+    return false;
+   
+  if ( !first().isSymbol(s1) )
+    return false;
+  
+  NList s = second();   
+  if ( !s.hasLength(2) )
+    return false;
+  
+  if ( !s.first().isSymbol(s2) )
+    return false;
+
+  if ( !s.second().isList() )  
+    return false; 
+
+  attrs = s.second();
+  return true;   
+  }
+
 }; 
 
 ostream& operator<<(ostream& os, const NList& n);
