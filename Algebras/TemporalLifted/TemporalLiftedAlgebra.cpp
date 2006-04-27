@@ -2255,7 +2255,11 @@ return thr fraction of iv when mpoints are crossing (0.0 .. 1.0).
       if ((starty1 <= starty2 && starty1 >= endy2) 
        || (starty1 <= endy2 && starty1 >= starty2)
        || (endy1 <= starty2 && endy1 >= endy2)
-       || (endy1 <= endy2 && endy1 >= starty2))
+       || (endy1 <= endy2 && endy1 >= starty2)
+       || (starty2 <= starty1 && starty2 >= endy1) 
+       || (starty2 <= endy1 && starty2 >= starty1)
+       || (endy2 <= starty1 && endy2 >= endy1)
+       || (endy2 <= endy1 && endy2 >= starty1))
           ty = tx;
       else
         ty = -1.0;
@@ -2264,7 +2268,11 @@ return thr fraction of iv when mpoints are crossing (0.0 .. 1.0).
       if ((startx1 <= startx2 && startx1 >= endx2) 
         || (startx1 <= endx2 && startx1 >= startx2)
         || (endx1 <= startx2 && endx1 >= endx2) 
-        || (endx1 <= endx2 && endx1 >= startx2))
+        || (endx1 <= endx2 && endx1 >= startx2)
+        || (startx2 <= startx1 && startx2 >= endx1) 
+        || (startx2 <= endx1 && startx2 >= startx1)
+        || (endx2 <= startx1 && endx2 >= endx1) 
+        || (endx2 <= endx1 && endx2 >= startx1))
         tx = ty;
       else
         tx = -1.0;
@@ -2672,7 +2680,9 @@ void MovingRegionCompareMS( MRegion *mr, CRegion *r, MBool *result,
           if(AlmostEqual(ted, 2.0))
             tpoint = tss;
         }
-        if(tpoint >= 0.0){
+        if((tpoint > 0.0 && tpoint < 1.0)
+          || (tpoint == 0.0 && ur->timeInterval.lc)
+          || (tpoint == 1.0 && ur->timeInterval.rc)){
           Instant t;
           t.ReadFrom((ur->timeInterval.end.ToDouble() 
           - ur->timeInterval.start.ToDouble()) * tpoint 
@@ -2860,6 +2870,10 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
         || (te == 2.0 && (ts >=0.0) && (ts <= 1.0))){
         if(TLA_DEBUG)
           cout<<"equality found at t "<<ts<<" for dms "<<n<<endl;
+        if(ts == 2.0 && (te >=0.0) && (te <= 1.0))
+          ts = te;
+        if((ts == 0.0 && !iv->lc) || (ts == 1.0 && !iv->rc))
+          continue;
         Instant t;
         t.ReadFrom((iv->end.ToDouble() 
           - iv->start.ToDouble()) * ts 
@@ -5611,8 +5625,8 @@ static void MPointInsidePoints(MPoint& mp, Points& ps, Periods& pResult)
   Periods* between = new Periods(0);
   Periods* period = new Periods(0);
   Interval<Instant> newper; //part of the result
+  bool newtime;
   
-  pResult.Clear();
   for( int i = 0; i < mp.GetNoComponents(); i++)
   {
     if(TLA_DEBUG)
@@ -5627,70 +5641,36 @@ static void MPointInsidePoints(MPoint& mp, Points& ps, Periods& pResult)
       <<up->p1.GetY()<<")"<<endl;}
     for( int n = 0; n < ps.Size(); n++)
     {
+      newtime = false;
       ps.Get(n, p);
+      double time = MPointInMPoint(up->p0.GetX(), up->p0.GetY(),
+                    up->p1.GetX(), up->p1.GetY(),
+                    p->GetX(), p->GetY(),
+                    p->GetX(), p->GetY());
       if(TLA_DEBUG)
-        cout<<"point # "<<n<<" ("<<p->GetX()<<" "<<p->GetY()<<") "<<endl;
-      double dx, dy;
-      bool vert = false;
-      bool hor = false;
-      if((up->p1.GetX() - up->p0.GetX()) != 0.0){
-         dx = (p->GetX() - up->p0.GetX()) / (up->p1.GetX() 
-         - up->p0.GetX());
-         if(dx < 0.0 || dx > 1.0)
-            continue;
+        cout<<"point # "<<n<<" ("<<p->GetX()<<" "<<p->GetY()<<") "<<time<<endl;
+      
+      if(time == 2.0){
+         newper = up->timeInterval;
+         if(TLA_DEBUG)
+           cout<<"hole interval inside"<<endl;
+         newtime = true;
       }
-      else
-         vert = true;
-      if((up->p1.GetY() - up->p0.GetY()) != 0.0){
-         dy = (p->GetY() - up->p0.GetY()) / (up->p1.GetY() 
-         - up->p0.GetY());
-         if(dy < 0.0 || dy > 1.0)
-            continue;
-      }
-      else
-         hor = true;
-      if(TLA_DEBUG){
-        cout<<"dx "<<vert<<" "<<(vert ? 0.0 : dx)<<", dy "<<hor
-        <<" "<<(hor ? 0.0 : dy)<<endl;}
-      if(hor && vert){
+      else if((time  > 0.0 && time < 1.0)
+              || (time == 0.0 && up->timeInterval.lc)
+              || (time == 1.0 && up->timeInterval.rc)){
         if(TLA_DEBUG)
-          cout<<"hor and vert"<<endl;
-        if(AlmostEqual(p->GetY(), up->p0.GetY())
-        && AlmostEqual(p->GetX(), up->p0.GetX())){
-          newper = up->timeInterval;
-        }
-      }
-      else if(hor || AlmostEqual(dx, dy)){
-        if(TLA_DEBUG)
-          cout<<"horizontal line or same time "<<hor<<endl;
-        if((dx > 0.0 || up->timeInterval.lc) 
-        && (dx < 1.0 || up->timeInterval.rc)){
-          Instant t;
-          t.ReadFrom((up->timeInterval.end.ToDouble() 
-          - up->timeInterval.start.ToDouble()) * dx 
+          cout<<"new time "<<time<<endl;
+        Instant t;
+        t.ReadFrom((up->timeInterval.end.ToDouble() 
+          - up->timeInterval.start.ToDouble()) * time 
           + up->timeInterval.start.ToDouble());
-          t.SetType(instanttype);
-          newper.start = t;
-          newper.end = t;
-          newper.lc = true;
-          newper.rc = true;
-        }
-      }
-      else if(vert){
-        if(TLA_DEBUG)
-          cout<<"vertical line"<<endl;
-        if((dy > 0.0 || up->timeInterval.lc) 
-        && (dy < 1.0 || up->timeInterval.rc)){
-          Instant t;
-          t.ReadFrom((up->timeInterval.end.ToDouble() 
-          - up->timeInterval.start.ToDouble()) * dy 
-          + up->timeInterval.start.ToDouble());
-          t.SetType(instanttype);
-          newper.start = t;
-          newper.end = t;
-          newper.lc = true;
-          newper.rc = true;
-        }
+        t.SetType(instanttype);
+        newper.start = t;
+        newper.end = t;
+        newper.lc = true;
+        newper.rc = true;   
+        newtime = true;  
       }
       if(TLA_DEBUG){
         cout<<"newper ["<< newper.start.ToDouble()
