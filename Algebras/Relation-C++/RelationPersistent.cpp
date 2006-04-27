@@ -61,6 +61,11 @@ reference counters. There are reference counters on tuples and also
 on attributes. Some assertions were removed, since the code is
 stable.
 
+April 2006, M. Spiekermann. Intorduced a bew function ~clearAll~ 
+in ~PrivateTupleBuffer~. This function will now call the tuples' 
+member functions ~DecReference~ and ~DeleteIfAllowed~ instead of 
+deleting the tuple pointer directly. 
+
 [TOC]
 
 1 Overview
@@ -578,6 +583,8 @@ stored into a disk file.
 */
 struct PrivateTupleBuffer
 {
+  typedef vector<Tuple*> TupleVec;
+ 
   PrivateTupleBuffer( const size_t maxMemorySize ):
     MAX_MEMORY_SIZE( maxMemorySize ),
     diskBuffer( 0 ),
@@ -594,11 +601,22 @@ The constructor.
     if( !inMemory )
       diskBuffer->Delete();
     else
-    {
-      for( size_t i = 0; i < memoryBuffer.size(); i++ )
-        delete memoryBuffer[i];
-    }
+      clearAll();
   }
+
+  void clearAll()
+  {
+     for( TupleVec::iterator it = memoryBuffer.begin(); 
+          it != memoryBuffer.end(); it++ )
+     {
+       //cout << (void*) *it << " - " << (*it)->GetNumOfRefs() << endl; 
+       (*it)->DecReference();
+       (*it)->DeleteIfAllowed();
+     }  
+     memoryBuffer.clear();
+     totalSize=0;
+  }
+  
 /*
 The destructor.
 
@@ -705,13 +723,7 @@ void TupleBuffer::Clear()
 {
   if( privateTupleBuffer->inMemory )
   {
-    for( size_t i = 0; 
-         i < privateTupleBuffer->memoryBuffer.size(); 
-         i++ )
-      delete privateTupleBuffer->memoryBuffer[i];
-    privateTupleBuffer->memoryBuffer.clear();
-    privateTupleBuffer->totalExtSize = 0;
-    privateTupleBuffer->totalSize = 0;
+    privateTupleBuffer->clearAll();
   }
   else
   {
