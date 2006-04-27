@@ -233,7 +233,7 @@ class CmdCtrRel : public SystemInfoRel
    RelSchema* initSchema()
    { 
      RelSchema* attrList = new RelSchema();
-     attrList->push_back( make_pair("CmdNr", "int") );
+     attrList->push_back( make_pair("CtrNr", "int") );
      attrList->push_back( make_pair("CtrStr", "string") );
      attrList->push_back( make_pair("Value", "int") );
      return attrList;
@@ -314,6 +314,8 @@ DerivedObjRel devObjRel("SEC_DERIVED_OBJ");
 extern AlgebraListEntry& GetAlgebraEntry( const int j );
 
 static SecondoSystem* ss = 0;
+
+Symbols sym;
 
 /**************************************************************************
 
