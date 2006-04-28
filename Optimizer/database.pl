@@ -834,7 +834,7 @@ index available for relation ~Rel~ and attribute ~Attr~.
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :-
   not(Attr = _:_), 
   spelled(Rel:Attr, attr(Attr2, 0, l)),              
-  ( spelled(Rel, _, l, URel = Rel ) % Rel in lc
+  ( ( spelled(Rel, _, l), URel = Rel ) % Rel in lc
     *-> true
     ; ( % Rel in uc
         spelling(Rel, Spelled),
