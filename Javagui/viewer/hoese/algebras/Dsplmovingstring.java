@@ -92,7 +92,7 @@ public class Dsplmovingstring extends DsplGeneric implements Timed,LabelAttribut
  }
 
   /** returns the bounds of the interval **/
-  public Interval getTimeBounds(){
+  public Interval getBoundingInterval(){
      return TimeBounds;
   }
 
@@ -169,6 +169,19 @@ public class Dsplmovingstring extends DsplGeneric implements Timed,LabelAttribut
         qr.addEntry(entry);
      }else{
         qr.addEntry(this);
+     } 
+     // compute the bounding interval
+     TimeBounds = null;
+     for(int i=0;i<Intervals.size();i++){
+       Interval in = (Interval) Intervals.get(i);
+       if(!in.isInfinite()){
+         if(TimeBounds==null){
+            TimeBounds = in.copy();
+         }else{
+            TimeBounds.unionInternal(in);
+         }
+       }
+
      }
   }
 

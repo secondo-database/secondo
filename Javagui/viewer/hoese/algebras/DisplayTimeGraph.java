@@ -92,9 +92,10 @@ public class DisplayTimeGraph extends DisplayGraph
    * @return the global time boundaries [min..max] this instance is defined at
    * @see <a href="DisplayTimeGraphsrc.html#getTimebounds">Source</a>
    */
-  public Interval getTimeBounds () {
+  public Interval getBoundingInterval () {
     return  TimeBounds;
   }
+
 
   /**
    * Moving objects have 0..n Intervals and calculation unit

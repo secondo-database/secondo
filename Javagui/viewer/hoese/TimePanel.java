@@ -156,7 +156,7 @@ public class TimePanel extends javax.swing.JPanel               // implements Va
    * @see <a href="TimePanelsrc.html#setTimeObject">Source</a>
    */
   public void setTimeObject (Timed ti) {
-    TimeBounds = ti.getTimeBounds();
+    TimeBounds = ti.getBoundingInterval();
     TimeObject = ti;
     calculateParameter();
     LabelsPanel.removeAll();

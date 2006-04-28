@@ -64,13 +64,8 @@ public void init(ListExpr type,int typewidth,ListExpr value,int valuewidth,Query
   qr.addEntry(this);
   double StartTime = Move.getStartTime().getDouble();
   RelInterval D = Move.getInterval();
-  if(D.isLeftInfinite())
-     StartTime -= MaxToLeft;
   double EndTime = StartTime;
-  if(D.isRightInfinite())
-    EndTime += MaxToRight;
-  else
-    EndTime += D.getLength().getDouble();
+  EndTime += D.getLength().getDouble();
   TimeBounds = new Interval(StartTime,EndTime,D.isLeftClosed(),D.isRightClosed());
 }
 
@@ -106,9 +101,6 @@ public Double getValueAt(double x){
 }
 
 
-// we need this beacuse the Hoese viewer can't handle infinite time intervals
-private static final double MaxToLeft = 3000;
-private static final double MaxToRight = 3000;
 private static Time anInstant = new Time();
 
 private Interval TimeBounds;

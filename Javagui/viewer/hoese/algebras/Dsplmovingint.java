@@ -35,7 +35,9 @@ import tools.Reporter;
  */
 public class Dsplmovingint extends DsplGeneric implements LabelAttribute, Timed, RenderAttribute{
 
-  protected Interval TimeBounds;
+  /** the interval covering only the bounded intervals of this moving int **/
+  protected Interval TimeBounds; 
+
   protected boolean err = true;
   protected boolean defined;
   protected String entry;
@@ -105,8 +107,8 @@ public String getLabel(double time){
    * 
    * @return the global time boundaries [min..max] this instance is defined at
    */
-  public Interval getTimeBounds () {
-    return  TimeBounds;
+  public Interval getBoundingInterval () {
+    return TimeBounds;
   }
 
   /**
@@ -192,16 +194,8 @@ public String getLabel(double time){
 				min = i<min?i:min;
 				max = i>max?i:max;  
 			}
-      if(!in.isInfinite() || (infiniteIntervalMode==LEFT_INFINITE_INTERVALS)){ // handle normal intervals 
-					Intervals.add(in);
-					Ints.add(new Integer(i));
-      }else if(infiniteIntervalMode==RESTRICT_INFINITE_INTERVALS){
-          in.restrict(infiniteIntervalLength);
-          if(!in.isInfinite()){
-             Intervals.add(in);
-             Ints.add(new Integer(i));
-          }
-      }
+      Intervals.add(in);
+	  	Ints.add(new Integer(i));
       v = v.rest();
     }
     defined = true;
@@ -239,11 +233,12 @@ public String getLabel(double time){
     TimeBounds = null;
     for (int i = 0; i < Intervals.size(); i++) {
       Interval in = (Interval)Intervals.elementAt(i);
-      if (TimeBounds == null) {
-        TimeBounds = in;
-      } 
-      else {
-        TimeBounds = TimeBounds.union(in);
+      if(!in.isInfinite()){
+         if (TimeBounds == null) {
+             TimeBounds = in;
+         } else {
+             TimeBounds = TimeBounds.union(in);
+         }
       }
     }
   }

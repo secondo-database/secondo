@@ -64,13 +64,8 @@ public void init(ListExpr type,ListExpr value,QueryResult qr){
   bounds = Move.getBoundingBox().toRectangle2D();
   double StartTime = Move.getStartTime().getDouble();
   RelInterval D = Move.getInterval();
-  if(D.isLeftInfinite())
-     StartTime -= MaxToLeft;
   double EndTime = StartTime;
-  if(D.isRightInfinite())
-    EndTime += MaxToRight;
-  else
-    EndTime += D.getLength().getDouble();
+  EndTime += D.getLength().getDouble();
   TimeBounds = new Interval(StartTime,EndTime,D.isLeftClosed(),D.isRightClosed());
 }
 
@@ -83,8 +78,5 @@ public Rectangle2D.Double getBounds(){
    return bounds;
 }
 
-// we need this beacuse the Hoese viewer can't handle infinite time intervals
-private static final double MaxToLeft = 3000;
-private static final double MaxToRight = 3000;
 
 }

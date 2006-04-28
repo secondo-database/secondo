@@ -76,7 +76,7 @@ public class Dsplperiods extends DsplGeneric implements Timed {
   }
 
   /** returns the Timebounds of this object **/
-  public Interval getTimeBounds(){
+  public Interval getBoundingInterval(){
     return TimeBounds;
   }
 
@@ -155,11 +155,13 @@ public void init (ListExpr type, int typewidth, ListExpr value,
     TimeBounds = null;
     for (int i = 0; i < Intervals.size(); i++) {
       Interval in = (Interval)Intervals.elementAt(i);
-      if (TimeBounds == null) {
-        TimeBounds = in;
-      } 
-      else {
-        TimeBounds = TimeBounds.union(in);
+      if(!in.isInfinite()){
+					if (TimeBounds == null) {
+						TimeBounds = in;
+					} 
+					else {
+						TimeBounds = TimeBounds.union(in);
+					}
       }
     }
   }

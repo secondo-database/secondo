@@ -67,7 +67,7 @@ public Object getObjectAt(Time T){
    if(Time.ZeroTime.compareTo(T)>0){
       return ((Move) subMoves.get(0)).getObjectAt(T);
    }
-   int minIndex = ((Move) subMoves.get(0)).getInterval().isLeftInfinite()?1:0;
+   int minIndex = 0;
    Move M = (Move) subMoves.get(minIndex);
    if(M.getInterval().contains(T))
       return M.getObjectAt(T);

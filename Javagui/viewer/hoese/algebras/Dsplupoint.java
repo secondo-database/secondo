@@ -100,9 +100,14 @@ public class Dsplupoint extends DisplayTimeGraph {
     err = false;
     if(bounds==null)
       bounds = new Rectangle2D.Double(0,0,0,0);
-    bounds.setRect(Math.min(x1,x2),Math.min(y1,y2),Math.abs(x1-x2),Math.abs(y1-y2)); 
-    TimeBounds = theInterval;
+    bounds.setRect(Math.min(x1,x2),Math.min(y1,y2),Math.abs(x1-x2),Math.abs(y1-y2));
+    if(!theInterval.isInfinite()){ 
+        TimeBounds = theInterval;
+    } else{
+        TimeBounds = null;
+    }
   }
+
 
   /**
    * Init. the Dsplupoint 

@@ -250,7 +250,7 @@ public class QueryResult extends JList {
      for(int i=0;i<size;i++){
         Object o = listModel.getElementAt(i);
         if(o instanceof Timed){
-           Interval oInterval = ((Timed)o).getTimeBounds();
+           Interval oInterval = ((Timed)o).getBoundingInterval();
            if(oInterval!=null){
               if(this.interval==null){
                  this.interval = oInterval.copy();
@@ -268,7 +268,7 @@ public class QueryResult extends JList {
     * object instances of Timed. If no such time exist, the result
     * is null.
     **/
-  public Interval getTimeBounds(){
+  public Interval getBoundingInterval(){
     return interval;
   }
    

@@ -1986,7 +1986,7 @@ public boolean canDisplay(SecondoObject o){
     Interval interval=null;
     for(int i=0;i<size;i++){
       QueryResult qr = (QueryResult) listModel.getElementAt(i);
-      Interval qrInterval = qr.getTimeBounds();
+      Interval qrInterval = qr.getBoundingInterval();
       if(qrInterval!=null){
          if(interval==null){
           interval = qrInterval.copy();
@@ -2100,7 +2100,7 @@ public boolean canDisplay(SecondoObject o){
         dgorig.getLayer().setSelectedButton(true);
         selGraphObj = dgorig;
         if (!isMouseSelected && (selGraphObj instanceof Timed)){
-          Interval tb = ((Timed)selGraphObj).getTimeBounds();
+          Interval tb = ((Timed)selGraphObj).getBoundingInterval();
           if(tb!=null) 
              TimeSlider.setValue((long)Math.round(tb.getStart()*86400000));
         }

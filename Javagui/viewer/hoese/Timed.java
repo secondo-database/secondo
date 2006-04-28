@@ -29,35 +29,15 @@ import viewer.HoeseViewer;
 
 public interface Timed {
 
-   /** infinite intervals should be completely removed **/
-   public static final int REMOVE_INFINITE_INTERVALS = 0;
-   /** process infinite intervals as normal intervals **/
-   public static final int LEFT_INFINITE_INTERVALS = 1;
-   /** restrict a infinite interval to the length given in 
-     * INFINITE_INTERVAL_LENGTH. If an interval is unbounded in
-     * both directions, the interval should be removed 
-     **/
-   public static final int RESTRICT_INFINITE_INTERVALS = 2; 
-   
-   /** Variable idicating that infinite intervals should be
-    * restricted.
-    **/
-   public static int infiniteIntervalMode = RESTRICT_INFINITE_INTERVALS;
-  
-   /** variable denoting the restricting length for infinite intervals */
-   public static double infiniteIntervalLength = 1.0; //one day
- 
-
-
   /**
    * Gets the over all time boundarys
    * @return Interval
    * @see generic.Interval
    */
-  public Interval getTimeBounds ();
+  public Interval getBoundingInterval();
 
-
-  /**
+  
+ /**
    * Gets the list of intervals this object is defined at
    * @return Vector of intervals
    * @see generic.Interval

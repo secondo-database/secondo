@@ -45,25 +45,6 @@ private void setUndefined(){
   */
 public boolean set(int repeatations, Move subMove){
    RelInterval smInterval = subMove.getInterval();
-   if(smInterval.isLeftInfinite() || smInterval.isRightInfinite()){
-      Reporter.debug("PeriodMove.set: try to repeat a infinite move ");
-      setUndefined();
-      return false;
-   }
-   if(repeatations==LEFTINFINITE){
-      (interval = new RelInterval()).setLeftInfinite(smInterval.isRightClosed());
-      this.repeatations = repeatations;
-      this.subMove = subMove;
-      defined = true;
-      return true;
-   }
-   if(repeatations==RIGHTINFINITE){
-      (interval =  new RelInterval()).setRightInfinite(smInterval.isLeftClosed());
-      this.repeatations = repeatations;
-      this.subMove = subMove;
-      defined = true;
-      return true;
-   }
    if(repeatations<=0){
       Reporter.debug("PeriodMove.set: invlaid number of repeatation :"+repeatations);
       setUndefined();
@@ -99,11 +80,8 @@ public Object getObjectAt(Time T){
    }
    RelInterval SMInterval = subMove.getInterval();
    Time SMLength = SMInterval.getLength().copy();
-   if(T.compareTo(Time.ZeroTime)<0){ // must be left-infinite
-      while(!SMInterval.contains(T)){ // has to be improve by direct computation
-          T = T.add(SMLength);
-      }
-      return subMove.getObjectAt(T);
+   if(T.compareTo(Time.ZeroTime)<0){ // not allowed
+      return null; 
    }
 
    long Fact = SMInterval.getExtensionFactor(T);
@@ -154,7 +132,7 @@ public boolean readFrom(ListExpr LE,Class linearClass){
       return false;
    }
    int rep = Value.first().intValue();
-   if(rep<=1 && rep!=LEFTINFINITE && rep!=RIGHTINFINITE){
+   if(rep<=1 ){
       Reporter.debug("PeriodMove.readFrom :: not a valid number of repeatations");
       setUndefined();
       return false;
@@ -218,8 +196,6 @@ private int repeatations;
 private RelInterval interval;
 private Move subMove;
 private Class linearClass;
-public static final int LEFTINFINITE=-1;
-public static final int RIGHTINFINITE=-2;
 
 
 }

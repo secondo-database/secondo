@@ -43,7 +43,7 @@ public class Dsplintimeline extends Dsplline
    * @return the global time boundaries [min..max] this instance is defined at
    * @see <a href="Dsplintimelinesrc.html#getTimebounds">Source</a>
    */
-  public Interval getTimeBounds () {
+  public Interval getBoundingInterval () {
     return  TimeBounds;
   }
 

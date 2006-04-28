@@ -45,17 +45,12 @@ public boolean set(Time length, boolean leftClosed, boolean rightClosed){
    this.length = length;
    this.leftClosed = leftClosed;
    this.rightClosed = rightClosed;
-   leftInfinite = false;
-   rightInfinite = false;
    return true;
 }
 
 /** returns the length of this interval,
-  * if this Duration is infinite, null is returned
   */
 public Time getLength(){
-   if(leftInfinite || rightInfinite)
-      return null;
    return length;
 }
 
@@ -70,8 +65,6 @@ public boolean setLength(Time T){
    }
    if(T.compareTo(Time.ZeroTime)==0 && ! (leftClosed && rightClosed))
       return false;
-   rightInfinite=false;
-   leftInfinite=false;
    length = T;
    return true;
 }
@@ -84,47 +77,6 @@ public boolean isLeftClosed(){
 /** returns the if this interval is right closed */
 public boolean isRightClosed(){
    return rightClosed;
-}
-
-/** returns the if this interval is left infinite */
-public boolean isLeftInfinite(){
-   return leftInfinite;
-}
-
-/** returns the if this interval is right infinite */
-public boolean isRightInfinite(){
-   return rightInfinite;
-}
-
-/** sets this interval to be left infinite with the given value
-  * for the right closure
-  */
-public boolean setLeftInfinite(boolean rightClosed){
-    leftInfinite=true;
-    this.rightClosed=rightClosed;
-    return true;
-}
-
-/** sets this interval to be right infinite with the given value
-  * for the left closure
-  */
-public boolean setRightInfinite(boolean leftClosed){
-    length=null;
-    rightInfinite=true;
-    this.leftClosed=leftClosed;
-    return true;
-}
-
-/** creates a interval which is infinite in any direction
-  * @return allways true
-  */
-public boolean setLeftRightInfinite(){
-   length = null;
-   leftClosed = false;
-   rightClosed = false;
-   leftInfinite = true;
-   rightInfinite = true;
-   return true;
 }
 
 
@@ -140,27 +92,22 @@ public boolean append(RelInterval interval){
     this.length = this.length.add(interval.length);
   }
   rightClosed = interval.rightClosed;
-  rightInfinite = interval.rightInfinite;
   return true;
 }
 
 /** returns true if interval can appended to this */
 public boolean canAppended(RelInterval interval){
-   return rightClosed^interval.leftClosed &&
-          !rightInfinite & !interval.leftInfinite;
+   return rightClosed^interval.leftClosed;
 }
 
 /** returns true if T is contained in this interval */
 public boolean contains(Time T){
    int comp = T.compareTo(Time.ZeroTime);
    if(comp < 0){
-     return leftInfinite;
+     return false;
    }
    if(comp == 0){
      return leftClosed;
-   }
-   if(rightInfinite){
-      return true;
    }
    if(length.compareTo(T) > 0){
      return true;
@@ -176,8 +123,6 @@ public boolean contains(Time T){
 public double where(Time T){
    if(!contains(T))
       return -1.0;
-   if(leftInfinite | rightInfinite)
-      return 0.0;
    return T.getDouble() / length.getDouble();
 }
 
@@ -187,8 +132,6 @@ public RelInterval copy(){
    res.length = length;
    res.leftClosed = leftClosed;
    res.rightClosed = rightClosed;
-   res.leftInfinite = leftInfinite;
-   res.rightInfinite = rightInfinite;
    return res;
 }
 
@@ -207,51 +150,38 @@ public boolean readFrom(ListExpr LE){
      return false;
   }
   ListExpr Value = LE.second();
-  if(Value.listLength()!=5){
+  if(Value.listLength()!=3){
      Reporter.debug("RelInterval.readFrom :: wrong list length of the value ");
      return false;
   }
   // check the List
   if(Value.first().atomType()!=ListExpr.BOOL_ATOM ||
      Value.second().atomType()!=ListExpr.BOOL_ATOM ||
-     Value.third().atomType()!=ListExpr.BOOL_ATOM ||
-     Value.fourth().atomType()!=ListExpr.BOOL_ATOM ||
-     Value.fifth().atomType()!=ListExpr.NO_ATOM){
+     Value.third().atomType()!=ListExpr.NO_ATOM){
        Reporter.debug("RelInterval.readFrom ::the Value List contains invalid types ");
        return false;
    }
    boolean LC = Value.first().boolValue();
    boolean RC = Value.second().boolValue();
-   boolean LI = Value.third().boolValue();
-   boolean RI = Value.fourth().boolValue();
    boolean ok = true;
    Time L = null;
-   if(!RI & !LI){
-      L = new Time();
-      ok = L.readFrom(Value.fifth());
-   }
+   L = new Time();
+   ok = L.readFrom(Value.third());
    if(!ok){
-      Reporter.debug("RelInterval.readFrom :: Error in reading time value "+Value.fifth().writeListExprToString());
+      Reporter.debug("RelInterval.readFrom :: Error in reading time value "+Value.third().writeListExprToString());
       return false;
    }
    leftClosed=LC;
    rightClosed=RC;
-   leftInfinite = LI;
-   rightInfinite = RI;
    length = L;
    return true;
 }
 
 
 /** Extends this interval to the factor-multiple of the old length.
-  * If this interval is infinite the call of this function will have
-  * not an effect. factor has to be greater than zero.
   */
 public void mul(int factor){
   if(factor <=0){
-    return;
-  }
-  if(leftInfinite || rightInfinite){
     return;
   }
   length = length.mul(factor);
@@ -268,9 +198,9 @@ public long getExtensionFactor(Time T){
      return 1;
    long resvalue =1;
    if(T.compareTo(Time.ZeroTime)<=0){ // we can't find such a factor
-     resvalue = leftInfinite?1:-1;
+     resvalue = -1;
    } else if(T.compareTo(Time.ZeroTime)==0){
-     resvalue =  leftClosed?1:-1;
+     resvalue =  -1;
    } else {
         long Dms = length.getMilliseconds();
         long Tms = T.getMilliseconds();
@@ -284,8 +214,8 @@ public long getExtensionFactor(Time T){
 
 public String toString(){
   String res = leftClosed? "[":"]";
-  res = res + (leftInfinite? "$" : "0") + " , ";
-  res = res + (rightInfinite? "$" : (""+length.toDurationString()));
+  res = res + "0" + " , ";
+  res = res + (""+length.toDurationString());
   res = res + (rightClosed? "]" : "[");
   return res;
 }
@@ -296,8 +226,6 @@ public String getListExprString(){
    String res ="(rinterval (";
    res += leftClosed? ts : fs;
    res += rightClosed? ts : fs;
-   res += leftInfinite? ts : fs;
-   res += rightInfinite? ts : fs;
    res+= length==null? " () " : length.getListExprString(false);
    res += "))";
    return res;
@@ -306,7 +234,5 @@ public String getListExprString(){
 private Time length;
 private boolean leftClosed;
 private boolean rightClosed;
-private boolean leftInfinite;
-private boolean rightInfinite;
 
 }

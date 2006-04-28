@@ -42,7 +42,7 @@ public class Dsplintimeregion extends Dsplregion
    * @return the global time boundaries [min..max] this instance is defined at
    * @see <a href="Dsplintimeregionsrc.html#getTimebounds">Source</a>
    */
-  public Interval getTimeBounds () {
+  public Interval getBoundingInterval () {
     return  TimeBounds;
   }
 

@@ -35,15 +35,14 @@ import tools.Reporter;
  */
 public class Dsplintimepoints extends Dsplpoints
     implements Timed {
-  Interval TimeBounds;
+  Interval boundingInterval;
 
   /** A method of the Timed-Interface
    * 
    * @return the global time boundaries [min..max] this instance is defined at
-   * @see <a href="Dsplintimepointssrc.html#getTimebounds">Source</a>
    */
-  public Interval getTimeBounds () {
-    return  TimeBounds;
+  public Interval getBoundingInterval () {
+    return  boundingInterval;
   }
 
   /**
@@ -54,7 +53,7 @@ public class Dsplintimepoints extends Dsplpoints
    */
   public JPanel getTimeRenderer (double PixelTime) {
     int start = 0;              
-    JLabel label = new JLabel("|"+LEUtils.convertTimeToString(TimeBounds.getStart()).substring(11, 
+    JLabel label = new JLabel("|"+LEUtils.convertTimeToString(boundingInterval.getStart()).substring(11, 
         16), JLabel.LEFT);
     label.setBounds(start, 15, 100, 15);
     label.setVerticalTextPosition(JLabel.CENTER);
@@ -73,7 +72,7 @@ public class Dsplintimepoints extends Dsplpoints
    */
   public void draw (Graphics g,double time) {
     double t = RefLayer.getActualTime();
-    if (Math.abs(t - TimeBounds.getStart()) < 0.000001)
+    if (Math.abs(t - boundingInterval.getStart()) < 0.000001)
       super.draw(g,time);
   }
 
@@ -88,7 +87,7 @@ public class Dsplintimepoints extends Dsplpoints
    */
   public boolean contains (double xpos, double ypos, double scalex, double scaley) {
     double t = RefLayer.getActualTime();
-    if (Math.abs(t - TimeBounds.getStart()) < 0.000001)
+    if (Math.abs(t - boundingInterval.getStart()) < 0.000001)
       return  super.contains(xpos, ypos, scalex, scaley); 
     else 
       return  false;
@@ -112,7 +111,7 @@ public class Dsplintimepoints extends Dsplpoints
       err = true;
       return;
     }
-    TimeBounds = new Interval(d.doubleValue(), d.doubleValue(), true, true);
+    boundingInterval = new Interval(d.doubleValue(), d.doubleValue(), true, true);
     super.ScanValue(v.second());
   }
 
@@ -152,7 +151,7 @@ public class Dsplintimepoints extends Dsplpoints
    */
   public Vector getIntervals(){
     Vector v=new Vector(1,0);
-    v.add(TimeBounds);
+    v.add(boundingInterval);
     return v;
     } 
 

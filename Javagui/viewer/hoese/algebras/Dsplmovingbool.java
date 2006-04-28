@@ -81,7 +81,7 @@ public class Dsplmovingbool extends DsplGeneric
     return  jp;
   }
 
-  public Interval getTimeBounds(){
+  public Interval getBoundingInterval(){
     return TimeBounds;
   }
 
@@ -158,7 +158,11 @@ public class Dsplmovingbool extends DsplGeneric
    * @see <a href="Dsplmovingboolsrc.html#init">Source</a>
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = type.symbolValue();
+        init(type,0,value,0,qr);
+  }
+
+  public void init (ListExpr type,int typeWidth, ListExpr value,int valueWidth, QueryResult qr) {
+    AttrName = extendString(type.symbolValue(),typeWidth);
     ScanValue(value);
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");
@@ -171,11 +175,13 @@ public class Dsplmovingbool extends DsplGeneric
     TimeBounds = null;
     for (int i = 0; i < Intervals.size(); i++) {
       Interval in = (Interval)Intervals.elementAt(i);
-      if (TimeBounds == null) {
-        TimeBounds = in;
-      } 
-      else {
-        TimeBounds = TimeBounds.union(in);
+      if(!in.isInfinite()){
+					if (TimeBounds == null) {
+						TimeBounds = in;
+					} 
+					else {
+						TimeBounds = TimeBounds.union(in);
+					}
       }
     }
   }

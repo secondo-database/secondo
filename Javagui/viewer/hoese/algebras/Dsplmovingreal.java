@@ -38,7 +38,7 @@ import tools.Reporter;
 public class Dsplmovingreal extends DsplGeneric implements 
       Timed,Function,ExternDisplay,LabelAttribute, RenderAttribute{
 
-  Interval TimeBounds;
+  Interval boundingInterval;
   Vector Intervals = new Vector(10, 5);
   Vector MRealMaps = new Vector(10, 5);
   double PixelTime;
@@ -60,7 +60,7 @@ public class Dsplmovingreal extends DsplGeneric implements
           Reporter.showInfo("not defined");
           return;
       }
-      if(TimeBounds!=null){
+      if(boundingInterval!=null){
          functionframe.setSource(this);
          functionframe.setVisible(true);
          functionframe.toFront();
@@ -73,8 +73,8 @@ public class Dsplmovingreal extends DsplGeneric implements
   /** This method returns the "bounding box" 
     * of the definition time
     */
-  public Interval getTimeBounds(){
-     return  TimeBounds;
+  public Interval getBoundingInterval(){
+     return  boundingInterval;
   }
 
 
@@ -86,7 +86,7 @@ public class Dsplmovingreal extends DsplGeneric implements
   public JPanel getTimeRenderer (double PixTime) {
     if(err) // error
        return null;
-    if(TimeBounds==null) // empty
+    if(boundingInterval==null) // empty
        return null;
 
     // Create a MRealLabel for each unit and add it to
@@ -100,8 +100,8 @@ public class Dsplmovingreal extends DsplGeneric implements
     int cnt = 0;
     while (li.hasNext()) {
       Interval in = (Interval)li.next();
-      int start = (int)((in.getStart() - TimeBounds.getStart())*PixelTime);
-      int end = (int)((in.getEnd() - TimeBounds.getStart())*PixelTime);
+      int start = (int)((in.getStart() - boundingInterval.getStart())*PixelTime);
+      int end = (int)((in.getEnd() - boundingInterval.getStart())*PixelTime);
       String bs = MRealMaps.elementAt(cnt).toString();
       MRealLabel jc = new MRealLabel(bs);
       jc.ValueIndex = cnt++;
@@ -112,7 +112,7 @@ public class Dsplmovingreal extends DsplGeneric implements
       jc.setToolTipText("...");
       MRealMap mr = (MRealMap)MRealMaps.elementAt(jc.ValueIndex);
       for (int x=start;x<=end;x++) {
-      	 double actTime = (double)x/PixelTime+TimeBounds.getStart();
+      	 double actTime = (double)x/PixelTime+boundingInterval.getStart();
          Double Mv = getValueAt(actTime,jc.ValueIndex);      
          if(Mv==null){
             Reporter.writeError("Cannot determine the value at"+actTime);
@@ -127,7 +127,7 @@ public class Dsplmovingreal extends DsplGeneric implements
     }
       //jc.setBorder(new MatteBorder(2, (in.isLeftclosed()) ? 2 : 0, 2, (in.isRightclosed()) ?
       //    2 : 0, Color.black));
-    jp.setPreferredSize(new Dimension((int)((TimeBounds.getEnd() - TimeBounds.getStart())*PixelTime),
+    jp.setPreferredSize(new Dimension((int)((boundingInterval.getEnd() - boundingInterval.getStart())*PixelTime),
           PSIZE));
     return  jp;
   
@@ -274,7 +274,7 @@ public class Dsplmovingreal extends DsplGeneric implements
 
   /** Returns the interval of this moving real **/
   public Interval getInterval(){
-    return TimeBounds;
+    return boundingInterval;
   }
 
 
@@ -374,14 +374,16 @@ public class Dsplmovingreal extends DsplGeneric implements
     else 
       qr.addEntry(this);
     // compute the bounding box of all intervals
-    TimeBounds = null;
+    boundingInterval = null;
     for (int i = 0; i < Intervals.size(); i++) {
       Interval in = (Interval)Intervals.elementAt(i);
-      if (TimeBounds == null) {
-        TimeBounds = in;
-      } 
-      else {
-        TimeBounds = TimeBounds.union(in);
+      if(!in.isInfinite()){
+					if (boundingInterval == null) {
+						boundingInterval = in.copy();
+					} 
+					else {
+						boundingInterval.unionInternal(in);
+					}
       }
     }
   }
@@ -492,14 +494,14 @@ public class Dsplmovingreal extends DsplGeneric implements
       g.setColor(Color.black);
       Interval in = (Interval)Intervals.elementAt(ValueIndex);
       MRealMap mr = (MRealMap)MRealMaps.elementAt(ValueIndex);
-      int start = (int)((in.getStart() - TimeBounds.getStart())*PixelTime);
-      int end = (int)((in.getEnd() - TimeBounds.getStart())*PixelTime);
+      int start = (int)((in.getStart() - boundingInterval.getStart())*PixelTime);
+      int end = (int)((in.getEnd() - boundingInterval.getStart())*PixelTime);
       double y1=-PSIZE/(max-min);
       double y2=PSIZE*max/(max-min);
       int xpos=0;
       int lastx=0,lasty=0;
       for (int x=start;x<=end;x++) {
-      	 double actTime = (double)x/PixelTime+TimeBounds.getStart();
+      	 double actTime = (double)x/PixelTime+boundingInterval.getStart();
          Double Mv = getValueAt(actTime,ValueIndex);
          if(Mv==null){
            Reporter.writeError("Error in computing the real value for instant "+actTime);
