@@ -1184,7 +1184,12 @@ Returns ~true~ if the value of this temporal unit is equal to the value of the t
 
   virtual int Compare( const Attribute* arg ) const
   {
-    return 0;
+    ConstTemporalUnit<Alpha>*  ctu = (ConstTemporalUnit<Alpha>*)arg;
+    int cmp = timeInterval.CompareTo(ctu->timeInterval);
+    if(cmp){
+       return cmp;
+    }
+    return constValue.Compare(&(ctu->constValue));
   }
 
   virtual bool Adjacent( const Attribute* arg ) const
@@ -1349,7 +1354,22 @@ Equality is calculated with respect to temporal evolution.
 
   virtual int Compare( const Attribute* arg ) const
   {
-    return 0;
+    UReal* mr2 = (UReal*) arg;
+    int cmp = timeInterval.CompareTo(mr2->timeInterval);
+    if(cmp){
+       return cmp;
+    } 
+   // because we can't compare the functions themself, we
+   // use the lexicographical order of the parameters
+   if(a<mr2->a) return -1;
+   if(a>mr2->a) return 1;
+   if(b<mr2->b) return -1;
+   if(b>mr2->b) return 1;
+   if(c<mr2->c) return -1;
+   if(c>mr2->c) return 1;
+   if(r && !mr2->r) return -1;
+   if(!r && mr2->r) return 1;
+   return 0;
   }
 
   virtual bool Adjacent( const Attribute* arg ) const
