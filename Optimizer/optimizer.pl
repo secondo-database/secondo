@@ -3671,30 +3671,21 @@ The ~Select~ clause contains attribute lists ~Extend~ for extension, ~Project~ f
 
 */
 
-selectClause(select *, [], BaseAttrs, duplicates) :-
-  optimizerOption(rewriteCSE),
-  rewritePlanGetBaseAttrs(BaseAttrs), !.  
-
 selectClause(select *, [], *, duplicates).
 
 selectClause(select count(*), [], count(*), duplicates).
 
-selectClause(select Attrs, Extend, Project, duplicates) :-
-  makeList(Attrs, Attrs2),
-  extendProject(Attrs2, Extend, Project).
-
-selectClause(select distinct *, BaseAttrs, *, distinct) :-
-  optimizerOption(rewriteCSE),
-  rewritePlanGetBaseAttrs(BaseAttrs), !. 
-
 selectClause(select distinct *, [], *, distinct).
 
-% XRIS: When using CSE-substitution, must be projected here?
 selectClause(select distinct count(*), [], count(*), distinct).
 
 selectClause(select distinct Attrs, Extend, Project, distinct) :-
   makeList(Attrs, Attrs2),
-  extendProject(Attrs2, Extend, Project).
+  extendProject(Attrs2, Extend, Project), !.
+
+selectClause(select Attrs, Extend, Project, duplicates) :-
+  makeList(Attrs, Attrs2),
+  extendProject(Attrs2, Extend, Project), !.
 
 /*
 ----	finish2(Stream, Extend, Project, Rdup, Sort, Stream5) :-
@@ -3705,11 +3696,12 @@ Apply extension, projection, duplicate removal and sorting as specified to ~Stre
 */
 
 
-finish2(Stream, Extend, Project, Rdup, Sort, Stream5) :-
+finish2(Stream, Extend, Project, Rdup, Sort, Stream6) :-
   fExtend(Stream, Extend, Stream2),
-  fProject(Stream2, Project, Stream3),
-  fRdup(Stream3, Rdup, Stream4),
-  fSort(Stream4, Sort, Stream5).
+  fRemoveExtendedVirtualAttributes(Stream2,Stream3),
+  fProject(Stream3, Project, Stream4),
+  fRdup(Stream4, Rdup, Stream5),
+  fSort(Stream5, Sort, Stream6).
 
 
 
@@ -3726,6 +3718,13 @@ fProject(Stream, count(*), Stream) :- !.
 fProject(Stream, Project, project(Stream, AttrNames)) :-
   attrnames(Project, AttrNames).
 
+
+
+fRemoveExtendedVirtualAttributes(StreamIn,StreamOut) :-
+  optimizerOption(rewriteCSE),
+  rewritePlanRemoveInsertedAttributes(StreamIn, StreamOut), !.
+
+fRemoveExtendedVirtualAttributes(Stream,Stream) :- !.
 
 
 

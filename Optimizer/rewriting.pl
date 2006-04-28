@@ -1093,9 +1093,11 @@ Called by predicate ~translate~.
 */
 
 :- dynamic(storedAvailStreamAttributes/1).
+:- dynamic(rewritePlanInsertedAttribute/1). % Table of attributes extended to the streams
 
 rewritePlanforCSE(PlanIn, PlanOut, SelectIn, SelectOut) :-
   optimizerOption(rewriteCSE),
+  retractall(rewritePlanInsertedAttribute(_)),
   registerCSEs,
   insertExtend(PlanIn, Plan2, [], AvailAttrs),
   dm(rewritePlan,['\n\nrewritePlanforCSE: Attrs avail after conj query: ',
@@ -1650,7 +1652,7 @@ extendPhrase(ArgS, [VA1|InnerVAs], ArgsSE) :-
   virt_attr(VA1, CompExpr, _, _, _),
   extendPhrase(ArgS, InnerVAs, ArgsSE1),
   ArgsSE = extend(ArgsSE1,[newattr(attrname(attr(VA1,1,u)), CompExpr)]),
-  !.
+  assert(rewritePlanInsertedAttribute(attr(VA1,1,u))), !.
 
 extendPhrase(ArgS, List, _) :-
   write('ERROR in extendPhrase('), write(ArgS), write(','), write(List), 
@@ -1810,60 +1812,33 @@ When CSE substitution is enabled, virtual attributes may be added into the strea
 also be propagated into the result stream. If the query is a star-query 
 (having ``select [star]''), the virtual attributes will occur within the result, when no
 final projection is inserted into the plan (as it is in all other cases). For 
-``select count([star])'', no removes are needed at all. 
+``select count([star])'', no removes are needed at all, but if ``distinct'' occurs, it should. 
 
-To avoid the occurences of virtual attributes with the result, in case of a 
-``select [star]''-query, we will project the result on all base relation attributes, 
-instead of doing no projection, when CSE substitution is switched on.
+The removes are carried out in file ``optimizer.pl'', predicate ~selectClause/4~,
+which calls ~rewritePlanRemoveInsertedAttributes/2~.
 
-The projections are carried out in file ``optimizer.pl'', predicate ~selectClause/4~,
-which calls ~rewritePlanGetBaseAttrs/1~ from this file to receive a list of attributes
-to keep when translating ``select [star]''.
+Attributes, that have been removed earlier (e.g. because ~optimizerOption(rewriteRemove)~ switched on),
+may not be removed. The according fact ~rewritePlanInsertedAttribute/1~ must have been retracted!
 
 This functionality will be automatically added to the optimzer, when ~optimizerOption(rewriteCSE)~
 is defined.
 
 */
 
-% create the set of all base-attributes needed for projection in case 'select *'
-rewritePlanGetBaseAttrs(BaseAttrSet) :-
-  findall(X, % get list of used relations
-          ( usedAttr(rel(RelName,RelAlias,_),_), 
-            ( RelAlias = * -> X = RelName
-                           ;  X = RelName:RelAlias
-            ) 
-          ),
-          UsedRelationsL),
-  list_to_set(UsedRelationsL,UsedRelationsS),
-  findall(Attrs,
-          ( member(Rel,UsedRelationsS),
-            ( Rel = RelName:RelAlias
-              -> ( relation(RelName,Attrs1),
-                   rewritePlanGetAttrsRenamed(RelName,RelAlias,Attrs1,Attrs)
-                 )
-              ;  ( relation(Rel,Attrs1),
-                   rewritePlanGetAttrsUnrenamed(Rel, Attrs1, Attrs)
-                 )
-            )
-          ),
-          BaseAttrList
-         ),
-  flatten(BaseAttrList,BaseAttrListF),
-  list_to_set(BaseAttrListF,BaseAttrSet), !.
-
-rewritePlanGetAttrsUnrenamed(_, [], []) :- !.
-rewritePlanGetAttrsUnrenamed(RelName, [X|MoreX], [X2|MoreX2]) :-
-  spelled(RelName:X,X2),
-  rewritePlanGetAttrsUnrenamed(RelName, MoreX, MoreX2), !.
-
-rewritePlanGetAttrsRenamed(_,_,[],[]) :- !.
-rewritePlanGetAttrsRenamed(RelName,RelAlias,[X|MoreX],[X2|MoreX2]) :-
-  spelled(RelName:X,X1),
-  X1 = attr(AttrName, Arg, Case),
-  X2 = attr(RelAlias:AttrName, Arg, Case),
-  rewritePlanGetAttrsRenamed(RelName, RelAlias, MoreX, MoreX2), !.
+rewritePlanRemoveInsertedAttributes(StreamIn, StreamOut) :-
+  findall(X, 
+          ( rewritePlanInsertedAttribute(X),
+            X = attr(Name, _, Case),
+            not(queryAttr(attr(Name, _, Case)))
+          ), 
+          AttrsL),
+  list_to_set(AttrsL,AttrsS),
+  attrnames(AttrsS,AttrNames),
+  ( AttrNames = [] 
+    -> StreamOut = StreamIn
+    ;  StreamOut = remove(StreamIn,AttrNames)
+  ), !.
   
-
 /*
 
 15.2 Early Removal of Unused Attributes
@@ -1960,6 +1935,9 @@ format, either ``attributename'' or ``alias:attributename''.
 When processing the conjunctive subplan, ~RemoveAttrs~ can be initialized to the 
 set of all attributes used within the select clause.
 
+Also, for each removed attribute, the fact ~rewritePlanInsertedAttribute(Attr)~ is
+retracted.
+
 */
 
 
@@ -1981,6 +1959,7 @@ makeRemoveList([A|As],[attrname(Attr)|Bs]) :-
       Attr = attr(A, 1, u)
     )
   ), !,
+  retractall(rewritePlanInsertedAttribute(Attr)),
   makeRemoveList(As,Bs).
 
 
@@ -2068,6 +2047,8 @@ usedAttributes(Term,Attrs) :-
   Term =.. [_|Args],
   usedAttributes(Args,Attrs), !.
 
+
+
 /*
 15.3 Testing
 
@@ -2083,50 +2064,50 @@ Comment out this complete section for standard behavior.
 
 %:- [autotest].          % XRIS: testing only!
 
-%testquery1 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] 
-%                  from ten 
-%                  where (no*1)*(no*1) > 1.
+testquery1 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] 
+                  from ten 
+                  where (no*1)*(no*1) > 1.
 
-%testquery2 :- sql select[no*1 as no1, (no*1)*(no*1) as no2]
-%                  from[ten, ten as ten2] 
-%                  where[no*1* (no*1)<ten2:no].
+testquery2 :- sql select[no*1 as no1, (no*1)*(no*1) as no2]
+                  from[ten, ten as ten2] 
+                  where[no*1* (no*1)<ten2:no].
 
-%testquery3 :- sql select[no*1 as no1, (no*1)*(no*1)+ten2:no as no2]
-%                  from[ten, ten as ten2] 
-%                  where[no*1* (no*1)>ten2:no].
+testquery3 :- sql select[no*1 as no1, (no*1)*(no*1)+ten2:no as no2]
+                  from[ten, ten as ten2] 
+                  where[no*1* (no*1)>ten2:no].
 
-%testquery4 :- sql select[no*1+ten2:no as no1, 
-%                         (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]
-%                  from[ten, ten as ten2] 
-%                  where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no].
+testquery4 :- sql select[no*1+ten2:no as no1, 
+                         (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]
+                  from[ten, ten as ten2] 
+                  where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no].
 
-%testquery5 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] 
-%                  from ten 
-%                  where[(no*1)*(no*1) > 1, (no*1)*(no*1)+1 <20].
+testquery5 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] 
+                  from ten 
+                  where[(no*1)*(no*1) > 1, (no*1)*(no*1)+1 <20].
 
-%testquery6 :- sql select[no*1+ten2:no as no1, 
-%                         (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]
-%                  from[ten, ten as ten2] 
-%                  where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no, 
-%                        (no*1)*(no*1) > 1, 
-%                        (no*1)*(no*1)+1 <20].
+testquery6 :- sql select[no*1+ten2:no as no1, 
+                         (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]
+                  from[ten, ten as ten2] 
+                  where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no, 
+                        (no*1)*(no*1) > 1, 
+                        (no*1)*(no*1)+1 <20].
 
-%testquery7 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] 
-%                  from ten 
-%                  where [(no*1)*(no*1) > 1] 
-%                  first 3.
+testquery7 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] 
+                  from ten 
+                  where [(no*1)*(no*1) > 1] 
+                  first 3.
 
-%testquery8 :- sql select[no*1+ten2:no as no1, 
-%                         (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]
-%                  from[ten, ten as ten2] 
-%                  where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no, 
-%                        (no*1)*(no*1) > 1, 
-%                        (no*1)*(no*1)+1 <20] 
-%                  first 3.
+testquery8 :- sql select[no*1+ten2:no as no1, 
+                         (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]
+                  from[ten, ten as ten2] 
+                  where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no, 
+                        (no*1)*(no*1) > 1, 
+                        (no*1)*(no*1)+1 <20] 
+                  first 3.
 
-%testquery9 :- sql select sname 
-%                  from staedte 
-%                  where[sname starts "B", 
-%                        bev >= 1000000, 
-%                        plz<90000, 
-%                        kennzeichen starts "B"].
+testquery9 :- sql select sname 
+                  from staedte 
+                  where[sname starts "B", 
+                        bev >= 1000000, 
+                        plz<90000, 
+                        kennzeichen starts "B"].
