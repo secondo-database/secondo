@@ -48,6 +48,13 @@ import tools.Reporter;
  * but this viewer can display other query results
  */
 public class HoeseViewer extends SecondoViewer {
+
+
+  /** Holds the value for additional time in the TimeSlider in percent.
+  **/
+  public static final double TIMEBORDER = 3;
+
+
   private JOptionPane MessageControl = new JOptionPane();
   private MenuVector MenuExtension = new MenuVector();
   private QueryListSelectionListener DoQuerySelection;
@@ -1725,6 +1732,7 @@ public boolean canDisplay(SecondoObject o){
       CurrentState.ActualTime = 0;
     } 
     else {
+      TimeBounds.increase(TIMEBORDER);
       TimeSlider.setVisible(true);
       CurrentState.ActualTime = TimeBounds.getStart();
       TimeSlider.setValues((long)Math.round(in.getStart()*86400000), (long)Math.round(in.getStart()*86400000),

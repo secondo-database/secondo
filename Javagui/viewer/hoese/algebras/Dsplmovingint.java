@@ -166,7 +166,7 @@ public String getLabel(double time){
       Interval in = null;
       ListExpr value=null;
       if (le.listLength() == 5){
-            Reporter.writeWarning("Warning deprecated list representation of moving int");
+            Reporter.writeWarning("Deprecated list representation of moving int");
             in = LEUtils.readInterval(ListExpr.fourElemList(le.first(),
                   le.second(), le.third(), le.fourth()));
             value = le.fifth();
@@ -178,22 +178,30 @@ public String getLabel(double time){
       if (in == null){ // error in reading interval
         Reporter.debug("Dsplmovingint: cannot read the interval from list ");
         return;
+      } 
+			if (value.atomType() != ListExpr.INT_ATOM){ // error in reading value
+				Reporter.debug("Dsplmovingint: error in ListExpr, int atom required");
+				return;
+			}
+			int i = value.intValue();
+			if(first){
+				min = i;
+				max = i;
+				first = false;
+			} else{
+				min = i<min?i:min;
+				max = i>max?i:max;  
+			}
+      if(!in.isInfinite() || (infiniteIntervalMode==LEFT_INFINITE_INTERVALS)){ // handle normal intervals 
+					Intervals.add(in);
+					Ints.add(new Integer(i));
+      }else if(infiniteIntervalMode==RESTRICT_INFINITE_INTERVALS){
+          in.restrict(infiniteIntervalLength);
+          if(!in.isInfinite()){
+             Intervals.add(in);
+             Ints.add(new Integer(i));
+          }
       }
-      Intervals.add(in);
-      if (value.atomType() != ListExpr.INT_ATOM){ // error in reading value
-        Reporter.debug("Dsplmovingint: error in ListExpr, int atom required");
-        return;
-      }
-      int i = value.intValue();
-      if(first){
-        min = i;
-        max = i;
-        first = false;
-      } else{
-        min = i<min?i:min;
-        max = i>max?i:max;  
-      }
-      Ints.add(new Integer(i));
       v = v.rest();
     }
     defined = true;

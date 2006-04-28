@@ -26,8 +26,8 @@ import tools.Reporter;
  * An instance of this class represent a time interval
  */
 public class Interval {
-  double start, end;
-  boolean leftclosed, rightclosed;
+  private double start, end;
+  private boolean leftclosed, rightclosed;
 
   /**
    * Constructor of an interval
@@ -38,8 +38,13 @@ public class Interval {
    * @see <a href="Intervalsrc.html#getAttrName">Source</a>
    */
   public Interval (double astart, double aend, boolean leftcl, boolean rightcl) {
-    start = astart;
-    end = aend;
+    if(astart<=aend){
+      start = astart;
+      end = aend;
+    } else{
+      start = aend;
+      end = astart;
+    }
     leftclosed = leftcl;
     rightclosed = rightcl;
     if(viewer.HoeseViewer.DEBUG_MODE && start==end && (!leftclosed || !rightclosed)){
@@ -51,6 +56,56 @@ public class Interval {
   public Interval copy(){
     return new Interval(start,end,leftclosed,rightclosed);
   }
+
+
+  /** Returns if this interval is infinite **/
+  public boolean isInfinite(){
+     return (start <= DateTime.minInstant) ||
+            (end >= DateTime.maxInstant);
+
+  }
+
+  /** Extends this interval by the given percent in both directions **/
+  public void increase(double percent){
+     double size = ((end-start)*percent) / 100;
+     start -= size;
+     end +=size;
+     if(start>end){
+       double tmp = start;
+       start = end;
+       end = tmp;
+     }
+     if(start <= DateTime.minInstant){
+       start = DateTime.minInstant;
+     }
+     if(end>= DateTime.maxInstant){
+       end = DateTime.maxInstant;
+     }
+  }
+
+  /** restricts an intervals which is unbounded in exactly one 
+    * direction. If the intervals is bounded or unbounded in both
+    * directions, the interval remains unchanged
+    **/
+  public boolean restrict(double time){
+      if(time<0){
+         time = -time;
+      }
+      if(start<=DateTime.minInstant){
+         if(end >= DateTime.maxInstant){ // unbounded in both direction
+           return false;
+         }
+         // unbounded in the past
+         start = end-time;
+         return true;
+      }
+      if(end>=DateTime.maxInstant){ // unbounded in the future
+          end = start+time;
+          return true;
+      }
+      // bounded in both directions
+      return  false;
+  } 
 
 
   /** returns the String representation for this interval */

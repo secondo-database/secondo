@@ -47,13 +47,13 @@ private static final String beginOfTime = "begin of time";
   * Ensure the same value as in the DateTime-Algebra of
   * the Secondo kernel.
   **/
-private static final long minInstant = -2450000;
+public static final long minInstant = -2450000;
 
 /** Value of the minimum representable instant.
   * Ensure the same value as in the DateTime-Algebra of
   * the Secondo kernel.
   **/
-private static final long maxInstant = 2450000;
+public static final long maxInstant = 2450000;
 
 /** The resolution of a day.
   * A single day is divided into DAY_RESOLUTION parts.
