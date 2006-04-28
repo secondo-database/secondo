@@ -314,7 +314,7 @@ indexCreateQuery(unit, time, _, Rel, Attr, IndexName,     % OK
 indexCreateQuery(unit, space, _, Rel, Attr, IndexName,    % OK
   ['let ', IndexName, '_small = ', Rel, 
    '_small feed addid extendstream[ Unit: units( .', Attr, 
-   ' ) ] extend[ t: trajectory( .', Attr, ' ) ]',
+   ' ) ] extend[ t: trajectory( .', Unit, ' ) ]',
    ' creatertree[ t ]']) :- !.
 indexCreateQuery(unit, d3, _, Rel, Attr, IndexName, 
   ['let ', IndexName, '_small = ', Rel, 
