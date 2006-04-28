@@ -669,6 +669,43 @@ bool IsRelDescription( ListExpr relDesc )
 }
 
 /*
+6.7 Function ~IsStreamDescription~
+
+Checks wether a ListExpression is of the form
+(stream (tuple ((a1 t1) ... (ai ti)))).
+
+*/
+bool IsStreamDescription( ListExpr streamDesc )
+{
+  if( nl->ListLength(streamDesc) != 2 )
+    return false;
+
+  ListExpr streamSymbol = nl->First(streamDesc);
+  ListExpr tupleDesc = nl->Second(streamDesc);
+
+  if( !nl->IsAtom(streamSymbol) ||
+      nl->AtomType(streamSymbol) != SymbolType ||
+      nl->SymbolValue(streamSymbol) != "stream" )
+    return false;
+
+  if( nl->ListLength(tupleDesc) != 2 )
+    return false;
+
+  ListExpr tupleSymbol = nl->First(tupleDesc);;
+  ListExpr attrList = nl->Second(tupleDesc);
+
+  if( !nl->IsAtom(tupleSymbol) ||
+      nl->AtomType(tupleSymbol) != SymbolType ||
+      nl->SymbolValue(tupleSymbol) != "tuple" )
+    return false;
+
+  if( !IsTupleDescription(attrList) )
+    return false;
+
+  return true;
+}
+
+/*
 6.8 Function ~GetTupleResultType~
 
 This function returns the tuple result type as a list expression

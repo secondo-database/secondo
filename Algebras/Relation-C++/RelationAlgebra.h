@@ -1428,6 +1428,16 @@ Checks whether a ~ListExpr~ is of the form
 bool IsRelDescription( ListExpr relDesc );
 
 /*
+
+5.6 Function ~IsStreamDescription~
+
+Checks whether a ~ListExpr~ is of the form
+(stream (tuple ((a1 t1) ... (ai ti)))).
+
+*/
+bool IsStreamDescription( ListExpr relDesc );
+
+/*
 5.7 Function ~GetTupleResultType~
 
 This function returns the tuple result type as a list expression
