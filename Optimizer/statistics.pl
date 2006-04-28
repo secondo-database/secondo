@@ -292,8 +292,7 @@ selectivity(pr(Pred, Rel, Rel), Sel) :-
 
 selectivity(P, Sel) :-
   simplePred(P, PSimple),
-  sels(PSimple, Sel),
-  !.
+  sels(PSimple, Sel), !.
 
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   not(optimizerOption(dynamicSample)),
@@ -306,8 +305,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   cardQuery(Pred, Rel1, Rel2, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  %write('selectivity query : '),
-  %write(QueryAtom),
+  dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
   get_time(Time1),
   secondo(QueryAtom, [int, ResCard]),
   get_time(Time2),
@@ -328,8 +326,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   nl,
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
   assert(storedPET(PSimple, MSsRes)),
-  assert(storedSel(PSimple, Sel)),
-  !.
+  assert(storedSel(PSimple, Sel)), !.
 
 selectivity(pr(Pred, Rel), Sel) :-
   not(optimizerOption(dynamicSample)),
@@ -339,8 +336,7 @@ selectivity(pr(Pred, Rel), Sel) :-
   cardQuery(Pred, Rel, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  %write('selectivity query : '), 
-  %write(QueryAtom),
+  dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
   get_time(Time1),
   secondo(QueryAtom, [int, ResCard]),
   get_time(Time2),
@@ -361,8 +357,7 @@ selectivity(pr(Pred, Rel), Sel) :-
   nl,
   simplePred(pr(Pred, Rel), PSimple),
   assert(storedPET(PSimple, MSsRes)),
-  assert(storedSel(PSimple, Sel)),
-  !.
+  assert(storedSel(PSimple, Sel)), !.
 
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   optimizerOption(dynamicSample),
@@ -376,8 +371,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   dynamicCardQuery(Pred, Rel1, Rel2, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  %write('selectivity query : '),
-  %write(QueryAtom),
+  dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
   get_time(Time1),
   secondo(QueryAtom, [int, ResCard]),
   get_time(Time2),
@@ -397,8 +391,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
-  assert(storedSel(PSimple, Sel)),
-  !.
+  assert(storedSel(PSimple, Sel)), !.
 
 selectivity(pr(Pred, Rel), Sel) :-
   optimizerOption(dynamicSample),
@@ -409,8 +402,7 @@ selectivity(pr(Pred, Rel), Sel) :-
   dynamicCardQuery(Pred, Rel, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  %write('selectivity query : '),
-  %write(QueryAtom),
+  dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
   get_time(Time1),
   secondo(QueryAtom, [int, ResCard]),
   get_time(Time2),
@@ -430,13 +422,12 @@ selectivity(pr(Pred, Rel), Sel) :-
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel), PSimple),
-  assert(storedSel(PSimple, Sel)),
-  !.
+  assert(storedSel(PSimple, Sel)), !.
 
 selectivity(P, _) :- write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl, 
   write('Call: selectivity('), write(P), write(',Sel)\n'),
-  fail.
+  fail, !.
 
 /*
 
