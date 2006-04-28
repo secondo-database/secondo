@@ -638,7 +638,9 @@ string DateTime::ToString() const{
        tmp << "0";
     tmp << ms;
   } else{
-    tmp << "unknown type" ;
+    tmp << "unknown type, def=" << defined << " candel=" << canDelete 
+        << " type=" << type << " day = " << day << " ms = " 
+        << milliseconds;
   }
   return tmp.str();
 }
@@ -974,7 +976,11 @@ The types of the arguments has to be equals.
 
 */
 int DateTime::CompareTo(const DateTime* P2)const{
-   assert(type==P2->type);
+   if(type!=P2->type){
+       cerr << "try to compare " << this->ToString() << " with "
+            << P2->ToString() << endl;
+       assert(type==P2->type);
+   }
    if(!defined && !P2->defined)
       return 0;
    if(!defined && P2->defined)
@@ -1016,73 +1022,6 @@ DateTime* DateTime::Clone() const {
    DateTime* res = new DateTime(type);
    res->Equalize(this);
    return res;
-}
-
-/*
-~ReadFromSmiRecord~
-
-This function reads the value of this DateTime instance from the
-givem SmiRecord beginning from the given offset.
-
-*/
-void DateTime::ReadFromSmiRecord(SmiRecord& valueRecord, size_t& offset){
-   valueRecord.Read(&day,sizeof(long),offset);
-   offset += sizeof(long);
-   valueRecord.Read(&milliseconds,sizeof(long),offset);
-   offset += sizeof(long);
-   valueRecord.Read(&defined,sizeof(bool),offset);
-   offset += sizeof(bool);
-   valueRecord.Read(&canDelete,sizeof(bool),offset);
-   offset += sizeof(bool);
-   valueRecord.Read(&type,sizeof(TimeType),offset);
-   offset += sizeof(TimeType);
-}
-
-
-/*
-~Open~
-
-The ~Open~ function reads the DateTime value from the argument
-*valueRecord*. Because the DateTime class don't uses FLOBs,
-this is very simple.
-
-*/
-void DateTime::Open(SmiRecord& valueRecord, size_t& offset,
-                    const ListExpr typeinfo){
-   ReadFromSmiRecord(valueRecord,offset);
-}
-
-/*
-~WriteToSmiRecord~
-
-This function write the data part of this DateTime instance to
-*valueRecord* beginning at the given offset. After calling
-this function the offset will be behind the written data part.
-
-*/
-void DateTime::WriteToSmiRecord(SmiRecord& valueRecord,size_t& offset)const{
-   valueRecord.Write(&day,sizeof(long),offset);
-   offset += sizeof(long);
-   valueRecord.Write(&milliseconds,sizeof(long),offset);
-   offset += sizeof(long);
-   valueRecord.Write(&defined,sizeof(bool),offset);
-   offset += sizeof(bool);
-   valueRecord.Write(&canDelete,sizeof(bool),offset);
-   offset += sizeof(bool);
-   valueRecord.Write(&type,sizeof(TimeType),offset);
-   offset += sizeof(TimeType);
-}
-
-/*
-~Save~
-
-The ~Save~ functions saves the data of the DateTime value to
-*valueRecord*.
-
-*/
-void DateTime::Save(SmiRecord& valueRecord, size_t& offset,
-                    const ListExpr typeinfo){
-   WriteToSmiRecord(valueRecord,offset);
 }
 
 
@@ -1710,13 +1649,13 @@ bool OpenDateTime( SmiRecord& valueRecord,
                    size_t& offset,
                    const ListExpr typeInfo,
                    Word& value ){
-  DateTime* T = new DateTime(instanttype);
-  // the type will be overwritten when opened
-  T->Open(valueRecord,offset,typeInfo);
-  value = SetWord(T);
-  return true;
+  // This Open function is implemented in the Attribute class
+  // and uses the same method of the Tuple manager to open objects
+ DateTime *dt =
+      (DateTime*)Attribute::Open( valueRecord, offset, typeInfo );
+ value = SetWord( dt );
+ return true;
 }
-
 /*
 2.6 ~Save~ function
 
@@ -1725,9 +1664,9 @@ bool SaveDateTime( SmiRecord& valueRecord,
                    size_t& offset,
                    const ListExpr typeInfo,
                    Word& value ){
-  DateTime* T = (DateTime *)value.addr;
-  T->Save( valueRecord, offset, typeInfo );
-  return true;
+ DateTime *dt = (DateTime *)value.addr;
+ Attribute::Save( valueRecord, offset, typeInfo, dt );
+ return true;
 }
 
 /*

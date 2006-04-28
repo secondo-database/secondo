@@ -182,25 +182,6 @@ The familiar ~Destroy~ function included in the most algebras.
      void Destroy();
 
 /*
-~Open~
-
-This function overwrites the inherited ~Open~ function for the reason
-of resistency against recompiling.
-
-*/
-     virtual void Open(SmiRecord& valueRecord, size_t& offset, 
-                       const ListExpr typeInfo);
-
-/*
-~Save~
-
-The ~Save~ function is the counterpart of the ~Open~ function.
-
-*/
-     virtual void Save(SmiRecord& valueRecord, size_t& offset, 
-                       const ListExpr typeInfo);
-
-/*
 ~Conversion from and into other formats~
 
 ~ToListExpr~
