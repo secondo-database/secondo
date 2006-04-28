@@ -226,6 +226,17 @@ Returns ~true~ if this interval is before/after the value ~a~ and ~false~ otherw
 /*
 Return the intersection of this interval and ~i~ into ~result~.
 
+*/
+
+  int CompareTo(const Interval<Alpha>& i) const;
+/*
+Compares this and the argument;
+
+*/
+
+
+/*
+
 3.2.3 Attributes
 
 */
@@ -1484,6 +1495,23 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 
   inline virtual int Compare( const Attribute* arg ) const
   {
+    UPoint* up2 = (UPoint*) arg;
+    int cmp = timeInterval.CompareTo(up2->timeInterval);
+    if(cmp){
+       return cmp;
+    } 
+    if(p0<up2->p0){
+      return -1;
+    }
+    if(p0>up2->p0){
+      return 1;
+    }
+    if(p1>up2->p1){
+       return 1;
+    }
+    if(p1<up2->p1){
+       return -1;
+    }
     return 0;
   }
 
@@ -2176,6 +2204,34 @@ void Interval<Alpha>::Intersection( const Interval<Alpha>& i,
   }
 }
 
+template <class Alpha>
+int  Interval<Alpha>::CompareTo( const Interval<Alpha>& i) const{
+   if(start<i.start){
+      return -1;
+   }
+   if(start>i.start){
+      return 1;
+   }
+   if(!lc && i.lc){
+      return -1;
+   }
+   if(lc && !i.lc){
+      return 1;
+   }
+   if(end<i.end){
+       return -1;
+   }
+   if(end>i.end){
+       return 1;
+   }
+   if(rc && !i.rc){
+      return 1;
+   } 
+   if(!rc && i.rc){
+      return -1;
+   }
+   return 0;
+}
 /*
 4.2 Range
 
@@ -3778,7 +3834,31 @@ void Mapping<Unit, Alpha>::SetDefined( bool Defined )
 template <class Unit, class Alpha>
 int Mapping<Unit, Alpha>::Compare( const Attribute *arg ) const
 {
-  return 0;
+   Mapping<Unit,Alpha>* map2 = (Mapping<Unit,Alpha>*) arg; 
+   size_t size1 = units.Size();
+   size_t size2 = map2->units.Size();
+   size_t index = 0;
+   const Unit* u1;
+   const Unit* u2;
+   int cmp;
+   while( (index < size1) && (index < size2)){
+      units.Get(index,u1);
+      map2->units.Get(index,u2);
+      cmp = u1->Compare(u2);
+      if(cmp){ // different units
+         return cmp;
+      }
+      index++;
+   }
+   // the common entries all equals
+   if(size1<size2){
+      cmp =  -1;
+   } else if(size1>size2){
+      cmp = 1;
+   } else{
+      cmp= 0;
+   }
+   return cmp;
 }
 
 template <class Unit, class Alpha>
