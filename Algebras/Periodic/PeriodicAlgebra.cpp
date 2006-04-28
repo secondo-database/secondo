@@ -145,9 +145,6 @@ static const int LINEAR = 0;
 static const int COMPOSITE = 1;
 static const int PERIOD = 2;
 static const bool DEBUG_MODE = true;
-// ensure to use the same values for infinity in Javagui
-static const int LEFTINFINITE = -1;
-static const int RIGHTINFINITE = -2;
 // a constant to handle numeric inaccuraccies in computations with doubles
 static const double EPSILON = 0.00001;
 
@@ -186,12 +183,6 @@ class PBBox: public StandardAttribute {
     ~PBBox(){}
     int NumOfFLOBs() { return 0;}
     FLOB* GetFLOB() { assert(false);}
-    virtual void Open(SmiRecord& valueRecord,size_t& offset,
-                      const ListExpr typeInfo);
-    virtual void Save(SmiRecord& valueRecord,size_t& offset,
-                      const ListExpr typeInfo);
-    void ReadFromSmiRecord(SmiRecord& valueRecord, size_t& offset);
-    void WriteToSmiRecord(SmiRecord& valueRecord, size_t& offset)const;
     int Compare(const Attribute* arg)const;
     bool Adjacent(const Attribute*) const;
     int Sizeof()const;
@@ -245,13 +236,6 @@ This class represents a relative interval. This means that a RelInterval
 has all properties of a familiar interval (Closeness,length) without a
 fixed start point. A RelInterval can be unbounded in the past or in
 the future.
-
-If an interval is unbounded in any direction, the length of this interval will
-play no role. This means the union of an unbounded interval with an bounded interval
-will return the unbounded interval wihout any changes. This is also correct in a
-mathematical sense bacause the difference or the sum  between [infty] and a fixed number yields
-[infty].  
-
 
 */
 
@@ -329,10 +313,6 @@ an algebra.
     void Destroy(){canDelete=true;}
     int NumOfFLOBs(){ return 0;}
     FLOB* GetFLOB(const int i){ assert(false);}
-    virtual void Open(SmiRecord& valueRecord,size_t& offset,
-                      const ListExpr typeInfo);
-    virtual void Save(SmiRecord& valueRecord,size_t& offset,
-                      const ListExpr typeInfo);
 
 /*
 ~CompareTo~
@@ -412,7 +392,7 @@ nested list representation.
     ListExpr ToListExpr(const bool typeincluded) const;
 
 /*
-~IsLeftClosed~,~IsLeftInfinite~
+~IsLeftClosed~
 
 This two functions can be used for exploring the left end of this interval.
 If ~IsLeftInfinite~ returns true, the value returned by IsLeftClosed will 
@@ -420,17 +400,15 @@ have no meaning.
 
 */
     bool IsLeftClosed()const;
-    bool IsLeftInfinite()const;
 
 /*
-~IsRightClosed~,~IsRightInfinite~
+~IsRightClosed~
 
 The same functions for the right side of this interval.
 
 
 */
     bool IsRightClosed()const;
-    bool IsRightInfinite()const;
 
 /*
 ~ReadFrom~
@@ -459,8 +437,6 @@ properties.
 ~SetLeftClosed~
 
 This function sets the leftclosed property of this interval. 
-If this interval is leftinfinite, the call of this function will
-not have any affect to the properties of this interval.
 Note that calling this function can lead to an invalid interval when
 the lengt of this interval is zero.
 
@@ -487,22 +463,15 @@ interval at the right end as well as the left end at the same time.
 */
     void SetClosure(bool LeftClosed, bool RightClosed);
 
-    bool SetLeftInfinite(const bool rightClosed);
-    bool SetLeftRightInfinite();
     bool SetLength(const DateTime* T);
-    bool SetRightInfinite(const bool leftClosed);
     string ToString()const;
     double Where(const DateTime* T) const;
-    void WriteToSmiRecord(SmiRecord& valueRecord,size_t& offset)const;
-    void ReadFromSmiRecord(SmiRecord& valueRecord,size_t& offset);
     bool Split(const double delta,const bool closeFirst,RelInterval& Rest);
     bool Split(const DateTime duration, const bool closeFirst,
                RelInterval& Rest);
     bool Plus(const RelInterval* I); 
   private:
     DateTime length;
-    bool leftInfinite;
-    bool rightInfinite;
     bool leftClosed;
     bool rightClosed;
     bool defined;
@@ -517,7 +486,6 @@ interval at the right end as well as the left end at the same time.
 
 This class provides a structure for an interval. In the contrary to
 a RelInterval an Interval has a fixed start time and a fixed end time.
-Infinite interval are allowed only in internal use of the PeriodicAlgebra.
 
 */
 class PInterval : public StandardAttribute{
@@ -527,6 +495,7 @@ class PInterval : public StandardAttribute{
     PInterval(int dummy);
     PInterval(const DateTime startTime, const RelInterval relinterval);
     ~PInterval(){}
+    bool ReadFrom(ListExpr list, bool typeIncluded);
     bool Append(const RelInterval* D2);
     bool CanAppended(const RelInterval* D2)const;
     bool Contains(const DateTime* T)const;
@@ -536,10 +505,6 @@ class PInterval : public StandardAttribute{
     void Destroy(){startTime.Destroy();relinterval.Destroy();}
     int NumOfFLOBs(){ return 0;}
     FLOB* GetFLOB(const int i){ assert(false);}
-    virtual void Open(SmiRecord& valueRecord,size_t& offset,
-                      const ListExpr typeInfo);
-    virtual void Save(SmiRecord& valueRecord,size_t& offset,
-                      const ListExpr typeInfo);
     int CompareTo(const PInterval* D2)const;
     int Compare(const Attribute* arg) const;
     bool Adjacent(const Attribute*) const{return false;}
@@ -553,19 +518,11 @@ class PInterval : public StandardAttribute{
     DateTime* GetEnd()const;
     ListExpr ToListExpr(const bool typeincluded)const;
     bool IsLeftClosed()const;
-    bool IsLeftInfinite()const;
     bool IsRightClosed()const;
-    bool IsRightInfinite()const;
-    bool ReadFrom(const ListExpr LE,const bool typeincluded);
     bool Set(const DateTime* startTime,const DateTime* length, 
              const bool leftClosed, const bool rightClosed);
-    bool SetLeftInfinite(const bool rightClosed);
-    bool SetLeftRightInfinite();
     bool SetLength(const DateTime* T);
-    bool SetRightInfinite(const bool leftClosed);
     string ToString()const;
-    void WriteToSmiRecord(SmiRecord& valueRecord,size_t& offset)const;
-    void ReadFromSmiRecord(SmiRecord& valueRecord,size_t& offset);
   private:
     DateTime startTime;
     RelInterval relinterval;
@@ -664,16 +621,14 @@ class SubMove{
            res << "composite["<<arrayIndex<<"]";
          return res.str();
       }
-      void WriteToSmiRecord(SmiRecord& valueRecord, size_t& offset)const;
-      void ReadFromSmiRecord(SmiRecord& valueRecord, size_t& offset);
 };
 
 /*
 
 2.2.3 Periodic Move [&] SpatialPeriodicMove.
 
-A Periodic Move is determined by the number of repeatations (which can also be
-left or right infinite) and the repeated submove. To accelerate operations
+A Periodic Move is determined by the number of repeatations 
+and the repeated submove. To accelerate operations
 also the whole relinterval is stored. For Spatial types also the
 minimal bounding box is contained as member.
 
@@ -2412,8 +2367,6 @@ T* At(const DateTime* instant)const{
 ~Initial~
 
 This function computes the first defined value of this moving constant.
-If the periodic moving bool has no initial point of time (left infinite, empty,
-or undefined), the result will be NULL.
 
 */
 T* Initial() const{
@@ -2424,9 +2377,6 @@ T* Initial() const{
   }
   if(IsEmpty()){
     return res;
-  }
-  if(interval.IsLeftInfinite()){
-     return res;
   }
   /* the first units is also the first
      unit in the dbarray of the units.
@@ -2454,9 +2404,6 @@ T* Final(){
  if(IsEmpty()){
      return res;
   }       
-  if(interval.IsRightInfinite()){
-    return res;
-  }  
   Unit lm =  GetLastUnit();
   res = lm.Final();
   return res;
@@ -2756,126 +2703,7 @@ void splitRec(const DateTime instant, const bool toLeft,
      GetInterval(PM.submove,sminterval);
      DateTime smlength;
      sminterval.StoreLength(smlength);
-     // handle leftinfinite periodic moves
      DateTime ZeroTime(instanttype);
-
-     if(PM.repeatations == LEFTINFINITE){
-        if(!instant.LessThanZero()){
-            DateTime OldStartTime(instanttype);
-            OldStartTime.Equalize(&startTime);
-              
-            // an leftinfinite periodic moves end at instant ZERO
-            // if the splitpoints is equals or after ZERO, the 
-            // periodic move just goes into the leftPart. 
-            // copy submove to the left part
-            DateTime endInstant = ZeroTime + smlength; 
-            splitRec(endInstant, true, leftPart, rightPart, PM.submove, 
-                     ZeroTime, SMLeft, SMRight);
-            // now, copy alos the periodic move into leftPart
-            PM.submove =SMLeft;
-            if(instant.IsZero())
-                PM.interval.SetRightClosed(toLeft);
-            SMRight.arrayNumber = -1;
-            SMLeft.arrayNumber = PERIOD;
-            SMLeft.arrayIndex = leftPart.periodicMoves.Size();
-            leftPart.periodicMoves.Append(PM);
-            // by the recursive call of this functio to the submove, the
-            // startTime was been changed. But for this periodic move this
-            // behavoir is wrong and we correct this here
-            startTime.Equalize(&startTime);
-            return; 
-       }
-       // the complicated case, we have to split this submove
-       // in each case, this periodic move has to been copied to
-       // the left part.  
-       DateTime endInstant = ZeroTime + smlength; 
-       splitRec(endInstant, true, leftPart, rightPart, PM.submove, 
-                ZeroTime, SMLeft, SMRight);
-       // now, copy alos the periodic move into leftPart
-       PM.submove=SMLeft;
-       // compute time which must be part of the right move
-       DateTime rightLength = ZeroTime - instant;
-       DateTime remainder(durationtype);
-       bool overflow=false;
-       long number = rightLength.Div(smlength,remainder,overflow); 
-       if(remainder.IsZero()){ // this periodic move is split exacly between two
-                             // periods
-          PM.interval.SetRightClosed(toLeft);
-          SMLeft.arrayNumber = PERIOD;
-          SMLeft.arrayIndex = leftPart.periodicMoves.Size();
-          leftPart.periodicMoves.Append(PM);
-          // long must be at leat 1, thereby we have to copy the submove 
-          // to rightPart
-          if(number<2){ // no repeatation on the right side
-             splitRec(ZeroTime,toLeft,leftPart,rightPart,PM.submove,
-                      ZeroTime,SMLeft,SMRight);
-             ZeroTime.SetToZero();
-             startTime.Equalize(&ZeroTime);
-             return; // the submove is the result of this call
-          } else{ // at least one repeatation
-             splitRec(ZeroTime,sminterval.IsRightClosed(), leftPart,
-                      rightPart,PM.submove,ZeroTime,SMLeft,SMRight);
-             ZeroTime.SetToZero();
-             startTime.SetToZero();
-             PM.submove = SMRight;
-             DateTime WholeLength = smlength * number;
-             PM.interval.Set(&WholeLength, sminterval.IsLeftClosed(), toLeft);
-             SMRight.arrayNumber = PERIOD;
-             SMRight.arrayIndex = rightPart.periodicMoves.Size();
-             rightPart.periodicMoves.Append(PM);
-             return;
-          }
-       }
-       // there is a remainder, so we have to create composite moves from the 
-       // periodic obe and the splitted submove
-       // .. first, we create the infinite left move at the left part
-       splitRec(ZeroTime, sminterval.IsRightClosed(), leftPart,
-                rightPart, PM.submove, ZeroTime, SMLeft, SMRight);
-       // now, we create the infinite periodic move at left
-       PM.submove = SMLeft;
-       leftPart.periodicMoves.Append(PM);
-       // we split the remainder to the left and the right
-       ZeroTime.SetToZero();
-       DateTime CopyInstant;
-       CopyInstant.Equalize(&instant);
-       DateTime NewStartTime = instant - smlength*number;
-       splitRec(ZeroTime, toLeft, leftPart, rightPart, PM.submove, NewStartTime,SMLeft,SMRight);
-       // make the left part done creating a composite move
-       CompositeMove CM;
-       
-       CM.minIndex = leftPart.compositeSubMoves.Size();
-       SubMove SM1;
-       SM1.arrayNumber = PERIOD;
-       SM1.arrayIndex = leftPart.periodicMoves.Size();
-       leftPart.compositeSubMoves.Append(SM1);
-       CM.maxIndex = leftPart.compositeSubMoves.Size();
-       leftPart.compositeSubMoves.Append(SMLeft);
-       SMLeft.arrayNumber = COMPOSITE;
-       SMLeft.arrayIndex = leftPart.compositeMoves.Size();
-       leftPart.compositeMoves.Append(CM);
-       
-       // handle the right part of the splitted infinitite move
-       if(number<2){ // no repeatation left
-          if(number<1) // we are done because nothing left
-             return;
-          else{ // we have a single period
-             if(SMRight.arrayNumber==COMPOSITE){
-               // we don't have to create a new composite move because we can reuse
-               // the existing one
-                
-             }
-
-          }
-       }else{ // we have to build a composite move from the splitted one
-              // and the remaining periods
-
-       }
-        
-
-
-     }  
-     // infinite moves done 
-
 
 
      sminterval.StoreLength(smlength);
@@ -3000,32 +2828,7 @@ Second, handling of composite moves
        const PeriodicMove* PM;
        periodicMoves.Get(submove.arrayIndex,PM);
        DateTime dur = instant-startTime;
-       // first, we handle leftinfinite moves
        
-       if(PM->interval.IsLeftInfinite()){
-          // don't care where the instant is, in each case
-          // an infinite periodic move is on the  left side
-          
-          // first, we have to copy the submove, thereto we 
-          // change the starttime in this way that the complete
-          // submoves is copyied
-          RelInterval subinterval;
-          GetInterval(PM->submove,subinterval);
-          DateTime newStart(instanttype);
-          DateTime sublength(durationtype);
-          subinterval.StoreLength(sublength);
-          newStart -= sublength; 
-          // if we set the starttime to -sublength and use a 
-          // split instant at zero, the complete submove is copyied
-          // into the LeftPart
-          DateTime newSplit(instanttype);
-          SplitLeftRec(newSplit,true,result,PM->submove,newStart,lastSubmove); 
-          // now we store the overlying periodic move
-          
-
-       }
-        
-
    }
    assert(false); // the program should never reach this position
 
@@ -3698,21 +3501,12 @@ should be set to false.
          return false;
        }
        int rep = nl->IntValue(nl->First(value));
-       // rep must be greater than 1 or one of the special cases
-       // LEFTINFINITE RIGHTINFINITE
-       if(rep<=1 && rep!=LEFTINFINITE && rep!=RIGHTINFINITE){
+       // rep must be greater than 1 
+       if(rep<=1 ){
           if(DEBUG_MODE){
              cerr << __POS__ <<  " wrong number of repeatations" << endl;
           }
           return false;
-       }
-       // in the case of leftinfinity this period move has to be the
-       // first move
-       if(rep==LEFTINFINITE){
-         if(LMIndex>0) return false;
-         if(PMIndex>0) return false;
-         if(CMIndex>1) return false;
-         if(SMIndex>0) return false;
        }
        
        ListExpr SML;
@@ -3745,15 +3539,8 @@ should be set to false.
          const Unit* LM=NULL;
          linearMoves.Get(LMPos,LM);
          RelInterval SMI = LM->interval;
-         // we have to treat the special cases of infinity
-         if(rep==LEFTINFINITE)
-            PM.interval.SetLeftInfinite(SMI.IsRightClosed());
-         else if(rep==RIGHTINFINITE)
-            PM.interval.SetRightInfinite(SMI.IsLeftClosed());
-         else{ // the normal case of finity
-            PM.interval.Equalize(&SMI);
-            PM.interval.Mul(rep);
-         }
+         PM.interval.Equalize(&SMI);
+         PM.interval.Mul(rep);
          if(len==4){
              ListExpr LC = nl->Second(value);
              ListExpr RC = nl->Third(value);
@@ -3779,14 +3566,8 @@ should be set to false.
          const CompositeMove* CM=NULL;
          compositeMoves.Get(CMPos,CM);
          RelInterval SMI = CM->interval;
-         if(rep==LEFTINFINITE)
-            PM.interval.SetLeftInfinite(SMI.IsRightClosed());
-         else if(rep==RIGHTINFINITE)
-            PM.interval.SetRightInfinite(SMI.IsLeftClosed());
-         else{ // the normal case of finity
-            PM.interval.Equalize(&SMI);
-            PM.interval.Mul(rep);
-         }
+         PM.interval.Equalize(&SMI);
+         PM.interval.Mul(rep);
          if(len==4){
              ListExpr LC = nl->Second(value);
              ListExpr RC = nl->Third(value);
@@ -4321,11 +4102,13 @@ class PMPoint : public StandardAttribute {
      DateTime GetEnd()const;
      PInterval GetInterval()const;
      PBBox GetBbox()const;
-     MPoint Expand(const int infinite);
+     MPoint Expand();
      void ReadFromMPoint(MPoint& P);
      PMInt9M* Toprel(const Point P); 
      PMInt9M* Toprel(Points& P);
      bool DistanceTo(const double x, const double y, PMReal& result)const;
+     bool CheckCorrectness();
+
   private:
      DBArray<LinearPointMove> linearMoves;
      DBArray<SpatialCompositeMove> compositeMoves;
@@ -4363,11 +4146,9 @@ class PMPoint : public StandardAttribute {
                                     int &Lcount,int &Ccount,
                                     int &Scount,int &Pcount);
 
-     bool CheckCorrectness();
-     void AppendUnits(MPoint& P, DateTime* Time, const SubMove S,
-                      const int infinite);
-     int NumberOfExpandedUnits(const int infinite);
-     int NumberOfExpandedUnits(const SubMove S,const int infinite);
+     void AppendUnits(MPoint& P, DateTime* Time, const SubMove S);
+     int NumberOfExpandedUnits();
+     int NumberOfExpandedUnits(const SubMove S);
      LinearPointMove GetLastUnit();
      bool FillFromRepTree(int& cpos, int& cspos, int& ppos, RepTree TR);
 
@@ -5285,33 +5066,7 @@ PInterval* PInterval::Clone() const{
    return clone;
 }
 
-/*
-~Open~
 
-This function reads the value of this Interval from valueRecord.
-
-[3] O(1)
-
-*/
-void PInterval::Open(SmiRecord& valueRecord,size_t& offset,
-                     const ListExpr typeInfo){
-   __TRACE__
-  ReadFromSmiRecord(valueRecord,offset);
-}
-
-/*
-~Save~
-
-This function writes the value of this Interval to valueRecord.
-
-[3]  O(1)
-
-*/
-void PInterval::Save(SmiRecord& valueRecord,size_t& offset,
-                     const ListExpr typeInfo){
-   __TRACE__
-  WriteToSmiRecord(valueRecord,offset);
-}
 
 /*
 ~CompareTo~
@@ -5488,16 +5243,6 @@ bool PInterval::IsLeftClosed()const {
   return relinterval.IsLeftClosed();
 }
 
-/*
-~IsLeftInfinite~
-
-[3] O(1)
-
-*/
-bool PInterval::IsLeftInfinite()const{
-   __TRACE__
-  return relinterval.IsLeftInfinite();
-}
 
 /*
 ~IsRightClosed~
@@ -5508,16 +5253,6 @@ bool PInterval::IsLeftInfinite()const{
 bool PInterval::IsRightClosed()const{
    __TRACE__
   return relinterval.IsRightClosed();
-}
-/*
-~IsRightInfinite~
-
-[3] O(1)
-
-*/
-bool PInterval::IsRightInfinite()const{
-   __TRACE__
-  return relinterval.IsRightInfinite();
 }
 
 /*
@@ -5579,31 +5314,7 @@ bool PInterval::Set(const DateTime* startTime, const DateTime* length,
     return true;
 }
 
-/*
-~SetLeftInfinite~
 
-Sets this Interval to (-[infty], startTime).
-
-[3] O(1)
-
-*/
-bool PInterval::SetLeftInfinite(const bool rightClosed){
-   __TRACE__
-   return relinterval.SetLeftInfinite(rightClosed);
-}
-
-/*
-~SetLeftRightInfinite~
-
-Sets this interval to (-[infty], [infty]).
-
-[3] O(1)
-
-*/
-bool PInterval::SetLeftRightInfinite(){
-   __TRACE__
-   return relinterval.SetLeftRightInfinite();
-}
 
 /*
 ~SetLength~
@@ -5616,19 +5327,6 @@ Sets a new length for this interval.
 bool PInterval::SetLength(const DateTime* T){
    __TRACE__
    return relinterval.SetLength(T);
-}
-
-/*
-~SetRightInfinite~
-
-Sets this interval to (startTime, [infty]).
-
-[3] O(1)
-
-*/
-bool PInterval::SetRightInfinite(const bool leftClosed){
-   __TRACE__
-   return relinterval.SetRightInfinite(leftClosed);
 }
 
 /*
@@ -5646,19 +5344,12 @@ string PInterval::ToString()const {
       ss << "[";
    else
       ss << "]";
-   if(IsLeftInfinite())
-      ss << "**";
-   else
-      ss << startTime.ToString();
+   ss << startTime.ToString();
    ss << ",";
-   if(IsRightInfinite())
-      ss << "**";
-   else{
-     DateTime* end = GetEnd();
-     ss << end->ToString();
-     delete end;
-     end = NULL;
-   }
+   DateTime* end = GetEnd();
+   ss << end->ToString();
+   delete end;
+   end = NULL;
    if(IsRightClosed())
       ss << "]";
    else
@@ -5666,71 +5357,6 @@ string PInterval::ToString()const {
   return ss.str();
 }
 
-/*
-~WriteToSmiRecord~
-
-This functions writes this Interval to valueRecord.
-
-[3] O(1)
-
-*/
-void PInterval::WriteToSmiRecord(SmiRecord& valueRecord,size_t& offset)const{
-   __TRACE__
-   startTime.WriteToSmiRecord(valueRecord,offset);
-    relinterval.WriteToSmiRecord(valueRecord,offset);
-}
-
-/*
-~ReadFromSmiRecord~
-
-This function reads this Interval from valueRecord.
-
-[3] O(1)
-
-*/
-void PInterval::ReadFromSmiRecord(SmiRecord& valueRecord,size_t& offset){
-   __TRACE__
-   startTime.ReadFromSmiRecord(valueRecord,offset);
-    relinterval.ReadFromSmiRecord(valueRecord,offset);
-}
-
-/*
-3.2 Implementation of the __SubMove__ class
-
-
-~WriteToSmiRecord~
-
-Writes the value of this submove to __valueRecord__ beginning at
-__offset__. The __offset__ attribute will be updated.
-
-[3] O(1)
-
-*/
-void SubMove::WriteToSmiRecord(SmiRecord& valueRecord, size_t& offset)const{
-   __TRACE__
-   valueRecord.Write(&arrayNumber,sizeof(int),offset);
-    offset += sizeof(int);
-    valueRecord.Write(&arrayIndex,sizeof(int),offset);
-    offset += sizeof(int);
-}
-
-
-/*
-~ReadFromSmiRecord~
-
-Reads the value of this submove to __valueRecord__ beginning at __offset__.
-The __offset__ attribute will be set behind the read data.
-
-[3] O(1)
-
-*/
-void SubMove::ReadFromSmiRecord(SmiRecord& valueRecord, size_t& offset){
-   __TRACE__
-   valueRecord.Read(&arrayNumber,sizeof(int),offset);
-    offset += sizeof(int);
-    valueRecord.Read(&arrayIndex,sizeof(int),offset);
-    offset += sizeof(int);
-}
 
 /*
 3.3 Implementation of the __LinearPointMove__ class
@@ -7064,88 +6690,7 @@ PBBox::PBBox(const double minX, const double minY,
   isEmpty = false;
 }
 
-/*
-~ReadFromSmiRecord~
 
-This function reads the value of this PBBox from the given smirecord
-beginning at the given offset. After calling this function offset will
-constains its old value plus the data size of the pbbox.
-
-[3] O(1)
-
-*/
-void PBBox::ReadFromSmiRecord(SmiRecord& valueRecord, size_t& offset){
-  __TRACE__
-  valueRecord.Read(&minX,sizeof(double),offset);
-  offset += sizeof(double);
-  valueRecord.Read(&maxX,sizeof(double),offset);
-  offset += sizeof(double);
-  valueRecord.Read(&minY,sizeof(double),offset);
-  offset += sizeof(double);
-  valueRecord.Read(&maxY,sizeof(double),offset);
-  offset += sizeof(double);
-  valueRecord.Read(&defined,sizeof(bool),offset);
-  offset += sizeof(bool);
-  valueRecord.Read(&isEmpty,sizeof(bool),offset);
-  offset += sizeof(bool);
-}
-
-
-/*
-~WriteToSmiRecord~
-
-This function writes the value of this PBBox to the given smirecord
-beginning at the given offset. After calling this function offset will
-constains its old value plus the data size of the pbbox.
-
-[3] O(1)
-
-*/
-void PBBox::WriteToSmiRecord(SmiRecord& valueRecord, size_t& offset)const {
-   __TRACE__
-  valueRecord.Write(&minX,sizeof(double),offset);
-  offset += sizeof(double);
-  valueRecord.Write(&maxX,sizeof(double),offset);
-  offset += sizeof(double);
-  valueRecord.Write(&minY,sizeof(double),offset);
-  offset += sizeof(double);
-  valueRecord.Write(&maxY,sizeof(double),offset);
-  offset += sizeof(double);
-  valueRecord.Write(&defined,sizeof(bool),offset);
-  offset += sizeof(bool);
-  valueRecord.Write(&isEmpty,sizeof(bool),offset);
-  offset += sizeof(bool);
-}
-
-
-/*
-~Open~
-
-The ~Open~ function reads the contentt of an bounding box from the
-given SmiRecord.
-
-[3] O(1)
-
-*/
-void PBBox::Open(SmiRecord& valueRecord,size_t& offset, 
-                 const ListExpr typeInfo){
-    __TRACE__
-  ReadFromSmiRecord(valueRecord,offset);
-}
-
-/*
-~Save~
-
-This functions writes the content of this bounding box to __valueRecord__.
-
-[3] O(1)
-
-*/
-void PBBox::Save(SmiRecord& valueRecord,size_t& offset,
-                 const ListExpr typeInfo){
-    __TRACE__
-  WriteToSmiRecord(valueRecord,offset);
-}
 
 
 /*
@@ -7636,8 +7181,6 @@ This constructor creates a defined single instant with length 0.
 RelInterval::RelInterval(int dummy){
     __TRACE__
    length = DateTime(durationtype);
-   leftInfinite=false;
-   rightInfinite=false;
    leftClosed=true;
    rightClosed=true;
    defined=true;
@@ -7660,8 +7203,6 @@ RelInterval::RelInterval(const DateTime* length, const bool leftClosed,
   int comp=length->CompareTo(&Zero);
   assert(comp>=0);
   assert(comp>0 || (leftClosed && rightClosed));
-  this->leftInfinite=false;
-  this->rightInfinite=false;
   this->leftClosed=leftClosed;
   this->rightClosed=rightClosed;
   this->length.Equalize(length);
@@ -7695,8 +7236,6 @@ This function checks whether D2 can appended to this RelInterval.
 */
 bool RelInterval::CanAppended(const RelInterval* D2)const {
     __TRACE__
-  if(rightInfinite || D2->leftInfinite )
-      return false;
   if(rightClosed)
      return ! D2->leftClosed;
   else
@@ -7706,9 +7245,7 @@ bool RelInterval::CanAppended(const RelInterval* D2)const {
 /*
 ~Contains~
 
-Checks whether T is contained in this RelInterval when this
-RelInterval is interpreted as an interval beginning in zero,
-possible leftinfinite.
+Checks whether T is contained in this RelInterval 
 
 [3] O(1)
 
@@ -7718,11 +7255,9 @@ bool RelInterval::Contains(const DateTime* T)const {
   DateTime Zero=DateTime(durationtype);
    int compz = T->CompareTo(&Zero);
    if(compz<0)
-     return leftInfinite;
+     return false;
    if(compz==0)
      return leftClosed;
-   if(rightInfinite)
-      return true;
    int compe = T->CompareTo(&length);
    if(compe<0)
       return true;
@@ -7735,16 +7270,12 @@ bool RelInterval::Contains(const DateTime* T)const {
 ~Mul~
 
 This functions extends this relinterval to be factor[mul]oldlength.
-If this relinterval is allready infinite, this operation will
-make nothing.
 
 [3] O(1)
 
 */
 void RelInterval::Mul(const long factor){
     __TRACE__
- if(leftInfinite || rightInfinite)
-     return;
   length.Mul(factor);
 }
 
@@ -7779,15 +7310,8 @@ int RelInterval::CompareTo(const RelInterval* D2)const {
   if(!defined && D2->defined) return -1;
   if(defined && !D2->defined) return 1;
   // at this point both involved intervals are defined
-  if(leftInfinite && !D2->leftInfinite) return -1;
-  if(!leftInfinite && D2->leftInfinite) return 1;
-  // at this pouint both intervals have the same value for leftInfinite
   if(leftClosed && !D2->leftClosed) return -1;
   if(!leftClosed && D2->leftClosed) return 1;
-  if(rightInfinite && D2->rightInfinite) return 0;
-  if(!rightInfinite && D2->rightInfinite) return -1;
-  if(rightInfinite && !D2->rightInfinite) return 1;
-  // both intervals are not rightinfinite
   int tc = length.CompareTo(&(D2->length));
   if(tc!=0) return tc;
   if(!rightClosed && D2->rightClosed) return -1;
@@ -7831,84 +7355,10 @@ void RelInterval::CopyFrom(const StandardAttribute* arg){
 */
 size_t RelInterval::HashValue() const{
     __TRACE__
- if(leftInfinite && rightInfinite) return (size_t) 0;
   size_t lhv = length.HashValue();
-  if(leftInfinite) lhv = lhv +1;
-  if(rightInfinite) lhv = lhv +1;
   if(leftClosed) lhv = lhv +1;
-  if(rightInfinite) lhv = lhv +1;
+  if(rightClosed) lhv = lhv +1;
   return lhv;
-}
-
-/*
-~ReadFromSmiRecord~
-
-[3] O(1)
-
-*/
-void RelInterval::ReadFromSmiRecord(SmiRecord& valueRecord, size_t& offset){
-    __TRACE__
-  length.ReadFromSmiRecord(valueRecord,offset);
-   valueRecord.Read(&leftInfinite,sizeof(bool),offset);
-   offset += sizeof(bool);
-   valueRecord.Read(&rightInfinite,sizeof(bool),offset);
-   offset += sizeof(bool);
-   valueRecord.Read(&leftClosed,sizeof(bool),offset);
-   offset += sizeof(bool);
-   valueRecord.Read(&rightClosed,sizeof(bool),offset);
-   offset += sizeof(bool);
-   valueRecord.Read(&defined,sizeof(bool),offset);
-   offset += sizeof(bool);
-   valueRecord.Read(&canDelete,sizeof(bool),offset);
-   offset += sizeof(bool);
-}
-
-/*
-~Open~
-
-[3] O(1)
-
-*/
-void RelInterval::Open(SmiRecord& valueRecord,size_t& offset,
-                       const ListExpr typeInfo){
-    __TRACE__
-   ReadFromSmiRecord(valueRecord,offset);
-}
-
-/*
-~WriteToSmiRecord~
-
-[3] O(1)
-
-*/
-void RelInterval::WriteToSmiRecord(SmiRecord& valueRecord,
-                                   size_t& offset)const {
-    __TRACE__
-  length.WriteToSmiRecord(valueRecord,offset);
-   valueRecord.Write(&leftInfinite,sizeof(bool),offset);
-   offset += sizeof(bool);
-   valueRecord.Write(&rightInfinite,sizeof(bool),offset);
-   offset += sizeof(bool);
-   valueRecord.Write(&leftClosed,sizeof(bool),offset);
-   offset += sizeof(bool);
-   valueRecord.Write(&rightClosed,sizeof(bool),offset);
-   offset += sizeof(bool);
-   valueRecord.Write(&defined,sizeof(bool),offset);
-   offset += sizeof(bool);
-   valueRecord.Write(&canDelete,sizeof(bool),offset);
-   offset += sizeof(bool);
-}
-
-/*
-~Save~
-
-[3] O(1)
-
-*/
-void RelInterval::Save(SmiRecord& valueRecord,size_t& offset,
-                       const ListExpr typeInfo){
-    __TRACE__
-   WriteToSmiRecord(valueRecord,offset);
 }
 
 
@@ -7954,59 +7404,7 @@ value is always true.
 bool RelInterval::Split(const DateTime duration, const bool closeFirst,
                         RelInterval& Rest){
 
-  if(leftInfinite){
-    if(rightInfinite){
-       // ignore duration, split the intervals at zero
-       Rest.Equalize(this);
-       this->rightClosed=closeFirst;
-       Rest.leftClosed=!closeFirst;
-       this->rightInfinite=false;
-       Rest.leftInfinite=false;  
-       return true;
-    }
-    // this interval ends at time zero
-    Rest.rightClosed = this->rightClosed;
-    Rest.leftInfinite=false;
-    Rest.rightInfinite=false;
-    Rest.leftClosed = closeFirst; 
-    rightClosed=closeFirst; 
-    // we have to compute the length of the rest
-    if(duration.LessThanZero()){
-       Rest.length.Equalize(&duration);
-       Rest.length.Abs(); 
-       Rest.defined=true;
-       return true;
-    }else if(duration.IsZero()){
-       if(Rest.leftClosed && Rest.rightClosed){
-           Rest.defined=true;
-           Rest.length.Equalize(&duration); // duration is zero
-           return true;
-       } else{ // splitpoint right of the interval
-           Rest.defined = false;
-           return true;
-       }
-    } else{ //duration outside this interval
-         Rest.defined=false;
-         return true;
-    }
-  }
 
-  if(this->rightInfinite){
-    if(duration.LessThanZero()){ // duration left of this interval
-       Rest.Equalize(this);
-       this->defined=false;
-       return true;
-    }
-    Rest.Equalize(this);
-    this->rightClosed=closeFirst;
-    this->length.Equalize(&duration);
-    Rest.leftClosed=!closeFirst;
-    if(duration.IsZero()){
-      // from this instant remains  at most a single instant
-      this->defined = this->leftClosed && this->rightClosed;
-    }    
-    return true;
-  }
   // at this point all cases with unbounded intervals are processed
 
    // duration left of this interval
@@ -8036,8 +7434,6 @@ bool RelInterval::Split(const DateTime duration, const bool closeFirst,
    } 
   // the splitting instance is inside this interval
    Rest.length = this->length - duration;
-   Rest.leftInfinite= false;
-   Rest.rightInfinite=false;
    Rest.rightClosed=this->rightClosed;
    Rest.leftClosed=!closeFirst;
    this->length = duration;
@@ -8058,8 +7454,6 @@ the value of D2.
 void RelInterval::Equalize(const RelInterval* D2){
     __TRACE__
  length.Equalize(&(D2->length));
-  leftInfinite=D2->leftInfinite;
-  rightInfinite=D2->rightInfinite;
   leftClosed=D2->leftClosed;
   rightClosed=D2->rightClosed;
 }
@@ -8067,8 +7461,8 @@ void RelInterval::Equalize(const RelInterval* D2){
 /*
 ~GetLength~
 
-This function returns a clone of the contained time value. In the cases
-of left- or right infinity the result will be wrong. Note that this function
+This function returns a clone of the contained time value.
+Note that this function
 creates a new DateTime instance. The caller of this function has to make free the
 memory occupied by this instance after using it.
 
@@ -8086,10 +7480,8 @@ DateTime* RelInterval::GetLength() const {
 ~StoreLength~
 
 This function stored the length of this interval in the argument of this function.
-The advantage of this functio  in contrast to the GetLength function is that
-no memory is allocated by this function. In case of an infinite interval, the result
-will contain an unspecified value.
- 
+The advantage of this function  in contrast to the GetLength function is that
+no memory is allocated by this function. 
 
 */
 void RelInterval::StoreLength(DateTime& result) const{
@@ -8111,24 +7503,17 @@ This function computes the list representation of this RelInterval value.
 ListExpr RelInterval::ToListExpr(const bool typeincluded)const{
   __TRACE__
   ListExpr time;
-  if(rightInfinite)
-    time = nl->TheEmptyList();
-  else
-     time = length.ToListExpr(true);
+  time = length.ToListExpr(true);
   if(typeincluded)
        return nl->TwoElemList(nl->SymbolAtom("rinterval"),
-                   nl->FiveElemList(
+                   nl->ThreeElemList(
                        nl->BoolAtom(leftClosed),
                        nl->BoolAtom(rightClosed),
-                       nl->BoolAtom(leftInfinite),
-                       nl->BoolAtom(rightInfinite),
                        time));
    else
-      return nl->FiveElemList(
+      return nl->ThreeElemList(
                    nl->BoolAtom(leftClosed),
                    nl->BoolAtom(rightClosed),
-                   nl->BoolAtom(leftInfinite),
-                   nl->BoolAtom(rightInfinite),
                    time);
 }
 
@@ -8147,19 +7532,6 @@ bool RelInterval::IsLeftClosed()const{
 }
 
 /*
-~IsLeftInfinite~
-
-This functions returns true iff the interval is infinite in the past.
-
-[3] O(1)
-
-*/
-bool RelInterval::IsLeftInfinite()const{
-    __TRACE__
-  return leftInfinite;
-}
-
-/*
 ~IsRightClosed~
 
 This function will return true iff the interval is right closed.
@@ -8172,18 +7544,6 @@ bool RelInterval::IsRightClosed()const{
  return rightClosed;
 }
 
-/*
-~IsRightInfinite~
-
-This function indicates whether this RelInterval is infinite in the future.
-
-[3] O(1)
-
-*/
-bool RelInterval::IsRightInfinite()const{
-    __TRACE__
- return rightInfinite;
-}
 
 /*
 ~ReadFrom~
@@ -8217,7 +7577,7 @@ bool RelInterval::ReadFrom(const ListExpr LE, const bool typeincluded){
       V = nl->Second(LE);
    } else
      V = LE;
-   if(nl->ListLength(V)!=5){
+   if(nl->ListLength(V)!=3){
        if(DEBUG_MODE)
           cerr << __POS__ << ": wrong length for interval" << endl;
        return false;
@@ -8232,28 +7592,14 @@ bool RelInterval::ReadFrom(const ListExpr LE, const bool typeincluded){
         cerr << __POS__ << ": wrong type in interval" << endl;
      return false;
    }
-   if(nl->AtomType(nl->Third(V))!=BoolType){
-      if(DEBUG_MODE)
-        cerr << __POS__ << ": wrong type in interval" << endl;
-      return false;
-   }
-   if(nl->AtomType(nl->Fourth(V))!=BoolType){
-      if(DEBUG_MODE)
-        cerr << __POS__ << ": wrong type in interval" << endl;
-      return false;
-   }
-   bool LC = nl->BoolValue(nl->First(V));
-   bool RC = nl->BoolValue(nl->Second(V));
-   bool LI = nl->BoolValue(nl->Third(V));
-   bool RI = nl->BoolValue(nl->Fourth(V));
    DateTime time=DateTime(durationtype);
-   if(!RI){
-      if(!(time.ReadFrom(nl->Fifth(V),true))){
+   if(!(time.ReadFrom(nl->Third(V),true))){
          if(DEBUG_MODE)
            cerr << __POS__ << ": error in reading length of interval" << endl;
          return false;
-      }
    }
+   bool LC = nl->BoolValue(nl->First(V));
+   bool RC = nl->BoolValue(nl->Second(V));
    // a single instant has to be both left- and rightclosed
    if( (time.IsZero()) && (!LC || !RC)){
      if(DEBUG_MODE)
@@ -8262,10 +7608,7 @@ bool RelInterval::ReadFrom(const ListExpr LE, const bool typeincluded){
    }
    leftClosed=LC;
    rightClosed=RC;
-   rightInfinite=RI;
-   leftInfinite=LI;
-   if(!RI)
-      length.Equalize(&time);
+   length.Equalize(&time);
    
    return true;
 }
@@ -8286,12 +7629,10 @@ bool RelInterval::Set(const DateTime* length, const bool leftClosed,
                       const bool rightClosed){
     __TRACE__
  if((length->IsZero()) && (!leftClosed || !rightClosed)) return false;
-  this->rightInfinite=false;
-  this->leftInfinite=false;
-  this->leftClosed=leftClosed;
-  this->rightClosed=rightClosed;
-  this->length.Equalize(length);
-  return true;
+ this->leftClosed=leftClosed;
+ this->rightClosed=rightClosed;
+ this->length.Equalize(length);
+ return true;
 }
 
 
@@ -8300,26 +7641,20 @@ bool RelInterval::Set(const DateTime* length, const bool leftClosed,
 
 
 This function sets the closure of this interval at its left end.
-When this interval is identified to be leftinfinite, the call 
-of this function is ignored.
 
 */
 void RelInterval::SetLeftClosed(bool LC){
-   if(this->leftInfinite)
-      return;
    this->leftClosed = LC;
 }  
 
 /*
 ~SetRightClosed~
 
-This function works like the function ~SetRightClosed~ but for the
+This function works like the function ~SetLeftClosed~ but for the
 right end of this interval.
 
 */
 void RelInterval::SetRightClosed(bool RC){
-   if(this->rightInfinite)
-      return;
    this->rightClosed = RC;
 }  
 
@@ -8332,51 +7667,12 @@ this two functions.
 
 */
 void RelInterval::SetClosure(bool LC,bool RC){
-   if(!this->leftInfinite)
-       this->leftClosed = LC;
-   if(!this->rightInfinite)
-       this->rightClosed = RC;
-
+   this->leftClosed = LC;
+   this->rightClosed = RC;
 }
 
 
 
-/*
-~SetLeftInfinite~
-
-This functions sets this instance of RelInterval to exists
-from -[infty] to 0, with the given value of right closeness.
-This function returns allways true.
-
-[3] O(1)
-
-*/
-bool RelInterval::SetLeftInfinite(const bool rightClosed){
-    __TRACE__
-  this->leftInfinite=true;
-   this->rightInfinite=false;
-   this->leftClosed=false;
-   this->rightClosed=rightClosed;
-   return true;
-}
-
-/*
-~SetLeftRighhtInfinite~
-
-Sets the value of this instance to be infinite in both, in the past and
-in the future and returns __true__.
-
-[3] O(1)
-
-*/
-bool RelInterval::SetLeftRightInfinite(){
-    __TRACE__
-  this->leftInfinite=true;
-   this->rightInfinite=true;
-   this->leftClosed=false;
-   this->rightClosed=false;
-   return true;
-}
 
 /*
 ~SetLength~
@@ -8390,29 +7686,11 @@ is returned.
 */
 bool RelInterval::SetLength(const DateTime* T){
     __TRACE__
-  if(rightInfinite) return false;
    if(T->IsZero() && (!leftClosed || !rightClosed)) return false;
    length.Equalize(T);
    return true;
 }
 
-/*
-~SetRightInfinite~
-
-This functions sets this RelInterval to be from 0 to [infty]
-and returns true;
-
-[3] O(1)
-
-*/
-bool RelInterval::SetRightInfinite(const bool leftClosed){
-    __TRACE__
-  this->leftInfinite=false;
-   this->rightInfinite=true;
-   this->leftClosed=leftClosed;
-   this->rightClosed=false;
-   return true;
-}
 
 /*
 ~ToString~
@@ -8426,14 +7704,8 @@ string RelInterval::ToString()const{
     __TRACE__
   ostringstream tmp;
    tmp << (leftClosed?"[":"]");
-   if(leftInfinite)
-      tmp << "<< , ";
-   else
-      tmp << " 0.0 , ";
-   if(rightInfinite)
-      tmp << " >>";
-   else
-       tmp << length.ToString();
+   tmp << " 0.0 , ";
+   tmp << length.ToString();
    tmp << (rightClosed?"]":"[");
    return tmp.str();
 }
@@ -8451,7 +7723,6 @@ is returned.
 */
 double RelInterval::Where(const DateTime* T)const{
     __TRACE__
- if(leftInfinite | rightInfinite) return -1;
   if(length.CompareTo(T)<0)
      return -1;
   if(T->LessThanZero()) return -1;
@@ -8464,18 +7735,14 @@ double RelInterval::Where(const DateTime* T)const{
 /*
 ~Plus~
 
-This function  adds the argument to this interval. If this interval
-is rghtinfinity, no addition of a length is possible and the function
-returns false. The 'weld point' is included to the new interval regardless
+This function  adds the argument to this interval. 
+The 'weld point' is included to the new interval regardless
 to the closure properties of the source intervals. The closure on the
 left of this interval will not be changed and the closure on the 
 right is taken from the argument.
 
 */
 bool RelInterval::Plus(const RelInterval* I){
-  if(rightInfinite)
-    return false;
-  rightInfinite=I->rightInfinite;
   rightClosed = I->rightClosed;
   length.Add(&(I->length));
   return true;
@@ -8811,8 +8078,9 @@ ListExpr PMPoint::GetSubMoveList(const SubMove* SM)const{
   else if(SubMoveType==PERIOD)
       SubMoveList = GetSpatialPeriodicMoveList(index);
   else{
+       cerr << "unknown submove type detected" << SubMoveType << endl;
        cerr << __POS__ << " Error in creating ListExpr" << endl;
-       SubMoveList = nl->TheEmptyList();
+       assert(false);
    }
   return SubMoveList;
 }
@@ -8909,9 +8177,9 @@ in this list.
 bool PMPoint::ReadFrom(const ListExpr value){
     __TRACE__
  /* The list is scanned twice. In the first scan we
-     compute only the needed size of the contained arrays. The reason is,
-     that we want to avoid frequently ~Resize~ on the arrays to ensure the
-     given time complexity.
+     compute only the needed size for each of the  contained arrays. 
+     This is done to avoid a frequently resize of the arrays which 
+     would lead to a lot of overhead for copying the contents.
   */
 
   if(nl->ListLength(value)!=2){
@@ -8930,6 +8198,7 @@ bool PMPoint::ReadFrom(const ListExpr value){
      SetDefined(false);
      return false;
   }
+
   if(!startTime.ReadFrom(nl->First(value),true)){
      if(DEBUG_MODE){
         cerr << __POS__ << "reading of the start time failed" << endl;
@@ -8949,6 +8218,7 @@ bool PMPoint::ReadFrom(const ListExpr value){
      return false;
   }
 
+  // get the submove type
   ListExpr SMT = nl->First(SML);
   int LMIndex = 0;
   int CMIndex = 0;
@@ -8965,13 +8235,15 @@ bool PMPoint::ReadFrom(const ListExpr value){
          return false;
      }
      defined=true;
-
+     // read out the interval and the bounding box from the 
+     // created linear move
      const LinearPointMove* LM;
      linearMoves.Get(0,LM);
      interval.Equalize(&(LM->interval));
      bbox.Equalize(&(LM->bbox));
      return true;
   }
+
   if(nl->IsEqual(SMT,"composite")){
      submove.arrayNumber=COMPOSITE;
      submove.arrayIndex = 0;
@@ -8984,6 +8256,7 @@ bool PMPoint::ReadFrom(const ListExpr value){
         return false;
      }
      defined = true;
+     // get interval and bounding box from this move
      const SpatialCompositeMove* CM;
      compositeMoves.Get(0,CM);
      interval.Equalize(&(CM->interval));
@@ -9001,6 +8274,7 @@ bool PMPoint::ReadFrom(const ListExpr value){
         return false;
      }
      defined = true;
+     // get interval as well as bounding box
      const SpatialPeriodicMove* PM;
      periodicMoves.Get(0,PM);
      interval.Equalize(&(PM->interval));
@@ -9107,7 +8381,7 @@ void PMPoint::AddSubMovesSizeForIntersection(DateTime* startTime,
 /*
 ~CheckCorrectness~
 
-This function checks whether the representation if this
+This function checks whether the representation of this
 periodic moving point is correct. This means
 
   *  no directly nested composite moves exists
@@ -9123,25 +8397,102 @@ bool PMPoint::CheckCorrectness(){
   // check for directly nested composite moves
     __TRACE__
   const SubMove* SM;
-  for(int i=0; i<compositeSubMoves.Size();i++){
+  size_t linearSize = linearMoves.Size();
+  size_t periodSize = periodicMoves.Size();
+  size_t compositeSize = compositeMoves.Size();
+  size_t compositeSubSize = compositeSubMoves.Size();
+
+  for(size_t i=0; i<compositeSubSize;i++){
     compositeSubMoves.Get(i,SM);
-    if(SM->arrayNumber==COMPOSITE)
-       return false;
+    size_t an = SM->arrayNumber;
+    size_t index = SM->arrayIndex;
+    switch(an){
+      case COMPOSITE:
+          if(DEBUG_MODE){
+             cerr << __POS__ << "nested compositeMove detected" << endl;
+           }
+           return false;
+      case PERIOD:
+          if(index>=periodSize){
+             if(DEBUG_MODE){
+               cerr << __POS__ << "array index " << index 
+                    << "out of bounds " << periodSize << endl;
+             }
+             return false;
+          }
+          break;
+      case LINEAR:
+          if(index>=linearSize){
+             if(DEBUG_MODE){
+               cerr << __POS__ << "array index " << index 
+                    << "out of bounds " << linearSize << endl;
+             }
+             return false;
+          }
+          break;
+     default:
+          if(DEBUG_MODE){
+              cerr << __POS__ << "unknown submove found " << endl;
+          }
+          return false;     
+    } 
   }
+
   // check for direcly nested periodic moves
   const SpatialPeriodicMove* PM;
   for(int i=0; i<periodicMoves.Size();i++){
       periodicMoves.Get(i,PM);
-      if(PM->submove.arrayNumber==PERIOD)
+      int an = PM->submove.arrayNumber;
+      size_t index = PM->submove.arrayIndex;
+			switch(an){
+				case COMPOSITE:
+						if(index>=compositeSize){
+							 if(DEBUG_MODE){
+								 cerr << __POS__ << "array index " << index 
+											<< "out of bounds " << compositeSize << endl;
+							 }
+							 return false;
+						}
+				case PERIOD:
+             cerr << __POS__ << "nested periodic move detected" << endl;
+				     return false;
+				case LINEAR:
+						if(index>=linearSize){
+							 if(DEBUG_MODE){
+								 cerr << __POS__ << "array index " << index 
+											<< "out of bounds " << linearSize << endl;
+							 }
+							 return false;
+						}
+						break;
+			 default:
+						if(DEBUG_MODE){
+								cerr << __POS__ << "unknown submove found " << endl;
+						}
+						return false;     
+			}
+      if(PM->repeatations<2){
+         cerr << __POS__ << "invalid number of repetitions detected" << endl;
          return false;
+      } 
   }
 
   // check for composite moves with only one submove
   const SpatialCompositeMove* CM;
   for(int i=0;i<compositeMoves.Size();i++){
      compositeMoves.Get(i,CM);
-     if(CM->minIndex==CM->maxIndex)
+     if(CM->minIndex>=CM->maxIndex){
+        if(DEBUG_MODE){
+           cerr << __POS__ << "composite move with a single submove detected" << endl;
+        }
         return false;
+     }
+     if(CM->maxIndex>=(int)compositeSubSize){
+        if(DEBUG_MODE){
+           cerr << __POS__ << "invalid submove position detcetd" << endl;
+        }
+        return false;
+     }
   }
   return true;
 }
@@ -9194,12 +8545,16 @@ value of the p.m. point represented in the value list.
 bool PMPoint::AddSubMovesSize(const ListExpr value,int &LMSize,int &CMSize,
                               int &SMSize,int &PMSize){
     __TRACE__
-// all moves have the length 2
-if(nl->ListLength(value)!=2)
-   return false;
-ListExpr type = nl->First(value);
-if(nl->AtomType(type)!=SymbolType)
-  return false;
+   // all moves have the length 2
+   if(nl->ListLength(value)!=2){
+       return false;
+   }
+   ListExpr type = nl->First(value);
+
+   // the type has to be one of {linear, composite, period}
+   if(nl->AtomType(type)!=SymbolType){
+       return false;
+  }
   // in a linear move we have only to increment the size of LM
   if(nl->IsEqual(type,"linear")){
      LMSize = LMSize +1;
@@ -9208,8 +8563,8 @@ if(nl->AtomType(type)!=SymbolType)
   if(nl->IsEqual(type,"composite")){
      CMSize = CMSize+1; // the composite move itself
      ListExpr rest = nl->Second(value);
-     SMSize = SMSize+nl->ListLength(rest); // the contained submoves
      while(!nl->IsEmpty(rest)){
+        SMSize++; // a new submove
         if(!AddSubMovesSize(nl->First(rest),LMSize,CMSize,SMSize,PMSize))
            return false;
         rest = nl->Rest(rest);
@@ -9219,13 +8574,13 @@ if(nl->AtomType(type)!=SymbolType)
   if(nl->IsEqual(type,"period")){
      PMSize = PMSize+1;
      ListExpr PMove;
-     int len = nl->ListLength(PMove);
-     if(len==2)
+     int len = nl->ListLength(value);
+     if(len==2){
         PMove = nl->Second(value);
-     else if(len==4)
-        PMove = nl->Fourth(value);
-     else // invalid listlength
+     }
+     else{ // invalid listlength
         return false;
+     }
      return AddSubMovesSize(nl->Second(PMove),LMSize,CMSize,SMSize,PMSize);
   }
   // a unknown type description
@@ -9368,7 +8723,7 @@ bool PMPoint::AddSpatialCompositeMove(const ListExpr value,int &LMIndex,
    } else{ // not of type linear or period
       if(DEBUG_MODE){
           cerr << __POS__ 
-               << " submove not of type linear od period" 
+               << " submove not of type linear or period" 
                << endl;
        }
        return false;
@@ -9391,9 +8746,12 @@ This functions append the periodic move contained in the nested list
 bool PMPoint::AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
                              int &SMIndex, int &PMIndex){
 
-    __TRACE__
+  __TRACE__
+
+  cerr << "add a periodic move at index " << PMIndex << endl;
+
  int len = nl->ListLength(value); 
- if(len!=2 && len !=4){  // (repeatations <submove>) | (repeatations LC RC <submove>)
+ if(len!=2 ){  // (repeatations <submove>) 
     if(DEBUG_MODE)
        cerr << __POS__ << ": wrong listlength" << endl;
     return false;
@@ -9405,28 +8763,16 @@ bool PMPoint::AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
     return false;
  }
  int rep = nl->IntValue(nl->First(value));
- // rep must be greater than 1 or one of the special cases
- // LEFTINFINITE RIGHTINFINITE
- if(rep<=1 && rep!=LEFTINFINITE && rep!=RIGHTINFINITE){
+ // rep must be greater than 1 
+ if(rep<=1){
      if(DEBUG_MODE){
         cerr << __POS__ <<  " wrong number of repeatations" << endl;
      }
      return false;
  }
- // in the case of leftinfinity this period move has to be the
- // first move
- if(rep==LEFTINFINITE){
-    if(LMIndex>0) return false;
-    if(PMIndex>0) return false;
-    if(CMIndex>1) return false;
-    if(SMIndex>0) return false;
- }
 
  ListExpr SML;
- if(len ==2)
-     SML = nl->Second(value);
- else
-     SML = nl->Fourth(value);
+ SML = nl->Second(value);
  if(nl->ListLength(SML)!=2){
      if(DEBUG_MODE){
         cerr << __POS__ << ": wrong length for submove" << endl;
@@ -9452,15 +8798,8 @@ bool PMPoint::AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
     linearMoves.Get(LMPos,LM);
     PM.bbox.Equalize(&(LM->bbox));
     RelInterval SMI = LM->interval;
-    // we have to treat the special cases of infinity
-    if(rep==LEFTINFINITE)
-       PM.interval.SetLeftInfinite(SMI.IsRightClosed());
-    else if(rep==RIGHTINFINITE)
-       PM.interval.SetRightInfinite(SMI.IsLeftClosed());
-    else{ // the normal case of finity
-       PM.interval.Equalize(&SMI);
-       PM.interval.Mul(rep);
-    } // correct the closure properties of the interval
+    PM.interval.Equalize(&SMI);
+    PM.interval.Mul(rep);
     if(len==4){
       ListExpr LC = nl->Second(value);
       ListExpr RC = nl->Third(value);
@@ -9470,7 +8809,6 @@ bool PMPoint::AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
       PM.interval.SetRightClosed(nl->BoolValue(RC));
 
      }
-   
     periodicMoves.Put(IncludePos,PM);
     return true;
  }else if(nl->IsEqual(SMT,"composite")){
@@ -9488,23 +8826,8 @@ bool PMPoint::AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
     compositeMoves.Get(CMPos,CM);
     PM.bbox.Equalize(&(CM->bbox));
     RelInterval SMI = CM->interval;
-    if(rep==LEFTINFINITE)
-       PM.interval.SetLeftInfinite(SMI.IsRightClosed());
-    else if(rep==RIGHTINFINITE)
-       PM.interval.SetRightInfinite(SMI.IsLeftClosed());
-    else{ // the normal case of finity
-       PM.interval.Equalize(&SMI);
-       PM.interval.Mul(rep);
-    }
-    if(len==4){
-      ListExpr LC = nl->Second(value);
-      ListExpr RC = nl->Third(value);
-      if((nl->AtomType(LC)!=BoolType) || (nl->AtomType(RC)!=BoolType))
-          return false;
-      PM.interval.SetLeftClosed(nl->BoolValue(LC));
-      PM.interval.SetRightClosed(nl->BoolValue(RC));
-
-     }
+    PM.interval.Equalize(&SMI);
+    PM.interval.Mul(rep);
     periodicMoves.Put(IncludePos,PM);
     return true;
  }
@@ -9632,8 +8955,6 @@ Point* PMPoint::At(const DateTime* instant)const{
 ~Initial~
 
 This function computes the first location of this moving point.
-If the periodic moving point has no initial point of time (left infinite),
-the result will be an undefined point.
 
 */
 Point* PMPoint::Initial()const{
@@ -9644,11 +8965,6 @@ Point* PMPoint::Initial()const{
     return res;
   }
     
-  if(interval.IsLeftInfinite()){
-     res->SetDefined(false);
-     return res;
-  }
-     
   const LinearPointMove* lm;
   linearMoves.Get(0,lm);
   res->Set(lm->startX,lm->startY);
@@ -9660,7 +8976,7 @@ Point* PMPoint::Initial()const{
 ~Final~
 
 The ~Final~ function returns the last defined position of this point.
-If no one exists, an undefined point is returned.
+If the value is empty, an undefined point is returned.
 
 */
 Point* PMPoint::Final(){
@@ -9670,10 +8986,6 @@ Point* PMPoint::Final(){
      res->SetDefined(false);
      return res;
   }       
-  if(interval.IsRightInfinite()){
-    res->SetDefined(false);
-    return res;
-  }  
   LinearPointMove lm =  GetLastUnit();
   res->Set(lm.endX,lm.endY);
   res->SetDefined(true);
@@ -9829,14 +9141,13 @@ DateTime PMPoint::GetEnd()const{
 /*
 ~GetInterval~
 
-Returns the interval of this periodic moving point. If the point is
-defined infinite time, the result will be a undefined PInterval.
+Returns the interval of this periodic moving point. 
 
 */
 PInterval PMPoint::GetInterval()const{
     __TRACE__
    PInterval res=PInterval(startTime,interval);
-    return res;
+   return res;
 }
 
 
@@ -9844,24 +9155,20 @@ PInterval PMPoint::GetInterval()const{
 ~Expand~
 
 This function converts a periodic moving point to a linearly moving one.
-The used data type comes from the TemporalAlgebra. To be able to convert
-infinite periods, the argument specified to how much periods a infinite
-one should be extracted. In the case infinite [<] 0, a infinite period
-is expanded one time.
+The used data type comes from the TemporalAlgebra. 
 
 */
-MPoint PMPoint::Expand(const int infinite){
+MPoint PMPoint::Expand(){
     __TRACE__
- int inf = infinite>0?infinite:1;
   // In a first step we compute the number of resulting units.
   // The reason is, to avoid frequently growing of the result.
-  int size = NumberOfExpandedUnits(inf);
+  int size = NumberOfExpandedUnits();
   MPoint Result = MPoint(size);
   if(size==0)
     return Result; 
   DateTime* CurrentTime = startTime.Clone();
   Result.StartBulkLoad();
-  AppendUnits(Result, CurrentTime,submove,inf);
+  AppendUnits(Result, CurrentTime,submove);
   Result.EndBulkLoad();
   delete CurrentTime;
   CurrentTime = NULL;
@@ -9874,8 +9181,7 @@ MPoint PMPoint::Expand(const int infinite){
 The function ~AppendUnits~ adds all mpoint-units resulting from S to P.
 
 */
-void PMPoint::AppendUnits(MPoint& P, DateTime* Time, const SubMove S,
-                          const int infinite){
+void PMPoint::AppendUnits(MPoint& P, DateTime* Time, const SubMove S){
     __TRACE__
    if(S.arrayNumber==LINEAR){
         // first create the Intervall
@@ -9901,36 +9207,16 @@ void PMPoint::AppendUnits(MPoint& P, DateTime* Time, const SubMove S,
        const SubMove* sm;
        for(int i=CM->minIndex;i<=CM->maxIndex;i++){
             compositeSubMoves.Get(i,sm);
-            AppendUnits(P,Time,*sm,infinite);
+            AppendUnits(P,Time,*sm);
        }    
        return;
     }
     if(S.arrayNumber==PERIOD){
        const SpatialPeriodicMove* PM;
        periodicMoves.Get(S.arrayIndex,PM);
-       long repeats = PM->repeatations>0?PM->repeatations:infinite;
-       if(PM->repeatations==LEFTINFINITE){
-          SubMove sm = PM->submove;
-          DateTime* D=NULL;
-          if(sm.arrayNumber==LINEAR){
-            const LinearPointMove* lm;
-            linearMoves.Get(sm.arrayIndex,lm);
-            D = lm->interval.GetLength();
-          }   
-          if(sm.arrayNumber==PERIOD){
-            const SpatialPeriodicMove* pm;
-            periodicMoves.Get(sm.arrayIndex,pm);
-            D = pm->interval.GetLength();
-          }
-       
-          D->Mul(repeats);
-          Time->Minus(D);
-          delete D;
-          D = NULL;
-       }
-         
+       long repeats = PM->repeatations;
        for(int i=0;i<repeats;i++)
-          AppendUnits(P,Time,PM->submove,infinite);
+          AppendUnits(P,Time,PM->submove);
        return;      
     }
     assert(false);
@@ -9944,24 +9230,23 @@ This functions returns the number of needed units of a MPoint of the
 TemporalAlgebra to represent this periodic moving point.
 
 */
-int PMPoint::NumberOfExpandedUnits(const int infinite){
+int PMPoint::NumberOfExpandedUnits(){
     __TRACE__
   if(!defined)
       return 0;
    if(IsEmpty())
       return 0;
-   return NumberOfExpandedUnits(submove,infinite);
+   return NumberOfExpandedUnits(submove);
 }
 
 /*
 ~NumberOfExpandedUnits~
 
 This function computed the needed size of a MPoint of the TemporalAlgebra
-to represent this periodic moving one. The second argument specified the
-number to which infinite periods have to extracted.
+to represent this periodic moving one. 
 
 */
-int PMPoint::NumberOfExpandedUnits(const SubMove S,const int infinite){
+int PMPoint::NumberOfExpandedUnits(const SubMove S){
     __TRACE__
    if(S.arrayNumber==LINEAR)
        return 1;
@@ -9972,15 +9257,15 @@ int PMPoint::NumberOfExpandedUnits(const SubMove S,const int infinite){
        const SubMove* sm;
        for(int i=CM->minIndex;i<=CM->maxIndex;i++){
            compositeSubMoves.Get(i,sm);
-           num += NumberOfExpandedUnits(*sm,infinite);
+           num += NumberOfExpandedUnits(*sm);
        }    
        return num;
     } 
     if(S.arrayNumber==PERIOD){
        const SpatialPeriodicMove* PM;
        periodicMoves.Get(S.arrayIndex,PM);
-       int repeats = PM->repeatations>0?PM->repeatations:infinite;
-       return repeats*NumberOfExpandedUnits(PM->submove,infinite);
+       int repeats = PM->repeatations;
+       return repeats*NumberOfExpandedUnits(PM->submove);
     }
     assert(false); // this should never be reached
 }
@@ -10335,6 +9620,7 @@ PBBox PMPoint::GetBbox()const{
      __TRACE__
   return bbox;
 }
+
 
 /*
 ~Toprel~
@@ -11340,23 +10626,13 @@ bool PMPoints::AddPeriodMove(const ListExpr value,int &LMIndex, int &PtsIndex,
     return false;
  }
  int rep = nl->IntValue(nl->First(value));
- // rep must be greater than 1 or one of the special cases
- // LEFTINFINITE RIGHTINFINITE
- if(rep<=1 && rep!=LEFTINFINITE && rep!=RIGHTINFINITE){
+ // rep must be greater than 1 
+ if(rep<=1){
      if(DEBUG_MODE){
         cerr << __POS__ <<  " wrong number of repeatations" << endl;
      }
      return false;
  }
- // in the case of leftinfinity this period move has to be the
- // first move
- if(rep==LEFTINFINITE){
-    if(LMIndex>0) return false;
-    if(PMIndex>0) return false;
-    if(CMIndex>1) return false;
-    if(SMIndex>0) return false;
- }
-
  
  ListExpr SML;
  if(len==2)
@@ -11390,15 +10666,8 @@ bool PMPoints::AddPeriodMove(const ListExpr value,int &LMIndex, int &PtsIndex,
     linearMoves.Get(LMPos,LM);
     PM.bbox.Equalize(&(LM->bbox));
     RelInterval SMI = LM->interval;
-    // we have to treat the special cases of infinity
-    if(rep==LEFTINFINITE)
-       PM.interval.SetLeftInfinite(SMI.IsRightClosed());
-    else if(rep==RIGHTINFINITE)
-       PM.interval.SetRightInfinite(SMI.IsLeftClosed());
-    else{ // the normal case of finity
-       PM.interval.Equalize(&SMI);
-       PM.interval.Mul(rep);
-    }
+    PM.interval.Equalize(&SMI);
+    PM.interval.Mul(rep);
     if(len==4){
       ListExpr LC = nl->Second(value);
       ListExpr RC = nl->Third(value);
@@ -11425,14 +10694,8 @@ bool PMPoints::AddPeriodMove(const ListExpr value,int &LMIndex, int &PtsIndex,
     compositeMoves.Get(CMPos,CM);
     PM.bbox.Equalize(&(CM->bbox));
     RelInterval SMI = CM->interval;
-    if(rep==LEFTINFINITE)
-       PM.interval.SetLeftInfinite(SMI.IsRightClosed());
-    else if(rep==RIGHTINFINITE)
-       PM.interval.SetRightInfinite(SMI.IsLeftClosed());
-    else{ // the normal case of finity
-       PM.interval.Equalize(&SMI);
-       PM.interval.Mul(rep);
-    }
+    PM.interval.Equalize(&SMI);
+    PM.interval.Mul(rep);
     if(len==4){
       ListExpr LC = nl->Second(value);
       ListExpr RC = nl->Third(value);
@@ -11776,6 +11039,7 @@ Word InPMPoint( const ListExpr typeInfo, const ListExpr instance,
   PMPoint* P = new PMPoint(0);
   if(P->ReadFrom(instance)){
     correct=true;
+    P->CheckCorrectness();
     return SetWord(P);
   }
   correct = false;
@@ -12148,8 +11412,8 @@ bool OpenPBBox( SmiRecord& valueRecord,
                 const ListExpr typeInfo,
                 Word& value ){
   __TRACE__
-  PBBox *e = (PBBox*)Attribute::Open( valueRecord, offset, typeInfo );
-  value = SetWord(e);
+  PBBox *bb = (PBBox*)Attribute::Open( valueRecord, offset, typeInfo );
+  value = SetWord( bb );
   return true;
 }
 
@@ -12158,9 +11422,8 @@ bool OpenRelInterval( SmiRecord& valueRecord,
                 const ListExpr typeInfo,
                 Word& value ){
   __TRACE__
-  RelInterval *e = (RelInterval*)Attribute::Open( valueRecord, offset,
-                                                     typeInfo );
-  value = SetWord(e);
+  RelInterval *ri = (RelInterval*)Attribute::Open( valueRecord, offset, typeInfo );
+  value = SetWord( ri );
   return true;
 }
 
@@ -12971,15 +12234,15 @@ ListExpr LengthTypeMap(ListExpr args){
 
 ListExpr ExpandTypeMap(ListExpr args){
     __TRACE__
-  if(nl->ListLength(args)!=2){
+  if(nl->ListLength(args)!=1){
        ErrorReporter::ReportError("Invalid number of arguments\n");
        return nl->SymbolAtom(TYPE_ERROR);
   }
-   if(nl->IsEqual(nl->First(args),"pmpoint") &&
-      nl->IsEqual(nl->Second(args),"int"))
+   if(nl->IsEqual(nl->First(args),"pmpoint")){ 
        return nl->SymbolAtom("mpoint");
+   }
    ErrorReporter::ReportError(
-                "expand expects a pmpoint and an int as operands\n");
+                "expand expects a pmpoint as operand\n");
    return nl->SymbolAtom(TYPE_ERROR);
 }
 
@@ -13553,8 +12816,7 @@ int ExpandFun_PMPoint_MPoint(Word* args, Word& result,
 
    result = qp->ResultStorage(s);
    PMPoint* P = (PMPoint*) args[0].addr;
-   CcInt* I = (CcInt*) args[1].addr;
-   MPoint Res = P->Expand(I->GetIntval());
+   MPoint Res = P->Expand();
    ((MPoint*) result.addr)->CopyFrom(&Res);
    return 0;
 }                   
@@ -13766,11 +13028,11 @@ const string LengthSpec =
 
 const string ExpandSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
-   " ( \"pmpoint x int -> mpoint\""
-   " \" expand(_, _) \" "
+   " ( \"pmpoint -> mpoint\""
+   " \" expand(_) \" "
    " \"creates a moving point from a periodic one\""
-   " \"the integer argument handles infinite periods\""
-   " \" query expand(I,2)\" ))";
+   " \"\""
+   " \" query expand(I)\" ))";
    
 const string CreatePMPointSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
