@@ -428,13 +428,8 @@ RefinementPartitionLift<Mapping1, Mapping2, Unit1,
         if (t < ur->timeInterval.end){
             if(TLA_DEBUG)
               cout<<"Add rest of ur"<<endl;
-            AddUnits(
-                mrUnit, 
-                -1,
-                t,
-                ur->timeInterval.end,
-                c,
-                ur->timeInterval.rc);
+            AddUnits(mrUnit, -1, t, ur->timeInterval.end, 
+                 c, ur->timeInterval.rc);
             }
         mrUnit++;
 
@@ -443,13 +438,8 @@ RefinementPartitionLift<Mapping1, Mapping2, Unit1,
 
             if(TLA_DEBUG)
               cout<<"Add all solo units of r"<<endl;
-            AddUnits(
-                mrUnit, 
-                -1,
-                ur->timeInterval.start,
-                ur->timeInterval.end,
-                ur->timeInterval.lc,
-                ur->timeInterval.rc);
+            AddUnits(mrUnit, -1, ur->timeInterval.start, ur->timeInterval.end, 
+                ur->timeInterval.lc, ur->timeInterval.rc);
 
             mrUnit++;
         }
@@ -459,13 +449,8 @@ RefinementPartitionLift<Mapping1, Mapping2, Unit1,
         if (t < up->timeInterval.end){
             if(TLA_DEBUG)
               cout<<"Add rest of up"<<endl;
-            AddUnits(
-                -1,
-                mpUnit,
-                t,
-                up->timeInterval.end,
-                c,
-                up->timeInterval.rc);
+            AddUnits(-1, mpUnit, t, up->timeInterval.end,
+                c, up->timeInterval.rc);
             }
         mpUnit++;
 
@@ -474,13 +459,8 @@ RefinementPartitionLift<Mapping1, Mapping2, Unit1,
 
             if(TLA_DEBUG)
               cout<<"Add all solo units of p"<<endl;
-            AddUnits(
-                -1,
-                mpUnit, 
-                up->timeInterval.start,
-                up->timeInterval.end,
-                up->timeInterval.lc,
-                up->timeInterval.rc);
+            AddUnits(-1, mpUnit, up->timeInterval.start, up->timeInterval.end,
+                up->timeInterval.lc, up->timeInterval.rc);
 
             mpUnit++;
         }
@@ -498,10 +478,11 @@ RefinementPartitionLift<Mapping1, Mapping2, Unit1,
 }
 
 /*
-1.1.1 Method ~MPerimeter()~
+1.1.1 Method ~MPerimeter()~ 
+calculates the perimeter of a MRegion and
+returns the MReal value as result.
 
 */
-
 void MPerimeter(MRegion& reg, MReal& res) {
     if(TLA_DEBUG)
       cout<< "MRegion::MPerimeter() called" << endl;
@@ -557,10 +538,11 @@ void MPerimeter(MRegion& reg, MReal& res) {
 }
 
 /*
-1.1.1 Method ~MArea()~
+1.1.1 Method ~MArea()~ 
+calculates the area of a MRegion and
+returns the MReal value as result.
 
 */
-
 void MArea(MRegion& reg, MReal& res) {
     if(TLA_DEBUG)
       cout<< "MRegion::MArea() called" << endl;
@@ -630,10 +612,14 @@ void MArea(MRegion& reg, MReal& res) {
 }
 
 /*
-1.1.1 Method ~RCenter()~
+1.1.1 Method ~RCenter()~ 
+calculates the rought center of a MRegion and
+returns the MPoint value as result. The rought center meens the MPoint
+that goes through the centers of the static regions at the starts and 
+ends of the timeintervals of the MRegion. These points are bound with
+linear lines.
 
 */
-
 void RCenter(MRegion& reg, MPoint& res) {
     if(TLA_DEBUG)
       cout<< "MRegion::RCenter() called" << endl;
@@ -770,7 +756,6 @@ It gets for each URegion the last segment and givs the FaceNo of
 this segment, because the last segment ist on the last face .
 
 */
-
 void NComponents(MRegion& reg, MInt& res) {
     if(TLA_DEBUG)
       cout<< "MRegion::NComponents() called" << endl;
@@ -803,8 +788,13 @@ void NComponents(MRegion& reg, MInt& res) {
     res.EndBulkLoad(false);
 }
 
+/*
+1.1.1 Method ~CompareValue~
+Returns true if the value of this TemporalUnit holds the
+comparison holds with the value of the TemporalUnit i.
+The comparisons are -3: \#; -2: <; -1: <=; 0: =; 1: >=; 2: >.
 
-
+*/
 template <class Alpha>
 bool CompareValue(const ConstTemporalUnit<Alpha>& n,
  const ConstTemporalUnit<Alpha>& i, int vers )
@@ -828,14 +818,14 @@ bool CompareValue(const ConstTemporalUnit<Alpha>& n,
    //should not be reached
    return false;
 }
-  
+
 /*
+1.1.1 Method ~CompareValue~
 Returns true if the value of this TemporalUnit holds the
- comparison holds with the value of the TemporalUnit i.
- The comparisons are -3: \#; -2: <; -1: <=; 0: =; 1: >=; 2: >.
+comparison holds with the value of i. 
+The comparisons are -3: \#; -2: <; -1: <=; 0: =; 1: >=; 2: >.
 
 */
-
 template <class Alpha>
 bool CompareValue(const ConstTemporalUnit<Alpha>& n, Alpha& i, int vers )
 {
@@ -860,12 +850,10 @@ bool CompareValue(const ConstTemporalUnit<Alpha>& n, Alpha& i, int vers )
 }
   
 /*
-Returns true if the value of this TemporalUnit holds the
- comparison holds with the value of i. 
- The comparisons are -3: \#; -2: <; -1: <=; 0: =; 1: >=; 2: >.
+1.1.1 Method ~DistanceUPoint~
+Returns the distance between two UPoints in the given interval as UReal 
 
-*/  
-
+*/
 void DistanceUPoint( const UPoint& p1, const UPoint& p2, UReal&
  result, Interval<Instant> iv)
 {
@@ -896,6 +884,11 @@ void DistanceUPoint( const UPoint& p1, const UPoint& p2, UReal&
   result.r = true;
 }
 
+/*
+1.1.1 Method ~DistanceMPoint~
+Returns the distance between two MPoints as MReal 
+
+*/
 void DistanceMPoint( MPoint& p1, MPoint& p2, MReal& result) 
 {
   UReal uReal;
@@ -938,7 +931,8 @@ void DistanceMPoint( MPoint& p1, MPoint& p2, MReal& result)
 }
 
 /*
-Just changes the two given arguments.
+1.1.1 Method ~Swop~
+Just changes place of the two given arguments.
 
 */
 
@@ -950,23 +944,20 @@ void Swop(double& a, double& b)
   b = i;
 }
 
-int SolvePoly(double a, double b, double solution)
-
 /*
-  solves the Polynom ax+b=0 and gives back the number of
-  solutiones. 
+1.1.1 Method ~SolvePoly~
+Solves the Polynom ax+b=0 and gives back the number of
+solutiones. 
 
 */
-
+int SolvePoly(double a, double b, double solution)
 {
   if(TLA_DEBUG){
     cout<<"SolvePoly 1 called with a: "<<a<<" ,b: "<<b<<endl;}
   
   if(a == 0.0)
-    return 1;  
-    
+    return 0;    
   solution = -b / a;
-  
   if(TLA_DEBUG){
     cout<<"SolvePoly1 ends with 1 solutions"<<endl;
     cout<<"solution = "<<solution<<"  "<<(a*solution)+b<<endl;
@@ -974,16 +965,15 @@ int SolvePoly(double a, double b, double solution)
   return 1; 
 }
 
-int SolvePoly(double a, double b, double c, double solution[2],
- bool sort)
-
 /*
-  solves the Polynom ax\^2+bx+c=0 and gives back the number of
-  solutiones. The solutions are given back in solution
-  in ordedered style if sort is true.
+1.1.1 Method ~SolvePoly~
+Solves the Polynom ax\^2+bx+c=0 and gives back the number of
+solutiones. The solutions are given back in solution
+in ordedered style if sort is true.
 
 */
-
+int SolvePoly(double a, double b, double c, double solution[2],
+ bool sort)
 {
   int number = 0;
   double d;
@@ -1028,16 +1018,14 @@ int SolvePoly(double a, double b, double c, double solution[2],
   return number; 
 }
 
-int SolvePoly(double a, double b, double c, double d, 
- double solution[3])
-
 /*
-  solves the Polynom ax\^3+bx\^2+cx+d=0 and gives back the number 
-  of solutiones. The solutions are given back in solution
-  in ordedered style.
+1.1.1 Method ~SolvePoly~
+Solves the Polynom ax\^3+bx\^2+cx+d=0 and gives back the number 
+of solutiones. The solutions are given back in solution in ordedered style.
 
 */
-
+int SolvePoly(double a, double b, double c, double d, 
+ double solution[3])
 {
   int number = 0;
   double disk, p, q;
@@ -1105,17 +1093,14 @@ int SolvePoly(double a, double b, double c, double d,
   return number; 
 }
 
-int SolvePoly(double a, double b, double c, double d, double e,
- double solution[4])
-
 /*
-  solves the Polynom ax\^4+bx\^3+cx\^2+dx+d=0 and gives back 
-  the number of solutiones. 
-  The solutions are given back in solution
-  in ordedered style.
+Solves the Polynom ax\^4+bx\^3+cx\^2+dx+d=0 and gives back 
+the number of solutiones. 
+The solutions are given back in solution in ordedered style.
 
 */
-
+int SolvePoly(double a, double b, double c, double d, double e,
+ double solution[4])
 {
   int number1 = 0;
   int number2 = 0;
@@ -1198,12 +1183,12 @@ int SolvePoly(double a, double b, double c, double d, double e,
 }
     
 /*
+1.1.1 Method ~CompareUReal~
 Returns true if the value of these two uReals holds the
 comparison.
 The comparisons are -3: \#; -2: <; -1: <=; 0: =; 1: >=; 2: >.
 
 */
-
 static void CompareUReal(UReal u1, UReal u2, UBool& uBool, int op)
 {
     Instant middle;
@@ -1220,13 +1205,10 @@ static void CompareUReal(UReal u1, UReal u2, UBool& uBool, int op)
     + uBool.timeInterval.end.ToDouble())/2.0;
     middle.ReadFrom(mid);
     u1.TemporalFunction(middle,value1);     
-    u2.TemporalFunction(middle,value2);     
-    if(TLA_DEBUG){
-      cout<<"middle: "<<mid<<endl;
-      cout<<"middle 1 "<<&value1<<endl;
-      cout<<"middle 2 "<<&value2<<endl;}
+    u2.TemporalFunction(middle,value2);   
+    if(TLA_DEBUG)
+      cout<<value1.GetRealval()<<" =?= "<<value2.GetRealval()<<endl;  
     if (AlmostEqual(value1.GetRealval(), value2.GetRealval())) {
-        //rounding problems!
       if (op >= -1 && op <= 1) uBool.constValue.Set(true,true); 
       else uBool.constValue.Set(true,false);
     }
@@ -1243,17 +1225,16 @@ static void CompareUReal(UReal u1, UReal u2, UBool& uBool, int op)
       else uBool.constValue.Set(true,false);
     }
   if(TLA_DEBUG)
-    cout<<"return with "<<&uBool.constValue<<endl;
+    cout<<"return with "<<uBool.constValue.GetBoolval()<<endl;
 }
 
-static void ShiftUReal(UReal& op, Instant newstart)
-
 /*
+1.1.1 Method ~ShiftUReal~
 Transforms MReal op to the new start newstart. 
 Result of local definition of MReals.
 
 */
-
+static void ShiftUReal(UReal& op, Instant newstart)
 {
   if(TLA_DEBUG){
     cout<<"ShiftUReal called with a: "<<op.a<<", b: "<<op.b
@@ -1274,10 +1255,10 @@ Result of local definition of MReals.
 }
 
 /*
+1.1.1 Method ~MRealABS~
 Calculates the absolut value of a mReal.
 
 */
-
 static void MRealABS(MReal& op, MReal& result)
 {  
   UReal uReal;
@@ -1427,11 +1408,11 @@ static void MRealABS(MReal& op, MReal& result)
 }
 
 /*
+1.1.1 Method ~MRealDistanceMM~
 Calculates the Distance between the given MReals with respect of
 the fact, that the distance can not be negativ.
 
 */
-
 static void MRealDistanceMM(MReal& op1, MReal& op2, MReal& result)
 {  
   UReal uReal;
@@ -1645,65 +1626,18 @@ static void MRealDistanceMM(MReal& op1, MReal& op2, MReal& result)
 }
 
 /*
-Returns true if the value of these two mReals holds the
-comparison.
-The comparisons are -3: \#; -2: <; -1: <=; 0: =; 1: >=; 2: >.
+1.1.1 Method ~FindEqualTimes4Real~
+Function FindEqualTimes4Real to find all times where u1 and u2 are
+eqaul, gives them back in t and returns their number. u1 and u2 must
+have the same timeIntervals (use ShiftUReal to get this)
 
 */
-
-static void MovingRealCompareMM(MReal& op1, MReal& op2, MBool&
- result, int op)
-{
-  UBool uBool;
-   
-  RefinementPartitionLift<MReal, MReal, UReal, UReal> rp(op1, op2);
-  if(TLA_DEBUG)
-    cout<<"Refinement abgeschlossen, rp.size: "<<rp.Size()<<endl;
-  
-  result.Clear();
-  result.StartBulkLoad();
-  for(unsigned int i = 0; i < rp.Size(); i++)
-  {
-    Interval<Instant>* iv;
-    int u1Pos;
-    int u2Pos;
-    const UReal *u1transfer;
-    const UReal *u2transfer;
-    UReal u1;
-    UReal u2;
-    
-    rp.Get(i, iv, u1Pos, u2Pos);
-    if(TLA_DEBUG){
-      cout<< "TemporalMMRealCompare interval #"<< i<< ": "
-      << iv->start.ToDouble()<< " "
-      << iv->end.ToDouble()<< " "<< iv->lc<< " "<< iv->rc<< " "
-      << u1Pos<< " "<< u2Pos<<"  op "<<op<<endl;}
-
-    if (u1Pos == -1 || u2Pos == -1)     
-      continue;  
-    if(TLA_DEBUG)
-      cout<<"Both operators existant in interval iv #"<<i<<endl;
-    op1.Get(u1Pos, u1transfer);
-    op2.Get(u2Pos, u2transfer);
-    u1 = *u1transfer;
-    u2 = *u2transfer;
-    if(TLA_DEBUG){
-      cout<<"u1.a "<<u1.a<<" u1.b "<<u1.b<<" u1.c "<<u1.c
-      <<" u1.r "<<u1.r<<endl;
-      cout<<"u2.a "<<u2.a<<" u2.b "<<u2.b<<" u2.c "<<u2.c
-      <<" u2.r "<<u2.r<<endl;}
-    ShiftUReal(u1, iv->start);
-    ShiftUReal(u2, iv->start);
-    u1.timeInterval = *iv;
-    u2.timeInterval = *iv;
-    Instant t[4];
-    Instant middle;
+int FindEqualTimes4Real(UReal& u1, UReal& u2, Instant t[4]){
     int number;
-    int counter = 0;
     double sol2[2];
     double sol4[4];
     if(TLA_DEBUG){
-      cout<<"afer shifting the units"<<endl;
+      cout<<"FindEqualTimes4Real called with"<<endl;
       cout<<"u1.a "<<u1.a<<" u1.b "<<u1.b<<" u1.c "<<u1.c
       <<" u1.r "<<u1.r<<endl;
       cout<<"u2.a "<<u2.a<<" u2.b "<<u2.b<<" u2.c "<<u2.c
@@ -1776,6 +1710,67 @@ static void MovingRealCompareMM(MReal& op1, MReal& op2, MBool&
     }
     if(TLA_DEBUG)
       cout<<"number = "<<number<<endl;
+  return number;
+}
+
+/*
+1.1.1 Method ~MovingRealCompareMM~
+Returns true if the value of these two mReals holds the
+comparison.
+The comparisons are -3: \#; -2: <; -1: <=; 0: =; 1: >=; 2: >.
+
+*/
+static void MovingRealCompareMM(MReal& op1, MReal& op2, MBool&
+ result, int op)
+{
+  UBool uBool;
+   
+  RefinementPartitionLift<MReal, MReal, UReal, UReal> rp(op1, op2);
+  if(TLA_DEBUG)
+    cout<<"Refinement abgeschlossen, rp.size: "<<rp.Size()<<endl;
+  
+  result.Clear();
+  result.StartBulkLoad();
+  for(unsigned int i = 0; i < rp.Size(); i++)
+  {
+    Interval<Instant>* iv;
+    int u1Pos;
+    int u2Pos;
+    const UReal *u1transfer;
+    const UReal *u2transfer;
+    UReal u1;
+    UReal u2;
+    
+    rp.Get(i, iv, u1Pos, u2Pos);
+    if(TLA_DEBUG){
+      cout<< "MovingRealCompareMM interval #"<< i<< ": "
+      << iv->start.ToDouble()<< " "
+      << iv->end.ToDouble()<< " "<< iv->lc<< " "<< iv->rc<< " "
+      << u1Pos<< " "<< u2Pos<<"  op "<<op<<endl;}
+
+    if (u1Pos == -1 || u2Pos == -1)     
+      continue;  
+    if(TLA_DEBUG)
+      cout<<"Both operators existant in interval iv #"<<i<<endl;
+    op1.Get(u1Pos, u1transfer);
+    op2.Get(u2Pos, u2transfer);
+    u1 = *u1transfer;
+    u2 = *u2transfer;
+    if(TLA_DEBUG){
+      cout<<"u1.a "<<u1.a<<" u1.b "<<u1.b<<" u1.c "<<u1.c
+      <<" u1.r "<<u1.r<<endl;
+      cout<<"u2.a "<<u2.a<<" u2.b "<<u2.b<<" u2.c "<<u2.c
+      <<" u2.r "<<u2.r<<endl;}
+    ShiftUReal(u1, iv->start);
+    ShiftUReal(u2, iv->start);
+    u1.timeInterval = *iv;
+    u2.timeInterval = *iv;
+    Instant t[4];
+    Instant middle;
+    int counter = 0;
+    
+    int number = FindEqualTimes4Real(u1, u2, t);
+
     for (int m = 0; m < number; m++) {
       t[m].SetType(instanttype);
       if ((*iv).Contains(t[m])) {
@@ -1789,6 +1784,7 @@ static void MovingRealCompareMM(MReal& op1, MReal& op2, MBool&
           cout<<m<<". crossing not in iv"<<endl;
       }   
     }
+    
     if(TLA_DEBUG)
       cout<<"end of if clauses with counter "<<counter<<endl;
     uBool.timeInterval = *iv;
@@ -1846,10 +1842,10 @@ static void MovingRealCompareMM(MReal& op1, MReal& op2, MBool&
 }
 
 /*
+1.1.1 Method ~MovingRealIntersectionMM~
 Calculates the intersecion between two given mReals
 
 */
-
 static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
  MReal& result, int op)
 {
@@ -1873,7 +1869,7 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
     
   rp.Get(i, iv, u1Pos, u2Pos);
   if(TLA_DEBUG){
-    cout<< "TemporalMMRealIntersection interval #"<< i<< ": "
+    cout<< "MovingRealIntersectionMM interval #"<< i<< ": "
     << iv->start.ToDouble()<< " "
     << iv->end.ToDouble()<< " "<< iv->lc<< " "<< iv->rc<< " "
     << u1Pos<< " "<< u2Pos<<"  op "<<op<<endl;}
@@ -1908,164 +1904,11 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
     u2.timeInterval = *iv;
     Instant t[4];
     Instant middle;
-    int number;
     int counter = 0;
-    double sol2[2];
-    double sol3[3];
-    double sol4[4];
-    if(TLA_DEBUG){
-      cout<<"afer shifting the units"<<endl;
-      cout<<"u1.a "<<u1.a<<" u1.b "<<u1.b<<" u1.c "<<u1.c
-      <<" u1.r "<<u1.r<<endl;
-      cout<<"u2.a "<<u2.a<<" u2.b "<<u2.b<<" u2.c "<<u2.c
-      <<" u2.r "<<u2.r<<endl;}
-    if (u1.r == u2.r) {
-      if(TLA_DEBUG)
-        cout<<"u1.r == u2.r"<<endl;
-      if (u1.a == u2.a) {
-        if(TLA_DEBUG)
-          cout<<"u1.a == u2.a"<<endl; 
-        if (u1.b == u2.b) {
-          if(TLA_DEBUG)
-            cout<<"u1.b == u2.b"<<endl;
-            if (u1.c == u2.c) {
-              if(TLA_DEBUG)
-                cout<<"u1.c == u2.c -> same horizontal line!"<<endl;
-              number = 0;
-            }
-            else {
-              if(TLA_DEBUG)
-                cout<<"u1.c != u2.c -> parallel horizontal lines"<<endl;
-              number = 0;
-            }
-        }
-        else {
-          if(TLA_DEBUG)
-            cout<<"u1.b != u2.b"<<endl;
-          double crossing = (u2.c - u1.c)/(u1.b - u2.b);
-          t[0].ReadFrom(crossing 
-          + u1.timeInterval.start.ToDouble());
-          number = 1;
-        }
-      }
-      else {
-        if(TLA_DEBUG)
-          cout<<"u1.a != u2.a"<<endl;
-        number = SolvePoly(u1.a - u2.a, u1.b - u2.b, u1.c - u2.c,
-         sol2, true);
-        if(TLA_DEBUG)
-          cout<<"number "<<number<<endl;
-        for (int m = 0; m < number; m++) 
-           t[m].ReadFrom(sol2[m] 
-           + u1.timeInterval.start.ToDouble());
-      }
-    }
-    else {
-     if(TLA_DEBUG)
-       cout<<"u1.r != u2.r"<<endl;
-     if (u2.r && u2.a == 0 && u2.b == 0) {
-        if(TLA_DEBUG)
-          cout<<"Spezial case u2 = const"<<endl;
-        number = SolvePoly(u1.a, u1.b, u1.c - sqrt(u2.c), sol2,
-                           true);
-        if(TLA_DEBUG)
-          cout<<"number "<<number<<endl;
-        for (int m = 0; m < number; m++) 
-           t[m].ReadFrom(sol2[m] 
-           + u1.timeInterval.start.ToDouble());
-     }
-     else if (u1.r && u1.a == 0 && u1.b == 0) {
-        if(TLA_DEBUG)
-          cout<<"Spezial case u1 = const"<<endl;
-        number = SolvePoly(u2.a, u2.b, u2.c - sqrt(u1.c), sol2,
-                           true);
-        if(TLA_DEBUG)
-          cout<<"number "<<number<<endl;
-        for (int m = 0; m < number; m++) 
-           t[m].ReadFrom(sol2[m] 
-           + u1.timeInterval.start.ToDouble());
-     }
-     else{ 
-      double v, w, x, y, z;
-      if (u1.r) {
-        v = pow(u1.a, 2);                         //x^4
-        w = 2 * u1.a * u1.b;                      //x^3
-        x = 2 * u1.a * u1.c + pow(u1.b, 2)- u2.a; //x^2
-        y = 2 * u1.b * u1.c - u2.b;               //x
-        z = pow(u1.c, 2) - u2.c;                  //c
-      }
-      else {
-        v = pow(u2.a, 2);                         //x^4
-        w = 2 * u2.a * u2.b;                      //x^3
-        x = 2 * u2.a * u2.c + pow(u2.b, 2)- u1.a; //x^2
-        y = 2 * u2.b * u2.c - u1.b;               //x
-        z = pow(u2.c, 2) - u1.c;                  //c
-      }
-      //va^4+wa^3+xa^2+ya+z=0
-      if (v == 0) {
-        if(TLA_DEBUG)
-          cout<<"v == 0"<<endl;
-        if (w == 0) {
-          if(TLA_DEBUG)
-            cout<<"w == 0"<<endl;
-            if (x == 0) {
-              if(TLA_DEBUG)
-                cout<<"x == 0"<<endl; 
-              if (y == 0) {
-                if(TLA_DEBUG)
-                  cout<<"y == 0"<<endl; 
-                if (z == 0) {
-                  if(TLA_DEBUG)
-                    cout<<"z == 0 -> totaly equal"<<endl; 
-                  number = 0;
-                }
-                else {
-                  if(TLA_DEBUG)
-                    cout<<"z != 0 -> paralell"<<endl;
-                  number = 0;
-                }
-              }
-              else {
-                if(TLA_DEBUG)
-                  cout<<"y != 0"<<endl;
-                double crossing = -z / y;
-                t[0].ReadFrom(crossing 
-                + u1.timeInterval.start.ToDouble());
-                number = 1;
-              }
-            }
-            else {
-              if(TLA_DEBUG)
-                cout<<"x != 0"<<endl;
-              number = SolvePoly(x, y, z, sol2, true);
-              for (int m = 0; m < number; m++) 
-                 t[m].ReadFrom(sol2[m] 
-                 + u1.timeInterval.start.ToDouble());
-            }
-          }
-        
-        else {
-          if(TLA_DEBUG)
-            cout<<"w != 0"<<endl;
-          number = SolvePoly(w, x, y, z, sol3);
-          for (int m = 0; m < number; m++) 
-            t[m].ReadFrom(sol3[m] 
-            + u1.timeInterval.start.ToDouble());
-        }
-      }
-      else {
-        if(TLA_DEBUG)
-          cout<<"v != 0"<<endl;
-        number = SolvePoly(v, w, x, y, z, sol4);
-        for (int m = 0; m < number; m++) 
-          t[m].ReadFrom(sol4[m] 
-          + u1.timeInterval.start.ToDouble());   
-      }
-     }
-    }
+    int number = FindEqualTimes4Real(u1, u2, t);
+
     if(TLA_DEBUG)
       cout<<"number = "<<number<<endl;
-    counter = 0;
     for (int m = 0; m < number; m++) {
       t[m].SetType(instanttype);
       if ((*iv).Contains(t[m])) {
@@ -2082,14 +1925,19 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
     if(TLA_DEBUG)
       cout<<"end of if clauses with counter "<<counter<<endl;
     UBool uBool;
+    uBool.timeInterval = *iv;
     if (counter == 0) {
       if(TLA_DEBUG)
         cout<<"no crossings in iv"<<endl;
       CompareUReal(u1, u2, uBool, 0);
       if ((op == 1 && uBool.constValue.GetBoolval()) 
       || (op == 2 && !uBool.constValue.GetBoolval())){
-        if(TLA_DEBUG)
-          cout<<"just add"<<endl;
+        if(TLA_DEBUG){
+          cout<<"just add interval ["
+          <<un.timeInterval.start.ToDouble()
+          <<" "<<un.timeInterval.end.ToDouble()<<" "
+          <<un.timeInterval.lc<<" "
+          <<un.timeInterval.rc<<"]"<<endl;}
         un = u1;
         un.timeInterval = *iv;  //to take boarders
         result.MergeAdd(un);  
@@ -2103,11 +1951,23 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
             if(TLA_DEBUG)
               cout<<"add point"<<endl;
             un = u1;
-            ShiftUReal(un, t[m]);
+            un.timeInterval.start = t[m];
             un.timeInterval.end = t[m];
             un.timeInterval.lc = true;
             un.timeInterval.rc = true;
+            CcReal value;
+            un.TemporalFunction(t[m], value);
+            un.a = 0.0;
+            un.b = 0.0;
+            un.c = value.GetRealval();
+            un.r = false;
             result.MergeAdd(un); 
+            if(TLA_DEBUG)
+            cout<<"add "<<m<<". interval ["
+            <<un.timeInterval.start.ToDouble()
+            <<" "<<un.timeInterval.end.ToDouble()<<" "
+            <<un.timeInterval.lc<<" "
+            <<un.timeInterval.rc<<"]"<<endl;
           }
         }
       }
@@ -2165,12 +2025,12 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
 }
 
 /*
+1.1.1 Method ~MovingRealCompareMS~
 Returns true if the value of the mReal and CcReal holds the
 comparison.
 The comparisons are -3: \#; -2: <; -1: <=; 0: =; 1: >=; 2: >.
 
 */
-
 static void MovingRealCompareMS(MReal& op1,CcReal& op2, MBool&
  result, int op)
 {
@@ -2207,16 +2067,17 @@ static void MovingRealCompareMS(MReal& op1,CcReal& op2, MBool&
   
 }
 
-double MPointInMPoint(double startx1, double starty1, double endx1,
-                     double endy1, double startx2, double starty2,
-                     double endx2, double endy2){
 /*
+1.1.1 Method ~MPointInMPoint~
 Function MPointInMPoint checks whether the two mpoints are crossing.
 It returns -1.0 if the mpoints are not crossing and 
 2.0 if both mpoints are equal all the time. In all other cases it 
 return thr fraction of iv when mpoints are crossing (0.0 .. 1.0).
 
 */  
+double MPointInMPoint(double startx1, double starty1, double endx1,
+                      double endy1, double startx2, double starty2,
+                      double endx2, double endy2){
   if(startx1 == startx2 && starty1 == starty2 && endx1 == endx2 
   && endy1 == endy2) {
     if(TLA_DEBUG)
@@ -2286,10 +2147,10 @@ return thr fraction of iv when mpoints are crossing (0.0 .. 1.0).
 }
 
 /*
+1.1.1 Method ~MovingPointCompareMM~
 For Operators ~=~ and ~\#~ and MovingPoint/MovingPoint
 
 */
-
 void MovingPointCompareMM( MPoint& p1, MPoint& p2, MBool& result,
  int op) 
 {
@@ -2416,10 +2277,10 @@ void MovingPointCompareMM( MPoint& p1, MPoint& p2, MBool& result,
 }
 
 /*
+1.1.1 Method ~MovingPointCompareMS~
 For Operators ~=~ and ~\#~ and MovingPoint/Point
 
 */
-
 void MovingPointCompareMS( MPoint& p1, Point& p2, MBool& result,
  int op) 
 {
@@ -2527,12 +2388,11 @@ void MovingPointCompareMS( MPoint& p1, Point& p2, MBool& result,
   result.EndBulkLoad( false );
 }
 
-
 /*
+1.1.1 Method ~MovingRegionCompareMS~
 For Operators ~=~ and ~\#~ and MovingRegion/Region
 
 */
-
 void MovingRegionCompareMS( MRegion *mr, CRegion *r, MBool *result,
  int op) 
 {
@@ -2771,10 +2631,10 @@ void MovingRegionCompareMS( MRegion *mr, CRegion *r, MBool *result,
 }
 
 /*
+1.1.1 Method ~MovingRegionCompareMM~
 For Operators ~=~ and ~\#~ and MovingRegion/Region
 
 */
-
 void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
  int op)
 {
@@ -2912,7 +2772,6 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
       So it is used the 10 and 90 percent time of the uregion.
     
       */
-
       CRegion snapshot1;
       CRegion snapshot2;
       if(TLA_DEBUG)
@@ -3042,15 +2901,14 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
   result->EndBulkLoad(false);
 }
 
-static void MovingBoolMMOperators( MBool& op1, MBool& op2,
- MBool& result, int op )
-
 /*
+1.1.1 Method ~MovingBoolMMOperators~
 Compares the two operators in the given way: 
 The comparisons are 1: AND; 2: OR.
 
 */
-
+static void MovingBoolMMOperators( MBool& op1, MBool& op2,
+ MBool& result, int op )
 {
   UBool uBool;  //part of the Result
   
@@ -3109,17 +2967,15 @@ The comparisons are 1: AND; 2: OR.
   result.EndBulkLoad(false);
 }
 
-static void MovingBoolMSOperators( MBool& op1, CcBool& op2,
- MBool& result, int op )
-
 /*
+1.1.1 Method ~MovingBoolMSOperators~
 Compares the two operators in the given way: 
 The comparisons are 1: AND; 2: OR.
 
 */
-
+static void MovingBoolMSOperators( MBool& op1, CcBool& op2,
+ MBool& result, int op )
 {
-
   UBool uBool;  //part of the Result
   const UBool *u1transfer;
   
@@ -3148,17 +3004,16 @@ The comparisons are 1: AND; 2: OR.
   result.EndBulkLoad(false);
 }
 
-template <class Mapping1, class Mapping2, class Unit1, class
-  Unit2>
-static void MovingCompareBoolMM( Mapping1& op1, Mapping2& op2,
-  MBool& result, int op )
-
 /*
+1.1.1 Method ~MovingCompareBoolMM~
 Compares the two operators in the given way: The comparisons are 
 -3: \#; -2: <; -1: <=; 0: =; 1: >=; 2: >.
 
 */
-
+template <class Mapping1, class Mapping2, class Unit1, class
+  Unit2>
+static void MovingCompareBoolMM( Mapping1& op1, Mapping2& op2,
+  MBool& result, int op )
 {
   UBool uBool;  //part of the Result
   
@@ -3205,16 +3060,15 @@ Compares the two operators in the given way: The comparisons are
   result.EndBulkLoad(false);
 }
 
+/*
+1.1.1 Method ~MovingIntersectionMM~
+Calculates the Intersection with op = 1 and the minus-operator with op = 2
+
+*/
 template <class Mapping1, class Mapping2, class Unit1, 
 class Unit2>
 static void MovingIntersectionMM( Mapping1& op1, Mapping2& op2,
  Mapping1& result, int op)
-
-/*
-Calculates the Intersection 
-
-*/
-
 {
   Unit1 un;  //part of the Result
   RefinementPartitionLift<Mapping1, Mapping2, Unit1, Unit2> 
@@ -3258,8 +3112,6 @@ Calculates the Intersection
       op2.Get(u2Pos, u2transfer);
       u1 = *u1transfer;
       u2 = *u2transfer;
-      if(TLA_DEBUG)
-        cout<<"wert 1 "<<&u1.constValue<<", wert 2 "<<&u2.constValue<<endl;
 
       if ((op == 1 && u1.EqualValue(u2)) || (op == 2 
       && !u1.EqualValue(u2))){
@@ -3272,17 +3124,15 @@ Calculates the Intersection
   result.EndBulkLoad(false);
 }
 
-
-template <class Mapping1, class Unit1, class Operator2>
-static void MovingCompareBoolMS( Mapping1& op1, Operator2& op2,
- MBool& result, int op )
-
 /*
+1.1.1 Method ~MovingCompareBoolMS~
 Compares the two operators in the given way: 
 The comparisons are -3: \#; -2: <; -1: <=; 0: =; 1: >=; 2: >.
 
 */
-
+template <class Mapping1, class Unit1, class Operator2>
+static void MovingCompareBoolMS( Mapping1& op1, Operator2& op2,
+ MBool& result, int op )
 {
   UBool uBool;  //part of the Result
   const Unit1 *u1;
@@ -3319,7 +3169,6 @@ The comparisons are -3: \#; -2: <; -1: <=; 0: =; 1: >=; 2: >.
 This type mapping function is used for the ~not~ operator.
 
 */
-
 ListExpr MBoolTypeMapMBool( ListExpr args )
 {
   ListExpr arg1;
@@ -3339,7 +3188,6 @@ ListExpr MBoolTypeMapMBool( ListExpr args )
 This type mapping function is used for the ~and~ and ~or~ operator.
 
 */
-
 ListExpr AndOrTypeMapMBool( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -3351,11 +3199,9 @@ ListExpr AndOrTypeMapMBool( ListExpr args )
     if( nl->IsEqual( arg1, "mbool" ) 
     && nl->IsEqual( arg2, "mbool" ) )
       return (nl->SymbolAtom( "mbool" ));
-      
     if( nl->IsEqual( arg1, "mbool" ) 
     && nl->IsEqual( arg2, "bool" ) )
       return (nl->SymbolAtom( "mbool" ));
-      
     if( nl->IsEqual( arg1, "bool" ) 
     && nl->IsEqual( arg2, "mbool" ) )
       return (nl->SymbolAtom( "mbool" ));
@@ -3366,11 +3212,10 @@ ListExpr AndOrTypeMapMBool( ListExpr args )
 /*
 10.1.17 Type mapping function "MovingEqualTypeMapMBool"
 
-This type mapping function is used for the ~meq~ and 
-~mne~ operator.
+This type mapping function is used for the ~\=~ and 
+~\#~ operator.
 
 */
-
 ListExpr MovingEqualTypeMapMBool( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -3426,7 +3271,6 @@ ListExpr MovingEqualTypeMapMBool( ListExpr args )
     if( nl->IsEqual( arg1, "point" ) 
      && nl->IsEqual( arg2, "mpoint" ) )
       return (nl->SymbolAtom( "mbool" ));
-   
     if( nl->IsEqual( arg1, "movingregion" ) 
      && nl->IsEqual( arg2, "region" ) )
       return (nl->SymbolAtom( "mbool" ));
@@ -3449,7 +3293,6 @@ This type mapping function is used for the ~<~, ~<=~, ~<~
 and ~>=~ operator.
 
 */
-
 ListExpr MovingCompareTypeMapMBool( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -3505,7 +3348,6 @@ ListExpr MovingCompareTypeMapMBool( ListExpr args )
 It is for the operators ~distance~.
 
 */
-
 ListExpr
 MovingDistanceTypeMapMReal( ListExpr args )
 {
@@ -3516,15 +3358,13 @@ MovingDistanceTypeMapMReal( ListExpr args )
     
     if( nl->IsEqual( arg1, "mpoint" ) 
      && nl->IsEqual( arg2, "mpoint" ) )
-      return nl->SymbolAtom( "mreal" );
-      
+      return nl->SymbolAtom( "mreal" );    
    //if( nl->IsEqual( arg1, "mpoint" ) 
    //&& nl->IsEqual( arg2, "point" ) )
    //   return nl->SymbolAtom( "mreal" );
    // if( nl->IsEqual( arg1, "point" ) 
    // && nl->IsEqual( arg2, "mpoint" ) )
-   //   return nl->SymbolAtom( "mreal" );
-      
+   //   return nl->SymbolAtom( "mreal" );    
     if( nl->IsEqual( arg1, "mreal" ) 
      && nl->IsEqual( arg2, "mreal" ) )
       return nl->SymbolAtom( "mreal" );
@@ -3544,7 +3384,6 @@ MovingDistanceTypeMapMReal( ListExpr args )
 It is for the operator ~intersection~.
 
 */
-
 ListExpr
 MovingIntersectionTypeMap( ListExpr args )
 {
@@ -3612,7 +3451,6 @@ MovingIntersectionTypeMap( ListExpr args )
 It is for the operator ~minus~.
 
 */
-
 ListExpr
 MovingMinusTypeMap( ListExpr args )
 {
@@ -3685,6 +3523,12 @@ MovingMinusTypeMap( ListExpr args )
   return nl->SymbolAtom( "typeerror" );
 }
 
+/*
+16.1.3 Type mapping function ~ABSTypeMap~
+
+It is for the operator ~abs~ 
+
+*/
 ListExpr
 ABSTypeMap( ListExpr args )
 {
@@ -3704,7 +3548,6 @@ ABSTypeMap( ListExpr args )
 It is for the operator ~inside~ 
 
 */
-
 ListExpr
 InsideTypeMapMBool( ListExpr args )
 {
@@ -3716,15 +3559,13 @@ InsideTypeMapMBool( ListExpr args )
       if ((nl->IsEqual( arg1, "mpoint" ) 
        && nl->IsEqual( arg2, "points" )))
         return nl->SymbolAtom( "mbool" );
-
       if ((nl->IsEqual( arg1, "mpoint" ) 
        && nl->IsEqual( arg2, "line" )))
         return nl->SymbolAtom( "mbool" );
-      
+     
       if(nl->IsEqual( arg1, "movingregion") 
        && nl->IsEqual( arg2, "points"))
-         return nl->SymbolAtom("mbool");
-         
+         return nl->SymbolAtom("mbool");       
       if(nl->IsEqual( arg1, "movingregion") 
        && nl->IsEqual( arg2, "line"))
          return nl->SymbolAtom("mbool");
@@ -3783,8 +3624,6 @@ static ListExpr NComponentsTypeMap(ListExpr args) {
         return nl->SymbolAtom("typeerror");
 }
 
-
-
 /*
 16.1.3 Type mapping function ~UnionTypeMap~
 
@@ -3805,7 +3644,7 @@ static ListExpr UnionTypeMap(ListExpr args) {
       if(nl->IsEqual(nl->First(args), "point") 
          && nl->IsEqual(nl->Second(args), "movingregion"))
          return nl->SymbolAtom("movingregion");
-      
+         
       else
         return nl->SymbolAtom("typeerror");
     }
@@ -3814,9 +3653,9 @@ static ListExpr UnionTypeMap(ListExpr args) {
 }
 
 /*
-Used by ~isempty~:
-
 16.1.3 Type mapping function ~TemporalLiftIsemptyTypeMap~
+
+Used by ~isempty~:
 
 */
 static ListExpr TemporalLiftIsemptyTypeMap(ListExpr args) {
@@ -3845,9 +3684,9 @@ static ListExpr TemporalLiftIsemptyTypeMap(ListExpr args) {
 }
 
 /*
-Used by ~mint~:
-
 16.1.3 Type mapping function ~TemporalMIntTypeMap~
+
+Used by ~mint~:
 
 */
 static ListExpr TemporalMIntTypeMap(ListExpr args) {
@@ -3862,9 +3701,9 @@ static ListExpr TemporalMIntTypeMap(ListExpr args) {
 }
 
 /*
-Used by ~+~:
-
 16.1.3 Type mapping function ~TemporalPlusTypeMap~
+
+Used by ~+~:
 
 */
 static ListExpr TemporalPlusTypeMap(ListExpr args) {
@@ -3880,9 +3719,9 @@ static ListExpr TemporalPlusTypeMap(ListExpr args) {
 }
 
 /*
-Used by ~zero~:
-
 16.1.3 Type mapping function ~TemporalZeroTypeMap~
+
+Used by ~zero~:
 
 */
 static ListExpr TemporalZeroTypeMap(ListExpr args) {
@@ -3896,9 +3735,9 @@ static ListExpr TemporalZeroTypeMap(ListExpr args) {
 }
 
 /*
-Used by ~concat~:
-
 16.1.3 Type mapping function ~TemporalConcatTypeMap~
+
+Used by ~concat~:
 
 */
 static ListExpr TemporalConcatTypeMap(ListExpr args) {
@@ -3913,18 +3752,12 @@ static ListExpr TemporalConcatTypeMap(ListExpr args) {
         return nl->SymbolAtom("typeerror");
 }
 
-
-
-
-
-
 /*
 16.2.12 Selection function ~MovingAndOrSelect~
 
 Is used for the ~and~ and ~or~ operations.
 
 */
-
 int
 MovingAndOrSelect( ListExpr args )
 {
@@ -3934,15 +3767,13 @@ MovingAndOrSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "mbool" 
    && nl->SymbolValue( arg2 ) == "mbool" )
     return 0;
-  
   if( nl->SymbolValue( arg1 ) == "mbool" 
    && nl->SymbolValue( arg2 ) == "bool" )
-    return 1;
-    
+    return 1;  
   if( nl->SymbolValue( arg1 ) == "bool" 
    && nl->SymbolValue( arg2 ) == "mbool" )
     return 2;
-
+    
   return -1; // This point should never be reached
 }
 
@@ -3953,7 +3784,6 @@ Is used for the ~mequal~ and ~mnotequal~
 operations.
 
 */
-
 int
 MovingEqualSelect( ListExpr args )
 {
@@ -4028,7 +3858,6 @@ Is used for the ~mequal~ and ~mnotequal~
 operations.
 
 */
-
 int
 MovingCompareSelect( ListExpr args )
 {
@@ -4074,15 +3903,12 @@ MovingCompareSelect( ListExpr args )
   return -1; // This point should never be reached
 }
 
-
-
 /*
 16.2.12 Selection function ~MovingDistanceSelect~
 
 Is used for the ~distance~ operation.
 
 */
-
 int
 MovingDistanceSelect( ListExpr args )
 {
@@ -4091,14 +3917,12 @@ MovingDistanceSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "mpoint" 
   && nl->SymbolValue( arg2 ) == "mpoint" )
     return 0;  
-
   //if( nl->SymbolValue( arg1 ) == "mpoint" 
   //&& nl->SymbolValue( arg2 ) == "point" )
   //  return 1;
   //if( nl->SymbolValue( arg1 ) == "point" 
   //&& nl->SymbolValue( arg2 ) == "mpoint" )
   //  return 2;
-
   if( nl->SymbolValue( arg1 ) == "mreal" 
    && nl->SymbolValue( arg2 ) == "mreal" )
     return 1;  
@@ -4117,7 +3941,6 @@ MovingDistanceSelect( ListExpr args )
 Is used for the ~intersect~ operation.
 
 */
-
 int MovingIntersectionSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args ),
@@ -4129,63 +3952,48 @@ int MovingIntersectionSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "mbool" 
    && nl->SymbolValue( arg2 ) == "mbool" )
     return 0;
-
   if( nl->SymbolValue( arg1 ) == "mbool" 
    && nl->SymbolValue( arg2 ) == "bool" )
-    return 1;    
-    
+    return 1;       
   if( nl->SymbolValue( arg1 ) == "bool" 
    && nl->SymbolValue( arg2 ) == "mbool" )
-    return 2;  
-    
+    return 2;     
   if( nl->SymbolValue( arg1 ) == "mint" 
    && nl->SymbolValue( arg2 ) == "mint" )
     return 3;
-
   if( nl->SymbolValue( arg1 ) == "mint" 
    && nl->SymbolValue( arg2 ) == "int" )
-    return 4;    
-    
+    return 4;       
   if( nl->SymbolValue( arg1 ) == "int" 
    && nl->SymbolValue( arg2 ) == "mint" )
-    return 5;  
-    
+    return 5;     
   if( nl->SymbolValue( arg1 ) == "mreal" 
    && nl->SymbolValue( arg2 ) == "mreal" )
     return 6;
-
   if( nl->SymbolValue( arg1 ) == "mreal" 
    && nl->SymbolValue( arg2 ) == "real" )
-    return 7;    
-    
+    return 7;       
   if( nl->SymbolValue( arg1 ) == "real" 
    && nl->SymbolValue( arg2 ) == "mreal" )
-    return 8; 
-    
+    return 8;    
   if( nl->SymbolValue( arg1 ) == "mpoint" 
    && nl->SymbolValue( arg2 ) == "points" )
-    return 9; 
-    
+    return 9;    
   if( nl->SymbolValue( arg1 ) == "mpoint" 
    && nl->SymbolValue( arg2 ) == "line" )
-    return 10; 
-    
+    return 10;  
   if( nl->SymbolValue( arg1 ) == "points" 
    && nl->SymbolValue( arg2 ) == "mpoint" )
     return 11;
-  
   if( nl->SymbolValue( arg1 ) == "line" 
    && nl->SymbolValue( arg2 ) == "mpoint" )
     return 12; 
-
   if( nl->SymbolValue( arg1 ) == "mstring" 
    && nl->SymbolValue( arg2 ) == "mstring" )
     return 13;
-
   if( nl->SymbolValue( arg1 ) == "mstring" 
    && nl->SymbolValue( arg2 ) == "string" )
     return 14;    
-    
   if( nl->SymbolValue( arg1 ) == "string" 
    && nl->SymbolValue( arg2 ) == "mstring" )
     return 15; 
@@ -4198,7 +4006,6 @@ int MovingIntersectionSelect( ListExpr args )
 Is used for the ~minus~ operation.
 
 */
-
 int MovingMinusSelect( ListExpr args )
 {
   if (nl->ListLength(args) != 2)
@@ -4210,79 +4017,60 @@ int MovingMinusSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "mbool" 
    && nl->SymbolValue( arg2 ) == "mbool" )
     return 0;
-
   if( nl->SymbolValue( arg1 ) == "mbool" 
    && nl->SymbolValue( arg2 ) == "bool" )
     return 1;    
-    
   if( nl->SymbolValue( arg1 ) == "bool" 
    && nl->SymbolValue( arg2 ) == "mbool" )
     return 2;  
-    
   if( nl->SymbolValue( arg1 ) == "mint" 
    && nl->SymbolValue( arg2 ) == "mint" )
     return 3;
-
   if( nl->SymbolValue( arg1 ) == "mint" 
    && nl->SymbolValue( arg2 ) == "int" )
     return 4;    
-    
   if( nl->SymbolValue( arg1 ) == "int" 
    && nl->SymbolValue( arg2 ) == "mint" )
     return 5;  
-    
   if( nl->SymbolValue( arg1 ) == "mreal" 
    && nl->SymbolValue( arg2 ) == "mreal" )
     return 6;
-
   if( nl->SymbolValue( arg1 ) == "mreal" 
    && nl->SymbolValue( arg2 ) == "real" )
     return 7;    
-    
   if( nl->SymbolValue( arg1 ) == "real" 
    && nl->SymbolValue( arg2 ) == "mreal" )
     return 8; 
-    
   if( nl->SymbolValue( arg1 ) == "mpoint" 
    && nl->SymbolValue( arg2 ) == "mpoint" )
     return 9; 
-    
   if( nl->SymbolValue( arg1 ) == "mpoint" 
    && nl->SymbolValue( arg2 ) == "point" )
     return 10; 
-   
   if( nl->SymbolValue( arg1 ) == "point" 
    && nl->SymbolValue( arg2 ) == "mpoint" )
     return 11;  
-    
   if(nl->SymbolValue(nl->First(args)) == "region"
    && nl->SymbolValue(nl->Second(args)) == "mpoint")
     return 12;
-    
   if  (nl->SymbolValue(nl->First(args)) == "movingregion"
    && nl->SymbolValue(nl->Second(args)) == "point")
     return 13;
-    
   if  (nl->SymbolValue(nl->First(args)) == "movingregion"
    && nl->SymbolValue(nl->Second(args)) == "mpoint")
-    return 14;   
-      
+    return 14;     
   if  (nl->SymbolValue(nl->First(args)) == "movingregion"
    && nl->SymbolValue(nl->Second(args)) == "points")
     return 15;
-    
   if  (nl->SymbolValue(nl->First(args)) == "movingregion"
    && nl->SymbolValue(nl->Second(args)) == "line")
     return 16;
-    
   if( nl->SymbolValue( arg1 ) == "mstring" 
    && nl->SymbolValue( arg2 ) == "mstring" )
     return 17; 
-    
   if( nl->SymbolValue( arg1 ) == "mstring" 
    && nl->SymbolValue( arg2 ) == "string" )
     return 18; 
-   
   if( nl->SymbolValue( arg1 ) == "string" 
    && nl->SymbolValue( arg2 ) == "mstring" )
     return 19;
@@ -4296,7 +4084,6 @@ int MovingMinusSelect( ListExpr args )
 Is used for the ~inside~ operation.
 
 */
-
 int
 InsideSelect( ListExpr args )
 {
@@ -4307,15 +4094,12 @@ InsideSelect( ListExpr args )
     if( nl->SymbolValue( arg1 ) == "mpoint" 
      && nl->SymbolValue( arg2 ) == "points" )
       return 0;  
-    
     if( nl->SymbolValue( arg1 ) == "mpoint" 
      && nl->SymbolValue( arg2 ) == "line" )
       return 1;
-      
     if  (nl->SymbolValue(nl->First(args)) == "movingregion"
      && nl->SymbolValue(nl->Second(args)) == "points")
       return 2;
-        
     if  (nl->SymbolValue(nl->First(args)) == "movingregion"
      && nl->SymbolValue(nl->Second(args)) == "line")
       return 3;     
@@ -4326,15 +4110,12 @@ InsideSelect( ListExpr args )
     return -1; 
 }
 
-
-
 /*
 16.2.1 Selection function ~UnionSelect~
 
 For ~union~:
 
 */
-
 static int UnionSelect(ListExpr args) {
     if(TLA_DEBUG)
       cout<< "UnionSelect() called" << endl;
@@ -4363,7 +4144,6 @@ static int UnionSelect(ListExpr args) {
 For ~isempty~:
 
 */
-
 static int TemporalLiftIsemptySelect(ListExpr args) {
     if(TLA_DEBUG)
       cout<< "TemporalLiftIsemptySelect() called" << endl;
@@ -4393,7 +4173,6 @@ static int TemporalLiftIsemptySelect(ListExpr args) {
 16.3.29 Value mapping functions of operator ~distance~
 
 */
-
 int MPointMMDistance( Word* args, Word& result, int message,
  Word& local, Supplier s )
 {
@@ -4407,7 +4186,6 @@ int MPointMMDistance( Word* args, Word& result, int message,
 16.3.39 Value mapping functions of operator ~not~
 
 */
-
 int TemporalNot( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
@@ -4447,7 +4225,6 @@ int TemporalNot( Word* args, Word& result, int message, Word&
 op == 1 -> AND, op == 2 -> OR
 
 */
-
 template<int op>
 int TemporalMMLogic( Word* args, Word& result, int message, Word&
  local, Supplier s )
@@ -4466,7 +4243,6 @@ and ~or~ moving/static
 op == 1 -> AND, po == 2 -> OR
 
 */
-
 template<int op>
 int TemporalMSLogic( Word* args, Word& result, int message, Word&
  local, Supplier s )
@@ -4485,7 +4261,6 @@ and ~or~ static/moving
 op == 1 -> AND, po == 2 -> OR
 
 */
-
 template<int op>
 int TemporalSMLogic( Word* args, Word& result, int message, Word&
  local, Supplier s )
@@ -4498,13 +4273,11 @@ int TemporalSMLogic( Word* args, Word& result, int message, Word&
   return 0;
 }
 
-
 /*
 16.3.44 Value mapping functions of operator ~mequal~ 
 and ~notmequal~
 
 */
-
 template<class Mapping1, class Mapping2, class Unit1, class
  Unit2, int op>
 int TemporalMMCompare( Word* args, Word& result, int message,
@@ -4523,7 +4296,6 @@ int TemporalMMCompare( Word* args, Word& result, int message,
 16.3.45 Value mapping functions of operator ~intsersection~
 
 */
-
 template<class Mapping1, class Mapping2, class Unit1, class
  Unit2, int op>
 int TemporalMMIntersection( Word* args, Word& result, 
@@ -4538,6 +4310,10 @@ int message, Word& local, Supplier s )
   return 0;
 }
 
+/*
+16.3.45 Value mapping functions of operator ~intsersection~
+
+*/
 template<int op>
 int TemporalMMRealIntercept( Word* args, Word& result, int
  message, Word& local, Supplier s )
@@ -4550,6 +4326,10 @@ int TemporalMMRealIntercept( Word* args, Word& result, int
   return 0;
 }
 
+/*
+16.3.45 Value mapping functions of operator ~intsersection~
+
+*/
 template<class Mapping1, class Unit1, class Operator2, int op>
 int TemporalMSIntersection( Word* args, Word& result, 
 int message, Word& local, Supplier s )
@@ -4586,6 +4366,10 @@ int message, Word& local, Supplier s )
   return 0;
 }
 
+/*
+16.3.45 Value mapping functions of operator ~intsersection~
+
+*/
 template<int op>
 int TemporalMSRealIntercept( Word* args, Word& result, 
 int message, Word& local, Supplier s )
@@ -4622,6 +4406,10 @@ int message, Word& local, Supplier s )
   return 0;
 }
 
+/*
+16.3.45 Value mapping functions of operator ~intsersection~
+
+*/
 template<class Mapping1, class Unit1, class Operator1, int op>
 int TemporalSMIntersection( Word* args, Word& result, 
 int message, Word& local, Supplier s )
@@ -4658,6 +4446,10 @@ int message, Word& local, Supplier s )
   return 0;
 }
 
+/*
+16.3.45 Value mapping functions of operator ~intsersection~
+
+*/
 template<int op>
 int TemporalSMRealIntercept( Word* args, Word& result, 
 int message, Word& local, Supplier s )
@@ -4700,7 +4492,6 @@ Function TransformMBool2MPoint completes a MBool to
 a MPoint-value. For this it adds the starting and end points.
 
 */
-
 static void TransformMBool2MPoint(MPoint *mp, MBool *mBool,
   MPoint *endResult)
 {
@@ -4885,7 +4676,6 @@ Function TransformMBool2MPoint completes a MBool to
 a MPoint-value. For this it adds the starting and end points from point.
 
 */
-
 static void TransformMBool2MPoint(Point *p, MBool *mBool,
   MPoint *endResult)
 {
@@ -4936,7 +4726,6 @@ static void TransformMBool2MPoint(Point *p, MBool *mBool,
  for mpoint/mpoint
 
 */
-
 int TemporalMMPointIntercept( Word* args, Word& result, int
  message, Word& local, Supplier s )
 {
@@ -4961,7 +4750,6 @@ int TemporalMMPointIntercept( Word* args, Word& result, int
  for mpoint/point
 
 */
-
 int TemporalMSPointIntercept( Word* args, Word& result, int
  message, Word& local, Supplier s )
 {
@@ -4986,7 +4774,6 @@ int TemporalMSPointIntercept( Word* args, Word& result, int
  for point/mpoint
 
 */
-
 int TemporalSMPointIntercept( Word* args, Word& result, int
  message, Word& local, Supplier s )
 {
@@ -5011,7 +4798,6 @@ int TemporalSMPointIntercept( Word* args, Word& result, int
 and ~\#~ for mreal/mreal
 
 */
-
 template<int op>
 int TemporalMMRealCompare( Word* args, Word& result, int message,
  Word& local, Supplier s )
@@ -5029,7 +4815,6 @@ int TemporalMMRealCompare( Word* args, Word& result, int message,
 and ~\#~ for mreal/real
 
 */
-
 template<int op>
 int TemporalMSRealCompare( Word* args, Word& result, int message,
  Word& local, Supplier s )
@@ -5048,7 +4833,6 @@ int TemporalMSRealCompare( Word* args, Word& result, int message,
 and ~\#~ for real/mreal
 
 */
-
 template<int op>
 int TemporalSMRealCompare( Word* args, Word& result, int message,
  Word& local, Supplier s )
@@ -5068,7 +4852,6 @@ int TemporalSMRealCompare( Word* args, Word& result, int message,
 and ~\#~ for mpoint/mpoint
 
 */
-
 template<int op>
 int TemporalMMPointCompare( Word* args, Word& result, int message,
  Word& local, Supplier s )
@@ -5086,7 +4869,6 @@ int TemporalMMPointCompare( Word* args, Word& result, int message,
 and ~\#~ for mpoint/point
 
 */
-
 template<int op>
 int TemporalMSPointCompare( Word* args, Word& result, int message,
  Word& local, Supplier s )
@@ -5104,7 +4886,6 @@ int TemporalMSPointCompare( Word* args, Word& result, int message,
 and ~\#~ for point/mpoint
 
 */
-
 template<int op>
 int TemporalSMPointCompare( Word* args, Word& result, int message,
  Word& local, Supplier s )
@@ -5122,7 +4903,6 @@ int TemporalSMPointCompare( Word* args, Word& result, int message,
 and ~\#~ for mregion/region
 
 */
-
 template<int op>
 int TemporalMSRegionCompare( Word* args, Word& result, int message,
  Word& local, Supplier s )
@@ -5140,7 +4920,6 @@ int TemporalMSRegionCompare( Word* args, Word& result, int message,
 and ~\#~ for region/mregion
 
 */
-
 template<int op>
 int TemporalSMRegionCompare( Word* args, Word& result, int message,
  Word& local, Supplier s )
@@ -5158,7 +4937,6 @@ int TemporalSMRegionCompare( Word* args, Word& result, int message,
 and ~\#~ for mregion/mregion
 
 */
-
 template<int op>
 int TemporalMMRegionCompare( Word* args, Word& result, int message,
  Word& local, Supplier s )
@@ -5177,7 +4955,6 @@ int TemporalMMRegionCompare( Word* args, Word& result, int message,
 for moving/static
 
 */
-
 template<class Mapping1, class Unit1, class Operator2, int op>
 int TemporalMSCompare( Word* args, Word& result, int message,
  Word& local, Supplier s )
@@ -5197,7 +4974,6 @@ int TemporalMSCompare( Word* args, Word& result, int message,
 for static/moving/
 
 */
-
 template<class Mapping1, class Unit1, class Operator2, int op>
 int TemporalSMCompare( Word* args, Word& result, int message,
  Word& local, Supplier s )
@@ -5217,7 +4993,6 @@ int TemporalSMCompare( Word* args, Word& result, int message,
 16.3.46 Value mapping function of operators ~abs~
 
 */
-
 int MovingRealABS( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
@@ -5229,10 +5004,9 @@ int MovingRealABS( Word* args, Word& result, int message, Word&
 }
 
 /*
-16.3.47. Value mapping of operator ~minus~ for real/movingreal
+16.3.47. Value mapping of operator ~distance~ for mreal/mreal
 
 */
-
 int MRealMMDistance( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
@@ -5244,6 +5018,10 @@ int MRealMMDistance( Word* args, Word& result, int message, Word&
   return 0;
 }
 
+/*
+16.3.47. Value mapping of operator ~distance~ for mreal/real
+
+*/
 int MRealMSDistance( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
@@ -5279,6 +5057,10 @@ int MRealMSDistance( Word* args, Word& result, int message, Word&
   return 0;
 }
 
+/*
+16.3.47. Value mapping of operator ~distance~ for real/mreal
+
+*/
 int MRealSMDistance( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
@@ -5321,7 +5103,6 @@ with value ~true~ and added the difference to the MPoint-
 intervals with ~false~.
 
 */
-
 static void CompletePeriods2MBool(MPoint* mp, Periods* pResult,
   MBool* endResult){
   const UPoint *up;
@@ -5425,7 +5206,6 @@ static void CompletePeriods2MBool(MPoint* mp, Periods* pResult,
         uBool.timeInterval.lc = !per->rc; 
         if(m == pResult->GetNoComponents() - 1){
           pfinished = true;
-          //break;
         }
         else {
           pResult->Get(++m, per);
@@ -5481,7 +5261,6 @@ Function CompletePeriods2MPoint completes a Periods-value to
 a MPoint-value. For this it adds the starting and end points.
 
 */
-
 static void CompletePeriods2MPoint(MPoint* mp, Periods* pResult,
   MPoint* endResult){
   const UPoint *up;
@@ -5507,9 +5286,6 @@ static void CompletePeriods2MPoint(MPoint* mp, Periods* pResult,
         cout<<"per "<<m<<" ["<<per->start.ToDouble()<<" "
         <<per->end.ToDouble()<<" "<<per->lc<<" "<<per->rc<<"]"<<endl;}
     }
-    else
-      if(TLA_DEBUG)
-        cout<<"no per any more"<<endl;
     if(pfinished) {
       if(TLA_DEBUG)
         cout<<"no per any more. break 1"<<endl;
@@ -5576,13 +5352,10 @@ static void CompletePeriods2MPoint(MPoint* mp, Periods* pResult,
             <<newUp.timeInterval.rc<<"]"<<endl;}
           endResult->Add(newUp);
         }
-       // newUp.timeInterval.start = per->end; 
-       // newUp.timeInterval.lc = !per->rc; 
         if(m == pResult->GetNoComponents() - 1){
           if(TLA_DEBUG)
             cout<<"last per"<<endl;
           pfinished = true;
-          //break;
         }
         else {
           pResult->Get(++m, per);
@@ -5616,7 +5389,6 @@ given MPoint lies inside the given Points. It return the existing
 intervals in a Periods-Object. 
 
 */
-
 static void MPointInsidePoints(MPoint& mp, Points& ps, Periods& pResult)
 {
   const UPoint *up;
@@ -5700,7 +5472,6 @@ for mpoint/points. op decides whether it means inside(1) or
 intersection(2)
 
 */
-
 template<int op>
 int MPointPointsInside( Word* args, Word& result, int message,
  Word& local, Supplier s )
@@ -5731,7 +5502,6 @@ int MPointPointsInside( Word* args, Word& result, int message,
 16.3.47. Value mapping of operator ~intersection~ for points/mPoint
 
 */
-
 int PointsMPointIntersection( Word* args, Word& result, int message,
  Word& local, Supplier s )
 {
@@ -5757,7 +5527,6 @@ given MPoint lies inside the given CLine. It return the existing
 intervals in a Periods-Object. 
 
 */
-
 static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
 {
   const UPoint *up;
@@ -6200,7 +5969,6 @@ for mpoint/line. op decides whether it means inside(1) or
 intersection(2)
 
 */
-
 template<int op>
 int MPointLineInside( Word* args, Word& result, int message,
  Word& local, Supplier s )
@@ -6227,13 +5995,10 @@ int MPointLineInside( Word* args, Word& result, int message,
   return 0;
 }
 
-
-
 /*
 16.3.47. Value mapping of operator ~intersection~ for line/mpoint
 
 */
-
 int LineMPointIntersection( Word* args, Word& result, int message,
  Word& local, Supplier s )
 {
@@ -6254,15 +6019,11 @@ int LineMPointIntersection( Word* args, Word& result, int message,
 }
 
 /*
-ValueMapping for ~perimeter~
+ValueMapping of operator ~perimeter~ for mregion
 
 */
-
-static int PerimeterValueMap(Word* args,
-                             Word& result,
-                             int message,
-                             Word& local,
-                             Supplier s) {
+static int PerimeterValueMap(Word* args, Word& result, int message,
+                             Word& local, Supplier s) {
     if(TLA_DEBUG)
       cout<< "PerimeterValueMap() called" << endl;
 
@@ -6274,15 +6035,11 @@ static int PerimeterValueMap(Word* args,
 }
 
 /*
-ValueMapping for ~area~
+ValueMapping of operator ~area~ for mregion
 
 */
-
-static int AreaValueMap(Word* args,
-                             Word& result,
-                             int message,
-                             Word& local,
-                             Supplier s) {
+static int AreaValueMap(Word* args, Word& result, int message,
+                             Word& local, Supplier s) {
     if(TLA_DEBUG)
       cout<< "AreaValueMap) called" << endl;
 
@@ -6294,15 +6051,11 @@ static int AreaValueMap(Word* args,
 }
 
 /*
-ValueMapping for ~rough\_center~
+ValueMapping of operator ~rough\_center~ for mregion
 
 */
-
-static int RCenterValueMap(Word* args,
-                             Word& result,
-                             int message,
-                             Word& local,
-                             Supplier s) {
+static int RCenterValueMap(Word* args, Word& result, int message,
+                           Word& local, Supplier s) {
     if(TLA_DEBUG)
       cout<< "RCenterValueMap() called" << endl;
 
@@ -6314,15 +6067,11 @@ static int RCenterValueMap(Word* args,
 }
 
 /*
-ValueMapping for ~no\_components~
+ValueMapping of operator ~no\_components~ for mregion
 
 */
-
-static int NComponentsValueMap(Word* args,
-                             Word& result,
-                             int message,
-                             Word& local,
-                             Supplier s) {
+static int NComponentsValueMap(Word* args, Word& result, int message,
+                             Word& local, Supplier s) {
     if(TLA_DEBUG)
       cout<< "NComponentsValueMap() called" << endl;
 
@@ -6434,15 +6183,11 @@ void copyMRegionMPoint(MRegion& reg, MPoint& pt, MRegion& result) {
 }
 
 /*
-ValueMapping for ~Minus~ with Region/MPoint
+ValueMapping of operator ~Minus~ with Region/MPoint
 
 */
-
-static int RMPMinusValueMap(Word* args,
-                             Word& result,
-                             int message,
-                             Word& local,
-                             Supplier s) {
+static int RMPMinusValueMap(Word* args, Word& result, int message,
+                             Word& local, Supplier s) {
     if(TLA_DEBUG)
       cout<< "RMPMinusValueMap() called" << endl;
     result = qp->ResultStorage(s);
@@ -6464,15 +6209,11 @@ static int RMPMinusValueMap(Word* args,
 }
 
 /*
-ValueMapping for ~Minus~ with MRegion/Point
+ValueMapping of operator ~Minus~ with MRegion/Point
 
 */
-
-static int MRPMinusValueMap(Word* args,
-                             Word& result,
-                             int message,
-                             Word& local,
-                             Supplier s) {
+static int MRPMinusValueMap(Word* args, Word& result, int message,
+                             Word& local, Supplier s) {
     if(TLA_DEBUG)
       cout<< "MRPMinusValueMap() called" << endl;
 
@@ -6484,15 +6225,11 @@ static int MRPMinusValueMap(Word* args,
 }
 
 /*
-ValueMapping for ~Minus~ with MRegion/MPoint
+ValueMapping of operator ~Minus~ with MRegion/MPoint
 
 */
-
-static int MRMPMinusValueMap(Word* args,
-                             Word& result,
-                             int message,
-                             Word& local,
-                             Supplier s) {
+static int MRMPMinusValueMap(Word* args, Word& result, int message,
+                             Word& local, Supplier s) {
     if(TLA_DEBUG)
       cout<< "MRMPMinusValueMap() called" << endl;
 
@@ -6505,15 +6242,11 @@ static int MRMPMinusValueMap(Word* args,
 }
 
 /*
-ValueMapping for ~Union~ with Region/MPoint
+ValueMapping of operator ~Union~ with Region/MPoint
 
 */
-
-static int MPRUnionValueMap(Word* args,
-                             Word& result,
-                             int message,
-                             Word& local,
-                             Supplier s) {
+static int MPRUnionValueMap(Word* args, Word& result, int message,
+                             Word& local, Supplier s) {
     if(TLA_DEBUG)
       cout<< "MPRUnionValueMap() called" << endl;
     result = qp->ResultStorage(s);
@@ -6525,15 +6258,11 @@ static int MPRUnionValueMap(Word* args,
 }
 
 /*
-ValueMapping for ~Union~ with MRegion/Point
+ValueMapping of operator ~Union~ with MRegion/Point
 
 */
-
-static int PMRUnionValueMap(Word* args,
-                             Word& result,
-                             int message,
-                             Word& local,
-                             Supplier s) {
+static int PMRUnionValueMap(Word* args, Word& result, int message,
+                             Word& local, Supplier s) {
     if(TLA_DEBUG)
       cout<< "PMRUnionValueMap() called" << endl;
 
@@ -6546,15 +6275,11 @@ static int PMRUnionValueMap(Word* args,
 }
 
 /*
-ValueMapping for ~Union~ with MRegion/MPoint
+ValueMapping of operator ~Union~ with MRegion/MPoint
 
 */
-
-static int MPMRUnionValueMap(Word* args,
-                             Word& result,
-                             int message,
-                             Word& local,
-                             Supplier s) {
+static int MPMRUnionValueMap(Word* args, Word& result, int message,
+                             Word& local, Supplier s) {
     if(TLA_DEBUG)
       cout<< "MPMRUnionValueMap() called" << endl;
 
@@ -6566,18 +6291,13 @@ static int MPMRUnionValueMap(Word* args,
     return 0;
 }
 
-
 /*
-ValueMapping for ~isempty~ for mbool, mint, mreal, mpoint and mregion
+ValueMapping of operator ~isempty~ for mbool, mint, mreal, mpoint and mregion
 
 */
-
 template<class Mapping1, class Unit1>
-static int IsEmptyValueMap(Word* args,
-                             Word& result,
-                             int message,
-                             Word& local,
-                             Supplier s) {
+static int IsEmptyValueMap(Word* args, Word& result, int message,
+                             Word& local, Supplier s) {
     if(TLA_DEBUG)
       cout<< "IsEmptyValueMap() called" << endl;
 
@@ -6662,12 +6382,8 @@ mregion x points / line and creats false for every
 periode in mregion.
 
 */
-
-static int MFalseValueMap(Word* args,
-                             Word& result,
-                             int message,
-                             Word& local,
-                             Supplier s) {
+static int MFalseValueMap(Word* args, Word& result, int message,
+                             Word& local, Supplier s) {
     if(TLA_DEBUG)
       cout<< "MFalseValueMap() called" << endl;
 
@@ -6701,7 +6417,6 @@ Every periode in periods will be transformed into an UInt with
 value 1 the holes will be transformed into UInts with value 0.
 
 */
-
 int TemporalMIntValueMap( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
@@ -6791,7 +6506,6 @@ int TemporalMIntValueMap( Word* args, Word& result, int message, Word&
 16.3.40 Value mapping functions of operator ~+~ with two mint-objects
 
 */
-
 int TemporalPlusValueMap( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
@@ -6857,12 +6571,8 @@ int TemporalPlusValueMap( Word* args, Word& result, int message, Word&
 ValueMapping for ~zero~ 
 
 */
-
-static int TemporalZeroValueMap(Word* args,
-                             Word& result,
-                             int message,
-                             Word& local,
-                             Supplier s) {
+static int TemporalZeroValueMap(Word* args, Word& result, int message,
+                             Word& local, Supplier s) {
     if(TLA_DEBUG)
       cout<< "TemporalZeroValueMap() called" << endl;
 
@@ -6889,12 +6599,8 @@ static int TemporalZeroValueMap(Word* args,
 ValueMapping for ~concat~ 
 
 */
-
-static int TemporalConcatValueMap(Word* args,
-                             Word& result,
-                             int message,
-                             Word& local,
-                             Supplier s) {
+static int TemporalConcatValueMap(Word* args, Word& result, int message,
+                             Word& local, Supplier s) {
     if(TLA_DEBUG)
       cout<< "TemporalConcatValueMap() called" << endl;
     
@@ -7524,7 +7230,6 @@ class TemporalLiftedAlgebra : public Algebra
     AddOperator( &temporalor );
     AddOperator( &temporalmequal );
     AddOperator( &temporalmnotequal );
-    AddOperator( &temporalabs );
     
     AddOperator( &perimeter);
     AddOperator( &area);
