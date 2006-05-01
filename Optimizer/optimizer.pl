@@ -1684,12 +1684,12 @@ join(Arg1, Arg2, pr(X touches Y, R1, R2)) => JoinPlan :-
 
 
 join00(Arg1S, Arg2S, pr(X touches Y, _, _)) => filter(spatialjoin(Arg1S, 
-  Arg2S, attrname(Attr1), attrname(Attr2)), Attr1 intersects Attr2) :-
+  Arg2S, attrname(Attr1), attrname(Attr2)), Attr1 touches Attr2) :-
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
 join00(Arg1S, Arg2S, pr(Y touches X, _, _)) => filter(spatialjoin(Arg2S, 
-  Arg1S, attrname(Attr2), attrname(Attr1)), Attr1 intersects Attr2) :-
+  Arg1S, attrname(Attr2), attrname(Attr1)), Attr1 touches Attr2) :-
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
