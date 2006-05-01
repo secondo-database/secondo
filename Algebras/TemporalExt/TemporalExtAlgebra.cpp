@@ -275,6 +275,154 @@ TypeConstructor movingstring(
 );
 
 /*
+3.4 Type Constructor ~rbool~
+
+Type ~rbool~ represents a range bool.
+
+3.4.1 List Representation
+
+The list representation of a ~rbool~ is
+
+----    ( (bb1 eb1 lc1 rc1) (bb2 eb2 lc2 rc2) ... (bbn ebn lcn rcn) )
+----
+
+
+For example:
+
+----    (
+          ( (TRUE FALSE TRUE FALSE)  (FALSE FALSE TRUE TRUE) )
+        )
+----
+
+3.4.2 function Describing the Signature of the Type Constructor
+
+*/
+ListExpr
+RangeBoolProperty()
+{
+  ListExpr remarkslist = nl->TextAtom();
+  nl->AppendText(remarkslist,
+  "lci means left closed interval, rci respectively right closed interval,"
+    " e.g. (TRUE TRUE TRUE FALSE) means the range [TRUE, TRUE[");
+
+  return (nl->TwoElemList(
+            nl->FiveElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List"),
+                             nl->StringAtom("Remarks")),
+            nl->FiveElemList(nl->StringAtom("-> RANGE"),
+                             nl->StringAtom("(rbool) "),
+        nl->StringAtom("((bb1 eb1 lci rci) ... (bbn ebn lci rci))"),
+        nl->StringAtom("((TRUE TRUE TRUE FALSE) (FALSE FALSE TRUE TRUE))"),
+                             remarkslist)));
+}
+
+/*
+3.3.3 Kind Checking Function
+
+This function checks whether the type constructor is applied correctly.
+
+*/
+bool
+CheckRBool( ListExpr type, ListExpr& errorInfo )
+{
+    return (nl->IsEqual( type, "rbool" ));
+}
+
+/*
+3.3.4 Creation of the type constructor ~rbool~
+
+*/
+TypeConstructor rangebool(
+    "rbool",  //name
+     RangeBoolProperty,   //property function describing signature
+     OutRange<CcBool, OutCcBool>,
+     InRange<CcBool, InCcBool>,                 //Out and In functions
+     0,            0,  //SaveToList and RestoreFromList functions
+     CreateRange<CcBool>,DeleteRange<CcBool>,   //object creation and deletion
+     OpenRange<CcBool>,  SaveRange<CcBool>,     // object open and save
+     CloseRange<CcBool>, CloneRange<CcBool>,    //object close and clone
+     CastRange<CcBool>,                        //cast function
+     SizeOfRange<CcBool>,                      //sizeof function
+     CheckRBool                          //kind checking function
+);
+
+/*
+3.5 Type Constructor ~rstring~
+
+Type ~rstring~ represents a range string.
+
+3.5.1 List Representation
+
+The list representation of a ~rstring~ is
+
+----    ( (bs1 es1 lc1 rc1) (bs2 es2 lc2 rc2) ... (bsn esn lcn rcn) )
+----
+
+
+For example:
+
+----    (
+          ( ("First string" "Second string" TRUE FALSE)
+          ("New York" "Washington" TRUE TRUE) )
+        )
+----
+
+3.5.2 function Describing the Signature of the Type Constructor
+
+*/
+ListExpr
+RangeStringProperty()
+{
+  ListExpr remarkslist = nl->TextAtom();
+  nl->AppendText(remarkslist,
+  "lci means left closed interval, rci respectively right closed interval,"
+    " e.g. (String1 String2 TRUE FALSE) means the range [String1, String2[");
+
+  return (nl->TwoElemList(
+            nl->FiveElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List"),
+                             nl->StringAtom("Remarks")),
+            nl->FiveElemList(nl->StringAtom("-> RANGE"),
+                             nl->StringAtom("(rstring) "),
+        nl->StringAtom("((bs1 es1 lci rci) ... (bsn esn lci rci))"),
+        nl->StringAtom("((String1 String2 TRUE FALSE))"), remarkslist)));
+}
+
+/*
+3.3.3 Kind Checking Function
+
+This function checks whether the type constructor is applied correctly.
+
+*/
+bool
+CheckRString( ListExpr type, ListExpr& errorInfo )
+{
+    return (nl->IsEqual( type, "rstring" ));
+}
+
+/*
+3.3.4 Creation of the type constructor ~rstring~
+
+*/
+TypeConstructor rangestring(
+    "rstring",  //name
+     RangeStringProperty,   //property function describing signature
+     OutRange<CcString, OutCcString>,
+     InRange<CcString, InCcString>,                 //Out and In functions
+     0,            0,  //SaveToList and RestoreFromList functions
+     CreateRange<CcString>,DeleteRange<CcString>, //obj. creation and deletion
+     OpenRange<CcString>,  SaveRange<CcString>,     // object open and save
+     CloseRange<CcString>, CloneRange<CcString>,    //object close and clone
+     CastRange<CcString>,                        //cast function
+     SizeOfRange<CcString>,                      //sizeof function
+     CheckRString                          //kind checking function
+);
+
+/*
 4 Operators
 
 4.1 Type mapping function
@@ -551,6 +699,25 @@ MovingPointExtTypeMapMReal( ListExpr args )
 }
 
 /*
+4.1.13 Type mapping function RangeRangevaluesExtTypeMapRange
+
+It is for the operator ~rangevalues~.
+
+*/
+ListExpr
+RangeRangevaluesExtTypeMapRange( ListExpr args )
+{
+    if ( nl->ListLength( args ) == 1 )
+    {
+        ListExpr arg1 = nl->First( args );
+
+        if( nl->IsEqual( arg1, "mbool" ) )
+            return nl->SymbolAtom( "rbool" );
+    }
+    return nl->SymbolAtom( "typeerror" );
+}
+
+/*
 4.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -690,6 +857,23 @@ IntimeExtSimpleSelect( ListExpr args )
     ListExpr arg1 = nl->First( args );
 
     if( nl->SymbolValue( arg1 ) == "istring" )
+        return 0;
+
+    return -1; // This point should never be reached
+}
+
+/*
+4.2.6 Selection function RangeRangevaluesExtBaseSelect
+
+Is used for the ~rangevalues~ operations.
+
+*/
+int
+RangeRangevaluesExtBaseSelect( ListExpr args )
+{
+    ListExpr arg1 = nl->First( args );
+
+    if( nl->SymbolValue( arg1 ) == "mbool" )
         return 0;
 
     return -1; // This point should never be reached
@@ -997,7 +1181,7 @@ int MovingDerivableExt(
         if(i==0)
         {
             /*
-            Steps fpr the first Unit
+            Steps for the first Unit
 
             */
             myValue.Set(true, !unitin->r);
@@ -1111,6 +1295,56 @@ int MovingSpeedExt(
 }
 
 /*
+4.3.13 Value mapping functions of operator ~rangevalues~
+
+*/
+int RangeRangevaluesBoolExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    MBool* m = ((MBool*)args[0].addr);
+    RBool* pResult = ((RBool*)result.addr);
+
+    const UBool* utemp;
+    CcBool min, max;
+    bool findmin=false, findmax=false, temp;
+
+    m->Get(0, utemp);
+    temp = utemp->constValue.GetBoolval();
+    min.Set(true, temp);
+    max.Set(true, temp);
+
+    for(int i=1;i<m->GetNoComponents();i++)
+    {
+        m->Get(i, utemp);
+        temp = utemp->constValue.GetBoolval();
+
+        if(temp)
+        {
+          max.Set(true, temp);
+          findmax = true;
+        }
+        else
+        {
+          min.Set(true, temp);
+          findmin = true;
+        }
+
+        if(findmin && findmax) break;
+    }
+
+    Interval<CcBool> inter(min, max, true, true);
+    pResult->Add(inter);
+
+    return 0;
+}
+
+/*
 4.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -1171,6 +1405,9 @@ ValueMapping temporalderivableextmap[] = {
 
 ValueMapping temporalspeedextmap[] = {
     MovingSpeedExt<MPoint> };
+
+ValueMapping rangerangevaluesextmap[] = {
+    RangeRangevaluesBoolExt };
 
 /*
 4.5 Specification strings
@@ -1298,7 +1535,7 @@ const string TemporalSpecValExt  =
 const string TemporalSpecDerivativeExt  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>derivative(mreal) -> mreal</text--->"
+    "( <text>moving(real) -> moving(real)</text--->"
     "<text>derivative ( _ )</text--->"
     "<text>Derivative of a mreal.</text--->"
     "<text>derivative ( mr1 )</text--->"
@@ -1307,7 +1544,7 @@ const string TemporalSpecDerivativeExt  =
 const string TemporalSpecDerivableExt =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>derivable(mreal) -> mbool</text--->"
+    "( <text>moving(mreal) -> moving(bool)</text--->"
     "<text>derivable ( _ )</text--->"
     "<text>Checking if mreal is derivable.</text--->"
     "<text>derivable ( mr1 )</text--->"
@@ -1316,10 +1553,21 @@ const string TemporalSpecDerivableExt =
 const string TemporalSpecSpeedExt  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>speed(mpoint) -> mreal</text--->"
+    "( <text>moving(mpoint) -> moving(real)</text--->"
     "<text>speed ( _ )</text--->"
     "<text>Velocity of a mpoint given as mreal.</text--->"
     "<text>speed ( mp1 )</text--->"
+    ") )";
+
+const string RangeSpecRangevaluesExt  =
+    "( ( \"Signature\" \" \" \"Syntax\" \"Meaning\" \" \" "
+    "\"Example\" ) "
+    "( <text>T in {int*, bool, real*, string*},</text--->"
+    "<text>moving(T) -> range(T)</text--->"
+    "<text>rangevalues ( _ )</text--->"
+    "<text>Returns all the values assumed by the argument over time,</text--->"
+    "<text>as a set of intervals.</text--->"
+    "<text>rangevalues ( mb1 )</text--->"
     ") )";
 
 /*
@@ -1431,6 +1679,14 @@ Operator temporalspeedext(
     Operator::SimpleSelect,
     MovingPointExtTypeMapMReal);
 
+Operator rangerangevaluesext(
+    "rangevalues",
+    TemporalSpecValExt,
+    1,
+    rangerangevaluesextmap,
+    RangeRangevaluesExtBaseSelect,
+    RangeRangevaluesExtTypeMapRange );
+
 class TemporalExtAlgebra : public Algebra
 {
   public:
@@ -1442,6 +1698,9 @@ class TemporalExtAlgebra : public Algebra
 
         AddTypeConstructor( &movingstring );
 
+        AddTypeConstructor( &rangebool );
+        AddTypeConstructor( &rangestring );
+
         intimestring.AssociateKind( "TEMPORAL" );
         intimestring.AssociateKind( "DATA" );
 
@@ -1450,6 +1709,12 @@ class TemporalExtAlgebra : public Algebra
 
         movingstring.AssociateKind( "TEMPORAL" );
         movingstring.AssociateKind( "DATA" );
+
+        rangebool.AssociateKind( "RANGE" );
+        rangebool.AssociateKind( "DATA" );
+
+        rangestring.AssociateKind( "RANGE" );
+        rangestring.AssociateKind( "DATA" );
 
         AddOperator( &temporalatinstantext );
         AddOperator( &temporalatperiodsext );
@@ -1464,6 +1729,8 @@ class TemporalExtAlgebra : public Algebra
         AddOperator( &temporalderivativeext );
         AddOperator( &temporalderivableext );
         AddOperator( &temporalspeedext );
+
+        AddOperator( &rangerangevaluesext );
 
     }
     ~TemporalExtAlgebra() {}

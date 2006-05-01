@@ -30,4 +30,6 @@ operator val alias VAL pattern op ( _ )
 operator derivative alias DERIVATIVE pattern op ( _ )
 operator derivable alias DERIVABLE pattern op ( _ )
 operator speed alias SPEED pattern op ( _ )
+operator rangevalues alias RANGEVALUES pattern op ( _ )
+
 
