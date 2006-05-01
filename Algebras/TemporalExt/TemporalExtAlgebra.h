@@ -60,6 +60,9 @@ extern QueryProcessor* qp;
 */
 typedef ConstTemporalUnit<CcString> UString;
 typedef Mapping< UString, CcString > MString;
+typedef Range<CcBool> RBool;
+typedef Range<CcString> RString;
 
 #endif // _TEMPORALEXT_ALGEBRA_H_
+
 
