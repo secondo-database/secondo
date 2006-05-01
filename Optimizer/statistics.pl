@@ -176,18 +176,29 @@ dynamicPossiblyRenameS(Rel, Renamed) :-
   sampleSizeSelection(SelectionSize),
   Renamed = rename(sample(Rel, SelectionSize, 0.00001), Name).
 
+/*
+----	cardQuery(Pred, Rel, Query) :-
+	cardQuery(Pred, Rel1, Rel2, Query) :-
+----
+
+The cardinality query for a selection predicate is performed on the selection sample. The cardinality query for a join predicate is performed on the first ~n~ tuples of the selection sample vs. the join sample, where ~n~ is the size of the join sample. It is done in this way in order to have two independent samples for the join, avoiding correlations, especially for equality conditions.
+
+*/
+
 cardQuery(Pred, Rel, Query) :-
   sampleS(Rel, RelS),
   possiblyRename(RelS, RelQuery),
   Query = count(filter(RelQuery, Pred)).
 
 cardQuery(Pred, Rel1, Rel2, Query) :-
-  sampleJ(Rel1, Rel1S),
+  sampleS(Rel1, Rel1S),
   sampleJ(Rel2, Rel2S),
   possiblyRename(Rel1S, Rel1Query),
   possiblyRename(Rel2S, Rel2Query),
   transformPred(Pred, t, 1, Pred2),
-  Query = count(loopsel(Rel1Query, fun([param(t, tuple)], filter(Rel2Query, Pred2)))).
+  Rel2S = rel(BaseName, _, _),
+  card(BaseName, JoinSize),
+  Query = count(loopsel(head(Rel1Query, JoinSize), fun([param(t, tuple)],         filter(Rel2Query, Pred2)))).
 
 /*
 
