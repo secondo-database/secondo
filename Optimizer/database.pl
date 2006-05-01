@@ -247,11 +247,7 @@ createSampleJ(Rel) :- %Rel in lc
   Rel2 = lc(Rel3),
   sampleNameJ(Rel3, Sample),
   sampleSizeJoin(JoinSize),
-  concat_atom(['let ', Sample, ' = ', Rel3, 
-    ' sample[', JoinSize, ', 0.00001] consume'], '', QueryAtom),    
-  tryCreate(QueryAtom),
-  card(Rel3, Card),
-  SampleCard is truncate(min(Card, max(JoinSize, Card*0.00001))),
+  createSample(Sample, Rel3, JoinSize, SampleCard),
   assert(storedCard(Sample, SampleCard)),
   downcase_atom(Sample, DCSample),  
   assert(storedSpell(DCSample, lc(Sample))).
@@ -261,11 +257,7 @@ createSampleJ(Rel) :- %Rel in uc
   upper(Rel2, URel),
   sampleNameJ(URel, Sample),
   sampleSizeJoin(JoinSize),
-  concat_atom(['let ', Sample, ' = ', URel, 
-    ' sample[', JoinSize, ', 0.00001] consume'], '', QueryAtom),    
-  tryCreate(QueryAtom),
-  card(Rel2, Card),
-  SampleCard is truncate(min(Card, max(2000, Card*0.00001))),
+  createSample(Sample, URel, JoinSize, SampleCard),
   lowerfl(Sample, LSample),
   assert(storedCard(LSample, SampleCard)),
   downcase_atom(Sample, DCSample),
@@ -276,11 +268,7 @@ createSampleS(Rel) :- %Rel in lc
   Rel2 = lc(Rel3),
   sampleNameS(Rel3, Sample),
   sampleSizeSelection(SelectionSize),
-  concat_atom(['let ', Sample, ' = ', Rel3, 
-    ' sample[', SelectionSize, ', 0.00001] consume'], '', QueryAtom),    
-  tryCreate(QueryAtom),
-  card(Rel3, Card),
-  SampleCard is truncate(min(Card, max(SelectionSize, Card*0.00001))),
+  createSample(Sample, Rel3, SelectionSize, SampleCard),
   assert(storedCard(Sample, SampleCard)),
   downcase_atom(Sample, DCSample),  
   assert(storedSpell(DCSample, lc(Sample))).
@@ -290,43 +278,68 @@ createSampleS(Rel) :- %Rel in uc
   upper(Rel2, URel),
   sampleNameS(URel, Sample),
   sampleSizeSelection(SelectionSize),
-  concat_atom(['let ', Sample, ' = ', URel, 
-    ' sample[', SelectionSize, ', 0.00001] consume'], '', QueryAtom),    
-  tryCreate(QueryAtom),
-  card(Rel2, Card),
-  SampleCard is truncate(min(Card, max(2000, Card*0.00001))),
+  createSample(Sample, URel, SelectionSize, SampleCard),
   lowerfl(Sample, LSample),
   assert(storedCard(LSample, SampleCard)),
   downcase_atom(Sample, DCSample),
   assert(storedSpell(DCSample, LSample)).
 
-writeErrorSampleFileJ(Rel, MemorySize) :-
-  nl,
-  spelling(Rel, Rel2),
-  (Rel2 = lc(Rel) -> Rel3 = Rel; upper(Rel,Rel3)),
-  write('ERROR: Couldn\'t create join sample file for relation \''),
-  write(Rel), write('\'!'),nl,
-  write('Sample file needs more than '), write(MemorySize),
-  write(' KB in main memory.'),nl,
-  write('Please create the file manually, e.g.: '),
-  write('let \''), write(Rel3),write('_sample_j = '),
-  sampleSizeJoin(JoinSize), 
-  write(Rel3),write(' sample['),write(JoinSize),
-  write(', 0.00001] consume\'.'),nl,nl.
+
+
+/*
+
+----	createSample(+Sample, +Rel, +SampleSize, SampleCard) :-
+----
+
+Create a random order sample ~Sample~ for relation ~Rel~ with desired sample size ~SampleSize~. The actual sample size is returned as ~SampleCard~.
+
+*/
+
+createSample(Sample, Rel, SampleSize, SampleCard) :-
+  concat_atom(['let ', Sample, ' = ', Rel, 
+    ' sample[', SampleSize, ', 0.00001] 
+      extend[xxxNo: randint(20000)] sortby[xxxNo asc] remove[xxxNo]
+      consume'], '', QueryAtom),    
+  tryCreate(QueryAtom),
+  card(Rel, Card),
+  SampleCard is truncate(min(Card, max(SampleSize, Card*0.00001))).
+
+
+
+
+/*
+
+----	createSamples(Rel, SelectionSize, JoinSize) :-
+----
+
+Create samples for ~Rel~ manually, speciying the size of selection and join samples.
+
+*/
+
+
+createSamples(Rel, SelectionSize, JoinSize) :-
+  sampleNameS(Rel, SampleS),
+  createSample(SampleS, Rel, SelectionSize, _),
+  sampleNameJ(Rel, SampleJ),
+  createSample(SampleJ, Rel, JoinSize, _).
+
+
+
+writeErrorSampleFileJ(_, _).
 
 writeErrorSampleFileS(Rel, MemorySize) :-
   nl,
   spelling(Rel, Rel2),
   (Rel2 = lc(Rel) -> Rel3 = Rel; upper(Rel,Rel3)),
-  write('ERROR: Couldn\'t create selection sample file for relation \''),
+  write('ERROR: Couldn\'t create sample files for relation \''),
   write(Rel3), write('\'!'),nl,
   write('Sample file needs more than '), write(MemorySize),
   write(' KB in main memory.'),nl,
   write('Please create the file manually, e.g.: '),
-  write('let \''), write(Rel3),write('_sample_s = '),
-  sampleSizeSelection(SelectionSize), 
-  write(Rel3),write(' sample['),write(SelectionSize),
-  write(', 0.00001] consume\'.'),nl,nl.
+  write('createSamples(\''), write(Rel3), write('\', 100, 50)'), nl,
+  write('where 100 and 50 are the desired sample sizes for the selection'), nl,
+  write('and join samples, respectively.'), nl, nl.
+
 
 createSampleRelation4(Rel, Size, MemorySize) :-
   not(hasSampleJ(Rel)),
