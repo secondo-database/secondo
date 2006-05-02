@@ -544,6 +544,78 @@ writePET :-
   write(' ms\n').
 
 /*
+ ~showDatabase~
+ This predicate will inquire all collected statistical data on the 
+ opened Secondo database and print it on the screen.
+
+*/
+
+showSingleRelationCard(DB, Rel) :-
+  secRelation(Rel, RelExternal),
+  lowerfl(RelExternal, RelExternalL),
+  storedCard(DB, RelExternalL, Card),
+  write('\n\n\tCardinality:   '), write(Card), nl, !.
+
+showSingleRelationCard(_, _) :-
+  write('\n\n\tCardinality:   *'), nl, !.
+
+showSingleRelationTuplesize(DB, Rel) :-  
+  secRelation(Rel, RelExternal),
+  lowerfl(RelExternal, RelExternalL),
+  storedTupleSize(DB, RelExternalL, Size),
+  write('\tAvg.TupleSize: '), write(Size), nl, !.
+
+showSingleRelationTuplesize(_, _) :-
+  write('\tAvg.TupleSize: *'), nl, !.
+
+showSingleIndex(Rel) :-
+  databaseName(DB),
+  secRelation(Rel, RelExternal),
+  lowerfl(RelExternal, RelExternalL),
+  storedIndex(DB, RelExternalL, Attr, IndexType, _),
+  secAttr(Rel, Attr, AttrS),
+  write('\t('), write(AttrS), write(':'), write(IndexType), write(')').
+
+showSingleRelation :-
+  databaseName(DB),
+  storedRel(DB, Rel, _),
+  secRelation(Rel, RelS),
+  write('\nRelation '), write(RelS), nl,
+  findall(_, showAllAttributes(Rel), _),
+  findall(_, showAllIndices(Rel), _),
+  showSingleRelationCard(DB, Rel),
+  showSingleRelationTuplesize(DB, Rel).
+
+showSingleAttribute(Rel,Attr) :-
+  databaseName(DB),
+  storedAttrSize(DB, Rel, Attr, Type, CoreTupleSize, InFlobSize, ExtFlobSize),
+  secAttr(Rel, Attr, AttrS),
+  write('\t'), write(AttrS), write('\t\t'), 
+  write(Type), write('\t'),
+  write(CoreTupleSize), write('\t'),
+  write(InFlobSize),  write('\t'),
+  write(ExtFlobSize), nl. 
+
+showAllAttributes(Rel) :-
+  write('\tAttr\t\tType\tCoreSz\tIFlobSz\tExtFlobSz\n'),
+  findall(_, showSingleAttribute(Rel, _), _).
+
+showAllIndices(Rel) :-
+  write('\n\tIndices: \n'),
+  findall(_, showSingleIndex(Rel), _).
+
+showDatabase :-
+  databaseName(DB),
+  write('\nCollected information for database \''), write(DB), write('\':\n'),
+  findall(_, showSingleRelation, _),
+  write('\n(Type \'showDatabaseSchema.\' to view the complete database schema.)\n').
+
+showDatabase :-
+  write('\nNo database open. Use open \'database <name>\' to open an existing database.\n'),
+  fail. 
+
+
+/*
 1.5 Examples
 
 Example 22:
@@ -570,3 +642,33 @@ example23 :- optimize(
     th:no * 100 < 50000,
     (th:no mod 7) = no]
   ).
+
+/*
+
+1.6 Auxiliary Predicates
+
+Convert internal name representations to valid identifiers in Secondo
+
+*/
+
+secRelation(Internal, External) :- 
+  databaseName(DB),
+  storedSpell(DB, Internal, lc(External)),!.
+
+secRelation(Internal, ExternalU) :-
+  databaseName(DB),
+  storedSpell(DB, Internal, External),
+  upper(External, ExternalU),!.
+
+secRelation(Internal, Internal) :- !.
+  
+secAttr(Rel, Internal, External) :- 
+  databaseName(DB),
+  storedSpell(DB, Rel:Internal, lc(External)),!.
+
+secAttr(Rel, Internal, ExternalU) :-
+  databaseName(DB),
+  storedSpell(DB, Rel:Internal, External),
+  upper(External, ExternalU),!.
+
+secAttr(_, Internal, Internal) :- !.

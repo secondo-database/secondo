@@ -55,6 +55,123 @@ a list of object lists. The result is unified with the second list.
 extractList([[First, _]], [First]).
 extractList([[First, _] | Rest], [First | Rest2]) :-
   extractList(Rest, Rest2).
+
+
+/*
+Rule ~extractAttrTypes(Rel, AttrList)~ builds a table of facts 
+~storedAttrSize(Database, Rel, Attribute, Type, CoreTupleSize, InFlobSize, 
+ExtFlobSize)~ describing the ~Type~ and tuple sizes of all ~Attribute~s 
+found in ~AttrList~. To determine ~InFlobSize~, a query should be send to 
+Secondo, but that operator is still not implemented.
+
+The according secondo operators are:
+ 
+ * extattrsize (avg. size of an attribute, including small FLOBs)
+
+ * exttuplesize (avg. size of a tuple, including small FLOBs)
+
+ * rootattrsize (avg. size of an attribute, without small FLOBs)
+ 
+ * roottuplesize (avg. size of a tuple, without small FLOBs)
+
+*/
+
+extractAttrTypes(Rel, AttrList) :-
+  tuplesize(Rel, TotalTupleSize),
+  extractAttrTypes(Rel, TotalTupleSize, 0, 0, 0, _, _, _, AttrList).
+
+extractAttrTypes(Rel, List) :- 
+  write('ERROR in optimizer: extractAttrTypes('), write(Rel), 
+  write(', '), write(List), write(') failed.\n'), 
+  fail.
+
+extractAttrTypes(Rel, _, CFlobAttrs, CCoreSize, CInFlobSize, 
+                 CFlobAttrs, TCoreSize, CInFlobSize, [[Attr, Type]]) :-
+  noFlobType(Type), % Type is noFlobType: No Secondo query needed
+  downcase_atom(Attr, AttrD),
+  % determine CoreTupleSize
+  secDatatype(Type, CoreTupleSize),
+  TCoreSize   is CCoreSize + CoreTupleSize,
+  databaseName(DBName),
+  % XRIS: Hotfix to avoid multiple entries occuring with deferred samples
+%  retractall(storedAttrSize(DBName, Rel, AttrD, _, _, _, _)), 
+  % END Hotfix
+  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, 0, 0)), 
+  !.
+
+extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, 
+                 TFlobAttrs, TCoreSize, TInFlobSize, [[Attr, Type]]) :-
+  downcase_atom(Attr, AttrD),
+  % determine CoreTupleSize
+  secDatatype(Type, CoreTupleSize),
+  InFlobSize  is 100, % Later: query Secondo for average InFlobSize of Rel:Attr
+  TFlobAttrs  is CFlobAttrs + 1,
+  TCoreSize   is CCoreSize + CoreTupleSize,
+  TInFlobSize is CInFlobSize + InFlobSize,
+  % Distribute total external fobsize among all flob attributes:
+  ExtFlobSize is max(0,ceiling((TotalTupleSize 
+            - (TCoreSize + TInFlobSize))/TFlobAttrs)), % might be changed later! 
+  databaseName(DBName),
+  % XRIS: Hotfix to avoid multiple entries occuring with deferred samples
+%  retractall(storedAttrSize(DBName, Rel, AttrD, _, _, _, _)), 
+  % END Hotfix
+  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, 
+                        InFlobSize, ExtFlobSize)), 
+  !.
+
+extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, 
+                 TFlobAttrs, TCoreSize, TInFlobSize, [[Attr, Type] | Rest]) :-
+  noFlobType(Type), % Type is noFlobType: No Secondo query needed
+  downcase_atom(Attr, AttrD),
+  % determine CoreTupleSize
+  secDatatype(Type, CoreTupleSize),
+  databaseName(DBName),
+  NCCoreSize is CCoreSize + CoreTupleSize,
+  extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, NCCoreSize, CInFlobSize, 
+                   TFlobAttrs, TCoreSize, TInFlobSize, Rest), 
+  % XRIS: Hotfix to avoid multiple entries occuring with deferred samples
+%  retractall(storedAttrSize(DBName, Rel, AttrD, _, _, _, _)), 
+  % END Hotfix
+  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, 0, 0)),
+  !.
+
+extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, 
+                 TFlobAttrs, TCoreSize, TInFlobSize, [[Attr, Type] | Rest]) :-
+  downcase_atom(Attr, AttrD),
+  % determine CoreTupleSize
+  secDatatype(Type, CoreTupleSize),
+  InFlobSize   is 100, % Later: query Secondo for average InFlobSize of Rel:Attr
+  NCFlobAttrs  is CFlobAttrs + 1,
+  NCCoreSize   is CCoreSize + CoreTupleSize,
+  NCInFlobSize is CInFlobSize + InFlobSize, 
+  % Distribute total external fobsize among all flob attributes:
+  extractAttrTypes(Rel, TotalTupleSize, NCFlobAttrs, NCCoreSize, NCInFlobSize, 
+                   TFlobAttrs, TCoreSize, TInFlobSize, Rest), 
+  ExtFlobSize  is max(0,ceiling((TotalTupleSize - (TCoreSize + TInFlobSize))
+                                /TFlobAttrs)),% might be changed later!
+  databaseName(DBName),
+  % XRIS: Hotfix to avoid multiple entries occuring with deferred samples
+%  retractall(storedAttrSize(DBName, Rel, AttrD, _, _, _, _)), 
+  % END Hotfix
+  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, 
+                        InFlobSize, ExtFlobSize)),
+  !.
+
+extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, 
+                 TFlobAttrs, TCoreSize, TInFlobSize, List) :- 
+  write('ERROR in optimizer: extractAttrTypes('), write(Rel), 
+  write(', '), write(TotalTupleSize), 
+  write(', '), write(CFlobAttrs), 
+  write(', '), write(CCoreSize), 
+  write(', '), write(CInFlobSize), 
+  write(', '), write(TFlobAttrs), 
+  write(', '), write(TCoreSize), 
+  write(', '), write(TInFlobSize), 
+  write(', '), write(List), write(') failed.\nl'), 
+  fail.
+
+
+
 /*
 Sets all letters of all atoms of the first list into lower case. The 
 result is in the second list.
@@ -508,6 +625,7 @@ relation(Rel, AttrList) :-
   tuplesize(Rel, _),
   createSampleRelationIfNotDynamic(Rel),
   trycreateSmallRelation(Rel, ObjList),
+  extractAttrTypes(Rel, AttrList2),  
   databaseName(DB),
   assert(storedRel(DB, Rel, AttrList)),
   createAttrSpelledAndIndexLookUp(Rel, AttrList3).
@@ -532,10 +650,59 @@ writeStoredRel(Stream) :-
   write(Stream, storedRel(DB, X, Y)),
   write(Stream, '.\n').
 
+showStoredRel :-
+  storedRel(N, X, Y),
+  write(N), write('.'), write(X), write(':\t'), write(Y), nl.
+
+showStoredRels :- 
+  nl, write('Stored relation schemas:\n'),
+  findall(_, showStoredRel, _).
+
 :-
   dynamic(storedRel/3),
   at_halt(writeStoredRels),
   readStoredRels.
+
+
+/*
+1.1.4 Printing the complete Database Schema
+
+By now, only stored meta information is handled by the optimizer and printed
+when using the show- or write- predicates.
+
+In contrast, ~showDatabaseSchema/0~ will print the schemas of all, not only
+the actually used relations.
+
+*/
+
+showRelationAttrs([]).
+showRelationAttrs([[AttrD, Type] | Rest]) :- 
+  % prints a list of [attributes,datatype]-pairs
+  write(' '), write(AttrD), write(':'), write(Type), write(' '),
+  showRelationAttrs(Rest), !.
+
+showRelationSchemas([]).         
+  % filters all relation opbjects from the database schema
+showRelationSchemas([Obj | ObjList]) :-
+  Obj = ['OBJECT',Rel,_ | [[[_ | [[_ | [AttrList2]]]]]]],
+  write('  '), write(Rel), write('  ['),
+  showRelationAttrs(AttrList2),
+  write(']\n'),
+  showRelationSchemas(ObjList),
+  !.
+showRelationSchemas([_ | ObjList]) :-
+  showRelationSchemas(ObjList),
+  !.
+
+showDatabaseSchema :-
+  databaseName(DB),
+  getSecondoList(ObjList),
+  write('\nAll relation-schemas of database \''), write(DB), write('\':\n'),
+  showRelationSchemas(ObjList),
+  nl,
+  write('(Type \'showDatabase.\' to see meta data 
+         collected by the optimizer.)\n'),
+  !. 
 
 /*
 1.2 Spelling of Relation and Attribute Names
@@ -1105,7 +1272,8 @@ retractStoredInformation(SpelledRel) :-
   retractall(storedSpell(DB, DCSmall, _)),
   retractSels(Rel),
   retractPETs(Rel),
-  retractall(storedRel(DB, DCSpelledRel, _)).
+  retractall(storedRel(DB, DCSpelledRel, _)),
+  retractall(storedAttrSize(DB, DCSpelledRel, _, _, _, _, _)).
   %retractall(storedIndex(DB, LFSpelledRel, _, _, _)),
   %retractall(storedNoIndex(DB, LFSpelledRel, _)).
   
@@ -1218,10 +1386,65 @@ tryDelete(QueryAtom) :-
 tryDelete(_).
 
 
+/*
+1.6.3 Loading Datatype Core Tuple Sizes
 
+This data does not need to be stored, as it will be generated by
+Secondo at startup.
 
+*/
+readStoredTypeSizes :-
+  retractall(secDatatype(_, _)),
+  [storedTypeSizes].  
 
+showStoredTypeSize :-
+  secDatatype(X, Y),
+  write(X), write(': '), write(Y), write(' byte\n').
 
+showStoredTypeSizes :-
+  findall(_, showStoredTypeSize, _).
+
+:-
+  dynamic(secDatatype/2),
+  readStoredTypeSizes.
+
+/*
+1.6.4 Showing, Loading and Storing Attribute Sizes
+
+*/
+
+readStoredAttrSizes :-
+  retractall(storedAttrSize(_, _, _, _, _, _, _)),
+  [storedAttrSizes].  
+
+writeStoredAttrSizes :-
+  open('storedAttrSizes.pl', write, FD),
+  write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
+  findall(_, writeStoredAttrSize(FD), _),
+  close(FD).
+
+writeStoredAttrSize(Stream) :-
+  storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize, ExtFlobSize),
+  write(Stream, storedAttrSize(Database, Rel, Attr, Type, CoreSize, 
+                               InFlobSize, ExtFlobSize)),
+  write(Stream, '.\n').
+
+showStoredAttrSize :-
+  storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize, ExtFlobSize),
+  write(Database), write('.'), write(Rel), write('.'), 
+  write(Attr), write(': \t'), write(Type), 
+  write(' ('), write(CoreSize), write('/'), 
+  write(InFlobSize), write('/'), write(ExtFlobSize), write(')\n').
+
+showStoredAttrSizes :-
+  write('Stored attribute sizes\nRel.Attr: Type '),
+  write('(CoreTupleSize/Avg.InlineFlobSize/Avg.ExtFlobSize) [byte]:\n'),
+  findall(_, showStoredAttrSize, _).
+
+:-
+  dynamic(storedAttrSize/7),
+  at_halt(writeStoredAttrSizes),
+  readStoredAttrSizes.
 
 
 

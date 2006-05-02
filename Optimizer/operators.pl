@@ -143,4 +143,38 @@ isJoinOP(loopjoin).
 isJoinOP(product).
 
 
+/*
+3 Properties Of Certain Datatypes
+
+~noFlobType(Type)~ indicates that Secondo datatype ~type~ does not have any
+flobs. For attributes of these datatypes, the average inline flob size is not queried
+to determine attribute sizes.
+
+*/
+
+noFlobType(int).
+noFlobType(real).
+noFlobType(bool).
+noFlobType(string).
+noFlobType(xpoint).
+noFlobType(xrectangle).
+noFlobType(date).
+noFlobType(point).
+noFlobType(rect).
+noFlobType(rect3).
+noFlobType(rect4).
+noFlobType(rint).
+noFlobType(rreal).
+noFlobType(periods). 
+noFlobType(ibool).
+noFlobType(iint).
+noFlobType(ireal).
+noFlobType(ipoint).
+noFlobType(ubool).
+noFlobType(uint).
+noFlobType(ureal).
+noFlobType(upoint).
+noFlobType(instant).
+noFlobType(duration).
+noFlobType(tid).
 
