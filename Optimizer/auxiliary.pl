@@ -269,6 +269,13 @@ executed and the result pretty-printed. If the query fails, the error code
 and error message are printed.
 
 */
+
+% succeeds iff Post is a postfix of Atom starting after PrefixLength
+atom_postfix(Atom, PrefixLength, Post) :- 
+  atom_length(Atom, Length),
+  PostLength is Length - PrefixLength,
+  sub_atom(Atom, PrefixLength, PostLength, 0, Post).
+
 indexType(btree).
 indexType(rtree).
 indexType(rtree3).
@@ -296,7 +303,7 @@ indexCreateQuery(object, time, _, Rel, Attr, IndexName,
   ['let ', IndexName, '_small = ', Rel, 
    '_small feed addid extend[ p: point2d( deftime( .', Attr,
    ' ) ) ] creatertree[ p ]']) :- !.
-indexCreateQuery(object, space, _, Rel, Attr, IndexName,  % OK
+indexCreateQuery(object, space, _, Rel, Attr, IndexName,
   ['let ', IndexName, '_small = ', Rel, 
    '_small feed addid extend[ t: trajectory( .', Attr,
    ' ) ] creatertree[ t ]']) :- !.
@@ -306,12 +313,12 @@ indexCreateQuery(object, d3, _, Rel, Attr, IndexName,
    ' ) ), deftime( .', Attr, ' ) ) ]',
    ' creatertree[ b ]']) :- !.
 
-indexCreateQuery(unit, time, _, Rel, Attr, IndexName,     % OK
+indexCreateQuery(unit, time, _, Rel, Attr, IndexName,
   ['let ', IndexName, '_small = ', Rel, 
    '_small feed addid extendstream[ Unit: units( .', Attr, 
    ' ) ] extend[ p: point2d( deftime( .Unit ) ) ]',
    ' creatertree[ p ]']) :- !.
-indexCreateQuery(unit, space, _, Rel, Attr, IndexName,    % OK
+indexCreateQuery(unit, space, _, Rel, Attr, IndexName,
   ['let ', IndexName, '_small = ', Rel, 
    '_small feed addid extendstream[ Unit: units( .', Attr, 
    ' ) ] extend[ t: trajectory( .Unit ) ]',
@@ -363,8 +370,8 @@ createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr, Granularity, B
     ; ( optimizerOption(rtreeIndexRules), 
         member([LogicalIndexType, PhysicalIndexType],
                [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
+%               [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3], % for later extensions
                 [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3]
-%                [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3] % for later extensions
                ])
       )
   ),
@@ -424,21 +431,23 @@ checkIfSmallRelationsExist(_) :-
 %        concat_atom([Granularity, BBoxType], '_', LogicalIndexType)
 %      )
 %  ),
-%  storedIndex(LFRel, LFAttr, LogicalIndexType, IndexName),!.
+%  databaseName(DB),
+%  storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName),!.
 
 checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, 
                      Granularity, BBoxType, IndexType, 
                      IndexName, ObjList) :-
-  storedNoIndex(LFRel, LFAttr),
+  databaseName(DB),
+  storedNoIndex(DB, LFRel, LFAttr),
   ( (Granularity = none, BBoxType = none) % standard index
     -> LogicalIndexType = IndexType
     ; ( % specializes R-Tree index
         concat_atom([Granularity, BBoxType], '_', LogicalIndexType)
       )
   ),
-  retractall(storedNoIndex(LFRel, LFAttr)),
-  retractall(storedIndex(LFRel, LFAttr, LogicalIndexType, IndexName)),
-  assert(storedIndex(LFRel, LFAttr, LogicalIndexType, IndexName)),
+  retractall(storedNoIndex(DB, LFRel, LFAttr)),
+  retractall(storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName)),
+  assert(storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName)),
   createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr, Granularity, BBoxType),!.
 
 checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, 
@@ -449,9 +458,10 @@ checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr,
        % specialized R-Tree index
     ;  concat_atom([Granularity, BBoxType], '_', LogicalIndexType) 
   ),
-  retractall(storedNoIndex(LFRel, LFAttr)),
-  retractall(storedIndex(LFRel, LFAttr, LogicalIndexType, IndexName)),
-  assert(storedIndex(LFRel, LFAttr, LogicalIndexType, IndexName)),
+  databaseName(DB),
+  retractall(storedNoIndex(DB, LFRel, LFAttr)),
+  retractall(storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName)),
+  assert(storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName)),
   createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr, Granularity, BBoxType).
 
 checkForAddedIndex(ObjList) :-
@@ -487,21 +497,22 @@ checkForAddedIndices(ObjList) :-
   findall(_, checkForAddedIndex(ObjList), _).
 
 checkForRemovedIndex(ObjList) :-
-  storedIndex(Rel, Attr, LogicalIndexType, IndexName),
+  databaseName(DB),
+  storedIndex(DB, Rel, Attr, LogicalIndexType, IndexName),
   (   ( indexType(LogicalIndexType),
         LogicalIndexType = PhysicalIndexType
       )
     ; ( optimizerOption(rtreeIndexRules), 
         member([LogicalIndexType, PhysicalIndexType],
               [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
+%              [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3], % for later extensions
                [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3]
-%               [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3] % for later extensions
               ])
       )
   ),
   not(member(['OBJECT', IndexName, _ , [[PhysicalIndexType | _]]], ObjList)),
-  retract(storedIndex(Rel, Attr, LogicalIndexType, IndexName)),
-  assert(storedNoIndex(Rel, Attr)),
+  retract(storedIndex(DB, Rel, Attr, LogicalIndexType, IndexName)),
+  assert(storedNoIndex(DB, Rel, Attr)),
   concat_atom([IndexName, 'small'], '_', IndexNameSmall),
   member(['OBJECT', IndexNameSmall, _ , [[PhysicalIndexType | _]]], ObjList),
   concat_atom(['delete ',IndexNameSmall], '', QueryAtom),
@@ -530,16 +541,23 @@ checkIsInList(_, _, _) :-
 
 :- dynamic storeupdateIndex/1.
 
-storeupdateRel(0).
 
+
+storeupdateRel(0).
 storeupdateIndex(0).
   
+
+
 secondo(X) :-
   sub_atom(X,0,4,_,S),
   atom_prefix(S,'open'),	
+  atom_postfix(X, 14, DB1),
+  downcase_atom(DB1, DB),
   secondo(X, Y),
   retract(storedDatabaseOpen(_)),
   assert(storedDatabaseOpen(1)),
+  retractall(databaseName(_)),
+  assert(databaseName(DB)),
   getSecondoList(ObjList),
   checkForAddedIndices(ObjList),
   checkForRemovedIndices(ObjList),
@@ -569,6 +587,7 @@ secondo(X) :-
   retract(storedDatabaseOpen(_)),
   assert(storedDatabaseOpen(0)),
   retract(storedSecondoList(_)),
+  retractall(databaseName(_)),
   write('Command succeeded, result:'),
   nl, nl,
   show(Y),!.
@@ -694,10 +713,11 @@ secondo(X) :-
   concat_atom([Command, Name],' ',X),
   Command = 'delete',
   isDatabaseOpen,
+  databaseName(DB),
   getSecondoList(ObjList),
   checkIsInList(X, ObjList, rel),
   storeupdateRel(0),
-  storedRel(Name, _), 
+  storedRel(DB, Name, _), 
   secondo(X, Y),
   downcase_atom(Name, DCName),
   updateRel(DCName),  
@@ -725,11 +745,12 @@ secondo(X) :-
   concat_atom([Command, Name],' ',X),
   Command = 'delete',
   isDatabaseOpen,
+  databaseName(DB),
   getSecondoList(ObjList),
   indexType(Type),
   checkIsInList(X, ObjList, Type),
   storeupdateIndex(0),
-  storedIndex(_, _, Type, Name),  
+  storedIndex(DB, _, _, Type, Name),  
   secondo(X, Y),
   updateIndex,  
   %retractall(storedSecondoList(_)),
@@ -868,9 +889,13 @@ delete(Query) :-
 open(Query) :-
   atom(Query),
   atom_concat('open ', Query, QueryText),
+  atom_postfix(Query, 9, DB1),
+  downcase_atom(DB1, DB),
   secondo(QueryText),
   retract(storedDatabaseOpen(_)),
   assert(storedDatabaseOpen(1)),
+  retract(databaseName(_)),
+  assert(databaseName(DB)),
   getSecondoList(_).
 
 :-
@@ -883,4 +908,5 @@ open(Query) :-
   op(800, fx, update).
   
 :- dynamic(storedDatabaseOpen/1).
+:- dynamic(databaseName/1).
 storedDatabaseOpen(0).

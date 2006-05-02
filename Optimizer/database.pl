@@ -116,9 +116,10 @@ createSmallRelation(Rel, _)  :-  % Rel in lc
     ' feed consume'], '', QueryAtom),  
   tryCreate(QueryAtom),
   card(Rel3, Card),
-  assert(storedCard(Small, Card)),
+  databaseName(DB),
+  assert(storedCard(DB, Small, Card)),
   downcase_atom(Small, DCSmall),  
-  assert(storedSpell(DCSmall, lc(Small))),
+  assert(storedSpell(DB, DCSmall, lc(Small))),
   !.
 
 createSmallRelation(Rel, _) :-  % Rel in uc
@@ -131,9 +132,10 @@ createSmallRelation(Rel, _) :-  % Rel in uc
   tryCreate(QueryAtom),
   card(Rel2, Card),
   lowerfl(Small, LSmall),
-  assert(storedCard(LSmall, Card)),
+  databaseName(DB),
+  assert(storedCard(DB, LSmall, Card)),
   downcase_atom(Small, DCSmall),
-  assert(storedSpell(DCSmall, LSmall)),
+  assert(storedSpell(DB, DCSmall, LSmall)),
   !.
 
 createSmallRelation(Rel, _)  :-  % Rel in lc
@@ -146,9 +148,10 @@ createSmallRelation(Rel, _)  :-  % Rel in lc
   tryCreate(QueryAtom),
   card(Rel3, Card),
   SmallCard is truncate(min(Card, max(1000, Card*0.1))),  
-  assert(storedCard(Small, SmallCard)),
+  databaseName(DB),
+  assert(storedCard(DB, Small, SmallCard)),
   downcase_atom(Small, DCSmall),  
-  assert(storedSpell(DCSmall, lc(Small))),
+  assert(storedSpell(DB, DCSmall, lc(Small))),
   !.
 
 createSmallRelation(Rel, _)  :-  % Rel in uc
@@ -162,9 +165,10 @@ createSmallRelation(Rel, _)  :-  % Rel in uc
   card(Rel2, Card),
   SmallCard is truncate(min(Card, max(1000, Card*0.1))),  
   lowerfl(Small, LSmall),
-  assert(storedCard(LSmall, SmallCard)),
+  databaseName(DB),
+  assert(storedCard(DB, LSmall, SmallCard)),
   downcase_atom(Small, DCSmall),
-  assert(storedSpell(DCSmall, LSmall)),
+  assert(storedSpell(DB, DCSmall, LSmall)),
   !.
 
 createSmallRelation(Rel, _)  :-  % Rel in lc
@@ -177,9 +181,10 @@ createSmallRelation(Rel, _)  :-  % Rel in lc
   tryCreate(QueryAtom),
   card(Rel3, Card),
   SmallCard is truncate(min(Card, max(10000, Card*0.01))),  
-  assert(storedCard(Small, SmallCard)),
+  databaseName(DB),
+  assert(storedCard(DB, Small, SmallCard)),
   downcase_atom(Small, DCSmall),  
-  assert(storedSpell(DCSmall, lc(Small))),
+  assert(storedSpell(DB, DCSmall, lc(Small))),
   !.
 
 createSmallRelation(Rel, _)  :-  % Rel in uc
@@ -193,9 +198,10 @@ createSmallRelation(Rel, _)  :-  % Rel in uc
   card(Rel2, Card),
   SmallCard is truncate(min(Card, max(10000, Card*0.01))),  
   lowerfl(Small, LSmall),
-  assert(storedCard(LSmall, SmallCard)),
+  databaseName(DB),
+  assert(storedCard(DB, LSmall, SmallCard)),
   downcase_atom(Small, DCSmall),
-  assert(storedSpell(DCSmall, LSmall)),
+  assert(storedSpell(DB, DCSmall, LSmall)),
   !.
 
 /*
@@ -248,9 +254,10 @@ createSampleJ(Rel) :- %Rel in lc
   sampleNameJ(Rel3, Sample),
   sampleSizeJoin(JoinSize),
   createSample(Sample, Rel3, JoinSize, SampleCard),
-  assert(storedCard(Sample, SampleCard)),
+  databaseName(DB),
+  assert(storedCard(DB, Sample, SampleCard)),
   downcase_atom(Sample, DCSample),  
-  assert(storedSpell(DCSample, lc(Sample))).
+  assert(storedSpell(DB, DCSample, lc(Sample))).
 
 createSampleJ(Rel) :- %Rel in uc
   spelling(Rel, Rel2),
@@ -259,9 +266,10 @@ createSampleJ(Rel) :- %Rel in uc
   sampleSizeJoin(JoinSize),
   createSample(Sample, URel, JoinSize, SampleCard),
   lowerfl(Sample, LSample),
-  assert(storedCard(LSample, SampleCard)),
+  databaseName(DB),
+  assert(storedCard(DB, LSample, SampleCard)),
   downcase_atom(Sample, DCSample),
-  assert(storedSpell(DCSample, LSample)).
+  assert(storedSpell(DB, DCSample, LSample)).
 
 createSampleS(Rel) :- %Rel in lc
   spelling(Rel, Rel2),
@@ -269,9 +277,10 @@ createSampleS(Rel) :- %Rel in lc
   sampleNameS(Rel3, Sample),
   sampleSizeSelection(SelectionSize),
   createSample(Sample, Rel3, SelectionSize, SampleCard),
-  assert(storedCard(Sample, SampleCard)),
+  databaseName(DB),
+  assert(storedCard(DB, Sample, SampleCard)),
   downcase_atom(Sample, DCSample),  
-  assert(storedSpell(DCSample, lc(Sample))).
+  assert(storedSpell(DB, DCSample, lc(Sample))).
 
 createSampleS(Rel) :- %Rel in uc
   spelling(Rel, Rel2),
@@ -280,15 +289,16 @@ createSampleS(Rel) :- %Rel in uc
   sampleSizeSelection(SelectionSize),
   createSample(Sample, URel, SelectionSize, SampleCard),
   lowerfl(Sample, LSample),
-  assert(storedCard(LSample, SampleCard)),
+  databaseName(DB),
+  assert(storedCard(DB, LSample, SampleCard)),
   downcase_atom(Sample, DCSample),
-  assert(storedSpell(DCSample, LSample)).
+  assert(storedSpell(DB, DCSample, LSample)).
 
 
 
 /*
 
-----	createSample(+Sample, +Rel, +SampleSize, SampleCard) :-
+----	createSample(+Sample, +Rel, +SampleSize, -SampleCard)
 ----
 
 Create a random order sample ~Sample~ for relation ~Rel~ with desired sample size ~SampleSize~. The actual sample size is returned as ~SampleCard~.
@@ -427,8 +437,8 @@ createSampleRelationIfNotDynamic(_) :-
 
 /*
 Checks, if an index exists for ~Rel~ and ~Attr~ and stores the 
-respective values to the dynamic predicates ~storedIndex/4~ or 
-~storedNoIndex/2~.
+respective values to the dynamic predicates ~storedIndex/5~ or 
+~storedNoIndex/3~.
 
 */
 lookupIndex(Rel, Attr) :-
@@ -472,7 +482,8 @@ trycreateSmallRelation(_, _) :-
   not(optimizerOption(entropy)).
 
 relation(Rel, AttrList) :-
-  storedRel(Rel, AttrList), !.
+  databaseName(DB),
+  storedRel(DB, Rel, AttrList), !.
 
 relation(Rel, AttrList) :-
   optimizerOption(dynamicSample),
@@ -497,16 +508,17 @@ relation(Rel, AttrList) :-
   tuplesize(Rel, _),
   createSampleRelationIfNotDynamic(Rel),
   trycreateSmallRelation(Rel, ObjList),
-  assert(storedRel(Rel, AttrList)),
+  databaseName(DB),
+  assert(storedRel(DB, Rel, AttrList)),
   createAttrSpelledAndIndexLookUp(Rel, AttrList3).
-%  retract(storedSecondoList(ObjList)).
+%  retractall(storedSecondoList(ObjList)).
 
 /*
 1.1.3 Storing And Loading Relation Schemas
 
 */
 readStoredRels :-
-  retractall(storedRel(_, _)),
+  retractall(storedRel(_, _, _)),
   [storedRels].  
 
 writeStoredRels :-
@@ -516,12 +528,12 @@ writeStoredRels :-
   close(FD).
 
 writeStoredRel(Stream) :-
-  storedRel(X, Y),
-  write(Stream, storedRel(X, Y)),
+  storedRel(DB, X, Y),
+  write(Stream, storedRel(DB, X, Y)),
   write(Stream, '.\n').
 
 :-
-  dynamic(storedRel/2),
+  dynamic(storedRel/3),
   at_halt(writeStoredRels),
   readStoredRels.
 
@@ -580,11 +592,12 @@ getSecondoList(ObjList) :-
 
 The spelling of attribute ~Attr~ of relation ~Rel~ is ~Spelled~.
 
-~Spelled~ is available via the dynamic predicate ~storedSpell/2~.
+~Spelled~ is available via the dynamic predicate ~storedSpell/3~.
 
 */
 spelling(Rel:Attr, Spelled) :-
-  storedSpell(Rel:Attr, Spelled),
+  databaseName(DB),
+  storedSpell(DB, Rel:Attr, Spelled),
   !.
 /*
 Returns the spelling of attribute name ~Attr~, if the first letter of
@@ -600,7 +613,8 @@ spelling(Rel:Attr, Spelled) :-
   downcase_atom(OAttr, Attr),
   is_lowerfl(OAttr),
   Spelled = lc(OAttr),
-  assert(storedSpell(Rel:Attr, lc(OAttr))),
+  databaseName(DB),
+  assert(storedSpell(DB, Rel:Attr, lc(OAttr))),
   !.
 /*
 Returns the spelling of attribute name ~Attr~, if the first letter
@@ -615,7 +629,8 @@ spelling(Rel:Attr, Spelled) :-
   member([OAttr, _], AttrList),
   downcase_atom(OAttr, Attr),
   lowerfl(OAttr, Spelled),
-  assert(storedSpell(Rel:Attr, Spelled)),
+  databaseName(DB),
+  assert(storedSpell(DB, Rel:Attr, Spelled)),
   !.
 
 spelling(_:_, _) :- !, fail.
@@ -627,11 +642,12 @@ spelling(_:_, _) :- !, fail.
 
 The spelling of relation ~Rel~ is ~Spelled~.
 
-~Spelled~ is available via the dynamic predicate ~storedSpell/2~.
+~Spelled~ is available via the dynamic predicate ~storedSpell/3~.
 
 */  
 spelling(Rel, Spelled) :-
-  storedSpell(Rel, Spelled),
+  databaseName(DB),
+  storedSpell(DB, Rel, Spelled),
   !.
 /*
 Returns the spelling of relation name ~Rel~, if the first letter of
@@ -645,7 +661,8 @@ spelling(Rel, Spelled) :-
   downcase_atom(ORel, Rel),
   is_lowerfl(ORel),
   Spelled = lc(ORel),
-  assert(storedSpell(Rel, lc(ORel))),
+  databaseName(DB),
+  assert(storedSpell(DB, Rel, lc(ORel))),
   !.
 /*
 Returns the spelling of relation name ~Rel~, if the first letter
@@ -658,14 +675,15 @@ spelling(Rel, Spelled) :-
   member(['OBJECT',ORel,_ | [[[_ | [[_ | [_]]]]]]], ObjList),
   downcase_atom(ORel, Rel),
   lowerfl(ORel, Spelled),
-  assert(storedSpell(Rel, Spelled)),
+  databaseName(DB),
+  assert(storedSpell(DB, Rel, Spelled)),
   !.
 /*
 1.2.4 Storing And Loading Of Spelling
 
 */  
 readStoredSpells :-
-  retractall(storedSpell(_, _)),
+  retractall(storedSpell(_, _, _)),
   [storedSpells]. 
 
 writeStoredSpells :-
@@ -675,12 +693,12 @@ writeStoredSpells :-
   close(FD).
 
 writeStoredSpell(Stream) :-
-  storedSpell(X, Y),
-  write(Stream, storedSpell(X, Y)),
+  storedSpell(DB, X, Y),
+  write(Stream, storedSpell(DB, X, Y)),
   write(Stream, '.\n').
 
 :-
-  dynamic(storedSpell/2),
+  dynamic(storedSpell/3),
   dynamic(storedSecondoList/1),
   dynamic(elem_is/3),
   at_halt(writeStoredSpells),
@@ -696,14 +714,15 @@ The cardinality of relation ~Rel~ is ~Size~.
 1.3.1 Get Cardinalities
 
 If ~card~ is called, it tries to look up the cardinality via the 
-dynamic predicate ~storedCard/2~ (automatically stored).
+dynamic predicate ~storedCard/3~ (automatically stored).
 If this fails, a Secondo query is issued, which determines the
 cardinality. This cardinality is then stored in local memory.
 
 */
 card(Rel, Size) :-
   spelled(Rel, Rel2, _),
-  storedCard(Rel2, Size),
+  databaseName(DB),
+  storedCard(DB, Rel2, Size),
   !.
 /*
 First letter of ~Rel~ is written in lower case.
@@ -715,7 +734,8 @@ card(Rel, Size) :-
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   secondo(QueryAtom, [int, Size]),
-  assert(storedCard(Rel2, Size)),
+  databaseName(DB),
+  assert(storedCard(DB, Rel2, Size)),
   !.
 /*
 First letter of ~Rel~ is written in upper case.
@@ -727,7 +747,8 @@ card(Rel, Size) :-
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   secondo(QueryAtom, [int, Size]),
-  assert(storedCard(Rel2, Size)),
+  databaseName(DB),
+  assert(storedCard(DB, Rel2, Size)),
   !.
 
 card(_, _) :- fail.
@@ -736,7 +757,7 @@ card(_, _) :- fail.
 
 */
 readStoredCards :-
-  retractall(storedCard(_, _)),
+  retractall(storedCard(_, _, _)),
   [storedCards].  
 
 writeStoredCards :-
@@ -746,12 +767,12 @@ writeStoredCards :-
   close(FD).
 
 writeStoredCard(Stream) :-
-  storedCard(X, Y),
-  write(Stream, storedCard(X, Y)),
+  storedCard(DB, X, Y),
+  write(Stream, storedCard(DB, X, Y)),
   write(Stream, '.\n').
 
 :-
-  dynamic(storedCard/2),
+  dynamic(storedCard/3),
   at_halt(writeStoredCards),
   readStoredCards.
 /*
@@ -767,7 +788,7 @@ is ~IndexName~. The type of the index is ~IndexType~.
 
 Checks whether an index exists for ~Rel~ and ~Attr~ in the currently
 opened database. Depending on this result the dynamic predicate
-~storedIndex/4~ or ~storedNoIndex/2~ is set. 
+~storedIndex/5~ or ~storedNoIndex/3~ is set. 
 
 */
 verifyIndexAndStoreIndex(Rel, Attr, Index, LogicalIndexType) :- % Index exists
@@ -780,12 +801,13 @@ verifyIndexAndStoreIndex(Rel, Attr, Index, LogicalIndexType) :- % Index exists
     ; ( optimizerOption(rtreeIndexRules), 
         member([LogicalIndexType, PhysicalIndexType],
                [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
+%               [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3],
                 [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3]
-%                [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3]
                ])
       )
   ),
-  assert(storedIndex(Rel, Attr, LogicalIndexType, Index)),
+  databaseName(DB),
+  assert(storedIndex(DB, Rel, Attr, LogicalIndexType, Index)),
   dm(index,['\n<--verifyIndexAndStoreIndex(',Rel, ',',Attr, ',',Index, ',',LogicalIndexType, ')\n']),
   !.
 
@@ -795,7 +817,8 @@ verifyIndexAndStoreNoIndex(Rel, Attr) :-      % No index
   downcase_atom(Attr, DCAttr),
   relation(DCRel, List),
   member(DCAttr, List),
-  assert(storedNoIndex(Rel, Attr)),
+  databaseName(DB),
+  assert(storedNoIndex(DB, Rel, Attr)),
   dm(index,['\n<--verifyIndexAndStoreNoIndex(',Rel, ',',Attr, ',',Index, ',',IndexType, ')\n']).
 
 /*
@@ -817,12 +840,13 @@ hasIndex(rel(Rel, _, _), attr(_:A, _, _), IndexName, Type) :-
 /*
 
 Gets the index name ~Index~ for relation ~Rel~ and attribute ~Attr~
-via dynamic predicate ~storedIndex/4~.
+via dynamic predicate ~storedIndex/5~.
 
 */
 
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, Type) :-
-  storedIndex(Rel, Attr, Type, Index),
+  databaseName(DB),
+  storedIndex(DB, Rel, Attr, Type, Index),
   !.
 
 /*
@@ -832,7 +856,8 @@ for relation ~Rel~ and attribute ~Attr~ then this rule fails.
 */
 
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
-  storedNoIndex(Rel, Attr),
+  databaseName(DB),
+  storedNoIndex(DB, Rel, Attr),
   !,
   fail.
 
@@ -903,13 +928,13 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
 /*
 1.4.3 Storing And Loading About Existing Indexes
 
-Storing and reading of  the two dynamic predicates ~storedIndex/4~ and 
-~storedNoIndex/2~ in the file ~storedIndexes~.
+Storing and reading of  the two dynamic predicates ~storedIndex/5~ and 
+~storedNoIndex/3~ in the file ~storedIndexes~.
 
 */
 readStoredIndexes :-
-  retractall(storedIndex(_, _, _, _)),
-  retractall(storedNoIndex(_, _)),
+  retractall(storedIndex(_, _, _, _, _)),
+  retractall(storedNoIndex(_, _, _)),
   [storedIndexes].  
 
 writeStoredIndexes :-
@@ -920,18 +945,18 @@ writeStoredIndexes :-
   close(FD).
 
 writeStoredIndex(Stream) :-
-  storedIndex(U, V, W, X),
-  write(Stream, storedIndex(U, V, W, X)),
+  storedIndex(DB, U, V, W, X),
+  write(Stream, storedIndex(DB, U, V, W, X)),
   write(Stream, '.\n').
 
 writeStoredNoIndex(Stream) :-
-  storedNoIndex(U, V),
-  write(Stream, storedNoIndex(U, V)),
+  storedNoIndex(DB, U, V),
+  write(Stream, storedNoIndex(DB, U, V)),
   write(Stream, '.\n').
 
 :-
-  dynamic(storedIndex/4),
-  dynamic(storedNoIndex/2),
+  dynamic(storedIndex/5),
+  dynamic(storedNoIndex/3),
   at_halt(writeStoredIndexes),
   readStoredIndexes.
 /*
@@ -994,33 +1019,37 @@ getRelAttrName(Rel, Term) :-
   getRelAttrName(Rel, Arg2).
 
 retractSels(Rel) :-
-  storedSel(Term, _),
+  databaseName(DB),
+  storedSel(DB, Term, _),
   arg(1, Term, Arg1),
   getRelAttrName(Rel, Arg1),
-  retract(storedSel(Term, _)),
+  retract(storedSel(DB, Term, _)),
   retractSels(Rel).
 
 retractSels(Rel) :-
-  storedSel(Term, _),
+  databaseName(DB),
+  storedSel(DB, Term, _),
   arg(2, Term, Arg2),
   getRelAttrName(Rel, Arg2),
-  retract(storedSel(Term, _)),
+  retract(storedSel(DB, Term, _)),
   retractSels(Rel).
 
 retractSels(_).
 
 retractPETs(Rel) :-
-  storedPET(Term, _),
+  databaseName(DB),
+  storedPET(DB, Term, _),
   arg(1, Term, Arg1),
   getRelAttrName(Rel, Arg1),
-  retract(storedPET(Term, _)),
+  retract(storedPET(DB, Term, _)),
   retractPETs(Rel).
 
 retractPETs(Rel) :-
-  storedPET(Term, _),
+  databaseName(DB),
+  storedPET(DB, Term, _),
   arg(2, Term, Arg2),
   getRelAttrName(Rel, Arg2),
-  retract(storedPET(Term, _)),
+  retract(storedPET(DB, Term, _)),
   retractPETs(Rel).
 
 retractPETs(_).
@@ -1063,21 +1092,22 @@ retractStoredInformation(SpelledRel) :-
   downcase_atom(SampleJ, DCSampleJ),
   concat_atom([LFSpelledRel,'_small'], '', Small),
   downcase_atom(Small, DCSmall),
-  retractall(storedCard(LFSpelledRel, _)),
-  retractall(storedCard(LFSampleS, _)),
-  retractall(storedCard(LFSampleJ, _)),
-  retractall(storedCard(Small, _)),
-  retractall(storedTupleSize(LFSpelledRel, _)),
-  retractall(storedSpell(DCSpelledRel, _)),
-  retractall(storedSpell(DCSpelledRel:_, _)),
-  retractall(storedSpell(DCSampleS, _)),
-  retractall(storedSpell(DCSampleJ, _)),  
-  retractall(storedSpell(DCSmall, _)),
+  databaseName(DB),
+  retractall(storedCard(DB, LFSpelledRel, _)),
+  retractall(storedCard(DB, LFSampleS, _)),
+  retractall(storedCard(DB, LFSampleJ, _)),
+  retractall(storedCard(DB, Small, _)),
+  retractall(storedTupleSize(DB, LFSpelledRel, _)),
+  retractall(storedSpell(DB, DCSpelledRel, _)),
+  retractall(storedSpell(DB, DCSpelledRel:_, _)),
+  retractall(storedSpell(DB, DCSampleS, _)),
+  retractall(storedSpell(DB, DCSampleJ, _)),  
+  retractall(storedSpell(DB, DCSmall, _)),
   retractSels(Rel),
   retractPETs(Rel),
-  retractall(storedRel(DCSpelledRel, _)).
-  %retractall(storedIndex(LFSpelledRel, _, _, _)),
-  %retractall(storedNoIndex(LFSpelledRel, _)).
+  retractall(storedRel(DB, DCSpelledRel, _)).
+  %retractall(storedIndex(DB, LFSpelledRel, _, _, _)),
+  %retractall(storedNoIndex(DB, LFSpelledRel, _)).
   
 updateRel2(_, SpelledRel, ObjList) :-
   member(['OBJECT', SpelledRel, _ , [[rel | _]]], ObjList),
@@ -1119,7 +1149,8 @@ relations.
 */
 tuplesize(Rel, Size) :-
   spelled(Rel, Rel2, _),
-  storedTupleSize(Rel2, Size),
+  databaseName(DB),
+  storedTupleSize(DB, Rel2, Size),
   !.
 /*
 First letter of ~Rel~ is written in lower case.
@@ -1131,7 +1162,8 @@ tuplesize(Rel, Size) :-
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   secondo(QueryAtom, [real, Size]),
-  assert(storedTupleSize(Rel2, Size)),
+  databaseName(DB),
+  assert(storedTupleSize(DB, Rel2, Size)),
   !.
 /*
 First letter of ~Rel~ is written in upper case.
@@ -1143,7 +1175,8 @@ tuplesize(Rel, Size) :-
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   secondo(QueryAtom, [real, Size]),
-  assert(storedTupleSize(Rel2, Size)),
+  databaseName(DB),
+  assert(storedTupleSize(DB, Rel2, Size)),
   !.
 
 tuplesize(_, _) :- fail.
@@ -1152,7 +1185,7 @@ tuplesize(_, _) :- fail.
 
 */
 readStoredTupleSizes :-
-  retractall(storedTupleSize(_, _)),
+  retractall(storedTupleSize(_, _, _)),
   [storedTupleSizes].  
 
 writeStoredTupleSizes :-
@@ -1162,12 +1195,12 @@ writeStoredTupleSizes :-
   close(FD).
 
 writeStoredTupleSize(Stream) :-
-  storedTupleSize(X, Y),
-  write(Stream, storedTupleSize(X, Y)),
+  storedTupleSize(DB, X, Y),
+  write(Stream, storedTupleSize(DB, X, Y)),
   write(Stream, '.\n').
 
 :-
-  dynamic(storedTupleSize/2),
+  dynamic(storedTupleSize/3),
   at_halt(writeStoredTupleSizes),
   readStoredTupleSizes.
 

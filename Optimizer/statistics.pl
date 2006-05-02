@@ -44,23 +44,23 @@ commute(X # Y, Y # X).
 
 */
 
-sel(plz:ort = staedte:sName, 0.0031).
-sel(plz:pLZ = (plz:pLZ)+1, 0.00001644).
-sel((plz:pLZ)-1 = plz:pLZ, 0.00001644).
-sel(plz:pLZ = (plz:pLZ)*5, 0.0000022).
-sel(plz:pLZ = plz:pLZ, 0.000146).
-sel(plz:pLZ * 3 = plz:pLZ * 3, 0.000146).
-sel(plz:pLZ > 40000, 0.55).
-sel(plz:pLZ > 50000, 0.48).
-sel(plz:pLZ < 60000, 0.64).
-sel((plz:pLZ mod 5) = 0, 0.17).
-sel(plz:ort contains "burg", 0.060).
-sel(plz:ort starts "M", 0.071).
-sel(staedte:bev > 500000, 0.21).
-sel(staedte:bev > 300000, 0.26).
-sel(staedte:bev < 500000, 0.79).
-sel(staedte:kennzeichen starts "F", 0.034).
-sel(staedte:kennzeichen starts "W", 0.068).
+%sel(plz:ort = staedte:sName, 0.0031).
+%sel(plz:pLZ = (plz:pLZ)+1, 0.00001644).
+%sel((plz:pLZ)-1 = plz:pLZ, 0.00001644).
+%sel(plz:pLZ = (plz:pLZ)*5, 0.0000022).
+%sel(plz:pLZ = plz:pLZ, 0.000146).
+%sel(plz:pLZ * 3 = plz:pLZ * 3, 0.000146).
+%sel(plz:pLZ > 40000, 0.55).
+%sel(plz:pLZ > 50000, 0.48).
+%sel(plz:pLZ < 60000, 0.64).
+%sel((plz:pLZ mod 5) = 0, 0.17).
+%sel(plz:ort contains "burg", 0.060).
+%sel(plz:ort starts "M", 0.071).
+%sel(staedte:bev > 500000, 0.21).
+%sel(staedte:bev > 300000, 0.26).
+%sel(staedte:bev < 500000, 0.79).
+%sel(staedte:kennzeichen starts "F", 0.034).
+%sel(staedte:kennzeichen starts "W", 0.068).
 
 
 
@@ -269,12 +269,14 @@ sels(Pred, Sel) :-
 */
 
 sels(Pred, Sel) :-
-  storedSel(Pred, Sel),
+  databaseName(DB),
+  storedSel(DB, Pred, Sel),
   !.
 
 sels(Pred, Sel) :-
   commute(Pred, Pred2),
-  storedSel(Pred2, Sel).
+  databaseName(DB),
+  storedSel(DB, Pred2, Sel).
 
 /*
 
@@ -336,8 +338,9 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
-  assert(storedPET(PSimple, MSsRes)),
-  assert(storedSel(PSimple, Sel)), !.
+  databaseName(DB),
+  assert(storedPET(DB, PSimple, MSsRes)),
+  assert(storedSel(DB, PSimple, Sel)), !.
 
 selectivity(pr(Pred, Rel), Sel) :-
   not(optimizerOption(dynamicSample)),
@@ -367,8 +370,9 @@ selectivity(pr(Pred, Rel), Sel) :-
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel), PSimple),
-  assert(storedPET(PSimple, MSsRes)),
-  assert(storedSel(PSimple, Sel)), !.
+  databaseName(DB),
+  assert(storedPET(DB, PSimple, MSsRes)),
+  assert(storedSel(DB, PSimple, Sel)), !.
 
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   optimizerOption(dynamicSample),
@@ -402,7 +406,8 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
-  assert(storedSel(PSimple, Sel)), !.
+  databaseName(DB),
+  assert(storedSel(DB, PSimple, Sel)), !.
 
 selectivity(pr(Pred, Rel), Sel) :-
   optimizerOption(dynamicSample),
@@ -433,7 +438,8 @@ selectivity(pr(Pred, Rel), Sel) :-
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel), PSimple),
-  assert(storedSel(PSimple, Sel)), !.
+  databaseName(DB),
+  assert(storedSel(DB, PSimple, Sel)), !.
 
 selectivity(P, _) :- write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl, 
@@ -449,7 +455,7 @@ The selectivities retrieved via Secondo queries can be loaded
 */
 
 readStoredSels :-
-  retractall(storedSel(_, _)),
+  retractall(storedSel(_, _, _)),
   [storedSels].
 
 /*
@@ -492,18 +498,18 @@ writeStoredSels :-
   close(FD).
 
 writeStoredSel(Stream) :-
-  storedSel(X, Y),
+  storedSel(DB, X, Y),
   replaceCharList(X, XReplaced),
-  write(Stream, storedSel(XReplaced, Y)),
+  write(Stream, storedSel(DB, XReplaced, Y)),
   write(Stream, '.\n').
 
 :-
-  dynamic(storedSel/2),
+  dynamic(storedSel/3),
   at_halt(writeStoredSels),
   readStoredSels.
 
 readStoredPETs :-
-  retractall(storedPET(_, _)),
+  retractall(storedPET(_, _, _)),
   [storedPETs].  
 
 writeStoredPETs :-
@@ -513,13 +519,13 @@ writeStoredPETs :-
   close(FD).
 
 writeStoredPET(Stream) :-  
-  storedPET(X, Y),
+  storedPET(DB, X, Y),
   replaceCharList(X, XReplaced),
-  write(Stream, storedPET(XReplaced, Y)),
+  write(Stream, storedPET(DB, XReplaced, Y)),
   write(Stream, '.\n').
 
 :-
-  dynamic(storedPET/2),
+  dynamic(storedPET/3),
   at_halt(writeStoredPETs),
   readStoredPETs.
 
@@ -527,9 +533,11 @@ writePETs :-
   findall(_, writePET, _).
 
 writePET :-
-  storedPET(X, Y),
+  storedPET(DB, X, Y),
   replaceCharList(X, XReplaced),
-  write('Predicate: '),
+  write('DB: '),
+  write(DB),
+  write(', Predicate: '),
   write(XReplaced),
   write(', Cost: '),
   write(Y),

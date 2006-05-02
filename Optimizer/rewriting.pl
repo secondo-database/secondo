@@ -2064,50 +2064,50 @@ Comment out this complete section for standard behavior.
 
 %:- [autotest].          % XRIS: testing only!
 
-testquery1 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] 
-                  from ten 
-                  where (no*1)*(no*1) > 1.
+%testquery1 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] 
+%                  from ten 
+%                  where (no*1)*(no*1) > 1.
 
-testquery2 :- sql select[no*1 as no1, (no*1)*(no*1) as no2]
-                  from[ten, ten as ten2] 
-                  where[no*1* (no*1)<ten2:no].
+%testquery2 :- sql select[no*1 as no1, (no*1)*(no*1) as no2]
+%                  from[ten, ten as ten2] 
+%                  where[no*1* (no*1)<ten2:no].
 
-testquery3 :- sql select[no*1 as no1, (no*1)*(no*1)+ten2:no as no2]
-                  from[ten, ten as ten2] 
-                  where[no*1* (no*1)>ten2:no].
+%testquery3 :- sql select[no*1 as no1, (no*1)*(no*1)+ten2:no as no2]
+%                  from[ten, ten as ten2] 
+%                  where[no*1* (no*1)>ten2:no].
 
-testquery4 :- sql select[no*1+ten2:no as no1, 
-                         (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]
-                  from[ten, ten as ten2] 
-                  where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no].
+%testquery4 :- sql select[no*1+ten2:no as no1, 
+%                         (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]
+%                  from[ten, ten as ten2] 
+%                  where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no].
 
-testquery5 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] 
-                  from ten 
-                  where[(no*1)*(no*1) > 1, (no*1)*(no*1)+1 <20].
+%testquery5 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] 
+%                  from ten 
+%                  where[(no*1)*(no*1) > 1, (no*1)*(no*1)+1 <20].
 
-testquery6 :- sql select[no*1+ten2:no as no1, 
-                         (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]
-                  from[ten, ten as ten2] 
-                  where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no, 
-                        (no*1)*(no*1) > 1, 
-                        (no*1)*(no*1)+1 <20].
+%testquery6 :- sql select[no*1+ten2:no as no1, 
+%                         (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]
+%                  from[ten, ten as ten2] 
+%                  where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no, 
+%                        (no*1)*(no*1) > 1, 
+%                        (no*1)*(no*1)+1 <20].
 
-testquery7 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] 
-                  from ten 
-                  where [(no*1)*(no*1) > 1] 
-                  first 3.
+%testquery7 :- sql select[no*1 as no1, (no*1)*(no*1) as no2] 
+%                  from ten 
+%                  where [(no*1)*(no*1) > 1] 
+%                  first 3.
 
-testquery8 :- sql select[no*1+ten2:no as no1, 
-                         (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]
-                  from[ten, ten as ten2] 
-                  where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no, 
-                        (no*1)*(no*1) > 1, 
-                        (no*1)*(no*1)+1 <20] 
-                  first 3.
+%testquery8 :- sql select[no*1+ten2:no as no1, 
+%                         (no*1+ten2:no)*(no*1+ten2:no)+ten2:no as no2]
+%                  from[ten, ten as ten2] 
+%                  where[(no*1+ten2:no)* (no*1+ten2:no)>ten2:no, 
+%                        (no*1)*(no*1) > 1, 
+%                        (no*1)*(no*1)+1 <20] 
+%                  first 3.
 
-testquery9 :- sql select sname 
-                  from staedte 
-                  where[sname starts "B", 
-                        bev >= 1000000, 
-                        plz<90000, 
-                        kennzeichen starts "B"].
+%testquery9 :- sql select sname 
+%                  from staedte 
+%                  where[sname starts "B", 
+%                        bev >= 1000000, 
+%                        plz<90000, 
+%                        kennzeichen starts "B"].

@@ -3225,9 +3225,9 @@ The relation list is updated and returned in ~RelsAfter~.
 
 lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), RelsBefore, RelsAfter)
   :-
-  variable(Var, Rel2), !, Rel2 = rel(Rel, _, _),
+  variable(Var, Rel2), !, Rel2 = rel(Rel, Var, _),
   spelled(Rel:Attr, attr(Attr2, X, Case)),
-  ( memberchk(Rel2, RelsBefore) 
+  ( member(Rel2, RelsBefore) 
       -> RelsAfter = RelsBefore
        ; append(RelsBefore, [Rel2], RelsAfter)
   ),
@@ -3239,7 +3239,7 @@ lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
   isAttribute(Attr, Rel), !,
   spelled(Rel:Attr, attr(Attr2, X, Case)),
   queryRel(Rel, Rel2),
-  ( memberchk(Rel2, RelsBefore)
+  ( member(Rel2, RelsBefore)
       -> RelsAfter = RelsBefore
        ; append(RelsBefore, [Rel2], RelsAfter)
   ),
@@ -3692,6 +3692,7 @@ selectClause(select Attrs, Extend, Project, duplicates) :-
 ----
 
 Apply extension, projection, duplicate removal and sorting as specified to ~Stream~ to obtain ~Stream5~.
+If option ~rewriteCSE~ is active, also remove auxiliary attributes extended to the results.
 
 */
 
