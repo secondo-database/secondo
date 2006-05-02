@@ -64,109 +64,92 @@ ExtFlobSize)~ describing the ~Type~ and tuple sizes of all ~Attribute~s
 found in ~AttrList~. To determine ~InFlobSize~, a query should be send to 
 Secondo, but that operator is still not implemented.
 
-The according secondo operators are:
- 
- * extattrsize (avg. size of an attribute, including small FLOBs)
+Operators to determine attribute sizes in Secondo:
 
- * exttuplesize (avg. size of a tuple, including small FLOBs)
+ * ~ attrsize ~
+   ( stream | rel(tuple X) x ident -> real ), 
+   Return the size of the attribute within a stream or a 
+   relation taking into account the FLOBs.
 
- * rootattrsize (avg. size of an attribute, without small FLOBs)
- 
- * roottuplesize (avg. size of a tuple, without small FLOBs)
+ * ~exattrsize~ -
+   ( stream(tuple X) | rel(tuple X) x identifier -> real ), 
+   Return the size of the attribute within a stream or a 
+   relation taking into account the small FLOBs.
+
+ * ~rootattrsize~ - 
+   ( stream(tuple X) | rel(tuple X) x identifier ->  int ), 
+   Return the size of the attributes root part within a 
+   stream or a relation (without small FLOBs).
+
+ * ~tuplesize~ -
+   ( stream | rel (tuple x) -> real ), 
+   Return the average size of the tuples within a stream or a 
+   relation taking into account the FLOBs.
+
+ * ~exttuplesize~ - 
+   ( stream(tuple X) | rel(tuple X) -> real ), 
+   Return the average size of the tuples within a stream 
+   or a relation taking into account the small FLOBs.
+
+ * ~roottuplesize~ - 
+   ( stream(tuple X) | rel(tuple X) ->  int ), 
+   Return the size of the attributes root part within a 
+   stream or a relation (without small FLOBs).
+
 
 */
 
-extractAttrTypes(Rel, AttrList) :-
-  tuplesize(Rel, TotalTupleSize),
-  extractAttrTypes(Rel, TotalTupleSize, 0, 0, 0, _, _, _, AttrList).
+% query Secondo for root attr size of an attribute
+getAttrSize(Rel, Attr, AttrSize) :-
+  secAttr(Rel, Attr, AttrE),
+  secRelation(Rel, RelE),
+  concat_atom(['query ', RelE, ' attrsize[ ', AttrE, ' ]'],QueryAtom),
+  secondo(QueryAtom, [real, AttrSize]), !.
+getAttrSize(Rel, Attr, _) :-
+  write('\nERROR: Something\'s wrong in getAttrSize('), write(Rel),
+  write(','), write(Attr), write(').'),
+  fail, !.
+
+% query Secondo for root attr size of an attribute
+getRootAttrSize(Rel, Attr, RootAttrSize) :-
+  secAttr(Rel, Attr, AttrE),
+  secRelation(Rel, RelE),
+  concat_atom(['query ', RelE, ' rootattrsize[ ', AttrE, ' ]'],QueryAtom),
+  secondo(QueryAtom, [int, RootAttrSize]), !.
+getRootAttrSize(Rel, Attr, _) :-
+  write('\nERROR: Something\'s wrong in getRootAttrSize('), write(Rel),
+  write(','), write(Attr), write(').'),
+  fail, !.
+
+% query Secondo for the extattrsize of an attribute
+getExtAttrSize(Rel, Attr, ExtAttrSize) :- 
+  secAttr(Rel, Attr, AttrE),
+  secRelation(Rel, RelE),
+  concat_atom(['query ', RelE, ' extattrsize[ ', AttrE, ' ]'],QueryAtom),
+  secondo(QueryAtom, [real, ExtAttrSize]), !.
+getExtAttrSize(Rel, Attr, _) :- 
+  write('\nERROR: Something\'s wrong in getExtAttrSize('), write(Rel),
+  write(','), write(Attr), write(').'),
+  fail, !.
+
+
+% extract attribute types and retrieve attribute detailed sizes
+extractAttrTypes(_, []) :- !.
+
+extractAttrTypes(Rel, [[Attr, Type] | Rest]) :-
+  getAttrSize(Rel, Attr, AttrSize),
+  getExtAttrSize(Rel, Attr, ExtAttrSize),
+  getRootAttrSize(Rel, Attr, RootAttrSize),
+  CoreTupleSize is RootAttrSize,
+  InFlobSize    is ExtAttrSize - RootAttrSize,
+  ExtFlobSize   is AttrSize - ExtAttrSize,
+  databaseName(DBName),
+  downcase_atom(Attr, AttrD),
+  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, InFlobSize, ExtFlobSize)), !, 
+  extractAttrTypes(Rel, Rest), !.
 
 extractAttrTypes(Rel, List) :- 
   write('ERROR in optimizer: extractAttrTypes('), write(Rel), 
-  write(', '), write(List), write(') failed.\n'), 
-  fail.
-
-extractAttrTypes(Rel, _, CFlobAttrs, CCoreSize, CInFlobSize, 
-                 CFlobAttrs, TCoreSize, CInFlobSize, [[Attr, Type]]) :-
-  noFlobType(Type), % Type is noFlobType: No Secondo query needed
-  downcase_atom(Attr, AttrD),
-  % determine CoreTupleSize
-  secDatatype(Type, CoreTupleSize),
-  TCoreSize   is CCoreSize + CoreTupleSize,
-  databaseName(DBName),
-  % XRIS: Hotfix to avoid multiple entries occuring with deferred samples
-%  retractall(storedAttrSize(DBName, Rel, AttrD, _, _, _, _)), 
-  % END Hotfix
-  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, 0, 0)), 
-  !.
-
-extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, 
-                 TFlobAttrs, TCoreSize, TInFlobSize, [[Attr, Type]]) :-
-  downcase_atom(Attr, AttrD),
-  % determine CoreTupleSize
-  secDatatype(Type, CoreTupleSize),
-  InFlobSize  is 100, % Later: query Secondo for average InFlobSize of Rel:Attr
-  TFlobAttrs  is CFlobAttrs + 1,
-  TCoreSize   is CCoreSize + CoreTupleSize,
-  TInFlobSize is CInFlobSize + InFlobSize,
-  % Distribute total external fobsize among all flob attributes:
-  ExtFlobSize is max(0,ceiling((TotalTupleSize 
-            - (TCoreSize + TInFlobSize))/TFlobAttrs)), % might be changed later! 
-  databaseName(DBName),
-  % XRIS: Hotfix to avoid multiple entries occuring with deferred samples
-%  retractall(storedAttrSize(DBName, Rel, AttrD, _, _, _, _)), 
-  % END Hotfix
-  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, 
-                        InFlobSize, ExtFlobSize)), 
-  !.
-
-extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, 
-                 TFlobAttrs, TCoreSize, TInFlobSize, [[Attr, Type] | Rest]) :-
-  noFlobType(Type), % Type is noFlobType: No Secondo query needed
-  downcase_atom(Attr, AttrD),
-  % determine CoreTupleSize
-  secDatatype(Type, CoreTupleSize),
-  databaseName(DBName),
-  NCCoreSize is CCoreSize + CoreTupleSize,
-  extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, NCCoreSize, CInFlobSize, 
-                   TFlobAttrs, TCoreSize, TInFlobSize, Rest), 
-  % XRIS: Hotfix to avoid multiple entries occuring with deferred samples
-%  retractall(storedAttrSize(DBName, Rel, AttrD, _, _, _, _)), 
-  % END Hotfix
-  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, 0, 0)),
-  !.
-
-extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, 
-                 TFlobAttrs, TCoreSize, TInFlobSize, [[Attr, Type] | Rest]) :-
-  downcase_atom(Attr, AttrD),
-  % determine CoreTupleSize
-  secDatatype(Type, CoreTupleSize),
-  InFlobSize   is 100, % Later: query Secondo for average InFlobSize of Rel:Attr
-  NCFlobAttrs  is CFlobAttrs + 1,
-  NCCoreSize   is CCoreSize + CoreTupleSize,
-  NCInFlobSize is CInFlobSize + InFlobSize, 
-  % Distribute total external fobsize among all flob attributes:
-  extractAttrTypes(Rel, TotalTupleSize, NCFlobAttrs, NCCoreSize, NCInFlobSize, 
-                   TFlobAttrs, TCoreSize, TInFlobSize, Rest), 
-  ExtFlobSize  is max(0,ceiling((TotalTupleSize - (TCoreSize + TInFlobSize))
-                                /TFlobAttrs)),% might be changed later!
-  databaseName(DBName),
-  % XRIS: Hotfix to avoid multiple entries occuring with deferred samples
-%  retractall(storedAttrSize(DBName, Rel, AttrD, _, _, _, _)), 
-  % END Hotfix
-  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, 
-                        InFlobSize, ExtFlobSize)),
-  !.
-
-extractAttrTypes(Rel, TotalTupleSize, CFlobAttrs, CCoreSize, CInFlobSize, 
-                 TFlobAttrs, TCoreSize, TInFlobSize, List) :- 
-  write('ERROR in optimizer: extractAttrTypes('), write(Rel), 
-  write(', '), write(TotalTupleSize), 
-  write(', '), write(CFlobAttrs), 
-  write(', '), write(CCoreSize), 
-  write(', '), write(CInFlobSize), 
-  write(', '), write(TFlobAttrs), 
-  write(', '), write(TCoreSize), 
-  write(', '), write(TInFlobSize), 
   write(', '), write(List), write(') failed.\nl'), 
   fail.
 
