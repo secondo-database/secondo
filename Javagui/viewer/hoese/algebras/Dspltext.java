@@ -36,7 +36,7 @@ import tools.Reporter;
 /**
  * A displayclass for the html formatted code 
  */
-public class Dspltext extends DsplGeneric implements ExternDisplay{
+public class Dspltext extends DsplGeneric implements ExternDisplay,DsplSimple{
 
 private boolean defined;
 
@@ -91,7 +91,7 @@ public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, Que
 
      if(Type==PLAIN_TYPE){
         if(Text.length()<=MAX_DIRECT_DISPLAY_LENGTH){ // short Text
-            Entry = type.symbolValue()+" : "+ Text;
+            Entry = T+" : "+ Text;
             qr.addEntry(Entry); // avoid the possibility to pop up a window
             return; 
          } else{  // long plain text
