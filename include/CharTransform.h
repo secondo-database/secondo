@@ -354,7 +354,7 @@ wordWrap( const int indent1, const int indent2,
           cout << "soft break" << endl;
         
         assert( p2 <= (p1+len) );    
-        assert( p2 > p1 );    
+        assert( p2 >= p1 );    
         substr = text.substr(p1,p2-p1);
         lastbreak = p2;
       }

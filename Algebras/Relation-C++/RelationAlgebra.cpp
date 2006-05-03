@@ -2781,9 +2781,9 @@ struct SizeCountersInfo : OperatorInfo {
                 "counters which are named \n\n"
                 "- RA:RootSize_s\n"
                 "- RA:ExtSize_s (Root + Extension)\n"
-                "- RA:Size_s\n  (Root + Extension + Flobs)\n"
+                "- RA:Size_s (Root + Extension + Flobs)\n"
                 "- RA:FlobSizeOnly_s\n"
-                "- RA:ExtSizeOnly_s\n";
+                "- RA:ExtSizeOnly_s";
     example =   "plz feed sizecounters[\"plz\"] count";
   }
 
