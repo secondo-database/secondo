@@ -1355,6 +1355,191 @@ Operator relalgfilter (
          FilterTypeMap           // type mapping
 );
 
+
+/*
+5.8 Operator ~reduce~
+
+A fraction of tuples, fulfilling a certain condition are removed from the output stream.
+
+5.8.1 Type mapping function of operator ~reduce~
+
+Result type of filter operation.
+
+----    ((stream (tuple x)) (map (tuple x) bool) int)
+               -> (stream (tuple x))
+----
+
+5.12.0 Specification 
+
+*/
+
+struct ReduceInfo : OperatorInfo {
+ 
+  ReduceInfo() : OperatorInfo()
+  { 
+    name =      "reduce";
+    signature = "stream(tuple(y) x (stream(tuple(y)) -> bool) x int \n"
+                "-> stream(tuple(y))";
+    syntax =    "_ reduce[ f, n ]";
+    meaning =   "Passes over all tuples t with f(t)=FALSE but only every "
+                "k-th tuple [k=max(n,1)] which fulfills f.";
+    example =   "plz feed reduce[.PLZ > 50000, 2] count";
+  }
+
+};
+
+
+
+ListExpr reduce_tm(ListExpr args)
+{
+  string argstr="";
+  
+  CHECK_COND(nl->ListLength(args) == 3,
+  "Operator filter expects a list of length three.");
+  
+  ListExpr first = nl->First(args);
+  ListExpr second  = nl->Second(args);
+  ListExpr third  = nl->Third(args);
+    
+  nl->WriteToString(argstr, first);    
+  CHECK_COND(
+    nl->ListLength(first) == 2 &&
+    TypeOfRelAlgSymbol(nl->First(first)) == stream &&
+    nl->ListLength(nl->Second(first)) == 2 &&
+    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
+    "Operator filter expects as first argument a list with "
+    "structure (stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator filter gets a list with structure '" + argstr + "'.");
+
+  nl->WriteToString(argstr, second);    
+  CHECK_COND(nl->ListLength(second) == 3 &&
+             TypeOfRelAlgSymbol(nl->First(second)) == ccmap &&
+             TypeOfRelAlgSymbol(nl->Third(second)) == ccbool,
+    "Operator filter expects a list with structure " 
+    "(map (tuple ((a1 t1)...(an tn))) bool)\n"
+    "Operator filter gets a list with structure '" + argstr + "'.");
+    
+  CHECK_COND(nl->Equal(nl->Second(first),nl->Second(second)),
+    "Tuple type in stream is not equal to tuple type "
+    "in the function.");
+
+  CHECK_COND( (nl->AtomType(third) == SymbolType) 
+               && nl->SymbolValue(third) == "int",
+               "Third argument is not of type int." );             
+  
+  return first;
+}
+
+/*
+5.8.2 Value mapping function of operator ~filter~
+
+*/
+int
+reduce_vm( Word* args, Word& result, int message, 
+           Word& local, Supplier s)
+{
+  // args[0] : stream(tuple(y))
+  // args[1] : stream(tuple(y)) -> bool
+  // args[2] : int
+ 
+  struct ReduceInfo {
+
+     int m;
+     int n;
+     
+     ReduceInfo(const int ctr) : m( max(ctr-1,0) ), n(m) {}
+     ~ReduceInfo(){}
+
+     bool passOver()
+     {
+       if (n == 0)
+       { 
+         n = m;
+         return true;
+       }  
+       else
+       { 
+         n--;
+         return false;
+       }  
+     } 
+  }; 
+  
+  ReduceInfo* ri = static_cast<ReduceInfo*>( local.addr);
+  
+  switch ( message )
+  {
+
+    case OPEN:
+
+      qp->Open (args[0].addr);
+      local.addr = new ReduceInfo(StdTypes::RequestInt(args[2]));
+      return 0;
+
+    case REQUEST: {
+
+      Tuple* tuple = 0;
+      bool ok = false;
+      while ( true )
+      {
+        Word elem, funresult;
+        tuple = 0;
+        qp->Request(args[0].addr, elem);
+        ok = qp->Received(args[0].addr);
+
+        if ( !ok ) // no more tuple in the stream 
+          break;
+        
+        // apply the parameter function   
+        ArgVectorPointer funargs;
+        funargs = qp->Argument(args[1].addr);
+        tuple = (Tuple*)elem.addr;
+        (*funargs)[0] = elem;
+        qp->Request(args[1].addr, funresult);
+
+        bool found=false;
+        if (((StandardAttribute*)funresult.addr)->IsDefined())
+        {
+          found = ((CcBool*)funresult.addr)->GetBoolval();
+        }
+        
+        // check if the tuple needs to be passed over
+        if (found) 
+        {
+          if ( !ri->passOver() )
+            tuple->DeleteIfAllowed();
+          else
+            break;
+        }        
+        else
+        {
+           break;
+        } 
+      }
+      
+      if (tuple)
+      {
+        result.addr = tuple;
+        return YIELD;
+      }
+      else
+      { 
+        return CANCEL;
+      }  
+    }
+      
+    case CLOSE:
+
+      qp->Close(args[0].addr);
+      delete ri;
+      return 0;
+  }
+  return 0;
+}
+
+
+
+
 /*
 5.9 Operator ~project~
 
@@ -3380,6 +3565,12 @@ cannot be accessed by the algebra manager.
                                    dumpstream_vm, 
                                    dumpstream_tm );
     AddOperator(&dumpstream_op);
+
+    static ReduceInfo reduce_oi;
+    static Operator reduce_op( reduce_oi, 
+                               reduce_vm, 
+                               reduce_tm );
+    AddOperator(&reduce_op);
 
     
     cpptuple.AssociateKind( "TUPLE" );
