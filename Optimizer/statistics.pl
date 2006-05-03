@@ -503,6 +503,14 @@ writeStoredSel(Stream) :-
   write(Stream, storedSel(DB, XReplaced, Y)),
   write(Stream, '.\n').
 
+showSel :- 
+  storedSel(DB, X, Y),
+  write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
+
+showSels :-
+  write('Stored selectivities:\n'),
+  findall(_, showSel, _).
+
 :-
   dynamic(storedSel/3),
   at_halt(writeStoredSels),

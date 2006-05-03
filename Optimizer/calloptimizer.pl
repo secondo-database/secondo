@@ -404,7 +404,7 @@ Feel free to change.
 :- setOption(rewriteCSE).       % Substitute common subexpressions in queries?
 % :- setOption(rewriteCSEall).    % Extend attributes for ALL CSEs?
 % :- setOption(rewriteRemove).    % Apply early removal of unused attributes?
-% :- setOption(rtreeIndexRules).  % Use additional rules to exploit R-tree indices?
+:- setOption(rtreeIndexRules).  % Use additional rules to exploit R-tree indices?
 % :- setOption(debug), assert(optDebugLevel(all)). % Activating debugging code?
 
 /*

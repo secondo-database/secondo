@@ -476,26 +476,33 @@ the where-clause, e.g. to inforce the use of indices etc.
 
 */
 
-analyseConditions(WhereIn,WhereOut) :- 
-  makeList(WhereIn,WhereInList),
-  list_to_set(WhereInList,WhereInSet),
-  findall(X,
-          ( inferPredicate(Premises, X),
-            list_to_set(Premises, PremisesSet),
-            subset(PremisesSet, WhereInSet)
-          ),
-          NewPredicates),
+analyseConditions(WhereIn, WhereOut) :- 
+  makeList(WhereIn, WhereInList),
+  list_to_set(WhereInList, WhereInSet),
+  findall(X, inferPredicate(WhereInSet, X), NewPredicates),
   flatten(NewPredicates, NewPredicatesFlat),
   append(WhereInSet, NewPredicatesFlat, WhereOutList), 
-  list_to_set(WhereOutList,WhereOut), !.
-
+  list_to_set(WhereOutList, WhereOut), !.
 
 % rules to infer additional predicates
-inferPredicate([X present Y, X passes Z], [bbox(X) intersects box3d(bbox(Z), Y)]) :-
-  X \= Y, X \= Z, Y \= Z.
-%inferPredicate([test1, test2], [test_ok]). % XRIS: testing only!
 
+% this rule is an ad-hoc solution, until the bbox(moving point) is implemented
+inferPredicate(Premises, [box3d(bbox(trajectory(X)),deftime(X)) intersects box3d(bbox(Z),Y)]) :-
+  member(X present Y, Premises),
+  member(X passes Z,  Premises),
+  X \= Y, X \= Z, Y \= Z, !.
 
+/*
+
+This is the better solution to replace the ad-hoc one
+----
+inferPredicate(Premises, [bbox(X) intersects box3d(bbox(Z),Y)]) :-
+  member(X present Y, Premises),
+  member(X passes Z,  Premises),
+  X \= Y, X \= Z, Y \= Z, !.
+----
+
+*/
 
 /*
 

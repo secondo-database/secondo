@@ -39,39 +39,21 @@ constants below are quite accurate e.g. for examples 14 to
 */
 
 feedTC(0.4).
-
 consumeTC(1.0).
-
 filterTC(1.68).
-
 productTC(1.26, 0.4).
-
 leftrangeTC(10).
-
 loopjoinTC(1.0).
-
 exactmatchTC(10.0).
-
 hashjoinTC(1.5, 0.65).
-
 sortmergejoinTC(0.3, 0.73).
-
 symmjoinTC(1.4, 0.7).
-
 extendTC(1.5).
-
 removeTC(0.6).
-
 projectTC(0.71).
-
 renameTC(0.1).
-
 windowintersectsTC(0.1).
-
 spatialjoinTC(10.0, 0.7).
-
-
-
 
 
 /*

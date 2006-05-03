@@ -57,8 +57,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, p_intersects).
 
 
-
-
 /*
 
 ----	secondoOp(?Op, ?Syntax, ?NoArgs) :-
@@ -111,4 +109,7 @@ secondoOp(windowintersectsS, postfixbrackets, 2).
 secondoOp(gettuples, postfix, 2).
 secondoOp(sort, postfix, 1).
 secondoOp(rdup, postfix, 1).
+secondoOp(bbox, prefix, 1).
+secondoOp(box3d, prefix, 2).
+
 
