@@ -701,13 +701,13 @@ than the canonical label cse\_N.
 */
 
 :- dynamic(storedExpressionLabel/4),
-   reset_gensym. % reset unique identifier generator
+   reset_gensym(cse_). % reset unique identifier generator
 
 % delete table of label-term associations
 retractExpressionLabels :-
   retractall(storedExpressionLabel(_, _, _, _)),
   retractall(storedFlatCSE(_)),
-  reset_gensym. % reset unique identifier generator
+  reset_gensym(cse_). % reset unique identifier generator
 
 % print a table of all stored term-label associations
 showExpressionLabel :-
