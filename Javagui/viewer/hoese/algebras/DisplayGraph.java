@@ -267,16 +267,15 @@ public class DisplayGraph extends DsplGeneric
     Point2D.Double p = new Point2D.Double(r.getX() + r.getWidth()/2, r.getY()
         + r.getHeight()/2);
     af2.transform(p, p);
+    float x = (float)(p.getX()+LabPosOffset.getX());
+    float y = (float)(p.getY()+LabPosOffset.getY());
     if (selected) {
       Rectangle2D re = g2.getFont().getStringBounds(LabelText, g2.getFontRenderContext());
       g2.setPaint(new Color(255, 128, 255, 255));
-      g2.fill3DRect((int)(p.getX() + LabPosOffset.getX()), (int)(p.getY() +
-          LabPosOffset.getY() + re.getY()), (int)re.getWidth(), (int)re.getHeight(),
+      g2.fill3DRect((int)x,(int)(y+re.getY()),(int)re.getWidth(), (int)re.getHeight(),
           true);
     }
     g2.setPaint(Cat.getLineColor());
-    float x = (float)(p.getX()+LabPosOffset.getX());
-    float y = (float)(p.getY()+LabPosOffset.getX());
     g2.drawString(LabelText, x,y);
   }
 
