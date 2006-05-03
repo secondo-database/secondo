@@ -4229,12 +4229,26 @@ ShowStandardTypesStatistics( const bool reset )
   }
 }
 
+
+int
+StdTypes::GetInt(Word w, const bool doRequest) 
+{
+  if (doRequest)
+    qp->Request(w.addr, w);
+  CcInt* cVal = static_cast<CcInt*>(w.addr);
+  return cVal->GetIntval(); 
+} 
+
+int 
+StdTypes::RequestInt(const Word& w) 
+{
+   return GetInt(w, true);
+} 
+
 int 
 StdTypes::GetInt(const Word& w) 
 {
-  static Word wArgVal;
-  qp->Request(w.addr, wArgVal);
-  return static_cast<CcInt*>( wArgVal.addr )->GetIntval();
+   return GetInt(w, false);
 } 
 
 string

@@ -570,11 +570,14 @@ into the corresponding C++ type
 struct StdTypes
 {
   static int GetInt(const Word& w); 
+  static int RequestInt(const Word& w); 
+
   static string GetString(const Word& w); 
   static string RequestString(const Word& w); 
 
   private:
   static string GetString(Word w, const bool doRequest); 
+  static int GetInt(Word w, const bool doRequest); 
 };
 
 #endif
