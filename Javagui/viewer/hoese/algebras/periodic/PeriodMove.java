@@ -69,12 +69,10 @@ public boolean set(int repeatations, Move subMove){
   * If the object is not defined at this time null is returned.
   */
 public Object getObjectAt(Time T){
-
    if(!defined){
      Reporter.debug("PeriodMove.getObjectAt on an undefined move called");
      return null;
    }
-
    if(!interval.contains(T)){
       return null;
    }
@@ -121,7 +119,8 @@ public boolean readFrom(ListExpr LE,Class linearClass){
       return false;
    }
    ListExpr Value = LE.second();
-   if(Value.listLength()!=2){
+   int len = Value.listLength();
+   if(len!=2 && len!=4){
       Reporter.debug("PeriodMove.readFrom :: wrong ListLength() for value list");
       setUndefined();
       return false;
@@ -137,17 +136,24 @@ public boolean readFrom(ListExpr LE,Class linearClass){
       setUndefined();
       return false;
    }
-   if(Value.second().atomType()!=ListExpr.NO_ATOM || Value.second().listLength()<1){
+   ListExpr submove;
+   if(len==2){
+     submove = Value.second();
+   }else{
+     submove = Value.fourth();
+   }
+
+   if(submove.atomType()!=ListExpr.NO_ATOM || submove.listLength()<1){
       Reporter.debug("PeriodMove.readFrom :: wrong list type for submove");
       setUndefined();
       return false;
    }
-   if(Value.second().first().atomType()!=ListExpr.SYMBOL_ATOM){
+   if(submove.first().atomType()!=ListExpr.SYMBOL_ATOM){
       Reporter.debug("PeriodMove.readFrom :: wrong listtype for type descriptor of the submove");
       setUndefined();
       return false;
    }
-   String s = Value.second().first().symbolValue();
+   String s = submove.first().symbolValue();
    if(!s.equals("linear") && !s.equals("composite")){
       Reporter.debug("PeriodMove.readFrom :: wrong type descriptor for subtype");
       setUndefined();
@@ -166,7 +172,7 @@ public boolean readFrom(ListExpr LE,Class linearClass){
       return false;
    }
 
-   if(!sm.readFrom(Value.second(),linearClass)){
+   if(!sm.readFrom(submove,linearClass)){
       Reporter.debug("PeriodMove.readFrom :: error in reading submove ");
       setUndefined();
       return false;
