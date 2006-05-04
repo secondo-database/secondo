@@ -99,7 +99,7 @@ This macro is for debugging purposes. At the begin of all functions should the
 [_][_]TRACE[_][_] symbol.
 
 */
-#define TRACEON 
+//#define TRACEON 
 #ifdef TRACEON
 #define __TRACE__ cout << __POS__ << endl;
 #else
@@ -1030,10 +1030,16 @@ This function compares two RelIntervals.
 
 */
 int RelInterval::CompareTo(const RelInterval* D2)const {
-    __TRACE__
- if(!defined && !D2->defined) return 0;
-  if(!defined && D2->defined) return -1;
-  if(defined && !D2->defined) return 1;
+   __TRACE__
+  if(!defined && !D2->defined){ 
+      return 0;
+  }
+  if(!defined && D2->defined){
+      return -1;
+  }
+  if(defined && !D2->defined){
+       return 1;
+  }
   // at this point both involved intervals are defined
   if(leftClosed && !D2->leftClosed) return -1;
   if(!leftClosed && D2->leftClosed) return 1;
@@ -1178,9 +1184,11 @@ the value of D2.
 */
 void RelInterval::Equalize(const RelInterval* D2){
     __TRACE__
- length.Equalize(&(D2->length));
+  length.Equalize(&(D2->length));
   leftClosed=D2->leftClosed;
   rightClosed=D2->rightClosed;
+  defined = D2->defined;
+  canDelete = D2->canDelete;
 }
 
 /*
@@ -1354,6 +1362,7 @@ bool RelInterval::Set(const DateTime* length, const bool leftClosed,
                       const bool rightClosed){
     __TRACE__
  if((length->IsZero()) && (!leftClosed || !rightClosed)) return false;
+ this->defined=true;
  this->leftClosed=leftClosed;
  this->rightClosed=rightClosed;
  this->length.Equalize(length);
@@ -1427,6 +1436,9 @@ This function returns a string representation of this RelInterval.
 */
 string RelInterval::ToString()const{
     __TRACE__
+  if(!defined){
+     return "_undefined_";
+  }
   ostringstream tmp;
    tmp << (leftClosed?"[":"]");
    tmp << " 0.0 , ";
@@ -3343,8 +3355,7 @@ a formatted output for a LinearPointMove.
 */
 
 ostream& operator<<(ostream& os, const LinearPointMove LPM){
-      os << "("<<LPM.startX<<", "<<LPM.startY<<")->("
-         <<LPM.endX<<", "<<LPM.endY<<") "<<LPM.interval;
+      os <<  LPM.ToString();
       return os; 
    }
 
@@ -6140,7 +6151,7 @@ relative interval.
 ostream& operator<< (ostream& os, const RelInterval I){
    __TRACE__
   os << I.ToString();
-   return os;
+  return os;
 }
 
 /*
@@ -6719,13 +6730,15 @@ This functions implements the familiar compare function.
 */
    int LinearPointMove::CompareTo(LinearPointMove* LPM){
        int comp = interval.CompareTo(&(LPM->interval));  
+       if(comp!=0){
+         return comp; // different intervals
+       }
        if(!defined && !LPM->defined)
-          return comp;
+          return 0;
        if(!defined && LPM->defined)
           return -1;
        if(defined && !LPM->defined)
           return  1;
-       if(comp!=0) return comp; // different intervals
        if(startX < LPM->startX) return -1;
        if(startX > LPM->startX) return 1;
        if(startY < LPM->startY) return -1;
@@ -7687,6 +7700,66 @@ void PMPoint::Equalize(const PMPoint* P2){
 }
 
 /*
+~Statistical Information~
+
+*/
+size_t PMPoint::NumberOfNodes()const{
+   return linearMoves.Size() +
+          compositeMoves.Size() +
+          periodicMoves.Size() +
+          1;
+}
+
+size_t PMPoint::NumberOfCompositeNodes()const{
+   return compositeMoves.Size();
+}
+size_t PMPoint::NumberOfPeriodicNodes()const{
+   return periodicMoves.Size();
+}
+size_t PMPoint::NumberOfUnits()const{
+   return linearMoves.Size();
+}
+
+size_t PMPoint::NumberOfFlatUnits()const{
+    return NumberOfFlatNodes(submove);
+}
+
+size_t PMPoint::NumberOfFlatNodes(const SubMove sm)const{
+   int type = sm.arrayNumber;
+   switch(type){
+      case LINEAR:
+             const LinearPointMove* LM;
+             linearMoves.Get(sm.arrayIndex,LM);
+             if(LM->IsDefined()){
+               return 1;
+             }else{
+               return 0;
+             }
+      case PERIOD:
+             const SpatialPeriodicMove* PM;
+             periodicMoves.Get(sm.arrayIndex,PM);
+             size_t subsize;
+             subsize = NumberOfFlatNodes(PM->submove);
+             return (PM->repeatations)*subsize;
+      case COMPOSITE:
+             const SpatialCompositeMove* CM;
+             size_t res;
+             res = 0;
+             const SubMove* csm;
+             compositeMoves.Get(sm.arrayIndex,CM);
+             for(int i=CM->minIndex; i<=CM->maxIndex;i++){
+                 compositeSubMoves.Get(i,csm);
+                 res += NumberOfFlatNodes(*csm);
+             }
+             return res;
+       default: cerr << "invalid submove found " << endl <<__POS__ <<endl;
+                assert(false);
+               
+   }
+}
+
+
+/*
 ~NumOfFLOBs~
 
 This function returns the number of contained FLOBs in this
@@ -7711,7 +7784,6 @@ This function returns the FLOB with index i.
 */
 FLOB* PMPoint::GetFLOB(const int i){
     __TRACE__
-   cout << "GetFlob " << i << endl;
    assert(i>=0 && i<NumOfFLOBs());
    FLOB* res=0;
    switch(i){
@@ -7721,7 +7793,6 @@ FLOB* PMPoint::GetFLOB(const int i){
       case 3 : res = &periodicMoves;break;
    }
 
-   cout << "Size is " << (res->Size()) << endl;
    return res; 
 }
 
@@ -8893,7 +8964,6 @@ Points* PMPoint::Breakpoints(){
     __TRACE__
     DateTime DT(durationtype);
     Points* res = Breakpoints(&DT,false);
-    cout << (*res) << endl;
     return res;
     
 }
@@ -8910,7 +8980,6 @@ and the inclusive argument is true.
 */
 Points* PMPoint::Breakpoints(const DateTime* duration,const bool inclusive){
   __TRACE__
-  cout << "breakpoints 2 entered\n";
   Points* Res = new Points(1);
   if(!defined || !duration->IsDefined()){
       Res->SetDefined(false);
@@ -9155,7 +9224,7 @@ void PMPoint::ReadFromMPoint(MPoint& P){
   */
   int noUPoints = P.GetNoComponents();
   // Unfortunately, we can't use a array directly because we need to
-  // represent non-defined units directly witch is not required in
+  // represent non-defined units directly which is not required in
   // the MPoint representation.
   List<LinearPointMove>* L= new List<LinearPointMove>();  
   const UPoint* UP;
@@ -9195,6 +9264,7 @@ void PMPoint::ReadFromMPoint(MPoint& P){
         theMove.endY = y2;
         theMove.bbox = PBBox(x1,y1,x2,y2);
         theMove.interval.Set(&Length,lc,rc);
+        theMove.interval.SetDefined(true);
         // Add the bounding to to the complete bb
         bbox.Union(&(theMove.bbox));
         if(i==0){
@@ -9205,12 +9275,13 @@ void PMPoint::ReadFromMPoint(MPoint& P){
            if( (!(LastMove.timeInterval.end == start)) ||
                (!LastMove.timeInterval.rc && !lc)){
                // a gap found between the last unit and this unit
-               LinearPointMove* GapMove = new LinearPointMove(0);
-               GapMove->defined=false; // an undefined move
+               LinearPointMove GapMove(0);
+               GapMove.defined=false; // an undefined move
                DateTime GapLength = start-LastMove.timeInterval.end;
-               GapMove->interval.Set(&GapLength,
+               GapMove.interval.Set(&GapLength,
                                      !LastMove.timeInterval.rc, !lc);
-               L->Append(*GapMove);
+               GapMove.interval.SetDefined(true);
+               L->Append(GapMove);
            }
         }
         if(i==noUPoints-1){ // set new interval;
@@ -9223,6 +9294,7 @@ void PMPoint::ReadFromMPoint(MPoint& P){
   }else{ // no units available
     // here we have to initialize some components
   }
+
   // At this point, we have stored all LinearPointsMoves in a List.
   // now we have to build an array of numbers for it. To make this fast,
   // we use a hashtable with double maximum size. We use closed hashing 
@@ -9234,7 +9306,7 @@ void PMPoint::ReadFromMPoint(MPoint& P){
                           // in the AllMoves array
   int LMIndex[hashsize]; // The same table but holding the indices in the 
                          // resulting linear moves
-
+  // initialize the hashtable
   for(int i=0;i<hashsize;i++){ 
        MinIndex[i]=-1;
        LMIndex[i] =-1;
@@ -9282,14 +9354,6 @@ void PMPoint::ReadFromMPoint(MPoint& P){
      }
      indexInAllMoves[i]= MinIndex[hashvalue];
      indexInLinearMoves[i] = LMIndex[hashvalue];
-
-     if(LMIndex[hashvalue]==93){ // error in my example
-       cout << "Linear[" << i <<"]" << endl;
-       cout << "53 => " << AllMoves[indexInAllMoves[53]].ToString() << endl;
-       cout << "93 => " << AllMoves[indexInAllMoves[i]].ToString() << endl;
-
-     }
-
   } 
 
   /* At this in, in assigned numbers the complete moving point is stored
@@ -9301,7 +9365,7 @@ void PMPoint::ReadFromMPoint(MPoint& P){
   RepTree RT(indexInLinearMoves,listlength);
   
   /* Debugging output */
-  RT.PrintNL();
+  //RT.PrintNL();
 
   linearMoves.Clear();
   compositeMoves.Clear();
@@ -11992,7 +12056,6 @@ ListExpr InitialOrFinalTypeMap(ListExpr args){
 
 ListExpr BreakpointsTypeMap(ListExpr args){
     __TRACE__
- cout << "Breakpoints type map called" <<  endl;
  int length = nl->ListLength(args);
    if(length!=1 && length!=3){
        ErrorReporter::ReportError(
@@ -12243,6 +12306,25 @@ ListExpr DistanceTypeMap(ListExpr args){
   return nl->SymbolAtom(TYPE_ERROR); 
   
 }
+
+ListExpr NumberOfNodesMap(ListExpr args){
+   if(nl->ListLength(args)!=1){
+     ErrorReporter::ReportError("invalid number of arguments");
+     return nl->SymbolAtom(TYPE_ERROR);
+   }
+   ListExpr arg = nl->First(args);
+   if(nl->AtomType(arg)!=SymbolType){
+      ErrorReporter::ReportError("composite types not allowed here");
+      return nl->SymbolAtom(TYPE_ERROR);
+   }
+   string type = nl->SymbolValue(arg);
+   if(type=="pmpoint"){
+     return nl->SymbolAtom("int");
+   }
+   ErrorReporter::ReportError(type+" not allowed here");
+   return nl->SymbolAtom(TYPE_ERROR);
+}
+
 
 
 /*
@@ -12560,10 +12642,8 @@ int BreakpointsFun_PMPoint(Word* args, Word& result,
     PMPoint* P = (PMPoint*) args[0].addr;
     Points* Res = 0;
     if(sons==1){
-        cout << "simple breakpoints fun";
         Res = P->Breakpoints();
     } else{
-      cout << "extended breakpoints fun";
       DateTime* DT = (DateTime*) args[1].addr;
       CcBool* Inclusive = (CcBool*) args[2].addr;
       if(!Inclusive->IsDefined()){
@@ -12572,7 +12652,6 @@ int BreakpointsFun_PMPoint(Word* args, Word& result,
           Res = P->Breakpoints(DT,Inclusive->GetBoolval());
       }
     }
-    cout << "before copying" << (*Res) << endl;
     //((Points* )result.addr)->CopyFrom(Res);
     result.addr = Res;
     //cout <<  "the copy\n" << (*((Points*)result.addr)) << endl;
@@ -12828,6 +12907,55 @@ int Distance_Point_PMPoint(Word* args, Word& result, int message,
   return 0;
 }
 
+template <class T>
+int NumberOfNodes_T(Word* args, Word& result, int message, 
+         Word&local, Supplier s){
+   result = qp->ResultStorage(s);
+   T* arg = (T*) args[0].addr;
+   CcInt* res = (CcInt*)result.addr;
+   res->Set(true,(int) arg->NumberOfNodes());
+   return 0;
+}
+
+template <class T>
+int NumberOfPeriodicNodes_T(Word* args, Word& result, int message, 
+         Word&local, Supplier s){
+   result = qp->ResultStorage(s);
+   T* arg = (T*) args[0].addr;
+   CcInt* res = (CcInt*)result.addr;
+   res->Set(true,(int) arg->NumberOfPeriodicNodes());
+   return 0;
+}
+
+template <class T>
+int NumberOfCompositeNodes_T(Word* args, Word& result, int message, 
+         Word&local, Supplier s){
+   result = qp->ResultStorage(s);
+   T* arg = (T*) args[0].addr;
+   CcInt* res = (CcInt*)result.addr;
+   res->Set(true,(int) arg->NumberOfCompositeNodes());
+   return 0;
+}
+
+template <class T>
+int NumberOfUnits_T(Word* args, Word& result, int message, 
+         Word&local, Supplier s){
+   result = qp->ResultStorage(s);
+   T* arg = (T*) args[0].addr;
+   CcInt* res = (CcInt*)result.addr;
+   res->Set(true,(int) arg->NumberOfUnits());
+   return 0;
+}
+
+template <class T>
+int NumberOfFlatUnits_T(Word* args, Word& result, int message, 
+         Word&local, Supplier s){
+   result = qp->ResultStorage(s);
+   T* arg = (T*) args[0].addr;
+   CcInt* res = (CcInt*)result.addr;
+   res->Set(true,(int) arg->NumberOfFlatUnits());
+   return 0;
+}
 
 /*
 5.3 Specifications of the Operators
@@ -12874,9 +13002,9 @@ const string UnionSpec =
 const string AtSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"pmobject x instant -> object\""
-   " \" _ at(_) \" "
+   " \" _ atinstant _ \" "
    " \"computes the value  of the argument at the given time\" "
-   " \" query P5 at( [const instant value 1.5])\" ))";
+   " \" query P5 atinstant [const instant value 1.5]\" ))";
 
 const string InitialSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -12959,6 +13087,46 @@ const string DistanceSpec =
    " \"\""
    " \" query distance(pm1,p1)\" ))";
 
+const string NumberOfNodesSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
+   " ( \"pmobject -> int\""
+   " \" NumberOfNodes(_) \" "
+   " \"computes the number of nodes of this object\""
+   " \"\""
+   " \" query numberOfNodes(pm)\" ))";
+
+const string NumberOfCompositeNodesSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
+   " ( \"pmobject -> int\""
+   " \" NumberOfCompositeNodes(_) \" "
+   " \"computes the number of nodes of this object\""
+   " \"\""
+   " \" query numberOfCompositeNodes(pm)\" ))";
+
+const string NumberOfPeriodicNodesSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
+   " ( \"pmobject -> int\""
+   " \" NumberOfPeriodicNodes(_) \" "
+   " \"computes the number of nodes of this object\""
+   " \"\""
+   " \" query numberOfPeriodicNodes(pm)\" ))";
+
+const string NumberOfUnitsSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
+   " ( \"pmobject -> int\""
+   " \" NumberOfUnits(_) \" "
+   " \"computes the number of units of this object\""
+   " \"\""
+   " \" query numberOfUnits(pm)\" ))";
+
+const string NumberOfFlatUnitsSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
+   " ( \"pmobject -> int\""
+   " \" NumberOfFlatUnits(_) \" "
+   " \"computes the number of units of this object "
+   "in the flat representation\""
+   " \"\""
+   " \" query numberOfUnits(pm)\" ))";
 
 /*
 5.4 ValueMappings of overloaded Operators
@@ -13010,6 +13178,27 @@ ValueMapping IntersectionValueMap[] = {
 ValueMapping DistanceValueMap[] = {
   Distance_PMPoint_Point, Distance_Point_PMPoint
 }; 
+
+ValueMapping NumberOfNodesValueMap[] ={
+   NumberOfNodes_T<PMPoint>
+};
+
+ValueMapping NumberOfCompositeNodesValueMap[] ={
+   NumberOfCompositeNodes_T<PMPoint>
+};
+
+ValueMapping NumberOfPeriodicNodesValueMap[] ={
+   NumberOfPeriodicNodes_T<PMPoint>
+};
+
+ValueMapping NumberOfUnitsValueMap[] ={
+   NumberOfUnits_T<PMPoint>
+};
+
+ValueMapping NumberOfFlatUnitsValueMap[] ={
+   NumberOfFlatUnits_T<PMPoint>
+};
+
 
 /*
 5.6 SelectionFunctions
@@ -13158,6 +13347,15 @@ static int DistanceSelect(ListExpr args){
   return -1; // should never be the case
 }
 
+static int NumberOfAnyNodesSelect(ListExpr args){
+  string type = nl->SymbolValue(nl->First(args));
+  if(type=="pmpoint"){
+    return 0;
+  }
+  return -1;
+}
+
+
 /*
 5.7 Definition of the Operators
 
@@ -13245,7 +13443,7 @@ Operator pintersects(
         IntersectsTypeMap);
 
 Operator pat(
-       "at",               // name
+       "atinstant",               // name
        AtSpec,              // specification
        5,                         // number of functions
        AtValueMap,
@@ -13300,6 +13498,47 @@ Operator pdistance(
        DistanceSelect,
        DistanceTypeMap);
 
+Operator pnumberOfNodes(
+       "numberOfNodes",             // name
+       NumberOfNodesSpec,           // specification
+       1,                    // number of functions
+       NumberOfNodesValueMap,
+       NumberOfAnyNodesSelect,
+       NumberOfNodesMap);
+
+Operator pnumberOfCNodes(
+       "numberOfCNodes",             // name
+       NumberOfCompositeNodesSpec,           // specification
+       1,                    // number of functions
+       NumberOfCompositeNodesValueMap,
+       NumberOfAnyNodesSelect,
+       NumberOfNodesMap);
+
+Operator pnumberOfPNodes(
+       "numberOfPNodes",             // name
+       NumberOfPeriodicNodesSpec,           // specification
+       1,                    // number of functions
+       NumberOfPeriodicNodesValueMap,
+       NumberOfAnyNodesSelect,
+       NumberOfNodesMap);
+
+Operator pnumberOfUnits(
+       "numberOfUnits",             // name
+       NumberOfUnitsSpec,           // specification
+       1,                    // number of functions
+       NumberOfUnitsValueMap,
+       NumberOfAnyNodesSelect,
+       NumberOfNodesMap);
+
+Operator pnumberOfFlatUnits(
+       "numberOfFlatUnits",             // name
+       NumberOfFlatUnitsSpec,           // specification
+       1,                    // number of functions
+       NumberOfFlatUnitsValueMap,
+       NumberOfAnyNodesSelect,
+       NumberOfNodesMap);
+
+
 } // namespace periodic
 
 /*
@@ -13348,6 +13587,11 @@ class PeriodicMoveAlgebra : public Algebra
     AddOperator(&periodic::createpmpoint);
     AddOperator(&periodic::ptoprel);
     AddOperator(&periodic::pdistance);
+    AddOperator(&periodic::pnumberOfNodes);
+    AddOperator(&periodic::pnumberOfCNodes);
+    AddOperator(&periodic::pnumberOfPNodes);
+    AddOperator(&periodic::pnumberOfUnits);
+    AddOperator(&periodic::pnumberOfFlatUnits);
   }
   ~PeriodicMoveAlgebra() {};
 };

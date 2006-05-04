@@ -1265,7 +1265,11 @@ class PMPoint : public StandardAttribute {
      bool DistanceTo(const double x, const double y, PMReal& result)const;
      bool CheckCorrectness();
      void PrintArrayContents();
-
+     inline size_t NumberOfNodes() const;
+     inline size_t NumberOfPeriodicNodes()const;
+     inline size_t NumberOfUnits() const;
+     inline size_t NumberOfCompositeNodes()const;
+     inline size_t NumberOfFlatUnits() const; 
   private:
      DBArray<LinearPointMove> linearMoves;
      DBArray<SpatialCompositeMove> compositeMoves;
@@ -1277,6 +1281,9 @@ class PMPoint : public StandardAttribute {
      DateTime startTime;
      PBBox bbox;
      SubMove submove;
+
+
+     size_t NumberOfFlatNodes(const SubMove sm) const;
      /* the next four functions are needed to convert a
         periodic moving point to its nested list representation.
      */
