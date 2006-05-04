@@ -70,14 +70,7 @@ public class DsplGeneric implements DsplBase,DsplSimple {
    */
 
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    String ts;
-    if (type.isAtom())
-      ts = type.writeListExprToString();
-    else
-      ts = type.first().writeListExprToString();
-    qr.addEntry(new String("Unknown Type: " + ts));
-   // HoeseViewer.("ListExpr for unknown type " + ts + value.writeListExprToString());
-    return;
+    init(type,0,value,0,qr);
   }
 
 
