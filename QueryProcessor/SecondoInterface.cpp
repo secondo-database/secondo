@@ -139,13 +139,31 @@ class CmdTimes : public InfoTuple
    string cmdStr;
    double elapsedTime;
    double cpuTime;
+   double commitTime;
+   double queryReal;
+   double queryCPU;
+   double outObjReal;
+   double copyReal;
 
    public: 
-   CmdTimes(int num, const string& cmd, double realT, double cpuT) :
+   CmdTimes( int num, 
+             const string& cmd, 
+             double realT, 
+             double cpuT, 
+             double commitT, 
+             double qRT,
+             double qCT,
+             double outRT,
+             double cpRT ) :
      nr(num),
      cmdStr(cmd),
      elapsedTime(realT),
-     cpuTime(cpuT)
+     cpuTime(cpuT),
+     commitTime(commitT),
+     queryReal(qRT),
+     queryCPU(qCT),
+     outObjReal(outRT),
+     copyReal(cpRT)
    {
    }
    virtual ~CmdTimes() {}
@@ -157,6 +175,11 @@ class CmdTimes : public InfoTuple
      value.append( NList().textAtom(cmdStr) );
      value.append( NList(elapsedTime) );
      value.append( NList(cpuTime) );
+     value.append( NList(commitTime) );
+     value.append( NList(queryReal) );
+     value.append( NList(queryCPU) );
+     value.append( NList(outObjReal) );
+     value.append( NList(copyReal) );
      return value;
    } 
    
@@ -185,6 +208,11 @@ class CmdTimesRel : public SystemInfoRel
      attrList->push_back( make_pair("CmdStr", "text") );
      attrList->push_back( make_pair("ElapsedTime", "real") );
      attrList->push_back( make_pair("CpuTime", "real") );
+     attrList->push_back( make_pair("CommitTime", "real") );
+     attrList->push_back( make_pair("queryReal", "real") );
+     attrList->push_back( make_pair("queryCPU", "real") );
+     attrList->push_back( make_pair("outObjReal", "real") );
+     attrList->push_back( make_pair("copyReal", "real") );
      return attrList;  
    } 
 
@@ -582,7 +610,6 @@ separate functions which should be named Command\_<name>.
   errorPos     = 0;
   resultList   = nl->TheEmptyList();
 
-  StopWatch cmdTime;  // measure the time used for executing the command.
 
   NestedList* nl = SecondoSystem::GetNestedList();
   NestedList* al = SecondoSystem::GetAppNestedList();
@@ -662,6 +689,19 @@ separate functions which should be named Command\_<name>.
 
 
   //*** START COMMAND RECOGNITION ***//
+  
+  // measure the time used for executing the command.
+  
+  showCmdTimes = !RTFlag::isActive("SI:NoQueryTimers");
+   
+  cmdTime.start();
+  cmdReal = 0;
+  cmdCPU = 0;
+  commitReal = 0;
+  queryReal = 0;
+  queryCPU = 0;
+  outObjReal = 0;
+  copyReal = 0;
   
   int length = nl->ListLength( list );
   if ( length > 1 )
@@ -1318,6 +1358,7 @@ separate functions which should be named Command\_<name>.
     } 
   }
 
+  
   //*** END COMMAND RECOGNITION ***//
   
   if ( resultAsText )
@@ -1325,28 +1366,36 @@ separate functions which should be named Command\_<name>.
     nl->WriteToFile( resultFileName, resultList );
   }
 
-  LOGMSG( "SI:ResultList",
+  bool showResult = RTFlag::isActive("SI:ResultList");
+  if (showResult) {
     cmsg.info() << endl << "### Result List before copying: " 
-          << nl->ToString(resultList) << endl;
+                << nl->ToString(resultList) << endl;
     cmsg.send();
-  )
+  }
 
   // copy result into application specific list container.
   StopWatch copyTime;
   if (resultList) {
      resultList = nl->CopyList(resultList, al);
-     LOGMSG( "SI:CopyListTime",
-        cmsg.info() << "CopyList " << copyTime.diffTimes() << endl;
+     if (showCmdTimes) 
+     {
+        cmsg.info() << padStr("Copying result ...",20) 
+                    << copyTime.diffTimes() << endl;
         cmsg.send();
-     )
+     }
+     copyReal = copyTime.diffSecondsReal(); 
   }
-  LOGMSG( "SI:ResultList",
+
+  if (showResult) {
     cmsg.info() << endl << "### Result after copying: " 
-         << al->ToString(resultList) << endl;
+                << al->ToString(resultList) << endl;
     cmsg.send();           
-  )
+  }
   nl->initializeListMemory();
  
+  cmdReal = cmdTime.diffSecondsReal();
+  cmdCPU = cmdTime.diffSecondsCPU();
+  
   // initialize and increment query counter 
   static int CmdNr = 0;
   CmdNr++;
@@ -1355,14 +1404,16 @@ separate functions which should be named Command\_<name>.
   bool printCmdTimes = RTFlag::isActive("SI:PrintCmdTimes");
   bool dumpCmdTimes = RTFlag::isActive("SI:DumpCmdTimes");
 
-  double treal = cmdTime.diffSecondsReal();
-  double tcpu = cmdTime.diffSecondsCPU();
-  CmdTimes* ctp = new CmdTimes(CmdNr, commandText, treal, tcpu);
+  CmdTimes* ctp = new CmdTimes( CmdNr, commandText, 
+                                cmdReal, cmdCPU, commitReal, 
+                                queryReal, queryCPU, outObjReal, copyReal );
+
   cmdTimesRel.append(ctp, dumpCmdTimes);
   
   if (printCmdTimes) 
   {
-    cmsg.info() << endl << "Command " << cmdTime.diffTimes() << endl;
+    cmsg.info() << padStr("Total runtime ...",20) 
+                << cmdTime.diffTimes() << endl;
     cmsg.send();
   } 
     
@@ -1443,18 +1494,14 @@ SecondoInterface::Command_Query( const ListExpr list,
      return ERR_NO_DATABASE_OPEN;  
   }
   
-  StartCommand();
-
   StopWatch queryTime;
-  cmsg.info() << "Analyze query ..." << endl;
-  cmsg.send();
-
+  StartCommand();
   qp.Construct( nl.Second( list ), correct, evaluable, defined,
                 isFunction, tree, resultType );
 
 
-  if (!RTFlag::isActive("SI:NoQueryAnalysis")) {
-    cmsg.info() << "Analyze " << queryTime.diffTimes() << endl;
+  if (showCmdTimes) {
+    cmsg.info() << padStr("Analyze ...",20) << queryTime.diffTimes() << endl;
     cmsg.send();
     queryTime.start();
   }
@@ -1471,13 +1518,32 @@ SecondoInterface::Command_Query( const ListExpr list,
 
   if ( evaluable )
   {
-     cmsg.info() << "Execute ..." << endl;
-     cmsg.send();
+     if (showCmdTimes) {
+       cmsg.info() << padStr("Execute ...",20);
+       cmsg.send();
+     }  
 
      qp.ResetTimer();
      qp.Eval( tree, result, 1 );
      
+     if (showCmdTimes) 
+     {
+       cmsg.info() << queryTime.diffTimes() << endl;
+       cmsg.send();
+     }
+     queryReal = queryTime.diffSecondsReal();
+     queryCPU = queryTime.diffSecondsCPU();
+
+     StopWatch outObj; 
      ListExpr valueList = ctlg.OutObject( resultType, result );
+
+     if (showCmdTimes) 
+     {
+       cmsg.info() << padStr("OutObject ...",20) << outObj.diffTimes() << endl;
+       cmsg.send();
+     }
+     outObjReal = outObj.diffSecondsReal();
+     
      resultList = nl.TwoElemList( resultType, valueList );
      
      StopWatch destroyTime;
@@ -1487,11 +1553,6 @@ SecondoInterface::Command_Query( const ListExpr list,
        cmsg.send();
      }
 
-     if (!RTFlag::isActive("SI:NoQueryAnalysis")) 
-     {
-       cmsg.info() << "Execute " << queryTime.diffTimes() << endl;
-       cmsg.send();
-     }
      if (RTFlag::isActive("NL:MemInfo")) 
      {
        cmsg.info() << nl.ReportTableSizes(true) << endl;
@@ -1939,8 +2000,10 @@ SecondoInterface::StartCommand()
 bool
 SecondoInterface::FinishCommand( SI_Error& errorCode, string& errMsg )
 {
+  
   if ( !activeTransaction )
   {
+    StopWatch commitTime;
     if ( errorCode == 0 )
     {
       if ( !SecondoSystem::CommitTransaction() )
@@ -1965,6 +2028,13 @@ SecondoInterface::FinishCommand( SI_Error& errorCode, string& errMsg )
         return false;
       }
     }
+    if (showCmdTimes) 
+    {
+      cmsg.info() << padStr("Committing ...", 20) 
+                  << commitTime.diffTimes() << endl;
+      cmsg.send();
+    }
+    commitReal = commitTime.diffSecondsReal();
   }
   return true;
 }

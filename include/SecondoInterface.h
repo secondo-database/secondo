@@ -125,8 +125,10 @@ in the treatment of the database state in database commands.
 
 #include "NestedList.h"
 #include "AlgebraTypes.h"
-
+#include "StopWatch.h"
 #include "CSProtocol.h"
+
+
 
 // forward declaration to avoid cyclic includes
 class DerivedObj;
@@ -1066,6 +1068,19 @@ Sets the debug level of the query processor.
   DerivedObj* derivedObjPtr;
 
   CSProtocol* csp;
+
+  // members for tracking query times
+  bool showCmdTimes;
+  
+  StopWatch cmdTime;
+  double cmdReal;
+  double cmdCPU;
+  double queryReal;
+  double queryCPU;
+  double commitReal;
+  double outObjReal;
+  double copyReal;
+  
 };
 
 /*
