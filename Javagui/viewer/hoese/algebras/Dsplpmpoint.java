@@ -28,14 +28,16 @@ import java.util.*;
 import viewer.hoese.algebras.periodic.*;
 import javax.swing.JPanel;
 import tools.Reporter;
+import java.text.DecimalFormat;
 
-public class Dsplpmpoint extends DisplayTimeGraph{
+public class Dsplpmpoint extends DisplayTimeGraph implements LabelAttribute{
 
 Point2D.Double point;
 Rectangle2D.Double bounds;
 Class linearClass = (new PMPLinear()).getClass();
 Time T = new Time();
 TotalMove Move=null;
+static DecimalFormat format = new DecimalFormat("#.####");
 
 public Shape getRenderObject(AffineTransform at){
   if(Move==null){
@@ -59,6 +61,20 @@ public Shape getRenderObject(AffineTransform at){
   }
   return RenderObject;
 }
+
+public String getLabel(double time){
+  if(Move==null){
+     return null;
+  }
+  T.readFrom(time);
+  Point2D.Double Pos = (Point2D.Double) Move.getObjectAt(T);
+  if(Pos==null){
+     return null;
+  }
+  return format.format(Pos.getX())+", "+format.format(Pos.getY());
+
+}
+
 
 public void init(ListExpr type,ListExpr value,QueryResult qr){
   AttrName = type.symbolValue();
