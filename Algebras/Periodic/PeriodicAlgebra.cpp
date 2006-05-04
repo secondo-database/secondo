@@ -1,4 +1,5 @@
 /*
+
 //paragraph [3] Time: [{\tt\small Time:}{\it] [}]
 //paragraph [4] Big: [\begin{center}\Huge{] [}\end{center}]
 //[_] [\_]
@@ -27,35 +28,6 @@
 //[resetpagenum] [\setcounter{page}{1}]
 
 
-[titlepage]
-[emptypage]
-
-[4] An Algebra Implementation in 
-
-[startpicture]SecondoLogo.eps[endpicture]
-
-[newpage]
-[romanpagenum]
-[resetpagenum]
-
-[content]
-
-[startpicture]UniLogo.eps[endpicture]
-[newpage]
-[arabicpagenum]
-[resetpagenum]
-
-
-1 Introduction
-
-This algebra models periodic moving objects. The underlying model can be used
-for any model of linear moving objects. The objects can move freely or on
-networks. The objects can be spatial or not and so on.
-The periodic moving model extends linear moving objects by the
-possibility of periodic moves. Exceptions and nested periods can be modelled
-here. A period is an interval of fixed length. This means that periods of a
-natural language (like each second monday of the month) can't be modelled.
-
 2 Preconsiderations
 
 A periodic moving object is modelled as an object consisting on several types
@@ -79,7 +51,7 @@ maxN = maxP + maxC + L = P + L-1 + L = L-1+L + L-1 + L = 4L-2 = O(L)
 
 */
 
-
+#include "PeriodicTypes.h"
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -103,7 +75,7 @@ using namespace std;
 #include "TopRel.h"
 #include "DBArray.h"
 
-// the __POS__ macro can be used in debug-messages
+ // the __POS__ macro can be used in debug-messages
 #define __POS__ __FILE__ << ".." << __PRETTY_FUNCTION__ << "@" << __LINE__ 
 
 
@@ -127,7 +99,7 @@ This macro is for debugging purposes. At the begin of all functions should the
 [_][_]TRACE[_][_] symbol.
 
 */
-//#define TRACEON 
+#define TRACEON 
 #ifdef TRACEON
 #define __TRACE__ cout << __POS__ << endl;
 #else
@@ -141,4163 +113,27 @@ This macro is for debugging purposes. At the begin of all functions should the
 #define __TTRACE__
 #endif
 
-static const int LINEAR = 0;
-static const int COMPOSITE = 1;
-static const int PERIOD = 2;
-static const bool DEBUG_MODE = true;
-// a constant to handle numeric inaccuraccies in computations with doubles
-static const double EPSILON = 0.00001;
 
-static const string TYPE_ERROR = "typeerror";
+// the __POS__ macro can be used in debug-messages
+#define __POS__ __FILE__ << ".." << __PRETTY_FUNCTION__ << "@" << __LINE__ 
 
 
-/* 
+using namespace datetime;
 
-1.1 Some forward declarations 
+#include "TemporalAlgebra.h"
 
-*/
-
-
-static bool GetNumeric(const ListExpr List, double &value);
-
-/*
-
-2 Class Declarations
-
-2.1 Some simple classes
-
-2.1.1 The Class PBBox
-
-This class is the implementation of the minimal bounding box. This class is
-also an algebra class.
-
-*/
-class PBBox: public StandardAttribute {
- friend ostream& operator<< (ostream&, const PBBox); 
- public:
-    PBBox();
-    PBBox(int dummy);
-    PBBox(const double x, const double y);
-    PBBox(const double minX, const double minY,
-          const double maxX, const double maxY);
-    ~PBBox(){}
-    int NumOfFLOBs() { return 0;}
-    FLOB* GetFLOB() { assert(false);}
-    int Compare(const Attribute* arg)const;
-    bool Adjacent(const Attribute*) const;
-    int Sizeof()const;
-    bool IsDefined() const;
-    bool IsEmpty() const;
-    void SetDefined( const bool defined );
-    size_t HashValue() const;
-    void CopyFrom(const StandardAttribute* arg);
-    ListExpr ToListExpr() const;
-    bool ReadFrom(const ListExpr LE);
-    int  CompareTo(const PBBox* B2)const;
-    bool Contains(const double x, const  double y)const;
-    bool Contains(const PBBox* B2)const;
-    PBBox* Clone() const;
-    void Equalize(const PBBox* B2);
-    void Intersection(const PBBox* B2);
-    bool Intersects(const PBBox* B2)const;
-    double Size()const;
-    void Union(const PBBox* B2);
-    void Union(const double x, const double y);
-    void SetUndefined();
-    bool GetVertex(const int No,double& x, double& y) const;
-    void SetEmpty();
-    string ToString(){
-       ostringstream res;
-       if(!defined)
-          res << "[undefined]";
-       else if(isEmpty)
-          res << "[empty]";
-       else{
-          res << "[" << minX <<", " << minY << ", ";
-          res << maxX << ", " << maxY << "]";
-           
-       }
-       return res.str(); 
-    }
-  private:
-    double minX;
-    double maxX;
-    double minY;
-    double maxY;
-    bool defined;
-    bool isEmpty;
-};
-
-/*
-
-2.1.2 The class RelInterval
-
-This class represents a relative interval. This means that a RelInterval
-has all properties of a familiar interval (Closeness,length) without a
-fixed start point. A RelInterval can be unbounded in the past or in
-the future.
-
-*/
-
-class RelInterval : public StandardAttribute{
-  friend ostream& operator<< (ostream&, const RelInterval); 
-  public:
-/*
-~Constructor~
-
-The standard constructor doing nothing. Use it only in the cats function.
-
-*/
-    RelInterval();
-/*
-~Constructor~
-
-This constructor creates a new relative interval of length zero. The argument
-is only used for make a difference between this constructor and the constructor
-without any arguments. Here, the argument is ignored.
-
-*/
-    RelInterval(int dummy);
-
-/*
-~Destructor~
-
-Destroys this objects. Because all data are included in the 'root' block, 
-this destructor must do nothing.
-
-*/
-    ~RelInterval(){}
-
-/*
-~Append~
-
-This function append D2 to this interval if possible. If the closure 
-properties of both interval don't allow a merge between the intervals,
-this interval remains unchanged and the result will be false.
-
-*/
-    bool Append(const RelInterval* D2);
-
-/*
-~CanAppended~
-
-This function checks whether D2 can be used to extend this interval.
-
-*/
-    bool CanAppended(const RelInterval* D2)const ;
-
-/*
-~Contains~
-
-This function checks whether this interval constains T.
-
-*/
-    bool Contains(const DateTime* T) const;
-
-/*
-~Clone~
-
-This function returns a copy of this interval. The caller must be
-destroy the new created object.
-
-*/
-    RelInterval* Clone() const;
-
-/*
-~Algebra Supporting functions~
-
-The next functions support some operations for using this type within
-an algebra.
-
-*/
-    void Destroy(){canDelete=true;}
-    int NumOfFLOBs(){ return 0;}
-    FLOB* GetFLOB(const int i){ assert(false);}
-
-/*
-~CompareTo~
-
-This function compares this relinterval with D2. 
-
-*/
-    int CompareTo(const RelInterval* D2)const;
-
-/*
-~Compare~
-
-This function compares this interval with arg. arg must be of type 
-Relinterval. 
-
-*/
-    int Compare(const Attribute* arg) const;
-
-/*
-The next functions are implemented for using this class as
-an algebra type.
-
-*/
-    bool Adjacent(const Attribute*)const{return false;}
-    bool IsDefined() const{ return defined;}
-    void SetDefined(bool defined){ this->defined = defined;}
-    size_t HashValue() const;
-    void CopyFrom(const StandardAttribute* arg);
-
-
-/*
-~Mul~
-
-This function extends this interval to the factor-multiple
-of the original.
-
-*/
-    void Mul(const long factor);
-
-/*
-~Equalize~
-
-When this function is called, the value of this relative interval
-is taken from argumnet of this function.
-
-*/
-    void Equalize(const RelInterval* D2);
-
-/*
-~GetLength~
-
-This function returns the length of this interval. If this interval is
-unbounded, the result will have no meaning.
-The caller of this function have to delete the new created object.
-
-*/
-    DateTime* GetLength()const;
-
-/*
-~StoreLength~
-
-This function changes the argument to hold the value of the length of 
-this interval. The length will have only a menaing when the interval is
-bounded.  
-
-*/
-
-    void StoreLength(DateTime& result)const;
-
-/*
-~ToListExpr~
-
-This function converts this relative interval into it's
-nested list representation.
-
-*/
-    ListExpr ToListExpr(const bool typeincluded) const;
-
-/*
-~IsLeftClosed~
-
-This two functions can be used for exploring the left end of this interval.
-If ~IsLeftInfinite~ returns true, the value returned by IsLeftClosed will 
-have no meaning.
-
-*/
-    bool IsLeftClosed()const;
-
-/*
-~IsRightClosed~
-
-The same functions for the right side of this interval.
-
-
-*/
-    bool IsRightClosed()const;
-
-/*
-~ReadFrom~
-
-This functions tries to get the value of this interval from a nested
-list. The second argument specifies whether the list is the pure value
-list or a list consisting of type and value. The return value indicates 
-the success of this function. This means, if this fucntion returns false,
-the nested list does not represent a correct relative interval and the 
-value of this interval is not canged.
-
-*/
-    bool ReadFrom(const ListExpr LE,const bool typeincluded);
-
-/*
-~Set~
-
-Sets this interval to be finite with the specified length and closure 
-properties.
-
-*/
-    bool Set(const DateTime* length,const bool leftClosed,
-             const bool rightClosed);
-
-/*
-~SetLeftClosed~
-
-This function sets the leftclosed property of this interval. 
-Note that calling this function can lead to an invalid interval when
-the lengt of this interval is zero.
-
-*/
-    void SetLeftClosed(bool LC);
-    
-
-/*
-~SetRightClosed~
-
-This is the symmetric function to ~SetLeftClosed~.
-
-*/
-    void SetRightClosed(bool RC);
-
-
-/*
-~SetClosure~
-
-This function can be used to set the closure properties of this 
-interval at the right end as well as the left end at the same time.
-
-
-*/
-    void SetClosure(bool LeftClosed, bool RightClosed);
-
-    bool SetLength(const DateTime* T);
-    string ToString()const;
-    double Where(const DateTime* T) const;
-    bool Split(const double delta,const bool closeFirst,RelInterval& Rest);
-    bool Split(const DateTime duration, const bool closeFirst,
-               RelInterval& Rest);
-    bool Plus(const RelInterval* I); 
-  private:
-    DateTime length;
-    bool leftClosed;
-    bool rightClosed;
-    bool defined;
-    bool canDelete;
-    RelInterval(const DateTime* length, const bool leftClosed,
-                const bool rightClosed);
-};
-
-
-/*
-2.1.3 The class PInterval
-
-This class provides a structure for an interval. In the contrary to
-a RelInterval an Interval has a fixed start time and a fixed end time.
-
-*/
-class PInterval : public StandardAttribute{
-  friend ostream& operator<< (ostream&, const PInterval); 
-  public:
-    PInterval();
-    PInterval(int dummy);
-    PInterval(const DateTime startTime, const RelInterval relinterval);
-    ~PInterval(){}
-    bool ReadFrom(ListExpr list, bool typeIncluded);
-    bool Append(const RelInterval* D2);
-    bool CanAppended(const RelInterval* D2)const;
-    bool Contains(const DateTime* T)const;
-    bool Contains(const PInterval* I)const;
-    bool Intersects(const PInterval* I)const;
-    PInterval* Clone() const;
-    void Destroy(){startTime.Destroy();relinterval.Destroy();}
-    int NumOfFLOBs(){ return 0;}
-    FLOB* GetFLOB(const int i){ assert(false);}
-    int CompareTo(const PInterval* D2)const;
-    int Compare(const Attribute* arg) const;
-    bool Adjacent(const Attribute*) const{return false;}
-    bool IsDefined() const;
-    void SetDefined( bool defined);
-    size_t HashValue()const;
-    void CopyFrom(const StandardAttribute* arg);
-    void Equalize(const PInterval* D2);
-    DateTime* GetLength()const;
-    DateTime* GetStart()const;
-    DateTime* GetEnd()const;
-    ListExpr ToListExpr(const bool typeincluded)const;
-    bool IsLeftClosed()const;
-    bool IsRightClosed()const;
-    bool Set(const DateTime* startTime,const DateTime* length, 
-             const bool leftClosed, const bool rightClosed);
-    bool SetLength(const DateTime* T);
-    string ToString()const;
-  private:
-    DateTime startTime;
-    RelInterval relinterval;
-};
-
-
-/*
-2.2 Classes for building periodic moves from units
-
-2.2.1 CompositeMoves [&] SpatialCompositeMove
-
-This class defines a composition of several submoves.
-These submoves are stored in an  array and
-all moves in range [minIndex,maxIndex] of this array are
-part of this composite move. To accerelate some operations,
-the whole relinterval of all submoves are also stored here.
-For spatial data types additionally the minimal bounding box is
-stored.
-
-*/
-class CompositeMove{
-   friend ostream& operator<< (ostream&, const CompositeMove); 
-   public:
-      CompositeMove(){}
-      CompositeMove(int dummy):interval(1){
-           minIndex = -1;
-           maxIndex = -1;
-      }
-      string ToString(){
-         ostringstream res;
-         res << "(" << interval.ToString();
-         res << " " << minIndex << " -> " << maxIndex << ")";
-         return res.str();
-      }
-   RelInterval interval;
-   int minIndex;
-   int maxIndex;
-};
-
-class SpatialCompositeMove: public CompositeMove{
-  friend ostream& operator<< (ostream&, const SpatialCompositeMove); 
-  public:
-     SpatialCompositeMove(){}
-     SpatialCompositeMove(int dummy):bbox(1){
-        interval = RelInterval(1);
-        minIndex = -1;
-        maxIndex = -1;
-     }
-     string ToString(){
-         ostringstream res;
-         res << "(" << interval.ToString();
-         res << " " << minIndex << " -> " << maxIndex << ")";
-         res << " " << bbox.ToString();
-         return res.str();
-
-     }
-     CompositeMove ToCompositeMove()const {
-       CompositeMove result;
-       ToCompositeMove(result);
-       return result;
-     }
-     void ToCompositeMove(CompositeMove& result)const{
-       result.interval.Equalize(&interval);
-       result.minIndex=minIndex;
-       result.maxIndex=maxIndex;
-     }
-
- 
-     PBBox bbox;
-};
-
-/*
-
-2.2.2 SubMoves
-
-A submove is defined by an array-number and an index in this array.
-This class is used to store the submoves of a composite and periodic move .
-
-*/
-class SubMove{
-   friend ostream& operator<< (ostream&, const SubMove); 
-   public:
-      int arrayNumber;
-      int arrayIndex;
-      void Equalize(const SubMove* SM){
-         arrayNumber = SM->arrayNumber;
-         arrayIndex = SM->arrayIndex;
-      }
-      string ToString(){
-         ostringstream res;
-         if(arrayNumber==LINEAR)
-           res << "linear["<<arrayIndex<<"]";
-         else if(arrayNumber==PERIOD)
-           res << "period[i"<<arrayIndex<<"]";
-         else if(arrayNumber==COMPOSITE)
-           res << "composite["<<arrayIndex<<"]";
-         return res.str();
-      }
-};
-
-/*
-
-2.2.3 Periodic Move [&] SpatialPeriodicMove.
-
-A Periodic Move is determined by the number of repeatations 
-and the repeated submove. To accelerate operations
-also the whole relinterval is stored. For Spatial types also the
-minimal bounding box is contained as member.
-
-*/
-class PeriodicMove{
-  friend ostream& operator<< (ostream&, const PeriodicMove); 
-  public:
-     PeriodicMove(){}
-     PeriodicMove(int dummy):interval(1){}
-     int repeatations;
-     SubMove submove;
-     RelInterval interval;
-     string ToString(){
-          ostringstream res;
-          res << "R("<<repeatations<<", ";
-          res << submove.ToString() <<" ,";
-          res << interval.ToString() <<")";
-          return res.str(); 
-     }
-};
-
-
-
-class SpatialPeriodicMove: public PeriodicMove{   
-  friend ostream& operator<< (ostream&, const SpatialPeriodicMove); 
-  public:
-     SpatialPeriodicMove(){}
-     SpatialPeriodicMove(int dummy):bbox(1){
-        interval = RelInterval(0);
-     }
-     string ToString(){
-          ostringstream res;
-          res << "R("<<repeatations<<", ";
-          res << submove.ToString() <<" ,";
-          res << interval.ToString() <<", ";
-          res << bbox.ToString() << ")";
-          return res.str(); 
-     }
-     PeriodicMove ToPeriodicMove()const{
-          PeriodicMove result;
-          ToPeriodicMove(result);
-          return result;
-     }
-
-     void ToPeriodicMove(PeriodicMove& result)const{
-          result.repeatations = repeatations;
-          result.submove = submove;
-          result.interval.Equalize(&interval);
-     }
-
-     PBBox bbox;
- };
-
-
-/*
-2.3 Classes for building unit types
-
-2.3.1 The class LinearConstantMove
-
-This is a template class which can be used for representing any
-discrete changing periodic moving objects. Examples include
-boolean values, strings, and 9-intersection matrices. Before you can use
-this function, you have to implement a function
-
-  * ListExpr ToConstantListExpr(const T)
-  * bool ReadFrom(const ListExpr, [&]T);
-
-
-*/
-
-
-template <class T>
-class LinearConstantMove{
- public:
-
-/*
-~Constructor~
-
-This constructor is used in the cast function. It does nothing
-and should not be used at other places.
-
-*/
-   LinearConstantMove(){}
-
-/*
-~Constructor~
-
-This constructor creates a new unit with given value at an
-interval with length zero.
-
-*/
-   LinearConstantMove(const T value){
-    interval= RelInterval(0);
-    this->value = value;
-    defined=true;
-   }
-
-/*
-~Constructor~
-
-This constructor creates a new unit from the given value and
-the given interval.
-
-*/
-   LinearConstantMove(const T value, const RelInterval interval){
-      this->value=value;
-      this->interval=interval;
-      this->defined=true;
-   }
-
-/*
-~Destructor~
-
-The destructor destroys this object. because we don't have any 
-pointer structures, this destructor makes nothing.
-
-*/
-   virtual ~LinearConstantMove(){}
-
-
-/*
-~Set function~
-
-This function sets the value as well as the interval of this unit
-to the given values.
-
-*/
-   void Set(const T value, const RelInterval interval){
-      this->value=value;
-      this->interval=interval;
-      this->defined=true;
-   }
-
-
-/*
-~At function~
-
-This function returns just the value of this unit. 
-This function can't be called when the duration is
-outside the interval or when this unit is not defined.
-This should be checked by calling the isDefinedAt function.
-
-*/
-   T At(const DateTime* duration) const {
-      assert(interval.Contains(duration));
-      assert(defined);
-      return value;
-   }
-
-/*
-~IsDefinedAt~
-
-This function checks whether this unit is defined at the 
-given duration.
-
-*/
-   bool IsDefinedAt(const DateTime* duration)const{
-      if(!interval.Contains(duration)) 
-        return false;
-      return defined;
-   }
-
-/*
-~ToListExpr~
-
-This function returns the external representation of this unit
-as nested list.
-
-*/
-   ListExpr ToListExpr()const{
-    if(defined){
-        return nl->TwoElemList(
-                      nl->SymbolAtom("linear"),
-                      nl->TwoElemList(
-                            interval.ToListExpr(true),
-                            ToConstantListExpr(value)));
-     } else {
-        return nl->TwoElemList(
-                       nl->SymbolAtom("linear"),
-                       nl->TwoElemList(
-                               interval.ToListExpr(true),
-                               nl->SymbolAtom("undefined")));
-     }
-   }
-
-
-/*
-~ReadFrom~
-
-This function reads this unit from its external representation.
-If the list is not a valid representation for this unit, the 
-value of this unit remains unchanged and the result will be __false__.
-
-*/
-   bool ReadFrom(const ListExpr value){
-     if(nl->ListLength(value)!=2){
-         if(DEBUG_MODE){
-            cerr << __POS__ << ": Wrong ListLength" << endl;
-            cerr << "expected : 2, received :" 
-                 << nl->ListLength(value) << endl;
-         }
-         return false;
-      }
-      if(!interval.ReadFrom(nl->First(value),true)){
-          if(DEBUG_MODE){
-             cerr << __POS__ << ": Can't read the interval" << endl;
-          }
-          defined = false;
-          return false;
-      }
-
-      ListExpr V = nl->Second(value);
-      if(nl->IsEqual(V,"undefined")){
-          defined = false;
-          return true;
-      }
-      T tmp;
-      if(!ReadFromListExpr(V,tmp))
-         return false;
-      this->value = tmp;
-      return true;
-   }
-
-/*
-~CanBeSummarized~
-
-This function checks whether this unit and __LCM__ can be put together
-to a single unit. This is the case iff the intervals are adjacent
-and the values are the same.
-
-*/
-
-   virtual bool CanSummarized(LinearConstantMove<T> LCM) {
-        if(!interval.CanAppended(&LCM.interval)) // no consecutive intervals
-          return false;
-        if(!defined && ! LCM.defined) // both are not defined
-          return true;
-        if(!defined || !LCM.defined) // only one is not defined
-          return false;
-        return value==LCM.value;
-
-   }
-  
-/*
-~Initial~
-
-Returns the value at the begin of this unit. Because the value is never changed,
-just the value is returned. This function is implemented for supporting the 
-map properties for constant values. 
-
-*/
- 
-   virtual T* Initial()const{
-      return new T(value);
-   }
-
-/*
-~Final~
-
-The Final function returns the value of this unit at the end of this interval.
-Because the value is never changed, the value is returned. This is support function
-for the map class.
-
-*/
-   virtual T* Final(){
-      return new T(value);
-   }
-
-
-/*
-~SetDefined~
-
-This function changes the defined state of this unit.
-
-*/
-   void SetDefined(bool defined){
-      this->defined = defined;
-   }
-
-/*
-~GetDefined~
-
-This function returns the defined state of this unit.
-
-*/
-   bool GetDefined(){
-      return defined;
-   }
-
-
-/*
-~Split~
-
-This function splits this unit into two parts at the given point in time.
-If the splitting instant is outside the definition time of this unit,
-this unit or right will be set to be undefined. This function returns
-always true because an simple unit can be splitted in each case.  
-
-*/
-bool Split(const DateTime duration,const bool toLeft, 
-              LinearConstantMove<T>& right){
-     right.Equalize(*this);
-     interval.Split(duration,toLeft,right.interval);
-     this->defined = interval.IsDefined();
-     right.defined = right.interval.IsDefined();
-     return true;
-   }
-
-
-/*
-
-~Equalize~
-
-By calling this function, the value of this LinearConstantMOve is 
-taken from the argument of this function.
-
-*/
-  void Equalize(const LinearConstantMove<T>& source){
-    this->defined=source.defined;
-    this->interval.Equalize(&(source.interval));
-    this->value = source.value;
-  } 
-
-
-/*
-~interval~
-
-Hold the interval of this unit.
-
-*/
-   RelInterval interval;
-
-/*
-~value~
-
-hold the value for this unit
-
-*/
-   T value;
-
-/*
-~defined~
-
-flag for the defined state of this unit.
-
-*/
-   bool defined;
-};
-
-
-/*
-2.3.2 The class LinearBoolMove
-
-This class is an example for the __LinearConstant__ class.
-Whenever you want to implement a periodic moving 'constant',
-you have to define such a class.
-
-
-~ToConstantListExpr~
-
-This function is used to convert a boolean value into a
-nested list representation.
-
-*/
-inline ListExpr ToConstantListExpr(const bool value){
-   return nl->BoolAtom(value);
-}
-
-/*
-~ReadFromListExpr~
-
-This function is used to get a boolean value from 
-its nested list representation. The list must be
-of type __BoolType__ to be a correct representation for this
-class.
-
-*/
-inline bool ReadFromListExpr(ListExpr le, bool& v){
-   if(nl->AtomType(le)!=BoolType)
-      return false;
-    v = nl->BoolValue(le);
-    return true;
-}
-
-/*
-~LinearBoolMove class~
-
-Because a bool can be only changed discretely, we can use the
-LinearConstMove class as template for it.
-
-*/
-typedef LinearConstantMove<bool> LinearBoolMove ; 
-
-
-/*
-2.3.3 The class LinearInt9mMove 
-
-This class provides the unit type for a periodic moving 9 intersection matrix.
-
-
-~ToConstantList~
-
-This function converts a 9 intersection matrix to its external representation.
-
-*/
-inline ListExpr ToConstantListExpr(const Int9M value){
-    return value.ToListExpr();
-}
-
-/*
-~ReadFrom~
-
-This function reads a 9 intersection matrix from its 
-external representation.
-
-*/
-inline bool ReadFromListExpr(ListExpr le, Int9M& value){
-    return value.ReadFrom(le);
-}
-
-/*
-~LinearInt9MMove~
-
-*/
-
-class LinearInt9MMove: public LinearConstantMove<Int9M> {
-public:
-/*
-~Constructor~
-
-The constructor makes nothing.
-
-*/
-   LinearInt9MMove(){}
-
-/*
-~Constructor~
-
-This constructor calls the constructor of the superclass.
-
-*/
-   LinearInt9MMove(int dummy):LinearConstantMove<Int9M>(dummy){}
-
-/*
-~Transpose~
-
-This operator transposes the matrix managed by this unit.
-
-*/
-   void Transpose(){
-        value.Transpose();
-   }
-};
-
-
-
-
-/* 
-2.3.4 The class MRealMap 
-
-This class defines a mapping for moving reals. This means, this class 
-can be used for defining units of moving reals.
-
-*/
-class MRealMap{
-  friend class MovingRealUnit;
-  public: 
-
-/*
-~Constructor~
-
-The needed empty constructor.
-
-*/
-   MRealMap(){}
-
-
-/*
-~constructor~
-
-This constructor sets the value of this moving real map to the
-given values. 
-
-*/
-
-  MRealMap(double a, double b, double c, bool root){
-     Set(a,b,c,root);
-  }
-
-/*
-~Set~
-
-This function sets this MRealMap to represent the function:
-
-                Figure 5: Formula of an Moving Real Map  [MRealFormula.eps]
-
-*/
-  void Set(double a, double b, double c, bool root){
-      this->a=a;
-      this->b=b;
-      this->c=c;
-      this->root=root;
-      Unify();
-  }
-
- 
- 
-/*
-~ReadFrom function~
-
-This function reads the value of this map from a list expression. 
-If the list does not represent a valid moving real map,
-the value of this map remains unchanged and the result will be __false__.
-Otherwise, this value is changed to the value given in the list and 
-__true__ is returned.
-
-*/
-  bool ReadFrom(ListExpr le){
-    if(nl->ListLength(le)!=4)
-       return false;
-    double tmpa,tmpb,tmpc;
-    if(nl->AtomType(nl->Fourth(le))!=BoolType)
-       return false;
-    bool tmproot=nl->BoolValue(nl->Fourth(le));
-    if(!GetNumeric(nl->First(le),tmpa))
-       return false;
-    if(!GetNumeric(nl->Second(le),tmpb))
-       return false;
-    if(!GetNumeric(nl->Third(le),tmpc))
-       return false;
-    a = tmpa;
-    b = tmpb;
-    c = tmpc;
-    root = tmproot;
-    Unify();
-    return true;
-  }
-
-/*
-~ToListExpr~
-
-This function returns the nested list representation of this map.
-
-*/
-   ListExpr ToListExpr()const{
-      return nl->FourElemList(nl->RealAtom(a),
-                              nl->RealAtom(b),
-                              nl->RealAtom(c),
-                              nl->BoolAtom(root));
-   }
-   
-
-/*
-~At~
-
-Computes the value of this map for a given instant. Ensure, that the
-map is defined at this instant using the ~IsDefinedAt~ function.
-
-*/
-  double At(const DateTime* duration) const {
-      double d = duration->ToDouble();
-      return At(d);
-  }
-
-/*
-~At~
-
-This function may be used for a faster computing of a value of this 
-map.
-
-*/
-   inline double At(const double d) const{
-      double r1 = (a*d+b)*d+c;
-      if(root) return sqrt(r1);
-      return r1;
-   }
-
-
-/*
-~IsDefinedAt~
-
-This function checks whether this map is defined at the given instant.
-
-*/
-  bool IsDefinedAt(const DateTime* duration) const {
-       if(!root) // defined all the time
-           return true;
-       double d = duration->ToDouble();
-       double r1 = (a*d+b)*d+c;
-       return r1>=0; // defined only if expression under the root is positive
-  }
-
-
-/*
-~IsDefinedAt~
-
-Returns __true__ if this map is defined for the given value.
-
-*/
-  inline bool IsDefinedAt(const double d) const{
-       if(!root)
-           return true;
-       double r1 = (a*d+b)*d+c;
-       return r1>=0; // defined only if expression under the root is positive
-  }
-
-
-/*
-~EqualsTo~
-
-This function checks for equality between this map and the argument.
-
-*/
-
-  bool EqualsTo(const MRealMap RM2)const{
-    return a == RM2.a && 
-           b == RM2.b && 
-           c == RM2.c &&
-           root == RM2.root;
-  }
-
-
-/*
-~Equalize~
-
-If this function is called, the valu of this map is taken from the argument.
-
-*/
-   void Equalize(const MRealMap* RM){
-       a = RM->a;
-       b = RM->b;
-       c = RM->c;
-       root = RM->root;
-   }
-
-/*
-~EqualsTo~ 
-
-This function checks whether the argument is an extension for this map when the
-arguments starts __timediff__ later. This means:
-
-[forall] x [in] [R]: this[->]GetValueAt(x+timediff)==RM[->]GetValueAt(x)
-
-
-*/
-  bool EqualsTo(const MRealMap& RM, double timediff) const{
-     if(root!=RM.root)
-         return false;
-     return RM.a == a &&
-            RM.b == 2*a*timediff+b &&
-            RM.c == timediff*timediff + b*timediff + c; 
-
-  }
-
-  private:
-/*
-~Member variables~
-
-The following variables describe the map represented by this unit. The formular for
-computing the value at time ~t~ is given by:
-
-[start_formula]
-  v = \left\{ \begin{array}{ll}
-          a^2+bt+t & \mbox{if root = false} \\
-          \sqrt{a^2+bt+t}   & \mbox{if root = true}
-      \end{array}
-      \right.
-[end_formula]
-
-*/
-
-     double a;
-     double b;
-     double c;
-     bool root;
-/*
-~Unify~ 
-
-This functions converts this moving real into a unified representation.
-
-*/
-   void Unify(){
-      if(!root) return;
-      if(a==0 && b==0){
-          c = sqrt(c);
-          root = false;
-          return;
-      }
-      if(b==0 && c==0){
-          b=sqrt(a);
-          a=0;
-          root=false;
-          return;
-      }
-   }
-};
-
-
-/*
-2.3.5 The class MovingRealUnit
-
-This class represents a single unit of a moving real. This means, this class
-manages a relative interval and a mrealmap.
-
-*/
-
-class MovingRealUnit{
-  public:
-
-/*
-~constructor~
-
-This constructor does nothing.
-
-*/
-   MovingRealUnit(){}
-
-/*
-~constructor~
-
-This constructor creates a MovingRealUnit with the given values for the
-interval and for the map.
-
-*/
-   MovingRealUnit(MRealMap map, RelInterval interval){
-         Set(map,interval);
-   }
-
-
-/*
-~constructor~ 
-
-This constructor creates a MovingRealUnit representing the constant value 
-zero. The length of the interval will also be zero.
-
-*/
-
-   MovingRealUnit(int dummy){
-       MRealMap aMap(0,0,0,false);
-       RelInterval aInterval(0);
-       Set(aMap,aInterval); 
-   }
-      
- 
- 
-/*
-~Set function~
-
-This functions sets the values of the internal variables to defined values.
-
-*/
-   void Set(MRealMap map, RelInterval interval){
-         this->map.Equalize(&map);
-         this->interval.Equalize(&interval);
-         defined=true;
-   }
-
-/*
-~GetFrom Function~
-
-When this function is called, the value of this unit is computed to 
-change from value __start__ to value __end__ whithin __interval__
-in a linear way. If __start__ and __end__ differs, the length of the 
-interval must be greater than zero. For equal value also length zero
-is allowed. If the interval does not fullfills this conditions, the
-value of this unit remains unchanged. The return value indicates 
-the success of the call of this function. 
-
-*/
-   bool GetFrom(double start, double end, RelInterval interval){
-     // check the preconditions
-     DateTime length;
-     interval.StoreLength(length);
-     if(length.LessThanZero()) 
-       return false;
-     if(length.IsZero()){
-        if(start!=end)
-           return false;
-        if(!interval.IsRightClosed() || !interval.IsLeftClosed())
-           return false;  
-     }
-     // special case, no change while interval
-     if(start==end){
-        map.Set(0,0,start,false);
-        this->interval.Equalize(&interval);
-        return true;
-     }
-     double b = (end-start) / (length.ToDouble());
-     map.Set(0,b,start,false);
-     this->interval.Equalize(&interval);
-     return true;
-   } 
-
-
-/*
-~At~
-
-This function computes the value of this unit for a given instant. 
-This unit must be defined at this instant. This should be checked
-by calling the ~IsDefinedAt~ function before. 
-
-*/
-   double At(const DateTime* duration) const {
-        assert(interval.Contains(duration));
-        assert(defined);
-        assert(map.IsDefinedAt(duration));
-        return map.At(duration);
-   }
-  
-/*
-~IsDefinedAt~
-
-This function cvhecks whether this unit is defined at the given point in time. 
-
-*/
-   bool IsDefinedAt(const DateTime* duration) const{
-       return interval.Contains(duration) &&
-              defined &&
-              map.IsDefinedAt(duration);
-   }
- 
-
-/*
-~ToListExpr~
-
-This function computes the representation of this unit in nested list format.
-
-*/
-   ListExpr ToListExpr()const{
-     if(!defined)
-          return nl->TwoElemList(nl->SymbolAtom("linear"),
-                                 nl->SymbolAtom("undefined"));
-     return nl->TwoElemList(nl->SymbolAtom("linear"),
-                            nl->TwoElemList(
-                                interval.ToListExpr(true),
-                                map.ToListExpr()));
-          
-   }
-
-/*
-~ReadFrom~
-
-If the argument contains a valid representation of a moving real unit,
-the value of this unit is changed to the value from the argument. Otherwise,
-this unit remains unchanged.
-
-*/
-   bool ReadFrom(ListExpr le){
-      if(nl->ListLength(le)!=2)
-          return false;
-      if(nl->AtomType(nl->First(le))!=SymbolType)
-          return false;
-      if(nl->SymbolValue(nl->First(le))!="linear")
-          return false;
-      ListExpr v = nl->Second(le);
-      if(nl->ListLength(v)!=2)
-          return false;
-      RelInterval tmpinterval;
-      if(!tmpinterval.ReadFrom(nl->First(v),true))
-          return false;
-      if(!map.ReadFrom(nl->Second(v)))
-         return false;
-      interval.Equalize(&tmpinterval);
-      defined=true;
-      return true;
-   }
-
-/*
-~CanSummarized~
-
-This function checkes whether two moving real units can summarized. This means, the
-intervals are adjacent and the coefficients are choosen that the functions are equal.
-
-*/
-
-  bool CanSummarized(const MovingRealUnit* MRU) const{
-     if(!interval.CanAppended(&(MRU->interval)))  
-        return false;
-     DateTime * DT = interval.GetLength();
-     double d = DT->ToDouble();
-     delete DT;
-     DT = NULL;
-     return map.EqualsTo(MRU->map,d);
-  }
-/*
-~Initial~
-
-This function returns the value of this unit at the start of its interval.
-
-*/
-  double* Initial()const{
-        if(!map.IsDefinedAt(0.0))
-             return NULL;
-        else
-           return new double(map.At(0.0)); 
-  }
- 
-
-/*
-~Final~
-
-This function returns the value of this unit at the end of its interval.
-
-*/ 
-  double* Final(){
-        DateTime* end = interval.GetLength();
-        double* res;
-        if(!map.IsDefinedAt(end))
-             res = NULL;
-        else
-            res = new double(map.At(end)); 
-        delete end;
-        end = NULL;
-        return res;
-  }
-
-/*
-~Split~
-
-This function splits this unit into 2 ones. The splitting point is 
-given by the argument __duration__. The left part will be the 
-__this__ objects, the right part will be stored in the argument __right__.
-The affiliation of the splitting point is ruled by the parameter __toLeft__.
-The function will return __true__ if this unit can splittet, i.e. the 
-splitting point is contained in this unit. In the other case, this unit 
-left as it is, the __right__ parameter is set to be undefined, and the 
-return value will be __false__.
-
-*/
-
-bool Split(const DateTime duration, const bool toLeft, MovingRealUnit& unit){
-   // case duration not contained
-   if(!interval.Contains(&duration)){
-      unit.defined=false;
-      return false;
-   }
-   // case left will be empty
-   if(duration.IsZero() && !toLeft){
-      unit.defined=false;
-      return false;
-   }
-   // all ok, split this unit
-   if(!interval.Split(duration,toLeft,unit.interval)){
-      unit.defined=true;
-      return false;
-   }
-   unit.defined=true;
-   double d = duration.ToDouble();
-   unit.map.Set(map.a,map.b-2*d, d*d-d*map.b+map.c,map.root); 
-   return true;
-} 
-
-
-/*
-~SetDefined~
-
-Using this function, we can set the defined flag for this instance.
-Use carefully this function with an value of true. The internal stored 
-values are nmot checked to hold meaningful values, just the flag is
-changed.
-
-*/
-
-  void SetDefined(const bool defined){
-    this->defined=defined;
-  }
-
-
-
-
-/*
-~interval~
-
-The interval of this unit.
-
-*/
-
-  RelInterval interval;
-  private:
-
-/*
-~map~
-
-The value mapping for this unit.
-
-*/
-      MRealMap    map;
-/*
-~defined~
-
-Flag for the defined state of this unit.
-
-*/
-      bool        defined;
-};
-
-
-
-/*
-2.3.6 The Class LinearPointMove
-
-The LinearPointMove class is the unit type for moving points.
-This class defines a point moving from
-(startX,startY) to (endX,endY) while a defined duration.
-The bounding box is stored in the member __bbox__.
-The __isStatic__ flag indicates whether the start and
-the end point are equals. If the __defined__ flag is not
-set, all values without the relinterval are ignored. The defined
-flag is needed to represent gaps in the definition time.
-
-*/
-class LinearPointMove{
- friend ostream& operator<< (ostream&, const LinearPointMove); 
- friend class PMPoint;
-
- public:
-   LinearPointMove(){}
-   LinearPointMove(int dummy);
-   ListExpr ToListExpr()const;
-   bool ReadFrom(const ListExpr value);
-   Point* At(const DateTime* duration)const;
-   bool IsDefinedAt(const DateTime* duration)const;
-   CHalfSegment GetHalfSegment(const bool LeftDominatingPoint)const;
-   bool Intersects(const PBBox* window)const;
-   bool IsDefined()const { return defined;}
-   bool IsStatic()const { return isStatic;}
-   void SetUndefined();
-   bool CanBeExtendedBy(const LinearPointMove* P2)const;
-   bool ExtendWith(const LinearPointMove* P2);
-   void Equalize(const LinearPointMove* P2);
-   bool Split(const double delta, const bool closeFirst,
-              LinearPointMove& Rest);
-   bool SplitX(const double X, const bool closeFirst,
-               LinearPointMove& Rest);
-   bool SplitY(const double Y, const bool closeFirst, 
-               LinearPointMove& Rest);
-   size_t HashValue()const{
-     if(!defined) return 0;
-     return bbox.HashValue() + interval.HashValue()+(size_t)startX;
-   }
-   int CompareTo(LinearPointMove* LPM);
-   string ToString()const;
-
-   bool Connected(LinearPointMove* P2){
-       return (endX==P2->startX) & (endY == P2->startY);
-   }
-
-   int Toprel(const Point P,LinearInt9MMove* Result)const;   
-   void Toprel(Points& P, vector<LinearInt9MMove>& Result)const;  
-
-   void DistanceTo(const double x, const double y,MovingRealUnit& result)const;
- 
- private:
-   RelInterval interval;
-   PBBox bbox;
-   double startX;
-   double startY;
-   double endX;
-   double endY;
-   bool isStatic;
-   bool defined;
-};
-
-/*
-~An stream operator~
-
-This operator can be used for debugging purposes. Its defines
-a formatted output for a LinearPointMove. 
-
-*/
-
-ostream& operator<<(ostream& os, const LinearPointMove LPM){
-      os << "("<<LPM.startX<<", "<<LPM.startY<<")->("
-         <<LPM.endX<<", "<<LPM.endY<<") "<<LPM.interval;
-      return os; 
-   }
-
-
-
-/*
-2.3.7 The Class LinearPointsMove
-
-This is the unit representation for MovingPoints values.
-This class manages a set of point in a relative time interval.
-Because we can't use FLOB's in this class directly (This is only 
-allowed in the MainClass (PMPoints), we use ranges in an array
-for representing this set. The enties in this array are pairs of
-points in the Euclidean Plane. 
-
-2.3.7.1 The  Array Entries
-
-A moving points unit consists of a set of points. Each of them moves
-from its startpoint to its endpoint while the same duration for all
-points in this set. So, a moving points unit consists basically of an
-relative interval as well as the start and endpoints of the contained
-moving points. Because we want to store the start and endpoints in an
-array, we need a data structure representing this. This structure is 
-implemented  by the TwoPoints class.
-
-*/
-class TwoPoints{
-   friend ostream& operator<< (ostream&, const TwoPoints);
-   friend class LinearPointsMove;
-   public:
-   TwoPoints(){}
-   TwoPoints(const double xs, const double ys,
-             const double xe, const double ye);
-   inline bool InnerIntersects(const TwoPoints &TP) const;
-   inline bool IsStatic() const;
-   int  CompareTo(const TwoPoints TP) const {
-        if(startX<TP.startX) return -1;
-        if(startX>TP.startX) return 1;
-        if(startY<TP.startY) return -1;
-        if(startY>TP.startY) return 1;
-        if(endX<TP.endX) return -1;
-        if(endX>TP.endX) return 1;
-        if(endY<TP.endY) return -1;
-        if(endY>TP.endY) return 1;
-        return 0; 
-   }
-   bool operator< (const TwoPoints TP)const { return CompareTo(TP)<0; }
-   bool operator> (const TwoPoints TP)const { return CompareTo(TP)>0; }
-   bool operator== (const TwoPoints TP)const { return CompareTo(TP)==0; }
-   inline bool IsSpatialExtension(const TwoPoints* TP) const;
-   inline double Speed(const RelInterval interval) const;
-   inline double GetStartX()const { return startX; } 
-   inline double GetEndX()const {return endX;}
-   inline double GetStartY()const {return startY;}
-   inline double GetEndY()const {return endY;}
-  private:
-      double startX;
-      double startY;
-      double endX;
-      double endY;
-};
-
-/*
-2.3.7.2 The LinearPointsMove Class
-
-
-If we take the structure for units of fixed size for moving points 
-values, we obtain the structure in figure [ref]{fig:ObviousSolution.eps}.
-
-                Figure 1: Obvious Solution  [ObviousSolution.eps] 
-
-
-Unfortunately, in [secondo] each class must consist of a root record
-and optional some FLOBs. The number of flobs can be choosen arbitrary,
-but the number can't be change at runtime. Because the structure showed 
-in the figure above contains nested FLOBs, we can't use this structure in
-[secondo]. We solve this problem in the following way:
-We store all maps for single points together in a big DBArray (FLOB)
-contained in the root record. In a further DBArray, all unit records 
-are stored. Instead of storing the maps directly in the units, we just
-store the start index as well as the end index of the maps in the big 
-array. As a consequence, all function of such a unit which needs to access
-the maps, must have an argument containing the big array. The leads to the
-structure showed in figure [ref]{fig:UnFoldedSolution.eps}.
-
-                Figure 2: Used unfolded Solution [UnFoldedSolution.eps] 
-
-
-*/
-class LinearPointsMove{
-  friend ostream& operator<< (ostream&, const  LinearPointsMove);
-  friend ostream& operator<< (ostream&, class PMPoints&);
-  friend class PMPoints;
-  public:
-   LinearPointsMove(){}
-   LinearPointsMove(int dummy);
-   ListExpr ToListExpr(const DBArray<TwoPoints> &Points) const;
-   bool ReadFrom(const ListExpr value, 
-                 DBArray<TwoPoints> &Points, 
-     int &Index);
-   Points* At(const DateTime* duration, 
-                     const DBArray<TwoPoints> &Pts) const ;
-   bool IsDefinedAt(const DateTime* duration) const;
-   bool ProhablyIntersects(const PBBox* window) const;
-   bool IsDefined() const{ return defined;}
-   bool IsStatic() const { return isStatic;}
-   void SetUndefined();
-   bool CanBeExtendedBy(const LinearPointsMove* P2,
-                        DBArray<TwoPoints> &MyPoints,
-                        DBArray<TwoPoints> &PointsOfP2) const;
-   bool ExtendWith(const LinearPointsMove* P2,
-                   DBArray<TwoPoints> &MyPoints,
-                   DBArray<TwoPoints> &PointsOfP2);
-   void Equalize(const LinearPointsMove* P2);
-   unsigned int GetStartIndex()const { return startIndex; }
-   unsigned int GetEndIndex()const {return endIndex; } 
- private:
-   RelInterval interval;
-   PBBox bbox;
-   unsigned int startIndex;
-   unsigned int endIndex;
-   bool isStatic;
-   bool defined;
-};
-
-/*
-2.3.7.3 ArrayRange
-
-This is a very simple class providing a range in an array
-represented by the minimum and maximum index in this array.
-A range is assumed to be empty if the maximum index is smaller
-than the miminum one.
-
-*/
-class ArrayRange {
-  public: 
-    int minIndex;
-    int maxIndex;
-};
-
-
-/*
-2.3.8 The Class PMSimple
-
-This class represents a simple periodic moving type.
-The managed type is T, the used unit representation is defined by Unit.
-This template can be used for all type with an unit representation of
-fixed size without any further summarizing attributes (e.g. bounding box)
-in the nodes of the repetition tree.
-
-*/
-template <class T, class Unit>
-class PMSimple : public StandardAttribute {
-  public:
-/*
-~The Standard Constructor~
-
-This constructor makes nothing. 
-
-*/
-     PMSimple() {}
-
-/*
-~Constructor~
-
-This constructor should be used for creating an empty
-object of this type. The argument is ignored. It's only
-used to make this constructor different to the standard
-constructor.
-
-*/ 
-     PMSimple(int dummy): 
-         linearMoves(1),
-         compositeMoves(1),
-         compositeSubMoves(1),
-         periodicMoves(1),
-         defined(false),
-         canDelete(false),
-         interval(1),
-         startTime(instanttype){
-           __TRACE__
-     }
-
-/*
-~The Destructor~
-
-The Destructor destroys all flobs if allowed.
-
-*/
-
-    virtual  ~PMSimple() {
-       __TRACE__
-       if(canDelete){
-          linearMoves.Destroy();
-          compositeMoves.Destroy();
-          compositeSubMoves.Destroy();
-          periodicMoves.Destroy();
-       }
-     }
-
-/*
-~Destroy~
-
-If this function is called, the destructor can destroy the
-FLOB objects.
-
-[3] O(1)
-
-*/
-    void Destroy(){
-        __TRACE__
-       canDelete = true;
-    }
-
-/*
-~Equalize~
-
-This function takes the value for this PMSimple from another instance __B__.
-
-[3] O(L), where L is the number of contained linear moves
-
-*/
-  void Equalize(const PMSimple<T,Unit>* B2){
-      __TRACE__
-    // equalize the linear moves
-    const Unit* LM=NULL;;
-    linearMoves.Clear();
-    if(B2->linearMoves.Size()>0) linearMoves.Resize(B2->linearMoves.Size());
-    for(int i=0;i<B2->linearMoves.Size();i++){
-       B2->linearMoves.Get(i,LM);
-       linearMoves.Append(*LM);
-    }
-    // equalize the composite moves
-    const CompositeMove* CM=NULL;
-    compositeMoves.Clear();
-    if(compositeMoves.Size()>0)
-       compositeMoves.Resize(B2->compositeMoves.Size());
-    for(int i=0;i<B2->compositeMoves.Size();i++){
-       B2->compositeMoves.Get(i,CM);
-       compositeMoves.Append(*CM);
-    }
-
-    // equalize the composite submoves
-    const SubMove* SM=NULL;
-    compositeSubMoves.Clear();
-    if(compositeSubMoves.Size()>0)
-       compositeSubMoves.Resize(B2->compositeSubMoves.Size());
-    for(int i=0;i<B2->compositeSubMoves.Size();i++){
-       B2->compositeSubMoves.Get(i,SM);
-       compositeSubMoves.Append(*SM);
-    }
-
-    // equalize the periodic moves
-    const PeriodicMove* PM = NULL;
-    periodicMoves.Clear();
-    if(periodicMoves.Size()>0)periodicMoves.Resize(B2->periodicMoves.Size());
-    for(int i=0;i<B2->periodicMoves.Size();i++){
-       B2->periodicMoves.Get(i,PM);
-       periodicMoves.Append(*PM);
-    }
-
-    defined = B2->defined;
-    interval.Equalize(&(B2->interval));
-    startTime.Equalize(&(B2->startTime));
-    submove.Equalize(&(B2->submove));
-  }
-
-
-/*
-~NumOfFLOBs~
-
-Returns four because four DBArrays are managed.
-
-[3] O(1)
-
-*/
-     int NumOfFLOBs(){
-        __TRACE__
-        return 4;
-     }
-
-/*
-~GetFLOB~
-
-This function returns the FLOB at the specified index. If the index
-is out of range, the system will going down. The flobs are:
-
-  * 0: the units
-
-  * 1: the composite moves
-
-  * 2: the composite submoves
-
-  * 3: the periodic moves
-
-[3] O(1)
-
-*/
-    FLOB* GetFLOB(const int i){
-        __TRACE__
-      assert(i>=0 && i<NumOfFLOBs());
-       if(i==0) return &linearMoves;
-       if(i==1) return &compositeMoves;
-       if(i==2) return &compositeSubMoves;
-       if(i==3) return &periodicMoves;
-       return 0;
-    }
-
-/*
-~Compare~
-
-Because we have no unique representation of the periodic moves, this function is
-not implemented in this moment.
-
-[3] O(-1)
-
-*/
-    int Compare(const Attribute* arg) const{
-        __TRACE__
-      cout << "PMSImple::Compare not implemented yet " << endl;
-      return -1;
-    }
-     
-/*
-~Adjacent~
-
-Returns false because it's not clear when two moving constants should be
-adjacent.
-
-[3] O(1)
-
-*/
-    bool Adjacent(const Attribute*)const{
-        __TRACE__
-       return false;
-    }
-
-/*
-~Clone~
-
-This functions creates a new periodic moving constant with the same value
-like the calling instance and returns it.
-
-[3] O(L), where L is the number of contained linear moves
-
-*/
-    PMSimple<T,Unit>* Clone() const{
-        __TRACE__
-      PMSimple<T,Unit>* res = new PMSimple<T,Unit>(1);
-      res->Equalize(this);
-      return res;
-    }
-
-/*
-~SizeOf~
-
-Returns the size of the class PMSimple.
-
-[3] O(1)
-
-*/
-    int Sizeof()const{
-        __TRACE__
-       return sizeof(PMSimple<T,Unit>);
-    }
-/*
-~IsDefined~
-
-Returns the value of the __defined__ flag.
-
-*/
-
-     bool IsDefined() const{return defined;}
-
-/*
-~SetDefined~
-
-Sets the __defined__ flag to the given value. You can always set a
-PMSimple to be undefined. If this flag is set to true but the 
-state of this PMSimple is not correct, the results will be 
-inpredictable. 
-
-*/
-     void SetDefined( bool defined ){this->defined = defined;}
-
-/*
-~HashValue~
-
-This functions computes a HashValue for this PMSimple from the sizes of
-the contained FLOBs.
-
-[3] O(1)
-
-*/
-    size_t HashValue() const{
-        __TRACE__
-      return (size_t) (interval.HashValue()+linearMoves.Size()+
-                       compositeMoves.Size()+ periodicMoves.Size()+
-                       compositeSubMoves.Size());
-    }
-
-/*
-~CopyFrom~
-
-By calling this function the value of this instance will be
-equalized with this one of the attribute. The attribute must be
-of Type PMSimple. If __arg__ is of another type, the result is
-not determined and can lead to a crash of [secondo].
-
-[3] O(L), where L is the number of contained linear moves
-
-*/
-    void CopyFrom(const StandardAttribute* arg){
-        __TRACE__
-       Equalize((PMSimple<T,Unit>*) arg);
-    }
-     
-/*
-~ToListExpr~
-
-This function converts a periodic moving constant into its
-nested list representation.
-
-[3] O(L), where L is the number of contained linear moves
-
-*/
-   ListExpr ToListExpr()const {
-      __TRACE__
-     ListExpr timelist = startTime.ToListExpr(true);
-     ListExpr SubMoveList = GetSubMoveList(submove);
-         return nl->TwoElemList(timelist,SubMoveList);
-   }
-     
-
-
-/*
-~ReadFrom~
-
-Takes the value of this simple periodic moving object from a
-nested list. The result informs about the success of this
-call. If the List don't represent a valid periodic moving
-object, this instance will be undefined. This behavior 
-differns to other ~readFrom~ functions to avoid some
-expensive tests before creating the actual object.
-
-[3] O(L), where L is the number of contained linear moves
-
-*/
-    bool ReadFrom(const ListExpr value){
-        __TRACE__
-       /* The list is scanned twice. In the first scan we
-         compute only the needed size of the contained arrays.
-         The reason is, that we want to avoid frequently ~Resize~
-         on the arrays.
-       */
-      if(nl->ListLength(value)!=2){
-         if(DEBUG_MODE){
-            cerr << __POS__ << ": wrong listlength (";
-            cerr << (nl->ListLength(value)) << ")" << endl;
-         }
-         SetDefined(false);
-         return false;
-      }
-
-      if(!ResizeArrays(value)){
-         if(DEBUG_MODE){
-            cerr << __POS__ << ": resize array failed" << endl;
-         }
-         SetDefined(false);
-         return false;
-      }
-
-      if(!startTime.ReadFrom(nl->First(value),true)){
-         if(DEBUG_MODE){
-            cerr << __POS__ << "reading of the start time failed" << endl;
-            cerr << "The list is " << endl;
-            nl->WriteListExpr(nl->First(value));
-         }
-         SetDefined(false);
-         return false;
-      }
-
-      // now we have to append the included submove
-      ListExpr SML = nl->Second(value);
-      if(nl->ListLength(SML)!=2){
-         if(DEBUG_MODE){
-            cerr << __POS__ << ": wrong list length for submove" << endl;
-         }
-         SetDefined(false);
-         return false;
-      }
-
-      ListExpr SMT = nl->First(SML);
-      int LMIndex = 0;
-      int CMIndex = 0;
-      int SMIndex = 0;
-      int PMIndex = 0;
-      if(nl->IsEqual(SMT,"linear")){
-         submove.arrayNumber = LINEAR;
-         submove.arrayIndex = 0;
-         if(!AddLinearMove(nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
-             if(DEBUG_MODE){
-                cerr << __POS__ << " Error in reading linear move" << endl;
-             }
-             SetDefined(false);
-             return false;
-         }
-         defined=true;
-
-         const Unit* LM;
-         linearMoves.Get(0,LM);
-         interval.Equalize(&(LM->interval));
-         return true;
-      }
-      if(nl->IsEqual(SMT,"composite")){
-         submove.arrayNumber=COMPOSITE;
-         submove.arrayIndex = 0;
-         if(!AddCompositeMove(nl->Second(SML),LMIndex,
-                              CMIndex,SMIndex,PMIndex)){
-            if(DEBUG_MODE){
-               cerr << __POS__ << "error in reading composite move" << endl;
-            }
-            SetDefined(false);
-            return false;
-         }
-         defined = true;
-         const CompositeMove* CM;
-         compositeMoves.Get(0,CM);
-         interval.Equalize(&(CM->interval));
-         return true;
-      }
-      if(nl->IsEqual(SMT,"period")){
-         submove.arrayNumber = PERIOD;
-         submove.arrayIndex = 0;
-         if(!AddPeriodMove(nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
-            if(DEBUG_MODE){
-              cerr << __POS__ << " error in reading periodic move" << endl;
-            }
-            SetDefined(false);
-            return false;
-         }
-         defined = true;
-         const PeriodicMove* PM;
-         periodicMoves.Get(0,PM);
-         interval.Equalize(&(PM->interval));
-         return true;
-      }
-      if(DEBUG_MODE){
-         cerr << __POS__ << "unknown subtype" << endl;
-         nl->WriteListExpr(SMT);
-      }
-      return false;
-    }
-/*
-~IsEmpty~
-
-This function yields __true__ if this periodic moving constant don't 
-contain any unit.
-
-*/
-     bool IsEmpty()const{ return linearMoves.Size()==0;}
-  
-
-/*
-~At~
-
-This function returns a pointer to a new created instance of type 
-T. If this periodic moving constant is not defined at this
-timepoint, the result will be 0. The caller of this function has to
-delete the returned value of this function if the result is not null.
-
-[3] O(L), where L is the number of contained linear moves
-
-*/
-T* At(const DateTime* instant)const{
-    __TRACE__
-   DateTime* duration = new DateTime(*instant);
-   duration->Minus(&startTime); // now it is a duration
-   T* res = 0;
-   if(interval.Contains(duration)){
-   // in the other case, we have nothing to do
-   // because the result is initialized with "undefined"
-   const SubMove* sm = &submove;
-   const CompositeMove* CM;
-   const PeriodicMove* PM;
-   RelInterval RI;
-   while(sm->arrayNumber!=LINEAR){
-      if(sm->arrayNumber==COMPOSITE){
-         // in this stage of implementation a linear search is
-         // executed. i have to make it better in the future
-         int i = sm->arrayIndex;
-         compositeMoves.Get(i,CM);
-         int cur = CM->minIndex;
-         int max = CM->maxIndex;
-         bool found=false;
-         while( (cur<=max) && ! found){
-             compositeSubMoves.Get(cur,sm); // get the submove
-             if(sm->arrayNumber==LINEAR){
-                const Unit* LM;
-                linearMoves.Get(sm->arrayIndex,LM);
-                RI = LM->interval;
-              } else if(sm->arrayNumber==PERIOD){
-                periodicMoves.Get(sm->arrayIndex,PM);
-                RI = PM->interval;
-              } else { //another submoves are not allowed
-                assert(false);
-              }
-              if(RI.Contains(duration)) // be happy
-                 found=true;
-              else{  // search again
-                 DateTime* L = RI.GetLength();
-                 duration->Minus(L);
-                 delete L;
-                 L = NULL;
-                 cur++;
-              }
-         }
-         assert(found); //otherwise we have an error in computation
-      } else if(sm->arrayNumber==PERIOD){
-         int index = sm->arrayIndex;
-         periodicMoves.Get(index,PM);
-         // this is a very slow implementation
-         // i have to speed up it in the future
-         sm = &PM->submove;
-         RelInterval RI;
-         if(sm->arrayNumber==LINEAR){
-             const Unit* LM;
-             linearMoves.Get(sm->arrayIndex,LM);
-             RI = LM->interval;
-          } else if(sm->arrayNumber==COMPOSITE){
-             compositeMoves.Get(sm->arrayIndex,CM);
-             RI = CM->interval;
-          } else { //another submoves are not allowed
-             assert(false);
-          }
-          while(!RI.Contains(duration)){
-             DateTime* L = RI.GetLength();
-             duration->Minus(L);
-             delete L;
-             L = NULL;
-          }
-          } else{
-             // this case should never occurs
-             assert(false);
-          }
-       }
-       const Unit* LM;
-       linearMoves.Get(sm->arrayIndex,LM);
-       if(LM->IsDefinedAt(duration)){
-          T tmpres = LM->At(duration);
-          res = new T();
-          *res = tmpres;
-       }
-    }
-    delete duration;
-    duration = NULL;
-    return res;
-}
-
-
-/*
-~Initial~
-
-This function computes the first defined value of this moving constant.
-
-*/
-T* Initial() const{
-    __TRACE__
-  T* res = 0;
-  if(!defined){
-     return res;
-  }
-  if(IsEmpty()){
-    return res;
-  }
-  /* the first units is also the first
-     unit in the dbarray of the units.
-  */
-  const Unit* lm;
-  linearMoves.Get(0,lm);
-  res = lm->Initial(); 
-  return res;
-}
-
-/*
-~Final~
-
-The ~Final~ function returns the last defined value of this periodic
-moving object.
-If none exists, NULL is returned.
-
-*/
-T* Final(){
-    __TRACE__
- T* res = 0;
- if(!defined){
-    return res;
- }
- if(IsEmpty()){
-     return res;
-  }       
-  Unit lm =  GetLastUnit();
-  res = lm.Final();
-  return res;
-}
-
- 
-/*
-~Minimize~
-
-When this function is called, consecutive units with the same value are
-summarized into single units.
-
-*/
-void Minimize(){
-   if(MinimizationRequired()){
-     DBArray<Unit> newLinearMoves(1);
-     DBArray<CompositeMove>          newCompositeMoves(1);
-     DBArray<SubMove>                newCompositeSubMoves(1);
-     DBArray<PeriodicMove>           newPeriodicMoves(1);
-     Unit                            Summarization;
-     bool                            CompleteSummarized;
-     SubMove SM3 = MinimizeRec(submove,newLinearMoves,newCompositeMoves,
-                       newCompositeSubMoves,
-                       newPeriodicMoves,Summarization,CompleteSummarized);
-     if(CompleteSummarized){
-        // the whole movement can be represented in a single linear move
-        compositeMoves.Clear();
-        compositeSubMoves.Clear();   
-        periodicMoves.Clear();
-        linearMoves.Clear();
-        linearMoves.Append(Summarization);
-        submove.arrayNumber = LINEAR;
-        submove.arrayIndex = 0;
-     } else{
-       submove = SM3;
-       
-     // copy the new created objects into the local dbarrays
-       int size;
-       
-       linearMoves.Clear();
-       const Unit* LM;
-       size = newLinearMoves.Size();
-       if(size>0)
-           linearMoves.Resize(size);
-       for(int i=0;i<size;i++){
-          newLinearMoves.Get(i,LM);
-          linearMoves.Put(i,*LM);
-       }
- 
-       compositeMoves.Clear();
-       const CompositeMove* CM;
-       size = newCompositeMoves.Size();
-       if(size>0)
-           compositeMoves.Resize(size);
-       for(int i=0;i<size;i++){
-          newCompositeMoves.Get(i,CM);
-          compositeMoves.Put(i,*CM);
-       }
-
-       compositeSubMoves.Clear();
-       const SubMove* SM;
-       size = newCompositeSubMoves.Size();
-       if(size>0)
-           compositeSubMoves.Resize(size);
-       for(int i=0;i<size;i++){
-          newCompositeSubMoves.Get(i,SM);
-          compositeSubMoves.Put(i,*SM);
-       }
-       
-       periodicMoves.Clear();
-       const PeriodicMove* PM;
-       size = newPeriodicMoves.Size();
-       if(size>0)
-           periodicMoves.Resize(size);
-       for(int i=0;i<size;i++){
-          newPeriodicMoves.Get(i,PM);
-          periodicMoves.Put(i,*PM);
-       }
-
-     } 
-   }
-}
-
-/*
-~Statistical Information~ 
-
-The following functions can be used in debugging for get some 
-additional information about the inner structure of this instant.
-
-*/
- int NumberOfLinearMoves(){
-    return linearMoves.Size();
- }
-
- int NumberOfCompositeMoves(){
-    return compositeMoves.Size();
- }
-
- int NumberOfCompositeSubMoves(){
-    return compositeSubMoves.Size();
- }
-
- int NumberOfPeriodicMoves(){
-    return periodicMoves.Size();
- }
-
-/* 
-~SetRightClosed~
-
-This function sets the property of the right closeness 
-to the given value. 
-
-*/
-void SetRightClosed(SubMove submove, bool value){
-  if(submove.arrayNumber == LINEAR){
-      Unit u;
-      linearMoves.Get(submove.arrayIndex,u);
-      RelInterval i;
-      u.GetInterval(i);
-      if(i.IsRightClosed()==value) // no change required
-          return;
-      i.SetRightClosed(value);
-      u.SetInterval(i);
-      linearMoves.Out(submove.arrayIndex,u);
-      return; 
-  }
-  if(submove.arrayNumber == COMPOSITE){
-      CompositeMove CM;
-      compositeMoves.Get(submove.arrayIndex,CM);
-      compositeSubMoves.Get(CM.maxIndex,submove);
-      SetRightClosed(submove,value);
-      return;
-  }
-  if(submove.arrayNumber == PERIOD){
-      PeriodicMove PM;
-      periodicMoves.Get(submove.arrayIndex,CM);
-             
-  }
-}
-
-
-/*
-~Split~
-
-Calling this function splits this moving object at the given instant. 
-The splitpoint is given by an instant as well as a flag describing whether 
-this instant should be contained in the 'left' part. The results are stored
-into the corresponding arguments. When the instant is outside the definition
-time of this moving object, oe part will contain a copy of this, the other
-part will be undefined.
-
-*/
-void Split(const DateTime instant,const bool toLeft, 
-           PMSimple<T,Unit>& leftPart, PMSimple<T,Unit>& rightPart){
-   SubMove SMLeft,SMRight;
-   SMLeft.arrayNumber = -1;
-   SMRight.arrayNumber = -1;
-   DateTime stCopy = startTime;
-   splitRec(instant, toLeft,leftPart,rightPart,submove,stCopy,SMLeft,SMRight);
-   // set the values of the root record of the left part
-   if(SMLeft.arrayNumber<0){ // leftpart is empty
-        leftPart.defined=false;  
-   } else{ // leftpart is non-empty
-        leftPart.defined = true;
-        leftPart.startTime = startTime;
-        leftPart.GetInterval(SMLeft,leftPart.interval);
-   }
-   // set the values of the root record of the right part
-   if(SMRight.arrayNumber<0){
-        rightPart.defined=false;
-   }else{
-        rightPart.defined=true;
-        rightPart.startTime = instant;
-        rightPart.GetInterval(SMRight,rightPart.interval);
-   }
-   cerr << "Missing correction for splitted infinite periodic  moves !!!" << endl;
-}
-
-
-/*
-~SpliRec~
 
-This function splits the given submove of this periodic moving objects into 
-two part. The leftPart will be extended by the part of this submove before
-the given instant. The remainder of this submove will stored into rightPart.
-The new added submove of leftPart and rightPart is returned in the arguments
-SMLeft and SMRight respectively. The argument toLeft controls whereto put
-in the object at the given instant (closure properties). The starttime is changed
-to be after the processed submove. If the submove is not defined before the 
-given instant, leftPart is not changed and SMLeft will hold an negative number
-for the arrayNumber indicating an invalid value. When submove is'nt defined 
-after this instant, the same holds for rightPart and SMRight.
-
-*/
-void splitRec(const DateTime instant, const bool toLeft,
-              PMSimple<T,Unit>& leftPart, PMSimple<T,Unit>& rightPart,
-              SubMove submove, DateTime& startTime, SubMove& SMLeft, SubMove& SMRight){
- 
-
-  if(submove.arrayNumber==LINEAR){
-    // here we process a single unit. this case is easy to handle because a
-    // unit have to provide a split function
-    const Unit* LMLtmp=NULL;
-    Unit LML;
-    linearMoves.Get(submove.arrayIndex,LMLtmp);
-    LML=(*LMLtmp);
-    Unit LMR;
-    DateTime Dur = instant - startTime;
-    startTime = startTime + (*LML.interval.GetLength()); 
-    bool saveLeft,saveRight;
-    if(LML.GetDefined()){
-       LML.Split(Dur,toLeft,LMR);
-       saveLeft = LML.GetDefined();
-       saveRight = LMR.GetDefined();
-     } else{ // original is undefined
-        LML.interval.Split(Dur,toLeft,LMR.interval);
-        LMR.SetDefined(false);
-        saveLeft = LML.interval.IsDefined();
-        saveRight = LMR.interval.IsDefined();
-     }
-     if(saveLeft){
-         SMLeft.arrayNumber=LINEAR;
-         SMLeft.arrayIndex = leftPart.linearMoves.Size();
-         leftPart.linearMoves.Append(LML);
-     }else{
-         SMLeft.arrayNumber = -1;
-     }
-     // do the same thing with the right part
-     if(saveRight){
-        SMRight.arrayNumber=LINEAR;
-        SMRight.arrayIndex=rightPart.linearMoves.Size();
-        rightPart.linearMoves.Append(LML);
-     } else{
-        SMRight.arrayNumber = -1;
-     }
-     return;  // linear moves processed
-  }
-  if(submove.arrayNumber==COMPOSITE){
-     // we store the submoves of this composite moves into an vector 
-     // to ensure a single block representing this submove
-     const CompositeMove* CM=NULL;
-     compositeMoves.Get(submove.arrayIndex,CM);
-     vector<SubMove> submovesLeft(CM->maxIndex-CM->minIndex+1);
-     vector<SubMove> submovesRight(CM->maxIndex-CM->minIndex+1);
-     
-     const SubMove* SMtmp;
-     SubMove SM;
-     for(int i=CM->minIndex;i<=CM->maxIndex;i++){
-        compositeSubMoves.Get(i,SMtmp); // get the submove
-        SM = (*SMtmp);
-        // call recursive
-        splitRec(instant,toLeft,leftPart,rightPart,SM,startTime,SMLeft,SMRight);
-        // collect valid submoves
-       if(SMLeft.arrayNumber>=0)
-           submovesLeft.push_back(SMLeft);
-       if(SMRight.arrayNumber>=0)
-           submovesRight.push_back(SMRight);
-     }
-     // process the left part
-     int size = submovesLeft.size();
-     if(size==0){
-        SMLeft.arrayNumber = -1;
-     } else if (size>1){ // in case size==1 is nothing to do
-        CompositeMove CMLeft;
-        CMLeft.minIndex = leftPart.compositeSubMoves.Size();
-        for(int i=0;i<size;i++){
-            leftPart.compositeSubMoves.Append(submovesLeft[i]); 
-        }
-        CMLeft.maxIndex = leftPart.compositeSubMoves.Size()-1;
-        SMLeft.arrayNumber = COMPOSITE;
-        SMLeft.arrayIndex = leftPart.compositeMoves.Size();
-        leftPart.compositeMoves.Append(CMLeft); 
-     }
-     // process the right part
-     size = submovesRight.size();
-     if(size==0){ // nothing remains at the right
-        SMRight.arrayNumber = -1;
-     } else if(size>1){
-         CompositeMove CMRight;
-         CMRight.minIndex = rightPart.compositeSubMoves.Size();
-         for(int i=0;i<size;i++){
-             rightPart.compositeSubMoves.Append(submovesRight[i]);
-         }
-         CMRight.maxIndex = rightPart.compositeSubMoves.Size()-1;
-         SMRight.arrayNumber = COMPOSITE;
-         SMRight.arrayIndex = rightPart.compositeMoves.Size();
-         rightPart.compositeMoves.Append(CMRight);
-     }
-     return; // composite moves processed
-  }
-  if(submove.arrayNumber==PERIOD){
-     // first, we check whether the split instant is outside the interval
-     const PeriodicMove*  PMtmp=NULL;
-     periodicMoves.Get(submove.arrayIndex,PMtmp);
-     PeriodicMove PM = (*PMtmp);
-     RelInterval sminterval;
-     GetInterval(PM.submove,sminterval);
-     DateTime smlength;
-     sminterval.StoreLength(smlength);
-     DateTime ZeroTime(instanttype);
-
-
-     sminterval.StoreLength(smlength);
-     
-     // find out how many repeatations left on both sides
-     // first compute the duration which should be transferred into the left part
-     DateTime LeftDuration = instant - startTime;
-     
-     
-
-
-
-     return; // periodic moves processed
-  }
-  assert(false); // unknown submove
-}
-
-/*
-~SplitLeft~
-
-This function equalizes leftPart with the part of this move which is located
-before the instant.
-
-*/
-void SplitLeft(const DateTime& instant,const bool toLeft, PMSimple<T,Unit>* result){
-  SubMove LastMove;
-  DateTime startTimecopy;
-  startTimecopy.Equalize(&startTime);
-
-  if(!SplitLeftRec(instant,toLeft,*result,submove,startTimecopy,LastMove))
-      result->SetDefined(false);
-  else{
-     result->startTime = startTime;
-     DateTime len = instant-startTime;
-     result->interval.Set(&len,interval.IsLeftClosed(),toLeft);
-     result->submove = LastMove;      
-  }  
-}
-
-bool SplitLeftRec(const DateTime& instant,const bool toLeft,
-                  PMSimple<T,Unit>& result,const SubMove& submove, 
-                  DateTime& startTime,SubMove& lastSubmove){
-
-/*
-First, we handle the a single unit.
-
-*/
-   if(submove.arrayNumber==LINEAR){
-        if(startTime > instant) // is right of the instant
-            return false;
-        const Unit* utmp;
-        linearMoves.Get(submove.arrayIndex,utmp);
-        Unit u = (*utmp);
-        RelInterval interval;
-        interval.Equalize(&u.interval);
-        DateTime dur = instant-startTime;
-        if(!u.interval.Contains(&dur)){
-           return false;
-        }
-        Unit rightUnit;
-        u.Split(dur,toLeft,rightUnit); 
-        result.linearMoves.Append(u);
-        DateTime len;
-        interval.StoreLength(len);
-        startTime = startTime + len;
-        lastSubmove.arrayNumber=LINEAR;
-        lastSubmove.arrayIndex = result.linearMoves.Size()-1;
-        return true;   
-   }
-/*
-Second, handling of composite moves
-
-*/
-   if(submove.arrayNumber == COMPOSITE){
-      const CompositeMove* CMtmp=NULL;
-      compositeMoves.Get(submove.arrayIndex,CMtmp);
-      CompositeMove CM = *CMtmp;
-      DateTime dur = instant-startTime;
-      if(!CM.interval.Contains(&dur))
-          return false;        
-      SubMove SM;
-      const SubMove* SMtmp;
-      vector<SubMove> mySubmoves(CM.maxIndex-CM.minIndex);
-      bool done = false;
-      for(int i =CM.minIndex;i<=CM.maxIndex && !done;i++){
-           compositeSubMoves.Get(i,SMtmp);
-           SM = (*SMtmp);
-           if(SplitLeftRec(instant,toLeft,result,SM,startTime,lastSubmove)){
-                mySubmoves.push_back(lastSubmove);
-           } else { // after this move can't follow any further moves
-             done=true;
-           }
-      } 
-      if(mySubmoves.size()<2){ // ok, this submoves is end in smoke
-        return true;
-      }else{ // we have to build a composite move from the remaining submoves
-         DateTime length(durationtype);
-         DateTime nextLength(durationtype);
-         int size = mySubmoves.size();
-         RelInterval interval; 
-         CM.minIndex = result.compositeSubMoves.Size();
-         for(int i=0;i<size;i++){
-            SM = mySubmoves[i];
-            if(i==0)
-                result.GetInterval(SM,CM.interval);
-            else{
-                result.GetInterval(SM,interval);
-                CM.interval.Append(&interval);
-            }
-            result.compositeSubMoves.Append(SM);
-         }      
-         CM.maxIndex = result.compositeSubMoves.Size()-1;
-         // append the composite move
-         lastSubmove.arrayIndex=COMPOSITE;
-         lastSubmove.arrayIndex = result.compositeMoves.Size();
-         result.compositeMoves.Append(CM);
-         return true;
-      }
-   }
-
-   if(submove.arrayIndex==PERIOD){
-       const PeriodicMove* PM;
-       periodicMoves.Get(submove.arrayIndex,PM);
-       DateTime dur = instant-startTime;
-       
-   }
-   assert(false); // the program should never reach this position
-
-
-}
-
-
-
-
-
-
-
-/*
-~Intersection~
-
-This function reduces the definition time of this PMSimple to the 
-interval defined by the arguments. This function cannot be constant, i.e. 
-it changes the *this* argument,  because
-we have to scan the dbarrays in some cases.
-
-*/
- void  Intersection( const DateTime minTime, 
-                     const bool minIncluded, 
-                     const DateTime maxTime, 
-                     const bool maxIncluded,
-                    PMSimple<T,Unit>* res){
-
-      PMSimple<T,Unit> TMPPM1;
-      PMSimple<T,Unit> TMPPM2;
-      Split(minTime,!minIncluded,TMPPM2,TMPPM1);
-      //TMPPM1.Split(maxTime,maxIncluded,TMPPM1,*result);
-      TMPPM1.SplitLeft(maxTime,maxIncluded,res);
-   }
-
-/*
-~CopyValuesFrom~
-
-By calling this function, the value of this pmsimple is set to the given values.
-There is no check whether the values are valid. Use this function very carefully.
-A possible application of this function is to take the tree from another periodic 
-moving object.
-
-*/
-  void CopyValuesFrom( DBArray<Unit>& linearMoves,
-                      DBArray<CompositeMove>& compositeMoves,
-                      DBArray<SubMove>& compositeSubMoves,
-                      DBArray<PeriodicMove>& periodicMoves,
-                      bool defined,
-                      RelInterval interval,
-                      DateTime startTime,
-                      SubMove submove){
-
-    // first, clear all contained arrays
-    this->linearMoves.Clear();
-    this->compositeMoves->Clear();
-    this->compositeSubMoves.Clear();
-    this->periodicMoves.Clear();
-    // resize the array and copy contents
-    int size;
-    if((size=linearMoves.Size())>0){
-         this->linearMoves.Resize(size);
-         Unit U;
-         for(int i=0;i<size;i++){
-            linearMoves.Get(i,U);
-            this->linearMoves.Put(i,U);
-         } 
-    }
-    if((size=compositeMoves.Size())>0){
-        this->compositeMoves.Resize(size);
-        CompositeMove CM;
-        for(int i=0;i<size;i++){
-           compositeMoves.Get(i,CM);
-           this->compositeMoves.Put(i,CM);
-        } 
-    }
-    if((size=compositeSubMoves.Size())>0){
-       this->compositeSubMoves.Resize(size);
-       SubMove SM;
-       for(int i=0;i<size;i++){
-          compositeSubMoves.Get(i,SM);
-          this->compositeSubMoves.Put(i,SM);
-       } 
-    }
-    if((size=periodicMoves.Size())>0){
-        this->periodicMoves.Resize(size);
-        PeriodicMove PM;
-        for(int i=0;i<size;i++){
-           periodicMoves.Get(i,PM);
-           this->periodicMoves.Put(PM);
-        }
-    }
-    this.defined=defined;
-    this.canDelete=false;
-    this->interval.Equalize(&interval);
-    this->startTime.Equalize(&startTime);
-    this.submove=submove; 
-  } 
-
-/*
-~TakeValuesFrom~
-
-This function works similar to the ~CopyValuesFrom~ function.
-The difference is, that the values are assigned to the internal
-variables. This variables are cleaned before.
-
-*Note*: There is no check for the integrity of the given data. 
-
-*/
-
-  void TakeValuesFrom( DBArray<Unit>& linearMoves,
-                      DBArray<CompositeMove>& compositeMoves,
-                      DBArray<SubMove>& compositeSubMoves,
-                      DBArray<PeriodicMove>& periodicMoves,
-                      bool defined,
-                      RelInterval interval,
-                      DateTime startTime,
-                      SubMove submove){
-
-     this->linearMoves.Clear(); 
-     this->linearMoves.Destroy();
-     this->compositeMoves.Clear();
-     this->compositeMoves.Destroy();
-     this->compositeSubMoves.Clear();
-     this->compositeSubMoves.Destroy();
-     this->periodicMoves.Clear();
-     this->periodicMoves.Destroy();
-     this->linearMoves = linearMoves();
-     this->compositeMoves = compositeMoves();
-     this->compositeSubMoves = compositeSubMoves();
-     this->periodicMoves = periodicMoves();
-     this->defined = defined;
-     this.interval = interval;
-     this.startTimes = startTime;
-     this.submove = submove;
-  }
-
-/*
-~SetStartTime~
-
-This function can be used for moving this PMsimple in time.
-
-*/
-  void SetStartTime(DateTime newStart){
-      startTime.Equalize(&newStart);
-  }
-
-/*
-~Function returning pointers to the members~
-
-Each of the next functions returns a pointer for a member.
-This way bypasses the protected declaration of the members 
-because this function enables the possibility to manipulate the
-members direcly without control of the PMSimple class. This may 
-be not good for encapsulating the code but the only way to have
-an efficient implementation for that. The caller of this functions
-must be very very carefully to ensure that all the manipulated
-members results in a consistent instance of type PMSimple. 
-A possible application of this function is to make a copy of the
-tree structure of another periodic moving object. 
-
-*/
-  DBArray<Unit>* GetLinearMoves(){return &linearMoves;}
-  DBArray<CompositeMove>* GetCompositeMoves(){return &compositeMoves;}
-  DBArray<SubMove>* GetCompositeSubMoves(){return &compositeSubMoves;}
-  DBArray<PeriodicMove>* GetPeriodicMoves(){return &periodicMoves;}
-  RelInterval* GetInterval(){return &interval;}
-  SubMove* GetSubmove(){ return &submove;}
-
-
-  protected:
-     DBArray<Unit> linearMoves;
-     DBArray<CompositeMove> compositeMoves;
-     DBArray<SubMove> compositeSubMoves;
-     DBArray<PeriodicMove> periodicMoves;
-     bool defined;
-     bool canDelete;
-     RelInterval interval;
-     DateTime startTime;
-     SubMove submove;
-
-
-/*
-
-~GetLength~
-
-This function returns the lenght of the interval of the given 
-submove. 
-
-*/
-   void GetLength(SubMove sm, DateTime& result){
-      switch(sm.arrayNumber){
-        case LINEAR: { Unit U;
-                       linearMoves.Get(sm.arrayIndex,U);
-                        U.interval.StoreLength(result);
-                     } break;
-        case COMPOSITE: {
-                         CompositeMove CM; 
-                         CM.interval.StoreLength(result); 
-                        }break;
-
-       case PERIOD: {
-                     PeriodicMove CM;
-                     CM.interval.StoreLength(result);
-                    } break;
-       default: assert(false); // unknown move type
-
-      }
-
-   }
-
-/*
-
-~GetLeftClosed~
-
-This function returns the state of the LeftClosed flag  of the interval of the given 
-submove. 
-
-*/
-   bool GetLeftClosed(SubMove sm){
-      switch(sm.arrayNumber){
-        case LINEAR: { Unit U;
-                       linearMoves.Get(sm.arrayIndex,U);
-                        return  U.interval.IsLeftClosed();
-                     } 
-        case COMPOSITE: {
-                         CompositeMove CM; 
-                         return CM.interval.IsLeftClosed(); 
-                        }
-
-       case PERIOD: {
-                     PeriodicMove PM;
-                     return PM.interval.IsLeftClosed();
-                    }
-       default: assert(false); // unknown move type
-
-      }
-
-   }
-
-/*
-
-~GetRightClosed~
-
-This function returns the state of the RightClosed flag  of the interval of the given 
-submove. 
-
-*/
-   bool GetRightClosed(SubMove sm){
-      switch(sm.arrayNumber){
-        case LINEAR: { Unit U;
-                       linearMoves.Get(sm.arrayIndex,U);
-                        return  U.interval.IsRightClosed();
-                     } 
-        case COMPOSITE: {
-                         CompositeMove CM; 
-                         return CM.interval.IsRightClosed(); 
-                        }
-
-       case PERIOD: {
-                     PeriodicMove PM;
-                     return PM.interval.IsRightClosed();
-                    }
-       default: assert(false); // unknown move type
-      }
-   }
-
-/*
-
-~GetInterval~
-
-This function returns the returns the interval of the given submove independly
-of the type of the submove. 
-
-*/
-   void GetInterval(SubMove sm,RelInterval& interval){
-      switch(sm.arrayNumber){
-        case LINEAR: { const Unit* U;
-                       linearMoves.Get(sm.arrayIndex,U);
-                       interval.Equalize(&U->interval);
-                     } break;
-        case COMPOSITE: {
-                         const CompositeMove* CM; 
-                         interval.Equalize(&CM->interval); 
-                        }break;
-
-       case PERIOD: {
-                     const PeriodicMove* PM;
-                     interval.Equalize(&PM->interval);
-                    }break;
-       default: assert(false); // unknown move type
-      }
-   }
-
-     /* the next four functions are needed to convert a
-        periodic moving bool to its nested list representation.
-     */
-
-
-/*
-~GetSubMoveList~
-
-This function returns the list representation for the submove in the
-argument.
-
-[3] O(L), where L is the number of contained linear moves
-
-*/
-    ListExpr GetSubMoveList(const SubMove SM) const{
-      __TRACE__
-      ListExpr SubMoveList;
-      int SubMoveType = SM.arrayNumber;
-      int index = SM.arrayIndex;
-      if(SubMoveType==LINEAR)
-          SubMoveList = GetLinearMoveList(index);
-      else if(SubMoveType==COMPOSITE)
-          SubMoveList = GetCompositeMoveList(index);
-      else if(SubMoveType==PERIOD)
-          SubMoveList = GetPeriodicMoveList(index);
-      else{
-           cerr << __POS__ << " Error in creating ListExpr" << endl;
-           SubMoveList = nl->TheEmptyList();
-       }
-      return SubMoveList;
-    }
-     
-/*
-~GetLinearMoveList~
-
-This functions takes the linear move at the specified index and
-returns its nested list representation.
-
-[3] O(1)
-
-*/
-    ListExpr GetLinearMoveList(const int index)const{
-        __TRACE__
-       const Unit* LM=NULL;
-       linearMoves.Get(index,LM);
-       return LM->ToListExpr();
-    }
-
-/*
-~GetPeriodicMoveList~
-
-Creates a nested list for the periodic move at the specified index.
-
-[3] O(L), where L is the number of contained linear moves
-
-*/
-    ListExpr GetPeriodicMoveList(const int index)const{
-        __TRACE__
-      const PeriodicMove* PM=NULL;
-      periodicMoves.Get(index,PM);
-      ListExpr periodtype = nl->SymbolAtom("period");
-      ListExpr RepList = nl->IntAtom(PM->repeatations);
-      ListExpr SML = GetSubMoveList(PM->submove);
-      ListExpr RC = nl->BoolAtom(interval.IsRightClosed());
-      ListExpr LC = nl->BoolAtom(interval.IsLeftClosed());
-      return  nl->TwoElemList(periodtype,nl->FourElemList(RepList,LC,RC,SML));
-    }
-     
-/*
-~GetCompositeMoveList~
-
-Returns the CompositeMove at the specified index in its nested list
-representation.
-
-[3] O(L), where L is the number of contained linear moves
-
-*/
-    ListExpr GetCompositeMoveList(const int index)const{
-       __TRACE__
-      const CompositeMove* CM=NULL;
-      compositeMoves.Get(index,CM);
-      ListExpr CType = nl->SymbolAtom("composite");
-      int minIndex = CM-> minIndex;
-      int maxIndex = CM->maxIndex;
-      ListExpr SubMovesList;
-      if(maxIndex<minIndex){
-        cerr << __POS__ << "empty composite move" << endl;
-        SubMovesList = nl->TheEmptyList();
-      }
-      else{
-       // construct the List of submoves
-        const SubMove* SM=NULL;
-        compositeSubMoves.Get(minIndex,SM);
-        SubMovesList = nl->OneElemList(GetSubMoveList(*SM));
-        ListExpr Last = SubMovesList;
-        for(int i=minIndex+1;i<=maxIndex;i++){
-          compositeSubMoves.Get(i,SM);
-          Last = nl->Append(Last,GetSubMoveList(*SM));
-        }
-      }
-      return nl->TwoElemList(CType,SubMovesList);
-    }
-
-
-     /* The next functions help to read in a periodic moving
-        bool from a nested list representation.
-     */
-
-
-/*
-~ResizeArrays~
-
-This functions resizes all array to be able to insert the moves
-contained in the argument list.This function should be called 
-before this instance is read from a nested list to avoid 
-frequently resize of the contained DB-Arrays. The return
-value of this function is an indicator for the correctness 
-of the structure of this list. If the result is __false__,
-the list don't represent a valid periodic moving object.
-But a return value of __true__ don't guarantees a correct
-list representation. 
-
-[3] O(L), where L is the number of contained linear moves
-
-*/
-    bool ResizeArrays(const ListExpr value){
-        __TRACE__
-       // first all entries in the arrays are removed
-       linearMoves.Clear();
-       compositeMoves.Clear();
-       compositeSubMoves.Clear();
-       periodicMoves.Clear();
-       int LMSize = 0;
-       int CMSize = 0;
-       int SMSize = 0;
-       int PMSize = 0;
-       if(!AddSubMovesSize(nl->Second(value),LMSize,CMSize,SMSize,PMSize))
-          return false;
-       // set the arrays to the needed size
-       if(LMSize>0) linearMoves.Resize(LMSize);
-       if(CMSize>0) compositeMoves.Resize(CMSize);
-       if(SMSize>0) compositeSubMoves.Resize(SMSize);
-       if(PMSize>0) periodicMoves.Resize(PMSize);
-       return true;
-    }
-
-
-/*
-~AddSubMovesSize~
-
-Adds the number of in value contained submoves to the appropriate
-size. If the result is__false__, the list is not a correct 
-representation of a periodic moving object. If it is __true__
-the content of the list can be wrong but the structure is correct.
-
-[3] O(L), where L is the number of contained linear moves
-
-*/
-    bool AddSubMovesSize(const ListExpr value,int &LMSize,int &CMSize,
-                         int &SMSize,int &PMSize){
-        __TRACE__
-     // all moves have the length 2
-      if(nl->ListLength(value)!=2)
-         return false;
-      ListExpr type = nl->First(value);
-      if(nl->AtomType(type)!=SymbolType)
-        return false;
-      // in a linear move we have only to increment the size of LM
-      if(nl->IsEqual(type,"linear")){
-         LMSize = LMSize +1;
-         return true;
-      }
-      if(nl->IsEqual(type,"composite")){
-         CMSize = CMSize+1; // the composite move itself
-         ListExpr rest = nl->Second(value);
-         SMSize = SMSize+nl->ListLength(rest); // the contained submoves
-         while(!nl->IsEmpty(rest)){
-            if(!AddSubMovesSize(nl->First(rest),LMSize,CMSize,SMSize,PMSize))
-               return false;
-            rest = nl->Rest(rest);
-         }
-         return true;
-      }
-      if(nl->IsEqual(type,"period")){
-         PMSize = PMSize+1;
-         int len = nl->ListLength(value);
-         ListExpr PMove;
-         if(len==2)
-             PMove = nl->Second(value);
-         else if(len==4)
-              PMove = nl->Fourth(value);
-         else // incorrect listlength
-             return false;
-         
-         return AddSubMovesSize(nl->Second(PMove),
-                                LMSize,CMSize,SMSize,PMSize);
-      }
-      // a unknown type description
-      return false;
-    }
-
-/*
-~AddLinearMove~
-
-This function adds the LinearMove given in value to this PMSimple.
-If the list represents a valid Unit, this unit is append to to
-appropriate dbarray and the argument __LMIndex__ is increased.
-If the list is incorrect, this periodic moving object is not
-changed and the result will be __false__.
-
-[3] O(1)
-
-*/
-    bool AddLinearMove(const ListExpr value,int &LMIndex, int &CMIndex,
-                       int &SMIndex, int &PMIndex){
-       __TRACE__
-
-        Unit LM = Unit(0);
-        if(!LM.ReadFrom(value))
-           return false;
-        linearMoves.Put(LMIndex,LM);
-        LMIndex++;
-        return true;
-    }
-
-/*
-~AddCompositeMove~
-
-This function creates a CompositeMove from value and adds it
-(and all contained submoves) to this PMSimple. The return 
-value corresponds to the correctness of the list for this
-composite move. The arguments are increased by the number of
-contained submoves in this composite move. *Note*: This
-function can change this periodic moving object even when 
-the list is not correct. In the case of a result of __false__,
-the state of this object is not defined and the defined flag
-should be set to false.
-
-[3] O(L), where L is the number of contained linear moves
-
-*/
-    bool AddCompositeMove(const ListExpr value,int &LMIndex, int &CMIndex,
-                       int &SMIndex, int &PMIndex){
-       __TRACE__
-       // a composite move has to contains at least two submoves
-       int len = nl->ListLength(value);
-       if(len<2){
-          if(DEBUG_MODE){
-             cerr << __POS__ << " less than 2 submoves (" 
-                  << len << ")" << endl;
-          }
-          return false;
-       }
-       CompositeMove CM=CompositeMove(1);
-       int CMPos=CMIndex;
-       int SMPos=SMIndex;
-       // ensure that no submove used the positions for this composite move
-       CMIndex++;
-       CM.minIndex=SMIndex;
-       CM.maxIndex=SMIndex+len-1;
-       SMIndex= SMIndex+len;
-       // Append the contained Submoves
-       ListExpr rest = value;
-       ListExpr SML,TL,VL;
-       bool isFirst = true;
-       while(!nl->IsEmpty(rest)){
-          SML = nl->First(rest);
-          rest = nl->Rest(rest);
-          if(nl->ListLength(SML)!=2){ // all submoves have the 
-                                     // format (type value)
-             if(DEBUG_MODE){
-                cerr << __POS__ << " submove has wrong length (";
-                cerr << nl->ListLength(SML) << ")" << endl;
-             }
-             return false;
-          }
-          TL = nl->First(SML);
-          VL = nl->Second(SML);
-          if(nl->IsEqual(TL,"linear")){
-             // process a linear submove
-             int LMPos = LMIndex;
-             if(!AddLinearMove(VL,LMIndex,CMIndex,SMIndex,PMIndex)){
-                if(DEBUG_MODE){
-                   cerr << __POS__ << " can't add a linear move " << endl;
-                }
-                return false;
-             }
-             const Unit* LM=NULL;
-             linearMoves.Get(LMPos,LM);
-             // Append the interval of LM to CM
-             if(isFirst){
-                isFirst=false;
-                CM.interval.Equalize(&(LM->interval));
-             }else{
-                if(!CM.interval.Append(&(LM->interval))){
-                   if(DEBUG_MODE){
-                       cerr << __POS__ << " can't append interval " << endl;
-                       cerr << "The original interval is";
-                       cerr << CM.interval.ToString() << endl;
-                       cerr << "The interval to append is";
-                       cerr << LM->interval.ToString() << endl;
-                   }
-                   return false;
-                }
-             }
-             // put the submove in the array
-             SubMove SM;
-             SM.arrayNumber = LINEAR;
-             SM.arrayIndex = LMPos;
-             compositeSubMoves.Put(SMPos,SM);
-             SMPos++;
-          } else if(nl->IsEqual(TL,"period")){
-            // process a periodic submove
-            int PMPos = PMIndex;
-            if(!AddPeriodMove(VL,LMIndex,CMIndex,SMIndex,PMIndex)){
-               if(DEBUG_MODE){
-                  cerr << __POS__ << "can't add period move " << endl;
-                }
-                return  false;
-            }
-            const PeriodicMove* PM=NULL;
-            periodicMoves.Get(PMPos,PM);
-            if(isFirst){
-               isFirst=false;
-               CM.interval.Equalize(&(PM->interval));
-            }else{
-               if(!CM.interval.Append(&(PM->interval))){
-                  if(DEBUG_MODE){
-                     cerr << __POS__  << " can't append interval" << endl;
-                  }
-                  return false;
-               }
-            }
-            SubMove SM;
-            SM.arrayNumber = PERIOD;
-            SM.arrayIndex = PMPos;
-            compositeSubMoves.Put(SMPos,SM);
-            SMPos++;
-       } else{ // not of type linear or period
-            if(DEBUG_MODE){
-                cerr << __POS__ << " submove not of type ";
-                cerr << "linear od period" << endl;
-             }
-             return false;
-          }
-       }
-       // put the compositeMove itself
-       compositeMoves.Put(CMPos,CM);
-       return true;
-    }
-
-/*
-~AddPeriodMove~
-
-Adds the period move described in value to this PMSimple.
-*Note*: This function can change this objects even wehn 
-the list does not represent a valid period move. If the 
-result is __false__ the __defined__ flag of this move
-should be set to false.
-
-[3] O(L), where L is the number of contained linear moves
-
-*/
-    bool AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
-                       int &SMIndex, int &PMIndex){
-       __TRACE__
-       int len = nl->ListLength(value);
-       if((len!=2) && (len!=4)){  // (repeatations <submove>)
-          if(DEBUG_MODE)
-            cerr << __POS__ << ": wrong listlength" << endl;
-          return false;
-       }
-       if(nl->AtomType(nl->First(value))!=IntType){
-         if(DEBUG_MODE){
-           cerr << __POS__ << ": wrong type for repeatations" << endl;
-         }
-         return false;
-       }
-       int rep = nl->IntValue(nl->First(value));
-       // rep must be greater than 1 
-       if(rep<=1 ){
-          if(DEBUG_MODE){
-             cerr << __POS__ <<  " wrong number of repeatations" << endl;
-          }
-          return false;
-       }
-       
-       ListExpr SML;
-       if(len==2)
-          SML = nl->Second(value);
-       if(len==4)
-          SML = nl->Fourth(value);
-
-       if(nl->ListLength(SML)!=2){
-          if(DEBUG_MODE){
-             cerr << __POS__ << ": wrong length for submove" << endl;
-          }
-          return false;
-       }
-       PeriodicMove PM=PeriodicMove(1);
-       PM.repeatations = rep;
-       int IncludePos = PMIndex; // store the positiuon
-       PMIndex++;
-       ListExpr SMT = nl->First(SML); // take the submove type
-       if(nl->IsEqual(SMT,"linear")){
-         int LMPos = LMIndex;
-         if(!AddLinearMove(nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
-            if(DEBUG_MODE){
-              cerr << __POS__ << ": can't add linear submove" << endl;
-            }
-            return false;
-         }
-         PM.submove.arrayNumber = LINEAR;
-         PM.submove.arrayIndex = LMPos;
-         const Unit* LM=NULL;
-         linearMoves.Get(LMPos,LM);
-         RelInterval SMI = LM->interval;
-         PM.interval.Equalize(&SMI);
-         PM.interval.Mul(rep);
-         if(len==4){
-             ListExpr LC = nl->Second(value);
-             ListExpr RC = nl->Third(value);
-            if((nl->AtomType(LC)!=BoolType) || (nl->AtomType(RC)!=BoolType))
-              return false;
-            PM.interval.SetLeftClosed(nl->BoolValue(LC));
-            PM.interval.SetRightClosed(nl->BoolValue(RC));
-         }
-
-         periodicMoves.Put(IncludePos,PM);
-         return true;
-       }else if(nl->IsEqual(SMT,"composite")){
-         int CMPos = CMIndex;
-         if(!AddCompositeMove(nl->Second(SML),LMIndex,CMIndex,
-                              SMIndex,PMIndex)){
-            if(DEBUG_MODE){
-               cerr << __POS__ << ": can't add composite submove" << endl;
-            }
-            return false;
-         }
-         PM.submove.arrayNumber = COMPOSITE;
-         PM.submove.arrayIndex = CMPos;
-         const CompositeMove* CM=NULL;
-         compositeMoves.Get(CMPos,CM);
-         RelInterval SMI = CM->interval;
-         PM.interval.Equalize(&SMI);
-         PM.interval.Mul(rep);
-         if(len==4){
-             ListExpr LC = nl->Second(value);
-             ListExpr RC = nl->Third(value);
-            if((nl->AtomType(LC)!=BoolType) || (nl->AtomType(RC)!=BoolType))
-              return false;
-            PM.interval.SetLeftClosed(nl->BoolValue(LC));
-            PM.interval.SetRightClosed(nl->BoolValue(RC));
-         }
-         periodicMoves.Put(IncludePos,PM);
-         return true;
-       }
-       return false; // invalid type
-    }
-
-
-/*
-~GetLastUnit~
-
-This function returns the temporal last unit of this periodic moving point.
-It is realized by going down the repetition tree up to a unit.
-
-*/
-Unit GetLastUnit(){
-    __TRACE__
-    const SubMove* s = &submove;
-    while(s->arrayNumber!=LINEAR){
-        if(s->arrayNumber==PERIOD){
-           const PeriodicMove* PM=NULL;
-           periodicMoves.Get(s->arrayIndex,PM);
-           s = &PM->submove;
-        } else if(s->arrayNumber==COMPOSITE){
-           const CompositeMove* CSM=NULL;
-           compositeMoves.Get(s->arrayIndex,CSM);
-           compositeSubMoves.Get(CSM->maxIndex,s);   
-        } else{
-          assert(false); // unknown arraynumber
-        }
-    }
-    const Unit* res=NULL;
-    linearMoves.Get(s->arrayIndex,res);
-    return *res;
-}
-  
-/*
-~MinimizationRequired~
-
-This function checks, whether an call of ~Minimize~ will change the
-tree. Particularly, it checks whether two consecutive units can
-be summarized to a single one.
-
-*/
-
-bool MinimizationRequired(){
-  __TRACE__
-  const Unit* LM=NULL;
-  const Unit* LM2=NULL;
-  const CompositeMove* CM=NULL;
-  const PeriodicMove*  PM=NULL;
-  const SubMove* SM=NULL;
-  const SubMove* SM2=NULL;
-  // check periodic moves
-  int size = periodicMoves.Size();
-  for(int i=0;i<size;i++){
-      periodicMoves.Get(i,PM);
-      SM = &PM->submove;
-      if(SM->arrayIndex==LINEAR){
-         linearMoves.Get(SM->arrayIndex,LM);
-         if(LM->interval.CanAppended(&LM->interval))
-             return true;
-      }  
-  }
-  // check composite moves
-  size = compositeMoves.Size();
-  for(int i=0;i<size;i++){
-     compositeMoves.Get(i,CM);
-     for(int k=CM->minIndex;k< CM->maxIndex;k++){
-        compositeSubMoves.Get(k,SM);
-        compositeSubMoves.Get(k+1,SM2);
-        if( (SM->arrayNumber==LINEAR) && (SM2->arrayNumber==LINEAR)){
-            linearMoves.Get(SM->arrayIndex,LM);
-            linearMoves.Get(SM2->arrayIndex,LM2);
-            if( (LM->value==LM2->value) && 
-                (LM->interval.CanAppended(&LM2->interval)))
-                return true;
-        }
-     } 
-  }
-  return false;
-}
-
-
-
-/*
-~MinimizeRec~
-
-This function summarizes consecutive units with the same value.
-The result is stored in the arguments. Note that no detection of
-equal linear moves is performed. This means, when a unit occurs
-twice or more, this unit will be also stored several times in
-the corresponding dbarray.
-
-*/
-
-SubMove MinimizeRec(SubMove SM, 
-                    DBArray<Unit>&                   newLinearMoves,
-                    DBArray<CompositeMove>&          newCompositeMoves,
-                    DBArray<SubMove>&                newCompositeSubMoves,
-                    DBArray<PeriodicMove>&           newPeriodicMoves,
-                    Unit&                            Summarization,
-                    bool&                            CompleteSummarized){
-
-   if(SM.arrayNumber==LINEAR){
-       const Unit* Sum1;
-       linearMoves.Get(SM.arrayIndex,Sum1);
-       Summarization = (*Sum1);
-       CompleteSummarized=true;
-       return SM;   
-   }
-   if(SM.arrayNumber==PERIOD){
-       const PeriodicMove* PM=NULL;
-       periodicMoves.Get(SM.arrayIndex,PM);
-       PeriodicMove PM2 = (*PM);
-       SubMove SM2 = MinimizeRec(PM2.submove, 
-                                 newLinearMoves,newCompositeMoves,
-                                 newCompositeSubMoves,newPeriodicMoves,
-                                 Summarization, CompleteSummarized);
-       if(!CompleteSummarized){
-          PM2.submove = SM2; 
-          int Pos = newPeriodicMoves.Size();
-          newPeriodicMoves.Append(PM2);
-          SM2.arrayNumber=PERIOD;
-          SM2.arrayIndex= Pos;
-          CompleteSummarized = false;
-          return SM2;
-       }else{ // the result is a single linear move
-          if(!Summarization.interval.CanAppended(
-                               &Summarization.interval)){ // a little gap
-              int LinPos = newLinearMoves.Size();
-              newLinearMoves.Append(Summarization);
-              PM2.submove.arrayNumber=LINEAR;
-              PM2.submove.arrayIndex=LinPos;
-              // store this periodic move
-              int PerPos = newPeriodicMoves.Size();
-              newPeriodicMoves.Append(PM2);
-              SM2.arrayNumber=PERIOD;
-              SM2.arrayIndex=PerPos;
-              CompleteSummarized=false;
-              return SM2;
-          }else{ // we don't need longer this periodic move
-             Summarization.interval.Mul(PM2.repeatations);
-             return SM2;
-         } 
-       }
-   }
-   if(SM.arrayNumber==COMPOSITE){
-        const CompositeMove* CMtmp;
-        compositeMoves.Get(SM.arrayIndex,CMtmp);
-        CompositeMove CM = *CMtmp;
-        Unit LM(0);
-        bool LMdefined = false;
-        vector<SubMove> MySubMoves;
-        for(int i=CM.minIndex;i<=CM.maxIndex;i++){
-           const SubMove* Current;
-           compositeSubMoves.Get(i,Current);
-           SubMove SM2 = MinimizeRec(*Current,
-                                     newLinearMoves,newCompositeMoves,
-                                     newCompositeSubMoves,newPeriodicMoves,
-                                     Summarization, CompleteSummarized);
-           if(!CompleteSummarized){
-              // store summarized submove if present
-              if(LMdefined){
-                 int LinPos = newLinearMoves.Size();
-                 newLinearMoves.Append(LM);
-                 LMdefined=false;
-                 SubMove SM3;
-                 SM3.arrayNumber=LINEAR;
-                 SM3.arrayIndex=LinPos;
-                 MySubMoves.push_back(SM3);
-              } 
-              MySubMoves.push_back(SM2); 
-           }else{ // submove complete summarized
-              if(!LMdefined){ // first summarized LinearMove;
-                LM = Summarization;
-                LMdefined=true;
-              }else{
-                  
-                if(LM.CanSummarized(Summarization)){
-                    // append the new summarization to LM
-                    LM.interval.Append(&Summarization.interval);
-                } else{
-                    // the new summarization cannot appendend to LM
-                    // store LM
-                    int LinPos = newLinearMoves.Size();
-                    newLinearMoves.Append(LM);
-                    SubMove SM3;
-                    SM3.arrayNumber=LINEAR;
-                    SM3.arrayIndex=LinPos;
-                    MySubMoves.push_back(SM3);
-                    LM = Summarization; 
-                }  
-              }  
-          }
-        } // all submoves processed;
-        if(MySubMoves.size()==0){ // all its collected into LM
-            CompleteSummarized=true;
-            Summarization = LM;
-            return SM; // unimportant in this case
-        }else{
-            if(LMdefined){ // store the last summarization
-              int LinPos = newLinearMoves.Size();
-              newLinearMoves.Append(LM);
-              SubMove SM3;
-              SM3.arrayNumber = LINEAR;
-              SM3.arrayIndex  = LinPos;
-              MySubMoves.push_back(SM3); 
-            }
-            CM.minIndex = newCompositeSubMoves.Size();
-            CM.maxIndex = CM.minIndex + MySubMoves.size()-1;
-            // store the submoves
-            for(unsigned int k=0;k<MySubMoves.size();k++){
-               newCompositeSubMoves.Append(MySubMoves[k]);  
-            }
-            SubMove SM3;
-            SM3.arrayNumber=COMPOSITE;
-            SM3.arrayIndex=newCompositeMoves.Size();
-            newCompositeMoves.Append(CM);
-            CompleteSummarized=false;
-            return SM3;
-        }
-   } 
-   assert(false);
-}
-
-
-
-};
-
-/*
-2.3.9 The Class PMBool
-
-This class is just an instantiation of the
-PMSimple class.
-
-*/
-
-typedef PMSimple<bool,LinearBoolMove> PMBool;
-
-
-/*
-2.3.10 The class PMReal
-
-This class is an instantiation of the 
-PMSimple class.
-
-*/
-
-typedef PMSimple<double,MovingRealUnit> PMReal;
- 
-
-
-/*
-2.3.11 The Class PMInt9M
-
-This class is derived from an instatiation of the
-PMSimple class. 
-
-*/
-class PMInt9M : public PMSimple<Int9M,LinearInt9MMove> {
-public:
-
-/*
-~Constructor~
-
-This is the defualt constructor making nothing.
-
-*/
-  PMInt9M() {}
-
-/*
-~Constructor~
-
-This constructor should be used for creating a PMInt9M
-instance. It calls the constructor of the superclass.
-
-*/
-  PMInt9M(int dummy):
-     PMSimple<Int9M,LinearInt9MMove>(dummy) 
-     {
-           __TRACE__
-     }
-
-/*
-~Transpose~
-
-The Transpose function will change the roles of the arguments for which 
-this periodic moving 9 intersection matrix is computed.
-
-*/
-  void Transpose(){
-    int size = linearMoves.Size();
-    const LinearInt9MMove* LM;
-    LinearInt9MMove LM2;
-    for(int i=0;i<size;i++){
-       linearMoves.Get(i,LM);
-       LM2 = (*LM); 
-       LM2.Transpose();
-       linearMoves.Put(i,LM2);
-    } 
-
-  }
-
-
-
-/*
-~CreateFrom~
-
-When this function is called, the linearConstantMove is build from the
-given values with an additional level between the tree and the linear moves.
-This means, the value of this pmsimple is given by the structure showed in
-figure [ref]{fig:RepTreeWithAdditionalLevel.eps}.
-
-                Figure 3: Repetition Tree with an additional Level [RepTreeWithAdditionalLevel.eps]
-
-This can be usedful in operation where the actual repetions remains but 
-the units can be split. An example is the computation of the 
-topological relationship between a periodic moving point and a non-moving
-spatial object. The repetitions in the movement of the points are preserved
-but it is possible that the topological relationship changes in single
-units of this moving point. In this case, additional composite moves
-must be inserted in the structure. This is exactly what this function does.
-
-*/
-bool CreateFrom( DBArray<LinearInt9MMove>& linearMoves, 
-                 ArrayRange*                     level,
-                 int                             levelsize,
-                 DBArray<CompositeMove>&          compositeMoves,
-                 DBArray<SubMove>&                compositeSubMoves,
-                 DBArray<PeriodicMove>&           periodicMoves,
-                 DateTime                        startTime,
-                 SubMove                         submove) {
-   __TRACE__
-
-   defined =true;
-   this->startTime.Equalize(&startTime);
-   canDelete=false;
-   this->submove.Equalize(&submove);
-   const PeriodicMove* PM;
-   const SubMove* SM;
-   const CompositeMove* CM;
-   const LinearInt9MMove* LM;
-   switch(submove.arrayNumber){
-     case PERIOD: { periodicMoves.Get(submove.arrayIndex,PM);
-                    this->interval.Equalize(&(PM->interval));
-                    break;
-                   }
-     case LINEAR: { linearMoves.Get(submove.arrayIndex,LM);
-                    this->interval.Equalize(&(LM->interval));
-                    break;
-                  }
-     case COMPOSITE: { compositeMoves.Get(submove.arrayIndex,CM);
-                       this->interval.Equalize(&(CM->interval));
-                       break;
-                     }
-     default:   assert(false);
-
-   }
-   this->linearMoves.Clear();
-   if(linearMoves.Size()>0)
-      this->linearMoves.Resize(linearMoves.Size());
-   for(int i=0;i<linearMoves.Size();i++){
-       linearMoves.Get(i,LM);
-       LinearInt9MMove LM2 = (*LM);
-       this->linearMoves.Put(i,LM2);  
-   }
- 
-   this->compositeMoves.Clear();
-   if(compositeMoves.Size()>0)
-      this->compositeMoves.Resize(compositeMoves.Size());
-   for(int i=0;i<compositeMoves.Size();i++){
-        compositeMoves.Get(i,CM);
-        CompositeMove CM2 = (*CM);
-        this->compositeMoves.Put(i,CM2);
-   }
-   this->periodicMoves.Clear();
-   if(periodicMoves.Size()>0)
-      this->periodicMoves.Resize(periodicMoves.Size());
-   for(int i=0;i<periodicMoves.Size();i++){
-        periodicMoves.Get(i,PM);
-        PeriodicMove PM2 = (*PM);
-        this->periodicMoves.Put(i,PM2);
-   }
-
-   if(levelsize==linearMoves.Size()){// easy case: no additional Moves
-        this->compositeSubMoves.Clear();
-        if(compositeSubMoves.Size()>0)
-            this->compositeSubMoves.Resize(compositeSubMoves.Size());
-        for(int i=0;i<compositeSubMoves.Size();i++) {
-            compositeSubMoves.Get(i,SM);
-            SubMove SM2 = (*SM);
-            this->compositeSubMoves.Put(i,SM2);
-        }
-        return true;
-   }
-   // we have to restructure the tree :-(
-   // for the periodicMoves, we have to change the arrayindex of an 
-   // linear submove or we have to build a new composite move
-   // "pointers" to composite moves are not affected
-   ArrayRange ar;
-   int minsize = compositeSubMoves.Size()>0?compositeSubMoves.Size():1;
-   this->compositeSubMoves.Resize(minsize); 
-
-   // process the compositeMoves
-   for(int i=0;i<compositeMoves.Size();i++){
-      compositeMoves.Get(i,CM);
-      int pos = this->compositeSubMoves.Size();
-      int count = 0;
-      for(int j=CM->minIndex;j<=CM->maxIndex;j++){
-          compositeSubMoves.Get(j,SM);
-          if(SM->arrayNumber!=LINEAR){ // copy the submove
-             SubMove SM2 = (*SM);
-             this->compositeSubMoves.Append(SM2);
-             count++;
-          } else{ // a linear submove
-             ar = level[SM->arrayIndex];
-             if(ar.minIndex==ar.maxIndex){
-                SubMove SM2 = (*SM);
-                SM2.arrayIndex=ar.minIndex;
-                this->compositeSubMoves.Append(SM2);
-                count++;
-             } else{ // insert new submoves
-               for(int k=ar.minIndex;k<=ar.maxIndex;k++){
-                  SubMove SM2 = (*SM);
-                  SM2.arrayNumber=LINEAR;
-                  SM2.arrayIndex=k;
-                  this->compositeSubMoves.Append(SM2);
-                  count++;
-               }
-            }
-          }
-      }
-      CompositeMove CM2 = (*CM);
-      CM2.minIndex=pos;
-      CM2.maxIndex=pos+count-1;
-      this->compositeMoves.Put(i,CM2); 
-   }
-
-   // process the periodic moves 
-   for(int i=0;i<this->periodicMoves.Size();i++){
-        this->periodicMoves.Get(i,PM);
-        PeriodicMove PM2 = (*PM);
-        SubMove SM2 = PM2.submove;
-        if(submove.arrayNumber==LINEAR){ // otherwise is nothing to do
-          ar = level[SM2.arrayIndex];
-          if(ar.minIndex==ar.maxIndex){ // ok, just correct the index
-            SM2.arrayIndex=ar.minIndex;
-          } else{ // create a new composite move
-             // first create the appropriate submoves
-             int pos = this->compositeSubMoves.Size(); 
-             RelInterval i;
-             for(int j=ar.minIndex;j<=ar.maxIndex;j++){
-                SM2.arrayNumber = LINEAR;
-                SM2.arrayIndex  = j;
-                this->compositeSubMoves.Append(SM2);
-                linearMoves.Get(j,LM);
-                if(j==ar.minIndex){
-                    i =  LM->interval;
-                }else{
-                    i.Append(&(LM->interval));
-                }
-             }
-             CompositeMove CM2; 
-             CM2.minIndex=pos;
-             CM2.maxIndex=pos+ar.maxIndex-ar.minIndex+1;
-             CM2.interval.Equalize(&i);
-             this->compositeMoves.Append(CM2);
-             PM2.submove.arrayNumber=COMPOSITE;
-             PM2.submove.arrayIndex=this->compositeMoves.Size()-1;
-         } 
-         // write back the periodic move
-         this->periodicMoves.Put(i,PM2); 
-        }
-   }
-   return true;
-}
-
-};
-
-
-
-
-/*
-2.3.12 The Class PMPoint
-
-This class represents a single periodic moving point.
-
-*/
-class PMPoint : public StandardAttribute {
-  friend ostream& operator<< (ostream&, PMPoint);
-  public:
-     PMPoint() {} // never use this constructor
-     /* normally we need an constructor without any
-        arguments. but this constructor is used in a
-        special way to cast a database object to a
-        PMPoint. So i have decided to insert a constructor
-        with dummy parameter
-     */
-     PMPoint(int dummy);
-     ~PMPoint();
-     void Destroy();
-     void Equalize(const PMPoint* P2);
-     int NumOfFLOBs();
-     FLOB *GetFLOB(const int i);
-     int Compare(const Attribute* arg) const;
-     bool Adjacent(const Attribute*)const;
-     PMPoint* Clone() const;
-     int Sizeof()const;
-     bool IsDefined() const;
-     void SetDefined( bool defined );
-     size_t HashValue() const;
-     void CopyFrom(const StandardAttribute* arg);
-     ListExpr ToListExpr(const bool typeincluded)const;
-     bool ReadFrom(const ListExpr value);
-     PMPoint* Intersection(const PInterval* interval);
-     bool IsEmpty()const;
-     Point* At(const DateTime* instant)const;
-     Point* Initial()const;
-     Point* Final();
-     inline Points* Breakpoints();
-     Points* Breakpoints(const DateTime* minDuration,const bool inclusive);
-     CLine*  Trajectory();
-     DateTime GetStart()const;
-     DateTime GetEnd()const;
-     PInterval GetInterval()const;
-     PBBox GetBbox()const;
-     MPoint Expand();
-     void ReadFromMPoint(MPoint& P);
-     PMInt9M* Toprel(const Point P); 
-     PMInt9M* Toprel(Points& P);
-     bool DistanceTo(const double x, const double y, PMReal& result)const;
-     bool CheckCorrectness();
-
-  private:
-     DBArray<LinearPointMove> linearMoves;
-     DBArray<SpatialCompositeMove> compositeMoves;
-     DBArray<SubMove> compositeSubMoves;
-     DBArray<SpatialPeriodicMove> periodicMoves;
-     bool defined;
-     bool canDelete;
-     RelInterval interval;
-     DateTime startTime;
-     PBBox bbox;
-     SubMove submove;
-     /* the next four functions are needed to convert a
-        periodic moving point to its nested list representation.
-     */
-     ListExpr GetSubMoveList(const SubMove* SM)const;
-     ListExpr GetLinearMoveList(const int index)const;
-     ListExpr GetSpatialPeriodicMoveList(const int index)const;
-     ListExpr GetSpatialCompositeMoveList(const int index)const;
-     /* The next functions help to read in a periodic moving
-        point from a nested list representation.
-     */
-     bool ResizeArrays(const ListExpr Value);
-     bool AddSubMovesSize(const ListExpr value,int &LMSize,int &CMSize,
-                          int &SMSize,int &PMSize);
-     bool AddLinearMove(const ListExpr value,int &LMIndex, int &CMIndex,
-                        int &SMIndex, int &PMIndex);
-     bool AddSpatialCompositeMove(const ListExpr value,int &LMIndex, 
-                                  int &CMIndex, int &SMIndex, int &PMIndex);
-     bool AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
-                        int &SMIndex, int &PMIndex);
-
-     void AddSubMovesSizeForIntersection(DateTime* startTime,
-                                    const SubMove submove,
-                                    const PInterval* interval,
-                                    int &Lcount,int &Ccount,
-                                    int &Scount,int &Pcount);
-
-     void AppendUnits(MPoint& P, DateTime* Time, const SubMove S);
-     int NumberOfExpandedUnits();
-     int NumberOfExpandedUnits(const SubMove S);
-     LinearPointMove GetLastUnit();
-     bool FillFromRepTree(int& cpos, int& cspos, int& ppos, RepTree TR);
-
-  };
-
-/*
-2.3.13 The Class PMPoints
-
-This class represents a set of periodic moving points.
-
-*/
-class PMPoints : public StandardAttribute {
-  friend ostream& operator<< (ostream& ,class PMPoints&) ;
-  public:
-     PMPoints() {}
-     /* normally we need an constructor without any
-        arguments. but this constructor is used in a
-        special way to cast a database object to a
-        PMPoint. So i have decided to insert a constructor
-        with dummy parameter
-     */
-     PMPoints(int dummy);
-     ~PMPoints();
-     void Destroy();
-     void Equalize(const  PMPoints* P2);
-     int NumOfFLOBs();
-     FLOB *GetFLOB(const int i);
-     int Compare(const Attribute* arg) const;
-     bool Adjacent(const Attribute*)const;
-     PMPoints* Clone() const;
-     int Sizeof()const;
-     bool IsDefined() const;
-     void SetDefined( bool defined );
-     size_t HashValue() const;
-     void CopyFrom(const StandardAttribute* arg);
-     ListExpr ToListExpr(const bool typeincluded)const;
-     bool ReadFrom(const ListExpr value);
-     bool IsEmpty()const;
-     inline Points* Breakpoints();
-     Points* Breakpoints(const DateTime* duration,const bool inclusive);
-     Points* At(const DateTime* T)const;
-     Points* Initial()const{
-         if(!defined)
-            return NULL;
-         return At(&startTime);
-     }
-     Points* Final(){
-         if(!defined)
-            return NULL;
-         DateTime DT(startTime);
-         DT.Add(interval.GetLength());
-         return At(&DT); 
-     }
- private:
-     DBArray<LinearPointsMove> linearMoves;
-     DBArray<TwoPoints> thePoints;
-     DBArray<SpatialCompositeMove> compositeMoves;
-     DBArray<SubMove> compositeSubMoves;
-     DBArray<SpatialPeriodicMove> periodicMoves;
-     bool defined;
-     bool canDelete;
-     RelInterval interval;
-     DateTime startTime;
-     PBBox bbox;
-     SubMove submove;
-     /* the next four functions are needed to convert a
-        periodic moving point to its nested list representation.
-     */
-     ListExpr GetSubMoveList(const SubMove SM)const;
-     ListExpr GetLinearMoveList(const int index)const;
-     ListExpr GetSpatialPeriodicMoveList(const int index)const;
-     ListExpr GetSpatialCompositeMoveList(const int index)const;
-     /* The next functions help to read in a periodic moving
-        point from a nested list representation.
-     */
-     bool ResizeArrays(const ListExpr Value);
-     bool AddSubMovesSize(const ListExpr value, int &LMSize, int &PtsSize, 
-                          int &CMSize, int &SMSize, int &PMSize);
-     bool AddLinearMove(const ListExpr value, int &LMIndex, int &PtsIndex,
-                        int &CMIndex, int &SMIndex, int &PMIndex);
-     bool AddSpatialCompositeMove(const ListExpr value, int &LMIndex, 
-                        int &PtsIndex, int &CMIndex, int &SMIndex, 
-      int &PMIndex);
-     bool AddPeriodMove(const ListExpr value, int &LMIndex, int &PtsIndex,
-                        int &CMIndex, int &SMIndex, int &PMIndex);
-
-  };
-
-
 /*
-
-2.4 Implementation of Aid Classes and Functions
-
+2 Implementation of supporting functions
 
-2.4.1 Aid Classes
 
-2.4.1.1 The class SimplePoint
+The following functions support the implementation of functions of
+the classes of the PeriodicAlgebra.
 
-This class provides a single point with
-coordinates in [R].
-
-
 */
 
-class SimplePoint{
-friend ostream& operator<< (ostream& , const SimplePoint);
-public:
-    double x;
-    double y;
-    /*
-      The info members are  not  real values of this SimplePoint,
-      this means, that in comparisons this members are not used.
-      The purpose of this members is to store some additional information.
-    */
-    int intinfo;
-    bool boolinfo;
 
-    int compareTo(const SimplePoint P2)const{
-       if(x<P2.x) return -1;
-       if(x>P2.x) return 1;
-       if(y<P2.y) return -1;
-       if(y>P2.y) return 1;
-       return 0;
-    }
-    bool operator< (const SimplePoint P2)const{
-      return compareTo(P2)<0;
-    }
-    bool operator> (const SimplePoint P2)const{
-      return compareTo(P2)>0;
-    }
-    bool operator== (const SimplePoint P2)const{
-      return compareTo(P2)==0;
-    }
-    bool operator!= (const SimplePoint P2)const{
-      return compareTo(P2)!=0;
-    }
-/*    SimplePoint operator= (SimplePoint P2){
-       x = P2.x;
-       y = P2.y;
-       intinfo=P2.intinfo;
-       boolinfo=P2.boolinfo;
-       return *this;
-    }*/
-};
-
-
 /*
-2.4.2 A few Functions which can be useful for several classes
-
 ~About~
 
 The ~About~ function checks whether the distance between the 
@@ -4429,484 +265,1276 @@ double PointPosOnSegment(double x1, double y1,
 
 
 
-/*
-~IsSpatialExtension~
 
-This function checks whether the line defined by TP is
-a extension of the segment defined by this. 
+
+/*
+3 Implementation of the classes
+
+3.1 The class PBBox 
+
+*/
+
+/*
+~Constructor~
+
+The standard constructor for special use;
 
 [3] O(1)
 
 */
-bool TwoPoints::IsSpatialExtension(const TwoPoints* TP) const {
+PBBox::PBBox(){
    __TRACE__
-     if(endX!=TP->startX) return false;
-      if(endY!=TP->startY) return false;
-      double dx = endX-startX;
-      double dy = endY-startY;
-      double TPdx = TP->endX-TP->startX;
-      double TPdy = TP->endY-TP->startY;
-      return About(dy*TPdx,dx*TPdy); 
 }
 
 /*
-~Speed~
+~Constructor~
 
-This function computes the speed for a points moving from the
-startpoint to the endpoint in the given interval. The speed is allways
-greater than zero. This function will return -1 if an error is occurred
-e.g. division by zero.
+This constructor creates an undefined bounding box.
 
 [3] O(1)
 
 */
-
-double TwoPoints::Speed(const RelInterval interval)const {
+PBBox::PBBox(int dummy){
    __TRACE__
-  DateTime* D = interval.GetLength();
-   double L = D->ToDouble();
-   delete D; 
-   D = NULL;
-   if(L<0) return -1;
-   double dx = endX-startX;
-   double dy = endY-startY;
-   double distance=sqrt(dx*dx+dy*dy);
-   if(L==0 && distance!=0) return -1;
-   if(distance==0) return 0;
-   return distance/L;
-}
-
-/* 
-~ReHeap~
-
-This function performs a reheap of a given (partially) heap.
-Is a support function for heapsort. This function places the
-element at position in in __values__ at the right place 
-according to the definition of a heap where the heap itself is
-given by the range i ... k in the __values__ array.
-
-
-[3]   log(k-i)
-
-
-*/
-template <typename T>
-void reheap(T values[], int i, int k){
-   __TRACE__
-  int j,son;
-   j = i;
-   bool done = false; 
-   while(!done){
-     if( 2*j > k ){ // end of array reached
-         done = true;
-     }
-     else{ if(2*j+1<=k){
-               if(values[2*j-1]<values[2*j])
-                   son = 2*j;
-               else
-                   son = 2*j+1;
-           }else {
-                son = 2*j;
-           }
-           if(values[j-1]>values[son-1]){
-              // swap values
-              T tmp = values[j-1];
-              values[j-1]=values[son-1];
-              values[son-1] = tmp;
-              j = son;
-           }else{ // final position reached
-               done = true;
-           }
-     }
-   } 
-}
-/*
-~HeapSort~
-
-This function sorts an array with elements supporting
-comparisons. After calling this function the elements in
-the array are sorted in decreasing order.
-
-[3]   O(n log(n)) where n is the number of elements in the array.
-
-
-*/
-template <typename T> 
-void heapsort(const int size, T values[]){
-   __TRACE__
-   int n = size;
-    int i;
-    for (i=n/2;i>=1;i--)
-         reheap(values,i,n);
-    for(i=n;i>=2;i--){
-       T tmp = values[0];
-       values[0] = values[i-1];
-       values[i-1] = tmp;
-       reheap(values,1,i-1);
-    }
+   defined = true;
+   isEmpty = true;
 }
 
 /*
-~find~
+~Constructor~
 
-This function finds an entry in an sorted array applying 
-binary search. If nothing is found, -1 is returned otherwise
-the first index of a matching element.
-
-*/
-template <typename T>
-int find(const int size,const T field[],const T elem){
-   __TRACE__
-  int min=0;
-   int max=size;
-   bool found = false;
-   while(min<max && !found){
-     int mid = (min+max)/2;
-     if(field[mid]>elem)
-         max=mid-1;
-     else if(field[mid]<elem)
-         min=mid+1;
-     else
-         found=true;
-   }
-   if(!found) return -1;
-   // At this point we know that mid is the index of one
-   // element equals to *elem*. Now we have to find the 
-   // smallest index.
-   max = mid;
-   while(max!=min){
-     mid=(max+min)/2;
-     if(field[mid]<elem)
-        min==mid+1;
-     else
-        max=mid;
-   } 
-   return max;
-}
-
-
-/*
-~GetNumeric~
-
-Numbers have different representations in nested lists (IntAtom, RealAtom
-or Rationals). All Classes should be have the possibility to read any
-number format. To realize this, the function ~GetNumeric~ can be used.
-The result is __true__, if LE represents a valid numeric value. This value
-is stored in the argument __value__ as a double.
+This constructor creates a new bounding box
+containing only the point (x,y).
 
 [3] O(1)
 
 */
-static bool GetNumeric(const ListExpr List, double &value){
+PBBox::PBBox(const double x, const double y){
    __TRACE__
- ListExpr LE = List;
-  int AT = nl->AtomType(LE);
-  if(AT==IntType){
-     value = (double)nl->IntValue(LE);
+  defined=true;
+  isEmpty=false;
+  minX=maxX=x;
+  minY=maxY=y;
+}
+
+/*
+~Constructor~
+
+This constructor creates a bounding box from the
+given rectangle.
+
+[3] O(1)
+
+*/
+PBBox::PBBox(const double minX, const double minY, 
+             const double maxX, const double maxY){
+   __TRACE__
+  this->minX = minX<maxX?minX:maxX;
+  this->maxX = minX<maxX?maxX:minX;
+  this->minY = minY<maxY?minY:maxY;
+  this->maxY = minY<maxY?maxY:minY;
+  defined = true;
+  isEmpty = false;
+}
+
+
+/*
+~Copy Constructor ~
+
+*/
+PBBox::PBBox(const PBBox& source){
+  Equalize(&source);
+}
+
+/*
+~Destructor~
+
+The destructor makes nothing because all class members
+are primitive types.
+
+*/
+
+PBBox::~PBBox(){}
+
+
+/*
+~Compare~
+
+This function compares this PBBox with  __arg__.
+
+[3] O(1)
+
+*/
+int PBBox::Compare(const Attribute* arg) const{
+    __TRACE__
+  return CompareTo((PBBox*) arg);
+}
+
+/*
+~Adjacent~
+
+Because a bounding box is defined in the Euclidean Plane, the
+adjacent function cannot be implemented. Hence the return value is
+allways false;
+
+[3] O(1)
+
+*/
+bool PBBox::Adjacent(const Attribute*)const{
+    __TRACE__
+ return false;
+}
+
+
+/*
+~Sizeof~
+
+This function returns the size of the PBBox class.
+
+[3] O[1]
+
+*/
+int PBBox::Sizeof()const{
+    __TRACE__
+  return sizeof(PBBox);
+}
+
+/*
+~IsDefined~
+
+This function returns true if this PBBox is in a defined state.
+
+[3] O(1)
+
+*/
+bool PBBox::IsDefined() const{
+    __TRACE__
+ return defined;
+}
+
+/*
+~IsEmpty~
+
+This function returns whether this bounding box don't contains
+any point of the Euclidean Plane.
+
+[3] O(1)
+
+*/
+bool PBBox::IsEmpty() const{
+    __TRACE__
+  return isEmpty;
+}
+
+
+/*
+~SetDefined~
+
+The ~SetDefined~ function sets the defined state of this bounding box.
+Because the internal values of this box can have invalid value, this
+function will only have an effect if the argument is false.
+
+[3] O(1)
+
+*/
+void PBBox::SetDefined( bool defined ){
+    __TRACE__
+ if(!defined)
+    this->defined = defined;
+}
+
+/*
+~HashValue~
+
+This fuction returns a Hash-Value of this bounding box.
+
+[3] O(1)
+
+*/
+size_t PBBox::HashValue() const{
+    __TRACE__
+  if(!defined) return (size_t) 0;
+  if(isEmpty) return (size_t) 1;
+   return (size_t)  abs(minX + maxX*(maxY-minY));
+}
+
+
+/*
+~CopyFrom~
+
+If this function is called the bounding box takes its value
+from the given argument.
+
+[3] O(1)
+
+*/
+void PBBox::CopyFrom(const StandardAttribute* arg){
+    __TRACE__
+  Equalize((PBBox*) arg);
+}
+
+/*
+~ToListExpr~
+
+This function translates this bounding box to its nested list representation.
+
+[3] O(1)
+
+*/
+ListExpr PBBox::ToListExpr()const{
+    __TRACE__
+   if(!defined)
+       return nl->SymbolAtom("undefined");
+    if(isEmpty)
+       return nl->SymbolAtom("empty");
+    return nl->FourElemList(nl->RealAtom(minX),
+                            nl->RealAtom(minY),
+                            nl->RealAtom(maxX),
+                            nl->RealAtom(maxY));
+}
+
+/*
+~ReadFrom~
+
+This function reads the value of this bounding box from the given
+ListExpr.
+
+[3] O(1)
+
+*/
+bool PBBox::ReadFrom(const ListExpr LE){
+    __TRACE__
+ if(nl->IsEqual(LE,"undefined")){
+      defined = false;
+      isEmpty=true;
+      return true;
+  }
+  if(nl->IsEqual(LE,"empty")){
+     defined = true;
+     isEmpty = true;
      return true;
   }
-  if(AT==RealType){
-     value = nl->RealValue(LE);
-     return true;
-  }
-  // check for a rational
-  int L = nl->ListLength(LE);
-  if(L!=5 && L!=6)
-     return false;
-  if(!nl->IsEqual(nl->First(LE),"rat"))
-     return false;
-
-  LE = nl->Rest(LE); // read over the "rat"
-  double sign=1.0;
-  if(L==6){ // signum is included
-    ListExpr SL = nl->First(LE);
-    if(nl->IsEqual(SL,"+"))
-      sign=1.0;
-    else if(nl->IsEqual(SL,"-"))
-      sign=-1.0;
-    else
-      return false;
-    LE = nl->Rest(LE); // read over the signum
-  }
-  if(!nl->IsEqual(nl->Third(LE),"/"))
+  if(nl->ListLength(LE)!=4)
     return false;
-  if ( (nl->AtomType(nl->First(LE))!=IntType) ||
-       (nl->AtomType(nl->Second(LE))!=IntType) ||
-       (nl->AtomType(nl->Fourth(LE))!=IntType))
-       return false;
-  double ip = nl->IntValue(nl->First(LE));
-  double num = nl->IntValue(nl->Second(LE));
-  double denom = nl->IntValue(nl->Fourth(LE));
-  if(ip<0 || num<0 || denom<=0)
-     return false;
-  value = sign*(ip + num/denom);
+
+  double x1,x2,y1,y2;
+  if(!GetNumeric(nl->First(LE),x1)) return false;
+  if(!GetNumeric(nl->Second(LE),y1)) return false;
+  if(!GetNumeric(nl->Third(LE),x2)) return false;
+  if(!GetNumeric(nl->Fourth(LE),y2)) return false;
+  minX = x1<x2?x1:x2;
+  maxX = x1<x2?x2:x1;
+  minY = y1<y2?y1:y2;
+  maxY = y1<y2?y2:y1;
+  isEmpty=false;
+  defined =true;
   return true;
 }
 
 
 /*
-~WriteListToStreamRec~
+~CompareTo~
 
-This function supports the WriteListToStream function.
-It write a ListExpr given as argumnet __Lorig__ to __os__
-with the given indent. If the list is corrupt, __error__
-will be set to false.
+The ~CompareTo~ function compares two bounding boxes
+lexicographically (order minX maxX minY maxY).
+An undefined Bounding box is less than a defined one.
 
+[3] O(1)
 
 */
+int PBBox::CompareTo(const PBBox* B2)const {
+    __TRACE__
+ if(!defined&&!B2->defined) return 0;
+  if(!defined&&B2->defined) return -1;
+  if(defined&&!B2->defined) return 1;
+  // Now holds that this and B2 are defined
+  if(isEmpty&&B2->isEmpty) return 0;
+  if(isEmpty&&!B2->isEmpty) return -1;
+  if(!isEmpty&&B2->isEmpty) return 1;
+  // both boxes are not empty
+  if(minX<B2->minX) return -1;
+  if(minX>B2->minX) return 1;
+  if(maxX<B2->maxX) return -1;
+  if(maxX>B2->maxX) return 1;
+  if(minY<B2->minY) return -1;
+  if(minY>B2->minY) return 1;
+  if(maxY<B2->maxY) return -1;
+  if(maxY>B2->maxY) return 1;
+  return 0;
+}
 
-void WriteListToStreamRec(ostream &os, const ListExpr Lorig,const int indent,
-                          bool &error){
-   __TRACE__
- if(error) return;
-  ListExpr L = Lorig;
-  NodeType type= nl->AtomType(L);
-  bool res;
-  switch(type){
-    case BoolType   : res = nl->BoolValue(L);
-                      if(res)
-              os << "TRUE";
-          else
-              os << "FALSE";
-          break;
-    case IntType    : os << (nl->IntValue(L));break;
-    case RealType   : os << nl->RealValue(L);break;
-    case SymbolType : os << nl->SymbolValue(L);break;
-    case StringType : os << "\"" << nl->StringValue(L) << "\""; break;
-    case TextType   : os << "<<A Text>>"; break;
-    case NoAtom     : os << endl;
-                      for(int i=0;i<indent;i++)
-             os << " ";
-          os << "(";
-                      while(!nl->IsEmpty(L) && !error){
-             WriteListToStreamRec(os,nl->First(L),indent+4,error);
-       os << " ";
-       L = nl->Rest(L);
-          }   
-          os << ")";
-          break;
-    default : os << "unknkow AtomType"; error=true;
+/*
+~Contains~
+
+This function checks whether the point defined by (x,y) is
+contained in this bounding box.
+
+[3] O(1)
+
+*/
+bool PBBox::Contains(const double x,const double y)const{
+    __TRACE__
+ if(!defined) return false;
+  if(isEmpty) return false;
+  return x>=minX && x<=maxX && y>=minY && y<=maxY;
+}
+
+
+/*
+~Contains~
+
+The following function checks whether B2 is contained in this PBBox.
+
+[3] O(1)
+
+*/
+bool PBBox::Contains(const PBBox* B2)const {
+    __TRACE__
+  if(!defined) return false;
+   if(isEmpty) return B2->isEmpty;
+   return Contains(B2->minX,B2->minY) && Contains(B2->maxX,B2->maxY);
+}
+
+/*
+~Clone~
+
+Returns a clone of this;
+
+[3] O(1)
+
+*/
+PBBox* PBBox::Clone() const{
+    __TRACE__
+ PBBox* res = new PBBox(minX,minY,maxX,maxY);
+  res->defined = defined;
+  res->isEmpty = isEmpty;
+  return res;
+}
+
+/*
+~Equalize~
+
+The ~Equalize~ function changed this instance to have the same value
+as B2.
+
+[3] O(1)
+
+*/
+void PBBox::Equalize(const PBBox* B2){
+    __TRACE__
+  minX = B2->minX;
+   maxX = B2->maxX;
+   minY = B2->minY;
+   maxY = B2->maxY;
+   defined = B2->defined;
+   isEmpty = B2->isEmpty;
+}
+
+/*
+~Intersection~
+
+This function computes the intersection beween this instance and
+B2. If both boxes are disjoint the result will be undefined.
+
+[3] O(1)
+
+*/
+void PBBox::Intersection(const PBBox* B2){
+    __TRACE__
+ if(!defined) return;
+  if(!B2->defined){
+    defined=false;
+    return;
   }
-}
-
-
-/*
-~WriteListExprToStream~
-
-This function writes a ListExpr given by __L__ to __os__.
-
-
-*/
-void WriteListExprToStream(ostream &os, const ListExpr L){
-   __TRACE__
-  bool error = false;
-   WriteListToStreamRec(os,L,0,error);
-   if(error) os << "The given List was corrupt";
-}
-
-/*
-~Shift Operator for Bounding Boxes~
-
-This operator overloads the the shift operator for an
-output stream. It can be used for easy writing a such
-box to __cout__, __cerr__ or whatever.
-
-
-*/
-ostream& operator<< (ostream &os, const PBBox BB){
-   __TRACE__
- os << "PBBox[";
-  if(!BB.defined)
-    os << "undefined]";
-  else if (BB.isEmpty)
-    os << "empty]";
-  else{
-    os << "(" << BB.minX << "," << BB.minY << ")";
-    os << "->";
-    os << "(" << BB.maxX << "," << BB.maxY << ")";
+  if(isEmpty) return;
+  if(B2->isEmpty){
+     isEmpty=true;
+     return;
   }
-  return os;  
+  minX = minX>B2->minX? minX : B2->minX;
+  maxX = maxX<B2->maxX? maxX : B2->maxX;
+  minY = minY>B2->minY? minY : B2->minY;
+  maxY = maxY<B2->maxY? maxY : B2->maxY;
+  isEmpty = minX<=maxX && minY<=maxY;
 }
 
 /*
-~Shift operator for RelInterval~
+~Intersects~
 
-Overloads the shift operator for easy outputing a
-relative interval.
+~Intersects~ checks whether this and B2 share any common point.
+
+[3] O(1)
 
 */
-ostream& operator<< (ostream& os, const RelInterval I){
-   __TRACE__
-  os << I.ToString();
-   return os;
+bool PBBox::Intersects(const PBBox* B2)const{
+    __TRACE__
+ if(!defined || !B2->defined) return false;
+  if(isEmpty || B2->isEmpty) return false;
+  if(minX>B2->maxX) return false; //right of B2
+  if(maxX<B2->minX) return false; //left of B2
+  if(minY>B2->maxY) return false; //over B2
+  if(maxY<B2->minY) return false; //under B2
+  return true;
 }
 
 /*
-~Shift operator for the TwoPoints Type~
+~Size~
 
-Overloads the shift operator for easy output of 
-a TwoPoints instance.
+This function returns the size of the box. If this box is
+undefined -1.0 is returned. Otherwise the result will be a
+non-negative double number. Note that a empty box and a box
+containing a single point will yield the same result.
+
+[3] O(1)
 
 */
-ostream& operator<< (ostream& os, const TwoPoints TP){
-   __TRACE__
- os << "TP[(" << TP.startX << "," << TP.startY << ") ->(";
-  os << TP.endX << "," << TP.endY << ")]";
-  return os;
+double PBBox::Size()const {
+    __TRACE__
+ if(!defined) return -1;
+  if(isEmpty) return 0;
+  return (maxX-minX)*(maxY-minY);
 }
 
 /*
-~Shift operator for the PInterval Type~
+~Union~
 
-Overloads the shift operator for easy output of 
-a PInterval instance.
+The function ~Union~ computes the bounding box which contains
+both this bounding box as well as B2.
 
-*/
-ostream& operator<< (ostream& os, const PInterval I){
-   __TRACE__
-  os << I.ToString();
-   return os;
-}
-
-/*
-~Shift operator for the CompositeMove Type~
-
-Overloads the shift operator for easy output of 
-a CompositeMove instance.
+[3] O(1)
 
 */
-ostream& operator<< (ostream& os, const CompositeMove CM){
-   __TRACE__
-  os << "CM[" << CM.minIndex << "," << CM.maxIndex << "..";
-  os << CM.interval << "]";
-   return os;
-}
-
-/*
-~Shift operator for the SpatialCompositeMove Type~
-
-Overloads the shift operator for easy output of 
-a SpatialCompositeMove instance.
-
-*/
-ostream& operator<< (ostream& os, const SpatialCompositeMove SCM){
-   __TRACE__
-  os << "CM[" << SCM.minIndex << "," << SCM.maxIndex << "..";
-   os << SCM.interval << ".." << SCM.bbox << "]";
-   return os;
-}
-
-/*
-~Shift operator for the SubMove Type~
-
-Overloads the shift operator for easy output of 
-a SubMove instance.
-
-*/
-ostream& operator<< (ostream& os, const SubMove SM){
-   __TRACE__
- switch(SM.arrayNumber){
-    case LINEAR    : os << "SM_Linear["; break;
-    case COMPOSITE : os << "SM_COMPOSITE[";break;
-    case PERIOD    : os << "SM_PERIODIC[";break;
-    default        : os << "SM_UNKNOWN[";
+void PBBox::Union(const PBBox* B2){
+    __TRACE__
+ if(!B2->defined){ // operators are only allowed on defined arguments
+     defined = false;
+     return;
   }
-  os << SM.arrayIndex << "]";
-  return os;
-}
+  if(!defined) return; // see above
 
-/*
-~Shift operator for the PeriodicMove Type~
+  if(B2->isEmpty) return; // no change
 
-Overloads the shift operator for easy output of 
-a PeriodicMove instance.
-
-*/
-ostream& operator<< (ostream& os, const PeriodicMove PM){
-   __TRACE__
-  os << "R["<< PM.repeatations <<"](" << PM.submove <<")";
-  return os;
-}
-
-/*
-~Shift operator for the LinearPointsMove Type~
-
-Overloads the shift operator for easy output of 
-a LinearPointsMove instance.
-
-*/
-ostream& operator<< (ostream& os, const LinearPointsMove LM){
-   __TRACE__
-  os << "LPsM[" ;
-   os << LM.startIndex << "," << LM.endIndex << "]";
-   // add also bbox, interval isstatic and so on if required !
-   return os;
-}
-
-/*
-~Shift operator for the PMPoints Type~
-
-Overloads the shift operator for easy output of 
-a PMPoints instance.
-
-*/
-ostream& operator<< (ostream &os, class PMPoints &P){
-   __TRACE__
- os << " <<<< PMPoints >>>>" << endl;
-  if(!P.defined){
-     os << "undefined" << endl;
-     return os;
-  }   
-  os << "starttime: " << P.startTime.ToString() << endl;
-  os << P.submove << endl;
-  os << "defined :" << P.defined << endl;
-  // the contents of the contained arrays
-  // the linear moves
-  os << "linear Moves " << P.linearMoves.Size() << endl;
-  const LinearPointsMove* LM1;
-  const TwoPoints* TP1;
-  unsigned int thePointsSize = P.thePoints.Size();
-  os << "SizeOf thePoints: " << thePointsSize << endl;
-  for(int i=0;i<P.linearMoves.Size();i++){
-     P.linearMoves.Get(i,LM1);
-     LinearPointsMove LM2 = (*LM1);
-     os << LM2 << endl;
-     os << "Content of this linear Move " << endl;
-     for(int unsigned j=LM2.startIndex;j<LM2.endIndex;j++){
-   if(j>=thePointsSize){
-       os << "Array out of bounds " << __POS__ << endl;
-       os << "Try to access element number " << j << "in an array ";
-       os << "of size " << thePointsSize << endl;
-   }else {
-       os << j << " ." ;
-       P.thePoints.Get(j,TP1);
-       TwoPoints TP2 = (*TP1);
-       os << TP2 << endl;
-       os << j << " ." ;
-       P.thePoints.Get(j,TP1);
-       TP2 = (*TP1);
-       os << TP2 << endl;
-       os << j << " ." ;
-       P.thePoints.Get(j,TP1);
-       TP2 = (*TP1);
-       os << TP2 << endl;
-  }     
-     }
-     os << "end content of this linear Move " << endl;
+  // this and B2 are defined and not empty
+  if(isEmpty){
+      Equalize(B2);
+      return;
   }
- // os << " please extend the << operator for pmpoints values " << endl;
-  os << " <<<< end PMPoints >>> " << endl; 
-  return os;
+  minX = minX<B2->minX? minX: B2->minX;
+  maxX = maxX>B2->maxX? maxX: B2->maxX;
+  minY = minY<B2->minY? minY: B2->minY;
+  maxY = maxY>B2->maxY? maxY: B2->maxY;
+}
+
+/*
+~Union~
+
+This variant of the ~Union~ functions extends this bounding
+box to contain the point defined by (x,y)
+
+[3] O(1)
+
+*/
+void PBBox::Union(const double x, const double y){
+    __TRACE__
+if(!defined)return;
+ if(isEmpty){
+    isEmpty=false;
+    minX=maxX=x;
+    minY=maxY=y;
+    return;
+ }
+ else{ // really extend this if needed
+    minX = minX<x? minX : x;
+    maxX = maxX>x? maxX : x;
+    minY = minY<y? minY : y;
+    maxY = maxY>y? maxY : y;
+ }
+}
+
+/*
+~SetUndefined~
+
+The ~SetUndefined~ function sets the state of this BBox to be
+undefined.
+
+[3] O(1)
+
+*/
+void PBBox::SetUndefined(){
+    __TRACE__
+  defined=false;
+}
+
+/*
+~GetVertex~
+
+This functions returns a vertex of this box.
+
+  * __No__=0: left bottom
+
+  * __No__=1: right bottom
+
+  * __No__=2: left top
+
+  * __No__=3: right top
+
+  * otherwise: the return value is false, x,y remains unchanged
+
+[3] O(1)
+
+*/
+bool PBBox::GetVertex(const int No, double& x, double& y)const{
+    __TRACE__
+  if(!defined) return false;
+   if(isEmpty) return false;
+
+   if(No==0){
+     x = minX;
+     y = minY;
+     return true;
+   }
+   if(No==1){
+     x=maxX;
+     y=minY;
+     return true;
+   }
+   if(No==2){
+     x=minX;
+     y=maxY;
+     return true;
+   }
+   if(No==3){
+     x=maxX;
+     y=maxY;
+     return true;
+   }
+   if(DEBUG_MODE){
+     cerr << "PBBox::GetVertex called with wrong value :" << No << endl;
+   }
+   return  false;
+}
+
+/*
+~SetEmpty~
+
+Sets a bounding box to be empty.
+
+*/
+void PBBox::SetEmpty(){
+   isEmpty = true;
+   defined = true;
+}
+
+
+/*
+~ToString~
+
+This function returns a string representation of a bounding box.
+
+*/
+string PBBox::ToString() const {
+       ostringstream res;
+       if(!defined)
+          res << "[undefined]";
+       else if(isEmpty)
+          res << "[empty]";
+       else{
+          res << "[" << minX <<", " << minY << ", ";
+          res << maxX << ", " << maxY << "]";
+           
+       }
+       return res.str(); 
+    }
+
+
+/*
+~NumOfFLOBs~
+
+This function returns always zero.
+
+*/
+int PBBox::NumOfFLOBs() const{
+   return 0;
+}
+
+/*
+~GetFLOB~
+
+Because the ~NumOfFLOBs~ function returns zero, this 
+function should never be called.
+
+*/
+FLOB* PBBox::GetFLOB(int i){
+   assert(false);
+}
+
+/*
+~Assigment operator~
+
+*/
+PBBox& PBBox::operator=(const PBBox& source){
+   Equalize(&source);
+   return *this;
+}
+
+
+/*
+3.2 Implementation of RelInterval
+
+*/
+
+/*
+~Constructor~
+
+The special constructor for the cast function.
+
+[3] O(1)
+
+*/
+RelInterval::RelInterval(){   
+   __TRACE__
+}
+
+/*
+~Constructor~
+
+This constructor creates a defined single instant with length 0.
+
+[3] O(1)
+
+*/
+RelInterval::RelInterval(int dummy){
+    __TRACE__
+   length = DateTime(durationtype);
+   leftClosed=true;
+   rightClosed=true;
+   defined=true;
+   canDelete=false;
+}
+
+/*
+~A private constructor~
+
+Creates a RelInterval from the given values. Is private because
+the values can leads to a invalid state of this RelInterval.
+
+[3] O(1)
+
+*/
+RelInterval::RelInterval(const DateTime* length, const bool leftClosed,
+                         const bool rightClosed){
+    __TRACE__
+ DateTime Zero= DateTime(durationtype);
+  int comp=length->CompareTo(&Zero);
+  assert(comp>=0);
+  assert(comp>0 || (leftClosed && rightClosed));
+  this->leftClosed=leftClosed;
+  this->rightClosed=rightClosed;
+  this->length.Equalize(length);
+}
+
+/*
+~Append~
+
+This function appends D2 to this RelInterval if possible.
+When D2 can't appended to this false is returned.
+
+[3] O(1)
+
+*/
+ bool RelInterval::Append(const RelInterval* R2){
+    __TRACE__
+   if(!CanAppended(R2))
+       return false;
+    length.Add(&(R2->length));
+    rightClosed = R2->rightClosed;
+    return true;
+ }
+
+/*
+~CanAppended~
+
+This function checks whether D2 can appended to this RelInterval.
+
+[3] O(1)
+
+*/
+bool RelInterval::CanAppended(const RelInterval* D2)const {
+    __TRACE__
+  if(rightClosed)
+     return ! D2->leftClosed;
+  else
+     return D2->leftClosed; 
+}
+
+/*
+~Contains~
+
+Checks whether T is contained in this RelInterval 
+
+[3] O(1)
+
+*/
+bool RelInterval::Contains(const DateTime* T)const {
+    __TRACE__
+  DateTime Zero=DateTime(durationtype);
+   int compz = T->CompareTo(&Zero);
+   if(compz<0)
+     return false;
+   if(compz==0)
+     return leftClosed;
+   int compe = T->CompareTo(&length);
+   if(compe<0)
+      return true;
+   if(compe==0)
+      return rightClosed;
+   return false;
+}
+
+/*
+~Mul~
+
+This functions extends this relinterval to be factor[mul]oldlength.
+
+[3] O(1)
+
+*/
+void RelInterval::Mul(const long factor){
+    __TRACE__
+  length.Mul(factor);
+}
+
+/*
+~Clone~
+
+This function creates a new RelInterval with the same value as
+the this object.
+
+[3] O(1)
+
+*/
+RelInterval* RelInterval::Clone() const{
+    __TRACE__
+  RelInterval* Copy = new RelInterval(1);
+   Copy->Equalize(this);
+   return Copy;
+}
+
+
+/*
+~CompareTo~
+
+This function compares two RelIntervals.
+
+[3] O(1)
+
+*/
+int RelInterval::CompareTo(const RelInterval* D2)const {
+    __TRACE__
+ if(!defined && !D2->defined) return 0;
+  if(!defined && D2->defined) return -1;
+  if(defined && !D2->defined) return 1;
+  // at this point both involved intervals are defined
+  if(leftClosed && !D2->leftClosed) return -1;
+  if(!leftClosed && D2->leftClosed) return 1;
+  int tc = length.CompareTo(&(D2->length));
+  if(tc!=0) return tc;
+  if(!rightClosed && D2->rightClosed) return -1;
+  if(rightClosed && !D2->rightClosed) return 1;
+  return 0;
+}
+
+/*
+~Compare~
+
+This functions compares an attribute with this relinterval.
+
+[3] O(1)
+
+*/
+int RelInterval::Compare(const Attribute* arg) const{
+    __TRACE__
+  RelInterval* D2 = (RelInterval*) arg;
+   return CompareTo(D2);
+}
+
+/*
+~CopyFrom~
+
+This function take the value for this relinterval from the
+given argument.
+
+[3] O(1)
+
+*/
+void RelInterval::CopyFrom(const StandardAttribute* arg){
+    __TRACE__
+  Equalize((RelInterval*)arg);
+}
+
+/*
+~HashValue~
+
+[3] O(1)
+
+*/
+size_t RelInterval::HashValue() const{
+    __TRACE__
+  size_t lhv = length.HashValue();
+  if(leftClosed) lhv = lhv +1;
+  if(rightClosed) lhv = lhv +1;
+  return lhv;
+}
+
+
+/*
+~Split~
+
+Splits an interval at the specified position. __delta__ has to be in [0,1].
+The return value indicates whether a rest exists. 
+
+[3] O(1)
+
+*/
+bool RelInterval::Split(const double delta, const bool closeFirst,
+                        RelInterval& Rest){
+    __TRACE__
+  if((delta==0) &&  (!leftClosed || !closeFirst))
+     return false;
+  if((delta==1) && (!rightClosed || closeFirst))
+     return false;
+
+   if(length.IsZero())
+     return false;
+
+  Rest.Equalize(this);
+  rightClosed=closeFirst;
+  Rest.leftClosed=!closeFirst;
+  length.Split(delta,Rest.length);
+  return true;
+}
+
+/*
+~Split~
+
+This function splits an interval at a given point in time. 
+If the splitting instant is outside the interval, this interval or
+Rest will be undefined. The other one will contain this interval.
+If the spitting point is inside the interval, this interval will 
+end at this endpoint and Rest will begin at duration. The return 
+value is always true.
+
+*/
+
+bool RelInterval::Split(const DateTime duration, const bool closeFirst,
+                        RelInterval& Rest){
+
+
+  // at this point all cases with unbounded intervals are processed
+
+   // duration left of this interval
+   if(duration.LessThanZero()){
+      // the complete interval is picked up by Rest
+      Rest.Equalize(this);
+      this->defined=false; 
+      return true;
+   }
+   // duration left of this interval
+   if(duration.IsZero() & (!closeFirst || ! leftClosed)){
+      Rest.Equalize(this);
+      this->defined=false;
+      return true;
+   }
+   // duration right on this interval
+   if(duration>length){
+      // Rest will not be defined
+      Rest.defined=false;
+      return true;
+   }
+   // duration right on this interval
+   if(duration==length & (!rightClosed || closeFirst)){
+       // Rest will not be defined
+       Rest.defined=false;
+       return true;
+   } 
+  // the splitting instance is inside this interval
+   Rest.length = this->length - duration;
+   Rest.rightClosed=this->rightClosed;
+   Rest.leftClosed=!closeFirst;
+   this->length = duration;
+   this->rightClosed=closeFirst;
+   return true;
+}
+
+
+/*
+~Equalize~
+
+The ~Equalize~ function changes the value of this RelInterval to
+the value of D2.
+
+[3] O(1)
+
+*/
+void RelInterval::Equalize(const RelInterval* D2){
+    __TRACE__
+ length.Equalize(&(D2->length));
+  leftClosed=D2->leftClosed;
+  rightClosed=D2->rightClosed;
+}
+
+/*
+~GetLength~
+
+This function returns a clone of the contained time value.
+Note that this function
+creates a new DateTime instance. The caller of this function has to make free the
+memory occupied by this instance after using it.
+
+[3] O(1)
+
+*/
+DateTime* RelInterval::GetLength() const {
+    __TRACE__
+   DateTime* res = new DateTime(durationtype);
+   res->Equalize(&length);
+   return res;
+}
+
+/*
+~StoreLength~
+
+This function stored the length of this interval in the argument of this function.
+The advantage of this function  in contrast to the GetLength function is that
+no memory is allocated by this function. 
+
+*/
+void RelInterval::StoreLength(DateTime& result) const{
+  __TRACE__
+  result.Equalize(&length);
+
 }
 
 
 
 /*
-3 Implementation of the classes of this Algebra
+~ToListExpr~
+
+This function computes the list representation of this RelInterval value.
+
+[3] O(1)
+
+*/
+ListExpr RelInterval::ToListExpr(const bool typeincluded)const{
+  __TRACE__
+  ListExpr time;
+  time = length.ToListExpr(true);
+  if(typeincluded)
+       return nl->TwoElemList(nl->SymbolAtom("rinterval"),
+                   nl->ThreeElemList(
+                       nl->BoolAtom(leftClosed),
+                       nl->BoolAtom(rightClosed),
+                       time));
+   else
+      return nl->ThreeElemList(
+                   nl->BoolAtom(leftClosed),
+                   nl->BoolAtom(rightClosed),
+                   time);
+}
+
+/*
+~IsLeftClosed~
+
+This function returns true if the left endpoint of this interval is
+contained in it.
+
+[3] O(1)
+
+*/
+bool RelInterval::IsLeftClosed()const{
+    __TRACE__
+  return leftClosed;
+}
+
+/*
+~IsRightClosed~
+
+This function will return true iff the interval is right closed.
+
+[3] O(1)
+
+*/
+bool RelInterval::IsRightClosed()const{
+    __TRACE__
+ return rightClosed;
+}
 
 
-3.1 The Implementation of the Class Interval
+/*
+~ReadFrom~
 
+This function read the value from the argument. If the argument list don't
+contains a valid RelInterval, false will be returned and the value of this
+remains unchanged. In the other case the value is taken from this parameter
+and true is returned.
+
+[3] O(1)
+
+*/
+bool RelInterval::ReadFrom(const ListExpr LE, const bool typeincluded){
+   __TRACE__
+
+   ListExpr V;
+   if(typeincluded){
+      if(nl->ListLength(LE)!=2){
+         if(DEBUG_MODE)
+            cerr << __POS__ << ": wrong length for typed interval" << endl;
+         return false;
+      }
+      if(!nl->IsEqual(nl->First(LE),"rinterval")){
+         if(DEBUG_MODE){
+            cerr << __POS__ << ": wrong type for interval" << endl;
+            cerr << "expected : rinterval , received :";
+            nl->WriteListExpr(nl->First(LE));
+         }
+         return false;
+      }
+      V = nl->Second(LE);
+   } else
+     V = LE;
+   if(nl->ListLength(V)!=3){
+       if(DEBUG_MODE)
+          cerr << __POS__ << ": wrong length for interval" << endl;
+       return false;
+   }
+   if(nl->AtomType(nl->First(V))!=BoolType){
+     if(DEBUG_MODE)
+        cerr << __POS__ << ": wrong type in interval" << endl;
+     return false;
+   }
+   if(nl->AtomType(nl->Second(V))!=BoolType){
+     if(DEBUG_MODE)
+        cerr << __POS__ << ": wrong type in interval" << endl;
+     return false;
+   }
+   DateTime time=DateTime(durationtype);
+   if(!(time.ReadFrom(nl->Third(V),true))){
+         if(DEBUG_MODE)
+           cerr << __POS__ << ": error in reading length of interval" << endl;
+         return false;
+   }
+   bool LC = nl->BoolValue(nl->First(V));
+   bool RC = nl->BoolValue(nl->Second(V));
+   // a single instant has to be both left- and rightclosed
+   if( (time.IsZero()) && (!LC || !RC)){
+     if(DEBUG_MODE)
+        cerr << __POS__ << ": invalid values in interval" << endl;
+      return false;
+   }
+   leftClosed=LC;
+   rightClosed=RC;
+   length.Equalize(&time);
+   
+   return true;
+}
+
+
+/*
+~Set~
+
+This function sets this RelINterval to be finite with determined length.
+If the arguments don't represent a valid RelINterval value, the return value
+will be false and this instance remains unchanged. In the other case true
+is returned and the value of this is taken from the arguments.
+
+[3] O(1)
+
+*/
+bool RelInterval::Set(const DateTime* length, const bool leftClosed,
+                      const bool rightClosed){
+    __TRACE__
+ if((length->IsZero()) && (!leftClosed || !rightClosed)) return false;
+ this->leftClosed=leftClosed;
+ this->rightClosed=rightClosed;
+ this->length.Equalize(length);
+ return true;
+}
+
+
+/*
+~SetLeftClosed~
+
+
+This function sets the closure of this interval at its left end.
+
+*/
+void RelInterval::SetLeftClosed(bool LC){
+   this->leftClosed = LC;
+}  
+
+/*
+~SetRightClosed~
+
+This function works like the function ~SetLeftClosed~ but for the
+right end of this interval.
+
+*/
+void RelInterval::SetRightClosed(bool RC){
+   this->rightClosed = RC;
+}  
+
+/*
+~SetClosure~
+
+This functions is a summarization of the ~SetLeftClosed~ and the
+~SetRightClosed~ function. The effect will be the same like calling
+this two functions.
+
+*/
+void RelInterval::SetClosure(bool LC,bool RC){
+   this->leftClosed = LC;
+   this->rightClosed = RC;
+}
+
+
+
+
+/*
+~SetLength~
+
+This function is used to set the length of this RelINterval.
+If the given parameter collides with internal settings, false
+is returned.
+
+[3] O(1)
+
+*/
+bool RelInterval::SetLength(const DateTime* T){
+    __TRACE__
+   if(T->IsZero() && (!leftClosed || !rightClosed)) return false;
+   length.Equalize(T);
+   return true;
+}
+
+
+/*
+~ToString~
+
+This function returns a string representation of this RelInterval.
+
+[3] O(1)
+
+*/
+string RelInterval::ToString()const{
+    __TRACE__
+  ostringstream tmp;
+   tmp << (leftClosed?"[":"]");
+   tmp << " 0.0 , ";
+   tmp << length.ToString();
+   tmp << (rightClosed?"]":"[");
+   return tmp.str();
+}
+
+/*
+
+~Where~
+
+This function returns at which procentual part of this interval T is located.
+The result will be a value in $[0,1]$. In all errors cases the value -1
+is returned.
+
+[3] O(1)
+
+*/
+double RelInterval::Where(const DateTime* T)const{
+    __TRACE__
+  if(length.CompareTo(T)<0)
+     return -1;
+  if(T->LessThanZero()) return -1;
+  unsigned long ms1 = 86400000L*T->GetDay()+T->GetAllMilliSeconds();
+  unsigned long ms2 = 86400000L*length.GetDay()+length.GetAllMilliSeconds();
+  return (double)ms1/(double)ms2;
+}
+
+
+/*
+~Plus~
+
+This function  adds the argument to this interval. 
+The 'weld point' is included to the new interval regardless
+to the closure properties of the source intervals. The closure on the
+left of this interval will not be changed and the closure on the 
+right is taken from the argument.
+
+*/
+bool RelInterval::Plus(const RelInterval* I){
+  rightClosed = I->rightClosed;
+  length.Add(&(I->length));
+  return true;
+}
+
+
+/*
+~Copy Constructor~
+
+*/
+RelInterval::RelInterval(const RelInterval& source){
+   Equalize(&source);
+}
+
+/*
+~Destructor~
+
+Because an relative interval has only primitive members,
+the destructor makes nothing.
+
+*/
+RelInterval::~RelInterval(){}
+
+/*
+~Assignment operator~
+
+*/
+RelInterval & RelInterval::operator=(const RelInterval& source){
+   Equalize(&source);
+   return *this;
+}
+
+/*
+~Attribute Supporting functions~
+
+The next functions support some operations for using this type 
+as an attribute within a relation.
+
+*/
+void RelInterval::Destroy(){
+   canDelete=true;
+}
+
+int RelInterval::NumOfFLOBs() const{
+    return 0;
+}
+
+FLOB* RelInterval::GetFLOB(const int i){
+    assert(false);
+}
+
+
+bool RelInterval::Adjacent(const Attribute*)const{
+   return false;
+}
+bool RelInterval::IsDefined() const{ 
+   return defined;
+}
+void RelInterval::SetDefined(bool defined){ 
+   this->defined = defined;
+}
+
+/*
+3.3 Implementation of PInterval
+
+*/
+/*
 ~Constructor~
 
 The familiar empty constructor.
@@ -5356,6 +1984,4325 @@ string PInterval::ToString()const {
       ss << "[";
   return ss.str();
 }
+
+/*
+~Copy Constructor~
+
+*/
+PInterval::PInterval(const PInterval& source){
+   Equalize(&source);
+}
+
+/*
+~Destructor~
+
+*/
+PInterval::~PInterval(){}
+
+/*
+~Assignment Operator~
+
+*/
+PInterval& PInterval::operator=(const PInterval& source){
+   Equalize(&source);
+   return *this;
+}
+
+/*
+Functions providing attribute functionality
+
+*/
+void PInterval::Destroy(){
+     startTime.Destroy();
+     relinterval.Destroy();
+}
+int PInterval::NumOfFLOBs()const{
+    return 0;
+}
+FLOB* PInterval::GetFLOB(const int i){ 
+     assert(false);
+}
+
+/*
+3.4 Implementation of CompositeMove
+
+*/
+
+/*
+~Constructor~
+
+This constructor should never be used execpt in the cast function.
+
+*/
+CompositeMove::CompositeMove(){}
+
+/*
+~Constructor~
+
+*/
+CompositeMove::CompositeMove(int dummy):interval(1){
+      minIndex = -1;
+      maxIndex = -1;
+}
+
+/*
+~Copy Constructor~
+
+*/
+CompositeMove::CompositeMove(const CompositeMove& source){
+     Equalize(&source);
+}
+
+/*
+~Destructor~
+
+*/
+CompositeMove::~CompositeMove(){}
+
+/*
+~Assignment operator~
+
+*/
+CompositeMove & CompositeMove::operator=(const CompositeMove& source){
+   Equalize(&source);
+   return *this;
+}
+
+/*
+~Equalize~
+
+*/
+void CompositeMove::Equalize(const CompositeMove* source){
+   this->interval.Equalize(&(source->interval));
+   this->minIndex = source->minIndex;
+   this->maxIndex = source->maxIndex;
+}
+
+/*
+~ToString~
+
+*/
+string CompositeMove::ToString()const{
+    ostringstream res;
+    res << "(" << interval.ToString();
+    res << " " << minIndex << " -> " << maxIndex << ")";
+    return res.str();
+}
+
+/*
+3.5 Implementation of SpatialCompositeMove
+
+
+*/
+/*
+~Constructor~
+
+Should never be used.
+
+*/
+SpatialCompositeMove::SpatialCompositeMove(){}
+
+/*
+~Constructor~
+
+*/
+SpatialCompositeMove::SpatialCompositeMove(int dummy):CompositeMove(1),bbox(1){
+}
+
+
+/*
+~Copy constructor~
+
+*/
+SpatialCompositeMove::SpatialCompositeMove(const
+                                SpatialCompositeMove& source){
+     Equalize(&source);
+}
+
+/*
+~Destructor~
+
+*/
+SpatialCompositeMove::~SpatialCompositeMove(){}
+
+
+/*
+~Assigment Operator~
+
+
+*/
+
+SpatialCompositeMove& SpatialCompositeMove::operator=(const 
+                    SpatialCompositeMove & source){
+   Equalize(&source);
+   return *this;
+}
+
+/*
+~Equalize~
+
+Takes the value for this object from the argument.
+
+*/
+void SpatialCompositeMove::Equalize(const SpatialCompositeMove* source){
+    CompositeMove::Equalize(source);
+    bbox.Equalize(&(source->bbox)); 
+}
+
+/*
+~ToString~
+
+This function converts a SpatialCompositeMove into its String
+representation.
+
+*/
+string SpatialCompositeMove::ToString() const{
+     ostringstream res;
+     res << "(" << interval.ToString();
+     res << " " << minIndex << " -> " << maxIndex << ")";
+     res << " " << bbox.ToString();
+     return res.str();
+}
+
+
+/*
+~ToCompositeMove~
+
+Converts this SpatialCompositeMove into a simple CompositeMove 
+without spatial information, in Particular without bounding box information.
+
+*/
+CompositeMove SpatialCompositeMove::ToCompositeMove() const{
+    CompositeMove result;
+    ToCompositeMove(result);
+    return result;
+}
+
+/*
+This variant of the ToCompositeFunction 
+changes the value of the arguemnt to contain the value of this
+object without any spatial information.
+
+*/
+void SpatialCompositeMove::ToCompositeMove(CompositeMove& result)const{
+    result.interval.Equalize(&interval);
+    result.minIndex=minIndex;
+    result.maxIndex=maxIndex;
+}
+
+
+/*
+3.6 Implementation of the class ~SubMove~
+
+
+*/
+/*
+~Equalize~
+
+When this function is called, the value of this Submove is
+taken from the argument.
+
+*/
+void SubMove::Equalize(const SubMove* SM){
+   arrayNumber = SM->arrayNumber;
+   arrayIndex = SM->arrayIndex;
+}
+/*
+~ToString~
+
+This function returns a string representation of this 
+SubMove.
+
+*/
+string SubMove::ToString() const{
+   ostringstream res;
+   if(arrayNumber==LINEAR)
+     res << "linear["<<arrayIndex<<"]";
+   else if(arrayNumber==PERIOD)
+     res << "period[i"<<arrayIndex<<"]";
+   else if(arrayNumber==COMPOSITE)
+     res << "composite["<<arrayIndex<<"]";
+   return res.str();
+}
+
+/*
+3.7 Implementation of the ~PeriodicMove~
+
+*/
+
+/*
+~Standard Constructor~
+
+This constructor should never be used except in the 
+cast function.
+
+*/
+PeriodicMove::PeriodicMove(){ }
+
+/*
+~Constructor~
+
+*/
+PeriodicMove::PeriodicMove(int dummy):interval(1){}
+
+/*
+~Copy Constructor~
+
+*/
+PeriodicMove::PeriodicMove(const PeriodicMove& source){
+    Equalize(&source);
+}
+
+/*
+~Destructor~
+
+*/
+PeriodicMove::~PeriodicMove(){}
+
+/*
+~Assigment Operator~
+
+*/
+PeriodicMove& PeriodicMove::operator=(const PeriodicMove& source){
+   Equalize(&source);
+   return *this;
+}
+
+/*
+~Equalize~ function
+
+*/
+void PeriodicMove::Equalize(const PeriodicMove* source){
+  repeatations = source->repeatations;
+  submove.Equalize(&(source->submove));
+  interval.Equalize(&(source->interval));
+}
+
+/*
+~ToString~
+
+*/
+string PeriodicMove::ToString() const{
+  ostringstream res;
+  res << "R("<<repeatations<<", ";
+  res << submove.ToString() <<" ,";
+  res << interval.ToString() <<")";
+  return res.str(); 
+}
+     
+/*
+3.8 Implementation of ~SpatialPeriodicMove~
+
+*/
+/*
+~Constructor~
+
+*/
+SpatialPeriodicMove::SpatialPeriodicMove(){}
+
+/*
+~Constructor~
+
+*/
+SpatialPeriodicMove::SpatialPeriodicMove(int dummy):PeriodicMove(1),bbox(1){}
+
+/*
+~Copy Constructor~
+
+*/
+SpatialPeriodicMove::SpatialPeriodicMove(
+              const SpatialPeriodicMove& source){
+    Equalize(&source);
+}
+
+/*
+~Destructor~
+
+*/
+SpatialPeriodicMove::~SpatialPeriodicMove(){}
+
+/*
+~Equalize~
+
+*/
+void SpatialPeriodicMove::Equalize(const SpatialPeriodicMove* source){
+   PeriodicMove::Equalize(source);
+   bbox.Equalize(&(source->bbox));
+}
+
+/*
+~Assignment Operator~
+
+*/
+SpatialPeriodicMove& SpatialPeriodicMove::operator=(
+   const SpatialPeriodicMove& source){
+   Equalize(&source);
+   return *this;
+}
+
+/*
+~ToString~
+
+*/
+string SpatialPeriodicMove::ToString() const{
+  ostringstream res;
+  res << "R("<<repeatations<<", ";
+  res << submove.ToString() <<" ,";
+  res << interval.ToString() <<", ";
+  res << bbox.ToString() << ")";
+  return res.str(); 
+}
+
+/*
+ToPeriodicMove
+
+*/
+PeriodicMove SpatialPeriodicMove::ToPeriodicMove() const{
+  PeriodicMove result;
+  ToPeriodicMove(result);
+  return result;
+}
+
+void SpatialPeriodicMove::ToPeriodicMove(PeriodicMove& result) const{
+  result.repeatations = repeatations;
+  result.submove = submove;
+  result.interval.Equalize(&interval);
+}
+
+
+/*
+3.9 Implementation of the LinearConstantMove
+
+*/
+/*
+~Constructor~
+
+This constructor is used in the cast function. It does nothing
+and should not be used at other places.
+
+*/
+template <class T>
+LinearConstantMove<T>::LinearConstantMove(){}
+
+/*
+~Constructor~
+
+This constructor creates a new unit with given value at an
+interval with length zero.
+
+*/
+template<class T>
+LinearConstantMove<T>::LinearConstantMove(const T value):interval(0) {
+  this->value = value;
+  defined=true;
+}
+
+/*
+~Constructor~
+
+This constructor creates a new unit from the given value and
+the given interval.
+
+*/
+template <class T>
+LinearConstantMove<T>::LinearConstantMove(const T value, 
+                 const RelInterval interval): interval(interval){
+  this->value=value;
+  this->defined=true;
+}
+/*
+~Copy Constructor~
+
+*/
+template <class T>
+LinearConstantMove<T>::LinearConstantMove(
+     const LinearConstantMove<T>& source){
+   Equalize(&source);
+}
+
+/*
+~Destructor~
+
+The destructor destroys this object. because we don't have any 
+pointer structures, this destructor makes nothing.
+
+*/
+template <class T>
+LinearConstantMove<T>::~LinearConstantMove(){}
+
+
+/*
+~Assignment Operator~
+
+*/
+template <class T>
+LinearConstantMove<T>& 
+     LinearConstantMove<T>::operator=(const LinearConstantMove<T> source){
+   Equalize(&source);
+   return *this;
+}
+
+/*
+~Set function~
+
+This function sets the value as well as the interval of this unit
+to the given values.
+
+*/
+template <class T>
+void LinearConstantMove<T>::Set(const T value, const RelInterval interval){
+  this->value=value;
+  this->interval.Equalize(&interval);
+  this->defined=true;
+}
+
+
+/*
+~At function~
+
+This function returns just the value of this unit. 
+This function can't be called when the duration is
+outside the interval or when this unit is not defined.
+This should be checked by calling the isDefinedAt function.
+
+*/
+template <class T>
+T LinearConstantMove<T>::At(const DateTime* duration) const {
+   assert(interval.Contains(duration));
+   assert(defined);
+   return value;
+}
+
+
+/*
+~IsDefinedAt~
+
+This function checks whether this unit is defined at the 
+given duration.
+
+*/
+template <class T>
+bool LinearConstantMove<T>::IsDefinedAt(const DateTime* duration)const{
+  if(!interval.Contains(duration)) 
+    return false;
+  return defined;
+}
+
+/*
+~ToListExpr~
+
+This function returns the external representation of this unit
+as nested list.
+
+*/
+template <class T>
+ListExpr LinearConstantMove<T>::ToListExpr()const{
+  if(defined){
+      return nl->TwoElemList(
+                    nl->SymbolAtom("linear"),
+                    nl->TwoElemList(
+                          interval.ToListExpr(true),
+                          ToConstantListExpr(value)));
+   } else {
+      return nl->TwoElemList(
+                     nl->SymbolAtom("linear"),
+                     nl->TwoElemList(
+                             interval.ToListExpr(true),
+                             nl->SymbolAtom("undefined")));
+   }
+}
+
+
+/*
+~ReadFrom~
+
+This function reads this unit from its external representation.
+If the list is not a valid representation for this unit, the 
+value of this unit remains unchanged and the result will be __false__.
+
+*/
+template <class T>
+bool LinearConstantMove<T>::ReadFrom(const ListExpr value){
+ if(nl->ListLength(value)!=2){
+     if(DEBUG_MODE){
+        cerr << __POS__ << ": Wrong ListLength" << endl;
+        cerr << "expected : 2, received :" 
+             << nl->ListLength(value) << endl;
+     }
+     return false;
+  }
+  if(!interval.ReadFrom(nl->First(value),true)){
+      if(DEBUG_MODE){
+         cerr << __POS__ << ": Can't read the interval" << endl;
+      }
+      defined = false;
+      return false;
+  }
+
+  ListExpr V = nl->Second(value);
+  if(nl->IsEqual(V,"undefined")){
+      defined = false;
+      return true;
+  }
+  T tmp;
+  if(!ReadFromListExpr(V,tmp))
+     return false;
+  this->value = tmp;
+  return true;
+}
+
+/*
+~CanBeSummarized~
+
+This function checks whether this unit and __LCM__ can be put together
+to a single unit. This is the case iff the intervals are adjacent
+and the values are the same.
+
+*/
+template <class T>
+bool LinearConstantMove<T>::CanSummarized(LinearConstantMove<T> LCM) {
+    if(!interval.CanAppended(&LCM.interval)) // no consecutive intervals
+      return false;
+    if(!defined && ! LCM.defined) // both are not defined
+      return true;
+    if(!defined || !LCM.defined) // only one is not defined
+      return false;
+    return value==LCM.value;
+
+}
+
+
+/*
+~Initial~
+
+Returns the value at the begin of this unit. Because the value is never changed,
+just the value is returned. This function is implemented for supporting the 
+map properties for constant values. 
+
+*/
+template <class T> 
+T* LinearConstantMove<T>::Initial()const{
+  return new T(value);
+}
+
+
+/*
+~Final~
+
+The Final function returns the value of this unit at the end of this interval.
+Because the value is never changed, the value is returned. This is support function
+for the map class.
+
+*/
+template <class T>
+T* LinearConstantMove<T>::Final(){
+   return new T(value);
+}
+
+
+/*
+~SetDefined~
+
+This function changes the defined state of this unit.
+
+*/
+template <class T>
+void LinearConstantMove<T>::SetDefined(bool defined){
+  this->defined = defined;
+}
+
+
+/*
+~GetDefined~
+
+This function returns the defined state of this unit.
+
+*/
+template <class T>
+bool LinearConstantMove<T>::GetDefined(){
+  return defined;
+}
+
+
+/*
+~Split~
+
+This function splits this unit into two parts at the given point in time.
+If the splitting instant is outside the definition time of this unit,
+this unit or right will be set to be undefined. This function returns
+always true because an simple unit can be splitted in each case.  
+
+*/
+template <class T>
+bool LinearConstantMove<T>::Split(const DateTime duration,
+                                  const bool toLeft, 
+                                  LinearConstantMove<T>& right){
+ right.Equalize(*this);
+ interval.Split(duration,toLeft,right.interval);
+ this->defined = interval.IsDefined();
+ right.defined = right.interval.IsDefined();
+ return true;
+}
+
+/*
+
+~Equalize~
+
+By calling this function, the value of this LinearConstantMOve is 
+taken from the argument of this function.
+
+*/
+template <class T>
+void LinearConstantMove<T>::Equalize(const LinearConstantMove<T>& source){
+  this->defined=source.defined;
+  this->interval.Equalize(&(source.interval));
+  this->value = source.value;
+} 
+
+template <class T>
+void LinearConstantMove<T>::Equalize(const LinearConstantMove<T>* source){
+   Equalize(*source);
+}
+
+
+
+
+
+
+/*
+3.9 Implementation of the LinearBoolMove class
+
+*/
+/*
+~ToConstantListExpr~
+
+This function is used to convert a boolean value into a
+nested list representation.
+
+*/
+ListExpr ToConstantListExpr(const bool value) {
+  return nl->BoolAtom(value);
+}
+
+
+/*
+~ReadFromListExpr~
+
+This function is used to get a boolean value from 
+its nested list representation. The list must be
+of type __BoolType__ to be a correct representation for this
+class.
+
+*/
+bool ReadFromListExpr(ListExpr le, bool& v){
+   if(nl->AtomType(le)!=BoolType)
+      return false;
+    v = nl->BoolValue(le);
+    return true;
+}
+
+
+
+/*
+3.10 The class LinearInt9mMove 
+
+This class provides the unit type for a periodic moving 9 intersection matrix.
+
+
+~ToConstantList~
+
+This function converts a 9 intersection matrix to its external representation.
+
+*/
+ListExpr ToConstantListExpr(const Int9M value){
+    return value.ToListExpr();
+}
+
+/*
+~ReadFrom~
+
+This function reads a 9 intersection matrix from its 
+external representation.
+
+*/
+bool ReadFromListExpr(ListExpr le, Int9M& value){
+    return value.ReadFrom(le);
+}
+
+/*
+~Constructor~
+
+*/
+LinearInt9MMove::LinearInt9MMove(){}
+
+
+/*
+~Constructor~
+
+This constructor calls the constructor of the superclass.
+
+*/
+LinearInt9MMove::LinearInt9MMove(int dummy):LinearConstantMove<Int9M>(dummy){
+}
+
+/*
+~Transpose~
+
+This operator transposes the matrix managed by this unit.
+
+*/
+void LinearInt9MMove::Transpose(){
+  value.Transpose();
+}
+
+
+/*
+3.11 Implementation of the ~MRealMap~ class
+
+*/
+/*
+~Constructor~
+
+*/
+MRealMap::MRealMap(){}
+
+/*
+~Constructor~
+
+Creates a realmap for the constant value zero.
+
+*/
+MRealMap::MRealMap(int dummy){
+   a = 0.0;
+   b = 0.0;
+   c = 0.0;
+   root=false;
+}
+
+
+/*
+~constructor~
+
+This constructor sets the value of this moving real map to the
+given values. 
+
+*/
+
+MRealMap::MRealMap(double a, double b, double c, bool root){
+ Set(a,b,c,root);
+}
+
+/*
+~Copy constructor~
+
+*/
+MRealMap::MRealMap(const MRealMap& source){
+   Equalize(&source);
+}
+
+/*
+~Destructor~
+
+*/
+MRealMap::~MRealMap(){}
+
+/*
+~Assignment operator~
+
+*/
+MRealMap& MRealMap::operator=(const MRealMap& source){
+    Equalize(&source);
+    return *this;
+}
+
+/*
+~Set~
+
+This function sets this MRealMap to represent the function:
+
+                Figure 5: Formula of an Moving Real Map  [MRealFormula.eps]
+
+*/
+void MRealMap::Set(double a, double b, double c, bool root){
+  this->a=a;
+  this->b=b;
+  this->c=c;
+  this->root=root;
+  Unify();
+}
+
+ 
+/*
+~ReadFrom function~
+
+This function reads the value of this map from a list expression. 
+If the list does not represent a valid moving real map,
+the value of this map remains unchanged and the result will be __false__.
+Otherwise, this value is changed to the value given in the list and 
+__true__ is returned.
+
+*/
+bool MRealMap::ReadFrom(ListExpr le){
+  if(nl->ListLength(le)!=4)
+     return false;
+  double tmpa,tmpb,tmpc;
+  if(nl->AtomType(nl->Fourth(le))!=BoolType)
+     return false;
+  bool tmproot=nl->BoolValue(nl->Fourth(le));
+  if(!GetNumeric(nl->First(le),tmpa))
+     return false;
+  if(!GetNumeric(nl->Second(le),tmpb))
+     return false;
+  if(!GetNumeric(nl->Third(le),tmpc))
+     return false;
+  a = tmpa;
+  b = tmpb;
+  c = tmpc;
+  root = tmproot;
+  Unify();
+  return true;
+}
+
+/*
+~ToListExpr~
+
+This function returns the nested list representation of this map.
+
+*/
+ListExpr MRealMap::ToListExpr()const{
+  return nl->FourElemList(nl->RealAtom(a),
+                          nl->RealAtom(b),
+                          nl->RealAtom(c),
+                          nl->BoolAtom(root));
+}
+
+
+/*
+~At~
+
+Computes the value of this map for a given instant. Ensure, that the
+map is defined at this instant using the ~IsDefinedAt~ function.
+
+*/
+double MRealMap::At(const DateTime* duration) const {
+  double d = duration->ToDouble();
+  return At(d);
+}
+
+
+/*
+~At~
+
+This function may be used for a faster computing of a value of this 
+map.
+
+*/
+double MRealMap::At(const double d) const{
+  double r1 = (a*d+b)*d+c;
+  if(root) return sqrt(r1);
+  return r1;
+}
+
+/*
+~IsDefinedAt~
+
+This function checks whether this map is defined at the given instant.
+
+*/
+bool MRealMap::IsDefinedAt(const DateTime* duration) const {
+   if(!root) // defined all the time
+       return true;
+   double d = duration->ToDouble();
+   double r1 = (a*d+b)*d+c;
+   return r1>=0; // defined only if expression under the root is positive
+}
+
+/*
+~IsDefinedAt~
+
+Returns __true__ if this map is defined for the given value.
+
+*/
+bool MRealMap::IsDefinedAt(const double d) const{
+   if(!root)
+       return true;
+   double r1 = (a*d+b)*d+c;
+   return r1>=0; // defined only if expression under the root is positive
+}
+
+
+/*
+~EqualsTo~
+
+This function checks for equality between this map and the argument.
+
+*/
+bool MRealMap::EqualsTo(const MRealMap RM2)const{
+  return a == RM2.a && 
+         b == RM2.b && 
+         c == RM2.c &&
+         root == RM2.root;
+}
+
+
+/*
+~Equalize~
+
+If this function is called, the valu of this map is taken from the argument.
+
+*/
+void MRealMap::Equalize(const MRealMap* RM){
+   a = RM->a;
+   b = RM->b;
+   c = RM->c;
+   root = RM->root;
+}
+
+
+/*
+~EqualsTo~ 
+
+This function checks whether the argument is an extension for this map when the
+arguments starts __timediff__ later. This means:
+
+[forall] x [in] [R]: this[->]GetValueAt(x+timediff)==RM[->]GetValueAt(x)
+
+
+*/
+bool MRealMap::EqualsTo(const MRealMap& RM, double timediff) const{
+ if(root!=RM.root)
+     return false;
+ return RM.a == a &&
+        RM.b == 2*a*timediff+b &&
+        RM.c == timediff*timediff + b*timediff + c; 
+
+}
+
+
+/*
+~Unify~ 
+
+This functions converts this moving real into a unified representation.
+
+*/
+void MRealMap::Unify(){
+  if(!root) return;
+  if(a==0 && b==0){
+      c = sqrt(c);
+      root = false;
+      return;
+  }
+  if(b==0 && c==0){
+      b=sqrt(a);
+      a=0;
+      root=false;
+      return;
+  }
+}
+
+/*
+11 Implementation of the MRealUnit class
+
+*/
+/*
+~constructor~
+
+This constructor does nothing.
+
+*/
+MovingRealUnit::MovingRealUnit(){}
+
+
+/*
+~constructor~
+
+This constructor creates a MovingRealUnit with the given values for the
+interval and for the map.
+
+*/
+MovingRealUnit::MovingRealUnit(MRealMap map, RelInterval interval){
+    Set(map,interval);
+}
+
+/*
+~constructor~ 
+
+This constructor creates a MovingRealUnit representing the constant value 
+zero. The length of the interval will also be zero.
+
+*/
+
+MovingRealUnit::MovingRealUnit(int dummy):interval(dummy),map(dummy){
+}
+
+/*
+~Copy Constructor~
+
+*/
+MovingRealUnit::MovingRealUnit(const MovingRealUnit& source){
+   Equalize(&source);
+}
+
+/*
+~Destrucor~
+
+*/
+MovingRealUnit::~MovingRealUnit(){}
+
+/*
+~Assignment Operator~
+
+*/
+MovingRealUnit& MovingRealUnit::operator=(const MovingRealUnit& source){
+   Equalize(&source);
+   return *this;
+}
+
+/*
+~Set function~
+
+This functions sets the values of the internal variables to defined values.
+
+*/
+void MovingRealUnit::Set(MRealMap map, RelInterval interval){
+   this->map.Equalize(&map);
+   this->interval.Equalize(&interval);
+   defined=true;
+}
+
+/*
+~GetFrom Function~
+
+When this function is called, the value of this unit is computed to 
+change from value __start__ to value __end__ whithin __interval__
+in a linear way. If __start__ and __end__ differs, the length of the 
+interval must be greater than zero. For equal value also length zero
+is allowed. If the interval does not fullfills this conditions, the
+value of this unit remains unchanged. The return value indicates 
+the success of the call of this function. 
+
+*/
+bool MovingRealUnit::GetFrom(double start, 
+                             double end, 
+                             RelInterval interval){
+ // check the preconditions
+ DateTime length;
+ interval.StoreLength(length);
+ if(length.LessThanZero()) 
+   return false;
+ if(length.IsZero()){
+    if(start!=end)
+       return false;
+    if(!interval.IsRightClosed() || !interval.IsLeftClosed())
+       return false;  
+ }
+ // special case, no change while interval
+ if(start==end){
+    map.Set(0,0,start,false);
+    this->interval.Equalize(&interval);
+    return true;
+ }
+ double b = (end-start) / (length.ToDouble());
+ map.Set(0,b,start,false);
+ this->interval.Equalize(&interval);
+ return true;
+} 
+
+/*
+~At~
+
+This function computes the value of this unit for a given instant. 
+This unit must be defined at this instant. This should be checked
+by calling the ~IsDefinedAt~ function before. 
+
+*/
+double MovingRealUnit::At(const DateTime* duration) const {
+    assert(interval.Contains(duration));
+    assert(defined);
+    assert(map.IsDefinedAt(duration));
+    return map.At(duration);
+}
+
+
+/*
+~IsDefinedAt~
+
+This function cvhecks whether this unit is defined at the given point in time. 
+
+*/
+bool MovingRealUnit::IsDefinedAt(const DateTime* duration) const{
+  return interval.Contains(duration) &&
+         defined &&
+         map.IsDefinedAt(duration);
+}
+
+/*
+~ToListExpr~
+
+This function computes the representation of this unit in nested list format.
+
+*/
+ListExpr MovingRealUnit::ToListExpr()const{
+ if(!defined)
+      return nl->TwoElemList(nl->SymbolAtom("linear"),
+                             nl->SymbolAtom("undefined"));
+ return nl->TwoElemList(nl->SymbolAtom("linear"),
+                        nl->TwoElemList(
+                            interval.ToListExpr(true),
+                            map.ToListExpr()));
+      
+}
+
+/*
+~ReadFrom~
+
+If the argument contains a valid representation of a moving real unit,
+the value of this unit is changed to the value from the argument. Otherwise,
+this unit remains unchanged.
+
+*/
+bool MovingRealUnit::ReadFrom(ListExpr le){
+  if(nl->ListLength(le)!=2)
+      return false;
+  if(nl->AtomType(nl->First(le))!=SymbolType)
+      return false;
+  if(nl->SymbolValue(nl->First(le))!="linear")
+      return false;
+  ListExpr v = nl->Second(le);
+  if(nl->ListLength(v)!=2)
+      return false;
+  RelInterval tmpinterval;
+  if(!tmpinterval.ReadFrom(nl->First(v),true))
+      return false;
+  if(!map.ReadFrom(nl->Second(v)))
+     return false;
+  interval.Equalize(&tmpinterval);
+  defined=true;
+  return true;
+}
+
+/*
+~CanSummarized~
+
+This function checkes whether two moving real units can summarized. This means, the
+intervals are adjacent and the coefficients are choosen that the functions are equal.
+
+*/
+
+bool MovingRealUnit::CanSummarized(const MovingRealUnit* MRU) const{
+   if(!interval.CanAppended(&(MRU->interval)))  
+      return false;
+   DateTime * DT = interval.GetLength();
+   double d = DT->ToDouble();
+   delete DT;
+   DT = NULL;
+   return map.EqualsTo(MRU->map,d);
+}
+
+/*
+~Initial~
+
+This function returns the value of this unit at the start of its interval.
+
+*/
+double* MovingRealUnit::Initial()const{
+      if(!map.IsDefinedAt(0.0))
+           return NULL;
+      else
+         return new double(map.At(0.0)); 
+}
+
+/*
+~Final~
+
+This function returns the value of this unit at the end of its interval.
+
+*/ 
+double* MovingRealUnit::Final(){
+    DateTime* end = interval.GetLength();
+    double* res;
+    if(!map.IsDefinedAt(end))
+         res = NULL;
+    else
+        res = new double(map.At(end)); 
+    delete end;
+    end = NULL;
+    return res;
+}
+
+
+
+/*
+~Split~
+
+This function splits this unit into 2 ones. The splitting point is 
+given by the argument __duration__. The left part will be the 
+__this__ objects, the right part will be stored in the argument __right__.
+The affiliation of the splitting point is ruled by the parameter __toLeft__.
+The function will return __true__ if this unit can splittet, i.e. the 
+splitting point is contained in this unit. In the other case, this unit 
+left as it is, the __right__ parameter is set to be undefined, and the 
+return value will be __false__.
+
+*/
+
+bool MovingRealUnit::Split(const DateTime duration, 
+                           const bool toLeft, 
+                           MovingRealUnit& unit){
+   // case duration not contained
+   if(!interval.Contains(&duration)){
+      unit.defined=false;
+      return false;
+   }
+   // case left will be empty
+   if(duration.IsZero() && !toLeft){
+      unit.defined=false;
+      return false;
+   }
+   // all ok, split this unit
+   if(!interval.Split(duration,toLeft,unit.interval)){
+      unit.defined=true;
+      return false;
+   }
+   unit.defined=true;
+   double d = duration.ToDouble();
+   unit.map.Set(map.a,map.b-2*d, d*d-d*map.b+map.c,map.root); 
+   return true;
+} 
+
+
+/*
+~SetDefined~
+
+Using this function, we can set the defined flag for this instance.
+Use carefully this function with an value of true. The internal stored 
+values are nmot checked to hold meaningful values, just the flag is
+changed.
+
+*/
+
+void MovingRealUnit::SetDefined(const bool defined){
+  this->defined=defined;
+}
+
+void MovingRealUnit::Equalize(const MovingRealUnit* source){
+   interval.Equalize(&(source->interval));
+   map.Equalize(&(source->map));
+   defined = source->defined;
+}
+
+/*
+12 Implementation of the LinearPointMove class
+
+*/
+/*
+~Constructor~
+
+*/
+LinearPointMove::LinearPointMove(){}
+
+/*
+~IsDefined~
+
+*/
+bool LinearPointMove::IsDefined()const{
+  return defined;
+}
+/*
+~IsStatic~
+
+*/
+bool LinearPointMove::IsStatic()const{
+   return isStatic;
+}
+
+
+/*
+~HashValue~
+
+*/
+size_t LinearPointMove::HashValue()const{
+ if(!defined) return 0;
+ return bbox.HashValue() + interval.HashValue()+(size_t)startX;
+}
+/*
+~Connected~
+
+*/
+bool LinearPointMove::Connected(LinearPointMove* P2){
+    return (endX==P2->startX) & (endY == P2->startY);
+}
+
+
+/*
+~An stream operator~
+
+This operator can be used for debugging purposes. Its defines
+a formatted output for a LinearPointMove. 
+
+*/
+
+ostream& operator<<(ostream& os, const LinearPointMove LPM){
+      os << "("<<LPM.startX<<", "<<LPM.startY<<")->("
+         <<LPM.endX<<", "<<LPM.endY<<") "<<LPM.interval;
+      return os; 
+   }
+
+
+/*
+13 Implementation of the ~TwoPoints~ class
+
+*/
+/*
+~Constructor~
+
+*/
+TwoPoints::TwoPoints(){}
+
+/*
+~Copy Constructor~
+
+*/
+TwoPoints::TwoPoints(const TwoPoints& source){
+   Equalize(&source);
+}
+
+/*
+~Destructor~
+
+*/
+TwoPoints::~TwoPoints(){}
+
+/*
+~Assignment operator~
+
+*/
+TwoPoints& TwoPoints::operator=(const TwoPoints& source){
+  Equalize(&source);
+  return *this;
+}
+
+
+/*
+~Comparisons~
+
+*/
+int  TwoPoints::CompareTo(const TwoPoints TP) const {
+    if(startX<TP.startX) return -1;
+    if(startX>TP.startX) return 1;
+    if(startY<TP.startY) return -1;
+    if(startY>TP.startY) return 1;
+    if(endX<TP.endX) return -1;
+    if(endX>TP.endX) return 1;
+    if(endY<TP.endY) return -1;
+    if(endY>TP.endY) return 1;
+    return 0; 
+}
+
+bool TwoPoints::operator< (const TwoPoints TP)const { 
+   return CompareTo(TP)<0; 
+}
+bool TwoPoints::operator> (const TwoPoints TP)const { 
+   return CompareTo(TP)>0; 
+}
+bool TwoPoints::operator== (const TwoPoints TP)const { 
+  return CompareTo(TP)==0; 
+}
+
+/*
+~Access funmctions~
+
+*/
+inline double TwoPoints::GetStartX()const { 
+   return startX; 
+} 
+inline double TwoPoints::GetEndX()const {
+   return endX;
+}
+inline double TwoPoints::GetStartY()const {
+   return startY;
+}
+inline double TwoPoints::GetEndY()const {
+   return endY;
+}
+/*
+~Equalize~
+
+*/
+void TwoPoints::Equalize(const TwoPoints* source){
+   startX = source->startX;
+   startY = source->startY;
+   endX = source->endX;
+   endY = source->endY;
+}
+
+/*
+14 Implementation of the ~LinearPointsMove~ class
+
+*/
+/*
+~Constructor~
+
+*/
+LinearPointsMove::LinearPointsMove(){}
+
+LinearPointsMove::LinearPointsMove(const LinearPointsMove& source){
+   Equalize(&source);
+}
+
+/*
+~Destructor~
+
+*/
+LinearPointsMove::~LinearPointsMove(){}
+
+/*
+~Assignment Operator~
+
+*/
+LinearPointsMove& LinearPointsMove::operator=(const LinearPointsMove& source){
+   Equalize(&source);
+    return *this;
+}
+
+/*
+~IsDefined~
+
+*/
+bool LinearPointsMove::IsDefined()const{
+   return defined;
+}
+/*
+~IsStatic~
+
+*/
+bool LinearPointsMove::IsStatic()const{
+   return isStatic;
+}
+
+/*
+~Accessing the occupied array range~
+
+*/
+
+unsigned int LinearPointsMove::GetStartIndex()const { 
+   return startIndex; 
+}
+
+unsigned int LinearPointsMove::GetEndIndex()const {
+  return endIndex; 
+} 
+
+
+/*
+15 Implementation of the PMSimple class
+
+*/
+/*
+~Constructor~
+
+*/
+template <class T, class Unit>
+PMSimple<T, Unit>::PMSimple(){}
+
+
+template <class T, class Unit>
+PMSimple<T, Unit>::PMSimple(int dummy): 
+   linearMoves(1),
+   compositeMoves(1),
+   compositeSubMoves(1),
+   periodicMoves(1),
+   defined(false),
+   canDelete(false),
+   interval(1),
+   startTime(instanttype){
+     __TRACE__
+}
+
+template <class T, class Unit>
+PMSimple<T,Unit>::PMSimple(const PMSimple<T,Unit>& source){
+  Equalize(&source);
+} 
+
+/*
+~Destructor~
+
+*/
+template <class T, class Unit>
+PMSimple<T, Unit>::~PMSimple() {
+  __TRACE__
+  if(canDelete){
+     linearMoves.Destroy();
+    compositeMoves.Destroy();
+    compositeSubMoves.Destroy();
+    periodicMoves.Destroy();
+  }
+}
+
+
+/*
+~Assignment operator~
+
+*/
+template <class T, class Unit>
+PMSimple<T, Unit> PMSimple<T, Unit>::operator=(const PMSimple<T, Unit>& source){
+    Equalize(&source);
+    return *this;
+}
+
+/*
+~Destroy~
+
+If this function is called, the destructor can destroy the
+FLOB objects.
+
+[3] O(1)
+
+*/
+template <class T, class Unit>
+void PMSimple<T,Unit>::Destroy(){
+    __TRACE__
+    canDelete = true;
+}
+
+
+/*
+~Equalize~
+
+This function takes the value for this PMSimple from another instance __B__.
+
+[3] O(L), where L is the number of contained linear moves
+
+*/
+template <class T, class Unit>
+void PMSimple<T, Unit>::Equalize(const PMSimple<T,Unit>* B2){
+    __TRACE__
+  // equalize the linear moves
+  const Unit* LM=NULL;;
+  linearMoves.Clear();
+  if(B2->linearMoves.Size()>0) linearMoves.Resize(B2->linearMoves.Size());
+  for(int i=0;i<B2->linearMoves.Size();i++){
+     B2->linearMoves.Get(i,LM);
+     linearMoves.Append(*LM);
+  }
+  // equalize the composite moves
+  const CompositeMove* CM=NULL;
+  compositeMoves.Clear();
+  if(compositeMoves.Size()>0)
+     compositeMoves.Resize(B2->compositeMoves.Size());
+  for(int i=0;i<B2->compositeMoves.Size();i++){
+     B2->compositeMoves.Get(i,CM);
+     compositeMoves.Append(*CM);
+  }
+
+  // equalize the composite submoves
+  const SubMove* SM=NULL;
+  compositeSubMoves.Clear();
+  if(compositeSubMoves.Size()>0)
+     compositeSubMoves.Resize(B2->compositeSubMoves.Size());
+  for(int i=0;i<B2->compositeSubMoves.Size();i++){
+     B2->compositeSubMoves.Get(i,SM);
+     compositeSubMoves.Append(*SM);
+  }
+
+  // equalize the periodic moves
+  const PeriodicMove* PM = NULL;
+  periodicMoves.Clear();
+  if(periodicMoves.Size()>0)periodicMoves.Resize(B2->periodicMoves.Size());
+  for(int i=0;i<B2->periodicMoves.Size();i++){
+     B2->periodicMoves.Get(i,PM);
+     periodicMoves.Append(*PM);
+  }
+
+  defined = B2->defined;
+  interval.Equalize(&(B2->interval));
+  startTime.Equalize(&(B2->startTime));
+  submove.Equalize(&(B2->submove));
+}
+
+
+/*
+~NumOfFLOBs~
+
+Returns four because four DBArrays are managed.
+
+[3] O(1)
+
+*/
+template <class T, class Unit>
+int PMSimple<T, Unit>::NumOfFLOBs() const{
+  __TRACE__
+  return 4;
+}
+
+
+/*
+~GetFLOB~
+
+This function returns the FLOB at the specified index. If the index
+is out of range, the system will going down. The flobs are:
+
+  * 0: the units
+
+  * 1: the composite moves
+
+  * 2: the composite submoves
+
+  * 3: the periodic moves
+
+[3] O(1)
+
+*/
+template <class T, class Unit>
+FLOB* PMSimple<T,Unit>::GetFLOB(const int i){
+  __TRACE__
+  assert(i>=0 && i<NumOfFLOBs());
+ if(i==0) return &linearMoves;
+ if(i==1) return &compositeMoves;
+ if(i==2) return &compositeSubMoves;
+ if(i==3) return &periodicMoves;
+ return 0;
+}
+
+
+/*
+~Compare~
+
+Because we have no unique representation of the periodic moves, this function is
+not implemented in this moment.
+
+[3] O(-1)
+
+*/
+template <class T, class Unit>
+int PMSimple<T, Unit>::Compare(const Attribute* arg) const{
+    __TRACE__
+  cout << "PMSImple::Compare not implemented yet " << endl;
+  return -1;
+}
+
+
+/*
+~Adjacent~
+
+Returns false because it's not clear when two moving constants should be
+adjacent.
+
+[3] O(1)
+
+*/
+template <class T, class Unit>
+bool PMSimple<T, Unit>::Adjacent(const Attribute*)const{
+    __TRACE__
+   return false;
+}
+
+/*
+~Clone~
+
+This functions creates a new periodic moving constant with the same value
+like the calling instance and returns it.
+
+[3] O(L), where L is the number of contained linear moves
+
+*/
+template <class T, class Unit>
+PMSimple<T,Unit>* PMSimple<T, Unit>::Clone() const{
+    __TRACE__
+  PMSimple<T,Unit>* res = new PMSimple<T,Unit>(1);
+  res->Equalize(this);
+  return res;
+}
+
+
+/*
+~SizeOf~
+
+Returns the size of the class PMSimple.
+
+[3] O(1)
+
+*/
+template <class T, class Unit>
+int PMSimple<T, Unit>::Sizeof()const{
+    __TRACE__
+   return sizeof(PMSimple<T,Unit>);
+}
+
+
+/*
+~IsDefined~
+
+Returns the value of the __defined__ flag.
+
+*/
+template <class T, class Unit>
+bool PMSimple<T, Unit>::IsDefined() const{
+   return defined;
+}
+
+
+/*
+~SetDefined~
+
+Sets the __defined__ flag to the given value. You can always set a
+PMSimple to be undefined. If this flag is set to true but the 
+state of this PMSimple is not correct, the results will be 
+inpredictable. 
+
+*/
+template <class T, class Unit>
+void PMSimple<T, Unit>::SetDefined( bool defined ){
+    this->defined = defined;
+}
+
+
+/*
+~HashValue~
+
+This functions computes a HashValue for this PMSimple from the sizes of
+the contained FLOBs.
+
+[3] O(1)
+
+*/
+template <class T, class Unit>
+size_t PMSimple<T, Unit>::HashValue() const{
+    __TRACE__
+     return (size_t) (interval.HashValue()+linearMoves.Size()+
+                   compositeMoves.Size()+ periodicMoves.Size()+
+                   compositeSubMoves.Size());
+}
+
+
+/*
+~CopyFrom~
+
+By calling this function the value of this instance will be
+equalized with this one of the attribute. The attribute must be
+of Type PMSimple. If __arg__ is of another type, the result is
+not determined and can lead to a crash of [secondo].
+
+[3] O(L), where L is the number of contained linear moves
+
+*/
+template <class T, class Unit>
+void PMSimple<T,Unit>::CopyFrom(const StandardAttribute* arg){
+    __TRACE__
+   Equalize((PMSimple<T,Unit>*) arg);
+}
+     
+/*
+~ToListExpr~
+
+This function converts a periodic moving constant into its
+nested list representation.
+
+[3] O(L), where L is the number of contained linear moves
+
+*/
+template <class T, class Unit>
+ListExpr PMSimple<T, Unit>::ToListExpr()const {
+  __TRACE__
+ ListExpr timelist = startTime.ToListExpr(true);
+ ListExpr SubMoveList = GetSubMoveList(submove);
+     return nl->TwoElemList(timelist,SubMoveList);
+}
+
+/*
+~ReadFrom~
+
+Takes the value of this simple periodic moving object from a
+nested list. The result informs about the success of this
+call. If the List don't represent a valid periodic moving
+object, this instance will be undefined. This behavior 
+differns to other ~readFrom~ functions to avoid some
+expensive tests before creating the actual object.
+
+[3] O(L), where L is the number of contained linear moves
+
+*/
+template <class T, class Unit>
+bool PMSimple<T, Unit>::ReadFrom(const ListExpr value){
+    __TRACE__
+   /* The list is scanned twice. In the first scan we
+     compute only the needed size of the contained arrays.
+     The reason is, that we want to avoid frequently ~Resize~
+     on the arrays.
+   */
+  if(nl->ListLength(value)!=2){
+     if(DEBUG_MODE){
+        cerr << __POS__ << ": wrong listlength (";
+        cerr << (nl->ListLength(value)) << ")" << endl;
+     }
+     SetDefined(false);
+     return false;
+  }
+
+  if(!ResizeArrays(value)){
+     if(DEBUG_MODE){
+        cerr << __POS__ << ": resize array failed" << endl;
+     }
+     SetDefined(false);
+     return false;
+  }
+
+  if(!startTime.ReadFrom(nl->First(value),true)){
+     if(DEBUG_MODE){
+        cerr << __POS__ << "reading of the start time failed" << endl;
+        cerr << "The list is " << endl;
+        nl->WriteListExpr(nl->First(value));
+     }
+     SetDefined(false);
+     return false;
+  }
+
+  // now we have to append the included submove
+  ListExpr SML = nl->Second(value);
+  if(nl->ListLength(SML)!=2){
+     if(DEBUG_MODE){
+        cerr << __POS__ << ": wrong list length for submove" << endl;
+     }
+     SetDefined(false);
+     return false;
+  }
+
+  ListExpr SMT = nl->First(SML);
+  int LMIndex = 0;
+  int CMIndex = 0;
+  int SMIndex = 0;
+  int PMIndex = 0;
+  if(nl->IsEqual(SMT,"linear")){
+     submove.arrayNumber = LINEAR;
+     submove.arrayIndex = 0;
+     if(!AddLinearMove(nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
+         if(DEBUG_MODE){
+            cerr << __POS__ << " Error in reading linear move" << endl;
+         }
+         SetDefined(false);
+         return false;
+     }
+     defined=true;
+
+     const Unit* LM;
+     linearMoves.Get(0,LM);
+     interval.Equalize(&(LM->interval));
+     return true;
+  }
+  if(nl->IsEqual(SMT,"composite")){
+     submove.arrayNumber=COMPOSITE;
+     submove.arrayIndex = 0;
+     if(!AddCompositeMove(nl->Second(SML),LMIndex,
+                          CMIndex,SMIndex,PMIndex)){
+        if(DEBUG_MODE){
+           cerr << __POS__ << "error in reading composite move" << endl;
+        }
+        SetDefined(false);
+        return false;
+     }
+     defined = true;
+     const CompositeMove* CM;
+     compositeMoves.Get(0,CM);
+     interval.Equalize(&(CM->interval));
+     return true;
+  }
+  if(nl->IsEqual(SMT,"period")){
+     submove.arrayNumber = PERIOD;
+     submove.arrayIndex = 0;
+     if(!AddPeriodMove(nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
+        if(DEBUG_MODE){
+          cerr << __POS__ << " error in reading periodic move" << endl;
+        }
+        SetDefined(false);
+        return false;
+     }
+     defined = true;
+     const PeriodicMove* PM;
+     periodicMoves.Get(0,PM);
+     interval.Equalize(&(PM->interval));
+     return true;
+  }
+  if(DEBUG_MODE){
+     cerr << __POS__ << "unknown subtype" << endl;
+     nl->WriteListExpr(SMT);
+  }
+  return false;
+}
+
+/*
+~IsEmpty~
+
+This function yields __true__ if this periodic moving constant don't 
+contain any unit.
+
+*/
+template <class T, class Unit>
+bool PMSimple<T, Unit>::IsEmpty()const{ 
+     return linearMoves.Size()==0;
+}
+
+
+/*
+~At~
+
+This function returns a pointer to a new created instance of type 
+T. If this periodic moving constant is not defined at this
+timepoint, the result will be 0. The caller of this function has to
+delete the returned value of this function if the result is not null.
+
+[3] O(L), where L is the number of contained linear moves
+
+*/
+template <class T, class Unit>
+T* PMSimple<T, Unit>::At(const DateTime* instant)const{
+  __TRACE__
+ DateTime* duration = new DateTime(*instant);
+ duration->Minus(&startTime); // now it is a duration
+ T* res = 0;
+ if(interval.Contains(duration)){
+ // in the other case, we have nothing to do
+ // because the result is initialized with "undefined"
+ const SubMove* sm = &submove;
+ const CompositeMove* CM;
+ const PeriodicMove* PM;
+ RelInterval RI;
+ while(sm->arrayNumber!=LINEAR){
+    if(sm->arrayNumber==COMPOSITE){
+       // in this stage of implementation a linear search is
+       // executed. i have to make it better in the future
+       int i = sm->arrayIndex;
+       compositeMoves.Get(i,CM);
+       int cur = CM->minIndex;
+       int max = CM->maxIndex;
+       bool found=false;
+       while( (cur<=max) && ! found){
+           compositeSubMoves.Get(cur,sm); // get the submove
+           if(sm->arrayNumber==LINEAR){
+              const Unit* LM;
+              linearMoves.Get(sm->arrayIndex,LM);
+              RI = LM->interval;
+            } else if(sm->arrayNumber==PERIOD){
+              periodicMoves.Get(sm->arrayIndex,PM);
+              RI = PM->interval;
+            } else { //another submoves are not allowed
+              assert(false);
+            }
+            if(RI.Contains(duration)) // be happy
+               found=true;
+            else{  // search again
+               DateTime* L = RI.GetLength();
+               duration->Minus(L);
+               delete L;
+               L = NULL;
+               cur++;
+            }
+       }
+       assert(found); //otherwise we have an error in computation
+    } else if(sm->arrayNumber==PERIOD){
+       int index = sm->arrayIndex;
+       periodicMoves.Get(index,PM);
+       // this is a very slow implementation
+       // i have to speed up it in the future
+       sm = &PM->submove;
+       RelInterval RI;
+       if(sm->arrayNumber==LINEAR){
+           const Unit* LM;
+           linearMoves.Get(sm->arrayIndex,LM);
+           RI = LM->interval;
+        } else if(sm->arrayNumber==COMPOSITE){
+           compositeMoves.Get(sm->arrayIndex,CM);
+           RI = CM->interval;
+        } else { //another submoves are not allowed
+           assert(false);
+        }
+        while(!RI.Contains(duration)){
+           DateTime* L = RI.GetLength();
+           duration->Minus(L);
+           delete L;
+           L = NULL;
+        }
+        } else{
+           // this case should never occurs
+           assert(false);
+        }
+     }
+     const Unit* LM;
+     linearMoves.Get(sm->arrayIndex,LM);
+     if(LM->IsDefinedAt(duration)){
+        T tmpres = LM->At(duration);
+        res = new T();
+        *res = tmpres;
+     }
+  }
+  delete duration;
+  duration = NULL;
+  return res;
+}
+
+/*
+~Initial~
+
+This function computes the first defined value of this moving constant.
+
+*/
+template <class T, class Unit>
+T* PMSimple<T, Unit>::Initial() const{
+    __TRACE__
+  T* res = 0;
+  if(!defined){
+     return res;
+  }
+  if(IsEmpty()){
+    return res;
+  }
+  /* the first units is also the first
+     unit in the dbarray of the units.
+  */
+  const Unit* lm;
+  linearMoves.Get(0,lm);
+  res = lm->Initial(); 
+  return res;
+}
+
+
+/*
+~Final~
+
+The ~Final~ function returns the last defined value of this periodic
+moving object.
+If none exists, NULL is returned.
+
+*/
+template <class T, class Unit>
+T* PMSimple<T, Unit>::Final(){
+    __TRACE__
+ T* res = 0;
+ if(!defined){
+    return res;
+ }
+ if(IsEmpty()){
+     return res;
+  }       
+  Unit lm =  GetLastUnit();
+  res = lm.Final();
+  return res;
+}
+
+ 
+/*
+~Minimize~
+
+When this function is called, consecutive units with the same value are
+summarized into single units.
+
+*/
+template <class T, class Unit>
+void PMSimple<T, Unit>::Minimize(){
+   if(MinimizationRequired()){
+     DBArray<Unit> newLinearMoves(1);
+     DBArray<CompositeMove>          newCompositeMoves(1);
+     DBArray<SubMove>                newCompositeSubMoves(1);
+     DBArray<PeriodicMove>           newPeriodicMoves(1);
+     Unit                            Summarization;
+     bool                            CompleteSummarized;
+     SubMove SM3 = MinimizeRec(submove,newLinearMoves,newCompositeMoves,
+                       newCompositeSubMoves,
+                       newPeriodicMoves,Summarization,CompleteSummarized);
+     if(CompleteSummarized){
+        // the whole movement can be represented in a single linear move
+        compositeMoves.Clear();
+        compositeSubMoves.Clear();   
+        periodicMoves.Clear();
+        linearMoves.Clear();
+        linearMoves.Append(Summarization);
+        submove.arrayNumber = LINEAR;
+        submove.arrayIndex = 0;
+     } else{
+       submove = SM3;
+       
+     // copy the new created objects into the local dbarrays
+       int size;
+       
+       linearMoves.Clear();
+       const Unit* LM;
+       size = newLinearMoves.Size();
+       if(size>0)
+           linearMoves.Resize(size);
+       for(int i=0;i<size;i++){
+          newLinearMoves.Get(i,LM);
+          linearMoves.Put(i,*LM);
+       }
+ 
+       compositeMoves.Clear();
+       const CompositeMove* CM;
+       size = newCompositeMoves.Size();
+       if(size>0)
+           compositeMoves.Resize(size);
+       for(int i=0;i<size;i++){
+          newCompositeMoves.Get(i,CM);
+          compositeMoves.Put(i,*CM);
+       }
+
+       compositeSubMoves.Clear();
+       const SubMove* SM;
+       size = newCompositeSubMoves.Size();
+       if(size>0)
+           compositeSubMoves.Resize(size);
+       for(int i=0;i<size;i++){
+          newCompositeSubMoves.Get(i,SM);
+          compositeSubMoves.Put(i,*SM);
+       }
+       
+       periodicMoves.Clear();
+       const PeriodicMove* PM;
+       size = newPeriodicMoves.Size();
+       if(size>0)
+           periodicMoves.Resize(size);
+       for(int i=0;i<size;i++){
+          newPeriodicMoves.Get(i,PM);
+          periodicMoves.Put(i,*PM);
+       }
+
+     } 
+   }
+}
+
+
+/*
+~Statistical Information~ 
+
+The following functions can be used in debugging for get some 
+additional information about the inner structure of this instant.
+
+*/
+template <class T, class Unit>
+int PMSimple<T, Unit>::NumberOfLinearMoves(){
+   return linearMoves.Size();
+}
+
+template <class T, class Unit>
+int PMSimple<T, Unit>::NumberOfCompositeMoves(){
+   return compositeMoves.Size();
+}
+
+template <class T, class Unit>
+int PMSimple<T, Unit>::NumberOfCompositeSubMoves(){
+   return compositeSubMoves.Size();
+}
+
+template <class T, class Unit>
+int PMSimple<T,Unit>::NumberOfPeriodicMoves(){
+   return periodicMoves.Size();
+}
+
+
+/* 
+~SetRightClosed~
+
+This function sets the property of the right closeness 
+to the given value. 
+
+*/
+template <class T, class Unit>
+void PMSimple<T, Unit>::SetRightClosed(SubMove submove, bool value){
+  if(submove.arrayNumber == LINEAR){
+      Unit u;
+      linearMoves.Get(submove.arrayIndex,u);
+      RelInterval i;
+      u.GetInterval(i);
+      if(i.IsRightClosed()==value) // no change required
+          return;
+      i.SetRightClosed(value);
+      u.SetInterval(i);
+      linearMoves.Out(submove.arrayIndex,u);
+      return; 
+  }
+  if(submove.arrayNumber == COMPOSITE){
+      CompositeMove CM;
+      compositeMoves.Get(submove.arrayIndex,CM);
+      compositeSubMoves.Get(CM.maxIndex,submove);
+      SetRightClosed(submove,value);
+      return;
+  }
+  if(submove.arrayNumber == PERIOD){
+      PeriodicMove PM;
+      periodicMoves.Get(submove.arrayIndex,CM);
+             
+  }
+}
+
+/*
+~Split~
+
+Calling this function splits this moving object at the given instant. 
+The splitpoint is given by an instant as well as a flag describing whether 
+this instant should be contained in the 'left' part. The results are stored
+into the corresponding arguments. When the instant is outside the definition
+time of this moving object, oe part will contain a copy of this, the other
+part will be undefined.
+
+*/
+template <class T, class Unit>
+void PMSimple<T, Unit>::Split(const DateTime instant,const bool toLeft, 
+           PMSimple<T,Unit>& leftPart, PMSimple<T,Unit>& rightPart){
+   SubMove SMLeft,SMRight;
+   SMLeft.arrayNumber = -1;
+   SMRight.arrayNumber = -1;
+   DateTime stCopy = startTime;
+   splitRec(instant, toLeft,leftPart,rightPart,submove,stCopy,SMLeft,SMRight);
+   // set the values of the root record of the left part
+   if(SMLeft.arrayNumber<0){ // leftpart is empty
+        leftPart.defined=false;  
+   } else{ // leftpart is non-empty
+        leftPart.defined = true;
+        leftPart.startTime = startTime;
+        leftPart.GetInterval(SMLeft,leftPart.interval);
+   }
+   // set the values of the root record of the right part
+   if(SMRight.arrayNumber<0){
+        rightPart.defined=false;
+   }else{
+        rightPart.defined=true;
+        rightPart.startTime = instant;
+        rightPart.GetInterval(SMRight,rightPart.interval);
+   }
+   cerr << "Missing correction for splitted infinite periodic  moves !!!"
+        << endl;
+}
+
+
+/*
+~SpliRec~
+
+This function splits the given submove of this periodic moving objects into 
+two part. The leftPart will be extended by the part of this submove before
+the given instant. The remainder of this submove will stored into rightPart.
+The new added submove of leftPart and rightPart is returned in the arguments
+SMLeft and SMRight respectively. The argument toLeft controls whereto put
+in the object at the given instant (closure properties). The starttime is changed
+to be after the processed submove. If the submove is not defined before the 
+given instant, leftPart is not changed and SMLeft will hold an negative number
+for the arrayNumber indicating an invalid value. When submove is'nt defined 
+after this instant, the same holds for rightPart and SMRight.
+
+*/
+template <class T, class Unit>
+void PMSimple<T, Unit>::splitRec(const DateTime instant, const bool toLeft,
+              PMSimple<T,Unit>& leftPart, PMSimple<T,Unit>& rightPart,
+              SubMove submove, DateTime& startTime, 
+              SubMove& SMLeft, SubMove& SMRight){
+ 
+
+  if(submove.arrayNumber==LINEAR){
+    // here we process a single unit. this case is easy to handle because a
+    // unit have to provide a split function
+    const Unit* LMLtmp=NULL;
+    Unit LML;
+    linearMoves.Get(submove.arrayIndex,LMLtmp);
+    LML=(*LMLtmp);
+    Unit LMR;
+    DateTime Dur = instant - startTime;
+    startTime = startTime + (*LML.interval.GetLength()); 
+    bool saveLeft,saveRight;
+    if(LML.GetDefined()){
+       LML.Split(Dur,toLeft,LMR);
+       saveLeft = LML.GetDefined();
+       saveRight = LMR.GetDefined();
+     } else{ // original is undefined
+        LML.interval.Split(Dur,toLeft,LMR.interval);
+        LMR.SetDefined(false);
+        saveLeft = LML.interval.IsDefined();
+        saveRight = LMR.interval.IsDefined();
+     }
+     if(saveLeft){
+         SMLeft.arrayNumber=LINEAR;
+         SMLeft.arrayIndex = leftPart.linearMoves.Size();
+         leftPart.linearMoves.Append(LML);
+     }else{
+         SMLeft.arrayNumber = -1;
+     }
+     // do the same thing with the right part
+     if(saveRight){
+        SMRight.arrayNumber=LINEAR;
+        SMRight.arrayIndex=rightPart.linearMoves.Size();
+        rightPart.linearMoves.Append(LML);
+     } else{
+        SMRight.arrayNumber = -1;
+     }
+     return;  // linear moves processed
+  }
+  if(submove.arrayNumber==COMPOSITE){
+     // we store the submoves of this composite moves into an vector 
+     // to ensure a single block representing this submove
+     const CompositeMove* CM=NULL;
+     compositeMoves.Get(submove.arrayIndex,CM);
+     vector<SubMove> submovesLeft(CM->maxIndex-CM->minIndex+1);
+     vector<SubMove> submovesRight(CM->maxIndex-CM->minIndex+1);
+     
+     const SubMove* SMtmp;
+     SubMove SM;
+     for(int i=CM->minIndex;i<=CM->maxIndex;i++){
+        compositeSubMoves.Get(i,SMtmp); // get the submove
+        SM = (*SMtmp);
+        // call recursive
+        splitRec(instant,toLeft,leftPart,rightPart,SM,startTime,SMLeft,SMRight);
+        // collect valid submoves
+       if(SMLeft.arrayNumber>=0)
+           submovesLeft.push_back(SMLeft);
+       if(SMRight.arrayNumber>=0)
+           submovesRight.push_back(SMRight);
+     }
+     // process the left part
+     int size = submovesLeft.size();
+     if(size==0){
+        SMLeft.arrayNumber = -1;
+     } else if (size>1){ // in case size==1 is nothing to do
+        CompositeMove CMLeft;
+        CMLeft.minIndex = leftPart.compositeSubMoves.Size();
+        for(int i=0;i<size;i++){
+            leftPart.compositeSubMoves.Append(submovesLeft[i]); 
+        }
+        CMLeft.maxIndex = leftPart.compositeSubMoves.Size()-1;
+        SMLeft.arrayNumber = COMPOSITE;
+        SMLeft.arrayIndex = leftPart.compositeMoves.Size();
+        leftPart.compositeMoves.Append(CMLeft); 
+     }
+     // process the right part
+     size = submovesRight.size();
+     if(size==0){ // nothing remains at the right
+        SMRight.arrayNumber = -1;
+     } else if(size>1){
+         CompositeMove CMRight;
+         CMRight.minIndex = rightPart.compositeSubMoves.Size();
+         for(int i=0;i<size;i++){
+             rightPart.compositeSubMoves.Append(submovesRight[i]);
+         }
+         CMRight.maxIndex = rightPart.compositeSubMoves.Size()-1;
+         SMRight.arrayNumber = COMPOSITE;
+         SMRight.arrayIndex = rightPart.compositeMoves.Size();
+         rightPart.compositeMoves.Append(CMRight);
+     }
+     return; // composite moves processed
+  }
+  if(submove.arrayNumber==PERIOD){
+     // first, we check whether the split instant is outside the interval
+     const PeriodicMove*  PMtmp=NULL;
+     periodicMoves.Get(submove.arrayIndex,PMtmp);
+     PeriodicMove PM = (*PMtmp);
+     RelInterval sminterval;
+     GetInterval(PM.submove,sminterval);
+     DateTime smlength;
+     sminterval.StoreLength(smlength);
+     DateTime ZeroTime(instanttype);
+
+
+     sminterval.StoreLength(smlength);
+     
+     // find out how many repeatations left on both sides
+     // first compute the duration which should be transferred 
+     //into the left part
+     DateTime LeftDuration = instant - startTime;
+     
+     
+
+
+
+     return; // periodic moves processed
+  }
+  assert(false); // unknown submove
+}
+
+
+/*
+~SplitLeft~
+
+This function equalizes leftPart with the part of this move which is located
+before the instant.
+
+*/
+template <class T, class Unit>
+void PMSimple<T, Unit>::SplitLeft(const DateTime& instant,const bool toLeft, 
+               PMSimple<T,Unit>* result){
+  SubMove LastMove;
+  DateTime startTimecopy;
+  startTimecopy.Equalize(&startTime);
+
+  if(!SplitLeftRec(instant,toLeft,*result,submove,startTimecopy,LastMove))
+      result->SetDefined(false);
+  else{
+     result->startTime = startTime;
+     DateTime len = instant-startTime;
+     result->interval.Set(&len,interval.IsLeftClosed(),toLeft);
+     result->submove = LastMove;      
+  }  
+}
+
+template <class T , class Unit>
+bool PMSimple<T, Unit>::SplitLeftRec(const DateTime& instant,const bool toLeft,
+                  PMSimple<T,Unit>& result,const SubMove& submove, 
+                  DateTime& startTime,SubMove& lastSubmove){
+
+/*
+First, we handle the a single unit.
+
+*/
+   if(submove.arrayNumber==LINEAR){
+        if(startTime > instant) // is right of the instant
+            return false;
+        const Unit* utmp;
+        linearMoves.Get(submove.arrayIndex,utmp);
+        Unit u = (*utmp);
+        RelInterval interval;
+        interval.Equalize(&u.interval);
+        DateTime dur = instant-startTime;
+        if(!u.interval.Contains(&dur)){
+           return false;
+        }
+        Unit rightUnit;
+        u.Split(dur,toLeft,rightUnit); 
+        result.linearMoves.Append(u);
+        DateTime len;
+        interval.StoreLength(len);
+        startTime = startTime + len;
+        lastSubmove.arrayNumber=LINEAR;
+        lastSubmove.arrayIndex = result.linearMoves.Size()-1;
+        return true;   
+   }
+/*
+Second, handling of composite moves
+
+*/
+   if(submove.arrayNumber == COMPOSITE){
+      const CompositeMove* CMtmp=NULL;
+      compositeMoves.Get(submove.arrayIndex,CMtmp);
+      CompositeMove CM = *CMtmp;
+      DateTime dur = instant-startTime;
+      if(!CM.interval.Contains(&dur))
+          return false;        
+      SubMove SM;
+      const SubMove* SMtmp;
+      vector<SubMove> mySubmoves(CM.maxIndex-CM.minIndex);
+      bool done = false;
+      for(int i =CM.minIndex;i<=CM.maxIndex && !done;i++){
+           compositeSubMoves.Get(i,SMtmp);
+           SM = (*SMtmp);
+           if(SplitLeftRec(instant,toLeft,result,SM,startTime,lastSubmove)){
+                mySubmoves.push_back(lastSubmove);
+           } else { // after this move can't follow any further moves
+             done=true;
+           }
+      } 
+      if(mySubmoves.size()<2){ // ok, this submoves is end in smoke
+        return true;
+      }else{ // we have to build a composite move from the remaining submoves
+         DateTime length(durationtype);
+         DateTime nextLength(durationtype);
+         int size = mySubmoves.size();
+         RelInterval interval; 
+         CM.minIndex = result.compositeSubMoves.Size();
+         for(int i=0;i<size;i++){
+            SM = mySubmoves[i];
+            if(i==0)
+                result.GetInterval(SM,CM.interval);
+            else{
+                result.GetInterval(SM,interval);
+                CM.interval.Append(&interval);
+            }
+            result.compositeSubMoves.Append(SM);
+         }      
+         CM.maxIndex = result.compositeSubMoves.Size()-1;
+         // append the composite move
+         lastSubmove.arrayIndex=COMPOSITE;
+         lastSubmove.arrayIndex = result.compositeMoves.Size();
+         result.compositeMoves.Append(CM);
+         return true;
+      }
+   }
+
+   if(submove.arrayIndex==PERIOD){
+       const PeriodicMove* PM;
+       periodicMoves.Get(submove.arrayIndex,PM);
+       DateTime dur = instant-startTime;
+       
+   }
+   assert(false); // the program should never reach this position
+
+
+}
+
+
+
+/*
+~Intersection~
+
+This function reduces the definition time of this PMSimple to the 
+interval defined by the arguments. This function cannot be constant, i.e. 
+it changes the *this* argument,  because
+we have to scan the dbarrays in some cases.
+
+*/
+template <class T, class Unit>
+void  PMSimple<T, Unit>::Intersection( const DateTime minTime, 
+                     const bool minIncluded, 
+                     const DateTime maxTime, 
+                     const bool maxIncluded,
+                    PMSimple<T,Unit>* res){
+
+      PMSimple<T,Unit> TMPPM1;
+      PMSimple<T,Unit> TMPPM2;
+      Split(minTime,!minIncluded,TMPPM2,TMPPM1);
+      //TMPPM1.Split(maxTime,maxIncluded,TMPPM1,*result);
+      TMPPM1.SplitLeft(maxTime,maxIncluded,res);
+   }
+
+
+/*
+~CopyValuesFrom~
+
+By calling this function, the value of this pmsimple is set to the given values.
+There is no check whether the values are valid. Use this function very carefully.
+A possible application of this function is to take the tree from another periodic 
+moving object.
+
+*/
+template <class T, class Unit>
+void PMSimple<T, Unit>::CopyValuesFrom( DBArray<Unit>& linearMoves,
+                      DBArray<CompositeMove>& compositeMoves,
+                      DBArray<SubMove>& compositeSubMoves,
+                      DBArray<PeriodicMove>& periodicMoves,
+                      bool defined,
+                      RelInterval interval,
+                      DateTime startTime,
+                      SubMove submove){
+
+  // first, clear all contained arrays
+  this->linearMoves.Clear();
+  this->compositeMoves->Clear();
+  this->compositeSubMoves.Clear();
+  this->periodicMoves.Clear();
+  // resize the array and copy contents
+  int size;
+  if((size=linearMoves.Size())>0){
+       this->linearMoves.Resize(size);
+       Unit U;
+       for(int i=0;i<size;i++){
+          linearMoves.Get(i,U);
+          this->linearMoves.Put(i,U);
+       } 
+  }
+  if((size=compositeMoves.Size())>0){
+      this->compositeMoves.Resize(size);
+      CompositeMove CM;
+      for(int i=0;i<size;i++){
+         compositeMoves.Get(i,CM);
+         this->compositeMoves.Put(i,CM);
+      } 
+  }
+  if((size=compositeSubMoves.Size())>0){
+     this->compositeSubMoves.Resize(size);
+     SubMove SM;
+     for(int i=0;i<size;i++){
+        compositeSubMoves.Get(i,SM);
+        this->compositeSubMoves.Put(i,SM);
+     } 
+  }
+  if((size=periodicMoves.Size())>0){
+      this->periodicMoves.Resize(size);
+      PeriodicMove PM;
+      for(int i=0;i<size;i++){
+         periodicMoves.Get(i,PM);
+         this->periodicMoves.Put(PM);
+      }
+  }
+  this.defined=defined;
+  this.canDelete=false;
+  this->interval.Equalize(&interval);
+  this->startTime.Equalize(&startTime);
+  this.submove=submove; 
+} 
+
+/*
+~TakeValuesFrom~
+
+This function works similar to the ~CopyValuesFrom~ function.
+The difference is, that the values are assigned to the internal
+variables. These variables are cleaned before.
+
+*Note*: There is no check for the integrity of the given data. 
+
+*/
+template <class T, class Unit>
+void PMSimple<T, Unit>::TakeValuesFrom( DBArray<Unit>& linearMoves,
+                      DBArray<CompositeMove>& compositeMoves,
+                      DBArray<SubMove>& compositeSubMoves,
+                      DBArray<PeriodicMove>& periodicMoves,
+                      bool defined,
+                      RelInterval interval,
+                      DateTime startTime,
+                      SubMove submove){
+
+   this->linearMoves.Clear(); 
+   this->linearMoves.Destroy();
+   this->compositeMoves.Clear();
+   this->compositeMoves.Destroy();
+   this->compositeSubMoves.Clear();
+   this->compositeSubMoves.Destroy();
+   this->periodicMoves.Clear();
+   this->periodicMoves.Destroy();
+   this->linearMoves = linearMoves();
+   this->compositeMoves = compositeMoves();
+   this->compositeSubMoves = compositeSubMoves();
+   this->periodicMoves = periodicMoves();
+   this->defined = defined;
+   this.interval = interval;
+   this.startTimes = startTime;
+   this.submove = submove;
+}
+
+
+/*
+~SetStartTime~
+
+This function can be used for moving this PMsimple in time.
+
+*/
+template <class T, class Unit>
+void PMSimple<T, Unit>::SetStartTime(DateTime newStart){
+      startTime.Equalize(&newStart);
+}
+
+
+/*
+~Functions returning pointers to the members~
+
+Each of the next functions returns a pointer for a member.
+This way bypasses the protected declaration of the members 
+because this function enables the possibility to manipulate the
+members direcly without control of the PMSimple class. This may 
+be not good for encapsulating the code but the only way to have
+an efficient implementation for that. The caller of this functions
+must be very very carefully to ensure that all the manipulated
+members results in a consistent instance of type PMSimple. 
+A possible application of this function is to make a copy of the
+tree structure of another periodic moving object. 
+
+*/
+template <class T, class Unit>
+DBArray<Unit>* PMSimple<T, Unit>::GetLinearMoves(){
+   return &linearMoves;
+}
+
+template <class T, class Unit>
+DBArray<CompositeMove>* PMSimple<T,Unit>::GetCompositeMoves(){
+  return &compositeMoves;
+}
+
+template <class T, class Unit>
+DBArray<SubMove>* PMSimple<T, Unit>::GetCompositeSubMoves(){
+   return &compositeSubMoves;
+}
+
+template <class T, class Unit>
+DBArray<PeriodicMove>* PMSimple<T, Unit>::GetPeriodicMoves(){
+   return &periodicMoves;
+}
+
+template <class T, class Unit>
+RelInterval* PMSimple<T, Unit>::GetInterval(){
+   return &interval;
+}
+
+template <class T, class Unit>
+SubMove* PMSimple<T, Unit>::GetSubmove(){ 
+   return &submove;
+}
+
+/*
+
+~GetLength~
+
+This function returns the lenght of the interval of the given 
+submove. 
+
+*/
+template <class T, class Unit>
+void PMSimple<T, Unit>::GetLength(SubMove sm, DateTime& result){
+    switch(sm.arrayNumber){
+      case LINEAR: { Unit U;
+                     linearMoves.Get(sm.arrayIndex,U);
+                      U.interval.StoreLength(result);
+                   } break;
+      case COMPOSITE: {
+                       CompositeMove CM; 
+                       CM.interval.StoreLength(result); 
+                      }break;
+
+     case PERIOD: {
+                   PeriodicMove CM;
+                   CM.interval.StoreLength(result);
+                  } break;
+     default: assert(false); // unknown move type
+
+    }
+
+}
+
+
+/*
+
+~GetLeftClosed~
+
+This function returns the state of the LeftClosed flag  of the interval of the given 
+submove. 
+
+*/
+template <class T, class Unit>
+bool PMSimple<T, Unit>::GetLeftClosed(SubMove sm){
+    switch(sm.arrayNumber){
+      case LINEAR: { Unit U;
+                     linearMoves.Get(sm.arrayIndex,U);
+                      return  U.interval.IsLeftClosed();
+                   } 
+      case COMPOSITE: {
+                       CompositeMove CM; 
+                       return CM.interval.IsLeftClosed(); 
+                      }
+
+     case PERIOD: {
+                   PeriodicMove PM;
+                   return PM.interval.IsLeftClosed();
+                  }
+     default: assert(false); // unknown move type
+
+    }
+}
+
+
+/*
+
+~GetRightClosed~
+
+This function returns the state of the RightClosed flag  of the interval of the given 
+submove. 
+
+*/
+template <class T, class Unit>
+bool PMSimple<T, Unit>::GetRightClosed(SubMove sm){
+    switch(sm.arrayNumber){
+      case LINEAR: { Unit U;
+                     linearMoves.Get(sm.arrayIndex,U);
+                      return  U.interval.IsRightClosed();
+                   } 
+      case COMPOSITE: {
+                       CompositeMove CM; 
+                       return CM.interval.IsRightClosed(); 
+                      }
+
+     case PERIOD: {
+                   PeriodicMove PM;
+                   return PM.interval.IsRightClosed();
+                  }
+     default: assert(false); // unknown move type
+    }
+ }
+
+
+/*
+
+~GetInterval~
+
+This function returns the returns the interval of the given submove independly
+of the type of the submove. 
+
+*/
+template <class T, class Unit>
+void PMSimple<T, Unit>::GetInterval(SubMove sm,RelInterval& interval){
+    switch(sm.arrayNumber){
+      case LINEAR: { const Unit* U;
+                     linearMoves.Get(sm.arrayIndex,U);
+                     interval.Equalize(&U->interval);
+                   } break;
+      case COMPOSITE: {
+                       const CompositeMove* CM; 
+                       interval.Equalize(&CM->interval); 
+                      }break;
+
+     case PERIOD: {
+                   const PeriodicMove* PM;
+                   interval.Equalize(&PM->interval);
+                  }break;
+     default: assert(false); // unknown move type
+    }
+ }
+
+/*
+~GetSubMoveList~
+
+This function returns the list representation for the submove in the
+argument.
+
+[3] O(L), where L is the number of contained linear moves
+
+*/
+template <class T, class Unit>
+ListExpr PMSimple<T, Unit>::GetSubMoveList(const SubMove SM) const{
+  __TRACE__
+  ListExpr SubMoveList;
+  int SubMoveType = SM.arrayNumber;
+  int index = SM.arrayIndex;
+  if(SubMoveType==LINEAR)
+      SubMoveList = GetLinearMoveList(index);
+  else if(SubMoveType==COMPOSITE)
+      SubMoveList = GetCompositeMoveList(index);
+  else if(SubMoveType==PERIOD)
+      SubMoveList = GetPeriodicMoveList(index);
+  else{
+       cerr << __POS__ << " Error in creating ListExpr" << endl;
+       SubMoveList = nl->TheEmptyList();
+   }
+  return SubMoveList;
+}
+
+
+/*
+~GetLinearMoveList~
+
+This functions takes the linear move at the specified index and
+returns its nested list representation.
+
+[3] O(1)
+
+*/
+template <class T, class Unit>
+ListExpr PMSimple<T, Unit>::GetLinearMoveList(const int index)const{
+    __TRACE__
+   const Unit* LM=NULL;
+   linearMoves.Get(index,LM);
+   return LM->ToListExpr();
+}
+
+
+/*
+~GetPeriodicMoveList~
+
+Creates a nested list for the periodic move at the specified index.
+
+[3] O(L), where L is the number of contained linear moves
+
+*/
+template <class T, class Unit>
+ListExpr PMSimple<T, Unit>::GetPeriodicMoveList(const int index)const{
+    __TRACE__
+  const PeriodicMove* PM=NULL;
+  periodicMoves.Get(index,PM);
+  ListExpr periodtype = nl->SymbolAtom("period");
+  ListExpr RepList = nl->IntAtom(PM->repeatations);
+  ListExpr SML = GetSubMoveList(PM->submove);
+  ListExpr RC = nl->BoolAtom(interval.IsRightClosed());
+  ListExpr LC = nl->BoolAtom(interval.IsLeftClosed());
+  return  nl->TwoElemList(periodtype,nl->FourElemList(RepList,LC,RC,SML));
+}
+
+
+/*
+~GetCompositeMoveList~
+
+Returns the CompositeMove at the specified index in its nested list
+representation.
+
+[3] O(L), where L is the number of contained linear moves
+
+*/
+template <class T, class Unit>
+ListExpr PMSimple<T, Unit>::GetCompositeMoveList(const int index)const{
+   __TRACE__
+  const CompositeMove* CM=NULL;
+  compositeMoves.Get(index,CM);
+  ListExpr CType = nl->SymbolAtom("composite");
+  int minIndex = CM-> minIndex;
+  int maxIndex = CM->maxIndex;
+  ListExpr SubMovesList;
+  if(maxIndex<minIndex){
+    cerr << __POS__ << "empty composite move" << endl;
+    SubMovesList = nl->TheEmptyList();
+  }
+  else{
+   // construct the List of submoves
+    const SubMove* SM=NULL;
+    compositeSubMoves.Get(minIndex,SM);
+    SubMovesList = nl->OneElemList(GetSubMoveList(*SM));
+    ListExpr Last = SubMovesList;
+    for(int i=minIndex+1;i<=maxIndex;i++){
+      compositeSubMoves.Get(i,SM);
+      Last = nl->Append(Last,GetSubMoveList(*SM));
+    }
+  }
+  return nl->TwoElemList(CType,SubMovesList);
+}
+
+/*
+~ResizeArrays~
+
+This functions resizes all array to be able to insert the moves
+contained in the argument list.This function should be called 
+before this instance is read from a nested list to avoid 
+frequently resize of the contained DB-Arrays. The return
+value of this function is an indicator for the correctness 
+of the structure of this list. If the result is __false__,
+the list don't represent a valid periodic moving object.
+But a return value of __true__ don't guarantees a correct
+list representation. 
+
+[3] O(L), where L is the number of contained linear moves
+
+*/
+template <class T, class Unit>
+bool PMSimple<T, Unit>::ResizeArrays(const ListExpr value){
+    __TRACE__
+   // first all entries in the arrays are removed
+   linearMoves.Clear();
+   compositeMoves.Clear();
+   compositeSubMoves.Clear();
+   periodicMoves.Clear();
+   int LMSize = 0;
+   int CMSize = 0;
+   int SMSize = 0;
+   int PMSize = 0;
+   if(!AddSubMovesSize(nl->Second(value),LMSize,CMSize,SMSize,PMSize))
+      return false;
+   // set the arrays to the needed size
+   if(LMSize>0) linearMoves.Resize(LMSize);
+   if(CMSize>0) compositeMoves.Resize(CMSize);
+   if(SMSize>0) compositeSubMoves.Resize(SMSize);
+   if(PMSize>0) periodicMoves.Resize(PMSize);
+   return true;
+}
+
+
+/*
+~AddSubMovesSize~
+
+Adds the number of in value contained submoves to the appropriate
+size. If the result is__false__, the list is not a correct 
+representation of a periodic moving object. If it is __true__
+the content of the list can be wrong but the structure is correct.
+
+[3] O(L), where L is the number of contained linear moves
+
+*/
+template <class T, class Unit>
+bool PMSimple<T, Unit>::AddSubMovesSize(const ListExpr value,
+                                        int &LMSize,int &CMSize,
+                                        int &SMSize,int &PMSize){
+    __TRACE__
+ // all moves have the length 2
+  if(nl->ListLength(value)!=2)
+     return false;
+  ListExpr type = nl->First(value);
+  if(nl->AtomType(type)!=SymbolType)
+    return false;
+  // in a linear move we have only to increment the size of LM
+  if(nl->IsEqual(type,"linear")){
+     LMSize = LMSize +1;
+     return true;
+  }
+  if(nl->IsEqual(type,"composite")){
+     CMSize = CMSize+1; // the composite move itself
+     ListExpr rest = nl->Second(value);
+     SMSize = SMSize+nl->ListLength(rest); // the contained submoves
+     while(!nl->IsEmpty(rest)){
+        if(!AddSubMovesSize(nl->First(rest),LMSize,CMSize,SMSize,PMSize))
+           return false;
+        rest = nl->Rest(rest);
+     }
+     return true;
+  }
+  if(nl->IsEqual(type,"period")){
+     PMSize = PMSize+1;
+     int len = nl->ListLength(value);
+     ListExpr PMove;
+     if(len==2)
+         PMove = nl->Second(value);
+     else if(len==4)
+          PMove = nl->Fourth(value);
+     else // incorrect listlength
+         return false;
+     
+     return AddSubMovesSize(nl->Second(PMove),
+                            LMSize,CMSize,SMSize,PMSize);
+  }
+  // a unknown type description
+  return false;
+}
+
+
+/*
+~AddLinearMove~
+
+This function adds the LinearMove given in value to this PMSimple.
+If the list represents a valid Unit, this unit is append to to
+appropriate dbarray and the argument __LMIndex__ is increased.
+If the list is incorrect, this periodic moving object is not
+changed and the result will be __false__.
+
+[3] O(1)
+
+*/
+template <class T, class Unit>
+bool PMSimple<T, Unit>::AddLinearMove(const ListExpr value,int &LMIndex, 
+                                      int &CMIndex,
+                                      int &SMIndex, int &PMIndex){
+   __TRACE__
+
+    Unit LM = Unit(0);
+    if(!LM.ReadFrom(value))
+       return false;
+    linearMoves.Put(LMIndex,LM);
+    LMIndex++;
+    return true;
+}
+
+/*
+~AddCompositeMove~
+
+This function creates a CompositeMove from value and adds it
+(and all contained submoves) to this PMSimple. The return 
+value corresponds to the correctness of the list for this
+composite move. The arguments are increased by the number of
+contained submoves in this composite move. *Note*: This
+function can change this periodic moving object even when 
+the list is not correct. In the case of a result of __false__,
+the state of this object is not defined and the defined flag
+should be set to false.
+
+[3] O(L), where L is the number of contained linear moves
+
+*/
+template <class T, class Unit>
+bool PMSimple<T, Unit>::AddCompositeMove(const ListExpr value,
+                                         int &LMIndex, int &CMIndex,
+                                         int &SMIndex, int &PMIndex){
+   __TRACE__
+   // a composite move has to contains at least two submoves
+   int len = nl->ListLength(value);
+   if(len<2){
+      if(DEBUG_MODE){
+         cerr << __POS__ << " less than 2 submoves (" 
+              << len << ")" << endl;
+      }
+      return false;
+   }
+   CompositeMove CM=CompositeMove(1);
+   int CMPos=CMIndex;
+   int SMPos=SMIndex;
+   // ensure that no submove used the positions for this composite move
+   CMIndex++;
+   CM.minIndex=SMIndex;
+   CM.maxIndex=SMIndex+len-1;
+   SMIndex= SMIndex+len;
+   // Append the contained Submoves
+   ListExpr rest = value;
+   ListExpr SML,TL,VL;
+   bool isFirst = true;
+   while(!nl->IsEmpty(rest)){
+      SML = nl->First(rest);
+      rest = nl->Rest(rest);
+      if(nl->ListLength(SML)!=2){ // all submoves have the 
+                                 // format (type value)
+         if(DEBUG_MODE){
+            cerr << __POS__ << " submove has wrong length (";
+            cerr << nl->ListLength(SML) << ")" << endl;
+         }
+         return false;
+      }
+      TL = nl->First(SML);
+      VL = nl->Second(SML);
+      if(nl->IsEqual(TL,"linear")){
+         // process a linear submove
+         int LMPos = LMIndex;
+         if(!AddLinearMove(VL,LMIndex,CMIndex,SMIndex,PMIndex)){
+            if(DEBUG_MODE){
+               cerr << __POS__ << " can't add a linear move " << endl;
+            }
+            return false;
+         }
+         const Unit* LM=NULL;
+         linearMoves.Get(LMPos,LM);
+         // Append the interval of LM to CM
+         if(isFirst){
+            isFirst=false;
+            CM.interval.Equalize(&(LM->interval));
+         }else{
+            if(!CM.interval.Append(&(LM->interval))){
+               if(DEBUG_MODE){
+                   cerr << __POS__ << " can't append interval " << endl;
+                   cerr << "The original interval is";
+                   cerr << CM.interval.ToString() << endl;
+                   cerr << "The interval to append is";
+                   cerr << LM->interval.ToString() << endl;
+               }
+               return false;
+            }
+         }
+         // put the submove in the array
+         SubMove SM;
+         SM.arrayNumber = LINEAR;
+         SM.arrayIndex = LMPos;
+         compositeSubMoves.Put(SMPos,SM);
+         SMPos++;
+      } else if(nl->IsEqual(TL,"period")){
+        // process a periodic submove
+        int PMPos = PMIndex;
+        if(!AddPeriodMove(VL,LMIndex,CMIndex,SMIndex,PMIndex)){
+           if(DEBUG_MODE){
+              cerr << __POS__ << "can't add period move " << endl;
+            }
+            return  false;
+        }
+        const PeriodicMove* PM=NULL;
+        periodicMoves.Get(PMPos,PM);
+        if(isFirst){
+           isFirst=false;
+           CM.interval.Equalize(&(PM->interval));
+        }else{
+           if(!CM.interval.Append(&(PM->interval))){
+              if(DEBUG_MODE){
+                 cerr << __POS__  << " can't append interval" << endl;
+              }
+              return false;
+           }
+        }
+        SubMove SM;
+        SM.arrayNumber = PERIOD;
+        SM.arrayIndex = PMPos;
+        compositeSubMoves.Put(SMPos,SM);
+        SMPos++;
+   } else{ // not of type linear or period
+        if(DEBUG_MODE){
+            cerr << __POS__ << " submove not of type ";
+            cerr << "linear od period" << endl;
+         }
+         return false;
+      }
+   }
+   // put the compositeMove itself
+   compositeMoves.Put(CMPos,CM);
+   return true;
+}
+
+
+/*
+~AddPeriodMove~
+
+Adds the period move described in value to this PMSimple.
+*Note*: This function can change this objects even wehn 
+the list does not represent a valid period move. If the 
+result is __false__ the __defined__ flag of this move
+should be set to false.
+
+[3] O(L), where L is the number of contained linear moves
+
+*/
+template <class T, class Unit>
+bool PMSimple<T, Unit>::AddPeriodMove(const ListExpr value,
+                                      int &LMIndex, int &CMIndex,
+                                      int &SMIndex, int &PMIndex){
+   __TRACE__
+   int len = nl->ListLength(value);
+   if((len!=2) && (len!=4)){  // (repeatations <submove>)
+      if(DEBUG_MODE)
+        cerr << __POS__ << ": wrong listlength" << endl;
+      return false;
+   }
+   if(nl->AtomType(nl->First(value))!=IntType){
+     if(DEBUG_MODE){
+       cerr << __POS__ << ": wrong type for repeatations" << endl;
+     }
+     return false;
+   }
+   int rep = nl->IntValue(nl->First(value));
+   // rep must be greater than 1 
+   if(rep<=1 ){
+      if(DEBUG_MODE){
+         cerr << __POS__ <<  " wrong number of repeatations" << endl;
+      }
+      return false;
+   }
+   
+   ListExpr SML;
+   if(len==2)
+      SML = nl->Second(value);
+   if(len==4)
+      SML = nl->Fourth(value);
+
+   if(nl->ListLength(SML)!=2){
+      if(DEBUG_MODE){
+         cerr << __POS__ << ": wrong length for submove" << endl;
+      }
+      return false;
+   }
+   PeriodicMove PM=PeriodicMove(1);
+   PM.repeatations = rep;
+   int IncludePos = PMIndex; // store the positiuon
+   PMIndex++;
+   ListExpr SMT = nl->First(SML); // take the submove type
+   if(nl->IsEqual(SMT,"linear")){
+     int LMPos = LMIndex;
+     if(!AddLinearMove(nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
+        if(DEBUG_MODE){
+          cerr << __POS__ << ": can't add linear submove" << endl;
+        }
+        return false;
+     }
+     PM.submove.arrayNumber = LINEAR;
+     PM.submove.arrayIndex = LMPos;
+     const Unit* LM=NULL;
+     linearMoves.Get(LMPos,LM);
+     RelInterval SMI = LM->interval;
+     PM.interval.Equalize(&SMI);
+     PM.interval.Mul(rep);
+     if(len==4){
+         ListExpr LC = nl->Second(value);
+         ListExpr RC = nl->Third(value);
+        if((nl->AtomType(LC)!=BoolType) || (nl->AtomType(RC)!=BoolType))
+          return false;
+        PM.interval.SetLeftClosed(nl->BoolValue(LC));
+        PM.interval.SetRightClosed(nl->BoolValue(RC));
+     }
+
+     periodicMoves.Put(IncludePos,PM);
+     return true;
+   }else if(nl->IsEqual(SMT,"composite")){
+     int CMPos = CMIndex;
+     if(!AddCompositeMove(nl->Second(SML),LMIndex,CMIndex,
+                          SMIndex,PMIndex)){
+        if(DEBUG_MODE){
+           cerr << __POS__ << ": can't add composite submove" << endl;
+        }
+        return false;
+     }
+     PM.submove.arrayNumber = COMPOSITE;
+     PM.submove.arrayIndex = CMPos;
+     const CompositeMove* CM=NULL;
+     compositeMoves.Get(CMPos,CM);
+     RelInterval SMI = CM->interval;
+     PM.interval.Equalize(&SMI);
+     PM.interval.Mul(rep);
+     if(len==4){
+         ListExpr LC = nl->Second(value);
+         ListExpr RC = nl->Third(value);
+        if((nl->AtomType(LC)!=BoolType) || (nl->AtomType(RC)!=BoolType))
+          return false;
+        PM.interval.SetLeftClosed(nl->BoolValue(LC));
+        PM.interval.SetRightClosed(nl->BoolValue(RC));
+     }
+     periodicMoves.Put(IncludePos,PM);
+     return true;
+   }
+   return false; // invalid type
+}
+
+/*
+~GetLastUnit~
+
+This function returns the temporal last unit of this periodic moving point.
+It is realized by going down the repetition tree up to a unit.
+
+*/
+template <class T, class Unit>
+Unit PMSimple<T, Unit>::GetLastUnit(){
+    __TRACE__
+    const SubMove* s = &submove;
+    while(s->arrayNumber!=LINEAR){
+        if(s->arrayNumber==PERIOD){
+           const PeriodicMove* PM=NULL;
+           periodicMoves.Get(s->arrayIndex,PM);
+           s = &PM->submove;
+        } else if(s->arrayNumber==COMPOSITE){
+           const CompositeMove* CSM=NULL;
+           compositeMoves.Get(s->arrayIndex,CSM);
+           compositeSubMoves.Get(CSM->maxIndex,s);   
+        } else{
+          assert(false); // unknown arraynumber
+        }
+    }
+    const Unit* res=NULL;
+    linearMoves.Get(s->arrayIndex,res);
+    return *res;
+}
+  
+/*
+~MinimizationRequired~
+
+This function checks, whether an call of ~Minimize~ will change the
+tree. Particularly, it checks whether two consecutive units can
+be summarized to a single one.
+
+*/
+template <class T, class Unit>
+bool PMSimple<T, Unit>::MinimizationRequired(){
+  __TRACE__
+  const Unit* LM=NULL;
+  const Unit* LM2=NULL;
+  const CompositeMove* CM=NULL;
+  const PeriodicMove*  PM=NULL;
+  const SubMove* SM=NULL;
+  const SubMove* SM2=NULL;
+  // check periodic moves
+  int size = periodicMoves.Size();
+  for(int i=0;i<size;i++){
+      periodicMoves.Get(i,PM);
+      SM = &PM->submove;
+      if(SM->arrayIndex==LINEAR){
+         linearMoves.Get(SM->arrayIndex,LM);
+         if(LM->interval.CanAppended(&LM->interval))
+             return true;
+      }  
+  }
+  // check composite moves
+  size = compositeMoves.Size();
+  for(int i=0;i<size;i++){
+     compositeMoves.Get(i,CM);
+     for(int k=CM->minIndex;k< CM->maxIndex;k++){
+        compositeSubMoves.Get(k,SM);
+        compositeSubMoves.Get(k+1,SM2);
+        if( (SM->arrayNumber==LINEAR) && (SM2->arrayNumber==LINEAR)){
+            linearMoves.Get(SM->arrayIndex,LM);
+            linearMoves.Get(SM2->arrayIndex,LM2);
+            if( (LM->value==LM2->value) && 
+                (LM->interval.CanAppended(&LM2->interval)))
+                return true;
+        }
+     } 
+  }
+  return false;
+}
+
+
+
+/*
+~MinimizeRec~
+
+This function summarizes consecutive units with the same value.
+The result is stored in the arguments. Note that no detection of
+equal linear moves is performed. This means, when a unit occurs
+twice or more, this unit will be also stored several times in
+the corresponding dbarray.
+
+*/
+template <class T, class Unit>
+SubMove PMSimple<T, Unit>::MinimizeRec(SubMove SM, 
+                    DBArray<Unit>&                   newLinearMoves,
+                    DBArray<CompositeMove>&          newCompositeMoves,
+                    DBArray<SubMove>&                newCompositeSubMoves,
+                    DBArray<PeriodicMove>&           newPeriodicMoves,
+                    Unit&                            Summarization,
+                    bool&                            CompleteSummarized){
+
+   if(SM.arrayNumber==LINEAR){
+       const Unit* Sum1;
+       linearMoves.Get(SM.arrayIndex,Sum1);
+       Summarization = (*Sum1);
+       CompleteSummarized=true;
+       return SM;   
+   }
+   if(SM.arrayNumber==PERIOD){
+       const PeriodicMove* PM=NULL;
+       periodicMoves.Get(SM.arrayIndex,PM);
+       PeriodicMove PM2 = (*PM);
+       SubMove SM2 = MinimizeRec(PM2.submove, 
+                                 newLinearMoves,newCompositeMoves,
+                                 newCompositeSubMoves,newPeriodicMoves,
+                                 Summarization, CompleteSummarized);
+       if(!CompleteSummarized){
+          PM2.submove = SM2; 
+          int Pos = newPeriodicMoves.Size();
+          newPeriodicMoves.Append(PM2);
+          SM2.arrayNumber=PERIOD;
+          SM2.arrayIndex= Pos;
+          CompleteSummarized = false;
+          return SM2;
+       }else{ // the result is a single linear move
+          if(!Summarization.interval.CanAppended(
+                               &Summarization.interval)){ // a little gap
+              int LinPos = newLinearMoves.Size();
+              newLinearMoves.Append(Summarization);
+              PM2.submove.arrayNumber=LINEAR;
+              PM2.submove.arrayIndex=LinPos;
+              // store this periodic move
+              int PerPos = newPeriodicMoves.Size();
+              newPeriodicMoves.Append(PM2);
+              SM2.arrayNumber=PERIOD;
+              SM2.arrayIndex=PerPos;
+              CompleteSummarized=false;
+              return SM2;
+          }else{ // we don't need longer this periodic move
+             Summarization.interval.Mul(PM2.repeatations);
+             return SM2;
+         } 
+       }
+   }
+   if(SM.arrayNumber==COMPOSITE){
+        const CompositeMove* CMtmp;
+        compositeMoves.Get(SM.arrayIndex,CMtmp);
+        CompositeMove CM = *CMtmp;
+        Unit LM(0);
+        bool LMdefined = false;
+        vector<SubMove> MySubMoves;
+        for(int i=CM.minIndex;i<=CM.maxIndex;i++){
+           const SubMove* Current;
+           compositeSubMoves.Get(i,Current);
+           SubMove SM2 = MinimizeRec(*Current,
+                                     newLinearMoves,newCompositeMoves,
+                                     newCompositeSubMoves,newPeriodicMoves,
+                                     Summarization, CompleteSummarized);
+           if(!CompleteSummarized){
+              // store summarized submove if present
+              if(LMdefined){
+                 int LinPos = newLinearMoves.Size();
+                 newLinearMoves.Append(LM);
+                 LMdefined=false;
+                 SubMove SM3;
+                 SM3.arrayNumber=LINEAR;
+                 SM3.arrayIndex=LinPos;
+                 MySubMoves.push_back(SM3);
+              } 
+              MySubMoves.push_back(SM2); 
+           }else{ // submove complete summarized
+              if(!LMdefined){ // first summarized LinearMove;
+                LM = Summarization;
+                LMdefined=true;
+              }else{
+                  
+                if(LM.CanSummarized(Summarization)){
+                    // append the new summarization to LM
+                    LM.interval.Append(&Summarization.interval);
+                } else{
+                    // the new summarization cannot appendend to LM
+                    // store LM
+                    int LinPos = newLinearMoves.Size();
+                    newLinearMoves.Append(LM);
+                    SubMove SM3;
+                    SM3.arrayNumber=LINEAR;
+                    SM3.arrayIndex=LinPos;
+                    MySubMoves.push_back(SM3);
+                    LM = Summarization; 
+                }  
+              }  
+          }
+        } // all submoves processed;
+        if(MySubMoves.size()==0){ // all its collected into LM
+            CompleteSummarized=true;
+            Summarization = LM;
+            return SM; // unimportant in this case
+        }else{
+            if(LMdefined){ // store the last summarization
+              int LinPos = newLinearMoves.Size();
+              newLinearMoves.Append(LM);
+              SubMove SM3;
+              SM3.arrayNumber = LINEAR;
+              SM3.arrayIndex  = LinPos;
+              MySubMoves.push_back(SM3); 
+            }
+            CM.minIndex = newCompositeSubMoves.Size();
+            CM.maxIndex = CM.minIndex + MySubMoves.size()-1;
+            // store the submoves
+            for(unsigned int k=0;k<MySubMoves.size();k++){
+               newCompositeSubMoves.Append(MySubMoves[k]);  
+            }
+            SubMove SM3;
+            SM3.arrayNumber=COMPOSITE;
+            SM3.arrayIndex=newCompositeMoves.Size();
+            newCompositeMoves.Append(CM);
+            CompleteSummarized=false;
+            return SM3;
+        }
+   } 
+   assert(false);
+}
+
+
+/*
+16 Implementation of PMInt9M
+
+*/
+/*
+~Constructor~
+
+*/
+PMInt9M::PMInt9M(){}
+
+/*
+~Constructor~
+
+This constructor should be used for creating a PMInt9M
+instance. It calls the constructor of the superclass.
+
+*/
+PMInt9M::PMInt9M(int dummy):
+     PMSimple<Int9M,LinearInt9MMove>(dummy) 
+{
+       __TRACE__
+}
+
+
+/*
+~Transpose~
+
+The Transpose function will change the roles of the arguments for which 
+this periodic moving 9 intersection matrix is computed.
+
+*/
+void PMInt9M::Transpose(){
+  int size = linearMoves.Size();
+  const LinearInt9MMove* LM;
+  LinearInt9MMove LM2;
+  for(int i=0;i<size;i++){
+     linearMoves.Get(i,LM);
+     LM2 = (*LM); 
+     LM2.Transpose();
+     linearMoves.Put(i,LM2);
+  } 
+
+}
+
+/*
+~CreateFrom~
+
+When this function is called, the linearConstantMove is build from the
+given values with an additional level between the tree and the linear moves.
+This means, the value of this pmsimple is given by the structure showed in
+figure [ref]{fig:RepTreeWithAdditionalLevel.eps}.
+
+                Figure 3: Repetition Tree with an additional Level [RepTreeWithAdditionalLevel.eps]
+
+This can be usedful in operation where the actual repetions remains but 
+the units can be split. An example is the computation of the 
+topological relationship between a periodic moving point and a non-moving
+spatial object. The repetitions in the movement of the points are preserved
+but it is possible that the topological relationship changes in single
+units of this moving point. In this case, additional composite moves
+must be inserted in the structure. This is exactly what this function does.
+
+*/
+bool PMInt9M::CreateFrom( DBArray<LinearInt9MMove>& linearMoves, 
+                 ArrayRange*                     level,
+                 int                             levelsize,
+                 DBArray<CompositeMove>&          compositeMoves,
+                 DBArray<SubMove>&                compositeSubMoves,
+                 DBArray<PeriodicMove>&           periodicMoves,
+                 DateTime                        startTime,
+                 SubMove                         submove) {
+   __TRACE__
+
+   defined =true;
+   this->startTime.Equalize(&startTime);
+   canDelete=false;
+   this->submove.Equalize(&submove);
+   const PeriodicMove* PM;
+   const SubMove* SM;
+   const CompositeMove* CM;
+   const LinearInt9MMove* LM;
+   switch(submove.arrayNumber){
+     case PERIOD: { periodicMoves.Get(submove.arrayIndex,PM);
+                    this->interval.Equalize(&(PM->interval));
+                    break;
+                   }
+     case LINEAR: { linearMoves.Get(submove.arrayIndex,LM);
+                    this->interval.Equalize(&(LM->interval));
+                    break;
+                  }
+     case COMPOSITE: { compositeMoves.Get(submove.arrayIndex,CM);
+                       this->interval.Equalize(&(CM->interval));
+                       break;
+                     }
+     default:   assert(false);
+
+   }
+   this->linearMoves.Clear();
+   if(linearMoves.Size()>0)
+      this->linearMoves.Resize(linearMoves.Size());
+   for(int i=0;i<linearMoves.Size();i++){
+       linearMoves.Get(i,LM);
+       LinearInt9MMove LM2 = (*LM);
+       this->linearMoves.Put(i,LM2);  
+   }
+ 
+   this->compositeMoves.Clear();
+   if(compositeMoves.Size()>0)
+      this->compositeMoves.Resize(compositeMoves.Size());
+   for(int i=0;i<compositeMoves.Size();i++){
+        compositeMoves.Get(i,CM);
+        CompositeMove CM2 = (*CM);
+        this->compositeMoves.Put(i,CM2);
+   }
+   this->periodicMoves.Clear();
+   if(periodicMoves.Size()>0)
+      this->periodicMoves.Resize(periodicMoves.Size());
+   for(int i=0;i<periodicMoves.Size();i++){
+        periodicMoves.Get(i,PM);
+        PeriodicMove PM2 = (*PM);
+        this->periodicMoves.Put(i,PM2);
+   }
+
+   if(levelsize==linearMoves.Size()){// easy case: no additional Moves
+        this->compositeSubMoves.Clear();
+        if(compositeSubMoves.Size()>0)
+            this->compositeSubMoves.Resize(compositeSubMoves.Size());
+        for(int i=0;i<compositeSubMoves.Size();i++) {
+            compositeSubMoves.Get(i,SM);
+            SubMove SM2 = (*SM);
+            this->compositeSubMoves.Put(i,SM2);
+        }
+        return true;
+   }
+   // we have to restructure the tree :-(
+   // for the periodicMoves, we have to change the arrayindex of an 
+   // linear submove or we have to build a new composite move
+   // "pointers" to composite moves are not affected
+   ArrayRange ar;
+   int minsize = compositeSubMoves.Size()>0?compositeSubMoves.Size():1;
+   this->compositeSubMoves.Resize(minsize); 
+
+   // process the compositeMoves
+   for(int i=0;i<compositeMoves.Size();i++){
+      compositeMoves.Get(i,CM);
+      int pos = this->compositeSubMoves.Size();
+      int count = 0;
+      for(int j=CM->minIndex;j<=CM->maxIndex;j++){
+          compositeSubMoves.Get(j,SM);
+          if(SM->arrayNumber!=LINEAR){ // copy the submove
+             SubMove SM2 = (*SM);
+             this->compositeSubMoves.Append(SM2);
+             count++;
+          } else{ // a linear submove
+             ar = level[SM->arrayIndex];
+             if(ar.minIndex==ar.maxIndex){
+                SubMove SM2 = (*SM);
+                SM2.arrayIndex=ar.minIndex;
+                this->compositeSubMoves.Append(SM2);
+                count++;
+             } else{ // insert new submoves
+               for(int k=ar.minIndex;k<=ar.maxIndex;k++){
+                  SubMove SM2 = (*SM);
+                  SM2.arrayNumber=LINEAR;
+                  SM2.arrayIndex=k;
+                  this->compositeSubMoves.Append(SM2);
+                  count++;
+               }
+            }
+          }
+      }
+      CompositeMove CM2 = (*CM);
+      CM2.minIndex=pos;
+      CM2.maxIndex=pos+count-1;
+      this->compositeMoves.Put(i,CM2); 
+   }
+
+   // process the periodic moves 
+   for(int i=0;i<this->periodicMoves.Size();i++){
+        this->periodicMoves.Get(i,PM);
+        PeriodicMove PM2 = (*PM);
+        SubMove SM2 = PM2.submove;
+        if(submove.arrayNumber==LINEAR){ // otherwise is nothing to do
+          ar = level[SM2.arrayIndex];
+          if(ar.minIndex==ar.maxIndex){ // ok, just correct the index
+            SM2.arrayIndex=ar.minIndex;
+          } else{ // create a new composite move
+             // first create the appropriate submoves
+             int pos = this->compositeSubMoves.Size(); 
+             RelInterval i;
+             for(int j=ar.minIndex;j<=ar.maxIndex;j++){
+                SM2.arrayNumber = LINEAR;
+                SM2.arrayIndex  = j;
+                this->compositeSubMoves.Append(SM2);
+                linearMoves.Get(j,LM);
+                if(j==ar.minIndex){
+                    i =  LM->interval;
+                }else{
+                    i.Append(&(LM->interval));
+                }
+             }
+             CompositeMove CM2; 
+             CM2.minIndex=pos;
+             CM2.maxIndex=pos+ar.maxIndex-ar.minIndex+1;
+             CM2.interval.Equalize(&i);
+             this->compositeMoves.Append(CM2);
+             PM2.submove.arrayNumber=COMPOSITE;
+             PM2.submove.arrayIndex=this->compositeMoves.Size()-1;
+         } 
+         // write back the periodic move
+         this->periodicMoves.Put(i,PM2); 
+        }
+   }
+   return true;
+}
+
+/*
+17 Implementation of PMPoint
+
+*/
+PMPoint::PMPoint(){}
+
+PMPoint::PMPoint(const PMPoint& source){
+   Equalize(&source);
+}
+
+PMPoint& PMPoint::operator=(const PMPoint& source){
+   Equalize(&source);
+   return *this;
+}
+ 
+/*
+19 Implementation of PMPoints
+
+*/
+PMPoints::PMPoints(){}
+
+PMPoints::PMPoints(const PMPoints& source){
+   Equalize(&source);
+}
+
+PMPoints& PMPoints::operator=(const PMPoints& source){
+   Equalize(&source);
+   return *this;
+}
+
+Points* PMPoints::Initial()const{
+ if(!defined)
+      return NULL;
+  return At(&startTime);
+}
+
+Points* PMPoints::Final(){
+   if(!defined)
+      return NULL;
+   DateTime DT(startTime);
+   DT.Add(interval.GetLength());
+   return At(&DT); 
+}
+
+
+/*
+18 IMplementation of ~SimplePoint~
+
+*/
+
+SimplePoint::SimplePoint(){}
+
+SimplePoint::SimplePoint(const SimplePoint& source){
+   Equalize(&source);
+}
+
+SimplePoint::~SimplePoint(){}
+
+int SimplePoint::compareTo(const SimplePoint P2)const {
+   if(x<P2.x) return -1;
+   if(x>P2.x) return 1;
+   if(y<P2.y) return -1;
+   if(y>P2.y) return 1;
+   return 0;
+}
+
+bool SimplePoint::operator< (const SimplePoint P2)const{
+  return compareTo(P2)<0;
+}
+bool SimplePoint::operator> (const SimplePoint P2)const{
+  return compareTo(P2)>0;
+}
+bool SimplePoint::operator== (const SimplePoint P2)const{
+  return compareTo(P2)==0;
+}
+bool SimplePoint::operator!= (const SimplePoint P2)const{
+  return compareTo(P2)!=0;
+}
+
+void SimplePoint::Equalize(const SimplePoint* P2){
+   x = P2->x;
+   y = P2->y;
+   intinfo=P2->intinfo;
+   boolinfo=P2->boolinfo;
+}
+
+SimplePoint& SimplePoint::operator=(const SimplePoint& source){
+   Equalize(&source);
+   return *this;
+}
+
+
+
+/*
+~IsSpatialExtension~
+
+This function checks whether the line defined by TP is
+a extension of the segment defined by this. 
+
+[3] O(1)
+
+*/
+bool TwoPoints::IsSpatialExtension(const TwoPoints* TP) const {
+   __TRACE__
+     if(endX!=TP->startX) return false;
+      if(endY!=TP->startY) return false;
+      double dx = endX-startX;
+      double dy = endY-startY;
+      double TPdx = TP->endX-TP->startX;
+      double TPdy = TP->endY-TP->startY;
+      return About(dy*TPdx,dx*TPdy); 
+}
+
+/*
+~Speed~
+
+This function computes the speed for a points moving from the
+startpoint to the endpoint in the given interval. The speed is allways
+greater than zero. This function will return -1 if an error is occurred
+e.g. division by zero.
+
+[3] O(1)
+
+*/
+
+double TwoPoints::Speed(const RelInterval interval)const {
+   __TRACE__
+  DateTime* D = interval.GetLength();
+   double L = D->ToDouble();
+   delete D; 
+   D = NULL;
+   if(L<0) return -1;
+   double dx = endX-startX;
+   double dy = endY-startY;
+   double distance=sqrt(dx*dx+dy*dy);
+   if(L==0 && distance!=0) return -1;
+   if(distance==0) return 0;
+   return distance/L;
+}
+
+/* 
+~ReHeap~
+
+This function performs a reheap of a given (partially) heap.
+Is a support function for heapsort. This function places the
+element at position in in __values__ at the right place 
+according to the definition of a heap where the heap itself is
+given by the range i ... k in the __values__ array.
+
+
+[3]   log(k-i)
+
+
+*/
+template <typename T>
+void reheap(T values[], int i, int k){
+   __TRACE__
+  int j,son;
+   j = i;
+   bool done = false; 
+   while(!done){
+     if( 2*j > k ){ // end of array reached
+         done = true;
+     }
+     else{ if(2*j+1<=k){
+               if(values[2*j-1]<values[2*j])
+                   son = 2*j;
+               else
+                   son = 2*j+1;
+           }else {
+                son = 2*j;
+           }
+           if(values[j-1]>values[son-1]){
+              // swap values
+              T tmp = values[j-1];
+              values[j-1]=values[son-1];
+              values[son-1] = tmp;
+              j = son;
+           }else{ // final position reached
+               done = true;
+           }
+     }
+   } 
+}
+/*
+~HeapSort~
+
+This function sorts an array with elements supporting
+comparisons. After calling this function the elements in
+the array are sorted in decreasing order.
+
+[3]   O(n log(n)) where n is the number of elements in the array.
+
+
+*/
+template <typename T> 
+void heapsort(const int size, T values[]){
+   __TRACE__
+   int n = size;
+    int i;
+    for (i=n/2;i>=1;i--)
+         reheap(values,i,n);
+    for(i=n;i>=2;i--){
+       T tmp = values[0];
+       values[0] = values[i-1];
+       values[i-1] = tmp;
+       reheap(values,1,i-1);
+    }
+}
+
+/*
+~find~
+
+This function finds an entry in an sorted array applying 
+binary search. If nothing is found, -1 is returned otherwise
+the first index of a matching element.
+
+*/
+template <typename T>
+int find(const int size,const T field[],const T elem){
+   __TRACE__
+  int min=0;
+   int max=size;
+   bool found = false;
+   while(min<max && !found){
+     int mid = (min+max)/2;
+     if(field[mid]>elem)
+         max=mid-1;
+     else if(field[mid]<elem)
+         min=mid+1;
+     else
+         found=true;
+   }
+   if(!found) return -1;
+   // At this point we know that mid is the index of one
+   // element equals to *elem*. Now we have to find the 
+   // smallest index.
+   max = mid;
+   while(max!=min){
+     mid=(max+min)/2;
+     if(field[mid]<elem)
+        min==mid+1;
+     else
+        max=mid;
+   } 
+   return max;
+}
+
+
+/*
+~GetNumeric~
+
+Numbers have different representations in nested lists (IntAtom, RealAtom
+or Rationals). All Classes should be have the possibility to read any
+number format. To realize this, the function ~GetNumeric~ can be used.
+The result is __true__, if LE represents a valid numeric value. This value
+is stored in the argument __value__ as a double.
+
+[3] O(1)
+
+*/
+static bool GetNumeric(const ListExpr List, double &value){
+   __TRACE__
+ ListExpr LE = List;
+  int AT = nl->AtomType(LE);
+  if(AT==IntType){
+     value = (double)nl->IntValue(LE);
+     return true;
+  }
+  if(AT==RealType){
+     value = nl->RealValue(LE);
+     return true;
+  }
+  // check for a rational
+  int L = nl->ListLength(LE);
+  if(L!=5 && L!=6)
+     return false;
+  if(!nl->IsEqual(nl->First(LE),"rat"))
+     return false;
+
+  LE = nl->Rest(LE); // read over the "rat"
+  double sign=1.0;
+  if(L==6){ // signum is included
+    ListExpr SL = nl->First(LE);
+    if(nl->IsEqual(SL,"+"))
+      sign=1.0;
+    else if(nl->IsEqual(SL,"-"))
+      sign=-1.0;
+    else
+      return false;
+    LE = nl->Rest(LE); // read over the signum
+  }
+  if(!nl->IsEqual(nl->Third(LE),"/"))
+    return false;
+  if ( (nl->AtomType(nl->First(LE))!=IntType) ||
+       (nl->AtomType(nl->Second(LE))!=IntType) ||
+       (nl->AtomType(nl->Fourth(LE))!=IntType))
+       return false;
+  double ip = nl->IntValue(nl->First(LE));
+  double num = nl->IntValue(nl->Second(LE));
+  double denom = nl->IntValue(nl->Fourth(LE));
+  if(ip<0 || num<0 || denom<=0)
+     return false;
+  value = sign*(ip + num/denom);
+  return true;
+}
+
+
+/*
+~WriteListToStreamRec~
+
+This function supports the WriteListToStream function.
+It write a ListExpr given as argumnet __Lorig__ to __os__
+with the given indent. If the list is corrupt, __error__
+will be set to __true__.
+
+
+*/
+
+void WriteListToStreamRec(ostream &os, const ListExpr Lorig,const int indent,
+                          bool &error){
+   __TRACE__
+ if(error) return;
+  ListExpr L = Lorig;
+  NodeType type= nl->AtomType(L);
+  bool res;
+  switch(type){
+    case BoolType   : res = nl->BoolValue(L);
+                      if(res)
+              os << "TRUE";
+          else
+              os << "FALSE";
+          break;
+    case IntType    : os << (nl->IntValue(L));break;
+    case RealType   : os << nl->RealValue(L);break;
+    case SymbolType : os << nl->SymbolValue(L);break;
+    case StringType : os << "\"" << nl->StringValue(L) << "\""; break;
+    case TextType   : os << "<<A Text>>"; break;
+    case NoAtom     : os << endl;
+                      for(int i=0;i<indent;i++)
+             os << " ";
+          os << "(";
+                      while(!nl->IsEmpty(L) && !error){
+             WriteListToStreamRec(os,nl->First(L),indent+4,error);
+       os << " ";
+       L = nl->Rest(L);
+          }   
+          os << ")";
+          break;
+    default : os << "unknkow AtomType"; error=true;
+  }
+}
+
+
+/*
+~WriteListExprToStream~
+
+This function writes a ListExpr given by __L__ to __os__.
+
+
+*/
+void WriteListExprToStream(ostream &os, const ListExpr L){
+   __TRACE__
+  bool error = false;
+   WriteListToStreamRec(os,L,0,error);
+   if(error) os << "The given List was corrupt";
+}
+
+/*
+~Shift Operator for Bounding Boxes~
+
+This operator overloads the the shift operator for an
+output stream. It can be used for easy writing a such
+box to __cout__, __cerr__ or whatever.
+
+
+*/
+ostream& operator<< (ostream &os, const PBBox BB){
+   __TRACE__
+ os << "PBBox[";
+  if(!BB.defined)
+    os << "undefined]";
+  else if (BB.isEmpty)
+    os << "empty]";
+  else{
+    os << "(" << BB.minX << "," << BB.minY << ")";
+    os << "->";
+    os << "(" << BB.maxX << "," << BB.maxY << ")";
+  }
+  return os;  
+}
+
+/*
+~Shift operator for RelInterval~
+
+Overloads the shift operator for easy outputing a
+relative interval.
+
+*/
+ostream& operator<< (ostream& os, const RelInterval I){
+   __TRACE__
+  os << I.ToString();
+   return os;
+}
+
+/*
+~Shift operator for the TwoPoints Type~
+
+Overloads the shift operator for easy output of 
+a TwoPoints instance.
+
+*/
+ostream& operator<< (ostream& os, const TwoPoints TP){
+   __TRACE__
+ os << "TP[(" << TP.startX << "," << TP.startY << ") ->(";
+  os << TP.endX << "," << TP.endY << ")]";
+  return os;
+}
+
+/*
+~Shift operator for the PInterval Type~
+
+Overloads the shift operator for easy output of 
+a PInterval instance.
+
+*/
+ostream& operator<< (ostream& os, const PInterval I){
+   __TRACE__
+  os << I.ToString();
+   return os;
+}
+
+/*
+~Shift operator for the CompositeMove Type~
+
+Overloads the shift operator for easy output of 
+a CompositeMove instance.
+
+*/
+ostream& operator<< (ostream& os, const CompositeMove CM){
+   __TRACE__
+  os << "CM[" << CM.minIndex << "," << CM.maxIndex << "..";
+  os << CM.interval << "]";
+   return os;
+}
+
+/*
+~Shift operator for the SpatialCompositeMove Type~
+
+Overloads the shift operator for easy output of 
+a SpatialCompositeMove instance.
+
+*/
+ostream& operator<< (ostream& os, const SpatialCompositeMove SCM){
+   __TRACE__
+  os << "CM[" << SCM.minIndex << "," << SCM.maxIndex << "..";
+   os << SCM.interval << ".." << SCM.bbox << "]";
+   return os;
+}
+
+/*
+~Shift operator for the SubMove Type~
+
+Overloads the shift operator for easy output of 
+a SubMove instance.
+
+*/
+ostream& operator<< (ostream& os, const SubMove SM){
+   __TRACE__
+ switch(SM.arrayNumber){
+    case LINEAR    : os << "SM_Linear["; break;
+    case COMPOSITE : os << "SM_COMPOSITE[";break;
+    case PERIOD    : os << "SM_PERIODIC[";break;
+    default        : os << "SM_UNKNOWN[";
+  }
+  os << SM.arrayIndex << "]";
+  return os;
+}
+
+/*
+~Shift operator for the PeriodicMove Type~
+
+Overloads the shift operator for easy output of 
+a PeriodicMove instance.
+
+*/
+ostream& operator<< (ostream& os, const PeriodicMove PM){
+   __TRACE__
+  os << "R["<< PM.repeatations <<"](" << PM.submove <<")";
+  return os;
+}
+
+/*
+~Shift operator for the LinearPointsMove Type~
+
+Overloads the shift operator for easy output of 
+a LinearPointsMove instance.
+
+*/
+ostream& operator<< (ostream& os, const LinearPointsMove LM){
+   __TRACE__
+  os << "LPsM[" ;
+   os << LM.startIndex << "," << LM.endIndex << "]";
+   // add also bbox, interval isstatic and so on if required !
+   return os;
+}
+
+/*
+~Shift operator for the PMPoints Type~
+
+Overloads the shift operator for easy output of 
+a PMPoints instance.
+
+*/
+ostream& operator<< (ostream &os, class PMPoints &P){
+   __TRACE__
+ os << " <<<< PMPoints >>>>" << endl;
+  if(!P.defined){
+     os << "undefined" << endl;
+     return os;
+  }   
+  os << "starttime: " << P.startTime.ToString() << endl;
+  os << P.submove << endl;
+  os << "defined :" << P.defined << endl;
+  // the contents of the contained arrays
+  // the linear moves
+  os << "linear Moves " << P.linearMoves.Size() << endl;
+  const LinearPointsMove* LM1;
+  const TwoPoints* TP1;
+  unsigned int thePointsSize = P.thePoints.Size();
+  os << "SizeOf thePoints: " << thePointsSize << endl;
+  for(int i=0;i<P.linearMoves.Size();i++){
+     P.linearMoves.Get(i,LM1);
+     LinearPointsMove LM2 = (*LM1);
+     os << LM2 << endl;
+     os << "Content of this linear Move " << endl;
+     for(int unsigned j=LM2.startIndex;j<LM2.endIndex;j++){
+   if(j>=thePointsSize){
+       os << "Array out of bounds " << __POS__ << endl;
+       os << "Try to access element number " << j << "in an array ";
+       os << "of size " << thePointsSize << endl;
+   }else {
+       os << j << " ." ;
+       P.thePoints.Get(j,TP1);
+       TwoPoints TP2 = (*TP1);
+       os << TP2 << endl;
+       os << j << " ." ;
+       P.thePoints.Get(j,TP1);
+       TP2 = (*TP1);
+       os << TP2 << endl;
+       os << j << " ." ;
+       P.thePoints.Get(j,TP1);
+       TP2 = (*TP1);
+       os << TP2 << endl;
+  }     
+     }
+     os << "end content of this linear Move " << endl;
+  }
+ // os << " please extend the << operator for pmpoints values " << endl;
+  os << " <<<< end PMPoints >>> " << endl; 
+  return os;
+}
+
+
+
 
 
 /*
@@ -6105,7 +7052,8 @@ of this unit.
 
 */
 
-   void LinearPointMove::DistanceTo(const double x, const double y, MovingRealUnit& result)const{
+   void LinearPointMove::DistanceTo(const double x, const double y, 
+                                    MovingRealUnit& result)const{
       if(!defined){
         result.GetFrom(0,0,interval);
         result.SetDefined(false);
@@ -6621,1133 +7569,6 @@ void LinearPointsMove::Equalize(const LinearPointsMove* P2){
 }
 
 
-/*
-
-3.6 The Implementation of the Class PBBox
-
-*/
-
-/*
-~Constructor~
-
-The standard constructor for special use;
-
-[3] O(1)
-
-*/
-PBBox::PBBox(){
-   __TRACE__
-}
-
-/*
-~Constructor~
-
-This constructor creates an undefined bounding box.
-
-[3] O(1)
-
-*/
-PBBox::PBBox(int dummy){
-   __TRACE__
-   defined = true;
-   isEmpty = true;
-}
-
-/*
-~Constructor~
-
-This constructor creates a new bounding box
-containing only the point (x,y).
-
-[3] O(1)
-
-*/
-PBBox::PBBox(const double x, const double y){
-   __TRACE__
-  defined=true;
-  isEmpty=false;
-  minX=maxX=x;
-  minY=maxY=y;
-}
-
-/*
-~Constructor~
-
-This constructor creates a bounding box from the
-given rectangle.
-
-[3] O(1)
-
-*/
-PBBox::PBBox(const double minX, const double minY, 
-             const double maxX, const double maxY){
-   __TRACE__
-  this->minX = minX<maxX?minX:maxX;
-  this->maxX = minX<maxX?maxX:minX;
-  this->minY = minY<maxY?minY:maxY;
-  this->maxY = minY<maxY?maxY:minY;
-  defined = true;
-  isEmpty = false;
-}
-
-
-
-
-/*
-~Compare~
-
-This function compares this PBBox with  __arg__.
-
-[3] O(1)
-
-*/
-int PBBox::Compare(const Attribute* arg) const{
-    __TRACE__
-  return CompareTo((PBBox*) arg);
-}
-
-/*
-~Adjacent~
-
-Because a bounding box is defined in the Euclidean Plane, the
-adjacent function cannot be implemented. Hence the return value is
-allways false;
-
-[3] O(1)
-
-*/
-bool PBBox::Adjacent(const Attribute*)const{
-    __TRACE__
- return false;
-}
-
-
-/*
-~Sizeof~
-
-This function returns the size of the PBBox class.
-
-[3] O[1]
-
-*/
-int PBBox::Sizeof()const{
-    __TRACE__
-  return sizeof(PBBox);
-}
-
-/*
-~IsDefined~
-
-This function returns true if this PBBox is in a defined state.
-
-[3] O(1)
-
-*/
-bool PBBox::IsDefined() const{
-    __TRACE__
- return defined;
-}
-
-/*
-~IsEmpty~
-
-This function returns whether this bounding box don't contains
-any point of the Euclidean Plane.
-
-[3] O(1)
-
-*/
-bool PBBox::IsEmpty() const{
-    __TRACE__
-  return isEmpty;
-}
-
-
-/*
-~SetDefined~
-
-The ~SetDefined~ function sets the defined state of this bounding box.
-Because the internal values of this box can have invalid value, this
-function will only have an effect if the argument is false.
-
-[3] O(1)
-
-*/
-void PBBox::SetDefined( bool defined ){
-    __TRACE__
- if(!defined)
-    this->defined = defined;
-}
-
-/*
-~HashValue~
-
-This fuction returns a Hash-Value of this bounding box.
-
-[3] O(1)
-
-*/
-size_t PBBox::HashValue() const{
-    __TRACE__
-  if(!defined) return (size_t) 0;
-  if(isEmpty) return (size_t) 1;
-   return (size_t)  abs(minX + maxX*(maxY-minY));
-}
-
-
-/*
-~CopyFrom~
-
-If this function is called the bounding box takes its value
-from the given argument.
-
-[3] O(1)
-
-*/
-void PBBox::CopyFrom(const StandardAttribute* arg){
-    __TRACE__
-  Equalize((PBBox*) arg);
-}
-
-/*
-~ToListExpr~
-
-This function translates this bounding box to its nested list representation.
-
-[3] O(1)
-
-*/
-ListExpr PBBox::ToListExpr()const{
-    __TRACE__
-   if(!defined)
-       return nl->SymbolAtom("undefined");
-    if(isEmpty)
-       return nl->SymbolAtom("empty");
-    return nl->FourElemList(nl->RealAtom(minX),
-                            nl->RealAtom(minY),
-                            nl->RealAtom(maxX),
-                            nl->RealAtom(maxY));
-}
-
-/*
-~ReadFrom~
-
-This function reads the value of this bounding box from the given
-ListExpr.
-
-[3] O(1)
-
-*/
-bool PBBox::ReadFrom(const ListExpr LE){
-    __TRACE__
- if(nl->IsEqual(LE,"undefined")){
-      defined = false;
-      isEmpty=true;
-      return true;
-  }
-  if(nl->IsEqual(LE,"empty")){
-     defined = true;
-     isEmpty = true;
-     return true;
-  }
-  if(nl->ListLength(LE)!=4)
-    return false;
-
-  double x1,x2,y1,y2;
-  if(!GetNumeric(nl->First(LE),x1)) return false;
-  if(!GetNumeric(nl->Second(LE),y1)) return false;
-  if(!GetNumeric(nl->Third(LE),x2)) return false;
-  if(!GetNumeric(nl->Fourth(LE),y2)) return false;
-  minX = x1<x2?x1:x2;
-  maxX = x1<x2?x2:x1;
-  minY = y1<y2?y1:y2;
-  maxY = y1<y2?y2:y1;
-  isEmpty=false;
-  defined =true;
-  return true;
-}
-
-
-/*
-~CompareTo~
-
-The ~CompareTo~ function compares two bounding boxes
-lexicographically (order minX maxX minY maxY).
-An undefined Bounding box is less than a defined one.
-
-[3] O(1)
-
-*/
-int PBBox::CompareTo(const PBBox* B2)const {
-    __TRACE__
- if(!defined&&!B2->defined) return 0;
-  if(!defined&&B2->defined) return -1;
-  if(defined&&!B2->defined) return 1;
-  // Now holds that this and B2 are defined
-  if(isEmpty&&B2->isEmpty) return 0;
-  if(isEmpty&&!B2->isEmpty) return -1;
-  if(!isEmpty&&B2->isEmpty) return 1;
-  // both boxes are not empty
-  if(minX<B2->minX) return -1;
-  if(minX>B2->minX) return 1;
-  if(maxX<B2->maxX) return -1;
-  if(maxX>B2->maxX) return 1;
-  if(minY<B2->minY) return -1;
-  if(minY>B2->minY) return 1;
-  if(maxY<B2->maxY) return -1;
-  if(maxY>B2->maxY) return 1;
-  return 0;
-}
-
-/*
-~Contains~
-
-This function checks whether the point defined by (x,y) is
-contained in this bounding box.
-
-[3] O(1)
-
-*/
-bool PBBox::Contains(const double x,const double y)const{
-    __TRACE__
- if(!defined) return false;
-  if(isEmpty) return false;
-  return x>=minX && x<=maxX && y>=minY && y<=maxY;
-}
-
-
-/*
-~Contains~
-
-The following function checks whether B2 is contained in this PBBox.
-
-[3] O(1)
-
-*/
-bool PBBox::Contains(const PBBox* B2)const {
-    __TRACE__
-  if(!defined) return false;
-   if(isEmpty) return B2->isEmpty;
-   return Contains(B2->minX,B2->minY) && Contains(B2->maxX,B2->maxY);
-}
-
-/*
-~Clone~
-
-Returns a clone of this;
-
-[3] O(1)
-
-*/
-PBBox* PBBox::Clone() const{
-    __TRACE__
- PBBox* res = new PBBox(minX,minY,maxX,maxY);
-  res->defined = defined;
-  res->isEmpty = isEmpty;
-  return res;
-}
-
-/*
-~Equalize~
-
-The ~Equalize~ function changed this instance to have the same value
-as B2.
-
-[3] O(1)
-
-*/
-void PBBox::Equalize(const PBBox* B2){
-    __TRACE__
-  minX = B2->minX;
-   maxX = B2->maxX;
-   minY = B2->minY;
-   maxY = B2->maxY;
-   defined = B2->defined;
-   isEmpty = B2->isEmpty;
-}
-
-/*
-~Intersection~
-
-This function computes the intersection beween this instance and
-B2. If both boxes are disjoint the result will be undefined.
-
-[3] O(1)
-
-*/
-void PBBox::Intersection(const PBBox* B2){
-    __TRACE__
- if(!defined) return;
-  if(!B2->defined){
-    defined=false;
-    return;
-  }
-  if(isEmpty) return;
-  if(B2->isEmpty){
-     isEmpty=true;
-     return;
-  }
-  minX = minX>B2->minX? minX : B2->minX;
-  maxX = maxX<B2->maxX? maxX : B2->maxX;
-  minY = minY>B2->minY? minY : B2->minY;
-  maxY = maxY<B2->maxY? maxY : B2->maxY;
-  isEmpty = minX<=maxX && minY<=maxY;
-}
-
-/*
-~Intersects~
-
-~Intersects~ checks whether this and B2 share any common point.
-
-[3] O(1)
-
-*/
-bool PBBox::Intersects(const PBBox* B2)const{
-    __TRACE__
- if(!defined || !B2->defined) return false;
-  if(isEmpty || B2->isEmpty) return false;
-  if(minX>B2->maxX) return false; //right of B2
-  if(maxX<B2->minX) return false; //left of B2
-  if(minY>B2->maxY) return false; //over B2
-  if(maxY<B2->minY) return false; //under B2
-  return true;
-}
-
-/*
-~Size~
-
-This function returns the size of the box. If this box is
-undefined -1.0 is returned. Otherwise the result will be a
-non-negative double number. Note that a empty box and a box
-containing a single point will yield the same result.
-
-[3] O(1)
-
-*/
-double PBBox::Size()const {
-    __TRACE__
- if(!defined) return -1;
-  if(isEmpty) return 0;
-  return (maxX-minX)*(maxY-minY);
-}
-
-/*
-~Union~
-
-The function ~Union~ computes the bounding box which contains
-both this bounding box as well as B2.
-
-[3] O(1)
-
-*/
-void PBBox::Union(const PBBox* B2){
-    __TRACE__
- if(!B2->defined){ // operators are only allowed on defined arguments
-     defined = false;
-     return;
-  }
-  if(!defined) return; // see above
-
-  if(B2->isEmpty) return; // no change
-
-  // this and B2 are defined and not empty
-  if(isEmpty){
-      Equalize(B2);
-      return;
-  }
-  minX = minX<B2->minX? minX: B2->minX;
-  maxX = maxX>B2->maxX? maxX: B2->maxX;
-  minY = minY<B2->minY? minY: B2->minY;
-  maxY = maxY>B2->maxY? maxY: B2->maxY;
-}
-
-/*
-~Union~
-
-This variant of the ~Union~ functions extends this bounding
-box to contain the point defined by (x,y)
-
-[3] O(1)
-
-*/
-void PBBox::Union(const double x, const double y){
-    __TRACE__
-if(!defined)return;
- if(isEmpty){
-    isEmpty=false;
-    minX=maxX=x;
-    minY=maxY=y;
-    return;
- }
- else{ // really extend this if needed
-    minX = minX<x? minX : x;
-    maxX = maxX>x? maxX : x;
-    minY = minY<y? minY : y;
-    maxY = maxY>y? maxY : y;
- }
-}
-
-/*
-~SetUndefined~
-
-The ~SetUndefined~ function sets the state of this BBox to be
-undefined.
-
-[3] O(1)
-
-*/
-void PBBox::SetUndefined(){
-    __TRACE__
-  defined=false;
-}
-
-/*
-~GetVertex~
-
-This functions returns a vertex of this box.
-
-  * __No__=0: left bottom
-
-  * __No__=1: right bottom
-
-  * __No__=2: left top
-
-  * __No__=3: right top
-
-  * otherwise: the return value is false, x,y remains unchanged
-
-[3] O(1)
-
-*/
-bool PBBox::GetVertex(const int No, double& x, double& y)const{
-    __TRACE__
-  if(!defined) return false;
-   if(isEmpty) return false;
-
-   if(No==0){
-     x = minX;
-     y = minY;
-     return true;
-   }
-   if(No==1){
-     x=maxX;
-     y=minY;
-     return true;
-   }
-   if(No==2){
-     x=minX;
-     y=maxY;
-     return true;
-   }
-   if(No==3){
-     x=maxX;
-     y=maxY;
-     return true;
-   }
-   if(DEBUG_MODE){
-     cerr << "PBBox::GetVertex called with wrong value :" << No << endl;
-   }
-   return  false;
-}
-
-void PBBox::SetEmpty(){
-   isEmpty = true;
-   defined = true;
-}
-
-/*
-
-3.7 The implementation of the class __RelInterval__
-
-~Constructor~
-
-The special constructor for the cast function.
-
-[3] O(1)
-
-*/
-RelInterval::RelInterval(){   
-   __TRACE__
-}
-
-/*
-~Constructor~
-
-This constructor creates a defined single instant with length 0.
-
-[3] O(1)
-
-*/
-RelInterval::RelInterval(int dummy){
-    __TRACE__
-   length = DateTime(durationtype);
-   leftClosed=true;
-   rightClosed=true;
-   defined=true;
-   canDelete=false;
-}
-
-/*
-~A private constructor~
-
-Creates a RelInterval from the given values. Is private because
-the values can leads to a invalid state of this RelInterval.
-
-[3] O(1)
-
-*/
-RelInterval::RelInterval(const DateTime* length, const bool leftClosed,
-                         const bool rightClosed){
-    __TRACE__
- DateTime Zero= DateTime(durationtype);
-  int comp=length->CompareTo(&Zero);
-  assert(comp>=0);
-  assert(comp>0 || (leftClosed && rightClosed));
-  this->leftClosed=leftClosed;
-  this->rightClosed=rightClosed;
-  this->length.Equalize(length);
-}
-
-/*
-~Append~
-
-This function appends D2 to this RelInterval if possible.
-When D2 can't appended to this false is returned.
-
-[3] O(1)
-
-*/
- bool RelInterval::Append(const RelInterval* R2){
-    __TRACE__
-   if(!CanAppended(R2))
-       return false;
-    length.Add(&(R2->length));
-    rightClosed = R2->rightClosed;
-    return true;
- }
-
-/*
-~CanAppended~
-
-This function checks whether D2 can appended to this RelInterval.
-
-[3] O(1)
-
-*/
-bool RelInterval::CanAppended(const RelInterval* D2)const {
-    __TRACE__
-  if(rightClosed)
-     return ! D2->leftClosed;
-  else
-     return D2->leftClosed; 
-}
-
-/*
-~Contains~
-
-Checks whether T is contained in this RelInterval 
-
-[3] O(1)
-
-*/
-bool RelInterval::Contains(const DateTime* T)const {
-    __TRACE__
-  DateTime Zero=DateTime(durationtype);
-   int compz = T->CompareTo(&Zero);
-   if(compz<0)
-     return false;
-   if(compz==0)
-     return leftClosed;
-   int compe = T->CompareTo(&length);
-   if(compe<0)
-      return true;
-   if(compe==0)
-      return rightClosed;
-   return false;
-}
-
-/*
-~Mul~
-
-This functions extends this relinterval to be factor[mul]oldlength.
-
-[3] O(1)
-
-*/
-void RelInterval::Mul(const long factor){
-    __TRACE__
-  length.Mul(factor);
-}
-
-/*
-~Clone~
-
-This function creates a new RelInterval with the same value as
-the this object.
-
-[3] O(1)
-
-*/
-RelInterval* RelInterval::Clone() const{
-    __TRACE__
-  RelInterval* Copy = new RelInterval(1);
-   Copy->Equalize(this);
-   return Copy;
-}
-
-
-/*
-~CompareTo~
-
-This function compares two RelIntervals.
-
-[3] O(1)
-
-*/
-int RelInterval::CompareTo(const RelInterval* D2)const {
-    __TRACE__
- if(!defined && !D2->defined) return 0;
-  if(!defined && D2->defined) return -1;
-  if(defined && !D2->defined) return 1;
-  // at this point both involved intervals are defined
-  if(leftClosed && !D2->leftClosed) return -1;
-  if(!leftClosed && D2->leftClosed) return 1;
-  int tc = length.CompareTo(&(D2->length));
-  if(tc!=0) return tc;
-  if(!rightClosed && D2->rightClosed) return -1;
-  if(rightClosed && !D2->rightClosed) return 1;
-  return 0;
-}
-
-/*
-~Compare~
-
-This functions compares an attribute with this relinterval.
-
-[3] O(1)
-
-*/
-int RelInterval::Compare(const Attribute* arg) const{
-    __TRACE__
-  RelInterval* D2 = (RelInterval*) arg;
-   return CompareTo(D2);
-}
-
-/*
-~CopyFrom~
-
-This function take the value for this relinterval from the
-given argument.
-
-[3] O(1)
-
-*/
-void RelInterval::CopyFrom(const StandardAttribute* arg){
-    __TRACE__
-  Equalize((RelInterval*)arg);
-}
-
-/*
-~HashValue~
-
-[3] O(1)
-
-*/
-size_t RelInterval::HashValue() const{
-    __TRACE__
-  size_t lhv = length.HashValue();
-  if(leftClosed) lhv = lhv +1;
-  if(rightClosed) lhv = lhv +1;
-  return lhv;
-}
-
-
-/*
-~Split~
-
-Splits an interval at the specified position. __delta__ has to be in [0,1].
-The return value indicates whether a rest exists. 
-
-[3] O(1)
-
-*/
-bool RelInterval::Split(const double delta, const bool closeFirst,
-                        RelInterval& Rest){
-    __TRACE__
-  if((delta==0) &&  (!leftClosed || !closeFirst))
-     return false;
-  if((delta==1) && (!rightClosed || closeFirst))
-     return false;
-
-   if(length.IsZero())
-     return false;
-
-  Rest.Equalize(this);
-  rightClosed=closeFirst;
-  Rest.leftClosed=!closeFirst;
-  length.Split(delta,Rest.length);
-  return true;
-}
-
-/*
-~Split~
-
-This function splits an interval at a given point in time. 
-If the splitting instant is outside the interval, this interval or
-Rest will be undefined. The other one will contain this interval.
-If the spitting point is inside the interval, this interval will 
-end at this endpoint and Rest will begin at duration. The return 
-value is always true.
-
-*/
-
-bool RelInterval::Split(const DateTime duration, const bool closeFirst,
-                        RelInterval& Rest){
-
-
-  // at this point all cases with unbounded intervals are processed
-
-   // duration left of this interval
-   if(duration.LessThanZero()){
-      // the complete interval is picked up by Rest
-      Rest.Equalize(this);
-      this->defined=false; 
-      return true;
-   }
-   // duration left of this interval
-   if(duration.IsZero() & (!closeFirst || ! leftClosed)){
-      Rest.Equalize(this);
-      this->defined=false;
-      return true;
-   }
-   // duration right on this interval
-   if(duration>length){
-      // Rest will not be defined
-      Rest.defined=false;
-      return true;
-   }
-   // duration right on this interval
-   if(duration==length & (!rightClosed || closeFirst)){
-       // Rest will not be defined
-       Rest.defined=false;
-       return true;
-   } 
-  // the splitting instance is inside this interval
-   Rest.length = this->length - duration;
-   Rest.rightClosed=this->rightClosed;
-   Rest.leftClosed=!closeFirst;
-   this->length = duration;
-   this->rightClosed=closeFirst;
-   return true;
-}
-
-
-/*
-~Equalize~
-
-The ~Equalize~ function changes the value of this RelInterval to
-the value of D2.
-
-[3] O(1)
-
-*/
-void RelInterval::Equalize(const RelInterval* D2){
-    __TRACE__
- length.Equalize(&(D2->length));
-  leftClosed=D2->leftClosed;
-  rightClosed=D2->rightClosed;
-}
-
-/*
-~GetLength~
-
-This function returns a clone of the contained time value.
-Note that this function
-creates a new DateTime instance. The caller of this function has to make free the
-memory occupied by this instance after using it.
-
-[3] O(1)
-
-*/
-DateTime* RelInterval::GetLength() const {
-    __TRACE__
-   DateTime* res = new DateTime(durationtype);
-   res->Equalize(&length);
-   return res;
-}
-
-/*
-~StoreLength~
-
-This function stored the length of this interval in the argument of this function.
-The advantage of this function  in contrast to the GetLength function is that
-no memory is allocated by this function. 
-
-*/
-void RelInterval::StoreLength(DateTime& result) const{
-  __TRACE__
-  result.Equalize(&length);
-
-}
-
-
-
-/*
-~ToListExpr~
-
-This function computes the list representation of this RelInterval value.
-
-[3] O(1)
-
-*/
-ListExpr RelInterval::ToListExpr(const bool typeincluded)const{
-  __TRACE__
-  ListExpr time;
-  time = length.ToListExpr(true);
-  if(typeincluded)
-       return nl->TwoElemList(nl->SymbolAtom("rinterval"),
-                   nl->ThreeElemList(
-                       nl->BoolAtom(leftClosed),
-                       nl->BoolAtom(rightClosed),
-                       time));
-   else
-      return nl->ThreeElemList(
-                   nl->BoolAtom(leftClosed),
-                   nl->BoolAtom(rightClosed),
-                   time);
-}
-
-/*
-~IsLeftClosed~
-
-This function returns true if the left endpoint of this interval is
-contained in it.
-
-[3] O(1)
-
-*/
-bool RelInterval::IsLeftClosed()const{
-    __TRACE__
-  return leftClosed;
-}
-
-/*
-~IsRightClosed~
-
-This function will return true iff the interval is right closed.
-
-[3] O(1)
-
-*/
-bool RelInterval::IsRightClosed()const{
-    __TRACE__
- return rightClosed;
-}
-
-
-/*
-~ReadFrom~
-
-This function read the value from the argument. If the argument list don't
-contains a valid RelInterval, false will be returned and the value of this
-remains unchanged. In the other case the value is taken from this parameter
-and true is returned.
-
-[3] O(1)
-
-*/
-bool RelInterval::ReadFrom(const ListExpr LE, const bool typeincluded){
-   __TRACE__
-
-   ListExpr V;
-   if(typeincluded){
-      if(nl->ListLength(LE)!=2){
-         if(DEBUG_MODE)
-            cerr << __POS__ << ": wrong length for typed interval" << endl;
-         return false;
-      }
-      if(!nl->IsEqual(nl->First(LE),"rinterval")){
-         if(DEBUG_MODE){
-            cerr << __POS__ << ": wrong type for interval" << endl;
-            cerr << "expected : rinterval , received :";
-            nl->WriteListExpr(nl->First(LE));
-         }
-         return false;
-      }
-      V = nl->Second(LE);
-   } else
-     V = LE;
-   if(nl->ListLength(V)!=3){
-       if(DEBUG_MODE)
-          cerr << __POS__ << ": wrong length for interval" << endl;
-       return false;
-   }
-   if(nl->AtomType(nl->First(V))!=BoolType){
-     if(DEBUG_MODE)
-        cerr << __POS__ << ": wrong type in interval" << endl;
-     return false;
-   }
-   if(nl->AtomType(nl->Second(V))!=BoolType){
-     if(DEBUG_MODE)
-        cerr << __POS__ << ": wrong type in interval" << endl;
-     return false;
-   }
-   DateTime time=DateTime(durationtype);
-   if(!(time.ReadFrom(nl->Third(V),true))){
-         if(DEBUG_MODE)
-           cerr << __POS__ << ": error in reading length of interval" << endl;
-         return false;
-   }
-   bool LC = nl->BoolValue(nl->First(V));
-   bool RC = nl->BoolValue(nl->Second(V));
-   // a single instant has to be both left- and rightclosed
-   if( (time.IsZero()) && (!LC || !RC)){
-     if(DEBUG_MODE)
-        cerr << __POS__ << ": invalid values in interval" << endl;
-      return false;
-   }
-   leftClosed=LC;
-   rightClosed=RC;
-   length.Equalize(&time);
-   
-   return true;
-}
-
-
-/*
-~Set~
-
-This function sets this RelINterval to be finite with determined length.
-If the arguments don't represent a valid RelINterval value, the return value
-will be false and this instance remains unchanged. In the other case true
-is returned and the value of this is taken from the arguments.
-
-[3] O(1)
-
-*/
-bool RelInterval::Set(const DateTime* length, const bool leftClosed,
-                      const bool rightClosed){
-    __TRACE__
- if((length->IsZero()) && (!leftClosed || !rightClosed)) return false;
- this->leftClosed=leftClosed;
- this->rightClosed=rightClosed;
- this->length.Equalize(length);
- return true;
-}
-
-
-/*
-~SetLeftClosed~
-
-
-This function sets the closure of this interval at its left end.
-
-*/
-void RelInterval::SetLeftClosed(bool LC){
-   this->leftClosed = LC;
-}  
-
-/*
-~SetRightClosed~
-
-This function works like the function ~SetLeftClosed~ but for the
-right end of this interval.
-
-*/
-void RelInterval::SetRightClosed(bool RC){
-   this->rightClosed = RC;
-}  
-
-/*
-~SetClosure~
-
-This functions is a summarization of the ~SetLeftClosed~ and the
-~SetRightClosed~ function. The effect will be the same like calling
-this two functions.
-
-*/
-void RelInterval::SetClosure(bool LC,bool RC){
-   this->leftClosed = LC;
-   this->rightClosed = RC;
-}
-
-
-
-
-/*
-~SetLength~
-
-This function is used to set the length of this RelINterval.
-If the given parameter collides with internal settings, false
-is returned.
-
-[3] O(1)
-
-*/
-bool RelInterval::SetLength(const DateTime* T){
-    __TRACE__
-   if(T->IsZero() && (!leftClosed || !rightClosed)) return false;
-   length.Equalize(T);
-   return true;
-}
-
-
-/*
-~ToString~
-
-This function returns a string representation of this RelInterval.
-
-[3] O(1)
-
-*/
-string RelInterval::ToString()const{
-    __TRACE__
-  ostringstream tmp;
-   tmp << (leftClosed?"[":"]");
-   tmp << " 0.0 , ";
-   tmp << length.ToString();
-   tmp << (rightClosed?"]":"[");
-   return tmp.str();
-}
-
-/*
-
-~Where~
-
-This function returns at which procentual part of this interval T is located.
-The result will be a value in $[0,1]$. In all errors cases the value -1
-is returned.
-
-[3] O(1)
-
-*/
-double RelInterval::Where(const DateTime* T)const{
-    __TRACE__
-  if(length.CompareTo(T)<0)
-     return -1;
-  if(T->LessThanZero()) return -1;
-  unsigned long ms1 = 86400000L*T->GetDay()+T->GetAllMilliSeconds();
-  unsigned long ms2 = 86400000L*length.GetDay()+length.GetAllMilliSeconds();
-  return (double)ms1/(double)ms2;
-}
-
-
-/*
-~Plus~
-
-This function  adds the argument to this interval. 
-The 'weld point' is included to the new interval regardless
-to the closure properties of the source intervals. The closure on the
-left of this interval will not be changed and the closure on the 
-right is taken from the argument.
-
-*/
-bool RelInterval::Plus(const RelInterval* I){
-  rightClosed = I->rightClosed;
-  length.Add(&(I->length));
-  return true;
-}
-
 
 /*
 3.8 The Implementation of the Class PMPoint
@@ -7875,7 +7696,7 @@ is 4.
 [3] O(1)
 
 */
-int PMPoint::NumOfFLOBs(){
+int PMPoint::NumOfFLOBs() const{
     __TRACE__
    return 4;
 }
@@ -8379,6 +8200,47 @@ void PMPoint::AddSubMovesSizeForIntersection(DateTime* startTime,
 
 
 /*
+~PrintArrayContents~
+
+This function is for debugging purposes. It prints out the
+contents of the arrays contained  within this 
+periodic moving point.
+
+*/
+void PMPoint::PrintArrayContents(){
+
+int size = periodicMoves.Size();
+cout << "PERIDICMOVES" << endl;
+const SpatialPeriodicMove* PM=NULL;
+for(int i=0;i<size;i++){
+   periodicMoves.Get(i,PM);
+   cout << PM->ToString() << endl;
+}
+
+cout << "CompositeMOVES" << endl;
+size = compositeMoves.Size();
+const SpatialCompositeMove* CM=NULL;
+for(int i=0;i<size;i++){
+   compositeMoves.Get(i,CM);
+   cout << CM->ToString() << endl;
+}
+
+cout << "CompositeSubMoves " << endl;
+size = compositeSubMoves.Size();
+const SubMove* SM  = NULL;
+for(int i=0;i<size;i++){
+   compositeSubMoves.Get(i,SM);
+   cout << SM->ToString() << endl;
+}
+
+
+
+}
+
+
+
+
+/*
 ~CheckCorrectness~
 
 This function checks whether the representation of this
@@ -8394,8 +8256,7 @@ periodic moving point is correct. This means
 
 */
 bool PMPoint::CheckCorrectness(){
-  // check for directly nested composite moves
-    __TRACE__
+  __TRACE__
   const SubMove* SM;
   size_t linearSize = linearMoves.Size();
   size_t periodSize = periodicMoves.Size();
@@ -8432,7 +8293,7 @@ bool PMPoint::CheckCorrectness(){
           break;
      default:
           if(DEBUG_MODE){
-              cerr << __POS__ << "unknown submove found " << endl;
+              cerr << __POS__ << "unknown submove found " << an << endl;
           }
           return false;     
     } 
@@ -8444,35 +8305,40 @@ bool PMPoint::CheckCorrectness(){
       periodicMoves.Get(i,PM);
       int an = PM->submove.arrayNumber;
       size_t index = PM->submove.arrayIndex;
-			switch(an){
-				case COMPOSITE:
-						if(index>=compositeSize){
-							 if(DEBUG_MODE){
-								 cerr << __POS__ << "array index " << index 
-											<< "out of bounds " << compositeSize << endl;
-							 }
-							 return false;
-						}
-				case PERIOD:
+      switch(an){
+        case COMPOSITE:
+            if(index>=compositeSize){
+               if(DEBUG_MODE){
+                 cerr << __POS__ << "array index " << index 
+                      << "out of bounds " << compositeSize << endl;
+               }
+               PrintArrayContents();
+               return false;
+            }
+            break;
+        case PERIOD:
              cerr << __POS__ << "nested periodic move detected" << endl;
-				     return false;
-				case LINEAR:
-						if(index>=linearSize){
-							 if(DEBUG_MODE){
-								 cerr << __POS__ << "array index " << index 
-											<< "out of bounds " << linearSize << endl;
-							 }
-							 return false;
-						}
-						break;
-			 default:
-						if(DEBUG_MODE){
-								cerr << __POS__ << "unknown submove found " << endl;
-						}
-						return false;     
-			}
+             PrintArrayContents();
+             return false;
+        case LINEAR:
+            if(index>=linearSize){
+               if(DEBUG_MODE){
+                 cerr << __POS__ << "array index " << index 
+                      << "out of bounds " << linearSize << endl;
+                 PrintArrayContents();
+               }
+               return false;
+            }
+            break;
+       default:
+            if(DEBUG_MODE){
+                cerr << __POS__ << "unknown submove found " << endl;
+             }
+            return false;     
+      }
       if(PM->repeatations<2){
          cerr << __POS__ << "invalid number of repetitions detected" << endl;
+         PrintArrayContents();
          return false;
       } 
   }
@@ -8483,7 +8349,9 @@ bool PMPoint::CheckCorrectness(){
      compositeMoves.Get(i,CM);
      if(CM->minIndex>=CM->maxIndex){
         if(DEBUG_MODE){
-           cerr << __POS__ << "composite move with a single submove detected" << endl;
+           cerr << __POS__ 
+                << "composite move with a single submove detected" 
+                << endl;
         }
         return false;
      }
@@ -8748,7 +8616,6 @@ bool PMPoint::AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
 
   __TRACE__
 
-  cerr << "add a periodic move at index " << PMIndex << endl;
 
  int len = nl->ListLength(value); 
  if(len!=2 ){  // (repeatations <submove>) 
@@ -9938,7 +9805,7 @@ is 5.
 [3] O(1)
 
 */
-int PMPoints::NumOfFLOBs(){
+int PMPoints::NumOfFLOBs() const{
     __TRACE__
    return 5;
 }
@@ -11039,7 +10906,10 @@ Word InPMPoint( const ListExpr typeInfo, const ListExpr instance,
   PMPoint* P = new PMPoint(0);
   if(P->ReadFrom(instance)){
     correct=true;
-    P->CheckCorrectness();
+    if(!P->CheckCorrectness()){
+       cerr << "Structure of the created periodic move is wrong" << endl;
+       P->PrintArrayContents();
+    }
     return SetWord(P);
   }
   correct = false;
@@ -11422,7 +11292,8 @@ bool OpenRelInterval( SmiRecord& valueRecord,
                 const ListExpr typeInfo,
                 Word& value ){
   __TRACE__
-  RelInterval *ri = (RelInterval*)Attribute::Open( valueRecord, offset, typeInfo );
+  RelInterval *ri = (RelInterval*)Attribute::Open( valueRecord, 
+                                                   offset, typeInfo );
   value = SetWord( ri );
   return true;
 }
@@ -11438,15 +11309,6 @@ bool OpenPInterval( SmiRecord& valueRecord,
   return true;
 }
 
-bool OpenPMPoint( SmiRecord& valueRecord,
-                size_t& offset,
-                const ListExpr typeInfo,
-                Word& value ){
-  __TRACE__
-  PMPoint *e = (PMPoint*)Attribute::Open( valueRecord, offset, typeInfo );
-  value = SetWord(e);
-  return true;
-}
 
 bool OpenPMPoints( SmiRecord& valueRecord,
                 size_t& offset,
@@ -11527,15 +11389,53 @@ bool SavePInterval( SmiRecord& valueRecord,
   return true;
 }
 
+
 bool SavePMPoint( SmiRecord& valueRecord,
                 size_t& offset,
                 const ListExpr typeInfo,
                 Word& value ){
   __TRACE__
   PMPoint* P = (PMPoint *)value.addr;
+
+  cerr << "Save PMPoint called" << endl;
+  bool ok = P->CheckCorrectness();
+  if(ok){
+      cerr << "save a correct pmpoint into SMI Record" << ok << endl;
+  } else{
+      cerr << " try to save an invalid pmpoint to smirecord" << endl;
+  }
+  
+
+
   Attribute::Save( valueRecord, offset, typeInfo,P );
   return true;
 }
+
+
+bool OpenPMPoint( SmiRecord& valueRecord,
+                size_t& offset,
+                const ListExpr typeInfo,
+                Word& value ){
+  __TRACE__
+  PMPoint *e = (PMPoint*)Attribute::Open( valueRecord, offset, typeInfo );
+
+
+  bool ok = e->CheckCorrectness();
+  cerr << " OpenPMPoint called " << endl;
+  if(ok){
+      cerr << "open a correct pmpoint into SMI Record" << ok << endl;
+  } else{
+      cerr << " opened pmpoint is not correct !!!" << endl;
+      e->PrintArrayContents();
+  }
+  
+
+
+  value = SetWord(e);
+  return true;
+}
+
+
 
 bool SavePMPoints( SmiRecord& valueRecord,
                 size_t& offset,
@@ -11898,8 +11798,8 @@ TypeConstructor pmpoint(
         0,                     //SaveToList and
         0,                     // RestoreFromList functions
         CreatePMPoint, DeletePMPoint, //object creation and deletion
-        0,0,
-        //OpenPMPoint,    SavePMPoint, //object open and save
+        //0,0,
+        OpenPMPoint,    SavePMPoint, //object open and save
         ClosePMPoint,  ClonePMPoint,  //object close and clone
         CastPMPoint,                  //cast function
         SizeOfPMPoint,                //sizeof function
@@ -12323,22 +12223,23 @@ ListExpr DistanceTypeMap(ListExpr args){
      return nl->SymbolAtom(TYPE_ERROR);  
   }
   // for tests we use only a pmbool 
-	if(!nl->AtomType(nl->First(args))==SymbolType){
-			ErrorReporter::ReportError("The first argument can't be composite");
-			return nl->SymbolAtom(TYPE_ERROR);
-	}
-	if(!nl->AtomType(nl->Second(args))==SymbolType){
-			ErrorReporter::ReportError("The second argument can't be composite");
-			return nl->SymbolAtom(TYPE_ERROR);
-	}
-	string arg1 = nl->SymbolValue(nl->First(args));
-	string arg2 = nl->SymbolValue(nl->Second(args));
+  if(!nl->AtomType(nl->First(args))==SymbolType){
+      ErrorReporter::ReportError("The first argument can't be composite");
+      return nl->SymbolAtom(TYPE_ERROR);
+  }
+  if(!nl->AtomType(nl->Second(args))==SymbolType){
+      ErrorReporter::ReportError("The second argument can't be composite");
+      return nl->SymbolAtom(TYPE_ERROR);
+  }
+  string arg1 = nl->SymbolValue(nl->First(args));
+  string arg2 = nl->SymbolValue(nl->Second(args));
   // up to now only pmpoint x point -> pmreal is supported
   if( ( arg1=="pmpoint" && arg2=="point" ) ||
       ( arg1=="point" && arg2=="pmpoint")){
      return nl->SymbolAtom("pmreal");
   }
-  ErrorReporter::ReportError(arg1 + " x  " + arg2 + " is not a valid argument pair");
+  ErrorReporter::ReportError(arg1 + " x  " + arg2 + 
+                             " is not a valid argument pair");
   return nl->SymbolAtom(TYPE_ERROR); 
   
 }

@@ -51,30 +51,25 @@ PeriodicAlgebra.doc.dvi: PeriodicAlgebra.doc.tex
 	latex $<
 	latex $<
 
-PeriodicAlgebra.doc.tex: PeriodicAlgebra.doc.tex1
-ifndef LISTINGS
-	cp $< PeriodicAlgebra.doc.tex
-else
-	sed -e 's/\\begin{verbatim}/\\begin{lstlisting}/g' -e 's/\\end{verbatim}/\\end{lstlisting}/g' $< >PeriodicAlgebra.doc.tex
-endif	
 
-PeriodicAlgebra.doc.tex1: PeriodicAlgebra.doc Figures/ObviousSolution.eps Figures/UniLogo.eps Figures/MRealFormula.eps Figures/SecondoLogo.eps pdheader
-ifdef LISTINGS
-	PD_HEADER=pdheader pd2tex PeriodicAlgebra.doc
-else
+PeriodicAlgebra.doc.tex: PeriodicAlgebra.doc Figures/ObviousSolution.eps Figures/UniLogo.eps Figures/MRealFormula.eps Figures/SecondoLogo.eps pdheader
 	pd2tex PeriodicAlgebra.doc
-endif	
-	mv PeriodicAlgebra.doc.tex PeriodicAlgebra.doc.tex1
 
 
 %eps:
 	make -C Figures 
 
 PeriodicAlgebra.doc: PeriodicAlgebra.cpp List2.h RepTree.h RepTree.cpp NodeTypes.h  makefile
-	cat PeriodicAlgebra.cpp > PeriodicAlgebra.doc
+	cat PeriodicTypes.h >PeriodicAlgebra.doc
+	echo -e "\n[newpage]\n" >>PeriodicAlgebra.doc
+	cat PeriodicAlgebra.cpp >> PeriodicAlgebra.doc
+	echo -e "\n[newpage]\n" >>PeriodicAlgebra.doc
 	cat List2.h >> PeriodicAlgebra.doc
+	echo -e "\n[newpage]\n" >>PeriodicAlgebra.doc
 	cat RepTree.h >> PeriodicAlgebra.doc
+	echo -e "\n[newpage]\n" >>PeriodicAlgebra.doc
 	cat RepTree.cpp >> PeriodicAlgebra.doc
+	echo -e "\n[newpage]\n" >>PeriodicAlgebra.doc
 	cat NodeTypes.h >> PeriodicAlgebra.doc
 	
 

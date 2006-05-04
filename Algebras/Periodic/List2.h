@@ -333,30 +333,30 @@ element before it.
 
 */
   bool Delete(){
-		 if(!current)
+     if(!current)
             return false;
-		 Element<T>* victim = current;
-		 if(current==first){ // remove the first element
-			 current = current->GetNext();
-			 first= current;
-			 if(current){
-		      current->prev=NULL;
-			 }else{
+     Element<T>* victim = current;
+     if(current==first){ // remove the first element
+       current = current->GetNext();
+       first= current;
+       if(current){
+          current->prev=NULL;
+       }else{
          if(victim==last) // the only element in this list
-		         last = NULL;
-			 }
-			 delete victim;
-		 } else if(current==last){ //remove the last element;
-				 last = last->prev;
-				 current=last;
-				 if(current)
-		       current->next = NULL;
-				 delete victim;
-		 }else{ // normal case delete in the middle
-				 current = current->next;
-				 (victim->prev)->connect(current);
-				 delete victim;
-		 }
+             last = NULL;
+       }
+       delete victim;
+     } else if(current==last){ //remove the last element;
+         last = last->prev;
+         current=last;
+         if(current)
+           current->next = NULL;
+         delete victim;
+     }else{ // normal case delete in the middle
+         current = current->next;
+         (victim->prev)->connect(current);
+         delete victim;
+     }
      length--;
      return true;
   }
