@@ -45,6 +45,11 @@ void printWrapped(const int n, const string& s)
 int
 main () {
 
+
+ cout << "<" << pad("Funktion pad(string, 30)", 30) << ">" << endl;
+ cout << "<" << pad("füllt Zeichen auf, wenn der string", 30) << ">" << endl;
+ cout << "<" << pad("weniger als 30 Zeichen hat", 30, '_') << ">" << endl;
+
  string tab1 = "Hier sind ein paar Tabulatoren: -\t- -\t- -\t-";
  cout << "\"" << tab1 << "\"" << endl;
  cout << "Das Ergebnis von expandTab(str,5) sieht dann so aus:" << endl;
@@ -106,5 +111,17 @@ main () {
  printWrapped(20,y);
             
 
+ string mea =   "Sums up the size for the tuples root size, the extension "
+                "size and the flob size. The results will be stored in "
+                "counters which are named \n\n"
+                "- RA:RootSize_s\n"
+                "- RA:ExtSize_s (Root + Extension)\n"
+                "- RA:Size_s (Root + Extension + Flobs)\n"
+                "- RA:FlobSizeOnly_s\n"
+                "- RA:ExtSizeOnly_s";
+
+ 
+ y = wordWrap("          Meaning: ",80,mea);
+ printWrapped(19,y);
  
 }
