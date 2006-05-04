@@ -58,6 +58,7 @@ using namespace std;
 #include "Profiles.h"
 #include "CharTransform.h"
 #include "Counter.h"
+#include "WinUnix.h"
 
 static int  BdbCompareInteger( Db* dbp, const Dbt* key1, const Dbt* key2 );
 static int  BdbCompareFloat( Db* dbp, const Dbt* key1, const Dbt* key2 );
@@ -85,7 +86,8 @@ the handle must be capable to survive this SmiFile instance.
 SmiFile::Implementation::Implementation( bool isTemp )
 {
   bdbHandle = 0;
-  bdbFile   = new Db( SmiEnvironment::Implementation::GetTempEnvironment(), DB_CXX_NO_EXCEPTIONS );
+  bdbFile   = new Db( SmiEnvironment::Implementation::GetTempEnvironment(), 
+                      DB_CXX_NO_EXCEPTIONS );
 	noHandle = false;
 /*
 The constructor cannot allocate a Berkeley DB handle by itself since handles
@@ -179,11 +181,14 @@ SmiFile::Create( const string& context /* = "Default" */ )
 
   if ( CheckName( context ) )
   {
-    fileId = SmiEnvironment::Implementation::GetFileId( impl->isTemporaryFile );
+    fileId = SmiEnvironment::Implementation::GetFileId( 
+                                                    impl->isTemporaryFile );
     if ( fileId != 0 )
     {
       string bdbName =
-        SmiEnvironment::Implementation::ConstructFileName( fileId, impl->isTemporaryFile );
+        SmiEnvironment::Implementation::ConstructFileName( 
+                                                      fileId, 
+                                                      impl->isTemporaryFile );
 
       // --- Find out the appropriate Berkeley DB file type
       // --- and set required flags or options if necessary
@@ -224,13 +229,15 @@ SmiFile::Create( const string& context /* = "Default" */ )
       if ( pagesize > 0 )
       {
         impl->bdbFile->set_pagesize( pagesize );
-				cout << "Setting page size for SmiFile to " << pagesize << " !" << endl;
+	cout << "Setting page size for SmiFile to " 
+             << pagesize << " !" << endl;
       }
 
       // --- Open Berkeley DB file
 
       u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
-      u_int32_t flags = (!impl->isTemporaryFile) ? DB_CREATE | DB_DIRTY_READ | commitFlag : DB_CREATE;
+      u_int32_t flags = (!impl->isTemporaryFile) ? 
+                           DB_CREATE | DB_DIRTY_READ | commitFlag : DB_CREATE;
       rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, flags, 0 );
       if ( rc == 0 )
       {
@@ -366,7 +373,9 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
       // --- Open Berkeley DB file
 
       u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
-      rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, DB_CREATE | DB_DIRTY_READ | commitFlag, 0 );
+      rc = impl->bdbFile->open( 0, bdbName.c_str(), 
+                                0, bdbType, 
+                                DB_CREATE | DB_DIRTY_READ | commitFlag, 0 );
       if ( rc == 0 )
       {
         if ( !existing )
@@ -384,7 +393,8 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
           catalogEntry.entry.isKeyed = fileType == Keyed;
           catalogEntry.entry.isFixed = fileType == FixedLength;
           catalogEntry.updateOnCommit = true;
-          SmiEnvironment::instance.impl->bdbFilesToCatalog[newName] = catalogEntry;
+          SmiEnvironment::instance.impl->bdbFilesToCatalog[newName] 
+                                                           = catalogEntry;
         }
         SmiEnvironment::SetError( E_SMI_OK );
         opened      = true;
@@ -446,7 +456,9 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
     if ( fileid != 0 && fileContext == context )
     {
       string bdbName =
-        SmiEnvironment::Implementation::ConstructFileName( fileid, impl->isTemporaryFile );
+        SmiEnvironment::Implementation::ConstructFileName( 
+                                                      fileid, 
+                                                      impl->isTemporaryFile );
 
       // --- Find out the appropriate Berkeley DB file type
       // --- and set required flags or options if necessary
@@ -492,7 +504,8 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
       // --- Open Berkeley DB file
 
       u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
-      u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ | commitFlag : 0;
+      u_int32_t flags = (!impl->isTemporaryFile) ? 
+                            DB_DIRTY_READ | commitFlag : 0;
 
       rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, flags, 0 );
       if ( rc == 0 )
@@ -545,7 +558,8 @@ SmiFile::Close()
     else
     {
       impl->bdbFile->close( 0 );
-      impl->bdbFile = new Db( SmiEnvironment::instance.impl->tmpEnv, DB_CXX_NO_EXCEPTIONS );
+      impl->bdbFile = new Db( SmiEnvironment::instance.impl->tmpEnv, 
+                              DB_CXX_NO_EXCEPTIONS );
     }
     impl->isSystemCatalogFile = false;
     SmiEnvironment::SetError( E_SMI_OK );
@@ -594,7 +608,8 @@ SmiFile::Drop()
 bool 
 SmiFile::Truncate()
 {
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = !impl->isTemporaryFile ? 
+                  SmiEnvironment::instance.impl->usrTxn : 0;
   u_int32_t countp;
   return impl->bdbFile->truncate( tid, &countp, 0 ) == 0;
 }
@@ -946,7 +961,8 @@ bool PrefetchingIteratorImpl::NewPrefetch()
       if(errorCode == 0)
       {
         state = PARTIAL_RETRIEVAL;
-        cerr << "PrefetchingIterator - Warning: state==PARTIAL_RETRIEVAL" << endl;
+        cerr << "PrefetchingIterator - Warning: state==PARTIAL_RETRIEVAL"
+             << endl;
 				
         if(!isBTreeIterator)
 	      {
@@ -1216,7 +1232,8 @@ bool PrefetchingIteratorImpl::Next()
   }
   else
   {
-    DB_MULTIPLE_RECNO_NEXT(p, buffer.get_DBT(), recordNumber, retData, retDataLength);
+    DB_MULTIPLE_RECNO_NEXT(p, buffer.get_DBT(), 
+                           recordNumber, retData, retDataLength);
   }
      
   if(p == 0)
@@ -1240,7 +1257,8 @@ bool PrefetchingIteratorImpl::Next()
     }
     else
     {
-      DB_MULTIPLE_RECNO_NEXT(p, buffer.get_DBT(), recordNumber, retData, retDataLength);
+      DB_MULTIPLE_RECNO_NEXT(p, buffer.get_DBT(), 
+                             recordNumber, retData, retDataLength);
     }
     
     if(p != 0  && !RightBoundaryExceeded())
@@ -1294,12 +1312,23 @@ SmiSize PrefetchingIteratorImpl::BulkCopy(void* data, size_t dataLength,
 SmiSize PrefetchingIteratorImpl::ReadCurrentData
   (void* userBuffer, SmiSize nBytes, SmiSize offset)
 {
+
+  static long int& ctr = Counter::getRef("Prefetch::ReadCurrent:Calls");
+  static long int& byteCtr = Counter::getRef("Prefetch::ReadCurrent:Bytes");
+  static long int& pageCtr = Counter::getRef("Prefetch::ReadCurrent:Pages");
+  static const int pageSize = WinUnix::getPageSize();
+  SmiSize bytes = 0;
+  ctr++;
+  
   Dbt buf;
 
   switch(state)
   {
     case BULK_RETRIEVAL:
-      return BulkCopy(retData, retDataLength, userBuffer, nBytes, offset);
+      bytes = BulkCopy(retData, retDataLength, userBuffer, nBytes, offset);
+      byteCtr += bytes;
+      pageCtr = byteCtr / pageSize; 
+      return bytes;
       
     case PARTIAL_RETRIEVAL:
       buf.set_data(userBuffer);
@@ -1308,7 +1337,9 @@ SmiSize PrefetchingIteratorImpl::ReadCurrentData
       buf.set_doff(offset);
       buf.set_ulen(nBytes);
       errorCode = dbc->get(&keyDbt, &buf, DB_CURRENT);
-      return buf.get_size();
+      bytes = buf.get_size();
+      byteCtr += bytes;
+      return bytes;
     
     case INITIAL:
       assert(false);

@@ -44,6 +44,7 @@ using namespace std;
 #include "SmiBDB.h"
 #include "SmiCodes.h"
 #include "Counter.h"
+#include "WinUnix.h"
 
 /* --- Implementation of class SmiRecord --- */
 
@@ -77,7 +78,10 @@ SmiRecord::Read( void* buffer,
                  const SmiSize numberOfBytes,
                  const SmiSize offset /* = 0 */ )
 {
-  static long int& ctr = Counter::getRef("SmiRecord::Read");
+  static const int pageSize = WinUnix::getPageSize();
+  static long int& ctr = Counter::getRef("SmiRecord::Read:Calls");
+  static long int& byteCtr = Counter::getRef("SmiRecord::Read:Bytes");
+  static long int& pageCtr = Counter::getRef("SmiRecord::Read:Pages");
   ctr++;
 
   int rc = 0;
@@ -99,8 +103,11 @@ SmiRecord::Read( void* buffer,
     }
     else
     {
-      DbTxn* tid = !smiFile->impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
-      u_int32_t flags = (writable && !smiFile->impl->isTemporaryFile) ? DB_RMW : 0;
+      DbTxn* tid = !smiFile->impl->isTemporaryFile ? 
+                        SmiEnvironment::instance.impl->usrTxn : 0;
+      u_int32_t flags = (writable && !smiFile->impl->isTemporaryFile) ? 
+                           DB_RMW : 0;
+
       key.set_data( (void*) recordKey.GetAddr() );
       key.set_size( recordKey.keyLength );
       if ( writable || !smiFile->impl->isSystemCatalogFile )
@@ -117,6 +124,8 @@ SmiRecord::Read( void* buffer,
     if ( rc == 0 )
     {
       actRead = data.get_size();
+      byteCtr += actRead;
+      pageCtr = byteCtr / pageSize;
       SmiEnvironment::SetError( E_SMI_OK );
     }
     else
@@ -137,7 +146,10 @@ SmiRecord::Write( const void*   buffer,
                   const SmiSize numberOfBytes, 
                   const SmiSize offset /* = 0 */ )
 {
-  static long int& ctr = Counter::getRef("SmiRecord::Write");
+  static const int pageSize = WinUnix::getPageSize();
+  static long int& ctr = Counter::getRef("SmiRecord::Write:Calls");
+  static long int& byteCtr = Counter::getRef("SmiRecord::Write:Bytes");
+  static long int& pageCtr = Counter::getRef("SmiRecord::Write:Pages");
   ctr++;
 
   int rc = 0;
@@ -155,7 +167,8 @@ SmiRecord::Write( const void*   buffer,
     }
     else
     {
-      DbTxn* tid = !smiFile->impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
+      DbTxn* tid = !smiFile->impl->isTemporaryFile ? 
+                        SmiEnvironment::instance.impl->usrTxn : 0;
       key.set_data( (void*) recordKey.GetAddr() );
       key.set_size( recordKey.keyLength );
       rc = impl->bdbFile->put( tid, &key, &data, 0 );
@@ -167,6 +180,8 @@ SmiRecord::Write( const void*   buffer,
         recordSize = offset + numberOfBytes;
       }
       SmiEnvironment::SetError( E_SMI_OK );
+      byteCtr += numberOfBytes;
+      pageCtr = byteCtr / pageSize;
     }
     else
     {
@@ -222,7 +237,8 @@ SmiRecord::Truncate( const SmiSize newSize )
       }
       else
       {
-        DbTxn* tid = !smiFile->impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
+        DbTxn* tid = !smiFile->impl->isTemporaryFile ? 
+                          SmiEnvironment::instance.impl->usrTxn : 0;
         key.set_data( (void*) recordKey.GetAddr() );
         key.set_size( recordKey.keyLength );
         rc = impl->bdbFile->put( tid, &key, &data, 0 );
