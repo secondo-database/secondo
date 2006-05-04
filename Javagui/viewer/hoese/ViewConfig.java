@@ -621,7 +621,7 @@ public class ViewConfig extends javax.swing.JDialog {
              laboffx = Double.parseDouble(LabXOffText.getText());
           }catch(NumberFormatException e){}
           try{
-             laboffy = Double.parseDouble(LabXOffText.getText());
+             laboffy = Double.parseDouble(LabYOffText.getText());
           }catch(NumberFormatException e){}
           dg.getLabPosOffset().setLocation(laboffx,laboffy);
           if ((LabIndex >= 0) && (LabelText.getText().equals(""))) {
