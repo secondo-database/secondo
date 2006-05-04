@@ -6,6 +6,52 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below the ruler and not at the end.
 
+2006-05-03 Command Times and Counters
+===============================================================================
+
+Command Times:
+--------------
+The output of the query or command times has been changed.
+Now also the times for 
+
+1) creating the list representation for the result object
+2) for committing the transaction (which is reasonable!)
+3) for copying the result list (necessary in order to empty the list memory)
+
+If the output is to noisy change the setting in SecondoConfig.ini in order
+to suppress them.
+
+Note: Some keywords in SecondoConfig.ini were changed. Please update your
+configuration file by replacing it with SecondoConfig.example.
+
+Counters:
+---------
+There are new counters which keep track of bytes read or written to disk.
+They are implemented in SmiRecord and the PrefetchingIterator. There are 
+counters for 
+
+1) The number of function calls
+2) The number of transferred bytes
+3) The transferred data volume measured in pages
+
+Note: The last value is not identical to reading pages from disk. This information 
+is only present in the Berkeley-DB cache. Currently, we have no interface to access 
+the Berkeley-DB cache statistics.   
+
+Finally, all command times and counter values are stored in the system tables
+
+  SEC_COMMANDS
+  SEC_COUNTERS
+
+which are non persistent relation objects whose values are only kept during the 
+current session. However, you can store them by
+
+let sessionCmds = SEC_COMMANDS feed consume; 
+
+Regards
+
+Markus
+
 2006-02-24 Automatic Tests
 ===============================================================================
 The TestRunner has new features! Please refer to example.test for its
