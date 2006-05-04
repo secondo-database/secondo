@@ -273,7 +273,7 @@ wordWrap( const int indent1, const int indent2,
   while ( p1 < end )
   {
     if (trace)
-      cout << "text[" << p1 << "]='" << text[p1] << "'" << endl;
+      cout << "text[" << p1 << "]='" << text.substr(p1,20) << "...'" << endl;
     
     if (lines > 1) {
       len = textwidth - indent2;
@@ -283,93 +283,94 @@ wordWrap( const int indent1, const int indent2,
     }  
 
     string substr="";
-    if ( (end - p1) <= len) // check if rest fits
-    {    
-      substr = text.substr(p1,len);
-      p1 = end; 
-    }
-    else
-    {
-      // search a suitable wrap position
-      bool found = false;
-      bool newLine = false;
-      size_t p2 = 0;
-      size_t endPos = p1+len;
-      
-      while ( !found && (endPos >= (p1+(2*len/3))) )
+    // search a suitable wrap position
+    bool found = false;
+    bool newLine = true;
+    size_t p2 = end;
+    size_t endPos = min(p1+len, end);
+   
+    while ( !found /*&& (endPos >= (p1+(2*len/3)))*/ )
+    { 
+      // check for a predefined linebreak
+      p2 = text.find_first_of('\n', p1);
+      if ( p2 <= endPos ) 
       { 
-        // check for a predefined linebreak
-        p2 = text.find_first_of('\n', p1);
-        if ( p2 <= endPos ) 
-        { 
-          newLine = true;
-          break;
-        }  
-        
-        p2 = text.find_last_of(wrapChars, endPos);
-        
-        bool lastOk = (end-p2) >= len/3;
-        // dont wrap if the next char is also a wrap char
-        if (lastOk && wrapChars.find(text[p2+1]) == string::npos) 
-        {
-          found = true;
-        }  
-        else
-        { 
-          endPos = p2-1;
-        }  
-      }
-
-      if (trace) {
-        cout << "p1: " << p1 << endl;
-        cout << "p2: " << p2 << endl;
+        newLine = true;
+        break;
       }  
-        
-      if ( !newLine && 
-           ( (p2 == string::npos) || ((p2-p1+1) < 2*len/3) || (p2 <= p1) ))
+      
+      if ( (end - p1) <= len) // check if last line
+      { 
+        newLine = true;
+        p2 = end;
+        break;
+      } 
+       
+      newLine = false;
+      p2 = text.find_last_of(wrapChars, endPos);
+      
+      bool lastOk = (end-p2) >= len/3;
+      // dont wrap if the next char is also a wrap char
+      if (lastOk && wrapChars.find(text[p2+1]) == string::npos) 
       {
-        if (trace) 
-          cout << "force break" << endl;
-          
-        // There is no suitable wrap char in the next len 
-        // chars, hence we need to force a wrap. We split after
-        // the first non-wrapChar below 4/5 of the textwidth
-        
-        size_t cutLen = 4*len/5; 
-        endPos = p1+len;
-        p2=endPos;
-        while ( (p2 >= p1+cutLen) )
-        { 
-          p2 = text.find_last_not_of(wrapChars, endPos);
-          endPos = p2-1;
-        }  
-        if (p2 == string::npos)
-          p2 = p1+cutLen;
-        substr = text.substr(p1,p2-p1);
-        lastbreak = p2;
+        found = true;
       }  
       else
-      {
-        if (trace) 
-          cout << "soft break" << endl;
-        
-        assert( p2 <= (p1+len) );    
-        assert( p2 >= p1 );    
-        substr = text.substr(p1,p2-p1);
-        lastbreak = p2;
-      }
-      if (trace) {
-        cout << "text[" << lastbreak << "]='" 
-             << text[lastbreak] << "'" << endl;
+      { 
+        endPos = p2-1;
       }  
-      lines++;
-
-      // 
-      if ( isspace(text[lastbreak]) ) {
-        lastbreak++;
-      }  
-      p1 = lastbreak;
     }
+
+    if (trace) {
+      cout << "p1: " << p1 << endl;
+      cout << "endPos: " << endPos << endl;
+      cout << "p2: " << p2 << endl;
+    }  
+      
+    if ( !newLine && 
+         ( (p2 == string::npos) || ((p2-p1+1) < 2*len/3) || (p2 <= p1) ))
+    {
+      if (trace) 
+        cout << "force break" << endl;
+        
+      // There is no suitable wrap char in the next len 
+      // chars, hence we need to force a wrap. We split after
+      // the first non-wrapChar below 4/5 of the textwidth
+      
+      size_t cutLen = 4*len/5; 
+      endPos = p1+len;
+      p2=endPos;
+      while ( (p2 >= p1+cutLen) )
+      { 
+        p2 = text.find_last_not_of(wrapChars, endPos);
+        endPos = p2-1;
+      }  
+      if (p2 == string::npos)
+        p2 = p1+cutLen;
+      substr = text.substr(p1,p2-p1);
+      lastbreak = p2;
+    }  
+    else
+    {
+      if (trace) 
+        cout << "soft break" << endl;
+      
+      assert( p2 <= (p1+len) );    
+      assert( p2 >= p1 );    
+      substr = text.substr(p1,p2-p1);
+      lastbreak = p2;
+    }
+    if (trace) {
+      cout << "text[" << lastbreak << "]='" 
+           << text[lastbreak] << "'" << endl;
+    }  
+    lines++;
+
+    // 
+    if ( isspace(text[lastbreak]) ) {
+      lastbreak++;
+    }  
+    p1 = lastbreak;
     result += indentStr + substr;
     if (trace) {
       cout << "substr: " << substr << endl;    
@@ -456,6 +457,15 @@ inline string expandVar(const string& s)
   expandVarRef(t);
   return t; 
 }
+
+// append characters if necessary
+inline string padStr(const string& s, size_t n, const char ch=' ')
+{
+  if ( n > s.length() )
+    return s + string( n - s.length(), ch );
+  else
+    return s;
+} 
 
 
 class SpecialChars {
