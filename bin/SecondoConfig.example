@@ -73,13 +73,15 @@ SecondoPort=1234
 # command
 #RTFlags = SI:PrintCounters
 
+# Show the used times for every Secondo Command
+RTFlags += SI:PrintCmdTimes
 
-# Supress to measure cpu-time,real-time, and nested list 
-# memory used for processing a query.
-#RTFlags += SI:NoQueryAnalysis 
+# Supress to measure cpu-time, real-time
+# for all steps of query processing 
+RTFlags += SI:NoQueryTimers 
 
 # Suppress the output of the command in NL format before execution
-#RTFlags += SI:NoCommandEcho 
+RTFlags += SI:NoCommandEcho 
 
 # Various statistical information about tuples and relations.
 #RTFlags += SI:RelStatistics 
@@ -88,11 +90,6 @@ SecondoPort=1234
 # the applications list memory.
 #RTFlags += SI:ResultList
 
-# Measure the time for copying lists between NL-instances.
-#RTFlags += SI:CopyListTime
-
-# Show the used times for every Secondo Command
-#RTFlags += SI:CommandTime
 
 ###
 ### CLIENT / SERVER
