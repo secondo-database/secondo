@@ -616,13 +616,28 @@ public class ViewConfig extends javax.swing.JDialog {
         if (dg.getAttrName().equals(AttrName)) {
           dg.setCategory(cat);
           double laboffx=0;
+          boolean offx = false;
           double laboffy=0;
+          boolean offy = false;
           try{
              laboffx = Double.parseDouble(LabXOffText.getText());
-          }catch(NumberFormatException e){}
+             offx=true;
+          }catch(NumberFormatException e){
+             offx=false;
+          }
           try{
              laboffy = Double.parseDouble(LabYOffText.getText());
-          }catch(NumberFormatException e){}
+             offy=true;
+          }catch(NumberFormatException e){
+             offy=false;
+          }
+          Point oldLabelPos = dg.getLabPosOffset();
+          if(!offx){ // use old value
+            laboffx = oldLabelPos.getX();
+          }
+          if(!offy){
+            laboffy = oldLabelPos.getY();
+          }
           dg.getLabPosOffset().setLocation(laboffx,laboffy);
           if ((LabIndex >= 0) && (LabelText.getText().equals(""))) {
             LabelAttribute label;
