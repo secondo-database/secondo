@@ -141,15 +141,18 @@ optimizerOptionInfo(rewriteRemove,
 'Remove attributes as early as possible.\n\t\t\t(NOTE: This auto-selects \'rewriteCSE\'!)',
                     setOption(rewriteCSE), true).
 optimizerOptionInfo(rtreeIndexRules,       
-'Use additional rules to exploit R-tree indices.',
-                      (   not(optimizerOption(entropy))
-                        ; notIsDatabaseOpen
-                        ; ( retractall(storedSecondoList(_)),
-                            getSecondoList(ObjList),
-                            checkForAddedIndices(ObjList), 
-                            checkForRemovedIndices(ObjList),
-                            checkIfSmallRelationsExist(ObjList),
-                            retractall(storedSecondoList(_))
+'Use additional rules to exploit R-tree indices.\n\t\t\t(NOTE: This auto-selects \'rewriteInference\'!)',
+                      (   setOption(rewriteInference), 
+                          (
+                            not(optimizerOption(entropy))
+                          ; notIsDatabaseOpen
+                          ; ( retractall(storedSecondoList(_)),
+                              getSecondoList(ObjList),
+                              checkForAddedIndices(ObjList), 
+                              checkForRemovedIndices(ObjList),
+                              checkIfSmallRelationsExist(ObjList),
+                              retractall(storedSecondoList(_))
+                            )
                           )
                       ), 
                       true).
