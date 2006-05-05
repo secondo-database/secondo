@@ -532,6 +532,18 @@ writeStoredPET(Stream) :-
   write(Stream, storedPET(DB, XReplaced, Y)),
   write(Stream, '.\n').
 
+showPETs :-
+  write('\nSttored predicate costs:\n'),
+  write('Cost [ms] \t\t Predicate\n'),
+  findall(_, showPET, _).
+
+showPET :-
+  storedPET(DB, P, PC),
+  replaceCharList(P, PReplaced),
+  write(' '), write(PC), write('\t\t'), write(DB), 
+  write('.'), write(PReplaced), nl.
+
+
 :-
   dynamic(storedPET/3),
   at_halt(writeStoredPETs),
