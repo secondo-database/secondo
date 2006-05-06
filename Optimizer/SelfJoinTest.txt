@@ -1,0 +1,19 @@
+sql select count(*) from [plz as p1, plz as p2] where [p1:plz > 30000, p1:plz < 60000, p1:ort = p2:ort, p2:plz < 35000].
+
+sql select count(*) from [plz as p1, plz as p2, plz as p3] where [p1:ort = "Hannover", p1:ort = p2:ort, p2:plz = p3:plz]
+
+sql select count(*) from [plz as p1, plz, plz as p3] where [p1:ort = "Hannover", p1:ort = ort, plz = p3:plz]
+
+sql select * from [orte as o, orte] where [o:bevt = bevt, bevt > 700]
+
+sql select count(*) from [plz as p1, plz, plz as p3, plz as p4] where [p1:plz = plz, ort = p3:ort, ort = "Dortmund", p3:plz = p4:plz, p4:plz = 44225, ort contains "mund", ort contains "Dort"]
+
+sql select * from [plz as p1, plz, plz as p3, plz as p4] where [p1:plz = plz, ort = p3:ort, ort = "Dortmund", p3:plz = p4:plz, p4:plz = 44225, ort contains "mund", ort contains "Dort"]
+
+sql select [p1:ort, p1:plz] from [plz as p1, plz, plz as p3, plz as p4] where [p1:plz = plz, ort = p3:ort, ort = "Dortmund", p3:plz = p4:plz, p4:plz = 44225, ort contains "mund", ort contains "Dort"]
+
+sql select * from [plz as p1, plz as p2] where [p1:plz = p2:plz, p1:ort = "Dortmund", p2:ort # "Dortmund"]
+
+sql select count(*) from [plz as p1, plz as p2] where [p1:plz = 44135, p1:plz = p2:plz, p1:ort = p2:ort]
+
+sql select * from [plz as p1, plz as p2] where [p1:plz = 44135, p1:plz = p2:plz, p1:ort = p2:ort]
