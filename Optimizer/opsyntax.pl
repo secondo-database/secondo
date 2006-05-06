@@ -95,7 +95,6 @@ secondoOp(exactmatch, postfixbrackets, 3).
 secondoOp(leftrange, postfixbrackets, 3).
 secondoOp(rightrange, postfixbrackets, 3).
 secondoOp(remove, postfixbrackets, 2).
-secondoOp(project, postfixbrackets, 2).
 secondoOp(sortby, postfixbrackets, 2).
 secondoOp(loopsel, postfixbrackets, 2).
 secondoOp(sum, postfixbrackets, 2).
