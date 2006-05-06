@@ -1077,6 +1077,55 @@ plan_to_atom(field(NewAttr, Expr), Result) :-
   concat_atom([NAtom, ': ', EAtom], '', Result).
 
 /*
+Using the switch ``removeHiddenAttributes'', ~reduce~ can either be left in the plan or removed from it.
+
+*/
+
+
+plan_to_atom(reduce(Stream, Pred, Factor), Result) :-
+  not(removeHiddenAttributes), !,		% is used in plan
+  plan_to_atom(Stream, StreamAtom),
+  plan_to_atom(Pred, PredAtom),
+  plan_to_atom(Factor, FactorAtom),
+  concat_atom([StreamAtom, 'reduce[', PredAtom, ', ', FactorAtom, '] '], '', Result),
+  !.
+
+plan_to_atom(reduce(Stream, _, _), StreamAtom) :-
+  removeHiddenAttributes,			% is removed from plan
+  plan_to_atom(Stream, StreamAtom),
+  !.
+
+
+/*
+Attributes can be designated as hidden by setting their argument number to 100,
+e.g. in a term ~attrname(attr(xxxIDplz, 100, l)). If the flag ~removeHiddenAttributes~ is set, they are removed from a projection list. Currently used for the entropy optimizer.
+
+*/
+
+:- dynamic 
+  removeHiddenAttributes/0.
+
+plan_to_atom(project(Stream, Fields), Result) :-
+  not(removeHiddenAttributes), !,		% standard behaviour
+  plan_to_atom(Stream, SAtom),
+  plan_to_atom(Fields, FAtom),
+  concat_atom([SAtom, 'project[', FAtom, '] '], '', Result),
+  !.
+
+plan_to_atom(project(Stream, Fields), Result) :-
+  removeHiddenAttributes, 			
+  plan_to_atom(Stream, SAtom),
+  removeHidden(Fields, Fields2),	% defined after plan_to_atom
+  plan_to_atom(Fields2, FAtom),
+  concat_atom([SAtom, 'project[', FAtom, '] '], '', Result),
+  !.
+
+
+
+
+
+
+/*
 Special Operators for Algebras
 
 Picture Algebra:
@@ -1350,6 +1399,21 @@ plan_to_atom(X, _) :-
   write('Error while converting term: '),
   write(X),
   nl.
+
+/*
+Hidden fields have an argument number 100 and can be removed from a projection list by activating the flag ``removeHidenAttributes''. See ~plan\_to\atom~ for ~project~.
+
+*/
+
+removeHidden([], []).
+
+removeHidden([attrname(attr(_, 100, _)) | Fields], Fields2) :-
+  removeHidden(Fields, Fields2),
+  !.
+
+removeHidden([Field | Fields], [Field | Fields2]) :-
+  removeHidden(Fields, Fields2).
+
 
 
 params_to_atom([], ' ').
@@ -2955,7 +3019,10 @@ lookup(select Attrs from Rels where Preds,
   lookupAttrs(Attrs, Attrs2),
   lookupPreds(Preds, Preds2),
   makeList(Rels2, Rels2List),
-  makeList(Preds2, Preds2List).
+  makeList(Preds2, Preds2List),
+  (optimizerOption(entropy) 
+    -> registerSelfJoins(Preds2List, 1); true).
+					% needed for entropy optimizer
 
 lookup(select Attrs from Rels,
         select Attrs2 from Rels2) :-
@@ -2979,6 +3046,8 @@ lookup(Query first N, Query2 first N) :-
 makeList(L, L) :- is_list(L).
 
 makeList(L, [L]) :- not(is_list(L)).
+
+
 
 /*
 
@@ -3406,6 +3475,8 @@ translate1(Query, Stream3, Select2, Cost2) :-
   optimizerOption(entropy), 
   deleteSmallResults, 
   retractall(highNode(_)), assert(highNode(0)), 
+  assert(buildingSmallPlan),
+  retractall(removeHiddenAttributes),
   translate(Query, Stream1, Select, Cost1), 
   translateEntropy(Stream1, Stream2, Cost1, Cost2), 
 % Hook for CSE substitution
@@ -3433,15 +3504,20 @@ translate(Query groupby Attrs,
   translateFields(SelAttrs, Attrs2, Fields, Select2),
   !.
 
-% Modified to integrate the optional generation of immediate Plans,
-% The option is activated, when optimizerOption(immediatePath) is
-% defined. See file ''immediateplan.pl'' for further information.
 translate(Select from Rels where Preds, Stream, Select, Cost) :- 
-  not(optimizerOption(immediatePlan)),
+  not(optimizerOption(immediatePlan)),		% standard behaviour
   pog(Rels, Preds, _, _),
   assignCosts,
   bestPlan(Stream, Cost),
   !.
+
+/*
+Modified version to integrate the optional generation of immediate plans.
+The option is activated, when optimizerOption(immediatePlan) is
+defined. See file ''immediateplan.pl'' for further information.
+
+*/
+
 
 translate(Select from Rels where Preds, Stream, Select, Cost) :- 
   optimizerOption(immediatePlan),
