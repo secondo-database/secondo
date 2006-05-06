@@ -1,5 +1,5 @@
 /*
-//Characters [1] formula: [$] [$]
+//characters [1] formula: [$] [$]
 //characters [2] program: [{\tt ] [}]
 //[<=] [$\leq$]
 //[>=] [$\geq$]
@@ -55,7 +55,11 @@ switching between ~standard~ and ~entropy~ optimiztation was implemented in
    entropy_node/2,
    small_cond_sel/4,
    firstResultSize/2,
-   firstEdgeSelectivity/3.
+   firstEdgeSelectivity/3,
+
+   selfJoin/3,
+   buildingSmallPlan/0.
+   
 
 /*
 Some clauses which print the estimated sizes of the standard optimizer
@@ -249,7 +253,8 @@ query_small(exactmatch(IndexName, R, V), Result) :-
   Result = exactmatch(IndexNameSmall, R2, V),
   !.
 
-% To be modified - it should handle functors with any number of arguments. Currently it
+% To be modified - it should handle functors with any number of arguments. 
+% Currently it
 % handles only from 1 to 5 arguments. It should handle lists, too.
 
 query_small( Term, Result ) :-
@@ -331,17 +336,89 @@ be called. In this case the values of the counters will be stored in
       smallResultCounter/4
 ----      
 
+
+
+----	traversePath2(+Path) :-
+----
+
+This is a variant of ~traversePath~ that embeds counters. Furthermore, it looks for self joins and for them inserts a self join correction operator ~reduce~.
+
 */
 
 traversePath2([]).
 
 traversePath2([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
-  %nl, write('### traversePath2'), nl,
   embedSubPlans(Term, Term2),
+  possiblyCorrectSelfJoins(Source, Target, Term2, Term3),
   nextCounter(Nc),
-  assert(nodePlan(Result, counter(Term2,Nc))),
+  assert(nodePlan(Result, counter(Term3,Nc))),
   assert(smallResultCounter(Nc, Source, Target, Result)),
   traversePath2(Path).
+
+
+/*
+3.1 Dealing with Self Joins
+
+This is done in the following steps:
+
+  1 Self joins are discovered via ~registerSelfJoins~ hooked into the ~lookup~ predicate in optimizer.pl.
+
+(docu to be completed).
+
+*/
+
+registerSelfJoins([], _).
+
+registerSelfJoins([Pred | Preds], N) :-
+  registerSelfJoin(Pred, N),
+  N2 is N * 2,
+  registerSelfJoins(Preds, N2).
+
+
+
+registerSelfJoin(pr(_, Rel1, Rel2), N) :-
+  Rel1 = rel(X, _, _),
+  Rel2 = rel(X, _, _),
+  assert(selfJoin(N, Rel1, Rel2)),
+  atom_concat('xxxID', X, IDAttrName),
+  IDAttr = attr(IDAttrName, 100, l),	% 100 indicates hidden attribute,
+					% to be used by projection translation
+  assert(usedAttr(Rel1, IDAttr)),
+  assert(usedAttr(Rel2, IDAttr)),
+  nl, nl,
+  write('*************'), nl,
+  write('Predicate '), write(N), write(' has a self join on relation '), 
+  write(X), nl, nl.
+
+registerSelfJoin(_, _).
+
+
+
+
+possiblyCorrectSelfJoins(Source, Target, TermIn, TermOut) :-
+  buildingSmallPlan,
+  PredNo is Target - Source,
+  selfJoin(PredNo, Rel1, Rel2),
+  idAttr(Rel1, 1, Attr1),
+  idAttr(Rel2, 2, Attr2),
+  Rel1 = rel(RelName, _, _),
+  atom_concat(RelName, '_small', SmallName),
+  card(RelName, RelCard),
+  card(SmallName, SmallCard),
+  TermOut = reduce(TermIn, Attr1 = Attr2, RelCard div SmallCard).
+
+possiblyCorrectSelfJoins(_, _, Term, Term).
+
+
+idAttr(rel(RelName, *, _), ArgNo, attr(IdAttr, ArgNo, l)) :- !,
+  atom_concat('xxxID', RelName, IdAttr).
+
+idAttr(rel(RelName, Var, _), ArgNo, attr(Var:IdAttr, ArgNo, l)) :-
+  atom_concat('xxxID', RelName, IdAttr).
+
+
+
+
 
 /*
 The clause ~translateEntropy~ runs a plan given as ~Stream1~ with ~Cost1~, runs
@@ -359,12 +436,17 @@ translateEntropy(Stream1, Stream2, Cost1, Cost2) :-
   nl, 
   write('*** Using Entropy-approach ************' ), 
   nl, !,
-  
+
+  assert(removeHiddenAttributes),		% show first plan without
+						% self join modifications
   plan_to_atom(Stream1, FirstQuery),
+  retractall(removeHiddenAttributes),
+
+
   prepare_query_small(Stream1, PlanSmall),
   plan_to_atom(PlanSmall, SmallQuery),
   
-  write('The plan in small database is: '), nl, 
+  write('The plan on the small database is: '), nl, 
   write(SmallQuery), nl, nl,
   write('Executing the query in the small database...'),
   
@@ -379,6 +461,10 @@ translateEntropy(Stream1, Stream2, Cost1, Cost2) :-
   % compute a new plan based on the cost annotations of
   % the new selectivities computed by maximize_entropy 
   deleteCounters2,
+  retract(buildingSmallPlan),
+  retractall(selfJoin(_, _, _)),
+  retractall(usedAttr(_, _)),
+  assert(removeHiddenAttributes),
   assignEntropyCost,
   bestPlan(Stream2, Cost2), !,
 
@@ -503,7 +589,7 @@ createMarginalProbability( N, [[Pred, Sel]|T] ) :-
 createMarginalProbability( _, [] ).
 
 /*
-The chain of probabilities constructed in ~createJointProbability~ is terminated when a selectivity 0 is encountered. Selectivity 0 is put into small_cond_sel if the sample (intermediate result on the small database) had a size of less than 10).
+The chain of probabilities constructed in ~createJointProbability~ is terminated when a selectivity 0 is encountered. Selectivity 0 is put into small\_cond\_sel if the sample (intermediate result on the small database) had a size of less than 10).
 
 */
 
