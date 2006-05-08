@@ -1,4 +1,9 @@
 /*
+//[<] [$<$]
+//[>] [$>$]
+//[%] [\%]
+//[->] [$\rightarrow$]
+
 ---- 
 This file is part of SECONDO.
 
@@ -66,33 +71,33 @@ Secondo, but that operator is still not implemented.
 
 Operators to determine attribute sizes in Secondo:
 
- * ~ attrsize ~
-   ( stream | rel(tuple X) x ident -> real ), 
+  * ~ attrsize ~
+   ( stream | rel(tuple X) x ident [->] real ), 
    Return the size of the attribute within a stream or a 
    relation taking into account the FLOBs.
 
- * ~exattrsize~ -
-   ( stream(tuple X) | rel(tuple X) x identifier -> real ), 
+  * ~exattrsize~ -
+   ( stream(tuple X) | rel(tuple X) x identifier [->] real ), 
    Return the size of the attribute within a stream or a 
    relation taking into account the small FLOBs.
 
- * ~rootattrsize~ - 
-   ( stream(tuple X) | rel(tuple X) x identifier ->  int ), 
+  * ~rootattrsize~ - 
+   ( stream(tuple X) | rel(tuple X) x identifier [->]  int ), 
    Return the size of the attributes root part within a 
    stream or a relation (without small FLOBs).
 
- * ~tuplesize~ -
-   ( stream | rel (tuple x) -> real ), 
+  * ~tuplesize~ -
+   ( stream | rel (tuple x) [->] real ), 
    Return the average size of the tuples within a stream or a 
    relation taking into account the FLOBs.
 
- * ~exttuplesize~ - 
-   ( stream(tuple X) | rel(tuple X) -> real ), 
+  * ~exttuplesize~ - 
+   ( stream(tuple X) | rel(tuple X) [->] real ), 
    Return the average size of the tuples within a stream 
    or a relation taking into account the small FLOBs.
 
- * ~roottuplesize~ - 
-   ( stream(tuple X) | rel(tuple X) ->  int ), 
+  * ~roottuplesize~ - 
+   ( stream(tuple X) | rel(tuple X) [->]  int ), 
    Return the size of the attributes root part within a 
    stream or a relation (without small FLOBs).
 
@@ -157,7 +162,8 @@ extractAttrTypes(Rel, [[Attr, Type] | Rest]) :-
   ),
   databaseName(DBName),
   downcase_atom(Attr, AttrD),
-  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreAttrSize, InFlobSize, ExtFlobSize)), !, 
+  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreAttrSize, InFlobSize,
+    ExtFlobSize)), !, 
   extractAttrTypes(Rel, Rest), !.
 
 extractAttrTypes(Rel, List) :- 
@@ -187,6 +193,21 @@ time(Clause) :-
   write('Elapsed Time: '),
   write(MSs),
   write(' ms'),nl.
+
+/*
+Create small relations for use with the entropy optimizer. Relations are classified into three groups called ~small~, ~middle~, and ~large~ by the ~classify~ predicate. For each group, sample sizes can be set differently. Currently ~small~ sizes are determined as follows:
+
+  * small = less than 1000 tuples: full size
+
+  * middle = between 1000 and 100000 tuples: 10 [%], but at least 1000 tuples
+
+  * large = more than 100000 tuples, 1 [%], but at least 10000 tuples
+
+This schema is chosen to have sample sizes grow monotonically.
+
+In addition, an attribute is added for uniquely identifying tuples in the small relations with name ~xxxID[<]relname[>]~ (~[<]relname[>]~ starting with a lower case letter). This is needed for selfjoin correction in the entropy optimizer.
+
+*/
 
 classifyRel(Rel, small) :-
   card(Rel, Size),
@@ -223,65 +244,61 @@ createSmallRelation(Rel, _)  :-  % Rel in lc
   classifyRel(Rel, small),
   spelling(Rel, Rel2),
   Rel2 = lc(Rel3),
-  sampleNameSmall(Rel3, Small),
-  atom_concat('xxxID', Rel3, IDAttr),
-  concat_atom(['let ', Small, ' = ', Rel3, 
-    ' feed extend[', IDAttr, ': seqnext()] consume'], '', QueryAtom),  
-  tryCreate(QueryAtom),
-  card(Rel3, Card),
-  databaseName(DB),
-  assert(storedCard(DB, Small, Card)),
-  downcase_atom(Small, DCSmall),  
-  assert(storedSpell(DB, DCSmall, lc(Small))),
+  buildSmallRelation(Rel3, Rel3, 0, _),
   !.
 
 createSmallRelation(Rel, _) :-  % Rel in uc
   classifyRel(Rel, small),
   spelling(Rel, Rel2),
   upper(Rel2, URel),
-  sampleNameSmall(URel, Small),
-  atom_concat('xxxID', Rel2, IDAttr),
-  concat_atom(['let ', Small, ' = ', URel, 
-    ' feed extend[', IDAttr, ': seqnext()] consume'], '', QueryAtom),
-  tryCreate(QueryAtom),
-  card(Rel2, Card),
-  lowerfl(Small, LSmall),
-  databaseName(DB),
-  assert(storedCard(DB, LSmall, Card)),
-  downcase_atom(Small, DCSmall),
-  assert(storedSpell(DB, DCSmall, LSmall)),
+  buildSmallRelation(Rel2, URel, 0, _),
   !.
 
 createSmallRelation(Rel, _)  :-  % Rel in lc
   classifyRel(Rel, middle),
   spelling(Rel, Rel2),
   Rel2 = lc(Rel3),
-  sampleNameSmall(Rel3, Small),
-  atom_concat('xxxID', Rel3, IDAttr),
-  concat_atom(['let ', Small, ' = ', Rel3, 
-    ' sample[1000, 0.1] extend[', IDAttr, ': seqnext()] consume'], '',
-    QueryAtom), 
-  tryCreate(QueryAtom),
-  card(Rel3, Card),
-  SmallCard is truncate(min(Card, max(1000, Card*0.1))),  
-  databaseName(DB),
-  assert(storedCard(DB, Small, SmallCard)),
-  downcase_atom(Small, DCSmall),  
-  assert(storedSpell(DB, DCSmall, lc(Small))),
+  buildSmallRelation(Rel3, Rel3, 1000, 0.1),
   !.
 
 createSmallRelation(Rel, _)  :-  % Rel in uc
   classifyRel(Rel, middle),
   spelling(Rel, Rel2),
   upper(Rel2, URel),
-  sampleNameSmall(URel, Small),
-  atom_concat('xxxID', Rel2, IDAttr),
-  concat_atom(['let ', Small, ' = ', URel, 
-    ' sample[1000, 0.1] extend[', IDAttr, ': seqnext()] consume'], '', 
+  buildSmallRelation(Rel2, URel, 1000, 0.1),
+  !.
+
+createSmallRelation(Rel, _)  :-  % Rel in lc
+  classifyRel(Rel, large),
+  spelling(Rel, Rel2),
+  Rel2 = lc(Rel3),
+  buildSmallRelation(Rel3, Rel3, 10000, 0.01),
+  !.
+
+createSmallRelation(Rel, _)  :-  % Rel in uc
+  classifyRel(Rel, large),
+  spelling(Rel, Rel2),
+  upper(Rel2, URel),
+
+  buildSmallRelation(Rel2, URel, 10000, 0.01),
+  !.
+
+
+/*
+----	buildSmallRelation(+RelLC, +RelName, +MinSize, +Percent) :-
+----
+
+Build a small relation where ~RelLC~ is the relation name with a lower case first letter, ~RelName~ is the Secondo relation name, ~MinSize~ is the desired minimal size, and ~Percent~ is the desired minimal percentage of tuples for use in the sample operator. Add a unique identifier attribute ~xxxID[<]relname[>]~ by numbering tuples sequentially. If ~MinSize~ = 0, no sampling is needed.
+
+*/
+buildSmallRelation(RelLC, RelName, 0, _) :-
+  sampleNameSmall(RelName, Small),
+  atom_concat('xxxID', RelLC, IDAttr),
+  concat_atom(['let ', Small, ' = ', RelName, 
+    ' feed extend[', IDAttr, ': seqnext()] consume'], '',
     QueryAtom), 
   tryCreate(QueryAtom),
-  card(Rel2, Card),
-  SmallCard is truncate(min(Card, max(1000, Card*0.1))),  
+  card(RelLC, SmallCard),
   lowerfl(Small, LSmall),
   databaseName(DB),
   assert(storedCard(DB, LSmall, SmallCard)),
@@ -289,42 +306,44 @@ createSmallRelation(Rel, _)  :-  % Rel in uc
   assert(storedSpell(DB, DCSmall, LSmall)),
   !.
 
-createSmallRelation(Rel, _)  :-  % Rel in lc
-  classifyRel(Rel, large),
-  spelling(Rel, Rel2),
-  Rel2 = lc(Rel3),
-  sampleNameSmall(Rel3, Small),
-  atom_concat('xxxID', Rel3, IDAttr),
-  concat_atom(['let ', Small, ' = ', Rel3, 
-    ' sample[10000, 0.01] extend[', IDAttr, ': seqnext()] consume'], '',
+buildSmallRelation(RelLC, RelName, MinSize, Percent) :-
+  sampleNameSmall(RelName, Small),
+  atom_concat('xxxID', RelLC, IDAttr),
+  concat_atom(['let ', Small, ' = ', RelName, 
+    ' sample[', MinSize, ', ', Percent, '] extend[', IDAttr, 
+    ': seqnext()] consume'], '',
     QueryAtom), 
   tryCreate(QueryAtom),
-  card(Rel3, Card),
-  SmallCard is truncate(min(Card, max(10000, Card*0.01))),  
-  databaseName(DB),
-  assert(storedCard(DB, Small, SmallCard)),
-  downcase_atom(Small, DCSmall),  
-  assert(storedSpell(DB, DCSmall, lc(Small))),
-  !.
-
-createSmallRelation(Rel, _)  :-  % Rel in uc
-  classifyRel(Rel, large),
-  spelling(Rel, Rel2),
-  upper(Rel2, URel),
-  sampleNameSmall(URel, Small),
-  atom_concat('xxxID', Rel2, IDAttr),
-  concat_atom(['let ', Small, ' = ', URel, 
-    ' sample[10000, 0.01] extend[', IDAttr, ': seqnext()] consume'], '',
-    QueryAtom), 
-  tryCreate(QueryAtom),
-  card(Rel2, Card),
-  SmallCard is truncate(min(Card, max(10000, Card*0.01))),  
+  card(RelLC, Card),
+  SmallCard is truncate(min(Card, max(MinSize, Card * Percent))),
   lowerfl(Small, LSmall),
   databaseName(DB),
   assert(storedCard(DB, LSmall, SmallCard)),
   downcase_atom(Small, DCSmall),
-  assert(storedSpell(DB, DCSmall, LSmall)),
+  assert(storedSpell(DB, DCSmall, LSmall)).
+
+
+/*
+----	createSmall(+Rel, +Size) :-
+----
+
+Create small relation manually, for non-standard databases.
+
+*/
+
+createSmall(Rel, Size)  :-  % Rel in lc
+  spelling(Rel, Rel2),
+  Rel2 = lc(Rel3),
+  buildSmallRelation(Rel3, Rel3, Size, 0.000001),
   !.
+
+createSmall(Rel, Size)  :-  % Rel in uc
+  spelling(Rel, Rel2),
+  upper(Rel2, URel),
+  buildSmallRelation(Rel2, URel, Size, 0.000001),
+  !.
+
+
 
 /*
 Creates a sample relation, for determining the selectivity of a relation 
