@@ -67,6 +67,8 @@ extern QueryProcessor* qp;
 #include "DateTime.h"
 using namespace datetime;
 
+
+
 /*
 2.1 Definition of some constants
 
@@ -201,7 +203,7 @@ Is used for the ~speed~ operator.
 
 Type mapping for ~speed~ is
 
-----  (mpoint)  ->  (mreal)
+----  mpoint  ->  mreal
 
 ----
 
@@ -229,7 +231,7 @@ Is used for the ~queryrect2d~ operator.
 
 Type mapping for ~queryrect2d~ is
 
-----  (instant)  ->  (rect)
+----  instant  ->  rect
 
 ----
 
@@ -255,7 +257,7 @@ Is used for the ~point2d~ operator.
 
 Type mapping for ~point2d~ is
 
-----  (periods)  ->  (point)
+----  periods  ->  point
 
 ----
 
@@ -281,7 +283,7 @@ Is used for the ~size~ operator.
 
 Type mapping for ~size~ is
 
-----  (periods)  ->  (real)
+----  periods  ->  real
 
 ----
 
@@ -306,13 +308,13 @@ It is used for the operator ~makemvalue~
 
 Type mapping for ~makemvalue~ is
 
-----  ((stream (tuple ((x1 t1)...(xn tn))) xi(ubool)))  ->  (mbool)
+----  (stream (tuple ((x1 t1)...(xn tn))) xi(ubool))  ->  mbool
               APPEND (i ti)
-      ((stream (tuple ((x1 t1)...(xn tn))) xi(uint)))  ->   (mint)
+      (stream (tuple ((x1 t1)...(xn tn))) xi(uint)) ->   mint
               APPEND (i ti)
-      ((stream (tuple ((x1 t1)...(xn tn))) xi(ureal)))  ->  (mreal)
+      (stream (tuple ((x1 t1)...(xn tn))) xi(ureal))  ->  mreal
               APPEND (i ti)
-      ((stream (tuple ((x1 t1)...(xn tn))) xi(upoint)))  -> (mpoint)
+      (stream (tuple ((x1 t1)...(xn tn))) xi(upoint))  -> mpoint
               APPEND (i ti)
 
 ----
@@ -664,6 +666,7 @@ TypeMapMove( ListExpr args )
        && nl->IsEqual( arg2, "region" ) )
       return nl->SymbolAtom( "movingregion" );
   }
+  cout <<"typeMap" << '\n';
   return nl->SymbolAtom( "typeerror" );
 }
 /*
@@ -1404,14 +1407,16 @@ int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
   CcReal* r = (CcReal*)args[1].addr;
   CcInt* narg = (CcInt*)args[2].addr;
 
+  CRegion *res = (CRegion*)result.addr;
+
+
   double x, y;
   int n;
   double radius;
   double valueX, valueY;
   double angle;
+  int partnerno = 0;
 
-  ListExpr errorInfo, instance, last;
-  bool correct;
 
   x = p->GetX();
   y = p->GetY();
@@ -1419,49 +1424,267 @@ int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
   n = narg->GetIntval();
   radius = r->GetRealval();
 
+  res->Clear();
+  res->StartBulkLoad();
 
-  if (( p->IsDefined())&&(n>3)&&(n<10000)&&(radius >=0.0))
+  CRegion rg;
+  CHalfSegment chs(false);
+
+
+  if (( p->IsDefined())&&(n>3)&&(n<100)&&(radius >0.0))
     {
+
        for( int i = 0; i < n; i++ )
         {
         angle = i * 2 * PI/n;
-        valueX = x + radius*cos(angle);
-        valueY = y + radius*sin(angle);
-        Point corner(true,valueX ,valueY);
+        valueX = x + radius * cos(angle);
+        valueY = y + radius * sin(angle);
 
-        if (i==0)
-         {
-          instance = nl->OneElemList(OutPoint(nl->TheEmptyList(),
-                     SetWord(&corner)));
-          last= instance;
-         }
-        else
-         {
-         last = nl->Append( last,
-                    OutPoint(nl->TheEmptyList(), SetWord(&corner)));
-         }
-       }
-    instance = nl->OneElemList(nl->OneElemList(instance));
-    CRegion* reg = (CRegion*)InRegion( nl->TheEmptyList(),
-                                 instance, 0, errorInfo, correct ).addr;
-  if ( correct ) ((CRegion*)result.addr)->CopyFrom(reg);
-  else ((CRegion*)result.addr)->SetDefined(false);
+        Point edge1(true, valueX ,valueY);
+
+        chs.attr.faceno = 0;
+        chs.attr.cycleno = 0;
+        chs.attr.edgeno = partnerno;
+        chs.attr.partnerno = partnerno++;
+
+        if ((i+1) >= n)
+          angle = 0 * 2 * PI/n;
+       else
+          angle = (i+1) * 2 * PI/n;
+
+        valueX = x + radius * cos(angle);
+        valueY = y + radius * sin(angle);
+
+        Point edge2(true, valueX ,valueY);
+
+
+         chs.Set(true, edge1, edge2);
+         *res += chs;
+          chs.SetLDP( false );
+         *res += chs;
+
+        }
 
     }
+   res->EndBulkLoad(true);
+   res->SetPartnerNo();
+   res->ComputeRegion();
+
+
   return 0;
 }
+
 /*
 16.2.16 Value mapping functions of operator ~move~
 
 */
 int Move( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  result = qp->ResultStorage( s );
+   result = qp->ResultStorage( s );
 
    MPoint* mp = ((MPoint*)args[0].addr);
    CRegion* r = ((CRegion*)args[1].addr);
 
-  
+   MRegion* res = ((MRegion*)result.addr);
+
+   const UPoint *uPoint;
+   const CHalfSegment *chs;
+
+   double x0, y0, x1, y1;
+   double deltax, deltay;
+   double oldx = 0;
+   double oldy = 0;
+   double maximum, minimum;
+   double half;
+   int Top, Bottom, MaxTop, MaxBottom, counter;
+   int partnerno;
+   UPoint bucket[r->Size()];
+   int pointer[r->Size()];
+   int pointer_rev[r->Size()];
+
+
+   res->Clear();
+   res->StartBulkLoad();
+
+
+ for( int i = 0; i < mp->GetNoComponents(); i++ )
+  {
+     mp->Get( i, uPoint );
+
+     x0 = uPoint->p0.GetX();
+     y0 = uPoint->p0.GetY();
+
+     x1 = uPoint->p1.GetX();
+     y1 = uPoint->p1.GetY();
+
+     deltax = x1-x0;
+     deltay = y1-y0;
+
+     Interval<Instant> iv(uPoint->timeInterval.start,
+                          uPoint->timeInterval.end,
+                          uPoint->timeInterval.lc,
+                          uPoint->timeInterval.rc);
+
+    FLOB *Segments;
+    partnerno = 0;
+    counter = 0;
+    Top = 0;
+    MaxTop = 0;
+    MaxBottom = 0;
+    Bottom = 0;
+    maximum = -1e90;
+    minimum = 1e90;
+    half = 0;
+
+/*
+precondition
+the x-values ares sorted
+in desc
+
+*/
+    for( int m = 0; m < r->Size(); m++ )
+     {
+      r->Get( m, chs );
+     if (m % 2 == 0)
+      {
+      y0 = chs->GetDPoint().GetY()+ oldy;
+      if (maximum < y0)
+          maximum = y0;
+      if (minimum > y0)
+         minimum = y0;
+      }
+     }
+/*
+calculation of the stripline
+between top and bottom
+
+*/
+     half =  ((maximum-minimum)* 0.5) + minimum;
+
+
+    for( int j = 0; j < r->Size(); j++ )
+    {
+     r->Get( j, chs );
+
+
+   if (j % 2 == 0)
+      {
+
+       x0 = chs->GetDPoint().GetX()+ oldx;
+       y0 = chs->GetDPoint().GetY()+ oldy;
+
+       x1 = x0 + deltax;
+       y1 = y0 + deltay;
+/*
+UPoint for the values
+
+*/
+       UPoint p(iv,x0,y0,x1,y1);
+
+       if ((x0 != x1) || (y0 != y1))
+       {
+        counter += 1;
+        bucket[counter] = p;
+        if (y0 >= half)
+         {
+/*
+sort top part in asc
+
+*/
+          Top += 1;
+          MaxTop += 1;
+          pointer[counter] = Top;
+         }
+        else
+         {
+/*
+sort bottom part in desc
+at this time I do not know
+the right values
+
+*/
+          Bottom += -1;
+          MaxBottom += 1;
+          pointer[counter] = Bottom;
+         }
+        }
+        }
+       }
+
+      URegion* ureg = new URegion(iv);
+
+      Segments = ureg->GetFLOB(0);
+
+      for( int k = 1; k < MaxTop + MaxBottom + 1; k++ )
+       {
+/*
+correction of the values for the bottom part
+
+*/
+         if (pointer[k] <= 0)
+             pointer[k] = pointer[k] + MaxBottom + MaxTop + 1;
+       }
+      for( int k = 1; k < MaxTop + MaxBottom + 1; k++ )
+       {
+/*
+build the reverse array of pointer
+pointer_rev[pointer[k]] = k;
+
+*/
+       }
+/*
+now I can support the values
+clockwise for the datatyp
+moving region
+
+*/
+      for( int j = 1; j < MaxTop + MaxBottom  + 1; j++ )
+       {
+
+        UPoint pt0;
+        UPoint pt1;
+
+        pt0 = bucket[pointer_rev[j]];
+
+       if ((j+1) >= MaxTop + MaxBottom + 1)
+          pt1 = bucket[pointer_rev[1]];
+       else
+         pt1 = bucket[pointer_rev[j+1]];
+
+       MSegmentData dms(0,
+                        0,
+                        partnerno,
+                        false,
+                        pt0.p0.GetX(),
+                        pt0.p0.GetY(),
+                        pt0.p1.GetX(),
+                        pt0.p1.GetY(),
+                        pt1.p0.GetX(),
+                        pt1.p0.GetY(),
+                        pt1.p1.GetX(),
+                        pt1.p1.GetY());
+
+
+
+       ureg->PutSegment(partnerno, dms);
+       partnerno++;
+
+      }
+/*
+saving the old position
+
+*/
+     oldx += deltax;
+     oldy += deltay;
+
+
+     res->Add(*ureg);
+     delete ureg;
+
+
+  }
+  res->EndBulkLoad(true);
+
 
   return 0;
 }
@@ -1877,7 +2100,7 @@ class TemporalUnitAlgebra : public Algebra
    AddOperator( &temporalunitpasses );
    AddOperator( &temporalunitat );
    AddOperator( &temporalcircle );
-  // AddOperator( &temporalmove );
+   AddOperator( &temporalmove );
 
   }
   ~TemporalUnitAlgebra() {};
