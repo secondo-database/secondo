@@ -247,10 +247,9 @@ query_small(rel(Name, V, C), Result) :-
   Result = rel(NameSmall, V, C),
   !.
 
-query_small(exactmatch(IndexName, R, V), Result) :-
-  atom_concat(IndexName,'_small', IndexNameSmall),
-  query_small( R, R2 ),
-  Result = exactmatch(IndexNameSmall, R2, V),
+query_small(IndexName, NameSmall) :-
+  storedIndex(_,_,_,_,IndexName),
+  atom_concat( IndexName, '_small', NameSmall ),
   !.
 
 % To be modified - it should handle functors with any number of arguments. 
