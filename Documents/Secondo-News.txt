@@ -4,7 +4,30 @@
 
  This file is a replacement of the secondo-news mailing list. Please add here
  interesting information which should be kept for future SECONDO users.
- Just add new messages directly below the ruler and not at the end.
+ Just add new messages directly below this text with a new header.
+
+
+2006-05-08 New Sample and Small Relations
+===============================================================================
+
+Due to changes for the entropy optimizer, the "_small" relations have a new 
+structure and need to be recreated (if you want to use the entropy optimizer). Probably the easiest way to do this is to restore databases and also to reinitialize the optimizer information ("rm stored*" in the optimizer directory).
+
+Sample relations also have changed a week ago and need to be recreated as well. For standard databases this is done automatically.
+
+For non-standard databases such as germany, samples and small relations should now be created manually from the optimizer, calling predicates
+
+	createSamples('Kreis', 100, 50)
+
+and
+	createSmall(kreis, 50)
+
+(sorry for the different syntax), respectively.
+
+Regards
+Ralf
+
+
 
 2006-05-03 Command Times and Counters
 ===============================================================================
@@ -18,8 +41,7 @@ Now also the times for
 2) for committing the transaction (which is reasonable!)
 3) for copying the result list (necessary in order to empty the list memory)
 
-If the output is to noisy change the setting in SecondoConfig.ini in order
-to suppress them.
+are shown. If the output is too noisy, change the setting in SecondoConfig.ini in order to suppress them.
 
 Note: Some keywords in SecondoConfig.ini were changed. Please update your
 configuration file by replacing it with SecondoConfig.example.
@@ -34,9 +56,7 @@ counters for
 2) The number of transferred bytes
 3) The transferred data volume measured in pages
 
-Note: The last value is not identical to reading pages from disk. This information 
-is only present in the Berkeley-DB cache. Currently, we have no interface to access 
-the Berkeley-DB cache statistics.   
+Note: The last value is not identical to reading pages from disk. This information is only present in the Berkeley-DB cache. Currently, we have no interface to access the Berkeley-DB cache statistics.   
 
 Finally, all command times and counter values are stored in the system tables
 
