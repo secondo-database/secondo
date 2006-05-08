@@ -96,6 +96,10 @@ Operators to determine attribute sizes in Secondo:
    Return the size of the attributes root part within a 
    stream or a relation (without small FLOBs).
 
+Simple datatypes ~X~, that have no FLOBs and for which ~noFlobType(X)~ 
+in file ``operators.pl'' is defined, will be assumed to have no FLOBs.
+Instead of querying Secondo for the attribute sizes, the rootsizes stored 
+in file ``storedTypeSizes.pl'' for each Secondo datatype are used.
 
 */
 
@@ -137,15 +141,23 @@ getExtAttrSize(Rel, Attr, _) :-
 extractAttrTypes(_, []) :- !.
 
 extractAttrTypes(Rel, [[Attr, Type] | Rest]) :-
-  getAttrSize(Rel, Attr, AttrSize),
-  getExtAttrSize(Rel, Attr, ExtAttrSize),
-  getRootAttrSize(Rel, Attr, RootAttrSize),
-  CoreTupleSize is RootAttrSize,
-  InFlobSize    is ExtAttrSize - RootAttrSize,
-  ExtFlobSize   is AttrSize - ExtAttrSize,
+  ( noFlobType(Type) 
+    *-> ( secDatatype(Type, CoreAttrSize),
+          InFlobSize   is 0,
+          ExtFlobSize  is 0
+        )
+      ; (
+          getAttrSize(Rel, Attr, AttrSize),
+          getExtAttrSize(Rel, Attr, ExtAttrSize),
+          getRootAttrSize(Rel, Attr, RootAttrSize),
+          CoreAttrSize is RootAttrSize,
+          InFlobSize   is ExtAttrSize - RootAttrSize,
+          ExtFlobSize  is AttrSize - ExtAttrSize
+        )
+  ),
   databaseName(DBName),
   downcase_atom(Attr, AttrD),
-  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreTupleSize, InFlobSize, ExtFlobSize)), !, 
+  assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreAttrSize, InFlobSize, ExtFlobSize)), !, 
   extractAttrTypes(Rel, Rest), !.
 
 extractAttrTypes(Rel, List) :- 
@@ -584,11 +596,11 @@ are executed furthermore by this rule.
 
 */
 
-trycreateSmallRelation(Rel, ObjList) :- 
+tryCreateSmallRelation(Rel, ObjList) :- 
   optimizerOption(entropy),
   createSmallRelation(Rel, ObjList),!.
 
-trycreateSmallRelation(_, _) :- 
+tryCreateSmallRelation(_, _) :- 
   not(optimizerOption(entropy)).
 
 relation(Rel, AttrList) :-
@@ -604,7 +616,7 @@ relation(Rel, AttrList) :-
   extractList(AttrList2, AttrList3),
   downcase_list(AttrList3, AttrList),
   createSampleRelationIfNotDynamic(Rel),
-  trycreateSmallRelation(Rel, ObjList),!.
+  tryCreateSmallRelation(Rel, ObjList),!.
 
 relation(Rel, AttrList) :-
   getSecondoList(ObjList),
@@ -617,7 +629,7 @@ relation(Rel, AttrList) :-
   card(Rel, _),
   tuplesize(Rel, _),
   createSampleRelationIfNotDynamic(Rel),
-  trycreateSmallRelation(Rel, ObjList),
+  tryCreateSmallRelation(Rel, ObjList),
   extractAttrTypes(Rel, AttrList2),  
   databaseName(DB),
   assert(storedRel(DB, Rel, AttrList)),

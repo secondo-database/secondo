@@ -281,7 +281,7 @@ indexType(rtree).
 indexType(rtree3).
 
 /*
----- getSmallIndexCreateQuery(Granularity, BBoxType, Type, Rel, Attr, IndexName, QueryAtom)
+---- getSmallIndexCreateQuery(+Granularity, +BBoxType, +Type, +Rel, +Attr, +IndexName, -QueryAtom)
 ----
 Create a ~QueryAtom~ that is a executable Secondo command string, that will create the
 appropriate specialized R-Tree index from relation ~Rel~ for key attribute ~Attr~, with 
@@ -346,10 +346,17 @@ indexCreateQuery(none, none, Type, Rel, Attr, IndexName,
   ['let ', IndexName, '_small = ', Rel, 
    '_small create', Type, ' [', Attr, ']']).
 
+/*
+---- createIndexSmall(+Rel, +ObjList, +IndexName, +LogicalIndexType, +Attr, +Granularity, +BBoxType)
+----
 
+Test, if a _small index has to be created and create it if necessary. The index is specified by the relation ~Rel~ and key attribute ~Attr~,
+the index' name ~IndexName~, its type ~LogicalIndexType~, the index' ~Granularity~ and type of bounding box ~BBoxType~.
 
-% Test, if a _small index has to be created and create it if necessary
-% Also, add a _small relation, if it is still not available
+Also, add a _small relation, if it is still not available.
+
+*/
+
 createIndexSmall(_, _, _, _, _, _, _) :- 
   not(optimizerOption(entropy)),!.
   
@@ -360,7 +367,7 @@ createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr, Granularity, B
   concat_atom([IndexName, 'small'], '_', IndexSmallName),
   % create _small relation if not present (needed to create _small index)
   ( not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList))
-    -> trycreateSmallRelation(Rel, ObjList) 
+    -> tryCreateSmallRelation(Rel, ObjList) 
     ;  true
   ),
   % create _small index if not present
@@ -400,7 +407,7 @@ checkIfSmallRelationExists(Rel, ObjList) :-
   concat_atom([Rel, 'small'], '_', RelSmallName),
   not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
   downcase_atom(Rel, RelD),
-  trycreateSmallRelation(RelD, ObjList), !.
+  tryCreateSmallRelation(RelD, ObjList), !.
 
 % Test if for each relation in ObjList there also is a _small-relation, 
 % otherwise create it

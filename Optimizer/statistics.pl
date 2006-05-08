@@ -533,7 +533,7 @@ writeStoredPET(Stream) :-
   write(Stream, '.\n').
 
 showPETs :-
-  write('\nSttored predicate costs:\n'),
+  write('\nStored predicate costs:\n'),
   write('Cost [ms] \t\t Predicate\n'),
   findall(_, showPET, _).
 
