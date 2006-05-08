@@ -121,13 +121,14 @@ of the enclosing transaction the handle will be closed.
 void
 SmiFile::Implementation::CheckDbHandles() {
 
+  static long& ctr = Counter::getRef("SmiFile:Realloc-DBHandles");
   if ( !isTemporaryFile && noHandle ) { // reallocate a DbHandle if necessary
 	
+    ctr++;
     bdbHandle = SmiEnvironment::Implementation::AllocateDbHandle();
     bdbFile   = SmiEnvironment::Implementation::GetDbHandle( bdbHandle );
 		noHandle = false;
-		Counter::getRef("SmiFile:Realloc-DBHandles")++;
-	}		
+  }		
 }	
 
 
@@ -175,7 +176,8 @@ SmiFile::CheckName( const string& name )
 bool
 SmiFile::Create( const string& context /* = "Default" */ )
 {
-  Counter::getRef("SmiFile::Create")++;
+  static long& ctrCreate = Counter::getRef("SmiFile::Create");
+  static long& ctrOpen = Counter::getRef("SmiFile::Open");
   int rc = 0;
   impl->CheckDbHandles();
 
@@ -241,6 +243,8 @@ SmiFile::Create( const string& context /* = "Default" */ )
       rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, flags, 0 );
       if ( rc == 0 )
       {
+        ctrCreate++;
+        ctrOpen++;
         SmiDropFilesEntry entry;
         entry.fileId = fileId;
         entry.dropOnCommit = false;
@@ -286,7 +290,7 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
 {
   assert ( !opened );
 	
-  Counter::getRef("SmiFile::Open")++;
+  static long& ctr = Counter::getRef("SmiFile::Open");
   int rc = 0;
   bool existing = false;
   impl->CheckDbHandles();
@@ -396,6 +400,7 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
           SmiEnvironment::instance.impl->bdbFilesToCatalog[newName] 
                                                            = catalogEntry;
         }
+        ctr++;
         SmiEnvironment::SetError( E_SMI_OK );
         opened      = true;
         fileName    = name;
@@ -427,7 +432,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
 {
   assert ( !opened );
 	
-  Counter::getRef("SmiFile::Open")++;
+  static long& ctr = Counter::getRef("SmiFile::Open");
   int rc = 0;
   impl->CheckDbHandles();
 	
@@ -533,6 +538,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
  
   if( rc == 0 )
   {
+    ctr++;
     fileId = fileid;
     return true;
   }
@@ -542,11 +548,12 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
 bool
 SmiFile::Close()
 {
-  Counter::getRef("SmiFile::Close")++;
+  static long& ctr = Counter::getRef("SmiFile::Close");
   int rc = 0;
 
   if ( opened )
   {
+    ctr++;
     // --- The current Berkeley DB handle is freed, but a new one is
     // --- allocated for possible reuse of this SmiFile instance
     opened = false;
@@ -721,7 +728,7 @@ SmiFileIterator::~SmiFileIterator()
 bool
 SmiFileIterator::Next( SmiRecord& record )
 {
-  static long int& ctr = Counter::getRef("SmiFileIterator::Next");
+  static long& ctr = Counter::getRef("SmiFileIterator::Next");
   ctr++;
    
   static char keyData[SMI_MAX_KEYLEN];
@@ -1313,9 +1320,9 @@ SmiSize PrefetchingIteratorImpl::ReadCurrentData
   (void* userBuffer, SmiSize nBytes, SmiSize offset)
 {
 
-  static long int& ctr = Counter::getRef("Prefetch::ReadCurrent:Calls");
-  static long int& byteCtr = Counter::getRef("Prefetch::ReadCurrent:Bytes");
-  static long int& pageCtr = Counter::getRef("Prefetch::ReadCurrent:Pages");
+  static long& ctr = Counter::getRef("Prefetch::ReadCurrent:Calls");
+  static long& byteCtr = Counter::getRef("Prefetch::ReadCurrent:Bytes");
+  static long& pageCtr = Counter::getRef("Prefetch::ReadCurrent:Pages");
   static const int pageSize = WinUnix::getPageSize();
   SmiSize bytes = 0;
   ctr++;
