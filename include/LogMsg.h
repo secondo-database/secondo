@@ -275,12 +275,14 @@ public:
     case 2: 
     {
       cerr << color(red) << "Error: " << buffer.str() << color(normal);
+      cerr.flush();
       allErrors << "Error: " << buffer.str();
       break;
     }
     case 1: 
     {
       cout << buffer.str();
+      cout.flush();
       break;
     }
     case 0:
