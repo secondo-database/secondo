@@ -1674,7 +1674,9 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
   hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),IndexName, unit_space).
 
+/*
 
+----
 % 'bbox3d(bbox(trajectory(X)),deftime(X)) intersects box3d(bbox(Z),Y)' 
 % with unit_3d index
 %
@@ -1716,13 +1718,14 @@ indexselectRT(arg(N), pr(box3d(bbox(trajectory(attr(AttrName, Arg, AttrCase))),
   :-
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
   hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, object_d3).
-
-/*
 ----
+
+*/
+
 % This are the 'nicer' and faster solutions, which should replace the ad-hoc solution
 
 % 'bbox(x) intersects box3d(bbox(Z),Y)' with unit_3d index
-%indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
+indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
                        box3d(bbox(Z),Y), _)) =>
   gettuples(rdup(sort(windowintersectsS(IndexName, box3d(bbox(Z),Y)))), 
             rel(Name, *, Case))
@@ -1754,10 +1757,6 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
   :-
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
   hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, object_d3).
-
-----
-
-*/
 
 
 
@@ -2387,7 +2386,7 @@ bestPlan~ will unify a best plan according to the assigned costs.
 assignCosts :-
   deleteSizes,
   deleteCostEdges,
-  assignSizes,
+  assignSizes, 
   createCostEdges.
 
 
@@ -3148,7 +3147,9 @@ lookupAttr(Var:Attr, attr(Var:Attr2, 0, Case)) :- !,
   variable(Var, Rel2),
   Rel2 = rel(Rel, _, _),
   spelled(Rel:Attr, attr(Attr2, VA, Case)),
-  assert(usedAttr(Rel2, attr(Attr2, VA, Case))).
+  (   usedAttr(Rel2, attr(Attr2, VA, Case)) 
+    ; assert(usedAttr(Rel2, attr(Attr2, VA, Case)))
+  ).
 
 lookupAttr(Attr asc, Attr2 asc) :- !,
   lookupAttr(Attr, Attr2).
@@ -3160,7 +3161,9 @@ lookupAttr(Attr, Attr2) :-
   isAttribute(Attr, Rel),!,
   spelled(Rel:Attr, Attr2),
   queryRel(Rel, Rel2),
-  assert(usedAttr(Rel2, Attr2)).
+  (   usedAttr(Rel2, Attr2)
+    ; assert(usedAttr(Rel2, Attr2))
+  ).
 
 lookupAttr(*, *) :- assert(isStarQuery), !.
 
@@ -3321,7 +3324,7 @@ lookupPred(Pred, error) :-
         ; true
       )
   ),
-  throw(lookup_pred),
+  throw(sql_ERROR(optimizer_lookupPred(Pred))),
   fail, !.
 
 /*
@@ -3342,8 +3345,9 @@ lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), RelsBefore, RelsAfter)
        ; append(RelsBefore, [Rel2], RelsAfter)
   ),
   nth1(Index,RelsAfter,Rel2),
-  assert(usedAttr(Rel2, attr(Attr2, X, Case))),
-  !.
+  (   usedAttr(Rel2, attr(Attr2, X, Case))
+    ; assert(usedAttr(Rel2, attr(Attr2, X, Case)))
+  ), !.
 
 lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
   isAttribute(Attr, Rel), !,
@@ -3354,8 +3358,9 @@ lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
        ; append(RelsBefore, [Rel2], RelsAfter)
   ),
   nth1(Index,RelsAfter,Rel2),
-  assert(usedAttr(Rel2, attr(Attr2, X, Case))),
-  !.
+  (   usedAttr(Rel2, attr(Attr2, X, Case))
+    ; assert(usedAttr(Rel2, attr(Attr2, X, Case)))
+  ), !.
 
 
 /*
@@ -3707,11 +3712,10 @@ names have been looked up already.
 
 queryToPlan(Query, count(Stream), Cost) :-
   countQuery(Query),
-  queryToStream(Query, Stream, Cost),
-  !.
+  queryToStream(Query, Stream, Cost), !.
 
 queryToPlan(Query, consume(Stream), Cost) :-
-  queryToStream(Query, Stream, Cost).
+  queryToStream(Query, Stream, Cost), !.
 
 
 /*
@@ -3764,8 +3768,9 @@ queryToStream(Select from Rels groupby Attrs, Stream2, Cost) :-
   !.
 
 queryToStream(Query, Stream2, Cost) :-
-  translate1(Query, Stream, Select, Cost),
-  finish(Stream, Select, [], Stream2).
+  translate1(Query, Stream, Select, Cost), 
+  finish(Stream, Select, [], Stream2), 
+  !.
 
 /*
 ----    finish(Stream, Select, Sort, Stream2) :-
@@ -3930,8 +3935,8 @@ Optimize ~Query~ and print the best ~Plan~.
 
 optimize(Query) :-
   rewriteQuery(Query, RQuery),
-  callLookup(RQuery, Query2),
-  queryToPlan(Query2, Plan, Cost),
+  callLookup(RQuery, Query2), !,
+  queryToPlan(Query2, Plan, Cost), !,
   plan_to_atom(Plan, SecondoQuery),
   write('The plan is: '), nl, nl,
   write(SecondoQuery), nl, nl,
@@ -3940,8 +3945,8 @@ optimize(Query) :-
 
 optimize(Query, QueryOut, CostOut) :-
   rewriteQuery(Query, RQuery),
-  callLookup(RQuery, Query2),
-  queryToPlan(Query2, Plan, CostOut),
+  callLookup(RQuery, Query2), !, 
+  queryToPlan(Query2, Plan, CostOut), !,
   plan_to_atom(Plan, QueryOut).
 
 /*
@@ -4135,38 +4140,66 @@ to a new object ~X~, using the optimizer.
 % Default handling
 
 sql Term :-
-  isDatabaseOpen,
-  mOptimize(Term, Query, Cost),
-  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
-  write('Estimated Cost: '), write(Cost), nl, nl,
-  query(Query).
+  catch( ( isDatabaseOpen,
+           mOptimize(Term, Query, Cost),
+           nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
+           write('Estimated Cost: '), write(Cost), nl, nl,
+           query(Query)
+         ),
+         sql_ERROR(X),
+         ( write('\nException \''), write(X), write('\' caught.'),
+           write('\nAn ERROR occured, please inspect the output above.'),
+           fail
+         )
+       ).
 
  
 sql(Term, SecondoQueryRest) :-
-  isDatabaseOpen,
-  mStreamOptimize(Term, SecondoQuery, Cost),
-  concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
-  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
-  write('Estimated Cost: '), write(Cost), nl, nl,
-  query(Query).
+  catch( ( isDatabaseOpen,
+           mStreamOptimize(Term, SecondoQuery, Cost),
+           concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
+           nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
+           write('Estimated Cost: '), write(Cost), nl, nl,
+           query(Query)
+         ),
+         sql_ERROR(X),
+         ( write('\nException \''), write(X), write('\' caught.'),
+           write('\nAn ERROR occured, please inspect the output above.'),
+           fail
+         )
+       ).
 
 let(X, Term) :-
-  isDatabaseOpen,
-  mOptimize(Term, Query, Cost),
-  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
-  write('Estimated Cost: '), write(Cost), nl, nl,
-  concat_atom(['let ', X, ' = ', Query], '', Command),
-  secondo(Command).
+  catch( ( isDatabaseOpen,
+           mOptimize(Term, Query, Cost),
+           nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
+           write('Estimated Cost: '), write(Cost), nl, nl,
+           concat_atom(['let ', X, ' = ', Query], '', Command),
+           secondo(Command)
+         ),
+         sql_ERROR(X),
+         ( write('\nException \''), write(X), write('\' caught.'),
+           write('\nAn ERROR occured, please inspect the output above.'),
+           fail
+         )
+       ).
 
 let(X, Term, SecondoQueryRest) :-
-  isDatabaseOpen,
-  mStreamOptimize(Term, SecondoQuery, Cost),
-  concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
-  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
-  write('Estimated Cost: '), write(Cost), nl, nl,
-  concat_atom(['let ', X, ' = ', Query], '', Command),
-  secondo(Command).
-
+  catch( ( isDatabaseOpen,
+           mStreamOptimize(Term, SecondoQuery, Cost),
+           concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
+           nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
+           write('Estimated Cost: '), write(Cost), nl, nl,
+           concat_atom(['let ', X, ' = ', Query], '', Command),
+           secondo(Command)
+         ),
+         sql_ERROR(X),
+         ( write('\nException \''), write(X), write('\' caught.'),
+           write('\nAn ERROR occured, please inspect the output above.'),
+           fail
+         )
+       ).
+         
 
 /*
 ----    streamOptimize(Term, Query, Cost) :-
