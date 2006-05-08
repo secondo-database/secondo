@@ -17,3 +17,9 @@ sql select * from [plz as p1, plz as p2] where [p1:plz = p2:plz, p1:ort = "Dortm
 sql select count(*) from [plz as p1, plz as p2] where [p1:plz = 44135, p1:plz = p2:plz, p1:ort = p2:ort]
 
 sql select * from [plz as p1, plz as p2] where [p1:plz = 44135, p1:plz = p2:plz, p1:ort = p2:ort]
+
+secondo('close database')
+
+open 'database germany'
+
+sql select count(*) from [kreis as k1, kreis as k2] where [k1:gebiet touches k2:gebiet, k1:gebiet touches magdeburg]
