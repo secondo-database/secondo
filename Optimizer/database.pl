@@ -363,12 +363,14 @@ thresholdMainMemorySizeSampleS(2048).
 
 hasSampleS(Rel) :-
   getSecondoList(ObjList),
+  write('\nhasSamples: getSecondoList\n'),
   getSpelledRel(Rel, SpelledRel),
   concat_atom([SpelledRel, '_sample_s'], '', ORel),
   member(['OBJECT', ORel, _ , [[rel | _]]], ObjList).
 
 hasSampleJ(Rel) :-
   getSecondoList(ObjList),
+  write('\nhasSamples: getSecondoList\n'),
   getSpelledRel(Rel, SpelledRel),
   concat_atom([SpelledRel, '_sample_j'], '', ORel),
   member(['OBJECT', ORel, _ , [[rel | _]]], ObjList).
@@ -629,6 +631,7 @@ relation(Rel, AttrList) :-
 relation(Rel, AttrList) :-
   optimizerOption(dynamicSample),
   getSecondoList(ObjList),
+  write('\nrelation: getSecondoList\n'),
   member(['OBJECT',ORel,_ | [[[_ | [[_ | [AttrList2]]]]]]], ObjList),
   downcase_atom(ORel, DCRel),
   DCRel = Rel,
@@ -639,6 +642,7 @@ relation(Rel, AttrList) :-
 
 relation(Rel, AttrList) :-
   getSecondoList(ObjList),
+  write('\nrelation: getSecondoList\n'),
   member(['OBJECT',ORel,_ | [[[_ | [[_ | [AttrList2]]]]]]], ObjList),
   downcase_atom(ORel, DCRel),
   DCRel = Rel,
@@ -774,7 +778,9 @@ getSecondoList(ObjList) :-
 getSecondoList(ObjList) :-
   secondo('list objects',[_, [_, [_ | ObjList]]]), 
   assert(storedSecondoList(ObjList)),
+  write('\getSecondoList: storedSecondoList asserted\n'),
   !.
+
 /*
 1.2.2 Spelling Of Attribute Names
 
@@ -798,6 +804,7 @@ lc(attrnanme).
 */ 
 spelling(Rel:Attr, Spelled) :-
   getSecondoList(ObjList),
+  write('\nspelling: getSecondoList\n'),
   member(['OBJECT',ORel,_ | [[[_ | [[_ | [AttrList]]]]]]], ObjList),
   downcase_atom(ORel, Rel),
   member([OAttr, _], AttrList),
@@ -815,6 +822,7 @@ the attribute name with the first letter written in lower case.
 */
 spelling(Rel:Attr, Spelled) :-
   getSecondoList(ObjList),
+  write('\nspelling: getSecondoList\n'),
   member(['OBJECT',ORel,_ | [[[_ | [[_ | [AttrList]]]]]]], ObjList),
   downcase_atom(ORel, Rel),
   member([OAttr, _], AttrList),
@@ -848,6 +856,7 @@ lc(relationname).
 */
 spelling(Rel, Spelled) :-
   getSecondoList(ObjList),
+  write('\nrelation: spelling\n'),
   member(['OBJECT',ORel,_ | [[[_ | [[_ | [_]]]]]]], ObjList),
   downcase_atom(ORel, Rel),
   is_lowerfl(ORel),
@@ -863,6 +872,7 @@ the relation name with the first letter written in lower case.
 */  
 spelling(Rel, Spelled) :-
   getSecondoList(ObjList),
+  write('\nrelation: spelling\n'),
   member(['OBJECT',ORel,_ | [[[_ | [[_ | [_]]]]]]], ObjList),
   downcase_atom(ORel, Rel),
   lowerfl(ORel, Spelled),
@@ -985,6 +995,7 @@ opened database. Depending on this result the dynamic predicate
 verifyIndexAndStoreIndex(Rel, Attr, Index, LogicalIndexType) :- % Index exists
   dm(index,['\n-->verifyIndexAndStoreIndex(',Rel, ',',Attr, ',',Index, ',',LogicalIndexType, ')\n']),
   getSecondoList(ObjList),
+  write('\nverifyIndexAndStoreIndex: getSecondoList\n'),
   member(['OBJECT', Index, _ , [[PhysicalIndexType | _]]], ObjList),
   (   ( indexType(LogicalIndexType),
         LogicalIndexType = PhysicalIndexType
@@ -1172,7 +1183,9 @@ updateIndex :-
   assert(storeupdateIndex(1)),
   secondo('list objects',[_, [_, [_ | ObjList]]]),
   retract(storedSecondoList(_)),
+  write('\mupdateIndex: storedSecondoList retracted\n'),
   assert(storedSecondoList(ObjList)),
+  write('\mupdateIndex: storedSecondoList asserted\n'),
   checkForAddedIndices(ObjList),
   checkForRemovedIndices(ObjList),
   retract(storeupdateIndex(1)),
@@ -1315,12 +1328,57 @@ updateRel(Rel) :-
   assert(storeupdateRel(1)),
   secondo('list objects',[_, [_, [_ | ObjList]]]),
   retract(storedSecondoList(_)),
+  write('\mupdateRel: storedSecondoList retracted\n'),
   assert(storedSecondoList(ObjList)),
+  write('\mupdateRel: storedSecondoList asserted\n'),
   getSpelledRel(Rel, SpelledRel),
   updateRel2(Rel,SpelledRel, ObjList),
   retract(storeupdateRel(1)),
   assert(storeupdateRel(0)).  
   
+/*
+1.5.3 Deleting \_small and \_sample\_j, \_sample\_2 Objects
+
+\_small, \_sample\_j and \_sample\_s objects are created by the optimizer to measure
+selectivities and predicate evaluation times. The user can delete these objects, e.g.
+in order to make the optimizer create new ones.
+
+----
+  deleteSmallRel(Rel)
+  deletSmallRelAll
+  deleteSamples(Rel)
+  deleteSamplesAll
+----
+~deleteSmallRel(Rel)~ will delete the \_small database for relation ~Rel~ and any \_small 
+index referring to it from the database. ~deleteSmallRelAll~ will do this for all relations
+of the database.
+
+~deleteSamples(Rel)~ will delete the \_sample\_s and \_sample\_j objects for relation ~Rel~.
+~deleteSamplesAll~ do this for all relations of the opened database.
+
+
+CAUTION: The predicates will not retract so-far collected metadata on selectivities and PETs.
+
+*/
+
+/*
+----
+deleteSmallRel(Rel,ObjList) :-
+  relation(Rel, AttrList),
+
+  member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
+  concat_atom([Rel, 'small'], '_', RelSmallName),
+  concat_atom([IndexName, 'small'], '_', IndexSmallName),
+
+
+deleteSmallRelAll :-
+
+deleteSamples(Rel) :-
+
+deleteSamplesAll :-
+
+----
+*/
 
 /*
 1.6 Average Size Of A Tuple

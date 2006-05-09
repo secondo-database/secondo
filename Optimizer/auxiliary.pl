@@ -347,13 +347,16 @@ indexCreateQuery(none, none, Type, Rel, Attr, IndexName,
    '_small create', Type, ' [', Attr, ']']).
 
 /*
----- createIndexSmall(+Rel, +ObjList, +IndexName, +LogicalIndexType, +Attr, +Granularity, +BBoxType)
+---- createIndexSmall(+Rel, +ObjList, +IndexName, 
+                      +LogicalIndexType, +Attr, +Granularity, +BBoxType)
 ----
 
-Test, if a _small index has to be created and create it if necessary. The index is specified by the relation ~Rel~ and key attribute ~Attr~,
-the index' name ~IndexName~, its type ~LogicalIndexType~, the index' ~Granularity~ and type of bounding box ~BBoxType~.
+Test, if a _small index has to be created (is not a member of ~ObjList~) and 
+create it if necessary. The index is specified by the relation ~Rel~ and key 
+attribute ~Attr~, the index' name ~IndexName~, its type ~LogicalIndexType~, 
+the index' ~Granularity~ and type of bounding box ~BBoxType~. ~
 
-Also, add a _small relation, if it is still not available.
+Also, add a \_small relation, if it is still not available.
 
 */
 
@@ -422,6 +425,7 @@ checkIfSmallRelationsExist(ObjList) :-
           ),
           _), 
   retractall(storedSecondoList(_)),
+  write('\mcheckIfSmallRelationsExist: storedSecondoList retracted\n'),
   !.
 
 checkIfSmallRelationsExist(_) :-
@@ -671,7 +675,9 @@ secondo(X) :-
   isDatabaseOpen, 
   secondo(X, Y),
   retract(storedSecondoList(_)),
+  write('\msecondo(let ...) : storedSecondoList retracted\n'),
   getSecondoList(ObjList),
+  write('\msecondo(let ...) : storedSecondoList got\n'),
   checkIfIndex(X, ObjList),
   write('Command succeeded, result:'),
   nl, nl,
@@ -729,7 +735,9 @@ secondo(X) :-
   downcase_atom(Name, DCName),
   updateRel(DCName),  
   retract(storedSecondoList(_)),
+  write('\msecondo(delete ...) : storedSecondoList retracted\n'),
   getSecondoList(_),
+  write('\msecondo(delete ...) : storedSecondoList got\n'),
   write('Command succeeded, result:'),
   nl, nl,
   show(Y),
@@ -745,7 +753,9 @@ secondo(X) :-
   storeupdateIndex(1), 
   secondo(X, _),
   retract(storedSecondoList(_)),
+  write('\msecondo(delete ...) : storedSecondoList retracted\n'),
   getSecondoList(_),
+  write('\msecondo(delete ...) : storedSecondoList got\n'),
   !.
 
 secondo(X) :-

@@ -110,13 +110,13 @@ extractMacros(QueryIn, QueryOut) :-
   extractMacros1(MacroList),
   !.
 
-extractMacros(with(_), _) :-
+extractMacros(with(X), _) :-
   write('\nERROR: Correct syntax for using macros in queries is \n'),
   write('           \'sql with <macro> as <mnemo> in <query>.\'\n'),
   write('           \'sql with [<macro> as <mnemo> {, <macro> as <mnemo>}] '),
   write('in <query>.\'.\n'), 
   !, 
-  throw(rewriting_macro_syntax),
+  throw(sql_ERROR(rewriting_extractMacros(with(X), undefined))),
   fail.
 
 extractMacros(Query, Query).
@@ -133,15 +133,15 @@ extractMacros1(Macro as Mnemo) :-
   write('\nERROR: Left side of a macro declaration \'<macro> as <mnemo>\' '),
   write('must be an acyclic expression.'), 
   !,
-  throw(rewriting_macro_syntax),
+  throw(sql_ERROR(rewriting_extractMacros1(Macro as Mnemo))),
   fail.
          
-extractMacros1(_ as Mnemo) :-
+extractMacros1(X as Mnemo) :-
   not(atom(Mnemo)),
   write('\nERROR: Right side of a macro declaration \'<macro> as <mnemo>\' '),
   write('must be an identifier.'), 
   !, 
-  throw(rewriting_macro_syntax),
+  throw(sql_ERROR(rewriting_extractMacros1(X as Mnemo))),
   fail.
 
 extractMacros1(Macro as Mnemo) :-
@@ -486,23 +486,25 @@ analyseConditions(WhereIn, WhereOut) :-
 
 % rules to infer additional predicates
 
-% this rule is an ad-hoc solution, until the bbox(moving point) is implemented
-inferPredicate(Premises, [box3d(bbox(trajectory(X)),deftime(X)) intersects box3d(bbox(Z),Y)]) :-
-  member(X present Y, Premises),
-  member(X passes Z,  Premises),
-  X \= Y, X \= Z, Y \= Z, !.
-
 /*
 
-This is the better solution to replace the ad-hoc one
 ----
-inferPredicate(Premises, [bbox(X) intersects box3d(bbox(Z),Y)]) :-
+% this rule is an ad-hoc solution, until the bbox(moving point) is implemented
+inferPredicate(Premises, [box3d(bbox(trajectory(X)),deftime(X)) intersects box3d(bbox(Z),Y)]) :-
   member(X present Y, Premises),
   member(X passes Z,  Premises),
   X \= Y, X \= Z, Y \= Z, !.
 ----
 
 */
+
+% This is the better solution to replace the ad-hoc one
+
+inferPredicate(Premises, [bbox(X) intersects box3d(bbox(Z),Y)]) :-
+  member(X present Y, Premises),
+  member(X passes Z,  Premises),
+  X \= Y, X \= Z, Y \= Z, !.
+
 
 /*
 
@@ -793,7 +795,7 @@ getExpressionLabel(Node, Label) :- % case: Label known, Node conflicts - Error
   write(Label), write('\': \n'),
   write('\tOld Expression: '), write(NodeOld), write('.\n'),
   write('\tNew Expression: '), write(Node), write('.\n\n'),
-  throw(rewriting_cse_preprocessing_label_conflict(Label)),
+  throw(sql_ERROR(rewriting_getExpressionLabel(rewriting_getExpressionLabel(Node, Label)))),
   fail, !.
 
 
@@ -1664,7 +1666,7 @@ extendPhrase(ArgS, [VA1|InnerVAs], ArgsSE) :-
 extendPhrase(ArgS, List, _) :-
   write('ERROR in extendPhrase('), write(ArgS), write(','), write(List), 
   write(', Result).\n\tAttribute list contains a non-virtual attribute.\n'),
-  throw(error_extend_phrase_invalid_argument), fail, !.
+  throw(sql_ERROR(rewriting_extendPhrase(ArgS, List, undefined))), fail, !.
   
 
 /*

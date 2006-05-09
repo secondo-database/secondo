@@ -120,7 +120,7 @@ The simple form of predicate ~Pred~ is ~Simple~.
 
 simplePred(pr(P, A, B), Simple) :- simple(P, A, B, Simple), !.
 simplePred(pr(P, A), Simple) :- simple(P, A, A, Simple), !.
-simplePred(X, _) :- throw(sql_ERROR(statistics_simplePred(X))).
+simplePred(X, _) :- throw(sql_ERROR(statistics_simplePred(X, undefined))).
 
 /*
 
@@ -444,7 +444,7 @@ selectivity(pr(Pred, Rel), Sel) :-
 selectivity(P, _) :- write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl, 
   write('Call: selectivity('), write(P), write(',Sel)\n'),
-  throw(sql_ERROR(statistics_selectivity(P))), 
+  throw(sql_ERROR(statistics_selectivity(P, undefined))), 
   fail, !.
 
 /*

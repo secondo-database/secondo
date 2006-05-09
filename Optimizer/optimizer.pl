@@ -3309,7 +3309,7 @@ lookupPred(Pred, pr(Pred2, Rel)) :-
 lookupPred(Pred, pr(Pred2, Rel1, Rel2)) :-
   lookupPred1(Pred, Pred2, [], [Rel1, Rel2]), !.
 
-lookupPred(Pred, error) :-
+lookupPred(Pred, undefined) :-
   lookupPred1(Pred, _, [], Rels),
   length(Rels, N),
   ( (N = 0)
@@ -3324,7 +3324,7 @@ lookupPred(Pred, error) :-
         ; true
       )
   ),
-  throw(sql_ERROR(optimizer_lookupPred(Pred))),
+  throw(sql_ERROR(optimizer_lookupPred(Pred, undefined))),
   fail, !.
 
 /*
@@ -4132,73 +4132,77 @@ to a new object ~X~, using the optimizer.
 % The entropy approach needs a special handling
 
 
-% sql Term :-
-%  optimizerOption(entropy),
-%  sql2(Term), !.
- 
+/*
+
+Exception Handling
+
+If an error is encountered during the optimization process, an exception should be 
+thrown using the built-in Prolog predicate ~throw(sql_ERROR(X))~, where ~X~ is a term
+that represents a somehow meaningful error-message, e.g. respecting the format 
+~<prolog-file>\_<Pedicate>(<Arguments>)~. A standard exception handler is implemented by
+the predicate ~defaultExceptionHandler(G)~ that will catch any exception respecting the
+exception-format described above, that is thrown within goal ~G~.
+
+*/
+
+defaultExceptionHandler(G) :-
+  catch( G, 
+         sql_ERROR(X),
+         ( write('\nException \''), write(X), write('\' caught.'),
+           write('\nAn ERROR occured, please inspect the output above.'),
+           fail
+         )
+       ),
+       true.
+
+/*
+----
+sql Term :- defaultExceptionHandler
+ (
+  optimizerOption(entropy),
+  sql2(Term), !
+ ).
+----
+
+*/
 
 % Default handling
+sql Term :- defaultExceptionHandler((
+  isDatabaseOpen,
+  mOptimize(Term, Query, Cost),
+  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
+  write('Estimated Cost: '), write(Cost), nl, nl,
+  query(Query)
+ )).
 
-sql Term :-
-  catch( ( isDatabaseOpen,
-           mOptimize(Term, Query, Cost),
-           nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
-           write('Estimated Cost: '), write(Cost), nl, nl,
-           query(Query)
-         ),
-         sql_ERROR(X),
-         ( write('\nException \''), write(X), write('\' caught.'),
-           write('\nAn ERROR occured, please inspect the output above.'),
-           fail
-         )
-       ).
+sql(Term, SecondoQueryRest) :- defaultExceptionHandler((
+  isDatabaseOpen,
+  mStreamOptimize(Term, SecondoQuery, Cost),
+  concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
+  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
+  write('Estimated Cost: '), write(Cost), nl, nl,
+  query(Query)
+ )).
 
- 
-sql(Term, SecondoQueryRest) :-
-  catch( ( isDatabaseOpen,
-           mStreamOptimize(Term, SecondoQuery, Cost),
-           concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
-           nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
-           write('Estimated Cost: '), write(Cost), nl, nl,
-           query(Query)
-         ),
-         sql_ERROR(X),
-         ( write('\nException \''), write(X), write('\' caught.'),
-           write('\nAn ERROR occured, please inspect the output above.'),
-           fail
-         )
-       ).
 
-let(X, Term) :-
-  catch( ( isDatabaseOpen,
-           mOptimize(Term, Query, Cost),
-           nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
-           write('Estimated Cost: '), write(Cost), nl, nl,
-           concat_atom(['let ', X, ' = ', Query], '', Command),
-           secondo(Command)
-         ),
-         sql_ERROR(X),
-         ( write('\nException \''), write(X), write('\' caught.'),
-           write('\nAn ERROR occured, please inspect the output above.'),
-           fail
-         )
-       ).
+let(X, Term) :- defaultExceptionHandler(( 
+  isDatabaseOpen,
+  mOptimize(Term, Query, Cost),
+  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
+  write('Estimated Cost: '), write(Cost), nl, nl,
+  concat_atom(['let ', X, ' = ', Query], '', Command),
+  secondo(Command)
+ )).
 
-let(X, Term, SecondoQueryRest) :-
-  catch( ( isDatabaseOpen,
-           mStreamOptimize(Term, SecondoQuery, Cost),
-           concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
-           nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
-           write('Estimated Cost: '), write(Cost), nl, nl,
-           concat_atom(['let ', X, ' = ', Query], '', Command),
-           secondo(Command)
-         ),
-         sql_ERROR(X),
-         ( write('\nException \''), write(X), write('\' caught.'),
-           write('\nAn ERROR occured, please inspect the output above.'),
-           fail
-         )
-       ).
+let(X, Term, SecondoQueryRest) :- defaultExceptionHandler((
+  isDatabaseOpen,
+  mStreamOptimize(Term, SecondoQuery, Cost),
+  concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
+  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
+  write('Estimated Cost: '), write(Cost), nl, nl,
+  concat_atom(['let ', X, ' = ', Query], '', Command),
+  secondo(Command)
+ )).
          
 
 /*
