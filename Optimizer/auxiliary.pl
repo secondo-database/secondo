@@ -425,7 +425,6 @@ checkIfSmallRelationsExist(ObjList) :-
           ),
           _), 
   retractall(storedSecondoList(_)),
-  write('\mcheckIfSmallRelationsExist: storedSecondoList retracted\n'),
   !.
 
 checkIfSmallRelationsExist(_) :-
@@ -675,9 +674,7 @@ secondo(X) :-
   isDatabaseOpen, 
   secondo(X, Y),
   retract(storedSecondoList(_)),
-  write('\msecondo(let ...) : storedSecondoList retracted\n'),
   getSecondoList(ObjList),
-  write('\msecondo(let ...) : storedSecondoList got\n'),
   checkIfIndex(X, ObjList),
   write('Command succeeded, result:'),
   nl, nl,
@@ -735,9 +732,7 @@ secondo(X) :-
   downcase_atom(Name, DCName),
   updateRel(DCName),  
   retract(storedSecondoList(_)),
-  write('\msecondo(delete ...) : storedSecondoList retracted\n'),
   getSecondoList(_),
-  write('\msecondo(delete ...) : storedSecondoList got\n'),
   write('Command succeeded, result:'),
   nl, nl,
   show(Y),
@@ -753,9 +748,7 @@ secondo(X) :-
   storeupdateIndex(1), 
   secondo(X, _),
   retract(storedSecondoList(_)),
-  write('\msecondo(delete ...) : storedSecondoList retracted\n'),
   getSecondoList(_),
-  write('\msecondo(delete ...) : storedSecondoList got\n'),
   !.
 
 secondo(X) :-
