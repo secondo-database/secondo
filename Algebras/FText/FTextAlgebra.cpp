@@ -49,6 +49,7 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 #include <cstring>
 #include <iostream>
 
+
 #include "FTextAlgebra.h"
 #include "StandardAttribute.h"
 #include "Algebra.h"
@@ -57,6 +58,7 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 #include "AlgebraManager.h"
 #include "StandardTypes.h" //needed because we return a CcBool in an op.
 #include "LogMsg.h"
+#include "DiceCoeff.h"
 
 using namespace std;
 
@@ -464,6 +466,35 @@ TypeMapsentences( ListExpr args ){
   return nl->SymbolAtom("typeerror");
 }
 
+ListExpr TypeMapDice(ListExpr args){
+  if(nl->ListLength(args)!=3){
+       ErrorReporter::ReportError("three arguments required");
+       return nl->SymbolAtom("typeerror");
+  }
+  if(!nl->IsEqual(nl->First(args),"int")){
+     ErrorReporter::ReportError("first argument must be an integer");
+     return nl->SymbolAtom("typeerror");
+  }
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  if(  (nl->AtomType(arg2)!=SymbolType ) ||
+       (nl->AtomType(arg3)!=SymbolType)){
+     ErrorReporter::ReportError("only simple types allowed");
+     return nl->SymbolAtom("typeerror");
+  }
+
+  string t2 = nl->SymbolValue(arg2);
+  string t3 = nl->SymbolValue(arg3);
+
+  // first version, only texts, later extend to string
+  if(t2!="text" || t3!="text"){
+     ErrorReporter::ReportError("text as second and third argument expected");
+     return nl->SymbolAtom("typeerror");
+  }
+  return nl->SymbolAtom("real");
+}
+
+
 /*
 3.3 Value Mapping Functions
 
@@ -856,6 +887,27 @@ ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 
+
+int
+ValMapDice_t_t(Word* args, Word& result, int message, 
+                Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  CcInt* arg1 = (CcInt*) args[0].addr;
+  FText* arg2 = (FText*) args[1].addr;
+  FText* arg3 = (FText*) args[2].addr;
+  int n = arg1->GetIntval();
+  if(n<=0){ // ensure a minimum of 1
+     n = 1;
+  }
+  DiceTree* dt = new DiceTree(n);
+  dt->appendText(arg2->Get(),true);
+  dt->appendText(arg3->Get(),false);
+  double res = dt->getCoeff();
+  delete dt;
+  ((CcReal*)result.addr)->Set(true,res);
+  return 0;
+}
+
 /*
 3.4 Definition of Operators
 
@@ -918,6 +970,18 @@ const string sentencesSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "consume</text--->"
              ") )";  
 
+const string diceSpec  = 
+            "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                 "\"Example\" )"
+            "( <text> int x text x text -> real </text--->"
+             "<text> dice( _ _ _)</text--->"
+             "<text>Computes the dice coefficient between the text using"
+             " n-grams where n is speciefied by the first argument."
+             " Can be used to compare texts .</text--->"
+             "<text> dice(3  text1  text2) "
+             "</text--->"
+             ") )";
+
 /*
 The Definition of the operators of the type ~text~.
 
@@ -969,6 +1033,13 @@ Operator getsentences
   TypeMapsentences        //type mapping
 );
 
+Operator diceCoeff(
+   "dice",
+   diceSpec,
+   ValMapDice_t_t,
+   Operator::SimpleSelect,
+   TypeMapDice
+);
 
 /*
 5 Creating the algebra
@@ -989,6 +1060,7 @@ public:
     AddOperator( &length );
     AddOperator( &getkeywords );
     AddOperator( &getsentences );
+    AddOperator( &diceCoeff);
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
     )

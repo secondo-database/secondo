@@ -99,9 +99,14 @@ inline FText::FText()
 inline FText::FText( bool newDefined, const char *newText ) :
 theText( 0 )
 {
-  LOGMSG( "FText:Trace", cout << '\n' <<"Start FText(bool newDefined, textType newText)"<<'\n'; )
+  LOGMSG( "FText:Trace",
+           cout << '\n' 
+                <<"Start FText(bool newDefined, textType newText)"
+                <<'\n'; )
   Set( newDefined, newText );
-  LOGMSG( "FText:Trace",  cout <<"End FText(bool newDefined, textType newText)"<<'\n'; )
+  LOGMSG( "FText:Trace",  
+           cout <<"End FText(bool newDefined, textType newText)"
+                <<'\n'; )
 }
 
 inline FText::FText( const FText& f ) :
@@ -132,7 +137,9 @@ inline bool FText::SearchString( const char* subString )
 
 inline void FText::Set( const char *newString )
 {
-  LOGMSG( "FText:Trace", cout << '\n' << "Start Set with *newString='"<< newString << endl; )
+  LOGMSG( "FText:Trace", 
+           cout << '\n' 
+                << "Start Set with *newString='"<< newString << endl; )
 
   Set( true, newString );
 
@@ -141,7 +148,9 @@ inline void FText::Set( const char *newString )
 
 inline void FText::Set( bool newDefined, const char *newString )
 {
-  LOGMSG( "FText:Trace", cout << '\n' << "Start Set with *newString='"<< newString << endl; )
+  LOGMSG( "FText:Trace", 
+          cout << '\n' << "Start Set with *newString='"
+               << newString << endl; )
 
   if( newString != NULL )
   {
