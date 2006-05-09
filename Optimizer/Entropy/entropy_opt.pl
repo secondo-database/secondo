@@ -58,6 +58,7 @@ switching between ~standard~ and ~entropy~ optimiztation was implemented in
    firstEdgeSelectivity/3,
 
    selfJoin/3,
+   selfJoinToDo/2,
    buildingSmallPlan/0.
    
 
@@ -379,6 +380,7 @@ registerSelfJoin(pr(_, Rel1, Rel2), N) :-
   Rel1 = rel(X, _, _),
   Rel2 = rel(X, _, _),
   assert(selfJoin(N, Rel1, Rel2)),
+  assert(selfJoinToDo(Rel1, Rel2)),
   atom_concat('xxxID', X, IDAttrName),
   IDAttr = attr(IDAttrName, 100, l),	% 100 indicates hidden attribute,
 					% to be used by projection translation
@@ -398,6 +400,8 @@ possiblyCorrectSelfJoins(Source, Target, TermIn, TermOut) :-
   buildingSmallPlan,
   PredNo is Target - Source,
   selfJoin(PredNo, Rel1, Rel2),
+  selfJoinToDo(Rel1, Rel2),
+  retractall(selfJoinToDo(Rel1, Rel2)),
   idAttr(Rel1, 1, Attr1),
   idAttr(Rel2, 2, Attr2),
   Rel1 = rel(RelName, _, _),
