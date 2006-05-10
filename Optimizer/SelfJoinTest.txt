@@ -14,9 +14,11 @@ sql select [p1:ort, p1:plz] from [plz as p1, plz, plz as p3, plz as p4] where [p
 
 sql select * from [plz as p1, plz as p2] where [p1:plz = p2:plz, p1:ort = "Dortmund", p2:ort # "Dortmund"]
 
-sql select count(*) from [plz as p1, plz as p2] where [p1:plz = 44135, p1:plz = p2:plz, p1:ort = p2:ort]
+sql select count(*) from [plz as p1, plz as p2] where [p1:plz = 44135, p1:plz = p2:plz, p2:ort = p1:ort]
 
 sql select * from [plz as p1, plz as p2] where [p1:plz = 44135, p1:plz = p2:plz, p1:ort = p2:ort]
+
+sql select * from [plz as p1, plz as p2] where [p1:plz = 44135, p1:plz = p2:plz, p2:ort = p1:ort]
 
 secondo('close database')
 
