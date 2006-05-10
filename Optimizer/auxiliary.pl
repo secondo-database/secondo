@@ -270,12 +270,14 @@ and error message are printed.
 
 */
 
+% atom_postfix(+Atom, +PrefixLength, ?Post)
 % succeeds iff Post is a postfix of Atom starting after PrefixLength
 atom_postfix(Atom, PrefixLength, Post) :- 
   atom_length(Atom, Length),
   PostLength is Length - PrefixLength,
   sub_atom(Atom, PrefixLength, PostLength, 0, Post).
 
+% The following facts define Secondo object types, that are used for indices:
 indexType(btree).
 indexType(rtree).
 indexType(rtree3).
@@ -548,7 +550,6 @@ checkIsInList(_, _, _) :-
   fail.
 
 :- dynamic storeupdateRel/1.
-
 :- dynamic storeupdateIndex/1.
 
 
@@ -557,143 +558,98 @@ storeupdateRel(0).
 storeupdateIndex(0).
   
 
+secondoResultSucceeded(Result) :-
+  write('Command succeeded, result:'),
+  nl, nl,
+  show(Result), !.
+
+secondoResultFailed :- 
+  secondo_error_info(ErrorCode, ErrorString),
+  write('Command failed with error code : '),
+  write(ErrorCode), nl,
+  write('and error message : '), nl,
+  write(ErrorString), nl, !.
+
+
 
 secondo(X) :-
   sub_atom(X,0,4,_,S),
   atom_prefix(S,'open'),	
   atom_postfix(X, 14, DB1),
-  downcase_atom(DB1, DB),
-  secondo(X, Y),
-  retract(storedDatabaseOpen(_)),
-  assert(storedDatabaseOpen(1)),
-  retractall(databaseName(_)),
-  assert(databaseName(DB)),
-  getSecondoList(ObjList),
-  checkForAddedIndices(ObjList),
-  checkForRemovedIndices(ObjList),
-  checkIfSmallRelationsExist(ObjList),
-  write('Command succeeded, result:'),
-  nl, nl,
-  show(Y),!.
-
-secondo(X) :-
-  sub_atom(X,0,4,_,S),
-  atom_prefix(S,'open'),
-  secondo_error_info(ErrorCode, ErrorString),
-  write('Command failed with error code : '),
-  write(ErrorCode),
-  nl,
-  write('and error message : '),
-  nl,
-  write(ErrorString),
-  nl,
-  !,
-  fail.
+  downcase_atom(DB1, DB), !,
+  ( secondo(X, Y) 
+    *-> ( secondoResultSucceeded(Y), !,
+          retract(storedDatabaseOpen(_)),
+          assert(storedDatabaseOpen(1)),
+          retractall(databaseName(_)),
+          assert(databaseName(DB)),
+          getSecondoList(ObjList),
+          checkForAddedIndices(ObjList),
+          checkForRemovedIndices(ObjList),
+          checkIfSmallRelationsExist(ObjList)
+        )
+    ;   ( secondoResultFailed,
+          fail
+        )
+  ), !.
 
 secondo(X) :-
   sub_atom(X,0,5,_,S),
-  atom_prefix(S,'close'),	
-  secondo(X, Y),
-  retract(storedDatabaseOpen(_)),
-  assert(storedDatabaseOpen(0)),
-  retract(storedSecondoList(_)),
-  retractall(databaseName(_)),
-  write('Command succeeded, result:'),
-  nl, nl,
-  show(Y),!.
-
-secondo(X) :-
-  sub_atom(X,0,5,_,S),
-  atom_prefix(S,'close'),
-  secondo_error_info(ErrorCode, ErrorString),
-  write('Command failed with error code : '),
-  write(ErrorCode),
-  nl,
-  write('and error message : '),
-  nl,
-  write(ErrorString),
-  nl,
-  !,
-  fail.
+  atom_prefix(S,'close'), !,	
+  ( secondo(X, Y)
+    *-> ( secondoResultSucceeded(Y),
+          retract(storedDatabaseOpen(_)),
+          assert(storedDatabaseOpen(0)),
+          retract(storedSecondoList(_)),
+          retractall(databaseName(_))
+        )
+    ;   ( secondoResultFailed,
+          fail
+        )
+  ), !.
   
 secondo(X) :-
   sub_atom(X,0,6,_,S),
   atom_prefix(S,'update'),
-  isDatabaseOpen,  
-  secondo(X, Y),
-  retract(storedSecondoList(_)),
-  getSecondoList(_),
-  write('Command succeeded, result:'),
-  nl, nl,
-  show(Y),!.
-
-secondo(X) :-
-  sub_atom(X,0,6,_,S),
-  atom_prefix(S,'update'),
-  isDatabaseOpen,
-  secondo_error_info(ErrorCode, ErrorString),
-  write('Command failed with error code : '),
-  write(ErrorCode),
-  nl,
-  write('and error message : '),
-  nl,
-  write(ErrorString),
-  nl,
-  !,
-  fail.
-
+  isDatabaseOpen, !,
+  ( secondo(X, Y)
+    *-> ( secondoResultSucceeded(Y),
+          retract(storedSecondoList(_)),
+          getSecondoList(_)
+        )
+    ;   ( secondoResultFailed,
+          fail
+        )
+  ), !.
+    
 secondo(X) :-
   sub_atom(X,0,6,_,S),
   atom_prefix(S,'derive'),
-  isDatabaseOpen,  
-  secondo(X, Y),
-  retract(storedSecondoList(_)),
-  getSecondoList(_),
-  write('Command succeeded, result:'),
-  nl, nl,
-  show(Y),!.
-
-secondo(X) :-
-  sub_atom(X,0,6,_,S),
-  atom_prefix(S,'derive'),
-  isDatabaseOpen,
-  secondo_error_info(ErrorCode, ErrorString),
-  write('Command failed with error code : '),
-  write(ErrorCode),
-  nl,
-  write('and error message : '),
-  nl,
-  write(ErrorString),
-  nl,
-  !,
-  fail.
+  isDatabaseOpen, !,
+  ( secondo(X, Y)
+    *-> ( secondoResultSucceeded(Y),
+          retract(storedSecondoList(_)),
+          getSecondoList(_)
+        )
+    ;   ( secondoResultFailed,
+          fail
+        )
+  ), !.
 
 secondo(X) :-
   sub_atom(X,0,3,_,S),
   atom_prefix(S,'let'),
-  isDatabaseOpen, 
-  secondo(X, Y),
-  retract(storedSecondoList(_)),
-  getSecondoList(ObjList),
-  checkIfIndex(X, ObjList),
-  write('Command succeeded, result:'),
-  nl, nl,
-  show(Y),!.
-
-secondo(X) :-
-  sub_atom(X,0,3,_,S),
-  atom_prefix(S,'let'),
-  isDatabaseOpen, 
-  secondo_error_info(ErrorCode, ErrorString),
-  write('Command failed with error code : '),
-  write(ErrorCode),
-  nl,
-  write('and error message : '),
-  nl,
-  write(ErrorString),
-  nl,
-  !,
-  fail.
+  isDatabaseOpen, !, 
+  ( secondo(X, Y)
+    *-> ( secondoResultSucceeded(Y),
+          retract(storedSecondoList(_)),
+          getSecondoList(ObjList),
+          checkIfIndex(X, ObjList)
+        )
+    ;   ( secondoResultFailed,
+          fail
+        )
+  ), !.
   
 secondo(X) :-
   sub_atom(X,0,6,_,S),
@@ -703,72 +659,89 @@ secondo(X) :-
   isDatabaseOpen,  
   secondo(X, Y),
   retract(storedSecondoList(_)),
-  getSecondoList(_),
-  write('Command succeeded, result:'),
-  nl, nl,
-  show(Y),
-  !.
+  %getSecondoList(_),
+  secondoResultSucceeded(Y), !.
 
 secondo(X) :-
+  concat_atom([restore, database, DB1, from, _], ' ', X),
+  notIsDatabaseOpen,
+  downcase_atom(DB1, DB), !,
+  ( secondo(X, Y)
+    *-> ( secondoResultSucceeded(Y), 
+          retractall(storedSecondoList(_)),
+          retractall(storedDatabaseOpen(_)),
+          assert(storedDatabaseOpen(1)),
+          retractall(databaseName(_)),
+          assert(databaseName(DB)),
+          getSecondoList(ObjList),
+          checkForAddedIndices(ObjList),
+          checkForRemovedIndices(ObjList),
+          checkIfSmallRelationsExist(ObjList)
+        )
+    ;   ( secondoResultFailed,
+          fail
+        )
+  ), !.
+
+secondo(X) :-
+  concat_atom(['restore database', _, 'from', _], ' ', X),
+  isDatabaseOpen,
+  write('\nCannot restore database, because a database is open.\n'), !.
+
+secondo(X) :- % variant to use during updateRel is processed
   concat_atom([Command, _],' ',X),
   Command = 'delete',
+  storeupdateRel(1),  
   isDatabaseOpen,
   getSecondoList(ObjList),
   checkIsInList(X, ObjList, rel),
-  storeupdateRel(1),  
   secondo(X, _),
   !.
-  	
-secondo(X) :-
+
+secondo(X) :- % normal variant to delete a relation
   concat_atom([Command, Name],' ',X),
   Command = 'delete',
+  storeupdateRel(0),
   isDatabaseOpen,
-  databaseName(DB),
   getSecondoList(ObjList),
   checkIsInList(X, ObjList, rel),
-  storeupdateRel(0),
+  databaseName(DB),
   storedRel(DB, Name, _), 
   secondo(X, Y),
   downcase_atom(Name, DCName),
   updateRel(DCName),  
   retract(storedSecondoList(_)),
-  getSecondoList(_),
-  write('Command succeeded, result:'),
-  nl, nl,
-  show(Y),
-  !.
+  %getSecondoList(_),
+  secondoResultSucceeded(Y), !.
 
-secondo(X) :-
+secondo(X) :- % variant used when updating indexes
   concat_atom([Command, _],' ',X),
   Command = 'delete',
+  storeupdateIndex(1), 
   isDatabaseOpen,
   getSecondoList(ObjList),
   indexType(Type),
   checkIsInList(X, ObjList, Type),
-  storeupdateIndex(1), 
   secondo(X, _),
   retract(storedSecondoList(_)),
-  getSecondoList(_),
+  %getSecondoList(_),
   !.
 
-secondo(X) :-
+secondo(X) :- % normal variant to delete an index
   concat_atom([Command, Name],' ',X),
   Command = 'delete',
+  storeupdateIndex(0),
   isDatabaseOpen,
   databaseName(DB),
   getSecondoList(ObjList),
   indexType(Type),
   checkIsInList(X, ObjList, Type),
-  storeupdateIndex(0),
   storedIndex(DB, _, _, Type, Name),  
   secondo(X, Y),
   updateIndex,  
-  %retractall(storedSecondoList(_)),
+  retractall(storedSecondoList(_)),
   %getSecondoList(_),
-  write('Command succeeded, result:'),
-  nl, nl,
-  show(Y),
-  !.
+  secondoResultSucceeded(Y), !.
 
 secondo(X) :-
   concat_atom([Command, Name],' ',X),
@@ -776,31 +749,19 @@ secondo(X) :-
   Name = 'objects',
   isDatabaseOpen,
   secondo(X, Y),
-  write('Command succeeded Index, result:'),
-  nl, nl,
-  show(Y),
-  !.
+  secondoResultSucceeded(Y), !.
   
 secondo(X) :-
-  (
-    secondo(X, Y),
-    retractall(storedSecondoList(_)),
-    (notIsDatabaseOpen;getSecondoList(_)),
-    write('Command succeeded, result:'),
-    nl, nl,
-    show(Y)
-  );(
-    secondo_error_info(ErrorCode, ErrorString),
-    write('Command failed with error code : '),
-    write(ErrorCode),
-    nl,
-    write('and error message : '),
-    nl,
-    write(ErrorString),
-    nl,
-    !,
-    fail
-  ).
+  ( secondo(X, Y) 
+    *-> ( secondoResultSucceeded(Y), !,
+          retractall(storedSecondoList(_))
+          %(notIsDatabaseOpen;getSecondoList(_))
+        )
+    ;   ( secondoResultFailed,
+          fail
+        )
+  ), !.
+
 
 /*
 
@@ -822,15 +783,12 @@ in the PROLOG interface via the ~query~ operator. The operators
 
 */
 isDatabaseOpen :-
-  storedDatabaseOpen(Status),
-  Status = 1, !.
+  storedDatabaseOpen(1), !.
   
 isDatabaseOpen :-
-  storedDatabaseOpen(Status),
-  Status = 0,
-  write('No database open.'),
-  nl,
-  !,fail.
+  storedDatabaseOpen(0),
+  write('No database open.'), nl,
+  !, fail.
 
 notIsDatabaseOpen :-
   storedDatabaseOpen(Status),
@@ -839,36 +797,31 @@ notIsDatabaseOpen :-
 query(Query) :-
   isDatabaseOpen,
   atom(Query),
-  atom_concat('query ', Query, QueryText),
+  atom_concat('query ', Query, QueryText), !,
   secondo(QueryText).
 
 let(Query) :-
   isDatabaseOpen,
   atom(Query),
-  atom_concat('let ', Query, QueryText),
+  atom_concat('let ', Query, QueryText), !,
   secondo(QueryText).
-  %retract(storedSecondoList(_)),
-  %getSecondoList(_).  
 
 derive(Query) :-
   isDatabaseOpen,
   atom(Query),
-  atom_concat('derive ', Query, QueryText),
+  atom_concat('derive ', Query, QueryText), !,
   secondo(QueryText).
-  %retract(storedSecondoList(_)),
-  %getSecondoList(_). 
 
 create(Query) :-
   notIsDatabaseOpen,
   atom(Query),
-  atom_concat('create ', Query, QueryText),
-  !,
+  atom_concat('create ', Query, QueryText), !,
   secondo(QueryText).
 
 create(Query) :-
   isDatabaseOpen,
   atom(Query),
-  atom_concat('create ', Query, QueryText),
+  atom_concat('create ', Query, QueryText), !,
   secondo(QueryText),
   retract(storedSecondoList(_)),
   getSecondoList(_).
@@ -876,37 +829,25 @@ create(Query) :-
 update(Query) :-
   isDatabaseOpen,
   atom(Query),
-  atom_concat('update ', Query, QueryText),
+  atom_concat('update ', Query, QueryText), !,
   secondo(QueryText).
-  %retract(storedSecondoList(_)),
-  %getSecondoList(_).
     
 delete(Query) :-
   notIsDatabaseOpen,
   atom(Query),
-  atom_concat('delete ', Query, QueryText),
-  !,
+  atom_concat('delete ', Query, QueryText), !,
   secondo(QueryText).
 
 delete(Query) :-
   isDatabaseOpen,
   atom(Query),
-  atom_concat('delete ', Query, QueryText),
+  atom_concat('delete ', Query, QueryText), !,
   secondo(QueryText).
-  %retract(storedSecondoList(_)),
-  %getSecondoList(_).
 
 open(Query) :-
   atom(Query),
-  atom_concat('open ', Query, QueryText),
-  atom_postfix(Query, 9, DB1),
-  downcase_atom(DB1, DB),
-  secondo(QueryText),
-  retract(storedDatabaseOpen(_)),
-  assert(storedDatabaseOpen(1)),
-  retract(databaseName(_)),
-  assert(databaseName(DB)),
-  getSecondoList(_).
+  atom_concat('open ', Query, QueryText), !,
+  secondo(QueryText).
 
 :-
   op(800, fx, query),
