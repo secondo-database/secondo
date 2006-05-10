@@ -402,6 +402,7 @@ possiblyCorrectSelfJoins(Source, Target, TermIn, TermOut) :-
   selfJoin(PredNo, Rel1, Rel2),
   selfJoinToDo(Rel1, Rel2),
   retractall(selfJoinToDo(Rel1, Rel2)),
+  retractall(selfJoinToDo(Rel2, Rel1)),
   idAttr(Rel1, 1, Attr1),
   idAttr(Rel2, 2, Attr2),
   Rel1 = rel(RelName, _, _),
