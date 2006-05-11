@@ -50,6 +50,14 @@ reference counters. There are reference counters on tuples and also
 on attributes. Some assertions were removed, since the code is
 stable.
 
+May 2006 M. Spiekermann. Changes in ~TupleCompareBy~. The number of compare 
+operations was antisymmetric, e.g. recognizing that two attributes fulfill
+$A > B$ needed one integer comparison more than $A < B$. Now first $A = B$ is 
+tested and determining one of the remaining cases needs only one extra 
+comparison. Hence in the average we will use less ${=,<}$ operations than 
+before.
+
+
 [TOC]
 
 
@@ -128,6 +136,7 @@ figure below.
 #include "Algebra.h"
 #include "StandardAttribute.h"
 #include "NestedList.h"
+#include "Counter.h"
 
 #define MAX_NUM_OF_ATTR 10 
 
@@ -764,25 +773,22 @@ class TupleCompareBy
       spec( spec )
       {}
 
-    inline bool operator()( const Tuple* aConst, 
-                            const Tuple* bConst ) const
+    inline bool operator()( const Tuple* a, 
+                            const Tuple* b ) const
     {
-      Tuple* a = (Tuple*)aConst;
-      Tuple* b = (Tuple*)bConst;
-
       SortOrderSpecification::const_iterator iter = spec.begin();
       while( iter != spec.end() )
       {
-        int pos = iter->first-1;
-        Attribute* aAttr = (Attribute*) a->GetAttribute(pos);
-        Attribute* bAttr = (Attribute*) b->GetAttribute(pos);
-        int cmpValue = aAttr->Compare( bAttr );
+        const int pos = iter->first-1;
+        const Attribute* aAttr = (const Attribute*) a->GetAttribute(pos);
+        const Attribute* bAttr = (const Attribute*) b->GetAttribute(pos);
+        const int cmpValue = aAttr->Compare( bAttr );
 
-        if( cmpValue < 0 ) // aAttr < bAttr ?
-          return iter->second;
-        if( cmpValue > 0) // aAttr > bAttr ?
-          return !(iter->second);
-        
+        if( cmpValue !=  0 ) 
+	{
+          // aAttr < bAttr ?
+	  return cmpValue < 0 ? iter->second : !(iter->second);
+	}	
         // the current attribute is equal
         iter++;
       }
