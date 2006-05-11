@@ -48,6 +48,8 @@ operator isempty alias ISEMPTY pattern op ( _ )
 operator intersection alias INTERSECTION pattern op (_, _)
 operator minus alias SET_MINUS pattern _ infixop _
 
+operator setoption alias SETOPTION pattern op (_, _)
+
 operator relcount alias RELCOUNT pattern _ op
 operator relcount2 alias RELCOUNT2 pattern _ op
 
