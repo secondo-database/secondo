@@ -48,7 +48,7 @@ let mrg14 = [const movingregion value (((0.0 5.0 FALSE TRUE)((((60.0 0.0 0.0 0.0
 
 query mrg12 = mrg14;
 
-
+let rg1 = [const region value((((0.0 0.0)(0.0 10.0)(20.0 20.0)(20.0 30.0)(30.0 15.0)(25.0 10.0)(10.0 5.0))))];
 
 
 

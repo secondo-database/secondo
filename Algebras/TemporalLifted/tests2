@@ -36,6 +36,8 @@ let ms2 = [const mstring value ((((instant 0.0)(instant 10.0) TRUE TRUE) "Hallo"
 
 let ms3 = [const mstring value ((((instant 0.0)(instant 8.0) TRUE TRUE) "Hallo")(((instant 9.0)(instant 24.0) FALSE TRUE) "Hallo Du")(((instant 24.0)(instant 28.0) FALSE TRUE) "Hallo Du da!")(((instant 29.0)(instant 35.0) FALSE TRUE) "Schonwieder weg"))];
 
+let mp4 = [const mpoint value ((((instant 5.0)(instant 10.0) FALSE TRUE)(10.0 10.0 0.0 10.0)))];
 
+let pt1 = [const point value (5.0 5.0)];
 
 
