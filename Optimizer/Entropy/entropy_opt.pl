@@ -475,7 +475,12 @@ translateEntropy(Stream1, Stream2, Cost1, Cost2) :-
   warn_plan_changed(Stream1, Stream2),
   !.
 
-translateEntropy(Stream1, Stream1, Cost1, Cost1).
+translateEntropy(Stream1, Stream1, Cost1, Cost1) :-
+  deleteCounters2,
+  retract(buildingSmallPlan),
+  retractall(selfJoin(_, _, _)),
+  retractall(usedAttr(_, _)),
+  assert(removeHiddenAttributes).
 
 
 assignEntropyCost :-
