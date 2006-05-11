@@ -56,7 +56,7 @@ class Segment
 public:
    Segment() {};
    ~Segment() {};
-   Segment::Segment(bool reg, const CHalfSegment& inchs);
+   Segment(bool reg, const CHalfSegment& inchs);
    const Point& GetLP();
    const Point& GetRP();
    void SetLP(const Point& p);
@@ -77,9 +77,8 @@ konstruktor to biuld up a new segment-object
 Segment::Segment(bool in, const CHalfSegment& inchs)
 {
    in1 = in;
-   chs = CHalfSegment(inchs.IsDefined(), true, inchs.GetLP(),
-         inchs.GetRP() );
-   chs.attr.insideAbove = inchs.attr.insideAbove;
+   chs = inchs;
+   chs.SetLDP(true);
 }
 
 /*
@@ -3107,6 +3106,8 @@ CRegion* MakeOp::Intersection(const CRegion* reg1, const CRegion* reg2)
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
    result->EndBulkLoad();
+
+
    result->SetPartnerNo();
    result->ComputeRegion();
    return result;

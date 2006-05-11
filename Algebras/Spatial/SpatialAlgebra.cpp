@@ -4882,6 +4882,8 @@ ostream& operator<<( ostream& os, const CRegion& cr )
 
 void CRegion::SetPartnerNo()
 {
+
+  /*
   assert( IsOrdered() );
 
   if (this->Size()<=0)
@@ -4920,6 +4922,25 @@ void CRegion::SetPartnerNo()
     }
   }
   delete []pa;
+ */
+  int size = Size();
+  int tmp[size/2];
+  const CHalfSegment*  chs;
+  for(int i=0;i<size;i++){
+     Get(i,chs);
+     if(chs->GetLDP()){
+       tmp[chs->attr.partnerno] = i;
+     } else{
+       int p = tmp[chs->attr.partnerno];
+       CHalfSegment chs1 = *chs;
+       chs1.attr.partnerno = p;
+       Put(i,chs1);
+       Get(p,chs);
+       chs1=*chs;
+       chs1.attr.partnerno = i;
+       Put(p,chs1);
+     }
+  }
 }
 
 double VectorSize(const Point &p1, const Point &p2)
