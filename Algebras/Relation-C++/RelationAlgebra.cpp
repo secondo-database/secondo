@@ -1378,11 +1378,11 @@ struct ReduceInfo : OperatorInfo {
   ReduceInfo() : OperatorInfo()
   { 
     name =      "reduce";
-    signature = "stream(tuple(y) x (stream(tuple(y)) -> bool) x int \n"
+    signature = "stream(tuple(y)) x (stream(tuple(y)) -> bool) x int \n"
                 "-> stream(tuple(y))";
     syntax =    "_ reduce[ f, n ]";
-    meaning =   "Passes over all tuples t with f(t)=FALSE but only every "
-                "k-th tuple [k=max(n,1)] which fulfills f.";
+    meaning =   "Passes all tuples t with f(t)=FALSE to the output stream "
+                "but only every k-th tuple [k=max(n,1)] which fulfills f.";
     example =   "plz feed reduce[.PLZ > 50000, 2] count";
   }
 
@@ -2959,7 +2959,7 @@ struct SizeCountersInfo : OperatorInfo {
   SizeCountersInfo() : OperatorInfo()
   { 
     name =      "sizecounters";
-    signature = "stream(tuple(y) x string -> stream(tuple(y))";
+    signature = "stream(tuple(y)) x string -> stream(tuple(y))";
     syntax =    "_ sizecounters[ s ]";
     meaning =   "Sums up the size for the tuples root size, the extension "
                 "size and the flob size. The results will be stored in "
@@ -2968,7 +2968,7 @@ struct SizeCountersInfo : OperatorInfo {
                 "- RA:ExtSize_s (Root + Extension)\n"
                 "- RA:Size_s (Root + Extension + Flobs)\n"
                 "- RA:FlobSizeOnly_s\n"
-                "- RA:ExtSizeOnly_s";
+                "- RA:ExtSizeOnly_s\n";
     example =   "plz feed sizecounters[\"plz\"] count";
   }
 
@@ -3119,9 +3119,9 @@ struct DumpStreamInfo : OperatorInfo {
   DumpStreamInfo() : OperatorInfo()
   { 
     name =      "dumpstream";
-    signature = "stream(tuple(y) x string -> stream(tuple(y)";
+    signature = "stream(tuple(y)) x string -> stream(tuple(y))";
     syntax =    "_ dumpstream[ f, s ]";
-    meaning =   "Stores the tuples' values in a file specified by f. "
+    meaning =   "Appends the tuples' values in a file specified by f. "
                 "The attribute values are separated by s.";
     example =   "plz feed dumpstream[\"plz.txt\", \"|\"] count";
   }
@@ -3183,7 +3183,7 @@ static int dumpstream_vm( Word* args, Word& result, int message,
     Info(const string& fileName, const string& sep) :
       colsep(sep)
     {
-      os.open(fileName.c_str());
+      os.open(fileName.c_str(), ios_base::app);
     }
     ~Info()
     {
