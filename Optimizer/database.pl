@@ -211,80 +211,29 @@ In addition, an attribute is added for uniquely identifying tuples in the small 
 
 */
 
-classifyRel(Rel, small) :-
+classifyRel(Rel, SizeClass) :-
   card(Rel, Size),
-  Size < 1000,
-  !.
+  member([LowerSizeBound, SizeClass],[[100001,large],[1000,medium],[0,small]]),
+  Size >= LowerSizeBound, !.
 
-classifyRel(Rel, middle) :-
-  card(Rel, Size),
-  Size < 100001,
-  Size > 999,
-  !.
-
-classifyRel(Rel, large) :-
-  card(Rel, Size),
-  Size > 100000,
-  !.
-
-createSmallRelation(Rel, ObjList) :-  % Rel in lc
+createSmallRelation(Rel, ObjList) :- % case: small relation already present
   spelling(Rel, Rel2),
-  Rel2 = lc(Rel3),
-  sampleNameSmall(Rel3, Small),
-  member(['OBJECT', Small, _ , [[_ | _]]], ObjList),
-  !.
+  ( Rel2 = lc(Rel3) 
+    *-> sampleNameSmall(Rel3, Small)                        % Rel in lc
+    ;   ( upper(Rel2, URel), sampleNameSmall(URel, Small) ) % Rel in uc
+  ),
+  member(['OBJECT', Small, _ , [[_ | _]]], ObjList), !.
 
-createSmallRelation(Rel, ObjList) :-  % Rel in uc
+createSmallRelation(Rel, _)  :- % case: need to create small relation
+  classifyRel(Rel, SizeClass),
+  member([SizeClass, MinSize, Percent], % lookup sampling parameters in list:
+         [ [small, 0, 1], [medium, 1000, 0.1], [large, 10000, 0.01] ]),
   spelling(Rel, Rel2),
-  not(Rel2 = lc(_)),
-  upper(Rel2, URel),
-  sampleNameSmall(URel, Small),
-  member(['OBJECT', Small, _ , [[_ | _]]], ObjList),
-  !.
-
-createSmallRelation(Rel, _)  :-  % Rel in lc
-  classifyRel(Rel, small),
-  spelling(Rel, Rel2),
-  Rel2 = lc(Rel3),
-  buildSmallRelation(Rel3, Rel3, 0, _),
-  !.
-
-createSmallRelation(Rel, _) :-  % Rel in uc
-  classifyRel(Rel, small),
-  spelling(Rel, Rel2),
-  upper(Rel2, URel),
-  buildSmallRelation(Rel2, URel, 0, _),
-  !.
-
-createSmallRelation(Rel, _)  :-  % Rel in lc
-  classifyRel(Rel, middle),
-  spelling(Rel, Rel2),
-  Rel2 = lc(Rel3),
-  buildSmallRelation(Rel3, Rel3, 1000, 0.1),
-  !.
-
-createSmallRelation(Rel, _)  :-  % Rel in uc
-  classifyRel(Rel, middle),
-  spelling(Rel, Rel2),
-  upper(Rel2, URel),
-  buildSmallRelation(Rel2, URel, 1000, 0.1),
-  !.
-
-createSmallRelation(Rel, _)  :-  % Rel in lc
-  classifyRel(Rel, large),
-  spelling(Rel, Rel2),
-  Rel2 = lc(Rel3),
-  buildSmallRelation(Rel3, Rel3, 10000, 0.01),
-  !.
-
-createSmallRelation(Rel, _)  :-  % Rel in uc
-  classifyRel(Rel, large),
-  spelling(Rel, Rel2),
-  upper(Rel2, URel),
-
-  buildSmallRelation(Rel2, URel, 10000, 0.01),
-  !.
-
+  ( Rel2 = lc(Rel3) 
+    *-> ( RelLC = Rel3, RelSec = Rel3 )      % Rel in lc
+    ;   ( RelLC = Rel2, upper(Rel2,RelSec) ) % Rel in uc
+  ),
+  buildSmallRelation(RelLC, RelSec, MinSize, Percent), !.
 
 /*
 ----	buildSmallRelation(+RelLC, +RelName, +MinSize, +Percent) :-
@@ -639,7 +588,7 @@ relation(Rel, AttrList) :-
   spelling(Rel, _),
   card(Rel, _),
   tuplesize(Rel, _),
-  ( ( not(sub_atom(Rel, _, _, 0, 'small')), not(sub_atom(Rel, _, _, 1, '_sample_')) )
+  ( ( not(sub_atom(Rel, _, _, 0, '_small')), not(sub_atom(Rel, _, _, 1, '_sample_')) )
     -> ( createSampleRelationIfNotDynamic(Rel),
          tryCreateSmallRelation(Rel, ObjList)
        )
@@ -659,7 +608,7 @@ relation(Rel, AttrList) :-
   spelling(Rel, _),
   card(Rel, _),
   tuplesize(Rel, _),
-  ( ( not(sub_atom(Rel, _, _, 0, 'small')), not(sub_atom(Rel, _, _, 1, '_sample_')) )
+  ( ( not(sub_atom(Rel, _, _, 0, '_small')), not(sub_atom(Rel, _, _, 1, '_sample_')) )
     -> ( createSampleRelationIfNotDynamic(Rel),
          tryCreateSmallRelation(Rel, ObjList)
        )
@@ -668,9 +617,6 @@ relation(Rel, AttrList) :-
   databaseName(DB),
   assert(storedRel(DB, Rel, AttrList)),
   createAttrSpelledAndIndexLookUp(Rel, AttrList3), !.
-%  retractall(storedSecondoList(ObjList)).
-
-
 
 /*
 1.1.3 Storing And Loading Relation Schemas
@@ -737,6 +683,7 @@ showRelationSchemas([_ | ObjList]) :-
 
 showDatabaseSchema :-
   databaseName(DB),
+  retractall(storedSecondoList(_)),
   getSecondoList(ObjList),
   write('\nAll relation-schemas of database \''), write(DB), write('\':\n'),
   showRelationSchemas(ObjList),
@@ -783,15 +730,21 @@ base, otherwise a Secondo command is issued to get the list. The
 second rule ensures in addition, that the object list is stored 
 into local memory by the dynamic predicate ~storedSecondoList/1~.
 
+If you want ~storedSecondoList/1~ to be updated, use 
+~retractall(storedSecondoList(_))~. A ``list objects''- query will be started
+when calling ~getSecondoList/1~ the nest time. You should do this whenever you
+have changed the database.
+
 */
+
 getSecondoList(ObjList) :-
-  storedSecondoList(ObjList),
-  !.
+  storedSecondoList(ObjList), !.
 
 getSecondoList(ObjList) :-
   secondo('list objects',[_, [_, [_ | ObjList]]]), 
-  assert(storedSecondoList(ObjList)),
-  !.
+  retractall(storedSecondoList(_)),
+  assert(storedSecondoList(ObjList)), !.
+
 
 /*
 1.2.2 Spelling Of Attribute Names
@@ -1024,7 +977,7 @@ verifyIndexAndStoreNoIndex(Rel, Attr) :-      % No index
   dm(index,['\n-->verifyIndexAndStoreNoIndex(',Rel, ',',Attr, ',',Index, ',',IndexType, ')\n']),
   downcase_atom(Rel, DCRel),
   downcase_atom(Attr, DCAttr),
-  relation(DCRel, List),
+  relation(DCRel, List), % XRIS: this may result in many calls to getSecondoList/1
   member(DCAttr, List),
   databaseName(DB),
   assert(storedNoIndex(DB, Rel, Attr)),
@@ -1188,9 +1141,8 @@ that all letters of ~Rel~ and ~Attr~ must be written in lower case.
 updateIndex :-
   retract(storeupdateIndex(0)),
   assert(storeupdateIndex(1)),
-  secondo('list objects',[_, [_, [_ | ObjList]]]),
-  retract(storedSecondoList(_)),
-  assert(storedSecondoList(ObjList)),
+  %retractall(storedSecondoList(_)),
+  getSecondoList(ObjList),
   checkForAddedIndices(ObjList),
   checkForRemovedIndices(ObjList),
   retract(storeupdateIndex(1)),
@@ -1348,9 +1300,8 @@ updateRel2(_, SpelledRel, ObjList) :-
 updateRel(Rel) :-
   retract(storeupdateRel(0)),
   assert(storeupdateRel(1)),
-  secondo('list objects',[_, [_, [_ | ObjList]]]),
-  retract(storedSecondoList(_)),
-  assert(storedSecondoList(ObjList)),
+  %retractall(storedSecondoList(_)),
+  getSecondoList(ObjList),
   getSpelledRel(Rel, SpelledRel),
   updateRel2(Rel,SpelledRel, ObjList),
   retract(storeupdateRel(1)),
@@ -1365,7 +1316,7 @@ in order to make the optimizer create new ones.
 
 ----
   deleteSmallRel(Rel)
-  deletSmallRelAll
+  deleteSmallRelAll
   deleteSamples(Rel)
   deleteSamplesAll
 ----
@@ -1402,7 +1353,6 @@ deleteSmallRelAll :-
              deleteSmallRel1(X, ObjList)
            ), 
            _),
-  retractall(storedSecondoList(_)),
   write('\nNOTE: All \'_small\'-objects have been deleted from the database.'),
   write('\n      To recreate all \'_small\'-objects, call '),
   write('\'setOption(entropy).\'.'),
@@ -1426,7 +1376,6 @@ deleteSamples(Rel) :-
   getSecondoList(ObjList),
   deleteSampleJ(Rel,ObjList),
   deleteSampleS(Rel,ObjList),
-  retractall(storedSecondoList(_)),
   ( relation(Rel,_) -> updateRel(Rel) ), !.
 
 deleteSamples(_) :- !.
@@ -1440,7 +1389,6 @@ deleteSamplesAll :-
              deleteSampleJ(X,ObjList)
            ), 
            _),
-  retractall(storedSecondoList(_)),
   write('\nNOTE: All \'_sample_{j|s}\'-objects have been deleted from the '),
   write('database.'),
   write('\n      To prevent errors, all relations with sample-objects '),
