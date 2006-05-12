@@ -13415,7 +13415,6 @@ Translate_r( Word* args, Word& result, int message, Word& local, Supplier s )
 
   CRegion *cr = (CRegion *)args[0].addr,
           *pResult = (CRegion *)result.addr;
-  const CHalfSegment *chs;
 
   pResult->Clear();
 
@@ -13429,20 +13428,7 @@ Translate_r( Word* args, Word& result, int message, Word& local, Supplier s )
   qp->Request( son, t );
   ty = ((CcReal *)t.addr)->GetRealval();
 
-  if( !cr->IsEmpty() )
-  {
-    pResult->StartBulkLoad();
-
-    for( int i = 0; i < cr->Size(); i++ )
-    {
-      cr->Get(i, chs);
-      CHalfSegment aux( *chs );
-      aux.Translate( tx, ty );
-      *pResult += aux;
-    }
-
-    pResult->EndBulkLoad( false );
-  }
+  cr->Translate(tx,ty,(CRegion*)result.addr) ; 
   return 0;
 }
 

@@ -2228,6 +2228,53 @@ as an attribute.
     void Clear();
 
 /*
+~Translate~
+
+Moves the region according x and y and stores the result in result.
+
+
+*/
+
+    void Translate(const Coord& x, const Coord& y, CRegion* result){
+        result->Clear();
+        if(!IsEmpty()){
+            result->StartBulkLoad();
+            int size = Size();
+            const CHalfSegment* chs;
+            for(int i=0;i<size;i++){
+              Get(i,chs);
+              CHalfSegment aux(*chs);
+              aux.Translate(x,y);
+              *result += aux;  
+            }
+            result->EndBulkLoad(false);
+        } 
+    }
+
+/*
+~Translate~
+ 
+Moves this region.
+
+*/
+    void Translate(const Coord& x, const Coord& y){
+       double t[2];
+       t[0] = x;
+       t[1] = y;
+       bbox.Translate(t);
+       int size = Size();
+       const CHalfSegment* chs;
+       for(int i=0;i<size;i++){
+           Get(i,chs);
+           CHalfSegment tchs(*chs); 
+           tchs.Translate(x,y);
+           Put(i,tchs);
+       }
+    }
+
+
+
+/*
 
 *Semantics:* This function sets the attribute InsideAbove of each region's half segment.
              This attribute indicates if the area of the region lies above or left of the half segment.
