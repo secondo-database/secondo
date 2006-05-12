@@ -270,6 +270,10 @@ and error message are printed.
 
 */
 
+% Such facts are used to mark a file has been considered by some predicate:
+:- dynamic(tempConsideredFile/1). 
+
+
 % atom_postfix(+Atom, +PrefixLength, ?Post)
 % succeeds iff Post is a postfix of Atom starting after PrefixLength
 atom_postfix(Atom, PrefixLength, Post) :- 
@@ -340,13 +344,13 @@ indexCreateQuery(group10, d3,    _, _, _, _, _) :- fail, !.
 % all types 'rtree<n>' are created with 'creatertree':
 indexCreateQuery(none, none, Type, Rel, Attr, IndexName, 
   ['let ', IndexName, '_small = ', Rel, 
-   '_small creatertree[', Attr, ']']) :-
+   '_small creatertree[ ', Attr, ' ]']) :-
   sub_atom(Type, 0, _, _, rtree), !.
 
 % all other standard indices are created as follows:
 indexCreateQuery(none, none, Type, Rel, Attr, IndexName, 
   ['let ', IndexName, '_small = ', Rel, 
-   '_small create', Type, ' [', Attr, ']']).
+   '_small create', Type, '[ ', Attr, ' ]']) :- !.
 
 /*
 ---- createIndexSmall(+Rel, +ObjList, +IndexName, 
@@ -365,7 +369,8 @@ Also, add a \_small relation, if it is still not available.
 createIndexSmall(_, _, _, _, _, _, _) :- 
   not(optimizerOption(entropy)),!.
   
-createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr, Granularity, BBoxType) :-
+createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr, 
+                                            Granularity, BBoxType) :-
   optimizerOption(entropy),
   member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
   concat_atom([Rel, 'small'], '_', RelSmallName),
@@ -387,7 +392,7 @@ createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr, Granularity, B
                ])
       )
   ),
-  ( not(member(['OBJECT', IndexSmallName, _ , [[PhysicalIndexType | _]]], ObjList))
+  ( not(member(['OBJECT',IndexSmallName,_ ,[[PhysicalIndexType | _]]],ObjList))
     *-> ( dm(index,['\nIn createIndexSmall: getSmallIndexCreateQuery(',
                     Granularity, ',', BBoxType, ',', PhysicalIndexType, ',', 
                     Rel, ',', Attr, ',', IndexName, ',', QueryAtom, ')\n']),
@@ -396,15 +401,15 @@ createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr, Granularity, B
           tryCreate(QueryAtom)
         )
     ; true
-  ),
-  !.
+  ), !.
 
 createIndexSmall(Rel, ObjList, _, _, _, _, _) :-
   optimizerOption(entropy),
   not(member(['OBJECT', Rel, _ , [[rel | _]]], ObjList)),
   write('ERROR: missing relation '),
   write(Rel),
-  write(' cannot create small relation and an index on small relation!'),!,fail.
+  write(' cannot create small relation and an index on small relation!'), !, 
+  fail.
 
 % Test, if there is a _small-relation for relation Rel, otherwise create it
 checkIfSmallRelationExists(Rel, ObjList) :-
@@ -425,15 +430,14 @@ checkIfSmallRelationsExist(ObjList) :-
             not(sub_atom(X, 0, _, 0, 'SEC_DERIVED_OBJ')),
             checkIfSmallRelationExists(X, ObjList)
           ),
-          _), 
-  retractall(storedSecondoList(_)),
-  !.
+          _), !.
 
 checkIfSmallRelationsExist(_) :-
   not(optimizerOption(entropy)), !.
 
   
-% checkIfIndexIsStored(_, _, LFRel, LFAttr, Granularity, BBoxType, IndexType, IndexName, _) :-
+% checkIfIndexIsStored(_, _, LFRel, LFAttr, Granularity, BBoxType, 
+%                                            IndexType, IndexName, _) :-
 %  (   ( % standard index
 %        Granularity = none,
 %        BBoxType = none,
@@ -444,7 +448,7 @@ checkIfSmallRelationsExist(_) :-
 %      )
 %  ),
 %  databaseName(DB),
-%  storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName),!.
+%  storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName), !.
 
 checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, 
                      Granularity, BBoxType, IndexType, 
@@ -460,7 +464,8 @@ checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr,
   retractall(storedNoIndex(DB, LFRel, LFAttr)),
   retractall(storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName)),
   assert(storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName)),
-  createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr, Granularity, BBoxType),!.
+  createIndexSmall(Rel,ObjList,IndexName,LogicalIndexType,Attr, 
+                                              Granularity,BBoxType), !.
 
 checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, 
                      Granularity, BBoxType, IndexType, 
@@ -474,7 +479,8 @@ checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr,
   retractall(storedNoIndex(DB, LFRel, LFAttr)),
   retractall(storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName)),
   assert(storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName)),
-  createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr, Granularity, BBoxType).
+  createIndexSmall(Rel,ObjList,IndexName,LogicalIndexType,Attr, 
+                                              Granularity,BBoxType), !.
 
 checkForAddedIndex(ObjList) :-
   member(['OBJECT', IndexName, _ , [[IndexType | _]]], ObjList),
@@ -490,12 +496,12 @@ checkForAddedIndex(ObjList) :-
   ),
   not(Attr = small),
   not(Attr = sample),
+  not(tempConsideredFile(IndexName)),
   relname(LFRel, Rel),
   lowerfl(Attr, LFAttr),
-    %write('checking for index: '), write(Rel), write(' '), write(Attr), write(' '),
-    %write(IndexType), write(' '), write(IndexName), nl,
-  checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, Granularity, BBoxType, 
-                       IndexType, IndexName, ObjList).
+  checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, Granularity, 
+                              BBoxType, IndexType, IndexName, ObjList),
+  assert(tempConsideredFile(IndexName)).
 
 relname(LFRel, LFRel) :-
   spelled(LFRel, _, l), 
@@ -506,7 +512,8 @@ relname(LFRel, Rel) :-
   upper(LFRel, Rel).
   
 checkForAddedIndices(ObjList) :-
-  findall(_, checkForAddedIndex(ObjList), _).
+  retractall(tempConsideredFile(_)),
+  findall(_, checkForAddedIndex(ObjList), _), !.
 
 checkForRemovedIndex(ObjList) :-
   databaseName(DB),
@@ -551,12 +558,14 @@ checkIsInList(_, _, _) :-
 
 :- dynamic storeupdateRel/1.
 :- dynamic storeupdateIndex/1.
-
-
+:- dynamic storedDatabaseOpen/1.
+:- dynamic databaseName/1.
 
 storeupdateRel(0).
 storeupdateIndex(0).
-  
+storedDatabaseOpen(0).
+% ( databaseName/1 gets asserted, when a database is opened)
+
 
 secondoResultSucceeded(Result) :-
   write('Command succeeded, result:'),
@@ -579,14 +588,16 @@ secondo(X) :-
   downcase_atom(DB1, DB), !,
   ( secondo(X, Y) 
     *-> ( secondoResultSucceeded(Y), !,
-          retract(storedDatabaseOpen(_)),
+          retractall(storedDatabaseOpen(_)),
           assert(storedDatabaseOpen(1)),
           retractall(databaseName(_)),
           assert(databaseName(DB)),
+          retractall(storedSecondoList(_)),
           getSecondoList(ObjList),
-          checkForAddedIndices(ObjList),
-          checkForRemovedIndices(ObjList),
-          checkIfSmallRelationsExist(ObjList)
+          checkIfSmallRelationsExist(ObjList),
+          getSecondoList(ObjList2),
+          checkForAddedIndices(ObjList2),
+          checkForRemovedIndices(ObjList2)
         )
     ;   ( secondoResultFailed,
           fail
@@ -600,7 +611,7 @@ secondo(X) :-
     *-> ( secondoResultSucceeded(Y),
           retract(storedDatabaseOpen(_)),
           assert(storedDatabaseOpen(0)),
-          retract(storedSecondoList(_)),
+          retractall(storedSecondoList(_)),
           retractall(databaseName(_))
         )
     ;   ( secondoResultFailed,
@@ -614,8 +625,7 @@ secondo(X) :-
   isDatabaseOpen, !,
   ( secondo(X, Y)
     *-> ( secondoResultSucceeded(Y),
-          retract(storedSecondoList(_)),
-          getSecondoList(_)
+          retractall(storedSecondoList(_))
         )
     ;   ( secondoResultFailed,
           fail
@@ -628,8 +638,7 @@ secondo(X) :-
   isDatabaseOpen, !,
   ( secondo(X, Y)
     *-> ( secondoResultSucceeded(Y),
-          retract(storedSecondoList(_)),
-          getSecondoList(_)
+          retractall(storedSecondoList(_))
         )
     ;   ( secondoResultFailed,
           fail
@@ -642,7 +651,7 @@ secondo(X) :-
   isDatabaseOpen, !, 
   ( secondo(X, Y)
     *-> ( secondoResultSucceeded(Y),
-          retract(storedSecondoList(_)),
+          retractall(storedSecondoList(_)),
           getSecondoList(ObjList),
           checkIfIndex(X, ObjList)
         )
@@ -657,10 +666,14 @@ secondo(X) :-
   sub_atom(X,0,15,_,S),
   not(atom_prefix(S,'create database')),
   isDatabaseOpen,  
-  secondo(X, Y),
-  retract(storedSecondoList(_)),
-  %getSecondoList(_),
-  secondoResultSucceeded(Y), !.
+  ( secondo(X, Y)
+    *-> ( retractall(storedSecondoList(_)),
+          secondoResultSucceeded(Y)
+        )
+    ;   ( secondoResultFailed,
+          fail
+        )
+  ), !.
 
 secondo(X) :-
   concat_atom([restore, database, DB1, from, _], ' ', X),
@@ -668,15 +681,17 @@ secondo(X) :-
   downcase_atom(DB1, DB), !,
   ( secondo(X, Y)
     *-> ( secondoResultSucceeded(Y), 
-          retractall(storedSecondoList(_)),
           retractall(storedDatabaseOpen(_)),
           assert(storedDatabaseOpen(1)),
           retractall(databaseName(_)),
           assert(databaseName(DB)),
-          getSecondoList(ObjList),
-          checkForAddedIndices(ObjList),
-          checkForRemovedIndices(ObjList),
-          checkIfSmallRelationsExist(ObjList)
+          retractall(storedSecondoList(_)),
+          getSecondoList(ObjList1),
+          checkIfSmallRelationsExist(ObjList1),
+          getSecondoList(ObjList2),
+          checkForAddedIndices(ObjList2),
+          getSecondoList(ObjList3),
+          checkForRemovedIndices(ObjList3)
         )
     ;   ( secondoResultFailed,
           fail
@@ -696,7 +711,7 @@ secondo(X) :- % variant to use during updateRel is processed
   getSecondoList(ObjList),
   checkIsInList(X, ObjList, rel),
   secondo(X, _),
-  !.
+  retractall(storedSecondoList(_)), !.
 
 secondo(X) :- % normal variant to delete a relation
   concat_atom([Command, Name],' ',X),
@@ -708,10 +723,9 @@ secondo(X) :- % normal variant to delete a relation
   databaseName(DB),
   storedRel(DB, Name, _), 
   secondo(X, Y),
+  retractall(storedSecondoList(_)),
   downcase_atom(Name, DCName),
   updateRel(DCName),  
-  retract(storedSecondoList(_)),
-  %getSecondoList(_),
   secondoResultSucceeded(Y), !.
 
 secondo(X) :- % variant used when updating indexes
@@ -723,8 +737,7 @@ secondo(X) :- % variant used when updating indexes
   indexType(Type),
   checkIsInList(X, ObjList, Type),
   secondo(X, _),
-  retract(storedSecondoList(_)),
-  %getSecondoList(_),
+  retractall(storedSecondoList(_)),
   !.
 
 secondo(X) :- % normal variant to delete an index
@@ -738,9 +751,8 @@ secondo(X) :- % normal variant to delete an index
   checkIsInList(X, ObjList, Type),
   storedIndex(DB, _, _, Type, Name),  
   secondo(X, Y),
-  updateIndex,  
   retractall(storedSecondoList(_)),
-  %getSecondoList(_),
+  updateIndex,  
   secondoResultSucceeded(Y), !.
 
 secondo(X) :-
@@ -750,12 +762,23 @@ secondo(X) :-
   isDatabaseOpen,
   secondo(X, Y),
   secondoResultSucceeded(Y), !.
+
+secondo(X) :-
+  sub_atom(X,0,5,_,S),
+  atom_prefix(S,'query'),
+  isDatabaseOpen, !,
+  ( secondo(X, Y) 
+    *-> ( secondoResultSucceeded(Y), !
+        )
+    ;   ( secondoResultFailed,
+          fail
+        )
+  ), !.
   
 secondo(X) :-
   ( secondo(X, Y) 
     *-> ( secondoResultSucceeded(Y), !,
           retractall(storedSecondoList(_))
-          %(notIsDatabaseOpen;getSecondoList(_))
         )
     ;   ( secondoResultFailed,
           fail
@@ -765,7 +788,7 @@ secondo(X) :-
 
 /*
 
-1.3 Operators ~query~, ~update~, ~let~, ~create~, ~open~, and ~delete~
+1.3 Operators ~query~, ~update~, ~let~, ~create~, ~open~, ~restore~ and ~delete~
 
 The purpose of these operators is to make using the PROLOG interface
 similar to using SecondoTTY. A SecondoTTY query
@@ -822,9 +845,7 @@ create(Query) :-
   isDatabaseOpen,
   atom(Query),
   atom_concat('create ', Query, QueryText), !,
-  secondo(QueryText),
-  retract(storedSecondoList(_)),
-  getSecondoList(_).
+  secondo(QueryText).
 
 update(Query) :-
   isDatabaseOpen,
@@ -845,8 +866,15 @@ delete(Query) :-
   secondo(QueryText).
 
 open(Query) :-
+  notIsDatabaseOpen,
   atom(Query),
   atom_concat('open ', Query, QueryText), !,
+  secondo(QueryText).
+
+restore(Query) :-
+  notIsDatabaseOpen,
+  atom(Query),
+  atom_concat('restore ', Query, QueryText), !,
   secondo(QueryText).
 
 :-
@@ -856,8 +884,6 @@ open(Query) :-
   op(800, fx, create),
   op(800, fx, open),
   op(800, fx, derive),
-  op(800, fx, update).
+  op(800, fx, update),
+  op(800, fx, restore).
   
-:- dynamic(storedDatabaseOpen/1).
-:- dynamic(databaseName/1).
-storedDatabaseOpen(0).
