@@ -381,8 +381,8 @@ idAttr(rel(RelName, Var, _), ArgNo, attr(Var:IdAttr, ArgNo, l)) :-
 
 
 /*
-The clause ~translateEntropy~ runs a plan given as ~Stream1~ with ~Cost1~, runs
-it on the small database. Conditional selectivities are computed along
+The clause ~translateEntropy~ runs a plan given as ~Stream1~ with ~Cost1~ on 
+the small database. Conditional selectivities are computed along
 the path of the first plan. Then the iterative scaling algorithm computes the
 remaining conditional selectivites. The new selectivites are assigned to the
 POG and a second plan is computed and returned as ~Stream2~ with costs ~Cost2~.
@@ -390,8 +390,8 @@ POG and a second plan is computed and returned as ~Stream2~ with costs ~Cost2~.
 */
 
 translateEntropy(Stream1, Stream2, Cost1, Cost2) :-
-
-  highNode(HN), HN > 1, HN < 256, !,
+  % limit application to queries with a maximum of 8 predicates:
+  highNode(HN), HN > 1, HN < 256, !, 
   
   nl, 
   write('*** Using Entropy-approach ************' ), 
@@ -436,6 +436,7 @@ translateEntropy(Stream1, Stream1, Cost1, Cost1) :-
   retract(buildingSmallPlan),
   retractall(selfJoin(_, _, _)),
   retractall(usedAttr(_, _)),
+  retractall(removeHiddenAttributes),
   assert(removeHiddenAttributes).
 
 
