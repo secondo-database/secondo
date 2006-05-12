@@ -229,6 +229,8 @@ but with the sufix '\_small'
 small(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
   atom_concat(Rel, '_small', Rel2).
 
+
+
 newResSize(arg(N), Size) :- 
   argument(N, R ), 
   small( R, rel(SRel, _, _)),   card(SRel, Size), !.
@@ -237,84 +239,38 @@ newResSize(res(N), Size) :-
   smallResultSize(N, Size), !.
 
 
+
 prepare_query_small( count(Term), count(Result) ) :-
-  query_small(Term, Result).
+  query_small(Term, Result), !.
 
 prepare_query_small( Term, count(Result) ) :-
-  query_small(Term, Result).
+  query_small(Term, Result), !.
 
-query_small(rel(Name, V, C), Result) :-
-  atom_concat( Name, '_small', NameSmall ),
-  Result = rel(NameSmall, V, C),
-  !.
+
+
+query_small([],[]) :- !.
+
+query_small([First|Next], [FirstResult|NextResult]) :-
+  query_small(First, FirstResult),
+  query_small(Next, NextResult), !.
 
 query_small(IndexName, NameSmall) :-
   storedIndex(_,_,_,_,IndexName),
-  atom_concat( IndexName, '_small', NameSmall ),
-  !.
+  atom_concat( IndexName, '_small', NameSmall ), !.
 
-% To be modified - it should handle functors with any number of arguments. 
-% Currently it
-% handles only from 1 to 5 arguments. It should handle lists, too.
+query_small(rel(Name, V, C), rel(NameSmall, V, C)) :-
+  atom_concat( Name, '_small', NameSmall ), !.
 
-query_small( Term, Result ) :-
-  functor(Term, Fun, 1 ),
-  arg(1, Term, Arg1),
-  query_small(Arg1, Res1),
-  Result =.. [Fun | [Res1]],
-  !.
+query_small( Term, Term ) :-
+  atomic(Term), !.
 
 query_small( Term, Result ) :-
-  functor(Term, Fun, 2 ),
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  query_small(Arg1, Res1),
-  query_small(Arg2, Res2),
-  Result =.. [Fun | [Res1, Res2]],
-  !.
+  compound(Term),
+  not(is_list(Term)),
+  Term =.. [Op|Args],
+  query_small( Args, ArgsResult ),
+  Result =.. [Op|ArgsResult], !.
 
-query_small( Term, Result ) :-
-  functor(Term, Fun, 3 ),
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  query_small(Arg1, Res1),
-  query_small(Arg2, Res2),
-  query_small(Arg3, Res3),
-  Result =.. [Fun | [Res1, Res2, Res3]],
-  !.
-
-query_small( Term, Result ) :-
-  functor(Term, Fun, 4 ),
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  arg(4, Term, Arg4),
-  query_small(Arg1, Res1),
-  query_small(Arg2, Res2),
-  query_small(Arg3, Res3),
-  query_small(Arg4, Res4),
-  Result =.. [Fun | [Res1, Res2, Res3, Res4]],
-  !.
-
-query_small( Term, Result ) :-
-  functor(Term, Fun, 5 ),
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  arg(4, Term, Arg4),
-  arg(5, Term, Arg5),
-  query_small(Arg1, Res1),
-  query_small(Arg2, Res2),
-  query_small(Arg3, Res3),
-  query_small(Arg4, Res4),
-  query_small(Arg5, Res5),
-  Result =.. [Fun | [Res1, Res2, Res3, Res4, Res5]],
-  !.
-
-query_small( Term, Result ) :-
-  Result = Term,
-  !.
 
 
 /*
