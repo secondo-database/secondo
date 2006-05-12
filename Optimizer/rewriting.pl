@@ -499,11 +499,25 @@ inferPredicate(Premises, [box3d(bbox(trajectory(X)),deftime(X)) intersects box3d
 */
 
 % This is the better solution to replace the ad-hoc one
-
 inferPredicate(Premises, [bbox(X) intersects box3d(bbox(Z),Y)]) :-
   member(X present Y, Premises),
   member(X passes Z,  Premises),
-  X \= Y, X \= Z, Y \= Z, !.
+  X \= Y, X \= Z, Y \= Z.
+
+
+inferPredicate(Premises, [X overlaps Y]) :-
+  member(X touches Y, Premises),
+  X \= Y.
+
+inferPredicate(Premises, [X intersects Y]) :-
+  member(X inside Y, Premises),
+  X \= Y.
+
+inferPredicate(Premises, [X intersects Y]) :-
+  member(X overlaps Y, Premises),
+  X \= Y.
+
+
 
 
 /*
