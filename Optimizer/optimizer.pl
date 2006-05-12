@@ -1102,8 +1102,7 @@ e.g. in a term ~attrname(attr(xxxIDplz, 100, l)). If the flag ~removeHiddenAttri
 
 */
 
-:- dynamic 
-  removeHiddenAttributes/0.
+:- dynamic(removeHiddenAttributes/0).
 
 plan_to_atom(project(Stream, Fields), Result) :-
   not(removeHiddenAttributes), !,		% standard behaviour
@@ -1779,14 +1778,38 @@ A join with predicate X touches Y
 
 */
 
-join(Arg1, Arg2, pr(X touches Y, R1, R2)) => JoinPlan :-
+join(Arg1, Arg2, pr(Pred, R1, R2)) => JoinPlan :-
+  Pred =.. [Op, X, Y],
+  isBBoxPredicate(Op),
   X = attr(_, _, _),
   Y = attr(_, _, _), !,
   Arg1 => Arg1S,
   Arg2 => Arg2S,
-  join00(Arg1S, Arg2S, pr(X touches Y, R1, R2)) => JoinPlan.
+  join00(Arg1S, Arg2S, pr(Pred, R1, R2)) => JoinPlan.
 
 
+% spatialjoin with generic BBoxPredicate:
+join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg1S, 
+  Arg2S, attrname(Attr1), attrname(Attr2)), Pred2) :-
+  Pred =.. [Op, X, Y],
+  isBBoxPredicate(Op),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  Pred2 =.. [Op, Attr1, Attr2].
+
+% spatialjoin with generic commutative BBoxPredicate (also):
+join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg2S, 
+  Arg1S, attrname(Attr2), attrname(Attr1)), Pred2) :-
+  Pred =.. [Op, Y, X],
+  isCommutativeOP(Op),
+  isBBoxPredicate(Op),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, Y, X),
+  Pred2 =.. [Op, Attr1, Attr2].
+
+/*
+----
+% spatialjoin mit 'touches'
 join00(Arg1S, Arg2S, pr(X touches Y, _, _)) => filter(spatialjoin(Arg1S, 
   Arg2S, attrname(Attr1), attrname(Attr2)), Attr1 touches Attr2) :-
   isOfFirst(Attr1, X, Y),
@@ -1796,6 +1819,34 @@ join00(Arg1S, Arg2S, pr(Y touches X, _, _)) => filter(spatialjoin(Arg2S,
   Arg1S, attrname(Attr2), attrname(Attr1)), Attr1 touches Attr2) :-
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
+
+
+% spatialjoin mit 'intersects'
+join00(Arg1S, Arg2S, pr(X intersects Y, _, _)) => filter(spatialjoin(Arg1S, 
+  Arg2S, attrname(Attr1), attrname(Attr2)), Attr1 intersects Attr2) :-
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+join00(Arg1S, Arg2S, pr(Y intersects X, _, _)) => filter(spatialjoin(Arg2S, 
+  Arg1S, attrname(Attr2), attrname(Attr1)), Attr1 intersects Attr2) :-
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+
+% spatialjoin mit 'overlaps'
+join00(Arg1S, Arg2S, pr(X intersects Y, _, _)) => filter(spatialjoin(Arg1S, 
+  Arg2S, attrname(Attr1), attrname(Attr2)), Attr1 intersects Attr2) :-
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+join00(Arg1S, Arg2S, pr(Y intersects X, _, _)) => filter(spatialjoin(Arg2S, 
+  Arg1S, attrname(Attr2), attrname(Attr1)), Attr1 intersects Attr2) :-
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+----
+
+*/
 
 
 /*

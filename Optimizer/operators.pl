@@ -65,18 +65,23 @@ require them to be handled differently in some ways.
 
 */
 
-isBBoxOperator(intersects).
-isBBoxOperator(intersection).
-isBBoxOperator(inside).
-isBBoxOperator(insideold).
-isBBoxOperator(touches).
-isBBoxOperator(attached).
-isBBoxOperator(overlaps).
-isBBoxOperator(onborder).
-isBBoxOperator(ininterior).
+% Predicates which can use bboxes:
+isBBoxPredicate(intersects).
+isBBoxPredicate(inside).       % also on moving x moving -> movingbool
+isBBoxPredicate(insideold).
+isBBoxPredicate(touches).
+isBBoxPredicate(attached).
+isBBoxPredicate(overlaps).
+isBBoxPredicate(onborder).
+isBBoxPredicate(ininterior).
+
+% other operators using bboxes:
 isBBoxOperator(touchpoints).
+isBBoxOperator(intersection).
 isBBoxOperator(commonborder).
 isBBoxOperator(commonborderscan).
+isBBoxOperator(X) :- isBBoxPredicate(X).
+
 %isBBoxOperator(minus).
 %isBBoxOperator(union).
 %isBBoxOperator(crossings).
@@ -84,6 +89,13 @@ isBBoxOperator(commonborderscan).
 %isBBoxOperator(direction).
 %isBBoxOperator(insidepathlength).
 %isBBoxOperator(insidescanned).
+
+
+% commutative operators:
+isCommutativeOP(intersects).
+isCommutativeOP(touches).
+isCommutativeOP(attached).
+isCommutativeOP(overlaps).
 
 
 /*

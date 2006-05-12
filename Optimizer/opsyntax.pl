@@ -37,8 +37,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
   op(200, xfx, :).
 
 :- op(800, xfx, inside).
+:- op(800, xfx, insideold).
 :- op(800, xfx, intersects).
 :- op(800, xfx, touches).
+:- op(800, xfx, attached).
+:- op(800, xfx, overlaps).
+:- op(800, xfx, onborder).
+:- op(800, xfx, ininterior).
+:- op(800, xfx, touchpoints).
+:- op(800, xfx, intersection).
+:- op(800, xfx, commonborder).
+:- op(800, xfx, commonborderscan).
+
 :- op(800, xfx, or).
 :- op(800,  fx, not).
 
