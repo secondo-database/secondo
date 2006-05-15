@@ -24,3 +24,4 @@ operator point2d alias POINT2D pattern op ( _ )
 operator makemvalue alias MAKEMVALUE pattern _ op [ _ ]
 operator circle alias CIRCLE pattern op ( _ )
 operator move alias MOVE pattern op ( _ )
+operator makepoint alias MAKEPOINT pattern op ( _ )

@@ -28,6 +28,7 @@ February 2006  Thomas Fischer
   ~at~                   upoint x point -> upoint
   ~circle~               point x real x int -> region
   ~move~                 mpoint x region  -> mregion
+  ~makepoint~            int x int -> point
 
 
 -----
@@ -666,7 +667,27 @@ TypeMapMove( ListExpr args )
        && nl->IsEqual( arg2, "region" ) )
       return nl->SymbolAtom( "movingregion" );
   }
-  cout <<"typeMap" << '\n';
+  return nl->SymbolAtom( "typeerror" );
+}
+/*
+10.6 Type mapping function ~TypeMapmakepoint~
+
+It is for the operator ~makepoint~.
+
+*/
+ListExpr
+TypeMapMakepoint( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg1, "int" )
+       && nl->IsEqual( arg2, "int" ) )
+      return nl->SymbolAtom( "point" );
+  }
   return nl->SymbolAtom( "typeerror" );
 }
 /*
@@ -1497,14 +1518,21 @@ int Move( Word* args, Word& result, int message, Word& local, Supplier s )
    double maximum, minimum;
    double half;
    int Top, Bottom, MaxTop, MaxBottom, counter;
-   int partnerno;
+   int segmentsStartPos = 1;
+   int segmentsNum = 1;
+
    UPoint bucket[r->Size()];
    int pointer[r->Size()];
    int pointer_rev[r->Size()];
 
+   DBArray<MSegmentData> seg(r->Size()* mp->GetNoComponents());
+   FLOB* segments;
 
    res->Clear();
    res->StartBulkLoad();
+
+   segments = res->GetFLOB(0);
+ //  *segments = seg;
 
 
  for( int i = 0; i < mp->GetNoComponents(); i++ )
@@ -1525,8 +1553,9 @@ int Move( Word* args, Word& result, int message, Word& local, Supplier s )
                           uPoint->timeInterval.lc,
                           uPoint->timeInterval.rc);
 
-    FLOB *Segments;
-    partnerno = 0;
+
+
+    segmentsNum = 1;
     counter = 0;
     Top = 0;
     MaxTop = 0;
@@ -1613,7 +1642,7 @@ the right values
 
       URegion* ureg = new URegion(iv);
 
-      Segments = ureg->GetFLOB(0);
+
 
       for( int k = 1; k < MaxTop + MaxBottom + 1; k++ )
        {
@@ -1628,9 +1657,10 @@ correction of the values for the bottom part
        {
 /*
 build the reverse array of pointer
-pointer_rev[pointer[k]] = k;
 
 */
+         pointer_rev[pointer[k]] = k;
+
        }
 /*
 now I can support the values
@@ -1638,7 +1668,8 @@ clockwise for the datatyp
 moving region
 
 */
-      for( int j = 1; j < MaxTop + MaxBottom  + 1; j++ )
+
+      for( int j = 1; j < MaxTop + MaxBottom + 1 ; j++ )
        {
 
         UPoint pt0;
@@ -1653,7 +1684,7 @@ moving region
 
        MSegmentData dms(0,
                         0,
-                        partnerno,
+                        segmentsNum,
                         false,
                         pt0.p0.GetX(),
                         pt0.p0.GetY(),
@@ -1665,9 +1696,7 @@ moving region
                         pt1.p1.GetY());
 
 
-
-       ureg->PutSegment(partnerno, dms);
-       partnerno++;
+       segmentsNum++;
 
       }
 /*
@@ -1677,14 +1706,38 @@ saving the old position
      oldx += deltax;
      oldy += deltay;
 
+     if (segmentsNum - 1 > 0)
+      {
+/*
+ureg->SetSegmentsNum( segmentsNum-1);
+ureg->SetSegmentsStartPos( segmentsStartPos);
 
-     res->Add(*ureg);
+*/
+       segmentsStartPos = segmentsStartPos + segmentsNum ;
+
+       res->Add(*ureg);
+      }
      delete ureg;
 
 
   }
   res->EndBulkLoad(true);
 
+
+  return 0;
+}
+/*
+16.2.17 Value mapping functions of operator ~makepoint~
+
+*/
+int MakePoint( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+
+  result = qp->ResultStorage( s );
+  CcInt* value1 = (CcInt*)args[0].addr;
+  CcInt* value2 = (CcInt*)args[1].addr;
+
+  ((Point*)result.addr)->Set(value1->GetIntval(),value2->GetIntval() );
 
   return 0;
 }
@@ -1964,6 +2017,18 @@ TemporalSpecMove =
 " moving region.</text--->"
 "<text>move (mp,movingregion)</text---> ) )";
 
+/*
+17.2.16 Specification string of operator ~makepoint~
+
+*/
+const string
+TemporalSpecMakePoint =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>int x int -> point</text--->"
+"<text> makepoint ( _ ) </text--->"
+"<text>create a point with two"
+" given values.</text--->"
+"<text>makepoint (5,5)</text---> ) )";
 
 /*
 17.3 Operators
@@ -2075,6 +2140,12 @@ Operator temporalmove( "move",
                       Move,
                       Operator::SimpleSelect,
                       TypeMapMove);
+
+Operator temporalmakepoint( "makepoint",
+                      TemporalSpecMakePoint,
+                      MakePoint,
+                      Operator::SimpleSelect,
+                      TypeMapMakepoint);
 /*
 18 Creating the Algebra
 
@@ -2101,6 +2172,7 @@ class TemporalUnitAlgebra : public Algebra
    AddOperator( &temporalunitat );
    AddOperator( &temporalcircle );
    AddOperator( &temporalmove );
+   AddOperator( &temporalmakepoint );
 
   }
   ~TemporalUnitAlgebra() {};
