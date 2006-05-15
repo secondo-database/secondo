@@ -1459,7 +1459,8 @@ static void MovingRealCompareMM(MReal& op1, MReal& op2, MBool&
         CompareUReal(u1, u2, uBool, op);
         if(TLA_DEBUG)
           cout<<"1uBool "<<uBool.constValue.GetBoolval()<<endl;
-        result.MergeAdd(uBool);
+        if (uBool.IsValid())
+          result.MergeAdd(uBool);
       }
       for (int m = 0; m < counter; m++){
         if(TLA_DEBUG){
@@ -1471,7 +1472,8 @@ static void MovingRealCompareMM(MReal& op1, MReal& op2, MBool&
         CompareUReal(u1, u2, uBool, op);
         if(TLA_DEBUG)
           cout<<"2uBool "<<uBool.constValue.GetBoolval()<<endl;
-        result.MergeAdd(uBool);
+        if (uBool.IsValid())
+          result.MergeAdd(uBool);
         uBool.timeInterval.lc = false;
         if (m < counter - 1){ 
           uBool.timeInterval.end = t[m + 1];
@@ -1484,7 +1486,7 @@ static void MovingRealCompareMM(MReal& op1, MReal& op2, MBool&
         CompareUReal(u1, u2, uBool, op);
         if(TLA_DEBUG)
           cout<<"3uBool "<<uBool.constValue.GetBoolval()<<endl;
-        if (uBool.timeInterval.start < uBool.timeInterval.end)
+        if (uBool.IsValid())
           result.MergeAdd(uBool);
       }
     }  
