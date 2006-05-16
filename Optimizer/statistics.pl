@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1.1 Rules about Commutativity of Predicates
 
+~isCommutativeOP/1~ is defined in file ``operators.pl''.
+
 */
 
 commute(X = Y, Y = X).
@@ -36,32 +38,19 @@ commute(X <= Y, Y >= X).
 commute(X > Y, Y < X).
 commute(X >= Y, Y <= X).
 commute(X # Y, Y # X).
+commute(Pred1, Pred2) :-
+  Pred1 =.. [OP, Arg1, Arg2],
+  isCommutativeOP(OP),
+  Pred2 =.. [OP, Arg2, Arg1], !.
 
 
 
 /*
 1.2 Hard-Coded Selectivities of Predicates
 
+(Deprecated sub-section removed by Christian D[ue]ntgen, May-15-2006)
+
 */
-
-%sel(plz:ort = staedte:sName, 0.0031).
-%sel(plz:pLZ = (plz:pLZ)+1, 0.00001644).
-%sel((plz:pLZ)-1 = plz:pLZ, 0.00001644).
-%sel(plz:pLZ = (plz:pLZ)*5, 0.0000022).
-%sel(plz:pLZ = plz:pLZ, 0.000146).
-%sel(plz:pLZ * 3 = plz:pLZ * 3, 0.000146).
-%sel(plz:pLZ > 40000, 0.55).
-%sel(plz:pLZ > 50000, 0.48).
-%sel(plz:pLZ < 60000, 0.64).
-%sel((plz:pLZ mod 5) = 0, 0.17).
-%sel(plz:ort contains "burg", 0.060).
-%sel(plz:ort starts "M", 0.071).
-%sel(staedte:bev > 500000, 0.21).
-%sel(staedte:bev > 300000, 0.26).
-%sel(staedte:bev < 500000, 0.79).
-%sel(staedte:kennzeichen starts "F", 0.034).
-%sel(staedte:kennzeichen starts "W", 0.068).
-
 
 
 /*
@@ -72,7 +61,7 @@ Simple forms of predicates are stored in predicate ~sel~ or
 in predicate ~storedSel~.
 
 
-----	simple(Term, Rel1, Rel2, Simple) :-
+----	simple(+Term, +Rel1, +Rel2, -Simple) :-
 ----
 
 The simple form of a term ~Term~ containing attributes of ~Rel1~ and/or ~Rel2~
@@ -198,7 +187,8 @@ cardQuery(Pred, Rel1, Rel2, Query) :-
   transformPred(Pred, t, 1, Pred2),
   Rel2S = rel(BaseName, _, _),
   card(BaseName, JoinSize),
-  Query = count(loopsel(head(Rel1Query, JoinSize), fun([param(t, tuple)],         filter(Rel2Query, Pred2)))).
+  Query = count(loopsel(head(Rel1Query, JoinSize), fun([param(t, tuple)],
+                filter(Rel2Query, Pred2)))).
 
 /*
 
@@ -250,24 +240,6 @@ dynamicCardQuery(Pred, Rel1, Rel2, Query) :-
   transformPred(Pred, t, 1, Pred2),
   Query = count(loopsel(Rel1Query, fun([param(t, tuple)], filter(Rel2Query, Pred2)))).
 
-/*
-----
-  % the first two clauses for sels/2 are needed for using hard coded 
-  % selectivities. Since these cause problems with non-existing 
-  % predicate cost, they should be omitted.
-
-sels(Pred, Sel) :-
-  sel(Pred, Sel),
-  !.
-
-sels(Pred, Sel) :-
-  commute(Pred, Pred2),
-  sel(Pred2, Sel),
-  !.
-----
-
-*/
-
 sels(Pred, Sel) :-
   databaseName(DB),
   storedSel(DB, Pred, Sel),
@@ -300,6 +272,23 @@ nonzero(0, 1) :- !.
 
 nonzero(N, N).
 
+/*
+---- getTime(:Goal, -Time)
+----
+
+Measures the time used to execute ~Goal~ in milliseconds (ms).
+
+*/
+
+getTime(Goal, TimeMS) :-
+  get_time(Time1),
+  call(Goal),
+  get_time(Time2),
+  Time3 is Time2 - Time1,
+  convert_time(Time3, _, _, _, _, Minute, Sec, MilliSec),
+  TimeMS is Minute *60000 + Sec*1000 + MilliSec, !.
+    
+
 selectivity(pr(Pred, Rel, Rel), Sel) :-
   selectivity(pr(Pred, Rel), Sel), !.
 
@@ -319,24 +308,12 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
-  get_time(Time1),
-  secondo(QueryAtom, [int, ResCard]),
-  get_time(Time2),
-  Time is Time2 - Time1,
-  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
-  MSs is Minute *60000 + Sec*1000 + MilliSec,
-  write('Elapsed Time: '),
-  write(MSs),
-  write(' ms'),nl, 
+  getTime(secondo(QueryAtom, [int, ResCard]),MSs),
+  dm(selectivity,['Elapsed Time: ', MSs, '\n']),
   MSsRes is MSs / (SampleCard1 * SampleCard2),
   nonzero(ResCard, NonzeroResCard), 
   Sel is NonzeroResCard / (SampleCard1 * SampleCard2),	% must not be 0
-  write('Predicate Cost: '),
-  write(MSsRes),
-  write(' ms'),nl,
-  write('Selectivity : '),
-  write(Sel),
-  nl,
+  dm(selectivity,['Predicate Cost: ', MSsRes, ' ms\nSelectivity : ',Sel,'\n']),
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
   databaseName(DB),
   assert(storedPET(DB, PSimple, MSsRes)),
@@ -351,24 +328,12 @@ selectivity(pr(Pred, Rel), Sel) :-
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
-  get_time(Time1),
-  secondo(QueryAtom, [int, ResCard]),
-  get_time(Time2),
-  Time is Time2 - Time1,
-  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
-  MSs is Minute *60000 + Sec*1000 + MilliSec,
-  write('Elapsed Time: '),
-  write(MSs),
-  write(' ms'),nl,
+  getTime(secondo(QueryAtom, [int, ResCard]),MSs),
+  dm(selectivity,['Elapsed Time: ', MSs, '\n']),
   MSsRes is MSs / SampleCard,
   nonzero(ResCard, NonzeroResCard),
   Sel is NonzeroResCard / SampleCard,		% must not be 0
-  write('Predicate Cost: '),
-  write(MSsRes),
-  write(' ms'),nl,
-  write('Selectivity : '),
-  write(Sel),
-  nl,
+  dm(selectivity,['Predicate Cost: ', MSsRes, ' ms\nSelectivity : ',Sel,'\n']),
   simplePred(pr(Pred, Rel), PSimple),
   databaseName(DB),
   assert(storedPET(DB, PSimple, MSsRes)),
@@ -387,24 +352,12 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
-  get_time(Time1),
-  secondo(QueryAtom, [int, ResCard]),
-  get_time(Time2),
-  Time is Time2 - Time1,
-  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
-  MSs is Minute *60000 + Sec*1000 + MilliSec,
-  write('Elapsed Time: '),
-  write(MSs),
-  write(' ms'),nl,
+  getTime(secondo(QueryAtom, [int, ResCard]),MSs),
+  dm(selectivity,['Elapsed Time: ', MSs, '\n']),
   MSsRes is MSs / (SampleCard1 * SampleCard2),
   nonzero(ResCard, NonzeroResCard),
   Sel is NonzeroResCard / (SampleCard1 * SampleCard2),	% must not be 0
-  write('Predicate Cost: '),
-  write(MSsRes),
-  write(' ms'),nl,
-  write('Selectivity : '),
-  write(Sel),
-  nl,
+  dm(selectivity,['Predicate Cost: ', MSsRes, ' ms\nSelectivity : ',Sel,'\n']),
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
   databaseName(DB),
   assert(storedSel(DB, PSimple, Sel)), !.
@@ -419,24 +372,12 @@ selectivity(pr(Pred, Rel), Sel) :-
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
-  get_time(Time1),
-  secondo(QueryAtom, [int, ResCard]),
-  get_time(Time2),
-  Time is Time2 - Time1,
-  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
-  MSs is Minute *60000 + Sec*1000 + MilliSec,
-  write('Elapsed Time: '),
-  write(MSs),
-  write(' ms'),nl,
+  get_time(secondo(QueryAtom, [int, ResCard]),MSs),
+  dm(selectivity,['Elapsed Time: ', MSs, '\n']),
   MSsRes is MSs / SampleCard,
   nonzero(ResCard, NonzeroResCard),
   Sel is NonzeroResCard / SampleCard,		% must not be 0
-  write('Predicate Cost: '),
-  write(MSsRes),
-  write(' ms'),nl,
-  write('Selectivity : '),
-  write(Sel),
-  nl,
+  dm(selectivity,['Predicate Cost: ', MSsRes, ' ms\nSelectivity : ',Sel,'\n']),
   simplePred(pr(Pred, Rel), PSimple),
   databaseName(DB),
   assert(storedSel(DB, PSimple, Sel)), !.
