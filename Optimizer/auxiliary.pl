@@ -287,7 +287,8 @@ indexType(rtree).
 indexType(rtree3).
 
 /*
----- getSmallIndexCreateQuery(+Granularity, +BBoxType, +Type, +Rel, +Attr, +IndexName, -QueryAtom)
+---- getSmallIndexCreateQuery(+Granularity, +BBoxType, +Type, +Rel, +Attr, 
+                              +IndexName, -QueryAtom)
 ----
 Create a ~QueryAtom~ that is a executable Secondo command string, that will create the
 appropriate specialized R-Tree index from relation ~Rel~ for key attribute ~Attr~, with 
@@ -298,8 +299,9 @@ If both, ~Granularity~ and ~BBoxType~ are ~none~, a standard index will be creat
 
 */
 
-getSmallIndexCreateQuery(Granularity, BBoxType, Type, Rel, Attr, IndexName, QueryAtom) :-
-  indexCreateQuery(Granularity, BBoxType, Type, Rel, Attr, IndexName, QueryList), !,
+getSmallIndexCreateQuery(Granularity,BBoxType,Type,Rel,Attr,IndexName,QueryAtom)
+  :-
+  indexCreateQuery(Granularity,BBoxType,Type,Rel,Attr,IndexName,QueryList), !,
   concat_atom(QueryList, QueryAtom), !.
 
 % Rules to create index queries
@@ -357,10 +359,10 @@ indexCreateQuery(none, none, Type, Rel, Attr, IndexName,
                       +LogicalIndexType, +Attr, +Granularity, +BBoxType)
 ----
 
-Test, if a _small index has to be created (is not a member of ~ObjList~) and 
+Test, if a \_small index has to be created (is not a member of ~ObjList~) and 
 create it if necessary. The index is specified by the relation ~Rel~ and key 
 attribute ~Attr~, the index' name ~IndexName~, its type ~LogicalIndexType~, 
-the index' ~Granularity~ and type of bounding box ~BBoxType~. ~
+the index' ~Granularity~ and type of bounding box ~BBoxType~.
 
 Also, add a \_small relation, if it is still not available.
 
@@ -387,7 +389,8 @@ createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr,
     ; ( optimizerOption(rtreeIndexRules), 
         member([LogicalIndexType, PhysicalIndexType],
                [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
-%               [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3], % for later extensions
+%               [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3], 
+%               for later extensions
                 [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3]
                ])
       )
@@ -524,7 +527,8 @@ checkForRemovedIndex(ObjList) :-
     ; ( optimizerOption(rtreeIndexRules), 
         member([LogicalIndexType, PhysicalIndexType],
               [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
-%              [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3], % for later extensions
+%              [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3], 
+%              for later extensions
                [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3]
               ])
       )
