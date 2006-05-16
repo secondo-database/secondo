@@ -524,7 +524,7 @@ inferPredicate(Premises, [X intersects Y]) :-
   X \= Y.
 ----
 
-/*
+*/
 
 
 /*
