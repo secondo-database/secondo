@@ -884,89 +884,19 @@ consider_Arg2(Pred, Pred) :-
 
 consider_Arg2(attr(Name, 2, Case), attr2(Name, 2, Case)):- !.                 
 
-consider_Arg2(Pred, Pred2) :- 
-  compound(Pred),               
-  functor(Pred, Op, 1),
-  arg(1, Pred, Arg1),
-  consider_Arg2(Arg1, Res1),  
-  functor(Pred2, Op, 1),      
-  arg(1, Pred2, Res1).          
+consider_Arg2(Term,Term2) :-
+  compound(Term),
+  Term =.. [Op|Args],
+  consider_Arg2_2(Args,Args2),
+  Term2 =.. [Op|Args2].
 
-consider_Arg2(Pred, Pred2) :-            
-  compound(Pred),                       
-  functor(Pred, Op, 2),                  
-  arg(1, Pred, Arg1),
-  arg(2, Pred, Arg2),
-  consider_Arg2(Arg1, Res1),  
-  consider_Arg2(Arg2, Res2),
-  functor(Pred2, Op, 2),       
-  arg(1, Pred2, Res1),
-  arg(2, Pred2, Res2).
 
-consider_Arg2(Pred, Pred2) :- 
-  compound(Pred),
-  functor(Pred, Op, 3),
-  arg(1, Pred, Arg1),
-  arg(2, Pred, Arg2),
-  arg(3, Pred, Arg3),
-  consider_Arg2(Arg1, Res1),
-  consider_Arg2(Arg2, Res2),
-  consider_Arg2(Arg3, Res3),
-  functor(Pred2, Op, 3),
-  arg(1, Pred2, Res1),
-  arg(2, Pred2, Res2),
-  arg(3, Pred2, Res3).
+consider_Arg2_2([],[]).
 
-consider_Arg2(Pred, Pred2) :- 
-  compound(Pred),
-  functor(Pred, Op, 3),
-  arg(1, Pred, Arg1),
-  arg(2, Pred, Arg2),
-  arg(3, Pred, Arg3),
-  consider_Arg2(Arg1, Res1),
-  consider_Arg2(Arg2, Res2),
-  consider_Arg2(Arg3, Res3),
-  functor(Pred2, Op, 3),
-  arg(1, Pred2, Res1),
-  arg(2, Pred2, Res2),
-  arg(3, Pred2, Res3).
+consider_Arg2_2([Me|Others],[Me2|Others2]) :-
+  consider_Arg2(Me,Me2),
+  consider_Arg2_2(Others,Others2).
 
-consider_Arg2(Pred, Pred2) :- 
-  compound(Pred),
-  functor(Pred, Op, 4),
-  arg(1, Pred, Arg1),
-  arg(2, Pred, Arg2),
-  arg(3, Pred, Arg3),
-  arg(4, Pred, Arg4),
-  consider_Arg2(Arg1, Res1),
-  consider_Arg2(Arg2, Res2),
-  consider_Arg2(Arg3, Res3),
-  consider_Arg2(Arg4, Res4),
-  functor(Pred2, Op, 4),
-  arg(1, Pred2, Res1),
-  arg(2, Pred2, Res2),
-  arg(3, Pred2, Res3),
-  arg(4, Pred2, Res4).
-
-consider_Arg2(Pred, Pred2) :- 
-  compound(Pred),
-  functor(Pred, Op, 5),
-  arg(1, Pred, Arg1),
-  arg(2, Pred, Arg2),
-  arg(3, Pred, Arg3),
-  arg(4, Pred, Arg4),
-  arg(5, Pred, Arg5),
-  consider_Arg2(Arg1, Res1),
-  consider_Arg2(Arg2, Res2),
-  consider_Arg2(Arg3, Res3),
-  consider_Arg2(Arg4, Res4),
-  consider_Arg2(Arg5, Res5),
-  functor(Pred2, Op, 5),
-  arg(1, Pred2, Res1),
-  arg(2, Pred2, Res2),
-  arg(3, Pred2, Res3),
-  arg(4, Pred2, Res4),
-  arg(5, Pred2, Res5).
 
 /*
 Arguments:
@@ -1136,7 +1066,7 @@ plan_to_atom(equals(X, Y, A, B), Result) :-
   plan_to_atom(Y, YAtom),
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
-  concat_atom([XAtom, ' ', YAtom, ' equals[', AAtom, ', ', BAtom, ']'], '', Result),
+  concat_atom([XAtom,' ',YAtom,' equals[',AAtom,', ',BAtom, ']'],'',Result),
   !.
 
 plan_to_atom(like(X, Y, Z, A, B), Result) :-
@@ -1145,7 +1075,7 @@ plan_to_atom(like(X, Y, Z, A, B), Result) :-
   plan_to_atom(Z, ZAtom),
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
-  concat_atom([XAtom, ' like[', YAtom, ', ', ZAtom, ', ', AAtom, ', ', BAtom, ']'], 
+  concat_atom([XAtom,' like[',YAtom,', ',ZAtom,', ',AAtom,', ',BAtom,']'], 
   '', Result),
   !.
 
@@ -1627,7 +1557,7 @@ indexselect(arg(N), pr(Pred, _)) =>
   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
 
 indexselect(arg(N), pr(Pred, _)) =>
-  filter(rename(windowintersects(IndexName, rel(Name,*,Case),bbox(Y)),RelAlias), 
+  filter(rename(windowintersects(IndexName, rel(Name,*,Case),bbox(Y)),RelAlias),
          Pred)
   :-
   Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y], 
@@ -2283,10 +2213,10 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, C) :-
   cost(Y, 1, SizeY, CostY),
   hashjoinTC(A, B),
   S is SizeX * SizeY * Sel,
-  C is CostX + CostY +                                  % producing the arguments
-    A * NBuckets * (SizeX/NBuckets + 1) *               % computing the product for each
-      (SizeY/NBuckets +1) +                             % pair of buckets
-    B * S.                                              % producing the result tuples
+  C is CostX + CostY +                          % producing the arguments
+    A * NBuckets * (SizeX/NBuckets + 1) *       % computing the product for each
+      (SizeY/NBuckets +1) +                     % pair of buckets
+    B * S.                                      % producing the result tuples
 
 cost(sort(X), Sel, S, C) :- 
   cost(X, Sel, SizeX, CostX),
@@ -2304,8 +2234,8 @@ cost(mergejoin(X, Y, _, _), Sel, S, C) :-
   cost(Y, 1, SizeY, CostY),
   sortmergejoinTC(_, B),
   S is SizeX * SizeY * Sel,
-  C is CostX + CostY +                          % producing the arguments
-    B * S.                                      % parallel scan of sorted relations
+  C is CostX + CostY +                        % producing the arguments
+    B * S.                                    % parallel scan of sorted relations
 
 cost(sortmergejoin(X, Y, AX, AY), Sel, S, C) :-
   cost(mergejoin(sortby(X, [AX]),sortby(Y, [AY]), AX, AY), Sel, S, C).
@@ -2331,7 +2261,8 @@ cost(spatialjoin(X, Y, _, _), Sel, S, C) :-
   S is SizeX * SizeY * Sel,  
   C is CostX + CostY +                  % producing the arguments           
   A * SizeX * log(SizeX + 1) +          % building the R-Tree  
-  %SizeY * log(SizeX + 1) +               look up in the R-Tree for each element of the second stream
+  %SizeY * log(SizeX + 1) +             % look up in the R-Tree for each 
+                                        % element of the second stream
   Sel * SizeX * SizeY * log(SizeX + 1) +
   B * S.                                % cost to produce result tuples
   
@@ -3248,101 +3179,43 @@ lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
   nl.
 
 /*
-Currently terms involving operators with up to five arguments are handled. This may need to be extended in the future. Then ~lookupPreds~ should also be extended.
+Generic lookup functionality for lookupAttr/2 on functors of arbitrary arity 
+using Univ (=../2) rather than (functor/3 and arg/3) was introduced by 
+C. D[ue]ntgen.
 
 */
-
-
-lookupAttr(Term, Term2) :-
-  compound(Term),
-  functor(Term, Op, 1),
-  arg(1, Term, Arg1),
-  lookupAttr(Arg1, Res1),
-  functor(Term2, Op, 1),
-  arg(1, Term2, Res1).
-
-lookupAttr(Term, Term2) :-
-  compound(Term),
-  functor(Term, Op, 2),
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  lookupAttr(Arg1, Res1),
-  lookupAttr(Arg2, Res2),
-  functor(Term2, Op, 2),
-  arg(1, Term2, Res1),
-  arg(2, Term2, Res2).
-
-lookupAttr(Term, Term2) :-
-  compound(Term),
-  functor(Term, Op, 3),
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  lookupAttr(Arg1, Res1),
-  lookupAttr(Arg2, Res2),
-  lookupAttr(Arg3, Res3),
-  functor(Term2, Op, 3),
-  arg(1, Term2, Res1),
-  arg(2, Term2, Res2),
-  arg(3, Term2, Res3).
-
-lookupAttr(Term, Term2) :-
-  compound(Term),
-  functor(Term, Op, 4),
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  arg(4, Term, Arg4),
-  lookupAttr(Arg1, Res1),
-  lookupAttr(Arg2, Res2),
-  lookupAttr(Arg3, Res3),
-  lookupAttr(Arg4, Res4),
-  functor(Term2, Op, 4),
-  arg(1, Term2, Res1),
-  arg(2, Term2, Res2),
-  arg(3, Term2, Res3),
-  arg(4, Term2, Res4).
-
-lookupAttr(Term, Term2) :-
-  compound(Term),
-  functor(Term, Op, 5),
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  arg(4, Term, Arg4),
-  arg(5, Term, Arg5),
-  lookupAttr(Arg1, Res1),
-  lookupAttr(Arg2, Res2),
-  lookupAttr(Arg3, Res3),
-  lookupAttr(Arg4, Res4),
-  lookupAttr(Arg5, Res5),
-  functor(Term2, Op, 5),
-  arg(1, Term2, Res1),
-  arg(2, Term2, Res2),
-  arg(3, Term2, Res3),
-  arg(4, Term2, Res4),
-  arg(5, Term2, Res5).
-
-
-% may need to be extended to more than five arguments in a term.
-
 
 lookupAttr(Name, attr(Name, 0, u)) :-
   queryAttr(attr(Name, 0, u)),
   !.
 
+lookupAttr(Term, Term2) :-
+  compound(Term),
+  Term =.. [Op|Args],
+  lookupAttr1(Args, Args2),
+  Term2 =.. [Op|Args2],
+  !.
+
 lookupAttr(Term, Term) :-
   atom(Term),
-  write('Symbol '),
+  write('Symbol \''),
   write(Term),
-  write(' in attribute list not recognized. Supposed to be a Secondo object ').
+  write('\' in attribute list not recognized.'),
+  write(' Supposed to be a Secondo object\n'), !.
 
-lookupAttr(Term, Term).
+lookupAttr(Term, Term) :- !.
+
+lookupAttr1([],[]) :- !.
+
+lookupAttr1([Me|Others],[Me2|Others2]) :-
+  lookupAttr(Me,Me2),
+  lookupAttr1(Others,Others2),
+  !.
 
 isAttribute(Name, Rel) :-
   queryRel(Rel, _),
   relation(Rel, List),
-  member(Name, List).
+  member(Name, List), !.
 
 
 /*
