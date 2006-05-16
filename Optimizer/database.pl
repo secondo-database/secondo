@@ -588,7 +588,8 @@ relation(Rel, AttrList) :-
   spelling(Rel, _),
   card(Rel, _),
   tuplesize(Rel, _),
-  ( ( not(sub_atom(Rel, _, _, 0, '_small')), not(sub_atom(Rel, _, _, 1, '_sample_')) )
+  ( ( not(sub_atom(Rel, _, _, 0, '_small')), 
+      not(sub_atom(Rel, _, _, 1, '_sample_')) )
     -> ( createSampleRelationIfNotDynamic(Rel),
          tryCreateSmallRelation(Rel, ObjList)
        )
@@ -608,7 +609,8 @@ relation(Rel, AttrList) :-
   spelling(Rel, _),
   card(Rel, _),
   tuplesize(Rel, _),
-  ( ( not(sub_atom(Rel, _, _, 0, '_small')), not(sub_atom(Rel, _, _, 1, '_sample_')) )
+  ( ( not(sub_atom(Rel, _, _, 0, '_small')), 
+      not(sub_atom(Rel, _, _, 1, '_sample_')) )
     -> ( createSampleRelationIfNotDynamic(Rel),
          tryCreateSmallRelation(Rel, ObjList)
        )
@@ -731,7 +733,7 @@ second rule ensures in addition, that the object list is stored
 into local memory by the dynamic predicate ~storedSecondoList/1~.
 
 If you want ~storedSecondoList/1~ to be updated, use 
-~retractall(storedSecondoList(_))~. A ``list objects''- query will be started
+~retractall(storedSecondoList(\_))~. A ``list objects''- query will be started
 when calling ~getSecondoList/1~ the nest time. You should do this whenever you
 have changed the database.
 
@@ -954,7 +956,8 @@ opened database. Depending on this result the dynamic predicate
 
 */
 verifyIndexAndStoreIndex(Rel, Attr, Index, LogicalIndexType) :- % Index exists
-  dm(index,['\n-->verifyIndexAndStoreIndex(',Rel, ',',Attr, ',',Index, ',',LogicalIndexType, ')\n']),
+  dm(index,['\n-->verifyIndexAndStoreIndex(',Rel, ',',Attr, ',',Index, ',',
+            LogicalIndexType, ')\n']),
   getSecondoList(ObjList),
   member(['OBJECT', Index, _ , [[PhysicalIndexType | _]]], ObjList),
   (   ( indexType(LogicalIndexType),
@@ -970,18 +973,21 @@ verifyIndexAndStoreIndex(Rel, Attr, Index, LogicalIndexType) :- % Index exists
   ),
   databaseName(DB),
   assert(storedIndex(DB, Rel, Attr, LogicalIndexType, Index)),
-  dm(index,['\n<--verifyIndexAndStoreIndex(',Rel, ',',Attr, ',',Index, ',',LogicalIndexType, ')\n']),
+  dm(index,['\n<--verifyIndexAndStoreIndex(',Rel, ',',Attr, ',',Index, ',',
+            LogicalIndexType, ')\n']),
   !.
 
 verifyIndexAndStoreNoIndex(Rel, Attr) :-      % No index
-  dm(index,['\n-->verifyIndexAndStoreNoIndex(',Rel, ',',Attr, ',',Index, ',',IndexType, ')\n']),
+  dm(index,['\n-->verifyIndexAndStoreNoIndex(',Rel, ',',Attr, ',',Index, ',',
+            IndexType, ')\n']),
   downcase_atom(Rel, DCRel),
   downcase_atom(Attr, DCAttr),
-  relation(DCRel, List), % XRIS: this may result in many calls to getSecondoList/1
+  relation(DCRel, List),
   member(DCAttr, List),
   databaseName(DB),
   assert(storedNoIndex(DB, Rel, Attr)),
-  dm(index,['\n<--verifyIndexAndStoreNoIndex(',Rel, ',',Attr, ',',Index, ',',IndexType, ')\n']).
+  dm(index,['\n<--verifyIndexAndStoreNoIndex(',Rel, ',',Attr, ',',Index, ',',
+            IndexType, ')\n']).
 
 /*
 1.4.2 Look up Index
@@ -1289,7 +1295,7 @@ retractStoredInformation(SpelledRel) :-
   
 updateRel2(_, SpelledRel, ObjList) :-
   member(['OBJECT', SpelledRel, _ , [[rel | _]]], ObjList),
-%  not(concat_atom([_, 'sample', _], '_', SpelledRel)), % ignore sample relations
+% not(concat_atom([_, 'sample', _], '_', SpelledRel)), % ignore sample relations
   retractStoredInformation(SpelledRel), !.
 
 updateRel2(_, SpelledRel, ObjList) :-
