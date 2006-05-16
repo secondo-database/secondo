@@ -1098,7 +1098,8 @@ plan_to_atom(reduce(Stream, _, _), StreamAtom) :-
 
 /*
 Attributes can be designated as hidden by setting their argument number to 100,
-e.g. in a term ~attrname(attr(xxxIDplz, 100, l)). If the flag ~removeHiddenAttributes~ is set, they are removed from a projection list. Currently used for the entropy optimizer.
+e.g. in a term ~attrname(attr(xxxIDplz, 100, l))~. If the flag ~removeHiddenAttributes~ is set, 
+they are removed from a projection list. Currently used for the entropy optimizer.
 
 */
 
@@ -1400,7 +1401,7 @@ plan_to_atom(X, _) :-
   nl.
 
 /*
-Hidden fields have an argument number 100 and can be removed from a projection list by activating the flag ``removeHidenAttributes''. See ~plan\_to\atom~ for ~project~.
+Hidden fields have an argument number 100 and can be removed from a projection list by activating the flag ``removeHidenAttributes''. See ~plan\_to\_atom~ for ~project~.
 
 */
 
@@ -1496,7 +1497,7 @@ April 2006, Christian D[ue]ntgen. Added project-translation for index selections
 May 2006, Translating a selection-predicate into a combimation of ~windowintersects~/
 ~windowintersectsS~ and ~filter~, the optimizer will add an initial project ~after~ the
 filter. For non-star-queries with one single selection this may even result in plans 
-with two consecutive projections.
+with two consecutive projections. This problem is still unsolved.
 
 */
 select(arg(N), Y) => X :-
@@ -1890,7 +1891,11 @@ exactmatch(IndexName, arg(N), Expr) =>
   argument(N, rel(Name, Var, Case)),
   !.
 
+/*
+One could easily add rules for ~loopjoin~ with ~rightrange~ and ~leftrange~
+operators for joins on <=, >=, < and > here.
 
+*/
 
 /*
 
@@ -4188,17 +4193,19 @@ to a new object ~X~, using the optimizer.
 
 */
 
-% The entropy approach needs a special handling
-
-
 /*
 
 Exception Handling
 
 If an error is encountered during the optimization process, an exception should be 
-thrown using the built-in Prolog predicate ~throw(sql_ERROR(X))~, where ~X~ is a term
-that represents a somehow meaningful error-message, e.g. respecting the format 
-~<prolog-file>\_<Pedicate>(<Arguments>)~. A standard exception handler is implemented by
+thrown using the built-in Prolog predicate 
+
+---- throw(sql_ERROR(X)),
+---- where ~X~ is a term that represents a somehow meaningful error-message, e.g. 
+respecting the format 
+
+---- <prolog-file>\<Predicate>(<Arguments>). 
+---- A standard exception handler is implemented by
 the predicate ~defaultExceptionHandler(G)~ that will catch any exception respecting the
 exception-format described above, that is thrown within goal ~G~.
 
@@ -4213,17 +4220,6 @@ defaultExceptionHandler(G) :-
          )
        ),
        true.
-
-/*
-----
-sql Term :- defaultExceptionHandler
- (
-  optimizerOption(entropy),
-  sql2(Term), !
- ).
-----
-
-*/
 
 % Default handling
 sql Term :- defaultExceptionHandler((
