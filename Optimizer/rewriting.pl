@@ -505,6 +505,12 @@ inferPredicate(Premises, [bbox(X) intersects box3d(bbox(Z),Y)]) :-
   X \= Y, X \= Z, Y \= Z.
 
 
+/*
+The following rules are deprecated, since generic rules for operators ~OP~ with
+~isBBoxPredicate(OP)~ have been introduced to ~[=>]/2~ in file ``optimizer.pl''.
+These rules should inforce the use of available indices.
+
+----
 inferPredicate(Premises, [X overlaps Y]) :-
   member(X touches Y, Premises),
   X \= Y.
@@ -516,8 +522,9 @@ inferPredicate(Premises, [X intersects Y]) :-
 inferPredicate(Premises, [X intersects Y]) :-
   member(X overlaps Y, Premises),
   X \= Y.
+----
 
-
+/*
 
 
 /*

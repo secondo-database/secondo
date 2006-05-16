@@ -91,7 +91,10 @@ isBBoxOperator(X) :- isBBoxPredicate(X).
 %isBBoxOperator(insidescanned).
 
 
-% commutative operators:
+/*
+Commutative operators can be handled specially in some translation rules
+
+*/
 isCommutativeOP(intersects).
 isCommutativeOP(touches).
 isCommutativeOP(attached).

@@ -1493,6 +1493,11 @@ Translation of selections using indices.
 
 April 2006, Christian D[ue]ntgen. Added project-translation for index selections.
 
+May 2006, Translating a selection-predicate into a combimation of ~windowintersects~/
+~windowintersectsS~ and ~filter~, the optimizer will add an initial project ~after~ the
+filter. For non-star-queries with one single selection this may even result in plans 
+with two consecutive projections.
+
 */
 select(arg(N), Y) => X :-
   isStarQuery, % no projection needed
@@ -1564,9 +1569,6 @@ indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
   argument(N, rel(Name, Var, Case)), Var \= * ,
   hasIndex(rel(Name,Var,Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
 
-%fapra1590
-indexselect(arg(N), pr(Y touches attr(AttrName, Arg, Case), Rel)) => X :-
-  indexselect(arg(N), pr(attr(AttrName, Arg, Case) touches Y, Rel)) => X.
 
 /*
 
@@ -1576,6 +1578,15 @@ relation. The correct approach is to do a rename on the result ~before~ the
 filter is used.
 
 */
+
+
+/*
+----
+% old, dedicated version for predicates checking on mbbs
+
+%fapra1590 - exploit commutativity of operator 'touches'
+indexselect(arg(N), pr(Y touches attr(AttrName, Arg, Case), Rel)) => X :-
+  indexselect(arg(N), pr(attr(AttrName, Arg, Case) touches Y, Rel)) => X.
 
 indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) touches Y, _)) =>
   filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), 
@@ -1590,9 +1601,43 @@ indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) touches Y, _)) =>
   :-
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= *, 
   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
+----
+
+*/
+
+% new, more generic version for predicates checking on mbbs
+
+% exploit commutativity of operators
+indexselect(arg(N), pr(Pred, Rel)) => X :-
+  Pred =.. [OP, Y, attr(AttrName, Arg, Case)],
+  isBBoxPredicate(OP), 
+  isCommutativeOP(OP),
+  Pred2 =.. [OP, attr(AttrName, Arg, Case), Y],
+  indexselect(arg(N), pr(Pred2, Rel)) => X.
+
+
+indexselect(arg(N), pr(Pred, _)) =>
+  filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), Pred)
+  :-
+  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y],
+  isBBoxPredicate(OP), 
+  % alternatively: member(OP,[touches, intersects, inside, overlaps]),
+  argument(N, rel(Name, *, Case)),  
+  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
+
+indexselect(arg(N), pr(Pred, _)) =>
+  filter(rename(windowintersects(IndexName, rel(Name,*,Case),bbox(Y)),RelAlias), 
+         Pred)
+  :-
+  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y], 
+  isBBoxPredicate(OP), 
+  % alternatively: member(OP,[touches, intersects, inside, overlaps]),
+  argument(N, rel(Name, RelAlias, Case)), RelAlias \= *, 
+  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
+
 
 /*
-C. D[ue]ntgen, Apr 2006: Added rules for specialized spatio-temporal R-tree indices
+C. D[ue]ntgen, Apr 2006: Added rules for specialized spatio-temporal R-Tree indices
 These indices are recognized by their index type, it is a combination of a ``granularity''
 (one of ~object~, ~unit~, ~group10~) and a ``bounding box type'' (one of ~time~, ~space~, ~d3~). 
 Even here, a possible ~rename~ must be done before ~filter~ can be applied.
@@ -1774,7 +1819,10 @@ join(Arg1, Arg2, pr(Pred, _, _)) => symmjoin(Arg1S, Arg2S, Pred) :-
   Arg2 => Arg2S.
 
 /*
-A join with predicate X touches Y
+Joins with generic predicates using bbox checks, that can exploit 
+the spatialjoin to reduce the set of candidates. Predicates are chosen by
+their properties as defiend by predicates ~isBBoxPredicate/1~ and 
+~isCommutativeOP/1~ in file ``operators.pl''.
 
 */
 
@@ -1797,7 +1845,7 @@ join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg1S,
   isOfSecond(Attr2, X, Y),
   Pred2 =.. [Op, Attr1, Attr2].
 
-% spatialjoin with generic commutative BBoxPredicate (also):
+% spatialjoin with generic commutative BBoxPredicate (additional):
 join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg2S, 
   Arg1S, attrname(Attr2), attrname(Attr1)), Pred2) :-
   Pred =.. [Op, Y, X],
@@ -1806,47 +1854,6 @@ join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg2S,
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, Y, X),
   Pred2 =.. [Op, Attr1, Attr2].
-
-/*
-----
-% spatialjoin mit 'touches'
-join00(Arg1S, Arg2S, pr(X touches Y, _, _)) => filter(spatialjoin(Arg1S, 
-  Arg2S, attrname(Attr1), attrname(Attr2)), Attr1 touches Attr2) :-
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-join00(Arg1S, Arg2S, pr(Y touches X, _, _)) => filter(spatialjoin(Arg2S, 
-  Arg1S, attrname(Attr2), attrname(Attr1)), Attr1 touches Attr2) :-
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-
-% spatialjoin mit 'intersects'
-join00(Arg1S, Arg2S, pr(X intersects Y, _, _)) => filter(spatialjoin(Arg1S, 
-  Arg2S, attrname(Attr1), attrname(Attr2)), Attr1 intersects Attr2) :-
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-join00(Arg1S, Arg2S, pr(Y intersects X, _, _)) => filter(spatialjoin(Arg2S, 
-  Arg1S, attrname(Attr2), attrname(Attr1)), Attr1 intersects Attr2) :-
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-
-% spatialjoin mit 'overlaps'
-join00(Arg1S, Arg2S, pr(X intersects Y, _, _)) => filter(spatialjoin(Arg1S, 
-  Arg2S, attrname(Attr1), attrname(Attr2)), Attr1 intersects Attr2) :-
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-join00(Arg1S, Arg2S, pr(Y intersects X, _, _)) => filter(spatialjoin(Arg2S, 
-  Arg1S, attrname(Attr2), attrname(Attr1)), Attr1 intersects Attr2) :-
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-----
-
-*/
 
 
 /*
@@ -3690,7 +3697,8 @@ translateFields([Attr as Name | Select], GroupAttrs, Fields, [Attr as Name | Sel
 
 
 /*
-Generic rule for aggregate functions, similar to sum.
+Generic rule for aggregate functions, similar to sum. For operators, the 
+property ~isAggregationOP(Op)~ is declared in file ``operators.pl''.
 
 */
 
@@ -3700,7 +3708,7 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
   compound(Term),
   functor(Term, AggrOp, 1),
   arg(1, Term, attr(Name, Var, Case)),
-  member(AggrOp, [min, max, avg]),
+  isAggregationOP(AggrOp),
   functor(Term2, AggrOp, 2),
   arg(1, Term2, feed(group)),
   arg(2, Term2, attrname(attr(Name, Var, Case))),
@@ -3713,7 +3721,7 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
   compound(Term),
   functor(Term, AggrOp, 1),
   arg(1, Term, Expr),
-  member(AggrOp, [min, max, avg]),
+  isAggregationOP(AggrOp),
   functor(Term2, AggrOp, 2),
   arg(1, Term2, extend(feed(group), field(attr(xxxExprField, 0, l), Expr))),
   arg(2, Term2, attrname(attr(xxxExprField, 0, l))),
@@ -3727,7 +3735,7 @@ translateFields([Term | Select], GroupAttrs,
   compound(Term),
   functor(Term, AggrOp, 1),
   arg(1, Term, Attr),
-  member(AggrOp, [count, sum, min, max, avg]),
+  isAggregationOP(AggrOp),
   functor(Term2, AggrOp, 2),
   arg(1, Term2, feed(group)),
   arg(2, Term2, attrname(Attr)),
