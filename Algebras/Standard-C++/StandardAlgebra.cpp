@@ -54,6 +54,13 @@ level remains. Models are also removed from type constructors.
 
 January 2006, M. Spiekermann new operator ~elapsedtime~ implemented.
 
+May 2006, M. Spiekermann new operator ~setoption~ implemented.
+
+May 11, 2006, M. Spiekermann. Most of the value mappings are replaced by template
+functions using the generic ~Compare~ function. This reduces the code a lot 
+(about 400 lines of code) and there are still some functions left which may 
+be replaced by template implementations. 
+
 \begin{center}
 \footnotesize
 \tableofcontents
@@ -1988,20 +1995,59 @@ LogFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
 
 /*
-4.9 Value mapping functions of operator  $ < $
+4.9 Value mappings for operator <
+
 
 */
 
+template<class T> 
 int
-CcLess_ii( Word* args, Word& result, int message, Word& local, Supplier s )
+CcLess( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() )
+  const T* a = static_cast<const T*>( args[0].addr );
+  const T* b = static_cast<const T*>( args[1].addr );
+  
+  ((CcBool *)result.addr)->Set( true, a->Compare(b) == -1 );
+  return (0);
+}
+
+template<class T> 
+int
+CcGreater( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  const T* a = static_cast<const T*>( args[0].addr );
+  const T* b = static_cast<const T*>( args[1].addr );
+  
+  ((CcBool *)result.addr)->Set( true, a->Compare(b) == 1 ); 
+  return (0);
+}
+
+template<class T>
+int
+CcEqual( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  const T* a = static_cast<const T*>( args[0].addr );
+  const T* b = static_cast<const T*>( args[1].addr );
+  
+  ((CcBool *)result.addr)->Set( true, a->Compare(b) == 0 ); 
+  return (0);
+}
+
+
+template<class S, class T>
+int
+CcLess2( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if ( ((S*)args[0].addr)->IsDefined() &&
+       ((T*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, ((CcInt*)args[0].addr)->GetIntval() <
-                 ((CcInt*)args[1].addr)->GetIntval() );
+      Set( true, ((S*)args[0].addr)->GetValue() <
+                 ((T*)args[1].addr)->GetValue() );
   }
   else
   {
@@ -2010,113 +2056,36 @@ CcLess_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-int
-CcLess_ir( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcReal*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcInt*)args[0].addr)->GetIntval() <
-                 ((CcReal*)args[1].addr)->GetRealval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcLess_ri( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcReal*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcReal*)args[0].addr)->GetRealval() <
-                 ((CcInt*)args[1].addr)->GetIntval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcLess_rr( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcReal*)args[0].addr)->IsDefined() &&
-       ((CcReal*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcReal*)args[0].addr)->GetRealval() <
-                 ((CcReal*)args[1].addr)->GetRealval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcLess_bb( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcBool*)args[0].addr)->IsDefined() &&
-       ((CcBool*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcBool*)args[0].addr)->GetBoolval() <
-                 ((CcBool*)args[1].addr)->GetBoolval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcLess_ss( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcString*)args[0].addr)->IsDefined() &&
-       ((CcString*)args[1].addr)->IsDefined() )
-  {
-    int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
-    if (cmp < 0)
-      ((CcBool *)result.addr)->Set( true, true );
-    else
-      ((CcBool *)result.addr)->Set( true, false );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
 
 /*
 4.10 Value mapping functions of operator $ <= $
 
 */
 
+template<class T>
 int
-CcLessEqual_ii( Word* args, Word& result, int message, Word& local, Supplier s )
+CcLessEqual( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() )
+  const T* a = static_cast<const T*>( args[0].addr );
+  const T* b = static_cast<const T*>( args[1].addr );
+  
+  ((CcBool *)result.addr)->Set( true, a->Compare(b) <= 0 ); 
+  return (0);
+}
+
+
+template<class S, class T>
+int
+CcLessEqual2( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if ( ((S*)args[0].addr)->IsDefined() &&
+       ((T*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, ((CcInt*)args[0].addr)->GetIntval() <=
-                 ((CcInt*)args[1].addr)->GetIntval() );
+      Set( true, ((S*)args[0].addr)->GetValue() <=
+                 ((T*)args[1].addr)->GetValue() );
   }
   else
   {
@@ -2125,113 +2094,24 @@ CcLessEqual_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-int
-CcLessEqual_ir( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcReal*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcInt*)args[0].addr)->GetIntval() <=
-                 ((CcReal*)args[1].addr)->GetRealval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcLessEqual_ri( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcReal*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcReal*)args[0].addr)->GetRealval() <=
-                 ((CcInt*)args[1].addr)->GetIntval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcLessEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcReal*)args[0].addr)->IsDefined() &&
-       ((CcReal*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcReal*)args[0].addr)->GetRealval() <=
-                 ((CcReal*)args[1].addr)->GetRealval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcLessEqual_bb( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcBool*)args[0].addr)->IsDefined() &&
-       ((CcBool*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcBool*)args[0].addr)->GetBoolval() <=
-                 ((CcBool*)args[1].addr)->GetBoolval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcLessEqual_ss( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcString*)args[0].addr)->IsDefined() &&
-       ((CcString*)args[1].addr)->IsDefined() )
-  {
-    int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
-    if (cmp <= 0)
-      ((CcBool *)result.addr)->Set( true, true );
-    else
-      ((CcBool *)result.addr)->Set( true, false );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return 0;
-}
 
 /*
 4.11 Value mapping functions of operator $ > $
 
 */
 
+
+template<class S, class T>
 int
-CcGreater_ii( Word* args, Word& result, int message, Word& local, Supplier s )
+CcGreater2( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() )
+  if ( ((S*)args[0].addr)->IsDefined() &&
+       ((T*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, ((CcInt*)args[0].addr)->GetIntval() >
-                 ((CcInt*)args[1].addr)->GetIntval() );
+      Set( true, ((S*)args[0].addr)->GetValue() >
+                 ((T*)args[1].addr)->GetValue() );
   }
   else
   {
@@ -2240,115 +2120,39 @@ CcGreater_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-int
-CcGreater_ir( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcReal*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcInt*)args[0].addr)->GetIntval() >
-                 ((CcReal*)args[1].addr)->GetRealval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
 
-int
-CcGreater_ri( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcReal*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcReal*)args[0].addr)->GetRealval() >
-                 ((CcInt*)args[1].addr)->GetIntval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcGreater_rr( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcReal*)args[0].addr)->IsDefined() &&
-       ((CcReal*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcReal*)args[0].addr)->GetRealval() >
-                 ((CcReal*)args[1].addr)->GetRealval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcGreater_bb( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcBool*)args[0].addr)->IsDefined() &&
-       ((CcBool*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcBool*)args[0].addr)->GetBoolval() >
-                 ((CcBool*)args[1].addr)->GetBoolval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcGreater_ss( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcString*)args[0].addr)->IsDefined() &&
-       ((CcString*)args[1].addr)->IsDefined() )
-  {
-    int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
-    if (cmp > 0)
-      ((CcBool *)result.addr)->Set( true, true );
-    else
-      ((CcBool *)result.addr)->Set( true, false );
-
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
 
 /*
 4.12 Value mapping functions of operator $ >= $
 
 */
 
+template<class T>
 int
-CcGreaterEqual_ii( Word* args, Word& result, int message, Word& local, 
-	Supplier s )
+CcGreaterEqual( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() )
+  const T* a = static_cast<const T*>( args[0].addr );
+  const T* b = static_cast<const T*>( args[1].addr );
+  
+  ((CcBool *)result.addr)->Set( true, a->Compare(b) >= 0 ); 
+  return (0);
+}
+
+
+
+template<class S, class T>
+int
+CcGreaterEqual2( Word* args, Word& result, int message, Word& local, 
+	         Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if ( ((S*)args[0].addr)->IsDefined() &&
+       ((T*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, ((CcInt*)args[0].addr)->GetIntval() >=
-                 ((CcInt*)args[1].addr)->GetIntval() );
+      Set( true, ((S*)args[0].addr)->GetValue() >=
+                 ((T*)args[1].addr)->GetValue() );
   }
   else
   {
@@ -2357,118 +2161,25 @@ CcGreaterEqual_ii( Word* args, Word& result, int message, Word& local,
   return (0);
 }
 
-int
-CcGreaterEqual_ir( Word* args, Word& result, int message, Word& local, 
-	Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcReal*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcInt*)args[0].addr)->GetIntval() >=
-                 ((CcReal*)args[1].addr)->GetRealval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
 
-int
-CcGreaterEqual_ri( Word* args, Word& result, int message, Word& local, 
-	Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcReal*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcReal*)args[0].addr)->GetRealval() >=
-                 ((CcInt*)args[1].addr)->GetIntval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcGreaterEqual_rr( Word* args, Word& result, int message, Word& local, 
-	Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcReal*)args[0].addr)->IsDefined() &&
-       ((CcReal*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcReal*)args[0].addr)->GetRealval() >=
-                 ((CcReal*)args[1].addr)->GetRealval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcGreaterEqual_bb( Word* args, Word& result, int message, Word& local, 
-	Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcBool*)args[0].addr)->IsDefined() &&
-       ((CcBool*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcBool*)args[0].addr)->GetBoolval() >=
-                 ((CcBool*)args[1].addr)->GetBoolval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcGreaterEqual_ss( Word* args, Word& result, int message, Word& local, 
-	Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcString*)args[0].addr)->IsDefined() &&
-       ((CcString*)args[1].addr)->IsDefined() )
-  {
-    int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
-    if (cmp >= 0)
-      ((CcBool *)result.addr)->Set( true, true );
-    else
-      ((CcBool *)result.addr)->Set( true, false );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
 
 /*
 4.13 Value mapping functions of operator ~=~
 
 */
 
+
+template<class S, class T>
 int
-CcEqual_ii( Word* args, Word& result, int message, Word& local, Supplier s )
+CcEqual2( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() )
+  if ( ((S*)args[0].addr)->IsDefined() &&
+       ((T*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, ((CcInt*)args[0].addr)->GetIntval() ==
-                 ((CcInt*)args[1].addr)->GetIntval() );
+      Set( true, ((S*)args[0].addr)->GetValue() ==
+                 ((T*)args[1].addr)->GetValue() );
   }
   else
   {
@@ -2477,205 +2188,36 @@ CcEqual_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-int
-CcEqual_ir( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcInt*)args[0].addr)->GetIntval() ==
-                 ((CcReal*)args[1].addr)->GetRealval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcEqual_ri( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcReal*)args[0].addr)->GetRealval() ==
-                 ((CcInt*)args[1].addr)->GetIntval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcReal*)args[0].addr)->GetRealval() ==
-                 ((CcReal*)args[1].addr)->GetRealval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcEqual_bb( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcBool*)args[0].addr)->IsDefined() &&
-       ((CcBool*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcBool*)args[0].addr)->GetBoolval() ==
-                 ((CcBool*)args[1].addr)->GetBoolval() );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcEqual_ss( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcString*)args[0].addr)->IsDefined() &&
-       ((CcString*)args[1].addr)->IsDefined() )
-  {
-    int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
-    if (cmp == 0)
-      ((CcBool *)result.addr)->Set( true, true );
-    else
-      ((CcBool *)result.addr)->Set( true, false );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
 
 /*
 4.14 Value mapping functions of operator ~\#~
 
 */
 
+template<class T>
 int
-CcDiff_ii( Word* args, Word& result, int message, Word& local, Supplier s )
+CcDiff( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, !(((CcInt*)args[0].addr)->GetIntval() ==
-                   ((CcInt*)args[1].addr)->GetIntval()) );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
+  const T* a = static_cast<const T*>( args[0].addr );
+  const T* b = static_cast<const T*>( args[1].addr );
+  
+  ((CcBool *)result.addr)->Set( true, a->Compare(b) != 0 ); 
   return (0);
 }
 
+
+template<class S, class T>
 int
-CcDiff_ir( Word* args, Word& result, int message, Word& local, Supplier s )
+CcDiff2( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() )
+  if ( ((S*)args[0].addr)->IsDefined() &&
+       ((T*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, !(((CcInt*)args[0].addr)->GetIntval() ==
-                   ((CcReal*)args[1].addr)->GetRealval()) );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcDiff_ri( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, !(((CcReal*)args[0].addr)->GetRealval() ==
-                   ((CcInt*)args[1].addr)->GetIntval()) );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcDiff_rr( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, !(((CcReal*)args[0].addr)->GetRealval() ==
-                   ((CcReal*)args[1].addr)->GetRealval()) );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcDiff_bb( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcBool*)args[0].addr)->IsDefined() &&
-       ((CcBool*)args[1].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, !(((CcBool*)args[0].addr)->GetBoolval() ==
-                   ((CcBool*)args[1].addr)->GetBoolval()) );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
-
-int
-CcDiff_ss( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcString*)args[0].addr)->IsDefined() &&
-       ((CcString*)args[1].addr)->IsDefined() )
-  {
-    int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
-    if (cmp != 0)
-      ((CcBool *)result.addr)->Set( true, true );
-    else
-      ((CcBool *)result.addr)->Set( true, false );
+      Set( true, ((S*)args[0].addr)->GetValue() !=
+                   ((T*)args[1].addr)->GetValue() );
   }
   else
   {
@@ -2853,11 +2395,13 @@ OrFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
+template<class T>
 int
-IsEmpty_b( Word* args, Word& result, int message, Word& local, Supplier s )
+IsEmpty( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( ((CcBool*)args[0].addr)->IsDefined() )
+  const T* arg = static_cast<const T*>( args[0].addr );
+  if( arg->IsDefined() )
   {
     ((CcBool*)result.addr)->Set( true, false );
   }
@@ -2868,50 +2412,6 @@ IsEmpty_b( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-int
-IsEmpty_i( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if( ((CcInt*)args[0].addr)->IsDefined() )
-  {
-    ((CcBool*)result.addr)->Set( true, false );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( true, true );
-  }
-  return (0);
-}
-
-int
-IsEmpty_r( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if( ((CcReal*)args[0].addr)->IsDefined() )
-  {
-    ((CcBool*)result.addr)->Set( true, false );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( true, true );
-  }
-  return (0);
-}
-
-int
-IsEmpty_s( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if( ((CcString*)args[0].addr)->IsDefined() )
-  {
-    ((CcBool*)result.addr)->Set( true, false );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( true, true );
-  }
-  return (0);
-}
 
 /*
 4.18 Value mapping functions of operator ~upper~
@@ -3360,22 +2860,24 @@ ifthenelseFun(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 
-int CcBetween_iii(Word* args, Word& result, int message, Word& local, 
-	Supplier s)
+template<class T>
+int 
+CcBetween( Word* args, Word& result, int message, Word& local, 
+	   Supplier s)
 {
   result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() && 
-	((CcInt*)args[2].addr)->IsDefined() )
+  if ( ((T*)args[0].addr)->IsDefined() &&
+       ((T*)args[1].addr)->IsDefined() && 
+	((T*)args[2].addr)->IsDefined() )
   {
-    if ( ((CcInt*)args[1].addr)->GetIntval() 
-	<= ((CcInt*)args[2].addr)->GetIntval() )
+    if ( ((T*)args[1].addr)->GetValue() 
+	<= ((T*)args[2].addr)->GetValue() )
     {
       ((CcBool *)result.addr)->Set( true, (
-        ((CcInt*)args[0].addr)->GetIntval() >= 
-        ((CcInt*)args[1].addr)->GetIntval()) &&
-       (((CcInt*)args[0].addr)->GetIntval() <= 
-        ((CcInt*)args[2].addr)->GetIntval()));
+        ((T*)args[0].addr)->GetValue() >= 
+        ((T*)args[1].addr)->GetValue()) &&
+       (((T*)args[0].addr)->GetValue() <= 
+        ((T*)args[2].addr)->GetValue()));
     }
     else cerr << "ERROR in operator between: second argument must be less or"
                  " equal third argument!" << endl;
@@ -3387,92 +2889,6 @@ int CcBetween_iii(Word* args, Word& result, int message, Word& local,
 
   return (0);
 }
-
-int CcBetween_rrr(Word* args, Word& result, int message, Word& local, 
-	Supplier s)
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcReal*)args[0].addr)->IsDefined() &&
-       ((CcReal*)args[1].addr)->IsDefined() && 
-	((CcReal*)args[2].addr)->IsDefined() )
-  {
-    if ( ((CcReal*)args[1].addr)->GetRealval() 
-	<= ((CcReal*)args[2].addr)->GetRealval() )
-    {
-      ((CcBool *)result.addr)->Set( true, 
-      (((CcReal*)args[0].addr)->GetRealval() >= 
-       ((CcReal*)args[1].addr)->GetRealval()) &&
-      (((CcReal*)args[0].addr)->GetRealval() <= 
-       ((CcReal*)args[2].addr)->GetRealval()));
-    }
-    else cerr << "ERROR in operator between: second argument must be less or"
-                 " equal third argument!" << endl;     
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-
-  return (0);
-}
-
-int CcBetween_sss(Word* args, Word& result, int message, Word& local, 
-	Supplier s)
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcString*)args[0].addr)->IsDefined() &&
-       ((CcString*)args[1].addr)->IsDefined() && 
-	((CcString*)args[2].addr)->IsDefined() )
-  {
-    if ( strcmp( *((CcString*)args[1].addr)->GetStringval(),
-                 *((CcString*)args[2].addr)->GetStringval() ) <= 0 )
-    {
-      ((CcBool *)result.addr)->Set( true, ( 
-      (strcmp( *((CcString*)args[0].addr)->GetStringval(),
-               *((CcString*)args[1].addr)->GetStringval() ) >= 0 ) &&
-      (strcmp( *((CcString*)args[0].addr)->GetStringval(),
-            *((CcString*)args[2].addr)->GetStringval() ) <= 0 ) ));
-    }
-    else cerr << "ERROR in operator between: second argument "
-		"must be less or"
-                " equal third argument!" << endl;  
-  }                                 
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-
-  return (0);
-}
-
-int CcBetween_bbb(Word* args, Word& result, int message, Word& local, 
-	Supplier s)
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcBool*)args[0].addr)->IsDefined() &&
-       ((CcBool*)args[1].addr)->IsDefined() && 
-	((CcBool*)args[2].addr)->IsDefined() )
-  {
-    if ( ((CcBool*)args[1].addr)->GetBoolval() 
-	<= ((CcBool*)args[2].addr)->GetBoolval() )
-    {
-      ((CcBool *)result.addr)->Set( true, 
-      (((CcBool*)args[0].addr)->GetBoolval() >= 
-       ((CcBool*)args[1].addr)->GetBoolval()) &&
-      (((CcBool*)args[0].addr)->GetBoolval() <= 
-       ((CcBool*)args[2].addr)->GetBoolval()));
-    }
-    else cerr << "ERROR in operator between: second argument must be "
-		"less or equal third argument!" << endl; 
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-
-  return (0);
-}
-
 
 /* 
 4.15 Computes the Levenshtein distance between two strings.
@@ -3576,6 +2992,91 @@ ccelapsedfun(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
+/*
+4.16 Operator ~setoption~
+
+This operator maps
+
+----   (string x int -> bool)
+----
+
+As a side effect internal configuration parameter of SECONDO are changed.
+
+5.12.0 Specification 
+
+*/
+
+struct SetOptionInfo : OperatorInfo {
+ 
+  SetOptionInfo() : OperatorInfo()
+  { 
+    name =      "setoption";
+    signature = "string x int -> bool";
+    syntax =    "setoption(key, n)";
+    meaning =   "Changes the value for key to n. Currently, only "
+                "the option \"MaxMemPerOperator\" is avalaible.";
+    example =   "setoption(\"MaxMemPerOperator\", 512*1024);";
+  }
+
+};
+
+
+/*
+5.12.1 Type mapping 
+
+The type mapping uses the wrapper class ~NList~ which hides calls
+to class NestedList. Moreover, there are some useful functions for
+handling streams of tuples.
+
+*/
+
+static ListExpr setoption_tm(ListExpr args)
+{
+  NList l(args);
+  
+  const string opName = "setoption";
+  string err1 = opName + "expects (string int)!";
+  
+  if ( !l.checkLength(2, err1) )
+    return l.typeError( err1 );
+  
+  if ( !l.first().isSymbol(Symbols::STRING()) ) 
+    return l.typeError(err1);
+
+  if ( !l.second().isSymbol(Symbols::INT()) ) 
+    return l.typeError(err1);
+
+  return NList(Symbols::BOOL()).listExpr();
+}
+
+int
+setoption_vm( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  // args[0] : string
+  // args[1] : int
+  
+  result = qp->ResultStorage( s );
+  string key = StdTypes::GetString(args[0]);
+  int value = StdTypes::GetInt(args[1]);
+  
+  bool found=false;
+  if ( key == "MaxMemPerOperator" ) {
+
+    found=true;
+    qp->SetMaxMemPerOperator(value);
+  } 
+  
+  if( found )
+  {
+    ((CcBool *)result.addr)->Set( true, true );
+  }
+  else
+  {
+    ((CcBool *)result.addr)->Set( false, false );
+  }
+  return (0);
+}
+
 
 
 /*
@@ -3602,38 +3103,75 @@ ValueMapping ccdivisionmap[] =
 ValueMapping ccmodmap[] = { CcMod };
 ValueMapping ccdivmap[] = { CcDiv };
 
-ValueMapping cclessmap[] = { CcLess_ii, CcLess_ir, CcLess_ri, CcLess_rr,
-                             CcLess_bb, CcLess_ss};
-ValueMapping cclessequalmap[] = 
-	{ CcLessEqual_ii, CcLessEqual_ir, CcLessEqual_ri,
-            CcLessEqual_rr, CcLessEqual_bb, CcLessEqual_ss };
-ValueMapping ccgreatermap[] = { CcGreater_ii, CcGreater_ir, CcGreater_ri,
-                                CcGreater_rr, CcGreater_bb, CcGreater_ss };
-ValueMapping ccgreaterequalmap[] = { CcGreaterEqual_ii, CcGreaterEqual_ir,
-                                     CcGreaterEqual_ri, CcGreaterEqual_rr,
-                                     CcGreaterEqual_bb, CcGreaterEqual_ss };
-ValueMapping ccequalmap[] = { CcEqual_ii, CcEqual_ir, CcEqual_ri, CcEqual_rr,
-                              CcEqual_bb,  CcEqual_ss };
-ValueMapping ccdiffmap[] = { CcDiff_ii, CcDiff_ir, CcDiff_ri, CcDiff_rr,
-                             CcDiff_bb, CcDiff_ss };
+ValueMapping cclessmap[] = { CcLess<CcInt>, 
+                             CcLess2<CcInt, CcReal>, 
+                             CcLess2<CcReal, CcInt>, 
+                             CcLess<CcReal>,
+                             CcLess<CcBool>, 
+                             CcLess<CcString> };
+
+ValueMapping cclessequalmap[] = { CcLessEqual<CcInt>, 
+                                  CcLessEqual2<CcInt, CcReal>, 
+                                  CcLessEqual2<CcReal, CcInt>,
+                                  CcLessEqual<CcReal>, 
+                                  CcLessEqual<CcBool>, 
+                                  CcLessEqual<CcString> };
+
+ValueMapping ccgreatermap[] = { CcGreater<CcInt>, 
+                                CcGreater2<CcInt, CcReal>, 
+                                CcGreater2<CcReal, CcInt>,
+                                CcGreater<CcReal>, 
+                                CcGreater<CcBool>, 
+                                CcGreater<CcString> };
+
+ValueMapping ccgreaterequalmap[] = { CcGreaterEqual<CcInt>, 
+                                     CcGreaterEqual2<CcInt, CcReal>,
+                                     CcGreaterEqual2<CcReal, CcInt>, 
+                                     CcGreaterEqual<CcReal>,
+                                     CcGreaterEqual<CcBool>, 
+                                     CcGreaterEqual<CcString> };
+
+ValueMapping ccequalmap[] = { CcEqual<CcInt>, 
+                              CcEqual2<CcInt, CcReal>, 
+                              CcEqual2<CcReal, CcInt>, 
+                              CcEqual<CcReal>,
+                              CcEqual<CcBool>,  
+                              CcEqual<CcString> };
+
+ValueMapping ccdiffmap[] = { CcDiff<CcInt>, 
+                             CcDiff2<CcInt, CcReal>, 
+                             CcDiff2<CcReal, CcInt>, 
+                             CcDiff<CcReal>,
+                             CcDiff<CcBool>, 
+                             CcDiff<CcString> };
 
 ValueMapping ccstartsmap[] = { StartsFun };
+
 ValueMapping cccontainsmap[] = { ContainsFun };
+
 ValueMapping ccandmap[] = { AndFun };
 ValueMapping ccormap[] = { OrFun };
 ValueMapping ccnotmap[] = { NotFun };
-ValueMapping ccisemptymap[] = { IsEmpty_b, IsEmpty_i, IsEmpty_r, IsEmpty_s };
+
+ValueMapping ccisemptymap[] = { IsEmpty<CcBool>, 
+                                IsEmpty<CcInt>, 
+                                IsEmpty<CcReal>, 
+                                IsEmpty<CcString> };
+
 ValueMapping ccsetintersectionmap[] = 
 	{ CcSetIntersection_ii, CcSetIntersection_rr, CcSetIntersection_bb, 
 	CcSetIntersection_ss };
+
 ValueMapping ccsetminusmap[] = 
 	{ CcSetMinus_ii, CcSetMinus_rr, CcSetMinus_bb, CcSetMinus_ss };
+
 ValueMapping ccoprelcountmap[] = { RelcountFun };
 ValueMapping ccoprelcountmap2[] = { RelcountFun2 };
 ValueMapping cckeywordsmap[] = { keywordsFun };
 ValueMapping ccifthenelsemap[] = { ifthenelseFun };
-ValueMapping ccbetweenmap[] = 
-	{ CcBetween_iii, CcBetween_rrr, CcBetween_sss, CcBetween_bbb };
+
+ValueMapping ccbetweenmap[] = { CcBetween<CcInt>, CcBetween<CcReal>, 
+                                CcBetween<CcString>, CcBetween<CcBool> };
 
 const string CCSpecAdd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
@@ -4142,6 +3680,15 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccbetween );
     AddOperator( &ccelapsedtime );
     AddOperator( &ccldistance);
+
+    static SetOptionInfo setoption_oi;
+    static Operator setoption_op( setoption_oi, 
+                                  setoption_vm, 
+                                  setoption_tm );
+    AddOperator(&setoption_op);
+
+
+
   }
   ~CcAlgebra1() {};
 
@@ -4230,42 +3777,44 @@ ShowStandardTypesStatistics( const bool reset )
 }
 
 
-int
-StdTypes::GetInt(Word w, const bool doRequest) 
-{
-  if (doRequest)
-    qp->Request(w.addr, w);
-  CcInt* cVal = static_cast<CcInt*>(w.addr);
-  return cVal->GetIntval(); 
+int 
+StdTypes::RequestInt(const Word& w) {
+   return Attribute::GetValue<CcInt, int>(w, true);
 } 
 
 int 
-StdTypes::RequestInt(const Word& w) 
-{
-   return GetInt(w, true);
+StdTypes::GetInt(const Word& w) {
+   return Attribute::GetValue<CcInt, int>(w, false);
 } 
 
-int 
-StdTypes::GetInt(const Word& w) 
-{
-   return GetInt(w, false);
+
+float
+StdTypes::RequestReal(const Word& w) {
+   return Attribute::GetValue<CcReal, float>(w, true);
 } 
 
-string
-StdTypes::GetString(Word w, const bool doRequest) 
-{
-  if (doRequest)
-    qp->Request(w.addr, w);
-  CcString* cName = static_cast<CcString*>(w.addr);
-  return *cName->GetStringval();     
+float
+StdTypes::GetReal(const Word& w) {
+   return Attribute::GetValue<CcReal, float>(w, false);
+} 
+
+
+bool
+StdTypes::RequestBool(const Word& w) {
+   return Attribute::GetValue<CcBool, bool>(w, true);
+} 
+
+bool
+StdTypes::GetBool(const Word& w) {
+   return Attribute::GetValue<CcBool, bool>(w, false);
 } 
 
 string 
 StdTypes::RequestString(const Word& w) {
-   return GetString(w, true);
+   return Attribute::GetValue<CcString, string>(w, true);
 }
 
 string 
 StdTypes::GetString(const Word& w) {
-   return GetString(w, false);
+   return Attribute::GetValue<CcString, string>(w, false);
 } 

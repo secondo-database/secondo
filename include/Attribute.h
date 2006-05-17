@@ -50,7 +50,10 @@ Oct 2004 M. Spiekermann. Adding some more detailed documentation and some
 thoughts about redesign and performance. 
 
 January 2006, M. Spiekermann. Some template functions which could be used as default
-for some type constructor functions were moved to ConstructoTemplates.h
+for some type constructor functions were moved to ConstructorTemplates.h
+
+May 2006, M. Spiekermann. Documentation for the ~Compare~ function extended. Template
+functions ~GenericCompare~ and ~GetValue~ added.
 
 1.1 Overview
 
@@ -133,13 +136,113 @@ Sets the ~defined~ flag of the attribute.
 
 */
 
-    virtual int Compare( const Attribute *attrib ) const = 0;
+    virtual int Compare( const Attribute *rhs ) const = 0;
 /*
 This function should define an order on the attribute values. 
-Return values are 0: for equal, -1: this < attrib, and 1: this > attrib. 
-The implementaion must also consider that values may be undefined. 
+The implementation must also consider that values may be undefined.
+Hence there are four cases of defined/undefined combinations which are 
+below referred as 11, 00, 01, 10.
 
+Case 11 (both values are defined) is the ~normal~ comparison 
+of attribute values
+
+----
+    -1: *this < *rhs 
+     0: *this = *rhs 
+     1: *this > *rhs
+----
+
+The semantics for the other cases are defined below:
+
+----
+    01 -> -1: *this < *rhs
+    00 ->  0: *this = *rhs
+    10 ->  1: *this > *rhs
+----    
+
+Thus the result of a comparison of attribute values is never undefined!
+
+Below a generic compare function is implemented by means of templates.
+In order to use this implement the functions
+
+---- 
+    inline operator==(const T& rhs) const
+    inline operator<(const T& rhs) const
+----
+
+in your class and instantiate it inside your ~Compare~ function implementation.
+For examples refer to the ~StandardAlgebra~.
+   
 */
+  
+    template<class T>
+    static inline int GenericCompare( const T* left, 
+                                      const T* right,
+                                      const bool lDef, 
+                                      const bool rDef    )
+    {
+      if ( lDef &&  rDef) // case 11: value comparison
+      {
+        if (  *left == *right  )
+          return 0;
+        else
+          return ( *right < *left ) ? 1 : -1;
+      } 
+      // compare only the defined flags
+      if( !lDef ) {
+        if ( !rDef )  // case 00
+          return 0;         
+        else          // case 01
+          return -1;
+      }
+      return 1;       // case 10  
+    }
+     
+/*
+In some cases it makes sense to offer more specialized comparisons since 
+some algorithms like sorting or duplicate removal need only $<$ or $=$.
+
+If it helps to increase performance one could think about to implement the
+virtual ~Equal~ or ~Less~ functions in the derived classes.
+
+*/   
+
+    
+    inline virtual bool Equal(const Attribute* rhs) const
+    {
+      return Compare(rhs) == 0;
+    } 
+    
+    template<class T>
+    static inline bool GenericEqual( const T* left, 
+                                     const T* right,
+                                     const bool lDef, 
+                                     const bool rDef    )
+    {
+      if (  *left == *right  )
+        return true;
+      else
+        return lDef == rDef;
+    }
+
+    inline virtual bool Less(const Attribute* rhs) const
+    {
+      return Compare(rhs) < 0;
+    } 
+    
+    template<class T>
+    static inline bool GenericLess( const T* left, 
+                                    const T* right,
+                                    const bool lDef, 
+                                    const bool rDef    )
+    {
+      if (  *left < *right  )
+        return true;
+      else
+        return (rDef && !lDef);
+    }
+
+    
     virtual bool Adjacent( const Attribute *attrib ) const = 0;
 /*
 This function checks if two attributes are adjacent. As an example,
@@ -149,16 +252,19 @@ are adjacent for string attributes.
 */
     virtual Attribute* Clone() const = 0;
 /*
-Warning: The simple implementation
+Warning: The obvious simple implementation
 
-----
-X::X(const X&) { // do a deep copy here }
-X::Clone() { return new X(*this); }
+---- Attribute* X::Clone() const { return new X(*this); }
 ----
 
-does only work correctly if the copy constructor is implemented otherwise
-the compiler will not complain and replaces the call by a default implementation
-returning just the this pointer, hence no new object will be created.
+does only work correctly if the copy constructor 
+
+---- X::X(const X&) { // do a deep copy here }
+----
+
+is implemented otherwise the compiler will not complain but it replaces 
+the call by a default implementation returning just a copy of all member variables.
+But in some cases this may be not correct. 
 
 */
     inline virtual int NumOfFLOBs() const
@@ -317,7 +423,30 @@ clones it.
 /*
 Sets the delete type.
 
+The template function below offers a generic interface for
+Interaction with the query processor. This makes it easier to
+retrieve parameter values inside an operators value mapping.
+Examples of its usage can be found in the ~StandardAlgebra~.
+
+In order to be able to instantiate this template you need to
+implement a member function
+
+---- S T::GetValue()
+----
+
+However, this makes only sense for types which have a simple internal
+value like int, float, etc.
+
 */
+
+    template<class S, class T>
+    static T GetValue(Word w, const bool doRequest) 
+    {
+      if (doRequest)
+        qp->Request(w.addr, w);
+      S* ptr = static_cast<S*>(w.addr);
+      return ptr->GetValue(); 
+    } 
 
   private:
 
@@ -327,7 +456,6 @@ Stores the way this attribute is deleted.
 
 */
 };
-
 
 #endif
 

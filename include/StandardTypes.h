@@ -30,15 +30,35 @@ December 1998 Friedhelm Becker
 
 2002-2003 U. Telle. Diploma thesis "reimplementation of SECONDO"
 
-Nov. 2004. M. Spiekermann. Modifications in CcInt. Using inline directives
+Nov. 2004. M. Spiekermann. Modifications in ~CcInt~. Using inline directives
 and avoiding to dereference pointers in the ~Compare~ method improves performance.
 
-April 2006. M. Spiekermann. A new struct StdTypes was added. It offers static methods for retrieving integer or string arguments from a given Word value. Moreover, counters for calls of ~Compare~ and ~HashValue~ are implemented. 
+April 2006. M. Spiekermann. A new struct StdTypes was added. It offers static
+methods for retrieving integer or string arguments from a given Word value.
+Moreover, counters for calls of ~Compare~ and ~HashValue~ are implemented for types
+~CcInt~ and ~CcString~. 
+
+May 2006. M. Spiekermann. The implementation of ~Compare~ for ~CcInt~ has been
+changed.  Now first the case that both values are defined is handled and
+equality is tested before unequality. This makes the number of integer
+comparisons for recognizing $A > B$ or $A < B$ symmetric and in the average the
+same since we need 1 for validating $A = B$ and 2 for $A {<,>} B$. Before it was
+1 for $A > B$ and 2 for $A {<,=} B$.
+
 
 1.1 Overview
 
-This file defines four classes: CcInt, CcReal, CcBool and CcString. They
-are the data types which are provided by the Standardalgebra.
+This file defines four classes which represent the data types provided
+by the ~StandardAlgebra~: 
+
+---- 
+     C++       |   SECONDO
+     ======================
+     CcInt     |   int
+     CcReal    |   real
+     CcBool    |   bool
+     CcString  |   string
+----
 
 */
 
@@ -54,6 +74,8 @@ are the data types which are provided by the Standardalgebra.
 2.1 CcInt
 
 */
+
+
 
 class CcInt : public StandardAttribute
 {
@@ -100,6 +122,11 @@ class CcInt : public StandardAttribute
     return (intval); 
   }
   
+  inline int GetValue() const
+  { 
+    return (intval); 
+  }
+
   inline void Set( int v )
   { 
     defined = true, intval = v; 
@@ -126,25 +153,32 @@ class CcInt : public StandardAttribute
   
   inline int Compare(const Attribute *arg) const
   {
-
+    const CcInt* rhs = static_cast<const CcInt*>( arg );
     static long& ctr = Counter::getRef("CcInt::Compare");
     ctr++;
-    if(!defined) 
-      return -1;
-    const CcInt* p = (const CcInt*)arg;
-    if(!defined && !p->defined) 
-      return 0;
-    if(!p->defined) 
-      return 1;
-    if( !p )
-      return -2;
-    if ( intval < p->intval ) 
-      return -1;
-    if ( intval > p->intval) 
-      return 1;
-    return 0;
+
+    return Attribute::GenericCompare<CcInt>(this, rhs, defined, rhs->defined);
   }
 
+  inline virtual bool Equal(const Attribute *arg) const
+  {
+    const CcInt* rhs = static_cast<const CcInt*>( arg );
+    static long& ctr = Counter::getRef("CcInt::Equal");
+    ctr++;
+
+    return Attribute::GenericEqual<CcInt>(this, rhs, defined, rhs->defined);
+  }
+
+  inline virtual bool Less(const Attribute *arg) const
+  {
+    const CcInt* rhs = static_cast<const CcInt*>( arg );
+    static long& ctr = Counter::getRef("CcInt::Less");
+    ctr++;
+
+    return Attribute::GenericLess<CcInt>(this, rhs, defined, rhs->defined);
+  }
+
+  
   inline bool Adjacent(const Attribute *arg) const
   {
     int a = GetIntval(),
@@ -187,6 +221,17 @@ class CcInt : public StandardAttribute
       return SetWord( Address(0) );
   }
 
+  inline bool operator==(const CcInt& rhs) const
+  {
+    return intval == rhs.intval;
+  }
+
+  inline bool operator<(const CcInt& rhs) const
+  {
+    return intval < rhs.intval;
+  } 
+
+  
   static long intsCreated;
   static long intsDeleted;
 
@@ -242,7 +287,13 @@ class CcReal : public StandardAttribute
   { 
     return realval;
   }
- 
+  
+  inline float GetValue() const
+  { 
+    return realval;
+  }
+
+  
   inline void CcReal::Set( float v ) 
   { 
     defined = true, 
@@ -282,22 +333,12 @@ class CcReal : public StandardAttribute
     realval = r->realval;
   }
 
-  inline int Compare( const Attribute * arg ) const
+  inline int Compare( const Attribute* arg ) const
   {
-    if(!defined)
-      return -1;
-    const CcReal *p = (const CcReal*)arg;
-    if(!defined && !p->defined)
-      return 0;
-    if(!p->defined)
-      return 1;
-    if ( !p ) 
-      return -2;
-    if ( realval < p->realval ) 
-      return -1;
-    if ( realval > p->realval ) 
-      return 1;
-    return 0;
+    const CcReal* rhs = static_cast<const CcReal*>( arg );
+    static long& ctr = Counter::getRef("CcReal::Compare");
+    ctr++;
+    return Attribute::GenericCompare<CcReal>(this, rhs, defined, rhs->defined); 
   }
 
   inline bool Adjacent( const Attribute *arg ) const
@@ -310,10 +351,22 @@ class CcReal : public StandardAttribute
   static long realsCreated;
   static long realsDeleted;
 
+  inline bool operator==(const CcReal& rhs) const
+  {
+    return realval == rhs.realval;
+  }   
+  inline bool operator<(const CcReal& rhs) const
+  {
+    return realval < rhs.realval;
+  } 
+
  private:
   bool  defined;
   float realval;
 };
+
+
+
 
 /*
 4.1 CcBool
@@ -368,7 +421,12 @@ class CcBool : public StandardAttribute
   { 
     return boolval; 
   }
-
+  
+  inline bool GetValue() const
+  { 
+    return boolval; 
+  }
+  
   inline CcBool* Clone() const
   { 
     return new CcBool(this->defined, this->boolval); 
@@ -388,20 +446,8 @@ class CcBool : public StandardAttribute
 
   inline int Compare( const Attribute* arg ) const
   {
-    if(!defined)
-      return -1;
-    const CcBool *p = (const CcBool*)arg;
-    if(!defined && !p->defined)
-      return 0;
-    if(!p->defined)
-      return 1;
-    if ( !p )
-      return -2;
-    if ( boolval < p->boolval ) 
-      return -1;
-    if ( boolval > p->boolval ) 
-      return 1;
-    return 0;
+    const CcBool* rhs = static_cast<const CcBool*>( arg );
+    return Attribute::GenericCompare<CcBool>(this, rhs, defined, rhs->defined); 
   }
 
   inline bool Adjacent( const Attribute* arg ) const
@@ -415,6 +461,17 @@ class CcBool : public StandardAttribute
     else return (os << "FALSE");
   }
 
+  inline bool operator==(const CcBool& rhs) const
+  {
+    return boolval == rhs.boolval;
+  }   
+  
+  inline bool operator<(const CcBool& rhs) const
+  {
+    return boolval < rhs.boolval;
+  } 
+
+  
   static long boolsCreated;
   static long boolsDeleted;
 
@@ -473,6 +530,12 @@ class CcString : public StandardAttribute
     return &stringval; 
   }
 
+  inline const string GetValue() const
+  { 
+    return stringval; 
+  }
+
+  
   inline CcString* Clone() const
   { 
     return (new CcString( this->defined, &this->stringval )); 
@@ -510,22 +573,29 @@ class CcString : public StandardAttribute
 
   inline int Compare( const Attribute* arg ) const
   {
+    const CcString* rhs = static_cast<const CcString*>( arg );
     static long& ctr = Counter::getRef("CcString::Compare");
     ctr++;
-    if(!defined)
-      return -1;
-    const CcString* p = (const CcString*)(arg);
-    if(!defined && !p->defined)
-      return 0;
-    if(!p->defined)
-      return 1;
-    if ( !p ) 
-      return -2;
-    if ( strcmp(stringval , p->stringval) < 0) 
-      return -1;
-    if ( !strcmp(stringval , p->stringval)) 
-      return 0;
-    return 1;
+
+    if (defined && rhs->defined)
+    { 
+      const int cmp = strcmp(stringval, rhs->stringval);
+      if (cmp == 0)
+         return 0;
+      else
+         return (cmp < 0) ? -1 : 1;
+    }
+    else
+    {     
+      // compare only the defined flags
+      if( !defined ) {
+        if ( !rhs->defined )  // case 00
+          return 0;         
+        else          // case 01
+          return -1;
+      }
+      return 1;       // case 10  
+    }  
   }
 
   bool Adjacent( const Attribute* arg ) const;
@@ -572,12 +642,15 @@ struct StdTypes
   static int GetInt(const Word& w); 
   static int RequestInt(const Word& w); 
 
+  static float GetReal(const Word& w); 
+  static float RequestReal(const Word& w); 
+  
+  static bool GetBool(const Word& w); 
+  static bool RequestBool(const Word& w); 
+  
   static string GetString(const Word& w); 
   static string RequestString(const Word& w); 
 
-  private:
-  static string GetString(Word w, const bool doRequest); 
-  static int GetInt(Word w, const bool doRequest); 
 };
 
 #endif
