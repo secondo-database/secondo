@@ -770,12 +770,15 @@ class TupleCompareBy
 {
   public:
     TupleCompareBy( const SortOrderSpecification &spec ):
-      spec( spec )
+      spec( spec ),
+      len( spec.size() )
       {}
 
     inline bool operator()( const Tuple* a, 
                             const Tuple* b ) const
     {
+      if (len > 1) {
+       
       SortOrderSpecification::const_iterator iter = spec.begin();
       while( iter != spec.end() )
       {
@@ -787,17 +790,27 @@ class TupleCompareBy
         if( cmpValue !=  0 ) 
 	{
           // aAttr < bAttr ?
-	  return cmpValue < 0 ? iter->second : !(iter->second);
+	  return (cmpValue < 0) ? iter->second : !(iter->second);
 	}	
         // the current attribute is equal
         iter++;
       }
       // all attributes are equal  
       return false;
+      
+      }
+      else
+      {
+        const int pos = spec[0].first-1;
+        const Attribute* aAttr = (const Attribute*) a->GetAttribute(pos);
+        const Attribute* bAttr = (const Attribute*) b->GetAttribute(pos);
+        return aAttr->Less(bAttr) ? spec[0].second : !spec[0].second;
+      } 
   }
 
   private:
     SortOrderSpecification spec;
+    const size_t len;
 };
 
 /*
