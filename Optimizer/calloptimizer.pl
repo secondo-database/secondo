@@ -396,7 +396,7 @@ This are the optional standart settings for the optimizer when getting started.
 Feel free to change.
  
 */
-:- setOption(entropy).          % Using entropy extension?
+% :- setOption(entropy).          % Using entropy extension?
 % :- setOption(immediatePlan).    % Don't create complete POG?
 :- setOption(pathTiming).       % Prompt time used to create immediate plan?
 % :- setOption(uniformSpeed).     % Using uniform machine speed factor?
