@@ -206,9 +206,6 @@ This will aso ensure, that this file (~immediateplan.pl~) is consulted.
 ~delOption(immediatePlan)~ turns this modification off, so one can use
 the original implemented algorithm of the optimizer again.
 
-The time needed for constructing respectively finding the cheapest plan
-respectively shortest path will be given, if one uses ~setOption(immediatePlanTime)~.
-
 There are goals in several clauses existing just for observing, how the
 modified optimizer in detail works. They can be activated by switching on debugmode
 ~setOption(debug)~ and setting debug level to ~immPath~ (by ~debugLevel(immPath)~).
@@ -233,18 +230,11 @@ Switching of optimizer options is now handled in file  ~calloptimizer.pl~.
 :- dynamic deleteOutOfReachedNodesSet/3.
 :- dynamic isEmpty/1.
 
-
 % This is the toplevel predicate for this extension, called by optimizer.pl
 % when ~optimizerOption(immediatePlan)~ is defined.
 immPlanTranslate(Select from Rels where Preds, Stream, Select, Cost) :-
   optimizerOption(immediatePlan),
-  ( optimizerOption(immediatePlanTime) 
-    -> timeCheck1(UsedTime); true 
-  ),
-  immPathCreation(Rels, Preds, Stream, Cost), 
-  ( optimizerOption(immediatePlanTime) 
-    -> timeCheck2(UsedTime); true 
-  ), !.
+  immPathCreation(Rels, Preds, Stream, Cost), !.
 
 % Fall-back case, that should never be called
 immPlanTranslate(_, _, _, _) :-
@@ -271,26 +261,6 @@ immPlanPrintWelcomePOG :-
      nl, write('*** modification of the optimizer again,'),
      nl, write('*** that immediately creates the shortest path.'), nl.
 	
-immPlanPrintTimeMessage :-
-     nl, 
-     nl, write('*** The time needed for constructing respectively'),
-     nl, write('*** finding the cheapest plan / shortest path'),
-     nl, write('*** will be printed on your screen.'),
-     nl,
-     nl, write('*** Please type delOption(immediatePlanTime) '),
-     nl, write('*** if you don''t want to know the calculation'),
-     nl, write('*** time any more.'), nl.
-
-
-timeCheck1(Time) :-
-     get_time(Time).
-
-timeCheck2(Time1) :-
-     get_time(Time2),
-     Time3 is 1000*(Time2-Time1),
-     nl, 
-     write('Time needed for creating/finding the cheapest plan: '), 
-     write(Time3), nl, nl.
 
 /*
 

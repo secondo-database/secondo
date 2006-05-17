@@ -119,9 +119,9 @@ optimizerOptionInfo(immediatePlan,
                       delOption(entropy)
                     ), 
                     loadFiles(completePOG)).
-optimizerOptionInfo(immediatePlanTime,    
-'Prompt time used to find a path when \'immediatePlan\' is selected',
-                    immPlanPrintTimeMessage, true).
+optimizerOptionInfo(pathTiming,    
+                    'Prompt time used to find a best path.',
+                    true, true).
 optimizerOptionInfo(dynamicSample,    
                     'Use dynamic instead of static (saved) samples.',
                     true, true).
@@ -396,9 +396,9 @@ This are the optional standart settings for the optimizer when getting started.
 Feel free to change.
  
 */
-% :- setOption(entropy).          % Using entropy extension?
-% :- setOption(immediatePlan)     % Don't create complete POG?
-% :- setOption(immediatePlanTime) % Prompt time used to create immediate plan?
+:- setOption(entropy).          % Using entropy extension?
+% :- setOption(immediatePlan).    % Don't create complete POG?
+:- setOption(pathTiming).       % Prompt time used to create immediate plan?
 % :- setOption(uniformSpeed).     % Using uniform machine speed factor?
 % :- setOption(costsConjunctive). % Applying costs only to conjunctive sub query?
 % :- setOption(dynamicSample).    % Using dynamic samples instead of static ones?
