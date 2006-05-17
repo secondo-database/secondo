@@ -40,6 +40,10 @@ open database basic_cmd;
 #yields success 
 list objects;
 
+#testcase list types; 
+#yields success 
+list types;
+
 # Test standard algebra 
 # Operations with int and real 
 
@@ -87,6 +91,8 @@ query a mod c
 #yields (int 3)
 query a div c 
 
+# Integer Comparisons
+
 #testcase a>b
 #yields (bool TRUE)
 query a > b
@@ -114,6 +120,111 @@ query a >= a;
 #testcase a<=a
 #yields (bool TRUE)
 query a <= a;
+
+#testcase a # a
+#yields (bool FALSE)
+query a # a;
+
+#testcase a # b
+#yields (bool TRUE)
+query a # b;
+
+# Mixed Integer/Real Comparisons
+
+#testcase int/real-1 
+#yields (bool TRUE)
+query 1.0 < 2;
+
+#testcase int/real-2 
+#yields (bool FALSE)
+query 3.1 < 2;
+
+#testcase int/real-1 
+#yields (bool TRUE)
+query 1.0 <= 2;
+
+#testcase int/real-2 
+#yields (bool FALSE)
+query 3.1 <= 2;
+
+#testcase int/real-3 
+#yields (bool TRUE)
+query 2.1 > 2;
+
+#testcase int/real-4 
+#yields (bool FALSE)
+query 2.1 > 3;
+
+#testcase int/real-3 
+#yields (bool TRUE)
+query 2.1 >= 2;
+
+#testcase int/real-4 
+#yields (bool FALSE)
+query 2.1 >= 3;
+
+#testcase int/real-5 
+#yields (bool TRUE)
+query 3.0 = 3;
+
+#testcase int/real-6 
+#yields (bool FALSE)
+query 3.0 # 3;
+
+# real/int Comparisons
+
+#testcase int/real-1 
+#yields (bool TRUE)
+query 1 < 2.0;
+
+#testcase int/real-2 
+#yields (bool FALSE)
+query 3 < 2.1;
+
+#testcase int/real-1 
+#yields (bool TRUE)
+query 1 <= 2.2;
+
+#testcase int/real-2 
+#yields (bool FALSE)
+query 3 <= 2.4;
+
+#testcase int/real-3 
+#yields (bool TRUE)
+query 2 > 1.9;
+
+#testcase int/real-4 
+#yields (bool FALSE)
+query 2 > 3.3;
+
+#testcase int/real-3 
+#yields (bool TRUE)
+query 2 >= 1.9;
+
+#testcase int/real-4 
+#yields (bool FALSE)
+query 2 >= 3.1;
+
+#testcase int/real-5 
+#yields (bool TRUE)
+query 3 = 3.0;
+
+#testcase int/real-6 
+#yields (bool FALSE)
+query 3 # 3.0;
+
+#testcase between-1
+#yields (bool TRUE)
+query 4 between[3, 5];
+
+#testcase between-2
+#yields (bool TRUE)
+query 4.2 between[3.3, 5.1];
+
+#testcase between-3
+#yields (bool TRUE)
+query "ABC" between["A", "ABC"];
+
 
 #testcase randint
 #yields (bool TRUE)
@@ -177,9 +288,30 @@ query "starts" contains "xc"
 #yields (bool TRUE)
 query substr("test",2,3) = "es"
 
-#testcase str < str
+#testcase strcmp-1
+#yields (bool TRUE)
+query "Abc" = "Abc";
+
+#testcase strcmp-2
+#yields (bool FALSE)
+query "Abc" = "ABC";
+
+#testcase strcmp-3
+#yields (bool FALSE)
+query "Abc" # "Abc";
+
+#testcase strcmp-4
+#yields (bool TRUE)
+query "Abc" # "ABC";
+
+#testcase strcmp-5
 #yields (bool FALSE)
 query "house" < "hotel"
+
+#testcase strcmp-6
+#yields (bool TRUE)
+query "house" > "hotel"
+
 
 #testcase upper
 #yields (bool TRUE)
