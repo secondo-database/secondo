@@ -110,15 +110,18 @@ with the ~send~ method.
 #define CLASS_RTFLAG_H
 
 
-
 // some macros which may be useful for tracing the program execution
 #ifdef TRACE_ON
 #define ETRACE(a) { a }
-#define TRACE(a) {cout << a << ":" << endl;}
+#define TRACE_FILE(n) {{ \
+  ofstream* traceFilePtr = new ofstream(n, ios_base::out | ios_base::app); \
+  traceOS = traceFilePtr; }}
+#define TRACE_OS(os) { traceOS = &os; }                        
+#define TRACE(a) {*traceOS << a << endl;}
 #define NTRACE(n,a) { static int ctr=0; ctr++; \
                       if ( (ctr % n)  == 0) \
-                       {cout << ctr << " - " << a << ":" << endl; }}
-#define SHOW(a) {cout << "  " << #a << " = " << a << endl;} 
+                       {*traceOS << ctr << " - " << a << endl; }}
+#define SHOW(a) {*traceOS << "  " << #a << " = " << a << endl;} 
 #else
 #define ETRACE(a)
 #define TRACE(a) 
@@ -145,6 +148,7 @@ using namespace std;
 #define LOGMSG(a, b) if ( RTFlag::isActive(a) ) { b }
 #endif
 
+extern ostream* traceOS;
 
 class RTFlag {
 
