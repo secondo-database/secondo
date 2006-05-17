@@ -836,7 +836,7 @@ FunInfo::request( Word firstArg, Word secondArg, Word& funresult,
 void
 FunVector::addFunction( string name, Supplier s )
 {
-  cout << "size: " << funInfos.size() << endl;
+  //cout << "size: " << funInfos.size() << endl;
   FunInfo f( funInfos.size()+1, name, s );
   funInfos.push_back(f);
 }
@@ -859,7 +859,7 @@ FunVector::load( Word suppl, Word* funNames, const bool doRequest /*= false*/ )
     }
     const STRING* name = ((CcString*)wfunName.addr)->GetStringval();
 
-    cerr << "Function " << i << "/" << noOfFuns << *name << endl;
+    //cerr << "Function " << i << "/" << noOfFuns << *name << endl;
     supplier1 = qp->GetSupplier(funSupplier, i);
     supplier2 = qp->GetSupplier(supplier1, 1);
 
