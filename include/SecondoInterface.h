@@ -1080,6 +1080,12 @@ Sets the debug level of the query processor.
   double commitReal;
   double outObjReal;
   double copyReal;
+ 
+  inline void showTimes(double real, double cpu) 
+  {
+    cmsg.info() << "Times (elapsed / cpu): " << real << " / " << cpu << endl;
+    cmsg.send(); 
+  } 
   
 };
 

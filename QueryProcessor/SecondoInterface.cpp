@@ -345,6 +345,8 @@ static SecondoSystem* ss = 0;
 
 Symbols sym;
 
+ostream* traceOS = &cout;
+
 /**************************************************************************
 
 1 Implementation of class SecondoInterface
@@ -448,10 +450,9 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     }
     else
     {
-      string errMsg;
-      SmiEnvironment::GetLastErrorCode( errMsg );
-      cout << "Error: " << errMsg << endl;
-      ok = false;
+      cerr << "Fatal Error: Could not start up SMI! " 
+           << "Check configuration parameters." << endl;
+      return false;
     }
   }
   if (ok)
@@ -1526,13 +1527,12 @@ SecondoInterface::Command_Query( const ListExpr list,
      qp.ResetTimer();
      qp.Eval( tree, result, 1 );
      
-     if (showCmdTimes) 
-     {
-       cmsg.info() << queryTime.diffTimes() << endl;
-       cmsg.send();
-     }
      queryReal = queryTime.diffSecondsReal();
      queryCPU = queryTime.diffSecondsCPU();
+     if (showCmdTimes) 
+     {
+       showTimes(queryReal, queryCPU);
+     }
 
      StopWatch outObj; 
      ListExpr valueList = ctlg.OutObject( resultType, result );
