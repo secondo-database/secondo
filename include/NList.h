@@ -109,6 +109,12 @@ struct Symbols {
     static const string& STRING() { 
        static string s("string"); return s; 
     }  
+    static const string& INT() { 
+       static string s("int"); return s; 
+    }  
+    static const string& BOOL() { 
+       static string s("bool"); return s; 
+    }  
 };  
 
 
