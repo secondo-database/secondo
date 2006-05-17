@@ -3442,21 +3442,20 @@ translate(Query groupby Attrs,
   attrnamesSort(Attrs2, AttrNamesSort),
   SelectClause = (select Select),
   makeList(Select, SelAttrs),
-  translateFields(SelAttrs, Attrs2, Fields, Select2), 
+  translateFields(SelAttrs, Attrs2, Fields, Select2),
   !.
 
 translate(Select from Rels where Preds, Stream, Select, Cost) :- 
   not(optimizerOption(immediatePlan)),		% standard behaviour
-  getTime((
-            pog(Rels, Preds, _, _),
+  getTime(( pog(Rels, Preds, _, _),
             assignCosts,
             bestPlan(Stream, Cost),
             !
           ), Time),
-  optimizerOption(pathTiming) 
-  -> ( write('\nTIMING for path creation: '), write(Time), write(' ms.\n') ); true,
-  !.
-
+  ( optimizerOption(pathTiming) 
+    -> ( write('\nTIMING for path creation: '), write(Time), write(' ms.\n') )
+     ; true
+  ), !.
 
 /*
 Modified version to integrate the optional generation of immediate plans.
@@ -3467,14 +3466,14 @@ defined. See file ''immediateplan.pl'' for further information.
 
 
 translate(Select from Rels where Preds, Stream, Select, Cost) :- 
-  getTime((
-            optimizerOption(immediatePlan),
-            immPlanTranslate(Select from Rels where Preds, Stream, Select, Cost),
+  optimizerOption(immediatePlan),
+  getTime(( immPlanTranslate(Select from Rels where Preds, Stream, Select, Cost),
             !
           ), Time),
-  optimizerOption(pathTiming) 
-  -> ( write('\nTIMING for path creation: '), write(Time), write(' ms.\n') ); true,
-  !.
+  ( optimizerOption(pathTiming) 
+    -> ( write('\nTIMING for path creation: '), write(Time), write(' ms.\n') )
+     ; true
+  ), !.
 
 
 /*
@@ -3496,16 +3495,17 @@ C. Duentgen, Feb/17/2006: changed tuple variable names for the sake of uniquenes
 translate(Select from Rel, Stream, Select, 0) :-
   not(is_list(Rel)),
   makeStream(Rel, Stream), 
-  optimizerOption(pathTiming) 
-  -> ( write('\nTIMING for path creation: Did no optimization.\n') ); true,
-  !.
+  (optimizerOption(pathTiming) 
+    -> write('\nTIMING for path creation: No optimization.\n') ; true
+  ), !.
 
 translate(Select from [Rel], Stream, Select, 0) :-
   makeStream(Rel, Stream),
   deleteVariables,
-  optimizerOption(pathTiming) 
-  -> ( write('\nTIMING for path creation: Did no optimization.\n') ); true,
-  !.
+  (optimizerOption(pathTiming) 
+    -> write('\nTIMING for path creation: No optimization.\n') ; true
+  ).
+
 
 translate(Select from [Rel | Rels], 
         symmjoin(S1, S2, fun([param(T1, tuple), param(T2, tuple2)], true)), 
@@ -3518,7 +3518,7 @@ translate(Select from [Rel | Rels],
 
 makeStream(Rel, feed(Rel)) :- Rel = rel(_, *, _), !.
 
-makeStream(Rel, rename(feed(Rel), Var)) :- Rel = rel(_, Var, _), !.
+makeStream(Rel, rename(feed(Rel), Var)) :- Rel = rel(_, Var, _).
 
 
 /*
