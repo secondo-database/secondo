@@ -78,13 +78,17 @@ variable will be set by the SecondoInterface at startup. The value can be define
 the configuration file. In the future it may be nice if the Query Processor computes
 this value based on a global memory limit per query. 
 
-June 2005, M. Spiekermann SetDeletFunction added.
+June 2005, M. Spiekermann. ~SetDeleteFunction~ added.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
 January 2006 Victor Almeida created the FLOB cache.
+
+January - March 2006, M. Spiekermann. Changes for supporting ~streams~ as
+arguments to parameter functions. 
+
 
 1.1 Overview
 
@@ -273,6 +277,15 @@ before). The result is returned in ~result~. The second variant has a smarter
 signature. 
 
 */
+  int GetNoSons( const Supplier s );
+/*
+Returns the number of sons of the operator node ~s~ of the operator
+tree. 
+
+*/
+
+  void SetupStreamArg( const Supplier funNode, const int num, Supplier opNode );
+  
   bool Received( const Supplier s );
 /*
 Returns "true"[4] if the supplier responded to the previous ~request~ by a
@@ -292,7 +305,7 @@ is closed already.
 */
   Supplier GetSupplier( const Supplier s, const int no );
 /*
->From a given supplier ~s~ that must represent an argument list, get its son
+From a given supplier ~s~ that must represent an argument list, get its son
 number ~no~. Can be used to traverse the operator tree in order to access
 arguments within (nested) argument lists. Values or function or stream
 evaluation can then be obtained from the returned supplier by the usual
@@ -309,14 +322,16 @@ As a parameter ~s~, the operator's node address has to be given which is
 passed to the evaluation function in parameter ~opTreeNode~. 
 
 */
-  void ResultStorage( const Supplier s, const Word w );
+  
+  void ChangeResultStorage( const Supplier s, const Word w );
   void SetDeleteFunction( const Supplier s, const ObjectDeletion f );
+  
 /*
-Some operators do not use the result storage and create their own
-storage for the result. This function is used for this case. They
-must call the first function ~ResultStorage~ and free it, and then 
-set the new one passed in ~w~. Moreover a function for deletion of the
-new type can be defined wit SetDeleteFunction
+Some operators do not use the result storage and create their own storage for
+the result. This function is used for this case. They must call first function
+~ResultStorage~ and free it, afterwards ~ChangeResultStorage~ is called.
+Moreover, a function for deletion of the new type must be defined with
+~SetDeleteFunction~
 
 */
   void DeleteResultStorage( const Supplier s);
@@ -332,12 +347,6 @@ of the result storage. In this case, the query processor will leave
 the control of the actual result storage and creates a new one. The
 operator that calls this function is responsible for releasing the
 memory allocated for the old result storage.
-
-*/
-  int GetNoSons( const Supplier s );
-/*
-Returns the number of sons of the operator node ~s~ of the operator
-tree. 
 
 */
   ListExpr GetType( const Supplier s );
@@ -377,6 +386,9 @@ the form (counterno, value).
   void ResetTimer();
   StopWatch& GetTimer();
 
+
+
+  
 /*
 3.2.3 Procedures Exported for Testing Only
 
@@ -635,7 +647,7 @@ and ~typeId~ are necessary to call the functions ~delete~ and ~close~
 of the type constructor associated with the ~value~.
 
 */ 
-  vector<ValueInfo> values; // MAXVALUE = 200
+  vector<ValueInfo> values;            // MAXVALUE = 200
   vector<ArgVectorPointer> argVectors; // MAXFUNCTIONS = 30
 
   static const int NO_COUNTERS = 16;

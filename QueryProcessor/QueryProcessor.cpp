@@ -136,7 +136,7 @@ Sept 2004, M. Spiekermann. Bugfix of a segmentation fault arising sometimes in t
 ~QueryProcessor::Request~ method which was caused by an uninitalized counter number 
 for applying abstractions or functions in the construction of the operator tree.
 
-June-July 2005, M. Spiekermann. Output operator "<<" for OpNode implemented.
+June-July 2005, M. Spiekermann. Output operator "<<" for type ~OpNode~ implemented.
 This will be used to print out a human readable version of the operator tree in
 debug mode 2. Moreover GetType() was changed to return in case of a function
 Supplier only it's result type which may be needed by the operator which is the
@@ -145,6 +145,12 @@ root of the function. (For details see comments in the implementation below).
 December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
+
+January - March 2006, M. Spiekermann. Changes for supporting ~streams~ as
+arguments to parameter functions. Additionally the documentation of the ~Eval~
+function was revised. Further the output of type map errors and the debug modes
+has been improved.
+
 
 \tableofcontents
 
@@ -199,6 +205,7 @@ using namespace std;
 #include "MemCTable.h"
 #include "NameIndex.h"
 #include "NestedList.h"
+#include "NList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "SecondoCatalog.h"
@@ -273,9 +280,8 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
   // It would be nice if the query processor could manage the
   // memory allocated during processing a query. Operators which
   // have state (e.g. a hashjoin) can ask for memory and the QP 
-  // answers how much
-  // they can use. However, currently we are defining a maximum
-  // per operator
+  // answers how much they can use. However, currently we are 
+  // just defining a maximum per operator.
   maxMemPerOperator = 4 * 1024 * 1024;
 }
 
@@ -476,7 +482,7 @@ struct OpNode
     struct OpNodeIndirectObject
     {
       ArgVectorPointer vector;
-      int funNumber; // needed for testing only
+      int funNumber;            /* needed for testing only */
       int argIndex;
 
 /*
@@ -621,7 +627,9 @@ ostream& operator<<(ostream& os, const OpNode& node) {
         os << "Indirect Object" << endl
            << "  vector = " << node.u.iobj.vector << endl
            << "  funNumber = " << node.u.iobj.funNumber << endl   
-           << "  argIndex = " << node.u.iobj.argIndex << endl;
+           << "  argIndex = " << node.u.iobj.argIndex << endl
+	 //<< "  isStream = " << node.u.iobj.isStream << endl
+           << "  received = " << node.u.iobj.received << endl;
         break;
       }
       case Operator :
@@ -977,18 +985,18 @@ all objects mentioned in the expression have defined values.
   if ( debugMode )
   {
     cout << endl << "*** AnnotateX Begin ***" << endl;
-    nl->WriteListExpr( list, cout );
+    nl->WriteListExpr( list, cout, 2 );
     cout << endl << "*** AnnotateX End ***" << endl;
   }
   return (list);
 }
 
 ListExpr
-QueryProcessor::Annotate ( const ListExpr expr,
-                           NameIndex& varnames,
-                           VarEntryTable& vartable,
-                           bool& defined,
-                           const ListExpr fatherargtypes ) 
+QueryProcessor::Annotate( const ListExpr expr,
+                          NameIndex& varnames,
+                          VarEntryTable& vartable,
+                          bool& defined,
+                          const ListExpr fatherargtypes ) 
 {
 /*
 Annotates a query expression ~expr~. Use tables ~varnames~ and ~vartable~ 
@@ -999,22 +1007,34 @@ expression.
 Parameter ~defined~ is set to FALSE if any object mentioned in the
 expression has an undefined value. Parameter ~fatherargtypes~ is used to
 implement inference of parameter types in abstractions. When a function
-is analyzed by ~annotate-function~, then this list contains the argument
+is analyzed by ~AnnotateFunction~, then this list contains the argument
 types of the operator to which this function is a parameter. 
 
 Annotation is done as follows. A query is a nested list structure. Any
-subexpression (atom or sublist) ~s~, is annotated by transforming it
-(usually) into a structure (~ann~(~s~) ~type~(~s~)). The following cases
-are distinguished: 
+subexpression (atom or sublist) ~s~ of ~expr~, is annotated by transforming it
+(usually) into a structure (~ann~(~s~) ~type~(~s~)). Basically, there are four 
+different cases for ~s~:
 
-  * ~s~ is an empty list. This is interpreted as an empty list of arguments.
+        (i) ~s~ is empty
+        
+        (ii) ~s~ is an atom which represents a constant value
+        
+        (iii) ~s~ is a symbol atom which implies various subcases
+
+        (iv) ~s~ is a nonempty list
+
+In the following we give a detailed explanation of them. The annotation works
+recursively and starts with ~expr~. Hence cases (i)-(iii) are cases for which the
+recursion terminates whereas case (iv) results in recursive calls.
+
+Case (i): ~s~ is an empty list. This is interpreted as an empty list of arguments.
 
 ----	()	->	((none arglist ()) ())
 ----
 
-  * ~s~ is an integer, real, boolean, or string atom (a constant). 
+Case (ii): ~s~ is an atom of type integer, real, boolean, string or text (a constant). 
 
-        The ~In~ function associated with the type constructors ~int~,
+The ~In~ function associated with the type constructors ~int~,
 ~real~, ~string~, and ~bool~ (provided by some algebra) is called to
 create a constant of the respective type. 
 
@@ -1024,34 +1044,35 @@ create a constant of the respective type.
 ----
 
         Here ~index~ is an index into array ~values~ containing
-constants in the form of {~algId~, ~typeId~, ~value~}.  ~Annotate~ 
+constants which are interpreted as {~algId~, ~typeId~, ~value~}.  ~Annotate~ 
 enters the value into that array. 
 
-  * ~s~ is a symbol atom: an operator
+Case (iii): ~s~ is a symbol atom: an operator
 
 ----	add	->	((add operator 1 4) typeerror)
 
         <op>	->	((<op> operator <algebraId> <operatorId>) typeerror)
 ----
-	Here, once the operators can be overloaded between different algebras, 
+
+        Here, once the operators can be overloaded between different algebras, 
 the construction of the operator list inside the ~Annotate~ function need to
 have more than one entry to the tuple (algebraId, operatorId). In this way, its
 representation internally in the function is done with a sublist of this tuples.
 
 ----    <op>	->	((<op> operator ((<alId1> <opId1>) ... (<alIdN>
-				<opIdN>)) ) typeerror)
+                                <opIdN>)) ) typeerror)
 ----
 
-	After the decision of which operator is suitable for the argument types,
+        After the decision of which operator is suitable for the argument types,
 using the ~TranformType~ function, it comes back to the representation with only
 one pair (algebraId, operatorId) repeated below.
 
 ----	add	->	((add operator 1 4) typeerror)
 
-	<op>	->	((<op> operator <algebraId> <operatorId>) typeerror)
+        <op>	->	((<op> operator <algebraId> <operatorId>) typeerror)
 ----
 
-  * ~s~ is a symbol atom: an object of the database, that ~is not itself
+Case (iii-a): ~s~ is a symbol atom: an object of the database, that ~is not itself
 a function~, which means the type of the object does not start ``(map
 ...)''. 
 
@@ -1063,25 +1084,25 @@ a function~, which means the type of the object does not start ``(map
 
         Here ~index~ again refers to the array ~values~.
 
-  * ~s~ is a symbol atom: a function object of the database -- type has
+Case (iii-b): ~s~ is a symbol atom: a function object of the database -- type has
 the form ``(map ...)''. The corresponding function definition
 (abstraction) is retrieved from the database and annotated recursively. 
 
-----	double		->	annotate((fun (x int) (add x x)))	
-				
+----	double		->	Annotate((fun (x int) (add x x)))	
+                                
 
-        <function name>	-> 	annotate(<abstraction>)
-                                	
+        <function name>	-> 	Annotate(<abstraction>)
+                                        
 ----
 
-  * ~s~ is a symbol atom: neither operator nor object, but a variable
+Case (iii-c): ~s~ is a symbol atom: neither operator nor object, but a variable
 defined in some enclosing function definition (= abstraction), which
 means it can be found in the table ~variableNames~. 
 
 ----	x		->	((x variable 3 5) real)
 
         <var name>	->	((<var name> variable <position> 
-				<functionno>) <type>) 
+                                <functionno>) <type>) 
 ----
 
         Here ~position~ is the relative position of the variable in the
@@ -1089,11 +1110,11 @@ list of arguments of the defining function, and ~functionno~ is a number
 identifying that function (see below the strategy for maintaining
 function numbers). 
 
-  * ~s~ is a symbol atom: neither operator nor object nor variable
+Case (iii-d): ~s~ is a symbol atom: neither operator nor object nor variable
 
 ----	pop		->	((pop identifier) pop)
 
-	<ident>		->	((<ident> identifier) <ident>)
+        <ident>		->	((<ident> identifier) <ident>)
 ----
 
         This is some unidentified name which must be interpreted by a
@@ -1101,58 +1122,61 @@ type checking function, something like an attribute name. For this
 reason, ~not the type, but the actual value~ of the identifier is
 returned as a second component. 
 
-  * ~s~ is a symbol atom: none of the forms before, but equal to ``counter''.
+Case (iii-e): ~s~ is a symbol atom: none of the forms before, but equal to ``counter''.
 
 ----	counter		->	((counter counter) typeerror)
 ----
 
-  * ~s~ is a nonempty list: first element is the symbol ~fun~.
+Case (iv-a): ~s~ is a nonempty list: first element is the symbol ~fun~.
 
-        Then the whole thing is a function definition (abstraction) of
+Then the whole thing is a function definition (abstraction) of
 the form 
 
 ----        (fun (x1 t1) (x2 t2) ... (xn tn) expr)
 ----
 
-        It is annotated by calling the procedure ~annotate-function~
+        It is annotated by calling the procedure ~Annotate-function~
 which enters the variable definitions into tables and then calls
-~annotate~ again to annotate the expression ~expr~. The result is 
+~Annotate~ again to annotate the expression ~expr~. The result is 
 
----- 	->        ((none abstraction annotate(expr) <functionno>) <type>)
+---- 	->        ((none abstraction Annotate(expr) <functionno>) <type>)
 ----
+
         Note that here ~type~ is the corresponding functional type (map
 ...). ~Functionno~ is the index in ~ArgVectors~ used for the argument
-vector of this function. 
+vector of this function. In the annotation result the first element 
+of the first list is set to none. This is done to indicate that this
+is not a type expression (see also next case). 
 
-  * ~s~ is a nonempty list: the first element is a type expression.
+Case (iv-b): ~s~ is a nonempty list: the first element is a type expression.
 
         Then the list is a pair describing a constant of the type given
 as the first element. Here we have two possibilities depending on the
-second element. The second element can be a value of the type given by
-the first element or a direct pointer to a previously opened object
-of the first element type. The query processor differentiates these
+second element. The second element can be a *value* of the type given by
+the first element or a *direct pointer* to a previously opened object
+of this type. The query processor differentiates these
 two possibilities by the reserved word ~ptr~ which means that it is a 
-pointer. For the first possibility, the type specific ~In~ function 
-is called to convert the value given as a second element into a word 
-which is entered into the array ~values~. For the second, the pointer
-is directly copied as a word into the array ~values~. 
+pointer. For the first possibility, the type constructor's ~In~-function 
+is called to convert the value given as a second element into the 
+data structure ~Word~ which is entered into the array ~values~. For the second, 
+the pointer is directly copied as a ~Word~ into the array ~values~. 
 
-Hence the annotation is as for constants: 
+        Hence the annotation is as for constants: 
 
-----	(ccint 7) 		-> (((ccint 7) constant 1) ccint)
+----	(int 7) 		-> (((int 7) constant 1) int)
 
-        (ccint (ptr 72638362))	-> (((ccint (ptr 72638362)) constant 1) 
-					ccint)
+        (int (ptr 72638362))	-> (((int (pointer 72638362)) constant 1) 
+                                        int)
 
         <value>			-> ((<value> constant <index>) <type>)
 ----
 
-  * ~s~ is a nonempty list: first element is neither the symbol ~fun~,
+Case (iv-c): ~s~ is a nonempty list: first element is neither the symbol ~fun~,
 nor is it a type expression. 
 
-        Then ~annotate~ is called recursively for each element of this
+Then ~Annotate~ is called recursively for each element of this
 list; the results are collected into a list ~list~. Now we look at the
-result. The first element can be: 
+result. The first element of the result list can be: 
 
   1 an annotated operator ((. operator . .) .)
 
@@ -1162,10 +1186,9 @@ result. The first element can be:
 
   4 a counter definition ((. counter) .)
 
-  5 something else, that is, a constant, a DB object, a variable, an
-identifier, or an empty list. 
+  5 something else ((. [constant|object|variable|identifier] .) .), that is a constant, a database object, a variable, an identifier, or an empty list. 
 
-Case (1). In the first case we have an operator application (~op~ ~arg1~
+Case (1): In the first case we have an operator application (~op~ ~arg1~
 ... ~argn~). We first compute the ~resulttype~ by applying the
 operator's type mapping function to the types of ~arg1~ ... ~argn~. We
 then apply the operator's selection function to determine ~opFunId~, the
@@ -1179,7 +1202,7 @@ The result is:
                 <opFunId>)
 ----
 
-This is the only annotation consisting of three, instead of two,
+Note: This is the only annotation consisting of *three*, instead of two,
 elements. 
 
 Now we have to discuss a special feature of the query processor together
@@ -1206,7 +1229,7 @@ the result of annotation is
 
 ----        (  (none applyop 
                (ann(op) ann(arg1) ... ann(argn) ann(newarg1) ... 
-		ann(newargn))) 
+                ann(newargn))) 
            <resulttype> 
            <opFunId>)
 ----
@@ -1226,30 +1249,30 @@ and this is of type ~string~. Then the type mapping returns:
 ----	(APPEND (1) string)
 ----
 
-The query processor, more precisely the procedure ~annotate~, will
+The query processor, more precisely the procedure ~Annotate~, will
 produce the annotation for the constant 1, append it to the list of
 annotated arguments, and then use ``string'' as the result type of the
 ~attribute~ operation. 
 
-Case (2). This is an application of a database function object. The
+Case (2): This is an application of a database function object. The
 argument types of the function object are checked against the types of
 the actual arguments and the result type of the function is returned.
 The result is 
 
 ----	((none applyfun (ann(function) ann(arg1) ... ann(argn))) 
-		<resulttype>)
+                <resulttype>)
 ----
 
 
-Case (3). This is an application of an abstraction. Like the previous
+Case (3): This is an application of an abstraction. Like the previous
 case, argument types are checked and the result type of the abstraction
 is returned. 
 
 ----	((none applyabs (ann(abstraction) ann(arg1) ... ann(argn)))
-	<resulttype>)
+        <resulttype>)
 ----
 
-Case (4). This is a definition of a counter associated with the subexpressions.
+Case (4): This is a definition of a counter associated with the subexpressions.
 A counter is defined in a query in the form
 
 ----	(counter 5 <subexpr>)
@@ -1258,29 +1281,36 @@ A counter is defined in a query in the form
 Hence after annotation it is
 
 ----	(
-	  ((counter counter) typeerror)
-	  ((5 constant 1) int)
-	  ann(subexpr)
-	)
+          ((counter counter) typeerror)
+          ((5 constant 1) int)
+          ann(subexpr)
+        )
 ----
 
 The result is
 
 ----	(
-	  (none counterdef n ann(subexpr)) 
-	  <resulttype>
-	)
+          (none counterdef n ann(subexpr)) 
+          <resulttype>
+        )
 ----	
 
 where ~n~ is the counter number. The result type is taken from the
 subexpression.
 
-Case (5). The whole list is then just a list of expressions (terms). The
+Case (5): The whole list is then just a list of expressions (terms). The
 result type is just the list of types of the expressions. 
 
 ----	(t1 t2 ... tn)   ->  ((none arglist (ann(t1) ann(t2) ... ann(tn)))
-					(type(t1) type(t2) ... type(tn)))
+                                        (type(t1) type(t2) ... type(tn)))
 ----
+
+Note: If an operator has a list of parameter functions it is necessary to use
+identifiers in front of a function definition otherwise ann(ti) will return a 
+list which matches the structure of case 3 and the annotation fails since this 
+case handles the application of a function but for a parameter function we are only
+interested in its definition and the operator implementation will care for suitable
+arguments and the execution of the function.
 
 ~Scope and visibility of variables~. We make the following assumptions:
 All variables used in a single query (or update) expression are
@@ -1297,11 +1327,11 @@ again assume that all variables used within the definition of such a
 function are distinct (function definitions may be nested here as well).
 Hence we can translate (annotate) the function definition using just one
 local table of variables. Either the global table or such a local table
-is given as a parameter to ~annotate-function~. 
+is given as a parameter to ~AnnotateFunction~. 
 
 There is one global variable ~functionno~ which is incremented whenever
 a function definition (abstraction) is translated (by
-~annotate-function~) during the translation of one query. This number is
+~AnnotateFunction~) during the translation of one query. This number is
 entered for a given variable into the variable table. 
 
 In the next step, when the annotated query is transformed into an
@@ -1313,31 +1343,40 @@ function index.
 
 */
 
-  int alId, opId, position, funindex, opFunId, errorPos; 
-  ListExpr first, rest, list, lastElem, typeExpr, typeList, 
-           resultType, last, errorInfo, pair, lastType, signature, 
-           firstSig, firstType, result, functionList; 
-  string name, typeName; 
-  bool definedValue, hasNamedType, correct, newOperator;
-  Word value;
+  int alId=0, opId=0, position=0, funindex=0, opFunId=0, errorPos=0; 
 
-  errorPos = 0;
-  errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  ListExpr first, rest, list, lastElem, typeExpr, typeList; 
+  first = rest = list = lastElem = typeExpr = typeList = nl->TheEmptyList();
+  
+  ListExpr resultType, last, pair, lastType, signature;
+  resultType = last = pair = lastType = signature = nl->TheEmptyList();
+  
+  ListExpr firstSig, firstType, result, functionList; 
+  firstSig = firstType = result = functionList = nl->TheEmptyList();
+  
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  
+  string name="", typeName=""; 
+  
+  bool definedValue=false, hasNamedType=false, correct=false, newOperator=false;
+  
+  Word value=SetWord(0);
 
   if ( traceMode )
   {
     cout << "Annotate applied to: " << endl;
-    nl->WriteListExpr( expr, cout );
+    nl->WriteListExpr( expr, cout, 2 );
     cout << endl << "argument types passed from father: " << endl;
-    nl->WriteListExpr( fatherargtypes, cout );
+    nl->WriteListExpr( fatherargtypes, cout, 2 );
     cout << endl;
     for ( int i=0; i<= valueno; i++ ) 
       cout << "values[" << i <<"]=" 
            << (void*)values[i].value.addr << endl; 
   }
+  
   if ( nl->IsEmpty( expr ) )  
-    // result list for annotating an empty list
   {
+    // case (i): result list ((none arglist ()) ()) for an empty list
     return (nl->TwoElemList(
               nl->ThreeElemList(
                 nl->SymbolAtom( "none" ),
@@ -1349,6 +1388,7 @@ function index.
   {
     switch (nl->AtomType( expr )) 
     {
+      // case (ii): return ((<value> constant <index>) int)
       case IntType:
       {
         AllocateValues( valueno );
@@ -1372,6 +1412,7 @@ function index.
                     nl->IntAtom( valueno-1 ) ),
                   nl->SymbolAtom("int") ));
       }
+      // case (ii): return ((<value> constant <index>) real)
       case RealType:
       {
         AllocateValues( valueno );
@@ -1395,6 +1436,7 @@ function index.
                     nl->IntAtom( valueno-1 ) ),
                   nl->SymbolAtom( "real" ) ));
       }
+      // case (ii): return ((<value> constant <index>) bool)
       case BoolType:
       {
         AllocateValues( valueno );
@@ -1418,6 +1460,7 @@ function index.
                     nl->IntAtom( valueno-1 ) ),
                   nl->SymbolAtom( "bool" ) ));
       }
+      // case (ii): return ((<value> constant <index>) string)
       case StringType:
       {
         AllocateValues( valueno );
@@ -1441,6 +1484,7 @@ function index.
                     nl->IntAtom( valueno-1 ) ),
                   nl->SymbolAtom( "string" ) ));
       }
+      // case (ii): return ((<value> constant <index>) text)
       case TextType:
       {
         AllocateValues( valueno );
@@ -1465,9 +1509,11 @@ function index.
                   nl->SymbolAtom( "text" ) ));
 
       }
+      // case (iii)
       case SymbolType:
       {
         name = nl->SymbolValue( expr );
+        
         if ( GetCatalog()->IsObjectName( name ) )
         {
           int algId, typeId;
@@ -1490,18 +1536,26 @@ function index.
           if ( nl->ListLength( typeExpr ) > 0 )
           {
             if ( TypeOfSymbol( nl->First( typeExpr ) ) == QP_MAP )
-            { /* function object */
-
+            { 
+              // case (iii-c): function object, 
+              // return Annotate(<abstraction>)
               NameIndex newvarnames;
               VarEntryTable newvartable(20); 
-              functionList = values[valueno-1].value.list;
+              functionList = 
+                values[valueno-1].value.list;
+              if (traceMode) {
+                cout << "Function object " << name << ": " << endl
+                     << nl->ToString(functionList) << endl;
+              }  
               values[valueno-1].isList = true;
               return Annotate( functionList, newvarnames, 
-		                           newvartable, defined, 
+		               newvartable, defined, 
                                nl->TheEmptyList() );
             }
             else
-            { /* not a function object */
+            { 
+              // case (iii-b): ordinary object, 
+              // return ((<obj. name> object <index>) <type>)
               return (nl->TwoElemList(
                         nl->ThreeElemList(
                           expr,
@@ -1510,8 +1564,12 @@ function index.
                         typeExpr ));
             }
           }
-          else if ( nl->ListLength( typeExpr ) == -1 )
-          {        /* atomic type */
+          else if ( nl->ListLength( typeExpr ) == -1 ) 
+                   // spm: we should use nl->SymbolType()
+          {        
+            // case (iii-b): ordinary object, 
+            // atomic type expression like int, real etc. 
+            // return ((<obj. name> object <index>) <type>)
             return (nl->TwoElemList(
                       nl->ThreeElemList(
                         expr,
@@ -1521,14 +1579,20 @@ function index.
           }
           else
           {
-            cerr << "QueryProcessor: Empty typeexpr for object." 
-                 << endl;
+            // error
+            cmsg.error() 
+              << "Cannot annotate database object. "
+              << "Unexpected type expression " << nl->ToString(typeExpr) 
+              << endl; 
+            cmsg.send();
             return (nl->SymbolAtom( "exprerror" ));
           }
 
         }
         else if ( GetCatalog()->IsOperatorName( name ) )
         {
+     // case (iii-a): operator, return 
+     // ((<op> operator (<algId-1> <opId-1> ... <algId-N> <opId-N>)) typeerror) 
           ListExpr opList = GetCatalog()->GetOperatorIds( name );
           return (nl->TwoElemList(
                     nl->ThreeElemList(
@@ -1539,6 +1603,8 @@ function index.
         }
         else if ( IsVariable( name, varnames ) )
         {
+          // case (iii-d): variable, 
+          // return ((<name> variable <pos> <funNo.>) <type>)
           GetVariable( name, varnames, vartable, position, 
                        funindex, typeExpr );
           return (nl->TwoElemList(
@@ -1551,6 +1617,8 @@ function index.
         }
         else if ( TypeOfSymbol( expr ) == QP_COUNTER )
         {
+          // case (iii-f): a counter, 
+          // return ((counter counter) typeerror)
           return nl->TwoElemList(
                    nl->TwoElemList(
                      expr,
@@ -1559,6 +1627,8 @@ function index.
         }
         else
         {
+          // case (iii-e): nothing of the above => identifier 
+          // return ((<ident> identifier) <ident>)
           return (nl->TwoElemList(
                     nl->TwoElemList(
                       expr,
@@ -1568,35 +1638,48 @@ function index.
       }
       default:
       {
+        cmsg.warning() 
+          << "Default reached while annotation an atom!"
+          << endl;
+        cmsg.send();
         return (nl->TheEmptyList());
       } 
-    } /* CASE */
+    } // end of switch (nl->AtomType( expr ))
   }
   else
-  {  /* expr is a nonempty list */
+  {  
+    // case (iv): expr is a nonempty list
+    
     if ( TypeOfSymbol( nl->First( expr ) ) == QP_FUN )
-    { /*  an abstraction */
+    { 
+      // case (iv-a): annotate the function definition (abstraction)
       return AnnotateFunction( expr, varnames, vartable, defined,
                                0, nl->TheEmptyList(), 
                                nl->TheEmptyList(), fatherargtypes );
     }
     else if ( IsCorrectTypeExpr( nl->First( expr ) ) )
-    { /* treatment of user-defined constant */
+    {
+      // case (iv-b): The first element is a valid type expression! 
       bool isPointer = false;
       if( nl->ListLength(nl->Second(expr)) == 2 &&
           nl->IsEqual(nl->First(nl->Second(expr)), "ptr") &&
           nl->IsAtom(nl->Second(nl->Second(expr))) &&
           nl->AtomType(nl->Second(nl->Second(expr))) == IntType )
       {
+        // constant value given as pointer
         value = SetWord(
           (void*)nl->IntValue(nl->Second(nl->Second(expr))));
         isPointer = true;
       }
       else
+      { 
+        // constant value given as pair (<type> <value>)
         value = GetCatalog()->InObject(nl->First( expr ), 
                                        nl->Second( expr ),
                                        errorPos, errorInfo, correct);
-      if ( correct )
+      }
+
+      if ( correct ) 
       {
         AllocateValues( valueno );
         int algId, typeId;
@@ -1609,20 +1692,27 @@ function index.
         values[valueno].value = value;
         valueno++;
 
-        if( isPointer )
+        if( isPointer ) {
+        // spm: in the case "isPointer" we have variable "correct=false"
+        // this sould not work since this code will never be reached
+        // the nesting seems to be false.
+
+          assert(false);
+           
           return (nl->TwoElemList(
                     nl->ThreeElemList(
                       expr,
                       nl->SymbolAtom( "pointer" ),
                       nl->IntAtom( valueno-1 ) ),
                     nl->First( expr ) ));
-        else
+        } else {
           return (nl->TwoElemList(
                     nl->ThreeElemList(
                       expr,
                       nl->SymbolAtom( "constant" ),
                       nl->IntAtom( valueno-1 ) ),
                     nl->First( expr ) ));
+        }  
       }
       else
       {
@@ -1635,8 +1725,15 @@ function index.
       }
     }
     else
-    { /* neither abstraction nor constant. Now recursively annotate
-        all elements of this list: */
+    { 
+      // case (iv-c): neither abstraction nor constant. 
+      // Now recursively annotate all elements of this list.
+      // 
+      if (traceMode) {
+        cout << "Case (iv-c): Nonempty list! Neither symbol fun "
+             << "nor a type expr. List will be annotated recursively."
+             << endl;
+      }   
       first = nl->First( expr );
       rest = nl->Rest( expr );
 
@@ -1682,31 +1779,46 @@ function index.
       last = lastElem;   /* remember the last element to be able to
                             append further arguments, see below */
 /* 
-At this point, we may have a list ~list~ such as
+At this point, we may have a nested list ~list~ such as
 
 ----
         (((+ operator ((1 6) (7 0))) ()) ((3 ...) int) ((10 ...) int))
 ----
 
-for a given ~expr~ (+ 3 10).
+for a given ~expr~ (+ 3 10). Now the first element of ~list~ which 
+is
+
+----
+        first = ((+ operator ((1 6) (7 0))) ())
+----
+
+will be processed.
 
 */
-      first = nl->First( list );
-            	
-			/* first = ((+ operator ((1 6) (7 0))) ()) */
 
+      if (traceMode)
+      { 
+        cout << "*** Some list exprs. after recursive calls ***" << endl; 
+        cout << "Value of variable list: " << endl;
+        nl->WriteListExpr( list, cout, 2 );
+        cout << "Value of variable typeList: " << endl;
+        nl->WriteListExpr( typeList, cout, 2 );
+        cout << endl;
+      }  
+      
+      first = nl->First( list );
       if ( nl->ListLength( first ) > 0 )
       {
-        first = nl->First( first );  
-
-			/* first = (+ operator ((1 6) (7 0))) */
+        first = nl->First( first );  // = (+ operator ((1 6) (7 0)))
 
         if ( nl->ListLength( first ) >= 2 )
         {
           switch (TypeOfSymbol( nl->Second( first ) ))
           {
             case QP_OPERATOR:
-            {	
+            {
+              if (traceMode)
+                cout << "Case 1: An annotated Operator." << endl;        
               string operatorStr = nl->SymbolValue(nl->First(first));
               ListExpr opList = nl->Third( first );
               assert( nl->ListLength( opList ) > 0 );
@@ -1761,18 +1873,26 @@ for a given ~expr~ (+ 3 10).
             }
             case QP_FUNCTION:
             {
+              // spm: I could find no code which inserts the keyword "function"
+              // during annotation. Hence I suppose this is obsolete and may be
+              // removed since AnnotateFunction will always return 
+              // ((none abstraction) ...). 
+              // For a while I try if this branch is reached. If not the case
+              // QP_FUNCTION may be removed from the QueryProcessor
+             
+              if (traceMode)
+                cout << "Case 2: An annotated function." << endl;        
+              assert( false );
+             
               signature = nl->Rest(nl->Second(nl->First(list)));
-              if ( traceMode )
-              {
-                cout << "signature: ";
-                nl->WriteListExpr( signature, cout );
-                cout << endl;
-              }
               typeList = nl->Rest( typeList );
               if ( traceMode )
               {
-                cout << "typeList: ";
-                nl->WriteListExpr( typeList, cout );
+                cout << "function signature: ";
+                nl->WriteListExpr( signature, cout, 2 );
+                cout << endl;
+                cout << "function typeList: ";
+                nl->WriteListExpr( typeList, cout, 2 );
                 cout << endl;
               }
               if ( nl->ListLength(signature) == 
@@ -1793,7 +1913,7 @@ for a given ~expr~ (+ 3 10).
                 if ( traceMode )
                 {
                   cout << "resultType: ";
-                  nl->WriteListExpr( resultType, cout );
+                  nl->WriteListExpr( resultType, cout, 2 );
                   cout << endl;
                 }
                 result = nl->TwoElemList(
@@ -1805,43 +1925,58 @@ for a given ~expr~ (+ 3 10).
                 if ( traceMode )
                 {
                   cout << "result: ";
-                  nl->WriteListExpr( result, cout );
+                  nl->WriteListExpr( result, cout, 2 );
                   cout << endl;
                 }
                 return (result);
               }
               else
               {
+                if ( traceMode )
+                {
+                  cout << "list: " << endl;
+                  nl->WriteListExpr( list, cout, 2 );
+                  cout << "expr: " << endl;
+                  nl->WriteListExpr( expr, cout, 2 );
+                } 
                 return (nl->SymbolAtom( "exprerror" ));
               }
             }
             case QP_ABSTRACTION:
             {
+              if (traceMode)
+                cout << "Case 3: An annotated abstraction." << endl;        
               signature = nl->Rest(nl->Second(nl->First(list)));
-              if ( traceMode )
-              {
-                cout << "signature: ";
-                nl->WriteListExpr( signature, cout );
-                cout << endl;
-              }
               typeList = nl->Rest( typeList );
               if ( traceMode )
               {
-                cout << "typeList: ";
-                nl->WriteListExpr( typeList, cout );
+                cout << "Abstraction signature: ";
+                nl->WriteListExpr( signature, cout, 2 );
+                cout << endl;
+                cout << "Abstraction typeList: ";
+                nl->WriteListExpr( typeList, cout, 2 );
                 cout << endl;
               }
-              if ( nl->ListLength( signature ) == 
-                   (nl->ListLength( typeList )+1) )
+              int expectedParams = nl->ListLength( signature ) - 1;
+              int retrievedParams = nl->ListLength( typeList );
+              if (  expectedParams ==  retrievedParams )
               {
+                int paramNum = 0;
                 while (!nl->IsEmpty( typeList ))
                 {
+                  paramNum++;
                   firstSig = nl->First( signature );
                   signature = nl->Rest( signature );
                   firstType = nl->First( typeList );
                   typeList = nl->Rest( typeList );
                   if ( !nl->Equal( firstSig, firstType ) )
                   {
+                    cmsg.error() 
+                       << "Type mismatch for parameter number " 
+                       << paramNum << endl
+                       << "Expected:" << nl->ToString(firstSig) << endl
+                       << "Obtained:" << nl->ToString(firstType) << endl;
+                    cmsg.send();
                     return (nl->SymbolAtom( "exprerror" ));
                   }
                 }
@@ -1868,14 +2003,27 @@ for a given ~expr~ (+ 3 10).
               }
               else
               {
+                if ( traceMode )
+                {
+                  cout << "list: " << endl;
+                  nl->WriteListExpr( list, cout, 2 );
+                  cout << "expr: " << endl;
+                  nl->WriteListExpr( expr, cout, 2 );
+                } 
+                cmsg.error() 
+                   << "Type mismatch! Expecting " << expectedParams 
+                   << " parameter but got " << retrievedParams <<  "." << endl;
+                cmsg.send();
                 return (nl->SymbolAtom( "exprerror" ));
               }
             }
 
             case QP_COUNTER:
             {
-	            int counterNo = 
-                nl->IntValue(nl->First(nl->First(nl->Second(list))));
+              if (traceMode)
+                cout << "Case 4: A counter definition." << endl;        
+	      int counterNo = 
+              nl->IntValue(nl->First(nl->First(nl->Second(list))));
 
               if ( counterNo > 0 && counterNo <= NO_COUNTERS )
               {
@@ -1905,6 +2053,10 @@ for a given ~expr~ (+ 3 10).
             {  /* we have a list of terms, case (5) above) 
                   Again extract the list of types. We know the 
                   list "list" is not empty */
+              if (traceMode) {
+               cout << "Case 5: A constant, a database obj., " 
+                    << " an identifier or an empty list! " << endl;
+              } 
               rest = list;
               return (nl->TwoElemList(
                         nl->ThreeElemList(
@@ -1913,7 +2065,7 @@ for a given ~expr~ (+ 3 10).
                         list ),
                       typeList ));
             }
-          } /* CASE */
+          } // switch (TypeOfSymbol( nl->Second( first ) ))
         }
         else
         {
@@ -1925,13 +2077,16 @@ for a given ~expr~ (+ 3 10).
         return (nl->SymbolAtom( "exprerror" ));
       }
     }
-  } /* nonempty list */
+  } 
+  
+  // Any other case which should never be reached
   return (nl->SymbolAtom( "exprerror" ));
-} // annotate;
+  
+} // end Annotate
 
 ListExpr 
 QueryProcessor::TestOverloadedOperators( const string& 
-                                           operatorSymbolStr, 
+                                         operatorSymbolStr, 
                                          ListExpr opList, 
                                          ListExpr typeList,
                                          int& alId,
@@ -1942,12 +2097,19 @@ QueryProcessor::TestOverloadedOperators( const string&
 {
   ListExpr resultType = nl->TheEmptyList();
 
-  if ( traceMode ) 
-    cout << "Type mapping for operator " 
-         << operatorSymbolStr << ":" << endl;
+  static const int width=70;
+  static const string sepLine = "\n" + string(width,'-') + "\n";
+  
+  if ( traceMode )
+  {	  
+    cout << sepLine 
+	 << "Type mapping for operator " << operatorSymbolStr << ":" << endl; 
+  }  
 
-  string typeErrorMsg = "Possible type mapping errors for operator " 
-                        + operatorSymbolStr + ":\n";
+  string typeErrorMsg = 
+	   "Type map error for operator " + operatorSymbolStr + "!" + sepLine
+	   + wordWrap("Input: ", width, NList(typeList).convertToString())
+           + sepLine + "Error Message(s):" + sepLine; 
 
   do // Overloading: test operator candidates 
   {
@@ -1975,11 +2137,11 @@ QueryProcessor::TestOverloadedOperators( const string&
     {
       string msg = "";
       ErrorReporter::GetErrorMessage(msg); 	
-        // remove errors produced by 
-				// testing operators
+      // remove errors produced by 
+      // testing operators
       if ( msg == "" ) 
         msg = "<No error message specified>";
-      typeErrorMsg += "\n-- " + algName + ": " + msg + "\n";
+      typeErrorMsg += wordWrap(algName + ": ",4 ,width, msg) + "\n";
     }
 
     opList = nl->Rest( opList );
@@ -1994,7 +2156,7 @@ QueryProcessor::TestOverloadedOperators( const string&
   if ( nl->IsEqual( resultType, "typeerror" ) )
   {
     if(!ErrorReporter::TypeMapError){
-        ErrorReporter::ReportError(typeErrorMsg);	
+      ErrorReporter::ReportError(typeErrorMsg + sepLine);
     }
     ErrorReporter::TypeMapError = true; 
   }
@@ -2020,16 +2182,9 @@ QueryProcessor::TestOverloadedOperators( const string&
 
   if ( traceMode ) 
   {
-    cout << endl;		
-    cout << "Result of type mapping for operator " 
-         << operatorSymbolStr
-         << " >>>>>>>>" << endl;
-    cout << "IN: " << endl;
-    nl->WriteListExpr(typeList);
-    cout << endl;
-    cout << "OUT: " << endl;
-    nl->WriteListExpr(resultType);
-    cout << " <<<<<<<<" << endl;
+    cout << wordWrap( "IN: ", width, NList(typeList).convertToString() )
+         << wordWrap( "OUT: ", width, NList(resultType).convertToString() )
+         << sepLine << endl;
   }
 
   return resultType;
@@ -2074,6 +2229,7 @@ the abstraction in ~typeList~, always appending the next type to
 arguments preceding this function argument in an operator application. 
 
 */
+  static const string fn("AnnotateFunction");	
   string name = "", name2 = "", xxx = "";
   ListExpr annexpr = nl->TheEmptyList();
   ListExpr list = nl->TheEmptyList();
@@ -2083,13 +2239,13 @@ arguments preceding this function argument in an operator application.
   
   if ( traceMode )
   {
-    cout << "AnnotateFunction applied to: " << endl;
-    nl->WriteListExpr( expr, cout );
+    cout << fn << " applied to: " << endl;
+    nl->WriteListExpr( expr, cout, 2 );
     cout << endl;
   }
   if ( nl->IsEmpty( expr ))
   { 
-    cerr << "Error: no expression in function definition." << endl;
+    cmsg.error() << fn << ": No expression in function definition." << endl;
     return (nl->TwoElemList(
               nl->SymbolAtom( "functionerror" ),
               nl->SymbolAtom( "typeerror" ) ));
@@ -2132,7 +2288,7 @@ arguments preceding this function argument in an operator application.
         else if ( GetCatalog()->IsOperatorName( name2 ) )
         { /* name2 is a type operator */
           ListExpr opList = GetCatalog()->GetOperatorIds( name2 );
-					ListExpr typeList = nl->Rest( fatherargtypes );
+ 	  ListExpr typeList = nl->Rest( fatherargtypes );
 					
           int alId = 0;
           int opId = 0;
@@ -2151,7 +2307,18 @@ arguments preceding this function argument in an operator application.
       {
         paramtype = nl->Second( nl->First( expr ) );
       }
-      if ( IsCorrectTypeExpr( paramtype ) )
+      NList param(paramtype);
+      bool typeOk = false;
+      if (param.isList() && param.first().isSymbol("stream")) 
+      {
+        typeOk = IsCorrectTypeExpr( param.second().listExpr() );
+      }
+      else
+      {
+        typeOk = IsCorrectTypeExpr( paramtype );
+      }
+
+      if ( typeOk )
       {
         name = nl->SymbolValue( nl->First( nl->First( expr ) ) );
         /* IsIdentifier has checked that name is not a variable yet,
@@ -2166,7 +2333,8 @@ arguments preceding this function argument in an operator application.
       }
       else
       {
-        cerr << "Error: wrong parameter type:" << NList(paramtype) << endl;
+        cmsg.error() << fn << ": Wrong parameter type " 
+                     << NList(paramtype) << endl;
         return (nl->TwoElemList(
                   nl->SymbolAtom( "functionerror" ),
                   nl->SymbolAtom( "typeerror" ) ));
@@ -2174,8 +2342,7 @@ arguments preceding this function argument in an operator application.
     }
     else
     {
-      cerr << "Error in AnnotateFunction: branch should never be"
-              " reached." << endl;
+      cmsg.error() << fn << ": Branch should never be reached." << endl;
       return (nl->TwoElemList(
                 nl->SymbolAtom( "functionerror" ),
                 nl->SymbolAtom( "typeerror" ) ));
@@ -2183,8 +2350,7 @@ arguments preceding this function argument in an operator application.
   }
   else
   {
-    cerr << "Error in AnnotateFunction: branch should never be"
-            " reached." << endl;
+    cmsg.error() << fn <<": Branch should never be reached." << endl;
     return (nl->TwoElemList(
               nl->SymbolAtom( "functionerror" ),
               nl->SymbolAtom( "typeerror" ) ));
@@ -2256,7 +2422,7 @@ QueryProcessor::SubtreeX( const ListExpr expr )
   {
     cout << endl << "*** SubtreeX Begin ***" << endl;
     ListExpr treeList = ListOfTree( resultTree, cerr );
-    nl->WriteListExpr( treeList, cout );
+    nl->WriteListExpr( treeList, cout, 2 );
     nl->Destroy( treeList );
     cout << endl << "*** SubtreeX End ***" << endl;
   }
@@ -2302,9 +2468,9 @@ QueryProcessor::Subtree( const ListExpr expr,
   if ( traceMode )
   { 
     cout << "subtree applied to: " << endl;
-    nl->WriteListExpr( expr, cout );
+    nl->WriteListExpr( expr, cout, 2 );
     cout << endl << "TypeOfSymbol applied to <";
-    nl->WriteListExpr( nl->Second( nl->First( expr ) ), cout );
+    nl->WriteListExpr( nl->Second( nl->First( expr ) ), cout, 2 );
     cout << ">" << endl;
   }
 
@@ -2535,6 +2701,8 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_FUNCTION:
     {
+      // spm: should never be reached!
+      assert(false);
       OpTree subNode = Subtree( nl->Third( nl->First( expr ) ), 
                                 first, node); 
       if (traceNodes) 
@@ -2559,7 +2727,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       node->u.op.noSons = 1;
       node->u.op.sons[0] = 
         Subtree( nl->First(nl->Third(nl->First(expr))), 
-                 first, node ); /* the abstraction */							
+                 first, node ); /* the abstraction */
       list = nl->Rest( nl->Third( nl->First( expr ) ) );
       while ( !nl->IsEmpty( list ) )
       { /* the arguments */
@@ -2598,7 +2766,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     { 
       cerr << "subtree: unexpected stuff in annotated expr" << endl;
       cerr << "The expression is: " << endl;
-      nl->WriteListExpr( expr, cout );
+      nl->WriteListExpr( expr, cout, 2 );
       cout << endl; 
       exit(1);
     }
@@ -2642,6 +2810,8 @@ abstraction. In this case, it is not evaluable, but we may want to store
 the function in a database object. 
 
 */
+  flobCache->Clear();
+
   ListExpr list = nl->TheEmptyList();
 
   list = AnnotateX( expr, defined );
@@ -2732,7 +2902,7 @@ Deletes an operator tree object.
   argsPrinted.clear();
 
   if ( tree != 0 )
-  {
+  { 
     switch (tree->nodetype)
     {
       case Operator:
@@ -2798,12 +2968,6 @@ Deletes an operator tree object.
       default:
         break;
     } /* case */ 
-
-    // Close the files in the FLOB cache to avoid
-    // lots of opened files.
-    if( tree->isRoot )
-      flobCache->Clear();
-   
     delete tree;
     tree = 0;
   }
@@ -2821,11 +2985,11 @@ QueryProcessor::Eval( const OpTree tree,
 {
 /*
 Traverses the operator tree ~tree~ calling operator implementations for
-each node, and returns the result in ~result~. The ~message~ is OPEN,
+each node, and returns the result in ~result~. The ~message~ could be OPEN,
 REQUEST, or CLOSE and is used only if the root node produces a stream. 
 
-Still needs to be adapted to handle the special operators [0, 1]
-(arglist) and [0, 0] (abstraction application). These lead to errors at
+Note: This function still needs to be adapted to handle the special operators
+[0, 1] (arglist) and [0, 0] (abstraction application). These lead to errors at
 the moment. 
 
 */
@@ -2839,7 +3003,7 @@ the moment.
 
   if ( tree == 0 )
   {
-    cerr << fn << "called with tree == NIL!" << endl;
+    cerr << fn << "Called with tree == 0!" << endl;
     abort();
   }
   else
@@ -2850,6 +3014,19 @@ the moment.
                  << " result = " << (void*)result.addr 
                  << " msg = " << message << endl;
     }
+
+/* 
+While evaluating the query the cases
+
+  * Object
+  * Pointer
+  * Indirect Object (parameter functions)
+  * Operator (normal / stream / abstraction)
+
+must be handled.  
+  
+*/
+  
     switch (tree->nodetype)
     {
       case Object:
@@ -2862,28 +3039,75 @@ the moment.
         }
         return;
       }
+/* 
+
+*Indirect Object:* This case handles ~Indirect Objects~ which represent
+arguments of a parameter function. In order to support also streams as arguments
+for a parameter function an indirect object could be also an operator. 
+
+if the indirect object represents a stream the argument vector contains at
+position MAXARG-argIndex the node of the operator which will then be used to
+request the next element.
+
+*/
       case IndirectObject:
       {
-        result = (*tree->u.iobj.vector)[tree->u.iobj.argIndex-1]; 
-        if (traceNodes) 
+        int argIndex = tree->u.iobj.argIndex;
+        
+        if ( (*tree->u.iobj.vector)[MAXARG-argIndex].addr == 0 )
         { 
-          cerr << fn << "IndirectObject return [" 
-               << (void*)result.addr << "]" << endl;
+          // Not a stream! Return object
+          result = (*tree->u.iobj.vector)[argIndex-1];
         }
-        return;
+        else 
+        {
+          // A stream! Request next element 
+          OpTree caller = (OpTree) (*tree->u.iobj.vector)[MAXARG-argIndex].addr;
+          if (traceNodes) {
+            cerr << fn << "Parameter function's caller node = " 
+                 << caller->id << endl;
+          }
+          // copy arguments
+          for ( i = 0; i < caller->u.op.noSons; i++ )
+          {
+            arg[i].addr = caller->u.op.sons[i];
+            if ( traceNodes ) {
+                cerr << fn << "Copy argument " << i << endl;
+            }
+          }
+          status = algebraManager->Execute( caller->u.op.algebraId, 
+			                    caller->u.op.opFunId,
+                                            arg, result, 
+					    (argIndex*FUNMSG)+message, 
+					    caller->u.op.local, 
+					    caller );
+        
+          tree->u.iobj.received = (status == YIELD); } 
+          if (traceNodes) 
+          { 
+           cerr << fn << "IndirectObject return [" 
+                << (void*)result.addr << "]" << endl;
+          } 
+          return; 
       }
+/* 
+ 
+*Operator:* Here we need to distinguish between operators which map to a stream
+and those which compute an object. If an operator is not itself a stream
+operator, then evaluate all subtrees that are not functions or streams. Other
+subtrees are not evaluated, just copied to the argument vector. Then call the
+operator's value mapping function. 
+
+*/      
       case Operator:         
-      /* If this operator is not itself a stream
-         operator, then evaluate all subtrees that are not
-         functions or streams. Other subtrees are not evaluated,
-         just copied to the argument vector. Then call this
-         operator's implementation procedure. */
       {
         for ( i = 0; i < tree->u.op.noSons; i++ )
         {
           if ( tree->u.op.sons[i]->evaluable && 
                !tree->u.op.isStream )
           {
+            // Not a stream operator! Compute result values
+            // for all evaluable sons
             if ( traceNodes ) 
             {
               cerr << fn << "Eval(son[" << i << "], arg[" 
@@ -2893,6 +3117,8 @@ the moment.
           }
           else
           {
+            // A stream operator! Copy the sons into the local
+            // argument vector
             arg[i].addr = tree->u.op.sons[i];
             if ( traceNodes ) 
             {
@@ -2902,12 +3128,14 @@ the moment.
         }
 
         if ( tree->u.op.algebraId == 0 && tree->u.op.opFunId == 0 )
-        { /* abstraction application */
+        { 
+          // This algebra und function ID's are used to 
+          // indicate an abstraction application 
           ArgVectorPointer absArgs;
           if ( traceNodes )
           {
             cout << fn << "The tree is: " << endl;
-            nl->WriteListExpr( ListOfTree( tree, cerr ), cout );
+            nl->WriteListExpr( ListOfTree( tree, cerr ), cout, 2 );
             cout << endl;
           }
           absArgs = Argument(tree->u.op.sons[0] );
@@ -2923,7 +3151,8 @@ the moment.
           Eval( tree->u.op.sons[0], result, message );
         }
         else 
-        { /* normal operator */
+        { 
+          // A ~normal~ operator! 
           if ( traceNodes ) 
           { 
             cerr << fn << "*** Execute Value Function with args" 
@@ -2948,6 +3177,7 @@ the moment.
 
           if ( tree->u.op.isStream )
           {
+            // check return status of a stream operator
             tree->u.op.received = (status == YIELD);
           }
           else if ( status != 0 )
@@ -2969,28 +3199,46 @@ the moment.
 /*
 1.1 Procedures for Cooperation with Operator Evaluation Functions
 
+Function ~Argument~ returns for a given supplier ~s~ a pointer to its argument
+vector.  Arguments can be set by writing into the fields of this argument
+vector.
+
 */
 
 ArgVectorPointer
 QueryProcessor::Argument( const Supplier s )
 {
-/*
-Returns for a given supplier ~s~ a pointer to its argument vector.
-Arguments can be set by writing into the fields of this argument vector.
-
-*/
   OpTree tree = (OpTree) s;
   return (tree->u.op.funArgs);
 }
 
-void
-QueryProcessor::Request( const Supplier s, Word& result )
-{
 /*
-Calls the parameter function (to which the arguments must have been
+~SetupStreamArg~ saves an operators node in the argument vector of
+an parameter function. The ~Eval~ method looks if an operator node is
+present in the argument vector. if found this indicates that argument
+number ~num~ is a stream.
+
+*/
+
+void
+QueryProcessor::SetupStreamArg( const Supplier funNode,
+                                const int num, Supplier opNode )
+{
+   assert( (0 < num) && (num < MAXARG/2) );
+   
+   ArgVectorPointer funargs = Argument(funNode);
+   (*funargs)[MAXARG-num] = SetWord(opNode);
+}  
+
+
+/*
+Function ~Request~ calls the parameter function (to which the arguments must have been
 supplied before). The result is returned in ~result~. 
 
 */
+void
+QueryProcessor::Request( const Supplier s, Word& result )
+{
   OpTree tree = (OpTree) s;
   Eval( tree, result, REQUEST );
 	
@@ -3004,16 +3252,15 @@ supplied before). The result is returned in ~result~.
 		
 }
 
+/*
+Function ~received~ returns ~true~ if the supplier responded to the previous ~request~ by a
+~yield~ message; ~false~ if it responded with ~cancel~. 
 
+*/
 
 bool
 QueryProcessor::Received( const Supplier s )
 {
-/*
-Returns ~true~ if the supplier responded to the previous ~request~ by a
-~yield~ message; ~false~ if it responded with ~cancel~. 
-
-*/
   OpTree tree = (OpTree) s;
   if ( tree->nodetype == Operator )
     return (tree->u.op.received);
@@ -3021,43 +3268,43 @@ Returns ~true~ if the supplier responded to the previous ~request~ by a
     return (tree->u.iobj.received);
 }
 
+/*
+~Open~ changes state of the supplier stream to ~open~.
+
+*/
 void
 QueryProcessor::Open( const Supplier s )
 {
-/*
-Changes state of the supplier stream to ~open~.
-
-*/
   Word result;
   OpTree tree = (OpTree) s;
-  TRACE("Open: " << *tree)
-
   Eval( tree, result, OPEN );
 }
 
-void
-QueryProcessor::Close( const Supplier s )
-{
 /*
-Changes state of the supplier stream to ~closed~. No effect, if the
+~Close~ changes state of the supplier stream to ~closed~. No effect, if the
 stream is closed already. 
 
 */
+void
+QueryProcessor::Close( const Supplier s )
+{
   Word result;
   Eval( (OpTree) s, result, CLOSE );
 }
 
-Supplier
-QueryProcessor::GetSupplier( const Supplier s, const int no )
-{
 /*
->From a given supplier ~s~ that represents an argument list, get its son
+Function ~GetSupplier~
+
+From a given supplier ~s~ that represents an argument list, get its son
 number ~no~. Can be used to traverse the operator tree in order to
 access arguments within (nested) argument lists. Values or function or
 stream evaluation can then be obtained from the returned supplier by the
 usual calls to ~request~ etc. 
 
 */
+Supplier
+QueryProcessor::GetSupplier( const Supplier s, const int no )
+{
   
   OpTree node = (OpTree) s;
   
@@ -3083,9 +3330,6 @@ usual calls to ~request~ etc.
   return (0);
 }
 
-Word
-QueryProcessor::ResultStorage( const Supplier s )
-{
 /*
 For each operator in an operator tree, the query processor allocates a
 storage block for the result value (which it also destroys after
@@ -3095,25 +3339,31 @@ As a parameter ~s~, the operator's node Word has to be given which is
 passed to the evaluation function in parameter ~opTreeNode~. 
 
 */
+
+Word
+QueryProcessor::ResultStorage( const Supplier s )
+{
   OpTree tree = (OpTree) s;
   return (tree->u.op.resultWord);
 }
 
-void
-QueryProcessor::ResultStorage( const Supplier s, const Word w )
-{
 /*
-Some operators do not use the result storage and create their own
-storage for the result. This function is used for this case. They
-must call the first function ~ResultStorage~ and free it, and then 
-set the new one passed in ~w~.
+Function ~ChangeResultStorage~. 
+
+Normally, the Query-Processor allocates and destroys result objects
+automatically. But some operators may not use the default result storage in particular they
+create their own storage for the result. This function should be used for this case. 
+Those operators must first free the default result storage, afterwards 
+a new one can be passed by parameter ~w~. Moreover an specific delete function
+needs to be assigned by calling ~SetDeleteFunction~
 
 */
+void
+QueryProcessor::ChangeResultStorage( const Supplier s, const Word w )
+{
   OpTree tree = (OpTree) s;
   tree->u.op.resultWord = w;
 }
-
-
 
 void
 QueryProcessor::SetDeleteFunction( const Supplier s, 
@@ -3155,14 +3405,14 @@ QueryProcessor::ReInitResultStorage( const Supplier s )
         ( GetCatalog()->NumericType( tree->typeExpr ) );
 }
 
-int
-QueryProcessor::GetNoSons( const Supplier s )
-{
 /*
-Returns the number of sons of the operator node ~s~ of the operator
+~GetNoSons~ returns the number of sons of the operator node ~s~ of the operator
 tree. 
 
 */
+int
+QueryProcessor::GetNoSons( const Supplier s )
+{
   OpTree tree = (OpTree) s;
   if ( tree->nodetype == Operator )
   {
@@ -3175,13 +3425,13 @@ tree.
   }
 }
 
+/*
+~GetType~ returns the type expression of the node ~s~ of the operator tree. 
+
+*/
 ListExpr
 QueryProcessor::GetType( const Supplier s )
 {
-/*
-Returns the type expression of the node ~s~ of the operator tree. 
-
-*/
   OpTree tree = (OpTree) s;
   if ( (tree->nodetype == Operator) && tree->u.op.isFun ) 
   {
@@ -3206,14 +3456,14 @@ Returns the type expression of the node ~s~ of the operator tree.
   }
 }
 
-void
-QueryProcessor::SetModified( const Supplier s )
-{
 /*
-Sets a node ~s~ of the operator tree as modified. The node must be
+~SetModified~ sets a node ~s~ of the operator tree as modified. The node must be
 of type ~Object~.
 
 */
+void
+QueryProcessor::SetModified( const Supplier s )
+{
   OpTree tree = (OpTree) s;
   assert( tree->nodetype == Object );
   tree->u.dobj.isModified = true;
@@ -3295,6 +3545,9 @@ QueryProcessor::SetDebugLevel( const int level )
   }
 }
 
+
+
+
 bool
 QueryProcessor::ExecuteQuery( const string& queryListStr,
                               Word& queryResult )
@@ -3328,7 +3581,7 @@ QueryProcessor::ExecuteQuery( const string& queryListStr,
     if ( evaluable )
     {
       // evaluate the operator tree
-      qpp->Eval( tree, queryResult, 1 );
+      qpp->Eval( tree, queryResult, OPEN );
       qpp->Destroy( tree, false );
     }
     else 
