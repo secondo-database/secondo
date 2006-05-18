@@ -697,7 +697,7 @@ NetworkRoutesValueMapping(Word* args, Word& result, int message, Word& local, Su
 
   Relation *resultSt = (Relation*)qp->ResultStorage(s).addr;
   resultSt->Close();
-  qp->ResultStorage(s, result);
+  qp->ChangeResultStorage(s, result);
 
   return 0;
 }
@@ -758,7 +758,7 @@ NetworkJunctionsValueMapping(Word* args, Word& result, int message, Word& local,
 
   Relation *resultSt = (Relation*)qp->ResultStorage(s).addr;
   resultSt->Close();
-  qp->ResultStorage(s, result);
+  qp->ChangeResultStorage(s, result);
 
   return 0;
 }
@@ -819,7 +819,7 @@ NetworkSectionsValueMapping(Word* args, Word& result, int message, Word& local, 
 
   Relation *resultSt = (Relation*)qp->ResultStorage(s).addr;
   resultSt->Close();
-  qp->ResultStorage(s, result);
+  qp->ChangeResultStorage(s, result);
 
   return 0;
 }
