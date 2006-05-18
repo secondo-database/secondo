@@ -193,7 +193,13 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
   bool doInvert;
 
   result.resize(0);
-  srand(time(0));
+
+  // The variable below defines an offset into the
+  // random number sequence. It will be incremented by
+  // the number of rand() calls. Hence subsequent calls
+  // will avoid to return the same sequence of numbers.
+  static unsigned int randCalls = (time(0) % 1000) * 1000;
+  srand(randCalls);
 
   if(((double)setSize) / ((double)subsetSize) <= 2)
   {
@@ -210,6 +216,10 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
   // need to limit the drawSize to 3/4 (to avoid long runtimes) of 
   // this size.
   int drawMax = 3*RAND_MAX/4;
+  static const int f = INT_MAX / RAND_MAX - 1;
+  static long& ctr = Counter::getRef("EXT::sample:randPos");
+  static long& ctrMax = Counter::getRef("EXT::sample:maxDrawnRand");
+  SHOW(f)
   if ( drawSize > drawMax ) 
   {
     drawSize = drawMax;
@@ -219,9 +229,21 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
   while(nDrawn < drawSize)
   {
     // 28.04.04 M. Spiekermann.
-    // The calculation of random numbers blow is recommended in 
-    // the man page // documentation of the rand() function.
-    r = (int) ((double)(setSize + 1) * rand()/(RAND_MAX+1.0));
+    // The calculation of random numbers below is recommended in 
+    // the man page documentation of the rand() function.
+    // Moreover, the factor f is used to retrieve values in the
+    // range of LONG_MAX
+    long nextRand = rand();
+    randCalls++;
+    if ( f > 1 )
+    {
+      nextRand += (f * rand());
+      randCalls++;
+    } 
+    if (nextRand > ctrMax)
+      ctrMax = nextRand;
+    
+    r = (int) ((double)(setSize + 1) * nextRand/(RAND_MAX+1.0));
     if(r == 0)
       continue;
 
@@ -231,6 +253,7 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
       ++nDrawn;
     }
   }
+  ctr = randCalls;
 
   if(doInvert)
   {
@@ -324,35 +347,31 @@ struct SampleLocalInfo
 
 int Sample(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  SampleLocalInfo* localInfo;
-  Word argRelation;
-  Word sampleSizeWord;
-  Word sampleRateWord;
+  SampleLocalInfo* localInfo = static_cast<SampleLocalInfo*>( local.addr );
+  Word argRelation = SetWord(0);
 
-  Relation* rel;
-  Tuple* tuple;
+  Relation* rel = 0;
+  Tuple* tuple = 0;
 
-  int sampleSize;
-  int relSize;
-  float sampleRate;
-  int i;
-  int currentIndex;
+  int sampleSize = 0;
+  int relSize = 0;
+  float sampleRate = 0;
+  int i = 0;
+  int currentIndex = 0;
 
   switch(message)
   {
     case OPEN :
       localInfo = new SampleLocalInfo();
-      local = SetWord(localInfo);
+      local.addr = localInfo;
 
       qp->Request(args[0].addr, argRelation);
-      qp->Request(args[1].addr, sampleSizeWord);
-      qp->Request(args[2].addr, sampleRateWord);
-
       rel = (Relation*)argRelation.addr;
       relSize = rel->GetNoTuples();
       localInfo->relIter = rel->MakeScan();
-      sampleSize = ((CcInt*)sampleSizeWord.addr)->GetIntval();
-      sampleRate = ((CcReal*)sampleRateWord.addr)->GetRealval();
+      
+      sampleSize = StdTypes::RequestInt(args[1]);
+      sampleRate = StdTypes::RequestReal(args[2]);
 
       if(sampleSize < 1)
       {
@@ -388,7 +407,6 @@ int Sample(Word* args, Word& result, int message, Word& local, Supplier s)
       return 0;
 
     case REQUEST:
-      localInfo = (SampleLocalInfo*)local.addr;
       if(localInfo->iter == localInfo->sampleIndices.end())
       {
         return CANCEL;
@@ -3562,10 +3580,13 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
     argstr + "'.\n" );
   third = nl->First(third);
 
-  ListExpr secondRest = second, secondFirst, attrType,
-           newAttrList, numberList,
-           lastNewAttrList, lastNumberList;
-  string attrName;
+  ListExpr secondRest = second;
+  ListExpr secondFirst, attrType, newAttrList, numberList;
+  secondFirst = attrType = newAttrList = numberList = nl->Empty();
+  ListExpr lastNewAttrList, lastNumberList;
+  lastNewAttrList = lastNumberList = nl->Empty();
+  
+  string attrName = "";
   bool firstCall = true;
   while( !nl->IsEmpty(secondRest) )
   {
