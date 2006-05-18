@@ -166,29 +166,110 @@ dynamicPossiblyRenameS(Rel, Renamed) :-
   Renamed = rename(sample(Rel, SelectionSize, 0.00001), Name).
 
 /*
-----	cardQuery(Pred, Rel, Query) :-
-	cardQuery(Pred, Rel1, Rel2, Query) :-
+----  selectivityQuerySelection(+Pred, +Rel, -QueryTime, -BBoxResCard, -FilterResCard)
+      selectivityQueryJoin(+Pred, +Rel1, +Rel2, -QueryTime, -BBoxResCard, -FilterResCard)
 ----
 
 The cardinality query for a selection predicate is performed on the selection sample. The cardinality query for a join predicate is performed on the first ~n~ tuples of the selection sample vs. the join sample, where ~n~ is the size of the join sample. It is done in this way in order to have two independent samples for the join, avoiding correlations, especially for equality conditions.
 
+If ~optimizerOption(dynamicSample)~ is defined, dynamic samples are used instead of the \_sample\_j / \_sample\_s resp. \_small relations.
+
+The predicates return the time ~QueryTime~ used for the query, and the cardinality ~FilterResCard~ of the result after applying the predicate.
+
+If ~Pred~ has a predicate operator that performs checking of overlapping minimal bounding boxes, the selectivity query will additionally return the cardinality after the bbox-checking in ~BBoxResCard~, otherwise its return value is set to constant  ~noBBox~. 
+
 */
 
-cardQuery(Pred, Rel, Query) :-
-  sampleS(Rel, RelS),
-  possiblyRename(RelS, RelQuery),
-  Query = count(filter(RelQuery, Pred)).
+selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard, FilterResCard) :-
+  Pred =.. [OP, Arg1, Arg2],
+  isBBoxPredicate(OP),     % spatial predicate with bbox-checking
+  BBoxPred =.. [intersects, bbox(Arg1), bbox(Arg2)],
+  ( optimizerOption(dynamicSample)
+    -> dynamicPossiblyRenameS(Rel, RelQuery)
+    ;  ( sampleS(Rel, RelS),
+         possiblyRename(RelS, RelQuery)
+       )
+  ),
+  Query = count(filter(count(filter(RelQuery, BBoxPred),1), Pred)),
+  plan_to_atom(Query, QueryAtom1),
+  atom_concat('query ', QueryAtom1, QueryAtom),
+  dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
+  getTime(secondo(QueryAtom, [int, FilterResCard]),QueryTime),
+  dm(selectivity,['Elapsed Time: ', QueryTime, '\n']), 
+  secondo('list counters',  [[1, BBoxResCard]|_]), !.
 
-cardQuery(Pred, Rel1, Rel2, Query) :-
-  sampleS(Rel1, Rel1S),
-  sampleJ(Rel2, Rel2S),
-  possiblyRename(Rel1S, Rel1Query),
-  possiblyRename(Rel2S, Rel2Query),
+selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
+  Pred =.. [OP|_],
+  not(isBBoxPredicate(OP)), % normal predicate
+  ( optimizerOption(dynamicSample)
+    -> dynamicPossiblyRenameS(Rel, RelQuery)
+    ;  ( sampleS(Rel, RelS),
+         possiblyRename(RelS, RelQuery)
+       )
+  ),
+  Query = count(filter(RelQuery, Pred)),
+  plan_to_atom(Query, QueryAtom1),
+  atom_concat('query ', QueryAtom1, QueryAtom),
+  dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
+  getTime(secondo(QueryAtom, [int, ResCard]),QueryTime),
+  dm(selectivity,['Elapsed Time: ', QueryTime, '\n']), !.
+
+selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterResCard) :-
+  Pred =.. [OP|_],
+  isBBoxPredicate(OP),     % spatial predicate with bbox-checking
   transformPred(Pred, t, 1, Pred2),
-  Rel2S = rel(BaseName, _, _),
-  card(BaseName, JoinSize),
-  Query = count(loopsel(head(Rel1Query, JoinSize), fun([param(t, tuple)],
-                filter(Rel2Query, Pred2)))).
+  Pred2 =.. [_, Arg1, Arg2],
+  Pred3 =.. [intersects, bbox(Arg1), bbox(Arg2)],
+  ( optimizerOption(dynamicSample)
+    -> ( dynamicPossiblyRenameJ(Rel1, Rel1Query),
+         dynamicPossiblyRenameJ(Rel2, Rel2Query),
+         Query = count(filter(counter(loopjoin(Rel1Query, fun([param(t, tuple)], 
+                       filter(Rel2Query, Pred3))),1),Pred2) )
+       )
+    ;  ( sampleS(Rel1, Rel1S),
+         sampleJ(Rel2, Rel2S),
+         possiblyRename(Rel1S, Rel1Query),
+         possiblyRename(Rel2S, Rel2Query),
+         Rel2S = rel(BaseName, _, _),
+         card(BaseName, JoinSize),
+         Query = count(filter(counter(loopjoin(head(Rel1Query, JoinSize), 
+                       fun([param(t, tuple)],
+                       filter(Rel2Query, Pred3))),1), Pred2) )
+       )
+  ),
+  plan_to_atom(Query, QueryAtom1),
+  atom_concat('query ', QueryAtom1, QueryAtom),
+  dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
+  getTime(secondo(QueryAtom, [int, FilterResCard]),QueryTime),
+  dm(selectivity,['Elapsed Time: ', QueryTime, '\n']),
+  secondo('list counters',  [[1, BBoxResCard]|_]), !.
+
+selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
+  Pred =.. [OP|_],
+  not(isBBoxPredicate(OP)), % normal predicate
+  transformPred(Pred, t, 1, Pred2),
+  ( optimizerOption(dynamicSample)
+    -> ( dynamicPossiblyRenameJ(Rel1, Rel1Query),
+         dynamicPossiblyRenameJ(Rel2, Rel2Query),
+         Query = count(loopsel(Rel1Query, fun([param(t, tuple)], 
+                       filter(Rel2Query, Pred2))))
+       )
+    ;  ( Rel2S = rel(BaseName, _, _),
+         sampleS(Rel1, Rel1S),
+         sampleJ(Rel2, Rel2S),
+         possiblyRename(Rel1S, Rel1Query),
+         possiblyRename(Rel2S, Rel2Query),
+         card(BaseName, JoinSize),
+         Query = count(loopsel(head(Rel1Query, JoinSize), fun([param(t, tuple)],
+                       filter(Rel2Query, Pred2))))
+       )
+   ),
+  plan_to_atom(Query, QueryAtom1),
+  atom_concat('query ', QueryAtom1, QueryAtom),
+  dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
+  getTime(secondo(QueryAtom, [int, ResCard]),QueryTime),
+  dm(selectivity,['Elapsed Time: ', QueryTime, '\n']), !.
+
 
 /*
 
@@ -226,20 +307,6 @@ transformPred(Pred, Param, Arg, Pred2) :-
 
 transformPred(Pred, _, _, Pred).
 
-
-%  Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
-
-dynamicCardQuery(Pred, Rel, Query) :-
-  dynamicPossiblyRenameS(Rel, RelQuery),
-  Query = count(filter(RelQuery, Pred)).
-
-dynamicCardQuery(Pred, Rel1, Rel2, Query) :-
-  dynamicPossiblyRenameJ(Rel1, Rel1Query),
-  dynamicPossiblyRenameJ(Rel2, Rel2Query),
-  %Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
-  transformPred(Pred, t, 1, Pred2),
-  Query = count(loopsel(Rel1Query, fun([param(t, tuple)], filter(Rel2Query, Pred2)))).
-
 sels(Pred, Sel) :-
   databaseName(DB),
   storedSel(DB, Pred, Sel),
@@ -252,7 +319,7 @@ sels(Pred, Sel) :-
 
 /*
 
-----	selectivity(P, Sel) :-
+----	selectivity(+P, -Sel) :-
 ----
 
 The selectivity of predicate ~P~ is ~Sel~.
@@ -304,40 +371,48 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   Rel2 = rel(BaseName2, _, _),
   sampleNameJ(BaseName2, SampleName2),
   card(SampleName2, SampleCard2),
-  cardQuery(Pred, Rel1, Rel2, Query),
-  plan_to_atom(Query, QueryAtom1),
-  atom_concat('query ', QueryAtom1, QueryAtom),
-  dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
-  getTime(secondo(QueryAtom, [int, ResCard]),MSs),
-  dm(selectivity,['Elapsed Time: ', MSs, '\n']),
+  selectivityQueryJoin(Pred, Rel1, Rel2, MSs, BBoxResCard, ResCard),
   MSsRes is MSs / (SampleCard1 * SampleCard2),
   nonzero(ResCard, NonzeroResCard), 
   Sel is NonzeroResCard / (SampleCard1 * SampleCard2),	% must not be 0
-  dm(selectivity,['Predicate Cost: ', MSsRes, ' ms\nSelectivity : ',Sel,'\n']),
+  dm(selectivity,['Predicate Cost  : ', MSsRes, ' ms\nSelectivity     : ',
+                  Sel,'\n']),
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
   databaseName(DB),
   assert(storedPET(DB, PSimple, MSsRes)),
-  assert(storedSel(DB, PSimple, Sel)), !.
+  assert(storedSel(DB, PSimple, Sel)), 
+  ( ( BBoxResCard = noBBox ; storedBBoxSel(DB, PSimple, _) )
+    -> true
+    ;  ( nonzero(BBoxResCard, NonzeroBBoxResCard), 
+         BBoxSel is NonzeroBBoxResCard / (SampleCard1 * SampleCard2),
+         dm(selectivity,['BBox-Selectivity: ',BBoxSel,'\n']),
+         assert(storedBBoxSel(DB, PSimple, BBoxSel))
+       )
+  ),!.
 
 selectivity(pr(Pred, Rel), Sel) :-
   not(optimizerOption(dynamicSample)),
   Rel = rel(BaseName, _, _),
   sampleNameS(BaseName, SampleName),
   card(SampleName, SampleCard),
-  cardQuery(Pred, Rel, Query),
-  plan_to_atom(Query, QueryAtom1),
-  atom_concat('query ', QueryAtom1, QueryAtom),
-  dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
-  getTime(secondo(QueryAtom, [int, ResCard]),MSs),
-  dm(selectivity,['Elapsed Time: ', MSs, '\n']),
+  selectivityQuerySelection(Pred, Rel, MSs, BBoxResCard, ResCard),
   MSsRes is MSs / SampleCard,
   nonzero(ResCard, NonzeroResCard),
   Sel is NonzeroResCard / SampleCard,		% must not be 0
-  dm(selectivity,['Predicate Cost: ', MSsRes, ' ms\nSelectivity : ',Sel,'\n']),
+  dm(selectivity,['Predicate Cost: ', MSsRes, ' ms\nSelectivity : ',
+                  Sel,'\n']),
   simplePred(pr(Pred, Rel), PSimple),
   databaseName(DB),
   assert(storedPET(DB, PSimple, MSsRes)),
-  assert(storedSel(DB, PSimple, Sel)), !.
+  assert(storedSel(DB, PSimple, Sel)), 
+  ( ( BBoxResCard = noBBox ; storedBBoxSel(DB, PSimple, _) )
+    -> true
+    ;  ( nonzero(BBoxResCard, NonzeroBBoxResCard), 
+         BBoxSel is NonzeroBBoxResCard / SampleCard,
+         dm(selectivity,['BBox-Selectivity: ',BBoxSel,'\n']),
+         assert(storedBBoxSel(DB, PSimple, BBoxSel))
+       )
+  ),!.
 
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   optimizerOption(dynamicSample),
@@ -348,19 +423,22 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   Rel2 = rel(BaseName2, _, _),
   card(BaseName2, Card2),
   SampleCard2 is min(Card2, max(JoinSize, Card2 * 0.00001)),
-  dynamicCardQuery(Pred, Rel1, Rel2, Query),
-  plan_to_atom(Query, QueryAtom1),
-  atom_concat('query ', QueryAtom1, QueryAtom),
-  dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
-  getTime(secondo(QueryAtom, [int, ResCard]),MSs),
-  dm(selectivity,['Elapsed Time: ', MSs, '\n']),
+  selectivityQueryJoin(Pred, Rel1, Rel2, MSs, BBoxResCard, ResCard),
   MSsRes is MSs / (SampleCard1 * SampleCard2),
   nonzero(ResCard, NonzeroResCard),
   Sel is NonzeroResCard / (SampleCard1 * SampleCard2),	% must not be 0
   dm(selectivity,['Predicate Cost: ', MSsRes, ' ms\nSelectivity : ',Sel,'\n']),
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
   databaseName(DB),
-  assert(storedSel(DB, PSimple, Sel)), !.
+  assert(storedSel(DB, PSimple, Sel)), 
+  ( ( BBoxResCard = noBBox ; storedBBoxSel(DB, PSimple, _) )
+    -> true
+    ;  ( nonzero(BBoxResCard, NonzeroBBoxResCard), 
+         BBoxSel is NonzeroBBoxResCard / (SampleCard1 * SampleCard2),
+         dm(selectivity,['BBox-Selectivity: ',BBoxSel,'\n']),
+         assert(storedBBoxSel(DB, PSimple, BBoxSel))
+       )
+  ),!.
 
 selectivity(pr(Pred, Rel), Sel) :-
   optimizerOption(dynamicSample),
@@ -368,19 +446,22 @@ selectivity(pr(Pred, Rel), Sel) :-
   card(BaseName, Card),
   sampleSizeSelection(SelectionSize),
   SampleCard is min(Card, max(SelectionSize, Card * 0.00001)),
-  dynamicCardQuery(Pred, Rel, Query),
-  plan_to_atom(Query, QueryAtom1),
-  atom_concat('query ', QueryAtom1, QueryAtom),
-  dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
-  get_time(secondo(QueryAtom, [int, ResCard]),MSs),
-  dm(selectivity,['Elapsed Time: ', MSs, '\n']),
+  selectivityQuerySelection(Pred, Rel, MSs, BBoxResCard, ResCard),
   MSsRes is MSs / SampleCard,
   nonzero(ResCard, NonzeroResCard),
   Sel is NonzeroResCard / SampleCard,		% must not be 0
   dm(selectivity,['Predicate Cost: ', MSsRes, ' ms\nSelectivity : ',Sel,'\n']),
   simplePred(pr(Pred, Rel), PSimple),
   databaseName(DB),
-  assert(storedSel(DB, PSimple, Sel)), !.
+  assert(storedSel(DB, PSimple, Sel)), 
+  ( ( BBoxResCard = noBBox ; storedBBoxSel(DB, PSimple, _) )
+    -> true
+    ;  ( nonzero(BBoxResCard, NonzeroBBoxResCard), 
+         BBoxSel is NonzeroBBoxResCard / SampleCard,
+         dm(selectivity,['BBox-Selectivity: ',BBoxSel,'\n']),
+         assert(storedBBoxSel(DB, PSimple, BBoxSel))
+       )
+  ),!.
 
 selectivity(P, _) :- write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl, 
@@ -398,6 +479,7 @@ The selectivities retrieved via Secondo queries can be loaded
 
 readStoredSels :-
   retractall(storedSel(_, _, _)),
+  retractall(storedBBoxSel(_, _, _)),
   [storedSels].
 
 /*
@@ -445,16 +527,29 @@ writeStoredSel(Stream) :-
   write(Stream, storedSel(DB, XReplaced, Y)),
   write(Stream, '.\n').
 
+writeStoredSel(Stream) :-
+  storedBBoxSel(DB, X, Y),
+  replaceCharList(X, XReplaced),
+  write(Stream, storedBBoxSel(DB, XReplaced, Y)),
+  write(Stream, '.\n').
+
 showSel :- 
   storedSel(DB, X, Y),
   write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
 
+showBBoxSel :- 
+  storedBBoxSel(DB, X, Y),
+  write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
+
 showSels :-
   write('Stored selectivities:\n'),
-  findall(_, showSel, _).
+  findall(_, showSel, _),
+  write('Stored bbox-selectivities:\n'),
+  findall(_, showBBoxSel, _) .
 
 :-
   dynamic(storedSel/3),
+  dynamic(storedBBoxSel/3),
   at_halt(writeStoredSels),
   readStoredSels.
 
