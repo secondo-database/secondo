@@ -84,17 +84,24 @@ meaning when typing ~showOptions/0~. Predicates ~setOption/1~ and
    dynamic(loadedModule/1).
 
 /*
----- optimizerOptionInfo(+Option,-Meaning,-GoalOn,-GoalOff)
+---- optimizerOptionInfo(+Option,+SUperOption,-Meaning,-GoalOn,-GoalOff)
 ----
 Provides information on optimizer options. ~Option~ is the option in question,
 ~Meaning~ is a description of that option. When ~Option~ get activated, ~GoalOn~
 should be called, is it is deactivated, ~GoalOff~ is called.
 
+~SuperOption~ is the name of the option that ~Option~ is a suboption of. If ~none~,
+~Option~ is a top-level option.
+
 */
 
-optimizerOptionInfo(entropy,       
-'\tEstimate selectivities by maximizing the entropy.\n\t\t\t(Incompatible with \'immediatePlan\')',
-                    ( delOption(immediatePlan),
+optimizerOptionInfo(entropy, none,
+                    '\tEstimate selectivities by maximizing the entropy.',
+                    ( %delOption(intOrders(on)),
+                      %delOption(intOrders(quick)),
+                      %delOption(intOrders(path)),
+                      %delOption(intOrders(test)),
+                      delOption(immediatePlan),
                       loadFiles(entropy), 
                       (   notIsDatabaseOpen
                         ; ( retractall(storedSecondoList(_)),
@@ -106,42 +113,128 @@ optimizerOptionInfo(entropy,
                           )
                       )
                     ), 
-	            loadFiles(standard)).
-%optimizerOptionInfo(uniformSpeed,     
-%                    'Set machine speed factor to constant 1.0.',
-%                    true, true).
-%optimizerOptionInfo(costsConjuctive,  
-%           'Apply costs only to operators directly considered by Dijkstra',
-%           true, true).
-optimizerOptionInfo(immediatePlan,    
-'Immediately create a path instead of the complete POG.\n\t\t\t(Incompatible with \'entropy\')',
-                    ( loadFiles(immediatePlan),
-                      delOption(entropy)
+	            true ).
+
+/*
+----
+optimizerOptionInfo(uniformSpeed,     
+                    'Set machine speed factor to constant 1.0.',
+                    true, true).
+optimizerOptionInfo(costsConjuctive,  
+           'Apply costs only to operators directly considered by Dijkstra',
+           true, true).
+----
+
+*/
+
+optimizerOptionInfo(immediatePlan, none,   
+                    '\tImmediately create a path instead of the complete POG.',
+                    ( delOption(entropy), 
+                      loadFiles(immediatePlan)
+                    ),
+                    ( %delOption(intOrders(on)),
+                      %delOption(intOrders(quick)),
+                      %delOption(intOrders(path)),
+                      %delOption(intOrders(test)),
+                      true
+                    ) ).
+
+/*
+----
+optimizerOptionInfo(intOrders(on), immediatePlan,   
+                    '\tConsider interesting orders during optimization (on-variant).',
+                    ( delOption(entropy),
+                      delOption(intOrders(on)),
+                      delOption(intOrders(quick)),
+                      delOption(intOrders(path)),
+                      delOption(intOrders(test)),
+                      loadFiles(intOrders),
+                      intOrdersPrintWelcomeIO,
+                      enhanceSweepKnowledgeBaseClause,
+                      changeOriginalOptimizer,
+                      changeModificationsPL2,
+                      correctStoredNodesShape,
+                      createMergeJoinPlanEdges,
+                      intOrderonImplementation
                     ), 
-                    loadFiles(completePOG)).
-optimizerOptionInfo(pathTiming,    
-                    'Prompt time used to find a best path.',
+                    ( doNotCreateMergeJoinPlanEdges,
+                      loadFiles(standard),
+                      loadFiles(immediatePlan)
+                    )).
+optimizerOptionInfo(intOrders(path), immediatePlan,   
+                    'Consider interesting orders during optimization (path-variant).',
+                    ( delOption(entropy),
+                      delOption(intOrders(on)),
+                      delOption(intOrders(quick)),
+                      delOption(intOrders(path)),
+                      delOption(intOrders(test)),
+                      loadFiles(intOrders),
+                      intOrdersPrintWelcomeIO,
+                      enhanceSweepKnowledgeBaseClause,
+                      changeOriginalOptimizer,
+                      changeModificationsPL2,
+                      correctStoredNodesShape,
+                      createMergeJoinPlanEdges
+                    ), 
+                    ( doNotCreateMergeJoinPlanEdges,
+                      loadFiles(standard),
+                      loadFiles(immediatePlan)
+                    )).
+optimizerOptionInfo(intOrders(quick), immediatePlan,   
+                    'Consider interesting orders during optimization (quick-variant).',
+                    ( delOption(entropy),
+                      delOption(intOrders(on)),
+                      delOption(intOrders(quick)),
+                      delOption(intOrders(path)),
+                      delOption(intOrders(test)),
+                      loadFiles(intOrders),
+                      intOrdersPrintWelcomeIO,
+                      enhanceSweepKnowledgeBaseClause,
+                      changeOriginalOptimizer,
+                      changeModificationsPL0,
+                      createMergeJoinPlanEdges                      
+                    ), 
+                    ( doNotCreateMergeJoinPlanEdges,
+                      loadFiles(standard),
+                      loadFiles(immediatePlan)
+                    )).
+optimizerOptionInfo(intOrders(test), immediatePlan,   
+                    'Consider interesting orders during optimization (test-variant).',
+                    ( delOption(entropy),
+                      delOption(intOrders(on)),
+                      delOption(intOrders(quick)),
+                      delOption(intOrders(path)),
+                      delOption(intOrders(test)),
+                      loadFiles(intOrders),
+                      intOrdersPrintWelcomeIO,
+                      enhanceSweepKnowledgeBaseClause,
+                      changeOriginalOptimizer,
+                      changeModificationsPL1,
+                      correctStoredNodesShape,
+                      createMergeJoinPlanEdges
+                    ), 
+                    ( doNotCreateMergeJoinPlanEdges,
+                      loadFiles(standard),
+                      loadFiles(immediatePlan)
+                    )).
+----
+
+*/
+
+optimizerOptionInfo(pathTiming, none,   
+                    '\tPrompt time used to find a best path.',
                     true, true).
-optimizerOptionInfo(dynamicSample,    
-                    'Use dynamic instead of static (saved) samples.',
+optimizerOptionInfo(dynamicSample, none,   
+                    '\tUse dynamic instead of static (saved) samples.',
                     true, true).
-optimizerOptionInfo(rewriteMacros,    
-                    'Allow for macros (with[<expr> as <macro>] in <query>).',
+optimizerOptionInfo(rewriteMacros, none,   
+                    '\tAllow for macros (with[<expr> as <macro>] in <query>).',
                     true, true).
-optimizerOptionInfo(rewriteInference, 
+optimizerOptionInfo(rewriteInference, none,
                     'Automatically add inferred predicates to where clause.',
                     true, true).
-optimizerOptionInfo(rewriteCSE,       
-                    'Substitute common subexpressions by extended attributes.',
-                    true, delOption(rewriteRemove)).
-optimizerOptionInfo(rewriteCSEall,       
-'Extend with attributes for _ALL_ CSEs.\n\t\t\t(Sub-option for \'rewriteCSE\')',
-                    true, true).
-optimizerOptionInfo(rewriteRemove,       
-'Remove attributes as early as possible.\n\t\t\t(NOTE: This auto-selects \'rewriteCSE\'!)',
-                    setOption(rewriteCSE), true).
-optimizerOptionInfo(rtreeIndexRules,       
-'Use additional rules to exploit R-tree indices.\n\t\t\t(NOTE: This auto-selects \'rewriteInference\'!)',
+optimizerOptionInfo(rtreeIndexRules, rewriteInference,  
+'Use additional rules to exploit R-tree indices [rewriteInference].',
                       (   setOption(rewriteInference), 
                           (
                             not(optimizerOption(entropy))
@@ -156,8 +249,17 @@ optimizerOptionInfo(rtreeIndexRules,
                           )
                       ), 
                       true).
-optimizerOptionInfo(debug,            
-                    '\tActivate debugging code. Also use \'toggleDebug.\'.',
+optimizerOptionInfo(rewriteCSE, none,      
+                    '\tSubstitute common subexpressions by extended attributes.',
+                    true, delOption(rewriteRemove)).
+optimizerOptionInfo(rewriteCSEall, rewriteCSE,     
+                    '\tExtend with attributes for _ALL_ CSEs [rewriteCSE].',
+                    true, true).
+optimizerOptionInfo(rewriteRemove, rewriteCSE,     
+                    '\tRemove attributes as early as possible [rewriteCSE].',
+                    setOption(rewriteCSE), true).
+optimizerOptionInfo(debug,none,            
+                    '\t\tExecute debugging code. Also use \'toggleDebug.\'.',
                     showDebugLevel,true).
 
 /*
@@ -171,8 +273,8 @@ optimizer options.
 */
 
 showOptions :- 
-  findall(X,optimizerOptionInfo(X,_,_,_),Options),
-  write('\n\nOptimizer options:\n'),
+  findall(X,optimizerOptionInfo(X,_,_,_,_),Options),
+  write('\n\nOptimizer options (and sub-options):\n'),
   showOption(Options), 
   write('\nType \'setOption(X).\' to select option X.\n'), 
   write('Type \'delOption(X).\' to unselect option X.\n'),
@@ -180,17 +282,19 @@ showOptions :-
 
 showOption([]).
 showOption([Option|Y]) :-
-  optimizerOptionInfo(Option,Text,_,_),
+  optimizerOptionInfo(Option,Super,Text,_,_),
+  ( Super = none -> write(' [') ; write('    (') ),
   ( optimizerOption(Option) 
-      -> write(' [x] ')
-       ; write(' [ ] ')
+      -> write('x')
+       ; write(' ')
   ),
+  ( Super = none -> write(']    ') ; write(') ') ),
   write(Option), write(':\t'), write(Text), nl,
   showOption(Y), !.
 
 setOption(X) :-
   nonvar(X),
-  optimizerOptionInfo(X,Text,GoalOn,_),
+  optimizerOptionInfo(X,_,Text,GoalOn,_),
   retractall(optimizerOption(X)),
   assert(optimizerOption(X)), 
   call(GoalOn),
@@ -202,7 +306,7 @@ setOption(X) :-
 
 delOption(X) :-
   nonvar(X),
-  optimizerOptionInfo(X,Text,_,GoalOff),
+  optimizerOptionInfo(X,_,Text,_,GoalOff),
   retractall(optimizerOption(X)), 
   call(GoalOff),
   write('Switched off option: \''), write(X), write('\' - '), 
@@ -280,8 +384,7 @@ loadFiles(standard) :-
     [operators],
     [boundary],
     [searchtree],
-    retractall(loadedModule(standard)),
-    retractall(loadedModule(entropy)),
+    retractall(loadedModule(_)),
     assert(loadedModule(standard))
   )
   ; true.
@@ -296,6 +399,7 @@ loadFiles(entropy) :-
   )
   ; true.
 
+% Optional files for the immediate plan extension
 loadFiles(immediatePlan) :-
   ( not(loadedModule(immediatePlan)),
     [immediateplan],
@@ -306,15 +410,15 @@ loadFiles(immediatePlan) :-
   ) 
   ; true.
     
-loadFiles(completePOG) :-
-  ( loadedModule(immediatePlan),
-    retractall(loadedModule(immediatePlan)),
-    retractall(loadedModule(completePOG)),
-    assert(loadedModule(immediatePlan)),
-    immPlanPrintWelcomePOG
-  ) 
+% Optional files for the interesting orders extension
+loadFiles(intOrders) :-
+  ( not(loadedModule(intOrders)),
+    setOption(immediatePlan),
+    [intOrders],
+    retractall(loadedModule(intOrders)),
+    assert(loadedModule(intOrders))
+  )
   ; true.
-
 
 /*
 4 Some Auxiliary predicates for Debugging
@@ -396,19 +500,24 @@ This are the optional standart settings for the optimizer when getting started.
 Feel free to change.
  
 */
-% :- setOption(entropy).          % Using entropy extension?
+:- setOption(entropy).          % Using entropy extension?
 % :- setOption(immediatePlan).    % Don't create complete POG?
+% :- setOption(intOrders(on)).    % Consider interesting orders (on-variant)?
+% :- setOption(intOrders(quick)). % Consider interesting orders (path-variant)?
+% :- setOption(intOrders(path)).  % Consider interesting orders (path-variant)?
+% :- setOption(intOrders(test)).  % Consider interesting orders (test-variant)?
 :- setOption(pathTiming).       % Prompt time used to create immediate plan?
 % :- setOption(uniformSpeed).     % Using uniform machine speed factor?
 % :- setOption(costsConjunctive). % Applying costs only to conjunctive sub query?
 % :- setOption(dynamicSample).    % Using dynamic samples instead of static ones?
 :- setOption(rewriteMacros).    % Using macro expansion features?
 :- setOption(rewriteInference). % Using automatic inference of predicates?
+:- setOption(rtreeIndexRules).  % Use additional rules to exploit R-tree indices?
 :- setOption(rewriteCSE).       % Substitute common subexpressions in queries?
 % :- setOption(rewriteCSEall).    % Extend attributes for ALL CSEs?
 % :- setOption(rewriteRemove).    % Apply early removal of unused attributes?
-:- setOption(rtreeIndexRules).  % Use additional rules to exploit R-tree indices?
-% :- setOption(debug), assert(optDebugLevel(all)). % Activating debugging code?
+:- assert(optDebugLevel(selectivity)), setOption(debug). % Activating selectivity debugging code?
+% :- assert(optDebugLevel(all)), setOption(debug). % Activating all debugging code?
 
 /*
 5.3 Print Additional Information
