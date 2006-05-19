@@ -217,10 +217,14 @@ This will result in a lot of information about how the optimizer works being
 printed on your screen during construction of the cheapest plan. 
 
 April 2006, Christian D[ue]ntgen. ~Observe~ was replaced by ~dm~ and/or ~dc~
-commands. Changed integration with optimizer.pl by removing dynamic code
+commands. Set ~setOption(debug), debugLevel(immPath)~ to observe the algorithm.
+Changed integration with optimizer.pl by removing dynamic code
 modification (~immPathCreation/1~, ~immPathCreation/2~) with static predicate 
 ~immPlanTranslate/4~ and ~optimizerOption/1~ for the sake of a common interface.
 Switching of optimizer options is now handled in file  ~calloptimizer.pl~.
+
+Mai 2006, Christian D[ue]ntgen. Time measuring code moved to ``optimizer-pl'' as a
+general optimizer option.
 
 */
 
@@ -266,26 +270,6 @@ immPlanPrintWelcomePOG :-
      nl, write('*** modification of the optimizer again,'),
      nl, write('*** that immediately creates the shortest path.'), nl.
 	
-immPlanPrintTimeMessage :-
-     nl, 
-     nl, write('*** The time needed for constructing respectively'),
-     nl, write('*** finding the cheapest plan / shortest path'),
-     nl, write('*** will be printed on your screen.'),
-     nl,
-     nl, write('*** Please type delOption(immediatePlanTime) '),
-     nl, write('*** if you don''t want to know the calculation'),
-     nl, write('*** time any more.'), nl.
-
-
-timeCheck1(Time) :-
-     get_time(Time).
-
-timeCheck2(Time1) :-
-     get_time(Time2),
-     Time3 is 1000*(Time2-Time1),
-     nl, 
-     write('Time needed for creating/finding the cheapest plan: '), 
-     write(Time3), nl, nl.
 
 /*
 
