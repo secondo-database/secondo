@@ -186,11 +186,11 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
 {
   set<int> drawnNumbers;
   set<int>::iterator iter;
-  int drawSize;
+  int drawSize = 0;
   int nDrawn = 0;
-  int i;
-  int r;
-  bool doInvert;
+  int i = 0;
+  int r = 0;
+  bool doInvert = false;
 
   result.resize(0);
 
@@ -216,16 +216,26 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
   // need to limit the drawSize to 3/4 (to avoid long runtimes) of 
   // this size.
   int drawMax = 3*RAND_MAX/4;
-  static const int f = INT_MAX / RAND_MAX - 1;
+  const int randMax = RAND_MAX;
+  const int intMax = INT_MAX;
+  const int newMax = max(randMax, intMax);
+  static const int f = (intMax / randMax) - 1;
   static long& ctr = Counter::getRef("EXT::sample:randPos");
   static long& ctrMax = Counter::getRef("EXT::sample:maxDrawnRand");
-  SHOW(f)
+  
+   
   if ( drawSize > drawMax ) 
   {
     drawSize = drawMax;
     cerr << "Warning: Sample size reduced to 3/4*RAND_MAX." << endl;
   }
 
+  TRACE("*** sample parameters ***")
+  SHOW(f)
+  SHOW(setSize)
+  SHOW(subsetSize)
+  SHOW(drawSize)
+  
   while(nDrawn < drawSize)
   {
     // 28.04.04 M. Spiekermann.
@@ -243,17 +253,18 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
     if (nextRand > ctrMax)
       ctrMax = nextRand;
     
-    r = (int) ((double)(setSize + 1) * nextRand/(RAND_MAX+1.0));
-    if(r == 0)
-      continue;
-
-    if(drawnNumbers.find(r) == drawnNumbers.end())
-    {
-      drawnNumbers.insert(r);
-      ++nDrawn;
-    }
+    r = (int) ((double)(setSize + 1) * nextRand/(newMax+1.0));
+    
+    if ( r != 0) {
+      if(drawnNumbers.find(r) == drawnNumbers.end())
+      {
+        drawnNumbers.insert(r);
+        ++nDrawn;
+      }
+    }  
   }
   ctr = randCalls;
+  SHOW(drawnNumbers.size())
 
   if(doInvert)
   {
@@ -272,6 +283,7 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
         ++iter)
       result.push_back(*iter);
   }
+  SHOW(result.size())
 }
 
 /*
