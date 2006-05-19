@@ -46,7 +46,7 @@ leftrangeTC(10).
 loopjoinTC(1.0).
 exactmatchTC(10.0).
 hashjoinTC(1.5, 0.65).
-sortmergejoinTC(0.3, 0.73).
+sortmergejoinTC(0.3, 0.73). % first also used for sort(), second for mergejoin()
 symmjoinTC(1.4, 0.7).
 extendTC(1.5).
 removeTC(0.6).
