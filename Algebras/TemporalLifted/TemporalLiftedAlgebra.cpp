@@ -1908,11 +1908,12 @@ void MovingPointCompareMS( MPoint& p1, Point& p2, MBool& result,
 
     Point rp0, rp1;
   
-    u1->TemporalFunction(iv.start, rp0);
-    u1->TemporalFunction(iv.end, rp1);
+    //u1->TemporalFunction(iv.start, rp0);
+    //u1->TemporalFunction(iv.end, rp1);
     
-    double t = MPointInMPoint(rp0.GetX(), rp0.GetY(), rp1.GetX(), rp1.GetY(),
-                               p2.GetX(),  p2.GetY(),  p2.GetX(),  p2.GetY());
+    double t = MPointInMPoint(u1->p0.GetX(), u1->p0.GetY(),
+                              u1->p1.GetX(), u1->p1.GetY(),
+                              p2.GetX(),  p2.GetY(),  p2.GetX(),  p2.GetY());
     if(TLA_DEBUG)
       cout<<"t "<<t<<endl;
     
@@ -4947,7 +4948,7 @@ static void CompletePeriods2MPoint(MPoint* mp, Periods* pResult,
   UPoint newUp;
   Point pt;
   int m = 0;
-  bool pfinished = false; //(pResult->GetNoComponents() == 0);
+  bool pfinished = (pResult->GetNoComponents() == 0);
   for ( int i = 0; i < mp->GetNoComponents(); i++) {
     mp->Get(i, up);
     if(!up->IsDefined())
@@ -5069,6 +5070,7 @@ static void MPointInsidePoints(MPoint& mp, Points& ps, Periods& pResult)
   const UPoint *up;
   const Point *p;
   
+  pResult.Clear();
   Periods* between = new Periods(0);
   Periods* period = new Periods(0);
   Interval<Instant> newper; //part of the result
@@ -5110,18 +5112,20 @@ static void MPointInsidePoints(MPoint& mp, Points& ps, Periods& pResult)
       if(TLA_DEBUG){
         cout<<"newper ["<< newper.start.ToDouble()<<" "
         <<newper.end.ToDouble()<<" "<<newper.lc<<" "<<newper.rc<<"]"<<endl;}
-      period->Clear();
-      period->StartBulkLoad();
-      period->Add(newper);
-      period->EndBulkLoad(false);
-      if (!pResult.IsEmpty()) {
-        between->Clear();
-        period->Union(pResult, *between);
-        pResult.Clear();
-        pResult.CopyFrom(between);
+      if(newtime){
+        period->Clear();
+        period->StartBulkLoad();
+        period->Add(newper);
+        period->EndBulkLoad(false);
+        if (!pResult.IsEmpty()) {
+          between->Clear();
+          period->Union(pResult, *between);
+          pResult.Clear();
+          pResult.CopyFrom(between);
+        }
+        else 
+          pResult.CopyFrom(period);
       }
-      else 
-        pResult.CopyFrom(period);
     }
   }
   delete between;
@@ -5140,6 +5144,7 @@ int MPointPointsInside( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s ); 
   Periods* pResult = new Periods(0);
+  pResult->Clear();
   
   MPointInsidePoints( *((MPoint*)args[0].addr),
     *((Points*)args[1].addr), *pResult);
@@ -5167,6 +5172,7 @@ int PointsMPointIntersection( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s ); 
   Periods* pResult = new Periods(0);
+  pResult->Clear();
   
   MPointInsidePoints( *((MPoint*)args[1].addr),
     *((Points*)args[0].addr), *pResult);
@@ -5634,6 +5640,7 @@ int MPointLineInside( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
   Periods* pResult = new Periods(0);
+  pResult->Clear();
   
   MPointInsideLine( *((MPoint*)args[0].addr),
     *((CLine*)args[1].addr), *pResult);
@@ -5661,6 +5668,7 @@ int LineMPointIntersection( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
   Periods* pResult = new Periods(0);
+  pResult->Clear();
   
   MPointInsideLine( *((MPoint*)args[1].addr),
     *((CLine*)args[0].addr), *pResult);
