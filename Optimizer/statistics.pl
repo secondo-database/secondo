@@ -166,8 +166,11 @@ dynamicPossiblyRenameS(Rel, Renamed) :-
   Renamed = rename(sample(Rel, SelectionSize, 0.00001), Name).
 
 /*
-----  selectivityQuerySelection(+Pred, +Rel, -QueryTime, -BBoxResCard, -FilterResCard)
-      selectivityQueryJoin(+Pred, +Rel1, +Rel2, -QueryTime, -BBoxResCard, -FilterResCard)
+----  selectivityQuerySelection(+Pred, +Rel, 
+                                -QueryTime, -BBoxResCard, -FilterResCard)
+
+           selectivityQueryJoin(+Pred, +Rel1, +Rel2, 
+                                -QueryTime, -BBoxResCard, -FilterResCard)
 ----
 
 The cardinality query for a selection predicate is performed on the selection sample. The cardinality query for a join predicate is performed on the first ~n~ tuples of the selection sample vs. the join sample, where ~n~ is the size of the join sample. It is done in this way in order to have two independent samples for the join, avoiding correlations, especially for equality conditions.
@@ -193,9 +196,9 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard, FilterResCard) :-
   Query = count(filter(count(filter(RelQuery, BBoxPred),1), Pred)),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
+  dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
   getTime(secondo(QueryAtom, [int, FilterResCard]),QueryTime),
-  dm(selectivity,['Elapsed Time: ', QueryTime, '\n']), 
+  dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']), 
   secondo('list counters',  [[1, BBoxResCard]|_]), !.
 
 selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
@@ -210,9 +213,9 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
   Query = count(filter(RelQuery, Pred)),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
+  dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
   getTime(secondo(QueryAtom, [int, ResCard]),QueryTime),
-  dm(selectivity,['Elapsed Time: ', QueryTime, '\n']), !.
+  dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']), !.
 
 selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterResCard) :-
   Pred =.. [OP|_],
@@ -239,9 +242,9 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterResCard) :-
   ),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
+  dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
   getTime(secondo(QueryAtom, [int, FilterResCard]),QueryTime),
-  dm(selectivity,['Elapsed Time: ', QueryTime, '\n']),
+  dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']),
   secondo('list counters',  [[1, BBoxResCard]|_]), !.
 
 selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
@@ -266,9 +269,9 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
    ),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  dm(selectivity,['Selectivity query : ', QueryAtom, '\n']),
+  dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
   getTime(secondo(QueryAtom, [int, ResCard]),QueryTime),
-  dm(selectivity,['Elapsed Time: ', QueryTime, '\n']), !.
+  dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']), !.
 
 
 /*
@@ -307,31 +310,6 @@ transformPred(Pred, Param, Arg, Pred2) :-
 
 transformPred(Pred, _, _, Pred).
 
-sels(Pred, Sel) :-
-  databaseName(DB),
-  storedSel(DB, Pred, Sel),
-  !.
-
-sels(Pred, Sel) :-
-  commute(Pred, Pred2),
-  databaseName(DB),
-  storedSel(DB, Pred2, Sel).
-
-/*
-
-----	selectivity(+P, -Sel) :-
-----
-
-The selectivity of predicate ~P~ is ~Sel~.
-
-If ~selectivity~ is called, it first tries to look up
-the selectivity via the predicate ~sel~. If no selectivity
-is found, a Secondo query is issued, which determines the
-selectivity. The retrieved selectitivity is then stored in
-predicate ~storedSel~. This ensures that a selectivity has to
-be retrieved only once.
-
-*/
 
 % Selectivities must not be 0
 
@@ -354,15 +332,49 @@ getTime(Goal, TimeMS) :-
   Time3 is Time2 - Time1,
   convert_time(Time3, _, _, _, _, Minute, Sec, MilliSec),
   TimeMS is Minute *60000 + Sec*1000 + MilliSec, !.
-    
 
+
+/*
+
+----	selectivity(+P, -Sel) :-
+----
+
+The selectivity of predicate ~P~ is ~Sel~.
+
+If ~selectivity~ is called, it first tries to look up
+the selectivity via the predicate ~sel~. If no selectivity
+is found, a Secondo query is issued, which determines the
+selectivity. The retrieved selectitivity is then stored in
+predicate ~storedSel~. This ensures that a selectivity has to
+be retrieved only once.
+
+Additionally, the time to evaluate a predicate is estimated by
+dividing the query time by the number of predicate evaluations.
+The result is stored in a table ~storedPET(DB, Pred, PET)~, where
+~PET~ means ~Predicate Evaluation Time~.
+
+*/
+    
+sels(Pred, Sel) :-
+  databaseName(DB),
+  storedSel(DB, Pred, Sel),
+  !.
+
+sels(Pred, Sel) :-
+  commute(Pred, Pred2),
+  databaseName(DB),
+  storedSel(DB, Pred2, Sel).
+
+% handle 'pseudo-joins' (2 times the same argument) as selections
 selectivity(pr(Pred, Rel, Rel), Sel) :-
   selectivity(pr(Pred, Rel), Sel), !.
 
+% check if selectivity has already been stored
 selectivity(P, Sel) :-
   simplePred(P, PSimple),
   sels(PSimple, Sel), !.
 
+% query for join-selectivity (static samples case)
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   not(optimizerOption(dynamicSample)),
   Rel1 = rel(BaseName1, _, _),
@@ -390,6 +402,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
        )
   ),!.
 
+% query for selection-selectivity (static case)
 selectivity(pr(Pred, Rel), Sel) :-
   not(optimizerOption(dynamicSample)),
   Rel = rel(BaseName, _, _),
@@ -414,6 +427,7 @@ selectivity(pr(Pred, Rel), Sel) :-
        )
   ),!.
 
+% query for join-selectivity (dynamic sampling case)
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   optimizerOption(dynamicSample),
   Rel1 = rel(BaseName1, _, _),
@@ -440,6 +454,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
        )
   ),!.
 
+% query for selection-selectivity (dynamic sampling case)
 selectivity(pr(Pred, Rel), Sel) :-
   optimizerOption(dynamicSample),
   Rel = rel(BaseName, _, _),
@@ -463,6 +478,7 @@ selectivity(pr(Pred, Rel), Sel) :-
        )
   ),!.
 
+% handle ERRORs
 selectivity(P, _) :- write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl, 
   write('Call: selectivity('), write(P), write(',Sel)\n'),
