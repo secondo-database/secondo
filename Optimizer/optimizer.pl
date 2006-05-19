@@ -970,6 +970,42 @@ plan_to_atom(hashjoin(X, Y, A, B, C), Result) :-
     AAtom, ', ', BAtom, ', ', C, '] '], '', Result),
   !.
 
+plan_to_atom(mergejoin(X, Y, A, B), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(A, AAtom),
+  plan_to_atom(B, BAtom),
+  concat_atom([XAtom, YAtom, 'mergejoin[',
+                 AAtom, ', ', BAtom, '] '], '', Result),
+  !.
+
+
+
+
+% two pseudo-operators used by the 'interesting orders extension':
+plan_to_atom(sortLeftThenMergejoin(X, Y, A, B), Result) :-
+  % first glue-operator sort on left tuple, then mergejoin
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(A, AAtom),
+  plan_to_atom(B, BAtom),
+  concat_atom([XAtom, 'sortby[', AAtom, ' asc] ',
+	       YAtom, 'mergejoin[', AAtom, ', ', BAtom, '] '], '', Result),
+  !.
+
+plan_to_atom(sortRightThenMergejoin(X, Y, A, B), Result) :-
+  % first glue-operator sort on right tuple, then mergejoin
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(A, AAtom),
+  plan_to_atom(B, BAtom),
+  concat_atom([XAtom, YAtom, 'sortby[', BAtom, ' asc] ',
+	       'mergejoin[', AAtom, ', ', BAtom, '] '], '', Result),
+  !.
+
+
+
+
 plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
   plan_to_atom(X, XAtom),
   plan_to_atom(Y, YAtom),
@@ -1100,12 +1136,6 @@ plan_to_atom(theminute(X, Y, Z, A, B), Result) :-
 End of Temporal Algebra
 
 */
-
-
-
-
-
-
 
 
 plan_to_atom(exactmatchfun(IndexName, Rel, attr(Name, R, Case)), Result) :-
@@ -1504,39 +1534,13 @@ indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
 /*
 
 C. D[ue]ntgen, Feb 2006: When using renaming, the indexselect rule using 
-``windowintersectd'' failed, because the rule accesses the original (not renamed) 
+``windowintersects'' failed, because the rule accesses the original (not renamed) 
 relation. The correct approach is to do a rename on the result ~before~ the 
 filter is used.
 
 */
 
-
-/*
-----
-% old, dedicated version for predicates checking on mbbs
-
-%fapra1590 - exploit commutativity of operator 'touches'
-indexselect(arg(N), pr(Y touches attr(AttrName, Arg, Case), Rel)) => X :-
-  indexselect(arg(N), pr(attr(AttrName, Arg, Case) touches Y, Rel)) => X.
-
-indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) touches Y, _)) =>
-  filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), 
-         attr(AttrName, Arg, AttrCase) touches Y)
-  :-
-  argument(N, rel(Name, *, Case)),  
-  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
-
-indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) touches Y, _)) =>
-  filter(rename(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)),RelAlias), 
-         attr(AttrName, Arg, AttrCase) touches Y)
-  :-
-  argument(N, rel(Name, RelAlias, Case)), RelAlias \= *, 
-  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
-----
-
-*/
-
-% new, more generic version for predicates checking on mbbs
+% Generic indesselect translation for predicates checking on mbbs
 
 % exploit commutativity of operators
 indexselect(arg(N), pr(Pred, Rel)) => X :-
@@ -1649,55 +1653,6 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
   hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),IndexName, unit_space).
 
-/*
-
-----
-% 'bbox3d(bbox(trajectory(X)),deftime(X)) intersects box3d(bbox(Z),Y)' 
-% with unit_3d index
-%
-% This is the ad-hoc solution due to a non-implemented bbox(moving point) 
-%    operator 
-
-indexselectRT(arg(N), pr(box3d(bbox(trajectory(attr(AttrName, Arg, AttrCase))),
-  deftime(attr(AttrName, Arg, AttrCase))) intersects box3d(bbox(Z),Y), _)) =>
-  gettuples(rdup(sort(windowintersectsS(IndexName, box3d(bbox(Z),Y)))), 
-            rel(Name, *, Case))
-  :-
-  argument(N, rel(Name, *, Case)), 
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, unit_d3).
-
-indexselectRT(arg(N), pr(box3d(bbox(trajectory(attr(AttrName, Arg, AttrCase))),
-  deftime(attr(AttrName, Arg, AttrCase))) intersects box3d(bbox(Z),Y), _)) =>
-  rename(gettuples(rdup(sort(windowintersectsS(IndexName, box3d(bbox(Z),Y)))), 
-            rel(Name, *, Case)), RelAlias)
-  :-
-  argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, unit_d3).
-
-
-% 'bbox3d(bbox(trajectory(X)),deftime(X)) intersects box3d(bbox(Z),Y)' with object_3d index
-%
-% This is the ad-hoc solution due to a non-implemented bbox(moving point) 
-%    operator 
-indexselectRT(arg(N), pr(box3d(bbox(trajectory(attr(AttrName, Arg, AttrCase))),
-  deftime(attr(AttrName, Arg, AttrCase))) intersects box3d(bbox(Z),Y), _)) =>
-  gettuples(windowintersectsS(IndexName, box3d(bbox(Z),Y)), rel(Name, *, Case))
-  :-
-  argument(N, rel(Name, *, Case)), 
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, object_d3).
-
-indexselectRT(arg(N), pr(box3d(bbox(trajectory(attr(AttrName, Arg, AttrCase))),
-  deftime(attr(AttrName, Arg, AttrCase))) intersects box3d(bbox(Z),Y), _)) =>
-  rename(gettuples(windowintersectsS(IndexName, box3d(bbox(Z),Y)), 
-         rel(Name, *, Case)), RelAlias)
-  :-
-  argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, object_d3).
-----
-
-*/
-
-% This are the 'nicer' and faster solutions, which should replace the ad-hoc solution
 
 % 'bbox(x) intersects box3d(bbox(Z),Y)' with unit_3d index
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
@@ -1823,7 +1778,7 @@ exactmatch(IndexName, arg(N), Expr) =>
 
 /*
 One could easily add rules for ~loopjoin~ with ~rightrange~ and ~leftrange~
-operators for joins on <=, >=, < and > here.
+operators for joins on "<=", ">=", "<" and ">" here.
 
 */
 
@@ -1950,7 +1905,7 @@ planEdgeInfo(Source, Target, Plan, Result) :-
   write('Source: '), write(Source), nl,
   write('Target: '), write(Target), nl,
   write('Plan  : '), wp(Plan), nl,
-  % write(Plan), nl,
+  write('\t'), write(Plan), nl,
   write('Result: '), write(Result), nl, nl.
 
 writePlanEdges2:-
@@ -2123,15 +2078,48 @@ cost(consume(X), Sel, S, C) :-
   consumeTC(A),
   C is C1 + A * S.
 
+/*
+For ~filter~, there are several special cases to distinguish:
+ 
+  1 ~filter(spatialjoin(...),P)~
+
+  2 ~filter(gettuples(...),P)~
+
+  3 ~filter(windowintersects(...),P)~
+
+  4 ``normal'' ~filter(...)~
+
+For the first three cases, the edge is the translation of a spatial predicate, that
+makes use of bounding box checks. The first argument of filter will already reduce
+the set of possible candidates, so that the cardinality of tuples processed by filter
+will be smaller than the cardinality passed down in the 3rd argument of ~cost~. Also, the
+selectivity passed with the second argument of ~cost~ if the ~total~ selectivity. To 
+get the selectivity of the preselection, one can analyse the predicate and lookup
+the table ~storedBBoxSel/3~ for that selectivity, which should be passed to the recursive
+call of ~cost~.
+
+PROBLEM: What happens with the entropy-optimizer? As for cases 2 + 3, there is no 
+problem, as the index is used to create a fresh tuple stream. But, as for case 1, we 
+might get into problems, as the selectivity of the bbox-check depends on earlier 
+predicates - so we should consider both selectivities in the minimization of the entropy.
+
+*/
+
 cost(filter(X, _), Sel, S, C) :-
-  term_to_atom(X, XAtom),
-  atom_prefix(XAtom, 'spatialjoin'),
+  X = spatialjoin(_, _, _, _),
+%  X = spatialjoin(_, _, attrname(attr(Attr1, ArgNr1, Case1)), 
+%                        attrname(attr(Attr2, ArgNr2, Case2))),
+%  getSimplePred(P, PSimple),
+%  databaseName(DB),
+%  storedBBoxSel(DB, PSimple, BBoxSel),
+%  cost(X, BBoxSel, SizeX, CostX),
+
   cost(X, Sel, SizeX, CostX),
   filterTC(A),
   S is SizeX,
-  C is CostX + A * SizeX,!.
+  C is CostX + A * SizeX, !.
 
-cost(filter(X, _), Sel, S, C) :-
+cost(filter(X, _), Sel, S, C) :- % 'normal' filter
   cost(X, 1, SizeX, CostX),
   filterTC(A),
   S is SizeX * Sel,
@@ -2241,6 +2229,15 @@ cost(sortmergejoin(X, Y, AX, AY), Sel, S, C) :-
   cost(mergejoin(sortby(X, [AX]),sortby(Y, [AY]), AX, AY), Sel, S, C).
 
 
+% two rules used by the 'interesting orders extension':
+cost(sortLeftThenMergejoin(X, Y, AX, AY), Sel, S, C) :-
+  cost(mergejoin(sortby(X, [AX]), Y, AX, AY), Sel, S, C).
+
+cost(sortRightThenMergejoin(X, Y, AX, AY), Sel, S, C) :-
+  cost(mergejoin(X, sortby(Y, [AY]), AX, AY), Sel, S, C).
+
+
+
 /* 
    Simple costs estimation for ~symmjoin~
 
@@ -2302,9 +2299,9 @@ cost(windowintersects(_, Rel, _), Sel, Size, Cost) :-
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
 
-% XRIS: cost function copied from windowintersects
-%       May be wrong, but as it is usually used together
-%       with 'gettuples', the total cost should be OK
+% Cost function copied from windowintersects
+% May be wrong, but as it is usually used together
+% with 'gettuples', the total cost should be OK
 cost(windowintersectsS(IndexName, _), Sel, Size, Cost) :-
   % get relationName Rel from Index
   concat_atom([RelNameSmall|_],'_',IndexName),
@@ -2710,10 +2707,10 @@ bestPlan :-
 
 bestPlan(Plan, Cost) :-
   nl, write('Computing best Plan ...'), nl,
-%   writeCostEdges,
+  dc(bestPlan, writeCostEdges),
   highNode(N), 
   dijkstra(0, N, Path, Cost),
-%   writePath(Path),
+  dc(bestPlan, writePath(Path)),
   plan(Path, Plan).
 
 /*
@@ -3446,7 +3443,8 @@ translate(Query groupby Attrs,
   !.
 
 translate(Select from Rels where Preds, Stream, Select, Cost) :- 
-  not(optimizerOption(immediatePlan)),		% standard behaviour
+  not( optimizerOption(immediatePlan) ),
+  not( optimizerOption(intOrders)     ),  % standard behaviour
   getTime(( pog(Rels, Preds, _, _),
             assignCosts,
             bestPlan(Stream, Cost),
@@ -3457,16 +3455,19 @@ translate(Select from Rels where Preds, Stream, Select, Cost) :-
      ; true
   ), !.
 
+
 /*
 Modified version to integrate the optional generation of immediate plans.
-The option is activated, when optimizerOption(immediatePlan) is
-defined. See file ''immediateplan.pl'' for further information.
+The option is activated, when ~optimizerOption(immediatePlan)~ is
+defined. See file ``immediateplan.pl'' for further information.
+
+The rule is also used when using the ``interesting orders extension''. 
+To activate this option use ``setOption(intOrders)'' and choose a variant.
 
 */
 
-
 translate(Select from Rels where Preds, Stream, Select, Cost) :- 
-  optimizerOption(immediatePlan),
+  ( optimizerOption(immediatePlan) ; optimizerOption(intOrders) ),
   getTime(( immPlanTranslate(Select from Rels where Preds, Stream, Select, Cost),
             !
           ), Time),
