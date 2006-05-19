@@ -1160,7 +1160,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
     ((ConstTemporalUnit<Alpha>*)&result)->constValue.CopyFrom( &constValue );
   }
 
-virtual bool EqualValue( ConstTemporalUnit<Alpha>& i )
+  virtual bool EqualValue( ConstTemporalUnit<Alpha>& i )
   {
     return constValue.Compare( &i.constValue ) == 0;
   }
@@ -1185,7 +1185,10 @@ Returns ~true~ if the value of this temporal unit is equal to the value of the t
   virtual int Compare( const Attribute* arg ) const
   {
     ConstTemporalUnit<Alpha>*  ctu = (ConstTemporalUnit<Alpha>*)arg;
-    int cmp = timeInterval.CompareTo(ctu->timeInterval);
+    // SPM: this pointer added since my windows gcc (v3.4.2) reports:
+    // 'timeInterval' undeclared (first use this function) which
+    // seems to be a compiler bug!
+    int cmp = this->timeInterval.CompareTo(ctu->timeInterval);
     if(cmp){
        return cmp;
     }
