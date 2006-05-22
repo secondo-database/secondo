@@ -4,9 +4,7 @@
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[ue] [\"u]
 //[ae] [\"a]
-//[x] [$\times $]
-//[->] [$\rightarrow $]
-//characters [1]  formula: [$] [$]
+
 //[TOC] [\tableofcontents]
 
 [1] Implementation of the Units-Operators
