@@ -1835,7 +1835,7 @@ Operator temporalspeedext(
 
 Operator rangerangevaluesext(
     "rangevalues",
-    TemporalSpecValExt,
+    RangeSpecRangevaluesExt,
     3,
     rangerangevaluesextmap,
     RangeRangevaluesExtBaseSelect,
