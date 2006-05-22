@@ -31,7 +31,9 @@ Place for initialization of pointer variables, constants and namespaces and
 inclusion of header files concerning Secondo.
 
 */
-
+#include <set>
+#include <time.h>
+#include <vector>
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -53,7 +55,6 @@ using namespace datetime;
 2 Type definitions, Auxiliary Functions
 
 */
-
 
 /*
 2.1 Auxiliary Funcions
@@ -713,6 +714,12 @@ RangeRangevaluesExtTypeMapRange( ListExpr args )
 
         if( nl->IsEqual( arg1, "mbool" ) )
             return nl->SymbolAtom( "rbool" );
+
+        if( nl->IsEqual( arg1, "mint" ) )
+            return nl->SymbolAtom( "rint" );
+
+        if( nl->IsEqual( arg1, "mstring" ) )
+            return nl->SymbolAtom( "rstring" );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -875,6 +882,12 @@ RangeRangevaluesExtBaseSelect( ListExpr args )
 
     if( nl->SymbolValue( arg1 ) == "mbool" )
         return 0;
+
+    if( nl->SymbolValue( arg1 ) == "mint" )
+        return 1;
+
+    if( nl->SymbolValue( arg1 ) == "mstring" )
+        return 2;
 
     return -1; // This point should never be reached
 }
@@ -1344,6 +1357,145 @@ int RangeRangevaluesBoolExt(
     return 0;
 }
 
+int RangeRangevaluesIntExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    MInt* m = ((MInt*)args[0].addr);
+    RInt* pResult = ((RInt*)result.addr);
+
+    const UInt* utemp;
+    int temp;
+    set<int> BTree;
+    clock_t clock1, clock2, clock3, clock4;
+    float time1, time2;
+
+    clock1 = clock();
+    for(int i=0;i<m->GetNoComponents();i++)
+    {
+        m->Get(i, utemp);
+        temp = utemp->constValue.GetIntval();
+        BTree.insert(temp);
+    }
+    clock2 = clock();
+    time1 = ((clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    cout << endl << "Time to insert values: "
+          << time1 << " milliseconds" << endl;
+
+    set<int>::iterator iter;
+    CcInt mincc, maxcc;
+    int min=0, max=0;
+    bool start = TRUE;
+    Interval<CcInt> inter;
+
+    clock3 = clock();
+    for(iter=BTree.begin(); iter!=BTree.end(); ++iter)
+    {
+        if(start)
+        {
+          min = *iter;
+          max = min;
+          start = FALSE;
+        }
+        else
+        {
+          if(*iter-max != 1)
+          {
+            mincc.Set(true, min);
+            maxcc.Set(true, max);
+            inter.start = mincc;
+            inter.end = maxcc;
+            inter.lc = TRUE;
+            inter.rc = TRUE;
+            pResult->Add(inter);
+            min = *iter;
+            max = min;
+          }
+          else
+          {
+            max = *iter;
+          }
+        }
+    }
+    mincc.Set(true, min);
+    maxcc.Set(true, max);
+    inter.start = mincc;
+    inter.end = maxcc;
+    inter.lc = TRUE;
+    inter.rc = TRUE;
+    pResult->Add(inter);
+    clock4 = clock();
+    time2 = ((clock4-clock3)/CLOCKS_PER_SEC) * 1000.;
+    time2 = clock4-clock3;
+    cout << "Time to scan and build intervals: "
+          << time2 << " milliseconds" << endl;
+
+    return 0;
+}
+
+int RangeRangevaluesStringExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    MString* m = ((MString*)args[0].addr);
+    RString* pResult = ((RString*)result.addr);
+
+    const UString* utemp;
+    set<string> BTree;
+    string temp;
+    clock_t clock1, clock2, clock3, clock4;
+    float time1, time2;
+
+    clock1 = clock();
+    for(int i=0;i<m->GetNoComponents();i++)
+    {
+        m->Get(i, utemp);
+        temp = utemp->constValue.GetValue();
+        BTree.insert(temp);
+    }
+    clock2 = clock();
+    time1 = ((clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    cout << endl << "Time to insert values: "
+          << time1 << " milliseconds" << endl;
+
+    set<string>::iterator iter;
+    CcString minmaxcc;
+    STRING minmax;
+    Interval<CcString> inter;
+
+    clock3 = clock();
+    for(iter=BTree.begin(); iter!=BTree.end(); ++iter)
+    {
+      temp = *iter;
+      for(size_t i=0;i<temp.size();++i)
+        minmax[i] = temp[i];
+      minmaxcc.Set(true, &minmax);
+      inter.start = minmaxcc;
+      inter.end = minmaxcc;
+      inter.lc = TRUE;
+      inter.rc = TRUE;
+      pResult->Add(inter);
+    }
+    clock4 = clock();
+    time2 = ((clock4-clock3)/CLOCKS_PER_SEC) * 1000.;
+    time2 = clock4-clock3;
+    cout << "Time to scan and build intervals: "
+          << time2 << " milliseconds" << endl;
+    BTree.clear();
+
+    return 0;
+}
+
 /*
 4.4 Definition of operators
 
@@ -1407,7 +1559,9 @@ ValueMapping temporalspeedextmap[] = {
     MovingSpeedExt<MPoint> };
 
 ValueMapping rangerangevaluesextmap[] = {
-    RangeRangevaluesBoolExt };
+    RangeRangevaluesBoolExt,
+    RangeRangevaluesIntExt,
+    RangeRangevaluesStringExt};
 
 /*
 4.5 Specification strings
@@ -1562,7 +1716,7 @@ const string TemporalSpecSpeedExt  =
 const string RangeSpecRangevaluesExt  =
     "( ( \"Signature\" \" \" \"Syntax\" \"Meaning\" \" \" "
     "\"Example\" ) "
-    "( <text>T in {int*, bool, real*, string*},</text--->"
+    "( <text>T in {int, bool, real*, string},</text--->"
     "<text>moving(T) -> range(T)</text--->"
     "<text>rangevalues ( _ )</text--->"
     "<text>Returns all the values assumed by the argument over time,</text--->"
@@ -1682,7 +1836,7 @@ Operator temporalspeedext(
 Operator rangerangevaluesext(
     "rangevalues",
     TemporalSpecValExt,
-    1,
+    3,
     rangerangevaluesextmap,
     RangeRangevaluesExtBaseSelect,
     RangeRangevaluesExtTypeMapRange );
