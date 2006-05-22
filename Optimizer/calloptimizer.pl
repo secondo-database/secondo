@@ -96,7 +96,7 @@ should be called, is it is deactivated, ~GoalOff~ is called.
 */
 
 optimizerOptionInfo(entropy, none,
-                    '\tEstimate selectivities by maximizing the entropy.',
+                    '\tUse entropy to estimate selectivities.',
                     ( delOption(intOrders(on)),
                       delOption(intOrders(quick)),
                       delOption(intOrders(path)),
@@ -128,7 +128,7 @@ optimizerOptionInfo(costsConjuctive,
 */
 
 optimizerOptionInfo(immediatePlan, none,   
-                    '\tImmediately create a path instead of the complete POG.',
+                    '\tImmediately create a path rather than the POG.',
                     ( delOption(entropy), 
                       loadFiles(immediatePlan)
                     ),
@@ -140,7 +140,7 @@ optimizerOptionInfo(immediatePlan, none,
                     ) ).
 
 optimizerOptionInfo(intOrders(on), immediatePlan,   
-                    '\tConsider interesting orders during optimization (on-variant).',
+                    '\tConsider interesting orders (on-variant).',
                     ( delOption(entropy),
                       delOption(intOrders(quick)),
                       delOption(intOrders(path)),
@@ -158,7 +158,7 @@ optimizerOptionInfo(intOrders(on), immediatePlan,
                       loadFiles(immediatePlan)
                     )).
 optimizerOptionInfo(intOrders(path), immediatePlan,   
-                    'Consider interesting orders during optimization (path-variant).',
+                    'Consider interesting orders (path-variant).',
                     ( delOption(entropy),
                       delOption(intOrders(on)),
                       delOption(intOrders(quick)),
@@ -175,7 +175,7 @@ optimizerOptionInfo(intOrders(path), immediatePlan,
                       loadFiles(immediatePlan)
                     )).
 optimizerOptionInfo(intOrders(quick), immediatePlan,   
-                    'Consider interesting orders during optimization (quick-variant).',
+                    'Consider interesting orders (quick-variant).',
                     ( delOption(entropy),
                       delOption(intOrders(on)),
                       delOption(intOrders(path)),
@@ -191,7 +191,7 @@ optimizerOptionInfo(intOrders(quick), immediatePlan,
                       loadFiles(immediatePlan)
                     )).
 optimizerOptionInfo(intOrders(test), immediatePlan,   
-                    'Consider interesting orders during optimization (test-variant).',
+                    'Consider interesting orders (test-variant).',
                     ( delOption(entropy),
                       delOption(intOrders(on)),
                       delOption(intOrders(quick)),
@@ -215,13 +215,16 @@ optimizerOptionInfo(dynamicSample, none,
                     '\tUse dynamic instead of static (saved) samples.',
                     true, true).
 optimizerOptionInfo(rewriteMacros, none,   
-                    '\tAllow for macros (with[<expr> as <macro>] in <query>).',
+                    '\tAllow for macros in queries.',
                     true, true).
 optimizerOptionInfo(rewriteInference, none,
-                    'Automatically add inferred predicates to where clause.',
+                    'Add inferred predicates to where clause.',
+                    true, true).
+optimizerOptionInfo(rewriteNonempty, rewriteInference,
+                    'Handle \'nonempty\' in select statements.',
                     true, true).
 optimizerOptionInfo(rtreeIndexRules, rewriteInference,  
-'Use additional rules to exploit R-tree indices [rewriteInference].',
+                    'Infer predicates to exploit R-tree indices.',
                       (   setOption(rewriteInference), 
                           (
                             not(optimizerOption(entropy))
@@ -237,13 +240,13 @@ optimizerOptionInfo(rtreeIndexRules, rewriteInference,
                       ), 
                       true).
 optimizerOptionInfo(rewriteCSE, none,      
-                    '\tSubstitute common subexpressions by extended attributes.',
+                    '\tExtended with attributes for CSE values.',
                     true, delOption(rewriteRemove)).
 optimizerOptionInfo(rewriteCSEall, rewriteCSE,     
-                    '\tExtend with attributes for _ALL_ CSEs [rewriteCSE].',
+                    '\tExtend with attributes for _ALL_ CSEs.',
                     true, true).
 optimizerOptionInfo(rewriteRemove, rewriteCSE,     
-                    '\tRemove attributes as early as possible [rewriteCSE].',
+                    '\tRemove attributes as early as possible.',
                     setOption(rewriteCSE), true).
 optimizerOptionInfo(debug,none,            
                     '\t\tExecute debugging code. Also use \'toggleDebug.\'.',
@@ -504,6 +507,7 @@ Feel free to change.
 :- setOption(rewriteMacros).    % Using macro expansion features?
 :- setOption(rewriteInference). % Using automatic inference of predicates?
 :- setOption(rtreeIndexRules).  % Use additional rules to exploit R-tree indices?
+:- setOption(rewriteNonempty).  % Handle 'nonempty' in select statements?
 :- setOption(rewriteCSE).       % Substitute common subexpressions in queries?
 % :- setOption(rewriteCSEall).    % Extend attributes for ALL CSEs?
 % :- setOption(rewriteRemove).    % Apply early removal of unused attributes?

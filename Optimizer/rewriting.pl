@@ -304,6 +304,10 @@ to suppress empty data within the result of the query.
 */
 
 
+% Skip, if optimizerOption(rewriteNonempty) undefined
+rewriteQueryForNonempty(Query, Query) :-
+  not(optimizerOption(rewriteNonempty)), !.
+
 % Normal query (without nonempty)
 rewriteQueryForNonempty(Query, Query) :-
   Query \= from(select(nonempty(_)),_),
