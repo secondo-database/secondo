@@ -1673,6 +1673,7 @@ public boolean canDisplay(SecondoObject o){
       return  false;
     }
     else {
+      updateViewParameter();
       return  true;
       //QueryResultList.add (CurrentQueryResult);
     }
@@ -1681,7 +1682,7 @@ public boolean canDisplay(SecondoObject o){
 
  /** return the name of this Viewer */
  public String getName(){
-    return "Th.Hoese-Viewer";
+    return "Hoese-Viewer";
  }
   
  /** adds a new SecondoObject to this Viewer **/
