@@ -26,7 +26,7 @@
 include ../../makefile.env
 
 MODNAME = TemporalAlgebra
-CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS) -I../Spatial -I../Rectangle
+CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS) -I../Spatial -I../Rectangle -I../Relation-C++
 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)

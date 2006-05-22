@@ -1496,7 +1496,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   void Distance( const Point& p, UReal& result ) const;
   void UTrajectory( UPoint& unit,CLine& line ) const;
   void USpeed( UReal& result ) const;
-
+  void UVelocity( UPoint& result ) const
   virtual bool EqualValue( UPoint& i )
   {
   return   AlmostEqual( p0, i.p0 ) &&
@@ -1960,7 +1960,7 @@ The constructor. Initializes space for ~n~ elements.
 */
   void Trajectory( CLine& line ) const;
   void MSpeed(  MReal& result ) const;
-
+  void MVelocity( MPoint& result ) const
 /*
 3.10.5.3 Operation ~distance~
 
