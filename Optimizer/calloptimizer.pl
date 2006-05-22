@@ -97,10 +97,10 @@ should be called, is it is deactivated, ~GoalOff~ is called.
 
 optimizerOptionInfo(entropy, none,
                     '\tEstimate selectivities by maximizing the entropy.',
-                    ( %delOption(intOrders(on)),
-                      %delOption(intOrders(quick)),
-                      %delOption(intOrders(path)),
-                      %delOption(intOrders(test)),
+                    ( delOption(intOrders(on)),
+                      delOption(intOrders(quick)),
+                      delOption(intOrders(path)),
+                      delOption(intOrders(test)),
                       delOption(immediatePlan),
                       loadFiles(entropy), 
                       (   notIsDatabaseOpen
@@ -132,25 +132,21 @@ optimizerOptionInfo(immediatePlan, none,
                     ( delOption(entropy), 
                       loadFiles(immediatePlan)
                     ),
-                    ( %delOption(intOrders(on)),
-                      %delOption(intOrders(quick)),
-                      %delOption(intOrders(path)),
-                      %delOption(intOrders(test)),
+                    ( delOption(intOrders(on)),
+                      delOption(intOrders(quick)),
+                      delOption(intOrders(path)),
+                      delOption(intOrders(test)),
                       true
                     ) ).
 
-/*
-----
 optimizerOptionInfo(intOrders(on), immediatePlan,   
                     '\tConsider interesting orders during optimization (on-variant).',
                     ( delOption(entropy),
-                      delOption(intOrders(on)),
                       delOption(intOrders(quick)),
                       delOption(intOrders(path)),
                       delOption(intOrders(test)),
                       loadFiles(intOrders),
                       intOrdersPrintWelcomeIO,
-                      enhanceSweepKnowledgeBaseClause,
                       changeOriginalOptimizer,
                       changeModificationsPL2,
                       correctStoredNodesShape,
@@ -166,11 +162,9 @@ optimizerOptionInfo(intOrders(path), immediatePlan,
                     ( delOption(entropy),
                       delOption(intOrders(on)),
                       delOption(intOrders(quick)),
-                      delOption(intOrders(path)),
                       delOption(intOrders(test)),
                       loadFiles(intOrders),
                       intOrdersPrintWelcomeIO,
-                      enhanceSweepKnowledgeBaseClause,
                       changeOriginalOptimizer,
                       changeModificationsPL2,
                       correctStoredNodesShape,
@@ -184,12 +178,10 @@ optimizerOptionInfo(intOrders(quick), immediatePlan,
                     'Consider interesting orders during optimization (quick-variant).',
                     ( delOption(entropy),
                       delOption(intOrders(on)),
-                      delOption(intOrders(quick)),
                       delOption(intOrders(path)),
                       delOption(intOrders(test)),
                       loadFiles(intOrders),
                       intOrdersPrintWelcomeIO,
-                      enhanceSweepKnowledgeBaseClause,
                       changeOriginalOptimizer,
                       changeModificationsPL0,
                       createMergeJoinPlanEdges                      
@@ -204,10 +196,8 @@ optimizerOptionInfo(intOrders(test), immediatePlan,
                       delOption(intOrders(on)),
                       delOption(intOrders(quick)),
                       delOption(intOrders(path)),
-                      delOption(intOrders(test)),
                       loadFiles(intOrders),
                       intOrdersPrintWelcomeIO,
-                      enhanceSweepKnowledgeBaseClause,
                       changeOriginalOptimizer,
                       changeModificationsPL1,
                       correctStoredNodesShape,
@@ -217,9 +207,6 @@ optimizerOptionInfo(intOrders(test), immediatePlan,
                       loadFiles(standard),
                       loadFiles(immediatePlan)
                     )).
-----
-
-*/
 
 optimizerOptionInfo(pathTiming, none,   
                     '\tPrompt time used to find a best path.',
@@ -307,10 +294,14 @@ setOption(X) :-
 delOption(X) :-
   nonvar(X),
   optimizerOptionInfo(X,_,Text,_,GoalOff),
-  retractall(optimizerOption(X)), 
-  call(GoalOff),
-  write('Switched off option: \''), write(X), write('\' - '), 
-  write(Text), write('\n'), !.
+  ( optimizerOption(X)
+    -> ( retractall(optimizerOption(X)), 
+         call(GoalOff),
+         write('Switched off option: \''), write(X), write('\' - '), 
+         write(Text), write('\n')
+       )
+    ;  true
+  ), !.
 
 delOption(X) :-
   write('Unknown option \''), write(X), write('\'.\n'), 

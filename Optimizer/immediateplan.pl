@@ -295,7 +295,9 @@ sweepKnowledgeBase(EmptyReachedNodesSet) :-
 	deleteCostEdges,
 	createEmptyReachedNodesSet(EmptyReachedNodesSet),
 	emptyTickedOffSet,
-	deleteMinDistNodes.
+	deleteMinDistNodes,
+	optimizerOption(intOrders(_)) -> retractAllOrderInformation ; true.
+
 
 /*
 
@@ -662,6 +664,8 @@ and edges of the POG should be created.
 
 */
 
+:- dynamic checkSuccessor/5.
+
 checkSuccessor(ReachedNodesSet, ReachedNodesSet, _, _, 
 		succ(SuccNodeNo, _, _, _)) :-
 	isTickedOff(SuccNodeNo),
@@ -929,6 +933,13 @@ The following rules just exist for comprehensibility.
 Actually they are not absolutely necessary.
 
 */
+
+
+% enable modifications by intOrder:
+:- dynamic emptyTickedOffSet/0. 
+:- dynamic tickOff/1. 
+:- dynamic isTickedOff/1.
+:- dynamic getTickedOffNode/2.
 
 emptyTickedOffSet :-
 	emptyCenter.

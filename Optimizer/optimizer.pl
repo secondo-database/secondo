@@ -284,6 +284,8 @@ each relation r is packed into the form arp(arg(i), [r], []).
 
 */
 
+:- dynamic partition/3. % to allow intOrders extension to modify it
+
 partition([], _, []).
 
 partition([Rel | Rels], N, [Arp | Arps]) :-
@@ -363,6 +365,8 @@ Or a join predicate may find its two relations in the same arp which means
 another join on the same two relations has already been performed.
 
 */
+
+:- dynamic copyPart/4. % to allow intOrders to modify it
 
 copyPart(_, _, [], []).
 
@@ -2443,6 +2447,8 @@ The shortest path from ~Source~ to ~Dest~ is ~Path~ of length ~Length~.
 
 */
  
+:- dynamic center/2. 
+
 dijkstra(Source, Dest, Path, Length) :- 
   emptyCenter,
   b_empty(Boundary),
@@ -3983,6 +3989,7 @@ which initializes the local stack to 4 MB.
 
 */
 
+
 sqlExample( 17,
   select *
   from [staedte, plz as p1, plz as p2, plz as p3]
@@ -3998,6 +4005,7 @@ sqlExample( 17,
     p3:ort contains "burg",
     p3:ort starts "M"]
   ).
+
 
 
 

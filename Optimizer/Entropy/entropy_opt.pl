@@ -50,7 +50,6 @@ switching between ~standard~ and ~entropy~ optimiztation was implemented in
    smallResultCounter/4,
    
    % smallResultCounter(Nc, Source, Target, Result))
-   % 
    
    entropy_node/2,
    small_cond_sel/4,
