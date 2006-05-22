@@ -1780,11 +1780,40 @@ exactmatch(IndexName, arg(N), Expr) =>
   argument(N, rel(Name, Var, Case)),
   !.
 
+
 /*
 One could easily add rules for ~loopjoin~ with ~rightrange~ and ~leftrange~
 operators for joins on "<=", ">=", "<" and ">" here.
 
 */
+
+/*
+Rules to create mergejoins with interesting orders extension
+
+*/
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _))
+  => mergejoin(Arg1S, Arg2S, attrname(Attr1), attrname(Attr2)) :-
+  optimizerOption(intOrders(_)),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  orderTest(mergejoinPossible).	
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _))
+  => sortLeftThenMergejoin(Arg1S, Arg2S, attrname(Attr1),
+                                         attrname(Attr2)) :-
+  optimizerOption(intOrders(_)),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  orderTest(sortLeftThenMergejoin).
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _))
+  => sortRightThenMergejoin(Arg1S, Arg2S, attrname(Attr1),
+                                          attrname(Attr2)) :-
+  optimizerOption(intOrders(_)),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  orderTest(sortRightThenMergejoin).
 
 /*
 
@@ -1866,6 +1895,8 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
         attrname(Attr1), attrname(Attr2), 997)   :-
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
+
+
 
 
 /*
@@ -3450,7 +3481,7 @@ translate(Query groupby Attrs,
 
 translate(Select from Rels where Preds, Stream, Select, Cost) :- 
   not( optimizerOption(immediatePlan) ),
-  not( optimizerOption(intOrders)     ),  % standard behaviour
+  not( optimizerOption(intOrders(_))     ),  % standard behaviour
   getTime(( pog(Rels, Preds, _, _),
             assignCosts,
             bestPlan(Stream, Cost),
@@ -3473,7 +3504,7 @@ To activate this option use ``setOption(intOrders)'' and choose a variant.
 */
 
 translate(Select from Rels where Preds, Stream, Select, Cost) :- 
-  ( optimizerOption(immediatePlan) ; optimizerOption(intOrders) ),
+  ( optimizerOption(immediatePlan) ; optimizerOption(intOrders(_)) ),
   getTime(( immPlanTranslate(Select from Rels where Preds, Stream, Select, Cost),
             !
           ), Time),
