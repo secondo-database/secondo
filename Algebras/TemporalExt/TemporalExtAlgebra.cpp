@@ -1394,6 +1394,8 @@ int RangeRangevaluesIntExt(
     Interval<CcInt> inter;
 
     clock3 = clock();
+    pResult->Clear();
+    pResult->StartBulkLoad();
     for(iter=BTree.begin(); iter!=BTree.end(); ++iter)
     {
         if(start)
@@ -1434,6 +1436,7 @@ int RangeRangevaluesIntExt(
     time2 = clock4-clock3;
     cout << "Time to scan and build intervals: "
           << time2 << " milliseconds" << endl;
+    pResult->EndBulkLoad( false );
 
     return 0;
 }
@@ -1474,6 +1477,8 @@ int RangeRangevaluesStringExt(
     Interval<CcString> inter;
 
     clock3 = clock();
+    pResult->Clear();
+    pResult->StartBulkLoad();
     for(iter=BTree.begin(); iter!=BTree.end(); ++iter)
     {
       temp = *iter;
@@ -1492,6 +1497,7 @@ int RangeRangevaluesStringExt(
     cout << "Time to scan and build intervals: "
           << time2 << " milliseconds" << endl;
     BTree.clear();
+    pResult->EndBulkLoad( false );
 
     return 0;
 }
