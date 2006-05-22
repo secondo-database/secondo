@@ -2,34 +2,44 @@
 
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
+//[ue] [\"u]
+//[ae] [\"a]
+//[x] [$\times $]
+//[->] [$\rightarrow $]
+//characters [1]  formula: [$] [$]
 //[TOC] [\tableofcontents]
 
 [1] Implementation of the Units-Operators
 
-February 2006  Thomas Fischer
+May 2006, initial version implemented by Thomas Fischer for diploma
+thesis with Prof. Dr. G[ue]ting, Fachbereich Informatik,
+Feruniversit[ae]t Hagen.
 
 -----
                             Signatur
-  ~Trajectory~           upoint -> line
-  ~Makemvalue~           (stream (tuple ([x1:t1,...,xn:tn])) x xi  ->  ma
-  ~Size~                 periods  ->  real
-  ~Deftime~              unit(a) -> periods
-  ~Atinstant~            unit(a) x instant -> ix
-  ~Atperiods~            unit(a) x periods -> ua
-  ~Initial~              unit(a) -> ia
+  ~Trajectory~           upoint    -> line
+  ~Makemvalue~           stream (tuple ([x1:t1,xi:uType,..,xn:tn]))  ->  mType
+  ~Size~                 periods  -> real
+  ~Deftime~              unit(a)  -> periods
+  ~Atinstant~            unit(a) x instant  -> ix
+  ~Atperiods~            unit(a) x periods  -> stream(ua)
+  ~Initial~              unit(a)  -> ia
   ~final~                unit(a)  -> ia
   ~Present~              unit(a) x instant  -> bool
                          unit(a) x periods  -> bool
-  ~point2d~              periods -> point
-  ~queryrect2d~          instant -> rect
-  ~speed~                mpoint -> mreal
-                         upoint -> ureal
-  ~passes~               upoint x point -> bool
-  ~at~                   upoint x point -> upoint
+  ~point2d~              periods  -> point
+  ~queryrect2d~          instant  -> rect
+  ~speed~                mpoint   -> mreal
+                         upoint   -> ureal
+  ~passes~               upoint x point     -> bool
+  ~at~                   upoint x point     -> upoint
   ~circle~               point x real x int -> region
-  ~move~                 mpoint x region  -> mregion
-  ~makepoint~            int x int -> point
-
+  ~velocity~             mpoint  -> mpoint
+                         upoint  -> upoint
+  ~derivable~            mreal   -> mbool
+                         ureal   -> ubool
+  ~derivative~           mreal   -> mreal
+                         ureal   -> ureal
 
 -----
 
@@ -41,10 +51,8 @@ February 2006  Thomas Fischer
 
 1 Overview
 
-This file contains the implementation of the type constructors ~instant~,
-~range~, ~intime~, ~const~, and ~mapping~. The memory data structures
-used for these type constructors are implemented in the TemporalAlgebra.h
-file.
+This file contains the implementation of the unit operators and
+helping operators for indexing instant values in R-trees.
 
 2 Defines, includes, and constants
 
@@ -99,34 +107,80 @@ void MPoint::MSpeed( MReal& result ) const
   double t0, t1;
   double duration;
 
+/*
+The result storage are cleared before use.
+
+*/
+
   result.Clear();
+
+/*
+Start the collection of real units.
+
+*/
   result.StartBulkLoad();
 
   for( int i = 0; i < GetNoComponents(); i++ )
   {
-    Get( i, uPoint );
+/*
+first I load the unit i of the moving point
 
+*/
+
+    Get( i, uPoint );
+/*
+The initial coordinate of the point unit.
+
+*/
      x0 = uPoint->p0.GetX();
      y0 = uPoint->p0.GetY();
 
+/*
+The final coordinate of the point unit.
+
+*/
      x1 = uPoint->p1.GetX();
      y1 = uPoint->p1.GetY();
 
+/*
+The real unit gets the time interval from the point unit.
+
+*/
      uReal.timeInterval = uPoint->timeInterval;
      inf = uReal.timeInterval.start,
      sup = uReal.timeInterval.end;
+/*
+convert to milliseconds
 
+*/
      t0 = inf.GetAllMilliSeconds();
      t1 = sup.GetAllMilliSeconds();
 
-     duration = (t1 - t0)/1000;    // value in second
+/*
+The duration within a time interval converted in seconds. 
 
-     uReal.a = 0;                 // speed is constant in the interval
+*/
+
+     duration = (t1 - t0)/1000;
+
+/*
+The point unit can be represented as a function of
+f(t)= (x0 + x1 * t, y0 + y1 * t).
+The result of the derivation is the constant (x1,y1).
+Concerning of this the speed is constant in this time interval.
+The value are represented in the variable c. The variables a and b
+are set to zero.
+
+*/
+     uReal.a = 0;
      uReal.b = 0;
      uReal.c = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ))/duration;
      uReal.r = false;
 
+/*
+The real unit are added to the moving real.
 
+*/
     result.Add( uReal );
   }
   result.EndBulkLoad( false );
@@ -164,7 +218,122 @@ void UPoint::USpeed( UReal& result ) const
      result.r = false;
    }
 }
+/*
+3.2 Operator ~Velocity~
 
+*/
+void MPoint::MVelocity( MPoint& result ) const
+{
+  const UPoint *uPoint;
+
+  double x0, y0, x1, y1;
+  Instant sup, inf;
+  double t0, t1;
+  double duration;
+
+/*
+The result storage are cleared before use.
+
+*/
+
+  result.Clear();
+  result.StartBulkLoad();
+
+  for( int i = 0; i < GetNoComponents(); i++ )
+  {
+    Get( i, uPoint );
+
+/*
+The initial coordinate of the point unit.
+
+*/
+
+     x0 = uPoint->p0.GetX();
+     y0 = uPoint->p0.GetY();
+
+/*
+The final coordinate of the point unit.
+
+*/
+
+     x1 = uPoint->p1.GetX();
+     y1 = uPoint->p1.GetY();
+
+     inf = uPoint->timeInterval.start,
+     sup = uPoint->timeInterval.end;
+
+     t0 = inf.GetAllMilliSeconds();
+     t1 = sup.GetAllMilliSeconds();
+
+     duration = (t1 - t0)/1000;    // value in second
+
+/*
+The time interval iv of the point unit.
+
+*/
+
+     Interval<Instant> iv(uPoint->timeInterval.start,
+                          uPoint->timeInterval.end,
+                          uPoint->timeInterval.lc,
+                          uPoint->timeInterval.rc);
+
+/*
+Definition of a new point unit p. The velocity is constant
+at all times of the interval of the unit. This is exactly
+the same as at the operator speed. The result is a vector
+and can be represented as a upoint.
+
+*/
+
+     UPoint p(iv,(x1-x0)/duration,0,(y1- y0)/duration,0);
+
+    result.Add( p );
+  }
+  result.EndBulkLoad( false );
+}
+
+void UPoint::UVelocity( UPoint& result ) const
+{
+
+  double x0, y0, x1, y1;
+  Instant sup, inf;
+  double t0, t1;
+  double duration;
+
+     x0 = p0.GetX();
+     y0 = p0.GetY();
+
+     x1 = p1.GetX();
+     y1 = p1.GetY();
+
+     result.timeInterval = timeInterval;
+
+  if (result.IsDefined() )
+   {
+     inf = result.timeInterval.start,
+     sup = result.timeInterval.end;
+
+     t0 = inf.GetAllMilliSeconds();
+     t1 = sup.GetAllMilliSeconds();
+
+     duration = (t1 - t0)/1000;   // value in second
+
+     Interval<Instant> iv(result.timeInterval.start,
+                          result.timeInterval.end,
+                          result.timeInterval.lc,
+                          result.timeInterval.rc);
+
+     UPoint p(iv,(x1-x0)/duration,0,(y1- y0)/duration,0);
+
+/*
+The new point unit p copied to the result storage.
+
+*/
+
+    result.CopyFrom( &p );
+
+   }
+}
 /*
 3.6 Operator ~Trajectory~
 
@@ -198,19 +367,19 @@ A type mapping function takes a nested list as argument. Its contents are
 type descriptions of an operator's input parameters. A nested list describing
 the output type of the operator is returned.
 
-9.1 Type mapping function ~InstantTypeMapSpeed~
+9.1 Type mapping function ~TypeMapSpeed~
 
 Is used for the ~speed~ operator.
 
 Type mapping for ~speed~ is
 
-----  mpoint  ->  mreal
+----  mpoint  [->]  mreal
 
 ----
 
 */
 ListExpr
-InstantTypeMapSpeed( ListExpr args )
+TypeMapSpeed( ListExpr args )
 {
   if ( nl->ListLength( args ) == 1 )
   {
@@ -232,7 +401,7 @@ Is used for the ~queryrect2d~ operator.
 
 Type mapping for ~queryrect2d~ is
 
-----  instant  ->  rect
+----  instant  [->]  rect
 
 ----
 
@@ -258,7 +427,7 @@ Is used for the ~point2d~ operator.
 
 Type mapping for ~point2d~ is
 
-----  periods  ->  point
+----  periods  [->]  point
 
 ----
 
@@ -284,7 +453,7 @@ Is used for the ~size~ operator.
 
 Type mapping for ~size~ is
 
-----  periods  ->  real
+----  periods  [->]  real
 
 ----
 
@@ -309,13 +478,13 @@ It is used for the operator ~makemvalue~
 
 Type mapping for ~makemvalue~ is
 
-----  (stream (tuple ((x1 t1)...(xn tn))) xi(ubool))  ->  mbool
+----  stream (tuple ([x1:t1,x1:ubool,..,[xn:tn)))   ->  mbool
               APPEND (i ti)
-      (stream (tuple ((x1 t1)...(xn tn))) xi(uint)) ->   mint
+      stream (tuple ([x1:t1,x1:uint,..,[xn:tn)))    ->  mint
               APPEND (i ti)
-      (stream (tuple ((x1 t1)...(xn tn))) xi(ureal))  ->  mreal
+      stream (tuple ([x1:t1,x1:ureal,..,[xn:tn)))   ->  mreal
               APPEND (i ti)
-      (stream (tuple ((x1 t1)...(xn tn))) xi(upoint))  -> mpoint
+      stream (tuple ([x1:t1,x1:upoint,..,[xn:tn)))  ->  mpoint
               APPEND (i ti)
 
 ----
@@ -329,12 +498,21 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
 
   int j;
   string argstr, argstr2, attrname, inputtype, inputname, fulllist;
+/*
+The task of the Type Mapping are checking of the nested list.
+First check of the list length.
 
+*/
   CHECK_COND(nl->ListLength(args) == 2,
     "Operator makemvalue expects a list of length two.");
 
   first = nl->First(args);
   nl->WriteToString(argstr, first);
+
+/*
+The second one checks the structure of the list.
+
+*/
 
   CHECK_COND(nl->ListLength(first) == 2  &&
         (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
@@ -346,12 +524,19 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
   "(stream (tuple ((a1 t1)...(an tn))))\n"
   "Operator makemvalue gets as first argument '" + argstr + "'." );
 
+/*
+The third one checks the given parameter in the operator.
+
+*/ 
   second  = nl->Second(args);
   nl->WriteToString(argstr, second);
   CHECK_COND(argstr != "typeerror",
   "Operator makemvalue expects a name of a attribute and not a type.");
+/*
+inputname represented the name of the given attribute
 
-  nl->WriteToString(inputname, second);    // name of the given attribute
+*/
+  nl->WriteToString(inputname, second);
 
   rest = nl->Second(nl->Second(first));
   listn = nl->OneElemList(nl->First(rest));
@@ -362,11 +547,16 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
   second2 = nl->Second(firstr);
   nl->WriteToString(attrname, first2);
   nl->WriteToString(argstr2, second2);
-  // comparison with the attributes in the relation
+/*
+comparison with the attributes in the relation
+
+*/
   if (attrname == inputname)
      inputtype = argstr2;
-  //  now I save from the detected attribute the type
+/*
+now I save from the detected attribute the type
 
+*/
 while (!(nl->IsEmpty(rest)))
   {
      lastlistn = nl->Append(lastlistn,nl->First(rest));
@@ -376,10 +566,16 @@ while (!(nl->IsEmpty(rest)))
      second2 = nl->Second(firstr);
      nl->WriteToString(attrname, first2);
      nl->WriteToString(argstr2, second2);
-     // comparison with the attributes in the relation
+/*
+comparison with the attributes in the relation
+
+*/
      if (attrname == inputname)
          inputtype = argstr2;
-    //  now I save from the detected attribute the type
+/*
+now I save from the detected attribute the type
+
+*/
   }
   rest = second;
   listfull = listn;
@@ -512,16 +708,20 @@ UnitPeriodsTypeMap( ListExpr args )
     {
 
       if( nl->IsEqual( arg1, "ubool" ) )
-        return nl->SymbolAtom( "ubool" );
+        return nl->TwoElemList(nl->SymbolAtom("stream"),
+               nl->SymbolAtom("ubool"));
 
       if( nl->IsEqual( arg1, "uint" ) )
-        return nl->SymbolAtom( "uint" );
+        return nl->TwoElemList(nl->SymbolAtom("stream"),
+               nl->SymbolAtom("uint"));
 
       if( nl->IsEqual( arg1, "ureal" ) )
-        return nl->SymbolAtom( "ureal" );
+        return nl->TwoElemList(nl->SymbolAtom("stream"),
+               nl->SymbolAtom("ureal"));
 
       if( nl->IsEqual( arg1, "upoint" ) )
-        return nl->SymbolAtom( "upoint" );
+        return nl->TwoElemList(nl->SymbolAtom("stream"),
+               nl->SymbolAtom("upoint"));
 
     }
   }
@@ -649,27 +849,6 @@ TypeMapCircle( ListExpr args )
 }
 
 /*
-10.5 Type mapping function ~TypeMapMove~
-
-It is for the operator ~move~.
-
-*/
-ListExpr
-TypeMapMove( ListExpr args )
-{
-  ListExpr arg1, arg2;
-  if( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-
-    if( nl->IsEqual( arg1, "mpoint" )
-       && nl->IsEqual( arg2, "region" ) )
-      return nl->SymbolAtom( "movingregion" );
-  }
-  return nl->SymbolAtom( "typeerror" );
-}
-/*
 10.6 Type mapping function ~TypeMapmakepoint~
 
 It is for the operator ~makepoint~.
@@ -687,6 +866,90 @@ TypeMapMakepoint( ListExpr args )
     if( nl->IsEqual( arg1, "int" )
        && nl->IsEqual( arg2, "int" ) )
       return nl->SymbolAtom( "point" );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+/*
+10.7 Type mapping function ~TypeMapvelocity~
+
+It is for the operator ~velocity~.
+
+Type mapping for ~velocity~ is
+
+----  mpoint  ->  mpoint
+
+----
+
+
+*/
+ListExpr
+TypeMapVelocity( ListExpr args )
+{
+  ListExpr arg1;
+  if( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+
+    if( nl->IsEqual( arg1, "mpoint" ) )
+      return nl->SymbolAtom( "mpoint" );
+   if( nl->IsEqual( arg1, "upoint" ) )
+      return nl->SymbolAtom( "upoint" );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+/*
+10.8 Type mapping function ~TypeMapderivable~
+
+It is for the operator ~derivable~.
+
+Type mapping for ~derivable~ is
+
+----  mreal  ->  mbool
+
+----
+
+
+*/
+ListExpr
+TypeMapDerivable( ListExpr args )
+{
+  ListExpr arg1;
+  if( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+
+    if( nl->IsEqual( arg1, "mreal" ) )
+      return nl->SymbolAtom( "mbool" );
+   if( nl->IsEqual( arg1, "ureal" ) )
+      return nl->SymbolAtom( "ubool" );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+/*
+10.9 Type mapping function ~TypeMapderivative~
+
+It is for the operator ~derivative~.
+
+Type mapping for ~derivative~ is
+
+----  mreal  ->  mreal
+
+----
+
+
+*/
+ListExpr
+TypeMapDerivative( ListExpr args )
+{
+  ListExpr arg1;
+  if( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+
+    if( nl->IsEqual( arg1, "mreal" ) )
+      return nl->SymbolAtom( "mreal" );
+   if( nl->IsEqual( arg1, "ureal" ) )
+      return nl->SymbolAtom( "ureal" );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -887,7 +1150,44 @@ UnitBaseSelect( ListExpr args )
 
   return -1; // This point should never be reached
 }
+/*
+16.1.6 Selection function ~VelocitySelect~
 
+Is used for the ~velocity~ operations.
+
+*/
+int
+VelocitySelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+
+  if( nl->SymbolValue( arg1 ) == "mpoint")
+    return 0;
+
+  if( nl->SymbolValue( arg1 ) == "upoint")
+    return 1;
+
+  return -1; // This point should never be reached
+}
+/*
+16.1.7 Selection function ~DerivableSelect~
+
+Is used for the ~derivable~ and ~derivative~ operations.
+
+*/
+int
+DerivableSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+
+  if( nl->SymbolValue( arg1 ) == "mreal")
+    return 0;
+
+  if( nl->SymbolValue( arg1 ) == "ureal")
+    return 1;
+
+  return -1; // This point should never be reached
+}
 
 /*
 16.2 Value mapping functions
@@ -905,6 +1205,10 @@ int MPointSpeed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
 
   result = qp->ResultStorage( s );
+/*
+The call of the member function MSpeed.
+
+*/
  ((MPoint*)args[0].addr)->MSpeed(  *((MReal*)result.addr) );
 
   return 0;
@@ -913,6 +1217,11 @@ int UnitPointSpeed(Word* args,Word& result,int message,Word& local,Supplier s)
 {
 
   result = qp->ResultStorage( s );
+/*
+The call of the member function USpeed.
+
+*/
+
  ((UPoint*)args[0].addr)->USpeed(  *((UReal*)result.addr) );
 
   return 0;
@@ -945,8 +1254,12 @@ int Queryrect2d(Word* args, Word& result, int message, Word& local, Supplier s)
     y1 = timevalue;
     y2 = MAXDOUBLE;
 
+/*
+Definition of a rectangle with the dimension 2.
+
+*/
     min[0] = x1;
-    min[1] = x2;               // definition of the rectangle
+    min[1] = x2;
     max[0] = y1;
     max[1] = y2;
 
@@ -956,9 +1269,15 @@ int Queryrect2d(Word* args, Word& result, int message, Word& local, Supplier s)
    }
   else
    {
+/*
+Definition of a rectangle with the dimension 2.
+The instant are not defined. The rectangle filled
+with zero values.
+
+*/
 
     min[0] = x1;
-    min[1] = x2;                // definition of the rectangle
+    min[1] = x2;
     max[0] = y1;
     max[1] = y2;
 
@@ -981,7 +1300,10 @@ int Point2d( Word* args, Word& result, int message, Word& local, Supplier s )
 
   result = qp->ResultStorage( s );
   Periods* range = (Periods*)args[0].addr;
+/*
+Checking if the periods value is valid and defined.
 
+*/
 if( !range->IsEmpty()  )
   {
     const Interval<Instant> *intv1, *intv2;
@@ -995,12 +1317,22 @@ if( !range->IsEmpty()  )
 
     sup = timeInterval.end;
     inf = timeInterval.start;
+/*
+Derives the maximum of all intervals.
 
-    Y = sup.GetAllMilliSeconds(); // derives the maximum of all intervals
-    X = inf.GetAllMilliSeconds();// derives the minimum of all intervals
+*/
+    Y = sup.GetAllMilliSeconds();
+/*
+Derives the minimum of all intervals.
+
+*/
+    X = inf.GetAllMilliSeconds();
 
   }
+/*
+Returns the calculated point.
 
+*/ 
   ((Point*)result.addr)->Set(X,Y );
 
   return 0;
@@ -1016,6 +1348,11 @@ int Size( Word* args, Word& result, int message, Word& local, Supplier s )
 
   result = qp->ResultStorage( s );
   Periods* range = (Periods*)args[0].addr;
+
+/*
+Checking if the periods value is valid and defined.
+
+*/
 
 if( !range->IsEmpty()  )
   {
@@ -1035,14 +1372,20 @@ if( !range->IsEmpty()  )
 
     intervalue_sup = sup.GetAllMilliSeconds();
     intervalue_inf = inf.GetAllMilliSeconds();
+/*
+Summarizing of all time intervals.
 
+*/
     duration += (intervalue_sup - intervalue_inf)/1000;    // value in second
-
 
    }
 
     res = duration;
   }
+/*
+Returns the result in the storage.
+
+*/
 
   ((CcReal*)result.addr)->Set(true, res);
 
@@ -1062,20 +1405,49 @@ int MappingMakemvalue(Word* args,Word& result,int message,
 
   Word currentTupleWord;
 
+/*
+Assertion if not two input values are available.
+
+*/
+
   assert(args[2].addr != 0);
   assert(args[3].addr != 0);
 
   int attributeIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
 
+/*
+In the first input channel is the index of the attribute. The stream
+processing opens in the first step the queryprocessor. In the next steps
+tuple for tuple will be requested. 
+
+*/
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, currentTupleWord);
 
   result = qp->ResultStorage(s);
 
-  m = (Mapping*) result.addr;
+/*
+This is a template function for many datatypes.
+The mapping class can cast moving datatypes.
+The unit class can cast  unit datatypes.
+
+*/
+
+m = (Mapping*) result.addr;
+
+/*
+For the first use the storage must be cleared.
+
+*/
+
   m->Clear();
   m->StartBulkLoad();
+
+/*
+The loop runs until the last tuple is received.
+
+*/
 
   while ( qp->Received(args[0].addr) )
   {
@@ -1083,19 +1455,27 @@ int MappingMakemvalue(Word* args,Word& result,int message,
     Tuple* currentTuple = (Tuple*)currentTupleWord.addr;
     Attribute* currentAttr = (Attribute*)currentTuple->
                               GetAttribute(attributeIndex);
+
     if(currentAttr->IsDefined())
     {
 
      unit = (Unit*) currentAttr;
 
      m->Add( *unit );
+/*
+Consume the stream object, if the deletion is possible.
 
-     currentTuple->DeleteIfAllowed();            //consume the stream objects
+*/
+     currentTuple->DeleteIfAllowed();
      }
     qp->Request(args[0].addr, currentTupleWord);
   }
    m->EndBulkLoad( false );
 
+/*
+The queryprocessor are closed. The stream processing is finished.
+
+*/
 
   qp->Close(args[0].addr);
 
@@ -1111,8 +1491,20 @@ int UnitPointTrajectory(Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
 
+/*
+The result is of the datatype line.
+
+*/
   CLine *line = ((CLine*)result.addr);
+/*
+The input parameter if from type upoint.
+
+*/
   UPoint *upoint = ((UPoint*)args[0].addr);
+/*
+Call of the Memberfunction UTrajectory.
+
+*/
   upoint->UTrajectory( *upoint, *line );
 
 
@@ -1159,11 +1551,11 @@ int MappingUnitAtInstant( Word* args, Word& result, int message,
 
   if( posUnit->timeInterval.Contains(t1) )
       pos = 1;
-  else                               //not contained
+  else    //not contained
       pos = -1;
 
 
-  if( pos == -1 )                    // not contained in the unit
+  if( pos == -1 )  // not contained in the unit
     pResult->SetDefined( false );
   else
   {
@@ -1177,83 +1569,96 @@ int MappingUnitAtInstant( Word* args, Word& result, int message,
 16.2.9 Value mapping functions of operator ~atperiods~
 
 */
+struct AtPeriodsLocalInfo
+{
+  Word uWord;     // the address of the unit point/int/real value
+  Word pWord;    //  the adress of the period value
+  int  j;       //   save the number of the interval
+};
+
 template <class Mapping>
 int MappingUnitAtPeriods( Word* args, Word& result, int message,
                           Word& local, Supplier s )
 {
-  result = qp->ResultStorage( s );
-  Periods* periods = ((Periods*)args[1].addr);
-  Mapping* m = ((Mapping*)args[0].addr);
-  Mapping* res = ((Mapping*)result.addr);
 
-
-  if( periods->IsEmpty() )
-    return 0;
-
-  Mapping rt;
-
+  AtPeriodsLocalInfo *localinfo;
   const Interval<Instant> *interval;
 
-  int j = 0;
-  periods->Get( j, interval );
-
-  res->SetDefined(false);
-  res->CopyFrom(&rt);
+  const Mapping* unit;
+  Mapping r;
+  Periods* periods;
 
 
-  while( 1 )
+  switch( message )
   {
-    if( m->timeInterval.Before( *interval ) )
+    case OPEN:
+
+      localinfo = new AtPeriodsLocalInfo;
+      qp->Request(args[0].addr, localinfo->uWord);
+      qp->Request(args[1].addr, localinfo->pWord);
+      localinfo->j = 0;
+      local = SetWord(localinfo);
+      return 0;
+
+    case REQUEST:
+
+      if( local.addr == 0 )
+        return CANCEL;
+      localinfo = (AtPeriodsLocalInfo *)local.addr;
+      unit = (Mapping*)localinfo->uWord.addr;
+      periods = (Periods*)localinfo->pWord.addr;
+
+      if( localinfo->j == periods->GetNoComponents() )
+         return CANCEL;
+      periods->Get( localinfo->j, interval );
+
+    if( interval->Before( unit->timeInterval ) )
     {
+    while (1)
+     {
+      if( ++localinfo->j == periods->GetNoComponents() )
          break;
-    }
-    else if( interval->Before( m->timeInterval ) )
+       periods->Get(localinfo->j, interval);
+       if (!( interval->Before( unit->timeInterval )))
+          break;
+      }
+     }
+
+     if( localinfo->j >= periods->GetNoComponents() ) {
+         result.addr = 0;
+         return CANCEL;
+       }
+
+   if( unit->timeInterval.Before( *interval ) )
     {
-      if( ++j == periods->GetNoComponents() )
-         break;
-      periods->Get( j, interval );
+         result.addr = 0;
+         return CANCEL;
     }
     else
     {
-      Mapping r;
-      m->AtInterval( *interval, r );
-      res->SetDefined(true);
-      res->CopyFrom(&r);
 
-      if( interval->end == m->timeInterval.end )
-      {
-        if( interval->rc == m->timeInterval.rc )
-        {
-          if( ++j == periods->GetNoComponents() )
-            break;
-          periods->Get( j, interval );
-        }
-        else if( interval->rc == true )
-        {
-             break;
-        }
-        else
-        {
-          assert( m->timeInterval.rc == true );
-          if( ++j == periods->GetNoComponents() )
-            break;
-          periods->Get( j, interval );
-        }
-      }
-      else if( interval->end > m->timeInterval.end )
-      {
-          break;
-      }
-      else
-      {
-         assert( interval->end < m->timeInterval.end );
-        if( ++j == periods->GetNoComponents() )
-          break;
-        periods->Get( j, interval );
-      }
+      unit->AtInterval( *interval, r );
+      Mapping* aux = new Mapping( r );
+      result = SetWord( aux );
+
+      localinfo->j++;
+
+      return YIELD;
+
     }
+
+    return CANCEL; // should not happen
+
+
+    case CLOSE:
+
+      if( local.addr != 0 )
+        delete (AtPeriodsLocalInfo *)local.addr;
+      return 0;
   }
-  return 0;
+  /* should not happen */
+  return -1;
+
 }
 /*
 16.2.10 Value mapping functions of operator ~initial~
@@ -1423,9 +1828,21 @@ int MappingUnitAt( Word* args, Word& result, int message,
 int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
+/*
+Centre of the circle.
 
+*/
   Point* p = (Point*)args[0].addr;
+/*
+Radius of the circle.
+
+*/
   CcReal* r = (CcReal*)args[1].addr;
+/*
+The amount of edges for the polygon.
+Increasing the amount come a polygon closer to a circle.
+
+*/
   CcInt* narg = (CcInt*)args[2].addr;
 
   CRegion *res = (CRegion*)result.addr;
@@ -1448,6 +1865,10 @@ int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
   res->Clear();
   res->StartBulkLoad();
 
+/*
+Definition of a empty region.
+
+*/
   CRegion rg;
   CHalfSegment chs(false);
 
@@ -1455,12 +1876,23 @@ int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
   if (( p->IsDefined())&&(n>3)&&(n<100)&&(radius >0.0))
     {
 
-       for( int i = 0; i < n; i++ )
+/*
+Determination of a n polygon.
+Division of 360 degree in n parts with the help of
+a standardised circle and the circumference. U = 2 * PI
+
+*/
+     for( int i = 0; i < n; i++ )
         {
         angle = i * 2 * PI/n;
         valueX = x + radius * cos(angle);
         valueY = y + radius * sin(angle);
+/*
+The first point of the segment of a region.
+The x-value can be defined with the cosine and
+the y-value with the sine.
 
+*/
         Point edge1(true, valueX ,valueY);
 
         chs.attr.faceno = 0;
@@ -1475,10 +1907,16 @@ int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
 
         valueX = x + radius * cos(angle);
         valueY = y + radius * sin(angle);
+/*
+The second point of the segment of a region.
 
+*/
         Point edge2(true, valueX ,valueY);
 
+/*
+Definition of the halfsegments.
 
+*/
          chs.Set(true, edge1, edge2);
          *res += chs;
           chs.SetLDP( false );
@@ -1496,237 +1934,6 @@ int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-16.2.16 Value mapping functions of operator ~move~
-
-*/
-int Move( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-   result = qp->ResultStorage( s );
-
-   MPoint* mp = ((MPoint*)args[0].addr);
-   CRegion* r = ((CRegion*)args[1].addr);
-
-   MRegion* res = ((MRegion*)result.addr);
-
-   const UPoint *uPoint;
-   const CHalfSegment *chs;
-
-   double x0, y0, x1, y1;
-   double deltax, deltay;
-   double oldx = 0;
-   double oldy = 0;
-   double maximum, minimum;
-   double half;
-   int Top, Bottom, MaxTop, MaxBottom, counter;
-   int segmentsStartPos = 1;
-   int segmentsNum = 1;
-
-   UPoint bucket[r->Size()];
-   int pointer[r->Size()];
-   int pointer_rev[r->Size()];
-
-   DBArray<MSegmentData> seg(r->Size()* mp->GetNoComponents());
-   FLOB* segments;
-
-   res->Clear();
-   res->StartBulkLoad();
-
-   segments = res->GetFLOB(0);
- //  *segments = seg;
-
-
- for( int i = 0; i < mp->GetNoComponents(); i++ )
-  {
-     mp->Get( i, uPoint );
-
-     x0 = uPoint->p0.GetX();
-     y0 = uPoint->p0.GetY();
-
-     x1 = uPoint->p1.GetX();
-     y1 = uPoint->p1.GetY();
-
-     deltax = x1-x0;
-     deltay = y1-y0;
-
-     Interval<Instant> iv(uPoint->timeInterval.start,
-                          uPoint->timeInterval.end,
-                          uPoint->timeInterval.lc,
-                          uPoint->timeInterval.rc);
-
-
-
-    segmentsNum = 1;
-    counter = 0;
-    Top = 0;
-    MaxTop = 0;
-    MaxBottom = 0;
-    Bottom = 0;
-    maximum = -1e90;
-    minimum = 1e90;
-    half = 0;
-
-/*
-precondition
-the x-values ares sorted
-in desc
-
-*/
-    for( int m = 0; m < r->Size(); m++ )
-     {
-      r->Get( m, chs );
-     if (m % 2 == 0)
-      {
-      y0 = chs->GetDPoint().GetY()+ oldy;
-      if (maximum < y0)
-          maximum = y0;
-      if (minimum > y0)
-         minimum = y0;
-      }
-     }
-/*
-calculation of the stripline
-between top and bottom
-
-*/
-     half =  ((maximum-minimum)* 0.5) + minimum;
-
-
-    for( int j = 0; j < r->Size(); j++ )
-    {
-     r->Get( j, chs );
-
-
-   if (j % 2 == 0)
-      {
-
-       x0 = chs->GetDPoint().GetX()+ oldx;
-       y0 = chs->GetDPoint().GetY()+ oldy;
-
-       x1 = x0 + deltax;
-       y1 = y0 + deltay;
-/*
-UPoint for the values
-
-*/
-       UPoint p(iv,x0,y0,x1,y1);
-
-       if ((x0 != x1) || (y0 != y1))
-       {
-        counter += 1;
-        bucket[counter] = p;
-        if (y0 >= half)
-         {
-/*
-sort top part in asc
-
-*/
-          Top += 1;
-          MaxTop += 1;
-          pointer[counter] = Top;
-         }
-        else
-         {
-/*
-sort bottom part in desc
-at this time I do not know
-the right values
-
-*/
-          Bottom += -1;
-          MaxBottom += 1;
-          pointer[counter] = Bottom;
-         }
-        }
-        }
-       }
-
-      URegion* ureg = new URegion(iv);
-
-
-
-      for( int k = 1; k < MaxTop + MaxBottom + 1; k++ )
-       {
-/*
-correction of the values for the bottom part
-
-*/
-         if (pointer[k] <= 0)
-             pointer[k] = pointer[k] + MaxBottom + MaxTop + 1;
-       }
-      for( int k = 1; k < MaxTop + MaxBottom + 1; k++ )
-       {
-/*
-build the reverse array of pointer
-
-*/
-         pointer_rev[pointer[k]] = k;
-
-       }
-/*
-now I can support the values
-clockwise for the datatyp
-moving region
-
-*/
-
-      for( int j = 1; j < MaxTop + MaxBottom + 1 ; j++ )
-       {
-
-        UPoint pt0;
-        UPoint pt1;
-
-        pt0 = bucket[pointer_rev[j]];
-
-       if ((j+1) >= MaxTop + MaxBottom + 1)
-          pt1 = bucket[pointer_rev[1]];
-       else
-         pt1 = bucket[pointer_rev[j+1]];
-
-       MSegmentData dms(0,
-                        0,
-                        segmentsNum,
-                        false,
-                        pt0.p0.GetX(),
-                        pt0.p0.GetY(),
-                        pt0.p1.GetX(),
-                        pt0.p1.GetY(),
-                        pt1.p0.GetX(),
-                        pt1.p0.GetY(),
-                        pt1.p1.GetX(),
-                        pt1.p1.GetY());
-
-
-       segmentsNum++;
-
-      }
-/*
-saving the old position
-
-*/
-     oldx += deltax;
-     oldy += deltay;
-
-     if (segmentsNum - 1 > 0)
-      {
-/*
-ureg->SetSegmentsNum( segmentsNum-1);
-ureg->SetSegmentsStartPos( segmentsStartPos);
-
-*/
-       segmentsStartPos = segmentsStartPos + segmentsNum ;
-
-       res->Add(*ureg);
-      }
-     delete ureg;
-
-
-  }
-  res->EndBulkLoad(true);
-
-
-  return 0;
-}
-/*
 16.2.17 Value mapping functions of operator ~makepoint~
 
 */
@@ -1738,6 +1945,191 @@ int MakePoint( Word* args, Word& result, int message, Word& local, Supplier s )
   CcInt* value2 = (CcInt*)args[1].addr;
 
   ((Point*)result.addr)->Set(value1->GetIntval(),value2->GetIntval() );
+
+  return 0;
+}
+/*
+16.2.18 Value mapping functions of operator ~velocity~
+
+*/
+int MPointVelocity(Word* args, Word& result, int message,
+                   Word& local, Supplier s)
+{
+
+  result = qp->ResultStorage( s );
+ ((MPoint*)args[0].addr)->MVelocity(  *((MPoint*)result.addr) );
+
+  return 0;
+}
+int UnitPointVelocity(Word* args, Word& result, int message,
+                      Word& local, Supplier s)
+{
+
+  result = qp->ResultStorage( s );
+ ((UPoint*)args[0].addr)->UVelocity(  *((UPoint*)result.addr) );
+
+  return 0;
+}
+
+/*
+16.2.19 Value mapping functions of operator ~derivable~
+
+*/
+int MPointDerivable( Word* args, Word& result, int message,
+                     Word& local, Supplier s )
+{
+
+  result = qp->ResultStorage( s );
+  MReal* value = (MReal*)args[0].addr;
+  MBool* res = ((MBool*)result.addr);
+
+  const UReal *uReal;
+  UBool boolvalue;
+  CcBool b;
+
+  res->Clear();
+  res->StartBulkLoad();
+
+  for( int i = 0; i < value->GetNoComponents(); i++ )
+  {
+/*
+Load of a real unit.
+
+*/
+    value->Get( i, uReal );
+/*
+FALSE means in this case that a real unit describes a quadratic
+polynomial. A derivation is possible and the operator returns TRUE.
+
+*/
+    if (uReal->r == false)
+     {
+       b.Set(true,true);
+     }
+    else
+     {
+       b.Set(true,false);
+      }
+
+    UBool boolvalue (uReal->timeInterval,b);
+    res->Add( boolvalue );
+  }
+  res->EndBulkLoad( false );
+
+  return 0;
+}
+int UnitPointDerivable( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  UReal* uReal = (UReal*)args[0].addr;
+  UBool* res = ((UBool*)result.addr);
+
+  CcBool b;
+
+ if (uReal->IsDefined())
+  {
+
+   res->timeInterval = uReal->timeInterval;
+
+   if (uReal->r == false)
+     {
+        b.Set(true,true);
+     }
+    else
+     {
+        b.Set(true,false);
+      }
+
+     UBool boolvalue (uReal->timeInterval,b);
+     res->CopyFrom(&boolvalue);
+  }
+
+  return 0;
+}
+/*
+16.2.20 Value mapping functions of operator ~derivative~
+
+*/
+int MPointDerivative( Word* args, Word& result, int message,
+                      Word& local, Supplier s )
+{
+
+  result = qp->ResultStorage( s );
+  MReal* value = (MReal*)args[0].addr;
+  MReal* res = ((MReal*)result.addr);
+
+  const UReal *Unit;
+  UReal uReal;
+
+  res->Clear();
+  res->StartBulkLoad();
+
+  for( int i = 0; i < value->GetNoComponents(); i++ )
+  {
+/*
+Load of a real unit.
+
+*/
+ 
+   value->Get( i, Unit );
+
+/*
+FALSE means in this case that a real unit describes a quadratic
+polynomial. A derivation is possible. 
+The polynom looks like at$^2$ + bt + c.
+The derivative of this polynom is 2at + b.
+
+*/   
+ if (Unit->r == false)
+     {
+      uReal.timeInterval = Unit->timeInterval;
+      uReal.a = 0;
+      uReal.b = 2 * Unit->a;
+      uReal.c = Unit->b;
+      uReal.r = Unit->r;
+     }
+    else
+     {
+/*
+A derivation of a real unit is not possible.
+
+*/
+       uReal.SetDefined(false);
+      }
+
+   res->Add( uReal );
+  }
+  res->EndBulkLoad( false );
+
+  return 0;
+}
+int UnitPointDerivative( Word* args, Word& result, int message,
+                         Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  UReal* Unit = (UReal*)args[0].addr;
+  UReal* res = ((UReal*)result.addr);
+
+
+ if (Unit->IsDefined())
+  {
+
+
+    if (Unit->r == false)
+     {
+      res->timeInterval = Unit->timeInterval;
+      res->a = 0;
+      res->b = 2 * Unit->a;
+      res->c = Unit->b;
+      res->r = Unit->r;
+     }
+    else
+     {
+       res->SetDefined(false);
+      }
+
+   }
 
   return 0;
 }
@@ -1806,6 +2198,16 @@ ValueMapping temporalunitatmap[] = {  MappingUnitAt< UBool, CcBool>,
                                       MappingUnitAt< UInt, CcInt>,
                                       MappingUnitAt< UReal, CcReal>,
                                       MappingUnitAt< UPoint, Point> };
+
+ValueMapping temporalvelocitymap[] = { MPointVelocity,
+                                       UnitPointVelocity };
+
+ValueMapping temporalderivablemap[] = { MPointDerivable,
+                                        UnitPointDerivable };
+
+ValueMapping temporalderivativemap[] = { MPointDerivative,
+                                       UnitPointDerivative };
+
 /*
 17.2 Specification strings
 
@@ -1916,7 +2318,7 @@ TemporalSpecAtInstant  =
 const string
 TemporalSpecAtPeriods  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>(unit(x) periods) -> unit(x)</text--->"
+"( <text>(unit(x) periods) -> stream(unit(x))</text--->"
 "<text>_ atperiods _ </text--->"
 "<text>restrict the movement to the given"
 " periods.</text--->"
@@ -2005,19 +2407,6 @@ TemporalSpecCircle =
 "<text>circle (p,10.0,10)</text---> ) )";
 
 /*
-17.2.15 Specification string of operator ~move~
-
-*/
-const string
-TemporalSpecMove =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>mpoint x region -> movingregion</text--->"
-"<text> move ( _ ) </text--->"
-"<text>describes the movement of a mpoint with a"
-" moving region.</text--->"
-"<text>move (mp,movingregion)</text---> ) )";
-
-/*
 17.2.16 Specification string of operator ~makepoint~
 
 */
@@ -2031,6 +2420,44 @@ TemporalSpecMakePoint =
 "<text>makepoint (5,5)</text---> ) )";
 
 /*
+17.2.17 Specification string of operator ~velocity~
+
+*/
+const string
+TemporalSpecVelocity=
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>mpoint/upoint -> mpoint/upoint</text--->"
+"<text> velocity ( _ ) </text--->"
+"<text>describes the vector of the speed"
+" to the given object.</text--->"
+"<text>velocity (mpoint)</text---> ) )";
+
+/*
+17.2.18 Specification string of operator ~derivable~
+
+*/
+const string
+TemporalSpecDerivable=
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>mreal/ureal -> mbool/ubool</text--->"
+"<text> derivable ( _ ) </text--->"
+"<text>get the hint"
+" for a mreal/ureal which part is derivable.</text--->"
+"<text>derivable (mreal)</text---> ) )";
+
+/*
+17.2.19 Specification string of operator ~derivative~
+
+*/
+const string
+TemporalSpecDerivative=
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>mreal/ureal -> mreal/ureal</text--->"
+"<text> derivative ( _ ) </text--->"
+"<text>determination the derivative"
+" of a mreal/ureal.</text--->"
+"<text>derivable (mreal)</text---> ) )";
+/*
 17.3 Operators
 
 */
@@ -2040,7 +2467,7 @@ Operator temporalspeed( "speed",
                       2,
                       temporalspeedmap,
                       SpeedSelect,
-                      InstantTypeMapSpeed);
+                      TypeMapSpeed);
 
 Operator temporalunitqueryrect2d( "queryrect2d",
                       TemporalSpecQueryrect2d,
@@ -2135,17 +2562,32 @@ Operator temporalcircle( "circle",
                       Operator::SimpleSelect,
                       TypeMapCircle);
 
-Operator temporalmove( "move",
-                      TemporalSpecMove,
-                      Move,
-                      Operator::SimpleSelect,
-                      TypeMapMove);
-
 Operator temporalmakepoint( "makepoint",
                       TemporalSpecMakePoint,
                       MakePoint,
                       Operator::SimpleSelect,
                       TypeMapMakepoint);
+
+Operator temporalvelocity( "velocity",
+                      TemporalSpecVelocity,
+                      2,
+                      temporalvelocitymap,
+                      VelocitySelect,
+                      TypeMapVelocity);
+
+Operator temporalderivable( "derivable",
+                      TemporalSpecDerivable,
+                      2,
+                      temporalderivablemap,
+                      DerivableSelect,
+                      TypeMapDerivable);
+
+Operator temporalderivative( "derivative",
+                      TemporalSpecDerivative,
+                      2,
+                      temporalderivativemap,
+                      DerivableSelect,
+                      TypeMapDerivative);
 /*
 18 Creating the Algebra
 
@@ -2171,8 +2613,10 @@ class TemporalUnitAlgebra : public Algebra
    AddOperator( &temporalunitpasses );
    AddOperator( &temporalunitat );
    AddOperator( &temporalcircle );
-   AddOperator( &temporalmove );
    AddOperator( &temporalmakepoint );
+   AddOperator( &temporalvelocity );
+   AddOperator( &temporalderivable );
+   AddOperator( &temporalderivative );
 
   }
   ~TemporalUnitAlgebra() {};
@@ -2205,5 +2649,3 @@ InitializeTemporalUnitAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   qp = qpRef;
   return (&temporalUnitAlgebra);
 }
-
-
