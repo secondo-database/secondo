@@ -191,7 +191,9 @@ Returns the ~y~ coordinate of the point.
 */
     inline const Rectangle<2> BoundingBox() const
     {
-      return Rectangle<2>( true, this->x, this->x, this->y, this->y );
+      if( defined )
+        return Rectangle<2>( true, this->x, this->x, this->y, this->y );
+      return Rectangle<2>( false );
     }
     
 /*
@@ -651,7 +653,9 @@ Marks the end of a bulk load and sorts the point set.
 */
     inline const Rectangle<2> BoundingBox() const
     {
-      return bbox;
+      if( !IsEmpty() )
+        return bbox;
+      return Rectangle<2>( false );
     }
 /*
 Returns the bounding box that spatially contains all points.
@@ -1519,7 +1523,9 @@ This constructor should not be used.
 
     inline const Rectangle<2> BoundingBox() const
     {
-      return bbox;
+      if( !IsEmpty() )
+        return bbox;
+      return Rectangle<2>( false );
     }
 
 /*
@@ -1887,7 +1893,9 @@ This constructor should not be used.
 
     inline const Rectangle<2> BoundingBox() const
     {
-      return bbox;
+      if( !IsEmpty() )
+        return bbox;
+      return Rectangle<2>( false );
     }
 
 /*

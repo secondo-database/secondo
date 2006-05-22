@@ -45,3 +45,5 @@ operator theperiod alias THEPERIOD pattern op ( _, _ )
 
 operator equal alias EQUAL pattern _ infixop _
 operator nonequal alias NONEQUAL pattern _ infixop _
+
+operator box2d alias BOX2D pattern op ( _ )

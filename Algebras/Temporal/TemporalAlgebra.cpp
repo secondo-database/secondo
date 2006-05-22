@@ -35,16 +35,16 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 level remains. Models are also removed from type constructors.
 
 12.03.2006 Juergen Schmidt seperated the ~=~ and ~\#~ Operater
-because of wrong syntax of these operators. 
-For T in (bool, int, real, point) it should be mT x mT -> mbool, 
+because of wrong syntax of these operators.
+For T in (bool, int, real, point) it should be mT x mT -> mbool,
 but it was mT x mT -> bool. The new operators ~equal~ and
 ~nonequal~ represents the old meaning. The operators with the
 "right" syntax can be found in TemporalLiftedAlgebra.
 (Some formating work is done to re-check in the algebra to cvs)
 
 09.04.2006 seperated the ~isempty~ Operater
-because of wrong syntax of this operators. 
-For T in (bool, int, real, point) it should be mT -> mbool with 
+because of wrong syntax of this operators.
+For T in (bool, int, real, point) it should be mT -> mbool with
 TRUE as result if the argument is defined and FALSE when the
 argument is not defined, but it was mT -> bool with TRUE when it is
 defined somewhere in time. (The total implementation has been left in
@@ -138,7 +138,7 @@ void UReal::AtInterval( const Interval<Instant>& i,
 3.1 Class ~UPoint~
 
 */
-void UPoint::TemporalFunction( const Instant& t, Point& result ) const 
+void UPoint::TemporalFunction( const Instant& t, Point& result ) const
 {
   assert( t.IsDefined() );
 
@@ -588,7 +588,7 @@ TypeConstructor periods(
         OutRange<Instant, OutDateTime>,
         InRange<Instant, InInstant>, //Out and In functions
         0,        0,        //SaveToList and RestoreFromList functions
-        CreateRange<Instant>, DeleteRange<Instant>, 
+        CreateRange<Instant>, DeleteRange<Instant>,
    //object creation and deletion
         OpenRange<Instant>,   SaveRange<Instant>,       // object open and save
         CloseRange<Instant>,  CloneRange<Instant>,      //object close and clone
@@ -1344,7 +1344,7 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
           correct = true;
           return SetWord( upoint );
         }
-        delete upoint;  
+        delete upoint;
       }
     }
   }
@@ -1485,7 +1485,7 @@ TypeConstructor movingbool(
         "mbool", //name
         MBoolProperty,  //property function describing signature
         OutMapping<MBool, UBool, OutConstTemporalUnit<CcBool, OutCcBool> >,
-        InMapping<MBool, UBool, InConstTemporalUnit<CcBool, InCcBool> >,    
+        InMapping<MBool, UBool, InConstTemporalUnit<CcBool, InCcBool> >,
        //Out and In functions
         0,
         0,    //SaveToList and RestoreFromList functions
@@ -2266,8 +2266,8 @@ Type mapping for ~units~ is
 
 ----    (mbool)  -> (stream ubool)
         (mint)   -> (stream uint)
-	(mreal)  -> (stream ureal)
-	(mpoint) -> (stream upoint)
+  (mreal)  -> (stream ureal)
+  (mpoint) -> (stream upoint)
 ----
 
 */
@@ -2437,7 +2437,7 @@ ListExpr Box3dTypeMap(ListExpr args){
     return nl->SymbolAtom("typeerror");
   } else if(len==1){
     ListExpr arg = nl->First(args);
-    if(nl->IsEqual(arg,"rect") || (nl->IsEqual(arg,"instant") || 
+    if(nl->IsEqual(arg,"rect") || (nl->IsEqual(arg,"instant") ||
        nl->IsEqual(arg,"periods")))
         return nl->SymbolAtom("rect3");
     ErrorReporter::ReportError("rect, instant, or periods required\n");
@@ -2450,6 +2450,22 @@ ListExpr Box3dTypeMap(ListExpr args){
 
 }
 
+/*
+16.1.15 Type mapping function "box2d"
+
+*/
+ListExpr Box2dTypeMap(ListExpr args)
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+
+    if( nl->IsEqual( arg1, "rect3" ) )
+      return nl->SymbolAtom( "rect" );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
 
 /*
 16.2 Selection function
@@ -2593,7 +2609,7 @@ TemporalDualSelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "instant" && 
+  if( nl->SymbolValue( arg1 ) == "instant" &&
     nl->SymbolValue( arg2 ) == "instant" )
     return 0;
 
@@ -2603,7 +2619,7 @@ TemporalDualSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "rreal" && nl->SymbolValue( arg2 ) == "rreal" )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == "periods" && 
+  if( nl->SymbolValue( arg1 ) == "periods" &&
     nl->SymbolValue( arg2 ) == "periods" )
     return 3;
 
@@ -2796,8 +2812,8 @@ MovingBaseSelect( ListExpr args )
 }
 
 
-/* 
-Selection function for the box3d operator 
+/*
+Selection function for the box3d operator
 
 */
 
@@ -2818,8 +2834,8 @@ int Box3dSelect(ListExpr args){
          if(nl->IsEqual(arg2,"instant"))
             return 2;
          if(nl->IsEqual(arg2,"periods"))
-            return 4; 
-     } 
+            return 4;
+     }
   }
   return -1; // when this occurs, the type mapping is not correct
 
@@ -3046,8 +3062,8 @@ int RangeInside_rr( Word* args, Word& result, int message, Word&
 
 
 template <class Alpha, class Range>
-int RangeInside_ar( Word* args, Word& result, int message, Word& local, 
-	Supplier s )
+int RangeInside_ar( Word* args, Word& result, int message, Word& local,
+  Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -3260,7 +3276,7 @@ MPointTranslate( Word* args, Word& result, int message, Word&
   DateTime* dd;
   const UPoint *uPoint;
   MPoint* mp, *mpResult;
-  
+
   result = qp->ResultStorage( s );
 
   mp= (MPoint*)args[0].addr,
@@ -3273,7 +3289,7 @@ MPointTranslate( Word* args, Word& result, int message, Word&
   son = qp->GetSupplier( args[1].addr, 1 );
   qp->Request( son, t );
   dx = ((CcReal *)t.addr)->GetRealval();
-  
+
   son = qp->GetSupplier( args[1].addr, 2 );
   qp->Request( son, t );
   dy = ((CcReal *)t.addr)->GetRealval();
@@ -3565,7 +3581,7 @@ int Box3d_rect( Word* args, Word& result, int message, Word&
    max[1] = arg->MaxD(1);
    max[2] = MAXDOUBLE;
    res->Set(true,min,max);
-   return 0; 
+   return 0;
 }
 
 int Box3d_instant( Word* args, Word& result, int message, Word&
@@ -3583,7 +3599,7 @@ int Box3d_instant( Word* args, Word& result, int message, Word&
    max[2] = v;
    min[2] = v;
    res->Set(true,min,max);
-   return 0; 
+   return 0;
 }
 
 
@@ -3626,7 +3642,7 @@ int Box3d_periods( Word* args, Word& result, int message, Word&
    max[1] = MAXDOUBLE;
    max[2] = v2;
    res->Set(true,min,max);
-   return 0; 
+   return 0;
 }
 
 int Box3d_rect_periods( Word* args, Word& result, int message,
@@ -3652,6 +3668,27 @@ int Box3d_rect_periods( Word* args, Word& result, int message,
    return 0;
 }
 
+/*
+16.3.39 Value Mapping function for box2d
+
+*/
+
+int TemporalBox2d( Word* args, Word& result, int message,
+                   Word& local, Supplier s )
+{
+  result = qp->ResultStorage(s);
+  Rectangle<2>* res = (Rectangle<2>*) result.addr;
+  Rectangle<3>* arg = (Rectangle<3>*) args[0].addr;
+
+  double min[2], max[2];
+  min[0] = arg->MinD(0);
+  min[1] = arg->MinD(1);
+  max[0] = arg->MaxD(0);
+  max[1] = arg->MaxD(1);
+  res->Set( true, min, max );
+
+  return 0;
+}
 
 /*
 16.4 Definition of operators
@@ -3808,351 +3845,409 @@ ValueMapping temporalunitsmap[] = { MappingUnits<MBool, UBool>,
                                     MappingUnits<MReal, UReal>,
                                     MappingUnits<MPoint, UPoint> };
 
-ValueMapping Box3dMap[] = { Box3d_rect, Box3d_instant,Box3d_rect_instant, 
-                            Box3d_periods, Box3d_rect_periods};
+ValueMapping temporalbox3dmap[] = { Box3d_rect,
+                                    Box3d_instant,
+                                    Box3d_rect_instant,
+                                    Box3d_periods,
+                                    Box3d_rect_periods};
 
 
 /*
 16.4.2 Specification strings
 
 */
-const string TemporalSpecIsEmpty  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                    "\"Example\" ) "
-        "( <text>instant -> bool, range(x) -> bool "
-        "unit(x) -> bool</text--->"
-        "<text>isempty ( _ )</text--->"
-        "<text>Returns whether the value is empty or not.</text--->"
-        "<text>query isempty( mpoint1 )</text--->"
-                                    ") )";
+const string TemporalSpecIsEmpty  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>instant -> bool, range(x) -> bool "
+  "unit(x) -> bool</text--->"
+  "<text>isempty ( _ )</text--->"
+  "<text>Returns whether the value is empty or not.</text--->"
+  "<text>query isempty( mpoint1 )</text--->"
+  ") )";
 
-const string TemporalSpecEQ  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                               "\"Example\" )"
-              "( <text>(instant instant) -> bool, (range(x) range(x)) -> bool,"
-              " </text--->"
-              "<text>_ = _</text--->"
-              "<text>Equal.</text--->"
-              "<text>query i1 = i2</text--->"
-                               ") )";
+const string TemporalSpecEQ  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" )"
+  "( <text>(instant instant) -> bool, (range(x) range(x)) -> bool,"
+  " </text--->"
+  "<text>_ = _</text--->"
+  "<text>Equal.</text--->"
+  "<text>query i1 = i2</text--->"
+  ") )";
 
-const string TemporalSpecEQ2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                               "\"Example\" )"
-                               "( <text> "
-                               "(moving(x) moving(x)) -> bool</text--->"
-                               "<text>_ equal _</text--->"
-                               "<text>Equal.</text--->"
-                               "<text>query mi equal mi2</text--->"
-                               ") )";
+const string TemporalSpecEQ2  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" )"
+  "( <text> "
+  "(moving(x) moving(x)) -> bool</text--->"
+  "<text>_ equal _</text--->"
+  "<text>Equal.</text--->"
+  "<text>query mi equal mi2</text--->"
+  ") )";
 
-const string TemporalSpecNE  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                               "\"Example\" )"
-            "( <text>(instant instant) -> bool, (range(x) range(x)) -> bool,"
-            " </text--->"
-            "<text>_ # _</text--->"
-            "<text>Not equal.</text--->"
-            "<text>query i1 # i2</text--->"
-                               ") )";
+const string TemporalSpecNE  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" )"
+  "( <text>(instant instant) -> bool, (range(x) range(x)) -> bool,"
+  " </text--->"
+  "<text>_ # _</text--->"
+  "<text>Not equal.</text--->"
+  "<text>query i1 # i2</text--->"
+  ") )";
 
-const string TemporalSpecNE2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                               "\"Example\" )"
-                               "( <text> "
-                               "(moving(x) moving(x)) -> bool</text--->"
-                               "<text>_ nonequal _</text--->"
-                               "<text>Not equal.</text--->"
-                               "<text>query mi1 nonequal mi2</text--->"
-                               ") )";
+const string TemporalSpecNE2  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" )"
+  "( <text> "
+  "(moving(x) moving(x)) -> bool</text--->"
+  "<text>_ nonequal _</text--->"
+  "<text>Not equal.</text--->"
+  "<text>query mi1 nonequal mi2</text--->"
+  ") )";
 
-const string TemporalSpecLT  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                               "\"Example\" )"
-                               "( <text>(instant instant) -> bool</text--->"
-                               "<text>_ < _</text--->"
-                               "<text>Less than.</text--->"
-                               "<text>query i1 < i2</text--->"
-                               ") )";
+const string TemporalSpecLT  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" )"
+  "( <text>(instant instant) -> bool</text--->"
+  "<text>_ < _</text--->"
+  "<text>Less than.</text--->"
+  "<text>query i1 < i2</text--->"
+  ") )";
 
-const string TemporalSpecLE  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                               "\"Example\" )"
-                               "( <text>(instant instant) -> bool</text--->"
-                               "<text>_ <= _</text--->"
-                               "<text>Less or equal than.</text--->"
-                               "<text>query i1 <= i2</text--->"
-                               ") )";
+const string TemporalSpecLE  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" )"
+  "( <text>(instant instant) -> bool</text--->"
+  "<text>_ <= _</text--->"
+  "<text>Less or equal than.</text--->"
+  "<text>query i1 <= i2</text--->"
+  ") )";
 
-const string TemporalSpecGT  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                               "\"Example\" )"
-                               "( <text>(instant instant) -> bool</text--->"
-                               "<text>_ > _</text--->"
-                               "<text>Greater than.</text--->"
-                               "<text>query i1 > i2</text--->"
-                               ") )";
+const string TemporalSpecGT  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" )"
+  "( <text>(instant instant) -> bool</text--->"
+  "<text>_ > _</text--->"
+  "<text>Greater than.</text--->"
+  "<text>query i1 > i2</text--->"
+  ") )";
 
-const string TemporalSpecGE  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                               "\"Example\" )"
-                               "( <text>(instant instant) -> bool</text--->"
-                               "<text>_ >= _</text--->"
-                               "<text>Greater or equal than.</text--->"
-                               "<text>query i1 >= i2</text--->"
-                               ") )";
+const string TemporalSpecGE  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" )"
+  "( <text>(instant instant) -> bool</text--->"
+  "<text>_ >= _</text--->"
+  "<text>Greater or equal than.</text--->"
+  "<text>query i1 >= i2</text--->"
+  ") )";
 
-const string TemporalSpecIntersects ="( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                       "\"Example\" ) "
-                 "( <text>( (range(x) range(x)) -> bool</text--->"
-                 "<text>_ intersects _</text--->"
-                 "<text>Intersects.</text--->"
-                 "<text>query range1 intersects range2</text--->"
-                                       ") )";
+const string TemporalSpecIntersects =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>( (range(x) range(x)) -> bool</text--->"
+  "<text>_ intersects _</text--->"
+  "<text>Intersects.</text--->"
+  "<text>query range1 intersects range2</text--->"
+  ") )";
 
-const string TemporalSpecInside  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                   "\"Example\" ) "
-                                   "( <text>(range(x) range(x)) -> bool,"
-                                   "(x range(x)) -> bool</text--->"
-                                   "<text>_ inside _</text--->"
-                                   "<text>Inside.</text--->"
-                                   "<text>query 5 inside rint</text--->"
-                                   ") )";
+const string TemporalSpecInside  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(range(x) range(x)) -> bool,"
+  "(x range(x)) -> bool</text--->"
+  "<text>_ inside _</text--->"
+  "<text>Inside.</text--->"
+  "<text>query 5 inside rint</text--->"
+  ") )";
 
-const string TemporalSpecBefore  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                   "\"Example\" ) "
-                                   "( <text>(range(x) range(x)) -> bool, "
-                                   "(x range(x)) -> bool, (range(x) x) -> "
-                                   "bool</text--->"
-                                   "<text>_ before _</text--->"
-                                   "<text>Before.</text--->"
-                                   "<text>query 5 before rint</text--->"
-                                   ") )";
+const string TemporalSpecBefore  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(range(x) range(x)) -> bool, "
+  "(x range(x)) -> bool, (range(x) x) -> "
+  "bool</text--->"
+  "<text>_ before _</text--->"
+  "<text>Before.</text--->"
+  "<text>query 5 before rint</text--->"
+  ") )";
 
-const string TemporalSpecIntersection="( ( \"Signature\" \"Syntax\"\"Meaning\" "
-                                         "\"Example\" ) "
-               "( <text>(range(x) range(x)) -> range(x)</text--->"
-               "<text>_ intersection _</text--->"
-               "<text>Intersection.</text--->"
-               "<text>query range1 intersection range2</text--->"
-                                         ") )";
+const string TemporalSpecIntersection =
+  "( ( \"Signature\" \"Syntax\"\"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(range(x) range(x)) -> range(x)</text--->"
+  "<text>_ intersection _</text--->"
+  "<text>Intersection.</text--->"
+  "<text>query range1 intersection range2</text--->"
+  ") )";
 
-const string TemporalSpecUnion  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                  "\"Example\" ) "
-                    "( <text>(range(x) range(x)) -> range(x)</text--->"
-                    "<text>_ union _</text--->"
-                    "<text>Union.</text--->"
-                    "<text>query range1 union range2</text--->"
-                                  ") )";
+const string TemporalSpecUnion  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(range(x) range(x)) -> range(x)</text--->"
+  "<text>_ union _</text--->"
+  "<text>Union.</text--->"
+  "<text>query range1 union range2</text--->"
+  ") )";
 
-const string TemporalSpecMinus  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                  "\"Example\" ) "
-           "( <text>(range(x) range(x) ) -> range(x)</text--->"
-           "<text>_ minus _</text--->"
-           "<text>Minus.</text--->"
-           "<text>query range1 minus range2</text--->"
-                                  ") )";
+const string TemporalSpecMinus  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(range(x) range(x) ) -> range(x)</text--->"
+  "<text>_ minus _</text--->"
+  "<text>Minus.</text--->"
+  "<text>query range1 minus range2</text--->"
+  ") )";
 
-const string TemporalSpecMinimum  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                    "\"Example\" ) "
-                                    "( <text>range(x) -> x</text--->"
-                                    "<text>minimum ( _ )</text--->"
-                                    "<text>Minimum.</text--->"
-                                    "<text>minimum ( range1 )</text--->"
-                                    ") )";
+const string TemporalSpecMinimum  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>range(x) -> x</text--->"
+  "<text>minimum ( _ )</text--->"
+  "<text>Minimum.</text--->"
+  "<text>minimum ( range1 )</text--->"
+  ") )";
 
-const string TemporalSpecMaximum  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                    "\"Example\" ) "
-                                    "( <text>range(x) -> x</text--->"
-                                    "<text>maximum ( _ )</text--->"
-                                    "<text>Maximum.</text--->"
-                                    "<text>maximum ( range1 )</text--->"
-                                    ") )";
+const string TemporalSpecMaximum  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>range(x) -> x</text--->"
+  "<text>maximum ( _ )</text--->"
+  "<text>Maximum.</text--->"
+  "<text>maximum ( range1 )</text--->"
+  ") )";
 
-const string TemporalSpecNoComponents="( ( \"Signature\" \"Syntax\"\"Meaning\" "
-                                         "\"Example\" ) "
-          "( <text>range(x) -> int, moving(x) -> int</text--->"
-          "<text>no_components ( _ )</text--->"
-          "<text>Number of components.</text--->"
-          "<text>no_components ( mpoint1 )</text--->"
-                                         ") )";
+const string TemporalSpecNoComponents =
+  "( ( \"Signature\" \"Syntax\"\"Meaning\" "
+  "\"Example\" ) "
+  "( <text>range(x) -> int, moving(x) -> int</text--->"
+  "<text>no_components ( _ )</text--->"
+  "<text>Number of components.</text--->"
+  "<text>no_components ( mpoint1 )</text--->"
+  ") )";
 
-const string TemporalSpecInst  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                 "\"Example\" ) "
-                                 "( <text>intime(x) -> instant</text--->"
-                                 "<text>inst ( _ )</text--->"
-                                 "<text>Intime time instant.</text--->"
-                                 "<text>inst ( i1 )</text--->"
-                                 ") )";
+const string TemporalSpecInst  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>intime(x) -> instant</text--->"
+  "<text>inst ( _ )</text--->"
+  "<text>Intime time instant.</text--->"
+  "<text>inst ( i1 )</text--->"
+  ") )";
 
-const string TemporalSpecVal  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-                                "( <text>intime(x) -> x</text--->"
-                                "<text>val ( _ )</text--->"
-                                "<text>Intime value.</text--->"
-                                "<text>val ( i1 )</text--->"
-                                ") )";
+const string TemporalSpecVal  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>intime(x) -> x</text--->"
+  "<text>val ( _ )</text--->"
+  "<text>Intime value.</text--->"
+  "<text>val ( i1 )</text--->"
+  ") )";
 
-const string TemporalSpecAtInstant = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-       "( <text>(moving(x) instant) -> intime(x)</text--->"
-       "<text>_ atinstant _ </text--->"
-       "<text>get the Intime value corresponding to the instant.</text--->"
-       "<text>mpoint1 atinstant instant1</text--->"
-                                ") )";
+const string TemporalSpecAtInstant =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(moving(x) instant) -> intime(x)</text--->"
+  "<text>_ atinstant _ </text--->"
+  "<text>get the Intime value corresponding to the instant.</text--->"
+  "<text>mpoint1 atinstant instant1</text--->"
+  ") )";
 
-const string TemporalSpecAtPeriods = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-            "( <text>(moving(x) instant) -> intime(x)</text--->"
-            "<text>_ atperiods _ </text--->"
-            "<text>restrict the movement to the given periods.</text--->"
-            "<text>mpoint1 atperiods periods1</text--->"
-                                ") )";
+const string TemporalSpecAtPeriods =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(moving(x) instant) -> intime(x)</text--->"
+  "<text>_ atperiods _ </text--->"
+  "<text>restrict the movement to the given periods.</text--->"
+  "<text>mpoint1 atperiods periods1</text--->"
+  ") )";
 
-const string TemporalSpecDefTime  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-            "( <text>moving(x) -> periods</text--->"
-            "<text> deftime( _ )</text--->"
-"<text>get the defined time of the corresponding moving data objects.</text--->"
-            "<text>deftime( mp1 )</text--->"
-                                ") )";
+const string TemporalSpecDefTime  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>moving(x) -> periods</text--->"
+  "<text> deftime( _ )</text--->"
+  "<text>get the defined time of the corresponding moving data "
+  "objects.</text--->"
+  "<text>deftime( mp1 )</text--->"
+  ") )";
 
-const string TemporalSpecTrajectory ="( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-           "( <text>mpoint -> line</text--->"
-           "<text> trajectory( _ )</text--->"
+const string TemporalSpecTrajectory =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>mpoint -> line</text--->"
+  "<text> trajectory( _ )</text--->"
   "<text>get the trajectory of the corresponding moving point object.</text--->"
-           "<text>trajectory( mp1 )</text--->"
+  "<text>trajectory( mp1 )</text--->"
+  ") )";
+
+const string TemporalSpecPresent  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(moving(x) instant) -> bool, "
+  "(moving(x) periods) -> bool</text--->"
+  "<text>_ present _ </text--->"
+  "<text>whether the object is present at the given "
+  "instant or period.</text--->"
+  "<text>mpoint1 present instant1</text--->"
+  ") )";
+
+const string TemporalSpecPasses =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(moving(x) x) -> bool</text--->"
+  "<text>_ passes _ </text--->"
+  "<text>whether the object passes the given value.</text--->"
+  "<text>mpoint1 passes point1</text--->"
                                 ") )";
 
-const string TemporalSpecPresent  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-    "( <text>(moving(x) instant) -> bool, (moving(x) periods) -> bool</text--->"
-       "<text>_ present _ </text--->"
- "<text>whether the object is present at the given instant or period.</text--->"
-       "<text>mpoint1 present instant1</text--->"
-                                ") )";
+const string TemporalSpecInitial  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>moving(x) -> intime(x)</text--->"
+  "<text> initial( _ )</text--->"
+  "<text>get the intime value corresponding to the initial instant.</text--->"
+  "<text>initial( mpoint1 )</text--->"
+  ") )";
 
-const string TemporalSpecPasses = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-    "( <text>(moving(x) x) -> bool</text--->"
-    "<text>_ passes _ </text--->"
-    "<text>whether the object passes the given value.</text--->"
-    "<text>mpoint1 passes point1</text--->"
-                                ") )";
+const string TemporalSpecFinal  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>moving(x) -> intime(x)</text--->"
+  "<text> final( _ )</text--->"
+  "<text>get the intime value corresponding to the final instant.</text--->"
+  "<text>final( mpoint1 )</text--->"
+  ") )";
 
-const string TemporalSpecInitial  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-        "( <text>moving(x) -> intime(x)</text--->"
-        "<text> initial( _ )</text--->"
-    "<text>get the intime value corresponding to the initial instant.</text--->"
-        "<text>initial( mpoint1 )</text--->"
-                                ") )";
+const string TemporalSpecAt =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(moving(x) x) -> moving(x)</text--->"
+  "<text> _ at _ </text--->"
+  "<text>restrict the movement at the times where the equality "
+  "occurs.</text--->"
+  "<text>mpoint1 at point1</text--->"
+  ") )";
 
-const string TemporalSpecFinal  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-          "( <text>moving(x) -> intime(x)</text--->"
-          "<text> final( _ )</text--->"
-      "<text>get the intime value corresponding to the final instant.</text--->"
-          "<text>final( mpoint1 )</text--->"
-                                ") )";
+const string TemporalSpecDistance =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(mpoint point) -> mreal</text--->"
+  "<text> distance( _, _ ) </text--->"
+  "<text>returns the moving distance</text--->"
+  "<text>distance( mpoint1, point1 )</text--->"
+  ") )";
 
-const string TemporalSpecAt = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-           "( <text>(moving(x) x) -> moving(x)</text--->"
-           "<text> _ at _ </text--->"
- "<text>restrict the movement at the times where the equality occurs.</text--->"
-           "<text>mpoint1 at point1</text--->"
-                                ") )";
+const string TemporalSpecUnits  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>moving(x) -> stream(unit(x))</text--->"
+  "<text> units( _ )</text--->"
+  "<text>get the stream of units of the moving value.</text--->"
+  "<text>units( mpoint1 )</text--->"
+  ") )";
 
-const string TemporalSpecDistance = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-             "( <text>(mpoint point) -> mreal</text--->"
-             "<text> distance( _, _ ) </text--->"
-             "<text>returns the moving distance</text--->"
-             "<text>distance( mpoint1, point1 )</text--->"
-                                ") )";
+const string TemporalSpecBBox  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>upoint -> rect3</text--->"
+  "<text>bbox ( _ )</text--->"
+  "<text>Returns the 3d bounding box of the unit.</text--->"
+  "<text>query bbox( upoint1 )</text--->"
+  ") )";
 
-const string TemporalSpecUnits  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-               "( <text>moving(x) -> stream(unit(x))</text--->"
-               "<text> units( _ )</text--->"
-               "<text>get the stream of units of the moving value.</text--->"
-               "<text>units( mpoint1 )</text--->"
-                                ") )";
-
-const string TemporalSpecBBox  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                    "\"Example\" ) "
-               "( <text>upoint -> rect3</text--->"
-               "<text>bbox ( _ )</text--->"
-               "<text>Returns the 3d bounding box of the unit.</text--->"
-               "<text>query bbox( upoint1 )</text--->"
-                                    ") )";
-    
-const string MPointSpecTranslate  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                    "\"Example\" ) "
-            "( <text>mpoint x duration x real x real -> mpoint</text--->"
-            "<text>_ translate[list]</text--->"
-            "<text>Moves the object parallely for distance and time.</text--->"
+const string MPointSpecTranslate  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>mpoint x duration x real x real -> mpoint</text--->"
+  "<text>_ translate[list]</text--->"
+  "<text>Moves the object parallely for distance and time.</text--->"
   "<text>query mp1 translate[[const duration value (5 10)],5.0,8.0]</text--->"
-                                    ") )";
+  ") )";
 
-const string TemporalSpecTheYear  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-                "( <text>int -> periods</text--->"
-                "<text> theyear( _ )</text--->"
-                "<text>get the periods value of the year.</text--->"
-                "<text>theyear(2002)</text--->"
+const string TemporalSpecTheYear  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>int -> periods</text--->"
+  "<text> theyear( _ )</text--->"
+  "<text>get the periods value of the year.</text--->"
+  "<text>theyear(2002)</text--->"
                                 ") )";
 
-const string TemporalSpecTheMonth  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-               "( <text>int x int -> periods</text--->"
-               "<text> themonth( _, _ )</text--->"
-               "<text>get the periods value of the month.</text--->"
-               "<text>themonth(2002, 3)</text--->"
+const string TemporalSpecTheMonth  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>int x int -> periods</text--->"
+  "<text> themonth( _, _ )</text--->"
+  "<text>get the periods value of the month.</text--->"
+  "<text>themonth(2002, 3)</text--->"
                                 ") )";
 
-const string TemporalSpecTheDay  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-                "( <text>int x int x int -> periods</text--->"
-                "<text> theday( _, _, _ )</text--->"
-                "<text>get the periods value of the day.</text--->"
-                "<text>theday(2002, 6,3)</text--->"
-                                ") )";
+const string TemporalSpecTheDay  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>int x int x int -> periods</text--->"
+  "<text> theday( _, _, _ )</text--->"
+  "<text>get the periods value of the day.</text--->"
+  "<text>theday(2002, 6,3)</text--->"
+  ") )";
 
-const string TemporalSpecTheHour  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-                 "( <text>int x int x int x int -> periods</text--->"
-                 "<text> thehour( _, _, _ , _)</text--->"
-                 "<text>get the periods value of the hour.</text--->"
-                 "<text>thehour(2002, 2, 28, 8)</text--->"
-                                ") )";
+const string TemporalSpecTheHour  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>int x int x int x int -> periods</text--->"
+  "<text> thehour( _, _, _ , _)</text--->"
+  "<text>get the periods value of the hour.</text--->"
+  "<text>thehour(2002, 2, 28, 8)</text--->"
+  ") )";
 
-const string TemporalSpecTheMinute = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-                 "( <text>int x int x int x int x int -> periods</text--->"
-                 "<text> theminute( _ )</text--->"
-                 "<text>get the periods value of the minute.</text--->"
-                 "<text>theminute(2002, 3, 28, 8, 59)</text--->"
-                                ") )";
+const string TemporalSpecTheMinute =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>int x int x int x int x int -> periods</text--->"
+  "<text> theminute( _ )</text--->"
+  "<text>get the periods value of the minute.</text--->"
+  "<text>theminute(2002, 3, 28, 8, 59)</text--->"
+  ") )";
 
-const string TemporalSpecTheSecond = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-   "( <text>int x int x int x int x int x int  -> periods</text--->"
-                   "<text> thesecond( _ )</text--->"
-                   "<text>get the periods value of the second.</text--->"
-                   "<text>thesecond(2002, 12, 31, 23, 59, 59)</text--->"
-                                ") )";
+const string TemporalSpecTheSecond =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>int x int x int x int x int x int  -> periods</text--->"
+  "<text> thesecond( _ )</text--->"
+  "<text>get the periods value of the second.</text--->"
+  "<text>thesecond(2002, 12, 31, 23, 59, 59)</text--->"
+  ") )";
 
-const string TemporalSpecThePeriod = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-                 "( <text>(periods periods) -> periods</text--->"
-                 "<text> theperiod( _, _ )</text--->"
-                 "<text>get the periods value of the 2 periods.</text--->"
-                 "<text>theperiod(theyear(2002), theyear(2004))</text--->"
-                                ") )";
+const string TemporalSpecThePeriod =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(periods periods) -> periods</text--->"
+  "<text> theperiod( _, _ )</text--->"
+  "<text>get the periods value of the 2 periods.</text--->"
+  "<text>theperiod(theyear(2002), theyear(2004))</text--->"
+  ") )";
 
-const string Box3dSpec  = "( ( \"Signatures\" \"\"  \"Syntax\" \"Meaning\" "
-                    "\"Example\" ) "
-      "( <text>{rect, instant,periods} -> rect3 </text--->"
-      " <text> rect x {instant,periods} -> rect3  </text--->"
-                    "<text> box3d(_)</text--->"
-                    "<text>returns a threedimensional box which is unlimitedi"
-                    " in non-specified parts</text--->"
-                    "<text>query box3d(bbox(mehringdamm))</text--->"
-                                ") )";
+const string Box3dSpec  =
+  "( ( \"Signatures\" \"\"  \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>{rect, instant,periods} -> rect3 </text--->"
+  " <text> rect x {instant,periods} -> rect3  </text--->"
+  "<text> box3d(_)</text--->"
+  "<text>returns a threedimensional box which is unlimitedi"
+  " in non-specified parts</text--->"
+  "<text>query box3d(bbox(mehringdamm))</text--->"
+  ") )";
+
+const string TemporalBox2dSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>rect3 -> rect</text--->"
+  "<text> box2d( _ )</text--->"
+  "<text>returns the 2d part of a rect3. Can be used to eliminate the temporal"
+  "dimension of a 3d bounding box.</text--->"
+  "<text>box2d(r3)</text--->"
+  ") )";
 
 /*
 16.4.3 Operators
@@ -4356,12 +4451,12 @@ Operator temporalat( "at",
                      MovingBaseSelect,
                      MovingBaseTypeMapMoving );
 
-Operator box3d( "box3d",
-                 Box3dSpec,
-                 5,
-                 Box3dMap,
-                 Box3dSelect,
-                 Box3dTypeMap );
+Operator temporalbox3d( "box3d",
+                        Box3dSpec,
+                        5,
+                        temporalbox3dmap,
+                        Box3dSelect,
+                        Box3dTypeMap );
 
 Operator temporaldistance( "distance",
                            TemporalSpecDistance,
@@ -4429,6 +4524,12 @@ Operator temporaltheperiod( "theperiod",
                             ThePeriod,
                             Operator::SimpleSelect,
                             PeriodsPeriodsTypeMapPeriods );
+
+Operator temporalbox2d( "box2d",
+                         TemporalBox2dSpec,
+                         TemporalBox2d,
+                         Operator::SimpleSelect,
+                         Box2dTypeMap );
 
 /*
 6 Creating the Algebra
@@ -4537,7 +4638,8 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalthesecond );
     AddOperator( &temporaltheperiod );
 
-    AddOperator(&box3d);
+    AddOperator(&temporalbox3d);
+    AddOperator(&temporalbox2d);
   }
   ~TemporalAlgebra() {};
 };
