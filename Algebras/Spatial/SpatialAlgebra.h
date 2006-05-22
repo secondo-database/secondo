@@ -2261,7 +2261,7 @@ Moves this region.
        double t[2];
        t[0] = x;
        t[1] = y;
-       bbox.Translate(t);
+       bbox = bbox.Translate(t);
        int size = Size();
        const CHalfSegment* chs;
        for(int i=0;i<size;i++){
