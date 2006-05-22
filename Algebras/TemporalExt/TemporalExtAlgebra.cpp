@@ -1390,7 +1390,7 @@ int RangeRangevaluesIntExt(
     set<int>::iterator iter;
     CcInt mincc, maxcc;
     int min=0, max=0;
-    bool start = TRUE;
+    bool start=true;
     Interval<CcInt> inter;
 
     clock3 = clock();
@@ -1400,7 +1400,7 @@ int RangeRangevaluesIntExt(
         {
           min = *iter;
           max = min;
-          start = FALSE;
+          start = false;
         }
         else
         {
@@ -1410,8 +1410,8 @@ int RangeRangevaluesIntExt(
             maxcc.Set(true, max);
             inter.start = mincc;
             inter.end = maxcc;
-            inter.lc = TRUE;
-            inter.rc = TRUE;
+            inter.lc = true;
+            inter.rc = true;
             pResult->Add(inter);
             min = *iter;
             max = min;
@@ -1426,8 +1426,8 @@ int RangeRangevaluesIntExt(
     maxcc.Set(true, max);
     inter.start = mincc;
     inter.end = maxcc;
-    inter.lc = TRUE;
-    inter.rc = TRUE;
+    inter.lc = true;
+    inter.rc = true;
     pResult->Add(inter);
     clock4 = clock();
     time2 = ((clock4-clock3)/CLOCKS_PER_SEC) * 1000.;
@@ -1482,8 +1482,8 @@ int RangeRangevaluesStringExt(
       minmaxcc.Set(true, &minmax);
       inter.start = minmaxcc;
       inter.end = minmaxcc;
-      inter.lc = TRUE;
-      inter.rc = TRUE;
+      inter.lc = true;
+      inter.rc = true;
       pResult->Add(inter);
     }
     clock4 = clock();
