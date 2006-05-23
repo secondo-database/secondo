@@ -1,0 +1,118 @@
+#This file is part of SECONDO.
+#
+#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Database Systems for New Applications.
+#
+#SECONDO is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2 of the License, or
+#(at your option) any later version.
+#
+#SECONDO is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with SECONDO; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+
+
+# A fresh restored opt database needs to be present for
+# this test
+
+#setup partstreamtest
+
+open database opt;
+
+# the conventions for commands are the same as in SecondoTTYBDB
+# make sure that commands are always terminated 
+# (either by a semicolon or by a newline)
+
+# a TESTCASE consists of a TESTCASE declarative followed
+# by a YIELDS declarative followed by a command.
+# multiple or no commands after a YIELD directive
+# will confuse the TestRunner
+
+# the expected output specified by the YIELD declarative
+# is converted to a ListExpr and the TestRunner compares
+# it to Secondo's actual output by calling  
+# NestedList->Equal 
+
+# 1 - Construction of stream(ptuple(y)) 
+
+#testcase pfeed-1 
+#yields (bool TRUE) 
+query plz pfeed[100] pdelete count = (plz count);
+
+#testcase pfeed-2
+#yields (bool TRUE) 
+query plz pfeed[1] pdelete count = (plz count);
+
+#testcase pfeed-3
+#yields (bool TRUE) 
+query plz pfeed[42100] pdelete count = (plz count);
+ 
+#testcase pfeed-4
+#yields (bool TRUE) 
+query plz pfeed[45000] pdelete count = (plz count);
+
+#testcase pfeed-5
+#yields error 
+query plz feed pfeed[100] count;
+
+#testcase pfeed-6
+#yields error 
+query plz pdelete count;
+
+
+# 2 - Operations on stream(ptuple(y)) 
+
+
+#testcase puse-1
+#yields (int 5) 
+query plz pfeed[100] puse [. head[5] ] pdelete count
+
+#testcase puse-2
+#yields (int 165) 
+query plz pfeed[100] puse [. filter[.Ort = "Dortmund"] ] pdelete count
+
+#testcase puse-3
+#yields (int 41267) 
+query plz pfeed[100] puse [. extend[pck: .PLZ mod 10] ] pdelete count
+
+#testcase puse-4
+#yields error 
+query plz pfeed[100] puse [. count ] pdelete count
+
+#testcase puse-5
+#yields error 
+query plz feed puse [. head[5] ] pdelete count
+
+#testcase puse-6
+#yields (int 8) 
+query ten pfeed[10] puse[. filter[.no > 2]] pdelete count;
+
+#testcase puse-7
+#yields (int 100) 
+query ten pfeed[2] puse[(.) plz feed head[10] product] pdelete count
+
+# 3 - Operations on stream(ptuple(y)) x stream(ptuple(z)) 
+
+#testcase pjoin2-1
+#yields success 
+query
+  plz  pfeed[100]  puse[. project[PLZ] {a} ] 
+  plz  pfeed[100]  puse[. project[PLZ] {b} ] 
+  pjoin2[ symj: . .. symmjoin[(.PLZ_a = ..PLZ_b)], 
+            hj: . .. hashjoin[PLZ_a, PLZ_b, 997], 
+           smj: . .. sortmergejoin[PLZ_a, PLZ_b] 
+  ]  
+  pdelete  
+  count;
+
+#teardown
+
+close database;
+
