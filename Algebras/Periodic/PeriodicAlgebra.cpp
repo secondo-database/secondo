@@ -1209,6 +1209,10 @@ DateTime* RelInterval::GetLength() const {
    return res;
 }
 
+void RelInterval::GetLength(DateTime& result)const{
+   result.Equalize(&length);
+}
+
 /*
 ~StoreLength~
 
@@ -1831,6 +1835,12 @@ DateTime* PInterval::GetStart()const{
    return res;
 }
 
+void PInterval::GetStart(DateTime& result)const{
+   __TRACE__
+   result.Equalize(&startTime);
+}
+
+
 /*
 ~GetEnd~
 
@@ -1850,6 +1860,14 @@ DateTime* PInterval::GetEnd()const{
    return res;
 }
 
+void 
+PInterval::GetEnd(DateTime& result)const{
+   __TRACE__
+   DateTime len(durationtype);
+   relinterval.GetLength(len);
+   DateTime T = startTime + len;
+   result.Equalize(&T);
+}
 /*
 ~ToListExpr~
 
@@ -3013,7 +3031,7 @@ void MRealMap::Unify(){
 }
 
 /*
-11 Implementation of the MRealUnit class
+3.12 Implementation of the MRealUnit class
 
 */
 /*
@@ -3304,7 +3322,7 @@ void MovingRealUnit::Equalize(const MovingRealUnit* source){
 }
 
 /*
-12 Implementation of the LinearPointMove class
+3.13 Implementation of the LinearPointMove class
 
 */
 /*
@@ -3361,7 +3379,7 @@ ostream& operator<<(ostream& os, const LinearPointMove LPM){
 
 
 /*
-13 Implementation of the ~TwoPoints~ class
+3.14 Implementation of the ~TwoPoints~ class
 
 */
 /*
@@ -3448,7 +3466,7 @@ void TwoPoints::Equalize(const TwoPoints* source){
 }
 
 /*
-14 Implementation of the ~LinearPointsMove~ class
+3.15 Implementation of the ~LinearPointsMove~ class
 
 */
 /*
@@ -3506,7 +3524,7 @@ unsigned int LinearPointsMove::GetEndIndex()const {
 
 
 /*
-15 Implementation of the PMSimple class
+3.16 Implementation of the PMSimple class
 
 */
 /*
@@ -4097,6 +4115,17 @@ T* PMSimple<T, Unit>::Final(){
   Unit lm =  GetLastUnit();
   res = lm.Final();
   return res;
+}
+
+/*
+~Translation~
+
+Moves this simple time within the time.
+
+*/
+template<class T, class Unit>
+void PMSimple<T, Unit>::Translate(const DateTime& duration){
+   startTime += duration;
 }
 
  
@@ -5534,7 +5563,7 @@ SubMove PMSimple<T, Unit>::MinimizeRec(SubMove SM,
 
 
 /*
-16 Implementation of PMInt9M
+3.17 Implementation of PMInt9M
 
 */
 /*
@@ -5750,7 +5779,7 @@ bool PMInt9M::CreateFrom( DBArray<LinearInt9MMove>& linearMoves,
 }
 
 /*
-17 Implementation of PMPoint
+3.18 Implementation of PMPoint
 
 */
 PMPoint::PMPoint(){}
@@ -5765,7 +5794,7 @@ PMPoint& PMPoint::operator=(const PMPoint& source){
 }
  
 /*
-19 Implementation of PMPoints
+3.19 Implementation of PMPoints
 
 */
 PMPoints::PMPoints(){}
@@ -5793,9 +5822,12 @@ Points* PMPoints::Final(){
    return At(&DT); 
 }
 
+void PMPoints::Translate(const DateTime& duration){
+   startTime += duration;
+}
 
 /*
-18 IMplementation of ~SimplePoint~
+3.20 IMplementation of ~SimplePoint~
 
 */
 
@@ -8051,7 +8083,6 @@ ListExpr PMPoint::GetSpatialCompositeMoveList(const int index)const{
 }
 
 
-
 /*
 ~ReadFrom~
 
@@ -8928,6 +8959,16 @@ Point* PMPoint::Final(){
   res->Set(lm.endX,lm.endY);
   res->SetDefined(true);
   return res;
+}
+
+/*
+~Translate~
+
+Moves this PMPoint within time.
+
+*/
+void PMPoint::Translate(const DateTime& duration){
+   startTime += duration;
 }
 
 /*
@@ -10902,8 +10943,6 @@ ListExpr OutPMReal( ListExpr typeInfo, Word value ){
 }
 
 
-
-
 /*
 4.1.2 In functions
 
@@ -10981,6 +11020,7 @@ Word InPMPoint( const ListExpr typeInfo, const ListExpr instance,
   P = NULL;
   return SetWord(Address(0));
 }
+
 
 /*
 ~In-Function for PMPoints~
@@ -11460,17 +11500,6 @@ bool SavePMPoint( SmiRecord& valueRecord,
                 Word& value ){
   __TRACE__
   PMPoint* P = (PMPoint *)value.addr;
-
-  cerr << "Save PMPoint called" << endl;
-  bool ok = P->CheckCorrectness();
-  if(ok){
-      cerr << "save a correct pmpoint into SMI Record" << ok << endl;
-  } else{
-      cerr << " try to save an invalid pmpoint to smirecord" << endl;
-  }
-  
-
-
   Attribute::Save( valueRecord, offset, typeInfo,P );
   return true;
 }
@@ -11482,19 +11511,6 @@ bool OpenPMPoint( SmiRecord& valueRecord,
                 Word& value ){
   __TRACE__
   PMPoint *e = (PMPoint*)Attribute::Open( valueRecord, offset, typeInfo );
-
-
-  bool ok = e->CheckCorrectness();
-  cerr << " OpenPMPoint called " << endl;
-  if(ok){
-      cerr << "open a correct pmpoint into SMI Record" << ok << endl;
-  } else{
-      cerr << " opened pmpoint is not correct !!!" << endl;
-      e->PrintArrayContents();
-  }
-  
-
-
   value = SetWord(e);
   return true;
 }
@@ -12035,7 +12051,7 @@ ListExpr InitialOrFinalTypeMap(ListExpr args){
       ErrorReporter::ReportError("Wrong number of arguments\n");
       return nl->SymbolAtom(TYPE_ERROR);
    }
-   if(nl->AtomType(nl->First(args))==SymbolType){
+   if(nl->AtomType(nl->First(args))!=SymbolType){
       ErrorReporter::ReportError("Only simple types are allowed here.\n");
       return nl->SymbolAtom(TYPE_ERROR);
    }
@@ -12325,6 +12341,76 @@ ListExpr NumberOfNodesMap(ListExpr args){
    return nl->SymbolAtom(TYPE_ERROR);
 }
 
+
+ListExpr TranslateMap(ListExpr args){
+   if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("invalid number of arguments");
+     return nl->SymbolAtom(TYPE_ERROR);
+   }
+   ListExpr arg1 = nl->First(args);
+   ListExpr arg2 = nl->Second(args);
+
+   if( (nl->AtomType(arg1)!=SymbolType) ){
+     string type = nl->ToString(arg1);
+     ErrorReporter::ReportError("arg1: composite types not allowed here "
+                                 +  type);
+     return nl->SymbolAtom(TYPE_ERROR);
+   }
+   if(nl->AtomType(arg2)==NoAtom){
+     if(nl->ListLength(arg2)==1){
+         arg2 = nl->First(arg2);
+     }else{
+         ErrorReporter::ReportError("invalid number of arguments");
+         return nl->SymbolAtom(TYPE_ERROR);
+     }
+   }
+   if( (nl->AtomType(arg2)!=SymbolType) ){
+     string type = nl->ToString(arg2);
+     ErrorReporter::ReportError("arg2: composite types not allowed here "
+                                +  type);
+     return nl->SymbolAtom(TYPE_ERROR);
+   }
+   if(!nl->IsEqual(arg2,"duration")){
+     ErrorReporter::ReportError("second argument must be a duration");
+     return nl->SymbolAtom(TYPE_ERROR);
+   }
+   string sarg1 = nl->SymbolValue(arg1);
+   if( (sarg1=="pmpoint") || 
+       (sarg1=="pmint") ||
+       (sarg1=="pmreal") ||
+       (sarg1=="pmstring") ||
+       (sarg1=="pmbool") ||
+       (sarg1=="pmpoints") ){
+       return nl->SymbolAtom(sarg1); 
+   }
+   ErrorReporter::ReportError("unexpected first argument " + sarg1);
+   return nl->SymbolAtom(TYPE_ERROR);
+   
+
+}
+
+ListExpr StartTypeMap(ListExpr args){
+  if(nl->ListLength(args)!=1){
+     ErrorReporter::ReportError("invalid number of arguments");
+     return nl->SymbolAtom(TYPE_ERROR);
+  }
+  ListExpr arg = nl->First(args);
+  if(nl->AtomType(args)!=SymbolType){
+     ErrorReporter::ReportError("composite type not allowed");
+     return nl->SymbolAtom(TYPE_ERROR);
+  }
+  string type = nl->SymbolValue(arg);
+  if(type=="pmpoint"){
+    return nl->SymbolAtom("instant");
+  } 
+ 
+  ErrorReporter::ReportError(type+" is not supported");
+  return nl->SymbolAtom(TYPE_ERROR);
+}
+
+ListExpr EndTypeMap(ListExpr args){
+   return StartTypeMap(args);
+}
 
 
 /*
@@ -12757,6 +12843,7 @@ int EndFun_PInterval_Instant(Word* args, Word& result,
     return 0;
 }
 
+
 int StartFun_PMPoint_Instant(Word* args, Word& result,
                    int message, Word& local, Supplier s){
    __TRACE__
@@ -12957,6 +13044,19 @@ int NumberOfFlatUnits_T(Word* args, Word& result, int message,
    return 0;
 }
 
+template<class T>
+int Translate_T_Dur(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  T* arg1 = (T*) args[0].addr;
+  DateTime* arg2 = (DateTime*) args[1].addr;
+  T* res = (T*) result.addr;
+  res->Equalize(arg1);
+  res->Translate(*arg2);
+  return 0;
+}
+
+
 /*
 5.3 Specifications of the Operators
 
@@ -13128,6 +13228,15 @@ const string NumberOfFlatUnitsSpec =
    " \"\""
    " \" query numberOfUnits(pm)\" ))";
 
+const string TranslateSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
+   " ( \"pmobject x duration -> pmobject \" "
+   " \" translate(_ , _) \" "
+   " \" translates this object in time  \"  "
+   " \" \" "
+   " \" query translate(o1,[const duration value (10 9)]) \" ))";
+
+
 /*
 5.4 ValueMappings of overloaded Operators
 
@@ -13199,6 +13308,11 @@ ValueMapping NumberOfFlatUnitsValueMap[] ={
    NumberOfFlatUnits_T<PMPoint>
 };
 
+ValueMapping TranslateValueMap[] ={
+   Translate_T_Dur<PMPoint>, Translate_T_Dur<PMBool>,
+   Translate_T_Dur<PMInt9M>,
+   Translate_T_Dur<PMPoints>
+};
 
 /*
 5.6 SelectionFunctions
@@ -13210,6 +13324,16 @@ The returned number corresponds to the array index of the value mapping
 array.
 
 */
+static int TranslateSelect(ListExpr args){
+   string arg = nl->SymbolValue(nl->First(args));
+   if(arg=="pmpoint") return 0;
+   if(arg=="pmbool") return 1;
+   if(arg=="pmint9m") return 2;
+   if(arg=="pmpoints") return 3;
+   return -1; // should not happen
+}
+
+
 static int EqualsSelect(ListExpr args){
     __TRACE__
  if(nl->IsEqual(nl->First(args),"pbbox"))
@@ -13539,6 +13663,14 @@ Operator pnumberOfFlatUnits(
        NumberOfNodesMap);
 
 
+Operator ptranslate(
+       "ptranslate",             // name
+       TranslateSpec,           // specification
+       4,                    // number of functions
+       TranslateValueMap,
+       TranslateSelect,
+       TranslateMap);
+
 } // namespace periodic
 
 /*
@@ -13592,6 +13724,7 @@ class PeriodicMoveAlgebra : public Algebra
     AddOperator(&periodic::pnumberOfPNodes);
     AddOperator(&periodic::pnumberOfUnits);
     AddOperator(&periodic::pnumberOfFlatUnits);
+    AddOperator(&periodic::ptranslate);
   }
   ~PeriodicMoveAlgebra() {};
 };

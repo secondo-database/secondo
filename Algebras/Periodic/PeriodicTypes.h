@@ -307,6 +307,7 @@ unbounded, the result will have no meaning.
 The caller of this function have to delete the new created object.
 
 */
+    void GetLength(DateTime& result)const;
     DateTime* GetLength()const;
 
 /*
@@ -456,7 +457,9 @@ class PInterval : public StandardAttribute{
     void Equalize(const PInterval* D2);
     DateTime* GetLength()const;
     DateTime* GetStart()const;
+    void GetStart(DateTime& result)const;
     DateTime* GetEnd()const;
+    void GetEnd(DateTime& result)const;
     ListExpr ToListExpr(const bool typeincluded)const;
     bool IsLeftClosed()const;
     bool IsRightClosed()const;
@@ -1064,6 +1067,8 @@ class PMSimple : public StandardAttribute {
      T* At(const DateTime* instant)const;
      T* Initial() const;
      T* Final();
+     void Translate(const DateTime& duration);
+
      void Minimize();
      int NumberOfLinearMoves();
      int NumberOfCompositeMoves();
@@ -1251,6 +1256,7 @@ class PMPoint : public StandardAttribute {
      Point* At(const DateTime* instant)const;
      Point* Initial()const;
      Point* Final();
+     void Translate(const DateTime& duration);
      inline Points* Breakpoints();
      Points* Breakpoints(const DateTime* minDuration,const bool inclusive);
      CLine*  Trajectory();
@@ -1316,6 +1322,8 @@ class PMPoint : public StandardAttribute {
      LinearPointMove GetLastUnit();
      bool FillFromRepTree(int& cpos, int& cspos, int& ppos, RepTree TR);
 
+
+
   };
 
 
@@ -1353,6 +1361,7 @@ class PMPoints : public StandardAttribute {
      Points* At(const DateTime* T)const;
      Points* Initial()const;
      Points* Final();
+     void Translate(const DateTime& duration);
  private:
      DBArray<LinearPointsMove> linearMoves;
      DBArray<TwoPoints> thePoints;
