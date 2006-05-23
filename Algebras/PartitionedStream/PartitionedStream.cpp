@@ -177,6 +177,7 @@ struct QPStream
   inline void* getNext() 
   {
     static Word element; 
+    if (state != finished) {
     qp->Request(stream, element);
     if( qp->Received(stream) ) {
       return element.addr;
@@ -184,7 +185,9 @@ struct QPStream
     else {
       state = finished;
       return 0;
-    }  
+    }
+    }
+    return 0;  
   } 
   
   private: 
@@ -750,7 +753,7 @@ static ListExpr puse_tm(ListExpr args)
 
 struct MarkerQueue {
 
-   MarkerQueue() : max(0) {}
+   MarkerQueue() : max(0), endOfStream(false) {}
    ~MarkerQueue() 
    { 
      assert( q.empty() ); 
@@ -761,6 +764,7 @@ struct MarkerQueue {
    {
      const Marker* m = q.front();
      q.pop();
+     //TRACE( "puse: remove Marker: " << *m )
      return m;
    }  
       
@@ -772,9 +776,22 @@ struct MarkerQueue {
      if (q.size() > max)
        max = q.size(); 
    }
+  
+
+   inline Tuple* getNextTuple(Word& fun) {
+    
+     if (endOfStream)
+       return 0;
+     
+     Tuple* t = nextTuple(fun);
+     if (!t)
+       endOfStream = true;
+     return t;
+   };
    
    queue<const Marker*> q;
-   size_t max;      
+   size_t max;
+   bool endOfStream;   
 };  
 
 
@@ -818,17 +835,18 @@ static int puse_vm( Word* args, Word& result, int message,
     case REQUEST: {
 
         //TRACE(pre << "Request received")
-
+        bool ok = false;
         do {        
         if ( !m->empty() ) // is a marker present? 
         {
            result.addr = new PTuple( m->removeFront() );
-           return YIELD; 
+           ok = true; 
+           break;
         }
         else
         { 
           // return elements computed by the param function
-          Tuple* t = nextTuple(fun);
+          Tuple* t = m->getNextTuple(fun);
           
           // a side effect of nextTuple(fun) could be that new markers
           // are pushed to the marker queue
@@ -836,16 +854,24 @@ static int puse_vm( Word* args, Word& result, int message,
           if (t) // handle tuple pointer
           {
             result.addr = new PTuple(t);
-            return YIELD;
+            ok = true;
+            break;
           }
           else
           {
             result.addr=0;
-            //endOfStream = true;
+            ok = false;
           }
         } 
         } while ( !m->empty() );
-        return CANCEL;
+        
+        if (ok) {
+          assert(result.addr);
+          return YIELD;
+        }   
+        else {  
+          return CANCEL;
+        }  
     }
     case FUNMSG+OPEN: { // just open the input stream
  
@@ -877,7 +903,7 @@ to be evaluated by the parameter function. If a marker is
           }  
           else // save marker in queue
           { 
-            //TRACE( pre << "Marker: " << *(pt->marker) )
+            //TRACE( pre << "save Marker: " << *(pt->marker) )
             m->push( pt->marker ); 
           }  
           // don't delete pt, only operators consuming streams of PTuple
