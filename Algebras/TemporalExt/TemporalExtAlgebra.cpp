@@ -22,8 +22,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 0 TODO
 
-- Change operators names, without "ext".
-
 
 1 Includes and Initialization
 
@@ -720,6 +718,9 @@ RangeRangevaluesExtTypeMapRange( ListExpr args )
 
         if( nl->IsEqual( arg1, "mstring" ) )
             return nl->SymbolAtom( "rstring" );
+    
+        if( nl->IsEqual( arg1, "mreal" ) )
+            return nl->SymbolAtom( "rreal" );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -889,6 +890,9 @@ RangeRangevaluesExtBaseSelect( ListExpr args )
     if( nl->SymbolValue( arg1 ) == "mstring" )
         return 2;
 
+    if( nl->SymbolValue( arg1 ) == "mreal" )
+        return 3;
+    
     return -1; // This point should never be reached
 }
 
@@ -1502,6 +1506,31 @@ int RangeRangevaluesStringExt(
     return 0;
 }
 
+
+int RangeRangevaluesRealExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    MReal* m = ((MReal*)args[0].addr);
+    RReal* pResult = ((RReal*)result.addr);
+    
+    const UReal* utemp;
+    
+    for(int i=0;i<m->GetNoComponents();i++)
+    {
+        m->Get(i, utemp);
+		cout << utemp->a << "x^2 + " 
+				<< utemp->b << "x +" << utemp->c << endl;
+	}
+
+    return 0;
+}
+
 /*
 4.4 Definition of operators
 
@@ -1567,7 +1596,8 @@ ValueMapping temporalspeedextmap[] = {
 ValueMapping rangerangevaluesextmap[] = {
     RangeRangevaluesBoolExt,
     RangeRangevaluesIntExt,
-    RangeRangevaluesStringExt};
+    RangeRangevaluesStringExt,
+    RangeRangevaluesRealExt};
 
 /*
 4.5 Specification strings
@@ -1842,7 +1872,7 @@ Operator temporalspeedext(
 Operator rangerangevaluesext(
     "rangevalues",
     RangeSpecRangevaluesExt,
-    3,
+    4,
     rangerangevaluesextmap,
     RangeRangevaluesExtBaseSelect,
     RangeRangevaluesExtTypeMapRange );
