@@ -6620,15 +6620,11 @@ MRegion::MRegion(MPoint& mp, CRegion& r) :
     if (MRA_DEBUG)
         cerr << "MRegion::MRegion(MPoint, CRegion) called"
              << endl;
-
-    r.logicsort();
-
-    for (int i = 0; i < mp.GetNoComponents(); i++) {
-        const UPoint *up;
-        
-        mp.Get(i, up);
-            
-        if (MRA_DEBUG)
+     r.logicsort();
+     for (int i = 0; i < mp.GetNoComponents(); i++) {
+          const UPoint *up;
+          mp.Get(i, up);
+          if (MRA_DEBUG)
             cerr << "MRegion::MRegion(MPoint, CRegion) i="
                  << i
                  << " interval=["
@@ -6645,15 +6641,81 @@ MRegion::MRegion(MPoint& mp, CRegion& r) :
                  << up->timeInterval.rc
                  << "]"
                  << endl;
-        
-        URegion
-            ur(up->timeInterval,
-               r,
-               &msegmentdata,
-               msegmentdata.Size());
-        Add(ur);
-    }
+            URegion
+             ur(up->timeInterval,
+                 r,
+                 &msegmentdata,
+                msegmentdata.Size());
+         Add(ur);
+       }
 }
+
+/*
+~ Constructs a contiunues moving region from the parameters ~
+
+*/
+MRegion::MRegion(MPoint& mp, CRegion& r,int dummy) :
+    Mapping<URegion, CRegion>(0),
+    msegmentdata(0) {
+
+    if (MRA_DEBUG)
+        cerr << "MRegion::MRegion(MPoint, CRegion,int) called"
+             << endl;
+     r.logicsort();
+     bool isFirst = true;
+     Coord lastX, lastY;
+     Coord firstX, firstY;
+     for (int i = 0; i < mp.GetNoComponents(); i++) {
+          const UPoint *up;
+          mp.Get(i, up);
+          firstX = up->p0.GetX();
+          firstY = up->p0.GetY();
+         
+          if( ! isFirst &&  (firstX !=lastX || firstY != lastY)){
+                r.Translate(firstX-lastX, firstY-lastY);         
+          }else{
+              isFirst=false;
+          }
+          
+          lastX = up->p1.GetX();
+          lastY = up->p1.GetY();
+
+            URegion
+             ur(up->timeInterval,
+                 r,
+                 &msegmentdata,
+                msegmentdata.Size());
+           // now ur represents a static region
+           // if this is not the case, we change the final line
+           Coord tx = lastX-firstX;
+           Coord ty = lastY-firstY;
+           if(tx!=0 || ty!=0){
+               size_t usize = ur.GetSegmentsNum();
+               const MSegmentData* mseg;
+               for(size_t i=0;i<usize;i++){
+                  ur.GetSegment(i,mseg);
+                  MSegmentData dms(*mseg);
+                  dms.finalStartX += tx;
+                  dms.finalStartY += ty;
+                  dms.finalEndX += tx;
+                  dms.finalEndY += ty;
+                  ur.PutSegment(i,dms);
+               }
+           }
+           // change the bounding box of ur
+           Rectangle<3> rbb(ur.BoundingBox());
+           double t[3];
+           t[0] = tx;
+           t[1] = ty;
+           t[2] = 0.0;
+           rbb = rbb.Translate(t);
+           ur.SetBBox(ur.BoundingBox().Union(rbb));    
+
+         r.Translate(tx,ty);
+         Add(ur);
+       }
+}
+
 
 /*
 1.1.1 Method ~Clone()~
@@ -7715,6 +7777,31 @@ static ListExpr MraprecTypeMap(ListExpr args) {
 }
 
 /*
+~Type mapping of the MOve operator~
+
+*/
+
+static ListExpr MoveTypeMap(ListExpr args){
+  cout << "MOveTypeMap called " << endl;
+  if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("invalid number of arguments");
+     return nl->SymbolAtom("typeerror");
+  }
+  if(!nl->IsEqual(nl->First(args),"mpoint")){
+     ErrorReporter::ReportError("mpoint as first argument required");
+     return nl->SymbolAtom("typeerror");
+  }
+  if(!nl->IsEqual(nl->Second(args),"region")){
+     ErrorReporter::ReportError("region as second argument required");
+     return nl->SymbolAtom("typeerror");
+  }
+  cout << "Typemap returns movingregion" << endl;
+  return nl->SymbolAtom("movingregion");
+
+}
+
+
+/*
 Used by ~bbox~:
 
 */
@@ -8104,6 +8191,22 @@ static int BboxValueMap(Word* args,
     return (0);
 }
 
+static int MoveValueMap(Word* args,
+                        Word& result,
+                        int message,
+                        Word& local,
+                        Supplier s) {
+  cout << "MoveValueMap called" << endl;
+  result = qp->ResultStorage(s);
+  cout << "Step one ok "<< endl;
+  MPoint* mp = (MPoint* ) args[0].addr;
+  CRegion* reg = (CRegion*) args[1].addr;
+  MRegion res(*mp,*reg,0);
+  ((MRegion*)result.addr)->CopyFrom(&res);
+  res.Destroy();
+  return 0;
+}
+
 /*
 1.1.1 For unit testing operators
 
@@ -8356,6 +8459,15 @@ static const string bboxspec =
     "    <text>Returns the 3d bounding box of the unit.</text--->"
     "    <text>bbox(mregion1)</text---> ) )";
 
+
+static const string movespec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>mpoint x region -> mregion</text--->"
+    "    <text>move(_,_)</text--->"
+    "    <text>Creates a moving region from the given region"
+    "  using the mpoint speed and direction </text--->"
+    "    <text>query move(mp,reg)</text---> ) )";
+
 /*
 Used for unit testing only.
 
@@ -8464,6 +8576,11 @@ static Operator bbox("bbox",
                      simpleSelect,
                      BboxTypeMap);
 
+static Operator move("move",
+                     movespec,
+                     MoveValueMap,
+                     simpleSelect,
+                     MoveTypeMap);
 /*
 Used for unit testing only.
 
@@ -8521,6 +8638,7 @@ public:
         AddOperator(&at);
         AddOperator(&mraprec);
         AddOperator(&bbox);
+        AddOperator(&move);
 
 /*
 Used for unit testing only.

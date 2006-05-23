@@ -318,6 +318,7 @@ the constructor, which is used to create an instance.
 
 */
 
+
 class URegion : public SpatialTemporalUnit<CRegion, 3> {
 private:
 /*
@@ -558,6 +559,17 @@ Get number of segments, get specific segment, write specific segment.
     void PutSegment(int pos, const MSegmentData& dms);
 
 /*
+~Sets the bounding box~
+
+use it carefully to avoid inconsistencies
+
+*/
+
+   void SetBBox(Rectangle<3> box){
+       bbox = box; 
+   }
+
+/*
 Calculate ~MPoint~ instance ~res~ from the intersection ~up~ and this
 ~URegion~ unit, restricted to interval ~iv~ instead of ~up~'s or this
 instances full intervals. ~pending~ is used to try to merge multiple
@@ -678,6 +690,7 @@ set each unit to the constant value of ~r~.
 
 */
     MRegion(MPoint& mp, CRegion& r);
+    MRegion(MPoint& mp, CRegion& r,int dummy);
 
 /*
 ~DBArray~ access.
