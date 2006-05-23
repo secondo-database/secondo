@@ -98,8 +98,11 @@ secondoOp(minus_new, prefix, 2).
 secondoOp(feed, postfix, 1).
 secondoOp(consume, postfix, 1).
 secondoOp(count, postfix, 1).
+secondoOp(pdelete, postfix, 1).
 secondoOp(product, postfix, 2).
 secondoOp(filter, postfixbrackets, 2).
+secondoOp(puse, postfixbrackets, 2).
+secondoOp(pfeed, postfixbrackets, 2).
 secondoOp(loopjoin, postfixbrackets, 2).
 secondoOp(exactmatch, postfixbrackets, 3).
 secondoOp(leftrange, postfixbrackets, 3).

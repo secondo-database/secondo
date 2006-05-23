@@ -928,6 +928,18 @@ plan_to_atom(Term, Result) :-
     concat_atom(['"', TermRes, '"'], '', Result).
 
 /*
+Handle Implicit arguments in parameter functions:
+
+*/
+
+plan_to_atom(implicitArg(1), Result) :-
+  atom_concat('.', ' ', Result).
+  
+plan_to_atom(implicitArg(2), Result) :-
+  atom_concat('..', ' ', Result).
+   
+
+/*
 Lists:
 
 */
@@ -1019,6 +1031,14 @@ plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
     AAtom, ', ', BAtom, '] '], '', Result),
   !.
 
+plan_to_atom(pjoin2(X, Y, Fields), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(Fields, FAtom),
+  concat_atom([XAtom, YAtom, 'pjoin2[', FAtom, '] '], '', Result),
+  !.
+
+
 plan_to_atom(spatialjoin(X, Y, A, B), Result) :-
   plan_to_atom(X, XAtom),
   plan_to_atom(Y, YAtom),
@@ -1046,6 +1066,7 @@ plan_to_atom(field(NewAttr, Expr), Result) :-
   plan_to_atom(Expr, EAtom),
   concat_atom([NAtom, ': ', EAtom], '', Result).
 
+ 
 /*
 Using the switch ``removeHiddenAttributes'', ~reduce~ can either be left in the plan or removed from it.
 
@@ -1896,9 +1917,25 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
+/*
+The rule below will be only used if option ~adaptiveJoin~ is set. For
+details refer to ~adaptiveJoin.pl~.
+
+*/ 
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2(Arg1S, Arg2S,
+        [F1, F2, F3] )   :-
+  optimizerOption(adaptiveJoin),   
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  F1 = field(attr(symj, _, l), symmjoin(implicitArg(1), implicitArg(2), X = Y)),
+  F2 = field(attr(hj, _, l), hashjoin(implicitArg(1), implicitArg(2), 
+                             attrname(Attr1), attrname(Attr2), 997)),
+  F3 = field(attr(smj, _, l), sortmergejoin(implicitArg(1), implicitArg(2), 
+                              attrname(Attr1), attrname(Attr2))).
 
 
-
+ 
 /*
 
 ----    isOfFirst(Attr, X, Y)
@@ -1936,19 +1973,38 @@ createPlanEdges :- not(createPlanEdge).
 
 deletePlanEdges :- retractall(planEdge(_, _, _, _)).
 
-planEdgeInfo(Source, Target, Plan, Result) :-
+planEdgeInfoAll(Source, Target) :-
   write('Source: '), write(Source), nl,
-  write('Target: '), write(Target), nl,
+  write('Target: '), write(Target), nl.
+  
+planEdgeInfo2(Plan, Result) :-
   write('Plan  : '), wp(Plan), nl,
-  write('\t'), write(Plan), nl,
+  %  write('\t'), write(Plan), nl,
   write('Result: '), write(Result), nl, nl.
 
+
+planEdgeInfo3(Source, Target, Plan, Result) :-
+  planEdgeInfoAll(Source, Target),
+  write('Term  : '), write(Plan), nl,
+  write('----------------'), nl,
+  planEdgeInfo2(Plan, Result).
+  
 writePlanEdges2:-
   planEdge(Source, Target, Plan, Result), 
-  planEdgeInfo(Source, Target, Plan, Result), 
+  planEdgeInfoAll(Source, Target),
+  planEdgeInfo2(Plan, Result),
+  nl, 
+  fail.
+
+writePlanEdges3:-
+  planEdge(Source, Target, Plan, Result), 
+  planEdgeInfo3(Source, Target, Plan, Result),
+  nl,
   fail.
 
 writePlanEdges :- not(writePlanEdges2).
+
+writePlanEdgesX :- not(writePlanEdges3).
 
 
 
@@ -2299,6 +2355,18 @@ cost(spatialjoin(X, Y, _, _), Sel, S, C) :-
   B * S.                                % cost to produce result tuples
   
 
+/*
+costs for pjoin2. Will only be used if option ~adpativeJoin~ is
+enabled.
+
+*/
+
+cost(pjoin2(X, Y, [ _ | _ ]), Sel, S, C) :-
+  cost(sortmergejoin(X, Y, _, _), Sel, S1, C1),
+  cost(hashjoin(X, Y, _, _, 997), Sel, _, C2),
+  S is S1,
+  C is min(C1, C2) - 1.
+ 
 cost(extend(X, _), Sel, S, C) :-
   cost(X, Sel, S, C1),
   extendTC(A),
@@ -2684,12 +2752,20 @@ Returns the boundary, where the node with name ~Name~ is deleted.
 The plan corresponding to ~Path~ is ~Plan~.
 
 */
+
+plan(Path, Plan) :-
+  optimizerOption(adaptiveJoin),
+  makePStream(Path, Plan).
+ 
+
 plan(Path, Plan) :-
   deleteNodePlans,
   traversePath(Path),
   highestNode(Path, N), 
   nodePlan(N, Plan).
 
+
+ 
 deleteNodePlans :-  retractall(nodePlan(_, _)).
 
 % switch for entropy optimizer
@@ -2714,6 +2790,7 @@ embedSubPlans(Term, Term2) :-
   Term =.. [Functor | Args],
   embedded(Args, Args2),
   Term2 =.. [Functor | Args2].
+ %  nl, write('Term2: '), write(Term2).
 
 embedSubPlans(Term, Term).
 

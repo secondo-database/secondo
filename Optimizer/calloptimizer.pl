@@ -95,6 +95,13 @@ should be called, is it is deactivated, ~GoalOff~ is called.
 
 */
 
+optimizerOptionInfo( adaptiveJoin, none,   
+                     '\tAllow usage of adaptive join operators.',
+                     ( delOption(entropy), 
+                       loadFiles(adaptiveJoin) ), 
+                     true ).
+
+
 optimizerOptionInfo(entropy, none,
                     '\tUse entropy to estimate selectivities.',
                     ( delOption(intOrders(on)),
@@ -414,6 +421,16 @@ loadFiles(intOrders) :-
   )
   ; true.
 
+% Optional files for usage of adapative join operators 
+loadFiles(adaptiveJoin) :-
+  ( not(loadedModule(adaptiveJoin)),
+    [adaptiveJoin],
+    retractall(loadedModule(adaptiveJoin)),
+    assert(loadedModule(adaptiveJoin))
+  )
+  ; true.
+
+  
 /*
 4 Some Auxiliary predicates for Debugging
 
