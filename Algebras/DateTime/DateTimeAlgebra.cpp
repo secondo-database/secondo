@@ -582,7 +582,7 @@ string DateTime::ToString() const{
     int day,month;
     long year;
     ToGregorian(this->day,year,month,day);
-    if(!(day>0 && month>0 && month<13 && day<31)){
+    if(!(day>0 && month>0 && month<13 && day<32)){
        cmsg.error() << "error in ToString function of instant detected \n"
                     << "day ("<<day<<") or month ("<<month<<") outside"
                     << " of the valid range\n";
