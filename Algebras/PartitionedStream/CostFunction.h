@@ -123,10 +123,10 @@ struct CostParams {
    
    CostParams( int inA, int in_tsA, 
                int inB, int in_tsB, float inSel ) :
-    cardA(inA),
-    cardB(inB),
-    tsA(in_tsA),
-    tsB(in_tsB),
+    cardA( max(inA, 1) ),
+    cardB( max(inB, 1) ),
+    tsA( max(in_tsA, 1) ),
+    tsB( max(in_tsB, 1) ),
     sel(inSel)
    {
      computeSizes();
@@ -189,7 +189,7 @@ struct CostResult {
    
   ostream& print(ostream& os) const
   {
-    os << "costs(" << VAR(read) << ", " 
+    os << "(" << VAR(read) << ", " 
                    << VAR(write) << ", " 
                    << VAR(cpu) << ", " 
                    << VAR(value);
@@ -257,7 +257,7 @@ interchanged.
   
   const string& getName() { return name; } 
   
-  double log2(double x) { return log(x)/log(2.0); }
+  double log2(double x) { return max(log(x)/log(2.0), 0.0); }
   
 };
 
@@ -410,13 +410,28 @@ class SortMergeJoinCost : private CostFunction
   {
     TRACE("*** START SortMergeJoinCost ***")
     // sort costs for A
-    sort.costs(p, read, write, cpu);
+    TRACE("Costs for A")
+    int cpuA = 0;
+    int readA = 0;
+    int writeA = 0;
+    sort.costs(p, read, write, cpuA);
     
     // sort costs for B
+    TRACE("Costs for B")
     CostParams paramsB(p.cardB, p.tsB, p.cardA, p.tsA, p.sel);
     
-    sort.costs(paramsB, read, write, cpu);
+    int cpuB = 0;
+    int readB = 0;
+    int writeB = 0;
+    sort.costs(paramsB, read, write, cpuB);
     
+    cpu += cpuA + cpuB;
+    read += readA + readB;
+    write += writeA + writeB;
+    SHOW(read)
+    SHOW(write) 
+    SHOW(cpu) 
+     
     // the merge step will need comparisons and maybe
     // some extra materializations of result groups 
     cpu += p.cardA + p.cardB;
