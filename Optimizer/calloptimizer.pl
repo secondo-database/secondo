@@ -152,6 +152,7 @@ optimizerOptionInfo(intOrders(on), immediatePlan,
                       delOption(intOrders(quick)),
                       delOption(intOrders(path)),
                       delOption(intOrders(test)),
+                      setOption(immediatePlan),
                       loadFiles(intOrders),
                       intOrdersPrintWelcomeIO,
                       changeOriginalOptimizer,
@@ -160,16 +161,15 @@ optimizerOptionInfo(intOrders(on), immediatePlan,
                       createMergeJoinPlanEdges,
                       intOrderonImplementation
                     ), 
-                    ( doNotCreateMergeJoinPlanEdges,
-                      loadFiles(standard),
-                      loadFiles(immediatePlan)
-                    )).
+                    turnOffIntOrders
+                   ).
 optimizerOptionInfo(intOrders(path), immediatePlan,   
                     'Consider interesting orders (path-variant).',
                     ( delOption(entropy),
                       delOption(intOrders(on)),
                       delOption(intOrders(quick)),
                       delOption(intOrders(test)),
+                      setOption(immediatePlan),
                       loadFiles(intOrders),
                       intOrdersPrintWelcomeIO,
                       changeOriginalOptimizer,
@@ -177,43 +177,39 @@ optimizerOptionInfo(intOrders(path), immediatePlan,
                       correctStoredNodesShape,
                       createMergeJoinPlanEdges
                     ), 
-                    ( doNotCreateMergeJoinPlanEdges,
-                      loadFiles(standard),
-                      loadFiles(immediatePlan)
-                    )).
+                    turnOffIntOrders
+                   ).
 optimizerOptionInfo(intOrders(quick), immediatePlan,   
                     'Consider interesting orders (quick-variant).',
                     ( delOption(entropy),
                       delOption(intOrders(on)),
                       delOption(intOrders(path)),
                       delOption(intOrders(test)),
+                      setOption(immediatePlan),
                       loadFiles(intOrders),
                       intOrdersPrintWelcomeIO,
                       changeOriginalOptimizer,
                       changeModificationsPL0,
                       createMergeJoinPlanEdges                      
                     ), 
-                    ( doNotCreateMergeJoinPlanEdges,
-                      loadFiles(standard),
-                      loadFiles(immediatePlan)
-                    )).
+                    turnOffIntOrders
+                   ).
 optimizerOptionInfo(intOrders(test), immediatePlan,   
                     'Consider interesting orders (test-variant).',
                     ( delOption(entropy),
                       delOption(intOrders(on)),
                       delOption(intOrders(quick)),
                       delOption(intOrders(path)),
+                      setOption(immediatePlan),
                       loadFiles(intOrders),
                       intOrdersPrintWelcomeIO,
                       changeOriginalOptimizer,
                       changeModificationsPL1,
                       correctStoredNodesShape,
                       createMergeJoinPlanEdges
-                    ), 
-                    ( doNotCreateMergeJoinPlanEdges,
-                      loadFiles(standard),
-                      loadFiles(immediatePlan)
-                    )).
+                    ),
+                    turnOffIntOrders
+                   ).
 
 optimizerOptionInfo(pathTiming, none,   
                     '\tPrompt time used to find a best path.',
@@ -394,8 +390,6 @@ loadFiles(standard) :-
 loadFiles(entropy) :-
   ( not(loadedModule(entropy)),
     ['./Entropy/entropy_opt'],
-    retract(loadedModule(standard)), 
-    retract(loadedModule(entropy)), 
     assert(loadedModule(entropy))
   )
   ; true.
@@ -404,8 +398,6 @@ loadFiles(entropy) :-
 loadFiles(immediatePlan) :-
   ( not(loadedModule(immediatePlan)),
     [immediateplan],
-    retractall(loadedModule(immediatePlan)),
-    retractall(loadedModule(completePOG)),
     assert(loadedModule(immediatePlan)),
     immPlanPrintWelcomeMod
   ) 
@@ -414,9 +406,7 @@ loadFiles(immediatePlan) :-
 % Optional files for the interesting orders extension
 loadFiles(intOrders) :-
   ( not(loadedModule(intOrders)),
-    setOption(immediatePlan),
     [intOrders],
-    retractall(loadedModule(intOrders)),
     assert(loadedModule(intOrders))
   )
   ; true.
@@ -425,7 +415,6 @@ loadFiles(intOrders) :-
 loadFiles(adaptiveJoin) :-
   ( not(loadedModule(adaptiveJoin)),
     [adaptiveJoin],
-    retractall(loadedModule(adaptiveJoin)),
     assert(loadedModule(adaptiveJoin))
   )
   ; true.
@@ -511,21 +500,21 @@ This are the optional standart settings for the optimizer when getting started.
 Feel free to change.
  
 */
-:- setOption(entropy).          % Using entropy extension?
+% :- setOption(entropy).          % Using entropy extension?
 % :- setOption(immediatePlan).    % Don't create complete POG?
 % :- setOption(intOrders(on)).    % Consider interesting orders (on-variant)?
 % :- setOption(intOrders(quick)). % Consider interesting orders (path-variant)?
 % :- setOption(intOrders(path)).  % Consider interesting orders (path-variant)?
 % :- setOption(intOrders(test)).  % Consider interesting orders (test-variant)?
-:- setOption(pathTiming).       % Prompt time used to create immediate plan?
+% :- setOption(pathTiming).       % Prompt time used to create immediate plan?
 % :- setOption(uniformSpeed).     % Using uniform machine speed factor?
 % :- setOption(costsConjunctive). % Applying costs only to conjunctive sub query?
 % :- setOption(dynamicSample).    % Using dynamic samples instead of static ones?
-:- setOption(rewriteMacros).    % Using macro expansion features?
-:- setOption(rewriteInference). % Using automatic inference of predicates?
-:- setOption(rtreeIndexRules).  % Use additional rules to exploit R-tree indices?
-:- setOption(rewriteNonempty).  % Handle 'nonempty' in select statements?
-:- setOption(rewriteCSE).       % Substitute common subexpressions in queries?
+% :- setOption(rewriteMacros).    % Using macro expansion features?
+% :- setOption(rewriteInference). % Using automatic inference of predicates?
+% :- setOption(rtreeIndexRules).  % Use additional rules to exploit R-tree indices?
+% :- setOption(rewriteNonempty).  % Handle 'nonempty' in select statements?
+% :- setOption(rewriteCSE).       % Substitute common subexpressions in queries?
 % :- setOption(rewriteCSEall).    % Extend attributes for ALL CSEs?
 % :- setOption(rewriteRemove).    % Apply early removal of unused attributes?
 :- assert(optDebugLevel(selectivity)), setOption(debug). % Activating selectivity debugging code?
@@ -552,3 +541,22 @@ Feel free to change.
 */
 
 quit :- halt. % aliasing 'halt/0' in conformity to the Secondo system
+
+
+/*
+7 Testing
+
+----
+:- [autotest], open 'database opt'.
+
+tt :- runExamples, showOptions.
+
+tq :- sql select count(*) from[plz as a, plz as b] where[a:ort = b:ort].
+
+s1 :- setOption(intOrders(quick)), tt, tq.
+s2 :- setOption(intOrders(on)), tq.
+s3 :- setOption(intOrders(path)), tq.
+s4 :- setOption(intOrders(test)), tq.
+----
+
+*/

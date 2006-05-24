@@ -286,14 +286,19 @@ each relation r is packed into the form arp(arg(i), [r], []).
 
 :- dynamic partition/3. % to allow intOrders extension to modify it
 
-partition([], _, []).
 
-partition([Rel | Rels], N, [Arp | Arps]) :-
-  N1 is N-1,
-  Arp = arp(arg(N), [Rel], []),
-  assert(argument(N, Rel)),
-  partition(Rels, N1, Arps).
+restorePartitionClauses :-
+  retractall( partition(_, _, _) :- (_) ),
+  assert( partition([], _, []) :- (true) ),
+  assert( partition([Rel | Rels], N, [Arp | Arps]) :-
+          ( N1 is N-1,
+            Arp = arp(arg(N), [Rel], []),
+            assert(argument(N, Rel)),
+            partition(Rels, N1, Arps)
+          )
+        ).
 
+:- restorePartitionClauses.
 
 /*
 
@@ -370,36 +375,44 @@ another join on the same two relations has already been performed.
 
 copyPart(_, _, [], []).
 
-copyPart(pr(P, Rel), PNo, Arps, [Arp2 | Arps2]) :-
-  select(X, Arps, Arps2),
-  X = arp(Arg, Rels, Preds),
-  member(Rel, Rels), !,
-  nodeNo(Arg, No),
-  ResNo is No + PNo,
-  Arp2 = arp(res(ResNo), Rels, [P | Preds]).
+restoreCopyPartClauses :-
+  retractall( copyPart(_, _, _, _) :- (_) ),
+  assert( copyPart(pr(P, Rel), PNo, Arps, [Arp2 | Arps2]) :-
+          ( select(X, Arps, Arps2),
+            X = arp(Arg, Rels, Preds),
+            member(Rel, Rels), !,
+            nodeNo(Arg, No),
+            ResNo is No + PNo,
+            Arp2 = arp(res(ResNo), Rels, [P | Preds])
+          )
+        ),
+  assert( copyPart(pr(P, R1, R2), PNo, Arps, [Arp2 | Arps2]) :-
+          ( select(X, Arps, Arps2),
+            X = arp(Arg, Rels, Preds),
+            member(R1, Rels),
+            member(R2, Rels), !,
+            nodeNo(Arg, No),
+            ResNo is No + PNo,
+            Arp2 = arp(res(ResNo), Rels, [P | Preds])
+          )
+        ),
+  assert( copyPart(pr(P, R1, R2), PNo, Arps, [Arp2 | Arps2]) :-
+          ( select(X, Arps, Rest),
+            X = arp(ArgX, RelsX, PredsX),
+            member(R1, RelsX),
+            select(Y, Rest, Arps2),
+            Y = arp(ArgY, RelsY, PredsY),
+            member(R2, RelsY), !,
+            nodeNo(ArgX, NoX),
+            nodeNo(ArgY, NoY),
+            ResNo is NoX + NoY + PNo,
+            append(RelsX, RelsY, Rels),
+            append(PredsX, PredsY, Preds),
+            Arp2 = arp(res(ResNo), Rels, [P | Preds])
+          )
+        ).
 
-copyPart(pr(P, R1, R2), PNo, Arps, [Arp2 | Arps2]) :-
-  select(X, Arps, Arps2),
-  X = arp(Arg, Rels, Preds),
-  member(R1, Rels),
-  member(R2, Rels), !,
-  nodeNo(Arg, No),
-  ResNo is No + PNo,
-  Arp2 = arp(res(ResNo), Rels, [P | Preds]).
-
-copyPart(pr(P, R1, R2), PNo, Arps, [Arp2 | Arps2]) :-
-  select(X, Arps, Rest),
-  X = arp(ArgX, RelsX, PredsX),
-  member(R1, RelsX),
-  select(Y, Rest, Arps2),
-  Y = arp(ArgY, RelsY, PredsY),
-  member(R2, RelsY), !,
-  nodeNo(ArgX, NoX),
-  nodeNo(ArgY, NoY),
-  ResNo is NoX + NoY + PNo,
-  append(RelsX, RelsY, Rels),
-  append(PredsX, PredsY, Preds),
-  Arp2 = arp(res(ResNo), Rels, [P | Preds]).
+:- restoreCopyPartClauses.
 
 nodeNo(arg(_), 0).
 nodeNo(res(N), N).

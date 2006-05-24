@@ -170,6 +170,9 @@ changeOriginalOptimizer :-
       retractCopyPartClauses,
       assertCopyPartClauses.
 
+restoreOriginalOptimizer :-
+  restorePartitionClauses,
+  restoreCopyPartClauses.
 /*
 
 3.2 Changing Clauses of ~modifications.pl~
@@ -181,17 +184,16 @@ For to consider interesting orders in different ways, different ~checkSuccessor~
 */
 
 changeModificationsPL0 :-
-      retractCheckSuccessorClauses,
       assertCheckSuccessorClauses0.
 
 changeModificationsPL1 :-
-      retractCheckSuccessorClauses,
       assertCheckSuccessorClauses1.
 
 changeModificationsPL2 :-
-      retractCheckSuccessorClauses,
       assertCheckSuccessorClauses2.
 
+restoreModifications :-
+  restoreCheckSuccessorClauses.
 
 /*
 
@@ -263,6 +265,18 @@ intOrdersPrintWelcomePOGIO :-
      nl, write('*** From now on the original SECONDO-optimizer'),
      nl, write('*** will be used.'), nl.
 	
+
+/*
+Turn off the the interesting orders extensions of the optimizer. Restore original clauses of standard optimizer and immediate plan algorithms.
+
+*/
+
+turnOffIntOrders :-
+  doNotCreateMergeJoinPlanEdges,
+  restoreOriginalOptimizer,
+  restoreModifications,
+  restoreStoredNodesShape,
+  restorePutIntoReachedNodesSetIOClauses.
 
 /*
 
@@ -872,14 +886,8 @@ Because the original version of ~checkSuccessor~ in chapter 2.5.6 'Creating Edge
 
 
 
-retractCheckSuccessorClauses :-
-	not(retractCheckSuccessorClause).
-
-retractCheckSuccessorClause :-
-	retract(checkSuccessor(_, _, _, _, _) :- (_) ),
-	fail.
-
 assertCheckSuccessorClauses0 :-
+        retractCheckSuccessorClauses,
 	assertz(checkSuccessor(ReachedNodesSet, ReachedNodesSet, _, _, 
 		succ(SuccNodeNo, _, _, _)) :-
 	(isTickedOff(SuccNodeNo),
@@ -1255,10 +1263,13 @@ The following clause changes the implementation of the set for the already reach
 */
 
 correctStoredNodesShape :-
-      retractCurrentRNSImplementation,
-      intOrdersRNSImplementation,
-      retractCurrentTOSImplementation,
-      intOrdersTOSImplementation.
+  intOrdersRNSImplementation,
+  retractCurrentTOSImplementation,
+  intOrdersTOSImplementation.
+
+restoreStoredNodesShape :-
+  restoreRNSImplementation.
+%  restoreTOSImplementation
 
 /*
 
@@ -1273,6 +1284,7 @@ It must be said, that the following implementation of the set REACHED-NODES is n
 */
 
 intOrdersRNSImplementation :-
+      retractCurrentRNSImplementation,
       asserta(createEmptyReachedNodesSet([]) :-
 	      (createEmptyReachedNodesSetIO([]))
              ),
@@ -1319,15 +1331,21 @@ createEmptyReachedNodesSetIO([]) :-
 
 :- dynamic putIntoReachedNodesSetIO/4. % enable modifications by intOrder
 
-putIntoReachedNodesSetIO(ReachedNodesSet,
-                         node(POGNodeNo, Distance, Path),
-			 Order, NewReachedNodesSet) :-
-	retract(lastNodeNo(LastNodeNo)),
-	NewNodeNo is LastNodeNo + 1,
-	assert(lastNodeNo(NewNodeNo)),
-	putIntoNodeListIO(ReachedNodesSet,
-                          node(NewNodeNo, POGNodeNo, Distance, Path, Order),
-		          NewReachedNodesSet).
+restorePutIntoReachedNodesSetIOClauses :-
+  retractall(putIntoReachedNodesSetIO(_, _, _, _) :- (_)),
+  assert( putIntoReachedNodesSetIO(ReachedNodesSet,
+                                   node(POGNodeNo, Distance, Path),
+                                   Order, NewReachedNodesSet) :-
+          ( retract(lastNodeNo(LastNodeNo)),
+            NewNodeNo is LastNodeNo + 1,
+            assert(lastNodeNo(NewNodeNo)),
+            putIntoNodeListIO(ReachedNodesSet,
+                              node(NewNodeNo, POGNodeNo, Distance, Path, Order),
+                              NewReachedNodesSet)
+          )
+        ).
+
+:- restorePutIntoReachedNodesSetIOClauses.
 
 isInReachedNodesSetIO(ReachedNodesSet,
                       node(POGNodeNo, Distance, Path)) :-
@@ -1438,45 +1456,25 @@ deleteLastNodeNumbers :-
 
 */
 
-% moved dynamic-declarations to file 'immediatePlan.pl'
-% :- dynamic emptyTickedOffSet/0. 
-% :- dynamic tickOff/1. 
-% :- dynamic isTickedOff/1.
-% :- dynamic getTickedOffNode/2.
-
-retractCurrentTOSImplementation :-
-	retract(emptyTickedOffSet :- (_)),
-	retract(tickOff(_) :- (_)),
-	retract(isTickedOff(_) :- (_)),
-	retract(getTickedOffNode(_, _) :- (_)).
-
 intOrdersTOSImplementation :-
-	asserta(emptyTickedOffSet :-
-	(not(retractTickOffNode)
-	 )
-	),
-	asserta(tickOff(node(POGNodeNo, Distance, Path)) :-
- 	(minDistNodeOrder(NodeNo, POGNodeNo, Order),
-	 assert(tickOffNode(NodeNo, POGNodeNo,
+  asserta(emptyTickedOffSet :- ( retractall(tickOffNode(_, _, _, _)) ) ),
+  asserta( tickOff(node(POGNodeNo, Distance, Path)) :-
+           ( minDistNodeOrder(NodeNo, POGNodeNo, Order),
+             assert(tickOffNode(NodeNo, POGNodeNo,
 			    node(POGNodeNo, Distance, Path), Order)),
-	 dm(intOrders,['Node ', POGNodeNo, ' with its result ordered by ']),
-	 dc(intOrders, ( Order = intOrder(_, ActualOrder), write(ActualOrder),
-	                 write(' is ticked off.'), nl, nl )),
-	 true
-	 )
+             dm(intOrders,['Node ', POGNodeNo, ' with its result ordered by ']),
+             dc(intOrders,(Order = intOrder(_, ActualOrder), write(ActualOrder),
+	                   write(' is ticked off.'), nl, nl )),
+             true
+           )
 	),
-	asserta(isTickedOff(pair(POGNodeNo, Order)) :-
- 	(tickOffNode(_, POGNodeNo, _, Order)
-	 )
-	),
-	asserta(getTickedOffNode(POGNodeNo, Node) :-
-	(tickOffNode(_, POGNodeNo, Node, _)
-	 )
-	).
+  asserta( isTickedOff(pair(POGNodeNo, Order)) :- 
+           ( tickOffNode(_, POGNodeNo, _, Order) )
+	 ),
+  asserta( getTickedOffNode(POGNodeNo, Node) :-
+           ( tickOffNode(_, POGNodeNo, Node, _) )
+         ).
 
-retractTickOffNode :-
-	retract(tickOffNode(_, _, _, _)),
-	fail.
 
 /*
 
@@ -1493,6 +1491,7 @@ If the optimizer shall be enhanced some day in a way, that a user can express pr
 */
 
 assertCheckSuccessorClauses1 :-
+        retractCheckSuccessorClauses,
 	assertz(checkSuccessor(ReachedNodesSet, ReachedNodesSet, _, _, 
 		succ(SuccNodeNo, _, _, _)) :-
 	(isTickedOff(pair(SuccNodeNo, _)),
@@ -1576,6 +1575,7 @@ correctDistancePathAndOrder(_, _, _, ReachedNodesSet, ReachedNodesSet).
 */
 
 assertCheckSuccessorClauses2 :-
+        retractCheckSuccessorClauses,
 	assertz(checkSuccessor(ReachedNodesSet, ReachedNodesSet, _, _,
 		succ(SuccNodeNo, _, _, _)) :-
 	(% if node with the respective order is already ticked off
@@ -1696,8 +1696,8 @@ For to realize the program-mode ~intOrders(on)~ it is just necessary to modify ~
 :- dynamic putIntoReachedNodesSetIO/4.
 
 intOrderonImplementation :-
-	retract(putIntoReachedNodesSetIO(_, _, _, _) :- (_)),
-	assertz(putIntoReachedNodesSetIO(ReachedNodesSet,
+	 retractall(putIntoReachedNodesSetIO(_, _, _, _) :- (_)),
+	 assertz(putIntoReachedNodesSetIO(ReachedNodesSet,
                 node(POGNodeNo, DistanceNew, _),
 		Order, ReachedNodesSet) :-
 	(% if

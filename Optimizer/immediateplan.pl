@@ -666,45 +666,61 @@ and edges of the POG should be created.
 
 :- dynamic checkSuccessor/5.
 
-checkSuccessor(ReachedNodesSet, ReachedNodesSet, _, _, 
-		succ(SuccNodeNo, _, _, _)) :-
-	isTickedOff(SuccNodeNo),
-	dc(immPath, (write('Successor is already ticked off.'), nl)),
-	!.
+retractCheckSuccessorClauses :-
+	not(retractCheckSuccessorClause).
 
-checkSuccessor(ReachedNodesSet, NewReachedNodesSet, 
-               node(NodeNo, NodePreds, Partition), NDPNode, 
-               succ(SuccNodeNo, _, PredNo, Predicate)) :-
-	isInReachedNodesSet(ReachedNodesSet, node(SuccNodeNo, _, _)),
-	!,
-	dc(immPath, (write('Successor is not ticked off '), 
-	             write('but already reached.'), nl)),
-	createEdge(NodeNo, SuccNodeNo,
-		   node(NodeNo, NodePreds, Partition),
-                   PredNo, Predicate, Edge),
-	createPlanEdges(Edge, PlanEdges),
-	assignSize(Edge),
-	cheapestCostEdge(PlanEdges, CostEdge),
-	correctDistanceAndPath(NDPNode, SuccNodeNo, CostEdge,
-                               ReachedNodesSet, NewReachedNodesSet).
+retractCheckSuccessorClause :-
+	retract(checkSuccessor(_, _, _, _, _) :- (_) ),
+	fail.
 
-checkSuccessor(ReachedNodesSet, NewReachedNodesSet, 
-               node(NodeNo, NodePreds, Partition), NDPNode, 
-               succ(SuccNodeNo, _, PredNo, Predicate)) :-
-	dc(immPath, (write('Successor is not ticked off '),
-	             write('and not yet reached.'), nl)),
-	createEdge(NodeNo, SuccNodeNo, 
-		   node(NodeNo, NodePreds, Partition), 
-                   PredNo, Predicate, Edge),
-	createPlanEdges(Edge, PlanEdges),
-	assignSize(Edge),
-	cheapestCostEdge(PlanEdges, CostEdge),
-	dc(immPath, (write('Cheapest cost edge is determined: '), 
-	             write(CostEdge), nl)),
-	createNDPSuccessor(succ(SuccNodeNo, _, _, _), NDPSuccessor),
-	setDistanceAndPath(NDPNode, NDPSuccessor, CostEdge),
-	putIntoReachedNodesSet(ReachedNodesSet, NDPSuccessor,
-                               NewReachedNodesSet).
+restoreCheckSuccessorClauses :-
+  retractCheckSuccessorClauses,
+  assert( checkSuccessor(ReachedNodesSet, ReachedNodesSet, _, _, 
+                                       succ(SuccNodeNo, _, _, _)) :-
+          ( isTickedOff(SuccNodeNo),
+            dc(immPath, (write('Successor is already ticked off.'), nl)),
+            !
+          )
+        ),
+  assert( checkSuccessor(ReachedNodesSet, NewReachedNodesSet, 
+                 node(NodeNo, NodePreds, Partition), NDPNode, 
+                        succ(SuccNodeNo, _, PredNo, Predicate)) :-
+          ( isInReachedNodesSet(ReachedNodesSet, node(SuccNodeNo, _, _)),
+            !,
+            dc(immPath, (write('Successor is not ticked off '), 
+                         write('but already reached.'), nl)),
+            createEdge(NodeNo, SuccNodeNo,
+                       node(NodeNo, NodePreds, Partition),
+                       PredNo, Predicate, Edge),
+            createPlanEdges(Edge, PlanEdges),
+            assignSize(Edge),
+            cheapestCostEdge(PlanEdges, CostEdge),
+            correctDistanceAndPath(NDPNode, SuccNodeNo, CostEdge,
+                                   ReachedNodesSet, NewReachedNodesSet)
+          )
+        ),
+  assert( checkSuccessor(ReachedNodesSet, NewReachedNodesSet, 
+                         node(NodeNo, NodePreds, Partition), NDPNode, 
+                                 succ(SuccNodeNo, _, PredNo, Predicate)) :-
+          ( dc(immPath, (write('Successor is not ticked off '),
+                         write('and not yet reached.'), nl)),
+            createEdge(NodeNo, SuccNodeNo, 
+                       node(NodeNo, NodePreds, Partition), 
+                       PredNo, Predicate, Edge),
+            createPlanEdges(Edge, PlanEdges),
+            assignSize(Edge),
+            cheapestCostEdge(PlanEdges, CostEdge),
+            dc(immPath, (write('Cheapest cost edge is determined: '), 
+                         write(CostEdge), nl)),
+            createNDPSuccessor(succ(SuccNodeNo, _, _, _), NDPSuccessor),
+            setDistanceAndPath(NDPNode, NDPSuccessor, CostEdge),
+            putIntoReachedNodesSet(ReachedNodesSet, NDPSuccessor,
+                                                    NewReachedNodesSet)
+          )
+        ). 
+
+
+:- restoreCheckSuccessorClauses.
 
 /*
 
@@ -941,17 +957,24 @@ Actually they are not absolutely necessary.
 :- dynamic isTickedOff/1.
 :- dynamic getTickedOffNode/2.
 
-emptyTickedOffSet :-
-	emptyCenter.
+retractCurrentTOSImplementation :-
+  retract(emptyTickedOffSet :- (_)),
+  retract(tickOff(_) :- (_)),
+  retract(isTickedOff(_) :- (_)),
+  retract(getTickedOffNode(_, _), !.
 
-tickOff(node(NodeNo, Distance, Path)) :-
- 	assert(center(NodeNo, node(NodeNo, Distance, Path))).
+retractCurrentTOSImplementation :- !.
 
-isTickedOff(NodeNo) :-
- 	center(NodeNo, _).
+restoreTOSImplementation :-
+  retractCurrentTOSImplementation,
+  assert( emptyTickedOffSet :- ( emptyCenter ) ),
+  assert( tickOff(node(NodeNo, Distance, Path)) :-
+          ( assert(center(NodeNo, node(NodeNo, Distance, Path))) )
+        ),
+  assert( isTickedOff(NodeNo) :- ( center(NodeNo, _) ) ), 
+  assert( getTickedOffNode(NodeNo, Node) :- ( center(NodeNo, Node) ) ).
 
-getTickedOffNode(NodeNo, Node) :-
-	center(NodeNo, Node).
+:- restoreTOSImplementation.
 
 /*
 
@@ -965,30 +988,61 @@ that would be by far more complex without this interface).
 
 */
 
-createEmptyReachedNodesSet(ReachedNodesSet) :-
-	b_empty(ReachedNodesSet).
+retractCurrentRNSImplementation :-
+     retract(
+	     createEmptyReachedNodesSet(_) :- (_)
+	    ),
+     retract(
+	     putIntoReachedNodesSet(_, _, _) :- (_)
+	    ),
+     retract(
+             isInReachedNodesSet(_, _) :- (_)
+	    ),
+     retract(
+             readAlreadyReachedNode(_, _, _) :- (_)
+	    ),
+     retract(
+             getMinimalDistantNode(_, _, _) :- (_)
+	    ),
+     retract(
+             deleteOutOfReachedNodesSet(_, _, _) :- (_)
+	    ),
+     retract(
+             isEmpty(_) :- (_)
+	    ), !.
 
-putIntoReachedNodesSet(ReachedNodesSet, Node, NewReachedNodesSet) :-
-	b_insert(ReachedNodesSet, Node, NewReachedNodesSet).
+retractCurrentRNSImplementation :- !.
 
-isInReachedNodesSet(ReachedNodesSet, node(NodeNo, _, _)) :-
-	b_memberByName(ReachedNodesSet, NodeNo, node(NodeNo,_ , _)).
+restoreRNSImplementation :-
+  retractCurrentRNSImplementation,
+  assert( createEmptyReachedNodesSet(ReachedNodesSet) :- 
+          ( b_empty(ReachedNodesSet) )
+        ),
+  assert( putIntoReachedNodesSet(ReachedNodesSet, Node, NewReachedNodesSet) :-
+          ( b_insert(ReachedNodesSet, Node, NewReachedNodesSet) )
+        ),
+  assert( isInReachedNodesSet(ReachedNodesSet, node(NodeNo, _, _)) :-
+          ( b_memberByName(ReachedNodesSet, NodeNo, node(NodeNo,_ , _)) )
+        ),
+  assert( readAlreadyReachedNode(ReachedNodesSet, NodeNo, Node) :-
+          ( b_memberByName(ReachedNodesSet, NodeNo, Node) )
+        ),
+  assert( getMinimalDistantNode(ReachedNodesSet, Node, NewReachedNodesSet) :-
+          ( b_removemin(ReachedNodesSet, Node, NewReachedNodesSet) )
+        ),
+  assert( deleteOutOfReachedNodesSet(ReachedNodesSet, node(NodeNo, _, _), 
+                                                       NewReachedNodesSet) :-
+          ( b_deleteByName(ReachedNodesSet, NodeNo, NewReachedNodesSet) )
+        ),
+  assert( isEmpty(ReachedNodesSet) :-
+          ( b_isEmpty(ReachedNodesSet),
+            dc(immPath, (write('There are no more reached '),
+                         write('but not yet ticked off nodes.'), nl)),
+            true
+          )
+        ).
 
-readAlreadyReachedNode(ReachedNodesSet, NodeNo, Node) :-
-	b_memberByName(ReachedNodesSet, NodeNo, Node).
-
-getMinimalDistantNode(ReachedNodesSet, Node, NewReachedNodesSet) :-
-	b_removemin(ReachedNodesSet, Node, NewReachedNodesSet).
-
-deleteOutOfReachedNodesSet(ReachedNodesSet, node(NodeNo, _, _), 
-                           NewReachedNodesSet) :-
-	b_deleteByName(ReachedNodesSet, NodeNo, NewReachedNodesSet).
-
-isEmpty(ReachedNodesSet) :-
-	b_isEmpty(ReachedNodesSet),
-	dc(immPath, (write('There are no more reached '),
-	             write('but not yet ticked off nodes.'), nl)),
-	true.
+:- restoreRNSImplementation.
 
 /*
 
@@ -1957,36 +2011,32 @@ again.
 
 altRNSImplementation(off) :-
       !,
-      consult('modifications.pl'),
+      restoreRNSImplementation,
       nl, write('*** From now on the original implementation for'),
       nl, write('*** the set REACHED-NODES is used again.'), nl.
 
 altRNSImplementation(1) :-
       !,
-      consult('modifications.pl'),
+      restoreRNSImplementation,
       printWelcomeRNS,
-      retractCurrentRNSImplementation,
       altRNSImplementation1.
 
 altRNSImplementation(2) :-
       !,
-      consult('modifications.pl'),
+      restoreRNSImplementation,
       printWelcomeRNS,
-      retractCurrentRNSImplementation,
       altRNSImplementation2.
 
 altRNSImplementation(3) :-
       !,
-      consult('modifications.pl'),
+      restoreRNSImplementation,
       printWelcomeRNS,
-      retractCurrentRNSImplementation,
       altRNSImplementation3.
 
 altRNSImplementation(4) :-
       !,
-      consult('modifications.pl'),
+      restoreRNSImplementation,
       printWelcomeRNS,
-      retractCurrentRNSImplementation,
       altRNSImplementation4.
 
 altRNSImplementation(_) :-
@@ -2000,29 +2050,6 @@ printWelcomeRNS :-
       nl, write('*** Please call ''altRNSImplementation(off)'' to'),
       nl, write('*** use the original implementation again.'), nl.
 
-
-retractCurrentRNSImplementation :-
-     retract(
-	     createEmptyReachedNodesSet(_) :- (_)
-	    ),
-     retract(
-	     putIntoReachedNodesSet(_, _, _) :- (_)
-	    ),
-     retract(
-             isInReachedNodesSet(_, _) :- (_)
-	    ),
-     retract(
-             readAlreadyReachedNode(_, _, _) :- (_)
-	    ),
-     retract(
-             getMinimalDistantNode(_, _, _) :- (_)
-	    ),
-     retract(
-             deleteOutOfReachedNodesSet(_, _, _) :- (_)
-	    ),
-     retract(
-             isEmpty(_) :- (_)
-	    ).
 
 /*
 
@@ -2042,6 +2069,7 @@ by scanning the facts in the knowledge-base.
 */
 
 altRNSImplementation1 :-
+      retractCurrentRNSImplementation,
       asserta(
 	      createEmptyReachedNodesSet([]) :-
 			( deleteAllReachedNodes )
@@ -2140,6 +2168,7 @@ The set REACHED-NODES is just a sorted list.
 */
 
 altRNSImplementation2 :-
+      retractCurrentRNSImplementation,
       asserta(
 	      createEmptyReachedNodesSet([]) :-
 			( true )
@@ -2236,6 +2265,7 @@ to the source-node.
 */
 
 altRNSImplementation3 :-
+      retractCurrentRNSImplementation,
       asserta(
 	      createEmptyReachedNodesSet(empty) :-
 			( deleteAllReachedNodes )
@@ -2332,6 +2362,7 @@ distance to the source-node, a direct search of the knowledge-base takes place.
 */
 
 altRNSImplementation4 :-
+      retractCurrentRNSImplementation,
       asserta(
 	      createEmptyReachedNodesSet(empty) :-
 			( deleteAllReachedNodes )
