@@ -228,7 +228,7 @@ class CostFunction {
     CostResult r;
     costs(p, r.read, r.write, r.cpu);
     r.weightResult();
-    const string prefix="PSA:Cost1_"+name;
+    const string prefix="PSA::Cost1_"+name;
     Counter::getRef(prefix+"_read") = r.read;
     Counter::getRef(prefix+"_write") = r.write;
     Counter::getRef(prefix+"_cpu") = r.cpu;
@@ -247,7 +247,7 @@ interchanged.
     s.swap();
     costs(s, r.read, r.write, r.cpu);
     r.weightResult();
-    const string prefix="PSA:Cost2_"+name;
+    const string prefix="PSA::Cost2_"+name;
     Counter::getRef(prefix+"_read") = r.read;
     Counter::getRef(prefix+"_write") = r.write;
     Counter::getRef(prefix+"_cpu") = r.cpu;

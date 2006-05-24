@@ -45,6 +45,7 @@ for query processing.
 
 
 #include <iostream>
+#include <sstream>
 #include <queue>
 
 
@@ -1276,22 +1277,27 @@ to estimate the cardinality of the input stream
     
     int estimateInputCard() 
     {
+      TRACE("Input cardinality estimation")
       SHOW(lastMarker.num)
+      SHOW(lastMarker.parts)
      
       // expected tuples
-      int expected = max(lastMarker.num,1) * lastMarker.tuples;
-      SHOW(expected)
+      double expected = max(lastMarker.num,1) * lastMarker.tuples;
       
       // received tuples
-      int received = getTuplesOfCompleteParts(); 
+      double received = getTuplesOfCompleteParts(); 
+
+      SHOW(expected)
       SHOW(received) 
       
       // cardinality. If not a complete partition of tuples 
       // was read in then the formula below may underestimate
       // the input card. 
-      int card = (lastMarker.tuples * lastMarker.parts * received) / expected;
-     
-      return card;
+      double card = lastMarker.tuples * max(lastMarker.parts,1) 
+                                       * (received / expected);
+      SHOW(card)
+      
+      return static_cast<int>( ceil(card) );
     } 
 
     
@@ -1312,6 +1318,13 @@ to estimate the cardinality of the input stream
 
 }; 
 
+static inline string int2Str(const int i) {
+
+   stringstream s; 
+   s << i;
+   return s.str();
+}   
+
 
 static int pjoin2_vm( Word* args, Word& result, int message, 
                       Word& local, Supplier s)
@@ -1326,6 +1339,7 @@ static int pjoin2_vm( Word* args, Word& result, int message,
 
   typedef enum { probe, eval } JoinState;
  
+  static int instanceCtr = 0;
 
   typedef PartStreamMappings psm;
   
@@ -1365,8 +1379,10 @@ static int pjoin2_vm( Word* args, Word& result, int message,
     float joinSel;
     
     long probeJoinCPU;
+    int instanceNum;
     
     bool bufReset[2];
+    
     
     JoinInfo(Word left, Word right, const int mem = 1024*1024) : 
       PartStreamInfo(),
@@ -1383,7 +1399,8 @@ static int pjoin2_vm( Word* args, Word& result, int message,
       rightAvgTupSize(0),
       resultTuples(0),
       joinSel(0.0),
-      probeJoinCPU(0)  
+      probeJoinCPU(0),
+      instanceNum(instanceCtr++)  
     {
       TRACE_FILE("pjoin2.traces")
 
@@ -1411,17 +1428,24 @@ static int pjoin2_vm( Word* args, Word& result, int message,
       const int leftErr = relErr(leftCard, leftTuples);
       const int rightErr = relErr(rightCard, rightTuples);
  
-      Counter::getRef("PSA::pjoin2:Card_result") = resultTuples;
-      Counter::getRef("PSA::pjoin2:Card_result_err") = resultErr; 
+      const string pref = "PSA::pjoin2-" + int2Str(instanceNum) + ":";
+      Counter::getRef(pref+"Card_C_real") = resultTuples;
+      Counter::getRef(pref+"Card_C__est") = resultCard; 
+      Counter::getRef(pref+"Card_C_%err") = resultErr;
        
-      Counter::getRef("PSA::pjoin2:Card_left") = leftTuples; 
-      Counter::getRef("PSA::pjoin2:Card_left_err") = leftErr;
+      Counter::getRef(pref+"Card_A_real") = leftTuples; 
+      Counter::getRef(pref+"Card_A__est") = leftCard;
+      Counter::getRef(pref+"Card_A_%err") = leftErr;
       
-      Counter::getRef("PSA::pjoin2:Card_right") = rightTuples;
-      Counter::getRef("PSA::pjoin2:Card_right_err") = rightErr;
+      Counter::getRef(pref+"Card_B_real") = rightTuples;
+      Counter::getRef(pref+"Card_B__est") = rightCard;
+      Counter::getRef(pref+"Card_B_%err") = rightErr;
      
       Counter::getRef("PSA:Usedjoin:CPU_Ops") = cpuOps() - probeJoinCPU; 
       
+      // reset instance counter for next query
+      instanceCtr=0;
+           
       delete leftBuf;
       delete rightBuf;
       delete evalFuns;
@@ -1435,8 +1459,8 @@ static int pjoin2_vm( Word* args, Word& result, int message,
     
     
 /*
-Function ~computeCards~ will compute estimates for the
-input, output and result stream
+Function ~computeCards~ will compute estimated cardinalities for the
+input, output, and result stream.
    
 */     
     void computeCards(const int resultTuples)
@@ -1455,6 +1479,9 @@ input, output and result stream
           static_cast<int>( rightBuf->getTotalSize() / rightRead );
        
        // join selectivity
+       if (resultTuples == 0)
+         cerr << "Warning: probejoin returned no tuples!" << endl;
+
        joinSel = (1.0 * max(resultTuples,1)) / (leftRead * rightRead);
        SHOW(joinSel)
        
@@ -1465,9 +1492,6 @@ input, output and result stream
        resultCard = static_cast<int>( resultCardF );
        SHOW(resultCard)
 
-       Counter::getRef("PSA::pjoin2:Card_left_est") = leftCard;
-       Counter::getRef("PSA::pjoin2:Card_right_est") = rightCard;
-       Counter::getRef("PSA::pjoin2:Card_result_est") = resultCard;
     } 
 
 /*
@@ -1569,7 +1593,7 @@ The probe join will be stopped if
       qp->Close(first);
       TRACE( "\n*** Probe join finished! ***\n" )
 
-      probeJoinCPU = Counter::getRef("PSA:Probejoin:CPU_Ops") = cpuOps(); 
+      probeJoinCPU = Counter::getRef("PSA::Probejoin:CPU_Ops") = cpuOps(); 
         
       computeCards(probeReceived);
       computeBestFunction();
