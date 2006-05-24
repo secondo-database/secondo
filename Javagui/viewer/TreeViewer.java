@@ -129,6 +129,86 @@ class Node{
      return true;
    }
 
+   boolean readFromPMType(ListExpr value){
+      if(value.listLength()!=2){
+        Reporter.debug("wrong list length");
+        return false;
+      }
+      ListExpr subtype = value.first();
+      String st = null;
+      if(subtype.atomType()==ListExpr.SYMBOL_ATOM){ // an usual submove
+          st = subtype.symbolValue();
+      }else if(subtype.atomType()==ListExpr.NO_ATOM){ // may be the total move
+         if(subtype.listLength()!=2){
+             Reporter.debug("wrong length for total move ");
+             return false;
+         }
+         if(subtype.first().atomType()!=ListExpr.SYMBOL_ATOM || 
+            !subtype.first().symbolValue().equals("instant")){
+            Reporter.debug("invalid format for start time"); 
+            return false;
+         }
+         if(subtype.second().atomType()!=ListExpr.STRING_ATOM){
+              Reporter.debug("invalid format for start time ");
+              return false;
+          }
+          Label = "T " + subtype.second().stringValue();
+          sons = new Node[1];
+          sons[0] =new Node("",null);
+          return sons[0].readFromPMType(value.second());
+      }else{      
+        Reporter.debug("wrong type"+subtype);
+        return false;
+      }   
+      if(!arrowDone){
+        computeArrow();
+      }   
+      st = subtype.symbolValue();
+      if(st.equals("linear")){
+          Label = "L";
+          sons = null;
+          return true;
+      } 
+
+      if(st.equals("period")){
+          value = value.second();
+          int len = value.listLength();
+          if(len!=2 && len!=4){ // (reps submove)
+              Reporter.debug("period:invalid length "+len);
+              return false;
+          } 
+          ListExpr r = value.first();
+          if(r.atomType()!=ListExpr.INT_ATOM){
+              Reporter.debug("invalid type for repetitions");
+              return  false;
+          }
+          Label = "P["+r.intValue()+"]";
+          sons = new Node[1];
+          sons[0] = new Node("",null);
+          if(len==2){
+             return sons[0].readFromPMType(value.second());
+          } else{
+             return sons[0].readFromPMType(value.fourth());
+          }
+      }
+      if(st.equals("composite")){
+          value = value.second();
+          int len = value.listLength();
+          Label = "C";
+          sons = new Node[len];
+          for(int i=0;i<len;i++){
+             sons[i] = new Node("",null);
+             if(!sons[i].readFromPMType(value.first())){
+               return false;
+             }
+             value = value.rest();
+          }
+          return true;
+      } 
+      return false;
+
+   }
+
 
    /** Sets the Label and the Sons of this tree. **/
    Node(String Label, Node[] Sons){
@@ -721,9 +801,15 @@ public boolean addObject(SecondoObject o){
     if(!canDisplay(o)){
        return false;
     }
+    ListExpr type = o.toListExpr().first();
     ListExpr LE = o.toListExpr().second(); // we need only the value
+
     Node N = new Node("",null);
-    if(!N.readFrom(LE)){ // error in valueList
+    if(isPMType(type)){
+       if(!N.readFromPMType(LE)){
+           return false;
+       }
+    }else if(!N.readFrom(LE)){ // error in valueList
        return false;
     }
     // values are correct
@@ -733,6 +819,17 @@ public boolean addObject(SecondoObject o){
     ChoiceBox.setSelectedIndex(Trees.size()-1);
     requestFocus();
     return true;
+}
+
+/** returns true if the type represents a periodic moving type **/
+private boolean isPMType(ListExpr list){
+   if(list.atomType()!=ListExpr.SYMBOL_ATOM){
+       return false;
+   }
+   String v = list.symbolValue();
+   return v.equals("pmpoint") ||
+          v.equals("pmreal");  // extend if needed
+
 }
 
 /** removes an given object */
@@ -759,8 +856,9 @@ public boolean canDisplay(SecondoObject o){
    LE = LE.first();
    if(LE.atomType()!=ListExpr.SYMBOL_ATOM)
       return false;
-   if(!LE.symbolValue().equals("tree"))
+   if(!LE.symbolValue().equals("tree") && !isPMType(LE)){
       return  false;
+   }
    return true;
 }
 
