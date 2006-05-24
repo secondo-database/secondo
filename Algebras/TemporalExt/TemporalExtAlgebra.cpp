@@ -1891,7 +1891,7 @@ const string TemporalSpecSpeedExt  =
 const string RangeSpecRangevaluesExt  =
     "( ( \"Signature\" \" \" \"Syntax\" \"Meaning\" \" \" "
     "\"Example\" ) "
-    "( <text>T in {int, bool, real*, string},</text--->"
+    "( <text>T in {int, bool, real, string},</text--->"
     "<text>moving(T) -> range(T)</text--->"
     "<text>rangevalues ( _ )</text--->"
     "<text>Returns all the values assumed by the argument over time,</text--->"
