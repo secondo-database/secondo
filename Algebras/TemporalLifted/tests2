@@ -40,4 +40,43 @@ let mp4 = [const mpoint value ((((instant 5.0)(instant 10.0) FALSE TRUE)(10.0 10
 
 let pt1 = [const point value (5.0 5.0)];
 
+let mb4 = [const mbool value ((((instant 0.0)(instant 9.0) TRUE TRUE) TRUE) (((instant 10.0)(instant 19.0) TRUE FALSE) FALSE)(((instant 20.0)(instant 29.0) FALSE TRUE) TRUE)(((instant 30.0)(instant 39.0) FALSE FALSE) FALSE)
+(((instant 41.0)(instant 42.0) TRUE FALSE) TRUE)(((instant 43.0)(instant 44.0) TRUE TRUE) FALSE)(((instant 45.0)(instant 46.0) FALSE TRUE) TRUE)(((instant 47.0)(instant 48.0) FALSE FALSE) FALSE)
+(((instant 51.0)(instant 52.0) TRUE FALSE) TRUE)(((instant 53.0)(instant 54.0) TRUE TRUE) FALSE)(((instant 55.0)(instant 56.0) FALSE TRUE) TRUE)(((instant 57.0)(instant 58.0) FALSE FALSE) FALSE)
+(((instant 61.0)(instant 62.0) TRUE FALSE) TRUE)(((instant 63.0)(instant 64.0) TRUE TRUE) FALSE)(((instant 65.0)(instant 66.0) FALSE TRUE) TRUE)(((instant 67.0)(instant 68.0) FALSE FALSE) FALSE)
+(((instant 71.0)(instant 72.0) TRUE FALSE) TRUE)(((instant 73.0)(instant 74.0) TRUE TRUE) FALSE)(((instant 75.0)(instant 76.0) FALSE TRUE) TRUE)(((instant 77.0)(instant 78.0) FALSE FALSE) FALSE))
+];
+
+let mb5 = [const mbool value ((((instant 1.0)(instant 2.0) TRUE FALSE) TRUE)(((instant 3.0)(instant 4.0) TRUE TRUE) FALSE)(((instant 5.0)(instant 6.0) FALSE TRUE) TRUE)(((instant 7.0)(instant 8.0) FALSE FALSE) FALSE)
+(((instant 11.0)(instant 12.0) TRUE FALSE) TRUE)(((instant 13.0)(instant 14.0) TRUE TRUE) FALSE)(((instant 15.0)(instant 16.0) FALSE TRUE) TRUE)(((instant 17.0)(instant 18.0) FALSE FALSE) FALSE)
+(((instant 21.0)(instant 22.0) TRUE FALSE) TRUE)(((instant 23.0)(instant 24.0) TRUE TRUE) FALSE)(((instant 25.0)(instant 26.0) FALSE TRUE) TRUE)(((instant 27.0)(instant 28.0) FALSE FALSE) FALSE)
+(((instant 31.0)(instant 32.0) TRUE FALSE) TRUE)(((instant 33.0)(instant 34.0) TRUE TRUE) FALSE)(((instant 35.0)(instant 36.0) FALSE TRUE) TRUE)(((instant 37.0)(instant 38.0) FALSE FALSE) FALSE)
+(((instant 40.0)(instant 49.0) TRUE TRUE) TRUE) (((instant 50.0)(instant 59.0) TRUE FALSE) FALSE)(((instant 60.0)(instant 69.0) FALSE TRUE) TRUE)(((instant 70.0)(instant 79.0) FALSE FALSE) FALSE))
+];
+
+let mb6 = [const mbool value ((((instant 0.0)(instant 2.0) TRUE FALSE) TRUE) (((instant 2.0)(instant 4.0) TRUE FALSE) FALSE)(((instant 4.0)(instant 6.0) TRUE FALSE) TRUE)(((instant 8.0)(instant 10.0) TRUE FALSE) FALSE)
+)];
+
+let mb7 = [const mbool value ((((instant 0.0)(instant 2.0) TRUE FALSE) TRUE) (((instant 4.0)(instant 6.0) TRUE FALSE) FALSE)(((instant 6.0)(instant 8.0) TRUE FALSE) TRUE)(((instant 8.0)(instant 10.0) TRUE FALSE) FALSE)
+)];
+
+let mb8 = [const mbool value ((((instant 0.0)(instant 2.0) TRUE FALSE) TRUE) (((instant 4.0)(instant 6.0) TRUE FALSE) FALSE)(((instant 8.0)(instant 10.0) TRUE FALSE) TRUE)(((instant 12.0)(instant 14.0) TRUE FALSE) FALSE)
+)];
+
+let mb9 = [const mbool value ((((instant 1.0)(instant 3.0) TRUE FALSE) TRUE) (((instant 3.5)(instant 5.0) TRUE FALSE) FALSE)(((instant 6.0)(instant 8.0) TRUE FALSE) TRUE)(((instant 8.0)(instant 10.0) TRUE FALSE) FALSE)
+)];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
