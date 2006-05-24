@@ -113,6 +113,10 @@ public void printPeriodicPoint(int NoT,int tD,Time start,int rep, File F, boolea
         }
      }
      R.close();
+     
+     System.err.println("\n\n\nfile : " + F);
+     System.err.println("single run has length " + completeInterval);
+     System.err.println("reps : !" + rep);
    
      completeInterval.set(completeInterval.getLength().mul(2*rep),true,false); 
  
@@ -123,6 +127,10 @@ public void printPeriodicPoint(int NoT,int tD,Time start,int rep, File F, boolea
      Time restDay = oneDay.minus(completeInterval.getLength());
      RelInterval wInterval = new RelInterval();
      wInterval.set(restDay,true,false); 
+
+     System.err.println("complete is " + completeInterval);
+     System.err.println("rest is " + wInterval);
+
      
      RelInterval weekend = new RelInterval();
      weekend.set(new Time(2,0),true,false);
@@ -134,20 +142,26 @@ public void printPeriodicPoint(int NoT,int tD,Time start,int rep, File F, boolea
      int size = PointLists.size();
      for(int train=0; train<NoT; train++){ // for every train
          System.out.println("      ("); // open tuple
-         System.out.println("         "+train); // write the number of train
+         System.out.println("         "+train); // write the train number 
          // write the train
-         System.out.println("          (");
-         System.out.println("             "+start.getListExprString(true));
+       
+         System.out.println("          ("); // open train
+         
+         System.out.println("             "+start.getListExprString(true)); // start time
+         // extended mode
          if(halfyear){
              if(train%2==0){ // trains staying on weekend
                 System.out.println("(period ( 21 "); // 21 weeks
-                System.out.println("(composite (");  
+                System.out.println("(composite (");  // split working days and weekend 
+                System.out.println("(period ( 5 ");  // working days
+                System.out.println("(composite (");  // split working time and after work
              } else{ // trains running on weekend
                 System.out.println("( period ( 147 "); // 147 days
-                System.out.println("(composite (");
+                System.out.println("(composite (");  // split working time and after work
              }
          }
 
+         // a single working interval
          start.addInternal(Difference); // compute the start time for the next train
          System.out.println(" ( period ( "+rep ); // number of repeatations
          System.out.println("     (composite (");
@@ -168,22 +182,27 @@ public void printPeriodicPoint(int NoT,int tD,Time start,int rep, File F, boolea
             System.out.println(units);
          }
          System.out.println(" ))))"); // close composite , period
+         // end of work        
+         
          if(halfyear){ // fill up 24 hours
              String units = Waiting.getUnitsString(wInterval,false); // staying after work 
              System.out.println(units);
+             System.out.println("))"); // close composition of working time and after work
+
+             if(train%2==0){
+                // close period of working days
+                System.out.println("))");
+                // append weekend 
+                units = Waiting.getUnitsString(weekend,false); // staying on weekend
+                System.out.println(units);
+                // close composition of working days and weekend
+                System.out.println("))");                 
+             }
+             
+             System.out.println("))"); //   close repetition for a half year 
          } 
-        
 
-
-         if(halfyear){
-           if(train%2==0){
-               String units = Waiting.getUnitsString(weekend,false); // staying on weekend
-               System.out.println(units);
-           }
-           System.out.println("))))"); // close composite and period
-         } 
-
-         System.out.println("))"); //train,tuple
+         System.out.println("))"); // closetrain,tuple
      }
      System.out.println("))"); // close value,object
 
