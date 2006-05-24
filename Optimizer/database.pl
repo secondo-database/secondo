@@ -1567,6 +1567,58 @@ showStoredAttrSizes :-
   at_halt(writeStoredAttrSizes),
   readStoredAttrSizes.
 
+/*
+1.7 Ordering Information on Relations
 
+The ``interesting orders'' extension processes information on the ordering of stored relations
+to exploit orderings by using the efficient ~mergejoin~ operator. 
 
+Additionally, the ``adaptive join'' extension needs shuffled relations for proper operation.
+
+These information is stored in facts
+
+---- storedOrder(DBName, RelName, Attribute)
+----
+
+where ~DBName~ is the name of the database, ~RelName~ is the name of the relation and
+~Attribute~ is a attribute of the relation, by that the relation is ordered (by means
+of the Secondo standard ordering schema). If ~Attribute~ is ~none~, the relation
+are either not ordered, or no information on its ordering is available.
+
+If ~Attribute~ is ~shuffled~, the tuples of the relation have explicitely been 
+shuffled and can be ussed with the adaptive ~pjoin~ operator.
+
+At the moment, ordering information must be maintained by hand. It will be written and reread 
+to/from a persistent file, but will not be inquired or automatically updated.
+
+*/
+
+readStoredOrders :-
+  retractall(storedOrder(_,_,_)),
+  [storedOrderings].  
+
+writeStoredOrders :-
+  open('storedOrderings.pl', write, FD),
+  write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
+  findall(_, writeStoredOrder(FD), _),
+  close(FD).
+
+writeStoredOrder(Stream) :-
+  storedOrder(DB, Rel, Attr),
+  write(Stream, storedOrder(DB, Rel, Attr)),
+  write(Stream, '.\n').
+
+showStoredOrders :-
+  storedOrder(Database, Rel, Attr),
+  write(Database), write('.'), write(Rel), write(': \t'), 
+  write(Attr), write(')\n').
+
+showStoredOrders :-
+  write('Stored ordering information\nDatabase.Rel: \tAttr \n'),
+  findall(_, showStoredAttrSize, _).
+
+:-
+  dynamic(storedOrder/3),
+  at_halt(writeStoredOrders),
+  readStoredOrders.
 

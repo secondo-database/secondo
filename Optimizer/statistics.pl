@@ -623,6 +623,22 @@ writePET :-
 
 */
 
+showSingleOrdering(DB, Rel) :-
+  secRelation(Rel, RelExternal),
+  findall( X, 
+           ( storedOrder(DB,RelExternal,X1),
+             translateOrderingInfo(Rel, X1,X)
+           ),
+           OrderingAttrs
+         ),
+  write('\n\n\tOrdering:  '),
+  write(OrderingAttrs), nl, !.
+
+translateOrderingInfo(_, none,none) :- !.
+translateOrderingInfo(_, shuffled,shuffled) :- !.
+translateOrderingInfo(Rel, Attr, AttrS) :-
+  secAttr(Rel, Attr, AttrS).
+
 showSingleRelationCard(DB, Rel) :-
   secRelation(Rel, RelExternal),
   lowerfl(RelExternal, RelExternalL),
@@ -656,6 +672,7 @@ showSingleRelation :-
   write('\nRelation '), write(RelS), nl,
   findall(_, showAllAttributes(Rel), _),
   findall(_, showAllIndices(Rel), _),
+  showSingleOrdering(DB, Rel),
   showSingleRelationCard(DB, Rel),
   showSingleRelationTuplesize(DB, Rel).
 
