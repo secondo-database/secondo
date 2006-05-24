@@ -155,7 +155,7 @@ public boolean readFrom(ListExpr LE,Class linearClass){
    }
    String s = submove.first().symbolValue();
    if(!s.equals("linear") && !s.equals("composite")){
-      Reporter.debug("PeriodMove.readFrom :: wrong type descriptor for subtype");
+      Reporter.debug("PeriodMove.readFrom :: wrong type descriptor for subtype \""+s+"\"");
       setUndefined();
       return false;
    }
