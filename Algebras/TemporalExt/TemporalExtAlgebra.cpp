@@ -32,6 +32,7 @@ inclusion of header files concerning Secondo.
 #include <set>
 #include <time.h>
 #include <vector>
+#include <map>
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -53,6 +54,88 @@ using namespace datetime;
 2 Type definitions, Auxiliary Functions
 
 */
+void MinMaxValueFunction(const UReal* utemp, double& minimum, double& maximum)
+{
+    /*cout << endl;
+    cout << "==========> Starting MinMaxValueFunction()" << endl;*/
+    double t0, t1, t0_value, t1_value, a, b, c;
+    double t_extrem, t_extrem_value;
+    //double minimum, maximum;
+    bool lh = utemp->timeInterval.lc;
+    bool rh = utemp->timeInterval.rc;
+    bool conv_conc = true;
+
+
+    t0 = utemp->timeInterval.start.ToDouble();
+    t1 = utemp->timeInterval.end.ToDouble();
+
+    a = utemp->a;
+    b = utemp->b;
+    c = utemp->c;
+
+    t0_value = a * pow( t0, 2 ) + b * t0 + c;
+    t1_value = a * pow( t1, 2 ) + b * t1 + c;
+
+    if( utemp->a != 0 )
+    {
+        t_extrem = - b / ( 2 * a );
+        if( (!lh && !rh && ( t_extrem <= t0 || t_extrem >= t1 ) ) ||
+            (lh && rh && ( t_extrem < t0 || t_extrem > t1) ) ||
+            (!lh && rh && ( t_extrem <= t0 || t_extrem > t1 ) ) ||
+            (lh && !rh && ( t_extrem < t0 && t_extrem >= t1 ) )
+        )
+        conv_conc = false;
+    }
+    else
+        conv_conc = false;
+
+    if(conv_conc)
+    {
+
+        t_extrem_value = a * pow( t_extrem, 2 ) + b * t_extrem + c;
+        if(t0_value < t_extrem_value)
+        {
+        /* The parabola is concave */
+        //cout << "--->CONCAVE!" << endl;
+        maximum = t_extrem;
+        if(t0_value < t1_value)
+            minimum = t0;
+        else
+            minimum = t1;
+        }
+        else
+        {
+        /* The parabola is convex */
+        //cout << "--->CONVEX!" << endl;
+        minimum = t_extrem;
+        if(t0_value < t1_value)
+            maximum = t1;
+        else
+            maximum = t0;
+        }
+    }
+    else
+    {
+        //cout << "--->PIECE OF CURVE OR A LINEAR ECUATION!" << endl;
+        if(t0_value < t1_value)
+        {
+        maximum = t1;
+        minimum = t0;
+        //cout << "---> Curve goes up!!" << endl;
+        }
+        else
+        {
+        maximum = t0;
+        minimum = t1;
+        //cout << "---> Curve goes down!!" << endl;
+        }
+    }
+
+    /*cout << "---> maximum: " << maximum << endl;
+    cout << "---> minimum: " << minimum << endl;
+    cout << "==========> Ending MinMaxValueFunction()" << endl;
+    cout << endl;*/
+}
 
 /*
 2.1 Auxiliary Funcions
@@ -718,7 +801,7 @@ RangeRangevaluesExtTypeMapRange( ListExpr args )
 
         if( nl->IsEqual( arg1, "mstring" ) )
             return nl->SymbolAtom( "rstring" );
-    
+
         if( nl->IsEqual( arg1, "mreal" ) )
             return nl->SymbolAtom( "rreal" );
     }
@@ -892,7 +975,7 @@ RangeRangevaluesExtBaseSelect( ListExpr args )
 
     if( nl->SymbolValue( arg1 ) == "mreal" )
         return 3;
-    
+
     return -1; // This point should never be reached
 }
 
@@ -1437,7 +1520,6 @@ int RangeRangevaluesIntExt(
     pResult->Add(inter);
     clock4 = clock();
     time2 = ((clock4-clock3)/CLOCKS_PER_SEC) * 1000.;
-    time2 = clock4-clock3;
     cout << "Time to scan and build intervals: "
           << time2 << " milliseconds" << endl;
     pResult->EndBulkLoad( false );
@@ -1497,7 +1579,6 @@ int RangeRangevaluesStringExt(
     }
     clock4 = clock();
     time2 = ((clock4-clock3)/CLOCKS_PER_SEC) * 1000.;
-    time2 = clock4-clock3;
     cout << "Time to scan and build intervals: "
           << time2 << " milliseconds" << endl;
     BTree.clear();
@@ -1518,15 +1599,73 @@ int RangeRangevaluesRealExt(
 
     MReal* m = ((MReal*)args[0].addr);
     RReal* pResult = ((RReal*)result.addr);
-    
+
+    clock_t clock1, clock2, clock3, clock4;
+    float time1, time2;
+
     const UReal* utemp;
-    
+    double min=0.,max=0.;
+    CcReal mincc, maxcc;
+    Interval<CcReal> inter;
+    multimap< double,const Interval<CcReal> > intermap;
+
+    clock1 = clock();
     for(int i=0;i<m->GetNoComponents();i++)
     {
         m->Get(i, utemp);
-		cout << utemp->a << "x^2 + " 
-				<< utemp->b << "x +" << utemp->c << endl;
-	}
+        MinMaxValueFunction(utemp, min, max);
+        mincc.Set(true, min);
+        maxcc.Set(true, max);
+        inter.start = mincc;
+        inter.end = maxcc;
+        inter.lc = true;
+        inter.rc = true;
+        intermap.insert(pair< double,const Interval<CcReal> >(max, inter));
+    }
+    clock2 = clock();
+    time1 = ((clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    cout << endl << "Time to insert values: "
+          << time1 << " milliseconds" << endl;
+
+    multimap< double,const Interval<CcReal> >::iterator iter = intermap.end();
+    pResult->Clear();
+    pResult->StartBulkLoad();
+    --iter;
+    bool start=true;
+    clock3 = clock();
+    while(iter != intermap.begin())
+    {
+        //cout << "[" << (((*iter).second).start).GetValue();
+        //cout << "," << (((*iter).second).end).GetValue() << "]" << endl;
+        if(start)
+        {
+            inter = (*iter).second;
+            start = false;
+        }
+        if(inter.Intersects((*iter).second))
+        {
+            if(inter.start.GetValue() > ((*iter).second).start.GetValue())
+                inter.start = ((*iter).second).start;
+        }
+        else
+        {
+            pResult->Add(inter);
+            inter = (*iter).second;
+        }
+        --iter;
+    }
+    if(inter.Intersects((*iter).second))
+    {
+        if(inter.start.GetValue() > ((*iter).second).start.GetValue())
+            inter.start = ((*iter).second).start;
+    }
+    pResult->Add(inter);
+    clock4 = clock();
+    time2 = ((clock4-clock3)/CLOCKS_PER_SEC) * 1000.;
+    cout << "Time to scan and build intervals: "
+          << time2 << " milliseconds" << endl;
+
+    pResult->EndBulkLoad( false );
 
     return 0;
 }
