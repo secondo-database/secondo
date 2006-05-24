@@ -7753,8 +7753,22 @@ size_t PMPoint::NumberOfUnits()const{
 }
 
 size_t PMPoint::NumberOfFlatUnits()const{
-    return NumberOfFlatNodes(submove);
+    if(!defined){
+         return 0;
+    }
+    size_t res = NumberOfFlatNodes(submove);
+    return res;
 }
+
+/*
+~NumberOfFlatNodes~
+
+This function computes the number of units of the flat representation
+for the given subtree. The periodic moving point itself has to be defined.
+
+Complexity: O(n) where n is the number of nodes within this tree
+
+*/
 
 size_t PMPoint::NumberOfFlatNodes(const SubMove sm)const{
    int type = sm.arrayNumber;
@@ -7779,9 +7793,15 @@ size_t PMPoint::NumberOfFlatNodes(const SubMove sm)const{
              res = 0;
              const SubMove* csm;
              compositeMoves.Get(sm.arrayIndex,CM);
+             if(!CM){
+                cout << "get NULL " << endl;
+                cout << sm.arrayIndex << endl;
+                cout << compositeMoves.Size() << endl; 
+             }
              for(int i=CM->minIndex; i<=CM->maxIndex;i++){
                  compositeSubMoves.Get(i,csm);
-                 res += NumberOfFlatNodes(*csm);
+                 SubMove CSM(*csm);
+                 res += NumberOfFlatNodes(CSM);
              }
              return res;
        default: cerr << "invalid submove found " << endl <<__POS__ <<endl;
