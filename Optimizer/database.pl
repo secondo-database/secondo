@@ -1575,7 +1575,7 @@ to exploit orderings by using the efficient ~mergejoin~ operator.
 
 Additionally, the ``adaptive join'' extension needs shuffled relations for proper operation.
 
-These information is stored in facts
+These information is stored in (dynamic) facts
 
 ---- storedOrder(DBName, RelName, Attribute)
 ----
@@ -1608,14 +1608,14 @@ writeStoredOrder(Stream) :-
   write(Stream, storedOrder(DB, Rel, Attr)),
   write(Stream, '.\n').
 
-showStoredOrders :-
+showStoredOrder :-
   storedOrder(Database, Rel, Attr),
   write(Database), write('.'), write(Rel), write(': \t'), 
-  write(Attr), write(')\n').
+  write(Attr), write('\n').
 
 showStoredOrders :-
   write('Stored ordering information\nDatabase.Rel: \tAttr \n'),
-  findall(_, showStoredAttrSize, _).
+  findall(_, showStoredOrder, _).
 
 :-
   dynamic(storedOrder/3),
