@@ -296,7 +296,7 @@ sweepKnowledgeBase(EmptyReachedNodesSet) :-
 	createEmptyReachedNodesSet(EmptyReachedNodesSet),
 	emptyTickedOffSet,
 	deleteMinDistNodes,
-	optimizerOption(intOrders(_)) -> retractAllOrderInformation ; true.
+	( optimizerOption(intOrders(_)) -> retractAllOrderInformation ; true ).
 
 
 /*
@@ -961,7 +961,7 @@ retractCurrentTOSImplementation :-
   retract(emptyTickedOffSet :- (_)),
   retract(tickOff(_) :- (_)),
   retract(isTickedOff(_) :- (_)),
-  retract(getTickedOffNode(_, _), !.
+  retract(getTickedOffNode(_, _)), !.
 
 retractCurrentTOSImplementation :- !.
 
@@ -1064,11 +1064,7 @@ the POG. After the shortest path has been created, it is possible to call
 :- dynamic minDistNode/1.
 
 deleteMinDistNodes :-
-	not(deleteMinDistNode).
-
-deleteMinDistNode :-
-	retract(minDistNode(_)),
-	fail.
+	retractall(minDistNode(_)).
 
 writeMinDistNodes :-
 	not(writeMinDistNode).
@@ -2120,11 +2116,7 @@ altRNSImplementation1 :-
 :- dynamic reachedNode/3.
 
 deleteAllReachedNodes :-
-	not(deleteNextReachedNode).
-
-deleteNextReachedNode :-
-	retract(reachedNode(_, _, _)),
-	fail.
+  retractall(reachedNode(_, _, _)).
 
 putIntoDistanceList([], Element, [Element]).
 
