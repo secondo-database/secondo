@@ -1570,26 +1570,30 @@ showStoredAttrSizes :-
 /*
 1.7 Ordering Information on Relations
 
-The ``interesting orders'' extension processes information on the ordering of stored relations
-to exploit orderings by using the efficient ~mergejoin~ operator. 
+The ``interesting orders'' extension processes information on the ordering of
+stored relations to exploit orderings by using the efficient ~mergejoin~
+operator. 
 
-Additionally, the ``adaptive join'' extension needs shuffled relations for proper operation.
+Additionally, the ``adaptive join'' extension needs shuffled relations for
+proper operation.
 
 These information is stored in (dynamic) facts
 
 ---- storedOrder(DBName, RelName, Attribute)
 ----
 
-where ~DBName~ is the name of the database, ~RelName~ is the name of the relation and
-~Attribute~ is a attribute of the relation, by that the relation is ordered (by means
-of the Secondo standard ordering schema). If ~Attribute~ is ~none~, the relation
-are either not ordered, or no information on its ordering is available.
+where ~DBName~ is the name of the database, ~RelName~ is the name of the
+relation and ~Attribute~ is a attribute of the relation, by that the relation is
+ordered (by means of the Secondo standard ordering schema). If ~Attribute~ is
+~none~, the relation are either not ordered, or no information on its ordering
+is available.
 
-If ~Attribute~ is ~shuffled~, the tuples of the relation have explicitely been 
-shuffled and can be ussed with the adaptive ~pjoin~ operator.
+If ~Attribute~ is ~shuffled~, the tuples of the relation have explicitly been 
+shuffled and can be used with the adaptive ~pjoin~ operator.
 
-At the moment, ordering information must be maintained by hand. It will be written and reread 
-to/from a persistent file, but will not be inquired or automatically updated.
+At the moment, ordering information must be maintained by hand. It will be
+written and reread to/from a persistent file, but will not be inquired or
+automatically updated.
 
 */
 
@@ -1608,14 +1612,44 @@ writeStoredOrder(Stream) :-
   write(Stream, storedOrder(DB, Rel, Attr)),
   write(Stream, '.\n').
 
-showStoredOrder :-
+/*
+The order can be defined for only one of a relations' attributes.
+Even if it is sorted according to more than one attributes. The
+sort order is assumed to be ascending. The database, relation and
+attribute names will be stored with the first character in lowercase
+spelling. 
+
+*/
+ 
+hasStoredOrder(DB, Rel, Attr) :-
+  lowerfl(DB, LowDB),
+  lowerfl(Rel, LowRel),
+  lowerfl(Attr, LowAttr),
+  storedOrder(LowDB, LowRel, LowAttr).
+ 
+changeStoredOrder(DB, Rel, Attr) :-
+  lowerfl(DB, LowDB),
+  lowerfl(Rel, LowRel),
+  lowerfl(Attr, LowAttr),
+  retract(storedOrder(LowDB, LowRel, LowAttr)),
+  assert(storedOrder(LowDB, LowRel, LowAttr)).
+
+changeStoredOrder(DB, Rel, Attr) :-
+  lowerfl(DB, LowDB),
+  lowerfl(Rel, LowRel),
+  lowerfl(Attr, LowAttr),
+  assert(storedOrder(LowDB, LowRel, LowAttr)).
+ 
+showStoredOrders(_) :-
   storedOrder(Database, Rel, Attr),
-  write(Database), write('.'), write(Rel), write(': \t'), 
-  write(Attr), write('\n').
+  write(Database), write('.'), write(Rel), write(': \t\t'), 
+  write(Attr), nl.
 
 showStoredOrders :-
-  write('Stored ordering information\nDatabase.Rel: \tAttr \n'),
-  findall(_, showStoredOrder, _).
+  write('Stored orders'), nl, 
+  write('Database.Rel: \t\tAttr'), nl,
+  write('--------------------------------------'), nl,
+  findall(X, showStoredOrders(X), _).
 
 :-
   dynamic(storedOrder/3),
