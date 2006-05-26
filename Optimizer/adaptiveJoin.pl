@@ -275,5 +275,64 @@ handleArgs([Arg | Args], [Arg2 | Args2], Source) :-
 
 handleArgs([], [], _).
 
+/*
 
+4 Auxiliary Stuff
+
+Observing cardinalities and estimations
+
+*/
+
+estimatedCards :-
+ query 'SEC_COUNTERS 
+          feed filter[(.CtrNr = SEC_COMMANDS count) 
+                       and (.CtrStr contains "PSA::pjoin2") ] 
+                       project[CtrStr, Value] consume;'.
+
+
+/*
+In order to organize probe joins on random samples we assume that base relations
+of the database are not sorted according to one of their attribues. The predicate
+~shuffleRels/0~ will guarantee this. All relations of the currently opened database
+which have not the order status "shuffled" will be updated.
+
+*/
+
+checkRelName(DB, Rel) :-
+  not(sub_atom(Rel, _, _, _, '_small')),
+  not(sub_atom(Rel, _, _, _, '_sample_s')),
+  not(sub_atom(Rel, _, _, _, '_sample_j')),
+  not(sub_atom(Rel, _, _, _, 'SEC_')),
+  not(hasStoredOrder(DB, Rel, shuffled)).
+ 
+shuffleRels([]).
+
+shuffleRels([Obj | ObjList]) :-
+  Obj = ['OBJECT', Rel, _, [[rel, [_|_]]]],
+  atom(Rel), 
+  databaseName(DB),
+  nonvar(DB),
+  checkRelName(DB, Rel),
+  atom_concat('update ', Rel, Plan1),
+  atom_concat(Plan1, ' := ', Plan2 ),
+  atom_concat(Plan2, Rel, Plan3 ),
+  % MAX_INT (4 Byte) = 127 * 256 * 256 * 256 = 2130706432
+  atom_concat(Plan3, ' feed extend[SortId: randint(2130706432)]', Plan4),
+  atom_concat(Plan4, ' sortby[SortId asc] remove[SortId] consume', Plan5 ),
+  nl, write('Plan:'), write(Plan5), nl,
+  secondo(Plan5, _),
+  changeStoredOrder(DB, Rel, shuffled),
+  shuffleRels(ObjList),
+  !.
+
+shuffleRels([_ | ObjList]) :-
+  shuffleRels(ObjList),
+  !.
+
+shuffleRels :-
+  databaseName(DB),
+  retractall(storedSecondoList(_)),
+  getSecondoList(ObjList),
+  write('\nRelations of database '), write(DB), write(' which need to be shuffled:\n'),
+  shuffleRels(ObjList).
 
