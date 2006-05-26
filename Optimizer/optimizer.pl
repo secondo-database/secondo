@@ -4376,3 +4376,60 @@ See file ``rewriting.pl''
 */
 
 :- [rewriting]. % include query and plan rewriting
+
+/*
+16 Real Node Sizes
+
+For testing the quality of estimations it is necessary to compute the real node
+sizes of the POG. Therefore we have to compute a path to each node and to
+generate a counting query for the plan.
+
+The predicate ~allCards/0~ prints out the real cardinality for each POG node.
+
+*/
+
+:- dynamic realResult/2.
+
+card(N) :- dijkstra(0, N, Path, _),
+  deleteCounters2,
+  N > 0,
+  highNode(High),
+  N =< High,
+  plan(Path, Plan), 
+  plan_to_atom(Plan, Query), 
+  atom_concat(Query, ' count', CountQuery),
+  atom_concat('query ', CountQuery, FullQuery),
+  secondo(FullQuery, [_, Result]),
+  write('The result for node '), write(N), write(' is: '), write(Result), nl, nl,
+  assert(realResult(N, Result)).
+
+
+cards(N) :-
+  highNode(High),
+  N > High.
+
+cards(N) :-
+  resultSize(N, _),
+  card(N),
+  N1 is N + 1,
+  cards(N1),
+  !.
+
+cards(N) :-
+  N1 is N + 1,
+  cards(N1).
+
+writeRealSizes :-
+  realResult(Node, Size), 
+  write('Node: '), write(Node), write(', Real size: '), write(Size), nl,
+  fail.
+ 
+computeCards :-
+  retractall(realResult(_, _)),
+  cards(1).
+
+allCards :-
+  computeCards,
+  writeRealSizes.
+ 
+  
