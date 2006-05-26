@@ -98,6 +98,31 @@ compareSize :-
  
 compareSizes :- not(compareSize).
 
+allSizes :-
+  computeCards,
+  findall([N, S1, S2, S3], createNodeSize(N, S1, S2, S3), InfoList),
+  showNodeSize(InfoList).
+  
+createNodeSize(Node, SizeStd, SizeEntropy, SizeReal) :-
+  firstResultSize(Node, SizeStd),
+  resultSize(Node, SizeEntropy),
+  realResult(Node, SizeReal).
+  
+showNodeSizeRec([]).
+
+showNodeSizeRec([[Node, SizeStd, SizeEntropy, SizeReal]|T]) :-
+  write(Node), write('\t'),
+  write(SizeStd), write('\t\t'),
+  write(SizeEntropy), write('\t\t'),
+  write(SizeReal), nl,
+  showNodeSizeRec(T).
+
+showNodeSize(List) :-
+  write('Node \tSizeStd \tSizeEntropy \tSizeReal'), nl,
+  write('---------------------------------------------------'), nl,
+  showNodeSizeRec(List).
+ 
+
 /*
 
 2 Maintaining Counters
