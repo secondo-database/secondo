@@ -138,7 +138,26 @@ isJoinOP(hashjoin).
 isJoinOP(spatialjoin).
 isJoinOP(loopjoin).
 isJoinOP(product).
+isJoinOP(pjoin).
 
+
+/*
+The interesting orders extension needs to recognize operators, that maintain/disturb existing
+orderings. ~no~ means, the operator will destroy preexisting orderings. ~outer~ means, it will
+keep the ordering of the outer input stream (the leftmost one). If no fact is stored about an
+operator, it is assumed, that it will maintain any existing ordering.
+
+*/
+
+
+maintainsOrderOP(hashjoin,      no).
+maintainsOrderOP(symmjoin,      no).
+maintainsOrderOP(spatialjoin,   no).
+maintainsOrderOP(loopjoin,      outer).
+maintainsOrderOP(product,       no).
+maintainsOrderOP(sort,          no).
+maintainsOrderOP(sortby,        no).
+maintainsOrderOP(sortmergejoin, special).
 
 /*
 3 Properties Of Certain Datatypes
