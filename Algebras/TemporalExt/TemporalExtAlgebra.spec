@@ -31,5 +31,8 @@ operator derivative alias DERIVATIVE pattern op ( _ )
 operator derivable alias DERIVABLE pattern op ( _ )
 operator speed alias SPEED pattern op ( _ )
 operator rangevalues alias RANGEVALUES pattern op ( _ )
+operator sometimes alias SOMETIMES pattern op ( _ )
+operator always alias ALWAYS pattern op ( _ )
+operator never alias NEVER pattern op ( _ )
 
 

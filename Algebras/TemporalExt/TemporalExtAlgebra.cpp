@@ -553,6 +553,9 @@ MovingPeriodsExtTypeMapMoving( ListExpr args )
         {
             if( nl->IsEqual( arg1, "mstring" ) )
                 return nl->SymbolAtom( "mstring" );
+
+            if( nl->IsEqual( arg1, "movingregion" ) )
+                return nl->SymbolAtom( "movingregion" );
         }
     }
     return nl->SymbolAtom( "typeerror" );
@@ -697,7 +700,9 @@ IntimeExtTypeMapInstant( ListExpr args )
         ListExpr arg1 = nl->First( args );
 
         if( nl->IsEqual( arg1, "istring" ))
+            return nl->SymbolAtom( "instant" );
 
+        if( nl->IsEqual( arg1, "intimeregion" ))
             return nl->SymbolAtom( "instant" );
     }
     return nl->SymbolAtom( "typeerror" );
@@ -719,6 +724,8 @@ IntimeExtTypeMapBase( ListExpr args )
         if( nl->IsEqual( arg1, "istring" ) )
             return nl->SymbolAtom( "string" );
 
+        if( nl->IsEqual( arg1, "intimeregion" ) )
+            return nl->SymbolAtom( "region" );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -804,6 +811,25 @@ RangeRangevaluesExtTypeMapRange( ListExpr args )
 
         if( nl->IsEqual( arg1, "mreal" ) )
             return nl->SymbolAtom( "rreal" );
+    }
+    return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+4.1.14 Type mapping function MovingSANExtTypeMap
+
+It is for the operators ~sometimes~, ~always~ and ~never~.
+
+*/
+ListExpr
+MovingSANExtTypeMap( ListExpr args )
+{
+    if ( nl->ListLength( args ) == 1 )
+    {
+        ListExpr arg1 = nl->First( args );
+
+        if( nl->IsEqual( arg1, "mbool" ) )
+            return nl->SymbolAtom( "bool" );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -950,6 +976,9 @@ IntimeExtSimpleSelect( ListExpr args )
     if( nl->SymbolValue( arg1 ) == "istring" )
         return 0;
 
+    if( nl->SymbolValue( arg1 ) == "intimeregion" )
+        return 1;
+
     return -1; // This point should never be reached
 }
 
@@ -975,6 +1004,26 @@ RangeRangevaluesExtBaseSelect( ListExpr args )
 
     if( nl->SymbolValue( arg1 ) == "mreal" )
         return 3;
+
+    return -1; // This point should never be reached
+}
+
+/*
+4.2.7 Selection function ~MovingPeriodsSelect~
+
+Is used for the ~atperiods~  operation.
+
+*/
+int
+MovingPeriodsSelect( ListExpr args )
+{
+    ListExpr arg1 = nl->First( args );
+
+    if( nl->SymbolValue( arg1 ) == "mstring" )
+        return 0;
+
+    if( nl->SymbolValue( arg1 ) == "movingregion" )
+        return 1;
 
     return -1; // This point should never be reached
 }
@@ -1021,6 +1070,24 @@ int MappingAtPeriodsExt( Word* args,
     result = qp->ResultStorage( s );
     ((Mapping*)args[0].addr)->AtPeriods( *((Periods*)args[1].addr),
     *((Mapping*)result.addr) );
+    return 0;
+}
+
+int MappingAtPeriodsExtMRegion( Word* args,
+                         Word& result,
+                         int message,
+                         Word& local,
+                         Supplier s )
+{
+    result = qp->ResultStorage( s );
+    //((Mapping*)args[0].addr)->AtPeriods( *((Periods*)args[1].addr),
+    //*((Mapping*)result.addr) );
+    MRegion* mr = (MRegion*)args[0].addr;
+    Periods* per = (Periods*)args[1].addr;
+    MRegion* pResult = (MRegion*)result.addr;
+
+    cout << "Size of MRegion ... " << mr->NumOfFLOBs() << endl;
+
     return 0;
 }
 
@@ -1671,6 +1738,105 @@ int RangeRangevaluesRealExt(
 }
 
 /*
+4.3.14 Value mapping functions of operator ~sometimes~
+
+*/
+int MovingSometimesExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    MBool* m = ((MBool*)args[0].addr);
+
+    const UBool* utemp;
+    bool temp=false;
+
+    for(int i=0;i<m->GetNoComponents();i++)
+    {
+        m->Get(i, utemp);
+        temp = utemp->constValue.GetBoolval();
+        if(temp) break;
+    }
+
+    if(!m->IsDefined())
+        ((CcBool *)result.addr)->Set( false, false );
+    else
+        ((CcBool *)result.addr)->Set( true, temp );
+
+    return 0;
+}
+
+/*
+4.3.15 Value mapping functions of operator ~always~
+
+*/
+int MovingAlwaysExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    MBool* m = ((MBool*)args[0].addr);
+
+    const UBool* utemp;
+    bool temp=true;
+
+    for(int i=0;i<m->GetNoComponents();i++)
+    {
+        m->Get(i, utemp);
+        temp = utemp->constValue.GetBoolval();
+        if(!temp) break;
+    }
+
+    if(!m->IsDefined())
+        ((CcBool *)result.addr)->Set( false, false );
+    else
+        ((CcBool *)result.addr)->Set( true, temp );
+
+    return 0;
+}
+
+/*
+4.3.16 Value mapping functions of operator ~never~
+
+*/
+int MovingNeverExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    MBool* m = ((MBool*)args[0].addr);
+
+    const UBool* utemp;
+    bool temp=true;
+
+    for(int i=0;i<m->GetNoComponents();i++)
+    {
+        m->Get(i, utemp);
+        temp = utemp->constValue.GetBoolval();
+        if(temp) break;
+    }
+
+    if(!m->IsDefined())
+        ((CcBool *)result.addr)->Set( false, false );
+    else
+        ((CcBool *)result.addr)->Set( true, !temp );
+
+    return 0;
+}
+
+/*
 4.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -1688,7 +1854,8 @@ ValueMapping temporalatinstantextmap[] = {
     MappingAtInstantExt<MString, CcString> };
 
 ValueMapping temporalatperiodsextmap[] = {
-    MappingAtPeriodsExt<MString>};
+    MappingAtPeriodsExt<MString>,
+    MappingAtPeriodsExtMRegion};
 
 ValueMapping temporalinitialextmap[] = {
     MappingInitialExt<MString, UString, CcString> };
@@ -1717,11 +1884,13 @@ ValueMapping temporaldeftimeextmap[] = {
     MappingDefTimeExt<MString> };
 
 ValueMapping temporalinstextmap[] = {
-    IntimeInstExt<CcString> };
+    IntimeInstExt<CcString>,
+    IntimeInstExt<CRegion> };
 
 
 ValueMapping temporalvalextmap[] = {
-    IntimeValExt<CcString> };
+    IntimeValExt<CcString>,
+    IntimeValExt<CRegion> };
 
 ValueMapping temporalderivativeextmap[] = {
     MovingDerivativeExt<MReal> };
@@ -1737,6 +1906,15 @@ ValueMapping rangerangevaluesextmap[] = {
     RangeRangevaluesIntExt,
     RangeRangevaluesStringExt,
     RangeRangevaluesRealExt};
+
+ValueMapping temporalsometimesextmap[] = {
+    MovingSometimesExt };
+
+ValueMapping temporalalwaysextmap[] = {
+    MovingAlwaysExt };
+
+ValueMapping temporalneverextmap[] = {
+    MovingNeverExt };
 
 /*
 4.5 Specification strings
@@ -1840,22 +2018,20 @@ const string TemporalSpecDefTimeExt  =
     ") )";
 
 const string TemporalSpecInstExt  =
-    "( ( \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
+    "( ( \"Signature\" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>T in {int, bool, real, string, point, region*},</text--->"
+    "( <text>T in {int, bool, real, string, point, region},</text--->"
     "<text>intime(T) -> instant</text--->"
-    "<text>(*) Not yet implemented for this type constructor.</text--->"
     "<text>inst ( _ )</text--->"
     "<text>Intime time instant.</text--->"
     "<text>inst ( i1 )</text--->"
     ") )";
 
 const string TemporalSpecValExt  =
-    "( ( \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
+    "( ( \"Signature\" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>T in {int, bool, real, string, point, region*},</text--->"
+    "( <text>T in {int, bool, real, string, point, region},</text--->"
     "<text>intime(T) -> T</text--->"
-    "<text>(*) Not yet implemented for this type constructor.</text--->"
     "<text>val ( _ )</text--->"
     "<text>Intime value.</text--->"
     "<text>val ( i1 )</text--->"
@@ -1899,6 +2075,33 @@ const string RangeSpecRangevaluesExt  =
     "<text>rangevalues ( mb1 )</text--->"
     ") )";
 
+const string BoolSpecSometimesExt  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "(<text>moving(bool) -> bool</text--->"
+    "<text>sometimes ( _ )</text--->"
+    "<text>Returns true if a unit at least is TRUE.</text--->"
+    "<text>sometimes ( mb1 )</text--->"
+    ") )";
+
+const string BoolSpecAlwaysExt  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "(<text>moving(bool) -> bool</text--->"
+    "<text>always ( _ )</text--->"
+    "<text>Returns true if all units are TRUE.</text--->"
+    "<text>always ( mb1 )</text--->"
+    ") )";
+
+const string BoolSpecNeverExt  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "(<text>moving(bool) -> bool</text--->"
+    "<text>never ( _ )</text--->"
+    "<text>Returns true if all units are FALSE.</text--->"
+    "<text>never ( mb1 )</text--->"
+    ") )";
+
 /*
 4.6 Operators
 
@@ -1914,9 +2117,9 @@ Operator temporalatinstantext(
 Operator temporalatperiodsext(
     "atperiods",
     TemporalSpecAtPeriodsExt,
-    5,
+    2,
     temporalatperiodsextmap,
-    MovingExtSimpleSelect,
+    MovingPeriodsSelect,
     MovingPeriodsExtTypeMapMoving );
 
 Operator temporalinitialext(
@@ -1971,7 +2174,7 @@ Operator temporaldeftimeext(
 Operator temporalinstext(
     "inst",
     TemporalSpecInstExt,
-    5,
+    2,
     temporalinstextmap,
     IntimeExtSimpleSelect,
     IntimeExtTypeMapInstant );
@@ -1979,7 +2182,7 @@ Operator temporalinstext(
 Operator temporalvalext(
     "val",
     TemporalSpecValExt,
-    5,
+    2,
     temporalvalextmap,
     IntimeExtSimpleSelect,
     IntimeExtTypeMapBase );
@@ -2015,6 +2218,30 @@ Operator rangerangevaluesext(
     rangerangevaluesextmap,
     RangeRangevaluesExtBaseSelect,
     RangeRangevaluesExtTypeMapRange );
+
+Operator sometimesext(
+    "sometimes",
+    BoolSpecSometimesExt,
+    1,
+    temporalsometimesextmap,
+    Operator::SimpleSelect,
+    MovingSANExtTypeMap );
+
+Operator alwaysext(
+    "always",
+    BoolSpecAlwaysExt,
+    1,
+    temporalalwaysextmap,
+    Operator::SimpleSelect,
+    MovingSANExtTypeMap );
+
+Operator neverext(
+    "never",
+    BoolSpecNeverExt,
+    1,
+    temporalneverextmap,
+    Operator::SimpleSelect,
+    MovingSANExtTypeMap );
 
 class TemporalExtAlgebra : public Algebra
 {
@@ -2060,6 +2287,10 @@ class TemporalExtAlgebra : public Algebra
         AddOperator( &temporalspeedext );
 
         AddOperator( &rangerangevaluesext );
+
+        AddOperator( &sometimesext );
+        AddOperator( &alwaysext );
+        AddOperator( &neverext );
 
     }
     ~TemporalExtAlgebra() {}
