@@ -1057,6 +1057,95 @@ int SolvePoly(double a, double b, double c, double d, double e,
 }
     
 /*
+1.1 Method ~FindEqualTimes4Real~
+
+Function FindEqualTimes4Real to find all times where u1 and u2 are
+eqaul, gives them back in t and returns their number. u1 and u2 must
+have the same timeIntervals (use ShiftUReal to get this)
+
+*/
+int FindEqualTimes4Real(UReal& u1, UReal& u2, Instant t[4]){
+    int number;
+    double sol2[2];
+    double sol4[4];
+    if(TLA_DEBUG){
+     cout<<"FindEqualTimes4Real called with"<<endl;
+     cout<<"u1.a "<<u1.a<<" u1.b "<<u1.b<<" u1.c "<<u1.c<<" u1.r "<<u1.r<<endl;
+     cout<<"u2.a "<<u2.a<<" u2.b "<<u2.b<<" u2.c "<<u2.c<<" u2.r "<<u2.r<<endl;}
+    if (u1.r == u2.r) {
+      if(TLA_DEBUG)
+        cout<<"u1.r == u2.r"<<endl;
+
+      number = SolvePoly(u1.a - u2.a, u1.b - u2.b, u1.c - u2.c, sol2, true);
+      for (int m = 0; m < number; m++) 
+        t[m].ReadFrom(sol2[m] + u1.timeInterval.start.ToDouble());
+    }
+    else {
+     if(TLA_DEBUG)
+       cout<<"u1.r != u2.r"<<endl;
+     if (u2.r && u2.a == 0 && u2.b == 0) {
+        if(TLA_DEBUG)
+          cout<<"Spezial case u2 = const"<<endl;
+        number = SolvePoly(u1.a, u1.b, u1.c - sqrt(u2.c), sol2, true);
+        for (int m = 0; m < number; m++) 
+           t[m].ReadFrom(sol2[m] + u1.timeInterval.start.ToDouble());
+     }
+     else if (u1.r && u1.a == 0 && u1.b == 0) {
+        if(TLA_DEBUG)
+          cout<<"Spezial case u1 = const"<<endl;
+        number = SolvePoly(u2.a, u2.b, u2.c - sqrt(u1.c), sol2, true);
+        for (int m = 0; m < number; m++) 
+           t[m].ReadFrom(sol2[m] + u1.timeInterval.start.ToDouble());
+     }
+     else{ 
+      double v, w, x, y, z;
+      if (u2.r) {
+        v = pow(u1.a, 2);                         //x^4
+        w = 2 * u1.a * u1.b;                      //x^3
+        x = 2 * u1.a * u1.c + pow(u1.b, 2)- u2.a; //x^2
+        y = 2 * u1.b * u1.c - u2.b;               //x
+        z = pow(u1.c, 2) - u2.c;                  //c
+      }
+      else {
+        v = pow(u2.a, 2);                         //x^4
+        w = 2 * u2.a * u2.b;                      //x^3
+        x = 2 * u2.a * u2.c + pow(u2.b, 2)- u1.a; //x^2
+        y = 2 * u2.b * u2.c - u1.b;               //x
+        z = pow(u2.c, 2) - u1.c;                  //c
+      }
+      //va^4+wa^3+xa^2+ya+z=0
+
+      if(TLA_DEBUG)
+        cout<<"v: "<<v<<", w: "<<w<<", x:"<<x<<", y:"<<y<<", z:"<<z<<endl;
+      number = SolvePoly(v, w, x, y, z, sol4);
+      for (int n = 0; n < number; n++){
+        double val1 = u1.a * pow(sol4[n],2) + u1.b * sol4[n] + u1.c;
+        if(u1.r)
+          val1 = sqrt(val1);
+        double val2 = u2.a * pow(sol4[n],2) + u2.b * sol4[n] + u2.c;
+        if(u2.r)
+          val2 = sqrt(val2);
+        if(TLA_DEBUG)
+          cout<<n<<". at "<<sol4[n]<<endl<<"val1 "<<val1<<", val2 "<<val2<<endl;
+        if(!AlmostEqual(val1, val2)){
+          if(TLA_DEBUG)
+            cout<<"false Point -> remove"<<endl;
+          for (int i = n; i < number; i++)
+            sol4[i] = sol4 [i + 1];
+          number--;
+          n--;
+        }
+      }
+      for (int m = 0; m < number; m++) 
+         t[m].ReadFrom(sol4[m] + u1.timeInterval.start.ToDouble());   
+     }
+    }
+    if(TLA_DEBUG)
+      cout<<"FindEqualTimes4Real ends with "<<number<<"solutions"<<endl;
+  return number;
+}
+
+/*
 1.1 Method ~CompareUReal~
 
 Returns true if the value of these two uReals holds the comparison.
@@ -1241,7 +1330,8 @@ static void MRealDistanceMM(MReal& op1, MReal& op2, MReal& result)
           <<" "<<uReal.r<<" ["<<uReal.timeInterval.start.ToString()
           <<"  "<<uReal.timeInterval.end.ToString()<<" "
           <<uReal.timeInterval.lc<<" "<<uReal.timeInterval.rc<<"]"<<endl;}
-        result.MergeAdd(uReal); 
+        if(uReal.IsValid())
+          result.MergeAdd(uReal); 
       }
       for (int m = 0; m < counter; m++){
         if(TLA_DEBUG){
@@ -1278,101 +1368,12 @@ static void MRealDistanceMM(MReal& op1, MReal& op2, MReal& result)
           <<" "<<uReal.r<<" ["<<uReal.timeInterval.start.ToString()
           <<"  "<<uReal.timeInterval.end.ToString()<<" "
           <<uReal.timeInterval.lc<<" "<<uReal.timeInterval.rc<<"]"<<endl;}
-        if (uReal.timeInterval.start < uReal.timeInterval.end)
+        if(uReal.IsValid())
           result.MergeAdd(uReal); 
       }
     }  
   }
   result.EndBulkLoad(false);
-}
-
-/*
-1.1 Method ~FindEqualTimes4Real~
-
-Function FindEqualTimes4Real to find all times where u1 and u2 are
-eqaul, gives them back in t and returns their number. u1 and u2 must
-have the same timeIntervals (use ShiftUReal to get this)
-
-*/
-int FindEqualTimes4Real(UReal& u1, UReal& u2, Instant t[4]){
-    int number;
-    double sol2[2];
-    double sol4[4];
-    if(TLA_DEBUG){
-     cout<<"FindEqualTimes4Real called with"<<endl;
-     cout<<"u1.a "<<u1.a<<" u1.b "<<u1.b<<" u1.c "<<u1.c<<" u1.r "<<u1.r<<endl;
-     cout<<"u2.a "<<u2.a<<" u2.b "<<u2.b<<" u2.c "<<u2.c<<" u2.r "<<u2.r<<endl;}
-    if (u1.r == u2.r) {
-      if(TLA_DEBUG)
-        cout<<"u1.r == u2.r"<<endl;
-
-      number = SolvePoly(u1.a - u2.a, u1.b - u2.b, u1.c - u2.c, sol2, true);
-      for (int m = 0; m < number; m++) 
-        t[m].ReadFrom(sol2[m] + u1.timeInterval.start.ToDouble());
-    }
-    else {
-     if(TLA_DEBUG)
-       cout<<"u1.r != u2.r"<<endl;
-     if (u2.r && u2.a == 0 && u2.b == 0) {
-        if(TLA_DEBUG)
-          cout<<"Spezial case u2 = const"<<endl;
-        number = SolvePoly(u1.a, u1.b, u1.c - sqrt(u2.c), sol2, true);
-        for (int m = 0; m < number; m++) 
-           t[m].ReadFrom(sol2[m] + u1.timeInterval.start.ToDouble());
-     }
-     else if (u1.r && u1.a == 0 && u1.b == 0) {
-        if(TLA_DEBUG)
-          cout<<"Spezial case u1 = const"<<endl;
-        number = SolvePoly(u2.a, u2.b, u2.c - sqrt(u1.c), sol2, true);
-        for (int m = 0; m < number; m++) 
-           t[m].ReadFrom(sol2[m] + u1.timeInterval.start.ToDouble());
-     }
-     else{ 
-      double v, w, x, y, z;
-      if (u2.r) {
-        v = pow(u1.a, 2);                         //x^4
-        w = 2 * u1.a * u1.b;                      //x^3
-        x = 2 * u1.a * u1.c + pow(u1.b, 2)- u2.a; //x^2
-        y = 2 * u1.b * u1.c - u2.b;               //x
-        z = pow(u1.c, 2) - u2.c;                  //c
-      }
-      else {
-        v = pow(u2.a, 2);                         //x^4
-        w = 2 * u2.a * u2.b;                      //x^3
-        x = 2 * u2.a * u2.c + pow(u2.b, 2)- u1.a; //x^2
-        y = 2 * u2.b * u2.c - u1.b;               //x
-        z = pow(u2.c, 2) - u1.c;                  //c
-      }
-      //va^4+wa^3+xa^2+ya+z=0
-
-      if(TLA_DEBUG)
-        cout<<"v: "<<v<<", w: "<<w<<", x:"<<x<<", y:"<<y<<", z:"<<z<<endl;
-      number = SolvePoly(v, w, x, y, z, sol4);
-      for (int n = 0; n < number; n++){
-        double val1 = u1.a * pow(sol4[n],2) + u1.b * sol4[n] + u1.c;
-        if(u1.r)
-          val1 = sqrt(val1);
-        double val2 = u2.a * pow(sol4[n],2) + u2.b * sol4[n] + u2.c;
-        if(u2.r)
-          val2 = sqrt(val2);
-        if(TLA_DEBUG)
-          cout<<n<<". at "<<sol4[n]<<endl<<"val1 "<<val1<<", val2 "<<val2<<endl;
-        if(!AlmostEqual(val1, val2)){
-          if(TLA_DEBUG)
-            cout<<"false Point -> remove"<<endl;
-          for (int i = n; i < number; i++)
-            sol4[i] = sol4 [i + 1];
-          number--;
-          n--;
-        }
-      }
-      for (int m = 0; m < number; m++) 
-         t[m].ReadFrom(sol4[m] + u1.timeInterval.start.ToDouble());   
-     }
-    }
-    if(TLA_DEBUG)
-      cout<<"FindEqualTimes4Real ends with "<<number<<"solutions"<<endl;
-  return number;
 }
 
 /*
@@ -1622,7 +1623,8 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
             cout<<"add first interval ["<<un.timeInterval.start.ToString()
             <<" "<<un.timeInterval.end.ToString()<<" "<<un.timeInterval.lc
             <<" "<<un.timeInterval.rc<<"]"<<endl;}
-          result.MergeAdd(un);
+          if(un.IsValid())
+            result.MergeAdd(un);
         }
         for (int m = 0; m < counter; m++){
           un = u1;
@@ -1641,8 +1643,7 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
             cout<<"add "<<m<<". interval ["<<un.timeInterval.start.ToString()
             <<" "<<un.timeInterval.end.ToString()<<" "<<un.timeInterval.lc<<" "
             <<un.timeInterval.rc<<"]"<<endl;
-          if (un.timeInterval.start < un.timeInterval.end 
-           || (un.timeInterval.lc && un.timeInterval.rc))
+          if(un.IsValid())
             result.MergeAdd(un);
         }
       }
@@ -2259,8 +2260,7 @@ void MovingPointCompareMM( MPoint& p1, MPoint& p2, MBool& result,
       uBool.timeInterval = *iv;
       uBool.timeInterval.lc = false;
       uBool.constValue.Set(true, op == 0 ? false : true);
-      if(uBool.timeInterval.start < uBool.timeInterval.end
-       || (uBool.timeInterval.lc && uBool.timeInterval.rc))
+      if(uBool.IsValid())
         result.MergeAdd( uBool );
         
     }
@@ -2268,8 +2268,7 @@ void MovingPointCompareMM( MPoint& p1, MPoint& p2, MBool& result,
       uBool.timeInterval = *iv;
       uBool.timeInterval.rc = false;
       uBool.constValue.Set(true, op == 0 ? false : true);
-      if(uBool.timeInterval.start < uBool.timeInterval.end
-       || (uBool.timeInterval.lc && uBool.timeInterval.rc))
+      if(uBool.IsValid())
         result.MergeAdd( uBool );
       if (iv->rc) {
         uBool.timeInterval.start = iv->end;
@@ -2285,37 +2284,7 @@ void MovingPointCompareMM( MPoint& p1, MPoint& p2, MBool& result,
       time.ReadFrom(t  * (iv->end.ToDouble() - iv->start.ToDouble()) 
                        + iv->start.ToDouble());
       time.SetType(instanttype);
-      if(iv->start.Adjacent(&iv->end)){  //special treatment necessary!
-        if(iv->lc && iv->rc){
-          if(t < 0.5){
-            uBool.timeInterval = *iv;
-            uBool.timeInterval.rc = false;
-            uBool.constValue.Set(true, op == 0 ? true : false);
-            result.MergeAdd( uBool );
-            uBool.timeInterval = *iv;
-            uBool.timeInterval.lc = false;
-            uBool.constValue.Set(true, op == 0 ? false : true);
-            result.MergeAdd( uBool );
-          }
-          else{
-            uBool.timeInterval = *iv;
-            uBool.timeInterval.rc = false;
-            uBool.constValue.Set(true, op == 0 ? false : true);
-            result.MergeAdd( uBool );
-            uBool.timeInterval = *iv;
-            uBool.timeInterval.lc = false;
-            uBool.constValue.Set(true, op == 0 ? true : false);
-            result.MergeAdd( uBool );
-          }
-        }
-        else {
-          uBool.timeInterval = *iv;
-          uBool.constValue.Set(true, op == 0 ? true : false);
-          result.MergeAdd( uBool );
-        }
-      }
-      else
-      {
+      if ((*iv).Contains(time)) {
         uBool.timeInterval = *iv;
         uBool.timeInterval.rc = false;
         uBool.timeInterval.end = time;
@@ -2336,8 +2305,13 @@ void MovingPointCompareMM( MPoint& p1, MPoint& p2, MBool& result,
         if(uBool.IsValid())
           result.MergeAdd( uBool );
       }
+      else{
+        uBool.timeInterval = *iv;
+        uBool.constValue.Set(true, op == 0 ? false : true);
+        result.MergeAdd( uBool );
+      }
     }
-    else if (t == -1){
+    else{ 
       uBool.timeInterval = *iv;
       uBool.constValue.Set(true, op == 0 ? false : true);
       result.MergeAdd( uBool );
@@ -2418,21 +2392,30 @@ void MovingPointCompareMS( MPoint& p1, Point& p2, MBool& result,
       time.ReadFrom(t  * (iv.end.ToDouble() - iv.start.ToDouble()) 
                      + iv.start.ToDouble());
       time.SetType(instanttype);
-      uBool.timeInterval = iv;
-      uBool.timeInterval.rc = false;
-      uBool.timeInterval.end = time;
-      uBool.constValue.Set(true, op == 0 ? false : true);
-      result.MergeAdd( uBool );
-      uBool.timeInterval.rc = true;
-      uBool.timeInterval.start = time;
-      uBool.timeInterval.lc = true;
-      uBool.constValue.Set(true, op == 0 ? true : false);
-      result.MergeAdd( uBool );
-      uBool.timeInterval.lc = false;
-      uBool.timeInterval.rc = iv.rc;
-      uBool.timeInterval.end = iv.end;
-      uBool.constValue.Set(true, op == 0 ? false : true);
-      result.MergeAdd( uBool );
+      if (iv.Contains(time)) {
+        uBool.timeInterval = iv;
+        uBool.timeInterval.rc = false;
+        uBool.timeInterval.end = time;
+        uBool.constValue.Set(true, op == 0 ? false : true);
+        if(uBool.IsValid())
+          result.MergeAdd( uBool );
+        uBool.timeInterval.rc = true;
+        uBool.timeInterval.start = time;
+        uBool.timeInterval.lc = true;
+        uBool.constValue.Set(true, op == 0 ? true : false);
+        result.MergeAdd( uBool );
+        uBool.timeInterval.lc = false;
+        uBool.timeInterval.rc = iv.rc;
+        uBool.timeInterval.end = iv.end;
+        uBool.constValue.Set(true, op == 0 ? false : true);
+        if(uBool.IsValid())
+          result.MergeAdd( uBool );
+      }
+      else{
+        uBool.timeInterval = iv;
+        uBool.constValue.Set(true, op == 0 ? false : true);
+        result.MergeAdd( uBool );
+      }
     }
     else {
       uBool.timeInterval = iv;
@@ -3896,7 +3879,8 @@ static void MRealABS(MReal& op, MReal& result)
         if(TLA_DEBUG){
           cout<<"1uReal "<<uReal.a<<" "<<uReal.b<<" "<<uReal.c
           <<" "<<uReal.r<<" "<<endl;}
-        result.MergeAdd(uReal); 
+        if(uReal.IsValid())
+          result.MergeAdd(uReal); 
       }
       for (int m = 0; m < counter; m++){
         if(TLA_DEBUG){
@@ -3929,7 +3913,7 @@ static void MRealABS(MReal& op, MReal& result)
         if(TLA_DEBUG){
           cout<<"1uReal "<<uReal.a<<" "<<uReal.b<<" "<<uReal.c
           <<" "<<uReal.r<<" "<<endl;}
-        if (uReal.timeInterval.start < uReal.timeInterval.end)
+        if(uReal.IsValid())
           result.MergeAdd(uReal); 
       }
     }  

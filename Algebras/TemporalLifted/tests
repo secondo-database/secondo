@@ -1,62 +1,259 @@
-let mrg1 = [const movingregion value (((1.0 6.0 TRUE TRUE)((((0.0 0.0 0.0 0.0)(0.0 100.0 0.0 200.0)(100.0 100.0 200.0 200.0)(100.0 0.0 200.0 0.0)))))((6.0 9.0 FALSE TRUE)((((0.0 0.0 100.0 100.0)(0.0 200.0 100.0 200.0)(200.0 200.0 200.0 200.0)(200.0 0.0 200.0 100.0))))))];
-
-let mrg2 = [ const movingregion value (((0.0 4.6 TRUE TRUE )((((381.0 74.0 581.0 274.0)(293.0 92.0 493.0 292.0)(232.0 147.0 432.0 347.0)(243.0 275.0 443.0 475.0)(412.0 335.0 612.0 535.0)(387.0 404.0 587.0 604.0)(453.0 466.0 653.0 666.0)(543.0 418.0 743.0 618.0)(706.0 453.0 906.0 653.0)(761.0 362.0 961.0 562.0)(713.0 215.0 913.0 415.0)(731.0 81.0 931.0 281.0)(587.0 38.0 787.0 238.0)(495.0 111.0 695.0 311.0))((395.0947 236.67899 595.09473 436.67899)(353.57968 189.23326 553.57971 389.23328)(371.37183 139.81062 571.37183 339.81061)(435.62125 129.9261 635.62122 329.92609)(515.68591 152.66051 715.68591 352.66052)(530.5127 208.01385 730.5127 408.01385)(500.85913 261.39029 700.85913 461.39029)(430.67899 268.30948 630.67896 468.30948))((651.10394 387.91223 851.10394 587.91223)(579.93536 389.88916 779.93536 589.88916)(556.21246 360.23557 756.21246 560.2356)(570.05078 281.15936 770.05078 481.15936)(635.2887 237.66743 835.2887 437.66742)(679.76904 307.84756 879.76904 507.84756))((588.83142 190.22171 788.83142 390.22171)(579.93536 119.05312 779.93536 319.0531)(658.02307 108.18014 858.02307 308.18015)(685.69977 133.87991 885.69977 333.87991)(670.87299 172.42957 870.87299 372.42957)(632.3233 201.09468 832.3233 401.09467)))))) ];
-
-let mrg3 = [const movingregion value (((0.0 5.0 TRUE TRUE)((((0.0 0.0 0.0 0.0)(0.0 100.0 0.0 200.0)(100.0 100.0 200.0 200.0)(100.0 0.0 200.0 0.0)))))((5.0 10.0 FALSE TRUE)((((0.0 0.0 100.0 100.0)(0.0 200.0 100.0 200.0)(200.0 200.0 200.0 200.0)(200.0 0.0 200.0 100.0))))))];
-
-let mrg4 = [const movingregion value (((0.0 2.0 TRUE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(10.0 120.0 30.0 120.0)(10.0 110.0 30.0 90.0)(120.0 110.0 120.0 90.0)(120.0 0.0 120.0 0.0)))))     ((2.0 4.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(30.0 120.0 50.0 120.0)(30.0 90.0 50.0 70.0)(120.0 90.0 120.0 70.0)(120.0 0.0 120.0 0.0)))))     ((4.0 6.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(50.0 120.0 70.0 120.0)(50.0 70.0 70.0 50.0)(120.0 70.0 120.0 50.0)(120.0 0.0 120.0 0.0)))))     ((6.0 8.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(70.0 120.0 90.0 120.0)(70.0 50.0 90.0 30.0)(120.0 50.0 120.0 30.0)(120.0 0.0 120.0 0.0)))))     ((8.0 10.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(90.0 120.0 110.0 120.0)(90.0 30.0 110.0 10.0)(120.0 30.0 120.0 10.0)(120.0 0.0 120.0 0.0))))))];
-
-let mrg5 = [const movingregion value (((0.0 10.0 TRUE TRUE)((((150.0 0.0 150.0 0.0)(150.0 120.0 150.0 120.0)(160.0 120.0 260.0 120.0)(160.0 110.0 260.0 10.0)(270.0 110.0 270.0 10.0)(270.0 0.0 270.0 0.0))))))];
-
-let mrg6 = [const movingregion value (((1.0 6.0 TRUE TRUE)((((0.0 0.0 0.0 0.0)(0.0 100.0 0.0 200.0)(100.0 100.0 200.0 200.0)(100.0 0.0 200.0 0.0)))))((6.0 9.0 FALSE TRUE)((((0.0 0.0 100.0 100.0)(0.0 200.0 100.0 200.0)(200.0 200.0 200.0 200.0)(200.0 0.0 200.0 100.0))((110.0 110.0 110.0 110.0)(111.0 110.0 190.0 110.0)(111.0 111.0 190.0 190.0)(110.0 111.0 110.0 190.0))))))];
-
-let mrg7 = [const movingregion value (((0.0 10.0 TRUE TRUE)((((1.0 3.5 1.5 1.5)(2.0 5.5 3.0 4.5)(3.0 6.5 3.5 5.0)(4.0 6.5 5.5 5.0)(4.0 5.5 5.5 4.5)(5.0 4.5 7.5 2.5)(5.0 2.5 7.5 1.0)(4.0 1.5 7.0 0.5)(3.0 1.5 2.5 0.5))((2.0 3.0 3.0 2.0)(2.0 4.0 3.0 3.0)(3.0 4.0 4.0 3.0)(3.0 3.0 4.0 2.0))))))];
-
-let mrg8 = [const movingregion value (((1.0 6.0 TRUE TRUE)((((0.0 0.0 0.0 0.0)(0.0 100.0 0.0 1.0)(1.0 100.0 100.0 1.0)(1.0 0.0 100.0 0.0))))))];
-
-let mrg9 = [const movingregion value (((0.0 5.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 0.0 0.0 200.0)(0.0 0.0 200.0 200.0)(0.0 0.0 200.0 0.0)))))((5.0 10.0 FALSE FALSE)((((0.0 0.0 200.0 200.0)(0.0 200.0 200.0 200.0)(200.0 200.0 200.0 200.0)(200.0 0.0 200.0 200.0))))))];
-
-let mrg10 = [const movingregion value (((0.0 5.0 TRUE TRUE)((((0.0 0.0 0.0 0.0)(0.0 0.0 0.0 200.0)(0.0 0.0 200.0 200.0)(0.0 0.0 200.0 0.0)))))((5.0 10.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 200.0 0.0 200.0)(100.0 200.0 100.0 200.0)(100.0 0.0 100.0 0.0)))(((100.0 0.0 200.0 0.0)(100.0 200.0 200.0 200.0)(200.0 200.0 300.0 200.0)(200.0 0.0 300.0 0.0)))))((10.0 15.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 200.0 0.0 200.0)(100.0 200.0 100.0 200.0)(100.0 0.0 100.0 0.0))((50.0 50.0 10.0 10.0)(50.0 50.0 90.0 10.0)(50.0 50.0 90.0 100.0)(50.0 50.0 10.0 100.0))((50.0 150.0 10.0 100.0)(50.0 150.0 90.0 100.0)(50.0 150.0 90.0 190.0)(50.0 150.0 10.0 190.0)))(((200.0 0.0 200.0 50.0)(200.0 100.0 200.0 50.0)(200.0 100.0 250.0 100.0)(300.0 100.0 250.0 100.0)(300.0 100.0 300.0 50.0)(300.0 0.0 300.0 50.0)(300.0 0.0 250.0 0.0)(200.0 0.0 250.0 0.0)))(((200.0 100.0 300.0 200.0)(200.0 200.0 300.0 300.0)(300.0 200.0 400.0 300.0)(300.0 100.0 400.0 200.0)))))((15.0 20.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 200.0 0.0 30.0)(100.0 200.0 30.0 30.0)(100.0 0.0 30.0 0.0))((10.0 10.0 10.0 10.0)(90.0 10.0 20.0 10.0)(90.0 190.0 20.0 20.0)(10.0 190.0 10.0 20.0)))(((200.0 50.0 200.0 0.0)(200.0 50.0 200.0 50.0)(250.0 100.0 200.0 50.0)(250.0 100.0 250.0 50.0)(300.0 50.0 250.0 50.0)(300.0 50.0 250.0 0.0)(250.0 0.0 250.0 0.0)(250.0 0.0 200.0 0.0)))(((300.0 200.0 300.0 200.0)(300.0 300.0 300.0 200.0)(300.0 300.0 400.0 300.0)(400.0 300.0 500.0 300.0)(400.0 300.0 400.0 200.0)(400.0 200.0 400.0 200.0))))))];
-
-query mrg4;
-
-query mrg5;
-
-query trajectory(rough_center(mrg4));
-
-query trajectory(rough_center(mrg5));
-
-query rough_center(mrg4);
-
-query rough_center(mrg5);
-
-let rg11 = [const region value((((0.0 0.0)(0.0 10.0)(10.0 10.0)(10.0 0.0))))];
-
-let mrg11 = [const movingregion value (((0.0 5.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 0.0 0.0 20.0)(0.0 0.0 20.0 20.0)(0.0 0.0 20.0 0.0)))))((5.0 10.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 10.0 0.0 10.0)(10.0 10.0 10.0 10.0)(10.0 0.0 10.0 0.0)))))((10.0 15.0 FALSE TRUE)((((-1.0 0.0 1.0 0.0)(-1.0 10.0 1.0 10.0)(-1.0 10.0 21.0 10.0)(-1.0 0.0 21.0 0.0))))))];
-
-query mrg11 = rg11;
-
-query mrg1 = mrg3;
-
-let mrg12 = [const movingregion value (((0.0 5.0 FALSE TRUE)((((0.0 0.0 60.0 0.0)(0.0 10.0 60.0 10.0)(10.0 10.0 70.0 10.0)(10.0 0.0 70.0 0.0)))(((20.0 0.0 80.0 0.0)(20.0 10.0 80.0 10.0)(30.0 10.0 90.0 10.0)(30.0 0.0 90.0 0.0)))(((40.0 0.0 100.0 0.0)(40.0 10.0 100.0 10.0)(50.0 10.0 110.0 10.0)(50.0 0.0 110.0 0.0)))))((5.0 10.0 FALSE TRUE)((((60.0 0.0 60.0 0.0)(60.0 10.0 60.0 10.0)(70.0 10.0 70.0 10.0)(70.0 0.0 70.0 0.0)))(((80.0 0.0 80.0 0.0)(80.0 10.0 80.0 10.0)(90.0 10.0 90.0 10.0)(90.0 0.0 90.0 0.0)))(((100.0 0.0 100.0 0.0)(100.0 10.0 100.0 10.0)(110.0 10.0 110.0 10.0)(110.0 0.0 110.0 0.0)))))((10.0 15.0 FALSE TRUE)((((60.0 0.0 0.0 0.0)(60.0 10.0 0.0 10.0)(70.0 10.0 10.0 10.0)(70.0 0.0 10.0 0.0)))(((80.0 0.0 20.0 0.0)(80.0 10.0 20.0 10.0)(90.0 10.0 30.0 10.0)(90.0 0.0 30.0 0.0)))(((100.0 0.0 40.0 0.0)(100.0 10.0 40.0 10.0)(110.0 10.0 50.0 10.0)(110.0 0.0 50.0 0.0))))))];
-
-let mrg13 = [const movingregion value (((0.0 15.0 FALSE TRUE)((((60.0 0.0 60.0 0.0)(60.0 10.0 60.0 10.0)(70.0 10.0 70.0 10.0)(70.0 0.0 70.0 0.0))))))];
-
-query mrg12 = mrg13;
-
-let mrg14 = [const movingregion value (((0.0 5.0 FALSE TRUE)((((60.0 0.0 0.0 0.0)(60.0 10.0 0.0 10.0)(70.0 10.0 10.0 10.0)(70.0 0.0 10.0 0.0)))(((80.0 0.0 20.0 0.0)(80.0 10.0 20.0 10.0)(90.0 10.0 30.0 10.0)(90.0 0.0 30.0 0.0)))(((100.0 0.0 40.0 0.0)(100.0 10.0 40.0 10.0)(110.0 10.0 50.0 10.0)(110.0 0.0 50.0 0.0)))))((5.0 10.0 FALSE TRUE)((((0.0 0.0 60.0 0.0)(0.0 10.0 60.0 10.0)(10.0 10.0 70.0 10.0)(10.0 0.0 70.0 0.0)))(((20.0 0.0 80.0 0.0)(20.0 10.0 80.0 10.0)(30.0 10.0 90.0 10.0)(30.0 0.0 90.0 0.0)))(((40.0 0.0 100.0 0.0)(40.0 10.0 100.0 10.0)(50.0 10.0 110.0 10.0)(50.0 0.0 110.0 0.0)))))((10.0 15.0 FALSE TRUE)((((60.0 0.0 0.0 0.0)(60.0 10.0 0.0 10.0)(70.0 10.0 10.0 10.0)(70.0 0.0 10.0 0.0)))(((80.0 0.0 20.0 0.0)(80.0 10.0 20.0 10.0)(90.0 10.0 30.0 10.0)(90.0 0.0 30.0 0.0)))(((100.0 0.0 40.0 0.0)(100.0 10.0 40.0 10.0)(110.0 10.0 50.0 10.0)(110.0 0.0 50.0 0.0))))))];
-
-query mrg12 = mrg14;
-
-let rg1 = [const region value((((0.0 0.0)(0.0 10.0)(20.0 20.0)(20.0 30.0)(30.0 15.0)(25.0 10.0)(10.0 5.0))))];
-
-let mrg15 = [const movingregion value (((0.0 5.0 FALSE TRUE)((((-9.07575419670957 4.19889101560265 -2 0)(-7.96093065705644 6.05174215193765 -2 0)(-6.47386284781828 7.62162055127637 -2 0)(-6.47386284781828 7.62162055127637 0 2)(-4.6840844069979 8.83512044446023 0 2)(-2.67528338529221 9.63549992519223 0 2)(-0.541389085854176 9.98533413851124 0 2)(1.61781996552765 9.86826522541526 0 2)(3.70138155339914 9.28976719816791 0 2)(5.61187065362382 8.2768899815689 0 2)(7.25995491923131 6.87699458853424 0 2)(7.25995491923131 6.87699458853424 2 0)(8.56857176167589 5.15553857177022 2 0)(9.47653171182802 3.1930153013598 2 0)(9.9413795715436 1.08119018423942 2 0)(9.9413795715436 -1.08119018423942 2 0)(9.47653171182802 -3.1930153013598 2 0)(8.56857176167589 -5.15553857177021 2 0)(7.25995491923131 -6.87699458853423 2 0)(7.25995491923131 -6.87699458853423 0 -2)(5.61187065362382 -8.2768899815689 0 -2)(3.70138155339914 -9.28976719816791 0 -2)(1.61781996552765 -9.86826522541526 0 -2)(-0.541389085854167 -9.98533413851124 0 -2)(-2.67528338529221 -9.63549992519223 0 -2)(-4.6840844069979 -8.83512044446023 0 -2)(-6.47386284781827 -7.62162055127637 0 -2)(-7.96093065705643 -6.05174215193766 0 -2)(-7.96093065705643 -6.05174215193766 -1 -0.5)(-7.96093065705643 -6.05174215193766 -2 0)(-9.07575419670957 -4.19889101560265 -2 0)(-9.76620555710087 -2.14970440211024 -2 0)(-10 -2.45029690981724E-15 -2 0)(-9.76620555710087 2.14970440211024 -2 0))))))];
-
-let mrg16 = [const movingregion value (((0.0 5.0 FALSE TRUE)((((-9.76620555710087 2.14970440211024 -7 4)(-9.07575419670957 4.19889101560265 -7 4)(-7.96093065705644 6.05174215193765 -7 4)(-7.96093065705644 6.05174215193765 -5 5)(-6.47386284781828 7.62162055127637 -5 5)(-4.6840844069979 8.83512044446023 -5 5)(-2.67528338529221 9.63549992519223 -5 5)(-2.67528338529221 9.63549992519223 -2 4)(-0.541389085854176 9.98533413851124 -2 4)(-0.541389085854176 9.98533413851124 1 5)(-0.541389085854176 9.98533413851124 2 7)(1.61781996552765 9.86826522541526 2 7)(3.70138155339914 9.28976719816791 2 7)(5.61187065362382 8.2768899815689 2 7)(5.61187065362382 8.2768899815689 4 7)(7.25995491923131 6.87699458853424 4 7)(7.25995491923131 6.87699458853424 6 6)(8.56857176167589 5.15553857177022 6 6)(8.56857176167589 5.15553857177022 7 4)(9.47653171182802 3.1930153013598 7 4)(9.9413795715436 1.08119018423942 7 4)(9.9413795715436 1.08119018423942 6 1)(9.9413795715436 -1.08119018423942 6 1)(9.47653171182802 -3.1930153013598 6 1)(8.56857176167589 -5.15553857177021 6 1)(8.56857176167589 -5.15553857177021 3 -1)(7.25995491923131 -6.87699458853423 3 -1)(7.25995491923131 -6.87699458853423 1 -4)(5.61187065362382 -8.2768899815689 1 -4)(3.70138155339914 -9.28976719816791 1 -4)(1.61781996552765 -9.86826522541526 1 -4)(1.61781996552765 -9.86826522541526 -2 -5)(-0.541389085854167 -9.98533413851124 -2 -5)(-2.67528338529221 -9.63549992519223 -2 -5)(-2.67528338529221 -9.63549992519223 -4 -4)(-4.6840844069979 -8.83512044446023 -4 -4)(-6.47386284781827 -7.62162055127637 -4 -4)(-6.47386284781827 -7.62162055127637 -5 -2)(-6.47386284781827 -7.62162055127637 -6 -4)(-7.96093065705643 -6.05174215193766 -6 -4)(-7.96093065705643 -6.05174215193766 -8 -2)(-9.07575419670957 -4.19889101560265 -8 -2)(-9.76620555710087 -2.14970440211024 -8 -2)(-9.76620555710087 -2.14970440211024 -8 1)(-10 -0 -8 1)(-9.76620555710087 2.14970440211024 -8 1)))))
-((5.0 10.0 FALSE TRUE)((((-8 1 0 4)(-7 4 0 4)(-7 4 1 7)(-7 4 3 9)(-5 5 3 9)(-2 4 3 9)
-(-2 4 5 10)(1 5 5 10)(1 5 7 10)(1 5 9 9)(2 7 9 9)(4 7 9 9)(4 7 10 8)(6 6 10 8)(7 4 10 8)(7 4 11 5)(6 1 11 5)(6 1 11 3)(3 -1 11 3)(3 -1 10 1)(3 -1 9 0)(1 -4 9 0)(1 -4 6 -1)(-2 -5 6 -1)(-2 -5 4 -1)(-4 -4 4 -1)(-4 -4 2 0)(-5 -2 2 0)(-6 -4 2 0)(-6 -4 0 2)(-8 -2 0 2)(-8 1 0 2)))))
-((10.0 15.0 FALSE TRUE)((((0 4 10 9)(1 7 10 9)(3 9 10 9)(5 10 10 9)(7 10 10 9)(9 9 10 9)(10 8 10 9)(11 5 10 9)(11 3 10 9)(10 1 10 9)(9 0 10 9)(6 -1 10 9)(4 -1 10 9)(0 2 10 9))))))];
+# These are all the test-querys from the algebra. 
+# The automaic run of this file will last for a few minutes!
 
 
+# 3.3.1 Test isempty for mbool, mint, mstring, mreal, mpoint and mregion
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Emp: isempty(.Trip_t2)] project [Id_t1, Id_t2, Emp] count;
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product project [Id_t1, Id_t2] count;
+
+
+# 3.4.1 Test = and # for mbool/mbool, mint/mint and mstring/mstring
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] extend[Eq: .Empty1 = .Empty2] project [Id_t1, Id_t2, Empty1, Eq] count;
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] project [Id_t1, Id_t2, Empty1, Empty2] count;
+
+
+# 3.4.2 Test = and # for mbool/bool, mint/int and mstring/string
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] extend[Eq: .Empty1 = TRUE] project [Id_t1, Id_t2, Empty1, Eq] count;
+
+
+# 3.4.3 Test = and # for mreal/mreal
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] extend[Eq: .Dist1 = .Dist2] project [Id_t1, Id_t2, Dist1, Dist2, Eq] count;
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] project [Id_t1, Id_t2, Dist1, Dist2] count;
+
+
+# 3.4.4 Test = and # for mreal/real
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] extend[Eq: .Dist1 = 1000.0] project [Id_t1, Id_t2, Dist1, Dist2, Eq] count;
+
+
+# 3.4.5 Test = and # for mpoint/mpoint
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Meet: .Trip_t1 = .Trip_t2] project [Id_t1, Id_t2, Meet] count;
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product project [Id_t1, Id_t2] count;
+
+
+# 3.4.6 Test = and # for mpoint/point
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Meet: mehringdamm = .Trip_t2] project [Id_t1, Id_t2, Meet] count;
+
+
+# 3.4.7 Test = and # for mregion/mregion
+
+query Trains feed head[5] extend[Eq: msnow = mrain] project [Id, Eq] count;
+
+query Trains feed head[5] extend[Eq: TRUE] project [Id, Eq] count;
+
+
+# 3.4.8 Test = and # for mregion/region
+
+query Trains feed head[5] extend[Eq: msnow = zoogarten] project [Id, Eq] count;
+
+let snow8 = val(msnow atinstant eight);
+
+query Trains feed head[5] extend[Eq: msnow = snow8] project [Id, Eq] count;
+
+
+# 3.5.1 Test inside for mregion/points and mregion/line
+
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Ins: mrain inside .geoData_u2] project [Id_t1, Name_u2, Ins] count;
+
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product project [Id_t1, Name_u2] count;
+
+
+# 3.5.2 Test inside for mpoint/points
+
+let pts = [const points value((9396 9871)(16821 1252)(-3560 14235))];
+
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Ins: .Trip_t1 inside pts] project[Id_t1, Name_u2, Ins] count;
+
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product project[Id_t1, Name_u2] count;
+
+
+# 3.5.3 Test inside for mpoint/line
+
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Ins: .Trip_t1 inside .geoData_u2] project[Id_t1, Name_u2, Ins] count;
+
+
+# 3.7.1 Test intersection for mbool/mbool, mint/mint and mstring/mstring
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] extend[Inter: intersection(.Empty1, .Empty2)] project [Id_t1, Id_t2, Empty1, Inter] count;
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] project [Id_t1, Id_t2, Empty1, Empty2] count;
+
+
+# 3.7.2 Test intersection for mbool/bool, mint/int and mstring/string
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] extend[Inter: intersection(.Empty1, TRUE)] project [Id_t1, Id_t2, Empty1, Inter] count;
+
+
+# 3.7.3 Test intersection for mreal/mreal
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] extend[Inter: intersection(.Dist1, .Dist2)] project [Id_t1, Id_t2, Dist1, Dist2, Inter] count;
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] project [Id_t1, Id_t2, Dist1, Dist2] count;
+
+
+# 3.7.4 Test intersection for mreal/real
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] extend[Inter: intersection(.Dist1, 1000.0)] project [Id_t1, Id_t2, Dist1, Dist2, Inter] count;
+
+
+# 3.7.5 Test intersection mpoint/points
+
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Inter: intersection(.Trip_t1, pts)] project[Id_t1, Name_u2, Inter] count;
+
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product project[Id_t1, Name_u2] count;
+
+
+# 3.7.6 Test inersection for mpoint/line
+
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Inter: intersection(.Trip_t1, .geoData_u2)] project[Id_t1, Name_u2, Inter] count;
+
+
+# 3.9.1 Test minus for mbool/mbool, mint/mint and mstring/mstring
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] extend[Minus: .Empty1 minus .Empty2] project [Id_t1, Id_t2, Empty1, Minus] count;
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] project [Id_t1, Id_t2, Empty1, Empty2] count;
+
+
+# 3.9.2 Test minus for mbool/bool, mint/int and mstring/string
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] extend[Minus: .Empty1 minus TRUE] project [Id_t1, Id_t2, Empty1, Minus] count;
+
+
+# 3.9.3 Test minus for mreal/mreal
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] extend[Minus: .Dist1 minus .Dist2] project [Id_t1, Id_t2, Dist1, Dist2, Minus] count;
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] project [Id_t1, Id_t2, Dist1, Dist2] count;
+
+
+# 3.9.4 Test minus for mreal/real
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] extend[Minus: .Dist1 minus 1000.0] project [Id_t1, Id_t2, Dist1, Dist2, Minus] count;
+
+
+# 3.9.5 Test minus for mpoint/mpoint
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Minus: .Trip_t1 minus .Trip_t2] project [Id_t1, Id_t2, Minus] count;
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product project [Id_t1, Id_t2] count;
+
+
+# 3.9.6 Test minus for mpoint/point
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Minus: .Trip_t1 minus mehringdamm] project [Id_t1, Id_t2, Minus] count;
+
+
+# 3.9.7 Test minus for point/mpoint
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Minus: mehringdamm minus .Trip_t1 ] project [Id_t1, Id_t2, Minus] count;
+
+
+# 3.10.1 Test rough_center
+
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[rc: rough_center(msnow)] project[Id_t1, Name_u2, rc] count;
+
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product project[Id_t1, Name_u2] count;
+
+let mrg1 = [const movingregion value (((0.0 2.0 TRUE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(10.0 120.0 30.0 120.0)(10.0 110.0 30.0 90.0)(120.0 110.0 120.0 90.0)(120.0 0.0 120.0 0.0)))))((2.0 4.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(30.0 120.0 50.0 120.0)(30.0 90.0 50.0 70.0)(120.0 90.0 120.0 70.0)(120.0 0.0 120.0 0.0)))))((4.0 6.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(50.0 120.0 70.0 120.0)(50.0 70.0 70.0 50.0)(120.0 70.0 120.0 50.0)(120.0 0.0 120.0 0.0)))))((6.0 8.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(70.0 120.0 90.0 120.0)(70.0 50.0 90.0 30.0)(120.0 50.0 120.0 30.0)(120.0 0.0 120.0 0.0)))))((8.0 10.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(90.0 120.0 110.0 120.0)(90.0 30.0 110.0 10.0)(120.0 30.0 120.0 10.0)(120.0 0.0 120.0 0.0))))))];
+
+let mrg2 = [const movingregion value (((0.0 10.0 TRUE TRUE)((((150.0 0.0 150.0 0.0)(150.0 120.0 150.0 120.0)(160.0 120.0 260.0 120.0)(160.0 110.0 260.0 10.0)(270.0 110.0 270.0 10.0)(270.0 0.0 270.0 0.0))))))];
+
+query mrg1;
+
+query mrg2;
+
+query trajectory(rough_center(mrg1));
+
+query trajectory(rough_center(mrg2));
+
+query rough_center(mrg1);
+
+query rough_center(mrg2);
+
+
+# 3.11.1 Test no_components for mregion
+
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[nc: no_components(msnow)] project[Id_t1, Name_u2, nc] count;
+
+
+# 3.12.1 Test perimeter for mregion
+
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[peri: perimeter(msnow)] project[Id_t1, Name_u2, peri] count;
+
+
+# 3.13.1 Test area for mregion
+
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Area: area(msnow)] project[Id_t1, Name_u2, Area] count;
+
+
+# 3.14.1 Test distance for mreal/mreal
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] extend[Dist: distance (.Dist1, .Dist2)] project [Id_t1, Id_t2, Dist1, Dist2, Dist] count;
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] project [Id_t1, Id_t2, Dist1, Dist2] count;
+
+
+# 3.14.2 Test distance for mreal/real
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] extend[Dist: distance(.Dist1, 1000.0)] project [Id_t1, Id_t2, Dist1, Dist2, Dist] count;
+
+
+# 3.14.3 Test distance for mpoint/mpoint
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist: distance (.Trip_t1, .Trip_t2)] project [Id_t1, Id_t2, Dist] count;
+
+
+# 3.15.1 Test and and or for mbool/mbool
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] extend[Or: .Empty1 or .Empty2] project [Id_t1, Id_t2, Empty1, Or] count;
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] project [Id_t1, Id_t2, Empty1, Empty2] count;
+
+
+# 3.15.2 Test and and or for mbool/bool
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] extend[Or: .Empty1 or TRUE] project [Id_t1, Id_t2, Empty1, Or] count;
+
+
+# 3.15.1 Test not for mbool
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: not(isempty(.Trip_t2))] project [Id_t1, Id_t2, Empty1, Empty2] count;
+
+
+# 3.17.3 Test other operators
+
+let center2 = [const region value((((7500.0 9200.0)(7500.0 11500.0)(10700.0 11500.0)(10700.0 9200.0))))];
+
+query Trains feed head[5] extend[AtCenter: .Trip at center2] filter[not(isempty(deftime(.AtCenter)))] extend[Time: periods2mint(deftime(.AtCenter))] aggregate[Time; fun(m1: mint, m2: mint) m1 + m2; zero()];
+
+
+# 3.18.1 concat for mpoint/mpoint
+
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product filter[ val(final(.Trip_t1)) = val(initial(.Trip_t2))] extend[Umsteig: .Trip_t1  .Trip_t2 concat] filter[not(isempty(deftime(.Umsteig)))] project [Id_t1, Id_t2, Umsteig] count;
+
+
+
+# delete new objects
+
+delete mrg1;
+
+delete mrg2;
+
+delete snow8;
+
+delete pts;
+
+delete center2;
 
 
