@@ -262,8 +262,48 @@ pog(Rels, Preds, Nodes, Edges) :-
   % uncomment next line for debugging
   % showpog(Rels, Preds),
 
-% counters are only important for the entropy version
-deleteCounters :- (optimizerOption(entropy), deleteCounters2) ; true.
+/*
+
+3.2 Maintaining Counters
+
+The dynamic fact ~nCounter~ stores the values of counters as a pair 
+(name, value). 
+
+*/
+
+:- dynamic
+     nCounter/2.
+
+nextCounter(Name, Result) :-
+  nCounter(Name, Value), !,
+  Result is Value + 1,
+  retract(nCounter(Name, Value)),
+  assert(nCounter(Name, Result)).
+
+nextCounter(Name, 1) :-
+  assert(nCounter(Name, 1)).
+
+resetCounter(Name) :-
+  retractall(nCounter(Name, _)).
+
+resetCounter(Name, Value) :- 
+  retractall(nCounter(Name, _)),
+  assert(nCounter(Name, Value)).
+ 
+deleteCounters :-
+  resetCounter(nodeCtr).
+
+showCounters :-
+  findall([Name, Value], nCounter(Name, Value), List),
+  showCounters(List).
+
+showCounters([]).
+ 
+showCounters([H|T]) :-
+  H = [Name, Value],
+  write(Name), write(' = '), write(Value), nl,
+  showCounters(T).
+
  
 showpog(Rels, Preds) :-
   nl, write('Rels: '), write(Rels),
@@ -3364,9 +3404,11 @@ lookupPreds(Pred, Pred2) :-
   lookupPred(Pred, Pred2), !.
 
 lookupPred(Pred, pr(Pred2, Rel)) :-
+  nextCounter(selectionPred,_),
   lookupPred1(Pred, Pred2, [], [Rel]), !.
 
 lookupPred(Pred, pr(Pred2, Rel1, Rel2)) :-
+  nextCounter(joinPred,_),
   lookupPred1(Pred, Pred2, [], [Rel1, Rel2]), !.
 
 lookupPred(Pred, undefined) :-
@@ -4038,6 +4080,9 @@ optimize(Query, QueryOut, CostOut) :-
 Transform an SQL ~QueryText~ into a ~Plan~. The query is given as a text atom.
 
 */
+
+
+
 sqlToPlan(QueryText, Plan) :-
   term_to_atom(sql Query, QueryText),
   optimize(Query, Plan, _).
@@ -4241,9 +4286,35 @@ defaultExceptionHandler(G) :-
        ),
        true.
 
+% store all queries of a session in the dynamic predicate below      
+:- dynamic
+     queryText/2.
+
+history :-
+  findall([Nr, X], queryText(Nr, X), R),
+  showHistory(R).
+
+showHistory([]).
+ 
+showHistory([H|T]) :-
+  H = [Nr, Text],
+  write(Nr), write(': '), write(Text), nl,
+  showHistory(T).
+
+deleteHistory :-
+  retractall(queryText(_,_)).
+
+registerQuery(Term) :-
+  nextCounter(qid, Qid),
+  resetCounter(joinPred),
+  resetCounter(selectionPred),
+  term_to_atom(Term, QueryText),
+  assert( queryText(Qid, QueryText) ).
+
 % Default handling
 sql Term :- defaultExceptionHandler((
   isDatabaseOpen,
+  registerQuery(Term),
   mOptimize(Term, Query, Cost),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
@@ -4391,7 +4462,7 @@ The predicate ~allCards/0~ prints out the real cardinality for each POG node.
 :- dynamic realResult/2.
 
 card(N) :- dijkstra(0, N, Path, _),
-  deleteCounters2,
+  deleteCounters,
   N > 0,
   highNode(High),
   N =< High,
