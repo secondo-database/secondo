@@ -206,8 +206,7 @@ display(instant, N) :-
   
 display(text, N) :-
   !,
-  is_list(N),
-  write_elements(N, 0).
+  write_elements([N], 0).
 
 display(rect, [L, R, B, T]) :-
   !,
