@@ -35,6 +35,10 @@ Some parts were merged with the standard optimizer. Moreover a mechanism for
 switching between ~standard~ and ~entropy~ optimiztation was implemented in
 ~calloptimizer.pl~. Finally, the code documentation was revised.
 
+May 2006. M. Spiekermann. Creation and update mechanism for relation objects.
+This may be useful for a deeper analysis of the quality of cardinality
+estimations.
+
 */
 
 
@@ -98,11 +102,25 @@ compareSize :-
  
 compareSizes :- not(compareSize).
 
+/*
+The predicate ~allSizes/0~ computes the real cardinlities of the
+POG and creates or updates two relation objects (Nodesizes and Queries).
+The tuples can be joined by attribute ~Qid~ and contain information about
+the estimated and real sizes and some facts about the query.
+
+*/
+
 allSizes :-
   computeCards,
-  findall([N, S1, S2, S3], createNodeSize(N, S1, S2, S3), InfoList),
+  showAllSizes,
+  createOrUpdateRels.
+
+showAllSizes :-
+  nCounter(qid, Qid),
+  findall([Qid, N, S1, S2, S3], createNodeSize(N, S1, S2, S3), InfoList),
   showNodeSize(InfoList).
-  
+ 
+ 
 createNodeSize(Node, SizeStd, SizeEntropy, SizeReal) :-
   firstResultSize(Node, SizeStd),
   resultSize(Node, SizeEntropy),
@@ -110,7 +128,7 @@ createNodeSize(Node, SizeStd, SizeEntropy, SizeReal) :-
   
 showNodeSizeRec([]).
 
-showNodeSizeRec([[Node, SizeStd, SizeEntropy, SizeReal]|T]) :-
+showNodeSizeRec([[_, Node, SizeStd, SizeEntropy, SizeReal]|T]) :-
   write(Node), write('\t'),
   write(SizeStd), write('\t\t'),
   write(SizeEntropy), write('\t\t'),
@@ -123,33 +141,200 @@ showNodeSize(List) :-
   showNodeSizeRec(List).
  
 
+
+ 
 /*
-
-2 Maintaining Counters
-
-The dynamic fact ~nCounter~ tracks the number of counters in queries which are
-used to compute the size of intermediate results along a path through the POG.
+Predicate ~convertList/3~ converts a nested prolog list into an atom which contains a nested list
+in SECONDO format.
 
 */
+ 
 
-% fact nCounter tracks the number of counters in queries which are used
-:- dynamic
-     nCounter/1.
+convertList(L, Tmp, ResAtom) :-
+  convertListRec(L, Tmp, TmpRes),
+  parenthesize(TmpRes, ResAtom).
 
-nextCounter(C) :-
-  nCounter(N),
-  !,
-  N1 is N + 1,
-  retract(nCounter(N)),
-  assert(nCounter(N1)),
-  C = N1.
+convertListRec([], Tmp, Tmp).
 
-nextCounter(C) :-
-  assert(nCounter(1)),
-  C = 1.
+convertListRec([H|T], Tmp, ResAtom) :-
+  is_list(H),
+  convertListRec(H, '', Res1),
+  parenthesize(Res1, Presult),
+  atom_concat(Tmp, Presult, TmpAtom),
+  convertListRec(T, TmpAtom, ResAtom).
+  
+convertListRec([H|T], Tmp, ResAtom) :- 
+  concatWithSpace(Tmp, H, Tmp2),
+  convertListRec(T, Tmp2, ResAtom).
 
-% Also called by the standard optimizer:
-deleteCounters2 :- retractall(nCounter(_)).
+/*
+Some helper predicates for atom costruction.
+
+*/
+ 
+concatWithSpace(Atom1, Atom2, Result) :-
+  atom_concat(Atom1, ' ', Tmp),
+  atom_concat(Tmp, Atom2, Result).
+ 
+parenthesize(Atom, Result) :-
+  atom_concat('(', Atom, Tmp),
+  atom_concat(Tmp, ')',  Result).
+
+parenthesize2(Atom, Result) :-
+  atom_concat('[', Atom, Tmp),
+  atom_concat(Tmp, ']',  Result).
+ 
+quoteText(Atom, Result) :-
+ atom_concat('<text>', Atom, Tmp),
+ atom_concat(Tmp, '</text--->',  Result).
+
+
+/*
+Auxiliary clauses for creating a SECONDO relation type, value lists for
+relation objects, and commands to create or update relation objects.
+
+*/ 
+
+nodeSizeRelObj('NodeSizes', Schema, Values) :-
+  AttrList = [ ['Qid', 'int'],
+               ['Node', 'int'], 
+               ['SizeStd', 'real'], 
+               ['SizeEntropy', 'real'], 
+               ['SizeReal', 'real']     ],        
+  makeRelType2(AttrList, Schema), !,
+  nCounter(qid, Qid),
+  findall([Qid, N, S1, S2, S3], createNodeSize(N, S1, S2, S3), InfoList), !,
+  convertList(InfoList, '', Values).
+  
+
+queryRelObj('Queries', Schema, Values) :-
+  AttrList = [ ['Qid', 'int'],
+               ['Query', 'text'], 
+               ['JoinPreds', 'int'], 
+               ['SelPreds', 'int']  ],        
+  makeRelType2(AttrList, Schema), !,
+  nCounter(qid, Qid),
+  queryText(Qid, Query),
+  quoteText(Query, Query2), 
+  atom(Query2),
+  nCounter(joinPred, Joins),
+  nCounter(selectionPred, Sels),
+  L = [[Qid, Query2, Joins, Sels]],
+  convertList(L, '', Values).
+
+ 
+testRels :- 
+  nodeSizeRelObj(N1, S1, V1),
+  showCmds(N1, S1, V1),
+  queryRelObj(N2, S2, V2),
+  showCmds(N2, S2, V2).
+  
+
+showCmds(Obj, S1, V1) :-  
+  write('***************'), nl,
+  write(S1), nl,
+  write(V1), nl,
+  makeRelCmd(Obj, S1, V1, R1),
+  nl, write(R1),
+  appendToRelCmd(Obj, S1, V1, R2),
+  nl, write(R2), nl,
+  write('***************'), nl.
+
+
+createOrUpdateRels :-
+  retractall(storedSecondoList(_)),
+  getSecondoList(ObjList),
+  nodeSizeRelObj(N1, S1, V1), !, 
+  runCmd(ObjList, N1, S1, V1), !,
+  queryRelObj(N2, S2, V2), !, 
+  runCmd(ObjList, N2, S2, V2).
+   
+runCmd(ObjList, Obj, S, V) :-
+  not(findRelObj(ObjList, Obj)), 
+  nl, write('Object not present! Running let comamnd.'),
+  makeRelCmd(Obj, S, V, Cmd),
+  nl, write(Cmd),
+  secondo(Cmd).
+ 
+runCmd(_, Obj, S, V) :-
+  nl, write('Object present! Running update comamnd.'),
+  appendToRelCmd(Obj, S, V, Cmd),
+  nl, write(Cmd),
+  secondo(Cmd).
+ 
+/*
+search a relation with name ~Rel~ in the object list ~L~
+returned from getSecondoList(L).
+ 
+*/
+
+findRelObj([], _) :-
+  fail, !.
+
+findRelObj([H|_], Rel) :-
+  H = ['OBJECT', Rel, _, [[rel, [_|_]]]],
+  atom(Rel), !.
+  
+findRelObj([_|T], Obj) :-
+  findRelObj(T, Obj).
+ 
+
+/*
+The relation objects 'NodeSizes'
+
+
+Create a tuple type suitable for the SECONDO-Parser, e.g.
+
+----
+ rel(tuple([attr1: type1, ..., attrN, typeN])
+---- 
+
+*/
+ 
+makeRelType([],Tmp, Tmp).
+ 
+makeRelType([H|T], Tmp, TypeAtom) :-
+  H = [Attr, Type],
+  atom_concat(Tmp, Attr, A0),
+  atom_concat(A0, ':', A1), 
+  atom_concat(A1, ' ', A2), 
+  atom_concat(A2, Type, A3),
+  concatComma(T, A3, A4),
+  makeRelType(T, A4, TypeAtom). 
+  
+concatComma([_|_], Atom, Result) :-
+  atom_concat(Atom, ', ', Result).
+ 
+concatComma(_, Atom, Atom).
+ 
+makeRelType2(List, TypeAtom) :-
+  makeRelType(List, '', Tmp1),
+  atom_concat('rel(tuple([', Tmp1, Tmp2), 
+  atom_concat(Tmp2, ']))', TypeAtom). 
+ 
+
+makeRelCmd(ObjName, RelSchema, Values, ResultCmd) :-
+  makeRelConstant(RelSchema, Values, RelConstant),
+  atom_concat('let ', ObjName, Q1), 
+  atom_concat(Q1 , ' = ', Q2 ),
+  atom_concat(Q2 , RelConstant, ResultCmd ). 
+
+makeRelConstant(RelSchema, Values, Result) :-
+  atom_concat('[const ', RelSchema, Q1 ),
+  atom_concat(Q1 , ' value ', Q2 ), 
+  atom_concat(Q2 , Values, Q3),
+  atom_concat(Q3 , ']', Result).
+ 
+appendToRelCmd(ObjName, RelSchema, Values, ResultCmd) :- 
+  makeRelConstant(RelSchema, Values, RelConstant),
+  atom_concat('update ', ObjName, Q1), 
+  atom_concat(Q1 , ' := ', Q2 ),
+  atom_concat(Q2 , ObjName, Q3 ),
+  atom_concat(Q3 , ' feed ', Q4 ),
+  atom_concat(Q4 , RelConstant, Q5),
+  atom_concat(Q5 , ' feed concat consume', ResultCmd ). 
+
+ 
  
 /* 
 The clauses below are used to store a list of counters returned by SECONDO.
@@ -330,7 +515,7 @@ traversePath2([]).
 traversePath2([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
   embedSubPlans(Term, Term2),
   possiblyCorrectSelfJoins(Source, Target, Term2, Term3),
-  nextCounter(Nc),
+  nextCounter(nodeCtr, Nc),
   assert(nodePlan(Result, counter(Term3,Nc))),
   assert(smallResultCounter(Nc, Source, Target, Result)),
   traversePath2(Path).
@@ -444,7 +629,7 @@ translateEntropy(Stream1, Stream2, Cost1, Cost2) :-
  
   % compute a new plan based on the cost annotations of
   % the new selectivities computed by maximize_entropy 
-  deleteCounters2,
+  deleteCounters,
   retract(buildingSmallPlan),
   retractall(selfJoin(_, _, _)),
   retractall(usedAttr(_, _)),
@@ -456,7 +641,7 @@ translateEntropy(Stream1, Stream2, Cost1, Cost2) :-
   !.
 
 translateEntropy(Stream1, Stream1, Cost1, Cost1) :-
-  deleteCounters2,
+  deleteCounters,
   retract(buildingSmallPlan),
   retractall(selfJoin(_, _, _)),
   retractall(usedAttr(_, _)),
