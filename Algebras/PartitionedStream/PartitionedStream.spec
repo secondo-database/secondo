@@ -21,7 +21,11 @@ operator feedinfo alias FEEDINFO pattern _ op
 
 operator pfeed alias PFEED pattern _ op [ _ ]
 
+operator pcreate alias PCREATE pattern _ op [ _ ]
+
 operator pdelete alias PDELETE pattern _ op
+
+operator pshow alias PSHOW pattern _ op
 
 operator puse alias PUSE pattern _ op [ fun ] 
          implicit parameter element type PSTREAM1 
@@ -29,6 +33,8 @@ operator puse alias PUSE pattern _ op [ fun ]
 operator pjoin2 alias PJOIN2 pattern _ _ op [ funlist ]
          implicit parameters left, right types PSTREAM1, PSTREAM2
 
+operator pjoin1 alias PJOIN1 pattern _ _ op [ funlist ]
+         implicit parameters left, right types PSTREAM1, ANY2
 
 
 

@@ -82,9 +82,17 @@ query plz pfeed[100] puse [. filter[.Ort = "Dortmund"] ] pdelete count
 #yields (int 41267) 
 query plz pfeed[100] puse [. extend[pck: .PLZ mod 10] ] pdelete count
 
-#testcase puse-4
+#testcase puse-4a
 #yields error 
 query plz pfeed[100] puse [. count ] pdelete count
+
+#testcase puse-4b
+#yields success 
+query plz pfeed[100] puse [. filter[.PLZ > 50000] ] pdelete count
+
+#testcase puse-4c
+#yields success 
+query plz pfeed[100] puse [. filter[.PLZ < 50000] ] pdelete count
 
 #testcase puse-5
 #yields error 
@@ -111,6 +119,32 @@ query
   ]  
   pdelete  
   count;
+
+#Example for expressing an index join with the PartStreamAlgebra!
+#testcase pjoin1-1
+#yields success 
+query 
+  Staedte pfeed[100] puse[. {arg1}] 
+  plz 
+  pjoin1[ symj: . .. feed symmjoin[.SName_arg1 = ..Ort],
+           smj: . .. feed sortmergejoin[SName_arg1, Ort], 
+            hj: . .. feed hashjoin[SName_arg1, Ort, 997],
+           ilj: . loopjoin[fun(t1: TUPLE) plz_Ort .. exactmatch[attr(t1, SName_arg1)]] 
+  ] 
+  pdelete 
+  count;
+
+
+# Example for expressing an index based selection
+#testcase pcreate-1
+#yields success 
+query
+  plz_Ort plz exactmatch["Dortmund"] pcreate[100] pdelete count;
+
+
+#testcase pshow-1
+#yields success
+query plz pfeed[1000] pshow pdelete count;
 
 #teardown
 
