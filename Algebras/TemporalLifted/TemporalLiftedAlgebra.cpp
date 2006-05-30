@@ -1522,34 +1522,26 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
     
   rp.Get(i, iv, u1Pos, u2Pos);
 
-  if (u1Pos == -1 || (u2Pos == -1 && op != 2))    
+  if (u1Pos == -1 || u2Pos == -1 )    
       continue; 
-  else if (u2Pos == -1) {
-      if(TLA_DEBUG)
-        cout<<"only 1. operator existant in interval iv #"<<i<<" ["
-        <<iv->start.ToString()<<" "<<iv->end.ToString()<<" "<<iv->lc<<" "
-        << iv->rc<< "] "<<u1Pos<<" "<<u2Pos<<"  op "<<op<<endl;
-      op1.Get(u1Pos, u1transfer);
-      if(!u1transfer->IsDefined())
-        continue;
-      u1 = *u1transfer;
-      ShiftUReal(u1, iv->start);
-      u1.timeInterval = *iv;
-      result.MergeAdd(u1);
-  }
+ 
   else {
     if(TLA_DEBUG)
       cout<<"Both operators existant in interval iv #"<<i<<endl;
+      
     op1.Get(u1Pos, u1transfer);
     op2.Get(u2Pos, u2transfer);
     if(!(u1transfer->IsDefined() && u2transfer->IsDefined()))
         continue;
+        
     u1 = *u1transfer;
     u2 = *u2transfer;
+    
     ShiftUReal(u1, iv->start);
     ShiftUReal(u2, iv->start);
     u1.timeInterval = *iv;
     u2.timeInterval = *iv;
+    
     Instant t[4];
     Instant middle;
     int counter = 0;
@@ -1557,6 +1549,7 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
 
     for (int m = 0; m < number; m++) {
       t[m].SetType(instanttype);
+      
       if ((*iv).Contains(t[m])) {
         if(TLA_DEBUG)
           cout<<m<<". crossing in iv"<<endl;
@@ -1574,13 +1567,15 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
       if(TLA_DEBUG)
         cout<<"no crossings in iv"<<endl;
       CompareUReal(u1, u2, uBool, 0);
+      
       if ((op == 1 && uBool.constValue.GetBoolval()) 
       || (op == 2 && !uBool.constValue.GetBoolval())){
-        if(TLA_DEBUG){
+        if(TLA_DEBUG)
           cout<<"just add interval ["<<un.timeInterval.start.ToString()
           <<" "<<un.timeInterval.end.ToString()<<" "<<un.timeInterval.lc<<" "
-          <<un.timeInterval.rc<<"]"<<endl;}
+          <<un.timeInterval.rc<<"]"<<endl;
         un = u1;
+        
         un.timeInterval = *iv;  //to take boarders
         result.MergeAdd(un);  
       }
@@ -1593,17 +1588,20 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
             if(TLA_DEBUG)
               cout<<"add point"<<endl;
             un = u1;
+            
             un.timeInterval.start = t[m];
             un.timeInterval.end = t[m];
             un.timeInterval.lc = true;
             un.timeInterval.rc = true;
             CcReal value;
+            
             un.TemporalFunction(t[m], value);
             un.a = 0.0;
             un.b = 0.0;
             un.c = value.GetRealval();
             un.r = false;
             result.MergeAdd(un); 
+            
             if(TLA_DEBUG)
               cout<<"add "<<m<<". interval ["<<un.timeInterval.start.ToString()
               <<" "<<un.timeInterval.end.ToString()<<" "<<un.timeInterval.lc
@@ -1619,16 +1617,18 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
           un.timeInterval = *iv;
           un.timeInterval.end = t[0];
           un.timeInterval.rc = false;
-          if(TLA_DEBUG){
+          if(TLA_DEBUG)
             cout<<"add first interval ["<<un.timeInterval.start.ToString()
             <<" "<<un.timeInterval.end.ToString()<<" "<<un.timeInterval.lc
-            <<" "<<un.timeInterval.rc<<"]"<<endl;}
+            <<" "<<un.timeInterval.rc<<"]"<<endl;
+            
           if(un.IsValid())
             result.MergeAdd(un);
         }
         for (int m = 0; m < counter; m++){
           un = u1;
           ShiftUReal(un, t[m]);
+          
           un.timeInterval.start = t[m];
           un.timeInterval.lc = false;
           if (m < counter - 1){ 
@@ -3296,161 +3296,161 @@ static void TransformMBool2MPoint(MPoint *mp, MBool *mBool, MPoint *endResult)
   
   endResult->Clear();
   endResult->StartBulkLoad();
+  
+  
   const UBool *ub;
   UPoint newUp;
   Point pt;
-  int m = 0;
-  bool pfinished = false;
+  int pos = 0;
+  
+  
   if(TLA_DEBUG)
     cout<<"TransformMBool2MPoint1 called"<<endl;
-  for ( int i = 0; i < mp->GetNoComponents(); i++) {
-    mp->Get(i, up);
-    if(!up->IsDefined())
+    
+    
+  for ( int i = 0; i < mBool->GetNoComponents(); i++) {
+    mBool->Get(i, ub);
+    if(!ub->IsDefined())
         continue;
-    if(TLA_DEBUG){
-      cout<<"UPoint # "<<i<<" ["<<up->timeInterval.start.ToString()
-      <<" "<<up->timeInterval.end.ToString()<<" "
-      <<up->timeInterval.lc<<" "<<up->timeInterval.rc<<"] ("
-      <<up->p0.GetX()<<" "<<up->p0.GetY()<<")->("<<up->p1.GetX()
-      <<" "<<up->p1.GetY()<<")"<<endl;}
-    while(m < mBool->GetNoComponents()){
-      mBool->Get(m, ub);
-      if(TLA_DEBUG){
-        cout<<"ub "<<m<<" ["<<ub->timeInterval.start.ToString()
-        <<" "<<ub->timeInterval.end.ToString()<<" "
-        <<ub->timeInterval.lc<<" "<<ub->timeInterval.rc<<"] "
-        <<ub->constValue.GetBoolval()<<endl;}
-      if(ub->constValue.GetBoolval()){
-        if(TLA_DEBUG)
-          cout<<"ub is ok!"<<endl;
-        break;
-      }
-      else{
-        if(TLA_DEBUG)
-          cout<<"ub is not ok, next ub"<<endl;
-        m++;
-      }
+    if(TLA_DEBUG)
+    {
+      cout<<"UBool # "<<i<<" ["<<ub->timeInterval.start.ToString()
+      <<" "<<ub->timeInterval.end.ToString()<<" "
+      <<ub->timeInterval.lc<<" "<<ub->timeInterval.rc<<"] "
+      <<ub->constValue.GetBoolval()<<endl;
     }
-    if(m >= mBool->GetNoComponents()){
+    
+    if(ub->constValue.GetBoolval())
+    {
+     if(TLA_DEBUG)
+       cout<<"point and mpoint are equal ignore timeInterval"<<endl;
+       
+    }
+    else
+    {
       if(TLA_DEBUG)
-        cout<<"no ub any more"<<endl;
-      pfinished = true;
-    }
-    if(pfinished || (ub->timeInterval.start > up->timeInterval.end
-     || (ub->timeInterval.start == up->timeInterval.end 
-     && !(ub->timeInterval.lc && up->timeInterval.rc)))){
-      newUp = *up;
-      if(TLA_DEBUG){
-        cout<<"ub is not inside up, take whole up"<<endl;
-        cout<<"Add1 ("<<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
-        <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
-        <<") ["<<newUp.timeInterval.start.ToString()<<" "
-        <<newUp.timeInterval.end.ToString()<<" "
-        <<newUp.timeInterval.lc<<" "<<newUp.timeInterval.rc<<"]"<<endl;}
-      if(newUp.IsValid())
-        endResult->Add(newUp);
-    }
-    else{
-      if(ub->timeInterval.start > up->timeInterval.start 
-       || (ub->timeInterval.start == up->timeInterval.start
-       && !ub->timeInterval.lc && up->timeInterval.lc)){
-        if(TLA_DEBUG)
-          cout<<"ub starts after up.start, but inside up"<<endl;
-        newUp.p0 = up->p0;
-        newUp.timeInterval.start = up->timeInterval.start;
-        newUp.timeInterval.lc = up->timeInterval.lc;
-        newUp.timeInterval.end = ub->timeInterval.start;
-        newUp.timeInterval.rc = !ub->timeInterval.lc;
-        up->TemporalFunction(newUp.timeInterval.end, pt);
-        newUp.p1 = pt;
-        if(TLA_DEBUG){
-          cout<<"Add2 ("
-          <<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
-          <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
-          <<") ["<<newUp.timeInterval.start.ToString()<<" "
-          <<newUp.timeInterval.end.ToString()<<" "
-          <<newUp.timeInterval.lc<<" "<<newUp.timeInterval.rc<<"]"<<endl;}
-        if(newUp.IsValid())
-          endResult->Add(newUp);
+        cout<<"mpoint and mpoint are not equal take timeInterval"<<endl;
+        
+      mp->Get(pos, up);
+      if(TLA_DEBUG)
+      {
+        cout<<"UPoint # "<<pos<<" ["<<up->timeInterval.start.ToString()
+        <<" "<<up->timeInterval.end.ToString()<<" "
+        <<up->timeInterval.lc<<" "<<ub->timeInterval.rc<<"] "<<endl;
       }
-      if(ub->timeInterval.end < up->timeInterval.end
-       || (ub->timeInterval.end == up->timeInterval.end
-       && !ub->timeInterval.rc && up->timeInterval.rc)){
+      while(!(up->timeInterval.end > ub->timeInterval.start
+       || (up->timeInterval.end == ub->timeInterval.start
+       && up->timeInterval.rc && ub->timeInterval.lc))
+       && pos < mp->GetNoComponents())
+      {
+        pos++;
+        mp->Get(pos, up);
         if(TLA_DEBUG)
-          cout<<"ub ends before up.end "<<endl;
-        newUp.timeInterval.start = ub->timeInterval.end;
-        newUp.timeInterval.lc = !ub->timeInterval.rc;
-        up->TemporalFunction(newUp.timeInterval.start, pt);
-        newUp.p0 = pt;  //1:
-        bool loopfinished = false;
-        while(!loopfinished){
-          while(m < mBool->GetNoComponents()){
-            mBool->Get(m, ub);
-            if(TLA_DEBUG){
-              cout<<"ub "<<m<<" ["<<ub->timeInterval.start.ToString()
-              <<" "<<ub->timeInterval.end.ToString()<<" "
-              <<ub->timeInterval.lc<<" "<<ub->timeInterval.rc<<"] "
-              <<ub->constValue.GetBoolval()<<endl;}
-            if(ub->constValue.GetBoolval()){
-              if(TLA_DEBUG)
-                cout<<"ub is ok!"<<endl;
-              break;
-            }
-            else{
-              if(TLA_DEBUG)
-                cout<<"ub is not ok, next ub"<<endl;
-              m++;
-            }
+        {
+          cout<<"UPoint # "<<pos<<" ["<<up->timeInterval.start.ToString()
+          <<" "<<up->timeInterval.end.ToString()<<" "
+          <<up->timeInterval.lc<<" "<<ub->timeInterval.rc<<"] "<<endl;
+        }
+      }
+      
+      if(up->timeInterval.start < ub->timeInterval.start
+       || (up->timeInterval.start == ub->timeInterval.start
+       && (up->timeInterval.lc 
+       || (!up->timeInterval.lc && !ub->timeInterval.lc))))
+      {   //upoint started before ubool or at same time    
+        if(up->timeInterval.end > ub->timeInterval.end)
+        { //upoint ends after ubool
+           
+           newUp.timeInterval = ub->timeInterval;
+           up->TemporalFunction(newUp.timeInterval.start, pt);
+           newUp.p0 = pt;
+           up->TemporalFunction(newUp.timeInterval.end, pt);
+           newUp.p1 = pt;
+           
+           if(TLA_DEBUG)
+           {
+             cout<<"Add1 ("
+             <<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
+             <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
+             <<") ["<<newUp.timeInterval.start.ToString()<<" "
+             <<newUp.timeInterval.end.ToString()<<" "
+             <<newUp.timeInterval.lc<<" "<<newUp.timeInterval.rc<<"]"<<endl;
+           }         
+           if(newUp.IsValid())
+             endResult->Add(newUp);      
+        }
+        else 
+        {   // upoint ends inside of ubool
+          newUp.timeInterval.start = ub->timeInterval.start;
+          newUp.timeInterval.lc    = ub->timeInterval.lc;
+          newUp.timeInterval.end   = up->timeInterval.end;
+          newUp.timeInterval.rc    = up->timeInterval.rc;
+          
+          up->TemporalFunction(newUp.timeInterval.start, pt);
+          newUp.p0 = pt;
+          up->TemporalFunction(newUp.timeInterval.end, pt);
+          newUp.p1 = pt;
+          if(TLA_DEBUG)
+          {
+             cout<<"Add2 ("
+             <<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
+             <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
+             <<") ["<<newUp.timeInterval.start.ToString()<<" "
+             <<newUp.timeInterval.end.ToString()<<" "
+             <<newUp.timeInterval.lc<<" "<<newUp.timeInterval.rc<<"]"<<endl;
           }
-          if(m >= mBool->GetNoComponents()){
-            if(TLA_DEBUG)
-              cout<<"no ub any more"<<endl;
-            pfinished = true;
+          if(newUp.IsValid())
+            endResult->Add(newUp); 
+          pos++;
+          if(pos < mp->GetNoComponents())
+            mp->Get(pos, up);
+          else
+            continue;
+          if(TLA_DEBUG)
+          {
+            cout<<"UPoint # "<<pos<<" ["<<up->timeInterval.start.ToString()
+            <<" "<<up->timeInterval.end.ToString()<<" "
+            <<up->timeInterval.lc<<" "<<ub->timeInterval.rc<<"] "<<endl;
           }
-          if(!pfinished && (ub->timeInterval.IsValid())){
-            if(TLA_DEBUG)
-              cout<<"new ub starts before up.end "<<endl;
-            newUp.timeInterval.end = up->timeInterval.start;
-            newUp.timeInterval.rc = !up->timeInterval.lc;
-            up->TemporalFunction(newUp.timeInterval.end, pt);
-            newUp.p1 = pt;
-            if(TLA_DEBUG){
-              cout<<"Add3 ("<<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
-              <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
-              <<") ["<<newUp.timeInterval.start.ToString()<<" "
-              <<newUp.timeInterval.end.ToString()<<" "
-              <<newUp.timeInterval.lc<<" "<<newUp.timeInterval.rc<<"]"<<endl;}
-            if(newUp.IsValid())
-              endResult->Add(newUp);
-            newUp.timeInterval.start = ub->timeInterval.end;
-            newUp.timeInterval.lc = !ub->timeInterval.rc;
-            up->TemporalFunction(newUp.timeInterval.start, pt);
-            newUp.p0 = pt;
-            loopfinished = false;
-            m++;
-          }//goto 1
-          else {
-            if(TLA_DEBUG)
-              cout<<"new ub starts after up.end, finish up"<<endl;
-            newUp.timeInterval.end = up->timeInterval.end;
-            newUp.timeInterval.rc = up->timeInterval.rc;
+          while((up->timeInterval.end < ub->timeInterval.end
+           || (up->timeInterval.end == ub->timeInterval.end
+           && !(!up->timeInterval.rc && ub->timeInterval.rc)))
+           && pos < mp->GetNoComponents())      
+          {  //upoint end before ubool
+            newUp.timeInterval = up->timeInterval;
+            newUp.p0 = up->p0;
             newUp.p1 = up->p1;
-            if(TLA_DEBUG){
-              cout<<"Add4 ("<<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
+            if(TLA_DEBUG)
+            {
+              cout<<"Add3 ("
+              <<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
               <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
               <<") ["<<newUp.timeInterval.start.ToString()<<" "
               <<newUp.timeInterval.end.ToString()<<" "
-              <<newUp.timeInterval.lc<<" "<<newUp.timeInterval.rc<<"]"<<endl;}
+              <<newUp.timeInterval.lc<<" "<<newUp.timeInterval.rc<<"]"<<endl;
+            }
+            
             if(newUp.IsValid())
               endResult->Add(newUp);
-            loopfinished = true;
+              
+            pos++;
+            if(pos < mp->GetNoComponents())
+              mp->Get(pos, up);
+            else
+              continue;
+            if(TLA_DEBUG)
+            {
+              cout<<"UPoint # "<<pos<<" ["<<up->timeInterval.start.ToString()
+              <<" "<<up->timeInterval.end.ToString()<<" "
+              <<up->timeInterval.lc<<" "<<ub->timeInterval.rc<<"] "<<endl;
+            }
           }
         }
       }
     }
-  }
-  endResult->EndBulkLoad(false);
-}
+  }  
+  endResult->EndBulkLoad(false); 
+}      
 
 /*
 1.1 Method ~TransformMBool2MPoint~
@@ -3686,49 +3686,48 @@ static void MovingIntersectionMM( Mapping1& op1, Mapping2& op2,
 {
   if(TLA_DEBUG)
     cout<<"MovingIntersectionMM called"<<endl;
+    
   Unit1 un;  //part of the Result
+  
   RefinementPartitionLift<Mapping1, Mapping2, Unit1, Unit2> 
   rp(op1, op2);
+  
   if(TLA_DEBUG)
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
+    
   result.Clear();
   result.StartBulkLoad();
+  
   for(unsigned int i = 0; i < rp.Size(); i++)
   {
     Interval<Instant>* iv;
+    
     int u1Pos;
     int u2Pos;
+    
     Unit1 u1;
     Unit2 u2;
+    
     const Unit1 *u1transfer;
     const Unit2 *u2transfer;
     
     rp.Get(i, iv, u1Pos, u2Pos);
 
-    if (u1Pos == -1 || (u2Pos == -1 && op != 2))
+    if (u1Pos == -1 || u2Pos == -1 )
       continue;  
-    else if (u2Pos == -1) {
-      if(TLA_DEBUG)
-        cout<<"only 1. operator existant in interval iv #"<<i<<" ["
-        << iv->start.ToString()<< " "<< iv->end.ToString()<< " "<< iv->lc
-        << " "<< iv->rc<< "] "<< u1Pos<< " "<< u2Pos<< endl;
-      op1.Get(u1Pos, u1transfer);
-      if(!u1transfer->IsDefined())
-        continue;
-      u1 = *u1transfer;
-      un.constValue = u1.constValue;
-      un.timeInterval = *iv;
-      result.MergeAdd(un);
-    }
+     
     else {
       if(TLA_DEBUG)
         cout<<"Both operators existant in interval iv #"<<i<<" ["
         << iv->start.ToString()<< " "<< iv->end.ToString()<< " "<< iv->lc
         << " "<< iv->rc<< "] "<< u1Pos<< " "<< u2Pos<< endl;
+        
       op1.Get(u1Pos, u1transfer);
       op2.Get(u2Pos, u2transfer);
+      
       if(!(u1transfer->IsDefined() && u2transfer->IsDefined()))
         continue;
+        
       u1 = *u1transfer;
       u2 = *u2transfer;
 
@@ -3736,6 +3735,7 @@ static void MovingIntersectionMM( Mapping1& op1, Mapping2& op2,
       && !u1.EqualValue(u2))){
         un.constValue = u1.constValue;
         un.timeInterval = *iv;
+        
         result.MergeAdd(un);
       }
     }
