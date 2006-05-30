@@ -11,6 +11,7 @@ Algebras/Periodic
 Algebras/Network
 Algebras/Rose
 Algebras/RemoteStream
+Algebras/PartitionedStream
 
 Optimizer/Entropy
 
@@ -53,7 +54,7 @@ Javagui/viewer/hoese/algebras/Dsplpmregion.java
 Documents/JavaWrapper.pdf
 
 
-# Files by ending
+# Files by suffix 
 
 .sda
 .sxd
