@@ -3222,6 +3222,7 @@ void CLine::EndBulkLoad( const bool sort )
   if( sort )
     Sort();
   ordered = true;
+  RemoveDuplicates();
 }
 
 CLine& CLine::operator=(const CLine& cl)
@@ -3281,16 +3282,7 @@ CLine& CLine::operator+=(const CHalfSegment& chs)
 
   if( !IsOrdered() )
   {
-    bool found=false;
-    const CHalfSegment *auxchs;
-
-    for( int i = 0; ((i < line.Size())&&(!found)); i++ )
-    {
-      line.Get( i, auxchs );
-      if (*auxchs==chs) found=true;
-    }
-
-    if (!found)  line.Put( line.Size(), chs);
+    line.Put( line.Size(), chs);
   }
   else
   {
@@ -3534,6 +3526,35 @@ void CLine::Sort()
 
   ordered = true;
 }
+
+void CLine::RemoveDuplicates(){
+  assert(IsOrdered());
+  int size = line.Size();
+  if(size==0){ // nothing to do
+     return;
+  } 
+  CHalfSegment tmp;
+  CHalfSegment last;
+  const CHalfSegment* ptmp;
+  int pos = 0;
+  line.Get(0,ptmp);
+  last = (*ptmp); 
+  for(int i=1;i<size;i++){
+     line.Get(i,ptmp);
+     tmp = (*ptmp);
+     if(last!=tmp){ // new segment found
+       pos++;
+       if(pos!=i){
+           line.Put(pos,tmp);
+       }
+       last = tmp;
+     } 
+  }
+  if(pos+1!=size){ // duplicates found 
+     line.Resize(pos+1);
+  }
+}
+
 
 void CLine::WindowClippingIn(const Rectangle<2> &window,
                              CLine &clippedLine,bool &inside) const

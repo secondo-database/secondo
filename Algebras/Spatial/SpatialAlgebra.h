@@ -1779,6 +1779,13 @@ as an attribute.
 Sorts (quick-sort algorithm) the persistent array of half segments in the line value.
 
 */
+
+    void RemoveDuplicates();
+/*
+Removes duplicates within the representation. The array must be sorted already.
+
+*/
+
     int Position(const CHalfSegment&) const;
 /*
 Searches (binary search algorithm) for a half segment in the line value and
