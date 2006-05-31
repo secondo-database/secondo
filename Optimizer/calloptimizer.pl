@@ -95,12 +95,22 @@ should be called, is it is deactivated, ~GoalOff~ is called.
 
 */
 
+optimizerOptionInfo(standard, none,
+                    '\tTurn off all extensions and use the standard optimizer.',
+                    delAllOptions,
+                    true
+                   ).
+
 optimizerOptionInfo( adaptiveJoin, none,   
                      '\tAllow usage of adaptive join operators.',
                      ( delOption(entropy), 
-                       loadFiles(adaptiveJoin) ), 
+                       delOption(intOrders(on)),
+                       delOption(intOrders(quick)),
+                       delOption(intOrders(path)),
+                       delOption(intOrders(test)),
+                       loadFiles(adaptiveJoin) 
+                     ), 
                      true ).
-
 
 optimizerOptionInfo(entropy, none,
                     '\tUse entropy to estimate selectivities.',
@@ -142,9 +152,9 @@ optimizerOptionInfo(immediatePlan, none,
                     ( delOption(intOrders(on)),
                       delOption(intOrders(quick)),
                       delOption(intOrders(path)),
-                      delOption(intOrders(test)),
-                      true
-                    ) ).
+                      delOption(intOrders(test))
+                    ) 
+                   ).
 
 optimizerOptionInfo(intOrders(on), immediatePlan,   
                     '\tConsider interesting orders (on-variant).',
@@ -309,11 +319,21 @@ delOption(X) :-
     ;  true
   ), !.
 
-delOption(X) :-
+delOneOption(X) :-
   write('Unknown option \''), write(X), write('\'.\n'), 
   showOptions,
   fail, !.
 
+delOneOption :-
+  optimizerOptionInfo(X,_,_,_,_), 
+  X \= standard, 
+  delOption(X),
+  fail.
+
+delAllOptions :-
+  not(delOneOption),
+  write('\nSwitched off all options. Optimizer now works in standard mode.\n').
+  
 
 /*
 3 Code for certain optimizer options
@@ -546,17 +566,24 @@ quit :- halt. % aliasing 'halt/0' in conformity to the Secondo system
 /*
 7 Testing
 
+*/
+
+
+/*
+Testing in database opt
 ----
 :- [autotest], open 'database opt'.
 
 tt :- runExamples, showOptions.
 
-tq :- sql select count(*) from[plz as a, plz as b] where[a:ort = b:ort].
+q1 :- sql select count(*) from[plz as a, plz as b] where[a:ort = b:ort].
+q2 :- sql select count(*) from[plz as p1, plz as p2, staedte as s] where[s:sname = p1:ort, p2:ort = s:sname].
 
-s1 :- setOption(intOrders(quick)), tt, tq.
-s2 :- setOption(intOrders(on)), tq.
-s3 :- setOption(intOrders(path)), tq.
-s4 :- setOption(intOrders(test)), tq.
+s1 :- setOption(intOrders(quick)), tt, q1.
+s2 :- setOption(intOrders(on)), q1.
+s3 :- setOption(intOrders(path)), q1.
+s4 :- setOption(intOrders(test)), q1.
 ----
 
 */
+
