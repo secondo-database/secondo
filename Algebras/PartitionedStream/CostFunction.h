@@ -503,6 +503,23 @@ class ProductFilterCost : private CostFunction
   
 };
 
+class IndexLoopJoinCost : private CostFunction 
+{
+  public:
+  IndexLoopJoinCost(int index = 0) : CostFunction("indexloopjoin", index)
+  {}
+  
+  virtual ~IndexLoopJoinCost() {}
+  
+  virtual void costs(const CostParams& p, int& read, int& write, int& cpu)
+  {
+     read = 0;
+     write = 0;
+     cpu = 1000;
+  }
+  
+};
+
 struct CostInfo 
 {
   CostFunction* cf;
@@ -569,11 +586,10 @@ class CostFunctions {
       return true;
     } 
     
-    /*
     if (name == "ilj") {
       cfv.push_back( (CostFunction*) new IndexLoopJoinCost(index) );
       return true;
-    }*/
+    }
     
     /*
     if (name == "syj") {
