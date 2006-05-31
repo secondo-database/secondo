@@ -193,7 +193,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard, FilterResCard) :-
          possiblyRename(RelS, RelQuery)
        )
   ),
-  Query = count(filter(count(filter(RelQuery, BBoxPred),1), Pred)),
+  Query = count(filter(counter(filter(RelQuery, BBoxPred),1), Pred)),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
