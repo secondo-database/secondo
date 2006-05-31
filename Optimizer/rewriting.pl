@@ -637,15 +637,15 @@ rewriteQueryForCSE(Query, Query) :-
 rewriteQueryForCSE(QueryIn, QueryIn) :-
   optimizerOption(rewriteCSE),
   retractExpressionLabels,          % delete old data
-  dc(debug,showExpressionLabels),   % output debugging info
+  dc(rewriteCSE,showExpressionLabels),   % output debugging info
   findCSEs(QueryIn, expensive, _),  % find all expensive subexpressions
-  dc(debug,showExpressionLabels),   % output debugging info
+  dc(rewriteCSE,showExpressionLabels),   % output debugging info
   retractNonCSEs,                   % delete expressions used less than twice
-  dc(debug,showExpressionLabels),   % output debugging info
+  dc(rewriteCSE,showExpressionLabels),   % output debugging info
   replaceAllCSEs,                   % nest CSEs but also save flat CSE expression
-  dc(debug,showExpressionLabels),   % output debugging info
+  dc(rewriteCSE,showExpressionLabels),   % output debugging info
 %  compactCSEs(QueryIn, QueryOut, _), % replace CSEs by virtual attributes
-%  dm(rewrite,['\nREWRITING: Substitute Common Subexpressions\n\tIn:  ',
+%  dm(rewriteCSE,['\nREWRITING: Substitute Common Subexpressions\n\tIn:  ',
 %              QueryIn,'\n\tOut: ',QueryOut,'\n\n']),
   !.
 
@@ -1141,8 +1141,9 @@ rewritePlanforCSE(PlanIn, PlanOut, SelectIn, SelectOut) :-
                   '\n   Rewritten Select:',SelectOut,'.\n']),
   dm(rewritePlan,['rewritePlanforCSE: Attrs needed in Select clause: ',
                   SelectAttrs,'.\n']),
+  dm(rewritePlan,['rewritePlanforCSE: ExtensionSequence', ExtensionSequence, '\n']),
   removeUnusedAttrs(Plan2,Plan3,SelectAttrs), 
-  removeDublets(ExtensionSequence,SelectAttrs,ExtensionSequence2),
+  removeDublets(ExtensionSequence,AvailAttrs,ExtensionSequence2),
   dm(rewritePlan,['rewritePlanforCSE: Extend with virt attrs ',
                   ExtensionSequence2,'.\n']),
   extendPhrase(Plan3, ExtensionSequence2, PlanOut), 
