@@ -52,6 +52,7 @@ place.)
 The operator with the "right" syntax can be found in
 TemporalLiftedAlgebra.
 
+01.06.2006 Christian D[ue]ntgen added operator ~bbox~ for ~range~-types.
 
 [TOC]
 
@@ -1920,6 +1921,7 @@ RangeRangeTypeMapRange( ListExpr args )
   return nl->SymbolAtom( "typeerror" );
 }
 
+
 /*
 16.1.6 Type mapping function ~RangeTypeMapBase~
 
@@ -2421,7 +2423,7 @@ ListExpr MPointTypeMapTranslate( ListExpr args )
 }
 
 /*
-16.1.15 Type mapping function "box3d"
+16.1.16 Type mapping function "box3d"
 
 */
 ListExpr Box3dTypeMap(ListExpr args){
@@ -2451,7 +2453,7 @@ ListExpr Box3dTypeMap(ListExpr args){
 }
 
 /*
-16.1.15 Type mapping function "box2d"
+16.1.17 Type mapping function "box2d"
 
 */
 ListExpr Box2dTypeMap(ListExpr args)
@@ -2463,6 +2465,35 @@ ListExpr Box2dTypeMap(ListExpr args)
 
     if( nl->IsEqual( arg1, "rect3" ) )
       return nl->SymbolAtom( "rect" );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+16.1.18 Type mapping function "TemporalBBoxTypeMap" 
+
+For operator ~bbox~
+
+*/
+
+ListExpr TemporalBBoxTypeMap( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+
+    if( nl->IsEqual( arg1, "upoint" ) )
+      return (nl->SymbolAtom( "rect3" ));
+
+    if( nl->IsEqual( arg1, "rint" )  )
+      return (nl->SymbolAtom( "rint" ));
+
+    if( nl->IsEqual( arg1, "rreal" ) )
+      return (nl->SymbolAtom( "rreal" ));
+
+    if( nl->IsEqual( arg1, "periods" ) )
+      return (nl->SymbolAtom( "periods" ));
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -2840,6 +2871,31 @@ int Box3dSelect(ListExpr args){
   return -1; // when this occurs, the type mapping is not correct
 
 }
+
+/*
+Selection function for the bbox operator
+
+*/
+
+int TemporalBBoxSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+
+  if( nl->SymbolValue( arg1 ) == "upoint" )
+    return 0;
+
+  if( nl->SymbolValue( arg1 ) == "rint" )
+    return 1;
+
+  if( nl->SymbolValue( arg1 ) == "rreal" )
+    return 2;
+
+  if( nl->SymbolValue( arg1 ) == "periods" )
+    return 3;
+
+  return -1; // This point should never be reached
+}
+
 
 /*
 16.3 Value mapping functions
@@ -3220,6 +3276,24 @@ int RangeNoComponents( Word* args, Word& result, int message,
    ((Range*)args[0].addr)->GetNoComponents() );
   return 0;
 }
+
+/*
+16.3.17 Value mapping functions of operator ~rbbox~
+
+*/
+template <class Range>
+int RangeBBox( Word* args, Word& result, int message, Word&
+ local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  if( ((Range*)args[0].addr)->IsEmpty() )
+    ((Range*)result.addr)->SetDefined( false );
+  else
+    ((Range*)args[0].addr)->RBBox( *(Range*)result.addr);
+  return 0;
+}
+
 
 /*
 16.3.23 Value mapping functions of operator ~trajectory~
@@ -3786,6 +3860,19 @@ ValueMapping temporalnocomponentsmap[] = { RangeNoComponents<RInt>,
                                            MappingNoComponents<MReal, CcReal>,
                                            MappingNoComponents<MPoint, Point>};
 
+/*
+ValueMapping temporalrbboxmap[] = { RangeBBox<RInt>,
+                                    RangeBBox<RReal>,
+                                    RangeBBox<Periods> };
+
+*/
+
+ValueMapping temporalbboxmap[] = { UPointBBox,
+                                   RangeBBox<RInt>,
+                                   RangeBBox<RReal>,
+                                   RangeBBox<Periods> };
+
+
 ValueMapping temporalinstmap[] = { IntimeInst<CcBool>,
                                    IntimeInst<CcInt>,
                                    IntimeInst<CcReal>,
@@ -3812,9 +3899,9 @@ ValueMapping temporaldeftimemap[] = { MappingDefTime<MBool>,
                                       MappingDefTime<MPoint> };
 
 ValueMapping temporalpresentmap[] = { MappingPresent_i<MBool>,
-                      MappingPresent_i<MInt>,
-                        MappingPresent_i<MReal>,
-              MappingPresent_i<MPoint>,
+                                      MappingPresent_i<MInt>,
+                                      MappingPresent_i<MReal>,
+                                      MappingPresent_i<MPoint>,
                                       MappingPresent_p<MBool>,
                                       MappingPresent_p<MInt>,
                                       MappingPresent_p<MReal>,
@@ -4026,6 +4113,17 @@ const string TemporalSpecNoComponents =
   "<text>no_components ( mpoint1 )</text--->"
   ") )";
 
+const string TemporalSpecRBBox  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>range(x) -> range(x)</text--->"
+  "<text>bbox ( _ )</text--->"
+  "<text>Range with the smallest closed interval"
+  "\ncontaining all the argument's intervals.</text--->"
+  "<text>bbox ( range1 )</text--->"
+  ") )";
+
+
 const string TemporalSpecInst  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
@@ -4150,9 +4248,12 @@ const string TemporalSpecUnits  =
 const string TemporalSpecBBox  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text>upoint -> rect3</text--->"
+  "( <text>upoint -> rect3 \n"
+  "range(x) -> range(x)</text--->"
   "<text>bbox ( _ )</text--->"
-  "<text>Returns the 3d bounding box of the unit.</text--->"
+  "<text>Returns the 3d bounding box of the unit (for upoint)\n"
+  "or the range with the smallest closed interval that\n"
+  "contains all intervals of a range-value (for range-value).</text--->"
   "<text>query bbox( upoint1 )</text--->"
   ") )";
 
@@ -4375,6 +4476,16 @@ Operator temporalnocomponents( "no_components",
                                TemporalSetValueSelect,
                                TemporalSetValueTypeMapInt );
 
+/*
+operator temporalrbbox( "bbox",
+                        TemporalSpecRBBox,
+                        3,
+                        temporalrbboxmap,
+                        RangeSimpleSelect,
+                        RangeTypeMapRange );
+
+*/
+
 Operator temporalinst( "inst",
                        TemporalSpecInst,
                        4,
@@ -4471,11 +4582,21 @@ Operator temporalunits( "units",
                         MovingSimpleSelect,
                         MovingTypeMapUnits );
 
+/*
 Operator temporalbbox( "bbox",
                        TemporalSpecBBox,
                        UPointBBox,
                        Operator::SimpleSelect,
                        UPointTypeMapRect3 );
+
+*/
+
+Operator temporalbbox( "bbox",
+                       TemporalSpecBBox,
+                       4,
+                       temporalbboxmap,
+                       TemporalBBoxSelect,
+                       TemporalBBoxTypeMap );
 
 Operator temporaltranslate( "translate",
                        MPointSpecTranslate,
@@ -4612,6 +4733,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalmin );
     AddOperator( &temporalmax );
     AddOperator( &temporalnocomponents );
+    //    AddOperator( &temporalrbbox );
 
     AddOperator( &temporalinst );
     AddOperator( &temporalval );

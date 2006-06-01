@@ -38,6 +38,10 @@ the equality of values.
 16.03.2006 Juergen Schmidt:
 Added ~ConstTemporalUnit:EqualValue~
 
+31.05.2006 Christian D[ue]ntgen:
+Adding ~Range<Alpha>::RBBox~ for constructing the range consisting 
+of only one minimal interval, that contains all intervals from a range type
+
 [TOC]
 
 1 Overview
@@ -497,6 +501,7 @@ before on a contrary order, i.e., ~x before Y~.
 */
     void Intersection( const Range<Alpha>& r, Range<Alpha>& result ) const;
 
+
 /*
 3.3.5.10 Operation ~union~
 
@@ -556,6 +561,20 @@ before on a contrary order, i.e., ~x before Y~.
 
 */
     int GetNoComponents() const;
+
+/*
+3.3.5.15 Operation ~bbox~ for ~range~-types
+
+*Precondition:* ~X.IsOrdered() $\&\&$ Result.IsEmpty()~
+
+*Semantics:* The range with the smallest interval, that contains all intervals within $X$.
+
+*Complexity:* $O(1)$
+
+*/
+    void RBBox( Range<Alpha>& result ) const;
+
+
 
   private:
 /*
@@ -3514,6 +3533,27 @@ int Range<Alpha>::GetNoComponents() const
 {
   return intervals.Size();
 }
+
+template <class Alpha>
+void Range<Alpha>::RBBox( Range<Alpha>& result ) const
+{
+  assert( IsValid() && result.IsEmpty() );
+  
+  if( IsEmpty() )
+    result.SetDefined( false );
+  else
+  {
+    Alpha minIntervalMin;
+    Alpha maxIntervalMax;
+
+    Minimum( minIntervalMin );
+    Maximum( maxIntervalMax );
+
+    Interval<Alpha> interval( minIntervalMin, maxIntervalMax, true, true);
+    result.Add(interval);
+  }
+}
+
 
 template <class Alpha>
 bool Range<Alpha>::IsValid() const
