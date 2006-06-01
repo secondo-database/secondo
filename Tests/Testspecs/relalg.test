@@ -374,6 +374,10 @@ query twenty feed odd feed rename[A] product sort ten feed odd feed rename[A] pr
 #yields (int 0)
 query twenty feed head[0] odd feed mergesec count
 
+#testcase Sec4
+#yields (int 2)
+query ten feed head[2] rdup ten feed head[2] rdup mergesec count
+
 #testcase Union1
 #yields (int 20)
 query twenty feed odd feed mergeunion count

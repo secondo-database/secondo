@@ -50,6 +50,9 @@ reference counters. There are reference counters on tuples and also
 on attributes. Some assertions were removed, since the code is
 stable.
 
+June 2006, Corrected a bug caused by improper reference counting of tuples observed in  
+operator ~mergesec~.
+
 [TOC]
 
 1 Includes and defines
@@ -1794,13 +1797,18 @@ int RdupValueMapping(Word* args, Word& result, int message,
         qp->Request(args[0].addr, tuple);
         if(qp->Received(args[0].addr))
         {
+          // stream deliverd a new tuple
           if(local.addr != 0)
           {
+            // there is a last tuple
             currentTuple = (Tuple*)tuple.addr;
             lastOutputTuple = (Tuple*)local.addr;
             if(cmp(currentTuple, lastOutputTuple)
               || cmp(lastOutputTuple, currentTuple))
             {
+              // tuples are not equal. Return the tuple
+              // stored in local info and stor the current one
+              // there.
               lastOutputTuple->DecReference();
               lastOutputTuple->DeleteIfAllowed();
               local = SetWord(currentTuple);
@@ -1810,11 +1818,13 @@ int RdupValueMapping(Word* args, Word& result, int message,
             }
             else
             {
+              // tuples are equal
               currentTuple->DeleteIfAllowed();
             }
           }
           else
           {
+            // no last tuple stored
             currentTuple = (Tuple*)tuple.addr;
             local = SetWord(currentTuple);
             currentTuple->IncReference();
@@ -1824,6 +1834,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
         }
         else
         {
+          // last tuple of the stream
           lastOutputTuple = (Tuple*)local.addr;
           if(lastOutputTuple != 0)
           {
@@ -1836,11 +1847,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
       }
     case CLOSE:
       if( local.addr != 0 )
-      {
-        lastOutputTuple = (Tuple*)local.addr;
-        lastOutputTuple->DecReference();
-        lastOutputTuple->DeleteIfAllowed();
-      }  
+        assert(false);
       qp->Close(args[0].addr);
       return 0;
   }
@@ -1982,8 +1989,9 @@ private:
   Tuple* NextATuple(bool deleteOldTuple)
   {
     Word tuple;
-    if(deleteOldTuple && currentATuple != 0)
+    if(deleteOldTuple && (currentATuple != 0))
     {
+      currentATuple->DecReference();
       currentATuple->DeleteIfAllowed();
     }
 
@@ -1991,6 +1999,7 @@ private:
     if(qp->Received(streamA.addr))
     {
       currentATuple = (Tuple*)tuple.addr;
+      currentATuple->IncReference();
       return currentATuple;
     }
     else
@@ -2003,8 +2012,9 @@ private:
   Tuple* NextBTuple(bool deleteOldTuple)
   {
     Word tuple;
-    if(deleteOldTuple && currentBTuple != 0)
+    if(deleteOldTuple && (currentBTuple != 0))
     {
+      currentBTuple->DecReference();
       currentBTuple->DeleteIfAllowed();
     }
 
@@ -2012,6 +2022,7 @@ private:
     if(qp->Received(streamB.addr))
     {
       currentBTuple = (Tuple*)tuple.addr;
+      currentBTuple->IncReference();
       return currentBTuple;
     }
     else
@@ -2023,7 +2034,9 @@ private:
 
   bool TuplesEqual(Tuple* a, Tuple* b)
   {
-    return !(smallerThan(a, b) || smallerThan(b, a));
+    const bool t1 = smallerThan(a, b);
+    const bool t2 = smallerThan(b, a);
+    return !(t1 || t2);
   }
 
 public:
@@ -2071,9 +2084,11 @@ public:
             {
               NextBTuple(true);
             }
+            result->DecReference();
           }
           else
           {
+            currentBTuple->DecReference();
             currentBTuple->DeleteIfAllowed();
             return 0;
           }
@@ -2092,9 +2107,11 @@ public:
             {
               NextATuple(true);
             }
+            result->DecReference();
           }
           else
           {
+            currentATuple->DecReference();
             currentATuple->DeleteIfAllowed();
             return 0;
           }
@@ -2116,6 +2133,7 @@ public:
             {
               NextATuple(true);
             }
+            tmp->DecReference();
             if(!outputAWithoutB)
             {
               tmp->DeleteIfAllowed();
@@ -2135,6 +2153,7 @@ public:
             {
               NextBTuple(true);
             }
+            tmp->DecReference();
             if(!outputBWithoutA)
             {
               tmp->DeleteIfAllowed();
@@ -2161,6 +2180,7 @@ public:
             {
               NextBTuple(true);
             }
+            match->DecReference();
             if(!outputMatches)
             {
               match->DeleteIfAllowed();
@@ -2871,6 +2891,10 @@ ListExpr LoopjoinTypeMap(ListExpr args)
 
 /*
 2.19.2 Value mapping function of operator ~loopjoin~
+
+SPM: There is a problem when this operator is requested after
+it has returned CANCEL it will chrash since it tryes to do a
+request on a NULL pointer.
 
 */
 
