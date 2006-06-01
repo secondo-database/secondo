@@ -1204,19 +1204,15 @@ static ListExpr pjoin2_tm(ListExpr args)
 {
   NList l(args);
   
-  //cout << "pjoin2_tm --------------------->" << endl;
-  //cout << l << endl;
-  //cout << "<---------------------" << endl;
-  
   static const string e1 = expects( sym.stream, sym.ptuple, "y1" );
   static const string e2 = expects( sym.stream, sym.ptuple, "y2" );
 
-  static string err1 = "Expecting input (" 
+  static string err1 = "Expecting input ( string" 
                        + e1 + " " + e2
                        + " (list of join-expressions) ";
                        //+ " (list of cost-functions) )!";
   
-  if ( !checkLength( l, 3, err1 ) )
+  if ( !checkLength( l, 4, err1 ) )
     return l.typeError( err1 );
   
   NList attrs1;
@@ -1228,16 +1224,22 @@ static ListExpr pjoin2_tm(ListExpr args)
     return l.typeError( argNotCorrect(2) + err1);
 
   
+  if ( l.third().str() != Symbols::STRING() )
+    return l.typeError( argNotCorrect(3) + err1);
+   
   // Test the parameter function's signature 
   static const string 
-  err2 = "Expecting as third argument a list of functions of type "
+  err2 = "Expecting as fourth argument a list of functions of type "
          "(map (stream(tuple(y1))) (stream(tuple(y1))) (stream(tuple(z))))";
   
-  NList joinMaps = l.third();
+  NList joinMaps = l.fourth();
   NList lastResultAttrs;
   NList fNames;
   
   int joinMapsLength = joinMaps.length();
+  if (joinMapsLength < 0)
+    return l.typeError( "Empty list of functions! " + argNotCorrect(4) + err2);
+    
   for (int i=1; i < (joinMapsLength+1); i++)
   { 
     vector<NList> sig;
@@ -1359,12 +1361,17 @@ struct PTupleBuffer
       return buf->GetNoTuples(); 
     }
     
-    inline int getNoTuplesOfCompleteParts() { 
+    int getNoTuplesOfCompleteParts() { 
       return tuplesCompleteParts; 
     }
     
-    inline int getRequestedTuples() {
+    int getRequestedTuples() {
        return tuplesCurrentPart + tuplesCompleteParts;
+    }   
+
+    void setRequestedTuples(const int num) {
+       tuplesCurrentPart = 0;
+       tuplesCompleteParts = num;
     }   
 
     inline bool end() const { 
@@ -1410,25 +1417,6 @@ th ~TupleBuffer~ until a memory overflow is reached.
         return false;
     }
    
-   /* 
-    inline bool storeNextTuple2() {
-    
-       // get next tuple from input 
-       Tuple* t = (Tuple*) is.getNext();
-       if (t) 
-       {
-           //TRACE(pre << "Tuple received!")
-           buf->AppendTuple(t);
-           tuplesCurrentPart++;
-           tuplesCompleteParts = tuplesCurrentPart;
-           return true;
-       }
-       endReached = true;
-       return false;
-    }
-    */
-
-    
     bool getNextTuple(Word& result)
     {
       // use the internal Buffer if requested
@@ -1571,7 +1559,7 @@ template<class StreamType>
     
     JoinState state;
 
-    int maxMem;
+    const int maxMem;
     
     // index between [0,n-1] pointing to the best evaluation function
     int bestPos;
@@ -1586,6 +1574,7 @@ template<class StreamType>
     int resultTuples;
     
     float joinSel;
+    bool isSelfJoin;
     
     long probeJoinCPU;
     int& instanceNum;
@@ -1594,8 +1583,11 @@ template<class StreamType>
 
     PartCtr parts;
         
-    PJoinInfo( StreamOpAddr left, StreamType right, 
-               int& instanceCtr, const int mem = 1024*1024 ) : 
+    PJoinInfo( StreamOpAddr left, 
+               StreamType right, 
+               int& instanceCtr, 
+               bool selfJoinFlag = false, 
+               int mem = 1024*1024         ) : 
       evalFuns(0), 
       leftIs(left),
       rightIs(right), 
@@ -1609,11 +1601,12 @@ template<class StreamType>
       rightAvgTupSize(0),
       resultTuples(0),
       joinSel(0.0),
+      isSelfJoin(selfJoinFlag),
       probeJoinCPU(0),
       instanceNum(instanceCtr)
     {
       instanceNum++;
-      TRACE_FILE("pjoin2.traces")
+      TRACE_FILE("pjoin.traces")
 
       leftBuf = new PTupleBuffer<StreamOpAddr>( "left", leftIs, maxMem );
       rightBuf = new PTupleBuffer<StreamType>( "right", rightIs, maxMem );
@@ -1693,6 +1686,13 @@ input, output, and result stream.
        if (resultTuples == 0)
          cerr << "Warning: probejoin returned no tuples!" << endl;
 
+       /* 
+       if (isSelfJoin)
+       {
+         float selfJoinTuples = (1.0 * leftRead * leftRead / leftCard);
+       } 
+       */
+       
        joinSel = (1.0 * max(resultTuples,1)) / (leftRead * rightRead);
        SHOW(joinSel)
        
@@ -1875,9 +1875,10 @@ static int pjoin2_vm( Word* args, Word& result, int message,
 {
   // args[0]: Input stream(ptuple(y1))) 
   // args[1]: Input stream(ptuple(y2))) 
-  // args[2]: A list of map stream(tuple(y1)))x stream(tuple(y2)) 
+  // args[2]: A string which defines if the join is a self join or not 
+  // args[3]: A list of map stream(tuple(y1)))x stream(tuple(y2)) 
   //          -> stream(tuple(z))
-  // args[3]: A list of symbols for evaluation function names
+  // args[4]: A list of symbols for evaluation function names
 
   static const string pre("pjoin2: ");
   static int instanceCtr = 0;
@@ -1896,12 +1897,15 @@ static int pjoin2_vm( Word* args, Word& result, int message,
       // initialze local storage
       StreamOpAddr left(args[0].addr);
       StreamOpAddr right(args[1].addr);
-      pj = new PJoin2_Info(left, right, instanceCtr); 
+      string joinType = StdTypes::RequestString(args[2]);
+      SHOW(joinType)
+      bool isSelfJoin = joinType == "selfjoin"; 
+      pj = new PJoin2_Info(left, right, instanceCtr, isSelfJoin); 
       local.addr = pj;
     
       FunVector& evalFuns = *(pj->evalFuns); 
       // load functions into funvector 
-      evalFuns.load(args[2], &args[3], true);
+      evalFuns.load(args[3], &args[4], true);
 
       // save caller node in argument vectors 
       for (size_t i=0; i < evalFuns.size(); i++ )
@@ -2166,9 +2170,9 @@ static int pjoin1_vm( Word* args, Word& result, int message,
       // initialze local storage
       StreamOpAddr left(args[0].addr);
       GenericRelation* r = requestArg<GenericRelation>( args[1] );
-      SHOW(r->GetNoTuples())
       RelationAddr right(r);
       right.open();
+      
       
       pj = new PJoin1_Info(left, right, instanceCtr); 
       local.addr = pj;
@@ -2192,6 +2196,11 @@ static int pjoin1_vm( Word* args, Word& result, int message,
       // open the output stream of the first function
       // and do the probe join
       pj->runProbeJoin();
+
+      // correct the right PTupleBuffer's information about requested
+      // tuples. Since we do not request the Buffer will have only the
+      // number of probe tuples.
+      pj->rightBuf->setRequestedTuples( r->GetNoTuples() );
 
       return 0;
     }
@@ -2563,13 +2572,19 @@ class PartStreamAlgebra : public Algebra
       AddOperator( op );
      
         oi.name =      "pjoin2";
-        oi.signature = "( stream(ptuple(y1)) stream(ptuple(y2)) "
+        oi.signature = "( string stream(ptuple(y1)) stream(ptuple(y2)) "
                        "( ( map (stream(tuple(y1))) (stream(tuple(y2))) "
                        "(stream(tuple(z))) ) ... N repeats ... ))" 
                        "-> (stream(ptuple(z))).";
-        oi.syntax =    "_ _ pjoin2[ f1: expr1, f2: expr2, ... ]";
+        oi.syntax =    "_ _ pjoin2[ flag; f1: expr1, f2: expr2, ... ]";
         oi.meaning =   "Implements the adaptive join for two relations "
-                       "given as streams.";
+                       "given as streams. Function f1 will be used for the"
+                       "probe join. Each function must have one of the names"
+                       "symj (symmjoin), smj (sortmergejoin), hj (hashjoin), "
+                       "ilj (index-loopjoin). The string value flag = "
+                       "\"selfjoin\" indicates that tuples of the same "
+                       "relation are joined which implies special care for "
+                       "the join selectivity estimation.";
         oi.example =   "plz pfeed[100] plz pfeed[100] "
                        " pjoin2[ symj: . .. {arg2} symjoin[.PLZ = .PLZ_arg2]] "
                        "pdelete count"; 
