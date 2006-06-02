@@ -29,9 +29,11 @@ geo
 # Files by name
 
 nonpublic.filelist
+
 CM-Scripts/cvs-make.sh
 CM-Scripts/cvspass.pl
 CM-Scripts/mkpublic.sh
+
 Javagui/viewer/hoese/algebras/periodic/BBox.java
 Javagui/viewer/hoese/algebras/periodic/LinearMove.java
 Javagui/viewer/hoese/algebras/periodic/PMPLinear.java
@@ -51,8 +53,10 @@ Javagui/viewer/hoese/algebras/Dsplpmpoints.java
 Javagui/viewer/hoese/algebras/Dsplpmreal.java
 Javagui/viewer/hoese/algebras/Dsplpmrect.java
 Javagui/viewer/hoese/algebras/Dsplpmregion.java
+
 Documents/JavaWrapper.pdf
 
+Optimizer/adaptiveJoin.pl
 
 # Files by suffix 
 
