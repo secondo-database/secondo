@@ -3537,7 +3537,7 @@ int Range<Alpha>::GetNoComponents() const
 template <class Alpha>
 void Range<Alpha>::RBBox( Range<Alpha>& result ) const
 {
-  assert( IsValid() && result.IsEmpty() );
+  assert( IsValid() );
   
   if( IsEmpty() )
     result.SetDefined( false );
@@ -3550,6 +3550,7 @@ void Range<Alpha>::RBBox( Range<Alpha>& result ) const
     Maximum( maxIntervalMax );
 
     Interval<Alpha> interval( minIntervalMin, maxIntervalMax, true, true);
+    result.Clear();
     result.Add(interval);
   }
 }
