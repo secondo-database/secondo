@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 May 23, 2006. M. Spiekermann. Inital version 
 
+June 02, 2006. M. Spiekermann. Support for index selections added.
 
 This file contains clauses which translate a plan computed by the
 standardoptimizer into a plan using operators of the
@@ -140,6 +141,11 @@ $pdelete(...)$ into a plan using appropriate ~puse~ and ~pfeed~ operations.
 
 */
 
+
+btreeOp(exactmatch).
+btreeOp(leftrange).
+btreeOp(rightrange).
+
 makePStreamRec(Plan, pdelete(PStream), _) :-
   Plan =.. [ pdelete | Arg ],
   makePStreamRec(Arg, Term, Source),
@@ -167,6 +173,20 @@ Terminate the recursion when a tuple source is recognized
 
 */
 makePStreamRec(feed(Rel), pfeed(Rel,100), pfeed(Rel,100)).
+
+
+/*
+Rewrite index selections into application of ~pcreate~
+
+*/
+makePStreamRec(Term, Result, Result) :-
+  Term =.. [Functor | [_, rel(_, _, _), _] ],
+  btreeOp(Functor),
+  writeln('BTree operation on base relation detected!'),
+  Result =.. [ pcreate | [Term, 100] ].
+  
+ 
+  
 
 /*
 Decompose a term into $[Functor | Args ]$ and make recursive calls for

@@ -103,6 +103,7 @@ secondoOp(product, postfix, 2).
 secondoOp(filter, postfixbrackets, 2).
 secondoOp(puse, postfixbrackets, 2).
 secondoOp(pfeed, postfixbrackets, 2).
+secondoOp(pcreate, postfixbrackets, 2).
 secondoOp(loopjoin, postfixbrackets, 2).
 secondoOp(exactmatch, postfixbrackets, 3).
 secondoOp(leftrange, postfixbrackets, 3).
