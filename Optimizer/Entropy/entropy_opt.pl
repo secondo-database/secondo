@@ -39,6 +39,9 @@ May 2006. M. Spiekermann. Creation and update mechanism for relation objects.
 This may be useful for a deeper analysis of the quality of cardinality
 estimations.
 
+June 2006. Generic predicates for displaying lists of tuples as formatted tables
+added. This helps to get an quick overview about the different estimation values.
+
 */
 
 
@@ -66,86 +69,134 @@ estimations.
    
 
 /*
-Some clauses which print the estimated sizes of the standard optimizer
-and compares them with the sizes calculated by the entropy approach.
+2 Tools for Evaluation of the Entropy Approach
+
+Below there are some clauses which print the estimated sizes of the standard optimizer
+and compares them with the sizes calculated by the entropy approach. Moreover,
+it is possible to compute the ~real~ nod sizes and to store the queries and
+the estimations in SECONDO relation objects.
+
+
+2.1 Construction of Single Tuples
 
 */
 
-writeFirstSize :-
-  firstResultSize(Node, Size),
-  writeNodeInfo(Node, Size),
-  fail.
- 
-writeFirstSize :-
-  firstEdgeSelectivity(Source, Target, Sel),
-  writeEdgeInfo(Source, Target, Sel),
-  fail.
- 
-writeFirstSizes :- not(writeFirstSize).
 
-compareSize :-
-  firstResultSize(Node, Size1),
-  resultSize(Node, Size2),
-  write('Node: '), write(Node),
-  write(', Size: '), write(Size1),
-  write(' ==> '), write(Size2), nl, nl,
-  fail.
- 
-compareSize :-
-  firstEdgeSelectivity(Source, Target, Sel1),
-  edgeSelectivity(Source, Target, Sel2),
-  write('Source: '), write(Source),
-  write(', Target: '), write(Target),
-  write(', Selectivity: '), write(Sel1),
-  write(' ==> '), write(Sel2), nl, nl,
-  fail.
- 
-compareSizes :- not(compareSize).
+createCompareSizeTuple(Node,[ Node, FirstSize, EntropySize ]) :-
+  firstResultSize(Node, FirstSize),
+  resultSize(Node, EntropySize).
+
+createCompareSelTuple(Source, Target, [ Source, Target, SelStd, SelEntropy ]) :-
+  firstEdgeSelectivity(Source, Target, SelStd),
+  edgeSelectivity(Source, Target, SelEntropy).
+
+createNodeSize(Node, SizeStd, SizeEntropy, SizeReal) :-
+  firstResultSize(Node, SizeStd),
+  resultSize(Node, SizeEntropy),
+  realResult(Node, SizeReal).
 
 /*
+2.2 Generic display for printing relations as formatted tables 
+
+*/
+ 
+showTuples(L, TupFormat) :-
+  nl, nl, 
+  showHeader(TupFormat, WriteSpec),  
+  showTuplesRec(L, WriteSpec).
+ 
+showTuplesRec([], _).
+
+showTuplesRec([H|T], WriteSpec) :-
+  showTupleRec(H, WriteSpec), nl,
+  showTuplesRec(T, WriteSpec).
+
+showTupleRec([], _).
+
+showTupleRec([H|T], [Wh|Wt]) :- 
+  writef(Wh, [H]),
+  showTupleRec(T, Wt).
+
+showHeader(L, WriteSpec) :-
+  showHeaderRec(L, [], HeadList, [], WriteSpec, 0, Len),
+  showTuplesRec([HeadList], WriteSpec),
+  writef('%r', ['-', Len]), nl.
+ 
+showHeaderRec([], L1, L1, L2, L2, N, N).
+ 
+showHeaderRec([H|T], Tmp1, Res1, Tmp2, Res2, Tmp3, Res3 ) :-
+  H = [Attr, Adjust],
+  atom_length(Attr, Len),
+  FieldLen is Len + 4,
+  TotalLen is Tmp3 + FieldLen,
+  concat_atom(['%', FieldLen, Adjust], WriteSpec),
+  append(Tmp1, [Attr], L1),
+  append(Tmp2, [WriteSpec], L2),
+  showHeaderRec(T, L1, Res1, L2, Res2, TotalLen, Res3 ).
+
+/*
+2.3 User Interface for displaying Estimation Values 
+
+The predicate ~compareEstimations/0~ displays values for node sizes
+and selectivity estimations of the standard and entropy approach.
+
 The predicate ~allSizes/0~ computes the real cardinlities of the
 POG and creates or updates two relation objects (Nodesizes and Queries).
 The tuples can be joined by attribute ~Qid~ and contain information about
-the estimated and real sizes and some facts about the query.
+the estimated and real sizes and some facts about the query. It uses the
+predicate ~computeCards~ of the standard optimizer.
+
+Predicate ~showAllSizes/0~ displays already computed values.
 
 */
+ 
+compareSizes :-
+ compareEstimations.
+
+compareEstimations :-
+ compareNodeSizes,
+ compareEdgeSels. 
 
 allSizes :-
   computeCards,
   showAllSizes,
   createOrUpdateRels.
 
+/*
+Collect all values stored in dynamic predicate into lists and pretty print
+them as tables.
+
+*/
+ 
+compareNodeSizes :-
+ findall(X, createCompareSizeTuple(_, X), L ),
+ TupFormat = [ ['Node', 'c'], 
+               ['SizeStd', 'l'], 
+               ['SizeEntropy', 'l'] ],
+ showTuples(L, TupFormat). 
+
+
+compareEdgeSels :-
+ findall(X, createCompareSelTuple(_, _, X), L ),
+ Format = [ ['Source', 'c'], 
+            ['Target', 'c'], 
+            ['SelStd', 'l'], 
+            ['SelEntropy', 'l'] ],
+ showTuples(L, Format). 
+
+
 showAllSizes :-
-  nCounter(qid, Qid),
-  findall([Qid, N, S1, S2, S3], createNodeSize(N, S1, S2, S3), InfoList),
-  showNodeSize(InfoList).
+  findall([N, S1, S2, S3], createNodeSize(N, S1, S2, S3), L),
+  Format = [ ['Node', 'c'], 
+             ['SizeStd', 'l'], 
+             ['SizeEntropy', 'l'], 
+             ['SizeReal', 'l'] ],
+  showTuples(L, Format). 
  
- 
-createNodeSize(Node, SizeStd, SizeEntropy, SizeReal) :-
-  firstResultSize(Node, SizeStd),
-  resultSize(Node, SizeEntropy),
-  realResult(Node, SizeReal).
-  
-showNodeSizeRec([]).
-
-showNodeSizeRec([[_, Node, SizeStd, SizeEntropy, SizeReal]|T]) :-
-  write(Node), write('\t'),
-  write(SizeStd), write('\t\t'),
-  write(SizeEntropy), write('\t\t'),
-  write(SizeReal), nl,
-  showNodeSizeRec(T).
-
-showNodeSize(List) :-
-  write('Node \tSizeStd \tSizeEntropy \tSizeReal'), nl,
-  write('---------------------------------------------------'), nl,
-  showNodeSizeRec(List).
- 
-
-
  
 /*
-Predicate ~convertList/3~ converts a nested prolog list into an atom which contains a nested list
-in SECONDO format.
+Predicate ~convertList/3~ converts a nested prolog list into an atom which
+contains a nested list in SECONDO format.
 
 */
  
@@ -176,6 +227,11 @@ concatWithSpace(Atom1, Atom2, Result) :-
   atom_concat(Atom1, ' ', Tmp),
   atom_concat(Tmp, Atom2, Result).
  
+appendWithTab(Atom1, Atom2, Result) :-
+  atom_concat(Atom1, Atom2, Tmp),
+  atom_concat(Tmp, '\t', Result).
+
+ 
 parenthesize(Atom, Result) :-
   atom_concat('(', Atom, Tmp),
   atom_concat(Tmp, ')',  Result).
@@ -192,6 +248,9 @@ quoteText(Atom, Result) :-
 /*
 Auxiliary clauses for creating a SECONDO relation type, value lists for
 relation objects, and commands to create or update relation objects.
+
+Currently, two relation objects named ~NodeSizes~ and ~Queries~ will be created
+or updated by the predicate
 
 */ 
 
@@ -222,7 +281,11 @@ queryRelObj('Queries', Schema, Values) :-
   L = [[Qid, Query2, Joins, Sels]],
   convertList(L, '', Values).
 
- 
+/*
+Some clauses for testing and debugging
+
+*/
+
 testRels :- 
   nodeSizeRelObj(N1, S1, V1),
   showCmds(N1, S1, V1),
@@ -263,8 +326,8 @@ runCmd(_, Obj, S, V) :-
   secondo(Cmd).
  
 /*
-search a relation with name ~Rel~ in the object list ~L~
-returned from getSecondoList(L).
+Search a relation with name ~Rel~ in the object list ~L~
+instantiated by getSecondoList(L).
  
 */
 
@@ -280,10 +343,9 @@ findRelObj([_|T], Obj) :-
  
 
 /*
-The relation objects 'NodeSizes'
 
-
-Create a tuple type suitable for the SECONDO-Parser, e.g.
+Auxiliary clauses for creating SECONDO ~let~ and ~update~ 
+comamnds. Therefore the tuple type must be written as 
 
 ----
  rel(tuple([attr1: type1, ..., attrN, typeN])
