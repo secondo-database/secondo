@@ -1080,13 +1080,57 @@ int MappingAtPeriodsExtMRegion( Word* args,
                          Supplier s )
 {
     result = qp->ResultStorage( s );
-    //((Mapping*)args[0].addr)->AtPeriods( *((Periods*)args[1].addr),
-    //*((Mapping*)result.addr) );
     MRegion* mr = (MRegion*)args[0].addr;
     Periods* per = (Periods*)args[1].addr;
     MRegion* pResult = (MRegion*)result.addr;
 
-    cout << "Size of MRegion ... " << mr->NumOfFLOBs() << endl;
+    //Periods periods_result;
+    const URegion* utemp;
+    URegion utempout;
+    const Interval<Instant>* temp2;
+    Interval<Instant> temp3;
+    const MSegmentData* oldsmg;
+    MSegmentData newsmg;
+    //const Interval<Instant>* temp4;
+
+    pResult->Clear();
+    pResult->StartBulkLoad();
+    for(int i=0;i<mr->GetNoComponents();i++)
+    {
+        mr->Get(i, utemp);
+        for(int j=0;j<per->GetNoComponents();j++)
+        {
+            per->Get(j, temp2);
+            if((utemp->timeInterval).Intersects(*temp2))
+            {
+                (utemp->timeInterval).Intersection(*temp2, temp3);
+                //utempout = new URegion();
+                (utempout.timeInterval).CopyFrom(temp3);
+                /*for(int k=0;k<utemp->GetSegmentsNum();k++)
+                {
+                    utemp->GetSegment(k, oldsmg);
+                    oldsmg->restrictToInterval(utemp->timeInterval,
+                            temp3,
+                            newsmg);
+                    utempout->PutSegment(k, newsmg);
+                    delete(oldsmg);
+                }*/
+                pResult->Add(utempout);
+                //pResult->Add(*utempout);
+                //delete(utempout);
+            }
+        }
+    }
+    pResult->EndBulkLoad( false );
+
+    /*for(int i=0;i<periods_result.GetNoComponents();i++)
+    {
+        periods_result.Get(i, temp4);
+        cout << endl << i << ": [";
+        cout << (temp4->start).ToString() << " , ";
+        cout << (temp4->end).ToString();
+        cout << "]" << endl;
+    }*/
 
     return 0;
 }
