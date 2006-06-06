@@ -2810,8 +2810,6 @@ abstraction. In this case, it is not evaluable, but we may want to store
 the function in a database object. 
 
 */
-  flobCache->Clear();
-
   ListExpr list = nl->TheEmptyList();
 
   list = AnnotateX( expr, defined );
@@ -2968,6 +2966,12 @@ Deletes an operator tree object.
       default:
         break;
     } /* case */ 
+
+    // Close the files in the FLOB cache to avoid
+    // lots of opened files.
+    if( tree->isRoot )
+      flobCache->Clear();
+
     delete tree;
     tree = 0;
   }
