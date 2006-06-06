@@ -4754,9 +4754,9 @@ int AggregateB(Word* args, Word& result, int message,
       // if the stack contains only one entry, then we are done
       if( aggrStack.size() == 1 )
       {
-        delete (StandardAttribute*)aggrStack.top().value.addr;
         ((StandardAttribute*)result.addr)->
           CopyFrom( (const StandardAttribute*)aggrStack.top().value.addr );
+        delete (StandardAttribute*)aggrStack.top().value.addr;
       }
       else
         // the stack must contain more elements and we call the 
