@@ -503,6 +503,23 @@ class ProductFilterCost : private CostFunction
   
 };
 
+/*
+The index loopjoin will run ~cardA~ times an exactmatch query retrieving matching tuples.
+In order to retrieve the tuples It gets them from a Btree which stores pairs of
+attribute values and tuple ID. These tuple IDs are used to get the tuples from its
+berkeley-db file by random access. A factor $m = sel * cardB$ defines how
+many matches are returned. In the worst case every matching tuple needs a page
+access to load the page where it is stored. The buffer hit ratio is defined as
+$hr =  min(bufferPages / pagesB, 1)$.
+
+Hence we have
+\[
+  read(Btree) = cardA * (avgKeySize + tupIdSize) / pageSize \\
+  read(Rel) = cardA * min(m, pagesB) + (1 - hr) * m 
+\]  
+
+*/
+
 class IndexLoopJoinCost : private CostFunction 
 {
   public:
@@ -513,9 +530,28 @@ class IndexLoopJoinCost : private CostFunction
   
   virtual void costs(const CostParams& p, int& read, int& write, int& cpu)
   {
-     read = 0;
+     TRACE("*** START IndexLoopJoinCost ***")
+     static const int pageSize = WinUnix::getPageSize();
+     static const int bufferPages = 4 * 1024 * 1024 / pageSize;
+     
+     const double avgMatches = p.sel * p.cardB;
+     const double hitRatio = min( (bufferPages * 1.0 / p.pagesB), 1.0 );
+     SHOW(avgMatches)
+     SHOW(hitRatio) 
+     
+     const int readBtree = p.cardA * 20 / pageSize;
+     const int readMatches1 = min( (int)ceil(avgMatches), p.pagesB );
+     const int readMatches2 = 
+                  (int)ceil( p.cardA * (1.0 - hitRatio) * avgMatches );
+     SHOW(readBtree)
+     SHOW(readMatches1) 
+     SHOW(readMatches2) 
+
+     read = readBtree + readMatches1 + readMatches2; 
      write = 0;
-     cpu = 1000;
+     cpu = (int)ceil(p.cardA * avgMatches * 10);
+     
+     TRACE("*** END IndexLoopJoinCost ***")
   }
   
 };

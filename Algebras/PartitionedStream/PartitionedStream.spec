@@ -30,7 +30,7 @@ operator pshow alias PSHOW pattern _ op
 operator puse alias PUSE pattern _ op [ fun ] 
          implicit parameter element type PSTREAM1 
 
-operator pjoin2 alias PJOIN2 pattern _ _ op [ _; funlist ]
+operator pjoin2 alias PJOIN2 pattern _ _ op [ funlist ]
          implicit parameters left, right types PSTREAM1, PSTREAM2
 
 operator pjoin1 alias PJOIN1 pattern _ _ op [ funlist ]
