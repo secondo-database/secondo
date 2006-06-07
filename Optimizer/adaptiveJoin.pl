@@ -24,6 +24,8 @@ May 23, 2006. M. Spiekermann. Inital version
 
 June 02, 2006. M. Spiekermann. Support for index selections added.
 
+June 07, 2006. M. Spiekermann. Support for index loop-joins added.
+
 This file contains clauses which translate a plan computed by the
 standardoptimizer into a plan using operators of the
 ~PartitionedStream-Algebra~. 
@@ -34,34 +36,94 @@ If the optimizer option ~adaptiveJoin~ is switched on, a join will be translated
 into an adaptive join using the translation rules below:
 
 ----
-    join00(S1,S2, pred(X = Y, _, _))
-    
-    =>
-   
-    pjoin2(S1, S2, [ field(attr(symj,_l), 
-                     symmjoin(implicitArg(1), implicitArg(2), X = Y)),
-                     field(attr(hj,_,l), 
-                     hashjoin(implicitArg(1), implicitArg(2), 
-                              attrname(Attr1), attrname(Attr2), 997)),
-                     field(attr(smj,_,l), 
-                     sortmergejoin(implicitArg(1), implicitArg(2), 
-                                   attrname(Attr1), attrname(Attr2))) ])
+
+join(Arg1, arg(N), pr(X=Y, _, _)) => pjoin1( Stream, Rel, Fields ) :-
+  optimizerOption(adaptiveJoin),   
+  try_pjoin1(N, X, Y, Rel, Fields),
+  Arg1 => Stream.
+
+join(arg(N), Arg2, pr(X=Y, _, _)) => pjoin1( Stream, Rel, Fields ) :-
+  optimizerOption(adaptiveJoin),   
+  try_pjoin1(N, X, Y, Rel, Fields),
+  Arg2 => Stream.
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2(Arg1S, Arg2S, Fields) :-
+  optimizerOption(adaptiveJoin), 
+  try_pjoin2(X, Y, Fields).
+
 ----
 
 Note: Currently, there is only a rule for translating an equi join. The terms 
 implicitArg(1) and implicitArg(2) will be converted by plan\_to\_atom into '.'
 and '..' respectively. 
 
-The costs for this operator are defined as $min(hashjoin, sortmergejoin) - 1$,
-hence the optimization algorithm will always choose this alternative. The
-implementation of ~pjoin2~ does a probe join on the incoming streams and
+*/
+
+try_pjoin1(N, X, Y, Rel, Fields) :-
+  isOfSecond(AttrRel, X, Y),
+  isNotOfSecond(AttrStream, X, Y),
+  createpjoin1(AttrStream, N, AttrRel, Rel, Fields).
+
+
+try_pjoin1(N, X, Y, Rel, Fields) :-
+  isOfFirst(attr(Name1, _, Case1), X, Y),
+  isNotOfFirst(attr(Name2, _, Case2), X, Y),
+  % we need to swap arguments here since pjoin assumes 
+  % the relation to be th second argument!
+  AttrStream = attr(Name2, 1, Case1),
+  AttrRel = attr(Name1, 2, Case2),
+  createpjoin1(AttrStream, N, AttrRel, Rel, Fields).
+
+
+createpjoin1(AttrStream, N, AttrRel, Rel, [F1, F2, F3, F4]) :-   
+  %write('AttrStream: '), writeln(AttrStream),
+  %write('AttrRel: '), writeln(AttrRel),
+  argument(N, Rel),
+  writeln(Rel),
+  Rel = rel(_, Var, _),
+  hasIndex(Rel, AttrRel, IndexName, btree),
+  %writeln('pjoin1-hasindex'),
+  RelArg = rename(feed(implicitArg(2)), Var),
+  F1 = field(attr(symj, _, l), symmjoin(implicitArg(1), RelArg, AttrStream =
+  AttrRel)),
+  F2 = field(attr(hj, _, l), hashjoin(implicitArg(1), RelArg,
+  attrname(AttrStream),
+  attrname(AttrRel), 997)),
+  F3 = field(attr(smj, _, l), sortmergejoin(implicitArg(1), RelArg,
+  attrname(AttrStream), attrname(AttrRel))),
+  F4 = field(attr(ilj, _, l), loopjoin(implicitArg(1), rename(exactmatch(IndexName,
+  implicitArg(2), AttrStream), Var))).
+
+
+try_pjoin2(X, Y, [F1, F2, F3]) :- 
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  F1 = field( attr(symj, _, l), 
+              symmjoin(implicitArg(1), implicitArg(2), X = Y)),
+  F2 = field( attr(hj, _, l), 
+              hashjoin( implicitArg(1), implicitArg(2), 
+                        attrname(Attr1), attrname(Attr2), 997)),
+  F3 = field( attr(smj, _, l), 
+              sortmergejoin( implicitArg(1), implicitArg(2), 
+                             attrname(Attr1), attrname(Attr2))).
+
+
+
+/*
+
+The costs for these operators are defined as $min(hashjoin, sortmergejoin) - 1$,
+hence the optimization algorithm will always choose one of them. The
+implementation of the ~pjoin~ operators does a probe join on the incoming tuples and
 estimates the input cardinalities and the output cardinalities. Based on these
 parameters local cost functions (implemented inside the algebra module) are used
-to choose the best alternative. In order to do this streams containing marker
-tuples which contain information about the stream size need to be used. The
+to choose the best alternative. 
+
+In order to suport cardinality estimation streams containing marker
+tuples which contain information about the stream size are used. The
 marker tuples can be created with the operator ~pfeed~. Furthermore the ordinary
 operators of the relation algebra can be applied by using operator ~puse~ which
-passes only normal tuples to its parameter function. 
+passes only normal tuples to its parameter function. For implementation details
+refer to the algebra module ~PartitionedStream~.
 
 Hence after the plan is computed we need to change the operations used for
 creating and modifying tuple streams. Examples for some complete plans
@@ -107,7 +169,19 @@ are presented below:
       puse[.  filter[(.Ort_a = .Ort_b)] ]  
       pdelete  
       count
-  
+ 
+   (4) sql select count(*) from [staedte as s, plz as p] 
+           where [s:sname = p:ort]
+    
+    query 
+      Staedte  pfeed[100]  puse[. project[SName] {s} ] 
+      plz pjoin1[ symj: . ..  feed {p} symmjoin[(.SName_s = ..Ort_p)], 
+                    hj: . ..  feed {p} hashjoin[SName_s, Ort_p, 997], 
+                   smj: . ..  feed {p} sortmergejoin[SName_s, Ort_p], 
+                   ilj: .  loopjoin[plz_Ort ..  exactmatch[.SName_s] {p} ] 
+      ]  
+      pdelete  count
+      
 ----
 
 Obviously the main problems of the plan reorganization are
@@ -132,8 +206,8 @@ makePStream(Path, Plan) :-
   highestNode(Path, N), 
   nodePlan(N, TmpPlan),
   nl, write('TmpPlan: '), write(TmpPlan), nl, nl,
-  makePStreamRec(pdelete(TmpPlan), Plan, _). 
-  %nl, write('Plan: '), write(Plan), nl, nl.
+  makePStreamRec(pdelete(TmpPlan), Plan, _), 
+  nl, write('Plan: '), write(Plan), nl, nl.
 
 /*
 The predicate ~makePStreamRec/3~ translates a plan starting with
@@ -155,7 +229,7 @@ makePStreamRec(Plan, pdelete(PStream), _) :-
   constructPStream(Op1, Source, PStream).
 
 /*
-Note: a ~pjoin2~ operator may also be a tuple source for subsequent puse
+Note: a ~pjoin2~ or ~pjoin1~ operator may also be a tuple source for subsequent puse
 operations, refer to example (3). Hence its translation will be also 
 unified with ~Source~.
 
@@ -168,6 +242,12 @@ makePStreamRec(pjoin2(Arg1, Arg2, Fields), Source, Source) :-
   constructPStream(Arg2S, Source2, PStream2),
   Source = pjoin2(PStream1, PStream2, Fields). 
 
+makePStreamRec(pjoin1(Arg1, Arg2, Fields), Source, Source) :-
+  makePStreamRec(Arg1, Arg1S, Source1),
+  constructPStream(Arg1S, Source1, PStream1),
+  Source = pjoin1(PStream1, Arg2, Fields). 
+
+ 
 /*
 Terminate the recursion when a tuple source is recognized
 
@@ -255,6 +335,9 @@ will be replaced by
  
 constructPStream(Arg, _, Arg) :-
   Arg =.. [ pjoin2 | _ ], !.
+ 
+constructPStream(Arg, _, Arg) :-
+  Arg =.. [ pjoin1 | _ ], !.
  
 constructPStream(Arg, _, Arg) :-
   Arg =.. [ puse | _ ], !.

@@ -1091,6 +1091,13 @@ plan_to_atom(pjoin2(X, Y, Fields), Result) :-
   concat_atom([XAtom, YAtom, 'pjoin2[', FAtom, '] '], '', Result),
   !.
 
+plan_to_atom(pjoin1(X, Y, Fields), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(Fields, FAtom),
+  concat_atom([XAtom, YAtom, 'pjoin1[', FAtom, '] '], '', Result),
+  !.
+
 
 plan_to_atom(spatialjoin(X, Y, A, B), Result) :-
   plan_to_atom(X, XAtom),
@@ -1862,6 +1869,26 @@ operators for joins on "<=", ">=", "<" and ">" here.
 */
 
 /*
+The rules below will be used only if option ~adaptiveJoin~ is set. For
+details refer to ~adaptiveJoin.pl~.
+
+*/ 
+
+join(Arg1, arg(N), pr(X=Y, _, _)) => pjoin1( Stream, Rel, Fields ) :-
+  optimizerOption(adaptiveJoin),   
+  try_pjoin1(N, X, Y, Rel, Fields),
+  Arg1 => Stream.
+
+join(arg(N), Arg2, pr(X=Y, _, _)) => pjoin1( Stream, Rel, Fields ) :-
+  optimizerOption(adaptiveJoin),   
+  try_pjoin1(N, X, Y, Rel, Fields),
+  Arg2 => Stream.
+
+
+
+
+
+/*
 Rules to create mergejoins with interesting orders extension
 
 */
@@ -1971,21 +1998,14 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
   isOfSecond(Attr2, X, Y).
 
 /*
-The rule below will be only used if option ~adaptiveJoin~ is set. For
+The rules below will be used only if option ~adaptiveJoin~ is set. For
 details refer to ~adaptiveJoin.pl~.
 
 */ 
 
-join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2(Arg1S, Arg2S,
-        [F1, F2, F3] )   :-
-  optimizerOption(adaptiveJoin),   
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y),
-  F1 = field(attr(symj, _, l), symmjoin(implicitArg(1), implicitArg(2), X = Y)),
-  F2 = field(attr(hj, _, l), hashjoin(implicitArg(1), implicitArg(2), 
-                             attrname(Attr1), attrname(Attr2), 997)),
-  F3 = field(attr(smj, _, l), sortmergejoin(implicitArg(1), implicitArg(2), 
-                              attrname(Attr1), attrname(Attr2))).
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2(Arg1S, Arg2S, Fields) :-
+  optimizerOption(adaptiveJoin), 
+  try_pjoin2(X, Y, Fields).
 
 
  
@@ -2409,17 +2429,21 @@ cost(spatialjoin(X, Y, _, _), Sel, S, C) :-
   
 
 /*
-costs for pjoin2. Will only be used if option ~adpativeJoin~ is
-enabled.
+costs for pjoin1 and pjoin2. Will only be used if option 
+~adpativeJoin~ is enabled.
 
 */
 
-cost(pjoin2(X, Y, [ _ | _ ]), Sel, S, C) :-
-  cost(sortmergejoin(X, Y, _, _), Sel, S1, C1),
-  cost(hashjoin(X, Y, _, _, 997), Sel, _, C2),
-  S is S1,
-  C is min(C1, C2) - 1.
- 
+cost(pjoin2(_, _, [ _ | _ ]), Sel, Sel, C) :-
+  %cost(sortmergejoin(X, Y, _, _), Sel, S1, C1),
+  %cost(hashjoin(X, Y, _, _, 997), Sel, _, C2),
+  %S is S1,
+  %C is min(C1, C2) - 1.
+  C is 1.
+
+cost(pjoin1(_, _, [ _ | _ ]), Sel, Sel, C) :-
+  C is 0.
+
 cost(extend(X, _), Sel, S, C) :-
   cost(X, Sel, S, C1),
   extendTC(A),
