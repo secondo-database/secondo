@@ -540,6 +540,22 @@ class SubMove{
 
 };
 
+/*
+2.2.3 CSubMove
+
+A CSubmove extend the SubMove type by a duration.
+This class is used for implementing the sons of a
+composite move. The duration contains the sum of durations
+of all predecessors within this composite move. This allows
+a binary search for a given (relative) instant within the
+sons of a composite move.
+
+*/
+class CSubMove: public SubMove{
+public:
+   DateTime duration;
+   void Equalize(const CSubMove* SM);
+};
 
 /*
 
@@ -1116,14 +1132,14 @@ class PMSimple : public StandardAttribute {
 
       DBArray<Unit>* GetLinearMoves();
       DBArray<CompositeMove>* GetCompositeMoves();
-      DBArray<SubMove>* GetCompositeSubMoves();
+      DBArray<CSubMove>* GetCompositeSubMoves();
       DBArray<PeriodicMove>* GetPeriodicMoves();
       RelInterval* GetInterval();
       SubMove* GetSubmove();
   protected:
      DBArray<Unit> linearMoves;
      DBArray<CompositeMove> compositeMoves;
-     DBArray<SubMove> compositeSubMoves;
+     DBArray<CSubMove> compositeSubMoves;
      DBArray<PeriodicMove> periodicMoves;
      bool defined;
      bool canDelete;
@@ -1131,11 +1147,11 @@ class PMSimple : public StandardAttribute {
      DateTime startTime;
      SubMove submove;
 
-   void GetLength(SubMove sm, DateTime& result);
+     void GetLength(SubMove sm, DateTime& result);
 
-   bool GetLeftClosed(SubMove sm);
-   bool GetRightClosed(SubMove sm);
-   void GetInterval(SubMove sm,RelInterval& interval);
+     bool GetLeftClosed(SubMove sm);
+     bool GetRightClosed(SubMove sm);
+     void GetInterval(SubMove sm,RelInterval& interval);
 
      /* the next four functions are needed to convert a
         periodic moving bool to its nested list representation.
@@ -1167,10 +1183,19 @@ class PMSimple : public StandardAttribute {
     SubMove MinimizeRec(SubMove SM, 
                     DBArray<Unit>&                   newLinearMoves,
                     DBArray<CompositeMove>&          newCompositeMoves,
-                    DBArray<SubMove>&                newCompositeSubMoves,
+                    DBArray<CSubMove>&                newCompositeSubMoves,
                     DBArray<PeriodicMove>&           newPeriodicMoves,
                     Unit&                            Summarization,
                     bool&                            CompleteSummarized);
+
+    /*
+     The following function corrects the suration sums within the 
+     composite submove to the correct values.
+     This simplifies the operations changing the periodic moving object.
+     Just call this function after the object is changed.
+    */
+    void CorrectDurationSums();
+
 
 
 };
@@ -1215,7 +1240,7 @@ public:
                  ArrayRange*                     level,
                  int                             levelsize,
                  DBArray<CompositeMove>&          compositeMoves,
-                 DBArray<SubMove>&                compositeSubMoves,
+                 DBArray<CSubMove>&                compositeSubMoves,
                  DBArray<PeriodicMove>&           periodicMoves,
                  DateTime                        startTime,
                  SubMove                         submove);
@@ -1263,6 +1288,7 @@ class PMPoint : public StandardAttribute {
      DateTime GetStart()const;
      DateTime GetEnd()const;
      PInterval GetInterval()const;
+     void GetInterval(SubMove sm, RelInterval& result)const;
      PBBox GetBbox()const;
      MPoint Expand();
      void ReadFromMPoint(MPoint& P);
@@ -1279,7 +1305,7 @@ class PMPoint : public StandardAttribute {
   private:
      DBArray<LinearPointMove> linearMoves;
      DBArray<SpatialCompositeMove> compositeMoves;
-     DBArray<SubMove> compositeSubMoves;
+     DBArray<CSubMove> compositeSubMoves;
      DBArray<SpatialPeriodicMove> periodicMoves;
      bool defined;
      bool canDelete;
@@ -1321,7 +1347,9 @@ class PMPoint : public StandardAttribute {
      int NumberOfExpandedUnits(const SubMove S);
      LinearPointMove GetLastUnit();
      bool FillFromRepTree(int& cpos, int& cspos, int& ppos, RepTree TR);
-
+     
+     void CorrectDurationSums();
+     void GetLength(SubMove sm, DateTime& result);
 
 
   };
@@ -1366,7 +1394,7 @@ class PMPoints : public StandardAttribute {
      DBArray<LinearPointsMove> linearMoves;
      DBArray<TwoPoints> thePoints;
      DBArray<SpatialCompositeMove> compositeMoves;
-     DBArray<SubMove> compositeSubMoves;
+     DBArray<CSubMove> compositeSubMoves;
      DBArray<SpatialPeriodicMove> periodicMoves;
      bool defined;
      bool canDelete;
@@ -1394,6 +1422,10 @@ class PMPoints : public StandardAttribute {
       int &PMIndex);
      bool AddPeriodMove(const ListExpr value, int &LMIndex, int &PtsIndex,
                         int &CMIndex, int &SMIndex, int &PMIndex);
+
+     void CorrectDurationSums();
+   
+     void GetLength(SubMove SM, DateTime& result);
 
   };
 
