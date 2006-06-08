@@ -37,7 +37,8 @@ ifndef GCC
 endif
 
 
-CLASSFILES=xxx2secondo.class xxx2secdb.class MovingPointBuilder.class Base64Encoder.class Base64Decoder.class Base64.class DupRemover.class PeriodicPointBuilder.class TFWCreator.class TextFormat.class Reporter.class GetEnv.class GetEnv.h $(GetEnvSO)
+CLASSFILES:= $(shell ls *.java | sed -e "s/java/class/")
+CLASSFILES+=GetEnv.h $(GetEnvSO)
 
 
 .PHONY: all 

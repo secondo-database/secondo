@@ -22,7 +22,7 @@ optimizer:	optimizer.pl calloptimizer.pl database.pl operators.pl boundary.pl se
 
 .PHONY: clean
 clean:
-	if [ -d Entropy ]; then make -C ./Entropy clean; fi
+	if [ -d ./Entropy ]; then make -C ./Entropy clean; fi
 	rm -f SecondoConfig.ini
 
 
