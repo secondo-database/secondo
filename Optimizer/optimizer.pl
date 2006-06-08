@@ -1048,8 +1048,14 @@ plan_to_atom(mergejoin(X, Y, A, B), Result) :-
                  AAtom, ', ', BAtom, '] '], '', Result),
   !.
 
-
-
+plan_to_atom(symmproductextend(X, Y, Fields), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  consider_Arg2(Fields, Fields2),          % transform second arg/3 to arg2/3
+  plan_to_atom(Fields2, FieldsAtom),
+  concat_atom([XAtom, YAtom, 'symmproductextend[',
+    FieldsAtom, '] '], '', Result),
+  !.
 
 % two pseudo-operators used by the 'interesting orders extension':
 plan_to_atom(sortLeftThenMergejoin(X, Y, A, B), Result) :-
@@ -3655,7 +3661,7 @@ The option is activated, when ~optimizerOption(immediatePlan)~ is
 defined. See file ``immediateplan.pl'' for further information.
 
 The rule is also used when using the ``interesting orders extension''. 
-To activate this option use ``setOption(intOrders)'' and choose a variant.
+To activate this option use ``setOption(intOrders(V))'' for a variant ~V~.
 
 */
 
@@ -4180,6 +4186,8 @@ which initializes the local stack to 4 MB.
 */
 
 
+/* Example 17 is too complex for the interesting Orders extension (even with 64M stacks):
+----
 sqlExample( 17,
   select *
   from [staedte, plz as p1, plz as p2, plz as p3]
@@ -4195,8 +4203,9 @@ sqlExample( 17,
     p3:ort contains "burg",
     p3:ort starts "M"]
   ).
+----
 
-
+*/
 
 
 sqlExample( 18,

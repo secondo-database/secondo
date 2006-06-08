@@ -134,10 +134,12 @@ Otherwise, a dedicated rule must be added to predicate ~insertExtend/4~ in file
 isJoinOP(sortmergejoin).
 isJoinOP(mergejoin).
 %isJoinOP(symmjoin). % has a dedicated rule for insertExtend/4
+isJoinOP(symmproductextend). % could get a dedicated rule for insertExtend/4
 isJoinOP(hashjoin).
 isJoinOP(spatialjoin).
 isJoinOP(loopjoin).
 isJoinOP(product).
+isJoinOP(symmproduct).
 isJoinOP(pjoin).
 
 
@@ -150,14 +152,16 @@ operator, it is assumed, that it will maintain any existing ordering.
 */
 
 
-maintainsOrderOP(hashjoin,      no).
-maintainsOrderOP(symmjoin,      no).
-maintainsOrderOP(spatialjoin,   no).
-maintainsOrderOP(loopjoin,      outer).
-maintainsOrderOP(product,       no).
-maintainsOrderOP(sort,          no).
-maintainsOrderOP(sortby,        no).
-maintainsOrderOP(sortmergejoin, special).
+maintainsOrderOP(hashjoin,              no).
+maintainsOrderOP(symmjoin,              no).
+maintainsOrderOP(spatialjoin,           no).
+maintainsOrderOP(loopjoin,           outer).
+maintainsOrderOP(product,               no).
+maintainsOrderOP(symmproduct,           no).
+maintainsOrderOP(symmproductextend,     no).
+maintainsOrderOP(sort,                  no).
+maintainsOrderOP(sortby,                no).
+maintainsOrderOP(sortmergejoin,    special).
 
 /*
 3 Properties Of Certain Datatypes

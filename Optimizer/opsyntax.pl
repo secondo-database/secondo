@@ -124,5 +124,6 @@ secondoOp(sort, postfix, 1).
 secondoOp(rdup, postfix, 1).
 secondoOp(bbox, prefix, 1).
 secondoOp(box3d, prefix, 2).
+secondoOp(symmproduct, postfix, 2).
 
 

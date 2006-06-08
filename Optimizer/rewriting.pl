@@ -1110,7 +1110,7 @@ The select-clause of the query must be considered for its own.
 
 ---- rewritePlanforCSE(+PlanIn, -PlanOut, +SelectIn, -SelectOut)
 ----
-Carries out Plan Rewriting for plan ~PanIn~ and select clause ~SelectIn~, 
+Carries out Plan Rewriting for plan ~PlanIn~ and select clause ~SelectIn~, 
 returning the rewritten plan ~PlanOut~ and the rewritten select clause 
 ~SelectOut~.
 
@@ -1461,15 +1461,25 @@ insertExtend(PlanIn, PlanOut, AttrsIn, AttrsOut) :-
                   AttrsOut1, AttrsOut2, 
                   ExtLeft, ExtRight, ExtResult),
 
-  extendPhrase(ArgS1E, ExtLeft,  ArgS1R),
+  extendPhrase(ArgS1E, ExtLeft,  ArgS1R), % extend to input streams
   extendPhrase(ArgS2E, ExtRight, ArgS2R),
-  PlanTmp =.. [symmjoin, ArgS1R, ArgS2R, PredE],
-  extendPhrase(PlanTmp, ExtResult, PlanOut),
 
   union(ExtLeft, ExtRight, ExtArgs),
   union(AttrsOut1, AttrsOut2, AttrArgs),
   union(ExtArgs, AttrArgs, TmpAttrs),
   union(TmpAttrs,ExtResult, AttrsOut),
+
+  ( ExtResult = [] % nothing else needed?
+    -> ( PlanTmp =.. [symmjoin, ArgS1R, ArgS2R, PredE],
+         extendPhrase(PlanTmp, ExtResult, PlanOut)
+       )
+    ;  ( PlanTmp =.. [symmproduct, ArgS1R, ArgS2R],
+         extendPhrase(PlanTmp, ExtResult, PlanTmp2),
+         modifyPredicate(Pred, PredE2, AttrsOut, [], _, _, _),
+         PlanOut =.. [filter, PlanTmp2, PredE2]
+       )
+  ),
+
   dm(insertExtend,['\ninsertExtend: symmjoin-predicate \n\tOld: ',
                   Pred,'\n\tNew: ',PredE,'\n']),
   dm(insertExtend,['insertExtend - avail attrs: ',symmjoin(AttrsOut1,AttrsOut2),
@@ -1535,7 +1545,7 @@ available in argument streams 1 resp. 2. The ~Arg~-field of ~attr/3~ functors is
 adjusted to reflect the correct argument numbers of all attributes within ~PredOut~.
 
 ~AttrsExtend1~ and ~AttrsExtend2~ are sequences of virtual attributes, that 
-~must~ be extended to both argument streams ~before~ the streames are merged. 
+~must~ be extended to both argument streams ~before~ the streams are merged. 
 ~AttrsExtendResult~ is a sequence of virtual attributes, that ~might~ be 
 extended to the result stream, ~after~ the tuples have being merged.
 
@@ -2091,6 +2101,8 @@ Comment out this complete section for standard behavior.
 
 */
 
+/*
+----
 
 % predicates for testing CSE substitution:
 
@@ -2148,3 +2160,33 @@ testquery9 :- sql select sname
                         plz<90000, 
                         kennzeichen starts "B"].
 
+
+testCSEberlin :-
+sql 
+select [t1:trip atperiods deftime((distance(t1:trip, t2:trip) < 200.0) at true) as nah1,
+        t1:id,
+        t2:id,
+        t2:trip atperiods deftime((distance(t1:trip, t2:trip) < 200.0) at true) as nah2
+       ]
+from   [trains as t1,
+        trains as t2
+       ]
+where  [t1:line = 1,
+        t2:line = 1,
+        t1:id # t2:id,
+        sometimes(distance(t1:trip, t2:trip) < 200.0)
+       ] 
+first 1.
+
+:- secondo('close database'),
+   open 'database berlin',
+   delOption(entropy),
+   setOption(debug),
+   debugLevel(rewriteCSE),
+   debugLevel(rewritePlan),
+   debugLevel(rewrite),
+   testCSEberlin.
+
+----
+
+*/
