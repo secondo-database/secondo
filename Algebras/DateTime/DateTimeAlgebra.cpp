@@ -1267,25 +1267,18 @@ Computes a multiple of a duration.
 */
 void DateTime::Mul(const long factor){
    assert(type==durationtype);
-   long d = day;
-   long ms = milliseconds;
-   if(day<0){
-       ms -= MILLISECONDS;
-       d++;
-   }
-   d = d*factor;
-   ms = ms*factor;
-   if(ms<0 || ms>=MILLISECONDS){
-      long tmp = ms/MILLISECONDS;
-      ms = ms-tmp*MILLISECONDS;
-      d=d+tmp;
-      if(ms<0){
-         ms += MILLISECONDS;
-         d--;
-      }
-   }
-   day = d;
-   milliseconds=ms;
+   bool of;
+   BigInt<2> d(day);
+   BigInt<2> ms(milliseconds);
+   BigInt<2> MS(MILLISECONDS);
+   d.MulInternal(MS,of);
+   d.AddInternal(ms,of);
+   BigInt<2> f(factor);
+   d.MulInternal(f,of);
+   BigInt<2> nd(0);
+   nd = d.Div(MS,ms);
+   day = nd.ToLong(of);
+   milliseconds = ms.ToLong(of); 
 }
 
 /*
