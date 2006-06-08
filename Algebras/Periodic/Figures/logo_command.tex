@@ -20,29 +20,29 @@
 \FPdiv{\DiffG}{\DiffG}{\circnumber}
 \FPsub{1}{#4}{\DiffB}
 \FPdiv{\DiffB}{\DiffB}{\circnumber}
-\FPdiv{\DiffRad}{70}{\circnumber}
+\FPdiv{\DiffRad}{90}{\circnumber}
 \scaleboxto(\LogoWidth,0){
 \psset{unit=1pt}
 \begin{pspicture}(0,0)(420,420)
 \rput[bl]{0}(210,210){
 \begin{psclip}{\pscircle[linestyle=none,fillstyle=none](0,0){210}}
-\psarc[linewidth=20,linecolor=BC](0,0){100}{180}{0}
-\pspolygon[linestyle=none,fillstyle=solid,fillcolor=BC](-110,-1)(-110,240)(-90,240)(-90,-1)
-\pspolygon[linestyle=none,fillstyle=solid,fillcolor=BC](110,-1)(110,240)(90,240)(90,-1)
+\psarc[linewidth=20,linecolor=BC](0,0){120}{180}{0}
+\pspolygon[linestyle=none,fillstyle=solid,fillcolor=BC](-130,-1)(-130,240)(-110,240)(-110,-1)
+\pspolygon[linestyle=none,fillstyle=solid,fillcolor=BC](130,-1)(130,240)(110,240)(110,-1)
 %
-\psarc[linewidth=20,linecolor=BC](0,0){150}{180}{0}
-\pspolygon[linestyle=none,fillstyle=solid,fillcolor=BC](-160,-1)(-160,200)(-140,200)(-140,-1)
-\pspolygon[linestyle=none,fillstyle=solid,fillcolor=BC](160,-1)(160,200)(140,200)(140,-1)
+\psarc[linewidth=20,linecolor=BC](0,0){160}{180}{0}
+\pspolygon[linestyle=none,fillstyle=solid,fillcolor=BC](-170,-1)(-170,200)(-150,200)(-150,-1)
+\pspolygon[linestyle=none,fillstyle=solid,fillcolor=BC](170,-1)(170,200)(150,200)(150,-1)
 %
 \psarc[linewidth=20,linecolor=BC](0,0){200}{180}{0}
 \pspolygon[linestyle=none,fillstyle=solid,fillcolor=BC](-210,-1)(-210,150)(-190,150)(-190,-1)
 \pspolygon[linestyle=none,fillstyle=solid,fillcolor=BC](210,-1)(210,150)(190,150)(190,-1)
 \end{psclip}
 % paint a shaded  circle
-\begin{psclip}{\pscircle[linestyle=none,fillstyle=solid,fillcolor=BC](0,0){70}}
-	\multido{\rR=#2+\DiffR,\rG=#3+\DiffG,\rB=#4+\DiffB,\rr=70+-\DiffRad}{\circnumber}{ 
+\begin{psclip}{\pscircle[linestyle=none,fillstyle=solid,fillcolor=BC](0,0){90}}
+	\multido{\rR=#2+\DiffR,\rG=#3+\DiffG,\rB=#4+\DiffB,\rr=90+-\DiffRad}{\circnumber}{ 
 			\newrgbcolor{c}{{\rR} {\rG} {\rB}}
-			\pscircle[linestyle=none,fillstyle=solid,fillcolor=c](-17,17){\rr}
+			\pscircle[linestyle=none,fillstyle=solid,fillcolor=c](-20,20){\rr}
 	}
 \end{psclip}
 }
