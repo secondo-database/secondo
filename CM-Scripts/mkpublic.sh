@@ -31,7 +31,7 @@ while read <&3 line; do
 
         echo "Excluding algebra: $algebra (dir: $algebradir)"
         if [ -d "secondo/Algebras/$algebradir" ]; then
-          cmd=$cmd" -wholename \"secondo/Algebras/$algebradir\" -prune -o"
+          cmd=$cmd" -regex \"secondo/Algebras/$algebradir\" -prune -o "
         fi
 
         sedcmd=$sedcmd" | sed -e \"/ALGEBRAS.*\+\=.*$algebra/d\""
@@ -41,7 +41,7 @@ while read <&3 line; do
 
         if [ -d "secondo/$line" ]; then
           echo "Excluding directory: $line"
-          cmd=$cmd" -wholename \"secondo/$line\" -prune -o"
+          cmd=$cmd" -regex \"secondo/$line\" -prune -o "
           entered=1
         fi
 
@@ -49,14 +49,14 @@ while read <&3 line; do
 
         if [ -f "secondo/$line" ]; then
           echo "Excluding file: $line"
-          cmd=$cmd" -wholename \"secondo/$line\" -prune -o"
+          cmd=$cmd"! -regex \"secondo/$line\" "
           entered=1
         fi
 
       elif [ $section -eq 4 ]; then
 
         echo "Excluding files with pattern: *$line"
-        cmd=$cmd" -name \"*$line\" -prune -o"
+        cmd=$cmd"! -name \"*$line\" "
         entered=1
 
       fi
