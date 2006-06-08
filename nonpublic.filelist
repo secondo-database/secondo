@@ -3,37 +3,31 @@
 # This file contains a list of files which will not be exported
 # into the public available version of SECONDO.
 
+# Algebras
+# Format: algebra-name algebra-directory
+
+TopOpsAlgebra TopOps
+TopRelAlgebra TopRel
+PeriodicAlgebra Periodic
+NetworkAlgebra Network
+RoseAlgebra Rose
+RemoteStreamAlgebra RemoteStream
+PartitionedStreamAlgebra PartitionedStream
+
+
 # Directories
 
-Algebras/TopOps
-Algebras/TopRel
-Algebras/Periodic
-Algebras/Network
-Algebras/Rose
-Algebras/RemoteStream
-Algebras/PartitionedStream
-
 Optimizer/Entropy
-
 Tools/Generators/TPC-H
+Data
 
-# Remove example data
-
-Data/Databases
-Data/Objects
-GuiData/hoese/sessions
-opt
-geo
-
-
-# Files by name
+# Files by Name
 
 nonpublic.filelist
-
 CM-Scripts/cvs-make.sh
+CM-Scripts/cvs-chgrp.sh
 CM-Scripts/cvspass.pl
 CM-Scripts/mkpublic.sh
-
 Javagui/viewer/hoese/algebras/periodic/BBox.java
 Javagui/viewer/hoese/algebras/periodic/LinearMove.java
 Javagui/viewer/hoese/algebras/periodic/PMPLinear.java
@@ -53,13 +47,17 @@ Javagui/viewer/hoese/algebras/Dsplpmpoints.java
 Javagui/viewer/hoese/algebras/Dsplpmreal.java
 Javagui/viewer/hoese/algebras/Dsplpmrect.java
 Javagui/viewer/hoese/algebras/Dsplpmregion.java
-
+Javagui/tools/MovingPointBuilder.java
+Javagui/tools/PeriodicPointBuilder.java
 Documents/JavaWrapper.pdf
-
 Optimizer/adaptiveJoin.pl
+bin/geo
+Tests/Testspecs/network.test
+Tests/Testspecs/partstream.test
 
-# Files by suffix 
+# Files by Extension
 
 .sda
 .sxd
 .canvas
+
