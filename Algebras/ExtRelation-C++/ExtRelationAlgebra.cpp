@@ -53,6 +53,8 @@ stable.
 June 2006, Corrected a bug caused by improper reference counting of tuples observed in  
 operator ~mergesec~.
 
+June 2006, Christian D[ue]ntgen added operator ~symmproductextend~.
+
 [TOC]
 
 1 Includes and defines
@@ -111,7 +113,7 @@ ListExpr GroupTypeMap(ListExpr args)
   nl->WriteToString(argstr,args);
 
   CHECK_COND(nl->ListLength(args) >= 1 && !nl->IsAtom(args),
-    "Type operator sample expects a list with minimal length one.");
+    "Type operator group expects a list with minimal length one.");
 
   first = nl->First(args);
 
@@ -5214,6 +5216,477 @@ Operator extrelsymmjoin (
 //         true                   // needs large amounts of memory
 );
 
+
+
+/* 
+
+5.10.5 Operator ~symmproductextend~
+
+02.06.2006 Christian Duentgen
+
+In queries, it is advantageous to avoid the multiple evaluation of common 
+subexpressions (CSE). One way is to evaluate a CSE when it is needed for
+the first time, and append a new attribute with the CSE's value to the tuple,
+using operator ~extend~. When a CSE first appears within a join condition, and
+the CSE depends on attributes from both input streams to join, this method
+fails. To cope with such situations and optimize the benefit of CSE 
+substitution, we implement the ~symmproductextend~ operator.
+
+The operator has three arguments, the first and second being the input tuple 
+streams. The third argument is a function list (i.e. a list of pairs 
+(attributename function), where ~attributename~ is a new identifier and 
+~function~ is a function calculating the new attribute's value from a pair
+of tuples, one taken from each input tuple stream. 
+
+Subsequent to a ~symmproductextend~, a ~filter~ can be applied, e.g. to express
+a ``join condition'' using the attributes extended (representing CSEs).
+
+The operator works similar to 
+
+---- stream(tuple(X)) stream(tuple(Y)) symmjoin[TRUE] extend[ funlist ].
+----
+
+5.10.5.1 Typemapping for operator ~symmproductextend~
+
+----
+    (stream (tuple (A))) 
+  x (stream (tuple (B))) 
+  x ( ( c1 (map tuple(A) tuple(B) tc1))
+          ...
+
+      ( ck (map tuple(A) tuple(B) tck)))
+ -> (stream (tuple(A*B*C)))
+
+where A = (ta1 a1) ... (tan an)
+      B = (tb1 b1) ... (tbm bm)
+      C = (tc1 c1) ... (tck ck)
+----
+
+*/
+
+/*
+Typemapping operator for operator ~symmproductextend~
+
+*/
+
+ListExpr SymmProductExtendTypeMap(ListExpr args)
+{
+  ListExpr first, second, third, 
+           lastlistn, listn, rest, errorInfo,
+           first2, second2, firstr;
+  string   argstr, argstr2;
+
+  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+
+  CHECK_COND(nl->ListLength(args) == 3,
+    "Operator symmproduxtextend expects a list of length three.");
+
+  first = nl->First(args);
+  second = nl->Second(args);
+  third = nl->Third(args);
+
+  nl->WriteToString(argstr, first);
+  CHECK_COND(nl->ListLength(first) == 2 &&
+             TypeOfRelAlgSymbol(nl->First(first)) == stream &&
+             nl->ListLength(nl->Second(first)) == 2 &&
+             TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
+    "Operator symmproductextend expects a first list with structure "
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator symmproductextend gets a first list with structure '" 
+    + argstr + "'.");
+
+  nl->WriteToString(argstr, second);
+  CHECK_COND(nl->ListLength(second) == 2 &&
+             TypeOfRelAlgSymbol(nl->First(second)) == stream &&
+             nl->ListLength(nl->Second(second)) == 2 &&
+             TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple,
+    "Operator symmproductextend expects a second list with structure "
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator symmproductextend gets a second list with structure '" 
+    + argstr + "'.");
+
+  CHECK_COND(!(nl->IsAtom(third)) &&
+             (nl->ListLength(third) > 0),
+    "Operator symmproductextend: Third argument list may not "
+    "be empty or an atom" );
+
+  // copy first arg's attributes
+  rest = nl->Second(nl->Second(first));
+  listn = nl->OneElemList(nl->First(rest));
+  lastlistn = listn;
+  rest = nl->Rest(rest);
+  while (!(nl->IsEmpty(rest)))
+  {
+     lastlistn = nl->Append(lastlistn,nl->First(rest));
+     rest = nl->Rest(rest);
+  }
+
+  // copy second arg's attributes
+  rest = nl->Second(nl->Second(second));
+  while (!(nl->IsEmpty(rest)))
+  {
+     lastlistn = nl->Append(lastlistn,nl->First(rest));
+     rest = nl->Rest(rest);
+  }
+
+  // handle list of new attributes and mapping functions (3rd argument)
+  rest = third;
+  while (!(nl->IsEmpty(rest))) // for all new attrs
+  {
+    firstr = nl->First(rest);
+    rest = nl->Rest(rest);
+    first2 = nl->First(firstr);
+    second2 = nl->Second(firstr);
+
+    // check new attribute name
+    nl->WriteToString(argstr, first2);
+    CHECK_COND( (nl->IsAtom(first2)) &&
+                (nl->AtomType(first2) == SymbolType),
+      "Operator symmproductextend: Attribute name '" + argstr +
+      "' is not an atom or not of type SymbolType" );
+
+    // check mapping function for new attribute
+    nl->WriteToString(argstr, second2);
+    CHECK_COND( (nl->ListLength(second2) == 4) &&
+                (TypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
+                (am->CheckKind("DATA", nl->Fourth(second2), errorInfo)),
+      "Operator symmproductextend expects a mapping function with list "
+      "structure (<attrname> (map (tuple ( tuple(X) tuple(Y) )) ti) ).\n"
+      "Operator symmproductextend gets a list '" + argstr + "'.\n" 
+      "The fourth list element ('ti') for such a 'ccmap' must "
+      "be of kind 'DATA'.\n" );
+
+    // Do typechecking for first extension mapping function argument:
+    nl->WriteToString(argstr, nl->Second(second2));
+    nl->WriteToString(argstr2, nl->Second(first));
+    CHECK_COND( (nl->Equal(nl->Second((first)),nl->Second(second2))),
+      "Operator symmproductextend: The first argument tuple type '" + argstr +
+      "' in a mapping function is wrong. It should be '" + argstr2 + "'.\n" );
+
+    // Do typechecking for second extension mapping function argument:
+    nl->WriteToString(argstr, nl->Third(second2));
+    nl->WriteToString(argstr2, nl->Second(second));
+    CHECK_COND( (nl->Equal(nl->Second(second),nl->Third(second2))),
+      "Operator symmproductextend: The second argument tuple type '" + argstr +
+      "' in a mapping function is wrong. It should be '" + argstr2 + "'.\n" );
+
+    // append new attribute (name type)
+    lastlistn = nl->Append(lastlistn,
+        (nl->TwoElemList(first2,nl->Fourth(second2))));
+  }
+
+  nl->WriteToString(argstr, listn);
+  CHECK_COND( CompareNames(listn),
+              "Operator symmproductextend: found doubly "
+              "defined attribute names in concatenated list.\n"
+              "The list is '" + argstr + "'\n" );
+
+  return nl->TwoElemList(nl->SymbolAtom("stream"),
+           nl->TwoElemList(nl->SymbolAtom("tuple"),
+             listn));
+}
+
+
+/*
+5.10.5.2 Value mapping function of operator ~symmproductextend~
+
+*/
+struct SymmProductExtendLocalInfo
+{
+  TupleType *resultTupleType;
+  TupleBuffer *rightRel;
+  TupleBufferIterator *rightIter;
+  TupleBuffer *leftRel;
+  TupleBufferIterator *leftIter;
+  bool right;
+  Tuple *currTuple;
+  bool rightFinished;
+  bool leftFinished;
+};
+
+int
+SymmProductExtend(Word* args, Word& result,
+                              int message, Word& local, Supplier s)
+{
+  Word r, l, value;
+  SymmProductExtendLocalInfo* pli;
+  int i, nooffun, noofsons;
+  Supplier supplier, supplier2, supplier3;
+  ArgVectorPointer extFunArgs;
+  Tuple *resultTuple;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      long MAX_MEMORY = qp->MemoryAvailableForOperator();
+      cmsg.info("ERA:ShowMemInfo") << "SymmProductExtend.MAX_MEMORY (" 
+                                   << MAX_MEMORY/1024 << " MB): " << endl;
+      cmsg.send();
+      pli = new SymmProductExtendLocalInfo;
+      pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
+      pli->rightIter = 0;
+      pli->leftRel = new TupleBuffer( MAX_MEMORY / 2 );
+      pli->leftIter = 0;
+      pli->right = true;
+      pli->currTuple = 0;
+      pli->rightFinished = false;
+      pli->leftFinished = false;
+
+      ListExpr resultType = GetTupleResultType( s );
+      pli->resultTupleType = new TupleType( nl->Second( resultType ) );
+      qp->Open(args[0].addr);
+      qp->Open(args[1].addr);
+
+      local = SetWord(pli);
+      return 0;
+    }
+    case REQUEST :
+    {
+      pli = (SymmProductExtendLocalInfo*)local.addr;
+
+      while( 1 )
+        // This loop will end in some of the returns.
+      {
+        if( pli->right )
+          // Get the tuple from the right stream and match it with the 
+          // left stored buffer
+        {
+          if( pli->currTuple == 0 )
+          {
+            qp->Request(args[1].addr, r);
+            if( qp->Received( args[1].addr ) )
+            {
+              pli->currTuple = (Tuple*)r.addr;
+              pli->leftIter = pli->leftRel->MakeScan();
+            }
+            else
+            {
+              pli->rightFinished = true;
+              if( pli->leftFinished )
+                return CANCEL;
+              else
+              {
+                pli->right = false;
+                continue; // Go back to the loop
+              }
+            }
+          }
+
+          // Now we have a tuple from the right stream in currTuple 
+          // and an open iterator on the left stored buffer.
+          Tuple *leftTuple = pli->leftIter->GetNextTuple();
+
+          if( leftTuple == 0 )
+            // There are no more tuples in the left iterator. We then 
+            // store the current tuple in the right buffer and close the 
+            // left iterator.
+          {
+            if( !pli->leftFinished )
+              // We only need to keep track of the right tuples if the 
+              // left stream is not finished.
+            {
+              pli->rightRel->AppendTuple( pli->currTuple );
+              pli->right = false;
+            }
+
+            pli->currTuple->DeleteIfAllowed();
+            pli->currTuple = 0;
+
+            delete pli->leftIter;
+            pli->leftIter = 0;
+
+            continue; // Go back to the loop
+          }
+          else
+            // We match the tuples.
+          {
+            // XRIS: We must calculate the new attributes' values here
+            // and extend currTuple with them
+
+            resultTuple = new Tuple( pli->resultTupleType );
+            Concat( leftTuple, pli->currTuple, resultTuple );
+
+            supplier = args[2].addr;           // get list of ext-functions
+            nooffun = qp->GetNoSons(supplier); // get num of ext-functions
+            for(i = 0; i< nooffun; i++)
+	    {
+              supplier2 = qp->GetSupplier(supplier, i); // get an ext-function
+              noofsons = qp->GetNoSons(supplier2);
+              supplier3 = qp->GetSupplier(supplier2, 1);
+              extFunArgs = qp->Argument(supplier3);
+              (*extFunArgs)[0] = SetWord(leftTuple);     // pass first argument
+              (*extFunArgs)[1] = SetWord(pli->currTuple);// pass second argument
+              qp->Request(supplier3,value);              // call extattr mapping
+              resultTuple->PutAttribute(   leftTuple->GetNoAttributes()
+                                         + pli->currTuple->GetNoAttributes()
+                                         + i,
+				   ((StandardAttribute*)value.addr)->Clone() );
+              qp->ReInitResultStorage( supplier3 );
+            }
+            leftTuple->DeleteIfAllowed();
+            leftTuple = 0;
+            result = SetWord( resultTuple );
+            return YIELD;
+          }
+        }
+        else 
+          // Get the tuple from the left stream and match it with the 
+          // right stored buffer
+        {
+          if( pli->currTuple == 0 )
+          {
+            qp->Request(args[0].addr, l);
+            if( qp->Received( args[0].addr ) )
+            {
+              pli->currTuple = (Tuple*)l.addr;
+              pli->rightIter = pli->rightRel->MakeScan();
+            }
+            else
+            {
+              pli->leftFinished = true;
+              if( pli->rightFinished )
+                return CANCEL;
+              else
+              {
+                pli->right = true;
+                continue; // Go back to the loop
+              }
+            }
+          }
+
+          // Now we have a tuple from the left stream in currTuple and 
+          // an open iterator on the right stored buffer.
+          Tuple *rightTuple = pli->rightIter->GetNextTuple();
+
+          if( rightTuple == 0 )
+            // There are no more tuples in the right iterator. We then 
+            // store the current tuple in the left buffer and close 
+            // the right iterator.
+          {
+            if( !pli->rightFinished )
+              // We only need to keep track of the left tuples if the 
+              // right stream is not finished.
+            {
+              pli->leftRel->AppendTuple( pli->currTuple );
+              pli->right = true;
+            }
+
+            pli->currTuple->DeleteIfAllowed();
+            pli->currTuple = 0;
+
+            delete pli->rightIter;
+            pli->rightIter = 0;
+
+            continue; // Go back to the loop
+          }
+          else
+            // We match the tuples.
+          {
+            // XRIS: We must calculate the new attribute's values here
+            // and extend rightTuple
+            resultTuple = new Tuple( pli->resultTupleType );
+            Concat( rightTuple, pli->currTuple, resultTuple );
+            supplier = args[2].addr;           // get list of ext-functions
+            nooffun = qp->GetNoSons(supplier); // get num of ext-functions
+            for(i = 0; i< nooffun; i++)
+	    {
+              supplier2 = qp->GetSupplier(supplier, i); // get an ext-function
+              noofsons = qp->GetNoSons(supplier2);
+              supplier3 = qp->GetSupplier(supplier2, 1);
+              extFunArgs = qp->Argument(supplier3);
+              (*extFunArgs)[0] = SetWord(pli->currTuple);// pass 1st argument
+              (*extFunArgs)[1] = SetWord(rightTuple);    // pass 2nd argument
+              qp->Request(supplier3,value);              // call extattr mapping
+              resultTuple->PutAttribute(   pli->currTuple->GetNoAttributes()
+                                         + rightTuple->GetNoAttributes()
+                                         + i,
+				   ((StandardAttribute*)value.addr)->Clone() );
+	                             // extend effective left tuple
+              qp->ReInitResultStorage( supplier3 );
+            }
+            rightTuple->DeleteIfAllowed();
+            rightTuple = 0;
+            result = SetWord( resultTuple );
+            return YIELD;
+          }
+        }
+      }
+    }
+    case CLOSE :
+    {
+      pli = (SymmProductExtendLocalInfo*)local.addr;
+
+      if( pli->currTuple != 0 )
+        pli->currTuple->DeleteIfAllowed();
+
+      delete pli->leftIter;
+      delete pli->rightIter;
+      if( pli->resultTupleType != 0 )
+        pli->resultTupleType->DeleteIfAllowed();
+
+      if( pli->rightRel != 0 )
+      {
+        pli->rightRel->Clear();
+        delete pli->rightRel;
+      }
+  
+      if( pli->leftRel != 0 )
+      {
+        pli->leftRel->Clear();
+        delete pli->leftRel;
+      }
+
+      delete pli;
+
+      qp->Close(args[0].addr);
+      qp->Close(args[1].addr);
+
+      return 0;
+    }
+  }
+  return 0;
+}
+
+
+
+
+/*
+
+5.10.5.3 Specification of operator ~symmjoinextend~
+
+*/
+const string SymmProductExtendSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(stream (tuple(X))) (stream (tuple(Y))) "
+  " [(z1, (tuple(X) tuple(Y) -> t1)) "
+  "... (zj, (tuple(X) tuple(Y) -> tj))]  -> (stream (tuple(X*Y*Z))) "
+  "))</text--->"
+  "<text>_ _ symmproductextend[ funlist ]</text--->"
+  "<text>Computes a Cartesian product stream from "
+  "its two argument streams, extending it with "
+  "new attributes respecting mapping rules passed as "
+  "third argument.</text--->"
+  "<text>query ten feed {a} ten feed {b} "
+  "symmproductextend[ [prod: (.no_a * ..no_b)] ] "
+  "count</text--->"
+  " ) )";
+
+/*
+
+5.10.5.4 Definition of operator ~symmjoinextend~
+
+*/
+Operator extrelsymmproductextend (
+         "symmproductextend",     // name
+         SymmProductExtendSpec,   // specification
+         SymmProductExtend,       // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         SymmProductExtendTypeMap // type mapping
+//         true                   // needs large amounts of memory
+);
+
 /*
 
 3 Class ~ExtRelationAlgebra~
@@ -5262,6 +5735,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelaggregate);
     AddOperator(&extrelaggregateB);
     AddOperator(&extrelsymmjoin);
+    AddOperator(&extrelsymmproductextend);
   }
   ~ExtRelationAlgebra() {};
 };
