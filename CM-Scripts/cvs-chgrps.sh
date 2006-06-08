@@ -10,6 +10,9 @@ chgrp -R cvs-dipl /var/lock/cvs/secondo
 chgrp -R cvs-pub /var/lock/cvs/secondo-data
 chgrp -R cvs-pub /home/cvsroot/secondo-data
 
+chgrp -R cvs-pub /var/lock/cvs/secondo-src
+chgrp -R cvs-pub /home/cvsroot/secondo-src
+
 chgrp -R cvs-dipl /var/lock/cvs/students
 chgrp -R cvs-dipl /home/cvsroot/students
 
