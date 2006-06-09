@@ -26,6 +26,8 @@ June 02, 2006. M. Spiekermann. Support for index selections added.
 
 June 07, 2006. M. Spiekermann. Support for index loop-joins added.
 
+june 09, 2006. M. Spiekermann. Corrections for correct handling of unrenamed relations.
+
 This file contains clauses which translate a plan computed by the
 standardoptimizer into a plan using operators of the
 ~PartitionedStream-Algebra~. 
@@ -39,12 +41,12 @@ into an adaptive join using the translation rules below:
 
 join(Arg1, arg(N), pr(X=Y, _, _)) => pjoin1( Stream, Rel, Fields ) :-
   optimizerOption(adaptiveJoin),   
-  try_pjoin1(N, X, Y, Rel, Fields),
+  try_pjoin1SR(N, X, Y, Rel, Fields),
   Arg1 => Stream.
 
 join(arg(N), Arg2, pr(X=Y, _, _)) => pjoin1( Stream, Rel, Fields ) :-
   optimizerOption(adaptiveJoin),   
-  try_pjoin1(N, X, Y, Rel, Fields),
+  try_pjoin1RS(N, X, Y, Rel, Fields),
   Arg2 => Stream.
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2(Arg1S, Arg2S, Fields) :-
@@ -59,13 +61,13 @@ and '..' respectively.
 
 */
 
-try_pjoin1(N, X, Y, Rel, Fields) :-
+try_pjoin1SR(N, X, Y, Rel, Fields) :-
   isOfSecond(AttrRel, X, Y),
   isNotOfSecond(AttrStream, X, Y),
-  createpjoin1(AttrStream, N, AttrRel, Rel, Fields).
+  createpjoin1(AttrStream, N, AttrRel, Rel, Fields), !.
 
 
-try_pjoin1(N, X, Y, Rel, Fields) :-
+try_pjoin1RS(N, X, Y, Rel, Fields) :-
   isOfFirst(attr(Name1, _, Case1), X, Y),
   isNotOfFirst(attr(Name2, _, Case2), X, Y),
   % we need to swap arguments here since pjoin assumes 
@@ -79,7 +81,6 @@ createpjoin1(AttrStream, N, AttrRel, Rel, [F1, F2, F3, F4]) :-
   %write('AttrStream: '), writeln(AttrStream),
   %write('AttrRel: '), writeln(AttrRel),
   argument(N, Rel),
-  writeln(Rel),
   Rel = rel(_, Var, _),
   hasIndex(Rel, AttrRel, IndexName, btree),
   %writeln('pjoin1-hasindex'),
@@ -181,6 +182,8 @@ are presented below:
                    ilj: .  loopjoin[plz_Ort ..  exactmatch[.SName_s] {p} ] 
       ]  
       pdelete  count
+     
+    (5) bug: sql select s:sname from[plz as p, staedte as s ]where p:plz=37263
       
 ----
 
@@ -205,9 +208,9 @@ makePStream(Path, Plan) :-
   traversePath(Path),
   highestNode(Path, N), 
   nodePlan(N, TmpPlan),
-  nl, write('TmpPlan: '), write(TmpPlan), nl, nl,
-  makePStreamRec(pdelete(TmpPlan), Plan, _), 
-  nl, write('Plan: '), write(Plan), nl, nl.
+  %nl, write('TmpPlan: '), write(TmpPlan), nl, nl,
+  makePStreamRec(pdelete(TmpPlan), Plan, _). 
+  %nl, write('Plan: '), write(Plan), nl, nl.
 
 /*
 The predicate ~makePStreamRec/3~ translates a plan starting with
@@ -331,6 +334,9 @@ will be replaced by
                                        [attrname(attr(pLZ, 0, u))]), a) )
 ----
 
+If the argument is still an application of an operator which returns a stream
+of ptuple nothing has to be done.
+
 */
  
 constructPStream(Arg, _, Arg) :-
@@ -341,6 +347,12 @@ constructPStream(Arg, _, Arg) :-
  
 constructPStream(Arg, _, Arg) :-
   Arg =.. [ puse | _ ], !.
+
+constructPStream(Arg, _, Arg) :-
+  Arg =.. [ pfeed | _ ], !.
+ 
+constructPStream(Arg, _, Arg) :-
+  Arg =.. [ pcreate | _ ], !.
  
 constructPStream(Arg1, Source, puse(Source, Arg2)) :-
   nonvar(Source),

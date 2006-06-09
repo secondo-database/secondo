@@ -1882,12 +1882,12 @@ details refer to ~adaptiveJoin.pl~.
 
 join(Arg1, arg(N), pr(X=Y, _, _)) => pjoin1( Stream, Rel, Fields ) :-
   optimizerOption(adaptiveJoin),   
-  try_pjoin1(N, X, Y, Rel, Fields),
+  try_pjoin1SR(N, X, Y, Rel, Fields),
   Arg1 => Stream.
 
 join(arg(N), Arg2, pr(X=Y, _, _)) => pjoin1( Stream, Rel, Fields ) :-
   optimizerOption(adaptiveJoin),   
-  try_pjoin1(N, X, Y, Rel, Fields),
+  try_pjoin1RS(N, X, Y, Rel, Fields),
   Arg2 => Stream.
 
 
