@@ -52,7 +52,7 @@ for query processing.
 #include <iostream>
 #include <sstream>
 #include <queue>
-
+#include <algorithm>
 
 #include "Algebra.h"
 #include "NList.h"
@@ -1518,7 +1518,7 @@ to estimate the cardinality of the input stream
       double expected = max(lastMarker.num,1) * lastMarker.tuples;
       
       // received tuples
-      double received = getTuplesOfCompleteParts(); 
+      double received = getTuplesOfCompleteParts();
 
       SHOW(expected)
       SHOW(received) 
@@ -1526,8 +1526,14 @@ to estimate the cardinality of the input stream
       // cardinality. If not a complete partition of tuples 
       // was read in then the formula below may underestimate
       // the input card. 
-      double card = lastMarker.tuples * max(lastMarker.parts,1) 
-                                       * (received / expected);
+      double card = 0.0;
+      
+      if (lastMarker.parts != 0)
+      { 
+        card  = lastMarker.tuples 
+                  * max(lastMarker.parts,1) 
+                      * (received / expected);
+      }
       SHOW(card)
       
       return static_cast<int>( ceil(card) );
@@ -1676,7 +1682,10 @@ template<class StreamType>
 
      
     const int relErr(const int a, const int b) {
-      return static_cast<int>( ceil(((abs(a - b) * 1.0) / b) * 100) );
+      int c = b;
+      if (b == 0) // avoid infinte values!
+        c = 1;
+      return static_cast<int>( ceil(((abs(a - b) * 1.0) / c) * 100) );
     } 
     
     
@@ -1692,8 +1701,8 @@ input, output, and result stream.
        //SHOW(leftCard)
        //SHOW(rightCard)
 
-       int leftRead = leftBuf->getNoTuples();
-       int rightRead = rightBuf->getNoTuples();
+       int leftRead = max( leftBuf->getNoTuples(), 1 );
+       int rightRead = max( rightBuf->getNoTuples(), 1);
       
        //avg tuple size
        leftAvgTupSize = static_cast<int>( leftBuf->getTotalSize() / leftRead );
@@ -1714,7 +1723,15 @@ input, output, and result stream.
        } 
        */
        
-       joinSel = (1.0 * max(resultTuples,1)) / (leftRead * rightRead);
+       if ( (leftCard == 0) || (rightCard == 0) )
+       { 
+         // in some cases we may have recognized that the input card is zero!
+         joinSel = 0.0;        
+       }   
+       else
+       {   
+         joinSel = (1.0 * max(resultTuples,1)) / (leftRead * rightRead);
+       }  
        SHOW(joinSel)
        
        // cardinality of the join result
@@ -2437,10 +2454,146 @@ static ListExpr shuffle_tm(ListExpr args)
   return shuffle2_tm(args, "shuffle");
 }
 
-static int shuffle_vm( Word* args, Word& result, int message, 
-                    Word& local, Supplier s)
+/*
+The shuffle operator uses a tuple buffer of size $M$ and stores all incoming
+tuples there. In the cas of an memory overflow it will work in the following 
+way
+
+1 the tuples of the buffer are written in random order to disk 
+
+2 Fill the tuple buffer again. Hence the input relation is partitioned into
+$N = StreamSize / M$ parts.
+
+3 When the end of the input stream is reached read in tuples from each partition
+$N$ in chunks of a logical page size $Lps$. In order to guarantee that all tuples
+will be mixed we assume that $N * Lps = M$ which implies $StreamSize =
+\frac{M^2}{Lps}$. For example, if $M=16MB$ and $Lps=32k$ we can randomize
+relations with a size up to 8GB.
+   
+*/   
+
+struct ShuffleBuf {
+  
+  typedef vector<Tuple*> TupleBuf;
+
+  TupleBuf buffer;
+  size_t pos;      // pos is a positive value
+  
+  size_t M;
+  size_t freeMem;
+  int Lps;
+  
+  ShuffleBuf(int MaxMem, int LogicalPageSize) : 
+    pos(0), 
+    M(MaxMem), 
+    freeMem(MaxMem),
+    Lps(LogicalPageSize) 
+  {}
+  ~ShuffleBuf() {}
+  
+  void shuffle() { random_shuffle(buffer.begin(), buffer.end()); }
+  
+  inline bool overFlow(const size_t tupleSize) {
+   
+     if ( freeMem < tupleSize )
+       return true;
+
+     freeMem -= tupleSize;
+     return false;
+  }   
+    
+  // todo: implementation of the persistent case
+  void handleOverFlow(Tuple* t) {
+
+     cerr << "shuffle: A memory overflow happend!" << endl;
+     buffer.push_back(t); 
+     
+  } 
+  
+  void append(Tuple* t) 
+  {
+    if ( overFlow(t->GetExtSize()) )
+      handleOverFlow(t);
+    else
+      buffer.push_back(t); 
+  }
+
+  void open() 
+  { 
+    pos = buffer.size() + 1; 
+  }
+
+  inline Tuple* getNext() { 
+    
+    if ( pos == 1 )
+      return 0;
+      
+    // Return values and start with buffer.size() - 1
+    pos--; 
+    return buffer[pos-1];   
+  }  
+}; 
+
+
+static int shuffle_vm( Word* args, 
+                       Word& result, int message, 
+                       Word& local, Supplier s    )
 {
-  // args[0]: Input stream(ptuple(y))  or stream(tuple(y)) 
+  //args[0]: Input stream(ptuple(y))  or stream(tuple(y)) 
+  
+  static const string pre = "shuffle: ";
+  
+  ShuffleBuf* info = static_cast<ShuffleBuf*>( local.addr );
+  
+  Word stream = args[0];
+  
+  switch (message)
+  {
+    case OPEN :
+    { 
+      const int M = 4096 * 4096;
+      const int Lps = 32 * 1024;
+      
+      info = new ShuffleBuf(M, Lps);
+      qp->Open(stream.addr);
+      Tuple* t = nextTuple(stream);
+      while( t != 0 )
+      {
+        info->append(t);
+        t = nextTuple(stream);
+      } 
+      info->shuffle();
+      info->open();
+      local.addr = info; 
+       
+      return 0;
+    } 
+    
+    case REQUEST :
+    {
+      Tuple* t = info->getNext();
+      if ( t != 0 )
+      {
+        result.addr = t;
+        return YIELD;
+      }
+      else
+      {
+        result.addr = 0;
+        return CANCEL;
+      }
+    }
+    
+    case CLOSE :
+    {
+      qp->Close(stream.addr);
+      delete info;
+      
+      return 0;
+    }
+
+    default : { assert(false); }  
+  }  
   return 0;
 }   
 

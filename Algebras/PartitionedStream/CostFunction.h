@@ -437,6 +437,9 @@ class SortMergeJoinCost : private CostFunction
     cpu += p.cardA + p.cardB;
    
     int resultCard = (int) ceil(p.sel * p.cardA * p.cardB);
+    if (resultCard == 0)
+      return;
+    
     
     // we assume uniform distribution of join attribute values, hence
     // every group of joining tuples will have the following average
@@ -450,7 +453,7 @@ class SortMergeJoinCost : private CostFunction
     
     // Next we derive a factor for groups which need to be merged on disk.
     // If avgGrpBytes > maxMem 50% of the groups are assumed to need
-    // extra materialization
+    // extra materialization.
     double grpsOnDisk = max( 0.5 * (((2.0 * avgGrpBytes) / maxMem) - 1), 0.0);
 
     SHOW(avgGrpTuples)
